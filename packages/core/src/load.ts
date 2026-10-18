@@ -1,10 +1,14 @@
-import { readFileSync, existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Catalog } from "./catalog";
 import type { Cortina, OrchestraProfile, Song } from "./types";
 
 /** Node-only loader: reads the committed index from `data/` (repo root). */
-export function loadCatalog(root = findRoot()): { catalog: Catalog; cortinas: Cortina[]; meta: Record<string, unknown> } {
+export function loadCatalog(root = findRoot()): {
+  catalog: Catalog;
+  cortinas: Cortina[];
+  meta: Record<string, unknown>;
+} {
   const j = (p: string) => join(/* turbopackIgnore: true */ root, p);
   const songs = JSON.parse(readFileSync(j("data/index/songs.json"), "utf8")) as Song[];
   const pf = j("data/knowledge/orchestra_profiles.json");
@@ -19,6 +23,9 @@ export function loadCatalog(root = findRoot()): { catalog: Catalog; cortinas: Co
 
 export function findRoot(start = process.cwd()): string {
   let d = start;
-  for (let i = 0; i < 6; i++) { if (existsSync(join(/* turbopackIgnore: true */ d, "data/index/meta.json"))) return d; d = join(/* turbopackIgnore: true */ d, ".."); }
+  for (let i = 0; i < 6; i++) {
+    if (existsSync(join(/* turbopackIgnore: true */ d, "data/index/meta.json"))) return d;
+    d = join(/* turbopackIgnore: true */ d, "..");
+  }
   return start;
 }

@@ -1,0 +1,40 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: IAM role that GitHub Actions (ArioMoniri/TDJ) assumes via OIDC to deploy TDJ with SST. Deploy once per AWS account.
+Parameters:
+  GitHubOrg: { Type: String, Default: ArioMoniri }
+  GitHubRepo: { Type: String, Default: TDJ }
+  RoleName: { Type: String, Default: tdj-github-deploy }
+Conditions:
+  CreateProvider: !Equals [!Ref "AWS::NoValue", "never"]
+Resources:
+  OidcProvider:
+    Type: AWS::IAM::OIDCProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList: [sts.amazonaws.com]
+      ThumbprintList: [6938fd4d98bab03faadb97b34396831e3780aea1, 1c58a3a8518e8759bf075b76b750d4f2df264fcd]
+  DeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Ref RoleName
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Federated: !Ref OidcProvider }
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals: { "token.actions.githubusercontent.com:aud": sts.amazonaws.com }
+              StringLike: { "token.actions.githubusercontent.com:sub": !Sub "repo:${GitHubOrg}/${GitHubRepo}:*" }
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/PowerUserAccess   # SST needs Lambda, CloudFront, S3, IAM role creation for the function (scoped below)
+      Policies:
+        - PolicyName: sst-iam
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: [iam:CreateRole, iam:DeleteRole, iam:AttachRolePolicy, iam:DetachRolePolicy, iam:PutRolePolicy, iam:DeleteRolePolicy, iam:GetRole, iam:PassRole, iam:TagRole, iam:ListRolePolicies, iam:ListAttachedRolePolicies, iam:GetRolePolicy, iam:UpdateAssumeRolePolicy, iam:CreatePolicy, iam:DeletePolicy, iam:GetPolicy, iam:ListPolicyVersions, iam:CreatePolicyVersion, iam:DeletePolicyVersion]
+                Resource: "*"
+Outputs:
+  RoleArn: { Value: !GetAtt DeployRole.Arn, Description: "Set this as the GitHub repo variable AWS_DEPLOY_ROLE_ARN" }

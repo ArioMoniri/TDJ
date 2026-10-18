@@ -5,7 +5,22 @@ import type { ComposeOptions, Playlist } from "./types";
 import { DEFAULT_SETTINGS, type UserSettings } from "./types";
 
 export const DEFAULT_OPTS: Partial<ComposeOptions> = {
-  hours: 4, eras: ["golden"], pattern: "classic", tandaShape: "rise-settle", arc: "classic-two-peaks", cortinaStyle: "matched", cortinaCultures: ["global"], cortinaTrend: "mixed", cortinaLengthSec: 45, closeWithCumparsita: true, floorMood: "balanced", tangoTandaSize: 4, valsTandaSize: 3, milongaTandaSize: 3, orchestraRepeatGap: 6, maxYearSpread: 4,
+  hours: 4,
+  eras: ["golden"],
+  pattern: "classic",
+  tandaShape: "rise-settle",
+  arc: "classic-two-peaks",
+  cortinaStyle: "matched",
+  cortinaCultures: ["global"],
+  cortinaTrend: "mixed",
+  cortinaLengthSec: 45,
+  closeWithCumparsita: true,
+  floorMood: "balanced",
+  tangoTandaSize: 4,
+  valsTandaSize: 3,
+  milongaTandaSize: 3,
+  orchestraRepeatGap: 6,
+  maxYearSpread: 4,
 };
 
 interface State {
@@ -21,11 +36,28 @@ interface State {
   setSpotifyToken: (t: State["spotifyToken"]) => void;
 }
 
-export const useStore = create<State>()(persist((set) => ({
-  options: DEFAULT_OPTS, playlist: null, busy: false, settings: DEFAULT_SETTINGS, spotifyToken: null,
-  setOptions: (o) => set((s) => ({ options: { ...s.options, ...o } })),
-  setPlaylist: (playlist) => set({ playlist }),
-  setBusy: (busy) => set({ busy }),
-  setSettings: (x) => set((s) => ({ settings: { ...s.settings, ...x } })),
-  setSpotifyToken: (spotifyToken) => set({ spotifyToken }),
-}), { name: "tdj-v1", partialize: (s) => ({ options: s.options, settings: s.settings, spotifyToken: s.spotifyToken, playlist: s.playlist }) }));
+export const useStore = create<State>()(
+  persist(
+    (set) => ({
+      options: DEFAULT_OPTS,
+      playlist: null,
+      busy: false,
+      settings: DEFAULT_SETTINGS,
+      spotifyToken: null,
+      setOptions: (o) => set((s) => ({ options: { ...s.options, ...o } })),
+      setPlaylist: (playlist) => set({ playlist }),
+      setBusy: (busy) => set({ busy }),
+      setSettings: (x) => set((s) => ({ settings: { ...s.settings, ...x } })),
+      setSpotifyToken: (spotifyToken) => set({ spotifyToken }),
+    }),
+    {
+      name: "tdj-v1",
+      partialize: (s) => ({
+        options: s.options,
+        settings: s.settings,
+        spotifyToken: s.spotifyToken,
+        playlist: s.playlist,
+      }),
+    },
+  ),
+);

@@ -1,7 +1,40 @@
-export type Rhythm = "tango" | "vals" | "milonga" | "cancion" | "foxtrot" | "pasodoble" | "ranchera" | "zamba" | "polca" | "estilo" | "corrido" | "tonada" | "shimmy" | "candombe" | "marcha" | "other" | "unknown";
+export type Rhythm =
+  | "tango"
+  | "vals"
+  | "milonga"
+  | "cancion"
+  | "foxtrot"
+  | "pasodoble"
+  | "ranchera"
+  | "zamba"
+  | "polca"
+  | "estilo"
+  | "corrido"
+  | "tonada"
+  | "shimmy"
+  | "candombe"
+  | "marcha"
+  | "other"
+  | "unknown";
 export type DanceRhythm = "tango" | "vals" | "milonga";
-export type Era = "guardia-vieja" | "guardia-nueva" | "golden-early" | "golden-peak" | "golden-late" | "post-golden" | "nuevo" | "contemporary" | "unknown";
-export type EraPreset = "golden" | "golden-extended" | "guardia-vieja" | "post-golden" | "nuevo" | "contemporary" | "all";
+export type Era =
+  | "guardia-vieja"
+  | "guardia-nueva"
+  | "golden-early"
+  | "golden-peak"
+  | "golden-late"
+  | "post-golden"
+  | "nuevo"
+  | "contemporary"
+  | "unknown";
+export type EraPreset =
+  | "golden"
+  | "golden-extended"
+  | "guardia-vieja"
+  | "post-golden"
+  | "nuevo"
+  | "contemporary"
+  | "all";
 
 export interface Song {
   id: string;
@@ -122,8 +155,18 @@ export interface Playlist {
   score: ScoreCard;
 }
 
-export interface ScoreFactor { key: string; label: string; weight: number; score: number; detail: string }
-export interface ScoreCard { total: number; factors: ScoreFactor[]; verdict: string }
+export interface ScoreFactor {
+  key: string;
+  label: string;
+  weight: number;
+  score: number;
+  detail: string;
+}
+export interface ScoreCard {
+  total: number;
+  factors: ScoreFactor[];
+  verdict: string;
+}
 
 export interface ComposeOptions {
   hours: number;

@@ -1,5 +1,5 @@
-import { mergeProfiles, ERA_PRESETS } from "./profiles";
 import { songEnergy } from "./energy";
+import { ERA_PRESETS, mergeProfiles } from "./profiles";
 import type { DanceRhythm, EraPreset, OrchestraProfile, Song } from "./types";
 
 export interface CatalogFilter {
@@ -18,21 +18,32 @@ export class Catalog {
   readonly profiles: Map<string, OrchestraProfile>;
   readonly byOrchestra = new Map<string, Song[]>();
 
-  constructor(songs: Song[], extraProfiles: OrchestraProfile[] = [], spotifyCache: Record<string, Song["spotify"] & { durationMs?: number }> = {}) {
+  constructor(
+    songs: Song[],
+    extraProfiles: OrchestraProfile[] = [],
+    spotifyCache: Record<string, Song["spotify"] & { durationMs?: number }> = {},
+  ) {
     this.profiles = mergeProfiles(extraProfiles);
     this.songs = songs.map((s) => {
       const sp = spotifyCache[s.id] ?? s.spotify ?? null;
-      const song: Song = { ...s, spotify: sp ?? null, durationSec: s.durationSec ?? (sp?.durationMs ? Math.round(sp.durationMs / 1000) : undefined) };
+      const song: Song = {
+        ...s,
+        spotify: sp ?? null,
+        durationSec: s.durationSec ?? (sp?.durationMs ? Math.round(sp.durationMs / 1000) : undefined),
+      };
       song.energy = songEnergy(song, this.profiles.get(song.orchestraId));
       return song;
     });
     for (const s of this.songs) {
       const arr = this.byOrchestra.get(s.orchestraId) ?? [];
-      arr.push(s); this.byOrchestra.set(s.orchestraId, arr);
+      arr.push(s);
+      this.byOrchestra.set(s.orchestraId, arr);
     }
   }
 
-  profile(orchestraId: string): OrchestraProfile | undefined { return this.profiles.get(orchestraId); }
+  profile(orchestraId: string): OrchestraProfile | undefined {
+    return this.profiles.get(orchestraId);
+  }
 
   filter(f: CatalogFilter): Song[] {
     const eras = new Set((f.eras ?? ["all"]).flatMap((p) => ERA_PRESETS[p]?.eras ?? []));
@@ -47,18 +58,29 @@ export class Catalog {
       if (exc.has(s.orchestraId)) return false;
       if (f.onlySelection && !s.selection) return false;
       if (f.requireSpotify && !s.spotify) return false;
-      if (f.minTier) { const t = this.profiles.get(s.orchestraId)?.tier ?? 3; if (t > f.minTier) return false; }
+      if (f.minTier) {
+        const t = this.profiles.get(s.orchestraId)?.tier ?? 3;
+        if (t > f.minTier) return false;
+      }
       return true;
     });
   }
 
   search(q: string, limit = 50): Song[] {
-    const norm = (x: string) => x.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/['\u2019.]/g, "");
+    const norm = (x: string) =>
+      x
+        .toLowerCase()
+        .normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/['\u2019.]/g, "");
     const terms = norm(q).split(/\s+/).filter(Boolean);
     const out: Song[] = [];
     for (const s of this.songs) {
       const hay = norm(`${s.title} ${s.orchestra} ${s.singer ?? ""} ${s.year ?? ""} ${s.rhythm}`);
-      if (terms.every((t) => hay.includes(t))) { out.push(s); if (out.length >= limit) break; }
+      if (terms.every((t) => hay.includes(t))) {
+        out.push(s);
+        if (out.length >= limit) break;
+      }
     }
     return out;
   }

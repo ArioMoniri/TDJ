@@ -1,7 +1,54 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.2.0/schema.json",
-  "files": { "includes": ["**", "!**/node_modules", "!**/.next", "!**/dist", "!**/out", "!data/**", "!**/.sst", "!media/**", "!brand/**"] },
-  "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2, "lineWidth": 110 },
-  "linter": { "enabled": true, "rules": { "recommended": true, "suspicious": { "noExplicitAny": "warn" }, "style": { "noNonNullAssertion": "off" } } },
-  "javascript": { "formatter": { "quoteStyle": "double", "semicolons": "always" } }
+  "files": {
+    "includes": [
+      "**",
+      "!**/node_modules",
+      "!**/.next",
+      "!**/dist",
+      "!**/out",
+      "!data/**",
+      "!**/.sst",
+      "!**/.turbo",
+      "!media/**",
+      "!brand/**",
+      "!**/.open-next",
+      "!pnpm-lock.yaml"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 110
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "suspicious": {
+        "noExplicitAny": "warn",
+        "noUndeclaredEnvVars": "off",
+        "useIterableCallbackReturn": "off",
+        "noArrayIndexKey": "off"
+      },
+      "style": {
+        "noNonNullAssertion": "off"
+      },
+      "a11y": {
+        "noSvgWithoutTitle": "off"
+      }
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "semicolons": "always"
+    }
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  }
 }

@@ -4,7 +4,9 @@
   "version": "0.1.0",
   "description": "TDJ — Tango DJ playlist composer: tandas, cortinas, energy arcs, exports to Spotify and DJ apps.",
   "packageManager": "pnpm@10.18.0",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "turbo run dev --filter=@tdj/web",
     "build": "turbo run build",
@@ -22,6 +24,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.0",
+    "sst": "^4.17.2",
     "turbo": "^2.5.0",
     "typescript": "^5.9.0"
   }

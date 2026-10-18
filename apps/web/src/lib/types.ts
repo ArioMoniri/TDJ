@@ -1,4 +1,4 @@
-export type { Playlist, Tanda, Song, Cortina, ComposeOptions, ScoreCard } from "@tdj/core";
+export type { ComposeOptions, Cortina, Playlist, ScoreCard, Song, Tanda } from "@tdj/core";
 export interface UserSettings {
   spotifyClientId: string;
   anthropicApiKey: string;
@@ -7,4 +7,11 @@ export interface UserSettings {
   region: "buenos-aires" | "europe" | "istanbul" | "asia" | "us";
   reduceGlass: boolean;
 }
-export const DEFAULT_SETTINGS: UserSettings = { spotifyClientId: "", anthropicApiKey: "", anthropicModel: "claude-sonnet-5-5", theme: "auto", region: "europe", reduceGlass: false };
+export const DEFAULT_SETTINGS: UserSettings = {
+  spotifyClientId: "",
+  anthropicApiKey: "",
+  anthropicModel: "claude-sonnet-5-5",
+  theme: "auto",
+  region: "europe",
+  reduceGlass: false,
+};

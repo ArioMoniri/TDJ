@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- Concept A "Tanda arc": the night as a record groove, opened where a rising three-step line (slow → up → settle) breaks out of it -->
+  <path d="M128 40 A88 88 0 1 1 40 128" fill="none" stroke="#000" stroke-width="20" stroke-linecap="round"/>
+  <path d="M64 176 H100 V140 H136 V104 H172 V68" fill="none" stroke="#000" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="128" cy="128" r="12" fill="#000"/>
+</svg>
