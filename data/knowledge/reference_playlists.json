@@ -1,0 +1,295 @@
+{
+ "note": "Public Spotify playlists surfaced through the Spotify connector on 2026-10-18; used by the app's Listen panel (anonymous embeds) and as benchmark references. Editorial 'This Is' lists are listening references, not tanda models.",
+ "playlists": [
+  {
+   "id": "0NJyrTRWKshj0gqnRj9hHY",
+   "title": "Tango Tandas 1935 - 52 Golden Age Period - por Aren León",
+   "owner": "Aren León Tango Archive",
+   "kind": "tandas",
+   "orchestraId": null,
+   "tags": [
+    "golden",
+    "reference"
+   ],
+   "url": "https://open.spotify.com/playlist/0NJyrTRWKshj0gqnRj9hHY"
+  },
+  {
+   "id": "2t0ZCRYyQmsHmNvYncrHD4",
+   "title": "Milonga Tandas - Tango Argentina - por Aren León",
+   "owner": "Aren León Tango Archive",
+   "kind": "tandas",
+   "orchestraId": null,
+   "tags": [
+    "milonga",
+    "reference"
+   ],
+   "url": "https://open.spotify.com/playlist/2t0ZCRYyQmsHmNvYncrHD4"
+  },
+  {
+   "id": "3oIzdHIWLoYBpLWqHc8sU6",
+   "title": "D'arienzo Instrumental Tangos 1935-1939",
+   "owner": "Khang Tong",
+   "kind": "orchestra",
+   "orchestraId": "juan-d-arienzo",
+   "tags": [
+    "rhythmic",
+    "peak"
+   ],
+   "url": "https://open.spotify.com/playlist/3oIzdHIWLoYBpLWqHc8sU6"
+  },
+  {
+   "id": "09jvSb1bHijesDsUjBZWJS",
+   "title": "D'arienzo Mauré 1941-1944",
+   "owner": "Khang Tong",
+   "kind": "orchestra",
+   "orchestraId": "juan-d-arienzo",
+   "tags": [
+    "vocal",
+    "build"
+   ],
+   "url": "https://open.spotify.com/playlist/09jvSb1bHijesDsUjBZWJS"
+  },
+  {
+   "id": "1f0ssJMEoGb81thJNKoMm8",
+   "title": "Juan D'arienzo y Armando Laborde",
+   "owner": "Juscelino Portela Tango",
+   "kind": "orchestra",
+   "orchestraId": "juan-d-arienzo",
+   "tags": [],
+   "url": "https://open.spotify.com/playlist/1f0ssJMEoGb81thJNKoMm8"
+  },
+  {
+   "id": "5TqPUPUyNU4AmpaffMkitK",
+   "title": "Juan D'arienzo Instrumental",
+   "owner": "Juscelino Portela Tango",
+   "kind": "orchestra",
+   "orchestraId": "juan-d-arienzo",
+   "tags": [],
+   "url": "https://open.spotify.com/playlist/5TqPUPUyNU4AmpaffMkitK"
+  },
+  {
+   "id": "37i9dQZF1DZ06evO43aDkX",
+   "title": "This Is Juan D'Arienzo and his Orchestra",
+   "owner": "Spotify",
+   "kind": "editorial",
+   "orchestraId": "juan-d-arienzo",
+   "tags": [],
+   "url": "https://open.spotify.com/playlist/37i9dQZF1DZ06evO43aDkX"
+  },
+  {
+   "id": "58lksAidCh05OISq4BEUhl",
+   "title": "Di Sarli - Rufino",
+   "owner": "umutkaramol",
+   "kind": "orchestra",
+   "orchestraId": "carlos-di-sarli",
+   "tags": [
+    "vocal",
+    "warmup",
+    "build"
+   ],
+   "url": "https://open.spotify.com/playlist/58lksAidCh05OISq4BEUhl"
+  },
+  {
+   "id": "7JOS2Md1qRKQiptTXwbRcS",
+   "title": "Di Sarli Instrumentals 1950s (Powerful)",
+   "owner": "mariamccarry",
+   "kind": "orchestra",
+   "orchestraId": "carlos-di-sarli",
+   "tags": [
+    "instrumental",
+    "opener",
+    "reset"
+   ],
+   "url": "https://open.spotify.com/playlist/7JOS2Md1qRKQiptTXwbRcS"
+  },
+  {
+   "id": "2NJezAigVWGasXoHvNnFCM",
+   "title": "Carlos Di Sarli - instrumental (1954-1956)",
+   "owner": "im923",
+   "kind": "orchestra",
+   "orchestraId": "carlos-di-sarli",
+   "tags": [],
+   "url": "https://open.spotify.com/playlist/2NJezAigVWGasXoHvNnFCM"
+  },
+  {
+   "id": "3zEVpoonbAAGQPLm4AYKS9",
+   "title": "Carlos Di Sarli-Jorge Durán (1945-1947/1956-1958)",
+   "owner": "Milonga El Narigón",
+   "kind": "orchestra",
+   "orchestraId": "carlos-di-sarli",
+   "tags": [],
+   "url": "https://open.spotify.com/playlist/3zEVpoonbAAGQPLm4AYKS9"
+  },
+  {
+   "id": "5tvhTsLomMTuRHuo2qfYO4",
+   "title": "Carlos Di Sarli y Alberto Podesta",
+   "owner": "ximeparrondo",
+   "kind": "orchestra",
+   "orchestraId": "carlos-di-sarli",
+   "tags": [],
+   "url": "https://open.spotify.com/playlist/5tvhTsLomMTuRHuo2qfYO4"
+  },
+  {
+   "id": "34O61KWI3JJNP4gSqQXuWD",
+   "title": "Carlos di Sarli cronológico",
+   "owner": "oharny",
+   "kind": "orchestra",
+   "orchestraId": "carlos-di-sarli",
+   "tags": [],
+   "url": "https://open.spotify.com/playlist/34O61KWI3JJNP4gSqQXuWD"
+  },
+  {
+   "id": "7snxQ7moavJUawS9T9sBjl",
+   "title": "Troilo - Fiorentino (41 - 44)",
+   "owner": "vastian",
+   "kind": "orchestra",
+   "orchestraId": "anibal-troilo",
+   "tags": [
+    "vocal",
+    "build"
+   ],
+   "url": "https://open.spotify.com/playlist/7snxQ7moavJUawS9T9sBjl"
+  },
+  {
+   "id": "4YyBAJtnmXHMj9QkGqr0Yg",
+   "title": "Troilo Instrumental 1938-1951",
+   "owner": "Sebastián R.",
+   "kind": "orchestra",
+   "orchestraId": "anibal-troilo",
+   "tags": [],
+   "url": "https://open.spotify.com/playlist/4YyBAJtnmXHMj9QkGqr0Yg"
+  },
+  {
+   "id": "38dzqWbbuaZdW9TT6wr9tq",
+   "title": "Troilo - Marino",
+   "owner": "umutkaramol",
+   "kind": "orchestra",
+   "orchestraId": "anibal-troilo",
+   "tags": [],
+   "url": "https://open.spotify.com/playlist/38dzqWbbuaZdW9TT6wr9tq"
+  },
+  {
+   "id": "37i9dQZF1DZ06evO0KZcR6",
+   "title": "This Is Aníbal Troilo Pichuco",
+   "owner": "Spotify",
+   "kind": "editorial",
+   "orchestraId": "anibal-troilo",
+   "tags": [],
+   "url": "https://open.spotify.com/playlist/37i9dQZF1DZ06evO0KZcR6"
+  },
+  {
+   "id": "08dQP36sx0tlZx0obqQ9Ey",
+   "title": "Best of OSVALDO PUGLIESE",
+   "owner": "batuhannida",
+   "kind": "orchestra",
+   "orchestraId": "osvaldo-pugliese",
+   "tags": [
+    "dramatic",
+    "peak"
+   ],
+   "url": "https://open.spotify.com/playlist/08dQP36sx0tlZx0obqQ9Ey"
+  },
+  {
+   "id": "5aMLivIM3W5gZVDDcpO9ie",
+   "title": "Osvaldo Pugliese & Jorge Maciel",
+   "owner": "Berkan Kepenek",
+   "kind": "orchestra",
+   "orchestraId": "osvaldo-pugliese",
+   "tags": [],
+   "url": "https://open.spotify.com/playlist/5aMLivIM3W5gZVDDcpO9ie"
+  },
+  {
+   "id": "37i9dQZF1DZ06evO1yuRG9",
+   "title": "This Is Osvaldo Pugliese",
+   "owner": "Spotify",
+   "kind": "editorial",
+   "orchestraId": "osvaldo-pugliese",
+   "tags": [],
+   "url": "https://open.spotify.com/playlist/37i9dQZF1DZ06evO1yuRG9"
+  },
+  {
+   "id": "00KJqCIWjtySBi6qFJs9BR",
+   "title": "Osvaldo Fresedo tangos",
+   "owner": "juanchirosario",
+   "kind": "orchestra",
+   "orchestraId": "osvaldo-fresedo",
+   "tags": [
+    "warmup"
+   ],
+   "url": "https://open.spotify.com/playlist/00KJqCIWjtySBi6qFJs9BR"
+  },
+  {
+   "id": "0GknMEuDwztwmarevQ5Yhc",
+   "title": "FRANCISCO CANARO TANGOS",
+   "owner": "JUAN CARLOS MEDINA A",
+   "kind": "orchestra",
+   "orchestraId": "francisco-canaro",
+   "tags": [],
+   "url": "https://open.spotify.com/playlist/0GknMEuDwztwmarevQ5Yhc"
+  },
+  {
+   "id": "65aFUd3WNQ2oJk84Zzyqhd",
+   "title": "TANGO - Fulvio Salamanca",
+   "owner": "Estácio Júnior",
+   "kind": "orchestra",
+   "orchestraId": "fulvio-salamanca",
+   "tags": [],
+   "url": "https://open.spotify.com/playlist/65aFUd3WNQ2oJk84Zzyqhd"
+  },
+  {
+   "id": "2FvNrHbSCFXzqKwJVIkhh4",
+   "title": "250 Traditional Argentine Tangos, Milongas & Waltzes from Slow to Fast (53 to 115 bpm)",
+   "owner": "Koos de Wit",
+   "kind": "tempo-ladder",
+   "orchestraId": null,
+   "tags": [
+    "bpm",
+    "reference"
+   ],
+   "url": "https://open.spotify.com/playlist/2FvNrHbSCFXzqKwJVIkhh4"
+  },
+  {
+   "id": "1NvhB25svzimRdERYuglCF",
+   "title": "1001 Tango Songs – Milonga DJ Classics, Golden Age & Modern",
+   "owner": "Roshan Khan",
+   "kind": "library",
+   "orchestraId": null,
+   "tags": [
+    "reference"
+   ],
+   "url": "https://open.spotify.com/playlist/1NvhB25svzimRdERYuglCF"
+  },
+  {
+   "id": "6QYUSP5wAqy5gMViRl04VG",
+   "title": "Tango - Intro to Golden Age Tango Music",
+   "owner": "Kamlesh",
+   "kind": "intro",
+   "orchestraId": null,
+   "tags": [],
+   "url": "https://open.spotify.com/playlist/6QYUSP5wAqy5gMViRl04VG"
+  },
+  {
+   "id": "37i9dQZF1DXcCT9tm6fRIV",
+   "title": "Tangos y Milongas",
+   "owner": "Spotify",
+   "kind": "editorial",
+   "orchestraId": null,
+   "tags": [
+    "anti-benchmark"
+   ],
+   "url": "https://open.spotify.com/playlist/37i9dQZF1DXcCT9tm6fRIV"
+  },
+  {
+   "id": "37i9dQZF1DX1WNn0uqbB04",
+   "title": "Neo Tango",
+   "owner": "Spotify",
+   "kind": "editorial",
+   "orchestraId": null,
+   "tags": [
+    "nuevo",
+    "alternative"
+   ],
+   "url": "https://open.spotify.com/playlist/37i9dQZF1DX1WNn0uqbB04"
+  }
+ ]
+}
