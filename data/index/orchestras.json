@@ -4,9 +4,9 @@
   "name": "Juan D'Arienzo",
   "count": 1098,
   "rhythms": {
-   "tango": 894,
+   "tango": 891,
+   "vals": 102,
    "milonga": 102,
-   "vals": 99,
    "ranchera": 1,
    "unknown": 1,
    "polca": 1
@@ -21,9 +21,9 @@
    "Alberto Reynal": 32,
    "Horacio Palma": 21,
    "Carlos Dante": 19,
-   "A.laborde-O.ramos": 13,
+   "A. Laborde - O. Ramos": 13,
    "Juan Carlos Lamas": 11,
-   "A.echagüe-A.laborde": 8
+   "A. Echagüe - A. Laborde": 8
   },
   "vocal": 727,
   "yearRange": [
@@ -143,7 +143,7 @@
    "Jorge Vidal": 163,
    "Héctor Mauré": 85,
    "Agustín Magaldi": 61,
-   "A.magaldi-P.noda": 54,
+   "A. Magaldi - P. Noda": 54,
    "Alberto Vila": 50,
    "Carlos Gardel": 42,
    "Edmundo Rivero": 42,
@@ -165,8 +165,8 @@
   "name": "Alfredo De Angelis",
   "count": 771,
   "rhythms": {
-   "tango": 655,
-   "vals": 71,
+   "tango": 648,
+   "vals": 78,
    "milonga": 41,
    "other": 2,
    "candombe": 1,
@@ -176,17 +176,17 @@
    "Carlos Dante": 127,
    "Oscar Larroca": 89,
    "Julio Martel": 78,
-   "C.dante-J.martel": 52,
+   "C. Dante - J. Martel": 52,
    "Juan Carlos Godoy": 44,
    "Carlos Aguirre": 41,
-   "C.dante-O.larroca": 31,
+   "C. Dante - O. Larroca": 31,
    "Floreal Ruíz": 29,
    "Julián Rosales": 24,
    "Carlos Gardel": 24,
    "Lalo Martel": 23,
    "Alberto Cuello": 17
   },
-  "vocal": 661,
+  "vocal": 659,
   "yearRange": [
    1943,
    1985
@@ -269,8 +269,8 @@
   "name": "Aníbal Troilo",
   "count": 750,
   "rhythms": {
-   "tango": 634,
-   "milonga": 65,
+   "tango": 635,
+   "milonga": 64,
    "vals": 31,
    "other": 11,
    "polca": 6,
@@ -291,7 +291,7 @@
    "Angel Cárdenas": 15,
    "Aldo Calderón": 12
   },
-  "vocal": 530,
+  "vocal": 529,
   "yearRange": [
    1938,
    1991
@@ -632,7 +632,7 @@
    "Eladia Blázquez": 14,
    "Mario Ponce de León": 13
   },
-  "vocal": 455,
+  "vocal": 446,
   "yearRange": [
    1906,
    2002
@@ -659,7 +659,7 @@
   },
   "singers": {
    "Carlos Gardel": 418,
-   "C.gardel-J.razzano": 43
+   "C. Gardel - J. Razzano": 43
   },
   "vocal": 461,
   "yearRange": [
@@ -692,8 +692,8 @@
    "Horacio Casares": 9,
    "Argentino Ledesma": 4,
    "Rodolfo Galé": 3,
-   "J.durán(cast)-Bob Toledo(ing)": 2,
-   "R.florio-J.durán": 2
+   "J. Durán(cast) - Bob Toledo(ing)": 2,
+   "R. Florio - J. Durán": 2
   },
   "vocal": 234,
   "yearRange": [
@@ -838,8 +838,8 @@
    "Adrián Guida": 9,
    "Jorge Vidal": 9,
    "Alfredo Belusi": 7,
-   "A.córdoba-A.guida": 4,
-   "C.guido-J.maciel": 4,
+   "A. Córdoba - A. Guida": 4,
+   "C. Guido - J. Maciel": 4,
    "Juan Carlos Cobos": 4,
    "Palabras": 3
   },
@@ -944,7 +944,7 @@
    "Carmen del Moral": 6,
    "Charlo": 6,
    "Angel Vargas": 6,
-   "A.gómez-Tito Vila": 4,
+   "A. Gómez - Tito Vila": 4,
    "Eugenio Viñas": 4
   },
   "vocal": 166,
@@ -1052,7 +1052,7 @@
   },
   "singers": {
    "Armando Moreno": 198,
-   "Roberto\"chato\"flores": 35,
+   "Roberto \"Chato\" Flores": 35,
    "Ricardo Herrera": 11,
    "Ernesto Falcón": 10,
    "Fernando Reyes": 6,
@@ -1060,9 +1060,9 @@
    "Omar Quiróz": 5,
    "José Torres": 2,
    "Oscar Galán": 2,
-   "O.quiróz-O.galán": 2,
-   "O.quiróz-O.galán-A.moreno": 2,
-   "R.herrera-F.reyes": 1
+   "O. Quiróz - O. Galán": 2,
+   "O. Quiróz - O. Galán - A. Moreno": 2,
+   "R. Herrera - F. Reyes": 1
   },
   "vocal": 283,
   "yearRange": [
@@ -1262,12 +1262,12 @@
    "Carlos Galarce": 12,
    "Charlo": 12,
    "Miguel Montero": 12,
-   "F.díaz-J.omar": 5,
+   "F. Díaz - J. Omar": 5,
    "Príncipe Azul": 4,
-   "E.inda-A.rivera": 2,
+   "E. Inda - A. Rivera": 2,
    "Eduardo Inda": 2,
    "Carmen del Moral": 2,
-   "C.acuña-F.díaz": 1
+   "C. Acuña - F. Díaz": 1
   },
   "vocal": 197,
   "yearRange": [
@@ -1347,10 +1347,10 @@
    "Osvaldo Ribó": 11,
    "Juan Carlos Godoy": 7,
    "Alberto Guzmán": 7,
-   "O.ribó-R.videla": 5,
-   "E.campos-R.videla": 4,
-   "H.roca-A.guzmán": 3,
-   "E.rivas-J.c.godoy-H.roca": 3
+   "O. Ribó - R. Videla": 5,
+   "E. Campos - R. Videla": 4,
+   "H. Roca - A. Guzmán": 3,
+   "E. Rivas - J. C. Godoy - H. Roca": 3
   },
   "vocal": 212,
   "yearRange": [
@@ -1413,13 +1413,12 @@
    "María de la Fuente": 9,
    "Edmundo Rivero": 9,
    "Aldo Campoamor": 7,
-   "Recita Horacio Ferrer": 6,
    "Amelita Baltar": 5,
    "Palabras": 2,
    "Héctor de Rosas": 2,
    "Luis Medina Castro": 1
   },
-  "vocal": 82,
+  "vocal": 76,
   "yearRange": [
    1945,
    1992
@@ -1477,7 +1476,7 @@
    "Alberto Lago": 5,
    "Carlos Heredia": 4,
    "Oscar Macri": 2,
-   "C.heredia-H.duval": 1
+   "C. Heredia - H. Duval": 1
   },
   "vocal": 162,
   "yearRange": [
@@ -1544,14 +1543,14 @@
    "Jorge Maciel": 31,
    "Alfredo del Río": 26,
    "Tito Lando": 18,
-   "C.heredia-H.soler": 9,
-   "A.del Río-Tito Lando": 8,
-   "J.maciel-H.coral": 7,
+   "C. Heredia - H. Soler": 9,
+   "A. del Río - Tito Lando": 8,
+   "J. Maciel - H. Coral": 7,
    "Angel Díaz": 6,
    "Héctor Coral": 5,
    "Carlos Almada": 5,
    "Carlos Nogués": 4,
-   "J.maciel-A.díaz": 3,
+   "J. Maciel - A. Díaz": 3,
    "Hugo Soler": 2
   },
   "vocal": 133,
@@ -1606,13 +1605,13 @@
    "Jorge Falcón": 22,
    "Armando Laborde": 14,
    "Ernesto Herrera": 8,
-   "Jorge Falcón-Fernando Soler": 5,
+   "Jorge Falcón - Fernando Soler": 5,
    "Raúl Lavié": 3,
    "Mario Delacruz": 2,
    "Alberto Marino": 2,
-   "Jorge Falcón-Diego Solís": 2,
-   "A.laborde-R.lesica": 2,
-   "A.ledesma-R.lesica": 1
+   "Jorge Falcón - Diego Solís": 2,
+   "A. Laborde - R. Lesica": 2,
+   "A. Ledesma - R. Lesica": 1
   },
   "vocal": 115,
   "yearRange": [
@@ -1640,11 +1639,11 @@
    "Roberto Rufino": 14,
    "Roberto Florio": 4,
    "Luis Correa": 4,
-   "R.berón-R.rufino": 2,
+   "R. Berón - R. Rufino": 2,
    "Héctor Montes": 2,
    "Mario Lagos": 2,
-   "A.podestá-R.berón": 1,
-   "A.podestá-J.sosa": 1
+   "A. Podestá - R. Berón": 1,
+   "A. Podestá - J. Sosa": 1
   },
   "vocal": 118,
   "yearRange": [
@@ -1673,11 +1672,11 @@
    "Carlos Varela": 8,
    "Ignacio Murillo": 7,
    "Teófilo Ibáñez": 5,
-   "C.gardel-J.razzano": 2,
+   "C. Gardel - J. Razzano": 2,
    "Roberto Díaz": 2,
-   "Dorita Davis-P.azul": 1,
-   "A.diale-I.murillo": 1,
-   "C.viván-Héctor Villanueva": 1,
+   "Dorita Davis - P. Azul": 1,
+   "A. Diale - I. Murillo": 1,
+   "C. Viván - Héctor Villanueva": 1,
    "Héctor Villanueva": 1
   },
   "vocal": 53,
@@ -1745,11 +1744,11 @@
    "Roberto Goyeneche": 18,
    "Angel Díaz": 9,
    "Horacio Deval": 6,
-   "R.goyeneche-A.díaz": 4,
+   "R. Goyeneche - A. Díaz": 4,
    "Ana Medrano": 3,
    "Alberto Taborda": 3,
    "Miguel Montero": 2,
-   "A.medrano-A.taborda": 1
+   "A. Medrano - A. Taborda": 1
   },
   "vocal": 70,
   "yearRange": [
@@ -1763,9 +1762,9 @@
   "name": "Edgardo Donato",
   "count": 143,
   "rhythms": {
-   "tango": 116,
+   "tango": 115,
+   "vals": 12,
    "milonga": 12,
-   "vals": 11,
    "cancion": 2,
    "polca": 1,
    "ranchera": 1
@@ -1782,7 +1781,7 @@
    "Hugo del Carril": 3,
    "Alberto Gómez": 3,
    "Juan Alessio(jorge Ortíz0": 2,
-   "H.lagos-L.morales-R.gavioli": 2
+   "H. Lagos - L. Morales - R. Gavioli": 2
   },
   "vocal": 103,
   "yearRange": [
@@ -1855,7 +1854,7 @@
   "singers": {
    "Carlos Vidal": 26,
    "Armando Moreno": 17,
-   "C.vidal-O.larroca": 12,
+   "C. Vidal - O. Larroca": 12,
    "Oscar Larroca": 12,
    "Rubén Sanchez": 9,
    "Mario Bustos": 5,
@@ -1889,12 +1888,12 @@
    "Luis Correa": 6,
    "Luis Roca": 5,
    "Carlos Nogués": 3,
-   "A.hidalgo-J.rodolfo": 3,
+   "A. Hidalgo - J. Rodolfo": 3,
    "Jorge Garré": 2,
    "Mario Luna": 2,
-   "A.guerrico-L.correa": 2,
-   "A.peyró-J.garré": 1,
-   "A.guerrico-J.garré": 1
+   "A. Guerrico - L. Correa": 2,
+   "A. Peyró - J. Garré": 1,
+   "A. Guerrico - J. Garré": 1
   },
   "vocal": 63,
   "yearRange": [
@@ -1951,7 +1950,7 @@
    "Alfredo del Río": 9,
    "Jorge Durán": 3,
    "María de la Fuente": 2,
-   "F.ruíz-E.campos": 1
+   "F. Ruíz - E. Campos": 1
   },
   "vocal": 115,
   "yearRange": [
@@ -1975,7 +1974,7 @@
   "singers": {
    "Luis Mendoza": 44,
    "Osvaldo Bazán": 24,
-   "L.mendoza-O.bazán": 7,
+   "L. Mendoza - O. Bazán": 7,
    "Julio Fontana": 7,
    "Víctor Renda": 4,
    "Mercedes Serrano": 4,
@@ -2036,10 +2035,9 @@
   },
   "singers": {
    "Raúl Berón": 27,
-   "A.irusta-R.fugazot": 21,
+   "A. Irusta - R. Fugazot": 21,
    "Juan Carlos Miranda": 14,
    "Horacio Quintana": 14,
-   "Solo de Piano": 14,
    "Agustín Irusta": 9,
    "Héctor Alvarado": 4,
    "Tania": 3,
@@ -2048,7 +2046,7 @@
    "Roberto Fugazot": 2,
    "Carlos Bernal": 1
   },
-  "vocal": 114,
+  "vocal": 100,
   "yearRange": [
    1938,
    1959
@@ -2097,7 +2095,7 @@
    "Oscar Moreyras": 4,
    "Juan Carlos Granelli": 4,
    "Hugo Serna": 4,
-   "R.ludueña-C.soler": 3,
+   "R. Ludueña - C. Soler": 3,
    "Alberto del Valle": 3,
    "Luis Román": 3,
    "Jorge Montes": 2
@@ -2123,10 +2121,10 @@
    "Tino García": 41,
    "Rubén Cané": 9,
    "Raúl Lavié": 4,
-   "T.garcía-R.cané": 2,
+   "T. García - R. Cané": 2,
    "Roberto Alvar": 2,
    "Ricardo Ruíz": 1,
-   "Tino García-Mario Cané": 1
+   "Tino García - Mario Cané": 1
   },
   "vocal": 107,
   "yearRange": [
@@ -2219,9 +2217,9 @@
    "Carlos del Mar": 2,
    "Armando Bonasco": 2,
    "Roberto Díaz": 2,
-   "R.ledesma-C.palmiño-Del Coral": 2,
+   "R. Ledesma - C. Palmiño - del Coral": 2,
    "Pepe Aguirre": 2,
-   "M.zelta-R.ledesma": 1
+   "M. Zelta - R. Ledesma": 1
   },
   "vocal": 71,
   "yearRange": [
@@ -2295,9 +2293,9 @@
   },
   "singers": {
    "Carlos Gardel": 57,
-   "C.gardel-J.razzano": 34,
+   "C. Gardel - J. Razzano": 34,
    "José Razzano": 2,
-   "José F.razzano": 1
+   "José F. Razzano": 1
   },
   "vocal": 94,
   "yearRange": [
@@ -2325,7 +2323,7 @@
    "Carlos Budini": 4,
    "Mario Bonet": 3,
    "José Berón": 2,
-   "C.budini-M.bonet": 1
+   "C. Budini - M. Bonet": 1
   },
   "vocal": 69,
   "yearRange": [
@@ -2349,7 +2347,7 @@
   },
   "singers": {
    "Carlos Gardel": 91,
-   "C.gardel-J.razzano": 2
+   "C. Gardel - J. Razzano": 2
   },
   "vocal": 93,
   "yearRange": [
@@ -2363,9 +2361,9 @@
   "name": "Donato Racciatti",
   "count": 89,
   "rhythms": {
-   "tango": 64,
+   "tango": 63,
+   "vals": 10,
    "milonga": 9,
-   "vals": 9,
    "candombe": 5,
    "cancion": 1,
    "other": 1
@@ -2375,12 +2373,12 @@
    "Luis Luján": 5,
    "Carlos Navarro": 4,
    "Félix Romero": 3,
-   "Rita Marín-R. Blasco": 3,
+   "Rita Marín - R. Blasco": 3,
    "Gabriel Reynal": 3,
    "Helena de Torres": 2,
    "Olga Delgrossi": 2,
-   "O.delgrossi-Víctor Ruiz": 2,
-   "B.del Campo-O.rivas": 2,
+   "O. Delgrossi - Víctor Ruiz": 2,
+   "B. del Campo - O. Rivas": 2,
    "Beatríz del Campo": 2,
    "Tania": 2
   },
@@ -2430,11 +2428,11 @@
    "Néstor Novoa": 6,
    "Mario Bustos": 5,
    "Jorge Rigal": 5,
-   "M.bustos-H.de Rosas": 3,
+   "M. Bustos - H. de Rosas": 3,
    "Carlos Danel": 3,
    "Adolfo Rivas": 1,
    "Roberto Bayot": 1,
-   "R.grillo-R.bayot": 1
+   "R. Grillo - R. Bayot": 1
   },
   "vocal": 65,
   "yearRange": [
@@ -2464,7 +2462,7 @@
    "Héctor Juncal": 3,
    "Alberto del Campo": 2,
    "Alberto Fuentes": 1,
-   "C.bermudez-J.linares": 1
+   "C. Bermudez - J. Linares": 1
   },
   "vocal": 67,
   "yearRange": [
@@ -2527,8 +2525,8 @@
    "Osvaldo Brizuela": 4,
    "Jorge Montes": 2,
    "Roberto Florio": 2,
-   "C.del Monte-O.brizuela": 1,
-   "R.florio-C.del Monte": 1
+   "C. del Monte - O. Brizuela": 1,
+   "R. Florio - C. del Monte": 1
   },
   "vocal": 15,
   "yearRange": [
@@ -2577,14 +2575,14 @@
   "singers": {
    "Jorge Ledesma": 17,
    "Jorge Miró": 12,
-   "J.ledesma-H.alvarado": 5,
-   "J.miró-A.taborda": 5,
+   "J. Ledesma - H. Alvarado": 5,
+   "J. Miró - A. Taborda": 5,
    "Osvaldo de Santis": 4,
    "Francisco Fiorentino": 4,
    "José Torres": 4,
    "Alberto Rial": 3,
    "Héctor Alvarado": 3,
-   "O.de Santis-A.rial": 2,
+   "O. de Santis - A. Rial": 2,
    "Luis Correa": 2,
    "Angel Varela": 2
   },
@@ -2636,10 +2634,10 @@
    "Claudia Mores": 3,
    "Nito Mores": 3,
    "Trío Mores": 2,
-   "C.acuña-A.campoamor": 1,
+   "C. Acuña - A. Campoamor": 1,
    "Miguel Montero": 1,
    "Susy Leiva": 1,
-   "N.mores-C.mores": 1
+   "N. Mores - C. Mores": 1
   },
   "vocal": 52,
   "yearRange": [
@@ -2668,12 +2666,11 @@
    "Alfredo Arocha": 4,
    "Jorge Vidal": 4,
    "Guillermo Arboz": 2,
-   "G.arboz-A.drames": 2,
+   "G. Arboz - A. Drames": 2,
    "Tania": 2,
-   "Recita Juan Zuchelli": 1,
    "Alberto Marino": 1
   },
-  "vocal": 60,
+  "vocal": 59,
   "yearRange": [
    1941,
    1975
@@ -2693,13 +2690,13 @@
    "Carlos Montalvo": 13,
    "Rodolfo Lesica": 12,
    "Miguel Martino": 6,
-   "C.montalvo-M.martino": 5,
+   "C. Montalvo - M. Martino": 5,
    "Roberto Echagüe": 2,
    "Raúl Ledesma": 2,
    "Ranko Fujisawa": 2,
    "Néstor Real": 1,
-   "R.ledesma-C.montalvo": 1,
-   "R.lesica-R.ruiz": 1
+   "R. Ledesma - C. Montalvo": 1,
+   "R. Lesica - R. Ruiz": 1
   },
   "vocal": 45,
   "yearRange": [
@@ -2811,7 +2808,7 @@
    "Azucena Maizani": 25,
    "Olga Delgrossi": 21,
    "Roxana Morán": 11,
-   "J.c.godoy-R.mancini": 6,
+   "J. C. Godoy - R. Mancini": 6,
    "Diana Durán": 2,
    "Juan Carlos Godoy": 2,
    "Roberto Mancini": 2,
@@ -2893,7 +2890,7 @@
    "Héctor Farrel": 2,
    "Teófilo Ibañez": 1,
    "Fanny Navarro": 1,
-   "Roberto Medina-R.taibo": 1
+   "Roberto Medina - R. Taibo": 1
   },
   "vocal": 20,
   "yearRange": [
@@ -2932,7 +2929,7 @@
    "Mario Corrales": 3,
    "Héctor de Rosas": 3,
    "Luis Tolosa": 2,
-   "P.dátila-M.corrales": 2,
+   "P. Dátila - M. Corrales": 2,
    "Adolfo Rivas": 2
   },
   "vocal": 34,
@@ -2962,10 +2959,9 @@
    "Roberto Campos": 2,
    "Pedro Peyró": 2,
    "Alberto Arenas": 2,
-   "Recita Germán Darrién": 1,
    "Raúl Ledesma": 1
   },
-  "vocal": 39,
+  "vocal": 38,
   "yearRange": [
    1950,
    1986
@@ -2986,7 +2982,7 @@
    "Manuel Pizarro": 12,
    "Con Canto": 9,
    "Roberto Maida": 3,
-   "A.de Silva-M.pizarro": 2,
+   "A. de Silva - M. Pizarro": 2,
    "Alina de Silva": 2
   },
   "vocal": 28,
@@ -3036,12 +3032,12 @@
    "Ruth Durante": 4,
    "Jorge Hidalgo": 4,
    "Orlando Verri": 3,
-   "A.rivas-R.durante": 2,
+   "A. Rivas - R. Durante": 2,
    "Héctor de Rosas": 2,
-   "A.rivas-O.verri": 1,
+   "A. Rivas - O. Verri": 1,
    "Jorge Durán": 1,
    "Tito Dávila": 1,
-   "A.rivas-C.aldao": 1,
+   "A. Rivas - C. Aldao": 1,
    "Carlos Aguirre": 1
   },
   "vocal": 43,
@@ -3154,12 +3150,11 @@
    "Julio César Mercado": 29,
    "Raúl Garcés": 12,
    "Alberto Podestá": 11,
-   "J.c.mercado-A.romero": 2,
+   "J. C. Mercado - A. Romero": 2,
    "Jorge Díaz": 2,
-   "Armando Romero": 1,
-   "Recita Américo Solari": 1
+   "Armando Romero": 1
   },
-  "vocal": 58,
+  "vocal": 57,
   "yearRange": [
    1957,
    1994
@@ -3176,7 +3171,7 @@
    "milonga": 2
   },
   "singers": {
-   "Luis Zambaldi-Nito Forani": 9,
+   "Luis Zambaldi - Nito Forani": 9,
    "Ricardo Ruíz": 8,
    "Luis Iglesias": 5,
    "Luis Zambaldi": 4,
@@ -3201,9 +3196,9 @@
   "name": "Francisco Colombo",
   "count": 63,
   "rhythms": {
-   "tango": 49,
+   "tango": 48,
+   "vals": 7,
    "milonga": 7,
-   "vals": 6,
    "other": 1
   },
   "singers": {
@@ -3213,9 +3208,9 @@
    "Jorge de Luca": 5,
    "Carlos Palorma": 2,
    "Marcela Carrizo": 2,
-   "Zaharay-Miguel A.herrera": 2,
-   "Zaharay-C.palorma": 1,
-   "Andrés Areco-Jorge de Luca": 1
+   "Zaharay - Miguel A. Herrera": 2,
+   "Zaharay - C. Palorma": 1,
+   "Andrés Areco - Jorge de Luca": 1
   },
   "vocal": 41,
   "yearRange": [
@@ -3237,7 +3232,7 @@
    "Genaro Veiga": 5,
    "Jorge Cardozo": 3,
    "Francisco Fiorentino": 2,
-   "J.balbi": 1
+   "J. Balbi": 1
   },
   "vocal": 11,
   "yearRange": [
@@ -3311,10 +3306,10 @@
    "Armando Forte": 2,
    "Enrique Lucero": 1,
    "Rubén Llaneza": 1,
-   "Tito Reyes-Héctor Darío": 1,
-   "Ricardo Aguilar-Trío Vocal": 1,
+   "Tito Reyes - Héctor Darío": 1,
+   "Ricardo Aguilar - Trío Vocal": 1,
    "Roberto Chanel": 1,
-   "R.argentino-Raul Fontana": 1
+   "R. Argentino - Raul Fontana": 1
   },
   "vocal": 27,
   "yearRange": [
@@ -3338,7 +3333,7 @@
    "Héctor de Rosas": 5,
    "Alberto Santillán": 4,
    "Jorge de la Peña": 4,
-   "H.de Rosas-R. Galé": 4,
+   "H. de Rosas - R. Galé": 4,
    "Carlos Roldán": 3,
    "Rodolfo Galé": 3,
    "Tito Reyes": 3,
@@ -3388,7 +3383,7 @@
    "Con Canto": 4,
    "Alberto Casares": 3,
    "Héctor Berardi": 2,
-   "A.casares-Roberto Taibo": 1
+   "A. Casares - Roberto Taibo": 1
   },
   "vocal": 10,
   "yearRange": [
@@ -3425,7 +3420,7 @@
   },
   "singers": {
    "Roberto Díaz": 23,
-   "Pedro J.lauga": 10
+   "Pedro J. Lauga": 10
   },
   "vocal": 33,
   "yearRange": [
@@ -3480,13 +3475,13 @@
    "ranchera": 1
   },
   "singers": {
-   "M.bianco-Horacio Pettorossi": 6,
+   "M. Bianco - Horacio Pettorossi": 6,
    "Manuel Bianco": 6,
    "Mario Visconti": 5,
    "José Cohan": 4,
    "Carlos Américo": 2,
    "Con Canto": 1,
-   "E.bianco-J.cohan": 1,
+   "E. Bianco - J. Cohan": 1,
    "Juan Raggi": 1
   },
   "vocal": 26,
@@ -3525,7 +3520,7 @@
    "estilo": 1
   },
   "singers": {
-   "Horacio 'cacho' Arabel": 16,
+   "Horacio 'Cacho' Arabel": 16,
    "Tito Reyes": 12,
    "Osvaldo Ribó": 4,
    "Nelly Omar": 4,
@@ -3601,10 +3596,10 @@
    "Norberto Roldán": 5,
    "Jorge Fiorentino": 3,
    "Alberto del Valle": 2,
-   "R.chaleán-J.fiorentino": 1,
+   "R. Chaleán - J. Fiorentino": 1,
    "Roberto Chaleán": 1,
-   "I.florentino": 1,
-   "I.florentino-Chalian": 1
+   "I. Florentino": 1,
+   "I. Florentino - Chalian": 1
   },
   "vocal": 39,
   "yearRange": [
@@ -3744,7 +3739,7 @@
   "singers": {
    "Ranko Fujisawa": 28,
    "Ikwo Abo": 4,
-   "Ikwo Abo-R.fujisawa-H.yuki": 2
+   "Ikwo Abo - R. Fujisawa - H. Yuki": 2
   },
   "vocal": 34,
   "yearRange": [
@@ -3872,7 +3867,7 @@
   },
   "singers": {
    "Alfredo Rojas": 34,
-   "A.rojas-N.wilson": 2,
+   "A. Rojas - N. Wilson": 2,
    "Nilda Wilson": 1
   },
   "vocal": 37,
@@ -3937,16 +3932,15 @@
    "milonga": 1
   },
   "singers": {
-   "Solo de Piano": 12,
    "Enrique Delfino": 3,
    "Sofía Bozán": 3,
    "Raúl Laborde": 2,
    "Azucena Maizani": 2,
    "Gory Omar": 2,
-   "Enrique P.delfino": 1,
+   "Enrique P. Delfino": 1,
    "Ada Falcón": 1
   },
-  "vocal": 26,
+  "vocal": 14,
   "yearRange": [
    1919,
    1966
@@ -3976,22 +3970,22 @@
   "name": "Gotán Trío",
   "count": 37,
   "rhythms": {
-   "tango": 29,
+   "tango": 28,
+   "vals": 4,
    "milonga": 3,
-   "vals": 3,
    "other": 2
   },
   "singers": {
    "Osvaldo Bor": 7,
-   "O.bor-R.de Rosas": 6,
+   "O. Bor - R. de Rosas": 6,
    "Ricardo Rosas": 5,
    "Roberto Florio": 3,
    "Carlos Paiva": 3,
    "Rosa Alcaráz": 2,
-   "R.alcazar-O.bor-R.de Rosas": 2,
-   "R.alcaráz-R.rosas-O.bor": 2,
-   "R.de Rosas-R.alcazar": 1,
-   "Rosa Alcaráz-R.rosas": 1
+   "R. Alcazar - O. Bor - R. de Rosas": 2,
+   "R. Alcaráz - R. Rosas - O. Bor": 2,
+   "R. de Rosas - R. Alcazar": 1,
+   "Rosa Alcaráz - R. Rosas": 1
   },
   "vocal": 32,
   "yearRange": [
@@ -4094,13 +4088,13 @@
    "Alberto Carriego": 4,
    "Raúl Alberti": 3,
    "Osvaldo Rico": 2,
-   "O.rico-R.alberti": 2,
+   "O. Rico - R. Alberti": 2,
    "Raquel Mayo": 2,
    "Alberto Cuello": 2,
    "Osvaldo Rivas": 1,
-   "A.carriego-Osvaldo Rivas": 1,
+   "A. Carriego - Osvaldo Rivas": 1,
    "Jorge Ledesma": 1,
-   "M.gamizo-R.grosso": 1,
+   "M. Gamizo - R. Grosso": 1,
    "Roberto Grosso": 1
   },
   "vocal": 29,
@@ -4166,7 +4160,7 @@
   },
   "singers": {
    "Roxana Fontán": 2,
-   "E.borda-Q.ojeda": 2,
+   "E. Borda - Q. Ojeda": 2,
    "Eduardo Borda": 1,
    "Enrique Ojeda": 1
   },
@@ -4189,7 +4183,7 @@
    "Jorge Sobral": 4,
    "Raúl Quiroz": 3,
    "Marcelo Soler": 2,
-   "J.román": 1,
+   "J. Román": 1,
    "Daniel Riglos": 1
   },
   "vocal": 17,
@@ -4229,11 +4223,10 @@
   "singers": {
    "Gustavo Nocetti": 11,
    "Daniel Cortés": 5,
-   "Recitado": 2,
    "Presentación": 1,
-   "D.cortés-G.nocetti": 1
+   "D. Cortés - G. Nocetti": 1
   },
-  "vocal": 20,
+  "vocal": 18,
   "yearRange": [
    1994,
    1998
@@ -4271,9 +4264,9 @@
   "singers": {
    "Brián Chambouleyron": 11,
    "Soledad Villamil": 10,
-   "B.chambouleyron-S.villamil": 4,
+   "B. Chambouleyron - S. Villamil": 4,
    "Palabras": 4,
-   "B.chambouleyron-S.cattáneo": 1,
+   "B. Chambouleyron - S. Cattáneo": 1,
    "Silvio Cattáneo": 1,
    "Rafael Solano": 1
   },
@@ -4445,7 +4438,7 @@
    "Karina Rivera": 4,
    "Carlos Morel": 2,
    "Roxana Fontán": 2,
-   "C.morel-R.fontán": 1
+   "C. Morel - R. Fontán": 1
   },
   "vocal": 9,
   "yearRange": [
@@ -4525,10 +4518,10 @@
   "singers": {
    "Jorge Durán": 6,
    "Roberto Florio": 4,
-   "R.florio-J.durán": 3,
+   "R. Florio - J. Durán": 3,
    "Néstor Rolán": 3,
    "Marilí Machado": 2,
-   "N.rolán-M.machado": 1
+   "N. Rolán - M. Machado": 1
   },
   "vocal": 19,
   "yearRange": [
@@ -4751,7 +4744,7 @@
    "Hugo Soler": 2,
    "Luis O. Zunino": 2,
    "Hugo del Valle": 2,
-   "H.soler-C.valdez": 1,
+   "H. Soler - C. Valdez": 1,
    "Jorge Ortíz": 1
   },
   "vocal": 14,
@@ -4948,8 +4941,8 @@
   "name": "Aquiles Roggero",
   "count": 25,
   "rhythms": {
-   "tango": 23,
-   "vals": 2
+   "tango": 22,
+   "vals": 3
   },
   "singers": {
    "Carlos Dante": 12,
@@ -5191,12 +5184,12 @@
   },
   "singers": {
    "Emilia García": 5,
-   "E.garcía-J.raggi": 4,
+   "E. García - J. Raggi": 4,
    "Juan Raggi": 2,
    "Teresa Asprella": 2,
    "Alberto Larena": 1,
-   "T.asprella-J.raggi": 1,
-   "R.maida-E.garcía": 1
+   "T. Asprella - J. Raggi": 1,
+   "R. Maida - E. García": 1
   },
   "vocal": 16,
   "yearRange": [
@@ -5278,7 +5271,7 @@
   "singers": {
    "Carlos Persi": 6,
    "Alfredo Montalbán": 4,
-   "R.lando": 2,
+   "R. Lando": 2,
    "Alberto Ortíz": 1
   },
   "vocal": 13,
@@ -5365,9 +5358,9 @@
   "name": "Roberto Prando",
   "count": 22,
   "rhythms": {
-   "tango": 19,
-   "milonga": 2,
-   "vals": 1
+   "tango": 18,
+   "vals": 2,
+   "milonga": 2
   },
   "singers": {
    "Horacio Gerardi": 6,
@@ -5487,7 +5480,7 @@
   },
   "singers": {
    "Roberto Díaz": 18,
-   "R.díaz-J.c.delson": 2,
+   "R. Díaz - J. C. Delson": 2,
    "Juan Carlos Delson": 1
   },
   "vocal": 21,
@@ -5561,7 +5554,7 @@
    "Rodolfo Díaz": 12,
    "Mercedes Simone": 1,
    "Beatríz Maselli": 1,
-   "B.maselli-R.díaz": 1,
+   "B. Maselli - R. Díaz": 1,
    "Ana María": 1
   },
   "vocal": 16,
@@ -5620,7 +5613,7 @@
   "singers": {
    "Carlos Lafuente": 10,
    "Luis Díaz": 4,
-   "A.gómez-Tito Vila": 1,
+   "A. Gómez - Tito Vila": 1,
    "Roberto Díaz": 1
   },
   "vocal": 16,
@@ -5684,7 +5677,7 @@
   "singers": {
    "Antonio del Río": 7,
    "Sergio Fusey": 6,
-   "A.del Río-S.fusey": 1
+   "A. del Río - S. Fusey": 1
   },
   "vocal": 14,
   "yearRange": [
@@ -5748,7 +5741,7 @@
   "singers": {
    "Elba Expósito": 4,
    "Alejandro Martino": 2,
-   "A.martino-E.expósito": 1
+   "A. Martino - E. Expósito": 1
   },
   "vocal": 7,
   "yearRange": [
@@ -5787,8 +5780,8 @@
   },
   "singers": {
    "Agustín Magaldi": 10,
-   "A.magaldi-P.noda": 8,
-   "A.magaldi-R.quiroga": 2
+   "A. Magaldi - P. Noda": 8,
+   "A. Magaldi - R. Quiroga": 2
   },
   "vocal": 20,
   "yearRange": [
@@ -5807,7 +5800,7 @@
   "singers": {
    "Antonio Buglione": 3,
    "Enrique Ozedi": 1,
-   "A.buglione-González Castillo": 1
+   "A. Buglione - González Castillo": 1
   },
   "vocal": 5,
   "yearRange": [
@@ -5829,7 +5822,7 @@
   "singers": {
    "María de la Fuente": 13,
    "Alberto Gómez": 5,
-   "María de la Fuente-E.farrel": 1
+   "María de la Fuente - E. Farrel": 1
   },
   "vocal": 19,
   "yearRange": [
@@ -6051,11 +6044,11 @@
    "milonga": 1
   },
   "singers": {
-   "Beatríz Bebán-R.echagüe": 2,
+   "Beatríz Bebán - R. Echagüe": 2,
    "Beatríz Bebán": 2,
    "Beatríz Oreiro": 2,
    "Roberto Echagüe": 2,
-   "Beatríz Oreiro-R.echagüe": 1
+   "Beatríz Oreiro - R. Echagüe": 1
   },
   "vocal": 9,
   "yearRange": [
@@ -6211,7 +6204,7 @@
   "singers": {
    "Alberto Serna": 11,
    "Mario Corrales": 2,
-   "A.serna-Daniel Adamo": 2
+   "A. Serna - Daniel Adamo": 2
   },
   "vocal": 15,
   "yearRange": [
@@ -6252,9 +6245,9 @@
   },
   "singers": {
    "Emilio Lenski": 6,
-   "Armando A.vinciguerra": 3,
+   "Armando A. Vinciguerra": 3,
    "Gaby Estrada": 3,
-   "Marcos A.andino": 2
+   "Marcos A. Andino": 2
   },
   "vocal": 14,
   "yearRange": [
@@ -6635,7 +6628,7 @@
   "singers": {
    "Dante Garello": 4,
    "Luis Román": 2,
-   "D.garello-L.román": 2
+   "D. Garello - L. Román": 2
   },
   "vocal": 8,
   "yearRange": [
@@ -6738,7 +6731,7 @@
   },
   "singers": {
    "Jorge Falcón": 10,
-   "Jorge Roldán-Carlos Soler": 2,
+   "Jorge Roldán - Carlos Soler": 2,
    "Jorge Roldán": 1
   },
   "vocal": 13,
@@ -6932,7 +6925,7 @@
   "singers": {
    "Raúl Lavié": 4,
    "Rodolfo Lesica": 4,
-   "R.lesica-R.lavié": 1
+   "R. Lesica - R. Lavié": 1
   },
   "vocal": 9,
   "yearRange": [
@@ -7079,7 +7072,7 @@
    "milonga": 1
   },
   "singers": {
-   "Walter \"chino\" Laborde": 5
+   "Walter \"Chino\" Laborde": 5
   },
   "vocal": 5,
   "yearRange": [
@@ -7168,7 +7161,7 @@
   },
   "singers": {
    "Romeo Gavioli": 9,
-   "Romeo Gavioli-Freddy": 2,
+   "Romeo Gavioli - Freddy": 2,
    "Carmen del Moral": 1
   },
   "vocal": 12,
@@ -7377,7 +7370,7 @@
    "vals": 1
   },
   "singers": {
-   "Walter \"chino\" Laborde": 5
+   "Walter \"Chino\" Laborde": 5
   },
   "vocal": 5,
   "yearRange": [
@@ -7397,7 +7390,7 @@
    "polca": 1
   },
   "singers": {
-   "Alfredo L.mora": 5,
+   "Alfredo L. Mora": 5,
    "Presentación": 1,
    "Palabras": 1
   },
@@ -7452,8 +7445,8 @@
   },
   "singers": {
    "Andrés Falgás": 4,
-   "A.irusta-R.fugazot": 3,
-   "A.irusta-R.fugazot-L.demare": 3,
+   "A. Irusta - R. Fugazot": 3,
+   "A. Irusta - R. Fugazot - L. Demare": 3,
    "Agustín Irusta": 2
   },
   "vocal": 12,
@@ -7640,7 +7633,7 @@
    "milonga": 1
   },
   "singers": {
-   "R.lagos-R.fontana": 2,
+   "R. Lagos - R. Fontana": 2,
    "Rubén Lagos": 2,
    "Silvia del Olmo": 2,
    "Pablo Marín": 2,
@@ -7667,7 +7660,7 @@
    "Jorge Demare": 2,
    "Nilda Pesoa": 1,
    "Alberto Rivera": 1,
-   "Robledo-Riverol-Cabral": 1,
+   "Robledo - Riverol - Cabral": 1,
    "Enrique del Cerro": 1
   },
   "vocal": 8,
@@ -7883,8 +7876,8 @@
   "singers": {
    "Carlos Malerva": 3,
    "Alberto Serna": 1,
-   "Marta Soler-Jorge Peña": 1,
-   "Alberto Denis-Los 3 Chamacos": 1,
+   "Marta Soler - Jorge Peña": 1,
+   "Alberto Denis - los 3 Chamacos": 1,
    "Oscar Nelson": 1
   },
   "vocal": 7,
@@ -7907,7 +7900,7 @@
   },
   "singers": {
    "Alberto Bianchi": 5,
-   "N.miranda-A.bianchi": 3,
+   "N. Miranda - A. Bianchi": 3,
    "Nina Miranda": 2
   },
   "vocal": 10,
@@ -7945,7 +7938,7 @@
    "tango": 10
   },
   "singers": {
-   "Angel G.villoldo": 10
+   "Angel G. Villoldo": 10
   },
   "vocal": 10,
   "yearRange": [
@@ -7998,9 +7991,9 @@
   "singers": {
    "Juan Carlos Aguilera": 5,
    "Mario Armando López": 2,
-   "M.a.lópez-J.c.olivera": 1,
+   "M. A. López - J. C. Olivera": 1,
    "Alfredo Gauthier": 1,
-   "M.a.lópez-J.c.aguilera": 1
+   "M. A. López - J. C. Aguilera": 1
   },
   "vocal": 10,
   "yearRange": [
@@ -8197,7 +8190,7 @@
    "cancion": 1
   },
   "singers": {
-   "D.auvray-U.lelli": 2,
+   "D. Auvray - U. Lelli": 2,
    "Umberto Lelli": 1,
    "Daisy Auvray": 1
   },
@@ -8518,7 +8511,7 @@
    "Enalmar de María": 4,
    "Pablo Moreno": 2,
    "Carlos Roldán": 1,
-   "Anita Mendy-E.de María": 1
+   "Anita Mendy - E. de María": 1
   },
   "vocal": 8,
   "yearRange": [
@@ -8577,7 +8570,7 @@
    "Chola Bosch": 1,
    "José Torres": 1,
    "Luis Mendoza": 1,
-   "Chola Bosch-Luis Bottini": 1
+   "Chola Bosch - Luis Bottini": 1
   },
   "vocal": 5,
   "yearRange": [
@@ -8597,7 +8590,7 @@
   "singers": {
    "Zulema Robles": 2,
    "Jorge Ruibal": 1,
-   "J.ruibal-Ricardo Páez": 1,
+   "J. Ruibal - Ricardo Páez": 1,
    "Roberto Campos": 1
   },
   "vocal": 5,
@@ -8617,7 +8610,7 @@
    "milonga": 2
   },
   "singers": {
-   "Néstor \"cacho\" Doliani": 8
+   "Néstor \"Cacho\" Doliani": 8
   },
   "vocal": 8,
   "yearRange": [
@@ -8673,9 +8666,9 @@
   },
   "singers": {
    "Ranko Fujisawa": 3,
-   "T.kunii": 1,
+   "T. Kunii": 1,
    "Sugawara": 1,
-   "T.kunii-Sugawara": 1
+   "T. Kunii - Sugawara": 1
   },
   "vocal": 6,
   "yearRange": [
@@ -8853,7 +8846,7 @@
   },
   "singers": {
    "Libertad Lamarque": 6,
-   "L.lamarque-Mirtha Lamarque": 1
+   "L. Lamarque - Mirtha Lamarque": 1
   },
   "vocal": 7,
   "yearRange": [
@@ -8953,7 +8946,7 @@
   },
   "singers": {
    "Roberto Goyeneche": 5,
-   "Luis Mandarino-Rosita Barrios": 1,
+   "Luis Mandarino - Rosita Barrios": 1,
    "Amadeo Mandarino": 1
   },
   "vocal": 7,
@@ -8969,10 +8962,10 @@
    "other": 1
   },
   "singers": {
-   "Marcos A.andino": 2,
-   "Armando A.vinciguerra": 1,
+   "Marcos A. Andino": 2,
+   "Armando A. Vinciguerra": 1,
    "Gaby Estrada": 1,
-   "M.andino-A.vinciguerra-G.estrada": 1
+   "M. Andino - A. Vinciguerra - G. Estrada": 1
   },
   "vocal": 5,
   "yearRange": [
@@ -9174,7 +9167,7 @@
    "tango": 6
   },
   "singers": {
-   "A.de la Colina": 1
+   "A. de la Colina": 1
   },
   "vocal": 1,
   "yearRange": [
@@ -9366,7 +9359,7 @@
   },
   "singers": {
    "Carlos Gardel": 5,
-   "C.gardel-I.argentina": 1
+   "C. Gardel - I. Argentina": 1
   },
   "vocal": 6,
   "yearRange": [
@@ -9471,7 +9464,7 @@
   },
   "singers": {
    "Carlos Barbé": 3,
-   "Luis A.fleitas": 2
+   "Luis A. Fleitas": 2
   },
   "vocal": 5,
   "yearRange": [
@@ -9490,7 +9483,7 @@
    "vals": 1
   },
   "singers": {
-   "Romeo Gavioli-Freddy": 2,
+   "Romeo Gavioli - Freddy": 2,
    "Emilio Vaccotti": 1,
    "Angel Sica": 1
   },
@@ -9510,7 +9503,7 @@
    "milonga": 1
   },
   "singers": {
-   "Alfredo E.gobbi": 5
+   "Alfredo E. Gobbi": 5
   },
   "vocal": 5,
   "yearRange": [
@@ -9724,7 +9717,7 @@
    "milonga": 1
   },
   "singers": {
-   "Jorge ''tito'' Soler": 5
+   "Jorge ''Tito'' Soler": 5
   },
   "vocal": 5,
   "yearRange": null,
@@ -9738,7 +9731,7 @@
    "tango": 5
   },
   "singers": {
-   "Jorge ''tito'' Soler": 5
+   "Jorge ''Tito'' Soler": 5
   },
   "vocal": 5,
   "yearRange": null,
@@ -10141,7 +10134,7 @@
    "other": 1
   },
   "singers": {
-   "Roberto\"chato\"flores": 4
+   "Roberto \"Chato\" Flores": 4
   },
   "vocal": 4,
   "yearRange": null,
@@ -10535,7 +10528,7 @@
    "marcha": 1
   },
   "singers": {
-   "A.irusta-R.fugazot": 2,
+   "A. Irusta - R. Fugazot": 2,
    "Hugo del Carril": 2
   },
   "vocal": 4,
@@ -10554,7 +10547,7 @@
   },
   "singers": {
    "Roberto Goyeneche": 3,
-   "R.goyeneche-A.varela": 1
+   "R. Goyeneche - A. Varela": 1
   },
   "vocal": 4,
   "yearRange": [
@@ -11072,7 +11065,7 @@
    "vals": 1
   },
   "singers": {
-   "Luis A.fleitas": 3
+   "Luis A. Fleitas": 3
   },
   "vocal": 3,
   "yearRange": [
@@ -11190,7 +11183,7 @@
   },
   "singers": {
    "Teresa Asprella": 1,
-   "E.bianco-H.pettorossi": 1
+   "E. Bianco - H. Pettorossi": 1
   },
   "vocal": 2,
   "yearRange": [
@@ -11909,7 +11902,7 @@
    "tango": 1
   },
   "singers": {
-   "Luis A.fleitas": 2
+   "Luis A. Fleitas": 2
   },
   "vocal": 2,
   "yearRange": [
@@ -12508,7 +12501,7 @@
    "other": 1
   },
   "singers": {
-   "Celia Gámez-Ornat": 1,
+   "Celia Gámez - Ornat": 1,
    "Celia Gámez": 1
   },
   "vocal": 2,
@@ -12793,7 +12786,7 @@
    "tango": 1
   },
   "singers": {
-   "Roberto\"chato\"flores": 1
+   "Roberto \"Chato\" Flores": 1
   },
   "vocal": 1,
   "yearRange": [
@@ -13438,7 +13431,7 @@
    "tango": 1
   },
   "singers": {
-   "María T.casas": 1
+   "María T. Casas": 1
   },
   "vocal": 1,
   "yearRange": [
@@ -13976,7 +13969,7 @@
    "vals": 1
   },
   "singers": {
-   "Luis A.fleitas": 1
+   "Luis A. Fleitas": 1
   },
   "vocal": 1,
   "yearRange": [
@@ -14086,7 +14079,7 @@
    "other": 1
   },
   "singers": {
-   "C.dante-Celia Luozán": 1
+   "C. Dante - Celia Luozán": 1
   },
   "vocal": 1,
   "yearRange": [
@@ -14276,7 +14269,7 @@
    "cancion": 1
   },
   "singers": {
-   "Segundo R.ruíz-A.acuña": 1
+   "Segundo R. Ruíz - A. Acuña": 1
   },
   "vocal": 1,
   "yearRange": [
@@ -14520,7 +14513,7 @@
    "tango": 1
   },
   "singers": {
-   "R.goyeneche-A.varela-L.nebbia": 1
+   "R. Goyeneche - A. Varela - L. Nebbia": 1
   },
   "vocal": 1,
   "yearRange": [
@@ -14682,7 +14675,7 @@
    "other": 1
   },
   "singers": {
-   "Celia Gámez-Bretaño": 1
+   "Celia Gámez - Bretaño": 1
   },
   "vocal": 1,
   "yearRange": [
@@ -15179,7 +15172,7 @@
    "marcha": 1
   },
   "singers": {
-   "Paguá y su Conjunto": 1
+   "Paguá y Su Conjunto": 1
   },
   "vocal": 1,
   "yearRange": null,

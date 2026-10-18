@@ -65,6 +65,47 @@ def titlecase(s: str) -> str:
     t = re.sub(r"\bD'(\w)", lambda m: "D'" + m.group(1).upper(), t)
     return t
 
+def singercase(raw: str) -> str:
+    """Singer strings: abbreviated/duet/nickname forms in the source are written without spaces.
+    "C.DANTE-O.LARROCA" -> "C. Dante - O. Larroca", 'ROBERTO"CHATO"FLORES' -> 'Roberto "Chato" Flores',
+    "A.ARENAS-E.LUCERO" -> "A. Arenas - E. Lucero", "J.C.GODOY-R.MANCINI" -> "J. C. Godoy - R. Mancini"."""
+    t = titlecase(raw)
+    t = re.sub(r"\b([A-Za-zÀ-ÿ])\.(?=\S)", lambda m: m.group(1).upper() + ". ", t)          # "C.dante" -> "C. dante"
+    t = re.sub(r'\s*"\s*([^"]+?)\s*"\s*', lambda m: ' "' + m.group(1).strip() + '" ', t)  # nickname quotes
+    t = re.sub(r"\s*-\s*", " - ", t)                                                     # duets
+    small = {"de", "del", "la", "el", "los", "las", "y", "e"}
+    words = []
+    for i, w in enumerate(t.split()):
+        if i and w.lower() in small: words.append(w.lower()); continue
+        m = re.match(r"^(\W*)(\w)(.*)$", w)
+        words.append(m.group(1) + m.group(2).upper() + m.group(3) if m else w)
+    return " ".join(words)
+
+def norm_title(t: str) -> str:
+    """Same normalisation as normTitle() in packages/core/src/energy.ts (used for override keys)."""
+    t = unicodedata.normalize("NFKD", t)
+    t = "".join(c for c in t if not unicodedata.combining(c)).lower()
+    t = re.sub(r"\(.*?\)", "", t)
+    t = re.sub(r"[^a-z0-9 ]+", " ", t)
+    return re.sub(r"\s+", " ", t).strip()
+
+# Known rhythm mislabels in the source (docs/reviews/musician-review.md): normalised title -> rhythm,
+# optionally restricted to one orchestra id (None = any orchestra).
+RHYTHM_OVERRIDE = {
+    ("pregonera", None): "vals",                        # De Angelis vals (Dante-Martel 1945); tagged tango in all copies
+    ("flores del alma", None): "vals",
+    ("sonar y nada mas", None): "vals",
+    ("a magaldi", "alfredo-de-angelis"): "vals",
+    ("con toda la voz que tengo", "anibal-troilo"): "tango",  # Troilo-Fiorentino 1941; one copy tagged milonga
+}
+# Pseudo-singers: the "CANTA" column sometimes names a soloist/narrator instead of a vocalist.
+PSEUDO_SINGER = [
+    (re.compile(r"^s[oó]lo de piano", re.I), "solo piano"),
+    (re.compile(r"^s[oó]lo de bandone[oó]n", re.I), "solo bandoneon"),
+    (re.compile(r"^glosas\b", re.I), "glosas"),
+    (re.compile(r"^recita(do)?\b", re.I), "recitado"),
+]
+
 def era_of(year):
     if year is None: return "unknown"
     if year < 1926: return "guardia-vieja"
@@ -115,31 +156,48 @@ def build_songs():
         singer_raw = str(row[3]).strip()
         orch_raw = str(row[5]).strip()
         year = parse_year(row[4], row[6], row[11])
-        singer = None if singer_raw.upper() in ("", "INSTRUMENTAL") else titlecase(singer_raw)
+        singer_legacy = None if singer_raw.upper() in ("", "INSTRUMENTAL") else titlecase(singer_raw)  # kept only for the stable id hash
+        singer = None if singer_legacy is None else singercase(singer_raw)
+        note = None
+        for rx, label in PSEUDO_SINGER:
+            if singer and rx.search(singer_raw):
+                singer, note = None, label
+                break
         orchestra = GOLDEN_ORCH.get(orch_raw, titlecase(orch_raw) if orch_raw else "Unknown")
         if orch_raw == "GUITARRAS": orchestra = "Guitarras (solo singer)"
         if orch_raw == "ORQUESTA": orchestra = "Orquesta (unspecified)"
         obs = str(row[9]).strip()
-        sid = hashlib.sha1(f"{title}|{orchestra}|{singer}|{year}|{row[7]}|{r}".encode()).hexdigest()[:10]
+        sid = hashlib.sha1(f"{title}|{orchestra}|{singer_legacy}|{year}|{row[7]}|{r}".encode()).hexdigest()[:10]
         if sid in seen: continue
         seen.add(sid)
+        orchestra_id = slug(orchestra)
+        date = parse_date(row[6])
+        # years ending in 0 are decade placeholders in the source unless a full recording date backs them
+        year_approx = year is not None and year % 10 == 0 and not (date and re.fullmatch(r"\d{4}-\d{2}-\d{2}", date))
+        nt = norm_title(title)
+        rhythm_fix = RHYTHM_OVERRIDE.get((nt, orchestra_id)) or RHYTHM_OVERRIDE.get((nt, None))
+        rhythm_original = rhythm if rhythm_fix and rhythm_fix != rhythm else None
+        if rhythm_fix: rhythm = rhythm_fix
         songs.append({
             "id": sid,
             "title": titlecase(title),
             "rhythm": rhythm,
             "rhythmCode": rcode,
             "orchestra": orchestra,
-            "orchestraId": slug(orchestra),
+            "orchestraId": orchestra_id,
             "singer": singer,
             "singerId": slug(singer) if singer else None,
             "vocal": singer is not None,
             "year": year,
-            "date": parse_date(row[6]),
+            "date": date,
             "era": era_of(year),
             "album": str(row[7]).strip() or None,
             "notes": obs or None,
             "selection": obs.upper() == "SELECCIÓN",  # curator's selection flag
             "source": "listado-2008",
+            **({"yearApprox": True} if year_approx else {}),
+            **({"rhythmOriginal": rhythm_original} if rhythm_original else {}),
+            **({"note": note} if note else {}),
         })
     return songs
 
@@ -220,7 +278,10 @@ def main():
         "rhythms": dict(collections.Counter(s["rhythm"] for s in songs).most_common()),
         "eras": dict(collections.Counter(s["era"] for s in songs).most_common()),
         "sources": [p.name for p in sorted(SRC.iterdir())],
-        "version": 1,
+        "yearApprox": sum(1 for s in songs if s.get("yearApprox")),
+        "rhythmFixed": sum(1 for s in songs if s.get("rhythmOriginal")),
+        "pseudoSingers": sum(1 for s in songs if s.get("note")),
+        "version": 2,
     }
     (OUT / "songs.json").write_text(json.dumps(songs, ensure_ascii=False, separators=(",", ":")))
     (OUT / "orchestras.json").write_text(json.dumps(orch_list, ensure_ascii=False, indent=1))
