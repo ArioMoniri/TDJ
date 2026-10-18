@@ -1,23 +1,35 @@
 "use client";
-import { EXPORT_META, EXPORTERS, type ExportFormat, toSpotifyPlan } from "@tdj/core";
+import { EXPORT_META, type ExportFormat, toSpotifyPlan } from "@tdj/core";
 import { Download, ExternalLink, LoaderCircle, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { downloadBlob } from "@/lib/download";
+import { withoutCortinas } from "@/lib/exportPaths";
 import { beginAuth, createPlaylist, refresh, resolveTrack } from "@/lib/spotify";
 import { useStore } from "@/lib/store";
+import { DJ_APPS, type DjApp } from "@/lib/types";
+import { Switch } from "./ui";
 
 const GROUPS: Array<[string, ExportFormat[]]> = [
   ["DJ software", ["rekordbox", "traktor", "serato"]],
   ["Playlist files", ["m3u8", "xspf", "csv"]],
   ["Other", ["json", "setlist"]],
 ];
+/** Which DJ-app folder a format uses for real file paths. */
+const APP_FOR: Partial<Record<ExportFormat, DjApp[]>> = {
+  rekordbox: ["rekordbox"],
+  traktor: ["traktor"],
+  serato: ["serato"],
+  m3u8: ["virtualdj", "enginedj"],
+};
 
 export function ExportSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { playlist, settings, spotifyToken, setSpotifyToken } = useStore();
   const [log, setLog] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  const [dlBusy, setDlBusy] = useState<ExportFormat | null>(null);
   const [result, setResult] = useState<string | null>(null);
+  const [includeCortinas, setIncludeCortinas] = useState(true);
   const panel = useRef<HTMLDivElement>(null);
   const close = useRef(onClose);
   close.current = onClose;
@@ -58,9 +70,34 @@ export function ExportSheet({ open, onClose }: { open: boolean; onClose: () => v
   }, [open]);
 
   if (!open || !playlist) return null;
-  const dl = (f: ExportFormat) => {
+  const tracks = playlist.tandas.reduce((a, t) => a + t.songs.length, 0) + (playlist.closing ? 1 : 0);
+  const cortinas = playlist.tandas.filter((t) => t.cortina).length;
+  const count = tracks + (includeCortinas ? cortinas : 0);
+  const folderFor = (f: ExportFormat) =>
+    (APP_FOR[f] ?? []).map((a) => settings.djApps[a]?.folder?.trim()).find(Boolean) ?? "";
+
+  const dl = async (f: ExportFormat) => {
     const m = EXPORT_META[f];
-    downloadBlob(`${playlist.name.replace(/[^a-z0-9-]+/gi, "_")}.${m.ext}`, EXPORTERS[f](playlist), m.mime);
+    setDlBusy(f);
+    try {
+      const r = await fetch("/api/export", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          playlist,
+          format: f,
+          includeCortinas,
+          folder: folderFor(f),
+          naming: settings.fileNaming,
+        }),
+      });
+      if (!r.ok) throw new Error(`Export failed (${r.status})`);
+      downloadBlob(`${playlist.name.replace(/[^a-z0-9-]+/gi, "_")}.${m.ext}`, await r.text(), m.mime);
+    } catch (e) {
+      setLog((l) => [...l, `Error: ${(e as Error).message}`]);
+    } finally {
+      setDlBusy(null);
+    }
   };
 
   const toSpotify = async () => {
@@ -75,7 +112,7 @@ export function ExportSheet({ open, onClose }: { open: boolean; onClose: () => v
     setLog([]);
     setResult(null);
     try {
-      const plan = toSpotifyPlan(playlist);
+      const plan = toSpotifyPlan(includeCortinas ? playlist : withoutCortinas(playlist));
       const uris: string[] = [...plan.uris];
       let miss = 0;
       for (const u of plan.unresolved) {
@@ -91,7 +128,7 @@ export function ExportSheet({ open, onClose }: { open: boolean; onClose: () => v
       const pl = await createPlaylist(
         tok.access,
         `TDJ · ${playlist.name}`,
-        `Tandas + cortinas composed by TDJ. Score ${playlist.score.total}/100. ${playlist.tandas.length} tandas.`,
+        `${playlist.tandas.length} tandas composed with TDJ, cortinas ${includeCortinas ? "included" : "excluded"}. Score ${playlist.score.total}/100.`,
         uris,
       );
       setResult(pl.external_urls.spotify);
@@ -133,6 +170,14 @@ export function ExportSheet({ open, onClose }: { open: boolean; onClose: () => v
         <p id="export-desc" className="text-muted mt-1 text-sm">
           Download a file for your DJ software, or create the playlist in Spotify.
         </p>
+        <div className="mt-3 rounded-xl bg-[rgb(var(--text)/.05)] px-3">
+          <Switch
+            checked={includeCortinas}
+            onChange={setIncludeCortinas}
+            label="Include cortinas"
+            hint={`${count} ${count === 1 ? "track" : "tracks"} will be exported${includeCortinas ? "" : ` (${cortinas} cortinas left out)`}`}
+          />
+        </div>
         <div className="mt-4 min-h-0 space-y-4 overflow-y-auto">
           {GROUPS.map(([g, keys]) => (
             <div key={g}>
@@ -143,15 +188,30 @@ export function ExportSheet({ open, onClose }: { open: boolean; onClose: () => v
                     type="button"
                     key={f}
                     onClick={() => dl(f)}
+                    disabled={dlBusy === f}
                     className="btn btn-ghost justify-start text-sm"
+                    title={folderFor(f) ? `Paths under ${folderFor(f)}` : undefined}
                   >
-                    <Download size={15} className="shrink-0" />
+                    {dlBusy === f ? (
+                      <LoaderCircle size={15} className="shrink-0 animate-spin" />
+                    ) : (
+                      <Download size={15} className="shrink-0" />
+                    )}
                     <span className="truncate">{EXPORT_META[f].label}</span>
                   </button>
                 ))}
               </div>
             </div>
           ))}
+          {DJ_APPS.every((a) => !settings.djApps[a.id]?.folder) && (
+            <p className="text-muted text-xs">
+              File paths use a TDJ/ placeholder. Set your music folder per DJ app in{" "}
+              <Link href="/settings" className="underline">
+                Settings
+              </Link>{" "}
+              to get real paths.
+            </p>
+          )}
         </div>
         {settings.spotifyClientId ? (
           <button type="button" onClick={toSpotify} disabled={busy} className="btn btn-primary mt-4 w-full">

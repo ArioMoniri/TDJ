@@ -12,10 +12,13 @@ import {
 } from "lucide-react";
 import { MotionConfig } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
-import { useStore } from "@/lib/store";
-import type { ComposeOptions, Playlist } from "@/lib/types";
+import { overridesForRequest, useStore } from "@/lib/store";
+import type { ComposeContext, ComposeOptions, Feedback, Meta, Playlist } from "@/lib/types";
+import { ContextStrip } from "./ContextStrip";
 import { EnergyCurve } from "./EnergyCurve";
 import { ExportSheet } from "./ExportSheet";
+import { FeedbackBar } from "./FeedbackBar";
+import { MoodCheck } from "./Listen";
 import { TandaCard } from "./TandaCard";
 import { Field, Segmented, Stepper, Switch } from "./ui";
 import { Vinyl } from "./Vinyl";
@@ -89,31 +92,80 @@ function fmtDuration(sec: number) {
 }
 
 export function Composer() {
-  const { options, setOptions, playlist, setPlaylist, busy, setBusy, settings } = useStore();
+  const {
+    options,
+    setOptions,
+    replaceOptions,
+    playlist,
+    setPlaylist,
+    busy,
+    setBusy,
+    settings,
+    overrides,
+    overridesReady,
+  } = useStore();
   const [exportOpen, setExportOpen] = useState(false);
   const [active, setActive] = useState<number | null>(null);
   const [swapping, setSwapping] = useState<number | null>(null);
+  const [swappingTrack, setSwappingTrack] = useState<[number, number] | null>(null);
   const [ai, setAi] = useState<string | null>(null);
   const [aiBusy, setAiBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const [meta, setMeta] = useState<Meta | null>(null);
   useEffect(() => setHydrated(true), []);
+  useEffect(() => {
+    fetch("/api/meta")
+      .then((r) => r.json())
+      .then(setMeta)
+      .catch(() => {});
+  }, []);
+  // Tonight's region defaults to the one in Settings
+  const region = settings.region;
+  useEffect(() => {
+    if (!hydrated) return;
+    const ctx = useStore.getState().options.context;
+    if (!ctx?.region) setOptions({ context: { ...(ctx ?? {}), region } });
+  }, [hydrated, region, setOptions]);
 
-  const run = async (seed?: number) => {
+  const aiHeaders = () => ({
+    "content-type": "application/json",
+    "x-ai-provider": settings.ai.provider,
+    "x-ai-key": settings.ai.key,
+    "x-ai-model": settings.ai.model,
+  });
+
+  /** Compose with the current (or given) options; locked tandas are sent so they survive every recompose. */
+  const run = async (seed?: number, opts?: Partial<ComposeOptions>) => {
     setBusy(true);
     setAi(null);
+    setError(null);
+    const o = opts ?? options;
     try {
       const r = await fetch("/api/compose", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ...options, seed: seed ?? Math.floor(Math.random() * 1e9) }),
+        body: JSON.stringify({
+          ...o,
+          seed: seed ?? Math.floor(Math.random() * 1e9),
+          locked: playlist?.tandas.filter((t) => t.locked) ?? [],
+          overrides: overridesForRequest(overrides),
+        }),
       });
-      const p = (await r.json()) as Playlist;
+      const p = (await r.json()) as Playlist & { error?: string };
+      if (!r.ok || p.error) {
+        setError(p.error ?? "Could not compose this set.");
+        return;
+      }
       setPlaylist(p);
       setActive(null);
       requestAnimationFrame(() =>
         document.getElementById("result")?.scrollIntoView({ behavior: "smooth", block: "start" }),
       );
+    } catch {
+      setError("Could not reach the composer. Try again.");
     } finally {
       setBusy(false);
     }
@@ -127,9 +179,26 @@ export function Composer() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ playlist, index: i }),
       });
-      setPlaylist(await r.json());
+      if (r.ok) setPlaylist(await r.json());
     } finally {
       setSwapping(null);
+    }
+  };
+  const swapTrack = async (i: number, k: number) => {
+    if (!playlist) return;
+    setSwappingTrack([i, k]);
+    setNote(null);
+    try {
+      const r = await fetch("/api/swap-track", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ playlist, tandaIndex: i, trackIndex: k }),
+      });
+      const j = (await r.json()) as Playlist & { changed?: boolean };
+      if (r.ok && j.changed) setPlaylist(j);
+      else setNote(`No other ${playlist.tandas[i]?.orchestra} recording fits that slot.`);
+    } finally {
+      setSwappingTrack(null);
     }
   };
   const lock = (i: number) => {
@@ -139,17 +208,46 @@ export function Composer() {
       tandas: playlist.tandas.map((t, k) => (k === i ? { ...t, locked: !t.locked } : t)),
     });
   };
+  const feedback = async (f: Feedback) => {
+    setNote(null);
+    const r = await fetch("/api/feedback", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ options, feedback: [f] }),
+    });
+    const j = (await r.json()) as { options: Partial<ComposeOptions> };
+    if (!r.ok) return;
+    replaceOptions(j.options);
+    await run(undefined, j.options);
+  };
+  const refine = async (instruction: string) => {
+    setNote(null);
+    setBusy(true);
+    try {
+      const r = await fetch("/api/ai/refine", {
+        method: "POST",
+        headers: aiHeaders(),
+        body: JSON.stringify({ options, playlist, instruction }),
+      });
+      const j = (await r.json()) as { options?: Partial<ComposeOptions>; note?: string; error?: string };
+      if (!r.ok || !j.options) {
+        setNote(j.error ?? "Could not read that request.");
+        return;
+      }
+      setNote(j.note ?? null);
+      replaceOptions(j.options);
+      await run(undefined, j.options);
+    } finally {
+      setBusy(false);
+    }
+  };
   const explain = async () => {
     if (!playlist) return;
     setAiBusy(true);
     try {
-      const r = await fetch("/api/ai/explain", {
+      const r = await fetch("/api/ai/review", {
         method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-anthropic-key": settings.anthropicApiKey,
-          "x-anthropic-model": settings.anthropicModel,
-        },
+        headers: aiHeaders(),
         body: JSON.stringify({ playlist }),
       });
       const j = await r.json();
@@ -182,6 +280,9 @@ export function Composer() {
   };
   const hasPlaylist = hydrated && !!playlist;
   const cortinaStyle = options.cortinaStyle ?? "matched";
+  const lockedCount = playlist?.tandas.filter((t) => t.locked).length ?? 0;
+  const playlists = meta?.referencePlaylists ?? [];
+  const dbChanges = overridesReady && Object.keys(overrides).some((k) => k !== "updatedAt");
 
   return (
     <MotionConfig reducedMotion="user">
@@ -327,7 +428,14 @@ export function Composer() {
               />
             </div>
           </div>
-          <div className="mt-6 flex flex-wrap gap-2">
+          <div className="mt-6 border-t border-[rgb(var(--text)/.08)] pt-5">
+            <ContextStrip
+              value={(options.context ?? {}) as ComposeContext}
+              onChange={(context) => setOptions({ context })}
+              model={meta?.contextModel ?? null}
+            />
+          </div>
+          <div className="mt-6 flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => run()}
@@ -357,13 +465,21 @@ export function Composer() {
                 <Share2 size={16} /> Export
               </button>
             )}
+            {lockedCount > 0 && (
+              <span className="text-muted text-xs">
+                {lockedCount} locked {lockedCount === 1 ? "tanda stays" : "tandas stay"} on recompose
+              </span>
+            )}
+            {dbChanges && <span className="text-muted text-xs">Using your database edits</span>}
           </div>
-          <div role="status" aria-live="polite" className="sr-only">
-            {busy
-              ? "Composing the night…"
-              : hasPlaylist && playlist
-                ? `Set ready: ${playlist.tandas.length} tandas.`
-                : ""}
+          <div role="status" aria-live="polite" className={error ? "mt-2 text-sm text-[var(--accent)]" : "sr-only"}>
+            {error
+              ? error
+              : busy
+                ? "Composing the night…"
+                : hasPlaylist && playlist
+                  ? `Set ready: ${playlist.tandas.length} tandas.`
+                  : ""}
           </div>
         </section>
 
@@ -471,6 +587,18 @@ export function Composer() {
                   ))}
                 </ul>
               </details>
+              {playlists.some((p) => p.kind === "tandas") && (
+                <details className="group mt-1 text-sm">
+                  <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-sm font-medium [&::-webkit-details-marker]:hidden">
+                    <ChevronDown size={16} className="transition-transform group-open:rotate-180" />
+                    Mood check
+                    <span className="text-muted text-xs font-normal">compare with Aren León's reference tandas</span>
+                  </summary>
+                  <div className="mt-3">
+                    <MoodCheck playlists={playlists} />
+                  </div>
+                </details>
+              )}
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <button type="button" onClick={explain} disabled={aiBusy} className="btn btn-ghost text-sm">
                   {aiBusy ? (
@@ -499,6 +627,7 @@ export function Composer() {
                 )}
               </div>
             </div>
+            <FeedbackBar onFeedback={feedback} onRefine={refine} busy={busy} note={note} />
             <div className="grid gap-4 md:grid-cols-2">
               {playlist.tandas.map((t, i) => (
                 <TandaCard
@@ -506,9 +635,12 @@ export function Composer() {
                   t={t}
                   i={i}
                   onSwap={() => swap(i)}
+                  onSwapTrack={(k) => swapTrack(i, k)}
                   onLock={() => lock(i)}
                   busy={swapping === i}
+                  swappingTrack={swappingTrack?.[0] === i ? swappingTrack[1] : null}
                   active={active === i}
+                  playlists={playlists}
                 />
               ))}
             </div>

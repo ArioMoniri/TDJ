@@ -1,5 +1,5 @@
 "use client";
-import { BookOpenText, Disc3, ListMusic, Settings2 } from "lucide-react";
+import { BookOpenText, Database, Disc3, ListMusic, Settings2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "./Logo";
@@ -7,6 +7,7 @@ import { Logo } from "./Logo";
 const items = [
   { href: "/", label: "Compose", icon: ListMusic },
   { href: "/library", label: "Library", icon: Disc3 },
+  { href: "/database", label: "Database", icon: Database },
   { href: "/guide", label: "Guide", icon: BookOpenText },
   { href: "/settings", label: "Settings", icon: Settings2 },
 ];
@@ -48,7 +49,7 @@ export function Nav() {
             <Link
               key={it.href}
               href={it.href}
-              className={`flex min-h-12 min-w-[72px] flex-col items-center justify-center gap-0.5 rounded-full px-3 text-xs ${on ? "bg-[rgb(var(--text)/.08)] font-semibold" : "text-muted"}`}
+              className={`flex min-h-12 min-w-[60px] flex-col items-center justify-center gap-0.5 rounded-full px-3 text-xs ${on ? "bg-[rgb(var(--text)/.08)] font-semibold" : "text-muted"}`}
               aria-current={on ? "page" : undefined}
             >
               <it.icon size={20} strokeWidth={on ? 2.4 : 1.8} />

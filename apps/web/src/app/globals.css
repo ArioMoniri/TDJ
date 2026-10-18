@@ -450,3 +450,134 @@ input[type="range"] {
     animation-duration: 1.6s;
   }
 }
+
+/* "Tonight" context chips: a native select dressed as a chip (44 px on touch) */
+.ctx-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  border-radius: 999px;
+  border: 1px solid rgb(var(--text) / 0.14);
+  background: rgb(var(--surface) / 0.5);
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  flex: none;
+}
+.ctx-chip select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  min-height: 40px;
+  padding: 0 1.9rem 0 0.85rem;
+  border-radius: 999px;
+  cursor: pointer;
+  max-width: 12rem;
+  text-overflow: ellipsis;
+}
+.ctx-chip select.pl-4 {
+  padding-left: 1.5rem;
+}
+.ctx-chip select option {
+  color: rgb(var(--text));
+  background: rgb(var(--surface));
+}
+.ctx-chip .ctx-caret {
+  position: absolute;
+  right: 0.7rem;
+  pointer-events: none;
+  opacity: 0.7;
+}
+.ctx-chip .ctx-dot {
+  position: absolute;
+  left: 0.7rem;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  pointer-events: none;
+}
+@media (hover: none) {
+  .ctx-chip,
+  .ctx-chip select {
+    min-height: 44px;
+  }
+}
+
+/* Database tables: rows become cards on phones */
+.db-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.db-table th {
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgb(var(--muted));
+  padding: 0.5rem 0.5rem;
+  border-bottom: 1px solid rgb(var(--text) / 0.1);
+}
+.db-table td {
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid rgb(var(--text) / 0.07);
+  vertical-align: middle;
+}
+.db-table .field,
+.db-table select.field {
+  min-height: 44px;
+  font-size: 0.875rem;
+  padding: 0 0.6rem;
+}
+@media (max-width: 640px) {
+  .db-table,
+  .db-table tbody,
+  .db-table tr,
+  .db-table td {
+    display: block;
+  }
+  .db-table thead {
+    display: none;
+  }
+  .db-table tr {
+    border: 1px solid rgb(var(--text) / 0.1);
+    border-radius: 16px;
+    padding: 0.6rem 0.8rem;
+    margin-bottom: 0.75rem;
+    background: rgb(var(--text) / 0.03);
+  }
+  .db-table td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    border: 0;
+    padding: 0.3rem 0;
+  }
+  .db-table td[data-label]::before {
+    content: attr(data-label);
+    font-size: 0.75rem;
+    color: rgb(var(--muted));
+    flex: none;
+    min-width: 5rem;
+  }
+  .db-table td > .field,
+  .db-table td > select,
+  .db-table td > .db-cell {
+    max-width: 60%;
+    margin-left: auto;
+  }
+  .db-table td.db-title {
+    display: block;
+    font-weight: 600;
+    padding-bottom: 0.4rem;
+  }
+  .db-table td.db-title::before {
+    display: none;
+  }
+}

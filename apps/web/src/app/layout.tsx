@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter } from "next/font/google";
 import "./globals.css";
+import { Boot } from "@/components/Boot";
 import { Nav } from "@/components/Nav";
 import { ThemeSync } from "@/components/ThemeSync";
 
@@ -40,6 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-dvh">
         <div className="ambient" aria-hidden />
         <ThemeSync />
+        <Boot />
         <Nav />
         <main className="mx-auto w-full max-w-6xl px-4 pb-36 pt-4 sm:px-6 sm:pb-12 lg:px-8">{children}</main>
       </body>
