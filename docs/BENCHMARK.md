@@ -10,14 +10,15 @@ Reference research: `docs/research/dj-benchmark.md` (benchmark DJs, public tanda
 | era | year span ≤ 4 (large catalogues) / ≤ 6 | 8 |
 | sizes | tango 4 · vals 3–4 · milonga 3 | 5 |
 | cycle | TTVTTM; vals/milonga never adjacent; milongas spaced | 8 |
-| spacing | no orchestra repeated within 6 tandas | 8 |
-| variety | distinct orchestras ≥ 3.5 per hour | 6 |
+| spacing | no orchestra repeated within 8 tandas | 8 |
+| variety | distinct orchestras ≥ 4.5 per hour | 6 |
 | titles | no repeated title | 3 |
 | tempo | BPM drift ≤ 6 % inside a tanda (when BPM known) | 5 |
 | arc | RMSE of tanda energy vs target curve; Pugliese after 50 % | 10 |
-| cortina | present after every tanda but the last; 25–60 s | 5 |
+| fame | share of tracks that appear in the reference corpus | 6 |
+| cortina | present after every tanda but the last; 25–60 s; ≤ 3 families | 5 |
 | source | curator "SELECCIÓN" share + Spotify resolvability (proxy for transfer quality) | 8 |
-| ending | strong última tanda + La Cumparsita | 4 |
+| ending | vocal tango última ≥ 60 + La Cumparsita | 4 |
 | duration | within ± 4 min of the requested hours | 3 |
 
 Grades: **≥ 85 headline marathon DJ · 70–84 solid regular DJ · 55–69 enthusiastic amateur · < 55 Spotify radio**.

@@ -15,9 +15,14 @@
 - **Matches cortinas** to the energy of the *next* tanda; choose cultures (Turkish, Greek, Persian, Balkan, Brazilian, K-pop, Afrobeats…), trend vs classic, length, or one cortina all night.
 - **Any era**: Golden Age 1935–55 (default), Guardia Vieja, post-golden, nuevo, contemporary, or everything.
 - **Index lives in the repo** (`data/`): 21,932 recordings from the source spreadsheets, orchestra × year quality heatmap, musicology profiles, Spotify cache — rebuilt with `pnpm index:build`, enriched with `pnpm index:enrich`.
-- **Scores every set** against a rubric distilled from the world's reference milonga playlists (≥ 85 = headline marathon DJ) and lets an AI DJ (your Anthropic key) review it.
-- **Exports**: Spotify (PKCE, your own Client ID), M3U8, CSV, JSON, Rekordbox XML, Traktor NML, XSPF, Serato CSV, printable set list.
-- **Per-user panel**: Spotify Client ID, Anthropic key + model, region, appearance. Keys stay in the browser.
+- **Knows the canon**: a reference corpus of 31 published milonga sets (619 tandas), 218 canonical tandas, 1,078 floor-known recordings and 134 non-danceable titles drives openers, D'Arienzo-early, Pugliese-once-and-late, vals/milonga banks and the Cumparsita versions DJs actually close with ([docs/AGENT_GUIDE.md](docs/AGENT_GUIDE.md)).
+- **Reads the room**: season, weather, room temperature, time of night, event type, crowd, region, holiday and mood shift the arc, shares and cortina pools, each factor graded by evidence ([docs/research/context-factors.md](docs/research/context-factors.md)).
+- **Takes feedback**: "more energetic", "calmer start", "more vals", "fewer repeats" chips, or free text to the AI DJ (Anthropic, OpenAI, Gemini or OpenRouter, your own key), recomposing around the tandas you locked.
+- **Your own database**: every deployed copy has a Database tab where songs, years, orchestra profiles, cortinas, rules and context factors can be edited and exported; overrides merge over the repo-hosted index that GitHub keeps updated.
+- **Listen before you commit**: Spotify embeds per tanda and cortina (your Spotify connection), plus reference tanda playlists for a mood check.
+- **Scores every set** honestly against a rubric distilled from reference sets (unknown BPM and transfer data score low on purpose); ≥ 85 = headline marathon DJ.
+- **Exports**: Spotify (PKCE, your own Client ID), M3U8, CSV, JSON, Rekordbox XML, Traktor NML, XSPF, DJ CSV, printable set list; with or without cortinas; DJ-app connectors map exports to your music folders.
+- **Per-user panel**: Spotify, AI provider + key + model, DJ-app connectors, region, appearance. Keys stay in the browser.
 - **Apple-style liquid glass UI**, dark/light, phone-first with a glass tab bar.
 
 <p align="center">
@@ -47,7 +52,7 @@ pnpm media               # real screenshots + usage video  ·  pnpm video (Remot
 `hours` → slots (TTVTTM) → target energy per slot (two-peak arc) → for each slot pick an orchestra family that fits energy, phase, tier and spacing (Pugliese never before 50 %) → order the 4 tracks → cortina tuned to the next tanda → La Cumparsita from another orchestra → score. Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), musical rules: [docs/research/musicology.md](docs/research/musicology.md).
 
 ## Docs
-[Goals](docs/GOALS.md) · [Roadmap & phases](docs/ROADMAP.md) · [Benchmark rubric](docs/BENCHMARK.md) · [Enhancements from musician/DJ/UX/QA reviews](docs/ENHANCEMENTS.md) · [TDD](docs/TDD.md) · [Definition of Done](docs/DOD.md) · [Worktrees](docs/WORKTREES.md) · [Deploy](docs/DEPLOY.md) · [Research (2026 integrations)](docs/research/engineering-2026.md) · [Brand](brand/)
+[Goals](docs/GOALS.md) · [Agent guide & rules](docs/AGENT_GUIDE.md) · [Musicality model](docs/MUSICALITY.md) · [Reference corpus](docs/research/reference-corpus.md) · [Roadmap & phases](docs/ROADMAP.md) · [Benchmark rubric](docs/BENCHMARK.md) · [Enhancements from musician/DJ/UX/QA reviews](docs/ENHANCEMENTS.md) · [TDD](docs/TDD.md) · [Definition of Done](docs/DOD.md) · [Worktrees](docs/WORKTREES.md) · [Deploy](docs/DEPLOY.md) · [Research (2026 integrations)](docs/research/engineering-2026.md) · [Brand](brand/)
 
 ## Stack (October 2026)
 Next.js 16.4 · React 19.3 · Tailwind 4.3 · motion 14 · dotLottie · Zustand · Vitest · Playwright 1.64 · Biome 2 · Turborepo · SST 4.17 + OpenNext 4 · Remotion 4 · Anthropic SDK (BYOK, Claude 5.5 models) · Spotify Web API (2026 Dev-Mode rules, PKCE).
