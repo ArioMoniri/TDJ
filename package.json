@@ -1,0 +1,28 @@
+{
+  "name": "tdj",
+  "private": true,
+  "version": "0.1.0",
+  "description": "TDJ — Tango DJ playlist composer: tandas, cortinas, energy arcs, exports to Spotify and DJ apps.",
+  "packageManager": "pnpm@10.18.0",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev": "turbo run dev --filter=@tdj/web",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "typecheck": "turbo run typecheck",
+    "index:build": "python3 scripts/build_index.py",
+    "index:enrich": "pnpm --filter @tdj/core exec tsx ../../scripts/enrich_spotify.ts",
+    "compose": "pnpm --filter @tdj/core exec tsx src/cli.ts",
+    "e2e": "pnpm --filter @tdj/web e2e",
+    "media": "pnpm --filter @tdj/web media",
+    "video": "pnpm --filter @tdj/video render",
+    "deploy": "sst deploy --stage production"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.2.0",
+    "turbo": "^2.5.0",
+    "typescript": "^5.9.0"
+  }
+}
