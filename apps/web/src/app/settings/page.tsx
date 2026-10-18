@@ -1,17 +1,42 @@
 "use client";
-import { Check, Copy, Eye, EyeOff, Globe, KeyRound, Palette, Radio, ShieldCheck } from "lucide-react";
+import {
+  Check,
+  Copy,
+  Eye,
+  EyeOff,
+  FolderOpen,
+  Globe,
+  KeyRound,
+  LoaderCircle,
+  Palette,
+  Radio,
+  ShieldCheck,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { Field, Segmented, Switch } from "@/components/ui";
 import { beginAuth } from "@/lib/spotify";
 import { useStore } from "@/lib/store";
-import type { UserSettings } from "@/lib/types";
+import {
+  AI_DEFAULT_MODEL,
+  AI_PROVIDERS,
+  type AiProvider,
+  DEFAULT_NAMING,
+  DJ_APPS,
+  type UserSettings,
+} from "@/lib/types";
 
-const MODELS: Array<[string, string]> = [
-  ["claude-opus-5-5", "Best"],
-  ["claude-sonnet-5-5", "Balanced"],
-  ["claude-haiku-5-5", "Fast"],
-  ["claude-fable-5-1", "Fable"],
-];
+const MODEL_SUGGESTIONS: Record<AiProvider, string[]> = {
+  anthropic: ["claude-sonnet-5-5", "claude-opus-5-5", "claude-haiku-5-5"],
+  openai: ["gpt-5.2", "gpt-5.2-mini", "o4-mini"],
+  gemini: ["gemini-3-pro", "gemini-3-flash"],
+  openrouter: ["openrouter/auto", "anthropic/claude-sonnet-5-5", "openai/gpt-5.2"],
+};
+const KEY_PLACEHOLDER: Record<AiProvider, string> = {
+  anthropic: "sk-ant-…",
+  openai: "sk-…",
+  gemini: "AIza…",
+  openrouter: "sk-or-…",
+};
 const REGIONS: Array<[UserSettings["region"], string]> = [
   ["buenos-aires", "Buenos Aires"],
   ["europe", "Europe"],
@@ -44,6 +69,7 @@ export default function Settings() {
   const [showKey, setShowKey] = useState(false);
   const [copied, setCopied] = useState(false);
   const [redirect, setRedirect] = useState("/callback");
+  const [test, setTest] = useState<{ state: "idle" | "busy" | "ok" | "fail"; text?: string }>({ state: "idle" });
   useEffect(() => setRedirect(`${location.origin}/callback`), []);
   const copyRedirect = async () => {
     try {
@@ -55,6 +81,33 @@ export default function Settings() {
     }
   };
   const minutesLeft = spotifyToken ? Math.max(0, Math.round((spotifyToken.expires - Date.now()) / 60000)) : 0;
+  const ai = settings.ai;
+  const setAi = (patch: Partial<UserSettings["ai"]>) => setSettings({ ai: { ...ai, ...patch } });
+  const switchProvider = (provider: AiProvider) => {
+    const keepModel = MODEL_SUGGESTIONS[provider].includes(ai.model);
+    setAi({ provider, model: keepModel ? ai.model : AI_DEFAULT_MODEL[provider] });
+    setTest({ state: "idle" });
+  };
+  const testConnection = async () => {
+    setTest({ state: "busy" });
+    try {
+      const r = await fetch("/api/ai/review", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-ai-provider": ai.provider,
+          "x-ai-key": ai.key,
+          "x-ai-model": ai.model,
+        },
+        body: JSON.stringify({ test: true }),
+      });
+      const j = await r.json();
+      if (r.ok) setTest({ state: "ok", text: `Connected. ${ai.model || "Default model"} answered "${j.text}".` });
+      else setTest({ state: "fail", text: j.error ?? `Failed (${r.status}).` });
+    } catch {
+      setTest({ state: "fail", text: "Could not reach the server." });
+    }
+  };
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
@@ -76,7 +129,7 @@ export default function Settings() {
         </div>
         <p className="text-muted text-sm">
           Create an app at developer.spotify.com (your account must be Premium), add the redirect URI below,
-          then paste the Client ID.
+          then paste the Client ID. Once connected, Listen plays the exact recordings and cortinas.
         </p>
         <Field label="Redirect URI" htmlFor="redirect-uri" hint="Add this to your Spotify app">
           <div className="flex gap-2">
@@ -124,18 +177,22 @@ export default function Settings() {
           <h2 id="review-h" className="flex items-center gap-2 font-semibold">
             <KeyRound size={18} /> Written reviews
           </h2>
-          <Badge ok={!!settings.anthropicApiKey}>{settings.anthropicApiKey ? "Key saved" : "No key"}</Badge>
+          <Badge ok={!!ai.key}>{ai.key ? "Key saved" : "No key"}</Badge>
         </div>
         <p className="text-muted text-sm">
-          An Anthropic API key lets you ask for a written review of a set from the result card.
+          A model key lets you ask for a written review of a set and turns “Tell the DJ” requests into
+          precise changes. Without one, free-text requests still work by keyword.
         </p>
-        <Field label="API key" htmlFor="anthropic-key">
+        <Field label="Provider">
+          <Segmented label="Provider" value={ai.provider} onChange={switchProvider} items={AI_PROVIDERS} />
+        </Field>
+        <Field label="API key" htmlFor="ai-key">
           <div className="flex gap-2">
             <input
-              id="anthropic-key"
-              value={settings.anthropicApiKey}
-              onChange={(e) => setSettings({ anthropicApiKey: e.target.value.trim() })}
-              placeholder="sk-ant-…"
+              id="ai-key"
+              value={ai.key}
+              onChange={(e) => setAi({ key: e.target.value.trim() })}
+              placeholder={KEY_PLACEHOLDER[ai.provider]}
               type={showKey ? "text" : "password"}
               className="field font-mono text-sm"
               autoComplete="off"
@@ -152,24 +209,104 @@ export default function Settings() {
             </button>
           </div>
         </Field>
-        <Field label="Model" hint={settings.anthropicModel}>
-          <Segmented
-            label="Model"
-            value={settings.anthropicModel}
-            onChange={(m) => setSettings({ anthropicModel: m })}
-            items={MODELS}
+        <Field label="Model" htmlFor="ai-model" hint={`Default: ${AI_DEFAULT_MODEL[ai.provider]}`}>
+          <input
+            id="ai-model"
+            list="ai-model-list"
+            value={ai.model}
+            onChange={(e) => setAi({ model: e.target.value.trim() })}
+            placeholder={AI_DEFAULT_MODEL[ai.provider]}
+            className="field font-mono text-sm"
+            autoComplete="off"
+            spellCheck={false}
+          />
+          <datalist id="ai-model-list">
+            {MODEL_SUGGESTIONS[ai.provider].map((m) => (
+              <option key={m} value={m} />
+            ))}
+          </datalist>
+          <div className="chip-row scroll-x mt-2">
+            {MODEL_SUGGESTIONS[ai.provider].map((m) => (
+              <button
+                type="button"
+                key={m}
+                className={`chip ${ai.model === m ? "chip-on" : ""}`}
+                aria-pressed={ai.model === m}
+                onClick={() => setAi({ model: m })}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
+        </Field>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={testConnection}
+            disabled={!ai.key || test.state === "busy"}
+          >
+            {test.state === "busy" ? <LoaderCircle size={15} className="animate-spin" /> : null} Test connection
+          </button>
+          <span
+            role="status"
+            aria-live="polite"
+            className={`text-sm ${test.state === "fail" ? "text-[var(--accent)]" : test.state === "ok" ? "text-[var(--ok)]" : "text-muted"}`}
+          >
+            {test.text ?? ""}
+          </span>
+        </div>
+        <p className="text-muted flex items-center gap-1.5 text-xs">
+          <ShieldCheck size={13} /> Sent with your own requests only; never stored on the server.
+        </p>
+      </section>
+
+      <section className="surface space-y-4 p-5 sm:p-6" aria-labelledby="djapps-h">
+        <h2 id="djapps-h" className="flex items-center gap-2 font-semibold">
+          <FolderOpen size={18} /> DJ apps
+        </h2>
+        <p className="text-muted text-sm">
+          Tell TDJ where each app keeps your tango files so exports point at real paths instead of a TDJ/
+          placeholder. Files are expected as “{settings.fileNaming || DEFAULT_NAMING}.mp3”.
+        </p>
+        <Field label="File naming" htmlFor="file-naming" hint="{artist} {title} {orchestra} {singer} {year} {tanda} {n}">
+          <input
+            id="file-naming"
+            value={settings.fileNaming}
+            onChange={(e) => setSettings({ fileNaming: e.target.value })}
+            placeholder={DEFAULT_NAMING}
+            className="field font-mono text-sm"
+            autoComplete="off"
+            spellCheck={false}
           />
         </Field>
-        <p className="text-muted flex items-center gap-1.5 text-xs">
-          <ShieldCheck size={13} /> Sent with your review request only; never stored on the server.
-        </p>
+        <div className="space-y-3">
+          {DJ_APPS.map((app) => (
+            <div key={app.id} className="rounded-xl bg-[rgb(var(--text)/.04)] p-3">
+              <Field label={app.label} htmlFor={`folder-${app.id}`} hint={app.format}>
+                <input
+                  id={`folder-${app.id}`}
+                  value={settings.djApps[app.id]?.folder ?? ""}
+                  onChange={(e) =>
+                    setSettings({ djApps: { ...settings.djApps, [app.id]: { folder: e.target.value } } })
+                  }
+                  placeholder={app.id === "rekordbox" ? "/Users/you/Music/Tango" : "Music folder path"}
+                  className="field font-mono text-sm"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+              </Field>
+              <p className="text-muted mt-2 text-xs leading-relaxed">{app.note}</p>
+            </div>
+          ))}
+        </div>
       </section>
 
       <section className="surface space-y-4 p-5 sm:p-6" aria-labelledby="region-h">
         <h2 id="region-h" className="flex items-center gap-2 font-semibold">
           <Globe size={18} /> Region
         </h2>
-        <Field label="Where you usually play" hint="Shapes cortina defaults">
+        <Field label="Where you usually play" hint="Default for Tonight's region">
           <Segmented
             label="Region"
             chips
