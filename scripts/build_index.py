@@ -98,6 +98,8 @@ RHYTHM_OVERRIDE = {
     ("a magaldi", "alfredo-de-angelis"): "vals",
     ("con toda la voz que tengo", "anibal-troilo"): "tango",  # Troilo-Fiorentino 1941; one copy tagged milonga
 }
+# Medleys / potpourris / "parte N" sides are indexed as tangos in the source; they are not dance tracks.
+MEDLEY_RE = re.compile(r"^(selecc|seleccion|selecciones|potpourri|popurr|mosaico|fantasia)\b|\b(\d+a?\.? ?parte|parte \d)\b")
 # Pseudo-singers: the "CANTA" column sometimes names a soloist/narrator instead of a vocalist.
 PSEUDO_SINGER = [
     (re.compile(r"^s[oó]lo de piano", re.I), "solo piano"),
@@ -176,6 +178,8 @@ def build_songs():
         year_approx = year is not None and year % 10 == 0 and not (date and re.fullmatch(r"\d{4}-\d{2}-\d{2}", date))
         nt = norm_title(title)
         rhythm_fix = RHYTHM_OVERRIDE.get((nt, orchestra_id)) or RHYTHM_OVERRIDE.get((nt, None))
+        if rhythm_fix is None and rhythm in ("tango", "vals", "milonga") and MEDLEY_RE.search(nt):
+            rhythm_fix, note = "other", note or "medley"
         rhythm_original = rhythm if rhythm_fix and rhythm_fix != rhythm else None
         if rhythm_fix: rhythm = rhythm_fix
         songs.append({

@@ -2887,5 +2887,129 @@
    "El entrerriano",
    "Nueve de julio"
   ]
+ },
+ {
+  "id": "francisco-rotundo",
+  "name": "Francisco Rotundo",
+  "aliases": [
+   "Rotundo"
+  ],
+  "style": "lyrical",
+  "energy": 56,
+  "tier": 2,
+  "bpm": {
+   "tango": [
+    112,
+    124
+   ],
+   "vals": [
+    168,
+    180
+   ],
+   "milonga": [
+    100,
+    110
+   ]
+  },
+  "phase": [
+   "build",
+   "cooldown"
+  ],
+  "singers": {
+   "Floreal Ruiz": [
+    1950,
+    1955
+   ],
+   "Floreal Ruíz": [
+    1950,
+    1955
+   ],
+   "Enrique Campos": [
+    1950,
+    1955
+   ],
+   "Carlos Roldán": [
+    1949,
+    1950
+   ],
+   "Julio Sosa": [
+    1953,
+    1955
+   ],
+   "Alfredo del Río": [
+    1953,
+    1955
+   ]
+  },
+  "vocalShift": 0,
+  "instrumentalShift": -2,
+  "shareOfNightMax": 0.08,
+  "difficulty": 45,
+  "confidence": "estimate",
+  "bestYears": [
+   1950,
+   1955
+  ],
+  "notes": "Secondary 1950s lyrical orchestra (Ruiz, Campos, Sosa). One tanda in the middle of a long night at most; never the opener or the última.",
+  "signatureTracks": [
+   "Tabernero (Campos)",
+   "As de cartón (Campos)",
+   "Llorando la carta (Campos)"
+  ]
+ },
+ {
+  "id": "juan-sanchez-gorio",
+  "name": "Juan Sánchez Gorio",
+  "aliases": [
+   "Sánchez Gorio"
+  ],
+  "style": "rhythmic",
+  "energy": 64,
+  "tier": 2,
+  "bpm": {
+   "tango": [
+    120,
+    132
+   ],
+   "vals": [
+    172,
+    186
+   ],
+   "milonga": [
+    104,
+    116
+   ]
+  },
+  "phase": [
+   "build"
+  ],
+  "singers": {
+   "Osvaldo Bazán": [
+    1950,
+    1955
+   ],
+   "Luis Mendoza": [
+    1950,
+    1955
+   ],
+   "L. Mendoza - O. Bazán": [
+    1950,
+    1955
+   ]
+  },
+  "vocalShift": 0,
+  "instrumentalShift": 2,
+  "shareOfNightMax": 0.06,
+  "difficulty": 40,
+  "confidence": "estimate",
+  "bestYears": [
+   1950,
+   1956
+  ],
+  "notes": "Rhythmic 1950s orchestra in the D'Arienzo mould; filler for the build phase of long nights, never opener or peak.",
+  "signatureTracks": [
+   "Fatal y tanguera",
+   "Corrientes y Esmeralda"
+  ]
  }
 ]

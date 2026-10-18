@@ -165,10 +165,10 @@
   "name": "Alfredo De Angelis",
   "count": 771,
   "rhythms": {
-   "tango": 648,
-   "vals": 78,
+   "tango": 640,
+   "vals": 77,
    "milonga": 41,
-   "other": 2,
+   "other": 11,
    "candombe": 1,
    "ranchera": 1
   },
@@ -269,10 +269,10 @@
   "name": "Aníbal Troilo",
   "count": 750,
   "rhythms": {
-   "tango": 635,
+   "tango": 630,
    "milonga": 64,
    "vals": 31,
-   "other": 11,
+   "other": 16,
    "polca": 6,
    "estilo": 2,
    "cancion": 1
@@ -371,14 +371,14 @@
   "name": "Francisco Canaro",
   "count": 700,
   "rhythms": {
-   "tango": 484,
+   "tango": 482,
    "vals": 85,
    "milonga": 26,
    "ranchera": 19,
    "unknown": 18,
+   "other": 17,
    "pasodoble": 16,
    "foxtrot": 15,
-   "other": 15,
    "polca": 10,
    "marcha": 5,
    "cancion": 4,
@@ -757,9 +757,10 @@
   "name": "Armando Pontier",
   "count": 395,
   "rhythms": {
-   "tango": 355,
+   "tango": 353,
    "milonga": 19,
    "vals": 19,
+   "other": 2,
    "tonada": 1,
    "cancion": 1
   },
@@ -1243,13 +1244,13 @@
   "name": "Francisco Lomuto",
   "count": 256,
   "rhythms": {
-   "tango": 188,
+   "tango": 185,
    "vals": 24,
    "ranchera": 10,
+   "other": 9,
    "milonga": 8,
    "foxtrot": 8,
    "pasodoble": 8,
-   "other": 6,
    "shimmy": 1,
    "marcha": 1,
    "corrido": 1,
@@ -1626,9 +1627,9 @@
   "count": 186,
   "rhythms": {
    "tango": 151,
-   "vals": 18,
+   "vals": 16,
    "milonga": 14,
-   "other": 2,
+   "other": 4,
    "ranchera": 1
   },
   "singers": {
@@ -1844,11 +1845,11 @@
   "name": "Domingo Federico",
   "count": 141,
   "rhythms": {
-   "tango": 121,
+   "tango": 120,
    "milonga": 10,
    "vals": 7,
+   "other": 2,
    "cancion": 1,
-   "other": 1,
    "candombe": 1
   },
   "singers": {
@@ -2081,10 +2082,10 @@
   "name": "Jorge Arduh",
   "count": 119,
   "rhythms": {
-   "tango": 107,
+   "tango": 105,
    "vals": 6,
-   "milonga": 4,
-   "other": 2
+   "other": 4,
+   "milonga": 4
   },
   "singers": {
    "Carlos Soler": 7,
@@ -2198,10 +2199,11 @@
   "name": "Porfirio Díaz",
   "count": 98,
   "rhythms": {
-   "tango": 46,
-   "vals": 39,
+   "tango": 45,
+   "vals": 38,
    "pasodoble": 5,
    "ranchera": 3,
+   "other": 2,
    "corrido": 2,
    "foxtrot": 1,
    "polca": 1,
@@ -2416,9 +2418,10 @@
   "name": "Eduardo del Piano",
   "count": 85,
   "rhythms": {
-   "tango": 75,
+   "tango": 74,
    "milonga": 6,
-   "vals": 4
+   "vals": 4,
+   "other": 1
   },
   "singers": {
    "Angel Vargas": 20,
@@ -2542,9 +2545,9 @@
   "rhythms": {
    "tango": 59,
    "cancion": 10,
-   "milonga": 4,
-   "other": 4,
+   "other": 6,
    "vals": 3,
+   "milonga": 2,
    "zamba": 1,
    "polca": 1
   },
@@ -2598,9 +2601,10 @@
   "name": "Trío Yumba",
   "count": 82,
   "rhythms": {
-   "tango": 71,
+   "tango": 70,
    "milonga": 9,
-   "vals": 2
+   "vals": 2,
+   "other": 1
   },
   "singers": {
    "Elsa Rivas": 26,
@@ -2621,9 +2625,10 @@
   "name": "Mariano Mores",
   "count": 81,
   "rhythms": {
-   "tango": 73,
+   "tango": 72,
    "milonga": 6,
-   "cancion": 2
+   "cancion": 2,
+   "other": 1
   },
   "singers": {
    "Carlos Acuña": 18,
@@ -2877,10 +2882,11 @@
   "name": "Julio De Caro",
   "count": 69,
   "rhythms": {
-   "tango": 65,
+   "tango": 64,
    "vals": 2,
    "milonga": 1,
-   "polca": 1
+   "polca": 1,
+   "other": 1
   },
   "singers": {
    "Luis Díaz": 5,
@@ -2918,9 +2924,10 @@
   "name": "Osmar Maderna",
   "count": 68,
   "rhythms": {
-   "tango": 60,
+   "tango": 59,
    "vals": 6,
    "milonga": 1,
+   "other": 1,
    "cancion": 1
   },
   "singers": {
@@ -3022,8 +3029,9 @@
   "name": "Orq.símb.o.maderna",
   "count": 66,
   "rhythms": {
-   "tango": 60,
+   "tango": 57,
    "vals": 4,
+   "other": 3,
    "milonga": 2
   },
   "singers": {
@@ -3292,10 +3300,11 @@
   "name": "Joaquín Do Reyes",
   "count": 58,
   "rhythms": {
-   "tango": 54,
+   "tango": 53,
    "milonga": 2,
    "vals": 1,
-   "candombe": 1
+   "candombe": 1,
+   "other": 1
   },
   "singers": {
    "Hugo Soler": 5,
@@ -3323,10 +3332,10 @@
   "name": "Roberto Caló",
   "count": 58,
   "rhythms": {
-   "tango": 50,
+   "tango": 49,
    "vals": 5,
-   "milonga": 2,
-   "other": 1
+   "other": 2,
+   "milonga": 2
   },
   "singers": {
    "Enrique Campos": 10,
@@ -3375,9 +3384,10 @@
   "name": "Juan Cambareri",
   "count": 56,
   "rhythms": {
-   "tango": 39,
+   "tango": 38,
    "vals": 9,
-   "milonga": 8
+   "milonga": 8,
+   "other": 1
   },
   "singers": {
    "Con Canto": 4,
@@ -3613,9 +3623,9 @@
   "name": "Héctor María Artola",
   "count": 46,
   "rhythms": {
-   "tango": 44,
-   "milonga": 1,
-   "other": 1
+   "tango": 43,
+   "other": 2,
+   "milonga": 1
   },
   "singers": {
    "Alberto Marino": 13,
@@ -3794,7 +3804,8 @@
   "name": "Osvaldo Berlinghieri",
   "count": 44,
   "rhythms": {
-   "tango": 43,
+   "tango": 42,
+   "other": 1,
    "milonga": 1
   },
   "singers": {
@@ -4341,9 +4352,10 @@
   "name": "Oscar de la Fuente",
   "count": 32,
   "rhythms": {
-   "tango": 19,
+   "tango": 18,
    "milonga": 8,
-   "vals": 5
+   "vals": 5,
+   "other": 1
   },
   "singers": {
    "Ricardo Ruíz": 5,
@@ -4780,8 +4792,9 @@
   "count": 27,
   "rhythms": {
    "tango": 19,
-   "vals": 5,
+   "vals": 4,
    "milonga": 2,
+   "other": 1,
    "pasodoble": 1
   },
   "singers": {
@@ -5413,7 +5426,8 @@
   "name": "Ernesto Baffa",
   "count": 21,
   "rhythms": {
-   "tango": 20,
+   "tango": 19,
+   "other": 1,
    "milonga": 1
   },
   "singers": {
@@ -6568,9 +6582,10 @@
   "name": "Juanjo Domínguez-Julio Pane",
   "count": 15,
   "rhythms": {
-   "tango": 11,
+   "tango": 10,
    "milonga": 2,
-   "vals": 2
+   "vals": 2,
+   "other": 1
   },
   "singers": {},
   "vocal": 0,
@@ -6585,8 +6600,9 @@
   "name": "Ryota Komatsu",
   "count": 15,
   "rhythms": {
-   "tango": 14,
-   "milonga": 1
+   "tango": 13,
+   "milonga": 1,
+   "other": 1
   },
   "singers": {},
   "vocal": 0,
@@ -6690,8 +6706,9 @@
   "name": "Juan Carlos Abitábile",
   "count": 14,
   "rhythms": {
-   "tango": 13,
-   "vals": 1
+   "tango": 12,
+   "vals": 1,
+   "other": 1
   },
   "singers": {},
   "vocal": 0,
@@ -6725,8 +6742,8 @@
   "name": "Raúl Plate",
   "count": 14,
   "rhythms": {
-   "tango": 12,
-   "vals": 1,
+   "tango": 11,
+   "other": 2,
    "cancion": 1
   },
   "singers": {
@@ -8958,8 +8975,8 @@
   "name": "R.salani-O.brunetti-D.porta",
   "count": 7,
   "rhythms": {
-   "tango": 6,
-   "other": 1
+   "tango": 5,
+   "other": 2
   },
   "singers": {
    "Marcos A. Andino": 2,
@@ -11130,7 +11147,8 @@
   "name": "Orq.del Tango de la Ciudad de Bs.as.",
   "count": 3,
   "rhythms": {
-   "tango": 3
+   "tango": 2,
+   "other": 1
   },
   "singers": {},
   "vocal": 0,

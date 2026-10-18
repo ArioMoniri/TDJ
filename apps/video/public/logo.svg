@@ -1,7 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="t"><title id="t">TDJ logo</title>
-  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff8aa6"/><stop offset="1" stop-color="#c13b62"/></linearGradient></defs>
-  <circle cx="128" cy="128" r="120" fill="url(#g)"/>
-  <!-- the night as a record groove, opened where the tanda line rises: slow → up → settle -->
-  <path d="M128 48 A80 80 0 1 1 48 128" fill="none" stroke="#fff" stroke-width="22" stroke-linecap="round"/>
-  <path d="M66 172 H110 V128 H154 V84 H190" fill="none" stroke="#fff" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="t">
+  <title id="t">TDJ logo (for dark backgrounds)</title>
+  <g id="symbol">
+    <path id="record" fill="#F6F1E8" d="M217.37 107.5 A99.5 99.5 0 1 1 199.75 68.5 L168.08 68.5 A76.5 76.5 0 1 0 193.7 107.5 Z"/>
+    <path id="tanda" fill="#E0557A" d="M49.65 156.5 H131.5 V76.5 H244 V99.5 H108.5 V179.5 H64.25 A75.9 75.9 0 0 1 49.65 156.5 Z"/>
+  </g>
 </svg>
