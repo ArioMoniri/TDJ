@@ -1,0 +1,17 @@
+node_modules
+.next
+dist
+out
+coverage
+.turbo
+.sst
+.env
+.env.local
+*.log
+.DS_Store
+apps/web/test-results
+apps/web/playwright-report
+apps/video/out
+/media/raw
+__pycache__
+.open-next
