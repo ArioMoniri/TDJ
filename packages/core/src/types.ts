@@ -60,6 +60,8 @@ export interface Song {
   /** 0..100; computed */
   energy?: number;
   bpm?: number;
+  /** 0..5 from the reference corpus (how often it appears in reference sets) */
+  fame?: number;
 }
 
 export interface OrchestraProfile {
@@ -130,6 +132,8 @@ export interface Tanda {
   cortina: Cortina | null;
   locked?: boolean;
   note?: string;
+  /** why the engine chose it (shown in the UI) */
+  reason?: string;
 }
 
 export interface PlaylistStats {
@@ -182,7 +186,7 @@ export interface ComposeOptions {
   tandaShape: "rise" | "rise-settle" | "hammock" | "flat" | "peak-middle";
   /** night arc model */
   arc: "classic-two-peaks" | "single-peak" | "marathon-plateau" | "gentle";
-  cortinaStyle: "matched" | "constant" | "none";
+  cortinaStyle: "family" | "matched" | "constant" | "none";
   cortinaCultures: string[]; // ["global"] or ["turkish","greek"...]
   cortinaGenres?: string[];
   cortinaTrend?: "trend" | "classic" | "mixed";
@@ -201,5 +205,88 @@ export interface ComposeOptions {
   seed?: number;
   floorMood?: "traditional" | "balanced" | "energetic" | "romantic";
   avgTrackSec?: number;
+  /** measured mean track length per rhythm for the active pool (set by compose) */
+  trackSecByRhythm?: Partial<Record<DanceRhythm, number>>;
   locale?: string;
+  /** situational context (season, weather, event type…) → factor shifts from data/knowledge/context_factors.json */
+  context?: ComposeContext;
+  /** per-user database overrides (rules, profiles, songs, cortinas) merged at compose time */
+  overrides?: UserOverrides;
+}
+
+export interface ComposeContext {
+  season?: "winter" | "spring" | "summer" | "autumn";
+  weather?: "clear" | "rain" | "heat" | "humid" | "cold" | "storm" | "snow";
+  roomTemp?: "cold" | "comfortable" | "warm" | "hot";
+  timeOfDay?: "afternoon" | "evening" | "night" | "late-night" | "sunrise";
+  event?: "milonga" | "marathon" | "encuentro" | "festival" | "practica" | "wedding" | "show";
+  crowdLevel?: "beginner" | "mixed" | "advanced" | "milonguero";
+  crowdSize?: "small" | "medium" | "large";
+  region?: "buenos-aires" | "europe" | "istanbul" | "asia" | "us";
+  holiday?: "none" | "christmas" | "new-year" | "valentines" | "carnival";
+  mood?: "romantic" | "energetic" | "nostalgic" | "playful" | "dramatic" | "elegant";
+  dayOfWeek?: "weekday" | "thursday" | "friday" | "saturday" | "sunday";
+  ageMix?: "young" | "mixed" | "senior";
+  roleRatio?: "balanced" | "leaderSurplus" | "followerSurplus";
+  origin?: "locals" | "mixed" | "tourists";
+  floorType?: "sprungWood" | "laminate" | "tile" | "sticky" | "outdoor";
+  roomSize?: "small" | "medium" | "largeHall";
+  acoustics?: "dry" | "moderate" | "reverberant";
+  daylight?: "shortDays" | "longDays" | "equatorial" | "temperate" | "startsInDaylight";
+}
+
+export interface ContextFactorOption {
+  id: string;
+  label: string;
+  energyShift?: number;
+  tempoShift?: number;
+  vocalRatioShift?: number;
+  valsShare?: number;
+  milongaShare?: number;
+  cortinaGenres?: string[];
+  tandaSizeShift?: number;
+  notes?: string;
+  evidence?: "strong" | "moderate" | "weak" | "lore";
+  arcShift?: Partial<Record<Phase, number>>;
+  preferStyles?: string[];
+  avoidStyles?: string[];
+}
+export interface ContextFactor {
+  id: string;
+  label: string;
+  options: ContextFactorOption[];
+}
+export interface ContextModel {
+  factors: ContextFactor[];
+  rhythmFeatures?: Record<string, unknown>;
+  eraTable?: Record<string, unknown>;
+  baseline?: { valsShare?: number; milongaShare?: number; vocalRatio?: number };
+  version?: string | number;
+}
+
+/** What a user can change in their own deployed database (merged over the repo-hosted index). */
+export interface UserOverrides {
+  /** partial song edits keyed by song id (year, singer, rhythm, energy, bpm, spotify uri, hide) */
+  songs?: Record<string, Partial<Song> & { hidden?: boolean }>;
+  /** orchestra profile edits keyed by orchestraId */
+  profiles?: Record<string, Partial<OrchestraProfile>>;
+  /** extra or replaced cortinas keyed by id */
+  cortinas?: Record<string, Cortina | null>;
+  /** engine rule knobs */
+  rules?: Partial<
+    Pick<
+      ComposeOptions,
+      | "orchestraRepeatGap"
+      | "singerRepeatGap"
+      | "maxYearSpread"
+      | "tangoTandaSize"
+      | "valsTandaSize"
+      | "milongaTandaSize"
+      | "cortinaLengthSec"
+      | "mixVocalInstrumental"
+    >
+  > & { trackEnergy?: Record<string, number>; notBefore?: Record<string, number> };
+  /** extra songs added by the user (e.g. own recordings) */
+  addedSongs?: Song[];
+  updatedAt?: string;
 }

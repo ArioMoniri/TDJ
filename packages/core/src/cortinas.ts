@@ -1,11 +1,10 @@
-import type { ComposeOptions, Cortina, Rng, Tanda } from "./index";
+import type { ComposeOptions, Cortina, Rng } from "./index";
 
 /**
- * Built-in cortina library. Energy 0..100 reflects how it lands on a milonga floor between tandas.
- * `data/knowledge/cortinas.json` extends this list (cultures, trend songs). Cortinas are never danceable tangos.
+ * Built-in cortina library (curated after the DJ review: no boleros, no "Zorba", no mambo that a Latin room will dance to).
+ * Energy 0..100 = how it lands on a milonga floor between tandas. `data/knowledge/cortinas.json` adds cultures/trends.
  */
 export const BUILTIN_CORTINAS: Cortina[] = [
-  // Global classics (swing / jazz / crooners)
   {
     id: "c-sing-sing",
     title: "Sing, Sing, Sing",
@@ -14,7 +13,9 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     culture: "global",
     energy: 82,
     year: 1937,
-    lengthSec: 50,
+    startSec: 0,
+    lengthSec: 40,
+    tags: ["intro-only"],
   },
   {
     id: "c-in-the-mood",
@@ -24,7 +25,8 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     culture: "global",
     energy: 74,
     year: 1939,
-    lengthSec: 50,
+    startSec: 0,
+    lengthSec: 45,
   },
   {
     id: "c-take-five",
@@ -34,7 +36,8 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     culture: "global",
     energy: 52,
     year: 1959,
-    lengthSec: 50,
+    startSec: 0,
+    lengthSec: 45,
   },
   {
     id: "c-fly-me",
@@ -44,35 +47,7 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     culture: "global",
     energy: 48,
     year: 1964,
-    lengthSec: 45,
-  },
-  {
-    id: "c-mambo5",
-    title: "Mambo No. 5",
-    artist: "Pérez Prado",
-    genre: "mambo",
-    culture: "latin",
-    energy: 80,
-    year: 1949,
-    lengthSec: 45,
-  },
-  {
-    id: "c-quizas",
-    title: "Quizás, Quizás, Quizás",
-    artist: "Nat King Cole",
-    genre: "bolero",
-    culture: "latin",
-    energy: 40,
-    year: 1958,
-    lengthSec: 45,
-  },
-  {
-    id: "c-besame",
-    title: "Bésame Mucho",
-    artist: "Trio Los Panchos",
-    genre: "bolero",
-    culture: "latin",
-    energy: 36,
+    startSec: 0,
     lengthSec: 45,
   },
   {
@@ -83,6 +58,7 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     culture: "global",
     energy: 58,
     year: 1965,
+    startSec: 0,
     lengthSec: 45,
   },
   {
@@ -93,7 +69,8 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     culture: "global",
     energy: 84,
     year: 1972,
-    lengthSec: 45,
+    startSec: 0,
+    lengthSec: 40,
   },
   {
     id: "c-la-vie",
@@ -104,18 +81,21 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     language: "fr",
     energy: 38,
     year: 1947,
+    startSec: 0,
     lengthSec: 45,
+    tags: ["once-a-night"],
   },
   {
-    id: "c-ne-me",
-    title: "Ne me quitte pas",
-    artist: "Jacques Brel",
+    id: "c-boum",
+    title: "Boum!",
+    artist: "Charles Trenet",
     genre: "chanson",
     culture: "french",
     language: "fr",
-    energy: 30,
-    year: 1959,
-    lengthSec: 45,
+    energy: 66,
+    year: 1938,
+    startSec: 0,
+    lengthSec: 40,
   },
   {
     id: "c-volare",
@@ -126,6 +106,7 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     language: "it",
     energy: 62,
     year: 1958,
+    startSec: 0,
     lengthSec: 45,
   },
   {
@@ -137,6 +118,7 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     language: "it",
     energy: 76,
     year: 1956,
+    startSec: 0,
     lengthSec: 45,
   },
   {
@@ -148,6 +130,7 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     language: "pt",
     energy: 70,
     year: 1966,
+    startSec: 0,
     lengthSec: 45,
   },
   {
@@ -159,6 +142,7 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     language: "pt",
     energy: 42,
     year: 1964,
+    startSec: 0,
     lengthSec: 45,
   },
   {
@@ -169,7 +153,8 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     culture: "global",
     energy: 90,
     year: 1962,
-    lengthSec: 40,
+    startSec: 0,
+    lengthSec: 35,
   },
   {
     id: "c-twist",
@@ -179,6 +164,7 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     culture: "global",
     energy: 86,
     year: 1963,
+    startSec: 0,
     lengthSec: 40,
   },
   {
@@ -189,6 +175,7 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     culture: "global",
     energy: 46,
     year: 1972,
+    startSec: 0,
     lengthSec: 45,
   },
   {
@@ -199,6 +186,7 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     culture: "global",
     energy: 72,
     year: 1983,
+    startSec: 0,
     lengthSec: 45,
   },
   {
@@ -209,6 +197,7 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     culture: "global",
     energy: 80,
     year: 1985,
+    startSec: 0,
     lengthSec: 40,
   },
   {
@@ -220,16 +209,19 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     language: "ar",
     energy: 56,
     year: 2000,
+    startSec: 0,
     lengthSec: 45,
   },
   {
-    id: "c-cumbia",
-    title: "La Pollera Colorá",
-    artist: "Wilson Choperena",
-    genre: "cumbia",
-    culture: "latin",
-    language: "es",
-    energy: 74,
+    id: "c-aicha",
+    title: "Aïcha",
+    artist: "Khaled",
+    genre: "rai",
+    culture: "arabic",
+    language: "ar",
+    energy: 60,
+    year: 1996,
+    startSec: 0,
     lengthSec: 45,
   },
   {
@@ -241,7 +233,9 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     language: "es",
     energy: 70,
     year: 2001,
+    startSec: 0,
     lengthSec: 45,
+    tags: ["danceable-risk"],
   },
   // Turkish
   {
@@ -252,6 +246,7 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     culture: "turkish",
     language: "tr",
     energy: 50,
+    startSec: 0,
     lengthSec: 45,
   },
   {
@@ -263,6 +258,7 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     language: "tr",
     energy: 72,
     year: 2004,
+    startSec: 0,
     lengthSec: 45,
   },
   {
@@ -274,6 +270,7 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     language: "tr",
     energy: 84,
     year: 1997,
+    startSec: 0,
     lengthSec: 40,
   },
   {
@@ -284,51 +281,35 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     culture: "turkish",
     language: "tr",
     energy: 40,
+    startSec: 0,
     lengthSec: 45,
   },
   {
     id: "c-tr-5",
-    title: "Bir Günah Gibi",
+    title: "Dünya Dönüyor",
     artist: "Mabel Matiz",
     genre: "turkish-pop",
     culture: "turkish",
     language: "tr",
-    energy: 60,
-    year: 2018,
+    energy: 62,
+    year: 2021,
     trend: true,
+    startSec: 0,
     lengthSec: 45,
   },
   {
     id: "c-tr-6",
-    title: "Mezdeke-style Oriental",
-    artist: "Mezdeke",
-    genre: "oriental-dance",
+    title: "Gülpembe",
+    artist: "Barış Manço",
+    genre: "anatolian-rock",
     culture: "turkish",
-    energy: 78,
-    lengthSec: 40,
+    language: "tr",
+    energy: 58,
+    year: 1985,
+    startSec: 0,
+    lengthSec: 45,
   },
   // Greek
-  {
-    id: "c-gr-1",
-    title: "Zorba's Dance (Sirtaki)",
-    artist: "Mikis Theodorakis",
-    genre: "greek-folk",
-    culture: "greek",
-    language: "el",
-    energy: 80,
-    year: 1964,
-    lengthSec: 45,
-  },
-  {
-    id: "c-gr-2",
-    title: "Misirlou (rebetiko)",
-    artist: "Dalgas",
-    genre: "rebetiko",
-    culture: "greek",
-    language: "el",
-    energy: 48,
-    lengthSec: 45,
-  },
   {
     id: "c-gr-3",
     title: "Frangosyriani",
@@ -337,6 +318,18 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     culture: "greek",
     language: "el",
     energy: 52,
+    startSec: 0,
+    lengthSec: 45,
+  },
+  {
+    id: "c-gr-4",
+    title: "Sto Perigiali to Kryfo",
+    artist: "Mikis Theodorakis",
+    genre: "greek-song",
+    culture: "greek",
+    language: "el",
+    energy: 46,
+    startSec: 0,
     lengthSec: 45,
   },
   // Persian
@@ -348,26 +341,30 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     culture: "persian",
     language: "fa",
     energy: 38,
+    startSec: 0,
     lengthSec: 45,
+    tags: ["late-night"],
   },
   {
     id: "c-ir-2",
-    title: "Dokhtar Shirazi",
+    title: "Jan-e Maryam",
     artist: "Mohammad Nouri",
     genre: "persian-pop",
     culture: "persian",
     language: "fa",
-    energy: 64,
+    energy: 60,
+    startSec: 0,
     lengthSec: 45,
   },
   {
     id: "c-ir-3",
-    title: "Jadeh",
+    title: "Man Amadeh-am",
     artist: "Googoosh",
     genre: "persian-pop",
     culture: "persian",
     language: "fa",
-    energy: 56,
+    energy: 64,
+    startSec: 0,
     lengthSec: 45,
   },
   // Balkan
@@ -379,7 +376,9 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     culture: "balkan",
     energy: 88,
     year: 1995,
+    startSec: 0,
     lengthSec: 40,
+    tags: ["danceable-risk"],
   },
   {
     id: "c-bk-2",
@@ -389,16 +388,9 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     culture: "balkan",
     energy: 34,
     year: 1988,
+    startSec: 0,
     lengthSec: 45,
-  },
-  {
-    id: "c-bk-3",
-    title: "Kalashnikov",
-    artist: "Goran Bregović",
-    genre: "balkan-brass",
-    culture: "balkan",
-    energy: 92,
-    lengthSec: 40,
+    tags: ["late-night"],
   },
   // K-pop / Afrobeats / recent trends
   {
@@ -411,6 +403,7 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     energy: 82,
     year: 2020,
     trend: true,
+    startSec: 0,
     lengthSec: 40,
   },
   {
@@ -423,6 +416,20 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     energy: 86,
     year: 2024,
     trend: true,
+    startSec: 0,
+    lengthSec: 40,
+  },
+  {
+    id: "c-kp-3",
+    title: "Super Shy",
+    artist: "NewJeans",
+    genre: "kpop",
+    culture: "kpop",
+    language: "ko",
+    energy: 70,
+    year: 2023,
+    trend: true,
+    startSec: 0,
     lengthSec: 40,
   },
   {
@@ -434,6 +441,7 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     energy: 60,
     year: 2020,
     trend: true,
+    startSec: 0,
     lengthSec: 45,
   },
   {
@@ -445,6 +453,19 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     energy: 64,
     year: 2022,
     trend: true,
+    startSec: 0,
+    lengthSec: 45,
+  },
+  {
+    id: "c-af-3",
+    title: "Last Last",
+    artist: "Burna Boy",
+    genre: "afrobeats",
+    culture: "afrobeats",
+    energy: 66,
+    year: 2022,
+    trend: true,
+    startSec: 0,
     lengthSec: 45,
   },
   {
@@ -456,18 +477,8 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     energy: 70,
     year: 2024,
     trend: true,
+    startSec: 0,
     lengthSec: 40,
-  },
-  {
-    id: "c-tr-2025",
-    title: "Die With A Smile",
-    artist: "Lady Gaga & Bruno Mars",
-    genre: "pop",
-    culture: "global",
-    energy: 50,
-    year: 2024,
-    trend: true,
-    lengthSec: 45,
   },
   {
     id: "c-tr-2025b",
@@ -478,18 +489,8 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     energy: 84,
     year: 2024,
     trend: true,
+    startSec: 0,
     lengthSec: 40,
-  },
-  {
-    id: "c-lofi",
-    title: "Snowman",
-    artist: "WYS",
-    genre: "lo-fi",
-    culture: "global",
-    energy: 28,
-    year: 2018,
-    trend: true,
-    lengthSec: 45,
   },
   {
     id: "c-lofi-2",
@@ -499,60 +500,93 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     culture: "global",
     energy: 36,
     year: 2005,
+    startSec: 0,
     lengthSec: 45,
+    tags: ["late-night"],
   },
 ];
 
-export interface CortinaPool {
-  all: Cortina[];
-}
-
-export function cortinaPool(extra: Cortina[] = []): Cortina[] {
+export function cortinaPool(extra: Cortina[] = [], overrides?: Record<string, Cortina | null>): Cortina[] {
   const m = new Map<string, Cortina>();
   for (const c of BUILTIN_CORTINAS) m.set(c.id, c);
   for (const c of extra) m.set(c.id, c);
+  for (const [id, c] of Object.entries(overrides ?? {})) {
+    if (c) m.set(id, c);
+    else m.delete(id);
+  }
   return [...m.values()];
 }
 
-/** Pick a cortina whose energy matches the NEXT tanda's energy, respecting culture/genre/trend preferences. */
+/** The family key a cortina belongs to for "one family per night" programming. */
+export const familyOf = (c: Cortina) => c.tags?.find((t) => t.startsWith("theme:"))?.slice(6) ?? c.genre;
+
+export interface CortinaPlan {
+  family: string | null;
+  constant: Cortina | null;
+}
+
+function candidatesFor(pool: Cortina[], o: ComposeOptions): Cortina[] {
+  const cultures = new Set(o.cortinaCultures?.length ? o.cortinaCultures : ["global"]);
+  const genres = o.cortinaGenres?.length ? new Set(o.cortinaGenres) : null;
+  let cands = pool.filter((c) => cultures.has(c.culture) || cultures.has("any"));
+  if (genres) {
+    const g = cands.filter((c) => genres.has(c.genre));
+    if (g.length >= 4) cands = g;
+  }
+  if (o.cortinaTrend === "trend") {
+    const t = cands.filter((c) => c.trend);
+    if (t.length >= 3) cands = t;
+  }
+  if (o.cortinaTrend === "classic") {
+    const t = cands.filter((c) => !c.trend);
+    if (t.length >= 3) cands = t;
+  }
+  return cands.length ? cands : pool;
+}
+
+/** Choose the night's cortina family (largest family within the chosen cultures, randomised among the big ones). */
+export function planCortinas(pool: Cortina[], o: ComposeOptions, rng: Rng, firstEnergy: number): CortinaPlan {
+  if (o.cortinaStyle === "none") return { family: null, constant: null };
+  const cands = candidatesFor(pool, o);
+  if (o.cortinaStyle === "constant")
+    return {
+      family: null,
+      constant: rng.weighted(cands, (c) => Math.max(0.05, 1 - Math.abs(c.energy - firstEnergy) / 30)) ?? null,
+    };
+  if (o.cortinaStyle === "matched") return { family: null, constant: null };
+  const fam = new Map<string, number>();
+  for (const c of cands) fam.set(familyOf(c), (fam.get(familyOf(c)) ?? 0) + 1);
+  const big = [...fam.entries()].filter(([, n]) => n >= 8).map(([k]) => k); // a family must carry a whole night without repeats
+  return { family: big.length ? (rng.pick(big) ?? null) : null, constant: null };
+}
+
+/** Pick a cortina for the gap before a tanda of energy `nextEnergy` (cortina sits ~8 points below it, inside the night's family when possible). */
 export function pickCortina(
   pool: Cortina[],
   nextEnergy: number,
   o: ComposeOptions,
   rng: Rng,
   used: Set<string>,
-  constant?: Cortina | null,
+  plan: CortinaPlan,
 ): Cortina | null {
   if (o.cortinaStyle === "none") return null;
-  if (o.cortinaStyle === "constant" && constant) return constant;
-  const cultures = new Set(o.cortinaCultures?.length ? o.cortinaCultures : ["global"]);
-  const genres = o.cortinaGenres?.length ? new Set(o.cortinaGenres) : null;
-  let cands = pool.filter((c) => cultures.has(c.culture) || cultures.has("any"));
-  if (genres) {
-    const g = cands.filter((c) => genres.has(c.genre));
-    if (g.length) cands = g;
+  if (plan.constant) return plan.constant;
+  let cands = candidatesFor(pool, o);
+  const all = cands;
+  if (plan.family) {
+    const f = cands.filter((c) => familyOf(c) === plan.family);
+    if (f.length >= 3) cands = f;
   }
-  if (o.cortinaTrend === "trend") {
-    const t = cands.filter((c) => c.trend);
-    if (t.length) cands = t;
-  }
-  if (o.cortinaTrend === "classic") {
-    const t = cands.filter((c) => !c.trend);
-    if (t.length) cands = t;
-  }
-  if (!cands.length) cands = pool;
-  const fresh = cands.filter((c) => !used.has(c.id));
-  if (fresh.length >= 4) cands = fresh; // when a small pool is exhausted, allow reuse rather than mismatching energy
-  const near = cands.filter((c) => Math.abs(c.energy - nextEnergy) <= 22);
+  // never repeat a cortina while any unused one exists: family first, then the whole selection
+  let fresh = cands.filter((c) => !used.has(c.id));
+  if (!fresh.length) fresh = all.filter((c) => !used.has(c.id));
+  if (fresh.length) cands = fresh;
+  const near = cands.filter((c) => Math.abs(c.energy - nextEnergy) <= 25);
   if (near.length) cands = near;
-  // weight: closeness of energy (±12 ideal), slight bias to cue the floor *into* the next tanda (cortina a bit below next energy)
-  const pick = rng.weighted(cands, (c) => {
-    const d = Math.abs(c.energy - (nextEnergy - 8));
-    return Math.max(0.05, 1 - d / 28) ** 2;
-  });
-  return pick ?? null;
-}
-
-export function cortinaFor(tanda: Tanda | undefined, fallbackEnergy: number): number {
-  return tanda?.energy ?? fallbackEnergy;
+  return (
+    rng.weighted(cands, (c) => {
+      const d = Math.abs(c.energy - (nextEnergy - 8));
+      return Math.max(0.05, 1 - d / 28) ** 2;
+    }) ?? null
+  );
 }

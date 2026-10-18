@@ -22,23 +22,27 @@ export default function Guide() {
     ],
     [
       "Score",
-      "The benchmark rubric (docs/BENCHMARK.md) checks integrity, singer and era coherence, spacing, variety, arc fit, cortina discipline and the ending. ≥85 = headline marathon DJ.",
+      "The benchmark checks integrity, singer and era coherence, spacing, variety, arc fit, cortina discipline and the ending. 85 or more is headline marathon DJ territory.",
     ],
   ];
   return (
     <div className="mx-auto max-w-3xl space-y-4">
-      <div className="glass p-5">
+      <div className="surface p-5 sm:p-6">
         <h1 className="font-serif text-3xl font-semibold">How TDJ composes</h1>
         <p className="text-muted mt-1 text-sm">
-          The rules below come from working DJs and the research notes in docs/research.
+          The rules below come from working DJs and the research behind the index.
         </p>
       </div>
-      {rows.map(([k, v]) => (
-        <div key={k} className="glass p-4">
-          <div className="text-xs font-bold uppercase tracking-wider text-rose-400">{k}</div>
-          <p className="mt-1 text-sm leading-relaxed">{v}</p>
-        </div>
-      ))}
+      <div className="surface p-5 sm:p-6">
+        <dl className="divide-y divide-[rgb(var(--text)/.08)]">
+          {rows.map(([k, v]) => (
+            <div key={k} className="grid gap-1 py-4 first:pt-0 last:pb-0 sm:grid-cols-[9rem_1fr] sm:gap-4">
+              <dt className="tone-tango text-xs font-bold uppercase tracking-wider sm:pt-0.5">{k}</dt>
+              <dd className="text-sm leading-relaxed">{v}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
     </div>
   );
 }

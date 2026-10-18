@@ -1,6 +1,31 @@
-import { songEnergy } from "./energy";
+import { estimateDuration, normTitle, songEnergy } from "./energy";
 import { ERA_PRESETS, mergeProfiles } from "./profiles";
-import type { DanceRhythm, EraPreset, OrchestraProfile, Song } from "./types";
+import type { DanceRhythm, EraPreset, OrchestraProfile, Song, UserOverrides } from "./types";
+
+export interface ReferenceCorpus {
+  famousRecordings?: Array<{
+    title: string;
+    orchestraId: string;
+    singer?: string | null;
+    year?: number;
+    rhythm?: string;
+    fame?: number;
+    energy?: number;
+    role?: string;
+  }>;
+  canonicalTandas?: Array<{
+    id: string;
+    rhythm: string;
+    orchestraId: string;
+    singer?: string | null;
+    years?: [number, number];
+    titles?: string[];
+    phase?: string;
+    popularity?: number;
+  }>;
+  blacklist?: Array<{ title: string; orchestraId?: string | null; reason?: string }>;
+  sets?: unknown[];
+}
 
 export interface CatalogFilter {
   eras?: EraPreset[];
@@ -17,22 +42,50 @@ export class Catalog {
   readonly songs: Song[];
   readonly profiles: Map<string, OrchestraProfile>;
   readonly byOrchestra = new Map<string, Song[]>();
+  readonly fame = new Map<string, { fame: number; energy?: number; role?: string }>();
+  readonly blacklist = new Set<string>();
+  readonly corpus: ReferenceCorpus;
 
   constructor(
     songs: Song[],
     extraProfiles: OrchestraProfile[] = [],
     spotifyCache: Record<string, Song["spotify"] & { durationMs?: number }> = {},
+    corpus: ReferenceCorpus = {},
+    overrides?: UserOverrides,
+    trackEnergy: Record<string, number> = {},
   ) {
-    this.profiles = mergeProfiles(extraProfiles);
-    this.songs = songs.map((s) => {
-      const sp = spotifyCache[s.id] ?? s.spotify ?? null;
+    this.corpus = corpus;
+    const profs = extraProfiles.map((p) => ({ ...p, ...(overrides?.profiles?.[p.id] ?? {}) }));
+    for (const [id, patch] of Object.entries(overrides?.profiles ?? {}))
+      if (!profs.some((p) => p.id === id))
+        profs.push({ id, name: id, style: "balanced", energy: 50, ...patch } as OrchestraProfile);
+    this.profiles = mergeProfiles(profs);
+    for (const f of corpus.famousRecordings ?? [])
+      this.fame.set(`${normTitle(f.title)}|${f.orchestraId}`, {
+        fame: f.fame ?? 3,
+        energy: f.energy,
+        role: f.role,
+      });
+    for (const b of corpus.blacklist ?? []) this.blacklist.add(normTitle(b.title));
+    const te = { ...trackEnergy, ...(overrides?.rules?.trackEnergy ?? {}) };
+    const all = [...songs, ...(overrides?.addedSongs ?? [])];
+    this.songs = all.flatMap((raw) => {
+      const patch = overrides?.songs?.[raw.id];
+      if (patch?.hidden) return [];
+      const s = patch ? { ...raw, ...patch } : raw;
+      const sp = s.spotify ?? spotifyCache[s.id] ?? null;
       const song: Song = {
         ...s,
         spotify: sp ?? null,
-        durationSec: s.durationSec ?? (sp?.durationMs ? Math.round(sp.durationMs / 1000) : undefined),
+        durationSec:
+          s.durationSec ?? (sp?.durationMs ? Math.round(sp.durationMs / 1000) : estimateDuration(s)),
       };
-      song.energy = songEnergy(song, this.profiles.get(song.orchestraId));
-      return song;
+      const key = `${normTitle(song.title)}|${song.orchestraId}`;
+      const fame = this.fame.get(key);
+      song.fame = fame?.fame ?? 0;
+      song.energy =
+        patch?.energy ?? te[key] ?? fame?.energy ?? songEnergy(song, this.profiles.get(song.orchestraId), te);
+      return [song];
     });
     for (const s of this.songs) {
       const arr = this.byOrchestra.get(s.orchestraId) ?? [];
@@ -46,13 +99,19 @@ export class Catalog {
   }
 
   filter(f: CatalogFilter): Song[] {
-    const eras = new Set((f.eras ?? ["all"]).flatMap((p) => ERA_PRESETS[p]?.eras ?? []));
+    const presets = Array.isArray(f.eras) ? f.eras : f.eras ? [f.eras as EraPreset] : ["all" as EraPreset];
+    const eras = new Set(presets.flatMap((p) => ERA_PRESETS[p]?.eras ?? []));
+    const bounds = presets.map((p) => ERA_PRESETS[p]?.years).filter((y): y is [number, number] => !!y);
+    const yr: [number, number] | null = bounds.length
+      ? [Math.min(...bounds.map((b) => b[0])), Math.max(...bounds.map((b) => b[1]))]
+      : null;
     const inc = f.includeOrchestras?.length ? new Set(f.includeOrchestras) : null;
     const exc = new Set(f.excludeOrchestras ?? []);
     const rh = f.rhythms ? new Set<string>(f.rhythms) : null;
     return this.songs.filter((s) => {
       if (rh && !rh.has(s.rhythm)) return false;
       if (!eras.has(s.era)) return false;
+      if (yr && s.year && (s.year < yr[0] || s.year > yr[1])) return false;
       if (f.yearRange && s.year && (s.year < f.yearRange[0] || s.year > f.yearRange[1])) return false;
       if (inc && !inc.has(s.orchestraId)) return false;
       if (exc.has(s.orchestraId)) return false;
