@@ -1,12 +1,12 @@
 {
-  "builtAt": "2026-10-18T22:40:18.760237+00:00",
+  "builtAt": "2026-10-18T23:40:10.966733+00:00",
   "songs": 21932,
   "orchestras": 795,
-  "singers": 1079,
+  "singers": 1069,
   "rhythms": {
-    "tango": 17545,
-    "vals": 1656,
-    "milonga": 1150,
+    "tango": 17530,
+    "vals": 1672,
+    "milonga": 1149,
     "other": 368,
     "cancion": 239,
     "foxtrot": 134,
@@ -37,5 +37,8 @@
     "All_orchestras.xls",
     "Listado_Total_de_canciones_Filtrado.xls"
   ],
-  "version": 1
+  "yearApprox": 1837,
+  "rhythmFixed": 17,
+  "pseudoSingers": 49,
+  "version": 2
 }

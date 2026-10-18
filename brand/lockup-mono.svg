@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 698 256" role="img" aria-labelledby="t">
+  <title id="t">TDJ (one colour)</title>
+  <path id="symbol" fill="#0B0A10" d="M217.98 108 A100 100 0 1 1 200 68 L166.65 68 A76 76 0 1 0 193.32 108 Z M43 156 H132 V76 H244 V100 H108 V180 H43 Z"/>
+  <g id="wordmark" fill="#0B0A10" fill-rule="evenodd">
+    <path id="T" d="M276 40 H428 V62 H364 V216 H340 V62 H276 Z"/>
+    <path id="D" d="M444 40 H508 A90 88 0 0 1 508 216 H444 Z M468 62 H508 A66 66 0 0 1 508 194 H468 Z"/>
+    <path id="J" d="M654 40 H678 V179 A40 40 0 0 1 598 179 H622 A16 16 0 0 0 654 179 Z"/>
+  </g>
+</svg>

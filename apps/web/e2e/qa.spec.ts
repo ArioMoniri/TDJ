@@ -257,11 +257,10 @@ test("API: compose edge cases keep the DJ invariants and bad input never produce
   }
 });
 
-/** Known defect: Number("abc") is NaN, Math.min/max pass it through, planSlots loops to its 400 cap → 401 tandas / 740 KB. */
+/** Non-numeric hours must be rejected or clamped (regression guard for the old 401-tanda runaway). */
 test("API: non-numeric hours must be rejected or clamped, never a runaway 401-tanda night", async ({
   request,
 }) => {
-  test.fail(true, "apps/web/src/app/api/compose/route.ts does not guard NaN — see qa-report.md H-1");
   const r = await request.post("/api/compose", { data: { hours: "abc", seed: 1 } });
   const p = await r.json();
   test

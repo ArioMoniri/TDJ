@@ -669,7 +669,7 @@
  },
  {
   "id": "c-gardel-j-razzano",
-  "name": "C.gardel-J.razzano",
+  "name": "C. Gardel - J. Razzano",
   "count": 81,
   "orchestras": {
    "J.ricardo-G.barbieri": 43,
@@ -909,7 +909,7 @@
  },
  {
   "id": "a-magaldi-p-noda",
-  "name": "A.magaldi-P.noda",
+  "name": "A. Magaldi - P. Noda",
   "count": 62,
   "orchestras": {
    "Guitarras (solo singer)": 54,
@@ -1143,7 +1143,7 @@
  },
  {
   "id": "c-dante-j-martel",
-  "name": "C.dante-J.martel",
+  "name": "C. Dante - J. Martel",
   "count": 52,
   "orchestras": {
    "Alfredo De Angelis": 52
@@ -1465,7 +1465,7 @@
  },
  {
   "id": "roberto-chato-flores",
-  "name": "Roberto\"chato\"flores",
+  "name": "Roberto \"Chato\" Flores",
   "count": 40,
   "orchestras": {
    "Enrique Rodríguez": 35,
@@ -1843,7 +1843,7 @@
  },
  {
   "id": "c-dante-o-larroca",
-  "name": "C.dante-O.larroca",
+  "name": "C. Dante - O. Larroca",
   "count": 31,
   "orchestras": {
    "Alfredo De Angelis": 31
@@ -2140,19 +2140,6 @@
   ]
  },
  {
-  "id": "solo-de-piano",
-  "name": "Solo de Piano",
-  "count": 26,
-  "orchestras": {
-   "Lucio Demare": 14,
-   "Enrique Delfino": 12
-  },
-  "yearRange": [
-   1919,
-   1957
-  ]
- },
- {
   "id": "tita-merello",
   "name": "Tita Merello",
   "count": 26,
@@ -2171,7 +2158,7 @@
  },
  {
   "id": "a-irusta-r-fugazot",
-  "name": "A.irusta-R.fugazot",
+  "name": "A. Irusta - R. Fugazot",
   "count": 26,
   "orchestras": {
    "Lucio Demare": 21,
@@ -2585,7 +2572,7 @@
  },
  {
   "id": "a-gomez-tito-vila",
-  "name": "A.gómez-Tito Vila",
+  "name": "A. Gómez - Tito Vila",
   "count": 20,
   "orchestras": {
    "Guitarras (solo singer)": 13,
@@ -2999,7 +2986,7 @@
  },
  {
   "id": "horacio-cacho-arabel",
-  "name": "Horacio 'cacho' Arabel",
+  "name": "Horacio 'Cacho' Arabel",
   "count": 16,
   "orchestras": {
    "Roberto Grela": 16
@@ -3179,7 +3166,7 @@
  },
  {
   "id": "segundo-r-ruiz-a-acuna",
-  "name": "Segundo R.ruíz-A.acuña",
+  "name": "Segundo R. Ruíz - A. Acuña",
   "count": 15,
   "orchestras": {
    "Guitarras (solo singer)": 14,
@@ -3403,7 +3390,7 @@
  },
  {
   "id": "a-laborde-o-ramos",
-  "name": "A.laborde-O.ramos",
+  "name": "A. Laborde - O. Ramos",
   "count": 13,
   "orchestras": {
    "Juan D'Arienzo": 13
@@ -3651,7 +3638,7 @@
  },
  {
   "id": "j-c-godoy-r-mancini",
-  "name": "J.c.godoy-R.mancini",
+  "name": "J. C. Godoy - R. Mancini",
   "count": 12,
   "orchestras": {
    "Conjunto Típico": 6,
@@ -3723,7 +3710,7 @@
  },
  {
   "id": "c-vidal-o-larroca",
-  "name": "C.vidal-O.larroca",
+  "name": "C. Vidal - O. Larroca",
   "count": 12,
   "orchestras": {
    "Domingo Federico": 12
@@ -3794,7 +3781,7 @@
  },
  {
   "id": "a-marino-f-ruiz",
-  "name": "A.marino-F.ruíz",
+  "name": "A. Marino - F. Ruíz",
   "count": 11,
   "orchestras": {
    "Aníbal Troilo": 11
@@ -3984,7 +3971,7 @@
  },
  {
   "id": "angel-g-villoldo",
-  "name": "Angel G.villoldo",
+  "name": "Angel G. Villoldo",
   "count": 10,
   "orchestras": {
    "Angel G.villoldo": 10
@@ -4023,7 +4010,7 @@
  },
  {
   "id": "pedro-j-lauga",
-  "name": "Pedro J.lauga",
+  "name": "Pedro J. Lauga",
   "count": 10,
   "orchestras": {
    "Luis Petrucelli": 10
@@ -4035,7 +4022,7 @@
  },
  {
   "id": "walter-chino-laborde",
-  "name": "Walter \"chino\" Laborde",
+  "name": "Walter \"Chino\" Laborde",
   "count": 10,
   "orchestras": {
    "Orq.típica Sans Soucí": 5,
@@ -4072,7 +4059,7 @@
  },
  {
   "id": "abel-cordoba-angel-asis",
-  "name": "Abel Córdoba-Angel Asís",
+  "name": "Abel Córdoba - Angel Asís",
   "count": 10,
   "orchestras": {
    "Guitarras (solo singer)": 10
@@ -4120,7 +4107,7 @@
  },
  {
   "id": "a-magaldi-r-quiroga",
-  "name": "A.magaldi-R.quiroga",
+  "name": "A. Magaldi - R. Quiroga",
   "count": 10,
   "orchestras": {
    "Guitarras (solo singer)": 8,
@@ -4133,7 +4120,7 @@
  },
  {
   "id": "jorge-tito-soler",
-  "name": "Jorge ''tito'' Soler",
+  "name": "Jorge ''Tito'' Soler",
   "count": 10,
   "orchestras": {
    "Trío Buenos Aires": 5,
@@ -4189,7 +4176,7 @@
  },
  {
   "id": "c-heredia-h-soler",
-  "name": "C.heredia-H.soler",
+  "name": "C. Heredia - H. Soler",
   "count": 9,
   "orchestras": {
    "Alfredo Gobbi": 9
@@ -4201,7 +4188,7 @@
  },
  {
   "id": "luis-a-fleitas",
-  "name": "Luis A.fleitas",
+  "name": "Luis A. Fleitas",
   "count": 9,
   "orchestras": {
    "Lalo Marenales": 3,
@@ -4272,7 +4259,7 @@
  },
  {
   "id": "r-goyeneche-a-cardenas",
-  "name": "R.goyeneche-A.cárdenas",
+  "name": "R. Goyeneche - A. Cárdenas",
   "count": 9,
   "orchestras": {
    "Aníbal Troilo": 9
@@ -4322,7 +4309,7 @@
  },
  {
   "id": "luis-zambaldi-nito-forani",
-  "name": "Luis Zambaldi-Nito Forani",
+  "name": "Luis Zambaldi - Nito Forani",
   "count": 9,
   "orchestras": {
    "Gabriel Clausi(chula)": 9
@@ -4457,20 +4444,8 @@
   ]
  },
  {
-  "id": "recita-julian-centeya",
-  "name": "Recita Julián Centeya",
-  "count": 8,
-  "orchestras": {
-   "Orquesta (unspecified)": 8
-  },
-  "yearRange": [
-   1960,
-   1960
-  ]
- },
- {
   "id": "r-beron-j-casal",
-  "name": "R.berón-J.casal",
+  "name": "R. Berón - J. Casal",
   "count": 8,
   "orchestras": {
    "Aníbal Troilo": 8
@@ -4521,7 +4496,7 @@
  },
  {
   "id": "nestor-cacho-doliani",
-  "name": "Néstor \"cacho\" Doliani",
+  "name": "Néstor \"Cacho\" Doliani",
   "count": 8,
   "orchestras": {
    "Orlando Trujillo": 8
@@ -4582,7 +4557,7 @@
  },
  {
   "id": "a-echague-a-laborde",
-  "name": "A.echagüe-A.laborde",
+  "name": "A. Echagüe - A. Laborde",
   "count": 8,
   "orchestras": {
    "Juan D'Arienzo": 8
@@ -4603,7 +4578,7 @@
  },
  {
   "id": "a-del-rio-tito-lando",
-  "name": "A.del Río-Tito Lando",
+  "name": "A. del Río - Tito Lando",
   "count": 8,
   "orchestras": {
    "Alfredo Gobbi": 8
@@ -4652,7 +4627,7 @@
  },
  {
   "id": "j-maciel-h-coral",
-  "name": "J.maciel-H.coral",
+  "name": "J. Maciel - H. Coral",
   "count": 7,
   "orchestras": {
    "Alfredo Gobbi": 7
@@ -4715,7 +4690,7 @@
  },
  {
   "id": "l-mendoza-o-bazan",
-  "name": "L.mendoza-O.bazán",
+  "name": "L. Mendoza - O. Bazán",
   "count": 7,
   "orchestras": {
    "Juan Sánchez Gorio": 7
@@ -5035,7 +5010,7 @@
  },
  {
   "id": "e-borda-q-ojeda",
-  "name": "E.borda-Q.ojeda",
+  "name": "E. Borda - Q. Ojeda",
   "count": 6,
   "orchestras": {
    "José Basso": 4,
@@ -5061,7 +5036,7 @@
  },
  {
   "id": "a-arenas-e-lucero",
-  "name": "A.arenas-E.lucero",
+  "name": "A. Arenas - E. Lucero",
   "count": 6,
   "orchestras": {
    "Francisco Canaro": 6
@@ -5073,7 +5048,7 @@
  },
  {
   "id": "a-arenas-m-alonso",
-  "name": "A.arenas-M.alonso",
+  "name": "A. Arenas - M. Alonso",
   "count": 6,
   "orchestras": {
    "Francisco Canaro": 6
@@ -5124,7 +5099,7 @@
  },
  {
   "id": "f-fiorentino-a-marino",
-  "name": "F.fiorentino-A.marino",
+  "name": "F. Fiorentino - A. Marino",
   "count": 6,
   "orchestras": {
    "Aníbal Troilo": 6
@@ -5136,7 +5111,7 @@
  },
  {
   "id": "e-rivero-a-calderon",
-  "name": "E.rivero-A.calderón",
+  "name": "E. Rivero - A. Calderón",
   "count": 6,
   "orchestras": {
    "Aníbal Troilo": 6
@@ -5148,7 +5123,7 @@
  },
  {
   "id": "m-bianco-horacio-pettorossi",
-  "name": "M.bianco-Horacio Pettorossi",
+  "name": "M. Bianco - Horacio Pettorossi",
   "count": 6,
   "orchestras": {
    "Eduardo Bianco": 6
@@ -5187,7 +5162,7 @@
  },
  {
   "id": "o-bor-r-de-rosas",
-  "name": "O.bor-R.de Rosas",
+  "name": "O. Bor - R. de Rosas",
   "count": 6,
   "orchestras": {
    "Gotán Trío": 6
@@ -5294,18 +5269,6 @@
   ]
  },
  {
-  "id": "recita-horacio-ferrer",
-  "name": "Recita Horacio Ferrer",
-  "count": 6,
-  "orchestras": {
-   "Astor Piazzolla": 6
-  },
-  "yearRange": [
-   1970,
-   1970
-  ]
- },
- {
   "id": "amelita-baltar",
   "name": "Amelita Baltar",
   "count": 6,
@@ -5368,7 +5331,7 @@
  },
  {
   "id": "c-aguirre-j-rosales",
-  "name": "C.aguirre-J.rosales",
+  "name": "C. Aguirre - J. Rosales",
   "count": 6,
   "orchestras": {
    "Alfredo De Angelis": 6
@@ -5437,7 +5400,7 @@
  },
  {
   "id": "r-florio-j-duran",
-  "name": "R.florio-J.durán",
+  "name": "R. Florio - J. Durán",
   "count": 5,
   "orchestras": {
    "Orlando Trípodi": 3,
@@ -5585,7 +5548,7 @@
  },
  {
   "id": "j-ledesma-h-alvarado",
-  "name": "J.ledesma-H.alvarado",
+  "name": "J. Ledesma - H. Alvarado",
   "count": 5,
   "orchestras": {
    "Alberto Mancione": 5
@@ -5597,7 +5560,7 @@
  },
  {
   "id": "c-montalvo-m-martino",
-  "name": "C.montalvo-M.martino",
+  "name": "C. Montalvo - M. Martino",
   "count": 5,
   "orchestras": {
    "Jorge Caldara": 5
@@ -5645,7 +5608,7 @@
  },
  {
   "id": "o-ribo-r-videla",
-  "name": "O.ribó-R.videla",
+  "name": "O. Ribó - R. Videla",
   "count": 5,
   "orchestras": {
    "Ricardo Tanturi": 5
@@ -5657,7 +5620,7 @@
  },
  {
   "id": "alfredo-e-gobbi",
-  "name": "Alfredo E.gobbi",
+  "name": "Alfredo E. Gobbi",
   "count": 5,
   "orchestras": {
    "Alfredo E.gobbi": 5
@@ -5693,7 +5656,7 @@
  },
  {
   "id": "f-diaz-j-omar",
-  "name": "F.díaz-J.omar",
+  "name": "F. Díaz - J. Omar",
   "count": 5,
   "orchestras": {
    "Francisco Lomuto": 5
@@ -5767,7 +5730,7 @@
  },
  {
   "id": "alfredo-l-mora",
-  "name": "Alfredo L.mora",
+  "name": "Alfredo L. Mora",
   "count": 5,
   "orchestras": {
    "Orq.mun.de Quilmes": 5
@@ -5898,7 +5861,7 @@
  },
  {
   "id": "j-c-godoy-l-martel",
-  "name": "J.c.godoy-L.martel",
+  "name": "J. C. Godoy - L. Martel",
   "count": 5,
   "orchestras": {
    "Alfredo De Angelis": 5
@@ -5935,7 +5898,7 @@
  },
  {
   "id": "j-miro-a-taborda",
-  "name": "J.miró-A.taborda",
+  "name": "J. Miró - A. Taborda",
   "count": 5,
   "orchestras": {
    "Alberto Mancione": 5
@@ -5971,7 +5934,7 @@
  },
  {
   "id": "jorge-falcon-fernando-soler",
-  "name": "Jorge Falcón-Fernando Soler",
+  "name": "Jorge Falcón - Fernando Soler",
   "count": 5,
   "orchestras": {
    "Héctor Varela": 5
@@ -6141,7 +6104,7 @@
  },
  {
   "id": "h-de-rosas-r-gale",
-  "name": "H.de Rosas-R. Galé",
+  "name": "H. de Rosas - R. Galé",
   "count": 4,
   "orchestras": {
    "Roberto Caló": 4
@@ -6250,7 +6213,7 @@
  },
  {
   "id": "e-campos-r-videla",
-  "name": "E.campos-R.videla",
+  "name": "E. Campos - R. Videla",
   "count": 4,
   "orchestras": {
    "Ricardo Tanturi": 4
@@ -6274,7 +6237,7 @@
  },
  {
   "id": "a-cordoba-a-guida",
-  "name": "A.córdoba-A.guida",
+  "name": "A. Córdoba - A. Guida",
   "count": 4,
   "orchestras": {
    "Osvaldo Pugliese": 4
@@ -6362,7 +6325,7 @@
  },
  {
   "id": "e-rivero-f-ruiz",
-  "name": "E.rivero-F.ruíz",
+  "name": "E. Rivero - F. Ruíz",
   "count": 4,
   "orchestras": {
    "Aníbal Troilo": 4
@@ -6476,7 +6439,7 @@
  },
  {
   "id": "marcos-a-andino",
-  "name": "Marcos A.andino",
+  "name": "Marcos A. Andino",
   "count": 4,
   "orchestras": {
    "S.di Iorio-M.riéffolo-D.porta": 2,
@@ -6489,7 +6452,7 @@
  },
  {
   "id": "armando-a-vinciguerra",
-  "name": "Armando A.vinciguerra",
+  "name": "Armando A. Vinciguerra",
   "count": 4,
   "orchestras": {
    "S.di Iorio-M.riéffolo-D.porta": 3,
@@ -6561,7 +6524,7 @@
  },
  {
   "id": "c-guido-j-maciel",
-  "name": "C.guido-J.maciel",
+  "name": "C. Guido - J. Maciel",
   "count": 4,
   "orchestras": {
    "Osvaldo Pugliese": 4
@@ -6634,7 +6597,7 @@
  },
  {
   "id": "e-garcia-j-raggi",
-  "name": "E.garcía-J.raggi",
+  "name": "E. García - J. Raggi",
   "count": 4,
   "orchestras": {
    "Juan Deambroggio(bachicha)": 4
@@ -6680,7 +6643,7 @@
  },
  {
   "id": "r-goyeneche-a-diaz",
-  "name": "R.goyeneche-A.díaz",
+  "name": "R. Goyeneche - A. Díaz",
   "count": 4,
   "orchestras": {
    "Horacio Salgán": 4
@@ -6798,7 +6761,7 @@
  },
  {
   "id": "romeo-gavioli-freddy",
-  "name": "Romeo Gavioli-Freddy",
+  "name": "Romeo Gavioli - Freddy",
   "count": 4,
   "orchestras": {
    "Romeo Gavioli": 2,
@@ -6835,7 +6798,7 @@
  },
  {
   "id": "r-iriarte-r-arrieta",
-  "name": "R.iriarte-R.arrieta",
+  "name": "R. Iriarte - R. Arrieta",
   "count": 4,
   "orchestras": {
    "Miguel Caló": 4
@@ -6883,7 +6846,7 @@
  },
  {
   "id": "b-chambouleyron-s-villamil",
-  "name": "B.chambouleyron-S.villamil",
+  "name": "B. Chambouleyron - S. Villamil",
   "count": 4,
   "orchestras": {
    "Carlos Viggiano-R.solano": 4
@@ -7003,7 +6966,7 @@
  },
  {
   "id": "j-maciel-a-diaz",
-  "name": "J.maciel-A.díaz",
+  "name": "J. Maciel - A. Díaz",
   "count": 3,
   "orchestras": {
    "Alfredo Gobbi": 3
@@ -7099,7 +7062,7 @@
  },
  {
   "id": "o-de-santis-a-rial",
-  "name": "O.de Santis-A.rial",
+  "name": "O. de Santis - A. Rial",
   "count": 3,
   "orchestras": {
    "Alberto Mancione": 2,
@@ -7160,7 +7123,7 @@
  },
  {
   "id": "h-roca-a-guzman",
-  "name": "H.roca-A.guzmán",
+  "name": "H. Roca - A. Guzmán",
   "count": 3,
   "orchestras": {
    "Ricardo Tanturi": 3
@@ -7172,7 +7135,7 @@
  },
  {
   "id": "e-rivas-j-c-godoy-h-roca",
-  "name": "E.rivas-J.c.godoy-H.roca",
+  "name": "E. Rivas - J. C. Godoy - H. Roca",
   "count": 3,
   "orchestras": {
    "Ricardo Tanturi": 3
@@ -7209,7 +7172,7 @@
  },
  {
   "id": "r-luduena-c-soler",
-  "name": "R.ludueña-C.soler",
+  "name": "R. Ludueña - C. Soler",
   "count": 3,
   "orchestras": {
    "Jorge Arduh": 3
@@ -7258,7 +7221,7 @@
  },
  {
   "id": "f-fiorentino-a-mandarino",
-  "name": "F.fiorentino-A.mandarino",
+  "name": "F. Fiorentino - A. Mandarino",
   "count": 3,
   "orchestras": {
    "Aníbal Troilo": 3
@@ -7270,7 +7233,7 @@
  },
  {
   "id": "r-goyeneche-e-beron",
-  "name": "R.goyeneche-E.berón",
+  "name": "R. Goyeneche - E. Berón",
   "count": 3,
   "orchestras": {
    "Aníbal Troilo": 3
@@ -7282,7 +7245,7 @@
  },
  {
   "id": "r-goyeneche-r-rufino",
-  "name": "R.goyeneche-R.rufino",
+  "name": "R. Goyeneche - R. Rufino",
   "count": 3,
   "orchestras": {
    "Aníbal Troilo": 3
@@ -7294,7 +7257,7 @@
  },
  {
   "id": "a-hidalgo-j-rodolfo",
-  "name": "A.hidalgo-J.rodolfo",
+  "name": "A. Hidalgo - J. Rodolfo",
   "count": 3,
   "orchestras": {
    "Fulvio Salamanca": 3
@@ -7393,7 +7356,7 @@
  },
  {
   "id": "rita-marin-r-blasco",
-  "name": "Rita Marín-R. Blasco",
+  "name": "Rita Marín - R. Blasco",
   "count": 3,
   "orchestras": {
    "Donato Racciatti": 3
@@ -7479,7 +7442,7 @@
  },
  {
   "id": "maria-t-casas",
-  "name": "María T.casas",
+  "name": "María T. Casas",
   "count": 3,
   "orchestras": {
    "Florindo Sassone": 2,
@@ -7559,7 +7522,7 @@
  },
  {
   "id": "r-diaz-j-c-delson",
-  "name": "R.díaz-J.c.delson",
+  "name": "R. Díaz - J. C. Delson",
   "count": 3,
   "orchestras": {
    "Guitarras, Piano y Violín": 2,
@@ -7572,7 +7535,7 @@
  },
  {
   "id": "f-fiorentino-f-ruiz",
-  "name": "F.fiorentino-F.ruíz",
+  "name": "F. Fiorentino - F. Ruíz",
   "count": 3,
   "orchestras": {
    "José Basso": 3
@@ -7584,7 +7547,7 @@
  },
  {
   "id": "j-duran-o-ferrari",
-  "name": "J.durán-O.ferrari",
+  "name": "J. Durán - O. Ferrari",
   "count": 3,
   "orchestras": {
    "José Basso": 3
@@ -7629,7 +7592,7 @@
  },
  {
   "id": "n-miranda-a-bianchi",
-  "name": "N.miranda-A.bianchi",
+  "name": "N. Miranda - A. Bianchi",
   "count": 3,
   "orchestras": {
    "Juan Cao": 3
@@ -7641,7 +7604,7 @@
  },
  {
   "id": "a-cuello-c-aguirre",
-  "name": "A.cuello-C.aguirre",
+  "name": "A. Cuello - C. Aguirre",
   "count": 3,
   "orchestras": {
    "Alfredo De Angelis": 3
@@ -7665,7 +7628,7 @@
  },
  {
   "id": "g-de-angelis-c-boledi",
-  "name": "G.de Ángelis-C.boledi",
+  "name": "G. de Ángelis - C. Boledi",
   "count": 3,
   "orchestras": {
    "Alfredo De Angelis": 3
@@ -7701,7 +7664,7 @@
  },
  {
   "id": "m-bustos-h-de-rosas",
-  "name": "M.bustos-H.de Rosas",
+  "name": "M. Bustos - H. de Rosas",
   "count": 3,
   "orchestras": {
    "Eduardo del Piano": 3
@@ -7725,7 +7688,7 @@
  },
  {
   "id": "a-irusta-r-fugazot-l-demare",
-  "name": "A.irusta-R.fugazot-L.demare",
+  "name": "A. Irusta - R. Fugazot - L. Demare",
   "count": 3,
   "orchestras": {
    "Orquesta Argentina": 3
@@ -7826,7 +7789,7 @@
  },
  {
   "id": "r-lando",
-  "name": "R.lando",
+  "name": "R. Lando",
   "count": 2,
   "orchestras": {
    "Alberto Gentile": 2
@@ -7874,7 +7837,7 @@
  },
  {
   "id": "d-garello-l-roman",
-  "name": "D.garello-L.román",
+  "name": "D. Garello - L. Román",
   "count": 2,
   "orchestras": {
    "Carlos Nieto": 2
@@ -7958,7 +7921,7 @@
  },
  {
   "id": "g-arboz-a-drames",
-  "name": "G.arboz-A.drames",
+  "name": "G. Arboz - A. Drames",
   "count": 2,
   "orchestras": {
    "Héctor Stamponi": 2
@@ -8037,7 +8000,7 @@
  },
  {
   "id": "t-garcia-r-cane",
-  "name": "T.garcía-R.cané",
+  "name": "T. García - R. Cané",
   "count": 2,
   "orchestras": {
    "Ángel D'Agostino": 2
@@ -8086,7 +8049,7 @@
  },
  {
   "id": "a-rojas-n-wilson",
-  "name": "A.rojas-N.wilson",
+  "name": "A. Rojas - N. Wilson",
   "count": 2,
   "orchestras": {
    "José García": 2
@@ -8122,7 +8085,7 @@
  },
  {
   "id": "p-datila-m-corrales",
-  "name": "P.dátila-M.corrales",
+  "name": "P. Dátila - M. Corrales",
   "count": 2,
   "orchestras": {
    "Osmar Maderna": 2
@@ -8146,7 +8109,7 @@
  },
  {
   "id": "a-serna-daniel-adamo",
-  "name": "A.serna-Daniel Adamo",
+  "name": "A. Serna - Daniel Adamo",
   "count": 2,
   "orchestras": {
    "Antonio Rodio": 2
@@ -8158,7 +8121,7 @@
  },
  {
   "id": "a-diaz-c-nogues",
-  "name": "A.díaz-C.nogués",
+  "name": "A. Díaz - C. Nogués",
   "count": 2,
   "orchestras": {
    "Alfredo Gobbi": 2
@@ -8179,7 +8142,7 @@
  },
  {
   "id": "j-duran-cast-bob-toledo-ing",
-  "name": "J.durán(cast)-Bob Toledo(ing)",
+  "name": "J. Durán(cast) - Bob Toledo(ing)",
   "count": 2,
   "orchestras": {
    "Carlos Di Sarli": 2
@@ -8227,7 +8190,7 @@
  },
  {
   "id": "j-maciel-a-belusi",
-  "name": "J.maciel-A.belusi",
+  "name": "J. Maciel - A. Belusi",
   "count": 2,
   "orchestras": {
    "Osvaldo Pugliese": 2
@@ -8248,7 +8211,7 @@
  },
  {
   "id": "j-c-mercado-a-romero",
-  "name": "J.c.mercado-A.romero",
+  "name": "J. C. Mercado - A. Romero",
   "count": 2,
   "orchestras": {
    "Los Caballeros del Tango": 2
@@ -8305,7 +8268,7 @@
  },
  {
   "id": "a-de-silva-m-pizarro",
-  "name": "A.de Silva-M.pizarro",
+  "name": "A. de Silva - M. Pizarro",
   "count": 2,
   "orchestras": {
    "Manuel Pizarro": 2
@@ -8341,7 +8304,7 @@
  },
  {
   "id": "a-guerrico-l-correa",
-  "name": "A.guerrico-L.correa",
+  "name": "A. Guerrico - L. Correa",
   "count": 2,
   "orchestras": {
    "Fulvio Salamanca": 2
@@ -8375,7 +8338,7 @@
  },
  {
   "id": "beatriz-beban-r-echague",
-  "name": "Beatríz Bebán-R.echagüe",
+  "name": "Beatríz Bebán - R. Echagüe",
   "count": 2,
   "orchestras": {
    "Los Siete del Tango": 2
@@ -8411,7 +8374,7 @@
  },
  {
   "id": "e-inda-a-rivera",
-  "name": "E.inda-A.rivera",
+  "name": "E. Inda - A. Rivera",
   "count": 2,
   "orchestras": {
    "Francisco Lomuto": 2
@@ -8456,7 +8419,7 @@
  },
  {
   "id": "jorge-roldan-carlos-soler",
-  "name": "Jorge Roldán-Carlos Soler",
+  "name": "Jorge Roldán - Carlos Soler",
   "count": 2,
   "orchestras": {
    "Raúl Plate": 2
@@ -8504,7 +8467,7 @@
  },
  {
   "id": "r-alcazar-o-bor-r-de-rosas",
-  "name": "R.alcazar-O.bor-R.de Rosas",
+  "name": "R. Alcazar - O. Bor - R. de Rosas",
   "count": 2,
   "orchestras": {
    "Gotán Trío": 2
@@ -8512,18 +8475,6 @@
   "yearRange": [
    1982,
    1982
-  ]
- },
- {
-  "id": "recitado",
-  "name": "Recitado",
-  "count": 2,
-  "orchestras": {
-   "Orq.filar.montevideo": 2
-  },
-  "yearRange": [
-   1994,
-   1994
   ]
  },
  {
@@ -8576,7 +8527,7 @@
  },
  {
   "id": "r-lagos-r-fontana",
-  "name": "R.lagos-R.fontana",
+  "name": "R. Lagos - R. Fontana",
   "count": 2,
   "orchestras": {
    "Hnos. Appiolaza": 2
@@ -8684,7 +8635,7 @@
  },
  {
   "id": "o-delgrossi-victor-ruiz",
-  "name": "O.delgrossi-Víctor Ruiz",
+  "name": "O. Delgrossi - Víctor Ruiz",
   "count": 2,
   "orchestras": {
    "Donato Racciatti": 2
@@ -8696,7 +8647,7 @@
  },
  {
   "id": "b-del-campo-o-rivas",
-  "name": "B.del Campo-O.rivas",
+  "name": "B. del Campo - O. Rivas",
   "count": 2,
   "orchestras": {
    "Donato Racciatti": 2
@@ -8730,7 +8681,7 @@
  },
  {
   "id": "r-beron-r-rufino",
-  "name": "R.berón-R.rufino",
+  "name": "R. Berón - R. Rufino",
   "count": 2,
   "orchestras": {
    "Francini-Pontier": 2
@@ -8877,7 +8828,7 @@
  },
  {
   "id": "o-rico-r-alberti",
-  "name": "O.rico-R.alberti",
+  "name": "O. Rico - R. Alberti",
   "count": 2,
   "orchestras": {
    "Héctor D'Espósito": 2
@@ -8925,7 +8876,7 @@
  },
  {
   "id": "o-quiroz-o-galan",
-  "name": "O.quiróz-O.galán",
+  "name": "O. Quiróz - O. Galán",
   "count": 2,
   "orchestras": {
    "Enrique Rodríguez": 2
@@ -8937,7 +8888,7 @@
  },
  {
   "id": "o-quiroz-o-galan-a-moreno",
-  "name": "O.quiróz-O.galán-A.moreno",
+  "name": "O. Quiróz - O. Galán - A. Moreno",
   "count": 2,
   "orchestras": {
    "Enrique Rodríguez": 2
@@ -8961,7 +8912,7 @@
  },
  {
   "id": "r-ledesma-c-palmino-del-coral",
-  "name": "R.ledesma-C.palmiño-Del Coral",
+  "name": "R. Ledesma - C. Palmiño - del Coral",
   "count": 2,
   "orchestras": {
    "Porfirio Díaz": 2
@@ -9035,7 +8986,7 @@
  },
  {
   "id": "ikwo-abo-r-fujisawa-h-yuki",
-  "name": "Ikwo Abo-R.fujisawa-H.yuki",
+  "name": "Ikwo Abo - R. Fujisawa - H. Yuki",
   "count": 2,
   "orchestras": {
    "Orq.típica Tokio": 2
@@ -9104,7 +9055,7 @@
  },
  {
   "id": "h-lagos-l-morales-r-gavioli",
-  "name": "H.lagos-L.morales-R.gavioli",
+  "name": "H. Lagos - L. Morales - R. Gavioli",
   "count": 2,
   "orchestras": {
    "Edgardo Donato": 2
@@ -9140,7 +9091,7 @@
  },
  {
   "id": "f-ruiz-a-belusi",
-  "name": "F.ruíz-A.belusi",
+  "name": "F. Ruíz - A. Belusi",
   "count": 2,
   "orchestras": {
    "José Basso": 2
@@ -9152,7 +9103,7 @@
  },
  {
   "id": "f-ruiz-j-duran",
-  "name": "F.ruíz-J.durán",
+  "name": "F. Ruíz - J. Durán",
   "count": 2,
   "orchestras": {
    "José Basso": 2
@@ -9164,7 +9115,7 @@
  },
  {
   "id": "l-correa-j-c-godoy",
-  "name": "L.correa-J.c.godoy",
+  "name": "L. Correa - J. C. Godoy",
   "count": 2,
   "orchestras": {
    "José Basso": 2
@@ -9212,7 +9163,7 @@
  },
  {
   "id": "zaharay-miguel-a-herrera",
-  "name": "Zaharay-Miguel A.herrera",
+  "name": "Zaharay - Miguel A. Herrera",
   "count": 2,
   "orchestras": {
    "Francisco Colombo": 2
@@ -9268,7 +9219,7 @@
  },
  {
   "id": "d-auvray-u-lelli",
-  "name": "D.auvray-U.lelli",
+  "name": "D. Auvray - U. Lelli",
   "count": 2,
   "orchestras": {
    "Los Bandoneones": 2
@@ -9292,7 +9243,7 @@
  },
  {
   "id": "r-alcaraz-r-rosas-o-bor",
-  "name": "R.alcaráz-R.rosas-O.bor",
+  "name": "R. Alcaráz - R. Rosas - O. Bor",
   "count": 2,
   "orchestras": {
    "Gotán Trío": 2
@@ -9340,7 +9291,7 @@
  },
  {
   "id": "andres-r-domenech",
-  "name": "Andrés R.domenech",
+  "name": "Andrés R. Domenech",
   "count": 2,
   "orchestras": {
    "Guitarras (solo singer)": 2
@@ -9369,20 +9320,8 @@
   "yearRange": null
  },
  {
-  "id": "glosas-nestor-rodi",
-  "name": "Glosas Néstor Rodi",
-  "count": 2,
-  "orchestras": {
-   "Alfredo De Angelis": 2
-  },
-  "yearRange": [
-   1944,
-   1944
-  ]
- },
- {
   "id": "g-de-angelis-r-linares",
-  "name": "G.de Ángelis-R.linares",
+  "name": "G. de Ángelis - R. Linares",
   "count": 2,
   "orchestras": {
    "Alfredo De Angelis": 2
@@ -9394,7 +9333,7 @@
  },
  {
   "id": "m-biondini-r-linares-g-de-angelis-ch-pereyra-j-guillermo",
-  "name": "M.biondini-R.linares-G.de Ángelis-Ch.pereyra-J.guillermo",
+  "name": "M. Biondini - R. Linares - G. de Ángelis - Ch.pereyra - J. Guillermo",
   "count": 2,
   "orchestras": {
    "Alfredo De Angelis": 2
@@ -9455,7 +9394,7 @@
  },
  {
   "id": "j-ledesma-a-varela",
-  "name": "J.ledesma-A.varela",
+  "name": "J. Ledesma - A. Varela",
   "count": 2,
   "orchestras": {
    "Alberto Mancione": 2
@@ -9467,7 +9406,7 @@
  },
  {
   "id": "a-rivas-r-durante",
-  "name": "A.rivas-R.durante",
+  "name": "A. Rivas - R. Durante",
   "count": 2,
   "orchestras": {
    "Orq.símb.o.maderna": 2
@@ -9479,7 +9418,7 @@
  },
  {
   "id": "j-valdez-h-palma",
-  "name": "J.valdéz-H.palma",
+  "name": "J. Valdéz - H. Palma",
   "count": 2,
   "orchestras": {
    "Juan D'Arienzo": 2
@@ -9491,7 +9430,7 @@
  },
  {
   "id": "j-valdez-h-millan",
-  "name": "J.valdez-H.millán",
+  "name": "J. Valdez - H. Millán",
   "count": 2,
   "orchestras": {
    "Juan D'Arienzo": 2
@@ -9539,7 +9478,7 @@
  },
  {
   "id": "lita-morales-h-lagos",
-  "name": "Lita Morales-H.lagos",
+  "name": "Lita Morales - H. Lagos",
   "count": 2,
   "orchestras": {
    "Edgardo Donato": 2
@@ -9563,7 +9502,7 @@
  },
  {
   "id": "jorge-falcon-diego-solis",
-  "name": "Jorge Falcón-Diego Solís",
+  "name": "Jorge Falcón - Diego Solís",
   "count": 2,
   "orchestras": {
    "Héctor Varela": 2
@@ -9575,7 +9514,7 @@
  },
  {
   "id": "a-laborde-r-lesica",
-  "name": "A.laborde-R.lesica",
+  "name": "A. Laborde - R. Lesica",
   "count": 2,
   "orchestras": {
    "Héctor Varela": 2
@@ -9704,7 +9643,7 @@
  },
  {
   "id": "r-moyano",
-  "name": "R.moyano",
+  "name": "R. Moyano",
   "count": 1,
   "orchestras": {
    "Orquesta (unspecified)": 1
@@ -9713,7 +9652,7 @@
  },
  {
   "id": "f-ruiz-e-campos",
-  "name": "F.ruíz-E.campos",
+  "name": "F. Ruíz - E. Campos",
   "count": 1,
   "orchestras": {
    "Francisco Rotundo": 1
@@ -9725,7 +9664,7 @@
  },
  {
   "id": "l-lamarque-mirtha-lamarque",
-  "name": "L.lamarque-Mirtha Lamarque",
+  "name": "L. Lamarque - Mirtha Lamarque",
   "count": 1,
   "orchestras": {
    "Alfredo Malerba": 1
@@ -9749,7 +9688,7 @@
  },
  {
   "id": "c-bermudez-j-linares",
-  "name": "C.bermudez-J.linares",
+  "name": "C. Bermudez - J. Linares",
   "count": 1,
   "orchestras": {
    "Pedro Láurenz": 1
@@ -9761,7 +9700,7 @@
  },
  {
   "id": "c-heredia-h-duval",
-  "name": "C.heredia-H.duval",
+  "name": "C. Heredia - H. Duval",
   "count": 1,
   "orchestras": {
    "Rodolfo Biagi": 1
@@ -9773,7 +9712,7 @@
  },
  {
   "id": "c-acuna-f-diaz",
-  "name": "C.acuña-F.díaz",
+  "name": "C. Acuña - F. Díaz",
   "count": 1,
   "orchestras": {
    "Francisco Lomuto": 1
@@ -9797,7 +9736,7 @@
  },
  {
   "id": "dorita-davis-p-azul",
-  "name": "Dorita Davis-P.azul",
+  "name": "Dorita Davis - P. Azul",
   "count": 1,
   "orchestras": {
    "Roberto Firpo": 1
@@ -9833,7 +9772,7 @@
  },
  {
   "id": "tito-reyes-hector-dario",
-  "name": "Tito Reyes-Héctor Darío",
+  "name": "Tito Reyes - Héctor Darío",
   "count": 1,
   "orchestras": {
    "Joaquín Do Reyes": 1
@@ -9845,7 +9784,7 @@
  },
  {
   "id": "ricardo-aguilar-trio-vocal",
-  "name": "Ricardo Aguilar-Trío Vocal",
+  "name": "Ricardo Aguilar - Trío Vocal",
   "count": 1,
   "orchestras": {
    "Joaquín Do Reyes": 1
@@ -9857,7 +9796,7 @@
  },
  {
   "id": "r-argentino-raul-fontana",
-  "name": "R.argentino-Raul Fontana",
+  "name": "R. Argentino - Raul Fontana",
   "count": 1,
   "orchestras": {
    "Joaquín Do Reyes": 1
@@ -9869,7 +9808,7 @@
  },
  {
   "id": "c-del-monte-o-brizuela",
-  "name": "C.del Monte-O.brizuela",
+  "name": "C. del Monte - O. Brizuela",
   "count": 1,
   "orchestras": {
    "Lorenzo Barbero": 1
@@ -9881,7 +9820,7 @@
  },
  {
   "id": "r-florio-c-del-monte",
-  "name": "R.florio-C.del Monte",
+  "name": "R. Florio - C. del Monte",
   "count": 1,
   "orchestras": {
    "Lorenzo Barbero": 1
@@ -9905,7 +9844,7 @@
  },
  {
   "id": "a-ledesma-r-lesica",
-  "name": "A.ledesma-R.lesica",
+  "name": "A. Ledesma - R. Lesica",
   "count": 1,
   "orchestras": {
    "Héctor Varela": 1
@@ -9913,18 +9852,6 @@
   "yearRange": [
    1956,
    1956
-  ]
- },
- {
-  "id": "recita-juan-zuchelli",
-  "name": "Recita Juan Zuchelli",
-  "count": 1,
-  "orchestras": {
-   "Héctor Stamponi": 1
-  },
-  "yearRange": [
-   1948,
-   1948
   ]
  },
  {
@@ -9941,7 +9868,7 @@
  },
  {
   "id": "c-dante-hnas-morel",
-  "name": "C.dante-Hnas.morel",
+  "name": "C. Dante - Hnas.morel",
   "count": 1,
   "orchestras": {
    "Miguel Caló": 1
@@ -10022,7 +9949,7 @@
  },
  {
   "id": "r-chalean-j-fiorentino",
-  "name": "R.chaleán-J.fiorentino",
+  "name": "R. Chaleán - J. Fiorentino",
   "count": 1,
   "orchestras": {
    "Luciano Leocata": 1
@@ -10031,7 +9958,7 @@
  },
  {
   "id": "h-alvarado-l-correa",
-  "name": "H.alvarado-L.correa",
+  "name": "H. Alvarado - L. Correa",
   "count": 1,
   "orchestras": {
    "Alberto Mancione": 1
@@ -10055,7 +9982,7 @@
  },
  {
   "id": "r-maida-a-ramos",
-  "name": "R.maida-A.ramos",
+  "name": "R. Maida - A. Ramos",
   "count": 1,
   "orchestras": {
    "Francisco Canaro": 1
@@ -10067,7 +9994,7 @@
  },
  {
   "id": "ada-falcon-charlo",
-  "name": "Ada Falcón-Charlo",
+  "name": "Ada Falcón - Charlo",
   "count": 1,
   "orchestras": {
    "Francisco Canaro": 1
@@ -10079,7 +10006,7 @@
  },
  {
   "id": "g-coral-a-arenas",
-  "name": "G.coral-A.arenas",
+  "name": "G. Coral - A. Arenas",
   "count": 1,
   "orchestras": {
    "Francisco Canaro": 1
@@ -10103,7 +10030,7 @@
  },
  {
   "id": "c-budini-m-bonet",
-  "name": "C.budini-M.bonet",
+  "name": "C. Budini - M. Bonet",
   "count": 1,
   "orchestras": {
    "Miguel Nijensohn": 1
@@ -10133,7 +10060,7 @@
  },
  {
   "id": "e-franco-raul-luduena",
-  "name": "E.francó-Raúl Ludueña",
+  "name": "E. Francó - Raúl Ludueña",
   "count": 1,
   "orchestras": {
    "Jorge Arduh": 1
@@ -10181,7 +10108,7 @@
  },
  {
   "id": "jorge-duran-bob-toledo",
-  "name": "Jorge Durán-Bob Toledo",
+  "name": "Jorge Durán - Bob Toledo",
   "count": 1,
   "orchestras": {
    "Carlos Di Sarli": 1
@@ -10238,7 +10165,7 @@
  },
  {
   "id": "c-fontan-j-fontana",
-  "name": "C.fontán-J.fontana",
+  "name": "C. Fontán - J. Fontana",
   "count": 1,
   "orchestras": {
    "Juan Sánchez Gorio": 1
@@ -10262,7 +10189,7 @@
  },
  {
   "id": "c-cristal-m-pena",
-  "name": "C.cristal-M.peña",
+  "name": "C. Cristal - M. Peña",
   "count": 1,
   "orchestras": {
    "Juan Sánchez Gorio": 1
@@ -10285,20 +10212,8 @@
   ]
  },
  {
-  "id": "recita-americo-solari",
-  "name": "Recita Américo Solari",
-  "count": 1,
-  "orchestras": {
-   "Los Caballeros del Tango": 1
-  },
-  "yearRange": [
-   1990,
-   1990
-  ]
- },
- {
   "id": "a-diale-i-murillo",
-  "name": "A.diale-I.murillo",
+  "name": "A. Diale - I. Murillo",
   "count": 1,
   "orchestras": {
    "Roberto Firpo": 1
@@ -10310,7 +10225,7 @@
  },
  {
   "id": "r-ledesma-c-montalvo",
-  "name": "R.ledesma-C.montalvo",
+  "name": "R. Ledesma - C. Montalvo",
   "count": 1,
   "orchestras": {
    "Jorge Caldara": 1
@@ -10322,7 +10237,7 @@
  },
  {
   "id": "r-lesica-r-ruiz",
-  "name": "R.lesica-R.ruiz",
+  "name": "R. Lesica - R. Ruiz",
   "count": 1,
   "orchestras": {
    "Jorge Caldara": 1
@@ -10358,7 +10273,7 @@
  },
  {
   "id": "a-peyro-j-garre",
-  "name": "A.peyró-J.garré",
+  "name": "A. Peyró - J. Garré",
   "count": 1,
   "orchestras": {
    "Fulvio Salamanca": 1
@@ -10370,7 +10285,7 @@
  },
  {
   "id": "a-guerrico-j-garre",
-  "name": "A.guerrico-J.garré",
+  "name": "A. Guerrico - J. Garré",
   "count": 1,
   "orchestras": {
    "Fulvio Salamanca": 1
@@ -10382,7 +10297,7 @@
  },
  {
   "id": "a-guerrico-m-luna",
-  "name": "A.guerrico-M.luna",
+  "name": "A. Guerrico - M. Luna",
   "count": 1,
   "orchestras": {
    "Fulvio Salamanca": 1
@@ -10394,7 +10309,7 @@
  },
  {
   "id": "j-omar-celly-brian",
-  "name": "J.omar-Celly Brian",
+  "name": "J. Omar - Celly Brian",
   "count": 1,
   "orchestras": {
    "Francisco Lomuto": 1
@@ -10406,7 +10321,7 @@
  },
  {
   "id": "maria-t-greco",
-  "name": "María T.greco",
+  "name": "María T. Greco",
   "count": 1,
   "orchestras": {
    "Francisco Lomuto": 1
@@ -10418,7 +10333,7 @@
  },
  {
   "id": "m-simone-f-diaz",
-  "name": "M.simone-F.díaz",
+  "name": "M. Simone - F. Díaz",
   "count": 1,
   "orchestras": {
    "Francisco Lomuto": 1
@@ -10448,7 +10363,7 @@
  },
  {
   "id": "luis-mandarino-rosita-barrios",
-  "name": "Luis Mandarino-Rosita Barrios",
+  "name": "Luis Mandarino - Rosita Barrios",
   "count": 1,
   "orchestras": {
    "Acomp.no Identificado": 1
@@ -10457,7 +10372,7 @@
  },
  {
   "id": "beatriz-oreiro-r-echague",
-  "name": "Beatríz Oreiro-R.echagüe",
+  "name": "Beatríz Oreiro - R. Echagüe",
   "count": 1,
   "orchestras": {
    "Los Siete del Tango": 1
@@ -10469,7 +10384,7 @@
  },
  {
   "id": "juan-pulido-pilar-arcos",
-  "name": "Juan Pulido-Pilar Arcos",
+  "name": "Juan Pulido - Pilar Arcos",
   "count": 1,
   "orchestras": {
    "Orquesta (unspecified)": 1
@@ -10481,7 +10396,7 @@
  },
  {
   "id": "f-diaz-a-acuna",
-  "name": "F.díaz-A.acuña",
+  "name": "F. Díaz - A. Acuña",
   "count": 1,
   "orchestras": {
    "Francisco Lomuto": 1
@@ -10493,7 +10408,7 @@
  },
  {
   "id": "i-arbizu",
-  "name": "I.arbizu",
+  "name": "I. Arbizu",
   "count": 1,
   "orchestras": {
    "Francisco Lomuto": 1
@@ -10505,7 +10420,7 @@
  },
  {
   "id": "a-rivera-m-montero",
-  "name": "A.rivera-M.montero",
+  "name": "A. Rivera - M. Montero",
   "count": 1,
   "orchestras": {
    "Francisco Lomuto": 1
@@ -10517,7 +10432,7 @@
  },
  {
   "id": "c-galarce-a-rivera",
-  "name": "C.galarce-A.rivera",
+  "name": "C. Galarce - A. Rivera",
   "count": 1,
   "orchestras": {
    "Francisco Lomuto": 1
@@ -10529,7 +10444,7 @@
  },
  {
   "id": "c-acuna-a-campoamor",
-  "name": "C.acuña-A.campoamor",
+  "name": "C. Acuña - A. Campoamor",
   "count": 1,
   "orchestras": {
    "Mariano Mores": 1
@@ -10550,7 +10465,7 @@
  },
  {
   "id": "m-bustos-j-valdez",
-  "name": "M.bustos-J.valdéz",
+  "name": "M. Bustos - J. Valdéz",
   "count": 1,
   "orchestras": {
    "Juan D'Arienzo": 1
@@ -10561,20 +10476,8 @@
   ]
  },
  {
-  "id": "recita-hector-gagliardi",
-  "name": "Recita Héctor Gagliardi",
-  "count": 1,
-  "orchestras": {
-   "Orquesta (unspecified)": 1
-  },
-  "yearRange": [
-   1962,
-   1962
-  ]
- },
- {
   "id": "a-medrano-a-taborda",
-  "name": "A.medrano-A.taborda",
+  "name": "A. Medrano - A. Taborda",
   "count": 1,
   "orchestras": {
    "Horacio Salgán": 1
@@ -10598,7 +10501,7 @@
  },
  {
   "id": "j-ruibal-ricardo-paez",
-  "name": "J.ruibal-Ricardo Páez",
+  "name": "J. Ruibal - Ricardo Páez",
   "count": 1,
   "orchestras": {
    "Francisco Grillo": 1
@@ -10610,7 +10513,7 @@
  },
  {
   "id": "m-simone-charlo",
-  "name": "M.simone-Charlo",
+  "name": "M. Simone - Charlo",
   "count": 1,
   "orchestras": {
    "Guitarras (solo singer)": 1
@@ -10658,7 +10561,7 @@
  },
  {
   "id": "r-de-rosas-r-alcazar",
-  "name": "R.de Rosas-R.alcazar",
+  "name": "R. de Rosas - R. Alcazar",
   "count": 1,
   "orchestras": {
    "Gotán Trío": 1
@@ -10682,7 +10585,7 @@
  },
  {
   "id": "m-andino-a-vinciguerra-g-estrada",
-  "name": "M.andino-A.vinciguerra-G.estrada",
+  "name": "M. Andino - A. Vinciguerra - G. Estrada",
   "count": 1,
   "orchestras": {
    "R.salani-O.brunetti-D.porta": 1
@@ -10694,7 +10597,7 @@
  },
  {
   "id": "m-a-lopez-j-c-olivera",
-  "name": "M.a.lópez-J.c.olivera",
+  "name": "M. A. López - J. C. Olivera",
   "count": 1,
   "orchestras": {
    "Natalio Tursi": 1
@@ -10718,7 +10621,7 @@
  },
  {
   "id": "m-a-lopez-j-c-aguilera",
-  "name": "M.a.lópez-J.c.aguilera",
+  "name": "M. A. López - J. C. Aguilera",
   "count": 1,
   "orchestras": {
    "Natalio Tursi": 1
@@ -10730,7 +10633,7 @@
  },
  {
   "id": "e-bianco-j-cohan",
-  "name": "E.bianco-J.cohan",
+  "name": "E. Bianco - J. Cohan",
   "count": 1,
   "orchestras": {
    "Eduardo Bianco": 1
@@ -10754,7 +10657,7 @@
  },
  {
   "id": "a-de-la-colina",
-  "name": "A.de la Colina",
+  "name": "A. de la Colina",
   "count": 1,
   "orchestras": {
    "Dante Puricelli": 1
@@ -10778,7 +10681,7 @@
  },
  {
   "id": "h-soler-c-valdez",
-  "name": "H.soler-C.valdez",
+  "name": "H. Soler - C. Valdez",
   "count": 1,
   "orchestras": {
    "Ricardo Pedevilla": 1
@@ -10886,7 +10789,7 @@
  },
  {
   "id": "zaharay-c-palorma",
-  "name": "Zaharay-C.palorma",
+  "name": "Zaharay - C. Palorma",
   "count": 1,
   "orchestras": {
    "Francisco Colombo": 1
@@ -10928,7 +10831,7 @@
  },
  {
   "id": "robledo-riverol-cabral",
-  "name": "Robledo-Riverol-Cabral",
+  "name": "Robledo - Riverol - Cabral",
   "count": 1,
   "orchestras": {
    "Sebastián Piana": 1
@@ -10952,7 +10855,7 @@
  },
  {
   "id": "h-del-carril-alicia-vignou",
-  "name": "H.del Carril-Alicia Vignou",
+  "name": "H. del Carril - Alicia Vignou",
   "count": 1,
   "orchestras": {
    "Orquesta (unspecified)": 1
@@ -10964,7 +10867,7 @@
  },
  {
   "id": "nina-miranda-r-lister",
-  "name": "Nina Miranda-R. Lister",
+  "name": "Nina Miranda - R. Lister",
   "count": 1,
   "orchestras": {
    "Donato Racciatti": 1
@@ -11000,7 +10903,7 @@
  },
  {
   "id": "r-blasco-f-romero-r-marin",
-  "name": "R.blasco-F.romero-R.marín",
+  "name": "R. Blasco - F. Romero - R. Marín",
   "count": 1,
   "orchestras": {
    "Donato Racciatti": 1
@@ -11012,7 +10915,7 @@
  },
  {
   "id": "m-biondini-g-reynal",
-  "name": "M.biondini-G.reynal",
+  "name": "M. Biondini - G. Reynal",
   "count": 1,
   "orchestras": {
    "Donato Racciatti": 1
@@ -11024,7 +10927,7 @@
  },
  {
   "id": "a-carriego-osvaldo-rivas",
-  "name": "A.carriego-Osvaldo Rivas",
+  "name": "A. Carriego - Osvaldo Rivas",
   "count": 1,
   "orchestras": {
    "Héctor D'Espósito": 1
@@ -11036,7 +10939,7 @@
  },
  {
   "id": "m-gamizo-r-grosso",
-  "name": "M.gamizo-R.grosso",
+  "name": "M. Gamizo - R. Grosso",
   "count": 1,
   "orchestras": {
    "Héctor D'Espósito": 1
@@ -11072,7 +10975,7 @@
  },
  {
   "id": "t-kunii",
-  "name": "T.kunii",
+  "name": "T. Kunii",
   "count": 1,
   "orchestras": {
    "Orq.típ.tokio C/f.tell": 1
@@ -11096,7 +10999,7 @@
  },
  {
   "id": "t-kunii-sugawara",
-  "name": "T.kunii-Sugawara",
+  "name": "T. Kunii - Sugawara",
   "count": 1,
   "orchestras": {
    "Orq.típ.tokio C/f.tell": 1
@@ -11120,7 +11023,7 @@
  },
  {
   "id": "b-maselli-r-diaz",
-  "name": "B.maselli-R.díaz",
+  "name": "B. Maselli - R. Díaz",
   "count": 1,
   "orchestras": {
    "Cristóbal Herrero": 1
@@ -11144,7 +11047,7 @@
  },
  {
   "id": "a-podesta-r-beron",
-  "name": "A.podestá-R.berón",
+  "name": "A. Podestá - R. Berón",
   "count": 1,
   "orchestras": {
    "Francini-Pontier": 1
@@ -11156,7 +11059,7 @@
  },
  {
   "id": "a-podesta-j-sosa",
-  "name": "A.podestá-J.sosa",
+  "name": "A. Podestá - J. Sosa",
   "count": 1,
   "orchestras": {
    "Francini-Pontier": 1
@@ -11177,7 +11080,7 @@
  },
  {
   "id": "a-casares-roberto-taibo",
-  "name": "A.casares-Roberto Taibo",
+  "name": "A. Casares - Roberto Taibo",
   "count": 1,
   "orchestras": {
    "Juan Cambareri": 1
@@ -11189,7 +11092,7 @@
  },
  {
   "id": "marta-soler-jorge-pena",
-  "name": "Marta Soler-Jorge Peña",
+  "name": "Marta Soler - Jorge Peña",
   "count": 1,
   "orchestras": {
    "Roberto Cuenca": 1
@@ -11273,7 +11176,7 @@
  },
  {
   "id": "alberto-denis-los-3-chamacos",
-  "name": "Alberto Denis-Los 3 Chamacos",
+  "name": "Alberto Denis - los 3 Chamacos",
   "count": 1,
   "orchestras": {
    "Roberto Cuenca": 1
@@ -11321,7 +11224,7 @@
  },
  {
   "id": "i-florentino",
-  "name": "I.florentino",
+  "name": "I. Florentino",
   "count": 1,
   "orchestras": {
    "Luciano Leocata": 1
@@ -11333,7 +11236,7 @@
  },
  {
   "id": "i-florentino-chalian",
-  "name": "I.florentino-Chalian",
+  "name": "I. Florentino - Chalian",
   "count": 1,
   "orchestras": {
    "Luciano Leocata": 1
@@ -11345,7 +11248,7 @@
  },
  {
   "id": "a-cordoba-los-laikas",
-  "name": "A.córdoba-Los Laikas",
+  "name": "A. Córdoba - los Laikas",
   "count": 1,
   "orchestras": {
    "Osvaldo Pugliese": 1
@@ -11356,35 +11259,11 @@
   ]
  },
  {
-  "id": "recita-german-darrien",
-  "name": "Recita Germán Darrién",
-  "count": 1,
-  "orchestras": {
-   "Enrique Mora": 1
-  },
-  "yearRange": [
-   1951,
-   1951
-  ]
- },
- {
   "id": "roberto-airaldi",
   "name": "Roberto Airaldi",
   "count": 1,
   "orchestras": {
    "4to.aníbal Troilo": 1
-  },
-  "yearRange": [
-   1940,
-   1940
-  ]
- },
- {
-  "id": "solo-de-bandoneon",
-  "name": "Sólo de Bandoneón",
-  "count": 1,
-  "orchestras": {
-   "Aníbal Troilo": 1
   },
   "yearRange": [
    1940,
@@ -11402,7 +11281,7 @@
  },
  {
   "id": "tino-garcia-mario-cane",
-  "name": "Tino García-Mario Cané",
+  "name": "Tino García - Mario Cané",
   "count": 1,
   "orchestras": {
    "Ángel D'Agostino": 1
@@ -11438,7 +11317,7 @@
  },
  {
   "id": "a-carriego-h-lando",
-  "name": "A.carriego-H.landó",
+  "name": "A. Carriego - H. Landó",
   "count": 1,
   "orchestras": {
    "Héctor D'Espósito": 1
@@ -11474,7 +11353,7 @@
  },
  {
   "id": "a-del-rio-s-fusey",
-  "name": "A.del Río-S.fusey",
+  "name": "A. del Río - S. Fusey",
   "count": 1,
   "orchestras": {
    "Orq.mun.tgo Marcial Fusey": 1
@@ -11486,7 +11365,7 @@
  },
  {
   "id": "r-herrera-f-reyes",
-  "name": "R.herrera-F.reyes",
+  "name": "R. Herrera - F. Reyes",
   "count": 1,
   "orchestras": {
    "Enrique Rodríguez": 1
@@ -11534,7 +11413,7 @@
  },
  {
   "id": "n-rolan-m-machado",
-  "name": "N.rolán-M.machado",
+  "name": "N. Rolán - M. Machado",
   "count": 1,
   "orchestras": {
    "Orlando Trípodi": 1
@@ -11546,7 +11425,7 @@
  },
  {
   "id": "m-zelta-r-ledesma",
-  "name": "M.zelta-R.ledesma",
+  "name": "M. Zelta - R. Ledesma",
   "count": 1,
   "orchestras": {
    "Porfirio Díaz": 1
@@ -11558,7 +11437,7 @@
  },
  {
   "id": "c-palmino",
-  "name": "C.palmiño",
+  "name": "C. Palmiño",
   "count": 1,
   "orchestras": {
    "Porfirio Díaz": 1
@@ -11618,7 +11497,7 @@
  },
  {
   "id": "t-asprella-j-raggi",
-  "name": "T.asprella-J.raggi",
+  "name": "T. Asprella - J. Raggi",
   "count": 1,
   "orchestras": {
    "Juan Deambroggio(bachicha)": 1
@@ -11630,7 +11509,7 @@
  },
  {
   "id": "r-maida-e-garcia",
-  "name": "R.maida-E.garcía",
+  "name": "R. Maida - E. García",
   "count": 1,
   "orchestras": {
    "Juan Deambroggio(bachicha)": 1
@@ -11642,7 +11521,7 @@
  },
  {
   "id": "c-vivan-hector-villanueva",
-  "name": "C.viván-Héctor Villanueva",
+  "name": "C. Viván - Héctor Villanueva",
   "count": 1,
   "orchestras": {
    "Roberto Firpo": 1
@@ -11798,7 +11677,7 @@
  },
  {
   "id": "j-balbi",
-  "name": "J.balbi",
+  "name": "J. Balbi",
   "count": 1,
   "orchestras": {
    "Juan Carlos Cobián": 1
@@ -11822,7 +11701,7 @@
  },
  {
   "id": "chito-faro-jorge-abril",
-  "name": "Chito Faró-Jorge Abril",
+  "name": "Chito Faró - Jorge Abril",
   "count": 1,
   "orchestras": {
    "Gabriel Clausi(chula)": 1
@@ -11846,7 +11725,7 @@
  },
  {
   "id": "chito-faro-vergara",
-  "name": "Chito Faró-Vergara",
+  "name": "Chito Faró - Vergara",
   "count": 1,
   "orchestras": {
    "Gabriel Clausi(chula)": 1
@@ -11858,7 +11737,7 @@
  },
  {
   "id": "horacio-lagos-randona",
-  "name": "Horacio Lagos-'randona'",
+  "name": "Horacio Lagos - 'Randona'",
   "count": 1,
   "orchestras": {
    "Edgardo Donato": 1
@@ -11870,7 +11749,7 @@
  },
  {
   "id": "h-lagos-l-morales",
-  "name": "H.lagos-L.morales",
+  "name": "H. Lagos - L. Morales",
   "count": 1,
   "orchestras": {
    "Edgardo Donato": 1
@@ -11942,7 +11821,7 @@
  },
  {
   "id": "enrique-p-delfino",
-  "name": "Enrique P.delfino",
+  "name": "Enrique P. Delfino",
   "count": 1,
   "orchestras": {
    "Enrique Delfino": 1
@@ -11954,7 +11833,7 @@
  },
  {
   "id": "c-dante-celia-luozan",
-  "name": "C.dante-Celia Luozán",
+  "name": "C. Dante - Celia Luozán",
   "count": 1,
   "orchestras": {
    "Luis Moresco": 1
@@ -12011,7 +11890,7 @@
  },
  {
   "id": "h-de-rosas-a-belusi",
-  "name": "H.de Rosas-A.belusi",
+  "name": "H. de Rosas - A. Belusi",
   "count": 1,
   "orchestras": {
    "José Basso": 1
@@ -12023,7 +11902,7 @@
  },
  {
   "id": "c-rossi-a-belusi",
-  "name": "C.rossi-A.belusi",
+  "name": "C. Rossi - A. Belusi",
   "count": 1,
   "orchestras": {
    "José Basso": 1
@@ -12035,7 +11914,7 @@
  },
  {
   "id": "a-irusta-e-fama",
-  "name": "A.irusta-E.famá",
+  "name": "A. Irusta - E. Famá",
   "count": 1,
   "orchestras": {
    "Francisco Canaro": 1
@@ -12047,7 +11926,7 @@
  },
  {
   "id": "e-falcon-c-montenegro",
-  "name": "E.falcón-C.montenegro",
+  "name": "E. Falcón - C. Montenegro",
   "count": 1,
   "orchestras": {
    "Enrique Rodríguez": 1
@@ -12071,7 +11950,7 @@
  },
  {
   "id": "j-c-rolon-guillermo-rico",
-  "name": "J.c.rolón-Guillermo Rico",
+  "name": "J. C. Rolón - Guillermo Rico",
   "count": 1,
   "orchestras": {
    "Francisco Canaro": 1
@@ -12083,7 +11962,7 @@
  },
  {
   "id": "d-cortes-g-nocetti",
-  "name": "D.cortés-G.nocetti",
+  "name": "D. Cortés - G. Nocetti",
   "count": 1,
   "orchestras": {
    "Orq.filar.montevideo": 1
@@ -12095,7 +11974,7 @@
  },
  {
   "id": "andres-areco-jorge-de-luca",
-  "name": "Andrés Areco-Jorge de Luca",
+  "name": "Andrés Areco - Jorge de Luca",
   "count": 1,
   "orchestras": {
    "Francisco Colombo": 1
@@ -12119,7 +11998,7 @@
  },
  {
   "id": "c-soler-h-serna",
-  "name": "C.soler-H.serna",
+  "name": "C. Soler - H. Serna",
   "count": 1,
   "orchestras": {
    "Jorge Arduh": 1
@@ -12128,7 +12007,7 @@
  },
  {
   "id": "r-grandi-r-morel",
-  "name": "R.grandi-R.morel",
+  "name": "R. Grandi - R. Morel",
   "count": 1,
   "orchestras": {
    "Jorge Arduh": 1
@@ -12167,7 +12046,7 @@
  },
  {
   "id": "r-lesica-r-lavie",
-  "name": "R.lesica-R.lavié",
+  "name": "R. Lesica - R. Lavié",
   "count": 1,
   "orchestras": {
    "Los Ases del Tango": 1
@@ -12179,7 +12058,7 @@
  },
  {
   "id": "c-morel-r-fontan",
-  "name": "C.morel-R.fontán",
+  "name": "C. Morel - R. Fontán",
   "count": 1,
   "orchestras": {
    "Norberto Ramos": 1
@@ -12191,7 +12070,7 @@
  },
  {
   "id": "r-beron-a-podesta",
-  "name": "R.berón-A.podestá",
+  "name": "R. Berón - A. Podestá",
   "count": 1,
   "orchestras": {
    "Miguel Caló": 1
@@ -12212,7 +12091,7 @@
  },
  {
   "id": "rosa-alcaraz-r-rosas",
-  "name": "Rosa Alcaráz-R.rosas",
+  "name": "Rosa Alcaráz - R. Rosas",
   "count": 1,
   "orchestras": {
    "Gotán Trío": 1
@@ -12233,7 +12112,7 @@
  },
  {
   "id": "l-bayardo-alfredo-lucero-palacios",
-  "name": "L.bayardo-Alfredo Lucero Palacios",
+  "name": "L. Bayardo - Alfredo Lucero Palacios",
   "count": 1,
   "orchestras": {
    "Orquesta (unspecified)": 1
@@ -12245,7 +12124,7 @@
  },
  {
   "id": "gabriel-reynal-juan-c-godoy",
-  "name": "Gabriel Reynal-Juan C.godoy",
+  "name": "Gabriel Reynal - Juan C. Godoy",
   "count": 1,
   "orchestras": {
    "Donato Racciatti": 1
@@ -12269,7 +12148,7 @@
  },
  {
   "id": "b-del-campo-carlos-javier",
-  "name": "B.del Campo-Carlos Javier",
+  "name": "B. del Campo - Carlos Javier",
   "count": 1,
   "orchestras": {
    "Donato Racciatti": 1
@@ -12281,7 +12160,7 @@
  },
  {
   "id": "b-del-campo-luis-correa",
-  "name": "B.del Campo-Luis Correa",
+  "name": "B. del Campo - Luis Correa",
   "count": 1,
   "orchestras": {
    "Donato Racciatti": 1
@@ -12293,7 +12172,7 @@
  },
  {
   "id": "maria-de-la-fuente-e-farrel",
-  "name": "María de la Fuente-E.farrel",
+  "name": "María de la Fuente - E. Farrel",
   "count": 1,
   "orchestras": {
    "Américo Belloto": 1
@@ -12341,7 +12220,7 @@
  },
  {
   "id": "charlo-luis-diaz",
-  "name": "Charlo-Luis Díaz",
+  "name": "Charlo - Luis Díaz",
   "count": 1,
   "orchestras": {
    "Francisco Canaro": 1
@@ -12386,7 +12265,7 @@
  },
  {
   "id": "o-larroca-j-c-godoy",
-  "name": "O.larroca-J.c.godoy",
+  "name": "O. Larroca - J. C. Godoy",
   "count": 1,
   "orchestras": {
    "Alfredo De Angelis": 1
@@ -12458,7 +12337,7 @@
  },
  {
   "id": "g-de-angelis-ch-pereyra",
-  "name": "G.de Ángelis-Ch.pereyra",
+  "name": "G. de Ángelis - Ch.pereyra",
   "count": 1,
   "orchestras": {
    "Alfredo De Angelis": 1
@@ -12470,7 +12349,7 @@
  },
  {
   "id": "a-martino-e-exposito",
-  "name": "A.martino-E.expósito",
+  "name": "A. Martino - E. Expósito",
   "count": 1,
   "orchestras": {
    "Ariel Espandrio C/sext.sabortango": 1
@@ -12482,7 +12361,7 @@
  },
  {
   "id": "j-roman",
-  "name": "J.román",
+  "name": "J. Román",
   "count": 1,
   "orchestras": {
    "Mario Demarco": 1
@@ -12518,7 +12397,7 @@
  },
  {
   "id": "rec-jorge-cacho-fontana",
-  "name": "Rec.jorge \"cacho\" Fontana",
+  "name": "Rec.jorge \"Cacho\" Fontana",
   "count": 1,
   "orchestras": {
    "Armando Pontier": 1
@@ -12542,7 +12421,7 @@
  },
  {
   "id": "c-almada-a-podesta",
-  "name": "C.almada-A.podestá",
+  "name": "C. Almada - A. Podestá",
   "count": 1,
   "orchestras": {
    "Edgardo Donato": 1
@@ -12566,7 +12445,7 @@
  },
  {
   "id": "r-morel-r-angelo",
-  "name": "R.morel-R.angelo",
+  "name": "R. Morel - R. Angelo",
   "count": 1,
   "orchestras": {
    "Edgardo Donato": 1
@@ -12626,7 +12505,7 @@
  },
  {
   "id": "r-sanchez-r-maciel",
-  "name": "R.sánchez-R.maciel",
+  "name": "R. Sánchez - R. Maciel",
   "count": 1,
   "orchestras": {
    "Domingo Federico": 1
@@ -12638,7 +12517,7 @@
  },
  {
   "id": "a-rivas-o-verri",
-  "name": "A.rivas-O.verri",
+  "name": "A. Rivas - O. Verri",
   "count": 1,
   "orchestras": {
    "Orq.símb.o.maderna": 1
@@ -12662,7 +12541,7 @@
  },
  {
   "id": "a-rivas-c-aldao",
-  "name": "A.rivas-C.aldao",
+  "name": "A. Rivas - C. Aldao",
   "count": 1,
   "orchestras": {
    "Orq.símb.o.maderna": 1
@@ -12674,7 +12553,7 @@
  },
  {
   "id": "r-grillo-r-bayot",
-  "name": "R.grillo-R.bayot",
+  "name": "R. Grillo - R. Bayot",
   "count": 1,
   "orchestras": {
    "Eduardo del Piano": 1
@@ -12698,7 +12577,7 @@
  },
  {
   "id": "a-moran-r-chanel",
-  "name": "A.morán-R.chanel",
+  "name": "A. Morán - R. Chanel",
   "count": 1,
   "orchestras": {
    "Osvaldo Pugliese": 1
@@ -12710,7 +12589,7 @@
  },
  {
   "id": "j-c-cobos-a-moran",
-  "name": "J.c.cobos-A.morán",
+  "name": "J. C. Cobos - A. Morán",
   "count": 1,
   "orchestras": {
    "Osvaldo Pugliese": 1
@@ -12722,7 +12601,7 @@
  },
  {
   "id": "m-montero-j-maciel",
-  "name": "M.montero-J.maciel",
+  "name": "M. Montero - J. Maciel",
   "count": 1,
   "orchestras": {
    "Osvaldo Pugliese": 1
@@ -12770,7 +12649,7 @@
  },
  {
   "id": "anita-mendy-e-de-maria",
-  "name": "Anita Mendy-E.de María",
+  "name": "Anita Mendy - E. de María",
   "count": 1,
   "orchestras": {
    "Emilio Pellejero": 1
@@ -12794,7 +12673,7 @@
  },
  {
   "id": "j-martel-glosa-nestor-rodi",
-  "name": "J.martel-Glosa Néstor Rodi",
+  "name": "J. Martel - Glosa Néstor Rodi",
   "count": 1,
   "orchestras": {
    "Alfredo De Angelis": 1
@@ -12827,7 +12706,7 @@
  },
  {
   "id": "jose-f-razzano",
-  "name": "José F.razzano",
+  "name": "José F. Razzano",
   "count": 1,
   "orchestras": {
    "José Ricardo": 1
@@ -12887,7 +12766,7 @@
  },
  {
   "id": "r-goyeneche-a-varela-l-nebbia",
-  "name": "R.goyeneche-A.varela-L.nebbia",
+  "name": "R. Goyeneche - A. Varela - L. Nebbia",
   "count": 1,
   "orchestras": {
    "L.nebbia-N.marconi": 1
@@ -12899,7 +12778,7 @@
  },
  {
   "id": "r-goyeneche-a-varela",
-  "name": "R.goyeneche-A.varela",
+  "name": "R. Goyeneche - A. Varela",
   "count": 1,
   "orchestras": {
    "Sexteto Carlos Buono": 1
@@ -12911,7 +12790,7 @@
  },
  {
   "id": "c-gardel-i-argentina",
-  "name": "C.gardel-I.argentina",
+  "name": "C. Gardel - I. Argentina",
   "count": 1,
   "orchestras": {
    "Juan Cruz Mateo": 1
@@ -12923,7 +12802,7 @@
  },
  {
   "id": "antonio-maida-randona",
-  "name": "Antonio Maida-'randona'",
+  "name": "Antonio Maida - 'Randona'",
   "count": 1,
   "orchestras": {
    "Edgardo Donato": 1
@@ -12947,7 +12826,7 @@
  },
  {
   "id": "c-soler-l-roman",
-  "name": "C.soler-L.román",
+  "name": "C. Soler - L. Román",
   "count": 1,
   "orchestras": {
    "Jorge Arduh": 1
@@ -12971,7 +12850,7 @@
  },
  {
   "id": "n-mores-c-mores",
-  "name": "N.mores-C.mores",
+  "name": "N. Mores - C. Mores",
   "count": 1,
   "orchestras": {
    "Mariano Mores": 1
@@ -12989,7 +12868,7 @@
  },
  {
   "id": "b-chambouleyron-s-cattaneo",
-  "name": "B.chambouleyron-S.cattáneo",
+  "name": "B. Chambouleyron - S. Cattáneo",
   "count": 1,
   "orchestras": {
    "Carlos Viggiano-R.solano": 1
@@ -13037,7 +12916,7 @@
  },
  {
   "id": "r-gavioli-l-morales",
-  "name": "R.gavioli-L.morales",
+  "name": "R. Gavioli - L. Morales",
   "count": 1,
   "orchestras": {
    "Edgardo Donato": 1
@@ -13049,7 +12928,7 @@
  },
  {
   "id": "celia-gamez-bretano",
-  "name": "Celia Gámez-Bretaño",
+  "name": "Celia Gámez - Bretaño",
   "count": 1,
   "orchestras": {
    "Orquesta Romero": 1
@@ -13061,7 +12940,7 @@
  },
  {
   "id": "celia-gamez-ornat",
-  "name": "Celia Gámez-Ornat",
+  "name": "Celia Gámez - Ornat",
   "count": 1,
   "orchestras": {
    "Orquesta Rosillo": 1
@@ -13127,7 +13006,7 @@
  },
  {
   "id": "i-de-grana-e-herrera",
-  "name": "I.de Grana-E.herrera",
+  "name": "I. de Grana - E. Herrera",
   "count": 1,
   "orchestras": {
    "Francisco Canaro": 1
@@ -13151,7 +13030,7 @@
  },
  {
   "id": "rosita-barrios-l-mandarino",
-  "name": "Rosita Barrios-L.mandarino",
+  "name": "Rosita Barrios - L. Mandarino",
   "count": 1,
   "orchestras": {
    "Orquesta (unspecified)": 1
@@ -13175,7 +13054,7 @@
  },
  {
   "id": "e-bianco-h-pettorossi",
-  "name": "E.bianco-H.pettorossi",
+  "name": "E. Bianco - H. Pettorossi",
   "count": 1,
   "orchestras": {
    "E.bianco-Bachicha": 1
@@ -13223,7 +13102,7 @@
  },
  {
   "id": "f-merel",
-  "name": "F.merel",
+  "name": "F. Merel",
   "count": 1,
   "orchestras": {
    "Orquesta (unspecified)": 1
@@ -13295,7 +13174,7 @@
  },
  {
   "id": "r-quiroga-r-montemar",
-  "name": "R.quiroga-R.montemar",
+  "name": "R. Quiroga - R. Montemar",
   "count": 1,
   "orchestras": {
    "Guitarras (solo singer)": 1
@@ -13325,7 +13204,7 @@
  },
  {
   "id": "chola-bosch-luis-bottini",
-  "name": "Chola Bosch-Luis Bottini",
+  "name": "Chola Bosch - Luis Bottini",
   "count": 1,
   "orchestras": {
    "José Tinelli": 1
@@ -13346,7 +13225,7 @@
  },
  {
   "id": "roberto-medina-r-taibo",
-  "name": "Roberto Medina-R.taibo",
+  "name": "Roberto Medina - R. Taibo",
   "count": 1,
   "orchestras": {
    "Julio De Caro": 1
@@ -13370,7 +13249,7 @@
  },
  {
   "id": "a-buglione-gonzalez-castillo",
-  "name": "A.buglione-González Castillo",
+  "name": "A. Buglione - González Castillo",
   "count": 1,
   "orchestras": {
    "Julio Fava Pollero": 1
@@ -13382,7 +13261,7 @@
  },
  {
   "id": "a-gomez-a-vila",
-  "name": "A.gómez-A.vila",
+  "name": "A. Gómez - A. Vila",
   "count": 1,
   "orchestras": {
    "Orquesta Típica Víctor": 1
@@ -13406,7 +13285,7 @@
  },
  {
   "id": "pagua-y-su-conjunto",
-  "name": "Paguá y su Conjunto",
+  "name": "Paguá y Su Conjunto",
   "count": 1,
   "orchestras": {
    "Paguá y su Conjunto": 1
@@ -13511,7 +13390,7 @@
  },
  {
   "id": "charlo-ada-falcon",
-  "name": "Charlo-Ada Falcón",
+  "name": "Charlo - Ada Falcón",
   "count": 1,
   "orchestras": {
    "Francisco Canaro": 1

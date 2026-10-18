@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 698 256" role="img" aria-labelledby="t">
+  <title id="t">TDJ (for dark backgrounds)</title>
+  <g id="symbol">
+    <path id="record" fill="#F6F1E8" d="M217.37 107.5 A99.5 99.5 0 1 1 199.75 68.5 L168.08 68.5 A76.5 76.5 0 1 0 193.7 107.5 Z"/>
+    <path id="tanda" fill="#E0557A" d="M49.65 156.5 H131.5 V76.5 H244 V99.5 H108.5 V179.5 H64.25 A75.9 75.9 0 0 1 49.65 156.5 Z"/>
+  </g>
+  <g id="wordmark" fill="#F6F1E8" fill-rule="evenodd">
+    <path id="T" d="M276 40 H428 V62 H364 V216 H340 V62 H276 Z"/>
+    <path id="D" d="M444 40 H508 A90 88 0 0 1 508 216 H444 Z M468 62 H508 A66 66 0 0 1 508 194 H468 Z"/>
+    <path id="J" d="M654 40 H678 V179 A40 40 0 0 1 598 179 H622 A16 16 0 0 0 654 179 Z"/>
+  </g>
+</svg>

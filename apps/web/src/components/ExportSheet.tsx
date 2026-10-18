@@ -137,7 +137,7 @@ export function ExportSheet({ open, onClose }: { open: boolean; onClose: () => v
           {GROUPS.map(([g, keys]) => (
             <div key={g}>
               <div className="text-muted mb-1.5 text-xs font-medium uppercase tracking-wide">{g}</div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid gap-2 sm:grid-cols-2">
                 {keys.map((f) => (
                   <button
                     type="button"
