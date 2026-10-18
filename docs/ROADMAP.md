@@ -6,7 +6,10 @@ Phases are sized for one worktree each (see `docs/WORKTREES.md`). ✅ shipped ·
 Catalogue index in-repo (21,932 recordings, orchestra heatmap), composer engine (tandas, arc, cortinas, Cumparsita), benchmark scorer, exports, liquid-glass web app (desktop + mobile), BYOK panel, CI, SST/OIDC deploy, Remotion launch video, agent reviews.
 
 ## Phase 1 — Trust the ears 🔧
-- Apply musician + DJ review corrections to `orchestra_profiles.json` and `TRACK_ENERGY` (docs/reviews).
+- ✅ Musician + DJ review corrections applied (44 profiles, 338 track energies, index v2 with approximate years, medley/solo-piano flags).
+- ✅ Reference corpus (31 sets, 218 canonical tandas, 1,078 famous recordings, blacklist) and corpus rules in the engine.
+- ✅ Context factors (season, weather, room, time, event, crowd, region, holiday, mood) with evidence grades.
+- ✅ Per-user overrides database, feedback loop, locks, track swap, export with/without cortinas, multi-provider AI.
 - Spotify enrichment of golden-age tandas (`pnpm index:enrich`), commit cache; `requireSpotify` option becomes useful.
 - BPM/key per recording: in-browser beat detection on previews (`web-audio-beat-detector`, MIT) → `data/cache/bpm.json`; activate rubric C9.
 - Transfer-tier tagging per album/label (TangoTunes, CTA, El Bandoneón, Euro Records…).
