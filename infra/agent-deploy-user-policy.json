@@ -1,0 +1,42 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "SstDeploy",
+      "Effect": "Allow",
+      "Action": [
+        "cloudformation:*",
+        "lambda:*",
+        "s3:*",
+        "cloudfront:*",
+        "logs:*",
+        "ssm:GetParameter*",
+        "ssm:PutParameter",
+        "ssm:DeleteParameter",
+        "sts:GetCallerIdentity",
+        "route53:*",
+        "acm:*",
+        "iam:CreateRole",
+        "iam:DeleteRole",
+        "iam:AttachRolePolicy",
+        "iam:DetachRolePolicy",
+        "iam:PutRolePolicy",
+        "iam:DeleteRolePolicy",
+        "iam:GetRole",
+        "iam:PassRole",
+        "iam:TagRole",
+        "iam:ListRolePolicies",
+        "iam:ListAttachedRolePolicies",
+        "iam:GetRolePolicy",
+        "iam:UpdateAssumeRolePolicy",
+        "iam:CreatePolicy",
+        "iam:DeletePolicy",
+        "iam:GetPolicy",
+        "iam:ListPolicyVersions",
+        "iam:CreatePolicyVersion",
+        "iam:DeletePolicyVersion"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

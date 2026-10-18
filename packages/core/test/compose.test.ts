@@ -1,9 +1,24 @@
-import { describe, expect, it, beforeAll } from "vitest";
-import { compose, normTitle, planSlots, DEFAULT_OPTIONS, arcTarget, shapeTanda, scorePlaylist, EXPORTERS, toSpotifyPlan, swapTanda, type Playlist, type Song } from "../src/index";
+import { beforeAll, describe, expect, it } from "vitest";
+import {
+  arcTarget,
+  compose,
+  DEFAULT_OPTIONS,
+  EXPORTERS,
+  normTitle,
+  type Playlist,
+  planSlots,
+  type Song,
+  scorePlaylist,
+  shapeTanda,
+  swapTanda,
+  toSpotifyPlan,
+} from "../src/index";
 import { loadCatalog as load } from "../src/load";
 
 let deps: ReturnType<typeof load>;
-beforeAll(() => { deps = load(); });
+beforeAll(() => {
+  deps = load();
+});
 
 describe("catalogue index", () => {
   it("loads the committed index with >20k recordings and known orchestras", () => {
@@ -14,7 +29,9 @@ describe("catalogue index", () => {
   it("fixed the +100 year typos and assigns eras", () => {
     const bad = deps.catalog.songs.filter((s) => s.year && s.year > 2008);
     expect(bad).toHaveLength(0);
-    const elFlete = deps.catalog.songs.find((s) => normTitle(s.title) === "el flete" && s.orchestraId === "francisco-canaro" && s.year === 1928);
+    const elFlete = deps.catalog.songs.find(
+      (s) => normTitle(s.title) === "el flete" && s.orchestraId === "francisco-canaro" && s.year === 1928,
+    );
     expect(elFlete?.era).toBe("guardia-nueva");
   });
   it("search is accent-insensitive", () => {
@@ -31,7 +48,9 @@ describe("night arc", () => {
     }
   });
   it("follows the TTVTTM cycle", () => {
-    const r = planSlots({ ...DEFAULT_OPTIONS, hours: 3 }).map((s) => s.rhythm[0]!.toUpperCase()).join("");
+    const r = planSlots({ ...DEFAULT_OPTIONS, hours: 3 })
+      .map((s) => s.rhythm[0]!.toUpperCase())
+      .join("");
     expect(r.startsWith("TTVTTMTTVTTM")).toBe(true);
   });
   it("rises gradually from warm-up, peaks late, and cools down (classic two peaks)", () => {
@@ -46,7 +65,20 @@ describe("night arc", () => {
 });
 
 describe("tanda shape", () => {
-  const mk = (e: number[]): Song[] => e.map((energy, i) => ({ id: `s${i}`, title: `t${i}`, rhythm: "tango", orchestra: "X", orchestraId: "x", singer: null, singerId: null, vocal: false, year: 1940, era: "golden-early", energy }));
+  const mk = (e: number[]): Song[] =>
+    e.map((energy, i) => ({
+      id: `s${i}`,
+      title: `t${i}`,
+      rhythm: "tango",
+      orchestra: "X",
+      orchestraId: "x",
+      singer: null,
+      singerId: null,
+      vocal: false,
+      year: 1940,
+      era: "golden-early",
+      energy,
+    }));
   it("rise-settle: starts slow, climbs, strongest third, settles on the fourth", () => {
     const out = shapeTanda(mk([70, 50, 90, 60]), "rise-settle").map((s) => s.energy);
     expect(out).toEqual([50, 60, 90, 70]);
@@ -58,10 +90,14 @@ describe("tanda shape", () => {
 
 describe("compose", () => {
   let p: Playlist;
-  beforeAll(() => { p = compose({ hours: 4, seed: 42 }, deps); });
+  beforeAll(() => {
+    p = compose({ hours: 4, seed: 42 }, deps);
+  });
   it("is deterministic for a seed", () => {
     const q = compose({ hours: 4, seed: 42 }, deps);
-    expect(q.tandas.map((t) => t.songs.map((s) => s.id))).toEqual(p.tandas.map((t) => t.songs.map((s) => s.id)));
+    expect(q.tandas.map((t) => t.songs.map((s) => s.id))).toEqual(
+      p.tandas.map((t) => t.songs.map((s) => s.id)),
+    );
   });
   it("hits the requested duration within ±6 minutes", () => {
     expect(Math.abs(p.stats.durationSec - 4 * 3600)).toBeLessThan(6 * 60);
@@ -72,7 +108,10 @@ describe("compose", () => {
       expect(new Set(t.songs.map((s) => s.rhythm)).size).toBe(1);
       expect(new Set(t.songs.map((s) => s.singerId)).size).toBe(1);
       if (t.yearRange) expect(t.yearRange[1] - t.yearRange[0]).toBeLessThanOrEqual(4);
-      for (const s of t.songs) { expect(s.year).toBeGreaterThanOrEqual(1935); expect(s.year).toBeLessThanOrEqual(1955); }
+      for (const s of t.songs) {
+        expect(s.year).toBeGreaterThanOrEqual(1935);
+        expect(s.year).toBeLessThanOrEqual(1955);
+      }
       expect(t.songs.length).toBe(t.rhythm === "tango" ? 4 : 3);
     }
   });
@@ -81,7 +120,9 @@ describe("compose", () => {
     expect(new Set(titles).size).toBe(titles.length);
   });
   it("spaces orchestras (no repeat within 6 tandas)", () => {
-    for (let i = 0; i < p.tandas.length; i++) for (let j = i + 1; j < Math.min(p.tandas.length, i + 6); j++) expect(p.tandas[i]!.orchestraId).not.toBe(p.tandas[j]!.orchestraId);
+    for (let i = 0; i < p.tandas.length; i++)
+      for (let j = i + 1; j < Math.min(p.tandas.length, i + 6); j++)
+        expect(p.tandas[i]!.orchestraId).not.toBe(p.tandas[j]!.orchestraId);
   });
   it("attaches a cortina after every tanda except the last, matched to the next tanda's energy", () => {
     p.tandas.forEach((t, i) => {
@@ -95,7 +136,9 @@ describe("compose", () => {
     expect(p.closing!.orchestraId).not.toBe(p.tandas[p.tandas.length - 1]!.orchestraId);
   });
   it("keeps Pugliese out of the first half", () => {
-    p.tandas.forEach((t, i) => { if (t.orchestraId === "osvaldo-pugliese") expect(i / p.tandas.length).toBeGreaterThanOrEqual(0.5); });
+    p.tandas.forEach((t, i) => {
+      if (t.orchestraId === "osvaldo-pugliese") expect(i / p.tandas.length).toBeGreaterThanOrEqual(0.5);
+    });
   });
   it("scores like a professional set", () => {
     expect(p.score.total).toBeGreaterThanOrEqual(75);

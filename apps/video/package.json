@@ -1,0 +1,21 @@
+{
+  "name": "@tdj/video",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts Launch ../../media/video/launch.mp4 --codec h264 --crf 22",
+    "typecheck": "tsc --noEmit",
+    "build": "echo skip"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.536",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "remotion": "4.0.536"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "typescript": "^5.9.0"
+  }
+}

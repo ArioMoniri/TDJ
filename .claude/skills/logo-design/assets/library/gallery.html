@@ -37,11 +37,11 @@ function render(){
   const q=$('q').value.toLowerCase(), t=$('type').value, te=$('tech').value, g=$('geo').value, i=$('ind').value, f=$('fam').value;
   const rows = DATA.filter(d=>(!t||d.mark_type===t)&&(!te||(d.techniques||[]).includes(te))&&(!g||(d.geometry||[]).includes(g))
     &&(!i||d.industry===i)&&(!f||d.primary_family===f)&&(!$('ex').checked||d.exemplary)&&(!$('icon').checked||d.aspect_class==='square')
-    &&(!q||(d.file+' '+(d.subject||'')+' '+(d.note||'')).toLowerCase().includes(q)));
-  $('count').textContent = rows.length + ' / ' + DATA.length;
+    &&(!q||(`${d.file} ${d.subject||''} ${d.note||''}`).toLowerCase().includes(q)));
+  $('count').textContent = `${rows.length} / ${DATA.length}`;
   $('grid').innerHTML = rows.slice(0,600).map(d=>`<div class="card"><div class="thumb"><img loading="lazy" src="svg/${d.file}" alt="${d.brand}"></div>
    <div class="name">${d.exemplary?'<span class="star">★</span> ':''}${d.file}</div>
-   <div class="meta">${d.mark_type}${d.symbol_type?' · '+d.symbol_type:''} · ${d.industry} · ${d.n_colors} col</div>
+   <div class="meta">${d.mark_type}${d.symbol_type?` · ${d.symbol_type}`:''} · ${d.industry} · ${d.n_colors} col</div>
    <div class="meta">${(d.techniques||[]).join(', ')}</div>${d.note?`<div class="note">${d.note}</div>`:''}</div>`).join('');
 }
 ['q','type','tech','geo','ind','fam','ex','icon'].forEach(id=>$(id).addEventListener('input',render)); render();

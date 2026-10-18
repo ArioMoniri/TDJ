@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- Concept C "Abrazo": two bodies as two arcs leaning into one embrace; the gap between them is the dance -->
+  <path d="M96 48 A80 80 0 0 0 96 208" fill="none" stroke="#000" stroke-width="26" stroke-linecap="round"/>
+  <path d="M160 48 A80 80 0 0 1 160 208" fill="none" stroke="#000" stroke-width="26" stroke-linecap="round"/>
+  <path d="M96 48 L160 48" stroke="#000" stroke-width="26" stroke-linecap="round"/>
+  <circle cx="128" cy="140" r="16" fill="#000"/>
+</svg>

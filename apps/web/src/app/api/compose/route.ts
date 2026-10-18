@@ -1,6 +1,6 @@
 import { compose } from "@tdj/core";
-import { getCatalog } from "@/lib/server/catalog";
 import { NextResponse } from "next/server";
+import { getCatalog } from "@/lib/server/catalog";
 
 export const dynamic = "force-dynamic";
 export async function POST(req: Request) {

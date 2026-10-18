@@ -1,0 +1,35 @@
+name: Deploy to AWS
+# One-click deploy: Actions → "Deploy to AWS" → Run workflow. Uses GitHub OIDC (no long-lived AWS keys).
+# One-time setup: docs/DEPLOY.md (creates the IAM role with infra/github-oidc-role.yaml and sets AWS_DEPLOY_ROLE_ARN).
+on:
+  workflow_dispatch:
+    inputs:
+      stage: { description: "SST stage", default: "production", required: true }
+  push:
+    branches: [main]
+permissions:
+  id-token: write
+  contents: read
+concurrency: deploy-${{ github.ref }}
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.stage || 'production' }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - uses: actions/setup-node@v5
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+      - name: Deploy with SST
+        run: npx sst deploy --stage ${{ inputs.stage || 'production' }}
+        env:
+          TDJ_DOMAIN: ${{ vars.TDJ_DOMAIN }}
+          ANTHROPIC_MODEL: ${{ vars.ANTHROPIC_MODEL }}
+      - name: Print URL
+        run: cat .sst/outputs.json 2>/dev/null || true
