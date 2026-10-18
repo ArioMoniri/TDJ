@@ -15,3 +15,5 @@ apps/video/out
 /media/raw
 __pycache__
 .open-next
+*.tsbuildinfo
+media/video/raw
