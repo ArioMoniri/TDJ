@@ -1,5 +1,14 @@
 import { normTitle } from "./energy";
 import type { ComposeOptions, DanceRhythm, Era, Rng, Slot, Song, Tanda } from "./index";
+import {
+  CORPUS_CAPS,
+  DEFAULT_CAP,
+  MILONGA_BANK,
+  NEVER_OPEN,
+  OPENERS,
+  PLACEMENT_MEDIAN,
+  VALS_BANK,
+} from "./rules";
 
 export interface TandaCandidate {
   orchestraId: string;
@@ -83,6 +92,16 @@ export interface BuildContext {
   recentSingers: string[];
   usedTitles: Set<string>;
   usedSongIds: Set<string>;
+  guardiaCount?: number;
+}
+export interface CanonicalTanda {
+  rhythm: string;
+  orchestraId: string;
+  singer?: string | null;
+  years?: [number, number];
+  titles?: string[];
+  phase?: string;
+  popularity?: number;
 }
 export interface Scoring {
   energy: (id: string) => number;
@@ -93,6 +112,13 @@ export interface Scoring {
   preferStyles?: string[];
   avoidStyles?: string[];
   isDanceable: (s: Song) => boolean;
+  canonical?: CanonicalTanda[];
+  guardiaOnly?: boolean;
+  /** extra per-orchestra limits from profiles */
+  maxPerNight?: (id: string) => number | undefined;
+  notAfter?: (id: string) => number | undefined;
+  neverClose?: (id: string) => boolean;
+  nonDance?: (id: string, title: string) => boolean;
 }
 
 const PHASE_STYLE: Record<string, Record<string, number>> = {
@@ -159,11 +185,39 @@ export function buildTanda(
         !ctx.usedSongIds.has(s.id) &&
         (!o.avoidTitleRepeats || !ctx.usedTitles.has(normTitle(s.title))),
     );
-  const viable = cands.filter(
-    (c) =>
-      slot.position >= sc.notBefore(c.orchestraId) &&
-      new Set(availOf(c).map((s) => normTitle(s.title))).size >= need,
-  );
+  const count = (id: string) => ctx.recentOrchestras.filter((x) => x === id).length;
+  const cap = (id: string) => sc.maxPerNight?.(id) ?? CORPUS_CAPS[id] ?? DEFAULT_CAP + (o.hours > 5 ? 1 : 0);
+  const isGuardia = (c: TandaCandidate) =>
+    c.songs.every((s) => s.era === "guardia-vieja" || s.era === "guardia-nueva");
+  const isLast = slot.phase === "close";
+  const viableAll = cands.filter((c) => {
+    if (slot.position < sc.notBefore(c.orchestraId)) return false;
+    const na = sc.notAfter?.(c.orchestraId);
+    if (na !== undefined && slot.position > na && !isLast) return false;
+    if (isLast && sc.neverClose?.(c.orchestraId)) return false;
+    if (count(c.orchestraId) >= cap(c.orchestraId)) return false;
+    if (slot.index === 0 && NEVER_OPEN.has(c.orchestraId)) return false;
+    if (!sc.guardiaOnly && isGuardia(c) && ((ctx.guardiaCount ?? 0) >= 1 || slot.position > 0.4))
+      return false; // ≤1 Guardia Vieja tanda, first 40 %
+    return (
+      new Set(
+        availOf(c)
+          .filter((s) => !sc.nonDance?.(c.orchestraId, s.title))
+          .map((s) => normTitle(s.title)),
+      ).size >= need
+    );
+  });
+  // hard phase filter: an orchestra programmed for other phases only enters when nothing else fits
+  const phaseOk = (c: TandaCandidate) => {
+    const ph = sc.phase(c.orchestraId);
+    return (
+      !ph ||
+      ph.includes(slot.phase) ||
+      ph.includes("any") ||
+      (slot.phase === "close" && ph.includes("cooldown"))
+    );
+  };
+  const viable = viableAll.filter(phaseOk).length >= 3 ? viableAll.filter(phaseOk) : viableAll;
   if (!viable.length) return null;
   const gapOk = (c: TandaCandidate) => {
     const io = ctx.recentOrchestras.indexOf(c.orchestraId);
@@ -201,14 +255,46 @@ export function buildTanda(
     const fame = av.reduce((a, s) => a + (s.fame ?? 0), 0) / av.length;
     w *= 1 + fame * 0.25;
     if (av.some((s) => s.selection)) w *= 1.2;
-    const times = ctx.recentOrchestras.filter((x) => x === c.orchestraId).length;
+    const times = count(c.orchestraId);
     w /= 1 + 1.8 * times;
     if (t === 1 && times === 0) w *= 1.8;
+    // corpus placement: orchestras cluster around a typical position of the night
+    const med = PLACEMENT_MEDIAN[c.orchestraId];
+    if (med !== undefined) w *= 0.55 + Math.exp(-(((slot.position - med) / 0.35) ** 2)) * 0.9;
+    if (slot.index === 0) w *= OPENERS[c.orchestraId] ?? 0.5;
+    if (slot.phase === "warmup" && c.orchestraId !== "carlos-di-sarli") {
+      const ys = av.map((s) => s.year ?? 0).filter(Boolean);
+      const my = ys.length ? ys.reduce((a, b) => a + b, 0) / ys.length : 1942;
+      w *= my <= 1943 ? 1.5 : my >= 1950 ? 0.55 : 1;
+    } // reference openers are 1935–43 material
+    if (slot.rhythm === "vals") w *= 0.5 + (VALS_BANK[c.orchestraId] ?? 0) / 6;
+    if (slot.rhythm === "milonga") w *= 0.5 + (MILONGA_BANK[c.orchestraId] ?? 0) / 6;
+    if (c.orchestraId === "juan-d-arienzo" && times === 0) {
+      const y = av.map((s) => s.year ?? 0);
+      const early = !c.vocal && y.length && Math.min(...y) >= 1935 && Math.max(...y) <= 1939;
+      if (slot.position < 0.35) w *= early ? 3 : 1.2;
+      else if (slot.position > 0.5) w *= 2; // the first D'Arienzo comes early and instrumental; and D'Arienzo always appears
+    }
+    const canon = sc.canonical?.find(
+      (k) =>
+        k.rhythm === slot.rhythm &&
+        k.orchestraId === c.orchestraId &&
+        (k.singer ?? null) === (c.singer ?? null) &&
+        (!k.years ||
+          !av[0]?.year ||
+          av.some((s) => s.year && s.year >= k.years![0] - 1 && s.year <= k.years![1] + 1)),
+    );
+    if (canon) w *= 1.4 + (canon.popularity ?? 3) * 0.15 * (canon.phase === slot.phase ? 1.5 : 1);
     return w;
   };
-  const chosen = rng.weighted(pool, weight);
+  // sample among the best few, not the whole long tail (a 0.3 % candidate at the peak is a tell)
+  const ranked = pool
+    .map((c) => ({ c, w: weight(c) }))
+    .sort((a, b) => b.w - a.w)
+    .slice(0, 6);
+  const chosen = rng.weighted(ranked, (r) => r.w)?.c;
   if (!chosen) return null;
-  const avail = availOf(chosen);
+  const avail = availOf(chosen).filter((s) => !sc.nonDance?.(chosen.orchestraId, s.title));
   // stochastic pick: score by fit + fame + curator flag, then sample `need` from the top window so seeds differ
   const target = slot.targetEnergy + (rng.next() - 0.5) * 6;
   const scored = avail

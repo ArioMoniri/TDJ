@@ -155,7 +155,14 @@ export function compose(
         size: o.tangoTandaSize,
         targetEnergy: Math.max(62, slot.targetEnergy + 8),
       };
-      const pref = byRhythm.tango.filter((c) => ULTIMA_PREF.includes(c.orchestraId) && c.vocal);
+      const pref = byRhythm.tango.filter(
+        (c) =>
+          ULTIMA_PREF.includes(c.orchestraId) &&
+          (c.vocal ||
+            c.orchestraId === "osvaldo-pugliese" ||
+            c.orchestraId === "juan-d-arienzo" ||
+            c.orchestraId === "carlos-di-sarli"),
+      );
       tanda =
         buildTanda(ult, pref.length ? pref : byRhythm.tango, o, rng, ctx, { ...sc, notBefore: () => 0 }) ??
         buildTanda(ult, byRhythm.tango, o, rng, ctx, { ...sc, notBefore: () => 0 });

@@ -581,7 +581,9 @@ export function pickCortina(
   let fresh = cands.filter((c) => !used.has(c.id));
   if (!fresh.length) fresh = all.filter((c) => !used.has(c.id));
   if (fresh.length) cands = fresh;
-  const near = cands.filter((c) => Math.abs(c.energy - nextEnergy) <= 25);
+  let near = cands.filter((c) => Math.abs(c.energy - nextEnergy) <= 25);
+  if (!near.length) near = all.filter((c) => !used.has(c.id) && Math.abs(c.energy - nextEnergy) <= 25); // leave the family rather than mismatch the floor
+  if (!near.length) near = all.filter((c) => Math.abs(c.energy - nextEnergy) <= 30);
   if (near.length) cands = near;
   return (
     rng.weighted(cands, (c) => {

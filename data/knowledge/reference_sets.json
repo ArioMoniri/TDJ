@@ -7,8 +7,8 @@
    "setTandas": 619,
    "setTracks": 2170,
    "canonicalTandas": 218,
-   "famousRecordings": 1081,
-   "blacklist": 110
+   "famousRecordings": 1078,
+   "blacklist": 134
   },
   "unknownOrchestraIds": [
    "alberto-castillo",
@@ -16083,7 +16083,7 @@
    "orchestraId": "anibal-troilo",
    "orchestra": "Aníbal Troilo",
    "singer": null,
-   "year": 1951,
+   "year": 1963,
    "rhythm": "tango",
    "fame": 5,
    "energy": 54,
@@ -16621,7 +16621,7 @@
    "orchestraId": "edgardo-donato",
    "orchestra": "Edgardo Donato",
    "singer": "Horacio Lagos",
-   "year": 1932,
+   "year": 1938,
    "rhythm": "tango",
    "fame": 5,
    "energy": 60,
@@ -16639,8 +16639,7 @@
     "http://www.chrisjj.com/tango/cjjsets/2013-10-25_TangoWest.html",
     "http://www.chrisjj.com/tango/cjjsets/2011-03-21_BerlINESa.html",
     "http://www.chrisjj.com/tango/cjjsets/2019-02-17_Wood_Farm.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Carnaval de mi barrio",
@@ -16672,7 +16671,7 @@
    "orchestraId": "edgardo-donato",
    "orchestra": "Edgardo Donato",
    "singer": "Horacio Lagos",
-   "year": 1935,
+   "year": 1939,
    "rhythm": "milonga",
    "fame": 5,
    "energy": 70,
@@ -16690,8 +16689,7 @@
     "http://www.chrisjj.com/tango/cjjsets/2019-02-17_Wood_Farm.html",
     "http://www.chrisjj.com/tango/cjjsets/2012-12-23_Kijutango.html",
     "https://stafforini.com/tango/what-djs-play-1/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "El adiós",
@@ -16796,7 +16794,7 @@
    "orchestraId": "edgardo-donato",
    "orchestra": "Edgardo Donato",
    "singer": "Horacio Lagos",
-   "year": 1933,
+   "year": 1936,
    "rhythm": "tango",
    "fame": 5,
    "energy": 60,
@@ -16813,15 +16811,14 @@
     "http://www.chrisjj.com/tango/cjjsets/2011-03-21_BerlINESa.html",
     "http://www.chrisjj.com/tango/cjjsets/2013-09-08_Rich_Mix.html",
     "http://milongaparatres.blogspot.com/2010/07/thoughts-on-my-debut-as-dj.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Qué hacés, qué hacés",
    "orchestraId": "edgardo-donato",
    "orchestra": "Edgardo Donato",
-   "singer": "Horacio Lagos",
-   "year": 1932,
+   "singer": "Félix Gutiérrez",
+   "year": 1933,
    "rhythm": "tango",
    "fame": 5,
    "energy": 60,
@@ -16839,8 +16836,7 @@
     "http://www.chrisjj.com/tango/cjjsets/2010-08-13_Tango_Social_Club.html",
     "http://www.chrisjj.com/tango/cjjsets/2018-03-24_Milonga_Pasional.html",
     "http://www.chrisjj.com/tango/cjjsets/2011-08-26_Carablanca.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Sacale punta",
@@ -16872,7 +16868,7 @@
    "orchestraId": "edgardo-donato",
    "orchestra": "Edgardo Donato",
    "singer": "Horacio Lagos",
-   "year": 1933,
+   "year": 1940,
    "rhythm": "tango",
    "fame": 5,
    "energy": 60,
@@ -16890,15 +16886,14 @@
     "https://humilitan.blogspot.com/2018/12/junando-practica-playlist-december-2018.html",
     "https://humilitan.blogspot.com/2018/11/tracing-russian-roots-of-argentine-tango.html",
     "https://www.tandaoftheweek.com/19-2026-edgardo-donato-tango-tanda-dj-miguel-angel-villalba/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Sinsabor",
    "orchestraId": "edgardo-donato",
    "orchestra": "Edgardo Donato",
    "singer": "Horacio Lagos",
-   "year": 1933,
+   "year": 1939,
    "rhythm": "tango",
    "fame": 5,
    "energy": 60,
@@ -16915,15 +16910,14 @@
     "http://www.chrisjj.com/tango/cjjsets/2012-12-23_Kijutango.html",
     "http://milongaparatres.blogspot.com/2010/07/thoughts-on-my-debut-as-dj.html",
     "https://humilitan.blogspot.com/2018/09/san-diego-decir-tango-playlist.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Sombra gaucha",
    "orchestraId": "edgardo-donato",
    "orchestra": "Edgardo Donato",
    "singer": "Horacio Lagos",
-   "year": 1932,
+   "year": 1939,
    "rhythm": "tango",
    "fame": 5,
    "energy": 60,
@@ -16941,15 +16935,14 @@
     "http://www.chrisjj.com/tango/cjjsets/2010-08-13_Tango_Social_Club.html",
     "http://www.chrisjj.com/tango/cjjsets/2018-03-24_Milonga_Pasional.html",
     "https://www.tandaoftheweek.com/19-2026-edgardo-donato-tango-tanda-dj-miguel-angel-villalba/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Te busco",
    "orchestraId": "edgardo-donato",
    "orchestra": "Edgardo Donato",
    "singer": "Horacio Lagos",
-   "year": 1932,
+   "year": 1941,
    "rhythm": "tango",
    "fame": 5,
    "energy": 60,
@@ -16966,8 +16959,7 @@
     "http://www.chrisjj.com/tango/cjjsets/2013-09-08_Rich_Mix.html",
     "http://www.chrisjj.com/tango/cjjsets/2012-12-23_Kijutango.html",
     "https://humilitan.blogspot.com/2018/11/buena-vista-milonga-playlist-october.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Cómo has cambiado pebeta",
@@ -17123,7 +17115,7 @@
    "orchestraId": "francisco-canaro",
    "orchestra": "Francisco Canaro",
    "singer": "Roberto Maida",
-   "year": 1935,
+   "year": 1938,
    "rhythm": "tango",
    "fame": 5,
    "energy": 50,
@@ -17140,8 +17132,7 @@
     "http://www.chrisjj.com/tango/cjjsets/2015-04-05_Pavadita.html",
     "http://www.chrisjj.com/tango/cjjsets/2011-03-21_BerlINESa.html",
     "http://milongaparatres.blogspot.com/2010/07/thoughts-on-my-debut-as-dj.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Invierno",
@@ -17303,8 +17294,7 @@
     "https://stafforini.com/tango/what-djs-play-1/",
     "https://humilitan.blogspot.com/2017/09/siberian-milonga-playlist-september-24.html",
     "https://humilitan.blogspot.com/2018/11/buena-vista-milonga-playlist-october.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Amarras",
@@ -17528,10 +17518,10 @@
    "orchestraId": "juan-d-arienzo",
    "orchestra": "Juan D'Arienzo",
    "singer": null,
-   "year": 1937,
+   "year": 1951,
    "rhythm": "tango",
    "fame": 5,
-   "energy": 82,
+   "energy": 86,
    "role": "cumparsita",
    "evidence": {
     "sets": 12,
@@ -17546,26 +17536,6 @@
     "http://www.chrisjj.com/tango/cjjsets/2014-12-27_Kijutango.html",
     "http://www.chrisjj.com/tango/cjjsets/2013-10-25_TangoWest.html",
     "http://www.chrisjj.com/tango/cjjsets/2012-12-23_Kijutango.html"
-   ]
-  },
-  {
-   "title": "La cumparsita",
-   "orchestraId": "juan-d-arienzo",
-   "orchestra": "Juan D'Arienzo",
-   "singer": null,
-   "year": 1951,
-   "rhythm": "tango",
-   "fame": 5,
-   "energy": 92,
-   "role": "cumparsita",
-   "evidence": {
-    "sets": 0,
-    "canonicalTandas": 0,
-    "asOpener": 0,
-    "asCloser": 0
-   },
-   "sources": [
-    "https://tangotoolkit.com/dj/starter-kit/set-lists/"
    ]
   },
   {
@@ -18163,8 +18133,8 @@
    "title": "Llamale hache",
    "orchestraId": "orquesta-tipica-victor",
    "orchestra": "Orquesta Típica Víctor",
-   "singer": "Alberto Gómez",
-   "year": 1931,
+   "singer": "Charlo",
+   "year": 1932,
    "rhythm": "tango",
    "fame": 5,
    "energy": 52,
@@ -18181,8 +18151,7 @@
     "http://www.chrisjj.com/tango/cjjsets/2013-10-25_TangoWest.html",
     "http://www.chrisjj.com/tango/cjjsets/2010-08-13_Tango_Social_Club.html",
     "http://www.chrisjj.com/tango/cjjsets/2013-09-08_Rich_Mix.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Noches de invierno",
@@ -18747,7 +18716,7 @@
    "orchestraId": "quinteto-pirincho",
    "orchestra": "Quinteto Pirincho",
    "singer": null,
-   "year": null,
+   "year": 1959,
    "rhythm": "milonga",
    "fame": 5,
    "energy": 76,
@@ -18895,7 +18864,7 @@
    "orchestraId": "ricardo-tanturi",
    "orchestra": "Ricardo Tanturi",
    "singer": "Alberto Castillo",
-   "year": 1940,
+   "year": 1941,
    "rhythm": "tango",
    "fame": 5,
    "energy": 66,
@@ -18913,8 +18882,7 @@
     "http://www.chrisjj.com/tango/cjjsets/2010-08-13_Tango_Social_Club.html",
     "http://www.chrisjj.com/tango/cjjsets/2013-09-08_Rich_Mix.html",
     "https://humilitan.blogspot.com/2018/11/buena-vista-milonga-playlist-october.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Pocas palabras",
@@ -19183,7 +19151,7 @@
    "orchestraId": "adolfo-carabelli",
    "orchestra": "Adolfo Carabelli",
    "singer": "Alberto Gómez",
-   "year": 1931,
+   "year": 1932,
    "rhythm": "tango",
    "fame": 4,
    "energy": 62,
@@ -19198,15 +19166,14 @@
     "http://www.chrisjj.com/tango/cjjsets/2018-07-15_Milonga_Legera.html",
     "http://www.chrisjj.com/tango/cjjsets/2018-03-24_Milonga_Pasional.html",
     "https://stafforini.com/tango/what-djs-play-1/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "El trece",
    "orchestraId": "adolfo-carabelli",
    "orchestra": "Adolfo Carabelli",
    "singer": "Alberto Gómez",
-   "year": 1931,
+   "year": 1932,
    "rhythm": "tango",
    "fame": 4,
    "energy": 62,
@@ -19221,8 +19188,7 @@
     "http://www.chrisjj.com/tango/cjjsets/2018-07-15_Milonga_Legera.html",
     "http://www.chrisjj.com/tango/cjjsets/2011-03-21_BerlINESa.html",
     "http://www.chrisjj.com/tango/cjjsets/2018-03-24_Milonga_Pasional.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "9 de julio",
@@ -19470,7 +19436,7 @@
    "orchestraId": "angel-d-agostino",
    "orchestra": "Ángel D'Agostino",
    "singer": "Ángel Vargas",
-   "year": 1941,
+   "year": 1945,
    "rhythm": "tango",
    "fame": 4,
    "energy": 54,
@@ -19484,8 +19450,7 @@
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2010-08-13_Tango_Social_Club.html",
     "http://www.chrisjj.com/tango/cjjsets/2019-02-17_Wood_Farm.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "El yacaré",
@@ -19514,7 +19479,7 @@
    "orchestraId": "angel-d-agostino",
    "orchestra": "Ángel D'Agostino",
    "singer": "Ángel Vargas",
-   "year": 1942,
+   "year": 1943,
    "rhythm": "milonga",
    "fame": 4,
    "energy": 64,
@@ -19529,8 +19494,7 @@
     "http://www.chrisjj.com/tango/cjjsets/2017-11-25_Radlett_Tango.html",
     "http://www.chrisjj.com/tango/cjjsets/2016-05-30_Media_Luz.html",
     "http://www.chrisjj.com/tango/cjjsets/2015-04-05_Pavadita.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Entre copa y copa",
@@ -19582,8 +19546,8 @@
    "title": "La cumparsita",
    "orchestraId": "angel-d-agostino",
    "orchestra": "Ángel D'Agostino",
-   "singer": "Tino García",
-   "year": 1952,
+   "singer": "Ángel Vargas",
+   "year": 1945,
    "rhythm": "tango",
    "fame": 4,
    "energy": 54,
@@ -19605,7 +19569,7 @@
    "orchestraId": "angel-d-agostino",
    "orchestra": "Ángel D'Agostino",
    "singer": "Ángel Vargas",
-   "year": 1940,
+   "year": 1941,
    "rhythm": "tango",
    "fame": 4,
    "energy": 54,
@@ -19620,8 +19584,7 @@
     "http://www.chrisjj.com/tango/cjjsets/2019-06-08_Milonga_Pasional.html",
     "http://www.chrisjj.com/tango/cjjsets/2011-08-26_Carablanca.html",
     "https://humilitan.blogspot.com/2018/11/buena-vista-milonga-playlist-october.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Cordón de oro",
@@ -19684,26 +19647,6 @@
    },
    "sources": [
     "https://tomaskohl.com/tango/2022-08-traditional-tango-playlist-from-milonga-restart/"
-   ]
-  },
-  {
-   "title": "La cumparsita",
-   "orchestraId": "anibal-troilo",
-   "orchestra": "Aníbal Troilo",
-   "singer": null,
-   "year": 1963,
-   "rhythm": "tango",
-   "fame": 4,
-   "energy": 66,
-   "role": "cumparsita",
-   "evidence": {
-    "sets": 0,
-    "canonicalTandas": 0,
-    "asOpener": 0,
-    "asCloser": 0
-   },
-   "sources": [
-    "http://www.chrisjj.com/tango/cjjsets/2019-06-08_Milonga_Pasional.html"
    ]
   },
   {
@@ -20377,7 +20320,7 @@
    "orchestraId": "donato-racciatti",
    "orchestra": "Donato Racciatti",
    "singer": "Olga Delgrossi",
-   "year": null,
+   "year": 1958,
    "rhythm": "tango",
    "fame": 4,
    "energy": 56,
@@ -20416,15 +20359,14 @@
     "https://humilitan.blogspot.com/2017/09/milonga-sin-nombre-de-luna-llena-july.html",
     "https://humilitan.blogspot.com/2018/09/san-diego-decir-tango-playlist.html",
     "https://humilitan.blogspot.com/2018/11/tracing-russian-roots-of-argentine-tango.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Sus ojos se cerraron",
    "orchestraId": "donato-racciatti",
    "orchestra": "Donato Racciatti",
    "singer": "Olga Delgrossi",
-   "year": 1955,
+   "year": 1956,
    "rhythm": "tango",
    "fame": 4,
    "energy": 62,
@@ -20440,15 +20382,14 @@
     "https://humilitan.blogspot.com/2017/09/milonga-sin-nombre-de-luna-llena-july.html",
     "https://humilitan.blogspot.com/2018/09/san-diego-decir-tango-playlist.html",
     "https://humilitan.blogspot.com/2018/11/tracing-russian-roots-of-argentine-tango.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "A oscuras",
    "orchestraId": "edgardo-donato",
    "orchestra": "Edgardo Donato",
    "singer": "Horacio Lagos",
-   "year": 1935,
+   "year": 1941,
    "rhythm": "tango",
    "fame": 4,
    "energy": 60,
@@ -20465,15 +20406,14 @@
     "https://humilitan.blogspot.com/2017/09/milonga-sin-nombre-de-luna-llena-july.html",
     "https://humilitan.blogspot.com/2018/11/buena-vista-milonga-playlist-october.html",
     "https://humilitan.blogspot.com/2018/12/junando-practica-playlist-december-2018.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Chapaleando barro",
    "orchestraId": "edgardo-donato",
    "orchestra": "Edgardo Donato",
    "singer": "Horacio Lagos",
-   "year": 1935,
+   "year": 1939,
    "rhythm": "tango",
    "fame": 4,
    "energy": 60,
@@ -20489,8 +20429,7 @@
     "http://www.chrisjj.com/tango/cjjsets/2014-12-27_Kijutango.html",
     "http://www.chrisjj.com/tango/cjjsets/2010-08-13_Tango_Social_Club.html",
     "https://www.tandaoftheweek.com/19-2026-edgardo-donato-tango-tanda-dj-miguel-angel-villalba/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "El huracán",
@@ -20543,7 +20482,7 @@
    "orchestraId": "edgardo-donato",
    "orchestra": "Edgardo Donato",
    "singer": "Horacio Lagos",
-   "year": 1933,
+   "year": 1940,
    "rhythm": "tango",
    "fame": 4,
    "energy": 60,
@@ -20558,8 +20497,7 @@
     "http://www.chrisjj.com/tango/cjjsets/2019-06-08_Milonga_Pasional.html",
     "http://www.chrisjj.com/tango/cjjsets/2014-12-27_Kijutango.html",
     "http://www.chrisjj.com/tango/cjjsets/2012-12-23_Kijutango.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "La milonga que faltaba",
@@ -20611,8 +20549,8 @@
    "title": "La tapera",
    "orchestraId": "edgardo-donato",
    "orchestra": "Edgardo Donato",
-   "singer": "Horacio Lagos",
-   "year": 1935,
+   "singer": "Félix Gutiérrez",
+   "year": 1936,
    "rhythm": "vals",
    "fame": 4,
    "energy": 66,
@@ -20627,8 +20565,7 @@
     "http://www.chrisjj.com/tango/cjjsets/2019-12-07_Leigh_Tango.html",
     "http://www.chrisjj.com/tango/cjjsets/2010-08-13_Tango_Social_Club.html",
     "https://humilitan.blogspot.com/2017/12/dia-del-tango-2018.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Mi serenata",
@@ -20658,7 +20595,7 @@
    "orchestraId": "edgardo-donato",
    "orchestra": "Edgardo Donato",
    "singer": "Horacio Lagos",
-   "year": 1935,
+   "year": 1941,
    "rhythm": "vals",
    "fame": 4,
    "energy": 66,
@@ -20673,8 +20610,7 @@
     "http://www.chrisjj.com/tango/cjjsets/2019-12-07_Leigh_Tango.html",
     "http://www.chrisjj.com/tango/cjjsets/2010-08-13_Tango_Social_Club.html",
     "https://humilitan.blogspot.com/2017/12/dia-del-tango-2018.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Se va la vida",
@@ -20705,7 +20641,7 @@
    "orchestraId": "edgardo-donato",
    "orchestra": "Edgardo Donato",
    "singer": "Horacio Lagos",
-   "year": 1933,
+   "year": 1941,
    "rhythm": "tango",
    "fame": 4,
    "energy": 60,
@@ -20721,15 +20657,14 @@
     "http://www.chrisjj.com/tango/cjjsets/2010-08-13_Tango_Social_Club.html",
     "http://www.chrisjj.com/tango/cjjsets/2013-09-08_Rich_Mix.html",
     "http://www.chrisjj.com/tango/cjjsets/2012-12-23_Kijutango.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Yo te amo",
    "orchestraId": "edgardo-donato",
    "orchestra": "Edgardo Donato",
-   "singer": "Horacio Lagos",
-   "year": 1933,
+   "singer": "Romeo Gavioli",
+   "year": 1940,
    "rhythm": "tango",
    "fame": 4,
    "energy": 60,
@@ -20745,8 +20680,7 @@
     "http://www.chrisjj.com/tango/cjjsets/2010-08-13_Tango_Social_Club.html",
     "https://stafforini.com/tango/what-djs-play-1/",
     "https://humilitan.blogspot.com/2018/09/san-diego-decir-tango-playlist.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Danza maligna",
@@ -21130,8 +21064,7 @@
     "http://www.chrisjj.com/tango/cjjsets/2013-10-25_TangoWest.html",
     "http://www.chrisjj.com/tango/cjjsets/2011-08-26_Carablanca.html",
     "https://stafforini.com/tango/what-djs-play-1/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Algún día te diré",
@@ -21154,8 +21087,7 @@
     "http://www.chrisjj.com/tango/cjjsets/2015-11-08_El_Amateur.html",
     "http://www.chrisjj.com/tango/cjjsets/2013-10-25_TangoWest.html",
     "https://humilitan.blogspot.com/2018/11/buena-vista-milonga-playlist-october.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Corazón encadenado",
@@ -21184,7 +21116,7 @@
    "orchestraId": "francisco-canaro",
    "orchestra": "Francisco Canaro",
    "singer": "Roberto Maida",
-   "year": 1934,
+   "year": 1938,
    "rhythm": "tango",
    "fame": 4,
    "energy": 50,
@@ -21199,14 +21131,13 @@
     "http://www.chrisjj.com/tango/cjjsets/2015-04-05_Pavadita.html",
     "http://www.chrisjj.com/tango/cjjsets/2010-08-13_Tango_Social_Club.html",
     "http://www.chrisjj.com/tango/cjjsets/2012-12-23_Kijutango.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "La melodía de nuestro adiós",
    "orchestraId": "francisco-canaro",
    "orchestra": "Francisco Canaro",
-   "singer": "Roberto Maida",
+   "singer": null,
    "year": 1938,
    "rhythm": "tango",
    "fame": 4,
@@ -21221,8 +21152,7 @@
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2011-03-21_BerlINESa.html",
     "http://milongaparatres.blogspot.com/2010/07/thoughts-on-my-debut-as-dj.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "La milonga de Buenos Aires",
@@ -21264,15 +21194,14 @@
     "http://www.chrisjj.com/tango/cjjsets/2013-10-25_TangoWest.html",
     "http://www.chrisjj.com/tango/cjjsets/2013-09-08_Rich_Mix.html",
     "http://www.chrisjj.com/tango/cjjsets/2012-12-23_Kijutango.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "La rumbita candombe",
    "orchestraId": "francisco-canaro",
    "orchestra": "Francisco Canaro",
    "singer": "Carlos Roldán",
-   "year": 1942,
+   "year": 1943,
    "rhythm": "milonga",
    "fame": 4,
    "energy": 60,
@@ -21287,8 +21216,7 @@
     "http://www.chrisjj.com/tango/cjjsets/2013-10-25_TangoWest.html",
     "http://www.chrisjj.com/tango/cjjsets/2013-09-08_Rich_Mix.html",
     "http://www.chrisjj.com/tango/cjjsets/2012-12-23_Kijutango.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Milonga brava",
@@ -21421,15 +21349,14 @@
     "http://www.chrisjj.com/tango/cjjsets/2016-05-30_Media_Luz.html",
     "http://www.chrisjj.com/tango/cjjsets/2011-08-26_Carablanca.html",
     "https://humilitan.blogspot.com/2017/09/siberian-milonga-playlist-september-24.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Criolla linda",
    "orchestraId": "francisco-lomuto",
    "orchestra": "Francisco Lomuto",
-   "singer": "Jorge Omar",
-   "year": 1938,
+   "singer": null,
+   "year": 1942,
    "rhythm": "tango",
    "fame": 4,
    "energy": 50,
@@ -21444,15 +21371,14 @@
     "http://www.chrisjj.com/tango/cjjsets/2019-12-07_Leigh_Tango.html",
     "http://www.chrisjj.com/tango/cjjsets/2017-11-25_Radlett_Tango.html",
     "https://tango-outpost.blogspot.com/2015/12/set-list-by-michael-freedman-glasgow.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Damisela encantadora",
    "orchestraId": "francisco-lomuto",
    "orchestra": "Francisco Lomuto",
    "singer": "Jorge Omar",
-   "year": 1933,
+   "year": 1936,
    "rhythm": "vals",
    "fame": 4,
    "energy": 56,
@@ -21467,8 +21393,7 @@
     "http://www.chrisjj.com/tango/cjjsets/2015-04-05_Pavadita.html",
     "https://milonga-review.blogspot.com/2016/08/glasgow-round-up-3-midnight-milonga-july.html",
     "https://humilitan.blogspot.com/2017/09/siberian-milonga-playlist-september-24.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Gólgota",
@@ -21496,8 +21421,8 @@
    "title": "Sentimiento gaucho",
    "orchestraId": "francisco-lomuto",
    "orchestra": "Francisco Lomuto",
-   "singer": "Jorge Omar",
-   "year": 1938,
+   "singer": null,
+   "year": 1942,
    "rhythm": "tango",
    "fame": 4,
    "energy": 50,
@@ -21513,8 +21438,7 @@
     "http://www.chrisjj.com/tango/cjjsets/2017-11-25_Radlett_Tango.html",
     "http://www.chrisjj.com/tango/cjjsets/2012-12-23_Kijutango.html",
     "https://tango-outpost.blogspot.com/2015/12/set-list-by-michael-freedman-glasgow.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Fueron tres años",
@@ -21543,10 +21467,10 @@
    "orchestraId": "hugo-diaz",
    "orchestra": "Hugo Díaz",
    "singer": null,
-   "year": null,
-   "rhythm": "tango",
+   "year": 1972,
+   "rhythm": "milonga",
    "fame": 4,
-   "energy": 48,
+   "energy": 58,
    "role": "anytime",
    "evidence": {
     "sets": 3,
@@ -21565,7 +21489,7 @@
    "orchestraId": "hugo-diaz",
    "orchestra": "Hugo Díaz",
    "singer": null,
-   "year": null,
+   "year": 1972,
    "rhythm": "milonga",
    "fame": 4,
    "energy": 58,
@@ -21934,6 +21858,26 @@
     "http://www.chrisjj.com/tango/cjjsets/2017-11-25_Radlett_Tango.html",
     "http://www.chrisjj.com/tango/cjjsets/2016-05-30_Media_Luz.html",
     "http://www.chrisjj.com/tango/cjjsets/2014-12-27_Kijutango.html",
+    "http://www.chrisjj.com/tango/cjjsets/2013-10-25_TangoWest.html"
+   ]
+  },
+  {
+   "title": "La cumparsita",
+   "orchestraId": "juan-d-arienzo",
+   "orchestra": "Juan D'Arienzo",
+   "singer": null,
+   "year": 1937,
+   "rhythm": "tango",
+   "fame": 4,
+   "energy": 88,
+   "role": "cumparsita",
+   "evidence": {
+    "sets": 0,
+    "canonicalTandas": 0,
+    "asOpener": 0,
+    "asCloser": 0
+   },
+   "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2013-10-25_TangoWest.html"
    ]
   },
@@ -22604,7 +22548,7 @@
    "orchestraId": "osvaldo-fresedo",
    "orchestra": "Osvaldo Fresedo",
    "singer": "Roberto Ray",
-   "year": 1934,
+   "year": 1936,
    "rhythm": "tango",
    "fame": 4,
    "energy": 40,
@@ -22620,15 +22564,14 @@
     "http://www.chrisjj.com/tango/cjjsets/2011-03-21_BerlINESa.html",
     "http://www.chrisjj.com/tango/cjjsets/2013-09-08_Rich_Mix.html",
     "https://humilitan.blogspot.com/2018/11/buena-vista-milonga-playlist-october.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Angustia",
    "orchestraId": "osvaldo-fresedo",
    "orchestra": "Osvaldo Fresedo",
    "singer": "Roberto Ray",
-   "year": 1933,
+   "year": 1938,
    "rhythm": "tango",
    "fame": 4,
    "energy": 40,
@@ -22644,15 +22587,14 @@
     "http://www.chrisjj.com/tango/cjjsets/2012-12-23_Kijutango.html",
     "https://humilitan.blogspot.com/2018/11/buena-vista-milonga-playlist-october.html",
     "https://humilitan.blogspot.com/2018/12/junando-practica-playlist-december-2018.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Buscándote",
    "orchestraId": "osvaldo-fresedo",
    "orchestra": "Osvaldo Fresedo",
    "singer": "Ricardo Ruiz",
-   "year": 1939,
+   "year": 1941,
    "rhythm": "tango",
    "fame": 4,
    "energy": 40,
@@ -22667,15 +22609,14 @@
     "http://www.chrisjj.com/tango/cjjsets/2019-06-08_Milonga_Pasional.html",
     "http://www.chrisjj.com/tango/cjjsets/2015-11-08_El_Amateur.html",
     "http://www.chrisjj.com/tango/cjjsets/2013-10-25_TangoWest.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Canto de amor",
    "orchestraId": "osvaldo-fresedo",
    "orchestra": "Osvaldo Fresedo",
    "singer": "Roberto Ray",
-   "year": 1933,
+   "year": 1934,
    "rhythm": "tango",
    "fame": 4,
    "energy": 40,
@@ -22690,8 +22631,7 @@
     "http://www.chrisjj.com/tango/cjjsets/2019-12-07_Leigh_Tango.html",
     "http://www.chrisjj.com/tango/cjjsets/2013-10-25_TangoWest.html",
     "https://humilitan.blogspot.com/2017/09/siberian-milonga-playlist-september-24.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Cordobesita",
@@ -22714,15 +22654,14 @@
     "http://www.chrisjj.com/tango/cjjsets/2012-12-23_Kijutango.html",
     "http://milongaparatres.blogspot.com/2010/07/thoughts-on-my-debut-as-dj.html",
     "https://tango-outpost.blogspot.com/2015/12/set-list-by-michael-freedman-glasgow.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Dulce amargura",
    "orchestraId": "osvaldo-fresedo",
    "orchestra": "Osvaldo Fresedo",
    "singer": "Roberto Ray",
-   "year": 1933,
+   "year": 1938,
    "rhythm": "tango",
    "fame": 4,
    "energy": 40,
@@ -22737,15 +22676,14 @@
     "http://www.chrisjj.com/tango/cjjsets/2019-12-07_Leigh_Tango.html",
     "http://www.chrisjj.com/tango/cjjsets/2017-11-25_Radlett_Tango.html",
     "http://www.chrisjj.com/tango/cjjsets/2013-10-25_TangoWest.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Plegaria",
    "orchestraId": "osvaldo-fresedo",
    "orchestra": "Osvaldo Fresedo",
    "singer": "Ricardo Ruíz",
-   "year": 1933,
+   "year": 1939,
    "rhythm": "tango",
    "fame": 4,
    "energy": 40,
@@ -22760,7 +22698,8 @@
     "http://www.chrisjj.com/tango/cjjsets/2019-06-08_Milonga_Pasional.html",
     "http://www.chrisjj.com/tango/cjjsets/2015-11-08_El_Amateur.html",
     "http://www.chrisjj.com/tango/cjjsets/2013-10-25_TangoWest.html"
-   ]
+   ],
+   "yearApprox": true
   },
   {
    "title": "Recuerdos de bohemia",
@@ -22790,7 +22729,7 @@
    "orchestraId": "osvaldo-fresedo",
    "orchestra": "Osvaldo Fresedo",
    "singer": "Roberto Ray",
-   "year": 1934,
+   "year": 1939,
    "rhythm": "tango",
    "fame": 4,
    "energy": 40,
@@ -22805,8 +22744,7 @@
     "http://www.chrisjj.com/tango/cjjsets/2019-12-07_Leigh_Tango.html",
     "http://www.chrisjj.com/tango/cjjsets/2017-11-25_Radlett_Tango.html",
     "https://stafforini.com/tango/what-djs-play-2/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Yo no sé llorar",
@@ -22989,7 +22927,7 @@
    "orchestraId": "osvaldo-pugliese",
    "orchestra": "Osvaldo Pugliese",
    "singer": null,
-   "year": 1952,
+   "year": 1957,
    "rhythm": "tango",
    "fame": 4,
    "energy": 80,
@@ -23004,15 +22942,14 @@
     "http://www.chrisjj.com/tango/cjjsets/2019-06-08_Milonga_Pasional.html",
     "http://www.chrisjj.com/tango/cjjsets/2019-02-17_Wood_Farm.html",
     "https://humilitan.blogspot.com/2017/09/milonga-sin-nombre-de-luna-llena-july.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Raza criolla",
    "orchestraId": "osvaldo-pugliese",
    "orchestra": "Osvaldo Pugliese",
    "singer": null,
-   "year": 1943,
+   "year": 1945,
    "rhythm": "tango",
    "fame": 4,
    "energy": 76,
@@ -23028,8 +22965,7 @@
     "http://www.chrisjj.com/tango/cjjsets/2015-11-08_El_Amateur.html",
     "http://www.chrisjj.com/tango/cjjsets/2014-12-27_Kijutango.html",
     "https://tango-outpost.blogspot.com/2015/12/set-list-by-michael-freedman-glasgow.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Remembranza",
@@ -23263,7 +23199,7 @@
    "orchestraId": "quinteto-don-pancho",
    "orchestra": "Quinteto Don Pancho",
    "singer": null,
-   "year": 1937,
+   "year": 1938,
    "rhythm": "tango",
    "fame": 4,
    "energy": 62,
@@ -23279,15 +23215,14 @@
     "http://www.chrisjj.com/tango/cjjsets/2018-03-24_Milonga_Pasional.html",
     "https://humilitan.blogspot.com/2017/09/siberian-milonga-playlist-september-24.html",
     "https://humilitan.blogspot.com/2018/11/buena-vista-milonga-playlist-october.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Gloria",
    "orchestraId": "quinteto-don-pancho",
    "orchestra": "Quinteto Don Pancho",
    "singer": null,
-   "year": 1937,
+   "year": 1939,
    "rhythm": "tango",
    "fame": 4,
    "energy": 62,
@@ -23302,15 +23237,14 @@
     "http://www.chrisjj.com/tango/cjjsets/2014-12-27_Kijutango.html",
     "http://www.chrisjj.com/tango/cjjsets/2019-02-17_Wood_Farm.html",
     "http://www.chrisjj.com/tango/cjjsets/2018-03-24_Milonga_Pasional.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Loca",
    "orchestraId": "quinteto-don-pancho",
    "orchestra": "Quinteto Don Pancho",
    "singer": null,
-   "year": 1937,
+   "year": 1938,
    "rhythm": "tango",
    "fame": 4,
    "energy": 62,
@@ -23325,8 +23259,7 @@
     "http://www.chrisjj.com/tango/cjjsets/2014-12-27_Kijutango.html",
     "http://www.chrisjj.com/tango/cjjsets/2019-02-17_Wood_Farm.html",
     "https://humilitan.blogspot.com/2017/09/siberian-milonga-playlist-september-24.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Viento en popa",
@@ -23348,8 +23281,7 @@
     "http://www.chrisjj.com/tango/cjjsets/2014-12-27_Kijutango.html",
     "http://www.chrisjj.com/tango/cjjsets/2019-02-17_Wood_Farm.html",
     "http://www.chrisjj.com/tango/cjjsets/2018-03-24_Milonga_Pasional.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Se dice de mí",
@@ -24111,7 +24043,7 @@
    "title": "El caburé",
    "orchestraId": "adolfo-carabelli",
    "orchestra": "Adolfo Carabelli",
-   "singer": "Alberto Gómez",
+   "singer": null,
    "year": 1932,
    "rhythm": "tango",
    "fame": 3,
@@ -24127,8 +24059,7 @@
     "http://www.chrisjj.com/tango/cjjsets/2011-03-21_BerlINESa.html",
     "http://www.chrisjj.com/tango/cjjsets/2018-03-24_Milonga_Pasional.html",
     "http://www.chrisjj.com/tango/cjjsets/2012-12-23_Kijutango.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Felicia",
@@ -24157,8 +24088,8 @@
    "title": "Inspiración",
    "orchestraId": "adolfo-carabelli",
    "orchestra": "Adolfo Carabelli",
-   "singer": "Alberto Gómez",
-   "year": 1931,
+   "singer": null,
+   "year": 1932,
    "rhythm": "tango",
    "fame": 3,
    "energy": 62,
@@ -24172,8 +24103,7 @@
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2018-07-15_Milonga_Legera.html",
     "http://www.chrisjj.com/tango/cjjsets/2012-12-23_Kijutango.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Mi refugio",
@@ -24201,7 +24131,7 @@
    "orchestraId": "alberto-castillo",
    "orchestra": "Alberto Castillo",
    "singer": "Alberto Castillo",
-   "year": 1944,
+   "year": 1946,
    "rhythm": "vals",
    "fame": 3,
    "energy": 72,
@@ -24215,15 +24145,14 @@
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2019-06-08_Milonga_Pasional.html",
     "http://www.chrisjj.com/tango/cjjsets/2017-11-25_Radlett_Tango.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "La pulpera de Santa Lucía",
    "orchestraId": "alberto-castillo",
    "orchestra": "Alberto Castillo",
    "singer": "Alberto Castillo",
-   "year": 1944,
+   "year": 1945,
    "rhythm": "vals",
    "fame": 3,
    "energy": 72,
@@ -24237,8 +24166,7 @@
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2018-07-15_Milonga_Legera.html",
     "http://www.chrisjj.com/tango/cjjsets/2017-11-25_Radlett_Tango.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Recuerdo",
@@ -24259,15 +24187,14 @@
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2017-11-25_Radlett_Tango.html",
     "https://stafforini.com/tango/what-djs-play-2/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Unitaria",
    "orchestraId": "alberto-castillo",
    "orchestra": "Alberto Castillo",
    "singer": "Alberto Castillo",
-   "year": 1944,
+   "year": 1946,
    "rhythm": "vals",
    "fame": 3,
    "energy": 72,
@@ -24281,15 +24208,14 @@
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2019-06-08_Milonga_Pasional.html",
     "https://stafforini.com/tango/what-djs-play-2/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Violetas",
    "orchestraId": "alberto-castillo",
    "orchestra": "Alberto Castillo",
    "singer": "Alberto Castillo",
-   "year": 1944,
+   "year": 1948,
    "rhythm": "vals",
    "fame": 3,
    "energy": 72,
@@ -24304,8 +24230,7 @@
     "http://www.chrisjj.com/tango/cjjsets/2019-06-08_Milonga_Pasional.html",
     "http://www.chrisjj.com/tango/cjjsets/2018-07-15_Milonga_Legera.html",
     "https://stafforini.com/tango/what-djs-play-2/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "A media luz",
@@ -24782,26 +24707,6 @@
    ]
   },
   {
-   "title": "La cumparsita",
-   "orchestraId": "angel-d-agostino",
-   "orchestra": "Ángel D'Agostino",
-   "singer": "Ángel Vargas",
-   "year": 1945,
-   "rhythm": "tango",
-   "fame": 3,
-   "energy": 70,
-   "role": "cumparsita",
-   "evidence": {
-    "sets": 0,
-    "canonicalTandas": 0,
-    "asOpener": 0,
-    "asCloser": 0
-   },
-   "sources": [
-    "http://www.chrisjj.com/tango/cjjsets/2010-08-13_Tango_Social_Club.html"
-   ]
-  },
-  {
    "title": "Mano blanca",
    "orchestraId": "angel-d-agostino",
    "orchestra": "Ángel D'Agostino",
@@ -24903,8 +24808,7 @@
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2011-03-21_BerlINESa.html",
     "http://www.chrisjj.com/tango/cjjsets/2012-12-23_Kijutango.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Rondando tu esquina",
@@ -24932,7 +24836,7 @@
    "orchestraId": "angel-d-agostino",
    "orchestra": "Ángel D'Agostino",
    "singer": "Ángel Vargas",
-   "year": 1940,
+   "year": 1941,
    "rhythm": "tango",
    "fame": 3,
    "energy": 54,
@@ -24946,15 +24850,14 @@
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2015-11-08_El_Amateur.html",
     "http://www.chrisjj.com/tango/cjjsets/2011-08-26_Carablanca.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Tristeza criolla",
    "orchestraId": "angel-d-agostino",
    "orchestra": "Ángel D'Agostino",
    "singer": "Ángel Vargas",
-   "year": 1941,
+   "year": 1945,
    "rhythm": "vals",
    "fame": 3,
    "energy": 60,
@@ -24968,8 +24871,7 @@
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2012-12-23_Kijutango.html",
     "http://milongaparatres.blogspot.com/2010/07/thoughts-on-my-debut-as-dj.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Comme il faut",
@@ -25010,26 +24912,6 @@
    },
    "sources": [
     "https://milonga-review.blogspot.com/2016/08/glasgow-round-up-3-midnight-milonga-july.html"
-   ]
-  },
-  {
-   "title": "Danzarín",
-   "orchestraId": "anibal-troilo",
-   "orchestra": "Aníbal Troilo",
-   "singer": null,
-   "year": 1963,
-   "rhythm": "tango",
-   "fame": 3,
-   "energy": 54,
-   "role": "anytime",
-   "evidence": {
-    "sets": 1,
-    "canonicalTandas": 1,
-    "asOpener": 0,
-    "asCloser": 0
-   },
-   "sources": [
-    "http://www.chrisjj.com/tango/cjjsets/2019-02-17_Wood_Farm.html"
    ]
   },
   {
@@ -26078,7 +25960,7 @@
    "orchestraId": "edgardo-donato",
    "orchestra": "Edgardo Donato",
    "singer": "Horacio Lagos",
-   "year": 1939,
+   "year": 1942,
    "rhythm": "milonga",
    "fame": 3,
    "energy": 70,
@@ -26092,8 +25974,7 @@
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2015-11-08_El_Amateur.html",
     "http://www.chrisjj.com/tango/cjjsets/2013-10-25_TangoWest.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "El chamuyo",
@@ -26288,7 +26169,7 @@
    "orchestraId": "edgardo-donato",
    "orchestra": "Edgardo Donato",
    "singer": "Horacio Lagos",
-   "year": 1939,
+   "year": 1941,
    "rhythm": "milonga",
    "fame": 3,
    "energy": 70,
@@ -26301,8 +26182,7 @@
    },
    "sources": [
     "https://stafforini.com/tango/what-djs-play-1/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "A media luz",
@@ -26560,7 +26440,7 @@
    "orchestraId": "florindo-sassone",
    "orchestra": "Florindo Sassone",
    "singer": null,
-   "year": 1959,
+   "year": 1968,
    "rhythm": "tango",
    "fame": 3,
    "energy": 50,
@@ -26575,8 +26455,7 @@
     "https://humilitan.blogspot.com/2017/09/milonga-sin-nombre-de-luna-llena-july.html",
     "https://humilitan.blogspot.com/2017/12/dia-del-tango-2018.html",
     "https://humilitan.blogspot.com/2018/11/tracing-russian-roots-of-argentine-tango.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Bar Exposición",
@@ -26642,8 +26521,7 @@
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2015-11-08_El_Amateur.html",
     "http://www.chrisjj.com/tango/cjjsets/2013-10-25_TangoWest.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Condena (S.O.S.)",
@@ -26671,7 +26549,7 @@
    "orchestraId": "francisco-canaro",
    "orchestra": "Francisco Canaro",
    "singer": "Francisco Amor",
-   "year": 1939,
+   "year": 1935,
    "rhythm": "tango",
    "fame": 3,
    "energy": 58,
@@ -26732,7 +26610,7 @@
    "orchestraId": "francisco-canaro",
    "orchestra": "Francisco Canaro",
    "singer": "Eduardo Adrián",
-   "year": 1939,
+   "year": 1942,
    "rhythm": "tango",
    "fame": 3,
    "energy": 50,
@@ -26746,8 +26624,7 @@
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2015-11-08_El_Amateur.html",
     "http://www.chrisjj.com/tango/cjjsets/2012-12-23_Kijutango.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "En voz baja",
@@ -26774,7 +26651,7 @@
    "orchestraId": "francisco-canaro",
    "orchestra": "Francisco Canaro",
    "singer": "Roberto Maida",
-   "year": 1935,
+   "year": 1936,
    "rhythm": "tango",
    "fame": 3,
    "energy": 50,
@@ -26788,8 +26665,7 @@
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2018-07-15_Milonga_Legera.html",
     "http://www.chrisjj.com/tango/cjjsets/2012-12-23_Kijutango.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Gricel",
@@ -26917,10 +26793,10 @@
    "orchestraId": "francisco-canaro",
    "orchestra": "Francisco Canaro",
    "singer": null,
-   "year": 1927,
+   "year": 1938,
    "rhythm": "tango",
    "fame": 3,
-   "energy": 54,
+   "energy": 50,
    "role": "anytime",
    "evidence": {
     "sets": 2,
@@ -26931,7 +26807,8 @@
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2011-03-21_BerlINESa.html",
     "http://milongaparatres.blogspot.com/2010/07/thoughts-on-my-debut-as-dj.html"
-   ]
+   ],
+   "yearApprox": true
   },
   {
    "title": "Madreselva",
@@ -27054,8 +26931,7 @@
    },
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2012-12-23_Kijutango.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "No me pregunten por qué",
@@ -27077,15 +26953,14 @@
     "http://www.chrisjj.com/tango/cjjsets/2011-08-26_Carablanca.html",
     "https://stafforini.com/tango/what-djs-play-1/",
     "https://humilitan.blogspot.com/2018/11/buena-vista-milonga-playlist-october.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Noche de estrellas",
    "orchestraId": "francisco-canaro",
    "orchestra": "Francisco Canaro",
-   "singer": "Roberto Maida",
-   "year": 1937,
+   "singer": "Ernesto Famá",
+   "year": 1939,
    "rhythm": "vals",
    "fame": 3,
    "energy": 56,
@@ -27098,8 +26973,7 @@
    },
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2010-08-13_Tango_Social_Club.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Ojos negros que fascinan",
@@ -27126,7 +27000,7 @@
    "title": "Pampa",
    "orchestraId": "francisco-canaro",
    "orchestra": "Francisco Canaro",
-   "singer": "Roberto Maida",
+   "singer": null,
    "year": 1938,
    "rhythm": "tango",
    "fame": 3,
@@ -27141,8 +27015,7 @@
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2011-03-21_BerlINESa.html",
     "http://milongaparatres.blogspot.com/2010/07/thoughts-on-my-debut-as-dj.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Recuerdos de París",
@@ -27205,8 +27078,7 @@
    "sources": [
     "https://humilitan.blogspot.com/2017/09/siberian-milonga-playlist-september-24.html",
     "https://humilitan.blogspot.com/2018/11/buena-vista-milonga-playlist-october.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Yo también soñé",
@@ -27234,7 +27106,7 @@
    "orchestraId": "francisco-lomuto",
    "orchestra": "Francisco Lomuto",
    "singer": "Fernando Díaz",
-   "year": 1933,
+   "year": 1941,
    "rhythm": "vals",
    "fame": 3,
    "energy": 56,
@@ -27247,15 +27119,14 @@
    },
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2015-04-05_Pavadita.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "La melodía de nuestro adiós",
    "orchestraId": "francisco-lomuto",
    "orchestra": "Francisco Lomuto",
    "singer": "Jorge Omar",
-   "year": 1931,
+   "year": 1938,
    "rhythm": "tango",
    "fame": 3,
    "energy": 50,
@@ -27269,8 +27140,7 @@
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2016-05-30_Media_Luz.html",
     "http://www.chrisjj.com/tango/cjjsets/2012-12-23_Kijutango.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Lo que vieron mis ojos",
@@ -27319,7 +27189,7 @@
    "orchestraId": "francisco-lomuto",
    "orchestra": "Francisco Lomuto",
    "singer": "Fernando Díaz",
-   "year": 1938,
+   "year": 1939,
    "rhythm": "milonga",
    "fame": 3,
    "energy": 60,
@@ -27333,8 +27203,7 @@
    "sources": [
     "https://tomaskohl.com/tango/2022-08-traditional-tango-playlist-from-milonga-restart/",
     "https://www.tandaoftheweek.com/14-2025-francisco-lomuto-milongas-que-tiempo-aquel/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Nostalgias",
@@ -27375,8 +27244,7 @@
    },
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2019-12-07_Leigh_Tango.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Parque Patricios",
@@ -27572,7 +27440,7 @@
    "orchestraId": "hector-varela",
    "orchestra": "Héctor Varela",
    "singer": "Argentino Ledesma",
-   "year": 1955,
+   "year": 1956,
    "rhythm": "tango",
    "fame": 3,
    "energy": 62,
@@ -27586,8 +27454,7 @@
    "sources": [
     "http://milongaparatres.blogspot.com/2010/07/thoughts-on-my-debut-as-dj.html",
     "https://humilitan.blogspot.com/2017/12/dia-del-tango-2018.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Palomita blanca",
@@ -27695,7 +27562,7 @@
    "orchestraId": "juan-d-arienzo",
    "orchestra": "Juan D'Arienzo",
    "singer": null,
-   "year": 1935,
+   "year": 1936,
    "rhythm": "vals",
    "fame": 3,
    "energy": 88,
@@ -27708,15 +27575,14 @@
    },
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2019-12-07_Leigh_Tango.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Cabeza de novia",
    "orchestraId": "juan-d-arienzo",
    "orchestra": "Juan D'Arienzo",
    "singer": "Alberto Echagüe",
-   "year": 1936,
+   "year": 1938,
    "rhythm": "vals",
    "fame": 3,
    "energy": 84,
@@ -27730,8 +27596,7 @@
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2011-08-26_Carablanca.html",
     "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Canaro en París",
@@ -27905,7 +27770,7 @@
    "title": "El corazón me engaña",
    "orchestraId": "juan-d-arienzo",
    "orchestra": "Juan D'Arienzo",
-   "singer": "Héctor Mauré",
+   "singer": "Alberto Reynal",
    "year": 1940,
    "rhythm": "tango",
    "fame": 3,
@@ -27920,8 +27785,7 @@
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2019-12-07_Leigh_Tango.html",
     "http://www.chrisjj.com/tango/cjjsets/2019-02-17_Wood_Farm.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "El huracán",
@@ -28176,8 +28040,7 @@
    },
    "sources": [
     "https://stafforini.com/tango/what-djs-play-1/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Francia",
@@ -28765,7 +28628,7 @@
    "orchestraId": "juan-d-arienzo",
    "orchestra": "Juan D'Arienzo",
    "singer": null,
-   "year": 1955,
+   "year": 1973,
    "rhythm": "tango",
    "fame": 3,
    "energy": 86,
@@ -28779,8 +28642,7 @@
    "sources": [
     "https://humilitan.blogspot.com/2017/09/siberian-milonga-playlist-september-24.html",
     "https://humilitan.blogspot.com/2018/12/junando-practica-playlist-december-2018.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "El torito",
@@ -28801,8 +28663,7 @@
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2019-06-08_Milonga_Pasional.html",
     "http://www.chrisjj.com/tango/cjjsets/2018-07-15_Milonga_Legera.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Milonga del novecientos",
@@ -28823,8 +28684,7 @@
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2019-06-08_Milonga_Pasional.html",
     "http://www.chrisjj.com/tango/cjjsets/2018-07-15_Milonga_Legera.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Zorro gris",
@@ -28845,8 +28705,7 @@
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2019-06-08_Milonga_Pasional.html",
     "http://www.chrisjj.com/tango/cjjsets/2018-07-15_Milonga_Legera.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Dos corazones",
@@ -29310,7 +29169,7 @@
    "orchestraId": "orquesta-tipica-victor",
    "orchestra": "Orquesta Típica Víctor",
    "singer": "Carlos Lafuente",
-   "year": 1932,
+   "year": 1933,
    "rhythm": "vals",
    "fame": 3,
    "energy": 58,
@@ -29324,8 +29183,7 @@
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2014-12-27_Kijutango.html",
     "http://www.chrisjj.com/tango/cjjsets/2018-03-24_Milonga_Pasional.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Che papusa oí",
@@ -29368,8 +29226,7 @@
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2014-12-27_Kijutango.html",
     "http://www.chrisjj.com/tango/cjjsets/2018-03-24_Milonga_Pasional.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "El mortero del globito",
@@ -29523,7 +29380,7 @@
    "orchestraId": "osvaldo-fresedo",
    "orchestra": "Osvaldo Fresedo",
    "singer": "Roberto Ray",
-   "year": 1933,
+   "year": 1939,
    "rhythm": "tango",
    "fame": 3,
    "energy": 40,
@@ -29537,7 +29394,8 @@
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2019-06-08_Milonga_Pasional.html",
     "http://www.chrisjj.com/tango/cjjsets/2015-11-08_El_Amateur.html"
-   ]
+   ],
+   "yearApprox": true
   },
   {
    "title": "Después del carnaval",
@@ -29587,7 +29445,7 @@
    "orchestraId": "osvaldo-fresedo",
    "orchestra": "Osvaldo Fresedo",
    "singer": "Roberto Ray",
-   "year": 1933,
+   "year": 1934,
    "rhythm": "tango",
    "fame": 3,
    "energy": 40,
@@ -29602,15 +29460,14 @@
     "http://www.chrisjj.com/tango/cjjsets/2010-08-13_Tango_Social_Club.html",
     "https://tango-outpost.blogspot.com/2015/12/set-list-by-michael-freedman-glasgow.html",
     "https://humilitan.blogspot.com/2018/11/buena-vista-milonga-playlist-october.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Más allá",
    "orchestraId": "osvaldo-fresedo",
    "orchestra": "Osvaldo Fresedo",
    "singer": "Ricardo Ruíz",
-   "year": 1933,
+   "year": 1939,
    "rhythm": "vals",
    "fame": 3,
    "energy": 46,
@@ -29624,7 +29481,8 @@
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2019-06-08_Milonga_Pasional.html",
     "http://www.chrisjj.com/tango/cjjsets/2013-10-25_TangoWest.html"
-   ]
+   ],
+   "yearApprox": true
   },
   {
    "title": "Pampero",
@@ -29672,11 +29530,11 @@
    "title": "Tigre viejo",
    "orchestraId": "osvaldo-fresedo",
    "orchestra": "Osvaldo Fresedo",
-   "singer": "Roberto Ray",
-   "year": 1933,
+   "singer": null,
+   "year": 1934,
    "rhythm": "tango",
    "fame": 3,
-   "energy": 40,
+   "energy": 46,
    "role": "opener",
    "evidence": {
     "sets": 1,
@@ -29687,8 +29545,7 @@
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2010-08-13_Tango_Social_Club.html",
     "https://www.tandaoftheweek.com/35-2024-the-melodic-uptempo-instrumental-tangos-of-osvaldo-fresedo/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Cascabelito",
@@ -29792,8 +29649,7 @@
    "sources": [
     "https://humilitan.blogspot.com/2018/09/san-diego-decir-tango-playlist.html",
     "https://tangotoolkit.com/dj/starter-kit/set-lists/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Flor de tango",
@@ -29915,8 +29771,7 @@
    },
    "sources": [
     "https://stafforini.com/tango/what-djs-play-2/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Malandraca",
@@ -29966,7 +29821,7 @@
    "orchestraId": "osvaldo-pugliese",
    "orchestra": "Osvaldo Pugliese",
    "singer": "Roberto Chanel",
-   "year": 1943,
+   "year": 1944,
    "rhythm": "tango",
    "fame": 3,
    "energy": 76,
@@ -29979,8 +29834,7 @@
    },
    "sources": [
     "https://milonga-review.blogspot.com/2016/08/glasgow-round-up-3-midnight-milonga-july.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Sin palabras",
@@ -30280,7 +30134,7 @@
    "orchestraId": "quinteto-don-pancho",
    "orchestra": "Quinteto Don Pancho",
    "singer": null,
-   "year": 1937,
+   "year": 1938,
    "rhythm": "tango",
    "fame": 3,
    "energy": 62,
@@ -30295,15 +30149,14 @@
     "http://www.chrisjj.com/tango/cjjsets/2014-12-27_Kijutango.html",
     "http://www.chrisjj.com/tango/cjjsets/2018-03-24_Milonga_Pasional.html",
     "https://humilitan.blogspot.com/2018/11/buena-vista-milonga-playlist-october.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Hotel Victoria",
    "orchestraId": "quinteto-pirincho",
    "orchestra": "Quinteto Pirincho",
    "singer": null,
-   "year": 1954,
+   "year": 1959,
    "rhythm": "milonga",
    "fame": 3,
    "energy": 76,
@@ -30317,15 +30170,14 @@
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2016-05-30_Media_Luz.html",
     "http://www.chrisjj.com/tango/cjjsets/2011-08-26_Carablanca.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Orillera",
    "orchestraId": "quinteto-pirincho",
    "orchestra": "Quinteto Pirincho",
    "singer": null,
-   "year": 1956,
+   "year": 1960,
    "rhythm": "milonga",
    "fame": 3,
    "energy": 76,
@@ -30339,8 +30191,7 @@
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2012-12-23_Kijutango.html",
     "https://humilitan.blogspot.com/2017/09/milonga-sin-nombre-de-luna-llena-july.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Mi taza de café",
@@ -30389,7 +30240,7 @@
    "orchestraId": "ricardo-tanturi",
    "orchestra": "Ricardo Tanturi",
    "singer": "Alberto Castillo",
-   "year": 1941,
+   "year": 1943,
    "rhythm": "vals",
    "fame": 3,
    "energy": 72,
@@ -30402,8 +30253,7 @@
    },
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2010-08-13_Tango_Social_Club.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Cómo se pianta la vida",
@@ -30736,7 +30586,7 @@
    "orchestraId": "rodolfo-biagi",
    "orchestra": "Rodolfo Biagi",
    "singer": "Jorge Ortiz",
-   "year": 1940,
+   "year": 1941,
    "rhythm": "tango",
    "fame": 3,
    "energy": 74,
@@ -30750,8 +30600,7 @@
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2018-03-24_Milonga_Pasional.html",
     "https://humilitan.blogspot.com/2018/09/san-diego-decir-tango-playlist.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Con mi perro",
@@ -31104,15 +30953,14 @@
    },
    "sources": [
     "https://stafforini.com/tango/what-djs-play-1/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "El mortero del globito",
    "orchestraId": "adolfo-carabelli",
    "orchestra": "Adolfo Carabelli",
    "singer": "Alberto Gómez",
-   "year": 1932,
+   "year": 1933,
    "rhythm": "tango",
    "fame": 2,
    "energy": 62,
@@ -31125,15 +30973,14 @@
    },
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2011-03-21_BerlINESa.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "El pensamiento",
    "orchestraId": "adolfo-carabelli",
    "orchestra": "Adolfo Carabelli",
-   "singer": "Alberto Gómez",
-   "year": 1931,
+   "singer": "Carlos Lafuente",
+   "year": 1932,
    "rhythm": "tango",
    "fame": 2,
    "energy": 62,
@@ -31146,8 +30993,7 @@
    },
    "sources": [
     "https://stafforini.com/tango/what-djs-play-1/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "La guiñada",
@@ -31167,8 +31013,7 @@
    },
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2012-12-23_Kijutango.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Quiero papita",
@@ -31188,15 +31033,14 @@
    },
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2011-03-21_BerlINESa.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Estas chicas se quieren casar",
    "orchestraId": "alberto-castillo",
    "orchestra": "Alberto Castillo",
    "singer": "Alberto Castillo",
-   "year": 1945,
+   "year": 1949,
    "rhythm": "vals",
    "fame": 2,
    "energy": 72,
@@ -31209,15 +31053,14 @@
    },
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2018-07-15_Milonga_Legera.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Los cien barrios porteños",
    "orchestraId": "alberto-castillo",
    "orchestra": "Alberto Castillo",
    "singer": "Alberto Castillo",
-   "year": 1944,
+   "year": 1945,
    "rhythm": "vals",
    "fame": 2,
    "energy": 72,
@@ -31230,8 +31073,7 @@
    },
    "sources": [
     "https://stafforini.com/tango/what-djs-play-2/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "A la gran muñeca",
@@ -31411,8 +31253,7 @@
    },
    "sources": [
     "https://stafforini.com/tango/what-djs-play-2/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Guardia vieja",
@@ -31679,7 +31520,7 @@
    "orchestraId": "angel-d-agostino",
    "orchestra": "Ángel D'Agostino",
    "singer": "Rubén Cané",
-   "year": 1987,
+   "year": 1953,
    "rhythm": "tango",
    "fame": 2,
    "energy": 54,
@@ -31692,7 +31533,8 @@
    },
    "sources": [
     "https://milonga-review.blogspot.com/2016/08/glasgow-round-up-3-midnight-milonga-july.html"
-   ]
+   ],
+   "yearApprox": true
   },
   {
    "title": "El choclo",
@@ -31739,7 +31581,7 @@
    "orchestraId": "angel-d-agostino",
    "orchestra": "Ángel D'Agostino",
    "singer": "Ángel Vargas",
-   "year": null,
+   "year": 1942,
    "rhythm": "vals",
    "fame": 2,
    "energy": 60,
@@ -31752,15 +31594,14 @@
    },
    "sources": [
     "http://milongaparatres.blogspot.com/2010/07/thoughts-on-my-debut-as-dj.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "El morocho y el oriental",
    "orchestraId": "angel-d-agostino",
    "orchestra": "Ángel D'Agostino",
    "singer": "Ángel Vargas",
-   "year": 1942,
+   "year": 1946,
    "rhythm": "milonga",
    "fame": 2,
    "energy": 64,
@@ -31773,15 +31614,14 @@
    },
    "sources": [
     "https://stafforini.com/tango/category/sections/tandas/page/2/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "El trompito",
    "orchestraId": "angel-d-agostino",
    "orchestra": "Ángel D'Agostino",
    "singer": "Ángel Vargas",
-   "year": 1940,
+   "year": 1943,
    "rhythm": "tango",
    "fame": 2,
    "energy": 54,
@@ -31794,8 +31634,7 @@
    },
    "sources": [
     "https://stafforini.com/tango/what-djs-play-2/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "La sonámbula",
@@ -31842,7 +31681,7 @@
    "orchestraId": "angel-d-agostino",
    "orchestra": "Ángel D'Agostino",
    "singer": "Ángel Vargas",
-   "year": 1940,
+   "year": 1944,
    "rhythm": "tango",
    "fame": 2,
    "energy": 54,
@@ -31855,8 +31694,7 @@
    },
    "sources": [
     "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Pero yo sé",
@@ -31883,7 +31721,7 @@
    "orchestraId": "angel-d-agostino",
    "orchestra": "Ángel D'Agostino",
    "singer": "Ángel Vargas",
-   "year": 1941,
+   "year": 1944,
    "rhythm": "tango",
    "fame": 2,
    "energy": 54,
@@ -31896,8 +31734,7 @@
    },
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2015-11-08_El_Amateur.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Todos te quieren",
@@ -31944,7 +31781,7 @@
    "orchestraId": "angel-d-agostino",
    "orchestra": "Ángel D'Agostino",
    "singer": "Ángel Vargas",
-   "year": 1941,
+   "year": 1942,
    "rhythm": "vals",
    "fame": 2,
    "energy": 60,
@@ -31957,8 +31794,7 @@
    },
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2011-03-21_BerlINESa.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Barrio de tango",
@@ -32045,10 +31881,10 @@
    "orchestraId": "anibal-troilo",
    "orchestra": "Aníbal Troilo",
    "singer": null,
-   "year": 1954,
+   "year": 1942,
    "rhythm": "tango",
    "fame": 2,
-   "energy": 54,
+   "energy": 64,
    "role": "anytime",
    "evidence": {
     "sets": 0,
@@ -32058,17 +31894,18 @@
    },
    "sources": [
     "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html"
-   ]
+   ],
+   "yearApprox": true
   },
   {
    "title": "El Marne",
    "orchestraId": "anibal-troilo",
    "orchestra": "Aníbal Troilo",
    "singer": null,
-   "year": 1952,
+   "year": 1942,
    "rhythm": "tango",
    "fame": 2,
-   "energy": 54,
+   "energy": 64,
    "role": "anytime",
    "evidence": {
     "sets": 0,
@@ -32078,17 +31915,18 @@
    },
    "sources": [
     "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html"
-   ]
+   ],
+   "yearApprox": true
   },
   {
    "title": "El pollo Ricardo",
    "orchestraId": "anibal-troilo",
    "orchestra": "Aníbal Troilo",
    "singer": null,
-   "year": 1954,
+   "year": 1942,
    "rhythm": "tango",
    "fame": 2,
-   "energy": 54,
+   "energy": 64,
    "role": "anytime",
    "evidence": {
     "sets": 0,
@@ -32098,7 +31936,8 @@
    },
    "sources": [
     "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html"
-   ]
+   ],
+   "yearApprox": true
   },
   {
    "title": "La maleva",
@@ -32405,7 +32244,7 @@
    "orchestraId": "carlos-di-sarli",
    "orchestra": "Carlos Di Sarli",
    "singer": null,
-   "year": 1952,
+   "year": 1954,
    "rhythm": "tango",
    "fame": 2,
    "energy": 54,
@@ -32418,7 +32257,8 @@
    },
    "sources": [
     "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html"
-   ]
+   ],
+   "yearApprox": true
   },
   {
    "title": "Cero al as",
@@ -32685,7 +32525,7 @@
    "orchestraId": "carlos-di-sarli",
    "orchestra": "Carlos Di Sarli",
    "singer": null,
-   "year": 1928,
+   "year": 1930,
    "rhythm": "tango",
    "fame": 2,
    "energy": 60,
@@ -32698,15 +32538,14 @@
    },
    "sources": [
     "https://humilitan.blogspot.com/2017/12/dia-del-tango-2018.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Racing Club",
    "orchestraId": "carlos-di-sarli",
    "orchestra": "Carlos Di Sarli",
    "singer": null,
-   "year": 1940,
+   "year": 1928,
    "rhythm": "tango",
    "fame": 2,
    "energy": 60,
@@ -32719,7 +32558,8 @@
    },
    "sources": [
     "https://humilitan.blogspot.com/2017/12/dia-del-tango-2018.html"
-   ]
+   ],
+   "yearApprox": true
   },
   {
    "title": "Rosas de otoño",
@@ -32766,7 +32606,7 @@
    "orchestraId": "carlos-di-sarli",
    "orchestra": "Carlos Di Sarli",
    "singer": "Alberto Podestá",
-   "year": 1947,
+   "year": 1942,
    "rhythm": "tango",
    "fame": 2,
    "energy": 54,
@@ -32779,7 +32619,8 @@
    },
    "sources": [
     "https://stafforini.com/tango/category/sections/tandas/"
-   ]
+   ],
+   "yearApprox": true
   },
   {
    "title": "T.B.C.",
@@ -32799,8 +32640,7 @@
    },
    "sources": [
     "https://humilitan.blogspot.com/2017/12/dia-del-tango-2018.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Tarareando",
@@ -32986,8 +32826,8 @@
    "title": "Amando en silencio",
    "orchestraId": "edgardo-donato",
    "orchestra": "Edgardo Donato",
-   "singer": "Horacio Lagos",
-   "year": 1938,
+   "singer": "Romeo Gavioli",
+   "year": 1941,
    "rhythm": "tango",
    "fame": 2,
    "energy": 60,
@@ -33000,8 +32840,7 @@
    },
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2012-12-23_Kijutango.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "El acomodo",
@@ -33027,7 +32866,7 @@
    "title": "Elegante papirusa",
    "orchestraId": "edgardo-donato",
    "orchestra": "Edgardo Donato",
-   "singer": "Horacio Lagos",
+   "singer": null,
    "year": 1935,
    "rhythm": "tango",
    "fame": 2,
@@ -33041,8 +32880,7 @@
    },
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2010-08-13_Tango_Social_Club.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Estrellita mía",
@@ -33062,14 +32900,13 @@
    },
    "sources": [
     "https://humilitan.blogspot.com/2017/12/dia-del-tango-2018.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Joaquina",
    "orchestraId": "edgardo-donato",
    "orchestra": "Edgardo Donato",
-   "singer": "Horacio Lagos",
+   "singer": null,
    "year": 1935,
    "rhythm": "tango",
    "fame": 2,
@@ -33083,8 +32920,7 @@
    },
    "sources": [
     "https://humilitan.blogspot.com/2018/12/junando-practica-playlist-december-2018.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Tierrita",
@@ -33131,7 +32967,7 @@
    "orchestraId": "emilio-balcarce",
    "orchestra": "Emilio Balcarce",
    "singer": "Alberto Castillo",
-   "year": null,
+   "year": 1945,
    "rhythm": "vals",
    "fame": 2,
    "energy": 68,
@@ -33144,15 +32980,14 @@
    },
    "sources": [
     "http://milongaparatres.blogspot.com/2010/07/thoughts-on-my-debut-as-dj.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Luna de arrabal",
    "orchestraId": "emilio-balcarce",
    "orchestra": "Emilio Balcarce",
    "singer": "Alberto Castillo",
-   "year": null,
+   "year": 1946,
    "rhythm": "vals",
    "fame": 2,
    "energy": 68,
@@ -33165,15 +33000,14 @@
    },
    "sources": [
     "http://milongaparatres.blogspot.com/2010/07/thoughts-on-my-debut-as-dj.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Unitaria",
    "orchestraId": "emilio-balcarce",
    "orchestra": "Emilio Balcarce",
    "singer": "Alberto Castillo",
-   "year": null,
+   "year": 1946,
    "rhythm": "vals",
    "fame": 2,
    "energy": 68,
@@ -33186,8 +33020,7 @@
    },
    "sources": [
     "http://milongaparatres.blogspot.com/2010/07/thoughts-on-my-debut-as-dj.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Cantar gitano",
@@ -33234,7 +33067,7 @@
    "orchestraId": "enrique-rodriguez",
    "orchestra": "Enrique Rodríguez",
    "singer": "Armando Moreno",
-   "year": 1939,
+   "year": 1943,
    "rhythm": "tango",
    "fame": 2,
    "energy": 66,
@@ -33247,8 +33080,7 @@
    },
    "sources": [
     "https://humilitan.blogspot.com/2017/09/siberian-milonga-playlist-september-24.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "La vi llegar",
@@ -33315,7 +33147,7 @@
    "orchestraId": "enrique-rodriguez",
    "orchestra": "Enrique Rodríguez",
    "singer": "Armando Moreno",
-   "year": 1939,
+   "year": 1945,
    "rhythm": "tango",
    "fame": 2,
    "energy": 66,
@@ -33328,8 +33160,7 @@
    },
    "sources": [
     "https://humilitan.blogspot.com/2017/09/siberian-milonga-playlist-september-24.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Mi piba",
@@ -33589,15 +33420,14 @@
    },
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2012-12-23_Kijutango.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Cada vez que me recuerdes",
    "orchestraId": "francisco-canaro",
    "orchestra": "Francisco Canaro",
-   "singer": "Roberto Maida",
-   "year": 1935,
+   "singer": "Eduardo Adrián",
+   "year": 1943,
    "rhythm": "tango",
    "fame": 2,
    "energy": 50,
@@ -33610,8 +33440,7 @@
    },
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2018-03-24_Milonga_Pasional.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Candombe criollo",
@@ -33631,8 +33460,7 @@
    },
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2013-09-08_Rich_Mix.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Desde el alma",
@@ -33659,7 +33487,7 @@
    "orchestraId": "francisco-canaro",
    "orchestra": "Francisco Canaro",
    "singer": null,
-   "year": 1939,
+   "year": 1941,
    "rhythm": "tango",
    "fame": 2,
    "energy": 50,
@@ -33672,8 +33500,7 @@
    },
    "sources": [
     "https://tango-dj.at/mailings/2011/October2011.htm"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "El rey del bosque",
@@ -33693,15 +33520,14 @@
    },
    "sources": [
     "https://tango-dj.at/mailings/2011/October2011.htm"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "En un beso la vida",
    "orchestraId": "francisco-canaro",
    "orchestra": "Francisco Canaro",
    "singer": "Ernesto Famá",
-   "year": 1939,
+   "year": 1940,
    "rhythm": "tango",
    "fame": 2,
    "energy": 50,
@@ -33714,8 +33540,7 @@
    },
    "sources": [
     "https://stafforini.com/tango/what-djs-play-1/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Hotel Victoria",
@@ -33762,7 +33587,7 @@
    "orchestraId": "francisco-canaro",
    "orchestra": "Francisco Canaro",
    "singer": null,
-   "year": null,
+   "year": 1938,
    "rhythm": "tango",
    "fame": 2,
    "energy": 50,
@@ -33775,8 +33600,7 @@
    },
    "sources": [
     "http://milongaparatres.blogspot.com/2010/07/thoughts-on-my-debut-as-dj.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Largas las penas",
@@ -33796,15 +33620,14 @@
    },
    "sources": [
     "https://humilitan.blogspot.com/2017/09/siberian-milonga-playlist-september-24.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Loca",
    "orchestraId": "francisco-canaro",
    "orchestra": "Francisco Canaro",
    "singer": null,
-   "year": null,
+   "year": 1940,
    "rhythm": "tango",
    "fame": 2,
    "energy": 50,
@@ -33817,8 +33640,7 @@
    },
    "sources": [
     "http://milongaparatres.blogspot.com/2010/07/thoughts-on-my-debut-as-dj.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Malvaloca",
@@ -33844,7 +33666,7 @@
    "title": "Milonga de antaño",
    "orchestraId": "francisco-canaro",
    "orchestra": "Francisco Canaro",
-   "singer": "Roberto Maida",
+   "singer": null,
    "year": 1936,
    "rhythm": "milonga",
    "fame": 2,
@@ -33858,8 +33680,7 @@
    },
    "sources": [
     "https://humilitan.blogspot.com/2017/09/milonga-sin-nombre-de-luna-llena-july.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Milonguita",
@@ -33879,8 +33700,7 @@
    },
    "sources": [
     "https://www.tandaoftheweek.com/39-2026-francisco-canaro-roberto-maida-tango-tanda/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Mimosa",
@@ -33907,7 +33727,7 @@
    "orchestraId": "francisco-canaro",
    "orchestra": "Francisco Canaro",
    "singer": "Charlo",
-   "year": 1929,
+   "year": 1930,
    "rhythm": "tango",
    "fame": 2,
    "energy": 54,
@@ -33920,15 +33740,14 @@
    },
    "sources": [
     "https://humilitan.blogspot.com/2017/12/dia-del-tango-2018.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Para ti madre",
    "orchestraId": "francisco-canaro",
    "orchestra": "Francisco Canaro",
    "singer": null,
-   "year": 1935,
+   "year": 1937,
    "rhythm": "vals",
    "fame": 2,
    "energy": 56,
@@ -33982,8 +33801,7 @@
    },
    "sources": [
     "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Sentimiento gaucho",
@@ -34049,8 +33867,8 @@
    "title": "Todo corazón",
    "orchestraId": "francisco-canaro",
    "orchestra": "Francisco Canaro",
-   "singer": "Roberto Maida",
-   "year": 1935,
+   "singer": null,
+   "year": 1936,
    "rhythm": "tango",
    "fame": 2,
    "energy": 50,
@@ -34063,8 +33881,7 @@
    },
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2019-12-07_Leigh_Tango.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Tormento",
@@ -34091,10 +33908,10 @@
    "orchestraId": "francisco-canaro",
    "orchestra": "Francisco Canaro",
    "singer": null,
-   "year": 1916,
+   "year": 1947,
    "rhythm": "vals",
    "fame": 2,
-   "energy": 60,
+   "energy": 56,
    "role": "anytime",
    "evidence": {
     "sets": 0,
@@ -34104,7 +33921,8 @@
    },
    "sources": [
     "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html"
-   ]
+   ],
+   "yearApprox": true
   },
   {
    "title": "Viejas alegrías",
@@ -34131,7 +33949,7 @@
    "orchestraId": "francisco-canaro",
    "orchestra": "Francisco Canaro",
    "singer": "Roberto Maida",
-   "year": 1937,
+   "year": 1935,
    "rhythm": "tango",
    "fame": 2,
    "energy": 50,
@@ -34144,14 +33962,15 @@
    },
    "sources": [
     "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html"
-   ]
+   ],
+   "yearApprox": true
   },
   {
    "title": "Yo me llamo Juan te quiero",
    "orchestraId": "francisco-canaro",
    "orchestra": "Francisco Canaro",
    "singer": "Ernesto Famá",
-   "year": null,
+   "year": 1940,
    "rhythm": "milonga",
    "fame": 2,
    "energy": 60,
@@ -34164,14 +33983,13 @@
    },
    "sources": [
     "https://tango-outpost.blogspot.com/2015/12/set-list-by-michael-freedman-glasgow.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Yo no sé por qué te quiero",
    "orchestraId": "francisco-canaro",
    "orchestra": "Francisco Canaro",
-   "singer": "Roberto Maida",
+   "singer": "Ernesto Famá",
    "year": 1934,
    "rhythm": "tango",
    "fame": 2,
@@ -34185,15 +34003,14 @@
    },
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2010-08-13_Tango_Social_Club.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Ámonos",
    "orchestraId": "francisco-canaro",
    "orchestra": "Francisco Canaro",
-   "singer": "Roberto Maida",
-   "year": 1938,
+   "singer": "Alberto Arenas",
+   "year": 1948,
    "rhythm": "vals",
    "fame": 2,
    "energy": 56,
@@ -34206,8 +34023,7 @@
    },
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2017-11-25_Radlett_Tango.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "A la gran muñeca",
@@ -34234,7 +34050,7 @@
    "orchestraId": "francisco-lomuto",
    "orchestra": "Francisco Lomuto",
    "singer": null,
-   "year": null,
+   "year": 1942,
    "rhythm": "tango",
    "fame": 2,
    "energy": 50,
@@ -34247,15 +34063,14 @@
    },
    "sources": [
     "https://tango-outpost.blogspot.com/2015/12/set-list-by-michael-freedman-glasgow.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Chitarra romana",
    "orchestraId": "francisco-lomuto",
    "orchestra": "Francisco Lomuto",
    "singer": null,
-   "year": 1937,
+   "year": 1939,
    "rhythm": "tango",
    "fame": 2,
    "energy": 50,
@@ -34268,8 +34083,7 @@
    },
    "sources": [
     "https://tango-dj.at/mailings/2011/October2011.htm"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Condena (S.O.S.)",
@@ -34289,8 +34103,7 @@
    },
    "sources": [
     "https://tango-dj.at/mailings/2011/October2011.htm"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Dónde estás corazón",
@@ -34310,14 +34123,13 @@
    },
    "sources": [
     "https://www.tandaoftheweek.com/35-2026-francisco-lomuto-charlo-1920s-1930s-tango-tanda/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Guapito",
    "orchestraId": "francisco-lomuto",
    "orchestra": "Francisco Lomuto",
-   "singer": "Charlo",
+   "singer": null,
    "year": 1928,
    "rhythm": "tango",
    "fame": 2,
@@ -34331,15 +34143,14 @@
    },
    "sources": [
     "https://www.tandaoftheweek.com/35-2026-francisco-lomuto-charlo-1920s-1930s-tango-tanda/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Idolatría",
    "orchestraId": "francisco-lomuto",
    "orchestra": "Francisco Lomuto",
    "singer": "Jorge Omar",
-   "year": 1936,
+   "year": 1937,
    "rhythm": "vals",
    "fame": 2,
    "energy": 56,
@@ -34352,8 +34163,7 @@
    },
    "sources": [
     "https://milonga-review.blogspot.com/2016/08/glasgow-round-up-3-midnight-milonga-july.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "La cumparsita",
@@ -34433,14 +34243,13 @@
    },
    "sources": [
     "https://stafforini.com/tango/what-djs-play-2/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Lomuto",
    "orchestraId": "francisco-lomuto",
    "orchestra": "Francisco Lomuto",
-   "singer": "Fernando Díaz",
+   "singer": null,
    "year": 1940,
    "rhythm": "tango",
    "fame": 2,
@@ -34480,7 +34289,7 @@
    "title": "Milongón",
    "orchestraId": "francisco-lomuto",
    "orchestra": "Francisco Lomuto",
-   "singer": "Fernando Díaz",
+   "singer": null,
    "year": 1939,
    "rhythm": "milonga",
    "fame": 2,
@@ -34494,15 +34303,14 @@
    },
    "sources": [
     "https://tomaskohl.com/tango/2022-08-traditional-tango-playlist-from-milonga-restart/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Misa de once",
    "orchestraId": "francisco-lomuto",
    "orchestra": "Francisco Lomuto",
    "singer": "Charlo",
-   "year": 1928,
+   "year": 1929,
    "rhythm": "tango",
    "fame": 2,
    "energy": 50,
@@ -34515,15 +34323,14 @@
    },
    "sources": [
     "https://www.tandaoftheweek.com/35-2026-francisco-lomuto-charlo-1920s-1930s-tango-tanda/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Noche de ronda",
    "orchestraId": "francisco-lomuto",
    "orchestra": "Francisco Lomuto",
    "singer": "Jorge Omar",
-   "year": 1933,
+   "year": 1936,
    "rhythm": "vals",
    "fame": 2,
    "energy": 56,
@@ -34536,8 +34343,7 @@
    },
    "sources": [
     "https://humilitan.blogspot.com/2017/09/siberian-milonga-playlist-september-24.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Pim pam pum",
@@ -34557,15 +34363,14 @@
    },
    "sources": [
     "https://stafforini.com/tango/what-djs-play-2/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Prisionero",
    "orchestraId": "francisco-lomuto",
    "orchestra": "Francisco Lomuto",
    "singer": "Charlo",
-   "year": 1928,
+   "year": 1929,
    "rhythm": "tango",
    "fame": 2,
    "energy": 50,
@@ -34578,8 +34383,7 @@
    },
    "sources": [
     "https://stafforini.com/tango/what-djs-play-2/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Quiero verte una vez más",
@@ -34619,15 +34423,14 @@
    },
    "sources": [
     "https://www.tandaoftheweek.com/14-2025-francisco-lomuto-milongas-que-tiempo-aquel/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Recuerdo",
    "orchestraId": "francisco-lomuto",
    "orchestra": "Francisco Lomuto",
    "singer": null,
-   "year": 1937,
+   "year": 1941,
    "rhythm": "tango",
    "fame": 2,
    "energy": 50,
@@ -34640,15 +34443,14 @@
    },
    "sources": [
     "https://tango-dj.at/mailings/2011/October2011.htm"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Salud, dinero y amor",
    "orchestraId": "francisco-lomuto",
    "orchestra": "Francisco Lomuto",
    "singer": "Jorge Omar",
-   "year": 1936,
+   "year": 1939,
    "rhythm": "vals",
    "fame": 2,
    "energy": 56,
@@ -34661,14 +34463,13 @@
    },
    "sources": [
     "https://milonga-review.blogspot.com/2016/08/glasgow-round-up-3-midnight-milonga-july.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Se te dio vuelta la taba",
    "orchestraId": "francisco-lomuto",
    "orchestra": "Francisco Lomuto",
-   "singer": "Jorge Omar",
+   "singer": "Fernando Díaz",
    "year": 1931,
    "rhythm": "tango",
    "fame": 2,
@@ -34682,8 +34483,7 @@
    },
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2016-05-30_Media_Luz.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Si soy así",
@@ -34730,7 +34530,7 @@
    "orchestraId": "francisco-lomuto",
    "orchestra": "Francisco Lomuto",
    "singer": "Charlo",
-   "year": 1928,
+   "year": 1929,
    "rhythm": "tango",
    "fame": 2,
    "energy": 50,
@@ -34743,8 +34543,7 @@
    },
    "sources": [
     "https://stafforini.com/tango/what-djs-play-2/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Zorro gris",
@@ -34791,7 +34590,7 @@
    "orchestraId": "hugo-diaz",
    "orchestra": "Hugo Díaz",
    "singer": null,
-   "year": null,
+   "year": 1973,
    "rhythm": "tango",
    "fame": 2,
    "energy": 48,
@@ -34804,15 +34603,14 @@
    },
    "sources": [
     "https://tango-outpost.blogspot.com/2015/12/set-list-by-michael-freedman-glasgow.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "El adiós",
    "orchestraId": "hugo-diaz",
    "orchestra": "Hugo Díaz",
    "singer": null,
-   "year": null,
+   "year": 1973,
    "rhythm": "tango",
    "fame": 2,
    "energy": 48,
@@ -34825,18 +34623,17 @@
    },
    "sources": [
     "https://tango-outpost.blogspot.com/2015/12/set-list-by-michael-freedman-glasgow.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Milonga para una armónica",
    "orchestraId": "hugo-diaz",
    "orchestra": "Hugo Díaz",
    "singer": null,
-   "year": null,
-   "rhythm": "tango",
+   "year": 1982,
+   "rhythm": "milonga",
    "fame": 2,
-   "energy": 48,
+   "energy": 58,
    "role": "anytime",
    "evidence": {
     "sets": 1,
@@ -34846,8 +34643,7 @@
    },
    "sources": [
     "https://tango-outpost.blogspot.com/2015/12/set-list-by-michael-freedman-glasgow.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Patotero sentimental",
@@ -34954,7 +34750,7 @@
    "orchestraId": "juan-d-arienzo",
    "orchestra": "Juan D'Arienzo",
    "singer": null,
-   "year": 1935,
+   "year": 1937,
    "rhythm": "tango",
    "fame": 2,
    "energy": 82,
@@ -34967,7 +34763,8 @@
    },
    "sources": [
     "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html"
-   ]
+   ],
+   "yearApprox": true
   },
   {
    "title": "Adiós corazón",
@@ -35054,7 +34851,7 @@
    "orchestraId": "juan-d-arienzo",
    "orchestra": "Juan D'Arienzo",
    "singer": null,
-   "year": 1971,
+   "year": 1972,
    "rhythm": "tango",
    "fame": 2,
    "energy": 86,
@@ -35067,8 +34864,7 @@
    },
    "sources": [
     "https://humilitan.blogspot.com/2017/09/siberian-milonga-playlist-september-24.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Barranca abajo",
@@ -35135,7 +34931,7 @@
    "orchestraId": "juan-d-arienzo",
    "orchestra": "Juan D'Arienzo",
    "singer": "Alberto Echagüe",
-   "year": 1937,
+   "year": 1938,
    "rhythm": "tango",
    "fame": 2,
    "energy": 78,
@@ -35148,8 +34944,7 @@
    },
    "sources": [
     "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Chirusa",
@@ -35596,10 +35391,10 @@
    "orchestraId": "juan-d-arienzo",
    "orchestra": "Juan D'Arienzo",
    "singer": "Alberto Echagüe",
-   "year": 1950,
+   "year": 1937,
    "rhythm": "tango",
    "fame": 2,
-   "energy": 82,
+   "energy": 78,
    "role": "anytime",
    "evidence": {
     "sets": 0,
@@ -35609,7 +35404,8 @@
    },
    "sources": [
     "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html"
-   ]
+   ],
+   "yearApprox": true
   },
   {
    "title": "Pampa",
@@ -35816,7 +35612,7 @@
    "orchestraId": "juan-de-dios-filiberto",
    "orchestra": "Juan de Dios Filiberto",
    "singer": null,
-   "year": 1935,
+   "year": 1959,
    "rhythm": "vals",
    "fame": 2,
    "energy": 68,
@@ -35829,8 +35625,7 @@
    },
    "sources": [
     "https://humilitan.blogspot.com/2017/09/siberian-milonga-playlist-september-24.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Pensando en ti",
@@ -35870,15 +35665,14 @@
    },
    "sources": [
     "https://humilitan.blogspot.com/2017/09/siberian-milonga-playlist-september-24.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Copacabana",
    "orchestraId": "julio-de-caro",
    "orchestra": "Julio De Caro",
    "singer": null,
-   "year": 1949,
+   "year": 1926,
    "rhythm": "tango",
    "fame": 2,
    "energy": 62,
@@ -35891,7 +35685,8 @@
    },
    "sources": [
     "https://milonga-review.blogspot.com/2016/08/glasgow-round-up-3-midnight-milonga-july.html"
-   ]
+   ],
+   "yearApprox": true
   },
   {
    "title": "Flores negras",
@@ -35918,7 +35713,7 @@
    "orchestraId": "julio-de-caro",
    "orchestra": "Julio De Caro",
    "singer": null,
-   "year": 1926,
+   "year": 1928,
    "rhythm": "tango",
    "fame": 2,
    "energy": 62,
@@ -35931,15 +35726,14 @@
    },
    "sources": [
     "https://milonga-review.blogspot.com/2016/08/glasgow-round-up-3-midnight-milonga-july.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Recuerdo",
    "orchestraId": "julio-de-caro",
    "orchestra": "Julio De Caro",
    "singer": null,
-   "year": 1952,
+   "year": 1926,
    "rhythm": "tango",
    "fame": 2,
    "energy": 62,
@@ -35952,7 +35746,8 @@
    },
    "sources": [
     "https://milonga-review.blogspot.com/2016/08/glasgow-round-up-3-midnight-milonga-july.html"
-   ]
+   ],
+   "yearApprox": true
   },
   {
    "title": "Al compás de un tango",
@@ -36240,7 +36035,7 @@
    "orchestraId": "miguel-calo",
    "orchestra": "Miguel Caló",
    "singer": "Raúl Iriarte",
-   "year": 1947,
+   "year": 1943,
    "rhythm": "tango",
    "fame": 2,
    "energy": 52,
@@ -36253,7 +36048,8 @@
    },
    "sources": [
     "https://stafforini.com/tango/category/sections/tandas/page/2/"
-   ]
+   ],
+   "yearApprox": true
   },
   {
    "title": "Luna de plata",
@@ -36320,7 +36116,7 @@
    "orchestraId": "miguel-villasboas",
    "orchestra": "Miguel Villasboas",
    "singer": null,
-   "year": null,
+   "year": 1961,
    "rhythm": "milonga",
    "fame": 2,
    "energy": 76,
@@ -36333,15 +36129,14 @@
    },
    "sources": [
     "http://milongaparatres.blogspot.com/2010/07/thoughts-on-my-debut-as-dj.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "La tierra gaucha",
    "orchestraId": "miguel-villasboas",
    "orchestra": "Miguel Villasboas",
    "singer": null,
-   "year": null,
+   "year": 1961,
    "rhythm": "milonga",
    "fame": 2,
    "energy": 76,
@@ -36354,15 +36149,14 @@
    },
    "sources": [
     "http://milongaparatres.blogspot.com/2010/07/thoughts-on-my-debut-as-dj.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Papas calientes",
    "orchestraId": "miguel-villasboas",
    "orchestra": "Miguel Villasboas",
    "singer": null,
-   "year": null,
+   "year": 1961,
    "rhythm": "milonga",
    "fame": 2,
    "energy": 76,
@@ -36375,8 +36169,7 @@
    },
    "sources": [
     "http://milongaparatres.blogspot.com/2010/07/thoughts-on-my-debut-as-dj.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "A tu memoria madrecita",
@@ -36423,7 +36216,7 @@
    "orchestraId": "orq-tip-los-provincianos",
    "orchestra": "Los Provincianos",
    "singer": "Carlos Lafuente",
-   "year": 1932,
+   "year": 1933,
    "rhythm": "vals",
    "fame": 2,
    "energy": 68,
@@ -36457,8 +36250,7 @@
    },
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2012-12-23_Kijutango.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Adiós Argentina",
@@ -36498,15 +36290,14 @@
    },
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2015-11-08_El_Amateur.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Cardos",
    "orchestraId": "orquesta-tipica-victor",
    "orchestra": "Orquesta Típica Víctor",
    "singer": null,
-   "year": null,
+   "year": 1933,
    "rhythm": "tango",
    "fame": 2,
    "energy": 52,
@@ -36519,14 +36310,13 @@
    },
    "sources": [
     "http://milongaparatres.blogspot.com/2010/07/thoughts-on-my-debut-as-dj.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Carrillón de la Merced",
    "orchestraId": "orquesta-tipica-victor",
    "orchestra": "Orquesta Típica Víctor",
-   "singer": "Alberto Gómez",
+   "singer": "Ernesto Famá",
    "year": 1931,
    "rhythm": "tango",
    "fame": 2,
@@ -36540,8 +36330,7 @@
    },
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2010-08-13_Tango_Social_Club.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Coqueta",
@@ -36627,7 +36416,7 @@
    "title": "Mejorando lo presente",
    "orchestraId": "orquesta-tipica-victor",
    "orchestra": "Orquesta Típica Víctor",
-   "singer": "Carlos Lafuente",
+   "singer": null,
    "year": 1930,
    "rhythm": "tango",
    "fame": 2,
@@ -36641,8 +36430,7 @@
    },
    "sources": [
     "https://stafforini.com/tango/what-djs-play-2/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Negro",
@@ -36662,8 +36450,7 @@
    },
    "sources": [
     "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Pato",
@@ -36730,7 +36517,7 @@
    "orchestraId": "osvaldo-fresedo",
    "orchestra": "Osvaldo Fresedo",
    "singer": "Roberto Ray",
-   "year": null,
+   "year": 1933,
    "rhythm": "tango",
    "fame": 2,
    "energy": 40,
@@ -36743,15 +36530,14 @@
    },
    "sources": [
     "http://milongaparatres.blogspot.com/2010/07/thoughts-on-my-debut-as-dj.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "El campeón",
    "orchestraId": "osvaldo-fresedo",
    "orchestra": "Osvaldo Fresedo",
    "singer": "Roberto Ray",
-   "year": 1935,
+   "year": 1937,
    "rhythm": "tango",
    "fame": 2,
    "energy": 40,
@@ -36764,8 +36550,7 @@
    },
    "sources": [
     "https://stafforini.com/tango/what-djs-play-2/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Isla de Capri",
@@ -36785,15 +36570,14 @@
    },
    "sources": [
     "https://humilitan.blogspot.com/2017/09/siberian-milonga-playlist-september-24.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "La mariposa",
    "orchestraId": "osvaldo-fresedo",
    "orchestra": "Osvaldo Fresedo",
    "singer": null,
-   "year": 1934,
+   "year": 1945,
    "rhythm": "tango",
    "fame": 2,
    "energy": 46,
@@ -36806,15 +36590,14 @@
    },
    "sources": [
     "https://www.tandaoftheweek.com/35-2024-the-melodic-uptempo-instrumental-tangos-of-osvaldo-fresedo/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Mariposita",
    "orchestraId": "osvaldo-fresedo",
    "orchestra": "Osvaldo Fresedo",
    "singer": null,
-   "year": 1934,
+   "year": 1941,
    "rhythm": "tango",
    "fame": 2,
    "energy": 46,
@@ -36827,15 +36610,14 @@
    },
    "sources": [
     "https://www.tandaoftheweek.com/35-2024-the-melodic-uptempo-instrumental-tangos-of-osvaldo-fresedo/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "No aflojes corazón",
    "orchestraId": "osvaldo-fresedo",
    "orchestra": "Osvaldo Fresedo",
    "singer": "Roberto Ray",
-   "year": 1935,
+   "year": 1936,
    "rhythm": "tango",
    "fame": 2,
    "energy": 40,
@@ -36848,8 +36630,7 @@
    },
    "sources": [
     "https://stafforini.com/tango/what-djs-play-2/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "No me pregunten por qué",
@@ -36869,15 +36650,14 @@
    },
    "sources": [
     "https://stafforini.com/tango/what-djs-play-2/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Ojos muertos",
    "orchestraId": "osvaldo-fresedo",
    "orchestra": "Osvaldo Fresedo",
    "singer": "Roberto Ray",
-   "year": 1933,
+   "year": 1938,
    "rhythm": "tango",
    "fame": 2,
    "energy": 40,
@@ -36890,15 +36670,14 @@
    },
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2012-12-23_Kijutango.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Telón",
    "orchestraId": "osvaldo-fresedo",
    "orchestra": "Osvaldo Fresedo",
    "singer": "Roberto Ray",
-   "year": 1937,
+   "year": 1938,
    "rhythm": "tango",
    "fame": 2,
    "energy": 40,
@@ -36911,8 +36690,7 @@
    },
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2017-11-25_Radlett_Tango.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "A los amigos",
@@ -37092,8 +36870,7 @@
    },
    "sources": [
     "https://tomaskohl.com/tango/2022-08-traditional-tango-playlist-from-milonga-restart/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "La rayuela",
@@ -37133,8 +36910,7 @@
    },
    "sources": [
     "https://tomaskohl.com/tango/2022-08-traditional-tango-playlist-from-milonga-restart/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Orgullo criollo",
@@ -37154,15 +36930,14 @@
    },
    "sources": [
     "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Por qué",
    "orchestraId": "osvaldo-pugliese",
    "orchestra": "Osvaldo Pugliese",
    "singer": "Alberto Morán",
-   "year": 1945,
+   "year": 1946,
    "rhythm": "tango",
    "fame": 2,
    "energy": 76,
@@ -37175,8 +36950,7 @@
    },
    "sources": [
     "https://tangotoolkit.com/dj/starter-kit/set-lists/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Puente Alsina",
@@ -37203,7 +36977,7 @@
    "orchestraId": "osvaldo-pugliese",
    "orchestra": "Osvaldo Pugliese",
    "singer": "Alberto Morán",
-   "year": 1952,
+   "year": 1955,
    "rhythm": "vals",
    "fame": 2,
    "energy": 86,
@@ -37216,8 +36990,7 @@
    },
    "sources": [
     "https://tomaskohl.com/tango/2022-08-traditional-tango-playlist-from-milonga-restart/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Testamento de arrabal",
@@ -37317,8 +37090,7 @@
    },
    "sources": [
     "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Caserón de tejas",
@@ -37525,7 +37297,7 @@
    "orchestraId": "quinteto-don-pancho",
    "orchestra": "Quinteto Don Pancho",
    "singer": null,
-   "year": 1937,
+   "year": 1938,
    "rhythm": "tango",
    "fame": 2,
    "energy": 62,
@@ -37538,15 +37310,14 @@
    },
    "sources": [
     "https://humilitan.blogspot.com/2017/09/siberian-milonga-playlist-september-24.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "El garrón",
    "orchestraId": "quinteto-don-pancho",
    "orchestra": "Quinteto Don Pancho",
    "singer": null,
-   "year": 1937,
+   "year": 1938,
    "rhythm": "tango",
    "fame": 2,
    "energy": 62,
@@ -37559,8 +37330,7 @@
    },
    "sources": [
     "https://humilitan.blogspot.com/2017/09/siberian-milonga-playlist-september-24.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "El pollo Ricardo",
@@ -37580,8 +37350,7 @@
    },
    "sources": [
     "https://humilitan.blogspot.com/2018/11/buena-vista-milonga-playlist-october.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Zorro gris",
@@ -37601,8 +37370,7 @@
    },
    "sources": [
     "https://humilitan.blogspot.com/2018/11/buena-vista-milonga-playlist-october.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "A mi madre",
@@ -37622,8 +37390,7 @@
    },
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2013-09-08_Rich_Mix.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Corralera",
@@ -37643,15 +37410,14 @@
    },
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2012-12-23_Kijutango.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "El trovero",
    "orchestraId": "quinteto-pirincho",
    "orchestra": "Quinteto Pirincho",
    "singer": null,
-   "year": 1941,
+   "year": 1942,
    "rhythm": "vals",
    "fame": 2,
    "energy": 72,
@@ -37664,15 +37430,14 @@
    },
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2013-09-08_Rich_Mix.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "María Esther",
    "orchestraId": "quinteto-pirincho",
    "orchestra": "Quinteto Pirincho",
    "singer": null,
-   "year": 1941,
+   "year": 1943,
    "rhythm": "vals",
    "fame": 2,
    "energy": 72,
@@ -37685,8 +37450,7 @@
    },
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2013-09-08_Rich_Mix.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Milonguín",
@@ -37706,8 +37470,7 @@
    },
    "sources": [
     "http://www.chrisjj.com/tango/cjjsets/2011-03-21_BerlINESa.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "A bailar",
@@ -37814,7 +37577,7 @@
    "orchestraId": "ricardo-tanturi",
    "orchestra": "Ricardo Tanturi",
    "singer": null,
-   "year": 1940,
+   "year": 1941,
    "rhythm": "tango",
    "fame": 2,
    "energy": 66,
@@ -37827,8 +37590,7 @@
    },
    "sources": [
     "https://stafforini.com/tango/what-djs-play-2/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Cuatro compases",
@@ -38054,7 +37816,7 @@
    "title": "Raza criolla",
    "orchestraId": "ricardo-tanturi",
    "orchestra": "Ricardo Tanturi",
-   "singer": "Enrique Campos",
+   "singer": null,
    "year": 1943,
    "rhythm": "tango",
    "fame": 2,
@@ -38068,8 +37830,7 @@
    },
    "sources": [
     "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Soy muchacho de arrabal",
@@ -38116,7 +37877,7 @@
    "orchestraId": "roberto-firpo",
    "orchestra": "Roberto Firpo",
    "singer": null,
-   "year": 1937,
+   "year": 1940,
    "rhythm": "tango",
    "fame": 2,
    "energy": 44,
@@ -38129,8 +37890,7 @@
    },
    "sources": [
     "https://humilitan.blogspot.com/2017/09/siberian-milonga-playlist-september-24.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "El choclo",
@@ -38170,8 +37930,7 @@
    },
    "sources": [
     "https://stafforini.com/tango/what-djs-play-2/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Fantasma",
@@ -38211,15 +37970,14 @@
    },
    "sources": [
     "https://stafforini.com/tango/what-djs-play-2/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Sábado inglés",
    "orchestraId": "roberto-firpo",
    "orchestra": "Roberto Firpo",
    "singer": null,
-   "year": 1937,
+   "year": 1938,
    "rhythm": "tango",
    "fame": 2,
    "energy": 44,
@@ -38232,8 +37990,7 @@
    },
    "sources": [
     "https://humilitan.blogspot.com/2017/09/siberian-milonga-playlist-september-24.html"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Arlette",
@@ -38479,11 +38236,11 @@
    "title": "La cumparsita",
    "orchestraId": "rodolfo-biagi",
    "orchestra": "Rodolfo Biagi",
-   "singer": null,
+   "singer": "Jorge Ortiz",
    "year": 1942,
    "rhythm": "tango",
    "fame": 2,
-   "energy": 78,
+   "energy": 74,
    "role": "cumparsita",
    "evidence": {
     "sets": 1,
@@ -38660,7 +38417,7 @@
    "orchestraId": "rodolfo-biagi",
    "orchestra": "Rodolfo Biagi",
    "singer": "Jorge Ortíz",
-   "year": 1943,
+   "year": 1939,
    "rhythm": "tango",
    "fame": 2,
    "energy": 74,
@@ -38673,7 +38430,8 @@
    },
    "sources": [
     "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html"
-   ]
+   ],
+   "yearApprox": true
   },
   {
    "title": "Sin palabras",
@@ -38740,7 +38498,7 @@
    "orchestraId": "sexteto-cristal",
    "orchestra": "Sexteto Cristal",
    "singer": "Guillermo Rozenthuler",
-   "year": 2018,
+   "year": 2019,
    "rhythm": "tango",
    "fame": 2,
    "energy": 62,
@@ -38753,15 +38511,14 @@
    },
    "sources": [
     "https://tomaskohl.com/tango/2022-08-traditional-tango-playlist-from-milonga-restart/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Dos fracasos",
    "orchestraId": "sexteto-cristal",
    "orchestra": "Sexteto Cristal",
    "singer": "Guillermo Rozenthuler",
-   "year": 2018,
+   "year": 2019,
    "rhythm": "tango",
    "fame": 2,
    "energy": 62,
@@ -38774,15 +38531,14 @@
    },
    "sources": [
     "https://tomaskohl.com/tango/2022-08-traditional-tango-playlist-from-milonga-restart/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "No te apures, Carablanca",
    "orchestraId": "sexteto-cristal",
    "orchestra": "Sexteto Cristal",
    "singer": "Guillermo Rozenthuler",
-   "year": 2018,
+   "year": 2019,
    "rhythm": "tango",
    "fame": 2,
    "energy": 62,
@@ -38795,15 +38551,14 @@
    },
    "sources": [
     "https://tomaskohl.com/tango/2022-08-traditional-tango-playlist-from-milonga-restart/"
-   ],
-   "yearApprox": true
+   ]
   },
   {
    "title": "Ríe payaso",
    "orchestraId": "sexteto-cristal",
    "orchestra": "Sexteto Cristal",
    "singer": "Guillermo Rozenthuler",
-   "year": 2018,
+   "year": 2019,
    "rhythm": "tango",
    "fame": 2,
    "energy": 62,
@@ -38816,8 +38571,7 @@
    },
    "sources": [
     "https://tomaskohl.com/tango/2022-08-traditional-tango-playlist-from-milonga-restart/"
-   ],
-   "yearApprox": true
+   ]
   }
  ],
  "blacklist": [
@@ -39146,30 +38900,6 @@
    ]
   },
   {
-   "title": "Zum (Piazzolla)",
-   "orchestraId": "astor-piazzolla",
-   "reason": "concert piece",
-   "note": "Piazzolla nuevo tango: concert/listening music, not played at traditional milongas",
-   "sources": [
-    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
-    "https://en.wikipedia.org/wiki/Octeto_Buenos_Aires",
-    "https://milonga.co.uk/tango/piazzolla.shtml",
-    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
-   ]
-  },
-  {
-   "title": "Adiós Nonino (any version)",
-   "orchestraId": "astor-piazzolla",
-   "reason": "concert piece",
-   "note": "Piazzolla nuevo tango: concert/listening music, not played at traditional milongas",
-   "sources": [
-    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
-    "https://en.wikipedia.org/wiki/Octeto_Buenos_Aires",
-    "https://milonga.co.uk/tango/piazzolla.shtml",
-    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
-   ]
-  },
-  {
    "title": "A los artistas plásticos",
    "orchestraId": "osvaldo-pugliese",
    "reason": "concert piece",
@@ -39246,64 +38976,9 @@
    ]
   },
   {
-   "title": "Ventarrón (1964)",
-   "orchestraId": "osvaldo-pugliese",
-   "reason": "concert piece",
-   "note": "late concert-era",
-   "sources": [
-    "https://www.tejastango.com/post-golden-age.html",
-    "https://tangovoice.wordpress.com/2016/12/06/tango-dj-fundamentals-part-1-selecting-music-for-dancing-and-tanda-construction/",
-    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html"
-   ]
-  },
-  {
-   "title": "Bien milonga",
-   "orchestraId": "osvaldo-pugliese",
-   "reason": "concert piece",
-   "note": "late",
-   "sources": [
-    "https://www.tejastango.com/post-golden-age.html",
-    "https://tangovoice.wordpress.com/2016/12/06/tango-dj-fundamentals-part-1-selecting-music-for-dancing-and-tanda-construction/",
-    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html"
-   ]
-  },
-  {
-   "title": "La mariposa (1966)",
-   "orchestraId": "osvaldo-pugliese",
-   "reason": "concert piece",
-   "note": "long beat-submerged passages",
-   "sources": [
-    "https://www.tejastango.com/post-golden-age.html",
-    "https://tangovoice.wordpress.com/2016/12/06/tango-dj-fundamentals-part-1-selecting-music-for-dancing-and-tanda-construction/",
-    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html"
-   ]
-  },
-  {
    "title": "Milonga para Gardel",
    "orchestraId": "osvaldo-pugliese",
    "reason": "concert piece",
-   "sources": [
-    "https://www.tejastango.com/post-golden-age.html",
-    "https://tangovoice.wordpress.com/2016/12/06/tango-dj-fundamentals-part-1-selecting-music-for-dancing-and-tanda-construction/",
-    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html"
-   ]
-  },
-  {
-   "title": "Negracha",
-   "orchestraId": "osvaldo-pugliese",
-   "reason": "concert piece",
-   "note": "1948; only for very experienced floors; frequently listed as \"difficult\" - use with care, not for general sets",
-   "sources": [
-    "https://www.tejastango.com/post-golden-age.html",
-    "https://tangovoice.wordpress.com/2016/12/06/tango-dj-fundamentals-part-1-selecting-music-for-dancing-and-tanda-construction/",
-    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html"
-   ]
-  },
-  {
-   "title": "Malandraca",
-   "orchestraId": "osvaldo-pugliese",
-   "reason": "concert piece",
-   "note": "1949; demanding, marginal for social floors",
    "sources": [
     "https://www.tejastango.com/post-golden-age.html",
     "https://tangovoice.wordpress.com/2016/12/06/tango-dj-fundamentals-part-1-selecting-music-for-dancing-and-tanda-construction/",
@@ -39359,18 +39034,6 @@
    ]
   },
   {
-   "title": "La bordona (Troilo 1960s)",
-   "orchestraId": "anibal-troilo",
-   "reason": "concert piece",
-   "note": "later Troilo; listening",
-   "sources": [
-    "https://tangovoice.wordpress.com/2016/12/06/tango-dj-fundamentals-part-1-selecting-music-for-dancing-and-tanda-construction/",
-    "https://www.tejastango.com/post-golden-age.html",
-    "http://www.chrisjj.com/tango/cjjsets/2019-02-17_Wood_Farm.html",
-    "https://tangotoolkit.com/dj/starter-kit/set-lists/"
-   ]
-  },
-  {
    "title": "Lo que vendrá",
    "orchestraId": "anibal-troilo",
    "reason": "concert piece",
@@ -39399,42 +39062,6 @@
    "orchestraId": "anibal-troilo",
    "reason": "concert piece",
    "note": "1968; spoken intro, concert",
-   "sources": [
-    "https://tangovoice.wordpress.com/2016/12/06/tango-dj-fundamentals-part-1-selecting-music-for-dancing-and-tanda-construction/",
-    "https://www.tejastango.com/post-golden-age.html",
-    "http://www.chrisjj.com/tango/cjjsets/2019-02-17_Wood_Farm.html",
-    "https://tangotoolkit.com/dj/starter-kit/set-lists/"
-   ]
-  },
-  {
-   "title": "Quejas de bandoneón (1958 and later)",
-   "orchestraId": "anibal-troilo",
-   "reason": "concert piece",
-   "note": "later versions are slow and rubato; use 1944 version",
-   "sources": [
-    "https://tangovoice.wordpress.com/2016/12/06/tango-dj-fundamentals-part-1-selecting-music-for-dancing-and-tanda-construction/",
-    "https://www.tejastango.com/post-golden-age.html",
-    "http://www.chrisjj.com/tango/cjjsets/2019-02-17_Wood_Farm.html",
-    "https://tangotoolkit.com/dj/starter-kit/set-lists/"
-   ]
-  },
-  {
-   "title": "Pa' que bailen los muchachos (1960s)",
-   "orchestraId": "anibal-troilo",
-   "reason": "concert piece",
-   "note": "1960s remakes are not for dancing",
-   "sources": [
-    "https://tangovoice.wordpress.com/2016/12/06/tango-dj-fundamentals-part-1-selecting-music-for-dancing-and-tanda-construction/",
-    "https://www.tejastango.com/post-golden-age.html",
-    "http://www.chrisjj.com/tango/cjjsets/2019-02-17_Wood_Farm.html",
-    "https://tangotoolkit.com/dj/starter-kit/set-lists/"
-   ]
-  },
-  {
-   "title": "Garúa (Troilo-Goyeneche 1962)",
-   "orchestraId": "anibal-troilo",
-   "reason": "concert piece",
-   "note": "Goyeneche-era Troilo: listening",
    "sources": [
     "https://tangovoice.wordpress.com/2016/12/06/tango-dj-fundamentals-part-1-selecting-music-for-dancing-and-tanda-construction/",
     "https://www.tejastango.com/post-golden-age.html",
@@ -39495,26 +39122,6 @@
    ]
   },
   {
-   "title": "Boedo (De Caro)",
-   "orchestraId": "julio-de-caro",
-   "reason": "show tango",
-   "note": "De Caro 1920s/30s arrangements: variable tempo",
-   "sources": [
-    "https://www.tejastango.com/post-golden-age.html",
-    "https://tangovoice.wordpress.com/2016/12/06/tango-dj-fundamentals-part-1-selecting-music-for-dancing-and-tanda-construction/"
-   ]
-  },
-  {
-   "title": "Tierra querida (De Caro)",
-   "orchestraId": "julio-de-caro",
-   "reason": "show tango",
-   "note": "same",
-   "sources": [
-    "https://www.tejastango.com/post-golden-age.html",
-    "https://tangovoice.wordpress.com/2016/12/06/tango-dj-fundamentals-part-1-selecting-music-for-dancing-and-tanda-construction/"
-   ]
-  },
-  {
    "title": "Oblivion",
    "orchestraId": "sexteto-mayor",
    "reason": "show tango",
@@ -39535,30 +39142,10 @@
    ]
   },
   {
-   "title": "Taquito militar",
-   "orchestraId": "mariano-mores",
-   "reason": "show tango",
-   "note": "show/stage milonga, 1950s stage version",
-   "sources": [
-    "https://www.tejastango.com/post-golden-age.html",
-    "https://tangovoice.wordpress.com/2016/12/06/tango-dj-fundamentals-part-1-selecting-music-for-dancing-and-tanda-construction/"
-   ]
-  },
-  {
    "title": "Tanguera",
    "orchestraId": "mariano-mores",
    "reason": "show tango",
    "note": "show tango",
-   "sources": [
-    "https://www.tejastango.com/post-golden-age.html",
-    "https://tangovoice.wordpress.com/2016/12/06/tango-dj-fundamentals-part-1-selecting-music-for-dancing-and-tanda-construction/"
-   ]
-  },
-  {
-   "title": "El firulete (Mores)",
-   "orchestraId": "mariano-mores",
-   "reason": "show tango",
-   "note": "stage milonga",
    "sources": [
     "https://www.tejastango.com/post-golden-age.html",
     "https://tangovoice.wordpress.com/2016/12/06/tango-dj-fundamentals-part-1-selecting-music-for-dancing-and-tanda-construction/"
@@ -39605,15 +39192,6 @@
   },
   {
    "title": "Selección de valses",
-   "orchestraId": "francisco-canaro",
-   "reason": "medley",
-   "note": "medleys/selecciones break the one-song structure and run long; Canaro \"Reliquias porteñas\" potpourri only usable inside a planned special tanda",
-   "sources": [
-    "https://tango-dj.at/mailings/2011/October2011.htm"
-   ]
-  },
-  {
-   "title": "Reliquias porteñas (potpourri)",
    "orchestraId": "francisco-canaro",
    "reason": "medley",
    "note": "medleys/selecciones break the one-song structure and run long; Canaro \"Reliquias porteñas\" potpourri only usable inside a planned special tanda",
@@ -39676,15 +39254,6 @@
    ]
   },
   {
-   "title": "Selección de tangos (any)",
-   "orchestraId": null,
-   "reason": "medley",
-   "note": "medleys/selecciones break the one-song structure and run long; Canaro \"Reliquias porteñas\" potpourri only usable inside a planned special tanda",
-   "sources": [
-    "https://tango-dj.at/mailings/2011/October2011.htm"
-   ]
-  },
-  {
    "title": "Mi Buenos Aires querido",
    "orchestraId": "carlos-gardel",
    "reason": "not danceable",
@@ -39725,16 +39294,6 @@
    ]
   },
   {
-   "title": "Mi noche triste (Gardel)",
-   "orchestraId": "carlos-gardel",
-   "reason": "not danceable",
-   "note": "Gardel with guitars: tango canción for listening, rubato and no orchestra beat; Hugo Díaz harmonica versions are borderline",
-   "sources": [
-    "https://tangovoice.wordpress.com/2016/12/06/tango-dj-fundamentals-part-1-selecting-music-for-dancing-and-tanda-construction/",
-    "https://www.tejastango.com/post-golden-age.html"
-   ]
-  },
-  {
    "title": "Cuesta abajo",
    "orchestraId": "carlos-gardel",
    "reason": "not danceable",
@@ -39755,27 +39314,7 @@
    ]
   },
   {
-   "title": "Sus ojos se cerraron",
-   "orchestraId": "carlos-gardel",
-   "reason": "not danceable",
-   "note": "Gardel with guitars: tango canción for listening, rubato and no orchestra beat; Hugo Díaz harmonica versions are borderline",
-   "sources": [
-    "https://tangovoice.wordpress.com/2016/12/06/tango-dj-fundamentals-part-1-selecting-music-for-dancing-and-tanda-construction/",
-    "https://www.tejastango.com/post-golden-age.html"
-   ]
-  },
-  {
    "title": "Golondrinas",
-   "orchestraId": "carlos-gardel",
-   "reason": "not danceable",
-   "note": "Gardel with guitars: tango canción for listening, rubato and no orchestra beat; Hugo Díaz harmonica versions are borderline",
-   "sources": [
-    "https://tangovoice.wordpress.com/2016/12/06/tango-dj-fundamentals-part-1-selecting-music-for-dancing-and-tanda-construction/",
-    "https://www.tejastango.com/post-golden-age.html"
-   ]
-  },
-  {
-   "title": "Soledad",
    "orchestraId": "carlos-gardel",
    "reason": "not danceable",
    "note": "Gardel with guitars: tango canción for listening, rubato and no orchestra beat; Hugo Díaz harmonica versions are borderline",
@@ -39831,32 +39370,6 @@
    ]
   },
   {
-   "title": "El rey del bosque",
-   "orchestraId": "francisco-canaro",
-   "reason": "not danceable",
-   "note": "tango sinfónico 1939; only inside a planned special tanda (Gehberger)",
-   "sources": [
-    "https://www.tandaoftheweek.com/23-2026-carlos-di-sarli-vals-tanda-with-rufino-volpe-podesta/",
-    "https://tango-dj.at/mailings/2011/October2011.htm",
-    "https://www.tejastango.com/post-golden-age.html",
-    "https://tangovoice.wordpress.com/2016/12/06/tango-dj-fundamentals-part-1-selecting-music-for-dancing-and-tanda-construction/",
-    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
-   ]
-  },
-  {
-   "title": "Canaro en París (Canaro tango sinfónico versions)",
-   "orchestraId": "francisco-canaro",
-   "reason": "not danceable",
-   "note": "use D'Arienzo/Biagi versions",
-   "sources": [
-    "https://www.tandaoftheweek.com/23-2026-carlos-di-sarli-vals-tanda-with-rufino-volpe-podesta/",
-    "https://tango-dj.at/mailings/2011/October2011.htm",
-    "https://www.tejastango.com/post-golden-age.html",
-    "https://tangovoice.wordpress.com/2016/12/06/tango-dj-fundamentals-part-1-selecting-music-for-dancing-and-tanda-construction/",
-    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
-   ]
-  },
-  {
    "title": "Adiós Nonino (Hugo Díaz)",
    "orchestraId": "hugo-diaz",
    "reason": "not danceable",
@@ -39870,62 +39383,10 @@
    ]
   },
   {
-   "title": "Milonga triste (Hugo Díaz)",
-   "orchestraId": "hugo-diaz",
-   "reason": "not danceable",
-   "note": "rubato harmonica; \"denouement only\" (Tejas)",
-   "sources": [
-    "https://www.tandaoftheweek.com/23-2026-carlos-di-sarli-vals-tanda-with-rufino-volpe-podesta/",
-    "https://tango-dj.at/mailings/2011/October2011.htm",
-    "https://www.tejastango.com/post-golden-age.html",
-    "https://tangovoice.wordpress.com/2016/12/06/tango-dj-fundamentals-part-1-selecting-music-for-dancing-and-tanda-construction/",
-    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
-   ]
-  },
-  {
-   "title": "Desde el alma (Pugliese 1960s)",
-   "orchestraId": "osvaldo-pugliese",
-   "reason": "not danceable",
-   "note": "only post-1960 piece heard at BA milongas and only as a vals-tanda closer; dramatic rubato",
-   "sources": [
-    "https://www.tandaoftheweek.com/23-2026-carlos-di-sarli-vals-tanda-with-rufino-volpe-podesta/",
-    "https://tango-dj.at/mailings/2011/October2011.htm",
-    "https://www.tejastango.com/post-golden-age.html",
-    "https://tangovoice.wordpress.com/2016/12/06/tango-dj-fundamentals-part-1-selecting-music-for-dancing-and-tanda-construction/",
-    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
-   ]
-  },
-  {
-   "title": "La cumparsita (Gerardo Matos Rodríguez / symphonic versions)",
-   "orchestraId": null,
-   "reason": "show tango",
-   "note": "orchestral/symphonic Cumparsita versions are not for the last tanda",
-   "sources": [
-    "https://www.tandaoftheweek.com/23-2026-carlos-di-sarli-vals-tanda-with-rufino-volpe-podesta/",
-    "https://tango-dj.at/mailings/2011/October2011.htm",
-    "https://www.tejastango.com/post-golden-age.html",
-    "https://tangovoice.wordpress.com/2016/12/06/tango-dj-fundamentals-part-1-selecting-music-for-dancing-and-tanda-construction/",
-    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
-   ]
-  },
-  {
    "title": "Tango de Roxanne",
    "orchestraId": "sexteto-mayor",
    "reason": "show tango",
    "note": "Moulin Rouge; film/stage",
-   "sources": [
-    "https://www.tandaoftheweek.com/23-2026-carlos-di-sarli-vals-tanda-with-rufino-volpe-podesta/",
-    "https://tango-dj.at/mailings/2011/October2011.htm",
-    "https://www.tejastango.com/post-golden-age.html",
-    "https://tangovoice.wordpress.com/2016/12/06/tango-dj-fundamentals-part-1-selecting-music-for-dancing-and-tanda-construction/",
-    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
-   ]
-  },
-  {
-   "title": "Cité Tango",
-   "orchestraId": "astor-piazzolla",
-   "reason": "concert piece",
-   "note": "electro remix; alternative only",
    "sources": [
     "https://www.tandaoftheweek.com/23-2026-carlos-di-sarli-vals-tanda-with-rufino-volpe-podesta/",
     "https://tango-dj.at/mailings/2011/October2011.htm",
@@ -40000,67 +39461,572 @@
    ]
   },
   {
-   "title": "Forever Tango (any track)",
+   "title": "Lunfardo",
+   "orchestraId": "juan-d-arienzo",
+   "reason": "concert piece",
+   "note": "D'Arienzo 1960s show instrumental; rarely danced",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Preparense",
+   "orchestraId": "astor-piazzolla",
+   "reason": "concert piece",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Marrón y azul",
+   "orchestraId": "astor-piazzolla",
+   "reason": "concert piece",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Contratiempo",
+   "orchestraId": "astor-piazzolla",
+   "reason": "concert piece",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Chau París",
+   "orchestraId": "astor-piazzolla",
+   "reason": "concert piece",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Nonino",
+   "orchestraId": "astor-piazzolla",
+   "reason": "concert piece",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Calambre",
+   "orchestraId": "astor-piazzolla",
+   "reason": "concert piece",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Imágenes 676",
+   "orchestraId": "astor-piazzolla",
+   "reason": "concert piece",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Resurrección del ángel",
+   "orchestraId": "astor-piazzolla",
+   "reason": "concert piece",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Introducción al ángel",
+   "orchestraId": "astor-piazzolla",
+   "reason": "concert piece",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "María de Buenos Aires",
+   "orchestraId": "astor-piazzolla",
+   "reason": "show tango",
+   "note": "operita",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Yo soy María",
+   "orchestraId": "astor-piazzolla",
+   "reason": "show tango",
+   "note": "operita",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Jacinto Chiclana",
+   "orchestraId": "astor-piazzolla",
+   "reason": "not danceable",
+   "note": "Borges-Piazzolla milonga canción",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Alguien le dice al tango",
+   "orchestraId": "astor-piazzolla",
+   "reason": "not danceable",
+   "note": "Borges-Piazzolla",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Tango ballet",
+   "orchestraId": "astor-piazzolla",
+   "reason": "concert piece",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Soledad (Piazzolla)",
+   "orchestraId": "astor-piazzolla",
+   "reason": "concert piece",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Milonga en ay menor",
+   "orchestraId": "astor-piazzolla",
+   "reason": "concert piece",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Tango del diablo",
+   "orchestraId": "astor-piazzolla",
+   "reason": "concert piece",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Vayamos al diablo",
+   "orchestraId": "astor-piazzolla",
+   "reason": "concert piece",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Romance del diablo",
+   "orchestraId": "astor-piazzolla",
+   "reason": "concert piece",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Bandó",
+   "orchestraId": "astor-piazzolla",
+   "reason": "concert piece",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Retrato de Alfredo Gobbi",
+   "orchestraId": "astor-piazzolla",
+   "reason": "concert piece",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Bragatissimo",
+   "orchestraId": "astor-piazzolla",
+   "reason": "concert piece",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Pulsación",
+   "orchestraId": "astor-piazzolla",
+   "reason": "concert piece",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Tanguedia",
+   "orchestraId": "astor-piazzolla",
+   "reason": "concert piece",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Tristezas de un doble A",
+   "orchestraId": "astor-piazzolla",
+   "reason": "concert piece",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Camorra",
+   "orchestraId": "astor-piazzolla",
+   "reason": "concert piece",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Biyuya",
+   "orchestraId": "astor-piazzolla",
+   "reason": "concert piece",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Fugata",
+   "orchestraId": "astor-piazzolla",
+   "reason": "concert piece",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Caliente",
+   "orchestraId": "astor-piazzolla",
+   "reason": "concert piece",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Meditango",
+   "orchestraId": "astor-piazzolla",
+   "reason": "concert piece",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Undertango",
+   "orchestraId": "astor-piazzolla",
+   "reason": "concert piece",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Violentango",
+   "orchestraId": "astor-piazzolla",
+   "reason": "concert piece",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Novitango",
+   "orchestraId": "astor-piazzolla",
+   "reason": "concert piece",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Amelitango",
+   "orchestraId": "astor-piazzolla",
+   "reason": "concert piece",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Tristango",
+   "orchestraId": "astor-piazzolla",
+   "reason": "concert piece",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Responso (any orchestra)",
+   "orchestraId": "anibal-troilo",
+   "reason": "concert piece",
+   "note": "Troilo 1951 homage to Fiorentino; concert",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Quejumbroso",
+   "orchestraId": "osvaldo-pugliese",
+   "reason": "concert piece",
+   "note": "1960s",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Tango para Pugliese",
+   "orchestraId": "color-tango",
+   "reason": "show tango",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Primavera porteña",
+   "orchestraId": "color-tango",
+   "reason": "show tango",
+   "note": "Piazzolla",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Nonino (Color Tango)",
+   "orchestraId": "color-tango",
+   "reason": "show tango",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Los mareados (Color Tango)",
+   "orchestraId": "color-tango",
+   "reason": "show tango",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Una música brutal (Gotan Project)",
+   "orchestraId": null,
+   "reason": "not danceable",
+   "note": "electrotango",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Queremos paz",
+   "orchestraId": null,
+   "reason": "not danceable",
+   "note": "Gotan Project; electrotango",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Época",
+   "orchestraId": null,
+   "reason": "not danceable",
+   "note": "Gotan Project; electrotango",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Mi confesión",
+   "orchestraId": null,
+   "reason": "not danceable",
+   "note": "Gotan Project",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Pa' bailar",
+   "orchestraId": null,
+   "reason": "not danceable",
+   "note": "Bajofondo; electrotango",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "En mí / Soledad",
+   "orchestraId": null,
+   "reason": "not danceable",
+   "note": "Bajofondo",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Otra luna",
+   "orchestraId": null,
+   "reason": "not danceable",
+   "note": "Libedinsky / Narcotango",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Plano secuencia",
+   "orchestraId": null,
+   "reason": "not danceable",
+   "note": "Narcotango",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Una llamada",
+   "orchestraId": null,
+   "reason": "not danceable",
+   "note": "Tanghetto",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Inmigrante",
+   "orchestraId": null,
+   "reason": "not danceable",
+   "note": "Tanghetto",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "Libertango (Bond / Hi Perspective remixes)",
+   "orchestraId": null,
+   "reason": "not danceable",
+   "note": "remixes",
+   "sources": [
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
+    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
+   ]
+  },
+  {
+   "title": "El tango de Roxanne",
    "orchestraId": null,
    "reason": "show tango",
-   "note": "stage show orchestra (Melina Sedó)",
+   "note": "Moulin Rouge",
    "sources": [
-    "https://www.tandaoftheweek.com/23-2026-carlos-di-sarli-vals-tanda-with-rufino-volpe-podesta/",
-    "https://tango-dj.at/mailings/2011/October2011.htm",
-    "https://www.tejastango.com/post-golden-age.html",
-    "https://tangovoice.wordpress.com/2016/12/06/tango-dj-fundamentals-part-1-selecting-music-for-dancing-and-tanda-construction/",
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
     "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
    ]
   },
   {
-   "title": "Romance de barrio (Troilo 1960s remake)",
-   "orchestraId": "anibal-troilo",
-   "reason": "too long",
-   "note": "use 1947 Ruiz version",
+   "title": "Cité Tango (any)",
+   "orchestraId": "astor-piazzolla",
+   "reason": "concert piece",
    "sources": [
-    "https://www.tandaoftheweek.com/23-2026-carlos-di-sarli-vals-tanda-with-rufino-volpe-podesta/",
-    "https://tango-dj.at/mailings/2011/October2011.htm",
-    "https://www.tejastango.com/post-golden-age.html",
-    "https://tangovoice.wordpress.com/2016/12/06/tango-dj-fundamentals-part-1-selecting-music-for-dancing-and-tanda-construction/",
-    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
-   ]
-  },
-  {
-   "title": "El choclo (Varela with Lesica, 1950s long versions)",
-   "orchestraId": "hector-varela",
-   "reason": "too long",
-   "note": ">4 min stage arrangement",
-   "sources": [
-    "https://www.tandaoftheweek.com/23-2026-carlos-di-sarli-vals-tanda-with-rufino-volpe-podesta/",
-    "https://tango-dj.at/mailings/2011/October2011.htm",
-    "https://www.tejastango.com/post-golden-age.html",
-    "https://tangovoice.wordpress.com/2016/12/06/tango-dj-fundamentals-part-1-selecting-music-for-dancing-and-tanda-construction/",
-    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
-   ]
-  },
-  {
-   "title": "La yumba (De Angelis 1974)",
-   "orchestraId": "alfredo-de-angelis",
-   "reason": "not danceable",
-   "note": "1974 remake; stereo era; plays as curiosity only",
-   "sources": [
-    "https://www.tandaoftheweek.com/23-2026-carlos-di-sarli-vals-tanda-with-rufino-volpe-podesta/",
-    "https://tango-dj.at/mailings/2011/October2011.htm",
-    "https://www.tejastango.com/post-golden-age.html",
-    "https://tangovoice.wordpress.com/2016/12/06/tango-dj-fundamentals-part-1-selecting-music-for-dancing-and-tanda-construction/",
-    "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
-   ]
-  },
-  {
-   "title": "Tango argentino (Firpo 1950s sexteto remakes)",
-   "orchestraId": "roberto-firpo",
-   "reason": "not danceable",
-   "note": "late remakes with thin sound",
-   "sources": [
-    "https://www.tandaoftheweek.com/23-2026-carlos-di-sarli-vals-tanda-with-rufino-volpe-podesta/",
-    "https://tango-dj.at/mailings/2011/October2011.htm",
-    "https://www.tejastango.com/post-golden-age.html",
-    "https://tangovoice.wordpress.com/2016/12/06/tango-dj-fundamentals-part-1-selecting-music-for-dancing-and-tanda-construction/",
+    "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html",
+    "https://mailman.mit.edu/pipermail/tango-l/2009-August/010518.html",
     "https://www.melinasedo.com/wp-content/uploads/2019/08/HeroesoftheSilverDisc.pdf"
    ]
   }
