@@ -8,7 +8,8 @@
    "El Rey del Compás"
   ],
   "style": "rhythmic",
-  "energy": 80,
+  "energy": 82,
+  "tier": 1,
   "bpm": {
    "tango": [
     126,
@@ -47,7 +48,7 @@
    ],
    "Juan Carlos Lamas": [
     1940,
-    1942
+    1943
    ],
    "Armando Laborde": [
     1944,
@@ -55,11 +56,39 @@
    ],
    "Jorge Valdez": [
     1957,
-    1965
+    1964
    ],
    "Mario Bustos": [
     1957,
     1962
+   ],
+   "Alberto Reynal": [
+    1939,
+    1941
+   ],
+   "Osvaldo Ramos": [
+    1965,
+    1975
+   ],
+   "Horacio Palma": [
+    1959,
+    1963
+   ],
+   "Carlos Dante": [
+    1928,
+    1929
+   ],
+   "A. Echagüe - A. Laborde": [
+    1949,
+    1957
+   ],
+   "A. Laborde - O. Ramos": [
+    1968,
+    1975
+   ],
+   "Jorge Valdéz": [
+    1957,
+    1964
    ]
   },
   "notes": "Instrumentals 1935-1939 (Biagi on piano 1935-38) are the universal opener/peak material; Echagüe 1938-39 vocal tandas and 1950s Echagüe/Laborde for peaks; Mauré 1940-44 for warm emotional middle. 1960s material very fast, use late milongas only. Milongas and valses are among the strongest in the repertoire. Best: 1935-1939 instrumental, 1938-1939 Echagüe, 1940-1944 Mauré, 1949-1957 Echagüe/Laborde",
@@ -77,7 +106,47 @@
    "Milonga vieja milonga (1937)",
    "Amor y celos (vals)",
    "Loca (1955)"
-  ]
+  ],
+  "singerStints": {
+   "Alberto Echagüe": [
+    [
+     1938,
+     1939
+    ],
+    [
+     1944,
+     1957
+    ],
+    [
+     1968,
+     1975
+    ]
+   ]
+  },
+  "singerShift": {
+   "Héctor Mauré": -4,
+   "Jorge Valdez": -6,
+   "Juan Carlos Lamas": -4,
+   "Alberto Echagüe": 0,
+   "Armando Laborde": 0
+  },
+  "bestYears": [
+   1935,
+   1957
+  ],
+  "warmupOnly": {
+   "vocal": false,
+   "years": [
+    1935,
+    1939
+   ]
+  },
+  "eraShift": {
+   "golden-early": 4,
+   "golden-peak": 0,
+   "golden-late": 2,
+   "post-golden": 2
+  }
  },
  {
   "id": "carlos-di-sarli",
@@ -88,6 +157,7 @@
   ],
   "style": "lyrical",
   "energy": 60,
+  "tier": 1,
   "bpm": {
    "tango": [
     108,
@@ -104,9 +174,8 @@
   },
   "phase": [
    "build",
-   "cooldown",
    "peak",
-   "warmup"
+   "cooldown"
   ],
   "singers": {
    "Roberto Rufino": [
@@ -127,7 +196,7 @@
    ],
    "Oscar Serpa": [
     1948,
-    1951
+    1953
    ],
    "Mario Pomar": [
     1951,
@@ -139,6 +208,10 @@
    ],
    "Horacio Casares": [
     1958,
+    1958
+   ],
+   "Roberto Florio": [
+    1956,
     1958
    ]
   },
@@ -157,7 +230,78 @@
    "Corazón (Rufino 1939)",
    "Nido gaucho (Podestá 1942)",
    "La cumparsita (1955, closing)"
-  ]
+  ],
+  "subPeriods": [
+   {
+    "years": [
+     1939,
+     1945
+    ],
+    "phase": [
+     "warmup",
+     "build",
+     "cooldown"
+    ],
+    "energyShift": -4
+   },
+   {
+    "years": [
+     1946,
+     1950
+    ],
+    "phase": [
+     "build",
+     "cooldown"
+    ],
+    "energyShift": 0
+   },
+   {
+    "years": [
+     1951,
+     1958
+    ],
+    "phase": [
+     "peak",
+     "cooldown"
+    ],
+    "energyShift": 6,
+    "notBefore": 0.45
+   }
+  ],
+  "singerStints": {
+   "Alberto Podestá": [
+    [
+     1942,
+     1944
+    ],
+    [
+     1947,
+     1948
+    ]
+   ],
+   "Jorge Durán": [
+    [
+     1945,
+     1947
+    ],
+    [
+     1956,
+     1958
+    ]
+   ]
+  },
+  "singerShift": {
+   "Roberto Rufino": 0,
+   "Alberto Podestá": 0,
+   "Oscar Serpa": -4,
+   "Mario Pomar": -2,
+   "Jorge Durán": 2,
+   "Roberto Florio": 0
+  },
+  "rhythmShift": {
+   "vals": 2,
+   "milonga": 4
+  }
  },
  {
   "id": "anibal-troilo",
@@ -168,8 +312,9 @@
    "Troilo-Fiorentino",
    "Troilo-Marino"
   ],
-  "style": "lyrical",
+  "style": "balanced",
   "energy": 64,
+  "tier": 1,
   "bpm": {
    "tango": [
     108,
@@ -217,11 +362,27 @@
    "Roberto Goyeneche": [
     1956,
     1963
+   ],
+   "Aldo Calderón": [
+    1955,
+    1956
+   ],
+   "Ángel Cárdenas": [
+    1957,
+    1960
+   ],
+   "Floreal Ruíz": [
+    1944,
+    1948
+   ],
+   "Angel Cárdenas": [
+    1957,
+    1960
    ]
   },
   "notes": "1941-1943 (Fiorentino) is core golden-age material, mid-energy, elastic phrasing. 1944-47 Marino 'demands more' than Fiorentino (Lavocah) - for experienced floors, middle/peak. Instrumentals 1941 (Cachirulo, Milongueando en el 40, Guapeando) are peak rhythmic Troilo. Post-1950 and the 'Últimos instrumentales' mostly lack the beat for social dancing. Valses (Palomita blanca, Flor de lino, Romance d",
   "vocalShift": 2,
-  "instrumentalShift": -1,
+  "instrumentalShift": 2,
   "shareOfNightMax": 0.2,
   "difficulty": 55,
   "confidence": "sourced+estimate",
@@ -234,6 +395,70 @@
    "Palomita blanca (vals 1944)",
    "Romance de barrio (vals 1947)",
    "Mano brava (milonga 1941)"
+  ],
+  "eraShift": {
+   "golden-early": 4,
+   "golden-peak": 2,
+   "golden-late": -4,
+   "post-golden": -10
+  },
+  "subPeriods": [
+   {
+    "years": [
+     1938,
+     1944
+    ],
+    "phase": [
+     "build",
+     "peak",
+     "cooldown"
+    ],
+    "difficulty": 40
+   },
+   {
+    "years": [
+     1945,
+     1949
+    ],
+    "phase": [
+     "peak",
+     "cooldown"
+    ],
+    "difficulty": 60
+   },
+   {
+    "years": [
+     1950,
+     1975
+    ],
+    "phase": [],
+    "difficulty": 85,
+    "danceable": "limited",
+    "note": "instrumentals from 1950 on are concert repertoire unless whitelisted"
+   }
+  ],
+  "bestYears": [
+   1938,
+   1949
+  ],
+  "singerShift": {
+   "Francisco Fiorentino": 2,
+   "Alberto Marino": 0,
+   "Floreal Ruiz": -2,
+   "Edmundo Rivero": -4,
+   "Jorge Casal": -4,
+   "Raúl Berón": -4,
+   "Roberto Goyeneche": -8
+  },
+  "nonDanceTitles": [
+   "Responso",
+   "La última curda",
+   "Intermezzo",
+   "Danzarín",
+   "Quejas de bandoneón (1963)",
+   "Selección de temas de Francisco Canaro",
+   "Contrabajeando",
+   "A fuego lento"
   ]
  },
  {
@@ -245,6 +470,7 @@
   ],
   "style": "dramatic",
   "energy": 76,
+  "tier": 1,
   "bpm": {
    "tango": [
     100,
@@ -260,9 +486,10 @@
    ]
   },
   "phase": [
-   "cooldown",
    "peak"
   ],
+  "notBefore": 0.6,
+  "notAfter": 0.9,
   "singers": {
    "Roberto Chanel": [
     1943,
@@ -305,7 +532,22 @@
    "Desde el alma (vals 1947)",
    "Recuerdo (1944)"
   ],
-  "notBefore": 0.5
+  "maxPerNight": {
+   "4": 1,
+   "6": 2
+  },
+  "followWith": [
+   "vals",
+   "milonga",
+   "rhythmic"
+  ],
+  "singerShift": {
+   "Roberto Chanel": 0,
+   "Alberto Morán": 4,
+   "Jorge Maciel": 2,
+   "Miguel Montero": 0,
+   "Abel Córdoba": 2
+  }
  },
  {
   "id": "miguel-calo",
@@ -316,7 +558,8 @@
    "Orquesta de las Estrellas"
   ],
   "style": "lyrical",
-  "energy": 56,
+  "energy": 58,
+  "tier": 1,
   "bpm": {
    "tango": [
     114,
@@ -351,15 +594,11 @@
    "Roberto Arrieta": [
     1945,
     1948
-   ],
-   "Jorge Ortiz": [
-    1941,
-    1941
    ]
   },
   "notes": "Vocal tandas (few danceable instrumentals - build vocal). Elegant, balanced, mid-tempo; ideal for the second hour and for the sweet ending. 1942-43 Berón/Podestá/Iriarte is the core. Valses (Pedacito de cielo, Bajo un cielo de estrellas) are classics. Best: 1941-1943, 1944-1946",
   "vocalShift": 2,
-  "instrumentalShift": -3,
+  "instrumentalShift": 0,
   "shareOfNightMax": 0.15,
   "difficulty": 45,
   "confidence": "sourced+estimate",
@@ -370,6 +609,36 @@
    "Sans Souci (1950)",
    "Pedacito de cielo (vals 1942)",
    "Bajo un cielo de estrellas (vals 1941)"
+  ],
+  "singerStints": {
+   "Alberto Podestá": [
+    [
+     1941,
+     1943
+    ],
+    [
+     1954,
+     1954
+    ],
+    [
+     1963,
+     1963
+    ]
+   ],
+   "Raúl Berón": [
+    [
+     1941,
+     1943
+    ],
+    [
+     1945,
+     1946
+    ]
+   ]
+  },
+  "bestYears": [
+   1941,
+   1950
   ]
  },
  {
@@ -382,7 +651,8 @@
    "Tanturi-Campos"
   ],
   "style": "rhythmic",
-  "energy": 64,
+  "energy": 66,
+  "tier": 1,
   "bpm": {
    "tango": [
     114,
@@ -417,6 +687,18 @@
    "Elsa Rivas": [
     1950,
     1950
+   ],
+   "Horacio Roca": [
+    1957,
+    1960
+   ],
+   "Osvaldo Ribó": [
+    1946,
+    1948
+   ],
+   "O. Ribó - R. Videla": [
+    1946,
+    1948
    ]
   },
   "notes": "Two distinct profiles: Castillo 1940-43 = rhythmic, energy ~70, early/build/peak; Campos 1943-46 = lyrical, energy ~55, middle/late. Never mix the two singers. Valses and milongas with Castillo are excellent lifts. Best: 1940-1943 Castillo, 1943-1946 Campos",
@@ -432,6 +714,16 @@
    "Oigo tu voz (Campos 1943)",
    "Mi romance (vals Castillo 1941)",
    "Mozo guapo (milonga Castillo 1940)"
+  ],
+  "singerShift": {
+   "Alberto Castillo": 6,
+   "Enrique Campos": -8,
+   "Roberto Videla": -6,
+   "Elsa Rivas": -6
+  },
+  "bestYears": [
+   1940,
+   1948
   ]
  },
  {
@@ -443,14 +735,15 @@
   ],
   "style": "rhythmic",
   "energy": 78,
+  "tier": 1,
   "bpm": {
    "tango": [
     124,
     138
    ],
    "vals": [
-    186,
-    202
+    184,
+    200
    ],
    "milonga": [
     110,
@@ -489,6 +782,10 @@
    "Hugo Duval": [
     1950,
     1960
+   ],
+   "Jorge Ortíz": [
+    1940,
+    1948
    ]
   },
   "notes": "Syncopated, staccato piano; feels faster than it is. Instrumentals 1938-1942 and Ortiz vocals for build/peak; valses (Lágrimas y sonrisas, Loca de amor, Dichas que viví) are the most whirling in the canon - peak vals tanda. Not for warm-up with beginners (off-beat accents confuse). Milongas strong. Best: 1938-1940 Falgás/instrumental, 1940-1943 Ortiz, 1944-1948 Amor",
@@ -504,6 +801,29 @@
    "Lágrimas y sonrisas (vals 1941)",
    "Dichas que viví (vals 1939)",
    "Flor de Montserrat (milonga 1945)"
+  ],
+  "singerStints": {
+   "Jorge Ortiz": [
+    [
+     1940,
+     1943
+    ],
+    [
+     1946,
+     1948
+    ]
+   ]
+  },
+  "singerShift": {
+   "Andrés Falgás": 2,
+   "Jorge Ortiz": 0,
+   "Alberto Amor": -4,
+   "Carlos Acuña": -2,
+   "Hugo Duval": -4
+  },
+  "bestYears": [
+   1938,
+   1950
   ]
  },
  {
@@ -515,7 +835,8 @@
    "Orquesta de todos los ritmos"
   ],
   "style": "rhythmic",
-  "energy": 62,
+  "energy": 66,
+  "tier": 1,
   "bpm": {
    "tango": [
     120,
@@ -531,8 +852,9 @@
    ]
   },
   "phase": [
+   "warmup",
    "build",
-   "warmup"
+   "peak"
   ],
   "singers": {
    "Roberto Flores": [
@@ -550,6 +872,14 @@
    "Omar Quiroz": [
     1950,
     1950
+   ],
+   "Roberto \"Chato\" Flores": [
+    1937,
+    1940
+   ],
+   "Omar Quiróz": [
+    1950,
+    1950
    ]
   },
   "notes": "Square, bouncy, foxtrot-tinged; easiest music to dance in the canon; excellent warm-up and 'breathing' tandas. Valses (Tengo mil novias, Isabelita, Fru fru) and milongas are festival staples. Do not place at the main peak. Best: 1938-1945 Moreno",
@@ -565,6 +895,14 @@
    "Isabelita (vals 1940)",
    "Cómo se pianta la vida (1939)",
    "Maldonado (milonga 1940)"
+  ],
+  "rhythmShift": {
+   "vals": 6,
+   "milonga": 6
+  },
+  "bestYears": [
+   1937,
+   1950
   ]
  },
  {
@@ -578,7 +916,8 @@
    "Canaro-Famá"
   ],
   "style": "rhythmic",
-  "energy": 48,
+  "energy": 50,
+  "tier": 1,
   "bpm": {
    "tango": [
     116,
@@ -604,8 +943,8 @@
     1932
    ],
    "Ernesto Famá": [
-    1932,
-    1940
+    1930,
+    1941
    ],
    "Roberto Maida": [
     1935,
@@ -626,6 +965,10 @@
    "Mario Alonso": [
     1949,
     1953
+   ],
+   "Nelly Omar": [
+    1946,
+    1947
    ]
   },
   "notes": "Canaro-Maida 1935-38 = gentle lyrical-rhythmic, the perfect 'easier' tanda and sweet-ending material (Poema, Invierno). Canaro-Famá 1932-36 = cheerful early. Instrumentals 1927-34 (Guardia Vieja) for warm-up and afternoon. Canaro's milongas (Milonga sentimental 1933, Milonga brava, Reliquias porteñas) are the standard early-night milonga tanda; Quinteto Pirincho 1950s instrumentals are a separate,",
@@ -642,6 +985,37 @@
    "Corazón de oro (vals)",
    "Yo no sé por qué te quiero (Famá 1934)",
    "La cumparsita"
+  ],
+  "eraShift": {
+   "guardia-nueva": -4,
+   "golden-early": 2,
+   "golden-peak": 0,
+   "golden-late": -4,
+   "post-golden": -8
+  },
+  "rhythmShift": {
+   "vals": 6,
+   "milonga": 14
+  },
+  "singerDanceable": {
+   "Nelly Omar": false
+  },
+  "singerShift": {
+   "Roberto Maida": 0,
+   "Ernesto Famá": 2,
+   "Charlo": -2,
+   "Carlos Roldán": 0,
+   "Alberto Arenas": -2,
+   "Nelly Omar": -10
+  },
+  "bestYears": [
+   1927,
+   1946
+  ],
+  "nonDanceTitles": [
+   "Reliquias brasileñas",
+   "Reliquias brasileñas - 2a.parte",
+   "Selección"
   ]
  },
  {
@@ -654,6 +1028,7 @@
   ],
   "style": "lyrical",
   "energy": 46,
+  "tier": 1,
   "bpm": {
    "tango": [
     112,
@@ -687,8 +1062,16 @@
     1948
    ],
    "Héctor Pacheco": [
-    1952,
-    1956
+    1948,
+    1955
+   ],
+   "Hugo Marcel": [
+    1959,
+    1963
+   ],
+   "Ricardo Ruíz": [
+    1939,
+    1942
    ]
   },
   "notes": "Smooth, harp and vibraphone; low physical, medium emotional. Best for warm-up with experienced dancers, breathing tandas, and the sweet ending. Instrumentals 1930s-40s (El once, Arrabalero, Vida mía 1933) excellent. Few milongas; valses light. Best: 1933-1939 Ray, 1939-1942 Ruiz, 1940s instrumental",
@@ -704,6 +1087,22 @@
    "Tigre viejo (1934)",
    "El once (1937)",
    "Arrabalero (1927)"
+  ],
+  "singerStints": {
+   "Roberto Ray": [
+    [
+     1933,
+     1939
+    ],
+    [
+     1948,
+     1950
+    ]
+   ]
+  },
+  "bestYears": [
+   1933,
+   1950
   ]
  },
  {
@@ -714,7 +1113,8 @@
    "Donato-Lagos"
   ],
   "style": "rhythmic",
-  "energy": 58,
+  "energy": 60,
+  "tier": 1,
   "bpm": {
    "tango": [
     120,
@@ -753,6 +1153,18 @@
    "Antonio Maida": [
     1934,
     1934
+   ],
+   "Carlos Almada": [
+    1945,
+    1950
+   ],
+   "Roberto Morel": [
+    1942,
+    1945
+   ],
+   "Félix Gutierrez": [
+    1932,
+    1934
    ]
   },
   "notes": "Playful, jaunty, 1930s; perfect warm-up and afternoon material; valses (Carnaval de mi barrio, La tapera, Luna de arrabal) and milongas (Ella es así, Sacale punta) are joyful early-night lifts. Do not follow with 1950s Di Sarli (style jump). Best: 1932-1936 instrumental, 1936-1942 Lagos/Gavioli",
@@ -769,6 +1181,14 @@
    "Sacale punta (milonga 1938)",
    "Carnaval de mi barrio (vals 1939)",
    "La tapera (vals 1938)"
+  ],
+  "rhythmShift": {
+   "vals": 4,
+   "milonga": 10
+  },
+  "bestYears": [
+   1932,
+   1942
   ]
  },
  {
@@ -781,6 +1201,7 @@
   ],
   "style": "rhythmic",
   "energy": 54,
+  "tier": 1,
   "bpm": {
    "tango": [
     118,
@@ -812,11 +1233,19 @@
    "Ruben Cané": [
     1950,
     1950
+   ],
+   "Angel Vargas": [
+    1940,
+    1946
+   ],
+   "Rubén Cané": [
+    1950,
+    1950
    ]
   },
   "notes": "Vocal tandas (almost no instrumentals). Soft-rhythmic, intimate, 'de barrio' - ideal for the early hour and the sweet ending; many DJs open the night with D'Agostino-Vargas. Café Domínguez (with its spoken intro) is the classic opener. Milongas (Así me gusta a mí, El porteñito) and valses (Esta noche en Buenos Aires) are few but usable. Best: 1940-1946 Vargas",
   "vocalShift": 2,
-  "instrumentalShift": -5,
+  "instrumentalShift": -2,
   "shareOfNightMax": 0.12,
   "difficulty": 30,
   "confidence": "sourced+estimate",
@@ -827,7 +1256,16 @@
    "Hotel Victoria (1945)",
    "Esta noche en Buenos Aires (vals 1943)",
    "Agua florida (1945)"
-  ]
+  ],
+  "bestYears": [
+   1940,
+   1955
+  ],
+  "singerShift": {
+   "Angel Vargas": 2,
+   "Tino García": -4,
+   "Rubén Cané": -4
+  }
  },
  {
   "id": "alfredo-de-angelis",
@@ -838,6 +1276,7 @@
   ],
   "style": "lyrical",
   "energy": 62,
+  "tier": 1,
   "bpm": {
    "tango": [
     118,
@@ -875,8 +1314,24 @@
     1956
    ],
    "Juan Carlos Godoy": [
-    1960,
-    1960
+    1958,
+    1963
+   ],
+   "Lalo Martel": [
+    1957,
+    1963
+   ],
+   "C. Dante - J. Martel": [
+    1944,
+    1951
+   ],
+   "C. Dante - O. Larroca": [
+    1951,
+    1957
+   ],
+   "Floreal Ruíz": [
+    1941,
+    1943
    ]
   },
   "notes": "Tango 'de calesita' (fairground) feel: strong, singable, slightly sweet. The duet valses (Pregonera, Pastora, Flores del alma, A Magaldi) are peak vals tandas worldwide. Instrumentals 1950s (Pavadita, El tango club) good middle. Milongas few. Best: 1944-1951 Dante/Martel, 1950s instrumental",
@@ -892,7 +1347,26 @@
    "Pavadita (1958)",
    "Mi dolor (1954)",
    "Remolino (Dante 1946)"
-  ]
+  ],
+  "rhythmShift": {
+   "vals": 8,
+   "milonga": 2
+  },
+  "bestYears": [
+   1943,
+   1960
+  ],
+  "nonDanceTitles": [
+   "Selecciones de E.S.Discépolo",
+   "Selección"
+  ],
+  "rhythmOverride": {
+   "Pregonera": "vals",
+   "Pastora": "vals",
+   "Flores del alma": "vals",
+   "Soñar y nada más": "vals",
+   "A Magaldi": "vals"
+  }
  },
  {
   "id": "pedro-laurenz",
@@ -900,8 +1374,9 @@
   "aliases": [
    "Laurenz"
   ],
-  "style": "lyrical",
-  "energy": 60,
+  "style": "balanced",
+  "energy": 64,
+  "tier": 1,
   "bpm": {
    "tango": [
     120,
@@ -940,11 +1415,19 @@
    "Jorge Linares": [
     1945,
     1947
+   ],
+   "Alfredo del Río": [
+    1950,
+    1955
+   ],
+   "Carlos Bermudez": [
+    1943,
+    1946
    ]
   },
   "notes": "Bandoneon-led, rhythmic-lyrical, sophisticated; instrumentals (Arrabal 1937, Amurado 1940, Milonga de mis amores 1937) excellent middle; vocal Podestá 1940-41 and Bermúdez. Milonga de mis amores and Yo soy de Parque Patricios are milonga staples. Best: 1937-1941, 1943-1946 Bermúdez",
   "vocalShift": 1,
-  "instrumentalShift": 0,
+  "instrumentalShift": 4,
   "shareOfNightMax": 0.08,
   "difficulty": 45,
   "confidence": "sourced+estimate",
@@ -955,6 +1438,10 @@
    "Como dos extraños (Casas 1940)",
    "Alma de bohemio (Podestá 1943)",
    "Mascarita (vals 1940)"
+  ],
+  "bestYears": [
+   1937,
+   1944
   ]
  },
  {
@@ -966,6 +1453,7 @@
   ],
   "style": "lyrical",
   "energy": 52,
+  "tier": 1,
   "bpm": {
    "tango": [
     110,
@@ -1014,6 +1502,18 @@
    "Tal vez será su voz (Berón 1943)",
    "Solamente ella (Berón 1944)",
    "Dandy (Miranda 1942)"
+  ],
+  "bestYears": [
+   1938,
+   1945
+  ],
+  "singerShift": {
+   "Juan Carlos Miranda": 2,
+   "Raúl Berón": 0,
+   "Horacio Quintana": -2
+  },
+  "nonDanceSingers": [
+   "Solo de Piano"
   ]
  },
  {
@@ -1023,7 +1523,8 @@
    "Lomuto"
   ],
   "style": "rhythmic",
-  "energy": 46,
+  "energy": 50,
+  "tier": 2,
   "bpm": {
    "tango": [
     118,
@@ -1045,11 +1546,15 @@
   "singers": {
    "Fernando Díaz": [
     1928,
-    1940
+    1945
    ],
    "Jorge Omar": [
     1935,
     1943
+   ],
+   "Alberto Rivera": [
+    1945,
+    1950
    ]
   },
   "notes": "Guardia Vieja / early-40s jaunty; instrumentals 1930s and Díaz/Omar vocals; valses and milongas early-night; can be mixed with Canaro/OTV instrumentals of the same years in a 'Guardia Vieja' tanda. Milongas limited. Best: 1930-1936, 1938-1943 Omar",
@@ -1063,6 +1568,10 @@
    "Muñeca brava (Díaz 1933)",
    "La cumparsita (1930s)",
    "Puente Alsina (Díaz 1930)"
+  ],
+  "bestYears": [
+   1930,
+   1945
   ]
  },
  {
@@ -1074,6 +1583,7 @@
   ],
   "style": "rhythmic",
   "energy": 44,
+  "tier": 2,
   "bpm": {
    "tango": [
     116,
@@ -1089,7 +1599,6 @@
    ]
   },
   "phase": [
-   "build",
    "warmup"
   ],
   "singers": {
@@ -1100,6 +1609,10 @@
    "Carlos Varela": [
     1930,
     1930
+   ],
+   "Alberto Diale": [
+    1939,
+    1943
    ]
   },
   "notes": "Instrumentals, especially the 1930s Cuarteto (El amanecer 1936 with birdsong, Alma de bohemio); charming, light; warm-up and afternoon only; milongas (Milonga orillera) and valses fine for a Guardia Vieja slot. Best: 1927-1939 orquesta/cuarteto",
@@ -1114,6 +1627,10 @@
    "Fuegos artificiales",
    "Milonga orillera (1936)",
    "El rápido (1937)"
+  ],
+  "bestYears": [
+   1936,
+   1939
   ]
  },
  {
@@ -1125,7 +1642,8 @@
    "Orquesta Victor"
   ],
   "style": "rhythmic",
-  "energy": 48,
+  "energy": 52,
+  "tier": 1,
   "bpm": {
    "tango": [
     118,
@@ -1158,12 +1676,24 @@
     1934
    ],
    "Ángel Vargas": [
-    1935,
-    1937
-   ],
-   "Mario Pomar / Ortiz": [
     1938,
+    1939
+   ],
+   "Mario Pomar": [
+    1939,
     1944
+   ],
+   "Carmen del Moral": [
+    1940,
+    1941
+   ],
+   "Teófilo Ibañez": [
+    1930,
+    1932
+   ],
+   "Angel Vargas": [
+    1938,
+    1939
    ]
   },
   "notes": "Studio orchestra of RCA Victor; crisp 1930s instrumentals (Ventarrón, Sentimiento criollo, Coquetona) and 1935-38 Vargas vocals; valses (Temo, Cuando estaba enamorado) good for the first hour. Reasonable to mix with Canaro/Lomuto in a GV tanda. Best: 1929-1934 instrumental, 1935-1938 Vargas",
@@ -1178,6 +1708,10 @@
    "Temo (vals 1940)",
    "Adiós Buenos Aires (Vargas 1938)",
    "Coquetona (1933)"
+  ],
+  "bestYears": [
+   1926,
+   1944
   ]
  },
  {
@@ -1189,6 +1723,7 @@
   ],
   "style": "dramatic",
   "energy": 60,
+  "tier": 2,
   "bpm": {
    "tango": [
     112,
@@ -1207,6 +1742,7 @@
    "cooldown",
    "peak"
   ],
+  "notBefore": 0.4,
   "singers": {
    "Jorge Maciel": [
     1947,
@@ -1217,6 +1753,14 @@
     1950
    ],
    "Ángel Díaz": [
+    1950,
+    1950
+   ],
+   "Tito Lando": [
+    1950,
+    1950
+   ],
+   "Angel Díaz": [
     1950,
     1950
    ]
@@ -1232,8 +1776,7 @@
    "El andariego (1951)",
    "Orlando Goñi (1949)",
    "Camandulaje (1952)"
-  ],
-  "notBefore": 0.4
+  ]
  },
  {
   "id": "ricardo-malerba",
@@ -1243,6 +1786,7 @@
   ],
   "style": "rhythmic",
   "energy": 56,
+  "tier": 2,
   "bpm": {
    "tango": [
     120,
@@ -1282,6 +1826,10 @@
    "Gitana rusa (Medina 1942)",
    "Cuando florezcan las rosas (Medina 1942)",
    "La piba de los jazmines (Medina 1943)"
+  ],
+  "bestYears": [
+   1941,
+   1946
   ]
  },
  {
@@ -1293,6 +1841,7 @@
   ],
   "style": "rhythmic",
   "energy": 56,
+  "tier": 2,
   "bpm": {
    "tango": [
     118,
@@ -1322,6 +1871,14 @@
    "Mario Bustos": [
     1947,
     1950
+   ],
+   "Armando Moreno": [
+    1952,
+    1956
+   ],
+   "C. Vidal - O. Larroca": [
+    1944,
+    1947
    ]
   },
   "notes": "Ex-Caló bandoneonist; 1943-45 Vidal sides (Al compás de un tango, Yuyo verde, Percal, Tristezas de la calle Corrientes) make one solid middle tanda; valses limited. Best: 1943-1945 Vidal",
@@ -1335,6 +1892,10 @@
    "Al compás de un tango (Vidal 1944)",
    "Tristezas de la calle Corrientes (Vidal 1943)",
    "Percal (Vidal 1943)"
+  ],
+  "bestYears": [
+   1943,
+   1948
   ]
  },
  {
@@ -1346,6 +1907,7 @@
   ],
   "style": "rhythmic",
   "energy": 62,
+  "tier": 2,
   "bpm": {
    "tango": [
     120,
@@ -1376,6 +1938,10 @@
    "Ernesto Herrera": [
     1958,
     1960
+   ],
+   "Armando Laborde": [
+    1951,
+    1953
    ]
   },
   "notes": "D'Arienzo's ex-bandoneonist: keeps a D'Arienzo beat with a spacious Di Sarli-like sound (Brown). 1950s hi-fi; one tanda for the 1950s-flavoured middle/late; milongas (Azúcar, pimienta y sal 1958) and valses fine. Sometimes 'glossy'; most dancers prefer D'Arienzo/Di Sarli. Best: 1952-1958 Ledesma/Lesica, 1950s instrumental",
@@ -1392,44 +1958,70 @@
   ]
  },
  {
-  "id": "carlos-salamanca",
-  "name": "Carlos Salamanca",
+  "id": "fulvio-salamanca",
+  "name": "Fulvio Salamanca",
   "aliases": [
-   "Salamanca"
+   "Salamanca",
+   "Fulvio Salamanca"
   ],
-  "style": "lyrical",
-  "energy": 54,
+  "style": "rhythmic",
+  "energy": 66,
+  "tier": 2,
   "bpm": {
    "tango": [
-    110,
-    122
+    124,
+    138
    ],
    "vals": [
-    172,
-    184
+    180,
+    196
    ],
    "milonga": [
-    104,
-    114
+    112,
+    126
    ]
   },
   "phase": [
-   "cooldown"
+   "build",
+   "peak"
   ],
   "singers": {
-   "Ricardo Argentino": [
-    1950,
-    1950
+   "Armando Guerrico": [
+    1957,
+    1962
+   ],
+   "Mario Luna": [
+    1957,
+    1960
+   ],
+   "Alberto Hidalgo": [
+    1963,
+    1967
+   ],
+   "Luis Roca": [
+    1959,
+    1962
+   ],
+   "Julio Rodolfo": [
+    1960,
+    1965
    ]
   },
-  "notes": "Ex-Pugliese violinist (not to be confused with Di Sarli's bandoneonist); dramatic-lyrical 1950s; rare one tanda late for connoisseurs. Low priority. Best: 1950s",
-  "vocalShift": -1,
-  "instrumentalShift": -2,
+  "notes": "D'Arienzo's pianist 1940-57; own rhythmic orchestra from 1957 (singer years to verify). Replaces the phantom 'Carlos Salamanca' entry that never merged with the catalogue id.",
+  "vocalShift": 0,
+  "instrumentalShift": 2,
   "shareOfNightMax": 0.04,
-  "difficulty": 50,
-  "confidence": "low",
+  "difficulty": 35,
+  "confidence": "estimate",
   "signatureTracks": [
-   "(verify library; few canonical tracks)"
+   "Milongueracha",
+   "Morena (milonga)",
+   "El puntazo",
+   "Delantal"
+  ],
+  "bestYears": [
+   1957,
+   1965
   ]
  },
  {
@@ -1440,6 +2032,7 @@
   ],
   "style": "lyrical",
   "energy": 52,
+  "tier": 2,
   "bpm": {
    "tango": [
     112,
@@ -1455,7 +2048,6 @@
    ]
   },
   "phase": [
-   "build",
    "cooldown"
   ],
   "singers": {
@@ -1483,7 +2075,8 @@
    "Pequeña (Verri 1949)",
    "Que nunca me falte (Verri 1947)",
    "Escalas en azul (1949)"
-  ]
+  ],
+  "neverClose": true
  },
  {
   "id": "francini-pontier",
@@ -1495,6 +2088,7 @@
   ],
   "style": "lyrical",
   "energy": 58,
+  "tier": 2,
   "bpm": {
    "tango": [
     112,
@@ -1527,12 +2121,16 @@
     1953
    ],
    "Julio Sosa": [
-    1953,
-    1955
+    1949,
+    1953
    ],
    "Pablo Moreno": [
     1946,
     1948
+   ],
+   "Roberto Florio": [
+    1954,
+    1955
    ]
   },
   "notes": "Ex-Caló members; rich 1945-50 arrangements (Brown: 'overblown arrangements tire quickly' - so one tanda); Podestá 1945-47 (Margo, Mañana iré temprano) and Rufino sides; instrumentals A los amigos, Margo for a late refined tanda. Best: 1945-1950",
@@ -1546,6 +2144,9 @@
    "Margo (Podestá 1945)",
    "Mañana iré temprano (Podestá 1946)",
    "Uno (Rufino 1950)"
+  ],
+  "nonDanceTitles": [
+   "Selección de valses"
   ]
  },
  {
@@ -1556,6 +2157,7 @@
   ],
   "style": "lyrical",
   "energy": 50,
+  "tier": 3,
   "bpm": {
    "tango": [
     108,
@@ -1608,6 +2210,7 @@
   ],
   "style": "dramatic",
   "energy": 58,
+  "tier": 3,
   "bpm": {
    "tango": [
     108,
@@ -1637,6 +2240,10 @@
    "Floreal Ruiz": [
     1950,
     1950
+   ],
+   "Floreal Ruíz": [
+    1950,
+    1950
    ]
   },
   "notes": "Troilo-lineage pianist; 1947-50 Fiorentino/Durán sides are danceable; later recordings concert-ish. One late tanda for Troilo-style lovers; verify tracks. Best: 1947-1952",
@@ -1659,6 +2266,7 @@
   ],
   "style": "rhythmic",
   "energy": 62,
+  "tier": 2,
   "bpm": {
    "tango": [
     122,
@@ -1678,16 +2286,16 @@
   ],
   "singers": {
    "Olga Delgrossi": [
-    1950,
-    1950
+    1952,
+    1962
    ],
    "Nina Miranda": [
-    1950,
-    1950
+    1951,
+    1956
    ],
    "Carlos Roldán": [
-    1950,
-    1950
+    1954,
+    1960
    ]
   },
   "notes": "Uruguayan D'Arienzo-style; square, bright 1950s hi-fi; good 'D'Arienzo substitute' milongas and valses with female singers (unusual, pleasant). One tanda early/middle. Best: 1950-1960",
@@ -1710,6 +2318,7 @@
   ],
   "style": "nuevo",
   "energy": 40,
+  "tier": 3,
   "bpm": {
    "tango": [
     90,
@@ -1728,7 +2337,11 @@
     1968,
     1972
    ],
-   "Jorge Sobral": [
+   "Francisco Fiorentino": [
+    1946,
+    1948
+   ],
+   "Aldo Campoamor": [
     1946,
     1948
    ]
@@ -1756,6 +2369,7 @@
   ],
   "style": "nuevo",
   "energy": 44,
+  "tier": 3,
   "bpm": {
    "tango": [
     100,
@@ -1796,6 +2410,7 @@
   ],
   "style": "dramatic",
   "energy": 66,
+  "tier": 3,
   "bpm": {
    "tango": [
     112,
@@ -1813,12 +2428,7 @@
   "phase": [
    "cooldown"
   ],
-  "singers": {
-   "Various show singers": [
-    1980,
-    2000
-   ]
-  },
+  "singers": {},
   "notes": "Show tango (Tango Pasión); fast, theatrical (Brown); 'Tangos para bailar' album is the most danceable; occasional late tanda at festivals aimed at stage-tango fans. Rare. Best: Tangos para bailar",
   "vocalShift": -5,
   "instrumentalShift": -2,
@@ -1839,6 +2449,7 @@
   ],
   "style": "dramatic",
   "energy": 72,
+  "tier": 3,
   "bpm": {
    "tango": [
     108,
@@ -1857,6 +2468,7 @@
    "cooldown",
    "peak"
   ],
+  "notBefore": 0.5,
   "singers": {},
   "notes": "Pugliese-style with a steady dance beat ('Con estilo de bailar' vols. 1-3; Brown: outstanding). The standard contemporary 'Pugliese substitute' at festivals; same placement rules as Pugliese (late, once). Best: Con estilo de bailar",
   "vocalShift": -5,
@@ -1869,8 +2481,7 @@
    "Gallo ciego",
    "Zum",
    "A Evaristo Carriego"
-  ],
-  "notBefore": 0.5
+  ]
  },
  {
   "id": "sexteto-milonguero",
@@ -1881,6 +2492,7 @@
   ],
   "style": "rhythmic",
   "energy": 66,
+  "tier": 3,
   "bpm": {
    "tango": [
     118,
@@ -1901,7 +2513,7 @@
   "singers": {
    "Javier Di Ciriaco": [
     2006,
-    2006
+    2020
    ]
   },
   "notes": "Modern vocal sexteto recreating 1940s danceable repertoire (Café Domínguez, Tres esquinas); appears in festival tandas. One tanda in a 4-hour festival night, first half. Not at BsAs-codes milongas. Best: Pa' que bailen (2007-2012)",
@@ -1925,6 +2537,7 @@
   ],
   "style": "lyrical",
   "energy": 58,
+  "tier": 3,
   "bpm": {
    "tango": [
     112,
@@ -1945,12 +2558,12 @@
   ],
   "singers": {
    "Roberto Minondi": [
-    2016,
-    2016
+    2015,
+    2026
    ],
    "Marisol Martínez": [
-    2016,
-    2016
+    2015,
+    2026
    ]
   },
   "notes": "Hi-fi crooning recreations (Di Sarli/Caló flavour, bolero-tinged); hugely popular with newer dancers 2018-2026, divisive with milongueros. Max one tanda per night, first half or sweet ending; never at traditional BsAs milongas. Best: 2016-2024 albums",
@@ -1974,6 +2587,7 @@
   ],
   "style": "rhythmic",
   "energy": 68,
+  "tier": 3,
   "bpm": {
    "tango": [
     120,
@@ -1992,12 +2606,7 @@
    "build",
    "peak"
   ],
-  "singers": {
-   "Instrumental mostly; guest singers": [
-    2010,
-    2010
-   ]
-  },
+  "singers": {},
   "notes": "Russian orquesta típica playing faithful D'Arienzo/Di Sarli/Biagi arrangements in hi-fi; danceable; used at festivals as a D'Arienzo substitute; one tanda, first half or main build. Best: 2012-2023 albums",
   "vocalShift": -3,
   "instrumentalShift": 2,
@@ -2018,6 +2627,7 @@
   ],
   "style": "contemporary",
   "energy": 62,
+  "tier": 3,
   "bpm": {
    "tango": [
     100,
@@ -2055,6 +2665,7 @@
   ],
   "style": "contemporary",
   "energy": 66,
+  "tier": 3,
   "bpm": {
    "tango": [
     100,
@@ -2096,6 +2707,7 @@
   ],
   "style": "contemporary",
   "energy": 60,
+  "tier": 3,
   "bpm": {
    "tango": [
     100,
@@ -2127,6 +2739,7 @@
   ],
   "style": "contemporary",
   "energy": 64,
+  "tier": 3,
   "bpm": {
    "tango": [
     104,
@@ -2167,6 +2780,7 @@
   ],
   "style": "contemporary",
   "energy": 56,
+  "tier": 3,
   "bpm": {
    "tango": [
     96,
@@ -2197,6 +2811,7 @@
   ],
   "style": "rhythmic",
   "energy": 58,
+  "tier": 3,
   "bpm": {
    "tango": [
     120,
@@ -2236,7 +2851,8 @@
    "El mago del bandoneón"
   ],
   "style": "rhythmic",
-  "energy": 64,
+  "energy": 74,
+  "tier": 3,
   "bpm": {
    "tango": [
     132,
@@ -2264,7 +2880,7 @@
   "vocalShift": -2,
   "instrumentalShift": 1,
   "shareOfNightMax": 0.03,
-  "difficulty": 45,
+  "difficulty": 60,
   "confidence": "estimate",
   "signatureTracks": [
    "Chiqué",
