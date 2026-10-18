@@ -24,7 +24,7 @@ export function patternString(o: ComposeOptions): string {
 export function tandaDuration(o: ComposeOptions, r: DanceRhythm): number {
   const size = r === "tango" ? o.tangoTandaSize : r === "vals" ? o.valsTandaSize : o.milongaTandaSize;
   const track = o.avgTrackSec ?? o.trackSecByRhythm?.[r] ?? DEFAULT_TRACK_SEC[r];
-  const cortina = o.cortinaStyle === "none" ? 8 : o.cortinaLengthSec;
+  const cortina = o.cortinaStyle === "none" ? 0 : o.cortinaLengthSec;
   return size * track + cortina;
 }
 

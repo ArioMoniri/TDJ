@@ -1615,9 +1615,9 @@
     1943
    ]
   },
-  "notes": "Instrumentals, especially the 1930s Cuarteto (El amanecer 1936 with birdsong, Alma de bohemio); charming, light; warm-up and afternoon only; milongas (Milonga orillera) and valses fine for a Guardia Vieja slot. Best: 1927-1939 orquesta/cuarteto",
-  "vocalShift": -3,
-  "instrumentalShift": 1,
+  "notes": "Instrumentals, especially the 1930s Cuarteto (El amanecer 1936 with birdsong, Alma de bohemio); charming, light; warm-up and afternoon only; milongas (Milonga orillera) and valses fine for a Guardia Vieja slot. Best: 1927-1939 orquesta/cuarteto Vocal Firpo (Diale/Murillo 1939-44) is sleepy recital material; only the 1936-39 cuarteto instrumentals open a night.",
+  "vocalShift": -6,
+  "instrumentalShift": 4,
   "shareOfNightMax": 0.05,
   "difficulty": 30,
   "confidence": "estimate",
