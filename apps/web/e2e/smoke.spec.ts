@@ -17,8 +17,10 @@ test("compose a 4h golden set on desktop and export sheet opens", async ({ page 
   await expect(page.getByRole("button", { name: /Rekordbox XML/ })).toBeVisible();
 });
 
+// The device preset carries defaultBrowserType: "webkit"; Playwright forbids that inside a describe and only Chromium is installed.
+const { defaultBrowserType: _browser, ...iphone } = devices["iPhone 15 Pro"]!;
 test.describe("mobile", () => {
-  test.use({ ...devices["iPhone 15 Pro"] });
+  test.use({ ...iphone });
   test("tab bar visible, no horizontal overflow, compose works", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("navigation", { name: "Primary mobile" })).toBeVisible();

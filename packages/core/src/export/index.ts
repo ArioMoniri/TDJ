@@ -16,7 +16,23 @@ export interface FlatTrack {
   orchestra?: string;
 }
 
-export function flatten(p: Playlist): FlatTrack[] {
+export interface ExportOpts {
+  includeCortinas?: boolean;
+}
+const safe = (s: string) =>
+  s
+    .replace(/[/\\:*?"<>|]+/g, "-")
+    .replace(/\s+/g, " ")
+    .trim();
+const GENRE: Record<string, string> = {
+  tango: "Tango",
+  vals: "Vals",
+  milonga: "Milonga",
+  cortina: "Cortina",
+};
+
+export function flatten(p: Playlist, eo: ExportOpts = {}): FlatTrack[] {
+  const inc = eo.includeCortinas ?? true;
   const out: FlatTrack[] = [];
   let n = 1;
   const push = (f: Omit<FlatTrack, "n">) => out.push({ n: n++, ...f });
@@ -36,7 +52,7 @@ export function flatten(p: Playlist): FlatTrack[] {
         singer: s.singer,
         orchestra: s.orchestra,
       });
-    if (t.cortina)
+    if (inc && t.cortina)
       push({
         kind: "cortina",
         tanda: ti + 1,
@@ -74,18 +90,18 @@ const esc = (s: unknown) =>
     .replace(/"/g, "&quot;");
 const csvq = (s: unknown) => `"${String(s ?? "").replace(/"/g, '""')}"`;
 
-export function toM3U8(p: Playlist): string {
+export function toM3U8(p: Playlist, eo: ExportOpts = {}): string {
   const lines = ["#EXTM3U", `#PLAYLIST:${p.name}`];
   for (const t of flatten(p)) {
     lines.push(
       `#EXTINF:${t.durationSec},${t.artist} - ${t.title}${t.kind === "cortina" ? " [CORTINA]" : ""}`,
     );
-    lines.push(t.spotifyUri ? t.spotifyUri : `${t.artist} - ${t.title}.mp3`);
+    lines.push(t.spotifyUri ? t.spotifyUri : `${safe(t.artist)} - ${safe(t.title)}.mp3`);
   }
   return `${lines.join("\n")}\n`;
 }
 
-export function toCSV(p: Playlist): string {
+export function toCSV(p: Playlist, eo: ExportOpts = {}): string {
   const head = [
     "#",
     "kind",
@@ -126,12 +142,12 @@ export function toJSON(p: Playlist): string {
 }
 
 /** Rekordbox XML (DJ_PLAYLISTS v1.0.0) — importable via File > Import Collection in XML. */
-export function toRekordboxXML(p: Playlist): string {
-  const tracks = flatten(p);
+export function toRekordboxXML(p: Playlist, eo: ExportOpts = {}): string {
+  const tracks = flatten(p, eo);
   const coll = tracks
     .map(
       (t) =>
-        `    <TRACK TrackID="${t.n}" Name="${esc(t.title)}" Artist="${esc(t.artist)}" Album="${esc(t.album ?? (t.kind === "cortina" ? "Cortinas" : "TDJ"))}" Genre="${esc(t.kind === "cortina" ? "Cortina" : `Tango ${t.rhythm}`)}" Year="${t.year ?? ""}" TotalTime="${t.durationSec}" Comments="${esc(t.kind === "cortina" ? `Cortina → tanda ${t.tanda + 1}` : `Tanda ${t.tanda} · energy ${t.energy ?? ""}`)}" Location="file://localhost/${esc(encodeURIComponent(`${t.artist} - ${t.title}.mp3`))}" Kind="MP3 File" ${t.spotifyUri ? `Mix="${esc(t.spotifyUri)}"` : ""}/>`,
+        `    <TRACK TrackID="${t.n}" Name="${esc(t.title)}" Artist="${esc(t.artist)}" Album="${esc(t.album ?? (t.kind === "cortina" ? "Cortinas" : "TDJ"))}" Genre="${esc(GENRE[t.kind === "cortina" ? "cortina" : t.rhythm] ?? "Tango")}" Year="${t.year ?? ""}" TotalTime="${t.durationSec}" Comments="${esc(t.kind === "cortina" ? `Cortina before tanda ${t.tanda + 1}` : `Tanda ${t.tanda}`)}" Location="file://localhost/TDJ/${esc(encodeURIComponent(`${safe(t.artist)} - ${safe(t.title)}.mp3`))}" Kind="MP3 File" ${t.spotifyUri ? `Mix="${esc(t.spotifyUri)}"` : ""}/>`,
     )
     .join("\n");
   const nodes = p.tandas
@@ -165,20 +181,20 @@ ${nodes}
 }
 
 /** Traktor NML (Native Instruments) playlist with collection entries. */
-export function toTraktorNML(p: Playlist): string {
-  const tracks = flatten(p);
+export function toTraktorNML(p: Playlist, eo: ExportOpts = {}): string {
+  const tracks = flatten(p, eo);
   const loc = (t: FlatTrack) =>
     `<LOCATION DIR="/:TDJ/:" FILE="${esc(`${t.artist} - ${t.title}.mp3`)}" VOLUME="" VOLUMEID=""></LOCATION>`;
   const coll = tracks
     .map(
       (t) =>
-        `    <ENTRY TITLE="${esc(t.title)}" ARTIST="${esc(t.artist)}">${loc(t)}<ALBUM TITLE="${esc(t.album ?? "TDJ")}"></ALBUM><INFO PLAYTIME="${t.durationSec}" GENRE="${esc(t.kind === "cortina" ? "Cortina" : `Tango ${t.rhythm}`)}" COMMENT="${esc(`Tanda ${t.tanda}`)}" RELEASE_DATE="${t.year ? `${t.year}/1/1` : ""}"></INFO></ENTRY>`,
+        `    <ENTRY TITLE="${esc(t.title)}" ARTIST="${esc(t.artist)}">${loc(t)}<ALBUM TITLE="${esc(t.album ?? "TDJ")}"></ALBUM><INFO PLAYTIME="${t.durationSec}" GENRE="${esc(GENRE[t.kind === "cortina" ? "cortina" : t.rhythm] ?? "Tango")}" COMMENT="${esc(`Tanda ${t.tanda}`)}" RELEASE_DATE="${t.year ? `${t.year}/1/1` : ""}"></INFO></ENTRY>`,
     )
     .join("\n");
   const pl = tracks
     .map(
       (t) =>
-        `        <ENTRY><PRIMARYKEY TYPE="TRACK" KEY="/:TDJ/:${esc(`${t.artist} - ${t.title}.mp3`)}"></PRIMARYKEY></ENTRY>`,
+        `        <ENTRY><PRIMARYKEY TYPE="TRACK" KEY="Macintosh HD/:TDJ/:${esc(`${safe(t.artist)} - ${safe(t.title)}.mp3`)}"></PRIMARYKEY></ENTRY>`,
     )
     .join("\n");
   return `<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
@@ -209,9 +225,9 @@ export function toXSPF(p: Playlist): string {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<playlist version="1" xmlns="http://xspf.org/ns/0/">\n  <title>${esc(p.name)}</title>\n  <creator>TDJ</creator>\n  <trackList>\n${tracks}\n  </trackList>\n</playlist>\n`;
 }
 
-/** Serato: a plain "Serato DJ Pro history"-compatible text/CSV export (crate binaries need local file paths). */
-export function toSeratoCSV(p: Playlist): string {
-  const rows = flatten(p).map((t) =>
+/** Generic DJ CSV (Lexicon, Rekord Buddy, Serato via Lexicon import). Serato .crate binaries need local file paths — see roadmap. */
+export function toSeratoCSV(p: Playlist, eo: ExportOpts = {}): string {
+  const rows = flatten(p, eo).map((t) =>
     [
       t.title,
       t.artist,
@@ -245,7 +261,8 @@ export function toSpotifyPlan(p: Playlist): {
 }
 
 /** Human set list (printable). */
-export function toSetList(p: Playlist): string {
+export function toSetList(p: Playlist, eo: ExportOpts = {}): string {
+  const inc = eo.includeCortinas ?? true;
   const L: string[] = [
     `${p.name} — ${(p.stats.durationSec / 3600).toFixed(2)} h · ${p.tandas.length} tandas · score ${p.score.total}/100 (${p.score.verdict})`,
     "",
@@ -274,7 +291,7 @@ export const EXPORTERS = {
   serato: toSeratoCSV,
   setlist: toSetList,
 } as const;
-export type ExportFormat = keyof typeof EXPORTERS;
+export type ExportFormat = "m3u8" | "csv" | "json" | "rekordbox" | "traktor" | "xspf" | "serato" | "setlist";
 export const EXPORT_META: Record<ExportFormat, { label: string; ext: string; mime: string }> = {
   m3u8: { label: "M3U8 playlist", ext: "m3u8", mime: "audio/mpegurl" },
   csv: { label: "CSV", ext: "csv", mime: "text/csv" },
@@ -282,7 +299,7 @@ export const EXPORT_META: Record<ExportFormat, { label: string; ext: string; mim
   rekordbox: { label: "Rekordbox XML", ext: "xml", mime: "application/xml" },
   traktor: { label: "Traktor NML", ext: "nml", mime: "application/xml" },
   xspf: { label: "XSPF (VLC/Mixxx)", ext: "xspf", mime: "application/xspf+xml" },
-  serato: { label: "Serato CSV", ext: "csv", mime: "text/csv" },
+  serato: { label: "DJ CSV (Lexicon / Serato)", ext: "csv", mime: "text/csv" },
   setlist: { label: "Set list (text)", ext: "txt", mime: "text/plain" },
 };
 export type { Cortina, Song };

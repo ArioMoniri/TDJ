@@ -1,0 +1,459 @@
+[
+ {
+  "id": "c-jz-basie-woodside",
+  "title": "Jumpin' at the Woodside",
+  "artist": "Count Basie",
+  "genre": "swing",
+  "culture": "global",
+  "energy": 80,
+  "year": 1938,
+  "startSec": 0,
+  "lengthSec": 40,
+  "tags": [
+   "instrumental",
+   "theme:swing"
+  ]
+ },
+ {
+  "id": "c-jz-prima-jump",
+  "title": "Jump, Jive an' Wail",
+  "artist": "Louis Prima",
+  "genre": "swing",
+  "culture": "global",
+  "energy": 84,
+  "year": 1956,
+  "startSec": 0,
+  "lengthSec": 40,
+  "tags": [
+   "theme:swing",
+   "danceable-risk-us"
+  ]
+ },
+ {
+  "id": "c-jz-simone-baby",
+  "title": "My Baby Just Cares for Me",
+  "artist": "Nina Simone",
+  "genre": "jazz",
+  "culture": "global",
+  "energy": 58,
+  "year": 1958,
+  "startSec": 0,
+  "lengthSec": 45,
+  "tags": [
+   "theme:nina-simone"
+  ]
+ },
+ {
+  "id": "c-jz-baker-lost",
+  "title": "Let's Get Lost",
+  "artist": "Chet Baker",
+  "genre": "jazz",
+  "culture": "global",
+  "energy": 40,
+  "year": 1955,
+  "startSec": 0,
+  "lengthSec": 45,
+  "tags": [
+   "late-night",
+   "theme:cool-jazz"
+  ]
+ },
+ {
+  "id": "c-it-celentano-azzurro",
+  "title": "Azzurro",
+  "artist": "Adriano Celentano",
+  "genre": "canzone",
+  "culture": "italian",
+  "language": "it",
+  "energy": 60,
+  "year": 1968,
+  "startSec": 0,
+  "lengthSec": 45,
+  "tags": [
+   "theme:italian-60s"
+  ]
+ },
+ {
+  "id": "c-it-celentano-prisencolin",
+  "title": "Prisencolinensinainciusol",
+  "artist": "Adriano Celentano",
+  "genre": "funk",
+  "culture": "italian",
+  "language": "it",
+  "energy": 78,
+  "year": 1972,
+  "startSec": 12,
+  "lengthSec": 40,
+  "tags": [
+   "theme:italian-60s"
+  ]
+ },
+ {
+  "id": "c-it-mina-tintarella",
+  "title": "Tintarella di luna",
+  "artist": "Mina",
+  "genre": "canzone",
+  "culture": "italian",
+  "language": "it",
+  "energy": 64,
+  "year": 1959,
+  "startSec": 0,
+  "lengthSec": 40,
+  "tags": [
+   "theme:italian-60s"
+  ]
+ },
+ {
+  "id": "c-it-buscaglione-bambola",
+  "title": "Che bambola",
+  "artist": "Fred Buscaglione",
+  "genre": "swing",
+  "culture": "italian",
+  "language": "it",
+  "energy": 72,
+  "year": 1956,
+  "startSec": 0,
+  "lengthSec": 40,
+  "tags": [
+   "theme:italian-60s"
+  ]
+ },
+ {
+  "id": "c-fr-trenet-boum",
+  "title": "Boum!",
+  "artist": "Charles Trenet",
+  "genre": "chanson",
+  "culture": "french",
+  "language": "fr",
+  "energy": 66,
+  "year": 1938,
+  "startSec": 0,
+  "lengthSec": 40,
+  "tags": [
+   "theme:chanson"
+  ]
+ },
+ {
+  "id": "c-fr-gainsbourg-poinconneur",
+  "title": "Le Poinçonneur des Lilas",
+  "artist": "Serge Gainsbourg",
+  "genre": "chanson",
+  "culture": "french",
+  "language": "fr",
+  "energy": 62,
+  "year": 1958,
+  "startSec": 0,
+  "lengthSec": 45,
+  "tags": [
+   "theme:chanson"
+  ]
+ },
+ {
+  "id": "c-fr-bardot-moi-je-joue",
+  "title": "Moi je joue",
+  "artist": "Brigitte Bardot",
+  "genre": "ye-ye",
+  "culture": "french",
+  "language": "fr",
+  "energy": 68,
+  "year": 1964,
+  "startSec": 0,
+  "lengthSec": 40,
+  "tags": [
+   "theme:chanson"
+  ]
+ },
+ {
+  "id": "c-fr-piaf-padam",
+  "title": "Padam, padam",
+  "artist": "Édith Piaf",
+  "genre": "chanson",
+  "culture": "french",
+  "language": "fr",
+  "energy": 58,
+  "year": 1951,
+  "startSec": 0,
+  "lengthSec": 45,
+  "tags": [
+   "theme:chanson"
+  ]
+ },
+ {
+  "id": "c-tr-manco-daglar",
+  "title": "Dağlar Dağlar",
+  "artist": "Barış Manço",
+  "genre": "anadolu-rock",
+  "culture": "turkish",
+  "language": "tr",
+  "energy": 54,
+  "year": 1970,
+  "startSec": 0,
+  "lengthSec": 45,
+  "tags": [
+   "theme:turkish-classics"
+  ]
+ },
+ {
+  "id": "c-tr-pekkan-bambaska",
+  "title": "Bambaşka Biri",
+  "artist": "Ajda Pekkan",
+  "genre": "turkish-pop",
+  "culture": "turkish",
+  "language": "tr",
+  "energy": 70,
+  "year": 1977,
+  "startSec": 0,
+  "lengthSec": 45,
+  "tags": [
+   "theme:turkish-classics"
+  ]
+ },
+ {
+  "id": "c-tr-sertab-everyway",
+  "title": "Everyway That I Can",
+  "artist": "Sertab Erener",
+  "genre": "turkish-pop",
+  "culture": "turkish",
+  "language": "en",
+  "energy": 82,
+  "year": 2003,
+  "startSec": 0,
+  "lengthSec": 40,
+  "tags": [
+   "theme:istanbul-pop",
+   "danceable-risk"
+  ]
+ },
+ {
+  "id": "c-tr-aksu-hadi-bakalim",
+  "title": "Hadi Bakalım",
+  "artist": "Sezen Aksu",
+  "genre": "turkish-pop",
+  "culture": "turkish",
+  "language": "tr",
+  "energy": 76,
+  "year": 1991,
+  "startSec": 0,
+  "lengthSec": 45,
+  "tags": [
+   "theme:istanbul-pop"
+  ]
+ },
+ {
+  "id": "c-tr-edis-roman",
+  "title": "Roman",
+  "artist": "Edis",
+  "genre": "turkish-pop",
+  "culture": "turkish",
+  "language": "tr",
+  "energy": 72,
+  "year": 2017,
+  "trend": true,
+  "startSec": 0,
+  "lengthSec": 40,
+  "tags": [
+   "theme:istanbul-pop"
+  ]
+ },
+ {
+  "id": "c-gr-alexiou-dirlada",
+  "title": "Dirlada",
+  "artist": "Haris Alexiou",
+  "genre": "laiko",
+  "culture": "greek",
+  "language": "el",
+  "energy": 66,
+  "year": 1990,
+  "startSec": 0,
+  "lengthSec": 45,
+  "tags": [
+   "theme:greek"
+  ]
+ },
+ {
+  "id": "c-gr-dalaras-ola-kala",
+  "title": "Ola Kala",
+  "artist": "Giorgos Dalaras",
+  "genre": "laiko",
+  "culture": "greek",
+  "language": "el",
+  "energy": 60,
+  "year": 1998,
+  "startSec": 0,
+  "lengthSec": 45,
+  "tags": [
+   "theme:greek"
+  ]
+ },
+ {
+  "id": "c-gr-foureira-fuego",
+  "title": "Fuego",
+  "artist": "Eleni Foureira",
+  "genre": "pop",
+  "culture": "greek",
+  "language": "en",
+  "energy": 86,
+  "year": 2018,
+  "trend": true,
+  "startSec": 0,
+  "lengthSec": 40,
+  "tags": [
+   "theme:greek"
+  ]
+ },
+ {
+  "id": "c-ir-googoosh-man-amadeam",
+  "title": "Man Amadeam",
+  "artist": "Googoosh",
+  "genre": "persian-pop",
+  "culture": "persian",
+  "language": "fa",
+  "energy": 62,
+  "year": 1975,
+  "startSec": 0,
+  "lengthSec": 45,
+  "tags": [
+   "theme:persian"
+  ]
+ },
+ {
+  "id": "c-ir-ebi-kavir",
+  "title": "Kavir",
+  "artist": "Ebi",
+  "genre": "persian-pop",
+  "culture": "persian",
+  "language": "fa",
+  "energy": 50,
+  "year": 1996,
+  "startSec": 0,
+  "lengthSec": 45,
+  "tags": [
+   "theme:persian",
+   "late-night"
+  ]
+ },
+ {
+  "id": "c-ir-arash-boro-boro",
+  "title": "Boro Boro",
+  "artist": "Arash",
+  "genre": "pop",
+  "culture": "persian",
+  "language": "fa",
+  "energy": 84,
+  "year": 2004,
+  "startSec": 0,
+  "lengthSec": 40,
+  "tags": [
+   "theme:persian",
+   "danceable-risk"
+  ]
+ },
+ {
+  "id": "c-bk-ciocarlia-asfalt",
+  "title": "Asfalt Tango",
+  "artist": "Fanfare Ciocărlia",
+  "genre": "balkan-brass",
+  "culture": "balkan",
+  "energy": 90,
+  "year": 1998,
+  "startSec": 0,
+  "lengthSec": 40,
+  "tags": [
+   "theme:balkan",
+   "instrumental"
+  ]
+ },
+ {
+  "id": "c-bk-markovic-djelem",
+  "title": "Đelem Đelem",
+  "artist": "Boban Marković Orkestar",
+  "genre": "balkan-brass",
+  "culture": "balkan",
+  "energy": 56,
+  "year": 2002,
+  "startSec": 0,
+  "lengthSec": 45,
+  "tags": [
+   "theme:balkan",
+   "late-night"
+  ]
+ },
+ {
+  "id": "c-bk-proeski-cija-si",
+  "title": "Čija si",
+  "artist": "Toše Proeski",
+  "genre": "balkan-pop",
+  "culture": "balkan",
+  "language": "mk",
+  "energy": 60,
+  "year": 2002,
+  "startSec": 0,
+  "lengthSec": 45,
+  "tags": [
+   "theme:balkan"
+  ]
+ },
+ {
+  "id": "c-kp-newjeans-super-shy",
+  "title": "Super Shy",
+  "artist": "NewJeans",
+  "genre": "kpop",
+  "culture": "kpop",
+  "language": "ko",
+  "energy": 78,
+  "year": 2023,
+  "trend": true,
+  "startSec": 0,
+  "lengthSec": 40,
+  "tags": [
+   "theme:kpop"
+  ]
+ },
+ {
+  "id": "c-kp-ive-i-am",
+  "title": "I Am",
+  "artist": "IVE",
+  "genre": "kpop",
+  "culture": "kpop",
+  "language": "ko",
+  "energy": 80,
+  "year": 2023,
+  "trend": true,
+  "startSec": 0,
+  "lengthSec": 40,
+  "tags": [
+   "theme:kpop"
+  ]
+ },
+ {
+  "id": "c-af-burna-last-last",
+  "title": "Last Last",
+  "artist": "Burna Boy",
+  "genre": "afrobeats",
+  "culture": "afrobeats",
+  "energy": 66,
+  "year": 2022,
+  "trend": true,
+  "startSec": 0,
+  "lengthSec": 45,
+  "tags": [
+   "theme:afrobeats"
+  ]
+ },
+ {
+  "id": "c-ba-soda-musica-ligera",
+  "title": "De música ligera",
+  "artist": "Soda Stereo",
+  "genre": "rock-nacional",
+  "culture": "latin",
+  "language": "es",
+  "energy": 80,
+  "year": 1990,
+  "startSec": 0,
+  "lengthSec": 40,
+  "tags": [
+   "theme:rock-nacional",
+   "ba-essential"
+  ]
+ }
+]

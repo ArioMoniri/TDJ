@@ -77,8 +77,13 @@ function titleJitter(id: string): number {
   return (Math.abs(h) % 900) / 100 - 4.5;
 }
 
-export function songEnergy(song: Song, profile?: OrchestraProfile): number {
+export function songEnergy(
+  song: Song,
+  profile?: OrchestraProfile,
+  extra: Record<string, number> = {},
+): number {
   const key = `${normTitle(song.title)}|${song.orchestraId}`;
+  if (extra[key] !== undefined) return extra[key]!;
   if (TRACK_ENERGY[key] !== undefined) return TRACK_ENERGY[key]!;
   let e = profile?.energy ?? 50;
   e += ERA_BASE[song.era] ?? 0;
@@ -93,4 +98,88 @@ export function songEnergy(song: Song, profile?: OrchestraProfile): number {
   if (song.bpm && song.rhythm === "tango") e += Math.max(-8, Math.min(8, (song.bpm - 124) * 0.6));
   e += titleJitter(song.id);
   return Math.max(0, Math.min(100, Math.round(e)));
+}
+
+/** Titles that are concert pieces, medleys, show tangos or otherwise not for the floor (extended by data/knowledge/reference_sets.json blacklist). */
+export const BLACKLIST_PATTERNS: RegExp[] = [
+  /\bseleccion\b/,
+  /\bpopurri\b/,
+  /\bpot ?pourri\b/,
+  /\bparte\b/,
+  /\bmedley\b/,
+  /\bfantasia\b/,
+  /\bsuite\b/,
+  /\bconcierto\b/,
+  /\bhomenaje a\b/,
+  /\bsinfonia\b/,
+  /\bpreludio\b/,
+  /\bvivo en\b/,
+  /\ben vivo\b/,
+  /\bbis\b$/,
+  /\bhimno\b/,
+  /\bmarcha\b/,
+];
+export const BLACKLIST_TITLES = new Set([
+  "responso",
+  "a fuego lento",
+  "danzarin",
+  "adios nonino",
+  "verano porteno",
+  "libertango",
+  "buenos aires hora cero",
+  "la muerte del angel",
+  "milonga del angel",
+  "tres minutos con la realidad",
+  "michelangelo 70",
+  "lo que vendra",
+  "fuga y misterio",
+  "oblivion",
+  "tanguedia",
+  "escualo",
+  "decarisimo",
+  "la bicicleta blanca",
+  "balada para un loco",
+  "chiquilin de bachin",
+  "un tango para chaplin",
+  "reliquias brasilenas",
+  "reliquias brasilenas 2a parte",
+  "a don agustin bardi",
+  "tangata",
+  "nocturna",
+  "mala junta",
+  "quejas de bandoneon (concierto)",
+  "la yumba (concierto)",
+  "a los amigos",
+  "zum",
+  "a evaristo carriego",
+  "contratiempo",
+  "cafe dominguez",
+  "bien pulenta",
+  "a mis companeros",
+]);
+export function isDanceable(title: string, rhythm: string, extraBlacklist?: Set<string>): boolean {
+  const t = normTitle(title);
+  if (BLACKLIST_TITLES.has(t) || extraBlacklist?.has(t)) return false;
+  for (const re of BLACKLIST_PATTERNS) if (re.test(t)) return false;
+  if (rhythm === "cancion" || rhythm === "other" || rhythm === "unknown") return false;
+  return true;
+}
+
+/** Estimated duration when no streaming metadata is cached: by rhythm and era, with a stable per-recording jitter. */
+export function estimateDuration(song: Pick<Song, "id" | "rhythm" | "era">): number {
+  const base: Record<string, number> = { tango: 168, vals: 150, milonga: 138 };
+  const eraShift: Partial<Record<Era, number>> = {
+    "guardia-vieja": -12,
+    "guardia-nueva": -8,
+    "golden-early": -4,
+    "golden-peak": 0,
+    "golden-late": 4,
+    "post-golden": 8,
+    nuevo: 30,
+    contemporary: 20,
+  };
+  let h = 0;
+  for (let i = 0; i < song.id.length; i++) h = (h * 33 + song.id.charCodeAt(i)) | 0;
+  const jitter = (Math.abs(h) % 31) - 15;
+  return Math.max(95, (base[song.rhythm] ?? 170) + (eraShift[song.era] ?? 0) + jitter);
 }

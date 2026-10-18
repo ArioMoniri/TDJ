@@ -1,0 +1,2362 @@
+{
+  "$schema": "tdj/context-factors/v1",
+  "version": "1.0.0",
+  "generatedAt": "2026-10-18",
+  "source": "docs/research/context-factors.md",
+  "baseline": {
+    "energyArc": "musicology.md s3.2",
+    "vocalRatio": 0.75,
+    "valsShare": 0.167,
+    "milongaShare": 0.167,
+    "tandaSize": {
+      "tango": 4,
+      "vals": 3,
+      "milonga": 3
+    },
+    "cortinaSec": 45
+  },
+  "combination": {
+    "energyShift": {
+      "sum": true,
+      "clamp": [
+        -18,
+        18
+      ],
+      "tandaMeanBounds": [
+        40,
+        88
+      ]
+    },
+    "tempoShift": {
+      "sum": true,
+      "clamp": [
+        -8,
+        8
+      ],
+      "note": "tie-breaker only after energy; never double-count"
+    },
+    "vocalRatioShift": {
+      "sum": true,
+      "resultClamp": [
+        0.55,
+        0.9
+      ]
+    },
+    "valsShare_milongaShare": {
+      "rule": "last non-null by factor priority (higher wins)",
+      "priorityOrder": [
+        "eventType",
+        "region",
+        "timeOfDay",
+        "mood",
+        "holiday",
+        "crowdLevel",
+        "crowdSize",
+        "ageMix",
+        "roomTemperature",
+        "floorType",
+        "season",
+        "weather",
+        "acoustics",
+        "dayOfWeek",
+        "roomSize",
+        "daylight",
+        "roleRatio",
+        "origin"
+      ],
+      "vmTotalBounds": [
+        0.22,
+        0.4
+      ]
+    },
+    "tandaSizeShift": {
+      "rule": "majority vote, ties -> 0",
+      "bounds": {
+        "tango": [
+          3,
+          4
+        ],
+        "vals": [
+          3,
+          3
+        ],
+        "milonga": [
+          3,
+          3
+        ]
+      }
+    },
+    "cortinaGenres": {
+      "rule": "weighted union; region pool always included; mood pool overrides",
+      "evidenceWeights": {
+        "strong": 3,
+        "moderate": 2,
+        "weak": 1,
+        "lore": 1,
+        "speculative": 0.5
+      }
+    },
+    "overrides": {
+      "roomTemperature.hot": "replaces weather.heatwave energy/tempo terms",
+      "roomTemperature.warm": "replaces weather.heatwave energy/tempo terms"
+    },
+    "seasonMultiplierFrom": "daylight.seasonMultiplier"
+  },
+  "evidenceScale": {
+    "strong": ">=1 large-N peer-reviewed study or meta-analysis, replicated direction",
+    "moderate": "peer-reviewed but small-N/correlational or inferred from a neighbouring domain",
+    "weak": "single study / abstract / indirect proxy",
+    "lore": "practitioner consensus, no formal study",
+    "speculative": "own extrapolation; flagged for A/B"
+  },
+  "factors": [
+    {
+      "id": "season",
+      "label": "Season (hemisphere-corrected)",
+      "priority": 4,
+      "sources": [
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6"
+      ],
+      "options": [
+        {
+          "id": "winter",
+          "label": "Winter",
+          "energyShift": -3,
+          "tempoShift": -1,
+          "vocalRatioShift": 0.05,
+          "valsShare": 0.17,
+          "milongaShare": 0.15,
+          "cortinaGenres": [
+            "chanson",
+            "jazz-ballads",
+            "soul",
+            "italian-60s"
+          ],
+          "tandaSizeShift": 0,
+          "notes": "Reflective/melancholy preference in cold months; more lyrical vocal tandas; fewer late milongas. Multiply by daylight factor.",
+          "evidence": "moderate"
+        },
+        {
+          "id": "spring",
+          "label": "Spring",
+          "energyShift": 1,
+          "tempoShift": 0,
+          "vocalRatioShift": 0.0,
+          "valsShare": null,
+          "milongaShare": null,
+          "cortinaGenres": [
+            "bossa",
+            "italian-60s",
+            "swing"
+          ],
+          "tandaSizeShift": 0,
+          "notes": "'Serene' preference: Fresedo, Di Sarli instrumentals, De Angelis valses in the build.",
+          "evidence": "moderate"
+        },
+        {
+          "id": "summer",
+          "label": "Summer",
+          "energyShift": 2,
+          "tempoShift": 0,
+          "vocalRatioShift": -0.05,
+          "valsShare": 0.17,
+          "milongaShare": 0.18,
+          "cortinaGenres": [
+            "latin-pop",
+            "cumbia",
+            "surf",
+            "afrobeats"
+          ],
+          "tandaSizeShift": 0,
+          "notes": "Arousal preference up but heat factors push down; prefer rhythmic over slow-dramatic energy.",
+          "evidence": "moderate"
+        },
+        {
+          "id": "autumn",
+          "label": "Autumn",
+          "energyShift": -1,
+          "tempoShift": 0,
+          "vocalRatioShift": 0.03,
+          "valsShare": null,
+          "milongaShare": null,
+          "cortinaGenres": [
+            "jazz-standards",
+            "chanson",
+            "soul"
+          ],
+          "tandaSizeShift": 0,
+          "notes": "Nostalgia window; Troilo-Marino / Di Sarli 50s accepted slightly earlier in the arc.",
+          "evidence": "weak"
+        }
+      ]
+    },
+    {
+      "id": "weather",
+      "label": "Weather today (outside)",
+      "priority": 4,
+      "sources": [
+        "P4",
+        "P5",
+        "P8",
+        "P9",
+        "P10",
+        "P11"
+      ],
+      "options": [
+        {
+          "id": "mild",
+          "label": "Mild / clear",
+          "energyShift": 0,
+          "tempoShift": 0,
+          "vocalRatioShift": 0.0,
+          "valsShare": null,
+          "milongaShare": null,
+          "cortinaGenres": [],
+          "tandaSizeShift": 0,
+          "notes": "Baseline.",
+          "evidence": "strong"
+        },
+        {
+          "id": "rain",
+          "label": "Steady rain",
+          "energyShift": -2,
+          "tempoShift": 0,
+          "vocalRatioShift": 0.05,
+          "valsShare": null,
+          "milongaShare": null,
+          "cortinaGenres": [
+            "jazz-ballads",
+            "chanson",
+            "bossa"
+          ],
+          "tandaSizeShift": 0,
+          "notes": "Floor fills late: warm-up to 20% of night; lyrical early; longer cortinas tolerated.",
+          "evidence": "weak"
+        },
+        {
+          "id": "heatwave",
+          "label": "Heat wave (>=30 C outside, room not air-conditioned)",
+          "energyShift": -6,
+          "tempoShift": -3,
+          "vocalRatioShift": 0.05,
+          "valsShare": 0.17,
+          "milongaShare": 0.12,
+          "cortinaGenres": [
+            "bossa",
+            "lo-fi",
+            "city-pop",
+            "cool-jazz"
+          ],
+          "tandaSizeShift": -1,
+          "notes": "Peak cap 80; no milonga tanda in hottest hour; milonga tandas 3 tracks; cortinas 60-90 s for hydration; lyrical peaks (Di Sarli 50s) over rhythmic; D'Arienzo 1950s only after room cools.",
+          "evidence": "moderate"
+        },
+        {
+          "id": "humid",
+          "label": "High humidity (RH>=70% at >=24 C)",
+          "energyShift": -4,
+          "tempoShift": -2,
+          "vocalRatioShift": 0.03,
+          "valsShare": null,
+          "milongaShare": 0.13,
+          "cortinaGenres": [
+            "bossa",
+            "lo-fi",
+            "city-pop",
+            "cool-jazz"
+          ],
+          "tandaSizeShift": -1,
+          "notes": "Humidity matters more than the thermometer for sweat evaporation; floors get sticky; avoid fastest valses (>=195 BPM).",
+          "evidence": "moderate"
+        },
+        {
+          "id": "cold",
+          "label": "Cold (<=5 C outside; room struggling)",
+          "energyShift": 3,
+          "tempoShift": 1,
+          "vocalRatioShift": 0.0,
+          "valsShare": null,
+          "milongaShare": 0.18,
+          "cortinaGenres": [
+            "swing",
+            "rock-n-roll",
+            "balkan",
+            "turkish-pop"
+          ],
+          "tandaSizeShift": 0,
+          "notes": "Rhythmic warm-up to warm bodies; cortinas 30-40 s so people don't cool down.",
+          "evidence": "weak"
+        },
+        {
+          "id": "storm",
+          "label": "Storm (thunder, wind)",
+          "energyShift": -1,
+          "tempoShift": 0,
+          "vocalRatioShift": 0.03,
+          "valsShare": null,
+          "milongaShare": null,
+          "cortinaGenres": [],
+          "tandaSizeShift": 0,
+          "notes": "Attendance risk: fall back to small-crowd profile; keep loudness headroom.",
+          "evidence": "speculative"
+        }
+      ]
+    },
+    {
+      "id": "roomTemperature",
+      "label": "Temperature in the room",
+      "priority": 5,
+      "overrides": [
+        "weather.heatwave"
+      ],
+      "sources": [
+        "P8",
+        "P9",
+        "P10",
+        "P11"
+      ],
+      "options": [
+        {
+          "id": "cold",
+          "label": "< 18 C",
+          "energyShift": 3,
+          "tempoShift": 1,
+          "vocalRatioShift": 0.0,
+          "valsShare": null,
+          "milongaShare": 0.18,
+          "cortinaGenres": [
+            "swing",
+            "rock-n-roll"
+          ],
+          "tandaSizeShift": 0,
+          "notes": "Rhythmic warm-up; two milonga tandas in first 90 min acceptable; cortinas 30-40 s.",
+          "evidence": "weak"
+        },
+        {
+          "id": "comfortable",
+          "label": "18-24 C",
+          "energyShift": 0,
+          "tempoShift": 0,
+          "vocalRatioShift": 0.0,
+          "valsShare": null,
+          "milongaShare": null,
+          "cortinaGenres": [],
+          "tandaSizeShift": 0,
+          "notes": "Baseline; performance-neutral band.",
+          "evidence": "strong"
+        },
+        {
+          "id": "warm",
+          "label": "24-28 C",
+          "energyShift": -3,
+          "tempoShift": -1,
+          "vocalRatioShift": 0.03,
+          "valsShare": null,
+          "milongaShare": 0.14,
+          "cortinaGenres": [],
+          "tandaSizeShift": 0,
+          "notes": "3-track milonga tandas; one fewer milonga over the night; cortinas 50-60 s.",
+          "evidence": "moderate"
+        },
+        {
+          "id": "hot",
+          "label": "> 28 C",
+          "energyShift": -7,
+          "tempoShift": -3,
+          "vocalRatioShift": 0.05,
+          "valsShare": 0.17,
+          "milongaShare": 0.11,
+          "cortinaGenres": [
+            "bossa",
+            "lo-fi",
+            "cool-jazz"
+          ],
+          "tandaSizeShift": -1,
+          "notes": "Peak cap 80; lyrical peaks; D'Arienzo 1950s milongas once; cortinas 60-90 s; 3-track tango tandas in hottest hour. When set, this replaces weather.heatwave's energy/tempo terms.",
+          "evidence": "moderate"
+        }
+      ]
+    },
+    {
+      "id": "timeOfDay",
+      "label": "Time of day / night (local clock of the slot)",
+      "priority": 8,
+      "sources": [
+        "P1",
+        "P12",
+        "P13",
+        "P14",
+        "P15",
+        "P16",
+        "P17",
+        "M2"
+      ],
+      "options": [
+        {
+          "id": "afternoonPractica",
+          "label": "Afternoon practica / milonga de la tarde (14:00-19:00)",
+          "energyShift": -2,
+          "tempoShift": 0,
+          "vocalRatioShift": -0.1,
+          "valsShare": 0.18,
+          "milongaShare": 0.18,
+          "cortinaGenres": [
+            "swing",
+            "italian-60s"
+          ],
+          "tandaSizeShift": -1,
+          "notes": "Post-lunch dip at start: open with clear rhythmic instrumentals (D'Arienzo 1936-38, Rodriguez); more instrumentals; no Pugliese; 30 s cortinas. Use energyShift 0 for a BsAs 'milonga de la tarde' with regulars.",
+          "evidence": "strong"
+        },
+        {
+          "id": "earlyEvening",
+          "label": "Early evening (19:00-22:00)",
+          "energyShift": 1,
+          "tempoShift": 1,
+          "vocalRatioShift": -0.05,
+          "valsShare": null,
+          "milongaShare": null,
+          "cortinaGenres": [],
+          "tandaSizeShift": 0,
+          "notes": "Arrival phase; business-hours arousal preference still active.",
+          "evidence": "moderate"
+        },
+        {
+          "id": "primeNight",
+          "label": "Prime night (22:00-00:30)",
+          "energyShift": 2,
+          "tempoShift": 0,
+          "vocalRatioShift": 0.0,
+          "valsShare": null,
+          "milongaShare": null,
+          "cortinaGenres": [],
+          "tandaSizeShift": 0,
+          "notes": "Main build and peak live here.",
+          "evidence": "strong"
+        },
+        {
+          "id": "afterMidnight",
+          "label": "After midnight (00:30-02:30)",
+          "energyShift": 0,
+          "tempoShift": -1,
+          "vocalRatioShift": 0.05,
+          "valsShare": 0.17,
+          "milongaShare": 0.15,
+          "cortinaGenres": [
+            "soul",
+            "chanson",
+            "jazz-standards"
+          ],
+          "tandaSizeShift": 0,
+          "notes": "Emotional energy replaces physical: Pugliese / Troilo-Marino / Di Sarli 50s window. Alcohol: cortinas <= 45 s and <= -3 dB.",
+          "evidence": "strong"
+        },
+        {
+          "id": "deepNight",
+          "label": "Deep night (02:30-04:30)",
+          "energyShift": -4,
+          "tempoShift": -2,
+          "vocalRatioShift": 0.08,
+          "valsShare": 0.18,
+          "milongaShare": 0.12,
+          "cortinaGenres": [
+            "lo-fi",
+            "bossa",
+            "cool-jazz"
+          ],
+          "tandaSizeShift": 0,
+          "notes": "Circadian trough; lyrical long runs; milonga tandas sparse, 3 tracks; one D'Arienzo 1950s milonga as wake-up if floor sags.",
+          "evidence": "strong"
+        },
+        {
+          "id": "sunriseMarathon",
+          "label": "Sunrise marathon slot (04:30-09:00)",
+          "energyShift": -6,
+          "tempoShift": -2,
+          "vocalRatioShift": 0.05,
+          "valsShare": 0.2,
+          "milongaShare": 0.1,
+          "cortinaGenres": [
+            "lo-fi",
+            "ambient-jazz",
+            "city-pop"
+          ],
+          "tandaSizeShift": 0,
+          "notes": "Hammock set: one gentle peak at ~60% of slot, valses as lifts, Fresedo/Di Sarli/Canaro-Maida/Demare core; no Pugliese vocal; re-ramp +4 in last 45 min for daytime hand-over.",
+          "evidence": "moderate"
+        }
+      ]
+    },
+    {
+      "id": "dayOfWeek",
+      "label": "Day of week",
+      "priority": 3,
+      "sources": [
+        "P4",
+        "P18",
+        "P19",
+        "P20"
+      ],
+      "options": [
+        {
+          "id": "monToWed",
+          "label": "Monday-Wednesday",
+          "energyShift": -1,
+          "tempoShift": 0,
+          "vocalRatioShift": 0.03,
+          "valsShare": null,
+          "milongaShare": null,
+          "cortinaGenres": [],
+          "tandaSizeShift": 0,
+          "notes": "Earlier end: compress arc; peak at 70% not 80%.",
+          "evidence": "moderate"
+        },
+        {
+          "id": "thursday",
+          "label": "Thursday",
+          "energyShift": -2,
+          "tempoShift": 0,
+          "vocalRatioShift": 0.03,
+          "valsShare": null,
+          "milongaShare": null,
+          "cortinaGenres": [],
+          "tandaSizeShift": 0,
+          "notes": "Weekly affect nadir; gentler warm-up, don't force a peak.",
+          "evidence": "moderate"
+        },
+        {
+          "id": "friday",
+          "label": "Friday",
+          "energyShift": 2,
+          "tempoShift": 1,
+          "vocalRatioShift": 0.0,
+          "valsShare": null,
+          "milongaShare": null,
+          "cortinaGenres": [],
+          "tandaSizeShift": 0,
+          "notes": "TGIF: arrivals come wound-up; warm-up 10% shorter.",
+          "evidence": "strong"
+        },
+        {
+          "id": "saturday",
+          "label": "Saturday",
+          "energyShift": 2,
+          "tempoShift": 0,
+          "vocalRatioShift": 0.0,
+          "valsShare": null,
+          "milongaShare": 0.18,
+          "cortinaGenres": [],
+          "tandaSizeShift": 0,
+          "notes": "The dancing day; fullest floor; full arc.",
+          "evidence": "strong"
+        },
+        {
+          "id": "sunday",
+          "label": "Sunday",
+          "energyShift": 0,
+          "tempoShift": -1,
+          "vocalRatioShift": 0.05,
+          "valsShare": 0.18,
+          "milongaShare": null,
+          "cortinaGenres": [
+            "jazz-standards",
+            "bossa",
+            "italian-60s"
+          ],
+          "tandaSizeShift": 0,
+          "notes": "Older, traditional crowd (lore); sweet ending = last 15%; Guardia Vieja and Canaro-Maida welcome.",
+          "evidence": "lore"
+        }
+      ]
+    },
+    {
+      "id": "eventType",
+      "label": "Event type",
+      "priority": 10,
+      "sources": [
+        "M2",
+        "M3",
+        "M4",
+        "P1",
+        "P13",
+        "P15"
+      ],
+      "options": [
+        {
+          "id": "milonga",
+          "label": "Regular milonga",
+          "energyShift": 0,
+          "tempoShift": 0,
+          "vocalRatioShift": 0.0,
+          "valsShare": null,
+          "milongaShare": null,
+          "cortinaGenres": [],
+          "tandaSizeShift": 0,
+          "notes": "Baseline.",
+          "evidence": "lore"
+        },
+        {
+          "id": "marathonDay1",
+          "label": "Marathon slot, day 1",
+          "energyShift": 0,
+          "tempoShift": 0,
+          "vocalRatioShift": 0.03,
+          "valsShare": 0.18,
+          "milongaShare": 0.14,
+          "cortinaGenres": [
+            "themed-single-artist"
+          ],
+          "tandaSizeShift": 0,
+          "notes": "1935-45 core; >=20 orchestras per 8 h; hammock tandas; Pugliese once per slot; no requests.",
+          "evidence": "lore"
+        },
+        {
+          "id": "marathonDay2",
+          "label": "Marathon slot, day 2",
+          "energyShift": -2,
+          "tempoShift": -1,
+          "vocalRatioShift": 0.05,
+          "valsShare": 0.18,
+          "milongaShare": 0.14,
+          "cortinaGenres": [
+            "themed-single-artist"
+          ],
+          "tandaSizeShift": 0,
+          "notes": "Cumulative fatigue (sleep debt lowers arousal preference).",
+          "evidence": "moderate"
+        },
+        {
+          "id": "marathonDay3",
+          "label": "Marathon slot, day 3",
+          "energyShift": -4,
+          "tempoShift": -1,
+          "vocalRatioShift": 0.05,
+          "valsShare": 0.18,
+          "milongaShare": 0.14,
+          "cortinaGenres": [
+            "themed-single-artist",
+            "lo-fi"
+          ],
+          "tandaSizeShift": 0,
+          "notes": "Cumulative fatigue; more valses, fewer milongas.",
+          "evidence": "moderate"
+        },
+        {
+          "id": "encuentro",
+          "label": "Encuentro milonguero",
+          "energyShift": -1,
+          "tempoShift": 0,
+          "vocalRatioShift": 0.05,
+          "valsShare": 0.18,
+          "milongaShare": 0.14,
+          "cortinaGenres": [
+            "discreet-jazz",
+            "chanson"
+          ],
+          "tandaSizeShift": 0,
+          "notes": "Crowded floor, short steps: vals <= 190, milonga <= 122 quarter BPM; strict cabeceo -> clean cortina gaps; no alternative, no contemporary orchestras; cortinas 30-40 s.",
+          "evidence": "lore"
+        },
+        {
+          "id": "festival",
+          "label": "Festival main milonga",
+          "energyShift": 4,
+          "tempoShift": 1,
+          "vocalRatioShift": -0.03,
+          "valsShare": null,
+          "milongaShare": 0.18,
+          "cortinaGenres": [
+            "pop",
+            "rock",
+            "varied"
+          ],
+          "tandaSizeShift": 0,
+          "notes": "Large young room; one contemporary-orchestra tanda in first third; re-ramp after shows with D'Arienzo/Biagi, never a vals; cortinas 40-60 s.",
+          "evidence": "lore"
+        },
+        {
+          "id": "practica",
+          "label": "Practica",
+          "energyShift": -3,
+          "tempoShift": 0,
+          "vocalRatioShift": -0.1,
+          "valsShare": 0.18,
+          "milongaShare": 0.18,
+          "cortinaGenres": [
+            "short-or-none"
+          ],
+          "tandaSizeShift": -1,
+          "notes": "More instrumentals; longer runs of one style allowed; no Pugliese 50s.",
+          "evidence": "lore"
+        },
+        {
+          "id": "weddingShow",
+          "label": "Wedding / show / mixed non-dancer audience",
+          "energyShift": -2,
+          "tempoShift": -1,
+          "vocalRatioShift": 0.05,
+          "valsShare": 0.22,
+          "milongaShare": 0.1,
+          "cortinaGenres": [
+            "mainstream-pop",
+            "swing"
+          ],
+          "tandaSizeShift": -1,
+          "notes": "Famous titles only (La Cumparsita, Por una cabeza, El dia que me quieras, Poema, Desde el alma, Bahia Blanca); 3-track tandas; valses high; Piazzolla Libertango/Oblivion allowed for show spot; close with D'Arienzo 1951 Cumparsita.",
+          "evidence": "lore"
+        }
+      ]
+    },
+    {
+      "id": "crowdSize",
+      "label": "Crowd size / density",
+      "priority": 6,
+      "sources": [
+        "P28",
+        "M2"
+      ],
+      "options": [
+        {
+          "id": "small",
+          "label": "Small (< 40 dancers)",
+          "energyShift": -3,
+          "tempoShift": 0,
+          "vocalRatioShift": 0.03,
+          "valsShare": 0.18,
+          "milongaShare": 0.14,
+          "cortinaGenres": [],
+          "tandaSizeShift": -1,
+          "notes": "Floor empties fast: cortinas 20-30 s; 3-track tandas for partner turnover; no Pugliese until >= 60% of expected crowd present.",
+          "evidence": "lore"
+        },
+        {
+          "id": "medium",
+          "label": "Medium (40-150)",
+          "energyShift": 0,
+          "tempoShift": 0,
+          "vocalRatioShift": 0.0,
+          "valsShare": null,
+          "milongaShare": null,
+          "cortinaGenres": [],
+          "tandaSizeShift": 0,
+          "notes": "Baseline; cortinas 45 s.",
+          "evidence": "lore"
+        },
+        {
+          "id": "large",
+          "label": "Large / packed (> 150 or > 1 couple per 3 m2)",
+          "energyShift": 2,
+          "tempoShift": -2,
+          "vocalRatioShift": 0.0,
+          "valsShare": null,
+          "milongaShare": 0.14,
+          "cortinaGenres": [],
+          "tandaSizeShift": 0,
+          "notes": "Cortinas 60-90 s to clear; steadier pulses (Di Sarli, Rodriguez, D'Arienzo instrumental) over rubato because the ronda jams; valses <= 190.",
+          "evidence": "weak"
+        }
+      ]
+    },
+    {
+      "id": "crowdLevel",
+      "label": "Dancer level",
+      "priority": 7,
+      "sources": [
+        "P25",
+        "P26",
+        "P27",
+        "M2"
+      ],
+      "options": [
+        {
+          "id": "beginner",
+          "label": "Beginners / class night",
+          "energyShift": -4,
+          "tempoShift": -2,
+          "vocalRatioShift": -0.05,
+          "valsShare": 0.17,
+          "milongaShare": 0.14,
+          "cortinaGenres": [],
+          "tandaSizeShift": -1,
+          "notes": "Low complexity: marcato in 4, square phrases, no rubato (Di Sarli 40s, D'Agostino, Rodriguez, Canaro); milongas slow (Canaro <= 110) and 3 tracks; no Pugliese 50s, no Biagi fast valses; beginnerWeight=1.0 in danceability.",
+          "evidence": "lore"
+        },
+        {
+          "id": "mixed",
+          "label": "Mixed",
+          "energyShift": 0,
+          "tempoShift": 0,
+          "vocalRatioShift": 0.0,
+          "valsShare": null,
+          "milongaShare": null,
+          "cortinaGenres": [],
+          "tandaSizeShift": 0,
+          "notes": "Baseline; beginnerWeight=0.5.",
+          "evidence": "lore"
+        },
+        {
+          "id": "advanced",
+          "label": "Advanced / milongueros",
+          "energyShift": 2,
+          "tempoShift": 0,
+          "vocalRatioShift": 0.05,
+          "valsShare": null,
+          "milongaShare": null,
+          "cortinaGenres": [],
+          "tandaSizeShift": 0,
+          "notes": "Tolerance for rubato, Troilo late, Pugliese twice in 6 h, Laurenz/Malerba colour, Guardia Vieja; cortinas 45-60 s; beginnerWeight=0.2.",
+          "evidence": "lore"
+        }
+      ]
+    },
+    {
+      "id": "ageMix",
+      "label": "Age mix (median age)",
+      "priority": 6,
+      "sources": [
+        "P1",
+        "P21",
+        "P22",
+        "P23",
+        "P24"
+      ],
+      "options": [
+        {
+          "id": "young",
+          "label": "Young (< 35 median)",
+          "energyShift": 4,
+          "tempoShift": 2,
+          "vocalRatioShift": -0.05,
+          "valsShare": null,
+          "milongaShare": 0.18,
+          "cortinaGenres": [
+            "pop",
+            "afrobeats",
+            "k-pop"
+          ],
+          "tandaSizeShift": 0,
+          "notes": "Younger listeners choose more intense music; D'Arienzo/Biagi heavy; festival style.",
+          "evidence": "moderate"
+        },
+        {
+          "id": "mixed",
+          "label": "Mixed",
+          "energyShift": 0,
+          "tempoShift": 0,
+          "vocalRatioShift": 0.0,
+          "valsShare": null,
+          "milongaShare": null,
+          "cortinaGenres": [],
+          "tandaSizeShift": 0,
+          "notes": "Baseline.",
+          "evidence": "moderate"
+        },
+        {
+          "id": "senior",
+          "label": "Senior (55+ median)",
+          "energyShift": -3,
+          "tempoShift": -3,
+          "vocalRatioShift": 0.05,
+          "valsShare": 0.18,
+          "milongaShare": 0.13,
+          "cortinaGenres": [
+            "swing",
+            "sinatra",
+            "italian-60s"
+          ],
+          "tandaSizeShift": 0,
+          "notes": "Spontaneous motor tempo slows with age: lower half of each tempo band; Canaro, Di Sarli, Fresedo, D'Agostino, Tanturi-Campos; slow milongas (Canaro, Di Sarli); no D'Arienzo 1960s.",
+          "evidence": "moderate"
+        }
+      ]
+    },
+    {
+      "id": "roleRatio",
+      "label": "Leader / follower ratio",
+      "priority": 2,
+      "sources": [
+        "M5"
+      ],
+      "options": [
+        {
+          "id": "balanced",
+          "label": "Balanced",
+          "energyShift": 0,
+          "tempoShift": 0,
+          "vocalRatioShift": 0.0,
+          "valsShare": null,
+          "milongaShare": null,
+          "cortinaGenres": [],
+          "tandaSizeShift": 0,
+          "notes": "Baseline.",
+          "evidence": "lore"
+        },
+        {
+          "id": "leaderSurplus",
+          "label": "Leader surplus",
+          "energyShift": 0,
+          "tempoShift": 0,
+          "vocalRatioShift": 0.0,
+          "valsShare": 0.18,
+          "milongaShare": null,
+          "cortinaGenres": [],
+          "tandaSizeShift": -1,
+          "notes": "3-track tandas for faster partner rotation.",
+          "evidence": "speculative"
+        },
+        {
+          "id": "followerSurplus",
+          "label": "Follower surplus",
+          "energyShift": 0,
+          "tempoShift": 0,
+          "vocalRatioShift": 0.03,
+          "valsShare": 0.18,
+          "milongaShare": null,
+          "cortinaGenres": [],
+          "tandaSizeShift": -1,
+          "notes": "3-track tandas; slightly more vals (followers dance vals together more readily).",
+          "evidence": "speculative"
+        }
+      ]
+    },
+    {
+      "id": "origin",
+      "label": "Tourists vs locals",
+      "priority": 2,
+      "sources": [
+        "M3",
+        "M5"
+      ],
+      "options": [
+        {
+          "id": "locals",
+          "label": "Locals / regulars",
+          "energyShift": 0,
+          "tempoShift": 0,
+          "vocalRatioShift": 0.0,
+          "valsShare": null,
+          "milongaShare": null,
+          "cortinaGenres": [],
+          "tandaSizeShift": 0,
+          "notes": "Regional profile applies fully.",
+          "evidence": "lore"
+        },
+        {
+          "id": "mixed",
+          "label": "Mixed",
+          "energyShift": 0,
+          "tempoShift": 0,
+          "vocalRatioShift": 0.0,
+          "valsShare": null,
+          "milongaShare": null,
+          "cortinaGenres": [
+            "jazz-standards"
+          ],
+          "tandaSizeShift": 0,
+          "notes": "Region pool plus universally decodable jazz.",
+          "evidence": "lore"
+        },
+        {
+          "id": "tourists",
+          "label": "Tourists / international (> 50%)",
+          "energyShift": 1,
+          "tempoShift": 0,
+          "vocalRatioShift": 0.0,
+          "valsShare": null,
+          "milongaShare": null,
+          "cortinaGenres": [
+            "jazz-standards",
+            "pop"
+          ],
+          "tandaSizeShift": 0,
+          "notes": "Play the canon (top-200 titles); avoid local-only codes (full-song cumbia breaks, chacarera) unless region=buenosAires; cortinas unmistakably non-tango for everyone.",
+          "evidence": "speculative"
+        }
+      ]
+    },
+    {
+      "id": "floorType",
+      "label": "Floor type",
+      "priority": 5,
+      "sources": [
+        "P29",
+        "P30",
+        "M5"
+      ],
+      "options": [
+        {
+          "id": "sprungWood",
+          "label": "Sprung wood / good parquet",
+          "energyShift": 0,
+          "tempoShift": 0,
+          "vocalRatioShift": 0.0,
+          "valsShare": null,
+          "milongaShare": null,
+          "cortinaGenres": [],
+          "tandaSizeShift": 0,
+          "notes": "Baseline; fast valses and milongas fine.",
+          "evidence": "moderate"
+        },
+        {
+          "id": "laminate",
+          "label": "Laminate / varnished (fast, slippery)",
+          "energyShift": 0,
+          "tempoShift": -1,
+          "vocalRatioShift": 0.0,
+          "valsShare": null,
+          "milongaShare": 0.15,
+          "cortinaGenres": [],
+          "tandaSizeShift": 0,
+          "notes": "Fewer fast milongas (D'Arienzo 50s <= 1); valses <= 190.",
+          "evidence": "weak"
+        },
+        {
+          "id": "tile",
+          "label": "Tile / stone / marble",
+          "energyShift": -2,
+          "tempoShift": -2,
+          "vocalRatioShift": 0.03,
+          "valsShare": 0.17,
+          "milongaShare": 0.12,
+          "cortinaGenres": [],
+          "tandaSizeShift": 0,
+          "notes": "Hard, often slippery; knees tire; avoid fast milongas and Biagi valses; favour lyrical walking tandas.",
+          "evidence": "weak"
+        },
+        {
+          "id": "sticky",
+          "label": "Concrete / carpet / sticky",
+          "energyShift": -3,
+          "tempoShift": -3,
+          "vocalRatioShift": 0.03,
+          "valsShare": 0.16,
+          "milongaShare": 0.1,
+          "cortinaGenres": [],
+          "tandaSizeShift": 0,
+          "notes": "'Getting stuck': pivots hurt; minimise milonga; slower Di Sarli / Fresedo; fewer vals too.",
+          "evidence": "weak"
+        },
+        {
+          "id": "outdoor",
+          "label": "Outdoor deck / plaza",
+          "energyShift": 1,
+          "tempoShift": 0,
+          "vocalRatioShift": -0.05,
+          "valsShare": null,
+          "milongaShare": 0.18,
+          "cortinaGenres": [],
+          "tandaSizeShift": 0,
+          "notes": "Ambient noise: rhythmic, loud-transfer tracks; Guardia Vieja 78 transfers get lost; cortinas louder, 45-60 s; weather rules apply.",
+          "evidence": "lore"
+        }
+      ]
+    },
+    {
+      "id": "roomSize",
+      "label": "Room size",
+      "priority": 3,
+      "sources": [
+        "M5"
+      ],
+      "options": [
+        {
+          "id": "small",
+          "label": "Small (< 80 m2)",
+          "energyShift": -1,
+          "tempoShift": -1,
+          "vocalRatioShift": 0.03,
+          "valsShare": null,
+          "milongaShare": 0.14,
+          "cortinaGenres": [],
+          "tandaSizeShift": 0,
+          "notes": "Jams quickly; steadier tempos; cortinas 30-45 s.",
+          "evidence": "lore"
+        },
+        {
+          "id": "medium",
+          "label": "Medium",
+          "energyShift": 0,
+          "tempoShift": 0,
+          "vocalRatioShift": 0.0,
+          "valsShare": null,
+          "milongaShare": null,
+          "cortinaGenres": [],
+          "tandaSizeShift": 0,
+          "notes": "Baseline.",
+          "evidence": "lore"
+        },
+        {
+          "id": "largeHall",
+          "label": "Large hall (> 250 m2)",
+          "energyShift": 2,
+          "tempoShift": 0,
+          "vocalRatioShift": 0.0,
+          "valsShare": null,
+          "milongaShare": 0.18,
+          "cortinaGenres": [],
+          "tandaSizeShift": 0,
+          "notes": "Room to run: D'Arienzo milongas, Biagi valses OK; cortinas 45-60 s.",
+          "evidence": "lore"
+        }
+      ]
+    },
+    {
+      "id": "acoustics",
+      "label": "Room acoustics (reverberation)",
+      "priority": 4,
+      "sources": [
+        "P31",
+        "P32",
+        "P33"
+      ],
+      "options": [
+        {
+          "id": "dry",
+          "label": "Dry (RT < 0.8 s)",
+          "energyShift": 1,
+          "tempoShift": 1,
+          "vocalRatioShift": 0.0,
+          "valsShare": null,
+          "milongaShare": null,
+          "cortinaGenres": [],
+          "tandaSizeShift": 0,
+          "notes": "Staccato reads; rhythmic orchestras shine.",
+          "evidence": "weak"
+        },
+        {
+          "id": "moderate",
+          "label": "Moderate (0.8-1.5 s)",
+          "energyShift": 0,
+          "tempoShift": 0,
+          "vocalRatioShift": 0.0,
+          "valsShare": null,
+          "milongaShare": null,
+          "cortinaGenres": [],
+          "tandaSizeShift": 0,
+          "notes": "Baseline.",
+          "evidence": "weak"
+        },
+        {
+          "id": "reverberant",
+          "label": "Reverberant (> 1.5 s: gym, church, stone)",
+          "energyShift": -2,
+          "tempoShift": -2,
+          "vocalRatioShift": 0.05,
+          "valsShare": 0.18,
+          "milongaShare": 0.12,
+          "cortinaGenres": [],
+          "tandaSizeShift": 0,
+          "notes": "Prefer legato (Di Sarli, Fresedo, Calo, De Angelis valses); avoid fastest staccato; use clearly non-tango cortina timbres; loudness -2 dB.",
+          "evidence": "weak"
+        }
+      ]
+    },
+    {
+      "id": "region",
+      "label": "Region (baseline profile)",
+      "priority": 9,
+      "sources": [
+        "P1",
+        "P4",
+        "M3"
+      ],
+      "options": [
+        {
+          "id": "buenosAires",
+          "label": "Buenos Aires traditional",
+          "energyShift": 2,
+          "tempoShift": 1,
+          "vocalRatioShift": 0.05,
+          "valsShare": null,
+          "milongaShare": 0.17,
+          "cortinaGenres": [
+            "jazz-standards",
+            "swing",
+            "rock-nacional",
+            "cumbia"
+          ],
+          "tandaSizeShift": 0,
+          "notes": "Era 1938-50; two Cumparsitas; long cortinas (45-90 s), same clip all night; chacarera/chamame set late; D'Arienzo share up to 25%; full-song cumbia/salsa breaks 2-3x.",
+          "evidence": "lore"
+        },
+        {
+          "id": "europe",
+          "label": "Europe (marathon / encuentro / milonga)",
+          "energyShift": 0,
+          "tempoShift": 0,
+          "vocalRatioShift": 0.0,
+          "valsShare": null,
+          "milongaShare": null,
+          "cortinaGenres": [
+            "themed-single-artist",
+            "jazz-standards",
+            "soul",
+            "italian-60s",
+            "chanson"
+          ],
+          "tandaSizeShift": 0,
+          "notes": "1935-55; more Guardia Vieja colour; seamless fades; cortinas 30-45 s.",
+          "evidence": "lore"
+        },
+        {
+          "id": "istanbul",
+          "label": "Istanbul / Eastern Mediterranean",
+          "energyShift": 3,
+          "tempoShift": 2,
+          "vocalRatioShift": 0.0,
+          "valsShare": null,
+          "milongaShare": 0.18,
+          "cortinaGenres": [
+            "turkish-pop",
+            "greek-laiko",
+            "80s-synth",
+            "balkan"
+          ],
+          "tandaSizeShift": 0,
+          "notes": "Bright, fast; D'Arienzo/Biagi/Rodriguez heavy; cortinas 45-90 s and loud.",
+          "evidence": "lore"
+        },
+        {
+          "id": "asia",
+          "label": "Asia (Seoul / Tokyo / Taipei / Shanghai)",
+          "energyShift": -2,
+          "tempoShift": -1,
+          "vocalRatioShift": 0.05,
+          "valsShare": 0.18,
+          "milongaShare": null,
+          "cortinaGenres": [
+            "jazz-standards",
+            "city-pop",
+            "bossa",
+            "k-indie"
+          ],
+          "tandaSizeShift": 0,
+          "notes": "Lower arousal baseline in streaming data; highest audio-quality expectations; late Troilo / Di Sarli loved; dramatic valued over rhythmic.",
+          "evidence": "moderate"
+        },
+        {
+          "id": "us",
+          "label": "US / Canada",
+          "energyShift": 0,
+          "tempoShift": 0,
+          "vocalRatioShift": -0.03,
+          "valsShare": 0.17,
+          "milongaShare": 0.16,
+          "cortinaGenres": [
+            "rock-n-roll",
+            "motown",
+            "americana"
+          ],
+          "tandaSizeShift": 0,
+          "notes": "Less era-literate: tolerate vocal-era mixing; 0-2 alternative tandas late; avoid swing cortinas where swing dancers are present; 3-track tandas in beginner-heavy scenes.",
+          "evidence": "lore"
+        }
+      ]
+    },
+    {
+      "id": "holiday",
+      "label": "Holiday / special date",
+      "priority": 7,
+      "sources": [
+        "P4",
+        "P1",
+        "P5",
+        "M5"
+      ],
+      "options": [
+        {
+          "id": "none",
+          "label": "None",
+          "energyShift": 0,
+          "tempoShift": 0,
+          "vocalRatioShift": 0.0,
+          "valsShare": null,
+          "milongaShare": null,
+          "cortinaGenres": [],
+          "tandaSizeShift": 0,
+          "notes": "Baseline.",
+          "evidence": "strong"
+        },
+        {
+          "id": "christmas",
+          "label": "Christmas week",
+          "energyShift": 1,
+          "tempoShift": 0,
+          "vocalRatioShift": 0.03,
+          "valsShare": 0.2,
+          "milongaShare": null,
+          "cortinaGenres": [
+            "swing-christmas",
+            "sinatra",
+            "italian-60s"
+          ],
+          "tandaSizeShift": 0,
+          "notes": "Sweet major-mode valses (Canaro Desde el alma, Di Sarli Bajo el cielo azul); family/all-ages -> senior-leaning; Christmas songs as cortinas only, never tandas.",
+          "evidence": "weak"
+        },
+        {
+          "id": "newYear",
+          "label": "New Year's Eve",
+          "energyShift": 4,
+          "tempoShift": 1,
+          "vocalRatioShift": 0.0,
+          "valsShare": null,
+          "milongaShare": 0.18,
+          "cortinaGenres": [
+            "disco-funk",
+            "latin-pop",
+            "pop-anthems"
+          ],
+          "tandaSizeShift": 0,
+          "notes": "Hard peak 23:30-23:55 (D'Arienzo/Biagi/Pugliese), Cumparsita at midnight, 5-min break, restart from 'build' at energy 65 with a vals; after 01:00 cortinas short and quieter (alcohol).",
+          "evidence": "lore"
+        },
+        {
+          "id": "valentines",
+          "label": "Valentine's Day",
+          "energyShift": -2,
+          "tempoShift": -1,
+          "vocalRatioShift": 0.1,
+          "valsShare": 0.2,
+          "milongaShare": 0.12,
+          "cortinaGenres": [
+            "chanson",
+            "bossa",
+            "soul-ballads"
+          ],
+          "tandaSizeShift": 0,
+          "notes": "Apply mood.romantic preset; famous love lyrics (Poema, Nada, Fumando espero, Toda mi vida); emotional rather than physical peak.",
+          "evidence": "lore"
+        },
+        {
+          "id": "carnival",
+          "label": "Carnival",
+          "energyShift": 3,
+          "tempoShift": 1,
+          "vocalRatioShift": -0.03,
+          "valsShare": null,
+          "milongaShare": 0.2,
+          "cortinaGenres": [
+            "murga",
+            "cumbia",
+            "samba",
+            "balkan"
+          ],
+          "tandaSizeShift": 0,
+          "notes": "Two milonga-candombe tandas; festive rhythmic orchestras; one BsAs-style break tanda allowed.",
+          "evidence": "lore"
+        }
+      ]
+    },
+    {
+      "id": "daylight",
+      "label": "Daylight / latitude",
+      "priority": 3,
+      "sources": [
+        "P1",
+        "P3",
+        "P7"
+      ],
+      "seasonMultiplier": {
+        "shortDays": 1.3,
+        "longDays": 1.3,
+        "equatorial": 0.3,
+        "temperate": 1.0,
+        "startsInDaylight": 1.0
+      },
+      "options": [
+        {
+          "id": "shortDays",
+          "label": "Short days (< 9 h; high latitude winter)",
+          "energyShift": -2,
+          "tempoShift": 0,
+          "vocalRatioShift": 0.05,
+          "valsShare": null,
+          "milongaShare": null,
+          "cortinaGenres": [],
+          "tandaSizeShift": 0,
+          "notes": "Season shift x1.3; warm, lyrical; longer sweet ending.",
+          "evidence": "moderate"
+        },
+        {
+          "id": "longDays",
+          "label": "Long days (> 16 h; high latitude summer)",
+          "energyShift": 1,
+          "tempoShift": 0,
+          "vocalRatioShift": -0.03,
+          "valsShare": null,
+          "milongaShare": null,
+          "cortinaGenres": [],
+          "tandaSizeShift": 0,
+          "notes": "Season shift x1.3; arrivals late -> stretch warm-up.",
+          "evidence": "moderate"
+        },
+        {
+          "id": "equatorial",
+          "label": "Equatorial (|lat| < 15 deg)",
+          "energyShift": 0,
+          "tempoShift": 0,
+          "vocalRatioShift": 0.0,
+          "valsShare": null,
+          "milongaShare": null,
+          "cortinaGenres": [],
+          "tandaSizeShift": 0,
+          "notes": "Season shift x0.3 (seasonal amplitude shrinks toward the equator).",
+          "evidence": "moderate"
+        },
+        {
+          "id": "temperate",
+          "label": "Temperate default",
+          "energyShift": 0,
+          "tempoShift": 0,
+          "vocalRatioShift": 0.0,
+          "valsShare": null,
+          "milongaShare": null,
+          "cortinaGenres": [],
+          "tandaSizeShift": 0,
+          "notes": "Season shift x1.0.",
+          "evidence": "moderate"
+        },
+        {
+          "id": "startsInDaylight",
+          "label": "Event starts before sunset",
+          "energyShift": -1,
+          "tempoShift": 0,
+          "vocalRatioShift": -0.03,
+          "valsShare": null,
+          "milongaShare": null,
+          "cortinaGenres": [],
+          "tandaSizeShift": 0,
+          "notes": "People arrive later; keep warm-up instrumental.",
+          "evidence": "lore"
+        }
+      ]
+    },
+    {
+      "id": "mood",
+      "label": "Mood request",
+      "priority": 8,
+      "sources": [
+        "P34",
+        "P35",
+        "P36",
+        "P39",
+        "P25",
+        "P40"
+      ],
+      "options": [
+        {
+          "id": "romantic",
+          "label": "Romantic",
+          "energyShift": -3,
+          "tempoShift": -2,
+          "vocalRatioShift": 0.12,
+          "valsShare": 0.2,
+          "milongaShare": 0.12,
+          "cortinaGenres": [
+            "chanson",
+            "bossa",
+            "soul-ballads"
+          ],
+          "tandaSizeShift": 0,
+          "notes": "valence +, arousal low-mid. Lyrical orchestras + lyrical singers (Di Sarli-Rufino/Podesta, Fresedo-Ray, Canaro-Maida, Calo-Beron, Demare-Miranda, Troilo-Fiorentino, D'Agostino-Vargas, Tanturi-Campos); major-mode titles welcome; emotional peak.",
+          "evidence": "moderate"
+        },
+        {
+          "id": "energetic",
+          "label": "Energetic",
+          "energyShift": 8,
+          "tempoShift": 4,
+          "vocalRatioShift": -0.08,
+          "valsShare": null,
+          "milongaShare": 0.2,
+          "cortinaGenres": [
+            "funk",
+            "rock",
+            "balkan",
+            "turkish-pop"
+          ],
+          "tandaSizeShift": 0,
+          "notes": "valence +, arousal high. D'Arienzo all periods, Biagi, Rodriguez, Tanturi-Castillo, Donato; marcato in 4, strong syncopation, high pulse strength; still >= 1 breathing tanda per 90 min.",
+          "evidence": "moderate"
+        },
+        {
+          "id": "nostalgic",
+          "label": "Nostalgic",
+          "energyShift": -4,
+          "tempoShift": -2,
+          "vocalRatioShift": 0.1,
+          "valsShare": 0.2,
+          "milongaShare": 0.12,
+          "cortinaGenres": [
+            "chanson",
+            "italian-60s",
+            "old-jazz-ballads"
+          ],
+          "tandaSizeShift": 0,
+          "notes": "valence mixed, arousal low. Guardia Vieja + early-40s vocal tandas, famous lyrics, Canaro-Charlo/Fama valses, Troilo-Fiorentino, Di Sarli-Rufino; strong pulse + moderate brightness (memory features); sweet ending 20%.",
+          "evidence": "moderate"
+        },
+        {
+          "id": "playful",
+          "label": "Playful",
+          "energyShift": 4,
+          "tempoShift": 2,
+          "vocalRatioShift": -0.03,
+          "valsShare": 0.18,
+          "milongaShare": 0.22,
+          "cortinaGenres": [
+            "italian-60s",
+            "surf",
+            "cumbia",
+            "swing"
+          ],
+          "tandaSizeShift": 0,
+          "notes": "valence +, arousal mid-high. Milongas (Canaro, D'Arienzo 1937-41, Tanturi-Castillo), Biagi anticipations, Donato humour, Rodriguez-Moreno, De Angelis valses; medium syncopation, square phrases.",
+          "evidence": "moderate"
+        },
+        {
+          "id": "elegant",
+          "label": "Elegant",
+          "energyShift": -1,
+          "tempoShift": -1,
+          "vocalRatioShift": 0.03,
+          "valsShare": 0.18,
+          "milongaShare": 0.14,
+          "cortinaGenres": [
+            "cool-jazz",
+            "bossa",
+            "chet-baker"
+          ],
+          "tandaSizeShift": 0,
+          "notes": "Di Sarli (both periods), Fresedo, De Angelis, Laurenz, Troilo 41-43; legato, arrastre, clean marcato in 2.",
+          "evidence": "lore"
+        },
+        {
+          "id": "dramatic",
+          "label": "Dramatic",
+          "energyShift": 3,
+          "tempoShift": -2,
+          "vocalRatioShift": 0.05,
+          "valsShare": 0.17,
+          "milongaShare": 0.13,
+          "cortinaGenres": [
+            "film-themes",
+            "balkan",
+            "piaf"
+          ],
+          "tandaSizeShift": 0,
+          "notes": "valence -, arousal high. Pugliese (two tandas allowed in 5 h+), Troilo 44-55, Di Sarli 50s, Gobbi, Color Tango once; high LRA, rubato, dense arrangement; every dramatic tanda followed by a vals or rhythmic breather.",
+          "evidence": "moderate"
+        }
+      ]
+    }
+  ],
+  "rhythmFeatures": {
+    "axes": {
+      "energy": "0-100; 0.55*physical + 0.45*emotional (musicology.md s2.2)",
+      "danceability": "0-100; readiness of a social dancer to walk to it; canción forced <= 25",
+      "difficulty": "0-100; rubato, irregular phrasing, dominant singer, density, fast/slow extremes",
+      "valence": "-1..+1 perceived pleasantness (mode, harmonic complexity, contour)",
+      "arousal": "0..1 perceived activation (loudness, tempo, spectral flux, rhythmic regularity)"
+    },
+    "beginnerWeight": {
+      "beginner": 1.0,
+      "mixed": 0.5,
+      "advanced": 0.2
+    },
+    "features": {
+      "tempo": {
+        "unit": "quarter-note BPM (vals also bars/min = BPM/3)",
+        "compute": "beat tracker + folding per musicology.md s0; cross-check reference durations",
+        "tango": {
+          "physicalPerBpm": 0.9,
+          "pivot": 124,
+          "danceablePeak": [
+            118,
+            134
+          ],
+          "difficultyBelow": [
+            112,
+            8
+          ],
+          "difficultyAbove": [
+            138,
+            6
+          ]
+        },
+        "vals": {
+          "physicalPerBpm": 0.6,
+          "pivot": 180,
+          "danceablePeak": [
+            170,
+            190
+          ],
+          "difficultyAbove": [
+            195,
+            10
+          ]
+        },
+        "milonga": {
+          "physicalPerBpm": 0.8,
+          "pivot": 112,
+          "danceablePeak": [
+            104,
+            120
+          ],
+          "difficultyAbove": [
+            124,
+            15
+          ]
+        },
+        "cancion": {
+          "note": "tempo irrelevant to danceability; arousal only"
+        }
+      },
+      "marcato": {
+        "values": [
+          "in2",
+          "in4",
+          "pesante",
+          "yumba"
+        ],
+        "compute": "onset-strength energy at 2x pulse vs 1x pulse; or orchestra/era prior",
+        "tango": {
+          "in4": {
+            "physical": 6,
+            "danceableBeginner": 8
+          },
+          "in2": {
+            "physical": -2,
+            "danceableAdvanced": 4
+          },
+          "pesante": {
+            "emotional": 4,
+            "difficulty": 4
+          },
+          "yumba": {
+            "emotional": 6,
+            "difficulty": 8
+          }
+        },
+        "vals": {
+          "strongBeat1": {
+            "physical": 4,
+            "label": "lift"
+          },
+          "evenThree": {
+            "emotional": 3,
+            "label": "floating"
+          }
+        },
+        "milonga": {
+          "habaneraRatio": "share of 3-3-2 vs straight 4; more 3-3-2 -> difficulty +5, valence +0.05"
+        }
+      },
+      "syncopation": {
+        "compute": "Longuet-Higgins & Lee index on onset grid, or style prior",
+        "levels": [
+          "low",
+          "medium",
+          "high"
+        ],
+        "tango": {
+          "medium": {
+            "arousal": 0.05,
+            "valence": 0.05
+          },
+          "high": {
+            "difficulty": 8,
+            "danceableBeginner": -4
+          }
+        },
+        "milonga": {
+          "densityLow": {
+            "danceable": 4
+          },
+          "densityHigh": {
+            "physical": 6,
+            "difficulty": 8
+          }
+        }
+      },
+      "phrasing": {
+        "compute": "self-similarity matrix; phrase-length histogram",
+        "square": {
+          "danceable": 6,
+          "difficulty": -8
+        },
+        "irregular": {
+          "difficulty": 10
+        }
+      },
+      "arrastre": {
+        "compute": "60-250 Hz energy rise over ~150 ms before beat 1; occurrence rate",
+        "strong": {
+          "emotional": 6,
+          "physical": 2,
+          "difficulty": 6,
+          "valence": -0.1
+        },
+        "valsMild": {
+          "energy": 2
+        }
+      },
+      "variacion": {
+        "compute": "onset-density spike > 2x median in final 15%, high register",
+        "present": {
+          "energy": 4,
+          "arousal": 0.1,
+          "difficulty": 4,
+          "slotHint": "tanda closer"
+        }
+      },
+      "lyricalVsRhythmic": {
+        "compute": "sustained-tone energy / percussive onset energy (spectral flux)",
+        "rhythmic": {
+          "physical": 8,
+          "valence": 0.05
+        },
+        "lyrical": {
+          "emotional": 6,
+          "physical": -6,
+          "arousal": -0.1
+        },
+        "dramaticAlternating": {
+          "difficulty": 10
+        }
+      },
+      "singerRole": {
+        "compute": "vocal activity ratio (VAR) via source separation",
+        "thresholds": {
+          "estribillista": [
+            0,
+            0.25
+          ],
+          "cantorDeOrquesta": [
+            0.25,
+            0.55
+          ],
+          "cantorDominant": [
+            0.55,
+            1.0
+          ]
+        },
+        "estribillista": {
+          "emotional": 2,
+          "danceable": 2
+        },
+        "cantorDeOrquesta": {
+          "emotional": 8
+        },
+        "cantorDominant": {
+          "emotional": 10,
+          "danceable": -8,
+          "difficulty": 6
+        },
+        "cancionRule": "VAR > 0.6 and rubato -> cancion, danceable <= 25, never in a tanda"
+      },
+      "dynamics": {
+        "compute": "EBU R128 loudness range (LRA, LU); short-term loudness std",
+        "lraLow": {
+          "max": 5,
+          "emotional": -4
+        },
+        "lraNormal": [
+          5,
+          9
+        ],
+        "lraHigh": {
+          "min": 9,
+          "emotional": 6,
+          "difficulty": 4
+        }
+      },
+      "keyMode": {
+        "compute": "Krumhansl/Temperley key profiles on the A part; verify with sheet key",
+        "minor": {
+          "valence": -0.15,
+          "emotional": 5
+        },
+        "major": {
+          "valence": 0.2,
+          "physical": -3
+        },
+        "valsMajor": {
+          "valence": 0.25
+        },
+        "milongaMajor": {
+          "valence": 0.1
+        }
+      },
+      "arrangementDensity": {
+        "compute": "spectral flatness + simultaneous pitched streams, or orchestra prior",
+        "sparse": {
+          "emotional": -6,
+          "danceable": 2
+        },
+        "dense": {
+          "emotional": 6,
+          "difficulty": 4
+        }
+      },
+      "duration": {
+        "tango": {
+          "normal": [
+            140,
+            190
+          ],
+          "longPenaltyAbove": [
+            210,
+            3
+          ],
+          "snackBelow": 130,
+          "tandaBudgetSec": 750
+        },
+        "vals": {
+          "normal": [
+            140,
+            180
+          ]
+        },
+        "milonga": {
+          "normal": [
+            120,
+            160
+          ],
+          "fatigueAbove": 170
+        },
+        "cancion": {
+          "normal": [
+            180,
+            240
+          ]
+        }
+      },
+      "pulseClarity": {
+        "compute": "beat salience / pulse clarity percentile",
+        "danceablePerPercentilePoint": 0.3,
+        "note": "strongest predictor of beginner danceability and memory salience"
+      },
+      "transferQuality": {
+        "compute": "label tier, SNR, speed check vs reference duration",
+        "note": "affects loudness normalisation and arousal; not energy class"
+      }
+    },
+    "formulas": {
+      "tango": {
+        "physical": "base_phys + 0.9*(bpm-124) + marcato4*6 - lyrical*6 + instrumental*4 + era_phys",
+        "emotional": "base_emo + vocal*8 + singerDrama*6 + minor*5 + rubato(8|14) + dense*6 + lraHigh*6 + arrastre*6 + era_emo",
+        "energy": "0.55*physical + 0.45*emotional",
+        "danceability": "70 + pulseClarity*0.3 + square*6 + marcato4*8*beginnerWeight - rubato*12 - dominantSinger*8 - abs(bpm-126)*0.5",
+        "difficulty": "base_diff + rubato*14 + irregularPhrase*10 + dominantSinger*6 + dense*4 + arrastre*6 + syncHigh*8 + (bpm<112)*8 + (bpm>138)*6",
+        "valence": "-0.15*minor + 0.2*major + 0.05*rhythmic - 0.1*arrastre - 0.1*dramaticSinger + 0.1*playfulSync",
+        "arousal": "clamp(0.45 + 0.004*(bpm-124) + 0.25*loudnessNorm + 0.15*spectralFlux + 0.1*rhythmicRegularity, 0, 1)"
+      },
+      "vals": {
+        "physical": "base_phys + 0.6*(bpm-180) + strongBeat1*4 + instrumental*3",
+        "emotional": "base_emo + vocal*6 + minor*6 + dense*5 + rubato*8",
+        "energy": "min(85, 0.55*physical + 0.45*emotional)",
+        "danceability": "75 + pulseClarity*0.3 - (bpm>195)*10 - rubato*10",
+        "difficulty": "base_diff + (bpm>195)*10 + rubato*10 + irregular*8",
+        "valence": "0.25*major - 0.1*minor + 0.1*lyrical",
+        "arousal": "clamp(0.5 + 0.005*(bpm-180) + 0.2*loudnessNorm, 0, 1)"
+      },
+      "milonga": {
+        "physical": "base_phys + 10 + 0.8*(bpm-112) + syncDensity*6",
+        "emotional": "base_emo - 4 + vocal*4 + candombe*4",
+        "energy": "0.55*physical + 0.45*emotional",
+        "danceability": "70 + pulseClarity*0.3 - (bpm>124)*15 - syncHigh*8 + habanera*4",
+        "difficulty": "base_diff + 10 + (bpm>124)*15 + syncHigh*8 + traspieDensity*6",
+        "valence": "0.2 + 0.1*major - 0.1*candombe",
+        "arousal": "clamp(0.6 + 0.005*(bpm-112) + 0.2*loudnessNorm, 0, 1)"
+      },
+      "cancion": {
+        "danceability": "min(25, computed)",
+        "energy": "tango formula, flagged nonDanceable=true",
+        "valence": "mode + lyric sentiment",
+        "arousal": "loudness/LRA driven",
+        "engineRule": "never inside a tanda; homenaje single or show spot only"
+      }
+    }
+  },
+  "eraTable": {
+    "note": "Quarter-note BPM per musicology.md s0. Typical tanda means; orchestra_profiles.json overrides.",
+    "eras": [
+      {
+        "id": "guardiaVieja",
+        "label": "Guardia Vieja / Guardia Nueva sextets",
+        "years": [
+          1900,
+          1934
+        ],
+        "bpm": {
+          "tango": [
+            118,
+            130
+          ],
+          "vals": [
+            160,
+            175
+          ],
+          "milonga": [
+            100,
+            112
+          ]
+        },
+        "marcato": "in2 bright (some in4: Firpo, OTV)",
+        "syncopation": "low-medium",
+        "arrastre": "rare",
+        "variacion": "some (Firpo, De Caro)",
+        "lyricalToRhythmic": "40:60",
+        "singerRole": "estribillista",
+        "lraLU": [
+          3,
+          6
+        ],
+        "mode": "mixed, many major",
+        "arrangementDensity": "sparse",
+        "durationSec": [
+          150,
+          180
+        ],
+        "energy": [
+          35,
+          50
+        ],
+        "danceability": [
+          70,
+          80
+        ],
+        "difficulty": [
+          20,
+          35
+        ],
+        "valence": 0.1,
+        "arousal": 0.4,
+        "placement": [
+          "warmup",
+          "breath",
+          "afternoon",
+          "nostalgic"
+        ]
+      },
+      {
+        "id": "golden1935_40",
+        "label": "Golden early (D'Arienzo revolution)",
+        "years": [
+          1935,
+          1940
+        ],
+        "bpm": {
+          "tango": [
+            126,
+            140
+          ],
+          "vals": [
+            180,
+            200
+          ],
+          "milonga": [
+            106,
+            120
+          ]
+        },
+        "marcato": "in4 staccato",
+        "syncopation": "medium-high (Biagi)",
+        "arrastre": "light",
+        "variacion": "frequent",
+        "lyricalToRhythmic": "25:75",
+        "singerRole": "estribillista -> short cantor",
+        "lraLU": [
+          4,
+          7
+        ],
+        "mode": "minor",
+        "arrangementDensity": "medium",
+        "durationSec": [
+          140,
+          170
+        ],
+        "energy": [
+          65,
+          85
+        ],
+        "danceability": [
+          85,
+          95
+        ],
+        "difficulty": [
+          25,
+          40
+        ],
+        "valence": 0.05,
+        "arousal": 0.75,
+        "placement": [
+          "warmup",
+          "build",
+          "peak",
+          "cold",
+          "young",
+          "beginner"
+        ]
+      },
+      {
+        "id": "golden1941_45",
+        "label": "Golden mid (singers become stars; 1941 peak)",
+        "years": [
+          1941,
+          1945
+        ],
+        "bpm": {
+          "tango": [
+            118,
+            130
+          ],
+          "vals": [
+            172,
+            190
+          ],
+          "milonga": [
+            106,
+            118
+          ]
+        },
+        "marcato": "in4 (Tanturi, D'Arienzo-Maure) and in2 (Di Sarli, Troilo)",
+        "syncopation": "medium",
+        "arrastre": "medium (Troilo)",
+        "variacion": "occasional",
+        "lyricalToRhythmic": "50:50",
+        "singerRole": "cantor de orquesta",
+        "lraLU": [
+          5,
+          8
+        ],
+        "mode": "minor",
+        "arrangementDensity": "medium-dense",
+        "durationSec": [
+          150,
+          190
+        ],
+        "energy": [
+          55,
+          75
+        ],
+        "danceability": [
+          80,
+          92
+        ],
+        "difficulty": [
+          30,
+          50
+        ],
+        "valence": -0.05,
+        "arousal": 0.6,
+        "placement": [
+          "build",
+          "middle",
+          "romantic",
+          "nostalgic",
+          "heat-safe"
+        ]
+      },
+      {
+        "id": "golden1946_55",
+        "label": "Golden late (grand style)",
+        "years": [
+          1946,
+          1955
+        ],
+        "bpm": {
+          "tango": [
+            108,
+            124
+          ],
+          "vals": [
+            168,
+            186
+          ],
+          "milonga": [
+            108,
+            124
+          ]
+        },
+        "marcato": "in2 pesante; yumba (Pugliese)",
+        "syncopation": "medium (Pugliese high)",
+        "arrastre": "strong",
+        "variacion": "occasional dramatic",
+        "lyricalToRhythmic": "65:35",
+        "singerRole": "cantor dominant",
+        "lraLU": [
+          7,
+          11
+        ],
+        "mode": "minor",
+        "arrangementDensity": "dense",
+        "durationSec": [
+          170,
+          210
+        ],
+        "energy": [
+          60,
+          85
+        ],
+        "danceability": [
+          65,
+          85
+        ],
+        "difficulty": [
+          50,
+          85
+        ],
+        "valence": -0.15,
+        "arousal": 0.65,
+        "placement": [
+          "peak",
+          "late",
+          "closing",
+          "dramatic",
+          "asia",
+          "after-midnight"
+        ]
+      },
+      {
+        "id": "post55",
+        "label": "Post-golden",
+        "years": [
+          1956,
+          1975
+        ],
+        "bpm": {
+          "tango": [
+            104,
+            144
+          ],
+          "vals": [
+            168,
+            190
+          ],
+          "milonga": [
+            116,
+            132
+          ]
+        },
+        "marcato": "in4 very fast (D'Arienzo 60s) or in2 slow (Di Sarli 56-58)",
+        "syncopation": "medium",
+        "arrastre": "strong",
+        "variacion": "frequent (show)",
+        "lyricalToRhythmic": "50:50",
+        "singerRole": "cantor dominant, stereo crooning",
+        "lraLU": [
+          8,
+          12
+        ],
+        "mode": "minor",
+        "arrangementDensity": "very dense",
+        "durationSec": [
+          160,
+          220
+        ],
+        "energy": [
+          55,
+          90
+        ],
+        "danceability": [
+          50,
+          75
+        ],
+        "difficulty": [
+          45,
+          75
+        ],
+        "valence": -0.1,
+        "arousal": 0.6,
+        "placement": [
+          "late milongas",
+          "closing Di Sarli",
+          "sparingly"
+        ]
+      },
+      {
+        "id": "nuevo",
+        "label": "Nuevo (Piazzolla lineage)",
+        "years": [
+          1955,
+          1990
+        ],
+        "bpm": {
+          "tango": [
+            80,
+            160
+          ],
+          "vals": null,
+          "milonga": null
+        },
+        "marcato": "3-3-2 ostinato, no walking marcato",
+        "syncopation": "high",
+        "arrastre": "strong",
+        "variacion": "virtuosic",
+        "lyricalToRhythmic": "70:30",
+        "singerRole": "none / art-song",
+        "lraLU": [
+          10,
+          16
+        ],
+        "mode": "minor/modal",
+        "arrangementDensity": "dense contrapuntal",
+        "durationSec": [
+          210,
+          360
+        ],
+        "energy": [
+          40,
+          80
+        ],
+        "danceability": [
+          10,
+          35
+        ],
+        "difficulty": [
+          85,
+          100
+        ],
+        "valence": -0.2,
+        "arousal": 0.55,
+        "placement": [
+          "alternative slot only",
+          "show spot"
+        ]
+      },
+      {
+        "id": "contemporary",
+        "label": "Contemporary orquestas tipicas",
+        "years": [
+          1995,
+          2026
+        ],
+        "bpm": {
+          "tango": [
+            112,
+            134
+          ],
+          "vals": [
+            172,
+            192
+          ],
+          "milonga": [
+            108,
+            124
+          ]
+        },
+        "marcato": "per model orchestra",
+        "syncopation": "medium",
+        "arrastre": "per model",
+        "variacion": "occasional",
+        "lyricalToRhythmic": "50:50",
+        "singerRole": "crooner cantor (hi-fi)",
+        "lraLU": [
+          8,
+          12
+        ],
+        "mode": "minor",
+        "arrangementDensity": "dense hi-fi",
+        "durationSec": [
+          160,
+          210
+        ],
+        "energy": [
+          55,
+          80
+        ],
+        "danceability": [
+          70,
+          85
+        ],
+        "difficulty": [
+          35,
+          55
+        ],
+        "valence": 0.0,
+        "arousal": 0.6,
+        "placement": [
+          "festival first third",
+          "<= 1-2 tandas per 4 h traditional"
+        ]
+      },
+      {
+        "id": "electro",
+        "label": "Electro / fusion",
+        "years": [
+          1999,
+          2026
+        ],
+        "bpm": {
+          "tango": [
+            100,
+            130
+          ],
+          "vals": null,
+          "milonga": null
+        },
+        "marcato": "programmed 4-on-floor + marcato sample",
+        "syncopation": "low",
+        "arrastre": "sampled",
+        "variacion": "none",
+        "lyricalToRhythmic": "50:50",
+        "singerRole": "spoken/sung hooks",
+        "lraLU": [
+          3,
+          6
+        ],
+        "mode": "minor",
+        "arrangementDensity": "layered",
+        "durationSec": [
+          210,
+          300
+        ],
+        "energy": [
+          60,
+          80
+        ],
+        "danceability": [
+          50,
+          70
+        ],
+        "difficulty": [
+          20,
+          40
+        ],
+        "valence": 0.05,
+        "arousal": 0.65,
+        "placement": [
+          "alternative slot only"
+        ]
+      }
+    ],
+    "contextPreferences": {
+      "heatHumidLateSenior": [
+        "golden1941_45",
+        "golden1946_55-lyrical"
+      ],
+      "coldYoungFestivalEnergetic": [
+        "golden1935_40",
+        "golden1941_45-in4",
+        "post55-fast-milongas"
+      ],
+      "beginnerCrowdedReverberant": [
+        "golden1935_40-instrumental",
+        "golden1941_45-square"
+      ],
+      "nostalgicRomanticValentinesSundayAsia": [
+        "golden1941_45-vocal",
+        "golden1946_55-lyrical",
+        "guardiaVieja-vals"
+      ]
+    }
+  }
+}
