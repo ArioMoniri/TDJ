@@ -82,9 +82,13 @@ test("export toggle without cortinas yields fewer rows (UI and API)", async ({ p
     .click();
   const dialog = page.getByRole("dialog");
   const hint = dialog.getByText(/tracks will be exported/);
-  const n1 = Number((await hint.innerText()).match(/(\d+) tracks/)![1]);
+  await expect(hint).toBeVisible();
+  const read = async () => Number((await hint.innerText()).match(/(\d+) tracks/)![1]);
+  await page.waitForTimeout(500); // the count-up settles (375 ms)
+  const n1 = await read();
   await dialog.getByRole("switch", { name: "Include cortinas" }).click();
-  const n2 = Number((await hint.innerText()).match(/(\d+) tracks/)![1]);
+  await page.waitForTimeout(500);
+  const n2 = await read();
   expect(n2).toBeLessThan(n1);
 });
 
@@ -113,9 +117,14 @@ test("database: a song edit persists after reload and reaches the composer", asy
   await page.getByRole("radio", { name: "Rules" }).click();
   await page.getByRole("button", { name: "Increase orchestra repeat gap" }).click();
   await expect(page.getByTestId("db-changes")).toHaveText(/^2 change/);
-  page.once("dialog", (d) => d.accept());
+  // Reset is an inline confirm (no window.confirm): "Remove all 2 changes? Confirm reset · Cancel"
   await page.getByRole("button", { name: "Reset", exact: true }).click();
+  await expect(page.getByTestId("reset-confirm")).toBeVisible();
+  await page.getByRole("button", { name: "Confirm reset" }).click();
   await expect(page.getByTestId("db-changes")).toHaveText(/^0 change/);
+  // the undo toast brings the changes back, then dismisses
+  await page.getByTestId("toast").getByRole("button", { name: "Undo" }).click();
+  await expect(page.getByTestId("db-changes")).toHaveText(/^2 change/);
 });
 
 test("settings: switching the model provider changes the default model and survives reload", async ({
