@@ -32,5 +32,14 @@ jobs:
         env:
           TDJ_DOMAIN: ${{ vars.TDJ_DOMAIN }}
           ANTHROPIC_MODEL: ${{ vars.ANTHROPIC_MODEL }}
+          NEXT_PUBLIC_APP_URL: ${{ vars.NEXT_PUBLIC_APP_URL }}
+          # Connectors (docs/DEPLOY.md → Connectors). Empty secrets are skipped by sst.config.ts; never echoed.
+          SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
+          SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
+          TDJ_COOKIE_SECRET: ${{ secrets.TDJ_COOKIE_SECRET }}
+          PIPEDREAM_PROJECT_ID: ${{ secrets.PIPEDREAM_PROJECT_ID }}
+          PIPEDREAM_CLIENT_ID: ${{ secrets.PIPEDREAM_CLIENT_ID }}
+          PIPEDREAM_CLIENT_SECRET: ${{ secrets.PIPEDREAM_CLIENT_SECRET }}
+          PIPEDREAM_ENVIRONMENT: ${{ vars.PIPEDREAM_ENVIRONMENT }}
       - name: Print URL
         run: cat .sst/outputs.json 2>/dev/null || true

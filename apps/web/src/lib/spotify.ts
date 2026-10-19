@@ -1,5 +1,13 @@
 "use client";
-/** Spotify Web API — PKCE in the browser. Each user brings their own Client ID (Dev Mode app) in Settings. */
+import { useCallback, useEffect, useState } from "react";
+import { useStore } from "@/lib/store";
+
+/**
+ * Spotify in the browser. Two paths:
+ * 1. Hosted "Log in with Spotify" (the deployment's own Client ID; tokens sealed in an httpOnly cookie, see
+ *    lib/server/spotify.ts): the browser calls /api/spotify/*, never Spotify's token endpoint.
+ * 2. BYO Client ID with PKCE (below), when the server has no Spotify credentials.
+ */
 const SCOPES = "playlist-modify-private playlist-modify-public playlist-read-private";
 const b64url = (buf: ArrayBuffer) =>
   btoa(String.fromCharCode(...new Uint8Array(buf)))
@@ -162,4 +170,161 @@ export async function createPlaylist(
     );
   }
   return pl;
+}
+
+/* ---------- Hosted session + Pipedream Connect (server routes) ---------- */
+
+export interface HostedUser {
+  id: string;
+  name: string;
+  email?: string;
+  product?: string;
+  url?: string;
+}
+export interface HostedState {
+  /** the deployment offers "Log in with Spotify" */
+  hosted: boolean;
+  user: HostedUser | null;
+  /** short-lived access token for the Listen tab's searches; the refresh token never leaves the server */
+  token?: { access: string; expires: number };
+}
+export async function fetchHosted(): Promise<HostedState> {
+  try {
+    const r = await fetch("/api/spotify/me", { cache: "no-store" });
+    const j = (await r.json()) as HostedState;
+    return { hosted: !!j.hosted, user: r.ok ? (j.user ?? null) : null, token: r.ok ? j.token : undefined };
+  } catch {
+    return { hosted: false, user: null };
+  }
+}
+export const hostedLoginUrl = (next = "/settings") => `/api/spotify/login?next=${encodeURIComponent(next)}`;
+export async function hostedLogout() {
+  await fetch("/api/spotify/logout", { method: "POST" });
+}
+export interface PlaylistResult {
+  id: string;
+  url: string;
+  added: number;
+  missing: string[];
+  quota?: boolean;
+}
+export async function hostedCreatePlaylist(body: {
+  playlist: unknown;
+  includeCortinas: boolean;
+  name?: string;
+  isPublic?: boolean;
+}): Promise<PlaylistResult> {
+  const r = await fetch("/api/spotify/playlist", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error ?? `Spotify answered ${r.status}`);
+  return j as PlaylistResult;
+}
+
+export type ConnectApp = "spotify" | "youtube_data_api" | "dropbox" | "google_drive";
+export interface ConnectedAccount {
+  id: string;
+  app: ConnectApp;
+  label: string;
+  name?: string;
+  healthy: boolean;
+}
+export interface ConnectState {
+  enabled: boolean;
+  apps: Array<{ slug: ConnectApp; label: string; kind: "playlist" | "file" }>;
+  accounts: ConnectedAccount[];
+  error?: string;
+}
+export const CONNECT_FALLBACK: ConnectState = {
+  enabled: false,
+  apps: [
+    { slug: "youtube_data_api", label: "YouTube", kind: "playlist" },
+    { slug: "dropbox", label: "Dropbox", kind: "file" },
+    { slug: "google_drive", label: "Google Drive", kind: "file" },
+    { slug: "spotify", label: "Spotify", kind: "playlist" },
+  ],
+  accounts: [],
+};
+export async function fetchConnect(): Promise<ConnectState> {
+  try {
+    const r = await fetch("/api/connect/accounts", { cache: "no-store" });
+    const j = (await r.json()) as Partial<ConnectState>;
+    return { ...CONNECT_FALLBACK, ...j, accounts: Array.isArray(j.accounts) ? j.accounts : [] };
+  } catch {
+    return CONNECT_FALLBACK;
+  }
+}
+/**
+ * Opens Pipedream Connect Link for one app in a new tab. The tab is opened synchronously (popup blockers) and
+ * pointed at the link once the server has minted the single-use token.
+ */
+export async function openConnectLink(app: ConnectApp): Promise<void> {
+  const tab = typeof window !== "undefined" ? window.open("", "_blank") : null;
+  try {
+    const r = await fetch("/api/connect/token", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ app }),
+    });
+    const j = await r.json();
+    if (!r.ok || !j.connect_link_url)
+      throw new Error(j.error ?? `Could not start the connection (${r.status})`);
+    if (tab) {
+      tab.opener = null;
+      tab.location.href = j.connect_link_url;
+    } else location.assign(j.connect_link_url);
+  } catch (e) {
+    tab?.close();
+    throw e;
+  }
+}
+export async function connectExport(
+  body: Record<string, unknown>,
+): Promise<Record<string, unknown> & PlaylistResult> {
+  const r = await fetch("/api/connect/export", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error ?? `Export answered ${r.status}`);
+  return j;
+}
+
+/**
+ * The connector state for Settings and the Export sheet: the hosted Spotify session and the Pipedream accounts,
+ * refetched when the tab regains focus (the OAuth dance happens in another tab). A hosted session also hands its
+ * short-lived access token to the store so Listen keeps working without a BYO Client ID.
+ */
+export function useConnectors() {
+  const [spotify, setSpotify] = useState<HostedState | null>(null);
+  const [connect, setConnect] = useState<ConnectState | null>(null);
+  const setSpotifyToken = useStore((s) => s.setSpotifyToken);
+  const reload = useCallback(async () => {
+    const [h, c] = await Promise.all([fetchHosted(), fetchConnect()]);
+    setSpotify(h);
+    setConnect(c);
+    if (h.hosted && h.user && h.token) setSpotifyToken({ access: h.token.access, expires: h.token.expires });
+    else if (h.hosted && !h.user) {
+      const cur = useStore.getState().spotifyToken;
+      if (cur && !cur.refresh) setSpotifyToken(null); // a hosted token that was logged out
+    }
+    return h;
+  }, [setSpotifyToken]);
+  useEffect(() => {
+    void reload();
+    const onFocus = () => {
+      if (document.visibilityState === "visible") void reload();
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
+  }, [reload]);
+  return { spotify, connect, reload };
 }

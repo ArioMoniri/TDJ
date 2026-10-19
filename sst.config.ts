@@ -18,12 +18,26 @@ export default $config({
     };
   },
   async run() {
+    // Connector secrets (docs/DEPLOY.md → Connectors) travel from the GitHub Actions env into the function only
+    // when set; they never reach the client bundle.
+    const secrets = [
+      "SPOTIFY_CLIENT_ID",
+      "SPOTIFY_CLIENT_SECRET",
+      "TDJ_COOKIE_SECRET",
+      "PIPEDREAM_PROJECT_ID",
+      "PIPEDREAM_CLIENT_ID",
+      "PIPEDREAM_CLIENT_SECRET",
+      "PIPEDREAM_ENVIRONMENT",
+    ] as const;
+    const connectors: Record<string, string> = {};
+    for (const k of secrets) if (process.env[k]) connectors[k] = process.env[k]!;
     const web = new sst.aws.Nextjs("Web", {
       path: "apps/web",
       environment: {
         TDJ_DATA_ROOT: "/var/task",
         ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5-5",
         NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL ?? "",
+        ...connectors,
       },
       server: { memory: "1536 MB", timeout: "30 seconds", architecture: "arm64" },
       domain: process.env.TDJ_DOMAIN ? { name: process.env.TDJ_DOMAIN } : undefined,
