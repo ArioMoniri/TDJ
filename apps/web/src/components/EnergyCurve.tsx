@@ -1,4 +1,7 @@
 "use client";
+import { motion, useReducedMotion } from "motion/react";
+import { useRef } from "react";
+import { DUR, EASE, SPRING, STAGGER } from "@/lib/motion";
 import type { Playlist } from "@/lib/types";
 
 const COLORS: Record<string, string> = { tango: "#e0557a", vals: "#4fd1c5", milonga: "#8b7cf6" };
@@ -10,18 +13,29 @@ const PHASE_LABEL: Record<string, string> = {
   cooldown: "cool-down",
 };
 
-/** Night arc: target curve (dashed) vs actual tanda energy, with axes, phase bands and keyboard-reachable dots. */
+/**
+ * Night arc: target curve (dashed) vs actual tanda energy, with axes, phase bands and keyboard-reachable dots.
+ * A fresh set (new `playKey`) draws on: bands → grid → path (pathLength) → dots → area → legend (1.3 s).
+ * A recompose with the same tanda count morphs: the path's `d`, the dots' `cx`/`cy` and the bands tween in place.
+ */
 export function EnergyCurve({
   p,
   onPick,
   active,
   compact = false,
+  playKey,
+  dimmed = false,
 }: {
   p: Playlist;
   onPick?: (i: number) => void;
   active?: number | null;
   compact?: boolean;
+  /** changes on a fresh set (new seed or different length): re-runs the draw-on */
+  playKey?: string | number;
+  /** a recompose is in flight: the energy line and dots drop to 0.4 */
+  dimmed?: boolean;
 }) {
+  const reduced = useReducedMotion();
   const W = compact ? 360 : 720;
   const H = compact ? 170 : 210;
   const px = compact ? 30 : 36;
@@ -54,15 +68,86 @@ export function EnergyCurve({
   }
   const id = compact ? "arcfill-compact" : "arcfill";
   const last = p.tandas.length - 1;
+  const key = playKey ?? p.options.seed;
+
+  // morph mode: same playKey as the previous render (a recompose that kept the length) → tween in place
+  const lastKey = useRef<string | number | null>(null);
+  const morph = lastKey.current === key;
+  lastKey.current = key;
+
+  const energyD = smooth(p.stats.energyArc);
+  const areaD = `${energyD} L${x(last)},${y(0)} L${x(0)},${y(0)} Z`;
+  const targetD = smooth(p.stats.targetArc);
+  const morphT = { duration: DUR.slow, ease: EASE.inOut };
+  const dotDelay = (i: number) => (reduced ? 0 : 0.3 + (i / n) * DUR.draw);
+  const fadeV = (delay: number) => ({
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { delay: reduced ? 0 : delay, duration: DUR.base } },
+  });
+  const bandV = {
+    hidden: { fillOpacity: 0 },
+    show: (k: number) => ({
+      fillOpacity: k % 2 ? 0.05 : 0,
+      transition: { delay: reduced ? 0 : k * STAGGER.bands, duration: DUR.base },
+    }),
+  };
+  const lineV = {
+    hidden: { d: energyD, pathLength: reduced ? 1 : 0, opacity: reduced ? 0 : 1 },
+    show: {
+      d: energyD,
+      pathLength: 1,
+      opacity: 1,
+      transition: { delay: reduced ? 0 : 0.3, duration: reduced ? DUR.base : DUR.draw, ease: EASE.out },
+    },
+  };
+  const areaV = {
+    hidden: { d: areaD, opacity: 0 },
+    show: { d: areaD, opacity: 1, transition: { delay: reduced ? 0 : 1.1, duration: DUR.slow } },
+  };
+  const targetV = { hidden: { d: targetD }, show: { d: targetD } };
+  const dotV = {
+    hidden: { scale: reduced ? 1 : 0, opacity: reduced ? 0 : 1 },
+    show: (i: number) => ({
+      scale: 1,
+      opacity: 1,
+      transition: reduced ? { duration: DUR.base } : { ...SPRING.snappy, delay: dotDelay(i) },
+    }),
+  };
+
+  /** Phones: accept the nearest dot within 22 px of the touch so a thumb near the line always lands. */
+  const onSvgPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (!onPick || e.pointerType !== "touch") return;
+    const r = e.currentTarget.getBoundingClientRect();
+    const sx = ((e.clientX - r.left) / r.width) * W;
+    const sy = ((e.clientY - r.top) / r.height) * H;
+    let best = -1;
+    let bestD = 22 * (W / r.width);
+    p.tandas.forEach((t, i) => {
+      const d = Math.hypot(x(i) - sx, y(t.energy) - sy);
+      if (d < bestD) {
+        bestD = d;
+        best = i;
+      }
+    });
+    if (best >= 0) {
+      e.preventDefault();
+      onPick(best);
+    }
+  };
 
   return (
     <figure className="m-0">
       {/* biome-ignore lint/a11y/useSemanticElements: SVG root grouping interactive dots; fieldset cannot wrap SVG content */}
-      <svg
+      <motion.svg
+        key={key}
+        initial={morph ? false : "hidden"}
+        animate="show"
         viewBox={`0 0 ${W} ${H}`}
         className="h-auto w-full select-none"
         role="group"
         aria-label="Energy arc of the night"
+        onPointerDown={onSvgPointerDown}
+        data-mode={morph ? "morph" : "draw"}
       >
         <defs>
           <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
@@ -70,58 +155,75 @@ export function EnergyCurve({
             <stop offset="1" stopColor="#e0557a" stopOpacity="0" />
           </linearGradient>
         </defs>
-        {bands.map((b, k) => (
-          <rect
-            key={b.ph}
-            x={Math.max(px, x(b.a) - half)}
-            y={py}
-            width={Math.min(W - px, x(b.b) + half) - Math.max(px, x(b.a) - half)}
-            height={plotH}
-            fill="currentColor"
-            fillOpacity={k % 2 ? 0.05 : 0}
-          />
-        ))}
-        {[0, 50, 100].map((g) => (
-          <g key={g}>
-            <line
-              x1={px}
-              x2={W - px}
-              y1={y(g)}
-              y2={y(g)}
-              stroke="currentColor"
-              strokeOpacity={g === 50 ? 0.14 : 0.22}
-              strokeDasharray={g === 50 ? "2 6" : undefined}
-            />
-            <text
-              x={px - 6}
-              y={y(g) + 4}
-              fontSize={fs}
-              textAnchor="end"
+        {bands.map((b, k) => {
+          const bx = Math.max(px, x(b.a) - half);
+          const bw = Math.min(W - px, x(b.b) + half) - bx;
+          return (
+            <motion.rect
+              key={b.ph}
+              custom={k}
+              variants={{
+                hidden: { ...bandV.hidden, attrX: bx, width: bw },
+                show: (j: number) => ({ ...bandV.show(j), attrX: bx, width: bw }),
+              }}
+              animate={morph ? { attrX: bx, width: bw, fillOpacity: k % 2 ? 0.05 : 0 } : "show"}
+              transition={morphT}
+              y={py}
+              height={plotH}
               fill="currentColor"
-              fillOpacity=".75"
-            >
-              {g}
-            </text>
-          </g>
-        ))}
-        <path
-          d={`${smooth(p.stats.energyArc)} L${x(last)},${y(0)} L${x(0)},${y(0)} Z`}
+            />
+          );
+        })}
+        <motion.g variants={fadeV(0.2)}>
+          {[0, 50, 100].map((g) => (
+            <g key={g}>
+              <line
+                x1={px}
+                x2={W - px}
+                y1={y(g)}
+                y2={y(g)}
+                stroke="currentColor"
+                strokeOpacity={g === 50 ? 0.14 : 0.22}
+                strokeDasharray={g === 50 ? "2 6" : undefined}
+              />
+              <text
+                x={px - 6}
+                y={y(g) + 4}
+                fontSize={fs}
+                textAnchor="end"
+                fill="currentColor"
+                fillOpacity=".75"
+              >
+                {g}
+              </text>
+            </g>
+          ))}
+          <motion.path
+            variants={targetV}
+            animate={morph ? { d: targetD } : "show"}
+            transition={morphT}
+            fill="none"
+            stroke="currentColor"
+            strokeOpacity=".45"
+            strokeWidth="2"
+            strokeDasharray="6 6"
+          />
+        </motion.g>
+        <motion.path
+          variants={areaV}
+          animate={morph ? { d: areaD, opacity: dimmed ? 0.4 : 1 } : "show"}
+          transition={morphT}
           fill={`url(#${id})`}
         />
-        <path
-          d={smooth(p.stats.targetArc)}
-          fill="none"
-          stroke="currentColor"
-          strokeOpacity=".45"
-          strokeWidth="2"
-          strokeDasharray="6 6"
-        />
-        <path
-          d={smooth(p.stats.energyArc)}
+        <motion.path
+          variants={lineV}
+          animate={morph ? { d: energyD, opacity: dimmed ? 0.4 : 1, pathLength: 1 } : "show"}
+          transition={morphT}
           fill="none"
           stroke="#e0557a"
           strokeWidth="3"
           strokeLinecap="round"
+          data-testid="energy-path"
         />
         {p.tandas.map((t, i) => {
           const cx = x(i);
@@ -130,8 +232,12 @@ export function EnergyCurve({
           const r = on ? (compact ? 7 : 9) : compact ? 5 : 6.5;
           return (
             // biome-ignore lint/a11y/useSemanticElements: SVG has no native button element
-            <g
+            <motion.g
               key={t.index}
+              custom={i}
+              variants={dotV}
+              animate={morph ? { opacity: dimmed ? 0.4 : 1, scale: 1 } : "show"}
+              style={{ transformBox: "fill-box", outline: "none" }}
               role="button"
               tabIndex={onPick ? 0 : -1}
               aria-pressed={on}
@@ -143,49 +249,76 @@ export function EnergyCurve({
                   onPick?.(i);
                 }
               }}
-              style={{ cursor: onPick ? "pointer" : "default", outline: "none" }}
-              className="group/dot"
+              className={`group/dot ${onPick ? "cursor-pointer" : ""}`}
             >
-              <circle
-                cx={cx}
-                cy={cy}
+              <motion.circle
+                initial={false}
+                animate={{ cx, cy }}
+                transition={morphT}
                 r={r + 5}
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
                 className="opacity-0 group-focus-visible/dot:opacity-100"
               />
-              <circle
-                cx={cx}
-                cy={cy}
+              <motion.circle
+                initial={false}
+                animate={{ cx, cy }}
+                transition={morphT}
                 r={r}
                 fill={COLORS[t.rhythm]}
                 stroke="rgb(var(--surface))"
                 strokeWidth="2"
               />
-              {t.rhythm === "vals" && <circle cx={cx} cy={cy} r={1.8} fill="#fff" />}
-              {t.rhythm === "milonga" && (
-                <rect x={cx - 1.8} y={cy - 1.8} width={3.6} height={3.6} fill="#fff" />
+              {t.rhythm === "vals" && (
+                <motion.circle initial={false} animate={{ cx, cy }} transition={morphT} r={1.8} fill="#fff" />
               )}
-              <circle cx={cx} cy={cy} r="20" fill="transparent" stroke="none" />
-            </g>
+              {t.rhythm === "milonga" && (
+                <motion.rect
+                  initial={false}
+                  animate={{ attrX: cx - 1.8, attrY: cy - 1.8 }}
+                  transition={morphT}
+                  width={3.6}
+                  height={3.6}
+                  fill="#fff"
+                />
+              )}
+              <motion.circle
+                initial={false}
+                animate={{ cx, cy }}
+                transition={morphT}
+                r="20"
+                fill="transparent"
+                stroke="none"
+              />
+            </motion.g>
           );
         })}
-        {bands.map((b) => (
-          <text
-            key={b.ph}
-            x={(x(b.a) + x(b.b)) / 2}
-            y={H - 4}
-            fontSize={fs}
-            textAnchor="middle"
-            fill="currentColor"
-            fillOpacity=".75"
-          >
-            {PHASE_LABEL[b.ph] ?? b.ph}
-          </text>
-        ))}
-      </svg>
-      <figcaption className="text-muted mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+        <motion.g variants={fadeV(1.2)}>
+          {bands.map((b) => (
+            <motion.text
+              key={b.ph}
+              initial={false}
+              animate={{ attrX: (x(b.a) + x(b.b)) / 2 }}
+              transition={morphT}
+              y={H - 4}
+              fontSize={fs}
+              textAnchor="middle"
+              fill="currentColor"
+              fillOpacity=".75"
+            >
+              {PHASE_LABEL[b.ph] ?? b.ph}
+            </motion.text>
+          ))}
+        </motion.g>
+      </motion.svg>
+      <motion.figcaption
+        key={`legend-${key}`}
+        variants={fadeV(1.2)}
+        initial={morph ? false : "hidden"}
+        animate="show"
+        className="text-muted mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs"
+      >
         <span className="inline-flex items-center gap-1.5">
           <span className="h-0.5 w-5 rounded bg-[#e0557a]" /> Energy
         </span>
@@ -207,7 +340,7 @@ export function EnergyCurve({
           </span>{" "}
           Milonga
         </span>
-      </figcaption>
+      </motion.figcaption>
     </figure>
   );
 }

@@ -1,6 +1,8 @@
 "use client";
 import { LoaderCircle, MessageCircleMore } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
+import { fade } from "@/lib/motion";
 import { FEEDBACK_CHIPS } from "@/lib/feedback";
 import type { Feedback } from "@/lib/types";
 
@@ -10,11 +12,14 @@ export function FeedbackBar({
   onRefine,
   busy,
   note,
+  pending = null,
 }: {
   onFeedback: (f: Feedback) => void;
   onRefine: (text: string) => void;
   busy: boolean;
   note: string | null;
+  /** the chip whose adjustment is being applied (stays `chip-on` with a spinner while busy) */
+  pending?: Feedback | null;
 }) {
   const [text, setText] = useState("");
   const submit = (e: React.FormEvent) => {
@@ -31,9 +36,16 @@ export function FeedbackBar({
       </div>
       <div className="chip-row scroll-x mt-2">
         {FEEDBACK_CHIPS.map(([k, l]) => (
-          <button type="button" key={k} className="chip" disabled={busy} onClick={() => onFeedback(k)}>
-            {l}
-          </button>
+          <motion.button
+            type="button"
+            key={k}
+            className={`chip ${pending === k ? "chip-on" : ""}`}
+            disabled={busy}
+            whileTap={{ scale: 0.96 }}
+            onClick={() => onFeedback(k)}
+          >
+            {pending === k && <LoaderCircle size={14} className="animate-spin" aria-hidden />} {l}
+          </motion.button>
         ))}
       </div>
       <form onSubmit={submit} className="mt-3 flex gap-2">
@@ -55,7 +67,13 @@ export function FeedbackBar({
         </button>
       </form>
       <p className="text-muted mt-2 min-h-5 text-xs" aria-live="polite">
-        {note ?? ""}
+        <AnimatePresence mode="wait" initial={false}>
+          {note && (
+            <motion.span key={note} variants={fade} initial="hidden" animate="show" exit="exit" className="block">
+              {note}
+            </motion.span>
+          )}
+        </AnimatePresence>
       </p>
     </section>
   );

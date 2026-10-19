@@ -1,24 +1,20 @@
 "use client";
-import {
-  Check,
-  ChevronDown,
-  Clock3,
-  Copy,
-  Dices,
-  Disc3,
-  LoaderCircle,
-  MessageSquareText,
-  Share2,
-} from "lucide-react";
-import { MotionConfig } from "motion/react";
-import { useEffect, useMemo, useState } from "react";
+import { Check, Clock3, Copy, Dices, Disc3, LoaderCircle, MessageSquareText, Share2 } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { haptic } from "@/lib/haptics";
+import { testSlowdownMs, useMediaQuery } from "@/lib/hooks";
+import { DUR, EASE, STAGGER, fade, rise } from "@/lib/motion";
 import { overridesForRequest, useStore } from "@/lib/store";
 import type { ComposeContext, ComposeOptions, Feedback, Meta, Playlist } from "@/lib/types";
+import { ComposeLabel, ComposeNarrative } from "./ComposeNarrative";
 import { ContextStrip } from "./ContextStrip";
+import { Disclosure } from "./Disclosure";
 import { EnergyCurve } from "./EnergyCurve";
 import { ExportSheet } from "./ExportSheet";
 import { FeedbackBar } from "./FeedbackBar";
 import { MoodCheck } from "./Listen";
+import { ScoreCounter } from "./ScoreCounter";
 import { TandaCard } from "./TandaCard";
 import { Field, Segmented, Stepper, Switch } from "./ui";
 import { Vinyl } from "./Vinyl";
@@ -115,6 +111,17 @@ export function Composer() {
   const [copied, setCopied] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [meta, setMeta] = useState<Meta | null>(null);
+  const [pendingChip, setPendingChip] = useState<Feedback | null>(null);
+  const [errorKey, setErrorKey] = useState(0);
+  const [nudge, setNudge] = useState<{ i: number; k: number; n: number } | null>(null);
+  /** the score before the last recompose, so the counter runs old → new instead of 0 → new */
+  const prevScore = useRef<number | null>(null);
+  /** energy per tanda before the last swap/recompose (keyed by index) */
+  const prevEnergy = useRef<Record<number, number>>({});
+  /** changes on a fresh set (new seed or a different number of tandas): drives the reveal + card stagger */
+  const [revealKey, setRevealKey] = useState<string>("");
+  const reduced = useReducedMotion();
+  const wide = useMediaQuery("(min-width: 640px)", true);
   useEffect(() => setHydrated(true), []);
   useEffect(() => {
     fetch("/api/meta")
@@ -143,7 +150,10 @@ export function Composer() {
     setAi(null);
     setError(null);
     const o = opts ?? options;
+    const first = !playlist;
     try {
+      const slow = testSlowdownMs();
+      if (slow) await new Promise((res) => setTimeout(res, slow));
       const r = await fetch("/api/compose", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -157,18 +167,31 @@ export function Composer() {
       const p = (await r.json()) as Playlist & { error?: string };
       if (!r.ok || p.error) {
         setError(p.error ?? "Could not compose this set.");
+        setErrorKey((k) => k + 1);
+        haptic([20, 30, 20]);
         return;
       }
+      remember(playlist);
       setPlaylist(p);
       setActive(null);
-      requestAnimationFrame(() =>
-        document.getElementById("result")?.scrollIntoView({ behavior: "smooth", block: "start" }),
-      );
+      haptic([10, 40, 10]);
+      // the result scrolls into view on the first set only; on a recompose the user is already looking at it
+      if (first)
+        requestAnimationFrame(() =>
+          document.getElementById("result")?.scrollIntoView({ behavior: "smooth", block: "start" }),
+        );
     } catch {
       setError("Could not reach the composer. Try again.");
+      setErrorKey((k) => k + 1);
+      haptic([20, 30, 20]);
     } finally {
       setBusy(false);
     }
+  };
+  /** Keep the previous score/energies so counters run from the old value. */
+  const remember = (prev: Playlist | null) => {
+    prevScore.current = prev?.score.total ?? null;
+    prevEnergy.current = Object.fromEntries((prev?.tandas ?? []).map((t, i) => [i, t.energy]));
   };
   const swap = async (i: number) => {
     if (!playlist) return;
@@ -179,7 +202,10 @@ export function Composer() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ playlist, index: i }),
       });
-      if (r.ok) setPlaylist(await r.json());
+      if (r.ok) {
+        remember(playlist);
+        setPlaylist(await r.json());
+      }
     } finally {
       setSwapping(null);
     }
@@ -195,8 +221,13 @@ export function Composer() {
         body: JSON.stringify({ playlist, tandaIndex: i, trackIndex: k }),
       });
       const j = (await r.json()) as Playlist & { changed?: boolean };
-      if (r.ok && j.changed) setPlaylist(j);
-      else setNote(`No other ${playlist.tandas[i]?.orchestra} recording fits that slot.`);
+      if (r.ok && j.changed) {
+        remember(playlist);
+        setPlaylist(j);
+      } else {
+        setNote(`No other ${playlist.tandas[i]?.orchestra} recording fits that slot.`);
+        setNudge((n) => ({ i, k, n: (n?.n ?? 0) + 1 }));
+      }
     } finally {
       setSwappingTrack(null);
     }
@@ -210,15 +241,22 @@ export function Composer() {
   };
   const feedback = async (f: Feedback) => {
     setNote(null);
-    const r = await fetch("/api/feedback", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ options, feedback: [f] }),
-    });
-    const j = (await r.json()) as { options: Partial<ComposeOptions> };
-    if (!r.ok) return;
-    replaceOptions(j.options);
-    await run(undefined, j.options);
+    setPendingChip(f);
+    setBusy(true);
+    try {
+      const r = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ options, feedback: [f] }),
+      });
+      const j = (await r.json()) as { options: Partial<ComposeOptions> };
+      if (!r.ok) return;
+      replaceOptions(j.options);
+      await run(undefined, j.options);
+    } finally {
+      setPendingChip(null);
+      setBusy(false);
+    }
   };
   const refine = async (instruction: string) => {
     setNote(null);
@@ -283,9 +321,24 @@ export function Composer() {
   const lockedCount = playlist?.tandas.filter((t) => t.locked).length ?? 0;
   const playlists = meta?.referencePlaylists ?? [];
   const dbChanges = overridesReady && Object.keys(overrides).some((k) => k !== "updatedAt");
+  // A fresh set = new seed or a different tanda count → full reveal; otherwise the curve morphs and the score counts on.
+  const setKey = playlist ? `${playlist.options.seed}-${playlist.tandas.length}` : "";
+  const fresh = setKey !== revealKey;
+  useEffect(() => {
+    if (setKey !== revealKey) setRevealKey(setKey);
+  }, [setKey, revealKey]);
+  const scoreFrom = fresh ? 0 : (prevScore.current ?? 0);
+  const errorNudge = useMemo(
+    () => (errorKey && !reduced ? { x: [0, -4, 4, -2, 0] } : { x: 0 }),
+    [errorKey, reduced],
+  );
+  const onPick = (i: number) => {
+    setActive(i);
+    document.getElementById(`tanda-${i + 1}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
 
   return (
-    <MotionConfig reducedMotion="user">
+    <>
       <div className="space-y-4">
         {/* Hero: compact on phones, hidden there once a set exists */}
         <section
@@ -301,7 +354,10 @@ export function Composer() {
                 Cumparsita, and picks each cortina to fit what follows.
               </p>
             </div>
-            <Vinyl playing={busy} className="w-[72px] shrink-0 sm:w-[140px]" />
+            <div className="flex shrink-0 items-center gap-4">
+              <ComposeNarrative busy={busy} className="hidden sm:flex" />
+              <Vinyl playing={busy} className="w-[72px] shrink-0 sm:w-[140px]" />
+            </div>
           </div>
         </section>
 
@@ -436,15 +492,16 @@ export function Composer() {
             />
           </div>
           <div className="mt-6 flex flex-wrap items-center gap-2">
-            <button
+            <motion.button
               type="button"
               onClick={() => run()}
               disabled={busy}
               className="btn btn-primary hidden sm:inline-flex"
+              animate={errorNudge}
+              transition={{ duration: 0.28, ease: EASE.inOut }}
             >
-              {busy ? <LoaderCircle size={18} className="animate-spin" /> : <Disc3 size={18} />} Compose the
-              night
-            </button>
+              <ComposeLabel busy={busy} />
+            </motion.button>
             {hasPlaylist && playlist && (
               <button
                 type="button"
@@ -476,23 +533,36 @@ export function Composer() {
             role="status"
             aria-live="polite"
             className={error ? "mt-2 text-sm text-[var(--accent)]" : "sr-only"}
+            data-testid="compose-status"
           >
-            {error
-              ? error
-              : busy
+            <AnimatePresence mode="wait" initial={false}>
+              {error && (
+                <motion.span key={`${error}-${errorKey}`} variants={rise} initial="hidden" animate="show" className="block">
+                  {error}
+                </motion.span>
+              )}
+            </AnimatePresence>
+            {!error &&
+              (busy
                 ? "Composing the night…"
                 : hasPlaylist && playlist
                   ? `Set ready: ${playlist.tandas.length} tandas.`
-                  : ""}
+                  : "")}
           </div>
         </section>
 
-        {/* Sticky compose bar (phones only): the primary action within thumb reach */}
+        {/* Sticky compose bar (phones only): the primary action within thumb reach; it carries the narrative */}
         <div className="glass fixed inset-x-3 bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+66px)] z-30 flex items-center gap-2 p-2 sm:hidden">
-          <button type="button" onClick={() => run()} disabled={busy} className="btn btn-primary flex-1">
-            {busy ? <LoaderCircle size={18} className="animate-spin" /> : <Disc3 size={18} />} Compose the
-            night
-          </button>
+          <motion.button
+            type="button"
+            onClick={() => run()}
+            disabled={busy}
+            className="btn btn-primary flex-1"
+            animate={errorNudge}
+            transition={{ duration: 0.28, ease: EASE.inOut }}
+          >
+            <ComposeLabel busy={busy} steps />
+          </motion.button>
           {hasPlaylist && (
             <button
               type="button"
@@ -508,7 +578,13 @@ export function Composer() {
         {hasPlaylist && playlist && (
           <section id="result" className="space-y-4 scroll-mt-24" aria-busy={busy}>
             <div className="surface rise p-5 sm:p-6">
-              <div className="flex flex-wrap items-end justify-between gap-3">
+              <motion.div
+                key={`head-${setKey}`}
+                initial={fresh ? { opacity: 0, y: reduced ? 0 : 6 } : false}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: DUR.base, ease: EASE.out, delay: 0.04 }}
+                className="flex flex-wrap items-end justify-between gap-3"
+              >
                 <div className="min-w-0">
                   <h2 className="font-serif text-2xl font-semibold leading-tight">{playlist.name}</h2>
                   <dl className="text-muted mt-1 flex flex-wrap items-center gap-x-2 text-sm">
@@ -530,46 +606,46 @@ export function Composer() {
                 </div>
                 <div className="text-right">
                   <div className="text-3xl font-semibold tabular-nums">
-                    {playlist.score.total}
-                    <span className="text-muted text-base">/100</span>
+                    <ScoreCounter value={playlist.score.total} playKey={setKey} from={scoreFrom} />
+                    <motion.span
+                      key={`verdict-${setKey}`}
+                      initial={fresh ? { opacity: 0 } : false}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: reduced ? 0 : 0.7, duration: DUR.base }}
+                      className="text-muted text-base"
+                    >
+                      /100
+                    </motion.span>
                   </div>
-                  <div className="text-muted text-xs">{playlist.score.verdict}</div>
+                  <motion.div
+                    key={`verdict-text-${setKey}`}
+                    initial={fresh ? { opacity: 0 } : false}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: reduced ? 0 : 0.7, duration: DUR.base }}
+                    className="text-muted text-xs"
+                  >
+                    {playlist.score.verdict}
+                  </motion.div>
                 </div>
-              </div>
+              </motion.div>
               <div className="mt-4">
-                <div className="sm:hidden">
+                {/* one chart per breakpoint (not both hidden/shown via CSS) so only one draw-on runs */}
+                {wide ? (
+                  <EnergyCurve p={playlist} active={active} onPick={onPick} playKey={setKey} dimmed={busy} />
+                ) : (
                   <EnergyCurve
                     compact
                     p={playlist}
                     active={active}
-                    onPick={(i) => {
-                      setActive(i);
-                      document
-                        .getElementById(`tanda-${i + 1}`)
-                        ?.scrollIntoView({ behavior: "smooth", block: "center" });
-                    }}
+                    onPick={onPick}
+                    playKey={setKey}
+                    dimmed={busy}
                   />
-                </div>
-                <div className="hidden sm:block">
-                  <EnergyCurve
-                    p={playlist}
-                    active={active}
-                    onPick={(i) => {
-                      setActive(i);
-                      document
-                        .getElementById(`tanda-${i + 1}`)
-                        ?.scrollIntoView({ behavior: "smooth", block: "center" });
-                    }}
-                  />
-                </div>
+                )}
               </div>
-              <details className="group mt-3 text-sm">
-                <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-sm font-medium [&::-webkit-details-marker]:hidden">
-                  <ChevronDown size={16} className="transition-transform group-open:rotate-180" />
-                  How this set scored
-                </summary>
+              <Disclosure summary="How this set scored">
                 <ul className="mt-2 grid gap-x-6 gap-y-2 sm:grid-cols-2">
-                  {playlist.score.factors.map((f) => (
+                  {playlist.score.factors.map((f, idx) => (
                     <li key={f.key} className="text-xs">
                       <div className="flex justify-between gap-2">
                         <span className="truncate">{f.label}</span>
@@ -582,28 +658,37 @@ export function Composer() {
                         role="img"
                         aria-label={`${f.label}: ${Math.round(f.score * 100)} percent`}
                       >
-                        <div
-                          className="h-full rounded-full bg-[rgb(var(--text)/.6)]"
-                          style={{ width: `${Math.round(f.score * 100)}%` }}
+                        <motion.div
+                          className="h-full w-full origin-left rounded-full bg-[rgb(var(--text)/.6)]"
+                          initial={{ scaleX: reduced ? f.score : 0 }}
+                          animate={{ scaleX: f.score }}
+                          transition={{
+                            duration: DUR.slow,
+                            ease: EASE.out,
+                            delay: reduced ? 0 : 0.08 + idx * STAGGER.bars,
+                          }}
                         />
                       </div>
                     </li>
                   ))}
                 </ul>
-              </details>
+              </Disclosure>
               {playlists.some((p) => p.kind === "tandas") && (
-                <details className="group mt-1 text-sm">
-                  <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-sm font-medium [&::-webkit-details-marker]:hidden">
-                    <ChevronDown size={16} className="transition-transform group-open:rotate-180" />
-                    Mood check
-                    <span className="text-muted text-xs font-normal">
-                      compare with Aren León's reference tandas
-                    </span>
-                  </summary>
+                <Disclosure
+                  className="mt-1"
+                  summary={
+                    <>
+                      Mood check
+                      <span className="text-muted text-xs font-normal">
+                        compare with Aren León's reference tandas
+                      </span>
+                    </>
+                  }
+                >
                   <div className="mt-3">
                     <MoodCheck playlists={playlists} />
                   </div>
-                </details>
+                </Disclosure>
               )}
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <button type="button" onClick={explain} disabled={aiBusy} className="btn btn-ghost text-sm">
@@ -625,30 +710,48 @@ export function Composer() {
               </div>
               <div role="status" aria-live="polite">
                 {aiBusy && <p className="text-muted mt-3 text-sm">Reading the set…</p>}
+                {/* the DJ note appears as a single fade: no typewriter, no thinking dots */}
                 {ai && !aiBusy && (
-                  <div className="mt-3 rounded-xl bg-[rgb(var(--text)/.05)] p-4">
+                  <motion.div
+                    variants={fade}
+                    initial="hidden"
+                    animate="show"
+                    className="mt-3 rounded-xl bg-[rgb(var(--text)/.05)] p-4"
+                  >
                     <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">Review</h3>
                     <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{ai}</p>
-                  </div>
+                  </motion.div>
                 )}
               </div>
             </div>
-            <FeedbackBar onFeedback={feedback} onRefine={refine} busy={busy} note={note} />
+            <FeedbackBar
+              onFeedback={feedback}
+              onRefine={refine}
+              busy={busy}
+              note={note}
+              pending={pendingChip}
+            />
             <div className="grid gap-4 md:grid-cols-2">
-              {playlist.tandas.map((t, i) => (
-                <TandaCard
-                  key={`${t.index}-${t.songs[0]?.id}`}
-                  t={t}
-                  i={i}
-                  onSwap={() => swap(i)}
-                  onSwapTrack={(k) => swapTrack(i, k)}
-                  onLock={() => lock(i)}
-                  busy={swapping === i}
-                  swappingTrack={swappingTrack?.[0] === i ? swappingTrack[1] : null}
-                  active={active === i}
-                  playlists={playlists}
-                />
-              ))}
+              <AnimatePresence mode="popLayout" initial={false}>
+                {playlist.tandas.map((t, i) => (
+                  <TandaCard
+                    key={`${t.index}-${t.songs[0]?.id}`}
+                    t={t}
+                    i={i}
+                    onSwap={() => swap(i)}
+                    onSwapTrack={(k) => swapTrack(i, k)}
+                    onLock={() => lock(i)}
+                    busy={swapping === i}
+                    swappingTrack={swappingTrack?.[0] === i ? swappingTrack[1] : null}
+                    active={active === i}
+                    playlists={playlists}
+                    settling={busy}
+                    fresh={fresh}
+                    nudge={nudge?.i === i ? nudge : null}
+                    prevEnergy={prevEnergy.current[i]}
+                  />
+                ))}
+              </AnimatePresence>
             </div>
             {playlist.closing && (
               <div className="surface flex items-center gap-3 p-4">
@@ -665,6 +768,6 @@ export function Composer() {
         )}
         <ExportSheet open={exportOpen} onClose={() => setExportOpen(false)} />
       </div>
-    </MotionConfig>
+    </>
   );
 }
