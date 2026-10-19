@@ -1500,6 +1500,10 @@ html.theming *::after {
   gap: 12px;
   margin-top: 8px;
 }
+/* the booth may use the whole width: the 980 px reading column of the other pages is too narrow for three cards */
+[data-booth] main > div {
+  max-width: 1400px;
+}
 @media (min-width: 640px) {
   .booth-grid {
     grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
@@ -1508,17 +1512,40 @@ html.theming *::after {
     grid-column: 1 / -1;
   }
 }
+/* lg–1600: Now on top, Next + Time under it, the set at the right with room for whole titles (≥ 360 px) */
 @media (min-width: 1024px) {
   .booth-grid {
-    grid-template-columns: minmax(0, 5fr) minmax(0, 4fr) minmax(0, 3fr);
+    grid-template-columns: minmax(0, 1fr) minmax(360px, 440px);
     align-items: start;
   }
+  .booth-col-now {
+    grid-column: 1;
+  }
+  .booth-col-mid {
+    grid-column: 1;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
   .booth-col-set {
-    grid-column: auto;
+    grid-column: 2;
+    grid-row: 1 / span 2;
     position: sticky;
     top: 68px;
     max-height: calc(100dvh - 68px - 120px);
     overflow-y: auto;
+  }
+}
+/* ≥ 1600: the three columns of the spec (Now 5 · Next + Time 4 · Set 3) */
+@media (min-width: 1600px) {
+  .booth-grid {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 4fr) minmax(360px, 3fr);
+  }
+  .booth-col-mid {
+    grid-column: 2;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .booth-col-set {
+    grid-column: 3;
+    grid-row: 1;
   }
 }
 .booth-col-mid {
@@ -1623,6 +1650,7 @@ html.theming *::after {
   font-size: 15px;
 }
 .booth-set {
+  container: booth-set / inline-size;
   background: rgb(var(--bg-cell));
   border-radius: var(--radius-l, 16px);
   padding: 4px 6px 8px;
@@ -1638,6 +1666,15 @@ html.theming *::after {
   padding: 4px 8px;
   border-radius: 10px;
   font-size: 15px;
+}
+.booth-row-title {
+  overflow-wrap: anywhere;
+}
+/* a narrow column drops the orchestra sub-line before it would shorten the title */
+@container booth-set (max-width: 320px) {
+  .booth-row-sub {
+    display: none;
+  }
 }
 .booth-row-n {
   width: 24px;
@@ -1665,29 +1702,35 @@ html.theming *::after {
   bottom: calc(max(0.75rem, env(safe-area-inset-bottom)) + 68px);
   z-index: 30;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   min-height: 64px;
   padding: 8px 10px;
   border-radius: var(--radius-l, 16px);
-  overflow-x: auto;
-  scrollbar-width: none;
 }
-.booth-strip::-webkit-scrollbar {
-  display: none;
-}
+/* the capsule fits its content (or wraps it): nothing is ever clipped at its edge */
 @media (min-width: 640px) {
   .booth-strip {
     bottom: 12px;
     left: 50%;
     right: auto;
-    transform: translateX(-50%);
+    width: max-content;
     max-width: calc(100vw - 24px);
+    transform: translateX(-50%);
   }
 }
 @media (min-width: 1024px) {
   .booth-strip {
     left: calc(220px + (100vw - 220px) / 2);
+    max-width: calc(100vw - 220px - 24px);
+  }
+}
+/* below 1200 px the secondary controls (mute, birthday vals, break) live in the overflow menu */
+@media (max-width: 1199px) {
+  .booth-strip .booth-secondary {
+    display: none;
   }
 }
 .booth-fader {

@@ -21,7 +21,10 @@ export function NextCard({ onJump }: { onJump: (planIndex: number) => void }) {
     (sources[i] === "missing" && plan.items[i]?.kind !== "break") || skipped.includes(i);
   let next = planIndex + 1;
   while (next < plan.items.length && isSkipped(next)) next++;
+  // nothing playable after the playhead but items remain: show the next one anyway (it says "no source")
+  if (next >= plan.items.length && planIndex + 1 < plan.items.length) next = planIndex + 1;
   const item = plan.items[next];
+  const noSource = item ? isSkipped(next) : false;
   const cur = plan.items[planIndex];
   const tandas = playlist?.tandas.length ?? 0;
   // the next tanda: the first track after the current tanda
@@ -40,6 +43,7 @@ export function NextCard({ onJump }: { onJump: (planIndex: number) => void }) {
           <h3 className="booth-mid font-semibold" data-testid="booth-next-title">
             {item.title}
           </h3>
+          {noSource && <p className="text-footnote text-[var(--label-2)]">no source: skipped</p>}
           {holdBefore === next && (
             <p className="text-footnote text-[var(--tint)]">holds before this tanda (birthday vals)</p>
           )}

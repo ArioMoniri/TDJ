@@ -67,6 +67,8 @@ interface BoothStore {
   banners: Banner[];
   settings: BoothSettings;
   sourceMode: SourceMode;
+  /** the whole night plays on 30 s clips: rehearsal mode, or every playable item falls back to a preview */
+  rehearsal: boolean;
   availability: Record<SourceKind, { ok: boolean; reason?: string; checked: boolean }>;
   folder: FolderStatus;
   suggestions: Record<string, Array<{ path: string; name: string }>>;
@@ -167,15 +169,21 @@ function rePlan(p: Playlist, settings: BoothSettings): { playlist: Playlist; pla
   return { playlist, plan: decorate(playlist, playlist.booth!) };
 }
 
-/** Which adapters an item may use, in priority order, for the chosen mode (a set can mix sources). */
+/**
+ * Which adapters an item may use, in priority order, for the chosen mode: file → Spotify (Premium) → the 30 s
+ * preview. A set can mix sources; without a folder or Premium every item with a Deezer preview plays its clip.
+ */
 function chain(mode: SourceMode, avail: BoothStore["availability"]): SourceAdapter[] {
   const a = adapters();
   if (mode === "preview") return [a.preview];
-  if (mode === "spotify") return [a.spotify];
+  if (mode === "spotify") return [a.spotify, a.preview];
   const out: SourceAdapter[] = [a.local];
   if (avail.spotify.ok) out.push(a.spotify);
+  out.push(a.preview);
   return out;
 }
+const capFor = (sources: ItemSource[], rehearsal: boolean) => (i: number) =>
+  rehearsal || sources[i] === "preview" ? REHEARSAL_SEC : null;
 
 export const useBooth = create<BoothStore>()((set, get) => ({
   playlist: null,
@@ -200,6 +208,7 @@ export const useBooth = create<BoothStore>()((set, get) => ({
   banners: [],
   settings: DEFAULT_BOOTH_SETTINGS,
   sourceMode: "file",
+  rehearsal: false,
   availability: { file: EMPTY_AVAIL, spotify: EMPTY_AVAIL, preview: EMPTY_AVAIL },
   folder: { name: null, files: 0, matched: 0, total: 0, permission: "none", session: false, canKeep: false },
   suggestions: {},
@@ -254,7 +263,7 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     )
       set({ resumeOffer: night });
     else if (night && night.playlistId !== p.id) await saveNight(null);
-    set({ ready: true, ...derive(get().plan!, sameSet ? get().planIndex : 0, 0) });
+    set({ ready: true, ...derive(get().plan!, get().planIndex, 0, capFor(get().sources, get().rehearsal)) });
   },
 
   setSourceMode: async (m) => {
@@ -303,9 +312,19 @@ export const useBooth = create<BoothStore>()((set, get) => ({
       sources.push(src);
     }
     const counts = a.local.matchedCount(plan.items);
+    const rows = plan.items;
+    const playable = sources.filter((s, i) => s !== "missing" && rows[i]!.kind !== "break");
+    const rehearsal =
+      sourceMode === "preview" || (playable.length > 0 && playable.every((s) => s === "preview"));
+    // before the night starts the playhead sits on the first item that can play
+    const first = sources.findIndex((s, i) => s !== "missing" && rows[i]!.kind !== "break");
+    const planIndex = get().started ? get().planIndex : Math.max(0, first);
     set({
       availability,
       sources,
+      rehearsal,
+      planIndex,
+      ...(get().started ? {} : derive(plan, planIndex, 0, capFor(sources, rehearsal))),
       folder: {
         name: a.local.info?.name ?? null,
         files: a.local.info?.files ?? 0,
@@ -388,6 +407,7 @@ export const useBooth = create<BoothStore>()((set, get) => ({
         onEvent: onEngineEvent,
       });
       engine.load(plan, entities, sources);
+      engine.planIndex = get().planIndex;
       engine.setMaster(get().master);
       engine.setCortinaFader(get().cortinaFader);
       if (resumeOffer) engine.restore(resumeOffer);
@@ -468,7 +488,7 @@ export const useBooth = create<BoothStore>()((set, get) => ({
         playlist: r.playlist,
         plan: r.plan,
         entities: planEntities(r.playlist, r.plan),
-        ...derive(r.plan, 0, 0),
+        ...derive(r.plan, get().planIndex, 0, capFor(get().sources, get().rehearsal)),
       });
       engine?.load(r.plan, get().entities, get().sources);
     }
@@ -592,10 +612,15 @@ function applyMediaHandlers() {
   });
 }
 
-function derive(plan: BoothRows, planIndex: number, position: number) {
-  const r = remainingFrom(plan, planIndex, position, {
-    rehearsalSec: useBooth.getState().sourceMode === "preview" ? REHEARSAL_SEC : null,
-  });
+function derive(plan: BoothRows, planIndex: number, position: number, cap: (i: number) => number | null) {
+  // before the engine exists the items without a source are the ones the night will leave out
+  const sources = useBooth.getState().sources;
+  const skipped = new Set(
+    sources
+      .map((s, i) => (s === "missing" && plan.items[i]?.kind !== "break" ? i : -1))
+      .filter((i) => i >= 0),
+  );
+  const r = remainingFrom(plan, planIndex, position, { capFor: cap, skipped });
   return { remaining: r.remainingSec, timeToCumparsita: r.timeToCumparsita };
 }
 
@@ -638,7 +663,7 @@ async function persistNight() {
     playlistId: s.playlist.id,
     ...snap,
     updatedAt: Date.now(),
-    rehearsal: s.sourceMode === "preview",
+    rehearsal: s.rehearsal,
   });
 }
 
@@ -647,7 +672,7 @@ function logToHistory(ended: boolean) {
   const s = useBooth.getState();
   if (!engine || !s.playlist) return;
   const snap = engine.snapshot();
-  const nightLog = makeNightLog({ ...snap, rehearsal: s.sourceMode === "preview", ended });
+  const nightLog = makeNightLog({ ...snap, rehearsal: s.rehearsal, ended });
   const app = useStore.getState();
   const existing = app.history.find((h) => h.playlist.id === s.playlist!.id);
   if (existing) app.updateSnapshot(existing.id, { nightLog });

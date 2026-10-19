@@ -77,7 +77,11 @@ async function compose(page: Page) {
 async function openBooth(page: Page, query = "") {
   await page.goto(`/booth${query}`);
   await expect(page.getByTestId("booth")).toBeVisible({ timeout: 15000 });
-  await expect.poll(() => page.evaluate(() => !!(window as unknown as { __tdjBoothPlan?: Plan }).__tdjBoothPlan), { timeout: 15000 }).toBe(true);
+  await expect
+    .poll(() => page.evaluate(() => !!(window as unknown as { __tdjBoothPlan?: Plan }).__tdjBoothPlan), {
+      timeout: 15000,
+    })
+    .toBe(true);
   return page.evaluate(() => (window as unknown as { __tdjBoothPlan: Plan }).__tdjBoothPlan);
 }
 
@@ -85,15 +89,39 @@ test("booth: the plan for a composed set, time to Cumparsita, dark forced, no gl
   page,
 }) => {
   await compose(page);
+  // a real button on the result header (not a link)
+  await expect(page.getByRole("button", { name: "Booth: play the night" })).toHaveAttribute(
+    "data-testid",
+    "play-the-night",
+  );
   await page.getByTestId("play-the-night").click();
   await expect(page).toHaveURL(/\/booth/);
   const plan = await openBooth(page);
   expect(plan.items.length).toBeGreaterThan(10);
-  const last = plan.items[plan.items.length - 1]!;
+  // time to Cumparsita from the playhead: every playable item after it (30 s when it plays from a preview) plus
+  // its gap, items without a source left out, minus the closing
+  const expected = await page.evaluate((items) => {
+    const rows = [...document.querySelectorAll<HTMLElement>("[data-plan-index]")];
+    const cur = rows.findIndex((r) => r.getAttribute("aria-current") === "true");
+    const len = (i: number) => {
+      const it = items[i]!;
+      const src = rows[i]!.dataset.source;
+      if (it.kind === "break") return it.lengthSec;
+      return src === "preview" ? Math.min(30, it.lengthSec) : it.lengthSec;
+    };
+    const playable = (i: number) => items[i]!.kind === "break" || rows[i]!.dataset.source !== "missing";
+    let rest = 0;
+    for (let i = cur; i < items.length; i++) if (playable(i)) rest += len(i) + items[i]!.gapAfterSec;
+    const lastI = items.length - 1;
+    return rest - (playable(lastI) ? len(lastI) : 0);
+  }, plan.items);
   const ttc = Number(await page.getByTestId("booth-time").getAttribute("data-ttc"));
-  expect(Math.abs(ttc - (plan.wallClockSec - last.lengthSec))).toBeLessThanOrEqual(1);
-  // the Now card shows the first item, the set column every item
-  await expect(page.getByTestId("booth-now-title")).toHaveText(plan.items[0]!.title);
+  expect(Math.abs(ttc - expected)).toBeLessThanOrEqual(1);
+  // the Now card shows the item at the playhead, the set column every item
+  const curIdx = Number(
+    await page.locator('[data-plan-index][aria-current="true"]').getAttribute("data-plan-index"),
+  );
+  await expect(page.getByTestId("booth-now-title")).toHaveText(plan.items[curIdx]!.title);
   expect(await page.locator("[data-plan-index]").count()).toBe(plan.items.length);
   await expect(page.getByTestId("booth")).toHaveAttribute("data-state", "idle");
   // dark forced; the mini-player is hidden; content is not glass; every control ≥ 44 px
@@ -152,10 +180,14 @@ test("rehearsal: the night plays through the mocked previews; space holds, esc h
   await page.waitForTimeout(750);
   await page.keyboard.up("Escape");
   await expect(page.getByTestId("booth")).toHaveAttribute("data-state", "stopped");
-  const idx = Number(await page.locator('[data-plan-index][aria-current="true"]').getAttribute("data-plan-index"));
+  const idx = Number(
+    await page.locator('[data-plan-index][aria-current="true"]').getAttribute("data-plan-index"),
+  );
   await page.keyboard.press("ArrowRight");
   await expect(page.getByTestId("booth")).toHaveAttribute("data-state", "armed");
-  const idx2 = Number(await page.locator('[data-plan-index][aria-current="true"]').getAttribute("data-plan-index"));
+  const idx2 = Number(
+    await page.locator('[data-plan-index][aria-current="true"]').getAttribute("data-plan-index"),
+  );
   expect(idx2).toBeGreaterThan(idx);
   // the running tanda's swap is refused, a later one is allowed
   const running = page.locator("[data-tanda][data-locked]").first();
@@ -167,20 +199,31 @@ test("rehearsal: the night plays through the mocked previews; space holds, esc h
   await page.getByRole("menuitem", { name: "End the night" }).click();
   await page.waitForTimeout(800);
   await page.goto("/history");
-  await expect(page.locator('[id^="history-"]').first()).toContainText(/played .* · 1 hold · 1 stop · rehearsal/, { timeout: 15000 });
+  await expect(page.locator('[id^="history-"]').first()).toContainText(
+    /played .* · 1 hold · 1 stop · rehearsal/,
+    { timeout: 15000 },
+  );
 });
 
-test("folder: injected files auto-match ≥ 1 track by the exporter's file name and the badge says file", async ({ page }) => {
+test("folder: injected files auto-match ≥ 1 track by the exporter's file name and the badge says file", async ({
+  page,
+}) => {
   await compose(page);
   const plan = await openBooth(page);
-  const safe = (s: string) => s.replace(/[/\\:*?"<>|]+/g, "-").replace(/\s+/g, " ").trim();
+  const safe = (s: string) =>
+    s
+      .replace(/[/\\:*?"<>|]+/g, "-")
+      .replace(/\s+/g, " ")
+      .trim();
   const tracks = plan.items.filter((i) => i.kind === "track").slice(0, 3);
   // a webkitdirectory input takes a directory: the "music folder" is a temp dir of WAV bytes named like the exports
   const dir = mkdtempSync(join(tmpdir(), "tdj-booth-"));
   for (const t of tracks) writeFileSync(join(dir, `${safe(t.artist)} - ${safe(t.title)}.mp3`), WAV);
   writeFileSync(join(dir, "Unrelated - Something else.mp3"), WAV);
   await page.getByTestId("booth-folder-input").setInputFiles(dir);
-  await expect.poll(() => page.locator('[data-plan-index][data-source="file"]').count(), { timeout: 15000 }).toBeGreaterThanOrEqual(1);
+  await expect
+    .poll(() => page.locator('[data-plan-index][data-source="file"]').count(), { timeout: 15000 })
+    .toBeGreaterThanOrEqual(1);
   await page.getByTestId("booth-more").click();
   await page.getByRole("menuitem", { name: /Set-up/ }).click();
   await expect(page.getByTestId("booth-source-file")).toContainText(/\d+ of \d+ matched/);
@@ -196,20 +239,27 @@ test("the plan equals the export cue points (M3U8 stop/start lines) and History'
   await compose(page);
   const plan = await openBooth(page);
   await page.waitForTimeout(1200); // the store flushes to localStorage in idle time
-  const playlist = await page.evaluate(() => JSON.parse(localStorage.getItem("tdj-v1") ?? "{}").state?.playlist);
+  const playlist = await page.evaluate(
+    () => JSON.parse(localStorage.getItem("tdj-v1") ?? "{}").state?.playlist,
+  );
   expect(playlist?.booth?.items?.length).toBe(plan.items.length);
   const m3u = await (await request.post("/api/export", { data: { playlist, format: "m3u8" } })).text();
   const stops = [...m3u.matchAll(/#EXTVLCOPT:stop-time=(\d+(?:\.\d+)?)/g)].map((m) => Number(m[1]));
   const cortinas = plan.items.filter((i) => i.kind === "cortina");
   expect(stops).toEqual(cortinas.map((c) => c.stopSec));
   const starts = [...m3u.matchAll(/#EXTVLCOPT:start-time=(\d+(?:\.\d+)?)/g)].map((m) => Number(m[1]));
-  if (starts.length) expect(starts).toEqual(cortinas.filter((c) => (c.trimInSec ?? 0) > 0).map((c) => c.trimInSec));
+  if (starts.length)
+    expect(starts).toEqual(cortinas.filter((c) => (c.trimInSec ?? 0) > 0).map((c) => c.trimInSec));
   // History → Play the night
   await page.goto("/history");
   await page.locator('[id^="history-"]').first().click();
   await page.getByTestId("history-detail").getByRole("button", { name: "Play the night" }).click();
   await expect(page).toHaveURL(/\/booth/);
-  await expect(page.getByTestId("booth-now-title")).toHaveText(plan.items[0]!.title, { timeout: 15000 });
+  await expect(page.getByTestId("booth-now-title")).toBeVisible({ timeout: 15000 });
+  const idx = Number(
+    await page.locator('[data-plan-index][aria-current="true"]').getAttribute("data-plan-index"),
+  );
+  await expect(page.getByTestId("booth-now-title")).toHaveText(plan.items[idx]!.title);
 });
 
 test("spotify source: a free account sees the plain statement and the row is disabled; Premium shows the licence note", async ({
@@ -227,7 +277,9 @@ test("spotify source: a free account sees the plain statement and the row is dis
   await page.getByTestId("booth-more").click();
   await page.getByRole("menuitem", { name: /Set-up/ }).click();
   const row = page.getByTestId("booth-source-spotify");
-  await expect(row).toContainText("not Premium: Spotify does not allow playback in the browser", { timeout: 15000 });
+  await expect(row).toContainText("not Premium: Spotify does not allow playback in the browser", {
+    timeout: 15000,
+  });
   await expect(row).toHaveAttribute("aria-disabled", "true");
   await page.keyboard.press("Escape");
   await page.unroute("**/api/spotify/me");
@@ -242,11 +294,100 @@ test("spotify source: a free account sees the plain statement and the row is dis
   await page.getByRole("menuitem", { name: /Set-up/ }).click();
   await expect(row).toContainText("Premium", { timeout: 15000 });
   await row.click();
-  await expect(page.getByTestId("booth-onboarding")).toContainText("Spotify's SDK terms restrict commercial use");
+  await expect(page.getByTestId("booth-onboarding")).toContainText(
+    "Spotify's SDK terms restrict commercial use",
+  );
 });
 
 test("without a set the booth says Compose a night first; the sidebar has a Booth item", async ({ page }) => {
   await page.goto("/booth");
   await expect(page.getByText("Compose a night first")).toBeVisible();
-  await expect(page.getByRole("navigation", { name: "Primary sidebar" }).getByRole("link", { name: "Booth" })).toBeVisible();
+  await expect(
+    page.getByRole("navigation", { name: "Primary sidebar" }).getByRole("link", { name: "Booth" }),
+  ).toBeVisible();
+});
+
+test("fresh browser (no folder, no Premium): previews are the automatic fallback and the Next card never says End of the night before the end", async ({
+  page,
+}) => {
+  await compose(page);
+  const plan = await openBooth(page);
+  // (1) every item with a Deezer preview plays its clip: the button and the badge say so, "without source" is gone
+  await expect(page.getByTestId("booth-start")).toHaveText("Start · rehearsal (30 s clips)");
+  await expect(page.getByTestId("booth-source")).toHaveText("30 s rehearsal");
+  expect(await page.locator('[data-plan-index][data-source="preview"]').count()).toBeGreaterThan(
+    plan.items.length / 4,
+  );
+  // the playhead sits on the first playable item, never on one without a source
+  const current = page.locator('[data-plan-index][aria-current="true"]');
+  await expect(current).toHaveAttribute("data-source", "preview");
+  // (4) Next shows the first playable item after the playhead
+  const next = await page.evaluate(() => {
+    const rows = [...document.querySelectorAll<HTMLElement>("[data-plan-index]")];
+    const i = rows.findIndex((r) => r.getAttribute("aria-current") === "true");
+    const n = rows.slice(i + 1).find((r) => r.dataset.source !== "missing");
+    return n?.querySelector(".booth-row-title")?.textContent?.trim() ?? null;
+  });
+  expect(next).not.toBeNull();
+  await expect(page.getByTestId("booth-next-title")).toHaveText(next!);
+  await expect(page.getByTestId("booth-next")).not.toContainText("End of the night");
+  // the time to Cumparsita counts 30 s clips, not full tracks
+  const ttc = Number(await page.getByTestId("booth-time").getAttribute("data-ttc"));
+  expect(ttc).toBeLessThan(plan.wallClockSec / 2);
+});
+
+test("1440 × 900: the set column keeps whole titles (≥ 360 px), the transport capsule fits its controls", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await compose(page);
+  await openBooth(page);
+  const m = await page.evaluate(() => {
+    const set = document.querySelector('[data-testid="booth-set"]')!.getBoundingClientRect();
+    const titles = [...document.querySelectorAll<HTMLElement>(".booth-row-title")];
+    const cut = titles.filter((t) => t.scrollWidth > t.clientWidth + 1).length;
+    const subs = document.querySelectorAll(".booth-row-sub").length;
+    const subVisible = [...document.querySelectorAll<HTMLElement>(".booth-row-sub")].filter(
+      (s) => s.offsetParent !== null,
+    ).length;
+    const strip = document.querySelector<HTMLElement>('[data-testid="booth-strip"]')!;
+    const sr = strip.getBoundingClientRect();
+    const out = [...strip.querySelectorAll<HTMLElement>("button, label")].filter((el) => {
+      const r = el.getBoundingClientRect();
+      return r.right > sr.right + 1 || r.left < sr.left - 1 || r.bottom > sr.bottom + 1;
+    }).length;
+    const secondary = [...strip.querySelectorAll<HTMLElement>(".booth-secondary")].filter(
+      (b) => b.offsetParent !== null,
+    ).length;
+    return {
+      setWidth: set.width,
+      cut,
+      subs,
+      subVisible,
+      out,
+      stripScroll: strip.scrollWidth - strip.clientWidth,
+      secondary,
+      stripRight: sr.right,
+      vw: window.innerWidth,
+    };
+  });
+  expect(m.setWidth).toBeGreaterThanOrEqual(360);
+  expect(m.cut).toBe(0);
+  expect(m.subVisible).toBe(m.subs);
+  expect(m.out).toBe(0);
+  expect(m.stripScroll).toBeLessThanOrEqual(1);
+  expect(m.secondary).toBe(3);
+  expect(m.stripRight).toBeLessThanOrEqual(m.vw);
+  // below 1200 px the secondary controls leave the capsule for the overflow menu
+  await page.setViewportSize({ width: 1100, height: 800 });
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          [...document.querySelectorAll<HTMLElement>('[data-testid="booth-strip"] .booth-secondary')].filter(
+            (b) => b.offsetParent !== null,
+          ).length,
+      ),
+    )
+    .toBe(0);
 });

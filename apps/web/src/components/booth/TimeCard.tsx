@@ -16,7 +16,7 @@ export function TimeCard() {
   const breakUntil = useBooth((s) => s.breakUntil);
   const started = useBooth((s) => s.started);
   const startedWall = useBooth((s) => s.startedWall);
-  const rehearsal = useBooth((s) => s.sourceMode === "preview");
+  const rehearsal = useBooth((s) => s.rehearsal);
   const playlist = useBooth((s) => s.playlist);
   // 0 until mounted: the server cannot know the DJ's clock (a hydration mismatch otherwise)
   const [now, setNow] = useState(0);

@@ -1190,13 +1190,15 @@ export function Composer() {
                   {playlist.name}
                 </h2>
                 <span className="flex items-center gap-1">
-                  <Link
-                    href="/booth"
+                  <button
+                    type="button"
                     className="btn btn-ghost -my-2 min-h-11 px-3"
                     data-testid="play-the-night"
+                    aria-label="Booth: play the night"
+                    onClick={() => router.push("/booth")}
                   >
                     <Play size={16} fill="currentColor" strokeWidth={0} aria-hidden /> Play the night
-                  </Link>
+                  </button>
                   <button
                     type="button"
                     className={`icon-btn icon-btn-bare -my-2 h-11 w-10 ${liked === true ? "text-[var(--tint)]" : "text-[var(--label-3)]"}`}

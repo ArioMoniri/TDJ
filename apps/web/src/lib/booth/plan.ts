@@ -85,12 +85,20 @@ export function remainingFrom(
   plan: Pick<BoothPlan, "items">,
   planIndex: number,
   positionSec: number,
-  o: { skipped?: ReadonlySet<number>; currentLength?: number; rehearsalSec?: number | null } = {},
+  o: {
+    skipped?: ReadonlySet<number>;
+    currentLength?: number;
+    /** every item capped (rehearsal mode) */
+    rehearsalSec?: number | null;
+    /** per-item cap (an item played from a 30 s preview), wins over `rehearsalSec` */
+    capFor?: (i: number) => number | null;
+  } = {},
 ): { remainingSec: number; timeToCumparsita: number } {
   const len = (i: number) => {
     const it = plan.items[i]!;
     if (it.kind === "break") return it.lengthSec;
-    return o.rehearsalSec ? Math.min(o.rehearsalSec, it.lengthSec) : it.lengthSec;
+    const cap = o.capFor ? o.capFor(i) : o.rehearsalSec;
+    return cap ? Math.min(cap, it.lengthSec) : it.lengthSec;
   };
   const cur = plan.items[planIndex];
   if (!cur) return { remainingSec: 0, timeToCumparsita: 0 };

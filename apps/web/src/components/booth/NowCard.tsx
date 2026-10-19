@@ -42,7 +42,7 @@ export function NowCard() {
   const current = useBooth((s) => s.current);
   const sources = useBooth((s) => s.sources);
   const holding = useBooth((s) => s.holding);
-  const rehearsal = useBooth((s) => s.sourceMode === "preview");
+  const rehearsal = useBooth((s) => s.rehearsal);
   const playlist = useBooth((s) => s.playlist);
   const item = plan?.items[planIndex];
   if (!plan || !item) return null;

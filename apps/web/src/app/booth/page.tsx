@@ -43,7 +43,7 @@ function Booth() {
   const ready = useBooth((s) => s.ready);
   const state = useBooth((s) => s.state);
   const started = useBooth((s) => s.started);
-  const rehearsal = useBooth((s) => s.sourceMode === "preview");
+  const rehearsal = useBooth((s) => s.rehearsal);
   const plan = useBooth((s) => s.plan);
   const [onboarding, setOnboarding] = useState(false);
   const [more, setMore] = useState(false);
@@ -179,6 +179,8 @@ function Booth() {
       onClick: () =>
         b.folder.canKeep ? void b.linkFolder() : document.getElementById("booth-folder-input")?.click(),
     },
+    started && { label: "Birthday vals", onClick: () => b.birthdayVals() },
+    started && { label: "Break…", onClick: () => setBreakOpen(true) },
     { label: "Keyboard shortcuts", icon: Keyboard, onClick: () => setKeys(true) },
     { label: light ? "Dark theme" : "Light theme", onClick: () => setLight((v) => !v) },
     started && {
@@ -218,7 +220,14 @@ function Booth() {
         data-testid="booth-folder-input"
         {...({ webkitdirectory: "" } as Record<string, string>)}
         onChange={(e) => {
-          if (e.target.files?.length) void b.loadFileList(e.target.files);
+          const files = e.target.files;
+          if (files?.length) {
+            // the File objects stay readable once copied; the input itself is cleared at once (Chromium's
+            // renderer crashed when a sheet opened while the input still held a directory's FileList)
+            const copy = Array.from(files);
+            e.target.value = "";
+            void b.loadFileList(copy);
+          }
         }}
       />
       <OnboardingSheet
