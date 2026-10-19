@@ -92,7 +92,7 @@ const csvq = (s: unknown) => `"${String(s ?? "").replace(/"/g, '""')}"`;
 
 export function toM3U8(p: Playlist, eo: ExportOpts = {}): string {
   const lines = ["#EXTM3U", `#PLAYLIST:${p.name}`];
-  for (const t of flatten(p)) {
+  for (const t of flatten(p, eo)) {
     lines.push(
       `#EXTINF:${t.durationSec},${t.artist} - ${t.title}${t.kind === "cortina" ? " [CORTINA]" : ""}`,
     );
@@ -116,7 +116,7 @@ export function toCSV(p: Playlist, eo: ExportOpts = {}): string {
     "spotify_uri",
     "album",
   ];
-  const rows = flatten(p).map((t) =>
+  const rows = flatten(p, eo).map((t) =>
     [
       t.n,
       t.kind,
@@ -215,8 +215,8 @@ ${pl}
 }
 
 /** XSPF — open standard understood by VLC, Mixxx, Clementine. */
-export function toXSPF(p: Playlist): string {
-  const tracks = flatten(p)
+export function toXSPF(p: Playlist, eo: ExportOpts = {}): string {
+  const tracks = flatten(p, eo)
     .map(
       (t) =>
         `    <track><title>${esc(t.title)}</title><creator>${esc(t.artist)}</creator><album>${esc(t.album ?? "")}</album><duration>${t.durationSec * 1000}</duration><annotation>${esc(t.kind === "cortina" ? "cortina" : `tanda ${t.tanda}`)}</annotation>${t.spotifyUri ? `<location>${esc(t.spotifyUri)}</location>` : ""}</track>`,
@@ -249,7 +249,7 @@ export function toSpotifyPlan(p: Playlist): {
 } {
   const uris: string[] = [];
   const unresolved: { query: string; track: FlatTrack }[] = [];
-  for (const t of flatten(p)) {
+  for (const t of flatten(p, eo)) {
     if (t.spotifyUri) uris.push(t.spotifyUri);
     else
       unresolved.push({

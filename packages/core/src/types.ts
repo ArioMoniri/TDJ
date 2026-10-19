@@ -62,6 +62,10 @@ export interface Song {
   bpm?: number;
   /** 0..5 from the reference corpus (how often it appears in reference sets) */
   fame?: number;
+  /** year ends in 0 without a dated session: decade placeholder */
+  yearApprox?: boolean;
+  rhythmOriginal?: string;
+  note?: string | null;
 }
 
 export interface OrchestraProfile {
