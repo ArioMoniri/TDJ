@@ -1,6 +1,7 @@
 import "server-only";
 import { randomBytes, scrypt as scryptCb, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
+import type { AiProvider } from "@/lib/types";
 import {
   backendKind,
   type ConfigKey,
@@ -12,6 +13,7 @@ import {
   storeAvailable,
 } from "./config";
 import { clearCookieHeader, cookieHeader, readCookie, requestOrigin, seal, unseal } from "./cookies";
+import { AI_DAILY_DEFAULT, complete, isProvider, LlmError } from "./llm";
 import {
   type Credentials,
   DROPBOX,
@@ -190,6 +192,85 @@ export async function providerStatus(req: Request): Promise<ProviderStatus[]> {
   return out;
 }
 
+/* ---------- people: the seats each provider grants a development app (docs/OWNER_GUIDE.md) ---------- */
+
+/** Verified 2026-10-19: Spotify Development Mode 5 users, Google unverified app 100 test users, Dropbox 50 before production. */
+export const SEAT_LIMITS: Record<ProviderId, number> = { spotify: 5, google: 100, dropbox: 50 };
+const SEAT_KEYS: Record<ProviderId, ConfigKey> = {
+  spotify: "SPOTIFY_SEATS",
+  google: "GOOGLE_SEATS",
+  dropbox: "DROPBOX_SEATS",
+};
+const parseSeats = (raw: string | undefined) =>
+  (raw ?? "")
+    .split(/[\n,;]+/)
+    .map((e) => e.trim())
+    .filter(Boolean);
+export type Seats = Record<ProviderId, string[]>;
+async function seatLists(): Promise<Seats> {
+  const c = await getConfig();
+  return {
+    spotify: parseSeats(c.SPOTIFY_SEATS),
+    google: parseSeats(c.GOOGLE_SEATS),
+    dropbox: parseSeats(c.DROPBOX_SEATS),
+  };
+}
+
+export interface SharedAiStatus {
+  configured: boolean;
+  provider: AiProvider;
+  model: string;
+  dailyLimit: number;
+  /** last 4 characters of the key (never the key) */
+  keyHint: string | null;
+  hasWorkspace: boolean;
+  source: "env" | "store" | null;
+}
+async function sharedAiStatus(): Promise<SharedAiStatus> {
+  const c = await getConfig();
+  const n = Number(c.AI_DAILY_LIMIT);
+  return {
+    configured: !!c.AI_KEY,
+    provider: isProvider(c.AI_PROVIDER) ? c.AI_PROVIDER : "anthropic",
+    model: c.AI_MODEL ?? "",
+    dailyLimit: Number.isFinite(n) && n > 0 ? Math.floor(n) : AI_DAILY_DEFAULT,
+    keyHint: hint(c.AI_KEY),
+    hasWorkspace: !!c.AI_WORKSPACE_ID,
+    source: c.AI_KEY ? await configSource("AI_KEY") : null,
+  };
+}
+
+/**
+ * GET /api/admin/public: what any DJ may know without unlocking anything. Which logins exist, how many of each
+ * provider's seats the organiser has handed out (counts, never the e-mails), how to reach the organiser and
+ * whether a shared model key exists. No secret, no hint of one.
+ */
+export interface PublicStatus {
+  providers: Record<ProviderId, boolean>;
+  ownerContact: string;
+  seats: Record<ProviderId, { used: number; max: number }>;
+  ai: { shared: boolean; dailyLimit: number };
+}
+export async function publicStatus(): Promise<PublicStatus> {
+  const c = await getConfig();
+  const seats = await seatLists();
+  const ai = await sharedAiStatus();
+  return {
+    providers: {
+      spotify: !!(c.SPOTIFY_CLIENT_ID && c.SPOTIFY_CLIENT_SECRET),
+      google: !!(c.GOOGLE_CLIENT_ID && c.GOOGLE_CLIENT_SECRET),
+      dropbox: !!(c.DROPBOX_APP_KEY && c.DROPBOX_APP_SECRET),
+    },
+    ownerContact: c.OWNER_CONTACT ?? "",
+    seats: {
+      spotify: { used: seats.spotify.length, max: SEAT_LIMITS.spotify },
+      google: { used: seats.google.length, max: SEAT_LIMITS.google },
+      dropbox: { used: seats.dropbox.length, max: SEAT_LIMITS.dropbox },
+    },
+    ai: { shared: ai.configured, dailyLimit: ai.dailyLimit },
+  };
+}
+
 export interface AdminStatus {
   unlocked: boolean;
   hasPassphrase: boolean;
@@ -201,6 +282,11 @@ export interface AdminStatus {
   /** NEXT_PUBLIC_APP_URL as resolved (environment or store), null when the origin comes from the request */
   publicUrl: { value: string; source: "env" | "store" } | null;
   providers?: ProviderStatus[];
+  /** owner only: the seat lists as pasted, the organiser contact and the shared model key's status */
+  seats?: Seats;
+  seatLimits?: Record<ProviderId, number>;
+  ownerContact?: string;
+  ai?: SharedAiStatus;
 }
 export async function adminStatus(req: Request): Promise<AdminStatus> {
   const unlocked = await isAdmin(req);
@@ -220,6 +306,10 @@ export async function adminStatus(req: Request): Promise<AdminStatus> {
   const src = await configSource("NEXT_PUBLIC_APP_URL");
   if (c.NEXT_PUBLIC_APP_URL && src) base.publicUrl = { value: c.NEXT_PUBLIC_APP_URL, source: src };
   base.providers = await providerStatus(req);
+  base.seats = await seatLists();
+  base.seatLimits = SEAT_LIMITS;
+  base.ownerContact = c.OWNER_CONTACT ?? "";
+  base.ai = await sharedAiStatus();
   return base;
 }
 
@@ -232,6 +322,19 @@ export interface SaveBody {
   google?: { clientId?: string; clientSecret?: string; remove?: boolean };
   dropbox?: { clientId?: string; clientSecret?: string; remove?: boolean };
   publicUrl?: string | null;
+  /** how DJs reach the organiser (an e-mail, a phone, a chat handle); "" clears it */
+  ownerContact?: string | null;
+  /** the seat lists, one e-mail per entry; each list replaces the stored one */
+  seats?: Partial<Record<ProviderId, string[] | string>>;
+  /** the shared model key for everyone; `remove` deletes all of it */
+  ai?: {
+    provider?: string;
+    key?: string;
+    model?: string;
+    workspaceId?: string;
+    dailyLimit?: number | string;
+    remove?: boolean;
+  };
 }
 /**
  * Writes what was given: a provider needs both fields to be saved (a half-pasted pair is refused), `remove` deletes
@@ -286,7 +389,98 @@ export async function saveConfig(body: SaveBody): Promise<{ saved: string[]; err
       }
     }
   }
+  if (body.ownerContact !== undefined) {
+    const v = clean(body.ownerContact).slice(0, 200);
+    if (v) await setConfigValue("OWNER_CONTACT", v);
+    else await deleteConfigValue("OWNER_CONTACT");
+    saved.push(v ? "Organiser contact" : "Organiser contact cleared");
+  }
+  if (body.seats && typeof body.seats === "object") {
+    for (const id of PROVIDER_IDS) {
+      const raw = body.seats[id];
+      if (raw === undefined) continue;
+      const list = [
+        ...new Set(
+          parseSeats(Array.isArray(raw) ? raw.map(String).join("\n") : String(raw)).map((e) =>
+            e.toLowerCase(),
+          ),
+        ),
+      ];
+      if (list.length > SEAT_LIMITS[id]) {
+        errors.push(`${PROVIDERS[id].label}: ${SEAT_LIMITS[id]} seats at most; ${list.length} given.`);
+        continue;
+      }
+      if (list.some((e) => e.length > 120 || !e.includes("@"))) {
+        errors.push(`${PROVIDERS[id].label}: one e-mail address per line.`);
+        continue;
+      }
+      if (list.length) await setConfigValue(SEAT_KEYS[id], list.join("\n"));
+      else await deleteConfigValue(SEAT_KEYS[id]);
+      saved.push(`${PROVIDERS[id].label} seats`);
+    }
+  }
+  if (body.ai) {
+    if (await envLocked("AI_KEY"))
+      errors.push("The shared model key is set by the deployment's environment.");
+    else if (body.ai.remove) {
+      for (const k of ["AI_PROVIDER", "AI_KEY", "AI_MODEL", "AI_WORKSPACE_ID", "AI_DAILY_LIMIT"] as const)
+        await deleteConfigValue(k);
+      saved.push("Shared model key removed");
+    } else {
+      const key = clean(body.ai.key);
+      const provider = clean(body.ai.provider);
+      const limit = Math.floor(Number(body.ai.dailyLimit ?? AI_DAILY_DEFAULT));
+      const current = await getConfig();
+      if (!key && !current.AI_KEY) errors.push("Paste the model key first.");
+      else if (!isProvider(provider)) errors.push("Choose a provider.");
+      else if (key && (key.length > MAX_LEN || /\s/.test(key)))
+        errors.push("That does not look like a model key (spaces or too long).");
+      else if (!Number.isFinite(limit) || limit < 1 || limit > 1000)
+        errors.push("The daily limit per DJ must be between 1 and 1000.");
+      else {
+        if (key) await setConfigValue("AI_KEY", key);
+        await setConfigValue("AI_PROVIDER", provider);
+        const model = clean(body.ai.model).slice(0, 120);
+        if (model) await setConfigValue("AI_MODEL", model);
+        else await deleteConfigValue("AI_MODEL");
+        const ws = clean(body.ai.workspaceId).slice(0, 120);
+        if (ws && provider === "anthropic") await setConfigValue("AI_WORKSPACE_ID", ws);
+        else await deleteConfigValue("AI_WORKSPACE_ID");
+        await setConfigValue("AI_DAILY_LIMIT", String(limit));
+        saved.push("Shared model key");
+      }
+    }
+  }
   return { saved, errors };
+}
+
+/** One ping with the shared key, the way Settings → Test connection does it with a personal key. */
+export async function testSharedAi(): Promise<TestResult> {
+  const c = await getConfig();
+  if (!c.AI_KEY) return { ok: false, text: "No shared model key is saved yet." };
+  try {
+    const text = await complete({
+      provider: isProvider(c.AI_PROVIDER) ? c.AI_PROVIDER : "anthropic",
+      key: c.AI_KEY,
+      model: c.AI_MODEL ?? "",
+      workspace: c.AI_WORKSPACE_ID || undefined,
+      system: "You are a connection test. Reply with the single word OK.",
+      user: "ping",
+      maxTokens: 16,
+    });
+    return {
+      ok: true,
+      text: `The model answered "${text.trim().slice(0, 40)}". DJs without a key of their own now get reviews.`,
+    };
+  } catch (e) {
+    const msg = e instanceof LlmError ? e.message : (e as Error).message;
+    return {
+      ok: false,
+      text: /not scoped to a workspace/i.test(msg)
+        ? "This key needs a workspace: paste its Workspace ID or create the key inside a workspace at console.anthropic.com → API keys."
+        : `The provider refused the key: ${msg.slice(0, 200)}`,
+    };
+  }
 }
 
 export async function setPassphrase(passphrase: string): Promise<void> {

@@ -699,6 +699,7 @@ export function Composer() {
     "x-ai-provider": settings.ai.provider,
     "x-ai-key": settings.ai.key,
     "x-ai-model": settings.ai.model,
+    "x-ai-workspace": settings.ai.workspace ?? "",
   });
   const era: Era = (options.eras ?? ["golden"])[0] ?? "golden";
   const eraDefaults = ERA_SETTINGS[era] ?? ERA_SETTINGS.golden!;

@@ -9,7 +9,7 @@ import {
 import { NextResponse } from "next/server";
 import { FEEDBACK_LABEL, FEEDBACK_VALUES, feedbackFromText } from "@/lib/feedback";
 import { getCatalog } from "@/lib/server/catalog";
-import { aiFromHeaders, complete, extractJson, houseRulesBlock } from "@/lib/server/llm";
+import { complete, extractJson, houseRulesBlock, resolveAi } from "@/lib/server/llm";
 export const dynamic = "force-dynamic";
 
 const OPTION_KEYS = [
@@ -119,7 +119,6 @@ function sanitizeOptions(raw: unknown, orchestraIds: Set<string>): Partial<Compo
 
 /** "warmer start, more vals, no Canaro" → { options, feedback, note }. Falls back to keyword matching without a key or when the model's JSON does not parse. */
 export async function POST(req: Request) {
-  const ai = aiFromHeaders(req);
   const body = await req.json().catch(() => null);
   if (!body || typeof body !== "object") return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   const instruction = String(body.instruction ?? "")
@@ -203,7 +202,15 @@ export async function POST(req: Request) {
     });
   };
 
-  if (!ai.key) return keywordFallback("add a model key in Settings for sentences like these");
+  // the DJ's own key, else the organiser's shared key (counted per day); neither → keywords only
+  const resolved = await resolveAi(req);
+  if (!resolved.ok)
+    return keywordFallback(
+      resolved.status === 429
+        ? "today's allowance on the organiser's key is used up; add your own key in Settings"
+        : "add a model key in Settings for sentences like these",
+    );
+  const ai = resolved.ai;
 
   const system = `You turn a tango DJ's free-text request into playlist option changes. Reply with ONLY a JSON object: {"options": {...}, "feedback": [...], "note": "one short sentence in plain DJ language"}.
 Allowed option keys: ${OPTION_KEYS.join(", ")}. Enums: ${Object.entries(ENUMS)

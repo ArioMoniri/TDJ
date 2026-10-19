@@ -38,7 +38,12 @@ function mockServer(): http.Server {
         res.writeHead(code, { "content-type": "application/json" });
         res.end(JSON.stringify(j));
       };
-      // Spotify accounts service
+      // Spotify accounts service (a code of a user the owner never listed answers 403 "not registered")
+      if (url === "/api/token" && body.includes("code=code-notlisted"))
+        return json(403, {
+          error: "invalid_grant",
+          error_description: "User not registered in the Developer Dashboard",
+        });
       if (url === "/api/token")
         return json(200, {
           access_token: body.includes("refresh_token") ? "acc-refreshed" : "acc-1",
@@ -361,6 +366,56 @@ test("callback exchanges the code on the server (client secret never in the brow
   expect(hits.length).toBe(before);
 });
 
+test("a DJ the owner did not list: access_denied from Spotify or a 403 'not registered' exchange lands on spotify_not_listed, and Settings explains it", async ({
+  request,
+  browser,
+}) => {
+  const start = async () => {
+    const r = await request.get(`${APP}/api/spotify/login?next=/`, { maxRedirects: 0 });
+    const state = new URL(r.headers().location!).searchParams.get("state")!;
+    return { state, cookie: cookieOf(setCookies(r), "tdj_sp_state")! };
+  };
+  const a = await start();
+  const denied = await request.get(
+    `${APP}/api/spotify/callback?error=access_denied&state=${encodeURIComponent(a.state)}`,
+    { maxRedirects: 0, headers: { cookie: a.cookie } },
+  );
+  expect(denied.headers().location).toBe(`${APP}/settings?error=spotify_not_listed`);
+  expect(cookieOf(setCookies(denied), "tdj_sp")).toBeUndefined();
+  const b = await start();
+  const refused = await request.get(
+    `${APP}/api/spotify/callback?code=code-notlisted&state=${encodeURIComponent(b.state)}`,
+    { maxRedirects: 0, headers: { cookie: b.cookie } },
+  );
+  expect(refused.headers().location).toBe(`${APP}/settings?error=spotify_not_listed`);
+  // any other failure keeps its own reason
+  const c = await start();
+  const other = await request.get(
+    `${APP}/api/spotify/callback?error=server_error&state=${encodeURIComponent(c.state)}`,
+    { maxRedirects: 0, headers: { cookie: c.cookie } },
+  );
+  expect(other.headers().location).toBe(`${APP}/settings?error=spotify_denied`);
+  // the page: a plain sheet, the request to copy, the other ways
+  const ctx = await browser.newContext({ baseURL: APP, permissions: ["clipboard-read", "clipboard-write"] });
+  const page = await ctx.newPage();
+  await page.goto("/settings?error=spotify_not_listed");
+  const sheet = page.getByTestId("spotify-not-listed");
+  await expect(sheet).toBeVisible();
+  await expect(sheet).toContainText(
+    "This app can let in 5 Spotify accounts. Ask the organiser to add your Spotify email, or send your set to Spotify another way",
+  );
+  await expect(sheet.locator("#not-listed-copy")).toHaveText("Copy my request");
+  await expect(sheet.locator("#not-listed-contact")).toHaveCount(0); // no organiser contact on this deployment
+  await page.locator("#not-listed-copy").click();
+  await expect(sheet.locator("#not-listed-copy")).toHaveText("Copied");
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/add my Spotify e-mail/);
+  await sheet.locator("#not-listed-other").click();
+  await expect(sheet.locator("#not-listed-other-ways")).toBeVisible();
+  await expect(sheet.locator("#not-listed-transfer")).toContainText("Spotify via a transfer service");
+  expect(page.url()).toBe(`${APP}/settings`); // the error left the address bar
+  await ctx.close();
+});
+
 test("/api/spotify/me returns the profile with the cookie, 401 + hosted:true without it; logout clears it", async ({
   request,
   playwright,
@@ -470,7 +525,7 @@ test("Settings (hosted): the Spotify row shows the account, the sheet has one pr
   await page.locator("#connector-spotify").click();
   const sheet = page.getByRole("dialog", { name: "Spotify" });
   await expect(sheet).toContainText("Logged in as Test DJ");
-  await expect(sheet).toContainText("5 listeners per app");
+  await expect(sheet).toContainText("5 Spotify accounts");
   await expect(sheet.locator("#spotify-logout")).toBeVisible();
   await expect(sheet.locator("#spotify-client-id")).toHaveCount(0);
   await sheet.locator("#spotify-advanced").click();
@@ -643,6 +698,33 @@ test("Export sheet (hosted): 'Create playlist in Spotify' uses the session, list
   );
   expect(order).toEqual([...order].sort((a, b) => a - b));
   expect(order.every((i) => i >= 0)).toBe(true);
+  // "Spotify via a transfer service": a title/artist/album CSV with one row per file, and the import page in a new tab
+  const files = Number((await page.locator("#export-count").textContent())!.match(/\((\d+) files?\)/)![1]);
+  await sheet.locator("#send-transfer").click();
+  const transfer = page.getByTestId("transfer-sheet");
+  await expect(transfer).toBeVisible();
+  await expect(transfer.locator("#transfer-steps")).toContainText("Download the CSV below");
+  await expect(transfer).toContainText(`${files} rows in set order`);
+  // the import page is stubbed: the test proves which tab opens, not the service's own site
+  await ctx.route("https://www.tunemymusic.com/**", (r) =>
+    r.fulfill({ contentType: "text/html", body: "<html><body>stub</body></html>" }),
+  );
+  const [download, popup] = await Promise.all([
+    page.waitForEvent("download"),
+    ctx.waitForEvent("page"),
+    transfer.locator("#transfer-download").click(),
+  ]);
+  expect(download.suggestedFilename()).toMatch(/-tunemymusic\.csv$/);
+  await popup.waitForLoadState();
+  expect(popup.url()).toBe("https://www.tunemymusic.com/transfer/csv-to-spotify");
+  await popup.close();
+  const csv = (await import("node:fs")).readFileSync((await download.path())!, "utf8");
+  const lines = csv.split("\r\n").filter(Boolean);
+  expect(lines[0]).toBe("title,artist,album");
+  expect(lines.length - 1).toBe(files);
+  expect(lines[1]).toMatch(/^"[^"]+","[^"]+",".*"$/);
+  await transfer.getByRole("button", { name: "Done" }).click();
+  await expect(transfer).toBeHidden();
   hits.length = 0;
   await sheet.locator("#send-pd-dropbox").click();
   await expect(page.getByTestId("toast")).toContainText("Saved to Dropbox", { timeout: 20000 });

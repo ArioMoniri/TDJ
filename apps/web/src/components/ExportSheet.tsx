@@ -1,7 +1,7 @@
 "use client";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import { EXPORT_META, type ExportFormat, toSpotifyPlan } from "@tdj/core";
-import { Check, Cloud, FileDown, HardDrive, ListVideo, Radio, Webhook } from "lucide-react";
+import { ArrowRightLeft, Check, Cloud, FileDown, HardDrive, ListVideo, Radio, Webhook } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -27,9 +27,10 @@ import {
 } from "@/lib/spotify";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
+import { TRANSFER_SERVICES, type TransferService, transferCsv, transferRows } from "@/lib/transferCsv";
 import { DJ_APPS, type DjApp, type Playlist } from "@/lib/types";
 import { CountUp } from "./CountUp";
-import { ActionRow, Group, PickerRow, Row, SwitchRow, Tile } from "./Form";
+import { ActionRow, Group, PickerRow, Row, SegmentedRow, SwitchRow, Tile } from "./Form";
 import { Sheet } from "./Sheet";
 
 const FORMAT_ITEMS = (Object.keys(EXPORT_META) as ExportFormat[]).map(
@@ -125,6 +126,9 @@ export function ExportSheet({
   const [hookBusy, setHookBusy] = useState(false);
   const [hookOpen, setHookOpen] = useState(false);
   const [hookDraft, setHookDraft] = useState("");
+  /** "Spotify via a transfer service": the CSV any Spotify account can import through TuneMyMusic or Soundiiz */
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [transfer, setTransfer] = useState<TransferService["id"]>("tunemymusic");
   const [log, setLog] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [dlBusy, setDlBusy] = useState<ExportFormat | null>(null);
@@ -372,6 +376,20 @@ export function ExportSheet({
       setCloudBusy(null);
     }
   };
+  /** Downloads the title/artist/album CSV and opens the chosen service's import page in a new tab. */
+  const toTransfer = () => {
+    if (!playlist) return;
+    const service = TRANSFER_SERVICES.find((t) => t.id === transfer) ?? TRANSFER_SERVICES[0]!;
+    const rows = transferRows(playlist, includeCortinas).length;
+    downloadBlob(
+      `${playlist.name.replace(/[^a-z0-9-]+/gi, "_")}-${service.id}.csv`,
+      transferCsv(playlist, includeCortinas),
+      "text/csv",
+    );
+    window.open(service.importUrl, "_blank", "noreferrer");
+    haptic(6);
+    toast(`Downloaded ${rows} rows for ${service.label}`);
+  };
   const saveHook = () => {
     const v = hookDraft.trim();
     if (v && !/^https:\/\//i.test(v)) {
@@ -502,6 +520,19 @@ export function ExportSheet({
           disabled={busy || done || (!hosted && !settings.spotifyClientId)}
           busy={busy}
           id="send-spotify"
+        />
+        <Row
+          tile={
+            <Tile color="#1db954">
+              <ArrowRightLeft size={16} strokeWidth={2} />
+            </Tile>
+          }
+          label="Spotify via a transfer service"
+          sub="Any Spotify account · TuneMyMusic or Soundiiz"
+          value="CSV"
+          chevron
+          onClick={() => setTransferOpen(true)}
+          id="send-transfer"
         />
         {googleOn && (
           <Row
@@ -717,6 +748,45 @@ export function ExportSheet({
               spellCheck={false}
             />
           </label>
+        </Group>
+      </Sheet>
+      <Sheet
+        open={transferOpen}
+        onClose={() => setTransferOpen(false)}
+        title="Spotify via a transfer service"
+        trailing="Done"
+        detents={["large"]}
+        testId="transfer-sheet"
+      >
+        <Group
+          header="Service"
+          footer="Works with any Spotify account and needs nothing from the organiser: the service matches each row in your own Spotify login. Both offer a free tier for a playlist this size."
+        >
+          <SegmentedRow
+            label="Transfer with"
+            value={transfer}
+            items={TRANSFER_SERVICES.map((t) => [t.id, t.label])}
+            onChange={setTransfer}
+          />
+        </Group>
+        <Group header="Three steps" id="transfer-steps">
+          {(TRANSFER_SERVICES.find((t) => t.id === transfer) ?? TRANSFER_SERVICES[0]!).steps.map(
+            (step, i) => (
+              <div key={step} className="cell items-start">
+                <span className="w-5 shrink-0 text-[var(--label-2)] tabular-nums">{i + 1}.</span>
+                <span className="min-w-0 flex-1 whitespace-normal">{step}</span>
+              </div>
+            ),
+          )}
+        </Group>
+        <Group
+          footer={`A CSV with the columns title, artist and album: ${playlist ? transferRows(playlist, includeCortinas).length : 0} rows in set order${includeCortinas ? ", cortinas included" : ", cortinas left out"}.`}
+        >
+          <ActionRow
+            label={`Download CSV and open ${(TRANSFER_SERVICES.find((t) => t.id === transfer) ?? TRANSFER_SERVICES[0]!).label}`}
+            onClick={toTransfer}
+            id="transfer-download"
+          />
         </Group>
       </Sheet>
       {result && (

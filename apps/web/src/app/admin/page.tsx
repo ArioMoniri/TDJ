@@ -1,9 +1,41 @@
 "use client";
-import { Cloud, HardDrive, KeyRound, Link2, LockKeyhole, Radio } from "lucide-react";
+import {
+  BookOpen,
+  Cloud,
+  HardDrive,
+  KeyRound,
+  Link2,
+  LockKeyhole,
+  Radio,
+  Sparkles,
+  UserRound,
+  Users,
+} from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
-import { ActionRow, FieldRow, Group, Row, Tile } from "@/components/Form";
+import { ActionRow, FieldRow, Group, Row, SegmentedRow, StepperRow, Tile } from "@/components/Form";
 import { PageHeader } from "@/components/PageHeader";
 import { toast } from "@/lib/toast";
+import { AI_DEFAULT_MODEL, AI_PROVIDERS, type AiProvider } from "@/lib/types";
+
+const OWNER_GUIDE = "https://github.com/ArioMoniri/TDJ/blob/main/docs/OWNER_GUIDE.md";
+/** where each provider lists the people its development app may admit (docs/OWNER_GUIDE.md) */
+const PEOPLE: Record<ProviderId, { where: string; url: string; note: string }> = {
+  spotify: {
+    where: "Spotify dashboard → your app → User Management",
+    url: "https://developer.spotify.com/dashboard",
+    note: "Name and e-mail of the Spotify account; the DJ can log in a minute later.",
+  },
+  google: {
+    where: "Google Cloud console → Google Auth Platform → Audience → Test users",
+    url: "https://console.cloud.google.com/auth/audience",
+    note: "While the app is unverified only test users can connect; their login expires weekly.",
+  },
+  dropbox: {
+    where: "Dropbox App Console (no list: the first 50 linked users are admitted)",
+    url: "https://www.dropbox.com/developers/apps",
+    note: "Kept here for your own count; Dropbox asks for a production approval at 50.",
+  },
+};
 
 /**
  * Owner setup for a deployment: unlock with the one-time setup code from the deploy summary (or the passphrase once
@@ -30,6 +62,18 @@ interface Status {
   origin: string;
   publicUrl: { value: string; source: "env" | "store" } | null;
   providers?: ProviderStatus[];
+  seats?: Record<ProviderId, string[]>;
+  seatLimits?: Record<ProviderId, number>;
+  ownerContact?: string;
+  ai?: {
+    configured: boolean;
+    provider: AiProvider;
+    model: string;
+    dailyLimit: number;
+    keyHint: string | null;
+    hasWorkspace: boolean;
+    source: "env" | "store" | null;
+  };
 }
 const META: Record<
   ProviderId,
@@ -129,6 +173,21 @@ export default function AdminPage() {
   });
   const [tests, setTests] = useState<Partial<Record<ProviderId, { ok: boolean; text: string }>>>({});
   const [publicUrl, setPublicUrl] = useState("");
+  const [contact, setContact] = useState("");
+  const [seatDrafts, setSeatDrafts] = useState<Record<ProviderId, string>>({
+    spotify: "",
+    google: "",
+    dropbox: "",
+  });
+  const [aiDraft, setAiDraft] = useState<{
+    provider: AiProvider;
+    key: string;
+    model: string;
+    workspaceId: string;
+    dailyLimit: number;
+    show: boolean;
+  }>({ provider: "anthropic", key: "", model: "", workspaceId: "", dailyLimit: 20, show: false });
+  const [aiTest, setAiTest] = useState<{ ok: boolean; text: string } | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -136,6 +195,22 @@ export default function AdminPage() {
       setStatus(body);
       setFailed(false);
       if (body.publicUrl) setPublicUrl(body.publicUrl.value);
+      if (body.ownerContact !== undefined) setContact(body.ownerContact);
+      if (body.seats)
+        setSeatDrafts({
+          spotify: body.seats.spotify.join("\n"),
+          google: body.seats.google.join("\n"),
+          dropbox: body.seats.dropbox.join("\n"),
+        });
+      if (body.ai)
+        setAiDraft((d) => ({
+          ...d,
+          provider: body.ai!.provider,
+          model: body.ai!.model,
+          dailyLimit: body.ai!.dailyLimit,
+          key: "",
+          workspaceId: "",
+        }));
     } catch {
       setFailed(true);
     }
@@ -268,6 +343,89 @@ export default function AdminPage() {
     }
   };
 
+  /** one PUT of part of the config, with the first error as a toast */
+  const put = async (data: Record<string, unknown>, okText: string) => {
+    const { status: code, body } = await api<{ errors?: string[]; error?: string }>("/api/admin/config", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+    const errors = body.errors ?? (body.error ? [body.error] : []);
+    if (code !== 200 || errors.length) {
+      toast(errors[0] ?? "Could not save");
+      return false;
+    }
+    await load();
+    toast(okText);
+    return true;
+  };
+  const saveContact = async () => {
+    setBusy("contact");
+    try {
+      await put(
+        { ownerContact: contact },
+        contact.trim() ? "Organiser contact saved" : "Organiser contact cleared",
+      );
+    } finally {
+      setBusy(null);
+    }
+  };
+  const saveSeats = async (id: ProviderId) => {
+    setBusy(`seats-${id}`);
+    try {
+      await put({ seats: { [id]: seatDrafts[id] } }, `${META[id].console.split(" ")[0]} seats saved`);
+    } finally {
+      setBusy(null);
+    }
+  };
+  const saveAi = async () => {
+    setBusy("ai");
+    setAiTest(null);
+    try {
+      const ok = await put(
+        {
+          ai: {
+            provider: aiDraft.provider,
+            key: aiDraft.key,
+            model: aiDraft.model,
+            workspaceId: aiDraft.workspaceId,
+            dailyLimit: aiDraft.dailyLimit,
+          },
+        },
+        "Shared model key saved",
+      );
+      if (ok) setAiDraft((d) => ({ ...d, key: "", workspaceId: "", show: false }));
+    } finally {
+      setBusy(null);
+    }
+  };
+  const removeAi = async () => {
+    setBusy("ai-remove");
+    setAiTest(null);
+    try {
+      await put({ ai: { remove: true } }, "Shared model key removed");
+    } finally {
+      setBusy(null);
+    }
+  };
+  const testAi = async () => {
+    setBusy("ai-test");
+    try {
+      const { body } = await api<{ ok: boolean; text: string }>("/api/admin/test", {
+        method: "POST",
+        body: JSON.stringify({ provider: "ai" }),
+      });
+      setAiTest(body);
+    } catch {
+      setAiTest({ ok: false, text: "Could not reach the server." });
+    } finally {
+      setBusy(null);
+    }
+  };
+  const seatCount = (id: ProviderId) =>
+    seatDrafts[id]
+      .split(/[\n,;]+/)
+      .map((e) => e.trim())
+      .filter(Boolean).length;
   const tile = (id: ProviderId) => <Tile color={META[id].color}>{META[id].icon}</Tile>;
   const anyConfigured = status?.providers?.some((p) => p.configured) ?? false;
 
@@ -281,6 +439,12 @@ export default function AdminPage() {
             : failed
               ? "The server did not answer."
               : "Checking…"
+        }
+        trailing={
+          <a href={OWNER_GUIDE} target="_blank" rel="noreferrer" className="btn-plain" id="admin-guide">
+            <BookOpen size={16} strokeWidth={2} className="mr-1 inline" aria-hidden />
+            Owner guide
+          </a>
         }
       />
 
@@ -518,6 +682,213 @@ export default function AdminPage() {
               </Group>
             );
           })}
+
+          <Group
+            header="People"
+            footer="Spotify lets a small app like this one admit 5 Spotify accounts: you add each DJ's Spotify e-mail under User Management in the Spotify dashboard, and a sixth DJ is turned away at login. Keep the same list here so you and the DJs see how many seats are left; the lists stay on the server and only the counts are shown to DJs. Google admits 100 test users while the app is unverified, Dropbox 50 linked users before a production approval. One e-mail per line."
+            id="admin-people"
+          >
+            <FieldRow
+              label="Organiser contact"
+              sub="Shown to DJs who need a seat"
+              id="admin-contact"
+              tile={
+                <Tile color="#636366">
+                  <UserRound size={16} strokeWidth={2} />
+                </Tile>
+              }
+            >
+              <input
+                id="admin-contact"
+                className="field field-value min-w-0 flex-1"
+                placeholder="you@example.com or a chat handle"
+                value={contact}
+                onChange={(e) => setContact(e.target.value)}
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </FieldRow>
+            <ActionRow
+              label="Save contact"
+              onClick={saveContact}
+              disabled={contact.trim() === (status.ownerContact ?? "")}
+              busy={busy === "contact"}
+              id="admin-contact-save"
+            />
+            {(["spotify", "google", "dropbox"] as ProviderId[]).map((id) => {
+              const max = status.seatLimits?.[id] ?? 0;
+              const n = seatCount(id);
+              return (
+                <div key={id} className="contents">
+                  <Row
+                    tile={
+                      <Tile color={META[id].color}>
+                        <Users size={16} strokeWidth={2} />
+                      </Tile>
+                    }
+                    label={`${META[id].console.split(" ")[0]} seats`}
+                    sub={PEOPLE[id].note}
+                    value={
+                      <span className={n > max ? "text-[var(--destructive)]" : undefined}>
+                        {n} of {max} used
+                      </span>
+                    }
+                    id={`admin-seats-${id}`}
+                  />
+                  <Row label={`Open ${PEOPLE[id].where}`} chevron href={PEOPLE[id].url} />
+                  <label htmlFor={`admin-seat-list-${id}`} className="cell">
+                    <span className="sr-only">{META[id].console.split(" ")[0]} seat e-mails</span>
+                    <textarea
+                      id={`admin-seat-list-${id}`}
+                      className="field min-h-[88px] w-full resize-y"
+                      placeholder={"dj@example.com\nanother@example.com"}
+                      value={seatDrafts[id]}
+                      onChange={(e) => setSeatDrafts((d) => ({ ...d, [id]: e.target.value }))}
+                      autoComplete="off"
+                      spellCheck={false}
+                      rows={3}
+                    />
+                  </label>
+                  <ActionRow
+                    label="Save seats"
+                    onClick={() => saveSeats(id)}
+                    disabled={n > max || seatDrafts[id].trim() === (status.seats?.[id] ?? []).join("\n")}
+                    busy={busy === `seats-${id}`}
+                    id={`admin-seats-save-${id}`}
+                  />
+                </div>
+              );
+            })}
+          </Group>
+
+          <Group
+            header="AI reviews for everyone"
+            id="admin-ai"
+            footer={
+              aiTest ? (
+                <span
+                  role="status"
+                  aria-live="polite"
+                  className={aiTest.ok ? "text-[var(--system-green)]" : "text-[var(--destructive)]"}
+                  data-testid="admin-test-ai"
+                >
+                  {aiTest.text}
+                </span>
+              ) : status.ai?.source === "env" ? (
+                "The shared model key is set by the deployment's environment; change it there, not here."
+              ) : (
+                "One model key, paid by you, writes reviews for every DJ who has not added a key of their own, up to the daily limit per DJ (counted per server instance, so treat it as a courtesy cap). The key never reaches a browser. The Workspace ID is only needed for an Anthropic key created at organisation level."
+              )
+            }
+          >
+            <Row
+              tile={
+                <Tile color="#5856d6">
+                  <Sparkles size={16} strokeWidth={2} />
+                </Tile>
+              }
+              label="Status"
+              value={
+                status.ai?.configured ? (
+                  <span className="inline-flex items-center">
+                    <Dot on />
+                    Configured · {status.ai.keyHint} · {status.ai.dailyLimit}/day
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center">
+                    <Dot on={false} />
+                    Not configured
+                  </span>
+                )
+              }
+              id="admin-status-ai"
+            />
+            {status.ai?.source !== "env" && (
+              <>
+                <SegmentedRow
+                  label="Provider"
+                  value={aiDraft.provider}
+                  items={AI_PROVIDERS}
+                  onChange={(provider) => setAiDraft((d) => ({ ...d, provider }))}
+                />
+                <FieldRow label="API key" id="admin-ai-key">
+                  <input
+                    id="admin-ai-key"
+                    type={aiDraft.show ? "text" : "password"}
+                    className="field field-value min-w-0 flex-1 font-mono"
+                    placeholder={status.ai?.configured ? "Replace" : "Paste"}
+                    value={aiDraft.key}
+                    onChange={(e) => setAiDraft((d) => ({ ...d, key: e.target.value.trim() }))}
+                    autoComplete="off"
+                    spellCheck={false}
+                  />
+                  <button
+                    type="button"
+                    className="btn-plain -mr-2"
+                    onClick={() => setAiDraft((d) => ({ ...d, show: !d.show }))}
+                    aria-pressed={aiDraft.show}
+                  >
+                    {aiDraft.show ? "Hide" : "Show"}
+                  </button>
+                </FieldRow>
+                <FieldRow label="Model" sub="Blank for the default" id="admin-ai-model">
+                  <input
+                    id="admin-ai-model"
+                    className="field field-value min-w-0 flex-1 font-mono"
+                    placeholder={AI_DEFAULT_MODEL[aiDraft.provider]}
+                    value={aiDraft.model}
+                    onChange={(e) => setAiDraft((d) => ({ ...d, model: e.target.value.trim() }))}
+                    autoComplete="off"
+                    spellCheck={false}
+                  />
+                </FieldRow>
+                {aiDraft.provider === "anthropic" && (
+                  <FieldRow
+                    label="Workspace ID"
+                    sub={status.ai?.hasWorkspace ? "Saved · paste to replace" : "Optional"}
+                    id="admin-ai-workspace"
+                  >
+                    <input
+                      id="admin-ai-workspace"
+                      className="field field-value min-w-0 flex-1 font-mono"
+                      placeholder="wrkspc_…"
+                      value={aiDraft.workspaceId}
+                      onChange={(e) => setAiDraft((d) => ({ ...d, workspaceId: e.target.value.trim() }))}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </FieldRow>
+                )}
+                <StepperRow
+                  label="Daily limit per DJ"
+                  value={aiDraft.dailyLimit}
+                  min={1}
+                  max={200}
+                  step={1}
+                  onChange={(dailyLimit) => setAiDraft((d) => ({ ...d, dailyLimit }))}
+                />
+                <ActionRow
+                  label="Save"
+                  onClick={saveAi}
+                  disabled={!aiDraft.key && !status.ai?.configured}
+                  busy={busy === "ai"}
+                  id="admin-ai-save"
+                />
+              </>
+            )}
+            {status.ai?.configured && (
+              <ActionRow label="Test" onClick={testAi} busy={busy === "ai-test"} id="admin-ai-test" />
+            )}
+            {status.ai?.configured && status.ai.source !== "env" && (
+              <ActionRow
+                label="Remove"
+                destructive
+                onClick={removeAi}
+                busy={busy === "ai-remove"}
+                id="admin-ai-remove"
+              />
+            )}
+          </Group>
 
           <Group
             header="Public address"

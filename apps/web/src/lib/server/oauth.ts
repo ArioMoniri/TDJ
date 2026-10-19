@@ -160,11 +160,21 @@ export async function rawTokenRequest(
   }
   return fetch(p.token(), { method: "POST", headers, body });
 }
+/** A token endpoint that said no: the status and body tell a "not registered" user apart from a bad secret. */
+export class TokenError extends Error {
+  status: number;
+  body: string;
+  constructor(p: Provider, status: number, body: string) {
+    super(`${p.label} token endpoint answered ${status}`);
+    this.status = status;
+    this.body = body;
+  }
+}
 async function tokenRequest(p: Provider, params: Record<string, string>) {
   const c = await credentials(p);
   if (!c) throw new Error(`${p.label} login is not enabled on this deployment`);
   const r = await rawTokenRequest(p, c, params);
-  if (!r.ok) throw new Error(`${p.label} token endpoint answered ${r.status}`);
+  if (!r.ok) throw new TokenError(p, r.status, (await r.text().catch(() => "")).slice(0, 500));
   return (await r.json()) as {
     access_token: string;
     refresh_token?: string;
@@ -277,6 +287,9 @@ export async function loginRedirect(
  * GET /api/<provider>/callback: verifies the state, exchanges the code on the server, seals the session and lands on
  * `next?connected=<provider>`; failures land on `/settings?error=<provider>_<reason>`. A previous session of the same
  * provider is merged (Google: scopes accumulate, the refresh token survives a re-consent that did not issue one).
+ * Spotify Development Mode admits 5 listed users: a DJ the owner has not listed comes back with
+ * `error=access_denied` (or `invalid_client`), or the exchange answers 403 "User not registered in the Developer
+ * Dashboard"; both land on `spotify_not_listed`, which Settings explains in plain words.
  */
 export async function callbackRedirect(p: Provider, req: Request): Promise<Response> {
   const origin = await requestOrigin(req);
@@ -293,7 +306,10 @@ export async function callbackRedirect(p: Provider, req: Request): Promise<Respo
   const state = q.get("state") ?? "";
   const expected = readCookie(req, stateCookie(p));
   if (!state || !expected || state !== expected) return fail("state");
-  if (q.get("error") || !q.get("code")) return fail("denied");
+  const err = q.get("error");
+  if (err && p === SPOTIFY && (err === "access_denied" || err === "invalid_client"))
+    return fail("not_listed");
+  if (err || !q.get("code")) return fail("denied");
   let verifier: string | undefined;
   if (p.pkce) {
     const pk = await unseal<{ verifier: string; state: string }>(readCookie(req, pkceCookie(p)));
@@ -316,7 +332,13 @@ export async function callbackRedirect(p: Provider, req: Request): Promise<Respo
     const res = NextResponse.redirect(to.toString(), 302);
     res.headers.append("set-cookie", await sessionCookie(p, session, origin));
     return clear(res);
-  } catch {
+  } catch (e) {
+    if (
+      p === SPOTIFY &&
+      e instanceof TokenError &&
+      (e.status === 403 || /not registered|user not (registered|allowed)/i.test(e.body))
+    )
+      return fail("not_listed");
     return fail("exchange");
   }
 }
