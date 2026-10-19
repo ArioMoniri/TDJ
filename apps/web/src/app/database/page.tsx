@@ -1,5 +1,5 @@
 "use client";
-import { Download, HardDrive, RotateCcw, Upload } from "lucide-react";
+import { Download, RotateCcw, Upload } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { ContextTab } from "@/components/db/ContextTab";
@@ -17,6 +17,7 @@ import { Toast, useToast } from "@/components/Toast";
 import { Segmented } from "@/components/ui";
 import { downloadBlob } from "@/lib/download";
 import { haptic } from "@/lib/haptics";
+import { useMediaQuery } from "@/lib/hooks";
 import { fade } from "@/lib/motion";
 import { countChanges, parseImport } from "@/lib/overrides";
 import { useStore } from "@/lib/store";
@@ -33,7 +34,7 @@ const TABS: Array<[Tab, string]> = [
 ];
 
 export default function DatabasePage() {
-  const { overrides, overridesReady, storageMode, updateOverrides, resetOverrides } = useStore();
+  const { overrides, overridesReady, updateOverrides, resetOverrides } = useStore();
   const [tab, setTab] = useState<Tab>("songs");
   const [editing, setEditing] = useState(false);
   const [meta, setMeta] = useState<Meta | null>(null);
@@ -89,12 +90,28 @@ export default function DatabasePage() {
     setMsg({ text: "Database reset to the repo index." });
     show(`Removed ${countChanges(prev)} changes`, restore(prev));
   };
+  // phones: the six labels do not fit a 36 pt segmented; short labels keep every tab one tap away
+  const isPhone = useMediaQuery("(max-width: 639px)");
+  const SHORT: Record<Tab, string> = {
+    songs: "Songs",
+    orchestras: "Orch.",
+    cortinas: "Cortinas",
+    rules: "Rules",
+    context: "Context",
+    memory: "Memory",
+  };
   const segmented = (cls = "") => (
-    <Segmented label="Section" value={tab} onChange={setTab} items={TABS} className={cls} />
+    <Segmented
+      label="Section"
+      value={tab}
+      onChange={setTab}
+      items={isPhone ? TABS.map(([k]) => [k, SHORT[k]] as [Tab, string]) : TABS}
+      className={`${cls} ${isPhone ? "text-caption1" : ""}`}
+    />
   );
 
   return (
-    <div className="mx-auto max-w-[720px] lg:max-w-[980px]">
+    <div className="mx-auto min-w-0 max-w-[720px] lg:max-w-[980px]">
       <PageHeader
         title="Database"
         subtitle={
@@ -126,11 +143,6 @@ export default function DatabasePage() {
                 },
                 { label: "Export JSON", icon: Download, onClick: exportJson },
                 {
-                  label: storageMode === "server" ? "Stored on the server" : "Stored in this browser",
-                  icon: HardDrive,
-                  disabled: true,
-                },
-                {
                   label: "Reset to index…",
                   icon: RotateCcw,
                   onClick: () => setConfirming(true),
@@ -160,7 +172,14 @@ export default function DatabasePage() {
       <DbEditContext.Provider value={editing}>
         {/* tab content cross-fades; height snaps (lists are large) */}
         <AnimatePresence mode="wait" initial={false}>
-          <motion.div key={tab} variants={fade} initial="hidden" animate="show" exit="exit">
+          <motion.div
+            key={tab}
+            variants={fade}
+            initial="hidden"
+            animate="show"
+            exit="exit"
+            className="min-w-0"
+          >
             {tab === "songs" && <SongsTab />}
             {tab === "orchestras" && <OrchestrasTab orchestras={meta?.orchestras ?? []} />}
             {tab === "cortinas" && <CortinasTab base={meta?.cortinaList ?? []} />}

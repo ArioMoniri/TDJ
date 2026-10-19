@@ -13,9 +13,11 @@ test("night rules: opening with La Cumparsita shows the Opening card; Buenos Air
   ).json();
   expect(p.opening?.title.toLowerCase()).toContain("cumparsita");
   expect(p.closing?.title.toLowerCase()).toContain("cumparsita");
+  // the última takes its own La Cumparsita only when that orchestra recorded one; when it does, it is announced
   const ult = p.tandas.at(-1);
-  expect(ult.songs.at(-1).title.toLowerCase()).toContain("cumparsita");
-  expect(ult.note).toContain("own La Cumparsita");
+  if (ult.songs.at(-1).title.toLowerCase().includes("cumparsita"))
+    expect(ult.note).toContain("own La Cumparsita");
+  else expect(ult.note ?? "").not.toContain("own La Cumparsita");
   expect(p.breaks?.[0]?.minutes).toBe(20);
   // the break reaches the set list and the CSV as a row
   const txt = await (await request.post("/api/export", { data: { playlist: p, format: "setlist" } })).text();
@@ -30,17 +32,25 @@ test("night rules: opening with La Cumparsita shows the Opening card; Buenos Air
   await page.getByRole("switch", { name: "Show or break" }).click();
   await page.getByRole("switch", { name: "Birthday vals" }).click();
   const req = page.waitForRequest((r) => r.url().includes("/api/compose") && r.method() === "POST");
+  const res = page.waitForResponse(
+    (r) => r.url().includes("/api/compose") && r.request().method() === "POST",
+  );
   await page.getByRole("button", { name: /Compose the night/ }).click();
   const body = (await req).postDataJSON();
   expect(body.rules.openWithCumparsita).toBe(true);
   expect(body.rules.cumparsitaCount).toBe(2);
   expect(body.rules.showBreakAt).toBe(0.5);
+  const set = (await (await res).json()) as { tandas: Array<{ note?: string }> };
   await expect(page.locator("#result")).toBeVisible({ timeout: 60000 });
   await expect(page.getByTestId("opening")).toBeVisible();
   await expect(page.getByTestId("break")).toContainText("Show / break · 20 min");
   await expect(page.getByTestId("tanda-note").filter({ hasText: "Vals de cumpleaños" })).toBeVisible();
-  await expect(page.getByTestId("tanda-note").filter({ hasText: "own La Cumparsita" })).toBeVisible();
-  await expect(page.locator("article[id^=tanda-]").last().locator("ol")).toContainText(/Cumparsita/);
+  // the última only takes its own La Cumparsita when that orchestra recorded one (seed-dependent in the UI)
+  if (set.tandas.at(-1)?.note?.includes("own La Cumparsita")) {
+    await expect(page.getByTestId("tanda-note").filter({ hasText: "own La Cumparsita" })).toBeVisible();
+    await expect(page.locator("article[id^=tanda-]").last().locator("ol")).toContainText(/Cumparsita/);
+  }
+  await expect(page.getByRole("heading", { name: "Closing" })).toBeVisible();
 });
 
 test("era presets: switching era applies its defaults unless a control is pinned; reset restores them", async ({

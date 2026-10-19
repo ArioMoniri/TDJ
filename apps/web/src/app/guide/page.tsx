@@ -1,5 +1,6 @@
 import { ExternalLink } from "lucide-react";
 import { Group, Row } from "@/components/Form";
+import { GuideBody } from "@/components/GuideSections";
 import { PageHeader } from "@/components/PageHeader";
 import { EVIDENCE_COLOR, EVIDENCE_LABEL, fmtShift } from "@/lib/context";
 import { getCatalog } from "@/lib/server/catalog";
@@ -56,25 +57,16 @@ export default function Guide() {
       "Real file paths, correct durations, cortinas that cue in cleanly, exports your DJ app can read without a fight.",
     ],
   ];
-  const article = (items: Array<[string, string]>) =>
-    items.map(([k, v]) => (
-      <div key={k} className="cell flex-col items-stretch gap-1 py-3">
-        <span className="text-headline">{k}</span>
-        <span className="text-body text-[var(--label-2)]">{v}</span>
-      </div>
-    ));
+  const slug = (k: string) => k.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  const toSections = (items: Array<[string, string]>) =>
+    items.map(([k, v]) => ({ id: slug(k), title: k, text: v }));
   return (
     <article className="mx-auto max-w-[680px]">
       <PageHeader
         title="How TDJ composes"
         subtitle="Rules from working DJs and the research behind the index."
       />
-      <Group className="mt-2">{article(rows)}</Group>
-      <h2 className="text-title3 mt-8 px-4">What a great set takes into account</h2>
-      <p className="text-subhead mt-1 px-4 text-[var(--label-2)]">
-        Five layers, from the notes inside a tanda to the booth.
-      </p>
-      <Group>{article(takes)}</Group>
+      <GuideBody rows={toSections(rows)} takes={toSections(takes)} />
       <Group header="Read more">
         <Row
           label="Factors, with sources"

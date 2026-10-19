@@ -1,6 +1,6 @@
 import "server-only";
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
-import type { AgentMemory, AppOverrides } from "@/lib/types";
+import type { AgentMemory, AppOverrides, HistorySnapshot } from "@/lib/types";
 
 /** Optional server storage: DynamoDB table named by TDJ_DB_TABLE, rows keyed by a signed anonymous user id. */
 export function dbEnabled() {
@@ -32,7 +32,9 @@ export function userFromRequest(req: Request): { id: string; setCookie?: string 
 }
 
 interface DocClient {
-  send(cmd: unknown): Promise<{ Item?: { overrides?: AppOverrides; memory?: AgentMemory } }>;
+  send(cmd: unknown): Promise<{
+    Item?: { overrides?: AppOverrides; memory?: AgentMemory; history?: HistorySnapshot[] };
+  }>;
 }
 let client: Promise<{
   doc: DocClient;
@@ -60,22 +62,43 @@ async function dynamo() {
   return client;
 }
 
-/** One row per user: the database overrides and what the agents remember. */
+/** One row per user: the database overrides, what the agents remember and the previous generations (bounded). */
 export async function getUserRow(
   user: string,
-): Promise<{ overrides: AppOverrides; memory: AgentMemory | null }> {
+): Promise<{ overrides: AppOverrides; memory: AgentMemory | null; history: HistorySnapshot[] }> {
   const { doc, Get } = await dynamo();
   const r = await doc.send(new Get({ TableName: process.env.TDJ_DB_TABLE, Key: { pk: `user#${user}` } }));
-  return { overrides: r.Item?.overrides ?? {}, memory: r.Item?.memory ?? null };
+  return {
+    overrides: r.Item?.overrides ?? {},
+    memory: r.Item?.memory ?? null,
+    history: Array.isArray(r.Item?.history) ? r.Item!.history! : [],
+  };
 }
 export async function getOverrides(user: string): Promise<AppOverrides> {
   return (await getUserRow(user)).overrides;
 }
 
-/** Writes the given parts and keeps the other one as it was. */
+/** History on the server: at most 50 snapshots and at most this many JSON bytes (one DynamoDB item is 400 KB). */
+export const HISTORY_SERVER_MAX = 50;
+export const HISTORY_SERVER_BYTES = 300_000;
+export function boundHistory(list: unknown): HistorySnapshot[] {
+  if (!Array.isArray(list)) return [];
+  const out: HistorySnapshot[] = [];
+  let bytes = 0;
+  for (const s of list.slice(0, HISTORY_SERVER_MAX)) {
+    if (!s || typeof s !== "object" || typeof (s as HistorySnapshot).id !== "string") continue;
+    const n = JSON.stringify(s).length;
+    if (bytes + n > HISTORY_SERVER_BYTES) break;
+    bytes += n;
+    out.push(s as HistorySnapshot);
+  }
+  return out;
+}
+
+/** Writes the given parts and keeps the others as they were. */
 export async function putUserRow(
   user: string,
-  parts: { overrides?: AppOverrides; memory?: AgentMemory },
+  parts: { overrides?: AppOverrides; memory?: AgentMemory; history?: HistorySnapshot[] },
 ): Promise<void> {
   const { doc, Put } = await dynamo();
   const cur = await getUserRow(user);
@@ -86,6 +109,7 @@ export async function putUserRow(
         pk: `user#${user}`,
         overrides: parts.overrides ?? cur.overrides,
         memory: parts.memory ?? cur.memory ?? undefined,
+        history: parts.history ? boundHistory(parts.history) : cur.history,
         updatedAt: new Date().toISOString(),
       },
     }),

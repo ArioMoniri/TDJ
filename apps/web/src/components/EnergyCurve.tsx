@@ -285,9 +285,10 @@ export function EnergyCurve({
                 initial={false}
                 animate={{ cx, cy }}
                 transition={morphT}
-                r="20"
+                r="22"
                 fill="transparent"
                 stroke="none"
+                style={{ pointerEvents: "all" }}
               />
             </motion.g>
           );

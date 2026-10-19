@@ -17,7 +17,14 @@ const FIELDS: Array<{
   { key: "tempoShift", label: "Tempo", min: -8, max: 8, step: 1 },
   { key: "valsShare", label: "Vals %", min: 0, max: 40, step: 1, pct: true },
   { key: "milongaShare", label: "Milonga %", min: 0, max: 40, step: 1, pct: true },
-  { key: "vocalRatioShift", label: "Vocal %", min: -30, max: 30, step: 1, pct: true },
+  {
+    key: "vocalRatioShift",
+    label: "Vocal %",
+    min: -30,
+    max: 30,
+    step: 1,
+    pct: true,
+  },
 ];
 
 export function ContextTab({ model }: { model: ContextModel | null }) {

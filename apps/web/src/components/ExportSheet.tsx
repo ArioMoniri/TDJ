@@ -1,7 +1,7 @@
 "use client";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import { EXPORT_META, type ExportFormat, toSpotifyPlan } from "@tdj/core";
-import { FileDown } from "lucide-react";
+import { FileDown, Radio, Webhook } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -11,10 +11,46 @@ import { haptic } from "@/lib/haptics";
 import { DUR } from "@/lib/motion";
 import { beginAuth, createPlaylist, refresh, resolveTrack } from "@/lib/spotify";
 import { useStore } from "@/lib/store";
-import { DJ_APPS, type DjApp } from "@/lib/types";
+import { toast } from "@/lib/toast";
+import { DJ_APPS, type DjApp, type Playlist } from "@/lib/types";
 import { CountUp } from "./CountUp";
-import { ActionRow, Group, Row, SwitchRow } from "./Form";
+import { ActionRow, Group, PickerRow, Row, SwitchRow, Tile } from "./Form";
 import { Sheet } from "./Sheet";
+
+const FORMAT_ITEMS = (Object.keys(EXPORT_META) as ExportFormat[]).map(
+  (f) => [f, EXPORT_META[f].label] as [ExportFormat, string],
+);
+
+/**
+ * POST an export to the DJ's own automation (Pipedream, Make, Zapier, n8n…). The body is the file; the format and
+ * set name travel as headers and query parameters. A webhook without CORS headers still receives the body
+ * (the retry is `no-cors`, so the response is opaque and we only know it was sent).
+ */
+export async function sendToWebhook(
+  url: string,
+  text: string,
+  f: ExportFormat,
+  name: string,
+): Promise<"ok" | "sent"> {
+  const m = EXPORT_META[f];
+  const u = new URL(url);
+  u.searchParams.set("format", f);
+  u.searchParams.set("filename", `${name.replace(/[^a-z0-9-]+/gi, "_")}.${m.ext}`);
+  const init = {
+    method: "POST",
+    headers: { "content-type": `${m.mime}; charset=utf-8`, "x-tdj-format": f, "x-tdj-set": name },
+    body: text,
+  };
+  try {
+    const r = await fetch(u.toString(), init);
+    if (!r.ok) throw new Error(`Webhook answered ${r.status}`);
+    return "ok";
+  } catch (e) {
+    if (e instanceof Error && /answered \d+/.test(e.message)) throw e;
+    await fetch(u.toString(), { ...init, mode: "no-cors", headers: { "content-type": "text/plain" } });
+    return "sent";
+  }
+}
 
 const GROUPS: Array<[string, ExportFormat[]]> = [
   ["DJ software", ["rekordbox", "traktor", "serato"]],
@@ -39,8 +75,30 @@ const TILE_COLOR: Record<ExportFormat, string> = {
   setlist: "#8e8e93",
 };
 
-export function ExportSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { playlist, settings, spotifyToken, setSpotifyToken } = useStore();
+export function ExportSheet({
+  open,
+  onClose,
+  playlist: given,
+}: {
+  open: boolean;
+  onClose: () => void;
+  /** History re-export: a snapshot's playlist instead of the store's */
+  playlist?: Playlist | null;
+}) {
+  const {
+    playlist: current,
+    settings,
+    spotifyToken,
+    setSpotifyToken,
+    overrides,
+    updateOverrides,
+  } = useStore();
+  const playlist = given ?? current;
+  const webhookUrl = overrides.connectors?.webhookUrl ?? "";
+  const [hookFormat, setHookFormat] = useState<ExportFormat>("m3u8");
+  const [hookBusy, setHookBusy] = useState(false);
+  const [hookOpen, setHookOpen] = useState(false);
+  const [hookDraft, setHookDraft] = useState("");
   const [log, setLog] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [dlBusy, setDlBusy] = useState<ExportFormat | null>(null);
@@ -89,6 +147,8 @@ export function ExportSheet({ open, onClose }: { open: boolean; onClose: () => v
       if (!r.ok) throw new Error(`Export failed (${r.status})`);
       downloadBlob(`${playlist.name.replace(/[^a-z0-9-]+/gi, "_")}.${m.ext}`, await r.text(), m.mime);
       haptic(6);
+      toast(`Downloaded ${m.label} (.${m.ext})`);
+      onClose();
     } catch (e) {
       setLog((l) => [...l, `Error: ${(e as Error).message}`]);
       haptic([20, 30, 20]);
@@ -142,18 +202,189 @@ export function ExportSheet({ open, onClose }: { open: boolean; onClose: () => v
     }
   };
 
+  const toWebhook = async () => {
+    if (!playlist || !webhookUrl) return;
+    setHookBusy(true);
+    try {
+      const r = await fetch("/api/export", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          playlist,
+          format: hookFormat,
+          includeCortinas,
+          folder: folderFor(hookFormat),
+          naming: settings.fileNaming,
+        }),
+      });
+      if (!r.ok) throw new Error(`Export failed (${r.status})`);
+      const how = await sendToWebhook(webhookUrl, await r.text(), hookFormat, playlist.name);
+      haptic([10, 40, 10]);
+      setLog((l) => [
+        ...l,
+        how === "ok"
+          ? `Webhook accepted the ${EXPORT_META[hookFormat].label}.`
+          : `Sent the ${EXPORT_META[hookFormat].label} to the webhook (no CORS reply, so no confirmation).`,
+      ]);
+      toast(how === "ok" ? "Webhook accepted the export" : "Sent to the webhook");
+    } catch (e) {
+      setLog((l) => [...l, `Error: ${(e as Error).message}`]);
+      haptic([20, 30, 20]);
+    } finally {
+      setHookBusy(false);
+    }
+  };
+  const saveHook = () => {
+    const v = hookDraft.trim();
+    if (v && !/^https:\/\//i.test(v)) {
+      toast("The webhook must be an https:// URL");
+      return;
+    }
+    updateOverrides((o) => ({ ...o, connectors: { ...(o.connectors ?? {}), webhookUrl: v || undefined } }));
+    setHookOpen(false);
+  };
+
+  const spotifyButton = (
+    <>
+      <button
+        type="button"
+        onClick={toSpotify}
+        disabled={busy || done || !settings.spotifyClientId}
+        className="btn btn-primary w-full"
+        aria-describedby={settings.spotifyClientId ? undefined : "spotify-why"}
+      >
+        {(done || busy) && (
+          <span className="inline-grid h-6 w-6 place-items-center" aria-hidden>
+            {done ? (
+              <DotLottieReact
+                src="/anim/success-check.json"
+                autoplay={!reduced}
+                loop={false}
+                dotLottieRefCallback={(d) => {
+                  check.current = d;
+                  if (reduced) d?.setFrame(35);
+                }}
+                style={{ width: 24, height: 24 }}
+              />
+            ) : (
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+            )}
+          </span>
+        )}
+        <span className="relative inline-grid">
+          <AnimatePresence mode="popLayout" initial={false}>
+            <motion.span
+              key={done ? "done" : "idle"}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: DUR.fast }}
+              className="col-start-1 row-start-1"
+            >
+              {done
+                ? "Playlist created"
+                : spotifyToken
+                  ? "Create playlist in Spotify"
+                  : "Connect Spotify and create playlist"}
+            </motion.span>
+          </AnimatePresence>
+        </span>
+      </button>
+      {!settings.spotifyClientId && (
+        <p id="spotify-why" className="section-foot mt-2 text-center">
+          Needs a Spotify Client ID. Add one in{" "}
+          <Link href="/settings" className="text-[var(--tint)]">
+            Settings
+          </Link>
+          .
+        </p>
+      )}
+    </>
+  );
+
   if (!playlist) return null;
   return (
-    <Sheet open={open} onClose={onClose} title="Export" describedBy="export-count" testId="export-sheet">
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title="Export"
+      describedBy="export-count"
+      testId="export-sheet"
+      detents={["large"]}
+      footer={spotifyButton}
+    >
       <Group
         footer={
           <span id="export-count">
-            <CountUp value={count} /> {count === 1 ? "track" : "tracks"} will be exported
-            {includeCortinas ? "" : ` (${cortinas} cortinas left out)`}.
+            <CountUp value={tracks} /> {tracks === 1 ? "song" : "songs"}
+            {includeCortinas ? ` + ${cortinas} ${cortinas === 1 ? "cortina" : "cortinas"}` : ""} (
+            <CountUp value={count} /> {count === 1 ? "file" : "files"})
+            {includeCortinas ? "" : ` · ${cortinas} cortinas left out`}.
           </span>
         }
       >
         <SwitchRow label="Include cortinas" checked={includeCortinas} onChange={setIncludeCortinas} />
+      </Group>
+      <Group
+        header="Send to"
+        footer={
+          webhookUrl
+            ? "The chosen format is POSTed to your webhook: Pipedream, Make, Zapier or n8n can file it, mail it or push it to a DJ app. The URL lives in this browser only."
+            : "Spotify creates a playlist in your account. A webhook sends the file to your own automation (Pipedream, Make, Zapier, n8n)."
+        }
+      >
+        <Row
+          tile={
+            <Tile color="#1db954">
+              <Radio size={16} strokeWidth={2} />
+            </Tile>
+          }
+          label="Spotify"
+          value={spotifyToken ? "Connected" : settings.spotifyClientId ? "Connect" : "Needs a Client ID"}
+          chevron
+          onClick={toSpotify}
+          disabled={busy || done || !settings.spotifyClientId}
+          busy={busy}
+        />
+        {webhookUrl ? (
+          <>
+            <PickerRow
+              label="Webhook format"
+              ariaLabel="Webhook format"
+              value={hookFormat}
+              items={FORMAT_ITEMS}
+              onChange={(f) => f && setHookFormat(f)}
+              tile={
+                <Tile color="#5856d6">
+                  <Webhook size={16} strokeWidth={2} />
+                </Tile>
+              }
+            />
+            <Row
+              label="Send to webhook"
+              sub={webhookUrl.replace(/^https?:\/\//, "").slice(0, 48)}
+              chevron
+              onClick={toWebhook}
+              busy={hookBusy}
+              id="send-webhook"
+            />
+          </>
+        ) : (
+          <Row
+            tile={
+              <Tile color="#5856d6">
+                <Webhook size={16} strokeWidth={2} />
+              </Tile>
+            }
+            label="Webhook"
+            value="Set up"
+            chevron
+            onClick={() => {
+              setHookDraft(webhookUrl);
+              setHookOpen(true);
+            }}
+          />
+        )}
       </Group>
       {GROUPS.map(([g, keys]) => (
         <Group
@@ -189,61 +420,34 @@ export function ExportSheet({ open, onClose }: { open: boolean; onClose: () => v
           ))}
         </Group>
       ))}
-      <div className="px-0 pt-6">
-        <button
-          type="button"
-          onClick={toSpotify}
-          disabled={busy || done || !settings.spotifyClientId}
-          className="btn btn-primary w-full"
-          aria-describedby={settings.spotifyClientId ? undefined : "spotify-why"}
+      <Sheet
+        open={hookOpen}
+        onClose={() => setHookOpen(false)}
+        title="Webhook"
+        trailing="Save"
+        onTrailing={saveHook}
+        detents={["medium"]}
+      >
+        <Group
+          header="Webhook URL"
+          footer="Paste the HTTPS URL of a Pipedream, Make, Zapier or n8n webhook. TDJ POSTs the file as the request body with X-TDJ-Format and X-TDJ-Set headers plus ?format=&filename=. Stored in this browser only, never on the server."
         >
-          {(done || busy) && (
-            <span className="inline-grid h-6 w-6 place-items-center" aria-hidden>
-              {done ? (
-                <DotLottieReact
-                  src="/anim/success-check.json"
-                  autoplay={!reduced}
-                  loop={false}
-                  dotLottieRefCallback={(d) => {
-                    check.current = d;
-                    if (reduced) d?.setFrame(35);
-                  }}
-                  style={{ width: 24, height: 24 }}
-                />
-              ) : (
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-              )}
-            </span>
-          )}
-          <span className="relative inline-grid">
-            <AnimatePresence mode="popLayout" initial={false}>
-              <motion.span
-                key={done ? "done" : "idle"}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: DUR.fast }}
-                className="col-start-1 row-start-1"
-              >
-                {done
-                  ? "Playlist created"
-                  : spotifyToken
-                    ? "Create playlist in Spotify"
-                    : "Connect Spotify and create playlist"}
-              </motion.span>
-            </AnimatePresence>
-          </span>
-        </button>
-        {!settings.spotifyClientId && (
-          <p id="spotify-why" className="section-foot mt-2 text-center">
-            Needs a Spotify Client ID. Add one in{" "}
-            <Link href="/settings" className="text-[var(--tint)]">
-              Settings
-            </Link>
-            .
-          </p>
-        )}
-      </div>
+          <label htmlFor="webhook-url" className="cell">
+            <span className="sr-only">Webhook URL</span>
+            <input
+              id="webhook-url"
+              className="field font-mono"
+              data-autofocus
+              inputMode="url"
+              placeholder="https://eo…m.pipedream.net/…"
+              value={hookDraft}
+              onChange={(e) => setHookDraft(e.target.value)}
+              autoComplete="off"
+              spellCheck={false}
+            />
+          </label>
+        </Group>
+      </Sheet>
       {result && (
         <Group>
           <ActionRow label="Open in Spotify" onClick={() => window.open(result, "_blank", "noreferrer")} />

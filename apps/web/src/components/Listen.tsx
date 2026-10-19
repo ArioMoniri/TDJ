@@ -2,10 +2,12 @@
 import { LoaderCircle, Play } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
+import { keyLabel } from "@/lib/analyze";
+import { effectiveSong } from "@/lib/audio";
 import { fade, t as tw } from "@/lib/motion";
 import { resolveTrack } from "@/lib/spotify";
 import { useStore } from "@/lib/store";
-import type { Cortina, ReferencePlaylist, Tanda } from "@/lib/types";
+import type { Cortina, Playlist, ReferencePlaylist, Tanda } from "@/lib/types";
 
 const trackId = (uri: string) => uri.replace(/^spotify:track:/, "");
 
@@ -116,18 +118,18 @@ export function TandaListen({ t, playlists }: { t: Tanda; playlists: ReferencePl
     );
   }
   const ref = referenceFor(playlists, t);
+  const first = t.songs[0]?.title ?? "the tracks";
   if (!ref)
     return (
       <p className={foot}>
-        No reference playlist for {t.orchestra} yet. Connect Spotify in Settings to hear the exact recordings,
-        or{" "}
+        No public {t.orchestra} playlist to preview. Use the play buttons on the rows for 30 s previews, or{" "}
         <a
           className={link}
-          href={`https://open.spotify.com/search/${encodeURIComponent(`${t.orchestra} ${t.singer ?? ""}`.trim())}`}
+          href={`https://open.spotify.com/search/${encodeURIComponent(`${t.orchestra} ${first}`.trim())}`}
           target="_blank"
           rel="noreferrer"
         >
-          search Spotify
+          open on Spotify
         </a>
         .
       </p>
@@ -136,8 +138,8 @@ export function TandaListen({ t, playlists }: { t: Tanda; playlists: ReferencePl
     <div className="space-y-2">
       <SpotifyEmbed kind="playlist" id={ref.id} title={ref.title} height={152} />
       <p className={foot}>
-        Reference playlist for {t.orchestra}: {ref.title}
-        {ref.owner ? ` (${ref.owner})` : ""}. Connect Spotify in Settings to hear the exact recordings.
+        Preview: a public {t.orchestra} playlist{ref.owner ? ` by ${ref.owner}` : ""}. Connect Spotify to play{" "}
+        <em>{first}</em> and the other tracks; the row play buttons give 30 s previews.
       </p>
     </div>
   );
@@ -167,16 +169,15 @@ export function CortinaPreview({ c }: { c: Cortina }) {
   if (!connected)
     return (
       <p className={foot}>
-        {meta}. Connect Spotify in Settings to preview cortinas, or{" "}
+        {meta} ·{" "}
         <a
           className={link}
           href={`https://open.spotify.com/search/${encodeURIComponent(`${c.artist} ${c.title}`)}`}
           target="_blank"
           rel="noreferrer"
         >
-          open the search
+          Open on Spotify
         </a>
-        .
       </p>
     );
   return (
@@ -208,18 +209,84 @@ export function CortinaPreview({ c }: { c: Cortina }) {
   );
 }
 
-/** Mood check: the two Aren León tanda playlists as a yardstick for the set's feel. */
-export function MoodCheck({ playlists }: { playlists: ReferencePlaylist[] }) {
+/**
+ * Mood check: the set's own numbers (mean energy, BPM and keys where analysed, vals/milonga share) beside Aren León's
+ * reference tanda playlists, with a one-line verdict; the two embeds stay for listening.
+ */
+export function MoodCheck({
+  playlists,
+  playlist,
+}: {
+  playlists: ReferencePlaylist[];
+  playlist?: Playlist | null;
+}) {
+  const overrides = useStore((s) => s.overrides);
   const refs = playlists.filter((p) => p.kind === "tandas").slice(0, 2);
   if (!refs.length) return null;
+  const songs = playlist
+    ? playlist.tandas.flatMap((t) => t.songs.map((s) => effectiveSong(s, overrides)))
+    : [];
+  const energy = songs.length
+    ? Math.round(songs.reduce((a, s) => a + (s.energy ?? 50), 0) / songs.length)
+    : null;
+  const withAudio = songs.filter((s) => s.audio);
+  const bpm = withAudio.length
+    ? Math.round(withAudio.reduce((a, s) => a + s.audio!.bpm, 0) / withAudio.length)
+    : null;
+  const minor = withAudio.length
+    ? Math.round((withAudio.filter((s) => s.audio!.mode === "minor").length / withAudio.length) * 100)
+    : null;
+  const keys = [...new Set(withAudio.map((s) => keyLabel(s.audio!).split(" · ")[0]))].slice(0, 4);
+  const tandas = playlist?.tandas.length ?? 0;
+  const vals = playlist ? playlist.tandas.filter((t) => t.rhythm === "vals").length : 0;
+  const milongas = playlist ? playlist.tandas.filter((t) => t.rhythm === "milonga").length : 0;
+  const peak = playlist ? Math.max(...playlist.tandas.map((t) => t.energy)) : 0;
+  const peakAt = playlist ? playlist.tandas.findIndex((t) => t.energy === peak) + 1 : 0;
+  // the reference tandas sit around a 60–65 mean with the peak past the middle of the night
+  const verdict = !playlist
+    ? "Compose a set to compare it."
+    : energy != null && energy > 70
+      ? "Hotter than the reference tandas: a marathon peak, not a salón night."
+      : energy != null && energy < 52
+        ? "Softer than the reference tandas: a práctica or an early-evening feel."
+        : peakAt && tandas && peakAt / tandas < 0.4
+          ? "Same warmth as the reference, but the peak comes early."
+          : "In the same mood as the reference tandas: warm, with the peak past the middle.";
+  const cell = (label: string, v: string) => (
+    <div className="cell py-2">
+      <span className="min-w-0 flex-1">{label}</span>
+      <span className="cell-value tabular-nums">{v}</span>
+    </div>
+  );
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      {refs.map((p) => (
-        <div key={p.id}>
-          <p className={`${foot} mb-1.5 truncate`}>{p.title}</p>
-          <SpotifyEmbed kind="playlist" id={p.id} title={p.title} height={152} />
+    <div className="space-y-4">
+      {playlist && (
+        <div className="group-inset" data-testid="mood-compare">
+          <div className="cell flex-col items-stretch gap-0.5 py-3">
+            <span className="text-headline">{verdict}</span>
+            <span className={foot}>
+              Your set vs the reference tandas · {withAudio.length} of {songs.length} tracks analysed
+            </span>
+          </div>
+          {cell("Mean energy", `${energy ?? "–"} · ref ≈ 62`)}
+          {cell("Peak", `${peak} at tanda ${peakAt} of ${tandas}`)}
+          {cell("Vals · milonga", `${vals} · ${milongas} of ${tandas}`)}
+          {cell("Tempo (analysed)", bpm ? `${bpm} BPM mean` : "no analysed audio yet")}
+          {cell(
+            "Keys (analysed)",
+            keys.length ? `${keys.join(", ")}${minor != null ? ` · ${minor}% minor` : ""}` : "–",
+          )}
         </div>
-      ))}
+      )}
+      <div className="grid gap-3 sm:grid-cols-2">
+        {refs.map((p) => (
+          <div key={p.id}>
+            <p className={`${foot} mb-1.5 truncate`}>{p.title}</p>
+            <SpotifyEmbed kind="playlist" id={p.id} title={p.title} height={152} />
+          </div>
+        ))}
+      </div>
+      <p className={foot}>Listen to Aren León's reference tandas on Spotify to hear the yardstick.</p>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 "use client";
-import { BookOpen, Database, Disc3, ListMusic, Search, SlidersHorizontal } from "lucide-react";
+import { BookOpen, Clock, Database, Disc3, ListMusic, Search, SlidersHorizontal } from "lucide-react";
 import { LayoutGroup, motion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -13,6 +13,7 @@ import { useToolbar } from "./PageHeader";
 const items = [
   { href: "/", label: "Compose", icon: ListMusic },
   { href: "/library", label: "Library", icon: Disc3 },
+  { href: "/history", label: "History", icon: Clock },
   { href: "/database", label: "Database", icon: Database },
   { href: "/guide", label: "Guide", icon: BookOpen },
   { href: "/settings", label: "Settings", icon: SlidersHorizontal },
@@ -22,16 +23,38 @@ const SEARCH_ID: Record<string, string> = { "/library": "library-search", "/data
 /** Fired by `SearchField` on phones so the tab bar can make room for the keyboard. */
 export const SEARCH_FOCUS_EVENT = "tdj:search-focus";
 
-/** iOS tab: one shared pill slides between tabs; icon weight cross-fades; 10 pt label. */
-function MobileTab({ it, on, min }: { it: (typeof items)[number]; on: boolean; min: boolean }) {
+/**
+ * iOS tab: one shared pill slides between tabs; icon weight cross-fades; 10 pt label. `compact` drops the label
+ * (search pages make room for the detached search button); `hidden` collapses the link while the bar is minimised
+ * but keeps it in the DOM.
+ */
+function MobileTab({
+  it,
+  on,
+  min,
+  compact = false,
+  hidden = false,
+}: {
+  it: (typeof items)[number];
+  on: boolean;
+  min: boolean;
+  compact?: boolean;
+  hidden?: boolean;
+}) {
   return (
     <Link
       href={it.href}
       aria-current={on ? "page" : undefined}
+      aria-hidden={hidden || undefined}
+      tabIndex={hidden ? -1 : undefined}
       onClick={() => !on && haptic(4)}
-      className={`relative flex min-h-[52px] min-w-[64px] flex-col items-center justify-center gap-0.5 rounded-full px-3 ${
-        on ? "text-[var(--tint)]" : "text-[var(--label-2)]"
-      }`}
+      className={`relative flex min-h-[52px] flex-col items-center justify-center gap-0.5 rounded-full ${
+        hidden
+          ? "w-0 min-w-0 overflow-hidden px-0 opacity-0"
+          : compact
+            ? "min-w-[44px] px-1.5"
+            : "min-w-[48px] px-2"
+      } ${on ? "text-[var(--tint)]" : "text-[var(--label-2)]"}`}
       style={{ transition: "color var(--dur-xs) var(--ease-settle)" }}
     >
       {on && (
@@ -59,7 +82,7 @@ function MobileTab({ it, on, min }: { it: (typeof items)[number]; on: boolean; m
           aria-hidden
         />
       </span>
-      <span className={`text-tab relative ${min ? "sr-only" : ""}`}>{it.label}</span>
+      <span className={`text-tab relative ${min || compact ? "sr-only" : ""}`}>{it.label}</span>
     </Link>
   );
 }
@@ -174,12 +197,20 @@ export function Nav() {
               "transform var(--dur-s) var(--ease-settle), opacity var(--dur-s) var(--ease-settle), width var(--dur-s) var(--ease-settle)",
             transform: hidden
               ? "translate(-50%, 120%)"
-              : `translate(calc(-50% - ${searchId && !minimised ? 36 : 0}px), 0)`,
+              : `translate(calc(-50% - ${searchId && !minimised ? 30 : 0}px), 0)`,
             opacity: hidden ? 0 : 1,
+            maxWidth: searchId ? "calc(100vw - 96px)" : "calc(100vw - 1.5rem)",
           }}
         >
-          {(minimised ? items.filter((it) => path === it.href) : items).map((it) => (
-            <MobileTab key={it.href} it={it} on={path === it.href} min={minimised} />
+          {items.map((it) => (
+            <MobileTab
+              key={it.href}
+              it={it}
+              on={path === it.href}
+              min={minimised}
+              compact={!!searchId}
+              hidden={minimised && path !== it.href}
+            />
           ))}
         </nav>
         {searchId && (

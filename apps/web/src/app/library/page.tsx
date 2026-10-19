@@ -126,7 +126,7 @@ export default function Library() {
                       </span>
                       <span className="cell-value text-body">
                         <span className="tabular-nums">{s.year ?? "?"}</span>
-                        <span className="text-footnote ml-2 tabular-nums text-[var(--label-3)]">
+                        <span className="text-footnote ml-2 tabular-nums text-[var(--label-2)]">
                           <span className="sr-only">energy </span>
                           {s.energy}
                         </span>

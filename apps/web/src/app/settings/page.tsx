@@ -1,12 +1,12 @@
 "use client";
-import { Brain, FolderOpen, Globe, HardDrive, KeyRound, Palette, Radio } from "lucide-react";
+import { Brain, FolderOpen, Globe, HardDrive, KeyRound, Palette } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { Connectors } from "@/components/Connectors";
 import { ActionRow, FieldRow, Group, PickerRow, Row, SegmentedRow, SwitchRow, Tile } from "@/components/Form";
 import { PageHeader } from "@/components/PageHeader";
 import { Sheet } from "@/components/Sheet";
 import { fade } from "@/lib/motion";
-import { beginAuth } from "@/lib/spotify";
 import { useStore } from "@/lib/store";
 import {
   AI_DEFAULT_MODEL,
@@ -43,26 +43,35 @@ const THEMES: Array<[UserSettings["theme"], string]> = [
   ["dark", "Dark"],
 ];
 
+/** Provider errors as one human line: "The key was rejected by Anthropic (401). Check it and try again." */
+function humanError(provider: AiProvider, status: number, raw: unknown): string {
+  const name = AI_PROVIDERS.find(([k]) => k === provider)?.[1] ?? provider;
+  const text = typeof raw === "string" ? raw : "";
+  if (
+    status === 401 ||
+    status === 403 ||
+    /invalid x-api-key|authentication|unauthori[sz]ed|invalid api key/i.test(text)
+  )
+    return `The key was rejected by ${name} (${status || 401}). Check it and try again.`;
+  if (status === 404 || /model.*not (found|exist)|does not exist/i.test(text))
+    return `${name} does not know this model (${status}). Leave the model blank for the default.`;
+  if (status === 429 || /rate limit|quota/i.test(text))
+    return `${name} is rate-limiting this key (${status}). Try again in a minute.`;
+  if (status >= 500 || !status) return `${name} did not answer (${status || "network"}). Try again.`;
+  const short = text
+    .replace(/\{[\s\S]*\}/, "")
+    .trim()
+    .slice(0, 80);
+  return `${name} answered ${status}${short ? `: ${short}` : ""}.`;
+}
+
 export default function Settings() {
-  const { settings, setSettings, spotifyToken, setSpotifyToken, storageMode, memory } = useStore();
+  const { settings, setSettings, storageMode, memory } = useStore();
   const [showKey, setShowKey] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [redirect, setRedirect] = useState("/callback");
   const [folderFor, setFolderFor] = useState<DjApp | null>(null);
   const [test, setTest] = useState<{ state: "idle" | "busy" | "ok" | "fail"; text?: string }>({
     state: "idle",
   });
-  useEffect(() => setRedirect(`${location.origin}/callback`), []);
-  const copyRedirect = async () => {
-    try {
-      await navigator.clipboard.writeText(redirect);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      /* clipboard unavailable: the URI is selectable */
-    }
-  };
-  const minutesLeft = spotifyToken ? Math.max(0, Math.round((spotifyToken.expires - Date.now()) / 60000)) : 0;
   const ai = settings.ai;
   const setAi = (patch: Partial<UserSettings["ai"]>) => setSettings({ ai: { ...ai, ...patch } });
   const switchProvider = (provider: AiProvider) => {
@@ -85,8 +94,8 @@ export default function Settings() {
       });
       const j = await r.json();
       if (r.ok)
-        setTest({ state: "ok", text: `Connected. ${ai.model || "Default model"} answered "${j.text}".` });
-      else setTest({ state: "fail", text: j.error ?? `Failed (${r.status}).` });
+        setTest({ state: "ok", text: `Connected. ${ai.model || "The default model"} answered "${j.text}".` });
+      else setTest({ state: "fail", text: humanError(ai.provider, r.status, j.error) });
     } catch {
       setTest({ state: "fail", text: "Could not reach the server." });
     }
@@ -98,42 +107,7 @@ export default function Settings() {
     <div className="mx-auto max-w-[720px]">
       <PageHeader title="Settings" />
 
-      <Group
-        header="Spotify"
-        footer="Create an app at developer.spotify.com (Premium account), add the redirect URI to it, then paste the Client ID. Connected, Listen plays the exact recordings."
-      >
-        <Row
-          tile={
-            <Tile color="#1db954">
-              <Radio size={16} strokeWidth={2} />
-            </Tile>
-          }
-          label="Status"
-          value={spotifyToken ? `Connected · ${minutesLeft} min` : "Not connected"}
-        />
-        <Row label="Redirect URI" sub={<span className="font-mono">{redirect}</span>}>
-          <button type="button" className="btn-plain" onClick={copyRedirect} aria-live="polite">
-            {copied ? "Copied" : "Copy"}
-          </button>
-        </Row>
-        <FieldRow label="Client ID" id="spotify-client-id">
-          <input
-            id="spotify-client-id"
-            className="field field-value min-w-0 flex-1"
-            placeholder="Required"
-            value={settings.spotifyClientId}
-            onChange={(e) => setSettings({ spotifyClientId: e.target.value.trim() })}
-            autoComplete="off"
-            spellCheck={false}
-          />
-        </FieldRow>
-        <ActionRow
-          label={spotifyToken ? "Reconnect" : "Connect Spotify"}
-          onClick={() => beginAuth(settings.spotifyClientId)}
-          disabled={!settings.spotifyClientId}
-        />
-        {spotifyToken && <ActionRow label="Disconnect" destructive onClick={() => setSpotifyToken(null)} />}
-      </Group>
+      <Connectors />
 
       <Group
         header="Written reviews"
@@ -197,7 +171,7 @@ export default function Settings() {
             {showKey ? "Hide" : "Show"}
           </button>
         </FieldRow>
-        <FieldRow label="Model" id="ai-model">
+        <FieldRow label="Model" sub="Leave blank for the default" id="ai-model">
           <input
             id="ai-model"
             list="ai-model-list"
@@ -244,7 +218,19 @@ export default function Settings() {
 
       <Group
         header="DJ apps"
-        footer={`Exports point at real paths once a folder is set. Files are expected as “${settings.fileNaming || DEFAULT_NAMING}.mp3”. Placeholders: {artist} {title} {orchestra} {singer} {year} {tanda} {n}.`}
+        footer={`Exports point at real paths once a folder is set. Files are expected as “${settings.fileNaming || DEFAULT_NAMING}.mp3”, for example “${(
+          settings.fileNaming || DEFAULT_NAMING
+        )
+          .replace("{artist}", "Juan D'Arienzo")
+          .replace("{orchestra}", "Juan D'Arienzo")
+          .replace("{title}", "El Flete")
+          .replace("{singer}", "")
+          .replace("{year}", "1936")
+          .replace("{rhythm}", "tango")
+          .replace("{tanda}", "03")
+          .replace("{n}", "011")
+          .replace(/\s{2,}/g, " ")
+          .trim()}.mp3”. Placeholders: {artist} {title} {orchestra} {singer} {year} {rhythm} {tanda} {n}.`}
       >
         <FieldRow
           label="File naming"
@@ -284,11 +270,12 @@ export default function Settings() {
           value={settings.region}
           items={REGIONS}
           onChange={(r) => r && setSettings({ region: r })}
-        >
-          <Tile color="#007aff">
-            <Globe size={16} strokeWidth={2} />
-          </Tile>
-        </PickerRow>
+          tile={
+            <Tile color="#007aff">
+              <Globe size={16} strokeWidth={2} />
+            </Tile>
+          }
+        />
       </Group>
 
       <Group
@@ -300,11 +287,12 @@ export default function Settings() {
           value={settings.theme}
           items={THEMES}
           onChange={(t) => setSettings({ theme: t })}
-        >
-          <Tile color="#8e8e93">
-            <Palette size={16} strokeWidth={2} />
-          </Tile>
-        </SegmentedRow>
+          tile={
+            <Tile color="#636366">
+              <Palette size={16} strokeWidth={2} />
+            </Tile>
+          }
+        />
         <SwitchRow
           label="Reduce transparency"
           checked={settings.reduceGlass}

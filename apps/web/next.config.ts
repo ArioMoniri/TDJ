@@ -8,6 +8,8 @@ const config: NextConfig = {
     "/api/**": ["../../data/index/**", "../../data/knowledge/**", "../../data/cache/**"],
   },
   experimental: { optimizePackageImports: ["lucide-react"] },
+  // the repo keeps its agent notes in CLAUDE.md; no generated AGENTS.md in the app folder
+  agentRules: false,
   images: { unoptimized: true },
 };
 export default config;

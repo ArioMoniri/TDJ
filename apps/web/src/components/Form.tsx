@@ -2,6 +2,7 @@
 import { Check, ChevronRight, ChevronsUpDown, LoaderCircle, Music } from "lucide-react";
 import { type HTMLAttributes, type ReactNode, useId, useState } from "react";
 import { haptic } from "@/lib/haptics";
+import { useMediaQuery } from "@/lib/hooks";
 import { Sheet } from "./Sheet";
 import { NudgeValue, Segmented, Stepper, Switch } from "./ui";
 
@@ -64,6 +65,8 @@ export interface RowProps {
   href?: string;
   id?: string;
   "aria-label"?: string;
+  "data-resolved"?: string;
+  "data-testid"?: string;
 }
 
 /** Label left, value right, optional tile, optional chevron. A button when it has `onClick`, a link with `href`. */
@@ -141,6 +144,7 @@ export function PickerRow<K extends string>({
   children,
   ariaLabel,
   sub,
+  tile,
 }: {
   label: ReactNode;
   value: K | undefined;
@@ -154,11 +158,17 @@ export function PickerRow<K extends string>({
   children?: ReactNode;
   ariaLabel?: string;
   sub?: ReactNode;
+  /** leading Settings tile */
+  tile?: ReactNode;
 }) {
   const id = useId();
   const current = items.find(([k]) => k === value)?.[1];
   return (
-    <div className={`cell relative w-full ${disabled ? "" : "cell-tap"}`}>
+    <div
+      className={`cell relative w-full ${disabled ? "" : "cell-tap"}`}
+      data-leading={tile ? "tile" : undefined}
+    >
+      {tile}
       <label htmlFor={id} className="min-w-0 flex-1">
         <span className="block truncate">{label}</span>
         {sub && <span className="text-footnote block truncate text-[var(--label-2)]">{sub}</span>}
@@ -171,9 +181,7 @@ export function PickerRow<K extends string>({
           aria-hidden
         />
       )}
-      <span className={`cell-value ${current && !disabled ? "text-[var(--tint)]" : ""}`}>
-        {current ?? placeholder}
-      </span>
+      <span className="cell-value">{current ?? placeholder}</span>
       {!disabled && <ChevronsUpDown size={14} strokeWidth={2} className="cell-chevron" aria-hidden />}
       <select
         id={id}
@@ -250,6 +258,8 @@ export function StepperRow({
   /** overrides the trailing text (defaults to value + unit) */
   display?: ReactNode;
 }) {
+  // phones show the bare number; the group footer names the units
+  const isPhone = useMediaQuery("(max-width: 639px)");
   return (
     <div className="cell">
       <span className="min-w-0 flex-1">
@@ -257,7 +267,9 @@ export function StepperRow({
         {sub && <span className="text-footnote block truncate text-[var(--label-2)]">{sub}</span>}
       </span>
       {children}
-      <span className="cell-value tabular-nums">{display ?? <NudgeValue value={`${value}${unit}`} />}</span>
+      <span className="cell-value tabular-nums">
+        {display ?? <NudgeValue value={isPhone ? String(value) : `${value}${unit}`} />}
+      </span>
       <Stepper label={label} value={value} unit={unit} {...stepper} />
     </div>
   );
@@ -345,6 +357,7 @@ export function SegmentedRow<K extends string>({
   label,
   children,
   sub,
+  tile,
   ...seg
 }: {
   label: string;
@@ -353,11 +366,14 @@ export function SegmentedRow<K extends string>({
   onChange: (k: K) => void;
   children?: ReactNode;
   sub?: ReactNode;
+  /** leading Settings tile */
+  tile?: ReactNode;
 }) {
   return (
-    <div className="cell flex-col items-stretch gap-1.5">
-      <div className="flex items-center justify-between gap-3">
-        <span className="min-w-0">
+    <div className="cell flex-col items-stretch gap-1.5" data-leading={tile ? "tile" : undefined}>
+      <div className="flex items-center gap-3">
+        {tile}
+        <span className="min-w-0 flex-1">
           <span className="block truncate">{label}</span>
           {sub && <span className="text-footnote block truncate text-[var(--label-2)]">{sub}</span>}
         </span>

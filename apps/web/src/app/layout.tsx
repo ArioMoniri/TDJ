@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter } from "next/font/google";
 import "./globals.css";
 import { Boot } from "@/components/Boot";
+import { GlobalToast } from "@/components/GlobalToast";
+import { MiniPlayer } from "@/components/MiniPlayer";
 import { Motion } from "@/components/Motion";
 import { Nav } from "@/components/Nav";
 import { ToolbarProvider } from "@/components/PageHeader";
@@ -15,6 +17,13 @@ const serif = Fraunces({
   variable: "--font-serif-loaded",
   display: "swap",
 });
+
+/**
+ * Every page renders on the server per request: the prerendered RSC payloads (`?_rsc=` prefetches) were 404 on the
+ * CloudFront deployment because the static route cache was not served from the function; a dynamic app answers
+ * them from the same Lambda that serves the HTML and the API.
+ */
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "TDJ — Tango DJ playlist composer",
@@ -59,6 +68,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </Motion>
             </div>
           </main>
+          <MiniPlayer />
+          <GlobalToast />
         </ToolbarProvider>
       </body>
     </html>

@@ -18,8 +18,11 @@ test("feedback chip recomposes but a locked tanda stays in place", async ({ page
     .click();
   await page.getByRole("menuitem", { name: "Lock tanda" }).click();
   await expect(cards.nth(target).getByText("locked")).toBeVisible();
+  const recompose = page.waitForResponse(
+    (r) => r.url().includes("/api/compose") && r.request().method() === "POST",
+  );
   await page.getByRole("button", { name: "More energetic" }).click();
-  await expect(page.locator("#result")).toHaveAttribute("aria-busy", "true");
+  expect((await recompose).ok()).toBe(true);
   await expect(page.locator("#result")).toHaveAttribute("aria-busy", "false", { timeout: 60000 });
   expect(await cards.nth(target).locator("ol").innerText()).toBe(before);
   await expect(cards.nth(target).getByText("locked")).toBeVisible();
@@ -82,9 +85,9 @@ test("export toggle without cortinas yields fewer rows (UI and API)", async ({ p
     .first()
     .click();
   const dialog = page.getByRole("dialog");
-  const hint = dialog.getByText(/tracks will be exported/);
+  const hint = dialog.locator("#export-count");
   await expect(hint).toBeVisible();
-  const read = async () => Number((await hint.innerText()).match(/(\d+) tracks/)![1]);
+  const read = async () => Number((await hint.innerText()).match(/\((\d+) files?\)/)![1]);
   await page.waitForTimeout(500); // the count-up settles (375 ms)
   const n1 = await read();
   await dialog.getByRole("switch", { name: "Include cortinas" }).click();
