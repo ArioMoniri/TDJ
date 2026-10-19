@@ -13,7 +13,7 @@ export default defineConfig({
   },
   projects: [
     // every spec at the default (desktop) viewport, as before the tablet projects existed
-    { name: "default", testIgnore: /round6-tablet/ },
+    { name: "default", testIgnore: /round6-tablet|round7-corners/ },
     // round 6: the sm–lg nav pill and the one-column tanda grid on an iPad and on a 1024 × 768 desktop
     {
       name: "tablet-ipad",
@@ -34,6 +34,27 @@ export default defineConfig({
       testMatch: /round6-tablet/,
       use: { viewport: { width: 1024, height: 768 }, launchOptions },
     },
+    // round 7: glass corners at 430 / 820 / 1440, dark and light
+    ...(
+      [
+        ["phone", { width: 430, height: 932 }, true],
+        ["tablet", { width: 820, height: 1180 }, true],
+        ["desktop", { width: 1440, height: 900 }, false],
+      ] as const
+    ).flatMap(([name, viewport, touch]) =>
+      (["dark", "light"] as const).map((colorScheme) => ({
+        name: `corners-${name}-${colorScheme}`,
+        testMatch: /round7-corners/,
+        use: {
+          viewport,
+          deviceScaleFactor: 2,
+          colorScheme,
+          hasTouch: touch,
+          isMobile: name === "phone",
+          launchOptions,
+        },
+      })),
+    ),
   ],
   webServer: process.env.TDJ_URL
     ? undefined

@@ -202,27 +202,29 @@ export function Menu({
           }}
           className="menu fixed z-[60]"
         >
-          {list.map((it, i) => (
-            <button
-              key={it.label}
-              type="button"
-              role="menuitem"
-              disabled={it.disabled}
-              data-destructive={it.destructive || undefined}
-              data-focus={focus === i || undefined}
-              onMouseEnter={() => setFocus(i)}
-              onClick={() => run(it)}
-              className="menu-item"
-            >
-              <span className="min-w-0 flex-1 truncate">{it.label}</span>
-              {it.shortcut && (
-                <span className="text-footnote text-[var(--label-3)]" aria-hidden>
-                  {it.shortcut}
-                </span>
-              )}
-              {it.icon && <it.icon size={18} strokeWidth={1.75} aria-hidden />}
-            </button>
-          ))}
+          <div className="menu-list">
+            {list.map((it, i) => (
+              <button
+                key={it.label}
+                type="button"
+                role="menuitem"
+                disabled={it.disabled}
+                data-destructive={it.destructive || undefined}
+                data-focus={focus === i || undefined}
+                onMouseEnter={() => setFocus(i)}
+                onClick={() => run(it)}
+                className="menu-item"
+              >
+                <span className="min-w-0 flex-1 truncate">{it.label}</span>
+                {it.shortcut && (
+                  <span className="text-footnote text-[var(--label-3)]" aria-hidden>
+                    {it.shortcut}
+                  </span>
+                )}
+                {it.icon && <it.icon size={18} strokeWidth={1.75} aria-hidden />}
+              </button>
+            ))}
+          </div>
         </motion.div>
       )}
     </AnimatePresence>
