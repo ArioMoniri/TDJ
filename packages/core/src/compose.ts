@@ -3,7 +3,9 @@ import type { Catalog } from "./catalog";
 import { applyContextToOptions, BUILTIN_CONTEXT, resolveContext } from "./context";
 import { cortinaPool, pickCortina, planCortinas } from "./cortinas";
 import { isDanceable, normTitle } from "./energy";
+import { withEraSettings } from "./profiles";
 import { makeRng } from "./rng";
+import { OPENERS } from "./rules";
 import { scorePlaylist } from "./score";
 import { type BuildContext, buildTanda, families, type Scoring, type TandaCandidate } from "./tanda";
 import type {
@@ -78,9 +80,10 @@ export function compose(
 ): Playlist {
   let o: ComposeOptions = sanitizeOptions({
     ...DEFAULT_OPTIONS,
-    ...partial,
+    ...withEraSettings(partial),
     ...(partial.overrides?.rules ?? {}),
   });
+  const rules = o.rules ?? {};
   const rc = resolveContext(o.context, deps.contextModel ?? BUILTIN_CONTEXT);
   o = applyContextToOptions(o, rc);
   const seed = o.seed ?? Math.floor(Math.random() * 1e9);
@@ -96,12 +99,20 @@ export function compose(
     }
     o.trackSecByRhythm = tsr;
   }
-  const slots = planSlots(o);
-  for (const s of slots)
+  const breakMin = rules.showBreakAt != null ? (rules.showBreakMinutes ?? 20) : 0;
+  const slots = planSlots(breakMin ? { ...o, hours: Math.max(0.5, o.hours - breakMin / 60) } : o);
+  const breakAfter =
+    rules.showBreakAt != null
+      ? Math.max(1, Math.min(slots.length - 2, Math.round(rules.showBreakAt * (slots.length - 1))))
+      : -1;
+  for (const s of slots) {
     s.targetEnergy = Math.max(
       25,
       Math.min(100, s.targetEnergy + rc.energyShift + (rc.arcShift[s.phase] ?? 0)),
     );
+    if (breakAfter >= 0 && s.index === breakAfter + 1) s.targetEnergy -= 8; // re-ramp after the show
+    if (breakAfter >= 0 && s.index === breakAfter + 2) s.targetEnergy -= 4;
+  }
   const cat = deps.catalog;
   const extraBl = new Set([...cat.blacklist]);
   const sc: Scoring = {
@@ -113,6 +124,18 @@ export function compose(
     preferStyles: rc.preferStyles,
     avoidStyles: rc.avoidStyles,
     isDanceable: (s) => isDanceable(s.title, s.rhythm, extraBl),
+    canonical: cat.corpus.canonicalTandas as Scoring["canonical"],
+    guardiaOnly: o.eras.every((e) => e === "guardia-vieja"),
+    maxPerNight: (id) =>
+      id === "osvaldo-pugliese" && rules.puglieseOnce === false
+        ? 2
+        : (cat.profile(id) as { maxPerNight?: number } | undefined)?.maxPerNight,
+    notAfter: (id) => (cat.profile(id) as { notAfter?: number } | undefined)?.notAfter,
+    neverClose: (id) => !!(cat.profile(id) as { neverClose?: boolean } | undefined)?.neverClose,
+    nonDance: (id, title) => {
+      const pr = cat.profile(id) as { nonDanceTitles?: string[] } | undefined;
+      return !!pr?.nonDanceTitles?.some((t) => normTitle(t) === normTitle(title));
+    },
   };
   const byRhythm: Record<DanceRhythm, TandaCandidate[]> = { tango: [], vals: [], milonga: [] };
   for (const r of ["tango", "vals", "milonga"] as DanceRhythm[]) {
@@ -128,7 +151,11 @@ export function compose(
           o.eras.includes("all") || o.eras.includes("contemporary") || o.eras.includes("nuevo") ? 3 : 2,
       })
       .filter((s) => normTitle(s.title) !== "la cumparsita" || !o.closeWithCumparsita);
-    byRhythm[r] = families(pool, o.maxYearSpread, o.mixVocalInstrumental);
+    byRhythm[r] = families(
+      pool,
+      o.maxYearSpread,
+      o.mixVocalInstrumental || (r !== "tango" && !!rules.mixedMilongaVals),
+    );
   }
   const ctx: BuildContext = {
     recentOrchestras: [],
@@ -147,22 +174,44 @@ export function compose(
   for (const slot of slots) {
     let tanda: Tanda | null = lockedByIndex.get(slot.index) ?? null;
     if (tanda) tanda = { ...tanda, targetEnergy: slot.targetEnergy, phase: slot.phase };
+    if (!tanda && slot.index === 0 && rules.openerRule && rules.openerRule !== "any") {
+      const style = (id: string) => cat.profile(id)?.style;
+      const want =
+        rules.openerRule === "canon"
+          ? (c: TandaCandidate) => !!OPENERS[c.orchestraId]
+          : rules.openerRule === "lyrical"
+            ? (c: TandaCandidate) => ["lyrical", "guardia"].includes(style(c.orchestraId) ?? "")
+            : (c: TandaCandidate) => style(c.orchestraId) === "rhythmic";
+      const prefO = byRhythm.tango.filter(want);
+      if (prefO.length) tanda = buildTanda(slot, prefO, o, rng, ctx, sc);
+    }
     if (!tanda && slot.index === last) {
-      // última tanda: always tango, preferably vocal, from a well-known orchestra, energy ≥ 60
+      // última tanda: always tango; the night rule decides who closes
+      const rule = rules.ultimaRule ?? "emotional-vocal";
       const ult = {
         ...slot,
         rhythm: "tango" as DanceRhythm,
         size: o.tangoTandaSize,
-        targetEnergy: Math.max(62, slot.targetEnergy + 8),
+        targetEnergy:
+          rule === "d-arienzo-rhythmic"
+            ? Math.max(76, slot.targetEnergy + 10)
+            : Math.max(62, slot.targetEnergy + 8),
       };
-      const pref = byRhythm.tango.filter(
-        (c) =>
-          ULTIMA_PREF.includes(c.orchestraId) &&
-          (c.vocal ||
-            c.orchestraId === "osvaldo-pugliese" ||
-            c.orchestraId === "juan-d-arienzo" ||
-            c.orchestraId === "carlos-di-sarli"),
-      );
+      const pref =
+        rule === "any"
+          ? byRhythm.tango
+          : rule === "pugliese"
+            ? byRhythm.tango.filter((c) => c.orchestraId === "osvaldo-pugliese")
+            : rule === "d-arienzo-rhythmic"
+              ? byRhythm.tango.filter((c) => c.orchestraId === "juan-d-arienzo")
+              : byRhythm.tango.filter(
+                  (c) =>
+                    ULTIMA_PREF.includes(c.orchestraId) &&
+                    (c.vocal ||
+                      c.orchestraId === "osvaldo-pugliese" ||
+                      c.orchestraId === "juan-d-arienzo" ||
+                      c.orchestraId === "carlos-di-sarli"),
+                );
       tanda =
         buildTanda(ult, pref.length ? pref : byRhythm.tango, o, rng, ctx, { ...sc, notBefore: () => 0 }) ??
         buildTanda(ult, byRhythm.tango, o, rng, ctx, { ...sc, notBefore: () => 0 });
@@ -177,6 +226,25 @@ export function compose(
         ctx,
         sc,
       );
+    if (!tanda) {
+      // long nights exhaust the caps: relax per-night limits and phase filters rather than leave a hole in the set
+      const relaxed: Scoring = {
+        ...sc,
+        maxPerNight: () => 99,
+        notAfter: () => undefined,
+        phase: () => ["any"],
+      };
+      tanda =
+        buildTanda(slot, byRhythm[slot.rhythm], o, rng, ctx, relaxed) ??
+        buildTanda(
+          { ...slot, rhythm: "tango", size: o.tangoTandaSize },
+          byRhythm.tango,
+          o,
+          rng,
+          ctx,
+          relaxed,
+        );
+    }
     if (!tanda) continue;
     tandas.push(tanda);
     ctx.recentOrchestras.unshift(tanda.orchestraId);
@@ -190,10 +258,27 @@ export function compose(
   const pool = cortinaPool(deps.cortinas, o.overrides?.cortinas);
   const used = new Set<string>();
   const plan = planCortinas(pool, o, rng, tandas[1]?.energy ?? 60);
+  if (rules.birthdayValsAt != null) {
+    const n1 = Math.max(1, tandas.length - 1);
+    const vals = tandas
+      .map((t, i) => ({ t, i }))
+      .filter((x) => x.t.rhythm === "vals")
+      .sort(
+        (a, b) => Math.abs(a.i / n1 - rules.birthdayValsAt!) - Math.abs(b.i / n1 - rules.birthdayValsAt!),
+      );
+    const pick = vals[0];
+    if (pick) {
+      pick.t.note = "Vals de cumpleaños";
+      pick.t.reason = `${pick.t.reason ?? ""} · reserved for the birthday vals`.trim();
+    }
+  }
   tandas.forEach((t, i) => {
     const next = tandas[i + 1];
     if (!next) {
-      t.cortina = null;
+      t.cortina =
+        rules.cortinaBeforeCumparsita && o.closeWithCumparsita
+          ? pickCortina(pool, t.energy, o, rng, used, plan)
+          : null;
       return;
     }
     const c = pickCortina(pool, next.energy, o, rng, used, plan);
@@ -237,12 +322,60 @@ export function compose(
     closing =
       rng.weighted(cands, (s) => {
         const i = CUMPARSITA_PREF.indexOf(s.orchestraId);
-        return (i === -1 ? 0.05 : 1.6 - i * 0.2) * (s.selection ? 1.4 : 1) * (1 + (s.fame ?? 0) * 0.3);
+        const corpus = cat.fame.get(`la cumparsita|${s.orchestraId}`);
+        const yearHit = (cat.corpus.famousRecordings ?? []).some(
+          (f) => f.role === "cumparsita" && f.orchestraId === s.orchestraId && f.year === s.year,
+        );
+        const used = (corpus?.role === "cumparsita" ? 1 + (corpus.fame ?? 0) : 0.4) * (yearHit ? 2.5 : 1); // versions and years DJs actually close with
+        return (i === -1 ? 0.05 : 1.6 - i * 0.2) * (s.selection ? 1.3 : 1) * used;
       }) ??
       cands[0] ??
       null;
   }
+  // Buenos Aires style: the última tanda ends with its own orchestra's Cumparsita, then the standalone closing version
+  if (o.closeWithCumparsita && rules.cumparsitaCount === 2) {
+    const ult = tandas[tandas.length - 1];
+    const own = ult
+      ? cat.songs.find(
+          (s) =>
+            normTitle(s.title) === "la cumparsita" &&
+            s.orchestraId === ult.orchestraId &&
+            s.rhythm === "tango",
+        )
+      : undefined;
+    if (ult && own && !ult.songs.some((s) => s.id === own.id)) {
+      ult.songs = [...ult.songs, own];
+      ult.energyCurve = ult.songs.map((s) => s.energy ?? 50);
+      ult.durationSec += own.durationSec ?? 180;
+      ult.note = `${ult.note ? `${ult.note} · ` : ""}ends with its own La Cumparsita`;
+    }
+  }
+  let opening: Song | null = null;
+  if (rules.openWithCumparsita) {
+    const cands = cat.songs.filter(
+      (s) =>
+        normTitle(s.title) === "la cumparsita" &&
+        s.rhythm === "tango" &&
+        s.id !== closing?.id &&
+        s.orchestraId !== tandas[0]?.orchestraId &&
+        (s.era.startsWith("golden") || s.era === "post-golden" || o.eras.includes("all")),
+    );
+    opening =
+      rng.weighted(
+        cands,
+        (s) => (CUMPARSITA_PREF.includes(s.orchestraId) ? 1.5 : 0.3) * (1 + (s.fame ?? 0) * 0.3),
+      ) ?? null;
+  }
+  const breaks =
+    breakAfter >= 0 && tandas[breakAfter]
+      ? [{ afterTanda: breakAfter, minutes: breakMin, label: "Show / break" }]
+      : undefined;
   const stats = computeStats(tandas, closing, o);
+  if (opening) {
+    stats.durationSec += opening.durationSec ?? 180;
+    stats.tracks += 1;
+  }
+  if (breaks) stats.durationSec += breakMin * 60;
   const playlist: Playlist = {
     id: `tdj-${seed.toString(36)}`,
     name: o.name ?? `${o.hours}h ${o.eras.join("+")} milonga`,
@@ -250,6 +383,8 @@ export function compose(
     options: o,
     tandas,
     closing,
+    opening,
+    breaks,
     stats,
     score: { total: 0, factors: [], verdict: "" },
   };

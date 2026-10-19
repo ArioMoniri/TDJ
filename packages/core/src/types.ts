@@ -159,6 +159,10 @@ export interface Playlist {
   options: ComposeOptions;
   tandas: Tanda[];
   closing: Song | null; // La Cumparsita
+  /** optional La Cumparsita played before the first tanda (rules.openWithCumparsita) */
+  opening?: Song | null;
+  /** show / performance breaks inserted after a tanda index */
+  breaks?: Array<{ afterTanda: number; minutes: number; label: string }>;
   stats: PlaylistStats;
   score: ScoreCard;
 }
@@ -196,6 +200,8 @@ export interface ComposeOptions {
   cortinaTrend?: "trend" | "classic" | "mixed";
   cortinaLengthSec: number;
   closeWithCumparsita: boolean;
+  /** night rules that DJs toggle per event (all optional; era presets set sensible defaults) */
+  rules?: NightRules;
   /** minimum tandas between repeats of the same orchestra */
   orchestraRepeatGap: number;
   singerRepeatGap: number;
@@ -216,6 +222,69 @@ export interface ComposeOptions {
   context?: ComposeContext;
   /** per-user database overrides (rules, profiles, songs, cortinas) merged at compose time */
   overrides?: UserOverrides;
+}
+
+/** Event-level rules a DJ chooses per night. */
+export interface NightRules {
+  /** play La Cumparsita as the very first track too (some Buenos Aires and festival openings) */
+  openWithCumparsita?: boolean;
+  /** 1 = single closing Cumparsita (Europe); 2 = Buenos Aires style: Cumparsita closes the última tanda AND a final standalone version */
+  cumparsitaCount?: 1 | 2;
+  /** a vals tanda is reserved for a birthday vals; position as fraction of the night (e.g. 0.6) */
+  birthdayValsAt?: number | null;
+  /** a show / performance break: insert a cortina-free gap at this fraction; the engine re-ramps energy after it */
+  showBreakAt?: number | null;
+  showBreakMinutes?: number;
+  /** última tanda rule */
+  ultimaRule?: "emotional-vocal" | "d-arienzo-rhythmic" | "pugliese" | "any";
+  /** first tanda rule */
+  openerRule?: "canon" | "lyrical" | "rhythmic" | "any";
+  /** at most one Pugliese tanda per night (false allows two in long marathons) */
+  puglieseOnce?: boolean;
+  /** allow one "colour" tanda (foxtrot, Pirincho milongas, Hugo Díaz) */
+  colourTanda?: boolean;
+  /** allow mixed-orchestra milonga/vals tandas */
+  mixedMilongaVals?: boolean;
+  /** cortina after the last tanda before the Cumparsita */
+  cortinaBeforeCumparsita?: boolean;
+}
+
+/** What the AI DJ and the engine remember for a user between sessions (stored in the user's database). */
+export interface AgentMemory {
+  /** free-form notes the DJ or the assistant wrote ("this room likes Donato milongas") */
+  notes: Array<{ at: string; text: string; source: "dj" | "assistant" }>;
+  /** feedback given on sets, kept so the next composition starts from it */
+  feedbackHistory: Array<{ at: string; playlistId: string; feedback: string[]; instruction?: string }>;
+  /** compact log of sets composed: id, name, hours, era, score, context */
+  sets: Array<{
+    at: string;
+    id: string;
+    name: string;
+    hours: number;
+    eras: string[];
+    score: number;
+    context?: ComposeContext;
+    liked?: boolean;
+  }>;
+  /** learned preferences the assistant may apply by default */
+  preferences: Partial<
+    Pick<
+      ComposeOptions,
+      | "eras"
+      | "pattern"
+      | "customPattern"
+      | "tandaShape"
+      | "arc"
+      | "cortinaStyle"
+      | "cortinaCultures"
+      | "cortinaTrend"
+      | "cortinaLengthSec"
+      | "floorMood"
+      | "excludeOrchestras"
+      | "includeOrchestras"
+    >
+  > & { rules?: NightRules; context?: ComposeContext };
+  updatedAt?: string;
 }
 
 export interface ComposeContext {

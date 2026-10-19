@@ -186,7 +186,10 @@ export function buildTanda(
         (!o.avoidTitleRepeats || !ctx.usedTitles.has(normTitle(s.title))),
     );
   const count = (id: string) => ctx.recentOrchestras.filter((x) => x === id).length;
-  const cap = (id: string) => sc.maxPerNight?.(id) ?? CORPUS_CAPS[id] ?? DEFAULT_CAP + (o.hours > 5 ? 1 : 0);
+  const cap = (id: string) => {
+    const base = sc.maxPerNight?.(id) ?? CORPUS_CAPS[id] ?? DEFAULT_CAP;
+    return base + (o.hours > 8 ? 2 : o.hours > 5 ? 1 : 0);
+  };
   const isGuardia = (c: TandaCandidate) =>
     c.songs.every((s) => s.era === "guardia-vieja" || s.era === "guardia-nueva");
   const isLast = slot.phase === "close";
@@ -297,12 +300,18 @@ export function buildTanda(
   const avail = availOf(chosen).filter((s) => !sc.nonDance?.(chosen.orchestraId, s.title));
   // stochastic pick: score by fit + fame + curator flag, then sample `need` from the top window so seeds differ
   const target = slot.targetEnergy + (rng.next() - 0.5) * 6;
+  const canonTitles = new Set(
+    (sc.canonical ?? [])
+      .filter((k) => k.orchestraId === chosen.orchestraId && k.rhythm === slot.rhythm)
+      .flatMap((k) => (k.titles ?? []).map(normTitle)),
+  );
   const scored = avail
     .map((s) => ({
       s,
       w:
         Math.max(0.05, 1 - Math.abs((s.energy ?? 50) - target) / 30) *
         (1 + (s.fame ?? 0) * 0.5) *
+        (canonTitles.has(normTitle(s.title)) ? 2 : 1) *
         (s.selection ? 1.3 : 1) *
         (0.7 + rng.next() * 0.6),
     }))
