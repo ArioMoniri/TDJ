@@ -30,14 +30,18 @@ export function MiniPlayer() {
   useEffect(() => {
     const el = audio.current;
     if (!el || !preview) return;
-    if (el.src !== preview) {
+    // `el.src` reads back absolute, our preview refs are relative: compare resolved URLs, or every run of this
+    // effect reloads the element and the pending play() is aborted (cortinas never started)
+    const want = new URL(preview, window.location.href).href;
+    if (el.src !== want) {
       el.src = preview;
       el.load();
     }
     if (playing)
-      el.play().catch((e: Error) =>
-        _error(e.name === "NotAllowedError" ? "Tap play to start" : "Could not play this preview"),
-      );
+      el.play().catch((e: Error) => {
+        if (e.name === "AbortError") return; // superseded by a newer load/pause, not a failure
+        _error(e.name === "NotAllowedError" ? "Tap play to start" : "Could not play this preview");
+      });
     else el.pause();
   }, [preview, playing, _error]);
   // seek requests (the scrubber) land on the element
