@@ -420,3 +420,62 @@ test("a práctica context never shrinks the tango tandas the stepper shows", asy
     );
   for (const c of counts.filter((x) => x.rhythm === "tango")) expect(c.n).toBe(4);
 });
+
+test("cortina preview: the Preview cortina button starts the mini-player and keeps playing", async ({
+  page,
+}) => {
+  await page.route(/\/api\/resolve/, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        candidates: [
+          {
+            provider: "deezer",
+            id: "123",
+            title: "x",
+            artist: "y",
+            previewUrl: "https://preview.test/c.wav",
+          },
+        ],
+        suggestions: {},
+      }),
+    }),
+  );
+  await page.route(/dzcdn\.net|preview\.test|\/api\/preview\?/, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "audio/wav",
+      body: WAV,
+      headers: { "access-control-allow-origin": "*" },
+    }),
+  );
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: /Compose the night/ })
+    .first()
+    .click();
+  await expect(page.locator("#result")).toBeVisible({ timeout: 60000 });
+  const row = page.getByRole("button", { name: /^Cortina/ }).first();
+  await row.scrollIntoViewIfNeeded();
+  await row.click();
+  await page
+    .getByRole("button", { name: /Preview cortina/ })
+    .first()
+    .click();
+  const mini = page.locator("[data-testid=mini-player]");
+  await expect(mini).toContainText(/cortina · \d+ s/);
+  await expect(mini.getByRole("button", { name: "Pause" })).toBeVisible();
+  await expect
+    .poll(
+      async () =>
+        page
+          .locator("audio")
+          .first()
+          .evaluate((a: HTMLAudioElement) => (a.paused ? -1 : a.currentTime)),
+      {
+        timeout: 8000,
+      },
+    )
+    .toBeGreaterThan(0);
+});
