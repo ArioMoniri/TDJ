@@ -20,7 +20,6 @@ export default $config({
   async run() {
     const web = new sst.aws.Nextjs("Web", {
       path: "apps/web",
-      buildCommand: "pnpm build",
       environment: {
         TDJ_DATA_ROOT: "/var/task",
         ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5-5",
