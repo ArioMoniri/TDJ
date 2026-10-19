@@ -1,8 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import type { AudioFeatures, ResolvedTrack } from "./audio/index";
 import type { ReferenceCorpus } from "./catalog";
 import { Catalog } from "./catalog";
-import type { AudioFeatures, ResolvedTrack } from "./audio/index";
 import type { ContextModel, Cortina, OrchestraProfile, Song, UserOverrides } from "./types";
 
 /** Node-only loader: reads the committed index from `data/` (repo root). */

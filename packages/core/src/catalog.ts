@@ -1,5 +1,5 @@
-import { estimateDuration, normTitle, songEnergy } from "./energy";
 import type { AudioFeatures, ResolvedTrack } from "./audio/index";
+import { estimateDuration, normTitle, songEnergy } from "./energy";
 import { ERA_PRESETS, mergeProfiles } from "./profiles";
 import type { DanceRhythm, EraPreset, OrchestraProfile, Song, UserOverrides } from "./types";
 
