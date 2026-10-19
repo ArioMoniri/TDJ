@@ -4,6 +4,7 @@ import "./globals.css";
 import { Boot } from "@/components/Boot";
 import { Motion } from "@/components/Motion";
 import { Nav } from "@/components/Nav";
+import { ToolbarProvider } from "@/components/PageHeader";
 import { PageTransition } from "@/components/PageTransition";
 import { ThemeSync } from "@/components/ThemeSync";
 
@@ -24,7 +25,10 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, title: "TDJ", statusBarStyle: "black-translucent" },
 };
 export const viewport: Viewport = {
-  themeColor: "#0b0a10",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f2efe9" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b0a10" },
+  ],
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -44,12 +48,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div className="ambient" aria-hidden />
         <ThemeSync />
         <Boot />
-        <Nav />
-        <main className="mx-auto w-full max-w-6xl px-4 pb-36 pt-4 sm:px-6 sm:pb-12 lg:px-8">
-          <Motion>
-            <PageTransition>{children}</PageTransition>
-          </Motion>
-        </main>
+        <ToolbarProvider>
+          <Nav />
+          <div className="scroll-edge-top sm:hidden" aria-hidden />
+          <div className="scroll-edge-bottom sm:hidden" aria-hidden />
+          <main className="mx-auto w-full max-w-[720px] px-4 pb-[calc(env(safe-area-inset-bottom)+150px)] pt-2 sm:px-6 sm:pb-16 lg:mx-0 lg:ml-[220px] lg:max-w-none lg:px-8">
+            <div className="lg:mx-auto lg:max-w-[980px]">
+              <Motion>
+                <PageTransition>{children}</PageTransition>
+              </Motion>
+            </div>
+          </main>
+        </ToolbarProvider>
       </body>
     </html>
   );

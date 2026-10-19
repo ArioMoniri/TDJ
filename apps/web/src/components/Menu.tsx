@@ -1,0 +1,194 @@
+"use client";
+import { Ellipsis, type LucideIcon } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { type ReactNode, useEffect, useId, useRef, useState } from "react";
+import { haptic } from "@/lib/haptics";
+import { useMediaQuery } from "@/lib/hooks";
+import { DUR, EASE } from "@/lib/motion";
+import { Sheet } from "./Sheet";
+
+export interface MenuItem {
+  label: string;
+  icon?: LucideIcon;
+  onClick?: () => void;
+  disabled?: boolean;
+  destructive?: boolean;
+  /** macOS-style trailing shortcut hint */
+  shortcut?: string;
+}
+
+/**
+ * A `•••` button that opens a UIMenu-style popover (desktop, also on right-click of `contextRef`)
+ * or a sheet of rows (phone). Arrow keys, Escape and click-outside are handled.
+ */
+export function Menu({
+  label,
+  items,
+  className = "",
+  icon,
+  contextRef,
+  align = "right",
+  children,
+}: {
+  label: string;
+  items: Array<MenuItem | false | null | undefined>;
+  className?: string;
+  icon?: ReactNode;
+  /** on hover devices the menu also opens on `contextmenu` of this element */
+  contextRef?: React.RefObject<HTMLElement | null>;
+  align?: "right" | "left";
+  /** custom trigger content; defaults to the ellipsis glyph in an icon-btn */
+  children?: ReactNode;
+}) {
+  const list = items.filter(Boolean) as MenuItem[];
+  const [open, setOpen] = useState(false);
+  const [focus, setFocus] = useState(-1);
+  const root = useRef<HTMLDivElement>(null);
+  const reduced = useReducedMotion();
+  const isPhone = useMediaQuery("(max-width: 639px)");
+  const id = useId();
+
+  useEffect(() => {
+    if (!open || isPhone) return;
+    const onDown = (e: PointerEvent) => {
+      if (!root.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setOpen(false);
+      }
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        setFocus((f) => {
+          const n = list.length;
+          const d = e.key === "ArrowDown" ? 1 : -1;
+          let i = f;
+          for (let k = 0; k < n; k++) {
+            i = (i + d + n) % n;
+            if (!list[i]?.disabled) break;
+          }
+          return i;
+        });
+      }
+      if (e.key === "Enter" || e.key === " ") {
+        const it = list[focus];
+        if (it && !it.disabled) {
+          e.preventDefault();
+          setOpen(false);
+          it.onClick?.();
+        }
+      }
+    };
+    document.addEventListener("pointerdown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open, isPhone, list, focus]);
+
+  useEffect(() => {
+    const el = contextRef?.current;
+    if (!el || !window.matchMedia("(hover: hover)").matches) return;
+    const onCtx = (e: MouseEvent) => {
+      e.preventDefault();
+      setOpen(true);
+    };
+    el.addEventListener("contextmenu", onCtx);
+    return () => el.removeEventListener("contextmenu", onCtx);
+  }, [contextRef]);
+
+  const run = (it: MenuItem) => {
+    if (it.disabled) return;
+    haptic(4);
+    setOpen(false);
+    it.onClick?.();
+  };
+
+  const trigger = (
+    <button
+      type="button"
+      className={children ? className : `icon-btn ${className}`}
+      aria-label={label}
+      aria-haspopup="menu"
+      aria-expanded={open}
+      aria-controls={open ? id : undefined}
+      onClick={() => {
+        setFocus(-1);
+        setOpen((v) => !v);
+      }}
+    >
+      {children ?? icon ?? <Ellipsis size={20} strokeWidth={2} />}
+    </button>
+  );
+
+  if (isPhone)
+    return (
+      <>
+        {trigger}
+        <Sheet open={open} onClose={() => setOpen(false)} title={label} detents={["medium", "large"]}>
+          <div className="group-inset mt-2">
+            {list.map((it) => (
+              <button
+                key={it.label}
+                type="button"
+                role="menuitem"
+                disabled={it.disabled}
+                data-destructive={it.destructive || undefined}
+                onClick={() => run(it)}
+                className={`cell cell-tap w-full text-left ${it.destructive ? "text-[var(--destructive)]" : ""} disabled:text-[var(--label-3)]`}
+              >
+                <span className="min-w-0 flex-1 truncate">{it.label}</span>
+                {it.icon && <it.icon size={20} strokeWidth={1.75} aria-hidden />}
+              </button>
+            ))}
+          </div>
+        </Sheet>
+      </>
+    );
+
+  return (
+    <div ref={root} className="relative inline-flex">
+      {trigger}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            key="menu"
+            id={id}
+            role="menu"
+            aria-label={label}
+            initial={{ opacity: 0, scale: reduced ? 1 : 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: reduced ? 1 : 0.98 }}
+            transition={{ duration: DUR.base, ease: EASE.out }}
+            style={{ transformOrigin: align === "right" ? "top right" : "top left" }}
+            className={`menu absolute top-full z-50 mt-1 ${align === "right" ? "right-0" : "left-0"}`}
+          >
+            {list.map((it, i) => (
+              <button
+                key={it.label}
+                type="button"
+                role="menuitem"
+                disabled={it.disabled}
+                data-destructive={it.destructive || undefined}
+                data-focus={focus === i || undefined}
+                onMouseEnter={() => setFocus(i)}
+                onClick={() => run(it)}
+                className="menu-item"
+              >
+                <span className="min-w-0 flex-1 truncate">{it.label}</span>
+                {it.shortcut && (
+                  <span className="text-footnote text-[var(--label-3)]" aria-hidden>
+                    {it.shortcut}
+                  </span>
+                )}
+                {it.icon && <it.icon size={18} strokeWidth={1.75} aria-hidden />}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
