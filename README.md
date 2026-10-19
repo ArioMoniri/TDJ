@@ -28,7 +28,9 @@
 <p align="center">
 <img src="media/screenshots/01-home-dark.png" width="48%" alt="Home, dark"/> <img src="media/screenshots/02-result-arc.png" width="48%" alt="Energy arc and score"/><br/>
 <img src="media/screenshots/03-tandas.png" width="48%" alt="Tanda cards with cortinas"/> <img src="media/screenshots/04-export.png" width="48%" alt="Export sheet"/><br/>
-<img src="media/screenshots/08-mobile-home.png" width="23%" alt="Mobile home"/> <img src="media/screenshots/09-mobile-result.png" width="23%" alt="Mobile result"/> <img src="media/screenshots/10-mobile-tandas.png" width="23%" alt="Mobile tandas"/> <img src="media/screenshots/11-mobile-export.png" width="23%" alt="Mobile export"/>
+<img src="media/screenshots/14-tonight-context.png" width="48%" alt="Tonight: season, weather, room, event, crowd, mood"/> <img src="media/screenshots/13-listen.png" width="48%" alt="Listen: Spotify embeds per tanda"/><br/>
+<img src="media/screenshots/12-database.png" width="48%" alt="Your database: songs, orchestras, cortinas, rules, context"/> <img src="media/screenshots/15-settings-ai.png" width="48%" alt="Settings: AI providers and DJ-app connectors"/><br/>
+<img src="media/screenshots/08-mobile-home.png" width="19%" alt="Mobile home"/> <img src="media/screenshots/09-mobile-result.png" width="19%" alt="Mobile result"/> <img src="media/screenshots/10-mobile-tandas.png" width="19%" alt="Mobile tandas"/> <img src="media/screenshots/11-mobile-export.png" width="19%" alt="Mobile export"/> <img src="media/screenshots/16-mobile-database.png" width="19%" alt="Mobile database"/>
 </p>
 
 ## Quick start

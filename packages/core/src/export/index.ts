@@ -243,7 +243,7 @@ export function toSeratoCSV(p: Playlist, eo: ExportOpts = {}): string {
 }
 
 /** Spotify: ordered list of URIs (already resolved) + search queries for unresolved tracks. */
-export function toSpotifyPlan(p: Playlist): {
+export function toSpotifyPlan(p: Playlist, eo: ExportOpts = {}): {
   uris: string[];
   unresolved: { query: string; track: FlatTrack }[];
 } {
