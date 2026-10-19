@@ -614,3 +614,44 @@ Source: `docs/research/context-factors.md` (evidence-graded) and `data/knowledge
 - golden1941_45-vocal
 - golden1946_55-lyrical
 - guardiaVieja-vals
+
+## What the engine reads from `orchestra_profiles.json` (round 4)
+
+Every curated field is now consumed by `packages/core/src/{tanda,compose,catalog}.ts`; the test file `packages/core/test/round4.test.ts` holds one invariant per rule.
+
+| Field | Where | Effect |
+|---|---|---|
+| `phase`, `notBefore`, `notAfter`, `neverClose` | `buildTanda` | hard phase filter (an orchestra programmed for other phases enters only when fewer than three fitting families exist). The **close** slot accepts `peak` and `cooldown` orchestras alike, and the última bypasses the phase filter entirely so D'Arienzo / Pugliese / Di Sarli can close. |
+| `subPeriods[{years, phase, difficulty, danceable}]` | `buildTanda` | the family's mean (dated) year picks the sub-period; its `phase` replaces the profile phase, an empty list excludes the family (Troilo ≥ 1950, Di Sarli 1950s in the warm-up), `danceable:"limited"` ×0.3, `difficulty` feeds the beginner filter. |
+| `bestYears` | `buildTanda` | families whose mean year lies outside the window weigh ×0.5 (Laurenz/del Río 1952 no longer reaches a peak). |
+| `singerShift` | `buildTanda` | weight ×(1 + shift·0.08): Demare–Miranda +2 → ×1.16, Quintana −2 → ×0.84, Goyeneche −8 → ×0.36. |
+| `singers` | `energy.ts` | an atypical singer/year pairing loses 2 energy points (unchanged). |
+| `singerDanceable`, `nonDanceSingers` | `Catalog.singerOk` | the family is excluded (Tita Merello, Nelly Omar, "Solo de Piano"). |
+| `nonDanceTitles` | `Catalog.nonDance` | a bare title bans every version; `"Title (1963)"` bans that year only (Troilo's 1944 *Quejas de bandoneón* stays, the 1963 one goes). Title-level bans in `energy.ts` were reduced to real concert pieces; *Mala junta* and *Café Domínguez* are back, with `BLACKLIST_VERSIONS` banning only the 1960s+ re-recordings. |
+| `maxPerNight` (number or `{"4": n, "6": m}`) | `makeScoring` | resolved by tonight's hours; `puglieseOnce` defaults to *hours < 6*, so a 6 h night gets two Pugliese slots (instrumental from ~45 %, the second after 75 %). |
+| `shareOfNightMax` | `buildTanda` | per-orchestra cap = min(cap, ceil(share × slots)). |
+| `followWith` | `buildTanda` | after a tanda whose profile lists `followWith`, a tango family of a listed style (or `balanced`) weighs ×2.5, others ×0.2 — after Pugliese comes a vals, a milonga or a rhythmic tango. |
+| `warmupOnly {vocal, years}` | `buildTanda` | in the warm-up only that material of the orchestra is viable (D'Arienzo: 1935–39 instrumentals); anything else ×0.1. |
+| `difficulty` | `buildTanda` | with a beginner floor (`maxDifficulty` 60 from the context) families above it are excluded while three alternatives remain. |
+| `cumparsitaVersions` | `compose.ts` | together with the corpus `role:"cumparsita"` years and `rules.ts` `CUMPARSITA_CLOSING_YEARS`: the closing, opening and "own" Cumparsita are filtered to those exact years, never a `yearApprox` row, instrumental unless the listed version is vocal; post-golden nights close with a version of their own era (D'Arienzo 1963, Troilo 1963, De Angelis 1961). |
+| `rhythmShift`, `rhythmOverride`, `signatureTracks` | — | **not wired**: rhythm shifts are covered by the per-track `track_energy.json` gradient, `rhythmOverride` belongs in the index build (`scripts/build_index.py`). |
+
+### Placeholder years
+
+Rows with `yearApprox:true` ("1940" for an undated 1940s transfer) never anchor a family's year window: they form a separate *undated* family per orchestra/singer (weight ×0.25, each track ×0.6), earn no warm-up bonus and the tanda's `yearRange` is built from dated rows only (`null` when there are none; the reason text says "c. 1940").
+
+### The night as the corpus describes it
+
+- **First D'Arienzo**: one tango slot between 8 % and 33 % of the night is drawn per seed; it gets the 1935–39 instrumental tanda as a planned early peak (target raised to 72). If no D'Arienzo tango tanda exists by 38 %, the next build/peak slot forces one; a second one is forced from 70 %. Tango count 2–3 per 4 h; D'Arienzo's vals/milonga never steal those slots.
+- **Pugliese**: with `puglieseOnce`, his slot is drawn around the corpus median (0.87) and planned at ≥ 74; he is excluded from the body before it. He may also be the última. Beginner floors (`avoidStyles` dramatic, difficulty > 60) get no Pugliese.
+- **Última**: tango, target +8, candidates from the corpus closer pool (Pugliese, D'Arienzo, D'Agostino–Vargas, Di Sarli, De Angelis instrumental, Troilo, Tanturi, Caló, Rodríguez, Biagi), families the corpus knows, delivered energy ≥ target−4 (up to six draws, the strongest otherwise). `ultimaRule:"pugliese"` reserves Pugliese for it; `"d-arienzo-rhythmic"` is an instrumental D'Arienzo.
+- **Colour tanda** (`rules.colourTanda`): one softer tanda (Caló, Fresedo, Demare, De Angelis, Pirincho, Canaro) in the breather after the first peak, target −6, noted "colour tanda".
+- **Track order**: the energy shape first, then the corpus `role` (an opener opens, a closer closes) and, when roles are known, the least famous track third. Famous recordings' corpus energy is a prior blended 50/50 with the per-track model, so the tracks of one family keep a gradient.
+- **Variety**: every orchestra gets a seed-drawn 0.6–1.4 "mood" factor for the night, the warm-up and vals/milonga slots sample from a flatter top-10 window, the long tail (20× below the best) never enters it, and fame-0 one-off singers are out of the opening slots (OTV/del Moral, Lomuto/Díaz valses). The first vals slot uses the warm-up vals bank (Canaro, Rodríguez, Donato, Lomuto); Biagi belongs at the second.
+- **Steps**: a family more than 14 points away from the previous tanda beyond what the arc planned is down-weighted.
+- **Cortinas**: one family or a compatible pair (swing+jazz, canzone+chanson, soul+funk, turkish-pop+turkish-rock …) sized to the night (≥ max(4, tandas/4) cues), least-recently-used cycling, never the same cue within four tandas, energy fit (≤20 under/over the next tanda minus 8) decided before freshness; Guardia Vieja nights use pre-1936 jazz sides. Lo-fi, surf, Twist and Shout, cumbia, Mesečina and 2024 pop left the global pool.
+- **Context** (`context.ts`): research genres are mapped to the pool's genre ids and to cultures (Istanbul → turkish/greek); `vocalRatioShift` → `vocalBias` (vocal families ×(1+3·bias)), `tempoShift` weighs orchestras by their profile bpm against the rhythm's pivot, heat takes the *minimum* milonga share across applied factors, beginner/encuentro/milonguero fall back to the built-in style preferences when the research model has none.
+
+### Option precedence
+
+`compose()` layers, lowest first: `DEFAULT_OPTIONS` → `ERA_SETTINGS[eras[0]]` → `overrides.rules` (the DJ's standing database rules) → the request (`partial`) → context shifts, which never touch a key the request set explicitly. `partial.explicit` names the explicit keys; without it every key present in the request is explicit. `playlist.options.contextApplied` lists what the context changed and what it skipped. `pattern:"TTVTTM-strict"` is never rewritten by context (`"classic"` may become a custom cycle under heat or an afternoon).
