@@ -630,6 +630,64 @@ li + li > .cell[data-leading="num"]:first-child::before,
   mask-image: linear-gradient(transparent, #000 60%);
 }
 
+/* Toolbar bands (round 6). The page content starts below the bar at every breakpoint: sticky bars keep their
+   height in flow, and anchors / scrollIntoView land under them through scroll-padding. Once the page is scrolled
+   the band behind a bar is a full-bleed scroll-edge fade in the page colour (no corners, no hairline), so content
+   never peeks around a capsule or past a band edge. */
+@media (min-width: 640px) and (max-width: 1023.98px) {
+  html {
+    scroll-padding-top: 84px;
+  }
+}
+@media (min-width: 1024px) {
+  html {
+    scroll-padding-top: 84px;
+  }
+}
+.toolbar-pill-band[data-collapsed] {
+  background: linear-gradient(rgb(var(--bg-grouped)) calc(100% - 12px), rgb(var(--bg-grouped) / 0));
+}
+/* lg: the page column is centred in `main` (max 980 px); `main` is a size container so the band can bleed to its
+   padding edges on both sides whatever the column's offset: -(2rem padding) - (spare width / 2). */
+@media (min-width: 1024px) {
+  main {
+    container-type: inline-size;
+  }
+  .toolbar-row {
+    --bleed: calc(2rem + max(0px, (100cqw - 980px) / 2));
+    margin-inline: calc(-1 * var(--bleed));
+    padding-inline: var(--bleed);
+  }
+  .toolbar-band {
+    background: linear-gradient(rgb(var(--bg-grouped)) calc(100% - 10px), rgb(var(--bg-grouped) / 0));
+    padding-bottom: 12px;
+    margin-bottom: -8px;
+  }
+}
+
+/* Tanda cards: one column until a column can hold title + year + energy + menu (≥ 480 px), then as many as fit.
+   Inside a card the title has priority: below 440 px of card width the energy bar yields to the number. */
+.tanda-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(480px, 100%), 1fr));
+  align-items: start;
+  gap: var(--space-3);
+  min-width: 0;
+}
+@media (min-width: 768px) {
+  .tanda-grid {
+    gap: var(--space-4);
+  }
+}
+.tanda-card {
+  container-type: inline-size;
+}
+@container (max-width: 440px) {
+  .tanda-card .energy-bar {
+    display: none;
+  }
+}
+
 @utility text-muted {
   color: var(--label-2);
 }
@@ -1090,15 +1148,19 @@ input[type="range"]::-moz-range-thumb {
 }
 
 /* Context menu / popover (UIMenu): thick material, radius 14, 44 pt rows, 17 pt, icons trailing */
+/* Popover menu: opaque (the rows it floats over must not read through its items), a hairline ring and a soft
+   shadow; the blur stays with the glass control layer. */
 .menu {
-  @apply material-thick rounded-continuous;
+  @apply rounded-continuous;
+  background: rgb(var(--bg-cell));
   border-radius: var(--radius-s);
   min-width: 250px;
   padding: 0;
   overflow: clip;
   box-shadow:
-    0 12px 40px rgb(0 0 0 / 0.22),
-    0 0 0 0.5px rgb(0 0 0 / 0.1);
+    0 12px 40px rgb(0 0 0 / 0.28),
+    0 0 0 1px var(--separator),
+    inset 0 1px 0 rgb(255 255 255 / 0.06);
 }
 .menu-item {
   display: flex;

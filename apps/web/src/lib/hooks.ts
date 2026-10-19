@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useLayoutEffect, useState, useSyncExternalStore } from "react";
 
 /* ---- useMediaQuery: one MediaQueryList per query string, shared by every subscriber ---- */
 interface MqEntry {
@@ -36,6 +36,35 @@ export function useMediaQuery(query: string, fallback = false) {
     () => entryFor(query).mq.matches,
     () => fallback,
   );
+}
+
+const useIso = typeof window === "undefined" ? useEffect : useLayoutEffect;
+
+/**
+ * Progressive collapse for a toolbar whose pieces must never overlap: the smallest level in `0..max` at which
+ * `ref`'s content fits its box (`scrollWidth ≤ clientWidth`; every child must be `flex-shrink: 0` so overflow
+ * goes one way). Starts over from 0 when the box resizes (ResizeObserver) or `key` changes, and climbs one level
+ * per synchronous layout-effect render before paint, so no overflowing frame is shown. Re-measures only then:
+ * a scroll frame never enters it.
+ */
+export function useFitLevel(ref: React.RefObject<HTMLElement | null>, max: number, key: unknown = null) {
+  const [level, setLevel] = useState(0);
+  const [size, setSize] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(([e]) => setSize(Math.round(e?.contentRect.width ?? 0)));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [ref]);
+  // `key` and `size` are the reset triggers, not values the effect reads
+  useIso(() => setLevel(0), [key, size]);
+  useIso(() => {
+    const el = ref.current;
+    if (!el || level >= max) return;
+    if (el.scrollWidth > el.clientWidth + 1) setLevel(level + 1);
+  });
+  return level;
 }
 
 /** True while at least `threshold` of the element is on screen (used to gate looping Lottie playback). */

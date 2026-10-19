@@ -1,7 +1,8 @@
 "use client";
 import { Ellipsis, type LucideIcon } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { type ReactNode, useEffect, useId, useRef, useState } from "react";
+import { type ReactNode, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
 import { DUR, EASE } from "@/lib/motion";
@@ -73,6 +74,12 @@ export function Menu({
   const [open, setOpen] = useState(false);
   const [focus, setFocus] = useState(-1);
   const root = useRef<HTMLDivElement>(null);
+  const pop = useRef<HTMLDivElement>(null);
+  // the popover is portaled to <body> and fixed at the trigger: inside a card it would be clipped by the card's
+  // `overflow: clip` and stacked under the sticky toolbar / nav pill; a scroll or resize while open closes it
+  const [at, setAt] = useState<{ top: number; left: number; right: number } | null>(null);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const reduced = useReducedMotion();
   const isPhone = useMediaQuery("(max-width: 639px)");
   const id = useId();
@@ -80,8 +87,10 @@ export function Menu({
   useEffect(() => {
     if (!open || isPhone) return;
     const onDown = (e: PointerEvent) => {
-      if (!root.current?.contains(e.target as Node)) setOpen(false);
+      const t = e.target as Node;
+      if (!root.current?.contains(t) && !pop.current?.contains(t)) setOpen(false);
     };
+    const onMove = () => setOpen(false);
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
@@ -111,11 +120,22 @@ export function Menu({
     };
     document.addEventListener("pointerdown", onDown);
     document.addEventListener("keydown", onKey);
+    window.addEventListener("scroll", onMove, { passive: true, capture: true });
+    window.addEventListener("resize", onMove);
     return () => {
       document.removeEventListener("pointerdown", onDown);
       document.removeEventListener("keydown", onKey);
+      window.removeEventListener("scroll", onMove, { capture: true });
+      window.removeEventListener("resize", onMove);
     };
   }, [open, isPhone, list, focus]);
+
+  useLayoutEffect(() => {
+    if (!open || isPhone) return;
+    const r = root.current?.getBoundingClientRect();
+    if (!r) return;
+    setAt({ top: r.bottom + 4, left: r.left, right: window.innerWidth - r.right });
+  }, [open, isPhone]);
 
   useEffect(() => {
     const el = contextRef?.current;
@@ -162,47 +182,56 @@ export function Menu({
       </>
     );
 
+  const popover = (
+    <AnimatePresence>
+      {open && at && (
+        <motion.div
+          key="menu"
+          ref={pop}
+          id={id}
+          role="menu"
+          aria-label={label}
+          initial={{ opacity: 0, scale: reduced ? 1 : 0.96 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: reduced ? 1 : 0.98 }}
+          transition={{ duration: DUR.base, ease: EASE.out }}
+          style={{
+            transformOrigin: align === "right" ? "top right" : "top left",
+            top: at.top,
+            ...(align === "right" ? { right: at.right } : { left: at.left }),
+          }}
+          className="menu fixed z-[60]"
+        >
+          {list.map((it, i) => (
+            <button
+              key={it.label}
+              type="button"
+              role="menuitem"
+              disabled={it.disabled}
+              data-destructive={it.destructive || undefined}
+              data-focus={focus === i || undefined}
+              onMouseEnter={() => setFocus(i)}
+              onClick={() => run(it)}
+              className="menu-item"
+            >
+              <span className="min-w-0 flex-1 truncate">{it.label}</span>
+              {it.shortcut && (
+                <span className="text-footnote text-[var(--label-3)]" aria-hidden>
+                  {it.shortcut}
+                </span>
+              )}
+              {it.icon && <it.icon size={18} strokeWidth={1.75} aria-hidden />}
+            </button>
+          ))}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+
   return (
     <div ref={root} className="relative inline-flex">
       {trigger}
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            key="menu"
-            id={id}
-            role="menu"
-            aria-label={label}
-            initial={{ opacity: 0, scale: reduced ? 1 : 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: reduced ? 1 : 0.98 }}
-            transition={{ duration: DUR.base, ease: EASE.out }}
-            style={{ transformOrigin: align === "right" ? "top right" : "top left" }}
-            className={`menu absolute top-full z-50 mt-1 ${align === "right" ? "right-0" : "left-0"}`}
-          >
-            {list.map((it, i) => (
-              <button
-                key={it.label}
-                type="button"
-                role="menuitem"
-                disabled={it.disabled}
-                data-destructive={it.destructive || undefined}
-                data-focus={focus === i || undefined}
-                onMouseEnter={() => setFocus(i)}
-                onClick={() => run(it)}
-                className="menu-item"
-              >
-                <span className="min-w-0 flex-1 truncate">{it.label}</span>
-                {it.shortcut && (
-                  <span className="text-footnote text-[var(--label-3)]" aria-hidden>
-                    {it.shortcut}
-                  </span>
-                )}
-                {it.icon && <it.icon size={18} strokeWidth={1.75} aria-hidden />}
-              </button>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {mounted && createPortal(popover, document.body)}
     </div>
   );
 }

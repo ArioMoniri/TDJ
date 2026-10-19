@@ -18,9 +18,18 @@ interface ToolbarState {
   trailing: ReactNode;
   /** the page's filled primary action (Compose): the tablet pill shows it once the large title scrolled out */
   primary: ReactNode;
+  /** an icon-only stand-in for `primary` (same action, `aria-label`): the pill uses it when the capsule does not fit */
+  primaryCompact: ReactNode;
   barChild: ReactNode;
 }
-const EMPTY: ToolbarState = { title: "", collapsed: false, trailing: null, primary: null, barChild: null };
+const EMPTY: ToolbarState = {
+  title: "",
+  collapsed: false,
+  trailing: null,
+  primary: null,
+  primaryCompact: null,
+  barChild: null,
+};
 const StateCtx = createContext<ToolbarState>(EMPTY);
 const SetCtx = createContext<((s: Partial<ToolbarState>) => void) | null>(null);
 
@@ -59,6 +68,7 @@ export function PageHeader({
   subtitle,
   trailing,
   primary,
+  primaryCompact,
   children,
   inBar,
   className = "",
@@ -67,6 +77,8 @@ export function PageHeader({
   subtitle?: ReactNode;
   trailing?: ReactNode;
   primary?: ReactNode;
+  /** icon-only version of `primary` for the tablet pill when the capsule would overflow it */
+  primaryCompact?: ReactNode;
   children?: ReactNode;
   /** rendered inside the collapsed bar as a second row (search field / segmented control) */
   inBar?: ReactNode;
@@ -95,6 +107,7 @@ export function PageHeader({
       collapsed,
       trailing: collapsed ? trailing : null,
       primary: collapsed ? (primary ?? null) : null,
+      primaryCompact: collapsed ? (primaryCompact ?? null) : null,
       barChild: collapsed && inBar ? inBar : null,
     });
   });
@@ -122,14 +135,14 @@ export function PageHeader({
         </div>
       )}
       {/* lg (macOS): the title row is the page's sticky toolbar (a sibling of the page content, so it can stick
-          the whole way down): the primary action stays at every scroll position. Its scrolled state is a 94 %
-          grouped-background band, not blur: the sidebar already blurs on lg and the wallpaper is static
-          (performance-budget.md caps backdrop-filter at the control layer that must lens). */}
+          the whole way down): the primary action stays at every scroll position. Its scrolled state is a
+          full-bleed grouped-background band (`toolbar-band`: sidebar edge to viewport edge, no corners, a
+          scroll-edge fade at its foot instead of a hairline), not blur: the sidebar already blurs on lg and the
+          wallpaper is static (performance-budget.md caps backdrop-filter at the control layer that must lens).
+          sm–lg: a plain row under the nav pill; the pill carries the actions once the title scrolled out. */}
       <header
-        className={`flex items-end justify-between gap-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:pt-2 lg:sticky lg:top-0 lg:z-30 lg:-mx-4 lg:min-h-[52px] lg:items-center lg:px-4 lg:py-1 ${
-          collapsed
-            ? "lg:rounded-b-[var(--radius-s)] lg:bg-[rgb(var(--bg-grouped)/0.94)] lg:shadow-[0_1px_0_var(--separator)]"
-            : ""
+        className={`toolbar-row flex items-end justify-between gap-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:pt-2 lg:sticky lg:top-0 lg:z-30 lg:min-h-[60px] lg:items-center lg:pt-3 lg:pb-1 ${
+          collapsed ? "toolbar-band" : ""
         } ${className}`}
         data-testid="page-toolbar"
         data-collapsed={collapsed || undefined}

@@ -3,9 +3,9 @@ import { BookOpen, Clock, Database, Disc3, ListMusic, Search, SlidersHorizontal 
 import { LayoutGroup, motion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { haptic } from "@/lib/haptics";
-import { useScrollDirection } from "@/lib/hooks";
+import { useFitLevel, useScrollDirection } from "@/lib/hooks";
 import { spring } from "@/lib/motion";
 import { Logo } from "./Logo";
 import { useToolbar } from "./PageHeader";
@@ -99,16 +99,36 @@ export function Nav() {
   }, []);
   const searchId = SEARCH_ID[path];
   const hidden = searchFocused;
+  const pill = useRef<HTMLDivElement>(null);
+  // re-measure when the pill's content changes: the page's actions arrive with `collapsed`, the tab set with the path
+  const fit = useFitLevel(pill, 3, `${path}|${bar.collapsed}|${!!bar.trailing}|${!!bar.primary}`);
   return (
     <>
-      {/* Tablet (sm–lg): glass pill as a toolbar. Left: logo (page title once the large title scrolled out), centre: tabs. */}
-      <header className="sticky top-0 z-40 hidden px-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:block sm:px-6 lg:hidden">
-        <div className="glass glass-pill mx-auto flex max-w-[720px] items-center justify-between gap-2 px-2 py-1 sm:px-3">
-          <Link href="/" className="flex min-w-0 items-center gap-2.5 pl-1" aria-label="TDJ home">
+      {/* Tablet (sm–lg): glass pill as a toolbar. Left: logo (+ page title once the large title scrolled out),
+          centre: tabs, right: the page's bar actions. Every piece is `shrink-0`, so the pill can only overflow to
+          the right, and `useFitLevel` collapses it one step at a time until it fits (title text → icon-only
+          primary → icon-only tabs): nothing ever overlaps. The band behind the pill is a scroll-edge fade once the
+          page is scrolled, so content never peeks out around the capsule. */}
+      <header
+        className="toolbar-pill-band sticky top-0 z-40 hidden px-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 sm:block sm:px-6 lg:hidden"
+        data-collapsed={bar.collapsed || undefined}
+        data-testid="nav-pill-band"
+      >
+        <div
+          ref={pill}
+          className="glass glass-pill mx-auto flex max-w-[720px] items-center justify-between gap-2 px-2 py-1 sm:px-3"
+          data-testid="nav-pill"
+          data-fit={fit}
+        >
+          <Link href="/" className="flex shrink-0 items-center gap-2.5 pl-1" aria-label="TDJ home">
             <Logo size={28} />
-            <span className="text-headline truncate">{bar.collapsed && bar.title ? bar.title : "TDJ"}</span>
+            {fit < 1 && (
+              <span className="text-headline max-w-[200px] truncate">
+                {bar.collapsed && bar.title ? bar.title : "TDJ"}
+              </span>
+            )}
           </Link>
-          <nav className="flex items-center" aria-label="Primary">
+          <nav className="flex shrink-0 items-center" aria-label="Primary">
             <LayoutGroup id="desktop-nav">
               {items.map((it) => {
                 const on = path === it.href;
@@ -117,10 +137,12 @@ export function Nav() {
                     key={it.href}
                     href={it.href}
                     aria-current={on ? "page" : undefined}
+                    aria-label={fit >= 3 ? it.label : undefined}
+                    title={fit >= 3 ? it.label : undefined}
                     onClick={() => !on && haptic(4)}
-                    className={`text-subhead relative isolate inline-flex min-h-11 items-center rounded-full px-3 ${
-                      on ? "font-semibold text-[var(--label)]" : "text-[var(--label-2)]"
-                    }`}
+                    className={`text-subhead relative isolate inline-flex min-h-11 items-center rounded-full ${
+                      fit >= 3 ? "min-w-11 justify-center px-2.5" : "px-3"
+                    } ${on ? "font-semibold text-[var(--label)]" : "text-[var(--label-2)]"}`}
                     style={{ transition: "color var(--dur-xs) var(--ease-settle) 60ms" }}
                   >
                     {on && (
@@ -131,15 +153,15 @@ export function Nav() {
                         aria-hidden
                       />
                     )}
-                    {it.label}
+                    {fit >= 3 ? <it.icon size={20} strokeWidth={on ? 2.25 : 1.75} aria-hidden /> : it.label}
                   </Link>
                 );
               })}
             </LayoutGroup>
           </nav>
-          <div className="flex min-w-[44px] items-center justify-end gap-1">
+          <div className="flex min-w-[44px] shrink-0 items-center justify-end gap-1">
             {bar.collapsed && bar.trailing}
-            {bar.collapsed && bar.primary}
+            {bar.collapsed && (fit >= 2 && bar.primaryCompact ? bar.primaryCompact : bar.primary)}
           </div>
         </div>
       </header>
