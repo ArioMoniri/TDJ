@@ -579,11 +579,12 @@ export function buildTanda(
     durationSec,
     cortina: null,
     reason,
-    cohesion: songs.some((x) => x.audio)
-      ? tandaCohesion(
-          songs.map((x) => x.audio),
-          slot.rhythm,
-        ).score
-      : undefined,
+    cohesion: (() => {
+      const c = tandaCohesion(
+        songs.map((x) => x.audio),
+        slot.rhythm,
+      );
+      return c.known > 0 ? c.score : undefined;
+    })(),
   };
 }
