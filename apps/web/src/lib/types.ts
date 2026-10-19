@@ -1,11 +1,13 @@
 import type { ContextFactorOption, UserOverrides } from "@tdj/core";
 
 export type {
+  AgentMemory,
   ComposeContext,
   ComposeOptions,
   ContextModel,
   Cortina,
   Feedback,
+  NightRules,
   OrchestraProfile,
   Playlist,
   ScoreCard,
@@ -13,6 +15,9 @@ export type {
   Tanda,
   UserOverrides,
 } from "@tdj/core";
+
+/** Composer options as kept in the browser: engine options plus the controls the user pinned against era presets. */
+export type AppOptions = Partial<import("@tdj/core").ComposeOptions> & { pinned?: string[] };
 
 export type AiProvider = "anthropic" | "openai" | "gemini" | "openrouter";
 export const AI_PROVIDERS: Array<[AiProvider, string]> = [
@@ -71,6 +76,8 @@ export interface UserSettings {
   theme: "auto" | "light" | "dark";
   region: "buenos-aires" | "europe" | "istanbul" | "asia" | "us";
   reduceGlass: boolean;
+  /** the assistant may learn preferences from feedback and apply them under tonight's explicit choices */
+  learn: boolean;
 }
 export const DEFAULT_NAMING = "{artist} - {title}";
 export const DEFAULT_SETTINGS: UserSettings = {
@@ -87,6 +94,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   theme: "auto",
   region: "europe",
   reduceGlass: false,
+  learn: true,
 };
 
 /** The user's database: engine overrides plus context-factor edits (kept outside core's UserOverrides). */

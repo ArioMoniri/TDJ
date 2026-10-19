@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test("compose a 4h golden set on desktop and export sheet opens", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Compose a milonga");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Compose");
   await page.getByRole("button", { name: /Compose the night/ }).click();
   await expect(page.locator("#result")).toBeVisible({ timeout: 60000 });
   await expect(page.locator("article[id^=tanda-]")).toHaveCount(

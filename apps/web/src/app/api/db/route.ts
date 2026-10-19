@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { dbEnabled, getOverrides, putOverrides, userFromRequest } from "@/lib/server/db";
-import type { AppOverrides } from "@/lib/types";
+import { dbEnabled, getUserRow, putUserRow, userFromRequest } from "@/lib/server/db";
+import type { AgentMemory, AppOverrides } from "@/lib/types";
 export const dynamic = "force-dynamic";
 
 const disabled = () =>
@@ -17,8 +17,8 @@ export async function GET(req: Request) {
   if (!dbEnabled()) return disabled();
   const u = userFromRequest(req);
   try {
-    const overrides = await getOverrides(u.id);
-    const res = NextResponse.json({ enabled: true, storage: "server", overrides });
+    const { overrides, memory } = await getUserRow(u.id);
+    const res = NextResponse.json({ enabled: true, storage: "server", overrides, memory });
     if (u.setCookie) res.headers.set("set-cookie", u.setCookie);
     return res;
   } catch (e) {
@@ -26,14 +26,20 @@ export async function GET(req: Request) {
   }
 }
 
+/** Body: `{ overrides }`, `{ memory }` or both; a bare overrides object is accepted too. Missing parts are kept. */
 export async function PUT(req: Request) {
   if (!dbEnabled()) return disabled();
   const u = userFromRequest(req);
-  const body = (await req.json().catch(() => null)) as { overrides?: AppOverrides } | AppOverrides | null;
+  const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body || typeof body !== "object") return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  const overrides = ("overrides" in body ? body.overrides : body) as AppOverrides;
+  const parts: { overrides?: AppOverrides; memory?: AgentMemory } = {};
+  if ("overrides" in body || "memory" in body) {
+    if (body.overrides && typeof body.overrides === "object")
+      parts.overrides = { ...(body.overrides as AppOverrides), updatedAt: new Date().toISOString() };
+    if (body.memory && typeof body.memory === "object") parts.memory = body.memory as AgentMemory;
+  } else parts.overrides = { ...(body as AppOverrides), updatedAt: new Date().toISOString() };
   try {
-    await putOverrides(u.id, { ...overrides, updatedAt: new Date().toISOString() });
+    await putUserRow(u.id, parts);
     const res = NextResponse.json({ ok: true, storage: "server" });
     if (u.setCookie) res.headers.set("set-cookie", u.setCookie);
     return res;

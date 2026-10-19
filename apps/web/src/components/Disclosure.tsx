@@ -1,5 +1,5 @@
 "use client";
-import { ChevronDown } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { type ReactNode, useId, useState } from "react";
 import { DUR, EASE } from "@/lib/motion";
@@ -19,23 +19,23 @@ export function Disclosure({
   const [open, setOpen] = useState(defaultOpen);
   const id = useId();
   return (
-    <div className={`${className} text-sm`} data-open={open || undefined}>
+    <div className={className} data-open={open || undefined}>
       <button
         type="button"
         aria-expanded={open}
         aria-controls={id}
         onClick={() => setOpen((v) => !v)}
-        className="flex min-h-11 w-full cursor-pointer items-center gap-2 text-left text-sm font-medium"
+        className="flex min-h-11 w-full items-center gap-3 text-left"
       >
+        {summary}
         <motion.span
-          animate={{ rotate: open ? 180 : 0 }}
+          animate={{ rotate: open ? 90 : 0 }}
           transition={{ duration: DUR.base, ease: EASE.out }}
-          className="inline-flex"
+          className="cell-chevron inline-flex"
           aria-hidden
         >
-          <ChevronDown size={16} />
+          <ChevronRight size={16} strokeWidth={2.5} />
         </motion.span>
-        {summary}
       </button>
       <AnimatePresence initial={false}>
         {open && (

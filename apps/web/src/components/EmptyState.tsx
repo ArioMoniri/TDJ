@@ -41,7 +41,7 @@ export function EmptyState({
           style={{ width: "100%", height: "auto", aspectRatio: "200 / 160" }}
         />
       </div>
-      <p className="text-muted text-sm">{children}</p>
+      <p className="text-subhead text-[var(--label-2)]">{children}</p>
       {action}
     </motion.div>
   );

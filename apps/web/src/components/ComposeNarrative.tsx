@@ -80,7 +80,7 @@ export function ComposeNarrative({ busy, className = "" }: { busy: boolean; clas
               style={{ width: "100%", height: "100%" }}
             />
           </div>
-          <StepLabel step={step} className="text-muted h-5 text-xs" />
+          <StepLabel step={step} className="text-footnote h-5 text-[var(--label-2)]" />
         </motion.div>
       )}
     </AnimatePresence>

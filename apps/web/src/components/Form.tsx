@@ -1,5 +1,5 @@
 "use client";
-import { Check, ChevronRight, ChevronsUpDown, LoaderCircle } from "lucide-react";
+import { Check, ChevronRight, ChevronsUpDown, LoaderCircle, Music } from "lucide-react";
 import { type HTMLAttributes, type ReactNode, useId, useState } from "react";
 import { haptic } from "@/lib/haptics";
 import { Sheet } from "./Sheet";
@@ -26,6 +26,16 @@ export function Group({
       <div className={`group-inset ${bodyClassName}`}>{children}</div>
       {footer && <p className="section-foot">{footer}</p>}
     </section>
+  );
+}
+
+/** Artwork tile glyph per rhythm: T / V / M, a note for the rest. */
+export function RhythmTile({ rhythm, label }: { rhythm: string; label?: string }) {
+  const g = rhythm === "tango" ? "T" : rhythm === "vals" ? "V" : rhythm === "milonga" ? "M" : null;
+  return (
+    <span className="tile-art" data-rhythm={rhythm} aria-label={label ?? rhythm} role="img">
+      {g ? <span className="text-footnote font-semibold">{g}</span> : <Music size={16} strokeWidth={2} />}
+    </span>
   );
 }
 
@@ -373,6 +383,7 @@ export function CheckRow({
   tile?: ReactNode;
 }) {
   return (
+    // biome-ignore lint/a11y/useSemanticElements: a checkmark row (Apple Music add-to-playlist), not a checkbox glyph
     <button
       type="button"
       role="checkbox"

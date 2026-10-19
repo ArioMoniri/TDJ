@@ -1,12 +1,18 @@
 "use client";
-import { Plus, Search, Trash2 } from "lucide-react";
+import { CircleMinus, Trash2 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
+import { SEARCH_FOCUS_EVENT } from "@/components/Nav";
 import { rise, spring } from "@/lib/motion";
 import type { Song } from "@/lib/types";
-import { Edited, Empty, Num, patchMap, Text, useDb } from "./shared";
+import { ActionRow, FieldRow, Group, PickerRow, RhythmTile, SwitchRow } from "../Form";
+import { SearchField } from "../SearchField";
+import { Sheet } from "../Sheet";
+import { SwipeRow } from "../SwipeRow";
+import { Empty, patchMap, useDb, useDbEdit, ValueCell } from "./shared";
 
 const RHYTHMS = ["tango", "vals", "milonga", "cancion", "foxtrot", "other"] as const;
+const RHYTHM_ITEMS: Array<[string, string]> = RHYTHMS.map((r) => [r, r[0]!.toUpperCase() + r.slice(1)]);
 const slug = (s: string) =>
   s
     .toLowerCase()
@@ -32,9 +38,11 @@ const eraOf = (y?: number): Song["era"] =>
                 : y < 1995
                   ? "nuevo"
                   : "contemporary";
+const num = (v: string) => (v === "" ? undefined : Number(v));
 
 export function SongsTab() {
   const { overrides, update } = useDb();
+  const editing = useDbEdit();
   const reduced = useReducedMotion();
   const [q, setQ] = useState("");
   const [rows, setRows] = useState<Song[]>([]);
@@ -83,6 +91,8 @@ export function SongsTab() {
       delete next[id];
       return { ...o, songs: next };
     });
+  const removeOwn = (id: string) =>
+    update((o) => ({ ...o, addedSongs: (o.addedSongs ?? []).filter((x) => x.id !== id) }));
   const addSong = () => {
     if (!form.title.trim() || !form.orchestra.trim()) return;
     const year = form.year ? Number(form.year) : null;
@@ -105,270 +115,211 @@ export function SongsTab() {
     setForm({ title: "", orchestra: "", singer: "", rhythm: "tango", year: "", energy: "", uri: "" });
     setAdding(false);
   };
+  const field = (id: string, label: string, key: keyof typeof form, extra: Record<string, unknown> = {}) => (
+    <FieldRow label={label} id={id}>
+      <input
+        id={id}
+        className="field field-value min-w-0 flex-1"
+        value={form[key]}
+        onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+        autoComplete="off"
+        {...extra}
+      />
+    </FieldRow>
+  );
 
   return (
-    <div className="space-y-4">
-      <label
-        htmlFor="db-search"
-        className="flex min-h-12 items-center gap-2 rounded-full border border-[rgb(var(--text)/.16)] bg-[rgb(var(--text)/.04)] px-4 focus-within:ring-2 focus-within:ring-[var(--accent)]"
-      >
-        <Search size={16} className="shrink-0 opacity-70" aria-hidden />
-        <span className="sr-only">Search the index</span>
-        <input
-          id="db-search"
-          type="search"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search title, orchestra, singer, year to edit…"
-          className="w-full bg-transparent py-2 outline-none placeholder:text-[rgb(var(--muted))]"
-          autoComplete="off"
-        />
-      </label>
+    <div>
+      <SearchField
+        id="db-search"
+        value={q}
+        onChange={setQ}
+        placeholder="Title, orchestra, singer or year"
+        label="Search the index"
+        busy={searching}
+        className="mt-3"
+        onFocusChange={(f) => window.dispatchEvent(new CustomEvent(SEARCH_FOCUS_EVENT, { detail: f }))}
+      />
       {q.length < 2 && <Empty crate>Search the index to edit a recording, or add your own below.</Empty>}
       {q.length >= 2 && !searching && rows.length === 0 && <Empty>Nothing matches “{q}”.</Empty>}
       {rows.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="db-table">
-            <thead>
-              <tr>
-                <th>Recording</th>
-                <th>Year</th>
-                <th>Singer</th>
-                <th>Rhythm</th>
-                <th>Energy</th>
-                <th>BPM</th>
-                <th>Spotify URI</th>
-                <th>Shown</th>
-                <th>State</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((s) => {
-                const p = (songs[s.id] ?? {}) as Partial<Song> & { hidden?: boolean };
-                const v = { ...s, ...p };
-                const edited = !!songs[s.id];
-                return (
-                  <tr key={s.id} data-song={s.id}>
-                    <td className="db-title">
-                      <span className="block max-w-56 truncate font-medium">{s.title}</span>
-                      <span className="text-muted block max-w-56 truncate text-xs">
-                        {s.orchestra}
-                        {s.singer ? ` / ${s.singer}` : ""}
-                      </span>
-                    </td>
-                    <td data-label="Year">
-                      <Num
-                        label={`Year of ${s.title}`}
-                        value={p.year}
-                        placeholder={s.year}
-                        min={1900}
-                        max={2030}
-                        onChange={(n) => setField(s, "year", n)}
-                      />
-                    </td>
-                    <td data-label="Singer">
-                      <Text
-                        label={`Singer of ${s.title}`}
-                        value={p.singer}
-                        placeholder={s.singer ?? "instrumental"}
-                        onChange={(t) => setField(s, "singer", t)}
-                      />
-                    </td>
-                    <td data-label="Rhythm">
-                      <select
-                        aria-label={`Rhythm of ${s.title}`}
-                        className="field w-24"
-                        value={v.rhythm}
-                        onChange={(e) => setField(s, "rhythm", e.target.value)}
-                      >
-                        {[...new Set([...RHYTHMS, s.rhythm])].map((r) => (
-                          <option key={r} value={r}>
-                            {r}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td data-label="Energy">
-                      <Num
-                        label={`Energy of ${s.title}`}
-                        value={p.energy}
-                        placeholder={s.energy}
-                        min={0}
-                        max={100}
-                        onChange={(n) => setField(s, "energy", n)}
-                      />
-                    </td>
-                    <td data-label="BPM">
-                      <Num
-                        label={`BPM of ${s.title}`}
-                        value={p.bpm}
-                        placeholder={s.bpm ?? "–"}
-                        min={40}
-                        max={240}
-                        onChange={(n) => setField(s, "bpm", n)}
-                      />
-                    </td>
-                    <td data-label="Spotify">
-                      <Text
-                        mono
-                        label={`Spotify URI of ${s.title}`}
-                        value={p.spotify?.uri}
-                        placeholder={s.spotify?.uri ?? "spotify:track:…"}
-                        onChange={(t) => setField(s, "spotify", t.trim() ? { uri: t.trim() } : null)}
-                      />
-                    </td>
-                    <td data-label="Shown">
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={!p.hidden}
-                        aria-label={`Show ${s.title} in sets`}
-                        onClick={() => setField(s, "hidden", p.hidden ? undefined : true)}
-                        className={`switch db-cell ${p.hidden ? "" : "switch-on"}`}
-                      >
-                        <span className="switch-track">
-                          <span className="switch-knob" />
-                        </span>
-                      </button>
-                    </td>
-                    <td data-label="State">
-                      <Edited on={edited} onRevert={() => revert(s.id)} />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-      <div className="border-t border-[rgb(var(--text)/.08)] pt-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="font-semibold">Your own recordings</h3>
-          <button
-            type="button"
-            className="btn btn-ghost text-sm"
-            onClick={() => setAdding((v) => !v)}
-            aria-expanded={adding}
-          >
-            <Plus size={15} /> Add a recording
-          </button>
-        </div>
-        {adding && (
-          <form
-            className="mt-3 grid gap-2 sm:grid-cols-3"
-            onSubmit={(e) => {
-              e.preventDefault();
-              addSong();
-            }}
-          >
-            <input
-              className="field"
-              placeholder="Title"
-              aria-label="Title"
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-              required
-            />
-            <input
-              className="field"
-              placeholder="Orchestra"
-              aria-label="Orchestra"
-              value={form.orchestra}
-              onChange={(e) => setForm({ ...form, orchestra: e.target.value })}
-              required
-            />
-            <input
-              className="field"
-              placeholder="Singer (blank = instrumental)"
-              aria-label="Singer"
-              value={form.singer}
-              onChange={(e) => setForm({ ...form, singer: e.target.value })}
-            />
-            <select
-              className="field"
-              aria-label="Rhythm"
-              value={form.rhythm}
-              onChange={(e) => setForm({ ...form, rhythm: e.target.value })}
-            >
-              {RHYTHMS.map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
-              ))}
-            </select>
-            <input
-              className="field"
-              type="number"
-              placeholder="Year"
-              aria-label="Year"
-              min={1900}
-              max={2030}
-              value={form.year}
-              onChange={(e) => setForm({ ...form, year: e.target.value })}
-            />
-            <input
-              className="field"
-              type="number"
-              placeholder="Energy 0–100"
-              aria-label="Energy"
-              min={0}
-              max={100}
-              value={form.energy}
-              onChange={(e) => setForm({ ...form, energy: e.target.value })}
-            />
-            <input
-              className="field font-mono text-xs sm:col-span-2"
-              placeholder="spotify:track:… (optional)"
-              aria-label="Spotify URI"
-              value={form.uri}
-              onChange={(e) => setForm({ ...form, uri: e.target.value })}
-            />
-            <button type="submit" className="btn btn-primary">
-              Save recording
-            </button>
-          </form>
-        )}
-        {(overrides.addedSongs ?? []).length === 0 ? (
-          <p className="text-muted mt-2 text-xs">
-            None yet. Added recordings join the index for your sets only.
-          </p>
-        ) : (
-          <ul className="mt-3 divide-y divide-[rgb(var(--text)/.08)]">
-            <AnimatePresence initial={false}>
-              {(overrides.addedSongs ?? []).map((s) => (
-                <motion.li
-                  key={s.id}
-                  layout={reduced ? false : "position"}
-                  variants={rise}
-                  initial="hidden"
-                  animate="show"
-                  exit="exit"
-                  transition={spring.thumb}
-                  className="flex min-h-11 items-center gap-3 py-1 text-sm"
-                >
-                  <span className="min-w-0 flex-1 truncate">
-                    {s.title}{" "}
-                    <span className="text-muted">
-                      · {s.orchestra}
-                      {s.singer ? ` / ${s.singer}` : ""} · {s.rhythm} · {s.year ?? "?"}
+        <div className="lg:grid lg:grid-cols-2 lg:gap-x-4">
+          {rows.map((s) => {
+            const p = (songs[s.id] ?? {}) as Partial<Song> & { hidden?: boolean };
+            const v = { ...s, ...p };
+            const edited = !!songs[s.id];
+            return (
+              <Group key={s.id} data-song={s.id} footer={edited ? "Edited · Revert in Edit mode" : undefined}>
+                <div className="cell" data-leading="art">
+                  <RhythmTile rhythm={v.rhythm} />
+                  <span className="min-w-0 flex-1">
+                    <span className="text-headline block truncate">{s.title}</span>
+                    <span className="text-subhead block truncate text-[var(--label-2)]">
+                      {s.orchestra}
+                      {s.singer ? ` · ${s.singer}` : ""}
                     </span>
                   </span>
-                  <button
-                    type="button"
-                    className="icon-btn"
-                    aria-label={`Remove ${s.title}`}
-                    onClick={() =>
-                      update((o) => ({ ...o, addedSongs: (o.addedSongs ?? []).filter((x) => x.id !== s.id) }))
-                    }
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                </motion.li>
-              ))}
-            </AnimatePresence>
-          </ul>
-        )}
-      </div>
+                  {editing && edited && (
+                    <button type="button" className="btn-plain -mr-2" onClick={() => revert(s.id)}>
+                      Revert
+                    </button>
+                  )}
+                </div>
+                <ValueCell
+                  label="Year"
+                  inputLabel={`Year of ${s.title}`}
+                  editing={editing}
+                  value={p.year}
+                  placeholder={s.year}
+                  type="number"
+                  min={1900}
+                  max={2030}
+                  onChange={(t) => setField(s, "year", num(t))}
+                />
+                <ValueCell
+                  label="Singer"
+                  inputLabel={`Singer of ${s.title}`}
+                  editing={editing}
+                  value={p.singer}
+                  placeholder={s.singer ?? "Instrumental"}
+                  onChange={(t) => setField(s, "singer", t)}
+                />
+                <PickerRow
+                  label="Rhythm"
+                  ariaLabel={`Rhythm of ${s.title}`}
+                  value={v.rhythm}
+                  items={
+                    [...new Map([...RHYTHM_ITEMS, [s.rhythm, s.rhythm]]).entries()] as Array<[string, string]>
+                  }
+                  onChange={(r) => r && setField(s, "rhythm", r)}
+                  disabled={!editing}
+                />
+                <ValueCell
+                  label="Energy"
+                  inputLabel={`Energy of ${s.title}`}
+                  editing={editing}
+                  value={p.energy}
+                  placeholder={s.energy}
+                  type="number"
+                  min={0}
+                  max={100}
+                  onChange={(t) => setField(s, "energy", num(t))}
+                />
+                <ValueCell
+                  label="BPM"
+                  inputLabel={`BPM of ${s.title}`}
+                  editing={editing}
+                  value={p.bpm}
+                  placeholder={s.bpm ?? "–"}
+                  type="number"
+                  min={40}
+                  max={240}
+                  onChange={(t) => setField(s, "bpm", num(t))}
+                />
+                <ValueCell
+                  label="Spotify"
+                  inputLabel={`Spotify URI of ${s.title}`}
+                  editing={editing}
+                  mono
+                  value={p.spotify?.uri}
+                  placeholder={s.spotify?.uri ?? "spotify:track:…"}
+                  onChange={(t) => setField(s, "spotify", t.trim() ? { uri: t.trim() } : null)}
+                />
+                <SwitchRow
+                  label="Shown in sets"
+                  checked={!p.hidden}
+                  onChange={(on) => setField(s, "hidden", on ? undefined : true)}
+                />
+              </Group>
+            );
+          })}
+        </div>
+      )}
+
+      <Group
+        header="Your recordings"
+        footer={
+          (overrides.addedSongs ?? []).length === 0
+            ? "None yet. Added recordings join the index for your sets only."
+            : "Added recordings join the index for your sets only."
+        }
+      >
+        <AnimatePresence initial={false}>
+          {(overrides.addedSongs ?? []).map((s) => (
+            <motion.div
+              key={s.id}
+              layout={reduced ? false : "position"}
+              variants={rise}
+              initial="hidden"
+              animate="show"
+              exit="exit"
+              transition={spring.thumb}
+            >
+              <SwipeRow
+                leading="art"
+                actions={[
+                  { kind: "destructive", label: "Delete", icon: Trash2, onClick: () => removeOwn(s.id) },
+                ]}
+              >
+                <div className="cell" data-leading="art">
+                  {editing ? (
+                    <button
+                      type="button"
+                      className="icon-btn icon-btn-bare -ml-3 text-[var(--destructive)]"
+                      aria-label={`Remove ${s.title}`}
+                      onClick={() => removeOwn(s.id)}
+                    >
+                      <CircleMinus size={22} strokeWidth={2} fill="currentColor" stroke="#fff" />
+                    </button>
+                  ) : (
+                    <RhythmTile rhythm={s.rhythm} />
+                  )}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate">{s.title}</span>
+                    <span className="text-footnote block truncate text-[var(--label-2)]">
+                      {s.orchestra}
+                      {s.singer ? ` · ${s.singer}` : ""} · {s.rhythm} · {s.year ?? "?"}
+                    </span>
+                  </span>
+                </div>
+              </SwipeRow>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+        <ActionRow label="Add a recording" onClick={() => setAdding(true)} />
+      </Group>
+
+      <Sheet
+        open={adding}
+        onClose={() => setAdding(false)}
+        title="Add a recording"
+        trailing="Save"
+        onTrailing={addSong}
+      >
+        <Group footer="Title and orchestra are required. Leave the singer blank for an instrumental.">
+          {field("own-title", "Title", "title", { required: true, "data-autofocus": true })}
+          {field("own-orchestra", "Orchestra", "orchestra", { required: true })}
+          {field("own-singer", "Singer", "singer", { placeholder: "Instrumental" })}
+          <PickerRow
+            label="Rhythm"
+            ariaLabel="Rhythm"
+            value={form.rhythm}
+            items={RHYTHM_ITEMS}
+            onChange={(r) => r && setForm({ ...form, rhythm: r })}
+          />
+          {field("own-year", "Year", "year", { type: "number", min: 1900, max: 2030, placeholder: "1941" })}
+          {field("own-energy", "Energy", "energy", {
+            type: "number",
+            min: 0,
+            max: 100,
+            placeholder: "0–100",
+          })}
+          {field("own-uri", "Spotify URI", "uri", {
+            placeholder: "spotify:track:…",
+            className: "field field-value min-w-0 flex-1 font-mono",
+          })}
+        </Group>
+      </Sheet>
     </div>
   );
 }

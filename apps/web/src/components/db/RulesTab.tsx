@@ -1,9 +1,11 @@
 "use client";
-import { Plus, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import type { MetaOrchestra, UserOverrides } from "@/lib/types";
-import { Stepper, Switch } from "../ui";
-import { useDb } from "./shared";
+import { ActionRow, FieldRow, Group, PickerRow, Row, StepperRow, SwitchRow } from "../Form";
+import { Sheet } from "../Sheet";
+import { SwipeRow } from "../SwipeRow";
+import { useDb, useDbEdit } from "./shared";
 
 type Rules = NonNullable<UserOverrides["rules"]>;
 const NUMERIC: Array<{
@@ -61,6 +63,7 @@ const NUMERIC: Array<{
 
 export function RulesTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
   const { overrides, update } = useDb();
+  const editing = useDbEdit();
   const rules = overrides.rules ?? {};
   const setRule = (key: keyof Rules, value: unknown) =>
     update((o) => {
@@ -69,185 +72,214 @@ export function RulesTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
       else next[key] = value;
       return { ...o, rules: next as Rules };
     });
+  const [teOpen, setTeOpen] = useState(false);
+  const [nbOpen, setNbOpen] = useState(false);
   const [teKey, setTeKey] = useState("");
   const [teVal, setTeVal] = useState("");
   const [nbId, setNbId] = useState(orchestras[0]?.id ?? "");
   const [nbVal, setNbVal] = useState("0.3");
   const te = rules.trackEnergy ?? {};
   const nb = rules.notBefore ?? {};
+  const addTe = () => {
+    const k = teKey.trim().toLowerCase();
+    const v = Number(teVal);
+    if (!k.includes("|") || !Number.isFinite(v)) return;
+    setRule("trackEnergy", { ...te, [k]: Math.max(0, Math.min(100, Math.round(v))) });
+    setTeKey("");
+    setTeVal("");
+    setTeOpen(false);
+  };
+  const addNb = () => {
+    const v = Number(nbVal);
+    if (!nbId || !Number.isFinite(v)) return;
+    setRule("notBefore", { ...nb, [nbId]: Math.max(0, Math.min(1, v)) });
+    setNbOpen(false);
+  };
   return (
-    <div className="space-y-5">
-      <p className="text-muted text-sm">
-        Rules set here override the composer's defaults for every set. Untouched rules follow the index.
-      </p>
-      <ul className="divide-y divide-[rgb(var(--text)/.08)]">
+    <div>
+      <Group
+        header="Rules"
+        footer="Rules set here override the composer's defaults for every set. Untouched rules follow the index."
+      >
         {NUMERIC.map((r) => {
           const v = rules[r.key] as number | undefined;
           return (
-            <li key={r.key} className="flex flex-wrap items-center justify-between gap-3 py-3">
-              <div className="min-w-0">
-                <div className="text-sm font-medium">{r.label}</div>
-                <div className="text-muted text-xs">
-                  {v === undefined ? `Index default ${r.def}${r.unit ?? ""}` : "Your rule"}
-                  {r.hint ? ` · ${r.hint}` : ""}
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Stepper
-                  label={r.label}
-                  value={v ?? r.def}
-                  min={r.min}
-                  max={r.max}
-                  step={r.step}
-                  unit={r.unit}
-                  onChange={(n) => setRule(r.key, n)}
-                />
-                {v !== undefined && (
-                  <button type="button" className="chip text-xs" onClick={() => setRule(r.key, undefined)}>
-                    reset
-                  </button>
-                )}
-              </div>
-            </li>
+            <StepperRow
+              key={r.key}
+              label={r.label}
+              sub={r.hint || undefined}
+              value={v ?? r.def}
+              unit={r.unit ?? ""}
+              display={v === undefined ? `Index default ${r.def}${r.unit ?? ""}` : undefined}
+              min={r.min}
+              max={r.max}
+              step={r.step}
+              onChange={(n) => setRule(r.key, n)}
+            >
+              {editing && v !== undefined && (
+                <button type="button" className="btn-plain" onClick={() => setRule(r.key, undefined)}>
+                  Revert
+                </button>
+              )}
+            </StepperRow>
           );
         })}
-        <li className="py-1">
-          <Switch
-            label="Mix vocal and instrumental inside a tanda"
-            hint={
-              rules.mixVocalInstrumental === undefined
-                ? "Index default: strict (one singer or all instrumental)"
-                : "Your rule"
-            }
-            checked={rules.mixVocalInstrumental ?? false}
-            onChange={(v) => setRule("mixVocalInstrumental", v)}
-          />
-        </li>
-      </ul>
+        <SwitchRow
+          label="Mix vocal and instrumental inside a tanda"
+          sub={
+            rules.mixVocalInstrumental === undefined
+              ? "Index default: strict (one singer or all instrumental)"
+              : "Your rule"
+          }
+          checked={rules.mixVocalInstrumental ?? false}
+          onChange={(v) => setRule("mixVocalInstrumental", v)}
+        />
+      </Group>
 
-      <div className="border-t border-[rgb(var(--text)/.08)] pt-4">
-        <h3 className="font-semibold">Track energy overrides</h3>
-        <p className="text-muted mt-1 text-xs">
-          Key is “title|orchestra-id” in lower case, e.g. “el flete|juan-d-arienzo”.
-        </p>
-        <ul className="mt-2 divide-y divide-[rgb(var(--text)/.08)]">
-          {Object.entries(te).map(([k, v]) => (
-            <li key={k} className="flex min-h-11 items-center gap-3 text-sm">
-              <span className="min-w-0 flex-1 truncate font-mono text-xs">{k}</span>
-              <span className="tabular-nums">{v}</span>
-              <button
-                type="button"
-                className="icon-btn"
-                aria-label={`Remove ${k}`}
-                onClick={() => {
+      <Group
+        header="Track energy"
+        footer="Key is “title|orchestra-id” in lower case, e.g. “el flete|juan-d-arienzo”."
+      >
+        {Object.entries(te).map(([k, v]) => (
+          <SwipeRow
+            key={k}
+            actions={[
+              {
+                kind: "destructive",
+                label: "Delete",
+                icon: Trash2,
+                onClick: () => {
                   const n = { ...te };
                   delete n[k];
                   setRule("trackEnergy", Object.keys(n).length ? n : undefined);
-                }}
-              >
-                <Trash2 size={15} />
-              </button>
-            </li>
-          ))}
-        </ul>
-        <form
-          className="mt-2 flex flex-wrap gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            const k = teKey.trim().toLowerCase();
-            const v = Number(teVal);
-            if (!k.includes("|") || !Number.isFinite(v)) return;
-            setRule("trackEnergy", { ...te, [k]: Math.max(0, Math.min(100, Math.round(v))) });
-            setTeKey("");
-            setTeVal("");
-          }}
-        >
-          <input
-            className="field min-w-0 flex-1 font-mono text-xs"
-            placeholder="title|orchestra-id"
-            aria-label="Track key"
-            value={teKey}
-            onChange={(e) => setTeKey(e.target.value)}
-          />
-          <input
-            className="field w-24"
-            type="number"
-            min={0}
-            max={100}
-            placeholder="0–100"
-            aria-label="Energy"
-            value={teVal}
-            onChange={(e) => setTeVal(e.target.value)}
-          />
-          <button type="submit" className="btn btn-ghost">
-            <Plus size={15} /> Add
-          </button>
-        </form>
-      </div>
+                },
+              },
+            ]}
+          >
+            <Row label={<span className="font-mono text-footnote">{k}</span>} value={v}>
+              {editing && (
+                <button
+                  type="button"
+                  className="btn-plain text-[var(--destructive)]"
+                  aria-label={`Remove ${k}`}
+                  onClick={() => {
+                    const n = { ...te };
+                    delete n[k];
+                    setRule("trackEnergy", Object.keys(n).length ? n : undefined);
+                  }}
+                >
+                  Remove
+                </button>
+              )}
+            </Row>
+          </SwipeRow>
+        ))}
+        <ActionRow label="Add a track energy…" onClick={() => setTeOpen(true)} />
+      </Group>
 
-      <div className="border-t border-[rgb(var(--text)/.08)] pt-4">
-        <h3 className="font-semibold">Not before</h3>
-        <p className="text-muted mt-1 text-xs">
-          Keep an orchestra out of the first part of the night (fraction 0–1; 0.5 = second half).
-        </p>
-        <ul className="mt-2 divide-y divide-[rgb(var(--text)/.08)]">
-          {Object.entries(nb).map(([id, v]) => (
-            <li key={id} className="flex min-h-11 items-center gap-3 text-sm">
-              <span className="min-w-0 flex-1 truncate">
-                {orchestras.find((o) => o.id === id)?.name ?? id}
-              </span>
-              <span className="tabular-nums">{v}</span>
-              <button
-                type="button"
-                className="icon-btn"
-                aria-label={`Remove ${id}`}
-                onClick={() => {
+      <Group
+        header="Not before"
+        footer="Keep an orchestra out of the first part of the night (0.5 = second half)."
+      >
+        {Object.entries(nb).map(([id, v]) => (
+          <SwipeRow
+            key={id}
+            actions={[
+              {
+                kind: "destructive",
+                label: "Delete",
+                icon: Trash2,
+                onClick: () => {
                   const n = { ...nb };
                   delete n[id];
                   setRule("notBefore", Object.keys(n).length ? n : undefined);
-                }}
-              >
-                <Trash2 size={15} />
-              </button>
-            </li>
-          ))}
-        </ul>
-        <form
-          className="mt-2 flex flex-wrap gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            const v = Number(nbVal);
-            if (!nbId || !Number.isFinite(v)) return;
-            setRule("notBefore", { ...nb, [nbId]: Math.max(0, Math.min(1, v)) });
-          }}
-        >
-          <select
-            className="field min-w-0 flex-1"
-            aria-label="Orchestra"
-            value={nbId}
-            onChange={(e) => setNbId(e.target.value)}
+                },
+              },
+            ]}
           >
-            {orchestras.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.name}
-              </option>
-            ))}
-          </select>
-          <input
-            className="field w-24"
-            type="number"
-            min={0}
-            max={1}
-            step={0.05}
-            aria-label="Fraction of the night"
-            value={nbVal}
-            onChange={(e) => setNbVal(e.target.value)}
+            <Row label={orchestras.find((o) => o.id === id)?.name ?? id} value={v}>
+              {editing && (
+                <button
+                  type="button"
+                  className="btn-plain text-[var(--destructive)]"
+                  aria-label={`Remove ${id}`}
+                  onClick={() => {
+                    const n = { ...nb };
+                    delete n[id];
+                    setRule("notBefore", Object.keys(n).length ? n : undefined);
+                  }}
+                >
+                  Remove
+                </button>
+              )}
+            </Row>
+          </SwipeRow>
+        ))}
+        <ActionRow label="Add an orchestra…" onClick={() => setNbOpen(true)} />
+      </Group>
+
+      <Sheet
+        open={teOpen}
+        onClose={() => setTeOpen(false)}
+        title="Track energy"
+        trailing="Add"
+        onTrailing={addTe}
+      >
+        <Group footer="The energy replaces the computed one for that recording.">
+          <FieldRow label="Track" id="te-key">
+            <input
+              id="te-key"
+              className="field field-value min-w-0 flex-1 font-mono"
+              placeholder="title|orchestra-id"
+              value={teKey}
+              onChange={(e) => setTeKey(e.target.value)}
+              data-autofocus
+              autoComplete="off"
+            />
+          </FieldRow>
+          <FieldRow label="Energy" id="te-val">
+            <input
+              id="te-val"
+              className="field field-value min-w-0 flex-1"
+              type="number"
+              min={0}
+              max={100}
+              placeholder="0–100"
+              value={teVal}
+              onChange={(e) => setTeVal(e.target.value)}
+            />
+          </FieldRow>
+        </Group>
+      </Sheet>
+      <Sheet
+        open={nbOpen}
+        onClose={() => setNbOpen(false)}
+        title="Not before"
+        trailing="Add"
+        onTrailing={addNb}
+      >
+        <Group>
+          <PickerRow
+            label="Orchestra"
+            ariaLabel="Orchestra"
+            value={nbId}
+            items={orchestras.map((o) => [o.id, o.name])}
+            onChange={(v) => v && setNbId(v)}
           />
-          <button type="submit" className="btn btn-ghost">
-            <Plus size={15} /> Add
-          </button>
-        </form>
-      </div>
+          <FieldRow label="Fraction of the night" id="nb-val">
+            <input
+              id="nb-val"
+              className="field field-value min-w-0 flex-1"
+              type="number"
+              min={0}
+              max={1}
+              step={0.05}
+              value={nbVal}
+              onChange={(e) => setNbVal(e.target.value)}
+            />
+          </FieldRow>
+        </Group>
+      </Sheet>
     </div>
   );
 }

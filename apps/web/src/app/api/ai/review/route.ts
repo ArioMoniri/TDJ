@@ -1,4 +1,4 @@
-import { DJ_RULES, toSetList } from "@tdj/core";
+import { DJ_RULES, summarizeMemory, toSetList } from "@tdj/core";
 import { NextResponse } from "next/server";
 import { aiFromHeaders, complete, LlmError } from "@/lib/server/llm";
 export const dynamic = "force-dynamic";
@@ -25,9 +25,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, text: text.trim().slice(0, 40), model: ai.model || "default" });
     }
     if (!body.playlist?.tandas) return NextResponse.json({ error: "playlist required" }, { status: 400 });
+    const memory =
+      body.memory && typeof body.memory === "object" ? summarizeMemory(body.memory) : "No memory yet.";
     const text = await complete({
       ...ai,
-      system: SYSTEM,
+      system: `${SYSTEM}\n\nWHAT YOU REMEMBER ABOUT THIS DJ:\n${memory}`,
       user: `${body.question || "Review this set and tell me the three most valuable improvements."}\n\nSET LIST:\n${toSetList(body.playlist)}`,
     });
     return NextResponse.json({ text, model: ai.model || "default", provider: ai.provider });

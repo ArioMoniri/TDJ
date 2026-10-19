@@ -1,8 +1,9 @@
 "use client";
-import { ChevronDown } from "lucide-react";
 import { EVIDENCE_COLOR, EVIDENCE_LABEL } from "@/lib/context";
 import type { ContextModel } from "@/lib/types";
-import { Empty, Num, useDb } from "./shared";
+import { Disclosure } from "../Disclosure";
+import { Group } from "../Form";
+import { Empty, useDb, useDbEdit, ValueCell } from "./shared";
 
 const FIELDS: Array<{
   key: "energyShift" | "tempoShift" | "valsShare" | "milongaShare" | "vocalRatioShift";
@@ -21,6 +22,7 @@ const FIELDS: Array<{
 
 export function ContextTab({ model }: { model: ContextModel | null }) {
   const { overrides, update } = useDb();
+  const editing = useDbEdit();
   const cf = overrides.contextFactors ?? {};
   if (!model) return <Empty>Loading the context model…</Empty>;
   const set = (fid: string, oid: string, key: string, value: number | undefined, original: unknown) =>
@@ -37,87 +39,78 @@ export function ContextTab({ model }: { model: ContextModel | null }) {
       return { ...o, contextFactors: next };
     });
   return (
-    <div className="space-y-2">
-      <p className="text-muted text-sm">
-        Each factor's shifts come from the research model (data/knowledge/context_factors.json). Edit a value
-        to override it for your sets; blanks follow the model.
+    <div>
+      <p className="section-foot mt-3">
+        Each factor's shifts come from the research model. Edit a value in Edit mode to override it for your
+        sets; blanks follow the model.
       </p>
       {model.factors.map((f) => {
         const edited = Object.keys(cf[f.id] ?? {}).length;
         return (
-          <details key={f.id} className="group rounded-xl border border-[rgb(var(--text)/.08)] px-3">
-            <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-sm font-medium [&::-webkit-details-marker]:hidden">
-              <ChevronDown size={16} className="transition-transform group-open:rotate-180" />
-              <span className="min-w-0 flex-1 truncate">{f.label}</span>
-              {edited > 0 && <span className="chip min-h-7 px-2 text-xs">{edited} edited</span>}
-            </summary>
-            <div className="overflow-x-auto pb-3">
-              <table className="db-table">
-                <thead>
-                  <tr>
-                    <th>Option</th>
-                    {FIELDS.map((x) => (
-                      <th key={x.key}>{x.label}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {f.options.map((op) => {
-                    const e = cf[f.id]?.[op.id] ?? {};
-                    return (
-                      <tr key={op.id}>
-                        <td className="db-title">
-                          <span className="flex items-center gap-1.5 font-medium">
-                            {op.evidence && (
-                              <span
-                                className="h-2 w-2 shrink-0 rounded-full"
-                                style={{ background: EVIDENCE_COLOR[op.evidence] ?? "#9ca3af" }}
-                                title={EVIDENCE_LABEL[op.evidence] ?? op.evidence}
-                                aria-hidden
-                              />
-                            )}
-                            {op.label}
-                          </span>
-                          {op.evidence && (
-                            <span className="text-muted block text-xs">
-                              {EVIDENCE_LABEL[op.evidence] ?? op.evidence}
-                            </span>
-                          )}
-                        </td>
-                        {FIELDS.map((x) => {
-                          const orig = op[x.key] as number | undefined | null;
-                          const cur = (e as Record<string, unknown>)[x.key] as number | undefined;
-                          const show = (n: number | null | undefined) =>
-                            n == null ? undefined : x.pct ? Math.round(n * 100) : n;
-                          return (
-                            <td key={x.key} data-label={x.label}>
-                              <Num
-                                label={`${f.label} ${op.label} ${x.label}`}
-                                value={show(cur)}
-                                placeholder={show(orig) ?? "–"}
-                                min={x.min}
-                                max={x.max}
-                                step={x.step}
-                                onChange={(n) =>
-                                  set(
-                                    f.id,
-                                    op.id,
-                                    x.key,
-                                    n === undefined ? undefined : x.pct ? n / 100 : n,
-                                    orig ?? undefined,
-                                  )
-                                }
-                              />
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </details>
+          <Group
+            key={f.id}
+            header={f.label}
+            footer={edited ? `${edited} option${edited === 1 ? "" : "s"} edited` : undefined}
+          >
+            {f.options.map((op) => {
+              const e = cf[f.id]?.[op.id] ?? {};
+              return (
+                <Disclosure
+                  key={op.id}
+                  className="cell flex-col items-stretch gap-0 py-0"
+                  summary={
+                    <span className="flex min-w-0 flex-1 items-center gap-3">
+                      <span
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{ background: EVIDENCE_COLOR[op.evidence ?? "speculative"] ?? "#9ca3af" }}
+                        title={EVIDENCE_LABEL[op.evidence ?? "speculative"]}
+                        aria-hidden
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate">{op.label}</span>
+                        <span className="text-footnote block truncate text-[var(--label-2)]">
+                          {EVIDENCE_LABEL[op.evidence ?? "speculative"]}
+                          {Object.keys(e).length ? " · edited" : ""}
+                        </span>
+                      </span>
+                    </span>
+                  }
+                >
+                  <div className="-mx-4 border-t border-[var(--separator)]">
+                    {FIELDS.map((x) => {
+                      const orig = op[x.key] as number | undefined | null;
+                      const cur = (e as Record<string, unknown>)[x.key] as number | undefined;
+                      const show = (n: number | null | undefined) =>
+                        n == null ? undefined : x.pct ? Math.round(n * 100) : n;
+                      return (
+                        <ValueCell
+                          key={x.key}
+                          label={x.label}
+                          inputLabel={`${f.label} ${op.label} ${x.label}`}
+                          editing={editing}
+                          value={show(cur)}
+                          placeholder={show(orig) ?? "–"}
+                          type="number"
+                          min={x.min}
+                          max={x.max}
+                          step={x.step}
+                          onChange={(t) =>
+                            set(
+                              f.id,
+                              op.id,
+                              x.key,
+                              t === "" ? undefined : x.pct ? Number(t) / 100 : Number(t),
+                              orig ?? undefined,
+                            )
+                          }
+                        />
+                      );
+                    })}
+                  </div>
+                </Disclosure>
+              );
+            })}
+          </Group>
         );
       })}
     </div>

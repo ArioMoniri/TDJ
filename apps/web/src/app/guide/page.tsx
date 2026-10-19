@@ -1,4 +1,6 @@
-import { BookOpenText, ExternalLink } from "lucide-react";
+import { ExternalLink } from "lucide-react";
+import { Group, Row } from "@/components/Form";
+import { PageHeader } from "@/components/PageHeader";
 import { EVIDENCE_COLOR, EVIDENCE_LABEL, fmtShift } from "@/lib/context";
 import { getCatalog } from "@/lib/server/catalog";
 
@@ -21,7 +23,7 @@ export default function Guide() {
     ],
     [
       "Inside a tanda",
-      "Default shape: slow start, climb, strongest third, settle on the fourth so the floor exits gracefully. Hammock (BsAs): announce with a hit, dip, close strongest.",
+      "Default shape: slow start, climb, strongest third, settle on the fourth so the floor exits gracefully. Hammock (Buenos Aires): announce with a hit, dip, close strongest.",
     ],
     [
       "Cortina",
@@ -54,112 +56,90 @@ export default function Guide() {
       "Real file paths, correct durations, cortinas that cue in cleanly, exports your DJ app can read without a fight.",
     ],
   ];
+  const article = (items: Array<[string, string]>) =>
+    items.map(([k, v]) => (
+      <div key={k} className="cell flex-col items-stretch gap-1 py-3">
+        <span className="text-headline">{k}</span>
+        <span className="text-body text-[var(--label-2)]">{v}</span>
+      </div>
+    ));
   return (
-    <div className="mx-auto max-w-3xl space-y-4">
-      <div className="surface p-5 sm:p-6">
-        <h1 className="font-serif text-3xl font-semibold">How TDJ composes</h1>
-        <p className="text-muted mt-1 text-sm">
-          The rules below come from working DJs and the research behind the index.
-        </p>
-      </div>
-      <div className="surface p-5 sm:p-6">
-        <dl className="divide-y divide-[rgb(var(--text)/.08)]">
-          {rows.map(([k, v]) => (
-            <div key={k} className="grid gap-1 py-4 first:pt-0 last:pb-0 sm:grid-cols-[9rem_1fr] sm:gap-4">
-              <dt className="tone-tango text-xs font-bold uppercase tracking-wider sm:pt-0.5">{k}</dt>
-              <dd className="text-sm leading-relaxed">{v}</dd>
-            </div>
-          ))}
-        </dl>
-      </div>
-      <div className="surface p-5 sm:p-6">
-        <h2 className="font-semibold">What a great set takes into account</h2>
-        <p className="text-muted mt-1 text-sm">
-          Five layers, from the notes inside a tanda to the booth. The full list with sources is in the
-          enhancements backlog.
-        </p>
-        <dl className="mt-3 divide-y divide-[rgb(var(--text)/.08)]">
-          {takes.map(([k, v]) => (
-            <div key={k} className="grid gap-1 py-3 sm:grid-cols-[9rem_1fr] sm:gap-4">
-              <dt className="tone-vals text-xs font-bold uppercase tracking-wider sm:pt-0.5">{k}</dt>
-              <dd className="text-sm leading-relaxed">{v}</dd>
-            </div>
-          ))}
-        </dl>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <a
-            href={`${REPO}/docs/ENHANCEMENTS.md#3-factors-a-great-milonga-set-takes-into-account`}
-            target="_blank"
-            rel="noreferrer"
-            className="btn btn-ghost text-sm"
-          >
-            <ExternalLink size={14} /> Factors, with sources
-          </a>
-          <a
-            href={`${REPO}/docs/AGENT_GUIDE.md`}
-            target="_blank"
-            rel="noreferrer"
-            className="btn btn-ghost text-sm"
-          >
-            <BookOpenText size={14} /> Rules the DJ follows
-          </a>
-        </div>
-      </div>
+    <article className="mx-auto max-w-[680px]">
+      <PageHeader
+        title="How TDJ composes"
+        subtitle="Rules from working DJs and the research behind the index."
+      />
+      <Group className="mt-2">{article(rows)}</Group>
+      <h2 className="text-title3 mt-8 px-4">What a great set takes into account</h2>
+      <p className="text-subhead mt-1 px-4 text-[var(--label-2)]">
+        Five layers, from the notes inside a tanda to the booth.
+      </p>
+      <Group>{article(takes)}</Group>
+      <Group header="Read more">
+        <Row
+          label="Factors, with sources"
+          chevron={false}
+          href={`${REPO}/docs/ENHANCEMENTS.md#3-factors-a-great-milonga-set-takes-into-account`}
+          className="text-[var(--tint)]"
+        >
+          <ExternalLink size={14} strokeWidth={2} className="cell-chevron" aria-hidden />
+        </Row>
+        <Row
+          label="Rules the DJ follows"
+          chevron={false}
+          href={`${REPO}/docs/AGENT_GUIDE.md`}
+          className="text-[var(--tint)]"
+        >
+          <ExternalLink size={14} strokeWidth={2} className="cell-chevron" aria-hidden />
+        </Row>
+      </Group>
       {contextModel && (
-        <div className="surface p-5 sm:p-6">
-          <h2 className="font-semibold">Context factors</h2>
-          <p className="text-muted mt-1 text-sm">
-            What “Tonight” on the composer does. Shifts are in energy points; vals and milonga are the share
-            of the night; the dot shows how solid the evidence is.
+        <>
+          <h2 className="text-title3 mt-8 px-4">Context factors</h2>
+          <p className="text-subhead mt-1 px-4 text-[var(--label-2)]">
+            What “Tonight” does. Shifts are energy points; vals and milonga are the share of the night.
           </p>
-          <ul className="text-muted mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
-            {Object.entries(EVIDENCE_LABEL).map(([k, l]) => (
-              <li key={k} className="inline-flex items-center gap-1.5">
-                <span
-                  className="h-2 w-2 rounded-full"
-                  style={{ background: EVIDENCE_COLOR[k] }}
-                  aria-hidden
-                />{" "}
-                {l}
-              </li>
-            ))}
-          </ul>
-          <div className="mt-4 space-y-4">
-            {contextModel.factors.map((f) => (
-              <section key={f.id}>
-                <h3 className="text-sm font-semibold">{f.label}</h3>
-                <ul className="mt-1.5 grid gap-x-6 gap-y-1 sm:grid-cols-2">
-                  {f.options.map((o) => {
-                    const bits = [
-                      fmtShift(o.energyShift) && `energy ${fmtShift(o.energyShift)}`,
-                      o.valsShare != null && `vals ${Math.round(o.valsShare * 100)}%`,
-                      o.milongaShare != null && `milonga ${Math.round(o.milongaShare * 100)}%`,
-                      o.cortinaGenres?.length && `cortinas ${o.cortinaGenres.slice(0, 3).join(", ")}`,
-                    ].filter(Boolean);
-                    return (
-                      <li key={o.id} className="flex items-baseline gap-2 text-sm">
-                        <span
-                          className="mt-1 h-2 w-2 shrink-0 rounded-full"
-                          style={{ background: EVIDENCE_COLOR[o.evidence ?? "speculative"] }}
-                          title={EVIDENCE_LABEL[o.evidence ?? "speculative"]}
-                          aria-hidden
-                        />
-                        <span className="min-w-0">
-                          <span className="font-medium">{o.label}</span>
-                          {bits.length > 0 && <span className="text-muted"> · {bits.join(" · ")}</span>}
-                          {o.notes && (
-                            <span className="text-muted block text-xs leading-snug">{o.notes}</span>
-                          )}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </section>
-            ))}
-          </div>
-        </div>
+          {contextModel.factors.map((f) => (
+            <Group key={f.id} header={f.label}>
+              {f.options.map((o) => {
+                const bits = [
+                  fmtShift(o.energyShift) && `energy ${fmtShift(o.energyShift)}`,
+                  o.valsShare != null && `vals ${Math.round(o.valsShare * 100)}%`,
+                  o.milongaShare != null && `milonga ${Math.round(o.milongaShare * 100)}%`,
+                  o.cortinaGenres?.length && `cortinas ${o.cortinaGenres.slice(0, 3).join(", ")}`,
+                ].filter(Boolean);
+                return (
+                  <div key={o.id} className="cell items-start">
+                    <span
+                      className="mt-2 h-2 w-2 shrink-0 rounded-full"
+                      style={{ background: EVIDENCE_COLOR[o.evidence ?? "speculative"] }}
+                      title={EVIDENCE_LABEL[o.evidence ?? "speculative"]}
+                      aria-hidden
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block">
+                        {o.label}
+                        {bits.length > 0 && (
+                          <span className="text-subhead text-[var(--label-2)]"> · {bits.join(" · ")}</span>
+                        )}
+                      </span>
+                      {o.notes && (
+                        <span className="text-footnote block text-[var(--label-2)]">{o.notes}</span>
+                      )}
+                    </span>
+                  </div>
+                );
+              })}
+            </Group>
+          ))}
+          <p className="section-foot mt-3">
+            Dot:{" "}
+            {Object.entries(EVIDENCE_LABEL)
+              .map(([, l]) => l)
+              .join(" · ")}
+          </p>
+        </>
       )}
-    </div>
+    </article>
   );
 }
