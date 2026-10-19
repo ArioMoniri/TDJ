@@ -118,8 +118,15 @@ export function Composer() {
   const prevScore = useRef<number | null>(null);
   /** energy per tanda before the last swap/recompose (keyed by index) */
   const prevEnergy = useRef<Record<number, number>>({});
-  /** changes on a fresh set (new seed or a different number of tandas): drives the reveal + card stagger */
-  const [revealKey, setRevealKey] = useState<string>("");
+  /**
+   * `key` changes on a fresh set (Compose pressed, or a recompose that changed the tanda count) and drives the
+   * full reveal (score 0 → n, curve draw-on, card stagger). `fresh` is true for the commit that mounts it only.
+   * Feedback / "Tell the DJ" with the same tanda count keep the key: the curve morphs and the score counts on.
+   */
+  const [reveal, setReveal] = useState<{ key: string; fresh: boolean }>({ key: "", fresh: false });
+  useEffect(() => {
+    if (reveal.fresh) setReveal((r) => ({ ...r, fresh: false }));
+  }, [reveal]);
   const reduced = useReducedMotion();
   const wide = useMediaQuery("(min-width: 640px)", true);
   useEffect(() => setHydrated(true), []);
@@ -172,6 +179,8 @@ export function Composer() {
         return;
       }
       remember(playlist);
+      const morph = !!opts && !!playlist && p.tandas.length === playlist.tandas.length;
+      if (!morph) setReveal({ key: String(p.options.seed), fresh: true });
       setPlaylist(p);
       setActive(null);
       haptic([10, 40, 10]);
@@ -321,13 +330,10 @@ export function Composer() {
   const lockedCount = playlist?.tandas.filter((t) => t.locked).length ?? 0;
   const playlists = meta?.referencePlaylists ?? [];
   const dbChanges = overridesReady && Object.keys(overrides).some((k) => k !== "updatedAt");
-  // A fresh set = new seed or a different tanda count → full reveal; otherwise the curve morphs and the score counts on.
-  const setKey = playlist ? `${playlist.options.seed}-${playlist.tandas.length}` : "";
-  const fresh = setKey !== revealKey;
-  useEffect(() => {
-    if (setKey !== revealKey) setRevealKey(setKey);
-  }, [setKey, revealKey]);
-  const scoreFrom = fresh ? 0 : (prevScore.current ?? 0);
+  // a restored playlist (localStorage) has no reveal key yet: adopt it without animating
+  const setKey = reveal.key || (playlist ? String(playlist.options.seed) : "");
+  const fresh = reveal.fresh;
+  const scoreFrom = fresh ? 0 : (prevScore.current ?? playlist?.score.total ?? 0);
   const errorNudge = useMemo(
     () => (errorKey && !reduced ? { x: [0, -4, 4, -2, 0] } : { x: 0 }),
     [errorKey, reduced],
@@ -606,7 +612,7 @@ export function Composer() {
                 </div>
                 <div className="text-right">
                   <div className="text-3xl font-semibold tabular-nums">
-                    <ScoreCounter value={playlist.score.total} playKey={setKey} from={scoreFrom} />
+                    <ScoreCounter key={setKey} value={playlist.score.total} playKey={setKey} from={scoreFrom} />
                     <motion.span
                       key={`verdict-${setKey}`}
                       initial={fresh ? { opacity: 0 } : false}
