@@ -117,8 +117,14 @@ export function sourceFor(
   const sp = patch?.spotify ?? song.spotify;
   if (spotifyConnected && sp?.uri) return { kind: "spotify", ref: spotifyId(sp.uri) };
   const r = patch?.resolved ?? song.resolved;
-  if (r?.previewUrl) return { kind: "preview", ref: r.previewUrl };
+  // the cached link is a hint (Deezer signs previews for ~24 h): play through /api/preview, which fetches a fresh one
+  if (r?.previewUrl) return { kind: "preview", ref: previewEndpoint(r) };
   return null;
+}
+
+/** Our own preview URL for a resolved track (redirects to the provider's current link). */
+export function previewEndpoint(r: NonNullable<Song["resolved"]>): string {
+  return `/api/preview?provider=${encodeURIComponent(r.provider)}&id=${encodeURIComponent(r.id)}`;
 }
 
 export function trackFor(song: Song, source: PlayerSource): PlayerTrack {

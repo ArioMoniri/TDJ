@@ -277,7 +277,7 @@ test("preview tanda: the tanda menu chains the tanda's previews in the mini-play
   page,
 }) => {
   const wav = silentWav();
-  await page.route(/dzcdn\.net/, (route) =>
+  await page.route(/dzcdn\.net|\/api\/preview\?/, (route) =>
     route.fulfill({
       status: 200,
       contentType: "audio/wav",
