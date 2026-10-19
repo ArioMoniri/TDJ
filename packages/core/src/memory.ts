@@ -9,14 +9,16 @@ export function applyMemory(
   memory?: AgentMemory | null,
 ): Partial<ComposeOptions> {
   const recent = recentFromMemory(memory);
-  if (!memory?.preferences) return recent ? { recent, ...partial } : partial;
+  const withRecent = (o: Partial<ComposeOptions>): Partial<ComposeOptions> =>
+    o.recent || !recent ? o : { ...o, recent };
+  if (!memory?.preferences) return withRecent(partial);
   const { rules, context, ...prefs } = memory.preferences;
-  return {
+  return withRecent({
     ...prefs,
     ...partial,
     rules: { ...(rules ?? {}), ...(partial.rules ?? {}) },
     context: { ...(context ?? {}), ...(partial.context ?? {}) },
-  };
+  });
 }
 
 /** Record a composed set (keeps the last 50). */
@@ -59,7 +61,8 @@ export function rememberFeedback(
     prefs.customPattern = "TTVTTMTTV";
   }
   if ((counts.get("shorter-cortinas") ?? 0) >= 2) prefs.cortinaLengthSec = 30;
-  if ((counts.get("fewer-repeats") ?? 0) >= 2) prefs.excludeOrchestras = prefs.excludeOrchestras ?? [];
+  if ((counts.get("fewer-repeats") ?? 0) >= 2)
+    prefs.orchestraRepeatGap = Math.max(prefs.orchestraRepeatGap ?? 6, 9);
   return {
     ...memory,
     feedbackHistory: [{ at, playlistId, feedback, instruction }, ...memory.feedbackHistory].slice(0, 100),

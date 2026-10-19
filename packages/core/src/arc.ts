@@ -102,9 +102,13 @@ export function arcTarget(
     case "single-peak":
       y = lo + (hi - lo) * Math.sin(Math.PI * Math.min(1, Math.max(0, x))) ** 1.05;
       break;
-    case "marathon-plateau":
-      y = lo + (hi - lo) * Math.min(1, x / 0.3) * (x > 0.78 ? 0.45 + 0.55 * ((1 - x) / 0.22) : 1) * 0.92;
+    case "marathon-plateau": {
+      // a marathon block is not a wall: plateau at 78 % of the range, a breather at 55 %, a second rise at 85 %
+      const plateau = lo + (hi - lo) * 0.78 * Math.min(1, x / 0.3);
+      y = plateau - bump(0.55, 0.06, (hi - lo) * 0.16) + bump(0.85, 0.06, (hi - lo) * 0.14);
+      if (x > 0.92) y -= (hi - lo) * 0.3 * ((x - 0.92) / 0.08);
       break;
+    }
     case "gentle":
       y = lo + (hi - lo) * 0.7 * Math.sin(Math.PI * x);
       break;

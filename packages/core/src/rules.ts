@@ -4,7 +4,7 @@
  */
 export const CORPUS_CAPS: Record<string, number> = {
   "osvaldo-pugliese": 1,
-  "juan-d-arienzo": 3,
+  "juan-d-arienzo": 4,
   "carlos-di-sarli": 2,
   "anibal-troilo": 2,
   "alfredo-gobbi": 1,
@@ -57,7 +57,7 @@ export const VALS_BANK: Record<string, number> = {
   "juan-d-arienzo": 9,
   "alfredo-de-angelis": 8,
   "anibal-troilo": 8,
-  "orquesta-tipica-victor": 8,
+  "orquesta-tipica-victor": 2,
   "miguel-calo": 7,
   "enrique-rodriguez": 5,
   "pedro-laurenz": 5,
@@ -67,6 +67,23 @@ export const VALS_BANK: Record<string, number> = {
   "francisco-canaro": 3,
   "angel-d-agostino": 3,
   "carlos-di-sarli": 2,
+};
+/** first vals slot (≈10 % of the night): warm-up valses (Canaro, Lomuto–Omar, Donato, OTV instr., Rodríguez), not Biagi */
+export const WARMUP_VALS_BANK: Record<string, number> = {
+  "francisco-canaro": 9,
+  "enrique-rodriguez": 8,
+  "edgardo-donato": 7,
+  "francisco-lomuto": 6,
+  "orquesta-tipica-victor": 4,
+  "alfredo-de-angelis": 5,
+  "miguel-calo": 5,
+  "ricardo-tanturi": 4,
+  "anibal-troilo": 4,
+  "juan-d-arienzo": 3,
+  "pedro-laurenz": 3,
+  "angel-d-agostino": 3,
+  "carlos-di-sarli": 3,
+  "rodolfo-biagi": 1.5,
 };
 export const MILONGA_BANK: Record<string, number> = {
   "edgardo-donato": 11,
@@ -82,6 +99,33 @@ export const MILONGA_BANK: Record<string, number> = {
   "ricardo-tanturi": 1.5,
   "enrique-rodriguez": 1.5,
 };
+
+/** closing versions of La Cumparsita in the reference corpus (orchestra → recording years); profiles may add more */
+export const CUMPARSITA_CLOSING_YEARS: Record<string, number[]> = {
+  "juan-d-arienzo": [1937, 1951, 1955, 1963],
+  "anibal-troilo": [1943, 1963],
+  "carlos-di-sarli": [1951, 1955],
+  "angel-d-agostino": [1945],
+  "rodolfo-biagi": [1942],
+  "osvaldo-pugliese": [1959, 1961],
+  "alfredo-de-angelis": [1961],
+  "francisco-canaro": [1929, 1951],
+  "francisco-lomuto": [1938],
+  "ricardo-tanturi": [1940],
+};
+/** orchestras that close reference nights (última tanda before La Cumparsita) */
+export const ULTIMA_CLOSERS = new Set([
+  "osvaldo-pugliese",
+  "juan-d-arienzo",
+  "angel-d-agostino",
+  "carlos-di-sarli",
+  "alfredo-de-angelis",
+  "anibal-troilo",
+  "ricardo-tanturi",
+  "rodolfo-biagi",
+  "miguel-calo",
+  "enrique-rodriguez",
+]);
 
 export const DJ_RULES = `Programming rules distilled from 31 reference milonga sets (619 tandas) and expert reviews:
 1. Tango tandas are 4 tracks; vals and milonga tandas are 3. Cycle TTVTTM (≈15 tango : 3 vals : 3 milonga per 4 h). Vals and milonga tandas are never adjacent. First tanda is always tango.

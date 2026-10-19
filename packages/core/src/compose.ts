@@ -2,19 +2,28 @@ import { planSlots, sanitizeOptions } from "./arc";
 import type { Catalog } from "./catalog";
 import { applyContextToOptions, BUILTIN_CONTEXT, resolveContext } from "./context";
 import { cortinaPool, pickCortina, planCortinas } from "./cortinas";
-import { isDanceable, normTitle } from "./energy";
-import { withEraSettings } from "./profiles";
+import { isDanceableSong, normTitle } from "./energy";
+import { ERA_PRESETS, ERA_SETTINGS } from "./profiles";
 import { makeRng } from "./rng";
-import { OPENERS } from "./rules";
+import { CORPUS_CAPS, CUMPARSITA_CLOSING_YEARS, DEFAULT_CAP, OPENERS } from "./rules";
 import { scorePlaylist } from "./score";
-import { type BuildContext, buildTanda, families, type Scoring, type TandaCandidate } from "./tanda";
+import {
+  type BuildContext,
+  buildTanda,
+  families,
+  isEarlyDArienzo,
+  type Scoring,
+  type TandaCandidate,
+} from "./tanda";
 import type {
   ComposeOptions,
   ContextModel,
   Cortina,
   DanceRhythm,
+  NightRules,
   Playlist,
   PlaylistStats,
+  Slot,
   Song,
   Tanda,
 } from "./types";
@@ -60,41 +69,170 @@ const CUMPARSITA_PREF = [
   "francisco-canaro",
   "alfredo-de-angelis",
 ];
-const ULTIMA_PREF = [
+/** corpus rule 15: the última is Pugliese, D'Arienzo, D'Agostino–Vargas, Di Sarli, De Angelis instr., Troilo–Fiorentino … */
+export const ULTIMA_POOL = [
+  "osvaldo-pugliese",
   "juan-d-arienzo",
+  "angel-d-agostino",
   "carlos-di-sarli",
+  "alfredo-de-angelis",
   "anibal-troilo",
   "ricardo-tanturi",
-  "miguel-calo",
   "rodolfo-biagi",
-  "osvaldo-pugliese",
-  "alfredo-de-angelis",
+  "miguel-calo",
   "enrique-rodriguez",
-  "angel-d-agostino",
 ];
+const ULTIMA_INSTRUMENTAL_OK = new Set([
+  "osvaldo-pugliese",
+  "juan-d-arienzo",
+  "carlos-di-sarli",
+  "alfredo-de-angelis",
+  "anibal-troilo",
+]);
+/** a "colour" tanda: one softer, elegant tanda in the breather after the first peak */
+const COLOUR_ORCHESTRAS = [
+  "miguel-calo",
+  "osvaldo-fresedo",
+  "lucio-demare",
+  "alfredo-de-angelis",
+  "quinteto-pirincho",
+  "francisco-canaro",
+];
+const TANDA_POOL_EXCLUDES = ["guitarras-solo-singer", "orquesta-unspecified"];
+
+/** closing-version years for an orchestra: profile `cumparsitaVersions` ∪ corpus `role:"cumparsita"` years */
+export function cumparsitaYears(cat: Catalog, orchestraId: string): Set<number> {
+  const years = new Set<number>([
+    ...(cat.profile(orchestraId)?.cumparsitaVersions ?? []),
+    ...(CUMPARSITA_CLOSING_YEARS[orchestraId] ?? []),
+  ]);
+  for (const f of cat.corpus.famousRecordings ?? [])
+    if (f.role === "cumparsita" && f.orchestraId === orchestraId && f.year) years.add(f.year);
+  return years;
+}
+
+/** La Cumparsita rows a DJ closes with: a corpus/profile year when the orchestra has them, never a placeholder, instrumental unless the corpus says otherwise */
+function cumparsitaCandidates(cat: Catalog, o: ComposeOptions): Song[] {
+  const all = cat.songs.filter(
+    (s) =>
+      normTitle(s.title) === "la cumparsita" &&
+      s.rhythm === "tango" &&
+      !s.yearApprox &&
+      !!s.year &&
+      (o.eras.includes("all") || s.era.startsWith("golden") || s.era === "post-golden"),
+  );
+  // orchestras with documented closing versions first; others only when none of those exist in this era
+  const known = all.filter((s) => cumparsitaYears(cat, s.orchestraId).has(s.year!));
+  const filtered = known.length
+    ? known
+    : all.filter((s) => !s.vocal && !cumparsitaYears(cat, s.orchestraId).size);
+  const bounds = o.eras.map((e) => ERA_PRESETS[e]?.years).filter((y): y is [number, number] => !!y);
+  const lo = bounds.length ? Math.min(...bounds.map((b) => b[0])) : 1900;
+  const hi = bounds.length ? Math.max(...bounds.map((b) => b[1])) : 2100;
+  // a night outside the golden age (post-golden, nuevo …) closes with a version of its own era when one exists
+  if (lo > 1955) {
+    const own = filtered.filter((s) => s.year! >= lo && s.year! <= hi);
+    if (own.length) return own;
+  }
+  return filtered.length ? filtered : all.filter((s) => !s.vocal);
+}
+function cumparsitaWeight(cat: Catalog, o: ComposeOptions, s: Song): number {
+  const i = CUMPARSITA_PREF.indexOf(s.orchestraId);
+  const corpus = cat.fame.get(`la cumparsita|${s.orchestraId}`);
+  const years = cumparsitaYears(cat, s.orchestraId);
+  const bounds = o.eras.map((e) => ERA_PRESETS[e]?.years).filter((y): y is [number, number] => !!y);
+  const inEra = bounds.some((b) => s.year! >= b[0] && s.year! <= b[1]);
+  return (
+    (i === -1 ? 0.05 : 1.6 - i * 0.2) *
+    (s.selection ? 1.3 : 1) *
+    (corpus?.role === "cumparsita" ? 1 + (corpus.fame ?? 0) : 0.4) *
+    (years.has(s.year!) ? 2.5 : 1) *
+    (inEra ? 4 : 1)
+  );
+}
+
+/** The scoring hooks the tanda builder reads: one construction for compose() and swapTanda() (wiring audit fix 6). */
+export function makeScoring(cat: Catalog, o: ComposeOptions, contextModel?: ContextModel): Scoring {
+  const rules: NightRules = o.rules ?? {};
+  const rc = resolveContext(o.context, contextModel ?? BUILTIN_CONTEXT);
+  const extraBl = new Set([...cat.blacklist]);
+  const puglieseOnce = rules.puglieseOnce ?? o.hours < 6;
+  return {
+    energy: (id) => cat.profile(id)?.energy ?? 50,
+    phase: (id) => cat.profile(id)?.phase,
+    tier: (id) => cat.profile(id)?.tier ?? 3,
+    notBefore: (id) => {
+      const nb = o.overrides?.rules?.notBefore?.[id] ?? cat.profile(id)?.notBefore ?? 0;
+      // long nights get two Pugliese slots: instrumentals from ~45 %, the vocal one late
+      return id === "osvaldo-pugliese" && o.hours >= 6 && !puglieseOnce ? Math.min(nb, 0.42) : nb;
+    },
+    style: (id) => cat.profile(id)?.style,
+    preferStyles: rc.preferStyles,
+    avoidStyles: rc.avoidStyles,
+    isDanceable: (s) => isDanceableSong(s, extraBl),
+    canonical: cat.corpus.canonicalTandas as Scoring["canonical"],
+    guardiaOnly: o.eras.every((e) => e === "guardia-vieja"),
+    maxPerNight: (id) => {
+      const m = cat.profile(id)?.maxPerNight;
+      const v =
+        m === undefined
+          ? undefined
+          : typeof m === "object"
+            ? o.hours >= 6
+              ? (m["6"] ?? m["4"])
+              : (m["4"] ?? m["6"])
+            : m;
+      if (id === "osvaldo-pugliese") return puglieseOnce ? 1 : Math.max(2, v ?? 2);
+      return v;
+    },
+    notAfter: (id) => cat.profile(id)?.notAfter,
+    neverClose: (id) => !!cat.profile(id)?.neverClose,
+    nonDance: (id, title, year) => cat.nonDance(id, title, year),
+    profile: (id) => cat.profile(id),
+    singerOk: (id, singer) => cat.singerOk(id, singer),
+    maxDifficulty: o.maxDifficulty,
+    vocalBias: o.vocalBias,
+    tempoShift: o.tempoShift,
+    preferOrchestras: o.preferOrchestras,
+  };
+}
+
+/** dance-rhythm rows per orchestra over the whole catalogue: singer shares are judged against the orchestra's full output */
+function orchTotals(cat: Catalog): Map<string, number> {
+  const m = new Map<string, number>();
+  for (const [id, songs] of cat.byOrchestra)
+    m.set(
+      id,
+      songs.filter((s) => s.rhythm === "tango" || s.rhythm === "vals" || s.rhythm === "milonga").length,
+    );
+  return m;
+}
+
+const famKey = (t: { orchestraId: string; singer: string | null; vocal: boolean }) =>
+  `${t.orchestraId}|${t.singer ?? ""}|${t.vocal}`;
 
 export function compose(
   partial: Partial<ComposeOptions>,
   deps: ComposeDeps,
   extras: ComposeExtras = {},
 ): Playlist {
+  // precedence (wiring audit fix 1): defaults → era settings → DB rules → tonight's explicit request → context (unset keys only)
+  const req = Object.fromEntries(
+    Object.entries(partial).filter(([k, v]) => v !== undefined && k !== "explicit"),
+  ) as Partial<ComposeOptions>;
+  const explicitKeys = new Set(partial.explicit ?? Object.keys(req));
+  const era = req.eras?.[0] ?? "golden";
+  const { notes: _n, rules: eraRules, ...eraDefaults } = ERA_SETTINGS[era] ?? ERA_SETTINGS.golden!;
   let o: ComposeOptions = sanitizeOptions({
     ...DEFAULT_OPTIONS,
-    ...withEraSettings(partial),
-    ...(partial.overrides?.rules ?? {}),
+    ...eraDefaults,
+    ...(req.overrides?.rules ?? {}),
+    ...req,
+    rules: { ...eraRules, ...(req.rules ?? {}) },
   });
   const rules = o.rules ?? {};
   const rc = resolveContext(o.context, deps.contextModel ?? BUILTIN_CONTEXT);
-  o = applyContextToOptions(o, rc);
-  // what the DJ set explicitly tonight always wins over context suggestions (sizes, pattern)
-  const explicit = sanitizeOptions({ ...o, ...partial });
-  if (partial.tangoTandaSize !== undefined) o.tangoTandaSize = explicit.tangoTandaSize;
-  if (partial.valsTandaSize !== undefined) o.valsTandaSize = explicit.valsTandaSize;
-  if (partial.milongaTandaSize !== undefined) o.milongaTandaSize = explicit.milongaTandaSize;
-  if (partial.pattern !== undefined && partial.pattern !== "classic") {
-    o.pattern = partial.pattern;
-    if (partial.customPattern !== undefined) o.customPattern = partial.customPattern;
-  }
+  o = sanitizeOptions(applyContextToOptions(o, rc, explicitKeys));
   const seed = o.seed ?? Math.floor(Math.random() * 1e9);
   o.seed = seed;
   const rng = makeRng(seed);
@@ -109,7 +247,8 @@ export function compose(
     o.trackSecByRhythm = tsr;
   }
   const breakMin = rules.showBreakAt != null ? (rules.showBreakMinutes ?? 20) : 0;
-  const slots = planSlots(breakMin ? { ...o, hours: Math.max(0.5, o.hours - breakMin / 60) } : o);
+  const playHours = Math.max(0.5, o.hours - breakMin / 60);
+  const slots = planSlots(breakMin ? { ...o, hours: playHours } : o);
   const breakAfter =
     rules.showBreakAt != null
       ? Math.max(1, Math.min(slots.length - 2, Math.round(rules.showBreakAt * (slots.length - 1))))
@@ -123,29 +262,7 @@ export function compose(
     if (breakAfter >= 0 && s.index === breakAfter + 2) s.targetEnergy -= 4;
   }
   const cat = deps.catalog;
-  const extraBl = new Set([...cat.blacklist]);
-  const sc: Scoring = {
-    energy: (id) => cat.profile(id)?.energy ?? 50,
-    phase: (id) => cat.profile(id)?.phase,
-    tier: (id) => cat.profile(id)?.tier ?? 3,
-    notBefore: (id) => o.overrides?.rules?.notBefore?.[id] ?? cat.profile(id)?.notBefore ?? 0,
-    style: (id) => cat.profile(id)?.style,
-    preferStyles: rc.preferStyles,
-    avoidStyles: rc.avoidStyles,
-    isDanceable: (s) => isDanceable(s.title, s.rhythm, extraBl),
-    canonical: cat.corpus.canonicalTandas as Scoring["canonical"],
-    guardiaOnly: o.eras.every((e) => e === "guardia-vieja"),
-    maxPerNight: (id) =>
-      id === "osvaldo-pugliese" && rules.puglieseOnce === false
-        ? 2
-        : (cat.profile(id) as { maxPerNight?: number } | undefined)?.maxPerNight,
-    notAfter: (id) => (cat.profile(id) as { notAfter?: number } | undefined)?.notAfter,
-    neverClose: (id) => !!(cat.profile(id) as { neverClose?: boolean } | undefined)?.neverClose,
-    nonDance: (id, title) => {
-      const pr = cat.profile(id) as { nonDanceTitles?: string[] } | undefined;
-      return !!pr?.nonDanceTitles?.some((t) => normTitle(t) === normTitle(title));
-    },
-  };
+  const sc = makeScoring(cat, o, deps.contextModel);
   const byRhythm: Record<DanceRhythm, TandaCandidate[]> = { tango: [], vals: [], milonga: [] };
   for (const r of ["tango", "vals", "milonga"] as DanceRhythm[]) {
     const pool = cat
@@ -153,24 +270,31 @@ export function compose(
         eras: o.eras,
         rhythms: [r],
         includeOrchestras: o.includeOrchestras,
-        excludeOrchestras: [...(o.excludeOrchestras ?? []), "guitarras-solo-singer", "orquesta-unspecified"],
+        excludeOrchestras: [...(o.excludeOrchestras ?? []), ...TANDA_POOL_EXCLUDES],
         onlySelection: o.onlySelection,
         requireSpotify: o.requireSpotify,
         minTier:
           o.eras.includes("all") || o.eras.includes("contemporary") || o.eras.includes("nuevo") ? 3 : 2,
       })
-      .filter((s) => normTitle(s.title) !== "la cumparsita" || !o.closeWithCumparsita);
+      // La Cumparsita only ever opens or closes a night (rules), never inside an ordinary tanda
+      .filter((s) => normTitle(s.title) !== "la cumparsita");
     byRhythm[r] = families(
       pool,
       o.maxYearSpread,
       o.mixVocalInstrumental || (r !== "tango" && !!rules.mixedMilongaVals),
+      orchTotals(cat),
     );
   }
+  // a night's mood for orchestras: every orchestra gets a seed-drawn 0.6–1.4 factor so twelve nights are twelve nights
+  const nightBias = new Map<string, number>();
+  for (const id of [...cat.profiles.keys()].sort()) nightBias.set(id, 0.6 + rng.next() * 0.8);
   const ctx: BuildContext = {
     recentOrchestras: [],
     recentSingers: [],
     usedTitles: new Set(),
     usedSongIds: new Set(),
+    totalSlots: slots.length,
+    nightBias,
   };
   const lockedByIndex = new Map((extras.locked ?? []).filter((t) => t.locked).map((t) => [t.index, t]));
   for (const t of lockedByIndex.values())
@@ -180,6 +304,54 @@ export function compose(
     }
   const tandas: Tanda[] = [];
   const last = slots.length - 1;
+  const ultimaRule = rules.ultimaRule ?? "emotional-vocal";
+  // ultimaRule "pugliese": Pugliese is reserved for the última, so the body never spends him
+  const bodySc: Scoring =
+    ultimaRule === "pugliese"
+      ? { ...sc, maxPerNight: (id) => (id === "osvaldo-pugliese" ? 0 : sc.maxPerNight?.(id)) }
+      : sc;
+  let colourDone = false;
+  // the first D'Arienzo (corpus median 19 % of the night, before 35 %): one early tango slot per seed is his
+  const earlySlots = slots.filter(
+    (s) => s.rhythm === "tango" && s.index > 0 && s.position >= 0.08 && s.position <= 0.33,
+  );
+  const earlyDASlot = earlySlots.length && !lockedByIndex.size ? rng.pick(earlySlots)!.index : -1;
+  ctx.earlyDASlot = earlyDASlot;
+  // Pugliese once: his slot is drawn around the corpus median (0.87) instead of the first eligible peak slot;
+  // the última itself is a candidate (he is the most common final tanda before La Cumparsita)
+  const puglieseOnce = (sc.maxPerNight?.("osvaldo-pugliese") ?? 2) <= 1;
+  const pugSlots = slots.filter((s) => s.rhythm === "tango" && s.position >= 0.62);
+  const pugProfile = cat.profile("osvaldo-pugliese");
+  const pugAllowed =
+    !sc.avoidStyles?.includes(pugProfile?.style ?? "dramatic") &&
+    (o.maxDifficulty === undefined || (pugProfile?.difficulty ?? 0) <= o.maxDifficulty);
+  const pugSlot =
+    puglieseOnce && pugAllowed && pugSlots.length && !lockedByIndex.size && ultimaRule !== "pugliese"
+      ? (rng.weighted(pugSlots, (s) => Math.exp(-(((s.position - 0.87) / 0.14) ** 2)))?.index ?? -1)
+      : -1;
+  const daTangoCount = () =>
+    tandas.filter((t) => t.orchestraId === "juan-d-arienzo" && t.rhythm === "tango").length;
+  /** a forced orchestra still respects the repeat gap: the force waits for the next slot otherwise */
+  const gapFree = (id: string) => {
+    const i = ctx.recentOrchestras.indexOf(id);
+    return i === -1 || i >= o.orchestraRepeatGap;
+  };
+  /** before the drawn Pugliese slot, Pugliese stays out of the body; before the drawn D'Arienzo slot, no D'Arienzo vals/milonga */
+  const scFor = (slot: Slot): Scoring => {
+    const holdPug = pugSlot >= 0 && slot.index < pugSlot && slot.index !== last;
+    // D'Arienzo's vals/milonga never steal a slot before his first tango tanda nor the late slots his second one needs
+    const holdDA =
+      slot.rhythm !== "tango" &&
+      ((earlyDASlot >= 0 && slot.index < earlyDASlot) || (slot.position >= 0.6 && daTangoCount() < 2));
+    if (!holdPug && !holdDA) return bodySc;
+    return {
+      ...bodySc,
+      maxPerNight: (id) =>
+        (holdPug && id === "osvaldo-pugliese") || (holdDA && id === "juan-d-arienzo")
+          ? 0
+          : bodySc.maxPerNight?.(id),
+    };
+  };
   for (const slot of slots) {
     let tanda: Tanda | null = lockedByIndex.get(slot.index) ?? null;
     if (tanda) tanda = { ...tanda, targetEnergy: slot.targetEnergy, phase: slot.phase };
@@ -192,40 +364,126 @@ export function compose(
             ? (c: TandaCandidate) => ["lyrical", "guardia"].includes(style(c.orchestraId) ?? "")
             : (c: TandaCandidate) => style(c.orchestraId) === "rhythmic";
       const prefO = byRhythm.tango.filter(want);
-      if (prefO.length) tanda = buildTanda(slot, prefO, o, rng, ctx, sc);
+      if (prefO.length) tanda = buildTanda(slot, prefO, o, rng, ctx, scFor(slot));
     }
     if (!tanda && slot.index === last) {
-      // última tanda: always tango; the night rule decides who closes
-      const rule = rules.ultimaRule ?? "emotional-vocal";
+      // última tanda: always tango; the night rule decides who closes; the phase filter is bypassed and the
+      // delivered energy must reach target−4 (a night ends, it does not fade out)
       const ult = {
         ...slot,
         rhythm: "tango" as DanceRhythm,
         size: o.tangoTandaSize,
         targetEnergy:
-          rule === "d-arienzo-rhythmic"
+          ultimaRule === "d-arienzo-rhythmic"
             ? Math.max(76, slot.targetEnergy + 10)
             : Math.max(62, slot.targetEnergy + 8),
       };
-      const pref =
-        rule === "any"
+      // the última may bring an orchestra back a third time (corpus: Tanturi, D'Arienzo, Di Sarli close after two tandas)
+      const ultSc: Scoring = {
+        ...sc,
+        notBefore: () => 0,
+        phase: () => ["any"],
+        maxPerNight: (id) => {
+          const m = sc.maxPerNight?.(id);
+          return id === "osvaldo-pugliese" ? m : (m ?? CORPUS_CAPS[id] ?? DEFAULT_CAP) + 1;
+        },
+      };
+      let pref =
+        ultimaRule === "any"
           ? byRhythm.tango
-          : rule === "pugliese"
+          : ultimaRule === "pugliese"
             ? byRhythm.tango.filter((c) => c.orchestraId === "osvaldo-pugliese")
-            : rule === "d-arienzo-rhythmic"
-              ? byRhythm.tango.filter((c) => c.orchestraId === "juan-d-arienzo")
+            : ultimaRule === "d-arienzo-rhythmic"
+              ? byRhythm.tango.filter((c) => c.orchestraId === "juan-d-arienzo" && !c.vocal)
               : byRhythm.tango.filter(
                   (c) =>
-                    ULTIMA_PREF.includes(c.orchestraId) &&
-                    (c.vocal ||
-                      c.orchestraId === "osvaldo-pugliese" ||
-                      c.orchestraId === "juan-d-arienzo" ||
-                      c.orchestraId === "carlos-di-sarli"),
-                );
-      tanda =
-        buildTanda(ult, pref.length ? pref : byRhythm.tango, o, rng, ctx, { ...sc, notBefore: () => 0 }) ??
-        buildTanda(ult, byRhythm.tango, o, rng, ctx, { ...sc, notBefore: () => 0 });
+                    ULTIMA_POOL.includes(c.orchestraId) &&
+                    (c.vocal
+                      ? c.orchestraId !== "alfredo-de-angelis"
+                      : ULTIMA_INSTRUMENTAL_OK.has(c.orchestraId)),
+                ); // De Angelis closes instrumental (corpus); the lyrical orchestras close vocal
+      // known material closes a night: families the corpus knows, when enough of them exist
+      const famous = pref.filter((c) => c.songs.some((s) => (s.fame ?? 0) > 0));
+      if (famous.length >= 3) pref = famous;
+      const tried = new Set<string>();
+      let best: Tanda | null = null;
+      for (let attempt = 0; attempt < 6 && !tanda; attempt++) {
+        const cands = (pref.length ? pref : byRhythm.tango).filter((c) => !tried.has(famKey(c)));
+        const t = buildTanda(ult, cands, o, rng, ctx, ultSc);
+        if (!t) break;
+        if (t.energy >= ult.targetEnergy - 4) tanda = t;
+        else {
+          tried.add(famKey(t));
+          if (!best || t.energy > best.energy) best = t;
+        }
+      }
+      tanda = tanda ?? best ?? buildTanda(ult, byRhythm.tango, o, rng, ctx, ultSc);
     }
-    if (!tanda) tanda = buildTanda(slot, byRhythm[slot.rhythm], o, rng, ctx, sc);
+    if (!tanda && slot.index === pugSlot && slot.index !== last && gapFree("osvaldo-pugliese")) {
+      // Pugliese is the emotional summit of the last third: his slot is planned at ≥74 whatever the cool-down says
+      const pug = byRhythm.tango.filter((c) => c.orchestraId === "osvaldo-pugliese");
+      const summit = { ...slot, targetEnergy: Math.max(slot.targetEnergy, 74) };
+      if (pug.length) tanda = buildTanda(summit, pug, o, rng, ctx, { ...bodySc, phase: () => ["any"] });
+      if (tanda) slot.targetEnergy = summit.targetEnergy;
+    }
+    // D'Arienzo (corpus rule 5): first tanda early and instrumental 1935–39, a tango tanda by 40 % at the latest,
+    // a second one by 80 % — 2–3 per 4 h
+    if (!tanda && slot.rhythm === "tango" && slot.index !== last && gapFree("juan-d-arienzo")) {
+      const n = daTangoCount();
+      const da = byRhythm.tango.filter((c) => c.orchestraId === "juan-d-arienzo");
+      if (n === 0 && slot.index === earlyDASlot) {
+        // the first D'Arienzo is a planned early peak (corpus: "the universal rhythmic opener/first peak tanda")
+        const earlyInstr = da.filter(isEarlyDArienzo);
+        const peak = { ...slot, targetEnergy: Math.max(slot.targetEnergy, 72) };
+        tanda = buildTanda(peak, earlyInstr.length ? earlyInstr : da, o, rng, ctx, {
+          ...scFor(slot),
+          phase: () => ["any"],
+        });
+        if (tanda) slot.targetEnergy = peak.targetEnergy;
+      } else if (
+        ((n === 0 && slot.position >= 0.38 && slot.phase !== "cooldown") ||
+          (n === 1 && slot.position >= 0.7 && ultimaRule !== "d-arienzo-rhythmic")) &&
+        da.length
+      )
+        tanda = buildTanda(slot, da, o, rng, ctx, scFor(slot));
+    }
+    // colour tanda (rules.colourTanda): one softer, elegant tanda in the breather after the first peak
+    if (
+      !tanda &&
+      rules.colourTanda &&
+      !colourDone &&
+      slot.rhythm === "tango" &&
+      slot.index !== last &&
+      slot.position > 0.5 &&
+      slot.position < 0.66 &&
+      slot.phase === "build"
+    ) {
+      const pref = byRhythm.tango.filter((c) => COLOUR_ORCHESTRAS.includes(c.orchestraId));
+      const t = pref.length
+        ? buildTanda(
+            { ...slot, targetEnergy: Math.max(30, slot.targetEnergy - 6) },
+            pref,
+            o,
+            rng,
+            ctx,
+            scFor(slot),
+          )
+        : null;
+      if (t) {
+        t.note = "colour tanda";
+        t.reason = `${t.reason} · the colour tanda after the first peak`;
+        tanda = t;
+        colourDone = true;
+      }
+    }
+    if (!tanda) {
+      // tango-only cap for D'Arienzo: 3 tango tandas per night (plus a vals or milonga)
+      const cands =
+        slot.rhythm === "tango" && daTangoCount() >= 3
+          ? byRhythm.tango.filter((c) => c.orchestraId !== "juan-d-arienzo")
+          : byRhythm[slot.rhythm];
+      tanda = buildTanda(slot, cands, o, rng, ctx, scFor(slot));
+    }
     if (!tanda && slot.rhythm !== "tango")
       tanda = buildTanda(
         { ...slot, rhythm: "tango", size: o.tangoTandaSize },
@@ -233,13 +491,13 @@ export function compose(
         o,
         rng,
         ctx,
-        sc,
+        scFor(slot),
       );
     if (!tanda) {
       // long nights exhaust the caps: relax per-night limits and phase filters rather than leave a hole in the set
       const relaxed: Scoring = {
-        ...sc,
-        maxPerNight: () => 99,
+        ...bodySc,
+        maxPerNight: (id) => (id === "osvaldo-pugliese" ? bodySc.maxPerNight?.(id) : 99),
         notAfter: () => undefined,
         phase: () => ["any"],
       };
@@ -256,17 +514,47 @@ export function compose(
     }
     if (!tanda) continue;
     tandas.push(tanda);
+    ctx.prevEnergy = tanda.energy;
+    ctx.prevTarget = tanda.targetEnergy;
     ctx.recentOrchestras.unshift(tanda.orchestraId);
     if (tanda.singer) ctx.recentSingers.unshift(tanda.singer);
+    if (tanda.songs.every((s) => s.era === "guardia-vieja" || s.era === "guardia-nueva"))
+      ctx.guardiaCount = (ctx.guardiaCount ?? 0) + 1;
     for (const s of tanda.songs) {
       ctx.usedSongIds.add(s.id);
       ctx.usedTitles.add(normTitle(s.title));
     }
   }
-  // cortinas: one family per night by default, each cue ~8 points under the NEXT tanda
+  // Buenos Aires style: the última tanda ends with its own orchestra's Cumparsita (same singer / instrumental,
+  // a closing-version year) — appended before the length fit so the night still lands on time
+  if (o.closeWithCumparsita && rules.cumparsitaCount === 2) {
+    const ult = tandas[tandas.length - 1];
+    if (ult) {
+      const years = cumparsitaYears(cat, ult.orchestraId);
+      const own = cat.songs
+        .filter(
+          (s) =>
+            normTitle(s.title) === "la cumparsita" &&
+            s.orchestraId === ult.orchestraId &&
+            s.rhythm === "tango" &&
+            !s.yearApprox &&
+            s.vocal === ult.vocal &&
+            (s.singerId ?? null) === (ult.songs[0]?.singerId ?? null) &&
+            (!years.size || years.has(s.year ?? 0)),
+        )
+        .sort((a, b) => (b.fame ?? 0) - (a.fame ?? 0))[0];
+      if (own && !ult.songs.some((s) => s.id === own.id)) {
+        ult.songs = [...ult.songs, own];
+        ult.energyCurve = ult.songs.map((s) => s.energy ?? 50);
+        ult.durationSec += own.durationSec ?? 180;
+        ult.note = `${ult.note ? `${ult.note} · ` : ""}ends with its own La Cumparsita`;
+      }
+    }
+  }
+  // cortinas: one family (or a compatible pair) per night, least-recently-used cycling, each cue ~8 points under the NEXT tanda
   const pool = cortinaPool(deps.cortinas, o.overrides?.cortinas);
   const used = new Set<string>();
-  const plan = planCortinas(pool, o, rng, tandas[1]?.energy ?? 60);
+  const plan = planCortinas(pool, o, rng, tandas[1]?.energy ?? 60, tandas.length);
   if (rules.birthdayValsAt != null) {
     const n1 = Math.max(1, tandas.length - 1);
     const vals = tandas
@@ -281,99 +569,83 @@ export function compose(
       pick.t.reason = `${pick.t.reason ?? ""} · reserved for the birthday vals`.trim();
     }
   }
+  const remember = (c: Cortina) => {
+    used.delete(c.id);
+    used.add(c.id);
+  };
   tandas.forEach((t, i) => {
     const next = tandas[i + 1];
     if (!next) {
-      t.cortina =
+      const c =
         rules.cortinaBeforeCumparsita && o.closeWithCumparsita
           ? pickCortina(pool, t.energy, o, rng, used, plan)
           : null;
+      t.cortina = c ? { ...c, lengthSec: o.cortinaLengthSec } : null;
       return;
     }
     const c = pickCortina(pool, next.energy, o, rng, used, plan);
     t.cortina = c ? { ...c, lengthSec: o.cortinaLengthSec } : null;
-    if (c) used.add(c.id);
+    if (c) remember(c);
   });
-  // land on the requested length: absorb drift in cortina lengths (25–60 s), then drop the penultimate tanda if still long
-  const fit = () => {
-    const target = o.hours * 3600 - (o.closeWithCumparsita ? 180 : 0);
-    const withC = tandas.filter((t) => t.cortina);
+  // land on the requested length: a night more than a tanda too long drops a late tanda first, then cortina lengths
+  // absorb the rest (±8 s around the DJ's length; ±15 s only when the hour would still be missed by >4 min — the
+  // score sheet shows it). The target is the playing time: a show break is added on top, never paid for by cortinas.
+  const fitLength = () => {
+    const target = playHours * 3600 - (o.closeWithCumparsita ? 180 : 0);
     const total = () => tandas.reduce((a, t) => a + t.durationSec + (t.cortina?.lengthSec ?? 0), 0);
+    const setCortinas = (len: number) => {
+      for (const t of tandas) if (t.cortina) t.cortina = { ...t.cortina, lengthSec: len };
+    };
+    // the late tanda to drop: never one whose removal puts the same orchestra (or two vals/milongas) side by side
+    const dropIndex = () => {
+      const ok = (i: number) => {
+        const a = tandas[i - 1],
+          b = tandas[i + 1];
+        return (
+          !!a && !!b && a.orchestraId !== b.orchestraId && (a.rhythm === "tango" || b.rhythm === "tango")
+        );
+      };
+      return (
+        [tandas.length - 2, tandas.length - 3, tandas.length - 4].find((k) => k > 0 && ok(k)) ??
+        tandas.length - 2
+      );
+    };
+    setCortinas(o.cortinaLengthSec);
     let diff = target - total();
-    if (withC.length && Math.abs(diff) > 60) {
-      const per = Math.max(-20, Math.min(15, Math.round(diff / withC.length)));
-      for (const t of withC)
-        t.cortina = {
-          ...t.cortina!,
-          lengthSec: Math.max(25, Math.min(60, (t.cortina!.lengthSec ?? 45) + per)),
-        };
+    const withC = tandas.filter((t) => t.cortina).length;
+    // a late tanda is dropped only when that lands closer to the hour than stretching every cortina by 15 s could
+    if (diff < 0 && tandas.length > 4 && Math.abs(diff) > withC * 15) {
+      const i = dropIndex();
+      const removedSec = tandas[i]!.durationSec + (tandas[i]!.cortina?.lengthSec ?? 0);
+      if (Math.abs(diff + removedSec) < Math.abs(diff)) {
+        const removed = tandas.splice(i, 1)[0]!;
+        if (tandas[i - 1] && removed.cortina)
+          tandas[i - 1]!.cortina = tandas[i - 1]!.cortina ?? removed.cortina;
+        diff = target - total();
+      }
+    }
+    const n = tandas.filter((t) => t.cortina).length;
+    for (const flex of [8, 15]) {
+      if (!n || Math.abs(diff) <= (flex === 8 ? 60 : 240)) break;
+      const per = Math.max(-flex, Math.min(flex, Math.round(diff / n)));
+      setCortinas(Math.max(10, Math.min(120, o.cortinaLengthSec + per)));
       diff = target - total();
     }
-    if (diff < -360 && tandas.length > 4) {
-      const i = tandas.length - 2;
-      const removed = tandas.splice(i, 1)[0]!;
-      if (tandas[i - 1] && removed.cortina)
-        tandas[i - 1]!.cortina = tandas[i - 1]!.cortina ?? removed.cortina;
-    }
   };
-  fit();
-  // La Cumparsita: preferred orchestras, varied by seed, never the última tanda's orchestra
+  fitLength();
+  // La Cumparsita: closing versions only (corpus/profile years), preferred orchestras, varied by seed, never the última's orchestra
   let closing: Song | null = null;
   if (o.closeWithCumparsita) {
     const lastOrch = tandas[tandas.length - 1]?.orchestraId;
-    const cands = cat.songs.filter(
-      (s) =>
-        normTitle(s.title) === "la cumparsita" &&
-        s.rhythm === "tango" &&
-        s.orchestraId !== lastOrch &&
-        (o.eras.includes("all") || s.era.startsWith("golden") || s.era === "post-golden"),
-    );
-    closing =
-      rng.weighted(cands, (s) => {
-        const i = CUMPARSITA_PREF.indexOf(s.orchestraId);
-        const corpus = cat.fame.get(`la cumparsita|${s.orchestraId}`);
-        const yearHit = (cat.corpus.famousRecordings ?? []).some(
-          (f) => f.role === "cumparsita" && f.orchestraId === s.orchestraId && f.year === s.year,
-        );
-        const used = (corpus?.role === "cumparsita" ? 1 + (corpus.fame ?? 0) : 0.4) * (yearHit ? 2.5 : 1); // versions and years DJs actually close with
-        return (i === -1 ? 0.05 : 1.6 - i * 0.2) * (s.selection ? 1.3 : 1) * used;
-      }) ??
-      cands[0] ??
-      null;
-  }
-  // Buenos Aires style: the última tanda ends with its own orchestra's Cumparsita, then the standalone closing version
-  if (o.closeWithCumparsita && rules.cumparsitaCount === 2) {
-    const ult = tandas[tandas.length - 1];
-    const own = ult
-      ? cat.songs.find(
-          (s) =>
-            normTitle(s.title) === "la cumparsita" &&
-            s.orchestraId === ult.orchestraId &&
-            s.rhythm === "tango",
-        )
-      : undefined;
-    if (ult && own && !ult.songs.some((s) => s.id === own.id)) {
-      ult.songs = [...ult.songs, own];
-      ult.energyCurve = ult.songs.map((s) => s.energy ?? 50);
-      ult.durationSec += own.durationSec ?? 180;
-      ult.note = `${ult.note ? `${ult.note} · ` : ""}ends with its own La Cumparsita`;
-    }
+    const cands = cumparsitaCandidates(cat, o).filter((s) => s.orchestraId !== lastOrch);
+    closing = rng.weighted(cands, (s) => cumparsitaWeight(cat, o, s)) ?? cands[0] ?? null;
   }
   let opening: Song | null = null;
   if (rules.openWithCumparsita) {
-    const cands = cat.songs.filter(
-      (s) =>
-        normTitle(s.title) === "la cumparsita" &&
-        s.rhythm === "tango" &&
-        s.id !== closing?.id &&
-        s.orchestraId !== tandas[0]?.orchestraId &&
-        (s.era.startsWith("golden") || s.era === "post-golden" || o.eras.includes("all")),
+    const cands = cumparsitaCandidates(cat, o).filter(
+      (s) => s.id !== closing?.id && s.orchestraId !== tandas[0]?.orchestraId,
     );
-    opening =
-      rng.weighted(
-        cands,
-        (s) => (CUMPARSITA_PREF.includes(s.orchestraId) ? 1.5 : 0.3) * (1 + (s.fame ?? 0) * 0.3),
-      ) ?? null;
+    opening = rng.weighted(cands, (s) => cumparsitaWeight(cat, o, s)) ?? null;
   }
   const breaks =
     breakAfter >= 0 && tandas[breakAfter]
@@ -387,7 +659,7 @@ export function compose(
   if (breaks) stats.durationSec += breakMin * 60;
   const playlist: Playlist = {
     id: `tdj-${seed.toString(36)}`,
-    name: o.name ?? `${o.hours}h ${o.eras.join("+")} milonga`,
+    name: o.name ?? `${o.hours}h ${o.eras.join("+")} ${o.context?.event ?? "milonga"}`,
     createdAt: new Date().toISOString(),
     options: o,
     tandas,
@@ -406,11 +678,17 @@ export function computeStats(tandas: Tanda[], closing: Song | null, o: ComposeOp
   const orchestras: Record<string, number> = {};
   let dur = 0,
     tracks = 0,
-    vocal = 0;
+    vocal = 0,
+    cort = 0,
+    cortN = 0;
   for (const t of tandas) {
     byRhythm[t.rhythm]++;
     orchestras[t.orchestra] = (orchestras[t.orchestra] ?? 0) + 1;
     dur += t.durationSec + (t.cortina ? (t.cortina.lengthSec ?? o.cortinaLengthSec) : 0);
+    if (t.cortina) {
+      cort += t.cortina.lengthSec ?? o.cortinaLengthSec;
+      cortN++;
+    }
     tracks += t.songs.length;
     if (t.vocal) vocal++;
   }
@@ -433,36 +711,44 @@ export function computeStats(tandas: Tanda[], closing: Song | null, o: ComposeOp
     energyArc,
     targetArc,
     arcFit: Math.max(0, 1 - rmse / 30),
+    cortinaSec: cortN ? Math.round(cort / cortN) : undefined,
   };
 }
 
-/** Re-roll one tanda (keeps everything else). */
+/** Re-roll one tanda (keeps everything else). Uses the same scoring and pool rules as compose(). */
 export function swapTanda(p: Playlist, index: number, deps: ComposeDeps, seed = Date.now()): Playlist {
   const o = p.options;
   const rng = makeRng(seed);
   const cat = deps.catalog;
   const t = p.tandas[index];
   if (!t) return p;
-  const pool = cat.filter({
-    eras: o.eras,
-    rhythms: [t.rhythm],
-    includeOrchestras: o.includeOrchestras,
-    excludeOrchestras: o.excludeOrchestras,
-    onlySelection: o.onlySelection,
-    requireSpotify: o.requireSpotify,
-    minTier: 2,
-  });
+  const rules = o.rules ?? {};
+  const pool = cat
+    .filter({
+      eras: o.eras,
+      rhythms: [t.rhythm],
+      includeOrchestras: o.includeOrchestras,
+      excludeOrchestras: [...(o.excludeOrchestras ?? []), ...TANDA_POOL_EXCLUDES],
+      onlySelection: o.onlySelection,
+      requireSpotify: o.requireSpotify,
+      minTier: o.eras.includes("all") || o.eras.includes("contemporary") || o.eras.includes("nuevo") ? 3 : 2,
+    })
+    .filter((s) => normTitle(s.title) !== "la cumparsita");
   const neighbours = p.tandas
     .map((x, i) => ({ x, d: Math.abs(i - index) }))
     .filter((n) => n.d > 0 && n.d <= Math.max(o.orchestraRepeatGap, o.singerRepeatGap))
     .sort((a, b) => a.d - b.d);
   const ctx: BuildContext = {
-    recentOrchestras: neighbours.map((n) => n.x.orchestraId),
+    recentOrchestras: p.tandas
+      .slice(0, index)
+      .reverse()
+      .map((x) => x.orchestraId),
     recentSingers: neighbours.map((n) => n.x.singer).filter((x): x is string => !!x),
     usedTitles: new Set(
       p.tandas.flatMap((x, i) => (i === index ? [] : x.songs.map((s) => normTitle(s.title)))),
     ),
     usedSongIds: new Set(p.tandas.flatMap((x, i) => (i === index ? [] : x.songs.map((s) => s.id)))),
+    totalSlots: p.tandas.length,
   };
   const slot = {
     index,
@@ -472,17 +758,13 @@ export function swapTanda(p: Playlist, index: number, deps: ComposeDeps, seed = 
     phase: t.phase,
     position: index / Math.max(1, p.tandas.length - 1),
   };
-  const sc: Scoring = {
-    energy: (id) => cat.profile(id)?.energy ?? 50,
-    phase: (id) => cat.profile(id)?.phase,
-    tier: (id) => cat.profile(id)?.tier ?? 3,
-    notBefore: (id) => cat.profile(id)?.notBefore ?? 0,
-    style: (id) => cat.profile(id)?.style,
-    isDanceable: (s) => isDanceable(s.title, s.rhythm, cat.blacklist),
-  };
-  const fams = families(pool, o.maxYearSpread, o.mixVocalInstrumental).filter(
-    (c) => c.orchestraId !== t.orchestraId,
-  );
+  const sc = makeScoring(cat, o, deps.contextModel);
+  const fams = families(
+    pool,
+    o.maxYearSpread,
+    o.mixVocalInstrumental || (t.rhythm !== "tango" && !!rules.mixedMilongaVals),
+    orchTotals(cat),
+  ).filter((c) => c.orchestraId !== t.orchestraId);
   const gapOk = (id: string) => !neighbours.some((n) => n.d < o.orchestraRepeatGap && n.x.orchestraId === id);
   let nt: Tanda | null = null;
   for (let attempt = 0; attempt < 6 && !nt; attempt++) {
@@ -498,6 +780,7 @@ export function swapTanda(p: Playlist, index: number, deps: ComposeDeps, seed = 
   }
   if (!nt) return p;
   nt.cortina = t.cortina;
+  nt.locked = t.locked;
   const tandas = p.tandas.map((x, i) => (i === index ? nt : x));
   const np = { ...p, tandas, stats: computeStats(tandas, p.closing, o) };
   np.score = scorePlaylist(np);
@@ -516,8 +799,9 @@ export function swapTrack(
   const cur = t?.songs[trackIndex];
   if (!t || !cur) return p;
   const rng = makeRng(seed);
+  const cat = deps.catalog;
   const used = new Set(p.tandas.flatMap((x) => x.songs.map((s) => normTitle(s.title))));
-  const cands = (deps.catalog.byOrchestra.get(t.orchestraId) ?? []).filter(
+  const cands = (cat.byOrchestra.get(t.orchestraId) ?? []).filter(
     (s) =>
       s.rhythm === t.rhythm &&
       (s.singerId ?? null) === (cur.singerId ?? null) &&
@@ -526,7 +810,9 @@ export function swapTrack(
       s.year >= t.yearRange[0] - 1 &&
       s.year <= t.yearRange[1] + 1 &&
       !used.has(normTitle(s.title)) &&
-      isDanceable(s.title, s.rhythm, deps.catalog.blacklist),
+      normTitle(s.title) !== "la cumparsita" &&
+      isDanceableSong(s, cat.blacklist) &&
+      !cat.nonDance(s.orchestraId, s.title, s.year),
   );
   const pick = rng.weighted(
     cands,
@@ -535,7 +821,7 @@ export function swapTrack(
   );
   if (!pick) return p;
   const songs = t.songs.map((s, i) => (i === trackIndex ? pick : s));
-  const years = songs.map((s) => s.year).filter((y): y is number => !!y);
+  const years = songs.map((s) => (s.year && !s.yearApprox ? s.year : null)).filter((y): y is number => !!y);
   const curve = songs.map((s) => s.energy ?? 50);
   const nt: Tanda = {
     ...t,
@@ -606,10 +892,11 @@ export function applyFeedback(o: Partial<ComposeOptions>, fb: Feedback[]): Parti
         break;
       case "more-vocal":
         out.mixVocalInstrumental = false;
-        out.context = { ...out.context, mood: out.context?.mood ?? "nostalgic" };
+        out.vocalBias = Math.min(0.6, (o.vocalBias ?? 0) + 0.2);
         break;
       case "more-instrumental":
-        out.excludeOrchestras = o.excludeOrchestras;
+        out.mixVocalInstrumental = false;
+        out.vocalBias = Math.max(-0.6, (o.vocalBias ?? 0) - 0.2);
         break;
       case "warmer-start":
         out.arc = "gentle";
