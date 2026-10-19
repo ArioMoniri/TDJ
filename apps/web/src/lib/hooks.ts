@@ -66,6 +66,13 @@ export function useScrollDirection(enabled = true) {
     let anchor = last;
     let raf = 0;
     let min = false;
+    /**
+     * The last direction the user asked for (wheel, finger, keys). An upward scrollY change without an upward
+     * gesture is layout, not intent: cards below the fold (`content-visibility: auto`) take their real height as
+     * they come up and scroll anchoring pulls scrollY back, which must not bring the bars back mid-fling.
+     */
+    let intent: "up" | "down" | null = null;
+    let touchY = 0;
     // state changes only on a flip, and the page height (a forced layout while cards are being revealed) is read
     // only when a flip to minimised is otherwise due: a scroll frame must not re-enter React or layout
     const flip = (v: boolean) => {
@@ -84,16 +91,40 @@ export function useScrollDirection(enabled = true) {
             if (y < maxY - 4) flip(true);
           }
           if (y - anchor > 24) anchor = y;
-        } else if (last - y > 8 || y < 40) {
+        } else if ((last - y > 8 && intent === "up") || y < 40) {
           flip(false);
           anchor = y;
         }
         last = y;
       });
     };
+    const onWheel = (e: WheelEvent) => {
+      if (e.deltaY) intent = e.deltaY < 0 ? "up" : "down";
+    };
+    const onTouchStart = (e: TouchEvent) => {
+      touchY = e.touches[0]?.clientY ?? touchY;
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      const cy = e.touches[0]?.clientY ?? touchY;
+      if (Math.abs(cy - touchY) > 2) intent = cy > touchY ? "up" : "down";
+      touchY = cy;
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowUp" || e.key === "PageUp" || e.key === "Home") intent = "up";
+      else if (e.key === "ArrowDown" || e.key === "PageDown" || e.key === "End" || e.key === " ")
+        intent = "down";
+    };
+    window.addEventListener("wheel", onWheel, { passive: true });
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
+    window.addEventListener("keydown", onKey);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("keydown", onKey);
       if (raf) cancelAnimationFrame(raf);
     };
   }, [enabled]);

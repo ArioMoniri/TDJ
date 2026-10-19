@@ -19,7 +19,7 @@ const fmt = (s: number) => {
  * The one `<audio playsInline>` element of the app lives here; Spotify sources render the inline embed instead.
  */
 export function MiniPlayer() {
-  const { track, playing, position, duration, error, toggle, close, seek, _tick, _ended, _error } =
+  const { track, playing, position, duration, error, queue, toggle, close, seek, _tick, _ended, _error } =
     usePlayer();
   const audio = useRef<HTMLAudioElement>(null);
   const reduced = useReducedMotion();
@@ -49,6 +49,7 @@ export function MiniPlayer() {
     lastSeek.current = position;
   }, [position, preview]);
 
+  const total = queue ? queue.clipSec : duration || 30;
   const offset =
     path === "/"
       ? "calc(max(0.75rem, env(safe-area-inset-bottom)) + 68px + 64px)"
@@ -107,8 +108,15 @@ export function MiniPlayer() {
                   {track.year ? ` · ${track.year}` : ""}
                 </span>
               </span>
-              <span className="text-caption2 rounded-full bg-[var(--fill-3)] px-2 py-0.5 font-medium text-[var(--label-2)]">
-                {track.source.kind === "preview" ? "30 s preview" : "Spotify"}
+              <span
+                className="text-caption2 rounded-full bg-[var(--fill-3)] px-2 py-0.5 font-medium text-[var(--label-2)]"
+                data-testid="player-badge"
+              >
+                {queue
+                  ? `${queue.label} · ${queue.index + 1} of ${queue.tracks.length}`
+                  : track.source.kind === "preview"
+                    ? "30 s preview"
+                    : "Spotify"}
               </span>
               <button
                 type="button"
@@ -126,15 +134,15 @@ export function MiniPlayer() {
                   type="range"
                   aria-label="Position"
                   min={0}
-                  max={Math.max(1, Math.floor(duration || 30))}
+                  max={Math.max(1, Math.floor(total))}
                   step={1}
-                  value={Math.min(position, duration || 30)}
+                  value={Math.min(position, total)}
                   onChange={(e) => seek(Number(e.target.value))}
                   className="!h-8 min-w-0 flex-1"
-                  style={{ ["--pct" as string]: `${(position / (duration || 30)) * 100}%` }}
+                  style={{ ["--pct" as string]: `${(position / total) * 100}%` }}
                 />
                 <span className="text-caption1 w-8 text-right tabular-nums text-[var(--label-2)]">
-                  {fmt(duration || 30)}
+                  {fmt(total)}
                 </span>
               </div>
             ) : (

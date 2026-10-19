@@ -1,7 +1,7 @@
 "use client";
 import { featuresSummary, keyLabel } from "@/lib/analyze";
 import type { AudioFeatures, Song } from "@/lib/types";
-import { Group, Row } from "./Form";
+import { ActionRow, Group, Row } from "./Form";
 import { Sheet } from "./Sheet";
 
 /** Long-press / tap sheet behind the key chip: the analysed numbers and the 30 s-preview caveat. */
@@ -10,11 +10,14 @@ export function AudioDetails({
   audio,
   open,
   onClose,
+  onSwap,
 }: {
   song: Pick<Song, "title" | "orchestra" | "resolved">;
   audio: AudioFeatures;
   open: boolean;
   onClose: () => void;
+  /** "Swap for a better fit" (round4-ux.md §10.1): another recording of the same family in this slot */
+  onSwap?: () => void;
 }) {
   const edition = song.resolved?.provider === "deezer" ? "Deezer" : (song.resolved?.provider ?? "preview");
   return (
@@ -46,6 +49,18 @@ export function AudioDetails({
         <Row label="Pulse clarity" value={`${Math.round(audio.pulseClarity * 100)} %`} />
         <Row label="Energy prior" value={String(Math.round(audio.energy))} />
       </Group>
+      {onSwap && (
+        <Group footer="Picks another recording of the same orchestra, singer and years for this slot; the tanda's key and tempo spread are what the swap tries to tighten.">
+          <ActionRow
+            label="Swap for a better fit"
+            id="swap-better-fit"
+            onClick={() => {
+              onClose();
+              onSwap();
+            }}
+          />
+        </Group>
+      )}
     </Sheet>
   );
 }

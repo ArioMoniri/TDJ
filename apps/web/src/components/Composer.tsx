@@ -3,12 +3,15 @@ import { addNote, applyMemory, ERA_SETTINGS, rememberFeedback, rememberSet } fro
 import {
   Copy,
   Disc3,
+  Eraser,
   LoaderCircle,
+  Lock,
   MessageSquareText,
   Pin,
   PinOff,
   Repeat2,
   Share,
+  SlidersHorizontal,
   ThumbsDown,
   ThumbsUp,
 } from "lucide-react";
@@ -23,6 +26,7 @@ import { makeSnapshot } from "@/lib/history";
 import { testSlowdownMs, useMediaQuery, useScrollDirection, whenIdle } from "@/lib/hooks";
 import { describePreferences } from "@/lib/memory";
 import { DUR, EASE, rise, STAGGER } from "@/lib/motion";
+import { useSheetOpen } from "@/lib/sheets";
 import {
   changedKeys,
   DEFAULT_OPTS,
@@ -60,8 +64,9 @@ import {
   SwitchRow,
 } from "./Form";
 import { LazyHydrate } from "./LazyHydrate";
-import { Menu } from "./Menu";
+import { Menu, type MenuItem, MenuList } from "./Menu";
 import { PageHeader } from "./PageHeader";
+import { PrimaryBar } from "./PrimaryBar";
 import { ScoreCounter } from "./ScoreCounter";
 import { Sheet } from "./Sheet";
 
@@ -215,6 +220,8 @@ const SetupForm = memo(function SetupForm({
   setRules,
   applyEra,
   togglePin,
+  onCompose,
+  busy,
 }: {
   options: AppOptions;
   eraNote: string | null;
@@ -225,6 +232,9 @@ const SetupForm = memo(function SetupForm({
   setRules: (patch: Partial<NightRules>) => void;
   applyEra: (next: Era, force?: boolean) => void;
   togglePin: (k: string) => void;
+  /** the inline secondary Compose at the end of the form (the primary lives in the toolbar / phone bar) */
+  onCompose: () => void;
+  busy: boolean;
 }) {
   const era: Era = (options.eras ?? ["golden"])[0] ?? "golden";
   const eraDefaults = ERA_SETTINGS[era] ?? ERA_SETTINGS.golden!;
@@ -559,6 +569,19 @@ const SetupForm = memo(function SetupForm({
             Object.keys(options.context ?? {}).filter((k) => k !== "region").length === 0
           }
         />
+        {/* secondary affordance at the end of the form (round5-design.md §1); the primary is in the toolbar / bar */}
+        <div className="mt-4 flex justify-center">
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={onCompose}
+            disabled={busy}
+            aria-label="Compose with these settings"
+            data-testid="form-compose"
+          >
+            <Disc3 size={18} aria-hidden /> Compose
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -589,6 +612,11 @@ export function Composer() {
     setExportOpen(true);
   }, []);
   const [scoreOpen, setScoreOpen] = useState(false);
+  /** phone: feedback chips and Tell the DJ live in a bottom sheet (round5-design.md §1) */
+  const [adjustOpen, setAdjustOpen] = useState(false);
+  /** phone: the primary bar's ••• sheet (outside the bar, which leaves the screen while any sheet is up) */
+  const [actionsOpen, setActionsOpen] = useState(false);
+  const sheetOpen = useSheetOpen();
   const [moodOpen, setMoodOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [active, setActive] = useState<number | null>(null);
@@ -801,6 +829,14 @@ export function Composer() {
       setBusy(false);
     }
   };
+  /** A stable "compose now" for the memoised form (its button must not hand the click event to `run` as a seed). */
+  const runRef = useRef(run);
+  useEffect(() => {
+    runRef.current = run;
+  });
+  const composeNow = useCallback(() => {
+    runRef.current();
+  }, []);
   /** Keep the previous score/energies so counters run from the old value. */
   const remember = useCallback((prev: Playlist | null) => {
     prevScore.current = prev?.score.total ?? null;
@@ -871,6 +907,22 @@ export function Composer() {
     },
     [setPlaylist],
   );
+  const lockAll = useCallback(() => {
+    const playlist = useStore.getState().playlist;
+    if (!playlist) return;
+    const all = playlist.tandas.every((t) => t.locked);
+    setPlaylist({ ...playlist, tandas: playlist.tandas.map((t) => ({ ...t, locked: !all })) });
+    toast(all ? "All tandas unlocked" : "All tandas locked: Regenerate keeps every one");
+  }, [setPlaylist]);
+  /** Clear the set (undo for a few seconds via the toast); the form unfolds again. */
+  const clearSet = useCallback(() => {
+    const prev = useStore.getState().playlist;
+    if (!prev) return;
+    setPlaylist(null);
+    setChangeSummary(null);
+    setChangedSet(new Set());
+    toast("Set cleared", () => setPlaylist(prev));
+  }, [setPlaylist]);
   /** A chip never leaves a custom cycle empty, and every structural change it makes is said out loud. */
   const settleOptions = (prev: Partial<ComposeOptions>, next: Partial<ComposeOptions>) => {
     const out = { ...next };
@@ -984,7 +1036,7 @@ export function Composer() {
   };
   const liked = memory.sets.find((s) => s.id === playlist?.id)?.liked;
 
-  // ⌘↩ composes, ⌘E exports
+  // ⌘↩ composes, ⌘E exports, ⌘K focuses Tell the DJ (opens the Adjust sheet on phones)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey)) return;
@@ -995,6 +1047,11 @@ export function Composer() {
       if ((e.key === "e" || e.key === "E") && playlist) {
         e.preventDefault();
         openExport();
+      }
+      if ((e.key === "k" || e.key === "K") && playlist) {
+        e.preventDefault();
+        if (wide) document.getElementById("tell-dj")?.focus();
+        else setAdjustOpen(true);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -1045,9 +1102,22 @@ export function Composer() {
       className="btn btn-primary min-h-[44px] lg:min-h-[40px] lg:px-4 lg:text-subhead"
       animate={errorNudge}
       transition={{ duration: 0.28, ease: EASE.inOut }}
+      title="⌘↩"
     >
-      <ComposeLabel busy={busy} />
+      <ComposeLabel busy={busy} steps={!!playlist} />
     </motion.button>
+  );
+  const feedbackBar = (
+    <FeedbackBar
+      onFeedback={feedback}
+      onRefine={refine}
+      busy={busy}
+      note={note}
+      pending={pendingChip}
+      lockedCount={lockedCount}
+      changeSummary={changeSummary}
+      bare={!wide}
+    />
   );
 
   return (
@@ -1117,12 +1187,33 @@ export function Composer() {
                   </button>
                 </span>
               </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-large-title tabular-nums text-[var(--tint)]">
-                  <ScoreCounter key={setKey} value={playlist.score.total} from={scoreFrom} />
-                </span>
-                <span className="text-title3 text-[var(--label-2)]">/100</span>
-              </div>
+              {wide ? (
+                <div className="flex items-baseline gap-1">
+                  <span className="text-large-title tabular-nums text-[var(--tint)]">
+                    <ScoreCounter key={setKey} value={playlist.score.total} from={scoreFrom} />
+                  </span>
+                  <span className="text-title3 text-[var(--label-2)]">/100</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="-mx-2 flex items-baseline gap-1 rounded-[var(--radius-xs)] px-2 text-left"
+                  onClick={() => setAdjustOpen(true)}
+                  aria-label={`Score ${playlist.score.total} of 100. Adjust the set`}
+                  data-testid="score-button"
+                >
+                  <span className="text-large-title tabular-nums text-[var(--tint)]">
+                    <ScoreCounter key={setKey} value={playlist.score.total} from={scoreFrom} />
+                  </span>
+                  <span className="text-title3 text-[var(--label-2)]">/100</span>
+                  <SlidersHorizontal
+                    size={16}
+                    strokeWidth={2}
+                    className="ml-1 self-center text-[var(--label-3)]"
+                    aria-hidden
+                  />
+                </button>
+              )}
               <motion.p
                 key={`verdict-text-${setKey}`}
                 initial={fresh ? { opacity: 0 } : false}
@@ -1177,15 +1268,7 @@ export function Composer() {
             />
           </Group>
 
-          <FeedbackBar
-            onFeedback={feedback}
-            onRefine={refine}
-            busy={busy}
-            note={note}
-            pending={pendingChip}
-            lockedCount={lockedCount}
-            changeSummary={changeSummary}
-          />
+          {wide && feedbackBar}
 
           {playlist.opening && (
             <Group
@@ -1273,10 +1356,28 @@ export function Composer() {
             tile={<RhythmTile rhythm="tango" />}
             label={`${ERAS.find(([k]) => k === era)?.[1] ?? era} · ${hours} h · ${ARCS.find(([k]) => k === (options.arc ?? "classic-two-peaks"))?.[1] ?? ""}`}
             sub={`${PATTERNS.find(([k]) => k === (options.pattern ?? "classic"))?.[1] ?? ""} · cortinas ${(CORTINA_STYLES.find(([k]) => k === cortinaStyle)?.[1] ?? "").toLowerCase()}${chosenContext ? ` · ${chosenContext} tonight` : ""}`}
-            value="Edit"
-            chevron
-            onClick={() => setSetupOpen(true)}
-          />
+            value={wide ? undefined : "Edit"}
+            chevron={!wide}
+            onClick={wide ? undefined : () => setSetupOpen(true)}
+          >
+            {/* desktop: the trailing control is Regenerate, Edit stays a plain button (round5-design.md §1) */}
+            {wide && (
+              <span className="-my-2 -mr-2 inline-flex items-center gap-1">
+                <button type="button" className="btn-plain" onClick={() => setSetupOpen(true)}>
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  className="btn-plain font-semibold"
+                  onClick={() => run()}
+                  disabled={busy}
+                  data-testid="summary-regenerate"
+                >
+                  <Repeat2 size={16} strokeWidth={2} aria-hidden /> Regenerate
+                </button>
+              </span>
+            )}
+          </Row>
         </Group>
       )}
       <LazyHydrate>
@@ -1290,6 +1391,8 @@ export function Composer() {
           setRules={setRules}
           applyEra={applyEra}
           togglePin={togglePin}
+          onCompose={composeNow}
+          busy={busy}
         />
       </LazyHydrate>
 
@@ -1328,11 +1431,11 @@ export function Composer() {
               : "")}
       </div>
 
-      {wide && <ComposeNarrative busy={busy} className="mx-auto mt-6 flex" />}
-
-      {hydrated && wide && !playlist && !busy && (
+      {/* empty state (desktop): the vinyl spins and the narrative runs under it while the first set composes */}
+      {hydrated && wide && !playlist && (
         <div className="flex flex-col items-center gap-3 py-12 text-center">
-          <Vinyl playing={false} className="w-[120px]" />
+          <Vinyl playing={busy} className="w-[120px]" />
+          <ComposeNarrative busy={busy} className="flex" />
           <p className="text-title3 font-serif">Compose a milonga, tanda by tanda.</p>
           <p className="text-subhead max-w-md text-[var(--label-2)]">
             Pick an era and a length. TDJ builds coherent tandas, shapes the night from warm-up to La
@@ -1341,32 +1444,62 @@ export function Composer() {
         </div>
       )}
 
-      {/* Phone accessory bar: the primary action within thumb reach; it carries the narrative; hides with the tab bar */}
-      <div
-        className="glass fixed inset-x-3 bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+68px)] z-30 flex items-center gap-2 rounded-full p-1.5 sm:hidden"
-        data-min={minimised || undefined}
-        style={{
-          transition: "transform var(--dur-s) var(--ease-settle), opacity var(--dur-s) var(--ease-settle)",
-          transform: minimised ? "translateY(calc(100% + 80px))" : "none",
-          opacity: minimised ? 0 : 1,
-        }}
-      >
-        <motion.button
-          type="button"
-          onClick={() => run()}
-          disabled={busy}
-          className="btn btn-primary min-h-[50px] flex-1"
-          animate={errorNudge}
-          transition={{ duration: 0.28, ease: EASE.inOut }}
+      {/* Phone primary bar: Compose, then Regenerate + Export + ••• once a set exists; hides under sheets,
+          minimises with the tab bar (round5-design.md §1) */}
+      <PrimaryBar
+        hasPlaylist={hasPlaylist}
+        busy={busy}
+        minimised={minimised}
+        hidden={sheetOpen}
+        onCompose={() => run()}
+        onExport={openExport}
+        errorNudge={errorNudge}
+        onMore={() => setActionsOpen(true)}
+      />
+      {!wide && playlist && (
+        <Sheet
+          open={actionsOpen}
+          onClose={() => setActionsOpen(false)}
+          title="Set actions"
+          detents={["medium", "large"]}
+          testId="actions-sheet"
         >
-          <ComposeLabel busy={busy} steps />
-        </motion.button>
-        {hasPlaylist && (
-          <button type="button" onClick={openExport} className="icon-btn" aria-label="Export">
-            <Share size={20} strokeWidth={1.75} />
-          </button>
-        )}
-      </div>
+          <MenuList
+            items={[
+              { label: "Tell the DJ…", icon: MessageSquareText, onClick: () => setAdjustOpen(true) },
+              {
+                label: playlist.tandas.every((t) => t.locked) ? "Unlock all" : "Lock all",
+                icon: Lock,
+                onClick: lockAll,
+              },
+              {
+                label: "Recompose with same seed",
+                icon: Repeat2,
+                onClick: () => run(playlist.options.seed),
+                disabled: busy,
+              },
+              { label: "Copy seed", icon: Copy, onClick: copySeed },
+              { label: "Clear set", icon: Eraser, onClick: clearSet, destructive: true },
+            ]}
+            onPick={(it: MenuItem) => {
+              haptic(4);
+              setActionsOpen(false);
+              it.onClick?.();
+            }}
+          />
+        </Sheet>
+      )}
+      {!wide && playlist && (
+        <Sheet
+          open={adjustOpen}
+          onClose={() => setAdjustOpen(false)}
+          title="Adjust"
+          trailing="Done"
+          testId="adjust-sheet"
+        >
+          {feedbackBar}
+        </Sheet>
+      )}
 
       {exportMounted && <ExportSheet open={exportOpen} onClose={() => setExportOpen(false)} />}
 

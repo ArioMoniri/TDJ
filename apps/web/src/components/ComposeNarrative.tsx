@@ -97,7 +97,16 @@ export function ComposeNarrative({ busy, className = "" }: { busy: boolean; clas
  * Compose button content: the Disc3 icon spins while busy (LoaderCircle at 1.6 s under reduced motion) and the
  * label cross-fades. On phones (`steps`) the label cycles the four narrative steps instead of "Composing…".
  */
-export function ComposeLabel({ busy, steps = false }: { busy: boolean; steps?: boolean }) {
+export function ComposeLabel({
+  busy,
+  steps = false,
+  idle = "Compose the night",
+}: {
+  busy: boolean;
+  steps?: boolean;
+  /** the resting label ("Regenerate" in the phone bar once a set exists) */
+  idle?: string;
+}) {
   const reduced = useReducedMotion();
   const { visible, step } = useSteps(busy && steps);
   return (
@@ -138,7 +147,7 @@ export function ComposeLabel({ busy, steps = false }: { busy: boolean; steps?: b
               transition={{ duration: DUR.fast }}
               className="col-start-1 row-start-1 whitespace-nowrap"
             >
-              {busy ? "Composing…" : "Compose the night"}
+              {busy ? "Composing…" : idle}
             </motion.span>
           )}
         </AnimatePresence>

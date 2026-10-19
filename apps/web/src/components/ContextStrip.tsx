@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import { CONTEXT_FIELDS, EVIDENCE_COLOR, EVIDENCE_LABEL, fmtShift, researchOption } from "@/lib/context";
 import { fade } from "@/lib/motion";
 import type { ComposeContext, ComposeOptions, ContextModel } from "@/lib/types";
+import { CountUp } from "./CountUp";
 import { ActionRow, Group, PickerRow } from "./Form";
 
 const GENRE_LABEL: Record<string, string> = {
@@ -127,7 +128,8 @@ export function ContextStrip({
         >
           {shifts > 0 && (
             <span data-testid="shift-badge" className="font-medium text-[var(--label)]">
-              {chosen - (onlyRegion ? 1 : 0)} {chosen - (onlyRegion ? 1 : 0) === 1 ? "choice" : "choices"} ·{" "}
+              <CountUp value={chosen - (onlyRegion ? 1 : 0)} />{" "}
+              {chosen - (onlyRegion ? 1 : 0) === 1 ? "choice" : "choices"} ·{" "}
             </span>
           )}
           {summaryText}

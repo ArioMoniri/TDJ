@@ -17,6 +17,35 @@ export interface MenuItem {
   shortcut?: string;
 }
 
+/** The phone menu rows (one inset group of `menuitem` buttons); also used by sheets that are menus of their own. */
+export function MenuList({
+  items,
+  onPick,
+}: {
+  items: Array<MenuItem | false | null | undefined>;
+  onPick: (it: MenuItem) => void;
+}) {
+  const list = items.filter(Boolean) as MenuItem[];
+  return (
+    <div className="group-inset mt-2">
+      {list.map((it) => (
+        <button
+          key={it.label}
+          type="button"
+          role="menuitem"
+          disabled={it.disabled}
+          data-destructive={it.destructive || undefined}
+          onClick={() => onPick(it)}
+          className={`cell cell-tap w-full text-left ${it.destructive ? "text-[var(--destructive)]" : ""} disabled:text-[var(--label-3)]`}
+        >
+          <span className="min-w-0 flex-1 truncate">{it.label}</span>
+          {it.icon && <it.icon size={20} strokeWidth={1.75} aria-hidden />}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 /**
  * A `•••` button that opens a UIMenu-style popover (desktop, also on right-click of `contextRef`)
  * or a sheet of rows (phone). Arrow keys, Escape and click-outside are handled.
@@ -128,22 +157,7 @@ export function Menu({
       <>
         {trigger}
         <Sheet open={open} onClose={() => setOpen(false)} title={label} detents={["medium", "large"]}>
-          <div className="group-inset mt-2">
-            {list.map((it) => (
-              <button
-                key={it.label}
-                type="button"
-                role="menuitem"
-                disabled={it.disabled}
-                data-destructive={it.destructive || undefined}
-                onClick={() => run(it)}
-                className={`cell cell-tap w-full text-left ${it.destructive ? "text-[var(--destructive)]" : ""} disabled:text-[var(--label-3)]`}
-              >
-                <span className="min-w-0 flex-1 truncate">{it.label}</span>
-                {it.icon && <it.icon size={20} strokeWidth={1.75} aria-hidden />}
-              </button>
-            ))}
-          </div>
+          <MenuList items={list} onPick={run} />
         </Sheet>
       </>
     );

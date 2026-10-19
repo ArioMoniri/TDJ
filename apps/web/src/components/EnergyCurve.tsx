@@ -91,10 +91,11 @@ export function EnergyCurve({
     hidden: { opacity: 0 },
     show: { opacity: 1, transition: { delay: reduced ? 0 : delay, duration: DUR.base } },
   });
+  // bands fade in on `opacity` (transform/opacity only); the fill itself is rgb(text / --band-alpha), lighter on cream
   const bandV = {
-    hidden: { fillOpacity: 0 },
+    hidden: { opacity: 0 },
     show: (k: number) => ({
-      fillOpacity: k % 2 ? 0.04 : 0,
+      opacity: k % 2 ? 1 : 0,
       transition: { delay: reduced ? 0 : k * STAGGER.bands, duration: DUR.base },
     }),
   };
@@ -172,11 +173,11 @@ export function EnergyCurve({
                 hidden: { ...bandV.hidden, attrX: bx, width: bw },
                 show: (j: number) => ({ ...bandV.show(j), attrX: bx, width: bw }),
               }}
-              animate={morph ? { attrX: bx, width: bw, fillOpacity: k % 2 ? 0.04 : 0 } : "show"}
+              animate={morph ? { attrX: bx, width: bw, opacity: k % 2 ? 1 : 0 } : "show"}
               transition={morphT}
               y={py}
               height={plotH}
-              fill="currentColor"
+              fill="rgb(var(--text) / var(--band-alpha))"
             />
           );
         })}

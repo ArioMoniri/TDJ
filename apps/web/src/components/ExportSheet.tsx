@@ -1,14 +1,14 @@
 "use client";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import { EXPORT_META, type ExportFormat, toSpotifyPlan } from "@tdj/core";
-import { Cloud, FileDown, HardDrive, ListVideo, Radio, Webhook } from "lucide-react";
+import { Check, Cloud, FileDown, HardDrive, ListVideo, Radio, Webhook } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { downloadBlob } from "@/lib/download";
 import { withoutCortinas } from "@/lib/exportPaths";
 import { haptic } from "@/lib/haptics";
-import { DUR } from "@/lib/motion";
+import { DUR, SPRING } from "@/lib/motion";
 import {
   beginAuth,
   type ConnectApp,
@@ -86,8 +86,8 @@ const TILE_COLOR: Record<ExportFormat, string> = {
   m3u8: "#ff9500",
   xspf: "#ff9500",
   csv: "#34c759",
-  json: "#8e8e93",
-  setlist: "#8e8e93",
+  json: "#636366",
+  setlist: "#636366",
 };
 
 export function ExportSheet({
@@ -128,6 +128,8 @@ export function ExportSheet({
   const [log, setLog] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [dlBusy, setDlBusy] = useState<ExportFormat | null>(null);
+  /** the row whose download just finished shows a check for 1.2 s (motion-composer.md §2.7) */
+  const [justDone, setJustDone] = useState<ExportFormat | null>(null);
   const [result, setResult] = useState<{ label: string; url: string } | null>(null);
   const [includeCortinas, setIncludeCortinas] = useState(true);
   const [done, setDone] = useState(false);
@@ -174,6 +176,8 @@ export function ExportSheet({
       downloadBlob(`${playlist.name.replace(/[^a-z0-9-]+/gi, "_")}.${m.ext}`, await r.text(), m.mime);
       haptic(6);
       toast(`Downloaded ${m.label} (.${m.ext})`);
+      setJustDone(f);
+      setTimeout(() => setJustDone((j) => (j === f ? null : j)), 1200);
       onClose();
     } catch (e) {
       setLog((l) => [...l, `Error: ${(e as Error).message}`]);
@@ -668,10 +672,22 @@ export function ExportSheet({
               label={EXPORT_META[f].label}
               sub={folderFor(f) ? `Paths under ${folderFor(f)}` : undefined}
               value={`.${EXPORT_META[f].ext}`}
-              chevron
+              chevron={justDone !== f}
               onClick={() => dl(f)}
               busy={dlBusy === f}
-            />
+            >
+              {justDone === f && (
+                <motion.span
+                  initial={reduced ? { opacity: 0 } : { scale: 0.6, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={SPRING.snappy}
+                  className="cell-chevron inline-flex text-[var(--system-green)]"
+                  aria-label="Downloaded"
+                >
+                  <Check size={16} strokeWidth={2.5} />
+                </motion.span>
+              )}
+            </Row>
           ))}
         </Group>
       ))}

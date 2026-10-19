@@ -1,7 +1,6 @@
 import { ExternalLink } from "lucide-react";
 import { Group, Row } from "@/components/Form";
 import { GuideBody } from "@/components/GuideSections";
-import { PageHeader } from "@/components/PageHeader";
 import { EVIDENCE_COLOR, EVIDENCE_LABEL, fmtShift } from "@/lib/context";
 import { getCatalog } from "@/lib/server/catalog";
 
@@ -62,11 +61,12 @@ export default function Guide() {
     items.map(([k, v]) => ({ id: slug(k), title: k, text: v }));
   return (
     <article className="mx-auto max-w-[680px]">
-      <PageHeader
+      <GuideBody
         title="How TDJ composes"
         subtitle="Rules from working DJs and the research behind the index."
+        rows={toSections(rows)}
+        takes={toSections(takes)}
       />
-      <GuideBody rows={toSections(rows)} takes={toSections(takes)} />
       <Group header="Read more">
         <Row
           label="Factors, with sources"

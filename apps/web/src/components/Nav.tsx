@@ -139,6 +139,7 @@ export function Nav() {
           </nav>
           <div className="flex min-w-[44px] items-center justify-end gap-1">
             {bar.collapsed && bar.trailing}
+            {bar.collapsed && bar.primary}
           </div>
         </div>
       </header>
