@@ -1,6 +1,8 @@
 "use client";
 import { Minus, Plus } from "lucide-react";
-import type { KeyboardEvent, ReactNode } from "react";
+import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "motion/react";
+import { type KeyboardEvent, type ReactNode, useId, useRef } from "react";
+import { spring, t } from "@/lib/motion";
 
 /** Labelled control group. */
 export function Field({
@@ -52,6 +54,7 @@ export function Segmented<K extends string>({
   chips?: boolean;
   label?: string;
 }) {
+  const id = useId();
   const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
     const i = items.findIndex(([k]) => k === value);
     let next = -1;
@@ -65,30 +68,40 @@ export function Segmented<K extends string>({
     (e.currentTarget.children[next] as HTMLElement | undefined)?.focus();
   };
   return (
-    <div
-      role="radiogroup"
-      aria-label={label}
-      className={chips ? "chip-row scroll-x" : "segmented scroll-x"}
-      onKeyDown={onKey}
-    >
-      {items.map(([k, l]) => {
-        const on = value === k;
-        return (
-          // biome-ignore lint/a11y/useSemanticElements: segmented control built from buttons (WAI-ARIA radio group pattern)
-          <button
-            type="button"
-            role="radio"
-            aria-checked={on}
-            tabIndex={on ? 0 : -1}
-            key={k}
-            onClick={() => onChange(k)}
-            className={chips ? `chip ${on ? "chip-on" : ""}` : `seg ${on ? "seg-on" : ""}`}
-          >
-            {l}
-          </button>
-        );
-      })}
-    </div>
+    <LayoutGroup id={id}>
+      <div
+        role="radiogroup"
+        aria-label={label}
+        className={chips ? "chip-row scroll-x" : "segmented scroll-x"}
+        onKeyDown={onKey}
+      >
+        {items.map(([k, l]) => {
+          const on = value === k;
+          return (
+            // biome-ignore lint/a11y/useSemanticElements: segmented control built from buttons (WAI-ARIA radio group pattern)
+            <button
+              type="button"
+              role="radio"
+              aria-checked={on}
+              tabIndex={on ? 0 : -1}
+              key={k}
+              onClick={() => onChange(k)}
+              className={chips ? `chip ${on ? "chip-on" : ""}` : `seg relative isolate ${on ? "seg-on" : ""}`}
+            >
+              {on && !chips && (
+                <motion.span
+                  layoutId={`seg-${id}`}
+                  transition={spring.thumb}
+                  className="absolute inset-0 -z-10 rounded-full bg-[rgb(var(--surface))] shadow-[0_1px_3px_rgb(0_0_0/.18)]"
+                  aria-hidden
+                />
+              )}
+              {l}
+            </button>
+          );
+        })}
+      </div>
+    </LayoutGroup>
   );
 }
 
@@ -101,7 +114,7 @@ export function Switch({
   checked: boolean;
   onChange: (v: boolean) => void;
   label: string;
-  hint?: string;
+  hint?: ReactNode;
 }) {
   return (
     <div className="flex min-h-11 items-center justify-between gap-3 text-sm">
@@ -142,6 +155,14 @@ export function Stepper({
   label: string;
   onChange: (v: number) => void;
 }) {
+  const reduced = useReducedMotion();
+  const dir = useRef(1);
+  const change = (v: number) => {
+    dir.current = v > value ? 1 : -1;
+    onChange(v);
+  };
+  // the value cross-fades 125 ms and nudges 3 px in the direction of change (up for +, down for −)
+  const nudge = reduced ? 0 : 3;
   return (
     // biome-ignore lint/a11y/useSemanticElements: stepper is an inline control group, not a form section
     <div className="inline-flex items-center gap-1" role="group" aria-label={label}>
@@ -150,20 +171,34 @@ export function Stepper({
         className="icon-btn"
         aria-label={`Decrease ${label.toLowerCase()}`}
         disabled={value <= min}
-        onClick={() => onChange(Math.max(min, value - step))}
+        onClick={() => change(Math.max(min, value - step))}
       >
         <Minus size={16} />
       </button>
-      <output className="min-w-14 text-center text-sm font-medium tabular-nums" aria-live="polite">
-        {value}
-        {unit}
+      <output
+        className="relative inline-grid min-w-14 overflow-hidden text-center text-sm font-medium tabular-nums"
+        aria-live="polite"
+      >
+        <AnimatePresence mode="popLayout" initial={false}>
+          <motion.span
+            key={value}
+            initial={{ opacity: 0, y: dir.current * nudge }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -dir.current * nudge }}
+            transition={t.press}
+            className="col-start-1 row-start-1 block"
+          >
+            {value}
+            {unit}
+          </motion.span>
+        </AnimatePresence>
       </output>
       <button
         type="button"
         className="icon-btn"
         aria-label={`Increase ${label.toLowerCase()}`}
         disabled={value >= max}
-        onClick={() => onChange(Math.min(max, value + step))}
+        onClick={() => change(Math.min(max, value + step))}
       >
         <Plus size={16} />
       </button>

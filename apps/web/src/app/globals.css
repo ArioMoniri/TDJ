@@ -28,6 +28,34 @@
   --bg-b: #d9c7ff;
   --bg-c: #bfe8ff;
   color-scheme: light dark;
+  /* Motion tokens: one tango beat ≈ 500 ms, durations are subdivisions (docs/design/motion-system.md §2) */
+  --dur-xs: 125ms;
+  --dur-s: 250ms;
+  --dur-m: 375ms;
+  --dur-l: 500ms;
+  --dur-loop: 1200ms;
+  --dur-breathe: 3000ms;
+  --ease-settle: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-breathe: cubic-bezier(0.45, 0, 0.55, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --stagger: 28ms;
+  /* composer aliases (docs/design/motion-composer.md §0) */
+  --dur-instant: 80ms;
+  --dur-fast: var(--dur-xs);
+  --dur-base: var(--dur-s);
+  --dur-slow: var(--dur-l);
+}
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-xs: 0ms;
+    --dur-s: 0ms;
+    --dur-m: 0ms;
+    --dur-l: 0ms;
+    --dur-instant: 0ms;
+    --stagger: 0ms;
+  }
 }
 .dark,
 :root[data-theme="dark"] {
@@ -250,6 +278,20 @@ body {
   color: rgb(var(--surface));
   border-color: transparent;
 }
+/* Desktop nav: the dark fill is a shared motion pill (layoutId="nav-pill"), not the chip's own background */
+.nav-chip.chip-on {
+  background: transparent;
+}
+.chip {
+  transition:
+    background var(--dur-xs) var(--ease-settle),
+    color var(--dur-xs) var(--ease-settle),
+    border-color var(--dur-xs) var(--ease-settle),
+    transform var(--dur-xs) var(--ease-settle);
+}
+.chip:active:not(:disabled) {
+  transform: scale(0.98);
+}
 @utility icon-btn {
   display: inline-flex;
   align-items: center;
@@ -345,10 +387,12 @@ body {
   color: rgb(var(--muted));
   -webkit-tap-highlight-color: transparent;
 }
+.seg {
+  transition: color var(--dur-xs) var(--ease-settle);
+}
+/* the thumb is a shared motion element (layoutId="seg-…"); .seg-on keeps only the colour rule */
 .seg-on {
-  background: rgb(var(--surface));
   color: rgb(var(--text));
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.18);
 }
 
 /* Switch: 44 px hit area around a 31 px track */
@@ -372,7 +416,7 @@ body {
   height: 31px;
   border-radius: 999px;
   background: rgb(var(--text) / 0.18);
-  transition: background 0.2s;
+  transition: background var(--dur-s) var(--ease-settle);
 }
 .switch-on .switch-track {
   background: #2f9e5b;
@@ -386,10 +430,25 @@ body {
   border-radius: 50%;
   background: #fff;
   box-shadow: 0 2px 4px rgb(0 0 0 / 0.25);
-  transition: transform 0.2s;
+  transition:
+    transform var(--dur-s) var(--ease-out),
+    width var(--dur-xs) var(--ease-settle);
 }
 .switch-on .switch-knob {
   transform: translateX(20px);
+}
+/* iOS knob squash while pressed, anchored to the side it is on */
+.switch:active .switch-knob {
+  width: 31px;
+}
+.switch-on:active .switch-knob {
+  transform: translateX(16px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .switch-knob,
+  .switch-track {
+    transition-duration: 0ms;
+  }
 }
 @media (hover: none) {
   .chip,
@@ -449,6 +508,84 @@ input[type="range"] {
   .animate-spin {
     animation-duration: 1.6s;
   }
+}
+
+/* Theme cross-fade: added to <html> for one --dur-s by ThemeSync, then removed. Never on backdrop-filter. */
+html.theming,
+html.theming *,
+html.theming *::before,
+html.theming *::after {
+  transition:
+    background-color 250ms var(--ease-settle),
+    color 250ms var(--ease-settle),
+    border-color 250ms var(--ease-settle),
+    fill 250ms var(--ease-settle),
+    stroke 250ms var(--ease-settle) !important;
+}
+html.theming .glass {
+  transition: background-color 250ms var(--ease-settle) !important;
+}
+
+/* Skeleton: opacity breathe only, no sweep */
+@keyframes skeleton-breathe {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.skeleton {
+  border-radius: 10px;
+  background: rgb(var(--text) / 0.08);
+  animation: skeleton-breathe 1.6s var(--ease-breathe) infinite alternate;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    opacity: 0.8;
+  }
+}
+
+/* Save pulse on a database cell: a 6 px ring in --ok that dissolves (one-shot, 500 ms) */
+@keyframes cell-saved {
+  from {
+    box-shadow: 0 0 0 0 rgb(47 158 91 / 0.55);
+  }
+  to {
+    box-shadow: 0 0 0 6px rgb(47 158 91 / 0);
+  }
+}
+.cell-saved {
+  animation: cell-saved var(--dur-l) var(--ease-out) 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cell-saved {
+    animation: none;
+  }
+}
+
+/* Export sheet on phones: blur is applied after the spring settles (motion-composer.md §4.3) */
+.glass-settling {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: rgb(var(--surface) / 0.96);
+}
+
+/* Hover/focus on glass controls: a tint, never a lift or scale */
+@media (hover: hover) {
+  .glass .chip:not(.chip-on):hover {
+    background: rgb(var(--surface) / 0.85);
+  }
+  .surface .chip:not(.chip-on):hover,
+  .btn-ghost:hover,
+  .icon-btn:hover {
+    background: rgb(var(--text) / 0.09);
+    transition: background var(--dur-xs) var(--ease-settle);
+  }
+}
+.glass :focus-visible {
+  outline-offset: -2px; /* keep the ring inside the pill so it is not clipped by the border radius */
 }
 
 /* "Tonight" context chips: a native select dressed as a chip (44 px on touch) */

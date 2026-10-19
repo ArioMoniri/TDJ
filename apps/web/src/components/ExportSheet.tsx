@@ -1,13 +1,19 @@
 "use client";
+import { type DotLottie, DotLottieReact } from "@lottiefiles/dotlottie-react";
 import { EXPORT_META, type ExportFormat, toSpotifyPlan } from "@tdj/core";
-import { Download, ExternalLink, LoaderCircle, X } from "lucide-react";
+import { Check, Download, ExternalLink, LoaderCircle, X } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { downloadBlob } from "@/lib/download";
 import { withoutCortinas } from "@/lib/exportPaths";
+import { haptic } from "@/lib/haptics";
+import { useMediaQuery } from "@/lib/hooks";
+import { DUR, EASE, SPRING, rise } from "@/lib/motion";
 import { beginAuth, createPlaylist, refresh, resolveTrack } from "@/lib/spotify";
 import { useStore } from "@/lib/store";
 import { DJ_APPS, type DjApp } from "@/lib/types";
+import { CountUp } from "./CountUp";
 import { Switch } from "./ui";
 
 const GROUPS: Array<[string, ExportFormat[]]> = [
@@ -30,9 +36,17 @@ export function ExportSheet({ open, onClose }: { open: boolean; onClose: () => v
   const [dlBusy, setDlBusy] = useState<ExportFormat | null>(null);
   const [result, setResult] = useState<string | null>(null);
   const [includeCortinas, setIncludeCortinas] = useState(true);
+  const [justDone, setJustDone] = useState<ExportFormat | null>(null);
+  const [done, setDone] = useState(false);
+  const [errorKey, setErrorKey] = useState(0);
+  const [settling, setSettling] = useState(false);
+  const check = useRef<DotLottie | null>(null);
   const panel = useRef<HTMLDivElement>(null);
+  const list = useRef<HTMLDivElement>(null);
   const close = useRef(onClose);
   close.current = onClose;
+  const reduced = useReducedMotion();
+  const isPhone = useMediaQuery("(max-width: 639px)");
 
   // Dialog behaviour: initial focus, Escape, focus trap, scroll lock, focus restore.
   useEffect(() => {
@@ -68,15 +82,50 @@ export function ExportSheet({ open, onClose }: { open: boolean; onClose: () => v
       prev?.focus();
     };
   }, [open]);
+  // a fresh open starts clean: no stale "Playlist created" state
+  useEffect(() => {
+    if (open) {
+      setDone(false);
+      setResult(null);
+    }
+  }, [open]);
 
-  if (!open || !playlist) return null;
-  const tracks = playlist.tandas.reduce((a, t) => a + t.songs.length, 0) + (playlist.closing ? 1 : 0);
-  const cortinas = playlist.tandas.filter((t) => t.cortina).length;
+  const tracks = playlist
+    ? playlist.tandas.reduce((a, t) => a + t.songs.length, 0) + (playlist.closing ? 1 : 0)
+    : 0;
+  const cortinas = playlist ? playlist.tandas.filter((t) => t.cortina).length : 0;
   const count = tracks + (includeCortinas ? cortinas : 0);
   const folderFor = (f: ExportFormat) =>
     (APP_FOR[f] ?? []).map((a) => settings.djApps[a]?.folder?.trim()).find(Boolean) ?? "";
 
+  // phone: sheet slides up on a spring; desktop: fade + 4 % scale. Reduced motion: cross-fade.
+  const panelMotion = useMemo(() => {
+    if (reduced)
+      return {
+        initial: { opacity: 0 },
+        animate: { opacity: 1, transition: { duration: DUR.base } },
+        exit: { opacity: 0, transition: { duration: DUR.fast } },
+      };
+    return isPhone
+      ? {
+          initial: { y: "100%" },
+          animate: { y: 0, transition: SPRING.sheet },
+          exit: { y: "100%", transition: { duration: DUR.base, ease: EASE.in } },
+        }
+      : {
+          initial: { opacity: 0, scale: 0.96, y: 12 },
+          animate: { opacity: 1, scale: 1, y: 0, transition: { duration: DUR.base, ease: EASE.out } },
+          exit: { opacity: 0, scale: 0.98, transition: { duration: DUR.fast, ease: EASE.in } },
+        };
+  }, [isPhone, reduced]);
+  // error nudge: a new array identity per error so a repeated identical error still nudges
+  const nudge = useMemo(
+    () => (errorKey && !reduced ? { x: [0, -4, 4, -2, 0] } : { x: 0 }),
+    [errorKey, reduced],
+  );
+
   const dl = async (f: ExportFormat) => {
+    if (!playlist) return;
     const m = EXPORT_META[f];
     setDlBusy(f);
     try {
@@ -93,15 +142,18 @@ export function ExportSheet({ open, onClose }: { open: boolean; onClose: () => v
       });
       if (!r.ok) throw new Error(`Export failed (${r.status})`);
       downloadBlob(`${playlist.name.replace(/[^a-z0-9-]+/gi, "_")}.${m.ext}`, await r.text(), m.mime);
+      setJustDone(f);
+      setTimeout(() => setJustDone((cur) => (cur === f ? null : cur)), 1200);
     } catch (e) {
       setLog((l) => [...l, `Error: ${(e as Error).message}`]);
+      setErrorKey((k) => k + 1);
     } finally {
       setDlBusy(null);
     }
   };
 
   const toSpotify = async () => {
-    if (!settings.spotifyClientId) return;
+    if (!settings.spotifyClientId || !playlist) return;
     let tok = spotifyToken;
     if (!tok) return beginAuth(settings.spotifyClientId);
     if (tok.expires < Date.now() + 60_000 && tok.refresh) {
@@ -132,9 +184,14 @@ export function ExportSheet({ open, onClose }: { open: boolean; onClose: () => v
         uris,
       );
       setResult(pl.external_urls.spotify);
+      setDone(true);
+      check.current?.play();
+      haptic([10, 40, 10]);
       setLog((l) => [...l, `Created playlist with ${uris.length} tracks (${miss} unresolved).`]);
     } catch (e) {
       setLog((l) => [...l, `Error: ${(e as Error).message}`]);
+      setErrorKey((k) => k + 1);
+      haptic([20, 30, 20]);
       if (String(e).includes("401")) setSpotifyToken(null);
     } finally {
       setBusy(false);
@@ -142,22 +199,50 @@ export function ExportSheet({ open, onClose }: { open: boolean; onClose: () => v
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6">
-      <button
-        type="button"
-        className="absolute inset-0 cursor-default bg-black/40"
-        onClick={onClose}
-        aria-label="Close export sheet"
-        tabIndex={-1}
-      />
-      <div
-        ref={panel}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="export-title"
-        aria-describedby="export-desc"
-        className="glass sheet relative flex max-h-[85dvh] w-full max-w-lg flex-col rounded-b-none p-5 pt-3 sm:rounded-b-[24px] sm:pt-5"
-      >
+    <AnimatePresence>
+      {open && playlist && (
+        <div
+          key="export-sheet"
+          className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6"
+        >
+          <motion.button
+            type="button"
+            className="absolute inset-0 cursor-default bg-black/40"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1, transition: { duration: DUR.base } }}
+            exit={{ opacity: 0, transition: { duration: DUR.fast } }}
+            onClick={onClose}
+            aria-label="Close export sheet"
+            tabIndex={-1}
+          />
+          <motion.div
+            ref={panel}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="export-title"
+            aria-describedby="export-desc"
+            className={`glass relative flex max-h-[85dvh] w-full max-w-lg flex-col rounded-b-none p-5 pt-3 sm:rounded-b-[24px] sm:pt-5 ${settling ? "glass-settling" : ""}`}
+            style={{ willChange: "transform" }}
+            {...panelMotion}
+            onAnimationStart={() => isPhone && setSettling(true)}
+            onAnimationComplete={() => {
+              setSettling(false);
+              if (isPhone) haptic(6);
+            }}
+            drag={isPhone && !reduced ? "y" : false}
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.6 }}
+            dragMomentum={false}
+            dragTransition={SPRING.sheet}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 120 || info.velocity.y > 600) onClose();
+            }}
+          >
+            <motion.div
+              animate={nudge}
+              transition={{ duration: 0.28, ease: EASE.inOut }}
+              className="flex min-h-0 flex-col"
+            >
         <div className="mx-auto mb-3 h-1.5 w-9 rounded-full bg-current opacity-25 sm:hidden" aria-hidden />
         <div className="flex items-center justify-between gap-3">
           <h2 id="export-title" className="text-lg font-semibold">
@@ -175,10 +260,23 @@ export function ExportSheet({ open, onClose }: { open: boolean; onClose: () => v
             checked={includeCortinas}
             onChange={setIncludeCortinas}
             label="Include cortinas"
-            hint={`${count} ${count === 1 ? "track" : "tracks"} will be exported${includeCortinas ? "" : ` (${cortinas} cortinas left out)`}`}
+            hint={
+              <>
+                <CountUp value={count} /> {count === 1 ? "track" : "tracks"} will be exported
+                {includeCortinas ? "" : ` (${cortinas} cortinas left out)`}
+              </>
+            }
           />
         </div>
-        <div className="mt-4 min-h-0 space-y-4 overflow-y-auto">
+        <div
+          ref={list}
+          className="mt-4 min-h-0 space-y-4 overflow-y-auto"
+          data-no-drag
+          onPointerDownCapture={(e) => {
+            // a scrolled list must never turn a scroll into a dismiss
+            if ((list.current?.scrollTop ?? 0) > 0) e.stopPropagation();
+          }}
+        >
           {GROUPS.map(([g, keys]) => (
             <div key={g}>
               <div className="text-muted mb-1.5 text-xs font-medium uppercase tracking-wide">{g}</div>
@@ -194,6 +292,16 @@ export function ExportSheet({ open, onClose }: { open: boolean; onClose: () => v
                   >
                     {dlBusy === f ? (
                       <LoaderCircle size={15} className="shrink-0 animate-spin" />
+                    ) : justDone === f ? (
+                      <motion.span
+                        initial={{ scale: reduced ? 1 : 0.6 }}
+                        animate={{ scale: 1 }}
+                        transition={SPRING.snappy}
+                        className="inline-flex shrink-0"
+                        aria-label="Exported"
+                      >
+                        <Check size={15} />
+                      </motion.span>
                     ) : (
                       <Download size={15} className="shrink-0" />
                     )}
@@ -214,9 +322,48 @@ export function ExportSheet({ open, onClose }: { open: boolean; onClose: () => v
           )}
         </div>
         {settings.spotifyClientId ? (
-          <button type="button" onClick={toSpotify} disabled={busy} className="btn btn-primary mt-4 w-full">
-            {busy ? <LoaderCircle size={16} className="animate-spin" /> : null}
-            {spotifyToken ? "Create playlist in Spotify" : "Connect Spotify and create playlist"}
+          <button
+            type="button"
+            onClick={toSpotify}
+            disabled={busy || done}
+            className="btn btn-primary mt-4 w-full"
+          >
+            {done || busy ? (
+              <span className="inline-grid h-6 w-6 place-items-center" aria-hidden>
+                {done ? (
+                  <DotLottieReact
+                    src="/anim/success-check.json"
+                    autoplay={!reduced}
+                    loop={false}
+                    dotLottieRefCallback={(d) => {
+                      check.current = d;
+                      if (reduced) d?.setFrame(35);
+                    }}
+                    style={{ width: 24, height: 24 }}
+                  />
+                ) : (
+                  <LoaderCircle size={16} className="animate-spin" />
+                )}
+              </span>
+            ) : null}
+            <span className="relative inline-grid">
+              <AnimatePresence mode="popLayout" initial={false}>
+                <motion.span
+                  key={done ? "done" : "idle"}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: DUR.fast }}
+                  className="col-start-1 row-start-1"
+                >
+                  {done
+                    ? "Playlist created"
+                    : spotifyToken
+                      ? "Create playlist in Spotify"
+                      : "Connect Spotify and create playlist"}
+                </motion.span>
+              </AnimatePresence>
+            </span>
           </button>
         ) : (
           <div className="mt-4 text-center">
@@ -232,11 +379,25 @@ export function ExportSheet({ open, onClose }: { open: boolean; onClose: () => v
             </p>
           </div>
         )}
-        {result && (
-          <a href={result} target="_blank" rel="noreferrer" className="btn btn-ghost mt-2 w-full">
-            Open in Spotify <ExternalLink size={14} />
-          </a>
-        )}
+        <AnimatePresence>
+          {result && (
+            <motion.a
+              key="open"
+              variants={rise}
+              initial="hidden"
+              animate="show"
+              exit="exit"
+              transition={{ delay: reduced ? 0 : 0.7 }}
+              href={result}
+              target="_blank"
+              rel="noreferrer"
+              className="btn btn-ghost mt-2 w-full"
+              ref={(el) => el?.focus()}
+            >
+              Open in Spotify <ExternalLink size={14} />
+            </motion.a>
+          )}
+        </AnimatePresence>
         <div role="status" aria-live="polite">
           {log.length > 0 && (
             <div className="mt-3 max-h-40 overflow-auto rounded-xl bg-[rgb(var(--text)/.06)] p-3 text-xs leading-relaxed">
@@ -247,7 +408,10 @@ export function ExportSheet({ open, onClose }: { open: boolean; onClose: () => v
           )}
         </div>
         <div className="h-[env(safe-area-inset-bottom)] shrink-0 sm:hidden" />
-      </div>
-    </div>
+            </motion.div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
   );
 }

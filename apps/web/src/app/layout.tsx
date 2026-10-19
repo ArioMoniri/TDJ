@@ -2,7 +2,9 @@ import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter } from "next/font/google";
 import "./globals.css";
 import { Boot } from "@/components/Boot";
+import { Motion } from "@/components/Motion";
 import { Nav } from "@/components/Nav";
+import { PageTransition } from "@/components/PageTransition";
 import { ThemeSync } from "@/components/ThemeSync";
 
 const sans = Inter({ subsets: ["latin"], variable: "--font-sans-loaded", display: "swap" });
@@ -43,7 +45,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeSync />
         <Boot />
         <Nav />
-        <main className="mx-auto w-full max-w-6xl px-4 pb-36 pt-4 sm:px-6 sm:pb-12 lg:px-8">{children}</main>
+        <main className="mx-auto w-full max-w-6xl px-4 pb-36 pt-4 sm:px-6 sm:pb-12 lg:px-8">
+          <Motion>
+            <PageTransition>{children}</PageTransition>
+          </Motion>
+        </main>
       </body>
     </html>
   );
