@@ -4,8 +4,6 @@ Parameters:
   GitHubOrg: { Type: String, Default: ArioMoniri }
   GitHubRepo: { Type: String, Default: TDJ }
   RoleName: { Type: String, Default: tdj-github-deploy }
-Conditions:
-  CreateProvider: !Equals [!Ref "AWS::NoValue", "never"]
 Resources:
   OidcProvider:
     Type: AWS::IAM::OIDCProvider
