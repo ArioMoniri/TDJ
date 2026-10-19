@@ -95,7 +95,7 @@ export function scorePlaylist(p: Pick<Playlist, "tandas" | "closing" | "options"
   let bpmOver = 0,
     bpmKnown = 0;
   for (const x of t) {
-    const b = x.songs.map((s) => s.bpm).filter((v): v is number => !!v);
+    const b = x.songs.map((s) => s.bpm ?? s.audio?.bpm).filter((v): v is number => !!v);
     if (b.length === x.songs.length) {
       bpmKnown++;
       const r = (Math.max(...b) - Math.min(...b)) / Math.min(...b);
@@ -109,6 +109,16 @@ export function scorePlaylist(p: Pick<Playlist, "tandas" | "closing" | "options"
     5,
     bpmKnown ? 1 - bpmOver / 5 : 0.35,
     bpmKnown ? `${bpmKnown} tandas with BPM data` : "no BPM data (unscored → 35%)",
+  );
+  const coh = t.map((x) => x.cohesion).filter((v): v is number => v !== undefined);
+  add(
+    "cohesion",
+    "Analysed-audio cohesion inside tandas (tempo, key, loudness)",
+    4,
+    coh.length ? Math.min(1, coh.reduce((a, b) => a + b, 0) / coh.length / 85) : 0.5,
+    coh.length
+      ? `${coh.length} tandas analysed, mean ${Math.round(coh.reduce((a, b) => a + b, 0) / coh.length)}`
+      : "no audio features (unscored → 50%)",
   );
   const rmse = Math.sqrt(t.reduce((a, x) => a + (x.energy - x.targetEnergy) ** 2, 0) / n);
   let early = 0;
