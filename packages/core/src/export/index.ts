@@ -1,8 +1,16 @@
+import {
+  type BoothPlan,
+  type BoothPlanItem,
+  boothClock,
+  boothInputs,
+  planBooth,
+  planMatches,
+} from "../booth";
 import type { Cortina, Playlist, Song } from "../types";
 
 export interface FlatTrack {
   n: number;
-  kind: "track" | "cortina" | "closing";
+  kind: "track" | "cortina" | "closing" | "break";
   /** catalogue id (song or cortina) so a streaming match can be stored back against it */
   id?: string;
   tanda: number;
@@ -18,23 +26,32 @@ export interface FlatTrack {
   orchestra?: string;
   /** cortinas: the second the player should stop at (the DJ's "cortina play length") */
   stopSec?: number;
+  /** index into `Playlist.booth.items` (the plan the row's timing comes from) */
+  planIndex: number;
+  /** planned offset from the night's start (booth plan) */
+  startSec: number;
+  /** silence after this row (booth plan) */
+  gapAfterSec: number;
+  /** cortina cue-in or intro trim (booth plan) */
+  trimInSec?: number;
+  fadeInSec?: number;
+  fadeOutSec?: number;
+  /** gain prior in dB (booth plan) */
+  gainDb?: number;
+  peakCapped?: boolean;
 }
 
 export interface ExportOpts {
   includeCortinas?: boolean;
+  /** show breaks as rows (off for players; the booth plan always has them) */
+  includeBreaks?: boolean;
   /**
    * Cortina play length in seconds (20–90): where M3U8/XSPF tell VLC to stop and where the Rekordbox hot cue sits.
    * Defaults to each cortina's own `lengthSec` (the compose option `cortinaLengthSec`, 45 s).
    */
   cortinaStopSec?: number;
 }
-export const CORTINA_STOP_MIN = 20;
-export const CORTINA_STOP_MAX = 90;
-/** The stop second an export writes for a cortina: the explicit option, else the cortina's length, clamped to 20–90. */
-export function cortinaStopFor(eo: ExportOpts, lengthSec?: number | null): number {
-  const v = eo.cortinaStopSec ?? lengthSec ?? 45;
-  return Math.round(Math.min(CORTINA_STOP_MAX, Math.max(CORTINA_STOP_MIN, Number.isFinite(v) ? v : 45)));
-}
+
 const safe = (s: string) =>
   s
     .replace(/[/\\:*?"<>|]+/g, "-")
@@ -47,73 +64,97 @@ const GENRE: Record<string, string> = {
   cortina: "Cortina",
 };
 
+/** The plan an export follows: the set's own when it is current and the stop option agrees, else one re-timed from its inputs. */
+export function planFor(p: Playlist, eo: ExportOpts = {}): BoothPlan {
+  const own = p.booth;
+  if (planMatches(p, own) && (eo.cortinaStopSec === undefined || eo.cortinaStopSec === own.cortinaStopSec))
+    return own;
+  const inputs = boothInputs(own);
+  if (eo.cortinaStopSec !== undefined) inputs.cortinaStopSec = eo.cortinaStopSec;
+  return planBooth(p, inputs);
+}
+
+const songRow = (
+  s: Song,
+  kind: "track" | "closing",
+  tanda: number,
+): Omit<FlatTrack, "n" | "planIndex" | "startSec" | "gapAfterSec"> => ({
+  kind,
+  id: s.id,
+  tanda,
+  title: s.title,
+  artist: kind === "track" && s.singer ? `${s.orchestra} / ${s.singer}` : s.orchestra,
+  album: kind === "track" ? (s.album ?? undefined) : undefined,
+  year: s.year,
+  rhythm: kind === "track" ? s.rhythm : "tango",
+  durationSec: s.durationSec ?? (kind === "track" ? 170 : 180),
+  energy: s.energy,
+  spotifyUri: s.spotify?.uri,
+  singer: s.singer,
+  orchestra: s.orchestra,
+});
+const cortinaRow = (
+  c: Cortina,
+  tanda: number,
+): Omit<FlatTrack, "n" | "planIndex" | "startSec" | "gapAfterSec"> => ({
+  kind: "cortina",
+  id: c.id,
+  tanda,
+  title: c.title,
+  artist: c.artist,
+  rhythm: "cortina",
+  durationSec: c.lengthSec ?? 45,
+  energy: c.energy,
+  spotifyUri: c.spotify?.uri,
+  year: c.year,
+});
+
+/** The set as rows, in play order, each carrying its booth-plan timing. */
 export function flatten(p: Playlist, eo: ExportOpts = {}): FlatTrack[] {
   const inc = eo.includeCortinas ?? true;
+  const incB = eo.includeBreaks ?? false;
+  const plan = planFor(p, eo);
   const out: FlatTrack[] = [];
   let n = 1;
-  const push = (f: Omit<FlatTrack, "n">) => out.push({ n: n++, ...f });
-  if (p.opening)
-    push({
-      kind: "closing",
-      id: p.opening.id,
-      tanda: 0,
-      title: p.opening.title,
-      artist: p.opening.orchestra,
-      rhythm: "tango",
-      durationSec: p.opening.durationSec ?? 180,
-      energy: p.opening.energy,
-      spotifyUri: p.opening.spotify?.uri,
-      orchestra: p.opening.orchestra,
-      singer: p.opening.singer,
-      year: p.opening.year,
+  plan.items.forEach((it: BoothPlanItem, planIndex) => {
+    if (it.kind === "cortina" && !inc) return;
+    if (it.kind === "break" && !incB) return;
+    let row: Omit<FlatTrack, "n" | "planIndex" | "startSec" | "gapAfterSec"> | undefined;
+    if (it.kind === "closing") {
+      const s = it.tanda === 0 ? p.opening : p.closing;
+      if (s) row = songRow(s, "closing", it.tanda);
+    } else if (it.kind === "track") {
+      const s = p.tandas[it.tanda - 1]?.songs.find((x) => x.id === it.id);
+      if (s) row = songRow(s, "track", it.tanda);
+    } else if (it.kind === "cortina") {
+      const c = p.tandas[it.tanda - 1]?.cortina;
+      if (c) row = cortinaRow(c, it.tanda);
+    } else {
+      const b = p.breaks?.find((x) => x.afterTanda === it.tanda - 1);
+      row = {
+        kind: "break",
+        tanda: it.tanda,
+        title: b?.label || "Break",
+        artist: `${b?.minutes ?? it.lengthSec / 60} min`,
+        rhythm: "break",
+        durationSec: it.lengthSec,
+      };
+    }
+    if (!row) return;
+    out.push({
+      n: n++,
+      ...row,
+      planIndex,
+      startSec: it.startSec,
+      gapAfterSec: it.gapAfterSec,
+      ...(it.trimInSec !== undefined ? { trimInSec: it.trimInSec } : {}),
+      ...(it.stopSec !== undefined ? { stopSec: it.stopSec } : {}),
+      ...(it.fadeInSec !== undefined ? { fadeInSec: it.fadeInSec } : {}),
+      ...(it.fadeOutSec !== undefined ? { fadeOutSec: it.fadeOutSec } : {}),
+      ...(it.gainDb !== undefined ? { gainDb: it.gainDb } : {}),
+      ...(it.peakCapped ? { peakCapped: true } : {}),
     });
-  p.tandas.forEach((t, ti) => {
-    for (const s of t.songs)
-      push({
-        kind: "track",
-        id: s.id,
-        tanda: ti + 1,
-        title: s.title,
-        artist: s.singer ? `${s.orchestra} / ${s.singer}` : s.orchestra,
-        album: s.album ?? undefined,
-        year: s.year,
-        rhythm: s.rhythm,
-        durationSec: s.durationSec ?? 170,
-        energy: s.energy,
-        spotifyUri: s.spotify?.uri,
-        singer: s.singer,
-        orchestra: s.orchestra,
-      });
-    if (inc && t.cortina)
-      push({
-        kind: "cortina",
-        id: t.cortina.id,
-        tanda: ti + 1,
-        title: t.cortina.title,
-        artist: t.cortina.artist,
-        rhythm: "cortina",
-        durationSec: t.cortina.lengthSec ?? 45,
-        energy: t.cortina.energy,
-        spotifyUri: t.cortina.spotify?.uri,
-        year: t.cortina.year,
-        stopSec: cortinaStopFor(eo, t.cortina.lengthSec),
-      });
   });
-  if (p.closing)
-    push({
-      kind: "closing",
-      id: p.closing.id,
-      tanda: p.tandas.length + 1,
-      title: p.closing.title,
-      artist: p.closing.orchestra,
-      rhythm: "tango",
-      durationSec: p.closing.durationSec ?? 180,
-      energy: p.closing.energy,
-      spotifyUri: p.closing.spotify?.uri,
-      orchestra: p.closing.orchestra,
-      singer: p.closing.singer,
-      year: p.closing.year,
-    });
   return out;
 }
 
@@ -124,6 +165,20 @@ const esc = (s: unknown) =>
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 const csvq = (s: unknown) => `"${String(s ?? "").replace(/"/g, '""')}"`;
+const fmtDb = (db: number) => `${db < 0 ? "−" : db > 0 ? "+" : ""}${Math.abs(db)} dB`;
+/** `Tanda 3 · gap 2.5 s · gain −1.3 dB` for the comment fields DJ apps show */
+const timingComment = (t: FlatTrack) =>
+  `${t.kind === "cortina" ? `Cortina before tanda ${t.tanda + 1}` : `Tanda ${t.tanda}`} · gap ${t.gapAfterSec} s${
+    t.gainDb !== undefined ? ` · gain ${fmtDb(t.gainDb)}` : ""
+  }${t.kind === "cortina" && t.fadeOutSec ? ` · fade ${t.fadeOutSec} s` : ""}`;
+const TIMING_COLS = ["start_sec", "stop_sec", "gap_sec", "fade_out_sec", "gain_db"];
+const timingCells = (t: FlatTrack) => [
+  t.startSec,
+  t.stopSec ?? "",
+  t.gapAfterSec,
+  t.fadeOutSec ?? "",
+  t.gainDb ?? "",
+];
 
 export function toM3U8(p: Playlist, eo: ExportOpts = {}): string {
   const lines = ["#EXTM3U", `#PLAYLIST:${p.name}`];
@@ -131,7 +186,14 @@ export function toM3U8(p: Playlist, eo: ExportOpts = {}): string {
     lines.push(
       `#EXTINF:${t.durationSec},${t.artist} - ${t.title}${t.kind === "cortina" ? " [CORTINA]" : ""}`,
     );
-    // VLC stops a cortina at the DJ's play length (other players ignore the option)
+    // ignored by players, read back by TDJ
+    lines.push(
+      `#TDJ:gap=${t.gapAfterSec}${t.gainDb !== undefined ? ` gain=${t.gainDb}` : ""}${
+        t.kind === "cortina" && t.fadeOutSec ? ` fade=${t.fadeOutSec}` : ""
+      }`,
+    );
+    // VLC starts at the cue-in / intro trim and stops a cortina at the DJ's play length (other players ignore both)
+    if (t.trimInSec) lines.push(`#EXTVLCOPT:start-time=${t.trimInSec}`);
     if (t.kind === "cortina" && t.stopSec) lines.push(`#EXTVLCOPT:stop-time=${t.stopSec}`);
     lines.push(t.spotifyUri ? t.spotifyUri : `${safe(t.artist)} - ${safe(t.title)}.mp3`);
   }
@@ -152,6 +214,7 @@ export function toCSV(p: Playlist, eo: ExportOpts = {}): string {
     "energy",
     "spotify_uri",
     "album",
+    ...TIMING_COLS,
   ];
   const rows = flatten(p, eo).map((t) =>
     [
@@ -167,6 +230,7 @@ export function toCSV(p: Playlist, eo: ExportOpts = {}): string {
       t.energy ?? "",
       t.spotifyUri ?? "",
       t.album ?? "",
+      ...timingCells(t),
     ]
       .map(csvq)
       .join(","),
@@ -174,21 +238,30 @@ export function toCSV(p: Playlist, eo: ExportOpts = {}): string {
   return `${[head.map(csvq).join(","), ...rows].join("\n")}\n`;
 }
 
+/** The raw set; always with its booth plan so the night's timing travels with the file. */
 export function toJSON(p: Playlist): string {
-  return JSON.stringify(p, null, 2);
+  const plan = planFor(p);
+  return JSON.stringify(p.booth === plan ? p : { ...p, booth: plan }, null, 2);
 }
 
 /** Rekordbox XML (DJ_PLAYLISTS v1.0.0) — importable via File > Import Collection in XML. */
 export function toRekordboxXML(p: Playlist, eo: ExportOpts = {}): string {
   const tracks = flatten(p, eo);
+  const marks = (t: FlatTrack) => {
+    if (t.kind !== "cortina" || !t.stopSec) return "/>";
+    const m = [
+      `      <POSITION_MARK Name="Cortina out (${t.stopSec} s)" Type="0" Start="${t.stopSec.toFixed(3)}" Num="0"/>`,
+    ];
+    if (t.fadeOutSec)
+      m.push(
+        `      <POSITION_MARK Name="Cortina fade (${t.fadeOutSec} s)" Type="0" Start="${(t.stopSec - t.fadeOutSec).toFixed(3)}" Num="1"/>`,
+      );
+    return `>\n${m.join("\n")}\n    </TRACK>`;
+  };
   const coll = tracks
     .map(
       (t) =>
-        `    <TRACK TrackID="${t.n}" Name="${esc(t.title)}" Artist="${esc(t.artist)}" Album="${esc(t.album ?? (t.kind === "cortina" ? "Cortinas" : "TDJ"))}" Genre="${esc(GENRE[t.kind === "cortina" ? "cortina" : t.rhythm] ?? "Tango")}" Year="${t.year ?? ""}" TotalTime="${t.durationSec}" Comments="${esc(t.kind === "cortina" ? `Cortina before tanda ${t.tanda + 1}` : `Tanda ${t.tanda}`)}" Location="file://localhost/TDJ/${esc(encodeURIComponent(`${safe(t.artist)} - ${safe(t.title)}.mp3`))}" Kind="MP3 File" ${t.spotifyUri ? `Mix="${esc(t.spotifyUri)}"` : ""}${
-          t.kind === "cortina" && t.stopSec
-            ? `>\n      <POSITION_MARK Name="Cortina out (${t.stopSec} s)" Type="0" Start="${t.stopSec.toFixed(3)}" Num="0"/>\n    </TRACK>`
-            : "/>"
-        }`,
+        `    <TRACK TrackID="${t.n}" Name="${esc(t.title)}" Artist="${esc(t.artist)}" Album="${esc(t.album ?? (t.kind === "cortina" ? "Cortinas" : "TDJ"))}" Genre="${esc(GENRE[t.kind === "cortina" ? "cortina" : t.rhythm] ?? "Tango")}" Year="${t.year ?? ""}" TotalTime="${t.durationSec}" Comments="${esc(timingComment(t))}" Location="file://localhost/TDJ/${esc(encodeURIComponent(`${safe(t.artist)} - ${safe(t.title)}.mp3`))}" Kind="MP3 File" ${t.spotifyUri ? `Mix="${esc(t.spotifyUri)}"` : ""}${marks(t)}`,
     )
     .join("\n");
   const nodes = p.tandas
@@ -221,15 +294,21 @@ ${nodes}
 `;
 }
 
-/** Traktor NML (Native Instruments) playlist with collection entries. */
+/** Traktor NML (Native Instruments) playlist with collection entries. Traktor has no gap field; cortinas get cue points. */
 export function toTraktorNML(p: Playlist, eo: ExportOpts = {}): string {
   const tracks = flatten(p, eo);
   const loc = (t: FlatTrack) =>
     `<LOCATION DIR="/:TDJ/:" FILE="${esc(`${t.artist} - ${t.title}.mp3`)}" VOLUME="" VOLUMEID=""></LOCATION>`;
+  const cue = (name: string, sec: number, hot: number) =>
+    `<CUE_V2 NAME="${name}" DISPL_ORDER="0" TYPE="0" START="${(sec * 1000).toFixed(3)}" LEN="0" REPEATS="-1" HOTCUE="${hot}"></CUE_V2>`;
+  const cues = (t: FlatTrack) =>
+    t.kind === "cortina" && t.stopSec
+      ? `${cue("Cortina out", t.stopSec, 0)}${t.fadeOutSec ? cue("Fade", t.stopSec - t.fadeOutSec, 1) : ""}`
+      : "";
   const coll = tracks
     .map(
       (t) =>
-        `    <ENTRY TITLE="${esc(t.title)}" ARTIST="${esc(t.artist)}">${loc(t)}<ALBUM TITLE="${esc(t.album ?? "TDJ")}"></ALBUM><INFO PLAYTIME="${t.durationSec}" GENRE="${esc(GENRE[t.kind === "cortina" ? "cortina" : t.rhythm] ?? "Tango")}" COMMENT="${esc(`Tanda ${t.tanda}`)}" RELEASE_DATE="${t.year ? `${t.year}/1/1` : ""}"></INFO></ENTRY>`,
+        `    <ENTRY TITLE="${esc(t.title)}" ARTIST="${esc(t.artist)}">${loc(t)}<ALBUM TITLE="${esc(t.album ?? "TDJ")}"></ALBUM><INFO PLAYTIME="${t.durationSec}" GENRE="${esc(GENRE[t.kind === "cortina" ? "cortina" : t.rhythm] ?? "Tango")}" COMMENT="${esc(timingComment(t))}" RELEASE_DATE="${t.year ? `${t.year}/1/1` : ""}"></INFO>${cues(t)}</ENTRY>`,
     )
     .join("\n");
   const pl = tracks
@@ -262,7 +341,7 @@ export function toXSPF(p: Playlist, eo: ExportOpts = {}): string {
       (t) =>
         `    <track><title>${esc(t.title)}</title><creator>${esc(t.artist)}</creator><album>${esc(t.album ?? "")}</album><duration>${(t.kind === "cortina" && t.stopSec ? t.stopSec : t.durationSec) * 1000}</duration><annotation>${esc(t.kind === "cortina" ? "cortina" : `tanda ${t.tanda}`)}</annotation>${t.spotifyUri ? `<location>${esc(t.spotifyUri)}</location>` : ""}${
           t.kind === "cortina" && t.stopSec
-            ? `<extension application="http://www.videolan.org/vlc/playlist/0"><vlc:option>stop-time=${t.stopSec}</vlc:option></extension>`
+            ? `<extension application="http://www.videolan.org/vlc/playlist/0">${t.trimInSec ? `<vlc:option>start-time=${t.trimInSec}</vlc:option>` : ""}<vlc:option>stop-time=${t.stopSec}</vlc:option></extension>`
             : ""
         }</track>`,
     )
@@ -279,12 +358,13 @@ export function toSeratoCSV(p: Playlist, eo: ExportOpts = {}): string {
       t.album ?? "",
       t.year ?? "",
       t.kind === "cortina" ? "Cortina" : t.rhythm.charAt(0).toUpperCase() + t.rhythm.slice(1),
-      `Tanda ${t.tanda}`,
+      timingComment(t),
+      ...timingCells(t),
     ]
       .map(csvq)
       .join(","),
   );
-  return `${["name", "artist", "album", "year", "genre", "comment"].map(csvq).join(",")}\n${rows.join("\n")}\n`;
+  return `${["name", "artist", "album", "year", "genre", "comment", ...TIMING_COLS].map(csvq).join(",")}\n${rows.join("\n")}\n`;
 }
 
 /** Spotify: ordered list of URIs (already resolved) + search queries for unresolved tracks. */
@@ -308,23 +388,40 @@ export function toSpotifyPlan(
   return { uris, unresolved };
 }
 
-/** Human set list (printable). */
-export function toSetList(p: Playlist, _eo: ExportOpts = {}): string {
+/** Human set list (printable), each tanda prefixed with its planned clock (`T+1:07`, or `23:42` with a start time). */
+export function toSetList(p: Playlist, eo: ExportOpts = {}): string {
+  const plan = planFor(p, eo);
+  const clockOf = (tanda: number) => {
+    const m = plan.markers.find((x) => x.kind === "tanda" && x.tanda === tanda);
+    return m ? boothClock(plan, m.atSec) : "";
+  };
   const L: string[] = [
     `${p.name} — ${(p.stats.durationSec / 3600).toFixed(2)} h · ${p.tandas.length} tandas · score ${p.score.total}/100 (${p.score.verdict})`,
+    `clock ${boothClock(plan, 0)} → ${boothClock(plan, plan.wallClockSec)} · gap ${plan.settings.gapSec} s`,
     "",
   ];
+  if (p.opening)
+    L.push(
+      `${boothClock(plan, 0)}  ★ Opening La Cumparsita — ${p.opening.orchestra} (${p.opening.year ?? "?"})`,
+      "",
+    );
   p.tandas.forEach((t, i) => {
     L.push(
-      `${String(i + 1).padStart(2, "0")}. [${t.rhythm.toUpperCase()}] ${t.orchestra}${t.singer ? ` / ${t.singer}` : " (instrumental)"} ${t.yearRange ? `${t.yearRange[0]}–${t.yearRange[1]}` : ""}  energy ${t.energy} (target ${t.targetEnergy}) · ${t.phase}`,
+      `${clockOf(i + 1)}  ${String(i + 1).padStart(2, "0")}. [${t.rhythm.toUpperCase()}] ${t.orchestra}${t.singer ? ` / ${t.singer}` : " (instrumental)"} ${t.yearRange ? `${t.yearRange[0]}–${t.yearRange[1]}` : ""}  energy ${t.energy} (target ${t.targetEnergy}) · ${t.phase}`,
     );
     t.songs.forEach((s, j) => L.push(`     ${j + 1}. ${s.title} (${s.year ?? "?"}) · e${s.energy}`));
     if (t.cortina)
       L.push(
         `     ♪ cortina: ${t.cortina.artist} – ${t.cortina.title} (${t.cortina.genre}, e${t.cortina.energy})`,
       );
+    const br = plan.markers.find((m) => m.kind === "break" && m.tanda === i + 1);
+    if (br) L.push("", `${boothClock(plan, br.atSec)}  ■ ${br.label}`, "");
   });
-  if (p.closing) L.push("", `★ La Cumparsita — ${p.closing.orchestra} (${p.closing.year ?? "?"})`);
+  if (p.closing)
+    L.push(
+      "",
+      `${plan.cumparsitaAtSec !== undefined ? boothClock(plan, plan.cumparsitaAtSec) : ""}  ★ La Cumparsita — ${p.closing.orchestra} (${p.closing.year ?? "?"})`,
+    );
   return `${L.join("\n")}\n`;
 }
 

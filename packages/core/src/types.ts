@@ -169,6 +169,8 @@ export interface Tanda {
   note?: string;
   /** why the engine chose it (shown in the UI) */
   reason?: string;
+  /** reserved for the birthday vals (rules.birthdayValsAt) */
+  birthday?: boolean;
 }
 
 export interface PlaylistStats {
@@ -183,6 +185,10 @@ export interface PlaylistStats {
   arcFit: number; // 0..1
   /** mean applied cortina length (s) */
   cortinaSec?: number;
+  /** real clock of the night with gaps and planned cortina stops (from the booth plan); durationSec stays the sum of recordings */
+  wallClockSec?: number;
+  /** total planned silence between items (s) */
+  gapsSec?: number;
 }
 
 export interface Playlist {
@@ -198,6 +204,8 @@ export interface Playlist {
   breaks?: Array<{ afterTanda: number; minutes: number; label: string }>;
   stats: PlaylistStats;
   score: ScoreCard;
+  /** the night's timing plan (gaps, cortina stops and fades, gain priors) shared by the booth and the exports */
+  booth?: import("./booth").BoothPlan;
 }
 
 export interface ScoreFactor {

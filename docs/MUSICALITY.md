@@ -655,3 +655,7 @@ Rows with `yearApprox:true` ("1940" for an undated 1940s transfer) never anchor 
 ### Option precedence
 
 `compose()` layers, lowest first: `DEFAULT_OPTIONS` → `ERA_SETTINGS[eras[0]]` → `overrides.rules` (the DJ's standing database rules) → the request (`partial`) → context shifts, which never touch a key the request set explicitly. `partial.explicit` names the explicit keys; without it every key present in the request is explicit. `playlist.options.contextApplied` lists what the context changed and what it skipped. `pattern:"TTVTTM-strict"` is never rewritten by context (`"classic"` may become a custom cycle under heat or an afternoon).
+
+## Booth timing
+
+`planBooth()` (`packages/core/src/booth.ts`, spec `docs/specs/round7-booth.md` §7) gives every set a clock the booth and the DJ-app exports share. The rule is the one DJs apply by hand: **silence of `gapSec` (2.5 s, 0.5–6) after every song and after every cortina**, none after a show break or the closing Cumparsita. A cortina plays from its cue-in to its stop second (20–90 s, the play length), its fade-out (3–6 s, default 4) ends exactly there, and the next tanda starts one gap after that silence. Gains are priors, not processing: `target − loudness` (−16 LUFS, −18…−12) clamped to ±12 dB plus the DJ's trim, reduced when a measured peak would pass −1 dBFS (never limited), cortinas 4 dB under the tandas (−8…−2). Leading silence is trimmed only on request and never beyond 3 s. `stats.wallClockSec` is this real clock; `stats.durationSec` remains the sum of recordings, so the benchmark is untouched.

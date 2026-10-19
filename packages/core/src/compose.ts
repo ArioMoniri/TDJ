@@ -1,4 +1,5 @@
 import { planSlots, sanitizeOptions } from "./arc";
+import { attachBooth } from "./booth";
 import type { Catalog } from "./catalog";
 import { applyContextToOptions, BUILTIN_CONTEXT, resolveContext } from "./context";
 import { cortinaPool, pickCortina, planCortinas } from "./cortinas";
@@ -565,6 +566,7 @@ export function compose(
       );
     const pick = vals[0];
     if (pick) {
+      pick.t.birthday = true;
       pick.t.note = "Vals de cumpleaños";
       pick.t.reason = `${pick.t.reason ?? ""} · reserved for the birthday vals`.trim();
     }
@@ -697,7 +699,7 @@ export function compose(
     score: { total: 0, factors: [], verdict: "" },
   };
   playlist.score = scorePlaylist(playlist);
-  return playlist;
+  return attachBooth(playlist);
 }
 
 export function computeStats(tandas: Tanda[], closing: Song | null, o: ComposeOptions): PlaylistStats {
@@ -809,7 +811,7 @@ export function swapTanda(p: Playlist, index: number, deps: ComposeDeps, seed = 
   nt.cortina = t.cortina;
   nt.locked = t.locked;
   const tandas = p.tandas.map((x, i) => (i === index ? nt : x));
-  const np = { ...p, tandas, stats: computeStats(tandas, p.closing, o) };
+  const np = attachBooth({ ...p, tandas, stats: computeStats(tandas, p.closing, o) });
   np.score = scorePlaylist(np);
   return np;
 }
@@ -859,7 +861,7 @@ export function swapTrack(
     durationSec: songs.reduce((a, s) => a + (s.durationSec ?? 170), 0),
   };
   const tandas = p.tandas.map((x, i) => (i === tandaIndex ? nt : x));
-  const np = { ...p, tandas, stats: computeStats(tandas, p.closing, p.options) };
+  const np = attachBooth({ ...p, tandas, stats: computeStats(tandas, p.closing, p.options) });
   np.score = scorePlaylist(np);
   return np;
 }
