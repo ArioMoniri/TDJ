@@ -245,3 +245,13 @@ describe("explicit options beat context suggestions", () => {
     for (const t of p.tandas.filter((t) => t.rhythm === "tango")) expect(t.songs.length).toBe(3);
   });
 });
+
+describe("length fit without cortinas", () => {
+  it("a 3 h set with no cortinas lands within 6 minutes of the hour (one more tanda when short)", () => {
+    for (const seed of [31, 32, 33, 34]) {
+      const p = compose({ hours: 3, seed, cortinaStyle: "none" }, deps);
+      expect(Math.abs(p.stats.durationSec - 3 * 3600) / 60, `seed ${seed}`).toBeLessThanOrEqual(6);
+      expect(p.tandas.map((t) => t.index)).toEqual(p.tandas.map((_, i) => i));
+    }
+  });
+});

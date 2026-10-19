@@ -631,6 +631,33 @@ export function compose(
       setCortinas(Math.max(10, Math.min(120, o.cortinaLengthSec + per)));
       diff = target - total();
     }
+    // still short by more than half a tanda (no cortinas to stretch, or a long night): one more tango tanda
+    // before the última, built like any other, so the night lands on the hour instead of ending early
+    if (diff > 240 && tandas.length >= 3) {
+      const prev = tandas[tandas.length - 2]!;
+      const extra: Slot = {
+        index: tandas.length - 1,
+        rhythm: "tango",
+        size: o.tangoTandaSize,
+        targetEnergy: Math.round((prev.targetEnergy + tandas[tandas.length - 1]!.targetEnergy) / 2),
+        phase: prev.phase,
+        position: 0.92,
+      };
+      ctx.recentOrchestras = tandas.slice(-o.orchestraRepeatGap).map((t) => t.orchestraId);
+      ctx.recentSingers = tandas
+        .slice(-o.singerRepeatGap)
+        .map((t) => t.singer)
+        .filter((x): x is string => !!x);
+      const t = buildTanda(extra, byRhythm.tango, o, rng, ctx, scFor(extra));
+      const addSec = (t?.durationSec ?? 0) + (t && n ? o.cortinaLengthSec : 0);
+      if (t && Math.abs(diff - addSec) < Math.abs(diff)) {
+        const ult = tandas[tandas.length - 1]!;
+        if (n) t.cortina = prev.cortina ? { ...prev.cortina } : null;
+        tandas.splice(tandas.length - 1, 0, t);
+        ult.index = tandas.length - 1;
+        diff = target - total();
+      }
+    }
   };
   fitLength();
   // La Cumparsita: closing versions only (corpus/profile years), preferred orchestras, varied by seed, never the última's orchestra
