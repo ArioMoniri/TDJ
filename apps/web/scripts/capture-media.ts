@@ -107,6 +107,10 @@ async function main() {
   await page.getByRole("dialog").getByRole("button", { name: "Save" }).click();
   await page.waitForTimeout(600);
   await page.screenshot({ path: `${OUT}screenshots/18-memory.png` });
+  // history: the sets composed in this run
+  await page.goto(`${BASE}/history`, { waitUntil: "networkidle" });
+  await page.waitForTimeout(900);
+  await page.screenshot({ path: `${OUT}screenshots/19-history.png` });
   await page.goto(BASE, { waitUntil: "networkidle" });
   await page.waitForTimeout(800);
   await ctx.close();
