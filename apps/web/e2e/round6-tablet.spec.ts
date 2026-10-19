@@ -7,11 +7,65 @@
  * - a card's ••• popover is opaque: the rows under it must not read through its items
  * Runs in the `tablet-ipad` (820 × 1180, touch) and `desktop-1024` (1024 × 768) projects only.
  */
+import { inflateSync } from "node:zlib";
 import { expect, type Page, test } from "@playwright/test";
+
+/** Decodes a small RGB/RGBA 8-bit PNG (any filter) and returns the pixel at (x, y). */
+function pixelAt(buf: Buffer, x: number, y: number): number[] {
+  let p = 8;
+  let w = 0;
+  let h = 0;
+  let bpp = 4;
+  const idat: Buffer[] = [];
+  while (p < buf.length) {
+    const len = buf.readUInt32BE(p);
+    const type = buf.toString("ascii", p + 4, p + 8);
+    const data = buf.subarray(p + 8, p + 8 + len);
+    if (type === "IHDR") {
+      w = data.readUInt32BE(0);
+      h = data.readUInt32BE(4);
+      bpp = data[9] === 6 ? 4 : data[9] === 2 ? 3 : 1;
+    }
+    if (type === "IDAT") idat.push(data);
+    p += 12 + len;
+  }
+  const raw = inflateSync(Buffer.concat(idat));
+  const stride = w * bpp;
+  const out = Buffer.alloc(h * stride);
+  let q = 0;
+  for (let row = 0; row < h; row++) {
+    const f = raw[q++]!;
+    const line = raw.subarray(q, q + stride);
+    q += stride;
+    const prev = row ? out.subarray((row - 1) * stride, row * stride) : Buffer.alloc(stride);
+    const cur = out.subarray(row * stride, (row + 1) * stride);
+    for (let i = 0; i < stride; i++) {
+      const a = i >= bpp ? cur[i - bpp]! : 0;
+      const b = prev[i]!;
+      const c = i >= bpp ? prev[i - bpp]! : 0;
+      let v = line[i]!;
+      if (f === 1) v += a;
+      else if (f === 2) v += b;
+      else if (f === 3) v += Math.floor((a + b) / 2);
+      else if (f === 4) {
+        const pp = a + b - c;
+        const pa = Math.abs(pp - a);
+        const pb = Math.abs(pp - b);
+        const pc = Math.abs(pp - c);
+        v += pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
+      }
+      cur[i] = v & 255;
+    }
+  }
+  const o = (y * w + x) * bpp;
+  return [out[o]!, out[o + 1]!, out[o + 2]!];
+}
+const dist = (a: number[], b: number[]) => Math.max(...a.map((v, i) => Math.abs(v - b[i]!)));
 
 async function compose(page: Page) {
   await page.goto("/");
-  await page.getByRole("button", { name: /Compose the night/ }).click();
+  // lg has the toolbar capsule and the form's inline secondary Compose; either composes
+  await page.getByRole("button", { name: /Compose the night/ }).first().click();
   await expect(page.locator("#result")).toBeVisible({ timeout: 60000 });
   await page.waitForTimeout(1500);
 }
@@ -80,6 +134,46 @@ test("the top bar never covers the score header and never overlaps itself", asyn
     await expect(bar.getByRole("button", { name: /Compose the night/ })).toBeVisible();
     await expect(bar.getByRole("link", { name: "Library" })).toBeVisible();
   }
+});
+
+test("the nav pill has clearance inside its band and a rounded corner on all sides", async ({ page }) => {
+  test.skip(page.viewportSize()!.width >= 1024, "the pill exists at sm–lg only");
+  await page.goto("/");
+  await page.waitForTimeout(400);
+  const pill = page.getByTestId("nav-pill");
+  const band = page.getByTestId("nav-pill-band");
+  const check = async (label: string) => {
+    const p = (await pill.boundingBox())!;
+    const b = (await band.boundingBox())!;
+    expect(p.x, `${label}: left clearance`).toBeGreaterThanOrEqual(b.x + 12);
+    expect(p.y, `${label}: top clearance`).toBeGreaterThanOrEqual(b.y + 12);
+    expect(b.x + b.width - (p.x + p.width), `${label}: right clearance`).toBeGreaterThanOrEqual(12);
+    // nothing inside the capsule paints outside its rounded outline: 2 px outside the top-left corner (diagonally)
+    // is the band's colour, the same as 2 px outside its left edge at mid-height; the capsule's middle is not
+    const png = await page.screenshot({
+      clip: { x: p.x - 8, y: p.y - 8, width: p.width + 16, height: p.height + 16 },
+      scale: "css",
+    });
+    const outsideCorner = pixelAt(png, 8 + 2, 8 + 2); // 2 px in from the box's top-left: outside the rounded end
+    const outsideLeft = pixelAt(png, 8 - 2, 8 + Math.round(p.height / 2));
+    const inside = pixelAt(png, 8 + Math.round(p.width / 2), 8 + Math.round(p.height / 2));
+    expect(
+      dist(outsideCorner, outsideLeft),
+      `${label}: corner pixel ${outsideCorner} vs band ${outsideLeft}`,
+    ).toBeLessThanOrEqual(12);
+    expect(
+      dist(outsideCorner, inside),
+      `${label}: corner pixel ${outsideCorner} is the capsule's ${inside}`,
+    ).toBeGreaterThan(12);
+  };
+  await check("scroll 0");
+  await page.getByRole("button", { name: /Compose the night/ }).first().click();
+  await expect(page.locator("#result")).toBeVisible({ timeout: 60000 });
+  await page.waitForTimeout(1200);
+  await page.evaluate(() => window.scrollBy(0, 900));
+  await page.waitForTimeout(600);
+  await expect(band).toHaveAttribute("data-collapsed", "true");
+  await check("scrolled");
 });
 
 test("nothing in the first two tanda cards is truncated", async ({ page }) => {

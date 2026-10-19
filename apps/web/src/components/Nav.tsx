@@ -60,6 +60,7 @@ function MobileTab({
       {on && (
         <motion.span
           layoutId="tab-pill"
+          layoutDependency={on}
           className="absolute inset-0 rounded-full bg-[var(--fill-3)]"
           transition={spring.thumb}
           aria-hidden
@@ -110,13 +111,13 @@ export function Nav() {
           primary → icon-only tabs): nothing ever overlaps. The band behind the pill is a scroll-edge fade once the
           page is scrolled, so content never peeks out around the capsule. */}
       <header
-        className="toolbar-pill-band sticky top-0 z-40 hidden px-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 sm:block sm:px-6 lg:hidden"
+        className="toolbar-pill-band sticky top-0 z-40 hidden px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 sm:block sm:px-6 lg:hidden"
         data-collapsed={bar.collapsed || undefined}
         data-testid="nav-pill-band"
       >
         <div
           ref={pill}
-          className="glass glass-pill mx-auto flex max-w-[720px] items-center justify-between gap-2 px-2 py-1 sm:px-3"
+          className="glass glass-pill isolate mx-auto flex max-w-[720px] items-center justify-between gap-2 overflow-clip px-2 py-1 sm:px-3"
           data-testid="nav-pill"
           data-fit={fit}
         >
@@ -148,6 +149,7 @@ export function Nav() {
                     {on && (
                       <motion.span
                         layoutId="nav-pill"
+                        layoutDependency={path}
                         transition={spring.thumb}
                         className="absolute inset-y-1 inset-x-0 -z-10 rounded-full bg-[var(--fill-3)]"
                         aria-hidden
@@ -189,6 +191,7 @@ export function Nav() {
                   {on && (
                     <motion.span
                       layoutId="side-pill"
+                      layoutDependency={path}
                       transition={spring.thumb}
                       className="absolute inset-0 -z-10 rounded-[8px] bg-[var(--fill-3)]"
                       aria-hidden
