@@ -236,7 +236,10 @@ test("API: compose edge cases keep the DJ invariants and bad input never produce
         i: number,
       ) => {
         expect(new Set(t.songs.map((s) => s.orchestraId)).size, `${name} tanda ${i} one orchestra`).toBe(1);
-        expect(t.songs.length).toBe(t.rhythm === "tango" ? 4 : 3);
+        // era presets set tanda sizes (nuevo/contemporary use 3-track tandas); the engine reports the applied size
+        expect(t.songs.length).toBe(
+          t.rhythm === "tango" ? p.options.tangoTandaSize : t.rhythm === "vals" ? p.options.valsTandaSize : p.options.milongaTandaSize,
+        );
         for (const s of t.songs) {
           const yr = ERA_YEARS[eras[0]!];
           if (yr) {
