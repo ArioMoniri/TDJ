@@ -1,4 +1,11 @@
-import { applyFeedback, type ComposeOptions, DJ_RULES, type Feedback, toSetList } from "@tdj/core";
+import {
+  applyFeedback,
+  type ComposeOptions,
+  DJ_RULES,
+  type Feedback,
+  summarizeMemory,
+  toSetList,
+} from "@tdj/core";
 import { NextResponse } from "next/server";
 import { FEEDBACK_VALUES, feedbackFromText } from "@/lib/feedback";
 import { getCatalog } from "@/lib/server/catalog";
@@ -159,8 +166,12 @@ Allowed option keys: ${OPTION_KEYS.join(", ")}. Enums: ${Object.entries(ENUMS)
 Allowed feedback values: ${FEEDBACK_VALUES.join(", ")}.
 Orchestra ids for includeOrchestras/excludeOrchestras: ${orchestras.map((o) => `${o.id} (${o.name})`).join(", ")}.
 Only set what the request implies; leave everything else out. Prefer feedback values for mood/energy, options for structure and orchestras. No em-dashes.
+The "note" may also record something worth remembering about this DJ or room, in one short sentence.
 
-${DJ_RULES}`;
+${DJ_RULES}
+
+WHAT YOU REMEMBER ABOUT THIS DJ:
+${body.memory && typeof body.memory === "object" ? summarizeMemory(body.memory) : "No memory yet."}`;
   const user = `Current options: ${JSON.stringify(base)}\n\nRequest: ${instruction}${
     body.playlist?.tandas ? `\n\nCurrent set:\n${toSetList(body.playlist).slice(0, 4000)}` : ""
   }`;

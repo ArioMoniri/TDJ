@@ -1,10 +1,14 @@
 "use client";
 import { motion, useReducedMotion } from "motion/react";
-import { useRef } from "react";
+import { useId, useRef } from "react";
 import { DUR, EASE, SPRING, STAGGER } from "@/lib/motion";
 import type { Playlist } from "@/lib/types";
 
-const COLORS: Record<string, string> = { tango: "#e0557a", vals: "#4fd1c5", milonga: "#8b7cf6" };
+export const RHYTHM_COLORS: Record<string, string> = {
+  tango: "#e0557a",
+  vals: "#4fd1c5",
+  milonga: "#8b7cf6",
+};
 const PHASES = ["warmup", "build", "peak", "cooldown"] as const;
 const PHASE_LABEL: Record<string, string> = {
   warmup: "warm-up",
@@ -14,9 +18,9 @@ const PHASE_LABEL: Record<string, string> = {
 };
 
 /**
- * Night arc: target curve (dashed) vs actual tanda energy, with axes, phase bands and keyboard-reachable dots.
- * A fresh set (new `playKey`) draws on: bands → grid → path (pathLength) → dots → area → legend (1.3 s).
- * A recompose with the same tanda count morphs: the path's `d`, the dots' `cx`/`cy` and the bands tween in place.
+ * Night arc (Health-style chart): target curve (dashed) vs actual tanda energy, two gridlines with the labels on the
+ * right, phase bands, keyboard-reachable dots. A fresh set (new `playKey`) draws on: bands → grid → path (pathLength)
+ * → dots → area → caption (1.3 s). A recompose with the same tanda count morphs: path `d`, dots and bands tween in place.
  */
 export function EnergyCurve({
   p,
@@ -38,12 +42,13 @@ export function EnergyCurve({
   const reduced = useReducedMotion();
   const W = compact ? 360 : 720;
   const H = compact ? 170 : 210;
-  const px = compact ? 30 : 36;
+  const px = compact ? 8 : 12;
+  const pr = 28;
   const py = 14;
   const bottom = 22;
-  const fs = compact ? 11 : 12;
+  const fs = 11;
   const n = Math.max(1, p.tandas.length - 1);
-  const plotW = W - px * 2;
+  const plotW = W - px - pr;
   const plotH = H - py - bottom;
   const x = (i: number) => px + (i / n) * plotW;
   const y = (e: number) => py + plotH - (e / 100) * plotH;
@@ -66,7 +71,9 @@ export function EnergyCurve({
       .filter((i) => i >= 0);
     if (idx.length) bands.push({ ph, a: idx[0]!, b: idx[idx.length - 1]! });
   }
-  const id = compact ? "arcfill-compact" : "arcfill";
+  const uid = useId();
+  const id = `${compact ? "arcfill-compact" : "arcfill"}-${uid}`;
+  const capId = `arc-caption-${uid}`;
   const last = p.tandas.length - 1;
   const key: string | number = playKey ?? p.options.seed ?? p.id;
 
@@ -87,7 +94,7 @@ export function EnergyCurve({
   const bandV = {
     hidden: { fillOpacity: 0 },
     show: (k: number) => ({
-      fillOpacity: k % 2 ? 0.05 : 0,
+      fillOpacity: k % 2 ? 0.04 : 0,
       transition: { delay: reduced ? 0 : k * STAGGER.bands, duration: DUR.base },
     }),
   };
@@ -136,7 +143,7 @@ export function EnergyCurve({
   };
 
   return (
-    <figure className="m-0">
+    <figure className="m-0" aria-describedby={capId}>
       <motion.svg
         key={key}
         initial={morph ? false : "hidden"}
@@ -150,13 +157,13 @@ export function EnergyCurve({
       >
         <defs>
           <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#e0557a" stopOpacity=".28" />
-            <stop offset="1" stopColor="#e0557a" stopOpacity="0" />
+            <stop offset="0" stopColor="var(--tint)" stopOpacity=".22" />
+            <stop offset="1" stopColor="var(--tint)" stopOpacity="0" />
           </linearGradient>
         </defs>
         {bands.map((b, k) => {
           const bx = Math.max(px, x(b.a) - half);
-          const bw = Math.min(W - px, x(b.b) + half) - bx;
+          const bw = Math.min(W - pr, x(b.b) + half) - bx;
           return (
             <motion.rect
               key={b.ph}
@@ -165,7 +172,7 @@ export function EnergyCurve({
                 hidden: { ...bandV.hidden, attrX: bx, width: bw },
                 show: (j: number) => ({ ...bandV.show(j), attrX: bx, width: bw }),
               }}
-              animate={morph ? { attrX: bx, width: bw, fillOpacity: k % 2 ? 0.05 : 0 } : "show"}
+              animate={morph ? { attrX: bx, width: bw, fillOpacity: k % 2 ? 0.04 : 0 } : "show"}
               transition={morphT}
               y={py}
               height={plotH}
@@ -174,24 +181,17 @@ export function EnergyCurve({
           );
         })}
         <motion.g variants={fadeV(0.2)}>
-          {[0, 50, 100].map((g) => (
+          {[50, 100].map((g) => (
             <g key={g}>
-              <line
-                x1={px}
-                x2={W - px}
-                y1={y(g)}
-                y2={y(g)}
-                stroke="currentColor"
-                strokeOpacity={g === 50 ? 0.14 : 0.22}
-                strokeDasharray={g === 50 ? "2 6" : undefined}
-              />
+              <line x1={px} x2={W - pr + 4} y1={y(g)} y2={y(g)} stroke="currentColor" strokeOpacity={0.12} />
               <text
-                x={px - 6}
+                x={W - 4}
                 y={y(g) + 4}
                 fontSize={fs}
                 textAnchor="end"
                 fill="currentColor"
-                fillOpacity=".75"
+                fillOpacity=".5"
+                className="tabular-nums"
               >
                 {g}
               </text>
@@ -203,9 +203,9 @@ export function EnergyCurve({
             transition={morphT}
             fill="none"
             stroke="currentColor"
-            strokeOpacity=".45"
-            strokeWidth="2"
-            strokeDasharray="6 6"
+            strokeOpacity=".35"
+            strokeWidth="1.5"
+            strokeDasharray="3 4"
           />
         </motion.g>
         <motion.path
@@ -219,8 +219,8 @@ export function EnergyCurve({
           animate={morph ? { d: energyD, opacity: dimmed ? 0.4 : 1, pathLength: 1 } : "show"}
           transition={morphT}
           fill="none"
-          stroke="#e0557a"
-          strokeWidth="3"
+          stroke="var(--tint)"
+          strokeWidth="2.5"
           strokeLinecap="round"
           data-testid="energy-path"
         />
@@ -228,7 +228,7 @@ export function EnergyCurve({
           const cx = x(i);
           const cy = y(t.energy);
           const on = active === i;
-          const r = on ? (compact ? 7 : 9) : compact ? 5 : 6.5;
+          const r = (compact ? 4.5 : 5.5) + (on ? 2 : 0);
           return (
             <motion.g
               key={t.index}
@@ -247,7 +247,7 @@ export function EnergyCurve({
                   onPick?.(i);
                 }
               }}
-              className={`group/dot ${onPick ? "cursor-pointer" : ""}`}
+              className="group/dot"
             >
               <motion.circle
                 initial={false}
@@ -264,8 +264,8 @@ export function EnergyCurve({
                 animate={{ cx, cy }}
                 transition={morphT}
                 r={r}
-                fill={COLORS[t.rhythm]}
-                stroke="rgb(var(--surface))"
+                fill={RHYTHM_COLORS[t.rhythm]}
+                stroke="rgb(var(--bg-cell))"
                 strokeWidth="2"
               />
               {t.rhythm === "vals" && (
@@ -299,11 +299,11 @@ export function EnergyCurve({
               initial={false}
               animate={{ attrX: (x(b.a) + x(b.b)) / 2 }}
               transition={morphT}
-              y={H - 4}
+              y={H - 6}
               fontSize={fs}
               textAnchor="middle"
               fill="currentColor"
-              fillOpacity=".75"
+              fillOpacity=".5"
             >
               {PHASE_LABEL[b.ph] ?? b.ph}
             </motion.text>
@@ -312,32 +312,15 @@ export function EnergyCurve({
       </motion.svg>
       <motion.figcaption
         key={`legend-${key}`}
+        id={capId}
         variants={fadeV(1.2)}
         initial={morph ? false : "hidden"}
         animate="show"
-        className="text-muted mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs"
+        className="text-caption1 mt-1 truncate whitespace-nowrap text-[var(--label-2)]"
       >
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-0.5 w-5 rounded bg-[#e0557a]" /> Energy
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-0 w-5 border-t-2 border-dashed border-current opacity-60" /> Target arc
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full" style={{ background: COLORS.tango }} /> Tango
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="relative h-2.5 w-2.5 rounded-full" style={{ background: COLORS.vals }}>
-            <span className="absolute inset-[3px] rounded-full bg-white" />
-          </span>{" "}
-          Vals
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="relative h-2.5 w-2.5 rounded-full" style={{ background: COLORS.milonga }}>
-            <span className="absolute inset-[3px] bg-white" />
-          </span>{" "}
-          Milonga
-        </span>
+        Line: energy · dashed: target · <span style={{ color: RHYTHM_COLORS.tango }}>●</span> tango{" "}
+        <span style={{ color: RHYTHM_COLORS.vals }}>◉</span> vals{" "}
+        <span style={{ color: RHYTHM_COLORS.milonga }}>▣</span> milonga
       </motion.figcaption>
     </figure>
   );

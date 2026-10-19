@@ -1,6 +1,7 @@
 "use client";
 import { del, get, set } from "idb-keyval";
-import type { AppOverrides } from "./types";
+import { loadMemoryLocal, normalizeMemory } from "./memory";
+import type { AgentMemory, AppOverrides } from "./types";
 
 const KEY = "tdj-overrides-v1";
 export type StorageMode = "browser" | "server";
@@ -34,28 +35,45 @@ export function storageMode(): Promise<StorageMode> {
   return modeP;
 }
 
-export async function loadOverrides(): Promise<{ overrides: AppOverrides; mode: StorageMode }> {
+/** The user's database: overrides plus what the agents remember. Server when enabled, else IndexedDB. */
+export async function loadOverrides(): Promise<{
+  overrides: AppOverrides;
+  memory: AgentMemory;
+  mode: StorageMode;
+}> {
   const mode = await storageMode();
   if (mode === "server") {
     try {
       const r = await fetch("/api/db");
       const j = await r.json();
-      if (r.ok && j.overrides) return { overrides: j.overrides, mode };
+      if (r.ok && j.overrides) return { overrides: j.overrides, memory: normalizeMemory(j.memory), mode };
     } catch {}
   }
+  const memory = await loadMemoryLocal();
   try {
     const v = await get<AppOverrides>(KEY);
-    return { overrides: v ?? {}, mode };
+    return { overrides: v ?? {}, memory, mode };
   } catch {
-    return { overrides: {}, mode };
+    return { overrides: {}, memory, mode };
   }
 }
 
 let timer: ReturnType<typeof setTimeout> | null = null;
-/** Persist (debounced): IndexedDB always, plus the server when enabled. */
+let pending: (() => Promise<void>) | null = null;
+const flush = () => {
+  if (!pending) return;
+  if (timer) clearTimeout(timer);
+  const run = pending;
+  pending = null;
+  timer = null;
+  void run();
+};
+if (typeof window !== "undefined") window.addEventListener("pagehide", flush);
+
+/** Persist (debounced, flushed on page hide): IndexedDB always, plus the server when enabled. */
 export function saveOverrides(o: AppOverrides, mode: StorageMode) {
   if (timer) clearTimeout(timer);
-  timer = setTimeout(async () => {
+  pending = async () => {
     const value = { ...o, updatedAt: new Date().toISOString() };
     try {
       await set(KEY, value);
@@ -65,8 +83,10 @@ export function saveOverrides(o: AppOverrides, mode: StorageMode) {
         method: "PUT",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ overrides: value }),
+        keepalive: true,
       }).catch(() => {});
-  }, 250);
+  };
+  timer = setTimeout(flush, 250);
 }
 
 export async function clearOverrides(mode: StorageMode) {

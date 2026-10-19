@@ -1,5 +1,5 @@
 "use client";
-import { ExternalLink, Headphones, LoaderCircle } from "lucide-react";
+import { LoaderCircle, Play } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { fade, t as tw } from "@/lib/motion";
@@ -29,7 +29,7 @@ export function SpotifyEmbed({
         {!loaded && (
           <motion.div
             key="sk"
-            className="skeleton absolute inset-0 rounded-xl"
+            className="skeleton absolute inset-0 rounded-[12px]"
             exit={{ opacity: 0, transition: tw.fade }}
             aria-hidden
           />
@@ -61,6 +61,9 @@ export function referenceFor(playlists: ReferencePlaylist[], t: Tanda): Referenc
     .sort((a, b) => b.s - a.s);
   return scored[0]?.p ?? playlists.find((p) => p.orchestraId === t.orchestraId) ?? null;
 }
+
+const foot = "text-footnote text-[var(--label-2)]";
+const link = "text-[var(--tint)]";
 
 /** Listen panel under a tanda: resolved tracks when Spotify is connected, else the orchestra's reference playlist. */
 export function TandaListen({ t, playlists }: { t: Tanda; playlists: ReferencePlaylist[] }) {
@@ -94,7 +97,7 @@ export function TandaListen({ t, playlists }: { t: Tanda; playlists: ReferencePl
   if (connected) {
     if (!ids)
       return (
-        <p className="text-muted flex items-center gap-2 text-sm">
+        <p className={`${foot} flex items-center gap-2`}>
           <LoaderCircle size={14} className="animate-spin" /> Finding these recordings on Spotify…
         </p>
       );
@@ -104,13 +107,7 @@ export function TandaListen({ t, playlists }: { t: Tanda; playlists: ReferencePl
           ids[k] ? (
             <SpotifyEmbed key={s.id} kind="track" id={ids[k]!} title={`${s.title} on Spotify`} height={80} />
           ) : (
-            <motion.p
-              key={s.id}
-              variants={fade}
-              initial="hidden"
-              animate="show"
-              className="text-muted text-sm"
-            >
+            <motion.p key={s.id} variants={fade} initial="hidden" animate="show" className={foot}>
               {s.title}: not on Spotify under this title.
             </motion.p>
           ),
@@ -121,11 +118,11 @@ export function TandaListen({ t, playlists }: { t: Tanda; playlists: ReferencePl
   const ref = referenceFor(playlists, t);
   if (!ref)
     return (
-      <p className="text-muted text-sm">
+      <p className={foot}>
         No reference playlist for {t.orchestra} yet. Connect Spotify in Settings to hear the exact recordings,
         or{" "}
         <a
-          className="underline"
+          className={link}
           href={`https://open.spotify.com/search/${encodeURIComponent(`${t.orchestra} ${t.singer ?? ""}`.trim())}`}
           target="_blank"
           rel="noreferrer"
@@ -137,11 +134,11 @@ export function TandaListen({ t, playlists }: { t: Tanda; playlists: ReferencePl
     );
   return (
     <div className="space-y-2">
-      <p className="text-muted flex items-center gap-1.5 text-xs">
-        <Headphones size={13} /> Reference playlist for {t.orchestra}: {ref.title}
+      <SpotifyEmbed kind="playlist" id={ref.id} title={ref.title} height={152} />
+      <p className={foot}>
+        Reference playlist for {t.orchestra}: {ref.title}
         {ref.owner ? ` (${ref.owner})` : ""}. Connect Spotify in Settings to hear the exact recordings.
       </p>
-      <SpotifyEmbed kind="playlist" id={ref.id} title={ref.title} height={152} />
     </div>
   );
 }
@@ -159,28 +156,40 @@ export function CortinaPreview({ c }: { c: Cortina }) {
     if (r) setId(trackId(r.uri));
     setState(r ? "idle" : "none");
   };
-  if (id) return <SpotifyEmbed kind="track" id={id} title={`Cortina: ${c.title}`} height={80} />;
+  const meta = `${c.genre} · ${c.culture} · energy ${c.energy}${c.year ? ` · ${c.year}` : ""}`;
+  if (id)
+    return (
+      <div className="space-y-2">
+        <SpotifyEmbed kind="track" id={id} title={`Cortina: ${c.title}`} height={80} />
+        <p className={foot}>{meta}</p>
+      </div>
+    );
   if (!connected)
     return (
-      <p className="text-muted text-xs">
-        Connect Spotify in Settings to preview cortinas, or{" "}
+      <p className={foot}>
+        {meta}. Connect Spotify in Settings to preview cortinas, or{" "}
         <a
-          className="underline"
+          className={link}
           href={`https://open.spotify.com/search/${encodeURIComponent(`${c.artist} ${c.title}`)}`}
           target="_blank"
           rel="noreferrer"
         >
-          open the search <ExternalLink size={11} className="inline" />
+          open the search
         </a>
         .
       </p>
     );
   return (
-    <div className="flex items-center gap-2">
-      <button type="button" className="btn btn-ghost text-sm" onClick={go} disabled={state === "busy"}>
-        {state === "busy" ? <LoaderCircle size={14} className="animate-spin" /> : <Headphones size={14} />}{" "}
+    <div className="flex flex-wrap items-center gap-3">
+      <button type="button" className="btn-plain -ml-2" onClick={go} disabled={state === "busy"}>
+        {state === "busy" ? (
+          <LoaderCircle size={16} className="animate-spin" />
+        ) : (
+          <Play size={16} fill="currentColor" strokeWidth={0} />
+        )}{" "}
         Preview cortina
       </button>
+      <span className={foot}>{meta}</span>
       <AnimatePresence>
         {state === "none" && (
           <motion.span
@@ -189,7 +198,7 @@ export function CortinaPreview({ c }: { c: Cortina }) {
             initial="hidden"
             animate="show"
             exit="exit"
-            className="text-muted text-xs"
+            className={foot}
           >
             Not found on Spotify.
           </motion.span>
@@ -207,7 +216,7 @@ export function MoodCheck({ playlists }: { playlists: ReferencePlaylist[] }) {
     <div className="grid gap-3 sm:grid-cols-2">
       {refs.map((p) => (
         <div key={p.id}>
-          <p className="text-muted mb-1.5 truncate text-xs">{p.title}</p>
+          <p className={`${foot} mb-1.5 truncate`}>{p.title}</p>
           <SpotifyEmbed kind="playlist" id={p.id} title={p.title} height={152} />
         </div>
       ))}

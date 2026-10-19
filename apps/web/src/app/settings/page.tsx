@@ -1,22 +1,11 @@
 "use client";
-import { DotLottieReact } from "@lottiefiles/dotlottie-react";
-import {
-  Check,
-  Copy,
-  Eye,
-  EyeOff,
-  FolderOpen,
-  Globe,
-  KeyRound,
-  LoaderCircle,
-  Palette,
-  Radio,
-  ShieldCheck,
-} from "lucide-react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { Brain, FolderOpen, Globe, HardDrive, KeyRound, Palette, Radio } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
-import { Field, Segmented, Switch } from "@/components/ui";
-import { fade, spring, t } from "@/lib/motion";
+import { ActionRow, FieldRow, Group, PickerRow, Row, SegmentedRow, SwitchRow, Tile } from "@/components/Form";
+import { PageHeader } from "@/components/PageHeader";
+import { Sheet } from "@/components/Sheet";
+import { fade } from "@/lib/motion";
 import { beginAuth } from "@/lib/spotify";
 import { useStore } from "@/lib/store";
 import {
@@ -25,6 +14,7 @@ import {
   type AiProvider,
   DEFAULT_NAMING,
   DJ_APPS,
+  type DjApp,
   type UserSettings,
 } from "@/lib/types";
 
@@ -53,92 +43,12 @@ const THEMES: Array<[UserSettings["theme"], string]> = [
   ["dark", "Dark"],
 ];
 
-/** Status badge: the dot colour cross-fades over --dur-s and the text cross-fades via AnimatePresence. */
-function Badge({ ok, children }: { ok: boolean; children: string }) {
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${ok ? "bg-[#2f9e5b]/15 text-[var(--ok)]" : "bg-[rgb(var(--text)/.08)] text-[rgb(var(--muted))]"}`}
-      style={{
-        transition: "background var(--dur-s) var(--ease-settle), color var(--dur-s) var(--ease-settle)",
-      }}
-    >
-      <span
-        className={`h-1.5 w-1.5 rounded-full ${ok ? "bg-[#2f9e5b]" : "bg-[rgb(var(--muted))]"}`}
-        style={{ transition: "background var(--dur-s) var(--ease-settle)" }}
-        aria-hidden
-      />
-      <span className="relative inline-grid">
-        <AnimatePresence mode="popLayout" initial={false}>
-          <motion.span
-            key={children}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={t.press}
-            className="col-start-1 row-start-1 whitespace-nowrap"
-          >
-            {children}
-          </motion.span>
-        </AnimatePresence>
-      </span>
-    </span>
-  );
-}
-
-const fadeProps = {
-  initial: { opacity: 0 },
-  animate: { opacity: 1 },
-  exit: { opacity: 0 },
-  transition: t.press,
-};
-
-/** Test-connection icon slot: spinner → save-pulse / error-mark Lottie in place, so nothing shifts. */
-function TestIcon({ state }: { state: "idle" | "busy" | "ok" | "fail" }) {
-  const reduced = useReducedMotion();
-  return (
-    <span className="relative inline-grid h-5 w-5 place-items-center" aria-hidden>
-      <AnimatePresence mode="wait" initial={false}>
-        {state === "busy" && (
-          <motion.span key="busy" {...fadeProps} className="inline-flex">
-            <LoaderCircle size={15} className="animate-spin" />
-          </motion.span>
-        )}
-        {state === "ok" && (
-          <motion.span key="ok" {...fadeProps} className="h-5 w-5">
-            <DotLottieReact
-              src="/anim/save-pulse.json"
-              autoplay={!reduced}
-              loop={false}
-              dotLottieRefCallback={(d) => {
-                if (reduced) d?.setFrame(23);
-              }}
-              style={{ width: "100%", height: "100%" }}
-            />
-          </motion.span>
-        )}
-        {state === "fail" && (
-          <motion.span key="fail" {...fadeProps} className="h-5 w-5">
-            <DotLottieReact
-              src="/anim/error-mark.json"
-              autoplay={!reduced}
-              loop={false}
-              dotLottieRefCallback={(d) => {
-                if (reduced) d?.setFrame(23);
-              }}
-              style={{ width: "100%", height: "100%" }}
-            />
-          </motion.span>
-        )}
-      </AnimatePresence>
-    </span>
-  );
-}
-
 export default function Settings() {
-  const { settings, setSettings, spotifyToken, setSpotifyToken } = useStore();
+  const { settings, setSettings, spotifyToken, setSpotifyToken, storageMode, memory } = useStore();
   const [showKey, setShowKey] = useState(false);
   const [copied, setCopied] = useState(false);
   const [redirect, setRedirect] = useState("/callback");
+  const [folderFor, setFolderFor] = useState<DjApp | null>(null);
   const [test, setTest] = useState<{ state: "idle" | "busy" | "ok" | "fail"; text?: string }>({
     state: "idle",
   });
@@ -160,16 +70,6 @@ export default function Settings() {
     setAi({ provider, model: keepModel ? ai.model : AI_DEFAULT_MODEL[provider] });
     setTest({ state: "idle" });
   };
-  // "Checking…" appears only if the answer takes more than 300 ms (no flash for fast replies)
-  const [checking, setChecking] = useState(false);
-  useEffect(() => {
-    if (test.state !== "busy") {
-      setChecking(false);
-      return;
-    }
-    const id = setTimeout(() => setChecking(true), 300);
-    return () => clearTimeout(id);
-  }, [test.state]);
   const testConnection = async () => {
     setTest({ state: "busy" });
     try {
@@ -191,141 +91,120 @@ export default function Settings() {
       setTest({ state: "fail", text: "Could not reach the server." });
     }
   };
+  const app = DJ_APPS.find((a) => a.id === folderFor);
+  const remembered = memory.notes.length + memory.sets.length + memory.feedbackHistory.length;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
-      <div>
-        <h1 className="font-serif text-3xl font-semibold">Settings</h1>
-        <p className="text-muted mt-1 text-sm">
-          Keys stay in this browser and are sent only with your own requests.
-        </p>
-      </div>
+    <div className="mx-auto max-w-[720px]">
+      <PageHeader title="Settings" />
 
-      <section className="surface space-y-4 p-5 sm:p-6" aria-labelledby="spotify-h">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 id="spotify-h" className="flex items-center gap-2 font-semibold">
-            <Radio size={18} /> Spotify
-          </h2>
-          <Badge ok={!!spotifyToken}>
-            {spotifyToken ? `Connected · ${minutesLeft} min left` : "Not connected"}
-          </Badge>
-        </div>
-        <p className="text-muted text-sm">
-          Create an app at developer.spotify.com (your account must be Premium), add the redirect URI below,
-          then paste the Client ID. Once connected, Listen plays the exact recordings and cortinas.
-        </p>
-        <Field label="Redirect URI" htmlFor="redirect-uri" hint="Add this to your Spotify app">
-          <div className="flex gap-2">
-            <input id="redirect-uri" readOnly value={redirect} className="field font-mono text-sm" />
-            <button
-              type="button"
-              className="btn btn-ghost min-w-[5.5rem] shrink-0"
-              onClick={copyRedirect}
-              aria-live="polite"
-            >
-              <span className="relative inline-grid h-4 w-4 place-items-center" aria-hidden>
-                <AnimatePresence mode="wait" initial={false}>
-                  {copied ? (
-                    <motion.span key="check" {...fadeProps} className="inline-flex">
-                      <Check size={15} />
-                    </motion.span>
-                  ) : (
-                    <motion.span key="copy" {...fadeProps} className="inline-flex">
-                      <Copy size={15} />
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </span>{" "}
-              {copied ? "Copied" : "Copy"}
-            </button>
-          </div>
-        </Field>
-        <Field label="Client ID" htmlFor="spotify-client-id">
+      <Group
+        header="Spotify"
+        footer="Create an app at developer.spotify.com (Premium account), add the redirect URI to it, then paste the Client ID. Connected, Listen plays the exact recordings."
+      >
+        <Row
+          tile={
+            <Tile color="#1db954">
+              <Radio size={16} strokeWidth={2} />
+            </Tile>
+          }
+          label="Status"
+          value={spotifyToken ? `Connected · ${minutesLeft} min` : "Not connected"}
+        />
+        <Row label="Redirect URI" sub={<span className="font-mono">{redirect}</span>}>
+          <button type="button" className="btn-plain" onClick={copyRedirect} aria-live="polite">
+            {copied ? "Copied" : "Copy"}
+          </button>
+        </Row>
+        <FieldRow label="Client ID" id="spotify-client-id">
           <input
             id="spotify-client-id"
+            className="field field-value min-w-0 flex-1"
+            placeholder="Required"
             value={settings.spotifyClientId}
             onChange={(e) => setSettings({ spotifyClientId: e.target.value.trim() })}
-            placeholder="e.g. 7f3c1a9b2d…"
-            className="field"
             autoComplete="off"
             spellCheck={false}
           />
-        </Field>
-        <div className="flex flex-wrap gap-2">
-          <motion.button
-            type="button"
-            layout="position"
-            transition={spring.thumb}
-            className="btn btn-primary"
-            disabled={!settings.spotifyClientId}
-            onClick={() => beginAuth(settings.spotifyClientId)}
+        </FieldRow>
+        <ActionRow
+          label={spotifyToken ? "Reconnect" : "Connect Spotify"}
+          onClick={() => beginAuth(settings.spotifyClientId)}
+          disabled={!settings.spotifyClientId}
+        />
+        {spotifyToken && <ActionRow label="Disconnect" destructive onClick={() => setSpotifyToken(null)} />}
+      </Group>
+
+      <Group
+        header="Written reviews"
+        footer={
+          <span
+            role="status"
+            aria-live="polite"
+            className={
+              test.state === "fail"
+                ? "text-[var(--destructive)]"
+                : test.state === "ok"
+                  ? "text-[var(--system-green)]"
+                  : undefined
+            }
           >
-            {spotifyToken ? "Reconnect" : "Connect Spotify"}
-          </motion.button>
-          <AnimatePresence initial={false}>
-            {spotifyToken && (
-              <motion.button
-                key="disconnect"
-                type="button"
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.span
+                key={test.state === "idle" || test.state === "busy" ? "idle" : test.text}
                 variants={fade}
                 initial="hidden"
                 animate="show"
                 exit="exit"
-                className="btn btn-ghost"
-                onClick={() => setSpotifyToken(null)}
+                className="block"
               >
-                Disconnect
-              </motion.button>
-            )}
-          </AnimatePresence>
-        </div>
-      </section>
-
-      <section className="surface space-y-4 p-5 sm:p-6" aria-labelledby="review-h">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 id="review-h" className="flex items-center gap-2 font-semibold">
-            <KeyRound size={18} /> Written reviews
-          </h2>
-          <Badge ok={!!ai.key}>{ai.key ? "Key saved" : "No key"}</Badge>
-        </div>
-        <p className="text-muted text-sm">
-          A model key lets you ask for a written review of a set and turns “Tell the DJ” requests into precise
-          changes. Without one, free-text requests still work by keyword.
-        </p>
-        <Field label="Provider">
-          <Segmented label="Provider" value={ai.provider} onChange={switchProvider} items={AI_PROVIDERS} />
-        </Field>
-        <Field label="API key" htmlFor="ai-key">
-          <div className="flex gap-2">
-            <input
-              id="ai-key"
-              value={ai.key}
-              onChange={(e) => setAi({ key: e.target.value.trim() })}
-              placeholder={KEY_PLACEHOLDER[ai.provider]}
-              type={showKey ? "text" : "password"}
-              className="field font-mono text-sm"
-              autoComplete="off"
-              spellCheck={false}
-            />
-            <button
-              type="button"
-              className="icon-btn"
-              onClick={() => setShowKey((v) => !v)}
-              aria-pressed={showKey}
-              aria-label={showKey ? "Hide API key" : "Show API key"}
-            >
-              {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
-            </button>
-          </div>
-        </Field>
-        <Field label="Model" htmlFor="ai-model" hint={`Default: ${AI_DEFAULT_MODEL[ai.provider]}`}>
+                {test.state === "busy"
+                  ? "Checking…"
+                  : (test.text ??
+                    "A model key lets you ask for a written review of a set and turns “Tell the DJ” into precise changes. Without a key, free text still works by keyword. The key is sent with your own requests only and never stored on the server.")}
+              </motion.span>
+            </AnimatePresence>
+          </span>
+        }
+      >
+        <Row
+          tile={
+            <Tile color="#5856d6">
+              <KeyRound size={16} strokeWidth={2} />
+            </Tile>
+          }
+          label="Status"
+          value={ai.key ? "Key saved" : "No key"}
+        />
+        <SegmentedRow label="Provider" value={ai.provider} items={AI_PROVIDERS} onChange={switchProvider} />
+        <FieldRow label="API key" id="ai-key">
+          <input
+            id="ai-key"
+            type={showKey ? "text" : "password"}
+            className="field field-value min-w-0 flex-1 font-mono"
+            placeholder={KEY_PLACEHOLDER[ai.provider]}
+            value={ai.key}
+            onChange={(e) => setAi({ key: e.target.value.trim() })}
+            autoComplete="off"
+            spellCheck={false}
+          />
+          <button
+            type="button"
+            className="btn-plain -mr-2"
+            onClick={() => setShowKey((v) => !v)}
+            aria-pressed={showKey}
+          >
+            {showKey ? "Hide" : "Show"}
+          </button>
+        </FieldRow>
+        <FieldRow label="Model" id="ai-model">
           <input
             id="ai-model"
             list="ai-model-list"
+            className="field field-value min-w-0 flex-1 font-mono"
+            placeholder={AI_DEFAULT_MODEL[ai.provider]}
             value={ai.model}
             onChange={(e) => setAi({ model: e.target.value.trim() })}
-            placeholder={AI_DEFAULT_MODEL[ai.provider]}
-            className="field font-mono text-sm"
             autoComplete="off"
             spellCheck={false}
           />
@@ -334,146 +213,141 @@ export default function Settings() {
               <option key={m} value={m} />
             ))}
           </datalist>
-          <div className="chip-row scroll-x mt-2">
-            {MODEL_SUGGESTIONS[ai.provider].map((m) => (
-              <button
-                type="button"
-                key={m}
-                className={`chip ${ai.model === m ? "chip-on" : ""}`}
-                aria-pressed={ai.model === m}
-                onClick={() => setAi({ model: m })}
-              >
-                {m}
-              </button>
-            ))}
-          </div>
-        </Field>
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            className="btn btn-ghost"
-            onClick={testConnection}
-            disabled={!ai.key || test.state === "busy"}
-          >
-            {test.state !== "idle" && <TestIcon state={test.state} />} Test connection
-          </button>
-          <span
-            role="status"
-            aria-live="polite"
-            className={`min-h-5 text-sm ${test.state === "fail" ? "text-[var(--accent)]" : test.state === "ok" ? "text-[var(--ok)]" : "text-muted"}`}
-          >
-            <AnimatePresence mode="wait" initial={false}>
-              {test.state === "busy" && checking && (
-                <motion.span
-                  key="checking"
-                  variants={fade}
-                  initial="hidden"
-                  animate="show"
-                  exit="exit"
-                  className="block"
-                >
-                  Checking…
-                </motion.span>
-              )}
-              {(test.state === "ok" || test.state === "fail") && test.text && (
-                <motion.span
-                  key={test.text}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ ...t.fade, delay: 0.3 }}
-                  className="block"
-                >
-                  {test.text}
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </span>
-        </div>
-        <p className="text-muted flex items-center gap-1.5 text-xs">
-          <ShieldCheck size={13} /> Sent with your own requests only; never stored on the server.
-        </p>
-      </section>
+        </FieldRow>
+        <ActionRow
+          label="Test connection"
+          onClick={testConnection}
+          disabled={!ai.key}
+          busy={test.state === "busy"}
+        />
+      </Group>
 
-      <section className="surface space-y-4 p-5 sm:p-6" aria-labelledby="djapps-h">
-        <h2 id="djapps-h" className="flex items-center gap-2 font-semibold">
-          <FolderOpen size={18} /> DJ apps
-        </h2>
-        <p className="text-muted text-sm">
-          Tell TDJ where each app keeps your tango files so exports point at real paths instead of a TDJ/
-          placeholder. Files are expected as “{settings.fileNaming || DEFAULT_NAMING}.mp3”.
-        </p>
-        <Field
+      <Group
+        header="Memory"
+        footer="The assistant keeps notes, the sets you composed and your feedback in your database, and applies what it learned under tonight's explicit choices. Review or forget any of it under Database → Memory."
+      >
+        <Row
+          tile={
+            <Tile color="#ff2d55">
+              <Brain size={16} strokeWidth={2} />
+            </Tile>
+          }
+          label="Stored"
+          value={`${storageMode === "server" ? "On the server" : "In this browser"} · ${remembered} ${remembered === 1 ? "item" : "items"}`}
+        />
+        <SwitchRow
+          label="Let the assistant learn from my feedback"
+          checked={settings.learn}
+          onChange={(v) => setSettings({ learn: v })}
+        />
+      </Group>
+
+      <Group
+        header="DJ apps"
+        footer={`Exports point at real paths once a folder is set. Files are expected as “${settings.fileNaming || DEFAULT_NAMING}.mp3”. Placeholders: {artist} {title} {orchestra} {singer} {year} {tanda} {n}.`}
+      >
+        <FieldRow
           label="File naming"
-          htmlFor="file-naming"
-          hint="{artist} {title} {orchestra} {singer} {year} {tanda} {n}"
+          id="file-naming"
+          tile={
+            <Tile color="#ff9500">
+              <FolderOpen size={16} strokeWidth={2} />
+            </Tile>
+          }
         >
           <input
             id="file-naming"
+            className="field field-value min-w-0 flex-1 font-mono"
             value={settings.fileNaming}
-            onChange={(e) => setSettings({ fileNaming: e.target.value })}
             placeholder={DEFAULT_NAMING}
-            className="field font-mono text-sm"
+            onChange={(e) => setSettings({ fileNaming: e.target.value })}
             autoComplete="off"
             spellCheck={false}
           />
-        </Field>
-        <div className="space-y-3">
-          {DJ_APPS.map((app) => (
-            <div key={app.id} className="rounded-xl bg-[rgb(var(--text)/.04)] p-3">
-              <Field label={app.label} htmlFor={`folder-${app.id}`} hint={app.format}>
-                <input
-                  id={`folder-${app.id}`}
-                  value={settings.djApps[app.id]?.folder ?? ""}
-                  onChange={(e) =>
-                    setSettings({ djApps: { ...settings.djApps, [app.id]: { folder: e.target.value } } })
-                  }
-                  placeholder={app.id === "rekordbox" ? "/Users/you/Music/Tango" : "Music folder path"}
-                  className="field font-mono text-sm"
-                  autoComplete="off"
-                  spellCheck={false}
-                />
-              </Field>
-              <p className="text-muted mt-2 text-xs leading-relaxed">{app.note}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="surface space-y-4 p-5 sm:p-6" aria-labelledby="region-h">
-        <h2 id="region-h" className="flex items-center gap-2 font-semibold">
-          <Globe size={18} /> Region
-        </h2>
-        <Field label="Where you usually play" hint="Default for Tonight's region">
-          <Segmented
-            label="Region"
-            chips
-            value={settings.region}
-            onChange={(r) => setSettings({ region: r })}
-            items={REGIONS}
+        </FieldRow>
+        {DJ_APPS.map((a) => (
+          <Row
+            key={a.id}
+            label={a.label}
+            sub={a.format}
+            chevron
+            onClick={() => setFolderFor(a.id)}
+            value={settings.djApps[a.id]?.folder ? "Set" : "Not set"}
+            id={`folder-row-${a.id}`}
           />
-        </Field>
-      </section>
+        ))}
+      </Group>
 
-      <section className="surface space-y-4 p-5 sm:p-6" aria-labelledby="appearance-h">
-        <h2 id="appearance-h" className="flex items-center gap-2 font-semibold">
-          <Palette size={18} /> Appearance
-        </h2>
-        <Field label="Theme">
-          <Segmented
-            label="Theme"
-            value={settings.theme}
-            onChange={(t) => setSettings({ theme: t })}
-            items={THEMES}
-          />
-        </Field>
-        <Switch
+      <Group header="Region" footer="Default for Tonight's region on the composer.">
+        <PickerRow
+          label="Where you usually play"
+          value={settings.region}
+          items={REGIONS}
+          onChange={(r) => r && setSettings({ region: r })}
+        >
+          <Tile color="#007aff">
+            <Globe size={16} strokeWidth={2} />
+          </Tile>
+        </PickerRow>
+      </Group>
+
+      <Group
+        header="Appearance"
+        footer="Reduce transparency makes navigation and sheets solid; easier to read, lighter on the battery."
+      >
+        <SegmentedRow
+          label="Theme"
+          value={settings.theme}
+          items={THEMES}
+          onChange={(t) => setSettings({ theme: t })}
+        >
+          <Tile color="#8e8e93">
+            <Palette size={16} strokeWidth={2} />
+          </Tile>
+        </SegmentedRow>
+        <SwitchRow
+          label="Reduce transparency"
           checked={settings.reduceGlass}
           onChange={(v) => setSettings({ reduceGlass: v })}
-          label="Reduce transparency"
-          hint="Solid navigation and sheets; easier to read and lighter on the battery."
         />
-      </section>
+      </Group>
+
+      <Group
+        header="Storage"
+        footer="Set TDJ_DB_TABLE on the server to keep the database and memory across devices."
+      >
+        <Row
+          tile={
+            <Tile color="#636366">
+              <HardDrive size={16} strokeWidth={2} />
+            </Tile>
+          }
+          label="Database"
+          value={storageMode === "server" ? "Server" : "This browser"}
+        />
+      </Group>
+
+      <Sheet open={!!app} onClose={() => setFolderFor(null)} title={app?.label ?? ""} trailing="Done">
+        {app && (
+          <Group header="Music folder" footer={app.note}>
+            <label htmlFor={`folder-${app.id}`} className="cell">
+              <span className="sr-only">{app.label} folder</span>
+              <input
+                id={`folder-${app.id}`}
+                className="field font-mono"
+                data-autofocus
+                value={settings.djApps[app.id]?.folder ?? ""}
+                onChange={(e) =>
+                  setSettings({ djApps: { ...settings.djApps, [app.id]: { folder: e.target.value } } })
+                }
+                placeholder={app.id === "rekordbox" ? "/Users/you/Music/Tango" : "Music folder path"}
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </label>
+          </Group>
+        )}
+      </Sheet>
     </div>
   );
 }

@@ -1,20 +1,16 @@
 "use client";
-import { type DotLottie, DotLottieReact } from "@lottiefiles/dotlottie-react";
-import { AudioLines, Headphones, Lock, LockOpen, RefreshCw } from "lucide-react";
+import { AudioLines, ChevronRight, Headphones, Lock, LockOpen, Repeat2 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { haptic } from "@/lib/haptics";
-import { useInViewport } from "@/lib/hooks";
-import { CARD_STAGGER_CAP, DUR, EASE, lineSwap, rise, SPRING, STAGGER } from "@/lib/motion";
+import { CARD_STAGGER_CAP, DUR, EASE, STAGGER } from "@/lib/motion";
 import type { ReferencePlaylist, Tanda } from "@/lib/types";
 import { CountUp } from "./CountUp";
 import { CortinaPreview, TandaListen } from "./Listen";
+import { Menu } from "./Menu";
+import { SwipeRow } from "./SwipeRow";
+import { TrackRow } from "./TrackRow";
 
-const PILL: Record<string, string> = {
-  tango: "bg-rose-700 text-white",
-  vals: "bg-teal-700 text-white",
-  milonga: "bg-violet-700 text-white",
-};
 const PHASE: Record<string, string> = {
   warmup: "warm-up",
   build: "build",
@@ -23,23 +19,7 @@ const PHASE: Record<string, string> = {
   close: "close",
 };
 
-/** Ambient "this tanda has audio" marker in the Listen chip: ≤ 1 loop per viewport (the one nearest centre). */
-function ListenBars({ active }: { active: boolean }) {
-  const reduced = useReducedMotion();
-  const ref = useRef<HTMLSpanElement>(null);
-  const inView = useInViewport(ref, 0.6);
-  return (
-    <span ref={ref} className="inline-block h-4 w-4" aria-hidden>
-      <DotLottieReact
-        src="/anim/listen-bars.json"
-        loop
-        autoplay={active && inView && !reduced}
-        style={{ width: "100%", height: "100%" }}
-      />
-    </span>
-  );
-}
-
+/** A tanda as one inset group: artwork tile + title row, track rows, cortina row, Listen (row on phone, menu on desktop). */
 export function TandaCard({
   t,
   i,
@@ -76,23 +56,25 @@ export function TandaCard({
   const reduced = useReducedMotion();
   const [listen, setListen] = useState(false);
   const [cortinaOpen, setCortinaOpen] = useState(false);
-  const [hover, setHover] = useState(false);
-  const wave = useRef<DotLottie | null>(null);
-  const wavePlaying = (hover || cortinaOpen || listen) && !reduced;
-  useEffect(() => {
-    const w = wave.current;
-    if (!w) return;
-    if (wavePlaying) w.play();
-    else {
-      w.pause();
-      w.setFrame(0);
-    }
-  }, [wavePlaying]);
+  const ref = useRef<HTMLElement>(null);
   const dim = settling && !t.locked;
   const delay = reduced ? 0 : (fresh ? Math.min(i, CARD_STAGGER_CAP) : 0) * STAGGER.cards;
+  const lock = () => {
+    haptic(8);
+    onLock();
+  };
+  const sub = [
+    t.singer ?? "Instrumental",
+    t.yearRange ? `${t.yearRange[0]}–${t.yearRange[1]}` : "year ?",
+    PHASE[t.phase] ?? t.phase,
+    t.locked ? "locked" : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <motion.article
+      ref={ref}
       layout={reduced ? false : t.locked ? "position" : true}
       initial={{ opacity: 0, y: reduced ? 0 : 12 }}
       animate={{
@@ -102,24 +84,20 @@ export function TandaCard({
         transition: { duration: dim ? DUR.base : 0.32, ease: EASE.out, delay: dim ? 0 : delay },
       }}
       exit={{ opacity: 0, scale: reduced ? 1 : 0.98, transition: { duration: DUR.fast, ease: EASE.in } }}
-      transition={SPRING.gentle}
       style={{ willChange: "transform, opacity" }}
-      className={`surface overflow-hidden p-4 sm:p-5 ${active ? "ring-2 ring-[var(--accent)]" : ""} ${
-        t.locked
-          ? settling
-            ? "border-[color-mix(in_srgb,var(--color-gold)_70%,transparent)]"
-            : "border-[color-mix(in_srgb,var(--color-gold)_40%,transparent)]"
-          : ""
+      className={`group-inset ${active ? "ring-2 ring-[var(--tint)]" : ""} ${
+        t.locked ? "ring-1 ring-[color-mix(in_srgb,var(--system-gold)_60%,transparent)]" : ""
       }`}
       id={`tanda-${i + 1}`}
       aria-busy={busy || undefined}
       data-locked={t.locked || undefined}
+      data-rhythm={t.rhythm}
     >
       {/* curve dot → card hand-off: a one-shot ring pulse on arrival */}
       {active && !reduced && (
         <motion.span
           key={`pulse-${i}`}
-          className="pointer-events-none absolute inset-0 rounded-[16px] ring-2 ring-[var(--accent)]"
+          className="pointer-events-none absolute inset-0 z-[2] rounded-[inherit] ring-2 ring-[var(--tint)]"
           initial={{ scale: 1, opacity: 1 }}
           animate={{ scale: [1, 1.015, 1], opacity: [1, 0.6, 1] }}
           transition={{ duration: 0.5, ease: EASE.inOut }}
@@ -127,210 +105,150 @@ export function TandaCard({
         />
       )}
       <motion.div animate={{ opacity: busy ? 0.6 : 1 }} transition={{ duration: DUR.base }}>
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span
-                className={`rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-wider ${PILL[t.rhythm]}`}
-              >
-                {t.rhythm}
+        <SwipeRow
+          leading="art"
+          actions={[
+            {
+              kind: "lock",
+              label: t.locked ? "Unlock" : "Lock",
+              icon: t.locked ? LockOpen : Lock,
+              onClick: lock,
+            },
+            { kind: "swap", label: "Swap", icon: Repeat2, onClick: onSwap, disabled: t.locked || busy },
+          ]}
+        >
+          <div className="cell" data-leading="art">
+            <div className="tile-art" data-rhythm={t.rhythm} aria-hidden>
+              <span className="text-headline tabular-nums">{i + 1}</span>
+            </div>
+            <span className="min-w-0 flex-1">
+              <h3 className="text-headline truncate">{t.orchestra}</h3>
+              <span className="text-subhead block truncate text-[var(--label-2)]">
+                <span className="sr-only">{t.rhythm} · </span>
+                {sub}
               </span>
-              <span className="text-muted text-xs">
-                #{i + 1} · {PHASE[t.phase] ?? t.phase} ·{" "}
-                {t.yearRange ? `${t.yearRange[0]}–${t.yearRange[1]}` : "year ?"}
-              </span>
-              <AnimatePresence initial={false}>
-                {t.locked && (
-                  <motion.span
-                    key="locked"
-                    initial={{ opacity: 0, x: -4 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -4 }}
-                    transition={{ duration: DUR.base, ease: EASE.out }}
-                    className="text-muted inline-flex items-center gap-1 text-xs"
-                  >
-                    <Lock size={11} /> locked
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </div>
-            <h3 className="mt-1.5 truncate text-lg font-semibold leading-tight">{t.orchestra}</h3>
-            <p className="text-muted truncate text-sm">{t.singer ?? "Instrumental"}</p>
-          </div>
-          <div className="flex shrink-0 flex-col items-end gap-2">
-            <div className="text-right">
-              <div className="text-2xl font-semibold tabular-nums">
-                <CountUp value={t.energy} from={prevEnergy ?? t.energy} duration={DUR.slow} />
-              </div>
-              <div className="text-muted -mt-1 text-xs">of {t.targetEnergy} target</div>
-            </div>
-            <div className="flex gap-2">
-              <motion.button
-                type="button"
-                onClick={() => {
-                  haptic(8);
-                  onLock();
-                }}
-                className="icon-btn"
-                aria-pressed={!!t.locked}
-                aria-label={`${t.locked ? "Unlock" : "Lock"} tanda ${i + 1}`}
-                whileTap={{ scale: 0.92 }}
-                animate={{
-                  backgroundColor: t.locked ? "rgb(var(--text) / 0.12)" : "rgb(var(--text) / 0.05)",
-                }}
-                transition={{ duration: DUR.fast }}
-              >
-                <AnimatePresence mode="popLayout" initial={false}>
-                  <motion.span
-                    key={t.locked ? "locked" : "open"}
-                    initial={{ scale: 0.85, opacity: 0, rotate: t.locked ? -8 : 0 }}
-                    animate={{ scale: 1, opacity: 1, rotate: 0 }}
-                    exit={{ scale: 0.85, opacity: 0 }}
-                    transition={SPRING.snappy}
-                    className="inline-flex"
-                  >
-                    {t.locked ? <Lock size={16} /> : <LockOpen size={16} />}
-                  </motion.span>
-                </AnimatePresence>
-              </motion.button>
-              <button
-                type="button"
-                onClick={onSwap}
-                disabled={busy || t.locked}
-                className="icon-btn"
-                aria-label={`Swap tanda ${i + 1}`}
-              >
-                <RefreshCw size={16} className={busy ? "animate-spin" : ""} />
-              </button>
-            </div>
-          </div>
-        </div>
-        {t.reason && <p className="text-muted mt-2 line-clamp-2 text-xs leading-snug">{t.reason}</p>}
-        <ol className="mt-3 space-y-0.5">
-          <AnimatePresence mode="popLayout" initial={false}>
-            {t.songs.map((s, k) => {
-              const inFlight = swappingTrack === k;
-              return (
-                <motion.li
-                  key={s.id}
-                  layout={reduced ? false : "position"}
-                  variants={lineSwap}
-                  initial="hidden"
-                  animate="show"
-                  exit="exit"
-                  className="flex min-h-11 items-center gap-2 text-sm"
+              {t.note && (
+                <span
+                  className="text-caption1 mt-0.5 inline-flex rounded-full bg-[color-mix(in_srgb,var(--tint)_14%,transparent)] px-2 py-0.5 font-medium text-[var(--tint)]"
+                  data-testid="tanda-note"
                 >
-                  <span className="text-muted w-4 shrink-0 text-right tabular-nums">{k + 1}</span>
-                  <motion.span
-                    className="min-w-0 flex-1 truncate"
-                    animate={{
-                      opacity: inFlight ? 0.6 : 1,
-                      x: nudge?.k === k && !reduced ? [0, -3, 3, 0] : 0,
-                    }}
-                    transition={{ duration: nudge?.k === k ? 0.24 : DUR.fast }}
-                    key={`${s.id}-${nudge?.k === k ? nudge.n : 0}`}
-                  >
-                    {s.title}{" "}
-                    <span className="text-muted">
-                      ({(s as { yearApprox?: boolean }).yearApprox ? "c. " : ""}
-                      {s.year ?? "?"})
-                    </span>
-                  </motion.span>
-                  <span
-                    className="relative h-1.5 w-12 shrink-0 overflow-hidden rounded-full bg-[rgb(var(--text)/.12)] sm:w-16"
-                    role="img"
-                    aria-label={`Energy ${s.energy ?? 50} of 100`}
-                  >
-                    <motion.span
-                      className="block h-full w-full origin-left rounded-full bg-[#e0557a]"
-                      initial={false}
-                      animate={{ scaleX: (s.energy ?? 50) / 100 }}
-                      transition={{ duration: DUR.slow, ease: EASE.inOut }}
-                    />
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => onSwapTrack(k)}
-                    disabled={t.locked || inFlight}
-                    className="icon-btn opacity-70 hover:opacity-100"
-                    aria-label={`Swap track ${k + 1} of tanda ${i + 1}`}
-                    title="Swap this track for another of the same family"
-                  >
-                    <RefreshCw size={14} className={inFlight ? "animate-spin" : ""} />
-                  </button>
-                </motion.li>
-              );
-            })}
+                  {t.note}
+                </span>
+              )}
+            </span>
+            <span className="text-right">
+              <span className="text-headline block tabular-nums">
+                <CountUp value={t.energy} from={prevEnergy ?? t.energy} duration={DUR.slow} />
+              </span>
+              <span className="text-caption1 block text-[var(--label-2)]">target {t.targetEnergy}</span>
+            </span>
+            <AnimatePresence initial={false}>
+              {t.locked && (
+                <motion.span
+                  key="locked"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: DUR.base, ease: EASE.out }}
+                  className="inline-flex text-[var(--system-gold)]"
+                >
+                  <Lock size={14} strokeWidth={2.25} aria-label="Locked" />
+                </motion.span>
+              )}
+            </AnimatePresence>
+            <Menu
+              label={`Tanda ${i + 1} actions`}
+              className="-mr-3 hidden sm:inline-flex"
+              contextRef={ref}
+              items={[
+                {
+                  label: t.locked ? "Unlock tanda" : "Lock tanda",
+                  icon: t.locked ? LockOpen : Lock,
+                  onClick: lock,
+                },
+                { label: "Swap tanda", icon: Repeat2, onClick: onSwap, disabled: t.locked || busy },
+                {
+                  label: listen ? "Hide player" : "Listen",
+                  icon: Headphones,
+                  onClick: () => setListen((v) => !v),
+                },
+              ]}
+            />
+          </div>
+        </SwipeRow>
+        <ol>
+          <AnimatePresence mode="popLayout" initial={false}>
+            {t.songs.map((s, k) => (
+              <TrackRow
+                key={s.id}
+                n={k + 1}
+                title={s.title}
+                year={s.year}
+                approx={(s as { yearApprox?: boolean }).yearApprox}
+                energy={s.energy ?? 50}
+                inFlight={swappingTrack === k}
+                nudge={nudge?.k === k ? nudge.n : 0}
+                onSwap={() => onSwapTrack(k)}
+                disabled={t.locked}
+                swapLabel={`Swap track ${k + 1} of tanda ${i + 1}`}
+              />
+            ))}
           </AnimatePresence>
         </ol>
-        <div className="mt-2">
-          <button
-            type="button"
-            className="chip"
-            aria-pressed={listen}
-            aria-expanded={listen}
-            aria-controls={`listen-${i + 1}`}
-            onClick={() => setListen((v) => !v)}
-          >
-            {listen ? <ListenBars active /> : <Headphones size={14} />} {listen ? "Hide player" : "Listen"}
-          </button>
-          <AnimatePresence initial={false}>
-            {listen && (
-              <motion.div
-                id={`listen-${i + 1}`}
-                key="listen"
-                variants={rise}
-                initial="hidden"
-                animate="show"
-                exit={{ opacity: 0, transition: { duration: DUR.base, ease: EASE.in } }}
-                className="mt-3"
-              >
+        <button
+          type="button"
+          className="cell cell-tap w-full sm:hidden"
+          aria-pressed={listen}
+          aria-expanded={listen}
+          aria-controls={`listen-${i + 1}`}
+          onClick={() => setListen((v) => !v)}
+        >
+          <Headphones size={16} strokeWidth={2} className="text-[var(--label-2)]" aria-hidden />
+          <span className="min-w-0 flex-1 truncate">{listen ? "Hide player" : "Listen"}</span>
+          <ChevronRight
+            size={16}
+            strokeWidth={2.5}
+            className={`cell-chevron transition-transform ${listen ? "rotate-90" : ""}`}
+            aria-hidden
+          />
+        </button>
+        <AnimatePresence initial={false}>
+          {listen && (
+            <motion.div
+              id={`listen-${i + 1}`}
+              key="listen"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0, transition: { duration: DUR.fast, ease: EASE.in } }}
+              transition={{ duration: DUR.base, ease: EASE.out }}
+              className="overflow-hidden"
+            >
+              <div className="cell flex-col items-stretch">
                 <TandaListen t={t} playlists={playlists} />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
         {t.cortina && (
-          <div className="mt-3 rounded-xl border border-[rgb(var(--text)/.08)] text-xs">
-            <motion.button
+          <>
+            <button
               type="button"
+              className="cell cell-tap w-full"
               onClick={() => setCortinaOpen((v) => !v)}
-              onHoverStart={() => setHover(true)}
-              onHoverEnd={() => setHover(false)}
-              onFocus={() => setHover(true)}
-              onBlur={() => setHover(false)}
-              whileTap={{ scale: 0.995 }}
-              animate={{
-                backgroundColor: hover || cortinaOpen ? "rgb(var(--text) / 0.07)" : "rgb(var(--text) / 0.04)",
-              }}
-              transition={{ duration: DUR.fast }}
               aria-expanded={cortinaOpen}
               aria-controls={`cortina-${i + 1}`}
-              className="flex min-h-11 w-full items-start gap-2 rounded-xl px-3 py-2 text-left"
             >
-              <span className="mt-0.5 inline-grid h-4 w-5 shrink-0 place-items-center" aria-hidden>
-                {reduced ? (
-                  <AudioLines size={14} className="opacity-70" />
-                ) : (
-                  <DotLottieReact
-                    src="/anim/cortina-wave.json"
-                    loop
-                    autoplay={false}
-                    dotLottieRefCallback={(d) => {
-                      wave.current = d;
-                    }}
-                    style={{ width: 20, height: 10 }}
-                  />
-                )}
+              <AudioLines size={16} strokeWidth={2} className="text-[var(--label-2)]" aria-hidden />
+              <span className="text-footnote min-w-0 flex-1 truncate text-[var(--label-2)]">
+                Cortina · {t.cortina.artist} – {t.cortina.title} · {t.cortina.lengthSec ?? 45} s
               </span>
-              <span className="min-w-0">
-                <b>Cortina</b> · {t.cortina.artist} – {t.cortina.title}
-                <span className="text-muted block sm:inline">
-                  {" "}
-                  · {t.cortina.genre} · energy {t.cortina.energy} · {t.cortina.lengthSec ?? 45} s
-                </span>
-              </span>
-            </motion.button>
+              <ChevronRight
+                size={16}
+                strokeWidth={2.5}
+                className={`cell-chevron transition-transform ${cortinaOpen ? "rotate-90" : ""}`}
+                aria-hidden
+              />
+            </button>
             <AnimatePresence initial={false}>
               {(cortinaOpen || listen) && (
                 <motion.div
@@ -342,13 +260,13 @@ export function TandaCard({
                   transition={{ duration: DUR.base, ease: EASE.out }}
                   className="overflow-hidden"
                 >
-                  <div className="px-3 pb-2">
+                  <div className="cell flex-col items-stretch pt-0">
                     <CortinaPreview c={t.cortina} />
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
+          </>
         )}
       </motion.div>
     </motion.article>

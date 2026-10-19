@@ -45,14 +45,14 @@ export function Toast({ toast, onDismiss }: { toast: ToastItem | null; onDismiss
           onHoverEnd={() => setPaused(false)}
           onFocus={() => setPaused(true)}
           onBlur={() => setPaused(false)}
-          className="glass glass-pill fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+76px)] z-50 mx-auto flex max-w-md items-center gap-3 px-4 py-2.5 text-sm sm:inset-x-auto sm:right-6 sm:bottom-6"
+          className="glass glass-pill text-subhead fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+140px)] z-50 mx-auto flex max-w-md items-center gap-3 py-1 pl-4 pr-1 sm:inset-x-auto sm:right-6 sm:bottom-6"
           data-testid="toast"
         >
           <span className="min-w-0 flex-1 truncate">{toast.text}</span>
           {toast.undo && (
             <button
               type="button"
-              className="btn btn-ghost min-h-9 px-3 text-sm"
+              className="btn-plain font-semibold"
               onClick={() => {
                 toast.undo?.();
                 onDismiss();

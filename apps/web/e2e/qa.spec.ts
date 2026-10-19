@@ -96,11 +96,11 @@ test("mobile: compose on iPhone 15 Pro, tab bar does not cover the last tanda, p
   });
   expect(geo.lastCardBottom).toBeLessThanOrEqual(geo.navTop);
   expect(geo.lastBlockBottom).toBeLessThanOrEqual(geo.navTop);
-  // contrast of .text-muted over the glass surface, sampled from real pixels (text hidden, average of the element's box)
-  const muted = page.locator("#result .surface .text-muted:visible").first();
+  // contrast of a secondary label (section footer) over the grouped background, sampled from real pixels
+  const muted = page.locator("#result .section-foot:visible").first();
   await muted.scrollIntoViewIfNeeded();
   const fg = (await muted.evaluate((el) => getComputedStyle(el).color)).match(/\d+/g)!.map(Number);
-  await page.addStyleTag({ content: ".text-muted{color:transparent !important}" });
+  await page.addStyleTag({ content: ".section-foot{color:transparent !important}" });
   const png = await muted.screenshot();
   const bg = averageRgb(png);
   const lum = (c: number[]) => {
@@ -238,7 +238,11 @@ test("API: compose edge cases keep the DJ invariants and bad input never produce
         expect(new Set(t.songs.map((s) => s.orchestraId)).size, `${name} tanda ${i} one orchestra`).toBe(1);
         // era presets set tanda sizes (nuevo/contemporary use 3-track tandas); the engine reports the applied size
         expect(t.songs.length).toBe(
-          t.rhythm === "tango" ? p.options.tangoTandaSize : t.rhythm === "vals" ? p.options.valsTandaSize : p.options.milongaTandaSize,
+          t.rhythm === "tango"
+            ? p.options.tangoTandaSize
+            : t.rhythm === "vals"
+              ? p.options.valsTandaSize
+              : p.options.milongaTandaSize,
         );
         for (const s of t.songs) {
           const yr = ERA_YEARS[eras[0]!];
@@ -250,7 +254,8 @@ test("API: compose edge cases keep the DJ invariants and bad input never produce
           expect(titles.has(k), `${name} title repeat ${s.title}`).toBe(false);
           titles.add(k);
         }
-        const last = i === p.tandas.length - 1;
+        // era presets may ask for a cortina before La Cumparsita (nuevo / contemporary); otherwise the última has none
+        const last = i === p.tandas.length - 1 && !p.options.rules?.cortinaBeforeCumparsita;
         if ((body as { cortinaStyle?: string }).cortinaStyle === "none" || last) expect(t.cortina).toBeNull();
         else expect(t.cortina).not.toBeNull();
       },
@@ -327,20 +332,22 @@ test("API: every export format downloads with the right headers, counts and esca
   expect((await request.post("/api/export", { data: { playlist: p, format: "bogus" } })).status()).toBe(400);
 });
 
-/** Swap keeps everything but the chosen tanda, through the API, and the UI reflects it. */
-test("swap: the Swap button replaces one tanda, keeps the others and the cortina", async ({ page }) => {
+/** Swap keeps everything but the chosen tanda, through the API, and the UI reflects it. Actions live in the tanda's menu. */
+test("swap: the Swap action replaces one tanda, keeps the others and the cortina", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: /Compose the night/ }).click();
   await expect(page.locator("#result")).toBeVisible({ timeout: 60000 });
   const cards = page.locator("article[id^=tanda-]");
   const before = await cards.allInnerTexts();
   const target = 3;
+  const menu = () => cards.nth(target).getByRole("button", { name: `Tanda ${target + 1} actions` });
   const orchestraBefore = await cards.nth(target).locator("h3").innerText();
   const cortinaBefore = await cards
     .nth(target)
-    .getByText(/Cortina/)
+    .getByText(/Cortina ·/)
     .innerText();
-  await cards.nth(target).getByRole("button", { name: "Swap tanda" }).click();
+  await menu().click();
+  await page.getByRole("menuitem", { name: "Swap tanda" }).click();
   await expect(cards.nth(target).locator("h3")).not.toHaveText(orchestraBefore, { timeout: 15000 });
   const after = await cards.allInnerTexts();
   expect(after.length).toBe(before.length);
@@ -349,10 +356,14 @@ test("swap: the Swap button replaces one tanda, keeps the others and the cortina
   expect(
     await cards
       .nth(target)
-      .getByText(/Cortina/)
+      .getByText(/Cortina ·/)
       .innerText(),
   ).toBe(cortinaBefore);
   // lock → swap disabled
-  await cards.nth(target).getByRole("button", { name: "Lock tanda" }).click();
-  await expect(cards.nth(target).getByRole("button", { name: "Swap tanda" })).toBeDisabled();
+  await menu().click();
+  await page.getByRole("menuitem", { name: "Lock tanda" }).click();
+  await expect(cards.nth(target).getByText("locked")).toBeVisible();
+  await menu().click();
+  await expect(page.getByRole("menuitem", { name: "Swap tanda" })).toBeDisabled();
+  await page.keyboard.press("Escape");
 });

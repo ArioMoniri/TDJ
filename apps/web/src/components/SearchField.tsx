@@ -56,7 +56,7 @@ export function SearchField({
         {value && (
           <button
             type="button"
-            className="grid h-9 w-9 shrink-0 place-items-center"
+            className="-my-1 grid h-11 w-10 shrink-0 place-items-center"
             aria-label="Clear search"
             onPointerDown={(e) => e.preventDefault()}
             onClick={() => onChange("")}

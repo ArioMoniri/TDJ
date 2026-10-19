@@ -114,7 +114,9 @@ export function Nav() {
               })}
             </LayoutGroup>
           </nav>
-          <div className="flex min-w-[44px] items-center justify-end gap-1">{bar.collapsed && bar.trailing}</div>
+          <div className="flex min-w-[44px] items-center justify-end gap-1">
+            {bar.collapsed && bar.trailing}
+          </div>
         </div>
       </header>
 
@@ -132,7 +134,12 @@ export function Nav() {
             {items.map((it) => {
               const on = path === it.href;
               return (
-                <Link key={it.href} href={it.href} aria-current={on ? "page" : undefined} className="side-row">
+                <Link
+                  key={it.href}
+                  href={it.href}
+                  aria-current={on ? "page" : undefined}
+                  className="side-row"
+                >
                   {on && (
                     <motion.span
                       layoutId="side-pill"
@@ -158,16 +165,17 @@ export function Nav() {
       {/* Phone: Liquid Glass tab capsule that minimises on scroll, plus a detached search button on search pages */}
       <LayoutGroup id="mobile-nav">
         <nav
-          className="glass fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-1/2 z-40 flex -translate-x-1/2 items-center p-1 sm:hidden"
+          className="glass fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-1/2 z-40 flex items-center p-1 sm:hidden"
           data-min={minimised || undefined}
           data-testid="tab-bar"
           aria-label="Primary mobile"
           style={{
             transition:
               "transform var(--dur-s) var(--ease-settle), opacity var(--dur-s) var(--ease-settle), width var(--dur-s) var(--ease-settle)",
-            transform: hidden ? "translate(-50%, 120%)" : "translate(-50%, 0)",
+            transform: hidden
+              ? "translate(-50%, 120%)"
+              : `translate(calc(-50% - ${searchId && !minimised ? 36 : 0}px), 0)`,
             opacity: hidden ? 0 : 1,
-            marginLeft: searchId && !minimised ? "-32px" : 0,
           }}
         >
           {(minimised ? items.filter((it) => path === it.href) : items).map((it) => (
@@ -180,7 +188,8 @@ export function Nav() {
             className="glass fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] right-3 z-40 grid h-[60px] w-[60px] place-items-center rounded-full text-[var(--label)] sm:hidden"
             aria-label="Search"
             style={{
-              transition: "transform var(--dur-s) var(--ease-settle), opacity var(--dur-s) var(--ease-settle)",
+              transition:
+                "transform var(--dur-s) var(--ease-settle), opacity var(--dur-s) var(--ease-settle)",
               transform: hidden || minimised ? "translateY(120%)" : "none",
               opacity: hidden || minimised ? 0 : 1,
             }}

@@ -1,25 +1,46 @@
 "use client";
-import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import type { MetaOrchestra, OrchestraProfile } from "@/lib/types";
-import { Edited, Empty, Num, patchMap, useDb } from "./shared";
+import { ActionRow, CheckRow, Group, PickerRow, Row } from "../Form";
+import { SearchField } from "../SearchField";
+import { Sheet } from "../Sheet";
+import { Empty, patchMap, useDb, useDbEdit, ValueCell } from "./shared";
 
-const STYLES: OrchestraProfile["style"][] = [
-  "rhythmic",
-  "lyrical",
-  "dramatic",
-  "guardia",
-  "nuevo",
-  "contemporary",
-  "balanced",
+const STYLES: Array<[OrchestraProfile["style"], string]> = [
+  ["rhythmic", "Rhythmic"],
+  ["lyrical", "Lyrical"],
+  ["dramatic", "Dramatic"],
+  ["guardia", "Guardia"],
+  ["nuevo", "Nuevo"],
+  ["contemporary", "Contemporary"],
+  ["balanced", "Balanced"],
+];
+const TIERS: Array<[string, string]> = [
+  ["1", "1 · core"],
+  ["2", "2 · secondary"],
+  ["3", "3 · rarely"],
 ];
 const PHASES = ["warmup", "build", "peak", "cooldown", "any"] as const;
+const PHASE_LABEL: Record<string, string> = {
+  warmup: "Warm-up",
+  build: "Build",
+  peak: "Peak",
+  cooldown: "Cool-down",
+  any: "Any",
+};
+const PAGE = 24;
+const num = (v: string) => (v === "" ? undefined : Number(v));
 
 export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
   const { overrides, update } = useDb();
+  const editing = useDbEdit();
   const [q, setQ] = useState("");
+  const [limit, setLimit] = useState(PAGE);
+  const [phasesFor, setPhasesFor] = useState<MetaOrchestra | null>(null);
+  const [singersFor, setSingersFor] = useState<MetaOrchestra | null>(null);
   const profiles = overrides.profiles ?? {};
-  const list = orchestras.filter((o) => !q || o.name.toLowerCase().includes(q.toLowerCase())).slice(0, 60);
+  const all = orchestras.filter((o) => !q || o.name.toLowerCase().includes(q.toLowerCase()));
+  const list = all.slice(0, limit);
   const setField = (o: MetaOrchestra, field: keyof OrchestraProfile & string, value: unknown) =>
     update((ov) => ({
       ...ov,
@@ -37,149 +58,180 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
       delete next[id];
       return { ...ov, profiles: next };
     });
+  const phasesOf = (o: MetaOrchestra) => (profiles[o.id]?.phase ?? o.phase ?? []) as string[];
+  const singersOf = (o: MetaOrchestra) => ({ ...(o.singers ?? {}), ...(profiles[o.id]?.singers ?? {}) });
   if (!orchestras.length) return <Empty>Loading orchestras…</Empty>;
   return (
-    <div className="space-y-3">
-      <input
-        type="search"
-        className="field"
-        placeholder="Filter orchestras…"
-        aria-label="Filter orchestras"
+    <div>
+      <SearchField
+        id="orchestra-filter"
         value={q}
-        onChange={(e) => setQ(e.target.value)}
+        onChange={(v) => {
+          setQ(v);
+          setLimit(PAGE);
+        }}
+        placeholder="Filter orchestras"
+        label="Filter orchestras"
+        className="mt-3"
       />
-      <table className="db-table">
-        <thead>
-          <tr>
-            <th>Orchestra</th>
-            <th>Energy</th>
-            <th>Style</th>
-            <th>Tier</th>
-            <th>Not before</th>
-            <th>Phases</th>
-            <th>State</th>
-          </tr>
-        </thead>
-        <tbody>
-          {list.map((o) => {
-            const p = profiles[o.id] ?? {};
-            const phases = (p.phase ?? o.phase ?? []) as string[];
-            const singers = { ...(o.singers ?? {}), ...(p.singers ?? {}) };
-            return (
-              <tr key={o.id} data-orchestra={o.id}>
-                <td className="db-title">
-                  <span className="font-medium">{o.name}</span>
-                  <span className="text-muted block text-xs">{o.count} recordings</span>
-                  {Object.keys(singers).length > 0 && (
-                    <details className="mt-1 text-xs">
-                      <summary className="text-muted flex min-h-8 cursor-pointer list-none items-center gap-1 [&::-webkit-details-marker]:hidden">
-                        <ChevronDown size={12} /> singer years
-                      </summary>
-                      <ul className="mt-1 space-y-1">
-                        {Object.entries(singers).map(([name, yrs]) => (
-                          <li key={name} className="flex flex-wrap items-center gap-2">
-                            <span className="min-w-32 truncate">{name}</span>
-                            <Num
-                              label={`${name} from`}
-                              value={yrs[0]}
-                              min={1900}
-                              max={2030}
-                              onChange={(n) =>
-                                setField(o, "singers", { ...singers, [name]: [n ?? yrs[0], yrs[1]] })
-                              }
-                            />
-                            <Num
-                              label={`${name} to`}
-                              value={yrs[1]}
-                              min={1900}
-                              max={2030}
-                              onChange={(n) =>
-                                setField(o, "singers", { ...singers, [name]: [yrs[0], n ?? yrs[1]] })
-                              }
-                            />
-                          </li>
-                        ))}
-                      </ul>
-                    </details>
-                  )}
-                </td>
-                <td data-label="Energy">
-                  <Num
-                    label={`${o.name} energy`}
-                    value={p.energy}
-                    placeholder={o.energy ?? 50}
-                    min={0}
-                    max={100}
-                    onChange={(n) => setField(o, "energy", n)}
-                  />
-                </td>
-                <td data-label="Style">
-                  <select
-                    aria-label={`${o.name} style`}
-                    className="field w-32"
-                    value={p.style ?? o.style ?? "balanced"}
-                    onChange={(e) => setField(o, "style", e.target.value)}
-                  >
-                    {STYLES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                <td data-label="Tier">
-                  <select
-                    aria-label={`${o.name} tier`}
-                    className="field w-20"
-                    value={p.tier ?? o.tier}
-                    onChange={(e) => setField(o, "tier", Number(e.target.value))}
-                  >
-                    {[1, 2, 3].map((t) => (
-                      <option key={t} value={t}>
-                        {t}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                <td data-label="Not before">
-                  <Num
-                    label={`${o.name} not before (fraction of the night)`}
-                    value={p.notBefore}
-                    placeholder={o.notBefore ?? 0}
-                    min={0}
-                    max={1}
-                    step={0.05}
-                    onChange={(n) => setField(o, "notBefore", n)}
-                  />
-                </td>
-                <td data-label="Phases">
-                  <div className="db-cell flex flex-wrap gap-1">
-                    {PHASES.map((ph) => {
-                      const on = phases.includes(ph);
-                      return (
-                        <button
-                          type="button"
-                          key={ph}
-                          aria-pressed={on}
-                          className={`chip min-h-9 px-2.5 text-xs ${on ? "chip-on" : ""}`}
-                          onClick={() =>
-                            setField(o, "phase", on ? phases.filter((x) => x !== ph) : [...phases, ph])
-                          }
-                        >
-                          {ph}
-                        </button>
-                      );
-                    })}
+      {list.map((o) => {
+        const p = profiles[o.id] ?? {};
+        const edited = !!profiles[o.id];
+        const phases = phasesOf(o);
+        const singers = singersOf(o);
+        return (
+          <Group
+            key={o.id}
+            data-orchestra={o.id}
+            footer={edited ? "Edited · Revert in Edit mode" : undefined}
+          >
+            <div className="cell">
+              <span className="min-w-0 flex-1">
+                <span className="text-headline block truncate">{o.name}</span>
+                <span className="text-subhead block truncate text-[var(--label-2)]">
+                  {o.count} recordings
+                </span>
+              </span>
+              {editing && edited && (
+                <button type="button" className="btn-plain -mr-2" onClick={() => revert(o.id)}>
+                  Revert
+                </button>
+              )}
+            </div>
+            <ValueCell
+              label="Energy"
+              inputLabel={`${o.name} energy`}
+              editing={editing}
+              value={p.energy}
+              placeholder={o.energy ?? 50}
+              type="number"
+              min={0}
+              max={100}
+              onChange={(t) => setField(o, "energy", num(t))}
+            />
+            <PickerRow
+              label="Style"
+              ariaLabel={`${o.name} style`}
+              value={p.style ?? o.style ?? "balanced"}
+              items={STYLES}
+              onChange={(s) => s && setField(o, "style", s)}
+              disabled={!editing}
+            />
+            <PickerRow
+              label="Tier"
+              ariaLabel={`${o.name} tier`}
+              value={String(p.tier ?? o.tier)}
+              items={TIERS}
+              onChange={(t) => t && setField(o, "tier", Number(t))}
+              disabled={!editing}
+            />
+            <ValueCell
+              label="Not before"
+              inputLabel={`${o.name} not before (fraction of the night)`}
+              editing={editing}
+              value={p.notBefore}
+              placeholder={o.notBefore ?? 0}
+              type="number"
+              min={0}
+              max={1}
+              step={0.05}
+              onChange={(t) => setField(o, "notBefore", num(t))}
+            />
+            <Row
+              label="Phases"
+              value={phases.length ? phases.map((ph) => PHASE_LABEL[ph] ?? ph).join(", ") : "Any"}
+              chevron
+              onClick={() => setPhasesFor(o)}
+            />
+            {Object.keys(singers).length > 0 && (
+              <Row
+                label="Singer years"
+                value={`${Object.keys(singers).length}`}
+                chevron
+                onClick={() => setSingersFor(o)}
+              />
+            )}
+          </Group>
+        );
+      })}
+      {all.length > limit && (
+        <Group>
+          <ActionRow
+            label={`Show more (${all.length - limit} left)`}
+            onClick={() => setLimit((l) => l + PAGE)}
+          />
+        </Group>
+      )}
+      <Sheet
+        open={!!phasesFor}
+        onClose={() => setPhasesFor(null)}
+        title={phasesFor?.name ?? ""}
+        trailing="Done"
+      >
+        {phasesFor && (
+          <Group header="Phases of the night" footer="Where this orchestra belongs. Empty means anywhere.">
+            {PHASES.map((ph) => {
+              const phases = phasesOf(phasesFor);
+              const on = phases.includes(ph);
+              return (
+                <CheckRow
+                  key={ph}
+                  label={PHASE_LABEL[ph] ?? ph}
+                  checked={on}
+                  onChange={(v) =>
+                    setField(phasesFor, "phase", v ? [...phases, ph] : phases.filter((x) => x !== ph))
+                  }
+                />
+              );
+            })}
+          </Group>
+        )}
+      </Sheet>
+      <Sheet
+        open={!!singersFor}
+        onClose={() => setSingersFor(null)}
+        title={singersFor?.name ?? ""}
+        trailing="Done"
+      >
+        {singersFor && (
+          <Group header="Singer years" footer="First and last year each singer recorded with the orchestra.">
+            {Object.entries(singersOf(singersFor)).map(([name, yrs]) => {
+              const singers = singersOf(singersFor);
+              return (
+                <div key={name} className="cell flex-col items-stretch gap-0 py-2">
+                  <span className="text-headline">{name}</span>
+                  <div className="-mx-4 flex">
+                    <ValueCell
+                      label="From"
+                      inputLabel={`${name} from`}
+                      editing
+                      value={yrs[0]}
+                      type="number"
+                      min={1900}
+                      max={2030}
+                      onChange={(t) =>
+                        setField(singersFor, "singers", { ...singers, [name]: [num(t) ?? yrs[0], yrs[1]] })
+                      }
+                    />
+                    <ValueCell
+                      label="To"
+                      inputLabel={`${name} to`}
+                      editing
+                      value={yrs[1]}
+                      type="number"
+                      min={1900}
+                      max={2030}
+                      onChange={(t) =>
+                        setField(singersFor, "singers", { ...singers, [name]: [yrs[0], num(t) ?? yrs[1]] })
+                      }
+                    />
                   </div>
-                </td>
-                <td data-label="State">
-                  <Edited on={!!profiles[o.id]} onRevert={() => revert(o.id)} />
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                </div>
+              );
+            })}
+          </Group>
+        )}
+      </Sheet>
     </div>
   );
 }

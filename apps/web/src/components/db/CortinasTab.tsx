@@ -1,7 +1,9 @@
 "use client";
-import { Plus } from "lucide-react";
+import { AudioLines } from "lucide-react";
 import { useState } from "react";
 import type { Cortina, MetaCortina } from "@/lib/types";
+import { ActionRow, Group, Row } from "../Form";
+import { Sheet } from "../Sheet";
 import { Empty, useDb } from "./shared";
 
 const TEMPLATE: Cortina = {
@@ -71,112 +73,98 @@ export function CortinasTab({ base }: { base: MetaCortina[] }) {
       return { ...o, cortinas: next };
     });
   if (!base.length) return <Empty>Loading cortinas…</Empty>;
+  const current = merged.find((m) => m.c.id === editing);
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-muted text-sm">
-          {merged.filter((m) => m.state !== "deleted").length} cortinas in your pool. Edit as JSON; a Spotify
-          URI makes it previewable.
-        </p>
-        <button
-          type="button"
-          className="btn btn-ghost text-sm"
+    <div>
+      <Group
+        header="Cortinas"
+        footer={`${merged.filter((m) => m.state !== "deleted").length} cortinas in your pool. A Spotify URI makes one previewable.`}
+      >
+        {merged.map(({ c, state }) => (
+          <Row
+            key={c.id}
+            tile={
+              <span
+                className="tile"
+                style={{ background: state === "deleted" ? "#8e8e93" : "#ff9500" }}
+                aria-hidden
+              >
+                <AudioLines size={16} strokeWidth={2} />
+              </span>
+            }
+            label={
+              <span className={state === "deleted" ? "line-through text-[var(--label-2)]" : ""}>
+                {c.artist} – {c.title}
+              </span>
+            }
+            sub={`${c.genre} · ${c.culture} · energy ${c.energy}${state !== "index" ? ` · ${state}` : ""}`}
+            value={`${c.lengthSec ?? 45} s`}
+            chevron
+            onClick={() => open(c)}
+          />
+        ))}
+        <ActionRow
+          label="Add a cortina…"
           onClick={() => {
             setEditing("new");
             setText(JSON.stringify({ ...TEMPLATE, id: `c-own-${Date.now().toString(36)}` }, null, 2));
             setErr(null);
           }}
+        />
+      </Group>
+      <Sheet
+        open={!!editing}
+        onClose={() => setEditing(null)}
+        title={editing === "new" ? "New cortina" : "Edit cortina"}
+        trailing="Save"
+        onTrailing={save}
+        detents={["large"]}
+      >
+        <Group
+          header="JSON"
+          footer={
+            err ? (
+              <span className="text-[var(--destructive)]">{err}</span>
+            ) : (
+              "id, title, artist, genre and culture are required; energy is 0–100."
+            )
+          }
         >
-          <Plus size={15} /> Add cortina
-        </button>
-      </div>
-      {editing && (
-        <div className="rounded-xl bg-[rgb(var(--text)/.04)] p-3">
-          <label htmlFor="cortina-json" className="text-sm font-medium">
-            {editing === "new" ? "New cortina" : `Edit ${editing}`}
+          <label htmlFor="cortina-json" className="cell">
+            <span className="sr-only">Cortina JSON</span>
+            <textarea
+              id="cortina-json"
+              className="field min-h-56 py-2 font-mono text-footnote"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              spellCheck={false}
+              data-autofocus
+            />
           </label>
-          <textarea
-            id="cortina-json"
-            className="field mt-2 min-h-56 w-full py-2 font-mono text-xs"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            spellCheck={false}
-          />
-          {err && <p className="mt-1 text-sm text-[var(--accent)]">{err}</p>}
-          <div className="mt-2 flex gap-2">
-            <button type="button" className="btn btn-primary" onClick={save}>
-              Save
-            </button>
-            <button type="button" className="btn btn-ghost" onClick={() => setEditing(null)}>
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-      {merged.length === 0 && (
-        <Empty crate>No cortinas in your pool yet. Add one to hear it between tandas.</Empty>
-      )}
-      <table className="db-table">
-        <thead>
-          <tr>
-            <th>Cortina</th>
-            <th>Genre</th>
-            <th>Energy</th>
-            <th>Length</th>
-            <th>State</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {merged.map(({ c, state }) => (
-            <tr key={c.id} className={state === "deleted" ? "opacity-50" : ""}>
-              <td className="db-title">
-                <span className={`font-medium ${state === "deleted" ? "line-through" : ""}`}>{c.title}</span>
-                <span className="text-muted block text-xs">
-                  {c.artist}
-                  {c.year ? ` · ${c.year}` : ""}
-                </span>
-              </td>
-              <td data-label="Genre">
-                <span className="db-cell text-sm">
-                  {c.genre} · {c.culture}
-                </span>
-              </td>
-              <td data-label="Energy">
-                <span className="db-cell tabular-nums">{c.energy}</span>
-              </td>
-              <td data-label="Length">
-                <span className="db-cell tabular-nums">{c.lengthSec ?? 45} s</span>
-              </td>
-              <td data-label="State">
-                <span className="text-muted db-cell text-xs">{state}</span>
-              </td>
-              <td data-label="Actions">
-                <div className="db-cell flex gap-1">
-                  {state === "deleted" ? (
-                    <button type="button" className="chip text-xs" onClick={() => restore(c.id)}>
-                      Restore
-                    </button>
-                  ) : (
-                    <>
-                      <button type="button" className="chip text-xs" onClick={() => open(c)}>
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        className="chip text-xs"
-                        onClick={() => remove(c.id, state === "added")}
-                      >
-                        Delete
-                      </button>
-                    </>
-                  )}
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+        </Group>
+        {current && editing !== "new" && (
+          <Group>
+            {current.state === "deleted" ? (
+              <ActionRow
+                label="Restore from the index"
+                onClick={() => {
+                  restore(current.c.id);
+                  setEditing(null);
+                }}
+              />
+            ) : (
+              <ActionRow
+                label={current.state === "added" ? "Delete cortina" : "Leave out of my pool"}
+                destructive
+                onClick={() => {
+                  remove(current.c.id, current.state === "added");
+                  setEditing(null);
+                }}
+              />
+            )}
+          </Group>
+        )}
+      </Sheet>
     </div>
   );
 }

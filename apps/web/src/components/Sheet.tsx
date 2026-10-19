@@ -50,7 +50,9 @@ export function Sheet({
     const prev = document.activeElement as HTMLElement | null;
     const t = setTimeout(() => {
       panel.current
-        ?.querySelector<HTMLElement>("[data-autofocus], input:not([type=hidden]), button:not([disabled]), a[href]")
+        ?.querySelector<HTMLElement>(
+          "[data-autofocus], input:not([type=hidden]), button:not([disabled]), a[href]",
+        )
         ?.focus({ preventScroll: true });
     }, 30);
     const onKey = (e: KeyboardEvent) => {
@@ -169,21 +171,18 @@ export function Sheet({
                   setDetent("medium");
                   haptic(6);
                 } else onClose();
-              } else if (canMedium && detent === "medium" && (info.offset.y < -60 || info.velocity.y < -400)) {
+              } else if (
+                canMedium &&
+                detent === "medium" &&
+                (info.offset.y < -60 || info.velocity.y < -400)
+              ) {
                 setDetent("large");
                 haptic(6);
               }
             }}
           >
             {isPhone && (
-              <button
-                type="button"
-                className="mx-auto mt-2 block h-5 w-16 cursor-default"
-                aria-label={detent === "medium" ? "Expand" : "Collapse"}
-                onClick={() => canMedium && setDetent((d) => (d === "medium" ? "large" : "medium"))}
-              >
-                <span className="mx-auto block h-[5px] w-9 rounded-full bg-[var(--label-3)]" />
-              </button>
+              <span className="mx-auto mt-2 block h-[5px] w-9 rounded-full bg-[var(--label-3)]" aria-hidden />
             )}
             <div className="relative flex h-11 shrink-0 items-center justify-center px-4">
               {!isPhone && (

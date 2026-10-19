@@ -149,7 +149,7 @@
     --stagger: 0ms;
   }
 }
-@media (-webkit-min-device-pixel-ratio: 1) and (max-resolution: 1.5dppx) {
+@media (max-resolution: 1.5dppx) {
   :root {
     --separator-w: 1px;
   }
@@ -241,9 +241,21 @@ a {
   z-index: -1;
   overflow: hidden;
   background:
-    radial-gradient(1200px 800px at 10% 10%, color-mix(in srgb, var(--bg-a) 55%, transparent), transparent 60%),
-    radial-gradient(1000px 700px at 90% 20%, color-mix(in srgb, var(--bg-b) 55%, transparent), transparent 60%),
-    radial-gradient(900px 900px at 50% 100%, color-mix(in srgb, var(--bg-c) 55%, transparent), transparent 60%),
+    radial-gradient(
+      1200px 800px at 10% 10%,
+      color-mix(in srgb, var(--bg-a) 55%, transparent),
+      transparent 60%
+    ),
+    radial-gradient(
+      1000px 700px at 90% 20%,
+      color-mix(in srgb, var(--bg-b) 55%, transparent),
+      transparent 60%
+    ),
+    radial-gradient(
+      900px 900px at 50% 100%,
+      color-mix(in srgb, var(--bg-c) 55%, transparent),
+      transparent 60%
+    ),
     rgb(var(--bg-grouped));
 }
 .ambient::before,
@@ -306,6 +318,10 @@ a {
   @media (min-width: 640px) {
     border-radius: var(--radius-s);
   }
+}
+.swipe-row {
+  position: relative;
+  overflow: clip;
 }
 /* Rows inside a group: 44 pt, hairline separator inset to the text edge */
 @utility cell {
@@ -799,10 +815,9 @@ select.field {
     width: 100%;
   }
   .seg {
-    flex: 1 1 0;
+    flex: 1 0 auto;
     justify-content: center;
-    padding: 0 6px;
-    min-width: 0;
+    padding: 0 8px;
   }
 }
 
@@ -998,10 +1013,6 @@ input[type="range"]::-moz-range-thumb {
 }
 
 /* Swipe actions (UISwipeActionsConfiguration): full-height coloured buttons behind the row */
-.swipe-row {
-  position: relative;
-  overflow: clip;
-}
 .swipe-actions {
   position: absolute;
   inset: 0 0 0 auto;

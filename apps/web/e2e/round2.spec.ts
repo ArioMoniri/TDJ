@@ -14,8 +14,9 @@ test("feedback chip recomposes but a locked tanda stays in place", async ({ page
     .innerText();
   await cards
     .nth(target)
-    .getByRole("button", { name: `Lock tanda ${target + 1}` })
+    .getByRole("button", { name: `Tanda ${target + 1} actions` })
     .click();
+  await page.getByRole("menuitem", { name: "Lock tanda" }).click();
   await expect(cards.nth(target).getByText("locked")).toBeVisible();
   await page.getByRole("button", { name: "More energetic" }).click();
   await expect(page.locator("#result")).toHaveAttribute("aria-busy", "true");
@@ -96,19 +97,23 @@ test("database: a song edit persists after reload and reaches the composer", asy
   await page.goto("/database");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Database");
   await page.getByLabel("Search the index").fill("di sarli rufino corazon");
-  const row = page.locator("tr[data-song]").first();
+  const row = page.locator("[data-song]").first();
   await expect(row).toBeVisible({ timeout: 15000 });
   const id = await row.getAttribute("data-song");
-  const year = row.getByLabel(/^Year of/);
-  await year.fill("1941");
+  // rows are plain text until Edit mode
+  await expect(row.getByLabel(/^Year of/)).toHaveCount(0);
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await row.getByLabel(/^Year of/).fill("1941");
   await expect(page.getByTestId("db-changes")).toHaveText(/^1 change/);
   await page.waitForTimeout(600); // debounce → IndexedDB
   await page.reload();
   await expect(page.getByTestId("db-changes")).toHaveText(/^1 change/, { timeout: 15000 });
   await page.getByLabel("Search the index").fill("di sarli rufino corazon");
-  const again = page.locator(`tr[data-song="${id}"]`);
+  const again = page.locator(`[data-song="${id}"]`);
+  await expect(again.getByText("1941")).toBeVisible({ timeout: 15000 });
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
   await expect(again.getByLabel(/^Year of/)).toHaveValue("1941");
-  await expect(again.getByRole("button", { name: /revert/ })).toBeVisible();
+  await expect(again.getByRole("button", { name: "Revert" })).toBeVisible();
   // the compose page reports the edits in use
   await page.goto("/");
   await expect(page.getByText("Using your database edits")).toBeVisible({ timeout: 15000 });
@@ -117,10 +122,11 @@ test("database: a song edit persists after reload and reaches the composer", asy
   await page.getByRole("radio", { name: "Rules" }).click();
   await page.getByRole("button", { name: "Increase orchestra repeat gap" }).click();
   await expect(page.getByTestId("db-changes")).toHaveText(/^2 change/);
-  // Reset is an inline confirm (no window.confirm): "Remove all 2 changes? Confirm reset · Cancel"
-  await page.getByRole("button", { name: "Reset", exact: true }).click();
+  // Reset lives in the ••• menu and confirms in a sheet (no window.confirm)
+  await page.getByRole("button", { name: "More" }).click();
+  await page.getByRole("menuitem", { name: /Reset to index/ }).click();
   await expect(page.getByTestId("reset-confirm")).toBeVisible();
-  await page.getByRole("button", { name: "Confirm reset" }).click();
+  await page.getByRole("button", { name: /^Reset 2 changes/ }).click();
   await expect(page.getByTestId("db-changes")).toHaveText(/^0 change/);
   // the undo toast brings the changes back, then dismisses
   await page.getByTestId("toast").getByRole("button", { name: "Undo" }).click();
@@ -141,10 +147,12 @@ test("settings: switching the model provider changes the default model and survi
   await page.reload();
   await expect(page.getByRole("radio", { name: "Gemini" })).toHaveAttribute("aria-checked", "true");
   await expect(page.locator("#ai-model")).toHaveValue("gemini-3-pro");
-  // Test connection with a bogus key reports a provider error, not a crash
+  // Test connection with a bogus key reports a provider error in the group footer, not a crash
   await page.getByRole("button", { name: "Test connection" }).click();
-  await expect(page.getByRole("status").filter({ hasText: /./ }).first()).toBeVisible({ timeout: 30000 });
-  // mobile: the database tables become cards
+  const status = page.getByRole("status").first();
+  await expect(status).not.toContainText("A model key lets you", { timeout: 30000 });
+  await expect(status).not.toHaveText(/Checking/, { timeout: 30000 });
+  // mobile: the database groups fit the phone width
   const ctx = await page
     .context()
     .browser()!
@@ -152,9 +160,8 @@ test("settings: switching the model provider changes the default model and survi
   const mp = await ctx.newPage();
   await mp.goto("/database");
   await mp.getByLabel("Search the index").fill("troilo fiorentino");
-  const tr = mp.locator("tr[data-song]").first();
-  await expect(tr).toBeVisible({ timeout: 15000 });
-  expect(await tr.evaluate((el) => getComputedStyle(el).display)).toBe("block");
+  const group = mp.locator("[data-song]").first();
+  await expect(group).toBeVisible({ timeout: 15000 });
   const overflow = await mp.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(0);
   await ctx.close();

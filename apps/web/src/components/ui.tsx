@@ -34,7 +34,12 @@ export function Segmented<K extends string>({
   };
   return (
     <LayoutGroup id={id}>
-      <div role="radiogroup" aria-label={label} className={`segmented ${className}`} onKeyDown={onKey}>
+      <div
+        role="radiogroup"
+        aria-label={label}
+        className={`segmented scroll-x ${className}`}
+        onKeyDown={onKey}
+      >
         {items.map(([k, l]) => {
           const on = value === k;
           return (

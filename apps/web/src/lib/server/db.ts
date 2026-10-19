@@ -1,6 +1,6 @@
 import "server-only";
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
-import type { AppOverrides } from "@/lib/types";
+import type { AgentMemory, AppOverrides } from "@/lib/types";
 
 /** Optional server storage: DynamoDB table named by TDJ_DB_TABLE, rows keyed by a signed anonymous user id. */
 export function dbEnabled() {
@@ -32,7 +32,7 @@ export function userFromRequest(req: Request): { id: string; setCookie?: string 
 }
 
 interface DocClient {
-  send(cmd: unknown): Promise<{ Item?: { overrides?: AppOverrides } }>;
+  send(cmd: unknown): Promise<{ Item?: { overrides?: AppOverrides; memory?: AgentMemory } }>;
 }
 let client: Promise<{
   doc: DocClient;
@@ -60,18 +60,37 @@ async function dynamo() {
   return client;
 }
 
-export async function getOverrides(user: string): Promise<AppOverrides> {
+/** One row per user: the database overrides and what the agents remember. */
+export async function getUserRow(
+  user: string,
+): Promise<{ overrides: AppOverrides; memory: AgentMemory | null }> {
   const { doc, Get } = await dynamo();
   const r = await doc.send(new Get({ TableName: process.env.TDJ_DB_TABLE, Key: { pk: `user#${user}` } }));
-  return r.Item?.overrides ?? {};
+  return { overrides: r.Item?.overrides ?? {}, memory: r.Item?.memory ?? null };
+}
+export async function getOverrides(user: string): Promise<AppOverrides> {
+  return (await getUserRow(user)).overrides;
 }
 
-export async function putOverrides(user: string, overrides: AppOverrides): Promise<void> {
+/** Writes the given parts and keeps the other one as it was. */
+export async function putUserRow(
+  user: string,
+  parts: { overrides?: AppOverrides; memory?: AgentMemory },
+): Promise<void> {
   const { doc, Put } = await dynamo();
+  const cur = await getUserRow(user);
   await doc.send(
     new Put({
       TableName: process.env.TDJ_DB_TABLE,
-      Item: { pk: `user#${user}`, overrides, updatedAt: new Date().toISOString() },
+      Item: {
+        pk: `user#${user}`,
+        overrides: parts.overrides ?? cur.overrides,
+        memory: parts.memory ?? cur.memory ?? undefined,
+        updatedAt: new Date().toISOString(),
+      },
     }),
   );
+}
+export async function putOverrides(user: string, overrides: AppOverrides): Promise<void> {
+  await putUserRow(user, { overrides });
 }

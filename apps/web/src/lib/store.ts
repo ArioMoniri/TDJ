@@ -1,8 +1,10 @@
 "use client";
+import { emptyMemory } from "@tdj/core";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { clearMemoryStore, saveMemory } from "./memory";
 import { clearOverrides, loadOverrides, type StorageMode, saveOverrides } from "./overrides";
-import type { AppOverrides, ComposeOptions, Playlist } from "./types";
+import type { AgentMemory, AppOptions, AppOverrides, ComposeOptions, Playlist } from "./types";
 import { AI_DEFAULT_MODEL, DEFAULT_SETTINGS, type UserSettings } from "./types";
 
 export const DEFAULT_OPTS: Partial<ComposeOptions> = {
@@ -25,7 +27,7 @@ export const DEFAULT_OPTS: Partial<ComposeOptions> = {
 };
 
 interface State {
-  options: Partial<ComposeOptions>;
+  options: AppOptions;
   playlist: Playlist | null;
   busy: boolean;
   settings: UserSettings;
@@ -34,7 +36,10 @@ interface State {
   overrides: AppOverrides;
   overridesReady: boolean;
   storageMode: StorageMode;
-  setOptions: (o: Partial<ComposeOptions>) => void;
+  /** what the agents remember (notes, sets, feedback, learned preferences); stored with the database */
+  memory: AgentMemory;
+  setOptions: (o: Partial<AppOptions>) => void;
+  /** replaces the engine options (feedback / refine results) and keeps the client-side pins */
   replaceOptions: (o: Partial<ComposeOptions>) => void;
   setPlaylist: (p: Playlist | null) => void;
   setBusy: (b: boolean) => void;
@@ -43,6 +48,8 @@ interface State {
   bootOverrides: () => Promise<void>;
   updateOverrides: (fn: (o: AppOverrides) => AppOverrides) => void;
   resetOverrides: () => Promise<void>;
+  updateMemory: (fn: (m: AgentMemory) => AgentMemory) => void;
+  clearMemory: () => Promise<void>;
 }
 
 export const useStore = create<State>()(
@@ -56,16 +63,17 @@ export const useStore = create<State>()(
       overrides: {},
       overridesReady: false,
       storageMode: "browser",
+      memory: emptyMemory(),
       setOptions: (o) => set((s) => ({ options: { ...s.options, ...o } })),
-      replaceOptions: (options) => set({ options }),
+      replaceOptions: (options) => set((s) => ({ options: { ...options, pinned: s.options.pinned } })),
       setPlaylist: (playlist) => set({ playlist }),
       setBusy: (busy) => set({ busy }),
       setSettings: (x) => set((s) => ({ settings: { ...s.settings, ...x } })),
       setSpotifyToken: (spotifyToken) => set({ spotifyToken }),
       bootOverrides: async () => {
         if (get().overridesReady) return;
-        const { overrides, mode } = await loadOverrides();
-        set({ overrides, storageMode: mode, overridesReady: true });
+        const { overrides, memory, mode } = await loadOverrides();
+        set({ overrides, memory, storageMode: mode, overridesReady: true });
       },
       updateOverrides: (fn) => {
         const next = fn(get().overrides);
@@ -75,6 +83,15 @@ export const useStore = create<State>()(
       resetOverrides: async () => {
         set({ overrides: {} });
         await clearOverrides(get().storageMode);
+      },
+      updateMemory: (fn) => {
+        const next = fn(get().memory);
+        set({ memory: next });
+        saveMemory(next, get().storageMode);
+      },
+      clearMemory: async () => {
+        set({ memory: emptyMemory() });
+        await clearMemoryStore(get().storageMode);
       },
     }),
     {
@@ -115,6 +132,12 @@ export const useStore = create<State>()(
     },
   ),
 );
+
+/** Engine options for a request: the client-side pins never leave the browser. */
+export function optionsForRequest(o: AppOptions): Partial<ComposeOptions> {
+  const { pinned: _p, ...rest } = o;
+  return rest;
+}
 
 /** Overrides are sent with every compose; undefined when the database is untouched keeps the shared cache hot. */
 export function overridesForRequest(o: AppOverrides): AppOverrides | undefined {
