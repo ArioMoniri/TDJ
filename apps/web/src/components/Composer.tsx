@@ -1107,6 +1107,23 @@ export function Composer() {
       <ComposeLabel busy={busy} steps={!!playlist} />
     </motion.button>
   );
+  // icon-only twin of the capsule for the tablet pill when the full label would overflow it
+  const composeCompact = (
+    <button
+      type="button"
+      onClick={() => run()}
+      disabled={busy}
+      className="btn btn-primary h-11 min-h-[44px] w-11 px-0"
+      aria-label="Compose the night"
+      title="Compose the night (⌘↩)"
+    >
+      {busy ? (
+        <LoaderCircle size={18} className="animate-spin" aria-hidden />
+      ) : (
+        <Disc3 size={18} aria-hidden />
+      )}
+    </button>
+  );
   const feedbackBar = (
     <FeedbackBar
       onFeedback={feedback}
@@ -1150,6 +1167,7 @@ export function Composer() {
           </>
         }
         primary={composeButton}
+        primaryCompact={composeCompact}
       />
 
       {hasPlaylist && playlist && mods && (
@@ -1292,7 +1310,7 @@ export function Composer() {
           )}
 
           <h2 className="section-head">Tandas</h2>
-          <div className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 md:items-start md:gap-4">
+          <div className="tanda-grid">
             <AnimatePresence mode="popLayout" initial={false}>
               {playlist.tandas.flatMap((t, i) => {
                 const b = breakAfter.get(i);

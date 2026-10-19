@@ -63,7 +63,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Nav />
           <div className="scroll-edge-top sm:hidden" aria-hidden />
           <div className="scroll-edge-bottom sm:hidden" aria-hidden />
-          <main className="mx-auto w-full max-w-[720px] px-4 pb-[calc(env(safe-area-inset-bottom)+150px)] pt-2 sm:px-6 sm:pb-16 lg:mx-0 lg:ml-[220px] lg:max-w-none lg:px-8">
+          <main className="mx-auto w-full max-w-[720px] px-4 pb-[calc(env(safe-area-inset-bottom)+150px)] pt-2 sm:px-6 sm:pb-16 lg:mx-0 lg:ml-[220px] lg:w-auto lg:max-w-none lg:px-8 lg:pt-0">
             <div className="lg:mx-auto lg:max-w-[980px]">
               <Motion>
                 <PageTransition>{children}</PageTransition>
