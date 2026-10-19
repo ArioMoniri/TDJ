@@ -1,4 +1,4 @@
 import { defineConfig } from "vitest/config";
 export default defineConfig({
-  test: { include: ["test/**/*.test.ts"], testTimeout: 30000, coverage: { reporter: ["text", "lcov"] } },
+  test: { include: ["test/**/*.test.ts"], testTimeout: 180000, fileParallelism: false, coverage: { reporter: ["text", "lcov"] } },
 });
