@@ -54,16 +54,33 @@ export async function complete(a: CompleteArgs): Promise<string> {
     if (a.provider === "anthropic") {
       const { default: Anthropic } = await import("@anthropic-ai/sdk");
       const client = new Anthropic({ apiKey: a.key });
-      const msg = await client.messages.create({
+      // Claude 5-family models always think: thinking tokens count against max_tokens, so a small cap
+      // (1,200) truncates before any text appears. Give room, keep effort low for a quick review, and let
+      // the API fall back to another model on a safety decline instead of returning nothing.
+      const msg = await client.beta.messages.create({
         model,
-        max_tokens: maxTokens,
+        max_tokens: Math.max(maxTokens, 16000),
+        output_config: { effort: "low" },
+        betas: ["server-side-fallback-2026-07-01"],
+        fallbacks: "default",
         system: a.system + (a.json ? "\nRespond with a single JSON object and nothing else." : ""),
         messages: [{ role: "user", content: a.user }],
       });
-      return msg.content
+      if (msg.stop_reason === "refusal")
+        throw new LlmError(
+          `The model declined this request${msg.stop_details?.explanation ? `: ${msg.stop_details.explanation}` : "."}`,
+          422,
+        );
+      const text = msg.content
         .filter((c) => c.type === "text")
         .map((c) => (c as { text: string }).text)
         .join("\n");
+      if (!text && msg.stop_reason === "max_tokens")
+        throw new LlmError(
+          "The model ran out of room before answering. Try again or pick a smaller model.",
+          502,
+        );
+      return text;
     }
     if (a.provider === "openai" || a.provider === "openrouter") {
       const base = a.provider === "openrouter" ? "https://openrouter.ai/api/v1" : "https://api.openai.com/v1";
@@ -115,7 +132,13 @@ export async function complete(a: CompleteArgs): Promise<string> {
     return (j.candidates?.[0]?.content?.parts ?? []).map((p) => p.text ?? "").join("");
   } catch (e) {
     if (e instanceof LlmError) throw e;
-    const msg = e instanceof Error ? e.message : "The model request failed.";
+    // the SDK's APIError carries the provider's own message in `error.error.message`; show that, not the raw body
+    const body = (e as { error?: { error?: { message?: string; type?: string } } }).error?.error;
+    const msg = body?.message
+      ? `${body.type === "not_found_error" ? "Unknown model: " : ""}${body.message}`
+      : e instanceof Error
+        ? e.message
+        : "The model request failed.";
     const status = (e as { status?: number }).status;
     throw new LlmError(msg.slice(0, 300), typeof status === "number" && status >= 400 ? status : 502);
   }

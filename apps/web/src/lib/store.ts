@@ -265,8 +265,10 @@ export function changedKeys(a: Partial<ComposeOptions>, b: Partial<ComposeOption
 }
 
 /** The keys that count as the DJ's explicit choices tonight: touched or pinned. */
+/** Controls that show a concrete number are a promise whatever their origin: the context never rewrites them. */
+export const ALWAYS_EXPLICIT = ["tangoTandaSize", "valsTandaSize", "milongaTandaSize"] as const;
 export function explicitKeys(o: AppOptions): string[] {
-  return [...new Set([...(o.touched ?? []), ...(o.pinned ?? [])])];
+  return [...new Set([...(o.touched ?? []), ...(o.pinned ?? []), ...ALWAYS_EXPLICIT])];
 }
 
 /**

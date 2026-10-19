@@ -314,8 +314,9 @@ test("compose sends only explicit keys plus the explicit list; the DJ CSV genre 
   await page.getByRole("button", { name: /Compose the night/ }).click();
   const body = (await req).postDataJSON();
   expect(body.explicit).toEqual(expect.arrayContaining(["eras", "cortinaLengthSec"]));
-  expect(body.explicit).not.toContain("tangoTandaSize");
-  expect(body.tangoTandaSize).toBeUndefined();
+  // the size steppers show a number, so that number is always a promise (nuevo preset shows 3)
+  expect(body.explicit).toContain("tangoTandaSize");
+  expect(body.tangoTandaSize).toBe(3);
   expect(body.eras).toEqual(["nuevo"]);
   expect(body.name).toMatch(/Milonga · 4 h · Nuevo/);
   await expect(page.locator("#result")).toBeVisible({ timeout: 60000 });
@@ -395,4 +396,21 @@ test("mobile: no horizontal overflow after compose, cards fill the column, tab b
   });
   expect(gap).toBeGreaterThanOrEqual(8);
   await ctx.close();
+});
+
+test("a práctica context never shrinks the tango tandas the stepper shows", async ({ page }) => {
+  await page.goto("/");
+  const req = page.waitForRequest((r) => r.url().includes("/api/compose") && r.method() === "POST");
+  await page.getByLabel("Event type").selectOption("practica");
+  await page.getByRole("button", { name: /Compose the night/ }).click();
+  const body = (await req).postDataJSON();
+  expect(body.explicit).toContain("tangoTandaSize");
+  expect(body.tangoTandaSize).toBe(4);
+  await expect(page.locator("#result")).toBeVisible({ timeout: 60000 });
+  const counts = await page
+    .locator("#result article")
+    .evaluateAll((cards) =>
+      cards.map((c) => ({ rhythm: c.getAttribute("data-rhythm"), n: c.querySelectorAll("ol > li").length })),
+    );
+  for (const c of counts.filter((x) => x.rhythm === "tango")) expect(c.n).toBe(4);
 });
