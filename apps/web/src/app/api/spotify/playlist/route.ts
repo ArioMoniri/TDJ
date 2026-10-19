@@ -7,9 +7,9 @@ export const dynamic = "force-dynamic";
 
 /** Creates the playlist in the logged-in user's library: known URIs first, `isrc:` search, then a text search. */
 export async function POST(req: Request) {
-  if (!hostedEnabled())
+  if (!(await hostedEnabled()))
     return NextResponse.json({ error: "Hosted Spotify login is not enabled" }, { status: 404 });
-  const origin = requestOrigin(req);
+  const origin = await requestOrigin(req);
   const s = await withSession(req, origin);
   if (!s) return NextResponse.json({ error: "Not logged in with Spotify" }, { status: 401 });
   const body = await req.json().catch(() => null);

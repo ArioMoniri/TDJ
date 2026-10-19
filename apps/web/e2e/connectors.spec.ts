@@ -477,6 +477,7 @@ test("Settings (hosted): the Spotify row shows the account, the sheet has one pr
   await expect(sheet.locator("#spotify-client-id")).toBeVisible();
   // Pipedream rows (the mock lists one Dropbox account for this user once the uid cookie exists)
   await expect(page.locator("#connector-pd-youtube_data_api")).toContainText(/Connect/);
+  await expect(page.locator("#connector-owner-setup")).toHaveCount(0); // a service is configured: no owner link
   await ctx.close();
 });
 
@@ -527,6 +528,8 @@ test("env-absent fallback: without server credentials the sheet shows the BYO Cl
   await expect(page.locator("#connector-dropbox")).toContainText("Not enabled");
   await expect(page.locator("#connector-google")).toContainText("Not enabled");
   await expect(page.locator("#connector-pd-youtube_data_api")).toHaveCount(0); // no Pipedream rows without its env
+  // nothing configured anywhere: the owner is pointed at the in-app setup
+  await expect(page.locator("#connector-owner-setup")).toContainText("Owner setup");
   await page.locator("#connector-spotify").click();
   const sheet = page.getByRole("dialog", { name: "Spotify" });
   await expect(sheet.locator("#spotify-connect")).toBeDisabled();

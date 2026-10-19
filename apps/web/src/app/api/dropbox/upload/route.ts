@@ -7,8 +7,9 @@ export const dynamic = "force-dynamic";
 
 /** `{ format, filename, text, set }` → `/Apps/TDJ/<set>/<file>` in the user's Dropbox, `{ path, url }`. */
 export async function POST(req: Request) {
-  if (!enabled(DROPBOX)) return NextResponse.json({ error: "Dropbox login is not enabled" }, { status: 404 });
-  const origin = requestOrigin(req);
+  if (!(await enabled(DROPBOX)))
+    return NextResponse.json({ error: "Dropbox login is not enabled" }, { status: 404 });
+  const origin = await requestOrigin(req);
   const s = await withSession(DROPBOX, req, origin);
   if (!s) return NextResponse.json({ error: "Not connected to Dropbox" }, { status: 401 });
   const body = await req.json().catch(() => null);

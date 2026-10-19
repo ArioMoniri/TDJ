@@ -15,7 +15,7 @@ export async function POST(req: Request) {
   const app = isConnectApp(body?.app) ? body.app : undefined;
   const user = userFromRequest(req);
   try {
-    const t = await createConnectToken(user.id, requestOrigin(req), app);
+    const t = await createConnectToken(user.id, await requestOrigin(req), app);
     const res = NextResponse.json(t);
     if (user.setCookie) res.headers.append("set-cookie", user.setCookie);
     return res;

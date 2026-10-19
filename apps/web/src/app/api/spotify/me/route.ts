@@ -8,8 +8,8 @@ export const dynamic = "force-dynamic";
  * this deployment; `token` is the short-lived access token (never the refresh token) so the Listen tab can search.
  */
 export async function GET(req: Request) {
-  const hosted = hostedEnabled();
-  const origin = requestOrigin(req);
+  const hosted = await hostedEnabled();
+  const origin = await requestOrigin(req);
   const s = hosted ? await withSession(req, origin) : null;
   if (!s) {
     const res = NextResponse.json({ hosted, user: null }, { status: 401 });

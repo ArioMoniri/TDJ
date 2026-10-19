@@ -1,5 +1,5 @@
 "use client";
-import { Cloud, Disc, HardDrive, Library, ListVideo, Radio, Webhook } from "lucide-react";
+import { Cloud, Disc, HardDrive, KeyRound, Library, ListVideo, Radio, Webhook } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import {
   beginAuth,
@@ -239,6 +239,9 @@ export function Connectors() {
   );
   const googleUser = google?.user ?? null;
   const granted = (f: GoogleFeature) => google?.scopes?.[f] ?? false;
+  // no service has credentials on this deployment: the owner configures them in-app at /admin (docs/DEPLOY.md)
+  const needsOwnerSetup =
+    spotify !== null && google !== null && dropbox !== null && !hosted && !google.hosted && !dropbox.hosted;
   const connectRow = (app: ConnectApp) => (
     <Row
       key={app}
@@ -324,6 +327,17 @@ export function Connectors() {
           onClick={() => setOpen("dropbox")}
           id="connector-dropbox"
         />
+        {needsOwnerSetup && (
+          <Row
+            tile={tile("#636366", <KeyRound size={16} strokeWidth={2} />)}
+            label="Owner setup"
+            sub="Enable one-tap logins for this deployment"
+            value="Open"
+            chevron
+            onClick={() => location.assign("/admin")}
+            id="connector-owner-setup"
+          />
+        )}
       </Group>
 
       <Group

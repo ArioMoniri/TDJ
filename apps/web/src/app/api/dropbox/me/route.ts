@@ -6,8 +6,8 @@ export const dynamic = "force-dynamic";
 
 /** `{ hosted, user }` for the sealed Dropbox session; 401 + `hosted` without one. */
 export async function GET(req: Request) {
-  const hosted = enabled(DROPBOX);
-  const origin = requestOrigin(req);
+  const hosted = await enabled(DROPBOX);
+  const origin = await requestOrigin(req);
   const s = hosted ? await withSession(DROPBOX, req, origin) : null;
   if (!s) {
     const res = NextResponse.json({ hosted, user: null }, { status: 401 });

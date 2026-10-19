@@ -36,17 +36,40 @@ No server secrets are required to run: without them, users bring their own Spoti
 
 ## Connectors
 
-Settings → Connectors shows one row per service with a single button. What each row does depends on which secrets the deployment has. All of them are GitHub Actions **secrets** (`Settings → Secrets and variables → Actions → Secrets`), forwarded by `.github/workflows/deploy-aws.yml` into `sst.config.ts`, which passes them to the Next.js Lambda only when set. None reaches the client bundle; user tokens live in a sealed httpOnly cookie (`tdj_sp`, `tdj_gg`, `tdj_db`), never in DynamoDB. Every provider is a **direct OAuth** login with the deployment's own app (`apps/web/src/lib/server/oauth.ts`): no broker, no per-user fee.
+### Owner setup (no GitHub secrets needed)
+
+The deployed app configures its own connectors; nothing to add in GitHub or the AWS console after the first deploy.
+
+1. **Deploy** (Actions → Deploy to AWS → Run workflow, or merge to `main`).
+2. Open the run → **Summary**: the "Owner setup" box holds a one-time **setup code** (32 hex characters; valid 24 h). It is masked in the logs, but anyone who can open the run summary can read it until step 4, so do the next steps right away.
+3. Open **`<app url>/admin`**, paste the code → **Unlock**.
+4. Choose an **owner passphrase** (≥ 8 characters). It is stored as a scrypt hash and the setup code is deleted the same moment; from now on `/admin` opens with the passphrase (12 h session in that browser).
+5. For each service, the page shows the **exact redirect URIs** to paste into the provider console (Copy button), the fields for the **Client ID + Client secret** (Spotify, Google) or **App key + App secret** (Dropbox), **Save**, and **Test**, which proves the saved pair against the provider (Spotify: a client-credentials token; Google and Dropbox: the token endpoint must answer `invalid_grant`, not `invalid_client`). The page only ever shows "Configured · …last 4 of the ID"; secrets never come back to a browser.
+
+Where it lives: AWS Systems Manager **Parameter Store**, SecureStrings under `/tdj/<stage>/<KEY>` (`SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `DROPBOX_APP_KEY`, `DROPBOX_APP_SECRET`, optional `NEXT_PUBLIC_APP_URL`, plus `OWNER_PASSPHRASE_HASH`, `SETUP_CODE` while it exists, and `TDJ_COOKIE_SECRET`, generated on first use so sealed cookies survive redeploys without any manual secret). `apps/web/src/lib/server/config.ts` resolves every key as environment first, then the store (cached 60 s per Lambda instance), so a GitHub secret still wins and shows as "set by the deployment's environment" on `/admin`. Settings → Connectors shows an **Owner setup** row that leads to `/admin` while no service is configured.
+
+Forgot the passphrase: delete `/tdj/<stage>/OWNER_PASSPHRASE_HASH` in Parameter Store and run the workflow again; it issues a new setup code (it does not while a passphrase exists). Local run: `TDJ_CONFIG_BACKEND=memory TDJ_CONFIG_SEED='{"SETUP_CODE":"anything"}' pnpm dev`, then `http://127.0.0.1:3000/admin` (values live in the process only).
+
+**One-time IAM change.** The deploy role now carries an explicit `tdj-owner-setup` policy (`ssm:PutParameter`/`GetParameter` on `arn:aws:ssm:*:*:parameter/tdj/*`, KMS via SSM) in `infra/github-oidc-role.yaml`. Re-deploy the stack once so the role matches the file:
+```bash
+aws cloudformation deploy --stack-name tdj-github-oidc --template-file infra/github-oidc-role.yaml \
+  --capabilities CAPABILITY_NAMED_IAM --parameter-overrides GitHubOrg=ArioMoniri GitHubRepo=TDJ
+```
+(The role's `PowerUserAccess` already allows SSM, so a deploy made before this command still works; the explicit statement keeps the dependency visible when the managed policy is narrowed later.) The Next.js function gets `ssm:GetParameter`, `ssm:GetParametersByPath`, `ssm:PutParameter`, `ssm:DeleteParameter` on `/tdj/*` and `kms:Encrypt`/`kms:Decrypt` from `sst.config.ts`, and `TDJ_STAGE` / `TDJ_CONFIG_BACKEND=ssm` in its environment.
+
+### GitHub secrets (alternative)
+
+Settings → Connectors shows one row per service with a single button. What each row does depends on which secrets the deployment has. Instead of (or in addition to) the owner setup above, all of them can be GitHub Actions **secrets** (`Settings → Secrets and variables → Actions → Secrets`), forwarded by `.github/workflows/deploy-aws.yml` into `sst.config.ts`, which passes them to the Next.js Lambda only when set. None reaches the client bundle; user tokens live in a sealed httpOnly cookie (`tdj_sp`, `tdj_gg`, `tdj_db`), never in DynamoDB. Every provider is a **direct OAuth** login with the deployment's own app (`apps/web/src/lib/server/oauth.ts`): no broker, no per-user fee.
 
 | Secret | Effect |
 |---|---|
 | `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET` | **"Log in with Spotify"** (hosted authorization-code flow at `/api/spotify/login`). Absent → the Settings sheet falls back to the BYO Client ID + PKCE flow (`/callback`). |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | **"Connect with Google"**: Drive uploads into a `TDJ` folder (`/api/google/drive`, scope `drive.file`) and YouTube playlists (`/api/google/youtube`, scope `youtube`). Scopes are asked one feature at a time (`/api/google/login?scope=drive|youtube`, `include_granted_scopes=true`). Absent → the Google row reads "Not enabled on this deployment". |
 | `DROPBOX_APP_KEY`, `DROPBOX_APP_SECRET` | **"Connect Dropbox"** (PKCE + `token_access_type=offline` at `/api/dropbox/login`): export files land in `/Apps/TDJ/<set name>/` with a shared link (`/api/dropbox/upload`). Absent → the Dropbox row reads "Not enabled on this deployment". |
-| `TDJ_COOKIE_SECRET` | Key for the sealed session cookies (AES-256-GCM). Any long random string (`openssl rand -base64 32`). Absent → derived from `SPOTIFY_CLIENT_SECRET`; rotating either logs everyone out of every provider. |
+| `TDJ_COOKIE_SECRET` | Key for the sealed session cookies (AES-256-GCM). Any long random string (`openssl rand -base64 32`). Absent → one is generated on first use and kept in Parameter Store (`/tdj/<stage>/TDJ_COOKIE_SECRET`); rotating it logs everyone out of every provider. |
 | `PIPEDREAM_PROJECT_ID`, `PIPEDREAM_CLIENT_ID`, `PIPEDREAM_CLIENT_SECRET` | Optional **Pipedream Connect** alternative (Settings → Advanced) for YouTube, Dropbox, Google Drive and Spotify: `/api/connect/token` mints a Connect Link, `/api/connect/export` sends files/playlists through the Pipedream proxy. Paid beyond 100 users; the direct logins above are the free path. |
 | `PIPEDREAM_ENVIRONMENT` (variable) | `development` (default; the free plan, no production end users) or `production`. |
-| `NEXT_PUBLIC_APP_URL` (variable) | Public origin used for redirect URIs (e.g. `https://d3k5k2c1l0s5ri.cloudfront.net`). Absent → derived from the request's `Host`/`X-Forwarded-Proto`. |
+| `NEXT_PUBLIC_APP_URL` (variable) | Public origin used for redirect URIs (e.g. `https://d3k5k2c1l0s5ri.cloudfront.net`). Absent → the "Public URL" saved on `/admin`, else derived from the request's `Host`/`X-Forwarded-Proto`. |
 
 ### Redirect URIs (one list, every provider)
 
@@ -89,3 +112,4 @@ The research (docs/research/connectors.md, "Open-source / free alternatives chec
 SPOTIFY_CLIENT_ID=… SPOTIFY_CLIENT_SECRET=… GOOGLE_CLIENT_ID=… GOOGLE_CLIENT_SECRET=… \
 DROPBOX_APP_KEY=… DROPBOX_APP_SECRET=… TDJ_COOKIE_SECRET=… pnpm dev   # then open http://127.0.0.1:3000 (not localhost)
 ```
+Without AWS credentials the config store is the process memory (`TDJ_CONFIG_BACKEND` defaults to `memory` off Lambda), so `/admin` works locally too but forgets everything on restart. `TDJ_CONFIG_BACKEND=ssm TDJ_STAGE=production` with AWS credentials reads the deployed values.

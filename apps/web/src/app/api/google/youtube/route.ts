@@ -12,8 +12,9 @@ export const dynamic = "force-dynamic";
  * shares, so the result says what was `missing` (not found) and `skipped` (quota ran out).
  */
 export async function POST(req: Request) {
-  if (!enabled(GOOGLE)) return NextResponse.json({ error: "Google login is not enabled" }, { status: 404 });
-  const origin = requestOrigin(req);
+  if (!(await enabled(GOOGLE)))
+    return NextResponse.json({ error: "Google login is not enabled" }, { status: 404 });
+  const origin = await requestOrigin(req);
   const s = await withSession(GOOGLE, req, origin);
   if (!s) return NextResponse.json({ error: "Not connected with Google" }, { status: 401 });
   const body = await req.json().catch(() => null);

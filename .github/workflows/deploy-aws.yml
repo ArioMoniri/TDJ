@@ -47,3 +47,37 @@ jobs:
           PIPEDREAM_ENVIRONMENT: ${{ vars.PIPEDREAM_ENVIRONMENT }}
       - name: Print URL
         run: cat .sst/outputs.json 2>/dev/null || true
+      # Owner setup (docs/DEPLOY.md → Connectors → Owner setup): a one-time code the owner pastes at /admin to
+      # unlock the in-app configuration. It lives in SSM as a SecureString, expires after a day, and is deleted the
+      # moment a passphrase is chosen. Once a passphrase exists no new code is issued (the summary says so).
+      - name: Owner setup code
+        env:
+          STAGE: ${{ inputs.stage || 'production' }}
+        run: |
+          set -euo pipefail
+          URL=$(node -e 'try{process.stdout.write(require("./.sst/outputs.json").url||"")}catch(e){}')
+          if aws ssm get-parameter --name "/tdj/${STAGE}/OWNER_PASSPHRASE_HASH" --with-decryption --query Parameter.Name --output text >/dev/null 2>&1; then
+            {
+              echo "## Owner setup"
+              echo "An owner passphrase is already set for stage \`${STAGE}\`: open \`${URL:-<app url>}/admin\` and unlock with it."
+              echo "Lost it? Delete the parameter \`/tdj/${STAGE}/OWNER_PASSPHRASE_HASH\` in Systems Manager → Parameter Store and run this workflow again for a fresh setup code."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          CODE=$(openssl rand -hex 16)
+          echo "::add-mask::${CODE}"
+          aws ssm put-parameter --name "/tdj/${STAGE}/SETUP_CODE" --type SecureString --overwrite \
+            --value "${CODE}.$(date +%s)" >/dev/null
+          {
+            echo "## Owner setup"
+            echo "1. Open **${URL:-<app url>}/admin**."
+            echo "2. Paste this one-time setup code (valid for 24 hours, deleted once you choose a passphrase):"
+            echo
+            echo '```'
+            echo "${CODE}"
+            echo '```'
+            echo
+            echo "3. Choose a passphrase, then paste the Spotify / Google / Dropbox credentials next to the redirect URIs shown there."
+            echo
+            echo "Anyone who can read this summary can read the code until a passphrase is set: do it now."
+          } >> "$GITHUB_STEP_SUMMARY"
