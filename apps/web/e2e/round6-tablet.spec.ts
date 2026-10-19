@@ -65,7 +65,10 @@ const dist = (a: number[], b: number[]) => Math.max(...a.map((v, i) => Math.abs(
 async function compose(page: Page) {
   await page.goto("/");
   // lg has the toolbar capsule and the form's inline secondary Compose; either composes
-  await page.getByRole("button", { name: /Compose the night/ }).first().click();
+  await page
+    .getByRole("button", { name: /Compose the night/ })
+    .first()
+    .click();
   await expect(page.locator("#result")).toBeVisible({ timeout: 60000 });
   await page.waitForTimeout(1500);
 }
@@ -167,7 +170,10 @@ test("the nav pill has clearance inside its band and a rounded corner on all sid
     ).toBeGreaterThan(12);
   };
   await check("scroll 0");
-  await page.getByRole("button", { name: /Compose the night/ }).first().click();
+  await page
+    .getByRole("button", { name: /Compose the night/ })
+    .first()
+    .click();
   await expect(page.locator("#result")).toBeVisible({ timeout: 60000 });
   await page.waitForTimeout(1200);
   await page.evaluate(() => window.scrollBy(0, 900));
