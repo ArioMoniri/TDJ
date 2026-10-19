@@ -21,9 +21,9 @@ beforeAll(() => {
 });
 
 describe("catalogue index", () => {
-  it("loads the committed index with >20k recordings and known orchestras", () => {
-    expect(deps.catalog.songs.length).toBeGreaterThan(20000);
-    expect(deps.catalog.byOrchestra.get("juan-d-arienzo")!.length).toBeGreaterThan(900);
+  it("loads the committed index with >19k recordings (after de-duplication) and known orchestras", () => {
+    expect(deps.catalog.songs.length).toBeGreaterThan(19000);
+    expect(deps.catalog.byOrchestra.get("juan-d-arienzo")!.length).toBeGreaterThan(750);
     expect(deps.catalog.byOrchestra.get("carlos-di-sarli")!.length).toBeGreaterThan(300);
   });
   it("fixed the +100 year typos and assigns eras", () => {
@@ -188,12 +188,18 @@ describe("night rules and era settings", () => {
     expect(normTitle(q.opening!.title)).toBe("la cumparsita");
     expect(q.opening!.id).not.toBe(q.closing!.id);
     const ult = q.tandas[q.tandas.length - 1]!;
+    // the own Cumparsita is appended only when a closing version by the same orchestra matches the tanda's singer
     expect(
       ult.songs.length === 5 ||
         !deps.catalog.songs.some(
-          (s) => normTitle(s.title) === "la cumparsita" && s.orchestraId === ult.orchestraId,
+          (s) =>
+            normTitle(s.title) === "la cumparsita" &&
+            s.orchestraId === ult.orchestraId &&
+            s.vocal === ult.vocal &&
+            (s.singerId ?? null) === (ult.songs[0]!.singerId ?? null),
         ),
     ).toBe(true);
+    expect(new Set(ult.songs.map((s) => s.singerId)).size).toBe(1);
   });
   it("reserves a birthday vals and inserts a show break that is counted in the duration", () => {
     const q = compose(
@@ -227,7 +233,7 @@ describe("night rules and era settings", () => {
 
 describe("explicit options beat context suggestions", () => {
   it("keeps 4-track tangos when a práctica-style context suggests 3", () => {
-    const p = compose({ hours: 3, seed: 7, tangoTandaSize: 4, context: { eventType: "practica" } }, deps);
+    const p = compose({ hours: 3, seed: 7, tangoTandaSize: 4, context: { event: "practica" } }, deps);
     const tangos = p.tandas.filter((t) => t.rhythm === "tango");
     expect(tangos.length).toBeGreaterThan(3);
     for (const t of tangos) expect(t.songs.length).toBe(4);
