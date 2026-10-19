@@ -36,6 +36,20 @@ export function flatten(p: Playlist, eo: ExportOpts = {}): FlatTrack[] {
   const out: FlatTrack[] = [];
   let n = 1;
   const push = (f: Omit<FlatTrack, "n">) => out.push({ n: n++, ...f });
+  if (p.opening)
+    push({
+      kind: "closing",
+      tanda: 0,
+      title: p.opening.title,
+      artist: p.opening.orchestra,
+      rhythm: "tango",
+      durationSec: p.opening.durationSec ?? 180,
+      energy: p.opening.energy,
+      spotifyUri: p.opening.spotify?.uri,
+      orchestra: p.opening.orchestra,
+      singer: p.opening.singer,
+      year: p.opening.year,
+    });
   p.tandas.forEach((t, ti) => {
     for (const s of t.songs)
       push({
@@ -243,7 +257,10 @@ export function toSeratoCSV(p: Playlist, eo: ExportOpts = {}): string {
 }
 
 /** Spotify: ordered list of URIs (already resolved) + search queries for unresolved tracks. */
-export function toSpotifyPlan(p: Playlist, eo: ExportOpts = {}): {
+export function toSpotifyPlan(
+  p: Playlist,
+  eo: ExportOpts = {},
+): {
   uris: string[];
   unresolved: { query: string; track: FlatTrack }[];
 } {

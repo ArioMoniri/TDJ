@@ -174,3 +174,53 @@ describe("exports", () => {
     expect(scorePlaylist(JSON.parse(EXPORTERS.json(p))).total).toBe(p.score.total);
   });
 });
+
+describe("night rules and era settings", () => {
+  it("applies era-specific defaults (nuevo → 3-track tandas, mixed vocal/instrumental)", () => {
+    const q = compose({ hours: 2, seed: 3, eras: ["nuevo"] }, deps);
+    expect(q.options.tangoTandaSize).toBe(3);
+    expect(q.options.mixVocalInstrumental).toBe(true);
+    const g = compose({ hours: 2, seed: 3 }, deps);
+    expect(g.options.tangoTandaSize).toBe(4);
+  });
+  it("can open with La Cumparsita and close Buenos Aires style with two", () => {
+    const q = compose({ hours: 2, seed: 9, rules: { openWithCumparsita: true, cumparsitaCount: 2 } }, deps);
+    expect(normTitle(q.opening!.title)).toBe("la cumparsita");
+    expect(q.opening!.id).not.toBe(q.closing!.id);
+    const ult = q.tandas[q.tandas.length - 1]!;
+    expect(
+      ult.songs.length === 5 ||
+        !deps.catalog.songs.some(
+          (s) => normTitle(s.title) === "la cumparsita" && s.orchestraId === ult.orchestraId,
+        ),
+    ).toBe(true);
+  });
+  it("reserves a birthday vals and inserts a show break that is counted in the duration", () => {
+    const q = compose(
+      { hours: 3, seed: 2, rules: { birthdayValsAt: 0.6, showBreakAt: 0.5, showBreakMinutes: 20 } },
+      deps,
+    );
+    expect(q.tandas.some((t) => t.note?.includes("cumpleaños") && t.rhythm === "vals")).toBe(true);
+    expect(q.breaks?.[0]?.minutes).toBe(20);
+    expect(Math.abs(q.stats.durationSec - 3 * 3600)).toBeLessThan(8 * 60);
+  });
+  it("honours opener and última rules", () => {
+    const q = compose(
+      { hours: 3, seed: 4, rules: { openerRule: "lyrical", ultimaRule: "d-arienzo-rhythmic" } },
+      deps,
+    );
+    expect(["lyrical", "guardia"]).toContain(deps.catalog.profile(q.tandas[0]!.orchestraId)?.style);
+    expect(q.tandas[q.tandas.length - 1]!.orchestraId).toBe("juan-d-arienzo");
+  });
+  it("memory learns repeated feedback and summarises for prompts", async () => {
+    const m = await import("../src/memory");
+    let mem = m.emptyMemory();
+    const p = compose({ hours: 2, seed: 1 }, deps);
+    mem = m.rememberSet(mem, p, true);
+    for (let i = 0; i < 3; i++) mem = m.rememberFeedback(mem, p.id, ["more-energetic"]);
+    expect(mem.preferences.floorMood).toBe("energetic");
+    expect(m.applyMemory({ hours: 4 }, mem).floorMood).toBe("energetic");
+    expect(m.applyMemory({ hours: 4, floorMood: "romantic" }, mem).floorMood).toBe("romantic");
+    expect(m.summarizeMemory(mem)).toContain("liked");
+  });
+});

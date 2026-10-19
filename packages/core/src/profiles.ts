@@ -475,3 +475,177 @@ export function mergeProfiles(extra: OrchestraProfile[] = []): Map<string, Orche
   for (const p of extra) m.set(p.id, { ...(m.get(p.id) ?? {}), ...p } as OrchestraProfile);
   return m;
 }
+
+/** Era-specific defaults: choosing an era applies these unless the user overrides them (docs/AGENT_GUIDE.md §2). */
+export const ERA_SETTINGS: Record<
+  string,
+  Partial<import("./types").ComposeOptions> & { rules: import("./types").NightRules; notes: string }
+> = {
+  golden: {
+    pattern: "classic",
+    tangoTandaSize: 4,
+    valsTandaSize: 3,
+    milongaTandaSize: 3,
+    tandaShape: "rise-settle",
+    maxYearSpread: 4,
+    cortinaStyle: "family",
+    cortinaLengthSec: 45,
+    orchestraRepeatGap: 6,
+    rules: {
+      cumparsitaCount: 1,
+      ultimaRule: "emotional-vocal",
+      openerRule: "canon",
+      puglieseOnce: true,
+      colourTanda: false,
+      mixedMilongaVals: false,
+      cortinaBeforeCumparsita: false,
+    },
+    notes:
+      "Canonical milonga programming: TTVTTM, 4-3-3, strict orchestra/singer coherence, Pugliese once and late, La Cumparsita closes.",
+  },
+  "golden-extended": {
+    pattern: "classic",
+    tangoTandaSize: 4,
+    valsTandaSize: 3,
+    milongaTandaSize: 3,
+    tandaShape: "rise-settle",
+    maxYearSpread: 5,
+    cortinaStyle: "family",
+    cortinaLengthSec: 45,
+    orchestraRepeatGap: 6,
+    rules: {
+      cumparsitaCount: 1,
+      ultimaRule: "emotional-vocal",
+      openerRule: "canon",
+      puglieseOnce: true,
+      colourTanda: true,
+      mixedMilongaVals: false,
+      cortinaBeforeCumparsita: false,
+    },
+    notes: "Golden rules with one 'colour' tanda allowed (late 1950s instrumentals, a foxtrot tanda).",
+  },
+  "guardia-vieja": {
+    pattern: "custom",
+    customPattern: "TTVTTM",
+    tangoTandaSize: 3,
+    valsTandaSize: 3,
+    milongaTandaSize: 3,
+    tandaShape: "rise",
+    maxYearSpread: 6,
+    cortinaStyle: "constant",
+    cortinaLengthSec: 40,
+    orchestraRepeatGap: 4,
+    rules: {
+      cumparsitaCount: 1,
+      ultimaRule: "any",
+      openerRule: "any",
+      puglieseOnce: true,
+      colourTanda: true,
+      mixedMilongaVals: true,
+      cortinaBeforeCumparsita: false,
+    },
+    notes:
+      "Pre-1935 recordings are short and similar in texture: 3-track tandas, wider year windows, mixed milonga/vals tandas allowed, one constant cortina.",
+  },
+  "post-golden": {
+    pattern: "classic",
+    tangoTandaSize: 4,
+    valsTandaSize: 3,
+    milongaTandaSize: 3,
+    tandaShape: "hammock",
+    maxYearSpread: 5,
+    cortinaStyle: "family",
+    cortinaLengthSec: 45,
+    orchestraRepeatGap: 5,
+    rules: {
+      cumparsitaCount: 1,
+      ultimaRule: "d-arienzo-rhythmic",
+      openerRule: "lyrical",
+      puglieseOnce: true,
+      colourTanda: true,
+      mixedMilongaVals: false,
+      cortinaBeforeCumparsita: false,
+    },
+    notes:
+      "1956–69: lush strings and late D'Arienzo drive; hammock shape, lyrical opener, rhythmic D'Arienzo última.",
+  },
+  nuevo: {
+    pattern: "custom",
+    customPattern: "TTTVTTTM",
+    tangoTandaSize: 3,
+    valsTandaSize: 3,
+    milongaTandaSize: 3,
+    tandaShape: "peak-middle",
+    maxYearSpread: 10,
+    cortinaStyle: "matched",
+    cortinaLengthSec: 30,
+    orchestraRepeatGap: 3,
+    mixVocalInstrumental: true,
+    rules: {
+      cumparsitaCount: 1,
+      ultimaRule: "any",
+      openerRule: "any",
+      puglieseOnce: false,
+      colourTanda: true,
+      mixedMilongaVals: true,
+      cortinaBeforeCumparsita: true,
+    },
+    notes:
+      "Alternative/nuevo nights: 3-track tandas, mixed vocal/instrumental, short matched cortinas, looser repeats.",
+  },
+  contemporary: {
+    pattern: "custom",
+    customPattern: "TTTVTTTM",
+    tangoTandaSize: 3,
+    valsTandaSize: 3,
+    milongaTandaSize: 3,
+    tandaShape: "peak-middle",
+    maxYearSpread: 15,
+    cortinaStyle: "matched",
+    cortinaLengthSec: 30,
+    orchestraRepeatGap: 3,
+    mixVocalInstrumental: true,
+    rules: {
+      cumparsitaCount: 1,
+      ultimaRule: "any",
+      openerRule: "any",
+      puglieseOnce: false,
+      colourTanda: true,
+      mixedMilongaVals: true,
+      cortinaBeforeCumparsita: true,
+    },
+    notes: "Contemporary orchestras and electro: 3-track tandas, wide year windows, matched short cortinas.",
+  },
+  all: {
+    pattern: "classic",
+    tangoTandaSize: 4,
+    valsTandaSize: 3,
+    milongaTandaSize: 3,
+    tandaShape: "rise-settle",
+    maxYearSpread: 4,
+    cortinaStyle: "family",
+    cortinaLengthSec: 45,
+    orchestraRepeatGap: 6,
+    rules: {
+      cumparsitaCount: 1,
+      ultimaRule: "emotional-vocal",
+      openerRule: "canon",
+      puglieseOnce: true,
+      colourTanda: true,
+      mixedMilongaVals: false,
+      cortinaBeforeCumparsita: false,
+    },
+    notes:
+      "Golden rules applied across all eras; Guardia Vieja limited to one early tanda, nuevo/contemporary only as colour.",
+  },
+};
+
+/** Merge era defaults under explicit user options. */
+export function withEraSettings<T extends { eras?: string[] }>(partial: T): T {
+  const era = partial.eras?.[0] ?? "golden";
+  const d = ERA_SETTINGS[era] ?? ERA_SETTINGS.golden!;
+  const { notes: _n, rules, ...defaults } = d;
+  const merged = { ...defaults, ...partial } as T & { rules?: import("./types").NightRules };
+  merged.rules = { ...rules, ...((partial as { rules?: import("./types").NightRules }).rules ?? {}) };
+  return merged;
+}
