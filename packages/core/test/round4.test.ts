@@ -3,7 +3,7 @@
  * (round4-users.md §6) and the option-wiring audit (round4-wiring.md §3) measured. Every rule the engine
  * gained in round 4 has its invariant here.
  */
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
   applyMemory,
   arcTarget,
@@ -29,6 +29,8 @@ let deps: ReturnType<typeof loadCatalog>;
 beforeAll(() => {
   deps = loadCatalog();
 });
+// the engine is synchronous and CPU-bound: yield to the event loop between tests so the worker can answer vitest's RPC
+afterEach(() => new Promise((r) => setTimeout(r, 0)));
 
 const SEEDS = Array.from({ length: 12 }, (_, i) => i + 1);
 const golden = (seed: number, extra: Record<string, unknown> = {}) =>
@@ -80,8 +82,9 @@ describe("A1 — the última is a strong closing tanda", () => {
 });
 
 describe("A2 — maxPerNight resolved by hours", () => {
-  it("Pugliese ≤ 1 per 4 h, ≤ 2 per 6 h (first after 40 %, second after 75 %), never twice with puglieseOnce", () => {
-    for (const seed of SEEDS) {
+  it.each(SEEDS)(
+    "seed %i: Pugliese ≤ 1 per 4 h, ≤ 2 per 6 h (first after 40 %, second after 75 %), never twice with puglieseOnce",
+    (seed) => {
       expect(
         golden(seed).tandas.filter((t) => t.orchestraId === "osvaldo-pugliese").length,
       ).toBeLessThanOrEqual(1);
@@ -94,8 +97,8 @@ describe("A2 — maxPerNight resolved by hours", () => {
       }
       const once = compose({ hours: 8, seed, rules: { puglieseOnce: true } }, deps);
       expect(once.tandas.filter((t) => t.orchestraId === "osvaldo-pugliese").length).toBeLessThanOrEqual(1);
-    }
-  });
+    },
+  );
   it("no orchestra exceeds its corpus cap in a 4 h night and D'Arienzo is never absent", () => {
     for (const seed of SEEDS) {
       const p = golden(seed);

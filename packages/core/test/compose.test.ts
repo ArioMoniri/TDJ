@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
   arcTarget,
   compose,
@@ -19,6 +19,8 @@ let deps: ReturnType<typeof load>;
 beforeAll(() => {
   deps = load();
 });
+// the engine is synchronous and CPU-bound: yield to the event loop between tests so the worker can answer vitest's RPC
+afterEach(() => new Promise((r) => setTimeout(r, 0)));
 
 describe("catalogue index", () => {
   it("loads the committed index with >19k recordings (after de-duplication) and known orchestras", () => {
