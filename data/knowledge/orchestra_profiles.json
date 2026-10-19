@@ -25,9 +25,10 @@
    ]
   },
   "phase": [
+   "warmup",
    "build",
    "peak",
-   "warmup"
+   "any"
   ],
   "singers": {
    "Walter Cabral": [
@@ -40,7 +41,7 @@
    ],
    "Alberto Echagüe": [
     1938,
-    1957
+    1975
    ],
    "Héctor Mauré": [
     1940,
@@ -59,7 +60,7 @@
     1964
    ],
    "Mario Bustos": [
-    1957,
+    1956,
     1962
    ],
    "Alberto Reynal": [
@@ -71,7 +72,7 @@
     1975
    ],
    "Horacio Palma": [
-    1959,
+    1960,
     1963
    ],
    "Carlos Dante": [
@@ -146,7 +147,13 @@
    "golden-peak": 0,
    "golden-late": 2,
    "post-golden": 2
-  }
+  },
+  "cumparsitaVersions": [
+   1951,
+   1963,
+   1937,
+   1955
+  ]
  },
  {
   "id": "carlos-di-sarli",
@@ -301,7 +308,11 @@
   "rhythmShift": {
    "vals": 2,
    "milonga": 4
-  }
+  },
+  "cumparsitaVersions": [
+   1955,
+   1951
+  ]
  },
  {
   "id": "anibal-troilo",
@@ -451,14 +462,20 @@
    "Roberto Goyeneche": -8
   },
   "nonDanceTitles": [
-   "Responso",
-   "La última curda",
-   "Intermezzo",
-   "Danzarín",
-   "Quejas de bandoneón (1963)",
-   "Selección de temas de Francisco Canaro",
+   "A fuego lento",
    "Contrabajeando",
-   "A fuego lento"
+   "Danzarín",
+   "Fraternal",
+   "Intermezzo",
+   "La última curda",
+   "Quejas de bandoneón (1963)",
+   "Responso",
+   "Retirao",
+   "Selección de temas de Francisco Canaro"
+  ],
+  "cumparsitaVersions": [
+   1963,
+   1943
   ]
  },
  {
@@ -489,7 +506,7 @@
    "peak"
   ],
   "notBefore": 0.6,
-  "notAfter": 0.9,
+  "notAfter": 1,
   "singers": {
    "Roberto Chanel": [
     1943,
@@ -509,11 +526,15 @@
    ],
    "Miguel Montero": [
     1955,
-    1960
+    1959
    ],
    "Carlos Guido": [
     1959,
     1962
+   ],
+   "Abel Córdoba": [
+    1965,
+    1990
    ]
   },
   "notes": "Instrumentals 1946-1959 (La yumba, Gallo ciego, Pata ancha, Negracha, Malandraca, Nochero soy, A Evaristo Carriego) are the universal peak tanda. Never in the first hour; one tanda per 4 h; never adjacent to alternative music; follow with vals/milonga or light rhythmic tango. Rubato and arrastre make difficulty high: for beginner floors use 1943-46 Chanel vocals instead. Valses (Desde el alma 1947",
@@ -547,7 +568,16 @@
    "Jorge Maciel": 2,
    "Miguel Montero": 0,
    "Abel Córdoba": 2
-  }
+  },
+  "cumparsitaVersions": [
+   1959
+  ],
+  "nonDanceTitles": [
+   "A Evaristo Carriego",
+   "A los amigos",
+   "Bien milonga (1979)",
+   "Zum"
+  ]
  },
  {
   "id": "miguel-calo",
@@ -581,19 +611,31 @@
   "singers": {
    "Alberto Podestá": [
     1941,
-    1944
+    1943
    ],
    "Raúl Berón": [
-    1942,
+    1941,
     1946
    ],
    "Raúl Iriarte": [
     1943,
-    1946
+    1947
    ],
    "Roberto Arrieta": [
     1945,
-    1948
+    1949
+   ],
+   "Carlos Dante": [
+    1934,
+    1936
+   ],
+   "Jorge Ortiz": [
+    1943,
+    1943
+   ],
+   "Roberto Luque": [
+    1961,
+    1965
    ]
   },
   "notes": "Vocal tandas (few danceable instrumentals - build vocal). Elegant, balanced, mid-tempo; ideal for the second hour and for the sweet ending. 1942-43 Berón/Podestá/Iriarte is the core. Valses (Pedacito de cielo, Bajo un cielo de estrellas) are classics. Best: 1941-1943, 1944-1946",
@@ -673,7 +715,7 @@
   ],
   "singers": {
    "Alberto Castillo": [
-    1939,
+    1940,
     1943
    ],
    "Enrique Campos": [
@@ -682,11 +724,11 @@
    ],
    "Roberto Videla": [
     1946,
-    1950
+    1948
    ],
    "Elsa Rivas": [
     1950,
-    1950
+    1951
    ],
    "Horacio Roca": [
     1957,
@@ -699,6 +741,10 @@
    "O. Ribó - R. Videla": [
     1946,
     1948
+   ],
+   "Juan Carlos Godoy": [
+    1952,
+    1953
    ]
   },
   "notes": "Two distinct profiles: Castillo 1940-43 = rhythmic, energy ~70, early/build/peak; Campos 1943-46 = lyrical, energy ~55, middle/late. Never mix the two singers. Valses and milongas with Castillo are excellent lifts. Best: 1940-1943 Castillo, 1943-1946 Campos",
@@ -724,6 +770,9 @@
   "bestYears": [
    1940,
    1948
+  ],
+  "cumparsitaVersions": [
+   1940
   ]
  },
  {
@@ -765,23 +814,23 @@
    ],
    "Jorge Ortiz": [
     1940,
-    1948
+    1943
    ],
    "Carlos Acuña": [
-    1943,
-    1945
+    1947,
+    1950
    ],
    "Alberto Amor": [
-    1944,
-    1948
+    1943,
+    1947
    ],
    "Carlos Saavedra": [
     1950,
     1950
    ],
    "Hugo Duval": [
-    1950,
-    1960
+    1951,
+    1959
    ],
    "Jorge Ortíz": [
     1940,
@@ -824,6 +873,9 @@
   "bestYears": [
    1938,
    1950
+  ],
+  "cumparsitaVersions": [
+   1942
   ]
  },
  {
@@ -940,7 +992,7 @@
   "singers": {
    "Charlo": [
     1928,
-    1932
+    1931
    ],
    "Ernesto Famá": [
     1930,
@@ -951,15 +1003,15 @@
     1938
    ],
    "Francisco Amor": [
-    1938,
+    1939,
     1941
    ],
    "Carlos Roldán": [
     1941,
-    1946
+    1945
    ],
    "Alberto Arenas": [
-    1944,
+    1946,
     1951
    ],
    "Mario Alonso": [
@@ -969,6 +1021,10 @@
    "Nelly Omar": [
     1946,
     1947
+   ],
+   "Tita Merello": [
+    1954,
+    1957
    ]
   },
   "notes": "Canaro-Maida 1935-38 = gentle lyrical-rhythmic, the perfect 'easier' tanda and sweet-ending material (Poema, Invierno). Canaro-Famá 1932-36 = cheerful early. Instrumentals 1927-34 (Guardia Vieja) for warm-up and afternoon. Canaro's milongas (Milonga sentimental 1933, Milonga brava, Reliquias porteñas) are the standard early-night milonga tanda; Quinteto Pirincho 1950s instrumentals are a separate,",
@@ -998,7 +1054,8 @@
    "milonga": 14
   },
   "singerDanceable": {
-   "Nelly Omar": false
+   "Nelly Omar": false,
+   "Tita Merello": false
   },
   "singerShift": {
    "Roberto Maida": 0,
@@ -1013,9 +1070,16 @@
    1946
   ],
   "nonDanceTitles": [
+   "Cambalache",
+   "Niño bien",
+   "Pipistrela",
    "Reliquias brasileñas",
    "Reliquias brasileñas - 2a.parte",
+   "Se dice de mí",
    "Selección"
+  ],
+  "cumparsitaVersions": [
+   1951
   ]
  },
  {
@@ -1059,10 +1123,10 @@
    ],
    "Oscar Serpa": [
     1942,
-    1948
+    1949
    ],
    "Héctor Pacheco": [
-    1948,
+    1951,
     1955
    ],
    "Hugo Marcel": [
@@ -1227,8 +1291,8 @@
     1946
    ],
    "Tino García": [
-    1947,
-    1952
+    1952,
+    1963
    ],
    "Ruben Cané": [
     1950,
@@ -1239,8 +1303,8 @@
     1946
    ],
    "Rubén Cané": [
-    1950,
-    1950
+    1947,
+    1951
    ]
   },
   "notes": "Vocal tandas (almost no instrumentals). Soft-rhythmic, intimate, 'de barrio' - ideal for the early hour and the sweet ending; many DJs open the night with D'Agostino-Vargas. Café Domínguez (with its spoken intro) is the classic opener. Milongas (Así me gusta a mí, El porteñito) and valses (Esta noche en Buenos Aires) are few but usable. Best: 1940-1946 Vargas",
@@ -1265,7 +1329,10 @@
    "Angel Vargas": 2,
    "Tino García": -4,
    "Rubén Cané": -4
-  }
+  },
+  "cumparsitaVersions": [
+   1945
+  ]
  },
  {
   "id": "alfredo-de-angelis",
@@ -1402,15 +1469,15 @@
    ],
    "Martín Podestá": [
     1940,
-    1941
+    1943
    ],
    "Alberto Podestá": [
     1943,
-    1943
+    1944
    ],
    "Carlos Bermúdez": [
-    1943,
-    1946
+    1944,
+    1947
    ],
    "Jorge Linares": [
     1945,
@@ -1482,7 +1549,7 @@
     1945
    ],
    "Horacio Quintana": [
-    1943,
+    1945,
     1948
    ],
    "Roberto Arrieta": [
@@ -1673,7 +1740,7 @@
    ],
    "Alberto Gómez": [
     1930,
-    1934
+    1935
    ],
    "Ángel Vargas": [
     1938,
@@ -1694,6 +1761,18 @@
    "Angel Vargas": [
     1938,
     1939
+   ],
+   "Lita Morales": [
+    1937,
+    1938
+   ],
+   "Amanda Ledesma": [
+    1940,
+    1940
+   ],
+   "Carmen Duval": [
+    1940,
+    1940
    ]
   },
   "notes": "Studio orchestra of RCA Victor; crisp 1930s instrumentals (Ventarrón, Sentimiento criollo, Coquetona) and 1935-38 Vargas vocals; valses (Temo, Cuando estaba enamorado) good for the first hour. Reasonable to mix with Canaro/Lomuto in a GV tanda. Best: 1929-1934 instrumental, 1935-1938 Vargas",
@@ -1746,11 +1825,11 @@
   "singers": {
    "Jorge Maciel": [
     1947,
-    1952
+    1951
    ],
    "Tito Landó": [
-    1950,
-    1950
+    1956,
+    1958
    ],
    "Ángel Díaz": [
     1950,
@@ -1776,7 +1855,8 @@
    "El andariego (1951)",
    "Orlando Goñi (1949)",
    "Camandulaje (1952)"
-  ]
+  ],
+  "neverClose": true
  },
  {
   "id": "ricardo-malerba",
@@ -2109,12 +2189,12 @@
   ],
   "singers": {
    "Alberto Podestá": [
-    1945,
+    1946,
     1950
    ],
    "Roberto Rufino": [
-    1949,
-    1951
+    1946,
+    1950
    ],
    "Raúl Berón": [
     1949,
