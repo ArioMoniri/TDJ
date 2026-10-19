@@ -97,10 +97,27 @@ export class Catalog {
       const key = `${normTitle(song.title)}|${song.orchestraId}`;
       const fame = this.fame.get(key);
       song.fame = fame?.fame ?? 0;
+      if (!song.bpm && audio?.bpm) song.bpm = Math.round(audio.bpm);
       song.energy =
         patch?.energy ?? te[key] ?? fame?.energy ?? songEnergy(song, this.profiles.get(song.orchestraId), te);
       return [song];
     });
+    // analysed audio refines energy within an orchestra: a track louder/denser than its orchestra's analysed
+    // mean moves up, a softer one down (±10 max). Explicit per-track energy (overrides) is left alone.
+    const sum = new Map<string, { n: number; e: number }>();
+    for (const s of this.songs)
+      if (s.audio) {
+        const a = sum.get(s.orchestraId) ?? { n: 0, e: 0 };
+        a.n++;
+        a.e += s.audio.energy;
+        sum.set(s.orchestraId, a);
+      }
+    for (const s of this.songs) {
+      const a = s.audio && sum.get(s.orchestraId);
+      if (!a || a.n < 3 || overrides?.songs?.[s.id]?.energy !== undefined) continue;
+      const delta = Math.max(-10, Math.min(10, (s.audio!.energy - a.e / a.n) * 0.8));
+      s.energy = Math.max(0, Math.min(100, Math.round((s.energy ?? 50) + delta)));
+    }
     for (const s of this.songs) {
       const arr = this.byOrchestra.get(s.orchestraId) ?? [];
       arr.push(s);

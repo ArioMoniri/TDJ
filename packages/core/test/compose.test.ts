@@ -224,3 +224,16 @@ describe("night rules and era settings", () => {
     expect(m.summarizeMemory(mem)).toContain("liked");
   });
 });
+
+describe("explicit options beat context suggestions", () => {
+  it("keeps 4-track tangos when a práctica-style context suggests 3", () => {
+    const p = compose({ hours: 3, seed: 7, tangoTandaSize: 4, context: { eventType: "practica" } }, deps);
+    const tangos = p.tandas.filter((t) => t.rhythm === "tango");
+    expect(tangos.length).toBeGreaterThan(3);
+    for (const t of tangos) expect(t.songs.length).toBe(4);
+  });
+  it("uses 3-track tangos when asked for them", () => {
+    const p = compose({ hours: 3, seed: 7, tangoTandaSize: 3 }, deps);
+    for (const t of p.tandas.filter((t) => t.rhythm === "tango")) expect(t.songs.length).toBe(3);
+  });
+});

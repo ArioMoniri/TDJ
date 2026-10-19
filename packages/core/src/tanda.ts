@@ -61,7 +61,14 @@ export function families(pool: Song[], maxYearSpread: number, mixVocal: boolean)
 
 /** Order the chosen songs inside the tanda according to the requested shape. */
 export function shapeTanda(songs: Song[], shape: ComposeOptions["tandaShape"]): Song[] {
-  const s = songs.slice().sort((a, b) => (a.energy ?? 50) - (b.energy ?? 50)); // ascending
+  const s = songs
+    .slice()
+    .sort(
+      (a, b) =>
+        (a.energy ?? 50) - (b.energy ?? 50) ||
+        (a.audio?.bpm ?? a.bpm ?? 0) - (b.audio?.bpm ?? b.bpm ?? 0) ||
+        (a.year ?? 0) - (b.year ?? 0),
+    ); // ascending
   const n = s.length;
   if (n <= 2 || shape === "flat") return s;
   switch (shape) {
@@ -289,13 +296,17 @@ export function buildTanda(
           av.some((s) => s.year && s.year >= k.years![0] - 1 && s.year <= k.years![1] + 1)),
     );
     if (canon) w *= 1.4 + (canon.popularity ?? 3) * 0.15 * (canon.phase === slot.phase ? 1.5 : 1);
+    // variety across nights: a family that played in the last sets steps back (never excluded, a floor has favourites)
+    if (o.recent?.tandaKeys?.includes(`${c.orchestraId}|${c.singer ?? ""}|${slot.rhythm}`)) w *= 0.4;
     return w;
   };
   // sample among the best few, not the whole long tail (a 0.3 % candidate at the peak is a tell)
+  // flattened (w^0.7) so the runner-up families get a real chance and two nights with the same options differ
   const ranked = pool
     .map((c) => ({ c, w: weight(c) }))
     .sort((a, b) => b.w - a.w)
-    .slice(0, 6);
+    .slice(0, 8)
+    .map((r) => ({ c: r.c, w: r.w ** 0.7 }));
   const chosen = rng.weighted(ranked, (r) => r.w)?.c;
   if (!chosen) return null;
   const avail = availOf(chosen).filter((s) => !sc.nonDance?.(chosen.orchestraId, s.title));
@@ -306,6 +317,7 @@ export function buildTanda(
       .filter((k) => k.orchestraId === chosen.orchestraId && k.rhythm === slot.rhythm)
       .flatMap((k) => (k.titles ?? []).map(normTitle)),
   );
+  const recentTitles = new Set(o.recent?.titles ?? []);
   const scored = avail
     .map((s) => ({
       s,
@@ -314,7 +326,8 @@ export function buildTanda(
         (1 + (s.fame ?? 0) * 0.5) *
         (canonTitles.has(normTitle(s.title)) ? 2 : 1) *
         (s.selection ? 1.3 : 1) *
-        (0.7 + rng.next() * 0.6),
+        (recentTitles.has(normTitle(s.title)) ? 0.55 : 1) *
+        (0.6 + rng.next() * 0.8),
     }))
     .sort((a, b) => b.w - a.w);
   const seen = new Set<string>();
