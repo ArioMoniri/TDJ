@@ -113,6 +113,9 @@ export function CortinasTab({ base }: { base: MetaCortina[] }) {
           </div>
         </div>
       )}
+      {merged.length === 0 && (
+        <Empty crate>No cortinas in your pool yet. Add one to hear it between tandas.</Empty>
+      )}
       <table className="db-table">
         <thead>
           <tr>

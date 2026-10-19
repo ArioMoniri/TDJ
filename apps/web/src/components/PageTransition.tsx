@@ -10,7 +10,14 @@ export function PageTransition({ children }: { children: ReactNode }) {
   const r = useReducedMotion();
   return (
     <AnimatePresence mode="wait" initial={false} onExitComplete={() => window.scrollTo({ top: 0 })}>
-      <motion.div key={path} variants={r ? reduced.rise : rise} initial="hidden" animate="show" exit="exit" custom={0}>
+      <motion.div
+        key={path}
+        variants={r ? reduced.rise : rise}
+        initial="hidden"
+        animate="show"
+        exit="exit"
+        custom={0}
+      >
         {children}
       </motion.div>
     </AnimatePresence>

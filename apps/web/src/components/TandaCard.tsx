@@ -5,7 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { haptic } from "@/lib/haptics";
 import { useInViewport } from "@/lib/hooks";
-import { CARD_STAGGER_CAP, DUR, EASE, SPRING, STAGGER, fade, lineSwap, rise } from "@/lib/motion";
+import { CARD_STAGGER_CAP, DUR, EASE, lineSwap, rise, SPRING, STAGGER } from "@/lib/motion";
 import type { ReferencePlaylist, Tanda } from "@/lib/types";
 import { CountUp } from "./CountUp";
 import { CortinaPreview, TandaListen } from "./Listen";
@@ -282,7 +282,7 @@ export function TandaCard({
                 variants={rise}
                 initial="hidden"
                 animate="show"
-                exit={fade.exit}
+                exit={{ opacity: 0, transition: { duration: DUR.base, ease: EASE.in } }}
                 className="mt-3"
               >
                 <TandaListen t={t} playlists={playlists} />

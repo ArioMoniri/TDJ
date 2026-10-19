@@ -4,7 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { haptic } from "@/lib/haptics";
 import { testSlowdownMs, useMediaQuery } from "@/lib/hooks";
-import { DUR, EASE, STAGGER, fade, rise } from "@/lib/motion";
+import { DUR, EASE, fade, rise, STAGGER } from "@/lib/motion";
 import { overridesForRequest, useStore } from "@/lib/store";
 import type { ComposeContext, ComposeOptions, Feedback, Meta, Playlist } from "@/lib/types";
 import { ComposeLabel, ComposeNarrative } from "./ComposeNarrative";
@@ -344,436 +344,435 @@ export function Composer() {
   };
 
   return (
-    <>
-      <div className="space-y-4">
-        {/* Hero: compact on phones, hidden there once a set exists */}
-        <section
-          className={`surface relative overflow-hidden p-5 sm:p-6 ${hasPlaylist ? "hidden sm:block" : ""}`}
-        >
-          <div className="flex items-center gap-4 sm:justify-between sm:gap-6">
-            <div className="min-w-0 max-w-xl">
-              <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-balance sm:text-5xl">
-                Compose a milonga, tanda by tanda.
-              </h1>
-              <p className="text-muted mt-2 text-sm text-pretty sm:mt-3 sm:text-base">
-                Pick an era and a length. TDJ builds coherent tandas, shapes the night from warm-up to La
-                Cumparsita, and picks each cortina to fit what follows.
-              </p>
-            </div>
-            <div className="flex shrink-0 items-center gap-4">
-              <ComposeNarrative busy={busy} className="hidden sm:flex" />
-              <Vinyl playing={busy} className="w-[72px] shrink-0 sm:w-[140px]" />
-            </div>
+    <div className="space-y-4">
+      {/* Hero: compact on phones, hidden there once a set exists */}
+      <section
+        className={`surface relative overflow-hidden p-5 sm:p-6 ${hasPlaylist ? "hidden sm:block" : ""}`}
+      >
+        <div className="flex items-center gap-4 sm:justify-between sm:gap-6">
+          <div className="min-w-0 max-w-xl">
+            <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-balance sm:text-5xl">
+              Compose a milonga, tanda by tanda.
+            </h1>
+            <p className="text-muted mt-2 text-sm text-pretty sm:mt-3 sm:text-base">
+              Pick an era and a length. TDJ builds coherent tandas, shapes the night from warm-up to La
+              Cumparsita, and picks each cortina to fit what follows.
+            </p>
           </div>
-        </section>
+          <div className="flex shrink-0 items-center gap-4">
+            <ComposeNarrative busy={busy} className="hidden sm:flex" />
+            <Vinyl playing={busy} className="w-[72px] shrink-0 sm:w-[140px]" />
+          </div>
+        </div>
+      </section>
 
-        {/* Controls */}
-        <section className="surface p-5 sm:p-6" aria-label="Composer controls">
-          <div className="grid gap-6 md:grid-cols-[1.1fr_1fr] [&>*]:min-w-0">
-            <div className="space-y-5">
-              <div>
-                <label className="flex items-center justify-between text-sm font-medium" htmlFor="hours">
-                  <span className="flex items-center gap-2">
-                    <Clock3 size={16} /> Length of the night
-                  </span>
-                  <span className="tabular-nums">
-                    {hours} h · ≈{tandasEst} tandas
-                  </span>
-                </label>
-                <input
-                  id="hours"
-                  type="range"
-                  min={1}
-                  max={8}
-                  step={0.5}
-                  value={hours}
-                  onChange={(e) => setOptions({ hours: Number(e.target.value) })}
-                  className="mt-2 w-full"
-                />
-                <div className="text-muted mt-1 flex justify-between text-xs">
-                  <span>1 h práctica</span>
-                  <span>4 h milonga</span>
-                  <span>8 h marathon</span>
-                </div>
-              </div>
-              <Field label="Era">
-                <div className="chip-row scroll-x">
-                  {ERAS.map(([k, label]) => {
-                    const on = (options.eras ?? ["golden"])[0] === k;
-                    return (
-                      <button
-                        type="button"
-                        key={k}
-                        aria-pressed={on}
-                        onClick={() => setOptions({ eras: [k] })}
-                        className={`chip ${on ? "chip-on" : ""}`}
-                      >
-                        {label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </Field>
-              <Field label="Night arc">
-                <Segmented
-                  label="Night arc"
-                  value={options.arc ?? "classic-two-peaks"}
-                  onChange={(k) => setOptions({ arc: k })}
-                  items={ARCS}
-                />
-              </Field>
-              <Field label="Shape inside each tanda">
-                <Segmented
-                  label="Shape inside each tanda"
-                  chips
-                  value={options.tandaShape ?? "rise-settle"}
-                  onChange={(k) => setOptions({ tandaShape: k })}
-                  items={SHAPES}
-                />
-              </Field>
-            </div>
-            <div className="space-y-5">
-              <Field label="Cortinas">
-                <Segmented
-                  label="Cortinas"
-                  chips
-                  value={cortinaStyle}
-                  onChange={(k) => setOptions({ cortinaStyle: k })}
-                  items={CORTINA_STYLES}
-                />
-              </Field>
-              {cortinaStyle !== "none" && (
-                <>
-                  <Field label="Cortina flavour">
-                    <Segmented
-                      label="Cortina flavour"
-                      value={options.cortinaTrend ?? "mixed"}
-                      onChange={(k) => setOptions({ cortinaTrend: k })}
-                      items={CORTINA_TRENDS}
-                    />
-                  </Field>
-                  <Field label="Cultures" hint="Choose as many as you like">
-                    <div className="chip-row scroll-x">
-                      {CULTURES.map((c) => {
-                        const on = cultures.includes(c);
-                        return (
-                          <button
-                            type="button"
-                            key={c}
-                            aria-pressed={on}
-                            onClick={() => toggleCulture(c)}
-                            className={`chip ${on ? "chip-on" : ""}`}
-                          >
-                            {CULTURE_LABEL[c] ?? c}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </Field>
-                  <Field label="Cortina length">
-                    <Stepper
-                      label="Cortina length"
-                      value={options.cortinaLengthSec ?? 45}
-                      min={20}
-                      max={90}
-                      step={5}
-                      unit=" s"
-                      onChange={(v) => setOptions({ cortinaLengthSec: v })}
-                    />
-                  </Field>
-                </>
-              )}
-              <Switch
-                checked={options.closeWithCumparsita ?? true}
-                onChange={(v) => setOptions({ closeWithCumparsita: v })}
-                label="Close with La Cumparsita"
+      {/* Controls */}
+      <section className="surface p-5 sm:p-6" aria-label="Composer controls">
+        <div className="grid gap-6 md:grid-cols-[1.1fr_1fr] [&>*]:min-w-0">
+          <div className="space-y-5">
+            <div>
+              <label className="flex items-center justify-between text-sm font-medium" htmlFor="hours">
+                <span className="flex items-center gap-2">
+                  <Clock3 size={16} /> Length of the night
+                </span>
+                <span className="tabular-nums">
+                  {hours} h · ≈{tandasEst} tandas
+                </span>
+              </label>
+              <input
+                id="hours"
+                type="range"
+                min={1}
+                max={8}
+                step={0.5}
+                value={hours}
+                onChange={(e) => setOptions({ hours: Number(e.target.value) })}
+                className="mt-2 w-full"
               />
+              <div className="text-muted mt-1 flex justify-between text-xs">
+                <span>1 h práctica</span>
+                <span>4 h milonga</span>
+                <span>8 h marathon</span>
+              </div>
             </div>
+            <Field label="Era">
+              <div className="chip-row scroll-x">
+                {ERAS.map(([k, label]) => {
+                  const on = (options.eras ?? ["golden"])[0] === k;
+                  return (
+                    <button
+                      type="button"
+                      key={k}
+                      aria-pressed={on}
+                      onClick={() => setOptions({ eras: [k] })}
+                      className={`chip ${on ? "chip-on" : ""}`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </Field>
+            <Field label="Night arc">
+              <Segmented
+                label="Night arc"
+                value={options.arc ?? "classic-two-peaks"}
+                onChange={(k) => setOptions({ arc: k })}
+                items={ARCS}
+              />
+            </Field>
+            <Field label="Shape inside each tanda">
+              <Segmented
+                label="Shape inside each tanda"
+                chips
+                value={options.tandaShape ?? "rise-settle"}
+                onChange={(k) => setOptions({ tandaShape: k })}
+                items={SHAPES}
+              />
+            </Field>
           </div>
-          <div className="mt-6 border-t border-[rgb(var(--text)/.08)] pt-5">
-            <ContextStrip
-              value={(options.context ?? {}) as ComposeContext}
-              onChange={(context) => setOptions({ context })}
-              model={meta?.contextModel ?? null}
+          <div className="space-y-5">
+            <Field label="Cortinas">
+              <Segmented
+                label="Cortinas"
+                chips
+                value={cortinaStyle}
+                onChange={(k) => setOptions({ cortinaStyle: k })}
+                items={CORTINA_STYLES}
+              />
+            </Field>
+            {cortinaStyle !== "none" && (
+              <>
+                <Field label="Cortina flavour">
+                  <Segmented
+                    label="Cortina flavour"
+                    value={options.cortinaTrend ?? "mixed"}
+                    onChange={(k) => setOptions({ cortinaTrend: k })}
+                    items={CORTINA_TRENDS}
+                  />
+                </Field>
+                <Field label="Cultures" hint="Choose as many as you like">
+                  <div className="chip-row scroll-x">
+                    {CULTURES.map((c) => {
+                      const on = cultures.includes(c);
+                      return (
+                        <button
+                          type="button"
+                          key={c}
+                          aria-pressed={on}
+                          onClick={() => toggleCulture(c)}
+                          className={`chip ${on ? "chip-on" : ""}`}
+                        >
+                          {CULTURE_LABEL[c] ?? c}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </Field>
+                <Field label="Cortina length">
+                  <Stepper
+                    label="Cortina length"
+                    value={options.cortinaLengthSec ?? 45}
+                    min={20}
+                    max={90}
+                    step={5}
+                    unit=" s"
+                    onChange={(v) => setOptions({ cortinaLengthSec: v })}
+                  />
+                </Field>
+              </>
+            )}
+            <Switch
+              checked={options.closeWithCumparsita ?? true}
+              onChange={(v) => setOptions({ closeWithCumparsita: v })}
+              label="Close with La Cumparsita"
             />
           </div>
-          <div className="mt-6 flex flex-wrap items-center gap-2">
-            <motion.button
-              type="button"
-              onClick={() => run()}
-              disabled={busy}
-              className="btn btn-primary hidden sm:inline-flex"
-              animate={errorNudge}
-              transition={{ duration: 0.28, ease: EASE.inOut }}
-            >
-              <ComposeLabel busy={busy} />
-            </motion.button>
-            {hasPlaylist && playlist && (
-              <button
-                type="button"
-                onClick={() => run(playlist.options.seed)}
-                disabled={busy}
-                className="btn btn-ghost"
-                title="Rebuild this exact set"
-              >
-                <Dices size={16} /> Recompose (same seed)
-              </button>
-            )}
-            {hasPlaylist && (
-              <button
-                type="button"
-                onClick={() => setExportOpen(true)}
-                className="btn btn-ghost hidden sm:inline-flex"
-              >
-                <Share2 size={16} /> Export
-              </button>
-            )}
-            {lockedCount > 0 && (
-              <span className="text-muted text-xs">
-                {lockedCount} locked {lockedCount === 1 ? "tanda stays" : "tandas stay"} on recompose
-              </span>
-            )}
-            {dbChanges && <span className="text-muted text-xs">Using your database edits</span>}
-          </div>
-          <div
-            role="status"
-            aria-live="polite"
-            className={error ? "mt-2 text-sm text-[var(--accent)]" : "sr-only"}
-            data-testid="compose-status"
-          >
-            <AnimatePresence mode="wait" initial={false}>
-              {error && (
-                <motion.span key={`${error}-${errorKey}`} variants={rise} initial="hidden" animate="show" className="block">
-                  {error}
-                </motion.span>
-              )}
-            </AnimatePresence>
-            {!error &&
-              (busy
-                ? "Composing the night…"
-                : hasPlaylist && playlist
-                  ? `Set ready: ${playlist.tandas.length} tandas.`
-                  : "")}
-          </div>
-        </section>
-
-        {/* Sticky compose bar (phones only): the primary action within thumb reach; it carries the narrative */}
-        <div className="glass fixed inset-x-3 bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+66px)] z-30 flex items-center gap-2 p-2 sm:hidden">
+        </div>
+        <div className="mt-6 border-t border-[rgb(var(--text)/.08)] pt-5">
+          <ContextStrip
+            value={(options.context ?? {}) as ComposeContext}
+            onChange={(context) => setOptions({ context })}
+            model={meta?.contextModel ?? null}
+          />
+        </div>
+        <div className="mt-6 flex flex-wrap items-center gap-2">
           <motion.button
             type="button"
             onClick={() => run()}
             disabled={busy}
-            className="btn btn-primary flex-1"
+            className="btn btn-primary hidden sm:inline-flex"
             animate={errorNudge}
             transition={{ duration: 0.28, ease: EASE.inOut }}
           >
-            <ComposeLabel busy={busy} steps />
+            <ComposeLabel busy={busy} />
           </motion.button>
+          {hasPlaylist && playlist && (
+            <button
+              type="button"
+              onClick={() => run(playlist.options.seed)}
+              disabled={busy}
+              className="btn btn-ghost"
+              title="Rebuild this exact set"
+            >
+              <Dices size={16} /> Recompose (same seed)
+            </button>
+          )}
           {hasPlaylist && (
             <button
               type="button"
               onClick={() => setExportOpen(true)}
-              className="icon-btn"
-              aria-label="Export"
+              className="btn btn-ghost hidden sm:inline-flex"
             >
-              <Share2 size={18} />
+              <Share2 size={16} /> Export
             </button>
           )}
+          {lockedCount > 0 && (
+            <span className="text-muted text-xs">
+              {lockedCount} locked {lockedCount === 1 ? "tanda stays" : "tandas stay"} on recompose
+            </span>
+          )}
+          {dbChanges && <span className="text-muted text-xs">Using your database edits</span>}
         </div>
-
-        {hasPlaylist && playlist && (
-          <section id="result" className="space-y-4 scroll-mt-24" aria-busy={busy}>
-            <div className="surface rise p-5 sm:p-6">
-              <motion.div
-                key={`head-${setKey}`}
-                initial={fresh ? { opacity: 0, y: reduced ? 0 : 6 } : false}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: DUR.base, ease: EASE.out, delay: 0.04 }}
-                className="flex flex-wrap items-end justify-between gap-3"
+        <div
+          role="status"
+          aria-live="polite"
+          className={error ? "mt-2 text-sm text-[var(--accent)]" : "sr-only"}
+          data-testid="compose-status"
+        >
+          <AnimatePresence mode="wait" initial={false}>
+            {error && (
+              <motion.span
+                key={`${error}-${errorKey}`}
+                variants={rise}
+                initial="hidden"
+                animate="show"
+                className="block"
               >
-                <div className="min-w-0">
-                  <h2 className="font-serif text-2xl font-semibold leading-tight">{playlist.name}</h2>
-                  <dl className="text-muted mt-1 flex flex-wrap items-center gap-x-2 text-sm">
-                    <div>
-                      <dt className="sr-only">Length</dt>
-                      <dd>{fmtDuration(playlist.stats.durationSec)}</dd>
-                    </div>
-                    <span aria-hidden>·</span>
-                    <div>
-                      <dt className="sr-only">Tandas</dt>
-                      <dd>{playlist.tandas.length} tandas</dd>
-                    </div>
-                    <span aria-hidden>·</span>
-                    <div>
-                      <dt className="sr-only">Orchestras</dt>
-                      <dd>{Object.keys(playlist.stats.orchestras).length} orchestras</dd>
-                    </div>
-                  </dl>
-                </div>
-                <div className="text-right">
-                  <div className="text-3xl font-semibold tabular-nums">
-                    <ScoreCounter key={setKey} value={playlist.score.total} playKey={setKey} from={scoreFrom} />
-                    <motion.span
-                      key={`verdict-${setKey}`}
-                      initial={fresh ? { opacity: 0 } : false}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: reduced ? 0 : 0.7, duration: DUR.base }}
-                      className="text-muted text-base"
-                    >
-                      /100
-                    </motion.span>
+                {error}
+              </motion.span>
+            )}
+          </AnimatePresence>
+          {!error &&
+            (busy
+              ? "Composing the night…"
+              : hasPlaylist && playlist
+                ? `Set ready: ${playlist.tandas.length} tandas.`
+                : "")}
+        </div>
+      </section>
+
+      {/* Sticky compose bar (phones only): the primary action within thumb reach; it carries the narrative */}
+      <div className="glass fixed inset-x-3 bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+66px)] z-30 flex items-center gap-2 p-2 sm:hidden">
+        <motion.button
+          type="button"
+          onClick={() => run()}
+          disabled={busy}
+          className="btn btn-primary flex-1"
+          animate={errorNudge}
+          transition={{ duration: 0.28, ease: EASE.inOut }}
+        >
+          <ComposeLabel busy={busy} steps />
+        </motion.button>
+        {hasPlaylist && (
+          <button type="button" onClick={() => setExportOpen(true)} className="icon-btn" aria-label="Export">
+            <Share2 size={18} />
+          </button>
+        )}
+      </div>
+
+      {hasPlaylist && playlist && (
+        <section id="result" className="space-y-4 scroll-mt-24" aria-busy={busy}>
+          <div className="surface rise p-5 sm:p-6">
+            <motion.div
+              key={`head-${setKey}`}
+              initial={fresh ? { opacity: 0, y: reduced ? 0 : 6 } : false}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: DUR.base, ease: EASE.out, delay: 0.04 }}
+              className="flex flex-wrap items-end justify-between gap-3"
+            >
+              <div className="min-w-0">
+                <h2 className="font-serif text-2xl font-semibold leading-tight">{playlist.name}</h2>
+                <dl className="text-muted mt-1 flex flex-wrap items-center gap-x-2 text-sm">
+                  <div>
+                    <dt className="sr-only">Length</dt>
+                    <dd>{fmtDuration(playlist.stats.durationSec)}</dd>
                   </div>
-                  <motion.div
-                    key={`verdict-text-${setKey}`}
+                  <span aria-hidden>·</span>
+                  <div>
+                    <dt className="sr-only">Tandas</dt>
+                    <dd>{playlist.tandas.length} tandas</dd>
+                  </div>
+                  <span aria-hidden>·</span>
+                  <div>
+                    <dt className="sr-only">Orchestras</dt>
+                    <dd>{Object.keys(playlist.stats.orchestras).length} orchestras</dd>
+                  </div>
+                </dl>
+              </div>
+              <div className="text-right">
+                <div className="text-3xl font-semibold tabular-nums">
+                  <ScoreCounter key={setKey} value={playlist.score.total} playKey={setKey} from={scoreFrom} />
+                  <motion.span
+                    key={`verdict-${setKey}`}
                     initial={fresh ? { opacity: 0 } : false}
                     animate={{ opacity: 1 }}
                     transition={{ delay: reduced ? 0 : 0.7, duration: DUR.base }}
-                    className="text-muted text-xs"
+                    className="text-muted text-base"
                   >
-                    {playlist.score.verdict}
-                  </motion.div>
+                    /100
+                  </motion.span>
                 </div>
-              </motion.div>
-              <div className="mt-4">
-                {/* one chart per breakpoint (not both hidden/shown via CSS) so only one draw-on runs */}
-                {wide ? (
-                  <EnergyCurve p={playlist} active={active} onPick={onPick} playKey={setKey} dimmed={busy} />
-                ) : (
-                  <EnergyCurve
-                    compact
-                    p={playlist}
-                    active={active}
-                    onPick={onPick}
-                    playKey={setKey}
-                    dimmed={busy}
-                  />
-                )}
-              </div>
-              <Disclosure summary="How this set scored">
-                <ul className="mt-2 grid gap-x-6 gap-y-2 sm:grid-cols-2">
-                  {playlist.score.factors.map((f, idx) => (
-                    <li key={f.key} className="text-xs">
-                      <div className="flex justify-between gap-2">
-                        <span className="truncate">{f.label}</span>
-                        <span className="tabular-nums">
-                          {Math.round(f.score * 100)}% <span className="text-muted">· weight {f.weight}</span>
-                        </span>
-                      </div>
-                      <div
-                        className="mt-1 h-1 overflow-hidden rounded-full bg-[rgb(var(--text)/.1)]"
-                        role="img"
-                        aria-label={`${f.label}: ${Math.round(f.score * 100)} percent`}
-                      >
-                        <motion.div
-                          className="h-full w-full origin-left rounded-full bg-[rgb(var(--text)/.6)]"
-                          initial={{ scaleX: reduced ? f.score : 0 }}
-                          animate={{ scaleX: f.score }}
-                          transition={{
-                            duration: DUR.slow,
-                            ease: EASE.out,
-                            delay: reduced ? 0 : 0.08 + idx * STAGGER.bars,
-                          }}
-                        />
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </Disclosure>
-              {playlists.some((p) => p.kind === "tandas") && (
-                <Disclosure
-                  className="mt-1"
-                  summary={
-                    <>
-                      Mood check
-                      <span className="text-muted text-xs font-normal">
-                        compare with Aren León's reference tandas
-                      </span>
-                    </>
-                  }
+                <motion.div
+                  key={`verdict-text-${setKey}`}
+                  initial={fresh ? { opacity: 0 } : false}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: reduced ? 0 : 0.7, duration: DUR.base }}
+                  className="text-muted text-xs"
                 >
-                  <div className="mt-3">
-                    <MoodCheck playlists={playlists} />
-                  </div>
-                </Disclosure>
+                  {playlist.score.verdict}
+                </motion.div>
+              </div>
+            </motion.div>
+            <div className="mt-4">
+              {/* one chart per breakpoint (not both hidden/shown via CSS) so only one draw-on runs */}
+              {wide ? (
+                <EnergyCurve p={playlist} active={active} onPick={onPick} playKey={setKey} dimmed={busy} />
+              ) : (
+                <EnergyCurve
+                  compact
+                  p={playlist}
+                  active={active}
+                  onPick={onPick}
+                  playKey={setKey}
+                  dimmed={busy}
+                />
               )}
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <button type="button" onClick={explain} disabled={aiBusy} className="btn btn-ghost text-sm">
-                  {aiBusy ? (
-                    <LoaderCircle size={15} className="animate-spin" />
-                  ) : (
-                    <MessageSquareText size={15} />
-                  )}{" "}
-                  Get a written review
-                </button>
-                <button
-                  type="button"
-                  onClick={copySeed}
-                  className="chip"
-                  title="Copy the seed to rebuild this set later"
-                >
-                  {copied ? <Check size={14} /> : <Copy size={14} />} Seed {playlist.options.seed}
-                </button>
-              </div>
-              <div role="status" aria-live="polite">
-                {aiBusy && <p className="text-muted mt-3 text-sm">Reading the set…</p>}
-                {/* the DJ note appears as a single fade: no typewriter, no thinking dots */}
-                {ai && !aiBusy && (
-                  <motion.div
-                    variants={fade}
-                    initial="hidden"
-                    animate="show"
-                    className="mt-3 rounded-xl bg-[rgb(var(--text)/.05)] p-4"
-                  >
-                    <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">Review</h3>
-                    <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{ai}</p>
-                  </motion.div>
-                )}
-              </div>
             </div>
-            <FeedbackBar
-              onFeedback={feedback}
-              onRefine={refine}
-              busy={busy}
-              note={note}
-              pending={pendingChip}
-            />
-            <div className="grid gap-4 md:grid-cols-2">
-              <AnimatePresence mode="popLayout" initial={false}>
-                {playlist.tandas.map((t, i) => (
-                  <TandaCard
-                    key={`${t.index}-${t.songs[0]?.id}`}
-                    t={t}
-                    i={i}
-                    onSwap={() => swap(i)}
-                    onSwapTrack={(k) => swapTrack(i, k)}
-                    onLock={() => lock(i)}
-                    busy={swapping === i}
-                    swappingTrack={swappingTrack?.[0] === i ? swappingTrack[1] : null}
-                    active={active === i}
-                    playlists={playlists}
-                    settling={busy}
-                    fresh={fresh}
-                    nudge={nudge?.i === i ? nudge : null}
-                    prevEnergy={prevEnergy.current[i]}
-                  />
+            <Disclosure summary="How this set scored">
+              <ul className="mt-2 grid gap-x-6 gap-y-2 sm:grid-cols-2">
+                {playlist.score.factors.map((f, idx) => (
+                  <li key={f.key} className="text-xs">
+                    <div className="flex justify-between gap-2">
+                      <span className="truncate">{f.label}</span>
+                      <span className="tabular-nums">
+                        {Math.round(f.score * 100)}% <span className="text-muted">· weight {f.weight}</span>
+                      </span>
+                    </div>
+                    <div
+                      className="mt-1 h-1 overflow-hidden rounded-full bg-[rgb(var(--text)/.1)]"
+                      role="img"
+                      aria-label={`${f.label}: ${Math.round(f.score * 100)} percent`}
+                    >
+                      <motion.div
+                        className="h-full w-full origin-left rounded-full bg-[rgb(var(--text)/.6)]"
+                        initial={{ scaleX: reduced ? f.score : 0 }}
+                        animate={{ scaleX: f.score }}
+                        transition={{
+                          duration: DUR.slow,
+                          ease: EASE.out,
+                          delay: reduced ? 0 : 0.08 + idx * STAGGER.bars,
+                        }}
+                      />
+                    </div>
+                  </li>
                 ))}
-              </AnimatePresence>
+              </ul>
+            </Disclosure>
+            {playlists.some((p) => p.kind === "tandas") && (
+              <Disclosure
+                className="mt-1"
+                summary={
+                  <>
+                    Mood check
+                    <span className="text-muted text-xs font-normal">
+                      compare with Aren León's reference tandas
+                    </span>
+                  </>
+                }
+              >
+                <div className="mt-3">
+                  <MoodCheck playlists={playlists} />
+                </div>
+              </Disclosure>
+            )}
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <button type="button" onClick={explain} disabled={aiBusy} className="btn btn-ghost text-sm">
+                {aiBusy ? (
+                  <LoaderCircle size={15} className="animate-spin" />
+                ) : (
+                  <MessageSquareText size={15} />
+                )}{" "}
+                Get a written review
+              </button>
+              <button
+                type="button"
+                onClick={copySeed}
+                className="chip"
+                title="Copy the seed to rebuild this set later"
+              >
+                {copied ? <Check size={14} /> : <Copy size={14} />} Seed {playlist.options.seed}
+              </button>
             </div>
-            {playlist.closing && (
-              <div className="surface flex items-center gap-3 p-4">
-                <Disc3 size={18} className="tone-tango shrink-0" />
-                <div>
-                  <div className="text-muted text-xs uppercase tracking-wider">Closing</div>
-                  <div className="font-semibold">
-                    La Cumparsita — {playlist.closing.orchestra} ({playlist.closing.year ?? "?"})
-                  </div>
+            <div role="status" aria-live="polite">
+              {aiBusy && <p className="text-muted mt-3 text-sm">Reading the set…</p>}
+              {/* the DJ note appears as a single fade: no typewriter, no thinking dots */}
+              {ai && !aiBusy && (
+                <motion.div
+                  variants={fade}
+                  initial="hidden"
+                  animate="show"
+                  className="mt-3 rounded-xl bg-[rgb(var(--text)/.05)] p-4"
+                >
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">Review</h3>
+                  <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{ai}</p>
+                </motion.div>
+              )}
+            </div>
+          </div>
+          <FeedbackBar
+            onFeedback={feedback}
+            onRefine={refine}
+            busy={busy}
+            note={note}
+            pending={pendingChip}
+          />
+          <div className="grid gap-4 md:grid-cols-2">
+            <AnimatePresence mode="popLayout" initial={false}>
+              {playlist.tandas.map((t, i) => (
+                <TandaCard
+                  key={`${t.index}-${t.songs[0]?.id}`}
+                  t={t}
+                  i={i}
+                  onSwap={() => swap(i)}
+                  onSwapTrack={(k) => swapTrack(i, k)}
+                  onLock={() => lock(i)}
+                  busy={swapping === i}
+                  swappingTrack={swappingTrack?.[0] === i ? swappingTrack[1] : null}
+                  active={active === i}
+                  playlists={playlists}
+                  settling={busy}
+                  fresh={fresh}
+                  nudge={nudge?.i === i ? nudge : null}
+                  prevEnergy={prevEnergy.current[i]}
+                />
+              ))}
+            </AnimatePresence>
+          </div>
+          {playlist.closing && (
+            <div className="surface flex items-center gap-3 p-4">
+              <Disc3 size={18} className="tone-tango shrink-0" />
+              <div>
+                <div className="text-muted text-xs uppercase tracking-wider">Closing</div>
+                <div className="font-semibold">
+                  La Cumparsita — {playlist.closing.orchestra} ({playlist.closing.year ?? "?"})
                 </div>
               </div>
-            )}
-          </section>
-        )}
-        <ExportSheet open={exportOpen} onClose={() => setExportOpen(false)} />
-      </div>
-    </>
+            </div>
+          )}
+        </section>
+      )}
+      <ExportSheet open={exportOpen} onClose={() => setExportOpen(false)} />
+    </div>
   );
 }

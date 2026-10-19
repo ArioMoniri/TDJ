@@ -9,7 +9,7 @@ import { downloadBlob } from "@/lib/download";
 import { withoutCortinas } from "@/lib/exportPaths";
 import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
-import { DUR, EASE, SPRING, rise } from "@/lib/motion";
+import { DUR, EASE, rise, SPRING } from "@/lib/motion";
 import { beginAuth, createPlaylist, refresh, resolveTrack } from "@/lib/spotify";
 import { useStore } from "@/lib/store";
 import { DJ_APPS, type DjApp } from "@/lib/types";
@@ -233,7 +233,6 @@ export function ExportSheet({ open, onClose }: { open: boolean; onClose: () => v
             dragConstraints={{ top: 0, bottom: 0 }}
             dragElastic={{ top: 0, bottom: 0.6 }}
             dragMomentum={false}
-            dragTransition={SPRING.sheet}
             onDragEnd={(_, info) => {
               if (info.offset.y > 120 || info.velocity.y > 600) onClose();
             }}
@@ -243,171 +242,179 @@ export function ExportSheet({ open, onClose }: { open: boolean; onClose: () => v
               transition={{ duration: 0.28, ease: EASE.inOut }}
               className="flex min-h-0 flex-col"
             >
-        <div className="mx-auto mb-3 h-1.5 w-9 rounded-full bg-current opacity-25 sm:hidden" aria-hidden />
-        <div className="flex items-center justify-between gap-3">
-          <h2 id="export-title" className="text-lg font-semibold">
-            Export this set
-          </h2>
-          <button type="button" className="icon-btn" onClick={onClose} aria-label="Close">
-            <X size={18} />
-          </button>
-        </div>
-        <p id="export-desc" className="text-muted mt-1 text-sm">
-          Download a file for your DJ software, or create the playlist in Spotify.
-        </p>
-        <div className="mt-3 rounded-xl bg-[rgb(var(--text)/.05)] px-3">
-          <Switch
-            checked={includeCortinas}
-            onChange={setIncludeCortinas}
-            label="Include cortinas"
-            hint={
-              <>
-                <CountUp value={count} /> {count === 1 ? "track" : "tracks"} will be exported
-                {includeCortinas ? "" : ` (${cortinas} cortinas left out)`}
-              </>
-            }
-          />
-        </div>
-        <div
-          ref={list}
-          className="mt-4 min-h-0 space-y-4 overflow-y-auto"
-          data-no-drag
-          onPointerDownCapture={(e) => {
-            // a scrolled list must never turn a scroll into a dismiss
-            if ((list.current?.scrollTop ?? 0) > 0) e.stopPropagation();
-          }}
-        >
-          {GROUPS.map(([g, keys]) => (
-            <div key={g}>
-              <div className="text-muted mb-1.5 text-xs font-medium uppercase tracking-wide">{g}</div>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {keys.map((f) => (
+              <div
+                className="mx-auto mb-3 h-1.5 w-9 rounded-full bg-current opacity-25 sm:hidden"
+                aria-hidden
+              />
+              <div className="flex items-center justify-between gap-3">
+                <h2 id="export-title" className="text-lg font-semibold">
+                  Export this set
+                </h2>
+                <button type="button" className="icon-btn" onClick={onClose} aria-label="Close">
+                  <X size={18} />
+                </button>
+              </div>
+              <p id="export-desc" className="text-muted mt-1 text-sm">
+                Download a file for your DJ software, or create the playlist in Spotify.
+              </p>
+              <div className="mt-3 rounded-xl bg-[rgb(var(--text)/.05)] px-3">
+                <Switch
+                  checked={includeCortinas}
+                  onChange={setIncludeCortinas}
+                  label="Include cortinas"
+                  hint={
+                    <>
+                      <CountUp value={count} /> {count === 1 ? "track" : "tracks"} will be exported
+                      {includeCortinas ? "" : ` (${cortinas} cortinas left out)`}
+                    </>
+                  }
+                />
+              </div>
+              <div
+                ref={list}
+                className="mt-4 min-h-0 space-y-4 overflow-y-auto"
+                data-no-drag
+                onPointerDownCapture={(e) => {
+                  // a scrolled list must never turn a scroll into a dismiss
+                  if ((list.current?.scrollTop ?? 0) > 0) e.stopPropagation();
+                }}
+              >
+                {GROUPS.map(([g, keys]) => (
+                  <div key={g}>
+                    <div className="text-muted mb-1.5 text-xs font-medium uppercase tracking-wide">{g}</div>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {keys.map((f) => (
+                        <button
+                          type="button"
+                          key={f}
+                          onClick={() => dl(f)}
+                          disabled={dlBusy === f}
+                          className="btn btn-ghost justify-start text-sm"
+                          title={folderFor(f) ? `Paths under ${folderFor(f)}` : undefined}
+                        >
+                          {dlBusy === f ? (
+                            <LoaderCircle size={15} className="shrink-0 animate-spin" />
+                          ) : justDone === f ? (
+                            <motion.span
+                              initial={{ scale: reduced ? 1 : 0.6 }}
+                              animate={{ scale: 1 }}
+                              transition={SPRING.snappy}
+                              className="inline-flex shrink-0"
+                              aria-label="Exported"
+                            >
+                              <Check size={15} />
+                            </motion.span>
+                          ) : (
+                            <Download size={15} className="shrink-0" />
+                          )}
+                          <span className="truncate">{EXPORT_META[f].label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                {DJ_APPS.every((a) => !settings.djApps[a.id]?.folder) && (
+                  <p className="text-muted text-xs">
+                    File paths use a TDJ/ placeholder. Set your music folder per DJ app in{" "}
+                    <Link href="/settings" className="underline">
+                      Settings
+                    </Link>{" "}
+                    to get real paths.
+                  </p>
+                )}
+              </div>
+              {settings.spotifyClientId ? (
+                <button
+                  type="button"
+                  onClick={toSpotify}
+                  disabled={busy || done}
+                  className="btn btn-primary mt-4 w-full"
+                >
+                  {done || busy ? (
+                    <span className="inline-grid h-6 w-6 place-items-center" aria-hidden>
+                      {done ? (
+                        <DotLottieReact
+                          src="/anim/success-check.json"
+                          autoplay={!reduced}
+                          loop={false}
+                          dotLottieRefCallback={(d) => {
+                            check.current = d;
+                            if (reduced) d?.setFrame(35);
+                          }}
+                          style={{ width: 24, height: 24 }}
+                        />
+                      ) : (
+                        <LoaderCircle size={16} className="animate-spin" />
+                      )}
+                    </span>
+                  ) : null}
+                  <span className="relative inline-grid">
+                    <AnimatePresence mode="popLayout" initial={false}>
+                      <motion.span
+                        key={done ? "done" : "idle"}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: DUR.fast }}
+                        className="col-start-1 row-start-1"
+                      >
+                        {done
+                          ? "Playlist created"
+                          : spotifyToken
+                            ? "Create playlist in Spotify"
+                            : "Connect Spotify and create playlist"}
+                      </motion.span>
+                    </AnimatePresence>
+                  </span>
+                </button>
+              ) : (
+                <div className="mt-4 text-center">
                   <button
                     type="button"
-                    key={f}
-                    onClick={() => dl(f)}
-                    disabled={dlBusy === f}
-                    className="btn btn-ghost justify-start text-sm"
-                    title={folderFor(f) ? `Paths under ${folderFor(f)}` : undefined}
+                    disabled
+                    className="btn btn-primary w-full"
+                    aria-describedby="spotify-why"
                   >
-                    {dlBusy === f ? (
-                      <LoaderCircle size={15} className="shrink-0 animate-spin" />
-                    ) : justDone === f ? (
-                      <motion.span
-                        initial={{ scale: reduced ? 1 : 0.6 }}
-                        animate={{ scale: 1 }}
-                        transition={SPRING.snappy}
-                        className="inline-flex shrink-0"
-                        aria-label="Exported"
-                      >
-                        <Check size={15} />
-                      </motion.span>
-                    ) : (
-                      <Download size={15} className="shrink-0" />
-                    )}
-                    <span className="truncate">{EXPORT_META[f].label}</span>
+                    Create playlist in Spotify
                   </button>
-                ))}
-              </div>
-            </div>
-          ))}
-          {DJ_APPS.every((a) => !settings.djApps[a.id]?.folder) && (
-            <p className="text-muted text-xs">
-              File paths use a TDJ/ placeholder. Set your music folder per DJ app in{" "}
-              <Link href="/settings" className="underline">
-                Settings
-              </Link>{" "}
-              to get real paths.
-            </p>
-          )}
-        </div>
-        {settings.spotifyClientId ? (
-          <button
-            type="button"
-            onClick={toSpotify}
-            disabled={busy || done}
-            className="btn btn-primary mt-4 w-full"
-          >
-            {done || busy ? (
-              <span className="inline-grid h-6 w-6 place-items-center" aria-hidden>
-                {done ? (
-                  <DotLottieReact
-                    src="/anim/success-check.json"
-                    autoplay={!reduced}
-                    loop={false}
-                    dotLottieRefCallback={(d) => {
-                      check.current = d;
-                      if (reduced) d?.setFrame(35);
-                    }}
-                    style={{ width: 24, height: 24 }}
-                  />
-                ) : (
-                  <LoaderCircle size={16} className="animate-spin" />
+                  <p id="spotify-why" className="text-muted mt-2 text-sm">
+                    Needs a Spotify Client ID. Add one in{" "}
+                    <Link href="/settings" className="underline">
+                      Settings
+                    </Link>
+                    .
+                  </p>
+                </div>
+              )}
+              <AnimatePresence>
+                {result && (
+                  <motion.a
+                    key="open"
+                    variants={rise}
+                    initial="hidden"
+                    animate="show"
+                    exit="exit"
+                    transition={{ delay: reduced ? 0 : 0.7 }}
+                    href={result}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn btn-ghost mt-2 w-full"
+                    ref={(el) => el?.focus()}
+                  >
+                    Open in Spotify <ExternalLink size={14} />
+                  </motion.a>
                 )}
-              </span>
-            ) : null}
-            <span className="relative inline-grid">
-              <AnimatePresence mode="popLayout" initial={false}>
-                <motion.span
-                  key={done ? "done" : "idle"}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: DUR.fast }}
-                  className="col-start-1 row-start-1"
-                >
-                  {done
-                    ? "Playlist created"
-                    : spotifyToken
-                      ? "Create playlist in Spotify"
-                      : "Connect Spotify and create playlist"}
-                </motion.span>
               </AnimatePresence>
-            </span>
-          </button>
-        ) : (
-          <div className="mt-4 text-center">
-            <button type="button" disabled className="btn btn-primary w-full" aria-describedby="spotify-why">
-              Create playlist in Spotify
-            </button>
-            <p id="spotify-why" className="text-muted mt-2 text-sm">
-              Needs a Spotify Client ID. Add one in{" "}
-              <Link href="/settings" className="underline">
-                Settings
-              </Link>
-              .
-            </p>
-          </div>
-        )}
-        <AnimatePresence>
-          {result && (
-            <motion.a
-              key="open"
-              variants={rise}
-              initial="hidden"
-              animate="show"
-              exit="exit"
-              transition={{ delay: reduced ? 0 : 0.7 }}
-              href={result}
-              target="_blank"
-              rel="noreferrer"
-              className="btn btn-ghost mt-2 w-full"
-              ref={(el) => el?.focus()}
-            >
-              Open in Spotify <ExternalLink size={14} />
-            </motion.a>
-          )}
-        </AnimatePresence>
-        <div role="status" aria-live="polite">
-          {log.length > 0 && (
-            <div className="mt-3 max-h-40 overflow-auto rounded-xl bg-[rgb(var(--text)/.06)] p-3 text-xs leading-relaxed">
-              {log.map((l, i) => (
-                <div key={`${i}-${l}`}>{l}</div>
-              ))}
-            </div>
-          )}
-        </div>
-        <div className="h-[env(safe-area-inset-bottom)] shrink-0 sm:hidden" />
+              <div role="status" aria-live="polite">
+                {log.length > 0 && (
+                  <div className="mt-3 max-h-40 overflow-auto rounded-xl bg-[rgb(var(--text)/.06)] p-3 text-xs leading-relaxed">
+                    {log.map((l, i) => (
+                      <div key={`${i}-${l}`}>{l}</div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="h-[env(safe-area-inset-bottom)] shrink-0 sm:hidden" />
             </motion.div>
           </motion.div>
         </div>

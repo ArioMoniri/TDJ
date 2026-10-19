@@ -1,7 +1,10 @@
 "use client";
-import type { ReactNode } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { type ReactNode, useCallback, useRef, useState } from "react";
+import { t } from "@/lib/motion";
 import { useStore } from "@/lib/store";
 import type { AppOverrides } from "@/lib/types";
+import { EmptyState } from "../EmptyState";
 
 export function useDb() {
   const overrides = useStore((s) => s.overrides);
@@ -32,6 +35,29 @@ export function patchMap<T extends object>(
   return next;
 }
 
+/**
+ * Optimistic save pulse: the cell runs `.cell-saved` (6 px ring in --ok, 500 ms, once) on commit (blur/change).
+ * Typing never pulses; a cell pulses at most once per 500 ms. Reduced motion: the CSS zeroes the ring.
+ */
+export function useSavedPulse() {
+  const [on, setOn] = useState(false);
+  const last = useRef(0);
+  const dirty = useRef(false);
+  const pulse = useCallback(() => {
+    if (!dirty.current) return;
+    dirty.current = false;
+    const now = Date.now();
+    if (now - last.current < 500) return;
+    last.current = now;
+    setOn(false);
+    requestAnimationFrame(() => setOn(true));
+  }, []);
+  const touch = useCallback(() => {
+    dirty.current = true;
+  }, []);
+  return { className: on ? "cell-saved" : "", onAnimationEnd: () => setOn(false), pulse, touch };
+}
+
 export function Num({
   id,
   value,
@@ -51,19 +77,25 @@ export function Num({
   step?: number;
   label: string;
 }) {
+  const p = useSavedPulse();
   return (
     <input
       id={id}
       type="number"
       inputMode="numeric"
       aria-label={label}
-      className="field w-20"
+      className={`field w-20 ${p.className}`}
       value={value ?? ""}
       placeholder={placeholder == null ? "" : String(placeholder)}
       min={min}
       max={max}
       step={step}
-      onChange={(e) => onChange(e.target.value === "" ? undefined : Number(e.target.value))}
+      onChange={(e) => {
+        p.touch();
+        onChange(e.target.value === "" ? undefined : Number(e.target.value));
+      }}
+      onBlur={p.pulse}
+      onAnimationEnd={p.onAnimationEnd}
     />
   );
 }
@@ -83,30 +115,64 @@ export function Text({
   mono?: boolean;
   wide?: boolean;
 }) {
+  const p = useSavedPulse();
   return (
     <input
       type="text"
       aria-label={label}
-      className={`field ${wide ? "w-full min-w-40" : "w-28"} ${mono ? "font-mono text-xs" : ""}`}
+      className={`field ${wide ? "w-full min-w-40" : "w-28"} ${mono ? "font-mono text-xs" : ""} ${p.className}`}
       value={value ?? ""}
       placeholder={placeholder ?? ""}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={(e) => {
+        p.touch();
+        onChange(e.target.value);
+      }}
+      onBlur={p.pulse}
+      onAnimationEnd={p.onAnimationEnd}
       autoComplete="off"
       spellCheck={false}
     />
   );
 }
 
+/** "index" ↔ "edited · revert" cross-fade (125 ms). */
 export function Edited({ on, onRevert }: { on: boolean; onRevert: () => void }) {
-  if (!on) return <span className="text-muted text-xs">index</span>;
   return (
-    <button type="button" className="chip text-xs" onClick={onRevert}>
-      edited · revert
-    </button>
+    <span className="relative inline-grid">
+      <AnimatePresence mode="popLayout" initial={false}>
+        {on ? (
+          <motion.button
+            key="edited"
+            type="button"
+            className="chip col-start-1 row-start-1 text-xs"
+            onClick={onRevert}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={t.press}
+          >
+            edited · revert
+          </motion.button>
+        ) : (
+          <motion.span
+            key="index"
+            className="text-muted col-start-1 row-start-1 text-xs"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={t.press}
+          >
+            index
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </span>
   );
 }
 
-export function Empty({ children }: { children: ReactNode }) {
+/** Text-only empty line (loading, nothing matches). The Lottie crate is `EmptyState` for "nothing here yet". */
+export function Empty({ children, crate = false }: { children: ReactNode; crate?: boolean }) {
+  if (crate) return <EmptyState>{children}</EmptyState>;
   return <p className="text-muted py-8 text-center text-sm">{children}</p>;
 }
 

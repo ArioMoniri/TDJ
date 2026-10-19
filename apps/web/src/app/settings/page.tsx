@@ -1,4 +1,5 @@
 "use client";
+import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import {
   Check,
   Copy,
@@ -12,8 +13,10 @@ import {
   Radio,
   ShieldCheck,
 } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
 import { Field, Segmented, Switch } from "@/components/ui";
+import { fade, spring, t } from "@/lib/motion";
 import { beginAuth } from "@/lib/spotify";
 import { useStore } from "@/lib/store";
 import {
@@ -50,16 +53,83 @@ const THEMES: Array<[UserSettings["theme"], string]> = [
   ["dark", "Dark"],
 ];
 
-function Badge({ ok, children }: { ok: boolean; children: React.ReactNode }) {
+/** Status badge: the dot colour cross-fades over --dur-s and the text cross-fades via AnimatePresence. */
+function Badge({ ok, children }: { ok: boolean; children: string }) {
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${ok ? "bg-[#2f9e5b]/15 text-[var(--ok)]" : "bg-[rgb(var(--text)/.08)] text-[rgb(var(--muted))]"}`}
+      style={{
+        transition: "background var(--dur-s) var(--ease-settle), color var(--dur-s) var(--ease-settle)",
+      }}
     >
       <span
         className={`h-1.5 w-1.5 rounded-full ${ok ? "bg-[#2f9e5b]" : "bg-[rgb(var(--muted))]"}`}
+        style={{ transition: "background var(--dur-s) var(--ease-settle)" }}
         aria-hidden
       />
-      {children}
+      <span className="relative inline-grid">
+        <AnimatePresence mode="popLayout" initial={false}>
+          <motion.span
+            key={children}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={t.press}
+            className="col-start-1 row-start-1 whitespace-nowrap"
+          >
+            {children}
+          </motion.span>
+        </AnimatePresence>
+      </span>
+    </span>
+  );
+}
+
+const fadeProps = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
+  exit: { opacity: 0 },
+  transition: t.press,
+};
+
+/** Test-connection icon slot: spinner → save-pulse / error-mark Lottie in place, so nothing shifts. */
+function TestIcon({ state }: { state: "idle" | "busy" | "ok" | "fail" }) {
+  const reduced = useReducedMotion();
+  return (
+    <span className="relative inline-grid h-5 w-5 place-items-center" aria-hidden>
+      <AnimatePresence mode="wait" initial={false}>
+        {state === "busy" && (
+          <motion.span key="busy" {...fadeProps} className="inline-flex">
+            <LoaderCircle size={15} className="animate-spin" />
+          </motion.span>
+        )}
+        {state === "ok" && (
+          <motion.span key="ok" {...fadeProps} className="h-5 w-5">
+            <DotLottieReact
+              src="/anim/save-pulse.json"
+              autoplay={!reduced}
+              loop={false}
+              dotLottieRefCallback={(d) => {
+                if (reduced) d?.setFrame(23);
+              }}
+              style={{ width: "100%", height: "100%" }}
+            />
+          </motion.span>
+        )}
+        {state === "fail" && (
+          <motion.span key="fail" {...fadeProps} className="h-5 w-5">
+            <DotLottieReact
+              src="/anim/error-mark.json"
+              autoplay={!reduced}
+              loop={false}
+              dotLottieRefCallback={(d) => {
+                if (reduced) d?.setFrame(23);
+              }}
+              style={{ width: "100%", height: "100%" }}
+            />
+          </motion.span>
+        )}
+      </AnimatePresence>
     </span>
   );
 }
@@ -90,6 +160,16 @@ export default function Settings() {
     setAi({ provider, model: keepModel ? ai.model : AI_DEFAULT_MODEL[provider] });
     setTest({ state: "idle" });
   };
+  // "Checking…" appears only if the answer takes more than 300 ms (no flash for fast replies)
+  const [checking, setChecking] = useState(false);
+  useEffect(() => {
+    if (test.state !== "busy") {
+      setChecking(false);
+      return;
+    }
+    const id = setTimeout(() => setChecking(true), 300);
+    return () => clearTimeout(id);
+  }, [test.state]);
   const testConnection = async () => {
     setTest({ state: "busy" });
     try {
@@ -139,11 +219,24 @@ export default function Settings() {
             <input id="redirect-uri" readOnly value={redirect} className="field font-mono text-sm" />
             <button
               type="button"
-              className="btn btn-ghost shrink-0"
+              className="btn btn-ghost min-w-[5.5rem] shrink-0"
               onClick={copyRedirect}
               aria-live="polite"
             >
-              {copied ? <Check size={15} /> : <Copy size={15} />} {copied ? "Copied" : "Copy"}
+              <span className="relative inline-grid h-4 w-4 place-items-center" aria-hidden>
+                <AnimatePresence mode="wait" initial={false}>
+                  {copied ? (
+                    <motion.span key="check" {...fadeProps} className="inline-flex">
+                      <Check size={15} />
+                    </motion.span>
+                  ) : (
+                    <motion.span key="copy" {...fadeProps} className="inline-flex">
+                      <Copy size={15} />
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </span>{" "}
+              {copied ? "Copied" : "Copy"}
             </button>
           </div>
         </Field>
@@ -159,19 +252,32 @@ export default function Settings() {
           />
         </Field>
         <div className="flex flex-wrap gap-2">
-          <button
+          <motion.button
             type="button"
+            layout="position"
+            transition={spring.thumb}
             className="btn btn-primary"
             disabled={!settings.spotifyClientId}
             onClick={() => beginAuth(settings.spotifyClientId)}
           >
             {spotifyToken ? "Reconnect" : "Connect Spotify"}
-          </button>
-          {spotifyToken && (
-            <button type="button" className="btn btn-ghost" onClick={() => setSpotifyToken(null)}>
-              Disconnect
-            </button>
-          )}
+          </motion.button>
+          <AnimatePresence initial={false}>
+            {spotifyToken && (
+              <motion.button
+                key="disconnect"
+                type="button"
+                variants={fade}
+                initial="hidden"
+                animate="show"
+                exit="exit"
+                className="btn btn-ghost"
+                onClick={() => setSpotifyToken(null)}
+              >
+                Disconnect
+              </motion.button>
+            )}
+          </AnimatePresence>
         </div>
       </section>
 
@@ -249,15 +355,39 @@ export default function Settings() {
             onClick={testConnection}
             disabled={!ai.key || test.state === "busy"}
           >
-            {test.state === "busy" ? <LoaderCircle size={15} className="animate-spin" /> : null} Test
-            connection
+            {test.state !== "idle" && <TestIcon state={test.state} />} Test connection
           </button>
           <span
             role="status"
             aria-live="polite"
-            className={`text-sm ${test.state === "fail" ? "text-[var(--accent)]" : test.state === "ok" ? "text-[var(--ok)]" : "text-muted"}`}
+            className={`min-h-5 text-sm ${test.state === "fail" ? "text-[var(--accent)]" : test.state === "ok" ? "text-[var(--ok)]" : "text-muted"}`}
           >
-            {test.text ?? ""}
+            <AnimatePresence mode="wait" initial={false}>
+              {test.state === "busy" && checking && (
+                <motion.span
+                  key="checking"
+                  variants={fade}
+                  initial="hidden"
+                  animate="show"
+                  exit="exit"
+                  className="block"
+                >
+                  Checking…
+                </motion.span>
+              )}
+              {(test.state === "ok" || test.state === "fail") && test.text && (
+                <motion.span
+                  key={test.text}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ ...t.fade, delay: 0.3 }}
+                  className="block"
+                >
+                  {test.text}
+                </motion.span>
+              )}
+            </AnimatePresence>
           </span>
         </div>
         <p className="text-muted flex items-center gap-1.5 text-xs">

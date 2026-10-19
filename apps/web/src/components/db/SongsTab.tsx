@@ -121,6 +121,7 @@ export function SongsTab() {
           autoComplete="off"
         />
       </label>
+      {q.length < 2 && <Empty crate>Search the index to edit a recording, or add your own below.</Empty>}
       {q.length >= 2 && !searching && rows.length === 0 && <Empty>Nothing matches “{q}”.</Empty>}
       {rows.length > 0 && (
         <div className="overflow-x-auto">

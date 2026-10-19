@@ -1,6 +1,9 @@
 "use client";
-import { Search } from "lucide-react";
-import { useEffect, useState } from "react";
+import { LoaderCircle, Search } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { useEffect, useRef, useState } from "react";
+import { EmptyState } from "@/components/EmptyState";
+import { fade, reduced as reducedV, rise, t } from "@/lib/motion";
 import type { Song } from "@/lib/types";
 
 interface Meta {
@@ -15,6 +18,10 @@ export default function Library() {
   const [rows, setRows] = useState<Song[]>([]);
   const [meta, setMeta] = useState<Meta | null>(null);
   const [searching, setSearching] = useState(false);
+  /** the query the current rows answer; a narrowing query (new ⊂ old) skips the stagger */
+  const [shown, setShown] = useState<{ q: string; fresh: boolean }>({ q: "", fresh: true });
+  const prevIds = useRef<Set<string>>(new Set());
+  const reduced = useReducedMotion();
   useEffect(() => {
     fetch("/api/meta")
       .then((r) => r.json())
@@ -31,12 +38,20 @@ export default function Library() {
     const t = setTimeout(() => {
       fetch(`/api/search?q=${encodeURIComponent(q)}`)
         .then((r) => r.json())
-        .then((r: Song[]) => setRows(r))
+        .then((r: Song[]) => {
+          const narrowed = r.length > 0 && r.every((s) => prevIds.current.has(s.id));
+          prevIds.current = new Set(r.map((s) => s.id));
+          setShown({ q: narrowed ? shownRef.current : q, fresh: !narrowed });
+          setRows(r);
+        })
         .catch(() => setRows([]))
         .finally(() => setSearching(false));
     }, 200);
     return () => clearTimeout(t);
   }, [q]);
+  const shownRef = useRef(shown.q);
+  shownRef.current = shown.q;
+  const rowV = reduced ? reducedV.rise : rise;
   return (
     <div className="space-y-4">
       <div className="surface p-5 sm:p-6">
@@ -51,7 +66,33 @@ export default function Library() {
           htmlFor="library-search"
           className="mt-4 flex min-h-12 items-center gap-2 rounded-full border border-[rgb(var(--text)/.16)] bg-[rgb(var(--text)/.04)] px-4 focus-within:ring-2 focus-within:ring-[var(--accent)]"
         >
-          <Search size={16} className="shrink-0 opacity-70" aria-hidden />
+          <span className="relative inline-grid h-4 w-4 shrink-0 place-items-center opacity-70" aria-hidden>
+            <AnimatePresence mode="wait" initial={false}>
+              {searching ? (
+                <motion.span
+                  key="busy"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={t.press}
+                  className="inline-flex"
+                >
+                  <LoaderCircle size={16} className="animate-spin" />
+                </motion.span>
+              ) : (
+                <motion.span
+                  key="idle"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={t.press}
+                  className="inline-flex"
+                >
+                  <Search size={16} />
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </span>
           <span className="sr-only">Search the library</span>
           <input
             id="library-search"
@@ -65,44 +106,71 @@ export default function Library() {
         </label>
       </div>
       <div role="status" aria-live="polite">
-        {q.length < 2 && (
-          <p className="text-muted py-8 text-center text-sm">
-            Type an orchestra, singer, title or year to search.
-          </p>
-        )}
+        {q.length < 2 && <EmptyState>Type an orchestra, singer, title or year to search.</EmptyState>}
         {q.length >= 2 && !searching && rows.length === 0 && (
-          <p className="text-muted py-8 text-center text-sm">
+          <motion.p
+            variants={fade}
+            initial="hidden"
+            animate="show"
+            className="text-muted py-8 text-center text-sm"
+          >
             Nothing matches “{q}”. Try a shorter spelling.
-          </p>
+          </motion.p>
         )}
-        {rows.length > 0 && (
-          <div className="surface overflow-hidden">
-            <p className="text-muted border-b border-[rgb(var(--text)/.08)] px-4 py-2 text-xs">
-              {rows.length} results
-            </p>
-            <ul className="divide-y divide-[rgb(var(--text)/.08)]">
-              {rows.map((s) => (
-                <li key={s.id} className="flex min-h-11 items-center gap-3 px-4 py-2 text-sm">
-                  <span className={`w-14 shrink-0 text-xs font-bold uppercase ${TONE[s.rhythm] ?? ""}`}>
-                    {s.rhythm}
-                  </span>
-                  <span className="min-w-0 flex-1 truncate">
-                    {s.title}{" "}
-                    <span className="text-muted">
-                      · {s.orchestra}
-                      {s.singer ? ` / ${s.singer}` : ""}
-                    </span>
-                  </span>
-                  <span className="text-muted tabular-nums">{s.year ?? "?"}</span>
-                  <span className="w-8 text-right tabular-nums">
-                    <span className="sr-only">energy </span>
-                    {s.energy}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        <AnimatePresence mode="wait" initial={false}>
+          {rows.length > 0 && (
+            <motion.div
+              key={shown.q}
+              variants={fade}
+              initial="hidden"
+              animate={{ opacity: searching ? 0.6 : 1, transition: searching ? t.press : t.fade }}
+              exit="exit"
+              className="surface overflow-hidden"
+            >
+              <motion.p
+                variants={rowV}
+                initial={shown.fresh ? "hidden" : false}
+                animate="show"
+                custom={0}
+                className="text-muted border-b border-[rgb(var(--text)/.08)] px-4 py-2 text-xs"
+              >
+                {rows.length} results
+              </motion.p>
+              <ul className="divide-y divide-[rgb(var(--text)/.08)]">
+                <AnimatePresence initial={false}>
+                  {rows.map((s, i) => (
+                    <motion.li
+                      key={s.id}
+                      layout={reduced ? false : "position"}
+                      variants={rowV}
+                      custom={i}
+                      initial={shown.fresh ? "hidden" : false}
+                      animate="show"
+                      exit="exit"
+                      className="flex min-h-11 items-center gap-3 px-4 py-2 text-sm"
+                    >
+                      <span className={`w-14 shrink-0 text-xs font-bold uppercase ${TONE[s.rhythm] ?? ""}`}>
+                        {s.rhythm}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate">
+                        {s.title}{" "}
+                        <span className="text-muted">
+                          · {s.orchestra}
+                          {s.singer ? ` / ${s.singer}` : ""}
+                        </span>
+                      </span>
+                      <span className="text-muted tabular-nums">{s.year ?? "?"}</span>
+                      <span className="w-8 text-right tabular-nums">
+                        <span className="sr-only">energy </span>
+                        {s.energy}
+                      </span>
+                    </motion.li>
+                  ))}
+                </AnimatePresence>
+              </ul>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
       {meta && (
         <div className="surface p-5 sm:p-6">
