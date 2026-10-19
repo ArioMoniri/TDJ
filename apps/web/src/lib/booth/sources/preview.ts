@@ -1,12 +1,13 @@
 "use client";
 import type { Song } from "@tdj/core";
 import type { AppOverrides } from "@/lib/types";
+import { PREVIEW_CAP_SEC } from "../engine";
 import { measureBuffer } from "../measure";
 import type { BoothRow } from "../plan";
 import type { PlanEntity, PreparedItem, SourceAdapter } from "./types";
 
 /** The previews are capped at 30 s: the rehearsal length of every item. */
-export const REHEARSAL_SEC = 30;
+export const REHEARSAL_SEC = PREVIEW_CAP_SEC;
 
 interface DecodeCtx {
   decodeAudioData(b: ArrayBuffer): Promise<AudioBuffer>;

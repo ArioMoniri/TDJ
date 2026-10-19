@@ -25,6 +25,7 @@ export function ControlStrip({ onMore, onBreak }: { onMore: () => void; onBreak:
   const breakUntil = useBooth((s) => s.breakUntil);
   const sources = useBooth((s) => s.sources);
   const plan = useBooth((s) => s.plan);
+  const rehearsal = useBooth((s) => s.rehearsal);
   const act = useBooth.getState();
   const wide = useMediaQuery("(min-width: 640px)");
   const [holdPct, setHoldPct] = useState(0);
@@ -64,7 +65,11 @@ export function ControlStrip({ onMore, onBreak }: { onMore: () => void; onBreak:
       data-testid="booth-start"
     >
       <Play size={18} fill="currentColor" strokeWidth={0} aria-hidden />
-      {missing ? `Start · ${missing} without source` : "Start the night"}
+      {rehearsal
+        ? "Start · rehearsal (30 s clips)"
+        : missing
+          ? `Start · ${missing} without source`
+          : "Start the night"}
     </button>
   ) : live && !holding ? (
     <button
@@ -99,7 +104,7 @@ export function ControlStrip({ onMore, onBreak }: { onMore: () => void; onBreak:
         title="The queued item is skipped at the next gap (→)"
         onClick={() => act.next()}
         disabled={!started}
-        data-testid="booth-next"
+        data-testid="booth-next-btn"
       >
         <SkipForward size={20} strokeWidth={2} aria-hidden />
       </button>
@@ -149,7 +154,7 @@ export function ControlStrip({ onMore, onBreak }: { onMore: () => void; onBreak:
       />
       <button
         type="button"
-        className={`icon-btn ${muted ? "text-[var(--destructive)]" : ""}`}
+        className={`icon-btn booth-secondary ${muted ? "text-[var(--destructive)]" : ""}`}
         aria-label={muted ? "Unmute" : "Mute"}
         aria-pressed={muted}
         onClick={() => act.toggleMute()}
@@ -159,7 +164,7 @@ export function ControlStrip({ onMore, onBreak }: { onMore: () => void; onBreak:
       </button>
       <button
         type="button"
-        className="icon-btn"
+        className="icon-btn booth-secondary"
         aria-label="Birthday vals"
         title="Birthday vals (b)"
         onClick={() => act.birthdayVals()}
@@ -170,7 +175,7 @@ export function ControlStrip({ onMore, onBreak }: { onMore: () => void; onBreak:
       </button>
       <button
         type="button"
-        className="icon-btn"
+        className="icon-btn booth-secondary"
         aria-label="Break"
         title="Break after this song"
         onClick={onBreak}

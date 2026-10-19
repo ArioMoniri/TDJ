@@ -205,7 +205,7 @@ const Row = memo(function Row({
   onFind: (itemId: string, title: string) => void;
 }) {
   const it = useBooth((s) => s.plan?.items[i]);
-  const rehearsal = useBooth((s) => s.sourceMode === "preview");
+  const rehearsal = useBooth((s) => s.rehearsal);
   if (!it) return null;
   const missing = source === "missing" && it.kind !== "break";
   return (
@@ -220,11 +220,11 @@ const Row = memo(function Row({
         {it.kind === "cortina" ? "♪" : it.kind === "break" ? "—" : it.n}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate">
+        <span className="booth-row-title block">
           {it.title}
           {it.birthday ? " · birthday" : ""}
         </span>
-        <span className="text-footnote block truncate text-[var(--label-2)]">
+        <span className="booth-row-sub text-footnote block truncate text-[var(--label-2)]">
           {it.kind === "cortina"
             ? `cortina · ${it.artist} · in ${durationLabel(it.trimInSec ?? 0)} · stop ${durationLabel(it.stopSec ?? 0)}`
             : it.artist}

@@ -124,6 +124,8 @@ export const TRIM_MAX_SEC = 3;
 /** Normalisation never adds or removes more than ±12 dB. */
 export const NORM_LIMIT_DB = 12;
 export const PEAK_CAP_DBFS = -1;
+/** A Deezer preview is 30 s: an item played from one is capped there whatever the mode. */
+export const PREVIEW_CAP_SEC = 30;
 
 /** §5.2: base gain from the measurement (or the prior), the DJ's trim, and the −1 dBFS peak cap. */
 export function gainFor(
@@ -567,11 +569,17 @@ export class BoothEngine {
     const c = this.current;
     return c ? Math.max(0, c.endsAt - c.startedAt) : this.itemLength(this.planIndex);
   }
+  /** 30 s when the whole night is a rehearsal or this item plays from a preview */
+  capFor(i: number): number | null {
+    if (this.rehearsalSec) return this.rehearsalSec;
+    return this.sources[i] === "preview" ? PREVIEW_CAP_SEC : null;
+  }
   itemLength(i: number): number {
     const it = this.item(i);
     if (!it) return 0;
     if (it.kind === "break") return it.lengthSec;
-    return this.rehearsalSec ? Math.min(this.rehearsalSec, it.lengthSec) : it.lengthSec;
+    const cap = this.capFor(i);
+    return cap ? Math.min(cap, it.lengthSec) : it.lengthSec;
   }
   remaining(): { remainingSec: number; timeToCumparsita: number } {
     if (!this.plan) return { remainingSec: 0, timeToCumparsita: 0 };
@@ -579,7 +587,7 @@ export class BoothEngine {
     return remainingFrom(this.plan, this.planIndex, pos, {
       skipped: this.skipped,
       currentLength: this.current ? this.currentLength() : undefined,
-      rehearsalSec: this.rehearsalSec,
+      capFor: (i) => this.capFor(i),
     });
   }
   /** seconds late (+) or early (−) against the plan */
@@ -814,7 +822,8 @@ export class BoothEngine {
       offset = Math.min(prepared.measured?.introSec ?? 0, TRIM_MAX_SEC, buffer.duration / 2);
     let duration: number | undefined;
     if (it.kind === "cortina") duration = Math.min(it.lengthSec, buffer.duration - offset);
-    if (this.rehearsalSec) duration = Math.min(duration ?? buffer.duration - offset, this.rehearsalSec);
+    const cap = this.capFor(i) ?? (prepared.kind === "preview" ? PREVIEW_CAP_SEC : null);
+    if (cap) duration = Math.min(duration ?? buffer.duration - offset, cap);
     const length = duration ?? buffer.duration - offset;
     const endsAt = when + length;
     base.endsAt = endsAt;
@@ -863,13 +872,13 @@ export class BoothEngine {
     const a = this.adapterFor(base.planIndex)?.external;
     if (!a || !prepared.spotifyUri) return null;
     const delay = Math.max(0, base.when - this.ctx.currentTime);
-    const length = this.rehearsalSec ? Math.min(this.rehearsalSec, it.lengthSec) : it.lengthSec;
+    const length = this.itemLength(base.planIndex);
     base.endsAt = base.when + length;
     base.external = a.startItem({
       uri: prepared.spotifyUri,
       delaySec: delay,
       positionSec: it.kind === "cortina" ? (it.trimInSec ?? 0) : 0,
-      durationSec: it.kind === "cortina" || this.rehearsalSec ? length : undefined,
+      durationSec: it.kind === "cortina" || this.capFor(base.planIndex) ? length : undefined,
       fadeInSec: it.kind === "cortina" ? it.fadeInSec : 0,
       fadeOutSec: it.kind === "cortina" ? it.fadeOutSec : 0,
       gainDb: Math.min(0, gainDb),
