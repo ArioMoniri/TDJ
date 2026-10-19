@@ -7,6 +7,8 @@ export interface ToastItem {
   id: number;
   text: string;
   undo?: () => void;
+  /** the action button's label (default "Undo") */
+  actionLabel?: string;
   /** ms before auto-dismiss: 6 s with Undo, 3 s informational */
   ttl?: number;
 }
@@ -58,7 +60,7 @@ export function Toast({ toast, onDismiss }: { toast: ToastItem | null; onDismiss
                 onDismiss();
               }}
             >
-              Undo
+              {toast.actionLabel ?? "Undo"}
             </button>
           )}
         </motion.div>

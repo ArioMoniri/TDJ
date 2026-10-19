@@ -47,17 +47,28 @@ function withBreaks(text: string, f: ExportFormat, p: Playlist): string {
 export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
   if (!body?.playlist?.tandas) return NextResponse.json({ error: "playlist required" }, { status: 400 });
-  const { playlist, format, includeCortinas = true, folder, naming } = body;
+  const { playlist, format, includeCortinas = true, folder, naming, cortinaStopSec } = body;
   if (typeof format !== "string" || !Object.hasOwn(EXPORTERS, format))
     return NextResponse.json({ error: "unknown format" }, { status: 400 });
   const f = format as ExportFormat;
   const pl = includeCortinas ? playlist : withoutCortinas(playlist);
   const text = withBreaks(
-    applyPaths(fixGenres(EXPORTERS[f](pl, { includeCortinas: !!includeCortinas }), f), f, pl, {
-      folder: typeof folder === "string" ? folder : "",
-      naming: typeof naming === "string" ? naming : "",
-      includeCortinas: !!includeCortinas,
-    }),
+    applyPaths(
+      fixGenres(
+        EXPORTERS[f](pl, {
+          includeCortinas: !!includeCortinas,
+          ...(typeof cortinaStopSec === "number" ? { cortinaStopSec } : {}),
+        }),
+        f,
+      ),
+      f,
+      pl,
+      {
+        folder: typeof folder === "string" ? folder : "",
+        naming: typeof naming === "string" ? naming : "",
+        includeCortinas: !!includeCortinas,
+      },
+    ),
     f,
     pl,
   );

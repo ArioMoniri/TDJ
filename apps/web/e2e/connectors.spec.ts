@@ -24,6 +24,8 @@ interface Hit {
 }
 const hits: Hit[] = [];
 const last = (re: RegExp) => [...hits].reverse().find((h) => re.test(`${h.method} ${h.url}`));
+/** Spotify search mock: after this many searches every search answers 429 (Infinity = never); `retryAfter` is the header. */
+const searchLimit = { after: Number.POSITIVE_INFINITY, count: 0, retryAfter: 30 };
 
 function mockServer(): http.Server {
   return http.createServer((req, res) => {
@@ -63,23 +65,39 @@ function mockServer(): http.Server {
               external_urls: { spotify: "https://open.spotify.com/user/dj1" },
             })
           : json(401, { error: { status: 401, message: "The access token expired" } });
-      if (url.startsWith("/v1/search"))
-        return json(200, {
-          tracks: {
-            items: [
-              {
-                uri: `spotify:track:found${hits.filter((h) => h.url.startsWith("/v1/search")).length}`,
-                name: "Found",
-                artists: [{ name: "Orquesta" }],
-                duration_ms: 170000,
-                external_urls: { spotify: "https://open.spotify.com/track/x" },
-              },
-            ],
-          },
+      if (url.startsWith("/v1/search")) {
+        searchLimit.count++;
+        if (searchLimit.count > searchLimit.after) {
+          res.writeHead(429, {
+            "content-type": "application/json",
+            "retry-after": String(searchLimit.retryAfter),
+          });
+          return res.end(JSON.stringify({ error: { status: 429, message: "API rate limit exceeded" } }));
+        }
+        // a query-aware catalogue: `track:"T" artist:"A"` answers a modern cover first, then the orchestra's own
+        // recording (170 s, 1940); a title containing "nowhere" has covers only; plain queries find nothing
+        const q = new URL(url, MOCK).searchParams.get("q") ?? "";
+        const m = /^track:"([^"]*)" artist:"([^"]*)"$/.exec(q);
+        if (!m) return json(200, { tracks: { items: [] } });
+        const [, title, artist] = m;
+        const n = hits.filter((h) => h.url.startsWith("/v1/search")).length;
+        const item = (uri: string, artists: string[], year: string, ms: number) => ({
+          uri,
+          name: title,
+          artists: artists.map((name) => ({ name })),
+          duration_ms: ms,
+          album: { name: "Album", release_date: year },
+          external_urls: { spotify: `https://open.spotify.com/track/${uri.split(":")[2]}` },
         });
+        const items = [item(`spotify:track:cover${n}`, ["Orquesta Moderna de Hoy"], "2019-05-01", 201000)];
+        if (!/nowhere/i.test(title ?? ""))
+          items.push(item(`spotify:track:found${n}`, [`${artist} y su Orquesta`], "1940-01-01", 170000));
+        return json(200, { tracks: { items } });
+      }
       if (url === "/v1/me/playlists" && req.method === "POST")
         return json(201, { id: "pl1", external_urls: { spotify: "https://open.spotify.com/playlist/pl1" } });
-      if (url === "/v1/playlists/pl1/items" && req.method === "POST") return json(201, { snapshot_id: "s1" });
+      if (/^\/v1\/playlists\/pl1\/items/.test(url) && req.method === "POST")
+        return json(201, { snapshot_id: "s1" });
       // Pipedream Connect (REST shape the SDK deserialises)
       if (url === "/v1/oauth/token")
         return json(200, { access_token: "pd-token", token_type: "bearer", expires_in: 3600 });
@@ -416,7 +434,7 @@ test("a DJ the owner did not list: access_denied from Spotify or a 403 'not regi
   await ctx.close();
 });
 
-test("/api/spotify/me returns the profile with the cookie, 401 + hosted:true without it; logout clears it", async ({
+test("/api/spotify/me returns the profile with the cookie, 200 { hosted:true, user:null } without it (no console 401s); logout clears it", async ({
   request,
   playwright,
 }) => {
@@ -430,13 +448,13 @@ test("/api/spotify/me returns the profile with the cookie, 401 + hosted:true wit
   expect(j).not.toHaveProperty("refresh");
   const fresh = await playwright.request.newContext();
   const anon = await fresh.get(`${APP}/api/spotify/me`);
-  expect(anon.status()).toBe(401);
+  expect(anon.status()).toBe(200);
   expect(await anon.json()).toEqual({ hosted: true, user: null });
   const out = await request.post(`${APP}/api/spotify/logout`, { headers: { cookie: session } });
   expect(out.headers()["set-cookie"]).toMatch(/tdj_sp=;.*Max-Age=0/);
 });
 
-test("playlist creation POSTs name/description/public, adds items in chunks of ≤100 and searches unresolved tracks", async ({
+test("playlist creation POSTs name/description/public, adds items in chunks of ≤100 and matches unresolved tracks with field-filtered searches", async ({
   request,
   playwright,
 }) => {
@@ -470,7 +488,14 @@ test("playlist creation POSTs name/description/public, adds items in chunks of �
     p.tandas.reduce((n: number, t: { songs: unknown[] }) => n + t.songs.length, 0) + (p.closing ? 1 : 0);
   expect(j.added).toBe(songs); // every unresolved track was found by the (mocked) search
   const searches = hits.filter((h) => h.url.startsWith("/v1/search"));
-  for (const s of searches) expect(new URL(s.url, MOCK).searchParams.get("type")).toBe("track");
+  for (const s of searches) {
+    const q = new URL(s.url, MOCK).searchParams;
+    expect(q.get("type")).toBe("track");
+    expect(q.get("limit")).toBe("10");
+    expect(q.get("q")).toMatch(/^track:"[^"]+" artist:"[^"]+"$/);
+  }
+  // the scorer took the orchestra's recording, never the cover that Spotify lists first
+  for (const a of adds) for (const u of JSON.parse(a.body).uris as string[]) expect(u).not.toMatch(/cover/);
   // not logged in → 401, nothing reaches Spotify
   const n = hits.length;
   const anon = await (await playwright.request.newContext()).post(`${APP}/api/spotify/playlist`, {
@@ -508,7 +533,8 @@ test("an expired access token is refreshed transparently and the cookie is re-se
   const bad = await (await playwright.request.newContext()).get(`${APP}/api/spotify/me`, {
     headers: { cookie: `tdj_sp=${encodeURIComponent(parts.join("."))}` },
   });
-  expect(bad.status()).toBe(401);
+  expect(bad.status()).toBe(200);
+  expect((await bad.json()).user).toBeNull();
 });
 
 test("Settings (hosted): the Spotify row shows the account, the sheet has one primary action and Advanced hides the BYO field", async ({
@@ -736,6 +762,222 @@ test("Export sheet (hosted): 'Create playlist in Spotify' uses the session, list
   await ctx.close();
 });
 
+/* ---------- server-side matching, rate limits, cortina play length ---------- */
+
+test("POST /api/spotify/match scores up to 10 items: the orchestra's recording beats a modern cover, covers alone are 'not found'", async ({
+  request,
+  playwright,
+}) => {
+  const { session } = await login(request);
+  hits.length = 0;
+  const items = [
+    {
+      id: "ciego",
+      title: "Ciego",
+      orchestra: "Francisco Canaro",
+      singer: "Roberto Maida",
+      year: 1935,
+      durationSec: 162,
+    },
+    { id: "none", title: "Nowhere tango", orchestra: "Juan D'Arienzo", year: 1940, durationSec: 170 },
+    { id: "lc", title: "La cumparsita", orchestra: "Juan D'Arienzo", year: 1951, durationSec: 172 },
+  ];
+  const r = await request.post(`${APP}/api/spotify/match`, { headers: { cookie: session }, data: { items } });
+  expect(r.status()).toBe(200);
+  const j = await r.json();
+  expect(j.rateLimited).toBeUndefined();
+  expect(j.missing).toEqual(["none"]);
+  expect(j.matches.map((m: { id: string }) => m.id)).toEqual(["ciego", "lc"]);
+  const ciego = j.matches[0];
+  expect(ciego.uri).toMatch(/^spotify:track:found/);
+  expect(ciego.artist).toBe("Canaro y su Orquesta");
+  expect(ciego.name).toBe("Ciego");
+  expect(ciego.durationMs).toBe(170000);
+  expect(ciego.year).toBe(1940);
+  expect(ciego.score).toBeGreaterThanOrEqual(0.6);
+  // the searches: one field-filtered query per item, the plain fallback only for the cover-only title
+  const searches = hits
+    .filter((h) => h.url.startsWith("/v1/search"))
+    .map((h) => new URL(h.url, MOCK).searchParams.get("q"));
+  expect(searches).toEqual([
+    'track:"Ciego" artist:"Canaro"',
+    'track:"Nowhere tango" artist:"D\'Arienzo"',
+    "Nowhere tango Juan D'Arienzo",
+    'track:"La cumparsita" artist:"D\'Arienzo"',
+  ]);
+  // memoised per process: the same items again search nothing
+  const n = hits.length;
+  const again = await request.post(`${APP}/api/spotify/match`, {
+    headers: { cookie: session },
+    data: { items },
+  });
+  expect((await again.json()).matches).toHaveLength(2);
+  expect(hits.filter((h) => h.url.startsWith("/v1/search")).length).toBe(
+    hits.slice(0, n).filter((h) => h.url.startsWith("/v1/search")).length,
+  );
+  // limits and auth
+  const many = await request.post(`${APP}/api/spotify/match`, {
+    headers: { cookie: session },
+    data: { items: Array.from({ length: 11 }, (_, i) => ({ id: `i${i}`, title: `T${i}`, orchestra: "O" })) },
+  });
+  expect(many.status()).toBe(400);
+  const anon = await (await playwright.request.newContext()).post(`${APP}/api/spotify/match`, {
+    data: { items: items.slice(0, 1) },
+  });
+  expect(anon.status()).toBe(401);
+});
+
+test("a 429 from Spotify ends the matching cleanly: the server reports the pause, the browser stops (no retry storm), the playlist holds what was found, 'Try again' adds the rest", async ({
+  browser,
+  request,
+}) => {
+  const { session } = await login(request);
+  const ctx = await browser.newContext({ baseURL: APP });
+  const [name, value] = session.split("=");
+  await ctx.addCookies([{ name: name!, value: value!, url: APP }]);
+  const page: Page = await ctx.newPage();
+  const errors: string[] = [];
+  page.on("console", (m) => {
+    if (m.type() === "error") errors.push(m.text());
+  });
+  // every recording unresolved: the composed set without its cached Spotify ids
+  let files = 0;
+  await page.route("**/api/compose", async (route) => {
+    const r = await route.fetch();
+    const j = await r.json();
+    for (const t of j.tandas) for (const s of t.songs) s.spotify = null;
+    if (j.closing) j.closing.spotify = null;
+    if (j.opening) j.opening.spotify = null;
+    files =
+      j.tandas.reduce((n: number, t: { songs: unknown[] }) => n + t.songs.length, 0) +
+      (j.closing ? 1 : 0) +
+      (j.opening ? 1 : 0);
+    await route.fulfill({ response: r, json: j });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: /Compose the night/ }).click();
+  await expect(page.locator("#result")).toBeVisible({ timeout: 60000 });
+  await page.getByRole("button", { name: "Export" }).first().click();
+  const sheet = page.getByTestId("export-sheet");
+  await sheet.getByRole("switch", { name: "Include cortinas" }).click(); // songs only: a known count
+  expect(files).toBeGreaterThan(20);
+  hits.length = 0;
+  searchLimit.count = 0;
+  searchLimit.after = 1; // the first search answers, the second is a 429 with Retry-After 30
+  try {
+    await page.getByRole("button", { name: "Create playlist in Spotify" }).click();
+    const toast = page.getByTestId("toast");
+    await expect(toast).toContainText("Spotify is pausing searches for 30 s", { timeout: 30000 });
+    await expect(toast).toContainText("try again in a minute to add the rest");
+    await expect(toast.getByRole("button", { name: "Try again" })).toBeVisible();
+    // no retry storm: one answered search, one 429, nothing more (Retry-After 30 is never waited out)
+    const searches = hits.filter((h) => h.url.startsWith("/v1/search"));
+    expect(searches.length).toBeLessThanOrEqual(3);
+    expect(searches.length).toBe(2);
+    // the playlist exists with the one match
+    const create = last(/POST \/v1\/me\/playlists/)!;
+    expect(JSON.parse(create.body).name).toMatch(/^TDJ · /);
+    const adds = hits.filter((h) => /^\/v1\/playlists\/pl1\/items/.test(h.url));
+    expect(adds).toHaveLength(1);
+    // the one search that answered plus whatever the server already remembered from earlier tests (memoised
+    // per process: no search for those), never a cover
+    const first = JSON.parse(adds[0]!.body).uris as string[];
+    expect(first).toContain("spotify:track:found1");
+    for (const u of first) expect(u).toMatch(/^spotify:track:found/);
+    const left = files - first.length;
+    await expect(sheet).toContainText(
+      `${first.length} tracks in the playlist. Spotify paused searches for 30 s: ${left} still to match.`,
+    );
+    await expect(sheet.getByRole("button", { name: "Open in Spotify" })).toBeVisible();
+    const btn = sheet.locator("#spotify-create");
+    await expect(btn).toContainText(`Try again · ${left} left`);
+    // the pause is over: Try again matches the rest into the same playlist, batch by batch
+    searchLimit.after = Number.POSITIVE_INFINITY;
+    hits.length = 0;
+    let matchCalls = 0;
+    page.on("request", (r) => {
+      if (r.url().includes("/api/spotify/match")) matchCalls++;
+    });
+    await btn.click();
+    await expect(page.getByRole("button", { name: "Playlist created" })).toBeVisible({ timeout: 60000 });
+    expect(last(/POST \/v1\/me\/playlists/)).toBeUndefined(); // no second playlist
+    expect(matchCalls).toBe(Math.ceil(left / 10)); // batches of 10, sent one after the other
+    let total = 0;
+    for (const a of hits.filter((h) => /^\/v1\/playlists\/pl1\/items/.test(h.url))) {
+      const uris = JSON.parse(a.body).uris as string[];
+      expect(uris.length).toBeLessThanOrEqual(100);
+      for (const u of uris) expect(u).not.toMatch(/cover/);
+      total += uris.length;
+    }
+    expect(total).toBe(left);
+    await expect(sheet).toContainText(`Added ${left} more.`);
+    // the matches went into the DJ's database: a second export of the same set searches nothing
+    hits.length = 0;
+    await page.keyboard.press("Escape");
+    await expect(sheet).toBeHidden();
+    await page.getByRole("button", { name: "Export" }).first().click();
+    await page.getByRole("button", { name: "Create playlist in Spotify" }).click();
+    await expect(page.getByRole("button", { name: "Playlist created" })).toBeVisible({ timeout: 60000 });
+    expect(hits.filter((h) => h.url.startsWith("/v1/search"))).toHaveLength(0);
+    // the console stayed clean: no 401s from /api/*/me, no 429 storm, no stale PKCE refresh
+    expect(errors.filter((e) => /401|429|accounts\.spotify|api\.spotify/.test(e))).toEqual([]);
+  } finally {
+    searchLimit.after = Number.POSITIVE_INFINITY;
+  }
+  await ctx.close();
+});
+
+test("cortina play length: the Export sheet's stepper changes the M3U8 (VLC stop-time) and the setting persists in Settings → Playback", async ({
+  browser,
+  request,
+}) => {
+  const p = await (await request.post(`${APP}/api/compose`, { data: { hours: 2, seed: 3 } })).json();
+  // the route: explicit seconds, else each cortina's own length
+  const at60 = await (
+    await request.post(`${APP}/api/export`, { data: { playlist: p, format: "m3u8", cortinaStopSec: 60 } })
+  ).text();
+  const cortinas = p.tandas.filter((t: { cortina: unknown }) => t.cortina).length;
+  expect(cortinas).toBeGreaterThan(0);
+  expect(at60.match(/^#EXTVLCOPT:stop-time=60$/gm)).toHaveLength(cortinas);
+  const xspf = await (
+    await request.post(`${APP}/api/export`, { data: { playlist: p, format: "xspf", cortinaStopSec: 60 } })
+  ).text();
+  expect(xspf.match(/<vlc:option>stop-time=60<\/vlc:option>/g)).toHaveLength(cortinas);
+  const rb = await (
+    await request.post(`${APP}/api/export`, {
+      data: { playlist: p, format: "rekordbox", cortinaStopSec: 60 },
+    })
+  ).text();
+  expect(rb.match(/<POSITION_MARK [^>]*Start="60\.000"/g)).toHaveLength(cortinas);
+  // the sheet
+  const ctx = await browser.newContext({ baseURL: APP });
+  const page: Page = await ctx.newPage();
+  await page.goto("/");
+  await page.getByRole("button", { name: /Compose the night/ }).click();
+  await expect(page.locator("#result")).toBeVisible({ timeout: 60000 });
+  await page.getByRole("button", { name: "Export" }).first().click();
+  const sheet = page.getByTestId("export-sheet");
+  await expect(sheet).toContainText("Cortinas stop at 45 s");
+  await expect(sheet).toContainText("Spotify playlists cannot trim tracks");
+  await sheet.getByRole("button", { name: "Increase cortina play length" }).click();
+  await expect(sheet).toContainText("Cortinas stop at 50 s");
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    sheet.getByRole("button", { name: /M3U8 playlist/ }).click(),
+  ]);
+  const text = (await import("node:fs")).readFileSync((await download.path())!, "utf8");
+  expect(text).toContain("#EXTVLCOPT:stop-time=50");
+  expect(text).not.toContain("#EXTVLCOPT:stop-time=45");
+  // Settings → Playback shows the same value and can hand it back to the composer
+  await page.goto("/settings");
+  const playback = page.getByRole("group", { name: "Cortina play length" });
+  await expect(page.getByText("Your own length")).toBeVisible();
+  await expect(playback).toContainText("50");
+  await page.getByRole("switch", { name: "Follow the composer's cortina length" }).click();
+  await expect(page.getByText("Follows the composer")).toBeVisible();
+  await ctx.close();
+});
+
 /* ---------- direct Google (Drive + YouTube) ---------- */
 
 /** Runs /api/google/login?scope=… up to the callback; `code` decides what the mock consent screen granted. */
@@ -833,9 +1075,9 @@ test("Google callback exchanges the code with the client secret in the body, sea
     headers: { cookie: second.session },
   });
   expect((await me2.json()).scopes).toEqual({ drive: true, youtube: true });
-  // anonymous: 401 + hosted:true; a forged state never reaches Google
+  // anonymous: 200 + hosted:true, user null; a forged state never reaches Google
   const anon = await (await playwright.request.newContext()).get(`${APP}/api/google/me`);
-  expect(anon.status()).toBe(401);
+  expect(anon.status()).toBe(200);
   expect(await anon.json()).toEqual({ hosted: true, user: null });
   const before = hits.length;
   const bad = await request.get(`${APP}/api/google/callback?code=x&state=forged`, {
@@ -1057,7 +1299,7 @@ test("Dropbox login uses PKCE (S256) and offline access; the callback proves the
     email: "dj@example.test",
   });
   const anon = await (await playwright.request.newContext()).get(`${APP}/api/dropbox/me`);
-  expect(anon.status()).toBe(401);
+  expect(anon.status()).toBe(200);
   expect(await anon.json()).toEqual({ hosted: true, user: null });
   const out = await request.post(`${APP}/api/dropbox/logout`);
   expect(out.headers()["set-cookie"]).toMatch(/tdj_db=;.*Max-Age=0/);

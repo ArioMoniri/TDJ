@@ -362,7 +362,23 @@ export class ApiError extends Error {
   }
 }
 
-/** JSON request with a bearer token; 429 waits for Retry-After (≤10 s) up to three times. */
+/** A 429 the provider would not let us wait out: `retryAfter` seconds is what it asked for. */
+export class RateLimitError extends ApiError {
+  retryAfter: number;
+  constructor(url: string, retryAfter: number, body = "") {
+    super(429, `${new URL(url).pathname}: 429 rate limited, retry after ${retryAfter} s`, body);
+    this.retryAfter = retryAfter;
+  }
+}
+/** Longest Retry-After (seconds) a request waits out once; beyond it the caller is told to pause. */
+export const RETRY_AFTER_MAX = 10;
+export const isRateLimited = (e: unknown): e is RateLimitError => e instanceof RateLimitError;
+
+/**
+ * JSON request with a bearer token. A 429 is retried exactly once when Retry-After is ≤ RETRY_AFTER_MAX seconds;
+ * a longer wait, or a second 429, throws `RateLimitError` so the route can report the pause instead of hammering
+ * the provider (there is never an uncapped retry loop).
+ */
 export async function api<T>(access: string, url: string, init: RequestInit = {}, attempt = 0): Promise<T> {
   const r = await fetch(url, {
     ...init,
@@ -372,8 +388,11 @@ export async function api<T>(access: string, url: string, init: RequestInit = {}
       ...(init.headers ?? {}),
     },
   });
-  if (r.status === 429 && attempt < 3) {
-    const wait = Math.min(10, Number(r.headers.get("retry-after") ?? 2));
+  if (r.status === 429) {
+    const header = Number(r.headers.get("retry-after"));
+    const wait = Number.isFinite(header) && header > 0 ? Math.ceil(header) : 2;
+    const body = await r.text().catch(() => "");
+    if (attempt >= 1 || wait > RETRY_AFTER_MAX) throw new RateLimitError(url, wait, body);
     await new Promise((res) => setTimeout(res, wait * 1000));
     return api<T>(access, url, init, attempt + 1);
   }
@@ -387,7 +406,8 @@ export async function api<T>(access: string, url: string, init: RequestInit = {}
 }
 
 /** HTTP status for a failed provider call: 401 when the grant is gone, 502 for anything else upstream. */
-export const errorStatus = (e: unknown) => (e instanceof ApiError ? (e.status === 401 ? 401 : 502) : 500);
+export const errorStatus = (e: unknown) =>
+  e instanceof ApiError ? (e.status === 401 ? 401 : e.status === 429 ? 429 : 502) : 500;
 
 /** File names on a cloud drive: no path separators or reserved characters. */
 export const safeName = (s: string) => s.replace(/[\\/:*?"<>|]+/g, "_").trim() || "tdj-set";

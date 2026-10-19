@@ -1,10 +1,20 @@
 "use client";
-import { Brain, FolderOpen, Globe, HardDrive, KeyRound, LoaderCircle, Palette } from "lucide-react";
+import { Brain, FolderOpen, Globe, HardDrive, KeyRound, LoaderCircle, Palette, Timer } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { Connectors } from "@/components/Connectors";
-import { ActionRow, FieldRow, Group, PickerRow, Row, SegmentedRow, SwitchRow, Tile } from "@/components/Form";
+import {
+  ActionRow,
+  FieldRow,
+  Group,
+  PickerRow,
+  Row,
+  SegmentedRow,
+  StepperRow,
+  SwitchRow,
+  Tile,
+} from "@/components/Form";
 import { PageHeader } from "@/components/PageHeader";
 import { Sheet } from "@/components/Sheet";
 import { fade, t as tw } from "@/lib/motion";
@@ -13,6 +23,8 @@ import {
   AI_DEFAULT_MODEL,
   AI_PROVIDERS,
   type AiProvider,
+  CORTINA_STOP_RANGE,
+  cortinaStopSec,
   DEFAULT_NAMING,
   DJ_APPS,
   type DjApp,
@@ -127,7 +139,7 @@ function humanError(provider: AiProvider, status: number, raw: unknown): string 
 }
 
 export default function Settings() {
-  const { settings, setSettings, storageMode, memory } = useStore();
+  const { settings, setSettings, storageMode, memory, options } = useStore();
   const [showKey, setShowKey] = useState(false);
   const [folderFor, setFolderFor] = useState<DjApp | null>(null);
   const [test, setTest] = useState<{ state: TestState; text?: string }>({ state: "idle" });
@@ -414,6 +426,34 @@ export default function Settings() {
             id={`folder-row-${a.id}`}
           />
         ))}
+      </Group>
+
+      <Group
+        header="Playback"
+        footer={`Where a cortina stops: TDJ's player cuts it there, M3U8 and XSPF tell VLC to stop (#EXTVLCOPT / vlc:option stop-time), Rekordbox XML gets a hot cue at that second. ${settings.cortinaStopSec === null ? `Following the composer's cortina length (${cortinaStopSec(settings, options.cortinaLengthSec)} s).` : "Spotify playlists cannot trim tracks: cortinas there play in full, or leave them out when exporting."}`}
+      >
+        <StepperRow
+          label="Cortina play length"
+          sub={settings.cortinaStopSec === null ? "Follows the composer" : "Your own length"}
+          value={cortinaStopSec(settings, options.cortinaLengthSec)}
+          unit=" s"
+          min={CORTINA_STOP_RANGE.min}
+          max={CORTINA_STOP_RANGE.max}
+          step={CORTINA_STOP_RANGE.step}
+          onChange={(v) => setSettings({ cortinaStopSec: v })}
+          tile={
+            <Tile color="#ff2d55">
+              <Timer size={16} strokeWidth={2} />
+            </Tile>
+          }
+        />
+        <SwitchRow
+          label="Follow the composer's cortina length"
+          checked={settings.cortinaStopSec === null}
+          onChange={(v) =>
+            setSettings({ cortinaStopSec: v ? null : cortinaStopSec(settings, options.cortinaLengthSec) })
+          }
+        />
       </Group>
 
       <Group header="Region" footer="Default for Tonight's region on the composer.">

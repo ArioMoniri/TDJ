@@ -91,6 +91,11 @@ export interface UserSettings {
   reduceGlass: boolean;
   /** the assistant may learn preferences from feedback and apply them under tonight's explicit choices */
   learn: boolean;
+  /**
+   * Cortina play length in seconds (20–90): where the in-app player and the VLC/Rekordbox exports cut a cortina.
+   * `null` follows the composer's cortina length (`cortinaLengthSec`, 45 s by default).
+   */
+  cortinaStopSec: number | null;
 }
 export const DEFAULT_NAMING = "{artist} - {title}";
 export const DEFAULT_SETTINGS: UserSettings = {
@@ -108,7 +113,19 @@ export const DEFAULT_SETTINGS: UserSettings = {
   region: "europe",
   reduceGlass: false,
   learn: true,
+  cortinaStopSec: null,
 };
+export const CORTINA_STOP_RANGE = { min: 20, max: 90, step: 5 } as const;
+/** The effective cortina play length: the Playback setting, else the composer's cortina length, clamped to 20–90. */
+export function cortinaStopSec(
+  settings: Pick<UserSettings, "cortinaStopSec">,
+  composerLengthSec?: number | null,
+): number {
+  const v = settings.cortinaStopSec ?? composerLengthSec ?? 45;
+  return Math.round(
+    Math.min(CORTINA_STOP_RANGE.max, Math.max(CORTINA_STOP_RANGE.min, Number.isFinite(v) ? v : 45)),
+  );
+}
 
 /** A per-song patch in the user's database: catalogue fields plus browser-analysed audio and a chosen preview track. */
 export type SongPatch = Partial<Song> & {

@@ -12,7 +12,7 @@ export async function GET(req: Request) {
   const origin = await requestOrigin(req);
   const s = hosted ? await withSession(req, origin) : null;
   if (!s) {
-    const res = NextResponse.json({ hosted, user: null }, { status: 401 });
+    const res = NextResponse.json({ hosted, user: null }); // 200: "not connected" is a state, not an error (no console noise)
     if (hosted && req.headers.get("cookie")?.includes("tdj_sp="))
       res.headers.append("set-cookie", clearSessionCookie());
     return res;
@@ -28,7 +28,7 @@ export async function GET(req: Request) {
     if (s.setCookie) res.headers.append("set-cookie", s.setCookie);
     return res;
   } catch (e) {
-    const res = NextResponse.json({ hosted, user: null, error: (e as Error).message }, { status: 401 });
+    const res = NextResponse.json({ hosted, user: null, error: (e as Error).message });
     if (/ 401 /.test(String(e))) res.headers.append("set-cookie", clearSessionCookie());
     return res;
   }

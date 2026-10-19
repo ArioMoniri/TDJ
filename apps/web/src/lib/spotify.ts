@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
+import { bestMatch, type Match, type MatchItem, searchQueries } from "@/lib/match";
 import { useStore } from "@/lib/store";
 
 /**
@@ -76,7 +77,16 @@ export async function refresh(clientId: string, refreshToken: string) {
   };
 }
 
-async function api<T>(token: string, path: string, init: RequestInit = {}): Promise<T> {
+/** Spotify answered 429 and would not let the browser wait it out: `retryAfter` seconds is what it asked for. */
+export class SpotifyRateLimit extends Error {
+  retryAfter: number;
+  constructor(retryAfter: number) {
+    super(`Spotify is pausing searches for ${retryAfter} s`);
+    this.retryAfter = retryAfter;
+  }
+}
+/** BYO path only. A 429 is retried once when Retry-After ≤ 10 s; otherwise it is thrown (never an open-ended loop). */
+async function api<T>(token: string, path: string, init: RequestInit = {}, attempt = 0): Promise<T> {
   const r = await fetch(`https://api.spotify.com/v1${path}`, {
     ...init,
     headers: {
@@ -86,9 +96,11 @@ async function api<T>(token: string, path: string, init: RequestInit = {}): Prom
     },
   });
   if (r.status === 429) {
-    const wait = Number(r.headers.get("retry-after") ?? 2);
+    const header = Number(r.headers.get("retry-after"));
+    const wait = Number.isFinite(header) && header > 0 ? Math.ceil(header) : 2;
+    if (attempt >= 1 || wait > 10) throw new SpotifyRateLimit(wait);
     await new Promise((res) => setTimeout(res, wait * 1000));
-    return api(token, path, init);
+    return api<T>(token, path, init, attempt + 1);
   }
   if (!r.ok) throw new Error(`Spotify ${path}: ${r.status} ${await r.text()}`);
   return r.status === 204 ? (undefined as T) : r.json();
@@ -103,9 +115,21 @@ export interface Resolved {
 }
 const memo = new Map<string, Resolved | null>();
 
-/** Resolve one catalogue track to a Spotify URI (search limit ≤10 under 2026 Dev Mode rules). Cached in memory + localStorage. */
-export async function resolveTrack(token: string, q: string, year?: number | null): Promise<Resolved | null> {
-  const key = `${q}|${year ?? ""}`;
+interface SearchHit {
+  uri: string;
+  name: string;
+  duration_ms: number;
+  artists: { name: string }[];
+  album?: { name?: string; release_date?: string };
+  external_urls: { spotify: string };
+}
+/**
+ * BYO path: resolve one catalogue recording to a Spotify URI with the same scorer as the server (lib/match.ts):
+ * field-filtered search first, a plain query as the fallback, the best candidate only above the threshold.
+ * Cached in memory + localStorage. Throws SpotifyRateLimit when Spotify asks for a pause.
+ */
+export async function resolveTrack(token: string, item: MatchItem): Promise<Resolved | null> {
+  const key = `${item.id}|${item.title}|${item.orchestra}`;
   if (memo.has(key)) return memo.get(key)!;
   try {
     const ls = localStorage.getItem(`tdj-sp:${key}`);
@@ -115,32 +139,47 @@ export async function resolveTrack(token: string, q: string, year?: number | nul
       return v;
     }
   } catch {}
-  const j = await api<{
-    tracks: {
-      items: Array<{
-        uri: string;
-        name: string;
-        duration_ms: number;
-        artists: { name: string }[];
-        external_urls: { spotify: string };
-      }>;
-    };
-  }>(token, `/search?${new URLSearchParams({ q, type: "track", limit: "5" })}`);
-  const it = j.tracks?.items?.[0];
-  const v = it
-    ? {
-        uri: it.uri,
-        name: it.name,
-        artist: it.artists.map((a) => a.name).join(", "),
-        durationMs: it.duration_ms,
-        url: it.external_urls.spotify,
-      }
+  const q = searchQueries(item);
+  const search = async (query: string) => {
+    const j = await api<{ tracks?: { items?: SearchHit[] } }>(
+      token,
+      `/search?${new URLSearchParams({ q: query, type: "track", limit: "10" })}`,
+    );
+    return (j.tracks?.items ?? []).map((h) => ({
+      uri: h.uri,
+      name: h.name,
+      artists: h.artists.map((a) => a.name),
+      album: h.album?.name ?? "",
+      albumYear: h.album?.release_date ? Number(h.album.release_date.slice(0, 4)) || null : null,
+      durationMs: h.duration_ms,
+      url: h.external_urls?.spotify,
+    }));
+  };
+  const m: Match | null = bestMatch(item, await search(q.filtered)) ?? bestMatch(item, await search(q.plain));
+  const v: Resolved | null = m
+    ? { uri: m.uri, name: m.name, artist: m.artist, durationMs: m.durationMs, url: m.url ?? "" }
     : null;
   memo.set(key, v);
   try {
     localStorage.setItem(`tdj-sp:${key}`, JSON.stringify(v));
   } catch {}
   return v;
+}
+
+/** BYO path: appends URIs (≤100 per call) to a playlist made earlier. */
+export async function addToPlaylist(token: string, playlistId: string, uris: string[]) {
+  for (let i = 0; i < uris.length; i += 100) {
+    const chunk = uris.slice(i, i + 100);
+    await api(token, `/playlists/${playlistId}/items`, {
+      method: "POST",
+      body: JSON.stringify({ uris: chunk }),
+    }).catch(() =>
+      api(token, `/playlists/${playlistId}/tracks`, {
+        method: "POST",
+        body: JSON.stringify({ uris: chunk }),
+      }),
+    );
+  }
 }
 
 export async function createPlaylist(
@@ -207,11 +246,20 @@ export interface PlaylistResult {
   added: number;
   missing: string[];
   quota?: boolean;
+  rateLimited?: number;
 }
+/**
+ * Creates the playlist from `uris` (matched first through `hostedMatch`), or appends them to `playlistId` (the
+ * "Try again" after a rate limit). `playlist` alone makes the server match the unresolved tracks itself.
+ */
 export async function hostedCreatePlaylist(body: {
-  playlist: unknown;
+  playlist?: unknown;
+  uris?: string[];
+  playlistId?: string;
+  url?: string;
   includeCortinas: boolean;
   name?: string;
+  description?: string;
   isPublic?: boolean;
 }): Promise<PlaylistResult> {
   const r = await fetch("/api/spotify/playlist", {
@@ -222,6 +270,23 @@ export async function hostedCreatePlaylist(body: {
   const j = await r.json();
   if (!r.ok) throw new Error(j.error ?? `Spotify answered ${r.status}`);
   return j as PlaylistResult;
+}
+export interface MatchResponse {
+  matches: Match[];
+  missing: string[];
+  /** Spotify asked for a pause (seconds): items after the last match were not searched */
+  rateLimited?: number;
+}
+/** One batch (≤ 10 items) through the server-side matcher; the browser never searches Spotify itself here. */
+export async function hostedMatch(items: MatchItem[]): Promise<MatchResponse> {
+  const r = await fetch("/api/spotify/match", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ items }),
+  });
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error ?? `Spotify answered ${r.status}`);
+  return j as MatchResponse;
 }
 
 export type ConnectApp = "spotify" | "youtube_data_api" | "dropbox" | "google_drive";
@@ -347,47 +412,90 @@ export interface YoutubeResult extends PlaylistResult {
   skipped: string[];
 }
 
-/**
- * The connector state for Settings and the Export sheet: the hosted Spotify session, the direct Google and
- * Dropbox sessions and the Pipedream accounts, refetched when the tab regains focus (the OAuth dance happens in
- * another tab). A hosted Spotify session also hands its short-lived access token to the store so Listen keeps
- * working without a BYO Client ID.
- */
-export function useConnectors() {
-  const [spotify, setSpotify] = useState<HostedState | null>(null);
-  const [google, setGoogle] = useState<DirectState | null>(null);
-  const [dropbox, setDropbox] = useState<DirectState | null>(null);
-  const [connect, setConnect] = useState<ConnectState | null>(null);
-  const setSpotifyToken = useStore((s) => s.setSpotifyToken);
-  const reload = useCallback(async () => {
-    const [h, g, d, c] = await Promise.all([
+interface ConnectorsSnapshot {
+  spotify: HostedState;
+  google: DirectState;
+  dropbox: DirectState;
+  connect: ConnectState;
+}
+/** One fetch of the four `/me`-style endpoints per page view, shared by every component that asks. */
+let snapshot: ConnectorsSnapshot | null = null;
+let inflight: Promise<ConnectorsSnapshot> | null = null;
+let fetchedAt = 0;
+const listeners = new Set<(s: ConnectorsSnapshot) => void>();
+/** a tab coming back to the front refetches when the last look is older than this */
+const STALE_MS = 60_000;
+async function loadConnectors(force = false): Promise<ConnectorsSnapshot> {
+  if (!force && snapshot && Date.now() - fetchedAt < STALE_MS) return snapshot;
+  if (inflight) return inflight;
+  inflight = (async () => {
+    const [spotify, google, dropbox, connect] = await Promise.all([
       fetchHosted(),
       fetchDirect("google"),
       fetchDirect("dropbox"),
       fetchConnect(),
     ]);
-    setSpotify(h);
-    setGoogle(g);
-    setDropbox(d);
-    setConnect(c);
-    if (h.hosted && h.user && h.token) setSpotifyToken({ access: h.token.access, expires: h.token.expires });
-    else if (h.hosted && !h.user) {
-      const cur = useStore.getState().spotifyToken;
-      if (cur && !cur.refresh) setSpotifyToken(null); // a hosted token that was logged out
-    }
-    return h;
-  }, [setSpotifyToken]);
+    const s = { spotify, google, dropbox, connect };
+    snapshot = s;
+    fetchedAt = Date.now();
+    inflight = null;
+    applyHostedToken(spotify);
+    for (const l of listeners) l(s);
+    return s;
+  })();
+  return inflight;
+}
+/** forget the shared snapshot (tests, logout) */
+export function resetConnectors() {
+  snapshot = null;
+  fetchedAt = 0;
+}
+/**
+ * A hosted session hands its short-lived access token to the store so Listen keeps working without a BYO Client
+ * ID. It also retires any bring-your-own token left in storage: the hosted token has no refresh token, and a stale
+ * BYO refresh would only ever fail against accounts.spotify.com (the 400s the console used to show).
+ */
+function applyHostedToken(h: HostedState) {
+  const setSpotifyToken = useStore.getState().setSpotifyToken;
+  const cur = useStore.getState().spotifyToken;
+  if (h.hosted && h.user && h.token) {
+    setSpotifyToken({ access: h.token.access, expires: h.token.expires });
+    try {
+      sessionStorage.removeItem("tdj-pkce");
+    } catch {}
+  } else if (h.hosted && !h.user && cur && !cur.refresh) setSpotifyToken(null); // a hosted token that was logged out
+}
+
+/**
+ * The connector state for Settings and the Export sheet: the hosted Spotify session, the direct Google and
+ * Dropbox sessions and the Pipedream accounts. Fetched once per page view and shared between components; refetched
+ * when the tab regains focus after a minute (the OAuth dance happens in another tab) or on `reload()`.
+ */
+export function useConnectors() {
+  const [state, setState] = useState<ConnectorsSnapshot | null>(snapshot);
+  const reload = useCallback(async () => {
+    const s = await loadConnectors(true);
+    return s.spotify;
+  }, []);
   useEffect(() => {
-    void reload();
+    listeners.add(setState);
+    void loadConnectors().then(setState);
     const onFocus = () => {
-      if (document.visibilityState === "visible") void reload();
+      if (document.visibilityState === "visible") void loadConnectors();
     };
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onFocus);
     return () => {
+      listeners.delete(setState);
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onFocus);
     };
-  }, [reload]);
-  return { spotify, google, dropbox, connect, reload };
+  }, []);
+  return {
+    spotify: state?.spotify ?? null,
+    google: state?.google ?? null,
+    dropbox: state?.dropbox ?? null,
+    connect: state?.connect ?? null,
+    reload,
+  };
 }

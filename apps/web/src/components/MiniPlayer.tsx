@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { haptic } from "@/lib/haptics";
 import { sheetUp } from "@/lib/motion";
-import { usePlayer } from "@/lib/player";
+import { stopAt, usePlayer } from "@/lib/player";
 import { SpotifyEmbed } from "./Listen";
 
 const fmt = (s: number) => {
@@ -49,7 +49,7 @@ export function MiniPlayer() {
     lastSeek.current = position;
   }, [position, preview]);
 
-  const total = queue ? queue.clipSec : duration || 30;
+  const total = stopAt(track, queue) ?? (duration || 30);
   const offset =
     path === "/"
       ? "calc(max(0.75rem, env(safe-area-inset-bottom)) + 68px + 64px)"
@@ -114,9 +114,11 @@ export function MiniPlayer() {
               >
                 {queue
                   ? `${queue.label} · ${queue.index + 1} of ${queue.tracks.length}`
-                  : track.source.kind === "preview"
-                    ? "30 s preview"
-                    : "Spotify"}
+                  : track.kind === "cortina" && track.stopSec
+                    ? `cortina · ${track.stopSec} s`
+                    : track.source.kind === "preview"
+                      ? "30 s preview"
+                      : "Spotify"}
               </span>
               <button
                 type="button"

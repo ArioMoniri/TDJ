@@ -16,6 +16,10 @@ export interface PlayerTrack {
   singer?: string | null;
   year?: number | null;
   source: PlayerSource;
+  /** a cortina: the mini-player says so and stops it at `stopSec` */
+  kind?: "song" | "cortina";
+  /** stop here (seconds): the DJ's cortina play length; a chain hands over, a single play ends */
+  stopSec?: number;
 }
 
 /** A chained preview: the tracks of one tanda back to back, `clipSec` of each (round4-ux.md §10.1 "Preview tanda"). */
@@ -91,8 +95,9 @@ export const usePlayer = create<PlayerState>()((set, get) => ({
   seek: (position) => set({ position }),
   _tick: (position, duration) => {
     const q = get().queue;
-    // a chained preview hands over to the next track after its clip
-    if (q && position >= q.clipSec) return get().next();
+    const stop = stopAt(get().track, q);
+    // a chained preview hands over to the next track after its clip; a cortina at its play length
+    if (stop !== null && position >= stop) return get().next();
     set({ position, duration });
   },
   _ended: () => get().next(),
@@ -102,6 +107,14 @@ export const usePlayer = create<PlayerState>()((set, get) => ({
     set({ error, playing: false });
   },
 }));
+
+/** Where this track stops on its own: the chain's clip, the track's own stop (cortinas), the shorter of the two. */
+export function stopAt(t: PlayerTrack | null, q: PlayerQueue | null): number | null {
+  const own = t?.stopSec && t.stopSec > 0 ? t.stopSec : null;
+  if (q && own) return Math.min(q.clipSec, own);
+  if (q) return q.clipSec;
+  return own;
+}
 
 const spotifyId = (uri: string) => uri.replace(/^spotify:track:/, "");
 

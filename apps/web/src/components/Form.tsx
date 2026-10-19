@@ -241,6 +241,7 @@ export function StepperRow({
   value,
   unit = "",
   sub,
+  tile,
   children,
   display,
   ...stepper
@@ -249,6 +250,8 @@ export function StepperRow({
   value: number;
   unit?: string;
   sub?: ReactNode;
+  /** leading tile (Settings rows) */
+  tile?: ReactNode;
   min: number;
   max: number;
   step: number;
@@ -262,6 +265,7 @@ export function StepperRow({
   const isPhone = useMediaQuery("(max-width: 639px)");
   return (
     <div className="cell">
+      {tile}
       <span className="min-w-0 flex-1">
         <span className="block truncate">{label}</span>
         {sub && <span className="text-footnote block truncate text-[var(--label-2)]">{sub}</span>}
