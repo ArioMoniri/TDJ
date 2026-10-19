@@ -2,7 +2,6 @@
 import { Plus, Search, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { Song } from "@/lib/types";
-import { Switch } from "../ui";
 import { Edited, Empty, Num, patchMap, Text, useDb } from "./shared";
 
 const RHYTHMS = ["tango", "vals", "milonga", "cancion", "foxtrot", "other"] as const;
@@ -215,13 +214,18 @@ export function SongsTab() {
                       />
                     </td>
                     <td data-label="Shown">
-                      <div className="db-cell">
-                        <Switch
-                          label={`Show ${s.title} in sets`}
-                          checked={!p.hidden}
-                          onChange={(on) => setField(s, "hidden", on ? undefined : true)}
-                        />
-                      </div>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={!p.hidden}
+                        aria-label={`Show ${s.title} in sets`}
+                        onClick={() => setField(s, "hidden", p.hidden ? undefined : true)}
+                        className={`switch db-cell ${p.hidden ? "" : "switch-on"}`}
+                      >
+                        <span className="switch-track">
+                          <span className="switch-knob" />
+                        </span>
+                      </button>
                     </td>
                     <td data-label="State">
                       <Edited on={edited} onRevert={() => revert(s.id)} />
