@@ -1,3 +1,4 @@
+import { tandaCohesion } from "./audio/compat";
 import { normTitle } from "./energy";
 import type { ComposeOptions, DanceRhythm, Era, Rng, Slot, Song, Tanda } from "./index";
 import {
@@ -318,12 +319,32 @@ export function buildTanda(
     .sort((a, b) => b.w - a.w);
   const seen = new Set<string>();
   const picked: Song[] = [];
-  for (const { s } of scored) {
-    const k = normTitle(s.title);
+  // greedy: first pick by weight, then prefer tracks whose analysed tempo/key/loudness sit with the tanda so far
+  const rest = scored.slice(0, Math.max(need * 6, 24));
+  while (picked.length < need && rest.length) {
+    const anchor = picked.filter((x) => x.audio);
+    let bi = 0;
+    if (anchor.length) {
+      let bw = -1;
+      rest.forEach((r, i) => {
+        const c = r.s.audio
+          ? tandaCohesion(
+              [...anchor, r.s].map((x) => x.audio),
+              slot.rhythm,
+            ).score
+          : 50;
+        const w = r.w * (0.6 + 0.4 * (c / 100));
+        if (w > bw) {
+          bw = w;
+          bi = i;
+        }
+      });
+    }
+    const [{ s: cand }] = rest.splice(bi, 1) as [{ s: Song; w: number }];
+    const k = normTitle(cand.title);
     if (seen.has(k)) continue;
     seen.add(k);
-    picked.push(s);
-    if (picked.length === need) break;
+    picked.push(cand);
   }
   if (picked.length < need) return null;
   const songs = shapeTanda(picked, o.tandaShape);
@@ -355,5 +376,11 @@ export function buildTanda(
     durationSec,
     cortina: null,
     reason,
+    cohesion: songs.some((x) => x.audio)
+      ? tandaCohesion(
+          songs.map((x) => x.audio),
+          slot.rhythm,
+        ).score
+      : undefined,
   };
 }

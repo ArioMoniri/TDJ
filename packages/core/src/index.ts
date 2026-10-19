@@ -6,6 +6,7 @@ export * from "./cortinas";
 export * from "./energy";
 export * from "./export/index";
 export * from "./memory";
+export * from "./audio/index";
 export * from "./profiles";
 export * from "./rng";
 export * from "./rules";

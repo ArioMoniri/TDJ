@@ -1,0 +1,136 @@
+{
+  "$schema": "tdj/audio-model/v1",
+  "version": "1.0.0",
+  "generatedAt": "2026-10-19",
+  "source": "docs/research/audio-features.md",
+  "previewSources": {
+    "itunes": { "api": "https://itunes.apple.com/search?entity=song", "key": false, "format": "aac", "bitrateKbps": 264, "sampleRate": 44100, "lengthSec": 30, "offsetKnown": false, "releaseDateIsReissue": true },
+    "deezer": { "api": "https://api.deezer.com/search", "key": false, "format": "mp3", "bitrateKbps": 128, "sampleRate": 44100, "lengthSec": 30, "offsetKnown": false, "releaseDateIsReissue": true, "extraFields": ["gain", "bpm", "isrc", "duration"] },
+    "spotify": { "api": "https://api.spotify.com/v1", "key": true, "note": "previews only on grandfathered apps; audio-features/audio-analysis unavailable to apps created after 2024-11-27" }
+  },
+  "bpmFolding": {
+    "note": "Quarter-note BPM per docs/research/musicology.md s0. Fold detector output by x2 / /2 (x3 / /3 for bar-locked vals) into the window of the catalogue rhythm; tie-break with the orchestra prior.",
+    "windows": { "tango": [100, 150], "vals": [150, 210], "milonga": [90, 140] },
+    "factors": [0.5, 2, 3, 0.3333],
+    "tieBreak": "nearest to orchestra_profiles.bpm[rhythm] midpoint; else keep detector top candidate with bpmConfidence=low",
+    "walkingBpm": "bpm/2 (tango, milonga)",
+    "barsPerMin": "bpm/3 (vals)"
+  },
+  "features": [
+    { "id": "bpm", "label": "Tempo", "unit": "quarter-note BPM", "range": [90, 210], "fromPreview": true, "accuracy": "high", "engineUse": "tanda tempo coherence (<=6% spread), physical energy term (+0.9/BPM vs pivot), pair score tempo factor; after folding, 3 x 11.9 s windows majority vote", "caveat": "medium on rubato orchestras (Pugliese, late Troilo, Di Sarli 1950s)" },
+    { "id": "tempoStd", "label": "Local tempo spread", "unit": "% of BPM", "range": [0, 20], "fromPreview": true, "accuracy": "medium", "engineUse": "rubato term: >4% emotional +8, >8% +14; difficulty +8/+14" },
+    { "id": "pulseClarity", "label": "Pulse clarity", "unit": "0-100", "range": [0, 100], "fromPreview": true, "accuracy": "medium", "engineUse": "danceability +0.3 per point; marcato in2/in4 from energy at 2x vs 1x pulse; strongest beginner-danceability predictor" },
+    { "id": "attackStrength", "label": "Beat attack", "unit": "ratio", "range": [1, 10], "fromPreview": true, "accuracy": "high", "engineUse": "rhythmic vs lyrical style tag; groove correlate" },
+    { "id": "key", "label": "Key", "unit": "pitch class + mode (Camelot)", "range": ["1A", "12B"], "fromPreview": true, "accuracy": "medium", "engineUse": "pair score key factor (weight 0.10); same-key avoidance between neighbours; never a hard rule", "caveat": "exact 60-70%, near-key 85% after tuning correction; keep second candidate" },
+    { "id": "mode", "label": "Mode", "unit": "major|minor", "range": ["major", "minor"], "fromPreview": true, "accuracy": "high", "engineUse": "valence (minor -0.15, major +0.2), emotional +5 minor, physical -3 major; mode continuity inside tango tandas" },
+    { "id": "keyConfidence", "label": "Key margin", "unit": "0-1", "range": [0, 1], "fromPreview": true, "accuracy": "high", "engineUse": "gate key factor: below 0.1 treat key as unknown (sub-score 0.7)" },
+    { "id": "tuningHz", "label": "Reference pitch", "unit": "Hz (A4)", "range": [425, 450], "fromPreview": true, "accuracy": "medium", "engineUse": "speed check vs era prior; +/-10-15 cents precision on shellac" },
+    { "id": "tuningDriftCents", "label": "Pitch drift inside excerpt", "unit": "cents", "range": [-100, 100], "fromPreview": true, "accuracy": "medium", "engineUse": "transfer quality; Odeon-style half-semitone side drift" },
+    { "id": "loudnessLUFS", "label": "Loudness", "unit": "LUFS (BS.1770 integrated)", "range": [-30, -5], "fromPreview": true, "accuracy": "high", "engineUse": "pair and cortina loudness match (+/-2 LU window); arousal via loudnessNorm; never energy directly; edition-specific" },
+    { "id": "lra", "label": "Loudness range", "unit": "LU (EBU Tech 3342)", "range": [0, 20], "fromPreview": true, "accuracy": "medium", "engineUse": "lraLow<5 emotional -4; lraHigh>=9 emotional +6, difficulty +4 (lower bound from 30 s)" },
+    { "id": "crestFactorDb", "label": "Crest factor", "unit": "dB", "range": [3, 25], "fromPreview": true, "accuracy": "high", "engineUse": "brickwall detection (<8 dB) for edition ranking; dynamicsScore" },
+    { "id": "truePeakDbTP", "label": "True peak", "unit": "dBTP", "range": [-30, 3], "fromPreview": true, "accuracy": "high", "engineUse": "clipping flag for edition ranking" },
+    { "id": "spectralCentroidHz", "label": "Brightness", "unit": "Hz", "range": [500, 4000], "fromPreview": true, "accuracy": "medium", "engineUse": "brightness match (semitone ramp) between neighbours and cortina->tanda; display label dark/warm/bright by corpus percentile" },
+    { "id": "rolloff95Hz", "label": "Bandwidth", "unit": "Hz", "range": [2000, 16000], "fromPreview": true, "accuracy": "medium", "engineUse": "transferScore; duplicate ranking; compare within provider only" },
+    { "id": "noiseFloorDb", "label": "Noise floor", "unit": "dB below median RMS", "range": [-40, 0], "fromPreview": true, "accuracy": "medium", "engineUse": "transferScore (shellac typical ~ -30 dB SNR)" },
+    { "id": "hissLevelDb", "label": "Hiss", "unit": "dB (6-10 kHz vs 0.5-2 kHz)", "range": [-60, 0], "fromPreview": true, "accuracy": "medium", "engineUse": "transferScore; detects fake treble boost" },
+    { "id": "clickDensity", "label": "Clicks", "unit": "per second", "range": [0, 20], "fromPreview": true, "accuracy": "medium", "engineUse": "transferScore (impulses not on beat grid)" },
+    { "id": "onsetsPerSec", "label": "Onset density", "unit": "per second", "range": [0, 12], "fromPreview": true, "accuracy": "medium", "engineUse": "rhythmic (+8 physical) vs lyrical (-6 physical, +6 emotional) proxy, cross-checked with orchestra style" },
+    { "id": "onsetRegularity", "label": "Onset regularity", "unit": "0-1", "range": [0, 1], "fromPreview": true, "accuracy": "medium", "engineUse": "syncopation / dramatic-alternating detection; difficulty" },
+    { "id": "sustainedRatio", "label": "Sustained vs percussive", "unit": "ratio (HPSS)", "range": [0, 10], "fromPreview": true, "accuracy": "medium", "engineUse": "lyricalVsRhythmic feature in MUSICALITY" },
+    { "id": "loudnessSlope", "label": "Dynamics slope", "unit": "dB per 10 s", "range": [-10, 10], "fromPreview": true, "accuracy": "medium", "engineUse": "excerpt is building/flat/settling; groove correlate (RMS variability r=.57)" },
+    { "id": "vocalPresent", "label": "Vocal in excerpt", "unit": "bool", "range": [false, true], "fromPreview": true, "accuracy": "medium", "engineUse": "contradiction check against catalogue vocal flag (positive detection high, negative low because the preview may precede the estribillo)" },
+    { "id": "vocalActivityRatio", "label": "Vocal share", "unit": "0-1", "range": [0, 1], "fromPreview": false, "accuracy": "medium", "engineUse": "estribillista <0.25 / cantor de orquesta 0.25-0.55 / cantor dominant >0.55 thresholds; needs full file" },
+    { "id": "introSec", "label": "Intro length", "unit": "seconds to first vocal entry", "range": [0, 120], "fromPreview": false, "accuracy": "medium", "engineUse": "position-1 cue (instrumental intro announces the tanda); needs full file" },
+    { "id": "leadingSilenceSec", "label": "Leading silence", "unit": "seconds", "range": [0, 5], "fromPreview": false, "accuracy": "high", "engineUse": "cue-in; needs full file" },
+    { "id": "endingType", "label": "Ending", "unit": "fade|cut|ritardando|coda", "range": ["fade", "cut", "ritardando", "coda"], "fromPreview": false, "accuracy": "medium", "engineUse": "closer selection in shapeTanda; fades penalised; needs last 15 s of full file" },
+    { "id": "durationSec", "label": "Duration", "unit": "seconds", "range": [60, 400], "fromPreview": false, "accuracy": "high", "engineUse": "from provider metadata (trackTimeMillis / duration); speed check ratio vs referenceDurationSec; tanda budget", "caveat": "metadata, not audio; per edition" },
+    { "id": "transferScore", "label": "Transfer quality", "unit": "0-100", "range": [0, 100], "fromPreview": true, "accuracy": "medium", "engineUse": "scorer source/transfer factor; duplicate ranking; composed from rolloff95Hz, noiseFloorDb, hissLevelDb, clickDensity, crestFactorDb, truePeakDbTP" }
+  ],
+  "compatibility": {
+    "scope": "consecutive tracks inside a tanda after hard constraints (one orchestra, one rhythm, one vocal mode, year window) are satisfied",
+    "weights": { "tempo": 0.30, "loudness": 0.20, "key": 0.10, "brightness": 0.15, "vocal": 0.15, "energy": 0.10 },
+    "bpmDeltaMax": { "tango": 8, "vals": 12, "milonga": 7 },
+    "bpmRamp": { "fullScoreUpTo": 0.5, "zeroAt": 2.0, "note": "multiples of bpmDeltaMax[rhythm]; unknown BPM on either side -> 0.5" },
+    "loudnessWindowLU": 2,
+    "loudnessZeroAtLU": 6,
+    "brightnessSemitones": { "fullScoreUpTo": 2, "zeroAt": 8 },
+    "energyStep": { "fullScoreUpTo": 8, "zeroAt": 25, "milongaFullScoreUpTo": 12 },
+    "vocal": { "same": 1, "different": 0 },
+    "keyRelations": { "rel": 1.0, "1": 1.0, "0": 0.7, "par": 0.8, "2": 0.85, "3": 0.75, "4": 0.65, "5": 0.65, "6": 0.55, "unknown": 0.7 },
+    "keyRelationNote": "Camelot steps = minimal circular distance between wheel numbers; rel = same number other letter (relative major/minor); par = same tonic other mode. Same key scores below fifth/relative on purpose (tango DJs avoid same-key neighbours for contrast; nothing is ever overlaid, so EDM harmonic mixing does not apply).",
+    "rhythmExceptions": { "vals": { "modeChangeAllowed": true }, "milonga": { "energyFullScoreUpTo": 12 } },
+    "formula": "S(a,b) = 100 * sum_i w_i * s_i(a,b), each s_i in [0,1] a clamped linear ramp (1 up to fullScoreUpTo, 0 at zeroAt); badge(tanda) = round(mean(S_pairs) - 0.5 * (mean(S_pairs) - min(S_pairs))); labels: >=85 seamless, 70-84 fine, 55-69 audible step, <55 re-order or swap",
+    "cortinaToTanda": {
+      "weights": { "energy": 0.45, "loudness": 0.35, "brightness": 0.20 },
+      "energyBand": { "idealMin": -14, "idealMax": -2, "zeroBeyond": 12, "note": "E_cortina - E_firstTrack; cortina ~8 points below the next tanda" },
+      "loudnessBand": { "idealMin": -3, "idealMax": 1, "zeroAtLouder": 4, "zeroAtQuieter": 7, "note": "LUFS_cortina - LUFS_firstTrack; a cortina louder than the tanda is a tell" },
+      "brightnessSemitones": { "fullScoreUpTo": 2, "zeroAt": 8 },
+      "tempoWeight": 0,
+      "keyWeight": 0
+    }
+  },
+  "speedCheck": {
+    "referencePitchHz": {
+      "rules": [
+        { "match": { "labelAny": ["victor", "rca"], "beforeDate": "1939-04-18" }, "hz": 435, "note": "D'Arienzo last 435 session 1939-03-03, first 440 session 1939-04-18" },
+        { "match": { "labelAny": ["odeon"], "beforeDate": "1944-01-01" }, "hz": 435, "note": "Odeon stayed at 435 until end-1943" },
+        { "match": { "beforeYear": 1939 }, "hz": 435 },
+        { "match": { "orchestraAny": ["juan-d-arienzo", "osvaldo-pugliese"], "afterYear": 1953 }, "hz": 442 },
+        { "match": { "afterYear": 1955 }, "hz": 441 },
+        { "match": {}, "hz": 440 }
+      ],
+      "ambiguityCents": 20,
+      "note": "435 vs 440 is 20 cents; deviations below 25 cents from the nearest plausible reference cannot be classified from audio"
+    },
+    "centsSuspect": 35,
+    "durationRatioSuspect": 0.015,
+    "bpmVsEditionsSuspect": 0.03,
+    "decision": {
+      "speedSuspect": "abs(cents) > centsSuspect AND sign(cents) == sign(durationRatio - 1) AND abs(durationRatio - 1) > durationRatioSuspect",
+      "speedConfirmed": "speedSuspect AND abs(bpm / medianBpmOtherEditions - 1) > bpmVsEditionsSuspect",
+      "driftFlag": "abs(tuningDriftCents) > 40"
+    },
+    "engineEffect": { "speedSuspect": { "selectionWeight": 0.7, "badge": true }, "speedConfirmed": { "exclude": true, "userOverride": true } },
+    "knownPatterns": [
+      "1960s LP reissues ~2/3 semitone fast (Tango Music Secrets)",
+      "CTA LP transfers +2.6 Hz (~10-15 cents) on average (TangoTunes analysis)",
+      "some 1940-41 D'Arienzo sessions appear deliberately fast (~448 Hz in CTA)",
+      "Odeon 1937 cuts drop ~50 cents from start to end of side"
+    ]
+  },
+  "editionRanking": {
+    "formula": "editionScore = 0.30*transferScore/100 + 0.25*speedScore + 0.15*dynamicsScore + 0.15*labelTier + 0.10*durationScore + 0.05*popularity",
+    "speedScore": "1 - min(1, abs(cents)/50)",
+    "dynamicsScore": "1 if crestFactorDb >= 12 and lra >= 4; 0 if crestFactorDb < 8; linear between",
+    "durationScore": "1 if abs(durationSec/referenceDurationSec - 1) <= 0.015 else 0",
+    "labelTier": { "1.0": ["tangotunes", "tango time travel", "cta", "club tango argentino", "audio park", "euro records 78 rpm"], "0.7": ["emi", "reliquias", "rca", "bmg", "el bandoneon", "harlequin"], "0.3": ["unknown compilation"] },
+    "sameRecording": "normTitle + orchestraId + year within 1; different takes are kept with altTake=true"
+  },
+  "mergePolicy": {
+    "year": ["tango-dj.at session date", "discography with matrix number", "tango.info performance date", "el-recodo", "catalogue index (yearApprox loses)", "musicbrainz recording date"],
+    "yearNever": ["itunes releaseDate", "deezer release_date", "spotify album release", "discogs release year"],
+    "yearSanity": "year <= streaming release year",
+    "singer": ["tango.info / tango-dj.at credit", "catalogue index", "discography", "parsed streaming strings (con / canta)", "never spotify compilation credits"],
+    "title": "catalogue normTitle canonical; streaming titles are aliases; strip (Remastered)/(year) qualifiers",
+    "duration": "median of trusted editions as referenceDurationSec; streaming durations kept per edition"
+  },
+  "display": [
+    { "field": "bpm", "label": "Tempo", "format": "{rhythm} · {bpm} ({walkingBpm})", "valsFormat": "Vals · {bpm} ({barsPerMin} bars/min)", "greyWhen": "bpmConfidence == low" },
+    { "field": "energy", "label": "Energy", "format": "{energy}/100" },
+    { "field": "key", "label": "Key", "format": "{keyName} ({camelot})", "hover": "second candidate + margin", "colorBy": "mode" },
+    { "field": "loudnessLUFS", "label": "Loudness", "format": "{loudnessLUFS} LUFS · LRA {lra}", "deltaWhen": "another edition differs by > 2 LU" },
+    { "field": "spectralCentroidHz", "label": "Brightness", "format": "{brightnessLabel} · {spectralCentroidHz} Hz", "labels": { "dark": "p<33", "warm": "p33-66", "bright": "p>66" } },
+    { "field": "pulseClarity", "label": "Pulse", "format": "{pulseClarity}/100", "labels": { "very clear": ">=75", "clear": "50-74", "soft": "<50" } },
+    { "field": "vocal", "label": "Vocal", "format": "{catalogueVocal} {audioTick}", "note": "vocal share only with full-file analysis" },
+    { "field": "introSec", "label": "Intro", "format": "{introSec} s", "fallback": "—", "note": "never from a preview" },
+    { "field": "transferScore", "label": "Transfer", "format": "{transferScore}/100 · {editionName}", "badge": "speedSuspect|speedConfirmed" },
+    { "field": "compatibilityBadge", "label": "Compatibility", "format": "{badge}/100 {label}", "hover": "per-factor sub-scores" }
+  ],
+  "validation": {
+    "sampleSize": 50,
+    "composition": { "juan-d-arienzo-1935-39": 10, "juan-d-arienzo-1950s": 6, "carlos-di-sarli": 8, "osvaldo-pugliese": 6, "anibal-troilo-1941-44": 5, "francisco-canaro-1930s": 5, "rodolfo-biagi": 4, "osvaldo-fresedo": 3, "miguel-calo": 3 },
+    "targets": { "bpmWithin2pct": 0.9, "bpmWithin2pctRubato": 0.75, "octaveCorrect": 0.97, "modeCorrect": 0.85, "keyExact": 0.65, "keyNear": 0.85, "vocalPositiveAgreement": 0.95, "loudnessRepeatabilityLU": 1, "speedRecall": 0.8, "speedFalsePositive": 0.1, "pulseSpearman": 0.6, "styleProxyAgreement": 0.8 },
+    "goldenSetFloor": 85
+  }
+}

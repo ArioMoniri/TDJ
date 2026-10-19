@@ -1,4 +1,5 @@
 import { estimateDuration, normTitle, songEnergy } from "./energy";
+import type { AudioFeatures, ResolvedTrack } from "./audio/index";
 import { ERA_PRESETS, mergeProfiles } from "./profiles";
 import type { DanceRhythm, EraPreset, OrchestraProfile, Song, UserOverrides } from "./types";
 
@@ -53,6 +54,10 @@ export class Catalog {
     corpus: ReferenceCorpus = {},
     overrides?: UserOverrides,
     trackEnergy: Record<string, number> = {},
+    caches: {
+      resolved?: Record<string, ResolvedTrack | null>;
+      audio?: Record<string, AudioFeatures | null>;
+    } = {},
   ) {
     this.corpus = corpus;
     const profs = extraProfiles.map((p) => ({ ...p, ...(overrides?.profiles?.[p.id] ?? {}) }));
@@ -74,11 +79,20 @@ export class Catalog {
       if (patch?.hidden) return [];
       const s = patch ? { ...raw, ...patch } : raw;
       const sp = s.spotify ?? spotifyCache[s.id] ?? null;
+      const resolved = s.resolved ?? caches.resolved?.[s.id] ?? null;
+      const audio = patch?.audio ?? s.audio ?? caches.audio?.[s.id] ?? null;
       const song: Song = {
         ...s,
         spotify: sp ?? null,
+        resolved,
+        audio,
         durationSec:
-          s.durationSec ?? (sp?.durationMs ? Math.round(sp.durationMs / 1000) : estimateDuration(s)),
+          s.durationSec ??
+          (sp?.durationMs
+            ? Math.round(sp.durationMs / 1000)
+            : resolved?.durationMs && resolved.durationMs > 90_000
+              ? Math.round(resolved.durationMs / 1000)
+              : estimateDuration(s)),
       };
       const key = `${normTitle(song.title)}|${song.orchestraId}`;
       const fame = this.fame.get(key);

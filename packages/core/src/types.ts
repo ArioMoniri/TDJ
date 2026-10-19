@@ -66,6 +66,10 @@ export interface Song {
   yearApprox?: boolean;
   rhythmOriginal?: string;
   note?: string | null;
+  /** analysed audio features (data/cache/audio/features.json or user database) */
+  audio?: import("./audio/dsp").AudioFeatures | null;
+  /** resolved streaming/preview track (data/cache/resolve/tracks.json) */
+  resolved?: import("./audio/index").ResolvedTrack | null;
 }
 
 export interface OrchestraProfile {
@@ -134,6 +138,8 @@ export interface Tanda {
   phase: Phase;
   durationSec: number;
   cortina: Cortina | null;
+  /** 0..100 mean analysed-audio compatibility between consecutive tracks (undefined when no features) */
+  cohesion?: number;
   locked?: boolean;
   note?: string;
   /** why the engine chose it (shown in the UI) */

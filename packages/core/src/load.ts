@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ReferenceCorpus } from "./catalog";
 import { Catalog } from "./catalog";
+import type { AudioFeatures, ResolvedTrack } from "./audio/index";
 import type { ContextModel, Cortina, OrchestraProfile, Song, UserOverrides } from "./types";
 
 /** Node-only loader: reads the committed index from `data/` (repo root). */
@@ -16,6 +17,8 @@ export interface Loaded {
     songs: Song[];
     profiles: OrchestraProfile[];
     cache: Record<string, Song["spotify"] & { durationMs?: number }>;
+    resolved: Record<string, ResolvedTrack | null>;
+    audio: Record<string, AudioFeatures | null>;
   };
 }
 export function loadCatalog(root = findRoot(), overrides?: UserOverrides): Loaded {
@@ -34,16 +37,24 @@ export function loadCatalog(root = findRoot(), overrides?: UserOverrides): Loade
   const trackEnergy = existsSync(tef)
     ? (JSON.parse(readFileSync(tef, "utf8")) as Record<string, number>)
     : {};
+  const rsf = j("data/cache/resolve/tracks.json");
+  const resolved = existsSync(rsf)
+    ? (JSON.parse(readFileSync(rsf, "utf8")) as Record<string, ResolvedTrack | null>)
+    : {};
+  const af = j("data/cache/audio/features.json");
+  const audio = existsSync(af)
+    ? (JSON.parse(readFileSync(af, "utf8")) as Record<string, AudioFeatures | null>)
+    : {};
   const rf = j("data/knowledge/reference_sets.json");
   const corpus = existsSync(rf) ? (JSON.parse(readFileSync(rf, "utf8")) as ReferenceCorpus) : {};
   return {
-    catalog: new Catalog(songs, profiles, cache, corpus, overrides, trackEnergy),
+    catalog: new Catalog(songs, profiles, cache, corpus, overrides, trackEnergy, { resolved, audio }),
     cortinas,
     meta,
     contextModel,
     corpus,
     trackEnergy,
-    raw: { songs, profiles, cache },
+    raw: { songs, profiles, cache, resolved, audio },
   };
 }
 
