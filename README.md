@@ -3,7 +3,7 @@
 </p>
 <h1 align="center">TDJ — Tango DJ playlist composer</h1>
 <p align="center">Tandas · cortinas · a night-long energy arc · export to Spotify, Rekordbox, Traktor, Serato, M3U8.<br/>
-<a href="#one-click-deploy">Deploy in one click</a> · <a href="docs/ROADMAP.md">Roadmap</a> · <a href="docs/BENCHMARK.md">Benchmark</a> · <a href="docs/reviews">Expert reviews</a> · <a href="media/video/launch.mp4">Launch video</a></p>
+<a href="https://d3k5k2c1l0s5ri.cloudfront.net">Live demo</a> · <a href="#one-click-deploy">Deploy in one click</a> · <a href="docs/ROADMAP.md">Roadmap</a> · <a href="docs/BENCHMARK.md">Benchmark</a> · <a href="docs/reviews">Expert reviews</a> · <a href="media/video/launch.mp4">Launch video</a></p>
 
 <p align="center"><a href=".github/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/badge/CI-vitest%20%C2%B7%20playwright%20%C2%B7%20biome-7c3aed"></a> <img alt="Next 16" src="https://img.shields.io/badge/Next.js-16.4-black"> <img alt="SST" src="https://img.shields.io/badge/AWS-SST%20v4%20%2B%20OpenNext-f90"> <img alt="index" src="https://img.shields.io/badge/index-21%2C932%20recordings-e0557a"></p>
 
@@ -45,6 +45,11 @@ pnpm compose -- --hours=4 --eras=golden --cultures=turkish --seed=42   # CLI set
 pnpm test                # engine invariants (vitest)   ·  pnpm e2e (Playwright, desktop + iPhone)
 pnpm media               # real screenshots + usage video  ·  pnpm video (Remotion launch video)
 ```
+
+## Live
+Production deployment on AWS (CloudFront + Lambda via SST, deployed by the GitHub OIDC workflow): **https://d3k5k2c1l0s5ri.cloudfront.net**
+
+<p align="center"><img src="media/screenshots/00-live.png" width="72%" alt="Live site on CloudFront"/> <img src="media/screenshots/00-live-mobile.png" width="19%" alt="Live site on iPhone"/></p>
 
 ## One-click deploy
 | Target | How |
