@@ -76,7 +76,13 @@ export const DJ_APPS: Array<{ id: DjApp; label: string; format: string; note: st
 
 export interface UserSettings {
   spotifyClientId: string;
-  ai: { provider: AiProvider; key: string; model: string };
+  ai: {
+    provider: AiProvider;
+    key: string;
+    model: string;
+    /** Anthropic only: the workspace an organisation-level key bills (`wrkspc_…`); blank for a key made inside a workspace */
+    workspace?: string;
+  };
   djApps: Record<DjApp, { folder: string }>;
   /** file naming pattern used for exported paths; tokens: {artist} {title} {orchestra} {singer} {year} {rhythm} {tanda} {n} */
   fileNaming: string;

@@ -104,6 +104,10 @@ function TestIcon({ state }: { state: TestState }) {
 function humanError(provider: AiProvider, status: number, raw: unknown): string {
   const name = AI_PROVIDERS.find(([k]) => k === provider)?.[1] ?? provider;
   const text = typeof raw === "string" ? raw : "";
+  // an Anthropic key made at organisation level must name the workspace it bills
+  if (/not scoped to a workspace|anthropic-workspace-id/i.test(text))
+    return "This key needs a workspace: paste its Workspace ID below or create the key inside a workspace.";
+  if (status === 429 && /organiser/i.test(text)) return text;
   if (
     status === 401 ||
     status === 403 ||
@@ -127,6 +131,15 @@ export default function Settings() {
   const [showKey, setShowKey] = useState(false);
   const [folderFor, setFolderFor] = useState<DjApp | null>(null);
   const [test, setTest] = useState<{ state: TestState; text?: string }>({ state: "idle" });
+  /** the organiser's shared key (GET /api/ai/review): exists, and this DJ's use of today's allowance */
+  const [shared, setShared] = useState<{ shared: boolean; limit: number; used: number } | null>(null);
+  const [ownKey, setOwnKey] = useState(false);
+  useEffect(() => {
+    void fetch("/api/ai/review", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => setShared(j ?? { shared: false, limit: 0, used: 0 }))
+      .catch(() => setShared({ shared: false, limit: 0, used: 0 }));
+  }, []);
   /** "Checking…" waits 300 ms so a fast answer never flashes it */
   const [checking, setChecking] = useState(false);
   useEffect(() => {
@@ -139,6 +152,9 @@ export default function Settings() {
   }, [test.state]);
   const ai = settings.ai;
   const setAi = (patch: Partial<UserSettings["ai"]>) => setSettings({ ai: { ...ai, ...patch } });
+  const usingShared = !ai.key && !!shared?.shared;
+  // the personal fields fold away under "Use my own key" while the organiser's key does the work
+  const showOwn = ownKey || !!ai.key || shared?.shared === false;
   const switchProvider = (provider: AiProvider) => {
     const keepModel = MODEL_SUGGESTIONS[provider].includes(ai.model);
     setAi({ provider, model: keepModel ? ai.model : AI_DEFAULT_MODEL[provider] });
@@ -154,13 +170,20 @@ export default function Settings() {
           "x-ai-provider": ai.provider,
           "x-ai-key": ai.key,
           "x-ai-model": ai.model,
+          "x-ai-workspace": ai.workspace ?? "",
         },
         body: JSON.stringify({ test: true }),
       });
       const j = await r.json();
-      if (r.ok)
-        setTest({ state: "ok", text: `Connected. ${ai.model || "The default model"} answered "${j.text}".` });
-      else setTest({ state: "fail", text: humanError(ai.provider, r.status, j.error) });
+      if (r.ok) {
+        setTest({
+          state: "ok",
+          text: j.shared
+            ? `Connected through the organiser's key; the model answered "${j.text}".`
+            : `Connected. ${ai.model || "The default model"} answered "${j.text}".`,
+        });
+        if (j.shared && shared) setShared({ ...shared, used: Math.min(shared.limit, shared.used + 1) });
+      } else setTest({ state: "fail", text: humanError(ai.provider, r.status, j.error) });
     } catch {
       setTest({ state: "fail", text: "Could not reach the server." });
     }
@@ -215,7 +238,9 @@ export default function Settings() {
                     ? "Checking…"
                     : ""
                   : (test.text ??
-                    "A model key lets you ask for a written review of a set and turns “Tell the DJ” into precise changes. Without a key, free text still works by keyword. The key is sent with your own requests only and never stored on the server.")}
+                    (usingShared
+                      ? `The organiser's key writes your reviews and turns “Tell the DJ” into precise changes, up to ${shared?.limit ?? 20} requests a day per DJ. Add your own key under “Use my own key” for unlimited use; it stays in this browser.`
+                      : "A model key lets you ask for a written review of a set and turns “Tell the DJ” into precise changes. Without a key, free text still works by keyword. The key is sent with your own requests only and never stored on the server."))}
               </motion.span>
             </AnimatePresence>
           </span>
@@ -228,53 +253,100 @@ export default function Settings() {
             </Tile>
           }
           label="Status"
-          value={ai.key ? "Key saved" : "No key"}
+          value={
+            ai.key
+              ? "Key saved"
+              : shared === null
+                ? "Checking…"
+                : shared.shared
+                  ? `Using the organiser's key · ${shared.used} of ${shared.limit} today`
+                  : "No key"
+          }
+          id="ai-status"
         />
-        <SegmentedRow label="Provider" value={ai.provider} items={AI_PROVIDERS} onChange={switchProvider} />
-        <FieldRow label="API key" id="ai-key">
-          <input
-            id="ai-key"
-            type={showKey ? "text" : "password"}
-            className="field field-value min-w-0 flex-1 font-mono"
-            placeholder={KEY_PLACEHOLDER[ai.provider]}
-            value={ai.key}
-            onChange={(e) => setAi({ key: e.target.value.trim() })}
-            autoComplete="off"
-            spellCheck={false}
+        {!showOwn && (
+          <Row
+            label="Use my own key"
+            sub="Unlimited, kept in this browser"
+            value="Show"
+            onClick={() => setOwnKey(true)}
+            id="ai-own-key"
           />
-          <button
-            type="button"
-            className="btn-plain -mr-2"
-            onClick={() => setShowKey((v) => !v)}
-            aria-pressed={showKey}
-          >
-            {showKey ? "Hide" : "Show"}
-          </button>
-        </FieldRow>
-        <FieldRow label="Model" sub="Leave blank for the default" id="ai-model">
-          <input
-            id="ai-model"
-            list="ai-model-list"
-            className="field field-value min-w-0 flex-1 font-mono"
-            placeholder={AI_DEFAULT_MODEL[ai.provider]}
-            value={ai.model}
-            onChange={(e) => setAi({ model: e.target.value.trim() })}
-            autoComplete="off"
-            spellCheck={false}
-          />
-          <datalist id="ai-model-list">
-            {MODEL_SUGGESTIONS[ai.provider].map((m) => (
-              <option key={m} value={m} />
-            ))}
-          </datalist>
-        </FieldRow>
+        )}
+        {showOwn && (
+          <>
+            <SegmentedRow
+              label="Provider"
+              value={ai.provider}
+              items={AI_PROVIDERS}
+              onChange={switchProvider}
+            />
+            <FieldRow label="API key" id="ai-key">
+              <input
+                id="ai-key"
+                type={showKey ? "text" : "password"}
+                className="field field-value min-w-0 flex-1 font-mono"
+                placeholder={KEY_PLACEHOLDER[ai.provider]}
+                value={ai.key}
+                onChange={(e) => setAi({ key: e.target.value.trim() })}
+                autoComplete="off"
+                spellCheck={false}
+              />
+              <button
+                type="button"
+                className="btn-plain -mr-2"
+                onClick={() => setShowKey((v) => !v)}
+                aria-pressed={showKey}
+              >
+                {showKey ? "Hide" : "Show"}
+              </button>
+            </FieldRow>
+            <FieldRow label="Model" sub="Leave blank for the default" id="ai-model">
+              <input
+                id="ai-model"
+                list="ai-model-list"
+                className="field field-value min-w-0 flex-1 font-mono"
+                placeholder={AI_DEFAULT_MODEL[ai.provider]}
+                value={ai.model}
+                onChange={(e) => setAi({ model: e.target.value.trim() })}
+                autoComplete="off"
+                spellCheck={false}
+              />
+              <datalist id="ai-model-list">
+                {MODEL_SUGGESTIONS[ai.provider].map((m) => (
+                  <option key={m} value={m} />
+                ))}
+              </datalist>
+            </FieldRow>
+            {ai.provider === "anthropic" && (
+              <FieldRow label="Workspace ID" sub="Only for keys made at organisation level" id="ai-workspace">
+                <input
+                  id="ai-workspace"
+                  className="field field-value min-w-0 flex-1 font-mono"
+                  placeholder="wrkspc_…"
+                  value={ai.workspace ?? ""}
+                  onChange={(e) => setAi({ workspace: e.target.value.trim() })}
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+              </FieldRow>
+            )}
+          </>
+        )}
         <ActionRow
           label="Test connection"
           onClick={testConnection}
-          disabled={!ai.key}
+          disabled={!ai.key && !usingShared}
           busy={test.state === "busy"}
+          id="ai-test"
         />
       </Group>
+      {showOwn && ai.provider === "anthropic" && (
+        <p className="section-foot -mt-2">
+          Workspace ID: only needed when the key was created at organisation level; or create the key inside a
+          workspace at console.anthropic.com → API keys.
+        </p>
+      )}
 
       <Group
         header="Memory"

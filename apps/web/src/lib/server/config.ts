@@ -23,13 +23,30 @@ export const CONFIG_KEYS = [
   "NEXT_PUBLIC_APP_URL",
   "SETUP_CODE",
   "OWNER_PASSPHRASE_HASH",
+  // people (owner-maintained seat lists, one e-mail per line; the organiser's contact is public)
+  "OWNER_CONTACT",
+  "SPOTIFY_SEATS",
+  "GOOGLE_SEATS",
+  "DROPBOX_SEATS",
+  // the shared model key for "AI reviews for everyone" (/admin); never leaves the server
+  "AI_PROVIDER",
+  "AI_KEY",
+  "AI_MODEL",
+  "AI_WORKSPACE_ID",
+  "AI_DAILY_LIMIT",
 ] as const;
 export type ConfigKey = (typeof CONFIG_KEYS)[number];
 export type Config = Partial<Record<ConfigKey, string>>;
 export type ConfigSource = "env" | "store";
 
 /** Keys that only ever live in the store: the environment has no business carrying a one-time code or a hash. */
-const STORE_ONLY: ReadonlySet<ConfigKey> = new Set<ConfigKey>(["SETUP_CODE", "OWNER_PASSPHRASE_HASH"]);
+const STORE_ONLY: ReadonlySet<ConfigKey> = new Set<ConfigKey>([
+  "SETUP_CODE",
+  "OWNER_PASSPHRASE_HASH",
+  "SPOTIFY_SEATS",
+  "GOOGLE_SEATS",
+  "DROPBOX_SEATS",
+]);
 
 const TTL_MS = 60_000;
 export const stage = () => process.env.TDJ_STAGE || process.env.SST_STAGE || "local";

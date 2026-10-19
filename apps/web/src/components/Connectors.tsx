@@ -1,5 +1,16 @@
 "use client";
-import { Cloud, Disc, HardDrive, KeyRound, Library, ListVideo, Radio, Webhook } from "lucide-react";
+import {
+  ArrowRightLeft,
+  Cloud,
+  Disc,
+  HardDrive,
+  KeyRound,
+  Library,
+  ListVideo,
+  Radio,
+  UserRound,
+  Webhook,
+} from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import {
   beginAuth,
@@ -57,6 +68,25 @@ const APP_META: Record<ConnectApp, { color: string; icon: ReactNode; sub: string
 };
 const GOOGLE_COLOR = "#4285f4";
 
+/** GET /api/admin/public: what any DJ may know (no secret in it, see lib/server/admin.ts → publicStatus). */
+export interface PublicStatus {
+  providers: Record<"spotify" | "google" | "dropbox", boolean>;
+  ownerContact: string;
+  seats: Record<"spotify" | "google" | "dropbox", { used: number; max: number }>;
+  ai: { shared: boolean; dailyLimit: number };
+}
+export async function fetchPublicStatus(): Promise<PublicStatus | null> {
+  try {
+    const r = await fetch("/api/admin/public", { cache: "no-store" });
+    return r.ok ? ((await r.json()) as PublicStatus) : null;
+  } catch {
+    return null;
+  }
+}
+/** The message a DJ sends the organiser to get one of the Spotify seats. */
+export const seatRequest = (origin: string) =>
+  `Hi! I would like to use TDJ (${origin}) with my Spotify account. Could you add my Spotify e-mail to the app's User Management list in the Spotify dashboard? My Spotify e-mail: ______. Thanks!`;
+
 /** The status dot in front of a row value: green connected, grey not, amber needs attention. */
 function Dot({ tone }: { tone: "on" | "off" | "warn" }) {
   const bg = tone === "on" ? "var(--system-green)" : tone === "warn" ? "#ff9500" : "var(--label-3)";
@@ -103,8 +133,22 @@ export function Connectors() {
   const { settings, setSettings, spotifyToken, setSpotifyToken, overrides, updateOverrides } = useStore();
   const { spotify, google, dropbox, connect, reload } = useConnectors();
   const [open, setOpen] = useState<
-    "spotify" | "google" | "dropbox" | "deezer" | "musicbrainz" | "webhook" | `pd:${ConnectApp}` | null
+    | "spotify"
+    | "google"
+    | "dropbox"
+    | "deezer"
+    | "musicbrainz"
+    | "webhook"
+    | "notlisted"
+    | `pd:${ConnectApp}`
+    | null
   >(null);
+  const [pub, setPub] = useState<PublicStatus | null>(null);
+  const [otherWays, setOtherWays] = useState(false);
+  const [requestCopied, setRequestCopied] = useState(false);
+  useEffect(() => {
+    void fetchPublicStatus().then(setPub);
+  }, []);
   const [advanced, setAdvanced] = useState(false);
   const [deezer, setDeezer] = useState<Status>("idle");
   const [mb, setMb] = useState<Status>("idle");
@@ -119,9 +163,24 @@ export function Connectors() {
     const connected = q.get("connected");
     const error = q.get("error");
     if (!connected && !error) return;
-    toast(arrivalToast(connected, error));
+    // a DJ the owner has not listed in the Spotify dashboard gets a sheet that says what to do, not a toast
+    if (error === "spotify_not_listed") setOpen("notlisted");
+    else toast(arrivalToast(connected, error));
     history.replaceState(null, "", location.pathname);
   }, []);
+  const copyRequest = async () => {
+    try {
+      await navigator.clipboard.writeText(seatRequest(location.origin));
+      setRequestCopied(true);
+      setTimeout(() => setRequestCopied(false), 1500);
+      toast("Request copied; paste it to the organiser");
+    } catch {
+      toast("Copy failed; select the text and copy it by hand");
+    }
+  };
+  const seats = pub?.seats.spotify;
+  const seatsNote = seats ? ` ${seats.used} of ${seats.max} seats are handed out.` : "";
+  const contactNote = pub?.ownerContact ? ` Organiser: ${pub.ownerContact}.` : "";
   const webhookUrl = overrides.connectors?.webhookUrl ?? "";
   const hosted = spotify?.hosted ?? false;
   const hostedUser = spotify?.user ?? null;
@@ -399,7 +458,7 @@ export function Connectors() {
           header="Account"
           footer={
             hosted
-              ? "Log in with your Spotify account; there is nothing to paste. Connected, Listen plays the exact recordings and Export creates playlists in your library (private by default). This deployment's Spotify app runs in Development Mode: Spotify allows 5 listeners per app, which the owner adds by e-mail in the Spotify dashboard, or more with Extended Quota. The login is kept in a sealed cookie in this browser; Spotify asks again after six months."
+              ? `Log in with your Spotify account; there is nothing to paste. Connected, Listen plays the exact recordings and Export creates playlists in your library (private by default). This app can let in 5 Spotify accounts, which the organiser adds by e-mail in the Spotify dashboard.${seatsNote}${contactNote} Not on the list? Export → Send to → Spotify via a transfer service works with any Spotify account. The login is kept in a sealed cookie in this browser; Spotify asks again after six months.`
               : "This deployment has no Spotify app of its own, so you connect with your own developer app: create one at developer.spotify.com (Premium account, 5 users per app), add the redirect URI under Advanced to it and paste the Client ID. Connected, Listen plays the exact recordings and Export can create playlists."
           }
         >
@@ -620,6 +679,86 @@ export function Connectors() {
 
       {pdEnabled &&
         (["youtube_data_api", "dropbox", "google_drive", "spotify"] as ConnectApp[]).map(connectSheet)}
+
+      <Sheet
+        open={open === "notlisted"}
+        onClose={() => {
+          setOpen(null);
+          setOtherWays(false);
+        }}
+        title="Spotify did not let you in"
+        trailing="Done"
+        detents={["medium", "large"]}
+        testId="spotify-not-listed"
+      >
+        <Group
+          header="Why"
+          footer="Spotify limits a small app like this one to 5 listed accounts, and the organiser chooses them by e-mail in the Spotify dashboard. Nothing is wrong with your account or this app."
+        >
+          <div className="cell">
+            <span className="whitespace-normal">
+              This app can let in 5 Spotify accounts. Ask the organiser to add your Spotify email, or send
+              your set to Spotify another way.
+            </span>
+          </div>
+          {seats && <Row label="Seats handed out" value={`${seats.used} of ${seats.max}`} />}
+          {pub?.ownerContact && (
+            <Row
+              tile={
+                <Tile color="#636366">
+                  <UserRound size={16} strokeWidth={2} />
+                </Tile>
+              }
+              label="Organiser"
+              value={<span className="select-all">{pub.ownerContact}</span>}
+              id="not-listed-contact"
+            />
+          )}
+          <ActionRow
+            label={requestCopied ? "Copied" : "Copy my request"}
+            onClick={copyRequest}
+            id="not-listed-copy"
+          />
+          <ActionRow
+            label={otherWays ? "Hide other ways" : "Other ways"}
+            onClick={() => setOtherWays((v) => !v)}
+            id="not-listed-other"
+          />
+        </Group>
+        {otherWays && (
+          <Group
+            header="Other ways"
+            footer="The transfer service matches every track in your own Spotify login, so no seat is needed. YouTube, Dropbox and Google Drive have room for everyone on this deployment when the organiser has enabled them."
+            id="not-listed-other-ways"
+          >
+            <Row
+              tile={
+                <Tile color="#1db954">
+                  <ArrowRightLeft size={16} strokeWidth={2} />
+                </Tile>
+              }
+              label="Spotify via a transfer service"
+              sub="Export → Send to: a CSV for TuneMyMusic or Soundiiz"
+              value="Open Compose"
+              chevron
+              onClick={() => location.assign("/")}
+              id="not-listed-transfer"
+            />
+            <Row
+              tile={tile("#ff0000", <ListVideo size={16} strokeWidth={2} />)}
+              label="YouTube playlist"
+              sub="Export → Send to → YouTube"
+              value={google?.hosted ? "Available" : "Not enabled"}
+            />
+            <Row
+              tile={tile(APP_META.dropbox.color, APP_META.dropbox.icon)}
+              label="Files to Dropbox or Drive"
+              sub="Rekordbox, Traktor, M3U8, CSV…"
+              value={dropbox?.hosted || google?.hosted ? "Available" : "Not enabled"}
+            />
+          </Group>
+        )}
+      </Sheet>
 
       <Sheet
         open={open === "deezer"}

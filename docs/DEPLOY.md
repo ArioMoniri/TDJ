@@ -38,6 +38,8 @@ No server secrets are required to run: without them, users bring their own Spoti
 
 ### Owner setup (no GitHub secrets needed)
 
+The plain-language version of everything below, for a non-technical organiser, is [docs/OWNER_GUIDE.md](OWNER_GUIDE.md). `/admin` also holds **People** (organiser contact, the seat lists per provider; stored as `OWNER_CONTACT`, `SPOTIFY_SEATS`, `GOOGLE_SEATS`, `DROPBOX_SEATS`; `GET /api/admin/public` exposes only the counts and the contact) and **AI reviews for everyone** (`AI_PROVIDER`, `AI_KEY`, `AI_MODEL`, `AI_WORKSPACE_ID`, `AI_DAILY_LIMIT`: the shared model key used by `/api/ai/review` and `/api/ai/refine` for DJs without a key of their own, counted per `tdj_uid` cookie and per day in the memory of each Lambda instance, so the limit is a courtesy cap rather than an exact quota). A Spotify login by a DJ who is not in the app's User Management list lands on `/settings?error=spotify_not_listed`, where Settings explains the 5 seats and offers Export → Send to → "Spotify via a transfer service" (a title/artist/album CSV for TuneMyMusic or Soundiiz).
+
 The deployed app configures its own connectors; nothing to add in GitHub or the AWS console after the first deploy.
 
 1. **Deploy** (Actions → Deploy to AWS → Run workflow, or merge to `main`).
