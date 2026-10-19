@@ -7,9 +7,9 @@ import {
   toSetList,
 } from "@tdj/core";
 import { NextResponse } from "next/server";
-import { FEEDBACK_VALUES, feedbackFromText } from "@/lib/feedback";
+import { FEEDBACK_LABEL, FEEDBACK_VALUES, feedbackFromText } from "@/lib/feedback";
 import { getCatalog } from "@/lib/server/catalog";
-import { aiFromHeaders, complete, extractJson } from "@/lib/server/llm";
+import { aiFromHeaders, complete, extractJson, houseRulesBlock } from "@/lib/server/llm";
 export const dynamic = "force-dynamic";
 
 const OPTION_KEYS = [
@@ -133,29 +133,77 @@ export async function POST(req: Request) {
     .map(([id, s]) => ({ id, name: s[0]!.orchestra }));
   const ids = new Set(orchestras.map((o) => o.id));
 
-  const keywordFallback = (note: string) => {
-    const feedback = feedbackFromText(instruction);
-    const excluded = orchestras.filter((o) =>
-      new RegExp(`\\b(no|without|skip|drop|less)\\s+${o.name.split(" ").pop()}`, "i").test(instruction),
-    );
+  /**
+   * Without a model: the request is split into fragments ("no Canaro", "more Pugliese", "a D'Arienzo vals tanda");
+   * each fragment is either applied (feedback keyword, orchestra in/out) or reported as not understood. The note
+   * says exactly which is which; nothing is reported as applied that was not.
+   */
+  const keywordFallback = (why: string) => {
+    const surnameOf = (o: { name: string }) =>
+      o.name
+        .split(" ")
+        .pop()!
+        .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const fragments = instruction
+      .split(/\s*(?:,|;|\band\b|\bthen\b|\bplus\b)\s*/i)
+      .map((f) => f.trim())
+      .filter(Boolean);
+    const feedback: Feedback[] = [];
+    const excluded: typeof orchestras = [];
+    const included: typeof orchestras = [];
+    const applied: string[] = [];
+    const notApplied: string[] = [];
+    for (const frag of fragments) {
+      let done = false;
+      const fb = feedbackFromText(frag);
+      for (const f of fb)
+        if (!feedback.includes(f)) {
+          feedback.push(f);
+          applied.push(FEEDBACK_LABEL[f] ?? f);
+          done = true;
+        }
+      for (const o of orchestras) {
+        const sur = surnameOf(o);
+        if (new RegExp(`\\b(no|without|skip|drop|less|fewer)\\s+(the\\s+)?${sur}\\b`, "i").test(frag)) {
+          if (!excluded.includes(o)) excluded.push(o);
+          applied.push(`no ${o.name}`);
+          done = true;
+        } else if (
+          new RegExp(`\\b(more|extra|another|add|with)\\s+(the\\s+)?${sur}\\b`, "i").test(frag) &&
+          !/\b(vals|milonga|tanda at|at \d|after \d|before \d|am\b|pm\b)/i.test(frag)
+        ) {
+          if (!included.includes(o)) included.push(o);
+          applied.push(`more ${o.name}`);
+          done = true;
+        }
+      }
+      if (!done) notApplied.push(frag);
+    }
     const options = applyFeedback(base, feedback);
     if (excluded.length)
       options.excludeOrchestras = [
         ...new Set([...(base.excludeOrchestras ?? []), ...excluded.map((o) => o.id)]),
       ];
+    if (included.length)
+      options.includeOrchestras = [
+        ...new Set([...(base.includeOrchestras ?? []), ...included.map((o) => o.id)]),
+      ];
+    const parts: string[] = [];
+    if (applied.length) parts.push(`Applied: ${[...new Set(applied)].join(", ")}.`);
+    if (notApplied.length)
+      parts.push(`Could not apply: ${notApplied.map((f) => `"${f}"`).join(", ")} (${why}).`);
+    if (!applied.length && !notApplied.length) parts.push("Nothing to apply.");
     return NextResponse.json({
       options,
       feedback,
-      note:
-        feedback.length || excluded.length
-          ? `${note} Applied: ${[...feedback, ...excluded.map((o) => `no ${o.name}`)].join(", ")}.`
-          : `${note} Nothing in that matched a known adjustment; try "calmer", "more vals" or "no Canaro".`,
+      note: parts.join(" "),
+      applied: [...new Set(applied)],
+      notApplied,
       source: "keywords",
     });
   };
 
-  if (!ai.key)
-    return keywordFallback("Matched by keywords (add a model key in Settings for the full version).");
+  if (!ai.key) return keywordFallback("add a model key in Settings for sentences like these");
 
   const system = `You turn a tango DJ's free-text request into playlist option changes. Reply with ONLY a JSON object: {"options": {...}, "feedback": [...], "note": "one short sentence in plain DJ language"}.
 Allowed option keys: ${OPTION_KEYS.join(", ")}. Enums: ${Object.entries(ENUMS)
@@ -168,7 +216,7 @@ Orchestra ids for includeOrchestras/excludeOrchestras: ${orchestras.map((o) => `
 Only set what the request implies; leave everything else out. Prefer feedback values for mood/energy, options for structure and orchestras. No em-dashes.
 The "note" may also record something worth remembering about this DJ or room, in one short sentence.
 
-${DJ_RULES}
+${DJ_RULES}${houseRulesBlock(body.houseRules ?? body.overrides?.guide?.houseRules)}
 
 WHAT YOU REMEMBER ABOUT THIS DJ:
 ${body.memory && typeof body.memory === "object" ? summarizeMemory(body.memory) : "No memory yet."}`;
@@ -178,7 +226,7 @@ ${body.memory && typeof body.memory === "object" ? summarizeMemory(body.memory) 
   try {
     const text = await complete({ ...ai, system, user, json: true, maxTokens: 800 });
     const j = extractJson(text);
-    if (!j) return keywordFallback("The model's answer did not parse; matched by keywords instead.");
+    if (!j) return keywordFallback("the model's answer did not parse, matched by keywords instead");
     const feedback = (Array.isArray(j.feedback) ? j.feedback : []).filter((f: unknown) =>
       (FEEDBACK_VALUES as string[]).includes(String(f)),
     ) as Feedback[];
@@ -194,7 +242,7 @@ ${body.memory && typeof body.memory === "object" ? summarizeMemory(body.memory) 
     });
   } catch (e) {
     return keywordFallback(
-      `${e instanceof Error ? e.message : "Model request failed"}; matched by keywords instead.`,
+      `${e instanceof Error ? e.message : "model request failed"}; matched by keywords instead`,
     );
   }
 }

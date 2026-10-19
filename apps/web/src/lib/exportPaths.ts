@@ -75,6 +75,36 @@ export function applyPaths(
     }
   }
   const ff = folderForms(opts.folder ?? "");
+  // formats without a path column get one so the folder and naming apply to every file export
+  if (format === "csv" || format === "serato" || format === "xspf") {
+    const tracks = flatten(playlist, { includeCortinas: opts.includeCortinas ?? true });
+    const pathOf = (t: (typeof tracks)[number]) =>
+      `${ff?.plain ?? "TDJ/"}${rename ? fileName(naming, t) : `${safe(t.artist)} - ${safe(t.title)}.mp3`}`;
+    if (format === "xspf") {
+      let i = 0;
+      out = out.replace(/<track>([\s\S]*?)<\/track>/g, (m, inner: string) => {
+        const t = tracks[i++];
+        if (!t || /<location>/.test(inner)) return m;
+        return `<track>${inner}<location>file://${encodeURI(pathOf(t)).replace(/^file:\/\//, "")}</location></track>`;
+      });
+    } else {
+      const lines = out.split("\n");
+      const q = (s: string) => `"${s.replace(/"/g, '""')}"`;
+      let i = 0;
+      out = lines
+        .map((l, n) => {
+          if (!l) return l;
+          if (n === 0) return `${l},${q(format === "csv" ? "file" : "location")}`;
+          const t = tracks[i];
+          if (!t) return l;
+          // break rows (csv) carry an empty "#": leave them alone
+          if (format === "csv" && l.startsWith('"",')) return `${l},""`;
+          i++;
+          return `${l},${q(pathOf(t))}`;
+        })
+        .join("\n");
+    }
+  }
   if (ff) {
     if (format === "rekordbox") out = out.split("file://localhost/TDJ/").join(ff.rekordbox);
     else if (format === "traktor")
@@ -90,6 +120,16 @@ export function applyPaths(
         .join("\n");
   }
   return out;
+}
+
+/** The DJ CSV's genre column reads "Tango tango" / "Tango vals" from core's toSeratoCSV: "Tango" / "Vals" / "Milonga". */
+export function fixGenres(body: string, format: ExportFormat): string {
+  if (format !== "serato") return body;
+  return body
+    .replace(/,"Tango tango",/g, ',"Tango",')
+    .replace(/,"Tango vals",/g, ',"Vals",')
+    .replace(/,"Tango milonga",/g, ',"Milonga",')
+    .replace(/,"Tango (\w+)",/g, (_, r: string) => `,"${r[0]!.toUpperCase()}${r.slice(1)}",`);
 }
 
 /** Strip cortinas when the DJ unticks "Include cortinas": exporters that ignore the option still honour it this way. */

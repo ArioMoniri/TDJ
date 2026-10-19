@@ -1,6 +1,6 @@
 import { DJ_RULES, summarizeMemory, toSetList } from "@tdj/core";
 import { NextResponse } from "next/server";
-import { aiFromHeaders, complete, LlmError } from "@/lib/server/llm";
+import { aiFromHeaders, complete, houseRulesBlock, LlmError } from "@/lib/server/llm";
 export const dynamic = "force-dynamic";
 
 const SYSTEM = `You are a veteran tango DJ (milonguero tradition, Buenos Aires and the European marathon circuit). Review tanda playlists: energy arc, orchestra sequencing, singer and era coherence, cortina fit, última tanda and La Cumparsita. Be concrete and brief; use dancer language; suggest specific swaps by tanda number. No em-dashes.\n\n${DJ_RULES}`;
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
       body.memory && typeof body.memory === "object" ? summarizeMemory(body.memory) : "No memory yet.";
     const text = await complete({
       ...ai,
-      system: `${SYSTEM}\n\nWHAT YOU REMEMBER ABOUT THIS DJ:\n${memory}`,
+      system: `${SYSTEM}${houseRulesBlock(body.houseRules ?? body.overrides?.guide?.houseRules)}\n\nWHAT YOU REMEMBER ABOUT THIS DJ:\n${memory}`,
       user: `${body.question || "Review this set and tell me the three most valuable improvements."}\n\nSET LIST:\n${toSetList(body.playlist)}`,
     });
     return NextResponse.json({ text, model: ai.model || "default", provider: ai.provider });

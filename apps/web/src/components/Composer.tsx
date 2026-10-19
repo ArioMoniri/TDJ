@@ -13,17 +13,31 @@ import {
   ThumbsUp,
 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { autoSetName, changedTandas, describeOptionChanges } from "@/lib/changes";
+import { FEEDBACK_CHIPS } from "@/lib/feedback";
 import { haptic } from "@/lib/haptics";
+import { makeSnapshot } from "@/lib/history";
 import { testSlowdownMs, useMediaQuery, useScrollDirection } from "@/lib/hooks";
 import { describePreferences } from "@/lib/memory";
 import { DUR, EASE, rise, STAGGER } from "@/lib/motion";
-import { DEFAULT_OPTS, optionsForRequest, overridesForRequest, useStore } from "@/lib/store";
+import {
+  changedKeys,
+  DEFAULT_OPTS,
+  explicitKeys,
+  fullOptions,
+  optionsForRequest,
+  overridesForRequest,
+  useStore,
+} from "@/lib/store";
+import { toast } from "@/lib/toast";
 import type {
   AppOptions,
   ComposeContext,
   ComposeOptions,
   Feedback,
+  HistorySnapshot,
   Meta,
   NightRules,
   Playlist,
@@ -39,6 +53,7 @@ import {
   Group,
   MultiPickerRow,
   PickerRow,
+  RhythmTile,
   Row,
   SegmentedRow,
   SliderRow,
@@ -56,7 +71,7 @@ import { Vinyl } from "./Vinyl";
 type Era = ComposeOptions["eras"][number];
 const ERAS: Array<[Era, string]> = [
   ["golden", "Golden Age 35–55"],
-  ["golden-extended", "Golden extended 32–60"],
+  ["golden-extended", "Golden Age, extended (1932–60)"],
   ["guardia-vieja", "Guardia Vieja"],
   ["post-golden", "Post-golden 56–69"],
   ["nuevo", "Nuevo"],
@@ -170,6 +185,7 @@ export function Composer() {
   const {
     options,
     setOptions,
+    presetOptions,
     replaceOptions,
     playlist,
     setPlaylist,
@@ -180,6 +196,7 @@ export function Composer() {
     overridesReady,
     memory,
     updateMemory,
+    addSnapshot,
   } = useStore();
   const [exportOpen, setExportOpen] = useState(false);
   const [scoreOpen, setScoreOpen] = useState(false);
@@ -189,7 +206,13 @@ export function Composer() {
   const [swapping, setSwapping] = useState<number | null>(null);
   const [swappingTrack, setSwappingTrack] = useState<[number, number] | null>(null);
   const [ai, setAi] = useState<string | null>(null);
+  const [aiError, setAiError] = useState(false);
   const [aiBusy, setAiBusy] = useState(false);
+  /** "what changed" after a chip / refine: replaced tandas and the score move */
+  const [changeSummary, setChangeSummary] = useState<string | null>(null);
+  /** the form stays folded under a summary row while a set exists; Edit opens it */
+  const [setupOpen, setSetupOpen] = useState(false);
+  const [changedSet, setChangedSet] = useState<Set<number>>(new Set());
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [eraNote, setEraNote] = useState<string | null>(null);
@@ -259,30 +282,47 @@ export function Composer() {
       if (k === "pattern") patch.customPattern = defaults.customPattern;
     }
     patch.rules = { ...(options.rules ?? {}), ...eraRules };
-    setOptions(patch);
+    // the era itself is the DJ's choice; the preset values are not explicit
+    setOptions({ eras: [next] });
+    const { eras: _e, ...preset } = patch;
+    presetOptions(preset);
     setEraNote(`Era defaults applied: ${notes}`);
   };
 
-  /** Learned preferences sit under the user's explicit changes; defaults (store or era) count as not explicit. */
-  const explicitOptions = useMemo(() => {
-    const base = { ...DEFAULT_OPTS, ...eraDefaults } as Record<string, unknown>;
-    const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(optionsForRequest(options)))
-      if (JSON.stringify(v) !== JSON.stringify(base[k])) out[k] = v;
-    return out as Partial<ComposeOptions>;
-  }, [options, eraDefaults]);
+  /** What the DJ set tonight: touched or pinned controls (era presets and defaults are not explicit). */
+  const explicit = explicitKeys(options);
   const learnedPrefs = settings.learn ? describePreferences(memory) : [];
-  const prefKeys = Object.keys(memory.preferences ?? {}).filter((k) => !(k in explicitOptions));
+  const prefKeys = Object.keys(memory.preferences ?? {}).filter((k) => !explicit.includes(k));
   const usingMemory = settings.learn && learnedPrefs.length > 0 && prefKeys.length > 0;
-  const requestOptions = (o: Partial<ComposeOptions>) =>
-    settings.learn ? { ...o, ...applyMemory(explicitOptions, memory) } : o;
+  /**
+   * The request from the state at call time: only explicit keys travel, learned preferences fill the keys that are
+   * neither explicit nor just changed by a chip / refine (`extraExplicit`), and `recent` always rides along.
+   */
+  const requestOptions = (o: AppOptions, extraExplicit: string[] = []) => {
+    const cur = useStore.getState();
+    const merged: AppOptions = {
+      ...o,
+      pinned: cur.options.pinned,
+      touched: [...new Set([...(cur.options.touched ?? []), ...extraExplicit])],
+    };
+    const base = optionsForRequest(merged);
+    const { recent } = applyMemory({}, cur.memory);
+    const withMemory = cur.settings.learn ? applyMemory(base, cur.memory) : { ...base, recent };
+    const name = base.name ?? autoSetName({ ...DEFAULT_OPTS, ...eraDefaults, ...fullOptions(merged) });
+    return { ...withMemory, name, explicit: base.explicit };
+  };
 
   /** Compose with the current (or given) options; locked tandas are sent so they survive every recompose. */
-  const run = async (seed?: number, opts?: Partial<ComposeOptions>) => {
+  const run = async (
+    seed?: number,
+    opts?: Partial<ComposeOptions>,
+    extraExplicit: string[] = [],
+    source: HistorySnapshot["source"] = "compose",
+  ) => {
     setBusy(true);
     setAi(null);
     setError(null);
-    const o = requestOptions(opts ?? optionsForRequest(options));
+    const o = requestOptions(opts ?? useStore.getState().options, extraExplicit);
     const first = !playlist;
     try {
       const slow = testSlowdownMs();
@@ -309,7 +349,19 @@ export function Composer() {
       if (!morph) setReveal({ key: String(p.options.seed), fresh: true });
       setPlaylist(p);
       setActive(null);
+      setSetupOpen(false);
       updateMemory((m) => rememberSet(m, p));
+      addSnapshot(makeSnapshot(p, fullOptions(useStore.getState().options), source));
+      if (morph && playlist) {
+        const changed = changedTandas(playlist, p);
+        setChangeSummary(
+          `${changed.length ? `${changed.length} ${changed.length === 1 ? "tanda" : "tandas"} replaced (${changed.slice(0, 8).join(", ")}${changed.length > 8 ? "…" : ""})` : "No tanda changed"} · score ${playlist.score.total} → ${p.score.total}`,
+        );
+        setChangedSet(new Set(changed));
+      } else {
+        setChangeSummary(null);
+        setChangedSet(new Set());
+      }
       haptic([8, 40, 8]);
       // the result scrolls into view on the first set only; on a recompose the user is already looking at it
       if (first)
@@ -340,7 +392,9 @@ export function Composer() {
       });
       if (r.ok) {
         remember(playlist);
-        setPlaylist(await r.json());
+        const p = (await r.json()) as Playlist;
+        setPlaylist(p);
+        addSnapshot(makeSnapshot(p, fullOptions(useStore.getState().options), "swap"));
       }
     } finally {
       setSwapping(null);
@@ -360,6 +414,7 @@ export function Composer() {
       if (r.ok && j.changed) {
         remember(playlist);
         setPlaylist(j);
+        addSnapshot(makeSnapshot(j, fullOptions(useStore.getState().options), "swap"));
       } else {
         setNote(`No other ${playlist.tandas[i]?.orchestra} recording fits that slot.`);
         setNudge((n) => ({ i, k, n: (n?.n ?? 0) + 1 }));
@@ -375,21 +430,37 @@ export function Composer() {
       tandas: playlist.tandas.map((t, k) => (k === i ? { ...t, locked: !t.locked } : t)),
     });
   };
+  /** A chip never leaves a custom cycle empty, and every structural change it makes is said out loud. */
+  const settleOptions = (prev: Partial<ComposeOptions>, next: Partial<ComposeOptions>) => {
+    const out = { ...next };
+    if (out.pattern === "custom" && !out.customPattern) out.customPattern = prev.customPattern || "TTVTTM";
+    return out;
+  };
   const feedback = async (f: Feedback) => {
     setNote(null);
     setPendingChip(f);
     setBusy(true);
     try {
+      const prev = fullOptions({ ...DEFAULT_OPTS, ...eraDefaults, ...useStore.getState().options });
       const r = await fetch("/api/feedback", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ options: optionsForRequest(options), feedback: [f] }),
+        body: JSON.stringify({ options: prev, feedback: [f] }),
       });
       const j = (await r.json()) as { options: Partial<ComposeOptions> };
       if (!r.ok) return;
       if (settings.learn && playlist) updateMemory((m) => rememberFeedback(m, playlist.id, [f]));
-      replaceOptions(j.options);
-      await run(undefined, j.options);
+      const next = settleOptions(prev, j.options);
+      const changes = describeOptionChanges(prev, next);
+      const chipLabel = FEEDBACK_CHIPS.find(([k]) => k === f)?.[1] ?? f;
+      const line = changes.length
+        ? `${chipLabel}: ${changes.join(" · ")}`
+        : `${chipLabel}: nothing to change in the settings; recomposing with a new seed`;
+      setNote(line);
+      toast(line);
+      const changed = changedKeys(prev, next);
+      replaceOptions(next, changed);
+      await run(undefined, next, changed, "refine");
     } finally {
       setPendingChip(null);
       setBusy(false);
@@ -399,10 +470,17 @@ export function Composer() {
     setNote(null);
     setBusy(true);
     try {
+      const prev = fullOptions({ ...DEFAULT_OPTS, ...eraDefaults, ...useStore.getState().options });
       const r = await fetch("/api/ai/refine", {
         method: "POST",
         headers: aiHeaders(),
-        body: JSON.stringify({ options: optionsForRequest(options), playlist, instruction, memory }),
+        body: JSON.stringify({
+          options: prev,
+          playlist,
+          instruction,
+          memory,
+          houseRules: overrides.guide?.houseRules ?? "",
+        }),
       });
       const j = (await r.json()) as {
         options?: Partial<ComposeOptions>;
@@ -415,15 +493,18 @@ export function Composer() {
         setNote(j.error ?? "Could not read that request.");
         return;
       }
-      setNote(j.note ?? null);
+      const next = settleOptions(prev, j.options);
+      const changes = describeOptionChanges(prev, next);
+      setNote([j.note, changes.length ? `Changed: ${changes.join(" · ")}.` : null].filter(Boolean).join(" "));
       if (settings.learn && playlist)
         updateMemory((m) => {
-          let next = rememberFeedback(m, playlist.id, j.feedback ?? [], instruction);
-          if (j.source === "model" && j.note) next = addNote(next, j.note, "assistant");
-          return next;
+          let nm = rememberFeedback(m, playlist.id, j.feedback ?? [], instruction);
+          if (j.source === "model" && j.note) nm = addNote(nm, j.note, "assistant");
+          return nm;
         });
-      replaceOptions(j.options);
-      await run(undefined, j.options);
+      const changed = changedKeys(prev, next);
+      replaceOptions(next, changed);
+      await run(undefined, next, changed, "refine");
     } finally {
       setBusy(false);
     }
@@ -437,10 +518,11 @@ export function Composer() {
       const r = await fetch("/api/ai/review", {
         method: "POST",
         headers: aiHeaders(),
-        body: JSON.stringify({ playlist, memory }),
+        body: JSON.stringify({ playlist, memory, houseRules: overrides.guide?.houseRules ?? "" }),
       });
       const j = await r.json();
       setAi(j.text ?? j.error);
+      setAiError(!r.ok);
     } finally {
       setAiBusy(false);
     }
@@ -482,6 +564,9 @@ export function Composer() {
   const tandasEst = useMemo(() => Math.round(hours * 5.2), [hours]);
   const cultures = options.cortinaCultures ?? ["global"];
   const hasPlaylist = hydrated && !!playlist;
+  const chosenContext = Object.entries(options.context ?? {}).filter(
+    ([k, v]) => !!v && k !== "region",
+  ).length;
   const cortinaStyle = options.cortinaStyle ?? "family";
   const lockedCount = playlist?.tandas.filter((t) => t.locked).length ?? 0;
   const playlists = meta?.referencePlaylists ?? [];
@@ -563,10 +648,201 @@ export function Composer() {
         primary={composeButton}
       />
 
-      <div className="md:grid md:grid-cols-2 md:gap-x-4">
+      {hasPlaylist && playlist && (
+        <section id="result" className="scroll-mt-24" aria-busy={busy}>
+          <Group header="Tonight's set" footer={resultFooter}>
+            <motion.div
+              key={`head-${setKey}`}
+              initial={fresh ? { opacity: 0, y: reduced ? 0 : 6 } : false}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: DUR.base, ease: EASE.out, delay: 0.04 }}
+              className="cell flex-col items-stretch gap-2 py-4"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-subhead min-w-0 truncate font-serif text-[var(--label-2)]">
+                  {playlist.name}
+                </h2>
+                <span className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    className={`icon-btn icon-btn-bare -my-2 h-11 w-10 ${liked === true ? "text-[var(--tint)]" : "text-[var(--label-3)]"}`}
+                    aria-pressed={liked === true}
+                    aria-label="Mark as liked"
+                    onClick={() => rate(true)}
+                  >
+                    <ThumbsUp size={18} strokeWidth={2} fill={liked === true ? "currentColor" : "none"} />
+                  </button>
+                  <button
+                    type="button"
+                    className={`icon-btn icon-btn-bare -my-2 -mr-3 h-11 w-10 ${liked === false ? "text-[var(--tint)]" : "text-[var(--label-3)]"}`}
+                    aria-pressed={liked === false}
+                    aria-label="Mark as disliked"
+                    onClick={() => rate(false)}
+                  >
+                    <ThumbsDown size={18} strokeWidth={2} fill={liked === false ? "currentColor" : "none"} />
+                  </button>
+                </span>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-large-title tabular-nums text-[var(--tint)]">
+                  <ScoreCounter key={setKey} value={playlist.score.total} from={scoreFrom} />
+                </span>
+                <span className="text-title3 text-[var(--label-2)]">/100</span>
+              </div>
+              <motion.p
+                key={`verdict-text-${setKey}`}
+                initial={fresh ? { opacity: 0 } : false}
+                animate={{ opacity: 1 }}
+                transition={{ delay: reduced ? 0 : 0.7, duration: DUR.base }}
+                className="text-footnote text-[var(--label-2)]"
+              >
+                {playlist.score.verdict}
+              </motion.p>
+              <div className="mt-1">
+                {/* one chart per breakpoint (not both hidden/shown via CSS) so only one draw-on runs */}
+                {wide ? (
+                  <EnergyCurve p={playlist} active={active} onPick={onPick} playKey={setKey} dimmed={busy} />
+                ) : (
+                  <EnergyCurve
+                    compact
+                    p={playlist}
+                    active={active}
+                    onPick={onPick}
+                    playKey={setKey}
+                    dimmed={busy}
+                  />
+                )}
+              </div>
+            </motion.div>
+            <Row
+              label="How this set scored"
+              value={`${playlist.score.factors.length} factors`}
+              chevron
+              onClick={() => setScoreOpen(true)}
+            />
+            {playlists.some((p) => p.kind === "tandas") && (
+              <Row
+                label="Mood check"
+                sub="Your set next to Aren León's reference tandas"
+                chevron
+                onClick={() => setMoodOpen(true)}
+              />
+            )}
+            <Row
+              label="Written review"
+              value={aiBusy ? "Reading the set…" : ai ? "Ready" : undefined}
+              chevron
+              busy={aiBusy}
+              onClick={explain}
+            />
+          </Group>
+
+          <FeedbackBar
+            onFeedback={feedback}
+            onRefine={refine}
+            busy={busy}
+            note={note}
+            pending={pendingChip}
+            lockedCount={lockedCount}
+            changeSummary={changeSummary}
+          />
+
+          {playlist.opening && (
+            <Group
+              header="Opening"
+              footer="La Cumparsita before the first tanda, as some Buenos Aires and festival nights open."
+            >
+              <div className="cell" data-leading="art" data-testid="opening">
+                <span className="tile-art" data-rhythm="tango" aria-hidden>
+                  <Disc3 size={20} strokeWidth={1.75} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="text-headline block truncate">La Cumparsita</span>
+                  <span className="text-subhead block truncate text-[var(--label-2)]">
+                    {playlist.opening.orchestra}
+                    {playlist.opening.singer ? ` · ${playlist.opening.singer}` : ""} ·{" "}
+                    {playlist.opening.year ?? "?"}
+                  </span>
+                </span>
+              </div>
+            </Group>
+          )}
+
+          <h2 className="section-head">Tandas</h2>
+          <div className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 md:items-start md:gap-4">
+            <AnimatePresence mode="popLayout" initial={false}>
+              {playlist.tandas.flatMap((t, i) => {
+                const b = breakAfter.get(i);
+                const card = (
+                  <TandaCard
+                    key={`${t.index}-${t.songs[0]?.id}`}
+                    t={t}
+                    i={i}
+                    onSwap={() => swap(i)}
+                    onSwapTrack={(k) => swapTrack(i, k)}
+                    onLock={() => lock(i)}
+                    busy={swapping === i}
+                    swappingTrack={swappingTrack?.[0] === i ? swappingTrack[1] : null}
+                    active={active === i}
+                    playlists={playlists}
+                    settling={busy}
+                    fresh={fresh}
+                    nudge={nudge?.i === i ? nudge : null}
+                    prevEnergy={prevEnergy.current[i]}
+                    changed={changedSet.has(i + 1)}
+                  />
+                );
+                if (!b) return [card];
+                return [
+                  card,
+                  <motion.div
+                    key={`break-${i}`}
+                    layout={reduced ? false : "position"}
+                    className="text-footnote flex items-center gap-3 px-4 text-[var(--label-2)] md:col-span-2"
+                    data-testid="break"
+                  >
+                    <span className="h-px flex-1 bg-[var(--separator)]" aria-hidden />
+                    {b.label} · {b.minutes} min
+                    <span className="h-px flex-1 bg-[var(--separator)]" aria-hidden />
+                  </motion.div>,
+                ];
+              })}
+            </AnimatePresence>
+          </div>
+          {playlist.closing && (
+            <Group header="Closing">
+              <div className="cell" data-leading="art">
+                <span className="tile-art" data-rhythm="tango" aria-hidden>
+                  <Disc3 size={20} strokeWidth={1.75} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="text-headline block truncate">La Cumparsita</span>
+                  <span className="text-subhead block truncate text-[var(--label-2)]">
+                    {playlist.closing.orchestra} · {playlist.closing.year ?? "?"}
+                  </span>
+                </span>
+              </div>
+            </Group>
+          )}
+        </section>
+      )}
+      {/* once a set exists the result leads and the form folds into one summary row (UX review P1-1) */}
+      {hasPlaylist && !setupOpen && (
+        <Group header="Set-up" id="setup-summary">
+          <Row
+            tile={<RhythmTile rhythm="tango" />}
+            label={`${ERAS.find(([k]) => k === era)?.[1] ?? era} · ${hours} h · ${ARCS.find(([k]) => k === (options.arc ?? "classic-two-peaks"))?.[1] ?? ""}`}
+            sub={`${PATTERNS.find(([k]) => k === (options.pattern ?? "classic"))?.[1] ?? ""} · cortinas ${(CORTINA_STYLES.find(([k]) => k === cortinaStyle)?.[1] ?? "").toLowerCase()}${chosenContext ? ` · ${chosenContext} tonight` : ""}`}
+            value="Edit"
+            chevron
+            onClick={() => setSetupOpen(true)}
+          />
+        </Group>
+      )}
+      <div className={hasPlaylist && !setupOpen ? "hidden" : "lg:grid lg:grid-cols-2 lg:gap-x-6"} id="setup">
         <Group
           header="Night"
-          footer={eraNote ?? "1 h is a práctica, 4 h a milonga, 8 h a marathon."}
+          footer={eraNote ?? "Guide: 2 h práctica · 4 h milonga · 6 h marathon block."}
           id="night"
         >
           <SliderRow
@@ -610,7 +886,7 @@ export function Composer() {
 
         <Group
           header="Structure"
-          footer="The era preset sets these; pin a control to keep your own value when the era changes."
+          footer="Sizes are in tracks; gap in tandas; spread in years. The era preset sets these; pin a control to keep your own value when the era changes."
           id="structure"
         >
           <PickerRow
@@ -720,7 +996,11 @@ export function Composer() {
           footer={
             cortinaStyle === "none"
               ? "Tandas follow each other without a break."
-              : "Each cortina sits about 8 energy points under the tanda that follows."
+              : cortinaStyle === "family"
+                ? "Family: one artist or genre family all night, each cortina about 8 energy points under the tanda that follows."
+                : cortinaStyle === "constant"
+                  ? "Same: one cortina track repeated all night, the traditional salón way."
+                  : "Matched: each cortina is picked for the tanda that follows, about 8 energy points under it."
           }
           id="cortinas"
         >
@@ -837,6 +1117,7 @@ export function Composer() {
           )}
           <PickerRow
             label="Última tanda"
+            sub="The last tanda before La Cumparsita"
             ariaLabel="Última tanda"
             value={rules.ultimaRule ?? "emotional-vocal"}
             items={ULTIMA}
@@ -879,6 +1160,11 @@ export function Composer() {
             value={(options.context ?? {}) as ComposeContext}
             onChange={(context) => setOptions({ context })}
             model={meta?.contextModel ?? null}
+            applied={playlist?.options ?? null}
+            regionFromSettings={
+              !explicit.includes("context") ||
+              Object.keys(options.context ?? {}).filter((k) => k !== "region").length === 0
+            }
           />
         </div>
       </div>
@@ -958,181 +1244,6 @@ export function Composer() {
         )}
       </div>
 
-      {hasPlaylist && playlist && (
-        <section id="result" className="scroll-mt-24" aria-busy={busy}>
-          <Group header="Tonight's set" footer={resultFooter}>
-            <motion.div
-              key={`head-${setKey}`}
-              initial={fresh ? { opacity: 0, y: reduced ? 0 : 6 } : false}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: DUR.base, ease: EASE.out, delay: 0.04 }}
-              className="cell flex-col items-stretch gap-2 py-4"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-subhead text-[var(--label-2)]">Score</span>
-                <span className="flex items-center gap-1">
-                  <motion.span
-                    key={`verdict-text-${setKey}`}
-                    initial={fresh ? { opacity: 0 } : false}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: reduced ? 0 : 0.7, duration: DUR.base }}
-                    className="text-footnote text-[var(--label-2)]"
-                  >
-                    {playlist.score.verdict}
-                  </motion.span>
-                  <button
-                    type="button"
-                    className={`icon-btn icon-btn-bare -my-2 h-11 w-10 ${liked === true ? "text-[var(--tint)]" : "text-[var(--label-3)]"}`}
-                    aria-pressed={liked === true}
-                    aria-label="Mark as liked"
-                    onClick={() => rate(true)}
-                  >
-                    <ThumbsUp size={18} strokeWidth={2} fill={liked === true ? "currentColor" : "none"} />
-                  </button>
-                  <button
-                    type="button"
-                    className={`icon-btn icon-btn-bare -my-2 -mr-3 h-11 w-10 ${liked === false ? "text-[var(--tint)]" : "text-[var(--label-3)]"}`}
-                    aria-pressed={liked === false}
-                    aria-label="Mark as disliked"
-                    onClick={() => rate(false)}
-                  >
-                    <ThumbsDown size={18} strokeWidth={2} fill={liked === false ? "currentColor" : "none"} />
-                  </button>
-                </span>
-              </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-large-title tabular-nums text-[var(--tint)]">
-                  <ScoreCounter key={setKey} value={playlist.score.total} from={scoreFrom} />
-                </span>
-                <span className="text-title3 text-[var(--label-2)]">/100</span>
-                <h2 className="text-title2 ml-auto min-w-0 truncate pl-3 font-serif">{playlist.name}</h2>
-              </div>
-              <div className="mt-1">
-                {/* one chart per breakpoint (not both hidden/shown via CSS) so only one draw-on runs */}
-                {wide ? (
-                  <EnergyCurve p={playlist} active={active} onPick={onPick} playKey={setKey} dimmed={busy} />
-                ) : (
-                  <EnergyCurve
-                    compact
-                    p={playlist}
-                    active={active}
-                    onPick={onPick}
-                    playKey={setKey}
-                    dimmed={busy}
-                  />
-                )}
-              </div>
-            </motion.div>
-            <Row
-              label="How this set scored"
-              value={`${playlist.score.factors.length} factors`}
-              chevron
-              onClick={() => setScoreOpen(true)}
-            />
-            {playlists.some((p) => p.kind === "tandas") && (
-              <Row
-                label="Mood check"
-                sub="Aren León's reference tandas"
-                chevron
-                onClick={() => setMoodOpen(true)}
-              />
-            )}
-            <Row
-              label="Written review"
-              value={aiBusy ? "Reading the set…" : ai ? "Ready" : undefined}
-              chevron
-              busy={aiBusy}
-              onClick={explain}
-            />
-          </Group>
-
-          <FeedbackBar
-            onFeedback={feedback}
-            onRefine={refine}
-            busy={busy}
-            note={note}
-            pending={pendingChip}
-          />
-
-          {playlist.opening && (
-            <Group
-              header="Opening"
-              footer="La Cumparsita before the first tanda, as some Buenos Aires and festival nights open."
-            >
-              <div className="cell" data-leading="art" data-testid="opening">
-                <span className="tile-art" data-rhythm="tango" aria-hidden>
-                  <Disc3 size={20} strokeWidth={1.75} />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="text-headline block truncate">La Cumparsita</span>
-                  <span className="text-subhead block truncate text-[var(--label-2)]">
-                    {playlist.opening.orchestra}
-                    {playlist.opening.singer ? ` · ${playlist.opening.singer}` : ""} ·{" "}
-                    {playlist.opening.year ?? "?"}
-                  </span>
-                </span>
-              </div>
-            </Group>
-          )}
-
-          <h2 className="section-head">Tandas</h2>
-          <div className="grid gap-3 md:grid-cols-2 md:items-start md:gap-4">
-            <AnimatePresence mode="popLayout" initial={false}>
-              {playlist.tandas.flatMap((t, i) => {
-                const b = breakAfter.get(i);
-                const card = (
-                  <TandaCard
-                    key={`${t.index}-${t.songs[0]?.id}`}
-                    t={t}
-                    i={i}
-                    onSwap={() => swap(i)}
-                    onSwapTrack={(k) => swapTrack(i, k)}
-                    onLock={() => lock(i)}
-                    busy={swapping === i}
-                    swappingTrack={swappingTrack?.[0] === i ? swappingTrack[1] : null}
-                    active={active === i}
-                    playlists={playlists}
-                    settling={busy}
-                    fresh={fresh}
-                    nudge={nudge?.i === i ? nudge : null}
-                    prevEnergy={prevEnergy.current[i]}
-                  />
-                );
-                if (!b) return [card];
-                return [
-                  card,
-                  <motion.div
-                    key={`break-${i}`}
-                    layout={reduced ? false : "position"}
-                    className="text-footnote flex items-center gap-3 px-4 text-[var(--label-2)] md:col-span-2"
-                    data-testid="break"
-                  >
-                    <span className="h-px flex-1 bg-[var(--separator)]" aria-hidden />
-                    {b.label} · {b.minutes} min
-                    <span className="h-px flex-1 bg-[var(--separator)]" aria-hidden />
-                  </motion.div>,
-                ];
-              })}
-            </AnimatePresence>
-          </div>
-          {playlist.closing && (
-            <Group header="Closing">
-              <div className="cell" data-leading="art">
-                <span className="tile-art" data-rhythm="tango" aria-hidden>
-                  <Disc3 size={20} strokeWidth={1.75} />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="text-headline block truncate">La Cumparsita</span>
-                  <span className="text-subhead block truncate text-[var(--label-2)]">
-                    {playlist.closing.orchestra} · {playlist.closing.year ?? "?"}
-                  </span>
-                </span>
-              </div>
-            </Group>
-          )}
-        </section>
-      )}
-
       <ExportSheet open={exportOpen} onClose={() => setExportOpen(false)} />
 
       {playlist && (
@@ -1146,10 +1257,17 @@ export function Composer() {
             {playlist.score.factors.map((f, idx) => (
               <div key={f.key} className="cell flex-col items-stretch gap-1.5 py-3">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="min-w-0 truncate">{f.label}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate">{f.label.replace(/\s*\(.*\)\s*$/, "")}</span>
+                    {/\(.*\)/.test(f.label) && (
+                      <span className="text-footnote block truncate text-[var(--label-2)]">
+                        {f.label.match(/\((.*)\)/)?.[1]}
+                      </span>
+                    )}
+                  </span>
                   <span className="cell-value tabular-nums">
                     {Math.round(f.score * 100)} %{" "}
-                    <span className="text-[var(--label-3)]">· weight {f.weight}</span>
+                    <span className="text-[var(--label-2)]">· weight {f.weight}</span>
                   </span>
                 </div>
                 <div
@@ -1175,10 +1293,15 @@ export function Composer() {
         </Sheet>
       )}
       <Sheet open={moodOpen} onClose={() => setMoodOpen(false)} title="Mood check" trailing="Done">
-        <p className="section-foot mb-3 mt-2">Compare the set's feel with Aren León's reference tandas.</p>
-        <MoodCheck playlists={playlists} />
+        <MoodCheck playlists={playlists} playlist={playlist} />
       </Sheet>
-      <Sheet open={reviewOpen} onClose={() => setReviewOpen(false)} title="Written review" trailing="Done">
+      <Sheet
+        open={reviewOpen}
+        onClose={() => setReviewOpen(false)}
+        title="Written review"
+        trailing={aiError ? "OK" : "Done"}
+        hideCancel={aiError}
+      >
         <div role="status" aria-live="polite" className="mt-2">
           {aiBusy && (
             <p className="text-subhead flex items-center gap-2 px-4 text-[var(--label-2)]">
@@ -1193,6 +1316,14 @@ export function Composer() {
               className="text-body whitespace-pre-wrap px-4"
             >
               {ai}
+              {aiError && /key/i.test(ai) && (
+                <>
+                  {" "}
+                  <Link href="/settings" className="text-[var(--tint)]">
+                    Open Settings
+                  </Link>
+                </>
+              )}
             </motion.p>
           )}
         </div>

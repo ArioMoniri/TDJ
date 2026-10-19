@@ -13,6 +13,8 @@ export function FeedbackBar({
   busy,
   note,
   pending = null,
+  lockedCount = 0,
+  changeSummary = null,
 }: {
   onFeedback: (f: Feedback) => void;
   onRefine: (text: string) => void;
@@ -20,6 +22,9 @@ export function FeedbackBar({
   note: string | null;
   /** the chip whose adjustment is being applied (stays `chip-on` with a spinner while busy) */
   pending?: Feedback | null;
+  lockedCount?: number;
+  /** "3 tandas replaced (7, 9, 14) · score 79 → 75" after the last chip or refine */
+  changeSummary?: string | null;
 }) {
   const [text, setText] = useState("");
   const submit = (e: React.FormEvent) => {
@@ -33,7 +38,15 @@ export function FeedbackBar({
       header="Adjust"
       footer={
         <span aria-live="polite" className="block min-h-[1.125rem]">
-          {note ?? "Locked tandas stay where they are."}
+          {note ??
+            (lockedCount
+              ? `${lockedCount} locked ${lockedCount === 1 ? "tanda stays" : "tandas stay"} where ${lockedCount === 1 ? "it is" : "they are"}.`
+              : "Tap a chip to recompose, or lock tandas you want to keep.")}
+          {changeSummary && (
+            <span className="block" data-testid="change-summary">
+              {changeSummary}
+            </span>
+          )}
         </span>
       }
       aria-label="Adjust the set"

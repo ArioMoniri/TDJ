@@ -1,7 +1,7 @@
 "use client";
 import { del, get, set } from "idb-keyval";
 import { loadMemoryLocal, normalizeMemory } from "./memory";
-import type { AgentMemory, AppOverrides } from "./types";
+import type { AgentMemory, AppOverrides, HistorySnapshot } from "./types";
 
 const KEY = "tdj-overrides-v1";
 export type StorageMode = "browser" | "server";
@@ -10,7 +10,9 @@ export type StorageMode = "browser" | "server";
 export function countChanges(o: AppOverrides | null | undefined): number {
   if (!o) return 0;
   let n = 0;
-  for (const p of Object.values(o.songs ?? {})) n += Object.keys(p).length;
+  // singerId / vocal / era follow a singer or year edit: derived, not separate changes
+  const derived = new Set(["singerId", "vocal", "era"]);
+  for (const p of Object.values(o.songs ?? {})) n += Object.keys(p).filter((k) => !derived.has(k)).length;
   for (const p of Object.values(o.profiles ?? {})) n += Object.keys(p).length;
   n += Object.keys(o.cortinas ?? {}).length;
   const { trackEnergy, notBefore, ...rules } = o.rules ?? {};
@@ -19,6 +21,8 @@ export function countChanges(o: AppOverrides | null | undefined): number {
   n += o.addedSongs?.length ?? 0;
   for (const f of Object.values(o.contextFactors ?? {}))
     for (const op of Object.values(f)) n += Object.keys(op).length;
+  n += Object.values(o.guide ?? {}).filter((v) => typeof v === "string" && v.trim()).length;
+  if (o.connectors?.webhookUrl) n += 1;
   return n;
 }
 export function isEmptyOverrides(o: AppOverrides | null | undefined): boolean {
@@ -30,7 +34,11 @@ let modeP: Promise<StorageMode> | null = null;
 export function storageMode(): Promise<StorageMode> {
   if (!modeP)
     modeP = fetch("/api/db", { method: "GET" })
-      .then((r) => (r.ok ? ("server" as const) : ("browser" as const)))
+      .then(async (r) => {
+        if (!r.ok) return "browser" as const;
+        const j = (await r.json().catch(() => ({}))) as { enabled?: boolean; mode?: string };
+        return j.enabled === true || j.mode === "server" ? ("server" as const) : ("browser" as const);
+      })
       .catch(() => "browser" as const);
   return modeP;
 }
@@ -40,13 +48,27 @@ export async function loadOverrides(): Promise<{
   overrides: AppOverrides;
   memory: AgentMemory;
   mode: StorageMode;
+  /** server mode only: the bounded history kept in the row */
+  history?: HistorySnapshot[];
 }> {
   const mode = await storageMode();
   if (mode === "server") {
     try {
       const r = await fetch("/api/db");
       const j = await r.json();
-      if (r.ok && j.overrides) return { overrides: j.overrides, memory: normalizeMemory(j.memory), mode };
+      if (r.ok && j.overrides) {
+        // connector URLs never reach the server: they live in this browser only
+        let connectors: AppOverrides["connectors"];
+        try {
+          connectors = (await get<AppOverrides>(KEY))?.connectors;
+        } catch {}
+        return {
+          overrides: connectors ? { ...j.overrides, connectors } : j.overrides,
+          memory: normalizeMemory(j.memory),
+          mode,
+          history: Array.isArray(j.history) ? j.history : [],
+        };
+      }
     } catch {}
   }
   const memory = await loadMemoryLocal();
@@ -78,13 +100,15 @@ export function saveOverrides(o: AppOverrides, mode: StorageMode) {
     try {
       await set(KEY, value);
     } catch {}
-    if (mode === "server")
+    if (mode === "server") {
+      const { connectors: _c, ...server } = value;
       await fetch("/api/db", {
         method: "PUT",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ overrides: value }),
+        body: JSON.stringify({ overrides: server }),
         keepalive: true,
       }).catch(() => {});
+    }
   };
   timer = setTimeout(flush, 250);
 }
@@ -109,7 +133,15 @@ export function parseImport(text: string): AppOverrides {
     j && typeof j === "object" && "overrides" in j && typeof j.overrides === "object" ? j.overrides : j;
   if (!o || typeof o !== "object" || Array.isArray(o)) throw new Error("Not a TDJ database file");
   const out: AppOverrides = {};
-  for (const k of ["songs", "profiles", "cortinas", "rules", "contextFactors"] as const)
+  for (const k of [
+    "songs",
+    "profiles",
+    "cortinas",
+    "rules",
+    "contextFactors",
+    "guide",
+    "connectors",
+  ] as const)
     if (o[k] && typeof o[k] === "object") (out as Record<string, unknown>)[k] = o[k];
   if (Array.isArray(o.addedSongs)) out.addedSongs = o.addedSongs;
   return out;

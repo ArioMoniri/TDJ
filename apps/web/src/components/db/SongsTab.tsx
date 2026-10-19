@@ -1,18 +1,30 @@
 "use client";
-import { CircleMinus, Trash2 } from "lucide-react";
+import { AudioWaveform, CircleMinus, Link2, Trash2 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
 import { SEARCH_FOCUS_EVENT } from "@/components/Nav";
+import { analyseSong, keyLabel } from "@/lib/analyze";
+import { effectiveSong } from "@/lib/audio";
 import { rise, spring } from "@/lib/motion";
 import type { Song } from "@/lib/types";
-import { ActionRow, FieldRow, Group, PickerRow, RhythmTile, SwitchRow } from "../Form";
+import { ActionRow, FieldRow, Group, PickerRow, RhythmTile, Row, SwitchRow } from "../Form";
+import { ResolveSheet } from "../ResolveSheet";
 import { SearchField } from "../SearchField";
 import { Sheet } from "../Sheet";
 import { SwipeRow } from "../SwipeRow";
 import { Empty, patchMap, useDb, useDbEdit, ValueCell } from "./shared";
 
 const RHYTHMS = ["tango", "vals", "milonga", "cancion", "foxtrot", "other"] as const;
-const RHYTHM_ITEMS: Array<[string, string]> = RHYTHMS.map((r) => [r, r[0]!.toUpperCase() + r.slice(1)]);
+const RHYTHM_LABEL: Record<string, string> = {
+  tango: "Tango",
+  vals: "Vals",
+  milonga: "Milonga",
+  cancion: "Canción",
+  foxtrot: "Foxtrot",
+  other: "Other",
+};
+const labelOf = (r: string) => RHYTHM_LABEL[r] ?? r[0]!.toUpperCase() + r.slice(1);
+const RHYTHM_ITEMS: Array<[string, string]> = RHYTHMS.map((r) => [r, labelOf(r)]);
 const slug = (s: string) =>
   s
     .toLowerCase()
@@ -48,6 +60,8 @@ export function SongsTab() {
   const [rows, setRows] = useState<Song[]>([]);
   const [searching, setSearching] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [finding, setFinding] = useState<Song | null>(null);
+  const [analysing, setAnalysing] = useState<string | null>(null);
   const [form, setForm] = useState({
     title: "",
     orchestra: "",
@@ -74,17 +88,45 @@ export function SongsTab() {
   }, [q]);
 
   const songs = overrides.songs ?? {};
+  /**
+   * A field edit also keeps the derived fields the engine builds tandas from in step (mirrors the index build):
+   * singer → singerId + vocal, year → era. Reverting a field reverts the derived ones too.
+   */
   const setField = (s: Song, field: string, value: unknown) =>
-    update((o) => ({
-      ...o,
-      songs: patchMap(
+    update((o) => {
+      let next = patchMap(
         o.songs,
         s.id,
         field as keyof Song & string,
         value,
         (s as unknown as Record<string, unknown>)[field],
-      ),
-    }));
+      );
+      const cur = next[s.id] ?? {};
+      if (field === "singer") {
+        const singer = typeof cur.singer === "string" ? cur.singer.trim() : undefined;
+        next = patchMap(
+          next,
+          s.id,
+          "singerId",
+          singer === undefined ? undefined : singer ? slug(singer) : null,
+          s.singerId,
+        );
+        next = patchMap(next, s.id, "vocal", singer === undefined ? undefined : !!singer, s.vocal);
+      }
+      if (field === "year") {
+        const year = typeof cur.year === "number" && Number.isFinite(cur.year) ? cur.year : undefined;
+        next = patchMap(next, s.id, "era", year === undefined ? undefined : eraOf(year), s.era);
+      }
+      return { ...o, songs: next };
+    });
+  const analyse = async (s: Song) => {
+    setAnalysing(s.id);
+    try {
+      await analyseSong(s);
+    } finally {
+      setAnalysing(null);
+    }
+  };
   const revert = (id: string) =>
     update((o) => {
       const next = { ...(o.songs ?? {}) };
@@ -143,13 +185,20 @@ export function SongsTab() {
       {q.length < 2 && <Empty crate>Search the index to edit a recording, or add your own below.</Empty>}
       {q.length >= 2 && !searching && rows.length === 0 && <Empty>Nothing matches “{q}”.</Empty>}
       {rows.length > 0 && (
-        <div className="lg:grid lg:grid-cols-2 lg:gap-x-4">
+        <div className="min-w-0 lg:grid lg:grid-cols-2 lg:gap-x-4">
           {rows.map((s) => {
             const p = (songs[s.id] ?? {}) as Partial<Song> & { hidden?: boolean };
             const v = { ...s, ...p };
             const edited = !!songs[s.id];
+            const eff = effectiveSong(s, overrides);
+            const res = eff.resolved;
             return (
-              <Group key={s.id} data-song={s.id} footer={edited ? "Edited · Revert in Edit mode" : undefined}>
+              <Group
+                key={s.id}
+                data-song={s.id}
+                footer={edited ? "Edited · Revert in Edit mode" : undefined}
+                className="min-w-0"
+              >
                 <div className="cell" data-leading="art">
                   <RhythmTile rhythm={v.rhythm} />
                   <span className="min-w-0 flex-1">
@@ -215,6 +264,64 @@ export function SongsTab() {
                   min={40}
                   max={240}
                   onChange={(t) => setField(s, "bpm", num(t))}
+                />
+                <Row
+                  tile={
+                    res?.artwork ? (
+                      // biome-ignore lint/performance/noImgElement: provider artwork, unoptimised by design
+                      <img
+                        src={res.artwork}
+                        alt=""
+                        width={29}
+                        height={29}
+                        className="tile object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <span
+                        className="tile"
+                        style={{ background: res ? "#a238ff" : "var(--fill-2)" }}
+                        aria-hidden
+                      >
+                        <Link2 size={14} strokeWidth={2} />
+                      </span>
+                    )
+                  }
+                  label="Resolved"
+                  sub={
+                    res
+                      ? `${res.artist} – ${res.title}${res.previewUrl ? " · 30 s preview" : ""}${p.resolved ? " · your choice" : ""}`
+                      : "No preview track yet"
+                  }
+                  value={res ? (res.provider === "deezer" ? "Deezer" : res.provider) : "Find…"}
+                  chevron
+                  onClick={() => setFinding(s)}
+                  aria-label={`Find ${s.title} on services`}
+                  data-resolved={res ? "true" : "false"}
+                />
+                <Row
+                  tile={
+                    <span
+                      className="tile"
+                      style={{ background: eff.audio ? "var(--tint)" : "var(--fill-2)" }}
+                      aria-hidden
+                    >
+                      <AudioWaveform size={14} strokeWidth={2} />
+                    </span>
+                  }
+                  label="Analysed audio"
+                  sub={
+                    eff.audio
+                      ? `${keyLabel(eff.audio)} · ${Math.round(eff.audio.bpm)} BPM · ${eff.audio.loudnessDb.toFixed(1)} dBFS${p.audio ? " · analysed here" : ""}`
+                      : res?.previewUrl
+                        ? "Analyse the 30 s preview in this browser"
+                        : "Needs a preview first"
+                  }
+                  value={eff.audio ? "Analyse again" : "Analyse"}
+                  chevron
+                  onClick={() => analyse(s)}
+                  busy={analysing === s.id}
+                  disabled={!res?.previewUrl}
                 />
                 <ValueCell
                   label="Spotify"
@@ -289,6 +396,7 @@ export function SongsTab() {
         <ActionRow label="Add a recording" onClick={() => setAdding(true)} />
       </Group>
 
+      <ResolveSheet song={finding} open={!!finding} onClose={() => setFinding(null)} />
       <Sheet
         open={adding}
         onClose={() => setAdding(false)}

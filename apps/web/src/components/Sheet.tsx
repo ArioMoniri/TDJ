@@ -21,6 +21,8 @@ export function Sheet({
   describedBy,
   width = 540,
   testId,
+  footer,
+  hideCancel = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -33,6 +35,10 @@ export function Sheet({
   describedBy?: string;
   width?: number;
   testId?: string;
+  /** pinned below the scrolling body (a primary button, Health-style) */
+  footer?: ReactNode;
+  /** an alert with one answer: no Cancel on desktop */
+  hideCancel?: boolean;
 }) {
   const panel = useRef<HTMLDivElement>(null);
   const body = useRef<HTMLDivElement>(null);
@@ -185,7 +191,7 @@ export function Sheet({
               <span className="mx-auto mt-2 block h-[5px] w-9 rounded-full bg-[var(--label-3)]" aria-hidden />
             )}
             <div className="relative flex h-11 shrink-0 items-center justify-center px-4">
-              {!isPhone && (
+              {!isPhone && !hideCancel && (
                 <button type="button" className="btn-plain absolute left-2" onClick={onClose}>
                   Cancel
                 </button>
@@ -220,6 +226,11 @@ export function Sheet({
             >
               {children}
             </div>
+            {footer && (
+              <div className="shrink-0 border-t border-[var(--separator)] px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
+                {footer}
+              </div>
+            )}
           </motion.div>
         </div>
       )}

@@ -1,7 +1,8 @@
-import type { ContextFactorOption, UserOverrides } from "@tdj/core";
+import type { AudioFeatures, ContextFactorOption, ResolvedTrack, Song, UserOverrides } from "@tdj/core";
 
 export type {
   AgentMemory,
+  AudioFeatures,
   ComposeContext,
   ComposeOptions,
   ContextModel,
@@ -10,6 +11,7 @@ export type {
   NightRules,
   OrchestraProfile,
   Playlist,
+  ResolvedTrack,
   ScoreCard,
   Song,
   Tanda,
@@ -17,7 +19,12 @@ export type {
 } from "@tdj/core";
 
 /** Composer options as kept in the browser: engine options plus the controls the user pinned against era presets. */
-export type AppOptions = Partial<import("@tdj/core").ComposeOptions> & { pinned?: string[] };
+export type AppOptions = Partial<import("@tdj/core").ComposeOptions> & {
+  /** controls pinned against era presets */
+  pinned?: string[];
+  /** keys the DJ touched tonight (explicit); era presets and defaults are not */
+  touched?: string[];
+};
 
 export type AiProvider = "anthropic" | "openai" | "gemini" | "openrouter";
 export const AI_PROVIDERS: Array<[AiProvider, string]> = [
@@ -97,10 +104,42 @@ export const DEFAULT_SETTINGS: UserSettings = {
   learn: true,
 };
 
-/** The user's database: engine overrides plus context-factor edits (kept outside core's UserOverrides). */
+/** A per-song patch in the user's database: catalogue fields plus browser-analysed audio and a chosen preview track. */
+export type SongPatch = Partial<Song> & {
+  hidden?: boolean;
+  /** features analysed in this browser from the 30 s preview (core merges `patch.audio` over the shared cache) */
+  audio?: AudioFeatures | null;
+  /** the streaming/preview track the user picked in "Find on services" */
+  resolved?: ResolvedTrack | null;
+};
+
+/** Guide section ids whose text the user may rewrite; `houseRules` is appended to the AI prompts. */
+export type GuideOverrides = Record<string, string> & { houseRules?: string };
+export const HOUSE_RULES_MAX = 2000;
+
+/** The user's database: engine overrides plus context-factor edits, guide text and connector URLs (all browser-side). */
 export interface AppOverrides extends UserOverrides {
+  songs?: Record<string, SongPatch>;
   contextFactors?: Record<string, Record<string, Partial<ContextFactorOption>>>;
+  /** edited Guide sections keyed by section id, plus `houseRules` */
+  guide?: GuideOverrides;
+  /** BYO automation: a webhook URL exports can be POSTed to (never stored server-side by TDJ) */
+  connectors?: { webhookUrl?: string };
 }
+
+/** One previous generation (History tab): the whole set plus what composed it. */
+export interface HistorySnapshot {
+  id: string;
+  createdAt: string;
+  /** auto: "Sat · Golden age · 4 h"; the user may rename it */
+  title: string;
+  options: Partial<import("@tdj/core").ComposeOptions>;
+  playlist: import("@tdj/core").Playlist;
+  score: number;
+  /** what produced it */
+  source: "compose" | "refine" | "swap";
+}
+export const HISTORY_MAX = 50;
 
 export interface ReferencePlaylist {
   id: string;

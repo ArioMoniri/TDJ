@@ -1,6 +1,6 @@
 import { EXPORT_META, EXPORTERS, type ExportFormat, type Playlist } from "@tdj/core";
 import { NextResponse } from "next/server";
-import { applyPaths, withoutCortinas } from "@/lib/exportPaths";
+import { applyPaths, fixGenres, withoutCortinas } from "@/lib/exportPaths";
 export const dynamic = "force-dynamic";
 
 const csvq = (s: unknown) => `"${String(s ?? "").replace(/"/g, '""')}"`;
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
   const f = format as ExportFormat;
   const pl = includeCortinas ? playlist : withoutCortinas(playlist);
   const text = withBreaks(
-    applyPaths(EXPORTERS[f](pl, { includeCortinas: !!includeCortinas }), f, pl, {
+    applyPaths(fixGenres(EXPORTERS[f](pl, { includeCortinas: !!includeCortinas }), f), f, pl, {
       folder: typeof folder === "string" ? folder : "",
       naming: typeof naming === "string" ? naming : "",
       includeCortinas: !!includeCortinas,

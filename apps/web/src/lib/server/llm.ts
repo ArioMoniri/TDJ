@@ -121,6 +121,12 @@ export async function complete(a: CompleteArgs): Promise<string> {
   }
 }
 
+/** The DJ's own house rules (Guide → Edit → House rules, ≤ 2000 chars) appended after DJ_RULES in every prompt. */
+export function houseRulesBlock(raw: unknown): string {
+  const text = typeof raw === "string" ? raw.trim().slice(0, 2000) : "";
+  return text ? `\n\nHOUSE RULES (this DJ's own, they override the general rules above):\n${text}` : "";
+}
+
 /** Pull a JSON object out of model text (code fences, prose around it). Returns null when nothing parses. */
 export function extractJson(text: string): Record<string, unknown> | null {
   const t = text.trim();

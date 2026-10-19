@@ -21,6 +21,28 @@ export const FEEDBACK_VALUES: Feedback[] = [
   "more-dramatic",
 ];
 
+/** Plain words for each value (notes, toasts). */
+export const FEEDBACK_LABEL: Record<Feedback, string> = {
+  "more-energetic": "more energy",
+  calmer: "calmer",
+  "more-vals": "more vals",
+  "more-milongas": "more milongas",
+  "fewer-milongas": "fewer milongas",
+  "earlier-peak": "earlier peak",
+  "later-peak": "later peak",
+  "more-vocal": "more vocals",
+  "more-instrumental": "more instrumentals",
+  "warmer-start": "warmer start",
+  "stronger-finish": "stronger finish",
+  "fewer-repeats": "fewer repeats",
+  "more-variety": "more variety",
+  "shorter-cortinas": "shorter cortinas",
+  "longer-cortinas": "longer cortinas",
+  "more-romantic": "more romance",
+  "more-playful": "more playful",
+  "more-dramatic": "more drama",
+};
+
 /** The chips shown under a finished set, in display order. */
 export const FEEDBACK_CHIPS: Array<[Feedback, string]> = [
   ["more-energetic", "More energetic"],
@@ -49,7 +71,7 @@ const KEYWORDS: Array<[RegExp, Feedback]> = [
   [/\b(long(er)? cortina)/i, "longer-cortinas"],
   [/\b(romantic|tender|lyrical|sweet)/i, "more-romantic"],
   [/\b(playful|fun|cheeky|light)/i, "more-playful"],
-  [/\b(dramatic|intense|pugliese)/i, "more-dramatic"],
+  [/\b(dramatic|intense|drama)/i, "more-dramatic"],
   [/\b(more vocal|more singers|sung)/i, "more-vocal"],
   [/\b(instrumental)/i, "more-instrumental"],
   [/\b(earl(y|ier) peak|peak sooner)/i, "earlier-peak"],
