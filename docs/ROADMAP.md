@@ -14,7 +14,8 @@ Catalogue index in-repo (21,932 recordings, orchestra heatmap), composer engine 
 - BPM/key per recording: in-browser beat detection on previews (`web-audio-beat-detector`, MIT) → `data/cache/bpm.json`; activate rubric C9.
 - Transfer-tier tagging per album/label (TangoTunes, CTA, El Bandoneón, Euro Records…).
 
-## Phase 2 — The DJ booth ⏳
+## Phase 2 — The DJ booth 🔧
+- ✅ Locks that survive recompose, per-track swap, feedback chips and free-text refine, night rules (Cumparsitas, birthday vals, show break, opener/última), era presets with pinned controls, agent memory, Apple-native UI and motion system.
 - Lock/unlock tandas (persisted), drag reorder, swap a single track, "avoid this orchestra tonight".
 - Clock view (wall-clock timeline, "we are here"), print/PDF set list, request queue with insert-at-energy.
 - Floor-feedback knob (re-plan remaining night up/down 10 energy points).
