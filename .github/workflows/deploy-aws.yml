@@ -64,10 +64,19 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          CODE=$(openssl rand -hex 16)
+          # reuse an unexpired, unused code so every deploy summary shows the same one (a new code only after 24 h)
+          EXISTING=$(aws ssm get-parameter --name "/tdj/${STAGE}/SETUP_CODE" --with-decryption --query Parameter.Value --output text 2>/dev/null || true)
+          CODE=""
+          if [ -n "${EXISTING}" ] && [ "${EXISTING}" != "None" ]; then
+            ISSUED=${EXISTING##*.}
+            if [ "$(( $(date +%s) - ISSUED ))" -lt 86400 ]; then CODE=${EXISTING%.*}; fi
+          fi
+          if [ -z "${CODE}" ]; then
+            CODE=$(openssl rand -hex 16)
+            aws ssm put-parameter --name "/tdj/${STAGE}/SETUP_CODE" --type SecureString --overwrite \
+              --value "${CODE}.$(date +%s)" >/dev/null
+          fi
           echo "::add-mask::${CODE}"
-          aws ssm put-parameter --name "/tdj/${STAGE}/SETUP_CODE" --type SecureString --overwrite \
-            --value "${CODE}.$(date +%s)" >/dev/null
           {
             echo "## Owner setup"
             echo "1. Open **${URL:-<app url>}/admin**."
