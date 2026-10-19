@@ -1,13 +1,21 @@
 "use client";
-import { LoaderCircle, Play } from "lucide-react";
+import { LoaderCircle, Pause, Play } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { keyLabel } from "@/lib/analyze";
 import { effectiveSong } from "@/lib/audio";
 import { fade, t as tw } from "@/lib/motion";
+import { previewEndpoint, usePlayer } from "@/lib/player";
 import { resolveTrack } from "@/lib/spotify";
 import { useStore } from "@/lib/store";
-import type { Cortina, Playlist, ReferencePlaylist, Tanda } from "@/lib/types";
+import {
+  type Cortina,
+  cortinaStopSec,
+  type Playlist,
+  type ReferencePlaylist,
+  type Song,
+  type Tanda,
+} from "@/lib/types";
 
 const trackId = (uri: string) => uri.replace(/^spotify:track:/, "");
 
@@ -82,11 +90,14 @@ export function TandaListen({ t, playlists }: { t: Tanda; playlists: ReferencePl
           out.push(trackId(s.spotify.uri));
           continue;
         }
-        const r = await resolveTrack(
-          token.access,
-          `${s.title} ${s.orchestra}${s.singer ? ` ${s.singer}` : ""}`,
-          s.year,
-        );
+        const r = await resolveTrack(token.access, {
+          id: s.id,
+          title: s.title,
+          orchestra: s.orchestra,
+          singer: s.singer,
+          year: s.year,
+          durationSec: s.durationSec,
+        }).catch(() => null);
         out.push(r ? trackId(r.uri) : null);
       }
       if (alive) setIds(out);
@@ -145,66 +156,121 @@ export function TandaListen({ t, playlists }: { t: Tanda; playlists: ReferencePl
   );
 }
 
-/** "Preview cortina": a Spotify search through the connected account, then the track embed. */
+/**
+ * "Preview cortina": the 30 s preview found through /api/resolve (keyless) plays in the mini-player and stops at
+ * the DJ's cortina play length (Settings → Playback, default the composer's cortina length); with Spotify connected
+ * the full track's embed is offered as well (an embed cannot be cut, so the badge says how long it should run).
+ */
 export function CortinaPreview({ c }: { c: Cortina }) {
   const token = useStore((s) => s.spotifyToken);
-  const [state, setState] = useState<"idle" | "busy" | "none">("idle");
+  const settings = useStore((s) => s.settings);
+  const stopSec = cortinaStopSec(settings, c.lengthSec);
+  const [state, setState] = useState<"idle" | "busy" | "none" | "embed-busy" | "embed-none">("idle");
   const [id, setId] = useState<string | null>(c.spotify?.uri ? trackId(c.spotify.uri) : null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const player = usePlayer();
+  const playingThis = player.track?.id === `cortina:${c.id}`;
   const connected = !!token && token.expires > Date.now();
-  const go = async () => {
-    if (!token) return;
-    setState("busy");
-    const r = await resolveTrack(token.access, `${c.artist} ${c.title}`, c.year ?? null).catch(() => null);
-    if (r) setId(trackId(r.uri));
-    setState(r ? "idle" : "none");
+  const playInApp = async () => {
+    if (playingThis) return player.toggle();
+    let ref = preview;
+    if (!ref) {
+      setState("busy");
+      try {
+        const r = await fetch("/api/resolve", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ title: c.title, orchestra: c.artist }),
+        });
+        const j = (await r.json()) as {
+          candidates?: Array<{ provider: string; id: string; previewUrl: string | null }>;
+        };
+        const hit = (j.candidates ?? []).find((x) => x.provider === "deezer" && x.previewUrl);
+        ref = hit
+          ? previewEndpoint({ provider: hit.provider, id: hit.id } as NonNullable<Song["resolved"]>)
+          : null;
+      } catch {
+        ref = null;
+      }
+      setPreview(ref);
+      setState(ref ? "idle" : "none");
+      if (!ref) return;
+    }
+    player.play({
+      id: `cortina:${c.id}`,
+      title: c.title,
+      orchestra: c.artist,
+      year: c.year ?? null,
+      kind: "cortina",
+      stopSec,
+      source: { kind: "preview", ref },
+    });
   };
-  const meta = `${c.genre} · ${c.culture} · energy ${c.energy}${c.year ? ` · ${c.year}` : ""}`;
-  if (id)
-    return (
-      <div className="space-y-2">
-        <SpotifyEmbed kind="track" id={id} title={`Cortina: ${c.title}`} height={80} />
-        <p className={foot}>{meta}</p>
-      </div>
-    );
-  if (!connected)
-    return (
-      <p className={foot}>
-        {meta} ·{" "}
-        <a
-          className={link}
-          href={`https://open.spotify.com/search/${encodeURIComponent(`${c.artist} ${c.title}`)}`}
-          target="_blank"
-          rel="noreferrer"
-        >
-          Open on Spotify
-        </a>
-      </p>
-    );
+  const embed = async () => {
+    if (!token) return;
+    setState("embed-busy");
+    const r = await resolveTrack(token.access, {
+      id: c.id,
+      title: c.title,
+      orchestra: c.artist,
+      year: c.year ?? null,
+    }).catch(() => null);
+    if (r) setId(trackId(r.uri));
+    setState(r ? "idle" : "embed-none");
+  };
+  const meta = `${c.genre} · ${c.culture} · energy ${c.energy}${c.year ? ` · ${c.year}` : ""} · plays ${stopSec} s`;
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <button type="button" className="btn-plain -ml-2" onClick={go} disabled={state === "busy"}>
-        {state === "busy" ? (
-          <LoaderCircle size={16} className="animate-spin" />
-        ) : (
-          <Play size={16} fill="currentColor" strokeWidth={0} />
-        )}{" "}
-        Preview cortina
-      </button>
-      <span className={foot}>{meta}</span>
-      <AnimatePresence>
-        {state === "none" && (
-          <motion.span
-            key="none"
-            variants={fade}
-            initial="hidden"
-            animate="show"
-            exit="exit"
-            className={foot}
-          >
-            Not found on Spotify.
-          </motion.span>
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          className="btn-plain -ml-2"
+          onClick={playInApp}
+          disabled={state === "busy"}
+          data-testid="cortina-play"
+        >
+          {state === "busy" ? (
+            <LoaderCircle size={16} className="animate-spin" />
+          ) : playingThis && player.playing ? (
+            <Pause size={16} fill="currentColor" strokeWidth={0} />
+          ) : (
+            <Play size={16} fill="currentColor" strokeWidth={0} />
+          )}{" "}
+          {playingThis && player.playing ? "Pause" : `Preview cortina (${stopSec} s)`}
+        </button>
+        {connected && !id && (
+          <button type="button" className="btn-plain" onClick={embed} disabled={state === "embed-busy"}>
+            {state === "embed-busy" ? <LoaderCircle size={16} className="animate-spin" /> : null} Full track
+            on Spotify
+          </button>
         )}
-      </AnimatePresence>
+        {!connected && !id && (
+          <a
+            className={`${foot} ${link}`}
+            href={`https://open.spotify.com/search/${encodeURIComponent(`${c.artist} ${c.title}`)}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Open on Spotify
+          </a>
+        )}
+        <span className={foot}>{meta}</span>
+        <AnimatePresence>
+          {(state === "none" || state === "embed-none") && (
+            <motion.span
+              key="none"
+              variants={fade}
+              initial="hidden"
+              animate="show"
+              exit="exit"
+              className={foot}
+            >
+              {state === "none" ? "No preview found." : "Not found on Spotify."}
+            </motion.span>
+          )}
+        </AnimatePresence>
+      </div>
+      {id && <SpotifyEmbed kind="track" id={id} title={`Cortina: ${c.title}`} height={80} />}
     </div>
   );
 }

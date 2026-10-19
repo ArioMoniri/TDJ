@@ -1,6 +1,6 @@
 "use client";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
-import { EXPORT_META, type ExportFormat, toSpotifyPlan } from "@tdj/core";
+import { EXPORT_META, type ExportFormat } from "@tdj/core";
 import { ArrowRightLeft, Check, Cloud, FileDown, HardDrive, ListVideo, Radio, Webhook } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
@@ -8,8 +8,10 @@ import { useEffect, useRef, useState } from "react";
 import { downloadBlob } from "@/lib/download";
 import { withoutCortinas } from "@/lib/exportPaths";
 import { haptic } from "@/lib/haptics";
+import type { Match, MatchItem } from "@/lib/match";
 import { DUR, SPRING } from "@/lib/motion";
 import {
+  addToPlaylist,
   beginAuth,
   type ConnectApp,
   connectExport,
@@ -20,17 +22,20 @@ import {
   googleLoginUrl,
   hostedCreatePlaylist,
   hostedLoginUrl,
+  hostedMatch,
   refresh,
   resolveTrack,
+  SpotifyRateLimit,
   useConnectors,
   type YoutubeResult,
 } from "@/lib/spotify";
+import { batches, spotifyPlanFor } from "@/lib/spotifyPlan";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import { TRANSFER_SERVICES, type TransferService, transferCsv, transferRows } from "@/lib/transferCsv";
-import { DJ_APPS, type DjApp, type Playlist } from "@/lib/types";
+import { CORTINA_STOP_RANGE, cortinaStopSec, DJ_APPS, type DjApp, type Playlist } from "@/lib/types";
 import { CountUp } from "./CountUp";
-import { ActionRow, Group, PickerRow, Row, SegmentedRow, SwitchRow, Tile } from "./Form";
+import { ActionRow, Group, PickerRow, Row, SegmentedRow, StepperRow, SwitchRow, Tile } from "./Form";
 import { Sheet } from "./Sheet";
 
 const FORMAT_ITEMS = (Object.keys(EXPORT_META) as ExportFormat[]).map(
@@ -104,12 +109,16 @@ export function ExportSheet({
   const {
     playlist: current,
     settings,
+    setSettings,
+    options,
     spotifyToken,
     setSpotifyToken,
     overrides,
     updateOverrides,
   } = useStore();
   const playlist = given ?? current;
+  /** where cortinas stop: Settings → Playback, else the composer's cortina length */
+  const cortinaStop = cortinaStopSec(settings, options.cortinaLengthSec);
   const { spotify, google, dropbox, connect } = useConnectors();
   const hosted = spotify?.hosted ?? false;
   const hostedUser = spotify?.user ?? null;
@@ -137,6 +146,12 @@ export function ExportSheet({
   const [result, setResult] = useState<{ label: string; url: string } | null>(null);
   const [includeCortinas, setIncludeCortinas] = useState(true);
   const [done, setDone] = useState(false);
+  /** "Matching 23 of 83…" while the server searches batch by batch */
+  const [progress, setProgress] = useState<string | null>(null);
+  /** Spotify asked for a pause: the playlist exists with what was found; "Try again" matches the rest into it */
+  const [pending, setPending] = useState<{ playlistId: string; url: string; remaining: MatchItem[] } | null>(
+    null,
+  );
   const check = useRef<{ play: () => void } | null>(null);
   const reduced = useReducedMotion();
 
@@ -146,6 +161,8 @@ export function ExportSheet({
       setDone(false);
       setResult(null);
       setLog([]);
+      setPending(null);
+      setProgress(null);
     }
   }, [open]);
 
@@ -172,6 +189,7 @@ export function ExportSheet({
           playlist,
           format: f,
           includeCortinas,
+          cortinaStopSec: cortinaStop,
           folder: folderFor(f),
           naming: settings.fileNaming,
         }),
@@ -191,6 +209,82 @@ export function ExportSheet({
     }
   };
 
+  /** The matches go into the DJ's database (`songs[id].spotify`) so a re-export never searches again. */
+  const persistMatches = (ms: Match[], kinds: Map<string, string>) => {
+    const songs = ms.filter((m) => kinds.get(m.id) !== "cortina");
+    if (!songs.length) return;
+    updateOverrides((o) => {
+      const next = { ...(o.songs ?? {}) };
+      for (const m of songs)
+        next[m.id] = {
+          ...(next[m.id] ?? {}),
+          spotify: { uri: m.uri, url: m.url, durationMs: m.durationMs, album: m.album },
+        };
+      return { ...o, songs: next };
+    });
+  };
+  const pauseMessage = (sec: number) =>
+    `Spotify is pausing searches for ${sec} s; the playlist will contain the tracks found so far, try again in a minute to add the rest`;
+  /**
+   * Hosted: the unresolved recordings go to the server in batches of 10 (one search in flight at a time there);
+   * a rate limit ends the matching cleanly and the playlist is made with what was found.
+   */
+  const matchHosted = async (items: MatchItem[], kinds: Map<string, string>, labels: Map<string, string>) => {
+    const uris: string[] = [];
+    const missing: string[] = [];
+    let paused: number | undefined;
+    let remaining: MatchItem[] = [];
+    const bs = batches(items);
+    let done = 0;
+    for (let i = 0; i < bs.length; i++) {
+      const b = bs[i]!;
+      setProgress(`Matching ${Math.min(done + b.length, items.length)} of ${items.length}…`);
+      const r = await hostedMatch(b);
+      for (const m of r.matches) uris.push(m.uri);
+      persistMatches(r.matches, kinds);
+      for (const id of r.missing) missing.push(labels.get(id) ?? id);
+      if (r.rateLimited) {
+        paused = r.rateLimited;
+        const seen = new Set([...r.matches.map((m) => m.id), ...r.missing]);
+        remaining = [...b.filter((x) => !seen.has(x.id)), ...bs.slice(i + 1).flat()];
+        break;
+      }
+      done += b.length;
+    }
+    setProgress(null);
+    return { uris, missing, paused, remaining };
+  };
+  /** BYO: the same scorer, searching from this browser with the DJ's own Client ID. */
+  const matchByo = async (token: string, items: MatchItem[], labels: Map<string, string>) => {
+    const uris: string[] = [];
+    const missing: string[] = [];
+    let paused: number | undefined;
+    let remaining: MatchItem[] = [];
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i]!;
+      setProgress(`Matching ${i + 1} of ${items.length}…`);
+      try {
+        const r = await resolveTrack(token, it);
+        if (r) uris.push(r.uri);
+        else missing.push(labels.get(it.id) ?? it.title);
+      } catch (e) {
+        if (e instanceof SpotifyRateLimit) {
+          paused = e.retryAfter;
+          remaining = items.slice(i);
+          break;
+        }
+        throw e;
+      }
+    }
+    setProgress(null);
+    return { uris, missing, paused, remaining };
+  };
+  const finishLog = (added: number, missing: string[], paused?: number, left = 0) =>
+    setLog((l) => [
+      ...l,
+      `${added} tracks in the playlist${missing.length ? ` (${missing.length} not found: ${missing.slice(0, 3).join(", ")}${missing.length > 3 ? "…" : ""})` : ""}${paused ? `. Spotify paused searches for ${paused} s: ${left} still to match.` : "."}`,
+    ]);
+
   const toSpotify = async () => {
     if (!playlist) return;
     if (hosted) {
@@ -198,17 +292,34 @@ export function ExportSheet({
       setBusy(true);
       setLog([]);
       setResult(null);
+      setPending(null);
       try {
-        const r = await hostedCreatePlaylist({ playlist, includeCortinas });
+        const plan = spotifyPlanFor(includeCortinas ? playlist : withoutCortinas(playlist), overrides, {
+          includeCortinas,
+        });
+        const kinds = new Map(plan.tracks.map((t) => [t.id ?? "", t.kind] as const));
+        const labels = new Map(plan.tracks.map((t) => [t.id ?? "", `${t.title} (${t.artist})`] as const));
+        const m = await matchHosted(plan.items, kinds, labels);
+        const r = await hostedCreatePlaylist({
+          uris: [...plan.uris, ...m.uris],
+          includeCortinas,
+          name: `TDJ · ${playlist.name}`,
+          description: `${playlist.tandas.length} tandas composed with TDJ, cortinas ${includeCortinas ? "included" : "excluded"}. Score ${playlist.score?.total ?? "–"}/100.`,
+        });
         setResult({ label: "Open in Spotify", url: r.url });
-        setDone(true);
-        check.current?.play();
-        haptic([10, 40, 10]);
-        setLog((l) => [
-          ...l,
-          `Created playlist with ${r.added} tracks${r.missing.length ? ` (${r.missing.length} not found: ${r.missing.slice(0, 3).join(", ")}${r.missing.length > 3 ? "…" : ""})` : ""}.`,
-        ]);
+        finishLog(r.added, m.missing, m.paused, m.remaining.length);
+        if (m.paused && m.remaining.length) {
+          const pend = { playlistId: r.id, url: r.url, remaining: m.remaining };
+          setPending(pend);
+          toast(pauseMessage(m.paused), () => void tryAgain(pend), "Try again");
+          haptic([20, 30, 20]);
+        } else {
+          setDone(true);
+          check.current?.play();
+          haptic([10, 40, 10]);
+        }
       } catch (e) {
+        setProgress(null);
         setLog((l) => [...l, `Error: ${(e as Error).message}`]);
         haptic([20, 30, 20]);
       } finally {
@@ -216,30 +327,30 @@ export function ExportSheet({
       }
       return;
     }
-    if (!settings.spotifyClientId) return;
+    // bring-your-own Client ID: only when the deployment has no hosted login (a hosted token never refreshes here)
+    if (spotify === null || !settings.spotifyClientId) return;
     let tok = spotifyToken;
     if (!tok) return beginAuth(settings.spotifyClientId);
     if (tok.expires < Date.now() + 60_000 && tok.refresh) {
-      tok = await refresh(settings.spotifyClientId, tok.refresh);
-      setSpotifyToken(tok);
+      try {
+        tok = await refresh(settings.spotifyClientId, tok.refresh);
+        setSpotifyToken(tok);
+      } catch {
+        setSpotifyToken(null);
+        return beginAuth(settings.spotifyClientId);
+      }
     }
     setBusy(true);
     setLog([]);
     setResult(null);
+    setPending(null);
     try {
-      const plan = toSpotifyPlan(includeCortinas ? playlist : withoutCortinas(playlist));
-      const uris: string[] = [...plan.uris];
-      let miss = 0;
-      for (const u of plan.unresolved) {
-        const r = await resolveTrack(tok.access, u.query, u.track.year);
-        if (r) {
-          uris.push(r.uri);
-          setLog((l) => [...l.slice(-8), `Found ${u.track.title} → ${r.artist} – ${r.name}`]);
-        } else {
-          miss++;
-          setLog((l) => [...l.slice(-8), `Not found: ${u.query}`]);
-        }
-      }
+      const plan = spotifyPlanFor(includeCortinas ? playlist : withoutCortinas(playlist), overrides, {
+        includeCortinas,
+      });
+      const labels = new Map(plan.tracks.map((t) => [t.id ?? "", `${t.title} (${t.artist})`] as const));
+      const m = await matchByo(tok.access, plan.items, labels);
+      const uris = [...plan.uris, ...m.uris];
       const pl = await createPlaylist(
         tok.access,
         `TDJ · ${playlist.name}`,
@@ -247,14 +358,70 @@ export function ExportSheet({
         uris,
       );
       setResult({ label: "Open in Spotify", url: pl.external_urls.spotify });
-      setDone(true);
-      check.current?.play();
-      haptic([10, 40, 10]);
-      setLog((l) => [...l, `Created playlist with ${uris.length} tracks (${miss} unresolved).`]);
+      finishLog(uris.length, m.missing, m.paused, m.remaining.length);
+      if (m.paused && m.remaining.length) {
+        const pend = { playlistId: pl.id, url: pl.external_urls.spotify, remaining: m.remaining };
+        setPending(pend);
+        toast(pauseMessage(m.paused), () => void tryAgain(pend), "Try again");
+      } else {
+        setDone(true);
+        check.current?.play();
+        haptic([10, 40, 10]);
+      }
     } catch (e) {
+      setProgress(null);
       setLog((l) => [...l, `Error: ${(e as Error).message}`]);
       haptic([20, 30, 20]);
       if (String(e).includes("401")) setSpotifyToken(null);
+    } finally {
+      setBusy(false);
+    }
+  };
+  /** After a pause: match what is left and append it to the playlist made before. */
+  const tryAgain = async (pend: { playlistId: string; url: string; remaining: MatchItem[] }) => {
+    if (!playlist) return;
+    setBusy(true);
+    try {
+      const plan = spotifyPlanFor(includeCortinas ? playlist : withoutCortinas(playlist), overrides, {
+        includeCortinas,
+      });
+      const kinds = new Map(plan.tracks.map((t) => [t.id ?? "", t.kind] as const));
+      const labels = new Map(plan.tracks.map((t) => [t.id ?? "", `${t.title} (${t.artist})`] as const));
+      let m: Awaited<ReturnType<typeof matchHosted>>;
+      if (hosted) m = await matchHosted(pend.remaining, kinds, labels);
+      else {
+        const tok = spotifyToken;
+        if (!tok) return;
+        m = await matchByo(tok.access, pend.remaining, labels);
+      }
+      if (m.uris.length) {
+        if (hosted)
+          await hostedCreatePlaylist({
+            uris: m.uris,
+            playlistId: pend.playlistId,
+            url: pend.url,
+            includeCortinas,
+          });
+        else if (spotifyToken) await addToPlaylist(spotifyToken.access, pend.playlistId, m.uris);
+      }
+      setLog((l) => [
+        ...l,
+        `Added ${m.uris.length} more${m.missing.length ? ` (${m.missing.length} not found)` : ""}${m.paused ? `. Spotify paused again for ${m.paused} s: ${m.remaining.length} still to match.` : "."}`,
+      ]);
+      if (m.paused && m.remaining.length) {
+        const next = { ...pend, remaining: m.remaining };
+        setPending(next);
+        toast(pauseMessage(m.paused), () => void tryAgain(next), "Try again");
+      } else {
+        setPending(null);
+        setDone(true);
+        check.current?.play();
+        haptic([10, 40, 10]);
+      }
+    } catch (e) {
+      setProgress(null);
+      setLog((l) => [...l, `Error: ${(e as Error).message}`]);
+      haptic([20, 30, 20]);
     } finally {
       setBusy(false);
     }
@@ -327,6 +494,7 @@ export function ExportSheet({
         playlist,
         format,
         includeCortinas,
+        cortinaStopSec: cortinaStop,
         folder: folderFor(format),
         naming: settings.fileNaming,
       }),
@@ -404,10 +572,11 @@ export function ExportSheet({
     <>
       <button
         type="button"
-        onClick={toSpotify}
+        onClick={pending ? () => void tryAgain(pending) : toSpotify}
         disabled={busy || done || (!hosted && !settings.spotifyClientId)}
         className="btn btn-primary w-full"
         aria-describedby={hosted || settings.spotifyClientId ? undefined : "spotify-why"}
+        id="spotify-create"
       >
         {(done || busy) && (
           <span className="inline-grid h-6 w-6 place-items-center" aria-hidden>
@@ -439,13 +608,17 @@ export function ExportSheet({
             >
               {done
                 ? "Playlist created"
-                : hosted
-                  ? hostedUser
-                    ? "Create playlist in Spotify"
-                    : "Log in with Spotify and create playlist"
-                  : spotifyToken
-                    ? "Create playlist in Spotify"
-                    : "Connect Spotify and create playlist"}
+                : busy && progress
+                  ? progress
+                  : pending
+                    ? `Try again · ${pending.remaining.length} left`
+                    : hosted
+                      ? hostedUser
+                        ? "Create playlist in Spotify"
+                        : "Log in with Spotify and create playlist"
+                      : spotifyToken
+                        ? "Create playlist in Spotify"
+                        : "Connect Spotify and create playlist"}
             </motion.span>
           </AnimatePresence>
         </span>
@@ -480,10 +653,25 @@ export function ExportSheet({
             {includeCortinas ? ` + ${cortinas} ${cortinas === 1 ? "cortina" : "cortinas"}` : ""} (
             <CountUp value={count} /> {count === 1 ? "file" : "files"})
             {includeCortinas ? "" : ` · ${cortinas} cortinas left out`}.
+            {includeCortinas
+              ? ` Cortinas stop at ${cortinaStop} s in TDJ's player, in VLC (M3U8, XSPF) and as a Rekordbox hot cue. Spotify playlists cannot trim tracks, so cortinas there play in full: switch Include cortinas off to skip them in Spotify.`
+              : " No cortinas in the files or in Spotify."}
           </span>
         }
       >
         <SwitchRow label="Include cortinas" checked={includeCortinas} onChange={setIncludeCortinas} />
+        {includeCortinas && (
+          <StepperRow
+            label="Cortina play length"
+            sub={settings.cortinaStopSec === null ? "Follows the composer" : "Set in Playback"}
+            value={cortinaStop}
+            unit=" s"
+            min={CORTINA_STOP_RANGE.min}
+            max={CORTINA_STOP_RANGE.max}
+            step={CORTINA_STOP_RANGE.step}
+            onChange={(v) => setSettings({ cortinaStopSec: v })}
+          />
+        )}
       </Group>
       <Group
         header="Send to"

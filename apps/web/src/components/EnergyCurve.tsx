@@ -175,6 +175,8 @@ export function EnergyCurve({
               }}
               animate={morph ? { attrX: bx, width: bw, opacity: k % 2 ? 1 : 0 } : "show"}
               transition={morphT}
+              // a numeric x before the first animation frame: motion's attrX would otherwise render x="null"
+              x={bx}
               y={py}
               height={plotH}
               fill="rgb(var(--text) / var(--band-alpha))"
@@ -277,6 +279,8 @@ export function EnergyCurve({
                   initial={false}
                   animate={{ attrX: cx - 1.8, attrY: cy - 1.8 }}
                   transition={morphT}
+                  x={cx - 1.8}
+                  y={cy - 1.8}
                   width={3.6}
                   height={3.6}
                   fill="#fff"

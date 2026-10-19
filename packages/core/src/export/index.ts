@@ -3,6 +3,8 @@ import type { Cortina, Playlist, Song } from "../types";
 export interface FlatTrack {
   n: number;
   kind: "track" | "cortina" | "closing";
+  /** catalogue id (song or cortina) so a streaming match can be stored back against it */
+  id?: string;
   tanda: number;
   title: string;
   artist: string;
@@ -14,10 +16,24 @@ export interface FlatTrack {
   spotifyUri?: string;
   singer?: string | null;
   orchestra?: string;
+  /** cortinas: the second the player should stop at (the DJ's "cortina play length") */
+  stopSec?: number;
 }
 
 export interface ExportOpts {
   includeCortinas?: boolean;
+  /**
+   * Cortina play length in seconds (20–90): where M3U8/XSPF tell VLC to stop and where the Rekordbox hot cue sits.
+   * Defaults to each cortina's own `lengthSec` (the compose option `cortinaLengthSec`, 45 s).
+   */
+  cortinaStopSec?: number;
+}
+export const CORTINA_STOP_MIN = 20;
+export const CORTINA_STOP_MAX = 90;
+/** The stop second an export writes for a cortina: the explicit option, else the cortina's length, clamped to 20–90. */
+export function cortinaStopFor(eo: ExportOpts, lengthSec?: number | null): number {
+  const v = eo.cortinaStopSec ?? lengthSec ?? 45;
+  return Math.round(Math.min(CORTINA_STOP_MAX, Math.max(CORTINA_STOP_MIN, Number.isFinite(v) ? v : 45)));
 }
 const safe = (s: string) =>
   s
@@ -39,6 +55,7 @@ export function flatten(p: Playlist, eo: ExportOpts = {}): FlatTrack[] {
   if (p.opening)
     push({
       kind: "closing",
+      id: p.opening.id,
       tanda: 0,
       title: p.opening.title,
       artist: p.opening.orchestra,
@@ -54,6 +71,7 @@ export function flatten(p: Playlist, eo: ExportOpts = {}): FlatTrack[] {
     for (const s of t.songs)
       push({
         kind: "track",
+        id: s.id,
         tanda: ti + 1,
         title: s.title,
         artist: s.singer ? `${s.orchestra} / ${s.singer}` : s.orchestra,
@@ -69,6 +87,7 @@ export function flatten(p: Playlist, eo: ExportOpts = {}): FlatTrack[] {
     if (inc && t.cortina)
       push({
         kind: "cortina",
+        id: t.cortina.id,
         tanda: ti + 1,
         title: t.cortina.title,
         artist: t.cortina.artist,
@@ -77,11 +96,13 @@ export function flatten(p: Playlist, eo: ExportOpts = {}): FlatTrack[] {
         energy: t.cortina.energy,
         spotifyUri: t.cortina.spotify?.uri,
         year: t.cortina.year,
+        stopSec: cortinaStopFor(eo, t.cortina.lengthSec),
       });
   });
   if (p.closing)
     push({
       kind: "closing",
+      id: p.closing.id,
       tanda: p.tandas.length + 1,
       title: p.closing.title,
       artist: p.closing.orchestra,
@@ -110,6 +131,8 @@ export function toM3U8(p: Playlist, eo: ExportOpts = {}): string {
     lines.push(
       `#EXTINF:${t.durationSec},${t.artist} - ${t.title}${t.kind === "cortina" ? " [CORTINA]" : ""}`,
     );
+    // VLC stops a cortina at the DJ's play length (other players ignore the option)
+    if (t.kind === "cortina" && t.stopSec) lines.push(`#EXTVLCOPT:stop-time=${t.stopSec}`);
     lines.push(t.spotifyUri ? t.spotifyUri : `${safe(t.artist)} - ${safe(t.title)}.mp3`);
   }
   return `${lines.join("\n")}\n`;
@@ -161,7 +184,11 @@ export function toRekordboxXML(p: Playlist, eo: ExportOpts = {}): string {
   const coll = tracks
     .map(
       (t) =>
-        `    <TRACK TrackID="${t.n}" Name="${esc(t.title)}" Artist="${esc(t.artist)}" Album="${esc(t.album ?? (t.kind === "cortina" ? "Cortinas" : "TDJ"))}" Genre="${esc(GENRE[t.kind === "cortina" ? "cortina" : t.rhythm] ?? "Tango")}" Year="${t.year ?? ""}" TotalTime="${t.durationSec}" Comments="${esc(t.kind === "cortina" ? `Cortina before tanda ${t.tanda + 1}` : `Tanda ${t.tanda}`)}" Location="file://localhost/TDJ/${esc(encodeURIComponent(`${safe(t.artist)} - ${safe(t.title)}.mp3`))}" Kind="MP3 File" ${t.spotifyUri ? `Mix="${esc(t.spotifyUri)}"` : ""}/>`,
+        `    <TRACK TrackID="${t.n}" Name="${esc(t.title)}" Artist="${esc(t.artist)}" Album="${esc(t.album ?? (t.kind === "cortina" ? "Cortinas" : "TDJ"))}" Genre="${esc(GENRE[t.kind === "cortina" ? "cortina" : t.rhythm] ?? "Tango")}" Year="${t.year ?? ""}" TotalTime="${t.durationSec}" Comments="${esc(t.kind === "cortina" ? `Cortina before tanda ${t.tanda + 1}` : `Tanda ${t.tanda}`)}" Location="file://localhost/TDJ/${esc(encodeURIComponent(`${safe(t.artist)} - ${safe(t.title)}.mp3`))}" Kind="MP3 File" ${t.spotifyUri ? `Mix="${esc(t.spotifyUri)}"` : ""}${
+          t.kind === "cortina" && t.stopSec
+            ? `>\n      <POSITION_MARK Name="Cortina out (${t.stopSec} s)" Type="0" Start="${t.stopSec.toFixed(3)}" Num="0"/>\n    </TRACK>`
+            : "/>"
+        }`,
     )
     .join("\n");
   const nodes = p.tandas
@@ -233,10 +260,14 @@ export function toXSPF(p: Playlist, eo: ExportOpts = {}): string {
   const tracks = flatten(p, eo)
     .map(
       (t) =>
-        `    <track><title>${esc(t.title)}</title><creator>${esc(t.artist)}</creator><album>${esc(t.album ?? "")}</album><duration>${t.durationSec * 1000}</duration><annotation>${esc(t.kind === "cortina" ? "cortina" : `tanda ${t.tanda}`)}</annotation>${t.spotifyUri ? `<location>${esc(t.spotifyUri)}</location>` : ""}</track>`,
+        `    <track><title>${esc(t.title)}</title><creator>${esc(t.artist)}</creator><album>${esc(t.album ?? "")}</album><duration>${(t.kind === "cortina" && t.stopSec ? t.stopSec : t.durationSec) * 1000}</duration><annotation>${esc(t.kind === "cortina" ? "cortina" : `tanda ${t.tanda}`)}</annotation>${t.spotifyUri ? `<location>${esc(t.spotifyUri)}</location>` : ""}${
+          t.kind === "cortina" && t.stopSec
+            ? `<extension application="http://www.videolan.org/vlc/playlist/0"><vlc:option>stop-time=${t.stopSec}</vlc:option></extension>`
+            : ""
+        }</track>`,
     )
     .join("\n");
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<playlist version="1" xmlns="http://xspf.org/ns/0/">\n  <title>${esc(p.name)}</title>\n  <creator>TDJ</creator>\n  <trackList>\n${tracks}\n  </trackList>\n</playlist>\n`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<playlist version="1" xmlns="http://xspf.org/ns/0/" xmlns:vlc="http://www.videolan.org/vlc/playlist/ns/0/">\n  <title>${esc(p.name)}</title>\n  <creator>TDJ</creator>\n  <trackList>\n${tracks}\n  </trackList>\n</playlist>\n`;
 }
 
 /** Generic DJ CSV (Lexicon, Rekord Buddy, Serato via Lexicon import). Serato .crate binaries need local file paths — see roadmap. */
