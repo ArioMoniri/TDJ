@@ -23,6 +23,10 @@ export default $config({
     const secrets = [
       "SPOTIFY_CLIENT_ID",
       "SPOTIFY_CLIENT_SECRET",
+      "GOOGLE_CLIENT_ID",
+      "GOOGLE_CLIENT_SECRET",
+      "DROPBOX_APP_KEY",
+      "DROPBOX_APP_SECRET",
       "TDJ_COOKIE_SECRET",
       "PIPEDREAM_PROJECT_ID",
       "PIPEDREAM_CLIENT_ID",

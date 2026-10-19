@@ -486,3 +486,20 @@ Per-DJ settings that stay client-side (zustand `settings`): `spotifyClientId` (a
 | **5. Opportunistic** | SoundCloud (Artist Pro + CLI app registration) if someone asks; Deezer/Amazon adapters only when their programmes reopen; evaluate Nango self-host (free auth+proxy tier on ECS/RDS) once connections > ~5k or compliance asks for data residency. | — | as needed |
 
 Quality bar for every phase (per CLAUDE.md): vitest invariants for the matcher and chunking, e2e for connect state and export result sheet on desktop + iPhone, 44 px targets, no secrets in the client bundle (`grep -r NANGO_SECRET apps/web/.next` in CI), and a fixture-based contract test per adapter run against recorded responses so provider changes are caught before a DJ hits them.
+
+---
+
+## 8. Open-source / free alternatives checked 2026-10-19
+
+Question: is there a free, open-source product that brokers the consumer-music OAuth connections (Spotify, Google Drive/YouTube, Dropbox) so TDJ would not pay per connected user? Read from each project's licence file, pricing page and docs today.
+
+| Project | Licence of the code | What the free edition gives | What it does not |
+|---|---|---|---|
+| **Activepieces** | Community Edition MIT | Workflow automation, self-hosted | The embedding / connections SDK that would let TDJ hand a DJ a "Connect" button is "available on our enterprise plan"; the open edition has no managed-connection API for an outside app. |
+| **Composio** | Repo is MIT, but it contains the **SDK only** | Client libraries | The platform (OAuth apps, token storage, proxy) is hosted and reached with an API key; there is nothing to self-host. |
+| **Nango** | Core is **Elastic License 2.0** (not OSI open source) | Self-host free with **auth + proxy only** (no webhooks, functions/syncs or MCP; no SSO/RBAC); needs its own Postgres + Redis container | Enterprise self-host (ECS guide, more features) is paid; cloud is $0.29/connection/month. |
+| **n8n** | **Fair-code** (Sustainable Use License, not OSI) | Self-hosted automation with credential storage | Not an embeddable OAuth broker for an outside app's users; commercial use restrictions. |
+
+Common to all four: **none of them removes the need to register TDJ's own OAuth app at each provider** (Google Cloud project with Drive + YouTube APIs, Dropbox scoped app, Spotify Development-Mode app). That registration is the only real effort, and once it is done a broker only adds a layer (and, for the hosted ones, a per-user price) in front of a few dozen lines of standard authorization-code flow.
+
+**Conclusion: direct OAuth is the free path and is what TDJ ships** (`apps/web/src/lib/server/oauth.ts`: one provider table for Spotify, Google and Dropbox; authorization-code flow, PKCE where the provider supports it, tokens sealed with AES-256-GCM in an httpOnly cookie, refresh on use, incremental Google scopes). Pipedream Connect stays wired in as an optional paid alternative under Settings → Advanced; Nango self-host (auth + proxy, ELv2) remains a reasonable choice for a team that wants a connections dashboard, but it is infrastructure, not a saving.
