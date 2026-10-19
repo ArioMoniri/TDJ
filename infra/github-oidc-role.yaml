@@ -32,7 +32,10 @@ Resources:
             Action: sts:AssumeRoleWithWebIdentity
             Condition:
               StringEquals: { "token.actions.githubusercontent.com:aud": sts.amazonaws.com }
-              StringLike: { "token.actions.githubusercontent.com:sub": !Sub "repo:${GitHubOrg}/${GitHubRepo}:*" }
+              StringLike:
+                "token.actions.githubusercontent.com:sub":
+                  - !Sub "repo:${GitHubOrg}/${GitHubRepo}:*"
+                  - !Sub "repo:${GitHubOrg}@*/${GitHubRepo}@*:*"   # 2026 immutable-ID claim format
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/PowerUserAccess
       Policies:
