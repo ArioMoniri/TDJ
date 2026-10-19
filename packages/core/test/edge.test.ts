@@ -4,7 +4,7 @@
  * defect in the current code are marked `it.fails` with the reason, so the suite
  * stays green until the fix lands — at which point the `fails` marker must be removed.
  */
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
   arcTarget,
   type ComposeOptions,
@@ -28,6 +28,8 @@ let deps: ReturnType<typeof loadCatalog>;
 beforeAll(() => {
   deps = loadCatalog();
 });
+// the engine is synchronous and CPU-bound: yield to the event loop between tests so the worker can answer vitest's RPC
+afterEach(() => new Promise((r) => setTimeout(r, 0)));
 
 const SEEDS = [0, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144];
 const sizeFor = (o: ComposeOptions, r: string) =>
@@ -37,8 +39,9 @@ const toleranceMin = (o: ComposeOptions) =>
   Math.max(...(["tango", "vals", "milonga"] as const).map((r) => tandaDuration(o, r))) / 2 / 60 + 1;
 
 describe("night length", () => {
-  it("duration stays within half a tanda of the requested hours for 1..10 h and every built-in pattern", () => {
-    for (const hours of [1, 1.5, 2, 3, 4, 6, 8, 10]) {
+  it.each([1, 1.5, 2, 3, 4, 6, 8, 10])(
+    "duration stays within half a tanda of the requested %s h for every built-in pattern",
+    (hours) => {
       for (const pattern of ["classic", "TVTM", "TMTV", "tango-only"] as const) {
         const p = compose({ hours, pattern, seed: 7 }, deps);
         expect(
@@ -48,8 +51,8 @@ describe("night length", () => {
         if (pattern === "classic")
           expect(Math.abs(p.stats.durationSec - hours * 3600) / 60).toBeLessThanOrEqual(6);
       }
-    }
-  });
+    },
+  );
   it("tango tanda size 3/4/5 and vals size 4 are honoured on every tanda and keep the duration fit", () => {
     for (const [tangoTandaSize, valsTandaSize] of [
       [3, 3],
