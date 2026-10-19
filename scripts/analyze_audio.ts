@@ -33,7 +33,7 @@ const songs = new Map(
 
 async function main() {
   const todo = Object.entries(resolved)
-    .filter(([id, r]) => r?.previewUrl && !(id in features))
+    .filter(([id, r]) => r?.previewUrl && !features[id])
     .slice(0, Number(args.limit ?? 500));
   let n = 0;
   for (const [id, r] of todo) {
