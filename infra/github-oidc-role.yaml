@@ -4,9 +4,17 @@ Parameters:
   GitHubOrg: { Type: String, Default: ArioMoniri }
   GitHubRepo: { Type: String, Default: TDJ }
   RoleName: { Type: String, Default: tdj-github-deploy }
+  CreateProvider:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: "true only if the account has no OIDC provider for token.actions.githubusercontent.com yet"
+Conditions:
+  MakeProvider: !Equals [!Ref CreateProvider, "true"]
 Resources:
   OidcProvider:
     Type: AWS::IAM::OIDCProvider
+    Condition: MakeProvider
     Properties:
       Url: https://token.actions.githubusercontent.com
       ClientIdList: [sts.amazonaws.com]
@@ -19,13 +27,14 @@ Resources:
         Version: "2012-10-17"
         Statement:
           - Effect: Allow
-            Principal: { Federated: !Ref OidcProvider }
+            Principal:
+              Federated: !If [MakeProvider, !Ref OidcProvider, !Sub "arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com"]
             Action: sts:AssumeRoleWithWebIdentity
             Condition:
               StringEquals: { "token.actions.githubusercontent.com:aud": sts.amazonaws.com }
               StringLike: { "token.actions.githubusercontent.com:sub": !Sub "repo:${GitHubOrg}/${GitHubRepo}:*" }
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/PowerUserAccess   # SST needs Lambda, CloudFront, S3, IAM role creation for the function (scoped below)
+        - arn:aws:iam::aws:policy/PowerUserAccess
       Policies:
         - PolicyName: sst-iam
           PolicyDocument:
