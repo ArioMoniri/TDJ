@@ -1,7 +1,15 @@
 "use client";
-import { Disc, Library, Radio, Webhook } from "lucide-react";
+import { Cloud, Disc, HardDrive, Library, ListVideo, Radio, Webhook } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
-import { beginAuth } from "@/lib/spotify";
+import {
+  beginAuth,
+  CONNECT_FALLBACK,
+  type ConnectApp,
+  hostedLoginUrl,
+  hostedLogout,
+  openConnectLink,
+  useConnectors,
+} from "@/lib/spotify";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import { ActionRow, FieldRow, Group, Row, Tile } from "./Form";
@@ -14,24 +22,120 @@ const statusText: Record<Status, string> = {
   down: "Unreachable",
   idle: "Keyless",
 };
+const DEPLOY_DOCS = "https://github.com/ArioMoniri/TDJ/blob/main/docs/DEPLOY.md#connectors";
+const APP_META: Record<ConnectApp, { color: string; icon: ReactNode; sub: string; blurb: string }> = {
+  youtube_data_api: {
+    color: "#ff0000",
+    icon: <ListVideo size={16} strokeWidth={2} />,
+    sub: "Playlists · YouTube Music sees them too",
+    blurb:
+      "Creates a YouTube playlist in your account (YouTube Music shows it as well). Matching uses a daily search budget shared by every TDJ user, so some 78-rpm recordings may be left out; the result lists them.",
+  },
+  dropbox: {
+    color: "#0061ff",
+    icon: <Cloud size={16} strokeWidth={2} />,
+    sub: "Export files to your Dropbox",
+    blurb:
+      "Saves the chosen export file (Rekordbox XML, Traktor NML, M3U8, CSV…) into the TDJ app folder of your Dropbox.",
+  },
+  google_drive: {
+    color: "#1fa463",
+    icon: <HardDrive size={16} strokeWidth={2} />,
+    sub: "Export files to your Drive",
+    blurb: "Saves the chosen export file into your Google Drive. TDJ only sees files it created.",
+  },
+  spotify: {
+    color: "#1db954",
+    icon: <Radio size={16} strokeWidth={2} />,
+    sub: "Playlists",
+    blurb: "Spotify through Pipedream: the same 5-listeners-per-app rule applies to Pipedream's Spotify app.",
+  },
+};
+
+/** The status dot in front of a row value: green connected, grey not, amber needs attention. */
+function Dot({ tone }: { tone: "on" | "off" | "warn" }) {
+  const bg = tone === "on" ? "var(--system-green)" : tone === "warn" ? "#ff9500" : "var(--label-3)";
+  return (
+    <span
+      className="mr-1.5 inline-block h-2 w-2 shrink-0 rounded-full align-middle"
+      style={{ background: bg }}
+      aria-hidden
+    />
+  );
+}
+const withDot = (tone: "on" | "off" | "warn", text: string) => (
+  <span className="inline-flex items-center">
+    <Dot tone={tone} />
+    {text}
+  </span>
+);
 
 /**
- * Settings → Connectors: tile rows → a per-service sheet. Spotify (BYO Client ID, as before), Deezer (keyless,
- * previews and metadata only), MusicBrainz (keyless, recording dates) and "Bring your own automation" (a webhook
- * the Export sheet can POST to). Only what the research says works is promised: no Deezer, Amazon or Beatport
- * exports (docs/research/connectors.md §6).
+ * Settings → Connectors for non-technical DJs: one tile row per service, a status dot and ONE primary action in its
+ * sheet ("Log in with Spotify", "Connect Dropbox"). Developer fields (BYO Spotify Client ID, webhook URL) sit under
+ * Advanced. Spotify: hosted login when the server has credentials, else the BYO PKCE flow. YouTube, Dropbox and
+ * Google Drive go through Pipedream Connect when the deployment enables it. Only what the research says works is
+ * promised: no Deezer, Amazon or Beatport exports (docs/research/connectors.md §6).
  */
 export function Connectors() {
   const { settings, setSettings, spotifyToken, setSpotifyToken, overrides, updateOverrides } = useStore();
-  const [open, setOpen] = useState<"spotify" | "deezer" | "musicbrainz" | "webhook" | null>(null);
+  const { spotify, connect, reload } = useConnectors();
+  const [open, setOpen] = useState<
+    "spotify" | "deezer" | "musicbrainz" | "webhook" | `pd:${ConnectApp}` | null
+  >(null);
+  const [advanced, setAdvanced] = useState(false);
   const [deezer, setDeezer] = useState<Status>("idle");
   const [mb, setMb] = useState<Status>("idle");
   const [redirect, setRedirect] = useState("/callback");
   const [copied, setCopied] = useState(false);
   const [draft, setDraft] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
   useEffect(() => setRedirect(`${location.origin}/callback`), []);
+  // back from an OAuth dance (same tab for Spotify, a second tab for Connect Link): say so once, clean the URL
+  useEffect(() => {
+    const q = new URLSearchParams(location.search);
+    const connected = q.get("connected");
+    const error = q.get("error");
+    if (!connected && !error) return;
+    if (connected === "spotify") toast("Logged in with Spotify");
+    else if (connected) toast("Connected. You can close the other tab.");
+    else if (error?.startsWith("spotify_"))
+      toast(
+        error === "spotify_denied"
+          ? "Spotify did not grant access."
+          : error === "spotify_state"
+            ? "The login expired; try again."
+            : "Could not finish the Spotify login.",
+      );
+    else toast("The connection was not completed.");
+    history.replaceState(null, "", location.pathname);
+  }, []);
   const webhookUrl = overrides.connectors?.webhookUrl ?? "";
+  const hosted = spotify?.hosted ?? false;
+  const hostedUser = spotify?.user ?? null;
+  const byoConnected = !hosted && !!spotifyToken;
   const minutesLeft = spotifyToken ? Math.max(0, Math.round((spotifyToken.expires - Date.now()) / 60000)) : 0;
+  const spotifyValue =
+    spotify === null
+      ? "Checking…"
+      : hosted
+        ? hostedUser
+          ? withDot("on", hostedUser.name)
+          : withDot("off", "Log in")
+        : byoConnected
+          ? withDot("on", `Connected · ${minutesLeft} min`)
+          : settings.spotifyClientId
+            ? withDot("off", "Connect")
+            : withDot("warn", "Needs a Client ID");
+  const accountFor = (app: ConnectApp) => connect?.accounts.find((a) => a.app === app);
+  const connectValue = (app: ConnectApp) => {
+    if (connect === null) return "Checking…";
+    if (!connect.enabled) return withDot("off", "Not enabled");
+    const a = accountFor(app);
+    return a
+      ? withDot(a.healthy ? "on" : "warn", a.healthy ? "Connected" : "Reconnect")
+      : withDot("off", "Connect");
+  };
 
   const checkDeezer = async () => {
     setDeezer("checking");
@@ -70,30 +174,118 @@ export function Connectors() {
     setOpen(null);
     toast(v ? "Webhook saved in this browser" : "Webhook removed");
   };
+  const logout = async () => {
+    setBusy("logout");
+    try {
+      await hostedLogout();
+      setSpotifyToken(null);
+      await reload();
+      toast("Logged out of Spotify");
+    } finally {
+      setBusy(null);
+    }
+  };
+  const connectApp = async (app: ConnectApp) => {
+    setBusy(app);
+    try {
+      await openConnectLink(app);
+      toast("Finish in the new tab, then come back here");
+    } catch (e) {
+      toast((e as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  };
   const tile = (color: string, icon: ReactNode) => <Tile color={color}>{icon}</Tile>;
+  const connectRow = (app: ConnectApp) => (
+    <Row
+      key={app}
+      tile={tile(APP_META[app].color, APP_META[app].icon)}
+      label={
+        app === "spotify"
+          ? "Spotify via Pipedream"
+          : ((connect ?? CONNECT_FALLBACK).apps.find((a) => a.slug === app)?.label ?? app)
+      }
+      sub={APP_META[app].sub}
+      value={connectValue(app)}
+      chevron
+      onClick={() => setOpen(`pd:${app}`)}
+      id={app === "spotify" ? "connector-pd-spotify" : `connector-${app}`}
+    />
+  );
+  const connectSheet = (app: ConnectApp) => {
+    const label = (connect ?? CONNECT_FALLBACK).apps.find((a) => a.slug === app)?.label ?? app;
+    const a = accountFor(app);
+    const enabled = connect?.enabled ?? false;
+    return (
+      <Sheet
+        key={app}
+        open={open === `pd:${app}`}
+        onClose={() => setOpen(null)}
+        title={app === "spotify" ? "Spotify via Pipedream" : label}
+        trailing="Done"
+      >
+        <Group
+          header="Account"
+          footer={
+            enabled
+              ? `${APP_META[app].blurb} One button: ${label} asks for your permission in a new tab and Pipedream keeps the connection; TDJ never sees your password or your tokens.`
+              : `${APP_META[app].blurb} This deployment has not enabled Pipedream Connect, so ${label} cannot be connected here yet. The owner adds the PIPEDREAM_* secrets described in docs/DEPLOY.md.`
+          }
+        >
+          <Row
+            label="Status"
+            value={
+              !enabled
+                ? "Not enabled on this deployment"
+                : a
+                  ? `Connected${a.name ? ` · ${a.name}` : ""}${a.healthy ? "" : " · needs attention"}`
+                  : "Not connected"
+            }
+          />
+          <Row label="Used for" value={APP_META[app].sub.split(" · ")[0]} />
+          {enabled ? (
+            <ActionRow
+              label={a ? `Reconnect ${label}` : `Connect ${label}`}
+              onClick={() => connectApp(app)}
+              busy={busy === app}
+              id={`connect-${app}`}
+            />
+          ) : (
+            <Row label="How to enable" sub="docs/DEPLOY.md → Connectors" chevron href={DEPLOY_DOCS} />
+          )}
+        </Group>
+      </Sheet>
+    );
+  };
 
   return (
     <>
       <Group
-        header="Connectors"
-        footer="Spotify needs your own developer app (Premium account, 5 users per app). Deezer and MusicBrainz are keyless and used for 30 s previews, artwork and recording dates only: no Deezer export is offered since Deezer closed new developer apps in June 2025. Amazon Music and Beatport have no public API. Keys and URLs stay in this browser."
+        header="Send your set to"
+        footer={
+          hosted
+            ? "Log in with Spotify to create playlists and play full tracks in Listen; nothing to paste. YouTube, Dropbox and Google Drive connect in one tap through Pipedream when the deployment enables it."
+            : "Spotify needs your own developer app on this deployment (Premium account, 5 users per app): open Spotify → Advanced. YouTube, Dropbox and Google Drive connect in one tap through Pipedream when the deployment enables it."
+        }
         id="connectors"
       >
         <Row
           tile={tile("#1db954", <Radio size={16} strokeWidth={2} />)}
           label="Spotify"
           sub="Playlists · full tracks in Listen"
-          value={
-            spotifyToken
-              ? `Connected · ${minutesLeft} min`
-              : settings.spotifyClientId
-                ? "Not connected"
-                : "Needs a Client ID"
-          }
+          value={spotifyValue}
           chevron
           onClick={() => setOpen("spotify")}
           id="connector-spotify"
         />
+        {(["youtube_data_api", "dropbox", "google_drive"] as ConnectApp[]).map(connectRow)}
+      </Group>
+
+      <Group
+        header="Also used"
+        footer="Deezer and MusicBrainz are keyless and used for 30 s previews, artwork and recording dates only: no Deezer export is offered since Deezer closed new developer apps in June 2025. Amazon Music and Beatport have no public API."
+      >
         <Row
           tile={tile("#a238ff", <Disc size={16} strokeWidth={2} />)}
           label="Deezer"
@@ -118,6 +310,12 @@ export function Connectors() {
           }}
           id="connector-musicbrainz"
         />
+      </Group>
+
+      <Group
+        header="Advanced"
+        footer="For DJs who run their own automation. Keys and URLs stay in this browser."
+      >
         <Row
           tile={tile("#5856d6", <Webhook size={16} strokeWidth={2} />)}
           label="Bring your own automation"
@@ -130,41 +328,111 @@ export function Connectors() {
           }}
           id="connector-webhook"
         />
+        {connect?.enabled && connectRow("spotify")}
       </Group>
 
       <Sheet open={open === "spotify"} onClose={() => setOpen(null)} title="Spotify" trailing="Done">
         <Group
           header="Account"
-          footer="Create an app at developer.spotify.com (Premium account), add the redirect URI to it, then paste the Client ID. Connected, Listen plays the exact recordings and Export can create playlists."
+          footer={
+            hosted
+              ? "Log in with your Spotify account; there is nothing to paste. Connected, Listen plays the exact recordings and Export creates playlists in your library (private by default). This deployment's Spotify app runs in Development Mode: Spotify allows 5 listeners per app, which the owner adds by e-mail in the Spotify dashboard, or more with Extended Quota. The login is kept in a sealed cookie in this browser; Spotify asks again after six months."
+              : "This deployment has no Spotify app of its own, so you connect with your own developer app: create one at developer.spotify.com (Premium account, 5 users per app), add the redirect URI under Advanced to it and paste the Client ID. Connected, Listen plays the exact recordings and Export can create playlists."
+          }
         >
-          <Row label="Status" value={spotifyToken ? `Connected · ${minutesLeft} min` : "Not connected"} />
-          <Row label="Used for" value="Playlists · Listen" />
-          <ActionRow
-            label={spotifyToken ? "Reconnect" : "Connect Spotify"}
-            onClick={() => beginAuth(settings.spotifyClientId)}
-            disabled={!settings.spotifyClientId}
+          <Row
+            label="Status"
+            value={
+              spotify === null
+                ? "Checking…"
+                : hosted
+                  ? hostedUser
+                    ? `Logged in as ${hostedUser.name}`
+                    : "Not logged in"
+                  : byoConnected
+                    ? `Connected · ${minutesLeft} min`
+                    : "Not connected"
+            }
+            busy={spotify === null}
           />
-          {spotifyToken && <ActionRow label="Disconnect" destructive onClick={() => setSpotifyToken(null)} />}
+          <Row label="Used for" value="Playlists · Listen" />
+          {hosted ? (
+            hostedUser ? (
+              <ActionRow
+                label="Log out"
+                destructive
+                onClick={logout}
+                busy={busy === "logout"}
+                id="spotify-logout"
+              />
+            ) : (
+              <ActionRow
+                label="Log in with Spotify"
+                onClick={() => location.assign(hostedLoginUrl("/settings"))}
+                id="spotify-login"
+              />
+            )
+          ) : (
+            <>
+              <ActionRow
+                label={byoConnected ? "Reconnect" : "Connect Spotify"}
+                onClick={() => beginAuth(settings.spotifyClientId)}
+                disabled={!settings.spotifyClientId}
+                id="spotify-connect"
+              />
+              {byoConnected && (
+                <ActionRow label="Disconnect" destructive onClick={() => setSpotifyToken(null)} />
+              )}
+            </>
+          )}
         </Group>
-        <Group header="Your own app">
-          <Row label="Redirect URI" sub={<span className="font-mono">{redirect}</span>}>
-            <button type="button" className="btn-plain" onClick={copyRedirect} aria-live="polite">
-              {copied ? "Copied" : "Copy"}
-            </button>
-          </Row>
-          <FieldRow label="Client ID" id="spotify-client-id">
-            <input
-              id="spotify-client-id"
-              className="field field-value min-w-0 flex-1"
-              placeholder="Required"
-              value={settings.spotifyClientId}
-              onChange={(e) => setSettings({ spotifyClientId: e.target.value.trim() })}
-              autoComplete="off"
-              spellCheck={false}
-            />
-          </FieldRow>
+        <Group>
+          <Row
+            label="Advanced"
+            sub={hosted ? "Use your own Spotify app instead" : "Your own Spotify app"}
+            value={advanced ? "Hide" : "Show"}
+            onClick={() => setAdvanced((v) => !v)}
+            id="spotify-advanced"
+          />
         </Group>
+        {advanced && (
+          <Group
+            header="Your own app"
+            footer={
+              hosted
+                ? "With a Client ID here, Connect Spotify uses your own developer app in this browser (PKCE) instead of the hosted login. Useful when the deployment's 5 listener seats are taken."
+                : "Add this exact redirect URI to your app at developer.spotify.com, then paste its Client ID."
+            }
+          >
+            <Row label="Redirect URI" sub={<span className="font-mono">{redirect}</span>}>
+              <button type="button" className="btn-plain" onClick={copyRedirect} aria-live="polite">
+                {copied ? "Copied" : "Copy"}
+              </button>
+            </Row>
+            <FieldRow label="Client ID" id="spotify-client-id">
+              <input
+                id="spotify-client-id"
+                className="field field-value min-w-0 flex-1"
+                placeholder={hosted ? "Optional" : "Required"}
+                value={settings.spotifyClientId}
+                onChange={(e) => setSettings({ spotifyClientId: e.target.value.trim() })}
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </FieldRow>
+            {hosted && (
+              <ActionRow
+                label="Connect with my own app"
+                onClick={() => beginAuth(settings.spotifyClientId)}
+                disabled={!settings.spotifyClientId}
+                id="spotify-connect"
+              />
+            )}
+          </Group>
+        )}
       </Sheet>
+
+      {(["youtube_data_api", "dropbox", "google_drive", "spotify"] as ConnectApp[]).map(connectSheet)}
 
       <Sheet
         open={open === "deezer"}

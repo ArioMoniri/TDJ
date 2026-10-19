@@ -1,7 +1,7 @@
 "use client";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import { EXPORT_META, type ExportFormat, toSpotifyPlan } from "@tdj/core";
-import { FileDown, Radio, Webhook } from "lucide-react";
+import { Cloud, FileDown, HardDrive, ListVideo, Radio, Webhook } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -9,7 +9,17 @@ import { downloadBlob } from "@/lib/download";
 import { withoutCortinas } from "@/lib/exportPaths";
 import { haptic } from "@/lib/haptics";
 import { DUR } from "@/lib/motion";
-import { beginAuth, createPlaylist, refresh, resolveTrack } from "@/lib/spotify";
+import {
+  beginAuth,
+  type ConnectApp,
+  connectExport,
+  createPlaylist,
+  hostedCreatePlaylist,
+  hostedLoginUrl,
+  refresh,
+  resolveTrack,
+  useConnectors,
+} from "@/lib/spotify";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import { DJ_APPS, type DjApp, type Playlist } from "@/lib/types";
@@ -94,6 +104,13 @@ export function ExportSheet({
     updateOverrides,
   } = useStore();
   const playlist = given ?? current;
+  const { spotify, connect } = useConnectors();
+  const hosted = spotify?.hosted ?? false;
+  const hostedUser = spotify?.user ?? null;
+  const accounts = connect?.accounts ?? [];
+  const fileAccounts = accounts.filter((a) => a.app === "dropbox" || a.app === "google_drive");
+  const listAccounts = accounts.filter((a) => a.app === "youtube_data_api" || a.app === "spotify");
+  const [cloudBusy, setCloudBusy] = useState<string | null>(null);
   const webhookUrl = overrides.connectors?.webhookUrl ?? "";
   const [hookFormat, setHookFormat] = useState<ExportFormat>("m3u8");
   const [hookBusy, setHookBusy] = useState(false);
@@ -102,7 +119,7 @@ export function ExportSheet({
   const [log, setLog] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [dlBusy, setDlBusy] = useState<ExportFormat | null>(null);
-  const [result, setResult] = useState<string | null>(null);
+  const [result, setResult] = useState<{ label: string; url: string } | null>(null);
   const [includeCortinas, setIncludeCortinas] = useState(true);
   const [done, setDone] = useState(false);
   const check = useRef<{ play: () => void } | null>(null);
@@ -158,7 +175,31 @@ export function ExportSheet({
   };
 
   const toSpotify = async () => {
-    if (!settings.spotifyClientId || !playlist) return;
+    if (!playlist) return;
+    if (hosted) {
+      if (!hostedUser) return location.assign(hostedLoginUrl("/"));
+      setBusy(true);
+      setLog([]);
+      setResult(null);
+      try {
+        const r = await hostedCreatePlaylist({ playlist, includeCortinas });
+        setResult({ label: "Open in Spotify", url: r.url });
+        setDone(true);
+        check.current?.play();
+        haptic([10, 40, 10]);
+        setLog((l) => [
+          ...l,
+          `Created playlist with ${r.added} tracks${r.missing.length ? ` (${r.missing.length} not found: ${r.missing.slice(0, 3).join(", ")}${r.missing.length > 3 ? "…" : ""})` : ""}.`,
+        ]);
+      } catch (e) {
+        setLog((l) => [...l, `Error: ${(e as Error).message}`]);
+        haptic([20, 30, 20]);
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+    if (!settings.spotifyClientId) return;
     let tok = spotifyToken;
     if (!tok) return beginAuth(settings.spotifyClientId);
     if (tok.expires < Date.now() + 60_000 && tok.refresh) {
@@ -188,7 +229,7 @@ export function ExportSheet({
         `${playlist.tandas.length} tandas composed with TDJ, cortinas ${includeCortinas ? "included" : "excluded"}. Score ${playlist.score.total}/100.`,
         uris,
       );
-      setResult(pl.external_urls.spotify);
+      setResult({ label: "Open in Spotify", url: pl.external_urls.spotify });
       setDone(true);
       check.current?.play();
       haptic([10, 40, 10]);
@@ -234,6 +275,55 @@ export function ExportSheet({
       setHookBusy(false);
     }
   };
+  /** Through Pipedream: the chosen file to Dropbox / Google Drive, or a playlist on YouTube / Spotify. */
+  const toCloud = async (a: { id: string; app: ConnectApp; label: string }) => {
+    if (!playlist) return;
+    setCloudBusy(a.id);
+    try {
+      const isFile = a.app === "dropbox" || a.app === "google_drive";
+      let r: Awaited<ReturnType<typeof connectExport>>;
+      if (isFile) {
+        const x = await fetch("/api/export", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            playlist,
+            format: hookFormat,
+            includeCortinas,
+            folder: folderFor(hookFormat),
+            naming: settings.fileNaming,
+          }),
+        });
+        if (!x.ok) throw new Error(`Export failed (${x.status})`);
+        r = await connectExport({
+          app: a.app,
+          accountId: a.id,
+          format: hookFormat,
+          filename: `${playlist.name.replace(/[^a-z0-9-]+/gi, "_")}.${EXPORT_META[hookFormat].ext}`,
+          text: await x.text(),
+        });
+        setLog((l) => [
+          ...l,
+          `Saved ${EXPORT_META[hookFormat].label} to ${a.label}${r.path ? ` (${r.path})` : ""}.`,
+        ]);
+      } else {
+        r = await connectExport({ app: a.app, accountId: a.id, playlist, includeCortinas });
+        const miss = Array.isArray(r.missing) ? r.missing.length : 0;
+        setLog((l) => [
+          ...l,
+          `Created the ${a.label} playlist with ${r.added} tracks${miss ? `, ${miss} not found` : ""}${r.quota ? " (YouTube's daily search budget ran out; the rest fills in another day)" : ""}.`,
+        ]);
+      }
+      if (typeof r.url === "string") setResult({ label: `Open in ${a.label}`, url: r.url });
+      haptic([10, 40, 10]);
+      toast(isFile ? `Saved to ${a.label}` : `${a.label} playlist created`);
+    } catch (e) {
+      setLog((l) => [...l, `Error: ${(e as Error).message}`]);
+      haptic([20, 30, 20]);
+    } finally {
+      setCloudBusy(null);
+    }
+  };
   const saveHook = () => {
     const v = hookDraft.trim();
     if (v && !/^https:\/\//i.test(v)) {
@@ -249,9 +339,9 @@ export function ExportSheet({
       <button
         type="button"
         onClick={toSpotify}
-        disabled={busy || done || !settings.spotifyClientId}
+        disabled={busy || done || (!hosted && !settings.spotifyClientId)}
         className="btn btn-primary w-full"
-        aria-describedby={settings.spotifyClientId ? undefined : "spotify-why"}
+        aria-describedby={hosted || settings.spotifyClientId ? undefined : "spotify-why"}
       >
         {(done || busy) && (
           <span className="inline-grid h-6 w-6 place-items-center" aria-hidden>
@@ -283,14 +373,18 @@ export function ExportSheet({
             >
               {done
                 ? "Playlist created"
-                : spotifyToken
-                  ? "Create playlist in Spotify"
-                  : "Connect Spotify and create playlist"}
+                : hosted
+                  ? hostedUser
+                    ? "Create playlist in Spotify"
+                    : "Log in with Spotify and create playlist"
+                  : spotifyToken
+                    ? "Create playlist in Spotify"
+                    : "Connect Spotify and create playlist"}
             </motion.span>
           </AnimatePresence>
         </span>
       </button>
-      {!settings.spotifyClientId && (
+      {!hosted && !settings.spotifyClientId && (
         <p id="spotify-why" className="section-foot mt-2 text-center">
           Needs a Spotify Client ID. Add one in{" "}
           <Link href="/settings" className="text-[var(--tint)]">
@@ -328,9 +422,13 @@ export function ExportSheet({
       <Group
         header="Send to"
         footer={
-          webhookUrl
-            ? "The chosen format is POSTed to your webhook: Pipedream, Make, Zapier or n8n can file it, mail it or push it to a DJ app. The URL lives in this browser only."
-            : "Spotify creates a playlist in your account. A webhook sends the file to your own automation (Pipedream, Make, Zapier, n8n)."
+          accounts.length
+            ? `Spotify creates a playlist in your account. ${fileAccounts.length ? "Cloud folders receive the file format chosen above. " : ""}${listAccounts.some((a) => a.app === "youtube_data_api") ? "YouTube matching shares a daily budget with every TDJ user, so some recordings may be left out. " : ""}Connections are managed in Settings.`
+            : webhookUrl
+              ? "The chosen format is POSTed to your webhook: Pipedream, Make, Zapier or n8n can file it, mail it or push it to a DJ app. The URL lives in this browser only."
+              : hosted
+                ? "Spotify creates a playlist in your account; log in once in Settings or right here. Connect YouTube, Dropbox or Google Drive in Settings to send sets there too."
+                : "Spotify creates a playlist in your account. A webhook sends the file to your own automation (Pipedream, Make, Zapier, n8n)."
         }
       >
         <Row
@@ -340,35 +438,95 @@ export function ExportSheet({
             </Tile>
           }
           label="Spotify"
-          value={spotifyToken ? "Connected" : settings.spotifyClientId ? "Connect" : "Needs a Client ID"}
+          value={
+            hosted
+              ? hostedUser
+                ? hostedUser.name
+                : "Log in"
+              : spotifyToken
+                ? "Connected"
+                : settings.spotifyClientId
+                  ? "Connect"
+                  : "Needs a Client ID"
+          }
           chevron
           onClick={toSpotify}
-          disabled={busy || done || !settings.spotifyClientId}
+          disabled={busy || done || (!hosted && !settings.spotifyClientId)}
           busy={busy}
+          id="send-spotify"
         />
+        {listAccounts.map((a) => (
+          <Row
+            key={a.id}
+            tile={
+              <Tile color={a.app === "youtube_data_api" ? "#ff0000" : "#1db954"}>
+                {a.app === "youtube_data_api" ? (
+                  <ListVideo size={16} strokeWidth={2} />
+                ) : (
+                  <Radio size={16} strokeWidth={2} />
+                )}
+              </Tile>
+            }
+            label={a.app === "spotify" ? "Spotify via Pipedream" : a.label}
+            sub={a.name}
+            value="Create playlist"
+            chevron
+            onClick={() => toCloud(a)}
+            busy={cloudBusy === a.id}
+            disabled={!!cloudBusy}
+            id={`send-${a.app}`}
+          />
+        ))}
+        {(fileAccounts.length > 0 || webhookUrl) && (
+          <PickerRow
+            label="File format"
+            ariaLabel="File format"
+            value={hookFormat}
+            items={FORMAT_ITEMS}
+            onChange={(f) => f && setHookFormat(f)}
+            tile={
+              <Tile color="#ff9500">
+                <FileDown size={16} strokeWidth={2} />
+              </Tile>
+            }
+          />
+        )}
+        {fileAccounts.map((a) => (
+          <Row
+            key={a.id}
+            tile={
+              <Tile color={a.app === "dropbox" ? "#0061ff" : "#1fa463"}>
+                {a.app === "dropbox" ? (
+                  <Cloud size={16} strokeWidth={2} />
+                ) : (
+                  <HardDrive size={16} strokeWidth={2} />
+                )}
+              </Tile>
+            }
+            label={`Save to ${a.label}`}
+            sub={a.name}
+            value={`.${EXPORT_META[hookFormat].ext}`}
+            chevron
+            onClick={() => toCloud(a)}
+            busy={cloudBusy === a.id}
+            disabled={!!cloudBusy}
+            id={`send-${a.app}`}
+          />
+        ))}
         {webhookUrl ? (
-          <>
-            <PickerRow
-              label="Webhook format"
-              ariaLabel="Webhook format"
-              value={hookFormat}
-              items={FORMAT_ITEMS}
-              onChange={(f) => f && setHookFormat(f)}
-              tile={
-                <Tile color="#5856d6">
-                  <Webhook size={16} strokeWidth={2} />
-                </Tile>
-              }
-            />
-            <Row
-              label="Send to webhook"
-              sub={webhookUrl.replace(/^https?:\/\//, "").slice(0, 48)}
-              chevron
-              onClick={toWebhook}
-              busy={hookBusy}
-              id="send-webhook"
-            />
-          </>
+          <Row
+            tile={
+              <Tile color="#5856d6">
+                <Webhook size={16} strokeWidth={2} />
+              </Tile>
+            }
+            label="Send to webhook"
+            sub={webhookUrl.replace(/^https?:\/\//, "").slice(0, 48)}
+            chevron
+            onClick={toWebhook}
+            busy={hookBusy}
+            id="send-webhook"
+          />
         ) : (
           <Row
             tile={
@@ -450,7 +608,7 @@ export function ExportSheet({
       </Sheet>
       {result && (
         <Group>
-          <ActionRow label="Open in Spotify" onClick={() => window.open(result, "_blank", "noreferrer")} />
+          <ActionRow label={result.label} onClick={() => window.open(result.url, "_blank", "noreferrer")} />
         </Group>
       )}
       <div role="status" aria-live="polite">

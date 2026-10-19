@@ -32,4 +32,38 @@ docker build -t tdj . && docker run -p 3000:3000 tdj
 ```
 
 ## Runtime configuration
-No server secrets are required: users bring their own Spotify Client ID and Anthropic key in **Settings**. Optional server defaults: `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`.
+No server secrets are required to run: without them, users bring their own Spotify Client ID and Anthropic key in **Settings**. Optional server defaults: `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`. The connector secrets below turn the BYO fields into one-tap logins.
+
+## Connectors
+
+Settings → Connectors shows one row per service with a single button. What each row does depends on which secrets the deployment has. All of them are GitHub Actions **secrets** (`Settings → Secrets and variables → Actions → Secrets`), forwarded by `.github/workflows/deploy-aws.yml` into `sst.config.ts`, which passes them to the Next.js Lambda only when set. None reaches the client bundle; user tokens live in a sealed httpOnly cookie, never in DynamoDB.
+
+| Secret | Effect |
+|---|---|
+| `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET` | **"Log in with Spotify"** (hosted authorization-code flow at `/api/spotify/login`). Absent → the Settings sheet falls back to the BYO Client ID + PKCE flow (`/callback`). |
+| `TDJ_COOKIE_SECRET` | Key for the sealed Spotify session cookie (AES-256-GCM). Any long random string (`openssl rand -base64 32`). Absent → derived from `SPOTIFY_CLIENT_SECRET`; rotating either logs everyone out. |
+| `PIPEDREAM_PROJECT_ID`, `PIPEDREAM_CLIENT_ID`, `PIPEDREAM_CLIENT_SECRET` | **Pipedream Connect** for YouTube, Dropbox, Google Drive (and Spotify as an alternative): `/api/connect/token` mints a Connect Link, `/api/connect/export` sends files/playlists through the Pipedream proxy. Absent → those rows read "Not enabled on this deployment". |
+| `PIPEDREAM_ENVIRONMENT` (variable) | `development` (default; the free plan, no production end users) or `production`. |
+| `NEXT_PUBLIC_APP_URL` (variable) | Public origin used for redirect URIs (e.g. `https://d3k5k2c1l0s5ri.cloudfront.net`). Absent → derived from the request's `Host`/`X-Forwarded-Proto`. |
+
+### Spotify dashboard (developer.spotify.com → your app → Settings → Redirect URIs)
+Add **all** of these, exactly:
+
+- `https://d3k5k2c1l0s5ri.cloudfront.net/api/spotify/callback` — hosted login, production
+- `http://127.0.0.1:3000/api/spotify/callback` — hosted login, local `pnpm dev` (Spotify rejects `localhost`; use `127.0.0.1`)
+- `https://d3k5k2c1l0s5ri.cloudfront.net/callback` and `http://127.0.0.1:3000/callback` — the existing BYO PKCE flow (keep them)
+
+Add a custom domain (`TDJ_DOMAIN`) → add `https://<domain>/api/spotify/callback` and `https://<domain>/callback` too.
+
+**Development Mode limit.** Since February 2026 a Spotify app in Development Mode serves **5 users** and its owner must hold Premium. Add yourself and up to 4 DJs by e-mail under *User Management* in the dashboard, or request **Extended Quota** (organisations only). The Settings copy says this honestly; a sixth user sees Spotify's own "not registered" error on login. Refresh tokens expire after six months, so the sealed cookie is capped at 180 days and the user simply logs in again.
+
+### Pipedream (pipedream.com → Projects → your project → Connect)
+1. Create a project, note its **Project ID**; under *OAuth clients* create a client and note **Client ID / Secret**.
+2. Allowed origins: add the production origin (and `http://127.0.0.1:3000` for local runs).
+3. Optional: bring your own Google OAuth client (so Drive asks for `drive.file` only) and your own YouTube quota; the managed clients work out of the box. YouTube's Data API is quota-bound (10,000 units/day, 100 searches/day per project), so YouTube playlists are best effort and the export sheet says which tracks were left out.
+4. Plan: Pipedream's free plan allows development end users only; production users need a paid plan ($2 per connected user/month after the first 100, see docs/research/connectors.md §2).
+
+### Local run
+```bash
+SPOTIFY_CLIENT_ID=… SPOTIFY_CLIENT_SECRET=… TDJ_COOKIE_SECRET=… pnpm dev   # then open http://127.0.0.1:3000
+```
