@@ -8,6 +8,7 @@
 <p align="center"><a href=".github/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/badge/CI-vitest%20%C2%B7%20playwright%20%C2%B7%20biome-7c3aed"></a> <img alt="Next 16" src="https://img.shields.io/badge/Next.js-16.4-black"> <img alt="SST" src="https://img.shields.io/badge/AWS-SST%20v4%20%2B%20OpenNext-f90"> <img alt="index" src="https://img.shields.io/badge/index-21%2C932%20recordings-e0557a"></p>
 
 <p align="center"><img src="media/video/usage.gif" width="880" alt="TDJ usage: compose a 4-hour golden-age milonga, swap a tanda, export"/></p>
+<p align="center"><img src="media/video/motion.gif" width="880" alt="Motion: compose narrative, curve draw-on, tanda choreography, export sheet, mobile tab bar"/></p>
 
 ## What it does
 - **Composes a milonga** for 1–8 h: TTVTTM cycles, 4-3-3 tandas, one orchestra · one singer · ≤ 4 years per tanda, no repeats, orchestras spaced.
@@ -23,14 +24,17 @@
 - **Scores every set** honestly against a rubric distilled from reference sets (unknown BPM and transfer data score low on purpose); ≥ 85 = headline marathon DJ.
 - **Exports**: Spotify (PKCE, your own Client ID), M3U8, CSV, JSON, Rekordbox XML, Traktor NML, XSPF, DJ CSV, printable set list; with or without cortinas; DJ-app connectors map exports to your music folders.
 - **Per-user panel**: Spotify, AI provider + key + model, DJ-app connectors, region, appearance. Keys stay in the browser.
-- **Apple-style liquid glass UI**, dark/light, phone-first with a glass tab bar.
+- **Night rules per event**: open with La Cumparsita, one or two closing Cumparsitas (Europe / Buenos Aires), birthday vals, show break with energy re-ramp, opener and última rules, Pugliese once, mixed milonga/vals tandas. Each era preset (Golden Age, Guardia Vieja, post-golden, nuevo, contemporary) applies its own structure defaults; pin any control to keep your value.
+- **Agents with memory**: the assistant remembers your notes, every set, your feedback and the preferences it learned (per user, in your database tab), and composes and reviews with that memory.
+- **Native Apple feel**: inset grouped forms, large titles, a Liquid Glass tab bar on phone and a sidebar on desktop, sheets with detents, context menus and swipe actions, SF-scale typography, light and dark; a motion system (compose narrative, curve draw-on, card choreography, haptic twins) that honours reduced motion.
 
 <p align="center">
 <img src="media/screenshots/01-home-dark.png" width="48%" alt="Home, dark"/> <img src="media/screenshots/02-result-arc.png" width="48%" alt="Energy arc and score"/><br/>
 <img src="media/screenshots/03-tandas.png" width="48%" alt="Tanda cards with cortinas"/> <img src="media/screenshots/04-export.png" width="48%" alt="Export sheet"/><br/>
 <img src="media/screenshots/14-tonight-context.png" width="48%" alt="Tonight: season, weather, room, event, crowd, mood"/> <img src="media/screenshots/13-listen.png" width="48%" alt="Listen: Spotify embeds per tanda"/><br/>
 <img src="media/screenshots/12-database.png" width="48%" alt="Your database: songs, orchestras, cortinas, rules, context"/> <img src="media/screenshots/15-settings-ai.png" width="48%" alt="Settings: AI providers and DJ-app connectors"/><br/>
-<img src="media/screenshots/08-mobile-home.png" width="19%" alt="Mobile home"/> <img src="media/screenshots/09-mobile-result.png" width="19%" alt="Mobile result"/> <img src="media/screenshots/10-mobile-tandas.png" width="19%" alt="Mobile tandas"/> <img src="media/screenshots/11-mobile-export.png" width="19%" alt="Mobile export"/> <img src="media/screenshots/16-mobile-database.png" width="19%" alt="Mobile database"/>
+<img src="media/screenshots/17-rules.png" width="48%" alt="Night rules: Cumparsitas, birthday vals, show break, opener and última rules"/> <img src="media/screenshots/18-memory.png" width="48%" alt="Memory: notes, learned preferences, set and feedback history"/><br/>
+<img src="media/screenshots/08-mobile-home.png" width="19%" alt="Mobile home"/> <img src="media/screenshots/09-mobile-result.png" width="19%" alt="Mobile result"/> <img src="media/screenshots/10-mobile-tandas.png" width="19%" alt="Mobile tandas"/> <img src="media/screenshots/11-mobile-export.png" width="19%" alt="Mobile export"/> <img src="media/screenshots/19-mobile-settings.png" width="19%" alt="Mobile settings"/>
 </p>
 
 ## Quick start
@@ -54,7 +58,7 @@ pnpm media               # real screenshots + usage video  ·  pnpm video (Remot
 `hours` → slots (TTVTTM) → target energy per slot (two-peak arc) → for each slot pick an orchestra family that fits energy, phase, tier and spacing (Pugliese never before 50 %) → order the 4 tracks → cortina tuned to the next tanda → La Cumparsita from another orchestra → score. Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), musical rules: [docs/research/musicology.md](docs/research/musicology.md).
 
 ## Docs
-[Goals](docs/GOALS.md) · [Agent guide & rules](docs/AGENT_GUIDE.md) · [Musicality model](docs/MUSICALITY.md) · [Reference corpus](docs/research/reference-corpus.md) · [Roadmap & phases](docs/ROADMAP.md) · [Benchmark rubric](docs/BENCHMARK.md) · [Enhancements from musician/DJ/UX/QA reviews](docs/ENHANCEMENTS.md) · [TDD](docs/TDD.md) · [Definition of Done](docs/DOD.md) · [Worktrees](docs/WORKTREES.md) · [Deploy](docs/DEPLOY.md) · [Research (2026 integrations)](docs/research/engineering-2026.md) · [Brand](brand/)
+[Goals](docs/GOALS.md) · [Agent guide & rules](docs/AGENT_GUIDE.md) · [Musicality model](docs/MUSICALITY.md) · [Reference corpus](docs/research/reference-corpus.md) · [Roadmap & phases](docs/ROADMAP.md) · [Benchmark rubric](docs/BENCHMARK.md) · [Enhancements from musician/DJ/UX/QA reviews](docs/ENHANCEMENTS.md) · [TDD](docs/TDD.md) · [Definition of Done](docs/DOD.md) · [Worktrees](docs/WORKTREES.md) · [Deploy](docs/DEPLOY.md) · [Design: motion system](docs/design/motion-system.md) · [Design: Apple-native pass](docs/design/apple-native-pass.md) · [Research (2026 integrations)](docs/research/engineering-2026.md) · [Brand](brand/)
 
 ## Stack (October 2026)
 Next.js 16.4 · React 19.3 · Tailwind 4.3 · motion 14 · dotLottie · Zustand · Vitest · Playwright 1.64 · Biome 2 · Turborepo · SST 4.17 + OpenNext 4 · Remotion 4 · Anthropic SDK (BYOK, Claude 5.5 models) · Spotify Web API (2026 Dev-Mode rules, PKCE).
