@@ -1,6 +1,8 @@
 "use client";
 import { ExternalLink, Headphones, LoaderCircle } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
+import { fade, t as tw } from "@/lib/motion";
 import { resolveTrack } from "@/lib/spotify";
 import { useStore } from "@/lib/store";
 import type { Cortina, ReferencePlaylist, Tanda } from "@/lib/types";
@@ -19,16 +21,34 @@ export function SpotifyEmbed({
   title: string;
   height: number;
 }) {
+  // a breathing skeleton of the iframe's exact height; the iframe fades in on load (opacity only: no transform on iframes)
+  const [loaded, setLoaded] = useState(false);
   return (
-    <iframe
-      title={title}
-      src={`https://open.spotify.com/embed/${kind}/${id}?theme=0`}
-      width="100%"
-      height={height}
-      loading="lazy"
-      allow="encrypted-media; clipboard-write; fullscreen"
-      style={{ borderRadius: 12, border: 0, display: "block", colorScheme: "normal" }}
-    />
+    <div className="relative" style={{ height }}>
+      <AnimatePresence>
+        {!loaded && (
+          <motion.div
+            key="sk"
+            className="skeleton absolute inset-0 rounded-xl"
+            exit={{ opacity: 0, transition: tw.fade }}
+            aria-hidden
+          />
+        )}
+      </AnimatePresence>
+      <motion.iframe
+        title={title}
+        src={`https://open.spotify.com/embed/${kind}/${id}?theme=0`}
+        width="100%"
+        height={height}
+        loading="lazy"
+        allow="encrypted-media; clipboard-write; fullscreen"
+        onLoad={() => setLoaded(true)}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: loaded ? 1 : 0 }}
+        transition={tw.fade}
+        style={{ borderRadius: 12, border: 0, display: "block", colorScheme: "normal" }}
+      />
+    </div>
   );
 }
 
@@ -84,9 +104,15 @@ export function TandaListen({ t, playlists }: { t: Tanda; playlists: ReferencePl
           ids[k] ? (
             <SpotifyEmbed key={s.id} kind="track" id={ids[k]!} title={`${s.title} on Spotify`} height={80} />
           ) : (
-            <p key={s.id} className="text-muted text-sm">
+            <motion.p
+              key={s.id}
+              variants={fade}
+              initial="hidden"
+              animate="show"
+              className="text-muted text-sm"
+            >
               {s.title}: not on Spotify under this title.
-            </p>
+            </motion.p>
           ),
         )}
       </div>
@@ -155,7 +181,20 @@ export function CortinaPreview({ c }: { c: Cortina }) {
         {state === "busy" ? <LoaderCircle size={14} className="animate-spin" /> : <Headphones size={14} />}{" "}
         Preview cortina
       </button>
-      {state === "none" && <span className="text-muted text-xs">Not found on Spotify.</span>}
+      <AnimatePresence>
+        {state === "none" && (
+          <motion.span
+            key="none"
+            variants={fade}
+            initial="hidden"
+            animate="show"
+            exit="exit"
+            className="text-muted text-xs"
+          >
+            Not found on Spotify.
+          </motion.span>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

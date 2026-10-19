@@ -68,7 +68,7 @@ export function EnergyCurve({
   }
   const id = compact ? "arcfill-compact" : "arcfill";
   const last = p.tandas.length - 1;
-  const key = playKey ?? p.options.seed;
+  const key: string | number = playKey ?? p.options.seed ?? p.id;
 
   // morph mode: same playKey as the previous render (a recompose that kept the length) → tween in place
   const lastKey = useRef<string | number | null>(null);
@@ -137,7 +137,6 @@ export function EnergyCurve({
 
   return (
     <figure className="m-0">
-      {/* biome-ignore lint/a11y/useSemanticElements: SVG root grouping interactive dots; fieldset cannot wrap SVG content */}
       <motion.svg
         key={key}
         initial={morph ? false : "hidden"}
@@ -231,7 +230,6 @@ export function EnergyCurve({
           const on = active === i;
           const r = on ? (compact ? 7 : 9) : compact ? 5 : 6.5;
           return (
-            // biome-ignore lint/a11y/useSemanticElements: SVG has no native button element
             <motion.g
               key={t.index}
               custom={i}

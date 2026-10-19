@@ -2,8 +2,8 @@
 import { LoaderCircle, MessageCircleMore } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
-import { fade } from "@/lib/motion";
 import { FEEDBACK_CHIPS } from "@/lib/feedback";
+import { fade } from "@/lib/motion";
 import type { Feedback } from "@/lib/types";
 
 /** After a set: one-tap adjustments and a free-text line to the DJ; both recompose with locked tandas kept. */
@@ -69,7 +69,14 @@ export function FeedbackBar({
       <p className="text-muted mt-2 min-h-5 text-xs" aria-live="polite">
         <AnimatePresence mode="wait" initial={false}>
           {note && (
-            <motion.span key={note} variants={fade} initial="hidden" animate="show" exit="exit" className="block">
+            <motion.span
+              key={note}
+              variants={fade}
+              initial="hidden"
+              animate="show"
+              exit="exit"
+              className="block"
+            >
               {note}
             </motion.span>
           )}

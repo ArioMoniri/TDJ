@@ -1,5 +1,5 @@
 "use client";
-import { DotLottieReact } from "@lottiefiles/dotlottie-react";
+import { type DotLottie, DotLottieReact } from "@lottiefiles/dotlottie-react";
 import { BookOpenText, Database, Disc3, ListMusic, Settings2 } from "lucide-react";
 import { LayoutGroup, motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
@@ -42,7 +42,9 @@ function MobileTab({ it, on }: { it: (typeof items)[number]; on: boolean }) {
             src="/anim/tab-glow.json"
             autoplay
             loop={false}
-            onComplete={() => setLanded(false)}
+            dotLottieRefCallback={(d: DotLottie | null) => {
+              d?.addEventListener("complete", () => setLanded(false));
+            }}
             style={{ width: "100%", height: "100%" }}
           />
         </span>

@@ -101,7 +101,9 @@ export function ComposeLabel({ busy, steps = false }: { busy: boolean; steps?: b
       ) : (
         <motion.span
           animate={busy ? { rotate: 360 } : { rotate: 0 }}
-          transition={busy ? { repeat: Number.POSITIVE_INFINITY, ease: "linear", duration: 1.2 } : { duration: 0 }}
+          transition={
+            busy ? { repeat: Number.POSITIVE_INFINITY, ease: "linear", duration: 1.2 } : { duration: 0 }
+          }
           className="inline-flex"
           aria-hidden
         >
