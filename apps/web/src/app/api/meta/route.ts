@@ -25,51 +25,55 @@ export async function GET() {
     })
     .filter((o) => o.count >= 12)
     .sort((a, b) => a.tier - b.tier || b.count - a.count);
-  return NextResponse.json({
-    meta,
-    cultures,
-    genres,
-    cortinas: pool.length,
-    cortinaList: pool,
-    builtinCortinas: BUILTIN_CORTINAS.length,
-    eras: ERA_PRESETS,
-    orchestras,
-    contextModel: contextModel
-      ? {
-          version: contextModel.version,
-          baseline: contextModel.baseline,
-          factors: contextModel.factors.map((f) => ({
-            id: f.id,
-            label: f.label,
-            options: f.options.map((o) => ({
-              id: o.id,
-              label: o.label,
-              energyShift: o.energyShift,
-              tempoShift: o.tempoShift,
-              vocalRatioShift: o.vocalRatioShift,
-              valsShare: o.valsShare,
-              milongaShare: o.milongaShare,
-              cortinaGenres: o.cortinaGenres,
-              tandaSizeShift: o.tandaSizeShift,
-              evidence: o.evidence,
-              notes: o.notes,
-              arcShift: o.arcShift,
-              preferStyles: o.preferStyles,
-              avoidStyles: o.avoidStyles,
-            })),
-          })),
-        }
-      : null,
-    referencePlaylists,
-    knowledge: {
-      profiles: catalog.profiles.size,
+  return NextResponse.json(
+    {
+      meta,
+      cultures,
+      genres,
       cortinas: pool.length,
-      contextFactors: contextModel?.factors.length ?? 0,
-      referencePlaylists: referencePlaylists.length,
-      trackEnergy: Object.keys(trackEnergy).length,
-      famousRecordings: corpus.famousRecordings?.length ?? 0,
-      canonicalTandas: corpus.canonicalTandas?.length ?? 0,
+      cortinaList: pool,
+      builtinCortinas: BUILTIN_CORTINAS.length,
+      eras: ERA_PRESETS,
+      orchestras,
+      contextModel: contextModel
+        ? {
+            version: contextModel.version,
+            baseline: contextModel.baseline,
+            factors: contextModel.factors.map((f) => ({
+              id: f.id,
+              label: f.label,
+              options: f.options.map((o) => ({
+                id: o.id,
+                label: o.label,
+                energyShift: o.energyShift,
+                tempoShift: o.tempoShift,
+                vocalRatioShift: o.vocalRatioShift,
+                valsShare: o.valsShare,
+                milongaShare: o.milongaShare,
+                cortinaGenres: o.cortinaGenres,
+                tandaSizeShift: o.tandaSizeShift,
+                evidence: o.evidence,
+                notes: o.notes,
+                arcShift: o.arcShift,
+                preferStyles: o.preferStyles,
+                avoidStyles: o.avoidStyles,
+              })),
+            })),
+          }
+        : null,
+      referencePlaylists,
+      knowledge: {
+        profiles: catalog.profiles.size,
+        cortinas: pool.length,
+        contextFactors: contextModel?.factors.length ?? 0,
+        referencePlaylists: referencePlaylists.length,
+        trackEnergy: Object.keys(trackEnergy).length,
+        famousRecordings: corpus.famousRecordings?.length ?? 0,
+        canonicalTandas: corpus.canonicalTandas?.length ?? 0,
+      },
+      storage: dbEnabled() ? "server" : "browser",
     },
-    storage: dbEnabled() ? "server" : "browser",
-  });
+    // the index is built at deploy time: let the browser and the CDN keep it for a while
+    { headers: { "cache-control": "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400" } },
+  );
 }

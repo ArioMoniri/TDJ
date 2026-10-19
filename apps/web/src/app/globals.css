@@ -109,9 +109,10 @@
   --material-regular: rgb(var(--surface) / 0.72);
   --material-thin: rgb(var(--surface) / 0.55);
   --material-ultrathin: rgb(var(--surface) / 0.38);
-  --blur-thick: 40px;
-  --blur-regular: 24px;
-  --blur-thin: 16px;
+  /* capped at 20 px: backdrop-filter cost grows with the radius, and the bars are small enough that 20 reads as 40 */
+  --blur-thick: 20px;
+  --blur-regular: 16px;
+  --blur-thin: 12px;
 
   /* Tint (interactive text, pickers, links). Rose. */
   --tint: var(--accent);
@@ -234,12 +235,15 @@ a {
   cursor: pointer;
 }
 
-/* Ambient background: a wallpaper behind the glass bars; the grouped background dominates */
+/* Ambient background: a wallpaper behind the glass bars; the grouped background dominates.
+   Static, pre-blurred radial gradients only: the former `filter: blur(80px)` pseudo-elements with a 28 s transform
+   drift re-rasterised two viewport-sized blurred layers on every frame (the main scroll-jank source on phones). */
 .ambient {
   position: fixed;
   inset: 0;
   z-index: -1;
   overflow: hidden;
+  pointer-events: none;
   background:
     radial-gradient(
       1200px 800px at 10% 10%,
@@ -256,53 +260,21 @@ a {
       color-mix(in srgb, var(--bg-c) 55%, transparent),
       transparent 60%
     ),
+    radial-gradient(
+      60vmax 60vmax at 20% 20%,
+      color-mix(in srgb, var(--bg-a) var(--ambient-blob), transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      60vmax 60vmax at 90% 95%,
+      color-mix(in srgb, var(--bg-b) var(--ambient-blob), transparent),
+      transparent 70%
+    ),
     rgb(var(--bg-grouped));
+  --ambient-blob: 18%;
 }
-.ambient::before,
-.ambient::after {
-  content: "";
-  position: absolute;
-  width: 60vmax;
-  height: 60vmax;
-  border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.18;
-  animation: drift 28s ease-in-out 1 forwards;
-}
-.ambient::before {
-  left: -10vmax;
-  top: -10vmax;
-  background: var(--bg-a);
-}
-.ambient::after {
-  right: -15vmax;
-  bottom: -20vmax;
-  background: var(--bg-b);
-  animation-delay: -12s;
-}
-:root[data-theme="light"] .ambient::before,
-:root[data-theme="light"] .ambient::after {
-  opacity: 0.12;
-}
-@keyframes drift {
-  from {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-  to {
-    transform: translate3d(8vmax, 6vmax, 0) scale(1.15);
-  }
-}
-@media (hover: none), (prefers-reduced-motion: reduce) {
-  .ambient::before,
-  .ambient::after {
-    animation: none;
-  }
-}
-@media (max-width: 640px) {
-  .ambient::before,
-  .ambient::after {
-    filter: blur(48px);
-  }
+:root[data-theme="light"] .ambient {
+  --ambient-blob: 12%;
 }
 
 /* Continuous (superellipse) corners where supported; no-op elsewhere. */
@@ -326,6 +298,45 @@ a {
 .swipe-row {
   position: relative;
   overflow: clip;
+}
+/* Tanda cards on touch devices: the browser skips layout and paint for the cards below the fold until they scroll
+   near it (the result commit stays short on a phone); the placeholder height keeps the scrollbar honest and
+   `auto` remembers the real height once rendered. Pointer devices lay the set out at once: their budget allows it,
+   and `innerText` of a skipped card is empty, which the desktop automation reads. */
+@media (hover: none) {
+  .tanda-card {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 420px;
+  }
+}
+/* A per-track swap that found nothing: the title shakes once (motion-composer.md §3.4), CSS so 88 rows need no motion value */
+@keyframes nudge-x {
+  0% {
+    transform: translateX(0);
+  }
+  33% {
+    transform: translateX(-3px);
+  }
+  66% {
+    transform: translateX(3px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+.nudge-x {
+  animation: nudge-x 0.24s var(--ease-settle) 1;
+}
+.energy-bar > span {
+  transition: transform var(--dur-l) var(--ease-in-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  .nudge-x {
+    animation: none;
+  }
+  .energy-bar > span {
+    transition: none;
+  }
 }
 /* Rows inside a group: 44 pt, hairline separator inset to the text edge */
 @utility cell {

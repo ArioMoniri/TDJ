@@ -1,9 +1,15 @@
 "use client";
-import { type DotLottie, DotLottieReact } from "@lottiefiles/dotlottie-react";
+import type { DotLottie } from "@lottiefiles/dotlottie-react";
 import { Disc3, LoaderCircle } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import { DUR, EASE } from "@/lib/motion";
+
+/* The dotLottie player (its chunk and its WASM) loads the first time the narrative shows, not with the page. */
+const DotLottieReact = dynamic(() => import("@lottiefiles/dotlottie-react").then((m) => m.DotLottieReact), {
+  ssr: false,
+});
 
 export const STEPS = ["Placing tandas", "Matching cortinas", "Shaping the arc", "Scoring the night"];
 const STEP_MS = 450;

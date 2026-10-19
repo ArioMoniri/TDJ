@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "e2e": "playwright test",
-    "media": "tsx scripts/capture-media.ts"
+    "media": "tsx scripts/capture-media.ts",
+    "perf": "tsx scripts/perf-probe.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.135.0",

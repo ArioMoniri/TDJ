@@ -1,25 +1,33 @@
 "use client";
-import { AudioWaveform, LoaderCircle, Pause, Play, Repeat2, Search } from "lucide-react";
+import { AudioWaveform, LoaderCircle, Search } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
-import { useState } from "react";
+import dynamic from "next/dynamic";
+import { memo, useCallback, useState } from "react";
 import { analyseSong, isAnalysing, keyLabel } from "@/lib/analyze";
-import { effectiveSong } from "@/lib/audio";
+import { patchedSong } from "@/lib/audio";
 import { haptic } from "@/lib/haptics";
-import { DUR, EASE, lineSwap } from "@/lib/motion";
+import { useMediaQuery } from "@/lib/hooks";
+import { lineSwap } from "@/lib/motion";
 import { sourceFor, trackFor, usePlayer } from "@/lib/player";
 import { useStore } from "@/lib/store";
 import type { Song } from "@/lib/types";
-import { AudioDetails } from "./AudioDetails";
+import { I } from "./Icons";
 import { Menu } from "./Menu";
-import { ResolveSheet } from "./ResolveSheet";
 import { SwipeRow } from "./SwipeRow";
+
+/* The two sheets are rare (one row at a time): their code arrives when the first one opens. */
+const AudioDetails = dynamic(() => import("./AudioDetails").then((m) => m.AudioDetails), { ssr: false });
+const ResolveSheet = dynamic(() => import("./ResolveSheet").then((m) => m.ResolveSheet), { ssr: false });
 
 /**
  * Apple Music track row: a 44 pt play/pause control in the number slot (the number returns on pause), title + year,
  * trailing key chip (F♯m · 11A) and BPM when analysed, tabular energy, hover swap (desktop) / swipe swap (phone),
  * and a menu with "Find on services…" and "Analyse in browser". Space toggles playback while the row is focused.
+ *
+ * Memoised: a set has 88 of these, so a swap, a lock or a player tick must only re-render the rows it touches.
+ * Store subscriptions are narrowed to this song's patch and this row's playing state for the same reason.
  */
-export function TrackRow({
+export const TrackRow = memo(function TrackRow({
   n,
   song,
   rhythm,
@@ -28,41 +36,54 @@ export function TrackRow({
   onSwap,
   disabled,
   swapLabel,
+  animateLayout = false,
 }: {
   n: number;
   song: Song;
   rhythm?: string;
   inFlight?: boolean;
   nudge?: number;
-  onSwap: () => void;
+  /** called with the track index (`n - 1`) */
+  onSwap: (k: number) => void;
   disabled?: boolean;
   swapLabel: string;
+  /** the parent card is the one being swapped/locked: animate this row's position */
+  animateLayout?: boolean;
 }) {
   const reduced = useReducedMotion();
-  const overrides = useStore((s) => s.overrides);
-  const token = useStore((s) => s.spotifyToken);
-  const connected = !!token && token.expires > Date.now();
-  const eff = effectiveSong(song, overrides);
+  const isPhone = useMediaQuery("(max-width: 639px)");
+  const patch = useStore((s) => s.overrides.songs?.[song.id]);
+  const connected = useStore((s) => !!s.spotifyToken && s.spotifyToken.expires > Date.now());
+  const eff = patchedSong(song, patch);
   const source = sourceFor(eff, connected);
-  const player = usePlayer();
-  const current = player.track?.id === song.id;
-  const playing = current && player.playing;
+  const playing = usePlayer((s) => s.playing && s.track?.id === song.id);
   const [details, setDetails] = useState(false);
+  const [detailsMounted, setDetailsMounted] = useState(false);
   const [find, setFind] = useState(false);
+  const [findMounted, setFindMounted] = useState(false);
   const [busy, setBusy] = useState(false);
   const audio = eff.audio ?? null;
   const title = song.title;
   const year = eff.year;
   const approx = song.yearApprox;
   const energy = song.energy ?? 50;
+  const k = n - 1;
 
+  const openFind = useCallback(() => {
+    setFindMounted(true);
+    setFind(true);
+  }, []);
+  const openDetails = useCallback(() => {
+    setDetailsMounted(true);
+    setDetails(true);
+  }, []);
   const toggle = () => {
     if (!source) {
-      setFind(true);
+      openFind();
       return;
     }
     haptic(4);
-    player.toggle(trackFor(eff, source));
+    usePlayer.getState().toggle(trackFor(eff, source));
   };
   const analyse = async () => {
     setBusy(true);
@@ -72,12 +93,13 @@ export function TrackRow({
       setBusy(false);
     }
   };
+  const swap = () => onSwap(k);
   const analysing = busy || isAnalysing(song.id);
   const playLabel = playing ? `Pause ${title}` : source ? `Play ${title}` : `Find ${title} on services`;
 
   return (
     <motion.li
-      layout={reduced ? false : "position"}
+      layout={animateLayout && !reduced ? "position" : false}
       variants={lineSwap}
       initial="hidden"
       animate="show"
@@ -95,7 +117,7 @@ export function TrackRow({
       <SwipeRow
         leading="num"
         actions={[
-          { kind: "swap", label: "Swap", icon: Repeat2, onClick: onSwap, disabled: disabled || inFlight },
+          { kind: "swap", label: "Swap", icon: "swap", onClick: swap, disabled: disabled || inFlight },
         ]}
       >
         <div className="cell" data-leading="num">
@@ -109,46 +131,42 @@ export function TrackRow({
             onClick={toggle}
           >
             {playing ? (
-              <Pause size={18} fill="currentColor" strokeWidth={0} aria-hidden />
-            ) : source ? (
-              <>
-                <span className="text-subhead tabular-nums group-focus-within/row:hidden group-hover/row:hidden">
-                  {n}
-                </span>
-                <Play
-                  size={18}
-                  fill="currentColor"
-                  strokeWidth={0}
-                  className="hidden group-focus-within/row:block group-hover/row:block"
-                  aria-hidden
-                />
-              </>
+              <I name="pause" size={18} fill="currentColor" strokeWidth={0} />
             ) : (
               <>
                 <span className="text-subhead tabular-nums group-focus-within/row:hidden group-hover/row:hidden">
                   {n}
                 </span>
-                <Search
-                  size={16}
-                  strokeWidth={2.25}
-                  className="hidden group-focus-within/row:block group-hover/row:block"
-                  aria-hidden
-                />
+                {source ? (
+                  <I
+                    name="play"
+                    size={18}
+                    fill="currentColor"
+                    strokeWidth={0}
+                    className="hidden group-focus-within/row:block group-hover/row:block"
+                  />
+                ) : (
+                  <I
+                    name="search"
+                    size={16}
+                    strokeWidth={2.25}
+                    className="hidden group-focus-within/row:block group-hover/row:block"
+                  />
+                )}
               </>
             )}
           </button>
-          <motion.span
-            className="min-w-0 flex-1 truncate"
-            animate={{ opacity: inFlight ? 0.6 : 1, x: nudge && !reduced ? [0, -3, 3, 0] : 0 }}
-            transition={{ duration: nudge ? 0.24 : DUR.fast }}
+          <span
             key={`${title}-${nudge}`}
+            className={`min-w-0 flex-1 truncate ${nudge && !reduced ? "nudge-x" : ""}`}
+            style={{ opacity: inFlight ? 0.6 : 1, transition: "opacity var(--dur-xs) var(--ease-settle)" }}
           >
             {title}{" "}
             <span className="text-[var(--label-2)]">
               {approx ? "c. " : ""}
               {year ?? "?"}
             </span>
-          </motion.span>
+          </span>
           {audio && (
             <button
               type="button"
@@ -157,7 +175,7 @@ export function TrackRow({
               aria-label={`Key ${keyLabel(audio)}, ${Math.round(audio.bpm)} BPM, details`}
               data-testid="key-chip"
               onPointerDown={(e) => e.stopPropagation()}
-              onClick={() => setDetails(true)}
+              onClick={openDetails}
             >
               {keyLabel(audio)}
               <span className="ml-1.5 hidden text-[var(--label-2)] sm:inline">{Math.round(audio.bpm)}</span>
@@ -167,46 +185,56 @@ export function TrackRow({
             <span className="sr-only">energy </span>
             {energy}
           </span>
-          <span
-            className="relative hidden h-1 w-10 overflow-hidden rounded-full bg-[var(--fill-3)] sm:block"
-            aria-hidden
-          >
-            <motion.span
-              className="block h-full w-full origin-left rounded-full bg-[var(--tint)]"
-              initial={false}
-              animate={{ scaleX: energy / 100 }}
-              transition={{ duration: DUR.slow, ease: EASE.inOut }}
-            />
-          </span>
-          <button
-            type="button"
-            onClick={onSwap}
-            disabled={disabled || inFlight}
-            aria-label={swapLabel}
-            title="Swap this track for another of the same family"
-            className="icon-btn icon-btn-bare -my-2 hidden h-9 w-9 opacity-0 transition-opacity focus-visible:opacity-100 disabled:opacity-0 group-hover/row:opacity-100 sm:inline-flex"
-          >
-            <Repeat2 size={18} strokeWidth={1.75} className={inFlight ? "animate-spin" : ""} />
-          </button>
+          {!isPhone && (
+            <span
+              className="energy-bar relative h-1 w-10 overflow-hidden rounded-full bg-[var(--fill-3)]"
+              aria-hidden
+            >
+              <span
+                className="block h-full w-full origin-left rounded-full bg-[var(--tint)]"
+                style={{ transform: `scaleX(${energy / 100})` }}
+              />
+            </span>
+          )}
+          {!isPhone && (
+            <button
+              type="button"
+              onClick={swap}
+              disabled={disabled || inFlight}
+              aria-label={swapLabel}
+              title="Swap this track for another of the same family"
+              className="icon-btn icon-btn-bare -my-2 inline-flex h-9 w-9 opacity-0 transition-opacity focus-visible:opacity-100 disabled:opacity-0 group-hover/row:opacity-100"
+            >
+              <I name="swap" size={18} strokeWidth={1.75} className={inFlight ? "animate-spin" : ""} />
+            </button>
+          )}
           <Menu
             label={`Track ${n} actions`}
             className="icon-btn-bare -my-2 -mr-3 h-11 w-10"
-            icon={analysing ? <LoaderCircle size={18} className="animate-spin" aria-hidden /> : undefined}
+            icon={
+              analysing ? (
+                <LoaderCircle size={18} className="animate-spin" aria-hidden />
+              ) : (
+                <I name="more" size={20} strokeWidth={2} />
+              )
+            }
             items={[
-              { label: "Find on services…", icon: Search, onClick: () => setFind(true) },
+              { label: "Find on services…", icon: Search, onClick: openFind },
               {
                 label: audio ? "Analyse again in browser" : "Analyse in browser",
                 icon: AudioWaveform,
                 onClick: analyse,
                 disabled: analysing || !eff.resolved?.previewUrl,
               },
-              audio ? { label: "Audio details", icon: AudioWaveform, onClick: () => setDetails(true) } : null,
+              audio ? { label: "Audio details", icon: AudioWaveform, onClick: openDetails } : null,
             ]}
           />
         </div>
       </SwipeRow>
-      {audio && <AudioDetails song={eff} audio={audio} open={details} onClose={() => setDetails(false)} />}
-      <ResolveSheet song={find ? song : null} open={find} onClose={() => setFind(false)} />
+      {audio && detailsMounted && (
+        <AudioDetails song={eff} audio={audio} open={details} onClose={() => setDetails(false)} />
+      )}
+      {findMounted && <ResolveSheet song={find ? song : null} open={find} onClose={() => setFind(false)} />}
     </motion.li>
   );
-}
+});

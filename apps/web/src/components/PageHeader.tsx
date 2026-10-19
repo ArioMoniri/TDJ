@@ -25,7 +25,16 @@ const SetCtx = createContext<((s: Partial<ToolbarState>) => void) | null>(null);
 /** Shares the page title and bar actions between `PageHeader` and the chrome (`Nav`). */
 export function ToolbarProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<ToolbarState>(EMPTY);
-  const set = useCallback((s: Partial<ToolbarState>) => setState((p) => ({ ...p, ...s })), []);
+  // bail out when nothing changed: a page re-render must not re-render the chrome (and its layout-measured pill)
+  const set = useCallback(
+    (s: Partial<ToolbarState>) =>
+      setState((p) => {
+        for (const k of Object.keys(s) as Array<keyof ToolbarState>)
+          if (!Object.is(p[k], s[k])) return { ...p, ...s };
+        return p;
+      }),
+    [],
+  );
   return (
     <SetCtx.Provider value={set}>
       <StateCtx.Provider value={state}>{children}</StateCtx.Provider>
@@ -78,7 +87,13 @@ export function PageHeader({
     return () => io.disconnect();
   }, []);
   useIso(() => {
-    set?.({ title, collapsed, trailing, barChild: inBar ?? null });
+    // the chrome shows the actions only while collapsed: hand it stable nulls otherwise
+    set?.({
+      title,
+      collapsed,
+      trailing: collapsed ? trailing : null,
+      barChild: collapsed && inBar ? inBar : null,
+    });
   });
   useEffect(() => () => set?.(EMPTY), [set]);
   return (

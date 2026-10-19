@@ -36,6 +36,8 @@ const ARC: Record<string, string> = {
   "marathon-plateau": "Marathon",
   gentle: "Gentle",
 };
+const noop = () => {};
+const NO_PLAYLISTS: never[] = [];
 const fmtH = (h: number) => `${h} h`.replace(".5 h", "½ h");
 const time = (iso: string) =>
   new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
@@ -303,10 +305,10 @@ export default function HistoryPage() {
                   key={`${open.id}-${t.index}`}
                   t={t}
                   i={i}
-                  onSwap={() => {}}
-                  onSwapTrack={() => {}}
-                  onLock={() => {}}
-                  playlists={[]}
+                  onSwap={noop}
+                  onSwapTrack={noop}
+                  onLock={noop}
+                  playlists={NO_PLAYLISTS}
                   readOnly
                 />
               ))}
