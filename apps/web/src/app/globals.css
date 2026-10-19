@@ -599,6 +599,17 @@ li + li > .cell[data-leading="num"]:first-child::before,
 }
 @utility glass-pill {
   border-radius: 999px;
+  /* Safari: the sheen pseudo-element must carry the capsule radius itself; `inherit` through `isolate` +
+     `overflow: clip` left a square-cornered block at the capsule's left end. No tap highlight on the pill. */
+  -webkit-tap-highlight-color: transparent;
+  &::before {
+    border-radius: 999px;
+    background: linear-gradient(120deg, rgb(255 255 255 / 0.16), rgb(255 255 255 / 0) 55%);
+  }
+  & a,
+  & button {
+    -webkit-tap-highlight-color: transparent;
+  }
 }
 /* Scroll-edge effect: content fades out under a glass bar (iOS 26) */
 @utility scroll-edge-top {
