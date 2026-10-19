@@ -1,5 +1,5 @@
 "use client";
-import { BookOpen, Clock, Database, Disc3, ListMusic, Search, SlidersHorizontal } from "lucide-react";
+import { BookOpen, Clock, Database, Disc3, ListMusic, Play, Search, SlidersHorizontal } from "lucide-react";
 import { LayoutGroup, motion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -17,6 +17,12 @@ const items = [
   { href: "/database", label: "Database", icon: Database },
   { href: "/guide", label: "Guide", icon: BookOpen },
   { href: "/settings", label: "Settings", icon: SlidersHorizontal },
+];
+/** Booth (round7-booth.md): a sidebar item on desktop; phones and tablets reach it from the result's actions. */
+const sidebarItems = [
+  ...items.slice(0, 1),
+  { href: "/booth", label: "Booth", icon: Play },
+  ...items.slice(1),
 ];
 const SEARCH_ID: Record<string, string> = { "/library": "library-search", "/database": "db-search" };
 
@@ -179,7 +185,7 @@ export function Nav() {
         </Link>
         <nav className="mt-4 flex flex-col gap-0.5" aria-label="Primary sidebar">
           <LayoutGroup id="sidebar-nav">
-            {items.map((it) => {
+            {sidebarItems.map((it) => {
               const on = path === it.href;
               return (
                 <Link

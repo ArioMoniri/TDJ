@@ -45,7 +45,8 @@ export const SPOTIFY: Provider = {
   token: () => `${trim(process.env.SPOTIFY_ACCOUNTS_URL ?? "https://accounts.spotify.com")}/api/token`,
   idKey: "SPOTIFY_CLIENT_ID",
   secretKey: "SPOTIFY_CLIENT_SECRET",
-  scopes: "playlist-modify-private playlist-modify-public user-read-email streaming user-read-private",
+  scopes:
+    "playlist-modify-private playlist-modify-public user-read-email streaming user-read-private user-modify-playback-state user-read-playback-state",
   pkce: false,
   clientAuth: "basic",
   authorizeParams: {},

@@ -9,6 +9,7 @@ import {
   MessageSquareText,
   Pin,
   PinOff,
+  Play,
   Repeat2,
   Share,
   SlidersHorizontal,
@@ -18,6 +19,7 @@ import {
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { autoSetName, changedTandas, describeOptionChanges } from "@/lib/changes";
 import { FEEDBACK_CHIPS } from "@/lib/feedback";
@@ -588,6 +590,7 @@ const SetupForm = memo(function SetupForm({
 });
 
 export function Composer() {
+  const router = useRouter();
   const {
     options,
     setOptions,
@@ -1162,6 +1165,7 @@ export function Composer() {
                   },
                   { label: "Copy seed", icon: Copy, onClick: copySeed },
                   { label: "Written review", icon: MessageSquareText, onClick: explain },
+                  { label: "Play the night", icon: Play, onClick: () => router.push("/booth") },
                 ]}
               />
             )}
@@ -1186,6 +1190,13 @@ export function Composer() {
                   {playlist.name}
                 </h2>
                 <span className="flex items-center gap-1">
+                  <Link
+                    href="/booth"
+                    className="btn btn-ghost -my-2 min-h-11 px-3"
+                    data-testid="play-the-night"
+                  >
+                    <Play size={16} fill="currentColor" strokeWidth={0} aria-hidden /> Play the night
+                  </Link>
                   <button
                     type="button"
                     className={`icon-btn icon-btn-bare -my-2 h-11 w-10 ${liked === true ? "text-[var(--tint)]" : "text-[var(--label-3)]"}`}
@@ -1498,6 +1509,7 @@ export function Composer() {
                 disabled: busy,
               },
               { label: "Copy seed", icon: Copy, onClick: copySeed },
+              { label: "Play the night", icon: Play, onClick: () => router.push("/booth") },
               { label: "Clear set", icon: Eraser, onClick: clearSet, destructive: true },
             ]}
             onPick={(it: MenuItem) => {

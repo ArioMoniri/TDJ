@@ -161,6 +161,8 @@ export interface HistorySnapshot {
   score: number;
   /** what produced it */
   source: "compose" | "refine" | "swap";
+  /** the night as played from the Booth (lib/history.ts `NightLog`), set by "End the night" and every hold */
+  nightLog?: import("./history").NightLog;
 }
 export const HISTORY_MAX = 50;
 

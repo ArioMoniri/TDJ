@@ -1,5 +1,5 @@
 "use client";
-import { Copy, Download, FileDown, GitCompare, Pencil, RotateCcw, Share, Trash2 } from "lucide-react";
+import { Copy, Download, FileDown, GitCompare, Pencil, Play, RotateCcw, Share, Trash2 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -14,7 +14,7 @@ import { SwipeRow } from "@/components/SwipeRow";
 import { TandaCard } from "@/components/TandaCard";
 import { downloadBlob } from "@/lib/download";
 import { haptic } from "@/lib/haptics";
-import { groupByDay } from "@/lib/history";
+import { groupByDay, nightLogSummary } from "@/lib/history";
 import { useMediaQuery } from "@/lib/hooks";
 import { reduced as reducedV, rise } from "@/lib/motion";
 import { useStore } from "@/lib/store";
@@ -135,7 +135,13 @@ export default function HistoryPage() {
     router.push("/#result");
   };
   const sub = (s: HistorySnapshot) =>
-    `${fmtH(s.playlist.options.hours)} · ${ERA[s.playlist.options.eras?.[0] ?? "golden"] ?? ""} · ${ARC[s.playlist.options.arc] ?? s.playlist.options.arc} · ${s.playlist.tandas.length} tandas`;
+    `${fmtH(s.playlist.options.hours)} · ${ERA[s.playlist.options.eras?.[0] ?? "golden"] ?? ""} · ${ARC[s.playlist.options.arc] ?? s.playlist.options.arc} · ${s.playlist.tandas.length} tandas${s.nightLog ? ` · ${nightLogSummary(s.nightLog)}` : ""}`;
+  /** Booth: the set becomes the current one (locks cleared) and /booth opens on it. */
+  const playNight = (s: HistorySnapshot) => {
+    setPlaylist({ ...s.playlist, tandas: s.playlist.tandas.map((t) => ({ ...t, locked: false })) });
+    replaceOptions({ ...s.options, seed: s.playlist.options.seed });
+    router.push("/booth");
+  };
   const rowV = reduced ? reducedV.rise : rise;
   const exportAll = () =>
     downloadBlob("tdj-history.json", JSON.stringify(history, null, 2), "application/json");
@@ -241,6 +247,7 @@ export default function HistoryPage() {
               label="Set actions"
               items={[
                 { label: "Reopen in Compose", icon: RotateCcw, onClick: () => reopen(open) },
+                { label: "Play the night", icon: Play, onClick: () => playNight(open) },
                 { label: "Re-export…", icon: Share, onClick: () => setExporting(true) },
                 {
                   label: "Compare…",
@@ -297,6 +304,7 @@ export default function HistoryPage() {
                 {isPhone ? <EnergyCurve compact p={open.playlist} /> : <EnergyCurve p={open.playlist} />}
               </div>
               <ActionRow label="Reopen in Compose" onClick={() => reopen(open)} />
+              <ActionRow label="Play the night" onClick={() => playNight(open)} />
             </Group>
             <h2 className="section-head">Tandas</h2>
             <div className="grid min-w-0 grid-cols-1 gap-3">
