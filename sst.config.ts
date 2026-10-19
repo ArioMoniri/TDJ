@@ -39,10 +39,21 @@ export default $config({
       path: "apps/web",
       environment: {
         TDJ_DATA_ROOT: "/var/task",
+        // the in-app owner setup (/admin) keeps its values in SSM Parameter Store under /tdj/<stage>/*
+        TDJ_STAGE: $app.stage,
+        TDJ_CONFIG_BACKEND: "ssm",
         ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5-5",
         NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL ?? "",
         ...connectors,
       },
+      permissions: [
+        {
+          actions: ["ssm:GetParameter", "ssm:GetParametersByPath", "ssm:PutParameter", "ssm:DeleteParameter"],
+          resources: ["arn:aws:ssm:*:*:parameter/tdj/*"],
+        },
+        // SecureStrings are wrapped with the account's default SSM key (alias/aws/ssm)
+        { actions: ["kms:Decrypt", "kms:Encrypt"], resources: ["*"] },
+      ],
       server: { memory: "1536 MB", timeout: "30 seconds", architecture: "arm64" },
       domain: process.env.TDJ_DOMAIN ? { name: process.env.TDJ_DOMAIN } : undefined,
     });

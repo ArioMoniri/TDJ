@@ -1,6 +1,7 @@
 import "server-only";
 import { createHash, randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
+import { type ConfigKey, getConfig } from "./config";
 import { clearCookieHeader, cookieHeader, readCookie, requestOrigin, seal, unseal } from "./cookies";
 
 /**
@@ -19,8 +20,9 @@ export interface Provider {
   authorize: () => string;
   /** token endpoint */
   token: () => string;
-  clientId: () => string | undefined;
-  clientSecret: () => string | undefined;
+  /** configuration keys of the deployment's own app (lib/server/config.ts: environment, then the config store) */
+  idKey: ConfigKey;
+  secretKey: ConfigKey;
   /** scopes always requested (features add theirs through `loginRedirect({ scopes })`) */
   scopes: string;
   /** code_challenge S256 on the authorization request, code_verifier on the exchange */
@@ -41,8 +43,8 @@ export const SPOTIFY: Provider = {
   cookie: "tdj_sp",
   authorize: () => `${trim(process.env.SPOTIFY_ACCOUNTS_URL ?? "https://accounts.spotify.com")}/authorize`,
   token: () => `${trim(process.env.SPOTIFY_ACCOUNTS_URL ?? "https://accounts.spotify.com")}/api/token`,
-  clientId: () => process.env.SPOTIFY_CLIENT_ID,
-  clientSecret: () => process.env.SPOTIFY_CLIENT_SECRET,
+  idKey: "SPOTIFY_CLIENT_ID",
+  secretKey: "SPOTIFY_CLIENT_SECRET",
   scopes: "playlist-modify-private playlist-modify-public user-read-email streaming user-read-private",
   pkce: false,
   clientAuth: "basic",
@@ -63,8 +65,8 @@ export const GOOGLE: Provider = {
   authorize: () =>
     `${trim(process.env.GOOGLE_ACCOUNTS_URL ?? "https://accounts.google.com")}/o/oauth2/v2/auth`,
   token: () => process.env.GOOGLE_TOKEN_URL ?? "https://oauth2.googleapis.com/token",
-  clientId: () => process.env.GOOGLE_CLIENT_ID,
-  clientSecret: () => process.env.GOOGLE_CLIENT_SECRET,
+  idKey: "GOOGLE_CLIENT_ID",
+  secretKey: "GOOGLE_CLIENT_SECRET",
   scopes: "openid email profile",
   pkce: false,
   clientAuth: "body",
@@ -78,8 +80,8 @@ export const DROPBOX: Provider = {
   cookie: "tdj_db",
   authorize: () => `${trim(process.env.DROPBOX_WWW_URL ?? "https://www.dropbox.com")}/oauth2/authorize`,
   token: () => `${trim(process.env.DROPBOX_API_URL ?? "https://api.dropboxapi.com")}/oauth2/token`,
-  clientId: () => process.env.DROPBOX_APP_KEY,
-  clientSecret: () => process.env.DROPBOX_APP_SECRET,
+  idKey: "DROPBOX_APP_KEY",
+  secretKey: "DROPBOX_APP_SECRET",
   scopes: "",
   pkce: true,
   clientAuth: "basic",
@@ -89,7 +91,18 @@ export const DROPBOX: Provider = {
 
 export const PROVIDERS = { spotify: SPOTIFY, google: GOOGLE, dropbox: DROPBOX } as const;
 
-export const enabled = (p: Provider) => !!(p.clientId() && p.clientSecret());
+export interface Credentials {
+  id: string;
+  secret: string;
+}
+/** The deployment's own app for this provider, or null when the owner has not configured it. */
+export async function credentials(p: Provider): Promise<Credentials | null> {
+  const c = await getConfig();
+  const id = c[p.idKey];
+  const secret = c[p.secretKey];
+  return id && secret ? { id, secret } : null;
+}
+export const enabled = async (p: Provider) => !!(await credentials(p));
 export const redirectUri = (p: Provider, origin: string) => `${origin}/api/${p.id}/callback`;
 export const stateCookie = (p: Provider) => `${p.cookie}_state`;
 export const pkceCookie = (p: Provider) => `${p.cookie}_pkce`;
@@ -108,13 +121,14 @@ export interface Session {
 
 export function authorizeUrl(
   p: Provider,
+  clientId: string,
   origin: string,
   state: string,
   o: { scopes?: string[]; codeChallenge?: string } = {},
 ): string {
   const scope = [...new Set([...p.scopes.split(" "), ...(o.scopes ?? [])].filter(Boolean))].join(" ");
   const params: Record<string, string> = {
-    client_id: p.clientId() ?? "",
+    client_id: clientId,
     response_type: "code",
     redirect_uri: redirectUri(p, origin),
     ...(scope ? { scope } : {}),
@@ -130,16 +144,26 @@ export function authorizeUrl(
   return u.toString();
 }
 
-async function tokenRequest(p: Provider, params: Record<string, string>) {
+/** A request to the token endpoint with the app's credentials (Basic header or form fields per provider). */
+export async function rawTokenRequest(
+  p: Provider,
+  c: Credentials,
+  params: Record<string, string>,
+): Promise<Response> {
   const headers: Record<string, string> = { "content-type": "application/x-www-form-urlencoded" };
   const body = new URLSearchParams(params);
   if (p.clientAuth === "basic")
-    headers.authorization = `Basic ${Buffer.from(`${p.clientId()}:${p.clientSecret()}`).toString("base64")}`;
+    headers.authorization = `Basic ${Buffer.from(`${c.id}:${c.secret}`).toString("base64")}`;
   else {
-    body.set("client_id", p.clientId() ?? "");
-    body.set("client_secret", p.clientSecret() ?? "");
+    body.set("client_id", c.id);
+    body.set("client_secret", c.secret);
   }
-  const r = await fetch(p.token(), { method: "POST", headers, body });
+  return fetch(p.token(), { method: "POST", headers, body });
+}
+async function tokenRequest(p: Provider, params: Record<string, string>) {
+  const c = await credentials(p);
+  if (!c) throw new Error(`${p.label} login is not enabled on this deployment`);
+  const r = await rawTokenRequest(p, c, params);
   if (!r.ok) throw new Error(`${p.label} token endpoint answered ${r.status}`);
   return (await r.json()) as {
     access_token: string;
@@ -182,12 +206,12 @@ export async function refreshSession(p: Provider, s: Session): Promise<Session> 
   };
 }
 
-export function readSession(p: Provider, req: Request): Session | null {
-  const s = unseal<Session>(readCookie(req, p.cookie));
+export async function readSession(p: Provider, req: Request): Promise<Session | null> {
+  const s = await unseal<Session>(readCookie(req, p.cookie));
   return s && typeof s.access === "string" && typeof s.refresh === "string" ? s : null;
 }
-export function sessionCookie(p: Provider, s: Session, origin: string): string {
-  return cookieHeader(p.cookie, seal(s), {
+export async function sessionCookie(p: Provider, s: Session, origin: string): Promise<string> {
+  return cookieHeader(p.cookie, await seal(s), {
     maxAge: p.sessionDays * 86400,
     secure: origin.startsWith("https://"),
   });
@@ -200,13 +224,13 @@ export async function withSession(
   req: Request,
   origin: string,
 ): Promise<{ session: Session; setCookie?: string } | null> {
-  const s = readSession(p, req);
+  const s = await readSession(p, req);
   if (!s) return null;
   if (s.expires > Date.now() + 60_000) return { session: s };
   if (!s.refresh) return null;
   try {
     const fresh = await refreshSession(p, s);
-    return { session: fresh, setCookie: sessionCookie(p, fresh, origin) };
+    return { session: fresh, setCookie: await sessionCookie(p, fresh, origin) };
   } catch {
     return null;
   }
@@ -218,13 +242,18 @@ export async function withSession(
  * GET /api/<provider>/login: sends the browser to the provider with a state cookie (and, for PKCE providers, a
  * sealed verifier cookie); `?next=` is where the callback lands afterwards.
  */
-export function loginRedirect(p: Provider, req: Request, o: { scopes?: string[] } = {}): Response {
-  if (!enabled(p))
+export async function loginRedirect(
+  p: Provider,
+  req: Request,
+  o: { scopes?: string[] } = {},
+): Promise<Response> {
+  const c = await credentials(p);
+  if (!c)
     return NextResponse.json(
       { error: `${p.label} login is not enabled on this deployment` },
       { status: 404 },
     );
-  const origin = requestOrigin(req);
+  const origin = await requestOrigin(req);
   const next = new URL(req.url).searchParams.get("next") ?? "/settings";
   const state = `${newState()}.${Buffer.from(next.startsWith("/") ? next : "/settings").toString("base64url")}`;
   const secure = origin.startsWith("https://");
@@ -234,9 +263,12 @@ export function loginRedirect(p: Provider, req: Request, o: { scopes?: string[] 
   if (p.pkce) {
     const verifier = b64url(randomBytes(64));
     codeChallenge = b64url(createHash("sha256").update(verifier).digest());
-    cookies.push(cookieHeader(pkceCookie(p), seal({ verifier, state }), { maxAge: 600, path, secure }));
+    cookies.push(cookieHeader(pkceCookie(p), await seal({ verifier, state }), { maxAge: 600, path, secure }));
   }
-  const res = NextResponse.redirect(authorizeUrl(p, origin, state, { scopes: o.scopes, codeChallenge }), 302);
+  const res = NextResponse.redirect(
+    authorizeUrl(p, c.id, origin, state, { scopes: o.scopes, codeChallenge }),
+    302,
+  );
   for (const c of cookies) res.headers.append("set-cookie", c);
   return res;
 }
@@ -247,7 +279,7 @@ export function loginRedirect(p: Provider, req: Request, o: { scopes?: string[] 
  * provider is merged (Google: scopes accumulate, the refresh token survives a re-consent that did not issue one).
  */
 export async function callbackRedirect(p: Provider, req: Request): Promise<Response> {
-  const origin = requestOrigin(req);
+  const origin = await requestOrigin(req);
   const path = cookiePath(p);
   const clear = (res: NextResponse) => {
     res.headers.append("set-cookie", clearCookieHeader(stateCookie(p), path));
@@ -256,7 +288,7 @@ export async function callbackRedirect(p: Provider, req: Request): Promise<Respo
   };
   const fail = (reason: string) =>
     clear(NextResponse.redirect(`${origin}/settings?error=${p.id}_${reason}`, 302));
-  if (!enabled(p)) return fail("disabled");
+  if (!(await enabled(p))) return fail("disabled");
   const q = new URL(req.url).searchParams;
   const state = q.get("state") ?? "";
   const expected = readCookie(req, stateCookie(p));
@@ -264,13 +296,13 @@ export async function callbackRedirect(p: Provider, req: Request): Promise<Respo
   if (q.get("error") || !q.get("code")) return fail("denied");
   let verifier: string | undefined;
   if (p.pkce) {
-    const pk = unseal<{ verifier: string; state: string }>(readCookie(req, pkceCookie(p)));
+    const pk = await unseal<{ verifier: string; state: string }>(readCookie(req, pkceCookie(p)));
     if (!pk || pk.state !== state) return fail("state");
     verifier = pk.verifier;
   }
   try {
     const fresh = await exchangeCode(p, q.get("code")!, origin, verifier);
-    const old = readSession(p, req);
+    const old = await readSession(p, req);
     const session: Session = {
       ...fresh,
       refresh: fresh.refresh || old?.refresh || "",
@@ -282,7 +314,7 @@ export async function callbackRedirect(p: Provider, req: Request): Promise<Respo
     const to = new URL(next.startsWith("/") ? next : "/settings", origin);
     to.searchParams.set("connected", p.id);
     const res = NextResponse.redirect(to.toString(), 302);
-    res.headers.append("set-cookie", sessionCookie(p, session, origin));
+    res.headers.append("set-cookie", await sessionCookie(p, session, origin));
     return clear(res);
   } catch {
     return fail("exchange");

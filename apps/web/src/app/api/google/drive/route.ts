@@ -10,8 +10,9 @@ export const dynamic = "force-dynamic";
  * Without the Drive scope the answer is 403 `{ error: "needs_scope", login }`: the client sends the DJ there.
  */
 export async function POST(req: Request) {
-  if (!enabled(GOOGLE)) return NextResponse.json({ error: "Google login is not enabled" }, { status: 404 });
-  const origin = requestOrigin(req);
+  if (!(await enabled(GOOGLE)))
+    return NextResponse.json({ error: "Google login is not enabled" }, { status: 404 });
+  const origin = await requestOrigin(req);
   const s = await withSession(GOOGLE, req, origin);
   if (!s) return NextResponse.json({ error: "Not connected with Google" }, { status: 401 });
   const body = await req.json().catch(() => null);

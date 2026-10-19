@@ -46,5 +46,19 @@ Resources:
               - Effect: Allow
                 Action: [iam:CreateRole, iam:DeleteRole, iam:AttachRolePolicy, iam:DetachRolePolicy, iam:PutRolePolicy, iam:DeleteRolePolicy, iam:GetRole, iam:PassRole, iam:TagRole, iam:ListRolePolicies, iam:ListAttachedRolePolicies, iam:GetRolePolicy, iam:UpdateAssumeRolePolicy, iam:CreatePolicy, iam:DeletePolicy, iam:GetPolicy, iam:ListPolicyVersions, iam:CreatePolicyVersion, iam:DeletePolicyVersion]
                 Resource: "*"
+        # Owner setup (docs/DEPLOY.md): the workflow leaves a one-time setup code in Parameter Store and checks
+        # whether a passphrase exists. PowerUserAccess already covers SSM; this statement names the need explicitly.
+        - PolicyName: tdj-owner-setup
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: [ssm:PutParameter, ssm:GetParameter]
+                Resource: "arn:aws:ssm:*:*:parameter/tdj/*"
+              - Effect: Allow
+                Action: [kms:Encrypt, kms:Decrypt]
+                Resource: "*"
+                Condition:
+                  StringLike: { "kms:ViaService": "ssm.*.amazonaws.com" }
 Outputs:
   RoleArn: { Value: !GetAtt DeployRole.Arn, Description: "Set this as the GitHub repo variable AWS_DEPLOY_ROLE_ARN" }

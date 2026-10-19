@@ -6,8 +6,8 @@ export const dynamic = "force-dynamic";
 
 /** `{ hosted, user, scopes: { drive, youtube } }`: which features this Google account has already granted. */
 export async function GET(req: Request) {
-  const hosted = enabled(GOOGLE);
-  const origin = requestOrigin(req);
+  const hosted = await enabled(GOOGLE);
+  const origin = await requestOrigin(req);
   const s = hosted ? await withSession(GOOGLE, req, origin) : null;
   if (!s) {
     const res = NextResponse.json({ hosted, user: null }, { status: 401 });

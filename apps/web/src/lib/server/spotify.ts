@@ -19,7 +19,7 @@ export const SCOPES = SPOTIFY.scopes;
 export const SESSION_COOKIE = SPOTIFY.cookie;
 export type { Session };
 
-export const hostedEnabled = () => enabled(SPOTIFY);
+export const hostedEnabled = async () => enabled(SPOTIFY);
 export const withSession = (req: Request, origin: string) => withSessionFor(SPOTIFY, req, origin);
 export const clearSessionCookie = () => clearFor(SPOTIFY);
 export { ApiError as SpotifyError };
