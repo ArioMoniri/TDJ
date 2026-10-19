@@ -212,6 +212,8 @@ export interface ComposeOptions {
   orchestraRepeatGap: number;
   singerRepeatGap: number;
   avoidTitleRepeats: boolean;
+  /** what recent sets (agent memory) already played: families and titles are down-weighted so nights differ */
+  recent?: { tandaKeys?: string[]; titles?: string[] };
   maxYearSpread: number; // within a tanda
   mixVocalInstrumental: boolean; // false = strict
   includeOrchestras?: string[];
@@ -271,6 +273,9 @@ export interface AgentMemory {
     score: number;
     context?: ComposeContext;
     liked?: boolean;
+    /** family keys "orchestraId|singer|rhythm" and normalised titles played, for variety across nights */
+    tandas?: string[];
+    titles?: string[];
   }>;
   /** learned preferences the assistant may apply by default */
   preferences: Partial<

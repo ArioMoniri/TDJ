@@ -86,6 +86,15 @@ export function compose(
   const rules = o.rules ?? {};
   const rc = resolveContext(o.context, deps.contextModel ?? BUILTIN_CONTEXT);
   o = applyContextToOptions(o, rc);
+  // what the DJ set explicitly tonight always wins over context suggestions (sizes, pattern)
+  const explicit = sanitizeOptions({ ...o, ...partial });
+  if (partial.tangoTandaSize !== undefined) o.tangoTandaSize = explicit.tangoTandaSize;
+  if (partial.valsTandaSize !== undefined) o.valsTandaSize = explicit.valsTandaSize;
+  if (partial.milongaTandaSize !== undefined) o.milongaTandaSize = explicit.milongaTandaSize;
+  if (partial.pattern !== undefined && partial.pattern !== "classic") {
+    o.pattern = partial.pattern;
+    if (partial.customPattern !== undefined) o.customPattern = partial.customPattern;
+  }
   const seed = o.seed ?? Math.floor(Math.random() * 1e9);
   o.seed = seed;
   const rng = makeRng(seed);

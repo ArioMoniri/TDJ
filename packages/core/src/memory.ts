@@ -1,3 +1,4 @@
+import { normTitle } from "./energy";
 import type { AgentMemory, ComposeOptions, Playlist } from "./types";
 
 export const emptyMemory = (): AgentMemory => ({ notes: [], feedbackHistory: [], sets: [], preferences: {} });
@@ -7,7 +8,8 @@ export function applyMemory(
   partial: Partial<ComposeOptions>,
   memory?: AgentMemory | null,
 ): Partial<ComposeOptions> {
-  if (!memory?.preferences) return partial;
+  const recent = recentFromMemory(memory);
+  if (!memory?.preferences) return recent ? { recent, ...partial } : partial;
   const { rules, context, ...prefs } = memory.preferences;
   return {
     ...prefs,
@@ -28,6 +30,8 @@ export function rememberSet(memory: AgentMemory, p: Playlist, liked?: boolean): 
     score: p.score.total,
     context: p.options.context,
     liked,
+    tandas: p.tandas.map((t) => `${t.orchestraId}|${t.singer ?? ""}|${t.rhythm}`),
+    titles: p.tandas.flatMap((t) => t.songs.map((s) => normTitle(s.title))),
   };
   return {
     ...memory,
@@ -105,4 +109,15 @@ export function summarizeMemory(memory?: AgentMemory | null, max = 1200): string
     );
   const out = L.join("\n");
   return out.length > max ? `${out.slice(0, max)}…` : out || "No memory yet.";
+}
+
+/** Families and titles from the last `n` sets, so the next night is not the same night. */
+export function recentFromMemory(
+  memory?: AgentMemory | null,
+  n = 3,
+): { tandaKeys: string[]; titles: string[] } | undefined {
+  const sets = (memory?.sets ?? []).slice(0, n);
+  const tandaKeys = [...new Set(sets.flatMap((s) => s.tandas ?? []))];
+  const titles = [...new Set(sets.flatMap((s) => s.titles ?? []))];
+  return tandaKeys.length || titles.length ? { tandaKeys, titles } : undefined;
 }
