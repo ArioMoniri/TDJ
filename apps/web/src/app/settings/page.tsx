@@ -1,12 +1,13 @@
 "use client";
-import { Brain, FolderOpen, Globe, HardDrive, KeyRound, Palette } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
-import { useState } from "react";
+import { Brain, FolderOpen, Globe, HardDrive, KeyRound, LoaderCircle, Palette } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
 import { Connectors } from "@/components/Connectors";
 import { ActionRow, FieldRow, Group, PickerRow, Row, SegmentedRow, SwitchRow, Tile } from "@/components/Form";
 import { PageHeader } from "@/components/PageHeader";
 import { Sheet } from "@/components/Sheet";
-import { fade } from "@/lib/motion";
+import { fade, t as tw } from "@/lib/motion";
 import { useStore } from "@/lib/store";
 import {
   AI_DEFAULT_MODEL,
@@ -43,6 +44,62 @@ const THEMES: Array<[UserSettings["theme"], string]> = [
   ["dark", "Dark"],
 ];
 
+/* The dotLottie player loads with the first test result, not with the page. */
+const DotLottieReact = dynamic(() => import("@lottiefiles/dotlottie-react").then((m) => m.DotLottieReact), {
+  ssr: false,
+});
+
+type TestState = "idle" | "busy" | "ok" | "fail";
+
+/**
+ * Test-connection icon (motion-system.md §3.6): idle → nothing; busy → spinner after a 300 ms grace; ok / fail →
+ * the save-pulse / error-mark Lottie plays once in the same 20 px slot (final frame under reduced motion).
+ */
+function TestIcon({ state }: { state: TestState }) {
+  const reduced = useReducedMotion();
+  const [late, setLate] = useState(false);
+  useEffect(() => {
+    if (state !== "busy") {
+      setLate(false);
+      return;
+    }
+    const id = setTimeout(() => setLate(true), 300);
+    return () => clearTimeout(id);
+  }, [state]);
+  const show = state === "ok" || state === "fail" || (state === "busy" && late);
+  return (
+    <span className="relative inline-grid h-5 w-5 shrink-0 place-items-center align-middle" aria-hidden>
+      <AnimatePresence mode="wait" initial={false}>
+        {show && (
+          <motion.span
+            key={state}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={tw.press}
+            className="inline-grid h-5 w-5 place-items-center"
+            data-testid={`test-icon-${state}`}
+          >
+            {state === "busy" ? (
+              <LoaderCircle size={15} className="animate-spin" />
+            ) : (
+              <DotLottieReact
+                src={state === "ok" ? "/anim/save-pulse.json" : "/anim/error-mark.json"}
+                autoplay={!reduced}
+                loop={false}
+                dotLottieRefCallback={(d) => {
+                  if (reduced) d?.setFrame(23);
+                }}
+                style={{ width: 20, height: 20 }}
+              />
+            )}
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </span>
+  );
+}
+
 /** Provider errors as one human line: "The key was rejected by Anthropic (401). Check it and try again." */
 function humanError(provider: AiProvider, status: number, raw: unknown): string {
   const name = AI_PROVIDERS.find(([k]) => k === provider)?.[1] ?? provider;
@@ -69,9 +126,17 @@ export default function Settings() {
   const { settings, setSettings, storageMode, memory } = useStore();
   const [showKey, setShowKey] = useState(false);
   const [folderFor, setFolderFor] = useState<DjApp | null>(null);
-  const [test, setTest] = useState<{ state: "idle" | "busy" | "ok" | "fail"; text?: string }>({
-    state: "idle",
-  });
+  const [test, setTest] = useState<{ state: TestState; text?: string }>({ state: "idle" });
+  /** "Checking…" waits 300 ms so a fast answer never flashes it */
+  const [checking, setChecking] = useState(false);
+  useEffect(() => {
+    if (test.state !== "busy") {
+      setChecking(false);
+      return;
+    }
+    const id = setTimeout(() => setChecking(true), 300);
+    return () => clearTimeout(id);
+  }, [test.state]);
   const ai = settings.ai;
   const setAi = (patch: Partial<UserSettings["ai"]>) => setSettings({ ai: { ...ai, ...patch } });
   const switchProvider = (provider: AiProvider) => {
@@ -123,17 +188,32 @@ export default function Settings() {
                   : undefined
             }
           >
+            <TestIcon state={test.state} />
             <AnimatePresence mode="wait" initial={false}>
               <motion.span
-                key={test.state === "idle" || test.state === "busy" ? "idle" : test.text}
+                key={
+                  test.state === "idle"
+                    ? "idle"
+                    : test.state === "busy"
+                      ? checking
+                        ? "busy"
+                        : "idle"
+                      : test.text
+                }
                 variants={fade}
                 initial="hidden"
                 animate="show"
                 exit="exit"
-                className="block"
+                // the result text lands as the check in the Lottie completes (300 ms in)
+                transition={
+                  test.state === "ok" || test.state === "fail" ? { ...tw.fade, delay: 0.3 } : tw.fade
+                }
+                className={test.state === "idle" ? "block" : "ml-1.5 inline"}
               >
                 {test.state === "busy"
-                  ? "Checking…"
+                  ? checking
+                    ? "Checking…"
+                    : ""
                   : (test.text ??
                     "A model key lets you ask for a written review of a set and turns “Tell the DJ” into precise changes. Without a key, free text still works by keyword. The key is sent with your own requests only and never stored on the server.")}
               </motion.span>

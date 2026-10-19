@@ -1,14 +1,15 @@
 "use client";
-import { AudioWaveform, Headphones, Lock, LockOpen, Repeat2 } from "lucide-react";
+import { AudioWaveform, Headphones, ListMusic, Lock, LockOpen, Repeat2 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import dynamic from "next/dynamic";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { analyseTanda } from "@/lib/analyze";
-import { cohesionWith } from "@/lib/audio";
+import { cohesionWith, patchedSong } from "@/lib/audio";
 import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
 import { CARD_STAGGER_CAP, DUR, EASE, STAGGER } from "@/lib/motion";
+import { sourceFor, trackFor, usePlayer } from "@/lib/player";
 import { useStore } from "@/lib/store";
 import type { ReferencePlaylist, Tanda } from "@/lib/types";
 import { CohesionBadge } from "./CohesionBadge";
@@ -90,6 +91,21 @@ function TandaCardImpl({
   // only this tanda's song patches: an analysis elsewhere in the set does not re-render this card
   const patches = useStore(useShallow((s) => t.songs.map((x) => s.overrides.songs?.[x.id])));
   const cohesion = useMemo(() => cohesionWith(t, patches), [t, patches]);
+  const connected = useStore((s) => !!s.spotifyToken && s.spotifyToken.expires > Date.now());
+  /** "Preview tanda": the 30 s previews of this tanda back to back, 10 s each (round4-ux.md §10.1) */
+  const previewTracks = useMemo(
+    () =>
+      t.songs.flatMap((song, k) => {
+        const eff = patchedSong(song, patches[k]);
+        const src = sourceFor(eff, connected);
+        return src?.kind === "preview" ? [trackFor(eff, src)] : [];
+      }),
+    [t.songs, patches, connected],
+  );
+  const previewTanda = useCallback(() => {
+    haptic(4);
+    usePlayer.getState().playQueue(`Tanda ${i + 1}`, previewTracks, 10);
+  }, [i, previewTracks]);
   const ref = useRef<HTMLElement>(null);
   // the stagger applies to the mount only; later renders (settling, swaps) must not inherit the delay
   const freshAtMount = useRef(fresh).current;
@@ -139,6 +155,14 @@ function TandaCardImpl({
     icon: AudioWaveform,
     onClick: analyseAll,
     disabled: analysing,
+  };
+  const previewItem = {
+    label: previewTracks.length
+      ? `Preview tanda (${previewTracks.length} × 10 s)`
+      : "Preview tanda (no previews yet)",
+    icon: ListMusic,
+    onClick: previewTanda,
+    disabled: previewTracks.length === 0,
   };
 
   return (
@@ -235,7 +259,9 @@ function TandaCardImpl({
                   data-on={t.locked || undefined}
                   onClick={lock}
                 >
-                  <I name={t.locked ? "unlock" : "lock"} size={17} strokeWidth={1.75} />
+                  <span key={t.locked ? "locked" : "open"} className="lock-pop">
+                    <I name={t.locked ? "unlock" : "lock"} size={17} strokeWidth={1.75} />
+                  </span>
                 </button>
                 <button
                   type="button"
@@ -276,6 +302,7 @@ function TandaCardImpl({
                     icon: Headphones,
                     onClick: () => setListen((v) => !v),
                   },
+                  previewItem,
                   analyseItem,
                 ]}
               />
@@ -310,7 +337,16 @@ function TandaCardImpl({
               aria-controls={`listen-${i + 1}`}
               onClick={() => setListen((v) => !v)}
             >
-              <I name="headphones" size={16} strokeWidth={2} className="text-[var(--label-2)]" />
+              {listen ? (
+                <span className="wave text-[var(--tint)]" data-on aria-hidden>
+                  <i />
+                  <i />
+                  <i />
+                  <i />
+                </span>
+              ) : (
+                <I name="headphones" size={16} strokeWidth={2} className="text-[var(--label-2)]" />
+              )}
               <span className="min-w-0 flex-1 truncate">{listen ? "Hide player" : "Listen"}</span>
               <I
                 name="chevron"
@@ -323,7 +359,7 @@ function TandaCardImpl({
               label={`Tanda ${i + 1} actions`}
               className="icon-btn-bare mr-2 self-center"
               icon={<I name="more" size={20} strokeWidth={2} />}
-              items={[lockItem, swapItem, analyseItem]}
+              items={[lockItem, swapItem, previewItem, analyseItem]}
             />
           </div>
         )}
@@ -353,7 +389,17 @@ function TandaCardImpl({
               aria-expanded={cortinaOpen}
               aria-controls={`cortina-${i + 1}`}
             >
-              <I name="cortina" size={16} strokeWidth={2} className="text-[var(--label-2)]" />
+              {/* the wave breathes on hover / focus / while the preview is open (motion-composer.md §2.9) */}
+              <span
+                className={`wave ${cortinaOpen || listen ? "text-[var(--tint)]" : "text-[var(--label-2)]"}`}
+                data-on={cortinaOpen || listen || undefined}
+                aria-hidden
+              >
+                <i />
+                <i />
+                <i />
+                <i />
+              </span>
               <span className="min-w-0 flex-1 truncate text-[var(--label-2)]">
                 Cortina · {t.cortina.artist} – {t.cortina.title} · {t.cortina.lengthSec ?? 45} s
               </span>

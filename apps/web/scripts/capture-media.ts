@@ -89,6 +89,12 @@ async function main() {
   await page.goto(`${BASE}/settings`, { waitUntil: "networkidle" });
   await page.waitForTimeout(600);
   await page.screenshot({ path: `${OUT}screenshots/06-settings.png` });
+  // connectors sheet (Spotify): one primary action, Advanced folded
+  await page.locator("#connector-spotify").click();
+  await page.waitForTimeout(700);
+  await page.screenshot({ path: `${OUT}screenshots/20-connectors.png` });
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(400);
   await page.getByRole("radio", { name: "OpenAI" }).click();
   await page.locator("#ai-key").fill("sk-demo-key-not-real");
   await page.getByRole("button", { name: "Rekordbox" }).click();
@@ -137,11 +143,35 @@ async function main() {
   await mp.evaluate(() => window.scrollBy(0, -60));
   await mp.waitForTimeout(500);
   await mp.screenshot({ path: `${OUT}screenshots/09-mobile-result.png` });
+  // mid-list on the way up: the full primary bar (Regenerate + Export + •••) above the tab bar
   await mp.locator("#tanda-3").scrollIntoViewIfNeeded();
-  await mp.evaluate(() => window.scrollBy(0, -40));
-  await mp.waitForTimeout(500);
+  await mp.waitForTimeout(400);
+  // a finger scrolling up (the bars only return on a gesture, never on a layout shift) brings the full bar back
+  // (inlined: tsx wraps inner helper functions with an esbuild `__name` call the page lacks)
+  await mp.evaluate(`(() => {
+    const t = (y) => new Touch({ identifier: 1, target: document.body, clientX: 180, clientY: y });
+    window.dispatchEvent(new TouchEvent("touchstart", { touches: [t(200)] }));
+    window.dispatchEvent(new TouchEvent("touchmove", { touches: [t(420)] }));
+    window.scrollBy(0, -60);
+  })()`);
+  await mp.waitForTimeout(700);
   await mp.screenshot({ path: `${OUT}screenshots/10-mobile-tandas.png` });
-  await mp.getByRole("button", { name: "Export" }).first().click();
+  // scrolling down minimises the tab bar; the primary bar becomes an icon-only pill
+  await mp.evaluate(() => window.scrollBy(0, 300));
+  await mp.waitForTimeout(150);
+  await mp.evaluate(() => window.scrollBy(0, 500));
+  await mp.waitForTimeout(700);
+  await mp.screenshot({ path: `${OUT}screenshots/21-mobile-bar-min.png` });
+  await mp.evaluate(() => window.scrollTo(0, 0));
+  await mp.waitForTimeout(500);
+  // Adjust sheet (feedback chips + Tell the DJ) from the bar's •••
+  await mp.getByRole("button", { name: "Set actions" }).click();
+  await mp.getByRole("menuitem", { name: "Tell the DJ…" }).click();
+  await mp.waitForTimeout(800);
+  await mp.screenshot({ path: `${OUT}screenshots/22-mobile-adjust.png` });
+  await mp.keyboard.press("Escape");
+  await mp.waitForTimeout(400);
+  await mp.getByTestId("bar-export").click();
   await mp.waitForTimeout(800);
   await mp.screenshot({ path: `${OUT}screenshots/11-mobile-export.png` });
   await mp.keyboard.press("Escape");
@@ -154,6 +184,10 @@ async function main() {
   await mp.goto(`${BASE}/settings`, { waitUntil: "networkidle" });
   await mp.waitForTimeout(600);
   await mp.screenshot({ path: `${OUT}screenshots/19-mobile-settings.png` });
+  await mp.locator("#connector-spotify").click();
+  await mp.waitForTimeout(800);
+  await mp.screenshot({ path: `${OUT}screenshots/20-mobile-connectors.png` });
+  await mp.keyboard.press("Escape");
   await m.close();
   await browser.close();
   // Convert video

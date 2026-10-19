@@ -5,6 +5,7 @@ import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from "rea
 import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
 import { DUR, EASE, SPRING } from "@/lib/motion";
+import { useSheets } from "@/lib/sheets";
 
 /**
  * Native sheet. Phone: bottom sheet with a grabber, medium/large detents, drag to dismiss, thick material.
@@ -49,6 +50,14 @@ export function Sheet({
   const [settling, setSettling] = useState(false);
   const [detent, setDetent] = useState<"medium" | "large">(detents[0] ?? "large");
   const titleId = useId();
+
+  // the open count lets the phone primary bar hide under any sheet (round5-design.md §1)
+  useEffect(() => {
+    if (!open) return;
+    const { _inc, _dec } = useSheets.getState();
+    _inc();
+    return _dec;
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -225,6 +234,11 @@ export function Sheet({
               }}
             >
               {children}
+              {/* a cut row at the medium detent reads as scrollable (round4-ux.md P2-7) */}
+              <div
+                className="pointer-events-none sticky bottom-0 -mb-4 h-6 bg-gradient-to-t from-[var(--material-thick)] to-transparent"
+                aria-hidden
+              />
             </div>
             {footer && (
               <div className="shrink-0 border-t border-[var(--separator)] px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">

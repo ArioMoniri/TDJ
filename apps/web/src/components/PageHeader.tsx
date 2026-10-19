@@ -16,9 +16,11 @@ interface ToolbarState {
   title: string;
   collapsed: boolean;
   trailing: ReactNode;
+  /** the page's filled primary action (Compose): the tablet pill shows it once the large title scrolled out */
+  primary: ReactNode;
   barChild: ReactNode;
 }
-const EMPTY: ToolbarState = { title: "", collapsed: false, trailing: null, barChild: null };
+const EMPTY: ToolbarState = { title: "", collapsed: false, trailing: null, primary: null, barChild: null };
 const StateCtx = createContext<ToolbarState>(EMPTY);
 const SetCtx = createContext<((s: Partial<ToolbarState>) => void) | null>(null);
 
@@ -92,6 +94,7 @@ export function PageHeader({
       title,
       collapsed,
       trailing: collapsed ? trailing : null,
+      primary: collapsed ? (primary ?? null) : null,
       barChild: collapsed && inBar ? inBar : null,
     });
   });
@@ -118,20 +121,37 @@ export function PageHeader({
           </div>
         </div>
       )}
-      <header className={`pt-[max(0.75rem,env(safe-area-inset-top))] sm:pt-2 ${className}`}>
-        <div className="flex items-end justify-between gap-3 lg:min-h-[52px] lg:items-center">
-          <h1 className="text-large-title lg:text-title1 min-w-0 truncate" data-testid="page-title" id={id}>
-            {title}
-          </h1>
-          <div className="flex shrink-0 items-center gap-1 pb-0.5 lg:pb-0">
-            {trailing}
-            {primary && <span className="ml-1 hidden sm:inline-flex">{primary}</span>}
-          </div>
+      {/* lg (macOS): the title row is the page's sticky toolbar (a sibling of the page content, so it can stick
+          the whole way down): the primary action stays at every scroll position. Its scrolled state is a 94 %
+          grouped-background band, not blur: the sidebar already blurs on lg and the wallpaper is static
+          (performance-budget.md caps backdrop-filter at the control layer that must lens). */}
+      <header
+        className={`flex items-end justify-between gap-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:pt-2 lg:sticky lg:top-0 lg:z-30 lg:-mx-4 lg:min-h-[52px] lg:items-center lg:px-4 lg:py-1 ${
+          collapsed
+            ? "lg:rounded-b-[var(--radius-s)] lg:bg-[rgb(var(--bg-grouped)/0.94)] lg:shadow-[0_1px_0_var(--separator)]"
+            : ""
+        } ${className}`}
+        data-testid="page-toolbar"
+        data-collapsed={collapsed || undefined}
+      >
+        <h1 className="text-large-title lg:text-title1 min-w-0 truncate" data-testid="page-title" id={id}>
+          {title}
+        </h1>
+        <div className="flex shrink-0 items-center gap-1 pb-0.5 lg:pb-0">
+          {trailing}
+          {primary && <span className="ml-1 hidden sm:inline-flex">{primary}</span>}
         </div>
-        <div ref={sentinel} className="h-px" aria-hidden />
-        {subtitle && <p className="text-subhead mt-1 text-[var(--label-2)]">{subtitle}</p>}
-        {children}
       </header>
+      <div ref={sentinel} className="h-px" aria-hidden />
+      {subtitle && <p className="text-subhead mt-1 text-[var(--label-2)]">{subtitle}</p>}
+      {/* `.bar-dup` children (a search field, a segmented control) go invisible while the collapsed bar shows its copy.
+          Pages must not read `useToolbar()` for this: a page that re-renders on the toolbar state hands the header a
+          fresh `trailing` node on every render, and the header writes it back, which loops. */}
+      {children && (
+        <div data-collapsed={collapsed || undefined} className="contents">
+          {children}
+        </div>
+      )}
     </>
   );
 }

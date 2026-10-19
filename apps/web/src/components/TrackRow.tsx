@@ -156,13 +156,15 @@ export const TrackRow = memo(function TrackRow({
               </>
             )}
           </button>
+          {/* the title truncates in its own block and the year never shrinks: an inline year inside a truncated
+              span could still overflow the viewport by a pixel on phones (round4 mobile-overflow flake) */}
           <span
             key={`${title}-${nudge}`}
-            className={`min-w-0 flex-1 truncate ${nudge && !reduced ? "nudge-x" : ""}`}
+            className={`flex min-w-0 flex-1 items-baseline gap-1 ${nudge && !reduced ? "nudge-x" : ""}`}
             style={{ opacity: inFlight ? 0.6 : 1, transition: "opacity var(--dur-xs) var(--ease-settle)" }}
           >
-            {title}{" "}
-            <span className="text-[var(--label-2)]">
+            <span className="min-w-0 truncate">{title}</span>
+            <span className="shrink-0 text-[var(--label-2)]">
               {approx ? "c. " : ""}
               {year ?? "?"}
             </span>
@@ -232,7 +234,13 @@ export const TrackRow = memo(function TrackRow({
         </div>
       </SwipeRow>
       {audio && detailsMounted && (
-        <AudioDetails song={eff} audio={audio} open={details} onClose={() => setDetails(false)} />
+        <AudioDetails
+          song={eff}
+          audio={audio}
+          open={details}
+          onClose={() => setDetails(false)}
+          onSwap={disabled || inFlight ? undefined : swap}
+        />
       )}
       {findMounted && <ResolveSheet song={find ? song : null} open={find} onClose={() => setFind(false)} />}
     </motion.li>

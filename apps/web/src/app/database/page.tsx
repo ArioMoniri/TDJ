@@ -2,6 +2,7 @@
 import { Download, RotateCcw, Upload } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
+import { CountUp } from "@/components/CountUp";
 import { ContextTab } from "@/components/db/ContextTab";
 import { CortinasTab } from "@/components/db/CortinasTab";
 import { MemoryTab } from "@/components/db/MemoryTab";
@@ -118,7 +119,7 @@ export default function DatabasePage() {
           <>
             Index built {built} · {meta ? meta.meta.songs.toLocaleString() : "…"} songs ·{" "}
             <span data-testid="db-changes">
-              {overridesReady ? changes : "…"} {changes === 1 ? "change" : "changes"}
+              {overridesReady ? <CountUp value={changes} /> : "…"} {changes === 1 ? "change" : "changes"}
             </span>
           </>
         }
@@ -155,7 +156,8 @@ export default function DatabasePage() {
         }
         inBar={segmented("w-full")}
       >
-        <div className="mt-3">{segmented("w-full sm:w-auto")}</div>
+        {/* the collapsed bar carries its own copy: the in-page one goes invisible meanwhile (round4-ux.md P2-8) */}
+        <div className="bar-dup mt-3">{segmented("w-full sm:w-auto")}</div>
       </PageHeader>
       <input
         ref={file}

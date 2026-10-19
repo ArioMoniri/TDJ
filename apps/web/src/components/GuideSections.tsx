@@ -4,6 +4,7 @@ import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import { HOUSE_RULES_MAX } from "@/lib/types";
 import { ActionRow, Group } from "./Form";
+import { PageHeader } from "./PageHeader";
 import { Sheet } from "./Sheet";
 
 export interface GuideSection {
@@ -139,26 +140,40 @@ export function GuideSections({
   );
 }
 
-/** Guide page client shell: the Edit / Done bar button and the editable groups; the context factors stay server-rendered below. */
-export function GuideBody({ rows, takes }: { rows: GuideSection[]; takes: GuideSection[] }) {
+/** Guide page client shell: the large title with its Edit / Done bar button, the editable groups; the context factors stay server-rendered below. */
+export function GuideBody({
+  title,
+  subtitle,
+  rows,
+  takes,
+}: {
+  title: string;
+  subtitle: string;
+  rows: GuideSection[];
+  takes: GuideSection[];
+}) {
   const [editing, setEditing] = useState(false);
   const changes = useStore(
     (s) => Object.values(s.overrides.guide ?? {}).filter((v) => typeof v === "string" && v.trim()).length,
   );
   return (
     <>
-      <div className="-mt-10 mb-6 flex justify-end lg:-mt-12">
-        <button
-          type="button"
-          className={`btn-plain ${editing ? "font-semibold" : ""}`}
-          aria-pressed={editing}
-          onClick={() => setEditing((v) => !v)}
-          data-testid="guide-edit-toggle"
-        >
-          {editing ? "Done" : changes ? `Edit (${changes})` : "Edit"}
-        </button>
-      </div>
-      <GuideSections sections={rows} editing={editing} className="mt-2" />
+      <PageHeader
+        title={title}
+        subtitle={subtitle}
+        trailing={
+          <button
+            type="button"
+            className={`btn-plain ${editing ? "font-semibold" : ""}`}
+            aria-pressed={editing}
+            onClick={() => setEditing((v) => !v)}
+            data-testid="guide-edit-toggle"
+          >
+            {editing ? "Done" : changes ? `Edit (${changes})` : "Edit"}
+          </button>
+        }
+      />
+      <GuideSections sections={rows} editing={editing} className="mt-6" />
       <h2 className="text-title3 mt-8 px-4">What a great set takes into account</h2>
       <p className="text-subhead mt-1 px-4 text-[var(--label-2)]">
         Five layers, from the notes inside a tanda to the booth.

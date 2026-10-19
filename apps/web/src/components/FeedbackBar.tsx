@@ -15,6 +15,7 @@ export function FeedbackBar({
   pending = null,
   lockedCount = 0,
   changeSummary = null,
+  bare = false,
 }: {
   onFeedback: (f: Feedback) => void;
   onRefine: (text: string) => void;
@@ -25,6 +26,8 @@ export function FeedbackBar({
   lockedCount?: number;
   /** "3 tandas replaced (7, 9, 14) · score 79 → 75" after the last chip or refine */
   changeSummary?: string | null;
+  /** inside the phone "Adjust" sheet: the sheet title replaces the group header */
+  bare?: boolean;
 }) {
   const [text, setText] = useState("");
   const submit = (e: React.FormEvent) => {
@@ -35,7 +38,7 @@ export function FeedbackBar({
   };
   return (
     <Group
-      header="Adjust"
+      header={bare ? undefined : "Adjust"}
       footer={
         <span aria-live="polite" className="block min-h-[1.125rem]">
           {note ??
