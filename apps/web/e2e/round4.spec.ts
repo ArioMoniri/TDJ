@@ -38,13 +38,19 @@ const WAV = syntheticWav();
 
 /** Every Deezer preview URL (real ones from the committed cache, and the mocked candidate) serves the synthetic WAV. */
 async function mockPreviews(page: Page) {
-  await page.route(/dzcdn\.net|preview\.test/, (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: "audio/wav",
-      body: WAV,
-      headers: { "access-control-allow-origin": "*" },
-    }),
+  await page.route(/dzcdn\.net|preview\.test|\/api\/preview\?/, (route) =>
+    route.request().url().includes("json=1")
+      ? route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ url: "https://preview.test/clip.wav" }),
+        })
+      : route.fulfill({
+          status: 200,
+          contentType: "audio/wav",
+          body: WAV,
+          headers: { "access-control-allow-origin": "*" },
+        }),
   );
 }
 const RESOLVE_MOCK = {

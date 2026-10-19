@@ -1,5 +1,6 @@
 "use client";
 import { effectiveSong } from "./audio";
+import { previewEndpoint } from "./player";
 import { useStore } from "./store";
 import { toast } from "./toast";
 import type { AudioFeatures, Song } from "./types";
@@ -28,7 +29,16 @@ function getWorker(): Worker {
 
 /** Decode on the main thread (workers have no AudioContext), downmix to mono, analyse in the worker. */
 export async function analyzePreview(previewUrl: string, rhythm?: string): Promise<AudioFeatures> {
-  const r = await fetch(previewUrl, { mode: "cors" });
+  // our /api/preview?json=1 answers { url } with the provider's current signed link; anything else is fetched as is
+  let src = previewUrl;
+  if (previewUrl.startsWith("/api/preview")) {
+    const j = await fetch(previewUrl)
+      .then((x) => (x.ok ? x.json() : null))
+      .catch(() => null);
+    if (!j?.url) throw new Error("no preview available right now");
+    src = j.url as string;
+  }
+  const r = await fetch(src, { mode: "cors" });
   if (!r.ok) throw new Error(`Preview request failed (${r.status})`);
   const buf = await r.arrayBuffer();
   const Ctx =
@@ -81,7 +91,7 @@ export const isAnalysing = (id: string) => inFlight.has(id);
 export async function analyseSong(song: Song, rhythm?: string, quiet = false): Promise<AudioFeatures | null> {
   const st = useStore.getState();
   const eff = effectiveSong(song, st.overrides);
-  const url = eff.resolved?.previewUrl;
+  const url = eff.resolved?.previewUrl ? `${previewEndpoint(eff.resolved)}&json=1` : null;
   if (!url) {
     if (!quiet) toast(`No preview for ${song.title}: use "Find on services" first.`);
     return null;
