@@ -247,7 +247,7 @@ export function toSeratoCSV(p: Playlist, eo: ExportOpts = {}): string {
       t.artist,
       t.album ?? "",
       t.year ?? "",
-      t.kind === "cortina" ? "Cortina" : `Tango ${t.rhythm}`,
+      t.kind === "cortina" ? "Cortina" : t.rhythm.charAt(0).toUpperCase() + t.rhythm.slice(1),
       `Tanda ${t.tanda}`,
     ]
       .map(csvq)
