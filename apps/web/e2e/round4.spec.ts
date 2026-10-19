@@ -253,7 +253,7 @@ test("guide: a section edit and the house rules persist after reload and travel 
   page,
 }) => {
   await page.goto("/guide");
-  await page.getByTestId("guide-edit-toggle").click();
+  await page.getByTestId("guide-edit-toggle").filter({ visible: true }).click();
   await page.getByRole("button", { name: "Edit Tanda" }).click();
   const box = page.locator("#guide-text");
   await box.fill("In my salón a tanda is four tangos, always.");
@@ -268,9 +268,9 @@ test("guide: a section edit and the house rules persist after reload and travel 
     timeout: 15000,
   });
   await expect(page.getByTestId("guide-houseRules")).toContainText("Never two Canaro");
-  await expect(page.getByTestId("guide-edit-toggle")).toHaveText("Edit (2)");
+  await expect(page.getByTestId("guide-edit-toggle").filter({ visible: true })).toHaveText("Edit (2)");
   // reset restores the built-in text
-  await page.getByTestId("guide-edit-toggle").click();
+  await page.getByTestId("guide-edit-toggle").filter({ visible: true }).click();
   await page.getByRole("button", { name: "Edit Tanda" }).click();
   await page.getByRole("button", { name: "Reset section" }).click();
   await expect(page.getByTestId("guide-tanda")).toContainText("3–4 recordings of one orchestra");

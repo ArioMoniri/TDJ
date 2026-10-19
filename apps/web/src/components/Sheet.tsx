@@ -2,6 +2,7 @@
 import { X } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
 import { DUR, EASE, SPRING } from "@/lib/motion";
@@ -50,6 +51,11 @@ export function Sheet({
   const [settling, setSettling] = useState(false);
   const [detent, setDetent] = useState<"medium" | "large">(detents[0] ?? "large");
   const titleId = useId();
+  // Portaled to <body>: a sheet opened from inside a tanda card (the ••• sheet, Find on services, Audio details)
+  // was `fixed` relative to the card, because `container-type` (the card's energy-bar query) makes the card the
+  // containing block for fixed descendants: the scrim and the sheet were confined to, and clipped by, the card.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   // the open count lets the phone primary bar hide under any sheet (round5-design.md §1)
   useEffect(() => {
@@ -94,12 +100,16 @@ export function Sheet({
       }
     };
     document.addEventListener("keydown", onKey, true);
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    // Scroll lock on the root, not `body`: `html` has `overflow-x: clip`, so `body`'s overflow never reaches the
+    // viewport. `overflow: hidden` on a viewport-high `body` clipped the page to one screen instead, and the
+    // document snapped to the top under every sheet (round7-corners.md); the root keeps its scroll offset.
+    const root = document.documentElement;
+    const overflow = root.style.overflow;
+    root.style.overflow = "hidden";
     return () => {
       clearTimeout(t);
       document.removeEventListener("keydown", onKey, true);
-      document.body.style.overflow = overflow;
+      root.style.overflow = overflow;
       prev?.focus?.({ preventScroll: true });
     };
   }, [open, detents]);
@@ -138,7 +148,7 @@ export function Sheet({
       trailing
     );
 
-  return (
+  const tree = (
     <AnimatePresence>
       {open && (
         <div key="sheet" className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6">
@@ -160,7 +170,7 @@ export function Sheet({
             aria-describedby={describedBy}
             data-testid={testId}
             data-detent={isPhone ? detent : undefined}
-            className={`material-thick rounded-continuous relative flex w-full flex-col rounded-t-[var(--radius-l)] pb-[env(safe-area-inset-bottom)] sm:rounded-[var(--radius-l)] sm:shadow-[0_24px_80px_rgb(0_0_0/.3)] ${
+            className={`sheet-material rounded-continuous relative flex w-full flex-col rounded-t-[var(--radius-l)] pb-[env(safe-area-inset-bottom)] sm:rounded-[var(--radius-l)] sm:shadow-[0_24px_80px_rgb(0_0_0/.3)] ${
               settling ? "glass-settling" : ""
             } ${isPhone ? (detent === "medium" ? "max-h-[62dvh]" : "max-h-[92dvh]") : "max-h-[80vh]"}`}
             style={{
@@ -250,4 +260,5 @@ export function Sheet({
       )}
     </AnimatePresence>
   );
+  return mounted ? createPortal(tree, document.body) : null;
 }
