@@ -1,7 +1,7 @@
 "use client";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { clearOverrides, loadOverrides, saveOverrides, type StorageMode } from "./overrides";
+import { clearOverrides, loadOverrides, type StorageMode, saveOverrides } from "./overrides";
 import type { AppOverrides, ComposeOptions, Playlist } from "./types";
 import { AI_DEFAULT_MODEL, DEFAULT_SETTINGS, type UserSettings } from "./types";
 
@@ -91,7 +91,8 @@ export const useStore = create<State>()(
         if (version < 2 && p.settings) {
           const old = p.settings;
           const key = typeof old.anthropicApiKey === "string" ? old.anthropicApiKey : "";
-          const model = typeof old.anthropicModel === "string" ? old.anthropicModel : AI_DEFAULT_MODEL.anthropic;
+          const model =
+            typeof old.anthropicModel === "string" ? old.anthropicModel : AI_DEFAULT_MODEL.anthropic;
           p.settings = { ...old, ai: { provider: "anthropic", key, model } };
           delete p.settings.anthropicApiKey;
           delete p.settings.anthropicModel;

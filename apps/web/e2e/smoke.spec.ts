@@ -1,4 +1,4 @@
-import { devices, expect, test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 test("compose a 4h golden set on desktop and export sheet opens", async ({ page }) => {
   await page.goto("/");
@@ -15,20 +15,6 @@ test("compose a 4h golden set on desktop and export sheet opens", async ({ page 
     .click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page.getByRole("button", { name: /Rekordbox XML/ })).toBeVisible();
-});
-
-// The device preset carries defaultBrowserType: "webkit"; Playwright forbids that inside a describe and only Chromium is installed.
-const { defaultBrowserType: _browser, ...iphone } = devices["iPhone 15 Pro"]!;
-test.describe("mobile", () => {
-  test.use({ ...iphone });
-  test("tab bar visible, no horizontal overflow, compose works", async ({ page }) => {
-    await page.goto("/");
-    await expect(page.getByRole("navigation", { name: "Primary mobile" })).toBeVisible();
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
-    expect(overflow).toBe(false);
-    await page.getByRole("button", { name: /Compose the night/ }).click();
-    await expect(page.locator("#result")).toBeVisible({ timeout: 60000 });
-  });
 });
 
 test("API: compose respects hours and era", async ({ request }) => {

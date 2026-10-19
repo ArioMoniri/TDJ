@@ -6,7 +6,11 @@ export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
   if (!dbEnabled())
     return NextResponse.json(
-      { storage: "browser", overrides: {}, hint: "Your database lives in this browser: use Export JSON on the Database page." },
+      {
+        storage: "browser",
+        overrides: {},
+        hint: "Your database lives in this browser: use Export JSON on the Database page.",
+      },
       { status: 404 },
     );
   try {

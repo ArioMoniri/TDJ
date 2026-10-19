@@ -13,7 +13,8 @@ export function countChanges(o: AppOverrides | null | undefined): number {
   for (const p of Object.values(o.profiles ?? {})) n += Object.keys(p).length;
   n += Object.keys(o.cortinas ?? {}).length;
   const { trackEnergy, notBefore, ...rules } = o.rules ?? {};
-  n += Object.keys(rules).length + Object.keys(trackEnergy ?? {}).length + Object.keys(notBefore ?? {}).length;
+  n +=
+    Object.keys(rules).length + Object.keys(trackEnergy ?? {}).length + Object.keys(notBefore ?? {}).length;
   n += o.addedSongs?.length ?? 0;
   for (const f of Object.values(o.contextFactors ?? {}))
     for (const op of Object.values(f)) n += Object.keys(op).length;
@@ -84,7 +85,8 @@ export async function clearOverrides(mode: StorageMode) {
 /** Accept a previously exported JSON file (either the overrides object or { overrides }). */
 export function parseImport(text: string): AppOverrides {
   const j = JSON.parse(text);
-  const o = j && typeof j === "object" && "overrides" in j && typeof j.overrides === "object" ? j.overrides : j;
+  const o =
+    j && typeof j === "object" && "overrides" in j && typeof j.overrides === "object" ? j.overrides : j;
   if (!o || typeof o !== "object" || Array.isArray(o)) throw new Error("Not a TDJ database file");
   const out: AppOverrides = {};
   for (const k of ["songs", "profiles", "cortinas", "rules", "contextFactors"] as const)

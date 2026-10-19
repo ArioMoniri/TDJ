@@ -472,7 +472,11 @@ export function Composer() {
             )}
             {dbChanges && <span className="text-muted text-xs">Using your database edits</span>}
           </div>
-          <div role="status" aria-live="polite" className={error ? "mt-2 text-sm text-[var(--accent)]" : "sr-only"}>
+          <div
+            role="status"
+            aria-live="polite"
+            className={error ? "mt-2 text-sm text-[var(--accent)]" : "sr-only"}
+          >
             {error
               ? error
               : busy
@@ -592,7 +596,9 @@ export function Composer() {
                   <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-sm font-medium [&::-webkit-details-marker]:hidden">
                     <ChevronDown size={16} className="transition-transform group-open:rotate-180" />
                     Mood check
-                    <span className="text-muted text-xs font-normal">compare with Aren León's reference tandas</span>
+                    <span className="text-muted text-xs font-normal">
+                      compare with Aren León's reference tandas
+                    </span>
                   </summary>
                   <div className="mt-3">
                     <MoodCheck playlists={playlists} />

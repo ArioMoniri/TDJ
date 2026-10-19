@@ -6,8 +6,9 @@ import { Catalog, type ContextModel, type UserOverrides } from "@tdj/core";
 import { findRoot, loadCatalog } from "@tdj/core/load";
 import type { AppOverrides, ReferencePlaylist } from "@/lib/types";
 
-let cached: (ReturnType<typeof loadCatalog> & { root: string; referencePlaylists: ReferencePlaylist[] }) | null =
-  null;
+let cached:
+  | (ReturnType<typeof loadCatalog> & { root: string; referencePlaylists: ReferencePlaylist[] })
+  | null = null;
 
 export function getCatalog() {
   if (!cached) {

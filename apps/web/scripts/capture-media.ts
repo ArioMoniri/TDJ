@@ -28,7 +28,12 @@ async function main() {
   await page.getByRole("button", { name: "Golden Age 35–55" }).click();
   await page.locator("#hours").fill("4");
   await page.getByRole("button", { name: "turkish" }).click();
+  await page.getByLabel("Season (hemisphere-corrected)").selectOption("winter");
+  await page.getByLabel("Event type").selectOption("marathon");
+  await page.getByLabel("Mood request").selectOption("romantic");
+  await page.locator("fieldset.chip-row").scrollIntoViewIfNeeded();
   await page.waitForTimeout(500);
+  await page.screenshot({ path: `${OUT}screenshots/14-tonight-context.png` });
   await page.getByRole("button", { name: /Compose the night/ }).click();
   await page.waitForSelector("#result", { timeout: 60000 });
   await page.waitForTimeout(1800);
@@ -36,6 +41,16 @@ async function main() {
   await page.locator("#tanda-9").scrollIntoViewIfNeeded();
   await page.waitForTimeout(600);
   await page.screenshot({ path: `${OUT}screenshots/03-tandas.png` });
+  // Listen: pick a tanda whose orchestra has a reference playlist
+  const refCard = page
+    .locator("article[id^=tanda-]")
+    .filter({ has: page.locator("h3", { hasText: /D'Arienzo|Di Sarli|Troilo|Pugliese|Canaro|Fresedo/ }) })
+    .first();
+  await refCard.getByRole("button", { name: "Listen" }).click();
+  await refCard.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(3000);
+  await page.screenshot({ path: `${OUT}screenshots/13-listen.png` });
+  await refCard.getByRole("button", { name: "Hide player" }).click();
   await page.getByRole("button", { name: "Swap tanda" }).nth(2).click();
   await page.waitForTimeout(1500);
   await page
@@ -60,6 +75,16 @@ async function main() {
   await page.goto(`${BASE}/settings`, { waitUntil: "networkidle" });
   await page.waitForTimeout(600);
   await page.screenshot({ path: `${OUT}screenshots/06-settings.png` });
+  await page.getByRole("radio", { name: "OpenAI" }).click();
+  await page.locator("#ai-key").fill("sk-demo-key-not-real");
+  await page.locator("#folder-rekordbox").fill("/Users/dj/Music/Tango");
+  await page.locator("#review-h").scrollIntoViewIfNeeded();
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: `${OUT}screenshots/15-settings-ai.png` });
+  await page.goto(`${BASE}/database`, { waitUntil: "networkidle" });
+  await page.getByLabel("Search the index").fill("di sarli rufino");
+  await page.waitForTimeout(900);
+  await page.screenshot({ path: `${OUT}screenshots/12-database.png` });
   await page.goto(BASE, { waitUntil: "networkidle" });
   await page.waitForTimeout(800);
   await ctx.close();
@@ -97,6 +122,13 @@ async function main() {
     .click();
   await mp.waitForTimeout(800);
   await mp.screenshot({ path: `${OUT}screenshots/11-mobile-export.png` });
+  await mp.keyboard.press("Escape");
+  await mp.goto(`${BASE}/database`, { waitUntil: "networkidle" });
+  await mp.getByLabel("Search the index").fill("troilo fiorentino");
+  await mp.waitForTimeout(900);
+  await mp.locator("tr[data-song]").nth(1).scrollIntoViewIfNeeded();
+  await mp.waitForTimeout(300);
+  await mp.screenshot({ path: `${OUT}screenshots/16-mobile-database.png` });
   await m.close();
   await browser.close();
   // Convert video

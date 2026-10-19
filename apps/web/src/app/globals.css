@@ -465,6 +465,11 @@ input[type="range"] {
   white-space: nowrap;
   flex: none;
 }
+.ctx-chip.chip-on {
+  background: rgb(var(--text) / 0.9);
+  color: rgb(var(--surface));
+  border-color: transparent;
+}
 .ctx-chip select {
   appearance: none;
   -webkit-appearance: none;
@@ -580,4 +585,7 @@ input[type="range"] {
   .db-table td.db-title::before {
     display: none;
   }
+}
+fieldset.chip-row {
+  min-inline-size: 0;
 }

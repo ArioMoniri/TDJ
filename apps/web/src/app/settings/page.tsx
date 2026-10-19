@@ -69,7 +69,9 @@ export default function Settings() {
   const [showKey, setShowKey] = useState(false);
   const [copied, setCopied] = useState(false);
   const [redirect, setRedirect] = useState("/callback");
-  const [test, setTest] = useState<{ state: "idle" | "busy" | "ok" | "fail"; text?: string }>({ state: "idle" });
+  const [test, setTest] = useState<{ state: "idle" | "busy" | "ok" | "fail"; text?: string }>({
+    state: "idle",
+  });
   useEffect(() => setRedirect(`${location.origin}/callback`), []);
   const copyRedirect = async () => {
     try {
@@ -102,7 +104,8 @@ export default function Settings() {
         body: JSON.stringify({ test: true }),
       });
       const j = await r.json();
-      if (r.ok) setTest({ state: "ok", text: `Connected. ${ai.model || "Default model"} answered "${j.text}".` });
+      if (r.ok)
+        setTest({ state: "ok", text: `Connected. ${ai.model || "Default model"} answered "${j.text}".` });
       else setTest({ state: "fail", text: j.error ?? `Failed (${r.status}).` });
     } catch {
       setTest({ state: "fail", text: "Could not reach the server." });
@@ -180,8 +183,8 @@ export default function Settings() {
           <Badge ok={!!ai.key}>{ai.key ? "Key saved" : "No key"}</Badge>
         </div>
         <p className="text-muted text-sm">
-          A model key lets you ask for a written review of a set and turns “Tell the DJ” requests into
-          precise changes. Without one, free-text requests still work by keyword.
+          A model key lets you ask for a written review of a set and turns “Tell the DJ” requests into precise
+          changes. Without one, free-text requests still work by keyword.
         </p>
         <Field label="Provider">
           <Segmented label="Provider" value={ai.provider} onChange={switchProvider} items={AI_PROVIDERS} />
@@ -246,7 +249,8 @@ export default function Settings() {
             onClick={testConnection}
             disabled={!ai.key || test.state === "busy"}
           >
-            {test.state === "busy" ? <LoaderCircle size={15} className="animate-spin" /> : null} Test connection
+            {test.state === "busy" ? <LoaderCircle size={15} className="animate-spin" /> : null} Test
+            connection
           </button>
           <span
             role="status"
@@ -269,7 +273,11 @@ export default function Settings() {
           Tell TDJ where each app keeps your tango files so exports point at real paths instead of a TDJ/
           placeholder. Files are expected as “{settings.fileNaming || DEFAULT_NAMING}.mp3”.
         </p>
-        <Field label="File naming" htmlFor="file-naming" hint="{artist} {title} {orchestra} {singer} {year} {tanda} {n}">
+        <Field
+          label="File naming"
+          htmlFor="file-naming"
+          hint="{artist} {title} {orchestra} {singer} {year} {tanda} {n}"
+        >
           <input
             id="file-naming"
             value={settings.fileNaming}

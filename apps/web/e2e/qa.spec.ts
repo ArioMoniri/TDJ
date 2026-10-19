@@ -208,7 +208,7 @@ test("API: compose edge cases keep the DJ invariants and bad input never produce
   for (const [name, body] of [
     ["1h", { hours: 1, seed: 1 }],
     ["10h", { hours: 10, seed: 3 }],
-    ["clamped 12h", { hours: 12, seed: 4 }],
+    ["clamped 14h", { hours: 14, seed: 4 }],
     ["post-golden", { hours: 3, seed: 11, eras: ["post-golden"] }],
     ["nuevo", { hours: 3, seed: 11, eras: ["nuevo"] }],
     ["custom garbage pattern", { hours: 3, seed: 21, pattern: "custom", customPattern: "ttv x!!m" }],
@@ -222,7 +222,7 @@ test("API: compose edge cases keep the DJ invariants and bad input never produce
     expect(r.ok(), name).toBe(true);
     expect(ms, `${name} took ${ms} ms`).toBeLessThan(2000);
     const p = await r.json();
-    const hours = Math.min(10, Math.max(1, (body as { hours: number }).hours));
+    const hours = Math.min(12, Math.max(0.5, (body as { hours: number }).hours));
     expect(Math.abs(p.stats.durationSec - hours * 3600) / 60, `${name} duration`).toBeLessThanOrEqual(8);
     const eras = ("eras" in body ? body.eras : ["golden"]) as string[];
     const titles = new Set<string>();
