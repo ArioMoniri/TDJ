@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { analyzePcm } from "../src/audio/dsp";
 import { camelotDistance, compatibility, cortinaFit, keyRelation, tandaCohesion } from "../src/audio/compat";
+import { analyzePcm } from "../src/audio/dsp";
 
 const f = (bpm: number, camelot = "8A", loud = -12, bright = 1800, energy = 60) => ({
   bpm,

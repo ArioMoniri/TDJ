@@ -4,8 +4,8 @@
  *   pnpm --filter @tdj/core exec tsx ../../scripts/resolve_catalog.ts --limit=800 --scope=corpus|golden|all --mb=0|1
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { normTitle } from "../packages/core/src/energy";
 import type { ResolvedTrack } from "../packages/core/src/audio/index";
+import { normTitle } from "../packages/core/src/energy";
 import type { Song } from "../packages/core/src/types";
 
 const args = Object.fromEntries(

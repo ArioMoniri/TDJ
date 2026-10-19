@@ -1,5 +1,5 @@
-export * from "./dsp";
 export * from "./compat";
+export * from "./dsp";
 export interface ResolvedTrack {
   provider: "deezer" | "spotify" | "itunes" | "musicbrainz";
   id: string;

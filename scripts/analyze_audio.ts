@@ -4,10 +4,10 @@
  *   pnpm --filter @tdj/core exec tsx ../../scripts/analyze_audio.ts --limit=1000
  */
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { analyzePcm, type AudioFeatures } from "../packages/core/src/audio/dsp";
+import { type AudioFeatures, analyzePcm } from "../packages/core/src/audio/dsp";
 import type { ResolvedTrack } from "../packages/core/src/audio/index";
 import type { Song } from "../packages/core/src/types";
 
