@@ -1,4 +1,4 @@
-import { applyFeedback, type ComposeOptions, type Feedback, toSetList } from "@tdj/core";
+import { applyFeedback, type ComposeOptions, DJ_RULES, type Feedback, toSetList } from "@tdj/core";
 import { NextResponse } from "next/server";
 import { FEEDBACK_VALUES, feedbackFromText } from "@/lib/feedback";
 import { getCatalog } from "@/lib/server/catalog";
@@ -98,10 +98,13 @@ function sanitizeOptions(raw: unknown, orchestraIds: Set<string>): Partial<Compo
     const n = Number(v);
     if (!Number.isFinite(n)) continue;
     if (k === "hours") out.hours = Math.min(12, Math.max(0.5, n));
-    else if (k === "tangoTandaSize") [3, 4, 5].includes(n) && (out[k] = n);
-    else if (k === "valsTandaSize" || k === "milongaTandaSize") [3, 4].includes(n) && (out[k] = n);
-    else if (k === "cortinaLengthSec") out[k] = Math.min(90, Math.max(20, Math.round(n)));
-    else if (k === "orchestraRepeatGap" || k === "singerRepeatGap") out[k] = Math.min(12, Math.max(1, Math.round(n)));
+    else if (k === "tangoTandaSize") {
+      if ([3, 4, 5].includes(n)) out[k] = n;
+    } else if (k === "valsTandaSize" || k === "milongaTandaSize") {
+      if ([3, 4].includes(n)) out[k] = n;
+    } else if (k === "cortinaLengthSec") out[k] = Math.min(90, Math.max(20, Math.round(n)));
+    else if (k === "orchestraRepeatGap" || k === "singerRepeatGap")
+      out[k] = Math.min(12, Math.max(1, Math.round(n)));
     else if (k === "maxYearSpread") out[k] = Math.min(12, Math.max(1, Math.round(n)));
   }
   return out;
@@ -112,7 +115,9 @@ export async function POST(req: Request) {
   const ai = aiFromHeaders(req);
   const body = await req.json().catch(() => null);
   if (!body || typeof body !== "object") return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  const instruction = String(body.instruction ?? "").trim().slice(0, 600);
+  const instruction = String(body.instruction ?? "")
+    .trim()
+    .slice(0, 600);
   if (!instruction) return NextResponse.json({ error: "Tell the DJ what to change." }, { status: 400 });
   const base: Partial<ComposeOptions> = body.options && typeof body.options === "object" ? body.options : {};
   const { catalog } = getCatalog();
@@ -123,10 +128,14 @@ export async function POST(req: Request) {
 
   const keywordFallback = (note: string) => {
     const feedback = feedbackFromText(instruction);
-    const excluded = orchestras.filter((o) => new RegExp(`\\b(no|without|skip|drop|less)\\s+${o.name.split(" ").pop()}`, "i").test(instruction));
+    const excluded = orchestras.filter((o) =>
+      new RegExp(`\\b(no|without|skip|drop|less)\\s+${o.name.split(" ").pop()}`, "i").test(instruction),
+    );
     const options = applyFeedback(base, feedback);
     if (excluded.length)
-      options.excludeOrchestras = [...new Set([...(base.excludeOrchestras ?? []), ...excluded.map((o) => o.id)])];
+      options.excludeOrchestras = [
+        ...new Set([...(base.excludeOrchestras ?? []), ...excluded.map((o) => o.id)]),
+      ];
     return NextResponse.json({
       options,
       feedback,
@@ -138,15 +147,20 @@ export async function POST(req: Request) {
     });
   };
 
-  if (!ai.key) return keywordFallback("Matched by keywords (add a model key in Settings for the full version).");
+  if (!ai.key)
+    return keywordFallback("Matched by keywords (add a model key in Settings for the full version).");
 
   const system = `You turn a tango DJ's free-text request into playlist option changes. Reply with ONLY a JSON object: {"options": {...}, "feedback": [...], "note": "one short sentence in plain DJ language"}.
 Allowed option keys: ${OPTION_KEYS.join(", ")}. Enums: ${Object.entries(ENUMS)
     .map(([k, v]) => `${k}=${v.join("|")}`)
-    .join("; ")}. context keys: ${CONTEXT_KEYS.join(", ")} (mood: romantic|energetic|nostalgic|playful|dramatic|elegant). Numeric ranges: hours 0.5-12, cortinaLengthSec 20-90, orchestraRepeatGap 1-12, maxYearSpread 1-12.
+    .join(
+      "; ",
+    )}. context keys: ${CONTEXT_KEYS.join(", ")} (mood: romantic|energetic|nostalgic|playful|dramatic|elegant). Numeric ranges: hours 0.5-12, cortinaLengthSec 20-90, orchestraRepeatGap 1-12, maxYearSpread 1-12.
 Allowed feedback values: ${FEEDBACK_VALUES.join(", ")}.
 Orchestra ids for includeOrchestras/excludeOrchestras: ${orchestras.map((o) => `${o.id} (${o.name})`).join(", ")}.
-Only set what the request implies; leave everything else out. Prefer feedback values for mood/energy, options for structure and orchestras. No em-dashes.`;
+Only set what the request implies; leave everything else out. Prefer feedback values for mood/energy, options for structure and orchestras. No em-dashes.
+
+${DJ_RULES}`;
   const user = `Current options: ${JSON.stringify(base)}\n\nRequest: ${instruction}${
     body.playlist?.tandas ? `\n\nCurrent set:\n${toSetList(body.playlist).slice(0, 4000)}` : ""
   }`;
@@ -159,7 +173,8 @@ Only set what the request implies; leave everything else out. Prefer feedback va
     ) as Feedback[];
     const patch = sanitizeOptions(j.options, ids);
     const options = { ...applyFeedback(base, feedback), ...patch };
-    if (patch.context) options.context = { ...(applyFeedback(base, feedback).context ?? {}), ...patch.context };
+    if (patch.context)
+      options.context = { ...(applyFeedback(base, feedback).context ?? {}), ...patch.context };
     return NextResponse.json({
       options,
       feedback,
@@ -167,6 +182,8 @@ Only set what the request implies; leave everything else out. Prefer feedback va
       source: "model",
     });
   } catch (e) {
-    return keywordFallback(`${e instanceof Error ? e.message : "Model request failed"}; matched by keywords instead.`);
+    return keywordFallback(
+      `${e instanceof Error ? e.message : "Model request failed"}; matched by keywords instead.`,
+    );
   }
 }

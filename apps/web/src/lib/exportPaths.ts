@@ -7,7 +7,6 @@ const safe = (s: string) =>
     .trim();
 const escXml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-const escRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 export const DEFAULT_NAMING = "{artist} - {title}";
 
@@ -79,7 +78,11 @@ export function applyPaths(
   if (ff) {
     if (format === "rekordbox") out = out.split("file://localhost/TDJ/").join(ff.rekordbox);
     else if (format === "traktor")
-      out = out.split('DIR="/:TDJ/:"').join(`DIR="${ff.traktorDir}"`).split("Macintosh HD/:TDJ/:").join(ff.traktorKey);
+      out = out
+        .split('DIR="/:TDJ/:"')
+        .join(`DIR="${ff.traktorDir}"`)
+        .split("Macintosh HD/:TDJ/:")
+        .join(ff.traktorKey);
     else if (format === "m3u8")
       out = out
         .split("\n")

@@ -104,7 +104,11 @@ export function TandaCard({
           <li key={s.id} className="flex min-h-11 items-center gap-2 text-sm">
             <span className="text-muted w-4 shrink-0 text-right tabular-nums">{k + 1}</span>
             <span className="min-w-0 flex-1 truncate">
-              {s.title} <span className="text-muted">({s.year ?? "?"})</span>
+              {s.title}{" "}
+              <span className="text-muted">
+                ({(s as { yearApprox?: boolean }).yearApprox ? "c. " : ""}
+                {s.year ?? "?"})
+              </span>
             </span>
             <span
               className="relative h-1.5 w-12 shrink-0 overflow-hidden rounded-full bg-[rgb(var(--text)/.12)] sm:w-16"

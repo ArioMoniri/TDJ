@@ -24,7 +24,7 @@ export function FeedbackBar({
     setText("");
   };
   return (
-    <div className="surface p-5 sm:p-6" aria-label="Adjust the set">
+    <section className="surface p-5 sm:p-6" aria-label="Adjust the set">
       <div className="flex items-baseline justify-between gap-3">
         <h3 className="text-sm font-medium">Not quite right?</h3>
         <span className="text-muted text-xs">Locked tandas stay where they are</span>
@@ -57,6 +57,6 @@ export function FeedbackBar({
       <p className="text-muted mt-2 min-h-5 text-xs" aria-live="polite">
         {note ?? ""}
       </p>
-    </div>
+    </section>
   );
 }

@@ -34,8 +34,11 @@ export function userFromRequest(req: Request): { id: string; setCookie?: string 
 interface DocClient {
   send(cmd: unknown): Promise<{ Item?: { overrides?: AppOverrides } }>;
 }
-let client: Promise<{ doc: DocClient; Get: new (i: unknown) => unknown; Put: new (i: unknown) => unknown }> | null =
-  null;
+let client: Promise<{
+  doc: DocClient;
+  Get: new (i: unknown) => unknown;
+  Put: new (i: unknown) => unknown;
+}> | null = null;
 
 /** The AWS SDK is loaded lazily by name so the build works without it installed. */
 async function dynamo() {

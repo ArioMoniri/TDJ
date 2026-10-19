@@ -29,7 +29,11 @@ export function aiFromHeaders(req: Request) {
   const provider = req.headers.get("x-ai-provider");
   return {
     provider: isProvider(provider) ? provider : ("anthropic" as AiProvider),
-    key: req.headers.get("x-ai-key") || req.headers.get("x-anthropic-key") || process.env.ANTHROPIC_API_KEY || "",
+    key:
+      req.headers.get("x-ai-key") ||
+      req.headers.get("x-anthropic-key") ||
+      process.env.ANTHROPIC_API_KEY ||
+      "",
     model: req.headers.get("x-ai-model") || req.headers.get("x-anthropic-model") || "",
   };
 }

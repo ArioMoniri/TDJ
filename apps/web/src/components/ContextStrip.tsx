@@ -41,14 +41,19 @@ export function ContextStrip({
         <span className="text-sm font-medium">Tonight</span>
         <span className="text-muted text-xs">Room, crowd and calendar shape the set</span>
       </div>
-      <div className="chip-row scroll-x mt-2" role="group" aria-label="Tonight">
+      <fieldset className="chip-row scroll-x mt-2">
+        <legend className="sr-only">Tonight</legend>
         {CONTEXT_FIELDS.map((f) => {
           const v = value[f.key] as string | undefined;
           const r = researchOption(model, f.key, v);
           const ev = r?.option?.evidence;
           const on = !!v;
           const label = on ? (f.options.find(([k]) => k === v)?.[1] ?? v) : f.label;
-          const shift = r?.option ? [fmtShift(r.option.energyShift), r.option.evidence ? EVIDENCE_LABEL[r.option.evidence] : ""].filter(Boolean).join(", ") : "";
+          const shift = r?.option
+            ? [fmtShift(r.option.energyShift), r.option.evidence ? EVIDENCE_LABEL[r.option.evidence] : ""]
+                .filter(Boolean)
+                .join(", ")
+            : "";
           return (
             <span key={f.key} className={`ctx-chip ${on ? "chip-on" : ""}`}>
               {on && ev && (
@@ -84,11 +89,16 @@ export function ContextStrip({
           );
         })}
         {chosen > 0 && (
-          <button type="button" className="chip" onClick={() => onChange({})} aria-label="Clear tonight's choices">
+          <button
+            type="button"
+            className="chip"
+            onClick={() => onChange({})}
+            aria-label="Clear tonight's choices"
+          >
             <X size={14} /> Clear
           </button>
         )}
-      </div>
+      </fieldset>
       <p className="text-muted mt-2 min-h-5 text-xs" aria-live="polite">
         {summary ?? "Nothing set: the set follows your era, arc and cortina choices alone."}
       </p>

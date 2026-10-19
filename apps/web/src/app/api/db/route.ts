@@ -5,7 +5,11 @@ export const dynamic = "force-dynamic";
 
 const disabled = () =>
   NextResponse.json(
-    { enabled: false, storage: "browser", hint: "Set TDJ_DB_TABLE (and TDJ_SECRET) to store the database server-side." },
+    {
+      enabled: false,
+      storage: "browser",
+      hint: "Set TDJ_DB_TABLE (and TDJ_SECRET) to store the database server-side.",
+    },
     { status: 404 },
   );
 

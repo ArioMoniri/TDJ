@@ -57,7 +57,11 @@ export function TandaListen({ t, playlists }: { t: Tanda; playlists: ReferencePl
           out.push(trackId(s.spotify.uri));
           continue;
         }
-        const r = await resolveTrack(token.access, `${s.title} ${s.orchestra}${s.singer ? ` ${s.singer}` : ""}`, s.year);
+        const r = await resolveTrack(
+          token.access,
+          `${s.title} ${s.orchestra}${s.singer ? ` ${s.singer}` : ""}`,
+          s.year,
+        );
         out.push(r ? trackId(r.uri) : null);
       }
       if (alive) setIds(out);
@@ -92,7 +96,8 @@ export function TandaListen({ t, playlists }: { t: Tanda; playlists: ReferencePl
   if (!ref)
     return (
       <p className="text-muted text-sm">
-        No reference playlist for {t.orchestra} yet. Connect Spotify in Settings to hear the exact recordings, or{" "}
+        No reference playlist for {t.orchestra} yet. Connect Spotify in Settings to hear the exact recordings,
+        or{" "}
         <a
           className="underline"
           href={`https://open.spotify.com/search/${encodeURIComponent(`${t.orchestra} ${t.singer ?? ""}`.trim())}`}
@@ -147,8 +152,8 @@ export function CortinaPreview({ c }: { c: Cortina }) {
   return (
     <div className="flex items-center gap-2">
       <button type="button" className="btn btn-ghost text-sm" onClick={go} disabled={state === "busy"}>
-        {state === "busy" ? <LoaderCircle size={14} className="animate-spin" /> : <Headphones size={14} />} Preview
-        cortina
+        {state === "busy" ? <LoaderCircle size={14} className="animate-spin" /> : <Headphones size={14} />}{" "}
+        Preview cortina
       </button>
       {state === "none" && <span className="text-muted text-xs">Not found on Spotify.</span>}
     </div>

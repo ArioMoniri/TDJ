@@ -1,17 +1,19 @@
-import { toSetList } from "@tdj/core";
+import { DJ_RULES, toSetList } from "@tdj/core";
 import { NextResponse } from "next/server";
 import { aiFromHeaders, complete, LlmError } from "@/lib/server/llm";
 export const dynamic = "force-dynamic";
 
-const SYSTEM =
-  "You are a veteran tango DJ (milonguero tradition, Buenos Aires and the European marathon circuit). Review tanda playlists: energy arc, orchestra sequencing, singer and era coherence, cortina fit, última tanda and La Cumparsita. Be concrete and brief; use dancer language; suggest specific swaps by tanda number. No em-dashes.";
+const SYSTEM = `You are a veteran tango DJ (milonguero tradition, Buenos Aires and the European marathon circuit). Review tanda playlists: energy arc, orchestra sequencing, singer and era coherence, cortina fit, última tanda and La Cumparsita. Be concrete and brief; use dancer language; suggest specific swaps by tanda number. No em-dashes.\n\n${DJ_RULES}`;
 
 /** BYOK, provider-agnostic. Headers: x-ai-provider, x-ai-key, x-ai-model. Keys are used once and never stored or logged. */
 export async function POST(req: Request) {
   const ai = aiFromHeaders(req);
   const body = await req.json().catch(() => ({}));
   if (!ai.key)
-    return NextResponse.json({ error: "No API key. Add one in Settings → Written reviews." }, { status: 401 });
+    return NextResponse.json(
+      { error: "No API key. Add one in Settings → Written reviews." },
+      { status: 401 },
+    );
   try {
     if (body.test) {
       const text = await complete({
