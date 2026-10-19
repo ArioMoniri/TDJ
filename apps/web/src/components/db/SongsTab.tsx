@@ -1,6 +1,8 @@
 "use client";
 import { Plus, Search, Trash2 } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
+import { rise, spring } from "@/lib/motion";
 import type { Song } from "@/lib/types";
 import { Edited, Empty, Num, patchMap, Text, useDb } from "./shared";
 
@@ -33,6 +35,7 @@ const eraOf = (y?: number): Song["era"] =>
 
 export function SongsTab() {
   const { overrides, update } = useDb();
+  const reduced = useReducedMotion();
   const [q, setQ] = useState("");
   const [rows, setRows] = useState<Song[]>([]);
   const [searching, setSearching] = useState(false);
@@ -331,27 +334,38 @@ export function SongsTab() {
           </p>
         ) : (
           <ul className="mt-3 divide-y divide-[rgb(var(--text)/.08)]">
-            {(overrides.addedSongs ?? []).map((s) => (
-              <li key={s.id} className="flex min-h-11 items-center gap-3 py-1 text-sm">
-                <span className="min-w-0 flex-1 truncate">
-                  {s.title}{" "}
-                  <span className="text-muted">
-                    · {s.orchestra}
-                    {s.singer ? ` / ${s.singer}` : ""} · {s.rhythm} · {s.year ?? "?"}
-                  </span>
-                </span>
-                <button
-                  type="button"
-                  className="icon-btn"
-                  aria-label={`Remove ${s.title}`}
-                  onClick={() =>
-                    update((o) => ({ ...o, addedSongs: (o.addedSongs ?? []).filter((x) => x.id !== s.id) }))
-                  }
+            <AnimatePresence initial={false}>
+              {(overrides.addedSongs ?? []).map((s) => (
+                <motion.li
+                  key={s.id}
+                  layout={reduced ? false : "position"}
+                  variants={rise}
+                  initial="hidden"
+                  animate="show"
+                  exit="exit"
+                  transition={spring.thumb}
+                  className="flex min-h-11 items-center gap-3 py-1 text-sm"
                 >
-                  <Trash2 size={15} />
-                </button>
-              </li>
-            ))}
+                  <span className="min-w-0 flex-1 truncate">
+                    {s.title}{" "}
+                    <span className="text-muted">
+                      · {s.orchestra}
+                      {s.singer ? ` / ${s.singer}` : ""} · {s.rhythm} · {s.year ?? "?"}
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    aria-label={`Remove ${s.title}`}
+                    onClick={() =>
+                      update((o) => ({ ...o, addedSongs: (o.addedSongs ?? []).filter((x) => x.id !== s.id) }))
+                    }
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </motion.li>
+              ))}
+            </AnimatePresence>
           </ul>
         )}
       </div>

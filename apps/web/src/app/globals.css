@@ -511,22 +511,21 @@ input[type="range"] {
 }
 
 /* Theme cross-fade: added to <html> for one --dur-s by ThemeSync, then removed. Never on backdrop-filter.
-   !important on purpose: it must win over every component transition for those 250 ms. */
+   These unlayered rules outrank every @utility transition (Tailwind utilities live in @layer), so no !important. */
 html.theming,
 html.theming *,
 html.theming *::before,
 html.theming *::after {
-  /* biome-ignore lint/complexity/noImportantStyles: deliberate one-shot override (motion-system.md §2.6) */
   transition:
     background-color 250ms var(--ease-settle),
     color 250ms var(--ease-settle),
     border-color 250ms var(--ease-settle),
     fill 250ms var(--ease-settle),
-    stroke 250ms var(--ease-settle) !important;
+    stroke 250ms var(--ease-settle);
 }
-html.theming .glass {
-  /* biome-ignore lint/complexity/noImportantStyles: see above */
-  transition: background-color 250ms var(--ease-settle) !important;
+:root.theming .glass,
+:root.theming .glass::before {
+  transition: background-color 250ms var(--ease-settle);
 }
 
 /* Skeleton: opacity breathe only, no sweep */

@@ -612,7 +612,7 @@ export function Composer() {
               </div>
               <div className="text-right">
                 <div className="text-3xl font-semibold tabular-nums">
-                  <ScoreCounter key={setKey} value={playlist.score.total} playKey={setKey} from={scoreFrom} />
+                  <ScoreCounter key={setKey} value={playlist.score.total} from={scoreFrom} />
                   <motion.span
                     key={`verdict-${setKey}`}
                     initial={fresh ? { opacity: 0 } : false}
