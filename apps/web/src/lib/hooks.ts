@@ -27,6 +27,45 @@ export function useInViewport<T extends Element>(ref: React.RefObject<T | null>,
   return inView;
 }
 
+/**
+ * iOS 26 tab-bar minimise: true after scrolling down more than 24 px past 80 px, false on any upward scroll of 8 px.
+ * Always false under reduced motion and when `enabled` is false.
+ */
+export function useScrollDirection(enabled = true) {
+  const [minimised, setMinimised] = useState(false);
+  useEffect(() => {
+    if (!enabled || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setMinimised(false);
+      return;
+    }
+    let last = window.scrollY;
+    let anchor = last;
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        const y = window.scrollY;
+        const maxY = document.documentElement.scrollHeight - window.innerHeight;
+        if (y > last) {
+          if (y > 80 && y - anchor > 24 && y < maxY - 4) setMinimised(true);
+          if (y - anchor > 24) anchor = y;
+        } else if (last - y > 8 || y < 40) {
+          setMinimised(false);
+          anchor = y;
+        }
+        last = y;
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [enabled]);
+  return minimised;
+}
+
 /** The compose narrative/count-up tests can slow the composer down with `?slow=1` on localhost only. */
 export function testSlowdownMs(): number {
   if (typeof window === "undefined") return 0;
