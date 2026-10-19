@@ -13,13 +13,14 @@ import {
   ThumbsUp,
 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { autoSetName, changedTandas, describeOptionChanges } from "@/lib/changes";
 import { FEEDBACK_CHIPS } from "@/lib/feedback";
 import { haptic } from "@/lib/haptics";
 import { makeSnapshot } from "@/lib/history";
-import { testSlowdownMs, useMediaQuery, useScrollDirection } from "@/lib/hooks";
+import { testSlowdownMs, useMediaQuery, useScrollDirection, whenIdle } from "@/lib/hooks";
 import { describePreferences } from "@/lib/memory";
 import { DUR, EASE, rise, STAGGER } from "@/lib/motion";
 import {
@@ -44,8 +45,6 @@ import type {
 } from "@/lib/types";
 import { ComposeLabel, ComposeNarrative } from "./ComposeNarrative";
 import { ContextStrip } from "./ContextStrip";
-import { EnergyCurve } from "./EnergyCurve";
-import { ExportSheet } from "./ExportSheet";
 import { FeedbackBar } from "./FeedbackBar";
 import {
   ActionRow,
@@ -60,13 +59,32 @@ import {
   StepperRow,
   SwitchRow,
 } from "./Form";
-import { MoodCheck } from "./Listen";
+import { LazyHydrate } from "./LazyHydrate";
 import { Menu } from "./Menu";
 import { PageHeader } from "./PageHeader";
 import { ScoreCounter } from "./ScoreCounter";
 import { Sheet } from "./Sheet";
-import { TandaCard } from "./TandaCard";
-import { Vinyl } from "./Vinyl";
+
+/* Below-the-fold / on-demand pieces: their code arrives when first needed, not with the composer. */
+const ExportSheet = dynamic(() => import("./ExportSheet").then((m) => m.ExportSheet), { ssr: false });
+const MoodCheck = dynamic(() => import("./Listen").then((m) => m.MoodCheck), { ssr: false });
+const Vinyl = dynamic(() => import("./Vinyl").then((m) => m.Vinyl), { ssr: false });
+const NO_PLAYLISTS: never[] = [];
+/* Result-only code (cards, rows, curve): not in the first-load graph; prefetched on idle, and the result section
+   renders only once the modules are in hand (not through `dynamic()`, whose own loading state would commit
+   `#result` once without its cards), so every card is in the DOM the moment `#result` is. */
+type ResultMods = {
+  TandaCard: typeof import("./TandaCard").TandaCard;
+  EnergyCurve: typeof import("./EnergyCurve").EnergyCurve;
+};
+let resultMods: ResultMods | null = null;
+const loadResult = (): Promise<ResultMods> =>
+  resultMods
+    ? Promise.resolve(resultMods)
+    : Promise.all([import("./TandaCard"), import("./EnergyCurve")]).then(([a, b]) => {
+        resultMods = { TandaCard: a.TandaCard, EnergyCurve: b.EnergyCurve };
+        return resultMods;
+      });
 
 type Era = ComposeOptions["eras"][number];
 const ERAS: Array<[Era, string]> = [
@@ -181,13 +199,378 @@ function PinButton({ on, label, onToggle }: { on: boolean; label: string; onTogg
   );
 }
 
+/**
+ * The set-up controls. Memoised: while a result mounts (22 cards, curve, score) the form's 40 rows must not
+ * re-render, and after a set exists the form stays mounted but folded, so only an option change re-renders it.
+ * Hydrated lazily (`LazyHydrate`): the server HTML is on screen from the first paint and the form's hooks attach in
+ * idle time, in a task of their own, instead of inside the page's one 500 ms (phone) hydration task.
+ */
+const SetupForm = memo(function SetupForm({
+  options,
+  eraNote,
+  meta,
+  applied,
+  hidden,
+  setOptions,
+  setRules,
+  applyEra,
+  togglePin,
+}: {
+  options: AppOptions;
+  eraNote: string | null;
+  meta: Meta | null;
+  applied: ComposeOptions | null;
+  hidden: boolean;
+  setOptions: (o: Partial<AppOptions>) => void;
+  setRules: (patch: Partial<NightRules>) => void;
+  applyEra: (next: Era, force?: boolean) => void;
+  togglePin: (k: string) => void;
+}) {
+  const era: Era = (options.eras ?? ["golden"])[0] ?? "golden";
+  const eraDefaults = ERA_SETTINGS[era] ?? ERA_SETTINGS.golden!;
+  const pinned = options.pinned ?? [];
+  const isPinned = (k: string) => pinned.includes(k);
+  /** Night rules as the engine will see them: era defaults under the user's choices. */
+  const rules: NightRules = { ...eraDefaults.rules, ...(options.rules ?? {}) };
+  const explicit = explicitKeys(options);
+  const hours = options.hours ?? 4;
+  const tandasEst = Math.round(hours * 5.2);
+  const cultures = options.cortinaCultures ?? ["global"];
+  const cortinaStyle = options.cortinaStyle ?? "family";
+  return (
+    <div className={hidden ? "hidden" : "lg:grid lg:grid-cols-2 lg:gap-x-6"} id="setup">
+      <Group
+        header="Night"
+        footer={eraNote ?? "Guide: 2 h práctica · 4 h milonga · 6 h marathon block."}
+        id="night"
+      >
+        <SliderRow
+          id="hours"
+          label="Length"
+          display={`${hours} h · ≈${tandasEst} tandas`}
+          min={1}
+          max={8}
+          step={0.5}
+          value={hours}
+          onChange={(v) => setOptions({ hours: v })}
+        />
+        <PickerRow label="Era" ariaLabel="Era" value={era} items={ERAS} onChange={(k) => k && applyEra(k)} />
+        <SegmentedRow
+          label="Arc"
+          value={options.arc ?? "classic-two-peaks"}
+          items={ARCS}
+          onChange={(k) => setOptions({ arc: k })}
+        />
+        <PickerRow
+          label="Tanda shape"
+          ariaLabel="Tanda shape"
+          value={options.tandaShape ?? eraDefaults.tandaShape}
+          items={SHAPES}
+          onChange={(k) => k && setOptions({ tandaShape: k })}
+        >
+          <PinButton on={isPinned("tandaShape")} label="Shape" onToggle={() => togglePin("tandaShape")} />
+        </PickerRow>
+        <SwitchRow
+          label="Close with La Cumparsita"
+          checked={options.closeWithCumparsita ?? true}
+          onChange={(v) => setOptions({ closeWithCumparsita: v })}
+        />
+      </Group>
+
+      <Group
+        header="Structure"
+        footer="Sizes are in tracks; gap in tandas; spread in years. The era preset sets these; pin a control to keep your own value when the era changes."
+        id="structure"
+      >
+        <PickerRow
+          label="Cycle"
+          ariaLabel="Cycle"
+          value={options.pattern ?? "classic"}
+          items={PATTERNS}
+          onChange={(k) => k && setOptions({ pattern: k })}
+        >
+          <PinButton on={isPinned("pattern")} label="Cycle" onToggle={() => togglePin("pattern")} />
+        </PickerRow>
+        {options.pattern === "custom" && (
+          <FieldRow label="Custom cycle" id="custom-pattern">
+            <input
+              id="custom-pattern"
+              className="field field-value min-w-0 flex-1 font-mono uppercase"
+              value={options.customPattern ?? ""}
+              placeholder="TTVTTM"
+              onChange={(e) =>
+                setOptions({ customPattern: e.target.value.toUpperCase().replace(/[^TVM]/g, "") })
+              }
+              autoComplete="off"
+              spellCheck={false}
+            />
+          </FieldRow>
+        )}
+        <StepperRow
+          label="Tango tanda"
+          value={options.tangoTandaSize ?? 4}
+          unit=" tracks"
+          min={3}
+          max={5}
+          step={1}
+          onChange={(v) => setOptions({ tangoTandaSize: v as 3 | 4 | 5 })}
+        >
+          <PinButton
+            on={isPinned("tangoTandaSize")}
+            label="Tango tanda size"
+            onToggle={() => togglePin("tangoTandaSize")}
+          />
+        </StepperRow>
+        <StepperRow
+          label="Vals tanda"
+          value={options.valsTandaSize ?? 3}
+          unit=" tracks"
+          min={3}
+          max={4}
+          step={1}
+          onChange={(v) => setOptions({ valsTandaSize: v as 3 | 4 })}
+        >
+          <PinButton
+            on={isPinned("valsTandaSize")}
+            label="Vals tanda size"
+            onToggle={() => togglePin("valsTandaSize")}
+          />
+        </StepperRow>
+        <StepperRow
+          label="Milonga tanda"
+          value={options.milongaTandaSize ?? 3}
+          unit=" tracks"
+          min={3}
+          max={4}
+          step={1}
+          onChange={(v) => setOptions({ milongaTandaSize: v as 3 | 4 })}
+        >
+          <PinButton
+            on={isPinned("milongaTandaSize")}
+            label="Milonga tanda size"
+            onToggle={() => togglePin("milongaTandaSize")}
+          />
+        </StepperRow>
+        <StepperRow
+          label="Orchestra repeat gap"
+          value={options.orchestraRepeatGap ?? 6}
+          unit=" tandas"
+          min={1}
+          max={12}
+          step={1}
+          onChange={(v) => setOptions({ orchestraRepeatGap: v })}
+        >
+          <PinButton
+            on={isPinned("orchestraRepeatGap")}
+            label="Repeat gap"
+            onToggle={() => togglePin("orchestraRepeatGap")}
+          />
+        </StepperRow>
+        <StepperRow
+          label="Year spread"
+          value={options.maxYearSpread ?? 4}
+          unit=" y"
+          min={1}
+          max={15}
+          step={1}
+          onChange={(v) => setOptions({ maxYearSpread: v })}
+        >
+          <PinButton
+            on={isPinned("maxYearSpread")}
+            label="Year spread"
+            onToggle={() => togglePin("maxYearSpread")}
+          />
+        </StepperRow>
+        <ActionRow label="Reset to era defaults" onClick={() => applyEra(era, true)} />
+      </Group>
+
+      <Group
+        header="Cortinas"
+        footer={
+          cortinaStyle === "none"
+            ? "Tandas follow each other without a break."
+            : cortinaStyle === "family"
+              ? "Family: one artist or genre family all night, each cortina about 8 energy points under the tanda that follows."
+              : cortinaStyle === "constant"
+                ? "Same: one cortina track repeated all night, the traditional salón way."
+                : "Matched: each cortina is picked for the tanda that follows, about 8 energy points under it."
+        }
+        id="cortinas"
+      >
+        <SegmentedRow
+          label="Style"
+          value={cortinaStyle}
+          items={CORTINA_STYLES}
+          onChange={(k) => setOptions({ cortinaStyle: k })}
+        >
+          <PinButton
+            on={isPinned("cortinaStyle")}
+            label="Cortina style"
+            onToggle={() => togglePin("cortinaStyle")}
+          />
+        </SegmentedRow>
+        {cortinaStyle !== "none" && (
+          <>
+            <SegmentedRow
+              label="Flavour"
+              value={options.cortinaTrend ?? "mixed"}
+              items={CORTINA_TRENDS}
+              onChange={(k) => setOptions({ cortinaTrend: k })}
+            />
+            <MultiPickerRow
+              label="Cultures"
+              values={cultures}
+              items={CULTURES}
+              min={1}
+              onChange={(v) => setOptions({ cortinaCultures: v.length ? v : ["global"] })}
+              footer="At least one culture stays chosen."
+            />
+            <StepperRow
+              label="Length"
+              value={options.cortinaLengthSec ?? 45}
+              unit=" s"
+              min={20}
+              max={90}
+              step={5}
+              onChange={(v) => setOptions({ cortinaLengthSec: v })}
+            >
+              <PinButton
+                on={isPinned("cortinaLengthSec")}
+                label="Cortina length"
+                onToggle={() => togglePin("cortinaLengthSec")}
+              />
+            </StepperRow>
+          </>
+        )}
+      </Group>
+
+      <Group
+        header="Night rules"
+        footer="Defaults follow the era. These travel with every compose, feedback and refine."
+        id="night-rules"
+      >
+        <SwitchRow
+          label="Open with La Cumparsita"
+          sub="Some Buenos Aires and festival openings"
+          checked={!!rules.openWithCumparsita}
+          onChange={(v) => setRules({ openWithCumparsita: v })}
+        />
+        <SegmentedRow
+          label="Closing Cumparsitas"
+          value={String(rules.cumparsitaCount ?? 1) as "1" | "2"}
+          items={CUMPARSITAS}
+          onChange={(k) => setRules({ cumparsitaCount: Number(k) as 1 | 2 })}
+        />
+        <SwitchRow
+          label="Birthday vals"
+          sub="A vals tanda reserved for the birthday dance"
+          checked={rules.birthdayValsAt != null}
+          onChange={(v) => setRules({ birthdayValsAt: v ? 0.6 : null })}
+        />
+        {rules.birthdayValsAt != null && (
+          <SliderRow
+            label="Birthday vals position"
+            display={`${Math.round(rules.birthdayValsAt * 100)} % of the night`}
+            min={10}
+            max={90}
+            step={5}
+            value={Math.round(rules.birthdayValsAt * 100)}
+            onChange={(v) => setRules({ birthdayValsAt: v / 100 })}
+          />
+        )}
+        <SwitchRow
+          label="Show or break"
+          sub="A gap without cortina; energy re-ramps after it"
+          checked={rules.showBreakAt != null}
+          onChange={(v) =>
+            setRules({ showBreakAt: v ? 0.5 : null, showBreakMinutes: rules.showBreakMinutes ?? 20 })
+          }
+        />
+        {rules.showBreakAt != null && (
+          <>
+            <SliderRow
+              label="Break position"
+              display={`${Math.round(rules.showBreakAt * 100)} % of the night`}
+              min={10}
+              max={90}
+              step={5}
+              value={Math.round(rules.showBreakAt * 100)}
+              onChange={(v) => setRules({ showBreakAt: v / 100 })}
+            />
+            <StepperRow
+              label="Break length"
+              value={rules.showBreakMinutes ?? 20}
+              unit=" min"
+              min={5}
+              max={60}
+              step={5}
+              onChange={(v) => setRules({ showBreakMinutes: v })}
+            />
+          </>
+        )}
+        <PickerRow
+          label="Última tanda"
+          sub="The last tanda before La Cumparsita"
+          ariaLabel="Última tanda"
+          value={rules.ultimaRule ?? "emotional-vocal"}
+          items={ULTIMA}
+          onChange={(k) => k && setRules({ ultimaRule: k })}
+        />
+        <PickerRow
+          label="Opener"
+          ariaLabel="Opener"
+          value={rules.openerRule ?? "canon"}
+          items={OPENER}
+          onChange={(k) => k && setRules({ openerRule: k })}
+        />
+        <SwitchRow
+          label="Pugliese once"
+          sub="At most one Pugliese tanda, late"
+          checked={rules.puglieseOnce ?? true}
+          onChange={(v) => setRules({ puglieseOnce: v })}
+        />
+        <SwitchRow
+          label="Colour tanda"
+          sub="One foxtrot, Pirincho milonga or Hugo Díaz tanda"
+          checked={!!rules.colourTanda}
+          onChange={(v) => setRules({ colourTanda: v })}
+        />
+        <SwitchRow
+          label="Mixed milonga and vals tandas"
+          sub="Allow more than one orchestra inside them"
+          checked={!!rules.mixedMilongaVals}
+          onChange={(v) => setRules({ mixedMilongaVals: v })}
+        />
+        <SwitchRow
+          label="Cortina before La Cumparsita"
+          checked={!!rules.cortinaBeforeCumparsita}
+          onChange={(v) => setRules({ cortinaBeforeCumparsita: v })}
+        />
+      </Group>
+
+      <div className="md:col-span-2">
+        <ContextStrip
+          value={(options.context ?? {}) as ComposeContext}
+          onChange={(context) => setOptions({ context })}
+          model={meta?.contextModel ?? null}
+          applied={applied}
+          regionFromSettings={
+            !explicit.includes("context") ||
+            Object.keys(options.context ?? {}).filter((k) => k !== "region").length === 0
+          }
+        />
+      </div>
+    </div>
+  );
+});
+
 export function Composer() {
   const {
     options,
     setOptions,
     presetOptions,
     replaceOptions,
-    playlist,
+    playlist: livePlaylist,
     setPlaylist,
     busy,
     setBusy,
@@ -199,12 +582,20 @@ export function Composer() {
     addSnapshot,
   } = useStore();
   const [exportOpen, setExportOpen] = useState(false);
+  /** the export sheet (and its export code) mounts on the first open only */
+  const [exportMounted, setExportMounted] = useState(false);
+  const openExport = useCallback(() => {
+    setExportMounted(true);
+    setExportOpen(true);
+  }, []);
   const [scoreOpen, setScoreOpen] = useState(false);
   const [moodOpen, setMoodOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [active, setActive] = useState<number | null>(null);
   const [swapping, setSwapping] = useState<number | null>(null);
   const [swappingTrack, setSwappingTrack] = useState<[number, number] | null>(null);
+  /** the card whose lock just flipped: the only one (with the swapping one) that gets layout animations */
+  const [lockedCard, setLockedCard] = useState<number | null>(null);
   const [ai, setAi] = useState<string | null>(null);
   const [aiError, setAiError] = useState(false);
   const [aiBusy, setAiBusy] = useState(false);
@@ -231,13 +622,36 @@ export function Composer() {
    * Feedback / "Tell the DJ" with the same tanda count keep the key: the curve morphs and the score counts on.
    */
   const [reveal, setReveal] = useState<{ key: string; fresh: boolean }>({ key: "", fresh: false });
+  /**
+   * The result renders from deferred values: a new set is a time-sliced, interruptible render (React yields to
+   * input and paint every few ms) that commits once, instead of one long synchronous task of 22 cards. The store's
+   * live playlist drives the requests; the deferred one drives what is on screen.
+   */
+  const playlist = useDeferredValue(livePlaylist);
+  const viewReveal = useDeferredValue(reveal);
   useEffect(() => {
-    if (reveal.fresh) setReveal((r) => ({ ...r, fresh: false }));
-  }, [reveal]);
+    // `fresh` is for the commit that mounts the set only: clear it once that (deferred) commit has happened
+    if (viewReveal.fresh) setReveal((r) => (r.fresh ? { ...r, fresh: false } : r));
+  }, [viewReveal]);
   const reduced = useReducedMotion();
   const wide = useMediaQuery("(min-width: 640px)", true);
   const minimised = useScrollDirection();
   useEffect(() => setHydrated(true), []);
+  const [mods, setMods] = useState<ResultMods | null>(resultMods);
+  useEffect(() => {
+    let alive = true;
+    const cancel = whenIdle(() => {
+      loadResult().then((m) => alive && setMods(m));
+    }, 2000);
+    return () => {
+      alive = false;
+      cancel();
+    };
+  }, []);
+  // a compose must never wait on the idle prefetch: load now if it has not happened yet
+  useEffect(() => {
+    if (busy && !mods) loadResult().then(setMods);
+  }, [busy, mods]);
   useEffect(() => {
     fetch("/api/meta")
       .then((r) => r.json())
@@ -260,34 +674,44 @@ export function Composer() {
   });
   const era: Era = (options.eras ?? ["golden"])[0] ?? "golden";
   const eraDefaults = ERA_SETTINGS[era] ?? ERA_SETTINGS.golden!;
-  const pinned = options.pinned ?? [];
-  const isPinned = (k: string) => pinned.includes(k);
-  const togglePin = (k: string) =>
-    setOptions({ pinned: isPinned(k) ? pinned.filter((x) => x !== k) : [...pinned, k] });
-  /** Night rules as the engine will see them: era defaults under the user's choices. */
-  const rules: NightRules = useMemo(
-    () => ({ ...eraDefaults.rules, ...(options.rules ?? {}) }),
-    [eraDefaults, options.rules],
+  const togglePin = useCallback(
+    (k: string) => {
+      const pinned = useStore.getState().options.pinned ?? [];
+      setOptions({ pinned: pinned.includes(k) ? pinned.filter((x) => x !== k) : [...pinned, k] });
+    },
+    [setOptions],
   );
-  const setRules = (patch: Partial<NightRules>) => setOptions({ rules: { ...rules, ...patch } });
+  const setRules = useCallback(
+    (patch: Partial<NightRules>) => {
+      const o = useStore.getState().options;
+      const d = ERA_SETTINGS[(o.eras ?? ["golden"])[0] ?? "golden"] ?? ERA_SETTINGS.golden!;
+      setOptions({ rules: { ...d.rules, ...(o.rules ?? {}), ...patch } });
+    },
+    [setOptions],
+  );
 
   /** Era change: apply the era's defaults to every unpinned control, keep the rest, and say so. */
-  const applyEra = (next: Era, force = false) => {
-    const d = ERA_SETTINGS[next] ?? ERA_SETTINGS.golden!;
-    const { notes, rules: eraRules, ...defaults } = d;
-    const patch: Partial<AppOptions> = { eras: [next] };
-    for (const k of ERA_KEYS) {
-      if (!force && isPinned(k)) continue;
-      (patch as Record<string, unknown>)[k] = (defaults as Record<string, unknown>)[k];
-      if (k === "pattern") patch.customPattern = defaults.customPattern;
-    }
-    patch.rules = { ...(options.rules ?? {}), ...eraRules };
-    // the era itself is the DJ's choice; the preset values are not explicit
-    setOptions({ eras: [next] });
-    const { eras: _e, ...preset } = patch;
-    presetOptions(preset);
-    setEraNote(`Era defaults applied: ${notes}`);
-  };
+  const applyEra = useCallback(
+    (next: Era, force = false) => {
+      const o = useStore.getState().options;
+      const pinned = o.pinned ?? [];
+      const d = ERA_SETTINGS[next] ?? ERA_SETTINGS.golden!;
+      const { notes, rules: eraRules, ...defaults } = d;
+      const patch: Partial<AppOptions> = { eras: [next] };
+      for (const k of ERA_KEYS) {
+        if (!force && pinned.includes(k)) continue;
+        (patch as Record<string, unknown>)[k] = (defaults as Record<string, unknown>)[k];
+        if (k === "pattern") patch.customPattern = defaults.customPattern;
+      }
+      patch.rules = { ...(o.rules ?? {}), ...eraRules };
+      // the era itself is the DJ's choice; the preset values are not explicit
+      setOptions({ eras: [next] });
+      const { eras: _e, ...preset } = patch;
+      presetOptions(preset);
+      setEraNote(`Era defaults applied: ${notes}`);
+    },
+    [setOptions, presetOptions],
+  );
 
   /** What the DJ set tonight: touched or pinned controls (era presets and defaults are not explicit). */
   const explicit = explicitKeys(options);
@@ -323,7 +747,8 @@ export function Composer() {
     setAi(null);
     setError(null);
     const o = requestOptions(opts ?? useStore.getState().options, extraExplicit);
-    const first = !playlist;
+    const live = useStore.getState().playlist;
+    const first = !live;
     try {
       const slow = testSlowdownMs();
       if (slow) await new Promise((res) => setTimeout(res, slow));
@@ -333,7 +758,7 @@ export function Composer() {
         body: JSON.stringify({
           ...o,
           seed: seed ?? Math.floor(Math.random() * 1e9),
-          locked: playlist?.tandas.filter((t) => t.locked) ?? [],
+          locked: live?.tandas.filter((t) => t.locked) ?? [],
           overrides: overridesForRequest(overrides),
         }),
       });
@@ -344,18 +769,18 @@ export function Composer() {
         haptic([20, 30, 20]);
         return;
       }
-      remember(playlist);
-      const morph = !!opts && !!playlist && p.tandas.length === playlist.tandas.length;
+      remember(live);
+      const morph = !!opts && !!live && p.tandas.length === live.tandas.length;
       if (!morph) setReveal({ key: String(p.options.seed), fresh: true });
       setPlaylist(p);
       setActive(null);
       setSetupOpen(false);
       updateMemory((m) => rememberSet(m, p));
       addSnapshot(makeSnapshot(p, fullOptions(useStore.getState().options), source));
-      if (morph && playlist) {
-        const changed = changedTandas(playlist, p);
+      if (morph && live) {
+        const changed = changedTandas(live, p);
         setChangeSummary(
-          `${changed.length ? `${changed.length} ${changed.length === 1 ? "tanda" : "tandas"} replaced (${changed.slice(0, 8).join(", ")}${changed.length > 8 ? "…" : ""})` : "No tanda changed"} · score ${playlist.score.total} → ${p.score.total}`,
+          `${changed.length ? `${changed.length} ${changed.length === 1 ? "tanda" : "tandas"} replaced (${changed.slice(0, 8).join(", ")}${changed.length > 8 ? "…" : ""})` : "No tanda changed"} · score ${live.score.total} → ${p.score.total}`,
         );
         setChangedSet(new Set(changed));
       } else {
@@ -377,59 +802,75 @@ export function Composer() {
     }
   };
   /** Keep the previous score/energies so counters run from the old value. */
-  const remember = (prev: Playlist | null) => {
+  const remember = useCallback((prev: Playlist | null) => {
     prevScore.current = prev?.score.total ?? null;
     prevEnergy.current = Object.fromEntries((prev?.tandas ?? []).map((t, i) => [i, t.energy]));
-  };
-  const swap = async (i: number) => {
-    if (!playlist) return;
-    setSwapping(i);
-    try {
-      const r = await fetch("/api/swap", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ playlist, index: i }),
-      });
-      if (r.ok) {
-        remember(playlist);
-        const p = (await r.json()) as Playlist;
-        setPlaylist(p);
-        addSnapshot(makeSnapshot(p, fullOptions(useStore.getState().options), "swap"));
+  }, []);
+  const swap = useCallback(
+    async (i: number) => {
+      const playlist = useStore.getState().playlist;
+      if (!playlist) return;
+      setSwapping(i);
+      try {
+        const r = await fetch("/api/swap", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ playlist, index: i }),
+        });
+        if (r.ok) {
+          remember(playlist);
+          const p = (await r.json()) as Playlist;
+          setPlaylist(p);
+          addSnapshot(makeSnapshot(p, fullOptions(useStore.getState().options), "swap"));
+        }
+      } finally {
+        setSwapping(null);
       }
-    } finally {
-      setSwapping(null);
-    }
-  };
-  const swapTrack = async (i: number, k: number) => {
-    if (!playlist) return;
-    setSwappingTrack([i, k]);
-    setNote(null);
-    try {
-      const r = await fetch("/api/swap-track", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ playlist, tandaIndex: i, trackIndex: k }),
-      });
-      const j = (await r.json()) as Playlist & { changed?: boolean };
-      if (r.ok && j.changed) {
-        remember(playlist);
-        setPlaylist(j);
-        addSnapshot(makeSnapshot(j, fullOptions(useStore.getState().options), "swap"));
-      } else {
-        setNote(`No other ${playlist.tandas[i]?.orchestra} recording fits that slot.`);
-        setNudge((n) => ({ i, k, n: (n?.n ?? 0) + 1 }));
+    },
+    [setPlaylist, addSnapshot, remember],
+  );
+  const swapTrack = useCallback(
+    async (i: number, k: number) => {
+      const playlist = useStore.getState().playlist;
+      if (!playlist) return;
+      setSwappingTrack([i, k]);
+      setNote(null);
+      try {
+        const r = await fetch("/api/swap-track", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ playlist, tandaIndex: i, trackIndex: k }),
+        });
+        const j = (await r.json()) as Playlist & { changed?: boolean };
+        if (r.ok && j.changed) {
+          remember(playlist);
+          setPlaylist(j);
+          addSnapshot(makeSnapshot(j, fullOptions(useStore.getState().options), "swap"));
+        } else {
+          setNote(`No other ${playlist.tandas[i]?.orchestra} recording fits that slot.`);
+          setNudge((n) => ({ i, k, n: (n?.n ?? 0) + 1 }));
+        }
+      } finally {
+        setSwappingTrack(null);
       }
-    } finally {
-      setSwappingTrack(null);
-    }
-  };
-  const lock = (i: number) => {
-    if (!playlist) return;
-    setPlaylist({
-      ...playlist,
-      tandas: playlist.tandas.map((t, k) => (k === i ? { ...t, locked: !t.locked } : t)),
-    });
-  };
+    },
+    [setPlaylist, addSnapshot, remember],
+  );
+  const lockTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lock = useCallback(
+    (i: number) => {
+      const playlist = useStore.getState().playlist;
+      if (!playlist) return;
+      setLockedCard(i);
+      if (lockTimer.current) clearTimeout(lockTimer.current);
+      lockTimer.current = setTimeout(() => setLockedCard(null), 700);
+      setPlaylist({
+        ...playlist,
+        tandas: playlist.tandas.map((t, k) => (k === i ? { ...t, locked: !t.locked } : t)),
+      });
+    },
+    [setPlaylist],
+  );
   /** A chip never leaves a custom cycle empty, and every structural change it makes is said out loud. */
   const settleOptions = (prev: Partial<ComposeOptions>, next: Partial<ComposeOptions>) => {
     const out = { ...next };
@@ -553,7 +994,7 @@ export function Composer() {
       }
       if ((e.key === "e" || e.key === "E") && playlist) {
         e.preventDefault();
-        setExportOpen(true);
+        openExport();
       }
     };
     window.addEventListener("keydown", onKey);
@@ -561,28 +1002,26 @@ export function Composer() {
   });
 
   const hours = options.hours ?? 4;
-  const tandasEst = useMemo(() => Math.round(hours * 5.2), [hours]);
-  const cultures = options.cortinaCultures ?? ["global"];
-  const hasPlaylist = hydrated && !!playlist;
+  const hasPlaylist = hydrated && !!mods && !!playlist;
   const chosenContext = Object.entries(options.context ?? {}).filter(
     ([k, v]) => !!v && k !== "region",
   ).length;
   const cortinaStyle = options.cortinaStyle ?? "family";
   const lockedCount = playlist?.tandas.filter((t) => t.locked).length ?? 0;
-  const playlists = meta?.referencePlaylists ?? [];
+  const playlists = meta?.referencePlaylists ?? NO_PLAYLISTS;
   const dbChanges = overridesReady && Object.keys(overrides).some((k) => k !== "updatedAt");
   // a restored playlist (localStorage) has no reveal key yet: adopt it without animating
-  const setKey = reveal.key || (playlist ? String(playlist.options.seed) : "");
-  const fresh = reveal.fresh;
+  const setKey = viewReveal.key || (playlist ? String(playlist.options.seed) : "");
+  const fresh = viewReveal.fresh;
   const scoreFrom = fresh ? 0 : (prevScore.current ?? playlist?.score.total ?? 0);
   const errorNudge = useMemo(
     () => (errorKey && !reduced ? { x: [0, -4, 4, -2, 0] } : { x: 0 }),
     [errorKey, reduced],
   );
-  const onPick = (i: number) => {
+  const onPick = useCallback((i: number) => {
     setActive(i);
     document.getElementById(`tanda-${i + 1}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
-  };
+  }, []);
   const breakAfter = new Map((playlist?.breaks ?? []).map((b) => [b.afterTanda, b]));
   const resultFooter = playlist
     ? [
@@ -619,12 +1058,7 @@ export function Composer() {
         trailing={
           <>
             {hasPlaylist && (
-              <button
-                type="button"
-                className="icon-btn"
-                aria-label="Export"
-                onClick={() => setExportOpen(true)}
-              >
+              <button type="button" className="icon-btn" aria-label="Export" onClick={openExport}>
                 <Share size={20} strokeWidth={1.75} />
               </button>
             )}
@@ -648,7 +1082,7 @@ export function Composer() {
         primary={composeButton}
       />
 
-      {hasPlaylist && playlist && (
+      {hasPlaylist && playlist && mods && (
         <section id="result" className="scroll-mt-24" aria-busy={busy}>
           <Group header="Tonight's set" footer={resultFooter}>
             <motion.div
@@ -701,9 +1135,15 @@ export function Composer() {
               <div className="mt-1">
                 {/* one chart per breakpoint (not both hidden/shown via CSS) so only one draw-on runs */}
                 {wide ? (
-                  <EnergyCurve p={playlist} active={active} onPick={onPick} playKey={setKey} dimmed={busy} />
+                  <mods.EnergyCurve
+                    p={playlist}
+                    active={active}
+                    onPick={onPick}
+                    playKey={setKey}
+                    dimmed={busy}
+                  />
                 ) : (
-                  <EnergyCurve
+                  <mods.EnergyCurve
                     compact
                     p={playlist}
                     active={active}
@@ -774,13 +1214,13 @@ export function Composer() {
               {playlist.tandas.flatMap((t, i) => {
                 const b = breakAfter.get(i);
                 const card = (
-                  <TandaCard
+                  <mods.TandaCard
                     key={`${t.index}-${t.songs[0]?.id}`}
                     t={t}
                     i={i}
-                    onSwap={() => swap(i)}
-                    onSwapTrack={(k) => swapTrack(i, k)}
-                    onLock={() => lock(i)}
+                    onSwap={swap}
+                    onSwapTrack={swapTrack}
+                    onLock={lock}
                     busy={swapping === i}
                     swappingTrack={swappingTrack?.[0] === i ? swappingTrack[1] : null}
                     active={active === i}
@@ -790,21 +1230,21 @@ export function Composer() {
                     nudge={nudge?.i === i ? nudge : null}
                     prevEnergy={prevEnergy.current[i]}
                     changed={changedSet.has(i + 1)}
+                    animateLayout={swapping === i || lockedCard === i}
                   />
                 );
                 if (!b) return [card];
                 return [
                   card,
-                  <motion.div
+                  <div
                     key={`break-${i}`}
-                    layout={reduced ? false : "position"}
                     className="text-footnote flex items-center gap-3 px-4 text-[var(--label-2)] md:col-span-2"
                     data-testid="break"
                   >
                     <span className="h-px flex-1 bg-[var(--separator)]" aria-hidden />
                     {b.label} · {b.minutes} min
                     <span className="h-px flex-1 bg-[var(--separator)]" aria-hidden />
-                  </motion.div>,
+                  </div>,
                 ];
               })}
             </AnimatePresence>
@@ -839,335 +1279,19 @@ export function Composer() {
           />
         </Group>
       )}
-      <div className={hasPlaylist && !setupOpen ? "hidden" : "lg:grid lg:grid-cols-2 lg:gap-x-6"} id="setup">
-        <Group
-          header="Night"
-          footer={eraNote ?? "Guide: 2 h práctica · 4 h milonga · 6 h marathon block."}
-          id="night"
-        >
-          <SliderRow
-            id="hours"
-            label="Length"
-            display={`${hours} h · ≈${tandasEst} tandas`}
-            min={1}
-            max={8}
-            step={0.5}
-            value={hours}
-            onChange={(v) => setOptions({ hours: v })}
-          />
-          <PickerRow
-            label="Era"
-            ariaLabel="Era"
-            value={era}
-            items={ERAS}
-            onChange={(k) => k && applyEra(k)}
-          />
-          <SegmentedRow
-            label="Arc"
-            value={options.arc ?? "classic-two-peaks"}
-            items={ARCS}
-            onChange={(k) => setOptions({ arc: k })}
-          />
-          <PickerRow
-            label="Tanda shape"
-            ariaLabel="Tanda shape"
-            value={options.tandaShape ?? eraDefaults.tandaShape}
-            items={SHAPES}
-            onChange={(k) => k && setOptions({ tandaShape: k })}
-          >
-            <PinButton on={isPinned("tandaShape")} label="Shape" onToggle={() => togglePin("tandaShape")} />
-          </PickerRow>
-          <SwitchRow
-            label="Close with La Cumparsita"
-            checked={options.closeWithCumparsita ?? true}
-            onChange={(v) => setOptions({ closeWithCumparsita: v })}
-          />
-        </Group>
-
-        <Group
-          header="Structure"
-          footer="Sizes are in tracks; gap in tandas; spread in years. The era preset sets these; pin a control to keep your own value when the era changes."
-          id="structure"
-        >
-          <PickerRow
-            label="Cycle"
-            ariaLabel="Cycle"
-            value={options.pattern ?? "classic"}
-            items={PATTERNS}
-            onChange={(k) => k && setOptions({ pattern: k })}
-          >
-            <PinButton on={isPinned("pattern")} label="Cycle" onToggle={() => togglePin("pattern")} />
-          </PickerRow>
-          {options.pattern === "custom" && (
-            <FieldRow label="Custom cycle" id="custom-pattern">
-              <input
-                id="custom-pattern"
-                className="field field-value min-w-0 flex-1 font-mono uppercase"
-                value={options.customPattern ?? ""}
-                placeholder="TTVTTM"
-                onChange={(e) =>
-                  setOptions({ customPattern: e.target.value.toUpperCase().replace(/[^TVM]/g, "") })
-                }
-                autoComplete="off"
-                spellCheck={false}
-              />
-            </FieldRow>
-          )}
-          <StepperRow
-            label="Tango tanda"
-            value={options.tangoTandaSize ?? 4}
-            unit=" tracks"
-            min={3}
-            max={5}
-            step={1}
-            onChange={(v) => setOptions({ tangoTandaSize: v as 3 | 4 | 5 })}
-          >
-            <PinButton
-              on={isPinned("tangoTandaSize")}
-              label="Tango tanda size"
-              onToggle={() => togglePin("tangoTandaSize")}
-            />
-          </StepperRow>
-          <StepperRow
-            label="Vals tanda"
-            value={options.valsTandaSize ?? 3}
-            unit=" tracks"
-            min={3}
-            max={4}
-            step={1}
-            onChange={(v) => setOptions({ valsTandaSize: v as 3 | 4 })}
-          >
-            <PinButton
-              on={isPinned("valsTandaSize")}
-              label="Vals tanda size"
-              onToggle={() => togglePin("valsTandaSize")}
-            />
-          </StepperRow>
-          <StepperRow
-            label="Milonga tanda"
-            value={options.milongaTandaSize ?? 3}
-            unit=" tracks"
-            min={3}
-            max={4}
-            step={1}
-            onChange={(v) => setOptions({ milongaTandaSize: v as 3 | 4 })}
-          >
-            <PinButton
-              on={isPinned("milongaTandaSize")}
-              label="Milonga tanda size"
-              onToggle={() => togglePin("milongaTandaSize")}
-            />
-          </StepperRow>
-          <StepperRow
-            label="Orchestra repeat gap"
-            value={options.orchestraRepeatGap ?? 6}
-            unit=" tandas"
-            min={1}
-            max={12}
-            step={1}
-            onChange={(v) => setOptions({ orchestraRepeatGap: v })}
-          >
-            <PinButton
-              on={isPinned("orchestraRepeatGap")}
-              label="Repeat gap"
-              onToggle={() => togglePin("orchestraRepeatGap")}
-            />
-          </StepperRow>
-          <StepperRow
-            label="Year spread"
-            value={options.maxYearSpread ?? 4}
-            unit=" y"
-            min={1}
-            max={15}
-            step={1}
-            onChange={(v) => setOptions({ maxYearSpread: v })}
-          >
-            <PinButton
-              on={isPinned("maxYearSpread")}
-              label="Year spread"
-              onToggle={() => togglePin("maxYearSpread")}
-            />
-          </StepperRow>
-          <ActionRow label="Reset to era defaults" onClick={() => applyEra(era, true)} />
-        </Group>
-
-        <Group
-          header="Cortinas"
-          footer={
-            cortinaStyle === "none"
-              ? "Tandas follow each other without a break."
-              : cortinaStyle === "family"
-                ? "Family: one artist or genre family all night, each cortina about 8 energy points under the tanda that follows."
-                : cortinaStyle === "constant"
-                  ? "Same: one cortina track repeated all night, the traditional salón way."
-                  : "Matched: each cortina is picked for the tanda that follows, about 8 energy points under it."
-          }
-          id="cortinas"
-        >
-          <SegmentedRow
-            label="Style"
-            value={cortinaStyle}
-            items={CORTINA_STYLES}
-            onChange={(k) => setOptions({ cortinaStyle: k })}
-          >
-            <PinButton
-              on={isPinned("cortinaStyle")}
-              label="Cortina style"
-              onToggle={() => togglePin("cortinaStyle")}
-            />
-          </SegmentedRow>
-          {cortinaStyle !== "none" && (
-            <>
-              <SegmentedRow
-                label="Flavour"
-                value={options.cortinaTrend ?? "mixed"}
-                items={CORTINA_TRENDS}
-                onChange={(k) => setOptions({ cortinaTrend: k })}
-              />
-              <MultiPickerRow
-                label="Cultures"
-                values={cultures}
-                items={CULTURES}
-                min={1}
-                onChange={(v) => setOptions({ cortinaCultures: v.length ? v : ["global"] })}
-                footer="At least one culture stays chosen."
-              />
-              <StepperRow
-                label="Length"
-                value={options.cortinaLengthSec ?? 45}
-                unit=" s"
-                min={20}
-                max={90}
-                step={5}
-                onChange={(v) => setOptions({ cortinaLengthSec: v })}
-              >
-                <PinButton
-                  on={isPinned("cortinaLengthSec")}
-                  label="Cortina length"
-                  onToggle={() => togglePin("cortinaLengthSec")}
-                />
-              </StepperRow>
-            </>
-          )}
-        </Group>
-
-        <Group
-          header="Night rules"
-          footer="Defaults follow the era. These travel with every compose, feedback and refine."
-          id="night-rules"
-        >
-          <SwitchRow
-            label="Open with La Cumparsita"
-            sub="Some Buenos Aires and festival openings"
-            checked={!!rules.openWithCumparsita}
-            onChange={(v) => setRules({ openWithCumparsita: v })}
-          />
-          <SegmentedRow
-            label="Closing Cumparsitas"
-            value={String(rules.cumparsitaCount ?? 1) as "1" | "2"}
-            items={CUMPARSITAS}
-            onChange={(k) => setRules({ cumparsitaCount: Number(k) as 1 | 2 })}
-          />
-          <SwitchRow
-            label="Birthday vals"
-            sub="A vals tanda reserved for the birthday dance"
-            checked={rules.birthdayValsAt != null}
-            onChange={(v) => setRules({ birthdayValsAt: v ? 0.6 : null })}
-          />
-          {rules.birthdayValsAt != null && (
-            <SliderRow
-              label="Birthday vals position"
-              display={`${Math.round(rules.birthdayValsAt * 100)} % of the night`}
-              min={10}
-              max={90}
-              step={5}
-              value={Math.round(rules.birthdayValsAt * 100)}
-              onChange={(v) => setRules({ birthdayValsAt: v / 100 })}
-            />
-          )}
-          <SwitchRow
-            label="Show or break"
-            sub="A gap without cortina; energy re-ramps after it"
-            checked={rules.showBreakAt != null}
-            onChange={(v) =>
-              setRules({ showBreakAt: v ? 0.5 : null, showBreakMinutes: rules.showBreakMinutes ?? 20 })
-            }
-          />
-          {rules.showBreakAt != null && (
-            <>
-              <SliderRow
-                label="Break position"
-                display={`${Math.round(rules.showBreakAt * 100)} % of the night`}
-                min={10}
-                max={90}
-                step={5}
-                value={Math.round(rules.showBreakAt * 100)}
-                onChange={(v) => setRules({ showBreakAt: v / 100 })}
-              />
-              <StepperRow
-                label="Break length"
-                value={rules.showBreakMinutes ?? 20}
-                unit=" min"
-                min={5}
-                max={60}
-                step={5}
-                onChange={(v) => setRules({ showBreakMinutes: v })}
-              />
-            </>
-          )}
-          <PickerRow
-            label="Última tanda"
-            sub="The last tanda before La Cumparsita"
-            ariaLabel="Última tanda"
-            value={rules.ultimaRule ?? "emotional-vocal"}
-            items={ULTIMA}
-            onChange={(k) => k && setRules({ ultimaRule: k })}
-          />
-          <PickerRow
-            label="Opener"
-            ariaLabel="Opener"
-            value={rules.openerRule ?? "canon"}
-            items={OPENER}
-            onChange={(k) => k && setRules({ openerRule: k })}
-          />
-          <SwitchRow
-            label="Pugliese once"
-            sub="At most one Pugliese tanda, late"
-            checked={rules.puglieseOnce ?? true}
-            onChange={(v) => setRules({ puglieseOnce: v })}
-          />
-          <SwitchRow
-            label="Colour tanda"
-            sub="One foxtrot, Pirincho milonga or Hugo Díaz tanda"
-            checked={!!rules.colourTanda}
-            onChange={(v) => setRules({ colourTanda: v })}
-          />
-          <SwitchRow
-            label="Mixed milonga and vals tandas"
-            sub="Allow more than one orchestra inside them"
-            checked={!!rules.mixedMilongaVals}
-            onChange={(v) => setRules({ mixedMilongaVals: v })}
-          />
-          <SwitchRow
-            label="Cortina before La Cumparsita"
-            checked={!!rules.cortinaBeforeCumparsita}
-            onChange={(v) => setRules({ cortinaBeforeCumparsita: v })}
-          />
-        </Group>
-
-        <div className="md:col-span-2">
-          <ContextStrip
-            value={(options.context ?? {}) as ComposeContext}
-            onChange={(context) => setOptions({ context })}
-            model={meta?.contextModel ?? null}
-            applied={playlist?.options ?? null}
-            regionFromSettings={
-              !explicit.includes("context") ||
-              Object.keys(options.context ?? {}).filter((k) => k !== "region").length === 0
-            }
-          />
-        </div>
-      </div>
+      <LazyHydrate>
+        <SetupForm
+          options={options}
+          eraNote={eraNote}
+          meta={meta}
+          applied={playlist?.options ?? null}
+          hidden={hasPlaylist && !setupOpen}
+          setOptions={setOptions}
+          setRules={setRules}
+          applyEra={applyEra}
+          togglePin={togglePin}
+        />
+      </LazyHydrate>
 
       {(usingMemory || dbChanges) && (
         <p className="section-foot mt-3" data-testid="using-memory">
@@ -1204,10 +1328,10 @@ export function Composer() {
               : "")}
       </div>
 
-      <ComposeNarrative busy={busy} className="mx-auto mt-6 hidden sm:flex" />
+      {wide && <ComposeNarrative busy={busy} className="mx-auto mt-6 flex" />}
 
-      {hydrated && !playlist && !busy && (
-        <div className="hidden flex-col items-center gap-3 py-12 text-center sm:flex">
+      {hydrated && wide && !playlist && !busy && (
+        <div className="flex flex-col items-center gap-3 py-12 text-center">
           <Vinyl playing={false} className="w-[120px]" />
           <p className="text-title3 font-serif">Compose a milonga, tanda by tanda.</p>
           <p className="text-subhead max-w-md text-[var(--label-2)]">
@@ -1238,13 +1362,13 @@ export function Composer() {
           <ComposeLabel busy={busy} steps />
         </motion.button>
         {hasPlaylist && (
-          <button type="button" onClick={() => setExportOpen(true)} className="icon-btn" aria-label="Export">
+          <button type="button" onClick={openExport} className="icon-btn" aria-label="Export">
             <Share size={20} strokeWidth={1.75} />
           </button>
         )}
       </div>
 
-      <ExportSheet open={exportOpen} onClose={() => setExportOpen(false)} />
+      {exportMounted && <ExportSheet open={exportOpen} onClose={() => setExportOpen(false)} />}
 
       {playlist && (
         <Sheet

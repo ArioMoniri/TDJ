@@ -1,17 +1,41 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
-/** `window.matchMedia` as state. Returns `fallback` on the server and before hydration. */
-export function useMediaQuery(query: string, fallback = false) {
-  const [on, setOn] = useState(fallback);
-  useEffect(() => {
+/* ---- useMediaQuery: one MediaQueryList per query string, shared by every subscriber ---- */
+interface MqEntry {
+  mq: MediaQueryList;
+  listeners: Set<() => void>;
+}
+const MQ = new Map<string, MqEntry>();
+function entryFor(query: string): MqEntry {
+  let e = MQ.get(query);
+  if (!e) {
     const mq = window.matchMedia(query);
-    const sync = () => setOn(mq.matches);
-    sync();
-    mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
-  }, [query]);
-  return on;
+    const listeners = new Set<() => void>();
+    mq.addEventListener("change", () => {
+      for (const l of listeners) l();
+    });
+    e = { mq, listeners };
+    MQ.set(query, e);
+  }
+  return e;
+}
+
+/**
+ * `window.matchMedia` as state. Returns `fallback` on the server and during hydration.
+ * The 88 track rows and 22 cards of a set each ask for the same two queries, so one listener per query
+ * serves them all instead of one `matchMedia` + listener per component.
+ */
+export function useMediaQuery(query: string, fallback = false) {
+  return useSyncExternalStore(
+    (cb) => {
+      const e = entryFor(query);
+      e.listeners.add(cb);
+      return () => e.listeners.delete(cb);
+    },
+    () => entryFor(query).mq.matches,
+    () => fallback,
+  );
 }
 
 /** True while at least `threshold` of the element is on screen (used to gate looping Lottie playback). */
@@ -41,17 +65,27 @@ export function useScrollDirection(enabled = true) {
     let last = window.scrollY;
     let anchor = last;
     let raf = 0;
+    let min = false;
+    // state changes only on a flip, and the page height (a forced layout while cards are being revealed) is read
+    // only when a flip to minimised is otherwise due: a scroll frame must not re-enter React or layout
+    const flip = (v: boolean) => {
+      if (min === v) return;
+      min = v;
+      setMinimised(v);
+    };
     const onScroll = () => {
       if (raf) return;
       raf = requestAnimationFrame(() => {
         raf = 0;
         const y = window.scrollY;
-        const maxY = document.documentElement.scrollHeight - window.innerHeight;
         if (y > last) {
-          if (y > 80 && y - anchor > 24 && y < maxY - 4) setMinimised(true);
+          if (!min && y > 80 && y - anchor > 24) {
+            const maxY = document.documentElement.scrollHeight - window.innerHeight;
+            if (y < maxY - 4) flip(true);
+          }
           if (y - anchor > 24) anchor = y;
         } else if (last - y > 8 || y < 40) {
-          setMinimised(false);
+          flip(false);
           anchor = y;
         }
         last = y;
@@ -64,6 +98,16 @@ export function useScrollDirection(enabled = true) {
     };
   }, [enabled]);
   return minimised;
+}
+
+/** Runs `fn` when the main thread is idle (at the latest after `timeout` ms); returns a cancel function. */
+export function whenIdle(fn: () => void, timeout = 120): () => void {
+  if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+    const id = window.requestIdleCallback(fn, { timeout });
+    return () => window.cancelIdleCallback(id);
+  }
+  const id = setTimeout(fn, 16);
+  return () => clearTimeout(id);
 }
 
 /** The compose narrative/count-up tests can slow the composer down with `?slow=1` on localhost only. */

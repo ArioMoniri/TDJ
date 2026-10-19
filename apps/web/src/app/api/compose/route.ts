@@ -1,6 +1,7 @@
 import { compose, type Tanda } from "@tdj/core";
 import { NextResponse } from "next/server";
 import { getCatalogFor } from "@/lib/server/catalog";
+import { forWire } from "@/lib/server/wire";
 import type { AppOverrides } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -41,7 +42,7 @@ export async function POST(req: Request) {
       { catalog, cortinas, contextModel },
       { locked },
     );
-    return NextResponse.json(p);
+    return NextResponse.json(forWire(p));
   } catch (e) {
     return bad(e instanceof Error ? e.message : "Could not compose this set");
   }

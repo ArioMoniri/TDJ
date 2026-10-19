@@ -1,19 +1,26 @@
 "use client";
-import { AudioLines, AudioWaveform, ChevronRight, Headphones, Lock, LockOpen, Repeat2 } from "lucide-react";
+import { AudioWaveform, Headphones, Lock, LockOpen, Repeat2 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { analyseTanda } from "@/lib/analyze";
-import { cohesionFor } from "@/lib/audio";
+import { cohesionWith } from "@/lib/audio";
 import { haptic } from "@/lib/haptics";
+import { useMediaQuery } from "@/lib/hooks";
 import { CARD_STAGGER_CAP, DUR, EASE, STAGGER } from "@/lib/motion";
 import { useStore } from "@/lib/store";
 import type { ReferencePlaylist, Tanda } from "@/lib/types";
 import { CohesionBadge } from "./CohesionBadge";
 import { CountUp } from "./CountUp";
-import { CortinaPreview, TandaListen } from "./Listen";
+import { I } from "./Icons";
 import { Menu } from "./Menu";
 import { SwipeRow } from "./SwipeRow";
 import { TrackRow } from "./TrackRow";
+
+/* Spotify embeds and the connected-account lookups load with the first "Listen" / cortina tap, not with the set. */
+const TandaListen = dynamic(() => import("./Listen").then((m) => m.TandaListen), { ssr: false });
+const CortinaPreview = dynamic(() => import("./Listen").then((m) => m.CortinaPreview), { ssr: false });
 
 const PHASE: Record<string, string> = {
   warmup: "warm-up",
@@ -23,8 +30,41 @@ const PHASE: Record<string, string> = {
   close: "close",
 };
 
+export interface TandaCardProps {
+  t: Tanda;
+  i: number;
+  /** called with the tanda index */
+  onSwap: (i: number) => void;
+  /** called with the tanda index and the track index */
+  onSwapTrack: (i: number, k: number) => void;
+  /** called with the tanda index */
+  onLock: (i: number) => void;
+  /** History: no swap / lock actions, everything else as on the composer */
+  readOnly?: boolean;
+  /** this tanda was replaced by the last chip / refine */
+  changed?: boolean;
+  busy?: boolean;
+  swappingTrack?: number | null;
+  active?: boolean;
+  playlists: ReferencePlaylist[];
+  /** a recompose is in flight: unlocked cards dim, locked ones hold */
+  settling?: boolean;
+  /** first reveal of a new set: stagger the entrance from index 0 (read once, at mount) */
+  fresh?: boolean;
+  /** a per-track swap found nothing: row `k` nudges once per `n` */
+  nudge?: { k: number; n: number } | null;
+  /** the energy before a swap, so the number counts from old to new */
+  prevEnergy?: number;
+  /**
+   * This card is the one being swapped or locked right now: its rows get `layout` position animations.
+   * Every other card renders without layout measurement (22 cards × 4 rows measured per render was the main
+   * compose-time cost on phones).
+   */
+  animateLayout?: boolean;
+}
+
 /** A tanda as one inset group: artwork tile + title row, track rows, cortina row, Listen (row on phone, menu on desktop). */
-export function TandaCard({
+function TandaCardImpl({
   t,
   i,
   onSwap,
@@ -40,36 +80,19 @@ export function TandaCard({
   prevEnergy,
   readOnly = false,
   changed = false,
-}: {
-  t: Tanda;
-  i: number;
-  onSwap: () => void;
-  onSwapTrack: (k: number) => void;
-  onLock: () => void;
-  /** History: no swap / lock actions, everything else as on the composer */
-  readOnly?: boolean;
-  /** this tanda was replaced by the last chip / refine */
-  changed?: boolean;
-  busy?: boolean;
-  swappingTrack?: number | null;
-  active?: boolean;
-  playlists: ReferencePlaylist[];
-  /** a recompose is in flight: unlocked cards dim, locked ones hold */
-  settling?: boolean;
-  /** first reveal of a new set: stagger the entrance from index 0 */
-  fresh?: boolean;
-  /** a per-track swap found nothing: row `k` nudges once per `n` */
-  nudge?: { k: number; n: number } | null;
-  /** the energy before a swap, so the number counts from old to new */
-  prevEnergy?: number;
-}) {
+  animateLayout = false,
+}: TandaCardProps) {
   const reduced = useReducedMotion();
+  const isPhone = useMediaQuery("(max-width: 639px)");
   const [listen, setListen] = useState(false);
   const [cortinaOpen, setCortinaOpen] = useState(false);
   const [analysing, setAnalysing] = useState(false);
-  const overrides = useStore((s) => s.overrides);
-  const cohesion = useMemo(() => cohesionFor(t, overrides), [t, overrides]);
+  // only this tanda's song patches: an analysis elsewhere in the set does not re-render this card
+  const patches = useStore(useShallow((s) => t.songs.map((x) => s.overrides.songs?.[x.id])));
+  const cohesion = useMemo(() => cohesionWith(t, patches), [t, patches]);
   const ref = useRef<HTMLElement>(null);
+  // the stagger applies to the mount only; later renders (settling, swaps) must not inherit the delay
+  const freshAtMount = useRef(fresh).current;
   const dim = settling && !t.locked;
   const analyseAll = async () => {
     setAnalysing(true);
@@ -85,11 +108,13 @@ export function TandaCard({
       : Math.floor(a / 100) === Math.floor(b / 100)
         ? `${a}–${String(b).slice(2)}`
         : `${a}–${b}`;
-  const delay = reduced ? 0 : (fresh ? Math.min(i, CARD_STAGGER_CAP) : 0) * STAGGER.cards;
-  const lock = () => {
+  const delay = reduced ? 0 : (freshAtMount ? Math.min(i, CARD_STAGGER_CAP) : 0) * STAGGER.cards;
+  const lock = useCallback(() => {
     haptic(8);
-    onLock();
-  };
+    onLock(i);
+  }, [onLock, i]);
+  const swap = useCallback(() => onSwap(i), [onSwap, i]);
+  const swapTrack = useCallback((k: number) => onSwapTrack(i, k), [onSwapTrack, i]);
   const sub = [
     t.singer ?? "Instrumental",
     t.yearRange ? yr(t.yearRange[0], t.yearRange[1]) : "year ?",
@@ -98,11 +123,28 @@ export function TandaCard({
   ]
     .filter(Boolean)
     .join(" · ");
+  const lockItem = !readOnly && {
+    label: t.locked ? "Unlock tanda" : "Lock tanda",
+    icon: t.locked ? LockOpen : Lock,
+    onClick: lock,
+  };
+  const swapItem = !readOnly && {
+    label: "Swap tanda",
+    icon: Repeat2,
+    onClick: swap,
+    disabled: t.locked || busy,
+  };
+  const analyseItem = {
+    label: analysing ? "Analysing…" : "Analyse all tracks",
+    icon: AudioWaveform,
+    onClick: analyseAll,
+    disabled: analysing,
+  };
 
   return (
     <motion.article
       ref={ref}
-      layout={reduced ? false : t.locked ? "position" : true}
+      layout={animateLayout && !reduced ? "position" : false}
       initial={{ opacity: 0, y: reduced ? 0 : 12 }}
       animate={{
         opacity: dim ? 0.55 : 1,
@@ -111,8 +153,7 @@ export function TandaCard({
         transition: { duration: dim ? DUR.base : 0.32, ease: EASE.out, delay: dim ? 0 : delay },
       }}
       exit={{ opacity: 0, scale: reduced ? 1 : 0.98, transition: { duration: DUR.fast, ease: EASE.in } }}
-      style={{ willChange: "transform, opacity" }}
-      className={`group-inset group/card min-w-0 ${active ? "ring-2 ring-[var(--tint)]" : ""} ${
+      className={`group-inset group/card tanda-card min-w-0 ${active ? "ring-2 ring-[var(--tint)]" : ""} ${
         t.locked ? "ring-1 ring-[color-mix(in_srgb,var(--system-gold)_60%,transparent)]" : ""
       }`}
       id={`tanda-${i + 1}`}
@@ -132,7 +173,7 @@ export function TandaCard({
           aria-hidden
         />
       )}
-      <motion.div animate={{ opacity: busy ? 0.6 : 1 }} transition={{ duration: DUR.base }}>
+      <div style={{ opacity: busy ? 0.6 : 1, transition: "opacity var(--dur-s) var(--ease-settle)" }}>
         <SwipeRow
           leading="art"
           actions={
@@ -142,10 +183,10 @@ export function TandaCard({
                   {
                     kind: "lock",
                     label: t.locked ? "Unlock" : "Lock",
-                    icon: t.locked ? LockOpen : Lock,
+                    icon: t.locked ? "unlock" : "lock",
                     onClick: lock,
                   },
-                  { kind: "swap", label: "Swap", icon: Repeat2, onClick: onSwap, disabled: t.locked || busy },
+                  { kind: "swap", label: "Swap", icon: "swap", onClick: swap, disabled: t.locked || busy },
                 ]
           }
         >
@@ -175,15 +216,17 @@ export function TandaCard({
               <span className="text-headline block tabular-nums">
                 <CountUp value={t.energy} from={prevEnergy ?? t.energy} duration={DUR.slow} />
               </span>
-              <span
-                className="text-caption1 hidden text-[var(--label-2)] sm:block"
-                title="The arc's target energy for this slot"
-              >
-                target {t.targetEnergy}
-              </span>
+              {!isPhone && (
+                <span
+                  className="text-caption1 block text-[var(--label-2)]"
+                  title="The arc's target energy for this slot"
+                >
+                  target {t.targetEnergy}
+                </span>
+              )}
             </span>
-            {!readOnly && (
-              <span className="hidden items-center gap-0.5 sm:inline-flex">
+            {!readOnly && !isPhone && (
+              <span className="inline-flex items-center gap-0.5">
                 <button
                   type="button"
                   className="icon-btn icon-btn-bare -my-2 h-9 w-9 opacity-0 transition-opacity focus-visible:opacity-100 group-hover/card:opacity-100 data-[on]:opacity-100"
@@ -192,20 +235,16 @@ export function TandaCard({
                   data-on={t.locked || undefined}
                   onClick={lock}
                 >
-                  {t.locked ? (
-                    <LockOpen size={17} strokeWidth={1.75} />
-                  ) : (
-                    <Lock size={17} strokeWidth={1.75} />
-                  )}
+                  <I name={t.locked ? "unlock" : "lock"} size={17} strokeWidth={1.75} />
                 </button>
                 <button
                   type="button"
                   className="icon-btn icon-btn-bare -my-2 h-9 w-9 opacity-0 transition-opacity focus-visible:opacity-100 disabled:opacity-0 group-hover/card:opacity-100"
                   aria-label={`Swap tanda ${i + 1}`}
                   disabled={t.locked || busy}
-                  onClick={onSwap}
+                  onClick={swap}
                 >
-                  <Repeat2 size={17} strokeWidth={1.75} className={busy ? "animate-spin" : ""} />
+                  <I name="swap" size={17} strokeWidth={1.75} className={busy ? "animate-spin" : ""} />
                 </button>
               </span>
             )}
@@ -223,35 +262,24 @@ export function TandaCard({
                 </motion.span>
               )}
             </AnimatePresence>
-            <Menu
-              label={`Tanda ${i + 1} actions`}
-              className="-mr-3 max-sm:sr-only sm:inline-flex"
-              contextRef={ref}
-              items={[
-                !readOnly && {
-                  label: t.locked ? "Unlock tanda" : "Lock tanda",
-                  icon: t.locked ? LockOpen : Lock,
-                  onClick: lock,
-                },
-                !readOnly && {
-                  label: "Swap tanda",
-                  icon: Repeat2,
-                  onClick: onSwap,
-                  disabled: t.locked || busy,
-                },
-                {
-                  label: listen ? "Hide player" : "Listen",
-                  icon: Headphones,
-                  onClick: () => setListen((v) => !v),
-                },
-                {
-                  label: analysing ? "Analysing…" : "Analyse all tracks",
-                  icon: AudioWaveform,
-                  onClick: analyseAll,
-                  disabled: analysing,
-                },
-              ]}
-            />
+            {!isPhone && (
+              <Menu
+                label={`Tanda ${i + 1} actions`}
+                className="-mr-3 inline-flex"
+                contextRef={ref}
+                icon={<I name="more" size={20} strokeWidth={2} />}
+                items={[
+                  lockItem,
+                  swapItem,
+                  {
+                    label: listen ? "Hide player" : "Listen",
+                    icon: Headphones,
+                    onClick: () => setListen((v) => !v),
+                  },
+                  analyseItem,
+                ]}
+              />
+            )}
           </div>
         </SwipeRow>
         <ol>
@@ -264,55 +292,41 @@ export function TandaCard({
                 rhythm={t.rhythm}
                 inFlight={swappingTrack === k}
                 nudge={nudge?.k === k ? nudge.n : 0}
-                onSwap={() => onSwapTrack(k)}
+                onSwap={swapTrack}
                 disabled={t.locked || readOnly}
                 swapLabel={`Swap track ${k + 1} of tanda ${i + 1}`}
+                animateLayout={animateLayout}
               />
             ))}
           </AnimatePresence>
         </ol>
-        <div className="flex sm:hidden">
-          <button
-            type="button"
-            className="cell cell-tap min-w-0 flex-1 text-left"
-            aria-pressed={listen}
-            aria-expanded={listen}
-            aria-controls={`listen-${i + 1}`}
-            onClick={() => setListen((v) => !v)}
-          >
-            <Headphones size={16} strokeWidth={2} className="text-[var(--label-2)]" aria-hidden />
-            <span className="min-w-0 flex-1 truncate">{listen ? "Hide player" : "Listen"}</span>
-            <ChevronRight
-              size={16}
-              strokeWidth={2.5}
-              className={`cell-chevron transition-transform ${listen ? "rotate-90" : ""}`}
-              aria-hidden
+        {isPhone && (
+          <div className="flex">
+            <button
+              type="button"
+              className="cell cell-tap min-w-0 flex-1 text-left"
+              aria-pressed={listen}
+              aria-expanded={listen}
+              aria-controls={`listen-${i + 1}`}
+              onClick={() => setListen((v) => !v)}
+            >
+              <I name="headphones" size={16} strokeWidth={2} className="text-[var(--label-2)]" />
+              <span className="min-w-0 flex-1 truncate">{listen ? "Hide player" : "Listen"}</span>
+              <I
+                name="chevron"
+                size={16}
+                strokeWidth={2.5}
+                className={`cell-chevron transition-transform ${listen ? "rotate-90" : ""}`}
+              />
+            </button>
+            <Menu
+              label={`Tanda ${i + 1} actions`}
+              className="icon-btn-bare mr-2 self-center"
+              icon={<I name="more" size={20} strokeWidth={2} />}
+              items={[lockItem, swapItem, analyseItem]}
             />
-          </button>
-          <Menu
-            label={`Tanda ${i + 1} actions`}
-            className="icon-btn-bare mr-2 self-center"
-            items={[
-              !readOnly && {
-                label: t.locked ? "Unlock tanda" : "Lock tanda",
-                icon: t.locked ? LockOpen : Lock,
-                onClick: lock,
-              },
-              !readOnly && {
-                label: "Swap tanda",
-                icon: Repeat2,
-                onClick: onSwap,
-                disabled: t.locked || busy,
-              },
-              {
-                label: analysing ? "Analysing…" : "Analyse all tracks",
-                icon: AudioWaveform,
-                onClick: analyseAll,
-                disabled: analysing,
-              },
-            ]}
-          />
-        </div>
+          </div>
+        )}
         <AnimatePresence initial={false}>
           {listen && (
             <motion.div
@@ -339,15 +353,15 @@ export function TandaCard({
               aria-expanded={cortinaOpen}
               aria-controls={`cortina-${i + 1}`}
             >
-              <AudioLines size={16} strokeWidth={2} className="text-[var(--label-2)]" aria-hidden />
+              <I name="cortina" size={16} strokeWidth={2} className="text-[var(--label-2)]" />
               <span className="min-w-0 flex-1 truncate text-[var(--label-2)]">
                 Cortina · {t.cortina.artist} – {t.cortina.title} · {t.cortina.lengthSec ?? 45} s
               </span>
-              <ChevronRight
+              <I
+                name="chevron"
                 size={16}
                 strokeWidth={2.5}
                 className={`cell-chevron transition-transform ${cortinaOpen ? "rotate-90" : ""}`}
-                aria-hidden
               />
             </button>
             <AnimatePresence initial={false}>
@@ -369,7 +383,16 @@ export function TandaCard({
             </AnimatePresence>
           </>
         )}
-      </motion.div>
+      </div>
     </motion.article>
   );
 }
+
+/** `fresh` is consumed at mount only, so a flip of it alone never re-renders the card. */
+export const TandaCard = memo(TandaCardImpl, (a, b) => {
+  for (const k of Object.keys({ ...a, ...b }) as Array<keyof TandaCardProps>) {
+    if (k === "fresh") continue;
+    if (!Object.is(a[k], b[k])) return false;
+  }
+  return true;
+});

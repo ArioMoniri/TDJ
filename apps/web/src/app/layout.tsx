@@ -3,6 +3,7 @@ import { Fraunces, Inter } from "next/font/google";
 import "./globals.css";
 import { Boot } from "@/components/Boot";
 import { GlobalToast } from "@/components/GlobalToast";
+import { IconSprite } from "@/components/Icons";
 import { MiniPlayer } from "@/components/MiniPlayer";
 import { Motion } from "@/components/Motion";
 import { Nav } from "@/components/Nav";
@@ -55,6 +56,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-dvh">
         <div className="ambient" aria-hidden />
+        <IconSprite />
         <ThemeSync />
         <Boot />
         <ToolbarProvider>

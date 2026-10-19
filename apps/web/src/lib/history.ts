@@ -1,9 +1,15 @@
 "use client";
-import { del, get, set } from "idb-keyval";
+import { del, delMany, get, getMany, keys, setMany } from "idb-keyval";
 import type { StorageMode } from "./overrides";
 import { HISTORY_MAX, type HistorySnapshot, type Playlist } from "./types";
 
-const KEY = "tdj-history-v1";
+/** v1 stored the whole list under one key: every save re-cloned up to 50 sets (~5 MB) on the main thread */
+const LEGACY_KEY = "tdj-history-v1";
+/** v2: one record per snapshot plus an ordered index, so a save writes the one new or renamed snapshot */
+const INDEX_KEY = "tdj-history-v2:index";
+const keyOf = (id: string) => `tdj-history-v2:${id}`;
+/** what IndexedDB holds right now (by reference): a save writes only what differs */
+const stored = new Map<string, HistorySnapshot>();
 /** the server row is one DynamoDB item (400 KB): history there keeps the newest snapshots that fit this budget */
 export const SERVER_HISTORY_BYTES = 300_000;
 
@@ -18,9 +24,12 @@ const ERA_LABEL: Record<string, string> = {
 };
 const fmtHours = (h: number) => (Number.isInteger(h) ? `${h} h` : `${h} h`.replace(".5 h", "½ h"));
 
-/** Auto title: "Sat · Golden age · 4 h" (the event name when Tonight has one). */
+const WEEKDAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+/** Auto title: "Sat · Golden age · 4 h" (the event name when Tonight has one). No `Intl`: its first call loads
+ *  ICU data on the main thread right after the result paints (100 ms on a phone). */
 export function snapshotTitle(p: Playlist, at = new Date()): string {
-  const day = at.toLocaleDateString(undefined, { weekday: "short" });
+  const day = WEEKDAY[at.getDay()] ?? "";
   const era = ERA_LABEL[p.options.eras?.[0] ?? "golden"] ?? p.options.eras?.[0] ?? "Golden age";
   const ev = p.options.context?.event;
   const evLabel = ev && ev !== "milonga" ? ` · ${ev[0]!.toUpperCase()}${ev.slice(1)}` : "";
@@ -69,11 +78,42 @@ export function isSnapshot(x: unknown): x is HistorySnapshot {
 
 export async function loadHistoryLocal(): Promise<HistorySnapshot[]> {
   try {
-    const v = await get<HistorySnapshot[]>(KEY);
-    return Array.isArray(v) ? v.filter(isSnapshot).slice(0, HISTORY_MAX) : [];
+    const ids = await get<string[]>(INDEX_KEY);
+    let list: HistorySnapshot[];
+    if (Array.isArray(ids)) {
+      const rows = await getMany<HistorySnapshot>(ids.map(keyOf));
+      list = rows.filter(isSnapshot).slice(0, HISTORY_MAX);
+    } else {
+      // first run on the v2 layout: take the v1 list over, one record per snapshot
+      const legacy = await get<HistorySnapshot[]>(LEGACY_KEY);
+      list = Array.isArray(legacy) ? legacy.filter(isSnapshot).slice(0, HISTORY_MAX) : [];
+      if (list.length) {
+        await setMany([
+          [INDEX_KEY, list.map((h) => h.id)],
+          ...list.map((h) => [keyOf(h.id), h] as [string, HistorySnapshot]),
+        ]);
+        await del(LEGACY_KEY);
+      }
+    }
+    stored.clear();
+    for (const h of list) stored.set(h.id, h);
+    return list;
   } catch {
     return [];
   }
+}
+
+/** Write the index and only the snapshots IndexedDB does not hold yet (new, or renamed → a new object). */
+async function writeLocal(list: HistorySnapshot[]) {
+  const changed = list.filter((h) => stored.get(h.id) !== h);
+  const gone = [...stored.keys()].filter((id) => !list.some((h) => h.id === id));
+  await setMany([
+    [INDEX_KEY, list.map((h) => h.id)],
+    ...changed.map((h) => [keyOf(h.id), h] as [string, HistorySnapshot]),
+  ]);
+  if (gone.length) await delMany(gone.map(keyOf));
+  for (const id of gone) stored.delete(id);
+  for (const h of changed) stored.set(h.id, h);
 }
 
 /** Newest first, capped at 50 entries. */
@@ -106,12 +146,15 @@ const flush = () => {
 };
 if (typeof window !== "undefined") window.addEventListener("pagehide", flush);
 
-/** Persist (debounced): IndexedDB always, plus the server row when enabled (bounded there). */
-export function saveHistory(list: HistorySnapshot[], mode: StorageMode) {
+/**
+ * Persist (debounced): IndexedDB always, plus the server row when enabled (bounded there). A save writes one
+ * record (the new or renamed snapshot) and the index, so it is cheap enough to run right after the debounce.
+ */
+export function saveHistory(list: HistorySnapshot[], mode: StorageMode, immediate = false) {
   if (timer) clearTimeout(timer);
   pending = async () => {
     try {
-      await set(KEY, list);
+      await writeLocal(list);
     } catch {}
     if (mode === "server")
       await fetch("/api/db", {
@@ -121,13 +164,17 @@ export function saveHistory(list: HistorySnapshot[], mode: StorageMode) {
         keepalive: true,
       }).catch(() => {});
   };
-  timer = setTimeout(flush, 250);
+  // a rename or a delete is one small record: write it now, so a reload right after keeps it
+  if (immediate) flush();
+  else timer = setTimeout(flush, 250);
 }
 
 export async function clearHistoryStore(mode: StorageMode) {
   if (timer) clearTimeout(timer);
   try {
-    await del(KEY);
+    const all = (await keys()).filter((k) => typeof k === "string" && k.startsWith("tdj-history-v"));
+    await delMany(all);
+    stored.clear();
   } catch {}
   if (mode === "server")
     await fetch("/api/db", {

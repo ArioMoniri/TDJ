@@ -1,6 +1,7 @@
 import { swapTrack } from "@tdj/core";
 import { NextResponse } from "next/server";
 import { getCatalogFor } from "@/lib/server/catalog";
+import { forWire } from "@/lib/server/wire";
 export const dynamic = "force-dynamic";
 export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
@@ -8,5 +9,5 @@ export async function POST(req: Request) {
   const { playlist, tandaIndex, trackIndex } = body;
   const { catalog, cortinas, contextModel } = getCatalogFor(playlist.options?.overrides);
   const np = swapTrack(playlist, Number(tandaIndex), Number(trackIndex), { catalog, cortinas, contextModel });
-  return NextResponse.json({ ...np, changed: np !== playlist });
+  return NextResponse.json({ ...forWire(np), changed: np !== playlist });
 }

@@ -1,8 +1,9 @@
 "use client";
 import { emptyMemory } from "@tdj/core";
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { type PersistStorage, persist } from "zustand/middleware";
 import { clearHistoryStore, isSnapshot, loadHistoryLocal, pushSnapshot, saveHistory } from "./history";
+import { whenIdle } from "./hooks";
 import { clearMemoryStore, saveMemory } from "./memory";
 import { clearOverrides, loadOverrides, type StorageMode, saveOverrides } from "./overrides";
 import type {
@@ -70,6 +71,47 @@ interface State {
   clearMemory: () => Promise<void>;
 }
 
+/**
+ * localStorage, written in idle time. The persisted slice carries the whole playlist (~100 KB), and the default
+ * storage stringifies and writes it synchronously on every `set` (busy on, playlist, busy off, …): on a phone that
+ * was a 150 ms task right after the result painted. Writes coalesce to the latest value and flush on pagehide.
+ */
+function idleLocalStorage<T>(): PersistStorage<T> | undefined {
+  if (typeof window === "undefined") return undefined;
+  let latest: { name: string; value: unknown } | null = null;
+  let cancel: (() => void) | null = null;
+  const flush = () => {
+    cancel = null;
+    if (!latest) return;
+    const { name, value } = latest;
+    latest = null;
+    try {
+      localStorage.setItem(name, JSON.stringify(value));
+    } catch {}
+  };
+  window.addEventListener("pagehide", flush);
+  return {
+    getItem: (name) => {
+      try {
+        const raw = localStorage.getItem(name);
+        return raw ? JSON.parse(raw) : null;
+      } catch {
+        return null;
+      }
+    },
+    setItem: (name, value) => {
+      latest = { name, value };
+      if (!cancel) cancel = whenIdle(flush, 400);
+    },
+    removeItem: (name) => {
+      latest = null;
+      cancel?.();
+      cancel = null;
+      localStorage.removeItem(name);
+    },
+  };
+}
+
 export const useStore = create<State>()(
   persist(
     (set, get) => ({
@@ -91,12 +133,12 @@ export const useStore = create<State>()(
       updateSnapshot: (id, patch) => {
         const next = get().history.map((h) => (h.id === id ? { ...h, ...patch } : h));
         set({ history: next });
-        saveHistory(next, get().storageMode);
+        saveHistory(next, get().storageMode, true);
       },
       removeSnapshot: (id) => {
         const next = get().history.filter((h) => h.id !== id);
         set({ history: next });
-        saveHistory(next, get().storageMode);
+        saveHistory(next, get().storageMode, true);
       },
       clearHistory: async () => {
         set({ history: [] });
@@ -161,6 +203,7 @@ export const useStore = create<State>()(
     {
       name: "tdj-v1",
       version: 3,
+      storage: idleLocalStorage(),
       partialize: (s) => ({
         options: s.options,
         settings: s.settings,
