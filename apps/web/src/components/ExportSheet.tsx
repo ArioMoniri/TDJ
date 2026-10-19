@@ -14,11 +14,16 @@ import {
   type ConnectApp,
   connectExport,
   createPlaylist,
+  directPost,
+  dropboxLoginUrl,
+  type FileResult,
+  googleLoginUrl,
   hostedCreatePlaylist,
   hostedLoginUrl,
   refresh,
   resolveTrack,
   useConnectors,
+  type YoutubeResult,
 } from "@/lib/spotify";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
@@ -104,12 +109,16 @@ export function ExportSheet({
     updateOverrides,
   } = useStore();
   const playlist = given ?? current;
-  const { spotify, connect } = useConnectors();
+  const { spotify, google, dropbox, connect } = useConnectors();
   const hosted = spotify?.hosted ?? false;
   const hostedUser = spotify?.user ?? null;
   const accounts = connect?.accounts ?? [];
   const fileAccounts = accounts.filter((a) => a.app === "dropbox" || a.app === "google_drive");
   const listAccounts = accounts.filter((a) => a.app === "youtube_data_api" || a.app === "spotify");
+  // direct connections (the deployment's own Google and Dropbox apps) come before the Pipedream accounts
+  const googleOn = google?.hosted ?? false;
+  const dropboxOn = dropbox?.hosted ?? false;
+  const hasFileTarget = googleOn || dropboxOn || fileAccounts.length > 0;
   const [cloudBusy, setCloudBusy] = useState<string | null>(null);
   const webhookUrl = overrides.connectors?.webhookUrl ?? "";
   const [hookFormat, setHookFormat] = useState<ExportFormat>("m3u8");
@@ -247,19 +256,7 @@ export function ExportSheet({
     if (!playlist || !webhookUrl) return;
     setHookBusy(true);
     try {
-      const r = await fetch("/api/export", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          playlist,
-          format: hookFormat,
-          includeCortinas,
-          folder: folderFor(hookFormat),
-          naming: settings.fileNaming,
-        }),
-      });
-      if (!r.ok) throw new Error(`Export failed (${r.status})`);
-      const how = await sendToWebhook(webhookUrl, await r.text(), hookFormat, playlist.name);
+      const how = await sendToWebhook(webhookUrl, await exportText(hookFormat), hookFormat, playlist.name);
       haptic([10, 40, 10]);
       setLog((l) => [
         ...l,
@@ -283,24 +280,12 @@ export function ExportSheet({
       const isFile = a.app === "dropbox" || a.app === "google_drive";
       let r: Awaited<ReturnType<typeof connectExport>>;
       if (isFile) {
-        const x = await fetch("/api/export", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            playlist,
-            format: hookFormat,
-            includeCortinas,
-            folder: folderFor(hookFormat),
-            naming: settings.fileNaming,
-          }),
-        });
-        if (!x.ok) throw new Error(`Export failed (${x.status})`);
         r = await connectExport({
           app: a.app,
           accountId: a.id,
           format: hookFormat,
           filename: `${playlist.name.replace(/[^a-z0-9-]+/gi, "_")}.${EXPORT_META[hookFormat].ext}`,
-          text: await x.text(),
+          text: await exportText(hookFormat),
         });
         setLog((l) => [
           ...l,
@@ -317,6 +302,65 @@ export function ExportSheet({
       if (typeof r.url === "string") setResult({ label: `Open in ${a.label}`, url: r.url });
       haptic([10, 40, 10]);
       toast(isFile ? `Saved to ${a.label}` : `${a.label} playlist created`);
+    } catch (e) {
+      setLog((l) => [...l, `Error: ${(e as Error).message}`]);
+      haptic([20, 30, 20]);
+    } finally {
+      setCloudBusy(null);
+    }
+  };
+  /** The export text of the chosen file format, with the DJ's folders and naming applied. */
+  const exportText = async (format: ExportFormat) => {
+    if (!playlist) throw new Error("No playlist");
+    const x = await fetch("/api/export", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        playlist,
+        format,
+        includeCortinas,
+        folder: folderFor(format),
+        naming: settings.fileNaming,
+      }),
+    });
+    if (!x.ok) throw new Error(`Export failed (${x.status})`);
+    return x.text();
+  };
+  const here = () => `${location.pathname}${location.search}`;
+  /** Direct: the chosen file to Dropbox or Google Drive, or a playlist on YouTube, with the sealed-cookie session. */
+  const toDirect = async (target: "dropbox" | "google_drive" | "youtube") => {
+    if (!playlist) return;
+    const label = target === "dropbox" ? "Dropbox" : target === "google_drive" ? "Google Drive" : "YouTube";
+    if (target === "dropbox" && !dropbox?.user) return location.assign(dropboxLoginUrl(here()));
+    if (target !== "dropbox" && !google?.user)
+      return location.assign(googleLoginUrl(target === "youtube" ? "youtube" : "drive", here()));
+    setCloudBusy(target);
+    try {
+      if (target === "youtube") {
+        const r = await directPost<YoutubeResult>("/api/google/youtube", { playlist, includeCortinas });
+        const miss = r.missing.length;
+        const skipped = r.skipped?.length ?? 0;
+        setLog((l) => [
+          ...l,
+          `Created the YouTube playlist with ${r.added} tracks${miss ? `, ${miss} not found` : ""}${skipped ? `, ${skipped} left out (YouTube's daily search budget ran out; try the rest another day)` : ""}.`,
+        ]);
+        setResult({ label: "Open in YouTube", url: r.url });
+        toast(skipped ? "YouTube playlist created, part left out" : "YouTube playlist created");
+      } else {
+        const filename = `${playlist.name.replace(/[^a-z0-9-]+/gi, "_")}.${EXPORT_META[hookFormat].ext}`;
+        const text = await exportText(hookFormat);
+        const r = await directPost<FileResult>(
+          target === "dropbox" ? "/api/dropbox/upload" : "/api/google/drive",
+          { format: hookFormat, filename, text, set: playlist.name },
+        );
+        setLog((l) => [
+          ...l,
+          `Saved ${EXPORT_META[hookFormat].label} to ${label}${r.path ? ` (${r.path})` : ""}.`,
+        ]);
+        if (r.url) setResult({ label: `Open in ${label}`, url: r.url });
+        toast(`Saved to ${label}`);
+      }
+      haptic([10, 40, 10]);
     } catch (e) {
       setLog((l) => [...l, `Error: ${(e as Error).message}`]);
       haptic([20, 30, 20]);
@@ -422,8 +466,8 @@ export function ExportSheet({
       <Group
         header="Send to"
         footer={
-          accounts.length
-            ? `Spotify creates a playlist in your account. ${fileAccounts.length ? "Cloud folders receive the file format chosen above. " : ""}${listAccounts.some((a) => a.app === "youtube_data_api") ? "YouTube matching shares a daily budget with every TDJ user, so some recordings may be left out. " : ""}Connections are managed in Settings.`
+          accounts.length || googleOn || dropboxOn
+            ? `Spotify creates a playlist in your account. ${hasFileTarget ? "Cloud folders receive the file format chosen above. " : ""}${googleOn || listAccounts.some((a) => a.app === "youtube_data_api") ? "YouTube matching shares a daily budget with every TDJ user, so some recordings may be left out. " : ""}Connections are managed in Settings.`
             : webhookUrl
               ? "The chosen format is POSTed to your webhook: Pipedream, Make, Zapier or n8n can file it, mail it or push it to a DJ app. The URL lives in this browser only."
               : hosted
@@ -455,6 +499,23 @@ export function ExportSheet({
           busy={busy}
           id="send-spotify"
         />
+        {googleOn && (
+          <Row
+            tile={
+              <Tile color="#ff0000">
+                <ListVideo size={16} strokeWidth={2} />
+              </Tile>
+            }
+            label="YouTube"
+            sub={google?.user?.email ?? google?.user?.name}
+            value={!google?.user ? "Connect" : google.scopes?.youtube ? "Create playlist" : "Allow"}
+            chevron
+            onClick={() => toDirect("youtube")}
+            busy={cloudBusy === "youtube"}
+            disabled={!!cloudBusy}
+            id="send-youtube"
+          />
+        )}
         {listAccounts.map((a) => (
           <Row
             key={a.id}
@@ -467,17 +528,17 @@ export function ExportSheet({
                 )}
               </Tile>
             }
-            label={a.app === "spotify" ? "Spotify via Pipedream" : a.label}
+            label={`${a.label} via Pipedream`}
             sub={a.name}
             value="Create playlist"
             chevron
             onClick={() => toCloud(a)}
             busy={cloudBusy === a.id}
             disabled={!!cloudBusy}
-            id={`send-${a.app}`}
+            id={`send-pd-${a.app}`}
           />
         ))}
-        {(fileAccounts.length > 0 || webhookUrl) && (
+        {(hasFileTarget || webhookUrl) && (
           <PickerRow
             label="File format"
             ariaLabel="File format"
@@ -489,6 +550,42 @@ export function ExportSheet({
                 <FileDown size={16} strokeWidth={2} />
               </Tile>
             }
+          />
+        )}
+        {dropboxOn && (
+          <Row
+            tile={
+              <Tile color="#0061ff">
+                <Cloud size={16} strokeWidth={2} />
+              </Tile>
+            }
+            label="Save to Dropbox"
+            sub={dropbox?.user?.email ?? dropbox?.user?.name}
+            value={dropbox?.user ? `.${EXPORT_META[hookFormat].ext}` : "Connect"}
+            chevron
+            onClick={() => toDirect("dropbox")}
+            busy={cloudBusy === "dropbox"}
+            disabled={!!cloudBusy}
+            id="send-dropbox"
+          />
+        )}
+        {googleOn && (
+          <Row
+            tile={
+              <Tile color="#1fa463">
+                <HardDrive size={16} strokeWidth={2} />
+              </Tile>
+            }
+            label="Save to Google Drive"
+            sub={google?.user?.email ?? google?.user?.name}
+            value={
+              !google?.user ? "Connect" : google.scopes?.drive ? `.${EXPORT_META[hookFormat].ext}` : "Allow"
+            }
+            chevron
+            onClick={() => toDirect("google_drive")}
+            busy={cloudBusy === "google_drive"}
+            disabled={!!cloudBusy}
+            id="send-google_drive"
           />
         )}
         {fileAccounts.map((a) => (
@@ -503,14 +600,14 @@ export function ExportSheet({
                 )}
               </Tile>
             }
-            label={`Save to ${a.label}`}
+            label={`Save to ${a.label} via Pipedream`}
             sub={a.name}
             value={`.${EXPORT_META[hookFormat].ext}`}
             chevron
             onClick={() => toCloud(a)}
             busy={cloudBusy === a.id}
             disabled={!!cloudBusy}
-            id={`send-${a.app}`}
+            id={`send-pd-${a.app}`}
           />
         ))}
         {webhookUrl ? (

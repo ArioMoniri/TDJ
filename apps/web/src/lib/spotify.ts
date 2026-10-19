@@ -294,18 +294,81 @@ export async function connectExport(
   return j;
 }
 
+/* ---------- Direct Google (Drive + YouTube) and Dropbox: the deployment's own OAuth apps ---------- */
+
+export type GoogleFeature = "drive" | "youtube";
+export interface DirectState {
+  /** the deployment has this provider's credentials */
+  hosted: boolean;
+  user: { id: string; name: string; email?: string } | null;
+  /** Google only: which features the account has granted so far */
+  scopes?: Record<GoogleFeature, boolean>;
+}
+const DIRECT_OFF: DirectState = { hosted: false, user: null };
+async function fetchDirect(provider: "google" | "dropbox"): Promise<DirectState> {
+  try {
+    const r = await fetch(`/api/${provider}/me`, { cache: "no-store" });
+    const j = (await r.json()) as DirectState;
+    return { hosted: !!j.hosted, user: r.ok ? (j.user ?? null) : null, scopes: r.ok ? j.scopes : undefined };
+  } catch {
+    return DIRECT_OFF;
+  }
+}
+export const googleLoginUrl = (scope: GoogleFeature | "" = "", next = "/settings") =>
+  `/api/google/login?${scope ? `scope=${scope}&` : ""}next=${encodeURIComponent(next)}`;
+export const dropboxLoginUrl = (next = "/settings") => `/api/dropbox/login?next=${encodeURIComponent(next)}`;
+export async function directLogout(provider: "google" | "dropbox") {
+  await fetch(`/api/${provider}/logout`, { method: "POST" });
+}
 /**
- * The connector state for Settings and the Export sheet: the hosted Spotify session and the Pipedream accounts,
- * refetched when the tab regains focus (the OAuth dance happens in another tab). A hosted session also hands its
- * short-lived access token to the store so Listen keeps working without a BYO Client ID.
+ * POST to a direct route. A 403 `needs_scope` answer (Google: the feature was never granted) sends the browser
+ * through the incremental consent and resolves never; the page comes back with the scope.
+ */
+export async function directPost<T>(path: string, body: Record<string, unknown>): Promise<T> {
+  const r = await fetch(path, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ ...body, next: `${location.pathname}${location.search}` }),
+  });
+  const j = await r.json();
+  if (r.status === 403 && j.error === "needs_scope" && typeof j.login === "string") {
+    location.assign(j.login);
+    return new Promise<T>(() => {});
+  }
+  if (!r.ok) throw new Error(j.error ?? `${path} answered ${r.status}`);
+  return j as T;
+}
+export interface FileResult {
+  path: string;
+  url?: string;
+}
+export interface YoutubeResult extends PlaylistResult {
+  /** left out because YouTube's daily search budget ran out */
+  skipped: string[];
+}
+
+/**
+ * The connector state for Settings and the Export sheet: the hosted Spotify session, the direct Google and
+ * Dropbox sessions and the Pipedream accounts, refetched when the tab regains focus (the OAuth dance happens in
+ * another tab). A hosted Spotify session also hands its short-lived access token to the store so Listen keeps
+ * working without a BYO Client ID.
  */
 export function useConnectors() {
   const [spotify, setSpotify] = useState<HostedState | null>(null);
+  const [google, setGoogle] = useState<DirectState | null>(null);
+  const [dropbox, setDropbox] = useState<DirectState | null>(null);
   const [connect, setConnect] = useState<ConnectState | null>(null);
   const setSpotifyToken = useStore((s) => s.setSpotifyToken);
   const reload = useCallback(async () => {
-    const [h, c] = await Promise.all([fetchHosted(), fetchConnect()]);
+    const [h, g, d, c] = await Promise.all([
+      fetchHosted(),
+      fetchDirect("google"),
+      fetchDirect("dropbox"),
+      fetchConnect(),
+    ]);
     setSpotify(h);
+    setGoogle(g);
+    setDropbox(d);
     setConnect(c);
     if (h.hosted && h.user && h.token) setSpotifyToken({ access: h.token.access, expires: h.token.expires });
     else if (h.hosted && !h.user) {
@@ -326,5 +389,5 @@ export function useConnectors() {
       document.removeEventListener("visibilitychange", onFocus);
     };
   }, [reload]);
-  return { spotify, connect, reload };
+  return { spotify, google, dropbox, connect, reload };
 }

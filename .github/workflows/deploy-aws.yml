@@ -36,6 +36,10 @@ jobs:
           # Connectors (docs/DEPLOY.md → Connectors). Empty secrets are skipped by sst.config.ts; never echoed.
           SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
           SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          DROPBOX_APP_KEY: ${{ secrets.DROPBOX_APP_KEY }}
+          DROPBOX_APP_SECRET: ${{ secrets.DROPBOX_APP_SECRET }}
           TDJ_COOKIE_SECRET: ${{ secrets.TDJ_COOKIE_SECRET }}
           PIPEDREAM_PROJECT_ID: ${{ secrets.PIPEDREAM_PROJECT_ID }}
           PIPEDREAM_CLIENT_ID: ${{ secrets.PIPEDREAM_CLIENT_ID }}

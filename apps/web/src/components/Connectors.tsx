@@ -5,6 +5,10 @@ import {
   beginAuth,
   CONNECT_FALLBACK,
   type ConnectApp,
+  directLogout,
+  dropboxLoginUrl,
+  type GoogleFeature,
+  googleLoginUrl,
   hostedLoginUrl,
   hostedLogout,
   openConnectLink,
@@ -51,6 +55,7 @@ const APP_META: Record<ConnectApp, { color: string; icon: ReactNode; sub: string
     blurb: "Spotify through Pipedream: the same 5-listeners-per-app rule applies to Pipedream's Spotify app.",
   },
 };
+const GOOGLE_COLOR = "#4285f4";
 
 /** The status dot in front of a row value: green connected, grey not, amber needs attention. */
 function Dot({ tone }: { tone: "on" | "off" | "warn" }) {
@@ -70,18 +75,35 @@ const withDot = (tone: "on" | "off" | "warn", text: string) => (
   </span>
 );
 
+/** What the OAuth callback says in the URL, as one toast. */
+function arrivalToast(connected: string | null, error: string | null): string {
+  if (connected === "spotify") return "Logged in with Spotify";
+  if (connected === "google") return "Connected with Google";
+  if (connected === "dropbox") return "Connected to Dropbox";
+  if (connected) return "Connected. You can close the other tab.";
+  const m = error?.match(/^(spotify|google|dropbox)_(\w+)$/);
+  if (m) {
+    const who = m[1] === "spotify" ? "Spotify" : m[1] === "google" ? "Google" : "Dropbox";
+    if (m[2] === "denied") return `${who} did not grant access.`;
+    if (m[2] === "state") return "The login expired; try again.";
+    return `Could not finish the ${who} login.`;
+  }
+  return "The connection was not completed.";
+}
+
 /**
  * Settings → Connectors for non-technical DJs: one tile row per service, a status dot and ONE primary action in its
- * sheet ("Log in with Spotify", "Connect Dropbox"). Developer fields (BYO Spotify Client ID, webhook URL) sit under
- * Advanced. Spotify: hosted login when the server has credentials, else the BYO PKCE flow. YouTube, Dropbox and
- * Google Drive go through Pipedream Connect when the deployment enables it. Only what the research says works is
- * promised: no Deezer, Amazon or Beatport exports (docs/research/connectors.md §6).
+ * sheet ("Log in with Spotify", "Connect with Google", "Connect Dropbox"). Each row is a direct OAuth login with the
+ * deployment's own app (lib/server/oauth.ts); Google asks for Drive and YouTube one feature at a time. Developer
+ * fields (BYO Spotify Client ID, webhook URL) and the optional Pipedream Connect alternative sit under Advanced.
+ * Only what the research says works is promised: no Deezer, Amazon or Beatport exports
+ * (docs/research/connectors.md §6).
  */
 export function Connectors() {
   const { settings, setSettings, spotifyToken, setSpotifyToken, overrides, updateOverrides } = useStore();
-  const { spotify, connect, reload } = useConnectors();
+  const { spotify, google, dropbox, connect, reload } = useConnectors();
   const [open, setOpen] = useState<
-    "spotify" | "deezer" | "musicbrainz" | "webhook" | `pd:${ConnectApp}` | null
+    "spotify" | "google" | "dropbox" | "deezer" | "musicbrainz" | "webhook" | `pd:${ConnectApp}` | null
   >(null);
   const [advanced, setAdvanced] = useState(false);
   const [deezer, setDeezer] = useState<Status>("idle");
@@ -91,23 +113,13 @@ export function Connectors() {
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   useEffect(() => setRedirect(`${location.origin}/callback`), []);
-  // back from an OAuth dance (same tab for Spotify, a second tab for Connect Link): say so once, clean the URL
+  // back from an OAuth dance (same tab for the direct logins, a second tab for Connect Link): say so once, clean the URL
   useEffect(() => {
     const q = new URLSearchParams(location.search);
     const connected = q.get("connected");
     const error = q.get("error");
     if (!connected && !error) return;
-    if (connected === "spotify") toast("Logged in with Spotify");
-    else if (connected) toast("Connected. You can close the other tab.");
-    else if (error?.startsWith("spotify_"))
-      toast(
-        error === "spotify_denied"
-          ? "Spotify did not grant access."
-          : error === "spotify_state"
-            ? "The login expired; try again."
-            : "Could not finish the Spotify login.",
-      );
-    else toast("The connection was not completed.");
+    toast(arrivalToast(connected, error));
     history.replaceState(null, "", location.pathname);
   }, []);
   const webhookUrl = overrides.connectors?.webhookUrl ?? "";
@@ -127,6 +139,15 @@ export function Connectors() {
           : settings.spotifyClientId
             ? withDot("off", "Connect")
             : withDot("warn", "Needs a Client ID");
+  const directValue = (s: typeof google) =>
+    s === null
+      ? "Checking…"
+      : !s.hosted
+        ? withDot("off", "Not enabled")
+        : s.user
+          ? withDot("on", s.user.name)
+          : withDot("off", "Connect");
+  const pdEnabled = connect?.enabled ?? false;
   const accountFor = (app: ConnectApp) => connect?.accounts.find((a) => a.app === app);
   const connectValue = (app: ConnectApp) => {
     if (connect === null) return "Checking…";
@@ -185,6 +206,16 @@ export function Connectors() {
       setBusy(null);
     }
   };
+  const disconnectDirect = async (provider: "google" | "dropbox") => {
+    setBusy(`${provider}-logout`);
+    try {
+      await directLogout(provider);
+      await reload();
+      toast(provider === "google" ? "Disconnected from Google" : "Disconnected from Dropbox");
+    } finally {
+      setBusy(null);
+    }
+  };
   const connectApp = async (app: ConnectApp) => {
     setBusy(app);
     try {
@@ -197,63 +228,59 @@ export function Connectors() {
     }
   };
   const tile = (color: string, icon: ReactNode) => <Tile color={color}>{icon}</Tile>;
+  const notEnabled = (what: string, secrets: string) => (
+    <Group
+      header="Account"
+      footer={`${what} This deployment has not enabled it: the owner adds ${secrets} as described in docs/DEPLOY.md → Connectors.${pdEnabled ? " Pipedream Connect is enabled here instead; see Advanced below." : ""}`}
+    >
+      <Row label="Status" value="Not enabled on this deployment" />
+      <Row label="How to enable" sub="docs/DEPLOY.md → Connectors" chevron href={DEPLOY_DOCS} />
+    </Group>
+  );
+  const googleUser = google?.user ?? null;
+  const granted = (f: GoogleFeature) => google?.scopes?.[f] ?? false;
   const connectRow = (app: ConnectApp) => (
     <Row
       key={app}
       tile={tile(APP_META[app].color, APP_META[app].icon)}
-      label={
-        app === "spotify"
-          ? "Spotify via Pipedream"
-          : ((connect ?? CONNECT_FALLBACK).apps.find((a) => a.slug === app)?.label ?? app)
-      }
+      label={`${(connect ?? CONNECT_FALLBACK).apps.find((a) => a.slug === app)?.label ?? app} via Pipedream`}
       sub={APP_META[app].sub}
       value={connectValue(app)}
       chevron
       onClick={() => setOpen(`pd:${app}`)}
-      id={app === "spotify" ? "connector-pd-spotify" : `connector-${app}`}
+      id={`connector-pd-${app}`}
     />
   );
   const connectSheet = (app: ConnectApp) => {
     const label = (connect ?? CONNECT_FALLBACK).apps.find((a) => a.slug === app)?.label ?? app;
     const a = accountFor(app);
-    const enabled = connect?.enabled ?? false;
     return (
       <Sheet
         key={app}
         open={open === `pd:${app}`}
         onClose={() => setOpen(null)}
-        title={app === "spotify" ? "Spotify via Pipedream" : label}
+        title={`${label} via Pipedream`}
         trailing="Done"
       >
         <Group
           header="Account"
-          footer={
-            enabled
-              ? `${APP_META[app].blurb} One button: ${label} asks for your permission in a new tab and Pipedream keeps the connection; TDJ never sees your password or your tokens.`
-              : `${APP_META[app].blurb} This deployment has not enabled Pipedream Connect, so ${label} cannot be connected here yet. The owner adds the PIPEDREAM_* secrets described in docs/DEPLOY.md.`
-          }
+          footer={`${APP_META[app].blurb} One button: ${label} asks for your permission in a new tab and Pipedream keeps the connection; TDJ never sees your password or your tokens.`}
         >
           <Row
             label="Status"
             value={
-              !enabled
-                ? "Not enabled on this deployment"
-                : a
-                  ? `Connected${a.name ? ` · ${a.name}` : ""}${a.healthy ? "" : " · needs attention"}`
-                  : "Not connected"
+              a
+                ? `Connected${a.name ? ` · ${a.name}` : ""}${a.healthy ? "" : " · needs attention"}`
+                : "Not connected"
             }
           />
           <Row label="Used for" value={APP_META[app].sub.split(" · ")[0]} />
-          {enabled ? (
-            <ActionRow
-              label={a ? `Reconnect ${label}` : `Connect ${label}`}
-              onClick={() => connectApp(app)}
-              busy={busy === app}
-              id={`connect-${app}`}
-            />
-          ) : (
-            <Row label="How to enable" sub="docs/DEPLOY.md → Connectors" chevron href={DEPLOY_DOCS} />
-          )}
+          <ActionRow
+            label={a ? `Reconnect ${label}` : `Connect ${label}`}
+            onClick={() => connectApp(app)}
+            busy={busy === app}
+            id={`connect-${app}`}
+          />
         </Group>
       </Sheet>
     );
@@ -265,8 +292,8 @@ export function Connectors() {
         header="Send your set to"
         footer={
           hosted
-            ? "Log in with Spotify to create playlists and play full tracks in Listen; nothing to paste. YouTube, Dropbox and Google Drive connect in one tap through Pipedream when the deployment enables it."
-            : "Spotify needs your own developer app on this deployment (Premium account, 5 users per app): open Spotify → Advanced. YouTube, Dropbox and Google Drive connect in one tap through Pipedream when the deployment enables it."
+            ? "Log in with Spotify to create playlists and play full tracks in Listen; nothing to paste. Google (Drive files and YouTube playlists) and Dropbox connect in one tap with this deployment's own apps when the owner has enabled them."
+            : "Spotify needs your own developer app on this deployment (Premium account, 5 users per app): open Spotify → Advanced. Google (Drive files and YouTube playlists) and Dropbox connect in one tap when the deployment enables them."
         }
         id="connectors"
       >
@@ -279,7 +306,24 @@ export function Connectors() {
           onClick={() => setOpen("spotify")}
           id="connector-spotify"
         />
-        {(["youtube_data_api", "dropbox", "google_drive"] as ConnectApp[]).map(connectRow)}
+        <Row
+          tile={tile(GOOGLE_COLOR, <HardDrive size={16} strokeWidth={2} />)}
+          label="Google"
+          sub="Drive files · YouTube playlists"
+          value={directValue(google)}
+          chevron
+          onClick={() => setOpen("google")}
+          id="connector-google"
+        />
+        <Row
+          tile={tile(APP_META.dropbox.color, APP_META.dropbox.icon)}
+          label="Dropbox"
+          sub={APP_META.dropbox.sub}
+          value={directValue(dropbox)}
+          chevron
+          onClick={() => setOpen("dropbox")}
+          id="connector-dropbox"
+        />
       </Group>
 
       <Group
@@ -314,7 +358,11 @@ export function Connectors() {
 
       <Group
         header="Advanced"
-        footer="For DJs who run their own automation. Keys and URLs stay in this browser."
+        footer={
+          pdEnabled
+            ? "For DJs who run their own automation. Keys and URLs stay in this browser. The Pipedream rows are an alternative to the direct logins above: Pipedream keeps the connection and proxies every request."
+            : "For DJs who run their own automation. Keys and URLs stay in this browser."
+        }
       >
         <Row
           tile={tile("#5856d6", <Webhook size={16} strokeWidth={2} />)}
@@ -328,7 +376,8 @@ export function Connectors() {
           }}
           id="connector-webhook"
         />
-        {connect?.enabled && connectRow("spotify")}
+        {pdEnabled &&
+          (["youtube_data_api", "dropbox", "google_drive", "spotify"] as ConnectApp[]).map(connectRow)}
       </Group>
 
       <Sheet open={open === "spotify"} onClose={() => setOpen(null)} title="Spotify" trailing="Done">
@@ -432,7 +481,131 @@ export function Connectors() {
         )}
       </Sheet>
 
-      {(["youtube_data_api", "dropbox", "google_drive", "spotify"] as ConnectApp[]).map(connectSheet)}
+      <Sheet open={open === "google"} onClose={() => setOpen(null)} title="Google" trailing="Done">
+        {google === null || google.hosted ? (
+          <>
+            <Group
+              header="Account"
+              footer="One Google account for two things: export files go to a TDJ folder in your Drive (TDJ only ever sees files it created), and playlists go to YouTube (YouTube Music shows them too). Google asks for each permission the first time you use it. The login is kept in a sealed cookie in this browser; myaccount.google.com → Security → Third-party access removes it."
+            >
+              <Row
+                label="Status"
+                value={
+                  google === null
+                    ? "Checking…"
+                    : googleUser
+                      ? `Connected as ${googleUser.name}`
+                      : "Not connected"
+                }
+                sub={googleUser?.email}
+                busy={google === null}
+              />
+              <Row label="Used for" value="Drive files · YouTube playlists" />
+              {googleUser ? (
+                <ActionRow
+                  label="Disconnect"
+                  destructive
+                  onClick={() => disconnectDirect("google")}
+                  busy={busy === "google-logout"}
+                  id="google-logout"
+                />
+              ) : (
+                <ActionRow
+                  label="Connect with Google"
+                  onClick={() => location.assign(googleLoginUrl("", "/settings"))}
+                  id="google-login"
+                />
+              )}
+            </Group>
+            {googleUser && (
+              <Group
+                header="Permissions"
+                footer="Each permission is asked once, on Google's own page, and only for what it names. YouTube matching uses a daily search budget shared by every TDJ user, so some 78-rpm recordings may be left out; the export sheet lists them."
+              >
+                <Row
+                  tile={tile(APP_META.google_drive.color, APP_META.google_drive.icon)}
+                  label="Google Drive"
+                  sub="Export files in a TDJ folder"
+                  value={granted("drive") ? withDot("on", "Allowed") : withDot("off", "Not yet")}
+                  id="google-scope-drive"
+                />
+                {!granted("drive") && (
+                  <ActionRow
+                    label="Allow Google Drive"
+                    onClick={() => location.assign(googleLoginUrl("drive", "/settings"))}
+                    id="google-grant-drive"
+                  />
+                )}
+                <Row
+                  tile={tile(APP_META.youtube_data_api.color, APP_META.youtube_data_api.icon)}
+                  label="YouTube"
+                  sub="Playlists · YouTube Music sees them too"
+                  value={granted("youtube") ? withDot("on", "Allowed") : withDot("off", "Not yet")}
+                  id="google-scope-youtube"
+                />
+                {!granted("youtube") && (
+                  <ActionRow
+                    label="Allow YouTube"
+                    onClick={() => location.assign(googleLoginUrl("youtube", "/settings"))}
+                    id="google-grant-youtube"
+                  />
+                )}
+              </Group>
+            )}
+          </>
+        ) : (
+          notEnabled(
+            "Google would save export files to your Drive and create YouTube playlists.",
+            "GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET",
+          )
+        )}
+      </Sheet>
+
+      <Sheet open={open === "dropbox"} onClose={() => setOpen(null)} title="Dropbox" trailing="Done">
+        {dropbox === null || dropbox.hosted ? (
+          <Group
+            header="Account"
+            footer="Saves the chosen export file (Rekordbox XML, Traktor NML, M3U8, CSV…) into Apps/TDJ/<set name>/ in your Dropbox and gives you a share link. TDJ only sees that folder. The login is kept in a sealed cookie in this browser; dropbox.com → Settings → Connected apps removes it."
+          >
+            <Row
+              label="Status"
+              value={
+                dropbox === null
+                  ? "Checking…"
+                  : dropbox.user
+                    ? `Connected as ${dropbox.user.name}`
+                    : "Not connected"
+              }
+              sub={dropbox?.user?.email}
+              busy={dropbox === null}
+            />
+            <Row label="Used for" value="Export files" />
+            {dropbox?.user ? (
+              <ActionRow
+                label="Disconnect"
+                destructive
+                onClick={() => disconnectDirect("dropbox")}
+                busy={busy === "dropbox-logout"}
+                id="dropbox-logout"
+              />
+            ) : (
+              <ActionRow
+                label="Connect Dropbox"
+                onClick={() => location.assign(dropboxLoginUrl("/settings"))}
+                id="dropbox-login"
+              />
+            )}
+          </Group>
+        ) : (
+          notEnabled(
+            "Dropbox would receive your export files in Apps/TDJ.",
+            "DROPBOX_APP_KEY and DROPBOX_APP_SECRET",
+          )
+        )}
+      </Sheet>
+
+      {pdEnabled &&
+        (["youtube_data_api", "dropbox", "google_drive", "spotify"] as ConnectApp[]).map(connectSheet)}
 
       <Sheet
         open={open === "deezer"}
