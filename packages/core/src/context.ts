@@ -330,9 +330,13 @@ export interface ResolvedContext {
   milongaShare: number;
   tandaSizeShift: number;
   cortinaGenres: string[];
+  /** cortina cultures implied by the genres (turkish-pop → turkish …) */
+  cortinaCultures: string[];
   preferStyles: string[];
   avoidStyles: string[];
   arcShift: Partial<Record<Phase, number>>;
+  /** beginner floors: avoid families above this profile difficulty */
+  maxDifficulty?: number;
   applied: ContextFactorOption[];
 }
 
@@ -354,6 +358,102 @@ const VALUE_MAP: Record<string, Record<string, string>> = {
   dayOfWeek: { weekday: "monToWed" },
 };
 
+/**
+ * The research model's cortina vocabulary → the genre ids of the cortina pool (BUILTIN_CORTINAS + cortinas.json).
+ * `null` = no pool equivalent (themed-single-artist, short-or-none, varied) or removed on purpose (lo-fi, surf, cumbia).
+ */
+export const CORTINA_GENRE_MAP: Record<string, string[] | null> = {
+  "jazz-standards": ["jazz"],
+  "cool-jazz": ["jazz"],
+  "discreet-jazz": ["jazz"],
+  "ambient-jazz": ["jazz"],
+  "jazz-ballads": ["jazz", "crooner"],
+  "old-jazz-ballads": ["jazz", "crooner"],
+  "chet-baker": ["jazz"],
+  sinatra: ["crooner"],
+  swing: ["swing"],
+  "swing-christmas": ["swing"],
+  piaf: ["chanson"],
+  chanson: ["chanson"],
+  "italian-60s": ["canzone"],
+  "greek-laiko": ["laiko", "rebetiko", "greek-song"],
+  "turkish-pop": ["turkish-pop", "turkish-rock", "anadolu-rock", "turkish-classic"],
+  "80s-synth": ["synth", "80s"],
+  "k-pop": ["kpop"],
+  "k-indie": ["kpop"],
+  "mainstream-pop": ["pop"],
+  "pop-anthems": ["pop"],
+  "latin-pop": ["pop"],
+  pop: ["pop"],
+  "rock-n-roll": ["rock"],
+  rock: ["rock"],
+  "rock-nacional": ["rock-nacional"],
+  motown: ["soul"],
+  soul: ["soul"],
+  "soul-ballads": ["soul"],
+  funk: ["funk"],
+  "disco-funk": ["funk"],
+  balkan: ["balkan-brass", "balkan-pop", "balkan"],
+  "balkan-brass": ["balkan-brass"],
+  samba: ["bossa"],
+  bossa: ["bossa"],
+  afrobeats: ["afrobeats"],
+  americana: ["crooner"],
+  "film-themes": ["jazz"],
+  murga: null,
+  "city-pop": null,
+  "lo-fi": null,
+  surf: null,
+  cumbia: null,
+  "themed-single-artist": null,
+  "short-or-none": null,
+  varied: null,
+  bolero: null,
+  crooner: ["crooner"],
+  canzone: ["canzone"],
+  "oriental-dance": ["turkish-pop", "arabic-pop"],
+  "turkish-rock": ["turkish-rock"],
+  kpop: ["kpop"],
+  jazz: ["jazz"],
+  latin: ["rock-nacional"],
+  rai: ["rai"],
+};
+/** which cortina cultures a pool genre belongs to (region → cultures, audit B10) */
+export const GENRE_CULTURE: Record<string, string> = {
+  "turkish-pop": "turkish",
+  "turkish-rock": "turkish",
+  "anadolu-rock": "turkish",
+  "turkish-classic": "turkish",
+  laiko: "greek",
+  rebetiko: "greek",
+  "greek-song": "greek",
+  "rock-nacional": "latin",
+  kpop: "kpop",
+  canzone: "italian",
+  chanson: "french",
+  "ye-ye": "french",
+  "balkan-brass": "balkan",
+  "balkan-pop": "balkan",
+  balkan: "balkan",
+  afrobeats: "afrobeats",
+  "persian-pop": "persian",
+  "persian-classic": "persian",
+  "arabic-pop": "arabic",
+  rai: "arabic",
+};
+export function mapCortinaGenres(genres: string[]): string[] {
+  const out: string[] = [];
+  for (const g of genres) {
+    const m = CORTINA_GENRE_MAP[g];
+    if (m === undefined) out.push(g);
+    else if (m) out.push(...m);
+  }
+  return [...new Set(out)];
+}
+
+const builtinOption = (factorId: string, optionId: string) =>
+  BUILTIN_CONTEXT.factors.find((f) => f.id === factorId)?.options.find((o) => o.id === optionId);
+
 export function resolveContext(
   ctx: ComposeContext | undefined,
   model: ContextModel = BUILTIN_CONTEXT,
@@ -366,6 +466,7 @@ export function resolveContext(
     milongaShare: 0,
     tandaSizeShift: 0,
     cortinaGenres: [],
+    cortinaCultures: [],
     preferStyles: [],
     avoidStyles: [],
     arcShift: {},
@@ -391,45 +492,92 @@ export function resolveContext(
     r.tempoShift += o.tempoShift ?? 0;
     r.vocalRatioShift += o.vocalRatioShift ?? 0;
     if (absolute) {
-      if (o.valsShare !== undefined && shareV === null) shareV = o.valsShare;
-      if (o.milongaShare !== undefined && shareM === null) shareM = o.milongaShare;
+      // vals: the most generous option wins (afternoons want more vals); milonga: the strictest wins (heat beats season)
+      if (o.valsShare !== undefined && o.valsShare !== null)
+        shareV = shareV === null ? o.valsShare : Math.max(shareV, o.valsShare);
+      if (o.milongaShare !== undefined && o.milongaShare !== null)
+        shareM = shareM === null ? o.milongaShare : Math.min(shareM, o.milongaShare);
     } else {
       r.valsShare += o.valsShare ?? 0;
       r.milongaShare += o.milongaShare ?? 0;
     }
     r.tandaSizeShift += o.tandaSizeShift ?? 0;
-    r.cortinaGenres.push(...(o.cortinaGenres ?? []));
-    r.preferStyles.push(...(o.preferStyles ?? []));
-    r.avoidStyles.push(...(o.avoidStyles ?? []));
+    r.cortinaGenres.push(...mapCortinaGenres(o.cortinaGenres ?? []));
+    // the research model has no style fields: fall back to the built-in option (beginner → rhythmic, no dramatic)
+    const styleSrc =
+      o.preferStyles?.length || o.avoidStyles?.length ? o : builtinOption(rawKey, rawVal as string);
+    r.preferStyles.push(...(styleSrc?.preferStyles ?? []));
+    r.avoidStyles.push(...(styleSrc?.avoidStyles ?? []));
     for (const [k, v] of Object.entries(o.arcShift ?? {}))
       r.arcShift[k as Phase] = (r.arcShift[k as Phase] ?? 0) + (v ?? 0);
+    if (rawKey === "crowdLevel" && rawVal === "beginner") r.maxDifficulty = 60;
   }
   if (absolute) {
     if (shareV !== null) r.valsShare = shareV - baseV;
     if (shareM !== null) r.milongaShare = shareM - baseM;
   }
+  r.cortinaGenres = [...new Set(r.cortinaGenres)];
+  r.cortinaCultures = [
+    ...new Set(r.cortinaGenres.map((g) => GENRE_CULTURE[g]).filter((c): c is string => !!c)),
+  ];
   r.energyShift = Math.max(-15, Math.min(15, r.energyShift));
   r.tandaSizeShift = Math.max(-1, Math.min(1, r.tandaSizeShift));
   return r;
 }
 
-/** Fold the resolved context into compose options (pattern, sizes, cortina genres). */
-export function applyContextToOptions(o: ComposeOptions, rc: ResolvedContext): ComposeOptions {
+/**
+ * Fold the resolved context into compose options (pattern, sizes, cortina genres/cultures, vocal/tempo bias).
+ * Keys in `explicit` were set by the DJ tonight and are never touched; `out.contextApplied` records both lists.
+ */
+export function applyContextToOptions(
+  o: ComposeOptions,
+  rc: ResolvedContext,
+  explicit?: Set<string>,
+): ComposeOptions {
   const out = { ...o };
-  if (rc.tandaSizeShift < 0 && out.tangoTandaSize === 4) out.tangoTandaSize = 3;
-  if (rc.cortinaGenres.length && !out.cortinaGenres?.length)
-    out.cortinaGenres = [...new Set(rc.cortinaGenres)];
-  if (out.pattern === "classic" || out.pattern === "TTVTTM") {
-    if (rc.valsShare >= 0.03 && rc.milongaShare >= 0.03) {
-      out.pattern = "custom";
-      out.customPattern = "TVTMTTVTTM";
-    } else if (rc.valsShare >= 0.03) {
-      out.pattern = "custom";
-      out.customPattern = "TTVTTMTTV";
-    } else if (rc.milongaShare <= -0.04) {
-      out.pattern = "custom";
-      out.customPattern = "TTVTTVTTM";
+  const applied: string[] = [];
+  const skipped: string[] = [];
+  const ex = (k: string) => !!explicit?.has(k);
+  const touch = (k: string, fn: () => void) => {
+    if (ex(k)) skipped.push(k);
+    else {
+      fn();
+      applied.push(k);
     }
-  }
+  };
+  if (rc.tandaSizeShift < 0 && out.tangoTandaSize === 4)
+    touch("tangoTandaSize", () => (out.tangoTandaSize = 3));
+  if (rc.cortinaGenres.length)
+    touch("cortinaGenres", () => (out.cortinaGenres = [...new Set(rc.cortinaGenres)]));
+  if (rc.cortinaCultures.length)
+    touch("cortinaCultures", () => {
+      const cur = out.cortinaCultures?.length ? out.cortinaCultures : ["global"];
+      // a region's cortina cultures replace the default "global"; a user-chosen list is explicit and kept above
+      out.cortinaCultures =
+        cur.length === 1 && cur[0] === "global"
+          ? rc.cortinaCultures
+          : [...new Set([...cur, ...rc.cortinaCultures])];
+    });
+  if (out.pattern === "classic" || out.pattern === "TTVTTM") {
+    const want =
+      rc.valsShare >= 0.03 && rc.milongaShare >= 0.03
+        ? "TVTMTTVTTM"
+        : rc.valsShare >= 0.03
+          ? "TTVTTMTTV"
+          : rc.milongaShare <= -0.04
+            ? "TTVTTVTTM"
+            : null;
+    if (want)
+      touch("pattern", () => {
+        out.pattern = "custom";
+        out.customPattern = want;
+      });
+  } else if (out.pattern === "TTVTTM-strict") skipped.push("pattern");
+  if (rc.vocalRatioShift)
+    touch("vocalBias", () => (out.vocalBias = (out.vocalBias ?? 0) + rc.vocalRatioShift));
+  if (rc.tempoShift) touch("tempoShift", () => (out.tempoShift = (out.tempoShift ?? 0) + rc.tempoShift));
+  if (rc.maxDifficulty !== undefined)
+    touch("maxDifficulty", () => (out.maxDifficulty = Math.min(out.maxDifficulty ?? 100, rc.maxDifficulty!)));
+  out.contextApplied = { applied, skipped };
   return out;
 }

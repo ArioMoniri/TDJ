@@ -146,23 +146,53 @@ export const BLACKLIST_TITLES = new Set([
   "a don agustin bardi",
   "tangata",
   "nocturna",
-  "mala junta",
-  "quejas de bandoneon (concierto)",
-  "la yumba (concierto)",
   "a los amigos",
   "zum",
   "a evaristo carriego",
   "contratiempo",
-  "cafe dominguez",
   "bien pulenta",
   "a mis companeros",
 ]);
+/** Version-level bans: (title, orchestra, from-year) — concert re-recordings of floor classics. */
+export const BLACKLIST_VERSIONS: Array<{
+  title: string;
+  orchestraId: string;
+  fromYear?: number;
+  toYear?: number;
+}> = [
+  { title: "mala junta", orchestraId: "osvaldo-pugliese", fromYear: 1960 },
+  { title: "la yumba", orchestraId: "osvaldo-pugliese", fromYear: 1965 },
+  { title: "quejas de bandoneon", orchestraId: "anibal-troilo", fromYear: 1960 },
+  { title: "cafe dominguez", orchestraId: "angel-d-agostino", fromYear: 1970 },
+];
 export function isDanceable(title: string, rhythm: string, extraBlacklist?: Set<string>): boolean {
   const t = normTitle(title);
   if (BLACKLIST_TITLES.has(t) || extraBlacklist?.has(t)) return false;
   for (const re of BLACKLIST_PATTERNS) if (re.test(t)) return false;
   if (rhythm === "cancion" || rhythm === "other" || rhythm === "unknown") return false;
   return true;
+}
+/** isDanceable plus the version-level bans (needs orchestra and year). */
+export function isDanceableSong(
+  s: Pick<Song, "title" | "rhythm" | "orchestraId" | "year">,
+  extraBlacklist?: Set<string>,
+): boolean {
+  if (!isDanceable(s.title, s.rhythm, extraBlacklist)) return false;
+  const t = normTitle(s.title);
+  for (const b of BLACKLIST_VERSIONS)
+    if (
+      b.title === t &&
+      b.orchestraId === s.orchestraId &&
+      (b.fromYear === undefined || (s.year ?? 0) >= b.fromYear) &&
+      (b.toYear === undefined || (s.year ?? 9999) <= b.toYear)
+    )
+      return false;
+  return true;
+}
+/** "Quejas de bandoneón (1963)" → { title: "quejas de bandoneon", year: 1963 }: a year in parentheses bans one version only. */
+export function parseNonDanceTitle(entry: string): { title: string; year: number | null } {
+  const m = entry.match(/\((19\d\d|20\d\d)\)/);
+  return { title: normTitle(entry), year: m ? Number(m[1]) : null };
 }
 
 /** Estimated duration when no streaming metadata is cached: by rhythm and era, with a stable per-recording jitter. */

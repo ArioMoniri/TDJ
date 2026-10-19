@@ -476,6 +476,45 @@ export function mergeProfiles(extra: OrchestraProfile[] = []): Map<string, Orche
   return m;
 }
 
+/** post-1955 orchestras DJs program for dancing (round-4 audit §3); the rest of the post-golden bucket is show/concert material */
+export const POST_GOLDEN_DANCE_ORCHESTRAS = [
+  "juan-d-arienzo",
+  "carlos-di-sarli",
+  "alfredo-de-angelis",
+  "osvaldo-pugliese",
+  "fulvio-salamanca",
+  "hector-varela",
+  "florindo-sassone",
+  "jose-basso",
+  "miguel-calo",
+  "rodolfo-biagi",
+  "ricardo-tanturi",
+  "enrique-rodriguez",
+  "francisco-canaro",
+  "osvaldo-fresedo",
+  "donato-racciatti",
+  "armando-pontier",
+  "juan-sanchez-gorio",
+  "leopoldo-federico",
+  "anibal-troilo",
+  "angel-d-agostino",
+];
+/** nuevo / contemporary orchestras a DJ would expect; only those present in data/index/orchestras.json have an effect */
+export const NUEVO_ORCHESTRAS = ["sexteto-mayor", "horacio-salgan", "h-salgan-u-de-lio", "color-tango"];
+export const CONTEMPORARY_ORCHESTRAS = [
+  "sexteto-milonguero",
+  "romantica-milonguera",
+  "solo-tango",
+  "color-tango",
+  "sexteto-cristal",
+  "orquesta-tipica-fernandez-fierro",
+  "fernandez-fierro",
+  "tango-bardo",
+  "misteriosa-buenos-aires",
+  "orquesta-el-arranque",
+  "sexteto-mayor",
+];
+
 /** Era-specific defaults: choosing an era applies these unless the user overrides them (docs/AGENT_GUIDE.md §2). */
 export const ERA_SETTINGS: Record<
   string,
@@ -495,7 +534,6 @@ export const ERA_SETTINGS: Record<
       cumparsitaCount: 1,
       ultimaRule: "emotional-vocal",
       openerRule: "canon",
-      puglieseOnce: true,
       colourTanda: false,
       mixedMilongaVals: false,
       cortinaBeforeCumparsita: false,
@@ -517,7 +555,6 @@ export const ERA_SETTINGS: Record<
       cumparsitaCount: 1,
       ultimaRule: "emotional-vocal",
       openerRule: "canon",
-      puglieseOnce: true,
       colourTanda: true,
       mixedMilongaVals: false,
       cortinaBeforeCumparsita: false,
@@ -539,7 +576,6 @@ export const ERA_SETTINGS: Record<
       cumparsitaCount: 1,
       ultimaRule: "any",
       openerRule: "any",
-      puglieseOnce: true,
       colourTanda: true,
       mixedMilongaVals: true,
       cortinaBeforeCumparsita: false,
@@ -561,13 +597,13 @@ export const ERA_SETTINGS: Record<
       cumparsitaCount: 1,
       ultimaRule: "d-arienzo-rhythmic",
       openerRule: "lyrical",
-      puglieseOnce: true,
       colourTanda: true,
       mixedMilongaVals: false,
       cortinaBeforeCumparsita: false,
     },
+    includeOrchestras: POST_GOLDEN_DANCE_ORCHESTRAS,
     notes:
-      "1956–69: lush strings and late D'Arienzo drive; hammock shape, lyrical opener, rhythmic D'Arienzo última.",
+      "1956–69: lush strings and late D'Arienzo drive; hammock shape, lyrical opener, rhythmic D'Arienzo última. Only the post-55 orchestras DJs actually program (D'Arienzo, Di Sarli 1956–58, De Angelis, Pugliese, Salamanca, Varela, Sassone, Basso, Caló, Biagi–Duval, Tanturi, Rodríguez, Canaro, Fresedo, Racciatti, Pontier, Sánchez Gorio, Federico); closes with the 1963 D'Arienzo / Troilo or 1961 De Angelis Cumparsita.",
   },
   nuevo: {
     pattern: "custom",
@@ -590,8 +626,9 @@ export const ERA_SETTINGS: Record<
       mixedMilongaVals: true,
       cortinaBeforeCumparsita: true,
     },
+    preferOrchestras: NUEVO_ORCHESTRAS,
     notes:
-      "Alternative/nuevo nights: 3-track tandas, mixed vocal/instrumental, short matched cortinas, looser repeats.",
+      "Alternative/nuevo nights: 3-track tandas, mixed vocal/instrumental, short matched cortinas, looser repeats. The catalogue holds Sexteto Mayor, Salgán and a handful of Color Tango sides but no Piazzolla for dancing and no Sexteto Milonguero / Romántica Milonguera: those orchestras are preferred when present, the rest of the night is 1970–94 re-recordings of golden-age names.",
   },
   contemporary: {
     pattern: "custom",
@@ -614,7 +651,9 @@ export const ERA_SETTINGS: Record<
       mixedMilongaVals: true,
       cortinaBeforeCumparsita: true,
     },
-    notes: "Contemporary orchestras and electro: 3-track tandas, wide year windows, matched short cortinas.",
+    preferOrchestras: CONTEMPORARY_ORCHESTRAS,
+    notes:
+      "Contemporary orchestras and electro: 3-track tandas, wide year windows, matched short cortinas. The catalogue has El Arranque, Fernández Fierro, Sexteto Mayor and two Color Tango sides; Sexteto Milonguero, Romántica Milonguera, Solo Tango, Sexteto Cristal, Tango Bardo and Misteriosa Buenos Aires are not indexed yet, so this preset cannot build a real contemporary night until they are added to data/sources.",
   },
   all: {
     pattern: "classic",
@@ -630,7 +669,6 @@ export const ERA_SETTINGS: Record<
       cumparsitaCount: 1,
       ultimaRule: "emotional-vocal",
       openerRule: "canon",
-      puglieseOnce: true,
       colourTanda: true,
       mixedMilongaVals: false,
       cortinaBeforeCumparsita: false,

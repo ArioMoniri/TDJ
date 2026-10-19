@@ -278,8 +278,7 @@ export function toSpotifyPlan(
 }
 
 /** Human set list (printable). */
-export function toSetList(p: Playlist, eo: ExportOpts = {}): string {
-  const inc = eo.includeCortinas ?? true;
+export function toSetList(p: Playlist, _eo: ExportOpts = {}): string {
   const L: string[] = [
     `${p.name} — ${(p.stats.durationSec / 3600).toFixed(2)} h · ${p.tandas.length} tandas · score ${p.score.total}/100 (${p.score.verdict})`,
     "",
