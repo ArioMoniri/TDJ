@@ -209,3 +209,70 @@ export function groupByDay(list: HistorySnapshot[]): Array<{ label: string; item
   }
   return out;
 }
+
+/* ---------- the night as played (Booth, round7-booth.md §9) ---------- */
+
+/** What the Booth writes into a snapshot when the night ends (and on every hold, so a crash loses nothing). */
+export interface NightLog {
+  startedAt: string;
+  endedAt: string;
+  /** seconds between the first start and the last entry */
+  playedSec: number;
+  holds: number;
+  birthdayVals: number;
+  stops: number;
+  itemsPlayed: number;
+  planIndex: number;
+  settings: Record<string, unknown>;
+  log: Array<{ at: string; from: string; to: string; planIndex: number; reason?: string }>;
+  anchors: Array<{ planIndex: number; at: string }>;
+  rehearsal?: boolean;
+  ended: boolean;
+}
+
+/** Build the log from the engine's record (pure, so vitest can check the counts). */
+export function makeNightLog(r: {
+  startedAt: number;
+  log: NightLog["log"];
+  anchors: NightLog["anchors"];
+  planIndex: number;
+  settings: Record<string, unknown>;
+  rehearsal?: boolean;
+  ended: boolean;
+  now?: number;
+}): NightLog {
+  const now = r.now ?? Date.now();
+  const last = r.log[r.log.length - 1];
+  const endMs = last ? Date.parse(last.at) : now;
+  return {
+    startedAt: new Date(r.startedAt || now).toISOString(),
+    endedAt: new Date(Math.max(endMs, r.startedAt || 0)).toISOString(),
+    playedSec: r.startedAt ? Math.max(0, Math.round((Math.max(endMs, now) - r.startedAt) / 1000)) : 0,
+    // a hold is logged when asked (playing→playing) and when it lands (→paused): count the landing only
+    holds: r.log.filter((e) => e.to === "paused" && e.reason === "hold").length,
+    birthdayVals: r.log.filter((e) => e.reason === "birthday vals" && e.from === e.to).length,
+    stops: r.log.filter((e) => e.to === "stopped" && (e.reason === "stop" || e.reason === "skip now")).length,
+    itemsPlayed: new Set(r.anchors.map((a) => a.planIndex)).size,
+    planIndex: r.planIndex,
+    settings: r.settings,
+    log: r.log,
+    anchors: r.anchors,
+    rehearsal: r.rehearsal,
+    ended: r.ended,
+  };
+}
+
+/** "played 2026-10-18 · 4:07 h · 2 holds · 1 birthday vals" (History row / detail). */
+export function nightLogSummary(n: NightLog): string {
+  const h = Math.floor(n.playedSec / 3600);
+  const m = Math.floor((n.playedSec % 3600) / 60);
+  const parts = [
+    `${n.ended ? "played" : "played (unfinished)"} ${n.startedAt.slice(0, 10)}`,
+    `${h}:${String(m).padStart(2, "0")} h`,
+    `${n.holds} hold${n.holds === 1 ? "" : "s"}`,
+  ];
+  if (n.birthdayVals) parts.push(`${n.birthdayVals} birthday vals`);
+  if (n.stops) parts.push(`${n.stops} stop${n.stops === 1 ? "" : "s"}`);
+  if (n.rehearsal) parts.push("rehearsal");
+  return parts.join(" · ");
+}
