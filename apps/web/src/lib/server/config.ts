@@ -34,6 +34,8 @@ export const CONFIG_KEYS = [
   "AI_MODEL",
   "AI_WORKSPACE_ID",
   "AI_DAILY_LIMIT",
+  // deployment-wide counter of failed /admin unlocks (`<count>.<window start, unix seconds>`), never a secret
+  "UNLOCK_FAILURES",
 ] as const;
 export type ConfigKey = (typeof CONFIG_KEYS)[number];
 export type Config = Partial<Record<ConfigKey, string>>;
@@ -46,6 +48,7 @@ const STORE_ONLY: ReadonlySet<ConfigKey> = new Set<ConfigKey>([
   "SPOTIFY_SEATS",
   "GOOGLE_SEATS",
   "DROPBOX_SEATS",
+  "UNLOCK_FAILURES",
 ]);
 
 const TTL_MS = 60_000;
@@ -170,19 +173,44 @@ interface Snapshot {
 }
 let snapshot: Snapshot | null = null;
 let inflight: Promise<Snapshot> | null = null;
+/** the last snapshot the store did answer: a failed refresh keeps serving it instead of an empty one */
+let lastGood: Config | null = null;
+let warned = false;
+/** a failed read is retried this many times before the instance gives up for RETRY_MS */
+const READ_ATTEMPTS = 2;
+const RETRY_MS = 15_000;
 
+/**
+ * Reads the store (two attempts). When it fails, the last good contents stay in use so a slow SSM morning does
+ * not log every DJ out or seal cookies with a key no other instance knows; only an instance that never managed
+ * a read reports `unavailable` (and then `getCookieSecret` refuses to invent a key on AWS). The failure is
+ * retried after RETRY_MS, not the full TTL.
+ */
 async function refresh(): Promise<Snapshot> {
   inflight ??= (async () => {
-    let stored: Config = {};
-    let unavailable = false;
-    try {
-      stored = await store().readAll();
-    } catch (e) {
-      unavailable = true;
-      if (process.env.NODE_ENV !== "test")
-        console.warn(`[tdj] config store (${store().kind}) unavailable: ${(e as Error).message}`);
+    let stored: Config | null = null;
+    let lastError: unknown;
+    for (let i = 0; i < READ_ATTEMPTS && stored === null; i++) {
+      try {
+        stored = await store().readAll();
+      } catch (e) {
+        lastError = e;
+      }
     }
-    snapshot = { at: Date.now(), stored, unavailable };
+    if (stored !== null) {
+      lastGood = stored;
+      snapshot = { at: Date.now(), stored, unavailable: false };
+      return snapshot;
+    }
+    if (!warned && process.env.NODE_ENV !== "test") {
+      warned = true;
+      console.warn(`[tdj] config store (${store().kind}) unavailable: ${(lastError as Error)?.message}`);
+    }
+    snapshot = {
+      at: Date.now() - TTL_MS + RETRY_MS,
+      stored: lastGood ?? {},
+      unavailable: lastGood === null,
+    };
     return snapshot;
   })().finally(() => {
     inflight = null;
@@ -238,16 +266,24 @@ export async function deleteConfigValue(key: ConfigKey) {
 /* ---------- the cookie secret ---------- */
 
 let generated: string | null = null;
+/** The store could not be read and there is no earlier good read to fall back on: sessions cannot be unsealed. */
+export class ConfigUnavailableError extends Error {
+  status = 503;
+  constructor() {
+    super("Configuration store unavailable, try again in a minute");
+  }
+}
 /**
  * The key material for sealed cookies: `TDJ_COOKIE_SECRET` from the environment or the store, else one generated
  * here and kept in the store (`Overwrite: false`, so two cold Lambdas racing agree on the first writer's secret).
- * Without a writable store the process falls back to a per-process secret (local runs), after the Spotify secret
- * when there is one so a laptop with the GitHub-secrets setup behaves as before.
+ * On AWS a store that cannot be read is an error (`ConfigUnavailableError`), never a throw-away key that would
+ * seal cookies no other instance can open. Off AWS (memory backend) a per-process secret is fine.
  */
 export async function getCookieSecret(): Promise<string> {
   const configured = await getConfigValue("TDJ_COOKIE_SECRET");
   if (configured) return configured;
   if (generated) return generated;
+  if (backendKind() === "ssm" && !(await storeAvailable())) throw new ConfigUnavailableError();
   const fresh = randomBytes(32).toString("base64url");
   try {
     await store().write("TDJ_COOKIE_SECRET", fresh, { overwrite: false });
@@ -259,7 +295,8 @@ export async function getCookieSecret(): Promise<string> {
       const again = await getConfigValue("TDJ_COOKIE_SECRET");
       if (again) return again;
     }
-    generated = process.env.SPOTIFY_CLIENT_SECRET || process.env.TDJ_SECRET || fresh;
+    if (backendKind() === "ssm") throw new ConfigUnavailableError();
+    generated = process.env.TDJ_SECRET || fresh;
   }
   return generated;
 }

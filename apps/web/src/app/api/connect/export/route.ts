@@ -11,6 +11,7 @@ import {
   youtubePlaylist,
 } from "@/lib/server/connect";
 import { userFromRequest } from "@/lib/server/db";
+import { crossOriginResponse } from "@/lib/server/guard";
 export const dynamic = "force-dynamic";
 
 /**
@@ -19,9 +20,11 @@ export const dynamic = "force-dynamic";
  * (`{ accountId, app, playlist, includeCortinas }`) to YouTube (quota-bound, best effort) or Spotify.
  */
 export async function POST(req: Request) {
+  const cross = await crossOriginResponse(req);
+  if (cross) return cross;
   if (!connectEnabled())
     return NextResponse.json({ error: "Pipedream Connect is not enabled" }, { status: 404 });
-  const user = userFromRequest(req);
+  const user = await userFromRequest(req);
   if (user.setCookie) return NextResponse.json({ error: "No connected accounts" }, { status: 401 });
   const body = await req.json().catch(() => null);
   if (!body || !isConnectApp(body.app) || typeof body.accountId !== "string")

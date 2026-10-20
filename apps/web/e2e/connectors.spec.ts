@@ -24,8 +24,10 @@ interface Hit {
 }
 const hits: Hit[] = [];
 const last = (re: RegExp) => [...hits].reverse().find((h) => re.test(`${h.method} ${h.url}`));
-/** Spotify search mock: after this many searches every search answers 429 (Infinity = never); `retryAfter` is the header. */
-const searchLimit = { after: Number.POSITIVE_INFINITY, count: 0, retryAfter: 30 };
+/** Spotify search mock: after this many searches every search answers 429 (Infinity = never); `retryAfter` is the header; `delayMs` slows every search. */
+const searchLimit = { after: Number.POSITIVE_INFINITY, count: 0, retryAfter: 30, delayMs: 0 };
+/** YouTube search mock: this many searches (counted since the last `hits.length = 0`) answer, the next one is quotaExceeded. */
+const ytLimit = { searches: 2 };
 
 function mockServer(): http.Server {
   return http.createServer((req, res) => {
@@ -37,8 +39,12 @@ function mockServer(): http.Server {
       const url = req.url ?? "";
       hits.push({ method: req.method ?? "GET", url, headers: req.headers, body });
       const json = (code: number, j: unknown) => {
-        res.writeHead(code, { "content-type": "application/json" });
-        res.end(JSON.stringify(j));
+        const send = () => {
+          res.writeHead(code, { "content-type": "application/json" });
+          res.end(JSON.stringify(j));
+        };
+        if (url.startsWith("/v1/search") && searchLimit.delayMs > 0) setTimeout(send, searchLimit.delayMs);
+        else send();
       };
       // Spotify accounts service (a code of a user the owner never listed answers 403 "not registered")
       if (url === "/api/token" && body.includes("code=code-notlisted"))
@@ -172,7 +178,7 @@ function mockServer(): http.Server {
       if (url.startsWith("/google/youtube/v3/playlists?")) return json(200, { id: "ytpl1" });
       if (url.startsWith("/google/youtube/v3/search?")) {
         const n = hits.filter((h) => h.url.startsWith("/google/youtube/v3/search?")).length;
-        return n <= 2
+        return n <= ytLimit.searches
           ? json(200, { items: [{ id: { kind: "youtube#video", videoId: `vid${n}` } }] })
           : json(403, {
               error: {
@@ -251,6 +257,8 @@ test.beforeAll(async () => {
         DROPBOX_CONTENT_URL: `${MOCK}/dropbox-content`,
         NEXT_PUBLIC_APP_URL: "",
         TDJ_DB_TABLE: "",
+        // the matching budget per request (20 s in production) shortened so the deadline test runs in seconds
+        TDJ_MATCH_BUDGET_MS: "4000",
       },
       stdio: "ignore",
     },
@@ -606,9 +614,9 @@ test("env-absent fallback: without server credentials the sheet shows the BYO Cl
       }),
     );
   await page.goto("/settings");
-  await expect(page.locator("#connector-spotify")).toContainText("Needs a Client ID");
-  await expect(page.locator("#connector-dropbox")).toContainText("Not enabled");
-  await expect(page.locator("#connector-google")).toContainText("Not enabled");
+  await expect(page.locator("#connector-spotify")).toContainText("Set up");
+  await expect(page.locator("#connector-dropbox")).toContainText("Off");
+  await expect(page.locator("#connector-google")).toContainText("Off");
   await expect(page.locator("#connector-pd-youtube_data_api")).toHaveCount(0); // no Pipedream rows without its env
   // nothing configured anywhere: the owner is pointed at the in-app setup
   await expect(page.locator("#connector-owner-setup")).toContainText("Owner setup");
@@ -1479,5 +1487,262 @@ test("Export sheet (direct): Save to Dropbox uploads the chosen format with the 
   const q = new URL(consent.url()).searchParams;
   expect(q.get("scope")).toBe("drive");
   expect(q.get("next")).toBe("/");
+  await ctx.close();
+});
+
+/* ---------- round 8: connectivity audit fixes ---------- */
+
+test("Dropbox upload with ñ, í and an en dash: the Dropbox-API-Arg header is ASCII (\\uXXXX escapes) and the path keeps every character", async ({
+  request,
+  playwright,
+}) => {
+  const { session } = await dropboxLogin(await playwright.request.newContext());
+  hits.length = 0;
+  const r = await request.post(`${APP}/api/dropbox/upload`, {
+    headers: { cookie: session },
+    data: {
+      format: "m3u8",
+      filename: "Señor · Año 1935 – ñ.m3u8",
+      text: "#EXTM3U\n#EXTINF:170,Canaro - Poema\n",
+      set: "Práctica – Ñandú",
+    },
+  });
+  expect(r.status()).toBe(200);
+  const j = await r.json();
+  expect(j.path).toBe("/Apps/TDJ/Práctica – Ñandú/Señor · Año 1935 – ñ.m3u8");
+  const up = last(/POST \/dropbox-content\/2\/files\/upload/)!;
+  const arg = String(up.headers["dropbox-api-arg"]);
+  for (const ch of arg) expect(ch.charCodeAt(0)).toBeLessThan(0x7f);
+  expect(arg).toContain("\\u00f1");
+  expect(arg).toContain("\\u2013");
+  expect(JSON.parse(arg)).toEqual({
+    path: "/Práctica – Ñandú/Señor · Año 1935 – ñ.m3u8",
+    mode: "add",
+    autorename: true,
+    mute: false,
+  });
+  expect(up.body).toContain("Canaro - Poema");
+});
+
+test("open redirect: ?next=//evil.example and /\\evil are refused at login and at the callback; a same-origin path is kept", async ({
+  request,
+}) => {
+  for (const next of ["//evil.example/x", "/\\evil.example", "https://evil.example/", "evil"]) {
+    const r = await request.get(`${APP}/api/spotify/login?next=${encodeURIComponent(next)}`, {
+      maxRedirects: 0,
+    });
+    const state = new URL(r.headers().location!).searchParams.get("state")!;
+    expect(Buffer.from(state.split(".")[1]!, "base64url").toString()).toBe("/settings");
+    const cb = await request.get(
+      `${APP}/api/spotify/callback?code=code-xyz&state=${encodeURIComponent(state)}`,
+      { maxRedirects: 0, headers: { cookie: cookieOf(setCookies(r), "tdj_sp_state")! } },
+    );
+    expect(cb.headers().location).toBe(`${APP}/settings?connected=spotify`);
+  }
+  // a state cookie forged to carry "//evil.example" is refused at the callback too
+  const forged = `${"a".repeat(22)}.${Buffer.from("//evil.example/x").toString("base64url")}`;
+  const cb = await request.get(
+    `${APP}/api/spotify/callback?code=code-xyz&state=${encodeURIComponent(forged)}`,
+    { maxRedirects: 0, headers: { cookie: `tdj_sp_state=${encodeURIComponent(forged)}` } },
+  );
+  expect(cb.headers().location).toBe(`${APP}/settings?connected=spotify`);
+  const ok = await request.get(`${APP}/api/google/login?next=${encodeURIComponent("/history?x=1")}`, {
+    maxRedirects: 0,
+  });
+  const st = new URL(ok.headers().location!).searchParams.get("state")!;
+  expect(Buffer.from(st.split(".")[1]!, "base64url").toString()).toBe("/history?x=1");
+});
+
+test("CSRF: a state-changing route refuses another site's Origin (nothing reaches the provider) and accepts the app's own", async ({
+  request,
+  playwright,
+}) => {
+  const { session } = await login(request);
+  hits.length = 0;
+  const evil = { cookie: session, origin: "https://evil.example" };
+  const items = [{ id: "csrf", title: "Ciego", orchestra: "Francisco Canaro" }];
+  const m = await request.post(`${APP}/api/spotify/match`, { headers: evil, data: { items } });
+  expect(m.status()).toBe(403);
+  expect((await m.json()).error).toMatch(/did not come from the app/);
+  const pl = await request.post(`${APP}/api/spotify/playlist`, {
+    headers: evil,
+    data: { uris: ["spotify:track:x"], includeCortinas: true },
+  });
+  expect(pl.status()).toBe(403);
+  const out = await request.post(`${APP}/api/spotify/logout`, { headers: evil });
+  expect(out.status()).toBe(403);
+  expect(out.headers()["set-cookie"]).toBeUndefined();
+  const yt = await request.post(`${APP}/api/google/youtube`, { headers: evil, data: { queries: ["x"] } });
+  expect(yt.status()).toBe(403);
+  const db = await request.post(`${APP}/api/dropbox/upload`, {
+    headers: evil,
+    data: { format: "m3u8", text: "x" },
+  });
+  expect(db.status()).toBe(403);
+  const tok = await request.post(`${APP}/api/connect/token`, { headers: evil, data: {} });
+  expect(tok.status()).toBe(403);
+  const cross = await request.post(`${APP}/api/spotify/match`, {
+    headers: { cookie: session, "sec-fetch-site": "cross-site" },
+    data: { items },
+  });
+  expect(cross.status()).toBe(403);
+  expect(hits.filter((h) => h.url.startsWith("/v1/"))).toHaveLength(0);
+  // the app's own origin (what a browser sends from its pages) is accepted; no Origin at all (curl) too
+  const own = await request.post(`${APP}/api/spotify/match`, {
+    headers: { cookie: session, origin: APP },
+    data: { items },
+  });
+  expect(own.status()).toBe(200);
+  const none = await (await playwright.request.newContext()).post(`${APP}/api/spotify/match`, {
+    headers: { cookie: session },
+    data: { items },
+  });
+  expect(none.status()).toBe(200);
+});
+
+test("session and token endpoints answer cache-control: no-store", async ({ request, playwright }) => {
+  const { session } = await login(request);
+  const anon = await playwright.request.newContext();
+  for (const [path, headers] of [
+    ["/api/spotify/me", { cookie: session }],
+    ["/api/spotify/access", { cookie: session }],
+    ["/api/spotify/me", {}],
+    ["/api/google/me", {}],
+    ["/api/dropbox/me", {}],
+    ["/api/connect/accounts", {}],
+    ["/api/db", {}],
+    ["/api/ai/review", {}],
+  ] as const) {
+    const r = await (Object.keys(headers).length ? request : anon).get(`${APP}${path}`, { headers });
+    expect(r.headers()["cache-control"], path).toBe("no-store");
+  }
+  const t = await request.post(`${APP}/api/connect/token`, { data: {} });
+  expect(t.headers()["cache-control"]).toBe("no-store");
+});
+
+test("matching stops at the request's time budget: the rest comes back as a short pause (rateLimited) instead of a timeout", async ({
+  request,
+  playwright,
+}) => {
+  const { session } = await login(await playwright.request.newContext());
+  const items = Array.from({ length: 4 }, (_, i) => ({
+    id: `slow${i}`,
+    title: `Slow tango ${i}`,
+    orchestra: "Osvaldo Pugliese",
+    year: 1950,
+    durationSec: 170,
+  }));
+  searchLimit.delayMs = 1500; // every search takes 1.5 s; the server's budget is 4 s (TDJ_MATCH_BUDGET_MS)
+  try {
+    const t0 = Date.now();
+    const r = await request.post(`${APP}/api/spotify/match`, {
+      headers: { cookie: session },
+      data: { items },
+    });
+    const took = Date.now() - t0;
+    expect(r.status()).toBe(200);
+    const j = await r.json();
+    expect(j.rateLimited).toBe(5);
+    expect(j.matches.map((m: { id: string }) => m.id)).toEqual(["slow0", "slow1", "slow2"]);
+    expect(j.missing).toEqual([]); // slow3 was never searched: not "missing", just after the pause
+    expect(took).toBeLessThan(6500);
+  } finally {
+    searchLimit.delayMs = 0;
+  }
+});
+
+test("YouTube in batches: ≤ 10 queries per request, the first creates the playlist, later ones append to playlistId, a quota stop is reported", async ({
+  request,
+  playwright,
+}) => {
+  const { session } = await googleLogin(await playwright.request.newContext(), "youtube", "code-gg-youtube");
+  hits.length = 0;
+  const first = await request.post(`${APP}/api/google/youtube`, {
+    headers: { cookie: session },
+    data: { queries: ["Poema Canaro Maida", "Ciego Canaro Maida"], name: "Batch YT", tandas: 12 },
+  });
+  expect(first.status()).toBe(200);
+  const a = await first.json();
+  expect(a).toMatchObject({
+    id: "ytpl1",
+    url: "https://www.youtube.com/playlist?list=ytpl1",
+    added: 2,
+    missing: [],
+    skipped: [],
+    quota: false,
+    timeout: false,
+    created: true,
+  });
+  expect(JSON.parse(last(/POST \/google\/youtube\/v3\/playlists\?/)!.body).snippet).toEqual({
+    title: "Batch YT",
+    description: "12 tandas composed with TDJ, cortinas included.",
+  });
+  // the second batch: no second playlist; the third search of the day answers quotaExceeded → the rest skipped
+  const n = hits.filter((h) => h.url.startsWith("/google/youtube/v3/playlists?")).length;
+  const second = await request.post(`${APP}/api/google/youtube`, {
+    headers: { cookie: session },
+    data: { queries: ["A", "B", "C"], playlistId: "ytpl1" },
+  });
+  const b = await second.json();
+  expect(b).toMatchObject({
+    id: "ytpl1",
+    added: 0,
+    missing: [],
+    skipped: ["A", "B", "C"],
+    quota: true,
+    created: false,
+  });
+  expect(hits.filter((h) => h.url.startsWith("/google/youtube/v3/playlists?")).length).toBe(n);
+  expect(hits.filter((h) => h.url.startsWith("/google/youtube/v3/search?")).length).toBe(3);
+  // limits
+  const many = await request.post(`${APP}/api/google/youtube`, {
+    headers: { cookie: session },
+    data: { queries: Array.from({ length: 11 }, (_, i) => `q${i}`) },
+  });
+  expect(many.status()).toBe(400);
+});
+
+test("Export sheet: 'Create playlist' on YouTube sends the set in batches with a progress line and reports the quota stop", async ({
+  browser,
+  playwright,
+}) => {
+  const gg = await googleLogin(await playwright.request.newContext(), "youtube", "code-gg-youtube");
+  const ctx = await browser.newContext({ baseURL: APP });
+  const [name, value] = gg.session.split("=");
+  await ctx.addCookies([{ name: name!, value: value!, url: APP }]);
+  const page: Page = await ctx.newPage();
+  await page.goto("/");
+  await page.getByRole("button", { name: /Compose the night/ }).click();
+  await expect(page.locator("#result")).toBeVisible({ timeout: 60000 });
+  await page.getByRole("button", { name: "Export" }).first().click();
+  const sheet = page.getByTestId("export-sheet");
+  await expect(sheet.locator("#send-youtube")).toContainText("Create playlist");
+  const files = Number((await page.locator("#export-count").textContent())!.match(/\((\d+) files?\)/)![1]);
+  expect(files).toBeGreaterThan(30);
+  hits.length = 0;
+  ytLimit.searches = 25; // the third batch hits the quota half way; the batches after it are never sent
+  const bodies: Array<Record<string, unknown>> = [];
+  page.on("request", (r) => {
+    if (r.url().includes("/api/google/youtube")) bodies.push(r.postDataJSON());
+  });
+  try {
+    await sheet.locator("#send-youtube").click();
+    await expect(sheet.locator("#send-youtube")).toContainText(/Adding \d+ of \d+…/);
+    await expect(page.getByTestId("toast")).toContainText("YouTube playlist created, part left out", {
+      timeout: 30000,
+    });
+    // batches of ≤ 10, the first without a playlistId, every later one appending to it, nothing after the stop
+    expect(bodies.length).toBe(3);
+    expect(bodies[0]!.playlistId).toBeUndefined();
+    for (const b of bodies) expect((b.queries as string[]).length).toBe(10);
+    for (const b of bodies.slice(1)) expect(b.playlistId).toBe("ytpl1");
+    expect(hits.filter((h) => h.url.startsWith("/google/youtube/v3/playlists?"))).toHaveLength(1);
+    expect(hits.filter((h) => h.url.startsWith("/google/youtube/v3/search?"))).toHaveLength(26);
+    await expect(sheet).toContainText(`Created the YouTube playlist with 25 tracks, ${files - 25} left out`);
+    await expect(sheet.getByRole("button", { name: "Open in YouTube" })).toBeVisible();
+    await expect(sheet.locator("#send-youtube")).not.toContainText("Adding");
+  } finally {
+    ytLimit.searches = 2;
+  }
   await ctx.close();
 });

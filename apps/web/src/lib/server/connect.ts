@@ -24,6 +24,7 @@ export function connectEnabled(): boolean {
 const environment = () => (process.env.PIPEDREAM_ENVIRONMENT === "production" ? "production" : "development");
 
 import type { PipedreamClient } from "@pipedream/sdk";
+import { httpJson } from "./headerJson";
 
 let client: Promise<PipedreamClient> | null = null;
 /** The official server SDK, loaded lazily so the route modules stay cheap when Connect is off. */
@@ -145,7 +146,7 @@ export async function uploadDropbox(uid: string, accountId: string, f: { filenam
     method: "POST",
     headers: {
       "Content-Type": "application/octet-stream",
-      "Dropbox-API-Arg": JSON.stringify({ path, mode: "add", autorename: true, mute: false }),
+      "Dropbox-API-Arg": httpJson({ path, mode: "add", autorename: true, mute: false }),
     },
     body: f.text,
   })) as { path_display?: string };
@@ -206,9 +207,11 @@ export async function youtubePlaylist(
   let added = 0;
   let quota = false;
   const missing: string[] = [];
+  /** not searched because the quota ran out (reported apart from `missing`, like the direct path) */
+  const skipped: string[] = [];
   for (const q of p.queries) {
     if (quota) {
-      missing.push(q);
+      skipped.push(q);
       continue;
     }
     try {
@@ -240,11 +243,13 @@ export async function youtubePlaylist(
       );
       added++;
     } catch (e) {
-      if (/quota|403/i.test(String(e))) quota = true;
-      missing.push(q);
+      if (/quota|403/i.test(String(e))) {
+        quota = true;
+        skipped.push(q);
+      } else missing.push(q);
     }
   }
-  return { id: pl.id, url: `https://www.youtube.com/playlist?list=${pl.id}`, added, missing, quota };
+  return { id: pl.id, url: `https://www.youtube.com/playlist?list=${pl.id}`, added, missing, skipped, quota };
 }
 
 /** Spotify through Pipedream's managed client (an alternative to the hosted login; same 5-user rule applies). */

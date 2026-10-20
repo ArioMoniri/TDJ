@@ -34,6 +34,7 @@ import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import { TRANSFER_SERVICES, type TransferService, transferCsv, transferRows } from "@/lib/transferCsv";
 import { CORTINA_STOP_RANGE, cortinaStopSec, DJ_APPS, type DjApp, type Playlist } from "@/lib/types";
+import { youtubeBatches, youtubeQueries } from "@/lib/youtubePlan";
 import { CountUp } from "./CountUp";
 import { ActionRow, Group, PickerRow, Row, SegmentedRow, StepperRow, SwitchRow, Tile } from "./Form";
 import { Sheet } from "./Sheet";
@@ -130,6 +131,8 @@ export function ExportSheet({
   const dropboxOn = dropbox?.hosted ?? false;
   const hasFileTarget = googleOn || dropboxOn || fileAccounts.length > 0;
   const [cloudBusy, setCloudBusy] = useState<string | null>(null);
+  /** "Adding 20 of 83…" while the YouTube playlist fills batch by batch */
+  const [ytProgress, setYtProgress] = useState<string | null>(null);
   const webhookUrl = overrides.connectors?.webhookUrl ?? "";
   const [hookFormat, setHookFormat] = useState<ExportFormat>("m3u8");
   const [hookBusy, setHookBusy] = useState(false);
@@ -513,14 +516,45 @@ export function ExportSheet({
     setCloudBusy(target);
     try {
       if (target === "youtube") {
-        const r = await directPost<YoutubeResult>("/api/google/youtube", { playlist, includeCortinas });
-        const miss = r.missing.length;
-        const skipped = r.skipped?.length ?? 0;
+        // like Spotify: batches of 10 searches per request, the first one creates the playlist; a quota stop
+        // ends the loop and everything after it is reported as left out
+        const queries = youtubeQueries(playlist, includeCortinas);
+        const bs = youtubeBatches(queries);
+        const common = {
+          name: `TDJ · ${playlist.name}`,
+          includeCortinas,
+          tandas: playlist.tandas.length,
+        };
+        let playlistId: string | null = null;
+        let url = "";
+        let added = 0;
+        let missing = 0;
+        let skipped = 0;
+        let quota = false;
+        let done = 0;
+        for (const b of bs) {
+          if (quota) {
+            skipped += b.length;
+            continue;
+          }
+          setYtProgress(`Adding ${Math.min(done + b.length, queries.length)} of ${queries.length}…`);
+          const body: Record<string, unknown> = { ...common, queries: b };
+          if (playlistId) body.playlistId = playlistId;
+          const r: YoutubeResult = await directPost<YoutubeResult>("/api/google/youtube", body);
+          playlistId = r.id;
+          url = r.url;
+          added += r.added;
+          missing += r.missing.length;
+          skipped += r.skipped?.length ?? 0;
+          if (r.quota) quota = true;
+          done += b.length;
+        }
+        setYtProgress(null);
         setLog((l) => [
           ...l,
-          `Created the YouTube playlist with ${r.added} tracks${miss ? `, ${miss} not found` : ""}${skipped ? `, ${skipped} left out (YouTube's daily search budget ran out; try the rest another day)` : ""}.`,
+          `Created the YouTube playlist with ${added} tracks${missing ? `, ${missing} not found` : ""}${skipped ? `, ${skipped} left out (YouTube's daily search budget ran out; try the rest another day)` : ""}.`,
         ]);
-        setResult({ label: "Open in YouTube", url: r.url });
+        if (url) setResult({ label: "Open in YouTube", url });
         toast(skipped ? "YouTube playlist created, part left out" : "YouTube playlist created");
       } else {
         const filename = `${playlist.name.replace(/[^a-z0-9-]+/gi, "_")}.${EXPORT_META[hookFormat].ext}`;
@@ -538,6 +572,7 @@ export function ExportSheet({
       }
       haptic([10, 40, 10]);
     } catch (e) {
+      setYtProgress(null);
       setLog((l) => [...l, `Error: ${(e as Error).message}`]);
       haptic([20, 30, 20]);
     } finally {
@@ -730,8 +765,16 @@ export function ExportSheet({
               </Tile>
             }
             label="YouTube"
-            sub={google?.user?.email ?? google?.user?.name}
-            value={!google?.user ? "Connect" : google.scopes?.youtube ? "Create playlist" : "Allow"}
+            sub={ytProgress ?? google?.user?.email ?? google?.user?.name}
+            value={
+              ytProgress
+                ? ""
+                : !google?.user
+                  ? "Connect"
+                  : google.scopes?.youtube
+                    ? "Create playlist"
+                    : "Allow"
+            }
             chevron
             onClick={() => toDirect("youtube")}
             busy={cloudBusy === "youtube"}

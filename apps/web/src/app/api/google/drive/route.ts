@@ -2,6 +2,7 @@ import { EXPORT_META, type ExportFormat } from "@tdj/core";
 import { NextResponse } from "next/server";
 import { requestOrigin } from "@/lib/server/cookies";
 import { featureLogin, hasScope, uploadDrive } from "@/lib/server/google";
+import { crossOriginResponse } from "@/lib/server/guard";
 import { enabled, errorStatus, GOOGLE, withSession } from "@/lib/server/oauth";
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,8 @@ export const dynamic = "force-dynamic";
  * Without the Drive scope the answer is 403 `{ error: "needs_scope", login }`: the client sends the DJ there.
  */
 export async function POST(req: Request) {
+  const cross = await crossOriginResponse(req);
+  if (cross) return cross;
   if (!(await enabled(GOOGLE)))
     return NextResponse.json({ error: "Google login is not enabled" }, { status: 404 });
   const origin = await requestOrigin(req);

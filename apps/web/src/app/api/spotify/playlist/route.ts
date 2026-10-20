@@ -2,10 +2,12 @@ import type { Playlist } from "@tdj/core";
 import { NextResponse } from "next/server";
 import { withoutCortinas } from "@/lib/exportPaths";
 import { requestOrigin } from "@/lib/server/cookies";
+import { crossOriginResponse } from "@/lib/server/guard";
 import {
   addTracks,
   createPlaylist,
   hostedEnabled,
+  MATCH_BUDGET_MS,
   matchItems,
   SpotifyError,
   withSession,
@@ -16,9 +18,13 @@ export const dynamic = "force-dynamic";
 /**
  * Creates the playlist in the logged-in user's library. The Export sheet matches first through /api/spotify/match
  * and sends `uris`; `playlistId` appends to a playlist made earlier (the "Try again" after a rate limit). Without
- * `uris` (older callers) the unresolved tracks are matched here, one search at a time, stopping at a rate limit.
+ * `uris` (older callers) the unresolved tracks are matched here, one search at a time, stopping at a rate limit
+ * or at the 20 s budget (`rateLimited`), so the request never outlives the function.
  */
 export async function POST(req: Request) {
+  const started = Date.now();
+  const cross = await crossOriginResponse(req);
+  if (cross) return cross;
   if (!(await hostedEnabled()))
     return NextResponse.json({ error: "Hosted Spotify login is not enabled" }, { status: 404 });
   const origin = await requestOrigin(req);
@@ -40,7 +46,7 @@ export async function POST(req: Request) {
         includeCortinas,
       });
       uris.push(...plan.uris);
-      const r = await matchItems(s.session.access, plan.items);
+      const r = await matchItems(s.session.access, plan.items, { deadline: started + MATCH_BUDGET_MS });
       uris.push(...r.matches.map((m) => m.uri));
       for (const id of r.missing) {
         const t = plan.tracks.find((x) => (x.id ?? "") === id);

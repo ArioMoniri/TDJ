@@ -1,8 +1,9 @@
 import "server-only";
 import { createHash, randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
-import { type ConfigKey, getConfig } from "./config";
+import { type ConfigKey, ConfigUnavailableError, getConfig } from "./config";
 import { clearCookieHeader, cookieHeader, readCookie, requestOrigin, seal, unseal } from "./cookies";
+import { crossOriginResponse } from "./guard";
 
 /**
  * Direct OAuth per provider with the deployment's own credentials: the zero-cost path (docs/research/connectors.md,
@@ -110,6 +111,12 @@ export const pkceCookie = (p: Provider) => `${p.cookie}_pkce`;
 export const cookiePath = (p: Provider) => `/api/${p.id}`;
 export const newState = () => randomBytes(16).toString("base64url");
 const b64url = (b: Buffer) => b.toString("base64url");
+/**
+ * Where a login may land afterwards: a path on this origin only. `//evil.example/x` starts with "/" yet resolves
+ * to another host, and `/\evil.example` is the same trick in browsers that treat "\" as "/", so both are refused.
+ */
+export const safeNext = (s: string | null | undefined): string =>
+  s && /^\/(?![/\\])/.test(s) ? s : "/settings";
 
 export interface Session {
   access: string;
@@ -265,8 +272,8 @@ export async function loginRedirect(
       { status: 404 },
     );
   const origin = await requestOrigin(req);
-  const next = new URL(req.url).searchParams.get("next") ?? "/settings";
-  const state = `${newState()}.${Buffer.from(next.startsWith("/") ? next : "/settings").toString("base64url")}`;
+  const next = safeNext(new URL(req.url).searchParams.get("next"));
+  const state = `${newState()}.${Buffer.from(next).toString("base64url")}`;
   const secure = origin.startsWith("https://");
   const path = cookiePath(p);
   let codeChallenge: string | undefined;
@@ -327,13 +334,15 @@ export async function callbackRedirect(p: Provider, req: Request): Promise<Respo
     };
     if (session.scopes || old?.scopes)
       session.scopes = [...new Set([...(old?.scopes ?? []), ...(session.scopes ?? [])])];
-    const next = Buffer.from(state.split(".")[1] ?? "", "base64url").toString("utf8") || "/settings";
-    const to = new URL(next.startsWith("/") ? next : "/settings", origin);
+    const next = safeNext(Buffer.from(state.split(".")[1] ?? "", "base64url").toString("utf8"));
+    const to = new URL(next, origin);
     to.searchParams.set("connected", p.id);
     const res = NextResponse.redirect(to.toString(), 302);
     res.headers.append("set-cookie", await sessionCookie(p, session, origin));
     return clear(res);
   } catch (e) {
+    // the cookie secret could not be read (config store down): say so instead of blaming the provider
+    if (e instanceof ConfigUnavailableError) return fail("store");
     if (
       p === SPOTIFY &&
       e instanceof TokenError &&
@@ -344,9 +353,14 @@ export async function callbackRedirect(p: Provider, req: Request): Promise<Respo
   }
 }
 
-/** POST /api/<provider>/logout: forgets the sealed cookie (the provider keeps the grant until the user revokes it). */
-export function logoutResponse(p: Provider): Response {
-  const res = NextResponse.json({ ok: true });
+/**
+ * POST /api/<provider>/logout: forgets the sealed cookie (the provider keeps the grant until the user revokes it).
+ * Only the app's own pages may log a DJ out (same-origin check, lib/server/guard.ts).
+ */
+export async function logoutResponse(p: Provider, req: Request): Promise<Response> {
+  const cross = await crossOriginResponse(req);
+  if (cross) return cross;
+  const res = NextResponse.json({ ok: true }, { headers: { "cache-control": "no-store" } });
   res.headers.append("set-cookie", clearSessionCookie(p));
   return res;
 }
@@ -376,11 +390,18 @@ export const RETRY_AFTER_MAX = 10;
 export const isRateLimited = (e: unknown): e is RateLimitError => e instanceof RateLimitError;
 
 /**
- * JSON request with a bearer token. A 429 is retried exactly once when Retry-After is ≤ RETRY_AFTER_MAX seconds;
- * a longer wait, or a second 429, throws `RateLimitError` so the route can report the pause instead of hammering
- * the provider (there is never an uncapped retry loop).
+ * JSON request with a bearer token. A 429 is retried exactly once when Retry-After is ≤ RETRY_AFTER_MAX seconds
+ * and the wait would end before `deadline` (an epoch ms budget the route sets so one request never outlives the
+ * function); a longer wait, or a second 429, throws `RateLimitError` so the route can report the pause instead
+ * of hammering the provider (there is never an uncapped retry loop).
  */
-export async function api<T>(access: string, url: string, init: RequestInit = {}, attempt = 0): Promise<T> {
+export async function api<T>(
+  access: string,
+  url: string,
+  init: RequestInit = {},
+  attempt = 0,
+  deadline?: number,
+): Promise<T> {
   const r = await fetch(url, {
     ...init,
     headers: {
@@ -393,9 +414,10 @@ export async function api<T>(access: string, url: string, init: RequestInit = {}
     const header = Number(r.headers.get("retry-after"));
     const wait = Number.isFinite(header) && header > 0 ? Math.ceil(header) : 2;
     const body = await r.text().catch(() => "");
-    if (attempt >= 1 || wait > RETRY_AFTER_MAX) throw new RateLimitError(url, wait, body);
+    const crosses = deadline !== undefined && Date.now() + wait * 1000 > deadline;
+    if (attempt >= 1 || wait > RETRY_AFTER_MAX || crosses) throw new RateLimitError(url, wait, body);
     await new Promise((res) => setTimeout(res, wait * 1000));
-    return api<T>(access, url, init, attempt + 1);
+    return api<T>(access, url, init, attempt + 1, deadline);
   }
   if (!r.ok) {
     const body = await r.text();

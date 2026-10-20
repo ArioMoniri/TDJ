@@ -34,7 +34,7 @@ import {
 const MODEL_SUGGESTIONS: Record<AiProvider, string[]> = {
   anthropic: ["claude-sonnet-5-5", "claude-opus-5-5", "claude-haiku-5-5"],
   openai: ["gpt-5.2", "gpt-5.2-mini", "o4-mini"],
-  gemini: ["gemini-3-pro", "gemini-3-flash"],
+  gemini: ["gemini-4-argon", "gemini-3.8-flash", "gemini-3.5-flash-lite"],
   openrouter: ["openrouter/auto", "anthropic/claude-sonnet-5-5", "openai/gpt-5.2"],
 };
 const KEY_PLACEHOLDER: Record<AiProvider, string> = {

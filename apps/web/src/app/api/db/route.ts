@@ -1,11 +1,11 @@
-import { NextResponse } from "next/server";
 import { dbEnabled, getUserRow, putUserRow, userFromRequest } from "@/lib/server/db";
+import { crossOriginResponse, jsonNoStore } from "@/lib/server/guard";
 import type { AgentMemory, AppOverrides, HistorySnapshot } from "@/lib/types";
 export const dynamic = "force-dynamic";
 
 /** Server storage is optional: without DynamoDB the route answers 200 so the browser keeps its own database quietly. */
 const disabled = () =>
-  NextResponse.json({
+  jsonNoStore({
     enabled: false,
     mode: "browser",
     storage: "browser",
@@ -14,10 +14,10 @@ const disabled = () =>
 
 export async function GET(req: Request) {
   if (!dbEnabled()) return disabled();
-  const u = userFromRequest(req);
+  const u = await userFromRequest(req);
   try {
     const { overrides, memory, history } = await getUserRow(u.id);
-    const res = NextResponse.json({
+    const res = jsonNoStore({
       enabled: true,
       mode: "server",
       storage: "server",
@@ -28,16 +28,18 @@ export async function GET(req: Request) {
     if (u.setCookie) res.headers.set("set-cookie", u.setCookie);
     return res;
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return jsonNoStore({ error: (e as Error).message }, { status: 500 });
   }
 }
 
 /** Body: `{ overrides }`, `{ memory }`, `{ history }` or any mix; a bare overrides object is accepted too. Missing parts are kept. */
 export async function PUT(req: Request) {
+  const cross = await crossOriginResponse(req);
+  if (cross) return cross;
   if (!dbEnabled()) return disabled();
-  const u = userFromRequest(req);
+  const u = await userFromRequest(req);
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
-  if (!body || typeof body !== "object") return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  if (!body || typeof body !== "object") return jsonNoStore({ error: "Invalid JSON" }, { status: 400 });
   const parts: { overrides?: AppOverrides; memory?: AgentMemory; history?: HistorySnapshot[] } = {};
   if ("overrides" in body || "memory" in body || "history" in body) {
     if (body.overrides && typeof body.overrides === "object") {
@@ -50,10 +52,10 @@ export async function PUT(req: Request) {
   } else parts.overrides = { ...(body as AppOverrides), updatedAt: new Date().toISOString() };
   try {
     await putUserRow(u.id, parts);
-    const res = NextResponse.json({ ok: true, storage: "server" });
+    const res = jsonNoStore({ ok: true, storage: "server" });
     if (u.setCookie) res.headers.set("set-cookie", u.setCookie);
     return res;
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return jsonNoStore({ error: (e as Error).message }, { status: 500 });
   }
 }

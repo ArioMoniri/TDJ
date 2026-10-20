@@ -26,8 +26,14 @@ export const withSession = (req: Request, origin: string) => withSessionFor(SPOT
 export const clearSessionCookie = () => clearFor(SPOTIFY);
 export { ApiError as SpotifyError, isRateLimited };
 
-const spotify = <T>(access: string, path: string, init: RequestInit = {}) =>
-  api<T>(access, `${API()}${path}`, init);
+const spotify = <T>(access: string, path: string, init: RequestInit = {}, deadline?: number) =>
+  api<T>(access, `${API()}${path}`, init, 0, deadline);
+/**
+ * How long one matching request may run (CloudFront and the function both stop at 30–60 s): past it the rest of
+ * the batch is reported as `rateLimited` with a short pause so the browser's "Try again" carries on.
+ */
+export const MATCH_BUDGET_MS = Number(process.env.TDJ_MATCH_BUDGET_MS) || 20_000;
+const BUDGET_PAUSE_S = 5;
 
 export interface Profile {
   id: string;
@@ -73,10 +79,12 @@ const toCandidate = (h: SearchHit): Candidate => ({
   url: h.external_urls?.spotify,
 });
 /** Up to 10 candidates for one query (Dev Mode caps the search limit at 10). */
-async function search(access: string, q: string): Promise<Candidate[]> {
+async function search(access: string, q: string, deadline?: number): Promise<Candidate[]> {
   const j = await spotify<{ tracks?: { items?: SearchHit[] } }>(
     access,
     `/search?${new URLSearchParams({ q, type: "track", limit: "10" })}`,
+    {},
+    deadline,
   );
   return (j.tracks?.items ?? []).map(toCandidate);
 }
@@ -94,18 +102,18 @@ const memoKey = (i: MatchItem) => `${i.id}|${i.title}|${i.orchestra}|${i.singer 
  * search (`track:"…" artist:"…"`), then a plain text query; every candidate is scored by lib/match.ts and only a
  * score above the threshold counts. A 429 the helper could not wait out propagates as RateLimitError.
  */
-export async function matchOne(access: string, item: MatchItem): Promise<Match | null> {
+export async function matchOne(access: string, item: MatchItem, deadline?: number): Promise<Match | null> {
   const key = memoKey(item);
   const hit = memo.get(key);
   if (hit && (hit.m || Date.now() - hit.at < NOT_FOUND_TTL)) return hit.m;
   const q = searchQueries(item);
   let m: Match | null = null;
   if (item.isrc) {
-    const c = await search(access, `isrc:${item.isrc}`);
+    const c = await search(access, `isrc:${item.isrc}`, deadline);
     if (c[0]) m = bestMatch(item, c, 0);
   }
-  if (!m) m = bestMatch(item, await search(access, q.filtered));
-  if (!m) m = bestMatch(item, await search(access, q.plain));
+  if (!m) m = bestMatch(item, await search(access, q.filtered, deadline));
+  if (!m) m = bestMatch(item, await search(access, q.plain, deadline));
   memo.set(key, { m, at: Date.now() });
   return m;
 }
@@ -117,12 +125,24 @@ export interface MatchResult {
   /** Spotify asked for a pause this long (seconds): the items after the last match were not searched */
   rateLimited?: number;
 }
-/** Items one after the other (one search in flight per request); stops at the first rate limit and says so. */
-export async function matchItems(access: string, items: MatchItem[]): Promise<MatchResult> {
+/**
+ * Items one after the other (one search in flight per request); stops at the first rate limit, or when the time
+ * budget is spent, and says so (`rateLimited`: the items after the last one were not searched).
+ */
+export async function matchItems(
+  access: string,
+  items: MatchItem[],
+  o: { deadline?: number } = {},
+): Promise<MatchResult> {
+  const deadline = o.deadline ?? Date.now() + MATCH_BUDGET_MS;
   const out: MatchResult = { matches: [], missing: [] };
   for (const item of items) {
+    if (Date.now() >= deadline) {
+      out.rateLimited = BUDGET_PAUSE_S;
+      return out;
+    }
     try {
-      const m = await matchOne(access, item);
+      const m = await matchOne(access, item, deadline);
       if (m) out.matches.push(m);
       else out.missing.push(item.id);
     } catch (e) {
