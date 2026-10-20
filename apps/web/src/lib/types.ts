@@ -36,7 +36,7 @@ export const AI_PROVIDERS: Array<[AiProvider, string]> = [
 export const AI_DEFAULT_MODEL: Record<AiProvider, string> = {
   anthropic: "claude-sonnet-5-5",
   openai: "gpt-5.2",
-  gemini: "gemini-3-pro",
+  gemini: "gemini-4-argon",
   openrouter: "openrouter/auto",
 };
 
