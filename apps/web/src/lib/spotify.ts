@@ -408,8 +408,11 @@ export interface FileResult {
   url?: string;
 }
 export interface YoutubeResult extends PlaylistResult {
-  /** left out because YouTube's daily search budget ran out */
+  /** left out because YouTube's daily search budget ran out (`quota`) or the request's time budget did (`timeout`) */
   skipped: string[];
+  timeout?: boolean;
+  /** this call created the playlist (the first batch); later batches append to `playlistId` */
+  created?: boolean;
 }
 
 interface ConnectorsSnapshot {

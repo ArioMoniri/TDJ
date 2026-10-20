@@ -1,4 +1,5 @@
 import "server-only";
+import { httpJson } from "./headerJson";
 import { ApiError, api, DROPBOX, safeName } from "./oauth";
 
 /**
@@ -40,7 +41,11 @@ async function sharedLink(access: string, path: string): Promise<string | undefi
   }
 }
 
-/** `files/upload` into /<set>/<file> of the app folder (= /Apps/TDJ/… in the user's Dropbox), then a shared link. */
+/**
+ * `files/upload` into /<set>/<file> of the app folder (= /Apps/TDJ/… in the user's Dropbox), then a shared link.
+ * The argument header is `\uXXXX`-escaped: set names with ñ, í or an en dash are the norm in tango and a raw
+ * non-Latin-1 header value makes Node's fetch throw before Dropbox ever sees the file.
+ */
 export async function upload(
   access: string,
   f: { set: string; filename: string; mime: string; text: string },
@@ -50,7 +55,7 @@ export async function upload(
     method: "POST",
     headers: {
       "content-type": "application/octet-stream",
-      "dropbox-api-arg": JSON.stringify({ path, mode: "add", autorename: true, mute: false }),
+      "dropbox-api-arg": httpJson({ path, mode: "add", autorename: true, mute: false }),
     },
     body: f.text,
   });

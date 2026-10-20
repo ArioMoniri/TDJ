@@ -2,11 +2,14 @@ import { EXPORT_META, type ExportFormat } from "@tdj/core";
 import { NextResponse } from "next/server";
 import { requestOrigin } from "@/lib/server/cookies";
 import { upload } from "@/lib/server/dropbox";
+import { crossOriginResponse } from "@/lib/server/guard";
 import { DROPBOX, enabled, errorStatus, withSession } from "@/lib/server/oauth";
 export const dynamic = "force-dynamic";
 
 /** `{ format, filename, text, set }` → `/Apps/TDJ/<set>/<file>` in the user's Dropbox, `{ path, url }`. */
 export async function POST(req: Request) {
+  const cross = await crossOriginResponse(req);
+  if (cross) return cross;
   if (!(await enabled(DROPBOX)))
     return NextResponse.json({ error: "Dropbox login is not enabled" }, { status: 404 });
   const origin = await requestOrigin(req);

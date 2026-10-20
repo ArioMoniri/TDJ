@@ -9,6 +9,7 @@ import {
 import { NextResponse } from "next/server";
 import { FEEDBACK_LABEL, FEEDBACK_VALUES, feedbackFromText } from "@/lib/feedback";
 import { getCatalog } from "@/lib/server/catalog";
+import { crossOriginResponse } from "@/lib/server/guard";
 import { complete, extractJson, houseRulesBlock, resolveAi } from "@/lib/server/llm";
 export const dynamic = "force-dynamic";
 
@@ -119,6 +120,8 @@ function sanitizeOptions(raw: unknown, orchestraIds: Set<string>): Partial<Compo
 
 /** "warmer start, more vals, no Canaro" → { options, feedback, note }. Falls back to keyword matching without a key or when the model's JSON does not parse. */
 export async function POST(req: Request) {
+  const cross = await crossOriginResponse(req);
+  if (cross) return cross;
   const body = await req.json().catch(() => null);
   if (!body || typeof body !== "object") return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   const instruction = String(body.instruction ?? "")

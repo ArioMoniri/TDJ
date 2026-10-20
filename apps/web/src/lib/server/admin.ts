@@ -13,7 +13,8 @@ import {
   storeAvailable,
 } from "./config";
 import { clearCookieHeader, cookieHeader, readCookie, requestOrigin, seal, unseal } from "./cookies";
-import { AI_DAILY_DEFAULT, complete, isProvider, LlmError } from "./llm";
+import { clientKey } from "./guard";
+import { AI_DAILY_DEFAULT, complete, isProvider, LlmError, modelFor, sharedAi } from "./llm";
 import {
   type Credentials,
   DROPBOX,
@@ -76,19 +77,21 @@ const sameString = (a: string, b: string) => {
   return x.length === y.length && timingSafeEqual(x, y);
 };
 
-/* ---------- rate limit (per process; Lambda instances each keep their own, plus the 1 s delay) ---------- */
+/* ---------- rate limit ---------- */
 
+/**
+ * Two limits guard the unlock, on top of scrypt and the 1 s delay per attempt. Per client (the address CloudFront
+ * appended, lib/server/guard.ts; a caller-chosen `X-Forwarded-For` element never counts): 5 failures in 10 min,
+ * kept in this process. Deployment-wide: `UNLOCK_FAILURES` in the config store (`<count>.<window start>`),
+ * 20 failures per hour from anyone, so rotating addresses or Lambda instances does not restart the budget.
+ */
 const WINDOW_MS = 10 * 60_000;
 const MAX_ATTEMPTS = 5;
+export const GLOBAL_WINDOW_S = 3600;
+export const GLOBAL_MAX_ATTEMPTS = 20;
 const attempts = new Map<string, { n: number; until: number }>();
-export function clientKey(req: Request): string {
-  return (
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    req.headers.get("x-real-ip") ||
-    req.headers.get("cloudfront-viewer-address")?.replace(/:\d+$/, "") ||
-    "local"
-  );
-}
+
+export { clientKey };
 /** true when this client may try again; a failure is recorded with `recordFailure`. */
 export function allowAttempt(key: string): boolean {
   const a = attempts.get(key);
@@ -104,6 +107,27 @@ export function recordFailure(key: string) {
 }
 export const clearFailures = (key: string) => attempts.delete(key);
 export const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+async function globalFailures(): Promise<{ n: number; start: number }> {
+  const raw = (await getConfig()).UNLOCK_FAILURES ?? "";
+  const [n, start] = raw.split(".").map(Number);
+  const now = Math.floor(Date.now() / 1000);
+  if (!Number.isFinite(n) || !Number.isFinite(start) || now - start! > GLOBAL_WINDOW_S)
+    return { n: 0, start: now };
+  return { n: n!, start: start! };
+}
+/** true while the whole deployment is under its hourly budget of failed unlocks. */
+export async function allowGlobalAttempt(): Promise<boolean> {
+  return (await globalFailures()).n < GLOBAL_MAX_ATTEMPTS;
+}
+export async function recordGlobalFailure(): Promise<void> {
+  const g = await globalFailures();
+  await setConfigValue("UNLOCK_FAILURES", `${g.n + 1}.${g.start}`).catch(() => {});
+}
+/** a successful unlock closes the window (whoever got in holds the passphrase anyway) */
+export async function clearGlobalFailures(): Promise<void> {
+  if ((await getConfig()).UNLOCK_FAILURES) await deleteConfigValue("UNLOCK_FAILURES").catch(() => {});
+}
 
 /* ---------- unlock ---------- */
 
@@ -226,17 +250,27 @@ export interface SharedAiStatus {
   hasWorkspace: boolean;
   source: "env" | "store" | null;
 }
+/** The shared key as `sharedAi()` resolves it (the store, else the deployment's ANTHROPIC_API_KEY); never the key. */
 async function sharedAiStatus(): Promise<SharedAiStatus> {
-  const c = await getConfig();
-  const n = Number(c.AI_DAILY_LIMIT);
+  const s = await sharedAi();
+  if (!s)
+    return {
+      configured: false,
+      provider: "anthropic",
+      model: "",
+      dailyLimit: AI_DAILY_DEFAULT,
+      keyHint: null,
+      hasWorkspace: false,
+      source: null,
+    };
   return {
-    configured: !!c.AI_KEY,
-    provider: isProvider(c.AI_PROVIDER) ? c.AI_PROVIDER : "anthropic",
-    model: c.AI_MODEL ?? "",
-    dailyLimit: Number.isFinite(n) && n > 0 ? Math.floor(n) : AI_DAILY_DEFAULT,
-    keyHint: hint(c.AI_KEY),
-    hasWorkspace: !!c.AI_WORKSPACE_ID,
-    source: c.AI_KEY ? await configSource("AI_KEY") : null,
+    configured: true,
+    provider: s.provider,
+    model: s.model,
+    dailyLimit: s.dailyLimit,
+    keyHint: hint(s.key),
+    hasWorkspace: !!s.workspace,
+    source: s.source === "store" ? ((await configSource("AI_KEY")) ?? "store") : "env",
   };
 }
 
@@ -250,12 +284,15 @@ export interface PublicStatus {
   ownerContact: string;
   seats: Record<ProviderId, { used: number; max: number }>;
   ai: { shared: boolean; dailyLimit: number };
+  /** no owner passphrase yet: Settings points at /admin. Whether a setup code exists is not public. */
+  setupNeeded: boolean;
 }
 export async function publicStatus(): Promise<PublicStatus> {
   const c = await getConfig();
   const seats = await seatLists();
   const ai = await sharedAiStatus();
   return {
+    setupNeeded: !c.OWNER_PASSPHRASE_HASH,
     providers: {
       spotify: !!(c.SPOTIFY_CLIENT_ID && c.SPOTIFY_CLIENT_SECRET),
       google: !!(c.GOOGLE_CLIENT_ID && c.GOOGLE_CLIENT_SECRET),
@@ -274,6 +311,10 @@ export async function publicStatus(): Promise<PublicStatus> {
 export interface AdminStatus {
   unlocked: boolean;
   hasPassphrase: boolean;
+  /**
+   * unlocked: whether an unexpired setup code is stored. Locked: only "owner setup still needed" (no passphrase
+   * yet), so a visitor cannot learn that a live code is waiting to be guessed.
+   */
   hasSetupCode: boolean;
   stage: string;
   backend: "memory" | "ssm";
@@ -295,7 +336,7 @@ export async function adminStatus(req: Request): Promise<AdminStatus> {
   const base: AdminStatus = {
     unlocked,
     hasPassphrase: !!c.OWNER_PASSPHRASE_HASH,
-    hasSetupCode: !!code && !code.expired,
+    hasSetupCode: unlocked ? !!code && !code.expired : !c.OWNER_PASSPHRASE_HASH,
     stage: stage(),
     backend: backendKind(),
     storeAvailable: await storeAvailable(),
@@ -456,21 +497,22 @@ export async function saveConfig(body: SaveBody): Promise<{ saved: string[]; err
 
 /** One ping with the shared key, the way Settings → Test connection does it with a personal key. */
 export async function testSharedAi(): Promise<TestResult> {
-  const c = await getConfig();
-  if (!c.AI_KEY) return { ok: false, text: "No shared model key is saved yet." };
+  const s = await sharedAi();
+  if (!s) return { ok: false, text: "No shared model key is saved yet." };
+  const model = modelFor(s.provider, s.model);
   try {
     const text = await complete({
-      provider: isProvider(c.AI_PROVIDER) ? c.AI_PROVIDER : "anthropic",
-      key: c.AI_KEY,
-      model: c.AI_MODEL ?? "",
-      workspace: c.AI_WORKSPACE_ID || undefined,
+      provider: s.provider,
+      key: s.key,
+      model,
+      workspace: s.workspace,
       system: "You are a connection test. Reply with the single word OK.",
       user: "ping",
       maxTokens: 16,
     });
     return {
       ok: true,
-      text: `The model answered "${text.trim().slice(0, 40)}". DJs without a key of their own now get reviews.`,
+      text: `The model (${model}) answered "${text.trim().slice(0, 40)}". DJs without a key of their own now get reviews.`,
     };
   } catch (e) {
     const msg = e instanceof LlmError ? e.message : (e as Error).message;
@@ -478,7 +520,7 @@ export async function testSharedAi(): Promise<TestResult> {
       ok: false,
       text: /not scoped to a workspace/i.test(msg)
         ? "This key needs a workspace: paste its Workspace ID or create the key inside a workspace at console.anthropic.com → API keys."
-        : `The provider refused the key: ${msg.slice(0, 200)}`,
+        : `The provider refused the key (model ${model}): ${msg.slice(0, 200)}`,
     };
   }
 }
@@ -497,7 +539,9 @@ export interface TestResult {
 /**
  * Proves the saved credentials against the provider without a user: Spotify issues a client-credentials token;
  * Google and Dropbox have no such grant, so a bogus authorization code is sent to the token endpoint and the
- * answer tells the two apart: `invalid_grant` means the client authenticated, `invalid_client` means it did not.
+ * answer tells the two apart: `invalid_grant` means the client authenticated and the code was then rejected;
+ * anything else (`invalid_client`, and also `invalid_request`, which Google sends for a malformed request
+ * *before* it checks the secret) is reported with the provider's own error word.
  */
 export async function testProvider(id: ProviderId): Promise<TestResult> {
   const p: Provider = PROVIDERS[id];
@@ -523,12 +567,7 @@ export async function testProvider(id: ProviderId): Promise<TestResult> {
     });
     const j = (await r.json().catch(() => ({}))) as { error?: string; error_description?: string };
     const err = (j.error ?? "").toLowerCase();
-    if (
-      r.ok ||
-      err === "invalid_grant" ||
-      err === "invalid_request" ||
-      (p === DROPBOX && r.status === 400 && !err.includes("client"))
-    )
+    if (r.ok || err === "invalid_grant" || (p === DROPBOX && r.status === 400 && !err.includes("client")))
       return {
         ok: true,
         text: `${p.label} accepted the ${p === GOOGLE ? "Client ID" : "app key"} and secret.`,

@@ -16,11 +16,33 @@ const APP = `http://127.0.0.1:${APP_PORT}`;
 const SETUP_CODE = "0123456789abcdef0123456789abcdef";
 const PASSPHRASE = "milonga-nights-2026";
 const SP = { id: "sp-client-id-9f3a", secret: "sp-secret-value-ZZ9" };
-const GG = { id: "gg-client.apps.googleusercontent.com", secret: "gg-secret-value-QQ7" };
-const AI = { key: "sk-ant-shared-key-7Q2x", orgKey: "sk-ant-org-level-key", workspace: "wrkspc_01TEST" };
+const GG = {
+  id: "gg-client.apps.googleusercontent.com",
+  secret: "gg-secret-value-QQ7",
+  malformed: "gg-malformed-secret-MM1",
+};
+const AI = {
+  key: "sk-ant-shared-key-7Q2x",
+  orgKey: "sk-ant-org-level-key",
+  workspace: "wrkspc_01TEST",
+  slowKey: "sk-ant-slow-key-ZZ3",
+  openai: "sk-openai-key-OO4",
+  gemini: "AIza-gemini-key-GG5",
+};
 const SEATS = ["dj-one@example.test", "dj-two@example.test"];
 const OWNER = "organiser@example.test";
-const SECRETS = [SP.secret, GG.secret, PASSPHRASE, AI.key, AI.orgKey, AI.workspace];
+const SECRETS = [
+  SP.secret,
+  GG.secret,
+  GG.malformed,
+  PASSPHRASE,
+  AI.key,
+  AI.orgKey,
+  AI.workspace,
+  AI.slowKey,
+  AI.openai,
+  AI.gemini,
+];
 
 interface Hit {
   method: string;
@@ -59,13 +81,42 @@ function mockServer(): http.Server {
       // Google: a bogus code with the right client answers invalid_grant, a wrong secret invalid_client
       if (url === "/google/token") {
         const form = new URLSearchParams(body);
+        // a malformed request is refused before the secret is checked: no proof of anything
+        if (form.get("client_secret") === GG.malformed)
+          return json(400, { error: "invalid_request", error_description: "Missing required parameter" });
         if (form.get("client_id") !== GG.id || form.get("client_secret") !== GG.secret)
           return json(401, { error: "invalid_client", error_description: "The OAuth client was not found." });
         return json(400, { error: "invalid_grant", error_description: "Malformed auth code." });
       }
       if (url === "/dropbox/oauth2/token") return json(400, { error: "invalid_grant" });
       // Anthropic (ANTHROPIC_BASE_URL): an organisation-level key is refused without its workspace header
+      // OpenAI-compatible chat completions and Gemini generateContent: the request shape is what is tested
+      if (url === "/openai/chat/completions")
+        return req.headers.authorization === `Bearer ${AI.openai}`
+          ? json(200, { choices: [{ message: { content: "OK" } }] })
+          : json(401, { error: { message: "Incorrect API key provided" } });
+      if (/^\/gemini\/models\/[^/]+:generateContent$/.test(url))
+        return req.headers["x-goog-api-key"] === AI.gemini
+          ? json(200, { candidates: [{ content: { parts: [{ text: "OK" }] } }] })
+          : json(400, { error: { message: "API key not valid" } });
       if (url.startsWith("/anthropic/v1/messages")) {
+        // a slow model: the server gives up after TDJ_MODEL_TIMEOUT_MS and says so in plain words
+        if (req.headers["x-api-key"] === AI.slowKey) {
+          setTimeout(
+            () =>
+              json(200, {
+                id: "msg_slow",
+                type: "message",
+                role: "assistant",
+                model: "test-model",
+                content: [{ type: "text", text: "late" }],
+                stop_reason: "end_turn",
+                usage: { input_tokens: 1, output_tokens: 1 },
+              }),
+            4000,
+          );
+          return;
+        }
         if (req.headers["x-api-key"] === AI.orgKey && !req.headers["anthropic-workspace-id"])
           return json(400, {
             type: "error",
@@ -128,6 +179,10 @@ test.beforeAll(async () => {
         DROPBOX_API_URL: `${MOCK}/dropbox`,
         ANTHROPIC_BASE_URL: `${MOCK}/anthropic`,
         ANTHROPIC_API_KEY: "",
+        OPENAI_BASE_URL: `${MOCK}/openai`,
+        GEMINI_BASE_URL: `${MOCK}/gemini`,
+        // the 25 s model timeout shortened so the slow-model test runs in seconds
+        TDJ_MODEL_TIMEOUT_MS: "1500",
       },
       stdio: "ignore",
     },
@@ -236,6 +291,10 @@ test("setup code → passphrase (the code dies) → Spotify credentials → host
   expect(viaPass.body.via).toBe("passphrase");
   const s2 = await json(await request.get(`${APP}/api/admin/status`, { headers: admin }));
   expect(s2).toMatchObject({ hasPassphrase: true, hasSetupCode: false });
+  // a locked caller learns only that the owner setup is done, never whether a code is stored
+  const locked = await json(await (await playwright.request.newContext()).get(`${APP}/api/admin/status`));
+  expect(locked).toMatchObject({ unlocked: false, hasPassphrase: true, hasSetupCode: false });
+  expect((await json(await request.get(`${APP}/api/admin/public`))).setupNeeded).toBe(false);
   // half a pair is refused, a whole pair is saved
   const half = await request.put(`${APP}/api/admin/config`, {
     data: { spotify: { clientId: SP.id } },
@@ -352,6 +411,7 @@ test("People: seats and the organiser contact are saved for the owner; /api/admi
     ownerContact: "",
     seats: { spotify: { used: 0, max: 5 }, google: { used: 0, max: 100 }, dropbox: { used: 0, max: 50 } },
     ai: { shared: false, dailyLimit: 20 },
+    setupNeeded: false,
   });
   // six Spotify seats are refused, two are saved; a line without @ is refused
   const six = await request.put(`${APP}/api/admin/config`, {
@@ -586,4 +646,186 @@ test("the pages: /admin People and AI groups, Settings shows the organiser's key
   expectNoSecrets();
   const html = await page.content();
   for (const s of SECRETS) expect(html).not.toContain(s);
+});
+
+/* ---------- round 8: connectivity audit fixes ---------- */
+
+test("Google Test: only invalid_grant proves the secret; invalid_request (sent before the secret is checked) is reported as it is", async ({
+  request,
+}) => {
+  const { cookie } = await unlock(request, PASSPHRASE, 12);
+  const admin = { cookie: cookie! };
+  await request.put(`${APP}/api/admin/config`, {
+    data: { google: { clientId: GG.id, clientSecret: GG.malformed } },
+    headers: admin,
+  });
+  const bad = await json(
+    await request.post(`${APP}/api/admin/test`, { data: { provider: "google" }, headers: admin }),
+  );
+  expect(bad.ok).toBe(false);
+  expect(bad.text).toMatch(/invalid_request/);
+  await request.put(`${APP}/api/admin/config`, {
+    data: { google: { clientId: GG.id, clientSecret: GG.secret } },
+    headers: admin,
+  });
+  const ok = await json(
+    await request.post(`${APP}/api/admin/test`, { data: { provider: "google" }, headers: admin }),
+  );
+  expect(ok).toEqual({ ok: true, text: expect.stringMatching(/Google accepted/) });
+  await request.put(`${APP}/api/admin/config`, { data: { google: { remove: true } }, headers: admin });
+  expectNoSecrets();
+});
+
+test("OpenAI gets max_completion_tokens (≥ 4000, never max_tokens); Gemini gets the key in x-goog-api-key, a current default model and maxOutputTokens ≥ 4000", async ({
+  request,
+  playwright,
+}) => {
+  hits.length = 0;
+  const oa = await request.post(`${APP}/api/ai/review`, {
+    data: { test: true },
+    headers: { "x-ai-provider": "openai", "x-ai-key": AI.openai, "x-ai-model": "" },
+  });
+  expect(oa.status()).toBe(200);
+  expect(await json(oa)).toMatchObject({ ok: true, text: "OK", shared: false });
+  const oaHit = last(/POST \/openai\/chat\/completions/)!;
+  const oaBody = JSON.parse(oaHit.body);
+  expect(oaBody.model).toBe("gpt-5.2");
+  expect(oaBody.max_completion_tokens).toBeGreaterThanOrEqual(4000);
+  expect(oaBody).not.toHaveProperty("max_tokens");
+  expect(oaHit.headers.authorization).toBe(`Bearer ${AI.openai}`);
+  const gm = await request.post(`${APP}/api/ai/review`, {
+    data: { test: true },
+    headers: { "x-ai-provider": "gemini", "x-ai-key": AI.gemini, "x-ai-model": "" },
+  });
+  expect(gm.status()).toBe(200);
+  expect(await json(gm)).toMatchObject({ ok: true, text: "OK" });
+  const gmHit = last(/POST \/gemini\/models\//)!;
+  expect(gmHit.url).toBe("/gemini/models/gemini-4-argon:generateContent");
+  expect(gmHit.url).not.toContain("key=");
+  expect(gmHit.headers["x-goog-api-key"]).toBe(AI.gemini);
+  expect(JSON.parse(gmHit.body).generationConfig.maxOutputTokens).toBeGreaterThanOrEqual(4000);
+  // the owner's Test names the model it used
+  const { cookie } = await unlock(await playwright.request.newContext(), PASSPHRASE, 13);
+  const admin = { cookie: cookie! };
+  await request.put(`${APP}/api/admin/config`, {
+    data: { ai: { provider: "gemini", key: AI.gemini, model: "", dailyLimit: 20 } },
+    headers: admin,
+  });
+  const t = await json(
+    await request.post(`${APP}/api/admin/test`, { data: { provider: "ai" }, headers: admin }),
+  );
+  expect(t).toEqual({ ok: true, text: expect.stringMatching(/\(gemini-4-argon\) answered "OK"/) });
+  expectNoSecrets();
+});
+
+test("a model that does not answer in time gets a DJ sentence (504), not a function timeout; a wrong key keeps the provider's words", async ({
+  request,
+}) => {
+  const t0 = Date.now();
+  const slow = await request.post(`${APP}/api/ai/review`, {
+    data: { test: true },
+    headers: { "x-ai-provider": "anthropic", "x-ai-key": AI.slowKey },
+  });
+  expect(slow.status()).toBe(504);
+  expect((await json(slow)).error).toBe("The model took too long; try again or ask a shorter question.");
+  expect(Date.now() - t0).toBeLessThan(3500);
+  const wrong = await request.post(`${APP}/api/ai/review`, {
+    data: { test: true },
+    headers: { "x-ai-provider": "openai", "x-ai-key": "sk-not-the-key" },
+  });
+  expect(wrong.status()).toBe(401);
+  expect((await json(wrong)).error).toMatch(/Incorrect API key/);
+  expectNoSecrets();
+});
+
+test("the shared key: another site's Origin is refused, and a caller who drops the cookie is still capped per address", async ({
+  request,
+  playwright,
+}) => {
+  const { cookie } = await unlock(request, PASSPHRASE, 14);
+  const admin = { cookie: cookie! };
+  await request.put(`${APP}/api/admin/config`, {
+    data: { ai: { provider: "anthropic", key: AI.key, model: "", dailyLimit: 2 } },
+    headers: admin,
+  });
+  hits.length = 0;
+  const evil = await request.post(`${APP}/api/ai/review`, {
+    data: { test: true },
+    headers: { origin: "https://evil.example" },
+  });
+  expect(evil.status()).toBe(403);
+  const refine = await request.post(`${APP}/api/ai/refine`, {
+    data: { instruction: "more vals" },
+    headers: { origin: "https://evil.example" },
+  });
+  expect(refine.status()).toBe(403);
+  expect(last(/POST \/anthropic\/v1\/messages/)).toBeUndefined();
+  // no cookie → a fresh id each time, so the per-DJ cap alone would never bite; the address cap does (2 × 5)
+  const addr = { "x-forwarded-for": "203.0.113.9, 10.0.0.77" };
+  const statuses: number[] = [];
+  for (let i = 0; i < 11; i++) {
+    const fresh = await playwright.request.newContext();
+    const r = await fresh.post(`${APP}/api/ai/review`, { data: { test: true }, headers: addr });
+    statuses.push(r.status());
+    await fresh.dispose();
+  }
+  expect(statuses.slice(0, 10)).toEqual(Array(10).fill(200));
+  expect(statuses[10]).toBe(429);
+  // a spoofed first X-Forwarded-For element does not buy a new allowance: the appended address counts
+  const spoof = await (await playwright.request.newContext()).post(`${APP}/api/ai/review`, {
+    data: { test: true },
+    headers: { "x-forwarded-for": "198.51.100.1, 10.0.0.77" },
+  });
+  expect(spoof.status()).toBe(429);
+  expect(hits.filter((h) => /POST \/anthropic\/v1\/messages/.test(`${h.method} ${h.url}`))).toHaveLength(10);
+  await request.put(`${APP}/api/admin/config`, { data: { ai: { remove: true } }, headers: admin });
+  expectNoSecrets();
+});
+
+test("the unlock limiter keys on the address CloudFront appended, not on a caller-chosen X-Forwarded-For element", async ({
+  request,
+}) => {
+  for (let i = 0; i < 5; i++) {
+    const r = await request.post(`${APP}/api/admin/unlock`, {
+      data: { secret: `wrong-${i}` },
+      headers: { "x-forwarded-for": `1.2.3.${i}, 10.0.0.60` },
+    });
+    expect(r.status()).toBe(401);
+  }
+  const sixth = await request.post(`${APP}/api/admin/unlock`, {
+    data: { secret: PASSPHRASE },
+    headers: { "x-forwarded-for": "9.9.9.9, 10.0.0.60" },
+  });
+  expect(sixth.status()).toBe(429);
+  expect((await json(sixth)).error).toMatch(/ten minutes/);
+  // a cross-site page cannot even try
+  const cross = await request.post(`${APP}/api/admin/unlock`, {
+    data: { secret: PASSPHRASE },
+    headers: { ...ip(61), origin: "https://evil.example" },
+  });
+  expect(cross.status()).toBe(403);
+  expectNoSecrets();
+});
+
+// last on purpose: it locks the whole deployment for an hour
+test("twenty failures from anywhere lock the deployment for an hour (the counter lives in the config store)", async ({
+  request,
+}) => {
+  let locked = false;
+  for (let i = 0; i < 20 && !locked; i++) {
+    const r = await request.post(`${APP}/api/admin/unlock`, {
+      data: { secret: `global-wrong-${i}` },
+      headers: ip(100 + i),
+    });
+    expect([401, 429]).toContain(r.status());
+    if (r.status() === 429) locked = true;
+  }
+  const r = await request.post(`${APP}/api/admin/unlock`, { data: { secret: PASSPHRASE }, headers: ip(200) });
+  expect(r.status()).toBe(429);
+  expect((await json(r)).error).toMatch(/Too many failed unlocks on this deployment.*hour/);
+  expect(cookieOf(setCookies(r), "tdj_admin")).toBeUndefined();
+  // the counter is in the store, not in the page: the public view and the locked status say nothing about it
+  const pub = JSON.stringify(await json(await request.get(`${APP}/api/admin/public`)));
+  expect(pub).not.toMatch(/UNLOCK|failures/i);
+  expectNoSecrets();
 });

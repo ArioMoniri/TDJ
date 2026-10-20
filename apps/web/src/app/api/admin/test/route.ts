@@ -7,10 +7,13 @@ import {
   testProvider,
   testSharedAi,
 } from "@/lib/server/admin";
+import { crossOriginResponse } from "@/lib/server/guard";
 export const dynamic = "force-dynamic";
 
 /** `{ provider }` → `{ ok, text }` after one request to the provider with the saved credentials ("ai" pings the shared model key). */
 export async function POST(req: Request) {
+  const cross = await crossOriginResponse(req);
+  if (cross) return cross;
   if (!(await isAdmin(req))) return forbidden();
   const body = (await req.json().catch(() => null)) as { provider?: unknown } | null;
   const id = body?.provider;

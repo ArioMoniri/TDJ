@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import type { MatchItem } from "@/lib/match";
 import { requestOrigin } from "@/lib/server/cookies";
-import { hostedEnabled, matchItems, SpotifyError, withSession } from "@/lib/server/spotify";
+import { crossOriginResponse } from "@/lib/server/guard";
+import { hostedEnabled, MATCH_BUDGET_MS, matchItems, SpotifyError, withSession } from "@/lib/server/spotify";
 import { MATCH_BATCH } from "@/lib/spotifyPlan";
 export const dynamic = "force-dynamic";
 
@@ -11,10 +12,14 @@ const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : n
 /**
  * POST { items: [{ id, title, orchestra, singer?, year?, durationSec?, isrc? }] } (≤ 10) →
  * { matches: [{ id, uri, name, artist, album, year, durationMs, score }], missing: [ids], rateLimited?: seconds }.
- * Searches run one at a time on the server with the hosted session; a 429 Spotify would not let us wait out
- * ends the batch early and `rateLimited` tells the browser how long to pause.
+ * Searches run one at a time on the server with the hosted session; a 429 Spotify would not let us wait out,
+ * or a batch that would outrun the request's 20 s budget, ends the batch early and `rateLimited` tells the
+ * browser how long to pause.
  */
 export async function POST(req: Request) {
+  const started = Date.now();
+  const cross = await crossOriginResponse(req);
+  if (cross) return cross;
   if (!(await hostedEnabled()))
     return NextResponse.json({ error: "Hosted Spotify login is not enabled" }, { status: 404 });
   const origin = await requestOrigin(req);
@@ -43,7 +48,7 @@ export async function POST(req: Request) {
     });
   }
   try {
-    const r = await matchItems(s.session.access, items);
+    const r = await matchItems(s.session.access, items, { deadline: started + MATCH_BUDGET_MS });
     const res = NextResponse.json(r);
     if (s.setCookie) res.headers.append("set-cookie", s.setCookie);
     return res;

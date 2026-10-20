@@ -19,7 +19,8 @@ export default $config({
   },
   async run() {
     // Connector secrets (docs/DEPLOY.md → Connectors) travel from the GitHub Actions env into the function only
-    // when set; they never reach the client bundle.
+    // when set; they never reach the client bundle. TDJ_SECRET signs the anonymous `tdj_uid` ids; without it the
+    // function derives the key from the cookie secret kept in Parameter Store (never a literal fallback).
     const secrets = [
       "SPOTIFY_CLIENT_ID",
       "SPOTIFY_CLIENT_SECRET",
@@ -28,6 +29,8 @@ export default $config({
       "DROPBOX_APP_KEY",
       "DROPBOX_APP_SECRET",
       "TDJ_COOKIE_SECRET",
+      "TDJ_SECRET",
+      "ANTHROPIC_API_KEY",
       "PIPEDREAM_PROJECT_ID",
       "PIPEDREAM_CLIENT_ID",
       "PIPEDREAM_CLIENT_SECRET",
@@ -54,7 +57,8 @@ export default $config({
         // SecureStrings are wrapped with the account's default SSM key (alias/aws/ssm)
         { actions: ["kms:Decrypt", "kms:Encrypt"], resources: ["*"] },
       ],
-      server: { memory: "1536 MB", timeout: "30 seconds", architecture: "arm64" },
+      // 60 s: model reviews, YouTube batches and Spotify matching each stop at a 20–25 s budget of their own
+      server: { memory: "1536 MB", timeout: "60 seconds", architecture: "arm64" },
       domain: process.env.TDJ_DOMAIN ? { name: process.env.TDJ_DOMAIN } : undefined,
     });
     return { url: web.url };

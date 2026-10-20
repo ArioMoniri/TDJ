@@ -1,6 +1,7 @@
 import "server-only";
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import type { AgentMemory, AppOverrides, HistorySnapshot } from "@/lib/types";
+import { getCookieSecret } from "./config";
 
 /** Optional server storage: DynamoDB table named by TDJ_DB_TABLE, rows keyed by a signed anonymous user id. */
 export function dbEnabled() {
@@ -8,23 +9,36 @@ export function dbEnabled() {
 }
 
 const COOKIE = "tdj_uid";
-const secret = () => process.env.TDJ_SECRET || process.env.TDJ_DB_TABLE || "tdj-dev-secret";
-const sign = (id: string) => createHmac("sha256", secret()).update(id).digest("base64url");
+/**
+ * The HMAC key for `tdj_uid`: `TDJ_SECRET` when the deployment sets it, else derived from the cookie secret
+ * (environment, or generated once into the config store). There is no literal fallback: on AWS a store that
+ * cannot be read throws (lib/server/config.ts) instead of signing ids anyone could forge.
+ */
+async function secret(): Promise<string> {
+  return process.env.TDJ_SECRET || `tdj-uid:${await getCookieSecret()}`;
+}
+const sign = (id: string, key: string) => createHmac("sha256", key).update(id).digest("base64url");
 
+export interface RequestUser {
+  id: string;
+  /** set when the request carried no valid cookie: a fresh id was minted and this header hands it back */
+  setCookie?: string;
+}
 /** Returns the user id from the signed cookie, or mints a new one (and the Set-Cookie header to send back). */
-export function userFromRequest(req: Request): { id: string; setCookie?: string } {
+export async function userFromRequest(req: Request): Promise<RequestUser> {
+  const key = await secret();
   const raw = req.headers.get("cookie") ?? "";
   const m = raw.match(new RegExp(`(?:^|;\\s*)${COOKIE}=([^;]+)`));
   if (m) {
     const [id, sig] = decodeURIComponent(m[1]!).split(".");
     if (id && sig) {
-      const want = Buffer.from(sign(id));
+      const want = Buffer.from(sign(id, key));
       const got = Buffer.from(sig);
       if (want.length === got.length && timingSafeEqual(want, got)) return { id };
     }
   }
   const id = randomBytes(12).toString("base64url");
-  const value = encodeURIComponent(`${id}.${sign(id)}`);
+  const value = encodeURIComponent(`${id}.${sign(id, key)}`);
   return {
     id,
     setCookie: `${COOKIE}=${value}; Path=/; Max-Age=31536000; SameSite=Lax; HttpOnly${process.env.NODE_ENV === "production" ? "; Secure" : ""}`,

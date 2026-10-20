@@ -1,5 +1,6 @@
 import { DJ_RULES, summarizeMemory, toSetList } from "@tdj/core";
 import { NextResponse } from "next/server";
+import { crossOriginResponse, noStore } from "@/lib/server/guard";
 import { complete, houseRulesBlock, LlmError, resolveAi, sharedQuota } from "@/lib/server/llm";
 export const dynamic = "force-dynamic";
 
@@ -17,18 +18,22 @@ export async function GET(req: Request) {
 /**
  * BYOK, provider-agnostic. Headers: x-ai-provider, x-ai-key, x-ai-model, x-ai-workspace. Keys are used once and
  * never stored or logged. Without a personal key the organiser's shared key runs the request, counted per DJ and
- * per day (lib/server/llm.ts → resolveAi); over the limit → 429 with a plain message.
+ * per day (lib/server/llm.ts → resolveAi); over the limit → 429 with a plain message. Only the app's own pages
+ * may call it (same-origin check): a script elsewhere must not burn the organiser's credit.
  */
 export async function POST(req: Request) {
+  const cross = await crossOriginResponse(req);
+  if (cross) return cross;
   const body = await req.json().catch(() => ({}));
   const r = await resolveAi(req);
   if (!r.ok) {
-    const res = NextResponse.json({ error: r.error }, { status: r.status });
+    const res = noStore(NextResponse.json({ error: r.error }, { status: r.status }));
     if (r.setCookie) res.headers.append("set-cookie", r.setCookie);
     return res;
   }
   const ai = r.ai;
   const withCookie = (res: NextResponse) => {
+    noStore(res);
     if (r.setCookie) res.headers.append("set-cookie", r.setCookie);
     return res;
   };
@@ -62,6 +67,8 @@ export async function POST(req: Request) {
     );
   } catch (e) {
     const status = e instanceof LlmError ? e.status : 502;
-    return NextResponse.json({ error: e instanceof Error ? e.message : "Model request failed" }, { status });
+    return noStore(
+      NextResponse.json({ error: e instanceof Error ? e.message : "Model request failed" }, { status }),
+    );
   }
 }

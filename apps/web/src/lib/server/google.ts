@@ -85,15 +85,15 @@ export const isQuotaError = (e: unknown) =>
   e.status === 403 &&
   /quotaExceeded|dailyLimitExceeded|rateLimitExceeded|quota/i.test(e.body || e.message);
 
-/**
- * YouTube: one playlist insert (50 units) + one search (100/day/project) + one playlistItems insert (50 units) per
- * track. The daily quota is shared by every TDJ user, so the loop stops at the first quota error and reports what
- * was left out (`skipped`) separately from what was not found (`missing`).
- */
-export async function youtubePlaylist(
+/** How long one YouTube request may keep searching; the rest of the batch comes back as `skipped` with `timeout`. */
+export const YOUTUBE_BUDGET_MS = 20_000;
+export const youtubeUrl = (id: string) => `https://www.youtube.com/playlist?list=${id}`;
+
+/** An empty playlist (50 quota units); the items are added batch by batch with `addYoutubeItems`. */
+export async function createYoutubePlaylist(
   access: string,
-  p: { name: string; description: string; isPublic: boolean; queries: string[] },
-): Promise<{ id: string; url: string; added: number; missing: string[]; skipped: string[]; quota: boolean }> {
+  p: { name: string; description: string; isPublic: boolean },
+): Promise<{ id: string; url: string }> {
   const pl = await google<{ id: string }>(access, "/youtube/v3/playlists?part=snippet,status", {
     method: "POST",
     body: JSON.stringify({
@@ -101,12 +101,39 @@ export async function youtubePlaylist(
       status: { privacyStatus: p.isPublic ? "public" : "private" },
     }),
   });
+  return { id: pl.id, url: youtubeUrl(pl.id) };
+}
+
+export interface YoutubeAddResult {
+  added: number;
+  /** searched, nothing found */
+  missing: string[];
+  /** not searched: the quota ran out (`quota`) or the time budget did (`timeout`) */
+  skipped: string[];
+  quota: boolean;
+  timeout: boolean;
+}
+/**
+ * YouTube: one search (100/day/project) + one playlistItems insert (50 units) per track. The daily quota is
+ * shared by every TDJ user, so the loop stops at the first quota error and reports what was left out (`skipped`)
+ * separately from what was not found (`missing`). It also stops at `deadline` so a request never outlives the
+ * function; the Export sheet sends the next batch.
+ */
+export async function addYoutubeItems(
+  access: string,
+  playlistId: string,
+  queries: string[],
+  o: { deadline?: number } = {},
+): Promise<YoutubeAddResult> {
+  const deadline = o.deadline ?? Date.now() + YOUTUBE_BUDGET_MS;
   let added = 0;
   let quota = false;
+  let timeout = false;
   const missing: string[] = [];
   const skipped: string[] = [];
-  for (const q of p.queries) {
-    if (quota) {
+  for (const q of queries) {
+    if (!quota && !timeout && Date.now() >= deadline) timeout = true;
+    if (quota || timeout) {
       skipped.push(q);
       continue;
     }
@@ -123,7 +150,7 @@ export async function youtubePlaylist(
       await google(access, "/youtube/v3/playlistItems?part=snippet", {
         method: "POST",
         body: JSON.stringify({
-          snippet: { playlistId: pl.id, resourceId: { kind: "youtube#video", videoId } },
+          snippet: { playlistId, resourceId: { kind: "youtube#video", videoId } },
         }),
       });
       added++;
@@ -135,7 +162,17 @@ export async function youtubePlaylist(
       else throw e;
     }
   }
-  return { id: pl.id, url: `https://www.youtube.com/playlist?list=${pl.id}`, added, missing, skipped, quota };
+  return { added, missing, skipped, quota, timeout };
+}
+
+/** The whole set in one request (older callers): the playlist, then as many items as the time budget allows. */
+export async function youtubePlaylist(
+  access: string,
+  p: { name: string; description: string; isPublic: boolean; queries: string[] },
+): Promise<{ id: string; url: string } & YoutubeAddResult> {
+  const deadline = Date.now() + YOUTUBE_BUDGET_MS;
+  const pl = await createYoutubePlaylist(access, p);
+  return { ...pl, ...(await addYoutubeItems(access, pl.id, p.queries, { deadline })) };
 }
 
 export { GOOGLE, GOOGLE_SCOPE };
