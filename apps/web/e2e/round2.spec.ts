@@ -146,10 +146,10 @@ test("settings: switching the model provider changes the default model and survi
   await expect(model).toHaveValue("gpt-5.2");
   await page.locator("#ai-key").fill("sk-test");
   await page.getByRole("radio", { name: "Gemini" }).click();
-  await expect(model).toHaveValue("gemini-3-pro");
+  await expect(model).toHaveValue("gemini-4-argon");
   await page.reload();
   await expect(page.getByRole("radio", { name: "Gemini" })).toHaveAttribute("aria-checked", "true");
-  await expect(page.locator("#ai-model")).toHaveValue("gemini-3-pro");
+  await expect(page.locator("#ai-model")).toHaveValue("gemini-4-argon");
   // Test connection with a bogus key reports a provider error in the group footer, not a crash
   await page.getByRole("button", { name: "Test connection" }).click();
   const status = page.getByRole("status").first();
