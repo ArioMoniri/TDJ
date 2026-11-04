@@ -1,0 +1,1415 @@
+{
+  "seed": 20,
+  "score": {
+    "total": 92,
+    "verdict": "Headline marathon DJ",
+    "reasons": [],
+    "factors": [
+      {
+        "key": "integrity",
+        "score": 1,
+        "weight": 10,
+        "detail": "0 violating tandas"
+      },
+      {
+        "key": "singer",
+        "score": 1,
+        "weight": 5,
+        "detail": "0 tandas with several singers"
+      },
+      {
+        "key": "era",
+        "score": 1,
+        "weight": 6,
+        "detail": "0 loose, 0 very loose"
+      },
+      {
+        "key": "sizes",
+        "score": 1,
+        "weight": 4,
+        "detail": "0 non-standard"
+      },
+      {
+        "key": "cycle",
+        "score": 1,
+        "weight": 6,
+        "detail": "0 deviations"
+      },
+      {
+        "key": "spacing",
+        "score": 1,
+        "weight": 6,
+        "detail": "0 repeats within 6"
+      },
+      {
+        "key": "variety",
+        "score": 1,
+        "weight": 5,
+        "detail": "15 orchestras for 4 h (target ≥15)"
+      },
+      {
+        "key": "titles",
+        "score": 1,
+        "weight": 2,
+        "detail": "0 repeated titles"
+      },
+      {
+        "key": "tempo",
+        "score": 1,
+        "weight": 4,
+        "detail": "1 tandas with BPM data"
+      },
+      {
+        "key": "cohesion",
+        "score": 0.79,
+        "weight": 4,
+        "detail": "8 tandas analysed, mean 67"
+      },
+      {
+        "key": "arc",
+        "score": 0.61,
+        "weight": 8,
+        "detail": "RMSE 8.5; 0 early Pugliese"
+      },
+      {
+        "key": "fame",
+        "score": 0.89,
+        "weight": 5,
+        "detail": "84% of tracks appear in reference sets"
+      },
+      {
+        "key": "darienzo",
+        "score": 1,
+        "weight": 6,
+        "detail": "first at 19 % (instr. 1935–39 1936–1937), 2 tango tandas"
+      },
+      {
+        "key": "ultima",
+        "score": 1,
+        "weight": 5,
+        "detail": "Rodolfo Biagi/Jorge Ortíz e76 for target 78"
+      },
+      {
+        "key": "cumparsita",
+        "score": 1,
+        "weight": 3,
+        "detail": "Carlos Di Sarli 1951"
+      },
+      {
+        "key": "placeholders",
+        "score": 1,
+        "weight": 3,
+        "detail": "0 undated tandas, 0% undated tracks"
+      },
+      {
+        "key": "roles",
+        "score": 1,
+        "weight": 4,
+        "detail": "17/17 tandas with corpus roles in order"
+      },
+      {
+        "key": "steps",
+        "score": 0.83,
+        "weight": 4,
+        "detail": "max step 22, 1 unplanned steps >14"
+      },
+      {
+        "key": "cortina",
+        "score": 0.79,
+        "weight": 6,
+        "detail": "0 issues · 2 families · 0 energy mismatches · 9 era mismatches"
+      },
+      {
+        "key": "source",
+        "score": 0.4,
+        "weight": 5,
+        "detail": "17/81 curator-selected, 15 resolvable on Spotify"
+      },
+      {
+        "key": "context",
+        "score": 1,
+        "weight": 3,
+        "detail": "1/1 checks"
+      },
+      {
+        "key": "obscure",
+        "score": 1,
+        "weight": 4,
+        "detail": "0 fame-0 vocal tandas after 20 %"
+      },
+      {
+        "key": "ending",
+        "score": 1,
+        "weight": 3,
+        "detail": "última Rodolfo Biagi, closes with Carlos Di Sarli 1951"
+      },
+      {
+        "key": "duration",
+        "score": 1,
+        "weight": 3,
+        "detail": "0.9 min off target"
+      }
+    ]
+  },
+  "options": {
+    "hours": 4,
+    "eras": [
+      "golden"
+    ],
+    "yearRange": [
+      1935,
+      1945
+    ],
+    "tangoTandaSize": 4,
+    "valsTandaSize": 3,
+    "milongaTandaSize": 3,
+    "cortinaCultures": [
+      "turkish"
+    ],
+    "cortinaTrend": "mixed",
+    "arcShape": "double",
+    "floorMood": "balanced",
+    "context": {
+      "mood": "energetic",
+      "event": "milonga",
+      "timeOfDay": "night"
+    },
+    "name": "Golden 1935–45 · 4 h · Turkish cortinas · double peak",
+    "seed": 20
+  },
+  "stats": {
+    "tandas": 22,
+    "tracks": 82,
+    "durationSec": 14348,
+    "byRhythm": {
+      "tango": 15,
+      "vals": 4,
+      "milonga": 3
+    },
+    "orchestras": {
+      "Francisco Canaro": 1,
+      "Edgardo Donato": 2,
+      "Francisco Lomuto": 1,
+      "Carlos Di Sarli": 1,
+      "Juan D'Arienzo": 2,
+      "Pedro Láurenz": 2,
+      "Rodolfo Biagi": 2,
+      "Ricardo Tanturi": 2,
+      "Enrique Rodríguez": 2,
+      "Aníbal Troilo": 2,
+      "Alfredo De Angelis": 1,
+      "Miguel Caló": 1,
+      "Osvaldo Pugliese": 1,
+      "Ángel D'Agostino": 1,
+      "Lucio Demare": 1
+    },
+    "vocalRatio": 0.6363636363636364,
+    "energyArc": [
+      52,
+      62,
+      57,
+      56,
+      78,
+      79,
+      77,
+      75,
+      76,
+      76,
+      66,
+      73,
+      70,
+      64,
+      75,
+      87,
+      70,
+      77,
+      73,
+      59,
+      61,
+      76
+    ],
+    "targetArc": [
+      54,
+      56,
+      59,
+      59,
+      72,
+      71,
+      70,
+      76,
+      83,
+      83,
+      81,
+      82,
+      72,
+      72,
+      78,
+      81,
+      85,
+      91,
+      81,
+      75,
+      72,
+      78
+    ],
+    "arcFit": 0.7169787815357123,
+    "cortinaSec": 53,
+    "wallClockSec": 14603,
+    "gapsSec": 255
+  },
+  "tandas": [
+    {
+      "n": 1,
+      "rhythm": "tango",
+      "orchestra": "Francisco Canaro",
+      "singer": null,
+      "years": [
+        1937,
+        1940
+      ],
+      "energy": 52,
+      "target": 54,
+      "phase": "warmup",
+      "tracks": [
+        {
+          "id": "d6542333fa",
+          "title": "Pura Parada",
+          "year": 1938,
+          "singer": null,
+          "energy": 51,
+          "durationSec": 153
+        },
+        {
+          "id": "52f87e149d",
+          "title": "Sentimiento Gaucho",
+          "year": 1940,
+          "singer": null,
+          "energy": 51,
+          "durationSec": 166
+        },
+        {
+          "id": "431da9357a",
+          "title": "La Maleva",
+          "year": 1938,
+          "singer": null,
+          "energy": 52,
+          "durationSec": 166
+        },
+        {
+          "id": "74bde889b0",
+          "title": "Pura Milonga",
+          "year": 1937,
+          "singer": null,
+          "energy": 52,
+          "durationSec": 171
+        }
+      ],
+      "cortina": {
+        "id": "c-tr-1",
+        "title": "Ah Bu Şarkıların Gözü Kör Olsun",
+        "artist": "Sezen Aksu",
+        "genre": "turkish-pop",
+        "lengthSec": 53,
+        "preview": null
+      }
+    },
+    {
+      "n": 2,
+      "rhythm": "tango",
+      "orchestra": "Edgardo Donato",
+      "singer": null,
+      "years": [
+        1936,
+        1940
+      ],
+      "energy": 62,
+      "target": 56,
+      "phase": "warmup",
+      "tracks": [
+        {
+          "id": "b41093302a",
+          "title": "El Lengue",
+          "year": 1940,
+          "singer": null,
+          "energy": 60,
+          "durationSec": 146
+        },
+        {
+          "id": "2a2974e7eb",
+          "title": "La Tablada",
+          "year": 1936,
+          "singer": null,
+          "energy": 63,
+          "durationSec": 168
+        },
+        {
+          "id": "8b42603f14",
+          "title": "El Chamuyo",
+          "year": 1938,
+          "singer": null,
+          "energy": 63,
+          "durationSec": 159
+        },
+        {
+          "id": "49c6735b8d",
+          "title": "El Distinguido Ciudadano",
+          "year": 1940,
+          "singer": null,
+          "energy": 60,
+          "durationSec": 149
+        }
+      ],
+      "cortina": {
+        "id": "c-tr-aksu-firuze",
+        "title": "Firuze",
+        "artist": "Sezen Aksu",
+        "genre": "turkish-pop",
+        "lengthSec": 53,
+        "preview": "deezer:3518891051"
+      }
+    },
+    {
+      "n": 3,
+      "rhythm": "vals",
+      "orchestra": "Francisco Lomuto",
+      "singer": "Fernando Díaz",
+      "years": [
+        1939,
+        1942
+      ],
+      "energy": 57,
+      "target": 59,
+      "phase": "warmup",
+      "tracks": [
+        {
+          "id": "5ac52c1b19",
+          "title": "La Zandunga",
+          "year": 1939,
+          "singer": "Fernando Díaz",
+          "energy": 54,
+          "durationSec": 131
+        },
+        {
+          "id": "c3d81f45ce",
+          "title": "Ahora que Estamos Solos",
+          "year": 1942,
+          "singer": "Fernando Díaz",
+          "energy": 57,
+          "durationSec": 156
+        },
+        {
+          "id": "fe21e764ee",
+          "title": "Isabelita",
+          "year": 1940,
+          "singer": "Fernando Díaz",
+          "energy": 59,
+          "durationSec": 156
+        }
+      ],
+      "cortina": {
+        "id": "c-tr-aksu-gulumse",
+        "title": "Gülümse",
+        "artist": "Sezen Aksu",
+        "genre": "turkish-pop",
+        "lengthSec": 53,
+        "preview": "deezer:3518914311"
+      }
+    },
+    {
+      "n": 4,
+      "rhythm": "tango",
+      "orchestra": "Carlos Di Sarli",
+      "singer": null,
+      "years": [
+        1939,
+        1941
+      ],
+      "energy": 56,
+      "target": 59,
+      "phase": "warmup",
+      "tracks": [
+        {
+          "id": "da05a1343f",
+          "title": "La Trilla",
+          "year": 1940,
+          "singer": null,
+          "energy": 54,
+          "durationSec": 148
+        },
+        {
+          "id": "5ba6a4643e",
+          "title": "El Retirao",
+          "year": 1939,
+          "singer": null,
+          "energy": 54,
+          "durationSec": 149
+        },
+        {
+          "id": "8509c04168",
+          "title": "Catamarca",
+          "year": 1940,
+          "singer": null,
+          "energy": 57,
+          "durationSec": 149
+        },
+        {
+          "id": "d8d07049d1",
+          "title": "El Estagiario",
+          "year": 1941,
+          "singer": null,
+          "energy": 59,
+          "durationSec": 207
+        }
+      ],
+      "cortina": {
+        "id": "c-tr-2",
+        "title": "Cambaz",
+        "artist": "Mor ve Ötesi",
+        "genre": "turkish-rock",
+        "lengthSec": 53,
+        "preview": null
+      }
+    },
+    {
+      "n": 5,
+      "rhythm": "tango",
+      "orchestra": "Juan D'Arienzo",
+      "singer": null,
+      "years": [
+        1936,
+        1937
+      ],
+      "energy": 78,
+      "target": 72,
+      "phase": "build",
+      "tracks": [
+        {
+          "id": "569f2ca85d",
+          "title": "Rawson",
+          "year": 1936,
+          "singer": null,
+          "energy": 76,
+          "durationSec": 210
+        },
+        {
+          "id": "65d3ead45b",
+          "title": "Ataniche",
+          "year": 1936,
+          "singer": null,
+          "energy": 73,
+          "durationSec": 157
+        },
+        {
+          "id": "f1a7bdfebb",
+          "title": "El Apronte",
+          "year": 1937,
+          "singer": null,
+          "energy": 80,
+          "durationSec": 159
+        },
+        {
+          "id": "b61d8c4dc7",
+          "title": "Jueves",
+          "year": 1937,
+          "singer": null,
+          "energy": 84,
+          "durationSec": 141
+        }
+      ],
+      "cortina": {
+        "id": "c-tr-mfo-ele-gune",
+        "title": "Ele Güne Karşı",
+        "artist": "MFÖ",
+        "genre": "turkish-pop",
+        "lengthSec": 53,
+        "preview": "deezer:64366726"
+      }
+    },
+    {
+      "n": 6,
+      "rhythm": "milonga",
+      "orchestra": "Pedro Láurenz",
+      "singer": "Alberto Podestá",
+      "years": [
+        1943,
+        1944
+      ],
+      "energy": 79,
+      "target": 71,
+      "phase": "build",
+      "tracks": [
+        {
+          "id": "f3605757ef",
+          "title": "Yo Soy de San Telmo",
+          "year": 1943,
+          "singer": "Alberto Podestá",
+          "energy": 79,
+          "durationSec": 151
+        },
+        {
+          "id": "6d0ba1025f",
+          "title": "Maldonado",
+          "year": 1943,
+          "singer": "Alberto Podestá",
+          "energy": 79,
+          "durationSec": 124
+        },
+        {
+          "id": "9d3eb8eb6d",
+          "title": "El Criollito Oriental",
+          "year": 1944,
+          "singer": "Alberto Podestá",
+          "energy": 80,
+          "durationSec": 146
+        }
+      ],
+      "cortina": {
+        "id": "c-tr-5",
+        "title": "Dünya Dönüyor",
+        "artist": "Mabel Matiz",
+        "genre": "turkish-pop",
+        "lengthSec": 53,
+        "preview": null
+      }
+    },
+    {
+      "n": 7,
+      "rhythm": "tango",
+      "orchestra": "Rodolfo Biagi",
+      "singer": null,
+      "years": [
+        1938,
+        1940
+      ],
+      "energy": 77,
+      "target": 70,
+      "phase": "build",
+      "tracks": [
+        {
+          "id": "6233830410",
+          "title": "Pura Clase",
+          "year": 1939,
+          "singer": null,
+          "energy": 83,
+          "durationSec": 155
+        },
+        {
+          "id": "f94dd3fd89",
+          "title": "Unión Cívica",
+          "year": 1938,
+          "singer": null,
+          "energy": 74,
+          "durationSec": 147
+        },
+        {
+          "id": "2171c0196b",
+          "title": "El Yaguarón",
+          "year": 1940,
+          "singer": null,
+          "energy": 74,
+          "durationSec": 150
+        },
+        {
+          "id": "cebfbd8996",
+          "title": "El Trece",
+          "year": 1938,
+          "singer": null,
+          "energy": 75,
+          "durationSec": 151
+        }
+      ],
+      "cortina": {
+        "id": "c-tr-3",
+        "title": "Şımarık",
+        "artist": "Tarkan",
+        "genre": "turkish-pop",
+        "lengthSec": 53,
+        "preview": null
+      }
+    },
+    {
+      "n": 8,
+      "rhythm": "tango",
+      "orchestra": "Ricardo Tanturi",
+      "singer": "Alberto Castillo",
+      "years": [
+        1941,
+        1942
+      ],
+      "energy": 75,
+      "target": 76,
+      "phase": "build",
+      "tracks": [
+        {
+          "id": "130fe70e7e",
+          "title": "Recuerdo Malevo",
+          "year": 1941,
+          "singer": "Alberto Castillo",
+          "energy": 75,
+          "durationSec": 168
+        },
+        {
+          "id": "d642ae0730",
+          "title": "La Vida Es Corta",
+          "year": 1941,
+          "singer": "Alberto Castillo",
+          "energy": 75,
+          "durationSec": 157
+        },
+        {
+          "id": "979e83ad3f",
+          "title": "Como Se Pianta la Vida",
+          "year": 1942,
+          "singer": "Alberto Castillo",
+          "energy": 75,
+          "durationSec": 175
+        },
+        {
+          "id": "ac9c62f5b5",
+          "title": "Pocas Palabras",
+          "year": 1941,
+          "singer": "Alberto Castillo",
+          "energy": 75,
+          "durationSec": 149
+        }
+      ],
+      "cortina": {
+        "id": "c-tr-tarkan-dudu",
+        "title": "Dudu",
+        "artist": "Tarkan",
+        "genre": "turkish-pop",
+        "lengthSec": 53,
+        "preview": "deezer:113218880"
+      }
+    },
+    {
+      "n": 9,
+      "rhythm": "vals",
+      "orchestra": "Enrique Rodríguez",
+      "singer": "Armando Moreno",
+      "years": [
+        1940,
+        1944
+      ],
+      "energy": 76,
+      "target": 83,
+      "phase": "peak",
+      "tracks": [
+        {
+          "id": "11194730f3",
+          "title": "Con tu Mirar",
+          "year": 1941,
+          "singer": "Armando Moreno",
+          "energy": 72,
+          "durationSec": 133
+        },
+        {
+          "id": "d5c2c0e3ba",
+          "title": "Por Aquí... por Allá...",
+          "year": 1940,
+          "singer": "Armando Moreno",
+          "energy": 77,
+          "durationSec": 207
+        },
+        {
+          "id": "5f4670dd58",
+          "title": "Mantelito Blanco",
+          "year": 1944,
+          "singer": "Armando Moreno",
+          "energy": 78,
+          "durationSec": 145
+        }
+      ],
+      "cortina": {
+        "id": "c-tr-tarkan-kuzu",
+        "title": "Kuzu Kuzu",
+        "artist": "Tarkan",
+        "genre": "turkish-pop",
+        "lengthSec": 53,
+        "preview": "deezer:16412320"
+      }
+    },
+    {
+      "n": 10,
+      "rhythm": "tango",
+      "orchestra": "Aníbal Troilo",
+      "singer": null,
+      "years": [
+        1941,
+        1941
+      ],
+      "energy": 76,
+      "target": 83,
+      "phase": "peak",
+      "tracks": [
+        {
+          "id": "a6db7d9784",
+          "title": "Cachirulo",
+          "year": 1941,
+          "singer": null,
+          "energy": 76,
+          "durationSec": 155
+        },
+        {
+          "id": "f96fa56eaa",
+          "title": "Milongueando en el Cuarenta",
+          "year": 1941,
+          "singer": null,
+          "energy": 78,
+          "durationSec": 183
+        },
+        {
+          "id": "bd74a477e0",
+          "title": "El Tamango",
+          "year": 1941,
+          "singer": null,
+          "energy": 73,
+          "durationSec": 153
+        },
+        {
+          "id": "dd7274068a",
+          "title": "Guapeando",
+          "year": 1941,
+          "singer": null,
+          "energy": 78,
+          "durationSec": 167
+        }
+      ],
+      "cortina": {
+        "id": "c-tr-simge-mis-mis",
+        "title": "Miş Miş",
+        "artist": "Simge",
+        "genre": "turkish-pop",
+        "lengthSec": 53,
+        "preview": "deezer:102142746"
+      }
+    },
+    {
+      "n": 11,
+      "rhythm": "tango",
+      "orchestra": "Alfredo De Angelis",
+      "singer": "Julio Martel",
+      "years": [
+        1943,
+        1945
+      ],
+      "energy": 66,
+      "target": 81,
+      "phase": "peak",
+      "tracks": [
+        {
+          "id": "e5a625fa47",
+          "title": "Que Buena Es",
+          "year": 1943,
+          "singer": "Julio Martel",
+          "energy": 66,
+          "durationSec": 190
+        },
+        {
+          "id": "436d1f949c",
+          "title": "De Igual a Igual",
+          "year": 1944,
+          "singer": "Julio Martel",
+          "energy": 63,
+          "durationSec": 169
+        },
+        {
+          "id": "552e4359fd",
+          "title": "Aquí He Venido a Cantar",
+          "year": 1945,
+          "singer": "Julio Martel",
+          "energy": 68,
+          "durationSec": 176
+        },
+        {
+          "id": "9527f934c4",
+          "title": "No, No Me Abandones",
+          "year": 1945,
+          "singer": "Julio Martel",
+          "energy": 67,
+          "durationSec": 167
+        }
+      ],
+      "cortina": {
+        "id": "c-tr-tarkan-yolla",
+        "title": "Yolla",
+        "artist": "Tarkan",
+        "genre": "turkish-pop",
+        "lengthSec": 53,
+        "preview": "deezer:377898981"
+      }
+    },
+    {
+      "n": 12,
+      "rhythm": "milonga",
+      "orchestra": "Edgardo Donato",
+      "singer": "Horacio Lagos",
+      "years": [
+        1938,
+        1940
+      ],
+      "energy": 73,
+      "target": 82,
+      "phase": "build",
+      "tracks": [
+        {
+          "id": "537f051536",
+          "title": "Porteña Linda",
+          "year": 1940,
+          "singer": "Horacio Lagos",
+          "energy": 70,
+          "durationSec": 140
+        },
+        {
+          "id": "54ded468df",
+          "title": "La Milonga que Faltaba",
+          "year": 1938,
+          "singer": "Horacio Lagos",
+          "energy": 72,
+          "durationSec": 143
+        },
+        {
+          "id": "d4cea2d7f9",
+          "title": "Sacale Punta",
+          "year": 1938,
+          "singer": "Horacio Lagos",
+          "energy": 78,
+          "durationSec": 144
+        }
+      ],
+      "cortina": {
+        "id": "c-tr-tilki-cevapsiz",
+        "title": "Cevapsız Çınlama",
+        "artist": "Aleyna Tilki",
+        "genre": "turkish-pop",
+        "lengthSec": 53,
+        "preview": null
+      }
+    },
+    {
+      "n": 13,
+      "rhythm": "tango",
+      "orchestra": "Pedro Láurenz",
+      "singer": "Juan Carlos Casas",
+      "years": [
+        1938,
+        1940
+      ],
+      "energy": 70,
+      "target": 72,
+      "phase": "build",
+      "tracks": [
+        {
+          "id": "83285d3fdb",
+          "title": "Vieja Amiga",
+          "year": 1938,
+          "singer": "Juan Carlos Casas",
+          "energy": 64,
+          "durationSec": 188
+        },
+        {
+          "id": "e9d31466ec",
+          "title": "No Me Extraña",
+          "year": 1940,
+          "singer": "Juan Carlos Casas",
+          "energy": 72,
+          "durationSec": 165
+        },
+        {
+          "id": "dfb6142e35",
+          "title": "De Puro Guapo",
+          "year": 1940,
+          "singer": "Juan Carlos Casas",
+          "energy": 70,
+          "durationSec": 167
+        },
+        {
+          "id": "18b8cc44a1",
+          "title": "Amurado",
+          "year": 1940,
+          "singer": "Juan Carlos Casas",
+          "energy": 74,
+          "durationSec": 150
+        }
+      ],
+      "cortina": {
+        "id": "c-tr-matiz-gel",
+        "title": "Gel",
+        "artist": "Mabel Matiz",
+        "genre": "turkish-pop",
+        "lengthSec": 53,
+        "preview": "deezer:94789960"
+      }
+    },
+    {
+      "n": 14,
+      "rhythm": "tango",
+      "orchestra": "Miguel Caló",
+      "singer": null,
+      "years": [
+        1943,
+        1945
+      ],
+      "energy": 64,
+      "target": 72,
+      "phase": "build",
+      "tracks": [
+        {
+          "id": "8fb949f707",
+          "title": "Sans Soucí",
+          "year": 1944,
+          "singer": null,
+          "energy": 60,
+          "durationSec": 163
+        },
+        {
+          "id": "87ea022e15",
+          "title": "Inspiración",
+          "year": 1943,
+          "singer": null,
+          "energy": 72,
+          "durationSec": 125
+        },
+        {
+          "id": "9515c8cd58",
+          "title": "Tierra Querida",
+          "year": 1945,
+          "singer": null,
+          "energy": 59,
+          "durationSec": 179
+        },
+        {
+          "id": "8d7a382264",
+          "title": "Saludos",
+          "year": 1944,
+          "singer": null,
+          "energy": 63,
+          "durationSec": 143
+        }
+      ],
+      "cortina": {
+        "id": "c-tr-boz-janti",
+        "title": "Janti",
+        "artist": "Murat Boz",
+        "genre": "turkish-pop",
+        "lengthSec": 53,
+        "preview": "deezer:121789384"
+      }
+    },
+    {
+      "n": 15,
+      "rhythm": "vals",
+      "orchestra": "Ricardo Tanturi",
+      "singer": "Alberto Castillo",
+      "years": [
+        1941,
+        1941
+      ],
+      "energy": 75,
+      "target": 78,
+      "phase": "build",
+      "tracks": [
+        {
+          "id": "8da828c3ea",
+          "title": "Mi Romance",
+          "year": 1941,
+          "singer": "Alberto Castillo",
+          "energy": 69,
+          "durationSec": 141
+        },
+        {
+          "id": "3a302c4ffd",
+          "title": "Recuerdo",
+          "year": 1941,
+          "singer": "Alberto Castillo",
+          "energy": 76,
+          "durationSec": 147
+        },
+        {
+          "id": "be0a6e03c2",
+          "title": "La Serenata (mi Amor)",
+          "year": 1941,
+          "singer": "Alberto Castillo",
+          "energy": 81,
+          "durationSec": 164
+        }
+      ],
+      "cortina": {
+        "id": "c-tr-gulsen-bangir",
+        "title": "Bangır Bangır",
+        "artist": "Gülşen",
+        "genre": "turkish-pop",
+        "lengthSec": 53,
+        "preview": "deezer:99111914"
+      }
+    },
+    {
+      "n": 16,
+      "rhythm": "tango",
+      "orchestra": "Juan D'Arienzo",
+      "singer": null,
+      "years": [
+        1936,
+        1938
+      ],
+      "energy": 87,
+      "target": 81,
+      "phase": "peak",
+      "tracks": [
+        {
+          "id": "01cecdfb26",
+          "title": "Retintín",
+          "year": 1936,
+          "singer": null,
+          "energy": 82,
+          "durationSec": 144
+        },
+        {
+          "id": "59b428ec3f",
+          "title": "El Internado",
+          "year": 1938,
+          "singer": null,
+          "energy": 88,
+          "durationSec": 150
+        },
+        {
+          "id": "ee41e8fb9c",
+          "title": "Don Esteban",
+          "year": 1936,
+          "singer": null,
+          "energy": 87,
+          "durationSec": 203
+        },
+        {
+          "id": "966b506dc1",
+          "title": "El Flete",
+          "year": 1936,
+          "singer": null,
+          "energy": 90,
+          "durationSec": 173
+        }
+      ],
+      "cortina": {
+        "id": "c-tr-nilufer-goreceksin",
+        "title": "Göreceksin Kendini",
+        "artist": "Nilüfer",
+        "genre": "turkish-pop",
+        "lengthSec": 53,
+        "preview": "deezer:66173792"
+      }
+    },
+    {
+      "n": 17,
+      "rhythm": "tango",
+      "orchestra": "Enrique Rodríguez",
+      "singer": "Armando Moreno",
+      "years": [
+        1940,
+        1943
+      ],
+      "energy": 70,
+      "target": 85,
+      "phase": "peak",
+      "tracks": [
+        {
+          "id": "f1acd1338d",
+          "title": "Como Has Cambiado, Pebeta!",
+          "year": 1942,
+          "singer": "Armando Moreno",
+          "energy": 66,
+          "durationSec": 154
+        },
+        {
+          "id": "38e93552bc",
+          "title": "No Te Quiero Más",
+          "year": 1940,
+          "singer": "Armando Moreno",
+          "energy": 74,
+          "durationSec": 134
+        },
+        {
+          "id": "cc5aa837bb",
+          "title": "Llorar por una Mujer",
+          "year": 1941,
+          "singer": "Armando Moreno",
+          "energy": 70,
+          "durationSec": 168
+        },
+        {
+          "id": "71aed15ffc",
+          "title": "Que Lento Corre el Tren",
+          "year": 1943,
+          "singer": "Armando Moreno",
+          "energy": 68,
+          "durationSec": 161
+        }
+      ],
+      "cortina": {
+        "id": "c-tr-duman-her-seyi-yak",
+        "title": "Her Şeyi Yak",
+        "artist": "Duman",
+        "genre": "turkish-rock",
+        "lengthSec": 53,
+        "preview": "deezer:531236851"
+      }
+    },
+    {
+      "n": 18,
+      "rhythm": "milonga",
+      "orchestra": "Aníbal Troilo",
+      "singer": "Francisco Fiorentino",
+      "years": [
+        1941,
+        1942
+      ],
+      "energy": 77,
+      "target": 91,
+      "phase": "peak",
+      "tracks": [
+        {
+          "id": "1e3c434efd",
+          "title": "Ficha de Oro",
+          "year": 1942,
+          "singer": "Francisco Fiorentino",
+          "energy": 78,
+          "durationSec": 163
+        },
+        {
+          "id": "d970028f4e",
+          "title": "Del Tiempo Guapo",
+          "year": 1941,
+          "singer": "Francisco Fiorentino",
+          "energy": 80,
+          "durationSec": 144
+        },
+        {
+          "id": "1bfedcbfe6",
+          "title": "Papá Baltasar",
+          "year": 1942,
+          "singer": "Francisco Fiorentino",
+          "energy": 74,
+          "durationSec": 153
+        }
+      ],
+      "cortina": {
+        "id": "c-tr-edis-yalan",
+        "title": "Yalan",
+        "artist": "Edis",
+        "genre": "turkish-pop",
+        "lengthSec": 53,
+        "preview": "deezer:469079822"
+      }
+    },
+    {
+      "n": 19,
+      "rhythm": "tango",
+      "orchestra": "Osvaldo Pugliese",
+      "singer": "Alberto Morán",
+      "years": [
+        1945,
+        1945
+      ],
+      "energy": 73,
+      "target": 81,
+      "phase": "peak",
+      "tracks": [
+        {
+          "id": "1cd41e9d06",
+          "title": "El Abrojito",
+          "year": 1945,
+          "singer": "Alberto Morán",
+          "energy": 64,
+          "durationSec": 200
+        },
+        {
+          "id": "bf45936f5c",
+          "title": "Por Qué No Has Venido?",
+          "year": 1945,
+          "singer": "Alberto Morán",
+          "energy": 70,
+          "durationSec": 175
+        },
+        {
+          "id": "f274d5d8b2",
+          "title": "Hoy al Recordarla",
+          "year": 1945,
+          "singer": "Alberto Morán",
+          "energy": 84,
+          "durationSec": 197
+        },
+        {
+          "id": "2d1520742b",
+          "title": "Yuyo Verde",
+          "year": 1945,
+          "singer": "Alberto Morán",
+          "energy": 72,
+          "durationSec": 164
+        }
+      ],
+      "cortina": {
+        "id": "c-tr-aksu-firuze",
+        "title": "Firuze",
+        "artist": "Sezen Aksu",
+        "genre": "turkish-pop",
+        "lengthSec": 53,
+        "preview": "deezer:3518891051"
+      }
+    },
+    {
+      "n": 20,
+      "rhythm": "tango",
+      "orchestra": "Ángel D'Agostino",
+      "singer": "Angel Vargas",
+      "years": [
+        1941,
+        1943
+      ],
+      "energy": 59,
+      "target": 75,
+      "phase": "cooldown",
+      "tracks": [
+        {
+          "id": "553890c04f",
+          "title": "El Cornetín del Tranvía",
+          "year": 1943,
+          "singer": "Angel Vargas",
+          "energy": 55,
+          "durationSec": 179
+        },
+        {
+          "id": "2eaa4a9b09",
+          "title": "El Yacaré",
+          "year": 1941,
+          "singer": "Angel Vargas",
+          "energy": 62,
+          "durationSec": 155
+        },
+        {
+          "id": "44c5d368ac",
+          "title": "Me Llaman Tango",
+          "year": 1943,
+          "singer": "Angel Vargas",
+          "energy": 58,
+          "durationSec": 167
+        },
+        {
+          "id": "d1d4a2ee18",
+          "title": "Tres Esquinas",
+          "year": 1941,
+          "singer": "Angel Vargas",
+          "energy": 62,
+          "durationSec": 169
+        }
+      ],
+      "cortina": {
+        "id": "c-tr-2",
+        "title": "Cambaz",
+        "artist": "Mor ve Ötesi",
+        "genre": "turkish-rock",
+        "lengthSec": 53,
+        "preview": null
+      }
+    },
+    {
+      "n": 21,
+      "rhythm": "vals",
+      "orchestra": "Lucio Demare",
+      "singer": "Raúl Berón",
+      "years": [
+        1943,
+        1943
+      ],
+      "energy": 61,
+      "target": 72,
+      "phase": "cooldown",
+      "tracks": [
+        {
+          "id": "38b0ecb52f",
+          "title": "No Nos Veremos Más",
+          "year": 1943,
+          "singer": "Raúl Berón",
+          "energy": 60,
+          "durationSec": 157
+        },
+        {
+          "id": "7b62b1bb87",
+          "title": "Se Fue",
+          "year": 1943,
+          "singer": "Raúl Berón",
+          "energy": 61,
+          "durationSec": 163
+        },
+        {
+          "id": "08e9c1cda0",
+          "title": "Al Pasar",
+          "year": 1943,
+          "singer": "Raúl Berón",
+          "energy": 62,
+          "durationSec": 158
+        }
+      ],
+      "cortina": {
+        "id": "c-tr-tarkan-gecce",
+        "title": "Geççek",
+        "artist": "Tarkan",
+        "genre": "turkish-pop",
+        "lengthSec": 53,
+        "preview": "deezer:1640528652"
+      }
+    },
+    {
+      "n": 22,
+      "rhythm": "tango",
+      "orchestra": "Rodolfo Biagi",
+      "singer": "Jorge Ortíz",
+      "years": [
+        1940,
+        1941
+      ],
+      "energy": 76,
+      "target": 78,
+      "phase": "close",
+      "tracks": [
+        {
+          "id": "181ac6ee37",
+          "title": "Todo Te Nombra",
+          "year": 1940,
+          "singer": "Jorge Ortíz",
+          "energy": 67,
+          "durationSec": 215
+        },
+        {
+          "id": "01adff4c81",
+          "title": "Humillación",
+          "year": 1941,
+          "singer": "Jorge Ortíz",
+          "energy": 77,
+          "durationSec": 155
+        },
+        {
+          "id": "1aeca2751c",
+          "title": "Ahora No Me Conocés",
+          "year": 1941,
+          "singer": "Jorge Ortíz",
+          "energy": 75,
+          "durationSec": 148
+        },
+        {
+          "id": "6a1bc6ab08",
+          "title": "Quiero Verte una Vez Más",
+          "year": 1940,
+          "singer": "Jorge Ortíz",
+          "energy": 84,
+          "durationSec": 178
+        }
+      ],
+      "cortina": null
+    }
+  ],
+  "closing": {
+    "id": "58cf346d25",
+    "title": "La Cumparsita",
+    "orchestra": "Carlos Di Sarli",
+    "year": 1951
+  }
+}
