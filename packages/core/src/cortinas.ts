@@ -1,3 +1,4 @@
+import { normTitle } from "./energy";
 import type { ComposeOptions, Cortina, Rng } from "./index";
 
 /**
@@ -610,7 +611,10 @@ export function cortinaPool(extra: Cortina[] = [], overrides?: Record<string, Co
     if (c) m.set(id, c);
     else m.delete(id);
   }
-  return [...m.values()];
+  // the same song under two ids (built-in "Boum!" and the knowledge file's) is one cue: the later entry wins
+  const byKey = new Map<string, Cortina>();
+  for (const c of m.values()) byKey.set(`${normTitle(c.title)}|${normTitle(c.artist)}`, c);
+  return [...byKey.values()];
 }
 
 /** The family key a cortina belongs to for "one family per night" programming. */
@@ -644,7 +648,41 @@ export interface CortinaPlan {
   family: string | null;
   families: string[];
   constant: Cortina | null;
+  /** the candidate set when the request fell back to an era-matched pool (pickCortina draws from it) */
+  pool?: Cortina[];
+  /** why the requested cultures/genres/trend were not used (fewer than 8 distinct cues) */
+  fallback?: string;
 }
+
+/** how many distinct cortinas a night of `tandas` needs: 8 per 4 h (round 8), 4 for a short práctica */
+export const distinctCortinasNeeded = (tandas: number) => Math.min(8, Math.max(4, Math.ceil(tandas / 3)));
+
+/** cortinas that sit with the night's era when the requested pool is too small: the eras' own decades, global cultures */
+export function eraMatchedCortinas(pool: Cortina[], o: ComposeOptions): Cortina[] {
+  const eras = o.eras?.length ? o.eras : ["golden"];
+  const span: [number, number] = eras.every((e) => e === "guardia-vieja")
+    ? [1900, 1935]
+    : eras.every((e) => e === "nuevo" || e === "contemporary")
+      ? [1970, 2100]
+      : eras.every((e) => e === "post-golden")
+        ? [1945, 1975]
+        : [1930, 1970];
+  const inSpan = pool.filter(
+    (c) => c.year !== undefined && c.year >= span[0] && c.year <= span[1] && !c.trend,
+  );
+  return inSpan.length >= 8 ? inSpan : pool.filter((c) => !c.trend);
+}
+
+const describeRequest = (o: ComposeOptions) =>
+  [
+    o.cortinaCultures?.length && !(o.cortinaCultures.length === 1 && o.cortinaCultures[0] === "global")
+      ? o.cortinaCultures.join("+")
+      : "",
+    o.cortinaGenres?.length ? o.cortinaGenres.join("/") : "",
+    o.cortinaTrend === "trend" ? "trend" : o.cortinaTrend === "classic" ? "classic" : "",
+  ]
+    .filter(Boolean)
+    .join(" · ") || "the requested";
 
 /** a Guardia Vieja night gets pre-1936 cortinas only (when the pool has them) */
 const eraFiltered = (cands: Cortina[], o: ComposeOptions) => {
@@ -693,10 +731,22 @@ export function planCortinas(
       families: [],
       constant: rng.weighted(cands, (c) => Math.max(0.05, 1 - Math.abs(c.energy - firstEnergy) / 30)) ?? null,
     };
-  if (o.cortinaStyle === "matched") return { family: null, families: [], constant: null };
+  const need = distinctCortinasNeeded(tandas);
+  // a pool that cannot give the night `need` distinct cues loops two cortinas all night (round 8: Dünya Dönüyor /
+  // Roman ×10 each): fall back to an era-matched pool and say so in the plan
+  let drawFrom = cands;
+  let fallback: string | undefined;
+  if (new Set(cands.map((c) => c.id)).size < need) {
+    const era = eraMatchedCortinas(pool, o);
+    if (era.length >= need) {
+      drawFrom = era;
+      fallback = `${describeRequest(o)} cortinas: only ${new Set(cands.map((c) => c.id)).size} in the pool, fewer than the ${need} a night of ${tandas} tandas needs; era-matched cortinas used instead`;
+    }
+  }
+  if (o.cortinaStyle === "matched")
+    return { family: null, families: [], constant: null, pool: fallback ? drawFrom : undefined, fallback };
   const fam = new Map<string, number>();
-  for (const c of cands) fam.set(familyOf(c), (fam.get(familyOf(c)) ?? 0) + 1);
-  const need = Math.max(4, Math.ceil(tandas / 4));
+  for (const c of drawFrom) fam.set(familyOf(c), (fam.get(familyOf(c)) ?? 0) + 1);
   const singles = [...fam.entries()].filter(([, n]) => n >= need).map(([k]) => [k]);
   const pairs = COMPATIBLE_FAMILIES.filter(
     ([a, b]) => fam.has(a) && fam.has(b) && (fam.get(a) ?? 0) + (fam.get(b) ?? 0) >= need,
@@ -704,7 +754,13 @@ export function planCortinas(
   // a single family or a compatible pair: both are nights DJs play, so both are drawn from
   const options = [...singles, ...pairs];
   const pick = options.length ? rng.pick(options) : null;
-  return { family: pick?.[0] ?? null, families: pick ?? [], constant: null };
+  return {
+    family: pick?.[0] ?? null,
+    families: pick ?? [],
+    constant: null,
+    pool: fallback ? drawFrom : undefined,
+    fallback,
+  };
 }
 
 /**
@@ -722,7 +778,7 @@ export function pickCortina(
 ): Cortina | null {
   if (o.cortinaStyle === "none") return null;
   if (plan.constant) return plan.constant;
-  const all = candidatesFor(pool, o);
+  const all = plan.pool ?? candidatesFor(pool, o);
   let cands = all;
   if (plan.families.length) {
     const f = all.filter((c) => plan.families.includes(familyOf(c)));
@@ -742,7 +798,14 @@ export function pickCortina(
   if (!near.length) near = all.filter((c) => fitOf(c) <= 28 && !recent.has(c.id));
   if (!near.length) near = cands.filter((c) => !recent.has(c.id));
   if (!near.length) near = all.filter((c) => !recent.has(c.id));
-  if (!near.length) return rng.weighted(all, (c) => Math.max(0.05, 1 - fitOf(c) / 28) ** 2) ?? null;
+  // the same cue twice in a row: never, whatever the pool (a single-cue pool is the constant style, not a loop)
+  const lastId = order[order.length - 1];
+  if (!near.length) {
+    const notLast = all.filter((c) => c.id !== lastId);
+    return (
+      rng.weighted(notLast.length ? notLast : all, (c) => Math.max(0.05, 1 - fitOf(c) / 28) ** 2) ?? null
+    );
+  }
   // least-recently-used window: the oldest third of the viable cues (fresh ones first), weighted by energy fit
   const sorted = near.slice().sort((a, b) => rank(a) - rank(b));
   const window = sorted.slice(0, Math.max(3, Math.ceil(sorted.length / 3)));
