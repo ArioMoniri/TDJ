@@ -57,9 +57,13 @@ export function NowCard() {
   const k = tandaItems.findIndex((x) => x.n === item.n);
   const live = state === "playing" || state === "cortina";
   const src = sources[planIndex] ?? "missing";
+  // rehearsal: the items without a clip (cortinas, tracks with no preview) are skipped; the chip says so once
+  const skippedForClips = rehearsal
+    ? sources.filter((s, i) => s === "missing" && plan.items[i]?.kind !== "break").length
+    : 0;
   const statusText =
     state === "idle"
-      ? "Ready: tap Start the night"
+      ? "Ready"
       : state === "armed"
         ? "Ready: tap play"
         : state === "paused"
@@ -125,7 +129,13 @@ export function NowCard() {
           </span>
         )}
         {item.birthday && <span className="booth-chip">birthday vals</span>}
-        {rehearsal && <span className="booth-chip">30 s rehearsal</span>}
+        {/* the source badge already says "30 s rehearsal" when the item plays from a preview */}
+        {rehearsal && src !== "preview" && <span className="booth-chip">30 s rehearsal</span>}
+        {skippedForClips > 0 && (
+          <span className="booth-chip" data-testid="booth-skipped">
+            {skippedForClips} without a clip, skipped
+          </span>
+        )}
       </div>
     </section>
   );

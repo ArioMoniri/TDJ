@@ -486,7 +486,8 @@ describe("state machine (§6.2)", () => {
     const log = makeNightLog({ ...e.snapshot(), ended: true, now: 1_000_000 + t * 1000 });
     expect(log.itemsPlayed).toBe(4);
     expect(log.holds).toBe(0);
-    expect(nightLogSummary(log)).toMatch(/^played \d{4}-\d{2}-\d{2} · 0:\d{2} h · 0 holds$/);
+    // a 16 s run is logged as rehearsed, never as "played 0:00 h" (round8-ux.md §2 History)
+    expect(nightLogSummary(log)).toMatch(/^rehearsed \d\d:\d\d$/);
   });
 
   it("master and mute use a 20 ms time constant; the test tone is −20 dBFS for 0.5 s", async () => {

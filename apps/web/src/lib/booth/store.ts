@@ -431,10 +431,19 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     media.outputLabel().then((l) => set({ outputLabel: l }));
     set({ started: true, resumeOffer: null, wakeLock: held });
     const missing = sources.filter((s, i) => s === "missing" && plan.items[i]!.kind !== "break").length;
-    if (missing)
+    // in a rehearsal the Now chip says what is skipped; from files it is a thing the DJ can fix: say how
+    if (missing && sourceMode !== "preview")
       pushBanner({
         key: "missing",
-        text: `${missing} item${missing === 1 ? " has" : "s have"} no source and will be skipped.`,
+        text: `${missing} of ${plan.items.length} items have no file yet: they are skipped. Link your music folder to play them.`,
+        action: {
+          label: "Link folder…",
+          run: () => {
+            const b = get();
+            if (b.folder.canKeep) void b.linkFolder();
+            else document.getElementById("booth-folder-input")?.click();
+          },
+        },
       });
     await engine.start();
     await engine.play();

@@ -1,7 +1,7 @@
 "use client";
-import { Keyboard } from "lucide-react";
+import { Keyboard, LogOut } from "lucide-react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { Banners } from "@/components/booth/Banners";
 import { ControlStrip, STOP_HOLD_MS } from "@/components/booth/ControlStrip";
@@ -9,7 +9,13 @@ import { NextCard } from "@/components/booth/NextCard";
 import { NowCard } from "@/components/booth/NowCard";
 import { OnboardingSheet } from "@/components/booth/OnboardingSheet";
 import { SetColumn } from "@/components/booth/SetColumn";
-import { BreakSheet, FindFileSheet, ResumeSheet, ShortcutsSheet } from "@/components/booth/Sheets";
+import {
+  BreakSheet,
+  FindFileSheet,
+  LevelsSheet,
+  ResumeSheet,
+  ShortcutsSheet,
+} from "@/components/booth/Sheets";
 import { TimeCard } from "@/components/booth/TimeCard";
 import { EmptyState } from "@/components/EmptyState";
 import { type MenuItem, MenuList } from "@/components/Menu";
@@ -37,6 +43,7 @@ export default function BoothPage() {
 
 function Booth() {
   const playlist = useStore((s) => s.playlist);
+  const router = useRouter();
   const params = useSearchParams();
   const rehearsalParam = params.get("rehearsal") === "1";
   const boot = useBooth((s) => s.boot);
@@ -52,6 +59,17 @@ function Booth() {
   const [find, setFind] = useState<{ id: string; title: string } | null>(null);
   const [jump, setJump] = useState<number | null>(null);
   const [light, setLight] = useState(false);
+  const [levels, setLevels] = useState(false);
+
+  // while a night runs the phone tab bar leaves (round8-ux.md §1.5); "Leave the booth" in ••• is the way out
+  useEffect(() => {
+    const el = document.documentElement;
+    if (started) el.dataset.boothLive = "1";
+    else delete el.dataset.boothLive;
+    return () => {
+      delete el.dataset.boothLive;
+    };
+  }, [started]);
 
   // dark forced while mounted; the DJ's per-device choice overrides it
   useEffect(() => {
@@ -183,6 +201,7 @@ function Booth() {
     started && { label: "Break…", onClick: () => setBreakOpen(true) },
     { label: "Keyboard shortcuts", icon: Keyboard, onClick: () => setKeys(true) },
     { label: light ? "Dark theme" : "Light theme", onClick: () => setLight((v) => !v) },
+    started && { label: "Leave the booth", icon: LogOut, onClick: () => router.push("/") },
     started && {
       label: "End the night",
       destructive: true,
@@ -195,7 +214,15 @@ function Booth() {
 
   return (
     <div className="booth" data-state={state} data-testid="booth" data-rehearsal={rehearsal || undefined}>
-      <PageHeader title={rehearsal ? "Booth (rehearsal)" : "Booth"} />
+      {/* the title keeps one width; the mode is a chip under it (round8-ux.md §2 Booth) */}
+      <PageHeader title="Booth" />
+      {rehearsal && (
+        <p className="mt-1">
+          <span className="booth-chip" data-testid="booth-mode">
+            Rehearsal · 30 s clips
+          </span>
+        </p>
+      )}
       <Banners />
       <div className="booth-grid">
         <div className="booth-col-now">
@@ -209,7 +236,12 @@ function Booth() {
           <SetColumn jumpTo={jump} onFind={(id, title) => setFind({ id, title })} />
         </div>
       </div>
-      <ControlStrip onMore={() => setMore(true)} onBreak={() => setBreakOpen(true)} />
+      <ControlStrip
+        onMore={() => setMore(true)}
+        onBreak={() => setBreakOpen(true)}
+        onLevels={() => setLevels(true)}
+      />
+      <LevelsSheet open={levels} onClose={() => setLevels(false)} />
       {/* any browser: the folder as a FileList (Chromium prefers the persisted handle) */}
       <input
         id="booth-folder-input"
