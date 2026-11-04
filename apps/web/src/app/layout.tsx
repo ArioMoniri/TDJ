@@ -27,7 +27,9 @@ const serif = Fraunces({
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "TDJ — Tango DJ playlist composer",
+  // per page: "Compose · TDJ", "History · TDJ"… (round8-qa.md B17); route layouts set the page part
+  title: { default: "Compose · TDJ", template: "%s · TDJ" },
+  applicationName: "TDJ — Tango DJ playlist composer",
   description:
     "Compose milonga sets: tandas, cortinas and a night-long energy arc from a 21,000-recording golden-age index. Export to Spotify, Rekordbox, Traktor, M3U.",
   icons: { icon: "/icon.svg" },

@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import { EnergyCurve } from "@/components/EnergyCurve";
 import { ExportSheet } from "@/components/ExportSheet";
+import { FeaturedCard } from "@/components/FeaturedCard";
 import { ActionRow, Group, Row } from "@/components/Form";
 import { Menu } from "@/components/Menu";
 import { PageHeader } from "@/components/PageHeader";
@@ -190,9 +191,12 @@ export default function HistoryPage() {
       {overridesReady && history.length === 0 && (
         <EmptyState
           action={
-            <Link href="/" className="btn btn-primary">
-              Compose a night
-            </Link>
+            <span className="flex flex-col items-center gap-3">
+              <Link href="/" className="btn btn-primary">
+                Compose a night
+              </Link>
+              <FeaturedCard />
+            </span>
           }
         >
           Sets you compose land here, with their score, options and tandas. The trend starts after two.
@@ -412,7 +416,6 @@ export default function HistoryPage() {
               toast("History cleared");
             }}
           />
-          <ActionRow label="Cancel" onClick={() => setConfirmClear(false)} />
         </Group>
       </Sheet>
 
