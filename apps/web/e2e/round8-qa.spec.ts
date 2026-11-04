@@ -232,11 +232,15 @@ test("arc shape: the Set-up control travels as an explicit key and the result na
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
   // under load the first click can land before hydration: retry until the control answers
-  const dbl = page.getByRole("radio", { name: "Double peak" });
+  // one Arc control: picking "Two peaks" explicitly also fixes the engine's double-peak shape
+  const single = page.getByRole("radio", { name: "Single peak" });
+  const dbl = page.getByRole("radio", { name: "Two peaks" });
   await expect(async () => {
-    await dbl.click();
-    await expect(dbl).toHaveAttribute("aria-checked", "true", { timeout: 1500 });
+    await single.click();
+    await expect(single).toHaveAttribute("aria-checked", "true", { timeout: 1500 });
   }).toPass({ timeout: 20000 });
+  await dbl.click();
+  await expect(dbl).toHaveAttribute("aria-checked", "true");
   const req = page.waitForRequest((r) => r.url().includes("/api/compose") && r.method() === "POST");
   await page.getByRole("button", { name: /Compose the night/ }).click();
   const body = (await req).postDataJSON();
@@ -248,7 +252,7 @@ test("arc shape: the Set-up control travels as an explicit key and the result na
   // the control is explicit: it survives an era preset change
   await page.getByRole("button", { name: "Edit" }).first().click();
   await page.getByLabel("Era", { exact: true }).selectOption("nuevo");
-  await expect(page.getByRole("radio", { name: "Double peak" })).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByRole("radio", { name: "Two peaks" })).toHaveAttribute("aria-checked", "true");
 });
 
 test("featured night: the deep link loads it into the result with Export and Booth; the hero card and the Booth row load it too", async ({

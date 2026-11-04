@@ -126,10 +126,6 @@ const ARCS: Array<[ComposeOptions["arc"], string]> = [
   ["marathon-plateau", "Marathon"],
   ["gentle", "Gentle"],
 ];
-const ARC_SHAPES: Array<[NonNullable<ComposeOptions["arcShape"]>, string]> = [
-  ["single", "Single peak"],
-  ["double", "Double peak"],
-];
 const SHAPES: Array<[ComposeOptions["tandaShape"], string]> = [
   ["rise-settle", "Slow, up, settle"],
   ["hammock", "Hammock (Buenos Aires)"],
@@ -276,20 +272,20 @@ const SetupForm = memo(function SetupForm({
         <PickerRow label="Era" ariaLabel="Era" value={era} items={ERAS} onChange={(k) => k && applyEra(k)} />
         <SegmentedRow
           label="Arc"
-          value={options.arc ?? "classic-two-peaks"}
-          items={ARCS}
-          onChange={(k) => setOptions({ arc: k })}
-        />
-        <SegmentedRow
-          label="Arc shape"
           sub={
             hours < 3
-              ? "Double peak needs a night of 3 h or more"
-              : "Single: one climb to the última. Double: two peaks with a dip between"
+              ? "Two peaks need a night of 3 h or more; shorter nights climb once"
+              : "Two peaks: a real breather between them. Single: one climb to the última"
           }
-          value={options.arcShape ?? "single"}
-          items={ARC_SHAPES}
-          onChange={(k) => setOptions({ arcShape: k })}
+          value={options.arc ?? "classic-two-peaks"}
+          items={ARCS}
+          onChange={(k) =>
+            // one control: the chosen arc also fixes the engine's peak shape so context never reshapes it
+            setOptions({
+              arc: k,
+              arcShape: k === "classic-two-peaks" ? "double" : k === "single-peak" ? "single" : undefined,
+            })
+          }
         />
         <PickerRow
           label="Tanda shape"

@@ -10,7 +10,7 @@ const LABEL: Record<string, string> = {
   milongaTandaSize: "Milonga tanda",
   tandaShape: "Tanda shape",
   arc: "Arc",
-  arcShape: "Arc shape",
+  arcShape: "Arc peaks",
   yearRange: "Years",
   preferOrchestras: "Preferred orchestras",
   cortinaStyle: "Cortina style",
