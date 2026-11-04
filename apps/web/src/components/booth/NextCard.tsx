@@ -40,7 +40,7 @@ export function NextCard({ onJump }: { onJump: (planIndex: number) => void }) {
       {item ? (
         <>
           <p className="text-caption1 text-[var(--label-2)]">{eyebrowFor(item, tandas)}</p>
-          <h3 className="booth-mid font-semibold" data-testid="booth-next-title">
+          <h3 className="booth-mid booth-next-title font-semibold" data-testid="booth-next-title">
             {item.title}
           </h3>
           {noSource && <p className="text-footnote text-[var(--label-2)]">no source: skipped</p>}

@@ -105,8 +105,21 @@ export function SetColumn({
                     ? `${g.tanda} · ${t.rhythm} · ${t.orchestra}${t.singer ? ` / ${t.singer}` : ""}`
                     : "Closing"}
               </span>
-              {(locked || t?.locked) && (
-                <Lock size={14} strokeWidth={2} className="text-[var(--label-3)]" aria-label="Locked" />
+              {/* the running tanda: a filled lock in tint ("Playing now"); the DJ's own lock stays gold */}
+              {locked ? (
+                <Lock
+                  size={14}
+                  strokeWidth={2}
+                  fill="currentColor"
+                  className="text-[var(--tint)]"
+                  aria-label="Playing now: read-only"
+                >
+                  <title>Playing now</title>
+                </Lock>
+              ) : (
+                t?.locked && (
+                  <Lock size={14} strokeWidth={2} className="text-[var(--system-gold)]" aria-label="Locked" />
+                )
               )}
               {t && (
                 <SwapButton
@@ -119,10 +132,11 @@ export function SetColumn({
               )}
             </header>
             <ol>
-              {g.items.map(({ i }) => (
+              {g.items.map(({ i }, k) => (
                 <Row
                   key={i}
                   i={i}
+                  k={g.items.slice(0, k).filter((x) => plan.items[x.i]!.kind === "track").length + 1}
                   current={i === planIndex}
                   played={started && i < planIndex}
                   locked={locked}
@@ -187,6 +201,7 @@ function SwapButton({
 
 const Row = memo(function Row({
   i,
+  k,
   current,
   played,
   locked,
@@ -196,6 +211,8 @@ const Row = memo(function Row({
   onFind,
 }: {
   i: number;
+  /** the track's number inside its tanda (the DJ thinks "track 2 of tanda 7", not plan index 9) */
+  k: number;
   current: boolean;
   played: boolean;
   locked: boolean;
@@ -205,7 +222,6 @@ const Row = memo(function Row({
   onFind: (itemId: string, title: string) => void;
 }) {
   const it = useBooth((s) => s.plan?.items[i]);
-  const rehearsal = useBooth((s) => s.rehearsal);
   if (!it) return null;
   const missing = source === "missing" && it.kind !== "break";
   return (
@@ -217,7 +233,7 @@ const Row = memo(function Row({
       data-source={source}
     >
       <span className="booth-row-n tabular-nums">
-        {it.kind === "cortina" ? "♪" : it.kind === "break" ? "—" : it.n}
+        {it.kind === "cortina" ? "♪" : it.kind === "break" ? "—" : k}
       </span>
       <span className="min-w-0 flex-1">
         <span className="booth-row-title block">
@@ -229,16 +245,15 @@ const Row = memo(function Row({
             ? `cortina · ${it.artist} · in ${durationLabel(it.trimInSec ?? 0)} · stop ${durationLabel(it.stopSec ?? 0)}`
             : it.artist}
           {it.year ? ` · ${it.year}` : ""}
-          {source === "spotify" ? " · Spotify" : missing ? " · no source" : rehearsal ? " · 30 s" : ""}
+          {source === "spotify" ? " · Spotify" : missing ? " · no source" : ""}
         </span>
       </span>
-      <span className="text-caption1 tabular-nums text-[var(--label-3)]">
-        {durationLabel(rehearsal && it.kind !== "break" ? Math.min(30, it.lengthSec) : it.lengthSec)}
-      </span>
+      {/* the planned length, so the DJ can read the night; "30 s" lives in the Now chip during a rehearsal */}
+      <span className="text-caption1 tabular-nums text-[var(--label-3)]">{durationLabel(it.lengthSec)}</span>
       {missing && it.id && (
         <button
           type="button"
-          className="btn-plain text-caption1 -mr-1"
+          className="btn-plain booth-find text-caption1 -mr-1"
           onClick={() => onFind(it.id!, it.title)}
           data-testid="booth-find"
         >

@@ -3,6 +3,55 @@ import { useRef, useState } from "react";
 import { useBooth } from "@/lib/booth/store";
 import { ActionRow, Group, Row } from "../Form";
 import { Sheet } from "../Sheet";
+import { Fader } from "./Fader";
+
+/** Phones: the cortina and master faders, behind the strip's Levels button (round8-ux.md §1.5). */
+export function LevelsSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const cortinaFader = useBooth((s) => s.cortinaFader);
+  const master = useBooth((s) => s.master);
+  const muted = useBooth((s) => s.muted);
+  const act = useBooth.getState();
+  return (
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title="Levels"
+      trailing="Done"
+      detents={["medium"]}
+      testId="booth-levels-sheet"
+    >
+      <Group footer="The cortina fader scales every cortina; the master is the room level. ↑ / ↓ move the cortina fader from the keyboard, m mutes.">
+        <div className="cell">
+          <Fader
+            label="Cortina"
+            value={cortinaFader}
+            min={0}
+            max={1}
+            step={0.05}
+            onChange={act.setCortinaFader}
+            display={`${Math.round(cortinaFader * 100)} %`}
+            testId="booth-cortina-fader"
+            className="w-full"
+          />
+        </div>
+        <div className="cell">
+          <Fader
+            label="Master"
+            value={master}
+            min={-30}
+            max={6}
+            step={1}
+            onChange={act.setMaster}
+            display={`${master > 0 ? "+" : ""}${master} dB`}
+            testId="booth-master"
+            className="w-full"
+          />
+        </div>
+        <ActionRow label={muted ? "Unmute" : "Mute"} onClick={() => act.toggleMute()} />
+      </Group>
+    </Sheet>
+  );
+}
 
 const KEYS: Array<[string, string]> = [
   ["space", "Hold / play (never a cut)"],

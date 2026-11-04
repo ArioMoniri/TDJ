@@ -95,7 +95,7 @@ export function OnboardingSheet({
           label="Spotify"
           sub={sp.ok ? "Premium · full tracks, gaps within ±0.5 s" : (sp.reason ?? "Checking…")}
           onClick={() => sp.ok && pick("spotify")}
-          className={sp.ok ? "" : "text-[var(--label-3)]"}
+          className={sp.ok ? "" : "text-[var(--label-2)]"}
           data-testid="booth-source-spotify"
           aria-disabled={!sp.ok || undefined}
         >
@@ -103,7 +103,7 @@ export function OnboardingSheet({
         </Row>
         <Row
           label="30 s rehearsal"
-          sub="Deezer previews: every rule of the booth on 30 s of each item"
+          sub="30-second clips, so you can rehearse the night without your files"
           onClick={() => pick("preview")}
           data-testid="booth-source-preview"
         >

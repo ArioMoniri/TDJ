@@ -40,19 +40,24 @@ export function TimeCard() {
       data-ttc={Math.round(ttc)}
       data-remaining={Math.round(remaining)}
     >
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="booth-clock" data-testid="booth-clock">
-          {now ? clockLabel(now) : "--:--"}
-        </span>
-        <span className="text-subhead text-[var(--label-2)]">
-          ends {now ? clockLabel(end) : "--:--"}
-          {rehearsal ? " (rehearsal)" : ""}
-        </span>
+      {/* ≥ 1024: the clock + "ends" and the Cumparsita number side by side (`.booth-time-row`, round8-ux.md §1.6) */}
+      <div className="booth-time-row">
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0">
+          <span className="booth-clock" data-testid="booth-clock">
+            {now ? clockLabel(now) : "--:--"}
+          </span>
+          <span className="text-subhead text-[var(--label-2)]">
+            ends {now ? clockLabel(end) : "--:--"}
+            {rehearsal ? " · rehearsal" : ""}
+          </span>
+        </div>
+        <div className="mt-3 lg:mt-0">
+          <p className="booth-eyebrow booth-eyebrow-wrap">Time to La Cumparsita</p>
+          <span className="booth-big block" data-testid="booth-ttc">
+            {durationLabel(ttc)}
+          </span>
+        </div>
       </div>
-      <p className="booth-eyebrow mt-3">Time to La Cumparsita</p>
-      <span className="booth-big block" data-testid="booth-ttc">
-        {durationLabel(ttc)}
-      </span>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <span
           className={`booth-chip tabular-nums ${Math.abs(drift) >= 60 ? "text-[var(--system-gold)]" : ""}`}

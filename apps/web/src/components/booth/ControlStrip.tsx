@@ -1,5 +1,15 @@
 "use client";
-import { Cake, Coffee, Ellipsis, Pause, Play, SkipForward, Square, VolumeX } from "lucide-react";
+import {
+  Cake,
+  Coffee,
+  Ellipsis,
+  Pause,
+  Play,
+  SkipForward,
+  SlidersHorizontal,
+  Square,
+  VolumeX,
+} from "lucide-react";
 import { useRef, useState } from "react";
 import { useBooth } from "@/lib/booth/store";
 import { haptic } from "@/lib/haptics";
@@ -12,9 +22,18 @@ export const STOP_HOLD_MS = 600;
 /**
  * Control strip (round7-booth.md §1.1): the only glass surface of the page, 64 px tall, every control ≥ 44 px.
  * Start the night → Hold / Play, Next at gap, Stop (press-and-hold 600 ms), the cortina fader (vertical on
- * desktop), the master fader, Birthday vals, Break, the overflow.
+ * desktop), the master fader, Birthday vals, Break, the overflow. Phones (round8-ux.md §1.5): one row of five, the
+ * two faders behind a Levels button.
  */
-export function ControlStrip({ onMore, onBreak }: { onMore: () => void; onBreak: () => void }) {
+export function ControlStrip({
+  onMore,
+  onBreak,
+  onLevels,
+}: {
+  onMore: () => void;
+  onBreak: () => void;
+  onLevels: () => void;
+}) {
   const state = useBooth((s) => s.state);
   const started = useBooth((s) => s.started);
   const holding = useBooth((s) => s.holding);
@@ -27,7 +46,8 @@ export function ControlStrip({ onMore, onBreak }: { onMore: () => void; onBreak:
   const plan = useBooth((s) => s.plan);
   const rehearsal = useBooth((s) => s.rehearsal);
   const act = useBooth.getState();
-  const wide = useMediaQuery("(min-width: 640px)");
+  const wide = useMediaQuery("(min-width: 640px)", true);
+  const sourceMode = useBooth((s) => s.sourceMode);
   const [holdPct, setHoldPct] = useState(0);
   const holdTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const live = state === "playing" || state === "cortina";
@@ -65,11 +85,14 @@ export function ControlStrip({ onMore, onBreak }: { onMore: () => void; onBreak:
       data-testid="booth-start"
     >
       <Play size={18} fill="currentColor" strokeWidth={0} aria-hidden />
+      {/* the label names the source (round8-ux.md §3) */}
       {rehearsal
-        ? "Start · rehearsal (30 s clips)"
-        : missing
-          ? `Start · ${missing} without source`
-          : "Start the night"}
+        ? "Start with 30 s clips"
+        : sourceMode === "spotify"
+          ? "Start with Spotify"
+          : missing
+            ? `Start from your files · ${missing} without source`
+            : "Start from your files"}
     </button>
   ) : live && !holding ? (
     <button
@@ -87,10 +110,11 @@ export function ControlStrip({ onMore, onBreak }: { onMore: () => void; onBreak:
       className="btn btn-primary min-h-11 px-4"
       onClick={() => void act.play()}
       data-testid="booth-play"
-      aria-label="Play"
+      aria-label={live && holding && breakUntil === null ? "Cancel hold" : "Play"}
     >
       <Play size={18} fill="currentColor" strokeWidth={0} aria-hidden />{" "}
-      {breakUntil !== null ? "End break" : live && holding ? "Keep going" : "Play"}
+      {/* while a hold is pending the DJ looks for the thing that cancels it (round8-ux.md §2 Booth) */}
+      {breakUntil !== null ? "End break" : live && holding ? "Cancel hold" : "Play"}
     </button>
   );
 
@@ -110,7 +134,7 @@ export function ControlStrip({ onMore, onBreak }: { onMore: () => void; onBreak:
       </button>
       <button
         type="button"
-        className="icon-btn booth-stop"
+        className={`icon-btn booth-stop ${started && state !== "stopped" ? "booth-stop-armed" : ""}`}
         aria-label="Stop (press and hold)"
         title="Press and hold 600 ms: everything fades out in 1 s"
         disabled={!started || state === "stopped"}
@@ -130,28 +154,43 @@ export function ControlStrip({ onMore, onBreak }: { onMore: () => void; onBreak:
       >
         <Square size={18} fill="currentColor" strokeWidth={0} aria-hidden />
       </button>
-      <Fader
-        label="Cortina"
-        value={cortinaFader}
-        min={0}
-        max={1}
-        step={0.05}
-        onChange={act.setCortinaFader}
-        vertical={wide}
-        display={`${Math.round(cortinaFader * 100)} %`}
-        testId="booth-cortina-fader"
-      />
-      <Fader
-        label="Master"
-        value={master}
-        min={-30}
-        max={6}
-        step={1}
-        onChange={act.setMaster}
-        vertical={wide}
-        display={`${master > 0 ? "+" : ""}${master} dB`}
-        testId="booth-master"
-      />
+      {wide ? (
+        <>
+          <Fader
+            label="Cortina"
+            value={cortinaFader}
+            min={0}
+            max={1}
+            step={0.05}
+            onChange={act.setCortinaFader}
+            vertical
+            display={`${Math.round(cortinaFader * 100)} %`}
+            testId="booth-cortina-fader"
+          />
+          <Fader
+            label="Master"
+            value={master}
+            min={-30}
+            max={6}
+            step={1}
+            onChange={act.setMaster}
+            vertical
+            display={`${master > 0 ? "+" : ""}${master} dB`}
+            testId="booth-master"
+          />
+        </>
+      ) : (
+        <button
+          type="button"
+          className="icon-btn"
+          aria-label="Levels"
+          title="Cortina and master faders"
+          onClick={onLevels}
+          data-testid="booth-levels"
+        >
+          <SlidersHorizontal size={20} strokeWidth={2} aria-hidden />
+        </button>
+      )}
       <button
         type="button"
         className={`icon-btn booth-secondary ${muted ? "text-[var(--destructive)]" : ""}`}
