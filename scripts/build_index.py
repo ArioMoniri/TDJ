@@ -98,6 +98,14 @@ RHYTHM_OVERRIDE = {
     ("a magaldi", "alfredo-de-angelis"): "vals",
     ("con toda la voz que tengo", "anibal-troilo"): "tango",  # Troilo-Fiorentino 1941; one copy tagged milonga
 }
+# Curated singer fixes (round 8): (normalised title, orchestra id, year) -> singer (None = instrumental).
+# Pugliese's 1959 La Cumparsita is the instrumental closing version; the source files it under a singers' compilation.
+SINGER_OVERRIDE = {
+    ("la cumparsita", "osvaldo-pugliese", 1959): None,
+}
+# Radio/live/acetate transcriptions and "inéditos" compilations: bootleg-grade sources a DJ never builds a tanda from.
+TRANSCRIPTION_NOTE_RE = re.compile(r"IN[EÉ]DIT|TOMA\s*RADIO|TOMA\s*VIVO|EN\s*VIVO|\bVIVO\b|TOMA\s*TV|TOMA\s*BAILE|TOMAS?\s*Y\s*AC|AC\.-TOMA|ACETATO|ENTREVISTA", re.I)
+TRANSCRIPTION_ALBUM_RE = re.compile(r"IN[EÉ]DIT|EN\s*VIVO|\bVIVO\b|EN\s*JAP[OÓ]N|ASAHIKAWA|ENTREVISTA|EMIS\.?\s*RADIAL|RADIO|ACETATO", re.I)
 # Medleys / potpourris / "parte N" sides are indexed as tangos in the source; they are not dance tracks.
 MEDLEY_RE = re.compile(r"^(selecc|seleccion|selecciones|potpourri|popurr|mosaico|fantasia)\b|\b(\d+a?\.? ?parte|parte \d)\b")
 # Pseudo-singers: the "CANTA" column sometimes names a soloist/narrator instead of a vocalist.
@@ -176,7 +184,16 @@ def build_songs():
         date = parse_date(row[6])
         # years ending in 0 are decade placeholders in the source unless a full recording date backs them
         year_approx = year is not None and year % 10 == 0 and not (date and re.fullmatch(r"\d{4}-\d{2}-\d{2}", date))
+        # "1940/70", "1950/60": a date range spanning more than two years is an undated row whatever the year column says
+        rng = re.fullmatch(r"(\d{4})/(\d{2,4})", date or "")
+        if rng:
+            y0 = int(rng.group(1)); y1 = int(rng.group(2)) if len(rng.group(2)) == 4 else int(rng.group(1)[:2] + rng.group(2))
+            if y1 - y0 > 2: year_approx = True
+        transcription = bool(TRANSCRIPTION_NOTE_RE.search(obs) or TRANSCRIPTION_ALBUM_RE.search(str(row[7])))
         nt = norm_title(title)
+        if (nt, orchestra_id, year) in SINGER_OVERRIDE:
+            fixed = SINGER_OVERRIDE[(nt, orchestra_id, year)]
+            singer = singercase(fixed) if fixed else None
         rhythm_fix = RHYTHM_OVERRIDE.get((nt, orchestra_id)) or RHYTHM_OVERRIDE.get((nt, None))
         if rhythm_fix is None and rhythm in ("tango", "vals", "milonga") and MEDLEY_RE.search(nt):
             rhythm_fix, note = "other", note or "medley"
@@ -200,10 +217,62 @@ def build_songs():
             "selection": obs.upper() == "SELECCIÓN",  # curator's selection flag
             "source": "listado-2008",
             **({"yearApprox": True} if year_approx else {}),
+            **({"transcription": True} if transcription else {}),
             **({"rhythmOriginal": rhythm_original} if rhythm_original else {}),
             **({"note": note} if note else {}),
         })
     return songs
+
+def _source_rank(s):
+    """How well a row is sourced: a dated studio side on a numbered volume beats an undated compilation copy."""
+    r = 0
+    if s.get("date") and re.fullmatch(r"\d{4}-\d{2}-\d{2}", s["date"]): r += 3
+    if s.get("selection"): r += 2
+    if s.get("album"): r += 1
+    if s.get("transcription"): r -= 4
+    if s.get("yearApprox"): r -= 2
+    if (s.get("notes") or "").upper().startswith("COL."): r -= 1   # Altaya / Magenta reissue collections
+    return r
+
+def dedupe(songs):
+    """Merge duplicate rows (round 8): the same recording listed under several albums.
+    1. (orchestra, normalised title, year, singer): keep the best-sourced row, carry selection/date over, keep the dropped ids as altIds.
+    2. (orchestra, title, year) with one row naming a singer and another "instrumental" on the same recording date (or an
+       undated copy): the instrumental copy is a mislabelled duplicate (Pugliese Farol 1943 Chanel) and folds into the vocal row."""
+    groups = collections.OrderedDict()
+    for s in songs:
+        groups.setdefault((s["orchestraId"], norm_title(s["title"]), s["year"], s["singerId"]), []).append(s)
+    merged = []
+    for rows in groups.values():
+        rows.sort(key=_source_rank, reverse=True)
+        keep = dict(rows[0])
+        alt = []
+        for r in rows[1:]:
+            alt.append(r["id"])
+            if r.get("selection"): keep["selection"] = True
+            if not keep.get("date") and r.get("date"): keep["date"] = r["date"]
+            if not keep.get("album") and r.get("album"): keep["album"] = r["album"]
+        if alt: keep["altIds"] = alt
+        merged.append(keep)
+    by_rec = collections.defaultdict(list)
+    for s in merged:
+        by_rec[(s["orchestraId"], norm_title(s["title"]), s["year"])].append(s)
+    drop = set()
+    for rows in by_rec.values():
+        vocal = [r for r in rows if r["singerId"]]
+        instr = [r for r in rows if not r["singerId"]]
+        if not vocal or not instr: continue
+        for i in instr:
+            full = i.get("date") and re.fullmatch(r"\d{4}-\d{2}-\d{2}", i["date"])
+            twin = next((v for v in vocal if full and v.get("date") == i["date"]), None)
+            if twin is None and not full and not i.get("transcription"):
+                twin = vocal[0]
+            if twin is None: continue
+            drop.add(i["id"])
+            twin.setdefault("altIds", []).append(i["id"])
+            if i.get("selection"): twin["selection"] = True
+            for a in i.get("altIds", []): twin["altIds"].append(a)
+    return [s for s in merged if s["id"] not in drop]
 
 COLOUR_QUALITY = {10: ("avoid", 0), 52: ("single-tracks", 1), 13: ("uneven", 2), 11: ("good", 3), 15: ("fantastic", 4), 9: ("none", None), 22: ("none", None), 64: ("unknown", None), 51: ("uneven", 2), 53: ("good", 3)}
 
@@ -249,7 +318,8 @@ def build_coverage():
     return cov
 
 def main():
-    songs = build_songs()
+    raw = build_songs()
+    songs = dedupe(raw)
     coverage = build_coverage()
     cov_by_id = {c["orchestraId"]: c for c in coverage}
     orchestras = collections.OrderedDict()
@@ -282,10 +352,13 @@ def main():
         "rhythms": dict(collections.Counter(s["rhythm"] for s in songs).most_common()),
         "eras": dict(collections.Counter(s["era"] for s in songs).most_common()),
         "sources": [p.name for p in sorted(SRC.iterdir())],
+        "rawRows": len(raw),
+        "mergedDuplicates": len(raw) - len(songs),
+        "transcriptions": sum(1 for s in songs if s.get("transcription")),
         "yearApprox": sum(1 for s in songs if s.get("yearApprox")),
         "rhythmFixed": sum(1 for s in songs if s.get("rhythmOriginal")),
         "pseudoSingers": sum(1 for s in songs if s.get("note")),
-        "version": 2,
+        "version": 3,
     }
     (OUT / "songs.json").write_text(json.dumps(songs, ensure_ascii=False, separators=(",", ":")))
     (OUT / "orchestras.json").write_text(json.dumps(orch_list, ensure_ascii=False, indent=1))
