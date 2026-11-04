@@ -288,25 +288,24 @@ function TandaCardImpl({
                 </motion.span>
               )}
             </AnimatePresence>
-            {!isPhone && (
-              <Menu
-                label={`Tanda ${i + 1} actions`}
-                className="-mr-3 inline-flex"
-                contextRef={ref}
-                icon={<I name="more" size={20} strokeWidth={2} />}
-                items={[
-                  lockItem,
-                  swapItem,
-                  {
-                    label: listen ? "Hide player" : "Listen",
-                    icon: Headphones,
-                    onClick: () => setListen((v) => !v),
-                  },
-                  previewItem,
-                  analyseItem,
-                ]}
-              />
-            )}
+            {/* the tanda's actions live on the header row at every width: the Listen row keeps one disclosure */}
+            <Menu
+              label={`Tanda ${i + 1} actions`}
+              className="-mr-3 inline-flex"
+              contextRef={ref}
+              icon={<I name="more" size={20} strokeWidth={2} />}
+              items={[
+                lockItem,
+                swapItem,
+                !isPhone && {
+                  label: listen ? "Hide player" : "Listen",
+                  icon: Headphones,
+                  onClick: () => setListen((v) => !v),
+                },
+                previewItem,
+                analyseItem,
+              ]}
+            />
           </div>
         </SwipeRow>
         <ol>
@@ -336,6 +335,7 @@ function TandaCardImpl({
               aria-expanded={listen}
               aria-controls={`listen-${i + 1}`}
               onClick={() => setListen((v) => !v)}
+              data-testid="listen-row"
             >
               {listen ? (
                 <span className="wave text-[var(--tint)]" data-on aria-hidden>
@@ -355,12 +355,6 @@ function TandaCardImpl({
                 className={`cell-chevron transition-transform ${listen ? "rotate-90" : ""}`}
               />
             </button>
-            <Menu
-              label={`Tanda ${i + 1} actions`}
-              className="icon-btn-bare mr-2 self-center"
-              icon={<I name="more" size={20} strokeWidth={2} />}
-              items={[lockItem, swapItem, previewItem, analyseItem]}
-            />
           </div>
         )}
         <AnimatePresence initial={false}>

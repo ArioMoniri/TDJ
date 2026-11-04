@@ -24,7 +24,7 @@ export function PrimaryBar({
   busy: boolean;
   /** the tab bar is minimised: show the icon-only pill */
   minimised: boolean;
-  /** a sheet is open: the bar leaves the screen */
+  /** a sheet or the mini-player is open: the bar leaves the screen (one glass unit over the tab bar at a time) */
   hidden: boolean;
   onCompose: () => void;
   onExport: () => void;
@@ -93,14 +93,15 @@ export function PrimaryBar({
           </motion.button>
         )}
       </div>
-      {/* minimised: an icon-only pill that keeps the primary action within reach while reading the set */}
+      {/* minimised: an icon-only pill that keeps the primary action within reach while reading the set; at the
+          right edge, so it never sits on a tanda header's ••• (round8-ux.md §2, Global) */}
       <div
-        className="glass fixed bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+68px)] left-1/2 z-30 flex items-center gap-0.5 rounded-full p-1 sm:hidden"
+        className="glass fixed bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+68px)] right-3 z-30 flex items-center gap-0.5 rounded-full p-1 sm:hidden"
         data-testid="primary-pill"
         aria-hidden={!showPill || undefined}
         style={{
           transition: tr(showPill),
-          transform: showPill ? "translate(-50%, 0)" : "translate(-50%, 8px)",
+          transform: showPill ? "translateY(0)" : "translateY(8px)",
           opacity: showPill ? 1 : 0,
           visibility: showPill ? "visible" : "hidden",
           pointerEvents: showPill ? "auto" : "none",

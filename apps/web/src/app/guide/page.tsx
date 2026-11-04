@@ -67,7 +67,7 @@ export default function Guide() {
         rows={toSections(rows)}
         takes={toSections(takes)}
       />
-      <Group header="Read more">
+      <Group header="Read more" titleHeader>
         <Row
           label="Factors, with sources"
           chevron={false}

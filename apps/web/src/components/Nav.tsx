@@ -18,7 +18,10 @@ const items = [
   { href: "/guide", label: "Guide", icon: BookOpen },
   { href: "/settings", label: "Settings", icon: SlidersHorizontal },
 ];
-/** Booth (round7-booth.md): a sidebar item on desktop; phones and tablets reach it from the result's actions. */
+/**
+ * Booth (round7-booth.md): a sidebar item on desktop and a tab in the tablet pill (an iPad in the booth needs a way
+ * back mid-night, round8-ux.md §2); phones keep the six-tab capsule and reach it from the result's `•••`.
+ */
 const sidebarItems = [
   ...items.slice(0, 1),
   { href: "/booth", label: "Booth", icon: Play },
@@ -60,7 +63,7 @@ function MobileTab({
           : compact
             ? "min-w-[44px] px-1.5"
             : "min-w-[48px] px-2"
-      } ${on ? "text-[var(--tint)]" : "text-[var(--label-2)]"}`}
+      } ${on ? "text-[var(--tint-text)]" : "text-[var(--label-2)]"}`}
       style={{ transition: "color var(--dur-xs) var(--ease-settle)" }}
     >
       {on && (
@@ -137,7 +140,7 @@ export function Nav() {
           </Link>
           <nav className="flex shrink-0 items-center" aria-label="Primary">
             <LayoutGroup id="desktop-nav">
-              {items.map((it) => {
+              {sidebarItems.map((it) => {
                 const on = path === it.href;
                 return (
                   <Link

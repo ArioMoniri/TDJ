@@ -65,7 +65,7 @@ export function GuideSections({
   const max = open?.id === "houseRules" ? HOUSE_RULES_MAX : 4000;
   return (
     <>
-      <Group header={header} className={className}>
+      <Group header={header} className={className} titleHeader>
         {sections.map((sec) => {
           const body = (
             <>

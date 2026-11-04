@@ -1,7 +1,6 @@
 "use client";
 import { Pause, Play, X } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { haptic } from "@/lib/haptics";
 import { sheetUp } from "@/lib/motion";
@@ -15,7 +14,8 @@ const fmt = (s: number) => {
 
 /**
  * Persistent mini-player on the control layer (glass): title · orchestra · year, progress scrubber, 30 s badge, close.
- * Phone: above the tab bar (and above the composer's accessory bar on /). Desktop: bottom-right card.
+ * Phone: docked onto the tab bar as one glass unit (square bottom corners meet the bar's squared top; the composer's
+ * primary bar hides meanwhile, round8-ux.md §1.12). Desktop: bottom-right card.
  * The one `<audio playsInline>` element of the app lives here; Spotify sources render the inline embed instead.
  */
 export function MiniPlayer() {
@@ -23,7 +23,6 @@ export function MiniPlayer() {
     usePlayer();
   const audio = useRef<HTMLAudioElement>(null);
   const reduced = useReducedMotion();
-  const path = usePathname();
   const preview = track?.source.kind === "preview" ? track.source.ref : null;
 
   // play / pause follow the store; a new source loads and starts
@@ -54,10 +53,18 @@ export function MiniPlayer() {
   }, [position, preview]);
 
   const total = stopAt(track, queue) ?? (duration || 30);
-  const offset =
-    path === "/"
-      ? "calc(max(0.75rem, env(safe-area-inset-bottom)) + 68px + 64px)"
-      : "calc(max(0.75rem, env(safe-area-inset-bottom)) + 68px)";
+  // the phone tab bar is 60 px tall over the safe area: the player's bottom edge sits exactly on its top edge
+  const offset = "calc(max(0.75rem, env(safe-area-inset-bottom)) + 60px)";
+  // the tab bar squares its top corners while the player is docked on it
+  useEffect(() => {
+    const nav = document.querySelector<HTMLElement>('[data-testid="tab-bar"]');
+    if (!nav) return;
+    if (track) nav.dataset.docked = "1";
+    else delete nav.dataset.docked;
+    return () => {
+      delete nav.dataset.docked;
+    };
+  }, [track]);
 
   return (
     <>
@@ -82,7 +89,7 @@ export function MiniPlayer() {
             role="region"
             aria-label="Now playing"
             data-testid="mini-player"
-            className="glass fixed inset-x-3 z-30 rounded-[var(--radius-m)] p-2 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:w-[360px] lg:bottom-6"
+            className="glass mini-docked fixed inset-x-3 z-30 rounded-[var(--radius-m)] p-2 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:w-[360px] lg:bottom-6"
             style={{ bottom: `var(--mini-bottom, ${offset})` }}
           >
             <style>{`@media (min-width: 640px){[data-testid="mini-player"]{--mini-bottom:1.5rem}}`}</style>

@@ -96,8 +96,7 @@ export function CohesionBadge({ info, tandaLabel }: { info: CohesionInfo; tandaL
       onPointerDown={(e) => e.stopPropagation()}
       onClick={() => setOpen((v) => !v)}
     >
-      <span className="tabular-nums">{info.score}</span>
-      <span>{info.label}</span>
+      <span className="capitalize">{info.label}</span>
     </button>
   );
   if (isPhone)
@@ -106,7 +105,7 @@ export function CohesionBadge({ info, tandaLabel }: { info: CohesionInfo; tandaL
         {trigger}
         <Sheet open={open} onClose={() => setOpen(false)} title="Cohesion" trailing="Done">
           <Group
-            footer={`${info.known} of ${info.pairs.length} transitions have analysed audio on both sides. Seamless ≥ 85, fine ≥ 70, audible step ≥ 55; bars are tempo, loudness, key, brightness, energy.`}
+            footer={`Cohesion ${info.score}. ${info.known} of ${info.pairs.length} transitions have analysed audio on both sides. Seamless ≥ 85, fine ≥ 70, audible step ≥ 55; bars are tempo, loudness, key, brightness, energy.`}
           >
             <PairList info={info} />
           </Group>
@@ -132,7 +131,8 @@ export function CohesionBadge({ info, tandaLabel }: { info: CohesionInfo; tandaL
           >
             <PairList info={info} />
             <p className="text-caption1 px-2 pt-2 text-[var(--label-2)]">
-              Bars: tempo · loudness · key · brightness · energy. Seamless ≥ 85, fine ≥ 70, audible step ≥ 55.
+              Cohesion {info.score}. Bars: tempo · loudness · key · brightness · energy. Seamless ≥ 85, fine ≥
+              70, audible step ≥ 55.
             </p>
           </motion.div>
         )}

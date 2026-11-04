@@ -94,7 +94,7 @@ function computeCohesion(t: Tanda, patches: Array<SongPatch | undefined>): Cohes
 export const COHESION_COLOR: Record<CohesionLabel, string> = {
   seamless: "var(--tint)",
   fine: "var(--label-2)",
-  "audible step": "#d9822b",
+  "audible step": "var(--label-2)", // a note, not a warning (round8-ux.md §1.11)
   jarring: "#e5484d",
 };
 export const PART_LABEL: Record<string, string> = {
