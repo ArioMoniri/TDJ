@@ -671,6 +671,33 @@ export function ExportSheet({
   );
 
   if (!playlist) return null;
+  /**
+   * The pinned footer is the best destination that works right now (round8-ux.md §1.9): Spotify once it is
+   * logged in / connected, otherwise the M3U8 that VLC and the Booth play with no set-up; Spotify stays a row
+   * until then, never a disabled primary.
+   */
+  const spotifyReady = hosted ? !!hostedUser : !!spotifyToken;
+  const footer = spotifyReady ? (
+    spotifyButton
+  ) : (
+    <button
+      type="button"
+      className="btn btn-primary min-h-[50px] w-full"
+      onClick={() => dl("m3u8")}
+      disabled={dlBusy !== null}
+      data-testid="export-primary"
+    >
+      <FileDown size={18} aria-hidden /> Save for VLC and the Booth (M3U8)
+    </button>
+  );
+  const countLine = (
+    <span id="export-count">
+      <CountUp value={tracks} /> {tracks === 1 ? "song" : "songs"}
+      {includeCortinas ? ` + ${cortinas} ${cortinas === 1 ? "cortina" : "cortinas"}` : ""} (
+      <CountUp value={count} /> {count === 1 ? "file" : "files"})
+      {includeCortinas ? "" : ` · ${cortinas} cortinas left out`}.
+    </span>
+  );
   return (
     <Sheet
       open={open}
@@ -679,19 +706,13 @@ export function ExportSheet({
       describedBy="export-count"
       testId="export-sheet"
       detents={["large"]}
-      footer={spotifyButton}
+      footer={footer}
     >
       <Group
         footer={
-          <span id="export-count">
-            <CountUp value={tracks} /> {tracks === 1 ? "song" : "songs"}
-            {includeCortinas ? ` + ${cortinas} ${cortinas === 1 ? "cortina" : "cortinas"}` : ""} (
-            <CountUp value={count} /> {count === 1 ? "file" : "files"})
-            {includeCortinas ? "" : ` · ${cortinas} cortinas left out`}.
-            {includeCortinas
-              ? ` Cortinas stop at ${cortinaStop} s in TDJ's player, in VLC (M3U8, XSPF) and as a Rekordbox hot cue. Spotify playlists cannot trim tracks, so cortinas there play in full: switch Include cortinas off to skip them in Spotify.`
-              : " No cortinas in the files or in Spotify."}
-          </span>
+          includeCortinas
+            ? `Cortinas stop at ${cortinaStop} s in files and in the Booth; Spotify plays them in full.`
+            : "No cortinas in the files or in Spotify."
         }
       >
         <SwitchRow label="Include cortinas" checked={includeCortinas} onChange={setIncludeCortinas} />
@@ -727,6 +748,7 @@ export function ExportSheet({
             </Tile>
           }
           label="Spotify"
+          sub={!hosted && !settings.spotifyClientId ? "Set up in Settings ›" : undefined}
           value={
             hosted
               ? hostedUser
@@ -736,11 +758,11 @@ export function ExportSheet({
                 ? "Connected"
                 : settings.spotifyClientId
                   ? "Connect"
-                  : "Needs a Client ID"
+                  : "Set up"
           }
           chevron
-          onClick={toSpotify}
-          disabled={busy || done || (!hosted && !settings.spotifyClientId)}
+          onClick={!hosted && !settings.spotifyClientId ? () => location.assign("/settings") : toSpotify}
+          disabled={busy || done}
           busy={busy}
           id="send-spotify"
         />
@@ -757,6 +779,21 @@ export function ExportSheet({
           onClick={() => setTransferOpen(true)}
           id="send-transfer"
         />
+        {!googleOn && google !== null && (
+          <Row
+            tile={
+              <Tile color="#ff0000">
+                <ListVideo size={16} strokeWidth={2} />
+              </Tile>
+            }
+            label="YouTube"
+            sub="Connect in Settings"
+            value="Off"
+            disabled
+            className="text-[var(--label-2)]"
+            id="send-youtube-off"
+          />
+        )}
         {googleOn && (
           <Row
             tile={
@@ -818,6 +855,21 @@ export function ExportSheet({
             }
           />
         )}
+        {!dropboxOn && dropbox !== null && (
+          <Row
+            tile={
+              <Tile color="#0061ff">
+                <Cloud size={16} strokeWidth={2} />
+              </Tile>
+            }
+            label="Save to Dropbox"
+            sub="Connect in Settings"
+            value="Off"
+            disabled
+            className="text-[var(--label-2)]"
+            id="send-dropbox-off"
+          />
+        )}
         {dropboxOn && (
           <Row
             tile={
@@ -833,6 +885,21 @@ export function ExportSheet({
             busy={cloudBusy === "dropbox"}
             disabled={!!cloudBusy}
             id="send-dropbox"
+          />
+        )}
+        {!googleOn && google !== null && (
+          <Row
+            tile={
+              <Tile color="#1fa463">
+                <HardDrive size={16} strokeWidth={2} />
+              </Tile>
+            }
+            label="Save to Google Drive"
+            sub="Connect in Settings"
+            value="Off"
+            disabled
+            className="text-[var(--label-2)]"
+            id="send-google_drive-off"
           />
         )}
         {googleOn && (
@@ -912,13 +979,19 @@ export function ExportSheet({
           key={g}
           header={g}
           footer={
-            g === "DJ software" && noFolders ? (
+            g === "DJ software" ? (
               <>
-                Paths use a TDJ/ placeholder. Set each app's music folder in{" "}
-                <Link href="/settings" className="text-[var(--tint)]">
-                  Settings
-                </Link>
-                .
+                {countLine}
+                {noFolders && (
+                  <>
+                    {" "}
+                    Paths use a TDJ/ placeholder. Set each app's music folder in{" "}
+                    <Link href="/settings" className="text-[var(--tint)]">
+                      Settings
+                    </Link>
+                    .
+                  </>
+                )}
               </>
             ) : undefined
           }

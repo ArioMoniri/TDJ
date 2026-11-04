@@ -13,6 +13,7 @@ import {
   Repeat2,
   Share,
   SlidersHorizontal,
+  Star,
   ThumbsDown,
   ThumbsUp,
 } from "lucide-react";
@@ -22,6 +23,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { autoSetName, changedTandas, describeOptionChanges } from "@/lib/changes";
+import { FEATURED, type FeaturedId, featuredMeta, loadFeatured } from "@/lib/featured";
 import { FEEDBACK_CHIPS } from "@/lib/feedback";
 import { haptic } from "@/lib/haptics";
 import { makeSnapshot } from "@/lib/history";
@@ -124,6 +126,10 @@ const ARCS: Array<[ComposeOptions["arc"], string]> = [
   ["marathon-plateau", "Marathon"],
   ["gentle", "Gentle"],
 ];
+const ARC_SHAPES: Array<[NonNullable<ComposeOptions["arcShape"]>, string]> = [
+  ["single", "Single peak"],
+  ["double", "Double peak"],
+];
 const SHAPES: Array<[ComposeOptions["tandaShape"], string]> = [
   ["rise-settle", "Slow, up, settle"],
   ["hammock", "Hammock (Buenos Aires)"],
@@ -192,7 +198,7 @@ function PinButton({ on, label, onToggle }: { on: boolean; label: string; onTogg
   return (
     <button
       type="button"
-      className={`icon-btn icon-btn-bare -my-2 h-11 w-9 ${on ? "text-[var(--tint)]" : "pin-idle text-[var(--label-3)]"}`}
+      className={`icon-btn icon-btn-bare -my-2 h-11 w-11 ${on ? "text-[var(--tint)]" : "pin-idle text-[var(--label-3)]"}`}
       aria-pressed={on}
       aria-label={`${on ? "Unpin" : "Pin"} ${label.toLowerCase()}`}
       title={on ? "Pinned: era presets leave this alone" : "Pin so era presets leave this alone"}
@@ -273,6 +279,17 @@ const SetupForm = memo(function SetupForm({
           value={options.arc ?? "classic-two-peaks"}
           items={ARCS}
           onChange={(k) => setOptions({ arc: k })}
+        />
+        <SegmentedRow
+          label="Arc shape"
+          sub={
+            hours < 3
+              ? "Double peak needs a night of 3 h or more"
+              : "Single: one climb to the última. Double: two peaks with a dip between"
+          }
+          value={options.arcShape ?? "single"}
+          items={ARC_SHAPES}
+          onChange={(k) => setOptions({ arcShape: k })}
         />
         <PickerRow
           label="Tanda shape"
@@ -561,6 +578,14 @@ const SetupForm = memo(function SetupForm({
           checked={!!rules.cortinaBeforeCumparsita}
           onChange={(v) => setRules({ cortinaBeforeCumparsita: v })}
         />
+        {/* the engine reads this on the night rules (round-8 engine): undated, placeholder-year and transcription
+            rows never build a tanda unless the DJ opts in */}
+        <SwitchRow
+          label="Include undated recordings"
+          sub="Undated, placeholder-year and transcription rows; off keeps them out of tandas"
+          checked={!!rules.allowUndated}
+          onChange={(v) => setRules({ allowUndated: v })}
+        />
       </Group>
 
       <div className="md:col-span-2">
@@ -716,6 +741,48 @@ export function Composer() {
       .then(setMeta)
       .catch(() => {});
   }, []);
+  /** Keep the previous score/energies so counters run from the old value. */
+  const remember = useCallback((prev: Playlist | null) => {
+    prevScore.current = prev?.score.total ?? null;
+    prevEnergy.current = Object.fromEntries((prev?.tandas ?? []).map((t, i) => [i, t.energy]));
+  }, []);
+  /** A built-in night: `/?featured=<id>` or the hero / empty-state cards load it into the result view. */
+  const openFeatured = useCallback(
+    async (id: FeaturedId) => {
+      setBusy(true);
+      setError(null);
+      try {
+        const p = await loadFeatured(id);
+        remember(useStore.getState().playlist);
+        setReveal({ key: `featured-${id}`, fresh: true });
+        setPlaylist(p);
+        replaceOptions({ ...p.options, seed: p.options.seed });
+        setActive(null);
+        setSetupOpen(false);
+        setChangeSummary(null);
+        setChangedSet(new Set());
+        toast(`${featuredMeta(id)?.title ?? "Featured night"} loaded`);
+        requestAnimationFrame(() =>
+          document.getElementById("result")?.scrollIntoView({ behavior: "smooth", block: "start" }),
+        );
+      } catch {
+        setError("The featured night could not be loaded.");
+        setErrorKey((k) => k + 1);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [setBusy, setPlaylist, replaceOptions, remember],
+  );
+  useEffect(() => {
+    if (!hydrated) return;
+    const wanted = new URLSearchParams(window.location.search).get("featured");
+    const f = wanted && FEATURED.find((x) => x.id === wanted);
+    if (!f) return;
+    void openFeatured(f.id);
+    // the deep link is consumed once: a reload or a later compose must not re-load it
+    window.history.replaceState(null, "", window.location.pathname);
+  }, [hydrated, openFeatured]);
   // Tonight's region defaults to the one in Settings
   const region = settings.region;
   useEffect(() => {
@@ -868,11 +935,6 @@ export function Composer() {
   const composeNow = useCallback(() => {
     runRef.current();
   }, []);
-  /** Keep the previous score/energies so counters run from the old value. */
-  const remember = useCallback((prev: Playlist | null) => {
-    prevScore.current = prev?.score.total ?? null;
-    prevEnergy.current = Object.fromEntries((prev?.tandas ?? []).map((t, i) => [i, t.energy]));
-  }, []);
   const swap = useCallback(
     async (i: number) => {
       const playlist = useStore.getState().playlist;
@@ -1012,6 +1074,8 @@ export function Composer() {
         note?: string;
         error?: string;
         source?: string;
+        applied?: string[];
+        notApplied?: string[];
       };
       if (!r.ok || !j.options) {
         setNote(j.error ?? "Could not read that request.");
@@ -1019,7 +1083,20 @@ export function Composer() {
       }
       const next = settleOptions(prev, j.options);
       const changes = describeOptionChanges(prev, next);
-      setNote([j.note, changes.length ? `Changed: ${changes.join(" · ")}.` : null].filter(Boolean).join(" "));
+      // what the refine understood (applied) and what it did not, from the route's guard; the lists are shown
+      // only when the note does not already carry them
+      const noteSaysIt = /Applied:|Not applied:|Nothing to apply/.test(j.note ?? "");
+      setNote(
+        [
+          j.source === "model" ? null : "Parsed by rules (no AI key; add one in Settings for a model).",
+          j.note,
+          !noteSaysIt && j.applied?.length ? `Applied: ${j.applied.join(", ")}.` : null,
+          !noteSaysIt && j.notApplied?.length ? `Not applied: ${j.notApplied.join("; ")}.` : null,
+          changes.length ? `Changed: ${changes.join(" · ")}.` : null,
+        ]
+          .filter(Boolean)
+          .join(" "),
+      );
       if (settings.learn && playlist)
         updateMemory((m) => {
           let nm = rememberFeedback(m, playlist.id, j.feedback ?? [], instruction);
@@ -1081,8 +1158,11 @@ export function Composer() {
       }
       if ((e.key === "k" || e.key === "K") && playlist) {
         e.preventDefault();
-        if (wide) document.getElementById("tell-dj")?.focus();
-        else setAdjustOpen(true);
+        if (wide) {
+          const el = document.getElementById("tell-dj");
+          el?.scrollIntoView({ behavior: "smooth", block: "center" });
+          el?.focus({ preventScroll: true });
+        } else setAdjustOpen(true);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -1116,6 +1196,7 @@ export function Composer() {
         fmtDuration(playlist.stats.durationSec),
         `${playlist.tandas.length} tandas`,
         `${Object.keys(playlist.stats.orchestras).length} orchestras`,
+        `${(CORTINA_STYLES.find(([k]) => k === (playlist.options.cortinaStyle ?? "family"))?.[1] ?? "family").toLowerCase()} cortinas${playlist.stats.cortinaFallback ? ` (${playlist.stats.cortinaFallback})` : ""}`,
         lockedCount
           ? `${lockedCount} locked ${lockedCount === 1 ? "tanda stays" : "tandas stay"} on recompose`
           : null,
@@ -1224,6 +1305,17 @@ export function Composer() {
                   { label: "Copy seed", icon: Copy, onClick: copySeed },
                   { label: "Written review", icon: MessageSquareText, onClick: explain },
                   { label: "Play the night", icon: Play, onClick: () => router.push("/booth") },
+                  {
+                    label: "Tell the DJ…",
+                    icon: SlidersHorizontal,
+                    shortcut: "⌘K",
+                    onClick: () => {
+                      const el = document.getElementById("tell-dj");
+                      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+                      el?.focus({ preventScroll: true });
+                    },
+                  },
+                  { label: "Clear set", icon: Eraser, onClick: clearSet, destructive: true },
                 ]}
               />
             )}
@@ -1281,6 +1373,24 @@ export function Composer() {
           <p className="text-footnote mt-4 text-[var(--label-2)] sm:hidden">
             Compose the night is in the bar below; everything under it is optional.
           </p>
+          {/* a built-in night to read before composing one */}
+          <button
+            type="button"
+            className="cell cell-tap group-inset mt-4 w-full text-left"
+            data-leading="tile"
+            onClick={() => openFeatured(FEATURED[0].id)}
+            disabled={busy}
+            data-testid="featured-card"
+          >
+            <span className="tile" style={{ background: "var(--system-gold)" }} aria-hidden>
+              <Star size={16} strokeWidth={2} fill="currentColor" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate">{FEATURED[0].title}</span>
+              <span className="text-footnote block truncate text-[var(--label-2)]">{FEATURED[0].sub}</span>
+            </span>
+            <span className="cell-value text-body">Open</span>
+          </button>
         </section>
       )}
 
@@ -1365,7 +1475,24 @@ export function Composer() {
                 className="text-footnote text-[var(--label-2)]"
               >
                 {playlist.score.verdict}
+                {playlist.options.arcShape && (
+                  <span data-testid="arc-shape">
+                    {" "}
+                    · {playlist.options.arcShape === "double" ? "double" : "single"} peak arc
+                  </span>
+                )}
               </motion.p>
+              {/* hard failures that capped the total (round-8 engine): said under the number, not hidden in a sheet */}
+              {playlist.score.reasons && playlist.score.reasons.length > 0 && (
+                <ul
+                  className="text-footnote mt-1 list-disc pl-4 text-[var(--system-gold)]"
+                  data-testid="score-reasons"
+                >
+                  {playlist.score.reasons.map((r) => (
+                    <li key={r}>{r}</li>
+                  ))}
+                </ul>
+              )}
               <div className="mt-1">
                 {/* one chart per breakpoint (not both hidden/shown via CSS) so only one draw-on runs */}
                 {wide ? (
@@ -1443,45 +1570,45 @@ export function Composer() {
           )}
 
           <h2 className="section-head">Tandas</h2>
+          {/* no AnimatePresence here: exiting cards stayed mounted across recomposes (round8-qa.md B1); a new set
+              mounts fresh cards with new keys and the old ones leave at once */}
           <div className="tanda-grid">
-            <AnimatePresence mode="popLayout" initial={false}>
-              {playlist.tandas.flatMap((t, i) => {
-                const b = breakAfter.get(i);
-                const card = (
-                  <mods.TandaCard
-                    key={`${t.index}-${t.songs[0]?.id}`}
-                    t={t}
-                    i={i}
-                    onSwap={swap}
-                    onSwapTrack={swapTrack}
-                    onLock={lock}
-                    busy={swapping === i}
-                    swappingTrack={swappingTrack?.[0] === i ? swappingTrack[1] : null}
-                    active={active === i}
-                    playlists={playlists}
-                    settling={busy}
-                    fresh={fresh}
-                    nudge={nudge?.i === i ? nudge : null}
-                    prevEnergy={prevEnergy.current[i]}
-                    changed={changedSet.has(i + 1)}
-                    animateLayout={swapping === i || lockedCard === i}
-                  />
-                );
-                if (!b) return [card];
-                return [
-                  card,
-                  <div
-                    key={`break-${i}`}
-                    className="text-footnote flex items-center gap-3 px-4 text-[var(--label-2)] md:col-span-2"
-                    data-testid="break"
-                  >
-                    <span className="h-px flex-1 bg-[var(--separator)]" aria-hidden />
-                    {b.label} · {b.minutes} min
-                    <span className="h-px flex-1 bg-[var(--separator)]" aria-hidden />
-                  </div>,
-                ];
-              })}
-            </AnimatePresence>
+            {playlist.tandas.flatMap((t, i) => {
+              const b = breakAfter.get(i);
+              const card = (
+                <mods.TandaCard
+                  key={`${t.index}-${t.songs[0]?.id}`}
+                  t={t}
+                  i={i}
+                  onSwap={swap}
+                  onSwapTrack={swapTrack}
+                  onLock={lock}
+                  busy={swapping === i}
+                  swappingTrack={swappingTrack?.[0] === i ? swappingTrack[1] : null}
+                  active={active === i}
+                  playlists={playlists}
+                  settling={busy}
+                  fresh={fresh}
+                  nudge={nudge?.i === i ? nudge : null}
+                  prevEnergy={prevEnergy.current[i]}
+                  changed={changedSet.has(i + 1)}
+                  animateLayout={swapping === i || lockedCard === i}
+                />
+              );
+              if (!b) return [card];
+              return [
+                card,
+                <div
+                  key={`break-${i}`}
+                  className="text-footnote flex items-center gap-3 px-4 text-[var(--label-2)] md:col-span-2"
+                  data-testid="break"
+                >
+                  <span className="h-px flex-1 bg-[var(--separator)]" aria-hidden />
+                  {b.label} · {b.minutes} min
+                  <span className="h-px flex-1 bg-[var(--separator)]" aria-hidden />
+                </div>,
+              ];
+            })}
           </div>
           {playlist.closing && (
             <Group header="Closing">
@@ -1658,6 +1785,16 @@ export function Composer() {
           trailing="Done"
         >
           <Group footer="Each bar is as long as the factor counts for the total; 85 or more is headline marathon DJ territory.">
+            {playlist.score.reasons && playlist.score.reasons.length > 0 && (
+              <div className="cell flex-col items-start gap-1 py-3">
+                <span className="text-footnote font-semibold text-[var(--system-gold)]">Capped at 60</span>
+                {playlist.score.reasons.map((r) => (
+                  <span key={r} className="text-footnote text-[var(--label-2)]">
+                    {r}
+                  </span>
+                ))}
+              </div>
+            )}
             {playlist.score.factors.map((f, idx) => (
               <div key={f.key} className="cell flex-col items-stretch gap-1.5 py-3">
                 <div className="flex items-center justify-between gap-3">

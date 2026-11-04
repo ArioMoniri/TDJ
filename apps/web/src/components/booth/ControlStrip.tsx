@@ -87,7 +87,9 @@ export function ControlStrip({
       <Play size={18} fill="currentColor" strokeWidth={0} aria-hidden />
       {/* the label names the source (round8-ux.md §3) */}
       {rehearsal
-        ? "Start with 30 s clips"
+        ? missing
+          ? `Start with 30 s clips · ${missing} without a clip`
+          : "Start with 30 s clips"
         : sourceMode === "spotify"
           ? "Start with Spotify"
           : missing

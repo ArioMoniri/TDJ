@@ -135,6 +135,7 @@ function Booth() {
         if (e.repeat) return;
         if (!b.started) void b.start();
         else if ((b.state === "playing" || b.state === "cortina") && !b.holding) b.hold();
+        else if (b.breakUntil !== null) void b.endBreak();
         else void b.play();
       } else if (e.key === "ArrowRight") {
         e.preventDefault();

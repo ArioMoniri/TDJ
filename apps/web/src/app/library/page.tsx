@@ -1,14 +1,68 @@
 "use client";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
+import { memo, useEffect, useRef, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
+import { FeaturedCard } from "@/components/FeaturedCard";
 import { Group, RhythmTile, Row } from "@/components/Form";
+import { I } from "@/components/Icons";
 import { SEARCH_FOCUS_EVENT } from "@/components/Nav";
 import { PageHeader } from "@/components/PageHeader";
 import { SearchField } from "@/components/SearchField";
 import { Sheet } from "@/components/Sheet";
+import { haptic } from "@/lib/haptics";
 import { fade, reduced as reducedV, rise, t } from "@/lib/motion";
+import { sourceFor, trackFor, usePlayer } from "@/lib/player";
+import { useStore } from "@/lib/store";
 import type { Song } from "@/lib/types";
+
+const ResolveSheet = dynamic(() => import("@/components/ResolveSheet").then((m) => m.ResolveSheet), {
+  ssr: false,
+});
+
+/**
+ * A 44 pt play / pause control in the row's leading slot (round8-qa.md B2): the 30 s preview in the one
+ * mini-player, or "Find on services" when the recording has no preview yet.
+ */
+const PlayCell = memo(function PlayCell({ song }: { song: Song }) {
+  const connected = useStore((s) => !!s.spotifyToken && s.spotifyToken.expires > Date.now());
+  const patch = useStore((s) => s.overrides.songs?.[song.id]);
+  const playing = usePlayer((s) => s.playing && s.track?.id === song.id);
+  const [find, setFind] = useState(false);
+  const [findMounted, setFindMounted] = useState(false);
+  const source = sourceFor(song, connected, patch);
+  return (
+    <>
+      <button
+        type="button"
+        className={`icon-btn icon-btn-bare -my-2 -ml-2 h-11 w-11 shrink-0 ${playing ? "text-[var(--tint)]" : "text-[var(--tint)]"}`}
+        aria-label={
+          playing ? `Pause ${song.title}` : source ? `Play ${song.title}` : `Find ${song.title} on services`
+        }
+        aria-pressed={playing}
+        data-testid="play-button"
+        onClick={() => {
+          if (!source) {
+            setFindMounted(true);
+            setFind(true);
+            return;
+          }
+          haptic(4);
+          usePlayer.getState().toggle(trackFor({ ...song, ...(patch ?? {}) } as Song, source));
+        }}
+      >
+        {playing ? (
+          <I name="pause" size={18} fill="currentColor" strokeWidth={0} />
+        ) : source ? (
+          <I name="play" size={18} fill="currentColor" strokeWidth={0} />
+        ) : (
+          <I name="search" size={16} strokeWidth={2.25} />
+        )}
+      </button>
+      {findMounted && <ResolveSheet song={find ? song : null} open={find} onClose={() => setFind(false)} />}
+    </>
+  );
+});
 
 interface Meta {
   meta: { songs: number; orchestras: number; singers: number; builtAt: string };
@@ -82,7 +136,11 @@ export default function Library() {
         {search("mt-3")}
       </PageHeader>
       <div role="status" aria-live="polite">
-        {q.length < 2 && <EmptyState>Type an orchestra, singer, title or year to search.</EmptyState>}
+        {q.length < 2 && (
+          <EmptyState action={<FeaturedCard />}>
+            Type an orchestra, singer, title or year to search.
+          </EmptyState>
+        )}
         {q.length >= 2 && !searching && rows.length === 0 && (
           <motion.p
             variants={fade}
@@ -107,7 +165,6 @@ export default function Library() {
                   {rows.map((s, i) => (
                     <motion.div
                       key={s.id}
-                      layout={reduced ? false : "position"}
                       variants={rowV}
                       custom={i}
                       initial={shown.fresh ? "hidden" : false}
@@ -116,6 +173,7 @@ export default function Library() {
                       className="cell"
                       data-leading="art"
                     >
+                      <PlayCell song={s} />
                       <RhythmTile rhythm={s.rhythm} />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate">{s.title}</span>

@@ -80,6 +80,8 @@ interface BoothStore {
   wakeLock: boolean;
   spotifyNoFades: boolean;
   ready: boolean;
+  /** sources are being matched (folder, Spotify, previews): the cards say so instead of showing 0 */
+  resolving: boolean;
   /* actions */
   boot: (p: Playlist, o?: { rehearsal?: boolean }) => Promise<void>;
   setSourceMode: (m: SourceMode) => Promise<void>;
@@ -220,6 +222,7 @@ export const useBooth = create<BoothStore>()((set, get) => ({
   wakeLock: false,
   spotifyNoFades: false,
   ready: false,
+  resolving: false,
 
   boot: async (p, o = {}) => {
     const a = adapters();
@@ -276,84 +279,89 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     let { plan, entities } = get();
     const { sourceMode } = get();
     if (!plan) return;
-    const a = adapters();
-    const [file, sp, pv] = await Promise.all([
-      a.local.available(),
-      a.spotify.available(),
-      a.preview.available(),
-    ]);
-    const availability = {
-      file: { ...file, checked: true },
-      spotify: { ...sp, checked: true },
-      preview: { ...pv, checked: true },
-    };
-    if (file.ok) await a.local.match(plan.items, useStore.getState().settings.fileNaming);
-    // measurements made since the last plan (decodes) feed the priors of the exports
-    const p0 = get().playlist;
-    if (p0 && !get().started) {
-      const r = rePlan(p0, get().settings);
-      plan = r.plan;
-      entities = planEntities(r.playlist, r.plan);
-      set({ playlist: r.playlist, plan, entities });
-    }
-    const order = chain(sourceMode, availability);
-    const sources: ItemSource[] = [];
-    for (let i = 0; i < plan.items.length; i++) {
-      const it = plan.items[i]!;
-      let src: ItemSource = "missing";
-      if (it.kind === "break") src = "file";
-      else
-        for (const ad of order) {
-          if ((await ad.resolve(it, entities[i] ?? null)) === "ready") {
-            src = ad.kind;
-            break;
+    set({ resolving: true });
+    try {
+      const a = adapters();
+      const [file, sp, pv] = await Promise.all([
+        a.local.available(),
+        a.spotify.available(),
+        a.preview.available(),
+      ]);
+      const availability = {
+        file: { ...file, checked: true },
+        spotify: { ...sp, checked: true },
+        preview: { ...pv, checked: true },
+      };
+      if (file.ok) await a.local.match(plan.items, useStore.getState().settings.fileNaming);
+      // measurements made since the last plan (decodes) feed the priors of the exports
+      const p0 = get().playlist;
+      if (p0 && !get().started) {
+        const r = rePlan(p0, get().settings);
+        plan = r.plan;
+        entities = planEntities(r.playlist, r.plan);
+        set({ playlist: r.playlist, plan, entities });
+      }
+      const order = chain(sourceMode, availability);
+      const sources: ItemSource[] = [];
+      for (let i = 0; i < plan.items.length; i++) {
+        const it = plan.items[i]!;
+        let src: ItemSource = "missing";
+        if (it.kind === "break") src = "file";
+        else
+          for (const ad of order) {
+            if ((await ad.resolve(it, entities[i] ?? null)) === "ready") {
+              src = ad.kind;
+              break;
+            }
           }
-        }
-      sources.push(src);
-    }
-    const counts = a.local.matchedCount(plan.items);
-    const rows = plan.items;
-    const playable = sources.filter((s, i) => s !== "missing" && rows[i]!.kind !== "break");
-    const rehearsal =
-      sourceMode === "preview" || (playable.length > 0 && playable.every((s) => s === "preview"));
-    // before the night starts the playhead sits on the first item that can play
-    const first = sources.findIndex((s, i) => s !== "missing" && rows[i]!.kind !== "break");
-    const planIndex = get().started ? get().planIndex : Math.max(0, first);
-    set({
-      availability,
-      sources,
-      rehearsal,
-      planIndex,
-      ...(get().started ? {} : derive(plan, planIndex, 0, capFor(sources, rehearsal))),
-      folder: {
-        name: a.local.info?.name ?? null,
-        files: a.local.info?.files ?? 0,
-        matched: counts.matched,
-        total: counts.total,
-        permission: a.local.permission,
-        session: !!a.local.info?.session,
-        canKeep: typeof window !== "undefined" && "showDirectoryPicker" in window,
-      },
-      suggestions: Object.fromEntries(
-        Object.entries(a.local.suggestions).map(([k, v]) => [
-          k,
-          v.map((e) => ({ path: e.path, name: e.name })),
-        ]),
-      ),
-    });
-    engine?.replacePlan(plan, entities, sources);
-    if (a.local.permission === "prompt")
-      pushBanner({
-        key: "folder",
-        text: a.local.info?.session
-          ? "Your browser cannot remember the folder: pick it again for tonight."
-          : "Folder permission needed to play your files.",
-        action: {
-          label: a.local.info?.session ? "Pick folder" : "Allow",
-          run: () => void get().requestFolderPermission(),
+        sources.push(src);
+      }
+      const counts = a.local.matchedCount(plan.items);
+      const rows = plan.items;
+      const playable = sources.filter((s, i) => s !== "missing" && rows[i]!.kind !== "break");
+      const rehearsal =
+        sourceMode === "preview" || (playable.length > 0 && playable.every((s) => s === "preview"));
+      // before the night starts the playhead sits on the first item that can play
+      const first = sources.findIndex((s, i) => s !== "missing" && rows[i]!.kind !== "break");
+      const planIndex = get().started ? get().planIndex : Math.max(0, first);
+      set({
+        availability,
+        sources,
+        rehearsal,
+        planIndex,
+        ...(get().started ? {} : derive(plan, planIndex, 0, capFor(sources, rehearsal))),
+        folder: {
+          name: a.local.info?.name ?? null,
+          files: a.local.info?.files ?? 0,
+          matched: counts.matched,
+          total: counts.total,
+          permission: a.local.permission,
+          session: !!a.local.info?.session,
+          canKeep: typeof window !== "undefined" && "showDirectoryPicker" in window,
         },
+        suggestions: Object.fromEntries(
+          Object.entries(a.local.suggestions).map(([k, v]) => [
+            k,
+            v.map((e) => ({ path: e.path, name: e.name })),
+          ]),
+        ),
       });
-    else get().dismissBanner("folder");
+      engine?.replacePlan(plan, entities, sources);
+      if (a.local.permission === "prompt")
+        pushBanner({
+          key: "folder",
+          text: a.local.info?.session
+            ? "Your browser cannot remember the folder: pick it again for tonight."
+            : "Folder permission needed to play your files.",
+          action: {
+            label: a.local.info?.session ? "Pick folder" : "Allow",
+            run: () => void get().requestFolderPermission(),
+          },
+        });
+      else get().dismissBanner("folder");
+    } finally {
+      set({ resolving: false });
+    }
   },
 
   linkFolder: async () => {

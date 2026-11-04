@@ -17,6 +17,7 @@ export function TimeCard() {
   const started = useBooth((s) => s.started);
   const startedWall = useBooth((s) => s.startedWall);
   const rehearsal = useBooth((s) => s.rehearsal);
+  const resolving = useBooth((s) => s.resolving);
   const playlist = useBooth((s) => s.playlist);
   // 0 until mounted: the server cannot know the DJ's clock (a hydration mismatch otherwise)
   const [now, setNow] = useState(0);
@@ -53,9 +54,20 @@ export function TimeCard() {
         </div>
         <div className="mt-3 lg:mt-0">
           <p className="booth-eyebrow booth-eyebrow-wrap">Time to La Cumparsita</p>
-          <span className="booth-big block" data-testid="booth-ttc">
-            {durationLabel(ttc)}
-          </span>
+          {/* 0 while the sources are still being matched read as a bug (round8-qa.md B7) */}
+          {resolving && !started ? (
+            <span
+              className="booth-big block text-[var(--label-3)]"
+              data-testid="booth-ttc"
+              data-resolving="1"
+            >
+              …
+            </span>
+          ) : (
+            <span className="booth-big block" data-testid="booth-ttc">
+              {durationLabel(ttc)}
+            </span>
+          )}
         </div>
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -70,6 +82,11 @@ export function TimeCard() {
         <span className="booth-chip">
           {left} tanda{left === 1 ? "" : "s"} left
         </span>
+        {resolving && !started && (
+          <span className="booth-chip" data-testid="booth-resolving">
+            resolving sources…
+          </span>
+        )}
         {breakUntil !== null && (
           <span className="booth-chip text-[var(--tint)]" data-testid="booth-break">
             break · {durationLabel(Math.max(0, (breakUntil - now) / 1000))}
