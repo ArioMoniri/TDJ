@@ -27,7 +27,14 @@ export function loadCatalog(root = findRoot(), overrides?: UserOverrides): Loade
   const pf = j("data/knowledge/orchestra_profiles.json");
   const profiles = existsSync(pf) ? (JSON.parse(readFileSync(pf, "utf8")) as OrchestraProfile[]) : [];
   const cf = j("data/knowledge/cortinas.json");
-  const cortinas = existsSync(cf) ? (JSON.parse(readFileSync(cf, "utf8")) as Cortina[]) : [];
+  const cortinasRaw = existsSync(cf) ? (JSON.parse(readFileSync(cf, "utf8")) as Cortina[]) : [];
+  const crf = j("data/cache/resolve/cortinas.json");
+  const cortinaResolved = existsSync(crf)
+    ? (JSON.parse(readFileSync(crf, "utf8")) as Record<string, ResolvedTrack | null>)
+    : {};
+  const cortinas = cortinasRaw.map((c) =>
+    c.id in cortinaResolved ? { ...c, resolved: c.resolved ?? cortinaResolved[c.id] ?? null } : c,
+  );
   const sf = j("data/cache/spotify/tracks.json");
   const cache = existsSync(sf) ? JSON.parse(readFileSync(sf, "utf8")) : {};
   const meta = JSON.parse(readFileSync(j("data/index/meta.json"), "utf8"));
