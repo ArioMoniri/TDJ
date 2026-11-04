@@ -1,4 +1,4 @@
-import { planSlots, sanitizeOptions } from "./arc";
+import { arcShapeFor, planSlots, sanitizeOptions } from "./arc";
 import { attachBooth } from "./booth";
 import type { Catalog } from "./catalog";
 import { applyContextToOptions, BUILTIN_CONTEXT, resolveContext } from "./context";
@@ -13,6 +13,7 @@ import {
   buildTanda,
   families,
   isEarlyDArienzo,
+  isTandaEligible,
   type Scoring,
   type TandaCandidate,
 } from "./tanda";
@@ -114,12 +115,13 @@ export function cumparsitaYears(cat: Catalog, orchestraId: string): Set<number> 
 
 /** La Cumparsita rows a DJ closes with: a corpus/profile year when the orchestra has them, never a placeholder, instrumental unless the corpus says otherwise */
 function cumparsitaCandidates(cat: Catalog, o: ComposeOptions): Song[] {
+  // a standalone closing Cumparsita is a dated studio instrumental (round 8: never Canaro/Alonso 1951 singing it)
   const all = cat.songs.filter(
     (s) =>
       normTitle(s.title) === "la cumparsita" &&
       s.rhythm === "tango" &&
-      !s.yearApprox &&
-      !!s.year &&
+      isTandaEligible(s) &&
+      !s.vocal &&
       (o.eras.includes("all") || s.era.startsWith("golden") || s.era === "post-golden"),
   );
   // orchestras with documented closing versions first; others only when none of those exist in this era
@@ -164,8 +166,8 @@ export function makeScoring(cat: Catalog, o: ComposeOptions, contextModel?: Cont
     tier: (id) => cat.profile(id)?.tier ?? 3,
     notBefore: (id) => {
       const nb = o.overrides?.rules?.notBefore?.[id] ?? cat.profile(id)?.notBefore ?? 0;
-      // long nights get two Pugliese slots: instrumentals from ~45 %, the vocal one late
-      return id === "osvaldo-pugliese" && o.hours >= 6 && !puglieseOnce ? Math.min(nb, 0.42) : nb;
+      // long nights get two Pugliese slots, both in the last 40 % (round 8: a marathon spent him at 48–61 %)
+      return id === "osvaldo-pugliese" && o.hours >= 6 && !puglieseOnce ? Math.max(nb, 0.6) : nb;
     },
     style: (id) => cat.profile(id)?.style,
     preferStyles: rc.preferStyles,
@@ -232,8 +234,11 @@ export function compose(
     rules: { ...eraRules, ...(req.rules ?? {}) },
   });
   const rules = o.rules ?? {};
+  if (o.arcShape) o.arcShape = arcShapeFor(o);
   const rc = resolveContext(o.context, deps.contextModel ?? BUILTIN_CONTEXT);
   o = sanitizeOptions(applyContextToOptions(o, rc, explicitKeys));
+  // marathons and other long nights live on instrumentals after 02:00 (round 8: 29 vocal of 33 in a 6 h block)
+  if (o.hours >= 5 && !explicitKeys.has("vocalBias")) o.vocalBias = (o.vocalBias ?? 0) - 0.12;
   const seed = o.seed ?? Math.floor(Math.random() * 1e9);
   o.seed = seed;
   const rng = makeRng(seed);
@@ -241,7 +246,7 @@ export function compose(
   if (!o.avgTrackSec && !o.trackSecByRhythm) {
     const tsr: Partial<Record<DanceRhythm, number>> = {};
     for (const r of ["tango", "vals", "milonga"] as DanceRhythm[]) {
-      const pool = deps.catalog.filter({ eras: o.eras, rhythms: [r] });
+      const pool = deps.catalog.filter({ eras: o.eras, rhythms: [r], yearRange: o.yearRange });
       if (pool.length > 20)
         tsr[r] = Math.round(pool.reduce((a, s) => a + (s.durationSec ?? 170), 0) / pool.length);
     }
@@ -274,11 +279,13 @@ export function compose(
         excludeOrchestras: [...(o.excludeOrchestras ?? []), ...TANDA_POOL_EXCLUDES],
         onlySelection: o.onlySelection,
         requireSpotify: o.requireSpotify,
+        yearRange: o.yearRange,
         minTier:
           o.eras.includes("all") || o.eras.includes("contemporary") || o.eras.includes("nuevo") ? 3 : 2,
       })
-      // La Cumparsita only ever opens or closes a night (rules), never inside an ordinary tanda
-      .filter((s) => normTitle(s.title) !== "la cumparsita");
+      // La Cumparsita only ever opens or closes a night (rules), never inside an ordinary tanda;
+      // undated and transcription rows never build a tanda (rules.allowUndated opts in)
+      .filter((s) => normTitle(s.title) !== "la cumparsita" && isTandaEligible(s, !!rules.allowUndated));
     byRhythm[r] = families(
       pool,
       o.maxYearSpread,
@@ -296,13 +303,22 @@ export function compose(
     usedSongIds: new Set(),
     totalSlots: slots.length,
     nightBias,
+    usedFamilies: [],
   };
   const lockedByIndex = new Map((extras.locked ?? []).filter((t) => t.locked).map((t) => [t.index, t]));
-  for (const t of lockedByIndex.values())
+  for (const t of lockedByIndex.values()) {
     for (const s of t.songs) {
       ctx.usedSongIds.add(s.id);
       ctx.usedTitles.add(normTitle(s.title));
     }
+    if (t.yearRange)
+      ctx.usedFamilies!.push({
+        orchestraId: t.orchestraId,
+        singer: t.singer,
+        rhythm: t.rhythm,
+        years: t.yearRange,
+      });
+  }
   const tandas: Tanda[] = [];
   const last = slots.length - 1;
   const ultimaRule = rules.ultimaRule ?? "emotional-vocal";
@@ -341,9 +357,13 @@ export function compose(
   const scFor = (slot: Slot): Scoring => {
     const holdPug = pugSlot >= 0 && slot.index < pugSlot && slot.index !== last;
     // D'Arienzo's vals/milonga never steal a slot before his first tango tanda nor the late slots his second one needs
+    // D'Arienzo's first tango tanda is the drawn early slot itself (a planned peak with a glide after it), never an
+    // unplanned e84 at a t51 warm-up slot before it
     const holdDA =
-      slot.rhythm !== "tango" &&
-      ((earlyDASlot >= 0 && slot.index < earlyDASlot) || (slot.position >= 0.6 && daTangoCount() < 2));
+      (slot.rhythm !== "tango" &&
+        ((earlyDASlot >= 0 && slot.index < earlyDASlot) ||
+          (slot.position >= 0.6 && (daTangoCount() < 2 || ultimaRule === "d-arienzo-rhythmic")))) ||
+      (slot.rhythm === "tango" && earlyDASlot >= 0 && slot.index < earlyDASlot && daTangoCount() === 0);
     if (!holdPug && !holdDA) return bodySc;
     return {
       ...bodySc,
@@ -440,7 +460,15 @@ export function compose(
           ...scFor(slot),
           phase: () => ["any"],
         });
-        if (tanda) slot.targetEnergy = peak.targetEnergy;
+        if (tanda) {
+          slot.targetEnergy = peak.targetEnergy;
+          // the planned early peak is followed by a glide, not a drop (round 8: e74 → e50 → e73 at 20–27 % of every
+          // night): the next two slots come down by ~9 and ~15 from the delivered energy, never below their own target
+          const a = slots[slot.index + 1],
+            b = slots[slot.index + 2];
+          if (a && !lockedByIndex.has(a.index)) a.targetEnergy = Math.max(a.targetEnergy, tanda.energy - 9);
+          if (b && !lockedByIndex.has(b.index)) b.targetEnergy = Math.max(b.targetEnergy, tanda.energy - 15);
+        }
       } else if (
         ((n === 0 && slot.position >= 0.38 && slot.phase !== "cooldown") ||
           (n === 1 && slot.position >= 0.7 && ultimaRule !== "d-arienzo-rhythmic")) &&
@@ -525,6 +553,13 @@ export function compose(
       ctx.usedSongIds.add(s.id);
       ctx.usedTitles.add(normTitle(s.title));
     }
+    if (tanda.yearRange)
+      ctx.usedFamilies!.push({
+        orchestraId: tanda.orchestraId,
+        singer: tanda.singer,
+        rhythm: tanda.rhythm,
+        years: tanda.yearRange,
+      });
   }
   // Buenos Aires style: the última tanda ends with its own orchestra's Cumparsita (same singer / instrumental,
   // a closing-version year) — appended before the length fit so the night still lands on time
@@ -538,7 +573,7 @@ export function compose(
             normTitle(s.title) === "la cumparsita" &&
             s.orchestraId === ult.orchestraId &&
             s.rhythm === "tango" &&
-            !s.yearApprox &&
+            isTandaEligible(s) &&
             s.vocal === ult.vocal &&
             (s.singerId ?? null) === (ult.songs[0]?.singerId ?? null) &&
             (!years.size || years.has(s.year ?? 0)),
@@ -654,7 +689,12 @@ export function compose(
       const addSec = (t?.durationSec ?? 0) + (t && n ? o.cortinaLengthSec : 0);
       if (t && Math.abs(diff - addSec) < Math.abs(diff)) {
         const ult = tandas[tandas.length - 1]!;
-        if (n) t.cortina = prev.cortina ? { ...prev.cortina } : null;
+        // its own cue (never a copy of the previous tanda's: that is the back-to-back repeat a room notices)
+        if (n) {
+          const c = pickCortina(pool, ult.energy, o, rng, used, plan);
+          t.cortina = c ? { ...c, lengthSec: o.cortinaLengthSec } : null;
+          if (c) remember(c);
+        }
         tandas.splice(tandas.length - 1, 0, t);
         ult.index = tandas.length - 1;
         diff = target - total();
@@ -681,6 +721,7 @@ export function compose(
       ? [{ afterTanda: breakAfter, minutes: breakMin, label: "Show / break" }]
       : undefined;
   const stats = computeStats(tandas, closing, o);
+  if (plan.fallback) stats.cortinaFallback = plan.fallback;
   if (opening) {
     stats.durationSec += opening.durationSec ?? 180;
     stats.tracks += 1;
@@ -760,9 +801,10 @@ export function swapTanda(p: Playlist, index: number, deps: ComposeDeps, seed = 
       excludeOrchestras: [...(o.excludeOrchestras ?? []), ...TANDA_POOL_EXCLUDES],
       onlySelection: o.onlySelection,
       requireSpotify: o.requireSpotify,
+      yearRange: o.yearRange,
       minTier: o.eras.includes("all") || o.eras.includes("contemporary") || o.eras.includes("nuevo") ? 3 : 2,
     })
-    .filter((s) => normTitle(s.title) !== "la cumparsita");
+    .filter((s) => normTitle(s.title) !== "la cumparsita" && isTandaEligible(s, !!rules.allowUndated));
   const neighbours = p.tandas
     .map((x, i) => ({ x, d: Math.abs(i - index) }))
     .filter((n) => n.d > 0 && n.d <= Math.max(o.orchestraRepeatGap, o.singerRepeatGap))
@@ -778,6 +820,9 @@ export function swapTanda(p: Playlist, index: number, deps: ComposeDeps, seed = 
     ),
     usedSongIds: new Set(p.tandas.flatMap((x, i) => (i === index ? [] : x.songs.map((s) => s.id)))),
     totalSlots: p.tandas.length,
+    usedFamilies: p.tandas
+      .filter((x, i) => i !== index && x.yearRange)
+      .map((x) => ({ orchestraId: x.orchestraId, singer: x.singer, rhythm: x.rhythm, years: x.yearRange! })),
   };
   const slot = {
     index,
@@ -840,6 +885,7 @@ export function swapTrack(
       s.year <= t.yearRange[1] + 1 &&
       !used.has(normTitle(s.title)) &&
       normTitle(s.title) !== "la cumparsita" &&
+      isTandaEligible(s, !!p.options.rules?.allowUndated) &&
       isDanceableSong(s, cat.blacklist) &&
       !cat.nonDance(s.orchestraId, s.title, s.year),
   );

@@ -298,7 +298,7 @@ ${nodes}
 export function toTraktorNML(p: Playlist, eo: ExportOpts = {}): string {
   const tracks = flatten(p, eo);
   const loc = (t: FlatTrack) =>
-    `<LOCATION DIR="/:TDJ/:" FILE="${esc(`${t.artist} - ${t.title}.mp3`)}" VOLUME="" VOLUMEID=""></LOCATION>`;
+    `<LOCATION DIR="/:TDJ/:" FILE="${esc(`${safe(t.artist)} - ${safe(t.title)}.mp3`)}" VOLUME="" VOLUMEID=""></LOCATION>`;
   const cue = (name: string, sec: number, hot: number) =>
     `<CUE_V2 NAME="${name}" DISPL_ORDER="0" TYPE="0" START="${(sec * 1000).toFixed(3)}" LEN="0" REPEATS="-1" HOTCUE="${hot}"></CUE_V2>`;
   const cues = (t: FlatTrack) =>

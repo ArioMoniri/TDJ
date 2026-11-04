@@ -49,6 +49,9 @@ export function cleanTitle(t: string): string {
     .trim();
 }
 
+/** the key a recording is hidden by in the user's database: every copy of this orchestra + title */
+export const hideKey = (s: Pick<Song, "orchestraId" | "title">) => `${s.orchestraId}|${normTitle(s.title)}`;
+
 /** how much a row knows about itself: used to keep the best of duplicate rows */
 function richness(s: Song): number {
   let n = 0;
@@ -102,9 +105,23 @@ export class Catalog {
     for (const b of corpus.blacklist ?? []) this.blacklist.add(normTitle(b.title));
     const te = { ...trackEnergy, ...(overrides?.rules?.trackEnergy ?? {}) };
     const all = [...songs, ...(overrides?.addedSongs ?? [])];
+    // hide by orchestra + title: an explicit hiddenTitles key, or a song patch `hidden` without hiddenScope "copy"
+    // (the patch may name a row the index has since merged into another: altIds resolve it)
+    const patchOf = (raw: Song) =>
+      overrides?.songs?.[raw.id] ?? raw.altIds?.map((id) => overrides?.songs?.[id]).find((p) => p);
+    const hiddenTitles = new Set(overrides?.hiddenTitles ?? []);
+    const hiddenCopies = new Set<string>();
+    if (overrides?.songs)
+      for (const raw of all) {
+        const patch = patchOf(raw);
+        if (!patch?.hidden) continue;
+        if (patch.hiddenScope === "copy") hiddenCopies.add(raw.id);
+        else hiddenTitles.add(hideKey({ ...raw, ...patch }));
+      }
     const built = all.flatMap((raw) => {
-      const patch = overrides?.songs?.[raw.id];
-      if (patch?.hidden) return [];
+      const patch = patchOf(raw);
+      if (hiddenCopies.has(raw.id) || hiddenTitles.has(hideKey(raw))) return [];
+      if (patch && hiddenTitles.has(hideKey({ ...raw, ...patch }))) return [];
       const s = patch ? { ...raw, ...patch } : raw;
       const sp = s.spotify ?? spotifyCache[s.id] ?? null;
       const resolved = s.resolved ?? caches.resolved?.[s.id] ?? null;

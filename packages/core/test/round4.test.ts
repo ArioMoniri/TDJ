@@ -391,9 +391,11 @@ describe("B10 — context reaches the engine", () => {
       less += golden(seed, { vocalBias: -0.4 }).stats.vocalRatio;
     }
     expect(more).toBeGreaterThan(less + 0.5);
+    // late night alone leans vocal; a marathon after midnight leans instrumental (round 8 §4.1.7)
+    expect(golden(1, { context: { timeOfDay: "late-night" } }).options.vocalBias ?? 0).toBeGreaterThan(0);
     expect(
       golden(1, { context: { timeOfDay: "late-night", event: "marathon" } }).options.vocalBias ?? 0,
-    ).toBeGreaterThan(0);
+    ).toBeLessThan(0);
     const slow = golden(3, { vocalBias: 0, tempoShift: -4 });
     expect(slow.tandas.map((t) => t.orchestraId)).not.toEqual(golden(3).tandas.map((t) => t.orchestraId));
   });

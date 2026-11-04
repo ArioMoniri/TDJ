@@ -1,7 +1,8 @@
 import { resolveContext } from "./context";
 import { familyOf } from "./cortinas";
 import { normTitle } from "./energy";
-import { CUMPARSITA_CLOSING_YEARS, ULTIMA_CLOSERS } from "./rules";
+import { CORPUS_CAPS, CUMPARSITA_CLOSING_YEARS, DEFAULT_CAP, ULTIMA_CLOSERS } from "./rules";
+import { isTandaEligible, songRhythm } from "./tanda";
 import type { Playlist, ScoreCard, ScoreFactor, Song } from "./types";
 
 /**
@@ -379,7 +380,10 @@ export function scorePlaylist(p: Pick<Playlist, "tandas" | "closing" | "options"
   );
 
   const W = f.reduce((a, x) => a + x.weight, 0) || 1;
-  const total = Math.round((f.reduce((a, x) => a + x.weight * x.score, 0) / W) * 100);
+  let total = Math.round((f.reduce((a, x) => a + x.weight * x.score, 0) / W) * 100);
+  // hard failures (round 8 §3.8): things a DJ would be embarrassed by cap the number at 60 whatever the factors say
+  const reasons = hardFailures(p);
+  if (reasons.length) total = Math.min(total, 60);
   const verdict =
     total >= 85
       ? "Headline marathon DJ"
@@ -388,5 +392,47 @@ export function scorePlaylist(p: Pick<Playlist, "tandas" | "closing" | "options"
         : total >= 55
           ? "Enthusiastic amateur"
           : "Spotify radio";
-  return { total, factors: f, verdict };
+  return { total, factors: f, verdict, ...(reasons.length ? { reasons } : {}) };
+}
+
+/** The hard failures a set can carry: each one is a sentence for the score sheet. */
+export function hardFailures(p: Pick<Playlist, "tandas" | "options" | "stats">): string[] {
+  const t = p.tandas;
+  const o = p.options;
+  const out: string[] = [];
+  const allow = !!o.rules?.allowUndated;
+  t.forEach((x, i) => {
+    const ult = i === t.length - 1;
+    const bad = x.songs.filter((s) => !isTandaEligible(s));
+    if (bad.length && !allow) {
+      const kind = bad.some((s) => s.transcription) ? "transcription / bootleg" : "undated";
+      out.push(
+        `tanda ${i + 1} (${x.orchestra}) is built from ${kind} recordings${ult ? " and it is the última" : ""}: ${bad
+          .slice(0, 2)
+          .map((s) => s.title)
+          .join(", ")}`,
+      );
+    }
+    const wrong = x.songs.filter((s) => songRhythm(s) !== x.rhythm);
+    if (wrong.length)
+      out.push(
+        `tanda ${i + 1} (${x.orchestra}) is a ${x.rhythm} tanda with a ${songRhythm(wrong[0]!)} inside: ${wrong[0]!.title}`,
+      );
+  });
+  const hours = o.hours || 4;
+  const minutes = p.stats.durationSec / 60;
+  if (Math.abs(p.stats.durationSec - hours * 3600) > 0.1 * hours * 3600)
+    out.push(`duration ${Math.round(minutes)} min for a ${hours} h request (more than 10 % off)`);
+  const counts = new Map<string, number>();
+  for (const x of t) counts.set(x.orchestraId, (counts.get(x.orchestraId) ?? 0) + 1);
+  const pugCap = o.rules?.puglieseOnce === false ? 2 : hours >= 6 ? 2 : 1;
+  const extra = (hours > 8 ? 2 : hours > 5 ? 1 : 0) + 1; // long nights and the última may add one each
+  for (const [id, n] of counts) {
+    const name = t.find((x) => x.orchestraId === id)!.orchestra;
+    if (id === "osvaldo-pugliese") {
+      if (n > pugCap) out.push(`${name} ×${n} (the cap is ${pugCap})`);
+    } else if (n > (CORPUS_CAPS[id] ?? DEFAULT_CAP) + extra)
+      out.push(`${name} ×${n} (the cap is ${(CORPUS_CAPS[id] ?? DEFAULT_CAP) + extra})`);
+  }
+  return out;
 }
