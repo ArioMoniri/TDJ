@@ -13,6 +13,7 @@ export function Group({
   children,
   className = "",
   bodyClassName = "",
+  titleHeader = false,
   ...rest
 }: {
   header?: ReactNode;
@@ -20,10 +21,12 @@ export function Group({
   children: ReactNode;
   className?: string;
   bodyClassName?: string;
+  /** a title3 head instead of the uppercase group header (sections inside an article, e.g. the Guide) */
+  titleHeader?: boolean;
 } & Omit<HTMLAttributes<HTMLElement>, "children">) {
   return (
     <section className={`min-w-0 ${className}`} {...rest}>
-      {header && <h2 className="section-head">{header}</h2>}
+      {header && <h2 className={titleHeader ? "text-title3 mt-8 mb-2 px-4" : "section-head"}>{header}</h2>}
       <div className={`group-inset ${bodyClassName}`}>{children}</div>
       {footer && <p className="section-foot">{footer}</p>}
     </section>

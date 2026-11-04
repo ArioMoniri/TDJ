@@ -164,12 +164,13 @@ export const TrackRow = memo(function TrackRow({
             style={{ opacity: inFlight ? 0.6 : 1, transition: "opacity var(--dur-xs) var(--ease-settle)" }}
           >
             <span className="min-w-0 truncate">{title}</span>
-            <span className="shrink-0 text-[var(--label-2)]">
+            {/* phones: the year is in the tanda header; here it took the title's room ("La Vida M…") */}
+            <span className={`shrink-0 text-[var(--label-2)] ${isPhone ? "sr-only" : ""}`}>
               {approx ? "c. " : ""}
               {year ?? "?"}
             </span>
           </span>
-          {audio && (
+          {audio && !isPhone && (
             <button
               type="button"
               className="text-caption1 -my-1 inline-flex min-h-[28px] items-center rounded-md bg-[var(--fill-4)] px-1.5 font-mono tabular-nums text-[var(--label-2)]"
@@ -180,8 +181,18 @@ export const TrackRow = memo(function TrackRow({
               onClick={openDetails}
             >
               {keyLabel(audio)}
-              <span className="ml-1.5 hidden text-[var(--label-2)] sm:inline">{Math.round(audio.bpm)}</span>
+              <span className="ml-1.5 text-[var(--label-2)]">{Math.round(audio.bpm)}</span>
             </button>
+          )}
+          {/* phones: a 55 × 28 chip is not a target; the key is a label, the details are on ••• */}
+          {audio && isPhone && (
+            <span
+              className="text-caption1 rounded-md bg-[var(--fill-4)] px-1.5 py-0.5 font-mono tabular-nums text-[var(--label-2)]"
+              data-testid="key-chip"
+            >
+              <span className="sr-only">Key </span>
+              {keyLabel(audio)}
+            </span>
           )}
           <span className="text-subhead tabular-nums text-[var(--label-2)]">
             <span className="sr-only">energy </span>

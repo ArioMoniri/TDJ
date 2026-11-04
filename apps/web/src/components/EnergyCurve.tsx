@@ -322,11 +322,9 @@ export function EnergyCurve({
         variants={fadeV(1.2)}
         initial={morph ? false : "hidden"}
         animate="show"
-        className="text-caption1 mt-1 truncate whitespace-nowrap text-[var(--label-2)]"
+        className="sr-only"
       >
-        Line: energy · dashed: target · <span style={{ color: RHYTHM_COLORS.tango }}>●</span> tango{" "}
-        <span style={{ color: RHYTHM_COLORS.vals }}>◉</span> vals{" "}
-        <span style={{ color: RHYTHM_COLORS.milonga }}>▣</span> milonga
+        Line: energy · dashed: target · dots: tango, vals, milonga by colour
       </motion.figcaption>
     </figure>
   );

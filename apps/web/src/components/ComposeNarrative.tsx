@@ -4,7 +4,7 @@ import { Disc3, LoaderCircle } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
-import { DUR, EASE } from "@/lib/motion";
+import { DUR } from "@/lib/motion";
 
 /* The dotLottie player (its chunk and its WASM) loads the first time the narrative shows, not with the page. */
 const DotLottieReact = dynamic(() => import("@lottiefiles/dotlottie-react").then((m) => m.DotLottieReact), {
@@ -12,10 +12,11 @@ const DotLottieReact = dynamic(() => import("@lottiefiles/dotlottie-react").then
 });
 
 export const STEPS = ["Placing tandas", "Matching cortinas", "Shaping the arc", "Scoring the night"];
-const STEP_MS = 450;
-const SHOW_AFTER_MS = 250;
+/* a step stays long enough to be read; the narrative itself appears only for the slow cases (round8-ux.md §1.1) */
+const STEP_MS = 700;
+const SHOW_AFTER_MS = 900;
 
-/** The four-step narrative while composing; shows only when `busy` persists past 250 ms. */
+/** The four-step narrative while composing; shows only when `busy` persists past 900 ms. */
 function useSteps(busy: boolean) {
   const [visible, setVisible] = useState(false);
   const [step, setStep] = useState(0);
@@ -35,16 +36,20 @@ function useSteps(busy: boolean) {
   return { visible, step };
 }
 
-/** The step line alone (used inside the phone compose bar, where there is no room for the Lottie). */
+/**
+ * The step line alone (used inside the phone compose bar, where there is no room for the Lottie). One label at a
+ * time: `mode="wait"` lets the old step fade out before the next fades in (`popLayout` painted both on the same
+ * grid cell, round8-ux.md §1.1).
+ */
 export function StepLabel({ step, className = "" }: { step: number; className?: string }) {
   return (
     <span className={`relative inline-grid overflow-hidden ${className}`}>
-      <AnimatePresence mode="popLayout" initial={false}>
+      <AnimatePresence mode="wait" initial={false}>
         <motion.span
           key={step}
-          initial={{ y: 6, opacity: 0 }}
-          animate={{ y: 0, opacity: 1, transition: { duration: DUR.base, ease: EASE.out } }}
-          exit={{ y: -6, opacity: 0, transition: { duration: DUR.fast, ease: EASE.in } }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1, transition: { duration: DUR.fast } }}
+          exit={{ opacity: 0, transition: { duration: DUR.fast } }}
           className="col-start-1 row-start-1 block whitespace-nowrap"
         >
           {STEPS[step]}…
@@ -54,7 +59,7 @@ export function StepLabel({ step, className = "" }: { step: number; className?: 
   );
 }
 
-/** Progress narrative for the compose wait (desktop hero). Mount while `busy`; hides itself for sub-250 ms responses. */
+/** Progress narrative for the compose wait (desktop hero). Mount while `busy`; hides itself for sub-900 ms responses. */
 export function ComposeNarrative({ busy, className = "" }: { busy: boolean; className?: string }) {
   const reduced = useReducedMotion();
   const { visible, step } = useSteps(busy);
@@ -96,28 +101,34 @@ export function ComposeNarrative({ busy, className = "" }: { busy: boolean; clas
 /**
  * Compose button content: the Disc3 icon spins while busy (LoaderCircle at 1.6 s under reduced motion) and the
  * label cross-fades. On phones (`steps`) the label cycles the four narrative steps instead of "Composing…".
+ * `spin={false}` keeps the glyph still (the desktop capsule: the Lottie narrative already moves, round4 P1-5).
  */
 export function ComposeLabel({
   busy,
   steps = false,
   idle = "Compose the night",
+  spin = true,
 }: {
   busy: boolean;
   steps?: boolean;
   /** the resting label ("Regenerate" in the phone bar once a set exists) */
   idle?: string;
+  /** rotate the disc while busy (phone bar only) */
+  spin?: boolean;
 }) {
   const reduced = useReducedMotion();
   const { visible, step } = useSteps(busy && steps);
   return (
     <>
-      {busy && reduced ? (
+      {busy && reduced && spin ? (
         <LoaderCircle size={18} className="animate-spin" aria-hidden />
       ) : (
         <motion.span
-          animate={busy ? { rotate: 360 } : { rotate: 0 }}
+          animate={busy && spin ? { rotate: 360 } : { rotate: 0 }}
           transition={
-            busy ? { repeat: Number.POSITIVE_INFINITY, ease: "linear", duration: 1.2 } : { duration: 0 }
+            busy && spin
+              ? { repeat: Number.POSITIVE_INFINITY, ease: "linear", duration: 1.2 }
+              : { duration: 0 }
           }
           className="inline-flex"
           aria-hidden

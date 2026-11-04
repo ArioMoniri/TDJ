@@ -28,6 +28,7 @@ import { makeSnapshot } from "@/lib/history";
 import { testSlowdownMs, useMediaQuery, useScrollDirection, whenIdle } from "@/lib/hooks";
 import { describePreferences } from "@/lib/memory";
 import { DUR, EASE, rise, STAGGER } from "@/lib/motion";
+import { usePlayer } from "@/lib/player";
 import { useSheetOpen } from "@/lib/sheets";
 import {
   changedKeys,
@@ -191,7 +192,7 @@ function PinButton({ on, label, onToggle }: { on: boolean; label: string; onTogg
   return (
     <button
       type="button"
-      className={`icon-btn icon-btn-bare -my-2 h-11 w-9 ${on ? "text-[var(--tint)]" : "text-[var(--label-3)]"}`}
+      className={`icon-btn icon-btn-bare -my-2 h-11 w-9 ${on ? "text-[var(--tint)]" : "pin-idle text-[var(--label-3)]"}`}
       aria-pressed={on}
       aria-label={`${on ? "Unpin" : "Pin"} ${label.toLowerCase()}`}
       title={on ? "Pinned: era presets leave this alone" : "Pin so era presets leave this alone"}
@@ -275,6 +276,7 @@ const SetupForm = memo(function SetupForm({
         />
         <PickerRow
           label="Tanda shape"
+          sub="How energy moves inside each tanda"
           ariaLabel="Tanda shape"
           value={options.tandaShape ?? eraDefaults.tandaShape}
           items={SHAPES}
@@ -296,6 +298,7 @@ const SetupForm = memo(function SetupForm({
       >
         <PickerRow
           label="Cycle"
+          sub="The rhythm order the night repeats: tango, tango, vals, tango, tango, milonga"
           ariaLabel="Cycle"
           value={options.pattern ?? "classic"}
           items={PATTERNS}
@@ -630,6 +633,8 @@ export function Composer() {
   const [ai, setAi] = useState<string | null>(null);
   const [aiError, setAiError] = useState(false);
   const [aiBusy, setAiBusy] = useState(false);
+  /** the organiser's shared review key exists (null until checked): the Written review row says Ready / Off */
+  const [aiShared, setAiShared] = useState<boolean | null>(null);
   /** "what changed" after a chip / refine: replaced tandas and the score move */
   const [changeSummary, setChangeSummary] = useState<string | null>(null);
   /** the form stays folded under a summary row while a set exists; Edit opens it */
@@ -666,8 +671,30 @@ export function Composer() {
   }, [viewReveal]);
   const reduced = useReducedMotion();
   const wide = useMediaQuery("(min-width: 640px)", true);
+  const lg = useMediaQuery("(min-width: 1024px)", true);
   const minimised = useScrollDirection();
+  const playerOpen = usePlayer((s) => !!s.track);
   useEffect(() => setHydrated(true), []);
+  // the phone primary bar needs room under the form (round8-ux.md §2): `main` pads for it while this page is up
+  useEffect(() => {
+    document.documentElement.dataset.primaryBar = "1";
+    return () => {
+      delete document.documentElement.dataset.primaryBar;
+    };
+  }, []);
+  useEffect(() => {
+    let alive = true;
+    const cancel = whenIdle(() => {
+      fetch("/api/ai/review", { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((j) => alive && setAiShared(!!j?.shared))
+        .catch(() => alive && setAiShared(false));
+    }, 4000);
+    return () => {
+      alive = false;
+      cancel();
+    };
+  }, []);
   const [mods, setMods] = useState<ResultMods | null>(resultMods);
   useEffect(() => {
     let alive = true;
@@ -1098,17 +1125,28 @@ export function Composer() {
         .join(" · ")
     : "";
 
+  /**
+   * The toolbar's one tinted capsule is Compose until a set exists, then Export: a second Compose would silently
+   * replace the set the DJ is reading, so Regenerate becomes the ghost capsule next to it, as the phone bar does
+   * (round8-ux.md §1.2). ⌘↩ stays on Regenerate (the same action), ⌘E on Export.
+   */
   const composeButton = (
     <motion.button
       type="button"
       onClick={() => run()}
       disabled={busy}
-      className="btn btn-primary min-h-[44px] lg:min-h-[40px] lg:px-4 lg:text-subhead"
+      className={`btn ${hasPlaylist ? "btn-ghost" : "btn-primary"} min-h-[44px] lg:min-h-[40px] lg:px-4 lg:text-subhead`}
       animate={errorNudge}
       transition={{ duration: 0.28, ease: EASE.inOut }}
       title="⌘↩"
+      data-testid={hasPlaylist ? "toolbar-regenerate" : "toolbar-compose"}
     >
-      <ComposeLabel busy={busy} steps={!!playlist} />
+      <ComposeLabel
+        busy={busy}
+        steps={!!playlist}
+        idle={hasPlaylist ? "Regenerate" : "Compose the night"}
+        spin={false}
+      />
     </motion.button>
   );
   // icon-only twin of the capsule for the tablet pill when the full label would overflow it
@@ -1117,15 +1155,39 @@ export function Composer() {
       type="button"
       onClick={() => run()}
       disabled={busy}
-      className="btn btn-primary h-11 min-h-[44px] w-11 px-0"
-      aria-label="Compose the night"
-      title="Compose the night (⌘↩)"
+      className={`btn ${hasPlaylist ? "btn-ghost" : "btn-primary"} h-11 min-h-[44px] w-11 px-0`}
+      aria-label={hasPlaylist ? "Regenerate" : "Compose the night"}
+      title={hasPlaylist ? "Regenerate (⌘↩)" : "Compose the night (⌘↩)"}
     >
       {busy ? (
         <LoaderCircle size={18} className="animate-spin" aria-hidden />
+      ) : hasPlaylist ? (
+        <Repeat2 size={18} aria-hidden />
       ) : (
         <Disc3 size={18} aria-hidden />
       )}
+    </button>
+  );
+  const exportButton = (
+    <button
+      type="button"
+      onClick={openExport}
+      className="btn btn-primary min-h-[44px] lg:min-h-[40px] lg:px-4 lg:text-subhead"
+      title="⌘E"
+      data-testid="toolbar-export"
+    >
+      <Share size={18} strokeWidth={2} aria-hidden /> Export
+    </button>
+  );
+  const exportCompact = (
+    <button
+      type="button"
+      onClick={openExport}
+      className="btn btn-primary h-11 min-h-[44px] w-11 px-0"
+      aria-label="Export"
+      title="Export (⌘E)"
+    >
+      <Share size={18} strokeWidth={2} aria-hidden />
     </button>
   );
   const feedbackBar = (
@@ -1145,14 +1207,10 @@ export function Composer() {
     <div>
       <PageHeader
         title="Compose"
-        subtitle={!hasPlaylist ? "Era, length and room; TDJ builds the tandas and the arc." : undefined}
         trailing={
           <>
-            {hasPlaylist && (
-              <button type="button" className="icon-btn" aria-label="Export" onClick={openExport}>
-                <Share size={20} strokeWidth={1.75} />
-              </button>
-            )}
+            {/* phones have Regenerate in the primary bar; the title bar keeps only ••• there */}
+            {hasPlaylist && wide && (lg ? composeButton : composeCompact)}
             {hasPlaylist && playlist && (
               <Menu
                 label="More"
@@ -1171,9 +1229,60 @@ export function Composer() {
             )}
           </>
         }
-        primary={composeButton}
-        primaryCompact={composeCompact}
+        primary={hasPlaylist ? exportButton : composeButton}
+        primaryCompact={hasPlaylist ? exportCompact : composeCompact}
       />
+
+      {/* first run: what one tap produces, before the 38 controls (round8-ux.md §3); the same action as the bar */}
+      {hydrated && !playlist && (
+        <section
+          className="group-inset mt-2 mb-2 p-5"
+          aria-labelledby="first-run-title"
+          data-testid="first-run"
+        >
+          <h2 id="first-run-title" className="text-title2 font-serif">
+            A night, composed
+          </h2>
+          <p className="text-subhead mt-1 text-[var(--label-2)]">
+            {hours} hours of {ERAS.find(([k]) => k === era)?.[1] ?? "Golden Age"} tandas with cortinas, scored
+            against the house rules. Change anything below, or just compose.
+          </p>
+          <ol className="mt-4 grid gap-2 sm:grid-cols-3">
+            {(
+              [
+                ["Compose", "one tap builds the set and scores it"],
+                ["Read", "the energy arc, the tandas, the cortinas"],
+                ["Play or send", "the Booth plays it; Export sends it to VLC, Rekordbox or Spotify"],
+              ] as const
+            ).map(([h, d], i) => (
+              <li key={h} className="flex items-start gap-3">
+                <span className="tile-art shrink-0" data-rhythm="tango" aria-hidden>
+                  <span className="text-headline tabular-nums">{i + 1}</span>
+                </span>
+                <span className="min-w-0">
+                  <span className="text-headline block">{h}</span>
+                  <span className="text-footnote block text-[var(--label-2)]">{d}</span>
+                </span>
+              </li>
+            ))}
+          </ol>
+          <div className="mt-5 hidden flex-wrap items-center gap-3 sm:flex">
+            <button
+              type="button"
+              className="btn btn-primary min-h-[50px]"
+              onClick={() => run()}
+              disabled={busy}
+              data-testid="hero-compose"
+            >
+              <Disc3 size={18} aria-hidden /> Compose a {hours} h {options.context?.event ?? "milonga"}
+            </button>
+            <span className="text-footnote text-[var(--label-2)]">Or set up the night below.</span>
+          </div>
+          <p className="text-footnote mt-4 text-[var(--label-2)] sm:hidden">
+            Compose the night is in the bar below; everything under it is optional.
+          </p>
+        </section>
+      )}
 
       {hasPlaylist && playlist && mods && (
         <section id="result" className="scroll-mt-24" aria-busy={busy}>
@@ -1190,18 +1299,20 @@ export function Composer() {
                   {playlist.name}
                 </h2>
                 <span className="flex items-center gap-1">
+                  {/* phones: icon-only, 44 pt (the label wrapped to three lines, round8-ux.md §1.4) */}
                   <button
                     type="button"
-                    className="btn btn-ghost -my-2 min-h-11 px-3"
+                    className="btn btn-ghost -my-2 min-h-11 shrink-0 whitespace-nowrap px-3 max-sm:h-11 max-sm:w-11 max-sm:px-0"
                     data-testid="play-the-night"
                     aria-label="Booth: play the night"
                     onClick={() => router.push("/booth")}
                   >
-                    <Play size={16} fill="currentColor" strokeWidth={0} aria-hidden /> Play the night
+                    <Play size={16} fill="currentColor" strokeWidth={0} aria-hidden />
+                    <span className="max-sm:sr-only">Play the night</span>
                   </button>
                   <button
                     type="button"
-                    className={`icon-btn icon-btn-bare -my-2 h-11 w-10 ${liked === true ? "text-[var(--tint)]" : "text-[var(--label-3)]"}`}
+                    className={`icon-btn icon-btn-bare -my-2 h-11 w-11 ${liked === true ? "text-[var(--tint)]" : "text-[var(--label-3)]"}`}
                     aria-pressed={liked === true}
                     aria-label="Mark as liked"
                     onClick={() => rate(true)}
@@ -1210,7 +1321,7 @@ export function Composer() {
                   </button>
                   <button
                     type="button"
-                    className={`icon-btn icon-btn-bare -my-2 -mr-3 h-11 w-10 ${liked === false ? "text-[var(--tint)]" : "text-[var(--label-3)]"}`}
+                    className={`icon-btn icon-btn-bare -my-2 -mr-3 h-11 w-11 ${liked === false ? "text-[var(--tint)]" : "text-[var(--label-3)]"}`}
                     aria-pressed={liked === false}
                     aria-label="Mark as disliked"
                     onClick={() => rate(false)}
@@ -1286,14 +1397,22 @@ export function Composer() {
             {playlists.some((p) => p.kind === "tandas") && (
               <Row
                 label="Mood check"
-                sub="Your set next to Aren León's reference tandas"
+                sub="Against reference tandas (Aren León)"
                 chevron
                 onClick={() => setMoodOpen(true)}
               />
             )}
             <Row
               label="Written review"
-              value={aiBusy ? "Reading the set…" : ai ? "Ready" : undefined}
+              value={
+                aiBusy
+                  ? "Reading the set…"
+                  : ai || settings.ai.key || aiShared
+                    ? "Ready"
+                    : aiShared === false
+                      ? "Off · needs an AI key"
+                      : undefined
+              }
               chevron
               busy={aiBusy}
               onClick={explain}
@@ -1468,11 +1587,6 @@ export function Composer() {
         <div className="flex flex-col items-center gap-3 py-12 text-center">
           <Vinyl playing={busy} className="w-[120px]" />
           <ComposeNarrative busy={busy} className="flex" />
-          <p className="text-title3 font-serif">Compose a milonga, tanda by tanda.</p>
-          <p className="text-subhead max-w-md text-[var(--label-2)]">
-            Pick an era and a length. TDJ builds coherent tandas, shapes the night from warm-up to La
-            Cumparsita, and picks each cortina to fit what follows.
-          </p>
         </div>
       )}
 
@@ -1482,7 +1596,7 @@ export function Composer() {
         hasPlaylist={hasPlaylist}
         busy={busy}
         minimised={minimised}
-        hidden={sheetOpen}
+        hidden={sheetOpen || playerOpen}
         onCompose={() => run()}
         onExport={openExport}
         errorNudge={errorNudge}
@@ -1498,6 +1612,7 @@ export function Composer() {
         >
           <MenuList
             items={[
+              { label: "Play the night", icon: Play, onClick: () => router.push("/booth") },
               { label: "Tell the DJ…", icon: MessageSquareText, onClick: () => setAdjustOpen(true) },
               {
                 label: playlist.tandas.every((t) => t.locked) ? "Unlock all" : "Lock all",
@@ -1511,7 +1626,6 @@ export function Composer() {
                 disabled: busy,
               },
               { label: "Copy seed", icon: Copy, onClick: copySeed },
-              { label: "Play the night", icon: Play, onClick: () => router.push("/booth") },
               { label: "Clear set", icon: Eraser, onClick: clearSet, destructive: true },
             ]}
             onPick={(it: MenuItem) => {
@@ -1543,7 +1657,7 @@ export function Composer() {
           title="How this set scored"
           trailing="Done"
         >
-          <Group footer="Weights add up to the total; 85 or more is headline marathon DJ territory.">
+          <Group footer="Each bar is as long as the factor counts for the total; 85 or more is headline marathon DJ territory.">
             {playlist.score.factors.map((f, idx) => (
               <div key={f.key} className="cell flex-col items-stretch gap-1.5 py-3">
                 <div className="flex items-center justify-between gap-3">
@@ -1555,15 +1669,15 @@ export function Composer() {
                       </span>
                     )}
                   </span>
-                  <span className="cell-value tabular-nums">
-                    {Math.round(f.score * 100)} %{" "}
-                    <span className="text-[var(--label-2)]">· weight {f.weight}</span>
-                  </span>
+                  <span className="cell-value tabular-nums">{Math.round(f.score * 100)} %</span>
                 </div>
                 <div
                   className="h-1 overflow-hidden rounded-full bg-[var(--fill-3)]"
+                  style={{
+                    width: `${Math.max(12, (f.weight / Math.max(1, ...playlist.score.factors.map((x) => x.weight))) * 100)}%`,
+                  }}
                   role="img"
-                  aria-label={`${f.label}: ${Math.round(f.score * 100)} percent`}
+                  aria-label={`${f.label}: ${Math.round(f.score * 100)} percent, weight ${f.weight}`}
                 >
                   <motion.div
                     className="h-full w-full origin-left rounded-full bg-[var(--tint)]"

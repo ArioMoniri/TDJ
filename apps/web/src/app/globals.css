@@ -117,11 +117,14 @@
   /* Energy-curve phase band fill (round4-ux.md P2-10: lighter on cream) */
   --band-alpha: 0.03;
 
-  /* Tint (interactive text, pickers, links). Rose. */
+  /* Tint (interactive text, pickers, links). Rose. `--tint-text` is one step darker for 10–13 pt text on light
+     glass (the tab labels measured 4.09:1 at 10 pt, round8-ux.md §2 Settings). */
   --tint: var(--accent);
   --tint-rgb: 201 66 106;
+  --tint-text: #b0365c;
   --destructive: #e5484d;
-  --system-green: #34c759;
+  /* one step darker than Apple's green: 3.1:1 on white was below the 3:1 line for the booth meter in light */
+  --system-green: #28b24c;
   --system-gold: #e8b85a;
 
   /* Motion tokens: one tango beat ≈ 500 ms, durations are subdivisions (docs/design/motion-system.md §2) */
@@ -176,6 +179,7 @@
   --band-alpha: 0.04;
   --tint-rgb: 224 85 122;
   --tint: #e0557a;
+  --tint-text: #e0557a;
   --accent: #e0557a;
   --destructive: #ff6b6b;
   --system-green: #30d158;
@@ -201,6 +205,7 @@
     --band-alpha: 0.04;
     --tint-rgb: 224 85 122;
     --tint: #e0557a;
+    --tint-text: #e0557a;
     --accent: #e0557a;
     --destructive: #ff6b6b;
     --system-green: #30d158;
@@ -257,17 +262,17 @@ a {
   background:
     radial-gradient(
       1200px 800px at 10% 10%,
-      color-mix(in srgb, var(--bg-a) 55%, transparent),
+      color-mix(in srgb, var(--bg-a) var(--ambient-wash), transparent),
       transparent 60%
     ),
     radial-gradient(
       1000px 700px at 90% 20%,
-      color-mix(in srgb, var(--bg-b) 55%, transparent),
+      color-mix(in srgb, var(--bg-b) var(--ambient-wash), transparent),
       transparent 60%
     ),
     radial-gradient(
       900px 900px at 50% 100%,
-      color-mix(in srgb, var(--bg-c) 55%, transparent),
+      color-mix(in srgb, var(--bg-c) var(--ambient-wash), transparent),
       transparent 60%
     ),
     radial-gradient(
@@ -282,9 +287,63 @@ a {
     ),
     rgb(var(--bg-grouped));
   --ambient-blob: 18%;
+  --ambient-wash: 55%;
 }
+/* light: the peach-to-lilac wash behind white cards goes down to a 6 % tint, as the Health background does
+   (round4-ux.md P1-6, round5-design.md §3, round8-ux.md §2 Global) */
 :root[data-theme="light"] .ambient {
-  --ambient-blob: 12%;
+  --ambient-blob: 6%;
+  --ambient-wash: 14%;
+}
+@media (prefers-color-scheme: light) {
+  :root:not(.dark):not([data-theme="dark"]) .ambient {
+    --ambient-blob: 6%;
+    --ambient-wash: 14%;
+  }
+}
+/* the composer's phone primary bar (50 pt + 12 pt gap over the tab bar): the page's last rows must clear it */
+@media (max-width: 639px) {
+  html[data-primary-bar] {
+    scroll-padding-bottom: 210px;
+  }
+  html[data-primary-bar] main {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 210px);
+  }
+}
+/* the pin glyph of an unpinned control: only on hover / focus where there is a pointer, faint on touch
+   (round4-ux.md P0-5c: nine grey pins were drawn on every first run) */
+@media (hover: hover) {
+  .pin-idle {
+    opacity: 0;
+    transition: opacity var(--dur-xs) var(--ease-settle);
+  }
+  .cell:hover .pin-idle,
+  .cell:focus-within .pin-idle,
+  .pin-idle:focus-visible {
+    opacity: 1;
+  }
+}
+@media (hover: none) {
+  .pin-idle {
+    opacity: 0.6;
+  }
+}
+/* the mini-player docked onto the phone tab bar: one glass unit (round8-ux.md §1.12) */
+@media (max-width: 639px) {
+  .mini-docked {
+    border-radius: 22px 22px 0 0;
+    border-bottom-width: 0;
+    box-shadow: 0 -8px 24px rgb(0 0 0 / 0.14);
+  }
+  [data-testid="tab-bar"][data-docked] {
+    border-radius: 0 0 var(--radius-l) var(--radius-l);
+    width: calc(100vw - 1.5rem);
+    justify-content: space-evenly;
+  }
+  [data-testid="tab-bar"][data-docked]::before,
+  [data-testid="tab-bar"][data-docked]::after {
+    border-radius: 0 0 var(--radius-l) var(--radius-l);
+  }
 }
 
 /* Continuous (superellipse) corners where supported; no-op elsewhere. */
@@ -1504,6 +1563,12 @@ html.theming *::after {
 [data-booth] main > div {
   max-width: 1400px;
 }
+/* phones: the glanceable number (time to Cumparsita) above the next title */
+@media (max-width: 639px) {
+  .booth-col-mid > [data-testid="booth-time"] {
+    order: -1;
+  }
+}
 @media (min-width: 640px) {
   .booth-grid {
     grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
@@ -1521,9 +1586,20 @@ html.theming *::after {
   .booth-col-now {
     grid-column: 1;
   }
+  /* one column under Now: Time (its two numbers side by side) above Next; the two 240 px cards truncated
+     "TIME TO LA C…" and broke the next title per word (round8-ux.md §1.6) */
   .booth-col-mid {
     grid-column: 1;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .booth-col-mid > [data-testid="booth-time"] {
+    order: -1;
+  }
+  .booth-time-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    align-items: end;
   }
   .booth-col-set {
     grid-column: 2;
@@ -1581,6 +1657,19 @@ html.theming *::after {
   font-size: 22px;
   line-height: 1.2;
   overflow-wrap: anywhere;
+}
+/* the Next title: balanced, at most two lines */
+.booth-next-title {
+  text-wrap: balance;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.booth-eyebrow-wrap {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
 }
 .booth-big {
   font-size: 44px;
@@ -1710,6 +1799,41 @@ html.theming *::after {
   padding: 8px 10px;
   border-radius: var(--radius-l, 16px);
 }
+/* phones (round8-ux.md §1.5): one 64 pt row (Hold / Next / Stop / Levels / •••; the faders live in the Levels
+   sheet), and while a night runs the tab bar leaves so no accidental tap leaves the page; the strip takes its place */
+@media (max-width: 639px) {
+  .booth-strip {
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+  .booth-strip .booth-fader {
+    display: none;
+  }
+  /* the nav sets its transform/opacity inline: the attribute selector wins through `visibility` + `pointer-events`,
+     and the strip's bottom offset moves down over it */
+  html[data-booth-live] nav[aria-label="Primary mobile"] {
+    visibility: hidden;
+    pointer-events: none;
+  }
+  html[data-booth-live] .booth-strip {
+    bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+  html[data-booth-live] .booth {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 96px);
+  }
+}
+/* the "Find…" row action shows on hover / focus where there is a pointer (a column of red links read as failures) */
+@media (hover: hover) {
+  .booth-row .booth-find {
+    opacity: 0;
+    transition: opacity var(--dur-xs) var(--ease-settle);
+  }
+  .booth-row:hover .booth-find,
+  .booth-row:focus-within .booth-find,
+  .booth-find:focus-visible {
+    opacity: 1;
+  }
+}
 /* the capsule fits its content (or wraps it): nothing is ever clipped at its edge */
 @media (min-width: 640px) {
   .booth-strip {
@@ -1754,7 +1878,11 @@ html.theming *::after {
   writing-mode: vertical-lr;
   direction: rtl;
 }
+/* the stop ring is red only once a night runs; before that it is a quiet glyph (round8-ux.md §2 Booth) */
 .booth-stop {
+  color: var(--label-3);
+}
+.booth-stop-armed {
   color: var(--destructive);
   box-shadow: inset 0 0 0 1.5px var(--destructive);
   background: linear-gradient(
