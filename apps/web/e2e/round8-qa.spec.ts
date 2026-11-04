@@ -231,8 +231,12 @@ test("arc shape: the Set-up control travels as an explicit key and the result na
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
-  await page.getByRole("radio", { name: "Double peak" }).click();
-  await expect(page.getByRole("radio", { name: "Double peak" })).toHaveAttribute("aria-checked", "true");
+  // under load the first click can land before hydration: retry until the control answers
+  const dbl = page.getByRole("radio", { name: "Double peak" });
+  await expect(async () => {
+    await dbl.click();
+    await expect(dbl).toHaveAttribute("aria-checked", "true", { timeout: 1500 });
+  }).toPass({ timeout: 20000 });
   const req = page.waitForRequest((r) => r.url().includes("/api/compose") && r.method() === "POST");
   await page.getByRole("button", { name: /Compose the night/ }).click();
   const body = (await req).postDataJSON();

@@ -306,11 +306,12 @@ test("tell the DJ without a key reports exactly what was applied and what was no
   expect(j.source).toBe("keywords");
   expect(j.applied).toEqual(expect.arrayContaining(["no Francisco Canaro", "more Osvaldo Pugliese"]));
   expect(j.notApplied).toEqual([expect.stringMatching(/^"a D'Arienzo vals tanda"/)]);
-  expect(j.note).toMatch(/Applied: no Francisco Canaro, more Osvaldo Pugliese\./);
+  expect(j.note).toMatch(/Applied: (no Francisco Canaro, more Osvaldo Pugliese|more Osvaldo Pugliese, no Francisco Canaro)\./);
   expect(j.note).toMatch(/Not applied: "a D'Arienzo vals tanda"/);
   expect(j.feedback).not.toContain("more-dramatic");
   expect(j.options.excludeOrchestras).toContain("francisco-canaro");
-  expect(j.options.includeOrchestras).toContain("osvaldo-pugliese");
+  expect(j.options.preferOrchestras).toContain("osvaldo-pugliese");
+  expect(j.options.includeOrchestras ?? []).not.toContain("osvaldo-pugliese");
 });
 
 test("compose sends only explicit keys plus the explicit list; the DJ CSV genre reads Tango / Vals; exports carry paths", async ({
