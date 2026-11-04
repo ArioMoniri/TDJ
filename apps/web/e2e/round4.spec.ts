@@ -86,7 +86,11 @@ const RESOLVE_MOCK = {
 
 async function compose(page: Page) {
   await page.goto("/");
-  await page.getByRole("button", { name: /Compose the night/ }).click();
+  // the toolbar capsule reads Compose the night, or Regenerate once a set is restored (round8-ux.md §1.2)
+  await page
+    .getByRole("button", { name: /Compose the night|^Regenerate$/ })
+    .first()
+    .click();
   await expect(page.locator("#result")).toBeVisible({ timeout: 60000 });
 }
 

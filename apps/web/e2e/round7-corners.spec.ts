@@ -218,7 +218,8 @@ test("bars, mini player, menu and sheets with a composed set", async ({ page }) 
   const player = page.getByTestId("mini-player");
   await expect(player).toBeVisible();
   await page.waitForTimeout(900);
-  await corners(page, player, "mini player");
+  // phones: the player docks onto the tab bar (round8-ux.md §1.12): only its top corners are rounded
+  await corners(page, player, "mini player", k === "phone" ? TOP : ALL);
   await hasMaterial(player, "mini player");
   await page.getByRole("button", { name: "Close player" }).click();
   await expect(player).toBeHidden();

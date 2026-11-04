@@ -167,7 +167,7 @@ test("phone: the primary bar sits above the tab bar at the top, middle and botto
   await ctx.close();
 });
 
-test("desktop: ⌘↩ composes, ⌘K focuses Tell the DJ, ⌘E opens Export; Compose stays in the sticky toolbar", async ({
+test("desktop: ⌘↩ composes, ⌘K focuses Tell the DJ, ⌘E opens Export; Regenerate and Export stay in the sticky toolbar", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -176,8 +176,11 @@ test("desktop: ⌘↩ composes, ⌘K focuses Tell the DJ, ⌘E opens Export; Com
   await page.keyboard.press("Meta+Enter");
   await req;
   await expect(page.locator("#result")).toBeVisible({ timeout: 60000 });
-  // the inline form Compose is a secondary affordance; the toolbar capsule is the primary
-  await expect(page.getByRole("button", { name: /Compose the night/ })).toBeVisible();
+  // with a set the toolbar's tinted capsule is Export and Regenerate is the ghost next to it (round8-ux.md §1.2)
+  const toolbar = page.getByTestId("page-toolbar");
+  await expect(toolbar.getByTestId("toolbar-export")).toBeVisible();
+  await expect(toolbar.getByTestId("toolbar-regenerate")).toBeVisible();
+  await expect(toolbar.getByRole("button", { name: /Compose the night/ })).toHaveCount(0);
   await page.keyboard.press("Meta+k");
   await expect(page.locator("#tell-dj")).toBeFocused();
   await page.keyboard.press("Meta+e");
@@ -188,7 +191,7 @@ test("desktop: ⌘↩ composes, ⌘K focuses Tell the DJ, ⌘E opens Export; Com
   await page.locator("#tanda-6").scrollIntoViewIfNeeded();
   await page.waitForTimeout(400);
   await expect(page.getByTestId("page-toolbar")).toHaveAttribute("data-collapsed", "true");
-  const box = (await page.getByRole("button", { name: /Compose the night/ }).boundingBox())!;
+  const box = (await toolbar.getByTestId("toolbar-regenerate").boundingBox())!;
   expect(box.y).toBeGreaterThanOrEqual(0);
   expect(box.y).toBeLessThan(80);
   // the folded Set-up row's trailing control is Regenerate
