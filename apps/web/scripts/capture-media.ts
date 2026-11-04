@@ -63,8 +63,18 @@ async function main() {
     .filter({ has: page.locator("h3", { hasText: /D'Arienzo|Di Sarli|Troilo|Pugliese|Canaro|Fresedo/ }) })
     .first();
   const refMenu = refCard.getByRole("button", { name: /Tanda \d+ actions/ });
-  await refMenu.click();
-  await page.getByRole("menuitem", { name: "Listen" }).click();
+  // the menu animates in; give it a beat and retry the item once if it was re-rendered under the click
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await refMenu.click();
+    await page.waitForTimeout(500);
+    try {
+      await page.getByRole("menuitem", { name: "Listen" }).click({ timeout: 5000 });
+      break;
+    } catch {
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(400);
+    }
+  }
   await refCard.scrollIntoViewIfNeeded();
   await page.waitForTimeout(3000);
   await page.screenshot({ path: `${OUT}screenshots/13-listen.png` });
