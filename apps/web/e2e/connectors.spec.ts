@@ -967,7 +967,7 @@ test("cortina play length: the Export sheet's stepper changes the M3U8 (VLC stop
   await page.getByRole("button", { name: "Export" }).first().click();
   const sheet = page.getByTestId("export-sheet");
   await expect(sheet).toContainText("Cortinas stop at 45 s");
-  await expect(sheet).toContainText("Spotify playlists cannot trim tracks");
+  await expect(sheet).toContainText("Spotify plays them in full"); // round8-ux.md §1.9: one sentence
   await sheet.getByRole("button", { name: "Increase cortina play length" }).click();
   await expect(sheet).toContainText("Cortinas stop at 50 s");
   const [download] = await Promise.all([

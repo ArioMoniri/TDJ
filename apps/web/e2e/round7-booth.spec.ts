@@ -316,7 +316,7 @@ test("fresh browser (no folder, no Premium): previews are the automatic fallback
   await compose(page);
   const plan = await openBooth(page);
   // (1) every item with a Deezer preview plays its clip: the button and the badge say so, "without source" is gone
-  await expect(page.getByTestId("booth-start")).toHaveText("Start with 30 s clips");
+  await expect(page.getByTestId("booth-start")).toHaveText(/^Start with 30 s clips( · \d+ without a clip)?$/);
   await expect(page.getByTestId("booth-source")).toHaveText("30 s rehearsal");
   expect(await page.locator('[data-plan-index][data-source="preview"]').count()).toBeGreaterThan(
     plan.items.length / 4,

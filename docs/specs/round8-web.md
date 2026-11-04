@@ -64,3 +64,60 @@ plus the round-4/5/6/7 and motion specs that asserted the old behaviour.
 No new glass layers: the Levels sheet is the existing `Sheet`, the docked player replaces three stacked surfaces
 with one, the hero is a `group-inset` on the content layer, and the booth tab-bar hide is `visibility`. Nothing was
 added to the compose-time render path (the hero unmounts with the first set).
+
+## Batch 2: QA fixes (docs/reviews/round8-qa.md), Export sheet, arc shape, featured night
+
+Tests: `apps/web/e2e/round8-qa.spec.ts`.
+
+| id | Fix | Where |
+| --- | --- | --- |
+| B1 (P0) | The tanda cards no longer sit inside `AnimatePresence mode="popLayout"`: every recompose left the exiting cards mounted (22 → 42 → 60 articles, duplicate ids, a page that stopped answering). A new set mounts fresh cards (new keys, the entrance stagger stays) and the old ones leave at once. The e2e regenerates three times and asserts one article per tanda, unique ids and a bounded page height. | `Composer.tsx` |
+| B2 | Library results carry a 44 pt play / pause control (the 30 s preview in the one mini-player, or Find on services when there is no preview). | `app/library/page.tsx` |
+| B3 | Library rows drop the per-row `layout="position"` animation (the same family as B1); the e2e runs three searches in a row. | `app/library/page.tsx` |
+| B4 | Booth swap hang: not reproduced in the suite (the round-7 swap test and the new B7/B8 flow pass); left as "needs confirmation". | — |
+| B5 | YouTube / Dropbox / Google Drive rows stay in the Export sheet, disabled, with "Connect in Settings" when the deployment has no app for them. | `ExportSheet.tsx` |
+| UX 9 | The Export sheet's pinned primary is the best destination that works now: "Save for VLC and the Booth (M3U8)" until Spotify is logged in / connected, then the Spotify button; Spotify is a row with "Set up in Settings ›" until then; the "N songs + cortinas" line moved to the DJ software group; the top footer is one sentence. | `ExportSheet.tsx` |
+| B6 | Tell the DJ says "Parsed by rules (no AI key…)" when the refine answer did not come from a model. | `Composer.tsx` |
+| B7 | The booth Time card shows "…" and a "resolving sources…" chip while sources are matched (never a bare 0); the rehearsal Start button counts "N without a clip". | `lib/booth/store.ts` (`resolving`), `TimeCard.tsx`, `ControlStrip.tsx` |
+| B8 | Space while a break is queued ends the break (the same thing the End break button does). | `app/booth/page.tsx` |
+| B9 | WAV names match (the e2e feeds `Artist - Title.wav` files); the menu item opens the native picker where the browser can keep the folder, which an automated harness cannot drive: the hidden input stays for tests. | — |
+| B10 | One Cancel in the Clear history sheet (the bar button). | `app/history/page.tsx` |
+| B11 | Reopen in Compose covered by an e2e (lands on `/`, the set is on screen). | — |
+| B13 | ⌘K scrolls the Tell the DJ field into view before focusing it. | `Composer.tsx` |
+| B14 | Pin buttons are 44 × 44. | `Composer.tsx` |
+| B15 | Deferred: a fixed bar covers whatever scrolls under it; the page already pads 210 px for the bar. | — |
+| B16 | The desktop ••• has "Tell the DJ…" (⌘K) and "Clear set". | `Composer.tsx` |
+| B17 | Every page sets `document.title` to "Page · TDJ" (client pages cannot export metadata). | `PageHeader.tsx` |
+| B18 | The crate animation JSON is fetched once by the app and handed to the player as data, so a navigation away never aborts the player's own fetch. | `EmptyState.tsx` |
+
+**Arc shape.** The Set-up form has an "Arc shape" segmented control (Single peak / Double peak) next to Arc; it is
+in `ALWAYS_EXPLICIT`, so context never overrides it; the result names the shape next to the verdict and in the
+curve's legend. The core's `ComposeOptions.arcShape` already exists, so no local typing was needed.
+
+**Featured night.** `lib/featured.ts` loads `/featured/<id>.json` (a full Playlist); `apps/web/public/featured/
+golden-double-peak.json` is a placeholder composed locally (4 h golden, double peak, Turkish cortinas, seed 8808) to
+be replaced by the engine agent's `docs/specs/round8-best-night.json`. Entry points: the card on the empty home
+hero, the History and Library empty states (`FeaturedCard`), the Booth onboarding row ("Play the featured night")
+and the deep link `/?featured=golden-double-peak`, which loads the set into the result view with the usual
+Export / Play / Booth actions.
+
+## Batch 2b: the round-8 engine in the web
+
+- `arcShape`, `yearRange` and `preferOrchestras` travel like every other explicit option (`optionsForRequest`
+  sends touched / pinned keys, `replaceOptions` marks the keys a chip or a refine changed); `lib/changes.ts`
+  names them in the "what changed" line.
+- `score.reasons[]` (the hard failures that cap the total at 60) are listed under the score number on the result
+  card and at the top of the "How this set scored" sheet.
+- `stats.cortinaFallback` shows next to the cortina family in the result footer ("family cortinas (…)").
+- "Include undated recordings" is a switch in the Set-up form's Night rules group (`rules.allowUndated`, off by
+  default): the engine reads it on the night rules, and the Database's rules type does not carry it, so it does not
+  live under Database → Rules. Track rows say "undated transcription" when `song.transcription || yearApprox`.
+- Database → Songs: "Shown in sets" off sends `songs[id] = { hidden: true }` (every copy of the orchestra + title);
+  "Hide only this copy" sends `hiddenScope: "copy"`. `lib/server/catalog.ts` `overridesEmpty()` counts
+  `hiddenTitles`.
+- The booth's `PreviewAdapter.resolvedOf` accepts any entity with `resolved` (cortinas included), so cortinas play
+  in a rehearsal.
+- Tell the DJ shows the route's `applied[]` / `notApplied[]` (when its note does not already say so) and the
+  "Parsed by rules" line when no model ran.
+- The featured night is the engine's compact night file (seed 20, score 92); `lib/featured.ts` replays it through
+  `/api/compose` with its seed and explicit options, which reproduces the same set with every field the cards need.

@@ -210,7 +210,7 @@ test("phone booth: a 64 pt strip with the faders behind Levels, Time above Next,
   expect((await strip.boundingBox())!.height).toBeLessThanOrEqual(72);
   await expect(strip.getByTestId("booth-cortina-fader")).toHaveCount(0);
   await expect(strip.getByTestId("booth-levels")).toBeVisible();
-  await expect(page.getByTestId("booth-start")).toHaveText("Start with 30 s clips");
+  await expect(page.getByTestId("booth-start")).toHaveText(/^Start with 30 s clips( · \d+ without a clip)?$/);
   // the stop glyph is quiet until a night runs
   await expect(page.getByTestId("booth-stop")).not.toHaveClass(/booth-stop-armed/);
   // Time above Next; the Now chips never repeat
