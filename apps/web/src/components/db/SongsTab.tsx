@@ -187,7 +187,10 @@ export function SongsTab() {
       {rows.length > 0 && (
         <div className="min-w-0 lg:grid lg:grid-cols-2 lg:gap-x-4">
           {rows.map((s) => {
-            const p = (songs[s.id] ?? {}) as Partial<Song> & { hidden?: boolean };
+            const p = (songs[s.id] ?? {}) as Partial<Song> & {
+              hidden?: boolean;
+              hiddenScope?: "title" | "copy";
+            };
             const v = { ...s, ...p };
             const edited = !!songs[s.id];
             const eff = effectiveSong(s, overrides);
@@ -334,9 +337,29 @@ export function SongsTab() {
                 />
                 <SwitchRow
                   label="Shown in sets"
+                  sub={
+                    p.hidden
+                      ? p.hiddenScope === "copy"
+                        ? "Hidden: this copy only"
+                        : "Hidden: every copy of this title"
+                      : "Off hides every copy of this orchestra + title"
+                  }
                   checked={!p.hidden}
-                  onChange={(on) => setField(s, "hidden", on ? undefined : true)}
+                  onChange={(on) => {
+                    setField(s, "hidden", on ? undefined : true);
+                    if (on) setField(s, "hiddenScope", undefined);
+                  }}
                 />
+                {!p.hidden && (
+                  <ActionRow
+                    label="Hide only this copy"
+                    onClick={() => {
+                      setField(s, "hidden", true);
+                      setField(s, "hiddenScope", "copy");
+                    }}
+                    id={`hide-copy-${s.id}`}
+                  />
+                )}
               </Group>
             );
           })}

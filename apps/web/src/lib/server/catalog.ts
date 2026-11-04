@@ -33,6 +33,7 @@ export function overridesEmpty(o?: AppOverrides | null): boolean {
   if (!o) return true;
   return (
     !Object.keys(o.songs ?? {}).length &&
+    !(o.hiddenTitles?.length ?? 0) &&
     !Object.keys(o.profiles ?? {}).length &&
     !Object.keys(o.cortinas ?? {}).length &&
     !Object.keys(o.rules ?? {}).length &&

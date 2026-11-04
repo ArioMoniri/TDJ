@@ -325,6 +325,7 @@ export function EnergyCurve({
         className="sr-only"
       >
         Line: energy · dashed: target · dots: tango, vals, milonga by colour
+        {p.options.arcShape ? ` · arc shape: ${p.options.arcShape} peak` : ""}
       </motion.figcaption>
     </figure>
   );

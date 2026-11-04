@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import { BOOTH_RANGES } from "@/lib/booth/plan";
 import { LICENCE_NOTE, NO_FADES_IPAD } from "@/lib/booth/sources/spotify";
 import { type SourceMode, useBooth } from "@/lib/booth/store";
+import { FEATURED, loadFeatured } from "@/lib/featured";
+import { useStore } from "@/lib/store";
+import { toast } from "@/lib/toast";
 import { ActionRow, Group, Row, StepperRow, SwitchRow } from "../Form";
 import { Sheet } from "../Sheet";
 
@@ -44,6 +47,23 @@ export function OnboardingSheet({
       ? "Your own files, matched by title, orchestra and year; linked once"
       : "Your browser cannot remember the folder: pick it again next time";
   const sp = b.availability.spotify;
+  const [featuredBusy, setFeaturedBusy] = useState(false);
+  const current = useStore((s) => s.playlist);
+  const playFeatured = async () => {
+    setFeaturedBusy(true);
+    try {
+      const p = await loadFeatured(FEATURED[0].id);
+      // the booth boots per set id: a new playlist in the store re-plans the night
+      useStore.getState().setPlaylist(p);
+      useStore.getState().replaceOptions({ ...p.options, seed: p.options.seed });
+      toast(`${FEATURED[0].title} loaded into the booth`);
+      onClose();
+    } catch {
+      toast("The featured night could not be loaded");
+    } finally {
+      setFeaturedBusy(false);
+    }
+  };
   return (
     <Sheet
       open={open}
@@ -110,6 +130,20 @@ export function OnboardingSheet({
           {tick("preview")}
         </Row>
       </Group>
+      {!b.started && (
+        <Group header="Featured" footer={FEATURED[0].sub}>
+          <ActionRow
+            label={
+              current?.options?.seed === 20 && current.options.arcShape === "double"
+                ? "Featured night is loaded"
+                : "Play the featured night"
+            }
+            onClick={playFeatured}
+            busy={featuredBusy}
+            id="booth-featured"
+          />
+        </Group>
+      )}
       <Group
         header="Output"
         footer="A −20 dBFS 440 Hz tone for half a second through the master: hear the room before the first tanda."

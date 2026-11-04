@@ -28,9 +28,11 @@ export class PreviewAdapter implements SourceAdapter {
   ) {}
 
   private resolvedOf(entity: PlanEntity): Song["resolved"] | null {
-    if (!entity || !("rhythm" in entity)) return null;
-    const patch = this.overrides()?.songs?.[entity.id];
-    const r = patch?.resolved ?? entity.resolved ?? null;
+    // songs and cortinas alike (cortinas carry `resolved` since round 8, so they play in a rehearsal)
+    if (!entity) return null;
+    const e = entity as { id?: string; resolved?: Song["resolved"] };
+    const patch = e.id ? this.overrides()?.songs?.[e.id] : undefined;
+    const r = patch?.resolved ?? e.resolved ?? null;
     return r?.previewUrl ? r : null;
   }
 
