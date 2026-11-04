@@ -134,7 +134,7 @@ test("the top bar never covers the score header and never overlaps itself", asyn
   if (page.viewportSize()!.width < 1024) {
     // sm–lg: the pill carries the page's actions once the title scrolled out, and nothing is cut off
     await expect(bar.getByRole("button", { name: "Export" })).toBeVisible();
-    await expect(bar.getByRole("button", { name: /Compose the night/ })).toBeVisible();
+    await expect(bar.getByRole("button", { name: /Regenerate/ })).toBeVisible();
     await expect(bar.getByRole("link", { name: "Library" })).toBeVisible();
   }
 });

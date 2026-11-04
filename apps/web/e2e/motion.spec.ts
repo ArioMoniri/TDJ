@@ -63,5 +63,6 @@ test("compose narrative: a slow compose shows the staged narrative and the live 
   await expect(page.locator("#result")).toBeVisible({ timeout: 60000 });
   await expect(status).toHaveText(/Set ready: \d+ tandas\./);
   await expect(narrative).toHaveCount(0, { timeout: 2000 });
-  await expect(page.getByRole("button", { name: /Compose the night/ })).toBeEnabled();
+  // with a set on screen the toolbar capsule reads Regenerate (round8-ux.md §1.2)
+  await expect(page.getByTestId("page-toolbar").getByRole("button", { name: /Regenerate/ })).toBeEnabled();
 });

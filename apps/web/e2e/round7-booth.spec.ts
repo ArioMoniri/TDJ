@@ -199,9 +199,12 @@ test("rehearsal: the night plays through the mocked previews; space holds, esc h
   await page.getByRole("menuitem", { name: "End the night" }).click();
   await page.waitForTimeout(800);
   await page.goto("/history");
+  // a 40 s rehearsal is logged as rehearsed, never as "played 0:00 h" (round8-ux.md §2 History)
   await expect(page.locator('[id^="history-"]').first()).toContainText(
-    /played .* · 1 hold · 1 stop · rehearsal/,
-    { timeout: 15000 },
+    /rehearsed \d\d:\d\d · 1 hold · 1 stop/,
+    {
+      timeout: 15000,
+    },
   );
 });
 
@@ -313,7 +316,7 @@ test("fresh browser (no folder, no Premium): previews are the automatic fallback
   await compose(page);
   const plan = await openBooth(page);
   // (1) every item with a Deezer preview plays its clip: the button and the badge say so, "without source" is gone
-  await expect(page.getByTestId("booth-start")).toHaveText("Start · rehearsal (30 s clips)");
+  await expect(page.getByTestId("booth-start")).toHaveText("Start with 30 s clips");
   await expect(page.getByTestId("booth-source")).toHaveText("30 s rehearsal");
   expect(await page.locator('[data-plan-index][data-source="preview"]').count()).toBeGreaterThan(
     plan.items.length / 4,
