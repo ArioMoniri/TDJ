@@ -540,7 +540,7 @@ test("shared model key: saved on /admin, used for DJs without a key, counted per
   );
   expect(refine.source).toBe("keywords");
   expect(refine.note).toMatch(/Applied: .*vals/i);
-  expect(refine.note).toMatch(/Could not apply: .*organiser's key is used up/);
+  expect(refine.note).toMatch(/Not applied: .*organiser's key is used up/);
   expectNoSecrets();
 });
 
