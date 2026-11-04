@@ -24,16 +24,34 @@ const ERA_LABEL: Record<string, string> = {
 };
 const fmtHours = (h: number) => (Number.isInteger(h) ? `${h} h` : `${h} h`.replace(".5 h", "½ h"));
 
-const WEEKDAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const WEEKDAY = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const EVENT_LABEL: Record<string, string> = {
+  milonga: "milonga",
+  marathon: "marathon",
+  encuentro: "encuentro",
+  festival: "festival night",
+  practica: "práctica",
+  wedding: "wedding",
+  show: "show night",
+};
+const pad = (n: number) => String(n).padStart(2, "0");
 
-/** Auto title: "Sat · Golden age · 4 h" (the event name when Tonight has one). No `Intl`: its first call loads
- *  ICU data on the main thread right after the result paints (100 ms on a phone). */
+/** Era label for a set ("Golden age", "Nuevo"…) for the History sub-lines. */
+export function eraLabel(p: Playlist): string {
+  return ERA_LABEL[p.options.eras?.[0] ?? "golden"] ?? p.options.eras?.[0] ?? "Golden age";
+}
+
+/** Auto title: the event, "Tuesday milonga" / "Saturday práctica" (the era and length go in the sub-line,
+ *  round8-ux.md §2 History). No `Intl`: its first call loads ICU data on the main thread right after the result
+ *  paints (100 ms on a phone). */
 export function snapshotTitle(p: Playlist, at = new Date()): string {
   const day = WEEKDAY[at.getDay()] ?? "";
-  const era = ERA_LABEL[p.options.eras?.[0] ?? "golden"] ?? p.options.eras?.[0] ?? "Golden age";
-  const ev = p.options.context?.event;
-  const evLabel = ev && ev !== "milonga" ? ` · ${ev[0]!.toUpperCase()}${ev.slice(1)}` : "";
-  return `${day} · ${era} · ${fmtHours(p.options.hours)}${evLabel}`;
+  const ev = p.options.context?.event ?? "milonga";
+  return `${day} ${EVENT_LABEL[ev] ?? ev}`;
+}
+/** "4 h · 22 tandas · Golden age": what the title used to carry. */
+export function snapshotMeta(p: Playlist): string {
+  return `${fmtHours(p.options.hours)} · ${p.tandas.length} tandas · ${eraLabel(p)}`;
 }
 
 /** The playlist without per-song chroma vectors (12 floats per track: the one bulky field nobody re-reads). */
@@ -263,16 +281,23 @@ export function makeNightLog(r: {
 }
 
 /** "played 2026-10-18 · 4:07 h · 2 holds · 1 birthday vals" (History row / detail). */
+/** Under ten minutes a night was a rehearsal, not a night played ("played 0:00 h" read as a bug, round8-ux.md §2). */
+export const PLAYED_MIN_SEC = 600;
+
 export function nightLogSummary(n: NightLog): string {
-  const h = Math.floor(n.playedSec / 3600);
-  const m = Math.floor((n.playedSec % 3600) / 60);
-  const parts = [
-    `${n.ended ? "played" : "played (unfinished)"} ${n.startedAt.slice(0, 10)}`,
-    `${h}:${String(m).padStart(2, "0")} h`,
-    `${n.holds} hold${n.holds === 1 ? "" : "s"}`,
-  ];
+  const started = new Date(n.startedAt);
+  const clock = Number.isNaN(started.getTime())
+    ? ""
+    : ` ${pad(started.getHours())}:${pad(started.getMinutes())}`;
+  const parts: string[] = [];
+  if (n.rehearsal || n.playedSec < PLAYED_MIN_SEC) parts.push(`rehearsed${clock}`);
+  else {
+    const h = Math.floor(n.playedSec / 3600);
+    const m = Math.floor((n.playedSec % 3600) / 60);
+    parts.push(`${n.ended ? "played" : "played (unfinished)"} ${h}:${pad(m)} h`);
+  }
+  if (n.holds) parts.push(`${n.holds} hold${n.holds === 1 ? "" : "s"}`);
   if (n.birthdayVals) parts.push(`${n.birthdayVals} birthday vals`);
   if (n.stops) parts.push(`${n.stops} stop${n.stops === 1 ? "" : "s"}`);
-  if (n.rehearsal) parts.push("rehearsal");
   return parts.join(" · ");
 }

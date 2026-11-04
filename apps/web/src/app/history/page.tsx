@@ -1,6 +1,7 @@
 "use client";
 import { Copy, Download, FileDown, GitCompare, Pencil, Play, RotateCcw, Share, Trash2 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
@@ -14,22 +15,13 @@ import { SwipeRow } from "@/components/SwipeRow";
 import { TandaCard } from "@/components/TandaCard";
 import { downloadBlob } from "@/lib/download";
 import { haptic } from "@/lib/haptics";
-import { groupByDay, nightLogSummary } from "@/lib/history";
+import { eraLabel, groupByDay, nightLogSummary } from "@/lib/history";
 import { useMediaQuery } from "@/lib/hooks";
 import { reduced as reducedV, rise } from "@/lib/motion";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import type { HistorySnapshot } from "@/lib/types";
 
-const ERA: Record<string, string> = {
-  golden: "Golden Age",
-  "golden-extended": "Golden extended",
-  "guardia-vieja": "Guardia Vieja",
-  "post-golden": "Post-golden",
-  nuevo: "Nuevo",
-  contemporary: "Contemporary",
-  all: "All eras",
-};
 const ARC: Record<string, string> = {
   "classic-two-peaks": "Two peaks",
   "single-peak": "Single peak",
@@ -41,6 +33,12 @@ const NO_PLAYLISTS: never[] = [];
 const fmtH = (h: number) => `${h} h`.replace(".5 h", "½ h");
 const time = (iso: string) =>
   new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+const MONTH = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+/** "20 Oct, 06:36" */
+const when = (iso: string) => {
+  const d = new Date(iso);
+  return `${d.getDate()} ${MONTH[d.getMonth()]}, ${time(iso)}`;
+};
 
 /** Score ring (44 pt tile): the score as a conic ring in tint with the number inside. */
 function ScoreRing({ score }: { score: number }) {
@@ -134,8 +132,9 @@ export default function HistoryPage() {
     toast(`Reopened "${s.title}" in Compose`);
     router.push("/#result");
   };
+  /** "4 h · 22 tandas · Golden age · Two peaks · rehearsed 06:36" (no ISO dates, no repeat of the title) */
   const sub = (s: HistorySnapshot) =>
-    `${fmtH(s.playlist.options.hours)} · ${ERA[s.playlist.options.eras?.[0] ?? "golden"] ?? ""} · ${ARC[s.playlist.options.arc] ?? s.playlist.options.arc} · ${s.playlist.tandas.length} tandas${s.nightLog ? ` · ${nightLogSummary(s.nightLog)}` : ""}`;
+    `${fmtH(s.playlist.options.hours)} · ${s.playlist.tandas.length} tandas · ${eraLabel(s.playlist)} · ${ARC[s.playlist.options.arc] ?? s.playlist.options.arc}${s.nightLog ? ` · ${nightLogSummary(s.nightLog)}` : ` · composed ${time(s.createdAt)}`}`;
   /** Booth: the set becomes the current one (locks cleared) and /booth opens on it. */
   const playNight = (s: HistorySnapshot) => {
     setPlaylist({ ...s.playlist, tandas: s.playlist.tandas.map((t) => ({ ...t, locked: false })) });
@@ -189,7 +188,13 @@ export default function HistoryPage() {
       />
       {!overridesReady && <p className="text-subhead py-8 text-center text-[var(--label-2)]">Loading…</p>}
       {overridesReady && history.length === 0 && (
-        <EmptyState>
+        <EmptyState
+          action={
+            <Link href="/" className="btn btn-primary">
+              Compose a night
+            </Link>
+          }
+        >
           Sets you compose land here, with their score, options and tandas. The trend starts after two.
         </EmptyState>
       )}
@@ -224,7 +229,7 @@ export default function HistoryPage() {
                   <Row
                     tile={<ScoreRing score={s.score} />}
                     label={s.title}
-                    sub={`${time(s.createdAt)} · ${sub(s)}${s.source !== "compose" ? ` · ${s.source}` : ""}`}
+                    sub={`${sub(s)}${s.source !== "compose" ? ` · ${s.source}` : ""}`}
                     value={playlist?.id === s.playlist.id ? "Current" : undefined}
                     chevron
                     onClick={() => setOpenId(s.id)}
@@ -293,14 +298,15 @@ export default function HistoryPage() {
         {open && (
           <>
             <Group
-              footer={`Seed ${open.playlist.options.seed} · ${open.playlist.score.verdict} · ${new Date(open.createdAt).toLocaleString()}`}
+              footer={`Composed ${when(open.createdAt)} · ${open.playlist.score.verdict} · seed under •••`}
             >
               <div className="cell flex-col items-stretch gap-2 py-4">
+                {/* the score on its own line, as the Compose header does; the metadata under it */}
                 <div className="flex items-baseline gap-1">
                   <span className="text-large-title tabular-nums text-[var(--tint)]">{open.score}</span>
                   <span className="text-title3 text-[var(--label-2)]">/100</span>
-                  <span className="text-subhead ml-auto text-[var(--label-2)]">{sub(open)}</span>
                 </div>
+                <p className="text-footnote text-[var(--label-2)]">{sub(open)}</p>
                 {isPhone ? <EnergyCurve compact p={open.playlist} /> : <EnergyCurve p={open.playlist} />}
               </div>
               <ActionRow label="Reopen in Compose" onClick={() => reopen(open)} />
