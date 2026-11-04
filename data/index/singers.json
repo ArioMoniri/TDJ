@@ -2,17 +2,17 @@
  {
   "id": "carlos-gardel",
   "name": "Carlos Gardel",
-  "count": 954,
+  "count": 877,
   "orchestras": {
-   "J.ricardo-G.barbieri": 418,
-   "G.barbieri-J.m.aguilar-Riverol": 96,
-   "G.barbieri-J.m.aguilar": 91,
-   "G.barbieri-Riverol-Pettorossi-Vivas": 67,
-   "J.ricardo-G.barbieri-J.m.aguilar": 58,
-   "José Ricardo": 57,
-   "Guitarras (solo singer)": 42,
+   "J.ricardo-G.barbieri": 396,
+   "G.barbieri-J.m.aguilar-Riverol": 81,
+   "G.barbieri-J.m.aguilar": 75,
+   "José Ricardo": 56,
+   "G.barbieri-Riverol-Pettorossi-Vivas": 55,
+   "J.ricardo-G.barbieri-J.m.aguilar": 51,
+   "Guitarras (solo singer)": 40,
    "Alfredo De Angelis": 24,
-   "Terig Tucci": 22,
+   "Terig Tucci": 20,
    "Carlos Gardel Guit.": 14,
    "Francisco Canaro": 14,
    "G.barbieri-Riverol-Vivas": 14
@@ -23,44 +23,21 @@
   ]
  },
  {
-  "id": "roberto-goyeneche",
-  "name": "Roberto Goyeneche",
-  "count": 410,
-  "orchestras": {
-   "Aníbal Troilo": 102,
-   "Armando Pontier": 78,
-   "Atilio Stampone": 33,
-   "Orq.típica Porteña": 31,
-   "Sexteto Tango": 26,
-   "Osvaldo Berlinghieri": 24,
-   "Horacio Salgán": 18,
-   "Raúl Garello": 18,
-   "Astor Piazzolla": 17,
-   "L.stazo-A.cupo": 13,
-   "E.baffa-O.berlinghieri": 10,
-   "Juanjo Domínguez": 9
-  },
-  "yearRange": [
-   1952,
-   1995
-  ]
- },
- {
   "id": "hector-maure",
   "name": "Héctor Mauré",
-  "count": 314,
+  "count": 279,
   "orchestras": {
-   "Guitarras (solo singer)": 85,
-   "Conj.típico y Guit.": 80,
-   "Juan D'Arienzo": 74,
+   "Guitarras (solo singer)": 84,
+   "Conj.típico y Guit.": 73,
+   "Juan D'Arienzo": 50,
    "Guitarras - Conjunto Típico": 25,
    "Con su Conjunto": 13,
    "Jorge Dragone": 10,
-   "Carlos Demaría": 9,
+   "Carlos Demaría": 8,
    "Pascual Elía": 5,
    "Orquesta (unspecified)": 4,
-   "Lito Scarso": 3,
-   "Juan Sánchez Gorio": 3,
+   "Lito Scarso": 2,
+   "Juan Sánchez Gorio": 2,
    "Conjunto Típico": 1
   },
   "yearRange": [
@@ -69,14 +46,37 @@
   ]
  },
  {
+  "id": "roberto-goyeneche",
+  "name": "Roberto Goyeneche",
+  "count": 266,
+  "orchestras": {
+   "Aníbal Troilo": 48,
+   "Atilio Stampone": 33,
+   "Armando Pontier": 32,
+   "Orq.típica Porteña": 31,
+   "Raúl Garello": 18,
+   "Sexteto Tango": 14,
+   "Osvaldo Berlinghieri": 12,
+   "Astor Piazzolla": 10,
+   "L.stazo-A.cupo": 10,
+   "E.baffa-O.berlinghieri": 10,
+   "Juanjo Domínguez": 9,
+   "Horacio Salgán": 8
+  },
+  "yearRange": [
+   1952,
+   1995
+  ]
+ },
+ {
   "id": "jorge-vidal",
   "name": "Jorge Vidal",
-  "count": 228,
+  "count": 225,
   "orchestras": {
-   "Guitarras (solo singer)": 163,
+   "Guitarras (solo singer)": 162,
    "Hnos.castro Guitarras": 12,
-   "Héctor María Artola": 10,
-   "Osvaldo Pugliese": 9,
+   "Héctor María Artola": 9,
+   "Osvaldo Pugliese": 8,
    "Argentino Galván": 6,
    "Enrique Mendez": 6,
    "Orquesta (unspecified)": 6,
@@ -92,89 +92,20 @@
   ]
  },
  {
-  "id": "julio-sosa",
-  "name": "Julio Sosa",
-  "count": 225,
-  "orchestras": {
-   "Armando Pontier": 73,
-   "Leopoldo Federico": 66,
-   "Francini-Pontier": 29,
-   "Francisco Rotundo": 27,
-   "Héctor Arbelo": 12,
-   "Luis Caruso": 10,
-   "Alberto Di Paulo": 8
-  },
-  "yearRange": [
-   1948,
-   1967
-  ]
- },
- {
-  "id": "armando-moreno",
-  "name": "Armando Moreno",
-  "count": 218,
-  "orchestras": {
-   "Enrique Rodríguez": 198,
-   "Domingo Federico": 17,
-   "Alfredo Attadía": 3
-  },
-  "yearRange": [
-   1940,
-   1967
-  ]
- },
- {
-  "id": "carlos-dante",
-  "name": "Carlos Dante",
-  "count": 208,
-  "orchestras": {
-   "Alfredo De Angelis": 127,
-   "Miguel Caló": 39,
-   "Juan D'Arienzo": 19,
-   "Aquiles Roggero": 12,
-   "Víctor Braña": 10,
-   "Rafael Canaro": 1
-  },
-  "yearRange": [
-   1928,
-   1969
-  ]
- },
- {
-  "id": "charlo",
-  "name": "Charlo",
-  "count": 185,
-  "orchestras": {
-   "Francisco Canaro": 99,
-   "Guitarras (solo singer)": 20,
-   "Orquesta (unspecified)": 18,
-   "Salvador Ruiz de Luna": 12,
-   "Charlo-Emilio Muñoz": 12,
-   "Francisco Lomuto": 12,
-   "Orquesta Típica Víctor": 6,
-   "Adolfo Carabelli": 3,
-   "Piano": 3
-  },
-  "yearRange": [
-   1924,
-   1984
-  ]
- },
- {
   "id": "miguel-montero",
   "name": "Miguel Montero",
-  "count": 185,
+  "count": 160,
   "orchestras": {
-   "José Libertella": 52,
-   "Angel Domínguez": 38,
-   "Guitarras (solo singer)": 29,
-   "Osvaldo Pugliese": 13,
-   "Francisco Lomuto": 12,
+   "José Libertella": 38,
+   "Angel Domínguez": 37,
+   "Guitarras (solo singer)": 28,
    "Pascual Mamone": 12,
+   "Osvaldo Pugliese": 10,
    "Oscar Castagnaro": 8,
+   "Francisco Lomuto": 7,
    "Armando Cupo": 7,
-   "Eduardo Corti": 3,
    "Guit.hnos.castro": 2,
+   "Eduardo Corti": 2,
    "Juan José Paz": 2,
    "Horacio Salgán": 2
   },
@@ -184,74 +115,13 @@
   ]
  },
  {
-  "id": "angel-vargas",
-  "name": "Angel Vargas",
-  "count": 177,
-  "orchestras": {
-   "Ángel D'Agostino": 47,
-   "Armando Lacava": 41,
-   "Edelmiro D'Amario": 40,
-   "Eduardo del Piano": 20,
-   "Luis Stazo": 7,
-   "Orquesta Típica Víctor": 6,
-   "Trío Alejandro Scarpino": 6,
-   "José Luis Padula": 4,
-   "Guitarras (solo singer)": 4,
-   "José Libertella": 2
-  },
-  "yearRange": [
-   1935,
-   1959
-  ]
- },
- {
-  "id": "floreal-ruiz",
-  "name": "Floreal Ruíz",
-  "count": 170,
-  "orchestras": {
-   "José Basso": 66,
-   "Francisco Rotundo": 42,
-   "Aníbal Troilo": 30,
-   "Alfredo De Angelis": 29,
-   "Guitarras (solo singer)": 2,
-   "Raúl Garello": 1
-  },
-  "yearRange": [
-   1940,
-   1977
-  ]
- },
- {
-  "id": "alberto-marino",
-  "name": "Alberto Marino",
-  "count": 169,
-  "orchestras": {
-   "Aníbal Troilo": 54,
-   "Emilio Balcarce": 19,
-   "Guitarras (solo singer)": 17,
-   "Héctor María Artola": 13,
-   "José Canet Guitarras": 13,
-   "Orquesta Típica": 8,
-   "Miguel Caló": 8,
-   "Armando Pontier": 8,
-   "Hugo Baralis": 5,
-   "Osvaldo Manzi": 4,
-   "Orquesta (unspecified)": 4,
-   "Osvaldo Tarantino": 3
-  },
-  "yearRange": [
-   1940,
-   1979
-  ]
- },
- {
   "id": "alberto-podesta",
   "name": "Alberto Podestá",
-  "count": 168,
+  "count": 158,
   "orchestras": {
-   "Miguel Caló": 33,
+   "Miguel Caló": 31,
    "Carlos Di Sarli": 28,
-   "Francini-Pontier": 24,
+   "Francini-Pontier": 16,
    "Pedro Láurenz": 15,
    "Joaquín M.mora": 14,
    "Armando Pontier": 13,
@@ -268,17 +138,130 @@
   ]
  },
  {
+  "id": "armando-moreno",
+  "name": "Armando Moreno",
+  "count": 157,
+  "orchestras": {
+   "Enrique Rodríguez": 137,
+   "Domingo Federico": 17,
+   "Alfredo Attadía": 3
+  },
+  "yearRange": [
+   1940,
+   1967
+  ]
+ },
+ {
+  "id": "charlo",
+  "name": "Charlo",
+  "count": 156,
+  "orchestras": {
+   "Francisco Canaro": 81,
+   "Guitarras (solo singer)": 20,
+   "Orquesta (unspecified)": 16,
+   "Salvador Ruiz de Luna": 12,
+   "Charlo-Emilio Muñoz": 12,
+   "Francisco Lomuto": 7,
+   "Orquesta Típica Víctor": 4,
+   "Adolfo Carabelli": 3,
+   "Piano": 1
+  },
+  "yearRange": [
+   1924,
+   1984
+  ]
+ },
+ {
+  "id": "carlos-dante",
+  "name": "Carlos Dante",
+  "count": 152,
+  "orchestras": {
+   "Alfredo De Angelis": 93,
+   "Miguel Caló": 18,
+   "Juan D'Arienzo": 18,
+   "Aquiles Roggero": 12,
+   "Víctor Braña": 10,
+   "Rafael Canaro": 1
+  },
+  "yearRange": [
+   1928,
+   1969
+  ]
+ },
+ {
+  "id": "julio-sosa",
+  "name": "Julio Sosa",
+  "count": 152,
+  "orchestras": {
+   "Leopoldo Federico": 66,
+   "Armando Pontier": 38,
+   "Francini-Pontier": 15,
+   "Francisco Rotundo": 12,
+   "Héctor Arbelo": 12,
+   "Luis Caruso": 5,
+   "Alberto Di Paulo": 4
+  },
+  "yearRange": [
+   1948,
+   1967
+  ]
+ },
+ {
+  "id": "angel-vargas",
+  "name": "Angel Vargas",
+  "count": 147,
+  "orchestras": {
+   "Ángel D'Agostino": 45,
+   "Armando Lacava": 40,
+   "Edelmiro D'Amario": 20,
+   "Eduardo del Piano": 20,
+   "Luis Stazo": 7,
+   "Trío Alejandro Scarpino": 6,
+   "Orquesta Típica Víctor": 3,
+   "José Luis Padula": 2,
+   "Guitarras (solo singer)": 2,
+   "José Libertella": 2
+  },
+  "yearRange": [
+   1935,
+   1959
+  ]
+ },
+ {
+  "id": "alberto-marino",
+  "name": "Alberto Marino",
+  "count": 143,
+  "orchestras": {
+   "Aníbal Troilo": 47,
+   "Guitarras (solo singer)": 15,
+   "Emilio Balcarce": 13,
+   "José Canet Guitarras": 13,
+   "Orquesta Típica": 8,
+   "Héctor María Artola": 8,
+   "Miguel Caló": 8,
+   "Osvaldo Manzi": 4,
+   "Armando Pontier": 4,
+   "Hugo Baralis": 4,
+   "Orquesta (unspecified)": 4,
+   "Osvaldo Tarantino": 3
+  },
+  "yearRange": [
+   1940,
+   1979
+  ]
+ },
+ {
   "id": "edmundo-rivero",
   "name": "Edmundo Rivero",
-  "count": 163,
+  "count": 133,
   "orchestras": {
-   "Guitarras (solo singer)": 42,
-   "Aníbal Troilo": 27,
-   "Horacio Salgán": 24,
-   "Héctor Stamponi": 24,
-   "Víctor M.buchino": 17,
+   "Guitarras (solo singer)": 35,
+   "Aníbal Troilo": 24,
+   "Horacio Salgán": 23,
+   "Víctor M.buchino": 13,
    "Orquesta (unspecified)": 13,
-   "Astor Piazzolla": 9,
+   "Héctor Stamponi": 12,
+   "Astor Piazzolla": 6,
    "A.troilo-R.grela": 2,
    "Carlos Di Sarli": 2,
    "Angel Domínguez": 1,
@@ -291,24 +274,57 @@
   ]
  },
  {
-  "id": "armando-laborde",
-  "name": "Armando Laborde",
-  "count": 155,
+  "id": "francisco-fiorentino",
+  "name": "Francisco Fiorentino",
+  "count": 122,
   "orchestras": {
-   "Juan D'Arienzo": 141,
-   "Héctor Varela": 14
+   "Aníbal Troilo": 70,
+   "Astor Piazzolla": 24,
+   "Pedro Maffia": 5,
+   "José Basso": 5,
+   "Alberto Mancione": 4,
+   "Puglia-Pedroza": 3,
+   "Francisco Canaro": 3,
+   "Ismael Spitalnik": 2,
+   "Juan Carlos Cobián": 2,
+   "Juan D'Arienzo": 2,
+   "Guitarras (solo singer)": 1,
+   "Orquesta Típica Víctor": 1
   },
   "yearRange": [
-   1944,
-   1967
+   1926,
+   1951
+  ]
+ },
+ {
+  "id": "hugo-del-carril",
+  "name": "Hugo del Carril",
+  "count": 119,
+  "orchestras": {
+   "Tito Ribero": 31,
+   "Guitarras (solo singer)": 25,
+   "Orquesta (unspecified)": 16,
+   "Armando Pontier": 10,
+   "Atilio Bruni": 8,
+   "Guit.y Contrabajo": 7,
+   "Edgardo Donato": 3,
+   "Waldo de los Ríos": 3,
+   "J.mora-Ortíz-Puglisi": 2,
+   "Joaquín M.mora": 2,
+   "Piano y Guitarras": 2,
+   "Guit.y Bandoneón": 2
+  },
+  "yearRange": [
+   1935,
+   1971
   ]
  },
  {
   "id": "alberto-echague",
   "name": "Alberto Echagüe",
-  "count": 152,
+  "count": 118,
   "orchestras": {
-   "Juan D'Arienzo": 148,
+   "Juan D'Arienzo": 114,
    "Juan Sánchez Gorio": 2,
    "Trío Ciriaco Ortíz": 2
   },
@@ -318,29 +334,35 @@
   ]
  },
  {
-  "id": "raul-beron",
-  "name": "Raúl Berón",
-  "count": 138,
+  "id": "alberto-gomez",
+  "name": "Alberto Gómez",
+  "count": 111,
   "orchestras": {
-   "Miguel Caló": 51,
-   "Aníbal Troilo": 28,
-   "Lucio Demare": 27,
-   "Francini-Pontier": 20,
-   "Guitarras (solo singer)": 12
+   "Orquesta Típica Víctor": 31,
+   "Guitarras (solo singer)": 24,
+   "José Canet Guitarras": 18,
+   "Orquesta (unspecified)": 17,
+   "Adolfo Guzmán": 7,
+   "Orquesta Típica": 5,
+   "Américo Belloto": 3,
+   "Orq.típica Coca Cola": 2,
+   "Pedro Maffia": 2,
+   "José Canet Orquesta": 1,
+   "Edgardo Donato": 1
   },
   "yearRange": [
-   1936,
-   1968
+   1929,
+   1965
   ]
  },
  {
   "id": "jorge-casal",
   "name": "Jorge Casal",
-  "count": 137,
+  "count": 108,
   "orchestras": {
-   "Aníbal Troilo": 45,
-   "Florindo Sassone": 25,
-   "Guitarras (solo singer)": 18,
+   "Aníbal Troilo": 28,
+   "Florindo Sassone": 16,
+   "Guitarras (solo singer)": 15,
    "Miguel Nijensohn": 12,
    "Leopoldo Federico": 7,
    "Francisco Trópoli": 7,
@@ -357,60 +379,14 @@
   ]
  },
  {
-  "id": "hugo-del-carril",
-  "name": "Hugo del Carril",
-  "count": 135,
-  "orchestras": {
-   "Tito Ribero": 34,
-   "Guitarras (solo singer)": 28,
-   "Orquesta (unspecified)": 18,
-   "Armando Pontier": 13,
-   "Atilio Bruni": 10,
-   "Guit.y Contrabajo": 7,
-   "Joaquín M.mora": 5,
-   "Edgardo Donato": 3,
-   "Waldo de los Ríos": 3,
-   "J.mora-Ortíz-Puglisi": 2,
-   "Piano y Guitarras": 2,
-   "Guit.y Bandoneón": 2
-  },
-  "yearRange": [
-   1935,
-   1971
-  ]
- },
- {
-  "id": "francisco-fiorentino",
-  "name": "Francisco Fiorentino",
-  "count": 130,
-  "orchestras": {
-   "Aníbal Troilo": 74,
-   "Astor Piazzolla": 24,
-   "Puglia-Pedroza": 6,
-   "Pedro Maffia": 6,
-   "José Basso": 5,
-   "Alberto Mancione": 4,
-   "Francisco Canaro": 3,
-   "Ismael Spitalnik": 2,
-   "Juan Carlos Cobián": 2,
-   "Juan D'Arienzo": 2,
-   "Guitarras (solo singer)": 1,
-   "Orquesta Típica Víctor": 1
-  },
-  "yearRange": [
-   1926,
-   1951
-  ]
- },
- {
   "id": "roberto-maida",
   "name": "Roberto Maida",
-  "count": 129,
+  "count": 103,
   "orchestras": {
-   "Francisco Canaro": 121,
-   "Manuel Pizarro": 3,
+   "Francisco Canaro": 97,
    "Pedro Maffia": 3,
-   "Guitarras (solo singer)": 2
+   "Manuel Pizarro": 2,
+   "Guitarras (solo singer)": 1
   },
   "yearRange": [
    1930,
@@ -418,124 +394,83 @@
   ]
  },
  {
-  "id": "alberto-gomez",
-  "name": "Alberto Gómez",
-  "count": 126,
+  "id": "raul-beron",
+  "name": "Raúl Berón",
+  "count": 98,
   "orchestras": {
-   "Orquesta Típica Víctor": 36,
-   "Guitarras (solo singer)": 24,
-   "José Canet Guitarras": 21,
-   "Orquesta (unspecified)": 17,
-   "Orquesta Típica": 7,
-   "Adolfo Guzmán": 7,
-   "Américo Belloto": 5,
-   "Pedro Maffia": 3,
-   "Edgardo Donato": 3,
-   "Orq.típica Coca Cola": 2,
-   "José Canet Orquesta": 1
+   "Miguel Caló": 30,
+   "Lucio Demare": 26,
+   "Aníbal Troilo": 16,
+   "Francini-Pontier": 14,
+   "Guitarras (solo singer)": 12
   },
   "yearRange": [
-   1929,
-   1965
+   1936,
+   1968
   ]
  },
  {
-  "id": "mario-bustos",
-  "name": "Mario Bustos",
-  "count": 126,
+  "id": "floreal-ruiz",
+  "name": "Floreal Ruíz",
+  "count": 96,
   "orchestras": {
-   "Juan D'Arienzo": 79,
-   "Armando Lacava": 16,
-   "Jorge Dragone": 10,
-   "Florindo Sassone": 6,
-   "Domingo Federico": 5,
-   "Eduardo del Piano": 5,
-   "Osvaldo Ferri": 3,
-   "A.troilo-R.grela": 2
+   "José Basso": 36,
+   "Aníbal Troilo": 26,
+   "Francisco Rotundo": 24,
+   "Alfredo De Angelis": 8,
+   "Guitarras (solo singer)": 1,
+   "Raúl Garello": 1
   },
   "yearRange": [
    1940,
-   1993
+   1977
   ]
  },
  {
-  "id": "oscar-larroca",
-  "name": "Oscar Larroca",
-  "count": 112,
+  "id": "armando-laborde",
+  "name": "Armando Laborde",
+  "count": 95,
   "orchestras": {
-   "Alfredo De Angelis": 89,
-   "Domingo Federico": 12,
-   "Juan Carlos Bera": 10,
-   "Roberto Caló": 1
+   "Juan D'Arienzo": 85,
+   "Héctor Varela": 10
   },
   "yearRange": [
-   1945,
-   1959
+   1944,
+   1967
   ]
  },
  {
-  "id": "elsa-rivas",
-  "name": "Elsa Rivas",
-  "count": 111,
+  "id": "roberto-rufino",
+  "name": "Roberto Rufino",
+  "count": 93,
   "orchestras": {
-   "Trío Yumba": 26,
-   "Ricardo Tanturi": 17,
-   "Juan Larenza": 11,
-   "Víctor D'Amario": 10,
-   "Juan José Paz": 10,
-   "Leopoldo Federico": 8,
-   "Los Sres.del Tango": 7,
-   "Héctor Arbelo": 7,
-   "Daniel Lomuto": 6,
-   "4to.aníbal Troilo": 4,
-   "Guitarras (solo singer)": 2,
-   "Alberto Di Paulo": 2
+   "Carlos Di Sarli": 41,
+   "Aníbal Troilo": 15,
+   "Miguel Caló": 13,
+   "Francini-Pontier": 12,
+   "Armando Pontier": 4,
+   "Enrique M.francini": 3,
+   "Roberto Caló": 2,
+   "Gabriel Clausi(chula)": 2,
+   "Quinteto Real": 1
   },
   "yearRange": [
-   1942,
-   1999
-  ]
- },
- {
-  "id": "julio-martel",
-  "name": "Julio Martel",
-  "count": 110,
-  "orchestras": {
-   "Alfredo De Angelis": 78,
-   "Enrique Méndez": 25,
-   "Américo Podestá": 4,
-   "Puglia-Pedroza": 3
-  },
-  "yearRange": [
-   1943,
-   1957
-  ]
- },
- {
-  "id": "jorge-valdez",
-  "name": "Jorge Valdéz",
-  "count": 110,
-  "orchestras": {
-   "Juan D'Arienzo": 105,
-   "Orquesta Festival": 5
-  },
-  "yearRange": [
-   1957,
-   2000
+   1939,
+   1973
   ]
  },
  {
   "id": "mercedes-simone",
   "name": "Mercedes Simone",
-  "count": 104,
+  "count": 90,
   "orchestras": {
-   "Emilio Brameri": 33,
-   "Trío Típico": 29,
+   "Emilio Brameri": 32,
+   "Trío Típico": 20,
    "Guitarras (solo singer)": 9,
    "Orquesta Típica Víctor": 8,
    "Orquesta (unspecified)": 7,
-   "Roberto Garza": 7,
-   "Quinteto Típico": 3,
+   "Roberto Garza": 4,
+   "Quinteto Típico": 2,
    "Orq.típica Coca Cola": 2,
    "Orq.radio el Mundo": 2,
    "Juan Carlos Cambón": 1,
@@ -548,36 +483,29 @@
   ]
  },
  {
-  "id": "roberto-rufino",
-  "name": "Roberto Rufino",
-  "count": 99,
+  "id": "jorge-valdez",
+  "name": "Jorge Valdéz",
+  "count": 86,
   "orchestras": {
-   "Carlos Di Sarli": 41,
-   "Aníbal Troilo": 16,
-   "Miguel Caló": 15,
-   "Francini-Pontier": 14,
-   "Armando Pontier": 5,
-   "Enrique M.francini": 3,
-   "Roberto Caló": 2,
-   "Gabriel Clausi(chula)": 2,
-   "Quinteto Real": 1
+   "Juan D'Arienzo": 81,
+   "Orquesta Festival": 5
   },
   "yearRange": [
-   1939,
-   1973
+   1957,
+   2000
   ]
  },
  {
   "id": "jorge-duran",
   "name": "Jorge Durán",
-  "count": 92,
+  "count": 85,
   "orchestras": {
-   "Carlos Di Sarli": 46,
-   "José Basso": 16,
+   "Carlos Di Sarli": 42,
+   "José Basso": 15,
    "Guitarras (solo singer)": 12,
-   "Orlando Trípodi": 6,
+   "Orlando Trípodi": 5,
    "Armando Pontier": 4,
-   "Francisco Rotundo": 3,
+   "Francisco Rotundo": 2,
    "Oscar de la Fuente": 2,
    "Orquesta (unspecified)": 2,
    "Orq.símb.o.maderna": 1
@@ -590,10 +518,10 @@
  {
   "id": "enrique-campos",
   "name": "Enrique Campos",
-  "count": 87,
+  "count": 84,
   "orchestras": {
    "Ricardo Tanturi": 51,
-   "Francisco Rotundo": 20,
+   "Francisco Rotundo": 17,
    "Roberto Caló": 10,
    "Graciano Gómez": 5,
    "Rogelio Coll": 1
@@ -604,44 +532,70 @@
   ]
  },
  {
-  "id": "raul-iriarte",
-  "name": "Raúl Iriarte",
-  "count": 86,
+  "id": "julio-martel",
+  "name": "Julio Martel",
+  "count": 82,
   "orchestras": {
-   "Miguel Caló": 63,
-   "L.álvarez": 15,
-   "Armando Lacava": 7,
-   "Orquesta (unspecified)": 1
+   "Alfredo De Angelis": 52,
+   "Enrique Méndez": 24,
+   "Américo Podestá": 4,
+   "Puglia-Pedroza": 2
   },
   "yearRange": [
    1943,
-   1972
+   1957
   ]
  },
  {
-  "id": "fernando-diaz",
-  "name": "Fernando Díaz",
-  "count": 84,
+  "id": "elsa-rivas",
+  "name": "Elsa Rivas",
+  "count": 82,
   "orchestras": {
-   "Francisco Lomuto": 77,
-   "Guitarras (solo singer)": 3,
-   "Carlos Di Sarli(sex.)": 2,
-   "Eddie Kay": 1,
-   "Orquesta Típica Víctor": 1
+   "Trío Yumba": 14,
+   "Ricardo Tanturi": 12,
+   "Juan Larenza": 11,
+   "Víctor D'Amario": 10,
+   "Héctor Arbelo": 7,
+   "Leopoldo Federico": 6,
+   "Juan José Paz": 6,
+   "Daniel Lomuto": 6,
+   "Los Sres.del Tango": 4,
+   "Guitarras (solo singer)": 2,
+   "Alberto Di Paulo": 2,
+   "4to.aníbal Troilo": 1
   },
   "yearRange": [
-   1931,
-   1942
+   1942,
+   1999
+  ]
+ },
+ {
+  "id": "mario-bustos",
+  "name": "Mario Bustos",
+  "count": 82,
+  "orchestras": {
+   "Juan D'Arienzo": 36,
+   "Armando Lacava": 16,
+   "Jorge Dragone": 10,
+   "Florindo Sassone": 6,
+   "Eduardo del Piano": 5,
+   "Domingo Federico": 4,
+   "Osvaldo Ferri": 3,
+   "A.troilo-R.grela": 2
+  },
+  "yearRange": [
+   1940,
+   1993
   ]
  },
  {
   "id": "alberto-castillo",
   "name": "Alberto Castillo",
-  "count": 82,
+  "count": 81,
   "orchestras": {
    "Ricardo Tanturi": 39,
-   "Enrique Alessio": 14,
    "Emilio Balcarce": 13,
+   "Enrique Alessio": 13,
    "Jorge Dragone": 7,
    "Angel Condercuri": 7,
    "Aníbal Troilo": 1,
@@ -653,13 +607,44 @@
   ]
  },
  {
+  "id": "fernando-diaz",
+  "name": "Fernando Díaz",
+  "count": 80,
+  "orchestras": {
+   "Francisco Lomuto": 73,
+   "Guitarras (solo singer)": 3,
+   "Carlos Di Sarli(sex.)": 2,
+   "Eddie Kay": 1,
+   "Orquesta Típica Víctor": 1
+  },
+  "yearRange": [
+   1931,
+   1942
+  ]
+ },
+ {
+  "id": "c-gardel-j-razzano",
+  "name": "C. Gardel - J. Razzano",
+  "count": 80,
+  "orchestras": {
+   "J.ricardo-G.barbieri": 43,
+   "José Ricardo": 34,
+   "G.barbieri-J.m.aguilar": 2,
+   "Roberto Firpo": 1
+  },
+  "yearRange": [
+   1917,
+   1929
+  ]
+ },
+ {
   "id": "oscar-serpa",
   "name": "Oscar Serpa",
-  "count": 82,
+  "count": 79,
   "orchestras": {
-   "Osvaldo Fresedo": 36,
+   "Osvaldo Fresedo": 34,
    "Carlos Di Sarli": 31,
-   "Los Sres.del Tango": 12,
+   "Los Sres.del Tango": 11,
    "Ricardo Pedevilla": 3
   },
   "yearRange": [
@@ -668,28 +653,28 @@
   ]
  },
  {
-  "id": "c-gardel-j-razzano",
-  "name": "C. Gardel - J. Razzano",
-  "count": 81,
+  "id": "raul-iriarte",
+  "name": "Raúl Iriarte",
+  "count": 79,
   "orchestras": {
-   "J.ricardo-G.barbieri": 43,
-   "José Ricardo": 34,
-   "Roberto Firpo": 2,
-   "G.barbieri-J.m.aguilar": 2
+   "Miguel Caló": 56,
+   "L.álvarez": 15,
+   "Armando Lacava": 7,
+   "Orquesta (unspecified)": 1
   },
   "yearRange": [
-   1917,
-   1929
+   1943,
+   1972
   ]
  },
  {
   "id": "roberto-diaz",
   "name": "Roberto Díaz",
-  "count": 80,
+  "count": 76,
   "orchestras": {
    "Luis Petrucelli": 23,
    "Guitarras, Piano y Violín": 18,
-   "Orquesta Típica Víctor": 17,
+   "Orquesta Típica Víctor": 13,
    "Cayetano Puglisi": 13,
    "Porfirio Díaz": 2,
    "Roberto Firpo": 2,
@@ -705,49 +690,11 @@
   ]
  },
  {
-  "id": "agustin-magaldi",
-  "name": "Agustín Magaldi",
-  "count": 78,
-  "orchestras": {
-   "Guitarras (solo singer)": 61,
-   "Agustín Magaldi Vol. Iii": 10,
-   "Orquesta (unspecified)": 6,
-   "Edgardo Donato": 1
-  },
-  "yearRange": [
-   1925,
-   1938
-  ]
- },
- {
-  "id": "roberto-florio",
-  "name": "Roberto Florio",
-  "count": 75,
-  "orchestras": {
-   "Carlos Di Sarli": 18,
-   "Trío Yumba": 12,
-   "Alfredo De Angelis": 9,
-   "José Basso": 6,
-   "Armando Pontier": 5,
-   "Orlando Trípodi": 4,
-   "Orquesta(ee.uu.)": 4,
-   "Francini-Pontier": 4,
-   "Gotán Trío": 3,
-   "Lorenzo Barbero": 2,
-   "Héctor Garrido": 2,
-   "José Libertella": 2
-  },
-  "yearRange": [
-   1952,
-   1982
-  ]
- },
- {
   "id": "juan-carlos-godoy",
   "name": "Juan Carlos Godoy",
-  "count": 71,
+  "count": 70,
   "orchestras": {
-   "Alfredo De Angelis": 44,
+   "Alfredo De Angelis": 43,
    "Luis Stazo": 10,
    "Ricardo Tanturi": 7,
    "José Basso": 6,
@@ -760,37 +707,55 @@
   ]
  },
  {
-  "id": "carlos-roldan",
-  "name": "Carlos Roldán",
-  "count": 70,
+  "id": "oscar-larroca",
+  "name": "Oscar Larroca",
+  "count": 69,
   "orchestras": {
-   "Francisco Canaro": 46,
-   "Francisco Rotundo": 11,
-   "Guitarras (solo singer)": 4,
-   "Roberto Caló": 3,
-   "Hugo Di Carlo": 2,
-   "Donato Racciatti": 1,
-   "Emilio Pellejero": 1,
-   "Osvaldo Fresedo": 1,
-   "Miguel Caló": 1
+   "Alfredo De Angelis": 46,
+   "Domingo Federico": 12,
+   "Juan Carlos Bera": 10,
+   "Roberto Caló": 1
   },
   "yearRange": [
-   1933,
-   1956
+   1945,
+   1959
+  ]
+ },
+ {
+  "id": "roberto-florio",
+  "name": "Roberto Florio",
+  "count": 66,
+  "orchestras": {
+   "Carlos Di Sarli": 16,
+   "Trío Yumba": 12,
+   "Alfredo De Angelis": 6,
+   "Armando Pontier": 5,
+   "Orlando Trípodi": 4,
+   "Orquesta(ee.uu.)": 4,
+   "Francini-Pontier": 4,
+   "José Basso": 3,
+   "Lorenzo Barbero": 2,
+   "Gotán Trío": 2,
+   "Héctor Garrido": 2,
+   "José Libertella": 2
+  },
+  "yearRange": [
+   1952,
+   1982
   ]
  },
  {
   "id": "rosita-quiroga",
   "name": "Rosita Quiroga",
-  "count": 69,
+  "count": 66,
   "orchestras": {
    "Guitarras (solo singer)": 35,
    "Orquesta (unspecified)": 16,
-   "Band.y Guitarras": 4,
    "Guit.vicente Spina": 4,
    "Conjunto": 3,
    "Guit.y Bandoneón": 2,
    "Piano (e.pereyra)": 2,
+   "Band.y Guitarras": 1,
    "Orquesta Típica Víctor": 1,
    "Guitarra y Armonio": 1,
    "Orquesta Pereyra": 1
@@ -801,72 +766,13 @@
   ]
  },
  {
-  "id": "argentino-ledesma",
-  "name": "Argentino Ledesma",
-  "count": 69,
-  "orchestras": {
-   "Héctor Varela": 28,
-   "Osvaldo Requena": 16,
-   "Guitarras (solo singer)": 10,
-   "Jorge Dragone": 6,
-   "Carlos Di Sarli": 4,
-   "Cayetano Conti": 2,
-   "Osvaldo Fresedo": 2,
-   "Tití Rossi": 1
-  },
-  "yearRange": [
-   1952,
-   1981
-  ]
- },
- {
-  "id": "alfredo-del-rio",
-  "name": "Alfredo del Río",
-  "count": 67,
-  "orchestras": {
-   "Alfredo Gobbi": 26,
-   "Pedro Láurenz": 12,
-   "Francisco Rotundo": 9,
-   "José Basso": 9,
-   "Trío Yumba": 7,
-   "Eduardo Rovira": 4
-  },
-  "yearRange": [
-   1952,
-   1971
-  ]
- },
- {
-  "id": "azucena-maizani",
-  "name": "Azucena Maizani",
-  "count": 66,
-  "orchestras": {
-   "Conjunto Típico": 25,
-   "O.cufaro-R.zerrillo-M.parada": 17,
-   "O.cufaro-R.zerrillo": 6,
-   "Francisco Trópoli": 6,
-   "Enrique Delfino": 2,
-   "Roberto Caló": 2,
-   "Terig Tucci": 2,
-   "Orq.típica Coca Cola": 2,
-   "Piano y Guitarras": 1,
-   "4to.aníbal Troilo": 1,
-   "E.delfino-M.parada": 1,
-   "Conjunto": 1
-  },
-  "yearRange": [
-   1927,
-   1959
-  ]
- },
- {
   "id": "oscar-ferrari",
   "name": "Oscar Ferrari",
-  "count": 66,
+  "count": 63,
   "orchestras": {
-   "Armando Pontier": 22,
+   "Armando Pontier": 20,
    "Ricardo Martinez": 15,
-   "José Basso": 15,
+   "José Basso": 14,
    "Miguel Nijensohn": 12,
    "Oscar de la Fuente": 2
   },
@@ -876,93 +782,14 @@
   ]
  },
  {
-  "id": "roberto-videla",
-  "name": "Roberto Videla",
-  "count": 66,
-  "orchestras": {
-   "Ricardo Tanturi": 48,
-   "Orquesta (unspecified)": 12,
-   "Guitarras (solo singer)": 4,
-   "Enrique Rodríguez": 1,
-   "Conjunto Típico": 1
-  },
-  "yearRange": [
-   1945,
-   1987
-  ]
- },
- {
-  "id": "carlos-acuna",
-  "name": "Carlos Acuña",
-  "count": 63,
-  "orchestras": {
-   "Adolfo Carné": 24,
-   "Mariano Mores": 18,
-   "Rodolfo Biagi": 13,
-   "José Rizzo": 7,
-   "Carlos Di Sarli": 1
-  },
-  "yearRange": [
-   1941,
-   1983
-  ]
- },
- {
-  "id": "a-magaldi-p-noda",
-  "name": "A. Magaldi - P. Noda",
-  "count": 62,
-  "orchestras": {
-   "Guitarras (solo singer)": 54,
-   "Agustín Magaldi Vol. Iii": 8
-  },
-  "yearRange": [
-   1925,
-   1933
-  ]
- },
- {
-  "id": "horacio-deval",
-  "name": "Horacio Deval",
-  "count": 61,
-  "orchestras": {
-   "Orquesta (unspecified)": 23,
-   "Roberto Pansera": 13,
-   "Osvaldo Requena": 11,
-   "Horacio Salgán": 6,
-   "Guitarras (solo singer)": 3,
-   "Argentino Galván": 2,
-   "Joaquín Do Reyes": 2,
-   "Ubaldo de Lío": 1
-  },
-  "yearRange": [
-   1950,
-   2002
-  ]
- },
- {
-  "id": "roberto-chanel",
-  "name": "Roberto Chanel",
-  "count": 61,
-  "orchestras": {
-   "Florindo Sassone": 25,
-   "Osvaldo Pugliese": 23,
-   "Angel Domínguez": 12,
-   "Joaquín Do Reyes": 1
-  },
-  "yearRange": [
-   1943,
-   1955
-  ]
- },
- {
   "id": "hugo-duval",
   "name": "Hugo Duval",
-  "count": 60,
+  "count": 59,
   "orchestras": {
    "Rodolfo Biagi": 36,
    "Trío Yumba": 19,
    "5to.champagne Tango": 3,
-   "Oscar de la Fuente": 2
+   "Oscar de la Fuente": 1
   },
   "yearRange": [
    1950,
@@ -970,66 +797,26 @@
   ]
  },
  {
-  "id": "con-canto",
-  "name": "Con Canto",
+  "id": "azucena-maizani",
+  "name": "Azucena Maizani",
   "count": 58,
   "orchestras": {
-   "Anselmo Aieta": 16,
-   "Los Mancifestas": 10,
-   "Manuel Pizarro": 9,
-   "Juan Cambareri": 4,
-   "Orq.típica Brunswick": 4,
-   "Juan Maglio \"Pacho\"": 3,
-   "José Servidio": 3,
-   "Francisco Canaro": 2,
-   "Ludwig Rüth": 2,
-   "Osvaldo Fresedo": 1,
-   "Eduardo Bianco": 1,
-   "Guitarras (solo singer)": 1
+   "Conjunto Típico": 25,
+   "O.cufaro-R.zerrillo-M.parada": 15,
+   "O.cufaro-R.zerrillo": 5,
+   "Enrique Delfino": 2,
+   "Roberto Caló": 2,
+   "Francisco Trópoli": 2,
+   "Orq.típica Coca Cola": 2,
+   "Piano y Guitarras": 1,
+   "Terig Tucci": 1,
+   "4to.aníbal Troilo": 1,
+   "E.delfino-M.parada": 1,
+   "Conjunto": 1
   },
   "yearRange": [
-   1920,
-   2003
-  ]
- },
- {
-  "id": "luis-diaz",
-  "name": "Luis Díaz",
-  "count": 58,
-  "orchestras": {
-   "Pedro Maffia": 22,
-   "Orq.típica Brunswick": 9,
-   "Edgardo Donato": 8,
-   "Julio De Caro": 5,
-   "Ricardo Luis Brignolo": 4,
-   "Orq.típ.los Provincianos": 4,
-   "Orquesta Típica Víctor": 4,
-   "Aníbal Troilo": 1,
-   "Francisco Canaro": 1
-  },
-  "yearRange": [
-   1929,
-   1940
-  ]
- },
- {
-  "id": "horacio-casares",
-  "name": "Horacio Casares",
-  "count": 57,
-  "orchestras": {
-   "Trío Típico": 12,
-   "Miguel Nijensohn": 12,
-   "Orq.símb.o.maderna": 11,
-   "Carlos Di Sarli": 9,
-   "Guitarras Javier Peru": 3,
-   "Víctor D'Amario": 3,
-   "Rubén Sosa": 3,
-   "Alberto Di Paulo": 3,
-   "Guit.y Bandoneón": 1
-  },
-  "yearRange": [
-   1954,
-   1997
+   1927,
+   1959
   ]
  },
  {
@@ -1050,67 +837,80 @@
   ]
  },
  {
-  "id": "oscar-macri",
-  "name": "Oscar Macri",
+  "id": "agustin-magaldi",
+  "name": "Agustín Magaldi",
   "count": 56,
   "orchestras": {
-   "Florindo Sassone": 29,
-   "Luciano Leocata": 25,
-   "Rodolfo Biagi": 2
+   "Guitarras (solo singer)": 41,
+   "Agustín Magaldi Vol. Iii": 10,
+   "Orquesta (unspecified)": 4,
+   "Edgardo Donato": 1
   },
   "yearRange": [
-   1958,
-   1993
+   1925,
+   1938
   ]
  },
  {
-  "id": "ruben-juarez",
-  "name": "Rubén Juárez",
+  "id": "carlos-roldan",
+  "name": "Carlos Roldán",
   "count": 55,
   "orchestras": {
-   "Raúl Garello": 24,
-   "Piano y Bandoneón": 11,
-   "Carlos García": 8,
-   "Armando Pontier": 7,
-   "Orquesta (unspecified)": 2,
-   "José Oglewleckl": 1,
-   "Bandoneón": 1,
-   "Guitarra y Piano": 1
+   "Francisco Canaro": 34,
+   "Francisco Rotundo": 8,
+   "Guitarras (solo singer)": 4,
+   "Roberto Caló": 3,
+   "Hugo Di Carlo": 2,
+   "Donato Racciatti": 1,
+   "Emilio Pellejero": 1,
+   "Osvaldo Fresedo": 1,
+   "Miguel Caló": 1
   },
   "yearRange": [
-   1969,
+   1933,
+   1956
+  ]
+ },
+ {
+  "id": "con-canto",
+  "name": "Con Canto",
+  "count": 54,
+  "orchestras": {
+   "Anselmo Aieta": 12,
+   "Los Mancifestas": 10,
+   "Manuel Pizarro": 9,
+   "Juan Cambareri": 4,
+   "Orq.típica Brunswick": 4,
+   "Juan Maglio \"Pacho\"": 3,
+   "José Servidio": 3,
+   "Francisco Canaro": 2,
+   "Ludwig Rüth": 2,
+   "Osvaldo Fresedo": 1,
+   "Eduardo Bianco": 1,
+   "Guitarras (solo singer)": 1
+  },
+  "yearRange": [
+   1920,
    2003
   ]
  },
  {
-  "id": "carlos-aguirre",
-  "name": "Carlos Aguirre",
+  "id": "argentino-ledesma",
+  "name": "Argentino Ledesma",
   "count": 54,
   "orchestras": {
-   "Alfredo De Angelis": 41,
-   "Ernesto Marné": 11,
-   "Orquesta (unspecified)": 1,
-   "Orq.símb.o.maderna": 1
+   "Osvaldo Requena": 16,
+   "Héctor Varela": 14,
+   "Guitarras (solo singer)": 10,
+   "Jorge Dragone": 6,
+   "Carlos Di Sarli": 3,
+   "Cayetano Conti": 2,
+   "Osvaldo Fresedo": 2,
+   "Tití Rossi": 1
   },
   "yearRange": [
-   1960,
-   1987
-  ]
- },
- {
-  "id": "rodolfo-lesica",
-  "name": "Rodolfo Lesica",
-  "count": 54,
-  "orchestras": {
-   "Héctor Varela": 25,
-   "Jorge Caldara": 12,
-   "Osvaldo Requena": 10,
-   "Los Ases del Tango": 4,
-   "Orquesta (unspecified)": 3
-  },
-  "yearRange": [
-   1950,
-   1991
+   1952,
+   1981
   ]
  },
  {
@@ -1128,58 +928,101 @@
   ]
  },
  {
-  "id": "jorge-maciel",
-  "name": "Jorge Maciel",
-  "count": 52,
-  "orchestras": {
-   "Alfredo Gobbi": 31,
-   "Osvaldo Pugliese": 19,
-   "Sexteto Tango": 2
-  },
-  "yearRange": [
-   1948,
-   1989
-  ]
- },
- {
-  "id": "c-dante-j-martel",
-  "name": "C. Dante - J. Martel",
-  "count": 52,
-  "orchestras": {
-   "Alfredo De Angelis": 52
-  },
-  "yearRange": [
-   1944,
-   1950
-  ]
- },
- {
-  "id": "ernesto-fama",
-  "name": "Ernesto Famá",
+  "id": "carlos-aguirre",
+  "name": "Carlos Aguirre",
   "count": 51,
   "orchestras": {
-   "Francisco Canaro": 33,
-   "Carlos Di Sarli(sex.)": 8,
-   "Orquesta Típica Víctor": 7,
-   "Guitarras (solo singer)": 2,
-   "Juan Canaro": 1
+   "Alfredo De Angelis": 38,
+   "Ernesto Marné": 11,
+   "Orquesta (unspecified)": 1,
+   "Orq.símb.o.maderna": 1
   },
   "yearRange": [
-   1930,
+   1960,
+   1987
+  ]
+ },
+ {
+  "id": "carlos-acuna",
+  "name": "Carlos Acuña",
+  "count": 51,
+  "orchestras": {
+   "Adolfo Carné": 24,
+   "Rodolfo Biagi": 13,
+   "José Rizzo": 7,
+   "Mariano Mores": 6,
+   "Carlos Di Sarli": 1
+  },
+  "yearRange": [
+   1941,
+   1983
+  ]
+ },
+ {
+  "id": "luis-diaz",
+  "name": "Luis Díaz",
+  "count": 50,
+  "orchestras": {
+   "Pedro Maffia": 14,
+   "Orq.típica Brunswick": 9,
+   "Edgardo Donato": 8,
+   "Julio De Caro": 5,
+   "Ricardo Luis Brignolo": 4,
+   "Orq.típ.los Provincianos": 4,
+   "Orquesta Típica Víctor": 4,
+   "Aníbal Troilo": 1,
+   "Francisco Canaro": 1
+  },
+  "yearRange": [
+   1929,
    1940
+  ]
+ },
+ {
+  "id": "oscar-macri",
+  "name": "Oscar Macri",
+  "count": 50,
+  "orchestras": {
+   "Luciano Leocata": 24,
+   "Florindo Sassone": 24,
+   "Rodolfo Biagi": 2
+  },
+  "yearRange": [
+   1958,
+   1993
+  ]
+ },
+ {
+  "id": "horacio-casares",
+  "name": "Horacio Casares",
+  "count": 49,
+  "orchestras": {
+   "Trío Típico": 12,
+   "Miguel Nijensohn": 12,
+   "Orq.símb.o.maderna": 8,
+   "Carlos Di Sarli": 4,
+   "Guitarras Javier Peru": 3,
+   "Víctor D'Amario": 3,
+   "Rubén Sosa": 3,
+   "Alberto Di Paulo": 3,
+   "Guit.y Bandoneón": 1
+  },
+  "yearRange": [
+   1954,
+   1997
   ]
  },
  {
   "id": "hector-de-rosas",
   "name": "Héctor de Rosas",
-  "count": 50,
+  "count": 49,
   "orchestras": {
    "Carlos Peralta Guit.": 12,
    "José Basso": 11,
    "Eduardo del Piano": 7,
    "Roberto Caló": 5,
    "Orquesta (unspecified)": 5,
-   "Osmar Maderna": 3,
+   "Osmar Maderna": 2,
    "Astor Piazzolla": 2,
    "Miguel Caló": 2,
    "Orq.símb.o.maderna": 2,
@@ -1191,73 +1034,46 @@
   ]
  },
  {
-  "id": "hector-dario",
-  "name": "Héctor Darío",
-  "count": 50,
-  "orchestras": {
-   "Armando Pontier": 23,
-   "Jorge Dragone": 15,
-   "Trío Bartolomé Palermo": 5,
-   "José Basso": 4,
-   "Angel Sicchetti": 1,
-   "Roberto Pansera": 1,
-   "Omar Valente": 1
-  },
-  "yearRange": [
-   1960,
-   2001
-  ]
- },
- {
-  "id": "jose-torres",
-  "name": "José Torres",
-  "count": 49,
-  "orchestras": {
-   "Gerónimo Bongioni": 20,
-   "Guitarras (solo singer)": 10,
-   "Alberto Mancione": 4,
-   "Anselmo Aieta": 3,
-   "Dionisio Delgado": 3,
-   "Juan Polito": 2,
-   "Enrique Rodríguez": 2,
-   "Alfredo Calabró": 2,
-   "Ariel Pedernera": 2,
-   "José Tinelli": 1
-  },
-  "yearRange": [
-   1948,
-   1980
-  ]
- },
- {
-  "id": "palabras",
-  "name": "Palabras",
+  "id": "horacio-deval",
+  "name": "Horacio Deval",
   "count": 48,
   "orchestras": {
-   "Palabras": 11,
-   "Aníbal Troilo": 6,
-   "Roberto Goyeneche": 4,
-   "Roberto Di Filippo": 4,
-   "Carlos Viggiano-R.solano": 4,
-   "Osvaldo Pugliese": 3,
-   "Astor Piazzolla": 2,
-   "A.labruna-Pipo Rossi": 2,
-   "Miguel Caló": 1,
-   "Carlos Lázzari": 1,
-   "Orq.mun.de Quilmes": 1,
-   "Fernando Tell": 1
+   "Orquesta (unspecified)": 19,
+   "Osvaldo Requena": 10,
+   "Roberto Pansera": 9,
+   "Guitarras (solo singer)": 3,
+   "Horacio Salgán": 3,
+   "Joaquín Do Reyes": 2,
+   "Argentino Galván": 1,
+   "Ubaldo de Lío": 1
   },
   "yearRange": [
-   1934,
-   1999
+   1950,
+   2002
+  ]
+ },
+ {
+  "id": "rodolfo-lesica",
+  "name": "Rodolfo Lesica",
+  "count": 47,
+  "orchestras": {
+   "Héctor Varela": 19,
+   "Jorge Caldara": 12,
+   "Osvaldo Requena": 10,
+   "Los Ases del Tango": 3,
+   "Orquesta (unspecified)": 3
+  },
+  "yearRange": [
+   1950,
+   1991
   ]
  },
  {
   "id": "alfredo-belusi",
   "name": "Alfredo Belusi",
-  "count": 48,
+  "count": 47,
   "orchestras": {
-   "José Basso": 38,
+   "José Basso": 37,
    "Osvaldo Pugliese": 7,
    "José Sala": 3
   },
@@ -1267,17 +1083,22 @@
   ]
  },
  {
-  "id": "lalo-martel",
-  "name": "Lalo Martel",
-  "count": 48,
+  "id": "ruben-juarez",
+  "name": "Rubén Juárez",
+  "count": 47,
   "orchestras": {
-   "Alfredo De Angelis": 23,
-   "César Lucero": 15,
-   "Osvaldo Requena": 10
+   "Raúl Garello": 20,
+   "Piano y Bandoneón": 11,
+   "Armando Pontier": 6,
+   "Carlos García": 5,
+   "Orquesta (unspecified)": 2,
+   "José Oglewleckl": 1,
+   "Bandoneón": 1,
+   "Guitarra y Piano": 1
   },
   "yearRange": [
-   1959,
-   1962
+   1969,
+   2003
   ]
  },
  {
@@ -1299,23 +1120,6 @@
   ]
  },
  {
-  "id": "nelly-omar",
-  "name": "Nelly Omar",
-  "count": 46,
-  "orchestras": {
-   "José Canet Guitarras": 19,
-   "Francisco Canaro": 13,
-   "José Canet Orquesta": 7,
-   "Roberto Grela": 4,
-   "Domingo Marafiotti": 2,
-   "Guitarras (solo singer)": 1
-  },
-  "yearRange": [
-   1943,
-   1979
-  ]
- },
- {
   "id": "osvaldo-arana",
   "name": "Osvaldo Arana",
   "count": 46,
@@ -1329,16 +1133,51 @@
   ]
  },
  {
+  "id": "jose-torres",
+  "name": "José Torres",
+  "count": 45,
+  "orchestras": {
+   "Gerónimo Bongioni": 18,
+   "Guitarras (solo singer)": 10,
+   "Alberto Mancione": 4,
+   "Anselmo Aieta": 3,
+   "Dionisio Delgado": 3,
+   "Alfredo Calabró": 2,
+   "Ariel Pedernera": 2,
+   "Juan Polito": 1,
+   "José Tinelli": 1,
+   "Enrique Rodríguez": 1
+  },
+  "yearRange": [
+   1948,
+   1980
+  ]
+ },
+ {
+  "id": "lalo-martel",
+  "name": "Lalo Martel",
+  "count": 45,
+  "orchestras": {
+   "Alfredo De Angelis": 20,
+   "César Lucero": 15,
+   "Osvaldo Requena": 10
+  },
+  "yearRange": [
+   1959,
+   1962
+  ]
+ },
+ {
   "id": "luis-correa",
   "name": "Luis Correa",
-  "count": 45,
+  "count": 44,
   "orchestras": {
    "Pepe Márquez": 12,
    "Fulvio Salamanca": 6,
    "Donato Racciatti": 6,
    "José Basso": 6,
-   "Víctor D'Amario": 4,
    "Francini-Pontier": 4,
+   "Víctor D'Amario": 3,
    "Alberto Mancione": 2,
    "Cholo Montironi": 2,
    "Miguel Caló": 2,
@@ -1350,25 +1189,28 @@
   ]
  },
  {
-  "id": "luis-mendoza",
-  "name": "Luis Mendoza",
-  "count": 45,
+  "id": "ernesto-fama",
+  "name": "Ernesto Famá",
+  "count": 44,
   "orchestras": {
-   "Juan Sánchez Gorio": 44,
-   "José Tinelli": 1
+   "Francisco Canaro": 29,
+   "Carlos Di Sarli(sex.)": 8,
+   "Orquesta Típica Víctor": 4,
+   "Guitarras (solo singer)": 2,
+   "Juan Canaro": 1
   },
   "yearRange": [
-   1938,
-   1957
+   1930,
+   1940
   ]
  },
  {
   "id": "jorge-ortiz",
   "name": "Jorge Ortíz",
-  "count": 44,
+  "count": 43,
   "orchestras": {
    "Rodolfo Biagi": 35,
-   "Miguel Caló": 8,
+   "Miguel Caló": 7,
    "Ricardo Pedevilla": 1
   },
   "yearRange": [
@@ -1377,29 +1219,26 @@
   ]
  },
  {
-  "id": "maria-de-la-fuente",
-  "name": "María de la Fuente",
+  "id": "roberto-chanel",
+  "name": "Roberto Chanel",
   "count": 43,
   "orchestras": {
-   "Américo Belloto": 13,
-   "Juan Canaro": 10,
-   "Astor Piazzolla": 9,
-   "Lito Nebbia-Néstor Marconi": 6,
-   "Francisco Rotundo": 2,
-   "Fondo Musical": 2,
-   "Don Américo": 1
+   "Osvaldo Pugliese": 19,
+   "Florindo Sassone": 15,
+   "Angel Domínguez": 8,
+   "Joaquín Do Reyes": 1
   },
   "yearRange": [
-   1946,
-   1997
+   1943,
+   1955
   ]
  },
  {
   "id": "roberto-arrieta",
   "name": "Roberto Arrieta",
-  "count": 43,
+  "count": 42,
   "orchestras": {
-   "Miguel Caló": 26,
+   "Miguel Caló": 25,
    "Guitarras (solo singer)": 14,
    "Lucio Demare": 3
   },
@@ -1409,12 +1248,28 @@
   ]
  },
  {
-  "id": "mario-pomar",
-  "name": "Mario Pomar",
+  "id": "roberto-videla",
+  "name": "Roberto Videla",
   "count": 42,
   "orchestras": {
+   "Ricardo Tanturi": 24,
+   "Orquesta (unspecified)": 12,
+   "Guitarras (solo singer)": 4,
+   "Enrique Rodríguez": 1,
+   "Conjunto Típico": 1
+  },
+  "yearRange": [
+   1945,
+   1987
+  ]
+ },
+ {
+  "id": "mario-pomar",
+  "name": "Mario Pomar",
+  "count": 41,
+  "orchestras": {
    "Carlos Di Sarli": 28,
-   "Los Sres.del Tango": 14
+   "Los Sres.del Tango": 13
   },
   "yearRange": [
    1951,
@@ -1422,27 +1277,33 @@
   ]
  },
  {
-  "id": "osvaldo-ramos",
-  "name": "Osvaldo Ramos",
-  "count": 42,
+  "id": "nelly-omar",
+  "name": "Nelly Omar",
+  "count": 41,
   "orchestras": {
-   "Juan D'Arienzo": 42
+   "José Canet Guitarras": 19,
+   "Francisco Canaro": 9,
+   "José Canet Orquesta": 7,
+   "Roberto Grela": 3,
+   "Domingo Marafiotti": 2,
+   "Guitarras (solo singer)": 1
   },
   "yearRange": [
-   1960,
-   1975
+   1943,
+   1979
   ]
  },
  {
-  "id": "tino-garcia",
-  "name": "Tino García",
+  "id": "luis-mendoza",
+  "name": "Luis Mendoza",
   "count": 41,
   "orchestras": {
-   "Ángel D'Agostino": 41
+   "Juan Sánchez Gorio": 40,
+   "José Tinelli": 1
   },
   "yearRange": [
-   1947,
-   1987
+   1938,
+   1957
   ]
  },
  {
@@ -1464,32 +1325,34 @@
   ]
  },
  {
-  "id": "roberto-chato-flores",
-  "name": "Roberto \"Chato\" Flores",
-  "count": 40,
+  "id": "a-magaldi-p-noda",
+  "name": "A. Magaldi - P. Noda",
+  "count": 39,
   "orchestras": {
-   "Enrique Rodríguez": 35,
-   "Tomás Requena": 4,
-   "José Dames": 1
+   "Guitarras (solo singer)": 31,
+   "Agustín Magaldi Vol. Iii": 8
   },
   "yearRange": [
-   1937,
-   1943
+   1925,
+   1933
   ]
  },
  {
-  "id": "principe-azul",
-  "name": "Príncipe Azul",
+  "id": "hector-dario",
+  "name": "Héctor Darío",
   "count": 39,
   "orchestras": {
-   "J.l.andreoni-Grupo Paulistano": 22,
-   "Roberto Firpo": 12,
-   "Francisco Lomuto": 4,
-   "Orquesta Típica Víctor": 1
+   "Jorge Dragone": 15,
+   "Armando Pontier": 12,
+   "Trío Bartolomé Palermo": 5,
+   "José Basso": 4,
+   "Angel Sicchetti": 1,
+   "Roberto Pansera": 1,
+   "Omar Valente": 1
   },
   "yearRange": [
-   1928,
-   1932
+   1960,
+   2001
   ]
  },
  {
@@ -1508,31 +1371,32 @@
   ]
  },
  {
-  "id": "alberto-moran",
-  "name": "Alberto Morán",
+  "id": "roberto-chato-flores",
+  "name": "Roberto \"Chato\" Flores",
   "count": 38,
   "orchestras": {
-   "Osvaldo Pugliese": 38
+   "Enrique Rodríguez": 33,
+   "Tomás Requena": 4,
+   "José Dames": 1
   },
   "yearRange": [
-   1945,
-   1989
+   1937,
+   1943
   ]
  },
  {
-  "id": "jorge-falcon",
-  "name": "Jorge Falcón",
+  "id": "principe-azul",
+  "name": "Príncipe Azul",
   "count": 38,
   "orchestras": {
-   "Héctor Varela": 22,
-   "Raúl Plate": 10,
-   "Tití Rossi": 3,
-   "Gabriel Clausi(chula)": 2,
-   "Ricardo Tanturi": 1
+   "J.l.andreoni-Grupo Paulistano": 22,
+   "Roberto Firpo": 12,
+   "Francisco Lomuto": 3,
+   "Orquesta Típica Víctor": 1
   },
   "yearRange": [
-   1963,
-   1984
+   1928,
+   1932
   ]
  },
  {
@@ -1554,22 +1418,6 @@
   ]
  },
  {
-  "id": "jose-beron",
-  "name": "José Berón",
-  "count": 37,
-  "orchestras": {
-   "Guitarras (solo singer)": 18,
-   "Enrique Alessio": 9,
-   "Lito Scarso": 6,
-   "Miguel Nijensohn": 2,
-   "Eduardo Rovira": 2
-  },
-  "yearRange": [
-   1958,
-   1962
-  ]
- },
- {
   "id": "gerardo-mancini",
   "name": "Gerardo Mancini",
   "count": 37,
@@ -1582,38 +1430,6 @@
   "yearRange": [
    1972,
    1977
-  ]
- },
- {
-  "id": "carlos-almagro",
-  "name": "Carlos Almagro",
-  "count": 36,
-  "orchestras": {
-   "Rodolfo Biagi": 11,
-   "Ricardo Martinez": 8,
-   "Víctor D'Amario": 5,
-   "Miguel Caló": 5,
-   "Angel Domínguez": 4,
-   "Trío Bartolomé Palermo": 2,
-   "Orquesta (unspecified)": 1
-  },
-  "yearRange": [
-   1952,
-   1988
-  ]
- },
- {
-  "id": "carlos-almada",
-  "name": "Carlos Almada",
-  "count": 36,
-  "orchestras": {
-   "Edgardo Donato": 19,
-   "Orquesta (unspecified)": 12,
-   "Alfredo Gobbi": 5
-  },
-  "yearRange": [
-   1950,
-   1970
   ]
  },
  {
@@ -1632,11 +1448,37 @@
   ]
  },
  {
-  "id": "jorge-omar",
-  "name": "Jorge Omar",
+  "id": "tino-garcia",
+  "name": "Tino García",
   "count": 35,
   "orchestras": {
-   "Francisco Lomuto": 33,
+   "Ángel D'Agostino": 35
+  },
+  "yearRange": [
+   1947,
+   1987
+  ]
+ },
+ {
+  "id": "jorge-maciel",
+  "name": "Jorge Maciel",
+  "count": 34,
+  "orchestras": {
+   "Osvaldo Pugliese": 18,
+   "Alfredo Gobbi": 14,
+   "Sexteto Tango": 2
+  },
+  "yearRange": [
+   1948,
+   1989
+  ]
+ },
+ {
+  "id": "jorge-omar",
+  "name": "Jorge Omar",
+  "count": 34,
+  "orchestras": {
+   "Francisco Lomuto": 32,
    "Minoto Di Cicco": 2
   },
   "yearRange": [
@@ -1645,16 +1487,17 @@
   ]
  },
  {
-  "id": "alberto-arenas",
-  "name": "Alberto Arenas",
-  "count": 35,
+  "id": "carlos-almada",
+  "name": "Carlos Almada",
+  "count": 34,
   "orchestras": {
-   "Francisco Canaro": 33,
-   "Enrique Mora": 2
+   "Edgardo Donato": 19,
+   "Orquesta (unspecified)": 12,
+   "Alfredo Gobbi": 3
   },
   "yearRange": [
-   1945,
-   1976
+   1950,
+   1970
   ]
  },
  {
@@ -1670,25 +1513,81 @@
   ]
  },
  {
-  "id": "juan-carlos-cobos",
-  "name": "Juan Carlos Cobos",
+  "id": "carlos-almagro",
+  "name": "Carlos Almagro",
   "count": 33,
   "orchestras": {
-   "Ernesto Marné": 18,
-   "Miguel Nijensohn": 11,
-   "Osvaldo Pugliese": 4
+   "Rodolfo Biagi": 9,
+   "Ricardo Martinez": 8,
+   "Víctor D'Amario": 5,
+   "Miguel Caló": 5,
+   "Angel Domínguez": 3,
+   "Trío Bartolomé Palermo": 2,
+   "Orquesta (unspecified)": 1
   },
   "yearRange": [
-   1953,
-   1987
+   1952,
+   1988
+  ]
+ },
+ {
+  "id": "alfredo-del-rio",
+  "name": "Alfredo del Río",
+  "count": 33,
+  "orchestras": {
+   "Alfredo Gobbi": 11,
+   "Trío Yumba": 7,
+   "Pedro Láurenz": 4,
+   "Francisco Rotundo": 4,
+   "Eduardo Rovira": 4,
+   "José Basso": 3
+  },
+  "yearRange": [
+   1952,
+   1971
+  ]
+ },
+ {
+  "id": "palabras",
+  "name": "Palabras",
+  "count": 33,
+  "orchestras": {
+   "Aníbal Troilo": 5,
+   "Osvaldo Pugliese": 3,
+   "Carlos Viggiano-R.solano": 3,
+   "Astor Piazzolla": 2,
+   "Palabras": 2,
+   "A.labruna-Pipo Rossi": 2,
+   "Roberto Goyeneche": 2,
+   "Roberto Di Filippo": 2,
+   "Miguel Caló": 1,
+   "Carlos Lázzari": 1,
+   "Orq.mun.de Quilmes": 1,
+   "Fernando Tell": 1
+  },
+  "yearRange": [
+   1934,
+   1999
+  ]
+ },
+ {
+  "id": "alberto-moran",
+  "name": "Alberto Morán",
+  "count": 33,
+  "orchestras": {
+   "Osvaldo Pugliese": 33
+  },
+  "yearRange": [
+   1945,
+   1989
   ]
  },
  {
   "id": "abel-cordoba",
   "name": "Abel Córdoba",
-  "count": 33,
+  "count": 31,
   "orchestras": {
-   "Osvaldo Pugliese": 33
+   "Osvaldo Pugliese": 31
   },
   "yearRange": [
    1965,
@@ -1696,21 +1595,24 @@
   ]
  },
  {
-  "id": "comentario",
-  "name": "Comentario",
-  "count": 33,
+  "id": "osvaldo-ramos",
+  "name": "Osvaldo Ramos",
+  "count": 31,
   "orchestras": {
-   "Comentario": 33
+   "Juan D'Arienzo": 31
   },
-  "yearRange": null
+  "yearRange": [
+   1960,
+   1975
+  ]
  },
  {
   "id": "ignacio-corsini",
   "name": "Ignacio Corsini",
-  "count": 33,
+  "count": 31,
   "orchestras": {
-   "Guitarras (solo singer)": 29,
-   "Piano y Guitarras": 3,
+   "Guitarras (solo singer)": 28,
+   "Piano y Guitarras": 2,
    "Roberto Garza": 1
   },
   "yearRange": [
@@ -1719,75 +1621,12 @@
   ]
  },
  {
-  "id": "libertad-lamarque",
-  "name": "Libertad Lamarque",
-  "count": 32,
-  "orchestras": {
-   "Alfredo Malerba": 6,
-   "Chucho Zarzosa": 5,
-   "Juan D'Arienzo": 5,
-   "Mario Maurano": 4,
-   "Víctor M.buchino": 4,
-   "Orquesta (unspecified)": 4,
-   "Mario Ruíz Armengol": 3,
-   "Orquesta Típica Víctor": 1
-  },
-  "yearRange": [
-   1930,
-   1958
-  ]
- },
- {
-  "id": "tania",
-  "name": "Tania",
-  "count": 32,
-  "orchestras": {
-   "Alberto Castellano": 20,
-   "Orquesta (unspecified)": 3,
-   "Lucio Demare": 3,
-   "Héctor Stamponi": 2,
-   "Enrique S.discépolo": 2,
-   "Donato Racciatti": 2
-  },
-  "yearRange": [
-   1930,
-   1959
-  ]
- },
- {
-  "id": "alberto-reynal",
-  "name": "Alberto Reynal",
-  "count": 32,
-  "orchestras": {
-   "Juan D'Arienzo": 32
-  },
-  "yearRange": [
-   1940,
-   1942
-  ]
- },
- {
-  "id": "nina-miranda",
-  "name": "Nina Miranda",
-  "count": 32,
-  "orchestras": {
-   "Graciano Gómez": 19,
-   "Orquesta (unspecified)": 10,
-   "Juan Cao": 2,
-   "Juan Martínez": 1
-  },
-  "yearRange": [
-   1947,
-   1957
-  ]
- },
- {
   "id": "aldo-calderon",
   "name": "Aldo Calderón",
-  "count": 31,
+  "count": 30,
   "orchestras": {
    "Ismael Spitalnik": 14,
-   "Aníbal Troilo": 12,
+   "Aníbal Troilo": 11,
    "Omar Torres": 4,
    "Antonio Spinelli-José Rizzo": 1
   },
@@ -1797,77 +1636,16 @@
   ]
  },
  {
-  "id": "susy-leiva",
-  "name": "Susy Leiva",
-  "count": 31,
-  "orchestras": {
-   "Orquesta (unspecified)": 25,
-   "Martín Darré-Coral Mancuso": 4,
-   "Mariano Mores": 1,
-   "Leopoldo Federico": 1
-  },
-  "yearRange": [
-   1940,
-   1965
-  ]
- },
- {
-  "id": "aldo-campoamor",
-  "name": "Aldo Campoamor",
-  "count": 31,
-  "orchestras": {
-   "Guitarras (solo singer)": 17,
-   "Astor Piazzolla": 7,
-   "Mariano Mores": 4,
-   "Roberto Grela": 2,
-   "Osvaldo Avena": 1
-  },
-  "yearRange": [
-   1941,
-   1964
-  ]
- },
- {
-  "id": "hector-pacheco",
-  "name": "Héctor Pacheco",
-  "count": 31,
-  "orchestras": {
-   "Osvaldo Fresedo": 28,
-   "Alfredo Attadía": 2,
-   "Carlos García": 1
-  },
-  "yearRange": [
-   1948,
-   1955
-  ]
- },
- {
-  "id": "c-dante-o-larroca",
-  "name": "C. Dante - O. Larroca",
-  "count": 31,
-  "orchestras": {
-   "Alfredo De Angelis": 31
-  },
-  "yearRange": [
-   1951,
-   1957
-  ]
- },
- {
-  "id": "raul-lavie",
-  "name": "Raúl Lavié",
+  "id": "alberto-arenas",
+  "name": "Alberto Arenas",
   "count": 30,
   "orchestras": {
-   "Juan Carlos Cirigliano": 10,
-   "Walter Ríos": 8,
-   "Ángel D'Agostino": 4,
-   "Los Ases del Tango": 4,
-   "Héctor Varela": 3,
-   "Sexteto Sur": 1
+   "Francisco Canaro": 28,
+   "Enrique Mora": 2
   },
   "yearRange": [
-   1956,
-   2003
+   1945,
+   1976
   ]
  },
  {
@@ -1886,19 +1664,6 @@
   ]
  },
  {
-  "id": "carlos-lafuente",
-  "name": "Carlos Lafuente",
-  "count": 30,
-  "orchestras": {
-   "Orquesta Típica Víctor": 20,
-   "Orq.típ.los Provincianos": 10
-  },
-  "yearRange": [
-   1930,
-   1934
-  ]
- },
- {
   "id": "julio-cesar-mercado",
   "name": "Julio César Mercado",
   "count": 29,
@@ -1911,35 +1676,22 @@
   ]
  },
  {
-  "id": "sofia-bozan",
-  "name": "Sofía Bozán",
+  "id": "libertad-lamarque",
+  "name": "Libertad Lamarque",
   "count": 29,
   "orchestras": {
-   "Enrique Delfino Trío": 15,
-   "Francisco Pracánico": 7,
-   "Enrique Delfino": 3,
-   "Guitarras (solo singer)": 2,
-   "Fernando Montoni y Polito": 2
+   "Alfredo Malerba": 6,
+   "Chucho Zarzosa": 5,
+   "Mario Maurano": 4,
+   "Víctor M.buchino": 4,
+   "Orquesta (unspecified)": 4,
+   "Mario Ruíz Armengol": 3,
+   "Juan D'Arienzo": 2,
+   "Orquesta Típica Víctor": 1
   },
   "yearRange": [
-   1928,
-   1930
-  ]
- },
- {
-  "id": "teofilo-ibanez",
-  "name": "Teófilo Ibáñez",
-  "count": 29,
-  "orchestras": {
-   "Orquesta Típica Víctor": 13,
-   "Rodolfo Biagi": 8,
-   "Roberto Firpo": 5,
-   "Ricardo Luis Brignolo": 2,
-   "Julio De Caro": 1
-  },
-  "yearRange": [
-   1928,
-   1939
+   1930,
+   1958
   ]
  },
  {
@@ -1955,57 +1707,36 @@
   ]
  },
  {
-  "id": "jorge-abril",
-  "name": "Jorge Abril",
+  "id": "raul-lavie",
+  "name": "Raúl Lavié",
   "count": 29,
   "orchestras": {
-   "Porfirio Díaz": 29
+   "Juan Carlos Cirigliano": 10,
+   "Walter Ríos": 8,
+   "Ángel D'Agostino": 4,
+   "Héctor Varela": 3,
+   "Los Ases del Tango": 3,
+   "Sexteto Sur": 1
   },
   "yearRange": [
-   1940,
-   1940
+   1956,
+   2003
   ]
  },
  {
-  "id": "rodolfo-gale",
-  "name": "Rodolfo Galé",
+  "id": "aldo-campoamor",
+  "name": "Aldo Campoamor",
   "count": 29,
   "orchestras": {
-   "Florindo Sassone": 19,
-   "José Basso": 4,
-   "Roberto Caló": 3,
-   "Carlos Di Sarli": 3
+   "Guitarras (solo singer)": 17,
+   "Astor Piazzolla": 7,
+   "Mariano Mores": 2,
+   "Roberto Grela": 2,
+   "Osvaldo Avena": 1
   },
   "yearRange": [
-   1951,
-   1958
-  ]
- },
- {
-  "id": "osvaldo-de-santis",
-  "name": "Osvaldo de Santis",
-  "count": 29,
-  "orchestras": {
-   "Florindo Sassone": 22,
-   "Alberto Mancione": 4,
-   "Cancelara": 2,
-   "Osvaldo Requena": 1
-  },
-  "yearRange": [
-   1950,
-   1963
-  ]
- },
- {
-  "id": "roberto-ray",
-  "name": "Roberto Ray",
-  "count": 29,
-  "orchestras": {
-   "Osvaldo Fresedo": 29
-  },
-  "yearRange": [
-   1932,
-   1950
+   1941,
+   1964
   ]
  },
  {
@@ -2022,49 +1753,15 @@
   "yearRange": null
  },
  {
-  "id": "ricardo-ruiz",
-  "name": "Ricardo Ruíz",
-  "count": 28,
+  "id": "c-dante-o-larroca",
+  "name": "C. Dante - O. Larroca",
+  "count": 29,
   "orchestras": {
-   "Osvaldo Fresedo": 11,
-   "Gabriel Clausi(chula)": 8,
-   "Oscar de la Fuente": 5,
-   "José Basso": 3,
-   "Ángel D'Agostino": 1
+   "Alfredo De Angelis": 29
   },
   "yearRange": [
-   1933,
-   1969
-  ]
- },
- {
-  "id": "elba-beron",
-  "name": "Elba Berón",
-  "count": 28,
-  "orchestras": {
-   "Miguel Nijensohn": 12,
-   "4to.aníbal Troilo": 8,
-   "R.nievas Blanco": 4,
-   "Aníbal Troilo": 3,
-   "Roberto Grela": 1
-  },
-  "yearRange": [
-   1957,
-   1962
-  ]
- },
- {
-  "id": "nestor-fabian",
-  "name": "Néstor Fabián",
-  "count": 28,
-  "orchestras": {
-   "Roberto Pansera": 14,
-   "Atilio Stampone": 11,
-   "Mariano Mores": 3
-  },
-  "yearRange": [
-   1963,
-   1970
+   1951,
+   1957
   ]
  },
  {
@@ -2083,19 +1780,35 @@
   ]
  },
  {
-  "id": "amanda-ledesma",
-  "name": "Amanda Ledesma",
-  "count": 27,
+  "id": "jorge-falcon",
+  "name": "Jorge Falcón",
+  "count": 28,
   "orchestras": {
-   "Héctor Stamponi": 9,
-   "Orquesta Típica Víctor": 6,
-   "Tomas de Películas": 6,
-   "Trío Típico": 5,
-   "Orq.cadena Azul Cuba": 1
+   "Héctor Varela": 12,
+   "Raúl Plate": 10,
+   "Tití Rossi": 3,
+   "Gabriel Clausi(chula)": 2,
+   "Ricardo Tanturi": 1
   },
   "yearRange": [
-   1937,
-   1945
+   1963,
+   1984
+  ]
+ },
+ {
+  "id": "ricardo-ruiz",
+  "name": "Ricardo Ruíz",
+  "count": 27,
+  "orchestras": {
+   "Osvaldo Fresedo": 10,
+   "Gabriel Clausi(chula)": 8,
+   "Oscar de la Fuente": 5,
+   "José Basso": 3,
+   "Ángel D'Agostino": 1
+  },
+  "yearRange": [
+   1933,
+   1969
   ]
  },
  {
@@ -2112,48 +1825,67 @@
   ]
  },
  {
-  "id": "alberto-rivera",
-  "name": "Alberto Rivera",
+  "id": "susy-leiva",
+  "name": "Susy Leiva",
   "count": 27,
   "orchestras": {
-   "Francisco Lomuto": 26,
-   "Sebastián Piana": 1
+   "Orquesta (unspecified)": 23,
+   "Martín Darré-Coral Mancuso": 2,
+   "Mariano Mores": 1,
+   "Leopoldo Federico": 1
   },
   "yearRange": [
    1940,
-   1950
+   1965
   ]
  },
  {
-  "id": "carlos-paiva",
-  "name": "Carlos Paiva",
+  "id": "hector-pacheco",
+  "name": "Héctor Pacheco",
   "count": 27,
   "orchestras": {
-   "Ángel Gatti": 13,
-   "E.baffa-O.berlinghieri": 9,
-   "Gotán Trío": 3,
-   "Alfredo De Angelis": 2
+   "Osvaldo Fresedo": 24,
+   "Alfredo Attadía": 2,
+   "Carlos García": 1
   },
   "yearRange": [
-   1965,
-   1984
+   1948,
+   1955
   ]
  },
  {
-  "id": "tita-merello",
-  "name": "Tita Merello",
+  "id": "maria-de-la-fuente",
+  "name": "María de la Fuente",
   "count": 26,
   "orchestras": {
-   "Francisco Canaro": 11,
-   "Orquesta (unspecified)": 6,
-   "Orquesta Típica Víctor": 3,
-   "Músicos de Víctor": 3,
-   "Carlos Figari": 2,
-   "Héctor Varela": 1
+   "Astor Piazzolla": 8,
+   "Américo Belloto": 6,
+   "Juan Canaro": 5,
+   "Lito Nebbia-Néstor Marconi": 3,
+   "Fondo Musical": 2,
+   "Francisco Rotundo": 1,
+   "Don Américo": 1
   },
   "yearRange": [
-   1929,
-   1969
+   1946,
+   1997
+  ]
+ },
+ {
+  "id": "tania",
+  "name": "Tania",
+  "count": 26,
+  "orchestras": {
+   "Alberto Castellano": 18,
+   "Lucio Demare": 3,
+   "Héctor Stamponi": 2,
+   "Orquesta (unspecified)": 1,
+   "Enrique S.discépolo": 1,
+   "Donato Racciatti": 1
+  },
+  "yearRange": [
+   1930,
+   1959
   ]
  },
  {
@@ -2166,6 +1898,35 @@
    "Orquesta y Coro": 2
   },
   "yearRange": null
+ },
+ {
+  "id": "nestor-fabian",
+  "name": "Néstor Fabián",
+  "count": 26,
+  "orchestras": {
+   "Roberto Pansera": 14,
+   "Atilio Stampone": 11,
+   "Mariano Mores": 1
+  },
+  "yearRange": [
+   1963,
+   1970
+  ]
+ },
+ {
+  "id": "carlos-paiva",
+  "name": "Carlos Paiva",
+  "count": 26,
+  "orchestras": {
+   "Ángel Gatti": 13,
+   "E.baffa-O.berlinghieri": 9,
+   "Gotán Trío": 2,
+   "Alfredo De Angelis": 2
+  },
+  "yearRange": [
+   1965,
+   1984
+  ]
  },
  {
   "id": "fanny-ruth",
@@ -2181,30 +1942,18 @@
   ]
  },
  {
-  "id": "blanca-mooney",
-  "name": "Blanca Mooney",
-  "count": 26,
+  "id": "rodolfo-gale",
+  "name": "Rodolfo Galé",
+  "count": 25,
   "orchestras": {
-   "Luis Stazo": 14,
-   "Osvaldo Fresedo": 6,
-   "Orquesta (unspecified)": 4,
-   "Lucio Milena": 2
+   "Florindo Sassone": 16,
+   "José Basso": 4,
+   "Roberto Caló": 3,
+   "Carlos Di Sarli": 2
   },
   "yearRange": [
-   1959,
-   1971
-  ]
- },
- {
-  "id": "carlos-vidal",
-  "name": "Carlos Vidal",
-  "count": 26,
-  "orchestras": {
-   "Domingo Federico": 26
-  },
-  "yearRange": [
-   1944,
-   1948
+   1951,
+   1958
   ]
  },
  {
@@ -2220,31 +1969,29 @@
   ]
  },
  {
-  "id": "carmen-del-moral",
-  "name": "Carmen del Moral",
+  "id": "juan-carlos-cobos",
+  "name": "Juan Carlos Cobos",
   "count": 24,
   "orchestras": {
-   "Porfirio Díaz": 13,
-   "Orquesta Típica Víctor": 6,
-   "Francisco Lomuto": 2,
-   "Alfredo Fanuele": 2,
-   "Romeo Gavioli": 1
+   "Miguel Nijensohn": 11,
+   "Ernesto Marné": 9,
+   "Osvaldo Pugliese": 4
   },
   "yearRange": [
-   1939,
-   1955
+   1953,
+   1987
   ]
  },
  {
-  "id": "lucho-gatica",
-  "name": "Lucho Gatica",
+  "id": "jorge-abril",
+  "name": "Jorge Abril",
   "count": 24,
   "orchestras": {
-   "Miguel Caló": 24
+   "Porfirio Díaz": 24
   },
   "yearRange": [
-   1965,
-   1965
+   1940,
+   1940
   ]
  },
  {
@@ -2262,58 +2009,62 @@
   ]
  },
  {
-  "id": "osvaldo-bazan",
-  "name": "Osvaldo Bazán",
+  "id": "nina-miranda",
+  "name": "Nina Miranda",
   "count": 24,
   "orchestras": {
-   "Juan Sánchez Gorio": 24
+   "Graciano Gómez": 14,
+   "Orquesta (unspecified)": 7,
+   "Juan Cao": 2,
+   "Juan Martínez": 1
   },
   "yearRange": [
-   1950,
-   1959
+   1947,
+   1957
   ]
  },
  {
-  "id": "gloria-diaz",
-  "name": "Gloria Díaz",
+  "id": "carlos-vidal",
+  "name": "Carlos Vidal",
   "count": 24,
   "orchestras": {
-   "Armando Pontier": 12,
-   "Florindo Sassone": 4,
-   "José Basso": 2,
-   "Luis Stazo": 2,
-   "Leopoldo Federico": 2,
-   "Raúl Garello": 2
+   "Domingo Federico": 24
   },
   "yearRange": [
-   1976,
-   1978
+   1944,
+   1948
   ]
  },
  {
-  "id": "julian-rosales",
-  "name": "Julián Rosales",
-  "count": 24,
-  "orchestras": {
-   "Alfredo De Angelis": 24
-  },
-  "yearRange": [
-   1969,
-   1974
-  ]
- },
- {
-  "id": "alberto-cuello",
-  "name": "Alberto Cuello",
+  "id": "sofia-bozan",
+  "name": "Sofía Bozán",
   "count": 23,
   "orchestras": {
-   "Alfredo De Angelis": 17,
-   "Osvaldo Rizzo": 4,
-   "Héctor D'Espósito": 2
+   "Enrique Delfino Trío": 10,
+   "Francisco Pracánico": 6,
+   "Enrique Delfino": 3,
+   "Guitarras (solo singer)": 2,
+   "Fernando Montoni y Polito": 2
   },
   "yearRange": [
-   1961,
-   1969
+   1928,
+   1930
+  ]
+ },
+ {
+  "id": "teofilo-ibanez",
+  "name": "Teófilo Ibáñez",
+  "count": 23,
+  "orchestras": {
+   "Rodolfo Biagi": 8,
+   "Orquesta Típica Víctor": 7,
+   "Roberto Firpo": 5,
+   "Ricardo Luis Brignolo": 2,
+   "Julio De Caro": 1
+  },
+  "yearRange": [
+   1928,
+   1939
   ]
  },
  {
@@ -2327,60 +2078,6 @@
   "yearRange": [
    1978,
    1988
-  ]
- },
- {
-  "id": "horacio-palma",
-  "name": "Horacio Palma",
-  "count": 23,
-  "orchestras": {
-   "Juan D'Arienzo": 21,
-   "Oscar de la Fuente": 2
-  },
-  "yearRange": [
-   1960,
-   1969
-  ]
- },
- {
-  "id": "nelly-vazquez",
-  "name": "Nelly Vázquez",
-  "count": 23,
-  "orchestras": {
-   "Aníbal Troilo": 21,
-   "Osvaldo Pugliese": 2
-  },
-  "yearRange": [
-   1963,
-   1977
-  ]
- },
- {
-  "id": "eladia-blazquez",
-  "name": "Eladia Blázquez",
-  "count": 23,
-  "orchestras": {
-   "Orquesta (unspecified)": 14,
-   "Raúl Garello": 4,
-   "Juan Carlos Cirigliano": 2,
-   "José Carli": 2,
-   "Atilio Stampone": 1
-  },
-  "yearRange": [
-   1980,
-   1995
-  ]
- },
- {
-  "id": "juan-pulido",
-  "name": "Juan Pulido",
-  "count": 23,
-  "orchestras": {
-   "Orquesta (unspecified)": 23
-  },
-  "yearRange": [
-   1926,
-   1926
   ]
  },
  {
@@ -2400,17 +2097,16 @@
   ]
  },
  {
-  "id": "carlos-guido",
-  "name": "Carlos Guido",
+  "id": "carlos-lafuente",
+  "name": "Carlos Lafuente",
   "count": 23,
   "orchestras": {
-   "Florindo Sassone": 13,
-   "Rubén Sosa": 5,
-   "Guitarras (solo singer)": 5
+   "Orquesta Típica Víctor": 13,
+   "Orq.típ.los Provincianos": 10
   },
   "yearRange": [
-   1955,
-   1957
+   1930,
+   1934
   ]
  },
  {
@@ -2431,18 +2127,6 @@
   ]
  },
  {
-  "id": "hector-palacios",
-  "name": "Héctor Palacios",
-  "count": 22,
-  "orchestras": {
-   "Guitarras (solo singer)": 22
-  },
-  "yearRange": [
-   1936,
-   1942
-  ]
- },
- {
   "id": "dante-ressia",
   "name": "Dante Ressia",
   "count": 22,
@@ -2456,16 +2140,94 @@
   ]
  },
  {
-  "id": "tito-lando",
-  "name": "Tito Lando",
+  "id": "amanda-ledesma",
+  "name": "Amanda Ledesma",
   "count": 22,
   "orchestras": {
-   "Alfredo Gobbi": 18,
-   "Mario Canaro": 4
+   "Héctor Stamponi": 9,
+   "Tomas de Películas": 6,
+   "Orquesta Típica Víctor": 4,
+   "Trío Típico": 2,
+   "Orq.cadena Azul Cuba": 1
   },
   "yearRange": [
-   1954,
-   1970
+   1937,
+   1945
+  ]
+ },
+ {
+  "id": "tita-merello",
+  "name": "Tita Merello",
+  "count": 22,
+  "orchestras": {
+   "Francisco Canaro": 8,
+   "Orquesta (unspecified)": 6,
+   "Músicos de Víctor": 3,
+   "Carlos Figari": 2,
+   "Orquesta Típica Víctor": 2,
+   "Héctor Varela": 1
+  },
+  "yearRange": [
+   1929,
+   1969
+  ]
+ },
+ {
+  "id": "carmen-del-moral",
+  "name": "Carmen del Moral",
+  "count": 22,
+  "orchestras": {
+   "Porfirio Díaz": 12,
+   "Orquesta Típica Víctor": 6,
+   "Alfredo Fanuele": 2,
+   "Francisco Lomuto": 1,
+   "Romeo Gavioli": 1
+  },
+  "yearRange": [
+   1939,
+   1955
+  ]
+ },
+ {
+  "id": "horacio-palma",
+  "name": "Horacio Palma",
+  "count": 22,
+  "orchestras": {
+   "Juan D'Arienzo": 20,
+   "Oscar de la Fuente": 2
+  },
+  "yearRange": [
+   1960,
+   1969
+  ]
+ },
+ {
+  "id": "nelly-vazquez",
+  "name": "Nelly Vázquez",
+  "count": 22,
+  "orchestras": {
+   "Aníbal Troilo": 21,
+   "Osvaldo Pugliese": 1
+  },
+  "yearRange": [
+   1963,
+   1977
+  ]
+ },
+ {
+  "id": "eladia-blazquez",
+  "name": "Eladia Blázquez",
+  "count": 22,
+  "orchestras": {
+   "Orquesta (unspecified)": 14,
+   "Raúl Garello": 3,
+   "Juan Carlos Cirigliano": 2,
+   "José Carli": 2,
+   "Atilio Stampone": 1
+  },
+  "yearRange": [
+   1980,
+   1995
   ]
  },
  {
@@ -2481,17 +2243,57 @@
   ]
  },
  {
-  "id": "marga-fontana",
-  "name": "Marga Fontana",
-  "count": 21,
+  "id": "alberto-rivera",
+  "name": "Alberto Rivera",
+  "count": 22,
   "orchestras": {
-   "Alberto Garralda": 14,
-   "Miguel Caló": 6,
-   "Las Estrellas del Tango": 1
+   "Francisco Lomuto": 21,
+   "Sebastián Piana": 1
   },
   "yearRange": [
-   1960,
-   1988
+   1940,
+   1950
+  ]
+ },
+ {
+  "id": "juan-pulido",
+  "name": "Juan Pulido",
+  "count": 22,
+  "orchestras": {
+   "Orquesta (unspecified)": 22
+  },
+  "yearRange": [
+   1926,
+   1926
+  ]
+ },
+ {
+  "id": "gloria-diaz",
+  "name": "Gloria Díaz",
+  "count": 22,
+  "orchestras": {
+   "Armando Pontier": 12,
+   "José Basso": 2,
+   "Luis Stazo": 2,
+   "Florindo Sassone": 2,
+   "Leopoldo Federico": 2,
+   "Raúl Garello": 2
+  },
+  "yearRange": [
+   1976,
+   1978
+  ]
+ },
+ {
+  "id": "julian-rosales",
+  "name": "Julián Rosales",
+  "count": 22,
+  "orchestras": {
+   "Alfredo De Angelis": 22
+  },
+  "yearRange": [
+   1969,
+   1974
   ]
  },
  {
@@ -2526,6 +2328,59 @@
   ]
  },
  {
+  "id": "osvaldo-bazan",
+  "name": "Osvaldo Bazán",
+  "count": 21,
+  "orchestras": {
+   "Juan Sánchez Gorio": 21
+  },
+  "yearRange": [
+   1950,
+   1959
+  ]
+ },
+ {
+  "id": "roberto-ray",
+  "name": "Roberto Ray",
+  "count": 21,
+  "orchestras": {
+   "Osvaldo Fresedo": 21
+  },
+  "yearRange": [
+   1932,
+   1950
+  ]
+ },
+ {
+  "id": "blanca-mooney",
+  "name": "Blanca Mooney",
+  "count": 21,
+  "orchestras": {
+   "Luis Stazo": 12,
+   "Orquesta (unspecified)": 4,
+   "Osvaldo Fresedo": 3,
+   "Lucio Milena": 2
+  },
+  "yearRange": [
+   1959,
+   1971
+  ]
+ },
+ {
+  "id": "alberto-cuello",
+  "name": "Alberto Cuello",
+  "count": 20,
+  "orchestras": {
+   "Alfredo De Angelis": 14,
+   "Osvaldo Rizzo": 4,
+   "Héctor D'Espósito": 2
+  },
+  "yearRange": [
+   1961,
+   1969
+  ]
+ },
+ {
   "id": "alfredo-dalton",
   "name": "Alfredo Dalton",
   "count": 20,
@@ -2538,36 +2393,6 @@
   "yearRange": [
    1956,
    1987
-  ]
- },
- {
-  "id": "raul-ledesma",
-  "name": "Raúl Ledesma",
-  "count": 20,
-  "orchestras": {
-   "Miguel Caló": 7,
-   "Porfirio Díaz": 5,
-   "Nicolás Parancino": 4,
-   "Jorge Caldara": 2,
-   "Guitarras (solo singer)": 1,
-   "Enrique Mora": 1
-  },
-  "yearRange": [
-   1940,
-   1969
-  ]
- },
- {
-  "id": "ada-falcon",
-  "name": "Ada Falcón",
-  "count": 20,
-  "orchestras": {
-   "Francisco Canaro": 19,
-   "Enrique Delfino": 1
-  },
-  "yearRange": [
-   1929,
-   1934
   ]
  },
  {
@@ -2586,15 +2411,31 @@
   ]
  },
  {
-  "id": "juan-lauga",
-  "name": "Juan Lauga",
+  "id": "elba-beron",
+  "name": "Elba Berón",
   "count": 20,
   "orchestras": {
-   "Juan Bautista Guido": 20
+   "Miguel Nijensohn": 12,
+   "Aníbal Troilo": 3,
+   "4to.aníbal Troilo": 2,
+   "R.nievas Blanco": 2,
+   "Roberto Grela": 1
   },
   "yearRange": [
-   1927,
-   1931
+   1957,
+   1962
+  ]
+ },
+ {
+  "id": "c-dante-j-martel",
+  "name": "C. Dante - J. Martel",
+  "count": 20,
+  "orchestras": {
+   "Alfredo De Angelis": 20
+  },
+  "yearRange": [
+   1944,
+   1950
   ]
  },
  {
@@ -2643,19 +2484,15 @@
   "yearRange": null
  },
  {
-  "id": "carmen-duval",
-  "name": "Carmen Duval",
+  "id": "hector-palacios",
+  "name": "Héctor Palacios",
   "count": 19,
   "orchestras": {
-   "Argentino Galván": 9,
-   "Juan Larenza": 4,
-   "Orquesta Típica Víctor": 3,
-   "Orq.típica Coca Cola": 2,
-   "Orquesta (unspecified)": 1
+   "Guitarras (solo singer)": 19
   },
   "yearRange": [
-   1940,
-   1967
+   1936,
+   1942
   ]
  },
  {
@@ -2668,32 +2505,6 @@
   "yearRange": [
    1990,
    1990
-  ]
- },
- {
-  "id": "pablo-moreno",
-  "name": "Pablo Moreno",
-  "count": 19,
-  "orchestras": {
-   "Francini-Pontier": 15,
-   "Emilio Pellejero": 2,
-   "Hugo Di Carlo": 2
-  },
-  "yearRange": [
-   1944,
-   1954
-  ]
- },
- {
-  "id": "guillermo-coral",
-  "name": "Guillermo Coral",
-  "count": 19,
-  "orchestras": {
-   "Francisco Canaro": 19
-  },
-  "yearRange": [
-   1944,
-   1946
   ]
  },
  {
@@ -2720,6 +2531,22 @@
   "yearRange": [
    1957,
    1969
+  ]
+ },
+ {
+  "id": "jose-beron",
+  "name": "José Berón",
+  "count": 19,
+  "orchestras": {
+   "Guitarras (solo singer)": 9,
+   "Enrique Alessio": 3,
+   "Lito Scarso": 3,
+   "Miguel Nijensohn": 2,
+   "Eduardo Rovira": 2
+  },
+  "yearRange": [
+   1958,
+   1962
   ]
  },
  {
@@ -2752,30 +2579,20 @@
   ]
  },
  {
-  "id": "mario-ponce-de-leon",
-  "name": "Mario Ponce de León",
+  "id": "raul-ledesma",
+  "name": "Raúl Ledesma",
   "count": 18,
   "orchestras": {
-   "Orquesta (unspecified)": 13,
-   "Mariano Mores": 5
+   "Miguel Caló": 7,
+   "Nicolás Parancino": 4,
+   "Porfirio Díaz": 4,
+   "Guitarras (solo singer)": 1,
+   "Jorge Caldara": 1,
+   "Enrique Mora": 1
   },
   "yearRange": [
-   1957,
+   1940,
    1969
-  ]
- },
- {
-  "id": "jorge-sobral",
-  "name": "Jorge Sobral",
-  "count": 18,
-  "orchestras": {
-   "José A.giaimo": 13,
-   "Mario Demarco": 4,
-   "Armando Calderaro": 1
-  },
-  "yearRange": [
-   1951,
-   1970
   ]
  },
  {
@@ -2794,15 +2611,15 @@
   ]
  },
  {
-  "id": "roberto-luque",
-  "name": "Roberto Luque",
+  "id": "juan-lauga",
+  "name": "Juan Lauga",
   "count": 18,
   "orchestras": {
-   "Miguel Caló": 18
+   "Juan Bautista Guido": 18
   },
   "yearRange": [
-   1961,
-   1965
+   1927,
+   1931
   ]
  },
  {
@@ -2819,33 +2636,6 @@
   "yearRange": [
    1956,
    2001
-  ]
- },
- {
-  "id": "jorge-ledesma",
-  "name": "Jorge Ledesma",
-  "count": 18,
-  "orchestras": {
-   "Alberto Mancione": 17,
-   "Héctor D'Espósito": 1
-  },
-  "yearRange": [
-   1950,
-   1958
-  ]
- },
- {
-  "id": "orlando-verri",
-  "name": "Orlando Verri",
-  "count": 18,
-  "orchestras": {
-   "Osmar Maderna": 11,
-   "Julio De Caro": 4,
-   "Orq.símb.o.maderna": 3
-  },
-  "yearRange": [
-   1946,
-   1953
   ]
  },
  {
@@ -2875,6 +2665,20 @@
   ]
  },
  {
+  "id": "jorge-sobral",
+  "name": "Jorge Sobral",
+  "count": 17,
+  "orchestras": {
+   "José A.giaimo": 12,
+   "Mario Demarco": 4,
+   "Armando Calderaro": 1
+  },
+  "yearRange": [
+   1951,
+   1970
+  ]
+ },
+ {
   "id": "eduardo-borda",
   "name": "Eduardo Borda",
   "count": 17,
@@ -2889,32 +2693,59 @@
   ]
  },
  {
-  "id": "angel-diaz",
-  "name": "Angel Díaz",
+  "id": "marga-fontana",
+  "name": "Marga Fontana",
   "count": 17,
   "orchestras": {
-   "Horacio Salgán": 9,
-   "Alfredo Gobbi": 6,
-   "Florindo Sassone": 2
+   "Alberto Garralda": 10,
+   "Miguel Caló": 6,
+   "Las Estrellas del Tango": 1
   },
   "yearRange": [
-   1948,
-   1956
+   1960,
+   1988
   ]
  },
  {
-  "id": "adolfo-rivas",
-  "name": "Adolfo Rivas",
+  "id": "osvaldo-de-santis",
+  "name": "Osvaldo de Santis",
   "count": 17,
   "orchestras": {
-   "Orq.símb.o.maderna": 12,
-   "Osmar Maderna": 2,
-   "Edgardo Donato": 2,
-   "Eduardo del Piano": 1
+   "Florindo Sassone": 12,
+   "Alberto Mancione": 2,
+   "Cancelara": 2,
+   "Osvaldo Requena": 1
   },
   "yearRange": [
    1950,
-   1960
+   1963
+  ]
+ },
+ {
+  "id": "jorge-ledesma",
+  "name": "Jorge Ledesma",
+  "count": 17,
+  "orchestras": {
+   "Alberto Mancione": 16,
+   "Héctor D'Espósito": 1
+  },
+  "yearRange": [
+   1950,
+   1958
+  ]
+ },
+ {
+  "id": "orlando-verri",
+  "name": "Orlando Verri",
+  "count": 17,
+  "orchestras": {
+   "Osmar Maderna": 10,
+   "Julio De Caro": 4,
+   "Orq.símb.o.maderna": 3
+  },
+  "yearRange": [
+   1946,
+   1953
   ]
  },
  {
@@ -2931,20 +2762,6 @@
   ]
  },
  {
-  "id": "ruth-durante",
-  "name": "Ruth Durante",
-  "count": 17,
-  "orchestras": {
-   "Orquesta (unspecified)": 12,
-   "Orq.símb.o.maderna": 4,
-   "R.casal": 1
-  },
-  "yearRange": [
-   1959,
-   1969
-  ]
- },
- {
   "id": "marcelo-biondini",
   "name": "Marcelo Biondini",
   "count": 17,
@@ -2956,6 +2773,20 @@
   "yearRange": [
    1980,
    1985
+  ]
+ },
+ {
+  "id": "carlos-guido",
+  "name": "Carlos Guido",
+  "count": 17,
+  "orchestras": {
+   "Florindo Sassone": 7,
+   "Rubén Sosa": 5,
+   "Guitarras (solo singer)": 5
+  },
+  "yearRange": [
+   1955,
+   1957
   ]
  },
  {
@@ -2997,6 +2828,32 @@
   ]
  },
  {
+  "id": "roberto-luque",
+  "name": "Roberto Luque",
+  "count": 16,
+  "orchestras": {
+   "Miguel Caló": 16
+  },
+  "yearRange": [
+   1961,
+   1965
+  ]
+ },
+ {
+  "id": "pablo-moreno",
+  "name": "Pablo Moreno",
+  "count": 16,
+  "orchestras": {
+   "Francini-Pontier": 12,
+   "Emilio Pellejero": 2,
+   "Hugo Di Carlo": 2
+  },
+  "yearRange": [
+   1944,
+   1954
+  ]
+ },
+ {
   "id": "juan-carlos-miranda",
   "name": "Juan Carlos Miranda",
   "count": 16,
@@ -3008,6 +2865,31 @@
   "yearRange": [
    1938,
    1944
+  ]
+ },
+ {
+  "id": "tito-lando",
+  "name": "Tito Lando",
+  "count": 16,
+  "orchestras": {
+   "Alfredo Gobbi": 12,
+   "Mario Canaro": 4
+  },
+  "yearRange": [
+   1954,
+   1970
+  ]
+ },
+ {
+  "id": "alberto-reynal",
+  "name": "Alberto Reynal",
+  "count": 16,
+  "orchestras": {
+   "Juan D'Arienzo": 16
+  },
+  "yearRange": [
+   1940,
+   1942
   ]
  },
  {
@@ -3038,6 +2920,20 @@
   ]
  },
  {
+  "id": "ruth-durante",
+  "name": "Ruth Durante",
+  "count": 16,
+  "orchestras": {
+   "Orquesta (unspecified)": 12,
+   "Orq.símb.o.maderna": 3,
+   "R.casal": 1
+  },
+  "yearRange": [
+   1959,
+   1969
+  ]
+ },
+ {
   "id": "guillermo-fernandez",
   "name": "Guillermo Fernández",
   "count": 16,
@@ -3062,6 +2958,19 @@
   "yearRange": [
    1931,
    1932
+  ]
+ },
+ {
+  "id": "mario-ponce-de-leon",
+  "name": "Mario Ponce de León",
+  "count": 15,
+  "orchestras": {
+   "Orquesta (unspecified)": 13,
+   "Mariano Mores": 2
+  },
+  "yearRange": [
+   1957,
+   1969
   ]
  },
  {
@@ -3104,29 +3013,6 @@
   ]
  },
  {
-  "id": "alberto-morel",
-  "name": "Alberto Morel",
-  "count": 15,
-  "orchestras": {
-   "Miguel Caló": 11,
-   "Víctor D'Amario": 2,
-   "Jorge Arduh": 2
-  },
-  "yearRange": [
-   1936,
-   1953
-  ]
- },
- {
-  "id": "sandra-cantor",
-  "name": "Sandra Cantor",
-  "count": 15,
-  "orchestras": {
-   "Gustavo Vinitzca-Luciano Dyzenchauz": 15
-  },
-  "yearRange": null
- },
- {
   "id": "hector-alvarado",
   "name": "Héctor Alvarado",
   "count": 15,
@@ -3150,6 +3036,21 @@
   "yearRange": [
    2001,
    2001
+  ]
+ },
+ {
+  "id": "adolfo-rivas",
+  "name": "Adolfo Rivas",
+  "count": 15,
+  "orchestras": {
+   "Orq.símb.o.maderna": 10,
+   "Osmar Maderna": 2,
+   "Edgardo Donato": 2,
+   "Eduardo del Piano": 1
+  },
+  "yearRange": [
+   1950,
+   1960
   ]
  },
  {
@@ -3178,32 +3079,16 @@
   ]
  },
  {
-  "id": "leonardo-pastore",
-  "name": "Leonardo Pastore",
-  "count": 15,
-  "orchestras": {
-   "Estela Ojeda": 7,
-   "Estela Ojeda-Lucio B.videla": 4,
-   "Lucio Bruno Videla": 2,
-   "Orq.sinfónica Bahía Blanca": 2
-  },
-  "yearRange": [
-   1999,
-   2001
-  ]
- },
- {
-  "id": "enrique-lucero",
-  "name": "Enrique Lucero",
+  "id": "ada-falcon",
+  "name": "Ada Falcón",
   "count": 14,
   "orchestras": {
-   "Mariano Mores": 9,
-   "Francisco Canaro": 4,
-   "Joaquín Do Reyes": 1
+   "Francisco Canaro": 13,
+   "Enrique Delfino": 1
   },
   "yearRange": [
-   1946,
-   1957
+   1929,
+   1934
   ]
  },
  {
@@ -3222,6 +3107,15 @@
   ]
  },
  {
+  "id": "sandra-cantor",
+  "name": "Sandra Cantor",
+  "count": 14,
+  "orchestras": {
+   "Gustavo Vinitzca-Luciano Dyzenchauz": 14
+  },
+  "yearRange": null
+ },
+ {
   "id": "horacio-quintana",
   "name": "Horacio Quintana",
   "count": 14,
@@ -3231,19 +3125,6 @@
   "yearRange": [
    1944,
    1945
-  ]
- },
- {
-  "id": "mario-alonso",
-  "name": "Mario Alonso",
-  "count": 14,
-  "orchestras": {
-   "Francisco Canaro": 12,
-   "Osvaldo Pugliese": 2
-  },
-  "yearRange": [
-   1948,
-   1952
   ]
  },
  {
@@ -3290,34 +3171,6 @@
   ]
  },
  {
-  "id": "maria-grana",
-  "name": "María Graña",
-  "count": 14,
-  "orchestras": {
-   "Martín Darré": 10,
-   "Osvaldo Pugliese": 2,
-   "Trío": 1,
-   "Orquesta (unspecified)": 1
-  },
-  "yearRange": [
-   1981,
-   2003
-  ]
- },
- {
-  "id": "hugo-marcel",
-  "name": "Hugo Marcel",
-  "count": 14,
-  "orchestras": {
-   "Osvaldo Fresedo": 9,
-   "Orquesta Festival": 5
-  },
-  "yearRange": [
-   1940,
-   2000
-  ]
- },
- {
   "id": "alicia-regal",
   "name": "Alicia Regal",
   "count": 14,
@@ -3343,16 +3196,18 @@
   ]
  },
  {
-  "id": "carlos-vivan",
-  "name": "Carlos Viván",
-  "count": 13,
+  "id": "leonardo-pastore",
+  "name": "Leonardo Pastore",
+  "count": 14,
   "orchestras": {
-   "Juan Maglio \"Pacho\"": 8,
-   "Pedro Maffia": 5
+   "Estela Ojeda": 7,
+   "Estela Ojeda-Lucio B.videla": 3,
+   "Lucio Bruno Videla": 2,
+   "Orq.sinfónica Bahía Blanca": 2
   },
   "yearRange": [
-   1928,
-   1930
+   1999,
+   2001
   ]
  },
  {
@@ -3365,6 +3220,18 @@
   "yearRange": null
  },
  {
+  "id": "guillermo-coral",
+  "name": "Guillermo Coral",
+  "count": 13,
+  "orchestras": {
+   "Francisco Canaro": 13
+  },
+  "yearRange": [
+   1944,
+   1946
+  ]
+ },
+ {
   "id": "alberto-sanchez",
   "name": "Alberto Sanchez",
   "count": 13,
@@ -3374,30 +3241,6 @@
   "yearRange": [
    1956,
    1957
-  ]
- },
- {
-  "id": "horacio-roca",
-  "name": "Horacio Roca",
-  "count": 13,
-  "orchestras": {
-   "Ricardo Tanturi": 13
-  },
-  "yearRange": [
-   1950,
-   1960
-  ]
- },
- {
-  "id": "a-laborde-o-ramos",
-  "name": "A. Laborde - O. Ramos",
-  "count": 13,
-  "orchestras": {
-   "Juan D'Arienzo": 13
-  },
-  "yearRange": [
-   1960,
-   1974
   ]
  },
  {
@@ -3413,31 +3256,31 @@
   ]
  },
  {
-  "id": "carlos-montalvo",
-  "name": "Carlos Montalvo",
+  "id": "maria-grana",
+  "name": "María Graña",
   "count": 13,
   "orchestras": {
-   "Jorge Caldara": 13
+   "Martín Darré": 10,
+   "Osvaldo Pugliese": 1,
+   "Trío": 1,
+   "Orquesta (unspecified)": 1
   },
   "yearRange": [
-   1957,
-   1960
+   1981,
+   2003
   ]
  },
  {
-  "id": "diana-duran",
-  "name": "Diana Durán",
+  "id": "hugo-marcel",
+  "name": "Hugo Marcel",
   "count": 13,
   "orchestras": {
-   "Enrique Mora": 5,
-   "4to.típico": 3,
-   "Conjunto Típico": 2,
-   "Orquesta (unspecified)": 2,
-   "Oldimar Cáceres": 1
+   "Osvaldo Fresedo": 8,
+   "Orquesta Festival": 5
   },
   "yearRange": [
-   1951,
-   1952
+   1940,
+   2000
   ]
  },
  {
@@ -3499,15 +3342,29 @@
   "yearRange": null
  },
  {
-  "id": "carlos-galarce",
-  "name": "Carlos Galarce",
+  "id": "lucho-gatica",
+  "name": "Lucho Gatica",
   "count": 12,
   "orchestras": {
-   "Francisco Lomuto": 12
+   "Miguel Caló": 12
   },
   "yearRange": [
-   1944,
-   1945
+   1965,
+   1965
+  ]
+ },
+ {
+  "id": "angel-diaz",
+  "name": "Angel Díaz",
+  "count": 12,
+  "orchestras": {
+   "Horacio Salgán": 7,
+   "Alfredo Gobbi": 4,
+   "Florindo Sassone": 1
+  },
+  "yearRange": [
+   1948,
+   1956
   ]
  },
  {
@@ -3523,27 +3380,16 @@
   ]
  },
  {
-  "id": "carlos-galan",
-  "name": "Carlos Galán",
+  "id": "mario-alonso",
+  "name": "Mario Alonso",
   "count": 12,
   "orchestras": {
-   "Francisco Canaro": 12
+   "Francisco Canaro": 10,
+   "Osvaldo Pugliese": 2
   },
   "yearRange": [
-   1934,
-   1934
-  ]
- },
- {
-  "id": "juan-carlos-rolon",
-  "name": "Juan Carlos Rolón",
-  "count": 12,
-  "orchestras": {
-   "Francisco Canaro": 12
-  },
-  "yearRange": [
-   1956,
-   1957
+   1948,
+   1952
   ]
  },
  {
@@ -3573,15 +3419,19 @@
   ]
  },
  {
-  "id": "manuel-pizarro",
-  "name": "Manuel Pizarro",
+  "id": "diana-duran",
+  "name": "Diana Durán",
   "count": 12,
   "orchestras": {
-   "Manuel Pizarro": 12
+   "Enrique Mora": 4,
+   "4to.típico": 3,
+   "Conjunto Típico": 2,
+   "Orquesta (unspecified)": 2,
+   "Oldimar Cáceres": 1
   },
   "yearRange": [
-   1928,
-   1938
+   1951,
+   1952
   ]
  },
  {
@@ -3619,21 +3469,6 @@
   "yearRange": [
    1953,
    1954
-  ]
- },
- {
-  "id": "felix-gutierrez",
-  "name": "Félix Gutiérrez",
-  "count": 12,
-  "orchestras": {
-   "Edgardo Donato": 5,
-   "Francisco Canaro": 4,
-   "Pedro Maffia": 2,
-   "Trío los Nativos": 1
-  },
-  "yearRange": [
-   1928,
-   1934
   ]
  },
  {
@@ -3731,6 +3566,34 @@
   "yearRange": null
  },
  {
+  "id": "carlos-galarce",
+  "name": "Carlos Galarce",
+  "count": 11,
+  "orchestras": {
+   "Francisco Lomuto": 11
+  },
+  "yearRange": [
+   1944,
+   1945
+  ]
+ },
+ {
+  "id": "carmen-duval",
+  "name": "Carmen Duval",
+  "count": 11,
+  "orchestras": {
+   "Juan Larenza": 4,
+   "Argentino Galván": 3,
+   "Orq.típica Coca Cola": 2,
+   "Orquesta Típica Víctor": 1,
+   "Orquesta (unspecified)": 1
+  },
+  "yearRange": [
+   1940,
+   1967
+  ]
+ },
+ {
   "id": "graciela-susana",
   "name": "Graciela Susana",
   "count": 11,
@@ -3741,6 +3604,18 @@
   "yearRange": [
    1982,
    1991
+  ]
+ },
+ {
+  "id": "carlos-galan",
+  "name": "Carlos Galán",
+  "count": 11,
+  "orchestras": {
+   "Francisco Canaro": 11
+  },
+  "yearRange": [
+   1934,
+   1934
   ]
  },
  {
@@ -3768,6 +3643,18 @@
   ]
  },
  {
+  "id": "horacio-roca",
+  "name": "Horacio Roca",
+  "count": 11,
+  "orchestras": {
+   "Ricardo Tanturi": 11
+  },
+  "yearRange": [
+   1950,
+   1960
+  ]
+ },
+ {
   "id": "juan-carlos-lamas",
   "name": "Juan Carlos Lamas",
   "count": 11,
@@ -3777,31 +3664,6 @@
   "yearRange": [
    1942,
    1943
-  ]
- },
- {
-  "id": "a-marino-f-ruiz",
-  "name": "A. Marino - F. Ruíz",
-  "count": 11,
-  "orchestras": {
-   "Aníbal Troilo": 11
-  },
-  "yearRange": [
-   1944,
-   1946
-  ]
- },
- {
-  "id": "enzo-valentino",
-  "name": "Enzo Valentino",
-  "count": 11,
-  "orchestras": {
-   "Alfredo Attadía": 6,
-   "Domingo Federico": 5
-  },
-  "yearRange": [
-   1949,
-   1952
   ]
  },
  {
@@ -3817,15 +3679,18 @@
   ]
  },
  {
-  "id": "ricardo-herrera",
-  "name": "Ricardo Herrera",
+  "id": "felix-gutierrez",
+  "name": "Félix Gutiérrez",
   "count": 11,
   "orchestras": {
-   "Enrique Rodríguez": 11
+   "Edgardo Donato": 4,
+   "Francisco Canaro": 4,
+   "Pedro Maffia": 2,
+   "Trío los Nativos": 1
   },
   "yearRange": [
-   1946,
-   1952
+   1928,
+   1934
   ]
  },
  {
@@ -3865,77 +3730,16 @@
   ]
  },
  {
-  "id": "hugo-soler",
-  "name": "Hugo Soler",
+  "id": "carlos-vivan",
+  "name": "Carlos Viván",
   "count": 10,
   "orchestras": {
-   "Joaquín Do Reyes": 5,
-   "Alfredo Gobbi": 2,
-   "Ricardo Pedevilla": 2,
-   "Enrique Alessio": 1
+   "Juan Maglio \"Pacho\"": 7,
+   "Pedro Maffia": 3
   },
   "yearRange": [
-   1947,
-   1954
-  ]
- },
- {
-  "id": "presentacion",
-  "name": "Presentación",
-  "count": 10,
-  "orchestras": {
-   "Miguel Caló": 2,
-   "Osvaldo Pugliese": 2,
-   "Orq.filar.montevideo": 1,
-   "Juan Canaro": 1,
-   "Orq.mun.de Quilmes": 1,
-   "Aníbal Troilo": 1,
-   "Raúl Garello": 1,
-   "Cuarteto Tango": 1
-  },
-  "yearRange": [
-   1946,
-   1994
-  ]
- },
- {
-  "id": "romeo-gavioli",
-  "name": "Romeo Gavioli",
-  "count": 10,
-  "orchestras": {
-   "Romeo Gavioli": 9,
-   "Edgardo Donato": 1
-  },
-  "yearRange": [
-   1942,
-   1946
-  ]
- },
- {
-  "id": "oscar-nelson",
-  "name": "Oscar Nelson",
-  "count": 10,
-  "orchestras": {
-   "Puglia-Pedroza": 8,
-   "José Puglia Orquesta": 1,
-   "Roberto Cuenca": 1
-  },
-  "yearRange": [
-   1946,
-   1959
-  ]
- },
- {
-  "id": "ruben-cane",
-  "name": "Rubén Cané",
-  "count": 10,
-  "orchestras": {
-   "Ángel D'Agostino": 9,
-   "Graciano Gómez": 1
-  },
-  "yearRange": [
-   1953,
-   1987
+   1928,
+   1930
   ]
  },
  {
@@ -3995,17 +3799,27 @@
   ]
  },
  {
-  "id": "antonio-maida",
-  "name": "Antonio Maida",
+  "id": "a-laborde-o-ramos",
+  "name": "A. Laborde - O. Ramos",
   "count": 10,
   "orchestras": {
-   "Ricardo Malerba": 5,
-   "Edgardo Donato": 3,
-   "A.troilo-R.grela": 2
+   "Juan D'Arienzo": 10
   },
   "yearRange": [
-   1934,
-   1945
+   1960,
+   1974
+  ]
+ },
+ {
+  "id": "manuel-pizarro",
+  "name": "Manuel Pizarro",
+  "count": 10,
+  "orchestras": {
+   "Manuel Pizarro": 10
+  },
+  "yearRange": [
+   1928,
+   1938
   ]
  },
  {
@@ -4018,6 +3832,19 @@
   "yearRange": [
    1930,
    1931
+  ]
+ },
+ {
+  "id": "enzo-valentino",
+  "name": "Enzo Valentino",
+  "count": 10,
+  "orchestras": {
+   "Alfredo Attadía": 6,
+   "Domingo Federico": 4
+  },
+  "yearRange": [
+   1949,
+   1952
   ]
  },
  {
@@ -4046,15 +3873,15 @@
   ]
  },
  {
-  "id": "ernesto-falcon",
-  "name": "Ernesto Falcón",
+  "id": "ricardo-herrera",
+  "name": "Ricardo Herrera",
   "count": 10,
   "orchestras": {
    "Enrique Rodríguez": 10
   },
   "yearRange": [
-   1967,
-   1970
+   1946,
+   1952
   ]
  },
  {
@@ -4091,31 +3918,6 @@
   "yearRange": [
    1977,
    1977
-  ]
- },
- {
-  "id": "oscar-rorra",
-  "name": "Oscar Rorra",
-  "count": 10,
-  "orchestras": {
-   "Antonio Scatasso": 10
-  },
-  "yearRange": [
-   1925,
-   1925
-  ]
- },
- {
-  "id": "a-magaldi-r-quiroga",
-  "name": "A. Magaldi - R. Quiroga",
-  "count": 10,
-  "orchestras": {
-   "Guitarras (solo singer)": 8,
-   "Agustín Magaldi Vol. Iii": 2
-  },
-  "yearRange": [
-   1924,
-   1927
   ]
  },
  {
@@ -4162,6 +3964,21 @@
   ]
  },
  {
+  "id": "hugo-soler",
+  "name": "Hugo Soler",
+  "count": 9,
+  "orchestras": {
+   "Joaquín Do Reyes": 5,
+   "Ricardo Pedevilla": 2,
+   "Alfredo Gobbi": 1,
+   "Enrique Alessio": 1
+  },
+  "yearRange": [
+   1947,
+   1954
+  ]
+ },
+ {
   "id": "alberto-santillan",
   "name": "Alberto Santillán",
   "count": 9,
@@ -4175,31 +3992,47 @@
   ]
  },
  {
-  "id": "c-heredia-h-soler",
-  "name": "C. Heredia - H. Soler",
+  "id": "presentacion",
+  "name": "Presentación",
   "count": 9,
   "orchestras": {
-   "Alfredo Gobbi": 9
+   "Miguel Caló": 2,
+   "Osvaldo Pugliese": 1,
+   "Orq.filar.montevideo": 1,
+   "Juan Canaro": 1,
+   "Orq.mun.de Quilmes": 1,
+   "Aníbal Troilo": 1,
+   "Raúl Garello": 1,
+   "Cuarteto Tango": 1
   },
   "yearRange": [
-   1947,
-   1948
+   1946,
+   1994
   ]
  },
  {
-  "id": "luis-a-fleitas",
-  "name": "Luis A. Fleitas",
+  "id": "ruben-cane",
+  "name": "Rubén Cané",
   "count": 9,
   "orchestras": {
-   "Lalo Marenales": 3,
-   "Oscar Desándalo": 2,
-   "P.láurenz-P.casella": 2,
-   "Donato Racciatti": 1,
-   "Orq.típica Sondor": 1
+   "Ángel D'Agostino": 8,
+   "Graciano Gómez": 1
   },
   "yearRange": [
-   1945,
-   1953
+   1953,
+   1987
+  ]
+ },
+ {
+  "id": "juan-carlos-rolon",
+  "name": "Juan Carlos Rolón",
+  "count": 9,
+  "orchestras": {
+   "Francisco Canaro": 9
+  },
+  "yearRange": [
+   1956,
+   1957
   ]
  },
  {
@@ -4258,15 +4091,17 @@
   ]
  },
  {
-  "id": "r-goyeneche-a-cardenas",
-  "name": "R. Goyeneche - A. Cárdenas",
+  "id": "antonio-maida",
+  "name": "Antonio Maida",
   "count": 9,
   "orchestras": {
-   "Aníbal Troilo": 9
+   "Ricardo Malerba": 5,
+   "Edgardo Donato": 3,
+   "A.troilo-R.grela": 1
   },
   "yearRange": [
-   1957,
-   1958
+   1934,
+   1945
   ]
  },
  {
@@ -4291,6 +4126,18 @@
   },
   "yearRange": [
    1966,
+   1970
+  ]
+ },
+ {
+  "id": "ernesto-falcon",
+  "name": "Ernesto Falcón",
+  "count": 9,
+  "orchestras": {
+   "Enrique Rodríguez": 9
+  },
+  "yearRange": [
+   1967,
    1970
   ]
  },
@@ -4354,40 +4201,60 @@
   ]
  },
  {
-  "id": "virginia-vera",
-  "name": "Virginia Vera",
+  "id": "enrique-lucero",
+  "name": "Enrique Lucero",
   "count": 8,
   "orchestras": {
-   "Guitarras (solo singer)": 8
+   "Mariano Mores": 4,
+   "Francisco Canaro": 3,
+   "Joaquín Do Reyes": 1
   },
   "yearRange": [
-   1930,
-   1931
+   1946,
+   1957
   ]
  },
  {
-  "id": "ernesto-herrera",
-  "name": "Ernesto Herrera",
+  "id": "alberto-morel",
+  "name": "Alberto Morel",
   "count": 8,
   "orchestras": {
-   "Héctor Varela": 8
+   "Miguel Caló": 4,
+   "Víctor D'Amario": 2,
+   "Jorge Arduh": 2
   },
   "yearRange": [
-   1958,
-   1964
+   1936,
+   1953
   ]
  },
  {
-  "id": "armando-garrido",
-  "name": "Armando Garrido",
+  "id": "romeo-gavioli",
+  "name": "Romeo Gavioli",
   "count": 8,
   "orchestras": {
-   "Osvaldo Fresedo": 6,
-   "Lucio Demare": 2
+   "Romeo Gavioli": 7,
+   "Edgardo Donato": 1
   },
   "yearRange": [
-   1950,
-   1956
+   1942,
+   1946
+  ]
+ },
+ {
+  "id": "luis-a-fleitas",
+  "name": "Luis A. Fleitas",
+  "count": 8,
+  "orchestras": {
+   "Lalo Marenales": 3,
+   "Oscar Desándalo": 2,
+   "Donato Racciatti": 1,
+   "P.láurenz-P.casella": 1,
+   "Orq.típica Sondor": 1
+  },
+  "yearRange": [
+   1945,
+   1953
   ]
  },
  {
@@ -4402,20 +4269,6 @@
   "yearRange": [
    1953,
    1956
-  ]
- },
- {
-  "id": "alberto-rial",
-  "name": "Alberto Rial",
-  "count": 8,
-  "orchestras": {
-   "Angel Domínguez": 4,
-   "Alberto Mancione": 3,
-   "Florindo Sassone": 1
-  },
-  "yearRange": [
-   1950,
-   1959
   ]
  },
  {
@@ -4441,32 +4294,6 @@
   "yearRange": [
    1930,
    1938
-  ]
- },
- {
-  "id": "r-beron-j-casal",
-  "name": "R. Berón - J. Casal",
-  "count": 8,
-  "orchestras": {
-   "Aníbal Troilo": 8
-  },
-  "yearRange": [
-   1953,
-   1953
-  ]
- },
- {
-  "id": "jorge-garre",
-  "name": "Jorge Garré",
-  "count": 8,
-  "orchestras": {
-   "Oscar de la Fuente": 4,
-   "Fulvio Salamanca": 2,
-   "Enrique Alessio": 2
-  },
-  "yearRange": [
-   1958,
-   1960
   ]
  },
  {
@@ -4544,18 +4371,6 @@
   ]
  },
  {
-  "id": "carlos-barrios",
-  "name": "Carlos Barrios",
-  "count": 8,
-  "orchestras": {
-   "Osvaldo Fresedo": 8
-  },
-  "yearRange": [
-   1953,
-   1957
-  ]
- },
- {
   "id": "a-echague-a-laborde",
   "name": "A. Echagüe - A. Laborde",
   "count": 8,
@@ -4575,18 +4390,6 @@
    "Edelmiro D'Amario": 8
   },
   "yearRange": null
- },
- {
-  "id": "a-del-rio-tito-lando",
-  "name": "A. del Río - Tito Lando",
-  "count": 8,
-  "orchestras": {
-   "Alfredo Gobbi": 8
-  },
-  "yearRange": [
-   1955,
-   1958
-  ]
  },
  {
   "id": "carlos-bermudez",
@@ -4613,28 +4416,31 @@
   ]
  },
  {
-  "id": "hector-insua",
-  "name": "Héctor Insúa",
+  "id": "oscar-nelson",
+  "name": "Oscar Nelson",
   "count": 7,
   "orchestras": {
-   "Juan Canaro": 6,
-   "Joaquín Do Reyes": 1
+   "Puglia-Pedroza": 5,
+   "José Puglia Orquesta": 1,
+   "Roberto Cuenca": 1
   },
   "yearRange": [
-   1950,
-   1954
+   1946,
+   1959
   ]
  },
  {
-  "id": "j-maciel-h-coral",
-  "name": "J. Maciel - H. Coral",
+  "id": "alberto-rial",
+  "name": "Alberto Rial",
   "count": 7,
   "orchestras": {
-   "Alfredo Gobbi": 7
+   "Alberto Mancione": 3,
+   "Angel Domínguez": 3,
+   "Florindo Sassone": 1
   },
   "yearRange": [
    1950,
-   1952
+   1959
   ]
  },
  {
@@ -4665,18 +4471,6 @@
   ]
  },
  {
-  "id": "alberto-guzman",
-  "name": "Alberto Guzmán",
-  "count": 7,
-  "orchestras": {
-   "Ricardo Tanturi": 7
-  },
-  "yearRange": [
-   1958,
-   1959
-  ]
- },
- {
   "id": "quinteto",
   "name": "Quinteto",
   "count": 7,
@@ -4698,18 +4492,6 @@
   "yearRange": [
    1950,
    1954
-  ]
- },
- {
-  "id": "julio-fontana",
-  "name": "Julio Fontana",
-  "count": 7,
-  "orchestras": {
-   "Juan Sánchez Gorio": 7
-  },
-  "yearRange": [
-   1957,
-   1959
   ]
  },
  {
@@ -4737,15 +4519,14 @@
   ]
  },
  {
-  "id": "miguel-martino",
-  "name": "Miguel Martino",
+  "id": "carlos-montalvo",
+  "name": "Carlos Montalvo",
   "count": 7,
   "orchestras": {
-   "Jorge Caldara": 6,
-   "Miguel Caló": 1
+   "Jorge Caldara": 7
   },
   "yearRange": [
-   1953,
+   1957,
    1960
   ]
  },
@@ -4919,20 +4700,6 @@
   ]
  },
  {
-  "id": "jorge-montes",
-  "name": "Jorge Montes",
-  "count": 6,
-  "orchestras": {
-   "Lorenzo Barbero": 2,
-   "Jorge Arduh": 2,
-   "Torcuato Wermouth": 2
-  },
-  "yearRange": [
-   1955,
-   1964
-  ]
- },
- {
   "id": "carlos-persi",
   "name": "Carlos Persi",
   "count": 6,
@@ -4957,29 +4724,15 @@
   ]
  },
  {
-  "id": "patrocinio-diaz",
-  "name": "Patrocinio Díaz",
+  "id": "ernesto-herrera",
+  "name": "Ernesto Herrera",
   "count": 6,
   "orchestras": {
-   "Juan de Dios Filiberto": 3,
-   "Guitarras (solo singer)": 2,
-   "Guitarra y Organo": 1
+   "Héctor Varela": 6
   },
   "yearRange": [
-   1930,
-   1934
-  ]
- },
- {
-  "id": "aida-luz",
-  "name": "Aída Luz",
-  "count": 6,
-  "orchestras": {
-   "Aníbal Troilo": 6
-  },
-  "yearRange": [
-   1953,
-   1953
+   1958,
+   1964
   ]
  },
  {
@@ -4996,19 +4749,6 @@
   ]
  },
  {
-  "id": "yola-yoli",
-  "name": "Yola Yoli",
-  "count": 6,
-  "orchestras": {
-   "Orq.típica Coca Cola": 5,
-   "Miguel Caló": 1
-  },
-  "yearRange": [
-   1946,
-   1946
-  ]
- },
- {
   "id": "e-borda-q-ojeda",
   "name": "E. Borda - Q. Ojeda",
   "count": 6,
@@ -5019,6 +4759,19 @@
   "yearRange": [
    1986,
    2001
+  ]
+ },
+ {
+  "id": "armando-garrido",
+  "name": "Armando Garrido",
+  "count": 6,
+  "orchestras": {
+   "Osvaldo Fresedo": 4,
+   "Lucio Demare": 2
+  },
+  "yearRange": [
+   1950,
+   1956
   ]
  },
  {
@@ -5047,18 +4800,6 @@
   ]
  },
  {
-  "id": "a-arenas-m-alonso",
-  "name": "A. Arenas - M. Alonso",
-  "count": 6,
-  "orchestras": {
-   "Francisco Canaro": 6
-  },
-  "yearRange": [
-   1948,
-   1952
-  ]
- },
- {
   "id": "mario-corrales",
   "name": "Mario Corrales",
   "count": 6,
@@ -5070,6 +4811,18 @@
   "yearRange": [
    1939,
    1948
+  ]
+ },
+ {
+  "id": "julio-fontana",
+  "name": "Julio Fontana",
+  "count": 6,
+  "orchestras": {
+   "Juan Sánchez Gorio": 6
+  },
+  "yearRange": [
+   1957,
+   1959
   ]
  },
  {
@@ -5098,66 +4851,30 @@
   ]
  },
  {
-  "id": "f-fiorentino-a-marino",
-  "name": "F. Fiorentino - A. Marino",
+  "id": "miguel-martino",
+  "name": "Miguel Martino",
   "count": 6,
   "orchestras": {
-   "Aníbal Troilo": 6
+   "Jorge Caldara": 5,
+   "Miguel Caló": 1
   },
   "yearRange": [
-   1943,
-   1944
+   1953,
+   1960
   ]
  },
  {
-  "id": "e-rivero-a-calderon",
-  "name": "E. Rivero - A. Calderón",
+  "id": "jorge-garre",
+  "name": "Jorge Garré",
   "count": 6,
   "orchestras": {
-   "Aníbal Troilo": 6
+   "Fulvio Salamanca": 2,
+   "Enrique Alessio": 2,
+   "Oscar de la Fuente": 2
   },
   "yearRange": [
-   1949,
-   1949
-  ]
- },
- {
-  "id": "m-bianco-horacio-pettorossi",
-  "name": "M. Bianco - Horacio Pettorossi",
-  "count": 6,
-  "orchestras": {
-   "Eduardo Bianco": 6
-  },
-  "yearRange": [
-   1928,
-   1929
-  ]
- },
- {
-  "id": "manuel-bianco",
-  "name": "Manuel Bianco",
-  "count": 6,
-  "orchestras": {
-   "Eduardo Bianco": 6
-  },
-  "yearRange": [
-   1928,
-   1932
-  ]
- },
- {
-  "id": "lita-morales",
-  "name": "Lita Morales",
-  "count": 6,
-  "orchestras": {
-   "Orquesta (unspecified)": 3,
-   "Francisco Lomuto": 1,
-   "Orquesta Típica Víctor": 1,
-   "Edgardo Donato": 1
-  },
-  "yearRange": [
-   1937,
-   1956
+   1958,
+   1960
   ]
  },
  {
@@ -5182,18 +4899,6 @@
   "yearRange": [
    2000,
    2000
-  ]
- },
- {
-  "id": "mario-zelta",
-  "name": "Mario Zelta",
-  "count": 6,
-  "orchestras": {
-   "Porfirio Díaz": 6
-  },
-  "yearRange": [
-   1940,
-   1940
   ]
  },
  {
@@ -5257,18 +4962,6 @@
   ]
  },
  {
-  "id": "cruz-montenegro",
-  "name": "Cruz Montenegro",
-  "count": 6,
-  "orchestras": {
-   "Enrique Rodríguez": 6
-  },
-  "yearRange": [
-   1969,
-   1971
-  ]
- },
- {
   "id": "amelita-baltar",
   "name": "Amelita Baltar",
   "count": 6,
@@ -5318,6 +5011,18 @@
   ]
  },
  {
+  "id": "carlos-barrios",
+  "name": "Carlos Barrios",
+  "count": 6,
+  "orchestras": {
+   "Osvaldo Fresedo": 6
+  },
+  "yearRange": [
+   1953,
+   1957
+  ]
+ },
+ {
   "id": "andres-areco",
   "name": "Andrés Areco",
   "count": 6,
@@ -5327,6 +5032,31 @@
   "yearRange": [
    2000,
    2000
+  ]
+ },
+ {
+  "id": "oscar-rorra",
+  "name": "Oscar Rorra",
+  "count": 6,
+  "orchestras": {
+   "Antonio Scatasso": 6
+  },
+  "yearRange": [
+   1925,
+   1925
+  ]
+ },
+ {
+  "id": "a-magaldi-r-quiroga",
+  "name": "A. Magaldi - R. Quiroga",
+  "count": 6,
+  "orchestras": {
+   "Guitarras (solo singer)": 4,
+   "Agustín Magaldi Vol. Iii": 2
+  },
+  "yearRange": [
+   1924,
+   1927
   ]
  },
  {
@@ -5399,6 +5129,20 @@
   ]
  },
  {
+  "id": "jorge-montes",
+  "name": "Jorge Montes",
+  "count": 5,
+  "orchestras": {
+   "Lorenzo Barbero": 2,
+   "Torcuato Wermouth": 2,
+   "Jorge Arduh": 1
+  },
+  "yearRange": [
+   1955,
+   1964
+  ]
+ },
+ {
   "id": "r-florio-j-duran",
   "name": "R. Florio - J. Durán",
   "count": 5,
@@ -5450,6 +5194,45 @@
   ]
  },
  {
+  "id": "patrocinio-diaz",
+  "name": "Patrocinio Díaz",
+  "count": 5,
+  "orchestras": {
+   "Juan de Dios Filiberto": 2,
+   "Guitarras (solo singer)": 2,
+   "Guitarra y Organo": 1
+  },
+  "yearRange": [
+   1930,
+   1934
+  ]
+ },
+ {
+  "id": "virginia-vera",
+  "name": "Virginia Vera",
+  "count": 5,
+  "orchestras": {
+   "Guitarras (solo singer)": 5
+  },
+  "yearRange": [
+   1930,
+   1931
+  ]
+ },
+ {
+  "id": "hector-insua",
+  "name": "Héctor Insúa",
+  "count": 5,
+  "orchestras": {
+   "Juan Canaro": 4,
+   "Joaquín Do Reyes": 1
+  },
+  "yearRange": [
+   1950,
+   1954
+  ]
+ },
+ {
   "id": "carlos-del-monte",
   "name": "Carlos del Monte",
   "count": 5,
@@ -5471,42 +5254,6 @@
   "yearRange": [
    1947,
    1949
-  ]
- },
- {
-  "id": "roberto-calo",
-  "name": "Roberto Caló",
-  "count": 5,
-  "orchestras": {
-   "Miguel Caló": 5
-  },
-  "yearRange": [
-   1936,
-   1938
-  ]
- },
- {
-  "id": "hector-coral",
-  "name": "Héctor Coral",
-  "count": 5,
-  "orchestras": {
-   "Alfredo Gobbi": 5
-  },
-  "yearRange": [
-   1950,
-   1951
-  ]
- },
- {
-  "id": "alberto-bianchi",
-  "name": "Alberto Bianchi",
-  "count": 5,
-  "orchestras": {
-   "Juan Cao": 5
-  },
-  "yearRange": [
-   1944,
-   1945
   ]
  },
  {
@@ -5559,15 +5306,15 @@
   ]
  },
  {
-  "id": "c-montalvo-m-martino",
-  "name": "C. Montalvo - M. Martino",
+  "id": "a-arenas-m-alonso",
+  "name": "A. Arenas - M. Alonso",
   "count": 5,
   "orchestras": {
-   "Jorge Caldara": 5
+   "Francisco Canaro": 5
   },
   "yearRange": [
-   1958,
-   1960
+   1948,
+   1952
   ]
  },
  {
@@ -5607,15 +5354,15 @@
   ]
  },
  {
-  "id": "o-ribo-r-videla",
-  "name": "O. Ribó - R. Videla",
+  "id": "alberto-guzman",
+  "name": "Alberto Guzmán",
   "count": 5,
   "orchestras": {
    "Ricardo Tanturi": 5
   },
   "yearRange": [
-   1946,
-   1948
+   1958,
+   1959
   ]
  },
  {
@@ -5643,6 +5390,30 @@
   ]
  },
  {
+  "id": "a-marino-f-ruiz",
+  "name": "A. Marino - F. Ruíz",
+  "count": 5,
+  "orchestras": {
+   "Aníbal Troilo": 5
+  },
+  "yearRange": [
+   1944,
+   1946
+  ]
+ },
+ {
+  "id": "manuel-bianco",
+  "name": "Manuel Bianco",
+  "count": 5,
+  "orchestras": {
+   "Eduardo Bianco": 5
+  },
+  "yearRange": [
+   1928,
+   1932
+  ]
+ },
+ {
   "id": "mario-visconti",
   "name": "Mario Visconti",
   "count": 5,
@@ -5664,6 +5435,33 @@
   "yearRange": [
    1939,
    1942
+  ]
+ },
+ {
+  "id": "lita-morales",
+  "name": "Lita Morales",
+  "count": 5,
+  "orchestras": {
+   "Orquesta (unspecified)": 2,
+   "Francisco Lomuto": 1,
+   "Orquesta Típica Víctor": 1,
+   "Edgardo Donato": 1
+  },
+  "yearRange": [
+   1937,
+   1956
+  ]
+ },
+ {
+  "id": "mario-zelta",
+  "name": "Mario Zelta",
+  "count": 5,
+  "orchestras": {
+   "Porfirio Díaz": 5
+  },
+  "yearRange": [
+   1940,
+   1940
   ]
  },
  {
@@ -5741,15 +5539,15 @@
   ]
  },
  {
-  "id": "omar-quiroz",
-  "name": "Omar Quiróz",
+  "id": "cruz-montenegro",
+  "name": "Cruz Montenegro",
   "count": 5,
   "orchestras": {
    "Enrique Rodríguez": 5
   },
   "yearRange": [
-   1953,
-   1956
+   1969,
+   1971
   ]
  },
  {
@@ -5921,18 +5719,6 @@
   ]
  },
  {
-  "id": "walter-cabral",
-  "name": "Walter Cabral",
-  "count": 5,
-  "orchestras": {
-   "Juan D'Arienzo": 5
-  },
-  "yearRange": [
-   1936,
-   1936
-  ]
- },
- {
   "id": "jorge-falcon-fernando-soler",
   "name": "Jorge Falcón - Fernando Soler",
   "count": 5,
@@ -6041,19 +5827,6 @@
   ]
  },
  {
-  "id": "carlos-moran",
-  "name": "Carlos Morán",
-  "count": 4,
-  "orchestras": {
-   "Porfirio Díaz": 3,
-   "Gabriel Clausi(chula)": 1
-  },
-  "yearRange": [
-   1940,
-   1944
-  ]
- },
- {
   "id": "hector-ortiz",
   "name": "Héctor Ortíz",
   "count": 4,
@@ -6063,19 +5836,6 @@
   "yearRange": [
    1970,
    1970
-  ]
- },
- {
-  "id": "virginia-luque",
-  "name": "Virginia Luque",
-  "count": 4,
-  "orchestras": {
-   "Argentino Galván": 2,
-   "Tito Ribero": 2
-  },
-  "yearRange": [
-   1952,
-   1959
   ]
  },
  {
@@ -6127,6 +5887,19 @@
   ]
  },
  {
+  "id": "yola-yoli",
+  "name": "Yola Yoli",
+  "count": 4,
+  "orchestras": {
+   "Orq.típica Coca Cola": 3,
+   "Miguel Caló": 1
+  },
+  "yearRange": [
+   1946,
+   1946
+  ]
+ },
+ {
   "id": "roxana-fontan",
   "name": "Roxana Fontán",
   "count": 4,
@@ -6140,39 +5913,39 @@
   ]
  },
  {
-  "id": "roman-prince",
-  "name": "Roman Prince",
+  "id": "c-heredia-h-soler",
+  "name": "C. Heredia - H. Soler",
   "count": 4,
   "orchestras": {
-   "Miguel Caló": 4
+   "Alfredo Gobbi": 4
   },
   "yearRange": [
-   1932,
-   1932
+   1947,
+   1948
   ]
  },
  {
-  "id": "carlos-malbran",
-  "name": "Carlos Malbrán",
+  "id": "alberto-bianchi",
+  "name": "Alberto Bianchi",
   "count": 4,
   "orchestras": {
-   "Florindo Sassone": 4
+   "Juan Cao": 4
   },
   "yearRange": [
-   1950,
-   1950
+   1944,
+   1945
   ]
  },
  {
-  "id": "raul-lavalle",
-  "name": "Raúl Lavalle",
+  "id": "c-montalvo-m-martino",
+  "name": "C. Montalvo - M. Martino",
   "count": 4,
   "orchestras": {
-   "Florindo Sassone": 4
+   "Jorge Caldara": 4
   },
   "yearRange": [
-   1950,
-   1950
+   1958,
+   1960
   ]
  },
  {
@@ -6212,18 +5985,6 @@
   ]
  },
  {
-  "id": "e-campos-r-videla",
-  "name": "E. Campos - R. Videla",
-  "count": 4,
-  "orchestras": {
-   "Ricardo Tanturi": 4
-  },
-  "yearRange": [
-   1945,
-   1946
-  ]
- },
- {
   "id": "victor-renda",
   "name": "Víctor Renda",
   "count": 4,
@@ -6233,18 +5994,6 @@
   "yearRange": [
    1959,
    1959
-  ]
- },
- {
-  "id": "a-cordoba-a-guida",
-  "name": "A. Córdoba - A. Guida",
-  "count": 4,
-  "orchestras": {
-   "Osvaldo Pugliese": 4
-  },
-  "yearRange": [
-   1989,
-   1992
   ]
  },
  {
@@ -6272,44 +6021,6 @@
   ]
  },
  {
-  "id": "roberto-echague",
-  "name": "Roberto Echagüe",
-  "count": 4,
-  "orchestras": {
-   "Jorge Caldara": 2,
-   "Los Siete del Tango": 2
-  },
-  "yearRange": [
-   1965,
-   1969
-  ]
- },
- {
-  "id": "chola-luna",
-  "name": "Chola Luna",
-  "count": 4,
-  "orchestras": {
-   "Miguel Caló": 4
-  },
-  "yearRange": [
-   1956,
-   1956
-  ]
- },
- {
-  "id": "zulema-robles",
-  "name": "Zulema Robles",
-  "count": 4,
-  "orchestras": {
-   "Florindo Sassone": 2,
-   "Francisco Grillo": 2
-  },
-  "yearRange": [
-   1950,
-   1970
-  ]
- },
- {
   "id": "anita-palmero",
   "name": "Anita Palmero",
   "count": 4,
@@ -6324,15 +6035,15 @@
   ]
  },
  {
-  "id": "e-rivero-f-ruiz",
-  "name": "E. Rivero - F. Ruíz",
+  "id": "m-bianco-horacio-pettorossi",
+  "name": "M. Bianco - Horacio Pettorossi",
   "count": 4,
   "orchestras": {
-   "Aníbal Troilo": 4
+   "Eduardo Bianco": 4
   },
   "yearRange": [
-   1947,
-   1948
+   1928,
+   1929
   ]
  },
  {
@@ -6375,19 +6086,6 @@
    "Orquesta (unspecified)": 4
   },
   "yearRange": null
- },
- {
-  "id": "dorita-davis",
-  "name": "Dorita Davis",
-  "count": 4,
-  "orchestras": {
-   "Guitarras (solo singer)": 3,
-   "Orquesta Típica Víctor": 1
-  },
-  "yearRange": [
-   1931,
-   1931
-  ]
  },
  {
   "id": "hugo-serna",
@@ -6502,15 +6200,6 @@
   ]
  },
  {
-  "id": "carlos-aldao",
-  "name": "Carlos Aldao",
-  "count": 4,
-  "orchestras": {
-   "Oscar de la Fuente": 4
-  },
-  "yearRange": null
- },
- {
   "id": "alberto-carriego",
   "name": "Alberto Carriego",
   "count": 4,
@@ -6520,18 +6209,6 @@
   "yearRange": [
    1958,
    1958
-  ]
- },
- {
-  "id": "c-guido-j-maciel",
-  "name": "C. Guido - J. Maciel",
-  "count": 4,
-  "orchestras": {
-   "Osvaldo Pugliese": 4
-  },
-  "yearRange": [
-   1959,
-   1959
   ]
  },
  {
@@ -6571,6 +6248,18 @@
   ]
  },
  {
+  "id": "omar-quiroz",
+  "name": "Omar Quiróz",
+  "count": 4,
+  "orchestras": {
+   "Enrique Rodríguez": 4
+  },
+  "yearRange": [
+   1953,
+   1956
+  ]
+ },
+ {
   "id": "nestor-rolan",
   "name": "Néstor Rolán",
   "count": 4,
@@ -6581,30 +6270,6 @@
   "yearRange": [
    1995,
    1995
-  ]
- },
- {
-  "id": "eugenio-vinas",
-  "name": "Eugenio Viñas",
-  "count": 4,
-  "orchestras": {
-   "Orquesta Típica Víctor": 4
-  },
-  "yearRange": [
-   1931,
-   1931
-  ]
- },
- {
-  "id": "e-garcia-j-raggi",
-  "name": "E. García - J. Raggi",
-  "count": 4,
-  "orchestras": {
-   "Juan Deambroggio(bachicha)": 4
-  },
-  "yearRange": [
-   1930,
-   1930
   ]
  },
  {
@@ -6640,18 +6305,6 @@
    "Gabriel Clausi(chula)": 4
   },
   "yearRange": null
- },
- {
-  "id": "r-goyeneche-a-diaz",
-  "name": "R. Goyeneche - A. Díaz",
-  "count": 4,
-  "orchestras": {
-   "Horacio Salgán": 4
-  },
-  "yearRange": [
-   1955,
-   1956
-  ]
  },
  {
   "id": "quique-ojeda",
@@ -6773,18 +6426,6 @@
   ]
  },
  {
-  "id": "elba-exposito",
-  "name": "Elba Expósito",
-  "count": 4,
-  "orchestras": {
-   "Ariel Espandrio C/sext.sabortango": 4
-  },
-  "yearRange": [
-   2001,
-   2002
-  ]
- },
- {
   "id": "ruben-figueroa",
   "name": "Rubén Figueroa",
   "count": 4,
@@ -6821,6 +6462,18 @@
   ]
  },
  {
+  "id": "a-del-rio-tito-lando",
+  "name": "A. del Río - Tito Lando",
+  "count": 4,
+  "orchestras": {
+   "Alfredo Gobbi": 4
+  },
+  "yearRange": [
+   1955,
+   1958
+  ]
+ },
+ {
   "id": "alberto-aguirre",
   "name": "Alberto Aguirre",
   "count": 4,
@@ -6842,6 +6495,18 @@
   "yearRange": [
    1951,
    1952
+  ]
+ },
+ {
+  "id": "walter-cabral",
+  "name": "Walter Cabral",
+  "count": 4,
+  "orchestras": {
+   "Juan D'Arienzo": 4
+  },
+  "yearRange": [
+   1936,
+   1936
   ]
  },
  {
@@ -6906,6 +6571,19 @@
   ]
  },
  {
+  "id": "carlos-moran",
+  "name": "Carlos Morán",
+  "count": 3,
+  "orchestras": {
+   "Porfirio Díaz": 2,
+   "Gabriel Clausi(chula)": 1
+  },
+  "yearRange": [
+   1940,
+   1944
+  ]
+ },
+ {
   "id": "carlos-yanel",
   "name": "Carlos Yanel",
   "count": 3,
@@ -6916,6 +6594,19 @@
   "yearRange": [
    1956,
    1957
+  ]
+ },
+ {
+  "id": "virginia-luque",
+  "name": "Virginia Luque",
+  "count": 3,
+  "orchestras": {
+   "Tito Ribero": 2,
+   "Argentino Galván": 1
+  },
+  "yearRange": [
+   1952,
+   1959
   ]
  },
  {
@@ -6952,28 +6643,39 @@
   ]
  },
  {
-  "id": "pablo-lozano",
-  "name": "Pablo Lozano",
+  "id": "roberto-calo",
+  "name": "Roberto Caló",
   "count": 3,
   "orchestras": {
-   "Alfredo Gobbi": 2,
-   "Aníbal Troilo": 1
+   "Miguel Caló": 3
   },
   "yearRange": [
-   1948,
-   1956
+   1936,
+   1938
   ]
  },
  {
-  "id": "j-maciel-a-diaz",
-  "name": "J. Maciel - A. Díaz",
+  "id": "hector-coral",
+  "name": "Héctor Coral",
   "count": 3,
   "orchestras": {
    "Alfredo Gobbi": 3
   },
   "yearRange": [
-   1949,
-   1949
+   1950,
+   1951
+  ]
+ },
+ {
+  "id": "j-maciel-h-coral",
+  "name": "J. Maciel - H. Coral",
+  "count": 3,
+  "orchestras": {
+   "Alfredo Gobbi": 3
+  },
+  "yearRange": [
+   1950,
+   1952
   ]
  },
  {
@@ -7061,16 +6763,27 @@
   ]
  },
  {
-  "id": "o-de-santis-a-rial",
-  "name": "O. de Santis - A. Rial",
+  "id": "carlos-malbran",
+  "name": "Carlos Malbrán",
   "count": 3,
   "orchestras": {
-   "Alberto Mancione": 2,
-   "Florindo Sassone": 1
+   "Florindo Sassone": 3
   },
   "yearRange": [
    1950,
-   1963
+   1950
+  ]
+ },
+ {
+  "id": "raul-lavalle",
+  "name": "Raúl Lavalle",
+  "count": 3,
+  "orchestras": {
+   "Florindo Sassone": 3
+  },
+  "yearRange": [
+   1950,
+   1950
   ]
  },
  {
@@ -7134,15 +6847,15 @@
   ]
  },
  {
-  "id": "e-rivas-j-c-godoy-h-roca",
-  "name": "E. Rivas - J. C. Godoy - H. Roca",
+  "id": "o-ribo-r-videla",
+  "name": "O. Ribó - R. Videla",
   "count": 3,
   "orchestras": {
    "Ricardo Tanturi": 3
   },
   "yearRange": [
-   1956,
-   1957
+   1946,
+   1948
   ]
  },
  {
@@ -7171,6 +6884,18 @@
   ]
  },
  {
+  "id": "a-cordoba-a-guida",
+  "name": "A. Córdoba - A. Guida",
+  "count": 3,
+  "orchestras": {
+   "Osvaldo Pugliese": 3
+  },
+  "yearRange": [
+   1989,
+   1992
+  ]
+ },
+ {
   "id": "r-luduena-c-soler",
   "name": "R. Ludueña - C. Soler",
   "count": 3,
@@ -7180,6 +6905,19 @@
   "yearRange": [
    1970,
    1970
+  ]
+ },
+ {
+  "id": "roberto-echague",
+  "name": "Roberto Echagüe",
+  "count": 3,
+  "orchestras": {
+   "Los Siete del Tango": 2,
+   "Jorge Caldara": 1
+  },
+  "yearRange": [
+   1965,
+   1969
   ]
  },
  {
@@ -7195,15 +6933,16 @@
   ]
  },
  {
-  "id": "juanita-larrauri",
-  "name": "Juanita Larrauri",
+  "id": "zulema-robles",
+  "name": "Zulema Robles",
   "count": 3,
   "orchestras": {
-   "Guitarras (solo singer)": 3
+   "Francisco Grillo": 2,
+   "Florindo Sassone": 1
   },
   "yearRange": [
-   1936,
-   1972
+   1950,
+   1970
   ]
  },
  {
@@ -7220,39 +6959,39 @@
   ]
  },
  {
-  "id": "f-fiorentino-a-mandarino",
-  "name": "F. Fiorentino - A. Mandarino",
+  "id": "f-fiorentino-a-marino",
+  "name": "F. Fiorentino - A. Marino",
   "count": 3,
   "orchestras": {
    "Aníbal Troilo": 3
   },
   "yearRange": [
-   1941,
-   1941
+   1943,
+   1944
   ]
  },
  {
-  "id": "r-goyeneche-e-beron",
-  "name": "R. Goyeneche - E. Berón",
+  "id": "e-rivero-a-calderon",
+  "name": "E. Rivero - A. Calderón",
   "count": 3,
   "orchestras": {
    "Aníbal Troilo": 3
   },
   "yearRange": [
-   1962,
-   1962
+   1949,
+   1949
   ]
  },
  {
-  "id": "r-goyeneche-r-rufino",
-  "name": "R. Goyeneche - R. Rufino",
+  "id": "r-goyeneche-a-cardenas",
+  "name": "R. Goyeneche - A. Cárdenas",
   "count": 3,
   "orchestras": {
    "Aníbal Troilo": 3
   },
   "yearRange": [
-   1963,
-   1963
+   1957,
+   1958
   ]
  },
  {
@@ -7278,6 +7017,19 @@
   "yearRange": [
    1944,
    1944
+  ]
+ },
+ {
+  "id": "dorita-davis",
+  "name": "Dorita Davis",
+  "count": 3,
+  "orchestras": {
+   "Guitarras (solo singer)": 2,
+   "Orquesta Típica Víctor": 1
+  },
+  "yearRange": [
+   1931,
+   1931
   ]
  },
  {
@@ -7415,6 +7167,18 @@
   ]
  },
  {
+  "id": "eugenio-vinas",
+  "name": "Eugenio Viñas",
+  "count": 3,
+  "orchestras": {
+   "Orquesta Típica Víctor": 3
+  },
+  "yearRange": [
+   1931,
+   1931
+  ]
+ },
+ {
   "id": "juan-raggi",
   "name": "Juan Raggi",
   "count": 3,
@@ -7438,6 +7202,18 @@
   "yearRange": [
    1929,
    1929
+  ]
+ },
+ {
+  "id": "e-garcia-j-raggi",
+  "name": "E. García - J. Raggi",
+  "count": 3,
+  "orchestras": {
+   "Juan Deambroggio(bachicha)": 3
+  },
+  "yearRange": [
+   1930,
+   1930
   ]
  },
  {
@@ -7579,18 +7355,6 @@
   "yearRange": null
  },
  {
-  "id": "carlos-olmedo",
-  "name": "Carlos Olmedo",
-  "count": 3,
-  "orchestras": {
-   "Aníbal Troilo": 3
-  },
-  "yearRange": [
-   1955,
-   1955
-  ]
- },
- {
   "id": "n-miranda-a-bianchi",
   "name": "N. Miranda - A. Bianchi",
   "count": 3,
@@ -7603,6 +7367,18 @@
   ]
  },
  {
+  "id": "elba-exposito",
+  "name": "Elba Expósito",
+  "count": 3,
+  "orchestras": {
+   "Ariel Espandrio C/sext.sabortango": 3
+  },
+  "yearRange": [
+   2001,
+   2002
+  ]
+ },
+ {
   "id": "a-cuello-c-aguirre",
   "name": "A. Cuello - C. Aguirre",
   "count": 3,
@@ -7612,18 +7388,6 @@
   "yearRange": [
    1966,
    1967
-  ]
- },
- {
-  "id": "julian-rosales-c-pepe-biondi",
-  "name": "Julián Rosales C/pepe Biondi",
-  "count": 3,
-  "orchestras": {
-   "Alfredo De Angelis": 3
-  },
-  "yearRange": [
-   1970,
-   1970
   ]
  },
  {
@@ -7848,32 +7612,8 @@
   ]
  },
  {
-  "id": "carlos-omar",
-  "name": "Carlos Omar",
-  "count": 2,
-  "orchestras": {
-   "Porfirio Díaz": 2
-  },
-  "yearRange": [
-   1940,
-   1940
-  ]
- },
- {
   "id": "carlos-del-mar",
   "name": "Carlos del Mar",
-  "count": 2,
-  "orchestras": {
-   "Porfirio Díaz": 2
-  },
-  "yearRange": [
-   1940,
-   1940
-  ]
- },
- {
-  "id": "armando-bonasco",
-  "name": "Armando Bonasco",
   "count": 2,
   "orchestras": {
    "Porfirio Díaz": 2
@@ -7893,6 +7633,18 @@
   "yearRange": [
    1995,
    1995
+  ]
+ },
+ {
+  "id": "aida-luz",
+  "name": "Aída Luz",
+  "count": 2,
+  "orchestras": {
+   "Aníbal Troilo": 2
+  },
+  "yearRange": [
+   1953,
+   1953
   ]
  },
  {
@@ -7942,27 +7694,28 @@
   "yearRange": null
  },
  {
-  "id": "hector-maciel",
-  "name": "Héctor Maciel",
+  "id": "roman-prince",
+  "name": "Roman Prince",
   "count": 2,
   "orchestras": {
-   "Alfredo Gobbi": 2
+   "Miguel Caló": 2
   },
   "yearRange": [
-   1948,
-   1948
+   1932,
+   1932
   ]
  },
  {
-  "id": "helena-de-torres",
-  "name": "Helena de Torres",
+  "id": "pablo-lozano",
+  "name": "Pablo Lozano",
   "count": 2,
   "orchestras": {
-   "Donato Racciatti": 2
+   "Alfredo Gobbi": 1,
+   "Aníbal Troilo": 1
   },
   "yearRange": [
-   1957,
-   1957
+   1948,
+   1956
   ]
  },
  {
@@ -8036,6 +7789,19 @@
   ]
  },
  {
+  "id": "o-de-santis-a-rial",
+  "name": "O. de Santis - A. Rial",
+  "count": 2,
+  "orchestras": {
+   "Alberto Mancione": 1,
+   "Florindo Sassone": 1
+  },
+  "yearRange": [
+   1950,
+   1963
+  ]
+ },
+ {
   "id": "carlos-ortega",
   "name": "Carlos Ortega",
   "count": 2,
@@ -8096,18 +7862,6 @@
   ]
  },
  {
-  "id": "eduardo-branco",
-  "name": "Eduardo Branco",
-  "count": 2,
-  "orchestras": {
-   "Jorge Arduh": 2
-  },
-  "yearRange": [
-   1964,
-   1964
-  ]
- },
- {
   "id": "a-serna-daniel-adamo",
   "name": "A. Serna - Daniel Adamo",
   "count": 2,
@@ -8141,15 +7895,27 @@
   "yearRange": null
  },
  {
-  "id": "j-duran-cast-bob-toledo-ing",
-  "name": "J. Durán(cast) - Bob Toledo(ing)",
+  "id": "e-campos-r-videla",
+  "name": "E. Campos - R. Videla",
   "count": 2,
   "orchestras": {
-   "Carlos Di Sarli": 2
+   "Ricardo Tanturi": 2
   },
   "yearRange": [
-   1946,
+   1945,
    1946
+  ]
+ },
+ {
+  "id": "e-rivas-j-c-godoy-h-roca",
+  "name": "E. Rivas - J. C. Godoy - H. Roca",
+  "count": 2,
+  "orchestras": {
+   "Ricardo Tanturi": 2
+  },
+  "yearRange": [
+   1956,
+   1957
   ]
  },
  {
@@ -8243,6 +8009,18 @@
   "yearRange": null
  },
  {
+  "id": "chola-luna",
+  "name": "Chola Luna",
+  "count": 2,
+  "orchestras": {
+   "Miguel Caló": 2
+  },
+  "yearRange": [
+   1956,
+   1956
+  ]
+ },
+ {
   "id": "andree-vivianne",
   "name": "Andreé Vivianne",
   "count": 2,
@@ -8267,6 +8045,18 @@
   ]
  },
  {
+  "id": "juanita-larrauri",
+  "name": "Juanita Larrauri",
+  "count": 2,
+  "orchestras": {
+   "Guitarras (solo singer)": 2
+  },
+  "yearRange": [
+   1936,
+   1972
+  ]
+ },
+ {
   "id": "a-de-silva-m-pizarro",
   "name": "A. de Silva - M. Pizarro",
   "count": 2,
@@ -8279,15 +8069,27 @@
   ]
  },
  {
-  "id": "carlos-americo",
-  "name": "Carlos Américo",
+  "id": "e-rivero-f-ruiz",
+  "name": "E. Rivero - F. Ruíz",
   "count": 2,
   "orchestras": {
-   "Eduardo Bianco": 2
+   "Aníbal Troilo": 2
   },
   "yearRange": [
-   1929,
-   1929
+   1947,
+   1948
+  ]
+ },
+ {
+  "id": "r-beron-j-casal",
+  "name": "R. Berón - J. Casal",
+  "count": 2,
+  "orchestras": {
+   "Aníbal Troilo": 2
+  },
+  "yearRange": [
+   1953,
+   1953
   ]
  },
  {
@@ -8373,30 +8175,6 @@
   ]
  },
  {
-  "id": "e-inda-a-rivera",
-  "name": "E. Inda - A. Rivera",
-  "count": 2,
-  "orchestras": {
-   "Francisco Lomuto": 2
-  },
-  "yearRange": [
-   1946,
-   1946
-  ]
- },
- {
-  "id": "eduardo-inda",
-  "name": "Eduardo Inda",
-  "count": 2,
-  "orchestras": {
-   "Francisco Lomuto": 2
-  },
-  "yearRange": [
-   1946,
-   1946
-  ]
- },
- {
   "id": "lagrima-rios",
   "name": "Lágrima Ríos",
   "count": 2,
@@ -8404,18 +8182,6 @@
    "Guitarras (solo singer)": 2
   },
   "yearRange": null
- },
- {
-  "id": "jose-galarza",
-  "name": "José Galarza",
-  "count": 2,
-  "orchestras": {
-   "Juan Maglio \"Pacho\"": 2
-  },
-  "yearRange": [
-   1928,
-   1928
-  ]
  },
  {
   "id": "jorge-roldan-carlos-soler",
@@ -8476,6 +8242,15 @@
    1982,
    1982
   ]
+ },
+ {
+  "id": "carlos-aldao",
+  "name": "Carlos Aldao",
+  "count": 2,
+  "orchestras": {
+   "Oscar de la Fuente": 2
+  },
+  "yearRange": null
  },
  {
   "id": "mario-delacruz",
@@ -9042,6 +8817,18 @@
   ]
  },
  {
+  "id": "r-goyeneche-a-diaz",
+  "name": "R. Goyeneche - A. Díaz",
+  "count": 2,
+  "orchestras": {
+   "Horacio Salgán": 2
+  },
+  "yearRange": [
+   1955,
+   1956
+  ]
+ },
+ {
   "id": "juan-alessio-jorge-ortiz0",
   "name": "Juan Alessio(jorge Ortíz0",
   "count": 2,
@@ -9205,6 +8992,18 @@
   ]
  },
  {
+  "id": "carlos-olmedo",
+  "name": "Carlos Olmedo",
+  "count": 2,
+  "orchestras": {
+   "Aníbal Troilo": 2
+  },
+  "yearRange": [
+   1955,
+   1955
+  ]
+ },
+ {
   "id": "daisy-auvray",
   "name": "Daisy Auvray",
   "count": 2,
@@ -9318,6 +9117,18 @@
    "Alfredo y Flora Gobbi": 2
   },
   "yearRange": null
+ },
+ {
+  "id": "julian-rosales-c-pepe-biondi",
+  "name": "Julián Rosales C/pepe Biondi",
+  "count": 2,
+  "orchestras": {
+   "Alfredo De Angelis": 2
+  },
+  "yearRange": [
+   1970,
+   1970
+  ]
  },
  {
   "id": "g-de-angelis-r-linares",
@@ -9441,18 +9252,6 @@
   ]
  },
  {
-  "id": "enrique-carbel",
-  "name": "Enrique Carbel",
-  "count": 2,
-  "orchestras": {
-   "Juan D'Arienzo": 2
-  },
-  "yearRange": [
-   1937,
-   1937
-  ]
- },
- {
   "id": "ricardo-medina",
   "name": "Ricardo Medina",
   "count": 2,
@@ -9474,18 +9273,6 @@
   "yearRange": [
    1917,
    1919
-  ]
- },
- {
-  "id": "lita-morales-h-lagos",
-  "name": "Lita Morales - H. Lagos",
-  "count": 2,
-  "orchestras": {
-   "Edgardo Donato": 2
-  },
-  "yearRange": [
-   1939,
-   1939
   ]
  },
  {
@@ -9723,6 +9510,30 @@
   ]
  },
  {
+  "id": "carlos-omar",
+  "name": "Carlos Omar",
+  "count": 1,
+  "orchestras": {
+   "Porfirio Díaz": 1
+  },
+  "yearRange": [
+   1940,
+   1940
+  ]
+ },
+ {
+  "id": "armando-bonasco",
+  "name": "Armando Bonasco",
+  "count": 1,
+  "orchestras": {
+   "Porfirio Díaz": 1
+  },
+  "yearRange": [
+   1940,
+   1940
+  ]
+ },
+ {
   "id": "imperio-argentina",
   "name": "Imperio Argentina",
   "count": 1,
@@ -9879,6 +9690,30 @@
   ]
  },
  {
+  "id": "hector-maciel",
+  "name": "Héctor Maciel",
+  "count": 1,
+  "orchestras": {
+   "Alfredo Gobbi": 1
+  },
+  "yearRange": [
+   1948,
+   1948
+  ]
+ },
+ {
+  "id": "j-maciel-a-diaz",
+  "name": "J. Maciel - A. Díaz",
+  "count": 1,
+  "orchestras": {
+   "Alfredo Gobbi": 1
+  },
+  "yearRange": [
+   1949,
+   1949
+  ]
+ },
+ {
   "id": "victor-ruiz",
   "name": "Víctor Ruíz",
   "count": 1,
@@ -9900,6 +9735,18 @@
   "yearRange": [
    1955,
    1955
+  ]
+ },
+ {
+  "id": "helena-de-torres",
+  "name": "Helena de Torres",
+  "count": 1,
+  "orchestras": {
+   "Donato Racciatti": 1
+  },
+  "yearRange": [
+   1957,
+   1957
   ]
  },
  {
@@ -10029,6 +9876,18 @@
   ]
  },
  {
+  "id": "eduardo-branco",
+  "name": "Eduardo Branco",
+  "count": 1,
+  "orchestras": {
+   "Jorge Arduh": 1
+  },
+  "yearRange": [
+   1964,
+   1964
+  ]
+ },
+ {
   "id": "c-budini-m-bonet",
   "name": "C. Budini - M. Bonet",
   "count": 1,
@@ -10068,6 +9927,18 @@
   "yearRange": [
    1964,
    1964
+  ]
+ },
+ {
+  "id": "j-duran-cast-bob-toledo-ing",
+  "name": "J. Durán(cast) - Bob Toledo(ing)",
+  "count": 1,
+  "orchestras": {
+   "Carlos Di Sarli": 1
+  },
+  "yearRange": [
+   1946,
+   1946
   ]
  },
  {
@@ -10272,6 +10143,54 @@
   ]
  },
  {
+  "id": "f-fiorentino-a-mandarino",
+  "name": "F. Fiorentino - A. Mandarino",
+  "count": 1,
+  "orchestras": {
+   "Aníbal Troilo": 1
+  },
+  "yearRange": [
+   1941,
+   1941
+  ]
+ },
+ {
+  "id": "r-goyeneche-e-beron",
+  "name": "R. Goyeneche - E. Berón",
+  "count": 1,
+  "orchestras": {
+   "Aníbal Troilo": 1
+  },
+  "yearRange": [
+   1962,
+   1962
+  ]
+ },
+ {
+  "id": "r-goyeneche-r-rufino",
+  "name": "R. Goyeneche - R. Rufino",
+  "count": 1,
+  "orchestras": {
+   "Aníbal Troilo": 1
+  },
+  "yearRange": [
+   1963,
+   1963
+  ]
+ },
+ {
+  "id": "carlos-americo",
+  "name": "Carlos Américo",
+  "count": 1,
+  "orchestras": {
+   "Eduardo Bianco": 1
+  },
+  "yearRange": [
+   1929,
+   1929
+  ]
+ },
+ {
   "id": "a-peyro-j-garre",
   "name": "A. Peyró - J. Garré",
   "count": 1,
@@ -10395,6 +10314,18 @@
   ]
  },
  {
+  "id": "e-inda-a-rivera",
+  "name": "E. Inda - A. Rivera",
+  "count": 1,
+  "orchestras": {
+   "Francisco Lomuto": 1
+  },
+  "yearRange": [
+   1946,
+   1946
+  ]
+ },
+ {
   "id": "f-diaz-a-acuna",
   "name": "F. Díaz - A. Acuña",
   "count": 1,
@@ -10404,6 +10335,18 @@
   "yearRange": [
    1931,
    1931
+  ]
+ },
+ {
+  "id": "eduardo-inda",
+  "name": "Eduardo Inda",
+  "count": 1,
+  "orchestras": {
+   "Francisco Lomuto": 1
+  },
+  "yearRange": [
+   1946,
+   1946
   ]
  },
  {
@@ -10485,6 +10428,18 @@
   "yearRange": [
    1981,
    1981
+  ]
+ },
+ {
+  "id": "jose-galarza",
+  "name": "José Galarza",
+  "count": 1,
+  "orchestras": {
+   "Juan Maglio \"Pacho\"": 1
+  },
+  "yearRange": [
+   1928,
+   1928
   ]
  },
  {
@@ -11043,6 +10998,18 @@
   "yearRange": [
    1954,
    1954
+  ]
+ },
+ {
+  "id": "c-guido-j-maciel",
+  "name": "C. Guido - J. Maciel",
+  "count": 1,
+  "orchestras": {
+   "Osvaldo Pugliese": 1
+  },
+  "yearRange": [
+   1959,
+   1959
   ]
  },
  {
@@ -11794,6 +11761,15 @@
    1981,
    1981
   ]
+ },
+ {
+  "id": "comentario",
+  "name": "Comentario",
+  "count": 1,
+  "orchestras": {
+   "Comentario": 1
+  },
+  "yearRange": null
  },
  {
   "id": "regina-paccini-de-alvear",
@@ -12564,6 +12540,18 @@
   ]
  },
  {
+  "id": "enrique-carbel",
+  "name": "Enrique Carbel",
+  "count": 1,
+  "orchestras": {
+   "Juan D'Arienzo": 1
+  },
+  "yearRange": [
+   1937,
+   1937
+  ]
+ },
+ {
   "id": "jorge-rubino",
   "name": "Jorge Rubino",
   "count": 1,
@@ -12822,6 +12810,18 @@
   "yearRange": [
    1935,
    1935
+  ]
+ },
+ {
+  "id": "lita-morales-h-lagos",
+  "name": "Lita Morales - H. Lagos",
+  "count": 1,
+  "orchestras": {
+   "Edgardo Donato": 1
+  },
+  "yearRange": [
+   1939,
+   1939
   ]
  },
  {

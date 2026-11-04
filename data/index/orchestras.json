@@ -1,31 +1,70 @@
 [
  {
+  "id": "guitarras-solo-singer",
+  "name": "Guitarras (solo singer)",
+  "count": 986,
+  "rhythms": {
+   "tango": 629,
+   "vals": 125,
+   "milonga": 68,
+   "other": 56,
+   "cancion": 34,
+   "zamba": 28,
+   "estilo": 24,
+   "tonada": 12,
+   "unknown": 4,
+   "foxtrot": 3,
+   "candombe": 2,
+   "corrido": 1
+  },
+  "singers": {
+   "Jorge Vidal": 162,
+   "Héctor Mauré": 84,
+   "Alberto Vila": 50,
+   "Agustín Magaldi": 41,
+   "Carlos Gardel": 40,
+   "Edmundo Rivero": 35,
+   "Rosita Quiroga": 35,
+   "A. Magaldi - P. Noda": 31,
+   "Miguel Montero": 28,
+   "Ignacio Corsini": 28,
+   "Hugo del Carril": 25,
+   "Alberto Gómez": 24
+  },
+  "vocal": 978,
+  "yearRange": [
+   1916,
+   1999
+  ],
+  "coverage": null
+ },
+ {
   "id": "juan-d-arienzo",
   "name": "Juan D'Arienzo",
-  "count": 1098,
+  "count": 801,
   "rhythms": {
-   "tango": 891,
-   "vals": 102,
-   "milonga": 102,
+   "tango": 644,
+   "vals": 79,
+   "milonga": 75,
    "ranchera": 1,
    "unknown": 1,
    "polca": 1
   },
   "singers": {
-   "Alberto Echagüe": 148,
-   "Armando Laborde": 141,
-   "Jorge Valdéz": 105,
-   "Mario Bustos": 79,
-   "Héctor Mauré": 74,
-   "Osvaldo Ramos": 42,
-   "Alberto Reynal": 32,
-   "Horacio Palma": 21,
-   "Carlos Dante": 19,
-   "A. Laborde - O. Ramos": 13,
+   "Alberto Echagüe": 114,
+   "Armando Laborde": 85,
+   "Jorge Valdéz": 81,
+   "Héctor Mauré": 50,
+   "Mario Bustos": 36,
+   "Osvaldo Ramos": 31,
+   "Horacio Palma": 20,
+   "Carlos Dante": 18,
+   "Alberto Reynal": 16,
    "Juan Carlos Lamas": 11,
+   "A. Laborde - O. Ramos": 10,
    "A. Echagüe - A. Laborde": 8
   },
-  "vocal": 727,
+  "vocal": 509,
   "yearRange": [
    1928,
    1975
@@ -122,283 +161,38 @@
   }
  },
  {
-  "id": "guitarras-solo-singer",
-  "name": "Guitarras (solo singer)",
-  "count": 1075,
-  "rhythms": {
-   "tango": 672,
-   "vals": 133,
-   "milonga": 75,
-   "other": 65,
-   "zamba": 38,
-   "cancion": 36,
-   "estilo": 27,
-   "tonada": 15,
-   "unknown": 8,
-   "foxtrot": 3,
-   "candombe": 2,
-   "corrido": 1
-  },
-  "singers": {
-   "Jorge Vidal": 163,
-   "Héctor Mauré": 85,
-   "Agustín Magaldi": 61,
-   "A. Magaldi - P. Noda": 54,
-   "Alberto Vila": 50,
-   "Carlos Gardel": 42,
-   "Edmundo Rivero": 42,
-   "Rosita Quiroga": 35,
-   "Miguel Montero": 29,
-   "Ignacio Corsini": 29,
-   "Hugo del Carril": 28,
-   "Alberto Gómez": 24
-  },
-  "vocal": 1067,
-  "yearRange": [
-   1916,
-   1999
-  ],
-  "coverage": null
- },
- {
-  "id": "alfredo-de-angelis",
-  "name": "Alfredo De Angelis",
-  "count": 771,
-  "rhythms": {
-   "tango": 640,
-   "vals": 77,
-   "milonga": 41,
-   "other": 11,
-   "candombe": 1,
-   "ranchera": 1
-  },
-  "singers": {
-   "Carlos Dante": 127,
-   "Oscar Larroca": 89,
-   "Julio Martel": 78,
-   "C. Dante - J. Martel": 52,
-   "Juan Carlos Godoy": 44,
-   "Carlos Aguirre": 41,
-   "C. Dante - O. Larroca": 31,
-   "Floreal Ruíz": 29,
-   "Julián Rosales": 24,
-   "Carlos Gardel": 24,
-   "Lalo Martel": 23,
-   "Alberto Cuello": 17
-  },
-  "vocal": 659,
-  "yearRange": [
-   1943,
-   1985
-  ],
-  "coverage": {
-   "instrumental": {
-    "1943": 3,
-    "1944": 3,
-    "1945": 3,
-    "1946": 3,
-    "1947": 3,
-    "1948": 3,
-    "1949": 3,
-    "1950": 1,
-    "1951": 1,
-    "1952": 1,
-    "1953": 1,
-    "1954": 1,
-    "1955": 1,
-    "1956": 1,
-    "1957": 1,
-    "1958": 1,
-    "1959": 1,
-    "1960": 1,
-    "1961": 1,
-    "1962": 1,
-    "1963": 1,
-    "1964": 1,
-    "1965": 1,
-    "1966": 1,
-    "1967": 1,
-    "1968": 1,
-    "1969": 1,
-    "1970": 1,
-    "1971": 1,
-    "1972": 1,
-    "1973": 1,
-    "1974": 1,
-    "1975": 1
-   },
-   "vocal": {
-    "1944": 4,
-    "1945": 4,
-    "1946": 3,
-    "1947": 3,
-    "1948": 3,
-    "1949": 3,
-    "1950": 1,
-    "1951": 1,
-    "1952": 1,
-    "1953": 1,
-    "1954": 1,
-    "1955": 1,
-    "1956": 1,
-    "1957": 0,
-    "1958": 0,
-    "1959": 0,
-    "1960": 0,
-    "1961": 0,
-    "1962": 0,
-    "1963": 0,
-    "1964": 0,
-    "1965": 0,
-    "1966": 0,
-    "1967": 0,
-    "1968": 0,
-    "1969": 0,
-    "1970": 0,
-    "1971": 0,
-    "1972": 0,
-    "1973": 0,
-    "1974": 0,
-    "1975": 0
-   },
-   "activePeriod": "1943 - 1985"
-  }
- },
- {
-  "id": "anibal-troilo",
-  "name": "Aníbal Troilo",
-  "count": 750,
-  "rhythms": {
-   "tango": 630,
-   "milonga": 64,
-   "vals": 31,
-   "other": 16,
-   "polca": 6,
-   "estilo": 2,
-   "cancion": 1
-  },
-  "singers": {
-   "Roberto Goyeneche": 102,
-   "Francisco Fiorentino": 74,
-   "Alberto Marino": 54,
-   "Jorge Casal": 45,
-   "Floreal Ruíz": 30,
-   "Raúl Berón": 28,
-   "Tito Reyes": 27,
-   "Edmundo Rivero": 27,
-   "Nelly Vázquez": 21,
-   "Roberto Rufino": 16,
-   "Angel Cárdenas": 15,
-   "Aldo Calderón": 12
-  },
-  "vocal": 529,
-  "yearRange": [
-   1938,
-   1991
-  ],
-  "coverage": {
-   "instrumental": {
-    "1941": 4,
-    "1942": 4,
-    "1943": 4,
-    "1944": 4,
-    "1945": 1,
-    "1946": 1,
-    "1947": 1,
-    "1948": 1,
-    "1949": 1,
-    "1950": 0,
-    "1951": 0,
-    "1952": 0,
-    "1953": 0,
-    "1954": 0,
-    "1955": 0,
-    "1956": 0,
-    "1957": 0,
-    "1958": 0,
-    "1959": 0,
-    "1960": 0,
-    "1961": 0,
-    "1962": 0,
-    "1963": 0,
-    "1964": 0,
-    "1965": 0,
-    "1966": 0,
-    "1967": 0,
-    "1968": 0,
-    "1969": 0,
-    "1970": 0,
-    "1971": 0
-   },
-   "vocal": {
-    "1941": 4,
-    "1942": 4,
-    "1943": 4,
-    "1944": 4,
-    "1945": 1,
-    "1946": 1,
-    "1947": 1,
-    "1948": 1,
-    "1949": 1,
-    "1950": 0,
-    "1951": 0,
-    "1952": 0,
-    "1953": 0,
-    "1954": 0,
-    "1955": 0,
-    "1956": 0,
-    "1957": 0,
-    "1958": 0,
-    "1959": 0,
-    "1960": 0,
-    "1961": 0,
-    "1962": 0,
-    "1963": 0,
-    "1964": 0,
-    "1965": 0,
-    "1966": 0,
-    "1967": 0,
-    "1968": 0,
-    "1969": 0,
-    "1970": 0,
-    "1971": 0
-   },
-   "activePeriod": "1941 - 1971"
-  }
- },
- {
   "id": "francisco-canaro",
   "name": "Francisco Canaro",
-  "count": 700,
+  "count": 587,
   "rhythms": {
-   "tango": 482,
-   "vals": 85,
-   "milonga": 26,
-   "ranchera": 19,
+   "tango": 395,
+   "vals": 73,
+   "milonga": 20,
+   "ranchera": 18,
    "unknown": 18,
    "other": 17,
-   "pasodoble": 16,
    "foxtrot": 15,
-   "polca": 10,
-   "marcha": 5,
-   "cancion": 4,
+   "pasodoble": 14,
+   "polca": 7,
+   "marcha": 4,
+   "cancion": 3,
    "candombe": 1
   },
   "singers": {
-   "Roberto Maida": 121,
-   "Charlo": 99,
-   "Carlos Roldán": 46,
-   "Ernesto Famá": 33,
-   "Alberto Arenas": 33,
-   "Ada Falcón": 19,
-   "Guillermo Coral": 19,
+   "Roberto Maida": 97,
+   "Charlo": 81,
+   "Carlos Roldán": 34,
+   "Ernesto Famá": 29,
+   "Alberto Arenas": 28,
    "Francisco Amor": 17,
    "Carlos Gardel": 14,
-   "Nelly Omar": 13,
-   "Carlos Galán": 12,
-   "Mario Alonso": 12
+   "Ada Falcón": 13,
+   "Guillermo Coral": 13,
+   "Carlos Galán": 11,
+   "Mario Alonso": 10,
+   "Juan Carlos Rolón": 9
   },
-  "vocal": 526,
+  "vocal": 436,
   "yearRange": [
    1909,
    1961
@@ -492,17 +286,291 @@
   }
  },
  {
+  "id": "alfredo-de-angelis",
+  "name": "Alfredo De Angelis",
+  "count": 570,
+  "rhythms": {
+   "tango": 478,
+   "vals": 54,
+   "milonga": 28,
+   "other": 8,
+   "candombe": 1,
+   "ranchera": 1
+  },
+  "singers": {
+   "Carlos Dante": 93,
+   "Julio Martel": 52,
+   "Oscar Larroca": 46,
+   "Juan Carlos Godoy": 43,
+   "Carlos Aguirre": 38,
+   "C. Dante - O. Larroca": 29,
+   "Carlos Gardel": 24,
+   "Julián Rosales": 22,
+   "C. Dante - J. Martel": 20,
+   "Lalo Martel": 20,
+   "Alberto Cuello": 14,
+   "Roberto Mancini": 10
+  },
+  "vocal": 485,
+  "yearRange": [
+   1943,
+   1985
+  ],
+  "coverage": {
+   "instrumental": {
+    "1943": 3,
+    "1944": 3,
+    "1945": 3,
+    "1946": 3,
+    "1947": 3,
+    "1948": 3,
+    "1949": 3,
+    "1950": 1,
+    "1951": 1,
+    "1952": 1,
+    "1953": 1,
+    "1954": 1,
+    "1955": 1,
+    "1956": 1,
+    "1957": 1,
+    "1958": 1,
+    "1959": 1,
+    "1960": 1,
+    "1961": 1,
+    "1962": 1,
+    "1963": 1,
+    "1964": 1,
+    "1965": 1,
+    "1966": 1,
+    "1967": 1,
+    "1968": 1,
+    "1969": 1,
+    "1970": 1,
+    "1971": 1,
+    "1972": 1,
+    "1973": 1,
+    "1974": 1,
+    "1975": 1
+   },
+   "vocal": {
+    "1944": 4,
+    "1945": 4,
+    "1946": 3,
+    "1947": 3,
+    "1948": 3,
+    "1949": 3,
+    "1950": 1,
+    "1951": 1,
+    "1952": 1,
+    "1953": 1,
+    "1954": 1,
+    "1955": 1,
+    "1956": 1,
+    "1957": 0,
+    "1958": 0,
+    "1959": 0,
+    "1960": 0,
+    "1961": 0,
+    "1962": 0,
+    "1963": 0,
+    "1964": 0,
+    "1965": 0,
+    "1966": 0,
+    "1967": 0,
+    "1968": 0,
+    "1969": 0,
+    "1970": 0,
+    "1971": 0,
+    "1972": 0,
+    "1973": 0,
+    "1974": 0,
+    "1975": 0
+   },
+   "activePeriod": "1943 - 1985"
+  }
+ },
+ {
+  "id": "anibal-troilo",
+  "name": "Aníbal Troilo",
+  "count": 564,
+  "rhythms": {
+   "tango": 478,
+   "milonga": 49,
+   "vals": 19,
+   "other": 10,
+   "polca": 5,
+   "estilo": 2,
+   "cancion": 1
+  },
+  "singers": {
+   "Francisco Fiorentino": 70,
+   "Roberto Goyeneche": 48,
+   "Alberto Marino": 47,
+   "Jorge Casal": 28,
+   "Tito Reyes": 27,
+   "Floreal Ruíz": 26,
+   "Edmundo Rivero": 24,
+   "Nelly Vázquez": 21,
+   "Raúl Berón": 16,
+   "Angel Cárdenas": 15,
+   "Roberto Rufino": 15,
+   "Aldo Calderón": 11
+  },
+  "vocal": 388,
+  "yearRange": [
+   1938,
+   1991
+  ],
+  "coverage": {
+   "instrumental": {
+    "1941": 4,
+    "1942": 4,
+    "1943": 4,
+    "1944": 4,
+    "1945": 1,
+    "1946": 1,
+    "1947": 1,
+    "1948": 1,
+    "1949": 1,
+    "1950": 0,
+    "1951": 0,
+    "1952": 0,
+    "1953": 0,
+    "1954": 0,
+    "1955": 0,
+    "1956": 0,
+    "1957": 0,
+    "1958": 0,
+    "1959": 0,
+    "1960": 0,
+    "1961": 0,
+    "1962": 0,
+    "1963": 0,
+    "1964": 0,
+    "1965": 0,
+    "1966": 0,
+    "1967": 0,
+    "1968": 0,
+    "1969": 0,
+    "1970": 0,
+    "1971": 0
+   },
+   "vocal": {
+    "1941": 4,
+    "1942": 4,
+    "1943": 4,
+    "1944": 4,
+    "1945": 1,
+    "1946": 1,
+    "1947": 1,
+    "1948": 1,
+    "1949": 1,
+    "1950": 0,
+    "1951": 0,
+    "1952": 0,
+    "1953": 0,
+    "1954": 0,
+    "1955": 0,
+    "1956": 0,
+    "1957": 0,
+    "1958": 0,
+    "1959": 0,
+    "1960": 0,
+    "1961": 0,
+    "1962": 0,
+    "1963": 0,
+    "1964": 0,
+    "1965": 0,
+    "1966": 0,
+    "1967": 0,
+    "1968": 0,
+    "1969": 0,
+    "1970": 0,
+    "1971": 0
+   },
+   "activePeriod": "1941 - 1971"
+  }
+ },
+ {
+  "id": "orquesta-unspecified",
+  "name": "Orquesta (unspecified)",
+  "count": 452,
+  "rhythms": {
+   "tango": 334,
+   "other": 30,
+   "milonga": 23,
+   "unknown": 22,
+   "vals": 17,
+   "cancion": 14,
+   "foxtrot": 4,
+   "zamba": 3,
+   "candombe": 2,
+   "tonada": 1,
+   "marcha": 1,
+   "ranchera": 1
+  },
+  "singers": {
+   "Mario Monteleone": 25,
+   "Susy Leiva": 23,
+   "Juan Pulido": 22,
+   "Daniel Santos": 20,
+   "Horacio Deval": 19,
+   "Alberto Gómez": 17,
+   "Charlo": 16,
+   "Hugo del Carril": 16,
+   "Rosita Quiroga": 16,
+   "Susana Rinaldi": 15,
+   "Eladia Blázquez": 14,
+   "Mario Ponce de León": 13
+  },
+  "vocal": 427,
+  "yearRange": [
+   1906,
+   2002
+  ],
+  "coverage": null
+ },
+ {
+  "id": "j-ricardo-g-barbieri",
+  "name": "J.ricardo-G.barbieri",
+  "count": 442,
+  "rhythms": {
+   "tango": 322,
+   "zamba": 25,
+   "other": 20,
+   "vals": 17,
+   "estilo": 14,
+   "shimmy": 14,
+   "tonada": 11,
+   "cancion": 9,
+   "foxtrot": 5,
+   "milonga": 2,
+   "pasodoble": 2,
+   "marcha": 1
+  },
+  "singers": {
+   "Carlos Gardel": 396,
+   "C. Gardel - J. Razzano": 43
+  },
+  "vocal": 439,
+  "yearRange": [
+   1921,
+   1928
+  ],
+  "coverage": null
+ },
+ {
   "id": "miguel-calo",
   "name": "Miguel Caló",
-  "count": 505,
+  "count": 385,
   "rhythms": {
-   "tango": 412,
-   "vals": 30,
-   "milonga": 21,
-   "shimmy": 20,
-   "ranchera": 6,
-   "foxtrot": 5,
-   "pasodoble": 4,
+   "tango": 316,
+   "vals": 25,
+   "milonga": 14,
+   "shimmy": 13,
+   "ranchera": 4,
+   "pasodoble": 3,
+   "foxtrot": 3,
    "other": 2,
    "polca": 2,
    "candombe": 1,
@@ -510,20 +578,20 @@
    "zamba": 1
   },
   "singers": {
-   "Raúl Iriarte": 63,
-   "Raúl Berón": 51,
-   "Carlos Dante": 39,
-   "Alberto Podestá": 33,
-   "Roberto Arrieta": 26,
-   "Lucho Gatica": 24,
-   "Roberto Luque": 18,
+   "Raúl Iriarte": 56,
+   "Alberto Podestá": 31,
+   "Raúl Berón": 30,
+   "Roberto Arrieta": 25,
+   "Carlos Dante": 18,
    "Raúl del Mar": 18,
-   "Roberto Rufino": 15,
-   "Alberto Morel": 11,
-   "Jorge Ortíz": 8,
-   "Carlos Barbé": 8
+   "Roberto Luque": 16,
+   "Roberto Rufino": 13,
+   "Lucho Gatica": 12,
+   "Carlos Barbé": 8,
+   "Alberto Marino": 8,
+   "Raúl Ledesma": 7
   },
-  "vocal": 391,
+  "vocal": 309,
   "yearRange": [
    1932,
    1972
@@ -601,79 +669,11 @@
   }
  },
  {
-  "id": "orquesta-unspecified",
-  "name": "Orquesta (unspecified)",
-  "count": 471,
-  "rhythms": {
-   "tango": 350,
-   "other": 30,
-   "milonga": 24,
-   "unknown": 22,
-   "vals": 18,
-   "cancion": 14,
-   "foxtrot": 4,
-   "zamba": 3,
-   "candombe": 2,
-   "ranchera": 2,
-   "tonada": 1,
-   "marcha": 1
-  },
-  "singers": {
-   "Susy Leiva": 25,
-   "Mario Monteleone": 25,
-   "Horacio Deval": 23,
-   "Juan Pulido": 23,
-   "Daniel Santos": 20,
-   "Charlo": 18,
-   "Hugo del Carril": 18,
-   "Alberto Gómez": 17,
-   "Rosita Quiroga": 16,
-   "Susana Rinaldi": 15,
-   "Eladia Blázquez": 14,
-   "Mario Ponce de León": 13
-  },
-  "vocal": 446,
-  "yearRange": [
-   1906,
-   2002
-  ],
-  "coverage": null
- },
- {
-  "id": "j-ricardo-g-barbieri",
-  "name": "J.ricardo-G.barbieri",
-  "count": 464,
-  "rhythms": {
-   "tango": 338,
-   "zamba": 25,
-   "other": 22,
-   "vals": 17,
-   "shimmy": 16,
-   "estilo": 14,
-   "tonada": 11,
-   "cancion": 10,
-   "foxtrot": 5,
-   "milonga": 3,
-   "pasodoble": 2,
-   "marcha": 1
-  },
-  "singers": {
-   "Carlos Gardel": 418,
-   "C. Gardel - J. Razzano": 43
-  },
-  "vocal": 461,
-  "yearRange": [
-   1921,
-   1928
-  ],
-  "coverage": null
- },
- {
   "id": "carlos-di-sarli",
   "name": "Carlos Di Sarli",
-  "count": 400,
+  "count": 360,
   "rhythms": {
-   "tango": 358,
+   "tango": 318,
    "vals": 20,
    "milonga": 16,
    "ranchera": 3,
@@ -682,20 +682,20 @@
    "foxtrot": 1
   },
   "singers": {
-   "Jorge Durán": 46,
+   "Jorge Durán": 42,
    "Roberto Rufino": 41,
    "Oscar Serpa": 31,
    "Alberto Podestá": 28,
    "Mario Pomar": 28,
-   "Roberto Florio": 18,
+   "Roberto Florio": 16,
    "Mercedes Carné": 16,
-   "Horacio Casares": 9,
-   "Argentino Ledesma": 4,
-   "Rodolfo Galé": 3,
-   "J. Durán(cast) - Bob Toledo(ing)": 2,
-   "R. Florio - J. Durán": 2
+   "Horacio Casares": 4,
+   "Argentino Ledesma": 3,
+   "Rodolfo Galé": 2,
+   "R. Florio - J. Durán": 2,
+   "Edmundo Rivero": 2
   },
-  "vocal": 234,
+  "vocal": 220,
   "yearRange": [
    1931,
    1960
@@ -753,98 +753,33 @@
   }
  },
  {
-  "id": "armando-pontier",
-  "name": "Armando Pontier",
-  "count": 395,
-  "rhythms": {
-   "tango": 353,
-   "milonga": 19,
-   "vals": 19,
-   "other": 2,
-   "tonada": 1,
-   "cancion": 1
-  },
-  "singers": {
-   "Roberto Goyeneche": 78,
-   "Julio Sosa": 73,
-   "Héctor Darío": 23,
-   "Oscar Ferrari": 22,
-   "Alberto Podestá": 13,
-   "Hugo del Carril": 13,
-   "Gloria Díaz": 12,
-   "Hernán Salinas": 10,
-   "Néstor Real": 10,
-   "Alberto Marino": 8,
-   "Rubén Juárez": 7,
-   "Carlos Casado": 6
-  },
-  "vocal": 291,
-  "yearRange": [
-   1950,
-   1980
-  ],
-  "coverage": null
- },
- {
-  "id": "florindo-sassone",
-  "name": "Florindo Sassone",
-  "count": 377,
-  "rhythms": {
-   "tango": 342,
-   "milonga": 20,
-   "vals": 12,
-   "cancion": 2,
-   "other": 1
-  },
-  "singers": {
-   "Oscar Macri": 29,
-   "Jorge Casal": 25,
-   "Roberto Chanel": 25,
-   "Osvaldo de Santis": 22,
-   "Rodolfo Galé": 19,
-   "Carlos Guido": 13,
-   "Rodolfo Lemos": 10,
-   "Andrés Peyró": 6,
-   "Mario Bustos": 6,
-   "Carlos Malbrán": 4,
-   "Raúl Lavalle": 4,
-   "Gloria Díaz": 4
-  },
-  "vocal": 180,
-  "yearRange": [
-   1947,
-   1979
-  ],
-  "coverage": null
- },
- {
   "id": "osvaldo-pugliese",
   "name": "Osvaldo Pugliese",
-  "count": 371,
+  "count": 325,
   "rhythms": {
-   "tango": 339,
-   "milonga": 16,
-   "vals": 7,
-   "other": 3,
+   "tango": 298,
+   "milonga": 14,
+   "vals": 5,
    "polca": 3,
+   "other": 2,
    "cancion": 2,
    "tonada": 1
   },
   "singers": {
-   "Alberto Morán": 38,
-   "Abel Córdoba": 33,
-   "Roberto Chanel": 23,
-   "Jorge Maciel": 19,
-   "Miguel Montero": 13,
+   "Alberto Morán": 33,
+   "Abel Córdoba": 31,
+   "Roberto Chanel": 19,
+   "Jorge Maciel": 18,
+   "Miguel Montero": 10,
    "Adrián Guida": 9,
-   "Jorge Vidal": 9,
+   "Jorge Vidal": 8,
    "Alfredo Belusi": 7,
-   "A. Córdoba - A. Guida": 4,
-   "C. Guido - J. Maciel": 4,
    "Juan Carlos Cobos": 4,
-   "Palabras": 3
+   "A. Córdoba - A. Guida": 3,
+   "Palabras": 3,
+   "J. Maciel - A. Belusi": 2
   },
-  "vocal": 184,
+  "vocal": 161,
   "yearRange": [
    1943,
    1992
@@ -922,33 +857,130 @@
   }
  },
  {
+  "id": "florindo-sassone",
+  "name": "Florindo Sassone",
+  "count": 315,
+  "rhythms": {
+   "tango": 291,
+   "milonga": 14,
+   "vals": 8,
+   "cancion": 1,
+   "other": 1
+  },
+  "singers": {
+   "Oscar Macri": 24,
+   "Jorge Casal": 16,
+   "Rodolfo Galé": 16,
+   "Roberto Chanel": 15,
+   "Osvaldo de Santis": 12,
+   "Rodolfo Lemos": 10,
+   "Carlos Guido": 7,
+   "Andrés Peyró": 6,
+   "Mario Bustos": 6,
+   "Fontán Luna": 4,
+   "Carlos Malbrán": 3,
+   "Raúl Lavalle": 3
+  },
+  "vocal": 131,
+  "yearRange": [
+   1947,
+   1979
+  ],
+  "coverage": null
+ },
+ {
+  "id": "jose-basso",
+  "name": "José Basso",
+  "count": 285,
+  "rhythms": {
+   "tango": 256,
+   "milonga": 14,
+   "vals": 13,
+   "candombe": 1,
+   "cancion": 1
+  },
+  "singers": {
+   "Alfredo Belusi": 37,
+   "Floreal Ruíz": 36,
+   "Jorge Durán": 15,
+   "Oscar Ferrari": 14,
+   "Héctor de Rosas": 11,
+   "Carlos Rossi": 11,
+   "Luis Correa": 6,
+   "Juan Carlos Godoy": 6,
+   "Francisco Fiorentino": 5,
+   "Héctor Darío": 4,
+   "Rodolfo Galé": 4,
+   "Eduardo Borda": 4
+  },
+  "vocal": 188,
+  "yearRange": [
+   1949,
+   1986
+  ],
+  "coverage": null
+ },
+ {
+  "id": "armando-pontier",
+  "name": "Armando Pontier",
+  "count": 281,
+  "rhythms": {
+   "tango": 249,
+   "milonga": 15,
+   "vals": 13,
+   "other": 2,
+   "tonada": 1,
+   "cancion": 1
+  },
+  "singers": {
+   "Julio Sosa": 38,
+   "Roberto Goyeneche": 32,
+   "Oscar Ferrari": 20,
+   "Alberto Podestá": 13,
+   "Gloria Díaz": 12,
+   "Héctor Darío": 12,
+   "Hernán Salinas": 10,
+   "Hugo del Carril": 10,
+   "Néstor Real": 10,
+   "Carlos Casado": 6,
+   "Rubén Juárez": 6,
+   "Roberto Florio": 5
+  },
+  "vocal": 188,
+  "yearRange": [
+   1950,
+   1980
+  ],
+  "coverage": null
+ },
+ {
   "id": "orquesta-tipica-victor",
   "name": "Orquesta Típica Víctor",
-  "count": 352,
+  "count": 267,
   "rhythms": {
-   "tango": 296,
-   "vals": 31,
-   "ranchera": 14,
-   "pasodoble": 4,
+   "tango": 223,
+   "vals": 24,
+   "ranchera": 10,
    "milonga": 3,
+   "pasodoble": 3,
    "foxtrot": 3,
    "other": 1
   },
   "singers": {
-   "Alberto Gómez": 36,
-   "Carlos Lafuente": 20,
-   "Roberto Díaz": 17,
-   "Teófilo Ibañez": 13,
+   "Alberto Gómez": 31,
+   "Roberto Díaz": 13,
+   "Carlos Lafuente": 13,
    "Mercedes Simone": 8,
-   "Ernesto Famá": 7,
-   "Amanda Ledesma": 6,
+   "Teófilo Ibañez": 7,
    "Carmen del Moral": 6,
-   "Charlo": 6,
-   "Angel Vargas": 6,
    "A. Gómez - Tito Vila": 4,
-   "Eugenio Viñas": 4
+   "Amanda Ledesma": 4,
+   "Charlo": 4,
+   "Ernesto Famá": 4,
+   "Luis Díaz": 4,
+   "Antonio Buglione": 4
   },
-  "vocal": 166,
+  "vocal": 130,
   "yearRange": [
    1925,
    1941
@@ -1002,131 +1034,12 @@
   }
  },
  {
-  "id": "jose-basso",
-  "name": "José Basso",
-  "count": 335,
-  "rhythms": {
-   "tango": 301,
-   "milonga": 19,
-   "vals": 13,
-   "candombe": 1,
-   "cancion": 1
-  },
-  "singers": {
-   "Floreal Ruíz": 66,
-   "Alfredo Belusi": 38,
-   "Jorge Durán": 16,
-   "Oscar Ferrari": 15,
-   "Héctor de Rosas": 11,
-   "Carlos Rossi": 11,
-   "Alfredo del Río": 9,
-   "Roberto Florio": 6,
-   "Luis Correa": 6,
-   "Juan Carlos Godoy": 6,
-   "Francisco Fiorentino": 5,
-   "Héctor Darío": 4
-  },
-  "vocal": 230,
-  "yearRange": [
-   1949,
-   1986
-  ],
-  "coverage": null
- },
- {
-  "id": "enrique-rodriguez",
-  "name": "Enrique Rodríguez",
-  "count": 327,
-  "rhythms": {
-   "tango": 153,
-   "foxtrot": 61,
-   "pasodoble": 39,
-   "vals": 30,
-   "corrido": 19,
-   "milonga": 7,
-   "polca": 6,
-   "ranchera": 4,
-   "other": 3,
-   "marcha": 2,
-   "cancion": 2,
-   "candombe": 1
-  },
-  "singers": {
-   "Armando Moreno": 198,
-   "Roberto \"Chato\" Flores": 35,
-   "Ricardo Herrera": 11,
-   "Ernesto Falcón": 10,
-   "Fernando Reyes": 6,
-   "Cruz Montenegro": 6,
-   "Omar Quiróz": 5,
-   "José Torres": 2,
-   "Oscar Galán": 2,
-   "O. Quiróz - O. Galán": 2,
-   "O. Quiróz - O. Galán - A. Moreno": 2,
-   "R. Herrera - F. Reyes": 1
-  },
-  "vocal": 283,
-  "yearRange": [
-   1937,
-   1971
-  ],
-  "coverage": {
-   "instrumental": {
-    "1937": 3,
-    "1938": 3,
-    "1939": 3,
-    "1940": 4,
-    "1941": 4,
-    "1942": 4,
-    "1943": 4,
-    "1944": 4,
-    "1945": 4,
-    "1946": 4,
-    "1947": 4,
-    "1948": 2,
-    "1949": 2,
-    "1950": 2,
-    "1951": 2,
-    "1952": 2,
-    "1953": 2,
-    "1954": 2,
-    "1955": 2,
-    "1956": 2,
-    "1957": 2
-   },
-   "vocal": {
-    "1937": 3,
-    "1938": 3,
-    "1939": 3,
-    "1940": 4,
-    "1941": 4,
-    "1942": 4,
-    "1943": 4,
-    "1944": 4,
-    "1945": 4,
-    "1946": 4,
-    "1947": 4,
-    "1948": 2,
-    "1949": 2,
-    "1950": 2,
-    "1951": 2,
-    "1952": 2,
-    "1953": 2,
-    "1954": 2,
-    "1955": 2,
-    "1956": 2,
-    "1957": 2
-   },
-   "activePeriod": "1937 - 1971"
-  }
- },
- {
   "id": "osvaldo-fresedo",
   "name": "Osvaldo Fresedo",
-  "count": 303,
+  "count": 248,
   "rhythms": {
-   "tango": 280,
-   "milonga": 13,
+   "tango": 227,
+   "milonga": 11,
    "vals": 5,
    "cancion": 1,
    "other": 1,
@@ -1135,20 +1048,20 @@
    "polca": 1
   },
   "singers": {
-   "Oscar Serpa": 36,
-   "Roberto Ray": 29,
-   "Héctor Pacheco": 28,
-   "Ricardo Ruíz": 11,
-   "Hugo Marcel": 9,
+   "Oscar Serpa": 34,
+   "Héctor Pacheco": 24,
+   "Roberto Ray": 21,
+   "Ricardo Ruíz": 10,
+   "Hugo Marcel": 8,
    "Carlos Mayel": 8,
-   "Carlos Barrios": 8,
-   "Armando Garrido": 6,
-   "Blanca Mooney": 6,
+   "Carlos Barrios": 6,
    "Roberto Yanés": 6,
+   "Armando Garrido": 4,
+   "Blanca Mooney": 3,
    "Oscar Luna": 3,
    "Osvaldo Arana": 3
   },
-  "vocal": 163,
+  "vocal": 140,
   "yearRange": [
    1920,
    1981
@@ -1240,37 +1153,124 @@
   }
  },
  {
+  "id": "enrique-rodriguez",
+  "name": "Enrique Rodríguez",
+  "count": 241,
+  "rhythms": {
+   "tango": 100,
+   "foxtrot": 46,
+   "pasodoble": 35,
+   "vals": 26,
+   "corrido": 12,
+   "milonga": 6,
+   "ranchera": 4,
+   "polca": 4,
+   "other": 3,
+   "marcha": 2,
+   "cancion": 2,
+   "candombe": 1
+  },
+  "singers": {
+   "Armando Moreno": 137,
+   "Roberto \"Chato\" Flores": 33,
+   "Ricardo Herrera": 10,
+   "Ernesto Falcón": 9,
+   "Fernando Reyes": 6,
+   "Cruz Montenegro": 5,
+   "Omar Quiróz": 4,
+   "Oscar Galán": 2,
+   "O. Quiróz - O. Galán": 2,
+   "O. Quiróz - O. Galán - A. Moreno": 2,
+   "José Torres": 1,
+   "R. Herrera - F. Reyes": 1
+  },
+  "vocal": 215,
+  "yearRange": [
+   1937,
+   1971
+  ],
+  "coverage": {
+   "instrumental": {
+    "1937": 3,
+    "1938": 3,
+    "1939": 3,
+    "1940": 4,
+    "1941": 4,
+    "1942": 4,
+    "1943": 4,
+    "1944": 4,
+    "1945": 4,
+    "1946": 4,
+    "1947": 4,
+    "1948": 2,
+    "1949": 2,
+    "1950": 2,
+    "1951": 2,
+    "1952": 2,
+    "1953": 2,
+    "1954": 2,
+    "1955": 2,
+    "1956": 2,
+    "1957": 2
+   },
+   "vocal": {
+    "1937": 3,
+    "1938": 3,
+    "1939": 3,
+    "1940": 4,
+    "1941": 4,
+    "1942": 4,
+    "1943": 4,
+    "1944": 4,
+    "1945": 4,
+    "1946": 4,
+    "1947": 4,
+    "1948": 2,
+    "1949": 2,
+    "1950": 2,
+    "1951": 2,
+    "1952": 2,
+    "1953": 2,
+    "1954": 2,
+    "1955": 2,
+    "1956": 2,
+    "1957": 2
+   },
+   "activePeriod": "1937 - 1971"
+  }
+ },
+ {
   "id": "francisco-lomuto",
   "name": "Francisco Lomuto",
-  "count": 256,
+  "count": 228,
   "rhythms": {
-   "tango": 185,
-   "vals": 24,
+   "tango": 161,
+   "vals": 23,
    "ranchera": 10,
-   "other": 9,
-   "milonga": 8,
-   "foxtrot": 8,
+   "other": 8,
    "pasodoble": 8,
+   "milonga": 7,
+   "foxtrot": 7,
    "shimmy": 1,
    "marcha": 1,
    "corrido": 1,
    "zamba": 1
   },
   "singers": {
-   "Fernando Díaz": 77,
-   "Jorge Omar": 33,
-   "Alberto Rivera": 26,
-   "Carlos Galarce": 12,
-   "Charlo": 12,
-   "Miguel Montero": 12,
+   "Fernando Díaz": 73,
+   "Jorge Omar": 32,
+   "Alberto Rivera": 21,
+   "Carlos Galarce": 11,
+   "Charlo": 7,
+   "Miguel Montero": 7,
    "F. Díaz - J. Omar": 5,
-   "Príncipe Azul": 4,
-   "E. Inda - A. Rivera": 2,
-   "Eduardo Inda": 2,
-   "Carmen del Moral": 2,
-   "C. Acuña - F. Díaz": 1
+   "Príncipe Azul": 3,
+   "C. Acuña - F. Díaz": 1,
+   "J. Omar - Celly Brian": 1,
+   "María T. Greco": 1,
+   "Lita Morales": 1
   },
-  "vocal": 197,
+  "vocal": 172,
   "yearRange": [
    1920,
    1950
@@ -1330,96 +1330,28 @@
   }
  },
  {
-  "id": "ricardo-tanturi",
-  "name": "Ricardo Tanturi",
-  "count": 234,
-  "rhythms": {
-   "tango": 202,
-   "vals": 21,
-   "milonga": 10,
-   "marcha": 1
-  },
-  "singers": {
-   "Enrique Campos": 51,
-   "Roberto Videla": 48,
-   "Alberto Castillo": 39,
-   "Elsa Rivas": 17,
-   "Horacio Roca": 13,
-   "Osvaldo Ribó": 11,
-   "Juan Carlos Godoy": 7,
-   "Alberto Guzmán": 7,
-   "O. Ribó - R. Videla": 5,
-   "E. Campos - R. Videla": 4,
-   "H. Roca - A. Guzmán": 3,
-   "E. Rivas - J. C. Godoy - H. Roca": 3
-  },
-  "vocal": 212,
-  "yearRange": [
-   1937,
-   1966
-  ],
-  "coverage": {
-   "instrumental": {
-    "1937": 2,
-    "1938": 2,
-    "1940": 4,
-    "1941": 4,
-    "1942": 4,
-    "1943": 4,
-    "1944": 3,
-    "1945": 3,
-    "1956": 1,
-    "1957": 1,
-    "1958": 1,
-    "1959": 1,
-    "1966": 0
-   },
-   "vocal": {
-    "1937": 2,
-    "1938": 2,
-    "1940": 4,
-    "1941": 4,
-    "1942": 4,
-    "1943": 4,
-    "1944": 3,
-    "1945": 3,
-    "1946": 1,
-    "1947": 1,
-    "1948": 1,
-    "1949": 1,
-    "1950": 1,
-    "1956": 0,
-    "1957": 0,
-    "1958": 0,
-    "1959": 0,
-    "1966": 0
-   },
-   "activePeriod": "1940 - 1966"
-  }
- },
- {
   "id": "astor-piazzolla",
   "name": "Astor Piazzolla",
-  "count": 230,
+  "count": 205,
   "rhythms": {
-   "tango": 214,
-   "milonga": 8,
+   "tango": 191,
+   "milonga": 6,
    "vals": 4,
    "polca": 2,
    "other": 2
   },
   "singers": {
    "Francisco Fiorentino": 24,
-   "Roberto Goyeneche": 17,
-   "María de la Fuente": 9,
-   "Edmundo Rivero": 9,
+   "Roberto Goyeneche": 10,
+   "María de la Fuente": 8,
    "Aldo Campoamor": 7,
+   "Edmundo Rivero": 6,
    "Amelita Baltar": 5,
    "Palabras": 2,
    "Héctor de Rosas": 2,
    "Luis Medina Castro": 1
   },
-  "vocal": 76,
+  "vocal": 65,
   "yearRange": [
    1945,
    1992
@@ -1429,10 +1361,10 @@
  {
   "id": "victor-d-amario",
   "name": "Víctor D'Amario",
-  "count": 204,
+  "count": 203,
   "rhythms": {
    "tango": 181,
-   "milonga": 12,
+   "milonga": 11,
    "vals": 11
   },
   "singers": {
@@ -1449,7 +1381,7 @@
    "Carlos Almagro": 5,
    "Darío Bonell": 4
   },
-  "vocal": 176,
+  "vocal": 175,
   "yearRange": [
    1951,
    1991
@@ -1459,11 +1391,11 @@
  {
   "id": "rodolfo-biagi",
   "name": "Rodolfo Biagi",
-  "count": 203,
+  "count": 198,
   "rhythms": {
-   "tango": 173,
+   "tango": 169,
    "vals": 22,
-   "milonga": 8
+   "milonga": 7
   },
   "singers": {
    "Hugo Duval": 36,
@@ -1471,7 +1403,7 @@
    "Alberto Amor": 29,
    "Carlos Acuña": 13,
    "Andrés Falgás": 11,
-   "Carlos Almagro": 11,
+   "Carlos Almagro": 9,
    "Teófilo Ibáñez": 8,
    "Carlos Saavedra": 7,
    "Alberto Lago": 5,
@@ -1479,7 +1411,7 @@
    "Oscar Macri": 2,
    "C. Heredia - H. Duval": 1
   },
-  "vocal": 162,
+  "vocal": 160,
   "yearRange": [
    1927,
    1962
@@ -1530,142 +1462,85 @@
   }
  },
  {
-  "id": "alfredo-gobbi",
-  "name": "Alfredo Gobbi",
-  "count": 195,
+  "id": "ricardo-tanturi",
+  "name": "Ricardo Tanturi",
+  "count": 194,
   "rhythms": {
-   "tango": 160,
-   "vals": 28,
-   "milonga": 4,
-   "other": 2,
-   "polca": 1
+   "tango": 166,
+   "vals": 18,
+   "milonga": 9,
+   "marcha": 1
   },
   "singers": {
-   "Jorge Maciel": 31,
-   "Alfredo del Río": 26,
-   "Tito Lando": 18,
-   "C. Heredia - H. Soler": 9,
-   "A. del Río - Tito Lando": 8,
-   "J. Maciel - H. Coral": 7,
-   "Angel Díaz": 6,
-   "Héctor Coral": 5,
-   "Carlos Almada": 5,
-   "Carlos Nogués": 4,
-   "J. Maciel - A. Díaz": 3,
-   "Hugo Soler": 2
+   "Enrique Campos": 51,
+   "Alberto Castillo": 39,
+   "Roberto Videla": 24,
+   "Elsa Rivas": 12,
+   "Osvaldo Ribó": 11,
+   "Horacio Roca": 11,
+   "Juan Carlos Godoy": 7,
+   "Alberto Guzmán": 5,
+   "H. Roca - A. Guzmán": 3,
+   "O. Ribó - R. Videla": 3,
+   "Carlos Ortega": 2,
+   "E. Campos - R. Videla": 2
   },
-  "vocal": 133,
+  "vocal": 174,
   "yearRange": [
-   1947,
-   1962
+   1937,
+   1966
   ],
   "coverage": {
    "instrumental": {
-    "1947": 3,
-    "1948": 3,
-    "1949": 3,
-    "1950": 3,
-    "1951": 3,
-    "1952": 3,
-    "1953": 3,
-    "1954": 3,
-    "1955": 3,
-    "1956": 3,
-    "1957": 3,
-    "1958": 3
+    "1937": 2,
+    "1938": 2,
+    "1940": 4,
+    "1941": 4,
+    "1942": 4,
+    "1943": 4,
+    "1944": 3,
+    "1945": 3,
+    "1956": 1,
+    "1957": 1,
+    "1958": 1,
+    "1959": 1,
+    "1966": 0
    },
    "vocal": {
-    "1947": 0,
-    "1948": 0,
-    "1949": 0,
-    "1950": 0,
-    "1951": 0,
-    "1952": 0,
-    "1953": 0,
-    "1954": 0,
-    "1955": 0,
+    "1937": 2,
+    "1938": 2,
+    "1940": 4,
+    "1941": 4,
+    "1942": 4,
+    "1943": 4,
+    "1944": 3,
+    "1945": 3,
+    "1946": 1,
+    "1947": 1,
+    "1948": 1,
+    "1949": 1,
+    "1950": 1,
     "1956": 0,
     "1957": 0,
-    "1958": 0
+    "1958": 0,
+    "1959": 0,
+    "1966": 0
    },
-   "activePeriod": "1947 - 1958"
+   "activePeriod": "1940 - 1966"
   }
- },
- {
-  "id": "hector-varela",
-  "name": "Héctor Varela",
-  "count": 188,
-  "rhythms": {
-   "tango": 168,
-   "milonga": 12,
-   "vals": 8
-  },
-  "singers": {
-   "Argentino Ledesma": 28,
-   "Rodolfo Lesica": 25,
-   "Jorge Falcón": 22,
-   "Armando Laborde": 14,
-   "Ernesto Herrera": 8,
-   "Jorge Falcón - Fernando Soler": 5,
-   "Raúl Lavié": 3,
-   "Mario Delacruz": 2,
-   "Alberto Marino": 2,
-   "Jorge Falcón - Diego Solís": 2,
-   "A. Laborde - R. Lesica": 2,
-   "A. Ledesma - R. Lesica": 1
-  },
-  "vocal": 115,
-  "yearRange": [
-   1950,
-   1980
-  ],
-  "coverage": null
- },
- {
-  "id": "francini-pontier",
-  "name": "Francini-Pontier",
-  "count": 186,
-  "rhythms": {
-   "tango": 151,
-   "vals": 16,
-   "milonga": 14,
-   "other": 4,
-   "ranchera": 1
-  },
-  "singers": {
-   "Julio Sosa": 29,
-   "Alberto Podestá": 24,
-   "Raúl Berón": 20,
-   "Pablo Moreno": 15,
-   "Roberto Rufino": 14,
-   "Roberto Florio": 4,
-   "Luis Correa": 4,
-   "R. Berón - R. Rufino": 2,
-   "Héctor Montes": 2,
-   "Mario Lagos": 2,
-   "A. Podestá - R. Berón": 1,
-   "A. Podestá - J. Sosa": 1
-  },
-  "vocal": 118,
-  "yearRange": [
-   1946,
-   1955
-  ],
-  "coverage": null
  },
  {
   "id": "roberto-firpo",
   "name": "Roberto Firpo",
-  "count": 154,
+  "count": 149,
   "rhythms": {
-   "tango": 125,
+   "tango": 121,
    "vals": 13,
    "pasodoble": 6,
    "milonga": 4,
    "other": 3,
    "polca": 1,
-   "foxtrot": 1,
-   "cancion": 1
+   "foxtrot": 1
   },
   "singers": {
    "Alberto Diale": 13,
@@ -1673,14 +1548,14 @@
    "Carlos Varela": 8,
    "Ignacio Murillo": 7,
    "Teófilo Ibáñez": 5,
-   "C. Gardel - J. Razzano": 2,
    "Roberto Díaz": 2,
    "Dorita Davis - P. Azul": 1,
    "A. Diale - I. Murillo": 1,
+   "C. Gardel - J. Razzano": 1,
    "C. Viván - Héctor Villanueva": 1,
    "Héctor Villanueva": 1
   },
-  "vocal": 53,
+  "vocal": 52,
   "yearRange": [
    1912,
    1955
@@ -1730,42 +1605,46 @@
   }
  },
  {
-  "id": "horacio-salgan",
-  "name": "Horacio Salgán",
-  "count": 149,
+  "id": "domingo-federico",
+  "name": "Domingo Federico",
+  "count": 134,
   "rhythms": {
-   "tango": 131,
-   "vals": 11,
-   "milonga": 4,
+   "tango": 113,
+   "milonga": 10,
+   "vals": 7,
    "other": 2,
-   "cancion": 1
+   "cancion": 1,
+   "candombe": 1
   },
   "singers": {
-   "Edmundo Rivero": 24,
-   "Roberto Goyeneche": 18,
-   "Angel Díaz": 9,
-   "Horacio Deval": 6,
-   "R. Goyeneche - A. Díaz": 4,
-   "Ana Medrano": 3,
-   "Alberto Taborda": 3,
-   "Miguel Montero": 2,
-   "A. Medrano - A. Taborda": 1
+   "Carlos Vidal": 24,
+   "Armando Moreno": 17,
+   "C. Vidal - O. Larroca": 12,
+   "Oscar Larroca": 12,
+   "Rubén Sanchez": 9,
+   "Mario Bustos": 4,
+   "Enzo Valentino": 4,
+   "Carlos Calcagno": 3,
+   "Hugo Roca": 3,
+   "Carlos Valdéz": 3,
+   "Eduardo Vila": 2,
+   "Héctor Catáneo": 2
   },
-  "vocal": 70,
+  "vocal": 101,
   "yearRange": [
-   1950,
-   1992
+   1944,
+   1997
   ],
   "coverage": null
  },
  {
   "id": "edgardo-donato",
   "name": "Edgardo Donato",
-  "count": 143,
+  "count": 134,
   "rhythms": {
-   "tango": 115,
+   "tango": 107,
    "vals": 12,
-   "milonga": 12,
+   "milonga": 11,
    "cancion": 2,
    "polca": 1,
    "ranchera": 1
@@ -1775,16 +1654,16 @@
    "Carlos Almada": 19,
    "Roberto Morel": 11,
    "Luis Díaz": 8,
-   "Félix Gutierrez": 5,
    "Oscar Peralta": 5,
+   "Félix Gutierrez": 4,
    "Alberto Aguirre": 4,
    "Antonio Maida": 3,
    "Hugo del Carril": 3,
-   "Alberto Gómez": 3,
    "Juan Alessio(jorge Ortíz0": 2,
-   "H. Lagos - L. Morales - R. Gavioli": 2
+   "H. Lagos - L. Morales - R. Gavioli": 2,
+   "Adolfo Rivas": 2
   },
-  "vocal": 103,
+  "vocal": 99,
   "yearRange": [
    1929,
    1957
@@ -1841,39 +1720,6 @@
   }
  },
  {
-  "id": "domingo-federico",
-  "name": "Domingo Federico",
-  "count": 141,
-  "rhythms": {
-   "tango": 120,
-   "milonga": 10,
-   "vals": 7,
-   "other": 2,
-   "cancion": 1,
-   "candombe": 1
-  },
-  "singers": {
-   "Carlos Vidal": 26,
-   "Armando Moreno": 17,
-   "C. Vidal - O. Larroca": 12,
-   "Oscar Larroca": 12,
-   "Rubén Sanchez": 9,
-   "Mario Bustos": 5,
-   "Enzo Valentino": 5,
-   "Carlos Calcagno": 3,
-   "Hugo Roca": 3,
-   "Carlos Valdéz": 3,
-   "Eduardo Vila": 2,
-   "Héctor Catáneo": 2
-  },
-  "vocal": 105,
-  "yearRange": [
-   1944,
-   1997
-  ],
-  "coverage": null
- },
- {
   "id": "fulvio-salamanca",
   "name": "Fulvio Salamanca",
   "count": 133,
@@ -1904,12 +1750,42 @@
   "coverage": null
  },
  {
+  "id": "hector-varela",
+  "name": "Héctor Varela",
+  "count": 130,
+  "rhythms": {
+   "tango": 113,
+   "milonga": 10,
+   "vals": 7
+  },
+  "singers": {
+   "Rodolfo Lesica": 19,
+   "Argentino Ledesma": 14,
+   "Jorge Falcón": 12,
+   "Armando Laborde": 10,
+   "Ernesto Herrera": 6,
+   "Jorge Falcón - Fernando Soler": 5,
+   "Raúl Lavié": 3,
+   "Mario Delacruz": 2,
+   "Alberto Marino": 2,
+   "Jorge Falcón - Diego Solís": 2,
+   "A. Laborde - R. Lesica": 2,
+   "A. Ledesma - R. Lesica": 1
+  },
+  "vocal": 79,
+  "yearRange": [
+   1950,
+   1980
+  ],
+  "coverage": null
+ },
+ {
   "id": "leopoldo-federico",
   "name": "Leopoldo Federico",
-  "count": 131,
+  "count": 129,
   "rhythms": {
-   "tango": 115,
-   "vals": 7,
+   "tango": 114,
+   "vals": 6,
    "milonga": 6,
    "cancion": 1,
    "polca": 1,
@@ -1919,15 +1795,15 @@
    "Julio Sosa": 66,
    "Daniel Quiroga": 12,
    "Susana Rinaldi": 9,
-   "Elsa Rivas": 8,
    "Carlos Gari": 7,
    "Jorge Casal": 7,
+   "Elsa Rivas": 6,
    "Roberto Ayala": 4,
    "Aldo Fabré": 2,
    "Gloria Díaz": 2,
    "Susy Leiva": 1
   },
-  "vocal": 118,
+  "vocal": 116,
   "yearRange": [
    1959,
    2003
@@ -1935,98 +1811,11 @@
   "coverage": null
  },
  {
-  "id": "francisco-rotundo",
-  "name": "Francisco Rotundo",
-  "count": 130,
-  "rhythms": {
-   "tango": 121,
-   "milonga": 5,
-   "vals": 4
-  },
-  "singers": {
-   "Floreal Ruíz": 42,
-   "Julio Sosa": 27,
-   "Enrique Campos": 20,
-   "Carlos Roldán": 11,
-   "Alfredo del Río": 9,
-   "Jorge Durán": 3,
-   "María de la Fuente": 2,
-   "F. Ruíz - E. Campos": 1
-  },
-  "vocal": 115,
-  "yearRange": [
-   1948,
-   1957
-  ],
-  "coverage": null
- },
- {
-  "id": "juan-sanchez-gorio",
-  "name": "Juan Sánchez Gorio",
-  "count": 130,
-  "rhythms": {
-   "tango": 111,
-   "vals": 12,
-   "milonga": 3,
-   "pasodoble": 2,
-   "other": 1,
-   "foxtrot": 1
-  },
-  "singers": {
-   "Luis Mendoza": 44,
-   "Osvaldo Bazán": 24,
-   "L. Mendoza - O. Bazán": 7,
-   "Julio Fontana": 7,
-   "Víctor Renda": 4,
-   "Mercedes Serrano": 4,
-   "Carlos Cristal": 3,
-   "Héctor Mauré": 3,
-   "Cholo Aguirre": 2,
-   "Alberto Echagüe": 2,
-   "Roberto Taibo": 2,
-   "Marcelo Peña": 2
-  },
-  "vocal": 109,
-  "yearRange": [
-   1944,
-   1960
-  ],
-  "coverage": null
- },
- {
-  "id": "pedro-maffia",
-  "name": "Pedro Maffia",
-  "count": 126,
-  "rhythms": {
-   "tango": 115,
-   "vals": 10,
-   "candombe": 1
-  },
-  "singers": {
-   "Luis Díaz": 22,
-   "Francisco Fiorentino": 6,
-   "Carlos Viván": 5,
-   "Alberto Gómez": 3,
-   "Roberto Maida": 3,
-   "Roberto Quiroga": 2,
-   "Félix Gutiérrez": 2,
-   "Rafael Cisca": 2,
-   "Eduardo Ponce": 1,
-   "Pedro Lauga": 1
-  },
-  "vocal": 47,
-  "yearRange": [
-   1929,
-   1965
-  ],
-  "coverage": null
- },
- {
   "id": "lucio-demare",
   "name": "Lucio Demare",
-  "count": 126,
+  "count": 123,
   "rhythms": {
-   "tango": 95,
+   "tango": 92,
    "vals": 13,
    "milonga": 12,
    "other": 3,
@@ -2035,7 +1824,7 @@
    "tonada": 1
   },
   "singers": {
-   "Raúl Berón": 27,
+   "Raúl Berón": 26,
    "A. Irusta - R. Fugazot": 21,
    "Juan Carlos Miranda": 14,
    "Horacio Quintana": 14,
@@ -2047,7 +1836,7 @@
    "Roberto Fugazot": 2,
    "Carlos Bernal": 1
   },
-  "vocal": 100,
+  "vocal": 99,
   "yearRange": [
    1938,
    1959
@@ -2078,11 +1867,76 @@
   }
  },
  {
-  "id": "jorge-arduh",
-  "name": "Jorge Arduh",
+  "id": "juan-sanchez-gorio",
+  "name": "Juan Sánchez Gorio",
+  "count": 120,
+  "rhythms": {
+   "tango": 101,
+   "vals": 12,
+   "milonga": 3,
+   "pasodoble": 2,
+   "other": 1,
+   "foxtrot": 1
+  },
+  "singers": {
+   "Luis Mendoza": 40,
+   "Osvaldo Bazán": 21,
+   "L. Mendoza - O. Bazán": 7,
+   "Julio Fontana": 6,
+   "Víctor Renda": 4,
+   "Mercedes Serrano": 4,
+   "Carlos Cristal": 3,
+   "Cholo Aguirre": 2,
+   "Alberto Echagüe": 2,
+   "Roberto Taibo": 2,
+   "Marcelo Peña": 2,
+   "Héctor Mauré": 2
+  },
+  "vocal": 100,
+  "yearRange": [
+   1944,
+   1960
+  ],
+  "coverage": null
+ },
+ {
+  "id": "francini-pontier",
+  "name": "Francini-Pontier",
   "count": 119,
   "rhythms": {
-   "tango": 105,
+   "tango": 92,
+   "vals": 14,
+   "milonga": 10,
+   "other": 2,
+   "ranchera": 1
+  },
+  "singers": {
+   "Alberto Podestá": 16,
+   "Julio Sosa": 15,
+   "Raúl Berón": 14,
+   "Roberto Rufino": 12,
+   "Pablo Moreno": 12,
+   "Roberto Florio": 4,
+   "Luis Correa": 4,
+   "R. Berón - R. Rufino": 2,
+   "Héctor Montes": 2,
+   "Mario Lagos": 2,
+   "A. Podestá - R. Berón": 1,
+   "A. Podestá - J. Sosa": 1
+  },
+  "vocal": 85,
+  "yearRange": [
+   1946,
+   1955
+  ],
+  "coverage": null
+ },
+ {
+  "id": "jorge-arduh",
+  "name": "Jorge Arduh",
+  "count": 114,
+  "rhythms": {
+   "tango": 100,
    "vals": 6,
    "other": 4,
    "milonga": 4
@@ -2099,9 +1953,9 @@
    "R. Ludueña - C. Soler": 3,
    "Alberto del Valle": 3,
    "Luis Román": 3,
-   "Jorge Montes": 2
+   "Miguel Ángel Herrera": 2
   },
-  "vocal": 70,
+  "vocal": 68,
   "yearRange": [
    1955,
    1994
@@ -2109,25 +1963,147 @@
   "coverage": null
  },
  {
+  "id": "horacio-salgan",
+  "name": "Horacio Salgán",
+  "count": 114,
+  "rhythms": {
+   "tango": 101,
+   "vals": 7,
+   "milonga": 4,
+   "cancion": 1,
+   "other": 1
+  },
+  "singers": {
+   "Edmundo Rivero": 23,
+   "Roberto Goyeneche": 8,
+   "Angel Díaz": 7,
+   "Ana Medrano": 3,
+   "Alberto Taborda": 3,
+   "Horacio Deval": 3,
+   "Miguel Montero": 2,
+   "R. Goyeneche - A. Díaz": 2,
+   "A. Medrano - A. Taborda": 1
+  },
+  "vocal": 52,
+  "yearRange": [
+   1950,
+   1992
+  ],
+  "coverage": null
+ },
+ {
+  "id": "jorge-dragone",
+  "name": "Jorge Dragone",
+  "count": 109,
+  "rhythms": {
+   "tango": 88,
+   "vals": 10,
+   "milonga": 8,
+   "cancion": 3
+  },
+  "singers": {
+   "Héctor Darío": 15,
+   "Marcelo Biondini": 12,
+   "Eduardo Borda": 12,
+   "Raquel Nerea": 10,
+   "Héctor Mauré": 10,
+   "Alberto Podestá": 10,
+   "Mario Bustos": 10,
+   "Alberto Castillo": 7,
+   "Alfredo Dalton": 6,
+   "Argentino Ledesma": 6,
+   "Héctor Omar": 5,
+   "Elsa Rivas": 1
+  },
+  "vocal": 105,
+  "yearRange": [
+   1953,
+   2001
+  ],
+  "coverage": null
+ },
+ {
+  "id": "alfredo-gobbi",
+  "name": "Alfredo Gobbi",
+  "count": 105,
+  "rhythms": {
+   "tango": 86,
+   "vals": 15,
+   "milonga": 2,
+   "polca": 1,
+   "other": 1
+  },
+  "singers": {
+   "Jorge Maciel": 14,
+   "Tito Lando": 12,
+   "Alfredo del Río": 11,
+   "C. Heredia - H. Soler": 4,
+   "Angel Díaz": 4,
+   "Carlos Nogués": 4,
+   "A. del Río - Tito Lando": 4,
+   "Héctor Coral": 3,
+   "J. Maciel - H. Coral": 3,
+   "Carlos Almada": 3,
+   "A. Díaz - C. Nogués": 2,
+   "Hugo Soler": 1
+  },
+  "vocal": 71,
+  "yearRange": [
+   1947,
+   1962
+  ],
+  "coverage": {
+   "instrumental": {
+    "1947": 3,
+    "1948": 3,
+    "1949": 3,
+    "1950": 3,
+    "1951": 3,
+    "1952": 3,
+    "1953": 3,
+    "1954": 3,
+    "1955": 3,
+    "1956": 3,
+    "1957": 3,
+    "1958": 3
+   },
+   "vocal": {
+    "1947": 0,
+    "1948": 0,
+    "1949": 0,
+    "1950": 0,
+    "1951": 0,
+    "1952": 0,
+    "1953": 0,
+    "1954": 0,
+    "1955": 0,
+    "1956": 0,
+    "1957": 0,
+    "1958": 0
+   },
+   "activePeriod": "1947 - 1958"
+  }
+ },
+ {
   "id": "angel-d-agostino",
   "name": "Ángel D'Agostino",
-  "count": 113,
+  "count": 104,
   "rhythms": {
-   "tango": 104,
+   "tango": 95,
    "milonga": 6,
    "vals": 3
   },
   "singers": {
-   "Angel Vargas": 47,
-   "Tino García": 41,
-   "Rubén Cané": 9,
+   "Angel Vargas": 45,
+   "Tino García": 35,
+   "Rubén Cané": 8,
    "Raúl Lavié": 4,
    "T. García - R. Cané": 2,
    "Roberto Alvar": 2,
    "Ricardo Ruíz": 1,
    "Tino García - Mario Cané": 1
   },
-  "vocal": 107,
+  "vocal": 98,
   "yearRange": [
    1940,
    1987
@@ -2164,149 +2140,6 @@
   }
  },
  {
-  "id": "jorge-dragone",
-  "name": "Jorge Dragone",
-  "count": 109,
-  "rhythms": {
-   "tango": 88,
-   "vals": 10,
-   "milonga": 8,
-   "cancion": 3
-  },
-  "singers": {
-   "Héctor Darío": 15,
-   "Marcelo Biondini": 12,
-   "Eduardo Borda": 12,
-   "Raquel Nerea": 10,
-   "Héctor Mauré": 10,
-   "Alberto Podestá": 10,
-   "Mario Bustos": 10,
-   "Alberto Castillo": 7,
-   "Alfredo Dalton": 6,
-   "Argentino Ledesma": 6,
-   "Héctor Omar": 5,
-   "Elsa Rivas": 1
-  },
-  "vocal": 105,
-  "yearRange": [
-   1953,
-   2001
-  ],
-  "coverage": null
- },
- {
-  "id": "porfirio-diaz",
-  "name": "Porfirio Díaz",
-  "count": 98,
-  "rhythms": {
-   "tango": 45,
-   "vals": 38,
-   "pasodoble": 5,
-   "ranchera": 3,
-   "other": 2,
-   "corrido": 2,
-   "foxtrot": 1,
-   "polca": 1,
-   "cancion": 1
-  },
-  "singers": {
-   "Jorge Abril": 29,
-   "Carmen del Moral": 13,
-   "Mario Zelta": 6,
-   "Raúl Ledesma": 5,
-   "Carlos Morán": 3,
-   "Carlos Omar": 2,
-   "Carlos del Mar": 2,
-   "Armando Bonasco": 2,
-   "Roberto Díaz": 2,
-   "R. Ledesma - C. Palmiño - del Coral": 2,
-   "Pepe Aguirre": 2,
-   "M. Zelta - R. Ledesma": 1
-  },
-  "vocal": 71,
-  "yearRange": [
-   1940,
-   1955
-  ],
-  "coverage": null
- },
- {
-  "id": "g-barbieri-j-m-aguilar-riverol",
-  "name": "G.barbieri-J.m.aguilar-Riverol",
-  "count": 96,
-  "rhythms": {
-   "tango": 69,
-   "vals": 10,
-   "other": 7,
-   "estilo": 3,
-   "ranchera": 3,
-   "milonga": 1,
-   "foxtrot": 1,
-   "cancion": 1,
-   "pasodoble": 1
-  },
-  "singers": {
-   "Carlos Gardel": 96
-  },
-  "vocal": 96,
-  "yearRange": [
-   1929,
-   1934
-  ],
-  "coverage": null
- },
- {
-  "id": "juan-maglio-pacho",
-  "name": "Juan Maglio \"Pacho\"",
-  "count": 95,
-  "rhythms": {
-   "tango": 84,
-   "vals": 7,
-   "polca": 3,
-   "other": 1
-  },
-  "singers": {
-   "Carlos Viván": 8,
-   "Con Canto": 3,
-   "José Galarza": 2,
-   "Raúl Rinaldi": 1
-  },
-  "vocal": 14,
-  "yearRange": [
-   1912,
-   1932
-  ],
-  "coverage": null
- },
- {
-  "id": "jose-ricardo",
-  "name": "José Ricardo",
-  "count": 94,
-  "rhythms": {
-   "tango": 31,
-   "cancion": 15,
-   "estilo": 13,
-   "other": 13,
-   "zamba": 7,
-   "tonada": 6,
-   "vals": 5,
-   "milonga": 3,
-   "shimmy": 1
-  },
-  "singers": {
-   "Carlos Gardel": 57,
-   "C. Gardel - J. Razzano": 34,
-   "José Razzano": 2,
-   "José F. Razzano": 1
-  },
-  "vocal": 94,
-  "yearRange": [
-   1917,
-   1926
-  ],
-  "coverage": null
- },
- {
   "id": "miguel-nijensohn",
   "name": "Miguel Nijensohn",
   "count": 93,
@@ -2335,35 +2168,126 @@
   "coverage": null
  },
  {
-  "id": "g-barbieri-j-m-aguilar",
-  "name": "G.barbieri-J.m.aguilar",
+  "id": "jose-ricardo",
+  "name": "José Ricardo",
   "count": 93,
   "rhythms": {
-   "tango": 70,
-   "vals": 10,
-   "other": 4,
-   "estilo": 4,
-   "pasodoble": 2,
-   "zamba": 2,
-   "cancion": 1
+   "tango": 31,
+   "cancion": 15,
+   "estilo": 13,
+   "other": 13,
+   "zamba": 7,
+   "tonada": 6,
+   "vals": 5,
+   "milonga": 2,
+   "shimmy": 1
   },
   "singers": {
-   "Carlos Gardel": 91,
-   "C. Gardel - J. Razzano": 2
+   "Carlos Gardel": 56,
+   "C. Gardel - J. Razzano": 34,
+   "José Razzano": 2,
+   "José F. Razzano": 1
   },
   "vocal": 93,
   "yearRange": [
+   1917,
+   1926
+  ],
+  "coverage": null
+ },
+ {
+  "id": "juan-maglio-pacho",
+  "name": "Juan Maglio \"Pacho\"",
+  "count": 90,
+  "rhythms": {
+   "tango": 79,
+   "vals": 7,
+   "polca": 3,
+   "other": 1
+  },
+  "singers": {
+   "Carlos Viván": 7,
+   "Con Canto": 3,
+   "José Galarza": 1,
+   "Raúl Rinaldi": 1
+  },
+  "vocal": 12,
+  "yearRange": [
+   1912,
+   1932
+  ],
+  "coverage": null
+ },
+ {
+  "id": "pedro-maffia",
+  "name": "Pedro Maffia",
+  "count": 90,
+  "rhythms": {
+   "tango": 81,
+   "vals": 8,
+   "candombe": 1
+  },
+  "singers": {
+   "Luis Díaz": 14,
+   "Francisco Fiorentino": 5,
+   "Carlos Viván": 3,
+   "Roberto Maida": 3,
+   "Roberto Quiroga": 2,
+   "Alberto Gómez": 2,
+   "Félix Gutiérrez": 2,
+   "Rafael Cisca": 2,
+   "Eduardo Ponce": 1,
+   "Pedro Lauga": 1
+  },
+  "vocal": 35,
+  "yearRange": [
    1929,
-   1930
+   1965
+  ],
+  "coverage": null
+ },
+ {
+  "id": "porfirio-diaz",
+  "name": "Porfirio Díaz",
+  "count": 87,
+  "rhythms": {
+   "tango": 37,
+   "vals": 35,
+   "pasodoble": 5,
+   "ranchera": 3,
+   "other": 2,
+   "corrido": 2,
+   "foxtrot": 1,
+   "polca": 1,
+   "cancion": 1
+  },
+  "singers": {
+   "Jorge Abril": 24,
+   "Carmen del Moral": 12,
+   "Mario Zelta": 5,
+   "Raúl Ledesma": 4,
+   "Carlos del Mar": 2,
+   "Roberto Díaz": 2,
+   "Carlos Morán": 2,
+   "R. Ledesma - C. Palmiño - del Coral": 2,
+   "Pepe Aguirre": 2,
+   "Carlos Omar": 1,
+   "Armando Bonasco": 1,
+   "M. Zelta - R. Ledesma": 1
+  },
+  "vocal": 60,
+  "yearRange": [
+   1940,
+   1955
   ],
   "coverage": null
  },
  {
   "id": "donato-racciatti",
   "name": "Donato Racciatti",
-  "count": 89,
+  "count": 87,
   "rhythms": {
-   "tango": 63,
+   "tango": 61,
    "vals": 10,
    "milonga": 9,
    "candombe": 5,
@@ -2377,14 +2301,14 @@
    "Félix Romero": 3,
    "Rita Marín - R. Blasco": 3,
    "Gabriel Reynal": 3,
-   "Helena de Torres": 2,
    "Olga Delgrossi": 2,
    "O. Delgrossi - Víctor Ruiz": 2,
    "B. del Campo - O. Rivas": 2,
    "Beatríz del Campo": 2,
-   "Tania": 2
+   "Néstor Real": 2,
+   "Juan Carlos Godoy": 2
   },
-  "vocal": 61,
+  "vocal": 59,
   "yearRange": [
    1950,
    1987
@@ -2394,19 +2318,19 @@
  {
   "id": "juan-bautista-guido",
   "name": "Juan Bautista Guido",
-  "count": 89,
+  "count": 86,
   "rhythms": {
-   "tango": 58,
-   "vals": 25,
+   "tango": 57,
+   "vals": 23,
    "pasodoble": 3,
    "other": 2,
    "ranchera": 1
   },
   "singers": {
-   "Juan Lauga": 20,
+   "Juan Lauga": 18,
    "Joaquina Carreras": 5
   },
-  "vocal": 25,
+  "vocal": 23,
   "yearRange": [
    1927,
    1931
@@ -2445,29 +2369,192 @@
   "coverage": null
  },
  {
+  "id": "lorenzo-barbero",
+  "name": "Lorenzo Barbero",
+  "count": 81,
+  "rhythms": {
+   "tango": 44,
+   "milonga": 12,
+   "vals": 11,
+   "other": 5,
+   "pasodoble": 3,
+   "polca": 2,
+   "ranchera": 2,
+   "candombe": 1,
+   "foxtrot": 1
+  },
+  "singers": {
+   "Carlos del Monte": 5,
+   "Osvaldo Brizuela": 4,
+   "Jorge Montes": 2,
+   "Roberto Florio": 2,
+   "C. del Monte - O. Brizuela": 1,
+   "R. Florio - C. del Monte": 1
+  },
+  "vocal": 15,
+  "yearRange": [
+   1950,
+   1981
+  ],
+  "coverage": null
+ },
+ {
+  "id": "g-barbieri-j-m-aguilar-riverol",
+  "name": "G.barbieri-J.m.aguilar-Riverol",
+  "count": 81,
+  "rhythms": {
+   "tango": 57,
+   "vals": 9,
+   "other": 6,
+   "ranchera": 3,
+   "estilo": 2,
+   "milonga": 1,
+   "foxtrot": 1,
+   "cancion": 1,
+   "pasodoble": 1
+  },
+  "singers": {
+   "Carlos Gardel": 81
+  },
+  "vocal": 81,
+  "yearRange": [
+   1929,
+   1934
+  ],
+  "coverage": null
+ },
+ {
+  "id": "enrique-m-francini",
+  "name": "Enrique M.francini",
+  "count": 80,
+  "rhythms": {
+   "tango": 57,
+   "cancion": 10,
+   "other": 6,
+   "vals": 3,
+   "milonga": 2,
+   "zamba": 1,
+   "polca": 1
+  },
+  "singers": {
+   "Alberto Podestá": 7,
+   "Roberto Rufino": 3,
+   "Julia Vidal": 2,
+   "Carlos Ferran": 2,
+   "Oscar Gallardo": 1,
+   "Palabras": 1
+  },
+  "vocal": 16,
+  "yearRange": [
+   1955,
+   1980
+  ],
+  "coverage": null
+ },
+ {
+  "id": "alberto-mancione",
+  "name": "Alberto Mancione",
+  "count": 78,
+  "rhythms": {
+   "tango": 68,
+   "vals": 6,
+   "milonga": 4
+  },
+  "singers": {
+   "Jorge Ledesma": 16,
+   "Jorge Miró": 12,
+   "J. Ledesma - H. Alvarado": 5,
+   "J. Miró - A. Taborda": 5,
+   "Francisco Fiorentino": 4,
+   "José Torres": 4,
+   "Alberto Rial": 3,
+   "Héctor Alvarado": 3,
+   "Osvaldo de Santis": 2,
+   "Luis Correa": 2,
+   "Angel Varela": 2,
+   "J. Ledesma - A. Varela": 2
+  },
+  "vocal": 63,
+  "yearRange": [
+   1950,
+   1989
+  ],
+  "coverage": null
+ },
+ {
+  "id": "francisco-rotundo",
+  "name": "Francisco Rotundo",
+  "count": 77,
+  "rhythms": {
+   "tango": 71,
+   "milonga": 3,
+   "vals": 3
+  },
+  "singers": {
+   "Floreal Ruíz": 24,
+   "Enrique Campos": 17,
+   "Julio Sosa": 12,
+   "Carlos Roldán": 8,
+   "Alfredo del Río": 4,
+   "Jorge Durán": 2,
+   "F. Ruíz - E. Campos": 1,
+   "María de la Fuente": 1
+  },
+  "vocal": 69,
+  "yearRange": [
+   1948,
+   1957
+  ],
+  "coverage": null
+ },
+ {
+  "id": "g-barbieri-j-m-aguilar",
+  "name": "G.barbieri-J.m.aguilar",
+  "count": 77,
+  "rhythms": {
+   "tango": 58,
+   "vals": 8,
+   "estilo": 4,
+   "pasodoble": 2,
+   "other": 2,
+   "zamba": 2,
+   "cancion": 1
+  },
+  "singers": {
+   "Carlos Gardel": 75,
+   "C. Gardel - J. Razzano": 2
+  },
+  "vocal": 77,
+  "yearRange": [
+   1929,
+   1930
+  ],
+  "coverage": null
+ },
+ {
   "id": "pedro-laurenz",
   "name": "Pedro Láurenz",
-  "count": 84,
+  "count": 73,
   "rhythms": {
-   "tango": 64,
-   "milonga": 12,
+   "tango": 54,
+   "milonga": 11,
    "vals": 7,
    "ranchera": 1
   },
   "singers": {
    "Juan Carlos Casas": 15,
    "Alberto Podestá": 15,
-   "Alfredo del Río": 12,
    "Carlos Bermudez": 7,
    "Martín Podestá": 4,
    "Jorge Linares": 4,
+   "Alfredo del Río": 4,
    "Héctor Farrel": 3,
    "Héctor Juncal": 3,
    "Alberto del Campo": 2,
    "Alberto Fuentes": 1,
    "C. Bermudez - J. Linares": 1
   },
-  "vocal": 67,
+  "vocal": 59,
   "yearRange": [
    1937,
    1953
@@ -2509,290 +2596,22 @@
   }
  },
  {
-  "id": "lorenzo-barbero",
-  "name": "Lorenzo Barbero",
-  "count": 83,
-  "rhythms": {
-   "tango": 44,
-   "vals": 13,
-   "milonga": 12,
-   "other": 5,
-   "pasodoble": 3,
-   "polca": 2,
-   "ranchera": 2,
-   "candombe": 1,
-   "foxtrot": 1
-  },
-  "singers": {
-   "Carlos del Monte": 5,
-   "Osvaldo Brizuela": 4,
-   "Jorge Montes": 2,
-   "Roberto Florio": 2,
-   "C. del Monte - O. Brizuela": 1,
-   "R. Florio - C. del Monte": 1
-  },
-  "vocal": 15,
-  "yearRange": [
-   1950,
-   1981
-  ],
-  "coverage": null
- },
- {
-  "id": "enrique-m-francini",
-  "name": "Enrique M.francini",
-  "count": 82,
-  "rhythms": {
-   "tango": 59,
-   "cancion": 10,
-   "other": 6,
-   "vals": 3,
-   "milonga": 2,
-   "zamba": 1,
-   "polca": 1
-  },
-  "singers": {
-   "Alberto Podestá": 7,
-   "Roberto Rufino": 3,
-   "Julia Vidal": 2,
-   "Carlos Ferran": 2,
-   "Oscar Gallardo": 1,
-   "Palabras": 1
-  },
-  "vocal": 16,
-  "yearRange": [
-   1955,
-   1980
-  ],
-  "coverage": null
- },
- {
-  "id": "alberto-mancione",
-  "name": "Alberto Mancione",
-  "count": 82,
-  "rhythms": {
-   "tango": 72,
-   "vals": 6,
-   "milonga": 4
-  },
-  "singers": {
-   "Jorge Ledesma": 17,
-   "Jorge Miró": 12,
-   "J. Ledesma - H. Alvarado": 5,
-   "J. Miró - A. Taborda": 5,
-   "Osvaldo de Santis": 4,
-   "Francisco Fiorentino": 4,
-   "José Torres": 4,
-   "Alberto Rial": 3,
-   "Héctor Alvarado": 3,
-   "O. de Santis - A. Rial": 2,
-   "Luis Correa": 2,
-   "Angel Varela": 2
-  },
-  "vocal": 67,
-  "yearRange": [
-   1950,
-   1989
-  ],
-  "coverage": null
- },
- {
-  "id": "trio-yumba",
-  "name": "Trío Yumba",
-  "count": 82,
-  "rhythms": {
-   "tango": 70,
-   "milonga": 9,
-   "vals": 2,
-   "other": 1
-  },
-  "singers": {
-   "Elsa Rivas": 26,
-   "Hugo Duval": 19,
-   "Beba Bidart": 13,
-   "Roberto Florio": 12,
-   "Alfredo del Río": 7
-  },
-  "vocal": 77,
-  "yearRange": [
-   1962,
-   1974
-  ],
-  "coverage": null
- },
- {
-  "id": "mariano-mores",
-  "name": "Mariano Mores",
-  "count": 81,
-  "rhythms": {
-   "tango": 72,
-   "milonga": 6,
-   "cancion": 2,
-   "other": 1
-  },
-  "singers": {
-   "Carlos Acuña": 18,
-   "Enrique Lucero": 9,
-   "Mario Ponce de León": 5,
-   "Aldo Campoamor": 4,
-   "Néstor Fabián": 3,
-   "Claudia Mores": 3,
-   "Nito Mores": 3,
-   "Trío Mores": 2,
-   "C. Acuña - A. Campoamor": 1,
-   "Miguel Montero": 1,
-   "Susy Leiva": 1,
-   "N. Mores - C. Mores": 1
-  },
-  "vocal": 52,
-  "yearRange": [
-   1955,
-   1995
-  ],
-  "coverage": null
- },
- {
-  "id": "hector-stamponi",
-  "name": "Héctor Stamponi",
-  "count": 80,
-  "rhythms": {
-   "tango": 62,
-   "vals": 10,
-   "milonga": 3,
-   "other": 3,
-   "zamba": 1,
-   "ranchera": 1
-  },
-  "singers": {
-   "Edmundo Rivero": 24,
-   "Amanda Ledesma": 9,
-   "Elba Pico": 6,
-   "Alberto Drames": 5,
-   "Alfredo Arocha": 4,
-   "Jorge Vidal": 4,
-   "Guillermo Arboz": 2,
-   "G. Arboz - A. Drames": 2,
-   "Tania": 2,
-   "Alberto Marino": 1
-  },
-  "vocal": 59,
-  "yearRange": [
-   1941,
-   1975
-  ],
-  "coverage": null
- },
- {
-  "id": "jorge-caldara",
-  "name": "Jorge Caldara",
-  "count": 80,
-  "rhythms": {
-   "tango": 77,
-   "milonga": 2,
-   "vals": 1
-  },
-  "singers": {
-   "Carlos Montalvo": 13,
-   "Rodolfo Lesica": 12,
-   "Miguel Martino": 6,
-   "C. Montalvo - M. Martino": 5,
-   "Roberto Echagüe": 2,
-   "Raúl Ledesma": 2,
-   "Ranko Fujisawa": 2,
-   "Néstor Real": 1,
-   "R. Ledesma - C. Montalvo": 1,
-   "R. Lesica - R. Ruiz": 1
-  },
-  "vocal": 45,
-  "yearRange": [
-   1955,
-   1965
-  ],
-  "coverage": null
- },
- {
   "id": "conj-tipico-y-guit",
   "name": "Conj.típico y Guit.",
-  "count": 80,
+  "count": 73,
   "rhythms": {
-   "tango": 67,
+   "tango": 61,
    "vals": 8,
-   "cancion": 4,
+   "cancion": 3,
    "other": 1
   },
   "singers": {
-   "Héctor Mauré": 80
+   "Héctor Mauré": 73
   },
-  "vocal": 80,
+  "vocal": 73,
   "yearRange": [
    1957,
    1961
-  ],
-  "coverage": null
- },
- {
-  "id": "trio-ciriaco-ortiz",
-  "name": "Trío Ciriaco Ortíz",
-  "count": 76,
-  "rhythms": {
-   "tango": 51,
-   "vals": 21,
-   "milonga": 4
-  },
-  "singers": {
-   "Alberto Echagüe": 2
-  },
-  "vocal": 2,
-  "yearRange": [
-   1931,
-   1948
-  ],
-  "coverage": null
- },
- {
-  "id": "angel-dominguez",
-  "name": "Angel Domínguez",
-  "count": 75,
-  "rhythms": {
-   "tango": 72,
-   "vals": 2,
-   "cancion": 1
-  },
-  "singers": {
-   "Miguel Montero": 38,
-   "Roberto Chanel": 12,
-   "Carlos Almagro": 4,
-   "Alberto Rial": 4,
-   "Claudio Miguel": 2,
-   "Osvaldo Nocera": 2,
-   "Edmundo Rivero": 1
-  },
-  "vocal": 63,
-  "yearRange": [
-   1954,
-   1972
-  ],
-  "coverage": null
- },
- {
-  "id": "los-sres-del-tango",
-  "name": "Los Sres.del Tango",
-  "count": 72,
-  "rhythms": {
-   "tango": 68,
-   "milonga": 2,
-   "vals": 1,
-   "cancion": 1
-  },
-  "singers": {
-   "Mario Pomar": 14,
-   "Oscar Serpa": 12,
-   "Elsa Rivas": 7
-  },
-  "vocal": 33,
-  "yearRange": [
-   1956,
-   1967
   ],
   "coverage": null
  },
@@ -2828,49 +2647,45 @@
   "coverage": null
  },
  {
-  "id": "raul-garello",
-  "name": "Raúl Garello",
+  "id": "trio-yumba",
+  "name": "Trío Yumba",
   "count": 70,
   "rhythms": {
-   "tango": 66,
+   "tango": 58,
+   "milonga": 9,
    "vals": 2,
-   "milonga": 1,
    "other": 1
   },
   "singers": {
-   "Rubén Juárez": 24,
-   "Roberto Goyeneche": 18,
-   "Rosanna Falasca": 12,
-   "Eladia Blázquez": 4,
-   "Gloria Díaz": 2,
-   "Presentación": 1,
-   "Hernán Salinas": 1,
-   "Floreal Ruíz": 1,
-   "Gustavo Nocetti": 1
+   "Hugo Duval": 19,
+   "Elsa Rivas": 14,
+   "Beba Bidart": 13,
+   "Roberto Florio": 12,
+   "Alfredo del Río": 7
   },
-  "vocal": 64,
+  "vocal": 65,
   "yearRange": [
-   1971,
-   1991
+   1962,
+   1974
   ],
   "coverage": null
  },
  {
   "id": "armando-lacava",
   "name": "Armando Lacava",
-  "count": 70,
+  "count": 69,
   "rhythms": {
-   "tango": 59,
+   "tango": 58,
    "milonga": 7,
    "vals": 4
   },
   "singers": {
-   "Angel Vargas": 41,
+   "Angel Vargas": 40,
    "Mario Bustos": 16,
    "Raúl Iriarte": 7,
    "Gerardo Mancini": 6
   },
-  "vocal": 70,
+  "vocal": 69,
   "yearRange": [
    1950,
    1993
@@ -2920,138 +2735,33 @@
   }
  },
  {
-  "id": "osmar-maderna",
-  "name": "Osmar Maderna",
+  "id": "hector-stamponi",
+  "name": "Héctor Stamponi",
   "count": 68,
   "rhythms": {
-   "tango": 59,
-   "vals": 6,
-   "milonga": 1,
-   "other": 1,
-   "cancion": 1
-  },
-  "singers": {
-   "Orlando Verri": 11,
-   "Pedro Dátila": 11,
-   "Mario Corrales": 3,
-   "Héctor de Rosas": 3,
-   "Luis Tolosa": 2,
-   "P. Dátila - M. Corrales": 2,
-   "Adolfo Rivas": 2
-  },
-  "vocal": 34,
-  "yearRange": [
-   1946,
-   1951
-  ],
-  "coverage": null
- },
- {
-  "id": "enrique-mora",
-  "name": "Enrique Mora",
-  "count": 68,
-  "rhythms": {
-   "tango": 48,
-   "vals": 16,
-   "milonga": 4
-  },
-  "singers": {
-   "Elsa Moreno": 10,
-   "Diana Durán": 5,
-   "Roberto Taibo": 4,
-   "Pedro de Luca": 4,
-   "Roberto Moreno": 4,
-   "Alberto Legran": 2,
-   "Amanda Vidal": 2,
-   "Roberto Campos": 2,
-   "Pedro Peyró": 2,
-   "Alberto Arenas": 2,
-   "Raúl Ledesma": 1
-  },
-  "vocal": 38,
-  "yearRange": [
-   1950,
-   1986
-  ],
-  "coverage": null
- },
- {
-  "id": "manuel-pizarro",
-  "name": "Manuel Pizarro",
-  "count": 67,
-  "rhythms": {
-   "tango": 63,
-   "vals": 2,
-   "milonga": 1,
+   "tango": 50,
+   "vals": 10,
+   "milonga": 3,
+   "other": 3,
+   "zamba": 1,
    "ranchera": 1
   },
   "singers": {
-   "Manuel Pizarro": 12,
-   "Con Canto": 9,
-   "Roberto Maida": 3,
-   "A. de Silva - M. Pizarro": 2,
-   "Alina de Silva": 2
+   "Edmundo Rivero": 12,
+   "Amanda Ledesma": 9,
+   "Elba Pico": 6,
+   "Alberto Drames": 5,
+   "Alfredo Arocha": 4,
+   "Jorge Vidal": 4,
+   "Guillermo Arboz": 2,
+   "G. Arboz - A. Drames": 2,
+   "Tania": 2,
+   "Alberto Marino": 1
   },
-  "vocal": 28,
+  "vocal": 47,
   "yearRange": [
-   1924,
-   1950
-  ],
-  "coverage": null
- },
- {
-  "id": "g-barbieri-riverol-pettorossi-vivas",
-  "name": "G.barbieri-Riverol-Pettorossi-Vivas",
-  "count": 67,
-  "rhythms": {
-   "tango": 34,
-   "cancion": 9,
-   "vals": 5,
-   "tonada": 5,
-   "milonga": 4,
-   "zamba": 4,
-   "other": 3,
-   "estilo": 2,
-   "ranchera": 1
-  },
-  "singers": {
-   "Carlos Gardel": 67
-  },
-  "vocal": 67,
-  "yearRange": [
-   1933,
-   1933
-  ],
-  "coverage": null
- },
- {
-  "id": "orq-simb-o-maderna",
-  "name": "Orq.símb.o.maderna",
-  "count": 66,
-  "rhythms": {
-   "tango": 57,
-   "vals": 4,
-   "other": 3,
-   "milonga": 2
-  },
-  "singers": {
-   "Adolfo Rivas": 12,
-   "Horacio Casares": 11,
-   "Ruth Durante": 4,
-   "Jorge Hidalgo": 4,
-   "Orlando Verri": 3,
-   "A. Rivas - R. Durante": 2,
-   "Héctor de Rosas": 2,
-   "A. Rivas - O. Verri": 1,
-   "Jorge Durán": 1,
-   "Tito Dávila": 1,
-   "A. Rivas - C. Aldao": 1,
-   "Carlos Aguirre": 1
-  },
-  "vocal": 43,
-  "yearRange": [
-   1952,
-   1968
+   1941,
+   1975
   ],
   "coverage": null
  },
@@ -3103,42 +2813,85 @@
   }
  },
  {
-  "id": "osvaldo-requena",
-  "name": "Osvaldo Requena",
-  "count": 64,
+  "id": "enrique-mora",
+  "name": "Enrique Mora",
+  "count": 66,
   "rhythms": {
-   "tango": 54,
-   "milonga": 4,
-   "vals": 3,
-   "cancion": 2,
-   "candombe": 1
+   "tango": 47,
+   "vals": 15,
+   "milonga": 4
   },
   "singers": {
-   "Argentino Ledesma": 16,
-   "Horacio Deval": 11,
-   "Lalo Martel": 10,
-   "Rodolfo Lesica": 10,
-   "Aída Denis": 3,
-   "Osvaldo de Santis": 1
+   "Elsa Moreno": 10,
+   "Diana Durán": 4,
+   "Roberto Taibo": 4,
+   "Pedro de Luca": 4,
+   "Roberto Moreno": 4,
+   "Alberto Legran": 2,
+   "Amanda Vidal": 2,
+   "Roberto Campos": 2,
+   "Pedro Peyró": 2,
+   "Alberto Arenas": 2,
+   "Raúl Ledesma": 1
   },
-  "vocal": 51,
+  "vocal": 37,
   "yearRange": [
-   1973,
-   2000
+   1950,
+   1986
   ],
   "coverage": null
  },
  {
-  "id": "quinteto-pirincho",
-  "name": "Quinteto Pirincho",
+  "id": "raul-garello",
+  "name": "Raúl Garello",
+  "count": 65,
+  "rhythms": {
+   "tango": 61,
+   "vals": 2,
+   "milonga": 1,
+   "other": 1
+  },
+  "singers": {
+   "Rubén Juárez": 20,
+   "Roberto Goyeneche": 18,
+   "Rosanna Falasca": 12,
+   "Eladia Blázquez": 3,
+   "Gloria Díaz": 2,
+   "Presentación": 1,
+   "Hernán Salinas": 1,
+   "Floreal Ruíz": 1,
+   "Gustavo Nocetti": 1
+  },
+  "vocal": 59,
+  "yearRange": [
+   1971,
+   1991
+  ],
+  "coverage": null
+ },
+ {
+  "id": "angel-dominguez",
+  "name": "Angel Domínguez",
   "count": 64,
   "rhythms": {
-   "tango": 63,
-   "milonga": 1
+   "tango": 61,
+   "vals": 2,
+   "cancion": 1
   },
-  "singers": {},
-  "vocal": 0,
-  "yearRange": null,
+  "singers": {
+   "Miguel Montero": 37,
+   "Roberto Chanel": 8,
+   "Carlos Almagro": 3,
+   "Alberto Rial": 3,
+   "Claudio Miguel": 2,
+   "Osvaldo Nocera": 2,
+   "Edmundo Rivero": 1
+  },
+  "vocal": 56,
+  "yearRange": [
+   1954,
+   1972
+  ],
   "coverage": null
  },
  {
@@ -3228,6 +2981,77 @@
   "coverage": null
  },
  {
+  "id": "los-sres-del-tango",
+  "name": "Los Sres.del Tango",
+  "count": 62,
+  "rhythms": {
+   "tango": 59,
+   "milonga": 2,
+   "vals": 1
+  },
+  "singers": {
+   "Mario Pomar": 13,
+   "Oscar Serpa": 11,
+   "Elsa Rivas": 4
+  },
+  "vocal": 28,
+  "yearRange": [
+   1956,
+   1967
+  ],
+  "coverage": null
+ },
+ {
+  "id": "manuel-pizarro",
+  "name": "Manuel Pizarro",
+  "count": 62,
+  "rhythms": {
+   "tango": 58,
+   "vals": 2,
+   "milonga": 1,
+   "ranchera": 1
+  },
+  "singers": {
+   "Manuel Pizarro": 10,
+   "Con Canto": 9,
+   "A. de Silva - M. Pizarro": 2,
+   "Alina de Silva": 2,
+   "Roberto Maida": 2
+  },
+  "vocal": 25,
+  "yearRange": [
+   1924,
+   1950
+  ],
+  "coverage": null
+ },
+ {
+  "id": "osvaldo-requena",
+  "name": "Osvaldo Requena",
+  "count": 62,
+  "rhythms": {
+   "tango": 52,
+   "milonga": 4,
+   "vals": 3,
+   "cancion": 2,
+   "candombe": 1
+  },
+  "singers": {
+   "Argentino Ledesma": 16,
+   "Lalo Martel": 10,
+   "Horacio Deval": 10,
+   "Rodolfo Lesica": 10,
+   "Aída Denis": 3,
+   "Osvaldo de Santis": 1
+  },
+  "vocal": 50,
+  "yearRange": [
+   1973,
+   2000
+  ],
+  "coverage": null
+ },
+ {
   "id": "juan-carlos-cobian",
   "name": "Juan Carlos Cobián",
   "count": 61,
@@ -3250,48 +3074,30 @@
   "coverage": null
  },
  {
-  "id": "j-ricardo-g-barbieri-j-m-aguilar",
-  "name": "J.ricardo-G.barbieri-J.m.aguilar",
+  "id": "jorge-caldara",
+  "name": "Jorge Caldara",
   "count": 60,
   "rhythms": {
-   "tango": 49,
-   "vals": 7,
-   "foxtrot": 2,
-   "other": 1,
-   "cancion": 1
+   "tango": 58,
+   "milonga": 1,
+   "vals": 1
   },
   "singers": {
-   "Carlos Gardel": 58
+   "Rodolfo Lesica": 12,
+   "Carlos Montalvo": 7,
+   "Miguel Martino": 5,
+   "C. Montalvo - M. Martino": 4,
+   "Ranko Fujisawa": 2,
+   "Roberto Echagüe": 1,
+   "Néstor Real": 1,
+   "R. Ledesma - C. Montalvo": 1,
+   "Raúl Ledesma": 1,
+   "R. Lesica - R. Ruiz": 1
   },
-  "vocal": 58,
+  "vocal": 35,
   "yearRange": [
-   1927,
-   1933
-  ],
-  "coverage": null
- },
- {
-  "id": "jose-canet-guitarras",
-  "name": "José Canet Guitarras",
-  "count": 59,
-  "rhythms": {
-   "tango": 45,
-   "milonga": 5,
-   "vals": 4,
-   "estilo": 2,
-   "zamba": 2,
-   "cancion": 1
-  },
-  "singers": {
-   "Alberto Gómez": 21,
-   "Nelly Omar": 19,
-   "Alberto Marino": 13,
-   "Jorge Vidal": 6
-  },
-  "vocal": 59,
-  "yearRange": [
-   1935,
-   1979
+   1955,
+   1965
   ],
   "coverage": null
  },
@@ -3359,23 +3165,73 @@
   "coverage": null
  },
  {
-  "id": "jose-libertella",
-  "name": "José Libertella",
+  "id": "osmar-maderna",
+  "name": "Osmar Maderna",
   "count": 58,
   "rhythms": {
-   "tango": 52,
-   "milonga": 5,
+   "tango": 50,
+   "vals": 5,
+   "milonga": 1,
+   "other": 1,
    "cancion": 1
   },
   "singers": {
-   "Miguel Montero": 52,
-   "Roberto Florio": 2,
-   "Angel Vargas": 2
+   "Pedro Dátila": 11,
+   "Orlando Verri": 10,
+   "Mario Corrales": 3,
+   "Luis Tolosa": 2,
+   "P. Dátila - M. Corrales": 2,
+   "Héctor de Rosas": 2,
+   "Adolfo Rivas": 2
   },
-  "vocal": 56,
+  "vocal": 32,
   "yearRange": [
-   1958,
-   1978
+   1946,
+   1951
+  ],
+  "coverage": null
+ },
+ {
+  "id": "quinteto-pirincho",
+  "name": "Quinteto Pirincho",
+  "count": 58,
+  "rhythms": {
+   "tango": 57,
+   "milonga": 1
+  },
+  "singers": {},
+  "vocal": 0,
+  "yearRange": null,
+  "coverage": null
+ },
+ {
+  "id": "orq-simb-o-maderna",
+  "name": "Orq.símb.o.maderna",
+  "count": 57,
+  "rhythms": {
+   "tango": 49,
+   "vals": 3,
+   "other": 3,
+   "milonga": 2
+  },
+  "singers": {
+   "Adolfo Rivas": 10,
+   "Horacio Casares": 8,
+   "Jorge Hidalgo": 4,
+   "Orlando Verri": 3,
+   "Ruth Durante": 3,
+   "A. Rivas - R. Durante": 2,
+   "Héctor de Rosas": 2,
+   "A. Rivas - O. Verri": 1,
+   "Jorge Durán": 1,
+   "Tito Dávila": 1,
+   "A. Rivas - C. Aldao": 1,
+   "Carlos Aguirre": 1
+  },
+  "vocal": 37,
+  "yearRange": [
+   1952,
+   1968
   ],
   "coverage": null
  },
@@ -3403,19 +3259,52 @@
   "coverage": null
  },
  {
-  "id": "h-salgan-u-de-lio",
-  "name": "H.salgán-U.de Lío",
+  "id": "jose-canet-guitarras",
+  "name": "José Canet Guitarras",
+  "count": 56,
+  "rhythms": {
+   "tango": 42,
+   "milonga": 5,
+   "vals": 4,
+   "estilo": 2,
+   "zamba": 2,
+   "cancion": 1
+  },
+  "singers": {
+   "Nelly Omar": 19,
+   "Alberto Gómez": 18,
+   "Alberto Marino": 13,
+   "Jorge Vidal": 6
+  },
+  "vocal": 56,
+  "yearRange": [
+   1935,
+   1979
+  ],
+  "coverage": null
+ },
+ {
+  "id": "g-barbieri-riverol-pettorossi-vivas",
+  "name": "G.barbieri-Riverol-Pettorossi-Vivas",
   "count": 55,
   "rhythms": {
-   "tango": 47,
-   "milonga": 6,
-   "vals": 2
+   "tango": 28,
+   "cancion": 6,
+   "vals": 5,
+   "tonada": 4,
+   "milonga": 3,
+   "other": 3,
+   "zamba": 3,
+   "estilo": 2,
+   "ranchera": 1
   },
-  "singers": {},
-  "vocal": 0,
+  "singers": {
+   "Carlos Gardel": 55
+  },
+  "vocal": 55,
   "yearRange": [
-   1964,
-   2003
+   1933,
+   1933
   ],
   "coverage": null
  },
@@ -3440,6 +3329,25 @@
   "coverage": null
  },
  {
+  "id": "trio-ciriaco-ortiz",
+  "name": "Trío Ciriaco Ortíz",
+  "count": 52,
+  "rhythms": {
+   "tango": 33,
+   "vals": 15,
+   "milonga": 4
+  },
+  "singers": {
+   "Alberto Echagüe": 2
+  },
+  "vocal": 2,
+  "yearRange": [
+   1931,
+   1948
+  ],
+  "coverage": null
+ },
+ {
   "id": "felipe-antonio",
   "name": "Felipe Antonio",
   "count": 52,
@@ -3455,11 +3363,32 @@
   "coverage": null
  },
  {
+  "id": "j-ricardo-g-barbieri-j-m-aguilar",
+  "name": "J.ricardo-G.barbieri-J.m.aguilar",
+  "count": 52,
+  "rhythms": {
+   "tango": 42,
+   "vals": 6,
+   "foxtrot": 2,
+   "other": 1,
+   "cancion": 1
+  },
+  "singers": {
+   "Carlos Gardel": 51
+  },
+  "vocal": 51,
+  "yearRange": [
+   1927,
+   1933
+  ],
+  "coverage": null
+ },
+ {
   "id": "carlos-di-sarli-sex",
   "name": "Carlos Di Sarli(sex.)",
-  "count": 50,
+  "count": 48,
   "rhythms": {
-   "tango": 48,
+   "tango": 46,
    "vals": 2
   },
   "singers": {
@@ -3476,54 +3405,11 @@
   "coverage": null
  },
  {
-  "id": "eduardo-bianco",
-  "name": "Eduardo Bianco",
-  "count": 50,
-  "rhythms": {
-   "tango": 47,
-   "vals": 2,
-   "ranchera": 1
-  },
-  "singers": {
-   "M. Bianco - Horacio Pettorossi": 6,
-   "Manuel Bianco": 6,
-   "Mario Visconti": 5,
-   "José Cohan": 4,
-   "Carlos Américo": 2,
-   "Con Canto": 1,
-   "E. Bianco - J. Cohan": 1,
-   "Juan Raggi": 1
-  },
-  "vocal": 26,
-  "yearRange": [
-   1927,
-   1939
-  ],
-  "coverage": null
- },
- {
-  "id": "hugo-diaz",
-  "name": "Hugo Díaz",
-  "count": 49,
-  "rhythms": {
-   "tango": 42,
-   "vals": 4,
-   "milonga": 3
-  },
-  "singers": {},
-  "vocal": 0,
-  "yearRange": [
-   1980,
-   1982
-  ],
-  "coverage": null
- },
- {
   "id": "roberto-grela",
   "name": "Roberto Grela",
-  "count": 48,
+  "count": 47,
   "rhythms": {
-   "tango": 34,
+   "tango": 33,
    "milonga": 6,
    "vals": 5,
    "cancion": 2,
@@ -3533,180 +3419,16 @@
    "Horacio 'Cacho' Arabel": 16,
    "Tito Reyes": 12,
    "Osvaldo Ribó": 4,
-   "Nelly Omar": 4,
    "Jorge Casal": 4,
+   "Nelly Omar": 3,
    "Aldo Campoamor": 2,
    "Elba Berón": 1,
    "Edmundo Rivero": 1
   },
-  "vocal": 44,
+  "vocal": 43,
   "yearRange": [
    1940,
    1978
-  ],
-  "coverage": null
- },
- {
-  "id": "edelmiro-d-amario",
-  "name": "Edelmiro D'Amario",
-  "count": 48,
-  "rhythms": {
-   "tango": 40,
-   "milonga": 6,
-   "vals": 2
-  },
-  "singers": {
-   "Angel Vargas": 40,
-   "Ernesto Retano": 8
-  },
-  "vocal": 48,
-  "yearRange": [
-   1955,
-   1958
-  ],
-  "coverage": null
- },
- {
-  "id": "enrique-alessio",
-  "name": "Enrique Alessio",
-  "count": 47,
-  "rhythms": {
-   "tango": 40,
-   "milonga": 4,
-   "candombe": 2,
-   "vals": 1
-  },
-  "singers": {
-   "Alberto Castillo": 14,
-   "José Berón": 9,
-   "Mario Saladino": 7,
-   "Jorge Garré": 2,
-   "Mario D'Elía": 1,
-   "Hugo Soler": 1
-  },
-  "vocal": 34,
-  "yearRange": [
-   1946,
-   1962
-  ],
-  "coverage": null
- },
- {
-  "id": "luciano-leocata",
-  "name": "Luciano Leocata",
-  "count": 47,
-  "rhythms": {
-   "tango": 40,
-   "vals": 4,
-   "milonga": 2,
-   "unknown": 1
-  },
-  "singers": {
-   "Oscar Macri": 25,
-   "Norberto Roldán": 5,
-   "Jorge Fiorentino": 3,
-   "Alberto del Valle": 2,
-   "R. Chaleán - J. Fiorentino": 1,
-   "Roberto Chaleán": 1,
-   "I. Florentino": 1,
-   "I. Florentino - Chalian": 1
-  },
-  "vocal": 39,
-  "yearRange": [
-   1958,
-   1993
-  ],
-  "coverage": null
- },
- {
-  "id": "hector-maria-artola",
-  "name": "Héctor María Artola",
-  "count": 46,
-  "rhythms": {
-   "tango": 43,
-   "other": 2,
-   "milonga": 1
-  },
-  "singers": {
-   "Alberto Marino": 13,
-   "Jorge Vidal": 10,
-   "Héctor Ortíz": 4,
-   "Carlos Yanel": 2,
-   "Oscar Alonso": 1
-  },
-  "vocal": 30,
-  "yearRange": [
-   1949,
-   1970
-  ],
-  "coverage": null
- },
- {
-  "id": "carlos-garcia",
-  "name": "Carlos García",
-  "count": 46,
-  "rhythms": {
-   "tango": 41,
-   "milonga": 3,
-   "cancion": 1,
-   "vals": 1
-  },
-  "singers": {
-   "Roberto Bayot": 14,
-   "Guillermo Fernández": 11,
-   "Rubén Juárez": 8,
-   "Alberto Marino": 3,
-   "Oscar Alonso": 3,
-   "Hernán Salinas": 1,
-   "Héctor Pacheco": 1
-  },
-  "vocal": 41,
-  "yearRange": [
-   1968,
-   1979
-  ],
-  "coverage": null
- },
- {
-  "id": "trio-tipico",
-  "name": "Trío Típico",
-  "count": 46,
-  "rhythms": {
-   "tango": 31,
-   "vals": 7,
-   "milonga": 3,
-   "estilo": 2,
-   "polca": 1,
-   "cancion": 1,
-   "other": 1
-  },
-  "singers": {
-   "Mercedes Simone": 29,
-   "Horacio Casares": 12,
-   "Amanda Ledesma": 5
-  },
-  "vocal": 46,
-  "yearRange": [
-   1936,
-   1963
-  ],
-  "coverage": null
- },
- {
-  "id": "jose-colangelo",
-  "name": "José Colángelo",
-  "count": 46,
-  "rhythms": {
-   "tango": 42,
-   "milonga": 4
-  },
-  "singers": {
-   "Susana Rinaldi": 3
-  },
-  "vocal": 3,
-  "yearRange": [
-   1979,
-   2000
   ],
   "coverage": null
  },
@@ -3730,6 +3452,37 @@
   "yearRange": [
    1970,
    1979
+  ],
+  "coverage": null
+ },
+ {
+  "id": "mariano-mores",
+  "name": "Mariano Mores",
+  "count": 45,
+  "rhythms": {
+   "tango": 38,
+   "milonga": 4,
+   "cancion": 2,
+   "other": 1
+  },
+  "singers": {
+   "Carlos Acuña": 6,
+   "Enrique Lucero": 4,
+   "Claudia Mores": 3,
+   "Nito Mores": 3,
+   "Mario Ponce de León": 2,
+   "Aldo Campoamor": 2,
+   "Trío Mores": 2,
+   "C. Acuña - A. Campoamor": 1,
+   "Néstor Fabián": 1,
+   "Miguel Montero": 1,
+   "Susy Leiva": 1,
+   "N. Mores - C. Mores": 1
+  },
+  "vocal": 28,
+  "yearRange": [
+   1955,
+   1995
   ],
   "coverage": null
  },
@@ -3759,21 +3512,111 @@
   "coverage": null
  },
  {
+  "id": "luciano-leocata",
+  "name": "Luciano Leocata",
+  "count": 44,
+  "rhythms": {
+   "tango": 39,
+   "vals": 4,
+   "milonga": 1
+  },
+  "singers": {
+   "Oscar Macri": 24,
+   "Norberto Roldán": 5,
+   "Jorge Fiorentino": 3,
+   "Alberto del Valle": 2,
+   "R. Chaleán - J. Fiorentino": 1,
+   "Roberto Chaleán": 1,
+   "I. Florentino": 1,
+   "I. Florentino - Chalian": 1
+  },
+  "vocal": 38,
+  "yearRange": [
+   1958,
+   1993
+  ],
+  "coverage": null
+ },
+ {
+  "id": "jose-libertella",
+  "name": "José Libertella",
+  "count": 44,
+  "rhythms": {
+   "tango": 40,
+   "milonga": 3,
+   "cancion": 1
+  },
+  "singers": {
+   "Miguel Montero": 38,
+   "Roberto Florio": 2,
+   "Angel Vargas": 2
+  },
+  "vocal": 42,
+  "yearRange": [
+   1958,
+   1978
+  ],
+  "coverage": null
+ },
+ {
+  "id": "carlos-garcia",
+  "name": "Carlos García",
+  "count": 43,
+  "rhythms": {
+   "tango": 39,
+   "milonga": 2,
+   "cancion": 1,
+   "vals": 1
+  },
+  "singers": {
+   "Roberto Bayot": 14,
+   "Guillermo Fernández": 11,
+   "Rubén Juárez": 5,
+   "Alberto Marino": 3,
+   "Oscar Alonso": 3,
+   "Hernán Salinas": 1,
+   "Héctor Pacheco": 1
+  },
+  "vocal": 38,
+  "yearRange": [
+   1968,
+   1979
+  ],
+  "coverage": null
+ },
+ {
+  "id": "h-salgan-u-de-lio",
+  "name": "H.salgán-U.de Lío",
+  "count": 43,
+  "rhythms": {
+   "tango": 36,
+   "milonga": 5,
+   "vals": 2
+  },
+  "singers": {},
+  "vocal": 0,
+  "yearRange": [
+   1964,
+   2003
+  ],
+  "coverage": null
+ },
+ {
   "id": "geronimo-bongioni",
   "name": "Gerónimo Bongioni",
-  "count": 45,
+  "count": 43,
   "rhythms": {
-   "tango": 29,
+   "tango": 27,
    "vals": 9,
    "milonga": 4,
    "ranchera": 2,
    "polca": 1
   },
   "singers": {
-   "José Torres": 20,
+   "José Torres": 18,
    "Jorge Rosales": 2
   },
-  "vocal": 22,
+  "vocal": 20,
   "yearRange": [
    1954,
    1966
@@ -3781,85 +3624,28 @@
   "coverage": null
  },
  {
-  "id": "sexteto-tango",
-  "name": "Sexteto Tango",
-  "count": 44,
-  "rhythms": {
-   "tango": 38,
-   "vals": 6
-  },
-  "singers": {
-   "Roberto Goyeneche": 26,
-   "Jorge Maciel": 2
-  },
-  "vocal": 28,
-  "yearRange": [
-   1984,
-   1984
-  ],
-  "coverage": null
- },
- {
-  "id": "osvaldo-berlinghieri",
-  "name": "Osvaldo Berlinghieri",
-  "count": 44,
-  "rhythms": {
-   "tango": 42,
-   "other": 1,
-   "milonga": 1
-  },
-  "singers": {
-   "Roberto Goyeneche": 24
-  },
-  "vocal": 24,
-  "yearRange": [
-   1974,
-   1985
-  ],
-  "coverage": null
- },
- {
-  "id": "roberto-pansera",
-  "name": "Roberto Pansera",
+  "id": "eduardo-bianco",
+  "name": "Eduardo Bianco",
   "count": 42,
   "rhythms": {
-   "tango": 34,
-   "milonga": 4,
-   "vals": 3,
-   "foxtrot": 1
+   "tango": 39,
+   "vals": 2,
+   "ranchera": 1
   },
   "singers": {
-   "Néstor Fabián": 14,
-   "Horacio Deval": 13,
-   "Enrique Dumas": 12,
-   "Roberto Florio": 1,
-   "Héctor Darío": 1,
-   "Roberto Goyeneche": 1
+   "Manuel Bianco": 5,
+   "Mario Visconti": 5,
+   "M. Bianco - Horacio Pettorossi": 4,
+   "José Cohan": 4,
+   "Carlos Américo": 1,
+   "Con Canto": 1,
+   "E. Bianco - J. Cohan": 1,
+   "Juan Raggi": 1
   },
-  "vocal": 42,
+  "vocal": 22,
   "yearRange": [
-   1962,
-   1969
-  ],
-  "coverage": null
- },
- {
-  "id": "anselmo-aieta",
-  "name": "Anselmo Aieta",
-  "count": 42,
-  "rhythms": {
-   "tango": 36,
-   "vals": 3,
-   "ranchera": 3
-  },
-  "singers": {
-   "Con Canto": 16,
-   "José Torres": 3
-  },
-  "vocal": 19,
-  "yearRange": [
-   1926,
-   1948
+   1927,
+   1939
   ],
   "coverage": null
  },
@@ -3889,27 +3675,50 @@
   "coverage": null
  },
  {
-  "id": "graciano-gomez",
-  "name": "Graciano Gómez",
-  "count": 40,
+  "id": "enrique-alessio",
+  "name": "Enrique Alessio",
+  "count": 39,
   "rhythms": {
-   "tango": 34,
-   "vals": 4,
-   "milonga": 2
+   "tango": 33,
+   "milonga": 4,
+   "candombe": 1,
+   "vals": 1
   },
   "singers": {
-   "Nina Miranda": 19,
-   "Dante Rossi": 6,
-   "Enrique Campos": 5,
-   "Elena Maida": 3,
-   "Carlos Nogués": 2,
-   "Roberto Alvar": 1,
-   "Rubén Cané": 1
+   "Alberto Castillo": 13,
+   "Mario Saladino": 7,
+   "José Berón": 3,
+   "Jorge Garré": 2,
+   "Mario D'Elía": 1,
+   "Hugo Soler": 1
   },
-  "vocal": 37,
+  "vocal": 27,
   "yearRange": [
-   1955,
+   1946,
    1962
+  ],
+  "coverage": null
+ },
+ {
+  "id": "hector-maria-artola",
+  "name": "Héctor María Artola",
+  "count": 39,
+  "rhythms": {
+   "tango": 36,
+   "other": 2,
+   "milonga": 1
+  },
+  "singers": {
+   "Jorge Vidal": 9,
+   "Alberto Marino": 8,
+   "Héctor Ortíz": 4,
+   "Carlos Yanel": 2,
+   "Oscar Alonso": 1
+  },
+  "vocal": 24,
+  "yearRange": [
+   1949,
+   1970
   ],
   "coverage": null
  },
@@ -3930,6 +3739,31 @@
   "yearRange": [
    1920,
    1932
+  ],
+  "coverage": null
+ },
+ {
+  "id": "roberto-pansera",
+  "name": "Roberto Pansera",
+  "count": 38,
+  "rhythms": {
+   "tango": 31,
+   "milonga": 3,
+   "vals": 3,
+   "foxtrot": 1
+  },
+  "singers": {
+   "Néstor Fabián": 14,
+   "Enrique Dumas": 12,
+   "Horacio Deval": 9,
+   "Roberto Florio": 1,
+   "Héctor Darío": 1,
+   "Roberto Goyeneche": 1
+  },
+  "vocal": 38,
+  "yearRange": [
+   1962,
+   1969
   ],
   "coverage": null
  },
@@ -3959,48 +3793,18 @@
   "coverage": null
  },
  {
-  "id": "roberto-di-filippo",
-  "name": "Roberto Di Filippo",
-  "count": 38,
-  "rhythms": {
-   "tango": 29,
-   "polca": 4,
-   "ranchera": 2,
-   "vals": 2,
-   "other": 1
-  },
-  "singers": {
-   "Palabras": 4
-  },
-  "vocal": 4,
-  "yearRange": null,
-  "coverage": null
- },
- {
-  "id": "gotan-trio",
-  "name": "Gotán Trío",
+  "id": "hugo-diaz",
+  "name": "Hugo Díaz",
   "count": 37,
   "rhythms": {
-   "tango": 28,
-   "vals": 4,
-   "milonga": 3,
-   "other": 2
+   "tango": 31,
+   "vals": 3,
+   "milonga": 3
   },
-  "singers": {
-   "Osvaldo Bor": 7,
-   "O. Bor - R. de Rosas": 6,
-   "Ricardo Rosas": 5,
-   "Roberto Florio": 3,
-   "Carlos Paiva": 3,
-   "Rosa Alcaráz": 2,
-   "R. Alcazar - O. Bor - R. de Rosas": 2,
-   "R. Alcaráz - R. Rosas - O. Bor": 2,
-   "R. de Rosas - R. Alcazar": 1,
-   "Rosa Alcaráz - R. Rosas": 1
-  },
-  "vocal": 32,
+  "singers": {},
+  "vocal": 0,
   "yearRange": [
-   1978,
+   1980,
    1982
   ],
   "coverage": null
@@ -4019,68 +3823,6 @@
   "yearRange": [
    1914,
    1981
-  ],
-  "coverage": null
- },
- {
-  "id": "nuevo-quinteto-real",
-  "name": "Nuevo Quinteto Real",
-  "count": 36,
-  "rhythms": {
-   "tango": 32,
-   "milonga": 3,
-   "vals": 1
-  },
-  "singers": {},
-  "vocal": 0,
-  "yearRange": [
-   1987,
-   1987
-  ],
-  "coverage": null
- },
- {
-  "id": "luis-stazo",
-  "name": "Luis Stazo",
-  "count": 36,
-  "rhythms": {
-   "tango": 34,
-   "vals": 2
-  },
-  "singers": {
-   "Blanca Mooney": 14,
-   "Juan Carlos Godoy": 10,
-   "Angel Vargas": 7,
-   "Gloria Díaz": 2,
-   "Graciela Susana": 1
-  },
-  "vocal": 34,
-  "yearRange": [
-   1958,
-   1991
-  ],
-  "coverage": null
- },
- {
-  "id": "tito-ribero",
-  "name": "Tito Ribero",
-  "count": 36,
-  "rhythms": {
-   "tango": 21,
-   "milonga": 7,
-   "cancion": 4,
-   "other": 2,
-   "candombe": 1,
-   "foxtrot": 1
-  },
-  "singers": {
-   "Hugo del Carril": 34,
-   "Virginia Luque": 2
-  },
-  "vocal": 36,
-  "yearRange": [
-   1938,
-   1968
   ],
   "coverage": null
  },
@@ -4116,11 +3858,90 @@
   "coverage": null
  },
  {
-  "id": "juanjo-dominguez",
-  "name": "Juanjo Domínguez",
+  "id": "graciano-gomez",
+  "name": "Graciano Gómez",
   "count": 35,
   "rhythms": {
-   "tango": 27,
+   "tango": 30,
+   "vals": 3,
+   "milonga": 2
+  },
+  "singers": {
+   "Nina Miranda": 14,
+   "Dante Rossi": 6,
+   "Enrique Campos": 5,
+   "Elena Maida": 3,
+   "Carlos Nogués": 2,
+   "Roberto Alvar": 1,
+   "Rubén Cané": 1
+  },
+  "vocal": 32,
+  "yearRange": [
+   1955,
+   1962
+  ],
+  "coverage": null
+ },
+ {
+  "id": "gotan-trio",
+  "name": "Gotán Trío",
+  "count": 35,
+  "rhythms": {
+   "tango": 26,
+   "vals": 4,
+   "milonga": 3,
+   "other": 2
+  },
+  "singers": {
+   "Osvaldo Bor": 7,
+   "O. Bor - R. de Rosas": 6,
+   "Ricardo Rosas": 5,
+   "Rosa Alcaráz": 2,
+   "R. Alcazar - O. Bor - R. de Rosas": 2,
+   "Roberto Florio": 2,
+   "Carlos Paiva": 2,
+   "R. Alcaráz - R. Rosas - O. Bor": 2,
+   "R. de Rosas - R. Alcazar": 1,
+   "Rosa Alcaráz - R. Rosas": 1
+  },
+  "vocal": 30,
+  "yearRange": [
+   1978,
+   1982
+  ],
+  "coverage": null
+ },
+ {
+  "id": "trio-tipico",
+  "name": "Trío Típico",
+  "count": 34,
+  "rhythms": {
+   "tango": 22,
+   "vals": 6,
+   "milonga": 2,
+   "estilo": 1,
+   "polca": 1,
+   "cancion": 1,
+   "other": 1
+  },
+  "singers": {
+   "Mercedes Simone": 20,
+   "Horacio Casares": 12,
+   "Amanda Ledesma": 2
+  },
+  "vocal": 34,
+  "yearRange": [
+   1936,
+   1963
+  ],
+  "coverage": null
+ },
+ {
+  "id": "juanjo-dominguez",
+  "name": "Juanjo Domínguez",
+  "count": 34,
+  "rhythms": {
+   "tango": 26,
    "milonga": 4,
    "vals": 4
   },
@@ -4135,27 +3956,44 @@
   "coverage": null
  },
  {
-  "id": "4to-anibal-troilo",
-  "name": "4to.aníbal Troilo",
-  "count": 35,
+  "id": "anselmo-aieta",
+  "name": "Anselmo Aieta",
+  "count": 34,
   "rhythms": {
-   "tango": 33,
-   "estilo": 1,
-   "milonga": 1
+   "tango": 29,
+   "ranchera": 3,
+   "vals": 2
   },
   "singers": {
-   "Elba Berón": 8,
-   "Elsa Rivas": 4,
-   "Alberto Marino": 3,
-   "Tito Reyes": 3,
-   "Azucena Maizani": 1,
-   "Roberto Airaldi": 1,
-   "Alberto Castillo": 1
+   "Con Canto": 12,
+   "José Torres": 3
   },
-  "vocal": 21,
+  "vocal": 15,
   "yearRange": [
-   1940,
-   1969
+   1926,
+   1948
+  ],
+  "coverage": null
+ },
+ {
+  "id": "luis-stazo",
+  "name": "Luis Stazo",
+  "count": 34,
+  "rhythms": {
+   "tango": 32,
+   "vals": 2
+  },
+  "singers": {
+   "Blanca Mooney": 12,
+   "Juan Carlos Godoy": 10,
+   "Angel Vargas": 7,
+   "Gloria Díaz": 2,
+   "Graciela Susana": 1
+  },
+  "vocal": 32,
+  "yearRange": [
+   1958,
+   1991
   ],
   "coverage": null
  },
@@ -4183,108 +4021,25 @@
   "coverage": null
  },
  {
-  "id": "mario-demarco",
-  "name": "Mario Demarco",
+  "id": "tito-ribero",
+  "name": "Tito Ribero",
   "count": 33,
   "rhythms": {
-   "tango": 33
-  },
-  "singers": {
-   "Gerardo Mancini": 6,
-   "Jorge Sobral": 4,
-   "Raúl Quiroz": 3,
-   "Marcelo Soler": 2,
-   "J. Román": 1,
-   "Daniel Riglos": 1
-  },
-  "vocal": 17,
-  "yearRange": [
-   1951,
-   1972
-  ],
-  "coverage": null
- },
- {
-  "id": "emilio-brameri",
-  "name": "Emilio Brameri",
-  "count": 33,
-  "rhythms": {
-   "tango": 27,
-   "vals": 3,
-   "milonga": 3
-  },
-  "singers": {
-   "Mercedes Simone": 33
-  },
-  "vocal": 33,
-  "yearRange": [
-   1937,
-   1966
-  ],
-  "coverage": null
- },
- {
-  "id": "orq-filar-montevideo",
-  "name": "Orq.filar.montevideo",
-  "count": 33,
-  "rhythms": {
-   "tango": 30,
-   "other": 3
-  },
-  "singers": {
-   "Gustavo Nocetti": 11,
-   "Daniel Cortés": 5,
-   "Presentación": 1,
-   "D. Cortés - G. Nocetti": 1
-  },
-  "vocal": 18,
-  "yearRange": [
-   1994,
-   1998
-  ],
-  "coverage": null
- },
- {
-  "id": "comentario",
-  "name": "Comentario",
-  "count": 33,
-  "rhythms": {
-   "corrido": 33
-  },
-  "singers": {
-   "Comentario": 33
-  },
-  "vocal": 33,
-  "yearRange": null,
-  "coverage": null
- },
- {
-  "id": "carlos-viggiano-r-solano",
-  "name": "Carlos Viggiano-R.solano",
-  "count": 33,
-  "rhythms": {
-   "tango": 13,
-   "polca": 6,
-   "vals": 4,
-   "ranchera": 3,
-   "milonga": 3,
+   "tango": 19,
+   "milonga": 6,
+   "cancion": 4,
    "other": 2,
-   "foxtrot": 1,
-   "cancion": 1
+   "candombe": 1,
+   "foxtrot": 1
   },
   "singers": {
-   "Brián Chambouleyron": 11,
-   "Soledad Villamil": 10,
-   "B. Chambouleyron - S. Villamil": 4,
-   "Palabras": 4,
-   "B. Chambouleyron - S. Cattáneo": 1,
-   "Silvio Cattáneo": 1,
-   "Rafael Solano": 1
+   "Hugo del Carril": 31,
+   "Virginia Luque": 2
   },
-  "vocal": 32,
+  "vocal": 33,
   "yearRange": [
-   1998,
-   1999
+   1938,
+   1968
   ],
   "coverage": null
  },
@@ -4312,22 +4067,62 @@
   "coverage": null
  },
  {
-  "id": "emilio-balcarce",
-  "name": "Emilio Balcarce",
+  "id": "sexteto-tango",
+  "name": "Sexteto Tango",
   "count": 32,
   "rhythms": {
-   "tango": 30,
-   "candombe": 1,
-   "milonga": 1
+   "tango": 28,
+   "vals": 4
   },
   "singers": {
-   "Alberto Marino": 19,
-   "Alberto Castillo": 13
+   "Roberto Goyeneche": 14,
+   "Jorge Maciel": 2
+  },
+  "vocal": 16,
+  "yearRange": [
+   1984,
+   1984
+  ],
+  "coverage": null
+ },
+ {
+  "id": "mario-demarco",
+  "name": "Mario Demarco",
+  "count": 32,
+  "rhythms": {
+   "tango": 32
+  },
+  "singers": {
+   "Gerardo Mancini": 6,
+   "Jorge Sobral": 4,
+   "Raúl Quiroz": 3,
+   "Marcelo Soler": 2,
+   "J. Román": 1,
+   "Daniel Riglos": 1
+  },
+  "vocal": 17,
+  "yearRange": [
+   1951,
+   1972
+  ],
+  "coverage": null
+ },
+ {
+  "id": "emilio-brameri",
+  "name": "Emilio Brameri",
+  "count": 32,
+  "rhythms": {
+   "tango": 26,
+   "vals": 3,
+   "milonga": 3
+  },
+  "singers": {
+   "Mercedes Simone": 32
   },
   "vocal": 32,
   "yearRange": [
-   1944,
-   1957
+   1937,
+   1966
   ],
   "coverage": null
  },
@@ -4348,32 +4143,72 @@
   "coverage": null
  },
  {
-  "id": "oscar-de-la-fuente",
-  "name": "Oscar de la Fuente",
+  "id": "orq-filar-montevideo",
+  "name": "Orq.filar.montevideo",
   "count": 32,
   "rhythms": {
-   "tango": 18,
-   "milonga": 8,
-   "vals": 5,
-   "other": 1
+   "tango": 30,
+   "other": 2
   },
   "singers": {
-   "Ricardo Ruíz": 5,
-   "Jorge Garré": 4,
-   "Carlos Aldao": 4,
-   "Armando Guerrico": 3,
-   "Oscar Ferrari": 2,
-   "Jorge Durán": 2,
-   "Horacio Palma": 2,
-   "Hugo Duval": 2,
-   "Jorge Casal": 2,
-   "Héctor de Rosas": 1,
-   "Roberto Paz": 1
+   "Gustavo Nocetti": 11,
+   "Daniel Cortés": 5,
+   "Presentación": 1,
+   "D. Cortés - G. Nocetti": 1
   },
-  "vocal": 28,
+  "vocal": 18,
   "yearRange": [
-   1966,
-   1994
+   1994,
+   1998
+  ],
+  "coverage": null
+ },
+ {
+  "id": "osvaldo-berlinghieri",
+  "name": "Osvaldo Berlinghieri",
+  "count": 32,
+  "rhythms": {
+   "tango": 30,
+   "other": 1,
+   "milonga": 1
+  },
+  "singers": {
+   "Roberto Goyeneche": 12
+  },
+  "vocal": 12,
+  "yearRange": [
+   1974,
+   1985
+  ],
+  "coverage": null
+ },
+ {
+  "id": "carlos-viggiano-r-solano",
+  "name": "Carlos Viggiano-R.solano",
+  "count": 32,
+  "rhythms": {
+   "tango": 13,
+   "polca": 5,
+   "vals": 4,
+   "ranchera": 3,
+   "milonga": 3,
+   "other": 2,
+   "foxtrot": 1,
+   "cancion": 1
+  },
+  "singers": {
+   "Brián Chambouleyron": 11,
+   "Soledad Villamil": 10,
+   "B. Chambouleyron - S. Villamil": 4,
+   "Palabras": 3,
+   "B. Chambouleyron - S. Cattáneo": 1,
+   "Silvio Cattáneo": 1,
+   "Rafael Solano": 1
+  },
+  "vocal": 31,
+  "yearRange": [
+   1998,
+   1999
   ],
   "coverage": null
  },
@@ -4392,23 +4227,6 @@
   "yearRange": [
    1929,
    1930
-  ],
-  "coverage": null
- },
- {
-  "id": "4to-tipico-los-ases",
-  "name": "4to.típico los Ases",
-  "count": 31,
-  "rhythms": {
-   "tango": 24,
-   "vals": 6,
-   "pasodoble": 1
-  },
-  "singers": {},
-  "vocal": 0,
-  "yearRange": [
-   1940,
-   1942
   ],
   "coverage": null
  },
@@ -4438,6 +4256,23 @@
   "coverage": null
  },
  {
+  "id": "nuevo-quinteto-real",
+  "name": "Nuevo Quinteto Real",
+  "count": 31,
+  "rhythms": {
+   "tango": 27,
+   "milonga": 3,
+   "vals": 1
+  },
+  "singers": {},
+  "vocal": 0,
+  "yearRange": [
+   1987,
+   1987
+  ],
+  "coverage": null
+ },
+ {
   "id": "norberto-ramos",
   "name": "Norberto Ramos",
   "count": 31,
@@ -4460,22 +4295,20 @@
   "coverage": null
  },
  {
-  "id": "enrique-mendez",
-  "name": "Enrique Méndez",
+  "id": "jose-colangelo",
+  "name": "José Colángelo",
   "count": 31,
   "rhythms": {
-   "tango": 26,
-   "milonga": 3,
-   "vals": 2
+   "tango": 29,
+   "milonga": 2
   },
   "singers": {
-   "Julio Martel": 25,
-   "Jorge Vidal": 6
+   "Susana Rinaldi": 3
   },
-  "vocal": 31,
+  "vocal": 3,
   "yearRange": [
-   1957,
-   1967
+   1979,
+   2000
   ],
   "coverage": null
  },
@@ -4520,136 +4353,45 @@
   "coverage": null
  },
  {
-  "id": "orlando-tripodi",
-  "name": "Orlando Trípodi",
+  "id": "enrique-mendez",
+  "name": "Enrique Méndez",
   "count": 30,
   "rhythms": {
-   "tango": 27,
+   "tango": 25,
+   "milonga": 3,
+   "vals": 2
+  },
+  "singers": {
+   "Julio Martel": 24,
+   "Jorge Vidal": 6
+  },
+  "vocal": 30,
+  "yearRange": [
+   1957,
+   1967
+  ],
+  "coverage": null
+ },
+ {
+  "id": "orlando-tripodi",
+  "name": "Orlando Trípodi",
+  "count": 29,
+  "rhythms": {
+   "tango": 26,
    "vals": 3
   },
   "singers": {
-   "Jorge Durán": 6,
+   "Jorge Durán": 5,
    "Roberto Florio": 4,
    "R. Florio - J. Durán": 3,
    "Néstor Rolán": 3,
    "Marilí Machado": 2,
    "N. Rolán - M. Machado": 1
   },
-  "vocal": 19,
+  "vocal": 18,
   "yearRange": [
    1959,
    1995
-  ],
-  "coverage": null
- },
- {
-  "id": "francisco-tropoli",
-  "name": "Francisco Trópoli",
-  "count": 30,
-  "rhythms": {
-   "tango": 26,
-   "milonga": 3,
-   "cancion": 1
-  },
-  "singers": {
-   "Fanny Ruth": 14,
-   "Jorge Casal": 7,
-   "Azucena Maizani": 6,
-   "Aída Denis": 2,
-   "Héctor Mauré": 1
-  },
-  "vocal": 30,
-  "yearRange": [
-   1942,
-   1964
-  ],
-  "coverage": null
- },
- {
-  "id": "oldimar-caceres",
-  "name": "Oldimar Cáceres",
-  "count": 30,
-  "rhythms": {
-   "tango": 25,
-   "milonga": 4,
-   "cancion": 1
-  },
-  "singers": {
-   "Diana Durán": 1,
-   "Néstor Vidal": 1,
-   "César Medina": 1,
-   "Oscar Medina": 1,
-   "Edgard Ramos": 1
-  },
-  "vocal": 5,
-  "yearRange": [
-   1960,
-   2002
-  ],
-  "coverage": null
- },
- {
-  "id": "fernando-tell",
-  "name": "Fernando Tell",
-  "count": 30,
-  "rhythms": {
-   "tango": 21,
-   "vals": 3,
-   "milonga": 3,
-   "ranchera": 2,
-   "polca": 1
-  },
-  "singers": {
-   "Fernando Tell": 1,
-   "Ikwo Abo": 1,
-   "Palabras": 1
-  },
-  "vocal": 3,
-  "yearRange": [
-   1961,
-   1970
-  ],
-  "coverage": null
- },
- {
-  "id": "a-troilo-r-grela",
-  "name": "A.troilo-R.grela",
-  "count": 30,
-  "rhythms": {
-   "tango": 26,
-   "vals": 3,
-   "milonga": 1
-  },
-  "singers": {
-   "Antonio Maida": 2,
-   "Edmundo Rivero": 2,
-   "Mario Bustos": 2,
-   "Ranko Fujisawa": 1
-  },
-  "vocal": 7,
-  "yearRange": [
-   1940,
-   1962
-  ],
-  "coverage": null
- },
- {
-  "id": "ernesto-marne",
-  "name": "Ernesto Marné",
-  "count": 29,
-  "rhythms": {
-   "tango": 22,
-   "cancion": 4,
-   "milonga": 3
-  },
-  "singers": {
-   "Juan Carlos Cobos": 18,
-   "Carlos Aguirre": 11
-  },
-  "vocal": 29,
-  "yearRange": [
-   1987,
-   1987
   ],
   "coverage": null
  },
@@ -4672,26 +4414,6 @@
   "yearRange": [
    1974,
    2003
-  ],
-  "coverage": null
- },
- {
-  "id": "francisco-pracanico",
-  "name": "Francisco Pracánico",
-  "count": 29,
-  "rhythms": {
-   "tango": 27,
-   "ranchera": 1,
-   "vals": 1
-  },
-  "singers": {
-   "Sofía Bozán": 7,
-   "Anita Palmero": 1
-  },
-  "vocal": 8,
-  "yearRange": [
-   1926,
-   1928
   ],
   "coverage": null
  },
@@ -4719,34 +4441,115 @@
   "coverage": null
  },
  {
-  "id": "alberto-di-paulo",
-  "name": "Alberto Di Paulo",
-  "count": 29,
+  "id": "roberto-di-filippo",
+  "name": "Roberto Di Filippo",
+  "count": 28,
   "rhythms": {
    "tango": 21,
-   "other": 8
+   "ranchera": 2,
+   "vals": 2,
+   "polca": 2,
+   "other": 1
   },
   "singers": {
-   "Aída Denis": 12,
-   "Julio Sosa": 8,
-   "Horacio Casares": 3,
-   "Alberto Marino": 3,
-   "Elsa Rivas": 2,
-   "Silvia del Río": 1
+   "Palabras": 2
   },
-  "vocal": 29,
+  "vocal": 2,
+  "yearRange": null,
+  "coverage": null
+ },
+ {
+  "id": "fernando-tell",
+  "name": "Fernando Tell",
+  "count": 28,
+  "rhythms": {
+   "tango": 19,
+   "vals": 3,
+   "milonga": 3,
+   "ranchera": 2,
+   "polca": 1
+  },
+  "singers": {
+   "Fernando Tell": 1,
+   "Ikwo Abo": 1,
+   "Palabras": 1
+  },
+  "vocal": 3,
+  "yearRange": [
+   1961,
+   1970
+  ],
+  "coverage": null
+ },
+ {
+  "id": "edelmiro-d-amario",
+  "name": "Edelmiro D'Amario",
+  "count": 28,
+  "rhythms": {
+   "tango": 24,
+   "milonga": 3,
+   "vals": 1
+  },
+  "singers": {
+   "Angel Vargas": 20,
+   "Ernesto Retano": 8
+  },
+  "vocal": 28,
+  "yearRange": [
+   1955,
+   1958
+  ],
+  "coverage": null
+ },
+ {
+  "id": "francisco-pracanico",
+  "name": "Francisco Pracánico",
+  "count": 27,
+  "rhythms": {
+   "tango": 25,
+   "ranchera": 1,
+   "vals": 1
+  },
+  "singers": {
+   "Sofía Bozán": 6,
+   "Anita Palmero": 1
+  },
+  "vocal": 7,
+  "yearRange": [
+   1926,
+   1928
+  ],
+  "coverage": null
+ },
+ {
+  "id": "oldimar-caceres",
+  "name": "Oldimar Cáceres",
+  "count": 27,
+  "rhythms": {
+   "tango": 22,
+   "milonga": 4,
+   "cancion": 1
+  },
+  "singers": {
+   "Diana Durán": 1,
+   "Néstor Vidal": 1,
+   "César Medina": 1,
+   "Oscar Medina": 1,
+   "Edgard Ramos": 1
+  },
+  "vocal": 5,
   "yearRange": [
    1960,
-   1997
+   2002
   ],
   "coverage": null
  },
  {
   "id": "ricardo-pedevilla",
   "name": "Ricardo Pedevilla",
-  "count": 28,
+  "count": 27,
   "rhythms": {
-   "tango": 24,
+   "tango": 23,
    "vals": 3,
    "milonga": 1
   },
@@ -4767,89 +4570,69 @@
   "coverage": null
  },
  {
-  "id": "juan-polito",
-  "name": "Juan Polito",
-  "count": 27,
-  "rhythms": {
-   "tango": 21,
-   "milonga": 4,
-   "vals": 2
-  },
-  "singers": {
-   "Raúl Figueroa": 6,
-   "José Torres": 2
-  },
-  "vocal": 8,
-  "yearRange": [
-   1952,
-   1953
-  ],
-  "coverage": null
- },
- {
-  "id": "puglia-pedroza",
-  "name": "Puglia-Pedroza",
-  "count": 27,
-  "rhythms": {
-   "tango": 19,
-   "vals": 4,
-   "milonga": 2,
-   "other": 1,
-   "pasodoble": 1
-  },
-  "singers": {
-   "Oscar Nelson": 8,
-   "Francisco Fiorentino": 6,
-   "Julio Martel": 3,
-   "Esmeralda Miraballes": 1,
-   "Ernesto Restano": 1,
-   "Judith Cedrés": 1
-  },
-  "vocal": 20,
-  "yearRange": [
-   1950,
-   2000
-  ],
-  "coverage": null
- },
- {
-  "id": "juan-canaro",
-  "name": "Juan Canaro",
-  "count": 27,
-  "rhythms": {
-   "tango": 25,
-   "other": 1,
-   "polca": 1
-  },
-  "singers": {
-   "María de la Fuente": 10,
-   "Héctor Insúa": 6,
-   "Presentación": 1,
-   "Ernesto Famá": 1
-  },
-  "vocal": 18,
-  "yearRange": [
-   1931,
-   1954
-  ],
-  "coverage": null
- },
- {
-  "id": "adolfo-perez-pocholo",
-  "name": "Adolfo Pérez \"pocholo\"",
+  "id": "oscar-de-la-fuente",
+  "name": "Oscar de la Fuente",
   "count": 27,
   "rhythms": {
    "tango": 16,
-   "vals": 10,
-   "polca": 1
+   "milonga": 6,
+   "vals": 4,
+   "other": 1
   },
   "singers": {
-   "Virginia Doris": 2
+   "Ricardo Ruíz": 5,
+   "Armando Guerrico": 3,
+   "Jorge Garré": 2,
+   "Carlos Aldao": 2,
+   "Oscar Ferrari": 2,
+   "Jorge Durán": 2,
+   "Horacio Palma": 2,
+   "Jorge Casal": 2,
+   "Héctor de Rosas": 1,
+   "Hugo Duval": 1,
+   "Roberto Paz": 1
   },
-  "vocal": 2,
+  "vocal": 23,
   "yearRange": [
-   1934,
-   1951
+   1966,
+   1994
+  ],
+  "coverage": null
+ },
+ {
+  "id": "emilio-balcarce",
+  "name": "Emilio Balcarce",
+  "count": 26,
+  "rhythms": {
+   "tango": 24,
+   "candombe": 1,
+   "milonga": 1
+  },
+  "singers": {
+   "Alberto Castillo": 13,
+   "Alberto Marino": 13
+  },
+  "vocal": 26,
+  "yearRange": [
+   1944,
+   1957
+  ],
+  "coverage": null
+ },
+ {
+  "id": "4to-tipico-los-ases",
+  "name": "4to.típico los Ases",
+  "count": 26,
+  "rhythms": {
+   "tango": 19,
+   "vals": 6,
+   "pasodoble": 1
+  },
+  "singers": {},
+  "vocal": 0,
+  "yearRange": [
+   1940,
+   1942
   ],
   "coverage": null
  },
@@ -4879,33 +4662,47 @@
   "coverage": null
  },
  {
-  "id": "juan-calo",
-  "name": "Juan Caló",
+  "id": "francisco-tropoli",
+  "name": "Francisco Trópoli",
   "count": 26,
   "rhythms": {
-   "vals": 14,
-   "tango": 6,
-   "milonga": 6
+   "tango": 22,
+   "milonga": 3,
+   "cancion": 1
   },
-  "singers": {},
-  "vocal": 0,
-  "yearRange": null,
+  "singers": {
+   "Fanny Ruth": 14,
+   "Jorge Casal": 7,
+   "Aída Denis": 2,
+   "Azucena Maizani": 2,
+   "Héctor Mauré": 1
+  },
+  "vocal": 26,
+  "yearRange": [
+   1942,
+   1964
+  ],
   "coverage": null
  },
  {
-  "id": "sexteto-mayor",
-  "name": "Sexteto Mayor",
+  "id": "a-troilo-r-grela",
+  "name": "A.troilo-R.grela",
   "count": 26,
   "rhythms": {
-   "tango": 20,
-   "milonga": 5,
-   "vals": 1
+   "tango": 23,
+   "vals": 2,
+   "milonga": 1
   },
-  "singers": {},
-  "vocal": 0,
+  "singers": {
+   "Edmundo Rivero": 2,
+   "Mario Bustos": 2,
+   "Antonio Maida": 1,
+   "Ranko Fujisawa": 1
+  },
+  "vocal": 6,
   "yearRange": [
-   1973,
-   2003
+   1940,
+   1962
   ],
   "coverage": null
  },
@@ -4925,27 +4722,6 @@
   "yearRange": [
    1928,
    1928
-  ],
-  "coverage": null
- },
- {
-  "id": "walter-rios",
-  "name": "Walter Ríos",
-  "count": 25,
-  "rhythms": {
-   "tango": 20,
-   "milonga": 4,
-   "other": 1
-  },
-  "singers": {
-   "Raúl Lavié": 8,
-   "Roberto Ayala": 2,
-   "Daniel Cortés": 1
-  },
-  "vocal": 11,
-  "yearRange": [
-   1977,
-   1997
   ],
   "coverage": null
  },
@@ -4970,23 +4746,45 @@
   "coverage": null
  },
  {
-  "id": "argentino-galvan",
-  "name": "Argentino Galván",
+  "id": "juan-polito",
+  "name": "Juan Polito",
   "count": 25,
   "rhythms": {
-   "tango": 25
+   "tango": 19,
+   "milonga": 4,
+   "vals": 2
   },
   "singers": {
-   "Carmen Duval": 9,
-   "Jorge Vidal": 6,
-   "Jorge Casal": 6,
-   "Horacio Deval": 2,
-   "Virginia Luque": 2
+   "Raúl Figueroa": 6,
+   "José Torres": 1
+  },
+  "vocal": 7,
+  "yearRange": [
+   1952,
+   1953
+  ],
+  "coverage": null
+ },
+ {
+  "id": "alberto-di-paulo",
+  "name": "Alberto Di Paulo",
+  "count": 25,
+  "rhythms": {
+   "tango": 21,
+   "other": 4
+  },
+  "singers": {
+   "Aída Denis": 12,
+   "Julio Sosa": 4,
+   "Horacio Casares": 3,
+   "Alberto Marino": 3,
+   "Elsa Rivas": 2,
+   "Silvia del Río": 1
   },
   "vocal": 25,
   "yearRange": [
-   1946,
-   1957
+   1960,
+   1997
   ],
   "coverage": null
  },
@@ -5010,27 +4808,6 @@
   "coverage": null
  },
  {
-  "id": "carlos-demaria",
-  "name": "Carlos Demaría",
-  "count": 25,
-  "rhythms": {
-   "tango": 23,
-   "milonga": 1,
-   "vals": 1
-  },
-  "singers": {
-   "Héctor Mauré": 9,
-   "Roberto Cortés": 5,
-   "Miguel Montero": 1
-  },
-  "vocal": 15,
-  "yearRange": [
-   1950,
-   1960
-  ],
-  "coverage": null
- },
- {
   "id": "orquesta-el-arranque",
   "name": "Orquesta el Arranque",
   "count": 25,
@@ -5047,6 +4824,23 @@
   "vocal": 9,
   "yearRange": [
    2001,
+   2003
+  ],
+  "coverage": null
+ },
+ {
+  "id": "sexteto-mayor",
+  "name": "Sexteto Mayor",
+  "count": 25,
+  "rhythms": {
+   "tango": 19,
+   "milonga": 5,
+   "vals": 1
+  },
+  "singers": {},
+  "vocal": 0,
+  "yearRange": [
+   1973,
    2003
   ],
   "coverage": null
@@ -5073,25 +4867,48 @@
   "coverage": null
  },
  {
-  "id": "alberto-castellano",
-  "name": "Alberto Castellano",
+  "id": "walter-rios",
+  "name": "Walter Ríos",
   "count": 24,
   "rhythms": {
-   "tango": 17,
-   "vals": 2,
-   "cancion": 2,
-   "zamba": 1,
-   "ranchera": 1,
+   "tango": 19,
+   "milonga": 4,
    "other": 1
   },
   "singers": {
-   "Tania": 20,
-   "Carlos Gardel": 4
+   "Raúl Lavié": 8,
+   "Roberto Ayala": 2,
+   "Daniel Cortés": 1
   },
-  "vocal": 24,
+  "vocal": 11,
   "yearRange": [
-   1930,
-   1933
+   1977,
+   1997
+  ],
+  "coverage": null
+ },
+ {
+  "id": "4to-anibal-troilo",
+  "name": "4to.aníbal Troilo",
+  "count": 24,
+  "rhythms": {
+   "tango": 22,
+   "estilo": 1,
+   "milonga": 1
+  },
+  "singers": {
+   "Tito Reyes": 3,
+   "Elba Berón": 2,
+   "Alberto Marino": 2,
+   "Elsa Rivas": 1,
+   "Azucena Maizani": 1,
+   "Roberto Airaldi": 1,
+   "Alberto Castillo": 1
+  },
+  "vocal": 11,
+  "yearRange": [
+   1940,
+   1969
   ],
   "coverage": null
  },
@@ -5136,25 +4953,38 @@
   "coverage": null
  },
  {
-  "id": "terig-tucci",
-  "name": "Terig Tucci",
+  "id": "carlos-demaria",
+  "name": "Carlos Demaría",
   "count": 24,
   "rhythms": {
-   "tango": 15,
-   "other": 5,
-   "cancion": 2,
-   "vals": 1,
-   "foxtrot": 1
+   "tango": 22,
+   "milonga": 1,
+   "vals": 1
   },
   "singers": {
-   "Carlos Gardel": 22,
-   "Azucena Maizani": 2
+   "Héctor Mauré": 8,
+   "Roberto Cortés": 5,
+   "Miguel Montero": 1
   },
-  "vocal": 24,
+  "vocal": 14,
   "yearRange": [
-   1933,
-   1938
+   1950,
+   1960
   ],
+  "coverage": null
+ },
+ {
+  "id": "juan-calo",
+  "name": "Juan Caló",
+  "count": 24,
+  "rhythms": {
+   "vals": 12,
+   "tango": 6,
+   "milonga": 6
+  },
+  "singers": {},
+  "vocal": 0,
+  "yearRange": null,
   "coverage": null
  },
  {
@@ -5169,45 +4999,6 @@
   "yearRange": [
    1958,
    1958
-  ],
-  "coverage": null
- },
- {
-  "id": "alberto-castelar",
-  "name": "Alberto Castelar",
-  "count": 24,
-  "rhythms": {
-   "tango": 24
-  },
-  "singers": {},
-  "vocal": 0,
-  "yearRange": [
-   1996,
-   1996
-  ],
-  "coverage": null
- },
- {
-  "id": "juan-deambroggio-bachicha",
-  "name": "Juan Deambroggio(bachicha)",
-  "count": 24,
-  "rhythms": {
-   "tango": 23,
-   "ranchera": 1
-  },
-  "singers": {
-   "Emilia García": 5,
-   "E. García - J. Raggi": 4,
-   "Juan Raggi": 2,
-   "Teresa Asprella": 2,
-   "Alberto Larena": 1,
-   "T. Asprella - J. Raggi": 1,
-   "R. Maida - E. García": 1
-  },
-  "vocal": 16,
-  "yearRange": [
-   1929,
-   1941
   ],
   "coverage": null
  },
@@ -5229,11 +5020,35 @@
   "coverage": null
  },
  {
+  "id": "juan-deambroggio-bachicha",
+  "name": "Juan Deambroggio(bachicha)",
+  "count": 23,
+  "rhythms": {
+   "tango": 22,
+   "ranchera": 1
+  },
+  "singers": {
+   "Emilia García": 5,
+   "E. García - J. Raggi": 3,
+   "Juan Raggi": 2,
+   "Teresa Asprella": 2,
+   "Alberto Larena": 1,
+   "T. Asprella - J. Raggi": 1,
+   "R. Maida - E. García": 1
+  },
+  "vocal": 15,
+  "yearRange": [
+   1929,
+   1941
+  ],
+  "coverage": null
+ },
+ {
   "id": "eduardo-arolas",
   "name": "Eduardo Arolas",
-  "count": 24,
+  "count": 23,
   "rhythms": {
-   "tango": 17,
+   "tango": 16,
    "vals": 5,
    "polca": 1,
    "other": 1
@@ -5245,30 +5060,6 @@
   "yearRange": [
    1913,
    1917
-  ],
-  "coverage": null
- },
- {
-  "id": "mario-canaro",
-  "name": "Mario Canaro",
-  "count": 23,
-  "rhythms": {
-   "tango": 15,
-   "vals": 3,
-   "other": 1,
-   "polca": 1,
-   "corrido": 1,
-   "milonga": 1,
-   "ranchera": 1
-  },
-  "singers": {
-   "Néstor Peña": 4,
-   "Tito Lando": 4
-  },
-  "vocal": 8,
-  "yearRange": [
-   1970,
-   1970
   ],
   "coverage": null
  },
@@ -5311,6 +5102,29 @@
   "yearRange": [
    1948,
    1958
+  ],
+  "coverage": null
+ },
+ {
+  "id": "alberto-castellano",
+  "name": "Alberto Castellano",
+  "count": 22,
+  "rhythms": {
+   "tango": 15,
+   "vals": 2,
+   "cancion": 2,
+   "zamba": 1,
+   "ranchera": 1,
+   "other": 1
+  },
+  "singers": {
+   "Tania": 18,
+   "Carlos Gardel": 4
+  },
+  "vocal": 22,
+  "yearRange": [
+   1930,
+   1933
   ],
   "coverage": null
  },
@@ -5367,6 +5181,49 @@
   "coverage": null
  },
  {
+  "id": "adolfo-perez-pocholo",
+  "name": "Adolfo Pérez \"pocholo\"",
+  "count": 22,
+  "rhythms": {
+   "tango": 13,
+   "vals": 8,
+   "polca": 1
+  },
+  "singers": {
+   "Virginia Doris": 2
+  },
+  "vocal": 2,
+  "yearRange": [
+   1934,
+   1951
+  ],
+  "coverage": null
+ },
+ {
+  "id": "mario-canaro",
+  "name": "Mario Canaro",
+  "count": 22,
+  "rhythms": {
+   "tango": 14,
+   "vals": 3,
+   "other": 1,
+   "polca": 1,
+   "corrido": 1,
+   "milonga": 1,
+   "ranchera": 1
+  },
+  "singers": {
+   "Néstor Peña": 4,
+   "Tito Lando": 4
+  },
+  "vocal": 8,
+  "yearRange": [
+   1970,
+   1970
+  ],
+  "coverage": null
+ },
+ {
   "id": "roberto-prando",
   "name": "Roberto Prando",
   "count": 22,
@@ -5384,40 +5241,6 @@
   "yearRange": [
    1985,
    1985
-  ],
-  "coverage": null
- },
- {
-  "id": "estela-telerman",
-  "name": "Estela Telerman",
-  "count": 22,
-  "rhythms": {
-   "tango": 22
-  },
-  "singers": {},
-  "vocal": 0,
-  "yearRange": [
-   2002,
-   2002
-  ],
-  "coverage": null
- },
- {
-  "id": "victor-m-buchino",
-  "name": "Víctor M.buchino",
-  "count": 21,
-  "rhythms": {
-   "tango": 20,
-   "other": 1
-  },
-  "singers": {
-   "Edmundo Rivero": 17,
-   "Libertad Lamarque": 4
-  },
-  "vocal": 21,
-  "yearRange": [
-   1950,
-   1970
   ],
   "coverage": null
  },
@@ -5459,6 +5282,28 @@
   "yearRange": [
    1947,
    1952
+  ],
+  "coverage": null
+ },
+ {
+  "id": "terig-tucci",
+  "name": "Terig Tucci",
+  "count": 21,
+  "rhythms": {
+   "tango": 12,
+   "other": 5,
+   "cancion": 2,
+   "vals": 1,
+   "foxtrot": 1
+  },
+  "singers": {
+   "Carlos Gardel": 20,
+   "Azucena Maizani": 1
+  },
+  "vocal": 21,
+  "yearRange": [
+   1933,
+   1938
   ],
   "coverage": null
  },
@@ -5505,6 +5350,26 @@
   "coverage": null
  },
  {
+  "id": "ernesto-marne",
+  "name": "Ernesto Marné",
+  "count": 20,
+  "rhythms": {
+   "tango": 16,
+   "milonga": 2,
+   "cancion": 2
+  },
+  "singers": {
+   "Carlos Aguirre": 11,
+   "Juan Carlos Cobos": 9
+  },
+  "vocal": 20,
+  "yearRange": [
+   1987,
+   1987
+  ],
+  "coverage": null
+ },
+ {
   "id": "orq-simb-f-sassone",
   "name": "Orq.símb.f.sassone",
   "count": 20,
@@ -5520,6 +5385,32 @@
   "yearRange": [
    1982,
    1983
+  ],
+  "coverage": null
+ },
+ {
+  "id": "puglia-pedroza",
+  "name": "Puglia-Pedroza",
+  "count": 20,
+  "rhythms": {
+   "tango": 14,
+   "vals": 2,
+   "milonga": 2,
+   "other": 1,
+   "pasodoble": 1
+  },
+  "singers": {
+   "Oscar Nelson": 5,
+   "Francisco Fiorentino": 3,
+   "Julio Martel": 2,
+   "Esmeralda Miraballes": 1,
+   "Ernesto Restano": 1,
+   "Judith Cedrés": 1
+  },
+  "vocal": 13,
+  "yearRange": [
+   1950,
+   2000
   ],
   "coverage": null
  },
@@ -5598,25 +5489,6 @@
   "coverage": null
  },
  {
-  "id": "joaquin-m-mora",
-  "name": "Joaquín M.mora",
-  "count": 20,
-  "rhythms": {
-   "tango": 14,
-   "vals": 6
-  },
-  "singers": {
-   "Alberto Podestá": 14,
-   "Hugo del Carril": 5
-  },
-  "vocal": 19,
-  "yearRange": [
-   1937,
-   1960
-  ],
-  "coverage": null
- },
- {
   "id": "orq-tip-los-provincianos",
   "name": "Orq.típ.los Provincianos",
   "count": 20,
@@ -5681,26 +5553,6 @@
   "coverage": null
  },
  {
-  "id": "orq-mun-tgo-marcial-fusey",
-  "name": "Orq.mun.tgo Marcial Fusey",
-  "count": 20,
-  "rhythms": {
-   "tango": 18,
-   "vals": 2
-  },
-  "singers": {
-   "Antonio del Río": 7,
-   "Sergio Fusey": 6,
-   "A. del Río - S. Fusey": 1
-  },
-  "vocal": 14,
-  "yearRange": [
-   2001,
-   2001
-  ],
-  "coverage": null
- },
- {
   "id": "miguel-villasboas",
   "name": "Miguel Villasboas",
   "count": 20,
@@ -5742,26 +5594,6 @@
   },
   "vocal": 20,
   "yearRange": null,
-  "coverage": null
- },
- {
-  "id": "ariel-espandrio-c-sext-sabortango",
-  "name": "Ariel Espandrio C/sext.sabortango",
-  "count": 20,
-  "rhythms": {
-   "tango": 18,
-   "milonga": 2
-  },
-  "singers": {
-   "Elba Expósito": 4,
-   "Alejandro Martino": 2,
-   "A. Martino - E. Expósito": 1
-  },
-  "vocal": 7,
-  "yearRange": [
-   2001,
-   2002
-  ],
   "coverage": null
  },
  {
@@ -5824,24 +5656,17 @@
   "coverage": null
  },
  {
-  "id": "americo-belloto",
-  "name": "Américo Belloto",
-  "count": 19,
+  "id": "estela-telerman",
+  "name": "Estela Telerman",
+  "count": 20,
   "rhythms": {
-   "tango": 14,
-   "cancion": 2,
-   "other": 2,
-   "vals": 1
+   "tango": 20
   },
-  "singers": {
-   "María de la Fuente": 13,
-   "Alberto Gómez": 5,
-   "María de la Fuente - E. Farrel": 1
-  },
-  "vocal": 19,
+  "singers": {},
+  "vocal": 0,
   "yearRange": [
-   1946,
-   1946
+   2002,
+   2002
   ],
   "coverage": null
  },
@@ -5915,20 +5740,6 @@
   "coverage": null
  },
  {
-  "id": "4to-guarda-vieja-a-luchetti",
-  "name": "4to.guarda Vieja-A.luchetti",
-  "count": 19,
-  "rhythms": {
-   "tango": 9,
-   "vals": 7,
-   "milonga": 3
-  },
-  "singers": {},
-  "vocal": 0,
-  "yearRange": null,
-  "coverage": null
- },
- {
   "id": "n-saul-g-eiriz",
   "name": "N.saúl-G.eiriz",
   "count": 19,
@@ -5942,6 +5753,26 @@
   "yearRange": [
    1999,
    1999
+  ],
+  "coverage": null
+ },
+ {
+  "id": "orq-mun-tgo-marcial-fusey",
+  "name": "Orq.mun.tgo Marcial Fusey",
+  "count": 19,
+  "rhythms": {
+   "tango": 17,
+   "vals": 2
+  },
+  "singers": {
+   "Antonio del Río": 7,
+   "Sergio Fusey": 6,
+   "A. del Río - S. Fusey": 1
+  },
+  "vocal": 14,
+  "yearRange": [
+   2001,
+   2001
   ],
   "coverage": null
  },
@@ -5990,29 +5821,6 @@
   "coverage": null
  },
  {
-  "id": "orquesta-tipica",
-  "name": "Orquesta Típica",
-  "count": 18,
-  "rhythms": {
-   "tango": 14,
-   "milonga": 1,
-   "other": 1,
-   "vals": 1,
-   "cancion": 1
-  },
-  "singers": {
-   "Alberto Marino": 8,
-   "Alberto Gómez": 7,
-   "Andrés Falgás": 3
-  },
-  "vocal": 18,
-  "yearRange": [
-   1947,
-   1965
-  ],
-  "coverage": null
- },
- {
   "id": "domingo-rulio",
   "name": "Domingo Rulio",
   "count": 18,
@@ -6025,27 +5833,6 @@
   "yearRange": [
    1960,
    1978
-  ],
-  "coverage": null
- },
- {
-  "id": "juan-de-dios-filiberto",
-  "name": "Juan de Dios Filiberto",
-  "count": 18,
-  "rhythms": {
-   "tango": 10,
-   "vals": 5,
-   "milonga": 1,
-   "ranchera": 1,
-   "polca": 1
-  },
-  "singers": {
-   "Patrocinio Díaz": 3
-  },
-  "vocal": 3,
-  "yearRange": [
-   1932,
-   1959
   ],
   "coverage": null
  },
@@ -6072,24 +5859,6 @@
   "coverage": null
  },
  {
-  "id": "quinteto-real",
-  "name": "Quinteto Real",
-  "count": 18,
-  "rhythms": {
-   "tango": 15,
-   "milonga": 3
-  },
-  "singers": {
-   "Roberto Rufino": 1
-  },
-  "vocal": 1,
-  "yearRange": [
-   1960,
-   1961
-  ],
-  "coverage": null
- },
- {
   "id": "basilio-tito-martin",
   "name": "Basilio \"tito'' Martin",
   "count": 18,
@@ -6108,20 +5877,17 @@
   "coverage": null
  },
  {
-  "id": "genaro-esposito",
-  "name": "Genaro Espósito",
+  "id": "4to-guarda-vieja-a-luchetti",
+  "name": "4to.guarda Vieja-A.luchetti",
   "count": 18,
   "rhythms": {
-   "tango": 15,
-   "vals": 2,
-   "zamba": 1
+   "tango": 9,
+   "vals": 6,
+   "milonga": 3
   },
   "singers": {},
   "vocal": 0,
-  "yearRange": [
-   1914,
-   1931
-  ],
+  "yearRange": null,
   "coverage": null
  },
  {
@@ -6139,6 +5905,46 @@
   "yearRange": [
    1960,
    1960
+  ],
+  "coverage": null
+ },
+ {
+  "id": "argentino-galvan",
+  "name": "Argentino Galván",
+  "count": 17,
+  "rhythms": {
+   "tango": 17
+  },
+  "singers": {
+   "Jorge Vidal": 6,
+   "Jorge Casal": 6,
+   "Carmen Duval": 3,
+   "Horacio Deval": 1,
+   "Virginia Luque": 1
+  },
+  "vocal": 17,
+  "yearRange": [
+   1946,
+   1957
+  ],
+  "coverage": null
+ },
+ {
+  "id": "victor-m-buchino",
+  "name": "Víctor M.buchino",
+  "count": 17,
+  "rhythms": {
+   "tango": 16,
+   "other": 1
+  },
+  "singers": {
+   "Edmundo Rivero": 13,
+   "Libertad Lamarque": 4
+  },
+  "vocal": 17,
+  "yearRange": [
+   1950,
+   1970
   ],
   "coverage": null
  },
@@ -6161,49 +5967,6 @@
   "yearRange": [
    1946,
    1952
-  ],
-  "coverage": null
- },
- {
-  "id": "orq-tipica-coca-cola",
-  "name": "Orq.típica Coca Cola",
-  "count": 17,
-  "rhythms": {
-   "tango": 14,
-   "vals": 2,
-   "milonga": 1
-  },
-  "singers": {
-   "Yola Yoli": 5,
-   "Sabina Olmos": 4,
-   "Mercedes Simone": 2,
-   "Carmen Duval": 2,
-   "Alberto Gómez": 2,
-   "Azucena Maizani": 2
-  },
-  "vocal": 17,
-  "yearRange": [
-   1940,
-   1946
-  ],
-  "coverage": null
- },
- {
-  "id": "o-cufaro-r-zerrillo-m-parada",
-  "name": "O.cufaro-R.zerrillo-M.parada",
-  "count": 17,
-  "rhythms": {
-   "tango": 13,
-   "vals": 2,
-   "ranchera": 2
-  },
-  "singers": {
-   "Azucena Maizani": 17
-  },
-  "vocal": 17,
-  "yearRange": [
-   1929,
-   1931
   ],
   "coverage": null
  },
@@ -6249,6 +6012,27 @@
   "coverage": null
  },
  {
+  "id": "juan-de-dios-filiberto",
+  "name": "Juan de Dios Filiberto",
+  "count": 17,
+  "rhythms": {
+   "tango": 9,
+   "vals": 5,
+   "milonga": 1,
+   "ranchera": 1,
+   "polca": 1
+  },
+  "singers": {
+   "Patrocinio Díaz": 2
+  },
+  "vocal": 2,
+  "yearRange": [
+   1932,
+   1959
+  ],
+  "coverage": null
+ },
+ {
   "id": "s-di-iorio-m-rieffolo-d-porta",
   "name": "S.di Iorio-M.riéffolo-D.porta",
   "count": 17,
@@ -6271,60 +6055,82 @@
   "coverage": null
  },
  {
-  "id": "orq-mendocina-tango-y-punto",
-  "name": "Orq.mendocina Tango y Punto",
+  "id": "joaquin-m-mora",
+  "name": "Joaquín M.mora",
   "count": 17,
   "rhythms": {
-   "tango": 14,
-   "milonga": 2,
-   "vals": 1
+   "tango": 13,
+   "vals": 4
   },
   "singers": {
-   "Diego Valentín Flores": 13
+   "Alberto Podestá": 14,
+   "Hugo del Carril": 2
   },
-  "vocal": 13,
-  "yearRange": null,
-  "coverage": null
- },
- {
-  "id": "cuarteto-tango",
-  "name": "Cuarteto Tango",
-  "count": 17,
-  "rhythms": {
-   "tango": 9,
-   "candombe": 4,
-   "other": 1,
-   "vals": 1,
-   "milonga": 1,
-   "ranchera": 1
-  },
-  "singers": {
-   "Alvaro Domínguez": 5,
-   "Presentación": 1,
-   "Nelly Machaín": 1
-  },
-  "vocal": 7,
+  "vocal": 16,
   "yearRange": [
-   1984,
-   1984
+   1937,
+   1960
   ],
   "coverage": null
  },
  {
-  "id": "los-mancifestas",
-  "name": "Los Mancifestas",
+  "id": "juan-canaro",
+  "name": "Juan Canaro",
   "count": 17,
   "rhythms": {
    "tango": 15,
-   "milonga": 2
+   "other": 1,
+   "polca": 1
   },
   "singers": {
-   "Con Canto": 10
+   "María de la Fuente": 5,
+   "Héctor Insúa": 4,
+   "Presentación": 1,
+   "Ernesto Famá": 1
   },
-  "vocal": 10,
+  "vocal": 11,
   "yearRange": [
-   2003,
-   2003
+   1931,
+   1954
+  ],
+  "coverage": null
+ },
+ {
+  "id": "genaro-esposito",
+  "name": "Genaro Espósito",
+  "count": 17,
+  "rhythms": {
+   "tango": 14,
+   "vals": 2,
+   "zamba": 1
+  },
+  "singers": {},
+  "vocal": 0,
+  "yearRange": [
+   1914,
+   1931
+  ],
+  "coverage": null
+ },
+ {
+  "id": "orquesta-tipica",
+  "name": "Orquesta Típica",
+  "count": 16,
+  "rhythms": {
+   "tango": 13,
+   "milonga": 1,
+   "other": 1,
+   "vals": 1
+  },
+  "singers": {
+   "Alberto Marino": 8,
+   "Alberto Gómez": 5,
+   "Andrés Falgás": 3
+  },
+  "vocal": 16,
+  "yearRange": [
+   1947,
+   1965
   ],
   "coverage": null
  },
@@ -6368,6 +6174,24 @@
   "coverage": null
  },
  {
+  "id": "quinteto-real",
+  "name": "Quinteto Real",
+  "count": 16,
+  "rhythms": {
+   "tango": 13,
+   "milonga": 3
+  },
+  "singers": {
+   "Roberto Rufino": 1
+  },
+  "vocal": 1,
+  "yearRange": [
+   1960,
+   1961
+  ],
+  "coverage": null
+ },
+ {
   "id": "a-capella",
   "name": "A Capella",
   "count": 16,
@@ -6383,6 +6207,68 @@
   },
   "vocal": 16,
   "yearRange": null,
+  "coverage": null
+ },
+ {
+  "id": "ariel-espandrio-c-sext-sabortango",
+  "name": "Ariel Espandrio C/sext.sabortango",
+  "count": 16,
+  "rhythms": {
+   "tango": 14,
+   "milonga": 2
+  },
+  "singers": {
+   "Elba Expósito": 3,
+   "Alejandro Martino": 2,
+   "A. Martino - E. Expósito": 1
+  },
+  "vocal": 6,
+  "yearRange": [
+   2001,
+   2002
+  ],
+  "coverage": null
+ },
+ {
+  "id": "cuarteto-tango",
+  "name": "Cuarteto Tango",
+  "count": 16,
+  "rhythms": {
+   "tango": 8,
+   "candombe": 4,
+   "other": 1,
+   "vals": 1,
+   "milonga": 1,
+   "ranchera": 1
+  },
+  "singers": {
+   "Alvaro Domínguez": 5,
+   "Presentación": 1,
+   "Nelly Machaín": 1
+  },
+  "vocal": 7,
+  "yearRange": [
+   1984,
+   1984
+  ],
+  "coverage": null
+ },
+ {
+  "id": "los-mancifestas",
+  "name": "Los Mancifestas",
+  "count": 16,
+  "rhythms": {
+   "tango": 14,
+   "milonga": 2
+  },
+  "singers": {
+   "Con Canto": 10
+  },
+  "vocal": 10,
+  "yearRange": [
+   2003,
+   2003
+  ],
   "coverage": null
  },
  {
@@ -6419,34 +6305,45 @@
   "coverage": null
  },
  {
-  "id": "gustavo-vinitzca-luciano-dyzenchauz",
-  "name": "Gustavo Vinitzca-Luciano Dyzenchauz",
+  "id": "orq-tipica-coca-cola",
+  "name": "Orq.típica Coca Cola",
   "count": 15,
   "rhythms": {
-   "tango": 14,
-   "vals": 1
+   "tango": 12,
+   "vals": 2,
+   "milonga": 1
   },
   "singers": {
-   "Sandra Cantor": 15
+   "Sabina Olmos": 4,
+   "Yola Yoli": 3,
+   "Mercedes Simone": 2,
+   "Carmen Duval": 2,
+   "Alberto Gómez": 2,
+   "Azucena Maizani": 2
   },
   "vocal": 15,
-  "yearRange": null,
+  "yearRange": [
+   1940,
+   1946
+  ],
   "coverage": null
  },
  {
-  "id": "tony-balver",
-  "name": "Tony Balver",
+  "id": "o-cufaro-r-zerrillo-m-parada",
+  "name": "O.cufaro-R.zerrillo-M.parada",
   "count": 15,
   "rhythms": {
-   "tango": 13,
-   "milonga": 1,
-   "vals": 1
+   "tango": 11,
+   "vals": 2,
+   "ranchera": 2
   },
-  "singers": {},
-  "vocal": 0,
+  "singers": {
+   "Azucena Maizani": 15
+  },
+  "vocal": 15,
   "yearRange": [
-   2003,
-   2003
+   1929,
+   1931
   ],
   "coverage": null
  },
@@ -6493,24 +6390,6 @@
   "coverage": null
  },
  {
-  "id": "enrique-delfino-trio",
-  "name": "Enrique Delfino Trío",
-  "count": 15,
-  "rhythms": {
-   "tango": 14,
-   "ranchera": 1
-  },
-  "singers": {
-   "Sofía Bozán": 15
-  },
-  "vocal": 15,
-  "yearRange": [
-   1930,
-   1930
-  ],
-  "coverage": null
- },
- {
   "id": "cesar-lucero",
   "name": "César Lucero",
   "count": 15,
@@ -6544,6 +6423,22 @@
   "coverage": null
  },
  {
+  "id": "orq-mendocina-tango-y-punto",
+  "name": "Orq.mendocina Tango y Punto",
+  "count": 15,
+  "rhythms": {
+   "tango": 13,
+   "milonga": 1,
+   "vals": 1
+  },
+  "singers": {
+   "Diego Valentín Flores": 13
+  },
+  "vocal": 13,
+  "yearRange": null,
+  "coverage": null
+ },
+ {
   "id": "l-alvarez",
   "name": "L.álvarez",
   "count": 15,
@@ -6557,23 +6452,6 @@
   "yearRange": [
    1950,
    1950
-  ],
-  "coverage": null
- },
- {
-  "id": "neotango",
-  "name": "Neotango",
-  "count": 15,
-  "rhythms": {
-   "tango": 13,
-   "vals": 1,
-   "milonga": 1
-  },
-  "singers": {},
-  "vocal": 0,
-  "yearRange": [
-   2003,
-   2003
   ],
   "coverage": null
  },
@@ -6592,23 +6470,6 @@
   "yearRange": [
    2002,
    2003
-  ],
-  "coverage": null
- },
- {
-  "id": "ryota-komatsu",
-  "name": "Ryota Komatsu",
-  "count": 15,
-  "rhythms": {
-   "tango": 13,
-   "milonga": 1,
-   "other": 1
-  },
-  "singers": {},
-  "vocal": 0,
-  "yearRange": [
-   2002,
-   2002
   ],
   "coverage": null
  },
@@ -6654,6 +6515,21 @@
   "coverage": null
  },
  {
+  "id": "gustavo-vinitzca-luciano-dyzenchauz",
+  "name": "Gustavo Vinitzca-Luciano Dyzenchauz",
+  "count": 14,
+  "rhythms": {
+   "tango": 13,
+   "vals": 1
+  },
+  "singers": {
+   "Sandra Cantor": 14
+  },
+  "vocal": 14,
+  "yearRange": null,
+  "coverage": null
+ },
+ {
   "id": "ray-nolan",
   "name": "Ray Nolan",
   "count": 14,
@@ -6664,24 +6540,6 @@
   "singers": {},
   "vocal": 0,
   "yearRange": null,
-  "coverage": null
- },
- {
-  "id": "alberto-garralda",
-  "name": "Alberto Garralda",
-  "count": 14,
-  "rhythms": {
-   "tango": 11,
-   "vals": 3
-  },
-  "singers": {
-   "Marga Fontana": 14
-  },
-  "vocal": 14,
-  "yearRange": [
-   1988,
-   1988
-  ],
   "coverage": null
  },
  {
@@ -6697,6 +6555,23 @@
   "vocal": 5,
   "yearRange": [
    2001,
+   2003
+  ],
+  "coverage": null
+ },
+ {
+  "id": "tony-balver",
+  "name": "Tony Balver",
+  "count": 14,
+  "rhythms": {
+   "tango": 12,
+   "milonga": 1,
+   "vals": 1
+  },
+  "singers": {},
+  "vocal": 0,
+  "yearRange": [
+   2003,
    2003
   ],
   "coverage": null
@@ -6759,29 +6634,6 @@
   "coverage": null
  },
  {
-  "id": "los-reyes-del-compas",
-  "name": "Los Reyes del Compás",
-  "count": 14,
-  "rhythms": {
-   "tango": 6,
-   "pasodoble": 4,
-   "foxtrot": 2,
-   "vals": 1,
-   "corrido": 1
-  },
-  "singers": {
-   "Remo Merchiori": 4,
-   "Eduardo Ortíz": 4,
-   "Alberto Theaux": 2
-  },
-  "vocal": 10,
-  "yearRange": [
-   1998,
-   1998
-  ],
-  "coverage": null
- },
- {
   "id": "angel-sanso",
   "name": "Angel Sansó",
   "count": 14,
@@ -6797,6 +6649,40 @@
   "yearRange": [
    1999,
    1999
+  ],
+  "coverage": null
+ },
+ {
+  "id": "neotango",
+  "name": "Neotango",
+  "count": 14,
+  "rhythms": {
+   "tango": 12,
+   "vals": 1,
+   "milonga": 1
+  },
+  "singers": {},
+  "vocal": 0,
+  "yearRange": [
+   2003,
+   2003
+  ],
+  "coverage": null
+ },
+ {
+  "id": "ryota-komatsu",
+  "name": "Ryota Komatsu",
+  "count": 14,
+  "rhythms": {
+   "tango": 12,
+   "milonga": 1,
+   "other": 1
+  },
+  "singers": {},
+  "vocal": 0,
+  "yearRange": [
+   2002,
+   2002
   ],
   "coverage": null
  },
@@ -6894,24 +6780,6 @@
   "coverage": null
  },
  {
-  "id": "jose-a-giaimo",
-  "name": "José A.giaimo",
-  "count": 13,
-  "rhythms": {
-   "tango": 12,
-   "milonga": 1
-  },
-  "singers": {
-   "Jorge Sobral": 13
-  },
-  "vocal": 13,
-  "yearRange": [
-   1970,
-   1970
-  ],
-  "coverage": null
- },
- {
   "id": "juan-carlos-cirigliano",
   "name": "Juan Carlos Cirigliano",
   "count": 13,
@@ -6932,22 +6800,25 @@
   "coverage": null
  },
  {
-  "id": "los-ases-del-tango",
-  "name": "Los Ases del Tango",
+  "id": "los-reyes-del-compas",
+  "name": "Los Reyes del Compás",
   "count": 13,
   "rhythms": {
-   "tango": 12,
-   "vals": 1
+   "tango": 6,
+   "pasodoble": 4,
+   "vals": 1,
+   "corrido": 1,
+   "foxtrot": 1
   },
   "singers": {
-   "Raúl Lavié": 4,
-   "Rodolfo Lesica": 4,
-   "R. Lesica - R. Lavié": 1
+   "Remo Merchiori": 4,
+   "Eduardo Ortíz": 4,
+   "Alberto Theaux": 2
   },
-  "vocal": 9,
+  "vocal": 10,
   "yearRange": [
-   1958,
-   1958
+   1998,
+   1998
   ],
   "coverage": null
  },
@@ -7049,24 +6920,6 @@
   "coverage": null
  },
  {
-  "id": "l-stazo-a-cupo",
-  "name": "L.stazo-A.cupo",
-  "count": 13,
-  "rhythms": {
-   "tango": 12,
-   "vals": 1
-  },
-  "singers": {
-   "Roberto Goyeneche": 13
-  },
-  "vocal": 13,
-  "yearRange": [
-   1963,
-   1963
-  ],
-  "coverage": null
- },
- {
   "id": "quinteto",
   "name": "Quinteto",
   "count": 13,
@@ -7095,6 +6948,24 @@
   "yearRange": [
    2003,
    2003
+  ],
+  "coverage": null
+ },
+ {
+  "id": "jose-a-giaimo",
+  "name": "José A.giaimo",
+  "count": 12,
+  "rhythms": {
+   "tango": 11,
+   "milonga": 1
+  },
+  "singers": {
+   "Jorge Sobral": 12
+  },
+  "vocal": 12,
+  "yearRange": [
+   1970,
+   1970
   ],
   "coverage": null
  },
@@ -7135,23 +7006,6 @@
   "coverage": null
  },
  {
-  "id": "eduardo-tami-mariano-castro",
-  "name": "Eduardo Tami-Mariano Castro",
-  "count": 12,
-  "rhythms": {
-   "tango": 10,
-   "vals": 1,
-   "milonga": 1
-  },
-  "singers": {},
-  "vocal": 0,
-  "yearRange": [
-   2003,
-   2003
-  ],
-  "coverage": null
- },
- {
   "id": "los-saxos-del-tango",
   "name": "Los Saxos del Tango",
   "count": 12,
@@ -7163,28 +7017,6 @@
   "yearRange": [
    1993,
    1993
-  ],
-  "coverage": null
- },
- {
-  "id": "romeo-gavioli",
-  "name": "Romeo Gavioli",
-  "count": 12,
-  "rhythms": {
-   "tango": 6,
-   "vals": 4,
-   "candombe": 1,
-   "milonga": 1
-  },
-  "singers": {
-   "Romeo Gavioli": 9,
-   "Romeo Gavioli - Freddy": 2,
-   "Carmen del Moral": 1
-  },
-  "vocal": 12,
-  "yearRange": [
-   1943,
-   1947
   ],
   "coverage": null
  },
@@ -7244,45 +7076,6 @@
   "coverage": null
  },
  {
-  "id": "juan-jose-paz",
-  "name": "Juan José Paz",
-  "count": 12,
-  "rhythms": {
-   "tango": 12
-  },
-  "singers": {
-   "Elsa Rivas": 10,
-   "Miguel Montero": 2
-  },
-  "vocal": 12,
-  "yearRange": [
-   1958,
-   1969
-  ],
-  "coverage": null
- },
- {
-  "id": "lito-scarso",
-  "name": "Lito Scarso",
-  "count": 12,
-  "rhythms": {
-   "tango": 8,
-   "vals": 2,
-   "unknown": 2
-  },
-  "singers": {
-   "José Berón": 6,
-   "Héctor Mauré": 3,
-   "Rosanna Falasca": 1
-  },
-  "vocal": 10,
-  "yearRange": [
-   1960,
-   1971
-  ],
-  "coverage": null
- },
- {
   "id": "carlos-peralta-guit",
   "name": "Carlos Peralta Guit.",
   "count": 12,
@@ -7315,27 +7108,6 @@
   "yearRange": [
    1995,
    1995
-  ],
-  "coverage": null
- },
- {
-  "id": "luis-caruso",
-  "name": "Luis Caruso",
-  "count": 12,
-  "rhythms": {
-   "tango": 8,
-   "candombe": 2,
-   "vals": 2
-  },
-  "singers": {
-   "Julio Sosa": 10,
-   "Walter Escobar": 1,
-   "Héctor Melo": 1
-  },
-  "vocal": 12,
-  "yearRange": [
-   1947,
-   1960
   ],
   "coverage": null
  },
@@ -7379,24 +7151,6 @@
   "coverage": null
  },
  {
-  "id": "orq-tipica-sans-souci",
-  "name": "Orq.típica Sans Soucí",
-  "count": 12,
-  "rhythms": {
-   "tango": 11,
-   "vals": 1
-  },
-  "singers": {
-   "Walter \"Chino\" Laborde": 5
-  },
-  "vocal": 5,
-  "yearRange": [
-   2003,
-   2003
-  ],
-  "coverage": null
- },
- {
   "id": "orq-mun-de-quilmes",
   "name": "Orq.mun.de Quilmes",
   "count": 12,
@@ -7415,6 +7169,21 @@
   "yearRange": [
    1987,
    1987
+  ],
+  "coverage": null
+ },
+ {
+  "id": "alberto-castelar",
+  "name": "Alberto Castelar",
+  "count": 12,
+  "rhythms": {
+   "tango": 12
+  },
+  "singers": {},
+  "vocal": 0,
+  "yearRange": [
+   1996,
+   1996
   ],
   "coverage": null
  },
@@ -7609,6 +7378,23 @@
   "coverage": null
  },
  {
+  "id": "eduardo-tami-mariano-castro",
+  "name": "Eduardo Tami-Mariano Castro",
+  "count": 11,
+  "rhythms": {
+   "tango": 9,
+   "vals": 1,
+   "milonga": 1
+  },
+  "singers": {},
+  "vocal": 0,
+  "yearRange": [
+   2003,
+   2003
+  ],
+  "coverage": null
+ },
+ {
   "id": "sexteto-don-florindo",
   "name": "Sexteto Don Florindo",
   "count": 11,
@@ -7637,6 +7423,26 @@
   "singers": {},
   "vocal": 0,
   "yearRange": null,
+  "coverage": null
+ },
+ {
+  "id": "los-ases-del-tango",
+  "name": "Los Ases del Tango",
+  "count": 11,
+  "rhythms": {
+   "tango": 10,
+   "vals": 1
+  },
+  "singers": {
+   "Raúl Lavié": 3,
+   "Rodolfo Lesica": 3,
+   "R. Lesica - R. Lavié": 1
+  },
+  "vocal": 7,
+  "yearRange": [
+   1958,
+   1958
+  ],
   "coverage": null
  },
  {
@@ -7717,24 +7523,6 @@
   "yearRange": [
    1962,
    1962
-  ],
-  "coverage": null
- },
- {
-  "id": "palabras",
-  "name": "Palabras",
-  "count": 11,
-  "rhythms": {
-   "polca": 10,
-   "other": 1
-  },
-  "singers": {
-   "Palabras": 11
-  },
-  "vocal": 11,
-  "yearRange": [
-   1979,
-   1979
   ],
   "coverage": null
  },
@@ -7865,19 +7653,46 @@
   "coverage": null
  },
  {
-  "id": "julio-pane-trio",
-  "name": "Julio Pane Trío",
+  "id": "americo-belloto",
+  "name": "Américo Belloto",
   "count": 10,
   "rhythms": {
-   "tango": 8,
-   "milonga": 1,
+   "tango": 6,
+   "other": 2,
+   "cancion": 1,
    "vals": 1
   },
-  "singers": {},
-  "vocal": 0,
+  "singers": {
+   "María de la Fuente": 6,
+   "Alberto Gómez": 3,
+   "María de la Fuente - E. Farrel": 1
+  },
+  "vocal": 10,
   "yearRange": [
-   2000,
-   2003
+   1946,
+   1946
+  ],
+  "coverage": null
+ },
+ {
+  "id": "romeo-gavioli",
+  "name": "Romeo Gavioli",
+  "count": 10,
+  "rhythms": {
+   "vals": 4,
+   "tango": 4,
+   "candombe": 1,
+   "milonga": 1
+  },
+  "singers": {
+   "Romeo Gavioli": 7,
+   "Romeo Gavioli - Freddy": 2,
+   "Carmen del Moral": 1
+  },
+  "vocal": 10,
+  "yearRange": [
+   1943,
+   1947
   ],
   "coverage": null
  },
@@ -7905,25 +7720,20 @@
   "coverage": null
  },
  {
-  "id": "juan-cao",
-  "name": "Juan Cao",
+  "id": "alberto-garralda",
+  "name": "Alberto Garralda",
   "count": 10,
   "rhythms": {
-   "tango": 5,
-   "candombe": 2,
-   "cancion": 1,
-   "milonga": 1,
-   "other": 1
+   "tango": 8,
+   "vals": 2
   },
   "singers": {
-   "Alberto Bianchi": 5,
-   "N. Miranda - A. Bianchi": 3,
-   "Nina Miranda": 2
+   "Marga Fontana": 10
   },
   "vocal": 10,
   "yearRange": [
-   1944,
-   1949
+   1988,
+   1988
   ],
   "coverage": null
  },
@@ -7984,6 +7794,24 @@
   "coverage": null
  },
  {
+  "id": "enrique-delfino-trio",
+  "name": "Enrique Delfino Trío",
+  "count": 10,
+  "rhythms": {
+   "tango": 9,
+   "ranchera": 1
+  },
+  "singers": {
+   "Sofía Bozán": 10
+  },
+  "vocal": 10,
+  "yearRange": [
+   1930,
+   1930
+  ],
+  "coverage": null
+ },
+ {
   "id": "j-baravalle-w-cerini",
   "name": "J.baravalle-W.cerini",
   "count": 10,
@@ -8038,21 +7866,20 @@
   "coverage": null
  },
  {
-  "id": "atilio-bruni",
-  "name": "Atilio Bruni",
+  "id": "orq-tipica-sans-souci",
+  "name": "Orq.típica Sans Soucí",
   "count": 10,
   "rhythms": {
-   "tango": 7,
-   "vals": 2,
-   "other": 1
+   "tango": 9,
+   "vals": 1
   },
   "singers": {
-   "Hugo del Carril": 10
+   "Walter \"Chino\" Laborde": 5
   },
-  "vocal": 10,
+  "vocal": 5,
   "yearRange": [
-   1945,
-   1950
+   2003,
+   2003
   ],
   "coverage": null
  },
@@ -8254,25 +8081,6 @@
   "coverage": null
  },
  {
-  "id": "antonio-scatasso",
-  "name": "Antonio Scatasso",
-  "count": 10,
-  "rhythms": {
-   "tango": 8,
-   "corrido": 1,
-   "foxtrot": 1
-  },
-  "singers": {
-   "Oscar Rorra": 10
-  },
-  "vocal": 10,
-  "yearRange": [
-   1925,
-   1925
-  ],
-  "coverage": null
- },
- {
   "id": "los-senores",
   "name": "Los Señores",
   "count": 10,
@@ -8306,6 +8114,24 @@
   "yearRange": [
    1951,
    1952
+  ],
+  "coverage": null
+ },
+ {
+  "id": "l-stazo-a-cupo",
+  "name": "L.stazo-A.cupo",
+  "count": 10,
+  "rhythms": {
+   "tango": 9,
+   "vals": 1
+  },
+  "singers": {
+   "Roberto Goyeneche": 10
+  },
+  "vocal": 10,
+  "yearRange": [
+   1963,
+   1963
   ],
   "coverage": null
  },
@@ -8378,6 +8204,46 @@
   "yearRange": [
    1979,
    1979
+  ],
+  "coverage": null
+ },
+ {
+  "id": "julio-pane-trio",
+  "name": "Julio Pane Trío",
+  "count": 9,
+  "rhythms": {
+   "tango": 7,
+   "milonga": 1,
+   "vals": 1
+  },
+  "singers": {},
+  "vocal": 0,
+  "yearRange": [
+   2000,
+   2003
+  ],
+  "coverage": null
+ },
+ {
+  "id": "juan-cao",
+  "name": "Juan Cao",
+  "count": 9,
+  "rhythms": {
+   "tango": 4,
+   "candombe": 2,
+   "cancion": 1,
+   "milonga": 1,
+   "other": 1
+  },
+  "singers": {
+   "Alberto Bianchi": 4,
+   "N. Miranda - A. Bianchi": 3,
+   "Nina Miranda": 2
+  },
+  "vocal": 9,
+  "yearRange": [
+   1944,
+   1949
   ],
   "coverage": null
  },
@@ -8456,45 +8322,6 @@
   "coverage": null
  },
  {
-  "id": "piano-y-guitarras",
-  "name": "Piano y Guitarras",
-  "count": 8,
-  "rhythms": {
-   "tango": 3,
-   "vals": 2,
-   "other": 1,
-   "cancion": 1,
-   "milonga": 1
-  },
-  "singers": {
-   "Ignacio Corsini": 3,
-   "Hugo del Carril": 2,
-   "Carlos Gardel": 2,
-   "Azucena Maizani": 1
-  },
-  "vocal": 8,
-  "yearRange": [
-   1928,
-   1946
-  ],
-  "coverage": null
- },
- {
-  "id": "los-virtuosos",
-  "name": "Los Virtuosos",
-  "count": 8,
-  "rhythms": {
-   "tango": 8
-  },
-  "singers": {},
-  "vocal": 0,
-  "yearRange": [
-   1936,
-   1936
-  ],
-  "coverage": null
- },
- {
   "id": "jose-canet-orquesta",
   "name": "José Canet Orquesta",
   "count": 8,
@@ -8538,38 +8365,20 @@
   "coverage": null
  },
  {
-  "id": "roberto-garza",
-  "name": "Roberto Garza",
+  "id": "juan-jose-paz",
+  "name": "Juan José Paz",
   "count": 8,
   "rhythms": {
-   "tango": 4,
-   "milonga": 4
+   "tango": 8
   },
   "singers": {
-   "Mercedes Simone": 7,
-   "Ignacio Corsini": 1
+   "Elsa Rivas": 6,
+   "Miguel Montero": 2
   },
   "vocal": 8,
   "yearRange": [
-   1941,
-   1943
-  ],
-  "coverage": null
- },
- {
-  "id": "orq-tipica-criolla-v-greco",
-  "name": "Orq.típica Criolla V.greco",
-  "count": 8,
-  "rhythms": {
-   "tango": 6,
-   "polca": 1,
-   "vals": 1
-  },
-  "singers": {},
-  "vocal": 0,
-  "yearRange": [
-   1911,
-   1911
+   1958,
+   1969
   ],
   "coverage": null
  },
@@ -8593,6 +8402,27 @@
   "yearRange": [
    1938,
    1938
+  ],
+  "coverage": null
+ },
+ {
+  "id": "lito-scarso",
+  "name": "Lito Scarso",
+  "count": 8,
+  "rhythms": {
+   "tango": 5,
+   "unknown": 2,
+   "vals": 1
+  },
+  "singers": {
+   "José Berón": 3,
+   "Héctor Mauré": 2,
+   "Rosanna Falasca": 1
+  },
+  "vocal": 6,
+  "yearRange": [
+   1960,
+   1971
   ],
   "coverage": null
  },
@@ -8674,6 +8504,25 @@
   "coverage": null
  },
  {
+  "id": "atilio-bruni",
+  "name": "Atilio Bruni",
+  "count": 8,
+  "rhythms": {
+   "tango": 5,
+   "vals": 2,
+   "other": 1
+  },
+  "singers": {
+   "Hugo del Carril": 8
+  },
+  "vocal": 8,
+  "yearRange": [
+   1945,
+   1950
+  ],
+  "coverage": null
+ },
+ {
   "id": "orq-tip-tokio-c-f-tell",
   "name": "Orq.típ.tokio C/f.tell",
   "count": 8,
@@ -8692,19 +8541,6 @@
    1962,
    1962
   ],
-  "coverage": null
- },
- {
-  "id": "antonio-bisio",
-  "name": "Antonio Bisio",
-  "count": 8,
-  "rhythms": {
-   "tango": 6,
-   "milonga": 2
-  },
-  "singers": {},
-  "vocal": 0,
-  "yearRange": null,
   "coverage": null
  },
  {
@@ -8759,22 +8595,6 @@
   "yearRange": [
    1972,
    1974
-  ],
-  "coverage": null
- },
- {
-  "id": "arturo-bernstein",
-  "name": "Arturo Bernstein",
-  "count": 8,
-  "rhythms": {
-   "tango": 7,
-   "vals": 1
-  },
-  "singers": {},
-  "vocal": 0,
-  "yearRange": [
-   1913,
-   1913
   ],
   "coverage": null
  },
@@ -8904,6 +8724,30 @@
   "coverage": null
  },
  {
+  "id": "piano-y-guitarras",
+  "name": "Piano y Guitarras",
+  "count": 7,
+  "rhythms": {
+   "tango": 3,
+   "other": 1,
+   "cancion": 1,
+   "vals": 1,
+   "milonga": 1
+  },
+  "singers": {
+   "Hugo del Carril": 2,
+   "Carlos Gardel": 2,
+   "Ignacio Corsini": 2,
+   "Azucena Maizani": 1
+  },
+  "vocal": 7,
+  "yearRange": [
+   1928,
+   1946
+  ],
+  "coverage": null
+ },
+ {
   "id": "jose-rizzo",
   "name": "José Rizzo",
   "count": 7,
@@ -8934,6 +8778,23 @@
   "yearRange": [
    1986,
    1986
+  ],
+  "coverage": null
+ },
+ {
+  "id": "orq-tipica-criolla-v-greco",
+  "name": "Orq.típica Criolla V.greco",
+  "count": 7,
+  "rhythms": {
+   "tango": 5,
+   "polca": 1,
+   "vals": 1
+  },
+  "singers": {},
+  "vocal": 0,
+  "yearRange": [
+   1911,
+   1911
   ],
   "coverage": null
  },
@@ -8992,6 +8853,27 @@
   "coverage": null
  },
  {
+  "id": "luis-caruso",
+  "name": "Luis Caruso",
+  "count": 7,
+  "rhythms": {
+   "tango": 5,
+   "candombe": 1,
+   "vals": 1
+  },
+  "singers": {
+   "Julio Sosa": 5,
+   "Walter Escobar": 1,
+   "Héctor Melo": 1
+  },
+  "vocal": 7,
+  "yearRange": [
+   1947,
+   1960
+  ],
+  "coverage": null
+ },
+ {
   "id": "armando-cupo",
   "name": "Armando Cupo",
   "count": 7,
@@ -9005,6 +8887,22 @@
   "yearRange": [
    1967,
    1967
+  ],
+  "coverage": null
+ },
+ {
+  "id": "arturo-bernstein",
+  "name": "Arturo Bernstein",
+  "count": 7,
+  "rhythms": {
+   "tango": 6,
+   "vals": 1
+  },
+  "singers": {},
+  "vocal": 0,
+  "yearRange": [
+   1913,
+   1913
   ],
   "coverage": null
  },
@@ -9145,38 +9043,6 @@
   "coverage": null
  },
  {
-  "id": "o-cufaro-r-zerrillo",
-  "name": "O.cufaro-R.zerrillo",
-  "count": 6,
-  "rhythms": {
-   "tango": 6
-  },
-  "singers": {
-   "Azucena Maizani": 6
-  },
-  "vocal": 6,
-  "yearRange": [
-   1927,
-   1935
-  ],
-  "coverage": null
- },
- {
-  "id": "los-poetas-del-tango",
-  "name": "Los Poetas del Tango",
-  "count": 6,
-  "rhythms": {
-   "tango": 6
-  },
-  "singers": {},
-  "vocal": 0,
-  "yearRange": [
-   1956,
-   1956
-  ],
-  "coverage": null
- },
- {
   "id": "dante-puricelli",
   "name": "Dante Puricelli",
   "count": 6,
@@ -9269,24 +9135,6 @@
   "coverage": null
  },
  {
-  "id": "lito-nebbia-nestor-marconi",
-  "name": "Lito Nebbia-Néstor Marconi",
-  "count": 6,
-  "rhythms": {
-   "tango": 4,
-   "cancion": 2
-  },
-  "singers": {
-   "María de la Fuente": 6
-  },
-  "vocal": 6,
-  "yearRange": [
-   1997,
-   1997
-  ],
-  "coverage": null
- },
- {
   "id": "oscar-de-elia",
   "name": "Oscar de Elía",
   "count": 6,
@@ -9345,6 +9193,25 @@
   "singers": {},
   "vocal": 0,
   "yearRange": null,
+  "coverage": null
+ },
+ {
+  "id": "antonio-scatasso",
+  "name": "Antonio Scatasso",
+  "count": 6,
+  "rhythms": {
+   "tango": 4,
+   "corrido": 1,
+   "foxtrot": 1
+  },
+  "singers": {
+   "Oscar Rorra": 6
+  },
+  "vocal": 6,
+  "yearRange": [
+   1925,
+   1925
+  ],
   "coverage": null
  },
  {
@@ -9471,26 +9338,6 @@
   "coverage": null
  },
  {
-  "id": "p-laurenz-p-casella",
-  "name": "P.láurenz-P.casella",
-  "count": 5,
-  "rhythms": {
-   "tango": 3,
-   "vals": 1,
-   "candombe": 1
-  },
-  "singers": {
-   "Carlos Barbé": 3,
-   "Luis A. Fleitas": 2
-  },
-  "vocal": 5,
-  "yearRange": [
-   1944,
-   1945
-  ],
-  "coverage": null
- },
- {
   "id": "angel-sica",
   "name": "Angel Sica",
   "count": 5,
@@ -9508,6 +9355,25 @@
   "yearRange": [
    1942,
    1956
+  ],
+  "coverage": null
+ },
+ {
+  "id": "roberto-garza",
+  "name": "Roberto Garza",
+  "count": 5,
+  "rhythms": {
+   "tango": 3,
+   "milonga": 2
+  },
+  "singers": {
+   "Mercedes Simone": 4,
+   "Ignacio Corsini": 1
+  },
+  "vocal": 5,
+  "yearRange": [
+   1941,
+   1943
   ],
   "coverage": null
  },
@@ -9543,6 +9409,23 @@
   "yearRange": [
    1907,
    1907
+  ],
+  "coverage": null
+ },
+ {
+  "id": "o-cufaro-r-zerrillo",
+  "name": "O.cufaro-R.zerrillo",
+  "count": 5,
+  "rhythms": {
+   "tango": 5
+  },
+  "singers": {
+   "Azucena Maizani": 5
+  },
+  "vocal": 5,
+  "yearRange": [
+   1927,
+   1935
   ],
   "coverage": null
  },
@@ -9792,23 +9675,6 @@
   "coverage": null
  },
  {
-  "id": "hugo-baralis",
-  "name": "Hugo Baralis",
-  "count": 5,
-  "rhythms": {
-   "tango": 5
-  },
-  "singers": {
-   "Alberto Marino": 5
-  },
-  "vocal": 5,
-  "yearRange": [
-   1951,
-   1952
-  ],
-  "coverage": null
- },
- {
   "id": "los-bolivios",
   "name": "Los Bolivios",
   "count": 5,
@@ -9958,19 +9824,17 @@
   "coverage": null
  },
  {
-  "id": "band-y-guitarras",
-  "name": "Band.y Guitarras",
+  "id": "los-virtuosos",
+  "name": "Los Virtuosos",
   "count": 4,
   "rhythms": {
-   "milonga": 4
+   "tango": 4
   },
-  "singers": {
-   "Rosita Quiroga": 4
-  },
-  "vocal": 4,
+  "singers": {},
+  "vocal": 0,
   "yearRange": [
-   1952,
-   1952
+   1936,
+   1936
   ],
   "coverage": null
  },
@@ -9991,19 +9855,22 @@
   "coverage": null
  },
  {
-  "id": "4to-del-900",
-  "name": "4to.del 900",
+  "id": "p-laurenz-p-casella",
+  "name": "P.láurenz-P.casella",
   "count": 4,
   "rhythms": {
    "tango": 2,
-   "ranchera": 1,
-   "other": 1
+   "vals": 1,
+   "candombe": 1
   },
-  "singers": {},
-  "vocal": 0,
+  "singers": {
+   "Carlos Barbé": 3,
+   "Luis A. Fleitas": 1
+  },
+  "vocal": 4,
   "yearRange": [
-   1936,
-   1936
+   1944,
+   1945
   ],
   "coverage": null
  },
@@ -10072,40 +9939,6 @@
   "coverage": null
  },
  {
-  "id": "r-nievas-blanco",
-  "name": "R.nievas Blanco",
-  "count": 4,
-  "rhythms": {
-   "tango": 4
-  },
-  "singers": {
-   "Elba Berón": 4
-  },
-  "vocal": 4,
-  "yearRange": [
-   1957,
-   1957
-  ],
-  "coverage": null
- },
- {
-  "id": "martin-darre-coral-mancuso",
-  "name": "Martín Darré-Coral Mancuso",
-  "count": 4,
-  "rhythms": {
-   "tango": 4
-  },
-  "singers": {
-   "Susy Leiva": 4
-  },
-  "vocal": 4,
-  "yearRange": [
-   1940,
-   1964
-  ],
-  "coverage": null
- },
- {
   "id": "torcuato-wermouth",
   "name": "Torcuato Wermouth",
   "count": 4,
@@ -10120,6 +9953,21 @@
   "yearRange": [
    1955,
    1955
+  ],
+  "coverage": null
+ },
+ {
+  "id": "los-poetas-del-tango",
+  "name": "Los Poetas del Tango",
+  "count": 4,
+  "rhythms": {
+   "tango": 4
+  },
+  "singers": {},
+  "vocal": 0,
+  "yearRange": [
+   1956,
+   1956
   ],
   "coverage": null
  },
@@ -10204,6 +10052,19 @@
    1980,
    1980
   ],
+  "coverage": null
+ },
+ {
+  "id": "antonio-bisio",
+  "name": "Antonio Bisio",
+  "count": 4,
+  "rhythms": {
+   "tango": 3,
+   "milonga": 1
+  },
+  "singers": {},
+  "vocal": 0,
+  "yearRange": null,
   "coverage": null
  },
  {
@@ -10370,23 +10231,6 @@
   "coverage": null
  },
  {
-  "id": "roberto-goyeneche",
-  "name": "Roberto Goyeneche",
-  "count": 4,
-  "rhythms": {
-   "polca": 4
-  },
-  "singers": {
-   "Palabras": 4
-  },
-  "vocal": 4,
-  "yearRange": [
-   1973,
-   1973
-  ],
-  "coverage": null
- },
- {
   "id": "5to-argentino-del-tango",
   "name": "5to.argentino del Tango",
   "count": 4,
@@ -10501,41 +10345,6 @@
   "coverage": null
  },
  {
-  "id": "jose-luis-padula",
-  "name": "José Luis Padula",
-  "count": 4,
-  "rhythms": {
-   "tango": 2,
-   "ranchera": 2
-  },
-  "singers": {
-   "Angel Vargas": 4
-  },
-  "vocal": 4,
-  "yearRange": [
-   1935,
-   1935
-  ],
-  "coverage": null
- },
- {
-  "id": "elvino-vardaro",
-  "name": "Elvino Vardaro",
-  "count": 4,
-  "rhythms": {
-   "tango": 4
-  },
-  "singers": {
-   "Alberto Vila": 2
-  },
-  "vocal": 2,
-  "yearRange": [
-   1933,
-   1936
-  ],
-  "coverage": null
- },
- {
   "id": "orquesta-y-coro",
   "name": "Orquesta y Coro",
   "count": 4,
@@ -10592,6 +10401,23 @@
   "coverage": null
  },
  {
+  "id": "hugo-baralis",
+  "name": "Hugo Baralis",
+  "count": 4,
+  "rhythms": {
+   "tango": 4
+  },
+  "singers": {
+   "Alberto Marino": 4
+  },
+  "vocal": 4,
+  "yearRange": [
+   1951,
+   1952
+  ],
+  "coverage": null
+ },
+ {
   "id": "o-fresedo-d-gillespie",
   "name": "O.fresedo-D.gillespie",
   "count": 4,
@@ -10636,24 +10462,6 @@
   "yearRange": [
    1927,
    1936
-  ],
-  "coverage": null
- },
- {
-  "id": "estela-ojeda-lucio-b-videla",
-  "name": "Estela Ojeda-Lucio B.videla",
-  "count": 4,
-  "rhythms": {
-   "tango": 3,
-   "vals": 1
-  },
-  "singers": {
-   "Leonardo Pastore": 4
-  },
-  "vocal": 4,
-  "yearRange": [
-   2001,
-   2001
   ],
   "coverage": null
  },
@@ -10784,24 +10592,6 @@
   "coverage": null
  },
  {
-  "id": "quinteto-tipico",
-  "name": "Quinteto Típico",
-  "count": 3,
-  "rhythms": {
-   "vals": 2,
-   "milonga": 1
-  },
-  "singers": {
-   "Mercedes Simone": 3
-  },
-  "vocal": 3,
-  "yearRange": [
-   1940,
-   1941
-  ],
-  "coverage": null
- },
- {
   "id": "adolfo-carabelli",
   "name": "Adolfo Carabelli",
   "count": 3,
@@ -10814,23 +10604,6 @@
   "vocal": 3,
   "yearRange": [
    1932,
-   1934
-  ],
-  "coverage": null
- },
- {
-  "id": "piano",
-  "name": "Piano",
-  "count": 3,
-  "rhythms": {
-   "cancion": 3
-  },
-  "singers": {
-   "Charlo": 3
-  },
-  "vocal": 3,
-  "yearRange": [
-   1934,
    1934
   ],
   "coverage": null
@@ -11057,23 +10830,6 @@
   "coverage": null
  },
  {
-  "id": "eduardo-corti",
-  "name": "Eduardo Corti",
-  "count": 3,
-  "rhythms": {
-   "tango": 3
-  },
-  "singers": {
-   "Miguel Montero": 3
-  },
-  "vocal": 3,
-  "yearRange": [
-   1966,
-   1966
-  ],
-  "coverage": null
- },
- {
   "id": "lalo-marenales",
   "name": "Lalo Marenales",
   "count": 3,
@@ -11092,6 +10848,24 @@
   "coverage": null
  },
  {
+  "id": "lito-nebbia-nestor-marconi",
+  "name": "Lito Nebbia-Néstor Marconi",
+  "count": 3,
+  "rhythms": {
+   "tango": 2,
+   "cancion": 1
+  },
+  "singers": {
+   "María de la Fuente": 3
+  },
+  "vocal": 3,
+  "yearRange": [
+   1997,
+   1997
+  ],
+  "coverage": null
+ },
+ {
   "id": "guitarras-javier-peru",
   "name": "Guitarras Javier Peru",
   "count": 3,
@@ -11106,21 +10880,6 @@
   "yearRange": [
    1961,
    1961
-  ],
-  "coverage": null
- },
- {
-  "id": "adolfo-beron",
-  "name": "Adolfo Berón",
-  "count": 3,
-  "rhythms": {
-   "tango": 3
-  },
-  "singers": {},
-  "vocal": 0,
-  "yearRange": [
-   1975,
-   1975
   ],
   "coverage": null
  },
@@ -11178,21 +10937,6 @@
   "coverage": null
  },
  {
-  "id": "ernesto-de-la-cruz",
-  "name": "Ernesto de la Cruz",
-  "count": 3,
-  "rhythms": {
-   "tango": 3
-  },
-  "singers": {},
-  "vocal": 0,
-  "yearRange": [
-   1930,
-   1970
-  ],
-  "coverage": null
- },
- {
   "id": "e-bianco-bachicha",
   "name": "E.bianco-Bachicha",
   "count": 3,
@@ -11207,6 +10951,23 @@
   "yearRange": [
    1927,
    1928
+  ],
+  "coverage": null
+ },
+ {
+  "id": "elvino-vardaro",
+  "name": "Elvino Vardaro",
+  "count": 3,
+  "rhythms": {
+   "tango": 3
+  },
+  "singers": {
+   "Alberto Vila": 2
+  },
+  "vocal": 2,
+  "yearRange": [
+   1933,
+   1936
   ],
   "coverage": null
  },
@@ -11288,6 +11049,24 @@
   "yearRange": [
    1928,
    1936
+  ],
+  "coverage": null
+ },
+ {
+  "id": "estela-ojeda-lucio-b-videla",
+  "name": "Estela Ojeda-Lucio B.videla",
+  "count": 3,
+  "rhythms": {
+   "tango": 2,
+   "vals": 1
+  },
+  "singers": {
+   "Leonardo Pastore": 3
+  },
+  "vocal": 3,
+  "yearRange": [
+   2001,
+   2001
   ],
   "coverage": null
  },
@@ -11506,6 +11285,40 @@
   "coverage": null
  },
  {
+  "id": "quinteto-tipico",
+  "name": "Quinteto Típico",
+  "count": 2,
+  "rhythms": {
+   "vals": 1,
+   "milonga": 1
+  },
+  "singers": {
+   "Mercedes Simone": 2
+  },
+  "vocal": 2,
+  "yearRange": [
+   1940,
+   1941
+  ],
+  "coverage": null
+ },
+ {
+  "id": "4to-del-900",
+  "name": "4to.del 900",
+  "count": 2,
+  "rhythms": {
+   "tango": 1,
+   "ranchera": 1
+  },
+  "singers": {},
+  "vocal": 0,
+  "yearRange": [
+   1936,
+   1936
+  ],
+  "coverage": null
+ },
+ {
   "id": "los-7-del-tango",
   "name": "Los 7 del Tango",
   "count": 2,
@@ -11566,6 +11379,23 @@
   "coverage": null
  },
  {
+  "id": "r-nievas-blanco",
+  "name": "R.nievas Blanco",
+  "count": 2,
+  "rhythms": {
+   "tango": 2
+  },
+  "singers": {
+   "Elba Berón": 2
+  },
+  "vocal": 2,
+  "yearRange": [
+   1957,
+   1957
+  ],
+  "coverage": null
+ },
+ {
   "id": "beto-argo",
   "name": "Beto Argó",
   "count": 2,
@@ -11580,6 +11410,23 @@
   "yearRange": [
    1953,
    1953
+  ],
+  "coverage": null
+ },
+ {
+  "id": "martin-darre-coral-mancuso",
+  "name": "Martín Darré-Coral Mancuso",
+  "count": 2,
+  "rhythms": {
+   "tango": 2
+  },
+  "singers": {
+   "Susy Leiva": 2
+  },
+  "vocal": 2,
+  "yearRange": [
+   1940,
+   1964
   ],
   "coverage": null
  },
@@ -11753,23 +11600,6 @@
   "coverage": null
  },
  {
-  "id": "enrique-s-discepolo",
-  "name": "Enrique S.discépolo",
-  "count": 2,
-  "rhythms": {
-   "tango": 2
-  },
-  "singers": {
-   "Tania": 2
-  },
-  "vocal": 2,
-  "yearRange": [
-   1937,
-   1937
-  ],
-  "coverage": null
- },
- {
   "id": "hector-garrido",
   "name": "Héctor Garrido",
   "count": 2,
@@ -11818,6 +11648,23 @@
   "yearRange": [
    1960,
    1960
+  ],
+  "coverage": null
+ },
+ {
+  "id": "eduardo-corti",
+  "name": "Eduardo Corti",
+  "count": 2,
+  "rhythms": {
+   "tango": 2
+  },
+  "singers": {
+   "Miguel Montero": 2
+  },
+  "vocal": 2,
+  "yearRange": [
+   1966,
+   1966
   ],
   "coverage": null
  },
@@ -11930,23 +11777,6 @@
   "coverage": null
  },
  {
-  "id": "carlos-burgos",
-  "name": "Carlos Burgos",
-  "count": 2,
-  "rhythms": {
-   "tango": 2
-  },
-  "singers": {
-   "Carlos Burgos": 1
-  },
-  "vocal": 1,
-  "yearRange": [
-   1944,
-   1944
-  ],
-  "coverage": null
- },
- {
   "id": "fernando-montoni-y-polito",
   "name": "Fernando Montoni y Polito",
   "count": 2,
@@ -11994,8 +11824,8 @@
   "coverage": null
  },
  {
-  "id": "trio-odeon-iriarte-pesoa-pages",
-  "name": "Trío Odeón(iriarte-Pesoa-Pagés)",
+  "id": "adolfo-beron",
+  "name": "Adolfo Berón",
   "count": 2,
   "rhythms": {
    "tango": 2
@@ -12003,8 +11833,8 @@
   "singers": {},
   "vocal": 0,
   "yearRange": [
-   1927,
-   1927
+   1975,
+   1975
   ],
   "coverage": null
  },
@@ -12199,6 +12029,24 @@
   "coverage": null
  },
  {
+  "id": "palabras",
+  "name": "Palabras",
+  "count": 2,
+  "rhythms": {
+   "polca": 1,
+   "other": 1
+  },
+  "singers": {
+   "Palabras": 2
+  },
+  "vocal": 2,
+  "yearRange": [
+   1979,
+   1979
+  ],
+  "coverage": null
+ },
+ {
   "id": "domingo-fortunato",
   "name": "Domingo Fortunato",
   "count": 2,
@@ -12235,6 +12083,23 @@
  {
   "id": "a-labruna-pipo-rossi",
   "name": "A.labruna-Pipo Rossi",
+  "count": 2,
+  "rhythms": {
+   "polca": 2
+  },
+  "singers": {
+   "Palabras": 2
+  },
+  "vocal": 2,
+  "yearRange": [
+   1973,
+   1973
+  ],
+  "coverage": null
+ },
+ {
+  "id": "roberto-goyeneche",
+  "name": "Roberto Goyeneche",
   "count": 2,
   "rhythms": {
    "polca": 2
@@ -12340,6 +12205,21 @@
   "coverage": null
  },
  {
+  "id": "ernesto-de-la-cruz",
+  "name": "Ernesto de la Cruz",
+  "count": 2,
+  "rhythms": {
+   "tango": 2
+  },
+  "singers": {},
+  "vocal": 0,
+  "yearRange": [
+   1930,
+   1970
+  ],
+  "coverage": null
+ },
+ {
   "id": "cancelara",
   "name": "Cancelara",
   "count": 2,
@@ -12393,6 +12273,24 @@
   },
   "vocal": 1,
   "yearRange": null,
+  "coverage": null
+ },
+ {
+  "id": "jose-luis-padula",
+  "name": "José Luis Padula",
+  "count": 2,
+  "rhythms": {
+   "tango": 1,
+   "ranchera": 1
+  },
+  "singers": {
+   "Angel Vargas": 2
+  },
+  "vocal": 2,
+  "yearRange": [
+   1935,
+   1935
+  ],
   "coverage": null
  },
  {
@@ -12921,6 +12819,23 @@
   "coverage": null
  },
  {
+  "id": "band-y-guitarras",
+  "name": "Band.y Guitarras",
+  "count": 1,
+  "rhythms": {
+   "milonga": 1
+  },
+  "singers": {
+   "Rosita Quiroga": 1
+  },
+  "vocal": 1,
+  "yearRange": [
+   1952,
+   1952
+  ],
+  "coverage": null
+ },
+ {
   "id": "jose-puglia-orquesta",
   "name": "José Puglia Orquesta",
   "count": 1,
@@ -12980,6 +12895,23 @@
   "yearRange": [
    1944,
    1944
+  ],
+  "coverage": null
+ },
+ {
+  "id": "piano",
+  "name": "Piano",
+  "count": 1,
+  "rhythms": {
+   "cancion": 1
+  },
+  "singers": {
+   "Charlo": 1
+  },
+  "vocal": 1,
+  "yearRange": [
+   1934,
+   1934
   ],
   "coverage": null
  },
@@ -13166,6 +13098,23 @@
   "coverage": null
  },
  {
+  "id": "enrique-s-discepolo",
+  "name": "Enrique S.discépolo",
+  "count": 1,
+  "rhythms": {
+   "tango": 1
+  },
+  "singers": {
+   "Tania": 1
+  },
+  "vocal": 1,
+  "yearRange": [
+   1937,
+   1937
+  ],
+  "coverage": null
+ },
+ {
   "id": "victor-bucino",
   "name": "Víctor Bucino",
   "count": 1,
@@ -13282,6 +13231,23 @@
   "coverage": null
  },
  {
+  "id": "carlos-burgos",
+  "name": "Carlos Burgos",
+  "count": 1,
+  "rhythms": {
+   "tango": 1
+  },
+  "singers": {
+   "Carlos Burgos": 1
+  },
+  "vocal": 1,
+  "yearRange": [
+   1944,
+   1944
+  ],
+  "coverage": null
+ },
+ {
   "id": "hector-gagliardi",
   "name": "Héctor Gagliardi",
   "count": 1,
@@ -13394,6 +13360,21 @@
   "singers": {},
   "vocal": 0,
   "yearRange": null,
+  "coverage": null
+ },
+ {
+  "id": "trio-odeon-iriarte-pesoa-pages",
+  "name": "Trío Odeón(iriarte-Pesoa-Pagés)",
+  "count": 1,
+  "rhythms": {
+   "tango": 1
+  },
+  "singers": {},
+  "vocal": 0,
+  "yearRange": [
+   1927,
+   1927
+  ],
   "coverage": null
  },
  {
@@ -14022,6 +14003,20 @@
   },
   "singers": {
    "Palabras": 1
+  },
+  "vocal": 1,
+  "yearRange": null,
+  "coverage": null
+ },
+ {
+  "id": "comentario",
+  "name": "Comentario",
+  "count": 1,
+  "rhythms": {
+   "corrido": 1
+  },
+  "singers": {
+   "Comentario": 1
   },
   "vocal": 1,
   "yearRange": null,
