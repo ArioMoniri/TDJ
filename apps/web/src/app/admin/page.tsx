@@ -434,16 +434,21 @@ export default function AdminPage() {
       <PageHeader
         title="Owner setup"
         subtitle={
-          status
-            ? `${status.origin} · stage ${status.stage}`
-            : failed
-              ? "The server did not answer."
-              : "Checking…"
+          status ? `${status.origin} · ${status.stage}` : failed ? "The server did not answer." : "Checking…"
         }
         trailing={
-          <a href={OWNER_GUIDE} target="_blank" rel="noreferrer" className="btn-plain" id="admin-guide">
-            <BookOpen size={16} strokeWidth={2} className="mr-1 inline" aria-hidden />
-            Owner guide
+          // phones: the book glyph alone, so the title never truncates to "Owner se…" (round8-ux.md §2 Admin)
+          <a
+            href={OWNER_GUIDE}
+            target="_blank"
+            rel="noreferrer"
+            className="btn-plain max-sm:icon-btn max-sm:icon-btn-bare max-sm:px-0"
+            id="admin-guide"
+            aria-label="Owner guide"
+            title="Owner guide"
+          >
+            <BookOpen size={18} strokeWidth={2} className="inline sm:mr-1" aria-hidden />
+            <span className="max-sm:sr-only">Owner guide</span>
           </a>
         }
       />
@@ -481,6 +486,7 @@ export default function AdminPage() {
               type={showSecret ? "text" : "password"}
               className="field field-value min-w-0 flex-1 font-mono"
               value={secret}
+              placeholder={status.hasPassphrase ? "Enter the passphrase" : "Paste the code"}
               onChange={(e) => setSecret(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && secret && busy !== "unlock") void unlock();

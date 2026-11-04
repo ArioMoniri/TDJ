@@ -11,7 +11,7 @@ import { RulesTab } from "@/components/db/RulesTab";
 import { SongsTab } from "@/components/db/SongsTab";
 import { DbEditContext } from "@/components/db/shared";
 import { ActionRow, Group } from "@/components/Form";
-import { Menu } from "@/components/Menu";
+import { Menu, MenuList } from "@/components/Menu";
 import { PageHeader } from "@/components/PageHeader";
 import { Sheet } from "@/components/Sheet";
 import { Toast, useToast } from "@/components/Toast";
@@ -25,6 +25,11 @@ import { useStore } from "@/lib/store";
 import type { AppOverrides, Meta } from "@/lib/types";
 
 type Tab = "songs" | "orchestras" | "cortinas" | "rules" | "context" | "memory";
+const MONTH = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const shortDate = (d: Date) => `${d.getDate()} ${MONTH[d.getMonth()]}`;
+/** phones: three tabs and a More menu (six at 15 pt did not fit, round4-ux.md P1-4) */
+const PHONE_TABS: Tab[] = ["songs", "orchestras", "cortinas"];
+const MORE_TABS: Tab[] = ["rules", "context", "memory"];
 const TABS: Array<[Tab, string]> = [
   ["songs", "Songs"],
   ["orchestras", "Orchestras"],
@@ -52,13 +57,8 @@ export default function DatabasePage() {
       .catch(() => {});
   }, []);
   const changes = countChanges(overrides);
-  const built = meta?.meta.builtAt
-    ? new Date(meta.meta.builtAt).toLocaleDateString(undefined, {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      })
-    : "…";
+  const built = meta?.meta.builtAt ? shortDate(new Date(meta.meta.builtAt)) : "…";
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const exportJson = () => {
     downloadBlob(
@@ -91,25 +91,26 @@ export default function DatabasePage() {
     setMsg({ text: "Database reset to the repo index." });
     show(`Removed ${countChanges(prev)} changes`, restore(prev));
   };
-  // phones: the six labels do not fit a 36 pt segmented; short labels keep every tab one tap away
+  // phones: Songs · Orchestras · Cortinas · More (the More segment names the open section when it is one of its three)
   const isPhone = useMediaQuery("(max-width: 639px)");
-  const SHORT: Record<Tab, string> = {
-    songs: "Songs",
-    orchestras: "Orch.",
-    cortinas: "Cortinas",
-    rules: "Rules",
-    context: "Context",
-    memory: "Memory",
-  };
-  const segmented = (cls = "") => (
-    <Segmented
-      label="Section"
-      value={tab}
-      onChange={setTab}
-      items={isPhone ? TABS.map(([k]) => [k, SHORT[k]] as [Tab, string]) : TABS}
-      className={`${cls} ${isPhone ? "text-caption1" : ""}`}
-    />
-  );
+  const label = (k: Tab) => TABS.find(([t]) => t === k)?.[1] ?? k;
+  const inMore = MORE_TABS.includes(tab);
+  const phoneItems: Array<[Tab | "more", string]> = [
+    ...PHONE_TABS.map((k) => [k, label(k)] as [Tab, string]),
+    ["more", inMore ? `${label(tab)} ▾` : "More ▾"],
+  ];
+  const segmented = (cls = "") =>
+    isPhone ? (
+      <Segmented<Tab | "more">
+        label="Section"
+        value={inMore ? "more" : tab}
+        onChange={(k) => (k === "more" ? setMoreOpen(true) : setTab(k))}
+        items={phoneItems}
+        className={cls}
+      />
+    ) : (
+      <Segmented label="Section" value={tab} onChange={setTab} items={TABS} className={cls} />
+    );
 
   return (
     <div className="mx-auto min-w-0 max-w-[720px] lg:max-w-[980px]">
@@ -117,9 +118,13 @@ export default function DatabasePage() {
         title="Database"
         subtitle={
           <>
-            Index built {built} · {meta ? meta.meta.songs.toLocaleString() : "…"} songs ·{" "}
-            <span data-testid="db-changes">
-              {overridesReady ? <CountUp value={changes} /> : "…"} {changes === 1 ? "change" : "changes"}
+            {meta ? meta.meta.songs.toLocaleString() : "…"} recordings · updated {built}
+            {/* the DJ's edits: said only once there are some ("0 changes" read as engineering, round8-ux.md §2) */}
+            <span className={changes ? "" : "sr-only"}>
+              {" · "}
+              <span data-testid="db-changes">
+                {overridesReady ? <CountUp value={changes} /> : "…"} {changes === 1 ? "change" : "changes"}
+              </span>
             </span>
           </>
         }
@@ -210,6 +215,21 @@ export default function DatabasePage() {
           </motion.span>
         </AnimatePresence>
       </p>
+      <Sheet
+        open={moreOpen}
+        onClose={() => setMoreOpen(false)}
+        title="More"
+        detents={["medium"]}
+        testId="db-more"
+      >
+        <MenuList
+          items={MORE_TABS.map((k) => ({ label: label(k), onClick: () => setTab(k) }))}
+          onPick={(it) => {
+            setMoreOpen(false);
+            it.onClick?.();
+          }}
+        />
+      </Sheet>
       <Sheet
         open={confirming}
         onClose={() => setConfirming(false)}

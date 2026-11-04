@@ -31,11 +31,12 @@ import { ActionRow, FieldRow, Group, Row, Tile } from "./Form";
 import { Sheet } from "./Sheet";
 
 type Status = "checking" | "ok" | "down" | "idle";
+/* status values in the DJ's words, not the engineering's (round8-ux.md §1.10) */
 const statusText: Record<Status, string> = {
   checking: "Checking…",
   ok: "Reachable",
-  down: "Unreachable",
-  idle: "Keyless",
+  down: "Offline",
+  idle: "Built in",
 };
 const DEPLOY_DOCS = "https://github.com/ArioMoniri/TDJ/blob/main/docs/DEPLOY.md#connectors";
 const APP_META: Record<ConnectApp, { color: string; icon: ReactNode; sub: string; blurb: string }> = {
@@ -197,12 +198,12 @@ export function Connectors() {
           ? withDot("on", `Connected · ${minutesLeft} min`)
           : settings.spotifyClientId
             ? withDot("off", "Connect")
-            : withDot("warn", "Needs a Client ID");
+            : withDot("warn", "Set up");
   const directValue = (s: typeof google) =>
     s === null
       ? "Checking…"
       : !s.hosted
-        ? withDot("off", "Not enabled")
+        ? withDot("off", "Off")
         : s.user
           ? withDot("on", s.user.name)
           : withDot("off", "Connect");
@@ -210,7 +211,7 @@ export function Connectors() {
   const accountFor = (app: ConnectApp) => connect?.accounts.find((a) => a.app === app);
   const connectValue = (app: ConnectApp) => {
     if (connect === null) return "Checking…";
-    if (!connect.enabled) return withDot("off", "Not enabled");
+    if (!connect.enabled) return withDot("off", "Off");
     const a = accountFor(app);
     return a
       ? withDot(a.healthy ? "on" : "warn", a.healthy ? "Connected" : "Reconnect")
@@ -351,11 +352,11 @@ export function Connectors() {
   return (
     <>
       <Group
-        header="Send your set to"
+        header="Accounts and services"
         footer={
           hosted
-            ? "Log in with Spotify to create playlists and play full tracks in Listen; nothing to paste. Google (Drive files and YouTube playlists) and Dropbox connect in one tap with this deployment's own apps when the owner has enabled them."
-            : "Spotify needs your own developer app on this deployment (Premium account, 5 users per app): open Spotify → Advanced. Google (Drive files and YouTube playlists) and Dropbox connect in one tap when the deployment enables them."
+            ? "Log in with Spotify to create playlists and play full tracks in Listen; nothing to paste. Google (Drive files and YouTube playlists) and Dropbox connect in one tap when the owner has enabled them."
+            : "Spotify: set up your own developer app under Spotify › Advanced. Google and Dropbox connect in one tap once the owner has enabled them."
         }
         id="connectors"
       >
@@ -401,7 +402,7 @@ export function Connectors() {
 
       <Group
         header="Also used"
-        footer="Deezer and MusicBrainz are keyless and used for 30 s previews, artwork and recording dates only: no Deezer export is offered since Deezer closed new developer apps in June 2025. Amazon Music and Beatport have no public API."
+        footer="Deezer and MusicBrainz need no account: they give the 30 s previews, artwork and recording dates."
       >
         <Row
           tile={tile("#a238ff", <Disc size={16} strokeWidth={2} />)}
@@ -441,7 +442,7 @@ export function Connectors() {
           tile={tile("#5856d6", <Webhook size={16} strokeWidth={2} />)}
           label="Bring your own automation"
           sub="Export → Webhook for Pipedream, Make, Zapier, n8n"
-          value={webhookUrl ? "Set" : "Not set"}
+          value={webhookUrl ? "Set" : "Off"}
           chevron
           onClick={() => {
             setDraft(webhookUrl);
@@ -459,7 +460,7 @@ export function Connectors() {
           footer={
             hosted
               ? `Log in with your Spotify account; there is nothing to paste. Connected, Listen plays the exact recordings and Export creates playlists in your library (private by default). This app can let in 5 Spotify accounts, which the organiser adds by e-mail in the Spotify dashboard.${seatsNote}${contactNote} Not on the list? Export → Send to → Spotify via a transfer service works with any Spotify account. The login is kept in a sealed cookie in this browser; Spotify asks again after six months.`
-              : "This deployment has no Spotify app of its own, so you connect with your own developer app: create one at developer.spotify.com (Premium account, 5 users per app), add the redirect URI under Advanced to it and paste the Client ID. Connected, Listen plays the exact recordings and Export can create playlists."
+              : "Connect with your own Spotify app: paste its Client ID under Advanced. Connected, Listen plays the exact recordings and Export creates playlists."
           }
         >
           <Row
@@ -804,7 +805,7 @@ export function Connectors() {
       >
         <Group
           header="Webhook URL"
-          footer="Export → Send to → Webhook POSTs the chosen format (Rekordbox XML, M3U8, CSV…) as the request body, with X-TDJ-Format and X-TDJ-Set headers and ?format=&filename= query parameters. Point it at a Pipedream, Make, Zapier or n8n webhook that files, mails or pushes the set wherever you need. The URL is stored in this browser only."
+          footer="Paste a Pipedream, Make, Zapier or n8n URL. TDJ sends the exported file there (the Guide lists the headers it adds). The URL stays in this browser."
         >
           <label htmlFor="connector-webhook-url" className="cell">
             <span className="sr-only">Webhook URL</span>

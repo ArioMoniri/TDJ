@@ -207,6 +207,139 @@ export default function Settings() {
     <div className="mx-auto max-w-[720px]">
       <PageHeader title="Settings" />
 
+      {/* order (round8-ux.md §1.10): what the DJ changes most first; accounts and the owner's rows last */}
+      <Group
+        header="Appearance"
+        footer="Reduce transparency makes navigation and sheets solid; easier to read, lighter on the battery."
+      >
+        <SegmentedRow
+          label="Theme"
+          value={settings.theme}
+          items={THEMES}
+          onChange={(t) => setSettings({ theme: t })}
+          tile={
+            <Tile color="#636366">
+              <Palette size={16} strokeWidth={2} />
+            </Tile>
+          }
+        />
+        <SwitchRow
+          label="Reduce transparency"
+          checked={settings.reduceGlass}
+          onChange={(v) => setSettings({ reduceGlass: v })}
+        />
+      </Group>
+
+      <Group header="Region" footer="Default for Tonight's region on the composer.">
+        <PickerRow
+          label="Where you usually play"
+          value={settings.region}
+          items={REGIONS}
+          onChange={(r) => r && setSettings({ region: r })}
+          tile={
+            <Tile color="#007aff">
+              <Globe size={16} strokeWidth={2} />
+            </Tile>
+          }
+        />
+      </Group>
+
+      <Group
+        header="Playback"
+        footer={`Where a cortina stops: TDJ's player cuts it there, M3U8 and XSPF tell VLC to stop (#EXTVLCOPT / vlc:option stop-time), Rekordbox XML gets a hot cue at that second. ${settings.cortinaStopSec === null ? `Following the composer's cortina length (${cortinaStopSec(settings, options.cortinaLengthSec)} s).` : "Spotify playlists cannot trim tracks: cortinas there play in full, or leave them out when exporting."}`}
+      >
+        <StepperRow
+          label="Cortina play length"
+          sub={settings.cortinaStopSec === null ? "Follows the composer" : "Your own length"}
+          value={cortinaStopSec(settings, options.cortinaLengthSec)}
+          unit=" s"
+          min={CORTINA_STOP_RANGE.min}
+          max={CORTINA_STOP_RANGE.max}
+          step={CORTINA_STOP_RANGE.step}
+          onChange={(v) => setSettings({ cortinaStopSec: v })}
+          tile={
+            <Tile color="#ff2d55">
+              <Timer size={16} strokeWidth={2} />
+            </Tile>
+          }
+        />
+        <SwitchRow
+          label="Follow the composer's cortina length"
+          checked={settings.cortinaStopSec === null}
+          onChange={(v) =>
+            setSettings({ cortinaStopSec: v ? null : cortinaStopSec(settings, options.cortinaLengthSec) })
+          }
+        />
+      </Group>
+
+      <Group
+        header="DJ apps"
+        footer={`Exports point at real paths once a folder is set. Files are expected as “${settings.fileNaming || DEFAULT_NAMING}.mp3”, for example “${(
+          settings.fileNaming || DEFAULT_NAMING
+        )
+          .replace("{artist}", "Juan D'Arienzo")
+          .replace("{orchestra}", "Juan D'Arienzo")
+          .replace("{title}", "El Flete")
+          .replace("{singer}", "")
+          .replace("{year}", "1936")
+          .replace("{rhythm}", "tango")
+          .replace("{tanda}", "03")
+          .replace("{n}", "011")
+          .replace(/\s{2,}/g, " ")
+          .trim()}.mp3”. Placeholders: {artist} {title} {orchestra} {singer} {year} {rhythm} {tanda} {n}.`}
+      >
+        <FieldRow
+          label="File naming"
+          id="file-naming"
+          tile={
+            <Tile color="#ff9500">
+              <FolderOpen size={16} strokeWidth={2} />
+            </Tile>
+          }
+        >
+          <input
+            id="file-naming"
+            className="field field-value min-w-0 flex-1 font-mono"
+            value={settings.fileNaming}
+            placeholder={DEFAULT_NAMING}
+            onChange={(e) => setSettings({ fileNaming: e.target.value })}
+            autoComplete="off"
+            spellCheck={false}
+          />
+        </FieldRow>
+        {DJ_APPS.map((a) => (
+          <Row
+            key={a.id}
+            label={a.label}
+            sub={a.format}
+            chevron
+            onClick={() => setFolderFor(a.id)}
+            value={settings.djApps[a.id]?.folder ? "Set" : "Off"}
+            id={`folder-row-${a.id}`}
+          />
+        ))}
+      </Group>
+
+      <Group
+        header="Memory"
+        footer="The assistant keeps notes, the sets you composed and your feedback in your database, and applies what it learned under tonight's explicit choices. Review or forget any of it under Database → Memory."
+      >
+        <Row
+          tile={
+            <Tile color="#ff2d55">
+              <Brain size={16} strokeWidth={2} />
+            </Tile>
+          }
+          label="Stored"
+          value={`${storageMode === "server" ? "On the server" : "In this browser"} · ${remembered} ${remembered === 1 ? "item" : "items"}`}
+        />
+        <SwitchRow
+          label="Let the assistant learn from my feedback"
+          checked={settings.learn}
+          onChange={(v) => setSettings({ learn: v })}
+        />
+      </Group>
+
       <Connectors />
 
       <Group
@@ -272,7 +405,7 @@ export default function Settings() {
                 ? "Checking…"
                 : shared.shared
                   ? `Using the organiser's key · ${shared.used} of ${shared.limit} today`
-                  : "No key"
+                  : "Off"
           }
           id="ai-status"
         />
@@ -359,138 +492,6 @@ export default function Settings() {
           workspace at console.anthropic.com → API keys.
         </p>
       )}
-
-      <Group
-        header="Memory"
-        footer="The assistant keeps notes, the sets you composed and your feedback in your database, and applies what it learned under tonight's explicit choices. Review or forget any of it under Database → Memory."
-      >
-        <Row
-          tile={
-            <Tile color="#ff2d55">
-              <Brain size={16} strokeWidth={2} />
-            </Tile>
-          }
-          label="Stored"
-          value={`${storageMode === "server" ? "On the server" : "In this browser"} · ${remembered} ${remembered === 1 ? "item" : "items"}`}
-        />
-        <SwitchRow
-          label="Let the assistant learn from my feedback"
-          checked={settings.learn}
-          onChange={(v) => setSettings({ learn: v })}
-        />
-      </Group>
-
-      <Group
-        header="DJ apps"
-        footer={`Exports point at real paths once a folder is set. Files are expected as “${settings.fileNaming || DEFAULT_NAMING}.mp3”, for example “${(
-          settings.fileNaming || DEFAULT_NAMING
-        )
-          .replace("{artist}", "Juan D'Arienzo")
-          .replace("{orchestra}", "Juan D'Arienzo")
-          .replace("{title}", "El Flete")
-          .replace("{singer}", "")
-          .replace("{year}", "1936")
-          .replace("{rhythm}", "tango")
-          .replace("{tanda}", "03")
-          .replace("{n}", "011")
-          .replace(/\s{2,}/g, " ")
-          .trim()}.mp3”. Placeholders: {artist} {title} {orchestra} {singer} {year} {rhythm} {tanda} {n}.`}
-      >
-        <FieldRow
-          label="File naming"
-          id="file-naming"
-          tile={
-            <Tile color="#ff9500">
-              <FolderOpen size={16} strokeWidth={2} />
-            </Tile>
-          }
-        >
-          <input
-            id="file-naming"
-            className="field field-value min-w-0 flex-1 font-mono"
-            value={settings.fileNaming}
-            placeholder={DEFAULT_NAMING}
-            onChange={(e) => setSettings({ fileNaming: e.target.value })}
-            autoComplete="off"
-            spellCheck={false}
-          />
-        </FieldRow>
-        {DJ_APPS.map((a) => (
-          <Row
-            key={a.id}
-            label={a.label}
-            sub={a.format}
-            chevron
-            onClick={() => setFolderFor(a.id)}
-            value={settings.djApps[a.id]?.folder ? "Set" : "Not set"}
-            id={`folder-row-${a.id}`}
-          />
-        ))}
-      </Group>
-
-      <Group
-        header="Playback"
-        footer={`Where a cortina stops: TDJ's player cuts it there, M3U8 and XSPF tell VLC to stop (#EXTVLCOPT / vlc:option stop-time), Rekordbox XML gets a hot cue at that second. ${settings.cortinaStopSec === null ? `Following the composer's cortina length (${cortinaStopSec(settings, options.cortinaLengthSec)} s).` : "Spotify playlists cannot trim tracks: cortinas there play in full, or leave them out when exporting."}`}
-      >
-        <StepperRow
-          label="Cortina play length"
-          sub={settings.cortinaStopSec === null ? "Follows the composer" : "Your own length"}
-          value={cortinaStopSec(settings, options.cortinaLengthSec)}
-          unit=" s"
-          min={CORTINA_STOP_RANGE.min}
-          max={CORTINA_STOP_RANGE.max}
-          step={CORTINA_STOP_RANGE.step}
-          onChange={(v) => setSettings({ cortinaStopSec: v })}
-          tile={
-            <Tile color="#ff2d55">
-              <Timer size={16} strokeWidth={2} />
-            </Tile>
-          }
-        />
-        <SwitchRow
-          label="Follow the composer's cortina length"
-          checked={settings.cortinaStopSec === null}
-          onChange={(v) =>
-            setSettings({ cortinaStopSec: v ? null : cortinaStopSec(settings, options.cortinaLengthSec) })
-          }
-        />
-      </Group>
-
-      <Group header="Region" footer="Default for Tonight's region on the composer.">
-        <PickerRow
-          label="Where you usually play"
-          value={settings.region}
-          items={REGIONS}
-          onChange={(r) => r && setSettings({ region: r })}
-          tile={
-            <Tile color="#007aff">
-              <Globe size={16} strokeWidth={2} />
-            </Tile>
-          }
-        />
-      </Group>
-
-      <Group
-        header="Appearance"
-        footer="Reduce transparency makes navigation and sheets solid; easier to read, lighter on the battery."
-      >
-        <SegmentedRow
-          label="Theme"
-          value={settings.theme}
-          items={THEMES}
-          onChange={(t) => setSettings({ theme: t })}
-          tile={
-            <Tile color="#636366">
-              <Palette size={16} strokeWidth={2} />
-            </Tile>
-          }
-        />
-        <SwitchRow
-          label="Reduce transparency"
-          checked={settings.reduceGlass}
-          onChange={(v) => setSettings({ reduceGlass: v })}
-        />
-      </Group>
 
       <Group
         header="Storage"
