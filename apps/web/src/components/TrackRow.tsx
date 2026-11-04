@@ -166,8 +166,13 @@ export const TrackRow = memo(function TrackRow({
             <span className="min-w-0 truncate">{title}</span>
             {/* phones: the year is in the tanda header; here it took the title's room ("La Vida M…") */}
             <span className={`shrink-0 text-[var(--label-2)] ${isPhone ? "sr-only" : ""}`}>
-              {approx ? "c. " : ""}
-              {year ?? "?"}
+              {song.transcription || approx ? (
+                <span className="text-caption1" data-testid="undated">
+                  undated transcription{year ? ` · c. ${year}` : ""}
+                </span>
+              ) : (
+                (year ?? "?")
+              )}
             </span>
           </span>
           {audio && !isPhone && (
