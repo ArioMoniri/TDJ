@@ -1,14 +1,17 @@
 import {
-  applyFeedback,
   type ComposeOptions,
   DJ_RULES,
   type Feedback,
+  type Playlist,
+  type Refinement,
+  refineWithGuard,
   summarizeMemory,
+  type Tanda,
   toSetList,
 } from "@tdj/core";
 import { NextResponse } from "next/server";
 import { FEEDBACK_LABEL, FEEDBACK_VALUES, feedbackFromText } from "@/lib/feedback";
-import { getCatalog } from "@/lib/server/catalog";
+import { getCatalog, getCatalogFor } from "@/lib/server/catalog";
 import { crossOriginResponse } from "@/lib/server/guard";
 import { complete, extractJson, houseRulesBlock, resolveAi } from "@/lib/server/llm";
 export const dynamic = "force-dynamic";
@@ -35,8 +38,10 @@ const OPTION_KEYS = [
   "mixVocalInstrumental",
   "includeOrchestras",
   "excludeOrchestras",
+  "preferOrchestras",
   "floorMood",
   "context",
+  "arcShape",
 ] as const;
 const ENUMS: Record<string, string[]> = {
   pattern: ["classic", "TTVTTM", "TTVTTM-strict", "TVTM", "TMTV", "tango-only", "custom"],
@@ -45,6 +50,7 @@ const ENUMS: Record<string, string[]> = {
   cortinaStyle: ["family", "matched", "constant", "none"],
   cortinaTrend: ["trend", "classic", "mixed"],
   floorMood: ["traditional", "balanced", "energetic", "romantic"],
+  arcShape: ["single", "double"],
   eras: ["golden", "golden-extended", "guardia-vieja", "post-golden", "nuevo", "contemporary", "all"],
 };
 const CONTEXT_KEYS = [
@@ -73,7 +79,7 @@ function sanitizeOptions(raw: unknown, orchestraIds: Set<string>): Partial<Compo
       } else if (ENUMS[k]!.includes(String(v))) out[k] = v;
       continue;
     }
-    if (k === "includeOrchestras" || k === "excludeOrchestras") {
+    if (k === "includeOrchestras" || k === "excludeOrchestras" || k === "preferOrchestras") {
       const arr = (Array.isArray(v) ? v : [v]).map(String).filter((id) => orchestraIds.has(id));
       if (arr.length) out[k] = arr;
       continue;
@@ -135,6 +141,25 @@ export async function POST(req: Request) {
     .map(([id, s]) => ({ id, name: s[0]!.orchestra }));
   const ids = new Set(orchestras.map((o) => o.id));
 
+  const nameOf = (id: string) => orchestras.find((o) => o.id === id)?.name ?? id;
+  const playlist = body.playlist && typeof body.playlist === "object" ? (body.playlist as Playlist) : null;
+  const locked: Tanda[] = (playlist?.tandas ?? []).filter((t) => t?.locked);
+  const overrides = body.overrides && typeof body.overrides === "object" ? body.overrides : undefined;
+  const live = getCatalogFor(overrides);
+  const deps = { catalog: live.catalog, cortinas: live.cortinas, contextModel: live.contextModel };
+  /** apply + compose once with the length guard: a refine never turns 4 h into 53 min and calls it "Applied" */
+  const guarded = (r: Refinement) => {
+    const g = refineWithGuard(
+      { ...base, overrides: overrides ? { ...overrides, contextFactors: undefined } : base.overrides },
+      r,
+      deps,
+      { locked },
+      nameOf,
+    );
+    const { overrides: _o, ...options } = g.options;
+    return { ...g, options };
+  };
+
   /**
    * Without a model: the request is split into fragments ("no Canaro", "more Pugliese", "a D'Arienzo vals tanda");
    * each fragment is either applied (feedback keyword, orchestra in/out) or reported as not understood. The note
@@ -181,26 +206,23 @@ export async function POST(req: Request) {
       }
       if (!done) notApplied.push(frag);
     }
-    const options = applyFeedback(base, feedback);
-    if (excluded.length)
-      options.excludeOrchestras = [
-        ...new Set([...(base.excludeOrchestras ?? []), ...excluded.map((o) => o.id)]),
-      ];
-    if (included.length)
-      options.includeOrchestras = [
-        ...new Set([...(base.includeOrchestras ?? []), ...included.map((o) => o.id)]),
-      ];
+    // "more X" prefers (never the only pool), "no X" excludes; the guard refuses a night that would shrink > 10 %
+    const g = guarded({
+      feedback,
+      more: included.map((o) => o.id),
+      no: excluded.map((o) => o.id),
+    });
     const parts: string[] = [];
-    if (applied.length) parts.push(`Applied: ${[...new Set(applied)].join(", ")}.`);
-    if (notApplied.length)
-      parts.push(`Could not apply: ${notApplied.map((f) => `"${f}"`).join(", ")} (${why}).`);
-    if (!applied.length && !notApplied.length) parts.push("Nothing to apply.");
+    if (g.applied.length) parts.push(`Applied: ${g.applied.join(", ")}.`);
+    const missed = [...notApplied.map((f) => `"${f}" (${why})`), ...g.notApplied];
+    if (missed.length) parts.push(`Not applied: ${missed.join("; ")}.`);
+    if (!g.applied.length && !missed.length) parts.push("Nothing to apply.");
     return NextResponse.json({
-      options,
+      options: g.options,
       feedback,
       note: parts.join(" "),
-      applied: [...new Set(applied)],
-      notApplied,
+      applied: g.applied,
+      notApplied: missed,
       source: "keywords",
     });
   };
@@ -222,7 +244,7 @@ Allowed option keys: ${OPTION_KEYS.join(", ")}. Enums: ${Object.entries(ENUMS)
       "; ",
     )}. context keys: ${CONTEXT_KEYS.join(", ")} (mood: romantic|energetic|nostalgic|playful|dramatic|elegant). Numeric ranges: hours 0.5-12, cortinaLengthSec 20-90, orchestraRepeatGap 1-12, maxYearSpread 1-12.
 Allowed feedback values: ${FEEDBACK_VALUES.join(", ")}.
-Orchestra ids for includeOrchestras/excludeOrchestras: ${orchestras.map((o) => `${o.id} (${o.name})`).join(", ")}.
+Orchestra ids: ${orchestras.map((o) => `${o.id} (${o.name})`).join(", ")}. "more X" or "open with X" → preferOrchestras (X is favoured, the rest of the pool stays); "no X" → excludeOrchestras; includeOrchestras only when the DJ says "only X". arcShape "double" = two peaks.
 Only set what the request implies; leave everything else out. Prefer feedback values for mood/energy, options for structure and orchestras. No em-dashes.
 The "note" may also record something worth remembering about this DJ or room, in one short sentence.
 
@@ -241,13 +263,31 @@ ${body.memory && typeof body.memory === "object" ? summarizeMemory(body.memory) 
       (FEEDBACK_VALUES as string[]).includes(String(f)),
     ) as Feedback[];
     const patch = sanitizeOptions(j.options, ids);
-    const options = { ...applyFeedback(base, feedback), ...patch };
-    if (patch.context)
-      options.context = { ...(applyFeedback(base, feedback).context ?? {}), ...patch.context };
-    return NextResponse.json({
-      options,
+    // the model's includeOrchestras is "more X" unless the DJ said "only"; excludeOrchestras is "no X"
+    const only = /\b(only|just|nothing but|exclusively)\b/i.test(instruction);
+    const newIn = (patch.includeOrchestras ?? []).filter(
+      (id) => !(base.includeOrchestras ?? []).includes(id),
+    );
+    const newEx = (patch.excludeOrchestras ?? []).filter(
+      (id) => !(base.excludeOrchestras ?? []).includes(id),
+    );
+    const { includeOrchestras: _i, excludeOrchestras: _e, preferOrchestras: pref, ...rest } = patch;
+    const g = guarded({
       feedback,
-      note: typeof j.note === "string" ? j.note.slice(0, 240) : "Applied.",
+      more: [...(pref ?? []), ...(only ? [] : newIn)],
+      only: only ? newIn : [],
+      no: newEx,
+      patch: rest,
+    });
+    const modelNote = typeof j.note === "string" ? j.note.slice(0, 240) : "";
+    const parts = [modelNote, g.applied.length ? `Applied: ${g.applied.join(", ")}.` : ""];
+    if (g.notApplied.length) parts.push(`Not applied: ${g.notApplied.join("; ")}.`);
+    return NextResponse.json({
+      options: g.options,
+      feedback,
+      note: parts.filter(Boolean).join(" ") || "Applied.",
+      applied: g.applied,
+      notApplied: g.notApplied,
       source: "model",
     });
   } catch (e) {
