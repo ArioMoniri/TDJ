@@ -444,7 +444,7 @@
           "label": "After midnight (00:30-02:30)",
           "energyShift": 0,
           "tempoShift": -1,
-          "vocalRatioShift": 0.05,
+          "vocalRatioShift": 0.02,
           "valsShare": 0.17,
           "milongaShare": 0.15,
           "cortinaGenres": [
@@ -620,14 +620,14 @@
           "label": "Marathon slot, day 2",
           "energyShift": -2,
           "tempoShift": -1,
-          "vocalRatioShift": 0.05,
+          "vocalRatioShift": -0.08,
           "valsShare": 0.18,
           "milongaShare": 0.14,
           "cortinaGenres": [
             "themed-single-artist"
           ],
           "tandaSizeShift": 0,
-          "notes": "Cumulative fatigue (sleep debt lowers arousal preference).",
+          "notes": "Cumulative fatigue (sleep debt lowers arousal preference). Marathons live on instrumentals after 02:00 (round 8).",
           "evidence": "moderate"
         },
         {
@@ -804,7 +804,7 @@
           "label": "Advanced / milongueros",
           "energyShift": 2,
           "tempoShift": 0,
-          "vocalRatioShift": 0.05,
+          "vocalRatioShift": -0.03,
           "valsShare": null,
           "milongaShare": null,
           "cortinaGenres": [],

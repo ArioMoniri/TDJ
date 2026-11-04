@@ -93,19 +93,38 @@ export function arcTarget(
   x: number,
   arc: ComposeOptions["arc"],
   mood: ComposeOptions["floorMood"] = "balanced",
+  shape?: ComposeOptions["arcShape"],
 ): number {
   const lo = mood === "romantic" ? 40 : mood === "energetic" ? 52 : 44;
   const hi = mood === "romantic" ? 72 : mood === "energetic" ? 90 : mood === "traditional" ? 82 : 84;
   const bump = (c: number, w: number, h: number) => h * Math.exp(-((x - c) ** 2) / (2 * w * w));
   let y: number;
+  if (shape === "double") {
+    // an explicit double peak: first summit ~42 %, a real breather ~62 % (≥ 8 points under it), the higher second
+    // summit ~82 %, then a short settle before the última, which the end lift keeps highest
+    const base = lo + (hi - lo) * 0.28 * Math.sin(Math.PI * x);
+    y =
+      base +
+      bump(0.42, 0.1, (hi - lo) * 0.44) +
+      bump(0.8, 0.13, (hi - lo) * 0.62) -
+      bump(0.61, 0.07, (hi - lo) * 0.12);
+    if (x > 0.9) y += ((x - 0.9) / 0.1) * Math.max(0, lo + (hi - lo) * 0.45 - y) * 0.8;
+    return Math.round(Math.max(lo - 4, Math.min(hi, y)));
+  }
+  if (shape === "single") {
+    y = lo + (hi - lo) * Math.sin(Math.PI * Math.min(1, Math.max(0, x))) ** 1.05;
+    if (x > 0.9) y += ((x - 0.9) / 0.1) * Math.max(0, lo + (hi - lo) * 0.45 - y) * 0.8;
+    return Math.round(Math.max(lo - 4, Math.min(hi, y)));
+  }
   switch (arc) {
     case "single-peak":
       y = lo + (hi - lo) * Math.sin(Math.PI * Math.min(1, Math.max(0, x))) ** 1.05;
       break;
     case "marathon-plateau": {
-      // a marathon block is not a wall: plateau at 78 % of the range, a breather at 55 %, a second rise at 85 %
+      // a marathon block is not a wall: plateau at 78 % of the range, a breather at 55 %, a real second peak at 85 %
+      // (round 8: the second emotional peak was missing and the last third slid to e55–66)
       const plateau = lo + (hi - lo) * 0.78 * Math.min(1, x / 0.3);
-      y = plateau - bump(0.55, 0.06, (hi - lo) * 0.16) + bump(0.85, 0.06, (hi - lo) * 0.14);
+      y = plateau - bump(0.55, 0.06, (hi - lo) * 0.16) + bump(0.85, 0.07, (hi - lo) * 0.18);
       if (x > 0.92) y -= (hi - lo) * 0.3 * ((x - 0.92) / 0.08);
       break;
     }
@@ -133,17 +152,28 @@ export function phaseOf(x: number, arc: ComposeOptions["arc"]): Phase {
     return "cooldown";
   }
   if (x < 0.45) return "build";
-  if (x < 0.8) return "peak";
+  // the plateau stays a peak phase until the last tandas: cool-down orchestras do not get the last third of a marathon
+  if (x < (arc === "marathon-plateau" ? 0.95 : 0.8)) return "peak";
   return "cooldown";
 }
 
+/** the shape a night can have: "double" needs ≥ 3 h for two peaks and a breather to fit */
+export function arcShapeFor(o: Pick<ComposeOptions, "arcShape" | "hours">): ComposeOptions["arcShape"] {
+  if (o.arcShape === "double" && o.hours < 3) return "single";
+  return o.arcShape;
+}
+
 export function applyArc(slots: Slot[], o: ComposeOptions) {
+  const shape = arcShapeFor(o);
   for (const s of slots) {
-    let e = arcTarget(s.position, o.arc, o.floorMood);
+    let e = arcTarget(s.position, o.arc, o.floorMood, shape);
     if (s.rhythm === "milonga") e += 6;
     else if (s.rhythm === "vals") e += 2;
     s.targetEnergy = Math.min(100, e);
-    s.phase = phaseOf(s.position, o.arc);
+    s.phase = phaseOf(
+      s.position,
+      shape === "double" ? "classic-two-peaks" : shape === "single" ? "single-peak" : o.arc,
+    );
   }
   const last = slots[slots.length - 1];
   if (last) last.phase = "close";

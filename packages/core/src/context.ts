@@ -124,7 +124,8 @@ export const BUILTIN_CONTEXT: ContextModel = {
           id: "marathon",
           label: "Marathon",
           energyShift: 3,
-          notes: "experienced floor; plateau arcs",
+          vocalRatioShift: -0.08,
+          notes: "experienced floor; plateau arcs; instrumentals after 02:00",
           evidence: "lore",
         },
         {

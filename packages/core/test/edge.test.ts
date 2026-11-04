@@ -412,7 +412,7 @@ describe("exports", () => {
     ))
       expect((node[2]!.match(/<TRACK Key=/g) ?? []).length).toBe(Number(node[1]));
   });
-  it.fails("generated file names must not contain '/', which breaks Traktor DIR/FILE, M3U paths and Rekordbox Locations (artist is 'Orchestra / Singer')", () => {
+  it("generated file names must not contain '/', which breaks Traktor DIR/FILE, M3U paths and Rekordbox Locations (artist is 'Orchestra / Singer')", () => {
     const p = compose({ hours: 2, seed: 9 }, deps);
     expect(EXPORTERS.traktor(p)).not.toMatch(/FILE="[^"]*\/[^"]*"/);
     expect(

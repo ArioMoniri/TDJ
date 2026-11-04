@@ -64,8 +64,12 @@ export interface Song {
   fame?: number;
   /** corpus role inside a tanda (reference sets): opener / closer / anytime / cumparsita */
   role?: "opener" | "closer" | "anytime" | "cumparsita";
-  /** year ends in 0 without a dated session: decade placeholder */
+  /** year ends in 0 without a dated session, or a "1940/70" range: decade placeholder */
   yearApprox?: boolean;
+  /** radio / live / acetate transcription or an "inéditos" compilation (index build): never inside a tanda by default */
+  transcription?: boolean;
+  /** ids of duplicate rows merged into this one at index build (user edits keyed by them still apply) */
+  altIds?: string[];
   rhythmOriginal?: string;
   note?: string | null;
   /** analysed audio features (data/cache/audio/features.json or user database) */
@@ -131,6 +135,8 @@ export interface Cortina {
   lengthSec?: number;
   spotify?: { uri: string; url?: string } | null;
   tags?: string[];
+  /** resolved streaming/preview track (data/cache/resolve/cortinas.json) */
+  resolved?: import("./audio/index").ResolvedTrack | null;
 }
 
 export type Phase = "warmup" | "build" | "peak" | "cooldown" | "close";
@@ -189,6 +195,8 @@ export interface PlaylistStats {
   wallClockSec?: number;
   /** total planned silence between items (s) */
   gapsSec?: number;
+  /** the requested cortina pool could not carry the night (fewer than 8 distinct cues): what was used instead */
+  cortinaFallback?: string;
 }
 
 export interface Playlist {
@@ -219,6 +227,8 @@ export interface ScoreCard {
   total: number;
   factors: ScoreFactor[];
   verdict: string;
+  /** hard failures that capped the total at 60 (undated tanda, duration off, wrong rhythm, cap broken, bootleg última) */
+  reasons?: string[];
 }
 
 export interface ComposeOptions {
@@ -235,6 +245,13 @@ export interface ComposeOptions {
   tandaShape: "rise" | "rise-settle" | "hammock" | "flat" | "peak-middle";
   /** night arc model */
   arc: "classic-two-peaks" | "single-peak" | "marathon-plateau" | "gentle";
+  /**
+   * explicit arc shape over the model: "single" = one peak, "double" = two peaks with a real dip between and the
+   * última still highest (nights ≥ 3 h; shorter nights fall back to single). Unset = the arc model's own shape.
+   */
+  arcShape?: "single" | "double";
+  /** restrict the pool to recording years (inclusive), inside the era preset: e.g. [1935, 1945] */
+  yearRange?: [number, number];
   cortinaStyle: "family" | "matched" | "constant" | "none";
   cortinaCultures: string[]; // ["global"] or ["turkish","greek"...]
   cortinaGenres?: string[];
@@ -305,6 +322,8 @@ export interface NightRules {
   mixedMilongaVals?: boolean;
   /** cortina after the last tanda before the Cumparsita */
   cortinaBeforeCumparsita?: boolean;
+  /** let undated / placeholder-year / transcription rows into tandas (off: they never build one) */
+  allowUndated?: boolean;
 }
 
 /** What the AI DJ and the engine remember for a user between sessions (stored in the user's database). */
@@ -401,8 +420,14 @@ export interface ContextModel {
 
 /** What a user can change in their own deployed database (merged over the repo-hosted index). */
 export interface UserOverrides {
-  /** partial song edits keyed by song id (year, singer, rhythm, energy, bpm, spotify uri, hide) */
-  songs?: Record<string, Partial<Song> & { hidden?: boolean }>;
+  /**
+   * partial song edits keyed by song id (year, singer, rhythm, energy, bpm, spotify uri, hide).
+   * `hidden: true` hides every copy of that orchestra + title (the Database's duplicates included);
+   * `hiddenScope: "copy"` hides that one row only.
+   */
+  songs?: Record<string, Partial<Song> & { hidden?: boolean; hiddenScope?: "title" | "copy" }>;
+  /** recordings hidden by orchestra + title, keyed `${orchestraId}|${normTitle(title)}` (see hideKey()) */
+  hiddenTitles?: string[];
   /** orchestra profile edits keyed by orchestraId */
   profiles?: Record<string, Partial<OrchestraProfile>>;
   /** extra or replaced cortinas keyed by id */

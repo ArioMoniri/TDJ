@@ -26,6 +26,23 @@ export interface TandaCandidate {
 const dated = (s: Song) => (s.year && !s.yearApprox ? s.year : null);
 
 /**
+ * A row a tanda may be built from (round 8): dated (no decade placeholder, no missing year) and a studio side,
+ * never a radio/live transcription or an "inéditos" bootleg. `allowUndated` (rules.allowUndated) lets a DJ opt in.
+ */
+export const isTandaEligible = (
+  s: Pick<Song, "year" | "yearApprox" | "transcription">,
+  allowUndated = false,
+) => allowUndated || (!!s.year && !s.yearApprox && !s.transcription);
+
+/** the song's rhythm as a DJ hears it: the index field first, the title ("Milonga …") as a last resort */
+export function songRhythm(s: Pick<Song, "title" | "rhythm">): string {
+  const t = normTitle(s.title);
+  if (t.startsWith("milonga ") || t === "milonga") return "milonga";
+  if (t.startsWith("vals ")) return "vals";
+  return s.rhythm;
+}
+
+/**
  * Group songs into coherent families: same orchestra + same singer (or instrumental) + tight year window.
  * Rows whose year is a decade placeholder (`yearApprox`) cannot define a window: they form a separate
  * "undated" family per orchestra/singer that the track scorer weights at 0.6.
@@ -167,6 +184,13 @@ export interface BuildContext {
   /** energy and target of the previous tanda (gradual steps, corpus rule 15) */
   prevEnergy?: number;
   prevTarget?: number;
+  /** families already played tonight (orchestra, singer, year window, rhythm): never the identical family twice */
+  usedFamilies?: Array<{
+    orchestraId: string;
+    singer: string | null;
+    rhythm: string;
+    years: [number, number];
+  }>;
 }
 export interface CanonicalTanda {
   rhythm: string;
@@ -284,10 +308,13 @@ export function buildTanda(
   sc: Scoring,
 ): Tanda | null {
   const need = slot.size;
+  const allowUndated = !!o.rules?.allowUndated;
   const availOf = (c: TandaCandidate) =>
     c.songs.filter(
       (s) =>
         sc.isDanceable(s) &&
+        isTandaEligible(s, allowUndated) &&
+        songRhythm(s) === slot.rhythm &&
         !sc.nonDance?.(c.orchestraId, s.title, s.year) &&
         !ctx.usedSongIds.has(s.id) &&
         (!o.avoidTitleRepeats || !ctx.usedTitles.has(normTitle(s.title))),
@@ -343,7 +370,22 @@ export function buildTanda(
     return !(sc.maxDifficulty !== undefined && diff !== undefined && diff > sc.maxDifficulty);
   };
   const viable0 = viableAll.filter(contextOk).length >= 3 ? viableAll.filter(contextOk) : viableAll;
-  const viable = viable0.filter(phaseOk).length >= 3 ? viable0.filter(phaseOk) : viable0;
+  const viable1 = viable0.filter(phaseOk).length >= 3 ? viable0.filter(phaseOk) : viable0;
+  // the first vals/milonga of the night (≤ 20 %) is a warm-up tanda: a family more than 10 points above the slot's
+  // target (Rodríguez–Moreno, Biagi valses at e72 for t51) is out while three cooler alternatives remain (≤ +8)
+  // judged on what the tanda would deliver: the `need` coolest sides of the family (Canaro–Maida has 16 valses)
+  const meanE = (c: TandaCandidate) => {
+    const es = availOf(c)
+      .map((s) => s.energy ?? 50)
+      .sort((a, b) => a - b)
+      .slice(0, need);
+    return es.reduce((a, e) => a + e, 0) / Math.max(1, es.length);
+  };
+  const cool = (c: TandaCandidate) => meanE(c) <= slot.targetEnergy + 8;
+  const viable =
+    slot.rhythm !== "tango" && slot.position <= 0.2 && viable1.filter(cool).length >= 3
+      ? viable1.filter(cool)
+      : viable1;
   if (!viable.length) return null;
   const gapOk = (c: TandaCandidate) => {
     const io = ctx.recentOrchestras.indexOf(c.orchestraId);
@@ -466,6 +508,24 @@ export function buildTanda(
       w *= slot.rhythm === "tango" ? 0.25 : 0.02;
     // variety across nights: a family that played in the last sets steps back (never excluded, a floor has favourites)
     if (o.recent?.tandaKeys?.includes(`${c.orchestraId}|${c.singer ?? ""}|${slot.rhythm}`)) w *= 0.4;
+    // variety inside the night: the same family (orchestra, singer, overlapping years) a second time is a tell
+    // (Di Sarli instr 1940 at 7 and 14, D'Arienzo–Echagüe 38–39 at 19 and 26)
+    if (ctx.usedFamilies?.length && my !== null) {
+      const ys = av.map(dated).filter((y): y is number => !!y);
+      const lo = Math.min(...ys),
+        hi = Math.max(...ys);
+      if (
+        ctx.usedFamilies.some(
+          (f) =>
+            f.orchestraId === c.orchestraId &&
+            (f.singer ?? "") === (c.singer ?? "") &&
+            f.rhythm === slot.rhythm &&
+            f.years[0] <= hi + 1 &&
+            lo <= f.years[1] + 1,
+        )
+      )
+        w *= 0.08;
+    }
     return w;
   };
   let scoredFams = pool.map((c) => ({ c, w: weight(c) }));
@@ -516,8 +576,27 @@ export function buildTanda(
     .sort((a, b) => b.w - a.w);
   const seen = new Set<string>();
   const picked: Song[] = [];
+  // the first D'Arienzo (72 instrumental sides from 1935–39): a seeded draw among the top window instead of the
+  // same four famous titles every night (round 8: Rawson/Ataniche/Joaquina/Jueves in 7 of 8 seeds). The weights
+  // (fit, fame, canon, recent-memory penalty) still rank; the draw is flattened so runners-up get real chances.
+  const firstDA = slot.rhythm === "tango" && isEarlyDArienzo(chosen) && count("juan-d-arienzo") === 0;
+  if (firstDA) {
+    const near = scored.filter((r) => Math.abs((r.s.energy ?? 50) - target) <= 14);
+    const window = (near.length >= need * 2 ? near : scored)
+      .slice(0, Math.max(need * 3, 12))
+      .map((r) => ({ s: r.s, w: r.w ** 0.75 }));
+    while (picked.length < need && window.length) {
+      const draw = rng.weighted(window, (r) => r.w);
+      if (!draw) break;
+      window.splice(window.indexOf(draw), 1);
+      const k = normTitle(draw.s.title);
+      if (seen.has(k)) continue;
+      seen.add(k);
+      picked.push(draw.s);
+    }
+  }
   // greedy: first pick by weight, then prefer tracks whose analysed tempo/key/loudness sit with the tanda so far
-  const rest = scored.slice(0, Math.max(need * 6, 24));
+  const rest = firstDA ? [] : scored.slice(0, Math.max(need * 6, 24));
   while (picked.length < need && rest.length) {
     const anchor = picked.filter((x) => x.audio);
     let bi = 0;
