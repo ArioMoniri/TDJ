@@ -78,7 +78,7 @@ jobs:
             aws ssm put-parameter --name "/tdj/${STAGE}/SETUP_CODE" --type SecureString --overwrite \
               --value "${CODE}.$(date +%s)" >/dev/null
           fi
-          echo "::add-mask::${CODE}"
+          # not masked: GitHub applies masks to the step summary too, which turned the code into asterisks
           {
             echo "## Owner setup"
             echo "1. Open **${URL:-<app url>}/admin**."
@@ -90,5 +90,5 @@ jobs:
             echo
             echo "3. Choose a passphrase, then paste the Spotify / Google / Dropbox credentials next to the redirect URIs shown there."
             echo
-            echo "Anyone who can read this summary can read the code until a passphrase is set: do it now."
+            echo "Anyone who can read this summary (repository collaborators) can read the code until a passphrase is set: do it now."
           } >> "$GITHUB_STEP_SUMMARY"
