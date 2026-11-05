@@ -220,12 +220,20 @@ export default function AdminPage() {
   }, [load]);
 
   const unlock = async () => {
+    // read the field itself as well: a paste or an autofill on some phones never reaches React state
+    const field = document.getElementById("admin-secret") as HTMLInputElement | null;
+    const value = (field?.value || secret).trim();
+    if (!value) {
+      setUnlockError(status?.hasPassphrase ? "Enter the passphrase first." : "Paste the setup code first.");
+      field?.focus();
+      return;
+    }
     setBusy("unlock");
     setUnlockError(null);
     try {
       const { status: code, body } = await api<{ ok?: boolean; via?: "code" | "passphrase"; error?: string }>(
         "/api/admin/unlock",
-        { method: "POST", body: JSON.stringify({ secret }) },
+        { method: "POST", body: JSON.stringify({ secret: value }) },
       );
       if (code !== 200 || !body.ok) {
         setUnlockError(body.error ?? "Could not unlock.");
@@ -483,34 +491,36 @@ export default function AdminPage() {
           >
             <input
               id="admin-secret"
-              type={showSecret ? "text" : "password"}
+              type={showSecret || !status.hasPassphrase ? "text" : "password"}
               className="field field-value min-w-0 flex-1 font-mono"
               value={secret}
               placeholder={status.hasPassphrase ? "Enter the passphrase" : "Paste the code"}
               onChange={(e) => setSecret(e.target.value)}
+              onInput={(e) => setSecret((e.target as HTMLInputElement).value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && secret && busy !== "unlock") void unlock();
+                if (e.key === "Enter" && busy !== "unlock") void unlock();
               }}
-              autoComplete="current-password"
+              // the one-time code is shown as plain text (no password manager, no autofill bar); the passphrase is masked
+              autoComplete={status.hasPassphrase ? "current-password" : "off"}
+              autoCapitalize="off"
+              autoCorrect="off"
+              inputMode="text"
+              enterKeyHint="go"
               spellCheck={false}
               data-autofocus
             />
-            <button
-              type="button"
-              className="btn-plain -mr-2"
-              onClick={() => setShowSecret((v) => !v)}
-              aria-pressed={showSecret}
-            >
-              {showSecret ? "Hide" : "Show"}
-            </button>
+            {status.hasPassphrase && (
+              <button
+                type="button"
+                className="btn-plain -mr-2"
+                onClick={() => setShowSecret((v) => !v)}
+                aria-pressed={showSecret}
+              >
+                {showSecret ? "Hide" : "Show"}
+              </button>
+            )}
           </FieldRow>
-          <ActionRow
-            label="Unlock"
-            onClick={unlock}
-            disabled={!secret}
-            busy={busy === "unlock"}
-            id="admin-unlock-button"
-          />
+          <ActionRow label="Unlock" onClick={unlock} busy={busy === "unlock"} id="admin-unlock-button" />
         </Group>
       )}
 
