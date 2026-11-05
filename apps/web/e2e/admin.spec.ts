@@ -351,7 +351,9 @@ test("the page: unlock with the passphrase, paste Google credentials beside the 
   await page.goto(`${APP}/admin`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Owner setup");
   await expect(page.locator("#admin-unlock")).toContainText("Enter the owner passphrase");
-  await expect(page.locator("#admin-unlock-button")).toBeDisabled();
+  // the button is never disabled: an empty field explains itself instead of a dead control
+  await page.locator("#admin-unlock-button").click();
+  await expect(page.locator("#admin-unlock")).toContainText("Enter the passphrase first");
   await page.locator("#admin-secret").fill("wrong-passphrase");
   await page.locator("#admin-unlock-button").click();
   await expect(page.locator("#admin-unlock")).toContainText("not right");
