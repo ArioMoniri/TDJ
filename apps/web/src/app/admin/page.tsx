@@ -161,6 +161,7 @@ export default function AdminPage() {
   const [failed, setFailed] = useState(false);
   const [secret, setSecret] = useState("");
   const [showSecret, setShowSecret] = useState(false);
+  const [showPass, setShowPass] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [unlockError, setUnlockError] = useState<string | null>(null);
   /** after an unlock with the setup code, the passphrase step comes first; "change" reopens it later */
@@ -259,20 +260,27 @@ export default function AdminPage() {
       setBusy(null);
     }
   };
+  /** The field's own value wins over React state: on some phones a paste or an autofill never fires a change event. */
+  const fieldValue = (id: string, fallback: string) =>
+    (document.getElementById(id) as HTMLInputElement | null)?.value ?? fallback;
   const savePassphrase = async () => {
-    if (pass.a.length < 8) {
+    const a = fieldValue("admin-pass-a", pass.a);
+    const b = fieldValue("admin-pass-b", pass.b);
+    if (a.length < 8) {
       toast("The passphrase needs at least 8 characters");
+      document.getElementById("admin-pass-a")?.focus();
       return;
     }
-    if (pass.a !== pass.b) {
-      toast("The two passphrases differ");
+    if (a !== b) {
+      toast(b ? "The two passphrases differ" : "Repeat the passphrase in the second field");
+      document.getElementById("admin-pass-b")?.focus();
       return;
     }
     setBusy("passphrase");
     try {
       const { status: code, body } = await api<{ error?: string }>("/api/admin/passphrase", {
         method: "POST",
-        body: JSON.stringify({ passphrase: pass.a }),
+        body: JSON.stringify({ passphrase: a }),
       });
       if (code !== 200) {
         toast(body.error ?? "Could not save the passphrase");
@@ -287,7 +295,15 @@ export default function AdminPage() {
     }
   };
   const saveProvider = async (id: ProviderId) => {
-    const d = drafts[id];
+    const d = {
+      id: fieldValue(`admin-id-${id}`, drafts[id].id).trim(),
+      secret: fieldValue(`admin-secret-${id}`, drafts[id].secret).trim(),
+    };
+    if (!d.id || !d.secret) {
+      toast(d.id ? `Paste the ${META[id].secretLabel.toLowerCase()} too` : "Paste the Client ID first");
+      document.getElementById(d.id ? `admin-secret-${id}` : `admin-id-${id}`)?.focus();
+      return;
+    }
     setBusy(`save-${id}`);
     try {
       const { status: code, body } = await api<{ saved?: string[]; errors?: string[]; error?: string }>(
@@ -541,27 +557,52 @@ export default function AdminPage() {
           >
             <input
               id="admin-pass-a"
-              type="password"
+              type={showPass ? "text" : "password"}
               className="field field-value min-w-0 flex-1"
               value={pass.a}
               onChange={(e) => setPass((p) => ({ ...p, a: e.target.value }))}
+              onInput={(e) => {
+                const v = (e.target as HTMLInputElement).value;
+                setPass((p) => ({ ...p, a: v }));
+              }}
               autoComplete="new-password"
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
             />
+            <button
+              type="button"
+              className="btn-plain -mr-2"
+              onClick={() => setShowPass((v) => !v)}
+              aria-pressed={showPass}
+            >
+              {showPass ? "Hide" : "Show"}
+            </button>
           </FieldRow>
           <FieldRow label="Repeat" id="admin-pass-b">
             <input
               id="admin-pass-b"
-              type="password"
+              type={showPass ? "text" : "password"}
               className="field field-value min-w-0 flex-1"
               value={pass.b}
               onChange={(e) => setPass((p) => ({ ...p, b: e.target.value }))}
+              onInput={(e) => {
+                const v = (e.target as HTMLInputElement).value;
+                setPass((p) => ({ ...p, b: v }));
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && busy !== "passphrase") void savePassphrase();
+              }}
               autoComplete="new-password"
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
+              enterKeyHint="done"
             />
           </FieldRow>
           <ActionRow
             label={status.hasPassphrase ? "Change passphrase" : "Save passphrase"}
             onClick={savePassphrase}
-            disabled={pass.a.length < 8 || pass.a !== pass.b}
             busy={busy === "passphrase"}
             id="admin-pass-save"
           />
@@ -672,7 +713,6 @@ export default function AdminPage() {
                     <ActionRow
                       label="Save"
                       onClick={() => saveProvider(p.id)}
-                      disabled={!d.id || !d.secret}
                       busy={busy === `save-${p.id}`}
                       id={`admin-save-${p.id}`}
                     />
