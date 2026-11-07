@@ -34,6 +34,7 @@ import type {
   NightRules,
   Playlist,
   PlaylistStats,
+  PreferredFamily,
   Slot,
   Song,
   Tanda,
@@ -467,10 +468,93 @@ export function compose(
       }) ?? null
     );
   })();
-  const reservedFamily = (c: { orchestraId: string; singer: string | null }) =>
-    !!ultimaReserve &&
-    c.orchestraId === ultimaReserve.orchestraId &&
-    (c.singer ?? "") === (ultimaReserve.singer ?? "");
+  const sameFamily = (r: TandaCandidate | null, c: { orchestraId: string; singer: string | null }) =>
+    !!r && c.orchestraId === r.orchestraId && (c.singer ?? "") === (r.singer ?? "");
+  // round 11 (R2): a second closer-class family is reserved for the pre-summit shoulder (the two tango slots before
+  // the main peak), so that stretch is not left to the two-hit families once the caps have spoken
+  const mainPeak = slots.filter((s) => s.peak).at(-1)?.index ?? -1;
+  const shoulderSlots = new Set(
+    slots
+      .filter((s) => s.rhythm === "tango" && s.index < mainPeak && s.index >= mainPeak - 3)
+      .map((s) => s.index),
+  );
+  const shoulderReserve: TandaCandidate | null = (() => {
+    if (!ultimaReserve || mainPeak < 0 || !shoulderSlots.size) return null;
+    const closers = byRhythm.tango.filter(
+      (c) =>
+        c.vocal &&
+        c.orchestraId !== ultimaReserve.orchestraId &&
+        c.orchestraId !== "juan-d-arienzo" &&
+        c.orchestraId !== "osvaldo-pugliese" &&
+        c.orchestraId !== "alfredo-de-angelis" &&
+        c.songs.filter((s) => (s.fame ?? 0) >= 2).length >= o.tangoTandaSize &&
+        !cat.profile(c.orchestraId)?.avoidMainPeak &&
+        (sc.phase(c.orchestraId)?.includes("peak") ?? true),
+    );
+    const srng = makeRng((seed ^ 0x7f4a7c15) >>> 0);
+    return (
+      srng.weighted(closers, (c) => {
+        const es = c.songs
+          .map((s) => s.energy ?? 50)
+          .sort((a, b) => b - a)
+          .slice(0, o.tangoTandaSize);
+        const e = es.reduce((a, b) => a + b, 0) / Math.max(1, es.length);
+        const fame = c.songs.reduce((a, s) => a + (s.fame ?? 0), 0);
+        const shift = c.singer ? (cat.profile(c.orchestraId)?.singerShift?.[c.singer] ?? 0) : 0;
+        // a canon family (Tanturi–Castillo over Tanturi–Campos) is the shoulder's first choice
+        const canon = matchFamily(canonAll, { orchestraId: c.orchestraId, singer: c.singer }) ? 3 : 1;
+        return (
+          canon * Math.max(0.05, 1 - Math.abs(e - 78) / 25) * (1 + fame / 10) * Math.max(0.3, 1 + shift / 8)
+        );
+      }) ?? null
+    );
+  })();
+  /** closer-class families (round 11): vocal, a tanda of known sides, hot enough for the shoulder or the última */
+  const closerClassList = byRhythm.tango.filter((c) => {
+    if (!c.vocal || c.songs.filter((s) => (s.fame ?? 0) >= 2).length < o.tangoTandaSize) return false;
+    const es = c.songs
+      .map((s) => s.energy ?? 50)
+      .sort((a, b) => b - a)
+      .slice(0, o.tangoTandaSize);
+    const ph = sc.phase(c.orchestraId);
+    return (
+      es.reduce((a, b) => a + b, 0) / Math.max(1, es.length) >= 72 &&
+      (!ph || ph.includes("peak") || ph.includes("build"))
+    );
+  });
+  const closerClass = new Set(closerClassList.map(famKey));
+  // round 11 (R3): under one tango chair per orchestra, a night of under 5 h draws two canon families beyond the two
+  // reserves and protects their orchestras (no instrumental, no other singer) until the canon family has played, so
+  // the three canon families the rule asks for are still there once the caps have spoken
+  const canonDraws: PreferredFamily[] = (() => {
+    if (o.hours >= 5 || o.hours < 3.5 || !canonAll.length) return [];
+    const taken = new Set([ultimaReserve?.orchestraId, shoulderReserve?.orchestraId]);
+    const pool = canonAll.filter((f) => f.orchestraId !== "juan-d-arienzo" && !taken.has(f.orchestraId));
+    const drng = makeRng((seed ^ 0x3c6ef372) >>> 0);
+    const out: PreferredFamily[] = [];
+    for (let i = 0; i < 2 && pool.length; i++) {
+      const f = drng.pick(pool.filter((x) => !out.includes(x)));
+      if (f) out.push(f);
+    }
+    return out;
+  })();
+  const protectedOrch = (c: TandaCandidate) =>
+    canonDraws.some(
+      (f) =>
+        f.orchestraId === c.orchestraId &&
+        !(c.vocal && (c.singer ?? "") === (f.singer ?? "")) &&
+        !tandas.some((t) => t.rhythm === "tango" && matchFamily([f], t)?.id === f.id),
+    );
+  const reservedFamily = (c: { orchestraId: string; singer: string | null }, slot?: Slot) =>
+    sameFamily(ultimaReserve, c) ||
+    (sameFamily(shoulderReserve, c) && !(slot && shoulderSlots.has(slot.index)));
+  /** two-hit families (De Angelis–Dante, Rodríguez–Flores, Láurenz–Casas …): fewer than three known sides */
+  const twoHit = (c: TandaCandidate) => c.vocal && c.songs.filter((s) => (s.fame ?? 0) >= 2).length < 3;
+  const strongUnused = (c: TandaCandidate, min: number) =>
+    c.songs.filter(
+      (s) => (s.fame ?? 0) >= 2 && !ctx.usedSongIds.has(s.id) && !ctx.usedTitles.has(normTitle(s.title)),
+    ).length >= min;
+  let prevWeakVocal = false;
   /** a forced orchestra still respects the repeat gap: the force waits for the next slot otherwise */
   const gapFree = (id: string) => {
     const i = ctx.recentOrchestras.indexOf(id);
@@ -493,9 +577,17 @@ export function compose(
           (slot.position >= 0.6 && (daTangoCount() < 2 || ultimaRule === "d-arienzo-rhythmic")))) ||
       (slot.rhythm === "tango" && earlyDASlot >= 0 && slot.index < earlyDASlot && daTangoCount() === 0);
     const holdRes = !!ultimaReserve && slot.index !== last;
-    if (!holdPug && !holdDA && !holdRes) return bodySc;
+    const holdSh = !!shoulderReserve && !shoulderSlots.has(slot.index) && slot.index < mainPeak;
+    // round 11 (R2): the closer-class families are the shoulder's: ×2 on 60–85 %
+    const weightOf =
+      o.hours < 5 && slot.rhythm === "tango" && slot.index !== last
+        ? (c: TandaCandidate) =>
+            closerClass.has(famKey(c)) && slot.position >= 0.6 && slot.position <= 0.85 ? 2 : 1
+        : undefined;
+    if (!holdPug && !holdDA && !holdRes && !holdSh) return { ...bodySc, weightOf };
     return {
       ...bodySc,
+      weightOf,
       maxPerNight: (id) =>
         (holdPug && id === "osvaldo-pugliese") || (holdDA && id === "juan-d-arienzo")
           ? 0
@@ -503,7 +595,11 @@ export function compose(
             ? slot.rhythm === "tango" || slot.index > last - o.orchestraRepeatGap
               ? 0
               : Math.min(1, bodySc.maxPerNight?.(id) ?? 1)
-            : bodySc.maxPerNight?.(id),
+            : holdSh && id === shoulderReserve.orchestraId
+              ? slot.rhythm === "tango" || slot.index > Math.min(...shoulderSlots) - o.orchestraRepeatGap
+                ? 0
+                : Math.min(1, bodySc.maxPerNight?.(id) ?? 1)
+              : bodySc.maxPerNight?.(id),
     };
   };
   // round 9 — the vocal governor: at most `maxInstrumentalBeforeVocal` instrumental tango tandas before the first
@@ -579,13 +675,31 @@ export function compose(
   const tangoLayers = (slot: Slot, base: TandaCandidate[]): { layers: TandaCandidate[][]; sc: Scoring } => {
     const k = constraints(slot);
     ctx.canonPending = k.canonPending;
-    const base0 = base.filter((c) => !reservedFamily(c));
+    const base0 = base.filter((c) => !reservedFamily(c, slot));
     const base1 = base0.length ? base0 : base;
-    const v = k.mustVocal ? base1.filter(isVocal) : k.mustInstr ? base1.filter((c) => !c.vocal) : base1;
+    // round 11 (R2): two-hit families only in the first 20 % or the cool-down, never two of them adjacent, and in
+    // 60–85 % a vocal family must still hold two known sides
+    const midNight = o.hours < 5 && slot.position >= 0.2 && slot.phase !== "cooldown";
+    const weakOk = (c: TandaCandidate) => (!twoHit(c) ? true : !midNight && !prevWeakVocal);
+    const strongMid = (c: TandaCandidate) =>
+      o.hours >= 5 || !c.vocal || !(slot.position >= 0.6 && slot.position <= 0.85) || strongUnused(c, 2);
+    const base2 = base1.filter((c) => weakOk(c) && strongMid(c));
+    const base3 = base2.length ? base2 : base1.filter(strongMid).length ? base1.filter(strongMid) : base1;
+    const v0 = k.mustVocal ? base3.filter(isVocal) : k.mustInstr ? base3.filter((c) => !c.vocal) : base3;
+    // the protected canon orchestras are a trailing layer in their other modes (round 11, R3)
+    const guard = canonDraws.length > 0 && slot.index !== last;
+    const early = guard ? v0.filter((c) => !protectedOrch(c)) : v0;
+    const v = early !== v0 && early.length >= 2 ? early : v0;
     const layers: TandaCandidate[][] = [];
+    // the shoulder's reserved family first in its own slots
+    if (shoulderReserve && shoulderSlots.has(slot.index)) {
+      const sh = base.filter((c) => sameFamily(shoulderReserve, c)).filter(gapFreeCand);
+      if (sh.length) layers.push(sh);
+    }
     if (k.mustCanon) layers.push(v.filter(canonFilter).filter(gapFreeCand));
     layers.push(v === base ? v : v.filter(gapFreeCand));
-    if (v !== base1) layers.push(base1);
+    if (v !== v0) layers.push(v0.filter(gapFreeCand));
+    if (v0 !== base3) layers.push(base3);
     const sc0 = scFor(slot);
     const sc = k.lean ? { ...sc0, vocalBias: (sc0.vocalBias ?? 0) + k.lean } : sc0;
     return { layers: layers.filter((l) => l.length), sc };
@@ -598,17 +712,37 @@ export function compose(
     return null;
   };
   /** a planned peak (round 9): peak material only, up to six tries for energy ≥ target − 4, the best try otherwise */
-  const buildPeak = (slot: Slot, layers: TandaCandidate[][], sc: Scoring): Tanda | null => {
+  const buildPeak = (slot: Slot, layers0: TandaCandidate[][], sc: Scoring): Tanda | null => {
     const tried = new Set<string>();
     let best: Tanda | null = null;
     // the peak chair is D'Arienzo's while he has played at most once (Echagüe 1938–39 or the instrumentals); a third
     // D'Arienzo is the last resort when nobody else reaches the summit (the review's own layout: 5, 11, 16)
+    // round 11 (R1): at the main peak the instrumental family holding three unused sides of fame ≥ 3 (1935–39:
+    // El flete, El internado, Hotel Victoria, El cencerro) comes before the 1945 set
+    const summitFamily = (c: TandaCandidate) =>
+      c.songs.filter(
+        (s) => (s.fame ?? 0) >= 3 && !ctx.usedSongIds.has(s.id) && !ctx.usedTitles.has(normTitle(s.title)),
+      ).length >= 3;
+    const isMain = slot.index === mainPeak;
+    // R1: a D'Arienzo instrumental at a planned peak is the summit family or nothing (never the 1945 set with two
+    // fame-0 sides); before the main peak the summit family itself is held for it
+    const holdSummit = (c: TandaCandidate) =>
+      c.orchestraId === "juan-d-arienzo" &&
+      !c.vocal &&
+      (!summitFamily(c) || (!isMain && slot.index < mainPeak));
+    const layers = layers0.map((l) => l.filter((c) => !holdSummit(c))).filter((l) => l.length);
     const daLayers = (vocal?: boolean) =>
       layers
         .map((l) =>
-          l.filter((c) => c.orchestraId === "juan-d-arienzo" && (vocal === undefined || c.vocal === vocal)),
+          l
+            .filter((c) => c.orchestraId === "juan-d-arienzo" && (vocal === undefined || c.vocal === vocal))
+            // the summit family is held for the main peak: last at the first summit, first at the main one
+            .filter((c) => isMain || slot.index > mainPeak || !summitFamily(c) || c.vocal)
+            .sort((a, b) => (isMain ? 1 : -1) * (Number(summitFamily(b)) - Number(summitFamily(a)))),
         )
-        .filter((l) => l.length);
+        .filter((l) => l.length)
+        .flatMap((l) => (isMain && l.some(summitFamily) ? [l.filter(summitFamily), l] : [l]));
+    const summitFirst = isMain ? daLayers(false).filter((l) => l.every(summitFamily)) : [];
     const n = daTangoCount();
     // the sampled layers first (D'Arienzo is in them with his own weight: Echagüe 1938–39, the instrumentals);
     // a D'Arienzo-only pass is the last resort for a summit nobody else can lift, up to his third tango tanda
@@ -630,7 +764,7 @@ export function compose(
       n === 0
         ? [...daCanon, ...daLayers(), ...layers]
         : n < daMax
-          ? [...(firstSummit ? [] : daCanon), ...layers, ...daLayers()]
+          ? [...summitFirst, ...(firstSummit ? [] : daCanon), ...layers, ...daLayers()]
           : layers;
     for (const l of order) {
       const pool = l.filter((c) => peakOk(sc, c));
@@ -762,7 +896,7 @@ export function compose(
         return es.length >= ult.size && es.reduce((a, b) => a + b, 0) / es.length >= ult.targetEnergy - 2;
       };
       const lists = [
-        ...(ultimaReserve ? [pref.filter(reservedFamily)] : []),
+        ...(ultimaReserve ? [pref.filter((c) => sameFamily(ultimaReserve, c))] : []),
         ...(banded.length >= 2 && banded.length < pref.length ? [banded, banded.filter(hot)] : []),
         pref,
         pref.filter(hot),
@@ -876,8 +1010,10 @@ export function compose(
     }
     if (!tanda) {
       // tango-only cap for D'Arienzo: 3 tango tandas per night (plus a vals or milonga)
+      // round 11 (R3): the body cap leaves room for the rhythmic última (three tango tandas in all)
+      const daBodyMax = ultimaRule === "d-arienzo-rhythmic" ? daTangoMax - 1 : daTangoMax;
       const cands =
-        slot.rhythm === "tango" && daTangoCount() >= daTangoMax
+        slot.rhythm === "tango" && daTangoCount() >= daBodyMax
           ? byRhythm.tango.filter((c) => c.orchestraId !== "juan-d-arienzo")
           : byRhythm[slot.rhythm];
       if (slot.rhythm === "tango" && slot.index !== last) {
@@ -907,9 +1043,23 @@ export function compose(
       );
     if (!tanda) {
       // long nights exhaust the caps: relax per-night limits and phase filters rather than leave a hole in the set
+      const peakAhead = slots.some(
+        (x) => x.peak && x.index > slot.index && x.index - slot.index <= o.orchestraRepeatGap,
+      );
+      const reservedIds = new Set([
+        ultimaReserve?.orchestraId,
+        shoulderReserve?.orchestraId,
+        ...(peakAhead && daTangoCount() >= 1 ? ["juan-d-arienzo"] : []),
+      ]);
       const relaxed: Scoring = {
         ...bodySc,
-        maxPerNight: (id) => (id === "osvaldo-pugliese" ? bodySc.maxPerNight?.(id) : 99),
+        // round 11: the reserved families stay reserved even here (a Biagi instrumental at 15 cost the última)
+        maxPerNight: (id) =>
+          id === "osvaldo-pugliese" || (reservedIds.has(id) && slot.index !== last)
+            ? id === "juan-d-arienzo"
+              ? daTangoCount()
+              : scFor(slot).maxPerNight?.(id)
+            : 99,
         notAfter: () => undefined,
         phase: () => ["any"],
         relaxed: true,
@@ -928,6 +1078,7 @@ export function compose(
     if (!tanda) continue;
     tandas.push(tanda);
     if (tanda.rhythm === "tango") {
+      prevWeakVocal = tanda.vocal && tanda.songs.filter((s) => (s.fame ?? 0) >= 2).length < 2;
       tangoDone++;
       if (tanda.vocal) {
         vocalDone++;
@@ -981,11 +1132,23 @@ export function compose(
   // cortinas: one family (or a compatible pair) per night, least-recently-used cycling, each cue ~8 points under the NEXT tanda
   const pool = cortinaPool(deps.cortinas, o.overrides?.cortinas);
   const used = new Set<string>();
-  const plan = planCortinas(pool, o, rng, tandas[1]?.energy ?? 60, tandas.length);
+  const plan = planCortinas(
+    pool,
+    o,
+    rng,
+    tandas[1]?.energy ?? 60,
+    tandas.length,
+    // the hot gaps, plus the two cues each dramatic tanda reserves (round 10: the set-up and the lift)
+    tandas.filter((t, i) => i > 0 && t.energy >= 75).length +
+      2 * tandas.filter((t) => t.style === "dramatic").length,
+  );
   // round 9: cortina lengths are jittered ±7 s around the DJ's setting (all 53 s is "the machine look"); the jitter
   // comes from its own stream so the tanda draws of a seed stay what they were
   const jrng = makeRng((seed ^ 0x5bd1e995) >>> 0);
-  const jitter: number[] = tandas.map(() => Math.round((jrng.next() - 0.5) * 14));
+  const jitter0: number[] = tandas.map(() => Math.round((jrng.next() - 0.5) * 14));
+  // round 11 (R6): the jitter is centred, so the mean cue length is the fitted base itself
+  const jMean = Math.round(jitter0.reduce((a, b) => a + b, 0) / Math.max(1, jitter0.length));
+  const jitter = jitter0.map((j) => j - jMean);
   // a cue's length: the fitted base (the setting, stretched ±8/±15 s by the fit) plus its jitter, never more than
   // 15 s from the setting (the fit's own bound) and inside the booth's 10–120 s
   const cortinaLen = (i: number, base = o.cortinaLengthSec) =>
@@ -1041,6 +1204,12 @@ export function compose(
     if (i > 0) reserveGap(i - 1); // the set-up before him (round 10: medium or slow, ≤ e70, and still a fresh cue)
   });
   const reservedIds = new Set([...reserved.values()].map((c) => c.id));
+  // round 11 (R5): the up-tempo cues are kept for the hot gaps still ahead (the warm gaps used to spend them, and
+  // the summit was left a lament or a cue from another family)
+  const hotAhead = (i: number) =>
+    tandas.filter(
+      (_, j) => j > i && j + 1 < tandas.length && (tandas[j + 1]?.energy ?? 0) >= 75 && !reserved.has(j),
+    ).length;
   // the gaps are served in play order (round 10: an extreme-first order broke the four-tanda window of small pools)
   const gapOrder = tandas.map((_, i) => i);
   for (const i of gapOrder) {
@@ -1055,7 +1224,18 @@ export function compose(
       continue;
     }
     const c =
-      reserved.get(i) ?? pickCortina(pool, next.energy, o, rng, used, plan, t.style, reservedIds, next);
+      reserved.get(i) ??
+      pickCortina(
+        pool,
+        next.energy,
+        o,
+        rng,
+        used,
+        { ...plan, hotAhead: hotAhead(i) },
+        t.style,
+        reservedIds,
+        next,
+      );
     t.cortina = c ? { ...c, lengthSec: cortinaLen(i) } : null;
     if (c) remember(c);
   }
@@ -1071,38 +1251,83 @@ export function compose(
       });
     };
     // the late tanda to drop: never one whose removal puts the same orchestra (or two vals/milongas) side by side
+    // the tanda to drop (round 11): the softest cool-down tango tanda whose removal keeps the cycle (never the
+    // última, never a V/M onto the last two chairs), else the latest tanda that keeps it
     const dropIndex = () => {
       const ok = (i: number) => {
         const a = tandas[i - 1],
-          b = tandas[i + 1];
+          b = tandas[i + 1],
+          t = tandas[i];
         return (
-          !!a && !!b && a.orchestraId !== b.orchestraId && (a.rhythm === "tango" || b.rhythm === "tango")
+          !!a &&
+          !!b &&
+          !!t &&
+          t.style !== "dramatic" && // Pugliese is never the tanda dropped (round 11)
+          t.orchestraId !== "osvaldo-pugliese" &&
+          a.orchestraId !== b.orchestraId &&
+          (a.rhythm === "tango" || b.rhythm === "tango")
         );
       };
-      return (
-        [tandas.length - 2, tandas.length - 3, tandas.length - 4].find((k) => k > 0 && ok(k)) ??
-        tandas.length - 2
-      );
+      const soft = tandas
+        .map((t, i) => ({ t, i }))
+        .filter(
+          (x) =>
+            x.i > 0 &&
+            x.i < tandas.length - 1 &&
+            x.t.rhythm === "tango" &&
+            x.t.phase === "cooldown" &&
+            !x.t.peak &&
+            ok(x.i),
+        )
+        .sort((a, b) => a.t.energy - b.t.energy)[0];
+      if (soft) return soft.i;
+      // else the latest chair whose removal keeps the cycle; none → no drop (-1)
+      for (let k = tandas.length - 2; k > 0; k--) if (ok(k)) return k;
+      return -1;
     };
     setCortinas(o.cortinaLengthSec);
     let diff = target - total();
     const withC = tandas.filter((t) => t.cortina).length;
     // a late tanda is dropped only when that lands closer to the hour than stretching every cortina by 15 s could
     // (round 10: judged against the first ±8 s flex, the ±15 s one is for the hour that would still be missed)
-    for (let drops = 0; drops < 2 && diff < 0 && tandas.length > 4 && Math.abs(diff) > withC * 8; drops++) {
+    const dropAt = withC ? withC * 5 : 240;
+    for (let drops = 0; drops < 2 && diff < 0 && tandas.length > 4 && Math.abs(diff) > dropAt; drops++) {
       const i = dropIndex();
+      if (i < 0) break;
       const removedSec = tandas[i]!.durationSec + (tandas[i]!.cortina?.lengthSec ?? 0);
       if (Math.abs(diff + removedSec) >= Math.abs(diff)) break;
       const removed = tandas.splice(i, 1)[0]!;
-      if (tandas[i - 1] && removed.cortina)
-        tandas[i - 1]!.cortina = tandas[i - 1]!.cortina ?? removed.cortina;
+      const before = tandas[i - 1];
+      const after = tandas[i];
+      if (before && after && removed.cortina) {
+        // round 11 (R5): the dropped tanda's cue was picked for the tanda that now follows, so it moves to the chair
+        // before; the cue that led into the dropped tanda is free again
+        if (before.cortina) {
+          used.delete(before.cortina.id);
+          reservedIds.delete(before.cortina.id);
+        }
+        before.cortina = {
+          ...removed.cortina,
+          lengthSec: before.cortina?.lengthSec ?? removed.cortina.lengthSec,
+        };
+      }
+      // the chairs are numbered again: a dropped tanda leaves no hole in the set
+      tandas.forEach((t, i) => {
+        t.index = i;
+      });
       diff = target - total();
     }
     const n = tandas.filter((t) => t.cortina).length;
     for (const flex of [8, 15]) {
       if (!n || Math.abs(diff) <= (flex === 8 ? 60 : 240)) break;
-      const per = Math.max(-flex, Math.min(flex, Math.round(diff / n)));
+      const per = Math.max(-5, Math.min(flex, Math.round(diff / n))); // round 11: cues shrink by 5 s at most
       setCortinas(Math.max(10, Math.min(120, o.cortinaLengthSec + per)));
+      if (per < 0) {
+        // the mean cue stays within 5 s of the setting whatever the jitter and the drops did to it
+        const mean = tandas.filter((t) => t.cortina).reduce((a, t) => a + (t.cortina?.lengthSec ?? 0), 0) / n;
+        const short = Math.ceil(o.cortinaLengthSec - 5 - mean);
+        if (short > 0) setCortinas(Math.max(10, Math.min(120, o.cortinaLengthSec + per + short)));
+      }
       diff = target - total();
     }
     // still short by more than half a tanda (no cortinas to stretch, or a long night): one more tango tanda

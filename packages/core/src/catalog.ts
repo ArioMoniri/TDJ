@@ -180,23 +180,29 @@ export class Catalog {
     // re-recording (Rawson 3:30, Mala junta 3:36): flagged, and its match confidence capped so an export re-matches it
     const fam = new Map<string, number[]>();
     const famKey = (s: Song) => `${s.orchestraId}|${s.singerId ?? ""}|${s.rhythm}`;
+    const streamSec = (s: Song) => {
+      const ms = s.resolved?.durationMs ?? s.spotify?.durationMs;
+      return ms ? ms / 1000 : 0;
+    };
     for (const s of deduped)
-      if ((s.year ?? 9999) < 1946 && s.durationSec && (s.resolved?.durationMs || s.spotify?.durationMs)) {
+      if ((s.year ?? 9999) < 1946 && streamSec(s)) {
         const arr = fam.get(famKey(s)) ?? [];
-        arr.push(s.durationSec);
+        arr.push(streamSec(s));
         fam.set(famKey(s), arr);
       }
     const median = (xs: number[]) => {
       const a = xs.slice().sort((x, y) => x - y);
       return a[Math.floor(a.length / 2)] ?? 0;
     };
+    // round 11: the guard reads the stream itself (the index length of Pugliese's Recuerdo is 2:35, its stream 491 s)
+    // and a stream under 1:55 is a cut transfer (Mano brava at 1:52), suspect too
     for (const s of deduped) {
-      if ((s.year ?? 9999) >= 1946 || !s.durationSec) continue;
-      const streamed = s.resolved?.durationMs || s.spotify?.durationMs;
-      if (!streamed) continue;
+      if ((s.year ?? 9999) >= 1946) continue;
+      const sec = streamSec(s);
+      if (!sec) continue;
       const med = median(fam.get(famKey(s)) ?? []);
       const n = fam.get(famKey(s))?.length ?? 0;
-      if (s.durationSec > 200 || (n >= 4 && med > 0 && s.durationSec > 185 && s.durationSec > 1.15 * med)) {
+      if (sec > 200 || sec < 115 || (n >= 4 && med > 0 && sec > 185 && sec > 1.15 * med)) {
         s.streamSuspect = true;
         if (s.resolved && (s.resolved.confidence ?? 1) > 0.6) s.resolved = { ...s.resolved, confidence: 0.6 };
       }
