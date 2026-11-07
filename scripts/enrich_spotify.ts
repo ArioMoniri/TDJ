@@ -2,6 +2,7 @@
  * Enrich the catalogue index with Spotify track URIs + durations and cache them in data/cache/spotify/tracks.json (committed).
  * Uses Client Credentials (no user) — set SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET. Respects the 2026 Dev-Mode search limit (≤10) and 429 retry-after.
  *   pnpm index:enrich -- --limit=500 --orchestra=juan-d-arienzo --eras=golden
+ *   pnpm index:enrich -- --ids=apps/web/public/featured/golden-double-peak.json   (just one night's sides)
  * Re-run any time: already-cached ids are skipped, so the index grows incrementally and stays in the repo.
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -51,6 +52,17 @@ async function main() {
     (s) => ["tango", "vals", "milonga"].includes(s.rhythm) && eras.has(s.era) && !(s.id in cache),
   );
   if (args.orchestra) pool = pool.filter((s) => s.orchestraId === args.orchestra);
+  if (args.ids) {
+    // --ids=<file.json>: only these song ids (a list, or a playlist/night whose tandas carry songs or tracks)
+    const j = JSON.parse(readFileSync(String(args.ids), "utf8"));
+    const list: string[] = Array.isArray(j)
+      ? j
+      : (j.tandas ?? []).flatMap((t: { songs?: { id: string }[]; tracks?: { id: string }[] }) =>
+          (t.songs ?? t.tracks ?? []).map((x) => x.id),
+        );
+    const want = new Set(list);
+    pool = songs.filter((s) => want.has(s.id) && !(s.id in cache));
+  }
   pool = pool.slice(0, Number(args.limit ?? 300));
   let hits = 0;
   for (const s of pool) {
