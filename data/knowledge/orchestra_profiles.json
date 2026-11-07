@@ -417,18 +417,30 @@
    {
     "years": [
      1938,
-     1944
+     1942
     ],
     "phase": [
      "build",
-     "peak",
-     "cooldown"
+     "peak"
     ],
-    "difficulty": 40
+    "difficulty": 40,
+    "preferred": true,
+    "note": "1941 instrumentals (Cachirulo, Milongueando en el 40) and Fiorentino 1941–42: the build/peak Troilo"
    },
    {
     "years": [
-     1945,
+     1943,
+     1945
+    ],
+    "phase": [
+     "cooldown"
+    ],
+    "difficulty": 45,
+    "note": "1943–45 instrumentals (Inspiración, Chiqué) and late Fiorentino/Marino: heavier, the second half"
+   },
+   {
+    "years": [
+     1946,
      1949
     ],
     "phase": [
@@ -876,6 +888,31 @@
   ],
   "cumparsitaVersions": [
    1942
+  ],
+  "subPeriods": [
+   {
+    "years": [
+     1938,
+     1942
+    ],
+    "phase": [
+     "build",
+     "peak"
+    ],
+    "preferred": true,
+    "note": "instrumentals, Falgás and Ortiz 1938–42: the build/peak Biagi"
+   },
+   {
+    "years": [
+     1943,
+     1950
+    ],
+    "phase": [
+     "build",
+     "cooldown"
+    ],
+    "note": "Amor and Acuña: lighter, the corpus plays them in the build and the cool-down"
+   }
   ]
  },
  {

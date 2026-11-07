@@ -70,8 +70,10 @@ export interface Song {
   transcription?: boolean;
   /** ids of duplicate rows merged into this one at index build (user edits keyed by them still apply) */
   altIds?: string[];
-  /** a collection-reissue copy (Altaya, Magenta, "coleccionistas" sets): lower pick weight, round 9 */
+  /** a collection-reissue copy (Altaya, Magenta, "coleccionistas" sets): never inside a tanda while the family has others (round 10) */
   reissue?: boolean;
+  /** round 10: a pre-1946 side whose resolved stream is over 3:20 or 115 % of its family's median: a later re-recording */
+  streamSuspect?: boolean;
   rhythmOriginal?: string;
   note?: string | null;
   /** analysed audio features (data/cache/audio/features.json or user database) */
@@ -115,6 +117,8 @@ export interface OrchestraProfile {
     difficulty?: number;
     danceable?: string;
     note?: string;
+    /** the orchestra's best sub-period: ×1.5 in the phases it names (round 10) */
+    preferred?: boolean;
   }>;
   followWith?: string[];
   shareOfNightMax?: number;

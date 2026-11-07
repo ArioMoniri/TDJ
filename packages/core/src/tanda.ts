@@ -50,15 +50,15 @@ export const isTandaEligible = (
  * compilation edit or a wrong streaming match, unless the reference corpus knows the recording.
  */
 export const SUSPECT_SIDE_SEC = 200;
-export const isSuspectSide = (s: Pick<Song, "era" | "durationSec" | "fame" | "rhythm">) =>
-  (s.rhythm === "tango" || s.rhythm === "vals" || s.rhythm === "milonga") &&
-  (s.era === "guardia-vieja" ||
-    s.era === "guardia-nueva" ||
-    s.era === "golden-early" ||
-    s.era === "golden-peak" ||
-    s.era === "golden-late") &&
-  (s.durationSec ?? 0) > SUSPECT_SIDE_SEC &&
-  (s.fame ?? 0) === 0;
+export const isSuspectSide = (s: Pick<Song, "era" | "durationSec" | "rhythm" | "fame" | "streamSuspect">) =>
+  !!s.streamSuspect ||
+  ((s.rhythm === "tango" || s.rhythm === "vals" || s.rhythm === "milonga") &&
+    (s.era === "guardia-vieja" ||
+      s.era === "guardia-nueva" ||
+      s.era === "golden-early" ||
+      s.era === "golden-peak" ||
+      s.era === "golden-late") &&
+    (s.durationSec ?? 0) > SUSPECT_SIDE_SEC);
 
 /** the song's rhythm as a DJ hears it: the index field first, the title ("Milonga …") as a last resort */
 export function songRhythm(s: Pick<Song, "title" | "rhythm">): string {
@@ -126,7 +126,7 @@ export function families(
  * Order the chosen songs inside the tanda: first the requested energy shape, then the corpus roles
  * (an opener opens, a closer closes) and, when roles are known, the least-known track as the third "test" track.
  */
-export function shapeTanda(songs: Song[], shape: ComposeOptions["tandaShape"]): Song[] {
+export function shapeTanda(songs: Song[], shape: ComposeOptions["tandaShape"], rhythm?: string): Song[] {
   const s = songs
     .slice()
     .sort(
@@ -161,7 +161,7 @@ export function shapeTanda(songs: Song[], shape: ComposeOptions["tandaShape"]): 
         out = n === 3 ? s : [s[0]!, s[1]!, s[n - 1]!, ...s.slice(2, n - 1)];
       } // rise-settle
     }
-  return enforceOrder(applyRoles(out));
+  return enforceOrder(applyRoles(out), rhythm ?? songs[0]?.rhythm);
 }
 
 /**
@@ -169,9 +169,10 @@ export function shapeTanda(songs: Song[], shape: ComposeOptions["tandaShape"]): 
  * floor gets the hit once it is warm), and the slowest side never closes a tanda (a falling shape). Corpus roles win:
  * an opener stays first and a closer stays last whatever their fame or energy.
  */
-export function enforceOrder(songs: Song[]): Song[] {
+export function enforceOrder(songs: Song[], rhythm?: string): Song[] {
   const n = songs.length;
   if (n < 3) return songs;
+  const lift = rhythm === "vals" || rhythm === "milonga"; // round 10: a vals / milonga never ends on its lowest side, closer or not
   const out = songs.slice();
   const e = (s: Song) => s.energy ?? 50;
   const swap = (i: number, j: number) => {
@@ -196,11 +197,11 @@ export function enforceOrder(songs: Song[]): Song[] {
   }
   const last = out[n - 1]!;
   const min = Math.min(...out.map(e));
-  if (e(last) === min && out.filter((s) => e(s) === min).length === 1 && last.role !== "closer") {
+  if (e(last) === min && out.filter((s) => e(s) === min).length === 1 && (lift || last.role !== "closer")) {
     // the nearest earlier chair that is not a corpus opener takes the close
     let j = n - 2;
-    while (j >= 1 && out[j]!.role === "opener") j--;
-    if (j >= 1) swap(n - 1, j);
+    while (j >= 0 && out[j]!.role === "opener") j--;
+    if (j >= 0) swap(n - 1, j);
   }
   return out;
 }
@@ -300,6 +301,8 @@ export interface Scoring {
   preferFamilies?: PreferredFamily[];
   /** profile "do not place at the main peak" (round 9): excluded from planned peak slots */
   avoidMainPeak?: (id: string) => boolean;
+  /** a relaxed scoring (caps and phases lifted): a played family may return rather than leave a hole (round 10) */
+  relaxed?: boolean;
 }
 
 const PHASE_STYLE: Record<string, Record<string, number>> = {
@@ -404,14 +407,16 @@ export function buildTanda(
         !ctx.usedSongIds.has(s.id) &&
         (!o.avoidTitleRepeats || !ctx.usedTitles.has(normTitle(s.title))),
     );
-    // round 9: a suspect side (> 3:20, unknown to the corpus) stays out while the family has enough other sides
+    // round 10: a suspect side (> 3:20 or an over-length stream, whatever its fame) is dropped while the family has
+    // another side; a collection-reissue row while the family has one more than it needs
     const sound = all.filter((s) => !isSuspectSide(s));
-    return sound.length >= need + 2 ? sound : all;
+    const clean = sound.filter((s) => !s.reissue);
+    return clean.length >= need ? clean : sound;
   };
   const count = (id: string) => ctx.recentOrchestras.filter((x) => x === id).length;
   const cap = (id: string) => {
     const m = sc.maxPerNight?.(id);
-    let base = m ?? (CORPUS_CAPS[id] ?? DEFAULT_CAP) + (o.hours > 8 ? 2 : o.hours > 5 ? 1 : 0);
+    let base = m ?? (CORPUS_CAPS[id] ?? DEFAULT_CAP) + (o.hours > 5 ? 2 : 0); // a marathon needs its regulars thrice
     const share = sc.profile?.(id)?.shareOfNightMax;
     if (share && ctx.totalSlots) base = Math.min(base, Math.max(1, Math.ceil(share * ctx.totalSlots)));
     return base;
@@ -464,7 +469,11 @@ export function buildTanda(
     const st = sc.style(c.orchestraId) ?? "balanced";
     return prevFollow.includes(st) || st === "balanced";
   };
-  const viableF = viableAll.filter(followOk).length >= 2 ? viableAll.filter(followOk) : viableAll;
+  const viableF0 = viableAll.filter(followOk).length >= 1 ? viableAll.filter(followOk) : viableAll;
+  // round 10 (corpus rule 15): never two dramatic tandas back to back (Gobbi straight into Pugliese)
+  const prevDramatic = ctx.recentOrchestras[0] ? sc.style(ctx.recentOrchestras[0]) === "dramatic" : false;
+  const notDramatic = (c: TandaCandidate) => !prevDramatic || sc.style(c.orchestraId) !== "dramatic";
+  const viableF = viableF0.filter(notDramatic).length >= 3 ? viableF0.filter(notDramatic) : viableF0;
   const viable0 = viableF.filter(contextOk).length >= 3 ? viableF.filter(contextOk) : viableF;
   const viable1 = viable0.filter(phaseOk).length >= 3 ? viable0.filter(phaseOk) : viable0;
   // the first vals/milonga of the night (≤ 20 %) is a warm-up tanda: a family more than 10 points above the slot's
@@ -487,8 +496,12 @@ export function buildTanda(
       .filter((y): y is number => !!y);
     return ys.length ? [Math.min(...ys), Math.max(...ys)] : null;
   };
+  // round 10: the same orchestra + singer never plays two tango tandas whatever the years (Rodríguez–Moreno 1941 and
+  // 1945 is "Rodríguez again" to the floor); the D'Arienzo instrumentals are the exception (early slot and summit),
+  // and a night of 5 h and more keeps the round-9 reading (overlapping years) so its regulars can return
   const playedFamily = (c: TandaCandidate) => {
     const yr = yearsOf(c);
+    const daInstr = c.orchestraId === "juan-d-arienzo" && !c.vocal;
     return (
       !!yr &&
       !!ctx.usedFamilies?.some(
@@ -496,27 +509,52 @@ export function buildTanda(
           f.orchestraId === c.orchestraId &&
           (f.singer ?? "") === (c.singer ?? "") &&
           f.rhythm === slot.rhythm &&
-          f.years[0] <= yr[1] + 1 &&
-          yr[0] <= f.years[1] + 1,
+          ((slot.rhythm === "tango" && !daInstr && o.hours < 5) ||
+            (f.years[0] <= yr[1] + 1 && yr[0] <= f.years[1] + 1)),
       )
     );
   };
-  const viable1f = viable1.filter((c) => !playedFamily(c)).length
-    ? viable1.filter((c) => !playedFamily(c))
-    : viable1;
-  const viable = warm && viable1f.filter(cool).length >= 3 ? viable1f.filter(cool) : viable1f;
-  if (!viable.length) return null;
+  // a tango slot with only played families left returns null: the caller's wider layer or pool takes over (a rule
+  // that names the closer, "D'Arienzo instrumental", may bring his family back for the última)
+  const namedCloser =
+    isLast && (o.rules?.ultimaRule === "d-arienzo-rhythmic" || o.rules?.ultimaRule === "pugliese");
+  const unplayed = viable1.filter((c) => !playedFamily(c));
+  if (!unplayed.length && slot.rhythm === "tango" && !namedCloser && !sc.relaxed) return null;
+  const viable1p = unplayed.length ? unplayed : viable1;
+  // the gap as the scorer and the invariants read it: an orchestra at i may return at i + gap (gap − 1 tandas
+  // between); round 10 aligned the builder with that reading (it used to demand one more)
   const gapOk = (c: TandaCandidate) => {
     const io = ctx.recentOrchestras.indexOf(c.orchestraId);
-    if (io !== -1 && io < o.orchestraRepeatGap) return false;
+    if (io !== -1 && io < o.orchestraRepeatGap - 1) return false;
     if (c.singer) {
       const is = ctx.recentSingers.indexOf(c.singer);
       if (is !== -1 && is < o.singerRepeatGap) return false;
     }
     return true;
   };
+  // round 10 — the fame floor: after 20 % a vocal tango family must hold three sides the corpus knows (fame ≥ 2) and
+  // the opener family at least one known side, while three such families remain
+  const strongEnough = (c: TandaCandidate) =>
+    !c.vocal || slot.rhythm !== "tango" || slot.position < 0.2
+      ? true
+      : availOf(c).filter((s) => (s.fame ?? 0) >= 2).length >= Math.min(3, need - 1);
+  const knownOpener = (c: TandaCandidate) =>
+    slot.index !== 0 || meanE(c) > slot.targetEnergy + 10 || availOf(c).some((s) => (s.fame ?? 0) > 0);
+  // the opener itself is a warm-up tanda: a family more than 10 over its target steps back while three cooler remain
+  const coolOpener = (c: TandaCandidate) => slot.index !== 0 || meanE(c) <= slot.targetEnergy + 10;
+  // counted among the vocal families only, so the floor keeps its voices and loses the deep-cut sets
+  // a weak vocal family (fewer than three known sides) plays only when nothing strong, vocal or instrumental, is
+  // gap-free; a vocal-only layer (the night owes the floor a voice) keeps the weak ones when no strong voice is left
+  const strongAny = viable1p.filter((c) => strongEnough(c) && gapOk(c)).length;
+  const viable1s = strongAny >= 1 ? viable1p.filter(strongEnough) : viable1p;
+  const viable1k = viable1s.filter(knownOpener).length >= 3 ? viable1s.filter(knownOpener) : viable1s;
+  const viable1f = viable1k.filter(coolOpener).length >= 3 ? viable1k.filter(coolOpener) : viable1k;
+  const viable = warm && viable1f.filter(cool).length >= 3 ? viable1f.filter(cool) : viable1f;
+  if (!viable.length) return null;
   let gapPool = viable.filter(gapOk);
-  if (!gapPool.length)
+  // a pool of one or two families (an "only X" night) or a rule that names the closer may break the gap; a real pool
+  // never does (round 10)
+  if (!gapPool.length && ((viable.length <= 2 && !isLast) || namedCloser))
     gapPool = viable.filter(
       (c) => ctx.recentOrchestras[0] !== c.orchestraId && (!c.singer || ctx.recentSingers[0] !== c.singer),
     );
@@ -546,6 +584,9 @@ export function buildTanda(
     const ph = phasesOf(c);
     if (ph && (ph.includes(slot.phase) || ph.includes("any"))) w *= 1.5;
     else if (ph) w *= 0.5;
+    // round 10: the orchestra's best sub-period (Troilo 1938–42, Biagi 1938–42) ×1.5 in the phases it names
+    const spp = subPeriodOf(sc.profile?.(c.orchestraId), c.songs);
+    if (spp?.preferred && spp.phase?.includes(slot.phase)) w *= 1.5;
     const st = sc.style(c.orchestraId) ?? "balanced";
     w *= PHASE_STYLE[slot.phase]?.[st] ?? 1;
     if (sc.preferStyles?.includes(st)) w *= 1.4;
@@ -562,8 +603,10 @@ export function buildTanda(
     // gradual steps (corpus rule 15): a family more than 14 points from the previous tanda needs a reason
     if (ctx.prevEnergy !== undefined && !earlyDA) {
       const planned = slot.targetEnergy - (ctx.prevTarget ?? slot.targetEnergy);
-      const d2 = Math.abs(e - ctx.prevEnergy - planned);
-      if (d2 > 14) w *= Math.max(0.2, 1 - (d2 - 14) / 25);
+      // a tanda that undershot its target by more than 8 is not the anchor: the night climbs back (round 10)
+      const anchor = Math.max(ctx.prevEnergy, (ctx.prevTarget ?? ctx.prevEnergy) - 4);
+      const d2 = Math.abs(e - anchor - planned);
+      if (d2 > 10) w *= Math.max(0.15, 1 - (d2 - 10) / 20); // round 10: the reviewer's "shoulders" are these steps
     }
     if (av.some((s) => s.selection)) w *= 1.2;
     if (c.undated) w *= 0.25;
@@ -689,9 +732,9 @@ export function buildTanda(
   const loose = (slot.index >= 1 && slot.index <= 4) || slot.rhythm !== "tango";
   const sortedFams = scoredFams.sort((a, b) => b.w - a.w);
   const bestW = sortedFams[0]?.w ?? 0;
-  // the long tail never enters the window: a family 20× below the best is out, however flat the sampling
+  // the long tail never enters the window: a family 10× below the best is out (round 10), however flat the sampling
   const ranked = sortedFams
-    .filter((r) => r.w >= bestW / 20)
+    .filter((r) => r.w >= bestW / 10)
     .slice(0, loose ? 10 : 8)
     .map((r) => ({ c: r.c, w: r.w ** (loose ? 0.55 : 0.7) }));
   const chosen = rng.weighted(ranked, (r) => r.w)?.c;
@@ -726,9 +769,22 @@ export function buildTanda(
   // same four famous titles every night (round 8: Rawson/Ataniche/Joaquina/Jueves in 7 of 8 seeds). The weights
   // (fit, fame, canon, recent-memory penalty) still rank; the draw is flattened so runners-up get real chances.
   const firstDA = slot.rhythm === "tango" && isEarlyDArienzo(chosen) && count("juan-d-arienzo") === 0;
+  // the summit sides (El flete, El internado, Hotel Victoria: fame ≥ 4 at e85+) are kept for the peak chair; the
+  // first D'Arienzo instrumental is judged as an e70 tanda and draws from the sides near that, so it glides
+  const firstDAinstr =
+    slot.rhythm === "tango" &&
+    chosen.orchestraId === "juan-d-arienzo" &&
+    !chosen.vocal &&
+    slot.position < 0.35;
+  const summit = (s: Song) => (s.fame ?? 0) >= 4 && (s.energy ?? 50) >= 85;
+  const kept0 = firstDAinstr ? scored.filter((r) => !summit(r.s)) : scored;
+  const draw0 = kept0.length >= need * 2 ? kept0 : scored;
   if (firstDA) {
-    const near = scored.filter((r) => Math.abs((r.s.energy ?? 50) - target) <= 14);
-    const window = (near.length >= need * 2 ? near : scored)
+    const near = draw0.filter((r) => {
+      const d = (r.s.energy ?? 50) - target;
+      return d >= -14 && d <= 12;
+    });
+    const window = (near.length >= need ? near : draw0)
       .slice(0, Math.max(need * 3, 12))
       .map((r) => ({ s: r.s, w: r.w ** 0.75 }));
     while (picked.length < need && window.length) {
@@ -742,7 +798,7 @@ export function buildTanda(
     }
   }
   // greedy: first pick by weight, then prefer tracks whose analysed tempo/key/loudness sit with the tanda so far
-  const rest = firstDA ? [] : scored.slice(0, Math.max(need * 6, 24));
+  const rest = firstDA ? [] : draw0.slice(0, Math.max(need * 6, 24));
   while (picked.length < need && rest.length) {
     const anchor = picked.filter((x) => x.audio);
     let bi = 0;
@@ -775,7 +831,43 @@ export function buildTanda(
     const famousSide = scored.find((r) => (r.s.fame ?? 0) > 0 && !picked.includes(r.s))?.s;
     if (famousSide) picked[picked.length - 1] = famousSide;
   }
-  const songs = shapeTanda(picked, o.tandaShape);
+  // round 10 — the fame floor on the picks: the opener carries a known side; a vocal tango tanda after 20 % carries
+  // three sides of fame ≥ 2 when the family has them (the weakest picks give way, the first D'Arienzo draw is kept)
+  const lift = (minFame: number, want: number) => {
+    const have = () => picked.filter((s) => (s.fame ?? 0) >= minFame).length;
+    const spare = scored.filter(
+      (r) => (r.s.fame ?? 0) >= minFame && !picked.includes(r.s) && !seen.has(normTitle(r.s.title)),
+    );
+    while (have() < want && spare.length) {
+      const weak = picked
+        .map((s, i) => ({ s, i }))
+        .filter((x) => (x.s.fame ?? 0) < minFame)
+        .sort((a, b) => (a.s.fame ?? 0) - (b.s.fame ?? 0))[0];
+      if (!weak) break;
+      const next = spare.shift()!.s;
+      // a famous side cooler than the one it replaces and under the target would pull the tanda down (the última's
+      // strength comes first: Madame Ivonne at e68 is not the side to close a Tanturi–Castillo tanda with)
+      if ((next.energy ?? 50) < (weak.s.energy ?? 50) && (next.energy ?? 50) < target - 4) continue;
+      seen.add(normTitle(next.title));
+      picked[weak.i] = next;
+    }
+  };
+  if (slot.index === 0) lift(1, 1);
+  if (!firstDA && chosen.vocal && slot.rhythm === "tango" && slot.position >= 0.2)
+    lift(2, Math.min(3, need - 1));
+  // a tanda of nothing but corpus closers (the famous Di Sarli instrumentals are all tagged so) would open on one:
+  // the least famous closer gives way to a non-closer side when the family has one
+  if (picked.length >= 3 && picked.every((s) => s.role === "closer")) {
+    const other = scored.find(
+      (r) => r.s.role !== "closer" && !picked.includes(r.s) && !seen.has(normTitle(r.s.title)),
+    )?.s;
+    if (other) {
+      const weakest = picked.slice().sort((a, b) => (a.fame ?? 0) - (b.fame ?? 0))[0]!;
+      seen.add(normTitle(other.title));
+      picked[picked.indexOf(weakest)] = other;
+    }
+  }
+  const songs = shapeTanda(picked, o.tandaShape, slot.rhythm);
   const years = songs.map(dated).filter((y): y is number => !!y);
   const curve = songs.map((s) => s.energy ?? 50);
   const energy = Math.round(curve.reduce((a, b) => a + b, 0) / curve.length);

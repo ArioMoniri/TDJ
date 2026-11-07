@@ -378,7 +378,7 @@ export const CORTINA_GENRE_MAP: Record<string, string[] | null> = {
   chanson: ["chanson"],
   "italian-60s": ["canzone"],
   "greek-laiko": ["laiko", "rebetiko", "greek-song"],
-  "turkish-pop": ["turkish-pop", "turkish-rock", "anadolu-rock", "turkish-classic"],
+  "turkish-pop": ["turkish-pop", "turkish-rock", "anadolu-rock", "turkish-classic", "arabesk"],
   "80s-synth": ["synth", "80s"],
   "k-pop": ["kpop"],
   "k-indie": ["kpop"],
