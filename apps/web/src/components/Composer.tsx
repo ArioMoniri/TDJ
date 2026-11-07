@@ -772,13 +772,18 @@ export function Composer() {
   );
   useEffect(() => {
     if (!hydrated) return;
-    const wanted = new URLSearchParams(window.location.search).get("featured");
+    const params = new URLSearchParams(window.location.search);
+    const wanted = params.get("featured");
     const f = wanted && FEATURED.find((x) => x.id === wanted);
     if (!f) return;
-    void openFeatured(f.id);
+    // `&export=1` opens the Export sheet once the night is in: one tap from a shared link to Spotify
+    const thenExport = params.get("export") !== null;
+    void openFeatured(f.id).then(() => {
+      if (thenExport) setTimeout(openExport, 400);
+    });
     // the deep link is consumed once: a reload or a later compose must not re-load it
     window.history.replaceState(null, "", window.location.pathname);
-  }, [hydrated, openFeatured]);
+  }, [hydrated, openFeatured, openExport]);
   // Tonight's region defaults to the one in Settings
   const region = settings.region;
   useEffect(() => {
