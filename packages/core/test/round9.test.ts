@@ -124,13 +124,18 @@ describe("R9.2 — peaks are peaks", () => {
         );
         const phases = sp?.phase ?? prof.phase ?? [];
         expect(phases.includes("peak") || phases.includes("any"), `seed ${seed}: ${t.orchestra}`).toBe(true);
+        // round 10: the first summit holds a tanda within 6 (D'Arienzo keeps the main peak), the second within 4
         expect(t.energy, `seed ${seed}: ${t.orchestra} at ${t.index}`).toBeGreaterThanOrEqual(
-          t.targetEnergy - 4,
+          t.targetEnergy - (t.index === peaks[0]!.index ? 6 : 4),
         );
       }
-      // the última is the third peak and already must reach target − 4 (round 4)
+      // the última is the third peak and must reach target − 4 (round 4); round 10 lets a vocal closer within 8 end a
+      // night that still owes the floor a voice (the vocal band comes first)
       const ult = p.tandas.at(-1)!;
-      expect(ult.energy).toBeGreaterThanOrEqual(ult.targetEnergy - 4);
+      expect(
+        ult.energy,
+        `seed ${seed}: última ${ult.orchestra}/${ult.singer ?? "instr"}`,
+      ).toBeGreaterThanOrEqual(ult.targetEnergy - (ult.vocal ? 8 : 4));
     }
   });
   it("D'Arienzo tango tandas ≤ 3 per 4 h even with the peaks forced; Rodríguez and Donato carry avoidMainPeak", () => {
@@ -182,10 +187,10 @@ describe("R9.3 — the 1935–45 canon families", () => {
 });
 
 describe("R9.4 — track-level checks", () => {
-  it("isSuspectSide: a golden-era side over 3:20 is suspect unless the corpus knows it", () => {
+  it("isSuspectSide: a golden-era side over 3:20 is suspect (round 10: whatever the corpus knows)", () => {
     const base = { era: "golden-early", rhythm: "tango", durationSec: 205, fame: 0 } as Song;
     expect(isSuspectSide(base)).toBe(true);
-    expect(isSuspectSide({ ...base, fame: 3 })).toBe(false);
+    expect(isSuspectSide({ ...base, fame: 3 })).toBe(true);
     expect(isSuspectSide({ ...base, durationSec: 190 })).toBe(false);
     expect(isSuspectSide({ ...base, era: "nuevo" })).toBe(false);
   });

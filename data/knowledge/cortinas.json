@@ -224,7 +224,6 @@
     "startSec": 0,
     "lengthSec": 40,
     "tags": [
-      "theme:turkish-classics",
       "danceable-risk",
       "tempo:up",
       "mood:club"
@@ -477,7 +476,6 @@
     "startSec": 0,
     "lengthSec": 45,
     "tags": [
-      "theme:turkish-classics",
       "tempo:up",
       "mood:pop"
     ]
@@ -494,7 +492,6 @@
     "startSec": 0,
     "lengthSec": 45,
     "tags": [
-      "theme:turkish-classics",
       "tempo:up",
       "mood:pop"
     ]
@@ -596,7 +593,6 @@
     "startSec": 0,
     "lengthSec": 45,
     "tags": [
-      "theme:turkish-classics",
       "tempo:up",
       "mood:club"
     ]
@@ -681,7 +677,6 @@
     "startSec": 0,
     "lengthSec": 45,
     "tags": [
-      "theme:turkish-classics",
       "tempo:slow",
       "mood:arabesk"
     ]
@@ -732,9 +727,8 @@
     "startSec": 0,
     "lengthSec": 45,
     "tags": [
-      "theme:turkish-classics",
       "tempo:up",
-      "mood:ska"
+      "mood:club"
     ]
   },
   {
@@ -749,7 +743,6 @@
     "startSec": 0,
     "lengthSec": 45,
     "tags": [
-      "theme:turkish-classics",
       "tempo:up",
       "mood:rock"
     ]
@@ -888,6 +881,74 @@
     "tags": [
       "tempo:up",
       "mood:pop"
+    ]
+  },
+  {
+    "id": "c-tr-evgin-iste-oyle",
+    "title": "İşte Öyle Bir Şey",
+    "artist": "Erol Evgin",
+    "genre": "turkish-pop",
+    "culture": "turkish",
+    "language": "tr",
+    "energy": 72,
+    "year": 1977,
+    "startSec": 0,
+    "lengthSec": 45,
+    "tags": [
+      "theme:turkish-classics",
+      "tempo:up",
+      "mood:festive"
+    ]
+  },
+  {
+    "id": "c-tr-duru-ben-sana",
+    "title": "Ben Sana Vurgunum",
+    "artist": "Nükhet Duru",
+    "genre": "turkish-pop",
+    "culture": "turkish",
+    "language": "tr",
+    "energy": 66,
+    "year": 1979,
+    "startSec": 0,
+    "lengthSec": 45,
+    "tags": [
+      "theme:turkish-classics",
+      "tempo:medium",
+      "mood:warm"
+    ]
+  },
+  {
+    "id": "c-tr-mfo-peki-peki",
+    "title": "Peki Peki Anladık",
+    "artist": "MFÖ",
+    "genre": "turkish-pop",
+    "culture": "turkish",
+    "language": "tr",
+    "energy": 70,
+    "year": 1984,
+    "startSec": 0,
+    "lengthSec": 45,
+    "tags": [
+      "theme:turkish-classics",
+      "tempo:up",
+      "mood:playful"
+    ]
+  },
+  {
+    "id": "c-tr-yeni-turku-olmasa",
+    "title": "Olmasa Mektubun",
+    "artist": "Yeni Türkü",
+    "genre": "turkish-pop",
+    "culture": "turkish",
+    "language": "tr",
+    "energy": 56,
+    "year": 1983,
+    "startSec": 0,
+    "lengthSec": 45,
+    "tags": [
+      "theme:turkish-classics",
+      "tempo:medium",
+      "mood:nostalgic"
     ]
   }
 ]

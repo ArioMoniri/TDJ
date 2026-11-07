@@ -227,7 +227,7 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     year: 2004,
     startSec: 0,
     lengthSec: 45,
-    tags: ["theme:turkish-classics", "tempo:up", "mood:rock"],
+    tags: ["tempo:up", "mood:rock"],
   },
   {
     id: "c-tr-3",
@@ -669,9 +669,12 @@ export function cortinaTempo(c: Pick<Cortina, "tags" | "energy">): "up" | "mediu
   if (tag === "up" || tag === "medium" || tag === "slow") return tag;
   return c.energy >= 70 ? "up" : c.energy >= 55 ? "medium" : "slow";
 }
-/** the cue after a dramatic tanda (Pugliese) must lift the room: energy ≥ 60 and at least a medium tempo (round 9) */
+/** the cue after a dramatic tanda (Pugliese) must lift the room: an up-tempo cue at e70 or more (round 10) */
 export const upbeatCortina = (c: Pick<Cortina, "tags" | "energy">) =>
-  c.energy >= 60 && cortinaTempo(c) !== "slow";
+  c.energy >= 70 && cortinaTempo(c) === "up";
+/** the cue before a dramatic tanda sets it up: medium or slow, no hotter than e70 (round 10) */
+export const moodyCortina = (c: Pick<Cortina, "tags" | "energy">) =>
+  c.energy <= 70 && cortinaTempo(c) !== "up";
 
 /** how many distinct cortinas a night of `tandas` needs: 8 per 4 h (round 8), 4 for a short práctica */
 export const distinctCortinasNeeded = (tandas: number) => Math.min(8, Math.max(4, Math.ceil(tandas / 3)));
@@ -727,6 +730,9 @@ export function candidatesFor(pool: Cortina[], o: ComposeOptions): Cortina[] {
   if (o.cortinaTrend === "classic") {
     const t = cands.filter((c) => !c.trend);
     if (t.length >= 3) cands = t;
+    // round 10: club cues (Eurovision pop, ska-punk) are not what a classic night plays
+    const q = cands.filter((c) => !c.tags?.includes("mood:club"));
+    if (q.length >= 3) cands = q;
   }
   return eraFiltered(cands.length ? cands : pool, o);
 }
@@ -813,29 +819,48 @@ export function pickCortina(
   plan: CortinaPlan,
   afterStyle?: string,
   exclude?: Set<string>,
+  next?: { rhythm?: string; style?: string },
 ): Cortina | null {
   if (o.cortinaStyle === "none") return null;
   if (plan.constant) return plan.constant;
-  const all00 = plan.pool ?? candidatesFor(pool, o);
+  const all000 = plan.pool ?? candidatesFor(pool, o);
   // cues reserved for other gaps (the one after Pugliese) are not this gap's to take
-  const all0 =
-    exclude?.size && all00.some((c) => !exclude.has(c.id)) ? all00.filter((c) => !exclude.has(c.id)) : all00;
+  const all00 =
+    exclude?.size && all000.some((c) => !exclude.has(c.id))
+      ? all000.filter((c) => !exclude.has(c.id))
+      : all000;
+  // round 10 — placement: never a slow cue into a vals or milonga; before a dramatic tanda a medium or slow cue
+  // no hotter than e70 (Düm Tek Tek before Pugliese is the wrong set-up)
+  const tagged = all00.some((c) => c.tags?.some((t) => t.startsWith("tempo:")));
+  const placed =
+    next?.rhythm === "vals" || next?.rhythm === "milonga"
+      ? tagged
+        ? all00.filter((c) => cortinaTempo(c) !== "slow")
+        : all00
+      : next?.style === "dramatic"
+        ? all00.filter(moodyCortina)
+        : all00;
+  const all0 = placed.length >= 2 ? placed : all00;
+  const placedOnly = all0 !== all00;
   const inFamily = (xs: Cortina[]) => {
     if (!plan.families.length) return xs;
     const f = xs.filter((c) => plan.families.includes(familyOf(c)));
-    return f.length >= 3 ? f : xs;
+    return f.length >= 2 ? f : xs;
   };
-  const cands0 = inFamily(all0);
   const order = [...used];
   // same id within 4 tandas: never; the same cue twice in the night: never while the family (≥ tandas/2 cues) still
   // has fresh ones — the family is never left for the sake of freshness, so a small family cycles least-recently-used
   const usedSet = new Set(order);
+  // judged on the whole family, before this gap's placement filters narrow it (round 10)
+  const famAll = inFamily(all00);
+  // a night on one culture (Turkish, Greek …) is one theme: its whole pool counts as fresh cues
+  const oneCulture = !!o.cortinaCultures?.length && !o.cortinaCultures.includes("global");
   const noRepeat =
     plan.tandas !== undefined &&
-    cands0.length >= Math.ceil(plan.tandas / 2) &&
-    cands0.some((c) => !usedSet.has(c.id));
+    famAll.length >= Math.ceil(plan.tandas / 2) &&
+    (famAll.some((c) => !usedSet.has(c.id)) || (oneCulture && all00.some((c) => !usedSet.has(c.id))));
   const recent = noRepeat ? usedSet : new Set(order.slice(-3));
-  const everyGapFresh = noRepeat && (plan.distinct ?? 0) >= (plan.tandas ?? 0) - 1;
+  const everyGapFresh = noRepeat && oneCulture && all0.length >= (plan.tandas ?? 0) - 1;
   const rank = (c: Cortina) => {
     const i = order.indexOf(c.id);
     return i === -1 ? -1 : i; // -1 = never used → first choice
@@ -844,28 +869,72 @@ export function pickCortina(
   // energy comes before repetition: a cue more than 20 points off the floor is a mismatch whatever its freshness
   // energy fit comes before freshness: the fresh-only pass is tried first, the four-tanda window after it
   const recent4 = new Set(order.slice(-3));
+  let fitOnly = false;
+  // on one culture the whole pool is drawn before any repeat
   const chain = (all: Cortina[], cands: Cortina[]) => {
-    for (const rec of noRepeat ? [recent, recent4] : [recent4]) {
-      let near = cands.filter((c) => fitOf(c) <= 20 && !rec.has(c.id));
-      if (!near.length) near = cands.filter((c) => fitOf(c) <= 27 && !rec.has(c.id)); // stay in the family a little off the floor
-      if (!near.length) near = all.filter((c) => fitOf(c) <= 20 && !rec.has(c.id)); // rather than mismatch it
-      if (!near.length) near = all.filter((c) => fitOf(c) <= 27 && !rec.has(c.id));
+    // passes: fresh in the family, fresh anywhere in the culture (one-culture nights), then the four-tanda window
+    const passes: Array<[Set<string>, Cortina[], Cortina[]]> = noRepeat
+      ? oneCulture
+        ? [
+            [recent, all, cands],
+            [recent, all0, all0],
+            [recent4, all, cands],
+          ]
+        : [
+            [recent, all, cands],
+            [recent4, all, cands],
+          ]
+      : [[recent4, all, cands]];
+    for (const [rec, a, cs] of passes) {
+      let near = cs.filter((c) => fitOf(c) <= 20 && !rec.has(c.id));
+      if (!near.length) near = cs.filter((c) => fitOf(c) <= 27 && !rec.has(c.id)); // stay in the family a little off the floor
+      // on a global night a used family cue outside the four-tanda window beats a cue from another family; on a
+      // one-culture night the next pass (a fresh cue of the culture) comes first (round 10)
+      if (!near.length && rec !== recent4 && !oneCulture)
+        near = cs.filter((c) => fitOf(c) <= 27 && !recent4.has(c.id));
+      if (!near.length) near = a.filter((c) => fitOf(c) <= 20 && !rec.has(c.id)); // rather than mismatch it
+      if (!near.length) near = a.filter((c) => fitOf(c) <= 27 && !rec.has(c.id));
       // a family that can give every gap its own cue: a fresh cue a little further off the floor beats a repeat
       if (!near.length && rec === recent && everyGapFresh)
-        near = all.filter((c) => fitOf(c) <= 36 && !rec.has(c.id));
+        near = a.filter((c) => fitOf(c) <= 36 && !rec.has(c.id));
       if (near.length) return near;
     }
-    let near = cands.filter((c) => !recent4.has(c.id));
+    // nothing fresh fits: a used cue within the fit (family first, then the pool), then whatever the window allows
+    let near = cands.filter((c) => !recent4.has(c.id) && fitOf(c) <= 27);
+    if (!near.length) near = all.filter((c) => !recent4.has(c.id) && fitOf(c) <= 27);
+    if (!near.length) near = cands.filter((c) => !recent4.has(c.id));
     if (!near.length) near = all.filter((c) => !recent4.has(c.id));
+    fitOnly = true;
     return near;
   };
-  // after Pugliese (or any dramatic tanda) the one cue that must be unmistakably upbeat is this one (round 9)
-  const lifted = afterStyle === "dramatic" ? all0.filter(upbeatCortina) : [];
-  // with fresh family cues left, the family is the whole pool (no drift into other genres for freshness)
-  const scope = noRepeat ? cands0 : all0;
-  let near = lifted.length >= 2 ? chain(scope.filter(upbeatCortina), inFamily(lifted)) : [];
-  if (!near.length) near = chain(scope, cands0);
-  if (!near.length && noRepeat) near = chain(all0, cands0);
+  // pools in priority (round 10): after Pugliese the cue is upbeat whatever the next tanda (the lift beats the fit),
+  // then the placement rule (no slow cue into a vals/milonga, a moody one into Pugliese), then the whole pool
+  const scopeOf = (xs: Cortina[]) => (noRepeat ? inFamily(xs) : xs);
+  // the set-up of a dramatic tanda outranks the lift after one (Gobbi straight into Pugliese)
+  const lifted = afterStyle === "dramatic" && next?.style !== "dramatic" ? all00.filter(upbeatCortina) : [];
+  const pools: Array<[Cortina[], Cortina[]]> = [];
+  if (lifted.length >= 2) {
+    const liftedPlaced = all0.filter(upbeatCortina);
+    if (liftedPlaced.length >= 2 && placedOnly) pools.push([scopeOf(liftedPlaced), inFamily(liftedPlaced)]);
+    pools.push([scopeOf(lifted), inFamily(lifted)]);
+  } else {
+    if (placedOnly) pools.push([scopeOf(all0), inFamily(all0)]);
+    // the set-up of Pugliese is a rule, the slow-cue rule into a vals/milonga a preference the fit may override
+    if (next?.style !== "dramatic" || !placedOnly) pools.push([scopeOf(all00), inFamily(all00)]);
+  }
+  let near: Cortina[] = [];
+  let firstTry: Cortina[] = [];
+  for (const [scope, cands] of pools) {
+    fitOnly = false;
+    near = chain(scope, cands);
+    if (near.length && !firstTry.length) firstTry = near;
+    if (near.length && !fitOnly) break;
+  }
+  if (!near.length || fitOnly) {
+    // nothing fits anywhere: the first pool's own best fit (the lift, when there is one)
+    near = firstTry;
+    fitOnly = true;
+  }
   const all = all0;
   // the same cue twice in a row: never, whatever the pool (a single-cue pool is the constant style, not a loop)
   const lastId = order[order.length - 1];
@@ -879,8 +948,13 @@ export function pickCortina(
   // which spent Dağlar Dağlar on the hottest gap); otherwise the least-recently-used third, weighted by energy fit
   const fresh = near.filter((c) => rank(c) === -1).sort((a, b) => fitOf(a) - fitOf(b));
   const sorted = near.slice().sort((a, b) => rank(a) - rank(b));
-  const pickFrom = fresh.length
-    ? fresh.slice(0, Math.max(3, Math.ceil(fresh.length / 3)))
-    : sorted.slice(0, Math.max(3, Math.ceil(sorted.length / 3)));
+  const byFit = near.slice().sort((a, b) => fitOf(a) - fitOf(b));
+  const pickFrom = fitOnly
+    ? byFit.filter((c) => fitOf(c) <= 27).length
+      ? byFit.filter((c) => fitOf(c) <= 27).slice(0, 3)
+      : byFit.slice(0, 2)
+    : fresh.length
+      ? fresh.slice(0, Math.max(3, Math.ceil(fresh.length / 3)))
+      : sorted.slice(0, Math.max(3, Math.ceil(sorted.length / 3)));
   return rng.weighted(pickFrom, (c) => Math.max(0.05, 1 - fitOf(c) / 28) ** 2) ?? null;
 }

@@ -175,6 +175,32 @@ export class Catalog {
         deduped.push(s);
       } else if (richness(s) > richness(deduped[i]!)) deduped[i] = s;
     }
+    // round 10 — the stream-length guard: the index durations are the resolved stream lengths, and a pre-1946 side whose
+    // stream runs over 3:20, or 15 % over its family's (orchestra, singer, rhythm) median, is a match to a later
+    // re-recording (Rawson 3:30, Mala junta 3:36): flagged, and its match confidence capped so an export re-matches it
+    const fam = new Map<string, number[]>();
+    const famKey = (s: Song) => `${s.orchestraId}|${s.singerId ?? ""}|${s.rhythm}`;
+    for (const s of deduped)
+      if ((s.year ?? 9999) < 1946 && s.durationSec && (s.resolved?.durationMs || s.spotify?.durationMs)) {
+        const arr = fam.get(famKey(s)) ?? [];
+        arr.push(s.durationSec);
+        fam.set(famKey(s), arr);
+      }
+    const median = (xs: number[]) => {
+      const a = xs.slice().sort((x, y) => x - y);
+      return a[Math.floor(a.length / 2)] ?? 0;
+    };
+    for (const s of deduped) {
+      if ((s.year ?? 9999) >= 1946 || !s.durationSec) continue;
+      const streamed = s.resolved?.durationMs || s.spotify?.durationMs;
+      if (!streamed) continue;
+      const med = median(fam.get(famKey(s)) ?? []);
+      const n = fam.get(famKey(s))?.length ?? 0;
+      if (s.durationSec > 200 || (n >= 4 && med > 0 && s.durationSec > 185 && s.durationSec > 1.15 * med)) {
+        s.streamSuspect = true;
+        if (s.resolved && (s.resolved.confidence ?? 1) > 0.6) s.resolved = { ...s.resolved, confidence: 0.6 };
+      }
+    }
     this.songs = deduped;
     // analysed audio refines energy within an orchestra: a track louder/denser than its orchestra's analysed
     // mean moves up, a softer one down (±10 max). Explicit per-track energy (overrides) is left alone.
