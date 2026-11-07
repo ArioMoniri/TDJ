@@ -1,10 +1,10 @@
 {
-  "builtAt": "2026-10-20T07:17:13.071212+00:00",
-  "songs": 19119,
+  "builtAt": "2026-11-07T06:26:46.446353+00:00",
+  "songs": 19118,
   "orchestras": 795,
   "singers": 1069,
   "rhythms": {
-    "tango": 15178,
+    "tango": 15177,
     "vals": 1488,
     "milonga": 1004,
     "other": 386,
@@ -30,7 +30,7 @@
     "unknown": 1957,
     "golden-peak": 1512,
     "contemporary": 1062,
-    "golden-early": 961,
+    "golden-early": 960,
     "guardia-vieja": 779
   },
   "sources": [
@@ -38,9 +38,9 @@
     "Listado_Total_de_canciones_Filtrado.xls"
   ],
   "rawRows": 21932,
-  "mergedDuplicates": 2813,
-  "transcriptions": 1296,
-  "yearApprox": 1930,
+  "mergedDuplicates": 2814,
+  "transcriptions": 1295,
+  "yearApprox": 1929,
   "rhythmFixed": 59,
   "pseudoSingers": 95,
   "version": 3

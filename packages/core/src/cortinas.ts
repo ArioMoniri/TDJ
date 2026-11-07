@@ -214,6 +214,7 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     energy: 50,
     startSec: 0,
     lengthSec: 45,
+    tags: ["theme:turkish-classics", "tempo:slow", "mood:lament"],
   },
   {
     id: "c-tr-2",
@@ -226,6 +227,7 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     year: 2004,
     startSec: 0,
     lengthSec: 45,
+    tags: ["theme:turkish-classics", "tempo:up", "mood:rock"],
   },
   {
     id: "c-tr-3",
@@ -238,6 +240,7 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     year: 1997,
     startSec: 0,
     lengthSec: 40,
+    tags: ["theme:turkish-classics", "tempo:up", "mood:playful", "danceable-risk"],
   },
   {
     id: "c-tr-4",
@@ -249,6 +252,7 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     energy: 40,
     startSec: 0,
     lengthSec: 45,
+    tags: ["theme:turkish-classics", "tempo:slow", "mood:classic"],
   },
   {
     id: "c-tr-5",
@@ -274,6 +278,7 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     year: 1985,
     startSec: 0,
     lengthSec: 45,
+    tags: ["theme:turkish-classics", "tempo:medium", "mood:warm"],
   },
   // Greek
   {
@@ -652,7 +657,21 @@ export interface CortinaPlan {
   pool?: Cortina[];
   /** why the requested cultures/genres/trend were not used (fewer than 8 distinct cues) */
   fallback?: string;
+  /** how many gaps the night has (round 9: a pool of ≥ tandas/2 cues never repeats a cue) */
+  tandas?: number;
+  /** distinct cues the chosen families hold (round 9: compose serves the hottest gaps first when no cue may repeat) */
+  distinct?: number;
 }
+
+/** a cue's tempo for the floor: its `tempo:` tag, else read from the energy (≥ 70 up, ≥ 55 medium, else slow) */
+export function cortinaTempo(c: Pick<Cortina, "tags" | "energy">): "up" | "medium" | "slow" {
+  const tag = c.tags?.find((t) => t.startsWith("tempo:"))?.slice(6);
+  if (tag === "up" || tag === "medium" || tag === "slow") return tag;
+  return c.energy >= 70 ? "up" : c.energy >= 55 ? "medium" : "slow";
+}
+/** the cue after a dramatic tanda (Pugliese) must lift the room: energy ≥ 60 and at least a medium tempo (round 9) */
+export const upbeatCortina = (c: Pick<Cortina, "tags" | "energy">) =>
+  c.energy >= 60 && cortinaTempo(c) !== "slow";
 
 /** how many distinct cortinas a night of `tandas` needs: 8 per 4 h (round 8), 4 for a short práctica */
 export const distinctCortinasNeeded = (tandas: number) => Math.min(8, Math.max(4, Math.ceil(tandas / 3)));
@@ -723,7 +742,7 @@ export function planCortinas(
   firstEnergy: number,
   tandas = 22,
 ): CortinaPlan {
-  if (o.cortinaStyle === "none") return { family: null, families: [], constant: null };
+  if (o.cortinaStyle === "none") return { family: null, families: [], constant: null, tandas };
   const cands = candidatesFor(pool, o);
   if (o.cortinaStyle === "constant")
     return {
@@ -744,15 +763,28 @@ export function planCortinas(
     }
   }
   if (o.cortinaStyle === "matched")
-    return { family: null, families: [], constant: null, pool: fallback ? drawFrom : undefined, fallback };
+    return {
+      family: null,
+      families: [],
+      constant: null,
+      pool: fallback ? drawFrom : undefined,
+      fallback,
+      tandas,
+    };
   const fam = new Map<string, number>();
   for (const c of drawFrom) fam.set(familyOf(c), (fam.get(familyOf(c)) ?? 0) + 1);
   const singles = [...fam.entries()].filter(([, n]) => n >= need).map(([k]) => [k]);
   const pairs = COMPATIBLE_FAMILIES.filter(
     ([a, b]) => fam.has(a) && fam.has(b) && (fam.get(a) ?? 0) + (fam.get(b) ?? 0) >= need,
   ).map((p) => [...p]);
-  // a single family or a compatible pair: both are nights DJs play, so both are drawn from
-  const options = [...singles, ...pairs];
+  // a single family or a compatible pair: both are nights DJs play, so both are drawn from — among the ones that can
+  // give every gap its own cue when any can (round 9: never the same cortina twice), else the largest ones
+  const all = [...singles, ...pairs];
+  const sizeOf = (fs: string[]) => fs.reduce((a, f) => a + (fam.get(f) ?? 0), 0);
+  const gaps = Math.max(1, tandas - 1);
+  const full = all.filter((fs) => sizeOf(fs) >= gaps);
+  const maxSize = Math.max(0, ...all.map(sizeOf));
+  const options = full.length ? full : all.filter((fs) => sizeOf(fs) >= maxSize * 0.8);
   const pick = options.length ? rng.pick(options) : null;
   return {
     family: pick?.[0] ?? null,
@@ -760,13 +792,17 @@ export function planCortinas(
     constant: null,
     pool: fallback ? drawFrom : undefined,
     fallback,
+    tandas,
+    distinct: pick ? sizeOf(pick) : new Set(drawFrom.map((c) => c.id)).size,
   };
 }
 
 /**
  * Pick a cortina for the gap before a tanda of energy `nextEnergy`: inside the night's family, ~8 points under the
- * tanda, never the same cue within four tandas, least-recently-used first. `used` is insertion-ordered: the caller
- * re-inserts a reused id so the order stays "oldest first".
+ * tanda, never the same cue within four tandas (never twice at all when the family holds ≥ tandas/2 cues, round 9),
+ * least-recently-used first. `used` is insertion-ordered: the caller re-inserts a reused id so the order stays
+ * "oldest first". `afterStyle` is the style of the tanda just played: after a dramatic one the cue must be upbeat;
+ * `exclude` holds cues reserved for other gaps.
  */
 export function pickCortina(
   pool: Cortina[],
@@ -775,29 +811,62 @@ export function pickCortina(
   rng: Rng,
   used: Set<string>,
   plan: CortinaPlan,
+  afterStyle?: string,
+  exclude?: Set<string>,
 ): Cortina | null {
   if (o.cortinaStyle === "none") return null;
   if (plan.constant) return plan.constant;
-  const all = plan.pool ?? candidatesFor(pool, o);
-  let cands = all;
-  if (plan.families.length) {
-    const f = all.filter((c) => plan.families.includes(familyOf(c)));
-    if (f.length >= 3) cands = f;
-  }
+  const all00 = plan.pool ?? candidatesFor(pool, o);
+  // cues reserved for other gaps (the one after Pugliese) are not this gap's to take
+  const all0 =
+    exclude?.size && all00.some((c) => !exclude.has(c.id)) ? all00.filter((c) => !exclude.has(c.id)) : all00;
+  const inFamily = (xs: Cortina[]) => {
+    if (!plan.families.length) return xs;
+    const f = xs.filter((c) => plan.families.includes(familyOf(c)));
+    return f.length >= 3 ? f : xs;
+  };
+  const cands0 = inFamily(all0);
   const order = [...used];
-  const recent = new Set(order.slice(-3)); // same id within 4 tandas: never
+  // same id within 4 tandas: never; the same cue twice in the night: never while the family (≥ tandas/2 cues) still
+  // has fresh ones — the family is never left for the sake of freshness, so a small family cycles least-recently-used
+  const usedSet = new Set(order);
+  const noRepeat =
+    plan.tandas !== undefined &&
+    cands0.length >= Math.ceil(plan.tandas / 2) &&
+    cands0.some((c) => !usedSet.has(c.id));
+  const recent = noRepeat ? usedSet : new Set(order.slice(-3));
+  const everyGapFresh = noRepeat && (plan.distinct ?? 0) >= (plan.tandas ?? 0) - 1;
   const rank = (c: Cortina) => {
     const i = order.indexOf(c.id);
     return i === -1 ? -1 : i; // -1 = never used → first choice
   };
   const fitOf = (c: Cortina) => Math.abs(c.energy - (nextEnergy - 8));
   // energy comes before repetition: a cue more than 20 points off the floor is a mismatch whatever its freshness
-  let near = cands.filter((c) => fitOf(c) <= 20 && !recent.has(c.id));
-  if (!near.length) near = cands.filter((c) => fitOf(c) <= 28 && !recent.has(c.id)); // stay in the family a little off the floor
-  if (!near.length) near = all.filter((c) => fitOf(c) <= 20 && !recent.has(c.id)); // rather than mismatch it
-  if (!near.length) near = all.filter((c) => fitOf(c) <= 28 && !recent.has(c.id));
-  if (!near.length) near = cands.filter((c) => !recent.has(c.id));
-  if (!near.length) near = all.filter((c) => !recent.has(c.id));
+  // energy fit comes before freshness: the fresh-only pass is tried first, the four-tanda window after it
+  const recent4 = new Set(order.slice(-3));
+  const chain = (all: Cortina[], cands: Cortina[]) => {
+    for (const rec of noRepeat ? [recent, recent4] : [recent4]) {
+      let near = cands.filter((c) => fitOf(c) <= 20 && !rec.has(c.id));
+      if (!near.length) near = cands.filter((c) => fitOf(c) <= 27 && !rec.has(c.id)); // stay in the family a little off the floor
+      if (!near.length) near = all.filter((c) => fitOf(c) <= 20 && !rec.has(c.id)); // rather than mismatch it
+      if (!near.length) near = all.filter((c) => fitOf(c) <= 27 && !rec.has(c.id));
+      // a family that can give every gap its own cue: a fresh cue a little further off the floor beats a repeat
+      if (!near.length && rec === recent && everyGapFresh)
+        near = all.filter((c) => fitOf(c) <= 36 && !rec.has(c.id));
+      if (near.length) return near;
+    }
+    let near = cands.filter((c) => !recent4.has(c.id));
+    if (!near.length) near = all.filter((c) => !recent4.has(c.id));
+    return near;
+  };
+  // after Pugliese (or any dramatic tanda) the one cue that must be unmistakably upbeat is this one (round 9)
+  const lifted = afterStyle === "dramatic" ? all0.filter(upbeatCortina) : [];
+  // with fresh family cues left, the family is the whole pool (no drift into other genres for freshness)
+  const scope = noRepeat ? cands0 : all0;
+  let near = lifted.length >= 2 ? chain(scope.filter(upbeatCortina), inFamily(lifted)) : [];
+  if (!near.length) near = chain(scope, cands0);
+  if (!near.length && noRepeat) near = chain(all0, cands0);
+  const all = all0;
   // the same cue twice in a row: never, whatever the pool (a single-cue pool is the constant style, not a loop)
   const lastId = order[order.length - 1];
   if (!near.length) {
@@ -806,10 +875,12 @@ export function pickCortina(
       rng.weighted(notLast.length ? notLast : all, (c) => Math.max(0.05, 1 - fitOf(c) / 28) ** 2) ?? null
     );
   }
-  // least-recently-used window: the oldest third of the viable cues (fresh ones first), weighted by energy fit
+  // fresh cues first, the best-fitting third of them (round 9: a fully fresh pool used to be windowed in file order,
+  // which spent Dağlar Dağlar on the hottest gap); otherwise the least-recently-used third, weighted by energy fit
+  const fresh = near.filter((c) => rank(c) === -1).sort((a, b) => fitOf(a) - fitOf(b));
   const sorted = near.slice().sort((a, b) => rank(a) - rank(b));
-  const window = sorted.slice(0, Math.max(3, Math.ceil(sorted.length / 3)));
-  const fresh = window.filter((c) => rank(c) === -1);
-  const pickFrom = fresh.length ? fresh : window;
+  const pickFrom = fresh.length
+    ? fresh.slice(0, Math.max(3, Math.ceil(fresh.length / 3)))
+    : sorted.slice(0, Math.max(3, Math.ceil(sorted.length / 3)));
   return rng.weighted(pickFrom, (c) => Math.max(0.05, 1 - fitOf(c) / 28) ** 2) ?? null;
 }

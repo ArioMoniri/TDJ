@@ -1,3 +1,6 @@
+import { normTitle } from "./energy";
+import type { PreferredFamily } from "./types";
+
 /**
  * Corpus-distilled programming rules (docs/research/reference-corpus.md, 31 reference sets / 619 tandas).
  * Numbers are used by the composer; DJ_RULES is the condensed text handed to AI reviewers/refiners.
@@ -99,6 +102,54 @@ export const MILONGA_BANK: Record<string, number> = {
   "ricardo-tanturi": 1.5,
   "enrique-rodriguez": 1.5,
 };
+
+/**
+ * The vocal families a 1935–45 golden night is expected to carry (round 9, from the review and the corpus: these
+ * are the canonical tandas with popularity ≥ 3 in reference_sets.json). Biagi–Ortiz and Biagi–Falgás are one family.
+ */
+export const CANON_VOCAL_FAMILIES: PreferredFamily[] = [
+  { id: "canaro-maida", orchestraId: "francisco-canaro", singer: "Roberto Maida", years: [1935, 1939] },
+  { id: "di-sarli-rufino", orchestraId: "carlos-di-sarli", singer: "Roberto Rufino", years: [1939, 1943] },
+  { id: "d-arienzo-echague", orchestraId: "juan-d-arienzo", singer: "Alberto Echagüe", years: [1937, 1939] },
+  {
+    id: "troilo-fiorentino",
+    orchestraId: "anibal-troilo",
+    singer: "Francisco Fiorentino",
+    years: [1941, 1944],
+  },
+  { id: "tanturi-castillo", orchestraId: "ricardo-tanturi", singer: "Alberto Castillo", years: [1940, 1943] },
+  { id: "biagi-ortiz-falgas", orchestraId: "rodolfo-biagi", singer: "Jorge Ortiz", years: [1939, 1943] },
+  { id: "biagi-ortiz-falgas", orchestraId: "rodolfo-biagi", singer: "Andrés Falgás", years: [1939, 1940] },
+  { id: "calo-beron", orchestraId: "miguel-calo", singer: "Raúl Berón", years: [1941, 1944] },
+];
+/** how many distinct canon families a golden night of ≥ 3.5 h must carry as vocal tango tandas */
+export const CANON_FAMILIES_MIN = 3;
+/** a singer name as the index spells it matched against a family (accents and case ignored) */
+export const sameSinger = (a: string | null | undefined, b: string | null | undefined) =>
+  (a ?? "") === (b ?? "") || (!!a && !!b && normTitle(a) === normTitle(b));
+/** the preferred family a tanda / candidate belongs to (orchestra, singer, overlapping years), or undefined */
+export function matchFamily(
+  fams: PreferredFamily[] | undefined,
+  t: {
+    orchestraId: string;
+    singer: string | null;
+    yearRange?: [number, number] | null;
+    years?: [number, number] | null;
+  },
+): PreferredFamily | undefined {
+  const yr = t.yearRange ?? t.years ?? null;
+  return fams?.find(
+    (f) =>
+      f.orchestraId === t.orchestraId &&
+      sameSinger(f.singer, t.singer) &&
+      (!f.years || !yr || (yr[0] <= f.years[1] + 1 && f.years[0] <= yr[1] + 1)),
+  );
+}
+export const isCanonFamily = (t: {
+  orchestraId: string;
+  singer: string | null;
+  yearRange?: [number, number] | null;
+}) => matchFamily(CANON_VOCAL_FAMILIES, t);
 
 /** closing versions of La Cumparsita in the reference corpus (orchestra → recording years); profiles may add more */
 export const CUMPARSITA_CLOSING_YEARS: Record<string, number[]> = {

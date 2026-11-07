@@ -955,7 +955,8 @@
   "bestYears": [
    1937,
    1950
-  ]
+  ],
+  "avoidMainPeak": true
  },
  {
   "id": "francisco-canaro",
@@ -1253,7 +1254,8 @@
   "bestYears": [
    1932,
    1942
-  ]
+  ],
+  "avoidMainPeak": true
  },
  {
   "id": "angel-d-agostino",
@@ -1581,7 +1583,8 @@
   },
   "nonDanceSingers": [
    "Solo de Piano"
-  ]
+  ],
+  "tangoOnly": true
  },
  {
   "id": "francisco-lomuto",

@@ -18524,7 +18524,7 @@
    "title": "Amurado",
    "orchestraId": "pedro-laurenz",
    "orchestra": "Pedro Laurenz",
-   "singer": "Juan Carlos Casas",
+   "singer": null,
    "year": 1940,
    "rhythm": "tango",
    "fame": 5,
@@ -18543,7 +18543,8 @@
     "https://humilitan.blogspot.com/2018/11/buena-vista-milonga-playlist-october.html",
     "https://stafforini.com/tango/category/sections/tandas/page/2/",
     "https://book-tejas-music.readthedocs.io/en/latest/deejays/list-of-tandas.html"
-   ]
+   ],
+   "note": "Odeon 1940-07-29 is the instrumental (round 9); the source list carried the singer of the coupled side"
   },
   {
    "title": "Como dos extraños",

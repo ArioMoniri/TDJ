@@ -163,6 +163,25 @@ export function arcShapeFor(o: Pick<ComposeOptions, "arcShape" | "hours">): Comp
   return o.arcShape;
 }
 
+/**
+ * The planned summits of a two-peak arc (round 9): the tango slot with the highest target around the first summit
+ * (30–56 % of the night) and around the second (64–93 %). A single-peak arc has no planned peak slots (the última is
+ * handled on its own). Vals and milonga slots carry a +2/+6 offset and never count as the peak chair.
+ */
+export function peakSlotIndices(slots: Slot[], shape: ComposeOptions["arcShape"] | "classic"): number[] {
+  if (shape !== "double" && shape !== "classic") return [];
+  const best = (lo: number, hi: number) => {
+    let bi = -1;
+    for (const s of slots) {
+      if (s.rhythm !== "tango" || s.position < lo || s.position >= hi) continue;
+      if (bi === -1 || s.targetEnergy > slots[bi]!.targetEnergy) bi = s.index;
+    }
+    return bi;
+  };
+  const last = slots.length - 1;
+  return [best(0.3, 0.56), best(0.64, 0.93)].filter((i) => i >= 0 && i !== last);
+}
+
 export function applyArc(slots: Slot[], o: ComposeOptions) {
   const shape = arcShapeFor(o);
   for (const s of slots) {
@@ -177,4 +196,7 @@ export function applyArc(slots: Slot[], o: ComposeOptions) {
   }
   const last = slots[slots.length - 1];
   if (last) last.phase = "close";
+  const twoPeaks = shape === "double" || (!shape && o.arc === "classic-two-peaks");
+  for (const i of peakSlotIndices(slots, twoPeaks ? (shape === "double" ? "double" : "classic") : "single"))
+    slots[i]!.peak = true;
 }

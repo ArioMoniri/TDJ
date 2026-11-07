@@ -102,6 +102,10 @@ RHYTHM_OVERRIDE = {
 # Pugliese's 1959 La Cumparsita is the instrumental closing version; the source files it under a singers' compilation.
 SINGER_OVERRIDE = {
     ("la cumparsita", "osvaldo-pugliese", 1959): None,
+    # Láurenz "Amurado" Odeon 1940-07-29 is the instrumental every DJ plays (round 9, docs/specs/round9-engine.md §4):
+    # the source carries the singer of the coupled side ("Improvisando", Casas). Casas left Láurenz in 1940; no later
+    # Casas vocal of Amurado exists in the source, so the "1944 Casas vocal" the review asked about cannot be confirmed.
+    ("amurado", "pedro-laurenz", 1940): None,
 }
 # Radio/live/acetate transcriptions and "inéditos" compilations: bootleg-grade sources a DJ never builds a tanda from.
 TRANSCRIPTION_NOTE_RE = re.compile(r"IN[EÉ]DIT|TOMA\s*RADIO|TOMA\s*VIVO|EN\s*VIVO|\bVIVO\b|TOMA\s*TV|TOMA\s*BAILE|TOMAS?\s*Y\s*AC|AC\.-TOMA|ACETATO|ENTREVISTA", re.I)

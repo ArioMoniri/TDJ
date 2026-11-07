@@ -3001,18 +3001,6 @@
   ]
  },
  {
-  "id": "juan-carlos-casas",
-  "name": "Juan Carlos Casas",
-  "count": 15,
-  "orchestras": {
-   "Pedro Láurenz": 15
-  },
-  "yearRange": [
-   1938,
-   1942
-  ]
- },
- {
   "id": "hector-alvarado",
   "name": "Héctor Alvarado",
   "count": 15,
@@ -3076,6 +3064,18 @@
   "yearRange": [
    1927,
    1935
+  ]
+ },
+ {
+  "id": "juan-carlos-casas",
+  "name": "Juan Carlos Casas",
+  "count": 14,
+  "orchestras": {
+   "Pedro Láurenz": 14
+  },
+  "yearRange": [
+   1938,
+   1942
   ]
  },
  {

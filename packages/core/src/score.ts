@@ -276,13 +276,18 @@ export function scorePlaylist(p: Pick<Playlist, "tandas" | "closing" | "options"
     cN = 0;
   const fams = new Map<string, number>();
   const guardia = o.eras.every((e) => e === "guardia-vieja");
+  // lengths (round 9): the cues are jittered around the fitted length, so the mean must sit within ±8 s of the
+  // setting and each cue within ±10 s of that mean (a lone 60 s cue in a night of 45 s ones is still an issue)
+  const lens = t.filter((x) => x.cortina).map((x) => x.cortina!.lengthSec ?? o.cortinaLengthSec);
+  const meanLen = lens.length ? lens.reduce((a, b) => a + b, 0) / lens.length : o.cortinaLengthSec;
+  if (lens.length && Math.abs(meanLen - o.cortinaLengthSec) > 8) cbad++;
   t.forEach((x, i) => {
     const lastOne = i === t.length - 1;
     if (o.cortinaStyle !== "none" && !lastOne && !x.cortina) cbad++;
     if (x.cortina) {
       cN++;
       const l = x.cortina.lengthSec ?? o.cortinaLengthSec;
-      if (Math.abs(l - o.cortinaLengthSec) > 8) cbad++;
+      if (Math.abs(l - meanLen) > 10) cbad++;
       fams.set(familyOf(x.cortina), (fams.get(familyOf(x.cortina)) ?? 0) + 1);
       const next = t[i + 1];
       if (next && Math.abs(x.cortina.energy - next.energy) > 20) cEnergy++;
@@ -298,7 +303,7 @@ export function scorePlaylist(p: Pick<Playlist, "tandas" | "closing" | "options"
       : 1 - cbad / 6 - famPenalty - (cN ? (0.5 * cEnergy) / cN + (0.5 * cEra) / cN : 0);
   add(
     "cortina",
-    "Cortina discipline (present, length as set ±8 s, one family, energy ≤20 off the next tanda, era fit)",
+    "Cortina discipline (present, mean length as set ±8 s, one family, energy ≤20 off the next tanda, era fit)",
     6,
     cScore,
     `${cbad} issues · ${fams.size} families · ${cEnergy} energy mismatches · ${cEra} era mismatches`,
