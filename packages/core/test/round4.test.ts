@@ -432,6 +432,8 @@ describe("B11/B12/C14 — banks and variety", () => {
     const slots = SEEDS.map((seed) => golden(seed).tandas.map((t) => `${t.orchestraId}|${t.singer}`));
     for (let k = 1; k < 22; k++) {
       const fams = new Set(slots.map((x) => x[k]));
+      // round 11 (R1): the planned summit is D'Arienzo's own family by rule
+      if ([...fams].every((f) => f?.startsWith("juan-d-arienzo"))) continue;
       expect(fams.size, `slot ${k}`).toBeGreaterThanOrEqual(3);
     }
   });

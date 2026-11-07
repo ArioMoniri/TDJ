@@ -657,6 +657,8 @@ export interface CortinaPlan {
   pool?: Cortina[];
   /** why the requested cultures/genres/trend were not used (fewer than 8 distinct cues) */
   fallback?: string;
+  /** hot gaps (into ≥ e75) still ahead of this one: a warm gap leaves them the fresh up-tempo cues (round 11) */
+  hotAhead?: number;
   /** how many gaps the night has (round 9: a pool of ≥ tandas/2 cues never repeats a cue) */
   tandas?: number;
   /** distinct cues the chosen families hold (round 9: compose serves the hottest gaps first when no cue may repeat) */
@@ -730,8 +732,8 @@ export function candidatesFor(pool: Cortina[], o: ComposeOptions): Cortina[] {
   if (o.cortinaTrend === "classic") {
     const t = cands.filter((c) => !c.trend);
     if (t.length >= 3) cands = t;
-    // round 10: club cues (Eurovision pop, ska-punk) are not what a classic night plays
-    const q = cands.filter((c) => !c.tags?.includes("mood:club"));
+    // round 10: club cues (Eurovision pop, ska-punk) are not what a classic night plays; round 11: nor arabesk
+    const q = cands.filter((c) => !c.tags?.includes("mood:club") && c.genre !== "arabesk");
     if (q.length >= 3) cands = q;
   }
   return eraFiltered(cands.length ? cands : pool, o);
@@ -747,6 +749,7 @@ export function planCortinas(
   rng: Rng,
   firstEnergy: number,
   tandas = 22,
+  hotGaps = 0,
 ): CortinaPlan {
   if (o.cortinaStyle === "none") return { family: null, families: [], constant: null, tandas };
   const cands = candidatesFor(pool, o);
@@ -790,7 +793,13 @@ export function planCortinas(
   const gaps = Math.max(1, tandas - 1);
   const full = all.filter((fs) => sizeOf(fs) >= gaps);
   const maxSize = Math.max(0, ...all.map(sizeOf));
-  const options = full.length ? full : all.filter((fs) => sizeOf(fs) >= maxSize * 0.8);
+  const options0 = full.length ? full : all.filter((fs) => sizeOf(fs) >= maxSize * 0.8);
+  // round 11 (R5): the family must also carry the night's hot gaps (up or medium cues ≥ e60), or the most it can
+  const hotOf = (fs: string[]) =>
+    drawFrom.filter((c) => fs.includes(familyOf(c)) && cortinaTempo(c) !== "slow" && c.energy >= 60).length;
+  const hotEnough = options0.filter((fs) => hotOf(fs) >= hotGaps);
+  const maxHot = Math.max(0, ...options0.map(hotOf));
+  const options = hotEnough.length ? hotEnough : options0.filter((fs) => hotOf(fs) >= maxHot);
   const pick = options.length ? rng.pick(options) : null;
   return {
     family: pick?.[0] ?? null,
@@ -819,19 +828,48 @@ export function pickCortina(
   plan: CortinaPlan,
   afterStyle?: string,
   exclude?: Set<string>,
-  next?: { rhythm?: string; style?: string },
+  next?: { rhythm?: string; style?: string; energy?: number },
 ): Cortina | null {
   if (o.cortinaStyle === "none") return null;
   if (plan.constant) return plan.constant;
   const all000 = plan.pool ?? candidatesFor(pool, o);
   // cues reserved for other gaps (the one after Pugliese) are not this gap's to take
-  const all00 =
+  const all00x =
     exclude?.size && all000.some((c) => !exclude.has(c.id))
       ? all000.filter((c) => !exclude.has(c.id))
       : all000;
   // round 10 — placement: never a slow cue into a vals or milonga; before a dramatic tanda a medium or slow cue
   // no hotter than e70 (Düm Tek Tek before Pugliese is the wrong set-up)
-  const tagged = all00.some((c) => c.tags?.some((t) => t.startsWith("tempo:")));
+  const tagged = all00x.some((c) => c.tags?.some((t) => t.startsWith("tempo:")));
+  // round 11 (R5), a rule not a preference: into a hot tanda (≥ e75) the cue is up or medium and ≥ e60; a slow cue
+  // goes into ≤ e70 only; arabesk at most once a night and never into a hot tanda
+  const nextE = next?.energy ?? 0;
+  const arabeskUsed = [...used].some((id) => all000.find((c) => c.id === id)?.genre === "arabesk");
+  const placed0 = all00x.filter(
+    (c) =>
+      !(nextE >= 75 && (cortinaTempo(c) === "slow" || c.energy < 60)) &&
+      !(tagged && nextE > 70 && cortinaTempo(c) === "slow") &&
+      !(c.genre === "arabesk" && (arabeskUsed || nextE >= 75)),
+  );
+  const all00y = placed0.length ? placed0 : all00x;
+  // a warm gap leaves the family's fresh up-tempo cues to the hot gaps still ahead when they are no more than those
+  const hotEligible = (c: Cortina) => cortinaTempo(c) !== "slow" && c.energy >= 60;
+  const hoard = nextE < 75 && (plan.hotAhead ?? 0) > 0;
+  const oneCulture0 = !!o.cortinaCultures?.length && !o.cortinaCultures.includes("global");
+  const famOf = (xs: Cortina[]) => {
+    if (!plan.families.length) return xs;
+    const f = xs.filter((c) => plan.families.includes(familyOf(c)));
+    return f.length >= 1 ? f : xs;
+  };
+  // (on a one-culture night the whole culture serves the hot gaps; and a fresh up-tempo cue now beats a repeat)
+  const hotScope = oneCulture0 ? all00y : famOf(all00y);
+  const freshHot = hoard ? hotScope.filter((c) => hotEligible(c) && !used.has(c.id)) : [];
+  const freshCool = all00y.some((c) => !hotEligible(c) && !used.has(c.id));
+  const kept =
+    hoard && freshCool && freshHot.length <= (plan.hotAhead ?? 0)
+      ? all00y.filter((c) => !hotEligible(c) || used.has(c.id))
+      : all00y;
+  const all00 = kept.length >= 3 ? kept : all00y;
   const placed =
     next?.rhythm === "vals" || next?.rhythm === "milonga"
       ? tagged
@@ -845,14 +883,14 @@ export function pickCortina(
   const inFamily = (xs: Cortina[]) => {
     if (!plan.families.length) return xs;
     const f = xs.filter((c) => plan.families.includes(familyOf(c)));
-    return f.length >= 2 ? f : xs;
+    return f.length >= 1 ? f : xs;
   };
   const order = [...used];
   // same id within 4 tandas: never; the same cue twice in the night: never while the family (≥ tandas/2 cues) still
   // has fresh ones — the family is never left for the sake of freshness, so a small family cycles least-recently-used
   const usedSet = new Set(order);
   // judged on the whole family, before this gap's placement filters narrow it (round 10)
-  const famAll = inFamily(all00);
+  const famAll = inFamily(all00x);
   // a night on one culture (Turkish, Greek …) is one theme: its whole pool counts as fresh cues
   const oneCulture = !!o.cortinaCultures?.length && !o.cortinaCultures.includes("global");
   const noRepeat =
@@ -860,7 +898,8 @@ export function pickCortina(
     famAll.length >= Math.ceil(plan.tandas / 2) &&
     (famAll.some((c) => !usedSet.has(c.id)) || (oneCulture && all00.some((c) => !usedSet.has(c.id))));
   const recent = noRepeat ? usedSet : new Set(order.slice(-3));
-  const everyGapFresh = noRepeat && oneCulture && all0.length >= (plan.tandas ?? 0) - 1;
+  // judged on the culture's whole pool, before this gap's placement rules narrow it (round 11)
+  const everyGapFresh = noRepeat && oneCulture && all000.length >= (plan.tandas ?? 0) - 2;
   const rank = (c: Cortina) => {
     const i = order.indexOf(c.id);
     return i === -1 ? -1 : i; // -1 = never used → first choice
@@ -909,7 +948,9 @@ export function pickCortina(
   };
   // pools in priority (round 10): after Pugliese the cue is upbeat whatever the next tanda (the lift beats the fit),
   // then the placement rule (no slow cue into a vals/milonga, a moody one into Pugliese), then the whole pool
-  const scopeOf = (xs: Cortina[]) => (noRepeat ? inFamily(xs) : xs);
+  // round 11: the family is never left for another once its fresh cues are spent (a used family cue over a fresh
+  // cue from another family, whatever the night)
+  const scopeOf = (xs: Cortina[]) => inFamily(xs);
   // the set-up of a dramatic tanda outranks the lift after one (Gobbi straight into Pugliese)
   const lifted = afterStyle === "dramatic" && next?.style !== "dramatic" ? all00.filter(upbeatCortina) : [];
   const pools: Array<[Cortina[], Cortina[]]> = [];

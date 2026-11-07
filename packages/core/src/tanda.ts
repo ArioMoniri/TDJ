@@ -195,12 +195,61 @@ export function enforceOrder(songs: Song[], rhythm?: string): Song[] {
       if (to > 0) swap(hit.i, to);
     }
   }
-  const last = out[n - 1]!;
+  // round 11 (R4): the last side is a corpus closer, else one of the two hottest sides, and never a fame-0 side
+  // when a fame ≥ 2 side is in the tanda (Maleza closing Pugliese with Hoy al recordarla third)
+  const closerIdx = out.findIndex((s) => s.role === "closer");
+  if (closerIdx >= 0 && closerIdx !== n - 1 && !lift) swap(closerIdx, n - 1);
+  const lastNow = out[n - 1]!;
+  const top2 = out
+    .map(e)
+    .sort((a, b) => b - a)
+    .slice(0, 2);
+  const minE = Math.min(...out.map(e));
+  const uniqueMin = (s: Song) => e(s) === minE && out.filter((x) => e(x) === minE).length === 1;
+  // a known side that is not the opener and not the tanda's one lowest side (that one never closes a vals/milonga)
+  const hasFamous =
+    out.some((s) => (s.fame ?? 0) >= 2) &&
+    out.some((s) => (s.fame ?? 0) > 0 && s.role !== "opener" && !uniqueMin(s));
+  const closerOk = (s: Song) => top2.includes(e(s)) && (!hasFamous || (s.fame ?? 0) > 0);
+  if (!(lastNow.role === "closer" && !lift) && !closerOk(lastNow)) {
+    // the hottest known side that is not the opener's chair takes the close
+    const cands = out
+      .map((s, i) => ({ s, i }))
+      .filter(
+        (x) => x.i < n - 1 && x.s.role !== "opener" && (!hasFamous || (x.s.fame ?? 0) > 0) && !uniqueMin(x.s),
+      )
+      .sort((a, b) => e(b.s) - e(a.s) || (b.s.fame ?? 0) - (a.s.fame ?? 0));
+    const pick = cands.find((x) => top2.includes(e(x.s))) ?? cands[0];
+    if (pick) swap(pick.i, n - 1);
+  }
+  // the hit stays in the third chair when the close moved it forward
+  if (n >= 4) {
+    const top = Math.max(...out.map((s) => s.fame ?? 0));
+    const hits = out.map((s, i) => ({ s, i })).filter((x) => (x.s.fame ?? 0) === top);
+    const closers = out.filter((s) => s.role === "closer").length;
+    if (
+      top > 0 &&
+      hits.length === 1 &&
+      hits[0]!.i < 2 &&
+      hits[0]!.s.role !== "opener" &&
+      (out[2]!.role !== "closer" || closers >= 2)
+    ) {
+      // a corpus closer never opens: when the third chair holds one, the hit rotates in behind it
+      if (hits[0]!.i === 0 && out[2]!.role === "closer") {
+        if (out[1]!.role !== "closer") {
+          const [h, a, c] = [out[0]!, out[1]!, out[2]!];
+          out[0] = a;
+          out[1] = c;
+          out[2] = h;
+        }
+      } else swap(hits[0]!.i, 2);
+    }
+  }
   const min = Math.min(...out.map(e));
-  if (e(last) === min && out.filter((s) => e(s) === min).length === 1 && (lift || last.role !== "closer")) {
-    // the nearest earlier chair that is not a corpus opener takes the close
+  const last2 = out[n - 1]!;
+  if (e(last2) === min && out.filter((s) => e(s) === min).length === 1 && last2.role !== "closer") {
     let j = n - 2;
-    while (j >= 0 && out[j]!.role === "opener") j--;
+    while (j >= 0 && (out[j]!.role === "opener" || (hasFamous && (out[j]!.fame ?? 0) === 0))) j--;
     if (j >= 0) swap(n - 1, j);
   }
   return out;
@@ -295,6 +344,8 @@ export interface Scoring {
   /** −1..1 vocal bias, bpm-ish tempo shift (context, feedback) */
   vocalBias?: number;
   tempoShift?: number;
+  /** round 11: a per-family weight factor from the composer (closer-class families held for the shoulder) */
+  weightOf?: (c: TandaCandidate) => number;
   /** era preset preference (weight ×3) */
   preferOrchestras?: string[];
   /** families the night should carry (weight ×3 while unused): the golden canon (round 9) */
@@ -499,9 +550,16 @@ export function buildTanda(
   // round 10: the same orchestra + singer never plays two tango tandas whatever the years (Rodríguez–Moreno 1941 and
   // 1945 is "Rodríguez again" to the floor); the D'Arienzo instrumentals are the exception (early slot and summit),
   // and a night of 5 h and more keeps the round-9 reading (overlapping years) so its regulars can return
+  // round 11: the floor hears "Láurenz milonga again", "Tanturi again" whatever the singer — one tanda per
+  // (orchestra, rhythm) in a night under 5 h, D'Arienzo's tango tandas excepted (his cap of three); a marathon keeps
+  // the round-9 reading (the identical family, overlapping years)
   const playedFamily = (c: TandaCandidate) => {
     const yr = yearsOf(c);
-    const daInstr = c.orchestraId === "juan-d-arienzo" && !c.vocal;
+    const daTango = c.orchestraId === "juan-d-arienzo" && slot.rhythm === "tango";
+    // the planned summit may bring back the instrumental family the early slot opened (El flete, El internado …)
+    if (daTango && !c.vocal && slot.peak) return false;
+    if (o.hours < 5 && !daTango)
+      return !!ctx.usedFamilies?.some((f) => f.orchestraId === c.orchestraId && f.rhythm === slot.rhythm);
     return (
       !!yr &&
       !!ctx.usedFamilies?.some(
@@ -509,8 +567,8 @@ export function buildTanda(
           f.orchestraId === c.orchestraId &&
           (f.singer ?? "") === (c.singer ?? "") &&
           f.rhythm === slot.rhythm &&
-          ((slot.rhythm === "tango" && !daInstr && o.hours < 5) ||
-            (f.years[0] <= yr[1] + 1 && yr[0] <= f.years[1] + 1)),
+          f.years[0] <= yr[1] + 1 &&
+          yr[0] <= f.years[1] + 1,
       )
     );
   };
@@ -587,6 +645,7 @@ export function buildTanda(
     // round 10: the orchestra's best sub-period (Troilo 1938–42, Biagi 1938–42) ×1.5 in the phases it names
     const spp = subPeriodOf(sc.profile?.(c.orchestraId), c.songs);
     if (spp?.preferred && spp.phase?.includes(slot.phase)) w *= 1.5;
+    if (sc.weightOf) w *= sc.weightOf(c);
     const st = sc.style(c.orchestraId) ?? "balanced";
     w *= PHASE_STYLE[slot.phase]?.[st] ?? 1;
     if (sc.preferStyles?.includes(st)) w *= 1.4;
@@ -855,6 +914,9 @@ export function buildTanda(
   if (slot.index === 0) lift(1, 1);
   if (!firstDA && chosen.vocal && slot.rhythm === "tango" && slot.position >= 0.2)
     lift(2, Math.min(3, need - 1));
+  // round 11 (R1): the planned summit's D'Arienzo instrumental carries the reserved sides (El flete, El internado,
+  // Hotel Victoria, El cencerro …): three sides of fame ≥ 3 when the family holds them
+  if (slot.peak && chosen.orchestraId === "juan-d-arienzo" && !chosen.vocal) lift(3, 3);
   // a tanda of nothing but corpus closers (the famous Di Sarli instrumentals are all tagged so) would open on one:
   // the least famous closer gives way to a non-closer side when the family has one
   if (picked.length >= 3 && picked.every((s) => s.role === "closer")) {
