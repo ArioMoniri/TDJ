@@ -349,10 +349,13 @@ describe("B9 — cortina planning", () => {
     for (const t of q.tandas.slice(0, -1))
       expect(Math.abs((t.cortina!.lengthSec ?? 0) - 30)).toBeLessThanOrEqual(15);
     expect(Math.abs(q.stats.durationSec - 3 * 3600) / 60).toBeLessThanOrEqual(6);
-    // with no show break and the default length, most nights need no stretch at all
+    // with no show break and the default length, the fitted mean stays within ±8 s of the setting (round 9: the cues
+    // themselves are jittered ±7 s around that mean, never more than 15 s from the setting)
     const within8 = [1, 2, 3, 4, 5, 6].filter((seed) => {
       const r = compose({ hours: 4, seed }, deps);
-      return r.tandas.slice(0, -1).every((t) => Math.abs((t.cortina!.lengthSec ?? 0) - 45) <= 8);
+      const ls = r.tandas.slice(0, -1).map((t) => t.cortina!.lengthSec ?? 0);
+      const mean = ls.reduce((a, b) => a + b, 0) / ls.length;
+      return Math.abs(mean - 45) <= 8 && ls.every((l) => Math.abs(l - 45) <= 15);
     }).length;
     expect(within8).toBeGreaterThanOrEqual(4);
   });

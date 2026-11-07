@@ -70,6 +70,8 @@ export interface Song {
   transcription?: boolean;
   /** ids of duplicate rows merged into this one at index build (user edits keyed by them still apply) */
   altIds?: string[];
+  /** a collection-reissue copy (Altaya, Magenta, "coleccionistas" sets): lower pick weight, round 9 */
+  reissue?: boolean;
   rhythmOriginal?: string;
   note?: string | null;
   /** analysed audio features (data/cache/audio/features.json or user database) */
@@ -119,6 +121,10 @@ export interface OrchestraProfile {
   warmupOnly?: { vocal?: boolean; years?: [number, number] };
   difficulty?: number;
   cumparsitaVersions?: number[];
+  /** "do not place at the main peak" (Rodríguez, Donato): never fills a planned peak slot (round 9) */
+  avoidMainPeak?: boolean;
+  /** "use as a tango-only orchestra" (Demare): its vals and milonga families step back ×0.15 (round 9) */
+  tangoOnly?: boolean;
 }
 
 export interface Cortina {
@@ -134,6 +140,7 @@ export interface Cortina {
   startSec?: number; // suggested cue-in
   lengthSec?: number;
   spotify?: { uri: string; url?: string } | null;
+  /** "intro-only", "once-a-night", "late-night", "danceable-risk", "theme:<family>", "tempo:up|medium|slow", "mood:<word>" */
   tags?: string[];
   /** resolved streaming/preview track (data/cache/resolve/cortinas.json) */
   resolved?: import("./audio/index").ResolvedTrack | null;
@@ -149,6 +156,8 @@ export interface Slot {
   phase: Phase;
   /** fraction of the night 0..1 */
   position: number;
+  /** a planned summit of the arc (round 9): peak-phase orchestras only, energy ≥ target − 4 */
+  peak?: boolean;
 }
 
 export interface Tanda {
@@ -177,6 +186,8 @@ export interface Tanda {
   reason?: string;
   /** reserved for the birthday vals (rules.birthdayValsAt) */
   birthday?: boolean;
+  /** built for a planned peak slot (round 9) */
+  peak?: boolean;
 }
 
 export interface PlaylistStats {
@@ -197,6 +208,12 @@ export interface PlaylistStats {
   gapsSec?: number;
   /** the requested cortina pool could not carry the night (fewer than 8 distinct cues): what was used instead */
   cortinaFallback?: string;
+  /** RMSE of delivered vs target energy over the tandas (round 9) */
+  arcRmse?: number;
+  /** vocal share of the tango tandas (round 9: 0.55–0.75 in a golden night) */
+  vocalTangoShare?: number;
+  /** the planned peak slots and what they delivered (round 9) */
+  peaks?: Array<{ index: number; energy: number; target: number; orchestra: string }>;
 }
 
 export interface Playlist {
@@ -295,6 +312,8 @@ export interface ComposeOptions {
   tempoShift?: number;
   /** orchestras an era preset prefers (weight ×3) without excluding the rest */
   preferOrchestras?: string[];
+  /** families (orchestra + singer, optional years) a night should carry (weight ×3 while unused); golden: the 1935–45 canon */
+  preferFamilies?: PreferredFamily[];
   /** beginner floors: families above this profile difficulty are avoided */
   maxDifficulty?: number;
 }
@@ -324,6 +343,18 @@ export interface NightRules {
   cortinaBeforeCumparsita?: boolean;
   /** let undated / placeholder-year / transcription rows into tandas (off: they never build one) */
   allowUndated?: boolean;
+  /** at most this many instrumental tango tandas before the first vocal one (golden nights: 2; the early D'Arienzo counts) */
+  maxInstrumentalBeforeVocal?: number;
+  /** vocal share band for the tango tandas of the night (golden: [0.55, 0.75]); the composer steers inside it */
+  vocalShare?: [number, number];
+}
+
+/** a family a night should carry: orchestra + singer (null = instrumental) within a year window */
+export interface PreferredFamily {
+  id: string;
+  orchestraId: string;
+  singer: string | null;
+  years?: [number, number];
 }
 
 /** What the AI DJ and the engine remember for a user between sessions (stored in the user's database). */

@@ -49,6 +49,11 @@ export function cleanTitle(t: string): string {
     .trim();
 }
 
+/** a collection-reissue copy (round 9): "COL.ALTAYA" / "COL.MAGENTA" notes, "coleccionistas" and "colección" albums */
+const REISSUE_RE = /^COL\.|ALTAYA|MAGENTA|COLECCI|COLLECTION|COLECCIONISTAS/i;
+export const isReissueRow = (s: Pick<Song, "notes" | "album">) =>
+  REISSUE_RE.test(s.notes ?? "") || /ALTAYA|COLECCI|COLLECTION|COLECCIONISTAS/i.test(s.album ?? "");
+
 /** the key a recording is hidden by in the user's database: every copy of this orchestra + title */
 export const hideKey = (s: Pick<Song, "orchestraId" | "title">) => `${s.orchestraId}|${normTitle(s.title)}`;
 
@@ -144,6 +149,7 @@ export class Catalog {
               ? Math.round(resolved.durationMs / 1000)
               : est),
       };
+      if (song.reissue === undefined && isReissueRow(song)) song.reissue = true;
       const key = `${normTitle(song.title)}|${song.orchestraId}`;
       const fame = this.fame.get(key);
       song.fame = fame?.fame ?? 0;

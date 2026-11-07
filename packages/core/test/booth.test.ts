@@ -263,7 +263,8 @@ describe("gain priors", () => {
       -24,
     );
     // a trim on a track without features is still a gain
-    expect(planBooth(p, { trims: { [id]: -2 } }).items.find((i) => i.id === id)!.gainDb).toBe(-2);
+    const bare = p.tandas.flatMap((t) => t.songs).find((s) => !s.audio)!.id;
+    expect(planBooth(p, { trims: { [bare]: -2 } }).items.find((i) => i.id === bare)!.gainDb).toBe(-2);
     // trims are clamped to ±12 before they add
     expect(planBooth(withAudio(p, -12), { trims: { [id]: 40 } }).items.find((i) => i.id === id)!.gainDb).toBe(
       8,

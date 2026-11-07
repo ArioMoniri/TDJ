@@ -1,3 +1,4 @@
+import { CANON_VOCAL_FAMILIES } from "./rules";
 import type { OrchestraProfile } from "./types";
 
 /**
@@ -537,9 +538,12 @@ export const ERA_SETTINGS: Record<
       colourTanda: false,
       mixedMilongaVals: false,
       cortinaBeforeCumparsita: false,
+      maxInstrumentalBeforeVocal: 2,
+      vocalShare: [0.55, 0.75],
     },
+    preferFamilies: CANON_VOCAL_FAMILIES,
     notes:
-      "Canonical milonga programming: TTVTTM, 4-3-3, strict orchestra/singer coherence, Pugliese once and late, La Cumparsita closes.",
+      "Canonical milonga programming: TTVTTM, 4-3-3, strict orchestra/singer coherence, Pugliese once and late, La Cumparsita closes; voices early (≤ 2 instrumental tango tandas before the first vocal), 55–75 % vocal tango tandas, the 1935–45 canon families preferred.",
   },
   "golden-extended": {
     pattern: "classic",
@@ -558,7 +562,10 @@ export const ERA_SETTINGS: Record<
       colourTanda: true,
       mixedMilongaVals: false,
       cortinaBeforeCumparsita: false,
+      maxInstrumentalBeforeVocal: 2,
+      vocalShare: [0.55, 0.75],
     },
+    preferFamilies: CANON_VOCAL_FAMILIES,
     notes: "Golden rules with one 'colour' tanda allowed (late 1950s instrumentals, a foxtrot tanda).",
   },
   "guardia-vieja": {

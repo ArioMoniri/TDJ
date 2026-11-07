@@ -2532,18 +2532,38 @@
   "coverage": null
  },
  {
-  "id": "pedro-laurenz",
-  "name": "Pedro Láurenz",
+  "id": "conj-tipico-y-guit",
+  "name": "Conj.típico y Guit.",
   "count": 73,
   "rhythms": {
-   "tango": 54,
+   "tango": 61,
+   "vals": 8,
+   "cancion": 3,
+   "other": 1
+  },
+  "singers": {
+   "Héctor Mauré": 73
+  },
+  "vocal": 73,
+  "yearRange": [
+   1957,
+   1961
+  ],
+  "coverage": null
+ },
+ {
+  "id": "pedro-laurenz",
+  "name": "Pedro Láurenz",
+  "count": 72,
+  "rhythms": {
+   "tango": 53,
    "milonga": 11,
    "vals": 7,
    "ranchera": 1
   },
   "singers": {
-   "Juan Carlos Casas": 15,
    "Alberto Podestá": 15,
+   "Juan Carlos Casas": 14,
    "Carlos Bermudez": 7,
    "Martín Podestá": 4,
    "Jorge Linares": 4,
@@ -2554,7 +2574,7 @@
    "Alberto Fuentes": 1,
    "C. Bermudez - J. Linares": 1
   },
-  "vocal": 59,
+  "vocal": 58,
   "yearRange": [
    1937,
    1953
@@ -2594,26 +2614,6 @@
    },
    "activePeriod": "1937 - 1968"
   }
- },
- {
-  "id": "conj-tipico-y-guit",
-  "name": "Conj.típico y Guit.",
-  "count": 73,
-  "rhythms": {
-   "tango": 61,
-   "vals": 8,
-   "cancion": 3,
-   "other": 1
-  },
-  "singers": {
-   "Héctor Mauré": 73
-  },
-  "vocal": 73,
-  "yearRange": [
-   1957,
-   1961
-  ],
-  "coverage": null
  },
  {
   "id": "conjunto-tipico",
