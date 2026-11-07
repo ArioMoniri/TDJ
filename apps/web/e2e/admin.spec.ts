@@ -365,7 +365,8 @@ test("the page: unlock with the passphrase, paste Google credentials beside the 
   await expect(page.locator("#admin-uri-google-0").getByRole("button", { name: "Copy" })).toBeVisible();
   await expect(page.locator("#admin-uri-spotify-1")).toContainText(`${APP}/callback`);
   await expect(page.locator("#admin-test-button-google")).toHaveCount(0);
-  await expect(page.locator("#admin-save-google")).toBeDisabled();
+  await page.locator("#admin-save-google").click();
+  await expect(page.getByTestId("toast")).toContainText("Paste the Client ID first");
   await page.locator("#admin-id-google").fill(GG.id);
   await page.locator("#admin-secret-google").fill(GG.secret);
   await expect(page.locator("#admin-secret-google")).toHaveAttribute("type", "password");
