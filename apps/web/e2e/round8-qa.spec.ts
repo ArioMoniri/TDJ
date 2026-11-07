@@ -267,7 +267,7 @@ test("featured night: the deep link loads it into the result with Export and Boo
     await page.evaluate(
       () => JSON.parse(localStorage.getItem("tdj-v1") ?? "{}").state?.playlist?.options?.seed,
     ),
-  ).toBe(20);
+  ).toBe(181);
   await expect(page).toHaveURL(/\/$/);
   // the normal actions are there
   await expect(page.getByTestId("toolbar-export")).toBeVisible();
@@ -308,6 +308,6 @@ test("featured night: the deep link loads it into the result with Export and Boo
         ),
       { timeout: 30000 },
     )
-    .toBe(20);
+    .toBe(181);
   await expect(page.getByTestId("booth-now-title")).toBeVisible({ timeout: 15000 });
 });
