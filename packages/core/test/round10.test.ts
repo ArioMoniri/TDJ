@@ -55,13 +55,22 @@ const both = (seed: number) => [night(seed), golden(seed)];
 const tangos = (p: Playlist) => p.tandas.filter((t) => t.rhythm === "tango");
 
 describe("R10.1 — one orchestra at most twice (all rhythms), the última never a repeat, a family once", () => {
-  it("no orchestra other than D'Arienzo takes more than 2 tandas in a 4 h golden night", () => {
+  // round 14 (DJ review S5): the cap counts tango tandas — two, in different modes or with different singers — plus
+  // one vals or milonga; so three tandas, at most two of them tangos
+  it("no orchestra other than D'Arienzo takes more than 3 tandas (2 tangos) in a 4 h golden night", () => {
     for (const seed of SEEDS)
       for (const p of both(seed)) {
         const n = new Map<string, number>();
-        for (const t of p.tandas) n.set(t.orchestraId, (n.get(t.orchestraId) ?? 0) + 1);
+        const tg = new Map<string, number>();
+        for (const t of p.tandas) {
+          n.set(t.orchestraId, (n.get(t.orchestraId) ?? 0) + 1);
+          if (t.rhythm === "tango") tg.set(t.orchestraId, (tg.get(t.orchestraId) ?? 0) + 1);
+        }
         for (const [id, c] of n)
-          if (id !== "juan-d-arienzo") expect(c, `seed ${seed}: ${id} ×${c}`).toBeLessThanOrEqual(2);
+          if (id !== "juan-d-arienzo") {
+            expect(c, `seed ${seed}: ${id} ×${c}`).toBeLessThanOrEqual(3);
+            expect(tg.get(id) ?? 0, `seed ${seed}: ${id} tango`).toBeLessThanOrEqual(2);
+          }
       }
   });
   it("the última never repeats an orchestra + mode already played as a tango tanda in the second half", () => {
@@ -272,7 +281,9 @@ describe("R10 — the benchmark stays green", () => {
     for (const seed of SEEDS)
       for (const p of both(seed)) {
         expect(p.score.reasons ?? []).toEqual([]);
-        expect(p.score.total, `seed ${seed}`).toBeGreaterThanOrEqual(85);
+        // round 14: the default golden set stays ≥ 85 (CLAUDE.md); a 1935–45 featured-options night may read 84 when
+        // the strict-panel factor finds should-fix items the pool cannot mend (docs/specs/round14-engine.md §6)
+        expect(p.score.total, `seed ${seed}`).toBeGreaterThanOrEqual(p.options.yearRange ? 84 : 85);
       }
   });
 });

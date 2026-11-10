@@ -188,7 +188,10 @@ describe("R4 — the first D'Arienzo varies; the slot-3 vals does not overshoot"
     let ok = 0;
     for (const seed of SEEDS) {
       const v = golden(seed).tandas.find((t) => t.rhythm === "vals")!;
-      if (v.energy <= v.targetEnergy + 8) ok++;
+      // round 14 (dancer R14-2, a blocker): the warm-up vals carries known sides; a famous family a little hotter
+      // than the slot beats an obscure cool one (the few cool famous valses are often spent or gap-blocked)
+      const mf = v.songs.reduce((a, s) => a + (s.fame ?? 0), 0) / v.songs.length;
+      if (v.energy <= v.targetEnergy + 8 || mf >= 2.5) ok++;
     }
     expect(ok).toBeGreaterThanOrEqual(11);
   });

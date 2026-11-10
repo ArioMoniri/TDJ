@@ -65,11 +65,11 @@
       "source": "Common patterns §6: the great majority of tandas in A, B, C, D, I and K fall in 1935–45"
     },
     "instrumental": {
-      "label": "Instrumental tandas each hour",
-      "minShare": 0.3334,
-      "nearShare": 0.15,
+      "label": "Instrumental tango each hour, vocal runs",
+      "maxVocalRun": 3,
+      "infoShare": 0.3334,
       "weight": 3,
-      "source": "Victor Tran, Tango DJ Fundamentals Part 2: at least one third of tandas each hour should be instrumental. 'Near' down to 15 %: the published sets themselves run about 10–35 % instrumental (A 4 + 3 mixed of 26, B 2 + 3 of 20, C 3 + 5 of 23)"
+      "source": "Round-14 DJ review S6 (docs/reviews/round14-dj.md): every clock hour holds at least one instrumental tango tanda and never more than 3 vocal tango tandas run in a row (tango-only sequence). It replaces Victor Tran's 'at least one third of each hour instrumental' (Tango DJ Fundamentals Part 2), kept as information: chasing that share with any instrumental of the same orchestra put Rodríguez at a peak and 1946 sides into 1935–45 nights"
     },
     "spacing3": {
       "label": "No orchestra or singer twice in 3 tandas",
@@ -144,6 +144,12 @@
       "minGraded": 0.5,
       "weight": 2,
       "source": "The user's own orchestra heatmap (data/sources/All_orchestras.xls → data/index/coverage.json): per orchestra, year and mode, 3 good / 4 fantastic; round-13 best-years review §1.0"
+    },
+    "strictPanel": {
+      "label": "Strict panel (round 14)",
+      "nearShouldFix": 3,
+      "weight": 3,
+      "source": "Round-14 strict panel: docs/reviews/round14-dancer.md (R14-1 to R14-17), docs/reviews/round14-dj.md (B1-B4, S1-S12), docs/reviews/round14-discography.md (sections 2 and 3, R1-R12); packages/core/src/strict.ts. Ok with no violation, near with no blocker and at most 3 should-fix items, off on any blocker"
     }
   }
 }

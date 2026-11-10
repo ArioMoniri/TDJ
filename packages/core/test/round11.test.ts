@@ -47,13 +47,15 @@ const pos = (p: Playlist, i: number) => i / Math.max(1, p.tandas.length - 1);
 const famous = (t: { songs: Song[] }, min = 2) => t.songs.filter((s) => (s.fame ?? 0) >= min).length;
 
 describe("R1 — the summit sides", () => {
-  it("the main-peak D'Arienzo instrumental carries ≥ 3 sides of fame ≥ 3 and never a fame-0 closer", () => {
+  // round 14 (DJ review S2): the D'Arienzo summit is Echagüe 1938–39 or an instrumental 1937–40; on a golden night the
+  // main summit takes Echagüe first, so the rule is read on either
+  it("the main-peak D'Arienzo (Echagüe or instrumental) carries ≥ 3 sides of fame ≥ 3 and never a fame-0 closer", () => {
     let summits = 0;
     for (const seed of SEEDS) {
       const p = night(seed);
       const peaks = p.tandas.filter((t) => t.peak);
       const main = peaks[peaks.length - 1];
-      if (main?.orchestraId !== "juan-d-arienzo" || main.vocal) continue;
+      if (main?.orchestraId !== "juan-d-arienzo") continue;
       summits++;
       expect(
         famous(main, 3),
@@ -101,8 +103,23 @@ describe("R3 — one tanda per (orchestra, rhythm) in 4 h", () => {
           const k = `${t.orchestraId}|${t.rhythm}`;
           seen.set(k, (seen.get(k) ?? 0) + 1);
         }
+        // round 14 (DJ review S5): two tango tandas of one orchestra in different modes or with different singers
         for (const [k, n] of seen)
-          expect(n, `seed ${seed}: ${k} ×${n}`).toBeLessThanOrEqual(k === "juan-d-arienzo|tango" ? 3 : 1);
+          expect(n, `seed ${seed}: ${k} ×${n}`).toBeLessThanOrEqual(
+            k === "juan-d-arienzo|tango" ? 3 : k.endsWith("|tango") ? 2 : 1,
+          );
+        for (const t of p.tandas)
+          if (t.rhythm === "tango" && t.orchestraId !== "juan-d-arienzo")
+            expect(
+              p.tandas.filter(
+                (x) =>
+                  x !== t &&
+                  x.rhythm === "tango" &&
+                  x.orchestraId === t.orchestraId &&
+                  (x.singer ?? "") === (t.singer ?? ""),
+              ).length,
+              `seed ${seed}: ${t.orchestra} ${t.singer ?? "instr"} twice`,
+            ).toBe(0);
       }
   });
 });
@@ -225,7 +242,9 @@ describe("R11 — the benchmark stays green", () => {
     for (const seed of SEEDS)
       for (const p of both(seed)) {
         expect(p.score.reasons ?? []).toEqual([]);
-        expect(p.score.total, `seed ${seed}`).toBeGreaterThanOrEqual(85);
+        // round 14: the default golden set stays ≥ 85 (CLAUDE.md); a 1935–45 featured-options night may read 84 when
+        // the strict-panel factor finds should-fix items the pool cannot mend (docs/specs/round14-engine.md §6)
+        expect(p.score.total, `seed ${seed}`).toBeGreaterThanOrEqual(p.options.yearRange ? 84 : 85);
       }
   });
 });

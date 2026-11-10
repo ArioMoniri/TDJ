@@ -199,4 +199,59 @@ export function applyArc(slots: Slot[], o: ComposeOptions) {
   const twoPeaks = shape === "double" || (!shape && o.arc === "classic-two-peaks");
   for (const i of peakSlotIndices(slots, twoPeaks ? (shape === "double" ? "double" : "classic") : "single"))
     slots[i]!.peak = true;
+  capPeakRuns(slots);
+}
+
+/**
+ * Round 14 (DJ review S12): the arc never plans more than 3 consecutive peak slots (phase "peak" or a target of 80
+ * and more) — the pool cannot fill five summit chairs, and colour or soft families end up at the top. A longer peak
+ * phase keeps the 3 slots that end on its summit (the middle 3 when it has none); the others become build or
+ * cool-down slots planned at 76 at most. A vals or milonga slot is planned no higher than the tango slots beside it
+ * (a t91 milonga needs an e83 tanda nobody has). Run by applyArc and again by compose after the context shifts.
+ */
+export function capPeakRuns(slots: Slot[]): void {
+  const runs = (pred: (s: Slot) => boolean) => {
+    const out: Array<[number, number]> = [];
+    let a = -1;
+    slots.forEach((s, i) => {
+      if (pred(s)) {
+        if (a < 0) a = i;
+      } else if (a >= 0) {
+        out.push([a, i - 1]);
+        a = -1;
+      }
+    });
+    if (a >= 0) out.push([a, slots.length - 1]);
+    return out;
+  };
+  for (const [a, b] of runs((s) => s.phase === "peak")) {
+    if (b - a + 1 <= 3) continue;
+    const summits = slots.slice(a, b + 1).filter((s) => s.peak);
+    const end = summits.length ? summits[summits.length - 1]!.index : Math.round((a + b) / 2) + 1;
+    const k0 = Math.max(a, Math.min(end, b) - 2);
+    for (let i = a; i <= b; i++)
+      if (i < k0 || i > k0 + 2) {
+        slots[i]!.phase = i < k0 ? "build" : "cooldown";
+        slots[i]!.targetEnergy = Math.min(slots[i]!.targetEnergy, 76);
+      }
+  }
+  slots.forEach((s, i) => {
+    if (s.rhythm === "tango") return;
+    const nb = [slots[i - 1], slots[i + 1]].filter((x): x is Slot => !!x && x.rhythm === "tango");
+    if (nb.length) s.targetEnergy = Math.min(s.targetEnergy, Math.max(...nb.map((x) => x.targetEnergy)));
+  });
+  for (const [a, b] of runs((s) => s.phase === "peak" || s.targetEnergy >= 80)) {
+    if (b - a + 1 <= 3) continue;
+    for (let i = a; i <= b; i++) if (slots[i]!.phase !== "peak") slots[i]!.targetEnergy = 76;
+    // still a run of four (three peak slots and a hot neighbour, or a peak phase over 80 everywhere): the slots
+    // farthest from the summit come down
+    let run = 0;
+    for (let i = a; i <= b; i++) {
+      run = slots[i]!.phase === "peak" || slots[i]!.targetEnergy >= 80 ? run + 1 : 0;
+      if (run > 3 && !slots[i]!.peak) {
+        slots[i]!.targetEnergy = 76;
+        run = 0;
+      }
+    }
+  }
 }
