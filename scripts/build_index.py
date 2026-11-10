@@ -97,6 +97,9 @@ RHYTHM_OVERRIDE = {
     ("sonar y nada mas", None): "vals",
     ("a magaldi", "alfredo-de-angelis"): "vals",
     ("con toda la voz que tengo", "anibal-troilo"): "tango",  # Troilo-Fiorentino 1941; one copy tagged milonga
+    # round 13 (docs/reviews/round13-best-years.md §4.2)
+    ("arrabal", "pedro-laurenz"): "tango",               # José Pascual's tango, Láurenz instrumental 1937-09-24 (tagged milonga)
+    ("carnaval de mi barrio", "edgardo-donato"): "vals", # Lagos/Morales 1939-03-23: a vals (the profile's own signature)
 }
 # Curated singer fixes (round 8): (normalised title, orchestra id, year) -> singer (None = instrumental).
 # Pugliese's 1959 La Cumparsita is the instrumental closing version; the source files it under a singers' compilation.
@@ -106,6 +109,12 @@ SINGER_OVERRIDE = {
     # the source carries the singer of the coupled side ("Improvisando", Casas). Casas left Láurenz in 1940; no later
     # Casas vocal of Amurado exists in the source, so the "1944 Casas vocal" the review asked about cannot be confirmed.
     ("amurado", "pedro-laurenz", 1940): None,
+}
+# Round 13 (round13-best-years.md §4.2): broken singer strings in the source, fixed after singercase()
+SINGER_STRING_FIX = {"Juan Alessio(jorge Ortíz0": "Juan Alessio (Jorge Ortíz)"}
+# Round 13 (§4.1): a range-dated row whose real recording date is known: (normalised title, orchestra id, singer) -> year
+YEAR_OVERRIDE = {
+    ("niebla del riachuelo", "osvaldo-fresedo", "Roberto Ray"): 1937,  # written for the 1937 film "La fuga"; the source says 1933/48
 }
 # Radio/live/acetate transcriptions and "inéditos" compilations: bootleg-grade sources a DJ never builds a tanda from.
 TRANSCRIPTION_NOTE_RE = re.compile(r"IN[EÉ]DIT|TOMA\s*RADIO|TOMA\s*VIVO|EN\s*VIVO|\bVIVO\b|TOMA\s*TV|TOMA\s*BAILE|TOMAS?\s*Y\s*AC|AC\.-TOMA|ACETATO|ENTREVISTA", re.I)
@@ -195,6 +204,7 @@ def build_songs():
             if y1 - y0 > 2: year_approx = True
         transcription = bool(TRANSCRIPTION_NOTE_RE.search(obs) or TRANSCRIPTION_ALBUM_RE.search(str(row[7])))
         nt = norm_title(title)
+        if singer in SINGER_STRING_FIX: singer = SINGER_STRING_FIX[singer]
         if (nt, orchestra_id, year) in SINGER_OVERRIDE:
             fixed = SINGER_OVERRIDE[(nt, orchestra_id, year)]
             singer = singercase(fixed) if fixed else None
@@ -321,9 +331,26 @@ def build_coverage():
         r += 2
     return cov
 
+def fix_range_years(songs):
+    """Round 13 (round13-best-years.md §4.1): a "1933/48", "1940/70" row is a compilation or a transcription whose
+    lower bound is not a recording year (Ricardo Ruíz "in 1933", Rivero with Troilo "in 1940"). When the range spans
+    more than two years the row keeps its date and era but loses its year (`year: null`, `dateRange: [y0, y1]`), so no
+    year statistic reads it. A curated YEAR_OVERRIDE puts a known recording year back (Niebla del Riachuelo, 1937)."""
+    for s in songs:
+        fix = YEAR_OVERRIDE.get((norm_title(s["title"]), s["orchestraId"], s["singer"]))
+        if fix:
+            s["year"] = fix; s["era"] = era_of(fix); s.pop("yearApprox", None)
+            continue
+        m = re.fullmatch(r"(\d{4})/(\d{2,4})", s.get("date") or "")
+        if not m: continue
+        y0 = int(m.group(1)); y1 = int(m.group(2)) if len(m.group(2)) == 4 else int(m.group(1)[:2] + m.group(2))
+        if y1 - y0 > 2:
+            s["year"] = None; s["dateRange"] = [y0, y1]; s["yearApprox"] = True
+    return songs
+
 def main():
     raw = build_songs()
-    songs = dedupe(raw)
+    songs = fix_range_years(dedupe(raw))
     coverage = build_coverage()
     cov_by_id = {c["orchestraId"]: c for c in coverage}
     orchestras = collections.OrderedDict()
