@@ -274,11 +274,22 @@ describe("R9.5 — cortinas", () => {
 describe("R9.6 — La Cumparsita by última style", () => {
   it("a rhythmic última closes with D'Arienzo 1951 (another rhythmic version when the última is D'Arienzo); a lyrical one with Di Sarli", () => {
     let rhythmic = 0,
-      lyrical = 0;
+      lyrical = 0,
+      inRange = 0;
     for (const seed of SEEDS)
       for (const p of [night(seed), golden(seed)]) {
         const ult = p.tandas.at(-1)!;
         const c = p.closing!;
+        // round 13 (golden-age review R7): a night whose own year range ends before 1951 closes inside that range on
+        // a stream that is the recording (round13.test.ts); the style rule below is for the nights that reach 1951
+        const yr = p.options.yearRange;
+        if (yr && yr[1] < 1951) {
+          expect(c.year!).toBeGreaterThanOrEqual(yr[0]);
+          expect(c.year!).toBeLessThanOrEqual(yr[1]);
+          expect(c.streamSuspect).toBeFalsy();
+          inRange++;
+          continue;
+        }
         const style = cumparsitaStyle(deps.catalog, ult.orchestraId);
         if (style === "rhythmic") {
           rhythmic++;
@@ -297,7 +308,8 @@ describe("R9.6 — La Cumparsita by última style", () => {
           else expect(cumparsitaStyle(deps.catalog, c.orchestraId)).toBe("lyrical");
         }
       }
-    expect(rhythmic + lyrical).toBe(SEEDS.length * 2);
+    expect(rhythmic + lyrical + inRange).toBe(SEEDS.length * 2);
+    expect(rhythmic + lyrical).toBeGreaterThanOrEqual(SEEDS.length);
     expect(cumparsitaStyle(deps.catalog, "rodolfo-biagi")).toBe("rhythmic");
     expect(cumparsitaStyle(deps.catalog, "osvaldo-pugliese")).toBe("lyrical");
     expect(cumparsitaStyle(deps.catalog, "anibal-troilo")).toBe("lyrical");

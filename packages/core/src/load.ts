@@ -3,6 +3,7 @@ import { join } from "node:path";
 import type { AudioFeatures, ResolvedTrack } from "./audio/index";
 import type { ReferenceCorpus } from "./catalog";
 import { Catalog } from "./catalog";
+import { type CoverageRow, Heatmap } from "./knowledge";
 import type { ContextModel, Cortina, OrchestraProfile, Song, UserOverrides } from "./types";
 
 /** Node-only loader: reads the committed index from `data/` (repo root). */
@@ -13,6 +14,8 @@ export interface Loaded {
   contextModel?: ContextModel;
   corpus: ReferenceCorpus;
   trackEnergy: Record<string, number>;
+  /** round 13: the user's orchestra heatmap (data/index/coverage.json, parsed from data/sources/All_orchestras.xls) */
+  heatmap: Heatmap;
   raw: {
     songs: Song[];
     profiles: OrchestraProfile[];
@@ -52,15 +55,24 @@ export function loadCatalog(root = findRoot(), overrides?: UserOverrides): Loade
   const audio = existsSync(af)
     ? (JSON.parse(readFileSync(af, "utf8")) as Record<string, AudioFeatures | null>)
     : {};
+  const cvf = j("data/index/coverage.json");
+  const heatmap = new Heatmap(
+    existsSync(cvf) ? (JSON.parse(readFileSync(cvf, "utf8")) as CoverageRow[]) : [],
+  );
   const rf = j("data/knowledge/reference_sets.json");
   const corpus = existsSync(rf) ? (JSON.parse(readFileSync(rf, "utf8")) as ReferenceCorpus) : {};
   return {
-    catalog: new Catalog(songs, profiles, cache, corpus, overrides, trackEnergy, { resolved, audio }),
+    catalog: new Catalog(songs, profiles, cache, corpus, overrides, trackEnergy, {
+      resolved,
+      audio,
+      heatmap,
+    }),
     cortinas,
     meta,
     contextModel,
     corpus,
     trackEnergy,
+    heatmap,
     raw: { songs, profiles, cache, resolved, audio },
   };
 }

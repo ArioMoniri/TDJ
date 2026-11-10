@@ -1,10 +1,12 @@
 import BENCH from "../../../data/knowledge/benchmark.json";
 import { attachBooth } from "./booth";
-import { type ComposeDeps, computeStats } from "./compose";
+import { type ComposeDeps, computeStats, swapTanda } from "./compose";
 import { cortinaTempo, familyOf } from "./cortinas";
 import { isDanceableSong, normTitle } from "./energy";
-import { hardFailures, scorePlaylist } from "./score";
+import { DEFAULT_HEATMAP, goldenClassOf, isColour, isGoldenNight, staticProfile } from "./knowledge";
+import { eraGrade, hardFailures, scorePlaylist } from "./score";
 import { isTandaEligible, songRhythm } from "./tanda";
+import { isBridge, nightTransitions } from "./transitions";
 import type { Cortina, Playlist, Song, Tanda } from "./types";
 
 /**
@@ -15,7 +17,16 @@ import type { Cortina, Playlist, Song, Tanda } from "./types";
 
 export type BenchStatus = "ok" | "near" | "off";
 /** a fixer improveNight can run */
-export type FixKey = "instrumental" | "stream-suspect" | "cue-fit" | "roles";
+export type FixKey =
+  | "instrumental"
+  | "stream-suspect"
+  | "cue-fit"
+  | "roles"
+  | "tighten"
+  | "heatmap"
+  | "bridge"
+  | "core"
+  | "energy";
 export interface BenchCheck {
   key: string;
   label: string;
@@ -361,6 +372,142 @@ export function benchmarkNight(p: Night): BenchResult {
     });
   }
 
+  // --- round 13 (docs/specs/round13-engine.md) ---------------------------------------------------------------
+  const dance = t.filter((x) => x.songs.some((s) => !/cumparsita/i.test(s.title)));
+  // 14. tanda year spread (cohesion review §4.2)
+  {
+    const c = K.yearSpread;
+    const spreads = dance
+      .map((x) =>
+        x.songs.filter((s) => s.year && !s.yearApprox && !/cumparsita/i.test(s.title)).map((s) => s.year!),
+      )
+      .filter((ys) => ys.length >= 2)
+      .map((ys) => Math.max(...ys) - Math.min(...ys))
+      .sort((a, b) => a - b);
+    const med = spreads.length
+      ? spreads.length % 2
+        ? spreads[(spreads.length - 1) / 2]!
+        : (spreads[spreads.length / 2 - 1]! + spreads[spreads.length / 2]!) / 2
+      : 0;
+    const le2 = spreads.length ? spreads.filter((x) => x <= 2).length / spreads.length : 1;
+    const max = spreads.length ? spreads[spreads.length - 1]! : 0;
+    const breaks = dance.filter((x) => eraGrade(x)?.crosses).length;
+    add({
+      key: "yearSpread",
+      label: c.label,
+      value: `median ${fmt(med)} y · ${pct(le2)} ≤ 2 y · max ${max} y${breaks ? ` · ${breaks} crossing a break` : ""}`,
+      range: `median ≤ ${c.okMedian} y, ≥ ${pct(c.okShareLe2)} ≤ 2 y, none > ${c.max} y`,
+      status:
+        med <= c.okMedian && le2 >= c.okShareLe2 - 1e-9 && max <= c.max
+          ? "ok"
+          : med <= c.nearMedian && le2 >= c.nearShareLe2 - 1e-9
+            ? "near"
+            : "off",
+      weight: c.weight,
+      source: c.source,
+      fix: "tighten",
+    });
+  }
+  // 15. golden core share (golden-age review §5)
+  {
+    const c = K.goldenCore;
+    const applies = isGoldenNight(o);
+    const colour = dance.filter((x) => isColour(staticProfile(x.orchestraId)));
+    const core = dance.filter((x) => {
+      const p = staticProfile(x.orchestraId);
+      if (isColour(p)) return false;
+      const ys = x.songs
+        .filter((s) => s.year && !s.yearApprox && !/cumparsita/i.test(s.title))
+        .map((s) => s.year!);
+      return goldenClassOf(p, ys) === "core";
+    }).length;
+    const share = dance.length ? core / dance.length : 1;
+    const maxColour = Math.max(1, Math.round((c.maxColourPer4h * hours) / 4));
+    const hot = colour.filter((x) => x.peak || x.phase === "peak" || x.targetEnergy >= c.peakEnergy).length;
+    const sides = dance.flatMap((x) => x.songs).filter((s) => s.year && !/cumparsita/i.test(s.title));
+    const sideCore = sides.length
+      ? sides.filter((s) => s.year! >= c.sideCoreYears[0]! && s.year! <= c.sideCoreYears[1]!).length /
+        sides.length
+      : 0;
+    let status: BenchStatus =
+      share >= c.minShare - 1e-9 ? "ok" : share >= c.nearShare - 1e-9 ? "near" : "off";
+    if (colour.length > maxColour || hot > c.colourPeakMax) status = status === "ok" ? "near" : "off";
+    add({
+      key: "goldenCore",
+      label: c.label,
+      value: `${pct(share)} of tandas core · ${colour.length} colour${hot ? ` (${hot} at a peak)` : ""} · sides 1938–44 ${pct(sideCore)}`,
+      range: `≥ ${pct(c.minShare)} core, ≤ ${maxColour} colour tandas, none at a peak`,
+      status: applies ? status : "ok",
+      weight: applies ? c.weight : 0,
+      source: c.source,
+      fix: "core",
+      ...(applies ? {} : { info: true }),
+    });
+  }
+  // 16. transitions (transitions review §4)
+  {
+    const c = K.transitions;
+    const tr = nightTransitions(t);
+    const per4h = (x: number) => (x * hours) / 4;
+    const h16 = tr.hard.H1 + tr.hard.H6;
+    const ok =
+      tr.mean >= c.meanRange[0]! &&
+      tr.mean <= c.meanRange[1]! &&
+      tr.jarring <= Math.round(per4h(c.maxJarringPer4h)) &&
+      tr.min >= c.minPair &&
+      h16 === 0;
+    // near: the review's own partial credit (§4) reaches nearCredit, with no H1 / H6 hit
+    const allowed = Math.round(per4h(c.maxJarringPer4h));
+    const credit =
+      Math.max(0, Math.min(1, (tr.mean - 80) / 8)) * Math.max(0, 1 - 0.2 * Math.max(0, tr.jarring - allowed));
+    const near = credit >= c.nearCredit && h16 === 0;
+    const hits = Object.entries(tr.hard)
+      .filter(([, v]) => v)
+      .map(([k, v]) => `${v}×${k}`)
+      .join(" ");
+    add({
+      key: "transitions",
+      label: c.label,
+      value: `mean ${tr.mean} · min ${tr.min} · ${tr.jarring} jarring${hits ? ` · ${hits}` : ""}`,
+      range: `mean ${c.meanRange[0]}–${c.meanRange[1]}, ≤ ${Math.round(per4h(c.maxJarringPer4h))} jarring, min ≥ ${c.minPair}, no H1/H6`,
+      status: tr.pairs.length ? (ok ? "ok" : near ? "near" : "off") : "ok",
+      weight: c.weight,
+      source: c.source,
+      fix: "bridge",
+    });
+  }
+  // 17. heatmap best years: sides from the user's grade ≥ 3 years
+  {
+    const c = K.heatmapBest;
+    const sides = dance.flatMap((x) => x.songs).filter((s) => !/cumparsita/i.test(s.title));
+    const grades = sides
+      .map(
+        (s) =>
+          s.heat ?? DEFAULT_HEATMAP.grade(s.orchestraId, s.vocal, s.year && !s.yearApprox ? s.year : null),
+      )
+      .filter((g): g is NonNullable<typeof g> => g !== undefined);
+    const share = grades.length ? grades.filter((g) => g >= 3).length / grades.length : 1;
+    const low = grades.filter((g) => g <= 1).length;
+    const applies = sides.length > 0 && grades.length / sides.length >= c.minGraded;
+    add({
+      key: "heatmapBest",
+      label: c.label,
+      value: `${pct(share)} of ${grades.length} graded sides${low ? ` · ${low} from grade 0–1 years` : ""}`,
+      range: `≥ ${pct(c.minShare)} from grade 3–4 years (near from ${pct(c.nearShare)})`,
+      status: !applies
+        ? "ok"
+        : share >= c.minShare - 1e-9
+          ? "ok"
+          : share >= c.nearShare - 1e-9
+            ? "near"
+            : "off",
+      weight: applies ? c.weight : 0,
+      source: c.source,
+      fix: "heatmap",
+      ...(applies ? {} : { info: true }),
+    });
+  }
+
   const scored = checks.filter((c) => !c.info && c.weight > 0);
   const W = scored.reduce((a, c) => a + c.weight, 0) || 1;
   const total = Math.round(
@@ -441,7 +588,18 @@ export function improveNight(p: Playlist, deps: ComposeDeps, opts: ImproveOption
   const cat = deps.catalog;
   const original: Playlist = structuredClone(p);
   const maxRounds = opts.maxRounds ?? 8;
-  const fixers = opts.fixers ?? (["stream-suspect", "roles", "instrumental", "cue-fit"] as FixKey[]);
+  const fixers =
+    opts.fixers ??
+    ([
+      "stream-suspect",
+      "heatmap",
+      "tighten",
+      "core",
+      "roles",
+      "instrumental",
+      "cue-fit",
+      "bridge",
+    ] as FixKey[]);
   const baseStats = computeStats(original.tandas, original.closing, original.options);
   const durOffset = original.stats.durationSec - baseStats.durationSec;
   const startFailures = new Set(hardFailures(original));
@@ -764,11 +922,337 @@ export function improveNight(p: Playlist, deps: ComposeDeps, opts: ImproveOption
     return out;
   };
 
+  // --- round 13 fixers ------------------------------------------------------------------------------------------
+  const isCump = (s: Song) => /cumparsita/i.test(s.title);
+  const heatOf = (s: Song) =>
+    fresh(s).heat ?? DEFAULT_HEATMAP.grade(s.orchestraId, s.vocal, s.year && !s.yearApprox ? s.year : null);
+  /** the sides a tanda's family offers (same orchestra, rhythm, mode and singer; clean, danceable, dated, unused) */
+  const familySides = (q: Playlist, i: number) => {
+    const t = q.tandas[i]!;
+    const used = usedTitles(q, i);
+    const singer = normTitle(t.songs.find((x) => x.vocal)?.singer ?? t.singer ?? "");
+    const seen = new Map<string, Song>();
+    for (const c of cat.byOrchestra.get(t.orchestraId) ?? []) {
+      if (
+        songRhythm(c) !== t.rhythm ||
+        c.vocal !== t.vocal ||
+        normTitle(c.singer ?? "") !== (t.vocal ? singer : "")
+      )
+        continue;
+      if (!c.year || !clean(c) || typeof c.energy !== "number" || !danceable(c) || isCump(c)) continue;
+      const k = normTitle(c.title);
+      if (used.has(k)) continue;
+      const g = heatOf(c);
+      if (g !== undefined && g <= 1 && (c.fame ?? 0) < 2) continue;
+      const prev = seen.get(k);
+      if (!prev || (c.fame ?? 0) > (prev.fame ?? 0)) seen.set(k, c);
+    }
+    return [...seen.values()];
+  };
+  /** cohesion R2: a loose tanda takes its family's sides from one year window (span ≤ 1), keeping what it can */
+  const tightenFix = (q: Playlist): Candidate[] => {
+    const out: Candidate[] = [];
+    q.tandas.forEach((t, i) => {
+      if (t.locked || t.birthday || t.songs.some(isCump) || t.songs.length < 2) return;
+      const g = eraGrade(t);
+      if (!g || (!g.over && !g.crosses)) return;
+      const pool = familySides(q, i);
+      const curIds = new Set(t.songs.map((s) => s.id));
+      const all = [...t.songs.map(fresh), ...pool.filter((s) => !curIds.has(s.id))];
+      const years = [...new Set(all.map((s) => s.year!))];
+      const years0 = t.songs.map((s) => s.year ?? 0).filter(Boolean);
+      const [ty0, ty1] = [Math.min(...years0), Math.max(...years0)];
+      let best: { songs: Song[]; q: number } | null = null;
+      for (const y of years) {
+        // the window stays on the tanda's own years (it tightens, it does not move the tanda to another period)
+        if (y < ty0 - 1 || y > ty1) continue;
+        const inWin = (s: Song) => !!s.year && s.year >= y && s.year <= y + 1;
+        const keep = t.songs.filter(inWin);
+        const fill = pool
+          .filter((s) => inWin(s) && !curIds.has(s.id))
+          .sort(
+            (a, b) =>
+              (b.fame ?? 0) - (a.fame ?? 0) ||
+              Math.abs(a.energy! - t.energy) - Math.abs(b.energy! - t.energy) ||
+              a.id.localeCompare(b.id),
+          );
+        const need = t.songs.length - keep.length;
+        if (fill.length < need) continue;
+        const songs = [...keep, ...fill.slice(0, need)];
+        if (new Set(songs.map((s) => normTitle(s.title))).size < songs.length) continue;
+        const fameNew = songs.reduce((a, s) => a + (s.fame ?? 0), 0);
+        const fameOld = t.songs.reduce((a, s) => a + (s.fame ?? 0), 0);
+        if (fameNew < fameOld - 3) continue;
+        const quality =
+          keep.length * 20 + fameNew * 5 - Math.abs(mean(songs.map((s) => s.energy ?? t.energy)) - t.energy);
+        if (!best || quality > best.q) best = { songs, q: quality };
+      }
+      if (!best) return;
+      const songs = orderSides(best.songs);
+      const gone = t.songs.filter((s) => !songs.includes(s));
+      out.push({
+        kind: "tighten",
+        tanda: i,
+        playlist: withTanda(q, i, { ...t, songs }),
+        text: () =>
+          `Tanda ${i + 1}: ${tandaName(t)} ${yearsStr(t.songs)} → ${yearsStr(songs)} (${gone.map((s) => `${s.title} ${s.year}`).join(", ")} out; one recording period, round-13 year spread)`,
+      });
+    });
+    return out;
+  };
+  /** the user's heatmap: a side from a grade 0 year, or a grade 1 year that is not a known single, gives way */
+  const heatFix = (q: Playlist): Candidate[] => {
+    const out: Candidate[] = [];
+    q.tandas.forEach((t, i) => {
+      if (t.locked || !t.yearRange) return;
+      t.songs.forEach((s, k) => {
+        if (isCump(s)) return;
+        const g = heatOf(s);
+        if (g === undefined || g >= 2 || (g === 1 && (s.fame ?? 0) >= 2)) return;
+        const others = t.songs
+          .filter((_, j) => j !== k)
+          .map((x) => x.year ?? 0)
+          .filter(Boolean);
+        const lo = Math.min(...others, s.year ?? 9999);
+        const hi = Math.max(...others, s.year ?? 0);
+        const alt = familySides(q, i)
+          .filter(
+            (c) =>
+              (heatOf(c) ?? 3) >= 3 && c.year! >= Math.max(lo, hi - 2) && c.year! <= Math.min(hi, lo + 2) + 1,
+          )
+          .sort(
+            (a, b) =>
+              (b.fame ?? 0) - (a.fame ?? 0) ||
+              Math.abs(a.energy! - (s.energy ?? t.energy)) - Math.abs(b.energy! - (s.energy ?? t.energy)) ||
+              a.id.localeCompare(b.id),
+          )[0];
+        if (!alt) return;
+        const songs = t.songs.slice();
+        songs[k] = alt;
+        out.push({
+          kind: "heatmap",
+          tanda: i,
+          playlist: withTanda(q, i, { ...t, songs }),
+          text: () =>
+            `Tanda ${i + 1}: ${s.title} ${s.year ?? ""} (heatmap: ${g === 0 ? "avoid" : "single tracks only"}) → ${alt.title} ${alt.year} (heatmap: ${(heatOf(alt) ?? 3) >= 4 ? "fantastic" : "good"} year)`,
+        });
+      });
+    });
+    return out;
+  };
+  /** transitions H4: a tango → tango step of more than 6 years goes through a bridge cue (medium or slow, in between) */
+  const bridgeFix = (q: Playlist): Candidate[] => {
+    const out: Candidate[] = [];
+    const gaps = q.tandas.map((_t, i) => i).filter((i) => i < q.tandas.length - 1 && q.tandas[i]!.cortina);
+    const my = (t: Tanda) => {
+      const ys = t.songs.filter((s) => s.year && !isCump(s)).map((s) => s.year!);
+      return ys.length ? mean(ys) : null;
+    };
+    const needsBridge = (i: number) => {
+      const a = q.tandas[i]!,
+        b = q.tandas[i + 1];
+      if (!b || a.rhythm !== "tango" || b.rhythm !== "tango") return false;
+      const ya = my(a),
+        yb = my(b);
+      return ya !== null && yb !== null && Math.abs(ya - yb) > 6;
+    };
+    const put = (t: Tanda, c: Cortina): Tanda => ({
+      ...t,
+      cortina: { ...c, lengthSec: t.cortina?.lengthSec ?? c.lengthSec },
+    });
+    const families = new Set(gaps.map((i) => familyOf(q.tandas[i]!.cortina!)));
+    const usedIds = new Set(gaps.map((i) => q.tandas[i]!.cortina!.id));
+    for (const i of gaps) {
+      if (!needsBridge(i)) continue;
+      const a = q.tandas[i]!,
+        b = q.tandas[i + 1]!;
+      const ci = a.cortina!;
+      if (isBridge(ci, a, b)) continue;
+      const swap = gaps.find((j) => {
+        if (j === i) return false;
+        const cj = q.tandas[j]!.cortina!;
+        if (!isBridge(cj, a, b) || cueMiss(q, i, cj) > 0) return false;
+        if (cueMiss(q, j, ci) > cueMiss(q, j, cj)) return false;
+        return !needsBridge(j) || isBridge(ci, q.tandas[j]!, q.tandas[j + 1]!);
+      });
+      if (swap !== undefined) {
+        const cj = q.tandas[swap]!.cortina!;
+        const tandas = q.tandas.slice();
+        tandas[i] = put(q.tandas[i]!, cj);
+        tandas[swap] = put(q.tandas[swap]!, ci);
+        out.push({
+          kind: "bridge",
+          tanda: i + 1,
+          playlist: finalize({ ...q, tandas }),
+          text: () =>
+            `Cue into tanda ${i + 2}: ${ci.title} swapped with ${cj.title} (${cortinaTempo(cj)} e${cj.energy}), a bridge for the ${Math.round(Math.abs((my(a) ?? 0) - (my(b) ?? 0)))}-year step from ${tandaName(a)} to ${tandaName(b)}`,
+        });
+        continue;
+      }
+      const alt = (deps.cortinas ?? [])
+        .filter(
+          (c) =>
+            families.has(familyOf(c)) && !usedIds.has(c.id) && isBridge(c, a, b) && cueMiss(q, i, c) === 0,
+        )
+        .sort(
+          (x, y) =>
+            Math.abs(x.energy - (b.energy - 8)) - Math.abs(y.energy - (b.energy - 8)) ||
+            x.id.localeCompare(y.id),
+        )[0];
+      if (!alt) continue;
+      const tandas = q.tandas.slice();
+      tandas[i] = put(q.tandas[i]!, alt);
+      out.push({
+        kind: "bridge",
+        tanda: i + 1,
+        playlist: finalize({ ...q, tandas }),
+        text: () =>
+          `Cue into tanda ${i + 2}: ${ci.title} → ${alt.title} (${cortinaTempo(alt)} e${alt.energy}, same family), a bridge for the era step from ${tandaName(a)} to ${tandaName(b)}`,
+      });
+    }
+    return out;
+  };
+
+  /**
+   * golden-age review R2 / §5: a colour tanda at a peak or over the cap, or a tanda outside its family's core, gives its
+   * chair to a core family of another orchestra (the composer's own builder, same slot, caps and gaps)
+   */
+  const coreFix = (q: Playlist): Candidate[] => {
+    if (!isGoldenNight(q.options)) return [];
+    const out: Candidate[] = [];
+    const hoursQ = Math.max(0.25, nightHours(q));
+    const capC = Math.max(1, Math.round((K.goldenCore.maxColourPer4h * hoursQ) / 4));
+    const colourIdx = q.tandas
+      .map((t, i) => (isColour(staticProfile(t.orchestraId)) ? i : -1))
+      .filter((i) => i >= 0);
+    const isCoreCand = (c: { orchestraId: string; songs: Song[] }) => {
+      const p = cat.profile(c.orchestraId);
+      if (!p?.goldenBands || isColour(p)) return false;
+      const core = c.songs.filter(
+        (s) => s.year && s.year >= p.goldenBands!.core[0] && s.year <= p.goldenBands!.core[1],
+      );
+      return core.length >= 3;
+    };
+    q.tandas.forEach((t, i) => {
+      if (t.locked || t.birthday || i === q.tandas.length - 1 || t.songs.some(isCump)) return;
+      const p = staticProfile(t.orchestraId);
+      const hot = t.peak || t.phase === "peak" || t.targetEnergy >= K.goldenCore.peakEnergy;
+      const colourBad = isColour(p) && (hot || colourIdx.length > capC);
+      const ys = t.songs.filter((s) => s.year).map((s) => s.year!);
+      const nonCore = !isColour(p) && goldenClassOf(p, ys) !== "core";
+      // transitions: a tanda that both boundaries find jarring (a 1954 vals between two 1940s tangos) gives way too
+      const prs = nightTransitions(q.tandas).pairs;
+      const jarIn = prs[i - 1]?.grade === "jarring";
+      const jarOut = prs[i]?.grade === "jarring";
+      if (!colourBad && !nonCore && !(jarIn && jarOut)) return;
+      // the night's caps hold: an orchestra at most twice (D'Arienzo three times), one tango tanda per orchestra
+      // under 5 h (round 11), never the same orchestra and rhythm twice
+      const capOk = (id: string, rhythm: string) => {
+        const others = q.tandas.filter((x, j) => j !== i && x.orchestraId === id);
+        if (others.length >= (id === "juan-d-arienzo" ? 3 : 2)) return false;
+        return !others.some((x) => x.rhythm === rhythm && (q.options.hours < 5 || id !== "juan-d-arienzo"));
+      };
+      for (const seed of [11, 23, 37]) {
+        const np = swapTanda(
+          q,
+          i,
+          deps,
+          seed + i,
+          (c) =>
+            capOk(c.orchestraId, t.rhythm) &&
+            (isCoreCand({ orchestraId: c.orchestraId, songs: c.songs }) ||
+              // for a doubly jarring tanda any family of the golden years will do (colour and other eras excepted)
+              (jarIn &&
+                jarOut &&
+                !isColour(cat.profile(c.orchestraId)) &&
+                goldenClassOf(
+                  cat.profile(c.orchestraId),
+                  c.songs.map((x) => x.year ?? 0),
+                ) === "core")),
+        );
+        const nt = np.tandas[i];
+        if (np === q || !nt || nt.orchestraId === t.orchestraId) continue;
+        out.push({
+          kind: "core",
+          tanda: i,
+          playlist: finalize({ ...np, stats: { ...q.stats, ...np.stats } }),
+          text: () =>
+            `Tanda ${i + 1}: ${tandaName(t)} ${yearsStr(t.songs)} (${colourBad ? "a colour tanda at a peak or over the cap" : nonCore ? "outside the family's golden core" : "a jarring step on both sides"}) → ${tandaName(nt)} ${yearsStr(nt.songs)}`,
+        });
+        break;
+      }
+    });
+    return out;
+  };
+
+  /**
+   * transitions H3: an unplanned energy jump (|Δe| > 25, or ≥ 15 and 18 off the plan) is softened inside the families:
+   * one or two sides of either tanda give way to sides of the same family and years that bring it toward the plan
+   */
+  const energyFix = (q: Playlist): Candidate[] => {
+    const out: Candidate[] = [];
+    const tr = nightTransitions(q.tandas);
+    for (const pr of tr.pairs) {
+      // an H3 jump, or a jarring boundary whose loss is mostly the energy step
+      const energyLoss = pr.why
+        .filter((w) => w.startsWith("energy"))
+        .map((w) => Number(/−(\d+)$/.exec(w)?.[1] ?? 0));
+      if (!pr.hard.includes("H3") && !(pr.grade === "jarring" && (energyLoss[0] ?? 0) >= 12)) continue;
+      const ia = pr.from,
+        ib = pr.from + 1;
+      const a = q.tandas[ia]!,
+        b = q.tandas[ib]!;
+      const dt = b.targetEnergy - a.targetEnergy;
+      for (const [i, want] of [
+        [ib, a.energy + dt],
+        [ia, b.energy - dt],
+      ] as Array<[number, number]>) {
+        const t = q.tandas[i]!;
+        if (t.locked || t.birthday || t.songs.some(isCump) || !t.yearRange) continue;
+        const [y0, y1] = t.yearRange;
+        const pool = familySides(q, i).filter((s) => s.year! >= y0 && s.year! <= y1);
+        if (!pool.length) continue;
+        let songs = t.songs.slice();
+        const meanE = (xs: Song[]) => mean(xs.map((s) => s.energy ?? t.energy));
+        for (let k = 0; k < 2; k++) {
+          let best: { songs: Song[]; d: number } | null = null;
+          songs.forEach((cur, j) => {
+            for (const alt of pool) {
+              if (songs.some((x) => normTitle(x.title) === normTitle(alt.title))) continue;
+              if ((alt.fame ?? 0) < (cur.fame ?? 0) - 1) continue;
+              const next = songs.slice();
+              next[j] = alt;
+              const d = Math.abs(meanE(next) - want);
+              if (!best || d < best.d - 1e-9) best = { songs: next, d };
+            }
+          });
+          if (!best || (best as { d: number }).d >= Math.abs(meanE(songs) - want) - 1) break;
+          songs = (best as { songs: Song[] }).songs;
+        }
+        if (songs === t.songs || songs.every((s, j) => s === t.songs[j])) continue;
+        const ordered = orderSides(songs);
+        out.push({
+          kind: "energy",
+          tanda: i,
+          playlist: withTanda(q, i, { ...t, songs: ordered }),
+          text: (after) =>
+            `Tanda ${i + 1}: ${tandaName(t)} e${t.energy} → e${after.tandas[i]!.energy} (same family and years) so the step from tanda ${ia + 1} to ${ib + 1} follows the plan (transitions H3)`,
+        });
+      }
+    }
+    return out;
+  };
+
   const FIX: Record<FixKey, (q: Playlist) => Candidate[]> = {
+    energy: energyFix,
+    core: coreFix,
     instrumental: instrumentalFix,
     "stream-suspect": streamFix,
     "cue-fit": cueFix,
     roles: rolesFix,
+    tighten: tightenFix,
+    heatmap: heatFix,
+    bridge: bridgeFix,
   };
 
   // --- the loop -----------------------------------------------------------------------------------------------
@@ -778,9 +1262,17 @@ export function improveNight(p: Playlist, deps: ComposeDeps, opts: ImproveOption
   let curBench = benchmarkNight(cur).total;
   const before = snapshot(cur);
   const changes: Change[] = [];
+  // round 13: a change never adds a transition hard-rule hit (H1, H4, H5, H6) or a jarring boundary
+  const trOf = (q: Playlist) => {
+    const r = nightTransitions(q.tandas);
+    return { hard: r.hard.H1 + r.hard.H4 + r.hard.H5 + r.hard.H6, jarring: r.jarring };
+  };
+  let curTr = trOf(cur);
   const accept = (c: Playlist) => {
     if (c.score.total < curScore) return false;
     if (benchmarkNight(c).total < curBench) return false;
+    const tr = trOf(c);
+    if (tr.hard > curTr.hard || tr.jarring > curTr.jarring) return false;
     return hardFailures(c).every((h) => startFailures.has(h));
   };
   let touched = false;
@@ -800,6 +1292,7 @@ export function improveNight(p: Playlist, deps: ComposeDeps, opts: ImproveOption
         cur = ok.playlist;
         curScore = cur.score.total;
         curBench = benchmarkNight(cur).total;
+        curTr = trOf(cur);
         moved = touched = true;
       }
     }

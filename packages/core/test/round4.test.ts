@@ -428,13 +428,17 @@ describe("B11/B12/C14 — banks and variety", () => {
         s += [...sets[i]!].filter((x) => sets[j]!.has(x)).length / new Set([...sets[i]!, ...sets[j]!]).size;
         n++;
       }
-    expect(s / n).toBeLessThan(0.85);
+    // round 13: the golden-purist rules (≤ 3 colour tandas, family core bands, the user's heatmap) narrow a golden
+    // night's bench to the same ~15 orchestras, so nights differ by family, years and order more than by orchestra
+    expect(s / n).toBeLessThan(0.92);
     const slots = SEEDS.map((seed) => golden(seed).tandas.map((t) => `${t.orchestraId}|${t.singer}`));
     for (let k = 1; k < 22; k++) {
       const fams = new Set(slots.map((x) => x[k]));
       // round 11 (R1): the planned summit is D'Arienzo's own family by rule
       if ([...fams].every((f) => f?.startsWith("juan-d-arienzo"))) continue;
-      expect(fams.size, `slot ${k}`).toBeGreaterThanOrEqual(3);
+      // round 13: the first (warm-up, cool) vals is drawn from the few cool golden-core vals families once the colour
+      // rules have spoken (Lomuto–Díaz, Canaro–Maida): two families there, three elsewhere
+      expect(fams.size, `slot ${k}`).toBeGreaterThanOrEqual(k === 2 ? 2 : 3);
     }
   });
 });
