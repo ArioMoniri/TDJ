@@ -28,4 +28,14 @@ describe("auto-improve (round 13)", () => {
       "Auto-improved against published sets: 3 changes (one recording period, heatmap years) · engine 89 → 91 · benchmark 13/17 → 15/17",
     );
   });
+  it("round 14: the strict panel's own edits are named", () => {
+    const line = autoImproveLine({
+      changes: [
+        { kind: "strict", tanda: 20, text: "Tanda 21: … (strict panel: 0 blockers · 2 should-fix → …)" },
+      ],
+      before: { score: 86, inRange: 15, scored: 18 },
+      after: { score: 88, inRange: 16, scored: 18 },
+    });
+    expect(line).toContain("(strict panel)");
+  });
 });

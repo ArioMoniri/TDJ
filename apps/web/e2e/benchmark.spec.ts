@@ -31,10 +31,17 @@ test("the featured night: the benchmark row opens every check with its range and
   // year-spread / golden-core / transitions / heatmap checks (the main session regenerates it), so those may read off
   await expect(
     sheet.locator(
-      '[data-testid="bench-check"][data-status="off"]:not([data-key="yearSpread"]):not([data-key="goldenCore"]):not([data-key="transitions"]):not([data-key="heatmapBest"])',
+      // round 14: and the strict panel, which finds the shipped night's 1946 sides and colour at a peak (round14.test.ts)
+      '[data-testid="bench-check"][data-status="off"]:not([data-key="yearSpread"]):not([data-key="goldenCore"]):not([data-key="transitions"]):not([data-key="heatmapBest"]):not([data-key="strictPanel"])',
     ),
   ).toHaveCount(0);
   expect(await checks.count()).toBeGreaterThanOrEqual(17);
+  // round 14: the strict panel lists its rules, each with its source review
+  const rules = sheet.getByTestId("strict-rule");
+  expect(await rules.count()).toBeGreaterThanOrEqual(20);
+  await expect(sheet.locator('[data-testid="strict-rule"][data-key="range"]')).toContainText(
+    "round14-dancer.md",
+  );
   const run = page.getByTestId("improve-run");
   await expect(run).toHaveText(/Improve automatically/);
   const box = await run.boundingBox();
@@ -48,7 +55,8 @@ test("a vocal-heavy night: Improve automatically, Keep, and the result card upda
     const body = JSON.parse(route.request().postData() ?? "{}");
     // round 13: auto-improve is off for this request, so the sheet's own Improve automatically has work to do
     await route.continue({
-      postData: JSON.stringify({ ...body, vocalBias: 1, seed: 7, autoImprove: false }),
+      // (round 14: seed 8 — with the strict panel's acceptance rule seed 7 leaves the sheet nothing to change)
+      postData: JSON.stringify({ ...body, vocalBias: 1, seed: 8, autoImprove: false }),
     });
   });
   await page.goto("/");
@@ -58,8 +66,11 @@ test("a vocal-heavy night: Improve automatically, Keep, and the result card upda
     .click();
   await expect(page.locator("#result")).toBeVisible({ timeout: 60000 });
   let sheet = await openBenchmark(page);
-  const instr = sheet.locator('[data-key="instrumental"]');
-  const before = await instr.textContent();
+  // round 14: the improve run may mend the strict panel or other checks rather than the instrumental row; the kept
+  // night shows in the sheet's values as a whole
+  const allChecks = async () =>
+    (await page.getByTestId("benchmark-sheet").getByTestId("bench-check").allTextContents()).join("|");
+  const before = await allChecks();
   await page.getByTestId("improve-run").click();
   await expect(page.getByTestId("improve-summary")).toHaveText(
     /Engine \d+ → \d+ · Benchmark \d+\/\d+ → \d+\/\d+/,
@@ -75,7 +86,8 @@ test("a vocal-heavy night: Improve automatically, Keep, and the result card upda
   await expect(page.getByText("Improved set kept")).toBeVisible();
   // the store holds the kept night: the benchmark (computed from the result card's set) reads it
   sheet = await openBenchmark(page);
-  await expect(sheet.locator('[data-key="instrumental"]')).not.toHaveText(before ?? "");
+  await expect(sheet.getByTestId("bench-check").first()).toBeVisible();
+  expect(await allChecks()).not.toBe(before);
   // Undo on a fresh run leaves the set as it is
   await page.getByTestId("improve-run").click();
   await expect(page.getByTestId("improve-summary")).toBeVisible({ timeout: 60000 });

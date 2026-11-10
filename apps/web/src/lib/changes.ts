@@ -177,4 +177,6 @@ const KIND_LABEL: Record<string, string> = {
   heatmap: "heatmap years",
   bridge: "bridge cue",
   core: "golden core",
+  energy: "energy step",
+  strict: "strict panel",
 };
