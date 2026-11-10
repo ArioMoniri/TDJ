@@ -1,5 +1,15 @@
 "use client";
-import { Brain, FolderOpen, Globe, HardDrive, KeyRound, LoaderCircle, Palette, Timer } from "lucide-react";
+import {
+  Brain,
+  FolderOpen,
+  Globe,
+  HardDrive,
+  KeyRound,
+  LoaderCircle,
+  Palette,
+  Sparkles,
+  Timer,
+} from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
@@ -239,6 +249,22 @@ export default function Settings() {
           tile={
             <Tile color="#007aff">
               <Globe size={16} strokeWidth={2} />
+            </Tile>
+          }
+        />
+      </Group>
+
+      <Group
+        header="Composing"
+        footer="After every compose the night is checked against the published DJ sets and the engine's own rules (your heatmap's best years, one recording period per tanda, the golden core, bridge cues) and improved where a change makes nothing worse. The change summary under the set says what changed. Off: the night is shown as composed; the Benchmark sheet can still improve it."
+      >
+        <SwitchRow
+          label="Auto-improve against published sets"
+          checked={settings.autoImprove}
+          onChange={(v) => setSettings({ autoImprove: v })}
+          tile={
+            <Tile color="#34c759">
+              <Sparkles size={16} strokeWidth={2} />
             </Tile>
           }
         />

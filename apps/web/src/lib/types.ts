@@ -96,6 +96,12 @@ export interface UserSettings {
    * `null` follows the composer's cortina length (`cortinaLengthSec`, 45 s by default).
    */
   cortinaStopSec: number | null;
+  /**
+   * Round 13: run the benchmark's improveNight after every compose (heatmap years, tighter tandas, golden core,
+   * bridge cues, the round-12 fixers) and say what changed in the change summary line. A change is kept only when
+   * neither the engine score nor the benchmark falls.
+   */
+  autoImprove: boolean;
 }
 export const DEFAULT_NAMING = "{artist} - {title}";
 export const DEFAULT_SETTINGS: UserSettings = {
@@ -114,6 +120,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   reduceGlass: false,
   learn: true,
   cortinaStopSec: null,
+  autoImprove: true,
 };
 export const CORTINA_STOP_RANGE = { min: 20, max: 90, step: 5 } as const;
 /** The effective cortina play length: the Playback setting, else the composer's cortina length, clamped to 20–90. */

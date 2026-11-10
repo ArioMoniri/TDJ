@@ -22,7 +22,13 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
-import { autoSetName, changedTandas, describeOptionChanges } from "@/lib/changes";
+import {
+  type AutoImproved,
+  autoImproveLine,
+  autoSetName,
+  changedTandas,
+  describeOptionChanges,
+} from "@/lib/changes";
 import { FEATURED, type FeaturedId, featuredMeta, loadFeatured } from "@/lib/featured";
 import { FEEDBACK_CHIPS } from "@/lib/feedback";
 import { haptic } from "@/lib/haptics";
@@ -908,9 +914,13 @@ export function Composer() {
           seed: seed ?? Math.floor(Math.random() * 1e9),
           locked: live?.tandas.filter((t) => t.locked) ?? [],
           overrides: overridesForRequest(overrides),
+          autoImprove: useStore.getState().settings.autoImprove !== false,
         }),
       });
-      const p = (await r.json()) as Playlist & { error?: string };
+      const { autoImproved, ...p } = (await r.json()) as Playlist & {
+        error?: string;
+        autoImproved?: AutoImproved;
+      };
       if (!r.ok || p.error) {
         setError(p.error ?? "Could not compose this set.");
         setErrorKey((k) => k + 1);
@@ -925,14 +935,15 @@ export function Composer() {
       setSetupOpen(false);
       updateMemory((m) => rememberSet(m, p));
       addSnapshot(makeSnapshot(p, fullOptions(useStore.getState().options), source));
+      const improvedLine = autoImproveLine(autoImproved);
       if (morph && live) {
         const changed = changedTandas(live, p);
         setChangeSummary(
-          `${changed.length ? `${changed.length} ${changed.length === 1 ? "tanda" : "tandas"} replaced (${changed.slice(0, 8).join(", ")}${changed.length > 8 ? "…" : ""})` : "No tanda changed"} · score ${live.score.total} → ${p.score.total}`,
+          `${changed.length ? `${changed.length} ${changed.length === 1 ? "tanda" : "tandas"} replaced (${changed.slice(0, 8).join(", ")}${changed.length > 8 ? "…" : ""})` : "No tanda changed"} · score ${live.score.total} → ${p.score.total}${improvedLine ? ` · ${improvedLine}` : ""}`,
         );
         setChangedSet(new Set(changed));
       } else {
-        setChangeSummary(null);
+        setChangeSummary(improvedLine);
         setChangedSet(new Set());
       }
       haptic([8, 40, 8]);

@@ -1,4 +1,4 @@
-import { compose, type Tanda } from "@tdj/core";
+import { compose, improveNight, type Tanda } from "@tdj/core";
 import { NextResponse } from "next/server";
 import { getCatalogFor } from "@/lib/server/catalog";
 import { forWire } from "@/lib/server/wire";
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
     if (v !== undefined && !(ok as readonly number[]).includes(Number(v)))
       return bad(`${k} must be one of ${ok.join(", ")}`);
   }
-  const { locked: lockedRaw, overrides: ovRaw, ...rest } = body;
+  const { locked: lockedRaw, overrides: ovRaw, autoImprove, ...rest } = body;
   const locked = Array.isArray(lockedRaw)
     ? (lockedRaw as Tanda[]).filter((t) => t && typeof t.index === "number" && Array.isArray(t.songs))
     : [];
@@ -42,6 +42,19 @@ export async function POST(req: Request) {
       { catalog, cortinas, contextModel },
       { locked },
     );
+    // round 13: "Auto-improve against published sets" (Settings, on by default) runs improveNight on the new set;
+    // the client reads `autoImproved` for the change summary line and keeps the improved night
+    if (autoImprove === true) {
+      const r = improveNight(p, { catalog, cortinas, contextModel });
+      return NextResponse.json({
+        ...forWire(r.playlist),
+        autoImproved: {
+          changes: r.changes,
+          before: r.before,
+          after: r.after,
+        },
+      });
+    }
     return NextResponse.json(forWire(p));
   } catch (e) {
     return bad(e instanceof Error ? e.message : "Could not compose this set");
