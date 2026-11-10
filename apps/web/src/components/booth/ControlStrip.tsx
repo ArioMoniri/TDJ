@@ -52,7 +52,7 @@ export function ControlStrip({
   const holdTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const live = state === "playing" || state === "cortina";
   const missing = plan
-    ? sources.filter((s, i) => s === "missing" && plan.items[i]!.kind !== "break").length
+    ? sources.filter((s, i) => s === "missing" && !!plan.items[i] && plan.items[i].kind !== "break").length
     : 0;
 
   const beginStop = () => {
