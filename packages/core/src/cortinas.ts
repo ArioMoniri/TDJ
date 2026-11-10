@@ -207,7 +207,7 @@ export const BUILTIN_CORTINAS: Cortina[] = [
   {
     id: "c-tr-1",
     title: "Ah Bu Şarkıların Gözü Kör Olsun",
-    artist: "Sezen Aksu",
+    artist: "Zeki Müren",
     genre: "turkish-pop",
     culture: "turkish",
     language: "tr",
