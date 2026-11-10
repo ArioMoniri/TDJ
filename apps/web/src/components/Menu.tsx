@@ -90,6 +90,18 @@ export function Menu({
       const t = e.target as Node;
       if (!root.current?.contains(t) && !pop.current?.contains(t)) setOpen(false);
     };
+    // a deliberate scroll closes the menu; the page settling (a smooth scroll finishing, scroll anchoring when the
+    // popover mounts) and scrolling inside an unrelated panel do not (the menu used to vanish as it opened)
+    const y0 = window.scrollY;
+    const t0 = performance.now();
+    const onScroll = (e: Event) => {
+      const t = e.target;
+      const page = t === document || t === document.documentElement || t === document.body;
+      if (!page && !(t instanceof Node && root.current && t.contains(root.current))) return;
+      if (performance.now() - t0 < 200) return;
+      if (page && Math.abs(window.scrollY - y0) < 12) return;
+      setOpen(false);
+    };
     const onMove = () => setOpen(false);
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -120,12 +132,12 @@ export function Menu({
     };
     document.addEventListener("pointerdown", onDown);
     document.addEventListener("keydown", onKey);
-    window.addEventListener("scroll", onMove, { passive: true, capture: true });
+    window.addEventListener("scroll", onScroll, { passive: true, capture: true });
     window.addEventListener("resize", onMove);
     return () => {
       document.removeEventListener("pointerdown", onDown);
       document.removeEventListener("keydown", onKey);
-      window.removeEventListener("scroll", onMove, { capture: true });
+      window.removeEventListener("scroll", onScroll, { capture: true });
       window.removeEventListener("resize", onMove);
     };
   }, [open, isPhone, list, focus]);
