@@ -128,7 +128,9 @@ export const useStore = create<State>()(
       addSnapshot: (snap) => {
         const next = pushSnapshot(get().history, snap);
         set({ history: next });
-        saveHistory(next, get().storageMode);
+        // a new night is written now, not after the debounce: opening History right after composing (or leaving
+        // the page) lost it, because a write started in pagehide is not guaranteed to finish
+        saveHistory(next, get().storageMode, true);
       },
       updateSnapshot: (id, patch) => {
         const next = get().history.map((h) => (h.id === id ? { ...h, ...patch } : h));
