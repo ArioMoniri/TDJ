@@ -460,9 +460,45 @@ def apply_round14(songs):
         else: s.pop("undatedCompilation", None)
     return songs
 
+# --- Round 15 (docs/reviews/round15-discography.md §4, docs/specs/round15-engine.md) -------------------------------
+ID_PATCH_15 = {
+    # Recuerdo, Tanturi 1942-11-04: an instrumental (tango.info T0370025834, "– zxx"); its Deezer match is the
+    # Castillo vals of 1941-01-08 (3a302c4ffd), unbound by scripts/audit_streams.ts (R4a, R4b)
+    "79264f596c": {"singer": None, "singerId": None, "vocal": False},
+    "63f9f276ae": {"title": "El Último Adiós"},
+    "f1acd1338d": {"title": "¡Cómo Has Cambiado, Pebeta!"},
+    "4383a7d337": {"title": "Mirame de Frente"},
+    "67af743962": {"altTitles": ["Frou Frou"]},
+    # the label prints "Milongueando en el '40"
+    "f96fa56eaa": {"title": "Milongueando en el 40", "altTitles": ["Milongueando en el Cuarenta"]},
+}
+# every row of the same work reads the same (normalised title → display title)
+TITLE_WORK_15 = {
+    "el ultimo adios": "El Último Adiós",
+    "como has cambiado pebeta": "¡Cómo Has Cambiado, Pebeta!",
+    "milongueando en el cuarenta": ("Milongueando en el 40", ["Milongueando en el Cuarenta"]),
+    "milongueando en el 40": "Milongueando en el 40",
+}
+RHYTHM_CODE = {"tango": "T", "vals": "V", "milonga": "M"}
+
+def apply_round15(songs):
+    for s in songs:
+        w = TITLE_WORK_15.get(norm_title(s["title"]))
+        if isinstance(w, tuple):
+            s["title"] = w[0]; s["altTitles"] = sorted(set((s.get("altTitles") or []) + w[1]))
+        elif w: s["title"] = w
+        p = ID_PATCH_15.get(s["id"])
+        if p:
+            for k, v in p.items():
+                s[k] = sorted(set((s.get(k) or []) + v)) if k == "altTitles" else v
+        # R13: rhythmCode is derived from rhythm after every patch (a T/V/M code on another rhythm reads ND)
+        if s["rhythm"] in RHYTHM_CODE: s["rhythmCode"] = RHYTHM_CODE[s["rhythm"]]
+        elif s.get("rhythmCode") in ("T", "V", "M"): s["rhythmCode"] = "ND"
+    return songs
+
 def main():
     raw = build_songs()
-    songs = apply_round14(fix_range_years(dedupe(raw)))
+    songs = apply_round15(apply_round14(fix_range_years(dedupe(raw))))
     coverage = build_coverage()
     cov_by_id = {c["orchestraId"]: c for c in coverage}
     orchestras = collections.OrderedDict()

@@ -14,7 +14,7 @@
     "lint": "biome check .",
     "format": "biome format --write .",
     "typecheck": "turbo run typecheck",
-    "index:build": "python3 scripts/build_index.py",
+    "index:build": "python3 scripts/build_index.py && pnpm --filter @tdj/core exec tsx ../../scripts/audit_streams.ts",
     "index:enrich": "pnpm --filter @tdj/core exec tsx ../../scripts/enrich_spotify.ts",
     "compose": "pnpm --filter @tdj/core exec tsx src/cli.ts",
     "quality": "pnpm --filter @tdj/core exec tsx src/quality.ts",

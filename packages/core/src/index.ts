@@ -18,6 +18,7 @@ export * from "./rng";
 export * from "./rules";
 export * from "./score";
 export * from "./strict";
+export * from "./streams";
 export * from "./tanda";
 export * from "./transitions";
 export * from "./types";
