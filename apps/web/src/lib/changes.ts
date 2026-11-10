@@ -155,3 +155,26 @@ export function autoSetName(o: Partial<ComposeOptions>): string {
     : `${time ? time[0]!.toUpperCase() + time.slice(1) : ""}${time ? ev : ev[0]!.toUpperCase() + ev.slice(1)}`;
   return `${head} · ${fmtH(o.hours ?? 4)} · ${ERA[o.eras?.[0] ?? "golden"] ?? "Golden Age"}`;
 }
+
+/** what /api/compose's auto-improve pass did (round 13), as the change summary line says it */
+export interface AutoImproved {
+  changes: Array<{ kind: string; tanda: number; text: string }>;
+  before: { score: number; inRange: number; scored: number };
+  after: { score: number; inRange: number; scored: number };
+}
+export function autoImproveLine(r: AutoImproved | null | undefined): string | null {
+  if (!r?.changes.length) return null;
+  const n = r.changes.length;
+  const kinds = [...new Set(r.changes.map((c) => KIND_LABEL[c.kind] ?? c.kind))].join(", ");
+  return `Auto-improved against published sets: ${n} ${n === 1 ? "change" : "changes"} (${kinds}) · engine ${r.before.score} → ${r.after.score} · benchmark ${r.before.inRange}/${r.before.scored} → ${r.after.inRange}/${r.after.scored}`;
+}
+const KIND_LABEL: Record<string, string> = {
+  instrumental: "instrumental hour",
+  "stream-suspect": "re-recording",
+  "cue-fit": "cue fit",
+  roles: "running order",
+  tighten: "one recording period",
+  heatmap: "heatmap years",
+  bridge: "bridge cue",
+  core: "golden core",
+};
