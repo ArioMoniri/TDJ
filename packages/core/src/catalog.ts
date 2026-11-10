@@ -134,26 +134,34 @@ export class Catalog {
       if (hiddenCopies.has(raw.id) || hiddenTitles.has(hideKey(raw))) return [];
       if (patch && hiddenTitles.has(hideKey({ ...raw, ...patch }))) return [];
       const s = patch ? { ...raw, ...patch } : raw;
-      const sp = s.spotify ?? spotifyCache[s.id] ?? null;
-      const resolved = s.resolved ?? caches.resolved?.[s.id] ?? null;
+      // round 14 (discography R5): a stream match must name the orchestra, the singer or an orquesta típica
+      // ("Domy Castellano – Marchantia" is not Biagi's Marcheta); a match naming neither is dropped
+      const sp0 = s.spotify ?? spotifyCache[s.id] ?? null;
+      const sp =
+        sp0 && matchNamesArtist(s, (sp0 as { matched?: string }).matched?.split(" – ")[0]) ? sp0 : null;
+      const res0 = s.resolved ?? caches.resolved?.[s.id] ?? null;
+      const resolved = res0 && matchNamesArtist(s, res0.artist) ? res0 : null;
       const audio = patch?.audio ?? s.audio ?? caches.audio?.[s.id] ?? null;
       // a streaming match whose length is implausible for the era (a 1944 tango of 8 min) is a wrong match: estimate instead
       const est = estimateDuration(s);
       const plausible = (ms: number) =>
         ms > 90_000 && (s.era === "nuevo" || s.era === "contemporary" || ms <= Math.max(330_000, est * 1600));
+      const measured =
+        s.durationSec ??
+        (sp?.durationMs && plausible(sp.durationMs)
+          ? Math.round(sp.durationMs / 1000)
+          : resolved?.durationMs && plausible(resolved.durationMs)
+            ? Math.round(resolved.durationMs / 1000)
+            : undefined);
       const song: Song = {
         ...s,
         title: cleanTitle(s.title),
         spotify: sp ?? null,
         resolved,
         audio,
-        durationSec:
-          s.durationSec ??
-          (sp?.durationMs && plausible(sp.durationMs)
-            ? Math.round(sp.durationMs / 1000)
-            : resolved?.durationMs && plausible(resolved.durationMs)
-              ? Math.round(resolved.durationMs / 1000)
-              : est),
+        durationSec: measured ?? est,
+        // round 14 (discography §1.3, R3): an estimate is marked, shown as "≈", never judged against a length band
+        ...(measured === undefined ? { durationEstimated: true } : {}),
       };
       if (song.reissue === undefined && isReissueRow(song)) song.reissue = true;
       const key = `${normTitle(song.title)}|${song.orchestraId}`;
@@ -227,6 +235,7 @@ export class Catalog {
       const g = this.heatmap.grade(s.orchestraId, s.vocal, s.year && !s.yearApprox ? s.year : null);
       if (g !== undefined) s.heat = g;
     }
+    flagSuspectCredits(deduped);
     this.songs = deduped;
     // analysed audio refines energy within an orchestra: a track louder/denser than its orchestra's analysed
     // mean moves up, a softer one down (±10 max). Explicit per-track energy (overrides) is left alone.
@@ -443,4 +452,45 @@ export function normaliseCorpusSingers(corpus: ReferenceCorpus, songs: Song[]): 
     famousRecordings: corpus.famousRecordings?.map((f) => ({ ...f, singer: fix(f.orchestraId, f.singer) })),
     canonicalTandas: corpus.canonicalTandas?.map((t) => ({ ...t, singer: fix(t.orchestraId, t.singer) })),
   };
+}
+
+/** round 14 (discography R5): the artist a stream match names carries the orchestra's or the singer's surname */
+export function matchNamesArtist(
+  s: Pick<Song, "orchestra" | "singer">,
+  artist: string | undefined | null,
+): boolean {
+  if (artist === undefined || artist === null) return true; // older cache entries carry no artist: kept
+  const a = normTitle(artist);
+  const last = (x: string) =>
+    normTitle(x)
+      .split(" ")
+      .filter((w) => w.length > 2)
+      .slice(-1);
+  const keys = [...last(s.orchestra), ...(s.singer ? last(s.singer) : []), "orquesta", "tipica", "orchestra"];
+  return keys.some((k) => a.includes(k));
+}
+
+/**
+ * Round 14 (dancer R14-4b, R14-13): a fame-0 row whose title another orchestra made famous in the same year (fame ≥ 4),
+ * or within two years when the row has no recording date (fame ≥ 3), is a possible crossed credit (Lomuto "Isabelita"
+ * 1940-08-12, one day before Rodríguez–Moreno's): flagged, kept off the opener chair, the peaks and the first side.
+ */
+export function flagSuspectCredits(songs: Song[]): void {
+  const famous = new Map<string, Array<{ o: string; y: number; f: number }>>();
+  for (const s of songs)
+    if ((s.fame ?? 0) >= 3 && s.year) {
+      const k = normTitle(s.title);
+      famous.set(k, [...(famous.get(k) ?? []), { o: s.orchestraId, y: s.year, f: s.fame ?? 0 }]);
+    }
+  for (const s of songs) {
+    if ((s.fame ?? 0) > 0 || !s.year) continue;
+    const hits = famous.get(normTitle(s.title)) ?? [];
+    const dated = !!s.date && /^\d{4}-\d{2}-\d{2}/.test(s.date);
+    if (
+      hits.some(
+        (h) => h.o !== s.orchestraId && (dated ? h.y === s.year && h.f >= 4 : Math.abs(h.y - s.year!) <= 2),
+      )
+    )
+      s.suspectCredit = true;
+  }
 }

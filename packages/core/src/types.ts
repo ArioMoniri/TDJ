@@ -80,6 +80,14 @@ export interface Song {
   dateRange?: [number, number];
   /** round 13: the user's heatmap grade for this orchestra, mode and year (0 avoid … 4 fantastic; data/index/coverage.json) */
   heat?: import("./knowledge").HeatGrade;
+  /** round 14: alternative titles moved out of the display title at index build (dedications, glosses, lyric variants) */
+  altTitles?: string[];
+  /** round 14: no recording date and an album that names neither the orchestra nor the singer (a mixed compilation) */
+  undatedCompilation?: boolean;
+  /** round 14: fame 0 under a title another orchestra made famous the same year (dancer R14-4b, R14-13) */
+  suspectCredit?: boolean;
+  /** round 14: the length is estimateDuration() (no measured stream): shown as "≈", never judged against a length band */
+  durationEstimated?: boolean;
   /** analysed audio features (data/cache/audio/features.json or user database) */
   audio?: import("./audio/dsp").AudioFeatures | null;
   /** resolved streaming/preview track (data/cache/resolve/tracks.json) */

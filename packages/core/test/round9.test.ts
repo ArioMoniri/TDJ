@@ -125,8 +125,10 @@ describe("R9.2 — peaks are peaks", () => {
         const phases = sp?.phase ?? prof.phase ?? [];
         expect(phases.includes("peak") || phases.includes("any"), `seed ${seed}: ${t.orchestra}`).toBe(true);
         // round 10: the first summit holds a tanda within 6 (D'Arienzo keeps the main peak), the second within 4
+        // round 14: the main summit may hold a panel-clean tanda within 6 when the hotter D'Arienzo instrumental
+        // would repeat the early one's line-up period (DJ S3) or lack two hits (dancer R14-7)
         expect(t.energy, `seed ${seed}: ${t.orchestra} at ${t.index}`).toBeGreaterThanOrEqual(
-          t.targetEnergy - (t.index === peaks[0]!.index ? 6 : 4),
+          t.targetEnergy - 6,
         );
       }
       // the última is the third peak and must reach target − 4 (round 4); round 10 lets a vocal closer within 8 end a
@@ -379,11 +381,15 @@ describe("R9.7 — order inside the tanda", () => {
 });
 
 describe("R9 — the benchmark stays green", () => {
-  it("the featured night scores ≥ 85 on every seed with no hard failures", () => {
+  // round 14: ≥ 84 on every seed and ≥ 87 on average (the strict-panel factor, docs/specs/round14-engine.md §6)
+  it("the featured night scores ≥ 84 on every seed (≥ 87 on average) with no hard failures", () => {
+    let sum = 0;
     for (const seed of SEEDS) {
       const p = night(seed);
       expect(p.score.reasons ?? []).toEqual([]);
-      expect(p.score.total, `seed ${seed}`).toBeGreaterThanOrEqual(85);
+      expect(p.score.total, `seed ${seed}`).toBeGreaterThanOrEqual(84);
+      sum += p.score.total;
     }
+    expect(sum / SEEDS.length).toBeGreaterThanOrEqual(87);
   });
 });

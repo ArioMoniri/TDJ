@@ -94,10 +94,12 @@ describe("benchmarkNight", () => {
     // round 13: the round-11 featured night predates the year-spread, golden-core, transitions and heatmap checks
     // (the cohesion review grades it loose: median 2 y, 55 % ≤ 2 y); the main session regenerates it, so those four
     // are judged in round13.test.ts, not here
-    const r13 = new Set(["yearSpread", "goldenCore", "transitions", "heatmapBest"]);
+    // round 14: and it predates the strict panel (its 1946 sides, colour at a peak and the D'Arienzo summit straight
+    // into Pugliese are what the panel found), judged in round14.test.ts
+    const r13 = new Set(["yearSpread", "goldenCore", "transitions", "heatmapBest", "strictPanel"]);
     const off = b.checks.filter((c) => c.status === "off" && !c.info && !r13.has(c.key));
     expect(off.map((c) => `${c.key}: ${c.value} (${c.range})`)).toEqual([]);
-    expect(b.inRange).toBeGreaterThanOrEqual(b.scored - 3);
+    expect(b.inRange).toBeGreaterThanOrEqual(b.scored - 4);
   });
 
   it("hours come from the real durations (songs + cortinas), not the tanda index", () => {
@@ -153,13 +155,21 @@ describe("improveNight", () => {
         const q = r.playlist;
         // the same tandas in the same chairs: orchestras and rhythms unchanged (TTVTTM, caps, spacing kept); round 13's
         // golden-core fixer is the one change that may hand a chair to another orchestra (caps and spacing still hold)
-        const moved = new Set(r.changes.filter((c) => c.kind === "core").map((c) => c.tanda));
+        // round 14: so are the strict panel's own replacements and swaps (each passes the composer's slot rules)
+        const moved = new Set(
+          r.changes
+            .filter((c) => c.kind === "core" || c.kind === "strict")
+            .flatMap((c) => {
+              const m = /Tandas (\d+) and (\d+) swap/.exec(c.text);
+              return m ? [Number(m[1]) - 1, Number(m[2]) - 1] : [c.tanda];
+            }),
+        );
         expect(q.tandas.map((t, i) => (moved.has(i) ? "*" : t.orchestraId))).toEqual(
           p.tandas.map((t, i) => (moved.has(i) ? "*" : t.orchestraId)),
         );
         expect(q.tandas.map((t) => t.rhythm)).toEqual(p.tandas.map((t) => t.rhythm));
-        for (const [id, n] of orchCounts(q))
-          expect(n, `seed ${seed} ${id}`).toBeLessThanOrEqual(id === "juan-d-arienzo" ? 3 : 2);
+        // round 14 (DJ S5): two tango tandas plus one vals or milonga on a golden night
+        for (const [id, n] of orchCounts(q)) expect(n, `seed ${seed} ${id}`).toBeLessThanOrEqual(3);
         for (let i = 0; i < q.tandas.length; i++)
           for (let j = i + 1; j < Math.min(q.tandas.length, i + 3); j++)
             expect(q.tandas[j]!.orchestraId, `seed ${seed} #${i}/#${j}`).not.toBe(q.tandas[i]!.orchestraId);
@@ -187,6 +197,8 @@ describe("improveNight", () => {
       for (const c of instr) {
         // round 13: a later fixer (tighten, heatmap, energy) may rework the same tanda; judge untouched ones
         if (r.changes.some((x) => x !== c && x.tanda === c.tanda)) continue;
+        // round 14: a strict-panel swap may move another tanda into this chair
+        if (r.changes.some((x) => x.kind === "strict" && /swap/.test(x.text))) continue;
         const t = r.playlist.tandas[c.tanda]!;
         expect(t.vocal).toBe(false);
         expect(t.orchestraId).toBe(p.tandas[c.tanda]!.orchestraId);
@@ -200,7 +212,9 @@ describe("improveNight", () => {
         }
       }
     }
-    expect(raised).toBeGreaterThanOrEqual(5);
+    // round 14 (DJ review S6): the fixer chases an instrumental tango tanda in every hour and no fourth vocal tango in a
+    // row, no longer the one-third share, and every change passes the strict panel: fewer nights move
+    expect(raised).toBeGreaterThanOrEqual(1);
   });
 
   it("cue-fit never adds a cortina family and never leaves a slow cue before a vals or milonga it could fix", () => {
@@ -217,7 +231,8 @@ describe("improveNight", () => {
           .flatMap((t) => (t.cortina ? [t.cortina.id] : []))
           .sort()
           .join();
-      if (!r.changes.some((c) => /new cue/.test(c.text))) expect(cues(r.playlist)).toBe(cues(p));
+      if (!r.changes.some((c) => /new cue|Cortinas re-picked/.test(c.text)))
+        expect(cues(r.playlist)).toBe(cues(p));
       const slowBefore = (q: Playlist) =>
         q.tandas.filter(
           (t, i) => i > 0 && t.rhythm !== "tango" && cortinaTempo(q.tandas[i - 1]!.cortina!) === "slow",

@@ -208,13 +208,14 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     id: "c-tr-1",
     title: "Ah Bu Şarkıların Gözü Kör Olsun",
     artist: "Zeki Müren",
-    genre: "turkish-pop",
+    // round 14 (discography §1.5): Turkish classical (sanat müziği); no audio resolved, so never in a pool
+    genre: "turkish-classic",
     culture: "turkish",
     language: "tr",
     energy: 50,
     startSec: 0,
     lengthSec: 45,
-    tags: ["theme:turkish-classics", "tempo:slow", "mood:lament"],
+    tags: ["theme:turkish-classics", "tempo:slow", "mood:lament", "no-audio"],
   },
   {
     id: "c-tr-2",
@@ -252,7 +253,8 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     energy: 40,
     startSec: 0,
     lengthSec: 45,
-    tags: ["theme:turkish-classics", "tempo:slow", "mood:classic"],
+    // round 14 (discography §1.5): no audio resolved
+    tags: ["theme:turkish-classics", "tempo:slow", "mood:classic", "no-audio"],
   },
   {
     id: "c-tr-5",
@@ -266,6 +268,8 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     trend: true,
     startSec: 0,
     lengthSec: 45,
+    // round 14 (discography §1.5): the song is Nilüfer's 1973 hit; the cover's audio never resolved
+    tags: ["no-audio"],
   },
   {
     id: "c-tr-6",
@@ -715,7 +719,12 @@ const eraFiltered = (cands: Cortina[], o: ComposeOptions) => {
   return old.length >= 2 ? old : cands;
 };
 
-export function candidatesFor(pool: Cortina[], o: ComposeOptions): Cortina[] {
+export function candidatesFor(pool0: Cortina[], o: ComposeOptions): Cortina[] {
+  // round 14 (discography R12, DJ S9): a cue with no audio is never in a pool; a danceable-risk cue (Şımarık) only
+  // when the pool cannot do without it
+  const audible = pool0.filter((c) => !c.tags?.includes("no-audio"));
+  const safe = audible.filter((c) => !c.tags?.includes("danceable-risk"));
+  const pool = safe.length >= 8 ? safe : audible.length ? audible : pool0;
   const cultures = new Set(o.cortinaCultures?.length ? o.cortinaCultures : ["global"]);
   const genres = o.cortinaGenres?.length ? new Set(o.cortinaGenres) : null;
   // cultures the DJ chose are a hard filter whenever the pool can serve them

@@ -59,8 +59,12 @@ const RHYTHM_SHIFT: Record<string, number> = {
   pasodoble: 10,
 };
 
+const NORM_MEMO = new Map<string, string>();
 export function normTitle(t: string): string {
-  return t
+  // memoised (round 14: the strict-panel repair normalises the same few thousand titles many times)
+  const hit = NORM_MEMO.get(t);
+  if (hit !== undefined) return hit;
+  const out = t
     .normalize("NFKD")
     .replace(/[̀-ͯ]/g, "")
     .toLowerCase()
@@ -68,6 +72,9 @@ export function normTitle(t: string): string {
     .replace(/[^a-z0-9 ]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+  if (NORM_MEMO.size > 200_000) NORM_MEMO.clear();
+  NORM_MEMO.set(t, out);
+  return out;
 }
 
 /** Deterministic pseudo-variation so tracks from the same orchestra are not all identical (±4). */

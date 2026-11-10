@@ -35,9 +35,15 @@ export function loadCatalog(root = findRoot(), overrides?: UserOverrides): Loade
   const cortinaResolved = existsSync(crf)
     ? (JSON.parse(readFileSync(crf, "utf8")) as Record<string, ResolvedTrack | null>)
     : {};
-  const cortinas = cortinasRaw.map((c) =>
-    c.id in cortinaResolved ? { ...c, resolved: c.resolved ?? cortinaResolved[c.id] ?? null } : c,
-  );
+  // round 14 (discography R12): a cue the resolver tried and found nothing for is tagged "no-audio" (never in a pool)
+  const withAudio = (c: Cortina): Cortina => {
+    if (!(c.id in cortinaResolved)) return c;
+    const resolved = c.resolved ?? cortinaResolved[c.id] ?? null;
+    const tags =
+      !resolved && !c.spotify && !c.tags?.includes("no-audio") ? [...(c.tags ?? []), "no-audio"] : c.tags;
+    return { ...c, resolved, ...(tags ? { tags } : {}) };
+  };
+  const cortinas = cortinasRaw.map(withAudio);
   const sf = j("data/cache/spotify/tracks.json");
   const cache = existsSync(sf) ? JSON.parse(readFileSync(sf, "utf8")) : {};
   const meta = JSON.parse(readFileSync(j("data/index/meta.json"), "utf8"));

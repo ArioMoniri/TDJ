@@ -3,6 +3,7 @@ import { familyOf } from "./cortinas";
 import { normTitle } from "./energy";
 import { monthIndex, staticProfile } from "./knowledge";
 import { CORPUS_CAPS, CUMPARSITA_CLOSING_YEARS, DEFAULT_CAP, ULTIMA_CLOSERS } from "./rules";
+import { strictChecks, strictSummary } from "./strict";
 import { isTandaEligible, songRhythm } from "./tanda";
 import { nightTransitions } from "./transitions";
 import type { Playlist, ScoreCard, ScoreFactor, Song, Tanda } from "./types";
@@ -402,6 +403,19 @@ export function scorePlaylist(p: Pick<Playlist, "tandas" | "closing" | "options"
     `${diff.toFixed(1)} min off target`,
   );
 
+  // round 14 — the strict panel (docs/specs/round14-engine.md): blockers weigh 0.15 each, should-fix items 0.02;
+  // nights the panel does not judge (no golden rule applies) carry weight 0
+  {
+    const sr = strictChecks(p);
+    const judged = sr.rules.some((r) => r.applies && r.key !== "gap" && !r.key.startsWith("cue"));
+    add(
+      "strict",
+      "Strict panel (round-14 dancer, DJ and discography rules)",
+      judged ? 8 : 0,
+      1 - sr.blockers * 0.15 - sr.shouldFix * 0.02,
+      strictSummary(sr),
+    );
+  }
   const W = f.reduce((a, x) => a + x.weight, 0) || 1;
   let total = Math.round((f.reduce((a, x) => a + x.weight * x.score, 0) / W) * 100);
   // hard failures (round 8 §3.8): things a DJ would be embarrassed by cap the number at 60 whatever the factors say

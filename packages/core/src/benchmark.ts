@@ -4,7 +4,9 @@ import { type ComposeDeps, computeStats, swapTanda } from "./compose";
 import { cortinaTempo, familyOf } from "./cortinas";
 import { isDanceableSong, normTitle } from "./energy";
 import { DEFAULT_HEATMAP, goldenClassOf, isColour, isGoldenNight, staticProfile } from "./knowledge";
+import { bestEdit } from "./repair";
 import { eraGrade, hardFailures, scorePlaylist } from "./score";
+import { mustHavesOf, type StrictResult, strictChecks, strictSummary } from "./strict";
 import { isTandaEligible, songRhythm } from "./tanda";
 import { isBridge, nightTransitions } from "./transitions";
 import type { Cortina, Playlist, Song, Tanda } from "./types";
@@ -26,7 +28,8 @@ export type FixKey =
   | "heatmap"
   | "bridge"
   | "core"
-  | "energy";
+  | "energy"
+  | "strict";
 export interface BenchCheck {
   key: string;
   label: string;
@@ -50,6 +53,8 @@ export interface BenchResult {
   inRange: number;
   /** scored checks (informational ones left out) */
   scored: number;
+  /** round 14: every strict-panel rule, pass / fail with its violations and its source review */
+  strict?: StrictResult;
 }
 
 type Night = Pick<Playlist, "tandas" | "closing" | "options"> & Partial<Pick<Playlist, "opening">>;
@@ -268,18 +273,26 @@ export function benchmarkNight(p: Night): BenchResult {
       ...(golden ? {} : { info: true }),
     });
   }
-  // 8. instrumental share of every clock hour (Victor Tran)
+  // 8. round 14 (DJ review S6): an instrumental tango tanda every hour, no more than 3 vocal tango tandas in a row;
+  // Victor Tran's one-third share is shown as information
   {
     const c = K.instrumental;
     const hs = hourlyInstrumental(p);
-    const min = hs.length ? Math.min(...hs.map((h) => h.share)) : 0;
-    const low = hs.filter((h) => h.share < c.minShare - 1e-9);
+    const noInstr = hs.filter((h) => !h.tandas.some((i) => t[i]!.rhythm === "tango" && !t[i]!.vocal));
+    let run = 0,
+      maxRun = 0;
+    for (const x of t)
+      if (x.rhythm === "tango") {
+        run = x.vocal ? run + 1 : 0;
+        maxRun = Math.max(maxRun, run);
+      }
+    const bad = noInstr.length + Math.max(0, maxRun - c.maxVocalRun);
     add({
       key: "instrumental",
       label: c.label,
-      value: hs.map((h) => `h${h.hour + 1} ${pct(h.share)}`).join(" · "),
-      range: `≥ 33 % every hour (near from ${pct(c.nearShare)})`,
-      status: low.length === 0 ? "ok" : min >= c.nearShare ? "near" : "off",
+      value: `${noInstr.length ? `${noInstr.map((h) => `h${h.hour + 1}`).join(", ")} without one` : "every hour has one"} · longest vocal run ${maxRun} · share ${hs.map((h) => `h${h.hour + 1} ${pct(h.share)}`).join(" · ")}`,
+      range: `≥ 1 instrumental tango tanda each hour, ≤ ${c.maxVocalRun} vocal tango tandas in a row (≥ 1/3 instrumental shown as information)`,
+      status: bad === 0 ? "ok" : bad === 1 ? "near" : "off",
       weight: c.weight,
       source: c.source,
       fix: "instrumental",
@@ -431,7 +444,9 @@ export function benchmarkNight(p: Night): BenchResult {
       : 0;
     let status: BenchStatus =
       share >= c.minShare - 1e-9 ? "ok" : share >= c.nearShare - 1e-9 ? "near" : "off";
-    if (colour.length > maxColour || hot > c.colourPeakMax) status = status === "ok" ? "near" : "off";
+    if (colour.length > maxColour) status = status === "ok" ? "near" : "off";
+    // round 14 (DJ B2): a colour orchestra at a peak is off, not near
+    if (hot > c.colourPeakMax) status = "off";
     add({
       key: "goldenCore",
       label: c.label,
@@ -508,13 +523,42 @@ export function benchmarkNight(p: Night): BenchResult {
     });
   }
 
+  // 18. round 14 — the strict panel (docs/specs/round14-engine.md)
+  const strict = strictChecks(p);
+  {
+    const c = K.strictPanel;
+    const applies = strict.rules.some((r) => r.applies && r.key !== "gap" && !r.key.startsWith("cue"));
+    add({
+      key: "strictPanel",
+      label: c.label,
+      value: strictSummary(strict),
+      range: "no blocker, no should-fix item (near: no blocker, ≤ 3 should-fix)",
+      status: strict.blockers
+        ? "off"
+        : strict.shouldFix > c.nearShouldFix
+          ? "off"
+          : strict.shouldFix
+            ? "near"
+            : "ok",
+      weight: applies ? c.weight : 0,
+      source: c.source,
+      fix: "strict",
+      ...(applies ? {} : { info: true }),
+    });
+  }
   const scored = checks.filter((c) => !c.info && c.weight > 0);
   const W = scored.reduce((a, c) => a + c.weight, 0) || 1;
   const total = Math.round(
     (scored.reduce((a, c) => a + c.weight * (c.status === "ok" ? 1 : c.status === "near" ? 0.5 : 0), 0) / W) *
       100,
   );
-  return { total, checks, inRange: scored.filter((c) => c.status === "ok").length, scored: scored.length };
+  return {
+    total,
+    checks,
+    inRange: scored.filter((c) => c.status === "ok").length,
+    scored: scored.length,
+    strict,
+  };
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -591,6 +635,7 @@ export function improveNight(p: Playlist, deps: ComposeDeps, opts: ImproveOption
   const fixers =
     opts.fixers ??
     ([
+      "strict",
       "stream-suspect",
       "heatmap",
       "tighten",
@@ -672,9 +717,22 @@ export function improveNight(p: Playlist, deps: ComposeDeps, opts: ImproveOption
       : undefined);
 
   const instrumentalFix = (q: Playlist): Candidate[] => {
+    // round 14 (DJ S6): an hour without an instrumental tango tanda, or a hour holding a fourth vocal tango in a row
     const hs = hourlyInstrumental(q);
-    const low = hs.filter((h) => h.share < K.instrumental.minShare - 1e-9);
+    let run = 0;
+    const longRun = new Set<number>();
+    q.tandas.forEach((t, i) => {
+      if (t.rhythm !== "tango") return;
+      run = t.vocal ? run + 1 : 0;
+      if (run > K.instrumental.maxVocalRun) longRun.add(i);
+    });
+    const low = hs.filter(
+      (h) =>
+        !h.tandas.some((i) => q.tandas[i]!.rhythm === "tango" && !q.tandas[i]!.vocal) ||
+        h.tandas.some((i) => longRun.has(i)),
+    );
     if (!low.length) return [];
+    const yrQ = q.options.yearRange;
     const tango = q.tandas.filter((t) => t.rhythm === "tango");
     const vocalNow = tango.filter((t) => t.vocal).length;
     const b = vocalBand(q);
@@ -701,6 +759,8 @@ export function improveNight(p: Playlist, deps: ComposeDeps, opts: ImproveOption
           if (songRhythm(s) !== "tango" || s.vocal || s.singer || !clean(s) || typeof s.energy !== "number")
             continue;
           if (!s.year || s.year < y0 - 2 || s.year > y1 + 2 || !danceable(s)) continue;
+          // round 14 (DJ B1, B4): never outside the night's year range
+          if (yrQ && (s.year < yrQ[0] || s.year > yrQ[1])) continue;
           const k = normTitle(s.title);
           if (used.has(k)) continue;
           const prev = seen.get(k);
@@ -734,7 +794,7 @@ export function improveNight(p: Playlist, deps: ComposeDeps, opts: ImproveOption
           songs,
           singer: null,
           vocal: false,
-          reason: `${t.orchestra} instrumental (benchmark: ≥ 1/3 of each hour instrumental)`,
+          reason: `${t.orchestra} instrumental (benchmark: an instrumental tango tanda every hour, round-14 DJ review S6)`,
         };
         const cand = withTanda(q, i, nt);
         out.push({
@@ -743,7 +803,7 @@ export function improveNight(p: Playlist, deps: ComposeDeps, opts: ImproveOption
           playlist: cand,
           text: (after) => {
             const hh = hourlyInstrumental(after).find((x) => x.tandas.includes(i));
-            return `Tanda ${i + 1}: ${tandaName(t)} → ${t.orchestra} instrumental ${yearsStr(songs)} so hour ${(hh?.hour ?? h.hour) + 1} is ${pct(hh?.share ?? 0)} instrumental`;
+            return `Tanda ${i + 1}: ${tandaName(t)} → ${t.orchestra} instrumental ${yearsStr(songs)} so hour ${(hh?.hour ?? h.hour) + 1} has an instrumental tango tanda (${pct(hh?.share ?? 0)} instrumental)`;
           },
         });
       }
@@ -1243,7 +1303,28 @@ export function improveNight(p: Playlist, deps: ComposeDeps, opts: ImproveOption
     return out;
   };
 
+  /** round 14 — the strict panel's own edits (repair.ts), the best one per step */
+  const strictFix = (q: Playlist): Candidate[] => {
+    const r0 = strictChecks(q);
+    if (!r0.violations.length) return [];
+    const r = bestEdit(q, r0, deps, { keepScore: true, bench: (x) => benchmarkNight(x).total });
+    if (!r) return [];
+    const np = finalize({ ...q, tandas: r.edit.playlist.tandas, closing: r.edit.playlist.closing });
+    // (an Auto-improve step never lowers the night's hourly instrumental share)
+    const share = (x: Playlist) => mean(hourlyInstrumental(x).map((h) => h.share));
+    if (share(np) < share(q) - 1e-9) return [];
+    return [
+      {
+        kind: "strict",
+        tanda: Math.max(0, Math.min(q.tandas.length - 1, r.edit.tanda)),
+        playlist: np,
+        text: () => `${r.edit.text} (strict panel: ${strictSummary(r0)} → ${strictSummary(r.res)})`,
+      },
+    ];
+  };
+
   const FIX: Record<FixKey, (q: Playlist) => Candidate[]> = {
+    strict: strictFix,
     energy: energyFix,
     core: coreFix,
     instrumental: instrumentalFix,
@@ -1268,11 +1349,26 @@ export function improveNight(p: Playlist, deps: ComposeDeps, opts: ImproveOption
     return { hard: r.hard.H1 + r.hard.H4 + r.hard.H5 + r.hard.H6, jarring: r.jarring };
   };
   let curTr = trOf(cur);
+  // round 14 (DJ B4, fixer parity): every candidate passes the composer's rule set — the strict panel never gets
+  // worse (no new blocker, no higher penalty, no rule newly broken), no must-have family is lost
+  let curStrict = strictChecks(cur);
+  const ruleCounts = (r: StrictResult) => {
+    const m = new Map<string, number>();
+    for (const v of r.violations) m.set(v.rule, (m.get(v.rule) ?? 0) + 1);
+    return m;
+  };
   const accept = (c: Playlist) => {
     if (c.score.total < curScore) return false;
     if (benchmarkNight(c).total < curBench) return false;
     const tr = trOf(c);
     if (tr.hard > curTr.hard || tr.jarring > curTr.jarring) return false;
+    const sr = strictChecks(c);
+    if (sr.blockers > curStrict.blockers || sr.penalty > curStrict.penalty) return false;
+    const before = ruleCounts(curStrict);
+    for (const [k, v] of ruleCounts(sr)) if (v > (before.get(k) ?? 0)) return false;
+    const have = mustHavesOf(cur.tandas);
+    const now = mustHavesOf(c.tandas);
+    for (const f of have) if (!now.has(f)) return false;
     return hardFailures(c).every((h) => startFailures.has(h));
   };
   let touched = false;
@@ -1293,6 +1389,7 @@ export function improveNight(p: Playlist, deps: ComposeDeps, opts: ImproveOption
         curScore = cur.score.total;
         curBench = benchmarkNight(cur).total;
         curTr = trOf(cur);
+        curStrict = strictChecks(cur);
         moved = touched = true;
       }
     }
