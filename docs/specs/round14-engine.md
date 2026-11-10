@@ -3,7 +3,7 @@
 Inputs (the spec): `docs/reviews/round14-dancer.md` (R14-1 … R14-17), `docs/reviews/round14-dj.md` (B1–B4, S1–S12),
 `docs/reviews/round14-discography.md` (§1–§3, R1–R12), and `docs/specs/round13-engine.md` §10 ("left out").
 Invariants: `packages/core/test/round14.test.ts` (61 tests), written before the engine change. Core suite 341 tests
-(280 before), web vitest 52 (51 before). The user's goal: every flaw the strict panel found is a deterministic check
+(280 before), web vitest 51 (50 before). The user's goal: every flaw the strict panel found is a deterministic check
 that runs on every generation (compose, improveNight, `pnpm quality`, the benchmark sheet), with a fixer where one can
 be built.
 
