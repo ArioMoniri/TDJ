@@ -589,24 +589,6 @@
   ]
  },
  {
-  "id": "alberto-castillo",
-  "name": "Alberto Castillo",
-  "count": 81,
-  "orchestras": {
-   "Ricardo Tanturi": 39,
-   "Emilio Balcarce": 13,
-   "Enrique Alessio": 13,
-   "Jorge Dragone": 7,
-   "Angel Condercuri": 7,
-   "Aníbal Troilo": 1,
-   "4to.aníbal Troilo": 1
-  },
-  "yearRange": [
-   1941,
-   1962
-  ]
- },
- {
   "id": "fernando-diaz",
   "name": "Fernando Díaz",
   "count": 80,
@@ -620,6 +602,24 @@
   "yearRange": [
    1931,
    1942
+  ]
+ },
+ {
+  "id": "alberto-castillo",
+  "name": "Alberto Castillo",
+  "count": 80,
+  "orchestras": {
+   "Ricardo Tanturi": 38,
+   "Emilio Balcarce": 13,
+   "Enrique Alessio": 13,
+   "Jorge Dragone": 7,
+   "Angel Condercuri": 7,
+   "Aníbal Troilo": 1,
+   "4to.aníbal Troilo": 1
+  },
+  "yearRange": [
+   1941,
+   1962
   ]
  },
  {

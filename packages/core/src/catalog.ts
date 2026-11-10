@@ -1,7 +1,9 @@
+import { setActiveCatalog } from "./active";
 import type { AudioFeatures, ResolvedTrack } from "./audio/index";
 import { estimateDuration, normTitle, parseNonDanceTitle, songEnergy } from "./energy";
 import { DEFAULT_HEATMAP, type Heatmap, monthIndex } from "./knowledge";
 import { ERA_PRESETS, mergeProfiles } from "./profiles";
+import { creditNamesOther, dateMismatch, knownSingers } from "./streams";
 import type { DanceRhythm, EraPreset, OrchestraProfile, Song, UserOverrides } from "./types";
 
 export interface ReferenceCorpus {
@@ -140,14 +142,23 @@ export class Catalog {
       const sp =
         sp0 && matchNamesArtist(s, (sp0 as { matched?: string }).matched?.split(" – ")[0]) ? sp0 : null;
       const res0 = s.resolved ?? caches.resolved?.[s.id] ?? null;
-      const resolved = res0 && matchNamesArtist(s, res0.artist) ? res0 : null;
+      // round 15 (discography R4b): a stream whose title dates the recording more than 31 days from the row is
+      // another recording (Recuerdo "Buenos Aires 08/01/1941" on the 1942-11-04 row): never played
+      const resolved = res0 && matchNamesArtist(s, res0.artist) && !dateMismatch(s, res0.title) ? res0 : null;
       const audio = patch?.audio ?? s.audio ?? caches.audio?.[s.id] ?? null;
       // a streaming match whose length is implausible for the era (a 1944 tango of 8 min) is a wrong match: estimate instead
       const est = estimateDuration(s);
       const plausible = (ms: number) =>
         ms > 90_000 && (s.era === "nuevo" || s.era === "contemporary" || ms <= Math.max(330_000, est * 1600));
+      // round 15 (discography R4c): when the Spotify transfer and the Deezer track disagree by more than 8 s, the Deezer
+      // length is the side's (Pensalo bien: Spotify 2:17, Deezer 2:30)
+      const spOff =
+        !!sp?.durationMs &&
+        !!resolved?.durationMs &&
+        Math.abs(sp.durationMs - resolved.durationMs) / 1000 > 8;
       const measured =
         s.durationSec ??
+        (spOff && plausible(resolved!.durationMs!) ? Math.round(resolved!.durationMs! / 1000) : undefined) ??
         (sp?.durationMs && plausible(sp.durationMs)
           ? Math.round(sp.durationMs / 1000)
           : resolved?.durationMs && plausible(resolved.durationMs)
@@ -165,7 +176,12 @@ export class Catalog {
       };
       if (song.reissue === undefined && isReissueRow(song)) song.reissue = true;
       const key = `${normTitle(song.title)}|${song.orchestraId}`;
-      const fame = this.fame.get(key);
+      // (round 15: a retitled work keeps the corpus fame of its old spelling, "Milongueando en el cuarenta")
+      const fame =
+        this.fame.get(key) ??
+        (song.altTitles ?? [])
+          .map((a) => this.fame.get(`${normTitle(a)}|${song.orchestraId}`))
+          .find((x) => x);
       song.fame = fame?.fame ?? 0;
       if (fame?.role) song.role = fame.role as Song["role"];
       if (!song.bpm && audio?.bpm) song.bpm = Math.round(audio.bpm);
@@ -236,6 +252,15 @@ export class Catalog {
       if (g !== undefined) s.heat = g;
     }
     flagSuspectCredits(deduped);
+    // round 15 (discography R4d): a match whose credit names a singer the row does not have ("cantan Armando Moreno y
+    // Chato Flores" on a Flores-only row, "canta Alberto Echagüe" on an instrumental) needs a listen: suspect
+    const singers = knownSingers(deduped);
+    for (const s of deduped)
+      if (
+        creditNamesOther(s, s.resolved?.artist, singers) ||
+        creditNamesOther(s, (s.spotify as { matched?: string } | null)?.matched?.split(" – ")[0], singers)
+      )
+        suspect(s);
     this.songs = deduped;
     // analysed audio refines energy within an orchestra: a track louder/denser than its orchestra's analysed
     // mean moves up, a softer one down (±10 max). Explicit per-track energy (overrides) is left alone.
@@ -258,6 +283,7 @@ export class Catalog {
       arr.push(s);
       this.byOrchestra.set(s.orchestraId, arr);
     }
+    setActiveCatalog(this.byOrchestra);
     // round 13: the corpus spells singers its own way (Ángel Vargas, Jorge Ortiz, Floreal Ruiz, Roberto Flores); joins
     // between corpus and index (canonical tandas, famous recordings) read the index spelling
     this.corpus = normaliseCorpusSingers(corpus, this.songs);
