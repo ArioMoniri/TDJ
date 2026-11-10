@@ -48,24 +48,20 @@
     1944
    ],
    "Juan Carlos Lamas": [
-    1940,
+    1942,
     1943
    ],
    "Armando Laborde": [
     1944,
     1975
    ],
-   "Jorge Valdez": [
-    1957,
-    1964
-   ],
    "Mario Bustos": [
     1956,
     1962
    ],
    "Alberto Reynal": [
-    1939,
-    1941
+    1940,
+    1942
    ],
    "Osvaldo Ramos": [
     1965,
@@ -105,7 +101,7 @@
    "Pensalo bien (1938)",
    "Nada más (1938)",
    "Milonga vieja milonga (1937)",
-   "Amor y celos (vals)",
+   "Amor y celo (vals 1936)",
    "Loca (1955)"
   ],
   "singerStints": {
@@ -126,10 +122,10 @@
   },
   "singerShift": {
    "Héctor Mauré": -4,
-   "Jorge Valdez": -6,
    "Juan Carlos Lamas": -4,
    "Alberto Echagüe": 0,
-   "Armando Laborde": 0
+   "Armando Laborde": 0,
+   "Jorge Valdéz": -6
   },
   "bestYears": [
    1935,
@@ -153,6 +149,119 @@
    1963,
    1937,
    1955
+  ],
+  "bands": {
+   "instrumental": {
+    "best": [
+     1935,
+     1939
+    ],
+    "ok": [
+     1940,
+     1955
+    ]
+   },
+   "singers": {
+    "Walter Cabral": {
+     "best": [
+      1935,
+      1936
+     ],
+     "ok": [
+      1935,
+      1936
+     ]
+    },
+    "Enrique Carbel": {
+     "best": [
+      1937,
+      1937
+     ],
+     "ok": [
+      1937,
+      1937
+     ]
+    },
+    "Alberto Echagüe": {
+     "best": [
+      1938,
+      1939
+     ],
+     "ok": [
+      1944,
+      1957
+     ]
+    },
+    "Alberto Reynal": {
+     "best": [
+      1940,
+      1941
+     ],
+     "ok": [
+      1940,
+      1942
+     ]
+    },
+    "Héctor Mauré": {
+     "best": [
+      1941,
+      1943
+     ],
+     "ok": [
+      1940,
+      1944
+     ]
+    },
+    "Juan Carlos Lamas": {
+     "best": [
+      1942,
+      1943
+     ],
+     "ok": [
+      1942,
+      1943
+     ]
+    },
+    "Armando Laborde": {
+     "best": null,
+     "ok": [
+      1944,
+      1957
+     ]
+    },
+    "A. Echagüe - A. Laborde": {
+     "best": null,
+     "ok": [
+      1945,
+      1949
+     ]
+    }
+   }
+  },
+  "goldenBands": {
+   "core": [
+    1935,
+    1944
+   ],
+   "edge": [
+    [
+     1945,
+     1949
+    ]
+   ]
+  },
+  "drive": "hard",
+  "lineupBreaks": [
+   {
+    "at": "1938-07",
+    "vocal": false,
+    "why": "Biagi leaves the piano (golden-age review §2, sub-periods A/B)"
+   },
+   {
+    "at": "1940-06",
+    "vocal": false,
+    "why": "new line-up, the Mauré era (sub-periods B/C)"
+   }
   ]
  },
  {
@@ -194,8 +303,8 @@
     1948
    ],
    "Carlos Acuña": [
-    1943,
-    1943
+    1941,
+    1941
    ],
    "Jorge Durán": [
     1945,
@@ -203,22 +312,22 @@
    ],
    "Oscar Serpa": [
     1948,
-    1953
+    1955
    ],
    "Mario Pomar": [
     1951,
     1955
    ],
    "Rodolfo Galé": [
-    1957,
-    1958
+    1956,
+    1956
    ],
    "Horacio Casares": [
     1958,
     1958
    ],
    "Roberto Florio": [
-    1956,
+    1954,
     1958
    ]
   },
@@ -295,6 +404,16 @@
      1956,
      1958
     ]
+   ],
+   "Oscar Serpa": [
+    [
+     1948,
+     1948
+    ],
+    [
+     1952,
+     1955
+    ]
    ]
   },
   "singerShift": {
@@ -312,7 +431,94 @@
   "cumparsitaVersions": [
    1955,
    1951
-  ]
+  ],
+  "bands": {
+   "instrumental": {
+    "best": [
+     1939,
+     1943
+    ],
+    "ok": [
+     1944,
+     1958
+    ]
+   },
+   "singers": {
+    "Roberto Rufino": {
+     "best": [
+      1939,
+      1943
+     ],
+     "ok": [
+      1939,
+      1943
+     ]
+    },
+    "Carlos Acuña": {
+     "best": [
+      1941,
+      1941
+     ],
+     "ok": [
+      1941,
+      1941
+     ]
+    },
+    "Alberto Podestá": {
+     "best": [
+      1942,
+      1944
+     ],
+     "ok": [
+      1942,
+      1947
+     ]
+    },
+    "Jorge Durán": {
+     "best": [
+      1945,
+      1946
+     ],
+     "ok": [
+      1945,
+      1958
+     ]
+    },
+    "Oscar Serpa": {
+     "best": null,
+     "ok": [
+      1948,
+      1955
+     ]
+    },
+    "Mario Pomar": {
+     "best": null,
+     "ok": [
+      1951,
+      1955
+     ]
+    },
+    "Roberto Florio": {
+     "best": null,
+     "ok": [
+      1954,
+      1958
+     ]
+    }
+   }
+  },
+  "goldenBands": {
+   "core": [
+    1939,
+    1944
+   ],
+   "edge": [
+    [
+     1945,
+     1948
+    ]
+   ]
+  }
  },
  {
   "id": "anibal-troilo",
@@ -354,17 +560,13 @@
     1943,
     1947
    ],
-   "Floreal Ruiz": [
-    1944,
-    1948
-   ],
    "Edmundo Rivero": [
     1947,
     1950
    ],
    "Jorge Casal": [
-    1949,
-    1955
+    1950,
+    1954
    ],
    "Raúl Berón": [
     1951,
@@ -375,20 +577,16 @@
     1963
    ],
    "Aldo Calderón": [
-    1955,
-    1956
-   ],
-   "Ángel Cárdenas": [
-    1957,
-    1960
+    1949,
+    1950
    ],
    "Floreal Ruíz": [
     1944,
     1948
    ],
    "Angel Cárdenas": [
-    1957,
-    1960
+    1956,
+    1959
    ]
   },
   "notes": "1941-1943 (Fiorentino) is core golden-age material, mid-energy, elastic phrasing. 1944-47 Marino 'demands more' than Fiorentino (Lavocah) - for experienced floors, middle/peak. Instrumentals 1941 (Cachirulo, Milongueando en el 40, Guapeando) are peak rhythmic Troilo. Post-1950 and the 'Últimos instrumentales' mostly lack the beat for social dancing. Valses (Palomita blanca, Flor de lino, Romance d",
@@ -403,7 +601,7 @@
    "Milongueando en el 40 (1941)",
    "Tinta roja (1941)",
    "Gricel (1942)",
-   "Palomita blanca (vals 1944)",
+   "Palomita blanca (vals 1944, Marino–Ruíz)",
    "Romance de barrio (vals 1947)",
    "Mano brava (milonga 1941)"
   ],
@@ -467,11 +665,11 @@
   "singerShift": {
    "Francisco Fiorentino": 2,
    "Alberto Marino": 0,
-   "Floreal Ruiz": -2,
    "Edmundo Rivero": -4,
    "Jorge Casal": -4,
    "Raúl Berón": -4,
-   "Roberto Goyeneche": -8
+   "Roberto Goyeneche": -8,
+   "Floreal Ruíz": -2
   },
   "nonDanceTitles": [
    "A fuego lento",
@@ -488,7 +686,120 @@
   "cumparsitaVersions": [
    1963,
    1943
-  ]
+  ],
+  "bands": {
+   "instrumental": {
+    "best": [
+     1941,
+     1944
+    ],
+    "ok": [
+     1938,
+     1940
+    ]
+   },
+   "singers": {
+    "Francisco Fiorentino": {
+     "best": [
+      1941,
+      1944
+     ],
+     "ok": [
+      1938,
+      1944
+     ]
+    },
+    "F. Fiorentino - A. Marino": {
+     "best": [
+      1943,
+      1944
+     ],
+     "ok": [
+      1943,
+      1944
+     ]
+    },
+    "Alberto Marino": {
+     "best": [
+      1943,
+      1944
+     ],
+     "ok": [
+      1943,
+      1944
+     ]
+    },
+    "Floreal Ruíz": {
+     "best": [
+      1944,
+      1944
+     ],
+     "ok": [
+      1944,
+      1944
+     ]
+    },
+    "A. Marino - F. Ruíz": {
+     "best": [
+      1944,
+      1944
+     ],
+     "ok": [
+      1944,
+      1944
+     ]
+    },
+    "Edmundo Rivero": {
+     "best": null,
+     "ok": null
+    },
+    "Aldo Calderón": {
+     "best": null,
+     "ok": null
+    },
+    "Jorge Casal": {
+     "best": null,
+     "ok": null
+    },
+    "Raúl Berón": {
+     "best": null,
+     "ok": null
+    }
+   }
+  },
+  "bandOverrides": {
+   "singers": {
+    "Floreal Ruíz": {
+     "best": [
+      1944,
+      1947
+     ],
+     "rhythm": "vals",
+     "why": "Llorarás llorarás (1945), Romance de barrio and Flor de lino (1947) are fame-5 corpus valses; the corpus has 10 Troilo–Ruiz vals tandas in 1944–47. The heatmap grades Troilo vocal 1945–49 as 1",
+     "override": true
+    },
+    "Alberto Marino": {
+     "ok": [
+      1943,
+      1946
+     ],
+     "why": "Canción desesperada (1945) and Sin palabras (1946) are danced; the corpus has a canonical Marino tanda for 1944–46",
+     "override": true
+    }
+   }
+  },
+  "goldenBands": {
+   "core": [
+    1938,
+    1944
+   ],
+   "edge": [
+    [
+     1945,
+     1948
+    ]
+   ]
+  }
  },
  {
   "id": "osvaldo-pugliese",
@@ -589,7 +900,85 @@
    "A los amigos",
    "Bien milonga (1979)",
    "Zum"
-  ]
+  ],
+  "bands": {
+   "instrumental": {
+    "best": [
+     1943,
+     1949
+    ],
+    "ok": [
+     1950,
+     1959
+    ]
+   },
+   "singers": {
+    "Roberto Chanel": {
+     "best": [
+      1943,
+      1946
+     ],
+     "ok": [
+      1943,
+      1946
+     ]
+    },
+    "Alberto Morán": {
+     "best": [
+      1945,
+      1946
+     ],
+     "ok": [
+      1945,
+      1946
+     ]
+    },
+    "Jorge Vidal": {
+     "best": null,
+     "ok": null
+    },
+    "Jorge Maciel": {
+     "best": null,
+     "ok": null
+    },
+    "Miguel Montero": {
+     "best": null,
+     "ok": null
+    }
+   }
+  },
+  "bandOverrides": {
+   "singers": {
+    "Alberto Morán": {
+     "ok": [
+      1947,
+      1951
+     ],
+     "why": "Sin palabras (1947) and Pasional (1951) are played at peak/late slots",
+     "override": true
+    },
+    "Jorge Maciel": {
+     "ok": [
+      1955,
+      1959
+     ],
+     "why": "Remembranza (1956, fame 4); there is a canonical tanda for 1955–59",
+     "override": true
+    }
+   }
+  },
+  "goldenBands": {
+   "core": [
+    1943,
+    1946
+   ],
+   "edge": [
+    [
+     1947,
+     1952
+    ]
+   ]
+  }
  },
  {
   "id": "miguel-calo",
@@ -626,8 +1015,8 @@
     1943
    ],
    "Raúl Berón": [
-    1941,
-    1946
+    1942,
+    1944
    ],
    "Raúl Iriarte": [
     1943,
@@ -641,13 +1030,13 @@
     1934,
     1936
    ],
-   "Jorge Ortiz": [
-    1943,
-    1943
-   ],
    "Roberto Luque": [
     1961,
     1965
+   ],
+   "Jorge Ortíz": [
+    1943,
+    1943
    ]
   },
   "notes": "Vocal tandas (few danceable instrumentals - build vocal). Elegant, balanced, mid-tempo; ideal for the second hour and for the sweet ending. 1942-43 Berón/Podestá/Iriarte is the core. Valses (Pedacito de cielo, Bajo un cielo de estrellas) are classics. Best: 1941-1943, 1944-1946",
@@ -660,7 +1049,7 @@
    "Al compás del corazón (Berón 1942)",
    "Percal (Podestá 1943)",
    "Qué te importa que te llore (Berón 1942)",
-   "Sans Souci (1950)",
+   "Sans Souci (1944)",
    "Pedacito de cielo (vals 1942)",
    "Bajo un cielo de estrellas (vals 1941)"
   ],
@@ -681,19 +1070,99 @@
    ],
    "Raúl Berón": [
     [
-     1941,
-     1943
+     1942,
+     1944
     ],
     [
-     1945,
-     1946
+     1949,
+     1950
     ]
    ]
   },
   "bestYears": [
    1941,
    1950
-  ]
+  ],
+  "bands": {
+   "instrumental": {
+    "best": [
+     1943,
+     1945
+    ],
+    "ok": [
+     1941,
+     1946
+    ]
+   },
+   "singers": {
+    "Carlos Dante": {
+     "best": null,
+     "ok": null
+    },
+    "Alberto Podestá": {
+     "best": [
+      1941,
+      1943
+     ],
+     "ok": [
+      1941,
+      1943
+     ]
+    },
+    "Raúl Berón": {
+     "best": [
+      1942,
+      1943
+     ],
+     "ok": [
+      1942,
+      1944
+     ]
+    },
+    "Jorge Ortíz": {
+     "best": [
+      1943,
+      1943
+     ],
+     "ok": [
+      1943,
+      1943
+     ]
+    },
+    "Raúl Iriarte": {
+     "best": [
+      1943,
+      1945
+     ],
+     "ok": [
+      1943,
+      1946
+     ]
+    },
+    "Roberto Arrieta": {
+     "best": [
+      1945,
+      1946
+     ],
+     "ok": [
+      1945,
+      1946
+     ]
+    }
+   }
+  },
+  "goldenBands": {
+   "core": [
+    1941,
+    1945
+   ],
+   "edge": [
+    [
+     1946,
+     1948
+    ]
+   ]
+  }
  },
  {
   "id": "ricardo-tanturi",
@@ -727,7 +1196,7 @@
   ],
   "singers": {
    "Alberto Castillo": [
-    1940,
+    1941,
     1943
    ],
    "Enrique Campos": [
@@ -735,12 +1204,12 @@
     1946
    ],
    "Roberto Videla": [
-    1946,
+    1945,
     1948
    ],
    "Elsa Rivas": [
     1950,
-    1951
+    1957
    ],
    "Horacio Roca": [
     1957,
@@ -755,8 +1224,8 @@
     1948
    ],
    "Juan Carlos Godoy": [
-    1952,
-    1953
+    1950,
+    1957
    ]
   },
   "notes": "Two distinct profiles: Castillo 1940-43 = rhythmic, energy ~70, early/build/peak; Campos 1943-46 = lyrical, energy ~55, middle/late. Never mix the two singers. Valses and milongas with Castillo are excellent lifts. Best: 1940-1943 Castillo, 1943-1946 Campos",
@@ -771,7 +1240,7 @@
    "Una emoción (Campos 1943)",
    "Oigo tu voz (Campos 1943)",
    "Mi romance (vals Castillo 1941)",
-   "Mozo guapo (milonga Castillo 1940)"
+   "Mozo guapo (milonga Castillo 1941)"
   ],
   "singerShift": {
    "Alberto Castillo": 6,
@@ -785,7 +1254,108 @@
   ],
   "cumparsitaVersions": [
    1940
-  ]
+  ],
+  "bands": {
+   "instrumental": {
+    "best": [
+     1940,
+     1941
+    ],
+    "ok": [
+     1937,
+     1944
+    ]
+   },
+   "singers": {
+    "Alberto Castillo": {
+     "best": [
+      1941,
+      1943
+     ],
+     "ok": [
+      1941,
+      1943
+     ]
+    },
+    "Enrique Campos": {
+     "best": [
+      1943,
+      1945
+     ],
+     "ok": [
+      1943,
+      1945
+     ]
+    },
+    "E. Campos - R. Videla": {
+     "best": [
+      1945,
+      1945
+     ],
+     "ok": [
+      1945,
+      1945
+     ]
+    },
+    "Roberto Videla": {
+     "best": [
+      1945,
+      1945
+     ],
+     "ok": [
+      1945,
+      1945
+     ]
+    },
+    "Osvaldo Ribó": {
+     "best": null,
+     "ok": null
+    },
+    "O. Ribó - R. Videla": {
+     "best": null,
+     "ok": null
+    }
+   }
+  },
+  "goldenBands": {
+   "core": [
+    1940,
+    1945
+   ],
+   "edge": [
+    [
+     1937,
+     1939
+    ],
+    [
+     1946,
+     1948
+    ]
+   ]
+  },
+  "drive": "hard",
+  "singerStints": {
+   "Elsa Rivas": [
+    [
+     1950,
+     1950
+    ],
+    [
+     1956,
+     1957
+    ]
+   ],
+   "Juan Carlos Godoy": [
+    [
+     1950,
+     1950
+    ],
+    [
+     1956,
+     1957
+    ]
+   ]
+  }
  },
  {
   "id": "rodolfo-biagi",
@@ -824,21 +1394,17 @@
     1939,
     1940
    ],
-   "Jorge Ortiz": [
-    1940,
-    1943
-   ],
    "Carlos Acuña": [
-    1947,
-    1950
+    1943,
+    1944
    ],
    "Alberto Amor": [
     1943,
     1947
    ],
    "Carlos Saavedra": [
-    1950,
-    1950
+    1946,
+    1948
    ],
    "Hugo Duval": [
     1951,
@@ -846,7 +1412,11 @@
    ],
    "Jorge Ortíz": [
     1940,
-    1948
+    1945
+   ],
+   "Alberto Lago": [
+    1941,
+    1942
    ]
   },
   "notes": "Syncopated, staccato piano; feels faster than it is. Instrumentals 1938-1942 and Ortiz vocals for build/peak; valses (Lágrimas y sonrisas, Loca de amor, Dichas que viví) are the most whirling in the canon - peak vals tanda. Not for warm-up with beginners (off-beat accents confuse). Milongas strong. Best: 1938-1940 Falgás/instrumental, 1940-1943 Ortiz, 1944-1948 Amor",
@@ -856,9 +1426,9 @@
   "difficulty": 45,
   "confidence": "sourced+estimate",
   "signatureTracks": [
-   "Racing Club (1940)",
+   "Racing Club (1950)",
    "Pura clase (1939)",
-   "Quiero verte una vez más (Ortiz 1940)",
+   "Quiero verte una vez más (Ortíz 1940)",
    "Lágrimas y sonrisas (vals 1941)",
    "Dichas que viví (vals 1939)",
    "Flor de Montserrat (milonga 1945)"
@@ -873,14 +1443,24 @@
      1946,
      1948
     ]
+   ],
+   "Jorge Ortíz": [
+    [
+     1940,
+     1943
+    ],
+    [
+     1945,
+     1945
+    ]
    ]
   },
   "singerShift": {
    "Andrés Falgás": 2,
-   "Jorge Ortiz": 0,
    "Alberto Amor": -4,
    "Carlos Acuña": -2,
-   "Hugo Duval": -4
+   "Hugo Duval": -4,
+   "Jorge Ortíz": 0
   },
   "bestYears": [
    1938,
@@ -913,7 +1493,114 @@
     ],
     "note": "Amor and Acuña: lighter, the corpus plays them in the build and the cool-down"
    }
-  ]
+  ],
+  "bands": {
+   "instrumental": {
+    "best": [
+     1938,
+     1942
+    ],
+    "ok": [
+     1943,
+     1956
+    ]
+   },
+   "singers": {
+    "Teófilo Ibáñez": {
+     "best": [
+      1938,
+      1939
+     ],
+     "ok": [
+      1938,
+      1939
+     ]
+    },
+    "Andrés Falgás": {
+     "best": [
+      1939,
+      1940
+     ],
+     "ok": [
+      1939,
+      1940
+     ]
+    },
+    "Jorge Ortíz": {
+     "best": [
+      1940,
+      1942
+     ],
+     "ok": [
+      1940,
+      1945
+     ]
+    },
+    "Alberto Lago": {
+     "best": [
+      1941,
+      1942
+     ],
+     "ok": [
+      1941,
+      1942
+     ]
+    },
+    "Carlos Acuña": {
+     "best": [
+      1943,
+      1944
+     ],
+     "ok": [
+      1943,
+      1944
+     ]
+    },
+    "Alberto Amor": {
+     "best": [
+      1943,
+      1946
+     ],
+     "ok": [
+      1943,
+      1947
+     ]
+    },
+    "Carlos Saavedra": {
+     "best": [
+      1946,
+      1946
+     ],
+     "ok": [
+      1946,
+      1948
+     ]
+    },
+    "Hugo Duval": {
+     "best": [
+      1953,
+      1958
+     ],
+     "ok": [
+      1950,
+      1959
+     ]
+    }
+   }
+  },
+  "goldenBands": {
+   "core": [
+    1938,
+    1943
+   ],
+   "edge": [
+    [
+     1944,
+     1947
+    ]
+   ]
+  },
+  "drive": "hard"
  },
  {
   "id": "enrique-rodriguez",
@@ -946,29 +1633,25 @@
    "peak"
   ],
   "singers": {
-   "Roberto Flores": [
-    1937,
-    1939
-   ],
    "Armando Moreno": [
     1940,
-    1950
+    1946
    ],
    "Ricardo Herrera": [
     1946,
     1948
    ],
-   "Omar Quiroz": [
-    1950,
-    1950
-   ],
    "Roberto \"Chato\" Flores": [
     1937,
-    1940
+    1939
    ],
    "Omar Quiróz": [
     1950,
     1950
+   ],
+   "Fernando Reyes": [
+    1946,
+    1949
    ]
   },
   "notes": "Square, bouncy, foxtrot-tinged; easiest music to dance in the canon; excellent warm-up and 'breathing' tandas. Valses (Tengo mil novias, Isabelita, Fru fru) and milongas are festival staples. Do not place at the main peak. Best: 1938-1945 Moreno",
@@ -978,7 +1661,7 @@
   "difficulty": 25,
   "confidence": "sourced+estimate",
   "signatureTracks": [
-   "Son cosas del bandoneón (Moreno 1939)",
+   "Son cosas del bandoneón (Chato Flores 1939)",
    "Llorar por una mujer (Moreno 1941)",
    "Tengo mil novias (vals 1939)",
    "Isabelita (vals 1940)",
@@ -993,7 +1676,74 @@
    1937,
    1950
   ],
-  "avoidMainPeak": true
+  "avoidMainPeak": true,
+  "bands": {
+   "instrumental": {
+    "best": [
+     1940,
+     1946
+    ],
+    "ok": [
+     1938,
+     1950
+    ]
+   },
+   "singers": {
+    "Roberto \"Chato\" Flores": {
+     "best": [
+      1937,
+      1939
+     ],
+     "ok": [
+      1937,
+      1939
+     ]
+    },
+    "Armando Moreno": {
+     "best": [
+      1940,
+      1945
+     ],
+     "ok": [
+      1940,
+      1946
+     ]
+    },
+    "Ricardo Herrera": {
+     "best": [
+      1946,
+      1947
+     ],
+     "ok": [
+      1946,
+      1952
+     ]
+    },
+    "Fernando Reyes": {
+     "best": [
+      1946,
+      1947
+     ],
+     "ok": [
+      1946,
+      1949
+     ]
+    }
+   }
+  },
+  "goldenBands": {
+   "core": [
+    1937,
+    1946
+   ],
+   "edge": [
+    [
+     1947,
+     1950
+    ]
+   ],
+   "colour": true
+  }
  },
  {
   "id": "francisco-canaro",
@@ -1030,7 +1780,7 @@
   "singers": {
    "Charlo": [
     1928,
-    1931
+    1937
    ],
    "Ernesto Famá": [
     1930,
@@ -1063,6 +1813,14 @@
    "Tita Merello": [
     1954,
     1957
+   ],
+   "Eduardo Adrián": [
+    1942,
+    1943
+   ],
+   "Guillermo Coral": [
+    1944,
+    1946
    ]
   },
   "notes": "Canaro-Maida 1935-38 = gentle lyrical-rhythmic, the perfect 'easier' tanda and sweet-ending material (Poema, Invierno). Canaro-Famá 1932-36 = cheerful early. Instrumentals 1927-34 (Guardia Vieja) for warm-up and afternoon. Canaro's milongas (Milonga sentimental 1933, Milonga brava, Reliquias porteñas) are the standard early-night milonga tanda; Quinteto Pirincho 1950s instrumentals are a separate,",
@@ -1118,7 +1876,132 @@
   ],
   "cumparsitaVersions": [
    1951
-  ]
+  ],
+  "bands": {
+   "instrumental": {
+    "best": [
+     1934,
+     1941
+    ],
+    "ok": [
+     1925,
+     1933
+    ]
+   },
+   "singers": {
+    "Charlo": {
+     "best": [
+      1930,
+      1932
+     ],
+     "ok": [
+      1928,
+      1937
+     ]
+    },
+    "A. Irusta - E. Famá": {
+     "best": [
+      1933,
+      1933
+     ],
+     "ok": [
+      1933,
+      1933
+     ]
+    },
+    "Ernesto Famá": {
+     "best": [
+      1939,
+      1940
+     ],
+     "ok": [
+      1932,
+      1940
+     ]
+    },
+    "Roberto Maida": {
+     "best": [
+      1935,
+      1938
+     ],
+     "ok": [
+      1935,
+      1938
+     ]
+    },
+    "Francisco Amor": {
+     "best": [
+      1939,
+      1941
+     ],
+     "ok": [
+      1937,
+      1941
+     ]
+    },
+    "Eduardo Adrián": {
+     "best": null,
+     "ok": [
+      1942,
+      1943
+     ]
+    },
+    "Carlos Roldán": {
+     "best": null,
+     "ok": [
+      1942,
+      1945
+     ]
+    },
+    "Guillermo Coral": {
+     "best": null,
+     "ok": [
+      1944,
+      1946
+     ]
+    },
+    "Nelly Omar": {
+     "best": null,
+     "ok": [
+      1946,
+      1947
+     ]
+    },
+    "Alberto Arenas": {
+     "best": null,
+     "ok": [
+      1945,
+      1947
+     ]
+    }
+   }
+  },
+  "bandOverrides": {
+   "singers": {
+    "Carlos Roldán": {
+     "best": [
+      1942,
+      1943
+     ],
+     "rhythm": "milonga",
+     "why": "La milonga de mis perros, La rumbita candombe and Se dice de mí: 4 corpus milonga tandas for 1942–43",
+     "override": true
+    }
+   }
+  },
+  "goldenBands": {
+   "core": [
+    1935,
+    1939
+   ],
+   "edge": [
+    [
+     1940,
+     1945
+    ]
+   ],
+   "colour": true
+  }
  },
  {
   "id": "osvaldo-fresedo",
@@ -1155,10 +2038,6 @@
     1933,
     1939
    ],
-   "Ricardo Ruiz": [
-    1939,
-    1942
-   ],
    "Oscar Serpa": [
     1942,
     1949
@@ -1183,12 +2062,12 @@
   "difficulty": 35,
   "confidence": "sourced+estimate",
   "signatureTracks": [
-   "Vida mía (Ray 1933)",
+   "Vida mía (Ray 1934)",
    "Sollozos (Ray 1937)",
    "Niebla del Riachuelo (Ray 1937)",
    "Tigre viejo (1934)",
    "El once (1937)",
-   "Arrabalero (1927)"
+   "Arrabalero (1939)"
   ],
   "singerStints": {
    "Roberto Ray": [
@@ -1205,7 +2084,61 @@
   "bestYears": [
    1933,
    1950
-  ]
+  ],
+  "bands": {
+   "instrumental": {
+    "best": [
+     1932,
+     1939
+    ],
+    "ok": [
+     1940,
+     1948
+    ]
+   },
+   "singers": {
+    "Roberto Ray": {
+     "best": [
+      1933,
+      1939
+     ],
+     "ok": [
+      1932,
+      1941
+     ]
+    },
+    "Ricardo Ruíz": {
+     "best": [
+      1939,
+      1941
+     ],
+     "ok": [
+      1939,
+      1941
+     ]
+    },
+    "Oscar Serpa": {
+     "best": null,
+     "ok": null
+    },
+    "Héctor Pacheco": {
+     "best": null,
+     "ok": null
+    }
+   }
+  },
+  "goldenBands": {
+   "core": [
+    1933,
+    1942
+   ],
+   "edge": [
+    [
+     1943,
+     1948
+    ]
+   ]
+  }
  },
  {
   "id": "edgardo-donato",
@@ -1236,10 +2169,6 @@
    "warmup"
   ],
   "singers": {
-   "Félix Gutiérrez": [
-    1932,
-    1934
-   ],
    "Horacio Lagos": [
     1935,
     1942
@@ -1257,16 +2186,20 @@
     1934
    ],
    "Carlos Almada": [
-    1945,
-    1950
+    1950,
+    1952
    ],
    "Roberto Morel": [
-    1942,
-    1945
+    1953,
+    1955
    ],
    "Félix Gutierrez": [
     1932,
     1934
+   ],
+   "Hugo del Carril": [
+    1935,
+    1935
    ]
   },
   "notes": "Playful, jaunty, 1930s; perfect warm-up and afternoon material; valses (Carnaval de mi barrio, La tapera, Luna de arrabal) and milongas (Ella es así, Sacale punta) are joyful early-night lifts. Do not follow with 1950s Di Sarli (style jump). Best: 1932-1936 instrumental, 1936-1942 Lagos/Gavioli",
@@ -1292,7 +2225,127 @@
    1932,
    1942
   ],
-  "avoidMainPeak": true
+  "avoidMainPeak": true,
+  "bands": {
+   "instrumental": {
+    "best": [
+     1935,
+     1942
+    ],
+    "ok": [
+     1932,
+     1934
+    ]
+   },
+   "singers": {
+    "Félix Gutierrez": {
+     "best": [
+      1932,
+      1934
+     ],
+     "ok": [
+      1932,
+      1934
+     ]
+    },
+    "Hugo del Carril": {
+     "best": [
+      1935,
+      1935
+     ],
+     "ok": [
+      1935,
+      1935
+     ]
+    },
+    "Horacio Lagos": {
+     "best": [
+      1936,
+      1941
+     ],
+     "ok": [
+      1935,
+      1942
+     ]
+    },
+    "Lita Morales": {
+     "best": [
+      1938,
+      1941
+     ],
+     "ok": [
+      1938,
+      1941
+     ]
+    },
+    "Lita Morales - H. Lagos": {
+     "best": [
+      1938,
+      1941
+     ],
+     "ok": [
+      1938,
+      1941
+     ]
+    },
+    "H. Lagos - L. Morales": {
+     "best": [
+      1938,
+      1941
+     ],
+     "ok": [
+      1938,
+      1941
+     ]
+    },
+    "H. Lagos - L. Morales - R. Gavioli": {
+     "best": [
+      1939,
+      1941
+     ],
+     "ok": [
+      1939,
+      1941
+     ]
+    },
+    "R. Gavioli - L. Morales": {
+     "best": [
+      1939,
+      1941
+     ],
+     "ok": [
+      1939,
+      1941
+     ]
+    },
+    "Romeo Gavioli": {
+     "best": [
+      1939,
+      1942
+     ],
+     "ok": [
+      1939,
+      1942
+     ]
+    },
+    "Carlos Almada": {
+     "best": null,
+     "ok": null
+    }
+   }
+  },
+  "goldenBands": {
+   "core": [
+    1935,
+    1942
+   ],
+   "edge": [
+    [
+     1932,
+     1934
+    ]
+   ]
+  }
  },
  {
   "id": "angel-d-agostino",
@@ -1325,25 +2378,17 @@
    "warmup"
   ],
   "singers": {
-   "Ángel Vargas": [
-    1940,
-    1946
-   ],
    "Tino García": [
-    1952,
-    1963
-   ],
-   "Ruben Cané": [
-    1950,
-    1950
+    1947,
+    1959
    ],
    "Angel Vargas": [
     1940,
     1946
    ],
    "Rubén Cané": [
-    1947,
-    1951
+    1953,
+    1953
    ]
   },
   "notes": "Vocal tandas (almost no instrumentals). Soft-rhythmic, intimate, 'de barrio' - ideal for the early hour and the sweet ending; many DJs open the night with D'Agostino-Vargas. Café Domínguez (with its spoken intro) is the classic opener. Milongas (Así me gusta a mí, El porteñito) and valses (Esta noche en Buenos Aires) are few but usable. Best: 1940-1946 Vargas",
@@ -1357,8 +2402,8 @@
    "Tres esquinas (1941)",
    "Ninguna (1942)",
    "Hotel Victoria (1945)",
-   "Esta noche en Buenos Aires (vals 1943)",
-   "Agua florida (1945)"
+   "Esta noche en Buenos Aires (1944)",
+   "Agua florida (1941)"
   ],
   "bestYears": [
    1940,
@@ -1371,7 +2416,38 @@
   },
   "cumparsitaVersions": [
    1945
-  ]
+  ],
+  "bands": {
+   "instrumental": null,
+   "singers": {
+    "Angel Vargas": {
+     "best": [
+      1940,
+      1945
+     ],
+     "ok": [
+      1940,
+      1946
+     ]
+    },
+    "Tino García": {
+     "best": null,
+     "ok": null
+    }
+   }
+  },
+  "goldenBands": {
+   "core": [
+    1940,
+    1946
+   ],
+   "edge": [
+    [
+     1947,
+     1952
+    ]
+   ]
+  }
  },
  {
   "id": "alfredo-de-angelis",
@@ -1403,10 +2479,6 @@
    "peak"
   ],
   "singers": {
-   "Floreal Ruiz": [
-    1941,
-    1943
-   ],
    "Carlos Dante": [
     1943,
     1957
@@ -1424,8 +2496,8 @@
     1963
    ],
    "Lalo Martel": [
-    1957,
-    1963
+    1959,
+    1959
    ],
    "C. Dante - J. Martel": [
     1944,
@@ -1436,8 +2508,8 @@
     1957
    ],
    "Floreal Ruíz": [
-    1941,
-    1943
+    1943,
+    1944
    ]
   },
   "notes": "Tango 'de calesita' (fairground) feel: strong, singable, slightly sweet. The duet valses (Pregonera, Pastora, Flores del alma, A Magaldi) are peak vals tandas worldwide. Instrumentals 1950s (Pavadita, El tango club) good middle. Milongas few. Best: 1944-1951 Dante/Martel, 1950s instrumental",
@@ -1448,11 +2520,11 @@
   "confidence": "sourced+estimate",
   "signatureTracks": [
    "Pregonera (vals 1945)",
-   "Pastora (vals 1944)",
+   "La pastora (Dante–Martel 1948)",
    "Flores del alma (vals 1947)",
    "Pavadita (1958)",
-   "Mi dolor (1954)",
-   "Remolino (Dante 1946)"
+   "Mi dolor (1957)",
+   "Remolino (Dante–Martel 1946)"
   ],
   "rhythmShift": {
    "vals": 8,
@@ -1472,6 +2544,88 @@
    "Flores del alma": "vals",
    "Soñar y nada más": "vals",
    "A Magaldi": "vals"
+  },
+  "bands": {
+   "instrumental": {
+    "best": [
+     1943,
+     1949
+    ],
+    "ok": null
+   },
+   "singers": {
+    "Floreal Ruíz": {
+     "best": [
+      1943,
+      1944
+     ],
+     "ok": [
+      1943,
+      1944
+     ]
+    },
+    "Julio Martel": {
+     "best": [
+      1943,
+      1947
+     ],
+     "ok": [
+      1943,
+      1949
+     ]
+    },
+    "Carlos Dante": {
+     "best": [
+      1944,
+      1949
+     ],
+     "ok": [
+      1944,
+      1949
+     ]
+    },
+    "C. Dante - J. Martel": {
+     "best": [
+      1944,
+      1949
+     ],
+     "ok": [
+      1944,
+      1949
+     ]
+    },
+    "Oscar Larroca": {
+     "best": null,
+     "ok": null
+    },
+    "C. Dante - O. Larroca": {
+     "best": null,
+     "ok": null
+    }
+   }
+  },
+  "bandOverrides": {
+   "instrumental": {
+    "ok": [
+     1957,
+     1958
+    ],
+    "singlesOnly": true,
+    "why": "Mi dolor (1957) and Pavadita (1958) are fame 5, but as singles and tanda openers, which matches grade 1 'single tracks only'",
+    "override": true
+   }
+  },
+  "goldenBands": {
+   "core": [
+    1943,
+    1948
+   ],
+   "edge": [
+    [
+     1949,
+     1955
+    ]
+   ]
   }
  },
  {
@@ -1503,20 +2657,16 @@
   ],
   "singers": {
    "Juan Carlos Casas": [
-    1937,
-    1940
+    1938,
+    1942
    ],
    "Martín Podestá": [
-    1940,
-    1943
+    1941,
+    1942
    ],
    "Alberto Podestá": [
     1943,
     1944
-   ],
-   "Carlos Bermúdez": [
-    1944,
-    1947
    ],
    "Jorge Linares": [
     1945,
@@ -1527,8 +2677,16 @@
     1955
    ],
    "Carlos Bermudez": [
-    1943,
-    1946
+    1944,
+    1944
+   ],
+   "Héctor Farrel": [
+    1937,
+    1937
+   ],
+   "Alberto del Campo": [
+    1942,
+    1942
    ]
   },
   "notes": "Bandoneon-led, rhythmic-lyrical, sophisticated; instrumentals (Arrabal 1937, Amurado 1940, Milonga de mis amores 1937) excellent middle; vocal Podestá 1940-41 and Bermúdez. Milonga de mis amores and Yo soy de Parque Patricios are milonga staples. Best: 1937-1941, 1943-1946 Bermúdez",
@@ -1548,7 +2706,113 @@
   "bestYears": [
    1937,
    1944
-  ]
+  ],
+  "bands": {
+   "instrumental": {
+    "best": [
+     1937,
+     1944
+    ],
+    "ok": [
+     1937,
+     1947
+    ]
+   },
+   "singers": {
+    "Héctor Farrel": {
+     "best": [
+      1937,
+      1937
+     ],
+     "ok": [
+      1937,
+      1937
+     ]
+    },
+    "Juan Carlos Casas": {
+     "best": [
+      1938,
+      1940
+     ],
+     "ok": [
+      1938,
+      1942
+     ]
+    },
+    "Martín Podestá": {
+     "best": [
+      1941,
+      1942
+     ],
+     "ok": [
+      1941,
+      1942
+     ]
+    },
+    "Alberto del Campo": {
+     "best": [
+      1942,
+      1942
+     ],
+     "ok": [
+      1942,
+      1942
+     ]
+    },
+    "Alberto Podestá": {
+     "best": [
+      1943,
+      1944
+     ],
+     "ok": [
+      1943,
+      1944
+     ]
+    },
+    "Carlos Bermudez": {
+     "best": [
+      1944,
+      1944
+     ],
+     "ok": [
+      1944,
+      1944
+     ]
+    },
+    "Jorge Linares": {
+     "best": [
+      1944,
+      1944
+     ],
+     "ok": [
+      1944,
+      1944
+     ]
+    },
+    "C. Bermudez - J. Linares": {
+     "best": [
+      1944,
+      1944
+     ],
+     "ok": [
+      1944,
+      1944
+     ]
+    }
+   }
+  },
+  "goldenBands": {
+   "core": [
+    1937,
+    1944
+   ],
+   "edge": [
+    [
+     1945,
+     1947
+    ]
+   ]
+  }
  },
  {
   "id": "lucio-demare",
@@ -1585,15 +2849,15 @@
    ],
    "Raúl Berón": [
     1943,
-    1945
+    1944
    ],
    "Horacio Quintana": [
-    1945,
-    1948
+    1944,
+    1945
    ],
    "Roberto Arrieta": [
-    1949,
-    1951
+    1942,
+    1942
    ]
   },
   "notes": "Piano-led, intimate, slow-lyrical; vocal tandas only (Malena, Mañana zarpa un barco, Tal vez será su voz). Second half of the night / sweet ending; too soft for warm-up or peak. Few milongas and valses; use as a tango-only orchestra. Best: 1938-1943 Miranda, 1943-1945 Berón",
@@ -1606,7 +2870,7 @@
    "Malena (Miranda 1942)",
    "Mañana zarpa un barco (Miranda 1942)",
    "Tal vez será su voz (Berón 1943)",
-   "Solamente ella (Berón 1944)",
+   "Solamente ella (Quintana 1944)",
    "Dandy (Miranda 1942)"
   ],
   "bestYears": [
@@ -1621,7 +2885,77 @@
   "nonDanceSingers": [
    "Solo de Piano"
   ],
-  "tangoOnly": true
+  "tangoOnly": true,
+  "bands": {
+   "instrumental": null,
+   "singers": {
+    "Juan Carlos Miranda": {
+     "best": [
+      1938,
+      1942
+     ],
+     "ok": [
+      1938,
+      1942
+     ]
+    },
+    "Roberto Arrieta": {
+     "best": [
+      1942,
+      1942
+     ],
+     "ok": [
+      1942,
+      1942
+     ]
+    },
+    "Raúl Berón": {
+     "best": [
+      1943,
+      1943
+     ],
+     "ok": [
+      1943,
+      1944
+     ]
+    },
+    "Horacio Quintana": {
+     "best": null,
+     "ok": [
+      1944,
+      1945
+     ]
+    }
+   }
+  },
+  "bandOverrides": {
+   "singers": {
+    "Horacio Quintana": {
+     "best": [
+      1944,
+      1945
+     ],
+     "why": "Torrente (1944) is fame 5; there are canonical Quintana tandas for 1944–45. The heatmap gives Demare 1944–45 a 2",
+     "override": true
+    }
+   }
+  },
+  "goldenBands": {
+   "core": [
+    1942,
+    1944
+   ],
+   "edge": [
+    [
+     1938,
+     1941
+    ],
+    [
+     1945,
+     1947
+    ]
+   ]
+  }
  },
  {
   "id": "francisco-lomuto",
@@ -1652,8 +2986,8 @@
   ],
   "singers": {
    "Fernando Díaz": [
-    1928,
-    1945
+    1931,
+    1942
    ],
    "Jorge Omar": [
     1935,
@@ -1679,7 +3013,62 @@
   "bestYears": [
    1930,
    1945
-  ]
+  ],
+  "bands": {
+   "instrumental": {
+    "best": [
+     1941,
+     1946
+    ],
+    "ok": [
+     1930,
+     1940
+    ]
+   },
+   "singers": {
+    "Fernando Díaz": {
+     "best": [
+      1932,
+      1935
+     ],
+     "ok": [
+      1931,
+      1942
+     ]
+    },
+    "Jorge Omar": {
+     "best": [
+      1936,
+      1939
+     ],
+     "ok": [
+      1935,
+      1942
+     ]
+    },
+    "Alberto Rivera": {
+     "best": null,
+     "ok": null
+    }
+   }
+  },
+  "goldenBands": {
+   "core": [
+    1936,
+    1942
+   ],
+   "edge": [
+    [
+     1935,
+     1935
+    ],
+    [
+     1943,
+     1950
+    ]
+   ],
+   "colour": true
+  }
  },
  {
   "id": "roberto-firpo",
@@ -1738,7 +3127,37 @@
   "bestYears": [
    1936,
    1939
-  ]
+  ],
+  "bands": {
+   "instrumental": {
+    "best": [
+     1935,
+     1936
+    ],
+    "ok": [
+     1927,
+     1934
+    ]
+   },
+   "singers": {}
+  },
+  "goldenBands": {
+   "core": [
+    1936,
+    1940
+   ],
+   "edge": [
+    [
+     1935,
+     1935
+    ],
+    [
+     1941,
+     1945
+    ]
+   ],
+   "colour": true
+  }
  },
  {
   "id": "orquesta-tipica-victor",
@@ -1782,10 +3201,6 @@
     1930,
     1935
    ],
-   "Ángel Vargas": [
-    1938,
-    1939
-   ],
    "Mario Pomar": [
     1939,
     1944
@@ -1793,10 +3208,6 @@
    "Carmen del Moral": [
     1940,
     1941
-   ],
-   "Teófilo Ibañez": [
-    1930,
-    1932
    ],
    "Angel Vargas": [
     1938,
@@ -1831,7 +3242,69 @@
   "bestYears": [
    1926,
    1944
-  ]
+  ],
+  "bands": {
+   "instrumental": {
+    "best": [
+     1927,
+     1934
+    ],
+    "ok": [
+     1926,
+     1938
+    ]
+   },
+   "singers": {
+    "Carlos Lafuente": {
+     "best": [
+      1930,
+      1934
+     ],
+     "ok": [
+      1930,
+      1934
+     ]
+    },
+    "Alberto Gómez": {
+     "best": [
+      1930,
+      1935
+     ],
+     "ok": [
+      1930,
+      1937
+     ]
+    },
+    "Lita Morales": {
+     "best": [
+      1937,
+      1937
+     ],
+     "ok": [
+      1937,
+      1937
+     ]
+    },
+    "Angel Vargas": {
+     "best": [
+      1938,
+      1939
+     ],
+     "ok": [
+      1938,
+      1939
+     ]
+    }
+   }
+  },
+  "goldenBands": {
+   "core": [
+    1935,
+    1944
+   ],
+   "edge": [],
+   "colour": true
+  }
  },
  {
   "id": "alfredo-gobbi",
@@ -1896,7 +3369,25 @@
    "Orlando Goñi (1949)",
    "Camandulaje (1952)"
   ],
-  "neverClose": true
+  "neverClose": true,
+  "bands": {
+   "instrumental": {
+    "best": [
+     1947,
+     1952
+    ],
+    "ok": [
+     1953,
+     1958
+    ]
+   },
+   "singers": {
+    "Jorge Maciel": {
+     "best": null,
+     "ok": null
+    }
+   }
+  }
  },
  {
   "id": "ricardo-malerba",
@@ -1930,8 +3421,8 @@
     1946
    ],
    "Antonio Maida": [
-    1941,
-    1944
+    1944,
+    1945
    ]
   },
   "notes": "Light-rhythmic, bandoneon-driven, singable; one Medina tanda (Embrujamiento, Remembranza, Gitana rusa, Cuando florezcan las rosas) mid-night; valses limited. Best: 1941-1945 Medina",
@@ -1942,15 +3433,50 @@
   "confidence": "estimate",
   "signatureTracks": [
    "Embrujamiento (Medina 1943)",
-   "Remembranza (Medina 1944)",
+   "Remembranza (Medina 1943)",
    "Gitana rusa (Medina 1942)",
-   "Cuando florezcan las rosas (Medina 1942)",
+   "Cuando florezcan las rosas (vals, Medina 1943)",
    "La piba de los jazmines (Medina 1943)"
   ],
   "bestYears": [
    1941,
    1946
-  ]
+  ],
+  "bands": {
+   "instrumental": null,
+   "singers": {
+    "Orlando Medina": {
+     "best": [
+      1942,
+      1943
+     ],
+     "ok": [
+      1941,
+      1944
+     ]
+    },
+    "Antonio Maida": {
+     "best": null,
+     "ok": [
+      1944,
+      1945
+     ]
+    }
+   }
+  },
+  "goldenBands": {
+   "core": [
+    1941,
+    1944
+   ],
+   "edge": [
+    [
+     1945,
+     1947
+    ]
+   ],
+   "colour": true
+  }
  },
  {
   "id": "domingo-federico",
@@ -1981,8 +3507,8 @@
   ],
   "singers": {
    "Carlos Vidal": [
-    1943,
-    1945
+    1944,
+    1948
    ],
    "Oscar Larroca": [
     1945,
@@ -2016,7 +3542,51 @@
   "bestYears": [
    1943,
    1948
-  ]
+  ],
+  "bands": {
+   "instrumental": {
+    "best": [
+     1944,
+     1949
+    ],
+    "ok": [
+     1944,
+     1954
+    ]
+   },
+   "singers": {
+    "Carlos Vidal": {
+     "best": [
+      1944,
+      1947
+     ],
+     "ok": [
+      1944,
+      1948
+     ]
+    },
+    "Oscar Larroca": {
+     "best": [
+      1945,
+      1947
+     ],
+     "ok": [
+      1945,
+      1948
+     ]
+    },
+    "C. Vidal - O. Larroca": {
+     "best": [
+      1945,
+      1947
+     ],
+     "ok": [
+      1945,
+      1948
+     ]
+    }
+   }
+  }
  },
  {
   "id": "hector-varela",
@@ -2196,7 +3766,41 @@
    "Que nunca me falte (Verri 1947)",
    "Escalas en azul (1949)"
   ],
-  "neverClose": true
+  "neverClose": true,
+  "bands": {
+   "instrumental": {
+    "best": [
+     1946,
+     1950
+    ],
+    "ok": [
+     1946,
+     1950
+    ]
+   },
+   "singers": {
+    "Orlando Verri": {
+     "best": [
+      1946,
+      1947
+     ],
+     "ok": [
+      1946,
+      1947
+     ]
+    },
+    "Pedro Dátila": {
+     "best": [
+      1946,
+      1950
+     ],
+     "ok": [
+      1946,
+      1950
+     ]
+    }
+   }
+  }
  },
  {
   "id": "francini-pontier",
@@ -2267,7 +3871,61 @@
   ],
   "nonDanceTitles": [
    "Selección de valses"
-  ]
+  ],
+  "bands": {
+   "instrumental": {
+    "best": [
+     1946,
+     1950
+    ],
+    "ok": [
+     1946,
+     1955
+    ]
+   },
+   "singers": {
+    "Alberto Podestá": {
+     "best": [
+      1946,
+      1947
+     ],
+     "ok": [
+      1946,
+      1950
+     ]
+    },
+    "Raúl Berón": {
+     "best": [
+      1946,
+      1948
+     ],
+     "ok": [
+      1946,
+      1949
+     ]
+    },
+    "Roberto Rufino": {
+     "best": [
+      1947,
+      1949
+     ],
+     "ok": [
+      1947,
+      1949
+     ]
+    },
+    "Julio Sosa": {
+     "best": [
+      1949,
+      1953
+     ],
+     "ok": [
+      1949,
+      1953
+     ]
+    }
+   }
+  }
  },
  {
   "id": "florindo-sassone",
@@ -2320,7 +3978,41 @@
    "Félicia (1960s)",
    "El amanecer (1960s)",
    "Adiós Bardi"
-  ]
+  ],
+  "bands": {
+   "instrumental": {
+    "best": [
+     1951,
+     1959
+    ],
+    "ok": [
+     1948,
+     1959
+    ]
+   },
+   "singers": {
+    "Jorge Casal": {
+     "best": [
+      1947,
+      1949
+     ],
+     "ok": [
+      1947,
+      1950
+     ]
+    },
+    "Roberto Chanel": {
+     "best": [
+      1949,
+      1950
+     ],
+     "ok": [
+      1949,
+      1952
+     ]
+    }
+   }
+  }
  },
  {
   "id": "jose-basso",
@@ -2357,13 +4049,9 @@
     1949,
     1951
    ],
-   "Floreal Ruiz": [
-    1950,
-    1950
-   ],
    "Floreal Ruíz": [
-    1950,
-    1950
+    1956,
+    1959
    ]
   },
   "notes": "Troilo-lineage pianist; 1947-50 Fiorentino/Durán sides are danceable; later recordings concert-ish. One late tanda for Troilo-style lovers; verify tracks. Best: 1947-1952",
@@ -2374,7 +4062,41 @@
   "confidence": "low",
   "signatureTracks": [
    "(verify library)"
-  ]
+  ],
+  "bands": {
+   "instrumental": {
+    "best": [
+     1950,
+     1956
+    ],
+    "ok": [
+     1949,
+     1959
+    ]
+   },
+   "singers": {
+    "Francisco Fiorentino": {
+     "best": [
+      1949,
+      1949
+     ],
+     "ok": [
+      1949,
+      1949
+     ]
+    },
+    "Jorge Durán": {
+     "best": [
+      1950,
+      1953
+     ],
+     "ok": [
+      1950,
+      1953
+     ]
+    }
+   }
+  }
  },
  {
   "id": "donato-racciatti",
@@ -2458,8 +4180,8 @@
     1972
    ],
    "Francisco Fiorentino": [
-    1946,
-    1948
+    1945,
+    1946
    ],
    "Aldo Campoamor": [
     1946,
@@ -2477,7 +4199,41 @@
    "El recodo (1947)",
    "Oblivion (alt late)",
    "Libertango (not for social floor)"
-  ]
+  ],
+  "bands": {
+   "instrumental": {
+    "best": [
+     1946,
+     1948
+    ],
+    "ok": [
+     1946,
+     1948
+    ]
+   },
+   "singers": {
+    "Francisco Fiorentino": {
+     "best": [
+      1945,
+      1946
+     ],
+     "ok": [
+      1945,
+      1946
+     ]
+    },
+    "Aldo Campoamor": {
+     "best": [
+      1947,
+      1947
+     ],
+     "ok": [
+      1947,
+      1947
+     ]
+    }
+   }
+  }
  },
  {
   "id": "horacio-salgan",
@@ -2992,8 +4748,8 @@
   ],
   "singers": {
    "Alberto Casares": [
-    1952,
-    1957
+    1948,
+    1949
    ]
   },
   "notes": "Very fast virtuoso quartet (Brown: 'many very fast cuts'); one milonga or tango tanda for a strong floor at the peak; not for beginners. Best: 1952-1957",
@@ -3006,7 +4762,31 @@
    "Chiqué",
    "El entrerriano",
    "Nueve de julio"
-  ]
+  ],
+  "bands": {
+   "instrumental": {
+    "best": [
+     1948,
+     1950
+    ],
+    "ok": [
+     1948,
+     1950
+    ]
+   },
+   "singers": {
+    "Alberto Casares": {
+     "best": [
+      1948,
+      1949
+     ],
+     "ok": [
+      1948,
+      1949
+     ]
+    }
+   }
+  }
  },
  {
   "id": "francisco-rotundo",
@@ -3036,10 +4816,6 @@
    "cooldown"
   ],
   "singers": {
-   "Floreal Ruiz": [
-    1950,
-    1955
-   ],
    "Floreal Ruíz": [
     1950,
     1955
@@ -3049,7 +4825,7 @@
     1955
    ],
    "Carlos Roldán": [
-    1949,
+    1948,
     1950
    ],
    "Julio Sosa": [
@@ -3075,7 +4851,52 @@
    "Tabernero (Campos)",
    "As de cartón (Campos)",
    "Llorando la carta (Campos)"
-  ]
+  ],
+  "bands": {
+   "instrumental": null,
+   "singers": {
+    "Carlos Roldán": {
+     "best": [
+      1948,
+      1950
+     ],
+     "ok": [
+      1948,
+      1950
+     ]
+    },
+    "Floreal Ruíz": {
+     "best": [
+      1949,
+      1955
+     ],
+     "ok": [
+      1948,
+      1955
+     ]
+    },
+    "Enrique Campos": {
+     "best": [
+      1951,
+      1957
+     ],
+     "ok": [
+      1951,
+      1957
+     ]
+    },
+    "Julio Sosa": {
+     "best": [
+      1953,
+      1955
+     ],
+     "ok": [
+      1953,
+      1955
+     ]
+    }
+   }
+  }
  },
  {
   "id": "juan-sanchez-gorio",
@@ -3130,6 +4951,31 @@
   "signatureTracks": [
    "Fatal y tanguera",
    "Corrientes y Esmeralda"
-  ]
+  ],
+  "bands": {
+   "instrumental": null,
+   "singers": {
+    "Luis Mendoza": {
+     "best": [
+      1950,
+      1956
+     ],
+     "ok": [
+      1944,
+      1957
+     ]
+    },
+    "L. Mendoza - O. Bazán": {
+     "best": [
+      1950,
+      1954
+     ],
+     "ok": [
+      1950,
+      1954
+     ]
+    }
+   }
+  }
  }
 ]

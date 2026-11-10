@@ -1272,7 +1272,7 @@
   },
   "vocal": 172,
   "yearRange": [
-   1920,
+   1927,
    1950
   ],
   "coverage": {
@@ -1642,8 +1642,8 @@
   "name": "Edgardo Donato",
   "count": 134,
   "rhythms": {
-   "tango": 107,
-   "vals": 12,
+   "tango": 106,
+   "vals": 13,
    "milonga": 11,
    "cancion": 2,
    "polca": 1,
@@ -1659,7 +1659,7 @@
    "Alberto Aguirre": 4,
    "Antonio Maida": 3,
    "Hugo del Carril": 3,
-   "Juan Alessio(jorge Ortíz0": 2,
+   "Juan Alessio (Jorge Ortíz)": 2,
    "H. Lagos - L. Morales - R. Gavioli": 2,
    "Adolfo Rivas": 2
   },
@@ -1895,7 +1895,7 @@
   "vocal": 100,
   "yearRange": [
    1944,
-   1960
+   1959
   ],
   "coverage": null
  },
@@ -1957,7 +1957,7 @@
   },
   "vocal": 68,
   "yearRange": [
-   1955,
+   1956,
    1994
   ],
   "coverage": null
@@ -2277,7 +2277,7 @@
   },
   "vocal": 60,
   "yearRange": [
-   1940,
+   1944,
    1955
   ],
   "coverage": null
@@ -2556,8 +2556,8 @@
   "name": "Pedro Láurenz",
   "count": 72,
   "rhythms": {
-   "tango": 53,
-   "milonga": 11,
+   "tango": 54,
+   "milonga": 10,
    "vals": 7,
    "ranchera": 1
   },
@@ -2687,7 +2687,7 @@
   },
   "vocal": 69,
   "yearRange": [
-   1950,
+   1951,
    1993
   ],
   "coverage": null
@@ -3427,7 +3427,7 @@
   },
   "vocal": 43,
   "yearRange": [
-   1940,
+   1950,
    1978
   ],
   "coverage": null
@@ -3644,7 +3644,7 @@
   },
   "vocal": 22,
   "yearRange": [
-   1927,
+   1928,
    1939
   ],
   "coverage": null
@@ -3737,7 +3737,7 @@
   },
   "vocal": 13,
   "yearRange": [
-   1920,
+   1930,
    1932
   ],
   "coverage": null
@@ -4103,7 +4103,7 @@
   "vocal": 17,
   "yearRange": [
    1951,
-   1972
+   1965
   ],
   "coverage": null
  },
@@ -4136,10 +4136,7 @@
   },
   "singers": {},
   "vocal": 0,
-  "yearRange": [
-   1970,
-   1970
-  ],
+  "yearRange": null,
   "coverage": null
  },
  {
@@ -4539,7 +4536,7 @@
   },
   "vocal": 5,
   "yearRange": [
-   1960,
+   2002,
    2002
   ],
   "coverage": null
@@ -4701,7 +4698,7 @@
   },
   "vocal": 6,
   "yearRange": [
-   1940,
+   1953,
    1962
   ],
   "coverage": null
@@ -4783,7 +4780,7 @@
   },
   "vocal": 25,
   "yearRange": [
-   1960,
+   1961,
    1997
   ],
   "coverage": null
@@ -4801,10 +4798,7 @@
    "Héctor Mauré": 25
   },
   "vocal": 25,
-  "yearRange": [
-   1950,
-   1950
-  ],
+  "yearRange": null,
   "coverage": null
  },
  {
@@ -4861,7 +4855,7 @@
   },
   "vocal": 16,
   "yearRange": [
-   1970,
+   1989,
    1994
   ],
   "coverage": null
@@ -4907,7 +4901,7 @@
   },
   "vocal": 11,
   "yearRange": [
-   1940,
+   1955,
    1969
   ],
   "coverage": null
@@ -5013,10 +5007,7 @@
    "Ernesto Rondó": 2
   },
   "vocal": 2,
-  "yearRange": [
-   1970,
-   1970
-  ],
+  "yearRange": null,
   "coverage": null
  },
  {
@@ -5079,10 +5070,7 @@
    "Alberto Ortíz": 1
   },
   "vocal": 13,
-  "yearRange": [
-   1960,
-   1960
-  ],
+  "yearRange": null,
   "coverage": null
  },
  {
@@ -5409,7 +5397,7 @@
   },
   "vocal": 13,
   "yearRange": [
-   1950,
+   1951,
    2000
   ],
   "coverage": null
@@ -5902,10 +5890,7 @@
    "Blanca Mooney": 2
   },
   "vocal": 13,
-  "yearRange": [
-   1960,
-   1960
-  ],
+  "yearRange": null,
   "coverage": null
  },
  {
@@ -6006,7 +5991,7 @@
   },
   "vocal": 17,
   "yearRange": [
-   1954,
+   1967,
    1967
   ],
   "coverage": null
@@ -6323,7 +6308,7 @@
   },
   "vocal": 15,
   "yearRange": [
-   1940,
+   1946,
    1946
   ],
   "coverage": null
@@ -6416,10 +6401,7 @@
   },
   "singers": {},
   "vocal": 0,
-  "yearRange": [
-   1962,
-   1962
-  ],
+  "yearRange": null,
   "coverage": null
  },
  {
@@ -6449,10 +6431,7 @@
    "Raúl Iriarte": 15
   },
   "vocal": 15,
-  "yearRange": [
-   1950,
-   1950
-  ],
+  "yearRange": null,
   "coverage": null
  },
  {
@@ -7144,10 +7123,7 @@
    "Héctor de Luca": 3
   },
   "vocal": 9,
-  "yearRange": [
-   1956,
-   1956
-  ],
+  "yearRange": null,
   "coverage": null
  },
  {
@@ -7254,10 +7230,7 @@
    "Tito Cavá": 6
   },
   "vocal": 12,
-  "yearRange": [
-   1960,
-   1960
-  ],
+  "yearRange": null,
   "coverage": null
  },
  {
@@ -7714,7 +7687,7 @@
   },
   "vocal": 7,
   "yearRange": [
-   1940,
+   1944,
    1948
   ],
   "coverage": null
@@ -7841,10 +7814,7 @@
    "M. A. López - J. C. Aguilera": 1
   },
   "vocal": 10,
-  "yearRange": [
-   1940,
-   1940
-  ],
+  "yearRange": null,
   "coverage": null
  },
  {
@@ -7976,10 +7946,7 @@
    "Jorge Hidalgo": 10
   },
   "vocal": 10,
-  "yearRange": [
-   1970,
-   1970
-  ],
+  "yearRange": null,
   "coverage": null
  },
  {
@@ -8612,7 +8579,7 @@
   "vocal": 8,
   "yearRange": [
    1959,
-   1960
+   1959
   ],
   "coverage": null
  },
@@ -9036,10 +9003,7 @@
    "Amanda Ledesma": 6
   },
   "vocal": 6,
-  "yearRange": [
-   1937,
-   1937
-  ],
+  "yearRange": null,
   "coverage": null
  },
  {
@@ -9261,10 +9225,7 @@
   },
   "singers": {},
   "vocal": 0,
-  "yearRange": [
-   1927,
-   1927
-  ],
+  "yearRange": null,
   "coverage": null
  },
  {
@@ -9902,10 +9863,7 @@
    "Agustín Alberti": 2
   },
   "vocal": 2,
-  "yearRange": [
-   1940,
-   1940
-  ],
+  "yearRange": null,
   "coverage": null
  },
  {
@@ -10208,7 +10166,7 @@
   },
   "vocal": 4,
   "yearRange": [
-   1960,
+   1965,
    1965
   ],
   "coverage": null
@@ -10460,7 +10418,7 @@
   },
   "vocal": 2,
   "yearRange": [
-   1927,
+   1930,
    1936
   ],
   "coverage": null
@@ -11095,10 +11053,7 @@
   },
   "singers": {},
   "vocal": 0,
-  "yearRange": [
-   1927,
-   1927
-  ],
+  "yearRange": null,
   "coverage": null
  },
  {
@@ -11111,10 +11066,7 @@
   },
   "singers": {},
   "vocal": 0,
-  "yearRange": [
-   1927,
-   1927
-  ],
+  "yearRange": null,
   "coverage": null
  },
  {
@@ -11425,7 +11377,7 @@
   },
   "vocal": 2,
   "yearRange": [
-   1940,
+   1964,
    1964
   ],
   "coverage": null
@@ -11507,10 +11459,7 @@
   },
   "singers": {},
   "vocal": 0,
-  "yearRange": [
-   1955,
-   1955
-  ],
+  "yearRange": null,
   "coverage": null
  },
  {
@@ -11558,10 +11507,7 @@
    "Mario Armando López": 2
   },
   "vocal": 2,
-  "yearRange": [
-   1940,
-   1940
-  ],
+  "yearRange": null,
   "coverage": null
  },
  {
@@ -12057,10 +12003,7 @@
    "Los Cinco Latinos": 2
   },
   "vocal": 2,
-  "yearRange": [
-   1960,
-   1960
-  ],
+  "yearRange": null,
   "coverage": null
  },
  {
@@ -12199,7 +12142,7 @@
   "singers": {},
   "vocal": 0,
   "yearRange": [
-   1927,
+   1938,
    1938
   ],
   "coverage": null
@@ -12619,10 +12562,7 @@
   },
   "singers": {},
   "vocal": 0,
-  "yearRange": [
-   1927,
-   1927
-  ],
+  "yearRange": null,
   "coverage": null
  },
  {
@@ -12635,10 +12575,7 @@
   },
   "singers": {},
   "vocal": 0,
-  "yearRange": [
-   1927,
-   1927
-  ],
+  "yearRange": null,
   "coverage": null
  },
  {
@@ -13210,10 +13147,7 @@
    "Diana Vidal": 1
   },
   "vocal": 1,
-  "yearRange": [
-   1950,
-   1950
-  ],
+  "yearRange": null,
   "coverage": null
  },
  {
@@ -13386,10 +13320,7 @@
   },
   "singers": {},
   "vocal": 0,
-  "yearRange": [
-   1950,
-   1950
-  ],
+  "yearRange": null,
   "coverage": null
  },
  {
@@ -15058,10 +14989,7 @@
   },
   "singers": {},
   "vocal": 0,
-  "yearRange": [
-   1927,
-   1927
-  ],
+  "yearRange": null,
   "coverage": null
  },
  {
@@ -15073,10 +15001,7 @@
   },
   "singers": {},
   "vocal": 0,
-  "yearRange": [
-   1927,
-   1927
-  ],
+  "yearRange": null,
   "coverage": null
  },
  {

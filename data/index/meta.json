@@ -1,12 +1,12 @@
 {
-  "builtAt": "2026-11-07T06:26:46.446353+00:00",
+  "builtAt": "2026-11-10T16:33:24.380359+00:00",
   "songs": 19118,
   "orchestras": 795,
   "singers": 1069,
   "rhythms": {
     "tango": 15177,
-    "vals": 1488,
-    "milonga": 1004,
+    "vals": 1489,
+    "milonga": 1003,
     "other": 386,
     "cancion": 221,
     "pasodoble": 118,
@@ -26,11 +26,11 @@
     "post-golden": 4079,
     "golden-late": 3331,
     "nuevo": 2858,
-    "guardia-nueva": 2580,
+    "guardia-nueva": 2579,
     "unknown": 1957,
     "golden-peak": 1512,
     "contemporary": 1062,
-    "golden-early": 960,
+    "golden-early": 961,
     "guardia-vieja": 779
   },
   "sources": [
@@ -40,8 +40,8 @@
   "rawRows": 21932,
   "mergedDuplicates": 2814,
   "transcriptions": 1295,
-  "yearApprox": 1929,
-  "rhythmFixed": 59,
+  "yearApprox": 1928,
+  "rhythmFixed": 61,
   "pseudoSingers": 95,
   "version": 3
 }
