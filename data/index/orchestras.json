@@ -51,7 +51,7 @@
    "polca": 1
   },
   "singers": {
-   "Alberto Echagüe": 114,
+   "Alberto Echagüe": 115,
    "Armando Laborde": 85,
    "Jorge Valdéz": 81,
    "Héctor Mauré": 50,
@@ -64,7 +64,7 @@
    "A. Laborde - O. Ramos": 10,
    "A. Echagüe - A. Laborde": 8
   },
-  "vocal": 509,
+  "vocal": 510,
   "yearRange": [
    1928,
    1975
@@ -163,9 +163,9 @@
  {
   "id": "francisco-canaro",
   "name": "Francisco Canaro",
-  "count": 587,
+  "count": 586,
   "rhythms": {
-   "tango": 395,
+   "tango": 394,
    "vals": 73,
    "milonga": 20,
    "ranchera": 18,
@@ -288,9 +288,9 @@
  {
   "id": "alfredo-de-angelis",
   "name": "Alfredo De Angelis",
-  "count": 570,
+  "count": 569,
   "rhythms": {
-   "tango": 478,
+   "tango": 477,
    "vals": 54,
    "milonga": 28,
    "other": 8,
@@ -311,7 +311,7 @@
    "Alberto Cuello": 14,
    "Roberto Mancini": 10
   },
-  "vocal": 485,
+  "vocal": 484,
   "yearRange": [
    1943,
    1985
@@ -1245,9 +1245,9 @@
   "count": 228,
   "rhythms": {
    "tango": 161,
-   "vals": 23,
+   "vals": 22,
    "ranchera": 10,
-   "other": 8,
+   "other": 9,
    "pasodoble": 8,
    "milonga": 7,
    "foxtrot": 7,
@@ -1642,9 +1642,9 @@
   "name": "Edgardo Donato",
   "count": 134,
   "rhythms": {
-   "tango": 106,
+   "tango": 105,
    "vals": 13,
-   "milonga": 11,
+   "milonga": 12,
    "cancion": 2,
    "polca": 1,
    "ranchera": 1
@@ -1813,9 +1813,9 @@
  {
   "id": "lucio-demare",
   "name": "Lucio Demare",
-  "count": 123,
+  "count": 124,
   "rhythms": {
-   "tango": 92,
+   "tango": 93,
    "vals": 13,
    "milonga": 12,
    "other": 3,
@@ -1824,7 +1824,7 @@
    "tonada": 1
   },
   "singers": {
-   "Raúl Berón": 26,
+   "Raúl Berón": 27,
    "A. Irusta - R. Fugazot": 21,
    "Juan Carlos Miranda": 14,
    "Horacio Quintana": 14,
@@ -1836,7 +1836,7 @@
    "Roberto Fugazot": 2,
    "Carlos Bernal": 1
   },
-  "vocal": 99,
+  "vocal": 100,
   "yearRange": [
    1938,
    1959
@@ -14930,6 +14930,21 @@
   "singers": {},
   "vocal": 0,
   "yearRange": null,
+  "coverage": null
+ },
+ {
+  "id": "quinteto-don-pancho",
+  "name": "Quinteto Don Pancho",
+  "count": 1,
+  "rhythms": {
+   "tango": 1
+  },
+  "singers": {},
+  "vocal": 0,
+  "yearRange": [
+   1938,
+   1938
+  ],
   "coverage": null
  },
  {

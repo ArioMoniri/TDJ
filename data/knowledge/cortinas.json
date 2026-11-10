@@ -203,7 +203,7 @@
     "culture": "turkish",
     "language": "tr",
     "energy": 70,
-    "year": 1977,
+    "year": 1979,
     "startSec": 0,
     "lengthSec": 45,
     "tags": [
@@ -572,7 +572,7 @@
     "culture": "turkish",
     "language": "tr",
     "energy": 62,
-    "year": 1983,
+    "year": 1973,
     "startSec": 0,
     "lengthSec": 45,
     "tags": [
@@ -908,7 +908,7 @@
     "culture": "turkish",
     "language": "tr",
     "energy": 66,
-    "year": 1979,
+    "year": 1978,
     "startSec": 0,
     "lengthSec": 45,
     "tags": [
@@ -925,7 +925,7 @@
     "culture": "turkish",
     "language": "tr",
     "energy": 70,
-    "year": 1984,
+    "year": 1985,
     "startSec": 0,
     "lengthSec": 45,
     "tags": [
@@ -942,13 +942,381 @@
     "culture": "turkish",
     "language": "tr",
     "energy": 56,
-    "year": 1983,
+    "year": 1986,
     "startSec": 0,
     "lengthSec": 45,
     "tags": [
       "theme:turkish-classics",
       "tempo:medium",
       "mood:nostalgic"
+    ]
+  },
+  {
+    "id": "c-tr-ortacgil-benimle",
+    "title": "Benimle Oynar mısın",
+    "artist": "Bülent Ortaçgil",
+    "genre": "turkish-pop",
+    "culture": "turkish",
+    "language": "tr",
+    "energy": 48,
+    "year": 1974,
+    "startSec": 0,
+    "lengthSec": 45,
+    "tags": [
+      "theme:turkish-classics",
+      "tempo:slow",
+      "mood:nostalgic"
+    ]
+  },
+  {
+    "id": "c-tr-karaca-tamirci",
+    "title": "Tamirci Çırağı",
+    "artist": "Cem Karaca",
+    "genre": "anadolu-rock",
+    "culture": "turkish",
+    "language": "tr",
+    "energy": 58,
+    "year": 1975,
+    "startSec": 0,
+    "lengthSec": 45,
+    "tags": [
+      "theme:turkish-classics",
+      "tempo:medium",
+      "mood:nostalgic"
+    ]
+  },
+  {
+    "id": "c-tr-aksu-sen-aglama",
+    "title": "Sen Ağlama",
+    "artist": "Sezen Aksu",
+    "genre": "turkish-pop",
+    "culture": "turkish",
+    "language": "tr",
+    "energy": 50,
+    "year": 1984,
+    "startSec": 0,
+    "lengthSec": 45,
+    "tags": [
+      "theme:turkish-classics",
+      "tempo:slow",
+      "mood:ballad"
+    ]
+  },
+  {
+    "id": "c-tr-tarkan-kis-gunesi",
+    "title": "Kış Güneşi",
+    "artist": "Tarkan",
+    "genre": "turkish-pop",
+    "culture": "turkish",
+    "language": "tr",
+    "energy": 52,
+    "year": 1994,
+    "startSec": 0,
+    "lengthSec": 45,
+    "tags": [
+      "theme:turkish-classics",
+      "tempo:slow",
+      "mood:ballad"
+    ]
+  },
+  {
+    "id": "c-tr-selda-yaz-gazeteci",
+    "title": "Yaz Gazeteci Yaz",
+    "artist": "Selda Bağcan",
+    "genre": "anadolu-rock",
+    "culture": "turkish",
+    "language": "tr",
+    "energy": 60,
+    "startSec": 0,
+    "lengthSec": 45,
+    "tags": [
+      "theme:turkish-classics",
+      "tempo:medium",
+      "mood:folk"
+    ]
+  },
+  {
+    "id": "c-tr-livaneli-leylim",
+    "title": "Leylim Ley",
+    "artist": "Zülfü Livaneli",
+    "genre": "turkish-pop",
+    "culture": "turkish",
+    "language": "tr",
+    "energy": 45,
+    "startSec": 0,
+    "lengthSec": 45,
+    "tags": [
+      "theme:turkish-classics",
+      "tempo:slow",
+      "mood:nostalgic"
+    ]
+  },
+  {
+    "id": "c-tr-nilufer-haram",
+    "title": "Haram Geceler",
+    "artist": "Nilüfer",
+    "genre": "turkish-pop",
+    "culture": "turkish",
+    "language": "tr",
+    "energy": 58,
+    "startSec": 0,
+    "lengthSec": 45,
+    "tags": [
+      "theme:turkish-classics",
+      "tempo:medium",
+      "mood:warm"
+    ]
+  },
+  {
+    "id": "c-tr-kizilok-bu-kalp",
+    "title": "Bu Kalp Seni Unutur mu",
+    "artist": "Fikret Kızılok",
+    "genre": "anadolu-rock",
+    "culture": "turkish",
+    "language": "tr",
+    "energy": 48,
+    "startSec": 0,
+    "lengthSec": 45,
+    "tags": [
+      "theme:turkish-classics",
+      "tempo:slow",
+      "mood:melancholic"
+    ]
+  },
+  {
+    "id": "c-tr-mvo-bir-derdim",
+    "title": "Bir Derdim Var",
+    "artist": "Mor ve Ötesi",
+    "genre": "turkish-rock",
+    "culture": "turkish",
+    "language": "tr",
+    "energy": 66,
+    "year": 2004,
+    "startSec": 0,
+    "lengthSec": 45,
+    "tags": [
+      "tempo:medium",
+      "mood:rock"
+    ]
+  },
+  {
+    "id": "c-tr-teoman-sonbahar",
+    "title": "İstanbul'da Sonbahar",
+    "artist": "Teoman",
+    "genre": "turkish-rock",
+    "culture": "turkish",
+    "language": "tr",
+    "energy": 50,
+    "startSec": 0,
+    "lengthSec": 45,
+    "tags": [
+      "tempo:slow",
+      "mood:melancholic"
+    ]
+  },
+  {
+    "id": "c-tr-duman-senden",
+    "title": "Senden Daha Güzel",
+    "artist": "Duman",
+    "genre": "turkish-rock",
+    "culture": "turkish",
+    "language": "tr",
+    "energy": 62,
+    "year": 2009,
+    "startSec": 0,
+    "lengthSec": 45,
+    "tags": [
+      "tempo:medium",
+      "mood:rock"
+    ]
+  },
+  {
+    "id": "c-tr-ferah-sil-bastan",
+    "title": "Sil Baştan",
+    "artist": "Şebnem Ferah",
+    "genre": "turkish-rock",
+    "culture": "turkish",
+    "language": "tr",
+    "energy": 64,
+    "startSec": 0,
+    "lengthSec": 45,
+    "tags": [
+      "tempo:medium",
+      "mood:rock"
+    ]
+  },
+  {
+    "id": "c-sw-tisket",
+    "title": "A-Tisket, A-Tasket",
+    "artist": "Ella Fitzgerald",
+    "genre": "swing",
+    "culture": "global",
+    "energy": 68,
+    "year": 1938,
+    "startSec": 0,
+    "lengthSec": 40
+  },
+  {
+    "id": "c-sw-taint",
+    "title": "'Tain't What You Do (It's the Way That You Do It)",
+    "artist": "Jimmie Lunceford",
+    "genre": "swing",
+    "culture": "global",
+    "energy": 70,
+    "year": 1939,
+    "startSec": 0,
+    "lengthSec": 40
+  },
+  {
+    "id": "c-sw-flying-home",
+    "title": "Flying Home",
+    "artist": "Lionel Hampton",
+    "genre": "swing",
+    "culture": "global",
+    "energy": 78,
+    "year": 1942,
+    "startSec": 0,
+    "lengthSec": 40
+  },
+  {
+    "id": "c-sw-woodchopper",
+    "title": "Woodchopper's Ball",
+    "artist": "Woody Herman",
+    "genre": "swing",
+    "culture": "global",
+    "energy": 78,
+    "year": 1939,
+    "startSec": 0,
+    "lengthSec": 40
+  },
+  {
+    "id": "c-sw-opus-one",
+    "title": "Opus One",
+    "artist": "Tommy Dorsey",
+    "genre": "swing",
+    "culture": "global",
+    "energy": 74,
+    "year": 1944,
+    "startSec": 0,
+    "lengthSec": 40
+  },
+  {
+    "id": "c-sw-bugle-boy",
+    "title": "Boogie Woogie Bugle Boy",
+    "artist": "The Andrews Sisters",
+    "genre": "swing",
+    "culture": "global",
+    "energy": 80,
+    "year": 1941,
+    "startSec": 0,
+    "lengthSec": 40
+  },
+  {
+    "id": "c-sw-sentimental",
+    "title": "Sentimental Journey",
+    "artist": "Les Brown",
+    "genre": "swing",
+    "culture": "global",
+    "energy": 56,
+    "year": 1945,
+    "startSec": 0,
+    "lengthSec": 45,
+    "tags": [
+      "tempo:medium",
+      "mood:nostalgic"
+    ]
+  },
+  {
+    "id": "c-cr-pennies",
+    "title": "Pennies from Heaven",
+    "artist": "Bing Crosby",
+    "genre": "crooner",
+    "culture": "global",
+    "energy": 44,
+    "year": 1936,
+    "startSec": 0,
+    "lengthSec": 45,
+    "tags": [
+      "tempo:slow",
+      "mood:ballad"
+    ]
+  },
+  {
+    "id": "c-cr-swinging-star",
+    "title": "Swinging on a Star",
+    "artist": "Bing Crosby",
+    "genre": "crooner",
+    "culture": "global",
+    "energy": 58,
+    "year": 1944,
+    "startSec": 0,
+    "lengthSec": 45
+  },
+  {
+    "id": "c-cr-falling-star",
+    "title": "Catch a Falling Star",
+    "artist": "Perry Como",
+    "genre": "crooner",
+    "culture": "global",
+    "energy": 56,
+    "year": 1957,
+    "startSec": 0,
+    "lengthSec": 45,
+    "tags": [
+      "tempo:medium",
+      "mood:ballad"
+    ]
+  },
+  {
+    "id": "c-cr-rags",
+    "title": "Rags to Riches",
+    "artist": "Tony Bennett",
+    "genre": "crooner",
+    "culture": "global",
+    "energy": 66,
+    "year": 1953,
+    "startSec": 0,
+    "lengthSec": 45
+  },
+  {
+    "id": "c-cr-come-on",
+    "title": "Come On-a My House",
+    "artist": "Rosemary Clooney",
+    "genre": "crooner",
+    "culture": "global",
+    "energy": 68,
+    "year": 1951,
+    "startSec": 0,
+    "lengthSec": 40
+  },
+  {
+    "id": "c-cr-que-sera",
+    "title": "Que Sera, Sera",
+    "artist": "Doris Day",
+    "genre": "crooner",
+    "culture": "global",
+    "energy": 56,
+    "year": 1956,
+    "startSec": 0,
+    "lengthSec": 45,
+    "tags": [
+      "tempo:medium",
+      "mood:nostalgic"
+    ]
+  },
+  {
+    "id": "c-cr-blue-moon",
+    "title": "Blue Moon",
+    "artist": "Mel Tormé",
+    "genre": "crooner",
+    "culture": "global",
+    "energy": 44,
+    "year": 1949,
+    "startSec": 0,
+    "lengthSec": 45,
+    "tags": [
+      "tempo:slow",
+      "mood:ballad"
     ]
   }
 ]

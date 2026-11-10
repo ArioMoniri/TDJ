@@ -297,6 +297,20 @@
   ]
  },
  {
+  "id": "alberto-echague",
+  "name": "Alberto Echagüe",
+  "count": 119,
+  "orchestras": {
+   "Juan D'Arienzo": 115,
+   "Juan Sánchez Gorio": 2,
+   "Trío Ciriaco Ortíz": 2
+  },
+  "yearRange": [
+   1938,
+   1959
+  ]
+ },
+ {
   "id": "hugo-del-carril",
   "name": "Hugo del Carril",
   "count": 119,
@@ -317,20 +331,6 @@
   "yearRange": [
    1935,
    1971
-  ]
- },
- {
-  "id": "alberto-echague",
-  "name": "Alberto Echagüe",
-  "count": 118,
-  "orchestras": {
-   "Juan D'Arienzo": 114,
-   "Juan Sánchez Gorio": 2,
-   "Trío Ciriaco Ortíz": 2
-  },
-  "yearRange": [
-   1938,
-   1959
   ]
  },
  {
@@ -396,10 +396,10 @@
  {
   "id": "raul-beron",
   "name": "Raúl Berón",
-  "count": 98,
+  "count": 99,
   "orchestras": {
    "Miguel Caló": 30,
-   "Lucio Demare": 26,
+   "Lucio Demare": 27,
    "Aníbal Troilo": 16,
    "Francini-Pontier": 14,
    "Guitarras (solo singer)": 12
@@ -12516,18 +12516,6 @@
   "yearRange": [
    1942,
    1942
-  ]
- },
- {
-  "id": "j-martel-glosa-nestor-rodi",
-  "name": "J. Martel - Glosa Néstor Rodi",
-  "count": 1,
-  "orchestras": {
-   "Alfredo De Angelis": 1
-  },
-  "yearRange": [
-   1943,
-   1943
   ]
  },
  {
