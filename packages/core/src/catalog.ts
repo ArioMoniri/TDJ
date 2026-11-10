@@ -1,5 +1,6 @@
 import type { AudioFeatures, ResolvedTrack } from "./audio/index";
 import { estimateDuration, normTitle, parseNonDanceTitle, songEnergy } from "./energy";
+import { DEFAULT_HEATMAP, type Heatmap, monthIndex } from "./knowledge";
 import { ERA_PRESETS, mergeProfiles } from "./profiles";
 import type { DanceRhythm, EraPreset, OrchestraProfile, Song, UserOverrides } from "./types";
 
@@ -77,7 +78,10 @@ export class Catalog {
   readonly byOrchestra = new Map<string, Song[]>();
   readonly fame = new Map<string, { fame: number; energy?: number; role?: string }>();
   readonly blacklist = new Set<string>();
-  readonly corpus: ReferenceCorpus;
+  corpus: ReferenceCorpus;
+  /** round 13: the user's orchestra × year × mode grades (coverage.json) */
+  readonly heatmap: Heatmap;
+  private months?: Map<string, number[]>;
   /** per-orchestra non-dance titles: title → year (null = every version) */
   private readonly nonDanceByOrch = new Map<string, Array<{ title: string; year: number | null }>>();
 
@@ -91,9 +95,11 @@ export class Catalog {
     caches: {
       resolved?: Record<string, ResolvedTrack | null>;
       audio?: Record<string, AudioFeatures | null>;
+      /** round 13: the user's heatmap (data/index/coverage.json); the committed copy when absent */
+      heatmap?: Heatmap;
     } = {},
   ) {
-    this.corpus = corpus;
+    this.heatmap = caches.heatmap ?? DEFAULT_HEATMAP;
     const profs = extraProfiles.map((p) => ({ ...p, ...(overrides?.profiles?.[p.id] ?? {}) }));
     for (const [id, patch] of Object.entries(overrides?.profiles ?? {}))
       if (!profs.some((p) => p.id === id))
@@ -168,7 +174,7 @@ export class Catalog {
     const seen = new Map<string, number>();
     const deduped: Song[] = [];
     for (const s of built) {
-      const k = `${normTitle(s.title)}|${s.orchestraId}|${s.year ?? ""}|${s.singerId ?? ""}`;
+      const k = `${normTitle(s.title)}|${s.orchestraId}|${s.year ?? s.dateRange?.join("/") ?? ""}|${s.singerId ?? ""}`;
       const i = seen.get(k);
       if (i === undefined) {
         seen.set(k, deduped.length);
@@ -207,6 +213,20 @@ export class Catalog {
         if (s.resolved && (s.resolved.confidence ?? 1) > 0.6) s.resolved = { ...s.resolved, confidence: 0.6 };
       }
     }
+    // round 13 — the re-recording guard (golden-age review R5, R6, R8): a golden side whose stream is a later take
+    // passes the length rule when it is short enough (Verdemar 1943 from "Carlos Di Sarli (1954-1956)", D'Arienzo's
+    // 1937 and 1943 Cumparsita rows on the 1951 take); album years, live albums, one stream shared by rows of
+    // different years and a per-family length band catch them
+    flagRerecordings(
+      deduped,
+      streamSec,
+      (s) => median(fam.get(famKey(s)) ?? []),
+      (s) => fam.get(famKey(s))?.length ?? 0,
+    );
+    for (const s of deduped) {
+      const g = this.heatmap.grade(s.orchestraId, s.vocal, s.year && !s.yearApprox ? s.year : null);
+      if (g !== undefined) s.heat = g;
+    }
     this.songs = deduped;
     // analysed audio refines energy within an orchestra: a track louder/denser than its orchestra's analysed
     // mean moves up, a softer one down (±10 max). Explicit per-track energy (overrides) is left alone.
@@ -229,6 +249,27 @@ export class Catalog {
       arr.push(s);
       this.byOrchestra.set(s.orchestraId, arr);
     }
+    // round 13: the corpus spells singers its own way (Ángel Vargas, Jorge Ortiz, Floreal Ruiz, Roberto Flores); joins
+    // between corpus and index (canonical tandas, famous recordings) read the index spelling
+    this.corpus = normaliseCorpusSingers(corpus, this.songs);
+  }
+
+  /** months (year × 12 + month) of every dated studio side of an orchestra + singer (null = instrumental), sorted */
+  recordingMonths(orchestraId: string, singer: string | null): number[] {
+    if (!this.months) {
+      this.months = new Map();
+      for (const s of this.songs) {
+        if (!s.year || s.yearApprox || s.transcription) continue;
+        const m = monthIndex(s.date, s.year);
+        if (m === undefined) continue;
+        const k = `${s.orchestraId}|${s.vocal ? normTitle(s.singer ?? "") : ""}`;
+        const arr = this.months.get(k) ?? [];
+        arr.push(m);
+        this.months.set(k, arr);
+      }
+      for (const arr of this.months.values()) arr.sort((a, b) => a - b);
+    }
+    return this.months.get(`${orchestraId}|${singer ? normTitle(singer) : ""}`) ?? [];
   }
 
   profile(orchestraId: string): OrchestraProfile | undefined {
@@ -293,4 +334,113 @@ export class Catalog {
     }
     return out;
   }
+}
+
+/** a later-take or live album: a year in the album title more than 2 years after the row, or a live recording */
+const LIVE_RE = /en vivo|\blive\b|auditorio|concierto|in concert/i;
+/** golden-age review R8: per-rhythm length bands for a pre-1946 side (s); Pugliese and Láurenz 1943+ tangos run long */
+export const LENGTH_BAND: Record<string, [number, number]> = {
+  tango: [135, 192],
+  vals: [120, 185],
+  milonga: [115, 175],
+};
+export function lengthBand(s: Pick<Song, "orchestraId" | "rhythm" | "year">): [number, number] | undefined {
+  const b = LENGTH_BAND[s.rhythm];
+  if (!b) return undefined;
+  if (
+    s.rhythm === "tango" &&
+    (s.year ?? 0) >= 1943 &&
+    (s.orchestraId === "osvaldo-pugliese" || s.orchestraId === "pedro-laurenz")
+  )
+    return [b[0], 205];
+  return b;
+}
+/** the album the side streams from (the resolved match first, then the Spotify cache) */
+const streamAlbum = (s: Song) => (s.resolved ? s.resolved.album : s.spotify?.album) ?? "";
+const streamId = (s: Song) =>
+  s.resolved?.id ? `${s.resolved.provider}:${s.resolved.id}` : (s.spotify?.uri ?? null);
+/** years named in an album title ("Serie 78 RPM: Carlos Di Sarli (1954-1956)" → [1954, 1956]) */
+export function albumYears(album: string): number[] {
+  return [...album.matchAll(/\b(19[2-9]\d)\b/g)].map((m) => Number(m[1]));
+}
+function suspect(s: Song) {
+  s.streamSuspect = true;
+  if (s.resolved && (s.resolved.confidence ?? 1) > 0.6) s.resolved = { ...s.resolved, confidence: 0.6 };
+}
+function flagRerecordings(
+  songs: Song[],
+  streamSec: (s: Song) => number,
+  famMedian: (s: Song) => number,
+  famN: (s: Song) => number,
+) {
+  const golden = (s: Song) => !!s.year && !s.yearApprox && s.year < 1946;
+  // R5: album years and live albums
+  for (const s of songs) {
+    if (!golden(s) || !streamSec(s)) continue;
+    const album = streamAlbum(s);
+    const ys = albumYears(album);
+    if ((ys.length && ys[0]! > s.year! + 2) || LIVE_RE.test(album)) suspect(s);
+  }
+  // R6: one stream shared by rows of the same orchestra and title with different years keeps one row: the one whose
+  // year the album names; else a later take (a shared match is a later take far more often than an earlier one)
+  const byStream = new Map<string, Song[]>();
+  for (const s of songs) {
+    const id = streamId(s);
+    if (!id || !s.year || s.yearApprox) continue;
+    const k = `${s.orchestraId}|${normTitle(s.title)}|${id}`;
+    const arr = byStream.get(k) ?? [];
+    arr.push(s);
+    byStream.set(k, arr);
+  }
+  for (const rows of byStream.values()) {
+    if (new Set(rows.map((r) => r.year)).size < 2) continue;
+    const named = rows.find((r) => albumYears(streamAlbum(r)).includes(r.year!));
+    if (named) {
+      for (const r of rows) if (r.year !== named.year) suspect(r);
+      continue;
+    }
+    // no album year: a post-1945 row on the same stream explains it (the golden rows are the wrong matches); among
+    // golden rows only, the latest keeps it
+    if (rows.some((r) => r.year! >= 1946)) {
+      for (const r of rows) if (r.year! < 1946) suspect(r);
+      continue;
+    }
+    const keep = rows.slice().sort((a, b) => (b.year ?? 0) - (a.year ?? 0))[0]!;
+    for (const r of rows) if (r.year !== keep.year) suspect(r);
+  }
+  // R8: a golden side outside its rhythm's length band and more than 12 % off its family's median
+  const GENERIC: Record<string, number> = { tango: 165, vals: 158, milonga: 148 };
+  for (const s of songs) {
+    if (!golden(s) || s.streamSuspect) continue;
+    const sec = streamSec(s);
+    const band = lengthBand(s);
+    if (!sec || !band || (sec >= band[0] && sec <= band[1])) continue;
+    const med = famN(s) >= 3 ? famMedian(s) : (GENERIC[s.rhythm] ?? 0);
+    if (med > 0 && Math.abs(sec - med) / med > 0.12) suspect(s);
+  }
+}
+
+/** the corpus with its singer names in the index spelling (accents, case and the Chato nickname ignored) */
+const SINGER_ALIAS: Record<string, string> = { "roberto flores": "roberto chato flores" };
+export function normaliseCorpusSingers(corpus: ReferenceCorpus, songs: Song[]): ReferenceCorpus {
+  const spell = new Map<string, Map<string, number>>();
+  for (const s of songs) {
+    if (!s.singer) continue;
+    const k = `${s.orchestraId}|${normTitle(s.singer)}`;
+    const m = spell.get(k) ?? new Map<string, number>();
+    m.set(s.singer, (m.get(s.singer) ?? 0) + 1);
+    spell.set(k, m);
+  }
+  const fix = (orchestraId: string, singer: string | null | undefined) => {
+    if (!singer) return singer;
+    const n = normTitle(singer);
+    const m = spell.get(`${orchestraId}|${SINGER_ALIAS[n] ?? n}`);
+    if (!m) return singer;
+    return [...m.entries()].sort((a, b) => b[1] - a[1])[0]![0];
+  };
+  return {
+    ...corpus,
+    famousRecordings: corpus.famousRecordings?.map((f) => ({ ...f, singer: fix(f.orchestraId, f.singer) })),
+    canonicalTandas: corpus.canonicalTandas?.map((t) => ({ ...t, singer: fix(t.orchestraId, t.singer) })),
+  };
 }

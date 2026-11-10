@@ -1,4 +1,4 @@
-import { tandaCohesion } from "./audio/compat";
+import { BPM_DELTA_MAX, tandaCohesion } from "./audio/compat";
 import { normTitle } from "./energy";
 import type {
   ComposeOptions,
@@ -11,6 +11,7 @@ import type {
   Song,
   Tanda,
 } from "./index";
+import { familyBand, goldenClassOf, HEAT_LABEL, type HeatGrade, isColour } from "./knowledge";
 import {
   CORPUS_CAPS,
   DEFAULT_CAP,
@@ -22,6 +23,7 @@ import {
   VALS_BANK,
   WARMUP_VALS_BANK,
 } from "./rules";
+import { pairScore, sideOf, styleClass, type TransitionSide } from "./transitions";
 
 export interface TandaCandidate {
   orchestraId: string;
@@ -32,6 +34,10 @@ export interface TandaCandidate {
   singerShare: number;
   /** every row carries a decade placeholder year ("c. 1940"): never anchors a year window */
   undated?: boolean;
+  /** round 13: the smallest spread any tanda of this family reaches (cohesion §4.1, pool-aware era grading) */
+  spreadFloor?: number;
+  /** round 13 (cohesion R7): a vals window widened by one year because the pool is small */
+  poolSmall?: boolean;
 }
 
 const dated = (s: Song) => (s.year && !s.yearApprox ? s.year : null);
@@ -68,16 +74,70 @@ export function songRhythm(s: Pick<Song, "title" | "rhythm">): string {
   return s.rhythm;
 }
 
+/** cohesion review R1: year-spread caps by tanda type (vocal tango 2, instrumental tango 3, vals 2, milonga 2) */
+export const SPREAD_CAPS = { vocalTango: 2, instrumentalTango: 3, vals: 2, milonga: 2 } as const;
+/** the hard spread cap of a tanda; the night's maxYearSpread is an upper bound on it */
+export function spreadCap(rhythm: string, vocal: boolean, maxYearSpread = 99): number {
+  const cap =
+    rhythm === "tango"
+      ? vocal
+        ? SPREAD_CAPS.vocalTango
+        : SPREAD_CAPS.instrumentalTango
+      : rhythm === "vals"
+        ? SPREAD_CAPS.vals
+        : SPREAD_CAPS.milonga;
+  return Math.max(0, Math.min(maxYearSpread, cap));
+}
+/** cohesion R3(b): a recording gap of this many months in a family's dated sides is a break */
+export const GAP_BREAK_MONTHS = 18;
+/** the month indexes where a new recording period starts in a sorted list of months (gaps ≥ 18 months) */
+export function gapBreaks(months: number[]): number[] {
+  const out: number[] = [];
+  for (let i = 1; i < months.length; i++)
+    if (months[i]! - months[i - 1]! >= GAP_BREAK_MONTHS) out.push(months[i]!);
+  return out;
+}
+
+export interface FamilyOpts {
+  /** the pool's rhythm (the spread cap is per tanda type) */
+  rhythm?: string;
+  /** the tanda size (cohesion R7: a vals pool too small for the cap gets one more year) */
+  need?: number;
+  /**
+   * month indexes where a new period starts for an orchestra + singer (null = instrumental): singer stints, line-up
+   * breaks and ≥ 18-month recording gaps over the whole catalogue (cohesion R3); the pool's own gaps when absent
+   */
+  breaks?: (orchestraId: string, singer: string | null, vocal: boolean) => number[];
+  /** how much a side counts when a window is ranked (default: fame + 1, a stream, the heatmap grade) */
+  sideWeight?: (s: Song) => number;
+}
+const monthOf = (s: Song) => {
+  const m = /^(\d{4})(?:-(\d{2}))?/.exec(s.date ?? "");
+  return m ? Number(m[1]) * 12 + (m[2] ? Number(m[2]) - 1 : 6) : (dated(s) ?? 0) * 12 + 6;
+};
+/** cohesion R4: the default window weight — Σ(fame + 1) over resolvable sides, the user's heatmap grade on top */
+export const defaultSideWeight = (s: Song) =>
+  ((s.fame ?? 0) + 1) *
+  (s.resolved || s.spotify ? 1 : 0.5) *
+  (s.heat === 4 ? 1.2 : s.heat === 3 || s.heat === undefined ? 1 : s.heat === 2 ? 0.6 : 0.2);
+
 /**
  * Group songs into coherent families: same orchestra + same singer (or instrumental) + tight year window.
  * Rows whose year is a decade placeholder (`yearApprox`) cannot define a window: they form a separate
  * "undated" family per orchestra/singer that the track scorer weights at 0.6.
+ *
+ * Round 13 (docs/reviews/round13-cohesion.md R1, R3, R4, R7): with `opts`, a family is first cut at its breaks (a
+ * singer stint, a curated line-up break, a recording gap of 18 months or more), then each period is covered by
+ * windows of the type's cap (vocal tango 2 years, instrumental 3, vals and milonga 2) anchored on the densest years:
+ * the best window by Σ side weight is taken first, and the years left on either side are windowed again. A vals
+ * period that cannot fill a tanda inside the cap gets one more year (`poolSmall`).
  */
 export function families(
   pool: Song[],
   maxYearSpread: number,
   mixVocal: boolean,
   orchTotals?: Map<string, number>,
+  opts?: FamilyOpts,
 ): TandaCandidate[] {
   const groups = new Map<string, Song[]>();
   const perOrch = new Map<string, number>();
@@ -93,7 +153,7 @@ export function families(
     const first = songs[0]!;
     const share =
       songs.length / Math.max(1, orchTotals?.get(first.orchestraId) ?? perOrch.get(first.orchestraId) ?? 1);
-    const push = (bucket: Song[], undated: boolean) => {
+    const push = (bucket: Song[], undated: boolean, extra: Partial<TandaCandidate> = {}) => {
       if (!bucket.length) return;
       out.push({
         orchestraId: first.orchestraId,
@@ -103,20 +163,102 @@ export function families(
         songs: bucket,
         singerShare: share,
         undated: undated || undefined,
+        ...extra,
       });
     };
     const approx = songs.filter((s) => !dated(s));
-    const sorted = songs.filter((s) => dated(s)).sort((a, b) => (dated(a) ?? 0) - (dated(b) ?? 0));
-    let bucket: Song[] = [];
-    for (const s of sorted) {
-      const y0 = bucket.length ? dated(bucket[0]!)! : null;
-      if (y0 !== null && dated(s)! - y0 > maxYearSpread) {
-        push(bucket, false);
-        bucket = [];
+    const sorted = songs
+      .filter((s) => dated(s))
+      .sort((a, b) => monthOf(a) - monthOf(b) || (dated(a) ?? 0) - (dated(b) ?? 0));
+    if (!opts) {
+      let bucket: Song[] = [];
+      for (const s of sorted) {
+        const y0 = bucket.length ? dated(bucket[0]!)! : null;
+        if (y0 !== null && dated(s)! - y0 > maxYearSpread) {
+          push(bucket, false);
+          bucket = [];
+        }
+        bucket.push(s);
       }
-      bucket.push(s);
+      push(bucket, false);
+      push(approx, true);
+      continue;
     }
-    push(bucket, false);
+    const vocal = mixVocal ? sorted.some((s) => s.vocal) : first.vocal;
+    const rhythm = opts.rhythm ?? first.rhythm;
+    const cap = spreadCap(rhythm, vocal, maxYearSpread);
+    const need = opts.need ?? 0;
+    const weightOf = opts.sideWeight ?? defaultSideWeight;
+    const bps = (
+      opts.breaks?.(first.orchestraId, mixVocal ? null : first.singer, vocal) ??
+      gapBreaks(sorted.map(monthOf))
+    )
+      .slice()
+      .sort((a, b) => a - b);
+    // the periods: a new one wherever a break falls between two consecutive sides
+    const periods: Song[][] = [];
+    let cur: Song[] = [];
+    for (const s of sorted) {
+      const prev = cur[cur.length - 1];
+      if (prev && bps.some((bp) => monthOf(prev) < bp && bp <= monthOf(s))) {
+        periods.push(cur);
+        cur = [];
+      }
+      cur.push(s);
+    }
+    if (cur.length) periods.push(cur);
+    // the smallest spread any `need` distinct sides of this family reach inside one period (cohesion §4.1)
+    let floor = 99;
+    for (const per of periods) {
+      const ys = per.map((s) => dated(s)!);
+      for (const y of new Set(ys)) {
+        for (let sp = 0; sp <= 6; sp++) {
+          const titles = new Set(
+            per.filter((s) => dated(s)! >= y && dated(s)! <= y + sp).map((s) => normTitle(s.title)),
+          );
+          if (titles.size >= Math.max(1, need)) {
+            floor = Math.min(floor, sp);
+            break;
+          }
+        }
+      }
+    }
+    const spreadFloor = floor === 99 ? undefined : floor;
+    const windows = (per: Song[]) => {
+      if (!per.length) return;
+      const years = [...new Set(per.map((s) => dated(s)!))].sort((a, b) => a - b);
+      const best = (c: number) => {
+        let pick: { y: number; w: number; n: number } | null = null;
+        for (const y of years) {
+          const inside = per.filter((s) => dated(s)! >= y && dated(s)! <= y + c);
+          const w = inside.reduce((a, s) => a + weightOf(s), 0);
+          if (!pick || w > pick.w + 1e-9 || (Math.abs(w - pick.w) <= 1e-9 && inside.length > pick.n))
+            pick = { y, w, n: inside.length };
+        }
+        return pick!;
+      };
+      let c = cap;
+      let small = false;
+      let b = best(c);
+      const titles = (y: number, cc: number) =>
+        new Set(per.filter((s) => dated(s)! >= y && dated(s)! <= y + cc).map((s) => normTitle(s.title))).size;
+      if (rhythm === "vals" && need && c + 1 <= maxYearSpread && titles(b.y, c) < need) {
+        const b2 = best(c + 1);
+        if (titles(b2.y, c + 1) >= need) {
+          c += 1;
+          b = b2;
+          small = true;
+        }
+      }
+      push(
+        per.filter((s) => dated(s)! >= b.y && dated(s)! <= b.y + c),
+        false,
+        { spreadFloor, ...(small ? { poolSmall: true } : {}) },
+      );
+      windows(per.filter((s) => dated(s)! < b.y));
+      windows(per.filter((s) => dated(s)! > b.y + c));
+    };
+    for (const per of periods) windows(per);
     push(approx, true);
   }
   return out;
@@ -307,9 +449,15 @@ export interface BuildContext {
     singer: string | null;
     rhythm: string;
     years: [number, number];
+    /** round 13 (cohesion R9): the years the family's sides came from */
+    yearSet?: number[];
   }>;
   /** round 9: preferred (canon) families still unplayed → an orchestra's second tango tanda steps back */
   canonPending?: boolean;
+  /** round 13: the night so far, in play order (colour cap, edge cap, transitions, style runs) */
+  history?: Tanda[];
+  /** round 13: what the composer already knows the next slot holds (the drawn early D'Arienzo, the Pugliese slot) */
+  next?: TransitionSide | null;
 }
 export interface CanonicalTanda {
   rhythm: string;
@@ -354,6 +502,14 @@ export interface Scoring {
   avoidMainPeak?: (id: string) => boolean;
   /** a relaxed scoring (caps and phases lifted): a played family may return rather than leave a hole (round 10) */
   relaxed?: boolean;
+  /** round 13: a golden-purist night (core bands, colour cap, other-era sides out; golden-age review) */
+  golden?: boolean;
+  /** round 13: the reviewer's band overrides (off unless the night opts in) */
+  bandOverrides?: boolean;
+  /** round 13: the night's hours (colour and edge caps scale with them) */
+  hours?: number;
+  /** round 13: a preference layer (the hourly instrumental, …): return null rather than break more than this weight of rules */
+  strict?: number;
 }
 
 const PHASE_STYLE: Record<string, Record<string, number>> = {
@@ -438,6 +594,64 @@ export function peakOk(sc: Pick<Scoring, "profile" | "phase" | "avoidMainPeak">,
   return !!ph && (ph.includes("peak") || ph.includes("any"));
 }
 
+/** round 13: the heatmap and best-years factor of one side (grade 4 ×1.3 … 0 ×0.2; best ×1.25, outside ×0.45) */
+export function sideKnowledge(
+  s: Song,
+  p: OrchestraProfile | undefined,
+  singer: string | null,
+  overrides?: boolean,
+): number {
+  const h = s.heat;
+  const heat = h === 4 ? 1.3 : h === 3 || h === undefined ? 1 : h === 2 ? 0.6 : h === 1 ? 0.5 : 0.2;
+  const b = familyBand(p, singer, dated(s), overrides);
+  return heat * (b === "best" ? 1.25 : b === "outside" ? 0.45 : 1);
+}
+
+/**
+ * Round 13 (cohesion R2, R5, R8): the k sides of one year window (span ≤ 1 year, or a date span ≤ 18 months) that
+ * keep at least 70 % of the best k sides' weight; the ranked list itself when no such window exists.
+ */
+export function tightWindow<T extends { s: Song; w: number }>(ranked: T[], need: number): T[] {
+  const top = (xs: T[]) => {
+    const seen = new Set<string>();
+    let sum = 0;
+    for (const r of xs) {
+      const k = normTitle(r.s.title);
+      if (seen.has(k)) continue;
+      seen.add(k);
+      sum += r.w;
+      if (seen.size >= need) return sum;
+    }
+    return -1;
+  };
+  const full = top(ranked);
+  if (full <= 0) return ranked;
+  const ys = [...new Set(ranked.map((r) => dated(r.s)).filter((y): y is number => !!y))];
+  if (ys.length <= 1) return ranked;
+  let best: { sub: T[]; v: number } | null = null;
+  for (const y of ys) {
+    const sub = ranked.filter((r) => {
+      const ry = dated(r.s);
+      return !!ry && ry >= y && ry <= y + 1;
+    });
+    const v = top(sub);
+    if (v > 0 && (!best || v > best.v)) best = { sub, v };
+  }
+  return best && best.v >= 0.7 * full ? best.sub : ranked;
+}
+
+/** cohesion R6: a reading folded into the profile's bpm band (×½ … ×2 and the tracker's candidates), or undefined */
+export function foldedBpm(s: Song, band: [number, number] | undefined): number | undefined {
+  const a = s.audio;
+  if (!band || !a?.bpm || (a.pulseClarity ?? 0) < 0.7) return undefined;
+  const mid = (band[0] + band[1]) / 2;
+  const opts = [a.bpm, ...(a.bpmCandidates ?? [])].flatMap((b) =>
+    [0.5, 2 / 3, 0.75, 0.8, 1, 1.25, 4 / 3, 1.5, 2].map((f) => b * f),
+  );
+  const inside = opts.filter((b) => b >= band[0] - 4 && b <= band[1] + 4);
+  return inside.length ? inside.sort((x, y) => Math.abs(x - mid) - Math.abs(y - mid))[0] : undefined;
+}
+
 export function buildTanda(
   slot: Slot,
   cands: TandaCandidate[],
@@ -448,7 +662,23 @@ export function buildTanda(
 ): Tanda | null {
   const need = slot.size;
   const allowUndated = !!o.rules?.allowUndated;
-  const availOf = (c: TandaCandidate) => {
+  const enough = (xs: Song[]) => new Set(xs.map((s) => normTitle(s.title))).size >= need;
+  const keepIf = (xs: Song[], pred: (s: Song) => boolean) => {
+    const f = xs.filter(pred);
+    return f.length === xs.length || !enough(f) ? xs : f;
+  };
+  const availMemo = new Map<TandaCandidate, Song[]>();
+  /** families that can only fill the tanda with a collection-reissue row (round 13: windows are smaller now) */
+  const needsReissue = new Set<TandaCandidate>();
+  const availOf = (c: TandaCandidate): Song[] => {
+    let v = availMemo.get(c);
+    if (!v) {
+      v = availOf0(c);
+      availMemo.set(c, v);
+    }
+    return v;
+  };
+  const availOf0 = (c: TandaCandidate) => {
     const all = c.songs.filter(
       (s) =>
         sc.isDanceable(s) &&
@@ -462,7 +692,37 @@ export function buildTanda(
     // another side; a collection-reissue row while the family has one more than it needs
     const sound = all.filter((s) => !isSuspectSide(s));
     const clean = sound.filter((s) => !s.reissue);
-    return clean.length >= need ? clean : sound;
+    let out = clean.length >= need ? clean : sound;
+    if (clean.length < need && sound.some((s) => s.reissue)) needsReissue.add(c);
+    // round 13 — the user's heatmap: a grade-0 year ("avoid") never enters while the family has alternatives, a
+    // grade-1 year ("single tracks only") only with its known singles (fame ≥ 2)
+    out = keepIf(out, (s) => s.heat !== 0);
+    out = keepIf(out, (s) => s.heat !== 1 || (s.fame ?? 0) >= 2);
+    const p = sc.profile?.(c.orchestraId);
+    if (sc.golden) {
+      // best-years bands: a side outside its family's bands leaves a golden night while the family has enough in band
+      out = keepIf(out, (s) => familyBand(p, c.singer, dated(s), sc.bandOverrides) !== "outside");
+      // golden core (golden-age review §2): the family's core years first, then core + edge, never another era
+      if (p?.goldenBands) {
+        const cls = (s: Song) => goldenClassOf(p, [dated(s) ?? 0]);
+        const core = out.filter((s) => cls(s) === "core");
+        const edge = out.filter((s) => cls(s) !== "other");
+        out = enough(core) ? core : enough(edge) ? edge : out;
+      }
+    }
+    // cohesion R9: an orchestra + singer that played this rhythm tonight comes back from other years
+    const played = new Set(
+      (ctx.usedFamilies ?? [])
+        .filter(
+          (f) =>
+            f.orchestraId === c.orchestraId &&
+            (f.singer ?? "") === (c.singer ?? "") &&
+            f.rhythm === slot.rhythm,
+        )
+        .flatMap((f) => f.yearSet ?? []),
+    );
+    if (played.size) out = keepIf(out, (s) => !played.has(dated(s) ?? 0));
+    return out;
   };
   const count = (id: string) => ctx.recentOrchestras.filter((x) => x === id).length;
   const cap = (id: string) => {
@@ -524,9 +784,18 @@ export function buildTanda(
   // round 10 (corpus rule 15): never two dramatic tandas back to back (Gobbi straight into Pugliese)
   const prevDramatic = ctx.recentOrchestras[0] ? sc.style(ctx.recentOrchestras[0]) === "dramatic" : false;
   const notDramatic = (c: TandaCandidate) => !prevDramatic || sc.style(c.orchestraId) !== "dramatic";
-  const viableF = viableF0.filter(notDramatic).length >= 3 ? viableF0.filter(notDramatic) : viableF0;
-  const viable0 = viableF.filter(contextOk).length >= 3 ? viableF.filter(contextOk) : viableF;
-  const viable1 = viable0.filter(phaseOk).length >= 3 ? viable0.filter(phaseOk) : viable0;
+  // round 13: "three alternatives" are three orchestras (a family now comes as several year windows)
+  const orchs = (xs: TandaCandidate[]) => new Set(xs.map((c) => c.orchestraId)).size;
+  const viableF = orchs(viableF0.filter(notDramatic)) >= 3 ? viableF0.filter(notDramatic) : viableF0;
+  const viable0 = orchs(viableF.filter(contextOk)) >= 3 ? viableF.filter(contextOk) : viableF;
+  // round 13: the three alternatives are counted among the families the repeat gaps allow here (a phase filter that
+  // leaves only gap-blocked orchestras turned a peak milonga into a tango fallback)
+  const gapFree0 = (c: TandaCandidate) => {
+    const io = ctx.recentOrchestras.indexOf(c.orchestraId);
+    return io === -1 || io >= o.orchestraRepeatGap - 1;
+  };
+  const viable1 =
+    orchs(viable0.filter((c) => phaseOk(c) && gapFree0(c))) >= 3 ? viable0.filter(phaseOk) : viable0;
   // the first vals/milonga of the night (≤ 20 %) is a warm-up tanda: a family more than 10 points above the slot's
   // target (Rodríguez–Moreno, Biagi valses at e72 for t51) is out while three cooler alternatives remain (≤ +8)
   // judged on what the tanda would deliver: the `need` coolest sides of the family (Canaro–Maida has 16 valses)
@@ -605,8 +874,8 @@ export function buildTanda(
   // gap-free; a vocal-only layer (the night owes the floor a voice) keeps the weak ones when no strong voice is left
   const strongAny = viable1p.filter((c) => strongEnough(c) && gapOk(c)).length;
   const viable1s = strongAny >= 1 ? viable1p.filter(strongEnough) : viable1p;
-  const viable1k = viable1s.filter(knownOpener).length >= 3 ? viable1s.filter(knownOpener) : viable1s;
-  const viable1f = viable1k.filter(coolOpener).length >= 3 ? viable1k.filter(coolOpener) : viable1k;
+  const viable1k = orchs(viable1s.filter(knownOpener)) >= 3 ? viable1s.filter(knownOpener) : viable1s;
+  const viable1f = orchs(viable1k.filter(coolOpener)) >= 3 ? viable1k.filter(coolOpener) : viable1k;
   const viable = warm && viable1f.filter(cool).length >= 3 ? viable1f.filter(cool) : viable1f;
   if (!viable.length) return null;
   let gapPool = viable.filter(gapOk);
@@ -621,11 +890,179 @@ export function buildTanda(
   // whenever the gaps leave a known family (round 9: the weight alone let Canaro–Roldán through)
   const known = (c: TandaCandidate) =>
     !c.singer || c.singerShare >= 0.12 || availOf(c).some((s) => (s.fame ?? 0) > 0);
-  let pool = gapPool;
+  // round 13 — golden-purist caps (golden-age review R1, R2) and the transition hard rules (transitions review §2.3),
+  // each a filter while it leaves a family to choose from
+  const hist = ctx.history ?? [];
+  const prevT = hist[hist.length - 1];
+  const prevPrevT = hist[hist.length - 2];
+  const hours = sc.hours ?? o.hours;
+  const yearsAv = (c: TandaCandidate) =>
+    availOf(c)
+      .map(dated)
+      .filter((y): y is number => !!y);
+  const colourOk = (c: TandaCandidate) => {
+    if (!isColour(prof(c))) return true;
+    const colourT = hist.filter((t) => isColour(sc.profile?.(t.orchestraId)));
+    const capC = Math.max(1, Math.floor(0.75 * hours));
+    if (colourT.length >= capC) return false;
+    // the warm-up spends at most all but one of them: the late night keeps a colour chair for its thin pools
+    if (slot.position < 0.5 && colourT.length >= capC - 1) return false;
+    const same = colourT.filter((t) => t.orchestraId === c.orchestraId);
+    const vmPair = slot.rhythm !== "tango" || same.some((t) => t.rhythm !== "tango");
+    if (same.length >= (c.orchestraId === "francisco-canaro" && vmPair ? 2 : 1)) return false;
+    if (prevT && isColour(sc.profile?.(prevT.orchestraId))) return false;
+    if (nonCore() >= nonCoreMax) return false;
+    return !(slot.peak || slot.phase === "peak" || slot.targetEnergy >= 78);
+  };
+  // golden-age review §5: at most a fifth of the night outside the family cores (colour, edge, no band)
+  const nonCoreMax = Math.max(1, Math.floor(0.2 * (ctx.totalSlots ?? Math.round(hours * 5.5))));
+  const nonCore = () =>
+    hist.filter((t) => isColour(sc.profile?.(t.orchestraId)) || (t.golden ?? "none") !== "core").length;
+  const edgeOk = (c: TandaCandidate) => {
+    const p0 = prof(c);
+    const cls = p0?.goldenBands ? goldenClassOf(p0, yearsAv(c)) : "edge";
+    if (cls === undefined || cls === "core") return true;
+    if (cls === "other") return false;
+    if (!isColour(p0) && nonCore() >= nonCoreMax) return false;
+    const edgeT = hist.filter(
+      (t) => !isColour(sc.profile?.(t.orchestraId)) && (t.golden ?? "none") !== "core",
+    );
+    if (edgeT.length >= Math.max(1, Math.round(hours / 2))) return false;
+    if (edgeT.some((t) => t.orchestraId === c.orchestraId)) return false;
+    return !(slot.peak || slot.phase === "peak" || slot.targetEnergy >= 78);
+  };
+  // another era altogether (Di Sarli 1951+, D'Arienzo 1950s on a golden night): the last resort
+  const otherOk = (c: TandaCandidate) => goldenClassOf(prof(c), yearsAv(c)) !== "other";
+  const bandOk = (c: TandaCandidate) =>
+    availOf(c).some((s) => familyBand(prof(c), c.singer, dated(s), sc.bandOverrides) !== "outside");
+  const estE = (c: TandaCandidate) => {
+    const es = availOf(c)
+      .map((s) => s.energy ?? 50)
+      .sort((a, b) => Math.abs(a - slot.targetEnergy) - Math.abs(b - slot.targetEnergy))
+      .slice(0, need);
+    return es.reduce((a, e) => a + e, 0) / Math.max(1, es.length);
+  };
+  const tangoVocals = hist.filter((t) => t.rhythm === "tango").map((t) => t.vocal);
+  const pairMemo = new Map<TandaCandidate, ReturnType<typeof pairScore> | null>();
+  const candSide = (c: TandaCandidate): TransitionSide => ({
+    orchestraId: c.orchestraId,
+    style: sc.style(c.orchestraId),
+    rhythm: slot.rhythm,
+    vocal: c.vocal,
+    energy: estE(c),
+    targetEnergy: slot.targetEnergy,
+    phase: slot.phase,
+    peak: slot.peak,
+    meanYear: meanYear(availOf(c)),
+  });
+  const pairOf = (c: TandaCandidate) => {
+    if (!prevT) return null;
+    if (!pairMemo.has(c))
+      pairMemo.set(
+        c,
+        pairScore(sideOf(prevT), candSide(c), {
+          before: prevPrevT ? sideOf(prevPrevT) : null,
+          tangoVocals,
+          profileOf: (id) => sc.profile?.(id),
+        }),
+      );
+    return pairMemo.get(c)!;
+  };
+  const tripleTonight = hist.some((t, i) => {
+    if (i < 2) return false;
+    const pf = (id: string) => sc.profile?.(id);
+    const k = styleClass(t, pf);
+    return styleClass(hist[i - 1]!, pf) === k && styleClass(hist[i - 2]!, pf) === k;
+  });
+  // the planned next tanda (early D'Arienzo, Pugliese): the handover into it is weighed too
+  const fwdMemo = new Map<TandaCandidate, ReturnType<typeof pairScore> | null>();
+  const fwdOf = (c: TandaCandidate) => {
+    if (!ctx.next) return null;
+    if (!fwdMemo.has(c))
+      fwdMemo.set(
+        c,
+        pairScore(candSide(c), ctx.next, {
+          before: prevT ? sideOf(prevT) : null,
+          tangoVocals: slot.rhythm === "tango" ? [...tangoVocals, c.vocal] : tangoVocals,
+          profileOf: (id) => sc.profile?.(id),
+        }),
+      );
+    return fwdMemo.get(c)!;
+  };
+  const fwdOk = (c: TandaCandidate) => {
+    const ps = fwdOf(c);
+    if (!ps) return true;
+    if (ps.hard.some((h) => h !== "H5")) return false;
+    const ya = meanYear(availOf(c));
+    return !(
+      slot.rhythm === "tango" &&
+      ctx.next!.rhythm === "tango" &&
+      ya !== null &&
+      ctx.next!.meanYear !== null &&
+      Math.abs(ya - ctx.next!.meanYear) > 6
+    );
+  };
+  const transOk = (c: TandaCandidate) => {
+    const ps = pairOf(c);
+    if (!ps) return true;
+    if (ps.hard.length) return false;
+    // H4 before the cue is chosen: a tango → tango step of more than 6 years is avoided (a bridge cue is not promised)
+    const ya = meanYear(prevT!.songs);
+    const yb = meanYear(availOf(c));
+    // (the main summit's D'Arienzo instrumental may take the step: the bridge fixer pairs a cue for it)
+    if (
+      !(slot.peak && c.orchestraId === "juan-d-arienzo" && !c.vocal) &&
+      slot.rhythm === "tango" &&
+      prevT!.rhythm === "tango" &&
+      ya !== null &&
+      yb !== null &&
+      Math.abs(ya - yb) > 6
+    )
+      return false;
+    // H2: one same-class triple a night, never touching a peak
+    if (prevPrevT) {
+      const pf = (id: string) => sc.profile?.(id);
+      const k = styleClass(candSide(c), pf);
+      if (styleClass(prevT!, pf) === k && styleClass(prevPrevT, pf) === k)
+        return (
+          !tripleTonight &&
+          !slot.peak &&
+          slot.phase !== "peak" &&
+          prevT!.phase !== "peak" &&
+          prevPrevT.phase !== "peak"
+        );
+    }
+    return true;
+  };
+  // the user's heatmap at family level: a family whose every side comes from grade-0 years
+  const heatOk = (c: TandaCandidate) => availOf(c).some((s) => s.heat !== 0);
+  // the rules are weighed together: the families breaking the fewest of them stay (one broken rule never wins over
+  // another by the order they are checked in)
+  const preds: Array<[(c: TandaCandidate) => boolean, number]> = [
+    [heatOk, 3],
+    [(c) => (availOf(c), !needsReissue.has(c)), 2],
+    [transOk, 2],
+    // a step of more than nine years on any boundary (H4's absolute limit) weighs one more
+    [(c) => !(pairOf(c)?.hard.includes("H4") ?? false), 1],
+    [fwdOk, 2],
+    ...(sc.golden
+      ? ([
+          [colourOk, 4],
+          [edgeOk, 2],
+          [otherOk, 5],
+          [bandOk, 1],
+        ] as Array<[(c: TandaCandidate) => boolean, number]>)
+      : []),
+  ];
+  const misses = new Map(gapPool.map((c) => [c, preds.reduce((a, [f, w]) => a + (f(c) ? 0 : w), 0)]));
+  const fewest = Math.min(...misses.values());
+  if (sc.strict !== undefined && fewest > sc.strict) return null;
+  const gapPool2 = gapPool.filter((c) => misses.get(c) === fewest);
+  let pool = gapPool2;
   if (warm) {
     // a known cool family first; a known one a little hotter before an obscure cool one
     // cool first (round 8), known among the cool ones; a cool obscure family carries its famous side (below)
-    pool = gapPool.some(known) ? gapPool.filter(known) : gapPool;
+    pool = gapPool2.some(known) ? gapPool2.filter(known) : gapPool2;
   }
 
   const prevProfile = ctx.recentOrchestras[0] ? sc.profile?.(ctx.recentOrchestras[0]) : undefined;
@@ -668,6 +1105,7 @@ export function buildTanda(
       if (d2 > 10) w *= Math.max(0.15, 1 - (d2 - 10) / 20); // round 10: the reviewer's "shoulders" are these steps
     }
     if (av.some((s) => s.selection)) w *= 1.2;
+    if (needsReissue.has(c)) w *= 0.1;
     if (c.undated) w *= 0.25;
     const times = count(c.orchestraId);
     // a second appearance in a different rhythm is corpus-normal (D'Arienzo: 2–3 tango tandas plus a vals or milonga)
@@ -684,7 +1122,23 @@ export function buildTanda(
     if (slot.phase === "warmup" && c.orchestraId !== "carlos-di-sarli" && my !== null)
       w *= my <= 1943 ? 1.5 : my >= 1950 ? 0.55 : 1; // reference openers are 1935–43 material (dated rows only)
     // curated knowledge: best years, singer preference, warm-up-only material, difficulty
-    if (prof?.bestYears && my !== null && (my < prof.bestYears[0] || my > prof.bestYears[1])) w *= 0.5;
+    // round 13: the per-family bands and the user's heatmap replace the orchestra-wide bestYears where they exist
+    if (!prof?.bands && prof?.bestYears && my !== null && (my < prof.bestYears[0] || my > prof.bestYears[1]))
+      w *= 0.5;
+    w *=
+      av.reduce((a, s) => a + sideKnowledge(s, prof, c.singer, sc.bandOverrides), 0) / Math.max(1, av.length);
+    if (sc.golden) {
+      const cls = goldenClassOf(
+        prof,
+        av.map(dated).filter((y): y is number => !!y),
+      );
+      w *= cls === "core" ? 1.2 : cls === "edge" ? 0.6 : cls === "other" ? 0.3 : 1;
+    }
+    // round 13 — transitions: the pairwise score into this family (exp((S − 100) / 15), transitions review §2.2)
+    const ps = pairOf(c);
+    if (ps) w *= Math.exp((ps.score - 100) / 15);
+    const fw = fwdOf(c);
+    if (fw) w *= Math.exp((fw.score - 100) / 15);
     if (prof?.singerShift && c.singer && prof.singerShift[c.singer] !== undefined)
       w *= Math.max(0.2, 1 + prof.singerShift[c.singer]! * 0.08);
     if (slot.phase === "warmup" && prof?.warmupOnly) {
@@ -807,6 +1261,7 @@ export function buildTanda(
       .flatMap((k) => (k.titles ?? []).map(normTitle)),
   );
   const recentTitles = new Set(o.recent?.titles ?? []);
+  const chosenProf = sc.profile?.(chosen.orchestraId);
   const scored = avail
     .map((s) => ({
       s,
@@ -819,9 +1274,13 @@ export function buildTanda(
         (isSuspectSide(s) ? 0.35 : 1) *
         (s.reissue ? 0.5 : 1) *
         (recentTitles.has(normTitle(s.title)) ? 0.55 : 1) *
+        sideKnowledge(s, chosenProf, chosen.singer, sc.bandOverrides) *
         (0.6 + rng.next() * 0.8),
     }))
     .sort((a, b) => b.w - a.w);
+  // round 13 (cohesion R2, R8): the user's "same year" — the sides come from the tightest window (one year, or a
+  // date span within 18 months) that keeps most of the family's weight; the fame lifts below may still reach out
+  const tight = tightWindow(scored, need);
   const seen = new Set<string>();
   const picked: Song[] = [];
   // the first D'Arienzo (72 instrumental sides from 1935–39): a seeded draw among the top window instead of the
@@ -836,8 +1295,8 @@ export function buildTanda(
     !chosen.vocal &&
     slot.position < 0.35;
   const summit = (s: Song) => (s.fame ?? 0) >= 4 && (s.energy ?? 50) >= 85;
-  const kept0 = firstDAinstr ? scored.filter((r) => !summit(r.s)) : scored;
-  const draw0 = kept0.length >= need * 2 ? kept0 : scored;
+  const kept0 = firstDAinstr ? tight.filter((r) => !summit(r.s)) : tight;
+  const draw0 = kept0.length >= need * 2 || (tight !== scored && kept0.length >= need) ? kept0 : tight;
   if (firstDA) {
     const near = draw0.filter((r) => {
       const d = (r.s.energy ?? 50) - target;
@@ -880,6 +1339,15 @@ export function buildTanda(
     const [{ s: cand }] = rest.splice(bi, 1) as [{ s: Song; w: number }];
     const k = normTitle(cand.title);
     if (seen.has(k)) continue;
+    // cohesion R6: with three trustworthy tempo readings the folded drift stays under the rhythm's cap
+    const band = chosenProf?.bpm?.[slot.rhythm];
+    const bpms = [...picked, cand].map((x) => foldedBpm(x, band)).filter((b): b is number => b !== undefined);
+    if (
+      bpms.length >= 3 &&
+      Math.max(...bpms) - Math.min(...bpms) > (BPM_DELTA_MAX[slot.rhythm] ?? 8) &&
+      rest.length >= need - picked.length
+    )
+      continue;
     seen.add(k);
     picked.push(cand);
   }
@@ -945,7 +1413,32 @@ export function buildTanda(
     : chosen.undated
       ? ` c. ${songs[0]?.year ?? ""}`
       : "";
-  const reason = `${slot.phase}: ${st ?? "balanced"} ${chosen.orchestra}${chosen.singer ? ` with ${chosen.singer}` : " instrumental"}${yearLabel}, energy ${energy} for target ${slot.targetEnergy}`;
+  // round 13: what the user's heatmap and the family bands say about these sides (shown in the UI)
+  const grades = songs.map((x) => x.heat).filter((g): g is HeatGrade => g !== undefined);
+  const heat = grades.length
+    ? {
+        min: Math.min(...grades),
+        mean: Math.round((grades.reduce((a: number, g) => a + g, 0) / grades.length) * 10) / 10,
+        label: HEAT_LABEL[Math.min(...grades) as HeatGrade],
+      }
+    : undefined;
+  const bands = songs.map((x) => familyBand(chosenProf, chosen.singer, dated(x), sc.bandOverrides));
+  const band = bands.includes("outside")
+    ? "outside"
+    : bands.includes("ok")
+      ? "ok"
+      : bands.length && bands.every((b) => b === "best")
+        ? "best"
+        : undefined;
+  const golden = goldenClassOf(chosenProf, years);
+  const heatNote = heat
+    ? heat.min >= 4
+      ? " · heatmap: fantastic year"
+      : heat.min >= 3
+        ? " · heatmap: good year"
+        : ` · heatmap: ${heat.label} year`
+    : "";
+  const reason = `${slot.phase}: ${st ?? "balanced"} ${chosen.orchestra}${chosen.singer ? ` with ${chosen.singer}` : " instrumental"}${yearLabel}, energy ${energy} for target ${slot.targetEnergy}${heatNote}${band === "best" ? " · the family's best years" : ""}`;
   return {
     index: slot.index,
     rhythm: slot.rhythm as DanceRhythm,
@@ -965,6 +1458,12 @@ export function buildTanda(
     cortina: null,
     reason,
     ...(slot.peak ? { peak: true } : {}),
+    ...(heat ? { heat } : {}),
+    ...(band ? { band } : {}),
+    ...(golden ? { golden } : {}),
+    crossesBreak: false,
+    ...(chosen.spreadFloor !== undefined ? { spreadFloor: chosen.spreadFloor } : {}),
+    ...(chosen.poolSmall ? { poolSmall: true, note: "pool-small" } : {}),
     cohesion: (() => {
       const c = tandaCohesion(
         songs.map((x) => x.audio),

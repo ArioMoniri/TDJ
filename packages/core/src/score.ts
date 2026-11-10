@@ -1,9 +1,11 @@
 import { resolveContext } from "./context";
 import { familyOf } from "./cortinas";
 import { normTitle } from "./energy";
+import { monthIndex, staticProfile } from "./knowledge";
 import { CORPUS_CAPS, CUMPARSITA_CLOSING_YEARS, DEFAULT_CAP, ULTIMA_CLOSERS } from "./rules";
 import { isTandaEligible, songRhythm } from "./tanda";
-import type { Playlist, ScoreCard, ScoreFactor, Song } from "./types";
+import { nightTransitions } from "./transitions";
+import type { Playlist, ScoreCard, ScoreFactor, Song, Tanda } from "./types";
 
 /**
  * Benchmark scorer. Round 4 rebuilt it around what the DJ panel measured by ear (docs/reviews/round4-generation.md
@@ -50,20 +52,15 @@ export function scorePlaylist(p: Pick<Playlist, "tandas" | "closing" | "options"
     1 - (ms * 2) / 5,
     `${ms} tandas with several singers`,
   );
-  let over = 0,
-    big = 0;
-  for (const x of t) {
-    if (!x.yearRange) continue;
-    const span = x.yearRange[1] - x.yearRange[0];
-    if (span > 10) big++;
-    else if (span > Math.max(o.maxYearSpread, x.songs.length >= 4 ? 4 : 6)) over++;
-  }
+  // round 13 (docs/reviews/round13-cohesion.md §4.1, R10): each tanda is graded on its effective year spread and its
+  // type, then the grades are averaged; a date span ≤ 12 months is always 1, a tanda crossing a break is capped at 0.30
+  const era = eraGrades(t);
   add(
     "era",
-    "Era tightness inside tanda (≤4–6 years)",
+    "Era tightness inside tanda (same year, ≤ 2 vocal / 3 instrumental, no break crossed)",
     6,
-    1 - (over * 2 + big * 4) / 6,
-    `${over} loose, ${big} very loose`,
+    era.n ? era.sum / era.n : 1,
+    `${era.over} over target, ${era.breaks} crossing a break`,
   );
   // the requested sizes are the standard (a práctica's 3-track tangos are not a defect); the two-Cumparsita última is exempt
   const want = (r: string) =>
@@ -375,6 +372,27 @@ export function scorePlaylist(p: Pick<Playlist, "tandas" | "closing" | "options"
       ? `última ${lastT.orchestra}, closes with ${p.closing.orchestra} ${p.closing.year ?? ""}`
       : "no Cumparsita",
   );
+  // round 13 (docs/reviews/round13-transitions.md §2): the pairwise score between consecutive tandas
+  {
+    const tr = nightTransitions(t);
+    if (tr.pairs.length) {
+      const allowed = Math.max(1, Math.round((2 * o.hours) / 4));
+      const base = Math.max(0, Math.min(1, (tr.mean - 80) / 12));
+      const sc = base * (1 - 0.1 * Math.max(0, tr.jarring - allowed)) * (tr.hard.H1 || tr.hard.H6 ? 0.5 : 1);
+      add(
+        "transitions",
+        "Transitions between tandas (pairwise score, hard rules H1–H6)",
+        4,
+        sc,
+        `mean ${tr.mean}, min ${tr.min}, ${tr.smooth} smooth · ${tr.fine} fine · ${tr.jarring} jarring; ${
+          Object.entries(tr.hard)
+            .filter(([, v]) => v)
+            .map(([k, v]) => `${v}×${k}`)
+            .join(" ") || "no hard-rule hits"
+        }`,
+      );
+    }
+  }
   const diff = Math.abs(p.stats.durationSec - o.hours * 3600) / 60;
   add(
     "duration",
@@ -440,4 +458,63 @@ export function hardFailures(p: Pick<Playlist, "tandas" | "options" | "stats">):
       out.push(`${name} ×${n} (the cap is ${(CORPUS_CAPS[id] ?? DEFAULT_CAP) + extra})`);
   }
   return out;
+}
+
+/** the era curve (cohesion review §4.1): grade by effective spread 0–1, 2, 3, 4, ≥ 5 */
+const ERA_CURVE: Record<"vocal" | "instr" | "vm", number[]> = {
+  vocal: [1, 1, 0.85, 0.5, 0.2, 0],
+  instr: [1, 1, 0.9, 0.7, 0.35, 0],
+  vm: [1, 1, 0.8, 0.45, 0.1, 0],
+};
+/** the dance sides of a tanda that carry a year (an own-orchestra La Cumparsita at the end is not one) */
+const datedSides = (x: Pick<Tanda, "songs">) =>
+  x.songs.filter((s) => s.year && !s.yearApprox && !/cumparsita/i.test(s.title));
+/** a tanda crosses a break: its own flag when the composer set it, else a ≥ 18-month gap between two of its sides or a
+ * curated line-up break between its first and last side (a saved night carries no flag) */
+export function crossesBreak(x: Pick<Tanda, "songs" | "orchestraId" | "vocal" | "crossesBreak">): boolean {
+  if (x.crossesBreak !== undefined) return x.crossesBreak;
+  const ms = datedSides(x)
+    .map((s) => monthIndex(s.date, s.year))
+    .filter((m): m is number => m !== undefined)
+    .sort((a, b) => a - b);
+  for (let i = 1; i < ms.length; i++) if (ms[i]! - ms[i - 1]! >= 18) return true;
+  for (const b of staticProfile(x.orchestraId)?.lineupBreaks ?? []) {
+    if (b.vocal !== undefined && b.vocal !== x.vocal) continue;
+    const m = monthIndex(b.at, null);
+    if (m !== undefined && ms.length && ms[0]! < m && m <= ms[ms.length - 1]!) return true;
+  }
+  return false;
+}
+/** one tanda's era grade, and whether it is over the target or crosses a break */
+export function eraGrade(
+  x: Pick<Tanda, "songs" | "orchestraId" | "vocal" | "rhythm" | "crossesBreak" | "spreadFloor">,
+): { grade: number; over: boolean; crosses: boolean } | null {
+  const ds = datedSides(x);
+  if (ds.length < 2) return null;
+  const ys = ds.map((s) => s.year!);
+  const spread = Math.max(...ys) - Math.min(...ys);
+  const eff = Math.max(0, spread - Math.max(0, (x.spreadFloor ?? 0) - 1));
+  const ms = ds.map((s) => monthIndex(s.date, s.year)).filter((m): m is number => m !== undefined);
+  const full = ds.every((s) => /^\d{4}-\d{2}/.test(s.date ?? ""));
+  const span = full && ms.length ? Math.max(...ms) - Math.min(...ms) : 99;
+  const curve = x.rhythm !== "tango" ? ERA_CURVE.vm : x.vocal ? ERA_CURVE.vocal : ERA_CURVE.instr;
+  let grade = span <= 12 ? 1 : curve[Math.min(5, eff)]!;
+  const crosses = crossesBreak(x);
+  if (crosses) grade = Math.min(grade, 0.3);
+  return { grade, over: span > 12 && eff > 1, crosses };
+}
+function eraGrades(t: Tanda[]) {
+  let sum = 0,
+    n = 0,
+    over = 0,
+    breaks = 0;
+  for (const x of t) {
+    const g = eraGrade(x);
+    if (!g) continue;
+    sum += g.grade;
+    n++;
+    if (g.over) over++;
+    if (g.crosses) breaks++;
+  }
+  return { sum, n, over, breaks };
 }

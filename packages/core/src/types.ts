@@ -76,6 +76,10 @@ export interface Song {
   streamSuspect?: boolean;
   rhythmOriginal?: string;
   note?: string | null;
+  /** round 13: the "1933/48" range of a compilation row whose year was cleared at index build */
+  dateRange?: [number, number];
+  /** round 13: the user's heatmap grade for this orchestra, mode and year (0 avoid … 4 fantastic; data/index/coverage.json) */
+  heat?: import("./knowledge").HeatGrade;
   /** analysed audio features (data/cache/audio/features.json or user database) */
   audio?: import("./audio/dsp").AudioFeatures | null;
   /** resolved streaming/preview track (data/cache/resolve/tracks.json) */
@@ -129,6 +133,18 @@ export interface OrchestraProfile {
   avoidMainPeak?: boolean;
   /** "use as a tango-only orchestra" (Demare): its vals and milonga families step back ×0.15 (round 9) */
   tangoOnly?: boolean;
+  /** singer → stints [[from, to], …]: a tanda never crosses from one stint into another (round 13, cohesion R3a) */
+  singerStints?: Record<string, Array<[number, number]>>;
+  /** round 13: per-family best / ok year bands (best-years review §2), read with familyBand() */
+  bands?: import("./knowledge").FamilyBands;
+  /** round 13: the reviewer's families rated above the user's heatmap; ignored unless ComposeOptions.bandOverrides */
+  bandOverrides?: import("./knowledge").FamilyBands;
+  /** round 13: golden-night core / edge bands and the colour flag (golden-age review §2) */
+  goldenBands?: import("./knowledge").GoldenBands;
+  /** round 13: "hard" = a hard-driving rhythmic orchestra (R+ in the transitions model: D'Arienzo, Biagi, Tanturi) */
+  drive?: "hard";
+  /** round 13: curated line-up breaks a tanda never crosses (D'Arienzo instrumentals 1938-07, 1940-06) */
+  lineupBreaks?: import("./knowledge").LineupBreak[];
 }
 
 export interface Cortina {
@@ -192,6 +208,18 @@ export interface Tanda {
   birthday?: boolean;
   /** built for a planned peak slot (round 9) */
   peak?: boolean;
+  /** round 13: the user's heatmap over the sides: the lowest and the mean grade (sides with a grade) */
+  heat?: { min: number; mean: number; label: string };
+  /** round 13: the family's best / ok / outside band over the sides (the weakest side's) */
+  band?: import("./knowledge").FamilyBand;
+  /** round 13: golden-night class of the sides (core, edge, other) */
+  golden?: import("./knowledge").GoldenClass;
+  /** round 13 (cohesion R3): the tanda crosses a singer stint, a ≥ 18-month recording gap or a line-up break */
+  crossesBreak?: boolean;
+  /** round 13 (cohesion §4.1): the smallest year spread any tanda of this family could reach tonight */
+  spreadFloor?: number;
+  /** round 13 (cohesion R7): a vals pool too small for the 2-year cap (cap + 1 inside one stint) */
+  poolSmall?: boolean;
 }
 
 export interface PlaylistStats {
@@ -216,6 +244,8 @@ export interface PlaylistStats {
   arcRmse?: number;
   /** vocal share of the tango tandas (round 9: 0.55–0.75 in a golden night) */
   vocalTangoShare?: number;
+  /** round 13: share of the sides from heatmap grade ≥ 3 years (good / fantastic) */
+  heatBestShare?: number;
   /** the planned peak slots and what they delivered (round 9) */
   peaks?: Array<{ index: number; energy: number; target: number; orchestra: string }>;
 }
@@ -320,6 +350,8 @@ export interface ComposeOptions {
   preferFamilies?: PreferredFamily[];
   /** beginner floors: families above this profile difficulty are avoided */
   maxDifficulty?: number;
+  /** round 13: also apply the reviewer's band overrides (families rated above the user's heatmap; off by default) */
+  bandOverrides?: boolean;
 }
 
 /** Event-level rules a DJ chooses per night. */

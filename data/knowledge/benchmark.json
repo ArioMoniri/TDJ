@@ -101,6 +101,49 @@
       "weight": 0,
       "note": "Turkish-linked published sets use international cortinas (pop, soul, swing, hip-hop); Turkish songs appear as accents. An all-Turkish cortina night is a stylistic choice with no published precedent, not a failure.",
       "source": "Common patterns §7 and the Turkish-linked sets H, J, K; Demirbaş 2018"
+    },
+    "yearSpread": {
+      "label": "Tanda year spread",
+      "okMedian": 1.5,
+      "okShareLe2": 0.75,
+      "max": 4,
+      "nearMedian": 2,
+      "nearShareLe2": 0.6,
+      "weight": 2,
+      "source": "Round 13 cohesion review §4.2: benchmark-reference-sets.md A–D single-family tandas median 1 y, 81 % ≤ 2 y, 96 % ≤ 4 y (n = 57); 31-set corpus median 2 y, 67 % ≤ 2 y"
+    },
+    "goldenCore": {
+      "label": "Golden core share (family core bands)",
+      "applies": "yearRange within 1932–1950 or eras == ['golden']",
+      "minShare": 0.8,
+      "nearShare": 0.7,
+      "maxColourPer4h": 3,
+      "colourPeakMax": 0,
+      "peakEnergy": 78,
+      "sideCoreYears": [1938, 1944],
+      "sideCoreInfoMin": 0.75,
+      "weight": 1,
+      "source": "Round 13 golden-age purist review: family bands §2 (orchestra_profiles.json goldenBands); reference sets A–K centre on 1938–44"
+    },
+    "transitions": {
+      "label": "Transition smoothness (pairwise S between consecutive tandas)",
+      "meanRange": [88, 97],
+      "structuralRange": [87, 98],
+      "maxJarringPer4h": 2,
+      "minPair": 60,
+      "hardRules": ["H1", "H2", "H3", "H4", "H5", "H6"],
+      "weight": 3,
+      "source": "Round 13 transitions review §2 and §4; structural sub-score (style + era + tempo + vocal + run) over the 30 reference sets with ≥ 10 tandas: mean 89.5, p25 87.2, p75 91.3; no reference set has two dramatic tandas adjacent",
+      "nearCredit": 0.35,
+      "credit": "clamp((meanS − 80) / 8, 0, 1) × (1 − 0.2 · max(0, jarring − maxJarringPer4h)), × 0.5 for any H1 or H6 hit (transitions review §4)"
+    },
+    "heatmapBest": {
+      "label": "Heatmap best years (sides from grade ≥ 3 years)",
+      "minShare": 0.85,
+      "nearShare": 0.7,
+      "minGraded": 0.5,
+      "weight": 2,
+      "source": "The user's own orchestra heatmap (data/sources/All_orchestras.xls → data/index/coverage.json): per orchestra, year and mode, 3 good / 4 fantastic; round-13 best-years review §1.0"
     }
   }
 }
