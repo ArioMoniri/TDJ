@@ -1,5 +1,6 @@
 export * from "./arc";
 export * from "./audio/index";
+export * from "./benchmark";
 export * from "./booth";
 export * from "./catalog";
 export * from "./compose";
