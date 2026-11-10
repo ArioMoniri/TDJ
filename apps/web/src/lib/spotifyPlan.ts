@@ -1,4 +1,10 @@
-import { type ExportOpts, type FlatTrack, toSpotifyPlan } from "@tdj/core";
+import {
+  type ExportOpts,
+  type FlatTrack,
+  orderSpotifyUris,
+  type SpotifySlot,
+  toSpotifyPlan,
+} from "@tdj/core";
 import type { MatchItem } from "./match";
 import type { AppOverrides, Playlist } from "./types";
 
@@ -7,7 +13,7 @@ export function spotifyPlanFor(
   playlist: Playlist,
   overrides: AppOverrides | null | undefined,
   eo: ExportOpts = {},
-): { uris: string[]; items: MatchItem[]; tracks: FlatTrack[] } {
+): { uris: string[]; items: MatchItem[]; tracks: FlatTrack[]; slots: SpotifySlot[] } {
   const own = overrides?.songs ?? {};
   const patched: Playlist = {
     ...playlist,
@@ -27,6 +33,7 @@ export function spotifyPlanFor(
   const plan = toSpotifyPlan(patched, eo);
   return {
     uris: plan.uris,
+    slots: plan.slots,
     items: plan.unresolved.map((u) => matchItemFor(u.track)),
     tracks: plan.unresolved.map((u) => u.track),
   };
@@ -51,4 +58,16 @@ export function batches<T>(xs: T[], n = MATCH_BATCH): T[][] {
   const out: T[][] = [];
   for (let i = 0; i < xs.length; i += n) out.push(xs.slice(i, i + n));
   return out;
+}
+
+/** The playlist in running order: matched rows go back into their own slot (cortinas stay between the tandas). */
+export function orderedUris(plan: { slots: SpotifySlot[] }, found: Map<string, string>): string[] {
+  return orderSpotifyUris(plan, found);
+}
+
+/** A Spotify playlist id from a link, a `spotify:playlist:` URI or a bare id; null when it is none of those. */
+export function playlistIdFrom(v: string): string | null {
+  const t = v.trim();
+  const m = t.match(/playlist[/:]([A-Za-z0-9]+)/) ?? t.match(/^([A-Za-z0-9]{22})$/);
+  return m ? m[1]! : null;
 }

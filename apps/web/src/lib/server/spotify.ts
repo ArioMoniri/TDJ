@@ -177,6 +177,21 @@ export async function addTracks(access: string, playlistId: string, uris: string
   return added;
 }
 
+/** Replaces a playlist's contents in running order: the first 100 with PUT (the `/items` endpoint, then `/tracks`), the rest appended. */
+export async function replaceTracks(access: string, playlistId: string, uris: string[]): Promise<number> {
+  const first = uris.slice(0, 100);
+  await spotify(access, `/playlists/${playlistId}/items`, {
+    method: "PUT",
+    body: JSON.stringify({ uris: first }),
+  }).catch(() =>
+    spotify(access, `/playlists/${playlistId}/tracks`, {
+      method: "PUT",
+      body: JSON.stringify({ uris: first }),
+    }),
+  );
+  return first.length + (uris.length > 100 ? await addTracks(access, playlistId, uris.slice(100)) : 0);
+}
+
 export async function createPlaylist(
   access: string,
   p: { name: string; description: string; isPublic: boolean; uris: string[] },

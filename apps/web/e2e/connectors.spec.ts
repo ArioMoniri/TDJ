@@ -104,6 +104,8 @@ function mockServer(): http.Server {
         return json(201, { id: "pl1", external_urls: { spotify: "https://open.spotify.com/playlist/pl1" } });
       if (/^\/v1\/playlists\/pl1\/items/.test(url) && req.method === "POST")
         return json(201, { snapshot_id: "s1" });
+      if (/^\/v1\/playlists\/pl1\/items/.test(url) && req.method === "PUT")
+        return json(200, { snapshot_id: "s2" });
       // Pipedream Connect (REST shape the SDK deserialises)
       if (url === "/v1/oauth/token")
         return json(200, { access_token: "pd-token", token_type: "bearer", expires_in: 3600 });
@@ -514,6 +516,45 @@ test("playlist creation POSTs name/description/public, adds items in chunks of â
   expect(hits.length).toBe(n);
 });
 
+test("Spotify keeps the running order: searched cortinas stay between their tandas, and replace rewrites in place", async ({
+  request,
+}) => {
+  const { session } = await login(request);
+  const p = await (await request.post(`${APP}/api/compose`, { data: { hours: 2, seed: 5 } })).json();
+  hits.length = 0;
+  const r = await request.post(`${APP}/api/spotify/playlist`, {
+    headers: { cookie: session },
+    data: { playlist: p, includeCortinas: true, name: "Order test" },
+  });
+  expect(r.status()).toBe(200);
+  const got = hits
+    .filter((h) => h.url === "/v1/playlists/pl1/items" && h.method === "POST")
+    .flatMap((h) => JSON.parse(h.body).uris as string[]);
+  type Row = { spotify?: { uri?: string } | null };
+  const want: string[] = [];
+  for (const t of p.tandas as Array<{ songs: Row[]; cortina?: Row | null }>) {
+    for (const s of t.songs) want.push(s.spotify?.uri ?? "SEARCHED");
+    if (t.cortina) want.push(t.cortina.spotify?.uri ?? "SEARCHED");
+  }
+  if (p.closing) want.push((p.closing as Row).spotify?.uri ?? "SEARCHED");
+  expect(want.filter((w) => w === "SEARCHED").length).toBeGreaterThan(0);
+  expect(got.map((u) => (/^spotify:track:found\d+$/.test(u) ? "SEARCHED" : u))).toEqual(want);
+
+  // replace: the first 100 go with PUT (which clears the playlist), the rest are appended, order intact
+  const uris = Array.from({ length: 150 }, (_, i) => `spotify:track:row${i}`);
+  hits.length = 0;
+  const rep = await request.post(`${APP}/api/spotify/playlist`, {
+    headers: { cookie: session },
+    data: { uris, playlistId: "pl1", replace: true, includeCortinas: true },
+  });
+  expect(rep.status()).toBe(200);
+  expect((await rep.json()).added).toBe(150);
+  const calls = hits.filter((h) => h.url === "/v1/playlists/pl1/items");
+  expect(calls.map((c) => c.method)).toEqual(["PUT", "POST"]);
+  expect(calls.flatMap((c) => JSON.parse(c.body).uris as string[])).toEqual(uris);
+  expect(hits.some((h) => h.url === "/v1/me/playlists")).toBe(false);
+});
+
 test("an expired access token is refreshed transparently and the cookie is re-sealed", async ({
   request,
   playwright,
@@ -900,7 +941,7 @@ test("a 429 from Spotify ends the matching cleanly: the server reports the pause
     await expect(sheet.getByRole("button", { name: "Open in Spotify" })).toBeVisible();
     const btn = sheet.locator("#spotify-create");
     await expect(btn).toContainText(`Try again Â· ${left} left`);
-    // the pause is over: Try again matches the rest into the same playlist, batch by batch
+    // the pause is over: Try again matches the rest and rewrites the same playlist in running order
     searchLimit.after = Number.POSITIVE_INFINITY;
     hits.length = 0;
     let matchCalls = 0;
@@ -912,22 +953,28 @@ test("a 429 from Spotify ends the matching cleanly: the server reports the pause
     expect(last(/POST \/v1\/me\/playlists/)).toBeUndefined(); // no second playlist
     expect(matchCalls).toBe(Math.ceil(left / 10)); // batches of 10, sent one after the other
     let total = 0;
-    for (const a of hits.filter((h) => /^\/v1\/playlists\/pl1\/items/.test(h.url))) {
+    const rewrites = hits.filter((h) => /^\/v1\/playlists\/pl1\/items/.test(h.url));
+    expect(rewrites[0]?.method).toBe("PUT"); // replaced, not appended: the new matches sit in their own rows
+    for (const a of rewrites) {
       const uris = JSON.parse(a.body).uris as string[];
       expect(uris.length).toBeLessThanOrEqual(100);
       for (const u of uris) expect(u).not.toMatch(/cover/);
       total += uris.length;
     }
-    expect(total).toBe(left);
+    expect(total).toBe(first.length + left);
     await expect(sheet).toContainText(`Added ${left} more.`);
-    // the matches went into the DJ's database: a second export of the same set searches nothing
+    // the matches went into the DJ's database: a second export of the same set searches nothing, and it
+    // updates the playlist made before (remembered for this night) instead of making another one
     hits.length = 0;
     await page.keyboard.press("Escape");
     await expect(sheet).toBeHidden();
     await page.getByRole("button", { name: "Export" }).first().click();
-    await page.getByRole("button", { name: "Create playlist in Spotify" }).click();
-    await expect(page.getByRole("button", { name: "Playlist created" })).toBeVisible({ timeout: 60000 });
+    await expect(sheet.locator("#spotify-target")).toHaveValue("https://open.spotify.com/playlist/pl1");
+    await page.getByRole("button", { name: "Update playlist in Spotify" }).click();
+    await expect(page.getByRole("button", { name: "Playlist updated" })).toBeVisible({ timeout: 60000 });
     expect(hits.filter((h) => h.url.startsWith("/v1/search"))).toHaveLength(0);
+    expect(last(/POST \/v1\/me\/playlists/)).toBeUndefined();
+    expect(hits.find((h) => /^\/v1\/playlists\/pl1\/items/.test(h.url))?.method).toBe("PUT");
     // the console stayed clean: no 401s from /api/*/me, no 429 storm, no stale PKCE refresh
     expect(errors.filter((e) => /401|429|accounts\.spotify|api\.spotify/.test(e))).toEqual([]);
   } finally {

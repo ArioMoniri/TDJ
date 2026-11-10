@@ -9,6 +9,7 @@ import {
   compose,
   cortinaStopFor,
   flatten,
+  orderSpotifyUris,
   type Playlist,
   toM3U8,
   toRekordboxXML,
@@ -107,5 +108,32 @@ describe("flattened ids", () => {
     const plan = toSpotifyPlan(p);
     for (const u of plan.unresolved) expect(u.track.id).toBeTruthy();
     expect(plan.uris.length + plan.unresolved.length).toBe(rows.length);
+  });
+});
+
+describe("spotify order", () => {
+  it("keeps the running order: every row has a slot, unresolved rows are filled back into their own slot", () => {
+    const rows = flatten(p);
+    const plan = toSpotifyPlan(p);
+    expect(plan.slots.length).toBe(rows.length);
+    // pretend half the rows were resolved and the rest matched later, in reverse order
+    const found = new Map(plan.unresolved.map((u) => [u.track.id!, `spotify:track:m${u.slot}`] as const));
+    const ordered = orderSpotifyUris(plan, found);
+    expect(ordered.length).toBe(rows.length);
+    rows.forEach((r, i) => {
+      const slot = plan.slots[i]!;
+      expect(ordered[i]).toBe(slot.uri ?? `spotify:track:m${i}`);
+      if (slot.uri) expect(slot.uri).toBe(r.spotifyUri);
+      else expect(slot.id).toBe(r.id);
+    });
+    // a cortina that was not resolved stays between its tandas, never at the end
+    const firstCortina = rows.findIndex((r) => r.kind === "cortina");
+    expect(firstCortina).toBeGreaterThan(0);
+    expect(firstCortina).toBeLessThan(rows.length - 1);
+  });
+  it("drops only the rows that were never found and keeps everything else in place", () => {
+    const plan = toSpotifyPlan(p);
+    const ordered = orderSpotifyUris(plan, new Map());
+    expect(ordered).toEqual(plan.slots.filter((s) => s.uri).map((s) => s.uri));
   });
 });

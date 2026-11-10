@@ -260,14 +260,19 @@ export async function spotifyPlaylistViaProxy(
     name: string;
     description: string;
     isPublic: boolean;
-    uris: string[];
-    queries: Array<{ isrc?: string | null; query: string }>;
+    /** the running order: a resolved URI, or what to search for, row by row */
+    rows: Array<{ uri?: string; isrc?: string | null; query?: string }>;
   },
 ) {
   const SP = "https://api.spotify.com/v1";
-  const uris = [...p.uris];
+  const uris: string[] = [];
   const missing: string[] = [];
-  for (const t of p.queries) {
+  for (const t of p.rows) {
+    if (t.uri) {
+      uris.push(t.uri);
+      continue;
+    }
+    if (!t.query) continue;
     let uri: string | undefined;
     for (const q of t.isrc ? [`isrc:${t.isrc}`, t.query] : [t.query]) {
       const r = await proxyJson<{ tracks?: { items?: Array<{ uri: string }> } }>(

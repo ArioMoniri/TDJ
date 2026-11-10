@@ -11,7 +11,6 @@ import { haptic } from "@/lib/haptics";
 import type { Match, MatchItem } from "@/lib/match";
 import { DUR, SPRING } from "@/lib/motion";
 import {
-  addToPlaylist,
   beginAuth,
   type ConnectApp,
   connectExport,
@@ -24,12 +23,13 @@ import {
   hostedLoginUrl,
   hostedMatch,
   refresh,
+  replacePlaylist,
   resolveTrack,
   SpotifyRateLimit,
   useConnectors,
   type YoutubeResult,
 } from "@/lib/spotify";
-import { batches, spotifyPlanFor } from "@/lib/spotifyPlan";
+import { batches, orderedUris, playlistIdFrom, spotifyPlanFor } from "@/lib/spotifyPlan";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import { TRANSFER_SERVICES, type TransferService, transferCsv, transferRows } from "@/lib/transferCsv";
@@ -155,6 +155,20 @@ export function ExportSheet({
   const [pending, setPending] = useState<{ playlistId: string; url: string; remaining: MatchItem[] } | null>(
     null,
   );
+  /** every match of this export by row id, kept across "Try again" so the whole playlist can be rewritten in order */
+  const found = useRef(new Map<string, string>());
+  /** a playlist made before (its Spotify link): the export rewrites it in place instead of making a new one */
+  const [target, setTarget] = useState("");
+  /** what the last Spotify action did, for the button's done label */
+  const [madeNew, setMadeNew] = useState(true);
+  const targetKey = playlist ? `tdj-sp-target:${playlist.name}` : "";
+  const targetId = playlistIdFrom(target);
+  const rememberTarget = (url: string) => {
+    setTarget(url);
+    try {
+      if (targetKey) localStorage.setItem(targetKey, url);
+    } catch {}
+  };
   const check = useRef<{ play: () => void } | null>(null);
   const reduced = useReducedMotion();
 
@@ -166,8 +180,13 @@ export function ExportSheet({
       setLog([]);
       setPending(null);
       setProgress(null);
+      try {
+        setTarget((targetKey && localStorage.getItem(targetKey)) || "");
+      } catch {
+        setTarget("");
+      }
     }
-  }, [open]);
+  }, [open, targetKey]);
 
   const tracks = playlist
     ? playlist.tandas.reduce((a, t) => a + t.songs.length, 0) +
@@ -243,7 +262,10 @@ export function ExportSheet({
       const b = bs[i]!;
       setProgress(`Matching ${Math.min(done + b.length, items.length)} of ${items.length}…`);
       const r = await hostedMatch(b);
-      for (const m of r.matches) uris.push(m.uri);
+      for (const m of r.matches) {
+        uris.push(m.uri);
+        found.current.set(m.id, m.uri);
+      }
       persistMatches(r.matches, kinds);
       for (const id of r.missing) missing.push(labels.get(id) ?? id);
       if (r.rateLimited) {
@@ -268,8 +290,10 @@ export function ExportSheet({
       setProgress(`Matching ${i + 1} of ${items.length}…`);
       try {
         const r = await resolveTrack(token, it);
-        if (r) uris.push(r.uri);
-        else missing.push(labels.get(it.id) ?? it.title);
+        if (r) {
+          uris.push(r.uri);
+          found.current.set(it.id, r.uri);
+        } else missing.push(labels.get(it.id) ?? it.title);
       } catch (e) {
         if (e instanceof SpotifyRateLimit) {
           paused = e.retryAfter;
@@ -302,13 +326,26 @@ export function ExportSheet({
         });
         const kinds = new Map(plan.tracks.map((t) => [t.id ?? "", t.kind] as const));
         const labels = new Map(plan.tracks.map((t) => [t.id ?? "", `${t.title} (${t.artist})`] as const));
+        found.current = new Map();
+        setMadeNew(!targetId);
         const m = await matchHosted(plan.items, kinds, labels);
-        const r = await hostedCreatePlaylist({
-          uris: [...plan.uris, ...m.uris],
-          includeCortinas,
-          name: `TDJ · ${playlist.name}`,
-          description: `${playlist.tandas.length} tandas composed with TDJ, cortinas ${includeCortinas ? "included" : "excluded"}. Score ${playlist.score?.total ?? "–"}/100.`,
-        });
+        // running order: matched rows go back into their own slot, so cortinas stay between the tandas
+        const uris = orderedUris(plan, found.current);
+        const r = targetId
+          ? await hostedCreatePlaylist({
+              uris,
+              playlistId: targetId,
+              url: `https://open.spotify.com/playlist/${targetId}`,
+              replace: true,
+              includeCortinas,
+            })
+          : await hostedCreatePlaylist({
+              uris,
+              includeCortinas,
+              name: `TDJ · ${playlist.name}`,
+              description: `${playlist.tandas.length} tandas composed with TDJ, cortinas ${includeCortinas ? "included" : "excluded"}. Score ${playlist.score?.total ?? "–"}/100.`,
+            });
+        rememberTarget(r.url);
         setResult({ label: "Open in Spotify", url: r.url });
         finishLog(r.added, m.missing, m.paused, m.remaining.length);
         if (m.paused && m.remaining.length) {
@@ -352,14 +389,22 @@ export function ExportSheet({
         includeCortinas,
       });
       const labels = new Map(plan.tracks.map((t) => [t.id ?? "", `${t.title} (${t.artist})`] as const));
+      found.current = new Map();
+      setMadeNew(!targetId);
       const m = await matchByo(tok.access, plan.items, labels);
-      const uris = [...plan.uris, ...m.uris];
-      const pl = await createPlaylist(
-        tok.access,
-        `TDJ · ${playlist.name}`,
-        `${playlist.tandas.length} tandas composed with TDJ, cortinas ${includeCortinas ? "included" : "excluded"}. Score ${playlist.score.total}/100.`,
-        uris,
-      );
+      const uris = orderedUris(plan, found.current);
+      const pl = targetId
+        ? await replacePlaylist(tok.access, targetId, uris).then(() => ({
+            id: targetId,
+            external_urls: { spotify: `https://open.spotify.com/playlist/${targetId}` },
+          }))
+        : await createPlaylist(
+            tok.access,
+            `TDJ · ${playlist.name}`,
+            `${playlist.tandas.length} tandas composed with TDJ, cortinas ${includeCortinas ? "included" : "excluded"}. Score ${playlist.score.total}/100.`,
+            uris,
+          );
+      rememberTarget(pl.external_urls.spotify);
       setResult({ label: "Open in Spotify", url: pl.external_urls.spotify });
       finishLog(uris.length, m.missing, m.paused, m.remaining.length);
       if (m.paused && m.remaining.length) {
@@ -398,14 +443,17 @@ export function ExportSheet({
         m = await matchByo(tok.access, pend.remaining, labels);
       }
       if (m.uris.length) {
+        // rewrite the whole playlist so the new matches land in their own rows, not at the end
+        const all = orderedUris(plan, found.current);
         if (hosted)
           await hostedCreatePlaylist({
-            uris: m.uris,
+            uris: all,
             playlistId: pend.playlistId,
             url: pend.url,
+            replace: true,
             includeCortinas,
           });
-        else if (spotifyToken) await addToPlaylist(spotifyToken.access, pend.playlistId, m.uris);
+        else if (spotifyToken) await replacePlaylist(spotifyToken.access, pend.playlistId, all);
       }
       setLog((l) => [
         ...l,
@@ -642,17 +690,23 @@ export function ExportSheet({
               className="col-start-1 row-start-1"
             >
               {done
-                ? "Playlist created"
+                ? madeNew
+                  ? "Playlist created"
+                  : "Playlist updated"
                 : busy && progress
                   ? progress
                   : pending
                     ? `Try again · ${pending.remaining.length} left`
                     : hosted
                       ? hostedUser
-                        ? "Create playlist in Spotify"
+                        ? targetId
+                          ? "Update playlist in Spotify"
+                          : "Create playlist in Spotify"
                         : "Log in with Spotify and create playlist"
                       : spotifyToken
-                        ? "Create playlist in Spotify"
+                        ? targetId
+                          ? "Update playlist in Spotify"
+                          : "Create playlist in Spotify"
                         : "Connect Spotify and create playlist"}
             </motion.span>
           </AnimatePresence>
@@ -766,6 +820,23 @@ export function ExportSheet({
           busy={busy}
           id="send-spotify"
         />
+        <label htmlFor="spotify-target" className="cell flex-col items-stretch gap-1">
+          <span className="text-footnote text-[var(--label-2)]">
+            {targetId
+              ? "Updates this playlist in place, in running order. Clear it to make a new one."
+              : "To update a playlist made before, paste its Spotify link; empty makes a new one."}
+          </span>
+          <input
+            id="spotify-target"
+            className="field font-mono"
+            inputMode="url"
+            placeholder="https://open.spotify.com/playlist/…"
+            value={target}
+            onChange={(e) => setTarget(e.target.value)}
+            autoComplete="off"
+            spellCheck={false}
+          />
+        </label>
         <Row
           tile={
             <Tile color="#1db954">
