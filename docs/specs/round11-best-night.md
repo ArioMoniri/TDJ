@@ -1,16 +1,16 @@
 # Featured night — golden era 1935–45, 4 h, double peak, Turkish cortinas
 
-Engine seed 181 (round 11) with the working DJ's hand edits from `docs/reviews/round11-best-night-dj.md` and the benchmark edits from `docs/reviews/benchmark-reference-sets.md` (three vocal tandas turned into the same orchestras' instrumentals so each hour carries instrumental music, cues re-paired). Engine score 93 (Headline marathon DJ), 22 tandas, 4.11 h, 81/81 sides resolved on Spotify, no hard failures. Shipped as `apps/web/public/featured/golden-double-peak.json`; one-tap: `/?featured=golden-double-peak&export=1`.
+Engine seed 181 (round 11) with the working DJ's hand edits (`docs/reviews/round11-best-night-dj.md`), then compared with 11 published DJ sets (`docs/reviews/benchmark-reference-sets.md`) and re-marked against them (`docs/reviews/benchmark-best-night-dj.md`: 85/100, level with the best golden-era reference set). From that comparison: Donato and Pugliese play their instrumentals so the middle hours carry instrumental music, Rodríguez keeps Moreno, the early vals is Caló / Iriarte (known sides instead of three fame-0 Lomuto valses), the cue into the última is a medium one. Engine score 93 (Headline marathon DJ), 22 tandas, 4.10 h with cortinas, every side and cortina resolved on Spotify, no hard failures. Shipped as `apps/web/public/featured/golden-double-peak.json`; one-tap: `/?featured=golden-double-peak&export=1`.
 
 | # | Rhythm | Tanda | Years | Energy / target | Phase |
 |---|---|---|---|---|---|
 | 0 | tango | Francisco Canaro / Roberto Maida | 1936–1938 | 51 / 54 | warmup |
 | 1 | tango | Carlos Di Sarli / Roberto Rufino | 1939–1942 | 59 / 56 | warmup |
-| 2 | vals | Francisco Lomuto / Fernando Díaz | 1940–1942 | 57 / 59 | warmup |
+| 2 | vals | Miguel Caló / Raúl Iriarte | 1943–1945 | 62 / 59 | warmup |
 | 3 | tango | Juan D'Arienzo (instr) | 1936–1939 | 80 / 72 | warmup |
 | 4 | tango | Aníbal Troilo (instr) | 1938–1941 | 76 / 71 | build |
 | 5 | milonga | Ricardo Tanturi / Alberto Castillo | 1941–1942 | 81 / 70 | build |
-| 6 | tango | Enrique Rodríguez (instr) | 1940–1942 | 65 / 68 | build |
+| 6 | tango | Enrique Rodríguez / Armando Moreno | 1940–1943 | 67 / 68 | build |
 | 7 | tango | Pedro Láurenz / Alberto Podestá | 1943–1943 | 67 / 74 | build |
 | 8 | vals | Rodolfo Biagi (instr) | 1941–1941 | 85 / 81 | build |
 | 9 | tango | Juan D'Arienzo / Alberto Echagüe | 1938–1939 | 82 / 82 | peak · peak |
@@ -43,10 +43,10 @@ Engine seed 181 (round 11) with the working DJ's hand edits from `docs/reviews/r
 - En un Beso la Vida (1940) · e69 · fame 5 · 2:24
 - ♪ cortina: Olmasa Mektubun — Yeni Türkü (45 s, e56)
 
-**2. vals — Francisco Lomuto / Fernando Díaz**
-- Cuando Estaba Enamorado (1940) · e56 · fame 0 · 2:20
-- Ahora que Estamos Solos (1942) · e57 · fame 0 · 2:54
-- Isabelita (1940) · e59 · fame 0 · 2:37
+**2. vals — Miguel Caló / Raúl Iriarte**
+- No Te Olvides de mi Corazón (1945) · e62 · fame 4 · 2:50
+- Luna de Plata (1943) · e63 · fame 2 · 2:28
+- Me Duele el Corazón (1944) · e62 · fame 4 · 2:21
 - ♪ cortina: İşte Öyle Bir Şey — Erol Evgin (47 s, e72)
 
 **3. tango — Juan D'Arienzo (instr)**
@@ -69,11 +69,11 @@ Engine seed 181 (round 11) with the working DJ's hand edits from `docs/reviews/r
 - Mi Morocha (1941) · e80 · fame 2 · 2:25
 - ♪ cortina: Gülümse — Sezen Aksu (47 s, e58)
 
-**6. tango — Enrique Rodríguez (instr)**
-- Florida (1941) · e67 · fame 4 · 2:51
-- Expresión Campera (1942) · e62 · fame 0 · 2:33
-- La Torcacita (1940) · e67 · fame 4 · 2:28
-- El Morochito (1941) · e65 · fame 4 · 2:34
+**6. tango — Enrique Rodríguez / Armando Moreno**
+- El Encopao (1942) · e68 · fame 5 · 2:31
+- Danza Maligna (1940) · e64 · fame 4 · 2:21
+- Suerte Loca (1941) · e68 · fame 4 · 2:42
+- Que Lento Corre el Tren (1943) · e68 · fame 4 · 2:42
 - ♪ cortina: Göreceksin Kendini — Nilüfer (43 s, e62)
 
 **7. tango — Pedro Láurenz / Alberto Podestá**
