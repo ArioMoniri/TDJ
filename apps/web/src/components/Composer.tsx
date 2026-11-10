@@ -943,7 +943,12 @@ export function Composer() {
         );
         setChangedSet(new Set(changed));
       } else {
-        setChangeSummary(improvedLine);
+        // a recompose that changed the night's length (another cycle, other hours) still says how the score moved
+        setChangeSummary(
+          live
+            ? `New set of ${p.tandas.length} tandas · score ${live.score.total} → ${p.score.total}${improvedLine ? ` · ${improvedLine}` : ""}`
+            : improvedLine,
+        );
         setChangedSet(new Set());
       }
       haptic([8, 40, 8]);
