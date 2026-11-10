@@ -1,5 +1,5 @@
 "use client";
-import { addNote, applyMemory, ERA_SETTINGS, rememberFeedback, rememberSet } from "@tdj/core";
+import { addNote, applyMemory, benchmarkNight, ERA_SETTINGS, rememberFeedback, rememberSet } from "@tdj/core";
 import {
   Copy,
   Disc3,
@@ -52,6 +52,7 @@ import type {
   NightRules,
   Playlist,
 } from "@/lib/types";
+import { BenchmarkSheet, benchLabel, type ImproveResponse } from "./BenchmarkSheet";
 import { ComposeLabel, ComposeNarrative } from "./ComposeNarrative";
 import { ContextStrip } from "./ContextStrip";
 import { FeedbackBar } from "./FeedbackBar";
@@ -645,6 +646,8 @@ export function Composer() {
   const [actionsOpen, setActionsOpen] = useState(false);
   const sheetOpen = useSheetOpen();
   const [moodOpen, setMoodOpen] = useState(false);
+  /** the benchmark against published DJ sets (round 12): checks, Improve automatically, Keep / Undo */
+  const [benchOpen, setBenchOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [active, setActive] = useState<number | null>(null);
   const [swapping, setSwapping] = useState<number | null>(null);
@@ -685,6 +688,8 @@ export function Composer() {
    * live playlist drives the requests; the deferred one drives what is on screen.
    */
   const playlist = useDeferredValue(livePlaylist);
+  /** the night against the published DJ sets: pure and fast, recomputed with the set */
+  const bench = useMemo(() => (playlist ? benchmarkNight(playlist) : null), [playlist]);
   const viewReveal = useDeferredValue(reveal);
   useEffect(() => {
     // `fresh` is for the commit that mounts the set only: clear it once that (deferred) commit has happened
@@ -742,6 +747,22 @@ export function Composer() {
     prevScore.current = prev?.score.total ?? null;
     prevEnergy.current = Object.fromEntries((prev?.tandas ?? []).map((t, i) => [i, t.energy]));
   }, []);
+  /** Improve automatically → Keep: the improved night replaces the set (Export and the booth read the store). */
+  const keepImproved = useCallback(
+    (r: ImproveResponse) => {
+      const prev = useStore.getState().playlist;
+      remember(prev);
+      setPlaylist(r.playlist);
+      addSnapshot(makeSnapshot(r.playlist, fullOptions(useStore.getState().options), "refine"));
+      setChangedSet(new Set(changedTandas(prev, r.playlist)));
+      setChangeSummary(
+        `Improved against published sets: engine ${r.before.score} → ${r.after.score}, benchmark ${r.before.inRange}/${r.before.scored} → ${r.after.inRange}/${r.after.scored}`,
+      );
+      setBenchOpen(false);
+      toast("Improved set kept", () => prev && setPlaylist(prev));
+    },
+    [remember, setPlaylist, addSnapshot],
+  );
   /** A built-in night: `/?featured=<id>` or the hero / empty-state cards load it into the result view. */
   const openFeatured = useCallback(
     async (id: FeaturedId) => {
@@ -1522,6 +1543,16 @@ export function Composer() {
               chevron
               onClick={() => setScoreOpen(true)}
             />
+            {bench && (
+              <Row
+                label="Benchmark · published DJ sets"
+                value={wide ? benchLabel(bench) : `${bench.inRange}/${bench.scored}`}
+                aria-label={`Benchmark against published DJ sets: ${benchLabel(bench)}`}
+                chevron
+                onClick={() => setBenchOpen(true)}
+                data-testid="benchmark-row"
+              />
+            )}
             {playlists.some((p) => p.kind === "tandas") && (
               <Row
                 label="Mood check"
@@ -1833,6 +1864,15 @@ export function Composer() {
             ))}
           </Group>
         </Sheet>
+      )}
+      {playlist && bench && (
+        <BenchmarkSheet
+          open={benchOpen}
+          onClose={() => setBenchOpen(false)}
+          playlist={playlist}
+          bench={bench}
+          onKeep={keepImproved}
+        />
       )}
       <Sheet open={moodOpen} onClose={() => setMoodOpen(false)} title="Mood check" trailing="Done">
         <MoodCheck playlists={playlists} playlist={playlist} />

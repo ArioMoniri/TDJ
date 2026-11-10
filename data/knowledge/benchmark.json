@@ -1,0 +1,106 @@
+{
+  "version": 1,
+  "about": "Reference ranges a composed night is benchmarked against (packages/core/src/benchmark.ts). Drawn from docs/reviews/benchmark-reference-sets.md, 'Common patterns' (11 published sets A–K plus DJ statements). Small sample: ranges, not targets.",
+  "checks": {
+    "darienzo": {
+      "label": "D'Arienzo tandas per 4 h",
+      "goldenOnly": [3, 4],
+      "all": [0, 3.8],
+      "near": 1,
+      "weight": 2,
+      "source": "Common patterns §1: golden-only nights A, C, D, I run 3–4 per 4 h; all 11 sets 0–3.8 (median 1.3)"
+    },
+    "orchestras": {
+      "label": "Distinct orchestras",
+      "per4h": [12, 19],
+      "median": 14,
+      "near": 2,
+      "weight": 2,
+      "source": "Common patterns §2: median 14, range ~12–19 per night (~4 h), scaled by the night's hours"
+    },
+    "vals": {
+      "label": "Vals share of dance tandas",
+      "range": [0.06, 0.19],
+      "median": 0.15,
+      "near": 0.04,
+      "weight": 1,
+      "source": "Common patterns §3: vals 6–19 % across the 11 sets (median 15 %)"
+    },
+    "milonga": {
+      "label": "Milonga share of dance tandas",
+      "range": [0.04, 0.24],
+      "median": 0.14,
+      "near": 0.04,
+      "weight": 1,
+      "source": "Common patterns §3: milonga 4–24 % across the 11 sets (median 14 %)"
+    },
+    "pugliese": {
+      "label": "Pugliese: once per 4 h, late",
+      "maxPer4h": 1,
+      "minPosition": 0.48,
+      "medianPosition": 0.89,
+      "nearPosition": 0.4,
+      "weight": 3,
+      "source": "Common patterns §4: in 7 of 11 sets, always exactly once, positions 0.48–1.0 (median 0.89)"
+    },
+    "cumparsita": {
+      "label": "La Cumparsita closes",
+      "share": 0.88,
+      "weight": 2,
+      "source": "Common patterns §5: Cumparsita closes 7 of 8 sets with an observable ending (88 %)"
+    },
+    "canon": {
+      "label": "Core canon present",
+      "orchestras": ["carlos-di-sarli", "rodolfo-biagi", "juan-d-arienzo", "edgardo-donato"],
+      "names": ["Di Sarli", "Biagi", "D'Arienzo", "Donato"],
+      "weight": 2,
+      "source": "Common patterns §6: Di Sarli and Biagi 11/11, D'Arienzo and Donato 10/11 sets"
+    },
+    "golden": {
+      "label": "Golden-era coverage (1935–45)",
+      "years": [1935, 1945],
+      "minShare": 0.6,
+      "nearShare": 0.45,
+      "weight": 1,
+      "source": "Common patterns §6: the great majority of tandas in A, B, C, D, I and K fall in 1935–45"
+    },
+    "instrumental": {
+      "label": "Instrumental tandas each hour",
+      "minShare": 0.3334,
+      "nearShare": 0.15,
+      "weight": 3,
+      "source": "Victor Tran, Tango DJ Fundamentals Part 2: at least one third of tandas each hour should be instrumental. 'Near' down to 15 %: the published sets themselves run about 10–35 % instrumental (A 4 + 3 mixed of 26, B 2 + 3 of 20, C 3 + 5 of 23)"
+    },
+    "spacing3": {
+      "label": "No orchestra or singer twice in 3 tandas",
+      "window": 3,
+      "weight": 2,
+      "source": "Victor Tran, Tango DJ Fundamentals Part 2: no orchestra or singer in more than one of any 3 consecutive tandas"
+    },
+    "cycle": {
+      "label": "TTVTTM cycle",
+      "pattern": "TTVTTM",
+      "weight": 2,
+      "source": "Common patterns §3: TTVTTM explicit in A, B, C, D, G and Demirbaş (Turkey); Victor Tran: a ~1 h cycle"
+    },
+    "sizes": {
+      "label": "Vals and milonga tandas of 3",
+      "size": 3,
+      "weight": 1,
+      "source": "Common patterns §3: vals and milonga tandas have 3 songs in every set"
+    },
+    "cortinaLength": {
+      "label": "Cortina length",
+      "range": [30, 90],
+      "weight": 1,
+      "source": "Demirbaş 2018 (Turkish DJs): cortinas at least 30 s and at most 1–1.5 min; Set K 31–33 s excerpts"
+    },
+    "cortinaCulture": {
+      "label": "Cortina culture",
+      "info": true,
+      "weight": 0,
+      "note": "Turkish-linked published sets use international cortinas (pop, soul, swing, hip-hop); Turkish songs appear as accents. An all-Turkish cortina night is a stylistic choice with no published precedent, not a failure.",
+      "source": "Common patterns §7 and the Turkish-linked sets H, J, K; Demirbaş 2018"
+    }
+  }
+}
