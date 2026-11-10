@@ -438,7 +438,10 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     unsubDevice = media.onDeviceChange(() => pushBanner({ key: "device", text: "Audio output changed." }));
     media.outputLabel().then((l) => set({ outputLabel: l }));
     set({ started: true, resumeOffer: null, wakeLock: held });
-    const missing = sources.filter((s, i) => s === "missing" && plan.items[i]!.kind !== "break").length;
+    // `sources` can still be the previous night's (longer) list for a moment after the plan changes
+    const missing = sources.filter(
+      (s, i) => s === "missing" && !!plan.items[i] && plan.items[i].kind !== "break",
+    ).length;
     // in a rehearsal the Now chip says what is skipped; from files it is a thing the DJ can fix: say how
     if (missing && sourceMode !== "preview")
       pushBanner({
