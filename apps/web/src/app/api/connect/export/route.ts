@@ -67,11 +67,12 @@ export async function POST(req: Request) {
       name,
       description,
       isPublic,
-      uris: plan.uris,
-      queries: plan.unresolved.map((u) => ({
-        isrc: (u.track as { isrc?: string | null }).isrc ?? null,
-        query: u.query,
-      })),
+      // row by row in running order: a search result lands in its own row, never after the resolved ones
+      rows: plan.slots.map((slot, i) => {
+        if (slot.uri) return { uri: slot.uri };
+        const u = plan.unresolved.find((x) => x.slot === i)!;
+        return { isrc: (u.track as { isrc?: string | null }).isrc ?? null, query: u.query };
+      }),
     });
     return NextResponse.json({ app: body.app, ...r });
   } catch (e) {

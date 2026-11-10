@@ -9,15 +9,17 @@ import {
   hostedEnabled,
   MATCH_BUDGET_MS,
   matchItems,
+  replaceTracks,
   SpotifyError,
   withSession,
 } from "@/lib/server/spotify";
-import { spotifyPlanFor } from "@/lib/spotifyPlan";
+import { orderedUris, spotifyPlanFor } from "@/lib/spotifyPlan";
 export const dynamic = "force-dynamic";
 
 /**
  * Creates the playlist in the logged-in user's library. The Export sheet matches first through /api/spotify/match
- * and sends `uris`; `playlistId` appends to a playlist made earlier (the "Try again" after a rate limit). Without
+ * and sends `uris` in running order; `playlistId` with `replace` overwrites a playlist made earlier (updating it,
+ * or the "Try again" after a rate limit), `playlistId` alone appends. Without
  * `uris` (older callers) the unresolved tracks are matched here, one search at a time, stopping at a rate limit
  * or at the 20 s budget (`rateLimited`), so the request never outlives the function.
  */
@@ -45,9 +47,9 @@ export async function POST(req: Request) {
       const plan = spotifyPlanFor(includeCortinas ? playlist : withoutCortinas(playlist), null, {
         includeCortinas,
       });
-      uris.push(...plan.uris);
       const r = await matchItems(s.session.access, plan.items, { deadline: started + MATCH_BUDGET_MS });
-      uris.push(...r.matches.map((m) => m.uri));
+      // running order: each match goes back into its own row (cortinas stay between the tandas)
+      uris.push(...orderedUris(plan, new Map(r.matches.map((m) => [m.id, m.uri] as const))));
       for (const id of r.missing) {
         const t = plan.tracks.find((x) => (x.id ?? "") === id);
         missing.push(t ? `${t.title} ${t.orchestra ?? t.artist}` : id);
@@ -59,7 +61,10 @@ export async function POST(req: Request) {
         ? (body.playlistId as string)
         : null;
     if (playlistId) {
-      const added = await addTracks(s.session.access, playlistId, uris);
+      const added =
+        body.replace === true
+          ? await replaceTracks(s.session.access, playlistId, uris)
+          : await addTracks(s.session.access, playlistId, uris);
       const res = NextResponse.json({
         id: playlistId,
         url: typeof body.url === "string" ? body.url : `https://open.spotify.com/playlist/${playlistId}`,

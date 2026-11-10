@@ -367,25 +367,51 @@ export function toSeratoCSV(p: Playlist, eo: ExportOpts = {}): string {
   return `${["name", "artist", "album", "year", "genre", "comment", ...TIMING_COLS].map(csvq).join(",")}\n${rows.join("\n")}\n`;
 }
 
-/** Spotify: ordered list of URIs (already resolved) + search queries for unresolved tracks. */
+/** One row of the running order: a resolved URI, or the id the matcher fills in later. */
+export interface SpotifySlot {
+  uri?: string;
+  id?: string;
+}
+/**
+ * Spotify: the resolved URIs, the search queries for the rest, and `slots`, one per row of the running order.
+ * Build the final list with `orderSpotifyUris`, never by appending matches after `uris`: that would move every
+ * row that needed a search (typically every cortina) to the end of the playlist.
+ */
 export function toSpotifyPlan(
   p: Playlist,
   eo: ExportOpts = {},
 ): {
   uris: string[];
-  unresolved: { query: string; track: FlatTrack }[];
+  unresolved: { query: string; track: FlatTrack; slot: number }[];
+  slots: SpotifySlot[];
 } {
   const uris: string[] = [];
-  const unresolved: { query: string; track: FlatTrack }[] = [];
+  const unresolved: { query: string; track: FlatTrack; slot: number }[] = [];
+  const slots: SpotifySlot[] = [];
   for (const t of flatten(p, eo)) {
-    if (t.spotifyUri) uris.push(t.spotifyUri);
-    else
+    if (t.spotifyUri) {
+      uris.push(t.spotifyUri);
+      slots.push({ uri: t.spotifyUri });
+    } else {
       unresolved.push({
         query: `${t.title} ${t.orchestra ?? t.artist}${t.singer ? ` ${t.singer}` : ""}`,
         track: t,
+        slot: slots.length,
       });
+      slots.push({ id: t.id ?? `${t.kind}:${t.n}` });
+    }
   }
-  return { uris, unresolved };
+  return { uris, unresolved, slots };
+}
+
+/** The playlist in running order: resolved rows as they are, matched rows (by id) in their own slot, misses dropped. */
+export function orderSpotifyUris(plan: { slots: SpotifySlot[] }, found: Map<string, string>): string[] {
+  const out: string[] = [];
+  for (const s of plan.slots) {
+    const u = s.uri ?? (s.id ? found.get(s.id) : undefined);
+    if (u) out.push(u);
+  }
+  return out;
 }
 
 /** Human set list (printable), each tanda prefixed with its planned clock (`T+1:07`, or `23:42` with a start time). */

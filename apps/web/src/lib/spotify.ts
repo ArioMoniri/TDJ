@@ -166,6 +166,18 @@ export async function resolveTrack(token: string, item: MatchItem): Promise<Reso
   return v;
 }
 
+/** BYO path: replaces a playlist's contents in running order (PUT the first 100, append the rest). */
+export async function replacePlaylist(token: string, playlistId: string, uris: string[]) {
+  const first = uris.slice(0, 100);
+  await api(token, `/playlists/${playlistId}/items`, {
+    method: "PUT",
+    body: JSON.stringify({ uris: first }),
+  }).catch(() =>
+    api(token, `/playlists/${playlistId}/tracks`, { method: "PUT", body: JSON.stringify({ uris: first }) }),
+  );
+  if (uris.length > 100) await addToPlaylist(token, playlistId, uris.slice(100));
+}
+
 /** BYO path: appends URIs (≤100 per call) to a playlist made earlier. */
 export async function addToPlaylist(token: string, playlistId: string, uris: string[]) {
   for (let i = 0; i < uris.length; i += 100) {
@@ -257,6 +269,8 @@ export async function hostedCreatePlaylist(body: {
   uris?: string[];
   playlistId?: string;
   url?: string;
+  /** with `playlistId`: replace the playlist's contents instead of appending */
+  replace?: boolean;
   includeCortinas: boolean;
   name?: string;
   description?: string;
