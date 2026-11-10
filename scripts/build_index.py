@@ -348,9 +348,121 @@ def fix_range_years(songs):
             s["year"] = None; s["dateRange"] = [y0, y1]; s["yearApprox"] = True
     return songs
 
+# --- Round 14 (docs/reviews/round14-discography.md §2, docs/specs/round14-engine.md) -------------------------------
+# Id-level corrections: the ids are hashes of the source row, so they survive a rebuild.
+ID_PATCH = {
+    # Trago amargo 1939-12-22 is the Echagüe estribillo side (tango.info T0370028708), not an instrumental
+    "9df440312c": {"singer": "Alberto Echagüe", "singerId": "alberto-echague", "vocal": True},
+    # Champagne tango 1938 is a Quinteto Don Pancho side (dir. F. Canaro, 1938-05-09), not the Orquesta Típica
+    "f0c378b199": {"orchestra": "Quinteto Don Pancho", "orchestraId": "quinteto-don-pancho", "date": "1938-05-09"},
+    # La zandunga is a canción popular mexicana (a son istmeño in 3/4), recorded 1939-07-14: not a vals criollo
+    "5ac52c1b19": {"rhythm": "other", "rhythmOriginal": "vals", "date": "1939-07-14", "note": "canción popular mexicana"},
+    # Schertzinger's Marcheta (label "Marchéta (Marquitta)"), Biagi instrumental vals 1941-12-03
+    "06146844d4": {"title": "Marcheta", "altTitles": ["Marquita"], "date": "1941-12-03"},
+    # two 1943 Demare/Berón recordings were merged: the censored "su voz" lyric of 1943-09-13 is the one played; the
+    # 1943-05-06 "mi alcohol" side is split out below (SPLIT_ROWS)
+    "215948d8ab": {"title": "Tal Vez Será su Voz", "altTitles": ["Tal Vez Será mi Alcohol"], "date": "1943-09-13"},
+    # El lengue (Donato 1940-12-13): tango.info files it as a milonga
+    "b41093302a": {"rhythm": "milonga", "rhythmOriginal": "tango"},
+    "bf6e0c24a9": {"date": "1938-10-17"},   # Viejo portón (Biagi's first session)
+    "f94dd3fd89": {"date": "1938-10-17"},   # Unión Cívica (Biagi)
+    "2a56a78278": {"date": "1937-12-09"},   # El cencerro
+    "4d0e9d5353": {"date": "1940-04-12"},   # A mí no me interesa
+    "cebfbd8996": {"altTitles": ["El 13"]},  # El trece
+}
+# rows the source merged: the second recording as its own row (dated, no stream: never picked before it resolves)
+SPLIT_ROWS = [
+    {"from": "215948d8ab", "title": "Tal Vez Será mi Alcohol", "date": "1943-05-06", "altTitles": ["Tal Vez Será su Voz"]},
+]
+# same-date duplicate rows: the label credit with the glosa is the same 1943-07-23 side (merged into the first id)
+MERGE_ROWS = {"bf32d35a4f": "e5a625fa47"}
+# title fixes by work (normalised title → display title), applied to every orchestra's row of that work
+TITLE_WORK = {
+    "adios arrabal": "Adiós, Arrabal",
+    "dime mi amor": "Dime, mi Amor",
+    "yo tambien sone": "Yo También Soñé",
+    "lejos de ti": "Lejos de Ti",
+    "vivo sin sombra lejos de ti": "Vivo sin Sombra, Lejos de Ti",
+    "un crimen": "Un Crimen",
+    "ya se que siguen hablando": "Ya Sé que Siguen Hablando",
+    "que buena es": "Qué Buena Es",
+    "como se hace un tango": "Cómo Se Hace un Tango",
+    "este es tu tango": "Este Es tu Tango",
+    "pa que seguir": "Pa' Qué Seguir",
+    "que noche": "Qué Noche",
+    "por que no has venido": "¿Por Qué No Has Venido?",
+    "re fa si": "Re Fa Si",
+    "don alvaro": "Don Álvaro",
+    # a bracketed dedication or gloss moves to altTitles
+    "milonguero viejo": ("Milonguero Viejo", ["Fresedo"]),
+    "comme il faut": ("Comme Il Faut", ["Como Debe Ser"]),
+    "shusheta": ("Shusheta", ["El Aristócrata"]),
+}
+# the leaders whose surname in brackets is a dedication or an orchestra tag, never part of the title (dancer R14-12)
+LEADER_SURNAMES = {norm_title(v).split()[-1] for v in GOLDEN_ORCH.values()} | {"d arienzo", "di sarli", "de caro"}
+PAREN_RE = re.compile(r"\s*\(([^()]*)\)")
+
+def clean_parentheticals(title):
+    """"Milonguero Viejo(fresedo)" → ("Milonguero Viejo", ["Fresedo"]); "Chiqué(el Elegante)" → "Chiqué (El Elegante)".
+    A doubled parenthetical collapses; a leader's surname moves to altTitles; a lower-case first letter is re-cased."""
+    alts, parts, seen = [], [], set()
+    for m in PAREN_RE.finditer(title):
+        inner = m.group(1).strip()
+        if not inner or inner.lower() in seen: continue
+        seen.add(inner.lower())
+        n = norm_title(inner)
+        if n in LEADER_SURNAMES or n.split()[-1:] and " ".join(n.split()[-2:]) in LEADER_SURNAMES:
+            alts.append(inner[:1].upper() + inner[1:]); continue
+        parts.append("(" + inner[:1].upper() + inner[1:] + ")")
+    head = PAREN_RE.sub("", title).strip()
+    return (" ".join([head] + parts), alts)
+
+def undated_compilation(s):
+    """Round 14 (discography R9): no recording date, and an album that names neither the orchestra nor the singer
+    (a mixed compilation such as "TRA LA LA", "VOCES FEMENINAS X"): quinteto and solo-singer sides slip in that way."""
+    if s.get("date"): return False
+    alb = norm_title(s.get("album") or "")
+    keys = [w for w in norm_title(s["orchestra"]).split() if len(w) > 2][-1:]
+    if s.get("singer"): keys += [w for w in norm_title(s["singer"]).split() if len(w) > 2][-1:]
+    return not any(k in alb for k in keys)
+
+def apply_round14(songs):
+    by_id = {s["id"]: s for s in songs}
+    for drop, keep in MERGE_ROWS.items():
+        if drop in by_id and keep in by_id:
+            k = by_id[keep]
+            k["altIds"] = sorted(set((k.get("altIds") or []) + [drop] + (by_id[drop].get("altIds") or [])))
+            if by_id[drop].get("selection"): k["selection"] = True
+    songs = [s for s in songs if s["id"] not in MERGE_ROWS or MERGE_ROWS[s["id"]] not in by_id]
+    for sp in SPLIT_ROWS:
+        src = by_id.get(sp["from"])
+        if not src: continue
+        row = {**{k: v for k, v in src.items() if k not in ("altIds", "selection")}, **{k: v for k, v in sp.items() if k != "from"}}
+        row["id"] = hashlib.sha1(f"{row['title']}|{row['orchestra']}|{row['singer']}|{row['date']}|split".encode()).hexdigest()[:10]
+        row["album"] = None
+        row["notes"] = "round 14: split from " + sp["from"]
+        songs.append(row)
+    for s in songs:
+        t, alts = clean_parentheticals(s["title"])
+        w = TITLE_WORK.get(norm_title(s["title"]))
+        if isinstance(w, tuple): t, alts = w[0], alts + w[1]
+        elif w: t = w
+        if t != s["title"]:
+            s["title"] = t
+        if alts: s["altTitles"] = sorted(set((s.get("altTitles") or []) + alts))
+        p = ID_PATCH.get(s["id"])
+        if p:
+            for k, v in p.items():
+                s[k] = sorted(set((s.get(k) or []) + v)) if k == "altTitles" else v
+            if "date" in p and re.fullmatch(r"\d{4}-\d{2}-\d{2}", p["date"]):
+                s["year"] = int(p["date"][:4]); s["era"] = era_of(s["year"]); s.pop("yearApprox", None)
+        if undated_compilation(s): s["undatedCompilation"] = True
+        else: s.pop("undatedCompilation", None)
+    return songs
+
 def main():
     raw = build_songs()
-    songs = fix_range_years(dedupe(raw))
+    songs = apply_round14(fix_range_years(dedupe(raw)))
     coverage = build_coverage()
     cov_by_id = {c["orchestraId"]: c for c in coverage}
     orchestras = collections.OrderedDict()
@@ -389,6 +501,7 @@ def main():
         "yearApprox": sum(1 for s in songs if s.get("yearApprox")),
         "rhythmFixed": sum(1 for s in songs if s.get("rhythmOriginal")),
         "pseudoSingers": sum(1 for s in songs if s.get("note")),
+        "undatedCompilations": sum(1 for s in songs if s.get("undatedCompilation")),
         "version": 3,
     }
     (OUT / "songs.json").write_text(json.dumps(songs, ensure_ascii=False, separators=(",", ":")))

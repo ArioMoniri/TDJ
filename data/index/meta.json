@@ -1,13 +1,13 @@
 {
-  "builtAt": "2026-11-10T16:33:24.380359+00:00",
+  "builtAt": "2026-11-10T18:13:52.574238+00:00",
   "songs": 19118,
-  "orchestras": 795,
-  "singers": 1069,
+  "orchestras": 796,
+  "singers": 1068,
   "rhythms": {
-    "tango": 15177,
-    "vals": 1489,
-    "milonga": 1003,
-    "other": 386,
+    "tango": 15176,
+    "vals": 1488,
+    "milonga": 1004,
+    "other": 387,
     "cancion": 221,
     "pasodoble": 118,
     "ranchera": 116,
@@ -41,7 +41,8 @@
   "mergedDuplicates": 2814,
   "transcriptions": 1295,
   "yearApprox": 1928,
-  "rhythmFixed": 61,
-  "pseudoSingers": 95,
+  "rhythmFixed": 63,
+  "pseudoSingers": 96,
+  "undatedCompilations": 2162,
   "version": 3
 }
