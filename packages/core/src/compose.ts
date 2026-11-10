@@ -707,7 +707,25 @@ export function compose(
   const tryLayers = (slot: Slot, layers: TandaCandidate[][], sc: Scoring): Tanda | null => {
     for (const l of layers) {
       const t = buildTanda(slot, l, o, rng, ctx, sc);
-      if (t) return t;
+      if (!t) continue;
+      // round 12 (R6): in the last third of a long night a tanda more than 10 under its target gets up to three more
+      // families from the same layer and the closest holds the chair (a soft De Angelis–Dante at e63 for t80 sank
+      // the marathon's last third once a few more sides carried their stream length)
+      if (o.hours >= 5 && slot.position >= 0.66 && t.energy < slot.targetEnergy - 10) {
+        let best = t;
+        const tried = new Set([famKey(t)]);
+        for (let k = 0; k < 3; k++) {
+          const pool = l.filter((c) => !tried.has(famKey(c)));
+          if (!pool.length) break;
+          const u = buildTanda(slot, pool, o, rng, ctx, sc);
+          if (!u) break;
+          tried.add(famKey(u));
+          if (Math.abs(u.energy - slot.targetEnergy) < Math.abs(best.energy - slot.targetEnergy)) best = u;
+          if (best.energy >= slot.targetEnergy - 10) break;
+        }
+        return best;
+      }
+      return t;
     }
     return null;
   };
