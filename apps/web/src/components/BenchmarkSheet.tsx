@@ -203,6 +203,52 @@ export function BenchmarkSheet({
           ))}
         </Group>
       )}
+      {shown?.strict && (
+        <Group
+          header={`Strict panel · ${shown.strict.blockers} blockers · ${shown.strict.shouldFix} should-fix`}
+          footer="The round-14 strict panel: a milonguera, a purist encuentro DJ and a discographer. Every rule runs on every night the engine composes or improves; a blocker means the night is not played as it is."
+        >
+          {shown.strict.rules
+            .filter((r) => r.applies)
+            .map((r) => (
+              <div
+                key={r.key}
+                className="cell flex-col items-stretch gap-1 py-3"
+                data-testid="strict-rule"
+                data-key={r.key}
+                data-status={r.pass ? "ok" : r.severity === "blocker" ? "off" : "near"}
+              >
+                <div className="flex items-center gap-2.5">
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{
+                      background: r.pass
+                        ? "var(--system-green)"
+                        : r.severity === "blocker"
+                          ? "var(--destructive)"
+                          : "var(--system-gold)",
+                    }}
+                    role="img"
+                    aria-label={r.pass ? "Pass" : r.severity === "blocker" ? "Blocker" : "Should fix"}
+                  />
+                  <span className="min-w-0 flex-1">{r.label}</span>
+                  <span className="cell-value text-subhead text-right tabular-nums">
+                    {r.pass ? "pass" : `${r.violations.length} × ${r.severity}`}
+                  </span>
+                </div>
+                {!r.pass && (
+                  <span className="text-footnote pl-5 text-[var(--label-2)]">
+                    {r.violations
+                      .slice(0, 2)
+                      .map((v) => v.detail)
+                      .join(" · ")}
+                  </span>
+                )}
+                <span className="text-caption1 pl-5 text-[var(--label-3)]">{r.source}</span>
+              </div>
+            ))}
+        </Group>
+      )}
     </Sheet>
   );
 }
