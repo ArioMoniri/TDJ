@@ -21,7 +21,9 @@ const cache = new Map<string, Promise<Playlist>>();
 export function loadFeatured(id: FeaturedId): Promise<Playlist> {
   let p = cache.get(id);
   if (!p) {
-    p = fetch(`/featured/${id}.json`, { cache: "force-cache" })
+    // revalidate every time (a 304 when nothing changed): "force-cache" kept a browser on the first copy it saw, so
+    // a corrected night (a cortina's artist, new Spotify ids) never reached it and its export dropped that cortina
+    p = fetch(`/featured/${id}.json`, { cache: "no-cache" })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`featured night ${id}: ${r.status}`))))
       .then(async (j: Playlist & { seed?: number }) => {
         if (!j || !Array.isArray(j.tandas) || !j.tandas.length || !j.options)
