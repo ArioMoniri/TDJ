@@ -158,9 +158,10 @@ test("analyse in browser: the worker turns a synthetic preview into key + BPM an
 }) => {
   await mockPreviews(page);
   await page.goto("/database");
-  await page.getByLabel("Search the index").fill("Milonga de Mis Amores");
-  // (round 15, R4a: the shared Deezer track stays on the 1944 instrumental row)
-  const card = page.locator('[data-song="ec218ffa61"]');
+  await page.getByLabel("Search the index").fill("Milonga Compadre");
+  // (round 16, M5: the 1944 Milonga de Mis Amores lost its Deezer track — Láurenz also recorded it with Farrel — so
+  // the resolved Láurenz milonga of this test is Milonga Compadre 1938)
+  const card = page.locator('[data-song="8f5b9de6b5"]');
   await expect(card).toBeVisible({ timeout: 15000 });
   await expect(card.locator('[data-resolved="true"]')).toBeVisible();
   await card.getByRole("button", { name: /^Analyse/ }).click();
@@ -172,7 +173,7 @@ test("analyse in browser: the worker turns a synthetic preview into key + BPM an
   // the analysed features survive a reload (IndexedDB)
   await page.waitForTimeout(600);
   await page.reload();
-  await page.getByLabel("Search the index").fill("Milonga de Mis Amores");
+  await page.getByLabel("Search the index").fill("Milonga Compadre");
   await expect(card.getByText(/analysed here/)).toBeVisible({ timeout: 15000 });
 });
 

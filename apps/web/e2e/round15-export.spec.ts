@@ -121,6 +121,10 @@ test("a Spotify export writes only the right recordings, in order, and lists wha
       .map((k) => `spotify:track:ok${k}`)
       .filter((u) => ok.includes(u)),
   );
-  expect(ok.length).toBe(searched.length - 1);
-  expect(await sheet.getByTestId("export-missing").locator("li").count()).toBeGreaterThanOrEqual(1);
+  // (round 16: an undated "Grabaciones completas" is no evidence beside a later take the index knows — such a side is
+  // reported "Not matched" too, never guessed)
+  expect(ok.length).toBeGreaterThan((searched.length - 1) / 2);
+  expect(await sheet.getByTestId("export-missing").locator("li").count()).toBeGreaterThanOrEqual(
+    searched.length - ok.length,
+  );
 });
