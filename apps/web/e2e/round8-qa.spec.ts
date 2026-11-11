@@ -190,7 +190,7 @@ test("B7 / B8 / B9: the Time card says it is resolving, Start counts the clips, 
   await expect(page.getByTestId("booth-resolving")).toHaveCount(0, { timeout: 20000 });
   const ttc = Number(await page.getByTestId("booth-time").getAttribute("data-ttc"));
   expect(ttc).toBeGreaterThan(0);
-  await expect(page.getByTestId("booth-start")).toHaveText(/Start with 30 s clips( · \d+ without a clip)?/);
+  await expect(page.getByTestId("booth-start")).toHaveText(/^Start · 30 s clips$/);
   // Space with a queued break ends the break instead of leaving the transport unreadable (B8)
   await page.getByTestId("booth-start").click();
   await expect(page.getByTestId("booth")).toHaveAttribute("data-state", "playing", { timeout: 20000 });

@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { clockLabel, driftLabel, durationLabel } from "@/lib/booth/plan";
+import { clockLabel, driftLabel, durationLabel, remainingFrom } from "@/lib/booth/plan";
 import { useBooth } from "@/lib/booth/store";
 
 /**
@@ -33,6 +33,8 @@ export function TimeCard() {
     ? Math.max(0, tandas - (cur.kind === "closing" && cur.tanda > 0 ? tandas : cur.tanda))
     : tandas;
   const end = (started && startedWall ? startedWall : now) + remaining * 1000;
+  // a rehearsal plays 30 s clips; the night itself plays every Spotify recording in full (round 18): both are shown
+  const full = rehearsal && !started ? remainingFrom(plan, planIndex, 0) : null;
   return (
     <section
       className="booth-card"
@@ -82,6 +84,17 @@ export function TimeCard() {
         <span className="booth-chip">
           {left} tanda{left === 1 ? "" : "s"} left
         </span>
+        {full && (
+          <span
+            className="booth-chip tabular-nums"
+            data-testid="booth-full-night"
+            data-remaining={Math.round(full.remainingSec)}
+            title="The night played in full from the Spotify recordings"
+          >
+            full night {durationLabel(full.remainingSec)}
+            {now ? ` · ends ${clockLabel(now + full.remainingSec * 1000)}` : ""}
+          </span>
+        )}
         {resolving && !started && (
           <span className="booth-chip" data-testid="booth-resolving">
             resolving sources…

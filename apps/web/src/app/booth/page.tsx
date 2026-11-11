@@ -60,6 +60,10 @@ function Booth() {
   const [jump, setJump] = useState<number | null>(null);
   const [light, setLight] = useState(false);
   const [levels, setLevels] = useState(false);
+  // the stored theme, read at mount: the persisting effect waits until `light` holds it (round 18: with the booth
+  // already ready at mount, its first run wrote "dark" over a stored "light" before setLight(true) landed)
+  const storedLight = useRef<boolean | null>(null);
+  const themeSynced = useRef(false);
 
   // while a night runs the phone tab bar leaves (round8-ux.md §1.5); "Leave the booth" in ••• is the way out
   useEffect(() => {
@@ -80,6 +84,7 @@ function Booth() {
     try {
       wantLight = localStorage.getItem(THEME_KEY) === "light";
     } catch {}
+    storedLight.current = wantLight;
     setLight(wantLight);
     el.dataset.theme = wantLight ? "light" : "dark";
     el.classList.toggle("dark", !wantLight);
@@ -94,7 +99,11 @@ function Booth() {
     };
   }, []);
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || storedLight.current === null) return;
+    if (!themeSynced.current) {
+      if (light !== storedLight.current) return;
+      themeSynced.current = true;
+    }
     const el = document.documentElement;
     el.dataset.theme = light ? "light" : "dark";
     el.classList.toggle("dark", !light);

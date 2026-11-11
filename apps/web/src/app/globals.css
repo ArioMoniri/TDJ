@@ -792,6 +792,10 @@ li + li > .cell[data-leading="num"]:first-child::before,
     margin-inline: calc(-1 * var(--bleed));
     padding-inline: var(--bleed);
   }
+  /* the booth's column is 1400 px wide, not 980: the 980 bleed pushed the band 120 px past the viewport at 1440 */
+  [data-booth] .toolbar-row {
+    --bleed: calc(2rem + max(0px, (100cqw - 1400px) / 2));
+  }
   .toolbar-band {
     background: linear-gradient(rgb(var(--bg-grouped)) calc(100% - 10px), rgb(var(--bg-grouped) / 0));
     padding-bottom: 12px;
@@ -1550,8 +1554,10 @@ html.theming *::after {
 /* /booth (round7-booth.md §1): content on the surface, the control strip is the one glass surface; type scale
    readable at 2 m (title 34 pt, remaining / time-to-Cumparsita 44 pt tabular, clock 28 pt, next 22 pt);
    progress is transform-only; no layout animation in the set list. */
+/* round 18: the foot of the page clears the control strip exactly (ControlStrip measures the space it takes from
+   the viewport's bottom into --booth-strip-space: its height, its offset over the tab bar and the safe area) */
 .booth {
-  padding-bottom: calc(env(safe-area-inset-bottom) + 160px);
+  padding-bottom: calc(var(--booth-strip-space, calc(env(safe-area-inset-bottom) + 144px)) + 16px);
 }
 .booth-grid {
   display: grid;
@@ -1579,8 +1585,11 @@ html.theming *::after {
 }
 /* lg–1600: Now on top, Next + Time under it, the set at the right with room for whole titles (≥ 360 px) */
 @media (min-width: 1024px) {
+  /* rows `auto 1fr`: the set column spans both rows, and its height goes to the second one, so Now keeps its own
+     height and Time sits right under it (round 18: a 100 px gap opened between them at 1440) */
   .booth-grid {
-    grid-template-columns: minmax(0, 1fr) minmax(360px, 440px);
+    grid-template-columns: minmax(0, 1fr) minmax(360px, min(500px, 42%));
+    grid-template-rows: auto 1fr;
     align-items: start;
   }
   .booth-col-now {
@@ -1759,6 +1768,32 @@ html.theming *::after {
 .booth-row-title {
   overflow-wrap: anywhere;
 }
+/* round 18: fixed trailing columns (length · one 44 px action · swap) so a row with "Find…" or without a swap
+   button keeps its length where every other row has it */
+.booth-row-len {
+  flex: none;
+  width: 36px;
+  text-align: right;
+}
+.booth-row-act {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  min-height: 44px;
+}
+.booth-spotify {
+  color: var(--label-2);
+}
+.booth-spotify:hover {
+  color: var(--label);
+}
+.booth-norehearse > summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+}
 /* a narrow column drops the orchestra sub-line before it would shorten the title */
 @container booth-set (max-width: 320px) {
   .booth-row-sub {
@@ -1809,6 +1844,10 @@ html.theming *::after {
   .booth-strip .booth-fader {
     display: none;
   }
+  /* before the night starts Next and Stop are disabled: on a phone they give their room to the Start label */
+  .booth-strip[data-started="false"] .booth-prestart-hide {
+    display: none;
+  }
   /* the nav sets its transform/opacity inline: the attribute selector wins through `visibility` + `pointer-events`,
      and the strip's bottom offset moves down over it */
   html[data-booth-live] nav[aria-label="Primary mobile"] {
@@ -1818,8 +1857,24 @@ html.theming *::after {
   html[data-booth-live] .booth-strip {
     bottom: max(0.75rem, env(safe-area-inset-bottom));
   }
-  html[data-booth-live] .booth {
-    padding-bottom: calc(env(safe-area-inset-bottom) + 96px);
+}
+/* the primary button shrinks before the strip overflows (its label truncates; round 18: it ran off a 390 px phone) */
+.booth-strip .btn.booth-primary {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+.booth-start-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.booth-start-extra {
+  display: none;
+}
+@media (min-width: 1200px) {
+  .booth-start-extra {
+    display: inline;
   }
 }
 /* the "Find…" row action shows on hover / focus where there is a pointer (a column of red links read as failures) */
@@ -1877,6 +1932,13 @@ html.theming *::after {
   min-height: 44px;
   writing-mode: vertical-lr;
   direction: rtl;
+}
+/* round 18: the strip's faders are horizontal, inside its 64 px row */
+.booth-strip .booth-fader input[type="range"] {
+  width: 88px;
+}
+.booth-strip .booth-fader > span:last-child {
+  min-width: 4.5ch;
 }
 /* the stop ring is red only once a night runs; before that it is a quiet glyph (round8-ux.md §2 Booth) */
 .booth-stop {

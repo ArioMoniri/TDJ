@@ -10,7 +10,7 @@ import {
   Square,
   VolumeX,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useBooth } from "@/lib/booth/store";
 import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
@@ -21,8 +21,8 @@ export const STOP_HOLD_MS = 600;
 
 /**
  * Control strip (round7-booth.md §1.1): the only glass surface of the page, 64 px tall, every control ≥ 44 px.
- * Start the night → Hold / Play, Next at gap, Stop (press-and-hold 600 ms), the cortina fader (vertical on
- * desktop), the master fader, Birthday vals, Break, the overflow. Phones (round8-ux.md §1.5): one row of five, the
+ * Start the night → Hold / Play, Next at gap, Stop (press-and-hold 600 ms), the cortina fader and the master fader
+ * (horizontal, inside the 64 px row: round 18 — the vertical faders' knobs stuck out of the capsule), Birthday vals, Break, the overflow. Phones (round8-ux.md §1.5): one row of five, the
  * two faders behind a Levels button.
  */
 export function ControlStrip({
@@ -50,10 +50,42 @@ export function ControlStrip({
   const sourceMode = useBooth((s) => s.sourceMode);
   const [holdPct, setHoldPct] = useState(0);
   const holdTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const stripRef = useRef<HTMLDivElement>(null);
+  // the page's bottom padding follows the strip (round 18): the space it takes from the viewport's foot (its height,
+  // its offset over the tab bar, the safe area), so the last row of the set always scrolls clear of it
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-measured when a night starts (the strip moves down)
+  useEffect(() => {
+    const el = stripRef.current;
+    if (!el) return;
+    const root = document.documentElement;
+    const measure = () => {
+      const top = el.getBoundingClientRect().top;
+      root.style.setProperty("--booth-strip-space", `${Math.max(0, Math.ceil(window.innerHeight - top))}px`);
+    };
+    measure();
+    const ro = typeof ResizeObserver === "function" ? new ResizeObserver(measure) : null;
+    ro?.observe(el);
+    window.addEventListener("resize", measure);
+    // the strip moves down when the tab bar leaves (a night runs): measure after its transition too
+    el.addEventListener("transitionend", measure);
+    const t = setTimeout(measure, 400);
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener("resize", measure);
+      el.removeEventListener("transitionend", measure);
+      clearTimeout(t);
+      root.style.removeProperty("--booth-strip-space");
+    };
+  }, [started]);
   const live = state === "playing" || state === "cortina";
   const missing = plan
     ? sources.filter((s, i) => s === "missing" && !!plan.items[i] && plan.items[i].kind !== "break").length
     : 0;
+  // Spotify mode, or no file plays tonight and Premium plays the songs: the label says Spotify
+  const allSpotify =
+    sourceMode === "spotify" ||
+    (sources.includes("spotify") &&
+      !sources.some((s, i) => s === "file" && plan?.items[i]?.kind !== "break"));
 
   const beginStop = () => {
     const t0 = Date.now();
@@ -76,7 +108,7 @@ export function ControlStrip({
   const primary = !started ? (
     <button
       type="button"
-      className="btn btn-primary min-h-11 px-4"
+      className="btn btn-primary booth-primary min-h-11 px-4"
       onClick={() => {
         haptic(8);
         void act.start();
@@ -85,16 +117,14 @@ export function ControlStrip({
       data-testid="booth-start"
     >
       <Play size={18} fill="currentColor" strokeWidth={0} aria-hidden />
-      {/* the label names the source (round8-ux.md §3) */}
-      {rehearsal
-        ? missing
-          ? `Start with 30 s clips · ${missing} without a clip`
-          : "Start with 30 s clips"
-        : sourceMode === "spotify"
-          ? "Start with Spotify"
-          : missing
-            ? `Start from your files · ${missing} without source`
-            : "Start from your files"}
+      {/* the label names the source (round8-ux.md §3) and fits a 390 px phone (round 18): the count of items
+          without a source is the Now card's / the set's business, and only joins the label where there is room */}
+      <span className="booth-start-label">
+        {rehearsal ? "Start · 30 s clips" : allSpotify ? "Start · Spotify" : "Start · your files"}
+        {!rehearsal && !allSpotify && missing > 0 && (
+          <span className="booth-start-extra"> · {missing} without source</span>
+        )}
+      </span>
     </button>
   ) : live && !holding ? (
     <button
@@ -121,11 +151,18 @@ export function ControlStrip({
   );
 
   return (
-    <div className="booth-strip glass" data-testid="booth-strip" role="toolbar" aria-label="Transport">
+    <div
+      ref={stripRef}
+      className="booth-strip glass"
+      data-testid="booth-strip"
+      role="toolbar"
+      aria-label="Transport"
+      data-started={started}
+    >
       {primary}
       <button
         type="button"
-        className="icon-btn"
+        className="icon-btn booth-prestart-hide"
         aria-label="Next at gap"
         title="The queued item is skipped at the next gap (→)"
         onClick={() => act.next()}
@@ -136,7 +173,7 @@ export function ControlStrip({
       </button>
       <button
         type="button"
-        className={`icon-btn booth-stop ${started && state !== "stopped" ? "booth-stop-armed" : ""}`}
+        className={`icon-btn booth-stop booth-prestart-hide ${started && state !== "stopped" ? "booth-stop-armed" : ""}`}
         aria-label="Stop (press and hold)"
         title="Press and hold 600 ms: everything fades out in 1 s"
         disabled={!started || state === "stopped"}
@@ -165,7 +202,6 @@ export function ControlStrip({
             max={1}
             step={0.05}
             onChange={act.setCortinaFader}
-            vertical
             display={`${Math.round(cortinaFader * 100)} %`}
             testId="booth-cortina-fader"
           />
@@ -176,7 +212,6 @@ export function ControlStrip({
             max={6}
             step={1}
             onChange={act.setMaster}
-            vertical
             display={`${master > 0 ? "+" : ""}${master} dB`}
             testId="booth-master"
           />
