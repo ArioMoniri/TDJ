@@ -1245,7 +1245,13 @@ export function buildTanda(
   // another by the order they are checked in)
   const preds: Array<[(c: TandaCandidate) => boolean, number]> = [
     [heatOk, 3],
-    [(c) => (availOf(c), !needsReissue.has(c)), 2],
+    [
+      (c) => {
+        availOf(c);
+        return !needsReissue.has(c);
+      },
+      2,
+    ],
     [transOk, 2],
     // a step of more than nine years on any boundary (H4's absolute limit) weighs one more
     [(c) => !(pairOf(c)?.hard.includes("H4") ?? false), 1],
