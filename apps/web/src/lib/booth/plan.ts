@@ -39,6 +39,8 @@ export function planEntities(p: Playlist, plan: Pick<BoothPlan, "items">): PlanE
     if (t.cortina) seq.push(t.cortina);
     for (const b of p.breaks ?? []) if (b.afterTanda === ti) seq.push(null);
   });
+  // the closing La Cumparsita (round 18: it was left out, so the booth printed "?" with no source)
+  if (p.closing) seq.push(p.closing);
   return plan.items.map((_, i) => seq[i] ?? null);
 }
 

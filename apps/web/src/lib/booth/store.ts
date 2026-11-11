@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { makeNightLog, makeSnapshot } from "@/lib/history";
 import { useStore } from "@/lib/store";
 import { cortinaStopSec } from "@/lib/types";
+import { clipSummary, withSpotifyLengths } from "./clips";
 import {
   BoothEngine,
   type BoothItemRuntime,
@@ -69,6 +70,8 @@ interface BoothStore {
   sourceMode: SourceMode;
   /** the whole night plays on 30 s clips: rehearsal mode, or every playable item falls back to a preview */
   rehearsal: boolean;
+  /** round 18: the items no clip of their Spotify recording can rehearse, with the reason (plan indexes) */
+  notRehearsable: Array<{ i: number; title: string; why: string }>;
   availability: Record<SourceKind, { ok: boolean; reason?: string; checked: boolean }>;
   folder: FolderStatus;
   suggestions: Record<string, Array<{ path: string; name: string }>>;
@@ -162,7 +165,9 @@ function rePlan(p: Playlist, settings: BoothSettings): { playlist: Playlist; pla
     cortinaStopSec: cortinaStopSec(user, p.options.cortinaLengthSec),
     measurements: local?.measurementsById() ?? {},
   };
-  const playlist = attachBooth(p, inputs);
+  // round 18: a side with a checked Spotify match is timed at that recording's length (what the DJ plays)
+  const timed = attachBooth(withSpotifyLengths(p), inputs);
+  const playlist: Playlist = { ...p, booth: timed.booth, stats: timed.stats };
   // write back only when the plan changed: the page re-boots on the store's playlist, so an identical plan must
   // not produce a new object (that was an update loop)
   const app = useStore.getState();
@@ -211,6 +216,7 @@ export const useBooth = create<BoothStore>()((set, get) => ({
   settings: DEFAULT_BOOTH_SETTINGS,
   sourceMode: "file",
   rehearsal: false,
+  notRehearsable: [],
   availability: { file: EMPTY_AVAIL, spotify: EMPTY_AVAIL, preview: EMPTY_AVAIL },
   folder: { name: null, files: 0, matched: 0, total: 0, permission: "none", session: false, canKeep: false },
   suggestions: {},
@@ -324,10 +330,15 @@ export const useBooth = create<BoothStore>()((set, get) => ({
       // before the night starts the playhead sits on the first item that can play
       const first = sources.findIndex((s, i) => s !== "missing" && rows[i]!.kind !== "break");
       const planIndex = get().started ? get().planIndex : Math.max(0, first);
+      const clips = clipSummary(entities.map((e) => e ?? null));
+      const notRehearsable = rehearsal
+        ? clips.none.filter((x) => sources[x.i] === "missing" && rows[x.i]?.kind !== "break")
+        : [];
       set({
         availability,
         sources,
         rehearsal,
+        notRehearsable,
         planIndex,
         ...(get().started ? {} : derive(plan, planIndex, 0, capFor(sources, rehearsal))),
         folder: {
