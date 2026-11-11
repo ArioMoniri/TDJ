@@ -213,3 +213,33 @@ export function orderVerdictOf(songs0: Song[], ctx: OrderCtx = {}): string[] {
   }
   return why;
 }
+
+/**
+ * Round 17: a tanda whose order is a release cut at a boundary (the energyStep fixer) — it closes on the side that
+ * (a vals or milonga before a tango) steps ≤ 16 down to the next tanda's first side where another of its sides would step more, or it opens on the side
+ * within 16 of the previous tanda's last side where another would open more than 16 below it. The older corpus-role
+ * and two-hottest order rules yield to such a tanda (`OrderCtx.releaseCut`).
+ */
+export function isReleaseCut(tandas: Pick<Tanda, "songs" | "rhythm">[], i: number): boolean {
+  const e = (s: Song) => s.energy ?? 50;
+  const ss = (tandas[i]?.songs ?? []).filter((s) => !isCump(s));
+  if (ss.length < 2) return false;
+  const next = tandas[i + 1]?.songs.filter((s) => !isCump(s))[0];
+  const prev = i > 0 ? tandas[i - 1]?.songs.filter((s) => !isCump(s)).at(-1) : undefined;
+  const last = ss.at(-1)!,
+    first = ss[0]!;
+  // (the energyStep release: a vals or milonga into a tango)
+  const out =
+    !!next &&
+    tandas[i]!.rhythm !== "tango" &&
+    tandas[i + 1]!.rhythm === "tango" &&
+    e(last) - e(next) <= 16 &&
+    ss.some((s) => s !== last && e(s) - e(next) > 16);
+  const into =
+    !!prev &&
+    tandas[i - 1]!.rhythm !== "tango" &&
+    tandas[i]!.rhythm === "tango" &&
+    e(prev) - e(first) <= 16 &&
+    ss.some((s) => s !== first && e(prev) - e(s) > 16);
+  return out || into;
+}

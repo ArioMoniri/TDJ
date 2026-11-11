@@ -5,7 +5,7 @@ import { type ComposeDeps, computeStats, familyBreaks, makeScoring } from "./com
 import { candidatesFor, cortinaPool, cortinaTempo, familyOf } from "./cortinas";
 import { isDanceableSong, normTitle } from "./energy";
 import { familyBand, goldenClassOf, isColour, isGoldenNight } from "./knowledge";
-import { heatOfSides, type OrderCtx, orderCost, orderVerdictOf, strictOrder } from "./order";
+import { heatOfSides, isReleaseCut, type OrderCtx, orderCost, orderVerdictOf, strictOrder } from "./order";
 import { CORPUS_CAPS, DEFAULT_CAP, NEVER_OPEN, OPENERS } from "./rules";
 import { scorePlaylist } from "./score";
 import {
@@ -184,12 +184,48 @@ export function strictRepair(
   const edits: Array<Omit<RepairEdit, "playlist">> = [];
   const maxSteps = opts.maxSteps ?? 40;
   const tried = new Set<string>();
+  const cutKeys = new Set<string>();
+  const sidesKey = (t: Tanda) =>
+    t.songs
+      .map((s) => s.id)
+      .sort()
+      .join();
   for (let step = 0; step < maxSteps && curR.violations.length; step++) {
     const r = bestEdit(cur, curR, deps, opts, tried);
     if (!r) break;
     edits.push({ kind: r.edit.kind, tanda: r.edit.tanda, text: r.edit.text });
     cur = r.edit.playlist;
     curR = r.res;
+    if (/the release cut at the sides/.test(r.edit.text))
+      for (const i of [r.edit.tanda - 1, r.edit.tanda])
+        if (cur.tandas[i]) cutKeys.add(sidesKey(cur.tandas[i]!));
+  }
+  // round 17: a tanda ordered for a release cut whose boundary a later edit changed (its neighbour replaced or moved)
+  // takes its own order again, when the panel is no worse for it
+  for (let i = 0; i < cur.tandas.length; i++) {
+    const t = cur.tandas[i]!;
+    if (!cutKeys.has(sidesKey(t)) || isReleaseCut(cur.tandas, i)) continue;
+    const songs = strictOrder(t.songs, isPeakSlot(t), orderCtxOf(cur.tandas, i));
+    if (songs.every((s, k) => s === t.songs[k])) continue;
+    const tandas = cur.tandas.slice();
+    tandas[i] = retanda(t, songs, t);
+    const q: Playlist = {
+      ...cur,
+      tandas,
+      stats: { ...cur.stats, ...computeStats(tandas, cur.closing, cur.options) },
+    };
+    const r2 = strictChecks(q);
+    // (the round-16 order rules outrank a song-order item, as in the composer: only the rest of the panel is compared)
+    const rest = (x: StrictResult) => x.penalty - 0.25 * countOf(x, "sideOrder");
+    if (r2.blockers > curR.blockers || rest(r2) > rest(curR) + 1e-9) continue;
+    q.score = scorePlaylist(q);
+    edits.push({
+      kind: "reorder",
+      tanda: i,
+      text: `Tanda ${i + 1}: ${tName(t)} reordered (its boundary is no release cut now)`,
+    });
+    cur = q;
+    curR = r2;
   }
   // tandas moved or replaced: the cues they now sit between are re-picked under the placement and panel rules
   const rc = recue(cur.tandas, deps, cur.options);
@@ -1230,7 +1266,9 @@ export function editsFor(
       const i = v.tanda;
       const a = cur.tandas[i - 1]!,
         b = cur.tandas[i]!;
-      if (a.energy <= b.energy || a.locked || b.locked) continue;
+      // (the rule's release: a vals or milonga into a tango)
+      if (a.energy <= b.energy || a.locked || b.locked || a.rhythm === "tango" || b.rhythm !== "tango")
+        continue;
       if (a.songs.some(isCump) || b.songs.some(isCump)) continue;
       const e = (x: Song) => x.energy ?? 50;
       const ctxA = orderCtxOf(cur.tandas, i - 1);
