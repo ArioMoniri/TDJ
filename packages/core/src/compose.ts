@@ -435,6 +435,15 @@ function composeOnce(
     });
   const cat = deps.catalog;
   const sc = makeScoring(cat, o, deps.contextModel);
+  /** round 15: the night's context (beginners: no dramatic style, no family above the difficulty) for the panel's
+   * narrow fallback pools, where the builder's own context filter (three alternatives) cannot act */
+  const contextFam = (c: TandaCandidate) => {
+    const p = cat.profile(c.orchestraId);
+    return (
+      !sc.avoidStyles?.includes(p?.style ?? "balanced") &&
+      (sc.maxDifficulty === undefined || (p?.difficulty ?? 0) <= sc.maxDifficulty)
+    );
+  };
   const byRhythm: Record<DanceRhythm, TandaCandidate[]> = { tango: [], vals: [], milonga: [] };
   const breaksOf = familyBreaks(cat);
   for (const r of ["tango", "vals", "milonga"] as DanceRhythm[]) {
@@ -1445,7 +1454,7 @@ function composeOnce(
         return es.slice(0, need).reduce((a, b) => a + b, 0) / need;
       };
       const fams = byRhythm.vals
-        .filter(gapFreeCand)
+        .filter((c) => gapFreeCand(c) && contextFam(c))
         .map((c) => ({ c, e: coolOf(c) }))
         .filter((x): x is { c: TandaCandidate; e: number } => x.e !== null);
       if (fams.length) {
@@ -1453,9 +1462,14 @@ function composeOnce(
         // (within 14 of the coolest, so the warm-up vals still varies between seeds)
         const lim = Math.max(slot.targetEnergy + 10, coolest + 14);
         const sc1 = scFor(slot);
+        // (the coolest orchestra steps back on some seeds when another fits, so the warm-up vals varies)
+        let warm = fams.filter((x) => x.e <= lim);
+        const coolOrch = warm.find((x) => x.e === coolest)?.c.orchestraId;
+        const others = warm.filter((x) => x.c.orchestraId !== coolOrch);
+        if (others.length && makeRng((seed ^ 0x2545f491) >>> 0).next() < 0.4) warm = others;
         tanda = buildTanda(
           slot,
-          fams.filter((x) => x.e <= lim).map((x) => x.c),
+          warm.map((x) => x.c),
           o,
           rng,
           ctx,
@@ -1531,13 +1545,20 @@ function composeOnce(
     if (slot.rhythm !== "tango" && isClassicCycle(o) && (!tanda || (vmNeed && mf(tanda) < vmNeed))) {
       const sc1 = scFor(slot);
       // (judged among the families the repeat gaps allow: the builder's preference filters never leave only blocked ones)
-      const second = buildTanda(slot, byRhythm[slot.rhythm].filter(gapFreeCand), o, rng, ctx, {
-        ...sc1,
-        maxPerNight: (id) => (sc1.maxPerNight?.(id) === 0 ? 0 : 99),
-        notAfter: () => undefined,
-        phase: () => ["any"],
-        relaxed: true,
-      });
+      const second = buildTanda(
+        slot,
+        byRhythm[slot.rhythm].filter((c) => gapFreeCand(c) && contextFam(c)),
+        o,
+        rng,
+        ctx,
+        {
+          ...sc1,
+          maxPerNight: (id) => (sc1.maxPerNight?.(id) === 0 ? 0 : 99),
+          notAfter: () => undefined,
+          phase: () => ["any"],
+          relaxed: true,
+        },
+      );
       if (!tanda || mf(second) > mf(tanda)) tanda = second ?? tanda;
       // a golden night's late or hot vals / milonga that can only take an unknown family (mean fame under the
       // panel's floor, a blocker) takes a known one that streams, a second family of a played orchestra allowed
@@ -1557,7 +1578,7 @@ function composeOnce(
         );
       };
       if (need && mf(tanda) < need) {
-        const strong = byRhythm[slot.rhythm].filter((c) => gapFreeCand(c) && famous(c));
+        const strong = byRhythm[slot.rhythm].filter((c) => gapFreeCand(c) && famous(c) && contextFam(c));
         const s2 = strong.length
           ? buildTanda(slot, strong, o, rng, ctx, {
               ...sc1,
@@ -1575,7 +1596,7 @@ function composeOnce(
         const near = buildTanda(
           slot,
           byRhythm[slot.rhythm].filter(
-            (c) => !ctx.recentOrchestras.slice(0, 3).includes(c.orchestraId) && famous(c),
+            (c) => !ctx.recentOrchestras.slice(0, 3).includes(c.orchestraId) && famous(c) && contextFam(c),
           ),
           { ...o, orchestraRepeatGap: 4 },
           rng,

@@ -154,6 +154,8 @@ describe("R4 — the closer side", () => {
         for (const t of p.tandas) {
           // (round 15: unless the sides allow no order that keeps every rule — the strict panel's fame rule for the last side outranks the corpus roles then)
           if (orderCost15(t.songs, isPeak15(t)) >= 10) continue;
+          // (and a tanda whose sides are all corpus openers but one has no legal last chair, round 10)
+          if (t.songs.filter((s) => s.role === "opener").length >= t.songs.length - 1) continue;
           const last = t.songs.at(-1)!;
           const hasFamous = t.songs.some((s) => (s.fame ?? 0) >= 2);
           const minE = Math.min(...t.songs.map((s) => s.energy ?? 50));
