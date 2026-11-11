@@ -155,6 +155,8 @@ export class Catalog {
       const spOff =
         !!sp?.durationMs &&
         !!resolved?.durationMs &&
+        // (a Deezer restoration runs 10–15 s long: then the Spotify length stands, discography §3)
+        !/restaur/i.test(`${resolved.title} ${resolved.album}`) &&
         Math.abs(sp.durationMs - resolved.durationMs) / 1000 > 8;
       const measured =
         s.durationSec ??

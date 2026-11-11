@@ -1,7 +1,9 @@
 import {
   type ExportOpts,
   type FlatTrack,
+  matchProblem,
   orderSpotifyUris,
+  type Song,
   type SpotifySlot,
   toSpotifyPlan,
 } from "@tdj/core";
@@ -19,7 +21,13 @@ export function spotifyPlanFor(
     ...playlist,
     tandas: playlist.tandas.map((t) => ({
       ...t,
-      songs: t.songs.map((s) => (own[s.id]?.spotify ? { ...s, spotify: own[s.id]!.spotify } : s)),
+      // (round 15: a remembered or carried match the rules reject is dropped: the side is searched again)
+      songs: t.songs.map((s) => {
+        const mine = own[s.id]?.spotify;
+        if (mine && storedMatchOk(s, mine)) return { ...s, spotify: mine };
+        if (s.spotify && !storedMatchOk(s, s.spotify)) return { ...s, spotify: null };
+        return mine ? s : s;
+      }),
     })),
     opening:
       playlist.opening && own[playlist.opening.id]?.spotify
@@ -49,7 +57,48 @@ export function matchItemFor(t: FlatTrack): MatchItem {
     year: t.year ?? null,
     durationSec: t.kind === "cortina" ? null : t.durationSec,
     isrc: (t as { isrc?: string | null }).isrc ?? null,
+    // round 15: a tango side carries what the match rules read (a cortina does not)
+    ...(t.kind === "cortina"
+      ? {}
+      : {
+          vocal: t.vocal ?? !!t.singer,
+          date: t.date ?? null,
+          durationEstimated: t.durationEstimated,
+          altTitles: t.altTitles,
+        }),
   };
+}
+
+/**
+ * Round 15: a stored match (the DJ's database, a night's JSON, the browser cache) is used only when the match rules
+ * accept it for the side; otherwise it is dropped and the side is searched again.
+ */
+export function storedMatchOk(
+  s: Pick<
+    Song,
+    | "title"
+    | "orchestra"
+    | "singer"
+    | "vocal"
+    | "year"
+    | "date"
+    | "durationSec"
+    | "durationEstimated"
+    | "altTitles"
+  >,
+  m:
+    | { uri?: string; name?: string; artist?: string; album?: string; durationMs?: number; matched?: string }
+    | null
+    | undefined,
+): boolean {
+  if (!m?.uri) return false;
+  const [artist, ...rest] = (m.matched ?? "").split(" – ");
+  const name = m.name ?? (rest.join(" – ") || s.title);
+  const artists = (m.artist ?? artist ?? "").split(/,\s*/).filter(Boolean);
+  return !matchProblem(
+    { ...s, vocal: !!s.vocal },
+    { name, artists: artists.length ? artists : [s.orchestra], album: m.album, durationMs: m.durationMs },
+  );
 }
 
 /** Batches of ≤10 items, the most the match route takes per request. */

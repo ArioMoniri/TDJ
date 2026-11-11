@@ -45,6 +45,20 @@ export async function POST(req: Request) {
       year: num(o.year),
       durationSec: num(o.durationSec),
       isrc: /^[A-Z0-9]{12}$/i.test(str(o.isrc, 12)) ? str(o.isrc, 12).toUpperCase() : null,
+      // round 15: what the hard match rules read (a cortina sends none of them)
+      ...(typeof o.vocal === "boolean"
+        ? {
+            vocal: o.vocal,
+            date: /^\d{4}-\d{2}-\d{2}$/.test(str(o.date, 10)) ? str(o.date, 10) : null,
+            durationEstimated: o.durationEstimated === true,
+            altTitles: Array.isArray(o.altTitles)
+              ? o.altTitles
+                  .slice(0, 5)
+                  .map((x) => str(x, 120))
+                  .filter(Boolean)
+              : undefined,
+          }
+        : {}),
     });
   }
   try {
