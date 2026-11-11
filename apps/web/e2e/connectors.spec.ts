@@ -97,7 +97,9 @@ function mockServer(): http.Server {
         });
         const items = [item(`spotify:track:cover${n}`, ["Orquesta Moderna de Hoy"], "2019-05-01", 201000)];
         if (!/nowhere/i.test(title ?? ""))
-          items.push(item(`spotify:track:found${n}`, [`${artist} y su Orquesta`], "1940-01-01", 170000));
+          // (round 15: the right recording carries no length here — the match rules judge a known side's length, and
+          // a mock cannot know it; 0 reads as "not given")
+          items.push(item(`spotify:track:found${n}`, [`${artist} y su Orquesta`], "1940-01-01", 0));
         return json(200, { tracks: { items } });
       }
       if (url === "/v1/me/playlists" && req.method === "POST")
@@ -842,7 +844,7 @@ test("POST /api/spotify/match scores up to 10 items: the orchestra's recording b
   expect(ciego.uri).toMatch(/^spotify:track:found/);
   expect(ciego.artist).toBe("Canaro y su Orquesta");
   expect(ciego.name).toBe("Ciego");
-  expect(ciego.durationMs).toBe(170000);
+  expect(ciego.durationMs).toBe(0); // (round 15: the mock gives the right recording no length)
   expect(ciego.year).toBe(1940);
   expect(ciego.score).toBeGreaterThanOrEqual(0.6);
   // the searches: one field-filtered query per item, the plain fallback only for the cover-only title

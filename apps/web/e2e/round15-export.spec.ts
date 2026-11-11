@@ -64,6 +64,12 @@ test("a Spotify export writes only the right recordings, in order, and lists wha
         hit(`spotify:track:trapCover${key}`, ["Orquesta Típica Fernández Fierro"], "Envasado en origen"),
         hit(`spotify:track:trapLater${key}`, [artist], `${artist} (1956-1958)`),
       ];
+      // (cortinas — pop and chanson — get their right track only: the traps are for the tango sides)
+      const tango =
+        /Arienzo|Sarli|Troilo|Pugliese|Biagi|Tanturi|Cal[oó]|Canaro|Agostino|Angelis|L[aá]urenz|Donato|Rodr[ií]guez|Fresedo|Demare|Lomuto|Malerba|Gobbi|Firpo|De Caro\b|V[ií]ctor/i.test(
+          artist,
+        );
+      if (!tango) return json({ tracks: { items: [hit(`spotify:track:cue${key}`, [artist], "Hits")] } });
       // the first searched side gets traps only: it must be reported, never guessed
       const only = first;
       first = false;
@@ -93,6 +99,9 @@ test("a Spotify export writes only the right recordings, in order, and lists wha
     raw.state = raw.state ?? {};
     raw.state.settings = { ...(raw.state.settings ?? {}), spotifyClientId: "e2e-client" };
     raw.state.spotifyToken = { access: "e2e-token", expires: Date.now() + 3600_000 };
+    // every side is searched (no carried match), so the matcher meets the traps
+    for (const t of raw.state.playlist?.tandas ?? []) for (const x of t.songs ?? []) x.spotify = null;
+    if (raw.state.playlist?.closing) raw.state.playlist.closing.spotify = null;
     localStorage.setItem("tdj-v1", JSON.stringify(raw));
   });
   await page.reload();

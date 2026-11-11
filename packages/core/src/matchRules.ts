@@ -167,6 +167,6 @@ export function matchProblem(
       return `length ${Math.round(c.durationMs / 1000)} s for a ${Math.round(ref)} s side`;
   }
   const span = albumSpan(c.album);
-  if (row.year && span && span[0] > row.year + 5) return `a later album (${c.album})`;
+  if (row.year && span && span[0] > row.year + 2) return `a later album (${c.album})`;
   return null;
 }
