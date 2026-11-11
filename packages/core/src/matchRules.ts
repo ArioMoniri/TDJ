@@ -410,18 +410,6 @@ export function matchProblem(
     if (named.length) return `a sung credit (${named[0]}) on an instrumental side`;
     if (/ cant(a|an) /.test(credit)) return "a sung credit on an instrumental side";
   } else if (named.some((sg) => !isMine(sg)) && !named.some(isMine)) return `another singer (${named[0]})`;
-  // round 17 (discography §1, §4): a vocal side's credit names its singer — in the artists, the track title or the
-  // album (the album artist) — or the take is unproven (Tanturi's "Así se baila el tango" credited to the orchestra
-  // alone); a provider that credits only the main artist cannot show it and is not judged on it
-  if (
-    !instrumental &&
-    singerSur &&
-    !c.mainArtistOnly &&
-    !namesSinger &&
-    !hay.includes(` ${singerSur} `) &&
-    !` ${normTitle(c.album ?? "")} `.includes(` ${singerSur} `)
-  )
-    return `a vocal side whose credit does not name the singer (${c.artists.join(", ")})`;
   if (dateMismatch(row, c.name) || dateMismatch(row, c.album))
     return "a recording date that is not the row's";
   if (REMAKE_ALBUM.test(c.album ?? "") || REMAKE_ALBUM.test(c.name))
@@ -473,6 +461,19 @@ export function matchProblem(
         return `a sung take of the title exists (${twins.join(", ")}); nothing shows this is the instrumental`;
     }
   }
+  // round 17 (discography §1, §4): a vocal side's credit names its singer — in the artists, the track title or the
+  // album (the album artist) — or the take is unproven (Tanturi's "Así se baila el tango" credited to the orchestra
+  // alone); a provider that credits only the main artist cannot show it and is not judged on it. (The last check, so a
+  // more specific reason — a remake, a later take — is named first.)
+  if (
+    !instrumental &&
+    singerSur &&
+    !c.mainArtistOnly &&
+    !namesSinger &&
+    !hay.includes(` ${singerSur} `) &&
+    !` ${normTitle(c.album ?? "")} `.includes(` ${singerSur} `)
+  )
+    return `a vocal side whose credit does not name the singer (${c.artists.join(", ")})`;
   return null;
 }
 
