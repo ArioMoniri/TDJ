@@ -499,14 +499,21 @@ test("playlist creation POSTs name/description/public, adds items in chunks of â
   expect(total).toBe(j.added);
   const songs =
     p.tandas.reduce((n: number, t: { songs: unknown[] }) => n + t.songs.length, 0) + (p.closing ? 1 : 0);
-  expect(j.added).toBe(songs); // every unresolved track was found by the (mocked) search
+  // every unresolved track was searched; round 16: a side whose index knows a later take needs positive evidence the
+  // mock's undated "Album" cannot give, so it is reported in `missing` ("Not matched") instead of guessed
+  expect(j.added + j.missing.length).toBe(songs);
+  expect(j.added).toBeGreaterThan(songs / 2);
   const searches = hits.filter((h) => h.url.startsWith("/v1/search"));
+  // the field-filtered query first for every searched side; a plain query only as the fallback after one
+  // (round 16: a side the rules leave unmatched on the filtered answer is searched once more, plainly)
+  let filtered = 0;
   for (const s of searches) {
     const q = new URL(s.url, MOCK).searchParams;
     expect(q.get("type")).toBe("track");
     expect(q.get("limit")).toBe("10");
-    expect(q.get("q")).toMatch(/^track:"[^"]+" artist:"[^"]+"$/);
+    if (/^track:"[^"]+" artist:"[^"]+"$/.test(q.get("q") ?? "")) filtered++;
   }
+  expect(filtered).toBeGreaterThanOrEqual(searches.length / 2);
   // the scorer took the orchestra's recording, never the cover that Spotify lists first
   for (const a of adds) for (const u of JSON.parse(a.body).uris as string[]) expect(u).not.toMatch(/cover/);
   // not logged in â†’ 401, nothing reaches Spotify
@@ -529,16 +536,27 @@ test("Spotify keeps the running order: searched cortinas stay between their tand
     data: { playlist: p, includeCortinas: true, name: "Order test" },
   });
   expect(r.status()).toBe(200);
+  const missing = new Set((await r.json()).missing as string[]);
   const got = hits
     .filter((h) => h.url === "/v1/playlists/pl1/items" && h.method === "POST")
     .flatMap((h) => JSON.parse(h.body).uris as string[]);
-  type Row = { spotify?: { uri?: string } | null };
+  type Row = {
+    spotify?: { uri?: string } | null;
+    title?: string;
+    orchestra?: string;
+    artist?: string;
+  };
+  // (round 16: a row the stricter rules leave "Not matched" is listed in `missing`, never added in its place)
   const want: string[] = [];
+  const push = (x: Row) => {
+    if (x.spotify?.uri) want.push(x.spotify.uri);
+    else if (!missing.has(`${x.title} ${x.orchestra ?? x.artist}`)) want.push("SEARCHED");
+  };
   for (const t of p.tandas as Array<{ songs: Row[]; cortina?: Row | null }>) {
-    for (const s of t.songs) want.push(s.spotify?.uri ?? "SEARCHED");
-    if (t.cortina) want.push(t.cortina.spotify?.uri ?? "SEARCHED");
+    for (const s of t.songs) push(s);
+    if (t.cortina) push(t.cortina);
   }
-  if (p.closing) want.push((p.closing as Row).spotify?.uri ?? "SEARCHED");
+  if (p.closing) push(p.closing as Row);
   expect(want.filter((w) => w === "SEARCHED").length).toBeGreaterThan(0);
   expect(got.map((u) => (/^spotify:track:found\d+$/.test(u) ? "SEARCHED" : u))).toEqual(want);
 
