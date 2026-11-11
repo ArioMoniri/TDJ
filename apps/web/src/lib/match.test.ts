@@ -235,3 +235,64 @@ describe("round 15: the hard rules reject the tango traps", () => {
     ).not.toBeNull();
   });
 });
+
+// round 16 — export matching (docs/reviews/round16-discography.md M1–M8)
+describe("round 16: the stricter rules on the web matcher", () => {
+  it("G12: the year bonus reads the album's own years, never a reissue's release date", () => {
+    const item = { id: "x", title: "La Bruja", orchestra: "Juan D'Arienzo", year: 1938, durationSec: 140 };
+    const reissue = cand({
+      name: "La Bruja",
+      artists: ["Juan D'Arienzo"],
+      album: "Grandes Éxitos",
+      albumYear: 1939,
+    });
+    const dated = cand({
+      name: "La Bruja",
+      artists: ["Juan D'Arienzo"],
+      album: "Lelia (1938-1939)",
+      albumYear: 2004,
+    });
+    const plain = cand({
+      name: "La Bruja",
+      artists: ["Juan D'Arienzo"],
+      album: "Grandes Éxitos",
+      albumYear: 2004,
+    });
+    expect(scoreCandidate(item, dated)).toBeGreaterThan(scoreCandidate(item, plain));
+    // a release date in the 78 era still counts; a CD date does not
+    expect(scoreCandidate(item, reissue)).toBeGreaterThan(scoreCandidate(item, plain));
+  });
+  it("the whole-name leader and the later takes travel with the item (Donato Racciatti, a remake album)", () => {
+    const item = {
+      id: "p",
+      title: "La Payanca",
+      orchestra: "Juan D'Arienzo",
+      vocal: false,
+      singer: null,
+      year: 1936,
+      laterTakes: [{ year: 1954 }, { year: 1966 }],
+    };
+    expect(
+      rejectReason(item, cand({ name: "La Payanca", artists: ["Juan D'Arienzo"], album: "Ataniche" })),
+    ).toMatch(/later take/);
+    expect(
+      rejectReason(item, cand({ name: "La Payanca", artists: ["Juan D'Arienzo"], album: "1935-1937" })),
+    ).toBeNull();
+    expect(
+      rejectReason(
+        { id: "d", title: "El Huracán", orchestra: "Edgardo Donato", vocal: false, singer: null, year: 1937 },
+        cand({ name: "El Huracán", artists: ["Donato Racciatti"] }),
+      ),
+    ).not.toBeNull();
+  });
+  it("M7: a cortina item is judged by the cortina rules (no live, duet or karaoke record)", () => {
+    const cue = { id: "c", title: "Cambaz", orchestra: "Mor ve Ötesi", cortina: true, year: 2004 };
+    expect(
+      rejectReason(cue, cand({ name: "Cambaz", artists: ["Mor ve Ötesi"], album: "Dünya Yalan Söylüyor" })),
+    ).toBeNull();
+    expect(
+      rejectReason(cue, cand({ name: "Cambaz", artists: ["Mor ve Ötesi"], album: "Canlı (Live)" })),
+    ).not.toBeNull();
+    expect(bestMatch(cue, [cand({ name: "Cambaz", artists: ["Karaoke Turkey"] })])).toBeNull();
+  });
+});

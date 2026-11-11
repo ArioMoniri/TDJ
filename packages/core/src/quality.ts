@@ -14,10 +14,10 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { type BenchResult, benchmarkNight, improveNight } from "./benchmark";
 import { compose } from "./compose";
-import { findRoot, loadCatalog } from "./load";
-import { matchProblem } from "./matchRules";
+import { auditCortinaCaches, findRoot, loadCatalog } from "./load";
+import { auditStreamMatches } from "./matchRules";
 import { scorePlaylist } from "./score";
-import { auditSpotifyCache, auditStreams } from "./streams";
+import { auditSpotifyCache, auditStreams, knownSingers } from "./streams";
 import { nightShapeLine, STRICT_RULES, type StrictResult, strictChecks, strictSummary } from "./strict";
 import type { ComposeOptions, Playlist } from "./types";
 
@@ -53,6 +53,11 @@ export interface QualityRow {
 export interface CacheAudit {
   spotifyChecked: number;
   spotifyRejected: Array<{ row: string; uri: string; why: string }>;
+  /** round 16 (M1): every cached Deezer id judged by the same rules */
+  deezerChecked: number;
+  deezerRejected: Array<{ row: string; id: string; why: string }>;
+  /** round 16 (M7): cortina records (Deezer and Spotify) judged by the cortina rules */
+  cortinaRejected: Array<{ id: string; why: string }>;
   sharedStreams: number;
   datedMismatch: number;
 }
@@ -134,9 +139,11 @@ export function renderQuality(rows: QualityRow[], audit?: CacheAudit): string {
     lines.push("## Stream and export-match audit (round 15)");
     lines.push("");
     lines.push(
-      `Spotify cache: ${audit.spotifyChecked} cached ids checked, ${audit.spotifyRejected.length} rejected (match rules: title, orchestra and singer credit, a dated title, the Deezer length, a later album; one id, one recording). Deezer/Spotify ids shared by different recordings (R4a): ${audit.sharedStreams}; dated stream titles off their row (R4b): ${audit.datedMismatch}. Any of them fails the run.`,
+      `Spotify cache: ${audit.spotifyChecked} cached ids checked, ${audit.spotifyRejected.length} rejected (match rules: title, orchestra and singer credit, a dated title, the Deezer length, a later album; one id, one recording). Deezer cache (round 16, M1: the same rules): ${audit.deezerChecked} checked, ${audit.deezerRejected.length} rejected. Cortina records (M7): ${audit.cortinaRejected.length} rejected. Deezer/Spotify ids shared by different recordings (R4a): ${audit.sharedStreams}; dated stream titles off their row (R4b): ${audit.datedMismatch}. Any of them fails the run.`,
     );
     for (const r of audit.spotifyRejected.slice(0, 20)) lines.push(`- ${r.row} ${r.uri}: ${r.why}`);
+    for (const r of audit.deezerRejected.slice(0, 20)) lines.push(`- ${r.row} deezer:${r.id}: ${r.why}`);
+    for (const r of audit.cortinaRejected.slice(0, 20)) lines.push(`- cortina ${r.id}: ${r.why}`);
     lines.push("");
   }
   lines.push("## Night shape");
@@ -209,19 +216,36 @@ export function renderQuality(rows: QualityRow[], audit?: CacheAudit): string {
   return lines.join("\n");
 }
 
-export function cacheAudit(deps: ReturnType<typeof loadCatalog>): CacheAudit {
-  const sp = auditSpotifyCache(deps.raw.songs, deps.raw.cache, deps.raw.resolved, matchProblem);
+export function cacheAudit(deps: ReturnType<typeof loadCatalog>, root = findRoot()): CacheAudit {
+  // (the shared-id half of the Spotify audit; the match rules run once, for both providers, below)
+  const sp = auditSpotifyCache(deps.raw.songs, deps.raw.cache, deps.raw.resolved, () => null);
   const st = auditStreams(deps.raw.songs, deps.raw.resolved, deps.raw.cache);
+  // round 16 (M1): both providers judged by the same rules (positive evidence beside a later take, whole-name leader …)
+  const m = auditStreamMatches(
+    deps.raw.songs as unknown as Parameters<typeof auditStreamMatches>[0],
+    deps.raw.cache as Parameters<typeof auditStreamMatches>[1],
+    deps.raw.resolved as Parameters<typeof auditStreamMatches>[2],
+    knownSingers(deps.raw.songs),
+  );
+  const cr = auditCortinaCaches(root);
   return {
     spotifyChecked: sp.checked,
-    spotifyRejected: sp.rejected,
+    spotifyRejected: [
+      ...sp.rejected,
+      ...m.spotify
+        .filter((x) => !sp.rejected.some((r) => r.row === x.row))
+        .map((x) => ({ row: x.row, uri: x.id, why: x.why })),
+    ],
+    deezerChecked: m.checked.deezer,
+    deezerRejected: m.deezer,
+    cortinaRejected: cr,
     sharedStreams: st.shared.length,
     datedMismatch: st.dateMismatch.length,
   };
 }
 export function runQuality(root = findRoot()): { rows: QualityRow[]; markdown: string; audit: CacheAudit } {
   const deps = loadCatalog(root);
-  const audit = cacheAudit(deps);
+  const audit = cacheAudit(deps, root);
   const rows: QualityRow[] = [];
   for (let seed = 1; seed <= 12; seed++)
     rows.push(row(`S${seed}`, compose({ hours: 4, seed }, deps), deps, true));
@@ -243,11 +267,12 @@ export function runQuality(root = findRoot()): { rows: QualityRow[]; markdown: s
       true,
     ),
   );
-  // round 15: the three nights the round-15 panel reviewed (featured options), composed again and gated on blockers
-  for (const seed of [255, 97, 156])
+  // round 15/16: the nights the round-15 and round-16 panels reviewed (featured options), composed again and gated on
+  // blockers
+  for (const seed of [255, 97, 156, 194, 12, 180])
     rows.push(
       row(
-        `Featured options, seed ${seed} (round-15 panel)`,
+        `Featured options, seed ${seed} (${[255, 97, 156].includes(seed) ? "round-15" : "round-16"} panel)`,
         compose({ ...fo, seed, explicit }, deps),
         deps,
         false,
@@ -270,11 +295,13 @@ if (isMain) {
       `${r.name.padEnd(40)} engine ${r.score} → ${r.improvedScore}  benchmark ${r.bench.total} → ${r.improved.total} (${r.improved.inRange}/${r.improved.scored})  strict ${strictSummary(r.strict)}${r.failures.length ? `  FAIL: ${r.failures.join("; ")}` : ""}`,
     );
   console.log(
-    `stream audit: Spotify ${audit.spotifyChecked} checked, ${audit.spotifyRejected.length} rejected · shared ids ${audit.sharedStreams} · dated titles off ${audit.datedMismatch}`,
+    `stream audit: Spotify ${audit.spotifyChecked} checked, ${audit.spotifyRejected.length} rejected · Deezer ${audit.deezerChecked} checked, ${audit.deezerRejected.length} rejected · cortinas ${audit.cortinaRejected.length} rejected · shared ids ${audit.sharedStreams} · dated titles off ${audit.datedMismatch}`,
   );
   const failed =
     rows.some((r) => r.failures.length) ||
     audit.spotifyRejected.length > 0 ||
+    audit.deezerRejected.length > 0 ||
+    audit.cortinaRejected.length > 0 ||
     audit.sharedStreams > 0 ||
     audit.datedMismatch > 0;
   console.log(`${failed ? "FAIL" : "pass"} — wrote ${out}`);

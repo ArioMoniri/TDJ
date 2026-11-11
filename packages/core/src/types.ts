@@ -96,6 +96,13 @@ export interface Song {
   suspectCredit?: boolean;
   /** round 14: the length is estimateDuration() (no measured stream): shown as "≈", never judged against a length band */
   durationEstimated?: boolean;
+  /**
+   * round 16 (export matching, discography M2): the later takes of this title the index knows by the same orchestra
+   * (≥ 5 years on) or the same singer's own later recording — a stream must then show positive evidence of this side
+   */
+  laterTakes?: Array<{ year: number; singer?: string | null }>;
+  /** round 16 (M5): the years the same orchestra recorded this title with a singer (on an instrumental row) */
+  vocalTwins?: number[];
   /** analysed audio features (data/cache/audio/features.json or user database) */
   audio?: import("./audio/dsp").AudioFeatures | null;
   /** resolved streaming/preview track (data/cache/resolve/tracks.json) */
@@ -175,7 +182,8 @@ export interface Cortina {
   trend?: boolean;
   startSec?: number; // suggested cue-in
   lengthSec?: number;
-  spotify?: { uri: string; url?: string } | null;
+  /** round 16: the Spotify record (data/cache/spotify/cortinas.json), judged by the cortina match rules (M7) */
+  spotify?: { uri: string; url?: string; durationMs?: number; album?: string; matched?: string } | null;
   /** "intro-only", "once-a-night", "late-night", "danceable-risk", "theme:<family>", "tempo:up|medium|slow", "mood:<word>" */
   tags?: string[];
   /** resolved streaming/preview track (data/cache/resolve/cortinas.json) */

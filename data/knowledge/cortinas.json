@@ -210,7 +210,8 @@
     "tags": [
       "theme:turkish-classics",
       "tempo:up",
-      "mood:festive"
+      "mood:festive",
+      "mood:pop"
     ]
   },
   {
@@ -244,7 +245,8 @@
     "tags": [
       "theme:turkish-classics",
       "tempo:up",
-      "mood:festive"
+      "mood:festive",
+      "mood:pop"
     ]
   },
   {
@@ -1103,7 +1105,8 @@
     "lengthSec": 45,
     "tags": [
       "tempo:medium",
-      "mood:rock"
+      "mood:rock",
+      "mood:melancholic"
     ]
   },
   {

@@ -269,7 +269,8 @@ export const BUILTIN_CORTINAS: Cortina[] = [
     startSec: 0,
     lengthSec: 45,
     // round 14 (discography §1.5): the song is Nilüfer's 1973 hit; the cover's audio never resolved
-    tags: ["no-audio"],
+    // (round 16: the loader now joins the code-defined cues to their cached records, so this row is listed: tempo tag)
+    tags: ["no-audio", "tempo:medium"],
   },
   {
     id: "c-tr-6",
