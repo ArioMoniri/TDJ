@@ -4,7 +4,15 @@
  * the cue into a hot tanda, cortina compression, the stream guard reading the stream.
  */
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
-import { compose, cortinaTempo, enforceOrder, normTitle, type Playlist, type Song } from "../src/index";
+import {
+  compose,
+  cortinaTempo,
+  enforceOrder,
+  isReleaseCut,
+  normTitle,
+  type Playlist,
+  type Song,
+} from "../src/index";
 import { loadCatalog } from "../src/load";
 import { isPeakSlot as isPeak15, orderCost as orderCost15 } from "../src/order";
 
@@ -156,7 +164,9 @@ describe("R4 — the closer side", () => {
     expect(out.at(-1)!.energy).toBeGreaterThanOrEqual(72);
     for (const seed of SEEDS)
       for (const p of both(seed))
-        for (const t of p.tandas) {
+        for (const [ti, t] of p.tandas.entries()) {
+          // (round 17: a tanda ordered as a release cut at its boundary — docs/specs/round17-engine.md §2 — sets the corpus roles and the slowest-side rule aside)
+          if (isReleaseCut(p.tandas, ti)) continue;
           // (round 15: unless the sides allow no order that keeps every rule — the strict panel's fame rule for the last side outranks the corpus roles then)
           if (orderCost15(t.songs, isPeak15(t)) >= 10) continue;
           // (and a tanda whose sides are all corpus openers but one has no legal last chair, round 10)

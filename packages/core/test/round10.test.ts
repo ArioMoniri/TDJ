@@ -8,6 +8,7 @@ import {
   compose,
   cortinaTempo,
   enforceOrder,
+  isReleaseCut,
   isSuspectSide,
   normTitle,
   type Playlist,
@@ -220,8 +221,10 @@ describe("R10.5 — shape and fame", () => {
     expect(out.at(-1)!.energy).not.toBe(74);
     for (const seed of SEEDS)
       for (const p of both(seed))
-        for (const t of p.tandas) {
+        for (const [ti, t] of p.tandas.entries()) {
           if (t.rhythm === "tango") continue;
+          // (round 17: a tanda ordered as a release cut at its boundary — docs/specs/round17-engine.md §2 — sets the corpus roles and the slowest-side rule aside)
+          if (isReleaseCut(p.tandas, ti)) continue;
           const es = t.songs.map((s) => s.energy ?? 50);
           const min = Math.min(...es);
           const openersOnly = t.songs.slice(0, -1).every((s) => s.role === "opener"); // no legal chair left
@@ -239,6 +242,8 @@ describe("R10.5 — shape and fame", () => {
       for (const p of both(seed))
         for (const t of tangos(p))
           if (
+            // (round 17: a tanda ordered as a release cut at its boundary — docs/specs/round17-engine.md §2 — sets the corpus roles and the slowest-side rule aside)
+            !isReleaseCut(p.tandas, p.tandas.indexOf(t)) &&
             t.songs.some((s) => s.role === "closer") &&
             orderCost15(t.songs, isPeak15(t)) < 10 &&
             // (and a summit whose corpus closer is not among its best-loved sides: the panel's lastSide wins)
