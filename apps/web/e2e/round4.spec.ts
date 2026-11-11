@@ -159,7 +159,8 @@ test("analyse in browser: the worker turns a synthetic preview into key + BPM an
   await mockPreviews(page);
   await page.goto("/database");
   await page.getByLabel("Search the index").fill("Milonga de Mis Amores");
-  const card = page.locator('[data-song="ceafa509bc"]');
+  // (round 15, R4a: the shared Deezer track stays on the 1944 instrumental row)
+  const card = page.locator('[data-song="ec218ffa61"]');
   await expect(card).toBeVisible({ timeout: 15000 });
   await expect(card.locator('[data-resolved="true"]')).toBeVisible();
   await card.getByRole("button", { name: /^Analyse/ }).click();
@@ -230,7 +231,8 @@ test("history: every compose stores a snapshot; rename, compare and reopen work;
   });
   // a second set gives the trend and Compare
   await compose(page);
-  await page.waitForTimeout(600);
+  // (round 15: a golden compose takes a few seconds now and #result is already on screen: wait for it to land)
+  await page.waitForTimeout(8000);
   await page.goto("/history");
   await expect(page.locator('[id^="history-"]')).toHaveCount(2, { timeout: 15000 });
   await expect(page.getByTestId("score-trend")).toBeVisible();
@@ -306,7 +308,9 @@ test("tell the DJ without a key reports exactly what was applied and what was no
   expect(j.source).toBe("keywords");
   expect(j.applied).toEqual(expect.arrayContaining(["no Francisco Canaro", "more Osvaldo Pugliese"]));
   expect(j.notApplied).toEqual([expect.stringMatching(/^"a D'Arienzo vals tanda"/)]);
-  expect(j.note).toMatch(/Applied: (no Francisco Canaro, more Osvaldo Pugliese|more Osvaldo Pugliese, no Francisco Canaro)\./);
+  expect(j.note).toMatch(
+    /Applied: (no Francisco Canaro, more Osvaldo Pugliese|more Osvaldo Pugliese, no Francisco Canaro)\./,
+  );
   expect(j.note).toMatch(/Not applied: "a D'Arienzo vals tanda"/);
   expect(j.feedback).not.toContain("more-dramatic");
   expect(j.options.excludeOrchestras).toContain("francisco-canaro");

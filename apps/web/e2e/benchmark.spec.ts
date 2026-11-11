@@ -55,8 +55,9 @@ test("a vocal-heavy night: Improve automatically, Keep, and the result card upda
     const body = JSON.parse(route.request().postData() ?? "{}");
     // round 13: auto-improve is off for this request, so the sheet's own Improve automatically has work to do
     await route.continue({
-      // (round 14: seed 8 — with the strict panel's acceptance rule seed 7 leaves the sheet nothing to change)
-      postData: JSON.stringify({ ...body, vocalBias: 1, seed: 8, autoImprove: false }),
+      // (round 14: seed 8 — with the strict panel's acceptance rule seed 7 leaves the sheet nothing to change;
+      // round 15: seed 14, the round-15 composer leaves seed 8 nothing to change)
+      postData: JSON.stringify({ ...body, vocalBias: 1, seed: 14, autoImprove: false }),
     });
   });
   await page.goto("/");
