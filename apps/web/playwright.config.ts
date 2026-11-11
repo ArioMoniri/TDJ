@@ -7,6 +7,9 @@ export default defineConfig({
   testDir: "./e2e",
   timeout: 90_000,
   retries: 0,
+  // one worker on CI: every test composes nights on the single Next server, whose compose is synchronous CPU work,
+  // so a second worker's compose stalls this one's clicks, navigations and timing budgets (2 workers on a 4-core runner)
+  workers: process.env.CI ? 1 : undefined,
   reporter: [["list"]],
   use: {
     baseURL: process.env.TDJ_URL ?? "http://localhost:3000",
