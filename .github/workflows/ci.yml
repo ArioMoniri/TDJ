@@ -19,7 +19,7 @@ jobs:
       - name: Playwright e2e
         run: |
           cd apps/web
-          pnpm exec playwright install --with-deps chromium
+          pnpm exec playwright install chromium
           CHROMIUM= pnpm e2e
       - uses: actions/upload-artifact@v4
         if: failure()
