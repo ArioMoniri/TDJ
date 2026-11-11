@@ -1,6 +1,6 @@
 "use client";
-import type { Song } from "@tdj/core";
 import type { AppOverrides } from "@/lib/types";
+import { type Clip, type ClipVerdict, rehearsalClip } from "../clips";
 import { PREVIEW_CAP_SEC } from "../engine";
 import { measureBuffer } from "../measure";
 import type { BoothRow } from "../plan";
@@ -14,9 +14,11 @@ interface DecodeCtx {
 }
 
 /**
- * Deezer 30 s rehearsal (round7-booth.md §8.3): `/api/preview?…&json=1` hands over the provider's current signed
- * link (they expire daily), the clip is fetched cross-origin, decoded and measured. Items are capped at 30 s and
- * every badge says "30 s rehearsal".
+ * 30 s rehearsal (round7-booth.md §8.3, round18-booth.md): every clip is the side's checked Spotify recording —
+ * Spotify's own preview of that track, or a Deezer clip only when it is the same recording (`rehearsalClip`); an
+ * item without one is "not rehearsable" rather than rehearsed from another transfer or take. A Deezer clip goes
+ * through `/api/preview?…&json=1` (the provider's current signed link; they expire daily); a Spotify preview is
+ * fetched as stored. The clip is decoded and measured; items are capped at 30 s and every badge says "30 s rehearsal".
  */
 export class PreviewAdapter implements SourceAdapter {
   readonly kind = "preview" as const;
@@ -27,13 +29,15 @@ export class PreviewAdapter implements SourceAdapter {
     private fetchImpl: typeof fetch = (...a) => fetch(...a),
   ) {}
 
-  private resolvedOf(entity: PlanEntity): Song["resolved"] | null {
-    // songs and cortinas alike (cortinas carry `resolved` since round 8, so they play in a rehearsal)
-    if (!entity) return null;
-    const e = entity as { id?: string; resolved?: Song["resolved"] };
+  /** the clip for this item, or why there is none (the DJ's own Deezer pick in "Find on services" counts) */
+  verdict(entity: PlanEntity): ClipVerdict {
+    if (!entity) return rehearsalClip(null);
+    const e = entity as { id?: string };
     const patch = e.id ? this.overrides()?.songs?.[e.id] : undefined;
-    const r = patch?.resolved ?? e.resolved ?? null;
-    return r?.previewUrl ? r : null;
+    return rehearsalClip(entity, patch?.resolved === undefined ? undefined : patch.resolved);
+  }
+  private clipOf(entity: PlanEntity): Clip | null {
+    return this.verdict(entity).clip;
   }
 
   async available() {
@@ -41,7 +45,7 @@ export class PreviewAdapter implements SourceAdapter {
   }
 
   async resolve(_item: BoothRow, entity: PlanEntity) {
-    return this.resolvedOf(entity) ? ("ready" as const) : ("missing" as const);
+    return this.clipOf(entity) ? ("ready" as const) : ("missing" as const);
   }
 
   prepare(item: BoothRow, entity: PlanEntity): Promise<PreparedItem> {
@@ -57,14 +61,19 @@ export class PreviewAdapter implements SourceAdapter {
   }
 
   private async load(entity: PlanEntity): Promise<PreparedItem> {
-    const r = this.resolvedOf(entity);
+    const clip = this.clipOf(entity);
     const ctx = this.ctx();
-    if (!r || !ctx) throw new Error("No preview for this item");
-    const ep = `/api/preview?provider=${encodeURIComponent(r.provider)}&id=${encodeURIComponent(r.id)}&json=1`;
-    const j = await this.fetchImpl(ep)
-      .then((x) => (x.ok ? x.json() : null))
-      .catch(() => null);
-    const url: string | undefined = j?.url;
+    if (!clip || !ctx) throw new Error("No clip of the Spotify recording for this item");
+    let url: string | undefined;
+    if (clip.from === "spotify") url = clip.url;
+    else {
+      const r = clip.resolved;
+      const ep = `/api/preview?provider=${encodeURIComponent(r.provider)}&id=${encodeURIComponent(r.id)}&json=1`;
+      const j = await this.fetchImpl(ep)
+        .then((x) => (x.ok ? x.json() : null))
+        .catch(() => null);
+      url = j?.url;
+    }
     if (!url) throw new Error("No preview available right now");
     const res = await this.fetchImpl(url, { mode: "cors" });
     if (!res.ok) throw new Error(`Preview request failed (${res.status})`);
