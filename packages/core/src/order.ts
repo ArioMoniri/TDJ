@@ -173,6 +173,11 @@ export interface OrderCtx {
   first?: string;
   /** round 17: the boundary fixer's release cut (the corpus-role and two-hottest preferences yield to it) */
   releaseCut?: boolean;
+  /**
+   * round 19: the previous tanda's last side as only the opener rule O4 reads it (the strict panel reports the cliff
+   * itself as `openCliff`, so its `sideOrder` verdict passes this instead of `prevLast`)
+   */
+  prevSide?: number | null;
 }
 /**
  * Round 16 (DJ R16-4, dancer §4): a tanda whose first side sits more than 15 below the previous tanda's last side
@@ -244,20 +249,24 @@ export function orderVerdictOf(songs0: Song[], ctx: OrderCtx = {}): string[] {
     why.push(`fades out on ${lastS.title} (e${e(lastS)}, the tanda's mean ${Math.round(mean)})`);
   if (fame(lastS) < maxF - 1) why.push(`ends on ${lastS.title} (fame ${fame(lastS)}, top ${maxF})`);
   // round 19 (review O4): of two corpus openers the cooler one opens (Zorzal e62 before La Mulateada e70)
-  {
+  if (!ctx.releaseCut) {
     const f0 = ss[0]!;
     const cooler = ss.find(
       (s) => s !== f0 && s.role === "opener" && e(s) <= e(f0) - 4 && fame(s) >= fame(f0),
     );
-    if (f0.role === "opener" && cooler)
+    // (unless the cooler opener would open on a cliff from the previous tanda: the round-16 cliff rule outranks it)
+    const pl = ctx.prevLast ?? ctx.prevSide;
+    const cliffs = !!cooler && pl != null && pl - e(cooler) > 15;
+    if (f0.role === "opener" && cooler && !cliffs)
       why.push(
         `opens on ${f0.title} e${e(f0)} while the cooler corpus opener ${cooler.title} e${e(cooler)} waits`,
       );
   }
   // round 19 (review O3): the last side is not more than 4 under the hottest of the others when that side could close
   // itself (a fame within 1 of the top, no corpus opener) — D'Agostino / Vargas ending on Adiós, Arrabal e56 after
-  // El Yacaré e62
-  {
+  // El Yacaré e62 (not in the round-17 boundary fixer's release cut: there the closer is chosen to cut the step into the
+  // next tanda)
+  if (!ctx.releaseCut) {
     const hot = ss.slice(0, -1).reduce((a, b) => (e(b) > e(a) ? b : a));
     if (
       e(lastS) < e(hot) - 4 &&

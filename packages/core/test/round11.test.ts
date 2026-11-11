@@ -182,7 +182,10 @@ describe("R4 — the closer side", () => {
           const es = eligible.map((s) => s.energy ?? 50).sort((a, b) => b - a);
           const top2 = es.slice(0, 2);
           const label = `seed ${seed} #${t.index} ${t.orchestra}: ${t.songs.map((s) => `${s.title} e${s.energy} f${s.fame}${s.role ? `:${s.role}` : ""}`).join(" / ")}`;
-          expect(last.role === "closer" || top2.includes(last.energy ?? 50), label).toBe(true);
+          // (round 19, review R2: "one of the two hottest" reads within 2 of the second hottest)
+          const hotEnough =
+            top2.includes(last.energy ?? 50) || (last.energy ?? 50) >= (top2[1] ?? top2[0]!) - 2;
+          expect(last.role === "closer" || hotEnough, label).toBe(true);
           if (hasFamous && known.length && last.role !== "closer")
             expect(last.fame ?? 0, label).toBeGreaterThan(0);
         }

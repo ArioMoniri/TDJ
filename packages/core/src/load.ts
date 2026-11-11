@@ -70,10 +70,11 @@ export function loadCatalog(root = findRoot(), overrides?: UserOverrides): Loade
         }))
         ? sp0
         : null;
+    // round 19: a Spotify record alone does not make a cue drawable — the app previews and rehearses cues through
+    // their Deezer audio, and the pools (and so the golden set) stay the ones round 14 defined; such a cue's record
+    // is kept for the Spotify export
     const tags =
-      resolved === null && !spotify && !c.tags?.includes("no-audio")
-        ? [...(c.tags ?? []), "no-audio"]
-        : c.tags;
+      resolved === null && !c.tags?.includes("no-audio") ? [...(c.tags ?? []), "no-audio"] : c.tags;
     return {
       ...c,
       ...(resolved !== undefined ? { resolved } : {}),

@@ -3,7 +3,7 @@ import { patternString } from "./arc";
 import { cortinaTempo, cueMetaOk } from "./cortinas";
 import { normTitle } from "./energy";
 import { goldenClassOf, isColour, isGoldenNight, staticProfile } from "./knowledge";
-import { cliffOf, isPeakSlot, meanFameOf, type OrderCtx, orderVerdictOf } from "./order";
+import { cliffOf, isPeakSlot, isReleaseCut, meanFameOf, type OrderCtx, orderVerdictOf } from "./order";
 import { NEVER_OPEN, OPENERS } from "./rules";
 import { isTandaEligible, songRhythm } from "./tanda";
 import { styleClass } from "./transitions";
@@ -1053,7 +1053,13 @@ export function strictChecks(n: Night): StrictResult {
   round15(n, { add, not, golden, hours, lastHour, nightH, name, cues });
   shapeChecks(n, add);
   t.forEach((x, i) => {
-    const why = orderVerdict(x, { summit: !!x.peak, ultima: i === t.length - 1 && t.length >= 6 });
+    const why = orderVerdict(x, {
+      summit: !!x.peak,
+      ultima: i === t.length - 1 && t.length >= 6,
+      // (round 19: a round-17 release cut keeps its closer / opener; the round-19 fade and opener items yield to it)
+      releaseCut: isReleaseCut(t, i),
+      prevSide: i > 0 ? (dance(t[i - 1]!).at(-1)?.energy ?? null) : null,
+    });
     if (why.length) add("sideOrder", i, `${name(x)}: ${why.join(", ")}`);
     const prevLast = i > 0 ? dance(t[i - 1]!).at(-1)?.energy : undefined;
     const cliff = cliffOf(x.songs, prevLast ?? null);

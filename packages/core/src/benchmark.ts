@@ -4,7 +4,7 @@ import { type ComposeDeps, computeStats, swapTanda } from "./compose";
 import { cortinaTempo, familyOf } from "./cortinas";
 import { isDanceableSong, normTitle } from "./energy";
 import { DEFAULT_HEATMAP, goldenClassOf, isColour, isGoldenNight, staticProfile } from "./knowledge";
-import { bestEdit } from "./repair";
+import { bestEdit, recue } from "./repair";
 import { eraGrade, hardFailures, scorePlaylist } from "./score";
 import { mustHavesOf, type StrictResult, strictChecks, strictSummary } from "./strict";
 import { isTandaEligible, songRhythm } from "./tanda";
@@ -1311,12 +1311,30 @@ export function improveNight(p: Playlist, deps: ComposeDeps, opts: ImproveOption
   const strictFix = (q: Playlist): Candidate[] => {
     const r0 = strictChecks(q);
     if (!r0.violations.length) return [];
+    // round 19: a cue without its Spotify record on a Spotify night is re-picked on its own too (the panel's best edit
+    // may be another one that this step then declines)
+    const cueFix: Candidate[] = [];
+    if (r0.violations.some((v) => v.rule === "cueSpotify")) {
+      const rc = recue(q.tandas, deps, q.options);
+      if (rc) {
+        const cp = finalize({ ...q, tandas: rc });
+        const rr = strictChecks(cp);
+        if (rr.blockers <= r0.blockers && rr.penalty < r0.penalty)
+          cueFix.push({
+            kind: "strict",
+            tanda: 0,
+            playlist: cp,
+            text: () =>
+              `Cortinas re-picked: every cue with a checked Spotify record (strict panel: ${strictSummary(r0)} → ${strictSummary(rr)})`,
+          });
+      }
+    }
     const r = bestEdit(q, r0, deps, { keepScore: true, bench: (x) => benchmarkNight(x).total });
-    if (!r) return [];
+    if (!r) return cueFix;
     const np = finalize({ ...q, tandas: r.edit.playlist.tandas, closing: r.edit.playlist.closing });
     // (an Auto-improve step never lowers the night's hourly instrumental share)
     const share = (x: Playlist) => mean(hourlyInstrumental(x).map((h) => h.share));
-    if (share(np) < share(q) - 1e-9) return [];
+    if (share(np) < share(q) - 1e-9) return cueFix;
     return [
       {
         kind: "strict",
@@ -1324,6 +1342,7 @@ export function improveNight(p: Playlist, deps: ComposeDeps, opts: ImproveOption
         playlist: np,
         text: () => `${r.edit.text} (strict panel: ${strictSummary(r0)} → ${strictSummary(r.res)})`,
       },
+      ...cueFix,
     ];
   };
 

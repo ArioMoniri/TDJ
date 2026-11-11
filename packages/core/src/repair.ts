@@ -1296,9 +1296,10 @@ export function editsFor(
         const bS = strictOrder(b.songs, pb, bCtx);
         if (bS[0] !== fb) continue;
         if (orderCost(aS, pa, aCtx) >= 10 || orderCost(bS, pb, bCtx) >= 10) continue;
+        // (round 19: the cut's own closer and opener are not judged by the round-19 fade and opener items)
         if (
-          items(aS, ctxA) > beforeA ||
-          items(bS, { ...orderCtxOf(cur.tandas, i), prevLast: e(la) }) > beforeB
+          items(aS, { ...ctxA, releaseCut: true }) > beforeA ||
+          items(bS, { ...orderCtxOf(cur.tandas, i), prevLast: e(la), releaseCut: true }) > beforeB
         )
           continue;
         if (aS.every((s, k) => s === a.songs[k]) && bS.every((s, k) => s === b.songs[k])) continue;
@@ -1672,8 +1673,10 @@ export function recue(tandas: Tanda[], deps: ComposeDeps, o: ComposeOptions): Ta
       (c) => placed(c, k) && fresh(c),
       (c) => placed(c, k) && panel(c, k) && notNear(c, k),
     ];
-    let c: Cortina | undefined;
-    for (const pool of [own, all]) {
+    // round 19: a cue that lost its Spotify record (an older night's JSON) gets its own record back first
+    const same = !cur.spotify?.uri ? all.find((x) => x.id === cur.id && !!x.spotify?.uri) : undefined;
+    let c: Cortina | undefined = same && placed(same, k) && panel(same, k) && fresh(same) ? same : undefined;
+    for (const pool of c ? [] : [own, all]) {
       for (const ok of tiers) {
         c = pickFrom(ok, pool);
         if (c) break;
@@ -1681,7 +1684,8 @@ export function recue(tandas: Tanda[], deps: ComposeDeps, o: ComposeOptions): Ta
       if (c) break;
     }
     if (!c) c = placed(cur, k) ? cur : (pickFrom((x) => placed(x, k), all) ?? cur);
-    if (c.id !== cur.id) {
+    // (round 19: the same cue re-picked from the pool brings its checked Spotify record back)
+    if (c.id !== cur.id || (!cur.spotify?.uri && !!c.spotify?.uri)) {
       out[k] = { ...t, cortina: { ...c, lengthSec: cur.lengthSec ?? c.lengthSec } };
       changed = true;
     }
