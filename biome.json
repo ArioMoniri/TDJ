@@ -14,7 +14,10 @@
       "!brand/**",
       "!**/.open-next",
       "!**/test-results",
-      "!pnpm-lock.yaml"
+      "!pnpm-lock.yaml",
+      "!docs/specs/*-best-night.json",
+      "!apps/web/public/featured/*.json",
+      "!.claude/**"
     ]
   },
   "formatter": {
