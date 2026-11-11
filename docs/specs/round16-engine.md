@@ -96,6 +96,18 @@ the live matcher at export time, which applies the same rules ("Not matched" rat
 the limit lifts: `pnpm index:enrich --ids=/abs/apps/web/public/featured/golden-double-peak.json,<golden set ids>`
 then `--cortinas --ids=…`.
 
+**Follow-up (connector search, same rules):** while the Web API stayed rate-limited, the 33 sides, the closer and the
+9 cortinas were searched through the Spotify connector and every candidate was judged by `judgeStreams` (sides) and
+`cortinaMatchProblem` (cortinas), the accepted one with the most evidence kept (enrich's `evidence`: a dated
+restoration title, an album whose years hold the side, the singer named, the judged Deezer length); a vocal side
+whose credit does not name the singer was not taken. Accepted: **33/33 sides + the closer** (Tanturi 1940 Cumparsita
+on "Original Tango Argentino 1940-1941", 2:46) and **8/9 cortinas** (İşte Öyle Bir Şey: the connector returns no
+licensed record; the only one known, on "Altın Düetler", is a duet compilation). The caches gained 34 track and 8
+cortina ids; `compose` + `improveNight` on seed 199 gives the same night with them (engine 91: the source factor;
+4.03 h, the Spotify lengths), so the featured JSON and its Booth plan were regenerated. Audits: Spotify 366 checked /
+0 rejected, Deezer 691 / 0, cortinas 0. Rule gaps seen on the way (no shipped id affected): `CORTINA_BAD_ALBUM`
+misses Turkish inflected forms — "Konseri" (`\bkonser\b`) and "Canlı" (`\b` after the non-ASCII "ı") pass as originals.
+
 ## 5. Invariants written first, and what they found on the round-15 engine
 
 `round16.test.ts` (39 tests) on the round-15 engine and index (a worktree of `07d58cb`): **29 failed, 10 passed** —
@@ -121,12 +133,12 @@ The new panel finds exactly the panel's real items and no longer the over-strict
   median 0. Most frequent: energyStep 270 nights, afterSummit 252, rotation 215, sideOrder 212, darienzoPeak 207,
   wedge 177, opener 172; the new rules: orchestraCount 101, preSummit 89, coolVals 31, streamNight 22, openCliff 10,
   openerCanon 2, heatFloor 1.
-- **Shipped: seed 199** (0 blockers, 5 should-fix, the most Spotify ids among the 5-should-fix nights): engine 90,
-  benchmark 91 (17/18), 4.02 h, 23 tandas, 12 orchestras, transitions mean 91.3 (0 jarring). Night shape: opened by
+- **Shipped: seed 199** (0 blockers, 5 should-fix, the most Spotify ids among the 5-should-fix nights): engine 91,
+  benchmark 91 (17/18), 4.03 h, 23 tandas, 12 orchestras, transitions mean 91.3 (0 jarring). Night shape: opened by
   D'Agostino / Vargas 1941 (canon), última Tanturi / Castillo ending on Así Se Baila el Tango, closer Tanturi 1940
   Cumparsita. Strict panel: rhythmicRun (Láurenz, D'Arienzo summit, run at 10), darienzoPeak + rotation (the last
   summit is the 1935–38 D'Arienzo instrumental: Hotel Victoria, Champagne Tango, La Catrera, El Esquinazo), wedge and
-  energyStep (Caló / Berón e58 before the última). Spotify: 52/85 sides, closer no, 13/22 cortinas; 85/85 sides stream.
+  energyStep (Caló / Berón e58 before the última). Spotify (after the §4 follow-up): 85/85 sides, closer yes, 21/22 cortinas; 85/85 sides stream.
   Details: `docs/specs/round16-best-night.md`. Next candidates: seeds 262 and 96 (5 should-fix each).
 - **Golden set S1–S12** (`pnpm quality`): engine 87–90 composed, 87–91 improved (all ≥ 85); benchmark 74–91; 0
   blockers on every night; the most frequent should-fix there is stream3/streamNight (the stricter matching cleared
@@ -144,7 +156,7 @@ The new panel finds exactly the panel's real items and no longer the over-strict
 
 Left, and why:
 
-- The Spotify enrich is incomplete (rate limit, §4): 33 shipped sides and 9 shipped cortinas have no Spotify id.
+- The Spotify enrich of the golden set is incomplete (rate limit, §4); the shipped night lacks only the İşte Öyle Bir Şey cortina.
 - The stricter matching cost streams: D'Arienzo instrumentals 1936–40 with later takes (El Choclo, El Internado,
   La Payanca, Derecho Viejo …), most Di Sarli 1940s instrumentals (Deezer albums name no years), and with them the
   D'Arienzo instrumental summit family; Echagüe often takes the first summit because the rhythmic families sit inside
