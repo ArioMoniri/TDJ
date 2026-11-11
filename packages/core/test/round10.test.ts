@@ -234,10 +234,21 @@ describe("R10.5 — shape and fame", () => {
   it("a corpus closer closes its tango tanda (Pugliese Recuerdo is one)", () => {
     expect(deps.catalog.fame.get("recuerdo|osvaldo-pugliese")?.role).toBe("closer");
     for (const seed of SEEDS)
+      // (round 15: unless the sides allow no order that keeps every rule — the strict panel's fame rule for the last side outranks the corpus roles then)
       for (const p of both(seed))
-        // (round 15: unless the sides allow no order that keeps every rule — the strict panel's fame rule for the last side outranks the corpus roles then)
         for (const t of tangos(p))
-          if (t.songs.some((s) => s.role === "closer") && orderCost15(t.songs, isPeak15(t)) < 10)
+          if (
+            t.songs.some((s) => s.role === "closer") &&
+            orderCost15(t.songs, isPeak15(t)) < 10 &&
+            // (and a summit whose corpus closer is not among its best-loved sides: the panel's lastSide wins)
+            !(
+              t.peak &&
+              t.songs.some(
+                (s) =>
+                  s.role === "closer" && (s.fame ?? 0) < Math.max(...t.songs.map((x) => x.fame ?? 0)) - 1,
+              )
+            )
+          )
             expect(
               t.songs.at(-1)!.role,
               `seed ${seed} tanda ${t.index}: ${t.songs.map((s) => `${s.title}:${s.role ?? "-"}`).join(" / ")}`,

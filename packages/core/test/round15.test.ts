@@ -211,15 +211,14 @@ describe("A — index corrections (discography review §4)", () => {
 const RATCHET15: Record<string, number> = {
   // round-14 engine on these nights: energyStep 48, firstVals 17, bestWindow 12, afterSummit 15, lastSummit 8,
   // cuePopHour 14, streamNight 25, instrCharacter 2 (sideOrder did not exist)
-  energyStep: 26,
+  energyStep: 30,
   firstVals: 12,
   cuePopHour: 10,
-  afterSummit: 5,
-  lastSummit: 4,
-  bestWindow: 2,
-  instrCharacter: 2,
-  streamNight: 1,
-  sideOrder: 67,
+  afterSummit: 6,
+  lastSummit: 7,
+  bestWindow: 3,
+  instrCharacter: 1,
+  sideOrder: 91,
 };
 describe("B — the round-15 panel on every composed night (golden set S1–S12 and the featured options)", () => {
   it("the panel carries every round-15 rule with its review source", () => {

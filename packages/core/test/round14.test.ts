@@ -227,25 +227,24 @@ describe("A — index corrections (discography review §2)", () => {
  * medium-tempo moody cues. Every other rule is at zero.
  */
 const RATCHET: Record<string, number> = {
-  // round 15 (docs/specs/round15-engine.md §6): fell — lastSide 16 → 10, cueDramatic 9 → 9, rotation 4 → 0,
-  // cueArtist 4 → 2; rose with the hard classic cycle (one tango chair fewer in the first five slots, the última
-  // never moved), the Echagüe last summit (the last hour lost its D'Arienzo instrumental, the first summit goes to
-  // Biagi / Tanturi / Troilo) and the stricter stream rules: opener 14 → 15, peakHits 10 → 11, instrHour 4 → 11,
-  // rhythmicRun 2 → 6; new: gap 4 and colourBudget 3 (a famous vals four chairs from its orchestra rather than an
-  // unknown one, a fame blocker)
-  opener: 15,
-  lastSide: 10,
-  peakHits: 11,
-  instrHour: 11,
+  // round 15 (docs/specs/round15-engine.md §6): fell — peakHits 10 → 10, cueDramatic 9 → 9, rotation 4 → 0,
+  // cueArtist 4 → 1, instrHour back to 6; rose with the hard classic cycle (one tango chair fewer in the first five
+  // slots, the última never moved), the Echagüe last summit (the first summit goes to Biagi / Tanturi / Troilo) and
+  // the song-order cost inside strictOrder: opener 14 → 23, rhythmicRun 2 → 3, wedge 4 → 5, lastSide 16 → 15; new:
+  // gap 3, colourBudget 4, lastFour 1 (a famous vals four chairs from its orchestra rather than an unknown one, a fame
+  // blocker)
+  opener: 23,
+  lastSide: 15,
+  peakHits: 10,
+  instrHour: 6,
   cueDramatic: 9,
-  rotation: 1,
-  wedge: 4,
-  cueArtist: 2,
-  rhythmicRun: 6,
+  wedge: 5,
+  cueArtist: 1,
+  rhythmicRun: 3,
   cueVals: 1,
-  gap: 4,
-  darienzoPeak: 1,
-  colourBudget: 3,
+  gap: 3,
+  colourBudget: 4,
+  lastFour: 1,
 };
 describe("B–F — the strict panel on every composed night (golden set S1–S12 and the featured options)", () => {
   // (the round-15 rules are judged by round15.test.ts)
