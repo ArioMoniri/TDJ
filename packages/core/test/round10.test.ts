@@ -15,6 +15,7 @@ import {
   upbeatCortina,
 } from "../src/index";
 import { loadCatalog } from "../src/load";
+import { isPeakSlot as isPeak15, orderCost as orderCost15 } from "../src/order";
 
 let deps: ReturnType<typeof loadCatalog>;
 beforeAll(() => {
@@ -234,8 +235,9 @@ describe("R10.5 — shape and fame", () => {
     expect(deps.catalog.fame.get("recuerdo|osvaldo-pugliese")?.role).toBe("closer");
     for (const seed of SEEDS)
       for (const p of both(seed))
+        // (round 15: unless the sides allow no order that keeps every rule — the strict panel's fame rule for the last side outranks the corpus roles then)
         for (const t of tangos(p))
-          if (t.songs.some((s) => s.role === "closer"))
+          if (t.songs.some((s) => s.role === "closer") && orderCost15(t.songs, isPeak15(t)) < 10)
             expect(
               t.songs.at(-1)!.role,
               `seed ${seed} tanda ${t.index}: ${t.songs.map((s) => `${s.title}:${s.role ?? "-"}`).join(" / ")}`,

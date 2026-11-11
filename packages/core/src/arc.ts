@@ -80,6 +80,27 @@ export function planSlots(raw: ComposeOptions): Slot[] {
     i++;
     if (i > 400) break;
   }
+  // round 15 (the classic cycle is hard): the última is a tango, so the count never puts it on a V/M chair of the
+  // cycle (a third tango in a row); the nearer legal count wins
+  const classic =
+    (o.pattern === "classic" || o.pattern === "TTVTTM" || o.pattern === "TTVTTM-strict") && pat === "TTVTTM";
+  if (classic && slots.length >= 3 && [2, 5].includes((slots.length - 1) % 6)) {
+    const lastR = slots[slots.length - 1]!.rhythm;
+    const dLast = tandaDuration(o, lastR);
+    const nextCh = pat[slots.length % pat.length]!;
+    const nextR: DanceRhythm = nextCh === "V" ? "vals" : nextCh === "M" ? "milonga" : "tango";
+    const dNext = tandaDuration(o, nextR);
+    if (Math.abs(t - dLast - total) <= Math.abs(t + dNext - total)) slots.pop();
+    else
+      slots.push({
+        index: slots.length,
+        rhythm: nextR,
+        size: nextR === "tango" ? o.tangoTandaSize : nextR === "vals" ? o.valsTandaSize : o.milongaTandaSize,
+        targetEnergy: 0,
+        phase: "build",
+        position: 0,
+      });
+  }
   const n = slots.length;
   slots.forEach((s, k) => {
     s.position = n <= 1 ? 0 : k / (n - 1);

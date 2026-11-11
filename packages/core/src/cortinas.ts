@@ -719,10 +719,27 @@ const eraFiltered = (cands: Cortina[], o: ComposeOptions) => {
   return old.length >= 2 ? old : cands;
 };
 
+/**
+ * Round 15 (discography R12b): a cue whose resolved audio is a duet, live, remix or re-recording album ("Altın
+ * Düetler", "Yeniden Yetmişe", "HONNE Remix", "AdrianoLive") is not the record the cortina names; a cue tagged
+ * "audio:original" was checked by hand (Nilüfer's 1992 "Yine Yeni Yeniden" is the original album).
+ */
+export const CUE_AUDIO_SUSPECT_RE =
+  /d[üu]et|yeniden yetmi|yine yeni|\blive\b|konser|remix|concerto|en vivo|canl[ıi]/i;
+export const cueAudioSuspect = (c: Cortina) =>
+  !c.tags?.includes("audio:original") &&
+  !!c.resolved &&
+  CUE_AUDIO_SUSPECT_RE.test(`${c.resolved.album ?? ""} ${c.resolved.title ?? ""}`);
+/** a cue the panel can print: a year and the original audio (round 15, R12b) */
+export const cueMetaOk = (c: Cortina) => !!c.year && !cueAudioSuspect(c);
+
 export function candidatesFor(pool0: Cortina[], o: ComposeOptions): Cortina[] {
   // round 14 (discography R12, DJ S9): a cue with no audio is never in a pool; a danceable-risk cue (Şımarık) only
   // when the pool cannot do without it
-  const audible = pool0.filter((c) => !c.tags?.includes("no-audio"));
+  // round 15 (R12b): nor a cue without a year or with re-recorded audio, while eight others remain
+  const audible0 = pool0.filter((c) => !c.tags?.includes("no-audio"));
+  const meta = audible0.filter(cueMetaOk);
+  const audible = meta.length >= 8 ? meta : audible0;
   const safe = audible.filter((c) => !c.tags?.includes("danceable-risk"));
   const pool = safe.length >= 8 ? safe : audible.length ? audible : pool0;
   const cultures = new Set(o.cortinaCultures?.length ? o.cortinaCultures : ["global"]);

@@ -19,6 +19,7 @@ import {
   normTitle,
   type Playlist,
   planSlots,
+  R15_RULES,
   type Song,
   STRICT_RULES,
   scorePlaylist,
@@ -226,19 +227,29 @@ describe("A — index corrections (discography review §2)", () => {
  * medium-tempo moody cues. Every other rule is at zero.
  */
 const RATCHET: Record<string, number> = {
-  opener: 14,
-  lastSide: 16,
-  peakHits: 10,
-  instrHour: 4,
+  // round 15 (docs/specs/round15-engine.md §6): fell — lastSide 16 → 10, cueDramatic 9 → 9, rotation 4 → 0,
+  // cueArtist 4 → 2; rose with the hard classic cycle (one tango chair fewer in the first five slots, the última
+  // never moved), the Echagüe last summit (the last hour lost its D'Arienzo instrumental, the first summit goes to
+  // Biagi / Tanturi / Troilo) and the stricter stream rules: opener 14 → 15, peakHits 10 → 11, instrHour 4 → 11,
+  // rhythmicRun 2 → 6; new: gap 4 and colourBudget 3 (a famous vals four chairs from its orchestra rather than an
+  // unknown one, a fame blocker)
+  opener: 15,
+  lastSide: 10,
+  peakHits: 11,
+  instrHour: 11,
   cueDramatic: 9,
-  rotation: 4,
+  rotation: 1,
   wedge: 4,
-  cueArtist: 4,
-  rhythmicRun: 2,
+  cueArtist: 2,
+  rhythmicRun: 6,
   cueVals: 1,
+  gap: 4,
+  darienzoPeak: 1,
+  colourBudget: 3,
 };
 describe("B–F — the strict panel on every composed night (golden set S1–S12 and the featured options)", () => {
-  for (const r of STRICT_RULES)
+  // (the round-15 rules are judged by round15.test.ts)
+  for (const r of STRICT_RULES.filter((x) => !R15_RULES.includes(x.key)))
     it(`${r.key} (${r.severity}): ${r.label}`, () => {
       const bad = all().flatMap((p) => fmt(p, r.key));
       if (r.severity === "blocker" || !(r.key in RATCHET)) expect(bad.slice(0, 6)).toEqual([]);
@@ -251,8 +262,11 @@ describe("B–F — the strict panel on every composed night (golden set S1–S1
 
 describe("E — improveNight keeps the panel clean (fixer parity)", () => {
   // the goal is zero; what the engine reaches today is zero blockers and the should-fix ratchet below (spec §6)
+  // (the round-14 rules only: the round-15 rules have their own ratchet in round15.test.ts)
   it("after improveNight the golden set has zero blockers and no more should-fix items than composed (≤ 46 in all)", () => {
     let total = 0;
+    const r14 = (r: ReturnType<typeof strictChecks>) =>
+      r.violations.filter((v) => v.severity === "should-fix" && !R15_RULES.includes(v.rule)).length;
     for (const s of SEEDS) {
       const a = strictChecks(golden(s)),
         r = strictChecks(improved(s));
@@ -260,7 +274,7 @@ describe("E — improveNight keeps the panel clean (fixer parity)", () => {
         r.violations.filter((v) => v.severity === "blocker").map((v) => `S${s} ${v.rule}: ${v.detail}`),
       ).toEqual([]);
       expect(r.shouldFix, `S${s}`).toBeLessThanOrEqual(a.shouldFix);
-      total += r.shouldFix;
+      total += r14(r);
     }
     expect(total).toBeLessThanOrEqual(46);
   });

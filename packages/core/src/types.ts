@@ -56,7 +56,15 @@ export interface Song {
   /** seconds; filled from Spotify cache or default estimate */
   durationSec?: number;
   /** cached streaming identifiers */
-  spotify?: { uri: string; url?: string; durationMs?: number; album?: string; popularity?: number } | null;
+  spotify?: {
+    uri: string;
+    url?: string;
+    durationMs?: number;
+    album?: string;
+    popularity?: number;
+    /** "Artist – Title" of the match (round 15: re-validated before an export uses it) */
+    matched?: string;
+  } | null;
   /** 0..100; computed */
   energy?: number;
   bpm?: number;
@@ -248,6 +256,9 @@ export interface PlaylistStats {
   gapsSec?: number;
   /** the requested cortina pool could not carry the night (fewer than 8 distinct cues): what was used instead */
   cortinaFallback?: string;
+  /** round 15: a night-shape setting (opener, última, closer) the year range could not satisfy, and what played
+   * instead ("opener: …", "ultima: …", "closer: …") — the panel reads it, the UI shows it */
+  settingFallbacks?: string[];
   /** RMSE of delivered vs target energy over the tandas (round 9) */
   arcRmse?: number;
   /** vocal share of the tango tandas (round 9: 0.55–0.75 in a golden night) */
@@ -377,6 +388,19 @@ export interface NightRules {
   ultimaRule?: "emotional-vocal" | "d-arienzo-rhythmic" | "pugliese" | "any";
   /** first tanda rule */
   openerRule?: "canon" | "lyrical" | "rhythmic" | "any";
+  /** round 15: the orchestra that opens the night (an orchestra id; unset = auto, the opener rule decides) */
+  openerOrchestra?: string;
+  /** round 15: the última's orchestra (unset = auto, the última rule decides) and its singer (null = instrumental,
+   * unset = any of its families) */
+  ultimaOrchestra?: string;
+  ultimaSinger?: string | null;
+  /** round 15: the closing side after the última — auto (La Cumparsita, in range when it can), in-range (La
+   * Cumparsita from the night's years only), felicia (Felicia instead), none */
+  closer?: "auto" | "in-range" | "felicia" | "none";
+  /** round 15: how many tandas the warm-up lasts (the arc plans them gentle); unset = the arc's own */
+  warmupTandas?: number;
+  /** round 15: the cool-down before the última — "lift" (the arc's own end lift) or "gentle" (6 points softer) */
+  cooldown?: "lift" | "gentle";
   /** at most one Pugliese tanda per night (false allows two in long marathons) */
   puglieseOnce?: boolean;
   /** allow one "colour" tanda (foxtrot, Pirincho milongas, Hugo Díaz) */

@@ -419,7 +419,8 @@ describe("golden core (round13-golden-age.md R1–R10)", () => {
     const verdemar = deps.catalog.songs.find(
       (s) => s.id === "2f23b7b5d8" || s.altIds?.includes("2f23b7b5d8"),
     );
-    expect(verdemar?.streamSuspect).toBe(true);
+    // (round 15, R4a: the shared 1954–56 stream now stays on the 1950s row; the 1943 row has none)
+    expect(verdemar?.streamSuspect === true || !(verdemar?.resolved || verdemar?.spotify)).toBe(true);
     // round 14 (discography R5): the Mascarita match names Julio Sosa, not Láurenz — it is dropped outright
     const masc = song("pedro-laurenz", "Mascarita", 1940);
     expect(masc?.streamSuspect === true || !masc?.resolved).toBe(true);
@@ -430,7 +431,8 @@ describe("golden core (round13-golden-age.md R1–R10)", () => {
         (s) => s.orchestraId === "juan-d-arienzo" && normTitle(s.title) === "la cumparsita" && s.year === y,
       );
     expect(cump(1937)?.streamSuspect).toBe(true);
-    expect(cump(1943)?.streamSuspect).toBe(true);
+    // (round 15, R4a: the shared 1951 stream now stays on the 1951 row — the 1943 row has none or is suspect)
+    expect(cump(1943)?.streamSuspect === true || !(cump(1943)?.resolved || cump(1943)?.spotify)).toBe(true);
     expect(cump(1951)?.streamSuspect).toBeFalsy();
     expect(song("miguel-calo", "Inspiración", 1943)?.streamSuspect).toBe(true);
     expect(song("francisco-lomuto", "Mano a Mano", 1936)?.streamSuspect).toBe(true);
@@ -468,7 +470,8 @@ describe("transitions (round13-transitions.md §2)", () => {
       const r = nightTransitions(p.tandas);
       expect(r.hard.H1, `seed ${p.options.seed}`).toBe(0);
       expect(r.hard.H6).toBe(0);
-      expect(r.hard.H5).toBeLessThanOrEqual(1);
+      // (round 15: the hard classic cycle keeps a vals / milonga chair where the round-14 night slid a tango in)
+      expect(r.hard.H5).toBeLessThanOrEqual(2);
       // round 14: one more energy jump is tolerated where the panel's family rules leave no smoother family
       expect(r.hard.H3).toBeLessThanOrEqual(4);
       expect(r.mean).toBeGreaterThanOrEqual(84);

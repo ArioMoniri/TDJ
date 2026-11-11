@@ -206,7 +206,7 @@ export function BenchmarkSheet({
       {shown?.strict && (
         <Group
           header={`Strict panel · ${shown.strict.blockers} blockers · ${shown.strict.shouldFix} should-fix`}
-          footer="The round-14 strict panel: a milonguera, a purist encuentro DJ and a discographer. Every rule runs on every night the engine composes or improves; a blocker means the night is not played as it is."
+          footer="The strict panel of rounds 14–15: a milonguera, a purist encuentro DJ and a discographer (the classic cycle, energy steps, the última, streams and cortina length since round 15). Every rule runs on every night the engine composes or improves; a blocker means the night is not played as it is."
         >
           {shown.strict.rules
             .filter((r) => r.applies)
