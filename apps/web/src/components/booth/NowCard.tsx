@@ -44,6 +44,7 @@ export function NowCard() {
   const holding = useBooth((s) => s.holding);
   const rehearsal = useBooth((s) => s.rehearsal);
   const playlist = useBooth((s) => s.playlist);
+  const notRehearsable = useBooth((s) => s.notRehearsable);
   const item = plan?.items[planIndex];
   if (!plan || !item) return null;
   const length = current
@@ -57,10 +58,6 @@ export function NowCard() {
   const k = tandaItems.findIndex((x) => x.n === item.n);
   const live = state === "playing" || state === "cortina";
   const src = sources[planIndex] ?? "missing";
-  // rehearsal: the items without a clip (cortinas, tracks with no preview) are skipped; the chip says so once
-  const skippedForClips = rehearsal
-    ? sources.filter((s, i) => s === "missing" && plan.items[i]?.kind !== "break").length
-    : 0;
   const statusText =
     state === "idle"
       ? "Ready"
@@ -131,12 +128,25 @@ export function NowCard() {
         {item.birthday && <span className="booth-chip">birthday vals</span>}
         {/* the source badge already says "30 s rehearsal" when the item plays from a preview */}
         {rehearsal && src !== "preview" && <span className="booth-chip">30 s rehearsal</span>}
-        {skippedForClips > 0 && (
-          <span className="booth-chip" data-testid="booth-skipped">
-            {skippedForClips} without a clip, skipped
-          </span>
-        )}
       </div>
+      {/* round 18: say which items cannot be rehearsed and why, instead of skipping them silently */}
+      {rehearsal && notRehearsable.length > 0 && (
+        <details className="booth-norehearse mt-2" data-testid="booth-skipped">
+          <summary className="text-footnote text-[var(--label-2)]">
+            {notRehearsable.length} not rehearsable: no clip of the Spotify recording
+          </summary>
+          <ul className="text-footnote mt-1 grid gap-0.5 text-[var(--label-2)]">
+            {notRehearsable.map((x) => (
+              <li key={x.i}>
+                <span className="text-[var(--label)]">{x.title}</span> · {x.why}
+              </li>
+            ))}
+          </ul>
+          <p className="text-footnote mt-1 text-[var(--label-3)]">
+            They are left out of the rehearsal and play in full from Spotify or your files.
+          </p>
+        </details>
+      )}
     </section>
   );
 }

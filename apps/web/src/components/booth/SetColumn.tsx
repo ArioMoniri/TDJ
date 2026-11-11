@@ -1,6 +1,7 @@
 "use client";
-import { Lock, Repeat2 } from "lucide-react";
+import { Lock, Repeat2, Search } from "lucide-react";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { spotifyOf } from "@/lib/booth/clips";
 import { durationLabel } from "@/lib/booth/plan";
 import { useBooth } from "@/lib/booth/store";
 import { toast } from "@/lib/toast";
@@ -24,6 +25,7 @@ export function SetColumn({
   const sources = useBooth((s) => s.sources);
   const playlist = useBooth((s) => s.playlist);
   const started = useBooth((s) => s.started);
+  const rehearsal = useBooth((s) => s.rehearsal);
   const apply = useBooth((s) => s.applySwappedPlaylist);
   const list = useRef<HTMLElement>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -33,10 +35,18 @@ export function SetColumn({
       ?.querySelector<HTMLElement>(`[data-plan-index="${jumpTo}"]`)
       ?.scrollIntoView({ block: "center" });
   }, [jumpTo]);
+  // follow the playhead inside the column's own scroller only (≥ 1024 the column scrolls): on a phone the column is
+  // part of the page, and scrolling the window to the current row pushed the Now card under the glass header
   useEffect(() => {
-    list.current
-      ?.querySelector<HTMLElement>(`[data-plan-index="${planIndex}"]`)
-      ?.scrollIntoView({ block: "nearest" });
+    const box = list.current;
+    const row = box?.querySelector<HTMLElement>(`[data-plan-index="${planIndex}"]`);
+    if (!box || !row) return;
+    const oy = getComputedStyle(box).overflowY;
+    if ((oy !== "auto" && oy !== "scroll") || box.scrollHeight <= box.clientHeight) return;
+    const b = box.getBoundingClientRect();
+    const r = row.getBoundingClientRect();
+    if (r.top < b.top) box.scrollTop -= b.top - r.top + 8;
+    else if (r.bottom > b.bottom) box.scrollTop += r.bottom - b.bottom + 8;
   }, [planIndex]);
 
   const cur = plan?.items[planIndex];
@@ -141,6 +151,7 @@ export function SetColumn({
                   played={started && i < planIndex}
                   locked={locked}
                   source={sources[i] ?? "missing"}
+                  rehearsal={rehearsal}
                   busy={
                     busy ===
                     `${g.tanda}-${plan.items[i]!.kind === "track" ? g.items.findIndex((x) => x.i === i) : "t"}`
@@ -206,6 +217,7 @@ const Row = memo(function Row({
   played,
   locked,
   source,
+  rehearsal,
   busy,
   onSwap,
   onFind,
@@ -217,13 +229,18 @@ const Row = memo(function Row({
   played: boolean;
   locked: boolean;
   source: string;
+  rehearsal: boolean;
   busy: boolean;
   onSwap?: () => void;
   onFind: (itemId: string, title: string) => void;
 }) {
   const it = useBooth((s) => s.plan?.items[i]);
+  const entity = useBooth((s) => s.entities[i]);
   if (!it) return null;
   const missing = source === "missing" && it.kind !== "break";
+  const sp = spotifyOf(entity);
+  // one fixed action slot (44 px): Find… a file where the night needs one, else the checked Spotify recording
+  const find = missing && !!it.id && (!rehearsal || !sp?.url);
   return (
     <li
       className={`booth-row ${current ? "booth-row-on" : ""} ${played ? "booth-played" : ""}`}
@@ -231,6 +248,7 @@ const Row = memo(function Row({
       data-kind={it.kind}
       aria-current={current ? "true" : undefined}
       data-source={source}
+      data-spotify={sp?.uri}
     >
       <span className="booth-row-n tabular-nums">
         {it.kind === "cortina" ? "♪" : it.kind === "break" ? "—" : k}
@@ -245,22 +263,43 @@ const Row = memo(function Row({
             ? `cortina · ${it.artist} · in ${durationLabel(it.trimInSec ?? 0)} · stop ${durationLabel(it.stopSec ?? 0)}`
             : it.artist}
           {it.year ? ` · ${it.year}` : ""}
-          {source === "spotify" ? " · Spotify" : missing ? " · no source" : ""}
+          {source === "spotify" ? " · Spotify" : missing ? (rehearsal ? " · no clip" : " · no source") : ""}
         </span>
       </span>
-      {/* the planned length, so the DJ can read the night; "30 s" lives in the Now chip during a rehearsal */}
-      <span className="text-caption1 tabular-nums text-[var(--label-3)]">{durationLabel(it.lengthSec)}</span>
-      {missing && it.id && (
-        <button
-          type="button"
-          className="btn-plain booth-find text-caption1 -mr-1"
-          onClick={() => onFind(it.id!, it.title)}
-          data-testid="booth-find"
-        >
-          Find…
-        </button>
-      )}
-      {onSwap && (
+      {/* the planned length (the Spotify recording's when the side has one), so the DJ can read the night */}
+      <span
+        className="booth-row-len text-caption1 tabular-nums text-[var(--label-3)]"
+        data-testid="booth-row-len"
+      >
+        {durationLabel(it.lengthSec)}
+      </span>
+      <span className="booth-row-act">
+        {find ? (
+          <button
+            type="button"
+            className="icon-btn icon-btn-bare booth-find h-11 w-11"
+            onClick={() => onFind(it.id!, it.title)}
+            aria-label={`Find a file for ${it.title}`}
+            title="Find a file…"
+            data-testid="booth-find"
+          >
+            <Search size={16} strokeWidth={2} aria-hidden />
+          </button>
+        ) : sp?.url ? (
+          <a
+            href={sp.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="booth-spotify icon-btn icon-btn-bare h-11 w-11"
+            aria-label={`Open ${it.title} in Spotify (the recording the booth plays)`}
+            title="The Spotify recording · open in Spotify"
+            data-testid="booth-spotify-link"
+          >
+            <SpotifyMark />
+          </a>
+        ) : null}
+      </span>
+      {onSwap ? (
         <SwapButton
           label={`Swap track ${it.n}`}
           disabled={locked}
@@ -268,7 +307,25 @@ const Row = memo(function Row({
           onClick={onSwap}
           title={locked ? "Playing: locked" : undefined}
         />
+      ) : (
+        <span className="booth-row-act" aria-hidden />
       )}
     </li>
   );
 });
+
+/** Spotify's mark (the attribution its guidelines ask for beside a link to a track), 16 px, in the label colour */
+function SpotifyMark() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden className="booth-spotify-mark">
+      <circle cx="12" cy="12" r="11" fill="currentColor" />
+      <path
+        d="M6.5 9.3c3.6-1.1 8-.8 11.2 1.1M7.1 12.4c3-.9 6.5-.6 9.2 1M7.7 15.3c2.4-.7 5.1-.5 7.2.8"
+        fill="none"
+        stroke="rgb(var(--bg-cell))"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}

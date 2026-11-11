@@ -100,7 +100,10 @@ function MobileTab({
 export function Nav() {
   const path = usePathname();
   const bar = useToolbar();
-  const minimised = useScrollDirection();
+  // the booth keeps the whole tab bar (round 18): its control strip sits right above it, and the bar minimised to one
+  // tab read as a stray handle floating over the set list
+  const scrolledDown = useScrollDirection();
+  const minimised = scrolledDown && path !== "/booth";
   const [searchFocused, setSearchFocused] = useState(false);
   useEffect(() => {
     const on = (e: Event) => setSearchFocused(!!(e as CustomEvent<boolean>).detail);
