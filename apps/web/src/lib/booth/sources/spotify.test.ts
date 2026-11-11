@@ -49,7 +49,9 @@ describe("round 18: logged into Spotify, the booth plays exactly the checked rec
       expect(p.spotifyUri).toBe(e.spotify.uri);
       n++;
     }
-    expect(n).toBe(107);
+    // every item with a checked Spotify id (round 19: all 108, İşte Öyle Bir Şey included)
+    expect(n).toBe(ents.filter((e) => !!(e as Song | null)?.spotify?.uri).length);
+    expect(n).toBeGreaterThanOrEqual(107);
   });
 
   it("startItem PUTs /me/player/play with that uri and nothing else: no search, no re-match", async () => {

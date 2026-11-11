@@ -73,7 +73,8 @@ describe("round 18: the booth plays and times the checked Spotify recording", ()
     const pb = plan.items.find((_, i) => (ents[i] as Song | null)?.title === "Pensalo Bien")!;
     expect(pb.lengthSec).toBeCloseTo(136.92, 2);
     // the set itself is not changed (the catalogue's side length stays for the musical rules)
-    expect(featured.tandas[9]!.songs[0]!.durationSec).toBe(150);
+    const pbSong = featured.tandas.flatMap((t) => t.songs).find((x) => x.title === "Pensalo Bien")!;
+    expect(pbSong.durationSec).toBe(150);
   });
 
   it("planEntities includes the closing La Cumparsita (it printed as '?' with no source)", () => {
