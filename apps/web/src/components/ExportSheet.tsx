@@ -341,6 +341,11 @@ export function ExportSheet({
         const m = await matchHosted(plan.items, kinds, labels);
         // running order: matched rows go back into their own slot, so cortinas stay between the tandas
         const uris = orderedUris(plan, found.current);
+        // the same title and description (with the set's current score) for a new playlist and an update
+        const details = {
+          name: `TDJ · ${playlist.name}`,
+          description: `${playlist.tandas.length} tandas composed with TDJ, cortinas ${includeCortinas ? "included" : "excluded"}. Score ${playlist.score?.total ?? "–"}/100.`,
+        };
         const r = targetId
           ? await hostedCreatePlaylist({
               uris,
@@ -348,15 +353,15 @@ export function ExportSheet({
               url: `https://open.spotify.com/playlist/${targetId}`,
               replace: true,
               includeCortinas,
+              ...details,
             })
-          : await hostedCreatePlaylist({
-              uris,
-              includeCortinas,
-              name: `TDJ · ${playlist.name}`,
-              description: `${playlist.tandas.length} tandas composed with TDJ, cortinas ${includeCortinas ? "included" : "excluded"}. Score ${playlist.score?.total ?? "–"}/100.`,
-            });
+          : await hostedCreatePlaylist({ uris, includeCortinas, ...details });
         rememberTarget(r.url);
         setResult({ label: "Open in Spotify", url: r.url });
+        if (targetId && r.details === false)
+          toast(
+            "Tracks updated. Spotify kept the old title and description: only the playlist's owner can change them.",
+          );
         finishLog(r.added, m.missing, m.paused, m.remaining.length);
         if (m.paused && m.remaining.length) {
           const pend = { playlistId: r.id, url: r.url, remaining: m.remaining };

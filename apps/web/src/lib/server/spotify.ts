@@ -192,6 +192,26 @@ export async function replaceTracks(access: string, playlistId: string, uris: st
   return first.length + (uris.length > 100 ? await addTracks(access, playlistId, uris.slice(100)) : 0);
 }
 
+/**
+ * Rewrites a playlist's name and description (Change Playlist Details). An update replaces the tracks, and the
+ * description carries the set's score, so both are rewritten with the tracks; Spotify refuses this for a playlist
+ * the DJ only follows, which the caller treats as "details unchanged", never as a failed update.
+ */
+export async function updatePlaylistDetails(
+  access: string,
+  playlistId: string,
+  d: { name?: string; description?: string },
+): Promise<boolean> {
+  const body: { name?: string; description?: string } = {};
+  if (d.name) body.name = d.name;
+  if (typeof d.description === "string") body.description = d.description;
+  if (!Object.keys(body).length) return false;
+  return spotify(access, `/playlists/${playlistId}`, { method: "PUT", body: JSON.stringify(body) }).then(
+    () => true,
+    () => false,
+  );
+}
+
 export async function createPlaylist(
   access: string,
   p: { name: string; description: string; isPublic: boolean; uris: string[] },

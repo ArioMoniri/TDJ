@@ -272,6 +272,8 @@ export interface PlaylistResult {
   missing: string[];
   quota?: boolean;
   rateLimited?: number;
+  /** an update: the title and description (with the score) were rewritten; false when Spotify refused it */
+  details?: boolean;
 }
 /**
  * Creates the playlist from `uris` (matched first through `hostedMatch`), or appends them to `playlistId` (the
