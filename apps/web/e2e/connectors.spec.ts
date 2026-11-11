@@ -147,6 +147,11 @@ function mockServer(): http.Server {
         return json(201, { snapshot_id: "s1" });
       if (/^\/v1\/playlists\/pl1\/items/.test(url) && req.method === "PUT")
         return json(200, { snapshot_id: "s2" });
+      if (url === "/v1/playlists/pl1" && req.method === "PUT") return json(200, {});
+      if (url === "/v1/playlists/pl403" && req.method === "PUT")
+        return json(403, { error: { status: 403, message: "You cannot change this playlist" } });
+      if (/^\/v1\/playlists\/pl403\/items/.test(url) && req.method === "PUT")
+        return json(200, { snapshot_id: "s3" });
       // Pipedream Connect (REST shape the SDK deserialises)
       if (url === "/v1/oauth/token")
         return json(200, { access_token: "pd-token", token_type: "bearer", expires_in: 3600 });
@@ -612,6 +617,46 @@ test("Spotify keeps the running order: searched cortinas stay between their tand
   expect(calls.map((c) => c.method)).toEqual(["PUT", "POST"]);
   expect(calls.flatMap((c) => JSON.parse(c.body).uris as string[])).toEqual(uris);
   expect(hits.some((h) => h.url === "/v1/me/playlists")).toBe(false);
+  // without a name or description the details stay as they are
+  expect(hits.some((h) => h.url === "/v1/playlists/pl1")).toBe(false);
+
+  // updating a playlist rewrites its name and description too, so the score in it is the set's current one
+  hits.length = 0;
+  const upd = await request.post(`${APP}/api/spotify/playlist`, {
+    headers: { cookie: session },
+    data: {
+      uris: uris.slice(0, 3),
+      playlistId: "pl1",
+      replace: true,
+      includeCortinas: true,
+      name: "TDJ · Golden",
+      description: "23 tandas composed with TDJ, cortinas included. Score 91/100.",
+    },
+  });
+  expect(upd.status()).toBe(200);
+  expect((await upd.json()).details).toBe(true);
+  const details = hits.filter((h) => h.url === "/v1/playlists/pl1" && h.method === "PUT");
+  expect(details).toHaveLength(1);
+  expect(JSON.parse(details[0]!.body)).toEqual({
+    name: "TDJ · Golden",
+    description: "23 tandas composed with TDJ, cortinas included. Score 91/100.",
+  });
+  // a playlist whose details Spotify refuses (followed, not owned) still gets its tracks
+  hits.length = 0;
+  const ref = await request.post(`${APP}/api/spotify/playlist`, {
+    headers: { cookie: session },
+    data: {
+      uris: uris.slice(0, 3),
+      playlistId: "pl403",
+      replace: true,
+      includeCortinas: true,
+      name: "TDJ · X",
+    },
+  });
+  expect(ref.status()).toBe(200);
+  const rj = await ref.json();
+  expect(rj.added).toBe(3);
+  expect(rj.details).toBe(false);
 });
 
 test("an expired access token is refreshed transparently and the cookie is re-sealed", async ({
@@ -1046,6 +1091,19 @@ test("a 429 from Spotify ends the matching cleanly: the server reports the pause
     expect(hits.filter((h) => h.url.startsWith("/v1/search"))).toHaveLength(0);
     expect(last(/POST \/v1\/me\/playlists/)).toBeUndefined();
     expect(hits.find((h) => /^\/v1\/playlists\/pl1\/items/.test(h.url))?.method).toBe("PUT");
+    // the update also rewrites the title and description: the score in it is the one on the page
+    const det = hits.find((h) => h.url === "/v1/playlists/pl1" && h.method === "PUT");
+    expect(det, "playlist details updated").toBeTruthy();
+    const dj = JSON.parse(det!.body) as { name: string; description: string };
+    expect(dj.name).toMatch(/^TDJ · /);
+    const shown = (
+      await page
+        .getByTestId("score")
+        .first()
+        .textContent()
+        .catch(() => null)
+    )?.match(/\d+/)?.[0];
+    expect(dj.description).toMatch(new RegExp(`Score ${shown ?? "\\d+"}/100\\.$`));
     // the console stayed clean: no 401s from /api/*/me, no 429 storm, no stale PKCE refresh
     expect(errors.filter((e) => /401|429|accounts\.spotify|api\.spotify/.test(e))).toEqual([]);
   } finally {

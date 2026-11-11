@@ -11,6 +11,7 @@ import {
   matchItems,
   replaceTracks,
   SpotifyError,
+  updatePlaylistDetails,
   withSession,
 } from "@/lib/server/spotify";
 import { orderedUris, spotifyPlanFor } from "@/lib/spotifyPlan";
@@ -65,10 +66,20 @@ export async function POST(req: Request) {
         body.replace === true
           ? await replaceTracks(s.session.access, playlistId, uris)
           : await addTracks(s.session.access, playlistId, uris);
+      // an update brings the title and description (with the set's score) up to date too; append ("Try again")
+      // and calls without them leave the details alone
+      const details =
+        body.replace === true && (typeof body.name === "string" || typeof body.description === "string")
+          ? await updatePlaylistDetails(s.session.access, playlistId, {
+              name: typeof body.name === "string" ? body.name.trim() : undefined,
+              description: typeof body.description === "string" ? body.description : undefined,
+            })
+          : false;
       const res = NextResponse.json({
         id: playlistId,
         url: typeof body.url === "string" ? body.url : `https://open.spotify.com/playlist/${playlistId}`,
         added,
+        details,
         missing,
         ...(rateLimited ? { rateLimited } : {}),
       });
