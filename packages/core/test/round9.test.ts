@@ -230,7 +230,9 @@ describe("R9.5 — cortinas", () => {
     for (const seed of SEEDS) {
       const p = night(seed);
       const ids = p.tandas.slice(0, -1).map((t) => t.cortina!.id);
-      expect(new Set(ids).size, `seed ${seed}`).toBe(ids.length);
+      // (round 16: seven cortina records failed the cortina match rules — live, remix, acoustic — and left the pools;
+      // a night may repeat one cue, never within four cues, docs/specs/round16-engine.md §6)
+      expect(ids.length - new Set(ids).size, `seed ${seed}`).toBeLessThanOrEqual(1);
     }
     const turkish = deps.cortinas.filter((c) => c.culture === "turkish");
     expect(turkish.length).toBeGreaterThanOrEqual(30);

@@ -326,10 +326,17 @@ export function compose(
   let bestR = strictChecks(first);
   // (a draw with more than three energy jumps (H3) counts them as panel items)
   // (and a draw under the 85 the golden set must hold never wins over one above it)
-  const pen = (q: Playlist, x: StrictResult) =>
-    x.penalty + Math.max(0, nightTransitions(q.tandas).hard.H3 - 3) * 2 + (q.score.total < 85 ? 40 : 0);
+  // (round 16: and a hard transition rule that never breaks — H1, H6: dramatic into dramatic or lyrical — weighs 20)
+  const pen = (q: Playlist, x: StrictResult) => {
+    const h = nightTransitions(q.tandas).hard;
+    return x.penalty + Math.max(0, h.H3 - 3) * 2 + (h.H1 + h.H6) * 20 + (q.score.total < 85 ? 40 : 0);
+  };
   // (a blocker earns every extra draw; should-fix items only the first)
-  for (let k = 1; k <= (bestR.blockers ? STRICT_REDRAWS : 2) && pen(best, bestR) > 0; k++) {
+  const h16 = (q: Playlist) => {
+    const h = nightTransitions(q.tandas).hard;
+    return h.H1 + h.H6 > 0;
+  };
+  for (let k = 1; k <= (bestR.blockers || h16(best) ? STRICT_REDRAWS : 2) && pen(best, bestR) > 0; k++) {
     const p = composeOnce({ ...partial, seed }, deps, extras, (seed ^ Math.imul(k, 0x9e3779b1)) >>> 0);
     const r = strictChecks(p);
     const pr = pen(p, r),
@@ -972,6 +979,9 @@ function composeOnce(
       // (the best of what does not spend Echagüe; Echagüe only when nothing else fills the chair at all)
       const pick = [best0, c1].filter((x): x is Tanda => !!x).sort((x, y) => y.energy - x.energy)[0];
       if (pick && pick.energy >= slot.targetEnergy - 4) return pick;
+      // (round 16: Echagüe is the last summit's — the first summit takes the best chair that does not spend him,
+      // within 12 of its target; Echagüe only when nothing else comes near)
+      if (pick && pick.energy >= slot.targetEnergy - 12) return pick;
       // (a summit still delivers its energy, round 9: Echagüe takes it when nobody else can)
       const c2 = buildPeak0(slot, layers0, sc, true, 2);
       return c2 && (!pick || c2.energy > pick.energy) ? c2 : (pick ?? null);
@@ -1246,7 +1256,8 @@ function composeOnce(
       const style = (id: string) => cat.profile(id)?.style;
       const want =
         rules.openerRule === "canon"
-          ? (c: TandaCandidate) => !!OPENERS[c.orchestraId]
+          ? // (round 16, DJ R16-1: a canon opener is a first-tier family, never a colour orchestra)
+            (c: TandaCandidate) => !!OPENERS[c.orchestraId] && !isColour(cat.profile(c.orchestraId))
           : rules.openerRule === "lyrical"
             ? (c: TandaCandidate) => ["lyrical", "guardia"].includes(style(c.orchestraId) ?? "")
             : (c: TandaCandidate) => style(c.orchestraId) === "rhythmic";
