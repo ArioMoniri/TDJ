@@ -334,6 +334,12 @@ export interface ComposeOptions {
   cortinaCultures: string[]; // ["global"] or ["turkish","greek"...]
   cortinaGenres?: string[];
   cortinaTrend?: "trend" | "classic" | "mixed";
+  /**
+   * Round 19: the night is meant for Spotify (the default): the cortina planner draws only cues with a checked Spotify
+   * record, a family with none falls back to a compatible family (said in stats.settingFallbacks), and the strict
+   * panel's `cueSpotify` flags a cue without one. `false` (a night played from files) lifts the filter.
+   */
+  spotifyCortinas?: boolean;
   cortinaLengthSec: number;
   closeWithCumparsita: boolean;
   /** night rules that DJs toggle per event (all optional; era presets set sensible defaults) */

@@ -286,6 +286,14 @@ export const STRICT_RULES: StrictRuleDef[] = [
     severity: "should-fix",
     source: `${G} §1.5, §3 R12`,
   },
+  // round 19 (docs/specs/round19-engine.md §1): "sometimes cortinas are just not added in Spotify"
+  {
+    key: "cueSpotify",
+    label:
+      "On a night meant for Spotify every cortina has a checked Spotify record (a cue without one leaves a gap between two tandas in the playlist)",
+    severity: "should-fix",
+    source: "round-19 owner report; docs/specs/round19-engine.md §1",
+  },
   // round 15 (docs/specs/round15-engine.md)
   {
     key: "cycle",
@@ -992,7 +1000,16 @@ export function strictChecks(n: Night): StrictResult {
     .map((x, i) => ({ c: x.cortina, i }))
     .filter((r): r is { c: Cortina; i: number } => !!r.c && r.i < last);
   if (!cues.length)
-    for (const k of ["cueRisk", "cueArtist", "cueSlowPeak", "cueDramatic", "cueVals", "cuePlace", "cueAudio"])
+    for (const k of [
+      "cueRisk",
+      "cueArtist",
+      "cueSlowPeak",
+      "cueDramatic",
+      "cueVals",
+      "cuePlace",
+      "cueAudio",
+      "cueSpotify",
+    ])
       not(k);
   else {
     const seen = new Map<string, number[]>();
@@ -1013,6 +1030,8 @@ export function strictChecks(n: Night): StrictResult {
       if (nx.rhythm === "vals" && c.energy > nx.energy + 4)
         add("cueVals", i, `${c.title} e${c.energy} before a vals at e${nx.energy}`);
       if (!cueHasAudio(c)) add("cueAudio", i, `${c.title} (${c.artist}) has no audio`);
+      if (o.spotifyCortinas !== false && !c.spotify?.uri)
+        add("cueSpotify", i, `${c.title} (${c.artist}) has no checked Spotify record`);
       const pv = t[i]!;
       const tempo = cortinaTempo(c);
       const dN = cls(nx) === "D" && nx.rhythm === "tango";
