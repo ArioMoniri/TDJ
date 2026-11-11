@@ -88,8 +88,9 @@ test("the booth's lengths are the featured night's Spotify recordings, and every
   expect(links.length).toBeGreaterThan(90);
   for (const l of links) {
     expect(urls.has(l.href!)).toBe(true);
-    expect(l.w).toBeGreaterThanOrEqual(44);
-    expect(l.h).toBeGreaterThanOrEqual(44);
+    // (subpixel layout: 43.99998 is a 44 px box)
+    expect(l.w).toBeGreaterThanOrEqual(43.9);
+    expect(l.h).toBeGreaterThanOrEqual(43.9);
   }
   // the rehearsal: never a clip of another recording; what it cannot rehearse is named with the reason
   await expect(page.getByTestId("booth-skipped")).toContainText(
