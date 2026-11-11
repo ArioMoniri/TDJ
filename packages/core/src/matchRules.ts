@@ -513,9 +513,13 @@ export function cortinaMatchProblem(
     return `not the original record (${c.album ?? c.name})`;
   // round 17 (discography §1, §3): a second credited performer marks a duet unless the cue's artist names them too
   // (Fikret Kızılok, Sibel Sezal on Yana Yana is "Fikret Kızılok & Sibel Sezal")
+  // round 19: any credited performer the cue does not name, first-credited or not ("Duke Ellington, Count Basie" on
+  // The Count Meets The Duke is not Count Basie's Jumpin' at the Woodside)
   const cueArtist = ` ${normTitle(cue.artist)} `;
-  const other = c.artists.slice(1).find((x) => {
+  const other = c.artists.find((x) => {
     const n = normTitle(x);
+    // (the cue's own band under a longer credit — "Woody Herman & His Orchestra" — is the cue's artist)
+    if (` ${n} `.includes(` ${main} `)) return false;
     return !!n && !cueArtist.includes(` ${n} `) && !cueArtist.includes(` ${n.split(" ").at(-1)} `);
   });
   if (other) return `a duet with ${other} (the cue credits ${cue.artist})`;
