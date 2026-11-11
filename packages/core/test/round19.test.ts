@@ -287,9 +287,19 @@ describe("round 19 — the featured options (seed 199) as the platform composes 
         .map((x) => `${i + 1}: ${x}`),
     );
     expect(faults).toEqual([]);
-    // and the shipped order of D'Arienzo 1936–37 (Ataniche third) is one of them
+    // the shipped featured night is this round's night: D'Arienzo 1936–37 opens on Ataniche (it was third,
+    // the round-19 review's hole), and no tanda of it carries a round-19 order fault
     const da = featured.tandas.find((t) => t.songs.some((s) => s.title === "Ataniche"))!;
-    expect(orderVerdictOf(da.songs).some((x) => r19.test(x))).toBe(true);
+    expect(da.songs[0]!.title).toBe("Ataniche");
+    const shipped = featured.tandas.flatMap((t, i) =>
+      orderVerdictOf(t.songs, {
+        releaseCut: isReleaseCut(featured.tandas, i),
+        prevSide: i > 0 ? (featured.tandas[i - 1]!.songs.at(-1)?.energy ?? null) : null,
+      })
+        .filter((x) => r19.test(x))
+        .map((x) => `${i + 1}: ${x}`),
+    );
+    expect(shipped).toEqual([]);
     expect(cuesOf(p).every((c) => !!c.spotify?.uri)).toBe(true);
   });
 });
