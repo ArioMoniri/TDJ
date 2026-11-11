@@ -82,7 +82,7 @@ type Item = {
   uri: string;
   name: string;
   duration_ms: number;
-  album: { name: string; release_date?: string };
+  album: { name: string; release_date?: string; album_type?: string };
   popularity: number;
   artists: { name: string }[];
   external_urls: { spotify: string };
@@ -114,7 +114,7 @@ async function search(q: string): Promise<Item[]> {
       return [];
     }
     const j = await r.json();
-    await new Promise((res) => setTimeout(res, 110));
+    await new Promise((res) => setTimeout(res, 300)); // round 19: ≥ 300 ms between requests
     return j.tracks?.items ?? [];
   }
   return [];
@@ -236,14 +236,60 @@ async function enrichSongs() {
   if (none.length) console.log(`no correct Spotify recording found:\n  ${none.join("\n  ")}`);
 }
 
+/**
+ * Round 19: the cortina's record, chosen among every candidate the cortina rules accept (cortinaMatchProblem: the
+ * title, the artist by whole name, no live / remix / duet / re-recording album): the release nearest the cue's year
+ * (Spotify dates the reissue, so an earlier date is nearer the original), the cue's artist credited first and alone,
+ * a studio album or single over a compilation, a sensible length. Every cue of the pool is looked up (a cue with no
+ * Deezer preview too: the Spotify export plays it); one with no accepted candidate is cached as null — known, not
+ * searched again unless --refresh.
+ */
+function cueEvidence(
+  c: Pick<Cortina, "artist" | "year">,
+  t: {
+    name: string;
+    album: string;
+    artists: string[];
+    album_type?: string;
+    release?: string;
+    durationMs: number;
+    popularity?: number;
+  },
+): number {
+  const y = Number((t.release ?? "9999").slice(0, 4));
+  const main = normTitle(
+    c.artist.split(/\s*(?:,|&|\bfeat\.?|\bft\.?|\bx\b|\band\b|\bve\b)\s*/i)[0] ?? c.artist,
+  );
+  let v = 0;
+  if (c.year) {
+    // Spotify dates the release: the cue's own year is the original record; a studio album or single of the same
+    // artist years later is most likely a re-recording (Ella Fitzgerald's 1959 "A-Tisket, A-Tasket"), a later
+    // compilation most likely the original reissued
+    if (y >= c.year - 1 && y <= c.year + 1) v += 5;
+    else if (y > c.year + 5) v -= t.album_type === "compilation" ? 1 : 3;
+  }
+  const first = normTitle(t.artists[0] ?? "");
+  if (first === main) v += 2;
+  // a later band under the leader's name (the Glenn Miller Orchestra of the 1980s) is not the cue's record
+  else if (c.year && first.startsWith(main) && y > c.year + 5) v -= 3;
+  if (t.album_type === "album" || t.album_type === "single") v += 1;
+  if (/remaster/i.test(t.name)) v += 0.5;
+  // a spoken introduction, a medley or a radio session is no cue
+  if (/spoken|introduction|\bintro\b|medley|session/i.test(`${t.name} ${t.album}`)) v -= 4;
+  const sec = t.durationMs / 1000;
+  if (sec < 90 || sec > 600) v -= 2;
+  return v + (t.popularity ?? 0) / 100;
+}
+
 async function enrichCortinas() {
   const known = JSON.parse(readFileSync(`${ROOT}data/knowledge/cortinas.json`, "utf8")) as Cortina[];
   const all = new Map<string, Cortina>([...BUILTIN_CORTINAS, ...known].map((c) => [c.id, c]));
-  let pool = [...all.values()].filter((c) => !c.tags?.includes("no-audio"));
+  let pool = [...all.values()];
   if (args.ids) {
     const want = new Set<string>();
     for (const f of String(args.ids).split(",")) {
       const j = JSON.parse(readFileSync(f, "utf8"));
+      if (Array.isArray(j)) for (const x of j) want.add(String(x));
       for (const t of j.tandas ?? []) if (t.cortina?.id) want.add(t.cortina.id);
     }
     pool = pool.filter((c) => want.has(c.id));
@@ -253,24 +299,41 @@ async function enrichCortinas() {
   let hits = 0;
   const none: string[] = [];
   for (const c of pool) {
-    const qs = [`track:"${c.title}" artist:"${c.artist}"`, `${c.title} ${c.artist}`];
+    const main = c.artist.split(/\s*(?:,|&|\bfeat\.?|\bft\.?)\s*/i)[0] ?? c.artist;
+    const short = c.title.replace(/\s*\(.*?\)\s*/g, " ").trim();
+    const qs = [
+      `track:"${c.title}" artist:"${main}"`,
+      ...(short !== c.title ? [`track:"${short}" artist:"${main}"`] : []),
+      `${short} ${main}`,
+    ];
     let best: { t: Item; v: number } | null = null;
+    const seen = new Set<string>();
     for (const q of qs) {
       for (const t of await search(q)) {
+        if (seen.has(t.uri)) continue;
+        seen.add(t.uri);
         if (cortinaMatchProblem(c, asCand(t))) continue;
-        // the original record: the earliest release, then popularity
-        const y = Number((t.album.release_date ?? "9999").slice(0, 4));
-        const v =
-          (c.year && y >= c.year - 1 && y <= c.year + 1 ? 5 : 0) -
-          Math.max(0, y - (c.year ?? y)) / 10 +
-          t.popularity / 100;
+        const v = cueEvidence(c, {
+          name: t.name,
+          album: t.album.name,
+          artists: t.artists.map((a) => a.name),
+          album_type: t.album.album_type,
+          release: t.album.release_date,
+          durationMs: t.duration_ms,
+          popularity: t.popularity,
+        });
         if (!best || v > best.v) best = { t, v };
       }
-      if (best) break;
+      // the cue's year and its artist alone: no need to search further
+      if (best && best.v >= 7) break;
     }
     cueCache[c.id] = best ? entryOf(best.t) : null;
     if (best) hits++;
     else none.push(`${c.id} ${c.title} — ${c.artist}`);
+    if (args.verbose === "true")
+      console.log(
+        `${c.id}: ${best ? `${entryOf(best.t).matched} · ${best.t.album.name} ${best.t.album.release_date} (${best.v.toFixed(1)})` : "none"}`,
+      );
   }
   writeFileSync(CUE_CACHE, JSON.stringify(cueCache, null, 0));
   console.log(`cortinas: ${pool.length} lookups, ${hits} accepted; total ${Object.keys(cueCache).length}`);
@@ -309,7 +372,7 @@ async function get(url: string): Promise<any> {
       continue;
     }
     if (!r.ok) return null;
-    await new Promise((res) => setTimeout(res, 60));
+    await new Promise((res) => setTimeout(res, 300));
     return r.json();
   }
   return null;
