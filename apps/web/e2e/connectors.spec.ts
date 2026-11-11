@@ -1031,7 +1031,9 @@ test("a 429 from Spotify ends the matching cleanly: the server reports the pause
     }
     // every side is either in the playlist or reported not found: nothing dropped silently
     expect(total).toBe(first.length + left - notFound);
-    await expect(sheet).toContainText(`Added ${left - notFound} more${notFound ? ` (${notFound} not found)` : ""}.`);
+    await expect(sheet).toContainText(
+      `Added ${left - notFound} more${notFound ? ` (${notFound} not found)` : ""}.`,
+    );
     // the matches went into the DJ's database: a second export of the same set searches nothing, and it
     // updates the playlist made before (remembered for this night) instead of making another one
     hits.length = 0;
