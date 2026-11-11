@@ -239,6 +239,8 @@ const RATCHET: Record<string, number> = {
   // 1 → 7 (seven cortina records judged off — live, remix, acoustic — narrow the global pools); rhythmicRun 3 → 7
   // (R16-6 adds "two R+ tangos never adjacent"); new on these nights: stream 4, darienzoPeak 4, rotation 4, hotSlot 2,
   // valley 1, cuePlace 1 (the D'Arienzo instrumental summit family lost its 1937–40 streams)
+  // round 17 (docs/specs/round17-engine.md): gap 3 → 4 — the retuned rules and the singer rule move the repair's greedy
+  // path: a Troilo pair and a Biagi pair four tandas apart, each on two of these nights
   opener: 12,
   lastSide: 23,
   peakHits: 5,
@@ -248,7 +250,7 @@ const RATCHET: Record<string, number> = {
   cueArtist: 7,
   rhythmicRun: 9,
   cueVals: 1,
-  gap: 3,
+  gap: 4,
   colourBudget: 5,
   lastFour: 1,
   stream: 4,

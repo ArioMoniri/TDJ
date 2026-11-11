@@ -10,6 +10,7 @@ import {
   compose,
   cumparsitaStyle,
   isCanonFamily,
+  isReleaseCut,
   isSuspectSide,
   normTitle,
   type Playlist,
@@ -362,7 +363,9 @@ describe("R9.7 — order inside the tanda", () => {
   it("holds across the featured night and the default golden set", () => {
     for (const seed of SEEDS)
       for (const p of [night(seed), golden(seed)])
-        for (const t of p.tandas) {
+        for (const [ti, t] of p.tandas.entries()) {
+          // (round 17: a tanda ordered as a release cut at its boundary — docs/specs/round17-engine.md §2 — sets the corpus roles and the slowest-side rule aside)
+          if (isReleaseCut(p.tandas, ti)) continue;
           const es = t.songs.map((s) => s.energy ?? 50);
           const last = t.songs.at(-1)!;
           const min = Math.min(...es);
