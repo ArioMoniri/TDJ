@@ -39,6 +39,11 @@ export interface MatchCandidate {
   artists: string[];
   album?: string;
   durationMs?: number;
+  /**
+   * round 17: the provider credits only the main artist (Deezer's `artist`): the credit cannot name the singer, so the
+   * singer rule does not judge it. Spotify credits list every artist and are judged.
+   */
+  mainArtistOnly?: boolean;
 }
 export interface MatchContext {
   /** every singer the index knows (full names): a credit naming one the row lacks is another voice (M6) */
@@ -405,6 +410,18 @@ export function matchProblem(
     if (named.length) return `a sung credit (${named[0]}) on an instrumental side`;
     if (/ cant(a|an) /.test(credit)) return "a sung credit on an instrumental side";
   } else if (named.some((sg) => !isMine(sg)) && !named.some(isMine)) return `another singer (${named[0]})`;
+  // round 17 (discography §1, §4): a vocal side's credit names its singer — in the artists, the track title or the
+  // album (the album artist) — or the take is unproven (Tanturi's "Así se baila el tango" credited to the orchestra
+  // alone); a provider that credits only the main artist cannot show it and is not judged on it
+  if (
+    !instrumental &&
+    singerSur &&
+    !c.mainArtistOnly &&
+    !namesSinger &&
+    !hay.includes(` ${singerSur} `) &&
+    !` ${normTitle(c.album ?? "")} `.includes(` ${singerSur} `)
+  )
+    return `a vocal side whose credit does not name the singer (${c.artists.join(", ")})`;
   if (dateMismatch(row, c.name) || dateMismatch(row, c.album))
     return "a recording date that is not the row's";
   if (REMAKE_ALBUM.test(c.album ?? "") || REMAKE_ALBUM.test(c.name))
@@ -463,8 +480,10 @@ export function matchProblem(
  * Round 16 (M7): a cortina candidate is the cue's record — the same title, the artist by whole name, never a duet,
  * live, remix, karaoke, cover or re-recording album, never an album dated before the song.
  */
+// round 17 (discography §3): Unicode-aware (`u`: no ASCII-only \b after "ı") and suffix-tolerant for the Turkish
+// stems (Konseri, Konserler, Canlı Kayıt, Akustikler, Versiyonu, Sahne Performansı)
 export const CORTINA_BAD_ALBUM =
-  /\b(live|canl[ıi]|konser|concert|d[uü]et|d[uü]etler|remix|karaoke|cover|akustik|acoustic|unplugged|yeniden yetmi\w*|tribute|enstr[uü]mantal|instrumental version|re-?recorded|sped up|slowed)\b/i;
+  /(?:^|[^\p{L}])(live|canl[ıi]\p{L}*|konser\p{L}*|concert|d[uü]et\p{L}*|remix|karaoke|cover|akusti[kc]\p{L}*|acoustic|unplugged|yeniden (?:yetmi|kayıt)\p{L}*|tribute|enstr[uü]mantal|instrumental version|versiyon\p{L}*|sahne performans\p{L}*|re-?recorded|sped up|slowed)(?![\p{L}])/iu;
 const cueYears = (album: string | undefined) => {
   const ys = [...(album ?? "").matchAll(/\b(19\d\d|20[0-2]\d)\b/g)].map((m) => Number(m[1]));
   return ys.length ? ([Math.min(...ys), Math.max(...ys)] as [number, number]) : null;
@@ -491,6 +510,14 @@ export function cortinaMatchProblem(
     return `another artist (${c.artists.join(", ")})`;
   if (!cue.tags?.includes("audio:original") && CORTINA_BAD_ALBUM.test(`${c.name} ${c.album ?? ""}`))
     return `not the original record (${c.album ?? c.name})`;
+  // round 17 (discography §1, §3): a second credited performer marks a duet unless the cue's artist names them too
+  // (Fikret Kızılok, Sibel Sezal on Yana Yana is "Fikret Kızılok & Sibel Sezal")
+  const cueArtist = ` ${normTitle(cue.artist)} `;
+  const other = c.artists.slice(1).find((x) => {
+    const n = normTitle(x);
+    return !!n && !cueArtist.includes(` ${n} `) && !cueArtist.includes(` ${n.split(" ").at(-1)} `);
+  });
+  if (other) return `a duet with ${other} (the cue credits ${cue.artist})`;
   const span = cueYears(c.album);
   if (cue.year && span && span[1] < cue.year - 1) return `an album before the song (${c.album})`;
   return null;
@@ -519,6 +546,7 @@ export const deezerCandidate = (v: NonNullable<DeezerEntry>, title: string): Mat
   artists: v.artist ? [v.artist] : [],
   album: v.album,
   durationMs: v.durationMs,
+  mainArtistOnly: true,
 });
 const restoredLen = (v: { title?: string; album?: string }) =>
   /restaur/i.test(`${v.title ?? ""} ${v.album ?? ""}`);

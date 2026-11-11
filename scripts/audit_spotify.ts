@@ -4,6 +4,9 @@
  * sets those entries to null (the matcher searches them again under the same rules at export).
  * Round 16 (M1): the rules are judged as `judgeStreams` judges them — a Deezer length is the reference only when the
  * Deezer match itself passes; the index's later takes and voices count.
+ * Round 17 (discography §1, §4): the shared rules hold "a vocal side's credit names its singer" (artists, track title
+ * or album) for every cached Spotify id — the rule that let Tanturi's "Así se baila el tango" credited to the
+ * orchestra alone into the cache; the singer-rule rejections are counted on their own line.
  *   pnpm --filter @tdj/core exec tsx ../../scripts/audit_spotify.ts [--fix]
  */
 import { readFileSync, writeFileSync } from "node:fs";
@@ -25,6 +28,8 @@ const rejected = [
     .map((x) => ({ row: x.row, uri: x.id, why: x.why })),
 ];
 console.log(`Spotify cache audit: ${shared.checked} cached ids checked, ${rejected.length} rejected`);
+const noSinger = rejected.filter((r) => /does not name the singer/.test(r.why)).length;
+console.log(`  of which a vocal side whose credit does not name the singer: ${noSinger}`);
 for (const r of rejected) console.log(`  ${r.row} ${r.uri}: ${r.why}`);
 if (rejected.length && process.argv.includes("--fix")) {
   for (const r of rejected) spotify[r.row] = null;
