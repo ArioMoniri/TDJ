@@ -17,6 +17,7 @@ import {
   cortinaStandIn,
   familyOf,
   improveNight,
+  isReleaseCut,
   type MatchCandidate,
   orderVerdictOf,
   type Playlist,
@@ -251,5 +252,44 @@ describe("round 19 — inside the tanda: which side comes after which", () => {
     expect(titles(strictOrder(t))).toEqual(["Zorzal", "La Mulateada", "Pena Mulata"]);
     // the shipped order is a fault the panel names (so improveNight's strict fixer reorders it wherever it arises)
     expect(orderVerdictOf(t).join(" ")).toMatch(/cooler corpus opener Zorzal/);
+  });
+});
+
+describe("round 19 — the featured options (seed 199) as the platform composes them", () => {
+  it("compose + improveNight leave no round-19 order fault (a hole, a fall after the opener, a fade, the hotter opener)", () => {
+    const featured = JSON.parse(
+      readFileSync(join(findRoot(), "apps/web/public/featured/golden-double-peak.json"), "utf8"),
+    ) as Playlist;
+    const fo = { ...featured.options } as Record<string, unknown>;
+    for (const k of [
+      "contextApplied",
+      "trackSecByRhythm",
+      "cortinaGenres",
+      "vocalBias",
+      "tempoShift",
+      "seed",
+    ])
+      delete fo[k];
+    const o = {
+      ...fo,
+      explicit: Object.keys(fo).filter((k) => k !== "context"),
+      seed: 199,
+    } as ComposeOptions;
+    const p0 = compose(o, deps);
+    const p = improveNight({ ...p0, score: scorePlaylist(p0) }, deps).playlist;
+    const r19 = /falls \d+ after the opener|ends \d+ below|in a rhythmic tanda|cooler corpus opener/;
+    const faults = p.tandas.flatMap((t, i) =>
+      orderVerdictOf(t.songs, {
+        releaseCut: isReleaseCut(p.tandas, i),
+        prevSide: i > 0 ? (p.tandas[i - 1]!.songs.at(-1)?.energy ?? null) : null,
+      })
+        .filter((x) => r19.test(x))
+        .map((x) => `${i + 1}: ${x}`),
+    );
+    expect(faults).toEqual([]);
+    // and the shipped order of D'Arienzo 1936–37 (Ataniche third) is one of them
+    const da = featured.tandas.find((t) => t.songs.some((s) => s.title === "Ataniche"))!;
+    expect(orderVerdictOf(da.songs).some((x) => r19.test(x))).toBe(true);
+    expect(cuesOf(p).every((c) => !!c.spotify?.uri)).toBe(true);
   });
 });

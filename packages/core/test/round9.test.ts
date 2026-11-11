@@ -20,6 +20,7 @@ import {
   planSlots,
   type Song,
   shapeTanda,
+  staticProfile,
 } from "../src/index";
 import { loadCatalog } from "../src/load";
 
@@ -380,7 +381,15 @@ describe("R9.7 — order inside the tanda", () => {
             const hits = t.songs.map((s, i) => ({ s, i })).filter((x) => (x.s.fame ?? 0) === top);
             const blocked =
               hits[0]!.i === 0 && t.songs[2]!.role === "closer" && t.songs[3]!.role === "closer";
-            if (top > 0 && hits.length === 1 && hits[0]!.s.role !== "opener" && !blocked)
+            // (round 19, review F3: the one slow hit of a rhythmic tanda, 8 or more under the rest, opens — in the
+            // middle it is a hole in the drive; docs/specs/round19-engine.md §2.2 O1)
+            const slowHit =
+              hits[0]!.i === 0 &&
+              staticProfile(t.orchestraId)?.style === "rhythmic" &&
+              es.filter((x) => x === min).length === 1 &&
+              (hits[0]!.s.energy ?? 50) === min &&
+              Math.max(...es) - min >= 8;
+            if (top > 0 && hits.length === 1 && hits[0]!.s.role !== "opener" && !blocked && !slowHit)
               expect(
                 hits[0]!.i,
                 `seed ${seed} tanda ${t.index}: ${t.songs.map((s) => `${s.title} f${s.fame}`).join(" / ")}`,

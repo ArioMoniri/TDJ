@@ -15,6 +15,7 @@ import {
   compose,
   cortinaMatchProblem,
   improveNight,
+  isReleaseCut,
   judgeStreams,
   knownSingers,
   type MatchCandidate,
@@ -345,6 +346,9 @@ describe("D — the shipped featured night (seed 199, round 17)", () => {
           .join(),
       ),
     );
-    for (const t of featured.tandas) expect(orderVerdict(t)).toEqual([]);
+    // (round 19: a release cut at its boundary is judged as one — its closer and opener cut the step)
+    featured.tandas.forEach((t, i) =>
+      expect(orderVerdict(t, { releaseCut: isReleaseCut(featured.tandas, i) })).toEqual([]),
+    );
   });
 });
