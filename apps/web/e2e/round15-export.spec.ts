@@ -39,6 +39,8 @@ test("a Spotify export writes only the right recordings, in order, and lists wha
     );
   const written: string[] = [];
   const searched: string[] = [];
+  // round 17: a vocal side's credit names its singer (Spotify's does): the right candidate carries the side's singer
+  const singerOf = new Map<string, string>();
   let first = true;
   await page.route("https://api.spotify.com/v1/**", async (route) => {
     const url = new URL(route.request().url());
@@ -76,7 +78,16 @@ test("a Spotify export writes only the right recordings, in order, and lists wha
       searched.push(key);
       return json({
         tracks: {
-          items: only ? traps : [...traps, hit(`spotify:track:ok${key}`, [artist], "Grabaciones completas")],
+          items: only
+            ? traps
+            : [
+                ...traps,
+                hit(
+                  `spotify:track:ok${key}`,
+                  [artist, ...(singerOf.has(title) ? [singerOf.get(title)!] : [])],
+                  "Grabaciones completas",
+                ),
+              ],
         },
       });
     }
@@ -94,16 +105,23 @@ test("a Spotify export writes only the right recordings, in order, and lists wha
   // a bring-your-own Client ID with a live token (the store is persisted in idle time: wait for it, then patch it)
   await page.waitForFunction(() => !!localStorage.getItem("tdj-v1"));
   await page.waitForTimeout(1500);
-  await page.evaluate(() => {
+  const sung = await page.evaluate(() => {
     const raw = JSON.parse(localStorage.getItem("tdj-v1") ?? "{}");
     raw.state = raw.state ?? {};
     raw.state.settings = { ...(raw.state.settings ?? {}), spotifyClientId: "e2e-client" };
     raw.state.spotifyToken = { access: "e2e-token", expires: Date.now() + 3600_000 };
     // every side is searched (no carried match), so the matcher meets the traps
-    for (const t of raw.state.playlist?.tandas ?? []) for (const x of t.songs ?? []) x.spotify = null;
+    const sung: Array<[string, string]> = [];
+    for (const t of raw.state.playlist?.tandas ?? [])
+      for (const x of t.songs ?? []) {
+        x.spotify = null;
+        if (x.vocal && x.singer) sung.push([String(x.title).replace(/"/g, ""), x.singer]);
+      }
     if (raw.state.playlist?.closing) raw.state.playlist.closing.spotify = null;
     localStorage.setItem("tdj-v1", JSON.stringify(raw));
+    return sung;
   });
+  for (const [t, sg] of sung) singerOf.set(t, sg);
   await page.reload();
   await expect(page.locator("#result")).toBeVisible({ timeout: 60000 });
   await page.keyboard.press("Meta+e");

@@ -7,6 +7,7 @@
  */
 import { type ChildProcess, spawn } from "node:child_process";
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
+import { readFileSync } from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { type APIRequestContext, expect, type Page, test } from "@playwright/test";
@@ -25,6 +26,29 @@ interface Hit {
 const hits: Hit[] = [];
 const last = (re: RegExp) => [...hits].reverse().find((h) => re.test(`${h.method} ${h.url}`));
 /** Spotify search mock: after this many searches every search answers 429 (Infinity = never); `retryAfter` is the header; `delayMs` slows every search. */
+/**
+ * round 17: a vocal side's credit must name its singer, as Spotify's credits do: the mock's right recording comes in two
+ * credits under one URI — the orchestra alone (an instrumental side) and the orchestra with the singers the index knows
+ * for that title and orchestra (a sung side takes the credit that names its own singer)
+ */
+const fold = (x: string) =>
+  x
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+const sungBy = new Map<string, Array<{ orchestra: string; singer: string }>>();
+for (const s of JSON.parse(
+  readFileSync(path.join(process.cwd(), "../../data/index/songs.json"), "utf8"),
+) as Array<{ title: string; orchestra: string; vocal?: boolean; singer?: string | null }>)
+  if (s.vocal && s.singer) {
+    const k = s.title.replace(/"/g, "");
+    sungBy.set(k, [...(sungBy.get(k) ?? []), { orchestra: fold(s.orchestra), singer: s.singer }]);
+  }
+const singersOf = (title: string, artist: string) => [
+  ...new Set(
+    (sungBy.get(title) ?? []).filter((x) => x.orchestra.includes(fold(artist))).map((x) => x.singer),
+  ),
+];
 const searchLimit = { after: Number.POSITIVE_INFINITY, count: 0, retryAfter: 30, delayMs: 0 };
 /** YouTube search mock: this many searches (counted since the last `hits.length = 0`) answer, the next one is quotaExceeded. */
 const ytLimit = { searches: 2 };
@@ -99,7 +123,19 @@ function mockServer(): http.Server {
         if (!/nowhere/i.test(title ?? ""))
           // (round 15: the right recording carries no length here — the match rules judge a known side's length, and
           // a mock cannot know it; 0 reads as "not given")
-          items.push(item(`spotify:track:found${n}`, [`${artist} y su Orquesta`], "1940-01-01", 0));
+          items.push(
+            item(`spotify:track:found${n}`, [`${artist} y su Orquesta`], "1940-01-01", 0),
+            ...(singersOf(title ?? "", artist ?? "").length
+              ? [
+                  item(
+                    `spotify:track:found${n}`,
+                    [`${artist} y su Orquesta`, ...singersOf(title ?? "", artist ?? "")],
+                    "1940-01-01",
+                    0,
+                  ),
+                ]
+              : []),
+          );
         return json(200, { tracks: { items } });
       }
       if (url === "/v1/me/playlists" && req.method === "POST")
@@ -860,7 +896,8 @@ test("POST /api/spotify/match scores up to 10 items: the orchestra's recording b
   expect(j.matches.map((m: { id: string }) => m.id)).toEqual(["ciego", "lc"]);
   const ciego = j.matches[0];
   expect(ciego.uri).toMatch(/^spotify:track:found/);
-  expect(ciego.artist).toBe("Canaro y su Orquesta");
+  // (round 17: a vocal side's credit names its singer)
+  expect(ciego.artist).toBe("Canaro y su Orquesta, Roberto Maida");
   expect(ciego.name).toBe("Ciego");
   expect(ciego.durationMs).toBe(0); // (round 15: the mock gives the right recording no length)
   expect(ciego.year).toBe(1940);
