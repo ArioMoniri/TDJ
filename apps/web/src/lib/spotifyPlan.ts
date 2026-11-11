@@ -1,5 +1,7 @@
 import {
+  type Cortina,
   cortinaMatchProblem,
+  cortinaStandIn,
   type ExportOpts,
   type FlatTrack,
   matchProblem,
@@ -149,4 +151,56 @@ export function playlistIdFrom(v: string): string | null {
   const t = v.trim();
   const m = t.match(/playlist[/:]([A-Za-z0-9]+)/) ?? t.match(/^([A-Za-z0-9]{22})$/);
   return m ? m[1]! : null;
+}
+
+/** a cue as the stand-in reads it (a night's own cortina, or a row of /api/meta's `cortinaList`) */
+export type StandInCue = Pick<
+  Cortina,
+  "id" | "title" | "artist" | "genre" | "culture" | "energy" | "tags"
+> & {
+  spotify?: { uri?: string } | null;
+};
+/**
+ * Round 19: every cortina Spotify could not match (`missing`, row ids) gets a stand-in — the nearest Spotify-ready cue of
+ * the same family (see `cortinaStandIn`), never one of the cues either side of it — written into `found` under the
+ * missing cue's id, so `orderedUris` puts it in the cortina's own row and the playlist has no gap between two tandas.
+ * Returns what stood in for what (the Export sheet's result line says so) and the ids still missing.
+ */
+export function standInCortinas(
+  playlist: Pick<Playlist, "tandas">,
+  missing: string[],
+  found: Map<string, string>,
+  pool: StandInCue[] = [],
+): { standIns: Array<{ id: string; cue: string; standIn: string; uri: string }>; missing: string[] } {
+  const cues = playlist.tandas.map((t) => t.cortina ?? null);
+  const all = new Map<string, StandInCue>();
+  for (const c of pool) all.set(c.id, c);
+  // (the night's own cues carry their checked ids even when the pool is not at hand)
+  for (const c of cues) if (c?.spotify?.uri && !all.has(c.id)) all.set(c.id, c);
+  const standIns: Array<{ id: string; cue: string; standIn: string; uri: string }> = [];
+  const still: string[] = [];
+  for (const id of missing) {
+    const k = cues.findIndex((c) => c?.id === id);
+    const cue = k >= 0 ? cues[k] : null;
+    if (!cue) {
+      still.push(id);
+      continue;
+    }
+    const avoid = new Set(
+      [cues[k - 1], cues[k + 1], cue].filter((c): c is NonNullable<typeof c> => !!c).map((c) => c.id),
+    );
+    const sub = cortinaStandIn(cue, [...all.values()], avoid);
+    if (!sub?.spotify?.uri) {
+      still.push(id);
+      continue;
+    }
+    found.set(id, sub.spotify.uri);
+    standIns.push({
+      id,
+      cue: `${cue.title} (${cue.artist})`,
+      standIn: `${sub.title} (${sub.artist})`,
+      uri: sub.spotify.uri,
+    });
+  }
+  return { standIns, missing: still };
 }

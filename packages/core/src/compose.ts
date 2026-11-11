@@ -2,7 +2,7 @@ import { arcShapeFor, capPeakRuns, planSlots, sanitizeOptions } from "./arc";
 import { attachBooth } from "./booth";
 import type { Catalog } from "./catalog";
 import { applyContextToOptions, BUILTIN_CONTEXT, resolveContext } from "./context";
-import { cortinaPool, pickCortina, planCortinas } from "./cortinas";
+import { cortinaPool, pickCortina, planCortinas, spotifyCueFallbacks } from "./cortinas";
 import { isDanceableSong, normTitle } from "./energy";
 import { familyBand, goldenClassOf, isColour, isGoldenNight } from "./knowledge";
 import { isPeakSlot, meanFameOf } from "./order";
@@ -1720,6 +1720,8 @@ function composeOnce(
   }
   // cortinas: one family (or a compatible pair) per night, least-recently-used cycling, each cue ~8 points under the NEXT tanda
   const pool = cortinaPool(deps.cortinas, o.overrides?.cortinas);
+  // round 19: a Spotify night's family that has no Spotify-ready cue fell back to a compatible one
+  fallbacks.push(...spotifyCueFallbacks(pool, o));
   const used = new Set<string>();
   const plan = planCortinas(
     pool,

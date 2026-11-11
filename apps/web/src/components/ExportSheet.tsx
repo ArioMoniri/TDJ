@@ -29,7 +29,14 @@ import {
   useConnectors,
   type YoutubeResult,
 } from "@/lib/spotify";
-import { batches, orderedUris, playlistIdFrom, spotifyPlanFor } from "@/lib/spotifyPlan";
+import {
+  batches,
+  orderedUris,
+  playlistIdFrom,
+  type StandInCue,
+  spotifyPlanFor,
+  standInCortinas,
+} from "@/lib/spotifyPlan";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import { TRANSFER_SERVICES, type TransferService, transferCsv, transferRows } from "@/lib/transferCsv";
@@ -262,6 +269,7 @@ export function ExportSheet({
   const matchHosted = async (items: MatchItem[], kinds: Map<string, string>, labels: Map<string, string>) => {
     const uris: string[] = [];
     const missing: string[] = [];
+    const missingIds: string[] = [];
     let paused: number | undefined;
     let remaining: MatchItem[] = [];
     const bs = batches(items);
@@ -275,7 +283,10 @@ export function ExportSheet({
         found.current.set(m.id, m.uri);
       }
       persistMatches(r.matches, kinds);
-      for (const id of r.missing) missing.push(labels.get(id) ?? id);
+      for (const id of r.missing) {
+        missing.push(labels.get(id) ?? id);
+        missingIds.push(id);
+      }
       if (r.rateLimited) {
         paused = r.rateLimited;
         const seen = new Set([...r.matches.map((m) => m.id), ...r.missing]);
@@ -285,12 +296,13 @@ export function ExportSheet({
       done += b.length;
     }
     setProgress(null);
-    return { uris, missing, paused, remaining };
+    return { uris, missing, missingIds, paused, remaining };
   };
   /** BYO: the same scorer, searching from this browser with the DJ's own Client ID. */
   const matchByo = async (token: string, items: MatchItem[], labels: Map<string, string>) => {
     const uris: string[] = [];
     const missing: string[] = [];
+    const missingIds: string[] = [];
     let paused: number | undefined;
     let remaining: MatchItem[] = [];
     for (let i = 0; i < items.length; i++) {
@@ -301,7 +313,10 @@ export function ExportSheet({
         if (r) {
           uris.push(r.uri);
           found.current.set(it.id, r.uri);
-        } else missing.push(labels.get(it.id) ?? it.title);
+        } else {
+          missing.push(labels.get(it.id) ?? it.title);
+          missingIds.push(it.id);
+        }
       } catch (e) {
         if (e instanceof SpotifyRateLimit) {
           paused = e.retryAfter;
@@ -312,13 +327,45 @@ export function ExportSheet({
       }
     }
     setProgress(null);
-    return { uris, missing, paused, remaining };
+    return { uris, missing, missingIds, paused, remaining };
   };
-  const finishLog = (added: number, missing: string[], paused?: number, left = 0) => {
+  /** round 19: the cortina pool with its checked Spotify ids (/api/meta), fetched once, for the stand-ins */
+  const cuePool = useRef<StandInCue[] | null>(null);
+  const loadCuePool = async (): Promise<StandInCue[]> => {
+    if (cuePool.current) return cuePool.current;
+    try {
+      const j = (await (await fetch("/api/meta")).json()) as { cortinaList?: StandInCue[] };
+      cuePool.current = j.cortinaList ?? [];
+    } catch {
+      cuePool.current = [];
+    }
+    return cuePool.current;
+  };
+  /**
+   * Round 19: a cortina Spotify could not match never leaves a gap between two tandas — the nearest Spotify-ready cue
+   * of its family stands in, in its own row; the result line says which. Returns the labels still not found.
+   */
+  const standIns = async (
+    m: { missing: string[]; missingIds: string[] },
+    kinds: Map<string, string>,
+    labels: Map<string, string>,
+  ) => {
+    if (!playlist || !m.missingIds.some((id) => kinds.get(id) === "cortina"))
+      return { missing: m.missing, note: "" };
+    const r = standInCortinas(playlist, m.missingIds, found.current, await loadCuePool());
+    const note = r.standIns.length
+      ? ` ${r.standIns.length === 1 ? "A cortina was" : `${r.standIns.length} cortinas were`} not on Spotify: ${r.standIns
+          .slice(0, 2)
+          .map((x) => `${x.standIn} stands in for ${x.cue}`)
+          .join("; ")}${r.standIns.length > 2 ? "…" : ""}.`
+      : "";
+    return { missing: r.missing.map((id) => labels.get(id) ?? id), note };
+  };
+  const finishLog = (added: number, missing: string[], paused?: number, left = 0, note = "") => {
     setNotMatched(missing);
     setLog((l) => [
       ...l,
-      `${added} tracks in the playlist${missing.length ? ` (${missing.length} not found: ${missing.slice(0, 3).join(", ")}${missing.length > 3 ? "…" : ""})` : ""}${paused ? `. Spotify paused searches for ${paused} s: ${left} still to match.` : "."}`,
+      `${added} tracks in the playlist${missing.length ? ` (${missing.length} not found: ${missing.slice(0, 3).join(", ")}${missing.length > 3 ? "…" : ""})` : ""}${paused ? `. Spotify paused searches for ${paused} s: ${left} still to match.` : "."}${note}`,
     ]);
   };
 
@@ -339,6 +386,7 @@ export function ExportSheet({
         found.current = new Map();
         setMadeNew(!targetId);
         const m = await matchHosted(plan.items, kinds, labels);
+        const si = await standIns(m, kinds, labels);
         // running order: matched rows go back into their own slot, so cortinas stay between the tandas
         const uris = orderedUris(plan, found.current);
         // the same title and description (with the set's current score) for a new playlist and an update
@@ -362,7 +410,7 @@ export function ExportSheet({
           toast(
             "Tracks updated. Spotify kept the old title and description: only the playlist's owner can change them.",
           );
-        finishLog(r.added, m.missing, m.paused, m.remaining.length);
+        finishLog(r.added, si.missing, m.paused, m.remaining.length, si.note);
         if (m.paused && m.remaining.length) {
           const pend = { playlistId: r.id, url: r.url, remaining: m.remaining };
           setPending(pend);
@@ -403,10 +451,12 @@ export function ExportSheet({
       const plan = spotifyPlanFor(includeCortinas ? playlist : withoutCortinas(playlist), overrides, {
         includeCortinas,
       });
+      const kinds = new Map(plan.tracks.map((t) => [t.id ?? "", t.kind] as const));
       const labels = new Map(plan.tracks.map((t) => [t.id ?? "", `${t.title} (${t.artist})`] as const));
       found.current = new Map();
       setMadeNew(!targetId);
       const m = await matchByo(tok.access, plan.items, labels);
+      const si = await standIns(m, kinds, labels);
       const uris = orderedUris(plan, found.current);
       const pl = targetId
         ? await replacePlaylist(tok.access, targetId, uris).then(() => ({
@@ -421,7 +471,7 @@ export function ExportSheet({
           );
       rememberTarget(pl.external_urls.spotify);
       setResult({ label: "Open in Spotify", url: pl.external_urls.spotify });
-      finishLog(uris.length, m.missing, m.paused, m.remaining.length);
+      finishLog(uris.length, si.missing, m.paused, m.remaining.length, si.note);
       if (m.paused && m.remaining.length) {
         const pend = { playlistId: pl.id, url: pl.external_urls.spotify, remaining: m.remaining };
         setPending(pend);
@@ -457,7 +507,8 @@ export function ExportSheet({
         if (!tok) return;
         m = await matchByo(tok.access, pend.remaining, labels);
       }
-      if (m.uris.length) {
+      const si = await standIns(m, kinds, labels);
+      if (m.uris.length || si.note) {
         // rewrite the whole playlist so the new matches land in their own rows, not at the end
         const all = orderedUris(plan, found.current);
         if (hosted)
@@ -472,7 +523,7 @@ export function ExportSheet({
       }
       setLog((l) => [
         ...l,
-        `Added ${m.uris.length} more${m.missing.length ? ` (${m.missing.length} not found)` : ""}${m.paused ? `. Spotify paused again for ${m.paused} s: ${m.remaining.length} still to match.` : "."}`,
+        `Added ${m.uris.length} more${si.missing.length ? ` (${si.missing.length} not found)` : ""}${m.paused ? `. Spotify paused again for ${m.paused} s: ${m.remaining.length} still to match.` : "."}${si.note}`,
       ]);
       if (m.paused && m.remaining.length) {
         const next = { ...pend, remaining: m.remaining };

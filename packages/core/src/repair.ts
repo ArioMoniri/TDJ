@@ -408,7 +408,16 @@ export function editsFor(
   for (const v of curR.violations)
     if (v.tanda >= 0 && v.tanda < n) bad.set(v.tanda, new Set([...(bad.get(v.tanda) ?? []), v.rule]));
   const ruleSet = new Set(curR.violations.map((v) => v.rule));
-  const CUE = ["cueRisk", "cueArtist", "cueSlowPeak", "cueDramatic", "cueVals", "cuePlace", "cueAudio"];
+  const CUE = [
+    "cueRisk",
+    "cueArtist",
+    "cueSlowPeak",
+    "cueDramatic",
+    "cueVals",
+    "cuePlace",
+    "cueAudio",
+    "cueSpotify",
+  ];
   const STRUCT = [
     "colourPeak",
     "colourBudget",
@@ -1613,6 +1622,8 @@ export function recue(tandas: Tanda[], deps: ComposeDeps, o: ComposeOptions): Ta
     const next = out[k + 1]!;
     const tempo = cortinaTempo(c);
     if (c.tags?.includes("danceable-risk") || !cueHasAudio(c)) return false;
+    // round 19: a Spotify night's cue has a checked Spotify record
+    if (o.spotifyCortinas !== false && !c.spotify?.uri) return false;
     const same = chosen.map((x, j) => ({ x, j })).filter(({ x }) => art(x) === art(c));
     if (same.length >= 2 || (same.length && k - same[same.length - 1]!.j < 4)) return false;
     if (next.targetEnergy >= 78 && tempo === "slow") return false;

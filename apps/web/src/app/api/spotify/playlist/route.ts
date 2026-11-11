@@ -1,6 +1,7 @@
 import type { Playlist } from "@tdj/core";
 import { NextResponse } from "next/server";
 import { withoutCortinas } from "@/lib/exportPaths";
+import { getCatalog } from "@/lib/server/catalog";
 import { requestOrigin } from "@/lib/server/cookies";
 import { crossOriginResponse } from "@/lib/server/guard";
 import {
@@ -14,7 +15,7 @@ import {
   updatePlaylistDetails,
   withSession,
 } from "@/lib/server/spotify";
-import { orderedUris, spotifyPlanFor } from "@/lib/spotifyPlan";
+import { orderedUris, spotifyPlanFor, standInCortinas } from "@/lib/spotifyPlan";
 export const dynamic = "force-dynamic";
 
 /**
@@ -42,6 +43,8 @@ export async function POST(req: Request) {
   const includeCortinas = body.includeCortinas !== false;
   const uris: string[] = given ? [...given] : [];
   const missing: string[] = [];
+  /** round 19: the cortinas Spotify could not match and the Spotify-ready cue of their family that stands in */
+  let standIns: Array<{ id: string; cue: string; standIn: string; uri: string }> = [];
   let rateLimited: number | undefined;
   try {
     if (!given && playlist) {
@@ -49,9 +52,15 @@ export async function POST(req: Request) {
         includeCortinas,
       });
       const r = await matchItems(s.session.access, plan.items, { deadline: started + MATCH_BUDGET_MS });
+      const found = new Map(r.matches.map((m) => [m.id, m.uri] as const));
+      // round 19: a cortina with no match gets the nearest Spotify-ready cue of its family, never a gap
+      const si = includeCortinas
+        ? standInCortinas(playlist, r.missing, found, getCatalog().cortinas)
+        : { standIns: [], missing: r.missing };
+      standIns = si.standIns;
       // running order: each match goes back into its own row (cortinas stay between the tandas)
-      uris.push(...orderedUris(plan, new Map(r.matches.map((m) => [m.id, m.uri] as const))));
-      for (const id of r.missing) {
+      uris.push(...orderedUris(plan, found));
+      for (const id of si.missing) {
         const t = plan.tracks.find((x) => (x.id ?? "") === id);
         missing.push(t ? `${t.title} ${t.orchestra ?? t.artist}` : id);
       }
@@ -81,6 +90,7 @@ export async function POST(req: Request) {
         added,
         details,
         missing,
+        ...(standIns.length ? { standIns } : {}),
         ...(rateLimited ? { rateLimited } : {}),
       });
       if (s.setCookie) res.headers.append("set-cookie", s.setCookie);
@@ -105,6 +115,7 @@ export async function POST(req: Request) {
       ...pl,
       added: uris.length,
       missing,
+      ...(standIns.length ? { standIns } : {}),
       ...(rateLimited ? { rateLimited } : {}),
     });
     if (s.setCookie) res.headers.append("set-cookie", s.setCookie);

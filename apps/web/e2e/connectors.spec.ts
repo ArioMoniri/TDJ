@@ -574,13 +574,23 @@ test("Spotify keeps the running order: searched cortinas stay between their tand
 }) => {
   const { session } = await login(request);
   const p = await (await request.post(`${APP}/api/compose`, { data: { hours: 2, seed: 5 } })).json();
+  // round 19: one cue Spotify cannot match (no carried id, a title the mock has covers for only) — the nearest
+  // Spotify-ready cue of its family stands in, in its own row, never a gap between two tandas
+  const lostAt = (p.tandas as Array<{ cortina?: { id: string } | null }>).findIndex((t) => !!t.cortina);
+  const lost = p.tandas[lostAt].cortina;
+  p.tandas[lostAt].cortina = { ...lost, title: "Nowhere Cue", spotify: null };
   hits.length = 0;
   const r = await request.post(`${APP}/api/spotify/playlist`, {
     headers: { cookie: session },
     data: { playlist: p, includeCortinas: true, name: "Order test" },
   });
   expect(r.status()).toBe(200);
-  const missing = new Set((await r.json()).missing as string[]);
+  const made = await r.json();
+  const missing = new Set(made.missing as string[]);
+  const standIns = (made.standIns ?? []) as Array<{ id: string; uri: string; cue: string }>;
+  expect(standIns.map((x) => x.id)).toEqual([lost.id]);
+  expect(standIns[0]!.uri).toMatch(/^spotify:track:[A-Za-z0-9]+$/);
+  expect(missing.has(`Nowhere Cue ${lost.artist}`)).toBe(false);
   const got = hits
     .filter((h) => h.url === "/v1/playlists/pl1/items" && h.method === "POST")
     .flatMap((h) => JSON.parse(h.body).uris as string[]);
@@ -593,7 +603,8 @@ test("Spotify keeps the running order: searched cortinas stay between their tand
   // (round 16: a row the stricter rules leave "Not matched" is listed in `missing`, never added in its place)
   const want: string[] = [];
   const push = (x: Row) => {
-    if (x.spotify?.uri) want.push(x.spotify.uri);
+    if (x.title === "Nowhere Cue") want.push(standIns[0]!.uri);
+    else if (x.spotify?.uri) want.push(x.spotify.uri);
     else if (!missing.has(`${x.title} ${x.orchestra ?? x.artist}`)) want.push("SEARCHED");
   };
   for (const t of p.tandas as Array<{ songs: Row[]; cortina?: Row | null }>) {

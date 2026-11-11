@@ -734,11 +734,40 @@ export const cueAudioSuspect = (c: Cortina) =>
 /** a cue the panel can print: a year and the original audio (round 15, R12b) */
 export const cueMetaOk = (c: Cortina) => !!c.year && !cueAudioSuspect(c);
 
+/** round 19: a cue with a checked Spotify record (data/cache/spotify/cortinas.json, judged at load) */
+export const spotifyReady = (c: Pick<Cortina, "spotify">) => !!c.spotify?.uri;
+/** the families a DJ pairs with `f` (COMPATIBLE_FAMILIES) */
+export const compatibleWith = (f: string) =>
+  COMPATIBLE_FAMILIES.filter((p) => p.includes(f)).map((p) => (p[0] === f ? p[1] : p[0]));
+/**
+ * Round 19: the cortina settings a Spotify night could not honour — a family (requested, or one the night's culture
+ * offers) whose cues have no checked Spotify record, and the compatible families drawn instead. Empty: none.
+ */
+export function spotifyCueFallbacks(pool: Cortina[], o: ComposeOptions): string[] {
+  if (o.spotifyCortinas === false || o.cortinaStyle === "none") return [];
+  const all = candidatesFor(pool, { ...o, spotifyCortinas: false });
+  const fams = [...new Set([...(o.cortinaGenres ?? []), ...all.map(familyOf)])];
+  const ready = pool.filter((c) => spotifyReady(c) && !c.tags?.includes("no-audio"));
+  const out: string[] = [];
+  for (const f of fams) {
+    const of = all.filter((c) => c.genre === f || familyOf(c) === f);
+    if (!of.length || of.some(spotifyReady)) continue;
+    const comp = compatibleWith(f).filter((g) => ready.some((c) => c.genre === g || familyOf(c) === g));
+    out.push(
+      `cortinas: ${f} has no Spotify-ready cue; ${comp.length ? comp.join(" / ") : "the night's other families"} instead`,
+    );
+  }
+  return out;
+}
+
 export function candidatesFor(pool0: Cortina[], o: ComposeOptions): Cortina[] {
   // round 14 (discography R12, DJ S9): a cue with no audio is never in a pool; a danceable-risk cue (Şımarık) only
   // when the pool cannot do without it
   // round 15 (R12b): nor a cue without a year or with re-recorded audio, while eight others remain
-  const audible0 = pool0.filter((c) => !c.tags?.includes("no-audio"));
+  const audibleAll = pool0.filter((c) => !c.tags?.includes("no-audio"));
+  // round 19: a night meant for Spotify draws only cues with a checked Spotify record (while eight remain)
+  const ready = o.spotifyCortinas === false ? audibleAll : audibleAll.filter(spotifyReady);
+  const audible0 = ready.length >= 8 ? ready : audibleAll;
   const meta = audible0.filter(cueMetaOk);
   const audible = meta.length >= 8 ? meta : audible0;
   const safe = audible.filter((c) => !c.tags?.includes("danceable-risk"));
@@ -749,6 +778,11 @@ export function candidatesFor(pool0: Cortina[], o: ComposeOptions): Cortina[] {
   const byCulture = pool.filter((c) => cultures.has(c.culture) || cultures.has("any"));
   let cands = byCulture.length >= 3 ? byCulture : pool;
   if (genres) {
+    // round 19: a requested family with no Spotify-ready cue left falls back to its compatible families
+    if (o.spotifyCortinas !== false)
+      for (const g of [...genres])
+        if (!cands.some((c) => c.genre === g) && audibleAll.some((c) => c.genre === g))
+          for (const f of compatibleWith(g)) genres.add(f);
     const g = cands.filter((c) => genres.has(c.genre));
     if (g.length >= 3) cands = g;
   }
@@ -1025,4 +1059,36 @@ export function pickCortina(
       ? fresh.slice(0, Math.max(3, Math.ceil(fresh.length / 3)))
       : sorted.slice(0, Math.max(3, Math.ceil(sorted.length / 3)));
   return rng.weighted(pickFrom, (c) => Math.max(0.05, 1 - fitOf(c) / 28) ** 2) ?? null;
+}
+
+/**
+ * Round 19: the cue that stands in, on Spotify, for a cortina Spotify could not match at export time — a Spotify-ready
+ * cue of the same family (else a compatible family, else the same culture, else any), the nearest in energy, never one
+ * of `avoid` (the night's neighbouring cues) while another fits. Null: the pool has no Spotify-ready cue at all.
+ */
+export function cortinaStandIn<
+  C extends Pick<Cortina, "id" | "genre" | "culture" | "energy" | "tags"> & {
+    spotify?: { uri?: string } | null;
+  },
+>(
+  cue: Pick<Cortina, "id" | "genre" | "culture" | "energy" | "tags">,
+  pool: C[],
+  avoid: Set<string> = new Set(),
+): C | null {
+  const fam = familyOf(cue as Cortina);
+  const ready = pool.filter((c) => c.id !== cue.id && !!c.spotify?.uri && !c.tags?.includes("no-audio"));
+  const near = (xs: C[]) =>
+    xs.sort(
+      (a, b) => Math.abs(a.energy - cue.energy) - Math.abs(b.energy - cue.energy) || a.id.localeCompare(b.id),
+    )[0] ?? null;
+  const fresh = ready.filter((c) => !avoid.has(c.id));
+  for (const xs of [fresh, ready])
+    for (const tier of [
+      xs.filter((c) => familyOf(c as unknown as Cortina) === fam),
+      xs.filter((c) => compatibleWith(fam).includes(familyOf(c as unknown as Cortina))),
+      xs.filter((c) => c.culture === cue.culture),
+      xs,
+    ])
+      if (tier.length) return near(tier);
+  return null;
 }
