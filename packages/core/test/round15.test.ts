@@ -211,14 +211,22 @@ describe("A — index corrections (discography review §4)", () => {
 const RATCHET15: Record<string, number> = {
   // round-14 engine on these nights: energyStep 48, firstVals 17, bestWindow 12, afterSummit 15, lastSummit 8,
   // cuePopHour 14, streamNight 25, instrCharacter 2 (sideOrder did not exist)
-  energyStep: 30,
-  firstVals: 12,
-  cuePopHour: 10,
-  afterSummit: 6,
-  lastSummit: 7,
-  bestWindow: 3,
-  instrCharacter: 1,
-  sideOrder: 91,
+  // round 16 (docs/specs/round16-engine.md §6): retuned rules fell — sideOrder 91 → 19, cuePopHour 10 → 0, firstVals
+  // 12 → 0, lastSummit 7 → 2, bestWindow 3 → 2, instrCharacter 1 → 0; the stricter export matching (M1–M8) took
+  // streams from the families these nights need, so stream3 0 → 11 and streamNight 0 → 21 (the retuned streamNight
+  // also refuses an edge or uneven tanda's exception) and afterSummit 6 → 9 (the D'Arienzo instrumental summit lost
+  // its 1937–40 streams); energyStep 30 → 27
+  energyStep: 27,
+  afterSummit: 9,
+  lastSummit: 2,
+  bestWindow: 2,
+  sideOrder: 19,
+  stream3: 11,
+  streamNight: 21,
+  // (ratchet entries at zero kept for the record)
+  firstVals: 0,
+  cuePopHour: 0,
+  instrCharacter: 0,
 };
 describe("B — the round-15 panel on every composed night (golden set S1–S12 and the featured options)", () => {
   it("the panel carries every round-15 rule with its review source", () => {

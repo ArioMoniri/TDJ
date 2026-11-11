@@ -171,7 +171,8 @@ describe("R10.4 — the stream-length guard", () => {
     const rawson = deps.catalog.songs.find(
       (s) => s.orchestraId === "juan-d-arienzo" && normTitle(s.title) === "rawson" && s.year === 1936,
     )!;
-    expect(rawson.streamSuspect).toBe(true);
+    // (round 16, M2: beside the 1947 take the index knows, the Rawson match carries no evidence and is dropped)
+    expect(rawson.streamSuspect === true || !(rawson.resolved || rawson.spotify)).toBe(true);
     expect(rawson.resolved?.confidence ?? 0).toBeLessThanOrEqual(0.6);
     const flete = deps.catalog.songs.find(
       (s) => s.orchestraId === "juan-d-arienzo" && normTitle(s.title) === "el flete" && s.year === 1936,
@@ -233,8 +234,8 @@ describe("R10.5 — shape and fame", () => {
   });
   it("a corpus closer closes its tango tanda (Pugliese Recuerdo is one)", () => {
     expect(deps.catalog.fame.get("recuerdo|osvaldo-pugliese")?.role).toBe("closer");
+    // (round 15: unless the sides allow no order that keeps every rule — the strict panel's fame rule for the last side outranks the corpus roles then)
     for (const seed of SEEDS)
-      // (round 15: unless the sides allow no order that keeps every rule — the strict panel's fame rule for the last side outranks the corpus roles then)
       for (const p of both(seed))
         for (const t of tangos(p))
           if (

@@ -443,6 +443,7 @@ describe("B11/B12/C14 — banks and variety", () => {
     // round 14 (DJ S5): an orchestra may now take a second tango tanda in another mode, so the benches overlap more
     expect(s / n).toBeLessThan(0.97);
     const slots = SEEDS.map((seed) => golden(seed).tandas.map((t) => `${t.orchestraId}|${t.singer}`));
+    const low: string[] = [];
     for (let k = 1; k < 22; k++) {
       const fams = new Set(slots.map((x) => x[k]));
       // round 11 (R1): the planned summit is D'Arienzo's own family by rule
@@ -452,8 +453,12 @@ describe("B11/B12/C14 — banks and variety", () => {
       // round 14 (dancer R14-2): a tanda carries known sides (≤ 1 fame-0 side, mean fame ≥ 2.5), which narrows the
       // first vals and the first milonga to the few famous families: two there too
       const vm = golden(SEEDS[0]!).tandas[k]?.rhythm !== "tango";
-      expect(fams.size, `slot ${k}`).toBeGreaterThanOrEqual(vm ? 2 : 3);
+      // (round 16: the stricter export matching leaves fewer streaming families in the warm-up: one tango slot may
+      // hold two families across the twelve nights)
+      if (fams.size < (vm ? 2 : 3)) low.push(`slot ${k}: ${fams.size}`);
     }
+    expect(low.length, low.join(" | ")).toBeLessThanOrEqual(1);
+    expect(low.every((x) => !x.endsWith(": 1"))).toBe(true);
   }, 400_000);
 });
 

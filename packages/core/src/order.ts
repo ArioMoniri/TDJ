@@ -39,14 +39,14 @@ export function heatOfSides(songs: Song[]): Tanda["heat"] | undefined {
  * opener never closes, the last side is a corpus closer or one of the two hottest, never fame 0 when a fame ≥ 2 side
  * is there, and a vals or milonga never ends on its one lowest-energy side. The rest rise in energy between them.
  */
-export function strictOrder(songs0: Song[], peak = false): Song[] {
-  return orderWithCost(songs0, peak).songs;
+export function strictOrder(songs0: Song[], peak = false, ctx: OrderCtx = {}): Song[] {
+  return orderWithCost(songs0, peak, ctx).songs;
 }
 /** the best order and what it still breaks (≥ 10 per broken rule: such a set of sides is not one to play) */
-export function orderCost(songs: Song[], peak = false): number {
-  return orderWithCost(songs, peak).cost;
+export function orderCost(songs: Song[], peak = false, ctx: OrderCtx = {}): number {
+  return orderWithCost(songs, peak, ctx).cost;
 }
-function orderWithCost(songs0: Song[], peak: boolean): { songs: Song[]; cost: number } {
+function orderWithCost(songs0: Song[], peak: boolean, ctx: OrderCtx = {}): { songs: Song[]; cost: number } {
   const cump = songs0.filter(isCump);
   const songs = songs0.filter((s) => !isCump(s));
   if (songs.length < 2) return { songs: songs0, cost: 0 };
@@ -83,7 +83,14 @@ function orderWithCost(songs0: Song[], peak: boolean): { songs: Song[]; cost: nu
       cost += e(first) / 1000 - fame(last) / 100;
       // round 15 (the song-order rule, strict `sideOrder`): among the orders that break no rule above, the order's own
       // verdict weighs 0.3 per item — under the corpus-role preferences (a closer last, −0.5)
-      if (cost < 10) cost += 0.3 * orderVerdictOf([first, ...midOf(first, last), last]).length;
+      // round 16: a fade, an última or summit that does not end on its strongest side weigh 2; the side-level cliff
+      // into the tanda (DJ R16-4) weighs 12 — over the round-9 "one hit not first" and under the corpus roles (20)
+      if (cost < 10 || ctx.prevLast != null) {
+        const v = orderVerdictOf([first, ...midOf(first, last), last], ctx);
+        const heavy = v.filter((x) => /fades out|strongest/.test(x)).length;
+        const cliff = v.filter((x) => /below the previous/.test(x)).length;
+        cost += 0.3 * (v.length - heavy - cliff) + 2 * heavy + 12 * cliff;
+      }
       if (!best || cost < best.cost - 1e-9) best = { first, last, cost };
     }
   const { first, last, cost } = best!;
@@ -99,29 +106,76 @@ function orderWithCost(songs0: Song[], peak: boolean): { songs: Song[]; cost: nu
   }
 }
 
+/** round 16: where a tanda stands in the night (the order verdict reads it) */
+export interface OrderCtx {
+  /** the energy of the previous tanda's last side (the side-level step into this tanda) */
+  prevLast?: number | null;
+  /** a planned summit */
+  summit?: boolean;
+  /** the última */
+  ultima?: boolean;
+}
 /**
- * Round 15 — the song-order verdict of a tanda (the strict panel's `sideOrder`): an inviting opener (fame ≥ 3 when the
- * tanda has such a side, never the one slowest side), no dip mid-tanda, the best-loved side last or third, no title
- * twice in a row, no back-and-forth across the years. Empty: the order is right.
+ * Round 16 (DJ R16-4, dancer §4): a tanda whose first side sits more than 15 below the previous tanda's last side
+ * opens on a cliff when one of its fame-≥3 sides lies nearer that side (Láurenz / Casas opening on Como Dos Extraños
+ * e56 straight after La Payanca e84). Null: no cliff.
  */
-export function orderVerdictOf(songs0: Song[]): string[] {
+export function cliffOf(songs0: Song[], prevLast: number | null | undefined): string | null {
+  const ss = songs0.filter((s) => !isCump(s));
+  if (prevLast === null || prevLast === undefined || ss.length < 2) return null;
+  const e = (s: Song) => s.energy ?? 50;
+  const first = ss[0]!;
+  if (prevLast - e(first) <= 15) return null;
+  const nearer = ss.some(
+    (s) => s !== first && fame(s) >= 3 && Math.abs(e(s) - prevLast) < prevLast - e(first) - 4,
+  );
+  return nearer
+    ? `opens ${prevLast - e(first)} below the previous tanda's last side (${first.title} e${e(first)} after e${prevLast})`
+    : null;
+}
+
+/**
+ * Round 15 — the song-order verdict of a tanda (the strict panel's `sideOrder`), retuned in round 16 as the panel
+ * specified (dancer §4, DJ §6): the slowest side may open (Como Dos Extraños, Malena, Silueta Porteña are the
+ * invitations) — only the side-level cliff from the previous tanda is a fault (`cliffOf`, its own rule); the best-loved
+ * side sits first, third or last; a mid-tanda dip counts only when the side is less loved than both neighbours (or the
+ * dip is ≥ 15 on a side of fame ≤ 2); the tanda never fades out (the last side ≥ the tanda's mean − 8, unless it is the
+ * single best-loved side) and ends within 1 of its top fame; in a summit and in the última the last side is the
+ * strongest (within 3 of the hottest); no title twice in a row, no back-and-forth across the years. Empty: right.
+ */
+export function orderVerdictOf(songs0: Song[], ctx: OrderCtx = {}): string[] {
   const ss = songs0.filter((s) => !isCump(s));
   if (ss.length < 3) return [];
   const e = (s: Song) => s.energy ?? 50;
   const why: string[] = [];
-  const minE = Math.min(...ss.map(e));
-  const spread = Math.max(...ss.map(e)) - minE;
   if (fame(ss[0]!) < 3 && ss.some((s) => fame(s) >= 3))
     why.push(`opens on ${ss[0]!.title} (fame ${fame(ss[0]!)})`);
-  if (e(ss[0]!) === minE && spread >= 6 && ss.filter((s) => e(s) === minE).length === 1)
-    why.push(`opens on the slowest side (${ss[0]!.title} e${e(ss[0]!)})`);
-  for (let k = 1; k < ss.length - 1; k++)
-    if (e(ss[k]!) <= e(ss[k - 1]!) - 10 && e(ss[k]!) <= e(ss[k + 1]!) - 10)
-      why.push(`a dip mid-tanda (${ss[k]!.title} e${e(ss[k]!)})`);
+  const cliff = cliffOf(ss, ctx.prevLast);
+  if (cliff) why.push(cliff);
+  for (let k = 1; k < ss.length - 1; k++) {
+    const dip = Math.min(e(ss[k - 1]!), e(ss[k + 1]!)) - e(ss[k]!);
+    if (dip < 10) continue;
+    const lessLoved = fame(ss[k]!) < fame(ss[k - 1]!) && fame(ss[k]!) < fame(ss[k + 1]!);
+    if (lessLoved || (dip >= 15 && fame(ss[k]!) <= 2))
+      why.push(`a dip mid-tanda (${ss[k]!.title} e${e(ss[k]!)}, fame ${fame(ss[k]!)})`);
+  }
   const maxF = Math.max(...ss.map(fame));
   const bestAt = ss.map((s, k) => (fame(s) === maxF ? k : -1)).filter((k) => k >= 0);
-  if (maxF >= 3 && !bestAt.some((k) => k >= ss.length - 2))
-    why.push(`the best-loved side (${ss[bestAt[0]!]!.title}) is not last or third`);
+  if (maxF >= 3 && !bestAt.some((k) => k === 0 || k === 2 || k === ss.length - 1))
+    why.push(`the best-loved side (${ss[bestAt[0]!]!.title}) is not first, third or last`);
+  const lastS = ss[ss.length - 1]!;
+  const mean = ss.reduce((a, s) => a + e(s), 0) / ss.length;
+  const singleBest = fame(lastS) === maxF && bestAt.length === 1;
+  if (e(lastS) < mean - 8 - 1e-9 && !singleBest)
+    why.push(`fades out on ${lastS.title} (e${e(lastS)}, the tanda's mean ${Math.round(mean)})`);
+  if (fame(lastS) < maxF - 1) why.push(`ends on ${lastS.title} (fame ${fame(lastS)}, top ${maxF})`);
+  if (ctx.summit || ctx.ultima) {
+    const top = Math.max(...ss.map(e));
+    if (e(lastS) < top - 3)
+      why.push(
+        `the ${ctx.ultima ? "última" : "summit"} does not end on its strongest side (${lastS.title} e${e(lastS)}, top e${top})`,
+      );
+  }
   for (let k = 1; k < ss.length; k++)
     if (ss[k]!.title.toLowerCase() === ss[k - 1]!.title.toLowerCase())
       why.push(`${ss[k]!.title} twice in a row`);
