@@ -18,8 +18,9 @@ jobs:
       - run: pnpm --filter @tdj/web build
       - name: Playwright e2e
         run: |
-          npx playwright install --with-deps chromium
-          cd apps/web && CHROMIUM= pnpm e2e
+          cd apps/web
+          pnpm exec playwright install --with-deps chromium
+          CHROMIUM= pnpm e2e
       - uses: actions/upload-artifact@v4
         if: failure()
         with: { name: playwright-report, path: apps/web/test-results }

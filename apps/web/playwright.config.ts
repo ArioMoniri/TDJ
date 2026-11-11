@@ -1,6 +1,8 @@
 import { defineConfig } from "@playwright/test";
 
-const launchOptions = { executablePath: process.env.CHROMIUM ?? "/opt/pw-browsers/chromium" };
+// CHROMIUM unset: the cloud session's pre-installed browser; CHROMIUM= (empty, as CI sets it): Playwright's own
+const chromium = process.env.CHROMIUM ?? "/opt/pw-browsers/chromium";
+const launchOptions = chromium ? { executablePath: chromium } : {};
 export default defineConfig({
   testDir: "./e2e",
   timeout: 90_000,
