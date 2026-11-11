@@ -171,6 +171,41 @@ const OPENER: Array<[NonNullable<NightRules["openerRule"]>, string]> = [
   ["rhythmic", "Rhythmic"],
   ["any", "Any"],
 ];
+/** round 15: the night's shape as settings — who opens, who plays the última, what closes ("auto" = the rules) */
+const OPEN_WITH: Array<[string, string]> = [
+  ["auto", "Auto (the opener rule)"],
+  ["carlos-di-sarli", "Di Sarli"],
+  ["francisco-canaro", "Canaro"],
+  ["angel-d-agostino", "D'Agostino"],
+  ["osvaldo-fresedo", "Fresedo"],
+  ["juan-d-arienzo", "D'Arienzo"],
+  ["anibal-troilo", "Troilo"],
+  ["enrique-rodriguez", "Rodríguez"],
+];
+const ULTIMA_WITH: Array<[string, string]> = [
+  ["auto", "Auto (the última rule)"],
+  ["ricardo-tanturi|Alberto Castillo", "Tanturi / Castillo"],
+  ["anibal-troilo|Francisco Fiorentino", "Troilo / Fiorentino"],
+  ["rodolfo-biagi|Jorge Ortíz", "Biagi / Ortiz"],
+  ["carlos-di-sarli|Roberto Rufino", "Di Sarli / Rufino"],
+  ["angel-d-agostino|Angel Vargas", "D'Agostino / Vargas"],
+  ["juan-d-arienzo|~", "D'Arienzo instrumental"],
+  ["osvaldo-pugliese|*", "Pugliese"],
+];
+const CLOSERS: Array<[NonNullable<NightRules["closer"]>, string]> = [
+  ["auto", "La Cumparsita"],
+  ["in-range", "La Cumparsita, the night's years"],
+  ["felicia", "Felicia"],
+  ["none", "None"],
+];
+const COOLDOWNS: Array<[NonNullable<NightRules["cooldown"]>, string]> = [
+  ["lift", "Lift into the última"],
+  ["gentle", "Gentle"],
+];
+const ultimaKey = (r: NightRules) =>
+  r.ultimaOrchestra
+    ? `${r.ultimaOrchestra}|${r.ultimaSinger === null ? "~" : r.ultimaSinger === undefined ? "*" : r.ultimaSinger}`
+    : "auto";
 const CUMPARSITAS: Array<["1" | "2", string]> = [
   ["1", "One (Europe)"],
   ["2", "Two (Buenos Aires)"],
@@ -557,6 +592,55 @@ const SetupForm = memo(function SetupForm({
           value={rules.openerRule ?? "canon"}
           items={OPENER}
           onChange={(k) => k && setRules({ openerRule: k })}
+        />
+        <PickerRow
+          label="Open with"
+          sub="The orchestra of the first tanda; auto follows the opener rule"
+          ariaLabel="Open with"
+          value={rules.openerOrchestra ?? "auto"}
+          items={OPEN_WITH}
+          onChange={(k) => k && setRules({ openerOrchestra: k === "auto" ? undefined : k })}
+        />
+        <PickerRow
+          label="Última with"
+          sub="The family of the last tanda; auto follows the última rule"
+          ariaLabel="Última with"
+          value={ultimaKey(rules)}
+          items={ULTIMA_WITH}
+          onChange={(k) => {
+            if (!k) return;
+            if (k === "auto") return setRules({ ultimaOrchestra: undefined, ultimaSinger: undefined });
+            const [orch, singer] = k.split("|");
+            setRules({
+              ultimaOrchestra: orch,
+              ultimaSinger: singer === "~" ? null : singer === "*" ? undefined : singer,
+            });
+          }}
+        />
+        <PickerRow
+          label="Closer"
+          sub="What plays after the última"
+          ariaLabel="Closer"
+          value={rules.closer ?? "auto"}
+          items={CLOSERS}
+          onChange={(k) => k && setRules({ closer: k })}
+        />
+        <StepperRow
+          label="Warm-up"
+          sub="Tandas planned gentle at the start (0 = the arc's own)"
+          value={rules.warmupTandas ?? 0}
+          unit=" tandas"
+          min={0}
+          max={6}
+          step={1}
+          onChange={(v) => setRules({ warmupTandas: v || undefined })}
+        />
+        <PickerRow
+          label="Cool-down"
+          ariaLabel="Cool-down"
+          value={rules.cooldown ?? "lift"}
+          items={COOLDOWNS}
+          onChange={(k) => k && setRules({ cooldown: k })}
         />
         <SwitchRow
           label="Pugliese once"
@@ -1239,6 +1323,10 @@ export function Composer() {
           ? `${lockedCount} locked ${lockedCount === 1 ? "tanda stays" : "tandas stay"} on recompose`
           : null,
         dbChanges ? "using your database edits" : null,
+        // round 15: a night-shape setting the year range could not meet says so, and what played instead
+        playlist.stats.settingFallbacks?.length
+          ? `setting fell back: ${playlist.stats.settingFallbacks.join("; ")}`
+          : null,
       ]
         .filter(Boolean)
         .join(" · ")

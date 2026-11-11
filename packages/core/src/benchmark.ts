@@ -349,7 +349,11 @@ export function benchmarkNight(p: Night): BenchResult {
   // 12. cortina length
   {
     const c = K.cortinaLength;
-    const [lo, hi] = c.range as [number, number];
+    // round 15 (dancer N4, DJ N6): the DJ's own setting ± 5 s, never over 50 s unless the setting asks for more (the
+    // corpus band 30–90 s let 60 s cues on a 45 s night read "ok")
+    const set = o.cortinaLengthSec ?? 45;
+    const lo = set - 5;
+    const hi = Math.min(set + 5, Math.max(50, set));
     const lens = t.filter((x) => x.cortina).map((x) => x.cortina!.lengthSec ?? o.cortinaLengthSec);
     const out = lens.filter((l) => l < lo || l > hi).length;
     const mean = lens.length ? lens.reduce((a, b) => a + b, 0) / lens.length : 0;

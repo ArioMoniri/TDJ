@@ -459,6 +459,8 @@ export interface BuildContext {
   history?: Tanda[];
   /** round 13: what the composer already knows the next slot holds (the drawn early D'Arienzo, the Pugliese slot) */
   next?: TransitionSide | null;
+  /** round 15: the slot of the night's last planned summit (the tanda after it is the release, dancer N2) */
+  lastSummit?: number;
 }
 export interface CanonicalTanda {
   rhythm: string;
@@ -723,6 +725,12 @@ export function buildTanda(
         .flatMap((f) => f.yearSet ?? []),
     );
     if (played.size) out = keepIf(out, (s) => !played.has(dated(s) ?? 0));
+    // round 15 (dancer N3, DJ N7): on a golden night of under 5 h (the panel's nights) every side streams while the
+    // family has enough that do, and a 3-side tanda never carries a fame-0 side
+    if (sc.golden && (sc.hours ?? o.hours) < 5) {
+      out = keepIf(out, (s) => !!(s.spotify || s.resolved));
+      if (need <= 3) out = keepIf(out, (s) => (s.fame ?? 0) > 0);
+    }
     return out;
   };
   const count = (id: string) => ctx.recentOrchestras.filter((x) => x === id).length;
@@ -1107,6 +1115,7 @@ export function buildTanda(
     (slot.index === 0 || slot.peak || isLast ? need : need - 1);
   /** DJ S1, S6: no third rhythmic tango tanda in a row, R+ instrumentals ≥ 2 tango tandas apart, ≤ 3 vocal in a row */
   const tangoHist = hist.filter((t) => t.rhythm === "tango");
+  const tangoHist0 = tangoHist;
   const rhythmicK = (k: string) => k === "R" || k === "R+";
   const runOk = (c: TandaCandidate) => {
     if (slot.rhythm !== "tango") return true;
@@ -1179,6 +1188,59 @@ export function buildTanda(
     slot.targetEnergy < 78 ||
     isLast ||
     ((pf14(c.orchestraId)?.tier ?? 3) <= 1 && !isColour(pf14(c.orchestraId)));
+  // round 15 — the second panel's per-slot rules (docs/specs/round15-engine.md)
+  /** dancer N8: adjacent tandas within 16 points (20 for a planned lift into a summit or release) */
+  const stepOk = (c: TandaCandidate) => {
+    if (!prevT) return true;
+    const d = estE(c) - prevT.energy;
+    const dt = slot.targetEnergy - prevT.targetEnergy;
+    const planned = !!slot.peak || (Math.abs(dt) >= 8 && Math.sign(dt) === Math.sign(d));
+    return Math.abs(d) <= (planned ? 20 : 16);
+  };
+  /** dancer N2, DJ N3: the release after the last summit is no lyrical tango */
+  const releaseOk = (c: TandaCandidate) =>
+    !prevT ||
+    ctx.lastSummit === undefined ||
+    prevT.index !== ctx.lastSummit ||
+    slot.rhythm !== "tango" ||
+    styleClass(candSide(c), pf14) !== "L";
+  /** DJ N5: two instrumental tango tandas in a row differ in character */
+  const lastTango = tangoHist0[tangoHist0.length - 1];
+  const coarse15 = (k: string) => (k === "R" || k === "R+" ? "R" : k);
+  const charOk = (c: TandaCandidate) =>
+    slot.rhythm !== "tango" ||
+    c.vocal ||
+    !lastTango ||
+    lastTango.vocal ||
+    coarse15(styleClass(candSide(c), pf14)) !== coarse15(styleClass(lastTango, pf14));
+  /** DJ S6 after the round-15 summit order (Echagüe sings the last summit): the last hour still gets its instrumental
+   * tango tanda, after the summit and before the última */
+  const lateInstrOk = (c: TandaCandidate) =>
+    slot.rhythm !== "tango" ||
+    c.vocal === false ||
+    ctx.lastSummit === undefined ||
+    slot.index <= ctx.lastSummit ||
+    isLast ||
+    (sc.vocalBias ?? 0) >= 0.2 ||
+    hist.some((t) => t.index >= ctx.lastSummit! - 3 && t.rhythm === "tango" && !t.vocal);
+  /** DJ N8: the warm-up vals within 10 of its target */
+  const firstValsOk = (c: TandaCandidate) =>
+    slot.rhythm !== "vals" || hist.some((t) => t.rhythm === "vals") || meanE(c) <= slot.targetEnergy + 10;
+  /** dancer N6: a family's window within 0.75 of its best window among tonight's candidates */
+  const topFame = (c: TandaCandidate) => {
+    const top = availOf(c)
+      .map((x) => x.fame ?? 0)
+      .sort((a, b) => b - a)
+      .slice(0, need);
+    return top.length >= need ? top.reduce((a, b) => a + b, 0) / need : 0;
+  };
+  const famBest = new Map<string, number>();
+  for (const c of gapPool) {
+    const k = `${c.orchestraId}|${c.singer ?? ""}`;
+    famBest.set(k, Math.max(famBest.get(k) ?? 0, topFame(c)));
+  }
+  const windowOk = (c: TandaCandidate) =>
+    topFame(c) >= (famBest.get(`${c.orchestraId}|${c.singer ?? ""}`) ?? 0) - 0.75 - 1e-9;
   // the rules are weighed together: the families breaking the fewest of them stay (one broken rule never wins over
   // another by the order they are checked in)
   const preds: Array<[(c: TandaCandidate) => boolean, number]> = [
@@ -1200,7 +1262,7 @@ export function buildTanda(
       ? ([
           [fameOk, 6],
           [streamOk, 2],
-          [runOk, 2],
+          [runOk, 3],
           [singerOnceOk, 2],
           [dramaticOk, 6],
           [tierOk, 2],
@@ -1208,7 +1270,13 @@ export function buildTanda(
           [wedgeOk, 2],
           [orderOk, 4],
           [hitsOk, 2],
-          [hourInstrOk, 2],
+          [hourInstrOk, 3],
+          [lateInstrOk, 3],
+          [stepOk, 2],
+          [releaseOk, 4],
+          [charOk, 2],
+          [firstValsOk, 2],
+          [windowOk, 1],
         ] as Array<[(c: TandaCandidate) => boolean, number]>)
       : []),
   ];

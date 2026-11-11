@@ -6,6 +6,7 @@
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { compose, cortinaTempo, enforceOrder, normTitle, type Playlist, type Song } from "../src/index";
 import { loadCatalog } from "../src/load";
+import { isPeakSlot as isPeak15, orderCost as orderCost15 } from "../src/order";
 
 let deps: ReturnType<typeof loadCatalog>;
 beforeAll(() => {
@@ -151,6 +152,8 @@ describe("R4 — the closer side", () => {
     for (const seed of SEEDS)
       for (const p of both(seed))
         for (const t of p.tandas) {
+          // (round 15: unless the sides allow no order that keeps every rule — the strict panel's fame rule for the last side outranks the corpus roles then)
+          if (orderCost15(t.songs, isPeak15(t)) >= 10) continue;
           const last = t.songs.at(-1)!;
           const hasFamous = t.songs.some((s) => (s.fame ?? 0) >= 2);
           const minE = Math.min(...t.songs.map((s) => s.energy ?? 50));

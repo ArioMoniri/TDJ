@@ -1,8 +1,11 @@
-import { cortinaTempo } from "./cortinas";
+import { ACTIVE_CATALOG } from "./active";
+import { patternString } from "./arc";
+import { cortinaTempo, cueMetaOk } from "./cortinas";
 import { normTitle } from "./energy";
-import { isColour, isGoldenNight, staticProfile } from "./knowledge";
-import { isPeakSlot, meanFameOf } from "./order";
-import { songRhythm } from "./tanda";
+import { goldenClassOf, isColour, isGoldenNight, staticProfile } from "./knowledge";
+import { isPeakSlot, meanFameOf, orderVerdictOf } from "./order";
+import { NEVER_OPEN, OPENERS } from "./rules";
+import { isTandaEligible, songRhythm } from "./tanda";
 import { styleClass } from "./transitions";
 import type { Cortina, Playlist, Song, Tanda } from "./types";
 
@@ -47,6 +50,9 @@ export interface StrictResult {
 const D = "docs/reviews/round14-dancer.md";
 const J = "docs/reviews/round14-dj.md";
 const G = "docs/reviews/round14-discography.md";
+const D15 = "docs/reviews/round15-dancer.md";
+const J15 = "docs/reviews/round15-dj.md";
+const G15 = "docs/reviews/round15-discography.md";
 
 export const STRICT_RULES: StrictRuleDef[] = [
   // B — hard filters
@@ -274,10 +280,140 @@ export const STRICT_RULES: StrictRuleDef[] = [
     severity: "should-fix",
     source: `${G} §1.5, §3 R12`,
   },
+  // round 15 (docs/specs/round15-engine.md)
+  {
+    key: "cycle",
+    label:
+      "Classic cycle: every tanda before the última is TTVTTM[i mod 6], the última a tango, never three tangos in a row, valses = milongas ± 1, the first vals within 40 minutes",
+    severity: "blocker",
+    source: `${D15} N1 (R15-1); ${J15} N1`,
+  },
+  {
+    key: "vocalSide",
+    label: "A singer's tanda holds only that singer's sides; an instrumental tanda no sung side",
+    severity: "blocker",
+    source: `${G15} §5 R6b (Recuerdo, Trago amargo)`,
+  },
+  {
+    key: "afterSummit",
+    label:
+      "The tanda after the last summit: energy ≥ summit − 18, not a lyrical (L) tango, and the cortina between them not slow",
+    severity: "should-fix",
+    source: `${D15} N2 (R15-2); ${J15} N3`,
+  },
+  {
+    key: "energyStep",
+    label:
+      "Adjacent tandas differ by at most 16 points of energy (20 for a planned lift into a summit or release)",
+    severity: "should-fix",
+    source: `${D15} N8 (R15-8); ${J15} N11`,
+  },
+  {
+    key: "hotCold",
+    label:
+      "A hard-drive tanda over its target straight into one under its target while the plan rises: the boundary sides within 15",
+    severity: "should-fix",
+    source: `${J15} N2`,
+  },
+  {
+    key: "firstVals",
+    label: "The warm-up vals: energy ≤ its target + 10, its last side ≤ target + 15",
+    severity: "should-fix",
+    source: `${J15} N8`,
+  },
+  {
+    key: "lastSummit",
+    label: "The last summit holds a fame-5 side and a mean fame ≥ 3.75",
+    severity: "should-fix",
+    source: `${D15} N5 (R15-5)`,
+  },
+  {
+    key: "ultima",
+    label:
+      "The última: a golden-core family, every side fame ≥ 3, mean ≥ 4 and within 0.75 of the night's best vocal tango tanda",
+    severity: "should-fix",
+    source: `${D15} N7 (R15-7); ${J15} N4`,
+  },
+  {
+    key: "bestWindow",
+    label: "A tanda's mean fame is within 0.75 of its family's best window still free tonight",
+    severity: "should-fix",
+    source: `${D15} N6 (R15-6); ${J15} N8 (D'Agostino 1941)`,
+  },
+  {
+    key: "instrCharacter",
+    label:
+      "Two adjacent instrumental tango tandas differ in character (rhythmic vs lyrical, balanced, dramatic)",
+    severity: "should-fix",
+    source: `${J15} N5`,
+  },
+  {
+    key: "stream3",
+    label: "A 3-side tanda: every side streams and none has fame 0",
+    severity: "should-fix",
+    source: `${D15} N3 (R15-3); ${J15} N7`,
+  },
+  {
+    key: "streamNight",
+    label: "At most one unstreamable side a night, and only when its family has no streamable alternative",
+    severity: "should-fix",
+    source: `${J15} N7; ${D15} N3`,
+  },
+  {
+    key: "suspectStream",
+    label:
+      "No side with a suspect stream (wrong date, short transfer, another singer's credit) opens, peaks or closes",
+    severity: "should-fix",
+    source: `${D15} N9 (R15-9); ${G15} §5 R4b–R4d`,
+  },
+  {
+    key: "cueLength",
+    label: "Every cortina within the setting ± 5 s and never over 50 s (unless the setting asks for more)",
+    severity: "should-fix",
+    source: `${D15} N4 (R15-4); ${J15} N6`,
+  },
+  {
+    key: "cuePopPeak",
+    label: "No dance-pop cortina straight before a planned summit or the última",
+    severity: "should-fix",
+    source: `${J15} N9`,
+  },
+  {
+    key: "cuePopHour",
+    label: "At most one pop or rock cortina an hour",
+    severity: "should-fix",
+    source: `${J15} N9 (round-14 S9 leftover)`,
+  },
+  {
+    key: "cueMeta",
+    label:
+      "Every cortina has a year and plays its original record (no duet, live, remix or re-recording album)",
+    severity: "should-fix",
+    source: `${G15} §1 cortinas, §5 R12b`,
+  },
 ];
+/** round 15 (the user's night-shape settings): the opener, the última and the closer follow the settings */
+STRICT_RULES.push(
+  {
+    key: "nightShape",
+    label:
+      "Who opens and who closes follows the settings: the opener orchestra or rule, the última orchestra or rule, the closer (La Cumparsita, Felicia or none), the opening Cumparsita; a setting the year range cannot meet falls back visibly",
+    severity: "blocker",
+    source: `${D15} (settings round: "starts the night with which and ends with who, dynamic to settings")`,
+  },
+  {
+    key: "sideOrder",
+    label:
+      "Inside a tanda: an inviting opener (fame ≥ 3, not the slowest side), no dip mid-tanda, the best-loved side last or third, no back-and-forth across the years when a better order exists",
+    severity: "should-fix",
+    source: `${D15} (song-order round); ${D} R14-5, R14-17`,
+  },
+);
+/** the rule keys the round-15 panel added (round15.test.ts tests them; round14.test.ts the older ones) */
+export const R15_RULES = STRICT_RULES.filter((r) => r.source.includes("round15-")).map((r) => r.key);
 const DEF = new Map(STRICT_RULES.map((r) => [r.key, r]));
 
-type Night = Pick<Playlist, "tandas" | "closing" | "options"> & Partial<Pick<Playlist, "opening">>;
+type Night = Pick<Playlist, "tandas" | "closing" | "options"> & Partial<Pick<Playlist, "opening" | "stats">>;
 
 /** a side the floor can stream tonight (a Spotify match or a resolved preview/stream) */
 export const streamable = (s: Pick<Song, "spotify" | "resolved">) => !!(s.spotify || s.resolved);
@@ -772,6 +908,13 @@ export function strictChecks(n: Night): StrictResult {
     });
   }
 
+  round15(n, { add, not, golden, hours, lastHour, nightH, name, cues });
+  shapeChecks(n, add);
+  t.forEach((x, i) => {
+    const why = orderVerdict(x);
+    if (why.length) add("sideOrder", i, `${name(x)}: ${why.join(", ")}`);
+  });
+
   const rules: StrictRuleResult[] = STRICT_RULES.map((r) => {
     const x = out.get(r.key)!;
     return {
@@ -784,7 +927,10 @@ export function strictChecks(n: Night): StrictResult {
   const violations = rules.flatMap((r) => r.violations);
   const blockers = violations.filter((v) => v.severity === "blocker").length;
   const shouldFix = violations.length - blockers;
-  return { rules, violations, blockers, shouldFix, penalty: blockers * 10 + shouldFix };
+  // (round 15: a song-order item weighs a quarter in the penalty — the order is mended by reordering, never by
+  // trading a tanda-level rule for it)
+  const order = violations.filter((v) => v.rule === "sideOrder").length;
+  return { rules, violations, blockers, shouldFix, penalty: blockers * 10 + shouldFix - 0.75 * order };
 }
 
 /** a one-line summary: "0 blockers · 2 should-fix (canon, wedge)" */
@@ -792,3 +938,430 @@ export function strictSummary(r: StrictResult): string {
   const keys = [...new Set(r.violations.map((v) => v.rule))];
   return `${r.blockers} blockers · ${r.shouldFix} should-fix${keys.length ? ` (${keys.join(", ")})` : ""}`;
 }
+
+// --- round 15 --------------------------------------------------------------------------------------------------
+const POP_TAGS = ["mood:pop", "mood:club", "mood:teen-pop", "danceable-risk", "danceable-risk-us"];
+const POP_GENRES = ["pop", "kpop", "funk", "afrobeats", "balkan-pop", "ye-ye"];
+/** a dance-pop cortina: the floor keeps dancing to it (Araba, Kuzu Kuzu) */
+export const isDancePop = (c: Cortina) =>
+  POP_TAGS.some((k) => c.tags?.includes(k)) || POP_GENRES.includes(c.genre);
+/** a pop or rock cortina (DJ S9: at most one an hour) */
+export const isPopRock = (c: Cortina) => isDancePop(c) || !!c.tags?.includes("mood:rock");
+/** the classic cycle's patterns */
+export const isClassicCycle = (o: Pick<Playlist["options"], "pattern" | "customPattern">) =>
+  (o.pattern === "classic" || o.pattern === "TTVTTM" || o.pattern === "TTVTTM-strict") &&
+  patternString(o as Playlist["options"]) === "TTVTTM";
+/** a legal tanda count for the classic cycle: the última (a tango) never makes a third tango in a row */
+export const cycleCountOk = (n: number) => n < 3 || ![2, 5].includes((n - 1) % 6);
+/** the start of each tanda in seconds (the opening Cumparsita first) */
+export function tandaStarts(n: Night): number[] {
+  const fb = n.options.cortinaLengthSec ?? 45;
+  let at = n.opening ? (n.opening.durationSec ?? 170) : 0;
+  return n.tandas.map((t) => {
+    const s = at;
+    at +=
+      t.songs.reduce((a, x) => a + (x.durationSec ?? 170), 0) + (t.cortina ? (t.cortina.lengthSec ?? fb) : 0);
+    return s;
+  });
+}
+const coarse = (t: Tanda) => (isRhythmic(t) ? "R" : cls(t));
+
+/** the family of a tanda in the active catalogue: the sides the panel judges the tanda's window against */
+function familySides(t: Tanda, yr: [number, number] | undefined): Song[] {
+  const all = ACTIVE_CATALOG.byOrchestra?.get(t.orchestraId) ?? [];
+  const sur0 = surname(t.singer);
+  const p = staticProfile(t.orchestraId);
+  return all.filter(
+    (s) =>
+      s.vocal === t.vocal &&
+      (!t.vocal || surname(s.singer) === sur0) &&
+      songRhythm(s) === t.rhythm &&
+      !isCump(s) &&
+      isTandaEligible(s) &&
+      !s.streamSuspect &&
+      !s.reissue &&
+      // (a golden night streams every side its family can: an unstreamable side is no window)
+      streamable(s) &&
+      s.heat !== 0 &&
+      !!s.year &&
+      (!yr || (s.year >= yr[0] && s.year <= yr[1])) &&
+      (!p?.goldenBands || goldenClassOf(p, [s.year]) !== "other"),
+  );
+}
+/** the best mean fame a window of `need` sides within `spread` years reaches, from titles free tonight */
+export function bestFreeWindow(
+  sides: Song[],
+  need: number,
+  spread: number,
+  free: (s: Song) => boolean,
+): number | null {
+  const byTitle = new Map<string, Song>();
+  for (const s of sides) {
+    if (!free(s)) continue;
+    const k = normTitle(s.title);
+    const prev = byTitle.get(k);
+    if (!prev || fameOf(s) > fameOf(prev)) byTitle.set(k, s);
+  }
+  const xs = [...byTitle.values()];
+  let best: number | null = null;
+  for (const y of new Set(xs.map((s) => s.year!))) {
+    const w = xs
+      .filter((s) => s.year! >= y && s.year! <= y + spread)
+      .map(fameOf)
+      .sort((a, b) => b - a)
+      .slice(0, need);
+    if (w.length < need) continue;
+    const m = w.reduce((a, b) => a + b, 0) / need;
+    if (best === null || m > best) best = m;
+  }
+  return best;
+}
+
+function round15(
+  n: Night,
+  h: {
+    add: (key: string, tanda: number, detail: string) => void;
+    not: (key: string) => void;
+    golden: boolean;
+    hours: number[];
+    lastHour: number;
+    nightH: number;
+    name: (x: Tanda) => string;
+    cues: Array<{ c: Cortina; i: number }>;
+  },
+) {
+  const { add, not, golden, hours, nightH, name } = h;
+  const t = n.tandas;
+  const o = n.options;
+  const last = t.length - 1;
+  // R15-1 — the classic cycle (a blocker on any night that asks for it)
+  if (!isClassicCycle(o) || t.length < 3) not("cycle");
+  else {
+    const pat = "TTVTTM";
+    const ch = (x: Tanda) => (x.rhythm === "vals" ? "V" : x.rhythm === "milonga" ? "M" : "T");
+    t.forEach((x, i) => {
+      if (i < last && ch(x) !== pat[i % 6])
+        add("cycle", i, `tanda ${i + 1} is a ${x.rhythm} on a ${pat[i % 6]} slot of the cycle`);
+    });
+    if (t[last]!.rhythm !== "tango") add("cycle", last, `the última is a ${t[last]!.rhythm}`);
+    let run = 0;
+    t.forEach((x, i) => {
+      run = x.rhythm === "tango" ? run + 1 : 0;
+      if (run === 3) add("cycle", i, `three tango tandas in a row ending at ${i + 1}`);
+    });
+    const v = t.filter((x) => x.rhythm === "vals").length;
+    const m = t.filter((x) => x.rhythm === "milonga").length;
+    if (Math.abs(v - m) > 1) add("cycle", -1, `${v} vals and ${m} milonga tandas`);
+    const fv = t.findIndex((x) => x.rhythm === "vals");
+    const st = tandaStarts(n);
+    if (fv < 0) add("cycle", -1, "no vals tanda");
+    else if (st[fv]! > 40 * 60)
+      add("cycle", fv, `the first vals starts at ${Math.round(st[fv]! / 60)} min (≤ 40)`);
+  }
+  // R6b — a singer's tanda holds only that singer's sides
+  if (o.mixVocalInstrumental) not("vocalSide");
+  else
+    t.forEach((x, i) => {
+      for (const s of dance(x))
+        if (!!s.vocal !== !!x.vocal || (x.vocal && surname(s.singer) !== surname(x.singer)))
+          add(
+            "vocalSide",
+            i,
+            `${s.title} (${s.vocal ? (s.singer ?? "vocal") : "instrumental"}) in ${name(x)}`,
+          );
+    });
+  const goldenOnly = [
+    "afterSummit",
+    "energyStep",
+    "hotCold",
+    "firstVals",
+    "lastSummit",
+    "ultima",
+    "bestWindow",
+    "instrCharacter",
+    "stream3",
+    "streamNight",
+    "suspectStream",
+  ];
+  if (!golden) for (const k of goldenOnly) not(k);
+  else {
+    const summits = t.map((x, i) => (x.peak ? i : -1)).filter((i) => i >= 0);
+    const s = summits.at(-1);
+    if (s === undefined || s >= last) not("afterSummit");
+    else {
+      const a = t[s]!,
+        b = t[s + 1]!;
+      const why: string[] = [];
+      if (b.energy < a.energy - 18) why.push(`e${a.energy} → e${b.energy}`);
+      if (b.rhythm === "tango" && cls(b) === "L") why.push("a lyrical tango");
+      if (a.cortina && cortinaTempo(a.cortina) === "slow") why.push(`slow cue ${a.cortina.title}`);
+      if (why.length) add("afterSummit", s + 1, `${name(b)} after the summit: ${why.join(", ")}`);
+    }
+    for (let i = 1; i < t.length; i++) {
+      const d = t[i]!.energy - t[i - 1]!.energy;
+      // a planned lift or release (the plan itself moves 8 or more the same way: into a summit, the early
+      // D'Arienzo, out of a peak) may take 20
+      const dt = t[i]!.targetEnergy - t[i - 1]!.targetEnergy;
+      const planned = t[i]!.peak || (Math.abs(dt) >= 8 && Math.sign(dt) === Math.sign(d));
+      const lim = planned ? 20 : 16;
+      if (Math.abs(d) > lim)
+        add("energyStep", i, `${name(t[i - 1]!)} e${t[i - 1]!.energy} → ${name(t[i]!)} e${t[i]!.energy}`);
+    }
+    for (let i = 1; i < t.length; i++) {
+      const a = t[i - 1]!,
+        b = t[i]!;
+      if (!(a.rhythm === "tango" && cls(a) === "R+" && a.energy - a.targetEnergy > 8)) continue;
+      if (!(b.energy - b.targetEnergy < -10 && b.targetEnergy >= a.targetEnergy)) continue;
+      const la = dance(a).at(-1),
+        fb = dance(b)[0];
+      if (la && fb && Math.abs((la.energy ?? 50) - (fb.energy ?? 50)) > 15)
+        add(
+          "hotCold",
+          i,
+          `${name(a)} ends on ${la.title} e${la.energy} into ${name(b)} opening on ${fb.title} e${fb.energy}`,
+        );
+    }
+    const fv = t.findIndex((x) => x.rhythm === "vals");
+    if (fv < 0) not("firstVals");
+    else {
+      const v = t[fv]!;
+      const lastS = dance(v).at(-1);
+      if (v.energy > v.targetEnergy + 10 || (lastS && (lastS.energy ?? 50) > v.targetEnergy + 15))
+        add(
+          "firstVals",
+          fv,
+          `${name(v)} e${v.energy} (last side e${lastS?.energy ?? "?"}) for target ${v.targetEnergy}`,
+        );
+    }
+    if (s === undefined) not("lastSummit");
+    else {
+      const ss = dance(t[s]!);
+      const five = ss.filter((x) => fameOf(x) >= 5).length;
+      const mf = meanFame(t[s]!);
+      if (!five || mf < 3.75 - 1e-9)
+        add("lastSummit", s, `${name(t[s]!)}: ${five} fame-5 sides, mean fame ${mf.toFixed(2)}`);
+    }
+    if (t.length < 6 || nightH < 3) not("ultima");
+    else {
+      const u = t[last]!;
+      const ss = dance(u);
+      const mf = meanFame(u);
+      const best = Math.max(
+        0,
+        ...t.filter((x, i) => i !== last && x.rhythm === "tango" && x.vocal).map(meanFame),
+      );
+      const why: string[] = [];
+      if (u.golden !== undefined && u.golden !== "core") why.push(`golden ${u.golden}`);
+      if (ss.some((x) => fameOf(x) < 3)) why.push(`a side of fame ${Math.min(...ss.map(fameOf))}`);
+      if (mf < 4 - 1e-9) why.push(`mean fame ${mf.toFixed(2)} < 4`);
+      if (mf < best - 0.75 - 1e-9)
+        why.push(`${mf.toFixed(2)} vs the night's best vocal tango ${best.toFixed(2)}`);
+      if (why.length) add("ultima", last, `${name(u)}: ${why.join(", ")}`);
+    }
+    // the family's best free window (needs the catalogue)
+    if (!ACTIVE_CATALOG.byOrchestra) not("bestWindow");
+    else {
+      const spread = Math.min(2, o.maxYearSpread ?? 4);
+      // (the early D'Arienzo instrumental is a seeded draw by design, round 8: its window is not judged)
+      const earlyDA = t.findIndex((x) => x.orchestraId === "juan-d-arienzo" && x.rhythm === "tango");
+      t.forEach((x, i) => {
+        const ss = dance(x);
+        if (!ss.length) return;
+        if (i === earlyDA && !x.vocal && !x.peak && i / Math.max(1, last) < 0.35) return;
+        const others = new Set(t.flatMap((y, j) => (j === i ? [] : y.songs.map((q) => normTitle(q.title)))));
+        if (n.closing) others.add(normTitle(n.closing.title));
+        // a D'Arienzo summit is judged inside its own years (DJ S2); years another tanda of the family plays are taken
+        const yr: [number, number] | undefined =
+          x.peak && x.orchestraId === "juan-d-arienzo" && x.rhythm === "tango"
+            ? x.vocal
+              ? [1938, 1939]
+              : [1937, 1940]
+            : o.yearRange;
+        const taken = t
+          .filter(
+            (y, j) =>
+              j !== i &&
+              y.orchestraId === x.orchestraId &&
+              y.rhythm === x.rhythm &&
+              y.vocal === x.vocal &&
+              surname(y.singer) === surname(x.singer) &&
+              y.yearRange,
+          )
+          .map((y) => y.yearRange!);
+        const free = (q: Song) =>
+          !others.has(normTitle(q.title)) && !taken.some((r) => q.year! >= r[0] && q.year! <= r[1]);
+        const best = bestFreeWindow(familySides(x, yr), ss.length, spread, free);
+        const mf = meanFame(x);
+        if (best !== null && mf < best - 0.75 - 1e-9)
+          add(
+            "bestWindow",
+            i,
+            `${name(x)} mean fame ${mf.toFixed(2)}, its best free window ${best.toFixed(2)}`,
+          );
+      });
+    }
+    // adjacent instrumental tangos (tango-only sequence) differ in character
+    const tg = t.map((x, i) => ({ x, i })).filter(({ x }) => x.rhythm === "tango");
+    for (let k = 1; k < tg.length; k++) {
+      const a = tg[k - 1]!,
+        b = tg[k]!;
+      if (a.x.vocal || b.x.vocal) continue;
+      if (coarse(a.x) === coarse(b.x))
+        add(
+          "instrCharacter",
+          b.i,
+          `${name(a.x)} and ${name(b.x)}: two ${coarse(a.x)} instrumentals in a row`,
+        );
+    }
+    t.forEach((x, i) => {
+      const ss = dance(x);
+      if (!ss.length || ss.length > 3) return;
+      const bad = ss.filter((q) => !streamable(q) || fameOf(q) === 0);
+      if (bad.length)
+        add(
+          "stream3",
+          i,
+          `${name(x)}: ${bad.map((q) => `${q.title}${streamable(q) ? "" : " (no stream)"}${fameOf(q) ? "" : " (fame 0)"}`).join(", ")}`,
+        );
+    });
+    const un = t.flatMap((x, i) => dance(x).map((q) => ({ q, i, x }))).filter(({ q }) => !streamable(q));
+    un.forEach(({ q, i, x }, k) => {
+      if (k >= 1) {
+        add("streamNight", i, `${q.title}: a second unstreamable side tonight`);
+        return;
+      }
+      if (!ACTIVE_CATALOG.byOrchestra || !x.yearRange) return;
+      const used = new Set(t.flatMap((y) => y.songs.map((z) => normTitle(z.title))));
+      const alt = familySides(x, o.yearRange).find(
+        (z) =>
+          streamable(z) &&
+          fameOf(z) > 0 &&
+          !used.has(normTitle(z.title)) &&
+          z.year! >= x.yearRange![0] - 1 &&
+          z.year! <= x.yearRange![1] + 1,
+      );
+      if (alt) add("streamNight", i, `${q.title} has no stream; ${alt.title} (${alt.year}) does`);
+    });
+    t.forEach((x, i) => {
+      if (i !== 0 && i !== last && !x.peak) return;
+      for (const q of dance(x))
+        if (q.streamSuspect) add("suspectStream", i, `${q.title} (${name(x)}): the stream is suspect`);
+    });
+  }
+  // cortinas
+  const all = t.map((x, i) => ({ c: x.cortina, i })).filter((r): r is { c: Cortina; i: number } => !!r.c);
+  if (!all.length || o.cortinaStyle === "none") {
+    for (const k of ["cueLength", "cuePopPeak", "cuePopHour", "cueMeta"]) not(k);
+    return;
+  }
+  const set = o.cortinaLengthSec ?? 45;
+  const hi = Math.min(set + 5, Math.max(50, set));
+  for (const { c, i } of all) {
+    const l = c.lengthSec ?? set;
+    if (l < set - 5 || l > hi) add("cueLength", i, `${c.title} ${l} s (setting ${set} s)`);
+    if (!cueMetaOk(c))
+      add("cueMeta", i, `${c.title} (${c.artist}): ${c.year ? "re-recorded audio" : "no year"}`);
+  }
+  const perHour = new Map<number, number>();
+  for (const { c, i } of h.cues) {
+    const nx = t[i + 1]!;
+    if (isDancePop(c) && (nx.peak || i + 1 === last))
+      add("cuePopPeak", i, `${c.title} (${c.artist}) before ${nx.peak ? "the summit" : "the última"}`);
+    if (isPopRock(c)) {
+      const hr = hours[i] ?? 0;
+      const k = (perHour.get(hr) ?? 0) + 1;
+      perHour.set(hr, k);
+      if (k > 1) add("cuePopHour", i, `${c.title}: pop/rock cue ${k} in hour ${hr + 1}`);
+    }
+  }
+}
+
+// --- round 15: the night's shape and the order inside a tanda ------------------------------------------------
+const styleOf = (id: string) => staticProfile(id)?.style ?? "balanced";
+const fellBack = (n: Night, k: string) => !!n.stats?.settingFallbacks?.some((f) => f.startsWith(`${k}:`));
+const isCumpTitle = (s: Song | null | undefined) => !!s && normTitle(s.title) === "la cumparsita";
+/** what the settings ask of the opener, the última and the closer, and what the night holds */
+export function shapeProblems(n: Night): Array<{ tanda: number; detail: string }> {
+  const out: Array<{ tanda: number; detail: string }> = [];
+  const t = n.tandas;
+  if (!t.length) return out;
+  const r = n.options.rules ?? {};
+  const first = t[0]!,
+    ult = t[t.length - 1]!;
+  if (first.locked !== true) {
+    if (r.openerOrchestra && !fellBack(n, "opener") && first.orchestraId !== r.openerOrchestra)
+      out.push({ tanda: 0, detail: `opened by ${first.orchestra}, the setting names ${r.openerOrchestra}` });
+    else if (!r.openerOrchestra && r.openerRule && r.openerRule !== "any" && first.rhythm === "tango") {
+      const st = styleOf(first.orchestraId);
+      const ok =
+        r.openerRule === "canon"
+          ? !!OPENERS[first.orchestraId] && !NEVER_OPEN.has(first.orchestraId)
+          : r.openerRule === "lyrical"
+            ? st === "lyrical" || st === "guardia"
+            : st === "rhythmic";
+      if (!ok)
+        out.push({
+          tanda: 0,
+          detail: `opened by ${first.orchestra} (${st}), the opener rule is ${r.openerRule}`,
+        });
+    }
+  }
+  if (t.length > 1 && ult.locked !== true) {
+    const singerOk =
+      r.ultimaSinger === undefined ||
+      (r.ultimaSinger === null
+        ? !ult.vocal
+        : ult.vocal && normTitle(ult.singer ?? "") === normTitle(r.ultimaSinger));
+    if (r.ultimaOrchestra && !fellBack(n, "ultima") && (ult.orchestraId !== r.ultimaOrchestra || !singerOk))
+      out.push({
+        tanda: t.length - 1,
+        detail: `the última is ${ult.orchestra}${ult.singer ? ` / ${ult.singer}` : ""}, the setting names ${r.ultimaOrchestra}${r.ultimaSinger ? ` / ${r.ultimaSinger}` : r.ultimaSinger === null ? " instrumental" : ""}`,
+      });
+    else if (!r.ultimaOrchestra && r.ultimaRule === "pugliese" && ult.orchestraId !== "osvaldo-pugliese")
+      out.push({ tanda: t.length - 1, detail: `the última is ${ult.orchestra}, the rule asks for Pugliese` });
+    else if (
+      !r.ultimaOrchestra &&
+      r.ultimaRule === "d-arienzo-rhythmic" &&
+      !(ult.orchestraId === "juan-d-arienzo" && !ult.vocal)
+    )
+      out.push({
+        tanda: t.length - 1,
+        detail: `the última is ${ult.orchestra}, the rule asks for D'Arienzo instrumental`,
+      });
+    if (ult.rhythm !== "tango") out.push({ tanda: t.length - 1, detail: `the última is a ${ult.rhythm}` });
+  }
+  const want =
+    !n.options.closeWithCumparsita || r.closer === "none"
+      ? "none"
+      : r.closer === "felicia" && !fellBack(n, "closer")
+        ? "felicia"
+        : "cumparsita";
+  const cl = n.closing ?? null;
+  if (want === "none" && cl)
+    out.push({ tanda: t.length, detail: `closes on ${cl.title}, the setting is no closer` });
+  if (want === "felicia" && normTitle(cl?.title ?? "") !== "felicia")
+    out.push({ tanda: t.length, detail: `closes on ${cl?.title ?? "nothing"}, the setting is Felicia` });
+  if (want === "cumparsita" && !isCumpTitle(cl))
+    out.push({
+      tanda: t.length,
+      detail: `closes on ${cl?.title ?? "nothing"}, the setting is La Cumparsita`,
+    });
+  if (r.openWithCumparsita && n.opening !== undefined && !isCumpTitle(n.opening))
+    out.push({ tanda: -1, detail: "the setting opens with La Cumparsita, the night does not" });
+  return out;
+}
+function shapeChecks(n: Night, add: (key: string, tanda: number, detail: string) => void) {
+  for (const p of shapeProblems(n)) add("nightShape", p.tanda, p.detail);
+}
+/** "Night shape" — who opened, who closed, and the settings that asked for it */
+export function nightShapeLine(n: Night): string {
+  const r = n.options.rules ?? {};
+  const t = n.tandas;
+  const nm = (x?: Tanda) =>
+    x ? `${x.orchestra}${x.vocal && x.singer ? ` / ${x.singer}` : x.vocal ? "" : " instrumental"}` : "–";
+  const fb = n.stats?.settingFallbacks?.length ? ` · fell back: ${n.stats.settingFallbacks.join("; ")}` : "";
+  const cl = n.closing ? `${n.closing.title} (${n.closing.orchestra} ${n.closing.year ?? ""})` : "none";
+  return `Night shape: opened by ${n.opening ? `${n.opening.title} then ` : ""}${nm(t[0])} (${r.openerOrchestra ? `setting: ${r.openerOrchestra}` : `rule: ${r.openerRule ?? "any"}`}), última ${nm(t.at(-1))} (${r.ultimaOrchestra ? `setting: ${r.ultimaOrchestra}${r.ultimaSinger === null ? " instrumental" : r.ultimaSinger ? ` / ${r.ultimaSinger}` : ""}` : `rule: ${r.ultimaRule ?? "emotional-vocal"}`}), closer ${cl} (setting: ${!n.options.closeWithCumparsita ? "none" : (r.closer ?? "auto")})${fb}`;
+}
+/** the song-order verdict of one tanda: what the order breaks (empty: the order is right) */
+export const orderVerdict = (x: Pick<Tanda, "songs">): string[] => orderVerdictOf(x.songs);

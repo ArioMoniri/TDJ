@@ -81,14 +81,59 @@ function orderWithCost(songs0: Song[], peak: boolean): { songs: Song[]; cost: nu
       // preferences: a corpus opener first, a corpus closer last, a cooler opener, a famous closer
       cost -= (first.role === "opener" ? 0.5 : 0) + (last.role === "closer" ? 0.5 : 0);
       cost += e(first) / 1000 - fame(last) / 100;
+      // round 15 (the song-order rule, strict `sideOrder`): among the orders that break no rule above, the order's own
+      // verdict weighs 0.3 per item — under the corpus-role preferences (a closer last, −0.5)
+      if (cost < 10) cost += 0.3 * orderVerdictOf([first, ...midOf(first, last), last]).length;
       if (!best || cost < best.cost - 1e-9) best = { first, last, cost };
     }
   const { first, last, cost } = best!;
-  const mid = songs
-    .filter((s) => s !== first && s !== last)
-    .sort((a, b) => e(a) - e(b) || a.id.localeCompare(b.id));
-  // the one hit sits third or later (round 9)
-  const h = mid.findIndex((s) => fame(s) === max);
-  if (songs.length >= 4 && hits === 1 && h === 0 && mid.length >= 2) mid.push(...mid.splice(0, 1));
-  return { songs: [first, ...mid, last, ...cump], cost: Math.max(0, cost) };
+  return { songs: [first, ...midOf(first, last), last, ...cump], cost: Math.max(0, cost) };
+  function midOf(first: Song, last: Song): Song[] {
+    const mid = songs
+      .filter((s) => s !== first && s !== last)
+      .sort((a, b) => e(a) - e(b) || a.id.localeCompare(b.id));
+    // the one hit sits third or later (round 9)
+    const h = mid.findIndex((s) => fame(s) === max);
+    if (songs.length >= 4 && hits === 1 && h === 0 && mid.length >= 2) mid.push(...mid.splice(0, 1));
+    return mid;
+  }
+}
+
+/**
+ * Round 15 — the song-order verdict of a tanda (the strict panel's `sideOrder`): an inviting opener (fame ≥ 3 when the
+ * tanda has such a side, never the one slowest side), no dip mid-tanda, the best-loved side last or third, no title
+ * twice in a row, no back-and-forth across the years. Empty: the order is right.
+ */
+export function orderVerdictOf(songs0: Song[]): string[] {
+  const ss = songs0.filter((s) => !isCump(s));
+  if (ss.length < 3) return [];
+  const e = (s: Song) => s.energy ?? 50;
+  const why: string[] = [];
+  const minE = Math.min(...ss.map(e));
+  const spread = Math.max(...ss.map(e)) - minE;
+  if (fame(ss[0]!) < 3 && ss.some((s) => fame(s) >= 3))
+    why.push(`opens on ${ss[0]!.title} (fame ${fame(ss[0]!)})`);
+  if (e(ss[0]!) === minE && spread >= 6 && ss.filter((s) => e(s) === minE).length === 1)
+    why.push(`opens on the slowest side (${ss[0]!.title} e${e(ss[0]!)})`);
+  for (let k = 1; k < ss.length - 1; k++)
+    if (e(ss[k]!) <= e(ss[k - 1]!) - 10 && e(ss[k]!) <= e(ss[k + 1]!) - 10)
+      why.push(`a dip mid-tanda (${ss[k]!.title} e${e(ss[k]!)})`);
+  const maxF = Math.max(...ss.map(fame));
+  const bestAt = ss.map((s, k) => (fame(s) === maxF ? k : -1)).filter((k) => k >= 0);
+  if (maxF >= 3 && !bestAt.some((k) => k >= ss.length - 2))
+    why.push(`the best-loved side (${ss[bestAt[0]!]!.title}) is not last or third`);
+  for (let k = 1; k < ss.length; k++)
+    if (ss[k]!.title.toLowerCase() === ss[k - 1]!.title.toLowerCase())
+      why.push(`${ss[k]!.title} twice in a row`);
+  const ys = ss.map((s) => s.year ?? 0);
+  if (ys.every(Boolean) && Math.max(...ys) - Math.min(...ys) >= 3) {
+    let turns = 0;
+    for (let k = 2; k < ys.length; k++) {
+      const a = ys[k - 1]! - ys[k - 2]!,
+        b = ys[k]! - ys[k - 1]!;
+      if (a * b < 0 && Math.abs(a) >= 2 && Math.abs(b) >= 2) turns++;
+    }
+    if (turns) why.push(`back and forth across the years (${ys.join(", ")})`);
+  }
+  return why;
 }

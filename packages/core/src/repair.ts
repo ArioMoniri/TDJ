@@ -12,7 +12,9 @@ import {
   cueHasAudio,
   cueMoody,
   hourBuckets,
+  isDancePop,
   isPeakSlot,
+  isPopRock,
   lineupPeriod,
   MUST_HAVE,
   mustHaveOf,
@@ -20,6 +22,7 @@ import {
   type StrictResult,
   streamable,
   strictChecks,
+  tandaHours,
 } from "./strict";
 import { families, isSuspectSide, isTandaEligible, songRhythm, type TandaCandidate } from "./tanda";
 import { nightTransitions, styleClass } from "./transitions";
@@ -53,6 +56,15 @@ export interface RepairEdit {
 
 const isCump = (s: Song) => /cumparsita/i.test(s.title);
 const fame = (s: Song) => s.fame ?? 0;
+/** the vocal closer families of a golden última (compose's ULTIMA_POOL without D'Arienzo, De Angelis, Pugliese) */
+const ULTIMA_CLOSERS = [
+  "angel-d-agostino",
+  "carlos-di-sarli",
+  "anibal-troilo",
+  "ricardo-tanturi",
+  "rodolfo-biagi",
+  "miguel-calo",
+];
 const surname = (s: string | null | undefined) =>
   normTitle(s ?? "")
     .split(" ")
@@ -211,7 +223,18 @@ export const recueBetter = (a: StrictResult, b: StrictResult) =>
   countOf(a, "cuePlace") < countOf(b, "cuePlace") ||
   (countOf(a, "cuePlace") === countOf(b, "cuePlace") && a.penalty < b.penalty);
 /** an edit never breaks a rule more often than before (the composer's rule set holds for every edit) */
-const PARETO = new Set(["gap", "darienzoPeak", "colourPeak", "range", "dated", "rhythm", "closer", "canon"]);
+const PARETO = new Set([
+  "gap",
+  "darienzoPeak",
+  "colourPeak",
+  "range",
+  "dated",
+  "rhythm",
+  "closer",
+  "canon",
+  "nightShape",
+  "cycle",
+]);
 const anyWorse = (a: StrictResult, b: StrictResult) => [...PARETO].some((k) => worse(a, b, k));
 
 /** the best single edit for a night (the penalty first, the engine score as the trade-off), or null */
@@ -374,6 +397,18 @@ export function editsFor(
     "lastFour",
     "opener",
     "suspectCredit",
+    // round 15
+    "afterSummit",
+    "energyStep",
+    "hotCold",
+    "firstVals",
+    "lastSummit",
+    "ultima",
+    "bestWindow",
+    "instrCharacter",
+    "stream3",
+    "streamNight",
+    "suspectStream",
   ];
   const badTandas = [...bad.keys()].filter((i) => [...bad.get(i)!].some((k) => !CUE.includes(k)));
   // night-level rules point at their tandas: the last four (lastFour), the colour tandas (budget)
@@ -390,6 +425,14 @@ export function editsFor(
     }
     if (v.rule === "rhythmicRun" || v.rule === "valley")
       for (let i = Math.max(0, v.tanda - 5); i <= v.tanda; i++) badTandas.push(i);
+    // round 15: a step or a boundary has two sides
+    if ((v.rule === "energyStep" || v.rule === "hotCold" || v.rule === "instrCharacter") && v.tanda > 0) {
+      badTandas.push(v.tanda - 1);
+      if (v.rule === "instrCharacter") {
+        const prevTango = cur.tandas.slice(0, v.tanda).findLastIndex((t) => t.rhythm === "tango");
+        if (prevTango >= 0) badTandas.push(prevTango);
+      }
+    }
     if (v.rule === "colourBudget")
       cur.tandas.forEach((t, i) => {
         if (isColour(cat.profile(t.orchestraId))) badTandas.push(i);
@@ -400,6 +443,11 @@ export function editsFor(
     firstDAIdx >= 0 && firstDAIdx / Math.max(1, n - 1) < 0.35 && !cur.tandas[firstDAIdx]!.vocal
       ? firstDAIdx
       : -1;
+  const lastSummitIdx =
+    cur.tandas
+      .map((t, i) => (t.peak ? i : -1))
+      .filter((i) => i >= 0)
+      .at(-1) ?? -1;
   const targets = [...new Set(badTandas)].filter(
     (i) => i >= 0 && i < n && !cur.tandas[i]!.locked && !cur.tandas[i]!.birthday && i !== earlyDA,
   );
@@ -505,7 +553,8 @@ export function editsFor(
     const pool = [...seen.values()];
     if (pool.length < need) return null;
     const hot = isPeakSlot(slot) || i >= n - 6;
-    const noUnstream = i === 0 || i === last || i === last - 1 || !!slot.peak;
+    // round 15 (dancer N3, DJ N7): a golden night streams every side its family can stream
+    const noUnstream = golden || i === 0 || i === last || i === last - 1 || !!slot.peak;
     const w = (s: Song) =>
       fame(s) * 3 +
       (streamable(s) ? 2.5 : 0) -
@@ -522,7 +571,7 @@ export function editsFor(
         unst = 0;
       for (const s of ranked) {
         if (out.length >= need) break;
-        if (fame(s) === 0 && zero >= 1) continue;
+        if (fame(s) === 0 && (zero >= 1 || (golden && need <= 3))) continue;
         if (!streamable(s) && unst >= (noUnstream ? 0 : 1)) continue;
         out.push(s);
         if (fame(s) === 0) zero++;
@@ -547,6 +596,10 @@ export function editsFor(
         (overlaps(Math.min(...ys), Math.max(...ys)) ? -200 : 0) +
         (ok ? 100 : 0) +
         (slot.peak && hits >= 2 ? 30 : 0) +
+        // round 15 (dancer N5): the last summit holds an anthem (a fame-5 side, mean ≥ 3.75)
+        (golden && i === lastSummitIdx && xs.some((x) => fame(x) >= 5) && mf >= 3.75 ? 40 : 0) +
+        // round 15 (dancer N7): the última is all beloved sides (every side ≥ 3, mean ≥ 4)
+        (golden && i === last && xs.every((x) => fame(x) >= 3) && mf >= 4 ? 40 : 0) +
         orderOk(xs) +
         peakE(xs) +
         xs.reduce((a, s) => a + w(s), 0) -
@@ -598,6 +651,16 @@ export function editsFor(
   const hours = o.hours;
   const slotOk = (c: TandaCandidate, i: number, rhythm: DanceRhythm): boolean => {
     const t = cur.tandas[i]!;
+    // (round 10: the última never repeats an orchestra + mode played as a tango tanda in the second half)
+    const ult = cur.tandas[last]!;
+    if (
+      i !== last &&
+      rhythm === "tango" &&
+      i >= Math.floor(n / 2) &&
+      c.orchestraId === ult.orchestraId &&
+      c.vocal === ult.vocal
+    )
+      return false;
     const p = cat.profile(c.orchestraId);
     const pos = i / Math.max(1, n - 1);
     const others = cur.tandas.filter((_x, j) => j !== i);
@@ -647,6 +710,18 @@ export function editsFor(
       (NEVER_OPEN.has(c.orchestraId) || (o.rules?.openerRule === "canon" && !OPENERS[c.orchestraId]))
     )
       return false;
+    // round 15: the night-shape settings hold for every edit (the named opener, the última rule and orchestra)
+    if (i === 0 && o.rules?.openerOrchestra && c.orchestraId !== o.rules.openerOrchestra) return false;
+    if (
+      i === 0 &&
+      !o.rules?.openerOrchestra &&
+      o.rules?.openerRule === "lyrical" &&
+      !["lyrical", "guardia"].includes(p?.style ?? "")
+    )
+      return false;
+    if (i === 0 && !o.rules?.openerOrchestra && o.rules?.openerRule === "rhythmic" && p?.style !== "rhythmic")
+      return false;
+    if (i === last && o.rules?.ultimaOrchestra && c.orchestraId !== o.rules.ultimaOrchestra) return false;
     if (
       i === last &&
       rhythm === "tango" &&
@@ -777,6 +852,8 @@ export function editsFor(
       const t = cur.tandas[i]!;
       // the última follows the night's última rule (composer): its family stays, its sides may be rebuilt
       if (t.songs.some(isCump) || i === last) continue;
+      // (round 15: the planned early D'Arienzo is never given away by a targeted edit either, round-4 A3)
+      if (i === earlyDA || t.locked || t.birthday) continue;
       const mh = mustHaveOf(t);
       // never remove the only tanda of a must-have family (DJ B4)
       if (mh && cur.tandas.filter((x) => mustHaveOf(x) === mh).length === 1) continue;
@@ -901,7 +978,154 @@ export function editsFor(
         );
       } else if (v.rule === "hotSlot") {
         out.push(...replaceEdits((c) => famEnergy(c, t) >= t.targetEnergy - 8, [i], 8));
+      } else if (v.rule === "energyStep" && i > 0) {
+        // either side of the step takes a family whose energy sits within 14 of its neighbours
+        const a = cur.tandas[i - 1]!;
+        const nb = (j: number) => [cur.tandas[j - 1], cur.tandas[j + 1]].filter((x): x is Tanda => !!x);
+        const near = (j: number) => (c: TandaCandidate) =>
+          nb(j).every((x) => Math.abs(famEnergy(c, cur.tandas[j]!) - x.energy) <= 14);
+        out.push(
+          ...replaceEdits(
+            near(i),
+            [i].filter((j) => j !== last && !t.peak),
+            8,
+          ),
+        );
+        out.push(
+          ...replaceEdits(
+            near(i - 1),
+            [i - 1].filter((j) => j > 0 && !a.peak),
+            8,
+          ),
+        );
+      } else if (v.rule === "afterSummit") {
+        const sIdx = i - 1;
+        const se = cur.tandas[sIdx]?.energy ?? 80;
+        out.push(
+          ...replaceEdits(
+            (c) =>
+              famEnergy(c, t) >= se - 16 &&
+              (t.rhythm !== "tango" || cat.profile(c.orchestraId)?.style !== "lyrical"),
+            [i].filter((j) => j !== last),
+            10,
+          ),
+        );
+      } else if (v.rule === "firstVals") {
+        out.push(...replaceEdits((c) => famEnergy(c, t) <= t.targetEnergy + 8, [i], 10));
+      } else if (v.rule === "lastSummit") {
+        out.push(
+          ...replaceEdits(
+            (c) => rhythmicFam(c) && c.songs.some((x) => fame(x) >= 5 && sideOkM(x, t.rhythm)),
+            [i],
+            10,
+          ),
+        );
+      } else if (v.rule === "instrCharacter") {
+        const prevTango = cur.tandas.slice(0, i).findLastIndex((x) => x.rhythm === "tango");
+        const at = [i, prevTango].filter((j) => j > 0 && j !== last && !cur.tandas[j]!.peak);
+        out.push(...replaceEdits((c) => c.vocal, at, 6));
+        out.push(...replaceEdits((c) => !c.vocal && styleOf(c) !== styleOf(cur.tandas[at[0] ?? i]!), at, 6));
       }
+    }
+    return out;
+  };
+  const styleOf = (x: Pick<Tanda, "orchestraId">) => {
+    const k = styleClass({ orchestraId: x.orchestraId, style: cat.profile(x.orchestraId)?.style });
+    return k === "R+" ? "R" : k;
+  };
+  /** round 15 (dancer N7, DJ N4): the última itself may take another core vocal closer family */
+  const ultimaEdits = (): RepairEdit[] => {
+    if (
+      !ruleSet.has("ultima") ||
+      !golden ||
+      o.rules?.ultimaOrchestra ||
+      (o.rules?.ultimaRule ?? "emotional-vocal") !== "emotional-vocal"
+    )
+      return [];
+    const t = cur.tandas[last]!;
+    if (t.locked || t.birthday || t.songs.some(isCump)) return [];
+    const out: RepairEdit[] = [];
+    const need = t.songs.length || sizeOf(o, "tango");
+    const mh = mustHaveOf(t);
+    if (mh && cur.tandas.filter((x) => mustHaveOf(x) === mh).length === 1) return [];
+    const cands = famsOf("tango").filter(
+      (c) =>
+        c.vocal &&
+        ULTIMA_CLOSERS.includes(c.orchestraId) &&
+        slotOk(c, last, "tango") &&
+        // (round 10: never an orchestra + mode already played as a tango tanda in the second half)
+        !cur.tandas
+          .slice(Math.floor(n / 2), last)
+          .some((x) => x.rhythm === "tango" && x.orchestraId === c.orchestraId && x.vocal === c.vocal) &&
+        c.songs.filter((x) => fame(x) >= 3 && sideOkM(x, "tango") && streamable(x)).length >= need,
+    );
+    for (const c of cands) {
+      const songs = bestSides(c, last, "tango", need, t);
+      if (!songs || songs.some((x) => fame(x) < 3)) continue;
+      const tandas = cur.tandas.slice();
+      tandas[last] = asTanda(c, last, songs, `the última: ${tName(t)} → a beloved closer`);
+      out.push({
+        kind: "replace",
+        tanda: last,
+        text: `Tanda ${last + 1} (the última): ${tName(t)} ${yearsStr(t.songs)} → ${tName(tandas[last]!)} ${yearsStr(songs)}`,
+        playlist: finalize(tandas),
+      });
+    }
+    return out;
+  };
+  const rolesOk = (xs: Song[]) => {
+    const ss = xs.filter((x) => !isCump(x));
+    if (ss.length < 2) return true;
+    const f = ss[0]!,
+      l = ss[ss.length - 1]!;
+    if (f.role === "closer" || l.role === "opener") return false;
+    const hot = ss
+      .map((x) => x.energy ?? 50)
+      .sort((p, q) => q - p)
+      .slice(0, 2);
+    if (ss.some((x) => x.role === "closer") && l.role !== "closer") return false;
+    return l.role === "closer" || (l.energy ?? 50) >= hot[1]!;
+  };
+  /** round 15 (DJ N2): a hot hard-drive tanda into a cool one: the boundary sides are ordered so the step is ≤ 15 */
+  const boundaryEdits = (): RepairEdit[] => {
+    const out: RepairEdit[] = [];
+    for (const v of curR.violations) {
+      if (v.rule !== "hotCold" || v.tanda < 1) continue;
+      const i = v.tanda;
+      const a = cur.tandas[i - 1]!,
+        b = cur.tandas[i]!;
+      if (a.songs.some(isCump) || b.songs.some(isCump)) continue;
+      const e = (x: Song) => x.energy ?? 50;
+      for (const la of a.songs)
+        for (const fb of b.songs) {
+          if (Math.abs(e(la) - e(fb)) > 15) continue;
+          const aS = [
+            ...strictOrder(
+              a.songs.filter((x) => x !== la),
+              isPeakSlot(a),
+            ),
+            la,
+          ];
+          const bS = [
+            fb,
+            ...strictOrder(
+              b.songs.filter((x) => x !== fb),
+              isPeakSlot(b),
+            ),
+          ];
+          // (the order rules of rounds 4–14 hold: a corpus opener never closes, a closer never opens, the last side
+          // is a corpus closer or one of the two hottest)
+          if (!rolesOk(aS) || !rolesOk(bS)) continue;
+          const tandas = cur.tandas.slice();
+          tandas[i - 1] = retanda(a, aS, a);
+          tandas[i] = retanda(b, bS, b);
+          out.push({
+            kind: "reorder",
+            tanda: i,
+            text: `Tandas ${i} and ${i + 1}: the boundary sides reordered (${la.title} e${e(la)} → ${fb.title} e${e(fb)})`,
+            playlist: finalize(tandas),
+          });
+        }
     }
     return out;
   };
@@ -926,10 +1150,12 @@ export function editsFor(
     const seen = new Set<string>();
     for (const i of structural)
       for (let j = 1; j < last; j++) {
-        if (j === i || i === 0 || i === last) continue;
+        if (j === i || i === 0 || i === last || j === earlyDA || i === earlyDA) continue;
         const a = cur.tandas[i]!,
           b = cur.tandas[j]!;
         if (a.rhythm !== b.rhythm || a.locked || b.locked || a.birthday || b.birthday) continue;
+        // (round 15: the planned summits keep their own tandas — the last one's anthem is the composer's choice)
+        if (golden && (a.peak || b.peak)) continue;
         const k = `${Math.min(i, j)}|${Math.max(i, j)}`;
         if (seen.has(k)) continue;
         seen.add(k);
@@ -974,7 +1200,7 @@ export function editsFor(
     ];
   };
   const closerEdits = (): RepairEdit[] => {
-    if (!ruleSet.has("closer") || !cur.closing) return [];
+    if (!ruleSet.has("closer") || !cur.closing || normTitle(cur.closing.title) !== "la cumparsita") return [];
     const c = pickStrictCloser(cat, o, cur.tandas[last]?.orchestraId ?? "");
     if (!c || c.id === cur.closing.id) return [];
     return [
@@ -1017,9 +1243,9 @@ export function editsFor(
     return out;
   };
   return [
-    () => [...reorderEdits(), ...cueEdits(), ...closerEdits()],
+    () => [...reorderEdits(), ...boundaryEdits(), ...cueEdits(), ...closerEdits()],
     resideEdits,
-    () => [...canonEdits(), ...targetedEdits(), ...replaceEdits()],
+    () => [...canonEdits(), ...targetedEdits(), ...ultimaEdits(), ...replaceEdits()],
     swapEdits,
     replanEdits,
   ];
@@ -1087,7 +1313,7 @@ export function recue(tandas: Tanda[], deps: ComposeDeps, o: ComposeOptions): Ta
     return !(last && last.id === c.id);
   };
   /** the strict panel's cue rules (DJ S9, S10; dancer R14-14, R14-15) */
-  const panel = (c: Cortina, k: number) => {
+  const panel = (c: Cortina, k: number, pop15 = true) => {
     const next = out[k + 1]!;
     const tempo = cortinaTempo(c);
     if (c.tags?.includes("danceable-risk") || !cueHasAudio(c)) return false;
@@ -1095,8 +1321,21 @@ export function recue(tandas: Tanda[], deps: ComposeDeps, o: ComposeOptions): Ta
     if (same.length >= 2 || (same.length && k - same[same.length - 1]!.j < 4)) return false;
     if (next.targetEnergy >= 78 && tempo === "slow") return false;
     if (isD(next) && !cueMoody(c)) return false;
+    // round 15 (dancer N2, DJ N3, N9): no slow cue after the last summit; no dance-pop cue into a summit or the
+    // última; at most one pop or rock cue an hour
+    if (k === lastPeak && tempo === "slow") return false;
+    if (isDancePop(c) && (next.peak || k + 1 === n - 1)) return false;
+    if (pop15 && isPopRock(c) && chosen.some((x, j) => isPopRock(x) && hrs[j] === hrs[k])) return false;
     return !(next.rhythm === "vals" && c.energy > next.energy + 4);
   };
+  const lastPeak =
+    out
+      .map((t, i) => (t.peak ? i : -1))
+      .filter((i) => i >= 0)
+      .at(-1) ?? -1;
+  const popHour = (c: Cortina, k: number) =>
+    isPopRock(c) && chosen.some((x, j) => isPopRock(x) && hrs[j] === hrs[k]);
+  const hrs = tandaHours({ tandas: out, closing: null, options: o });
   const fresh = (c: Cortina) => !chosen.some((x) => x.id === c.id);
   const notNear = (c: Cortina, k: number) => !chosen.slice(Math.max(0, k - 4)).some((x) => x.id === c.id);
   let changed = false;
@@ -1112,8 +1351,15 @@ export function recue(tandas: Tanda[], deps: ComposeDeps, o: ComposeOptions): Ta
     const energyGap = (c: Cortina) => Math.abs(c.energy - (next.energy - 8));
     const pickFrom = (ok: (c: Cortina) => boolean, pool = own) =>
       pool.filter((x) => ok(x)).sort((a, b) => energyGap(a) - energyGap(b) || a.id.localeCompare(b.id))[0];
+    // (round 15: a fresh cue the full panel accepts, then one the round-14 panel accepts, before the older tiers)
     const tiers: Array<(c: Cortina) => boolean> = [
       (c) => placed(c, k) && panel(c, k) && fresh(c),
+      (c) => placed(c, k) && panel(c, k, false) && fresh(c),
+      (c) =>
+        placed(c, k) &&
+        fresh(c) &&
+        !popHour(c, k) &&
+        !(isDancePop(c) && (out[k + 1]!.peak || k + 1 === n - 1)),
       (c) => placed(c, k) && fresh(c),
       (c) => placed(c, k) && panel(c, k) && notNear(c, k),
     ];

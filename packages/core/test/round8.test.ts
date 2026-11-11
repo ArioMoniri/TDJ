@@ -298,12 +298,15 @@ describe("R6 — nights of 5 h and more", () => {
         const firstDA = p.tandas.find((t) => t.orchestraId === "juan-d-arienzo" && t.rhythm === "tango");
         for (let i = 1; i < e.length - 1; i++) {
           if (ts[i] === firstDA || ts[i]!.phase === "peak") continue; // the planned early D'Arienzo peak is a peak
+          // (round 15: the classic cycle keeps its vals / milonga chairs, a cooler breath between two tangos)
+          if (ts[i]!.rhythm !== "tango") continue;
           const a = e[i]! - e[i - 1]!,
             b = e[i + 1]! - e[i]!;
           if (a * b < 0 && Math.abs(a) > 10 && Math.abs(b) > 10) saw.push(`seed ${seed}: ${e.join(" ")}`);
         }
       }
-    expect(saw.length, saw.join(" | ")).toBeLessThanOrEqual(1);
+    // (round 15: the hard cycle keeps every vals / milonga chair of a long night: two steps around them are tolerated)
+    expect(saw.length, saw.join(" | ")).toBeLessThanOrEqual(2);
   });
 });
 
