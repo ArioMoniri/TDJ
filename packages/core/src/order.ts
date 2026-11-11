@@ -62,20 +62,35 @@ function orderWithCost(songs0: Song[], peak: boolean, ctx: OrderCtx = {}): { son
   const vm = songs[0]!.rhythm === "vals" || songs[0]!.rhythm === "milonga";
   const hasKnown = songs.some((s) => fame(s) >= 2);
   const hits = songs.filter((s) => fame(s) === max).length;
+  // round 17 (DJ §2, the energyStep fixer): with the next tanda's first side in view, a last side more than 16 above it
+  // is a release cliff; a top-fame side that cuts it may close even when it is not one of the two hottest or is the one
+  // slowest side (Biagi / Ibáñez ending on Lejos de Ti e77 before Caló / Berón opening e61)
+  const nf = ctx.nextFirst;
+  const relCliff = (s: Song) => nf !== null && nf !== undefined && e(s) - nf > 16;
+  const cuts = songs.some(relCliff);
+  const cutter = (s: Song) => cuts && !relCliff(s) && fame(s) === max;
+  // (and the boundary fixer's release cut sets aside the corpus-role and two-hottest preferences of rounds 4–11 — never a
+  // panel order rule: the fame of the first and last side, the one hit, the order verdict and the cliff stay)
+  const relax = !!ctx.releaseCut;
   let best: { first: Song; last: Song; cost: number } | null = null;
   for (const last of songs)
     for (const first of songs) {
       if (first === last) continue;
+      if (ctx.first && first.id !== ctx.first) continue;
       let cost = 0;
       if (fame(first) < need) cost += 10 + (need - fame(first));
       if (fame(last) < max - 1) cost += 10 + (max - 1 - fame(last));
       // (an opener-role side never closes: an older rule too, so it weighs as one)
-      if (last.role === "opener" && songs.some((x) => x !== first && x.role !== "opener")) cost += 20;
-      if (first.role === "closer" && songs.some((x) => x !== last && x.role !== "closer")) cost += 20;
-      if (!(last.role === "closer" || top2.includes(e(last)))) cost += 20;
+      if (!relax && last.role === "opener" && songs.some((x) => x !== first && x.role !== "opener"))
+        cost += 20;
+      if (!relax && first.role === "closer" && songs.some((x) => x !== last && x.role !== "closer"))
+        cost += 20;
+      if (!(last.role === "closer" || top2.includes(e(last)) || cutter(last) || relax)) cost += 20;
       if (hasKnown && fame(last) === 0) cost += 20;
-      // the one slowest side never closes (a vals / milonga not even as a corpus closer)
-      if (uniqueMin(last) && (vm || last.role !== "closer")) cost += 20;
+      // the one slowest side never closes (a vals / milonga not even as a corpus closer), unless it cuts a release cliff
+      if (uniqueMin(last) && (vm || last.role !== "closer") && !cutter(last)) cost += 20;
+      // (round 17: a release cliff into the next tanda weighs as the cliff into this one, when a top-fame side cuts it)
+      if (relCliff(last) && songs.some(cutter)) cost += 12;
       // in a tanda of four the one hit is not spent first (round 9), unless it is the corpus opener
       if (songs.length >= 4 && fame(first) === max && hits === 1 && first.role !== "opener") cost += 20;
       // preferences: a corpus opener first, a corpus closer last, a cooler opener, a famous closer
@@ -93,7 +108,8 @@ function orderWithCost(songs0: Song[], peak: boolean, ctx: OrderCtx = {}): { son
       }
       if (!best || cost < best.cost - 1e-9) best = { first, last, cost };
     }
-  const { first, last, cost } = best!;
+  if (!best) return { songs: songs0, cost: 99 };
+  const { first, last, cost } = best;
   return { songs: [first, ...midOf(first, last), last, ...cump], cost: Math.max(0, cost) };
   function midOf(first: Song, last: Song): Song[] {
     const mid = songs
@@ -114,6 +130,12 @@ export interface OrderCtx {
   summit?: boolean;
   /** the última */
   ultima?: boolean;
+  /** round 17: the energy of the next tanda's first side (the release step out of this tanda) */
+  nextFirst?: number | null;
+  /** round 17: the side that must open (its id) — the boundary fixer pins it */
+  first?: string;
+  /** round 17: the boundary fixer's release cut (the corpus-role and two-hottest preferences yield to it) */
+  releaseCut?: boolean;
 }
 /**
  * Round 16 (DJ R16-4, dancer §4): a tanda whose first side sits more than 15 below the previous tanda's last side

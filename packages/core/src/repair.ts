@@ -5,7 +5,7 @@ import { type ComposeDeps, computeStats, familyBreaks, makeScoring } from "./com
 import { candidatesFor, cortinaPool, cortinaTempo, familyOf } from "./cortinas";
 import { isDanceableSong, normTitle } from "./energy";
 import { familyBand, goldenClassOf, isColour, isGoldenNight } from "./knowledge";
-import { heatOfSides, orderCost, strictOrder } from "./order";
+import { heatOfSides, type OrderCtx, orderCost, orderVerdictOf, strictOrder } from "./order";
 import { CORPUS_CAPS, DEFAULT_CAP, NEVER_OPEN, OPENERS } from "./rules";
 import { scorePlaylist } from "./score";
 import {
@@ -1221,6 +1221,50 @@ export function editsFor(
             playlist: finalize(tandas),
           });
         }
+    }
+    // round 17 (DJ §2, the generic energyStep fixer): a release cliff between two tandas is cut by reordering the sides
+    // of both — the earlier tanda closes on a top-fame side within 16 of the later one's first side — when every
+    // in-tanda order rule still holds (no hard order rule broken, no order verdict or cliff added)
+    for (const v of curR.violations) {
+      if (v.rule !== "energyStep" || v.tanda < 1) continue;
+      const i = v.tanda;
+      const a = cur.tandas[i - 1]!,
+        b = cur.tandas[i]!;
+      if (a.energy <= b.energy || a.locked || b.locked) continue;
+      if (a.songs.some(isCump) || b.songs.some(isCump)) continue;
+      const e = (x: Song) => x.energy ?? 50;
+      const ctxA = orderCtxOf(cur.tandas, i - 1);
+      const items = (songs: Song[], ctx: OrderCtx) => orderVerdictOf(songs, ctx).length;
+      const beforeA = items(a.songs, ctxA);
+      const beforeB = items(b.songs, orderCtxOf(cur.tandas, i));
+      for (const fb of b.songs) {
+        const nf = e(fb);
+        const pa = isPeakSlot(a),
+          pb = isPeakSlot(b);
+        const aCtx = { ...ctxA, nextFirst: nf, releaseCut: true };
+        const aS = strictOrder(a.songs, pa, aCtx);
+        const la = aS.at(-1)!;
+        if (e(la) - nf > 16) continue;
+        const bCtx = { ...orderCtxOf(cur.tandas, i), prevLast: e(la), first: fb.id, releaseCut: true };
+        const bS = strictOrder(b.songs, pb, bCtx);
+        if (bS[0] !== fb) continue;
+        if (orderCost(aS, pa, aCtx) >= 10 || orderCost(bS, pb, bCtx) >= 10) continue;
+        if (
+          items(aS, ctxA) > beforeA ||
+          items(bS, { ...orderCtxOf(cur.tandas, i), prevLast: e(la) }) > beforeB
+        )
+          continue;
+        if (aS.every((s, k) => s === a.songs[k]) && bS.every((s, k) => s === b.songs[k])) continue;
+        const tandas = cur.tandas.slice();
+        tandas[i - 1] = retanda(a, aS, a);
+        tandas[i] = retanda(b, bS, b);
+        out.push({
+          kind: "reorder",
+          tanda: i,
+          text: `Tandas ${i} and ${i + 1}: the release cut at the sides (${la.title} e${e(la)} → ${fb.title} e${nf})`,
+          playlist: finalize(tandas),
+        });
+      }
     }
     return out;
   };

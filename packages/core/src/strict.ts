@@ -55,6 +55,8 @@ const J15 = "docs/reviews/round15-dj.md";
 const G15 = "docs/reviews/round15-discography.md";
 const D16 = "docs/reviews/round16-dancer.md";
 const J16 = "docs/reviews/round16-dj.md";
+const D17 = "docs/reviews/round17-dancer.md";
+const J17 = "docs/reviews/round17-dj.md";
 
 export const STRICT_RULES: StrictRuleDef[] = [
   // B — hard filters
@@ -103,9 +105,10 @@ export const STRICT_RULES: StrictRuleDef[] = [
   },
   {
     key: "lastSide",
-    label: "The last side is among the tanda's best (fame ≥ max − 1), never an opener-role side",
+    label:
+      "The last side is among the tanda's best (fame ≥ max − 1), never an opener-role side (unless it cuts a release cliff into the next tanda to ≤ 16, or the tanda opens on its corpus closer to cut one from the previous tanda)",
     severity: "should-fix",
-    source: `${D} R14-17`,
+    source: `${D} R14-17; ${J17} §2`,
   },
   {
     key: "peakHits",
@@ -178,16 +181,17 @@ export const STRICT_RULES: StrictRuleDef[] = [
   },
   {
     key: "darienzoPeak",
-    label: "D'Arienzo at a planned peak: Echagüe 1938–39 or instrumental 1937–40, never Mauré",
+    label:
+      "D'Arienzo at a planned peak: Echagüe 1938–39 or instrumental 1937–40 (1935–40 with a fame-5 side and mean fame ≥ 3.75), never Mauré",
     severity: "should-fix",
-    source: `${J} S2; ${D} R14-7`,
+    source: `${J} S2; ${D} R14-7; ${J17} §2 (retuned)`,
   },
   {
     key: "rotation",
     label:
-      "An orchestra's tango tandas never share sub-period and mode; three D'Arienzo tandas include a vocal one",
+      "An orchestra's tango tandas never share sub-period and mode (once a night: ≥ 12 apart, no shared title, one a summit); three D'Arienzo tandas include a vocal one",
     severity: "should-fix",
-    source: `${J} S3`,
+    source: `${J} S3; ${J17} §2 (retuned)`,
   },
   {
     key: "singerOnce",
@@ -216,9 +220,9 @@ export const STRICT_RULES: StrictRuleDef[] = [
   {
     key: "wedge",
     label:
-      "The tanda before the última: energy ≥ última − 12, not the last hour's lowest, every side streams",
+      "The tanda before the última: energy ≥ última − 12, not the last hour's lowest (a lyrical tango of mean fame ≥ 4.5 behind a cue into the última that is not slow may), every side streams",
     severity: "should-fix",
-    source: `${J} S7; ${D} R14-9`,
+    source: `${J} S7; ${D} R14-9; ${J17} §2, ${D17} §2 (retuned)`,
   },
   {
     key: "valley",
@@ -306,9 +310,9 @@ export const STRICT_RULES: StrictRuleDef[] = [
   {
     key: "energyStep",
     label:
-      "Adjacent tandas differ by at most 16 points of energy (20 for a planned lift into a summit or release; 22 for a lift into a vals or milonga behind an up-tempo cue, the vals ≤ its target + 6)",
+      "Adjacent tandas differ by at most 16 points of energy (20 for a planned lift into a summit or release; 22 for a lift into a vals or milonga behind an up-tempo cue, the vals ≤ its target + 6; a release from a vals or milonga into a lyrical tango up to 10 more when the boundary sides step ≤ 16 behind a slow cue)",
     severity: "should-fix",
-    source: `${D15} N8 (R15-8); ${J15} N11; ${J16} §6 (retuned)`,
+    source: `${D15} N8 (R15-8); ${J15} N11; ${J16} §6, ${J17} §2 (retuned)`,
   },
   {
     key: "hotCold",
@@ -670,7 +674,24 @@ export function strictChecks(n: Night): StrictResult {
         add("opener", i, `${name(x)} opens on ${first.title} (fame ${fameOf(first)})`);
       const lastS = ss[ss.length - 1]!;
       const max = Math.max(...ss.map(fameOf));
-      if (fameOf(lastS) < max - 1 || (lastS.role === "opener" && ss.length > 1))
+      // (round 17, DJ §2: a corpus opener may close when it cuts a release cliff into the next tanda — the other
+      // sides would step more than 16 down to its first side, this one ≤ 16)
+      const nf = i < t.length - 1 ? dance(t[i + 1]!)[0]?.energy : undefined;
+      const cut =
+        nf !== undefined &&
+        nf !== null &&
+        (lastS.energy ?? 50) - nf <= 16 &&
+        ss.some((s) => s !== lastS && (s.energy ?? 50) - nf > 16);
+      // (and when the tanda opens on its corpus closer to cut a release cliff from the previous tanda, the roles are
+      // displaced: its corpus opener may close — Caló / Berón opening on Qué Te Importa e61 after Lejos de Ti e77)
+      const pl = i > 0 ? dance(t[i - 1]!).at(-1)?.energy : undefined;
+      const displaced =
+        pl !== undefined &&
+        pl !== null &&
+        first.role === "closer" &&
+        pl - (first.energy ?? 50) <= 16 &&
+        ss.some((s) => s !== first && pl - (s.energy ?? 50) > 16);
+      if (fameOf(lastS) < max - 1 || (lastS.role === "opener" && ss.length > 1 && !cut && !displaced))
         add("lastSide", i, `${name(x)} ends on ${lastS.title} (fame ${fameOf(lastS)}, max ${max})`);
       if (x.peak) {
         const hits = ss.filter((s) => fameOf(s) >= 4).length;
@@ -810,9 +831,12 @@ export function strictChecks(n: Night): StrictResult {
       const ys = yearsOf(x);
       const lo = Math.min(...ys),
         hi = Math.max(...ys);
+      // (round 17, DJ §2: an instrumental summit may reach back to 1935 — Hotel Victoria — when it holds a fame-5
+      // side and a mean fame ≥ 3.75; the 1937–40 window stands without them)
+      const hook = dance(x).some((s) => fameOf(s) >= 5) && meanFame(x) >= 3.75 - 1e-9;
       const ok = x.vocal
         ? surname(x.singer) === "echague" && lo >= 1938 && hi <= 1939
-        : lo >= 1937 && hi <= 1940;
+        : (lo >= 1937 || (lo >= 1935 && hook)) && hi <= 1940;
       if (!ok)
         add(
           "darienzoPeak",
@@ -821,6 +845,7 @@ export function strictChecks(n: Night): StrictResult {
         );
     });
     const byOrch = new Map<string, number[]>();
+    let rotationPass = false;
     tango.forEach(({ x, i }) => byOrch.set(x.orchestraId, [...(byOrch.get(x.orchestraId) ?? []), i]));
     for (const [id, is] of byOrch) {
       if (is.length < 2) continue;
@@ -828,9 +853,21 @@ export function strictChecks(n: Night): StrictResult {
       for (const i of is) {
         const x = t[i]!;
         const k = `${periodOf(x)}|${x.vocal ? surname(x.singer) : "instr"}`;
-        if (keys.has(k))
-          add("rotation", i, `${name(x)} shares sub-period and mode with tanda ${keys.get(k)! + 1}`);
-        else keys.set(k, i);
+        if (!keys.has(k)) {
+          keys.set(k, i);
+          continue;
+        }
+        const j = keys.get(k)!;
+        // (round 17, DJ §2: once a night, two such tandas ≥ 12 apart that share no title and one of which is a
+        // planned summit — the warm-up hook and the last summit — are the orchestra's two faces, not a repeat)
+        const titles = new Set(dance(t[j]!).map((s) => normTitle(s.title)));
+        const apart =
+          !rotationPass &&
+          i - j >= 12 &&
+          !dance(x).some((s) => titles.has(normTitle(s.title))) &&
+          (!!x.peak || !!t[j]!.peak);
+        if (apart) rotationPass = true;
+        else add("rotation", i, `${name(x)} shares sub-period and mode with tanda ${j + 1}`);
       }
       if (id === "juan-d-arienzo" && is.length >= 3 && !is.some((i) => t[i]!.vocal))
         add("rotation", is[2]!, `${is.length} D'Arienzo tango tandas, none vocal`);
@@ -896,15 +933,25 @@ export function strictChecks(n: Night): StrictResult {
       const wi = last - 1;
       const w = t[wi]!;
       const why: string[] = [];
-      if (w.energy < ult.energy - 12) why.push(`e${w.energy} for última e${ult.energy}`);
+      const un = dance(w).filter((s) => !streamable(s)).length;
+      // (round 17, DJ §2 and dancer §2: the classic "last romantic tanda" — a lyrical tango of mean fame ≥ 4.5 whose
+      // sides all stream, the cue into the última not slow so the última still lifts — may sit low before the última)
+      const romantic =
+        w.rhythm === "tango" &&
+        cls(w) === "L" &&
+        meanFame(w) >= 4.5 - 1e-9 &&
+        !un &&
+        !!w.cortina &&
+        cortinaTempo(w.cortina) !== "slow";
+      if (w.energy < ult.energy - 12 && !romantic) why.push(`e${w.energy} for última e${ult.energy}`);
       const lh = t.map((x, i) => ({ x, i })).filter(({ i }) => hours[i] === lastHour && i < last);
       if (
+        !romantic &&
         lh.length >= 2 &&
         w.energy <= Math.min(...lh.map((r) => r.x.energy)) &&
         lh.some((r) => r.x.energy > w.energy)
       )
         why.push("the lowest tanda of the last hour");
-      const un = dance(w).filter((s) => !streamable(s)).length;
       if (un) why.push(`${un} sides with no stream`);
       if (why.length) add("wedge", wi, `${name(w)} before the última: ${why.join(", ")}`);
     } else not("wedge");
@@ -1195,7 +1242,23 @@ function round15(
         cortinaTempo(cue) === "up" &&
         t[i]!.energy <= t[i]!.targetEnergy + 6;
       const lim = lift ? 22 : planned ? 20 : 16;
-      if (Math.abs(d) > lim)
+      // round 17 (DJ §2, dancer §2): a release from a vals or milonga into a lyrical tango whose boundary sides step
+      // ≤ 16 behind a slow cue is a release, not a cliff (Biagi / Ibáñez ending on Lejos de Ti e77 → Caló / Berón opening on Qué Te Importa e61)
+      const la = dance(t[i - 1]!).at(-1),
+        fb = dance(t[i]!)[0];
+      const cut =
+        d < 0 &&
+        Math.abs(d) <= lim + 10 &&
+        !!la &&
+        !!fb &&
+        (la.energy ?? 50) - (fb.energy ?? 50) <= 16 &&
+        !t[i - 1]!.peak &&
+        t[i - 1]!.rhythm !== "tango" &&
+        t[i]!.rhythm === "tango" &&
+        cls(t[i]!) === "L" &&
+        !!cue &&
+        cortinaTempo(cue) === "slow";
+      if (Math.abs(d) > lim && !cut)
         add("energyStep", i, `${name(t[i - 1]!)} e${t[i - 1]!.energy} → ${name(t[i]!)} e${t[i]!.energy}`);
     }
     for (let i = 1; i < t.length; i++) {
