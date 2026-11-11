@@ -12,7 +12,7 @@ import type {
   Tanda,
 } from "./index";
 import { familyBand, goldenClassOf, isColour } from "./knowledge";
-import { heatOfSides, orderCost, strictOrder } from "./order";
+import { heatOfSides, orderCost, orderVerdictOf, strictOrder } from "./order";
 import {
   CORPUS_CAPS,
   DEFAULT_CAP,
@@ -1635,8 +1635,10 @@ export function buildTanda(
   const shaped = shapeTanda(picked, o.tandaShape, slot.rhythm);
   // round 14 (dancer R14-5, R14-17): a golden night's tanda opens on a known side and ends on one of its best
   // (the first D'Arienzo keeps the composer's own order: its seeded draw is the night's variety, round 8)
+  // (round 19, review F3: unless the seeded order leaves a hole in the drive — Ataniche e73 third among e84s)
+  const holed = firstDA && orderVerdictOf(shaped).some((x) => /in a rhythmic tanda|after the opener/.test(x));
   const songs =
-    strict14 && !firstDA
+    strict14 && (!firstDA || holed)
       ? strictOrder(shaped, !!slot.peak || slot.phase === "peak" || slot.targetEnergy >= 78)
       : shaped;
   const years = songs.map(dated).filter((y): y is number => !!y);
