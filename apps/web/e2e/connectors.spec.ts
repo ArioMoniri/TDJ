@@ -49,6 +49,7 @@ const singersOf = (title: string, artist: string) => [
     (sungBy.get(title) ?? []).filter((x) => x.orchestra.includes(fold(artist))).map((x) => x.singer),
   ),
 ];
+let searchSeq = 0;
 const searchLimit = { after: Number.POSITIVE_INFINITY, count: 0, retryAfter: 30, delayMs: 0 };
 /** YouTube search mock: this many searches (counted since the last `hits.length = 0`) answer, the next one is quotaExceeded. */
 const ytLimit = { searches: 2 };
@@ -110,7 +111,9 @@ function mockServer(): http.Server {
         const m = /^track:"([^"]*)" artist:"([^"]*)"$/.exec(q);
         if (!m) return json(200, { tracks: { items: [] } });
         const [, title, artist] = m;
-        const n = hits.filter((h) => h.url.startsWith("/v1/search")).length;
+        // ids are unique for the whole run, as Spotify's are: the server remembers matches across tests, and an id
+        // counted from the last `hits.length = 0` handed two different sides the same track (one row then went missing)
+        const n = ++searchSeq;
         const item = (uri: string, artists: string[], year: string, ms: number) => ({
           uri,
           name: title,
@@ -989,7 +992,7 @@ test("a 429 from Spotify ends the matching cleanly: the server reports the pause
     // the one search that answered plus whatever the server already remembered from earlier tests (memoised
     // per process: no search for those), never a cover
     const first = JSON.parse(adds[0]!.body).uris as string[];
-    expect(first).toContain("spotify:track:found1");
+    expect(first.length).toBeGreaterThanOrEqual(1);
     for (const u of first) expect(u).toMatch(/^spotify:track:found/);
     const left = files - first.length;
     await expect(sheet).toContainText(
@@ -1005,6 +1008,14 @@ test("a 429 from Spotify ends the matching cleanly: the server reports the pause
     page.on("request", (r) => {
       if (r.url().includes("/api/spotify/match")) matchCalls++;
     });
+    // a side the rules cannot prove from the mock's undated credit (the orchestra recorded the title again later,
+    // e.g. Di Sarli's El Incendio 1940/1951) is reported not found, never added as a guess: count those
+    let notFound = 0;
+    page.on("response", async (r) => {
+      if (!r.url().includes("/api/spotify/match")) return;
+      const j = (await r.json().catch(() => null)) as { missing?: unknown[] } | null;
+      notFound += j?.missing?.length ?? 0;
+    });
     await btn.click();
     await expect(page.getByRole("button", { name: "Playlist created" })).toBeVisible({ timeout: 60000 });
     expect(last(/POST \/v1\/me\/playlists/)).toBeUndefined(); // no second playlist
@@ -1018,8 +1029,9 @@ test("a 429 from Spotify ends the matching cleanly: the server reports the pause
       for (const u of uris) expect(u).not.toMatch(/cover/);
       total += uris.length;
     }
-    expect(total).toBe(first.length + left);
-    await expect(sheet).toContainText(`Added ${left} more.`);
+    // every side is either in the playlist or reported not found: nothing dropped silently
+    expect(total).toBe(first.length + left - notFound);
+    await expect(sheet).toContainText(`Added ${left - notFound} more${notFound ? ` (${notFound} not found)` : ""}.`);
     // the matches went into the DJ's database: a second export of the same set searches nothing, and it
     // updates the playlist made before (remembered for this night) instead of making another one
     hits.length = 0;
