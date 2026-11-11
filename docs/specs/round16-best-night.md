@@ -1,5 +1,7 @@
 # Round 16 — the shipped featured night (seed 199)
 
+> **Superseded in round 17.** The shipped featured night is now documented in [`round17-best-night.md`](round17-best-night.md) (mirror `round17-best-night.json`): the same seed-199 night with the #21/#22 release cut, the round-17 Spotify id for *Así Se Baila el Tango* and the duet credit on *Bu Kalp Seni Unutur mu*. This page and `round16-best-night.json` are kept as the round-16 record.
+
 Options: the featured night's (golden 1935–45, 4 h, 4 tangos / 3 valses or milongas per tanda, Turkish cortinas, double peak; opener rule `canon`, última rule `emotional-vocal`, closer `auto`). Composed with `compose` and `improveNight` (0 changes), Booth plan from `attachBooth`. File: `apps/web/public/featured/golden-double-peak.json` (mirror: `docs/specs/round16-best-night.json`).
 
 - Engine 91 (Headline marathon DJ) · benchmark 91 (17/18) · 4.03 h · 23 tandas · 12 orchestras
