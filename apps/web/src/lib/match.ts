@@ -1,4 +1,4 @@
-import { matchProblem } from "@tdj/core";
+import { cortinaMatchProblem, matchProblem } from "@tdj/core";
 /**
  * Best-match scoring for a catalogue recording against Spotify search candidates. Pure and isomorphic: the server
  * route (/api/spotify/match) scores with it, vitest checks it. `items[0]` of a search is not the answer for tango:
@@ -19,6 +19,12 @@ export interface MatchItem {
   /** the length is an estimate: never a reference */
   durationEstimated?: boolean;
   altTitles?: string[];
+  /** round 16: the rhythm (compared when the provider names it), the later takes and sung takes the index knows */
+  rhythm?: string | null;
+  laterTakes?: Array<{ year: number; singer?: string | null }>;
+  vocalTwins?: number[];
+  /** round 16 (M7): a cortina — judged by the cortina rules (title, artist by whole name, original record) */
+  cortina?: boolean;
 }
 export interface Candidate {
   uri: string;
@@ -160,8 +166,13 @@ export function scoreCandidate(item: MatchItem, c: Candidate): number {
     const hay = `${artists} ${norm(c.name)}`;
     if (singer.length && singer.every((w) => hay.includes(w))) s += 8;
   }
-  if (item.year && c.albumYear) {
-    if (Math.abs(c.albumYear - item.year) <= 3) s += 5;
+  // round 16 (G12): the year bonus reads the years an album's title names (a reissue's release date is no recording
+  // year); a release date counts only from the 78 and early-LP years
+  if (item.year) {
+    const ys = [...(c.album ?? "").matchAll(/\b(19[2-9]\d)\b/g)].map((m) => Number(m[1]));
+    const named = ys.length ? ys.some((y) => Math.abs(y - item.year!) <= 3) : false;
+    const early = !!c.albumYear && c.albumYear < 1960 && Math.abs(c.albumYear - item.year) <= 3;
+    if (named || early) s += 5;
   }
   if (item.durationSec && c.durationMs) {
     const diff = Math.abs(c.durationMs / 1000 - item.durationSec);
@@ -178,6 +189,11 @@ export function scoreCandidate(item: MatchItem, c: Candidate): number {
  * is not the side's, a later album. Null: nothing proves it is another recording. Cortinas (no `vocal`) skip it.
  */
 export function rejectReason(item: MatchItem, c: Candidate): string | null {
+  if (item.cortina)
+    return cortinaMatchProblem(
+      { title: item.title, artist: item.orchestra, year: item.year ?? null },
+      { name: c.name, artists: c.artists, album: c.album, durationMs: c.durationMs },
+    );
   if (item.vocal === undefined) return null;
   return matchProblem(
     {
@@ -190,6 +206,9 @@ export function rejectReason(item: MatchItem, c: Candidate): string | null {
       durationSec: item.durationSec ?? null,
       durationEstimated: item.durationEstimated,
       altTitles: item.altTitles,
+      rhythm: item.rhythm ?? null,
+      laterTakes: item.laterTakes,
+      vocalTwins: item.vocalTwins,
     },
     { name: c.name, artists: c.artists, album: c.album, durationMs: c.durationMs },
   );

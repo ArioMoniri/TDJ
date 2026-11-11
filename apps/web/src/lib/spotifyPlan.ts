@@ -1,4 +1,5 @@
 import {
+  cortinaMatchProblem,
   type ExportOpts,
   type FlatTrack,
   matchProblem,
@@ -28,6 +29,11 @@ export function spotifyPlanFor(
         if (s.spotify && !storedMatchOk(s, s.spotify)) return { ...s, spotify: null };
         return mine ? s : s;
       }),
+      // (round 16, M7: a cortina's carried match passes the cortina rules, or the cue is searched again)
+      cortina:
+        t.cortina?.spotify && !storedCortinaOk(t.cortina, t.cortina.spotify)
+          ? { ...t.cortina, spotify: undefined }
+          : t.cortina,
     })),
     opening:
       playlist.opening && own[playlist.opening.id]?.spotify
@@ -59,12 +65,16 @@ export function matchItemFor(t: FlatTrack): MatchItem {
     isrc: (t as { isrc?: string | null }).isrc ?? null,
     // round 15: a tango side carries what the match rules read (a cortina does not)
     ...(t.kind === "cortina"
-      ? {}
+      ? { cortina: true }
       : {
           vocal: t.vocal ?? !!t.singer,
           date: t.date ?? null,
           durationEstimated: t.durationEstimated,
           altTitles: t.altTitles,
+          // round 16: what the stricter rules read (the rhythm, the later and sung takes the index knows)
+          rhythm: t.rhythm,
+          laterTakes: t.laterTakes,
+          vocalTwins: t.vocalTwins,
         }),
   };
 }
@@ -85,6 +95,9 @@ export function storedMatchOk(
     | "durationSec"
     | "durationEstimated"
     | "altTitles"
+    | "rhythm"
+    | "laterTakes"
+    | "vocalTwins"
   >,
   m:
     | { uri?: string; name?: string; artist?: string; album?: string; durationMs?: number; matched?: string }
@@ -99,6 +112,23 @@ export function storedMatchOk(
     { ...s, vocal: !!s.vocal },
     { name, artists: artists.length ? artists : [s.orchestra], album: m.album, durationMs: m.durationMs },
   );
+}
+
+/** Round 16 (M7): a cortina's stored match names the cue's title and artist and is no duet, live or remix record. */
+export function storedCortinaOk(
+  c: { title: string; artist: string; year?: number | null },
+  m: { uri?: string; album?: string; durationMs?: number; matched?: string } | null | undefined,
+): boolean {
+  if (!m?.uri) return false;
+  // (an older carried id without its credit is kept: the cache audit judged it)
+  if (!m.matched) return true;
+  const [artist, ...rest] = m.matched.split(" – ");
+  return !cortinaMatchProblem(c, {
+    name: rest.join(" – ") || c.title,
+    artists: (artist ?? "").split(/,\s*/).filter(Boolean),
+    album: m.album,
+    durationMs: m.durationMs,
+  });
 }
 
 /** Batches of ≤10 items, the most the match route takes per request. */

@@ -3,7 +3,9 @@ import { join } from "node:path";
 import type { AudioFeatures, ResolvedTrack } from "./audio/index";
 import type { ReferenceCorpus } from "./catalog";
 import { Catalog } from "./catalog";
+import { BUILTIN_CORTINAS } from "./cortinas";
 import { type CoverageRow, Heatmap } from "./knowledge";
+import { cortinaMatchProblem } from "./matchRules";
 import type { ContextModel, Cortina, OrchestraProfile, Song, UserOverrides } from "./types";
 
 /** Node-only loader: reads the committed index from `data/` (repo root). */
@@ -35,15 +37,57 @@ export function loadCatalog(root = findRoot(), overrides?: UserOverrides): Loade
   const cortinaResolved = existsSync(crf)
     ? (JSON.parse(readFileSync(crf, "utf8")) as Record<string, ResolvedTrack | null>)
     : {};
+  const cspf = j("data/cache/spotify/cortinas.json");
+  const cortinaSpotify = existsSync(cspf)
+    ? (JSON.parse(readFileSync(cspf, "utf8")) as Record<string, Cortina["spotify"]>)
+    : {};
   // round 14 (discography R12): a cue the resolver tried and found nothing for is tagged "no-audio" (never in a pool)
+  // round 16 (M7): a cue's Deezer and Spotify records pass the cortina match rules (title, artist by whole name, the
+  // original record); the code-defined cortinas carry their cached records too (Cambaz c-tr-2)
   const withAudio = (c: Cortina): Cortina => {
-    if (!(c.id in cortinaResolved)) return c;
-    const resolved = c.resolved ?? cortinaResolved[c.id] ?? null;
+    if (!(c.id in cortinaResolved) && !(c.id in cortinaSpotify)) return c;
+    let resolved = c.resolved ?? (c.id in cortinaResolved ? (cortinaResolved[c.id] ?? null) : undefined);
+    if (
+      resolved &&
+      cortinaMatchProblem(c, {
+        name: resolved.title,
+        artists: [resolved.artist],
+        album: resolved.album,
+        durationMs: resolved.durationMs,
+      })
+    )
+      resolved = null;
+    const sp0 = cortinaSpotify[c.id] ?? c.spotify ?? null;
+    const [artist, ...rest] = (sp0?.matched ?? "").split(" – ");
+    const spotify =
+      sp0 &&
+      (!sp0.matched ||
+        !cortinaMatchProblem(c, {
+          name: rest.join(" – ") || c.title,
+          artists: (artist ?? "").split(/,\s*/),
+          album: sp0.album,
+          durationMs: sp0.durationMs,
+        }))
+        ? sp0
+        : null;
     const tags =
-      !resolved && !c.spotify && !c.tags?.includes("no-audio") ? [...(c.tags ?? []), "no-audio"] : c.tags;
-    return { ...c, resolved, ...(tags ? { tags } : {}) };
+      resolved === null && !spotify && !c.tags?.includes("no-audio")
+        ? [...(c.tags ?? []), "no-audio"]
+        : c.tags;
+    return {
+      ...c,
+      ...(resolved !== undefined ? { resolved } : {}),
+      ...(spotify ? { spotify } : {}),
+      ...(tags ? { tags } : {}),
+    };
   };
-  const cortinas = cortinasRaw.map(withAudio);
+  const knowledgeIds = new Set(cortinasRaw.map((c) => c.id));
+  const cortinas = [
+    ...cortinasRaw,
+    ...BUILTIN_CORTINAS.filter(
+      (c) => !knowledgeIds.has(c.id) && (c.id in cortinaResolved || c.id in cortinaSpotify),
+    ),
+  ].map(withAudio);
   const sf = j("data/cache/spotify/tracks.json");
   const cache = existsSync(sf) ? JSON.parse(readFileSync(sf, "utf8")) : {};
   const meta = JSON.parse(readFileSync(j("data/index/meta.json"), "utf8"));
@@ -90,4 +134,43 @@ export function findRoot(start = process.cwd()): string {
     d = join(/* turbopackIgnore: true */ d, "..");
   }
   return start;
+}
+
+/**
+ * Round 16 (M7): every cached cortina record (Deezer resolve and Spotify) judged by the cortina match rules: the same
+ * title, the artist by whole name, the original record (no duet, live, remix, karaoke or re-recording album).
+ */
+export function auditCortinaCaches(root = findRoot()): Array<{ id: string; why: string }> {
+  const j = (p: string) => join(/* turbopackIgnore: true */ root, p);
+  const read = <T>(p: string, d: T): T =>
+    existsSync(j(p)) ? (JSON.parse(readFileSync(j(p), "utf8")) as T) : d;
+  const known = read<Cortina[]>("data/knowledge/cortinas.json", []);
+  const byId = new Map<string, Cortina>([...BUILTIN_CORTINAS, ...known].map((c) => [c.id, c]));
+  const rz = read<Record<string, ResolvedTrack | null>>("data/cache/resolve/cortinas.json", {});
+  const sp = read<Record<string, Cortina["spotify"]>>("data/cache/spotify/cortinas.json", {});
+  const out: Array<{ id: string; why: string }> = [];
+  for (const [id, v] of Object.entries(rz)) {
+    const c = byId.get(id);
+    if (!c || !v) continue;
+    const why = cortinaMatchProblem(c, {
+      name: v.title,
+      artists: [v.artist],
+      album: v.album,
+      durationMs: v.durationMs,
+    });
+    if (why) out.push({ id, why: `deezer:${v.id} ${why}` });
+  }
+  for (const [id, v] of Object.entries(sp)) {
+    const c = byId.get(id);
+    if (!c || !v?.matched) continue;
+    const [artist, ...rest] = v.matched.split(" – ");
+    const why = cortinaMatchProblem(c, {
+      name: rest.join(" – ") || c.title,
+      artists: (artist ?? "").split(/,\s*/),
+      album: v.album,
+      durationMs: v.durationMs,
+    });
+    if (why) out.push({ id, why: `${v.uri} ${why}` });
+  }
+  return out;
 }

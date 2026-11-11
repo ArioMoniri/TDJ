@@ -2,6 +2,7 @@ import { setActiveCatalog } from "./active";
 import type { AudioFeatures, ResolvedTrack } from "./audio/index";
 import { estimateDuration, normTitle, parseNonDanceTitle, songEnergy } from "./energy";
 import { DEFAULT_HEATMAP, type Heatmap, monthIndex } from "./knowledge";
+import { judgeStreams, takesIndex } from "./matchRules";
 import { ERA_PRESETS, mergeProfiles } from "./profiles";
 import { creditNamesOther, dateMismatch, knownSingers } from "./streams";
 import type { DanceRhythm, EraPreset, OrchestraProfile, Song, UserOverrides } from "./types";
@@ -131,6 +132,9 @@ export class Catalog {
         if (patch.hiddenScope === "copy") hiddenCopies.add(raw.id);
         else hiddenTitles.add(hideKey({ ...raw, ...patch }));
       }
+    // round 16 (export matching M1–M6): the later takes the index knows beside each row, and every index voice
+    const takes = takesIndex(all);
+    const indexSingers = knownSingers(all);
     const built = all.flatMap((raw) => {
       const patch = patchOf(raw);
       if (hiddenCopies.has(raw.id) || hiddenTitles.has(hideKey(raw))) return [];
@@ -139,12 +143,24 @@ export class Catalog {
       // round 14 (discography R5): a stream match must name the orchestra, the singer or an orquesta típica
       // ("Domy Castellano – Marchantia" is not Biagi's Marcheta); a match naming neither is dropped
       const sp0 = s.spotify ?? spotifyCache[s.id] ?? null;
-      const sp =
+      const sp1 =
         sp0 && matchNamesArtist(s, (sp0 as { matched?: string }).matched?.split(" – ")[0]) ? sp0 : null;
       const res0 = s.resolved ?? caches.resolved?.[s.id] ?? null;
       // round 15 (discography R4b): a stream whose title dates the recording more than 31 days from the row is
       // another recording (Recuerdo "Buenos Aires 08/01/1941" on the 1942-11-04 row): never played
-      const resolved = res0 && matchNamesArtist(s, res0.artist) && !dateMismatch(s, res0.title) ? res0 : null;
+      const resolved1 =
+        res0 && matchNamesArtist(s, res0.artist) && !dateMismatch(s, res0.title) ? res0 : null;
+      // round 16 (M1): the Spotify and the Deezer match are judged by the same rules (title, whole-name leader, voice,
+      // album years, remake series, positive evidence beside a later take); a match the rules reject plays nothing
+      const tk = takes.get(raw.id);
+      const verdict = judgeStreams(
+        { ...s, ...(tk ?? {}) },
+        sp1 as { uri?: string; durationMs?: number; album?: string; matched?: string } | null,
+        resolved1,
+        { singers: indexSingers },
+      );
+      const sp = sp1 && !verdict.spotify ? sp1 : null;
+      const resolved = resolved1 && !verdict.deezer ? resolved1 : null;
       const audio = patch?.audio ?? s.audio ?? caches.audio?.[s.id] ?? null;
       // a streaming match whose length is implausible for the era (a 1944 tango of 8 min) is a wrong match: estimate instead
       const est = estimateDuration(s);
@@ -173,6 +189,8 @@ export class Catalog {
         resolved,
         audio,
         durationSec: measured ?? est,
+        ...(tk?.laterTakes ? { laterTakes: tk.laterTakes } : {}),
+        ...(tk?.vocalTwins ? { vocalTwins: tk.vocalTwins } : {}),
         // round 14 (discography §1.3, R3): an estimate is marked, shown as "≈", never judged against a length band
         ...(measured === undefined ? { durationEstimated: true } : {}),
       };

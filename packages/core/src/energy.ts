@@ -65,6 +65,10 @@ export function normTitle(t: string): string {
   const hit = NORM_MEMO.get(t);
   if (hit !== undefined) return hit;
   const out = t
+    // (round 16: letters NFKD does not decompose — Turkish ı, Nordic ø, Polish ł — read as their base letter)
+    .replace(/ı/g, "i")
+    .replace(/[øØ]/g, "o")
+    .replace(/[łŁ]/g, "l")
     .normalize("NFKD")
     .replace(/[̀-ͯ]/g, "")
     .toLowerCase()

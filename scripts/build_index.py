@@ -496,9 +496,24 @@ def apply_round15(songs):
         elif s.get("rhythmCode") in ("T", "V", "M"): s["rhythmCode"] = "ND"
     return songs
 
+# --- Round 16 (docs/reviews/round16-discography.md §2–§3): recording dates from tango.info --------------------------
+ID_PATCH_16 = {
+    "6799152723": {"date": "1937-09-24"},  # Abandono, Láurenz / Farrel (the index had 1937-10-18)
+    "0ab97d87bf": {"date": "1953-03-06"},  # Un copetín, Polito (undated in the index)
+}
+
+def apply_round16(songs):
+    for s in songs:
+        p = ID_PATCH_16.get(s["id"])
+        if not p: continue
+        for k, v in p.items(): s[k] = v
+        if re.fullmatch(r"\d{4}-\d{2}-\d{2}", s.get("date") or ""):
+            s["year"] = int(s["date"][:4]); s["era"] = era_of(s["year"]); s.pop("yearApprox", None)
+    return songs
+
 def main():
     raw = build_songs()
-    songs = apply_round15(apply_round14(fix_range_years(dedupe(raw))))
+    songs = apply_round16(apply_round15(apply_round14(fix_range_years(dedupe(raw)))))
     coverage = build_coverage()
     cov_by_id = {c["orchestraId"]: c for c in coverage}
     orchestras = collections.OrderedDict()

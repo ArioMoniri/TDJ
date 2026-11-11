@@ -29,6 +29,9 @@ export interface FlatTrack {
   vocal?: boolean;
   durationEstimated?: boolean;
   altTitles?: string[];
+  /** round 16 (export matching M2, M5): the later takes the index knows, the sung takes of an instrumental row */
+  laterTakes?: Array<{ year: number; singer?: string | null }>;
+  vocalTwins?: number[];
   /** cortinas: the second the player should stop at (the DJ's "cortina play length") */
   stopSec?: number;
   /** index into `Playlist.booth.items` (the plan the row's timing comes from) */
@@ -101,6 +104,8 @@ const songRow = (
   vocal: !!s.vocal,
   ...(s.durationEstimated ? { durationEstimated: true } : {}),
   ...(s.altTitles?.length ? { altTitles: s.altTitles } : {}),
+  ...(s.laterTakes?.length ? { laterTakes: s.laterTakes } : {}),
+  ...(s.vocalTwins?.length ? { vocalTwins: s.vocalTwins } : {}),
 });
 const cortinaRow = (
   c: Cortina,

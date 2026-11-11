@@ -15,12 +15,13 @@ type SpotifyEntry = { uri?: string; durationMs?: number; album?: string; matched
 
 /** a dd/mm/yyyy recording date in a restoration title ("Recuerdo (Buenos Aires 08/01/1941 Restauración 2022)") */
 export function titleDate(title: string | undefined | null): number | null {
-  const m = /\b(\d{1,2})\/(\d{1,2})\/(19\d\d)\b/.exec(title ?? "");
+  // (round 16: "12-09-1951" and "12.09.1951" date a recording as "08/01/1941" does)
+  const m = /\b(\d{1,2})([/.-])(\d{1,2})\2(19\d\d)\b/.exec(title ?? "");
   if (!m) return null;
   const d = Number(m[1]),
-    mo = Number(m[2]);
+    mo = Number(m[3]);
   if (d < 1 || d > 31 || mo < 1 || mo > 12) return null;
-  return Date.UTC(Number(m[3]), mo - 1, d);
+  return Date.UTC(Number(m[4]), mo - 1, d);
 }
 const rowDate = (r: Pick<Row, "date">) =>
   r.date && /^\d{4}-\d{2}-\d{2}$/.test(r.date) ? Date.parse(r.date) : null;
