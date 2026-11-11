@@ -24,6 +24,11 @@ export interface FlatTrack {
   spotifyUri?: string;
   singer?: string | null;
   orchestra?: string;
+  /** round 15 (export matching): what the match rules read — recording date, a sung side, an estimated length */
+  date?: string | null;
+  vocal?: boolean;
+  durationEstimated?: boolean;
+  altTitles?: string[];
   /** cortinas: the second the player should stop at (the DJ's "cortina play length") */
   stopSec?: number;
   /** index into `Playlist.booth.items` (the plan the row's timing comes from) */
@@ -92,6 +97,10 @@ const songRow = (
   spotifyUri: s.spotify?.uri,
   singer: s.singer,
   orchestra: s.orchestra,
+  date: s.date ?? null,
+  vocal: !!s.vocal,
+  ...(s.durationEstimated ? { durationEstimated: true } : {}),
+  ...(s.altTitles?.length ? { altTitles: s.altTitles } : {}),
 });
 const cortinaRow = (
   c: Cortina,

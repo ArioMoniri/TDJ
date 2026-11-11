@@ -142,6 +142,8 @@ export function ExportSheet({
   const [transferOpen, setTransferOpen] = useState(false);
   const [transfer, setTransfer] = useState<TransferService["id"]>("tunemymusic");
   const [log, setLog] = useState<string[]>([]);
+  /** round 15: every side the matcher could not place confidently, listed (never a silent skip) */
+  const [notMatched, setNotMatched] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [dlBusy, setDlBusy] = useState<ExportFormat | null>(null);
   /** the row whose download just finished shows a check for 1.2 s (motion-composer.md §2.7) */
@@ -240,7 +242,13 @@ export function ExportSheet({
       for (const m of songs)
         next[m.id] = {
           ...(next[m.id] ?? {}),
-          spotify: { uri: m.uri, url: m.url, durationMs: m.durationMs, album: m.album },
+          spotify: {
+            uri: m.uri,
+            url: m.url,
+            durationMs: m.durationMs,
+            album: m.album,
+            matched: `${m.artist} – ${m.name}`,
+          },
         };
       return { ...o, songs: next };
     });
@@ -306,11 +314,13 @@ export function ExportSheet({
     setProgress(null);
     return { uris, missing, paused, remaining };
   };
-  const finishLog = (added: number, missing: string[], paused?: number, left = 0) =>
+  const finishLog = (added: number, missing: string[], paused?: number, left = 0) => {
+    setNotMatched(missing);
     setLog((l) => [
       ...l,
       `${added} tracks in the playlist${missing.length ? ` (${missing.length} not found: ${missing.slice(0, 3).join(", ")}${missing.length > 3 ? "…" : ""})` : ""}${paused ? `. Spotify paused searches for ${paused} s: ${left} still to match.` : "."}`,
     ]);
+  };
 
   const toSpotify = async () => {
     if (!playlist) return;
@@ -1175,6 +1185,18 @@ export function ExportSheet({
             <div className="cell text-footnote whitespace-pre-wrap text-[var(--label-2)]">
               {log.join("\n")}
             </div>
+          </Group>
+        )}
+        {notMatched.length > 0 && (
+          <Group
+            header={`Not matched (${notMatched.length})`}
+            footer="No streaming track is confidently this recording (another singer, orchestra, take or length): left out rather than guessed."
+          >
+            <ul data-testid="export-missing" className="cell text-footnote text-[var(--label-2)]">
+              {notMatched.map((m) => (
+                <li key={m}>{m}</li>
+              ))}
+            </ul>
           </Group>
         )}
       </div>

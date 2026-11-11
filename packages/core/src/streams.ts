@@ -239,3 +239,49 @@ export function fixSharedStreams(
   }
   return { resolved: r, spotify: s, cleared };
 }
+
+/**
+ * Round 15 (export matching): every cached Spotify id against its index row with the match rules (title, orchestra
+ * and singer credit, a dated title, the Deezer length as the reference, a later album) and R4a (one id, one recording).
+ */
+export function auditSpotifyCache(
+  songs: Array<Row & { altTitles?: string[] }>,
+  spotify: Record<string, SpotifyEntry>,
+  resolved: Record<string, ResolvedTrack | null>,
+  problem: (
+    row: Row & { altTitles?: string[] },
+    c: { name: string; artists: string[]; album?: string; durationMs?: number },
+    ref?: number | null,
+  ) => string | null,
+): { checked: number; rejected: Array<{ row: string; uri: string; why: string }> } {
+  const byId = new Map<string, Row & { altTitles?: string[] }>();
+  for (const s of songs) {
+    byId.set(s.id, s);
+    for (const a of s.altIds ?? []) if (!byId.has(a)) byId.set(a, s);
+  }
+  const shared = new Set(auditStreams(songs, {}, spotify).shared.flatMap((g) => g.rows));
+  let checked = 0;
+  const rejected: Array<{ row: string; uri: string; why: string }> = [];
+  for (const [k, v] of Object.entries(spotify)) {
+    if (!v?.uri) continue;
+    const row = byId.get(k);
+    if (!row) continue;
+    checked++;
+    if (shared.has(k)) {
+      rejected.push({ row: k, uri: v.uri, why: "one Spotify id bound to several recordings" });
+      continue;
+    }
+    const [artist = "", ...rest] = (v.matched ?? "").split(" – ");
+    const name = rest.join(" – ") || row.title;
+    const rz = resolved[k] ?? resolved[row.id];
+    // (a Deezer restoration runs 10–15 s long: never the reference, discography §3)
+    const ref = rz?.durationMs && !/restaur/i.test(`${rz.title} ${rz.album}`) ? rz.durationMs / 1000 : null;
+    const why = problem(
+      row,
+      { name, artists: artist.split(/,\s*/), album: v.album, durationMs: v.durationMs },
+      ref,
+    );
+    if (why) rejected.push({ row: k, uri: v.uri, why });
+  }
+  return { checked, rejected };
+}

@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import { bestMatch, type Match, type MatchItem, searchQueries } from "@/lib/match";
+import { bestMatch, type Match, type MatchItem, rejectReason, searchQueries } from "@/lib/match";
 import { useStore } from "@/lib/store";
 
 /**
@@ -134,9 +134,22 @@ export async function resolveTrack(token: string, item: MatchItem): Promise<Reso
   try {
     const ls = localStorage.getItem(`tdj-sp:${key}`);
     if (ls) {
-      const v = JSON.parse(ls);
-      memo.set(key, v);
-      return v;
+      const v = JSON.parse(ls) as Resolved | null;
+      // round 15: a remembered match is used only when the match rules still accept it; else it is searched again
+      if (
+        v &&
+        !rejectReason(item, {
+          uri: v.uri,
+          name: v.name,
+          artists: v.artist.split(/,\s*/),
+          album: "",
+          durationMs: v.durationMs,
+        })
+      ) {
+        memo.set(key, v);
+        return v;
+      }
+      if (v) localStorage.removeItem(`tdj-sp:${key}`);
     }
   } catch {}
   const q = searchQueries(item);

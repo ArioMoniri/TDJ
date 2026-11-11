@@ -6,6 +6,7 @@ import {
   jaroWinkler,
   orchestraQuery,
   orchestraSurname,
+  rejectReason,
   scoreCandidate,
   searchQueries,
   titleSimilarity,
@@ -128,5 +129,109 @@ describe("best match", () => {
     expect(scoreCandidate(item, studio)).toBeGreaterThan(scoreCandidate(item, live));
     expect(scoreCandidate(item, studio)).toBeGreaterThan(scoreCandidate(item, noSinger));
     expect(scoreCandidate(item, live)).toBeGreaterThan(0.6); // still a match when it is the only one
+  });
+});
+
+// round 15 — export matching: a wrong recording is never exported; "not found" beats a guess
+describe("round 15: the hard rules reject the tango traps", () => {
+  const side = (x: Partial<import("./match").MatchItem> & { title: string; orchestra: string }) => ({
+    id: x.title,
+    vocal: false,
+    singer: null,
+    ...x,
+  });
+  it("D'Arienzo La Cumparsita 1928 is not the 1951 take (album era, length)", () => {
+    const item = side({ title: "La Cumparsita", orchestra: "Juan D'Arienzo", year: 1928, durationSec: 165 });
+    const c51 = cand({
+      name: "La Cumparsita",
+      artists: ["Juan D'Arienzo"],
+      album: "Juan D'Arienzo 1950-1952",
+      durationMs: 182_000,
+    });
+    const c28 = cand({
+      name: "La Cumparsita",
+      artists: ["Juan D'Arienzo"],
+      album: "1928-1929",
+      durationMs: 166_000,
+    });
+    expect(rejectReason(item, c51)).not.toBeNull();
+    expect(bestMatch(item, [c51, c28])?.uri).toBe(c28.uri);
+    expect(bestMatch(item, [c51])).toBeNull();
+  });
+  it("Di Sarli Milonguero viejo 1940 is not the 1955 recording", () => {
+    const item = side({
+      title: "Milonguero Viejo",
+      orchestra: "Carlos Di Sarli",
+      year: 1940,
+      durationSec: 138,
+    });
+    const c55 = cand({
+      name: "Milonguero Viejo",
+      artists: ["Carlos Di Sarli"],
+      album: "Serie 78 RPM: Carlos Di Sarli (1954-1956)",
+      durationMs: 163_000,
+    });
+    expect(bestMatch(item, [c55])).toBeNull();
+  });
+  it("Tanturi Recuerdo: the 1941 Castillo vals (dated title) is not the 1942 instrumental tango", () => {
+    const item = side({ title: "Recuerdo", orchestra: "Ricardo Tanturi", year: 1942, date: "1942-11-04" });
+    const vals = cand({
+      name: "Recuerdo (Buenos Aires 08/01/1941 Restauración 2022)",
+      artists: ["Ricardo Tanturi", "Alberto Castillo"],
+      durationMs: 147_000,
+    });
+    expect(rejectReason(item, vals)).not.toBeNull();
+    expect(bestMatch(item, [vals])).toBeNull();
+  });
+  it("Trago amargo is the Echagüe vocal side: an instrumental credit row never takes a sung match, and back", () => {
+    const sung = cand({ name: "Trago Amargo", artists: ["Juan D'Arienzo", "Alberto Echagüe"] });
+    expect(
+      bestMatch(
+        side({ title: "Trago Amargo", orchestra: "Juan D'Arienzo", vocal: true, singer: "Alberto Echagüe" }),
+        [sung],
+      )?.uri,
+    ).toBe(sung.uri);
+    expect(bestMatch(side({ title: "Trago Amargo", orchestra: "Juan D'Arienzo" }), [sung])).toBeNull();
+    expect(
+      bestMatch(
+        side({ title: "Trago Amargo", orchestra: "Juan D'Arienzo", vocal: true, singer: "Héctor Mauré" }),
+        [sung],
+      ),
+    ).toBeNull();
+  });
+  it("a modern orchestra's cover of Ciego is not Canaro's recording", () => {
+    const item = side({ title: "Ciego", orchestra: "Francisco Canaro", year: 1935 });
+    const cover = cand({
+      name: "Ciego",
+      artists: ["Orquesta Típica Fernández Fierro"],
+      album: "Ciego (2015)",
+    });
+    const other = cand({ name: "Ciego", artists: ["Osvaldo Pugliese"] });
+    expect(bestMatch(item, [cover, other])).toBeNull();
+  });
+  it("Marchantia is not Marcheta", () => {
+    const item = side({ title: "Marcheta", orchestra: "Rodolfo Biagi", year: 1941, altTitles: ["Marquita"] });
+    expect(bestMatch(item, [cand({ name: "Marchantia", artists: ["Domy Castellano"] })])).toBeNull();
+    expect(bestMatch(item, [cand({ name: "Marchantia", artists: ["Rodolfo Biagi"] })])).toBeNull();
+    expect(bestMatch(item, [cand({ name: "Marcheta", artists: ["Rodolfo Biagi"] })])).not.toBeNull();
+  });
+  it("a known length outside −14…+8 s is another transfer or take; an estimate is never judged", () => {
+    const item = side({ title: "El Flete", orchestra: "Juan D'Arienzo", year: 1936, durationSec: 150 });
+    expect(
+      rejectReason(item, cand({ name: "El Flete", artists: ["Juan D'Arienzo"], durationMs: 175_000 })),
+    ).not.toBeNull();
+    expect(
+      rejectReason(
+        { ...item, durationEstimated: true },
+        cand({ name: "El Flete", artists: ["Juan D'Arienzo"], durationMs: 175_000 }),
+      ),
+    ).toBeNull();
+  });
+  it("cortinas (no vocal flag) keep the round-12 scorer", () => {
+    expect(
+      bestMatch({ id: "c", title: "Araba", orchestra: "Mustafa Sandal" }, [
+        cand({ name: "Araba", artists: ["Mustafa Sandal"] }),
+      ]),
+    ).not.toBeNull();
   });
 });

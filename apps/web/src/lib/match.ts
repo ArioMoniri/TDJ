@@ -1,3 +1,4 @@
+import { matchProblem } from "@tdj/core";
 /**
  * Best-match scoring for a catalogue recording against Spotify search candidates. Pure and isomorphic: the server
  * route (/api/spotify/match) scores with it, vitest checks it. `items[0]` of a search is not the answer for tango:
@@ -12,6 +13,12 @@ export interface MatchItem {
   year?: number | null;
   durationSec?: number | null;
   isrc?: string | null;
+  /** round 15: a tango side (not a cortina): the hard rules below judge it — false = instrumental */
+  vocal?: boolean;
+  date?: string | null;
+  /** the length is an estimate: never a reference */
+  durationEstimated?: boolean;
+  altTitles?: string[];
 }
 export interface Candidate {
   uri: string;
@@ -165,10 +172,34 @@ export function scoreCandidate(item: MatchItem, c: Candidate): number {
   return Math.max(0, Math.min(1, s / 100));
 }
 
+/**
+ * Round 15 (export matching): why a candidate is not the item's recording — another title (Marchantia is not
+ * Marcheta), an instrumental side whose credit sings, another singer or orchestra, a recording date or a length that
+ * is not the side's, a later album. Null: nothing proves it is another recording. Cortinas (no `vocal`) skip it.
+ */
+export function rejectReason(item: MatchItem, c: Candidate): string | null {
+  if (item.vocal === undefined) return null;
+  return matchProblem(
+    {
+      title: item.title,
+      orchestra: item.orchestra,
+      singer: item.singer ?? null,
+      vocal: item.vocal,
+      year: item.year ?? null,
+      date: item.date ?? null,
+      durationSec: item.durationSec ?? null,
+      durationEstimated: item.durationEstimated,
+      altTitles: item.altTitles,
+    },
+    { name: c.name, artists: c.artists, album: c.album, durationMs: c.durationMs },
+  );
+}
+
 /** The best candidate when it clears the threshold, else null ("not found" beats a wrong song). */
 export function bestMatch(item: MatchItem, cands: Candidate[], threshold = MATCH_THRESHOLD): Match | null {
   let best: { c: Candidate; s: number } | null = null;
   for (const c of cands) {
+    if (rejectReason(item, c)) continue;
     const s = scoreCandidate(item, c);
     if (!best || s > best.s) best = { c, s };
   }
