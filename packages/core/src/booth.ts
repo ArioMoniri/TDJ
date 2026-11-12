@@ -83,10 +83,27 @@ export interface BoothPlan {
   trims?: Record<string, number>;
   /** the cortina play length the plan was made with (export option); undefined = each cortina's own length */
   cortinaStopSec?: number;
+  /** cortina id → the DJ's own fade in / fade out / stop second for that cortina (round 20) */
+  cortinaEdits?: Record<string, CortinaEdit>;
   /** filled by the booth while the night plays */
   log?: BoothLogEntry[];
   anchors?: Array<{ planIndex: number; at: string }>;
 }
+/** The DJ's per-cortina envelope (round 20): each field overrides the night's setting for that cortina only. */
+export interface CortinaEdit {
+  /** 0–4 s */
+  fadeInSec?: number;
+  /** 0–10 s; it ends exactly at the stop second */
+  fadeOutSec?: number;
+  /** absolute second in the clip where the cortina reaches silence (20–90) */
+  stopSec?: number;
+}
+export const CORTINA_EDIT_RANGES = {
+  fadeInSec: { min: 0, max: 4, step: 0.5 },
+  fadeOutSec: { min: 0, max: 10, step: 0.5 },
+  stopSec: { min: 20, max: 90, step: 1 },
+} as const;
+
 /** A file measurement the booth hands in (apps/web `loudness.ts`); wins over the catalogue prior. */
 export interface BoothMeasurement {
   lufs?: number;
@@ -100,6 +117,8 @@ export interface BoothInputs extends Partial<BoothSettings> {
   measurements?: Record<string, BoothMeasurement>;
   /** cortina play length (20–90), else each cortina's own `lengthSec` */
   cortinaStopSec?: number;
+  /** cortina id → the DJ's envelope for that cortina */
+  cortinaEdits?: Record<string, CortinaEdit>;
 }
 
 export const BOOTH_DEFAULTS: BoothSettings = {
@@ -179,6 +198,7 @@ export function boothInputs(plan?: BoothPlan | null): BoothInputs {
   if (plan.gapOverrides) out.gapOverrides = plan.gapOverrides;
   if (plan.trims) out.trims = plan.trims;
   if (plan.cortinaStopSec !== undefined) out.cortinaStopSec = plan.cortinaStopSec;
+  if (plan.cortinaEdits) out.cortinaEdits = plan.cortinaEdits;
   return out;
 }
 
@@ -258,11 +278,26 @@ export function planBooth(p: Playlist, s: BoothInputs = {}): BoothPlan {
     items.push(it);
   };
   const pushCortina = (c: Cortina, tanda: number) => {
-    const stopSec = cortinaStopFor({ cortinaStopSec: s.cortinaStopSec }, c.lengthSec);
-    const fadeOutSec = settings.cortinaFadeOutSec;
+    const ed = s.cortinaEdits?.[c.id];
+    const R = CORTINA_EDIT_RANGES;
+    const edStop = num(ed?.stopSec);
+    const stopSec =
+      edStop === undefined
+        ? cortinaStopFor({ cortinaStopSec: s.cortinaStopSec }, c.lengthSec)
+        : Math.round(clamp(edStop, R.stopSec.min, R.stopSec.max));
+    const edOut = num(ed?.fadeOutSec);
+    const edIn = num(ed?.fadeInSec);
+    let fadeOutSec =
+      edOut === undefined ? settings.cortinaFadeOutSec : clamp(edOut, R.fadeOutSec.min, R.fadeOutSec.max);
+    let fadeInSec =
+      edIn === undefined ? settings.cortinaFadeInSec : clamp(edIn, R.fadeInSec.min, R.fadeInSec.max);
     // the cue-in must leave at least one second of cortina before the fade starts; otherwise it is dropped
     const cue = Math.max(0, num(c.startSec) ?? 0);
     const trimIn = stopSec - fadeOutSec >= cue + 1 ? round3(cue) : 0;
+    // the DJ's fades never swallow the cortina: at least one second of it plays at full level
+    const room = Math.max(0, stopSec - trimIn - 1);
+    if (fadeOutSec > room) fadeOutSec = room;
+    if (fadeInSec + fadeOutSec > room) fadeInSec = Math.max(0, room - fadeOutSec);
     const m = measure(c.id);
     items.push({
       n: n++,
@@ -274,7 +309,7 @@ export function planBooth(p: Playlist, s: BoothInputs = {}): BoothPlan {
       gapAfterSec: gapFor(tanda),
       trimInSec: trimIn,
       stopSec,
-      fadeInSec: settings.cortinaFadeInSec,
+      fadeInSec,
       fadeOutSec,
       ...gainFor(num(m?.lufs) ?? target, target + settings.cortinaLevelDb, trimFor(c.id), num(m?.peakDbFS)),
     });
@@ -355,6 +390,7 @@ export function planBooth(p: Playlist, s: BoothInputs = {}): BoothPlan {
   if (s.gapOverrides) plan.gapOverrides = { ...s.gapOverrides };
   if (s.trims) plan.trims = { ...s.trims };
   if (s.cortinaStopSec !== undefined) plan.cortinaStopSec = s.cortinaStopSec;
+  if (s.cortinaEdits && Object.keys(s.cortinaEdits).length) plan.cortinaEdits = { ...s.cortinaEdits };
   return plan;
 }
 

@@ -206,6 +206,51 @@ describe("cortinas", () => {
     }
   });
 
+  it("per-cortina edits (round 20): fade in / fade out / stop at, clamped, re-time the night and survive attachBooth", () => {
+    const first = plan.items.find((i) => i.kind === "cortina")!;
+    const other = plan.items.filter((i) => i.kind === "cortina")[1]!;
+    const edits = { [first.id!]: { fadeInSec: 1.5, fadeOutSec: 8, stopSec: 30 } };
+    const b = planBooth(p, { cortinaEdits: edits });
+    const c = b.items.find((i) => i.id === first.id && i.kind === "cortina")!;
+    expect(c.fadeInSec).toBe(1.5);
+    expect(c.fadeOutSec).toBe(8);
+    expect(c.stopSec).toBe(30);
+    expect(c.lengthSec).toBe(c.stopSec! - c.trimInSec!);
+    expect(c.stopSec! - c.fadeOutSec!).toBeGreaterThanOrEqual(c.trimInSec! + 1);
+    // the other cortinas keep the night's settings
+    const o = b.items.find((i) => i.id === other.id && i.kind === "cortina")!;
+    expect(o.fadeOutSec).toBe(BOOTH_DEFAULTS.cortinaFadeOutSec);
+    expect(o.stopSec).toBe(other.stopSec);
+    // the clock follows: every gap stays exact after the shorter cortina
+    for (let i = 0; i + 1 < b.items.length; i++) {
+      const a = b.items[i]!;
+      expect(round3(b.items[i + 1]!.startSec - (a.startSec + a.lengthSec))).toBe(a.gapAfterSec);
+    }
+    expect(b.wallClockSec).toBeCloseTo(plan.wallClockSec - (first.stopSec! - 30), 3);
+    expect(b.cortinaEdits).toEqual(edits);
+    // clamped: fade in 0–4, fade out 0–10, stop 20–90; a fade never swallows the whole cortina
+    const wild = planBooth(p, {
+      cortinaEdits: { [first.id!]: { fadeInSec: 9, fadeOutSec: -3, stopSec: 500 } },
+    });
+    const w = wild.items.find((i) => i.id === first.id && i.kind === "cortina")!;
+    expect(w.fadeInSec).toBe(4);
+    expect(w.fadeOutSec).toBe(0);
+    expect(w.stopSec).toBe(90);
+    const tight = planBooth(p, {
+      cortinaEdits: { [first.id!]: { fadeInSec: 4, fadeOutSec: 10, stopSec: 20 } },
+    });
+    const t = tight.items.find((i) => i.id === first.id && i.kind === "cortina")!;
+    expect(t.fadeInSec! + t.fadeOutSec!).toBeLessThanOrEqual(t.lengthSec - 1);
+    // attachBooth without inputs keeps the edits (a swap or a reload re-times the night with them)
+    const q = attachBooth(p, { cortinaEdits: edits });
+    expect(attachBooth(q).booth!.cortinaEdits).toEqual(edits);
+    expect(attachBooth(q).booth!.items.find((i) => i.id === first.id && i.kind === "cortina")!.stopSec).toBe(
+      30,
+    );
+    // no edits: the plan is exactly as before (no new key)
+    expect("cortinaEdits" in planBooth(p)).toBe(false);
+  });
+
   it("a cortina's gain prior is the level offset (−4 dB default, −8…−2)", () => {
     for (const c of plan.items.filter((i) => i.kind === "cortina")) expect(c.gainDb).toBe(-4);
     expect(planBooth(p, { cortinaLevelDb: -20 }).settings.cortinaLevelDb).toBe(-8);
