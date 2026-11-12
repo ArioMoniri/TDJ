@@ -153,7 +153,7 @@ test("booth: the plan for a composed set, time to Cumparsita, dark forced, no gl
   expect(m.big).toBe("44px");
 });
 
-test("rehearsal: the night plays through the mocked previews; space holds, esc held 600 ms stops, → arms the next", async ({
+test("rehearsal: the night plays through the mocked previews; h holds, space pauses / resumes, esc + Enter stops, → arms the next", async ({
   page,
 }) => {
   await mockPreviews(page);
@@ -168,18 +168,26 @@ test("rehearsal: the night plays through the mocked previews; space holds, esc h
   const r2 = await page.getByTestId("booth-remaining").textContent();
   expect(r1).not.toBe(r2);
   await expect(page.getByTestId("booth-keepalive")).toHaveCount(1);
-  // space: hold → the song finishes (8 s clip), then paused; never a cut
-  await page.keyboard.press("Space");
-  await expect(page.getByTestId("booth-play")).toBeVisible();
+  // h (round 20; space before): hold → the song finishes (8 s clip), then paused; never a cut
+  await page.keyboard.press("h");
+  await expect(page.getByTestId("booth-now")).toContainText("Holding after this song");
   await expect(page.getByTestId("booth")).toHaveAttribute("data-state", "playing");
   await expect(page.getByTestId("booth")).toHaveAttribute("data-state", "paused", { timeout: 15000 });
-  // space again: play; esc held 600 ms: emergency stop
+  // space: play; space again: an immediate pause; space: resume (round 20)
   await page.keyboard.press("Space");
   await expect(page.getByTestId("booth")).toHaveAttribute("data-state", "playing", { timeout: 15000 });
-  await page.keyboard.down("Escape");
-  await page.waitForTimeout(750);
-  await page.keyboard.up("Escape");
+  await page.keyboard.press("Space");
+  await expect(page.getByTestId("booth")).toHaveAttribute("data-state", "paused");
+  await expect(page.getByTestId("booth-play")).toHaveText(/Resume/);
+  await page.keyboard.press("Space");
+  await expect(page.getByTestId("booth")).toHaveAttribute("data-state", "playing");
+  // esc opens the Stop confirm (round 20: no hidden press-and-hold); Enter fades out and stops
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("booth-stop-fade")).toBeFocused();
+  await page.keyboard.press("Enter");
   await expect(page.getByTestId("booth")).toHaveAttribute("data-state", "stopped");
+  // (keys are ignored while a sheet is up: wait for it to leave)
+  await expect(page.getByTestId("booth-stop-sheet")).toHaveCount(0);
   const idx = Number(
     await page.locator('[data-plan-index][aria-current="true"]').getAttribute("data-plan-index"),
   );
@@ -379,7 +387,8 @@ test("1440 × 900: the set column keeps whole titles (≥ 360 px), the transport
   expect(m.subVisible).toBe(m.subs);
   expect(m.out).toBe(0);
   expect(m.stripScroll).toBeLessThanOrEqual(1);
-  expect(m.secondary).toBe(3);
+  // mute, birthday vals, break and (round 20) hold after this song
+  expect(m.secondary).toBe(4);
   expect(m.stripRight).toBeLessThanOrEqual(m.vw);
   // below 1200 px the secondary controls leave the capsule for the overflow menu
   await page.setViewportSize({ width: 1100, height: 800 });

@@ -200,7 +200,8 @@ test("B7 / B8 / B9: the Time card says it is resolving, Start counts the clips, 
   await expect(page.getByTestId("booth-play")).toHaveText(/End break/, { timeout: 5000 });
   await expect(page.getByRole("dialog")).toHaveCount(0); // keys are ignored while a sheet is up
   await page.keyboard.press("Space");
-  await expect(page.getByTestId("booth-hold")).toBeVisible({ timeout: 5000 });
+  // (round 20: while the night plays the primary control is Pause)
+  await expect(page.getByTestId("booth-pause")).toBeVisible({ timeout: 5000 });
   await expect(page.getByTestId("booth")).toHaveAttribute("data-state", "playing");
 });
 
