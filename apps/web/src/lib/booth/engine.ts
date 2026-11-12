@@ -63,6 +63,8 @@ export interface AudioContextLike {
   createOscillator?(): OscillatorLike;
   resume(): Promise<void>;
   suspend?(): Promise<void>;
+  /** `statechange`: iOS interrupts the context for a call / Siri, a Bluetooth route change can suspend it */
+  addEventListener?(type: "statechange", cb: () => void): void;
 }
 
 /* ---------- settings, state, events ---------- */
@@ -74,6 +76,16 @@ export interface BoothSettings {
   loudnessTargetLUFS: number;
   trimLeadingSilence: boolean;
   mediaKeys: boolean;
+  /** round 20: fade at the end of every tango side (0 = none: dancers dislike faded songs) */
+  songFadeOutSec: number;
+  /** round 20: Pause / Resume fade */
+  pauseFadeSec: number;
+  /** round 20: "Fade out now" length */
+  fadeNowSec: number;
+  /** round 20: "Next with crossfade" length */
+  crossfadeSec: number;
+  /** round 20: "Fade out and stop" length ("Stop now" is 0.1 s) */
+  stopFadeSec: number;
 }
 export const DEFAULT_BOOTH_SETTINGS: BoothSettings = {
   gapSec: 2.5,
@@ -83,7 +95,25 @@ export const DEFAULT_BOOTH_SETTINGS: BoothSettings = {
   loudnessTargetLUFS: -16,
   trimLeadingSilence: false,
   mediaKeys: true,
+  songFadeOutSec: 0,
+  pauseFadeSec: 0.8,
+  fadeNowSec: 4,
+  crossfadeSec: 3,
+  stopFadeSec: 3,
 };
+/** Ranges of the round-20 transport settings (steppers in the Mix sheet). */
+export const TRANSPORT_RANGES = {
+  songFadeOutSec: { min: 0, max: 8, step: 0.5 },
+  pauseFadeSec: { min: 0, max: 3, step: 0.1 },
+  fadeNowSec: { min: 1, max: 10, step: 0.5 },
+  crossfadeSec: { min: 1, max: 8, step: 0.5 },
+  stopFadeSec: { min: 0.5, max: 8, step: 0.5 },
+} as const;
+/** "Stop now": a cut, declicked. */
+export const STOP_NOW_SEC = 0.1;
+/** Talk-over: the master dips this much, over this long (round7-booth.md §11 "microphone duck"). */
+export const DUCK_DB = -12;
+export const DUCK_SEC = 0.5;
 export type BoothState = "idle" | "armed" | "playing" | "cortina" | "paused" | "stopped";
 export interface BoothItemRuntime {
   planIndex: number;
@@ -115,6 +145,15 @@ interface Scheduled extends BoothItemRuntime {
   base: number;
   measured?: PreparedItem["measured"];
   cancelled?: boolean;
+  /** Spotify: the track position the item was started at */
+  extStart?: number;
+}
+/** Where a Pause left the night: the item and the seconds into it. */
+export interface PausedAt {
+  planIndex: number;
+  at: number;
+  /** the item as it was playing (its length, gain) for the cards while it waits */
+  runtime: BoothItemRuntime;
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -199,9 +238,15 @@ export class BoothEngine {
   /** hold before this plan index (birthday vals) */
   holdBefore: number | null = null;
   breakUntil: number | null = null;
+  /** round 20: an immediate Pause (not a hold): Play resumes this item from `at` */
+  pausedAt: PausedAt | null = null;
+  /** round 20: talk-over, the master dipped by DUCK_DB */
+  ducked = false;
   current: Scheduled | null = null;
   rehearsalSec: number | null;
   private queued: Scheduled | null = null;
+  /** items fading out under the next one (a crossfade's outgoing item): Stop and Pause silence them too */
+  private tails = new Set<Scheduled>();
   private adapters: SourceAdapter[];
   private onEvent: (e: EngineEvent) => void;
   private generation = 0;
@@ -223,6 +268,24 @@ export class BoothEngine {
     this.analyser.fftSize = 256;
     this.master.connect(this.analyser);
     this.analyser.connect(ctx.destination);
+    // the OS can suspend or interrupt the context under a running night (a call, Siri, a Bluetooth route change):
+    // take it back as soon as it says so (round20-booth.md "can't hear")
+    ctx.addEventListener?.("statechange", () => this.ensureRunning());
+  }
+
+  /** a paused item (Pause, not a hold) */
+  get paused(): boolean {
+    return this.pausedAt !== null;
+  }
+  /** Resume the context when the night is live and the OS took it away; a no-op otherwise. */
+  ensureRunning(): void {
+    const live = this.state === "playing" || this.state === "cortina" || this.state === "armed";
+    if (live && this.ctx.state && this.ctx.state !== "running" && this.ctx.state !== "closed")
+      void this.ctx.resume().catch(() => {});
+  }
+  /** what the master multiplies everything by (mute, master fader, talk-over) */
+  outputGain(): number {
+    return this.muted ? 0 : dbToGain(this.masterDb + (this.ducked ? DUCK_DB : 0));
   }
 
   /* ---------- plan ---------- */
@@ -240,7 +303,9 @@ export class BoothEngine {
     const keepSkipped = new Set([...this.skipped].filter((i) => i <= this.planIndex));
     this.load(plan, entities, sources);
     for (const i of keepSkipped) this.skipped.add(i);
-    if (this.queued && !this.queued.started) {
+    // the queued item has not sounded yet (its start is ahead): rebuild it from the new plan (a swap, a cortina's
+    // new fades or stop second, round 20)
+    if (this.queued && (!this.queued.started || this.queued.when > this.ctx.currentTime + 0.05)) {
       this.cancelQueued();
       if (this.state === "playing" || this.state === "cortina") void this.scheduleNext();
     }
@@ -332,11 +397,17 @@ export class BoothEngine {
     this.breakUntil = null;
     if (this.holdBefore === this.planIndex) this.holdBefore = null;
     const i = this.planIndex;
-    const s = await this.schedule(i, this.ctx.currentTime + delaySec);
+    const resume = this.pausedAt?.planIndex === i ? this.pausedAt : null;
+    this.pausedAt = null;
+    const s = await this.schedule(
+      i,
+      this.ctx.currentTime + delaySec,
+      resume ? { from: resume.at, fadeIn: this.settings.pauseFadeSec } : undefined,
+    );
     if (!s) return;
     this.current = s;
-    this.anchors.push({ planIndex: i, at: new Date(this.wall()).toISOString() });
-    this.transition(s.kind === "cortina" ? "cortina" : "playing", "play");
+    if (!resume) this.anchors.push({ planIndex: i, at: new Date(this.wall()).toISOString() });
+    this.transition(s.kind === "cortina" ? "cortina" : "playing", resume ? "resume" : "play");
     this.onEvent({ type: "item", planIndex: i });
     await this.scheduleNext();
   }
@@ -360,6 +431,7 @@ export class BoothEngine {
     if (this.state === "stopped" || this.state === "paused" || this.state === "armed") {
       const n = this.nextPlayable(this.planIndex);
       if (n === null) return;
+      this.pausedAt = null;
       this.planIndex = n;
       this.transition("armed", "next");
       void this.prepare(n).catch((e) => this.markMissing(n, e));
@@ -373,15 +445,19 @@ export class BoothEngine {
     void this.scheduleNext();
   }
 
-  /** Emergency: everything fades to silence in 1 s; the position is kept so `play` restarts the same item. */
-  stop(reason = "stop"): void {
+  /**
+   * Stop: everything fades to silence in `fadeSec` (1 s by default; the strip's confirm offers "Fade out and stop",
+   * `settings.stopFadeSec`, and "Stop now", 0.1 s); the position is kept so `play` restarts the same item.
+   */
+  stop(reason = "stop", fadeSec = EMERGENCY_FADE): void {
     if (this.state === "idle") return;
     const now = this.ctx.currentTime;
+    const fade = Math.max(STOP_NOW_SEC / 2, fadeSec);
     for (const s of [this.current, this.queued]) {
       if (!s) continue;
       s.cancelled = true;
       if (s.external) {
-        s.started ? s.external.stop(EMERGENCY_FADE) : s.external.cancel();
+        s.started ? s.external.stop(fade) : s.external.cancel();
         continue;
       }
       if (s.when > now) {
@@ -390,24 +466,137 @@ export class BoothEngine {
         s.node?.disconnect();
         continue;
       }
-      for (const g of [s.gain, s.fader]) {
-        if (!g) continue;
-        this.cancelAutomation(g.gain, now);
-        g.gain.setValueCurveAtTime(
-          fadeOutCurve(64, g === s.fader ? this.cortinaFader : s.base),
-          now,
-          EMERGENCY_FADE,
-        );
-      }
-      s.node?.stop(now + EMERGENCY_FADE);
+      this.fadeNodes(s, now, fade);
+      s.node?.stop(now + fade);
       const node = s.node;
       if (node) node.onended = () => node.disconnect();
     }
+    this.silenceTails(now, fade);
     this.current = null;
     this.queued = null;
     this.holding = false;
     this.breakUntil = null;
+    this.pausedAt = null;
     this.transition("stopped", reason);
+  }
+
+  /**
+   * Pause (round 20): the running item fades out over `fadeSec` and waits where it was; `play` resumes it from
+   * there with the same fade in. Unlike a hold it acts now; the queued item is dropped.
+   */
+  pause(fadeSec = this.settings.pauseFadeSec): void {
+    if (this.state === "armed") {
+      this.hold();
+      return;
+    }
+    if (this.state !== "playing" && this.state !== "cortina") return;
+    const c = this.current;
+    if (!c || c.kind === "break") return;
+    const now = this.ctx.currentTime;
+    const len = Math.max(0, c.endsAt - c.startedAt);
+    const at = c.external
+      ? Math.max(0, c.external.position() - (c.extStart ?? 0))
+      : Math.max(0, now - c.startedAt);
+    this.cancelQueued();
+    c.cancelled = true;
+    const fade = Math.max(0, fadeSec);
+    this.silenceTails(now, Math.max(DECLICK_OUT, fade));
+    if (c.external) c.external.stop(fade);
+    else if (c.when > now) {
+      c.node?.stop(now);
+      c.node?.disconnect();
+    } else {
+      for (const g of [c.gain]) {
+        if (!g) continue;
+        this.cancelAutomation(g.gain, now);
+        // from wherever the envelope is (mid fade-in or fade-out too): an exponential approach, no jump
+        g.gain.setTargetAtTime(0, now, Math.max(0.005, fade / 6));
+        g.gain.setValueAtTime(0, now + Math.max(DECLICK_OUT, fade));
+      }
+      c.node?.stop(now + Math.max(DECLICK_OUT, fade));
+    }
+    this.current = null;
+    this.holding = false;
+    const runtime: BoothItemRuntime = {
+      planIndex: c.planIndex,
+      startedAt: c.startedAt,
+      endsAt: c.endsAt,
+      source: c.source,
+      gainDb: c.gainDb,
+      peakCapped: c.peakCapped,
+      gainFrom: c.gainFrom,
+      started: c.started,
+    };
+    this.pausedAt = { planIndex: c.planIndex, at: Math.min(at, Math.max(0, len - 0.5)), runtime };
+    this.planIndex = c.planIndex;
+    this.transition("paused", "pause");
+  }
+
+  /** Fade out now (round 20): the running item fades over `sec` and ends; the next item follows at the gap. */
+  fadeOutNow(sec = this.settings.fadeNowSec): void {
+    if (this.state !== "playing" && this.state !== "cortina") return;
+    const c = this.current;
+    if (!c || c.kind === "break" || c.cancelled) return;
+    const now = this.ctx.currentTime;
+    if (c.when > now) return;
+    const fade = Math.max(DECLICK_OUT, sec);
+    if (now + fade >= c.endsAt) return; // it ends sooner on its own
+    c.endsAt = now + fade;
+    if (c.external) c.external.stop(fade);
+    else {
+      this.fadeNodes(c, now, fade, true);
+      c.node?.stop(now + fade);
+    }
+    this.cancelQueued();
+    this.transition(this.state, "fade out now");
+    void this.scheduleNext();
+  }
+
+  /**
+   * Next with crossfade (round 20): the next item starts now while the running one fades out over `sec`. Spotify
+   * plays one track at a time, so there it is "fade out now" (the next item follows at the gap).
+   */
+  async crossfadeNext(sec = this.settings.crossfadeSec): Promise<void> {
+    if (this.state !== "playing" && this.state !== "cortina") return;
+    const c = this.current;
+    if (!c || c.cancelled) return;
+    const n = this.nextPlayable(c.planIndex);
+    if (n === null || this.item(n)?.kind === "break" || c.external || this.sources[n] === "spotify")
+      return this.fadeOutNow(sec);
+    const now = this.ctx.currentTime;
+    const fade = Math.max(DECLICK_OUT, sec);
+    this.cancelQueued();
+    this.holding = false;
+    if (this.holdBefore === n) this.holdBefore = null;
+    c.cancelled = true;
+    if (c.when > now) {
+      c.node?.stop(now);
+      c.node?.disconnect();
+    } else {
+      this.fadeNodes(c, now, fade, true);
+      c.node?.stop(now + fade);
+      this.tails.add(c);
+      const node = c.node;
+      if (node) {
+        const prev = node.onended;
+        node.onended = (ev) => {
+          this.tails.delete(c);
+          prev?.call(node, ev);
+        };
+      }
+    }
+    this.planIndex = n;
+    const s = await this.schedule(n, this.ctx.currentTime + START_AHEAD);
+    if (!s) {
+      this.current = null;
+      this.transition("paused", "crossfade failed");
+      return;
+    }
+    this.current = s;
+    this.anchors.push({ planIndex: n, at: new Date(this.wall()).toISOString() });
+    this.transition(s.kind === "cortina" ? "cortina" : "playing", "crossfade");
+    this.onEvent({ type: "item", planIndex: n });
+    await this.scheduleNext();
   }
 
   /** Stop now, then play the next item once the fade is through. */
@@ -505,9 +694,14 @@ export class BoothEngine {
     this.muted = m;
     this.applyMaster();
   }
-  private applyMaster() {
-    const g = this.muted ? 0 : dbToGain(this.masterDb);
-    this.master.gain.setTargetAtTime(g, this.ctx.currentTime, PAUSE_RAMP);
+  /** Talk-over (round 20): the master dips 12 dB over 0.5 s while the DJ speaks, and comes back the same way. */
+  setDucked(on: boolean): void {
+    this.ducked = on;
+    this.applyMaster(DUCK_SEC / 3);
+  }
+  private applyMaster(tc = PAUSE_RAMP) {
+    const g = this.outputGain();
+    this.master.gain.setTargetAtTime(g, this.ctx.currentTime, tc);
     for (const a of this.adapters) a.external?.setMaster(g);
   }
   /** The DJ's per-item trim: applied to the running item at once (20 ms), to the queued one at its start. */
@@ -560,13 +754,13 @@ export class BoothEngine {
   /** seconds into the current item, latency-compensated; 0 before it starts */
   position(): number {
     const c = this.current;
-    if (!c) return 0;
+    if (!c) return this.pausedAt?.planIndex === this.planIndex ? this.pausedAt.at : 0;
     if (c.external) return c.started ? c.external.position() : 0;
     return Math.max(0, this.ctx.currentTime - c.startedAt - (this.ctx.outputLatency ?? 0));
   }
   /** the current item's length as it will actually play (rehearsal cap, early fader) */
   currentLength(): number {
-    const c = this.current;
+    const c = this.current ?? (this.pausedAt?.planIndex === this.planIndex ? this.pausedAt.runtime : null);
     return c ? Math.max(0, c.endsAt - c.startedAt) : this.itemLength(this.planIndex);
   }
   /** 30 s when the whole night is a rehearsal or this item plays from a preview */
@@ -586,7 +780,7 @@ export class BoothEngine {
     const pos = this.position();
     return remainingFrom(this.plan, this.planIndex, pos, {
       skipped: this.skipped,
-      currentLength: this.current ? this.currentLength() : undefined,
+      currentLength: this.current || this.pausedAt ? this.currentLength() : undefined,
       capFor: (i) => this.capFor(i),
     });
   }
@@ -707,6 +901,33 @@ export class BoothEngine {
     if (p.cancelAndHoldAtTime) p.cancelAndHoldAtTime(t);
     else p.cancelScheduledValues(t);
   }
+  /** Fade the outgoing items of a crossfade out within `sec` (never later than they would have ended). */
+  private silenceTails(now: number, sec: number) {
+    for (const t of this.tails) {
+      this.fadeNodes(t, now, sec);
+      t.node?.stop(now + sec);
+    }
+    this.tails.clear();
+  }
+  /**
+   * The −60 dB log fade from `now` over `sec` on an item's gain (and the cortina fader unless `itemOnly`). A curve
+   * that would overlap an automation still running (a browser without `cancelAndHoldAtTime`) throws: then an
+   * exponential approach to 0 does the same job.
+   */
+  private fadeNodes(s: Scheduled, now: number, sec: number, itemOnly = false) {
+    for (const g of itemOnly ? [s.gain] : [s.gain, s.fader]) {
+      if (!g) continue;
+      this.cancelAutomation(g.gain, now);
+      try {
+        g.gain.setValueCurveAtTime(fadeOutCurve(64, g === s.fader ? this.cortinaFader : s.base), now, sec);
+      } catch {
+        try {
+          g.gain.cancelScheduledValues(now);
+          g.gain.setTargetAtTime(0, now, sec / 6);
+        } catch {}
+      }
+    }
+  }
 
   private cancelQueued() {
     const q = this.queued;
@@ -752,7 +973,11 @@ export class BoothEngine {
   }
 
   /** Build the nodes for item `i` and start them at `when`; null when the item has no playable source. */
-  private async schedule(i: number, when: number): Promise<Scheduled | null> {
+  private async schedule(
+    i: number,
+    when: number,
+    o: { from?: number; fadeIn?: number } = {},
+  ): Promise<Scheduled | null> {
     const it = this.item(i);
     if (!it) return null;
     if (it.kind === "break") {
@@ -795,7 +1020,7 @@ export class BoothEngine {
       base: g.base,
       measured: prepared.measured,
     };
-    if (prepared.kind === "spotify") return this.scheduleExternal(base, it, prepared, g.gainDb);
+    if (prepared.kind === "spotify") return this.scheduleExternal(base, it, prepared, g.gainDb, o);
     const buffer = prepared.buffer;
     if (!buffer) return null;
     const ctx = this.ctx;
@@ -824,29 +1049,37 @@ export class BoothEngine {
     if (it.kind === "cortina") duration = Math.min(it.lengthSec, buffer.duration - offset);
     const cap = this.capFor(i) ?? (prepared.kind === "preview" ? PREVIEW_CAP_SEC : null);
     if (cap) duration = Math.min(duration ?? buffer.duration - offset, cap);
-    const length = duration ?? buffer.duration - offset;
+    const full = duration ?? buffer.duration - offset;
+    // a resume after Pause starts `from` seconds into the item
+    const from = clamp(o.from ?? 0, 0, Math.max(0, full - 0.5));
+    if (from > 0) {
+      offset += from;
+      duration = full - from;
+    }
+    const length = full - from;
     const endsAt = when + length;
     base.endsAt = endsAt;
+    base.startedAt = when - from;
 
-    // envelopes: declick in, fades for cortinas, declick out before the natural end
+    // envelopes: declick in (or the resume fade), fades for cortinas, the song end fade, declick out at the end
+    const resumeFade = o.fadeIn !== undefined ? Math.min(o.fadeIn, length / 2) : null;
     const fadeIn =
-      it.kind === "cortina" ? Math.min(it.fadeInSec ?? this.settings.cortinaFadeInSec, length / 2) : 0;
+      resumeFade === null && it.kind === "cortina" && from === 0
+        ? Math.min(it.fadeInSec ?? this.settings.cortinaFadeInSec, length / 2)
+        : 0;
     if (fadeIn > 0) gain.gain.setValueCurveAtTime(fadeInCurve(64, g.base), when, fadeIn);
     else {
       gain.gain.setValueAtTime(0, when);
-      gain.gain.linearRampToValueAtTime(g.base, when + DECLICK_IN);
+      gain.gain.linearRampToValueAtTime(g.base, when + Math.max(DECLICK_IN, resumeFade ?? 0));
     }
-    if (it.kind === "cortina") {
-      const fadeOut = Math.min(
-        it.fadeOutSec ?? this.settings.cortinaFadeOutSec,
-        Math.max(0, length - fadeIn - 0.1),
-      );
-      if (fadeOut > 0) gain.gain.setValueCurveAtTime(fadeOutCurve(64, g.base), endsAt - fadeOut, fadeOut);
-      else {
-        gain.gain.setValueAtTime(g.base, endsAt - DECLICK_OUT);
-        gain.gain.linearRampToValueAtTime(0, endsAt);
-      }
-    } else {
+    const lead = Math.max(fadeIn, resumeFade ?? 0);
+    const wantOut =
+      it.kind === "cortina"
+        ? (it.fadeOutSec ?? this.settings.cortinaFadeOutSec)
+        : this.settings.songFadeOutSec;
+    const fadeOut = Math.min(Math.max(0, wantOut), Math.max(0, length - lead - 0.1));
+    if (fadeOut > 0) gain.gain.setValueCurveAtTime(fadeOutCurve(64, g.base), endsAt - fadeOut, fadeOut);
+    else {
       gain.gain.setValueAtTime(g.base, endsAt - DECLICK_OUT);
       gain.gain.linearRampToValueAtTime(0, endsAt);
     }
@@ -868,19 +1101,27 @@ export class BoothEngine {
     it: BoothRow,
     prepared: PreparedItem,
     gainDb: number,
+    o: { from?: number; fadeIn?: number } = {},
   ): Scheduled | null {
     const a = this.adapterFor(base.planIndex)?.external;
     if (!a || !prepared.spotifyUri) return null;
     const delay = Math.max(0, base.when - this.ctx.currentTime);
-    const length = this.itemLength(base.planIndex);
+    const full = this.itemLength(base.planIndex);
+    const from = clamp(o.from ?? 0, 0, Math.max(0, full - 0.5));
+    const length = full - from;
+    base.startedAt = base.when - from;
     base.endsAt = base.when + length;
+    const start0 = it.kind === "cortina" ? (it.trimInSec ?? 0) : 0;
+    base.extStart = start0;
+    const songFade = it.kind === "cortina" ? 0 : this.settings.songFadeOutSec;
     base.external = a.startItem({
       uri: prepared.spotifyUri,
       delaySec: delay,
-      positionSec: it.kind === "cortina" ? (it.trimInSec ?? 0) : 0,
-      durationSec: it.kind === "cortina" || this.capFor(base.planIndex) ? length : undefined,
-      fadeInSec: it.kind === "cortina" ? it.fadeInSec : 0,
-      fadeOutSec: it.kind === "cortina" ? it.fadeOutSec : 0,
+      positionSec: start0 + from,
+      durationSec:
+        it.kind === "cortina" || this.capFor(base.planIndex) || songFade > 0 || from > 0 ? length : undefined,
+      fadeInSec: o.fadeIn ?? (it.kind === "cortina" ? it.fadeInSec : 0),
+      fadeOutSec: it.kind === "cortina" ? it.fadeOutSec : songFade,
       gainDb: Math.min(0, gainDb),
       onEnded: () => {
         if (!base.cancelled) this.onEnded(base);

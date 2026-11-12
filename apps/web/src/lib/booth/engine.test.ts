@@ -6,6 +6,7 @@ import {
   type AudioContextLike,
   type AudioParamLike,
   BoothEngine,
+  DEFAULT_BOOTH_SETTINGS,
   type EngineEvent,
   type GainNodeLike,
   gainFor,
@@ -13,7 +14,7 @@ import {
 } from "./engine";
 import { DECLICK_IN, dbToGain, EMERGENCY_FADE } from "./envelope";
 import { type BoothRows, decorate, remainingFrom } from "./plan";
-import type { PlanEntity, PreparedItem, SourceAdapter } from "./sources/types";
+import type { ExternalHandle, ExternalStart, PlanEntity, PreparedItem, SourceAdapter } from "./sources/types";
 
 /* ---------- recording fake context (round7-booth.md §12.1) ---------- */
 type Call = { m: string; args: unknown[] };
@@ -86,7 +87,21 @@ class FakeCtx implements AudioContextLike {
   createAnalyser(): AnalyserLike {
     return { fftSize: 256, connect() {}, disconnect() {}, getFloatTimeDomainData() {} };
   }
-  async resume() {}
+  state = "running";
+  resumes = 0;
+  listeners: Record<string, Array<() => void>> = {};
+  addEventListener(t: string, cb: () => void) {
+    const l = this.listeners[t] ?? [];
+    l.push(cb);
+    this.listeners[t] = l;
+  }
+  emit(t: string) {
+    for (const cb of this.listeners[t] ?? []) cb();
+  }
+  async resume() {
+    this.resumes++;
+    this.state = "running";
+  }
   /** move the clock; sources whose end passed fire `onended` in time order */
   advance(to: number) {
     this.currentTime = to;
@@ -497,5 +512,284 @@ describe("state machine (§6.2)", () => {
     e.setMuted(true);
     expect(ctx.gains[0]!.gain.of("setTargetAtTime").at(-1)!.args[0]).toBe(0);
     e.testTone(); // no createOscillator on the fake: a no-op, never a throw
+  });
+});
+
+/* ---------- round 20: pause / resume, fades the DJ can use, stop with a fade, audible defaults ---------- */
+describe("round 20: transport and fades (round20-booth.md)", () => {
+  let ctx: FakeCtx;
+  beforeEach(() => {
+    ctx = new FakeCtx();
+  });
+
+  it("defaults are audible: master at unity, nothing muted or ducked, the cortina fader up, no song fade", () => {
+    const e = engineFor(ctx, build(set()));
+    expect(DEFAULT_BOOTH_SETTINGS.songFadeOutSec).toBe(0);
+    expect(DEFAULT_BOOTH_SETTINGS.pauseFadeSec).toBeGreaterThanOrEqual(0.5);
+    expect(DEFAULT_BOOTH_SETTINGS.pauseFadeSec).toBeLessThanOrEqual(1);
+    expect(e.masterDb).toBe(0);
+    expect(e.muted).toBe(false);
+    expect(e.ducked).toBe(false);
+    expect(e.cortinaFader).toBe(1);
+    // the master gain was never automated below unity at construction
+    expect(ctx.gains[0]!.gain.value).toBe(1);
+    expect(ctx.gains[0]!.gain.calls.filter((c) => (c.args[0] as number) < 1)).toEqual([]);
+    expect(e.outputGain()).toBe(1);
+  });
+
+  it("an unmeasured track plays at 0 dB: the item gain ramps to 1 at its start", async () => {
+    const e = engineFor(ctx, build(set()));
+    await e.start();
+    await e.play();
+    expect(e.current?.gainDb).toBe(0);
+    const g = ctx.gains[1]!.gain;
+    expect(g.of("linearRampToValueAtTime")[0]!.args[0]).toBe(1);
+  });
+
+  it("the context is resumed when the OS suspends or interrupts it while the night plays (Bluetooth, a call)", async () => {
+    const e = engineFor(ctx, build(set()));
+    await e.start();
+    await e.play();
+    const before = ctx.resumes;
+    ctx.state = "interrupted";
+    ctx.emit("statechange");
+    expect(ctx.resumes).toBe(before + 1);
+    // idle: nothing to keep alive
+    e.stop();
+    ctx.state = "suspended";
+    ctx.emit("statechange");
+    expect(ctx.resumes).toBe(before + 1);
+  });
+
+  it("pause fades the running song out in pauseFadeSec and keeps its position; resume fades it back in from there", async () => {
+    const e = engineFor(ctx, build(set()));
+    await e.start();
+    await e.play(); // a1 at 0.05, a2 queued at 172.55
+    const queued = ctx.sources[1]!;
+    ctx.advance(60.05);
+    e.pause();
+    expect(e.state).toBe("paused");
+    expect(e.paused).toBe(true);
+    const fade = DEFAULT_BOOTH_SETTINGS.pauseFadeSec;
+    const g = ctx.gains[1]!.gain;
+    const tgt = g.of("setTargetAtTime").at(-1)!;
+    expect(tgt.args[0]).toBe(0);
+    expect(tgt.args[1]).toBe(60.05);
+    expect(ctx.sources[0]!.stops.at(-1)).toBeCloseTo(60.05 + fade, 9);
+    // the queued item never sounds
+    expect(queued.stops.at(-1)).toBe(60.05);
+    expect(e.position()).toBeCloseTo(60, 6);
+    // the fade-out's end does not advance the night
+    ctx.advance(62);
+    await flush();
+    expect(e.state).toBe("paused");
+    expect(e.planIndex).toBe(0);
+    // resume: the same song from 60 s, a fade in from 0, the next one at its gap after the rest of the song
+    ctx.advance(100);
+    await e.play();
+    expect(e.state).toBe("playing");
+    expect(e.paused).toBe(false);
+    const again = ctx.sources[2]!;
+    expect(again.starts[0]![0]).toBeCloseTo(100.05, 9);
+    expect(again.starts[0]![1]).toBeCloseTo(60, 6);
+    // the clock carries on from the pause point (it never jumps back to 0:00)
+    expect(e.position()).toBeCloseTo(59.95, 6);
+    ctx.advance(101);
+    expect(e.position()).toBeCloseTo(60.95, 6);
+    const rg = ctx.gains.at(-2)!.gain; // the resumed item (the last gain is the item queued after it)
+    expect(rg.of("setValueAtTime")[0]!.args).toEqual([0, 100.05]);
+    const rampIn = rg.of("linearRampToValueAtTime")[0]!;
+    expect(rampIn.args[0]).toBe(1);
+    expect(rampIn.args[1]).toBeCloseTo(100.05 + fade, 9);
+    expect(ctx.sources[3]!.starts[0]![0]).toBeCloseTo(100.05 + 110 + 2.5, 6);
+    // the log says pause / resume; a pause is not a hold in History
+    const log = e.log.map((l) => `${l.to}:${l.reason ?? ""}`);
+    expect(log).toContain("paused:pause");
+    expect(log).toContain("playing:resume");
+    expect(makeNightLog({ ...e.snapshot(), ended: false }).holds).toBe(0);
+  });
+
+  it("stop takes a fade length: 3 s 'fade out and stop', a 0.1 s 'stop now'", async () => {
+    const e = engineFor(ctx, build(set()));
+    await e.start();
+    await e.play();
+    ctx.advance(20);
+    e.stop("stop", 3);
+    const g = ctx.gains[1]!.gain;
+    const c = g.of("setValueCurveAtTime").at(-1)!;
+    expect(c.args[1]).toBe(20);
+    expect(c.args[2]).toBe(3);
+    expect(ctx.sources[0]!.stops.at(-1)).toBe(23);
+    expect(e.state).toBe("stopped");
+    await e.play();
+    ctx.advance(30);
+    e.stop("stop", 0.1);
+    expect(ctx.sources.at(-2)!.stops.at(-1)).toBeCloseTo(30.1, 9);
+  });
+
+  it("fade out now: the running song fades over N s, the next item follows at the gap after the silence", async () => {
+    const e = engineFor(ctx, build(set()));
+    await e.start();
+    await e.play();
+    ctx.advance(30);
+    e.fadeOutNow(4);
+    const g = ctx.gains[1]!.gain;
+    const c = g.of("setValueCurveAtTime").at(-1)!;
+    expect(c.args[1]).toBe(30);
+    expect(c.args[2]).toBe(4);
+    expect((c.args[0] as Float32Array).at(-1)).toBe(0);
+    expect(ctx.sources[0]!.stops.at(-1)).toBe(34);
+    expect(ctx.sources[1]!.stops.at(-1)).toBe(30); // the queued a2 at its old time is dropped
+    await flush();
+    expect(ctx.sources.at(-1)!.starts[0]![0]).toBeCloseTo(34 + 2.5, 9);
+    expect(e.state).toBe("playing");
+    expect(e.log.at(-1)!.reason).toBe("fade out now");
+    ctx.advance(34);
+    await flush();
+    expect(e.planIndex).toBe(1);
+  });
+
+  it("next with crossfade: the next item starts now while the running one fades out over N s", async () => {
+    const e = engineFor(ctx, build(set()));
+    await e.start();
+    await e.play();
+    ctx.advance(40);
+    await e.crossfadeNext(3);
+    const old = ctx.sources[0]!;
+    expect(old.stops.at(-1)).toBe(43);
+    const c = ctx.gains[1]!.gain.of("setValueCurveAtTime").at(-1)!;
+    expect(c.args[1]).toBe(40);
+    expect(c.args[2]).toBe(3);
+    expect(e.planIndex).toBe(1);
+    const inc = ctx.sources.find(
+      (s, k) => k > 0 && s.starts[0]?.[0] !== undefined && Math.abs(s.starts[0]![0]! - 40.05) < 1e-9,
+    );
+    expect(inc).toBeDefined();
+    // the old one ending does not advance the night a second time
+    ctx.advance(43);
+    await flush();
+    expect(e.planIndex).toBe(1);
+    expect(e.state).toBe("playing");
+    // the item after the incoming one is queued at its gap
+    expect(ctx.sources.at(-1)!.starts[0]![0]).toBeCloseTo(40.05 + 170 + 2.5, 6);
+  });
+
+  it("Stop now right after a crossfade silences the outgoing item too (it is no longer current)", async () => {
+    const e = engineFor(ctx, build(set()));
+    await e.start();
+    await e.play();
+    ctx.advance(40);
+    await e.crossfadeNext(3);
+    const old = ctx.sources[0]!;
+    ctx.currentTime = 41;
+    e.stop("stop", 0.1);
+    expect(old.stops.at(-1)).toBeCloseTo(41.1, 9);
+    const c = ctx.gains[1]!.gain.of("setValueCurveAtTime").at(-1)!;
+    expect(c.args[1]).toBe(41);
+    expect(c.args[2]).toBeCloseTo(0.1, 9);
+  });
+
+  it("song end fade: 0 by default (declick only); a night setting fades every track's last N s", async () => {
+    const e = engineFor(ctx, build(set()));
+    await e.start();
+    await e.play();
+    expect(ctx.gains[1]!.gain.of("setValueCurveAtTime")).toHaveLength(0);
+    const ctx2 = new FakeCtx();
+    const e2 = engineFor(ctx2, build(set()));
+    e2.setSettings({ songFadeOutSec: 3 });
+    await e2.start();
+    await e2.play();
+    const c = ctx2.gains[1]!.gain.of("setValueCurveAtTime")[0]!;
+    expect(c.args[1]).toBeCloseTo(0.05 + 170 - 3, 9);
+    expect(c.args[2]).toBe(3);
+  });
+
+  it("talk-over: ducking dips the master 12 dB and back with a 0.5 s ramp", () => {
+    const e = engineFor(ctx, build(set()));
+    e.setDucked(true);
+    const t = ctx.gains[0]!.gain.of("setTargetAtTime").at(-1)!;
+    expect(t.args[0]).toBeCloseTo(dbToGain(-12), 9);
+    expect(t.args[2]).toBeCloseTo(0.5 / 3, 9);
+    e.setDucked(false);
+    expect(ctx.gains[0]!.gain.of("setTargetAtTime").at(-1)!.args[0]).toBe(1);
+  });
+
+  it("Spotify: pause fades with volume steps and resume restarts the track at its position", async () => {
+    const starts: ExternalStart[] = [];
+    const stops: number[] = [];
+    let pos = 0;
+    const handle = (r: ExternalStart): ExternalHandle => ({
+      cancel() {},
+      stop(f) {
+        stops.push(f);
+        r.onEnded();
+      },
+      position: () => pos,
+    });
+    const sp: SourceAdapter = {
+      kind: "spotify",
+      async available() {
+        return { ok: true };
+      },
+      async resolve() {
+        return "ready";
+      },
+      async prepare(item) {
+        return { kind: "spotify", spotifyUri: `spotify:track:${item.id}`, durationSec: item.lengthSec };
+      },
+      release() {},
+      external: {
+        capabilities: { fade: true },
+        startItem(r) {
+          starts.push(r);
+          return handle(r);
+        },
+        setMaster() {},
+      },
+    };
+    const plan = build(set());
+    const e = new BoothEngine(ctx, { adapters: [sp], now: () => 1_000_000 + ctx.currentTime * 1000 });
+    e.load(
+      plan,
+      plan.items.map(() => null),
+      plan.items.map(() => "spotify"),
+    );
+    await e.start();
+    await e.play();
+    pos = 42;
+    e.pause();
+    expect(stops.at(-1)).toBe(DEFAULT_BOOTH_SETTINGS.pauseFadeSec);
+    expect(e.state).toBe("paused");
+    expect(e.planIndex).toBe(0);
+    await e.play();
+    const r = starts.at(-2)!; // the resumed a1 (a2 is queued after it)
+    expect(r.uri).toBe("spotify:track:a1");
+    expect(r.positionSec).toBeCloseTo(42, 6);
+    expect(r.fadeInSec).toBe(DEFAULT_BOOTH_SETTINGS.pauseFadeSec);
+  });
+
+  it("a cortina edited while it is queued is rebuilt with its new stop second and fades (replacePlan)", async () => {
+    const p = set();
+    const plan = build(p);
+    const e = engineFor(ctx, plan);
+    await e.start();
+    await e.play();
+    ctx.advance(0.05 + 170); // a2 plays, c0 queued
+    await flush();
+    const queued = ctx.sources.at(-1)!;
+    expect(queued.starts[0]![2]).toBe(35);
+    const edited = build(p, { cortinaEdits: { c0: { stopSec: 30, fadeOutSec: 6 } } });
+    e.replacePlan(
+      edited,
+      edited.items.map(() => null),
+      edited.items.map(() => "file"),
+    );
+    await flush();
+    expect(queued.stops.at(-1)).toBe(ctx.currentTime);
+    const again = ctx.sources.at(-1)!;
+    expect(again).not.toBe(queued);
+    expect(again.starts[0]![2]).toBe(20); // 30 − cue-in 10
+    const curve = ctx.gains.at(-2)!.gain.of("setValueCurveAtTime").at(-1)!;
+    expect(curve.args[2]).toBe(6);
   });
 });
