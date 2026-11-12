@@ -1966,3 +1966,9 @@ html.theming *::after {
     transition: none;
   }
 }
+/* round 20: the Mix sheet's key hints are for keyboards; a phone shows the actions only */
+@media (pointer: coarse) {
+  .booth-kbd {
+    display: none;
+  }
+}

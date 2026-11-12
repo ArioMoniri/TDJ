@@ -1,5 +1,5 @@
 "use client";
-import { attachBooth, type BoothInputs, boothInputs, type Playlist } from "@tdj/core";
+import { attachBooth, type BoothInputs, boothInputs, type CortinaEdit, type Playlist } from "@tdj/core";
 import { create } from "zustand";
 import { makeNightLog, makeSnapshot } from "@/lib/history";
 import { useStore } from "@/lib/store";
@@ -27,6 +27,7 @@ import { LocalAdapter } from "./sources/local";
 import { PreviewAdapter, REHEARSAL_SEC } from "./sources/preview";
 import { SpotifyAdapter } from "./sources/spotify";
 import type { ItemSource, PlanEntity, SourceAdapter, SourceKind } from "./sources/types";
+import { isSilentState, unlockAudio } from "./unlock";
 
 export interface Banner {
   key: string;
@@ -61,6 +62,10 @@ interface BoothStore {
   master: number;
   muted: boolean;
   holding: boolean;
+  /** round 20: an immediate Pause is waiting (Resume plays the same item from where it stopped) */
+  paused: boolean;
+  /** round 20: talk-over (the master dipped 12 dB) */
+  ducked: boolean;
   holdBefore: number | null;
   breakUntil: number | null;
   /** plan indexes the rest of the night leaves out (missing, skipped, cued past) */
@@ -97,9 +102,20 @@ interface BoothStore {
   start: () => Promise<void>;
   play: () => Promise<void>;
   hold: () => void;
+  /** round 20: hold after this song, or lift a pending hold */
+  toggleHold: () => void;
+  /** round 20: immediate pause with a short fade / resume */
+  pause: () => void;
+  togglePause: () => void;
+  fadeOutNow: () => void;
+  crossfadeNext: () => Promise<void>;
+  setDucked: (on: boolean) => void;
+  /** round 20: the DJ's fade in / fade out / stop second for one cortina, saved with the set (null resets it) */
+  setCortinaEdit: (id: string, edit: CortinaEdit | null) => void;
   next: () => void;
   skipNow: () => Promise<void>;
-  stop: () => void;
+  /** `fadeSec`: 1 s by default; the confirm offers "Fade out and stop" and "Stop now" */
+  stop: (fadeSec?: number) => void;
   cueCortina: () => void;
   birthdayVals: () => void;
   startBreak: (minutes: number) => void;
@@ -152,7 +168,11 @@ const EMPTY_AVAIL = { ok: false, checked: false } as const;
  * The plan the booth plays is the plan the exports write: `attachBooth` on the set with the booth settings, the
  * cortina play length and the file measurements, written back into the app store so Export reads the same seconds.
  */
-function rePlan(p: Playlist, settings: BoothSettings): { playlist: Playlist; plan: BoothRows } {
+function rePlan(
+  p: Playlist,
+  settings: BoothSettings,
+  extra: Partial<BoothInputs> = {},
+): { playlist: Playlist; plan: BoothRows } {
   const user = useStore.getState().settings;
   const inputs: BoothInputs = {
     ...boothInputs(p.booth),
@@ -164,6 +184,7 @@ function rePlan(p: Playlist, settings: BoothSettings): { playlist: Playlist; pla
     trimLeadingSilence: settings.trimLeadingSilence,
     cortinaStopSec: cortinaStopSec(user, p.options.cortinaLengthSec),
     measurements: local?.measurementsById() ?? {},
+    ...extra,
   };
   // round 18: a side with a checked Spotify match is timed at that recording's length (what the DJ plays)
   const timed = attachBooth(withSpotifyLengths(p), inputs);
@@ -209,6 +230,8 @@ export const useBooth = create<BoothStore>()((set, get) => ({
   master: 0,
   muted: false,
   holding: false,
+  paused: false,
+  ducked: false,
   holdBefore: null,
   breakUntil: null,
   skipped: [],
@@ -416,6 +439,12 @@ export const useBooth = create<BoothStore>()((set, get) => ({
       return;
     }
     if (!ctx) ctx = new Ctor({ latencyHint: "playback" });
+    // round 20: everything that opens the output happens here, in the tap, before the first await (iOS: the
+    // playback session, which the silent switch does not mute; the keep-alive element; the primed context)
+    unlockAudio(ctx);
+    media ??= new BoothMedia();
+    media.setPlaying(true);
+    watchVisibility();
     await ctx.resume().catch(() => {});
     if (!engine) {
       const a = adapters();
@@ -436,10 +465,12 @@ export const useBooth = create<BoothStore>()((set, get) => ({
         await adapters().spotify.connect();
       } catch (e) {
         pushBanner({ key: "spotify", text: e instanceof Error ? e.message : "Spotify could not connect" });
-        if (sourceMode === "spotify") return;
+        if (sourceMode === "spotify") {
+          media.setPlaying(false);
+          return;
+        }
       }
     }
-    media ??= new BoothMedia();
     const held = await media.acquire();
     if (!held && !media.supports.wakeLock)
       pushBanner({ key: "wake", text: "Keep the laptop awake (System Settings → Energy)." });
@@ -453,8 +484,9 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     const missing = sources.filter(
       (s, i) => s === "missing" && !!plan.items[i] && plan.items[i].kind !== "break",
     ).length;
-    // in a rehearsal the Now chip says what is skipped; from files it is a thing the DJ can fix: say how
-    if (missing && sourceMode !== "preview")
+    // in a rehearsal the Now chip says what is skipped (round 20: also when the night falls back to clips without
+    // the rehearsal switch, e.g. the featured night); from files it is a thing the DJ can fix: say how
+    if (missing && sourceMode !== "preview" && !get().rehearsal)
       pushBanner({
         key: "missing",
         text: `${missing} of ${plan.items.length} items have no file yet: they are skipped. Link your music folder to play them.`,
@@ -471,22 +503,54 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     await engine.play();
     startTicking();
     if (!persistTimer) persistTimer = setInterval(persistNight, 5000);
+    checkAudible();
   },
   play: async () => {
     if (!engine) return get().start();
-    await ctx?.resume().catch(() => {});
+    if (ctx) unlockAudio(ctx);
     media?.setPlaying(true);
+    await ctx?.resume().catch(() => {});
     await engine.play();
     startTicking();
+    checkAudible();
   },
   hold: () => {
     engine?.hold();
     logToHistory(false);
   },
+  toggleHold: () => {
+    const s = get();
+    if (s.holding && (s.state === "playing" || s.state === "cortina")) void s.play();
+    else s.hold();
+  },
+  pause: () => {
+    engine?.pause();
+  },
+  togglePause: () => {
+    const s = get();
+    if (!s.started) return void s.start();
+    if (s.breakUntil !== null) return void s.endBreak();
+    if (s.state === "playing" || s.state === "cortina") s.pause();
+    else void s.play();
+  },
+  fadeOutNow: () => engine?.fadeOutNow(),
+  crossfadeNext: async () => engine?.crossfadeNext(),
+  setDucked: (on) => {
+    set({ ducked: on });
+    engine?.setDucked(on);
+  },
+  setCortinaEdit: (id, edit) => {
+    const p = get().playlist;
+    if (!p) return;
+    const edits: Record<string, CortinaEdit> = { ...(p.booth?.cortinaEdits ?? {}) };
+    if (edit === null) delete edits[id];
+    else edits[id] = { ...edits[id], ...edit };
+    applyPlan(rePlan(p, get().settings, { cortinaEdits: edits }));
+  },
   next: () => engine?.next(),
   skipNow: async () => engine?.skipNow(),
-  stop: () => {
-    engine?.stop();
+  stop: (fadeSec) => {
+    engine?.stop("stop", fadeSec);
     media?.setPlaying(false);
   },
   cueCortina: () => engine?.cueCortina(),
@@ -513,16 +577,18 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     engine?.setSettings(s);
     void saveBoothSettings({ ...settings, sourceMode: get().sourceMode });
     const p = get().playlist;
-    if (p && !get().started) {
-      const r = rePlan(p, settings);
-      set({
-        playlist: r.playlist,
-        plan: r.plan,
-        entities: planEntities(r.playlist, r.plan),
-        ...derive(r.plan, get().planIndex, 0, capFor(get().sources, get().rehearsal)),
-      });
-      engine?.load(r.plan, get().entities, get().sources);
-    }
+    // the plan's settings (gap, cortina fades and level, loudness, trim) re-time the night, also while it plays
+    // (round 20: the playhead stays, what is ahead follows)
+    const planKeys = [
+      "gapSec",
+      "cortinaFadeInSec",
+      "cortinaFadeOutSec",
+      "cortinaLevelDb",
+      "loudnessTargetLUFS",
+      "trimLeadingSilence",
+    ];
+    if (p && (!get().started || Object.keys(s).some((k) => planKeys.includes(k))))
+      applyPlan(rePlan(p, settings));
     applyMediaHandlers();
   },
   testTone: () => {
@@ -531,7 +597,7 @@ export const useBooth = create<BoothStore>()((set, get) => ({
       (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!Ctor) return;
     if (!ctx) ctx = new Ctor({ latencyHint: "playback" });
-    void ctx.resume().catch(() => {});
+    unlockAudio(ctx);
     if (!engine) {
       const a = adapters();
       const { plan, entities, sources, settings, sourceMode } = get();
@@ -586,10 +652,12 @@ function onEngineEvent(e: EngineEvent) {
       state: e.to,
       planIndex: e.planIndex,
       holding: eng.holding,
+      paused: eng.paused,
       holdBefore: eng.holdBefore,
       breakUntil: eng.breakUntil,
       skipped: [...eng.skipped],
-      current: eng.current ? { ...eng.current } : null,
+      // a paused item keeps its card (length, gain) while it waits for Resume
+      current: eng.current ? { ...eng.current } : eng.pausedAt ? { ...eng.pausedAt.runtime } : null,
       startedWall: eng.startedWall,
     });
     if (e.to === "stopped" || e.to === "paused") media?.setPlaying(false);
@@ -633,13 +701,63 @@ function applyMediaHandlers() {
   if (!s.settings.mediaKeys) return media.setHandlers(null);
   media.setHandlers({
     play: () => void s.play(),
-    pause: () => s.hold(),
+    // round 20: a headset / lock-screen pause is a real pause (0.8 s fade); "Media keys" off keeps them out
+    pause: () => s.pause(),
     next: () => s.next(),
     stop: () => s.stop(),
     previous: () => {
       engine?.stop("restart");
       void s.play();
     },
+  });
+}
+
+/** A new plan for the set (settings, a cortina edit): into the store, and into the engine without moving the playhead. */
+function applyPlan(r: { playlist: Playlist; plan: BoothRows }) {
+  const s = useBooth.getState();
+  const entities = planEntities(r.playlist, r.plan);
+  useBooth.setState({
+    playlist: r.playlist,
+    plan: r.plan,
+    entities,
+    ...(s.started ? {} : derive(r.plan, s.planIndex, 0, capFor(s.sources, s.rehearsal))),
+  });
+  if (!engine) return;
+  if (s.started) engine.replacePlan(r.plan, entities, s.sources);
+  else engine.load(r.plan, entities, s.sources);
+}
+
+/** The context must be running and the night moving: otherwise the DJ hears nothing, so say it and offer the fix. */
+function checkAudible() {
+  setTimeout(() => {
+    const s = useBooth.getState();
+    if (!ctx || !s.started) return;
+    if (isSilentState(ctx.state))
+      pushBanner({
+        key: "audio",
+        text: "The browser is holding the sound back. Tap to turn the sound on.",
+        action: {
+          label: "Turn sound on",
+          run: () => {
+            if (ctx) unlockAudio(ctx);
+            media?.setPlaying(true);
+            void ctx?.resume().then(() => useBooth.getState().dismissBanner("audio"));
+          },
+        },
+      });
+    else s.dismissBanner("audio");
+  }, 1500);
+}
+
+let visibilityHooked = false;
+/** Back to the tab (a phone woke, a call ended): take the context back if the OS suspended it. */
+function watchVisibility() {
+  if (visibilityHooked || typeof document === "undefined") return;
+  visibilityHooked = true;
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible") return;
+    engine?.ensureRunning();
+    if (useBooth.getState().started) checkAudible();
   });
 }
 
@@ -712,3 +830,5 @@ function logToHistory(ended: boolean) {
 
 /** For tests and the Find sheet: the engine behind the store (null before the first start). */
 export const boothEngine = () => engine;
+/** For the e2e audibility check: the context's state. */
+export const boothContextState = () => ctx?.state ?? null;

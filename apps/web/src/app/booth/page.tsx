@@ -4,24 +4,26 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { Banners } from "@/components/booth/Banners";
-import { ControlStrip, STOP_HOLD_MS } from "@/components/booth/ControlStrip";
+import { ControlStrip } from "@/components/booth/ControlStrip";
 import { NextCard } from "@/components/booth/NextCard";
 import { NowCard } from "@/components/booth/NowCard";
 import { OnboardingSheet } from "@/components/booth/OnboardingSheet";
 import { SetColumn } from "@/components/booth/SetColumn";
 import {
   BreakSheet,
+  CortinaSheet,
   FindFileSheet,
   LevelsSheet,
   ResumeSheet,
   ShortcutsSheet,
+  StopSheet,
 } from "@/components/booth/Sheets";
 import { TimeCard } from "@/components/booth/TimeCard";
 import { EmptyState } from "@/components/EmptyState";
 import { type MenuItem, MenuList } from "@/components/Menu";
 import { PageHeader } from "@/components/PageHeader";
 import { Sheet } from "@/components/Sheet";
-import { useBooth } from "@/lib/booth/store";
+import { boothContextState, boothEngine, useBooth } from "@/lib/booth/store";
 import { usePlayer } from "@/lib/player";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
@@ -60,6 +62,8 @@ function Booth() {
   const [jump, setJump] = useState<number | null>(null);
   const [light, setLight] = useState(false);
   const [levels, setLevels] = useState(false);
+  const [stopOpen, setStopOpen] = useState(false);
+  const [cortina, setCortina] = useState<number | null>(null);
   // the stored theme, read at mount: the persisting effect waits until `light` holds it (round 18: with the booth
   // already ready at mount, its first run wrote "dark" over a stored "light" before setLight(true) landed)
   const storedLight = useRef<boolean | null>(null);
@@ -121,13 +125,20 @@ function Booth() {
 
   // the plan for tests and the console (nothing secret: the set the DJ composed)
   useEffect(() => {
-    const w = window as unknown as { __tdjBoothPlan?: unknown; __tdjBooth?: unknown };
+    const w = window as unknown as {
+      __tdjBoothPlan?: unknown;
+      __tdjBooth?: unknown;
+      __tdjBoothEngine?: unknown;
+      __tdjBoothCtx?: unknown;
+    };
     w.__tdjBoothPlan = plan;
     w.__tdjBooth = useBooth;
+    // round 20: the e2e measures the master output (the analyser right before the speakers) and the context state
+    w.__tdjBoothEngine = boothEngine;
+    w.__tdjBoothCtx = boothContextState;
   }, [plan]);
 
-  // keyboard (§1.1): ignored while an input has focus; esc must be held 600 ms
-  const escTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // keyboard (§1.1, round 20): ignored while an input has focus or a sheet is up; esc opens the Stop confirm
   useEffect(() => {
     const typing = () => {
       const a = document.activeElement as HTMLElement | null;
@@ -139,23 +150,23 @@ function Booth() {
     const down = (e: KeyboardEvent) => {
       if (typing() || document.querySelector('[role="dialog"]')) return;
       const b = useBooth.getState();
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.key === " ") {
         e.preventDefault();
         if (e.repeat) return;
-        if (!b.started) void b.start();
-        else if ((b.state === "playing" || b.state === "cortina") && !b.holding) b.hold();
-        else if (b.breakUntil !== null) void b.endBreak();
-        else void b.play();
+        b.togglePause();
       } else if (e.key === "ArrowRight") {
         e.preventDefault();
         b.next();
       } else if (e.key === "Escape") {
-        if (e.repeat || escTimer.current) return;
-        escTimer.current = setTimeout(() => {
-          escTimer.current = null;
-          b.stop();
-        }, STOP_HOLD_MS);
-      } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+        if (e.repeat) return;
+        if (b.started && b.state !== "stopped" && b.state !== "idle") setStopOpen(true);
+      } else if (e.key === "f") b.fadeOutNow();
+      else if (e.key === "x") void b.crossfadeNext();
+      else if (e.key === "h") {
+        if (b.state === "playing" || b.state === "cortina") b.toggleHold();
+      } else if (e.key === "t") b.setDucked(!b.ducked);
+      else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
         e.preventDefault();
         b.setCortinaFader(Math.max(0, Math.min(1, b.cortinaFader + (e.key === "ArrowUp" ? 0.05 : -0.05))));
       } else if (e.key === "c") b.cueCortina();
@@ -163,18 +174,8 @@ function Booth() {
       else if (e.key === "m") b.toggleMute();
       else if (e.key === "?") setKeys(true);
     };
-    const up = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && escTimer.current) {
-        clearTimeout(escTimer.current);
-        escTimer.current = null;
-      }
-    };
     window.addEventListener("keydown", down);
-    window.addEventListener("keyup", up);
-    return () => {
-      window.removeEventListener("keydown", down);
-      window.removeEventListener("keyup", up);
-    };
+    return () => window.removeEventListener("keydown", down);
   }, []);
 
   if (!playlist)
@@ -207,6 +208,12 @@ function Booth() {
       onClick: () =>
         b.folder.canKeep ? void b.linkFolder() : document.getElementById("booth-folder-input")?.click(),
     },
+    started && {
+      label: b.holding ? "Cancel hold" : "Hold after this song",
+      onClick: () => b.toggleHold(),
+      disabled: !(state === "playing" || state === "cortina"),
+    },
+    started && { label: "Mix: fades, talk-over, levels…", onClick: () => setLevels(true) },
     started && { label: "Birthday vals", onClick: () => b.birthdayVals() },
     started && { label: "Break…", onClick: () => setBreakOpen(true) },
     { label: "Keyboard shortcuts", icon: Keyboard, onClick: () => setKeys(true) },
@@ -243,15 +250,22 @@ function Booth() {
           <TimeCard />
         </div>
         <div className="booth-col-set">
-          <SetColumn jumpTo={jump} onFind={(id, title) => setFind({ id, title })} />
+          <SetColumn
+            jumpTo={jump}
+            onFind={(id, title) => setFind({ id, title })}
+            onCortina={(i) => setCortina(i)}
+          />
         </div>
       </div>
       <ControlStrip
         onMore={() => setMore(true)}
         onBreak={() => setBreakOpen(true)}
         onLevels={() => setLevels(true)}
+        onStop={() => setStopOpen(true)}
       />
       <LevelsSheet open={levels} onClose={() => setLevels(false)} />
+      <StopSheet open={stopOpen} onClose={() => setStopOpen(false)} />
+      <CortinaSheet planIndex={cortina} onClose={() => setCortina(null)} />
       {/* any browser: the folder as a FileList (Chromium prefers the persisted handle) */}
       <input
         id="booth-folder-input"
