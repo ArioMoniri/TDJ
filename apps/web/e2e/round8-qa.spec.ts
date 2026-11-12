@@ -264,12 +264,13 @@ test("featured night: the deep link loads it into the result with Export and Boo
   await expect(page.locator("#result")).toBeVisible({ timeout: 60000 });
   await expect(page.locator("#result")).toContainText(/double peak/);
   expect(await page.locator("article[id^=tanda-]").count()).toBeGreaterThan(10);
-  expect(
-    await page.evaluate(
-      () => JSON.parse(localStorage.getItem("tdj-v1") ?? "{}").state?.playlist?.options?.seed,
-    ),
-    // (round 16: the shipped night is seed 199 of the round-16 sweep, docs/specs/round16-best-night.md)
-  ).toBe(199);
+  // (round 16: the shipped night is seed 199 of the round-16 sweep, docs/specs/round16-best-night.md); the store
+  // persists it a moment after the result shows, so wait for it rather than read once (a warm server is faster)
+  await expect
+    .poll(() =>
+      page.evaluate(() => JSON.parse(localStorage.getItem("tdj-v1") ?? "{}").state?.playlist?.options?.seed),
+    )
+    .toBe(199);
   await expect(page).toHaveURL(/\/$/);
   // the normal actions are there
   await expect(page.getByTestId("toolbar-export")).toBeVisible();
