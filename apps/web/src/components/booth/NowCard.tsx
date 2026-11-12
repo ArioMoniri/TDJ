@@ -42,6 +42,8 @@ export function NowCard() {
   const current = useBooth((s) => s.current);
   const sources = useBooth((s) => s.sources);
   const holding = useBooth((s) => s.holding);
+  const paused = useBooth((s) => s.paused);
+  const ducked = useBooth((s) => s.ducked);
   const rehearsal = useBooth((s) => s.rehearsal);
   const playlist = useBooth((s) => s.playlist);
   const notRehearsable = useBooth((s) => s.notRehearsable);
@@ -64,7 +66,9 @@ export function NowCard() {
       : state === "armed"
         ? "Ready: tap play"
         : state === "paused"
-          ? "Holding"
+          ? paused
+            ? "Paused: tap Resume"
+            : "Holding"
           : state === "stopped"
             ? "Stopped"
             : holding
@@ -126,6 +130,11 @@ export function NowCard() {
           </span>
         )}
         {item.birthday && <span className="booth-chip">birthday vals</span>}
+        {ducked && (
+          <span className="booth-chip" data-testid="booth-ducked">
+            talk-over · −12 dB
+          </span>
+        )}
         {/* the source badge already says "30 s rehearsal" when the item plays from a preview */}
         {rehearsal && src !== "preview" && <span className="booth-chip">30 s rehearsal</span>}
       </div>

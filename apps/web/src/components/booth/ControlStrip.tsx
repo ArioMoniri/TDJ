@@ -3,6 +3,7 @@ import {
   Cake,
   Coffee,
   Ellipsis,
+  Hand,
   Pause,
   Play,
   SkipForward,
@@ -10,33 +11,36 @@ import {
   Square,
   VolumeX,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useBooth } from "@/lib/booth/store";
 import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
 import { Fader } from "./Fader";
 
-/** Press-and-hold time for the emergency stop (button and the esc key). */
-export const STOP_HOLD_MS = 600;
-
 /**
- * Control strip (round7-booth.md §1.1): the only glass surface of the page, 64 px tall, every control ≥ 44 px.
- * Start the night → Hold / Play, Next at gap, Stop (press-and-hold 600 ms), the cortina fader and the master fader
- * (horizontal, inside the 64 px row: round 18 — the vertical faders' knobs stuck out of the capsule), Birthday vals, Break, the overflow. Phones (round8-ux.md §1.5): one row of five, the
- * two faders behind a Levels button.
+ * Control strip (round7-booth.md §1.1, round20-booth.md): the only glass surface of the page, 64 px tall, every
+ * control ≥ 44 px. Start the night → **Pause / Resume** (one tap, a 0.8 s fade, space), Next at gap, **Stop** (one
+ * tap opens the confirm: "Fade out and stop" / "Stop now"; esc), the cortina and master faders, **Mix** (fades,
+ * hold after this song, talk-over, the night's fade settings), Hold after this song, Birthday vals, Break, the
+ * overflow. Phones (round8-ux.md §1.5): one row of five (Pause, Next, Stop, Mix, •••).
  */
 export function ControlStrip({
   onMore,
   onBreak,
   onLevels,
+  onStop,
 }: {
   onMore: () => void;
   onBreak: () => void;
+  /** the Mix sheet (levels, fades, hold, talk-over) */
   onLevels: () => void;
+  /** the Stop confirm */
+  onStop: () => void;
 }) {
   const state = useBooth((s) => s.state);
   const started = useBooth((s) => s.started);
   const holding = useBooth((s) => s.holding);
+  const paused = useBooth((s) => s.paused);
   const ready = useBooth((s) => s.ready);
   const cortinaFader = useBooth((s) => s.cortinaFader);
   const master = useBooth((s) => s.master);
@@ -48,8 +52,6 @@ export function ControlStrip({
   const act = useBooth.getState();
   const wide = useMediaQuery("(min-width: 640px)", true);
   const sourceMode = useBooth((s) => s.sourceMode);
-  const [holdPct, setHoldPct] = useState(0);
-  const holdTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const stripRef = useRef<HTMLDivElement>(null);
   // the page's bottom padding follows the strip (round 18): the space it takes from the viewport's foot (its height,
   // its offset over the tab bar, the safe area), so the last row of the set always scrolls clear of it
@@ -87,24 +89,6 @@ export function ControlStrip({
     (sources.includes("spotify") &&
       !sources.some((s, i) => s === "file" && plan?.items[i]?.kind !== "break"));
 
-  const beginStop = () => {
-    const t0 = Date.now();
-    holdTimer.current = setInterval(() => {
-      const p = Math.min(1, (Date.now() - t0) / STOP_HOLD_MS);
-      setHoldPct(p);
-      if (p >= 1) {
-        endStop();
-        haptic(12);
-        act.stop();
-      }
-    }, 30);
-  };
-  const endStop = () => {
-    if (holdTimer.current) clearInterval(holdTimer.current);
-    holdTimer.current = null;
-    setHoldPct(0);
-  };
-
   const primary = !started ? (
     <button
       type="button"
@@ -126,27 +110,44 @@ export function ControlStrip({
         )}
       </span>
     </button>
-  ) : live && !holding ? (
+  ) : breakUntil !== null ? (
     <button
       type="button"
-      className="btn btn-ghost min-h-11 px-4"
-      onClick={() => act.hold()}
-      data-testid="booth-hold"
-      aria-label="Hold after this song"
+      className="btn btn-primary min-h-11 px-4"
+      onClick={() => void act.endBreak()}
+      data-testid="booth-play"
+      aria-label="End break"
+      title="End the break now (space)"
     >
-      <Pause size={18} fill="currentColor" strokeWidth={0} aria-hidden /> Hold
+      <Play size={18} fill="currentColor" strokeWidth={0} aria-hidden /> End break
+    </button>
+  ) : live ? (
+    <button
+      type="button"
+      className="btn btn-ghost booth-primary min-h-11 px-4"
+      onClick={() => {
+        haptic(8);
+        act.pause();
+      }}
+      data-testid="booth-pause"
+      aria-label="Pause"
+      title="Pause now, with a short fade (space)"
+    >
+      <Pause size={18} fill="currentColor" strokeWidth={0} aria-hidden /> Pause
     </button>
   ) : (
     <button
       type="button"
-      className="btn btn-primary min-h-11 px-4"
-      onClick={() => void act.play()}
+      className="btn btn-primary booth-primary min-h-11 px-4"
+      onClick={() => {
+        haptic(8);
+        void act.play();
+      }}
       data-testid="booth-play"
-      aria-label={live && holding && breakUntil === null ? "Cancel hold" : "Play"}
+      aria-label={paused ? "Resume" : "Play"}
+      title={paused ? "Resume where it paused (space)" : "Play (space)"}
     >
-      <Play size={18} fill="currentColor" strokeWidth={0} aria-hidden />{" "}
-      {/* while a hold is pending the DJ looks for the thing that cancels it (round8-ux.md §2 Booth) */}
-      {breakUntil !== null ? "End break" : live && holding ? "Cancel hold" : "Play"}
+      <Play size={18} fill="currentColor" strokeWidth={0} aria-hidden /> {paused ? "Resume" : "Play"}
     </button>
   );
 
@@ -174,21 +175,14 @@ export function ControlStrip({
       <button
         type="button"
         className={`icon-btn booth-stop booth-prestart-hide ${started && state !== "stopped" ? "booth-stop-armed" : ""}`}
-        aria-label="Stop (press and hold)"
-        title="Press and hold 600 ms: everything fades out in 1 s"
+        aria-label="Stop…"
+        aria-haspopup="dialog"
+        title="Stop: fade out and stop, or stop now (esc)"
         disabled={!started || state === "stopped"}
-        onPointerDown={beginStop}
-        onPointerUp={endStop}
-        onPointerLeave={endStop}
-        onPointerCancel={endStop}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            if (!holdTimer.current) beginStop();
-          }
+        onClick={() => {
+          haptic(10);
+          onStop();
         }}
-        onKeyUp={endStop}
-        style={{ ["--hold" as string]: `${holdPct * 100}%` }}
         data-testid="booth-stop"
       >
         <Square size={18} fill="currentColor" strokeWidth={0} aria-hidden />
@@ -216,18 +210,30 @@ export function ControlStrip({
             testId="booth-master"
           />
         </>
-      ) : (
-        <button
-          type="button"
-          className="icon-btn"
-          aria-label="Levels"
-          title="Cortina and master faders"
-          onClick={onLevels}
-          data-testid="booth-levels"
-        >
-          <SlidersHorizontal size={20} strokeWidth={2} aria-hidden />
-        </button>
-      )}
+      ) : null}
+      {/* the Mix sheet: levels on a phone, and everywhere the fades, hold after this song and talk-over */}
+      <button
+        type="button"
+        className="icon-btn"
+        aria-label="Mix: levels and fades"
+        title="Fade out now (f), next with crossfade (x), hold (h), talk-over (t), levels, fade lengths"
+        onClick={onLevels}
+        data-testid={wide ? "booth-mix" : "booth-levels"}
+      >
+        <SlidersHorizontal size={20} strokeWidth={2} aria-hidden />
+      </button>
+      <button
+        type="button"
+        className={`icon-btn booth-secondary ${holding ? "text-[var(--tint)]" : ""}`}
+        aria-label={holding ? "Cancel hold" : "Hold after this song"}
+        aria-pressed={holding}
+        title="Hold after this song: the song finishes, the next does not start (h)"
+        onClick={() => act.toggleHold()}
+        disabled={!started || !live}
+        data-testid="booth-hold"
+      >
+        <Hand size={20} strokeWidth={2} aria-hidden />
+      </button>
       <button
         type="button"
         className={`icon-btn booth-secondary ${muted ? "text-[var(--destructive)]" : ""}`}

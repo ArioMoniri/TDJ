@@ -1,5 +1,5 @@
 "use client";
-import { Lock, Repeat2, Search } from "lucide-react";
+import { Lock, Repeat2, Search, SlidersHorizontal } from "lucide-react";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { spotifyOf } from "@/lib/booth/clips";
 import { durationLabel } from "@/lib/booth/plan";
@@ -16,9 +16,12 @@ import type { Playlist } from "@/lib/types";
 export function SetColumn({
   jumpTo,
   onFind,
+  onCortina,
 }: {
   jumpTo: number | null;
   onFind: (itemId: string, title: string) => void;
+  /** round 20: open the cortina's envelope sheet (fade in / fade out / stop at) */
+  onCortina?: (planIndex: number) => void;
 }) {
   const plan = useBooth((s) => s.plan);
   const planIndex = useBooth((s) => s.planIndex);
@@ -166,6 +169,7 @@ export function SetColumn({
                       : undefined
                   }
                   onFind={onFind}
+                  onCortina={onCortina}
                 />
               ))}
             </ol>
@@ -221,6 +225,7 @@ const Row = memo(function Row({
   busy,
   onSwap,
   onFind,
+  onCortina,
 }: {
   i: number;
   /** the track's number inside its tanda (the DJ thinks "track 2 of tanda 7", not plan index 9) */
@@ -233,6 +238,7 @@ const Row = memo(function Row({
   busy: boolean;
   onSwap?: () => void;
   onFind: (itemId: string, title: string) => void;
+  onCortina?: (planIndex: number) => void;
 }) {
   const it = useBooth((s) => s.plan?.items[i]);
   const entity = useBooth((s) => s.entities[i]);
@@ -307,6 +313,17 @@ const Row = memo(function Row({
           onClick={onSwap}
           title={locked ? "Playing: locked" : undefined}
         />
+      ) : it.kind === "cortina" && onCortina && !played ? (
+        <button
+          type="button"
+          className="icon-btn icon-btn-bare h-11 w-11 shrink-0"
+          aria-label={`Fades and stop of the cortina ${it.title}`}
+          title="Fade in, fade out, stop at"
+          onClick={() => onCortina(i)}
+          data-testid="booth-cortina-edit"
+        >
+          <SlidersHorizontal size={16} strokeWidth={2} aria-hidden />
+        </button>
       ) : (
         <span className="booth-row-act" aria-hidden />
       )}
