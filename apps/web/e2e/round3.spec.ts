@@ -57,6 +57,9 @@ test("era presets: switching era applies its defaults unless a control is pinned
   page,
 }) => {
   await page.goto("/");
+  // the first-run card renders only once the page has hydrated: before that the server-rendered select changes
+  // without React's handler, and no era is applied (failed 2 of 5 runs on a warm server)
+  await expect(page.getByTestId("first-run")).toBeVisible();
   const era = page.getByLabel("Era", { exact: true });
   await expect(era).toHaveValue("golden");
   await expect(page.getByText("4 tracks").first()).toBeVisible();
