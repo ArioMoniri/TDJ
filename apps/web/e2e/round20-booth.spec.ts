@@ -241,6 +241,12 @@ test.describe("1440 × 900", () => {
     await openFeaturedBooth(page);
     await page.getByTestId("booth-start").click();
     await expect(page.getByTestId("booth")).toHaveAttribute("data-state", "playing", { timeout: 20000 });
+    // (the strip re-lays out once as Start becomes Pause and the sources settle: wait for the page to be still)
+    await expect
+      .poll(() =>
+        page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth),
+      )
+      .toBe(0);
     const m = await page.evaluate(() => {
       const strip = document.querySelector('[data-testid="booth-strip"]')!;
       const sr = strip.getBoundingClientRect();

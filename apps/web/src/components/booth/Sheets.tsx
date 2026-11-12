@@ -227,14 +227,25 @@ export function StopSheet({ open, onClose }: { open: boolean; onClose: () => voi
   const stop = useBooth((s) => s.stop);
   const fade = useBooth((s) => s.settings.stopFadeSec);
   const gentle = useRef<HTMLButtonElement>(null);
-  // Enter = "Fade out and stop": the focus lands on it once the sheet is up (the sheet's own focus goes to its
-  // first control, the close button)
+  const now = useRef<HTMLButtonElement>(null);
+  const done = useRef(onClose);
+  done.current = onClose;
+  // Enter = "Fade out and stop" wherever the focus is (the sheet's own focus lands on its first control, Cancel);
+  // only a focused "Stop now" takes Enter for itself
   useEffect(() => {
     if (!open) return;
-    const focus = () => gentle.current?.focus({ preventScroll: true });
-    const ts = [0, 50, 120].map((ms) => setTimeout(focus, ms));
+    const t = setTimeout(() => gentle.current?.focus({ preventScroll: true }), 60);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Enter" || e.repeat || document.activeElement === now.current) return;
+      e.preventDefault();
+      e.stopPropagation();
+      useBooth.getState().stop(useBooth.getState().settings.stopFadeSec);
+      done.current();
+    };
+    document.addEventListener("keydown", onKey, true);
     return () => {
-      for (const t of ts) clearTimeout(t);
+      clearTimeout(t);
+      document.removeEventListener("keydown", onKey, true);
     };
   }, [open]);
   return (
@@ -261,6 +272,7 @@ export function StopSheet({ open, onClose }: { open: boolean; onClose: () => voi
         <button
           type="button"
           className="cell cell-tap w-full justify-center font-semibold text-[var(--destructive)]"
+          ref={now}
           data-testid="booth-stop-now"
           onClick={() => {
             stop(STOP_NOW_SEC);
