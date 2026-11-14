@@ -17,7 +17,7 @@ interface DecodeCtx {
  * 30 s rehearsal (round7-booth.md §8.3, round18-booth.md): every clip is the side's checked Spotify recording —
  * Spotify's own preview of that track, or a Deezer clip only when it is the same recording (`rehearsalClip`); an
  * item without one is "not rehearsable" rather than rehearsed from another transfer or take. A Deezer clip goes
- * through `/api/preview?…&json=1` (the provider's current signed link; they expire daily); a Spotify preview is
+ * through `/api/preview?…&json=1` (the provider's current signed link; it expires within minutes, so a 403 asks once for a fresh one); a Spotify preview is
  * fetched as stored. The clip is decoded and measured; items are capped at 30 s and every badge says "30 s rehearsal".
  */
 export class PreviewAdapter implements SourceAdapter {
@@ -65,17 +65,20 @@ export class PreviewAdapter implements SourceAdapter {
     const ctx = this.ctx();
     if (!clip || !ctx) throw new Error("No clip of the Spotify recording for this item");
     let url: string | undefined;
+    let ep: string | null = null;
     if (clip.from === "spotify") url = clip.url;
     else {
       const r = clip.resolved;
-      const ep = `/api/preview?provider=${encodeURIComponent(r.provider)}&id=${encodeURIComponent(r.id)}&json=1`;
-      const j = await this.fetchImpl(ep)
-        .then((x) => (x.ok ? x.json() : null))
-        .catch(() => null);
-      url = j?.url;
+      ep = `/api/preview?provider=${encodeURIComponent(r.provider)}&id=${encodeURIComponent(r.id)}&json=1`;
+      url = await this.signed(ep);
     }
     if (!url) throw new Error("No preview available right now");
-    const res = await this.fetchImpl(url, { mode: "cors" });
+    let res = await this.fetchImpl(url, { mode: "cors" });
+    // a signed Deezer link that expired since it was handed out: ask once for a fresh one
+    if (!res.ok && ep && (res.status === 403 || res.status === 410)) {
+      const again = await this.signed(`${ep}&fresh=1`);
+      if (again) res = await this.fetchImpl(again, { mode: "cors" });
+    }
     if (!res.ok) throw new Error(`Preview request failed (${res.status})`);
     const buffer = await ctx.decodeAudioData(await res.arrayBuffer());
     const measured = await measureBuffer(buffer);
@@ -86,6 +89,13 @@ export class PreviewAdapter implements SourceAdapter {
       durationSec: Math.min(REHEARSAL_SEC, buffer.duration),
       note: "30 s rehearsal",
     };
+  }
+
+  private async signed(ep: string): Promise<string | undefined> {
+    const j = await this.fetchImpl(ep)
+      .then((x) => (x.ok ? x.json() : null))
+      .catch(() => null);
+    return (j as { url?: string } | null)?.url;
   }
 
   release(itemId: string) {
