@@ -2237,29 +2237,25 @@ function composeOnce(
   // blocker and the panel as a whole is no worse
   if (!lockedByIndex.size) {
     const night = () => ({ tandas, closing, options: o });
-    for (let round = 0; round < 3; round++) {
+    // (cheap on a long night: two rounds, two blockers, the eight nearest same-rhythm chairs)
+    for (let round = 0; round < 2; round++) {
       const r0 = strictChecks(night());
-      const bad = r0.violations.filter(
-        (v) => v.rule === "fameMean" && v.tanda > 0 && v.tanda < tandas.length - 1,
-      );
+      const bad = r0.violations
+        .filter((v) => v.rule === "fameMean" && v.tanda > 0 && v.tanda < tandas.length - 1)
+        .slice(0, 2);
       if (!bad.length) break;
       let best: { a: number; b: number; v: number } | null = null;
       for (const f of bad) {
         const a = f.tanda;
-        for (let b = 1; b < tandas.length - 1; b++) {
+        const chairs = tandas
+          .map((_t, b) => b)
+          .filter((b) => b > 0 && b < tandas.length - 1 && b !== a && tandas[b]!.rhythm === tandas[a]!.rhythm)
+          .sort((x, y) => Math.abs(x - a) - Math.abs(y - a))
+          .slice(0, 8);
+        for (const b of chairs) {
           const A = tandas[a]!,
             B = tandas[b]!;
-          if (
-            b === a ||
-            B.rhythm !== A.rhythm ||
-            A.peak ||
-            B.peak ||
-            A.locked ||
-            B.locked ||
-            A.birthday ||
-            B.birthday
-          )
-            continue;
+          if (A.peak || B.peak || A.locked || B.locked || A.birthday || B.birthday) continue;
           const put = (x: Tanda, at: Tanda): Tanda => ({
             ...x,
             index: at.index,

@@ -30,6 +30,8 @@ test("night rules: opening with La Cumparsita shows the Opening card; Buenos Air
   // round 21: where La Cumparsita plays is one setting (the default opens and closes the night)
   await expect(page.getByTestId("first-run")).toBeVisible();
   // (the picker shows "both" by default: choose another first so the choice is an explicit one)
+  // (the composer hydrates its settings after first paint: a change before that is lost)
+  await page.waitForLoadState("networkidle");
   const cump = page.getByLabel("La Cumparsita", { exact: true }).first();
   await cump.selectOption("open");
   await cump.selectOption("both");
