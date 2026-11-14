@@ -55,7 +55,7 @@ mkdir -p "$DRIVE"
 export RUSTUP_HOME="${RUSTUP_HOME:-$DRIVE/rustup}" CARGO_HOME="${CARGO_HOME:-$DRIVE/cargo}"
 export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$DRIVE/tdj-target}"
 export PATH="$CARGO_HOME/bin:$DRIVE/node/bin:$PATH"
-xcodebuild -version | head -1 || die "Xcode is missing"
+xcodebuild -version >/dev/null 2>&1 || die "Xcode is missing"; xcodebuild -version | sed -n 1p
 if ! command -v node >/dev/null || [ "$(node -p 'process.versions.node.split(".")[0]')" -lt 22 ]; then
   NODE_V=22.22.0
   curl -fsSL "https://nodejs.org/dist/v$NODE_V/node-v$NODE_V-darwin-$(uname -m | sed 's/x86_64/x64/').tar.gz" | tar -xz -C "$DRIVE"
