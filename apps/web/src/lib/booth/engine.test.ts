@@ -793,3 +793,46 @@ describe("round 20: transport and fades (round20-booth.md)", () => {
     expect(curve.args[2]).toBe(6);
   });
 });
+
+describe("round 21: a tapped row plays — Play now (with a fade) and Play next", () => {
+  let ctx: FakeCtx;
+  beforeEach(() => {
+    ctx = new FakeCtx();
+  });
+  it("Play now: the running item fades out and the tapped item becomes the current one; the night continues from it", async () => {
+    const plan = build(set({ thirdTanda: true }));
+    const e = engineFor(ctx, plan);
+    await e.start();
+    await e.play();
+    expect(e.planIndex).toBe(0);
+    const target = plan.items.findIndex((it) => it.id === "d1");
+    await e.playNow(target, 2);
+    expect(e.state).toBe("playing");
+    expect(e.planIndex).toBe(target);
+    expect(e.current?.planIndex).toBe(target);
+    // the next queued item follows the tapped one
+    expect(e.nextPlayable(target)).toBe(target + 1);
+  });
+  it("Play next: the tapped item follows the running one at the gap, then the night continues from it", async () => {
+    const plan = build(set({ thirdTanda: true }));
+    const e = engineFor(ctx, plan);
+    await e.start();
+    await e.play();
+    const target = plan.items.findIndex((it) => it.id === "d2");
+    e.playNext(target);
+    await flush();
+    // the tapped item is the queued one (the forced pointer is spent once it is queued)
+    expect((e as unknown as { queued: { planIndex: number } | null }).queued?.planIndex).toBe(target);
+    ctx.advance(0.05 + 170);
+    await flush();
+    expect(e.planIndex).toBe(target);
+    expect(e.forcedNext).toBeNull();
+  });
+  it("before the night: Play now arms the tapped item and starts it", async () => {
+    const plan = build(set());
+    const e = engineFor(ctx, plan);
+    await e.playNow(3);
+    expect(e.planIndex).toBe(3);
+    expect(e.state === "playing" || e.state === "cortina").toBe(true);
+  });
+});

@@ -69,12 +69,13 @@ describe("round 18: the booth plays and times the checked Spotify recording", ()
     });
     // every song of the night carries a checked Spotify match
     expect(checked).toBe(plan.items.filter((x) => x.kind === "track" || x.kind === "closing").length);
-    // Pensalo Bien: the catalogue keeps Deezer's 150 s side length, the booth plays Spotify's 136.92 s transfer
-    const pb = plan.items.find((_, i) => (ents[i] as Song | null)?.title === "Pensalo Bien")!;
-    expect(pb.lengthSec).toBeCloseTo(136.92, 2);
+    // Gato (round 21: Pensalo Bien left the night): the catalogue keeps its 163 s side length, the booth plays
+    // Spotify's 154.93 s transfer
+    const pb = plan.items.find((_, i) => (ents[i] as Song | null)?.title === "Gato")!;
+    expect(pb.lengthSec).toBeCloseTo(154.93, 2);
     // the set itself is not changed (the catalogue's side length stays for the musical rules)
-    const pbSong = featured.tandas.flatMap((t) => t.songs).find((x) => x.title === "Pensalo Bien")!;
-    expect(pbSong.durationSec).toBe(150);
+    const pbSong = featured.tandas.flatMap((t) => t.songs).find((x) => x.title === "Gato")!;
+    expect(pbSong.durationSec).toBe(163);
   });
 
   it("planEntities includes the closing La Cumparsita (it printed as '?' with no source)", () => {

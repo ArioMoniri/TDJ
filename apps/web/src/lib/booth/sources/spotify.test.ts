@@ -95,3 +95,27 @@ describe("round 18: logged into Spotify, the booth plays exactly the checked rec
       );
   });
 });
+
+describe("round 21: Premium plays full tracks (the booth no longer falls back to clips for a Premium login)", () => {
+  const me = (body: unknown) =>
+    (async () => new Response(JSON.stringify(body), { status: 200 })) as typeof fetch;
+  const ALL = ["streaming", "user-modify-playback-state", "user-read-playback-state", "user-read-private"];
+  it("a Premium profile is available", async () => {
+    const a = new SpotifyAdapter({ fetchImpl: me({ user: { id: "u", product: "premium" }, scopes: ALL }) });
+    expect(await a.available()).toMatchObject({ ok: true, premium: true });
+  });
+  it("a profile without `product` (no user-read-private, app mode) is tried, not called free", async () => {
+    const a = new SpotifyAdapter({ fetchImpl: me({ user: { id: "u" } }) });
+    expect(await a.available()).toMatchObject({ ok: true, premium: null });
+  });
+  it("a login without the streaming scope asks to reconnect", async () => {
+    const a = new SpotifyAdapter({
+      fetchImpl: me({ user: { id: "u", product: "premium" }, scopes: ["playlist-modify-private"] }),
+    });
+    expect(await a.available()).toMatchObject({ ok: false, reconnect: true });
+  });
+  it("a free account says so", async () => {
+    const a = new SpotifyAdapter({ fetchImpl: me({ user: { id: "u", product: "free" }, scopes: ALL }) });
+    expect(await a.available()).toMatchObject({ ok: false, premium: false });
+  });
+});

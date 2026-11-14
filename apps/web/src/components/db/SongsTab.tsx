@@ -51,6 +51,20 @@ const eraOf = (y?: number): Song["era"] =>
                   ? "nuevo"
                   : "contemporary";
 const num = (v: string) => (v === "" ? undefined : Number(v));
+/** round 21: where an enriched value came from */
+const SOURCE: Record<string, string> = {
+  dj: "yours",
+  deezer: "Deezer",
+  audio: "analysed preview",
+  index: "index",
+  knowledge: "knowledge table",
+  heuristic: "refrain-era rule",
+};
+const VOCAL_STYLE_ITEMS: Array<[string, string]> = [
+  ["cantor", "Singer-led (cantor)"],
+  ["estribillo", "Rhythm-led (estribillista)"],
+  ["unknown", "Unknown"],
+];
 
 export function SongsTab() {
   const { overrides, update } = useDb();
@@ -258,15 +272,52 @@ export function SongsTab() {
                   onChange={(t) => setField(s, "energy", num(t))}
                 />
                 <ValueCell
-                  label="BPM"
+                  label={`BPM${s.tempo ? ` · ${p.bpm !== undefined ? "yours" : (SOURCE[s.tempo.source] ?? s.tempo.source)}` : ""}`}
                   inputLabel={`BPM of ${s.title}`}
                   editing={editing}
                   value={p.bpm}
-                  placeholder={s.bpm ?? "–"}
+                  placeholder={s.tempo ? Math.round(s.tempo.bpm) : (s.bpm ?? "–")}
                   type="number"
                   min={40}
                   max={240}
                   onChange={(t) => setField(s, "bpm", num(t))}
+                />
+                {/* round 21: the loudness and the vocal style the tanda rules read; a correction here wins over
+                    the enrichment (Deezer, the knowledge table) and is kept when the enrich scripts run again */}
+                <ValueCell
+                  label={`Level dB${s.level ? ` · ${p.gainDb !== undefined ? "yours" : (SOURCE[s.level.source] ?? s.level.source)}` : ""}`}
+                  inputLabel={`Level of ${s.title}`}
+                  editing={editing}
+                  value={p.gainDb}
+                  placeholder={s.level ? s.level.gainDb.toFixed(1) : "–"}
+                  type="number"
+                  min={-40}
+                  max={10}
+                  onChange={(t) => setField(s, "gainDb", num(t))}
+                />
+                {v.vocal && (
+                  <PickerRow
+                    label={`Vocal style${s.vocalStyleSource ? ` · ${p.vocalStyle ? "yours" : (SOURCE[s.vocalStyleSource] ?? s.vocalStyleSource)}` : ""}`}
+                    ariaLabel={`Vocal style of ${s.title}`}
+                    value={(p.vocalStyle ?? s.vocalStyle ?? "unknown") as string}
+                    items={VOCAL_STYLE_ITEMS}
+                    onChange={(k) => k && setField(s, "vocalStyle", k === "unknown" ? undefined : k)}
+                    disabled={!editing}
+                  />
+                )}
+                <Row
+                  label="Streams"
+                  sub={[
+                    s.spotify?.uri
+                      ? `Spotify ${s.spotify.album ?? ""}${s.spotify.release ? ` (${s.spotify.release.slice(0, 4)})` : ""}${s.spotify.checkedAt ? ` · checked ${s.spotify.checkedAt.slice(0, 10)}` : ""}`
+                      : "No checked Spotify recording",
+                    s.deezer?.id
+                      ? `Deezer ${s.deezer.id}${s.deezer.fetchedAt ? ` · fetched ${s.deezer.fetchedAt.slice(0, 10)}` : ""}`
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                  data-testid="db-streams"
                 />
                 <Row
                   tile={

@@ -33,6 +33,8 @@ export async function GET(req: Request) {
         user,
         token: { access: s.session.access, expires: s.session.expires },
         authorizedAt: s.session.authorizedAt,
+        // round 21: the granted scopes (the booth asks to reconnect when playback was never granted)
+        ...(s.session.scopes?.length ? { scopes: s.session.scopes } : {}),
       }),
     );
     if (s.setCookie) res.headers.append("set-cookie", s.setCookie);

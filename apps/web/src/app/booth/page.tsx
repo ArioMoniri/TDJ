@@ -233,13 +233,7 @@ function Booth() {
     <div className="booth" data-state={state} data-testid="booth" data-rehearsal={rehearsal || undefined}>
       {/* the title keeps one width; the mode is a chip under it (round8-ux.md §2 Booth) */}
       <PageHeader title="Booth" />
-      {rehearsal && (
-        <p className="mt-1">
-          <span className="booth-chip" data-testid="booth-mode">
-            Rehearsal · 30 s clips
-          </span>
-        </p>
-      )}
+      <SourceLine rehearsal={rehearsal} />
       <Banners />
       <div className="booth-grid">
         <div className="booth-col-now">
@@ -314,5 +308,51 @@ function Booth() {
       <FindFileSheet item={find} onClose={() => setFind(null)} />
       <ResumeSheet />
     </div>
+  );
+}
+
+/**
+ * Round 21: where the night's sound comes from, said plainly under the title — "Spotify · full tracks" when the
+ * Premium session plays, "Rehearsal · 30 s clips" otherwise with what would play the full songs: one tap back to
+ * Spotify when the rehearsal switch is on, "Reconnect Spotify" when the login lacks the playback permission, a
+ * note when the account is not Premium.
+ */
+function SourceLine({ rehearsal }: { rehearsal: boolean }) {
+  const sp = useBooth((s) => s.availability.spotify);
+  const sources = useBooth((s) => s.sources);
+  const mode = useBooth((s) => s.sourceMode);
+  const started = useBooth((s) => s.started);
+  const onSpotify = !rehearsal && sources.includes("spotify");
+  if (!rehearsal && !onSpotify && !sp.reconnect) return null;
+  return (
+    <p className="mt-1 flex flex-wrap items-center gap-2">
+      <span className="booth-chip" data-testid="booth-mode" data-source={onSpotify ? "spotify" : "clips"}>
+        {onSpotify ? "Spotify · full tracks" : "Rehearsal · 30 s clips"}
+      </span>
+      {rehearsal && sp.ok && mode === "preview" && !started && (
+        <button
+          type="button"
+          className="btn-plain min-h-11"
+          onClick={() => void useBooth.getState().setSourceMode("file")}
+          data-testid="booth-full-tracks"
+        >
+          Play full tracks on Spotify
+        </button>
+      )}
+      {sp.reconnect && (
+        <a
+          className="btn-plain min-h-11 inline-flex items-center"
+          href="/api/spotify/login?next=/booth"
+          data-testid="booth-reconnect"
+        >
+          Reconnect Spotify to play full songs
+        </a>
+      )}
+      {rehearsal && sp.checked && sp.premium === false && (
+        <span className="text-footnote text-[var(--label-2)]">
+          Spotify Free: the browser can only play 30 s clips.
+        </span>
+      )}
+    </p>
   );
 }

@@ -185,6 +185,8 @@ function TandaCardImpl({
       data-locked={t.locked || undefined}
       data-changed={changed || undefined}
       data-rhythm={t.rhythm}
+      data-tanda={i + 1}
+      data-pinned={t.pinned ? "dj" : undefined}
     >
       {/* curve dot → card hand-off: a one-shot ring pulse on arrival */}
       {active && !reduced && (
@@ -225,6 +227,16 @@ function TandaCardImpl({
                 {sub}
               </span>
               <span className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                {/* round 21: the DJ's tanda — the rules leave it alone, its exceptions are the DJ's */}
+                {t.pinned && (
+                  <span
+                    className="text-caption1 inline-flex rounded-full bg-[color-mix(in_srgb,var(--system-gold)_18%,transparent)] px-2 py-0.5 font-medium text-[var(--label)]"
+                    data-testid="tanda-pinned"
+                    title={t.pinned.reason}
+                  >
+                    Your tanda · kept as is
+                  </span>
+                )}
                 {t.note && (
                   <span
                     className="text-caption1 inline-flex rounded-full bg-[color-mix(in_srgb,var(--tint)_14%,transparent)] px-2 py-0.5 font-medium text-[var(--tint)]"

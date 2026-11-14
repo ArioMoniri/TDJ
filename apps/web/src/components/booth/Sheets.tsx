@@ -125,10 +125,14 @@ export function LevelsSheet({ open, onClose }: { open: boolean; onClose: () => v
           onChange={(v) => act.setDucked(v)}
         />
       </Group>
-      <Group footer="The cortina fader scales every cortina; the master is the room level. ↑ / ↓ move the cortina fader from the keyboard, m mutes.">
+      <Group
+        header="Volume"
+        footer="Cortina volume: how loud the cortinas play against the tangos (100 % = as loud; lower it so the cortina reads as a break). Master volume: the whole output to the room, in dB (0 = as mastered). ↑ / ↓ move the cortina volume from the keyboard, m mutes."
+      >
         <div className="cell">
           <Fader
-            label="Cortina"
+            label="Cortina volume"
+            hint="How loud cortinas play against the tangos"
             value={cortinaFader}
             min={0}
             max={1}
@@ -141,7 +145,8 @@ export function LevelsSheet({ open, onClose }: { open: boolean; onClose: () => v
         </div>
         <div className="cell">
           <Fader
-            label="Master"
+            label="Master volume"
+            hint="The whole output to the room"
             value={master}
             min={-30}
             max={6}

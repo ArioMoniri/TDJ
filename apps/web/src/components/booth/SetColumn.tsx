@@ -4,8 +4,12 @@ import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { spotifyOf } from "@/lib/booth/clips";
 import { durationLabel } from "@/lib/booth/plan";
 import { useBooth } from "@/lib/booth/store";
+import { tempoLevel } from "@/lib/tempo";
 import { toast } from "@/lib/toast";
 import type { Playlist } from "@/lib/types";
+import { ActionRow, Group } from "../Form";
+import { Sheet } from "../Sheet";
+import { SwapSheet } from "../SwapSheet";
 
 /**
  * The set (round7-booth.md §1.1): every plan item grouped by tanda; the current item highlighted, played items
@@ -32,6 +36,18 @@ export function SetColumn({
   const apply = useBooth((s) => s.applySwappedPlaylist);
   const list = useRef<HTMLElement>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  // round 21: a tapped row (the play sheet during the night) and the per-song Swap sheet
+  const [tapped, setTapped] = useState<number | null>(null);
+  const [swapAt, setSwapAt] = useState<{ tanda: number; track: number } | null>(null);
+  const tap = useCallback(async (i: number) => {
+    const b = useBooth.getState();
+    if (!b.started) {
+      const why = await b.auditionItem(i);
+      toast(why ? `Can't audition: ${why}` : `Auditioning ${b.plan?.items[i]?.title ?? ""}`);
+      return;
+    }
+    setTapped(i);
+  }, []);
   useEffect(() => {
     if (jumpTo === null) return;
     list.current
@@ -162,12 +178,13 @@ export function SetColumn({
                   onSwap={
                     plan.items[i]!.kind === "track" && t
                       ? () =>
-                          swap(
-                            g.tanda,
-                            t.songs.findIndex((s) => s.id === plan.items[i]!.id),
-                          )
+                          setSwapAt({
+                            tanda: g.tanda,
+                            track: t.songs.findIndex((s) => s.id === plan.items[i]!.id),
+                          })
                       : undefined
                   }
+                  onTap={tap}
                   onFind={onFind}
                   onCortina={onCortina}
                 />
@@ -176,7 +193,79 @@ export function SetColumn({
           </section>
         );
       })}
+      <PlaySheet i={tapped} onClose={() => setTapped(null)} />
+      <SwapSheet
+        playlist={swapAt ? lockedPlaylist(playlist) : null}
+        tandaIndex={swapAt ? swapAt.tanda - 1 : null}
+        trackIndex={swapAt?.track ?? null}
+        onClose={() => setSwapAt(null)}
+        lockedReason={
+          swapAt && started && swapAt.tanda <= runningTanda
+            ? "Playing or played: this tanda is read-only."
+            : undefined
+        }
+        onApplied={async (np, how) => {
+          await apply({
+            ...np,
+            tandas: np.tandas.map((x, i) => ({ ...x, locked: x.pinned ? true : playlist.tandas[i]?.locked })),
+          });
+          toast(how);
+        }}
+      />
     </section>
+  );
+}
+
+/**
+ * Round 21 — a row tapped during the night: play it now (the running item fades out), next (after the running one),
+ * or preview it alone (a 30 s clip through this device's default output: headphones, so the floor does not hear it).
+ */
+function PlaySheet({ i, onClose }: { i: number | null; onClose: () => void }) {
+  const it = useBooth((s) => (i === null ? null : s.plan?.items[i]));
+  const audition = useBooth((s) => s.audition);
+  const fade = useBooth((s) => s.settings.fadeNowSec);
+  const b = useBooth.getState();
+  return (
+    <Sheet
+      open={i !== null && !!it}
+      onClose={onClose}
+      title={it ? `Play ${it.title}` : "Play"}
+      testId="booth-play-sheet"
+    >
+      <Group
+        footer={`Play now fades the running item out over ${fade} s. Preview only plays a 30 s clip on this device's default output: use headphones so the floor does not hear it.`}
+      >
+        <ActionRow
+          label="Play now (fade the current)"
+          onClick={() => {
+            if (i !== null) void b.playNow(i);
+            onClose();
+          }}
+        />
+        <ActionRow
+          label="Play next"
+          onClick={() => {
+            if (i !== null) {
+              b.playNext(i);
+              toast(`${it?.title} plays next`);
+            }
+            onClose();
+          }}
+        />
+        {audition?.i === i ? (
+          <ActionRow label="Stop the preview" onClick={() => b.stopAudition()} />
+        ) : (
+          <ActionRow
+            label="Preview only (headphones)"
+            onClick={async () => {
+              if (i === null) return;
+              const why = await b.auditionItem(i);
+              if (why) toast(`No preview: ${why}`);
+            }}
+          />
+        )}
+      </Group>
+    </Sheet>
   );
 }
 
@@ -226,7 +315,9 @@ const Row = memo(function Row({
   onSwap,
   onFind,
   onCortina,
+  onTap,
 }: {
+  onTap?: (i: number) => void;
   i: number;
   /** the track's number inside its tanda (the DJ thinks "track 2 of tanda 7", not plan index 9) */
   k: number;
@@ -242,6 +333,7 @@ const Row = memo(function Row({
 }) {
   const it = useBooth((s) => s.plan?.items[i]);
   const entity = useBooth((s) => s.entities[i]);
+  const auditioning = useBooth((s) => s.audition?.i === i);
   if (!it) return null;
   const missing = source === "missing" && it.kind !== "break";
   const sp = spotifyOf(entity);
@@ -255,11 +347,21 @@ const Row = memo(function Row({
       aria-current={current ? "true" : undefined}
       data-source={source}
       data-spotify={sp?.uri}
+      data-auditioning={auditioning || undefined}
     >
       <span className="booth-row-n tabular-nums">
         {it.kind === "cortina" ? "♪" : it.kind === "break" ? "—" : k}
       </span>
-      <span className="min-w-0 flex-1">
+      {/* round 21: the row itself is the play control — before the night it auditions the side, during the night it
+          offers Play now / Play next / Preview only */}
+      <button
+        type="button"
+        className="booth-row-tap min-h-11 min-w-0 flex-1 text-left"
+        onClick={() => onTap?.(i)}
+        disabled={!onTap || it.kind === "break" || missing}
+        aria-label={`Play ${it.title}`}
+        data-testid="booth-row-play"
+      >
         <span className="booth-row-title block">
           {it.title}
           {it.birthday ? " · birthday" : ""}
@@ -269,9 +371,10 @@ const Row = memo(function Row({
             ? `cortina · ${it.artist} · in ${durationLabel(it.trimInSec ?? 0)} · stop ${durationLabel(it.stopSec ?? 0)}`
             : it.artist}
           {it.year ? ` · ${it.year}` : ""}
+          {entity && "tempo" in entity && tempoLevel(entity) ? ` · ${tempoLevel(entity)}` : ""}
           {source === "spotify" ? " · Spotify" : missing ? (rehearsal ? " · no clip" : " · no source") : ""}
         </span>
-      </span>
+      </button>
       {/* the planned length (the Spotify recording's when the side has one), so the DJ can read the night */}
       <span
         className="booth-row-len text-caption1 tabular-nums text-[var(--label-3)]"

@@ -1,4 +1,5 @@
 "use client";
+import { describeLearned } from "@tdj/core";
 import {
   Brain,
   FolderOpen,
@@ -27,6 +28,7 @@ import {
 } from "@/components/Form";
 import { PageHeader } from "@/components/PageHeader";
 import { Sheet } from "@/components/Sheet";
+import { TandaRulesGroup } from "@/components/TandaRules";
 import { fade, t as tw } from "@/lib/motion";
 import { useStore } from "@/lib/store";
 import {
@@ -149,7 +151,8 @@ function humanError(provider: AiProvider, status: number, raw: unknown): string 
 }
 
 export default function Settings() {
-  const { settings, setSettings, storageMode, memory, options } = useStore();
+  const { settings, setSettings, storageMode, memory, options, setOptions, updateMemory } = useStore();
+  const learnedLines = describeLearned(memory.learned);
   const [showKey, setShowKey] = useState(false);
   const [folderFor, setFolderFor] = useState<DjApp | null>(null);
   const [test, setTest] = useState<{ state: TestState; text?: string }>({ state: "idle" });
@@ -344,6 +347,31 @@ export default function Settings() {
             id={`folder-row-${a.id}`}
           />
         ))}
+      </Group>
+
+      <TandaRulesGroup
+        id="settings-tanda-rules"
+        value={options.tandaRules}
+        onChange={(tandaRules) => setOptions({ tandaRules })}
+      />
+
+      <Group
+        header="What TDJ learned from your edits"
+        footer="Every swap, search-and-swap, AI pick or pinned tanda teaches TDJ what you prefer: the sides and families you chose weigh more in later nights, the ones you replaced a little less, and pinned tandas become your templates. Rules still apply; tonight's settings win."
+        data-testid="learned-edits"
+      >
+        {learnedLines.length ? (
+          learnedLines.slice(0, 12).map((l) => <Row key={l} label={l} />)
+        ) : (
+          <Row label="Nothing yet" sub="Swap a side or keep a tanda as is to teach TDJ" />
+        )}
+        {learnedLines.length > 0 && (
+          <ActionRow
+            label="Forget what TDJ learned from my edits"
+            destructive
+            onClick={() => updateMemory((m) => ({ ...m, learned: undefined }))}
+          />
+        )}
       </Group>
 
       <Group

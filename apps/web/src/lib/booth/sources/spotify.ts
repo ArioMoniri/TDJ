@@ -41,6 +41,10 @@ export const SDK_URL = "https://sdk.scdn.co/spotify-player.js";
 export const NOT_PREMIUM =
   "Your Spotify account is not Premium: Spotify does not allow playback in the browser.";
 export const NOT_LOGGED_IN = "Not logged in with Spotify.";
+export const NEEDS_RECONNECT =
+  "Reconnect Spotify to play full songs (the login lacks the playback permission).";
+/** the Web Playback SDK and the Web API's play endpoints need these */
+export const STREAMING_SCOPES = ["streaming", "user-modify-playback-state", "user-read-playback-state"];
 export const LICENCE_NOTE = "Spotify's SDK terms restrict commercial use; check them for paid events.";
 export const NO_FADES_IPAD = "No fades on iPad with Spotify: cortinas stop at their planned second instead.";
 
@@ -99,7 +103,20 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
     this.onBanner = o.onBanner;
   }
 
-  async available() {
+  /**
+   * Round 21 (the "I have Premium, why rehearsal?" bug): the booth used to require `product === "premium"` from
+   * `/v1/me`, so a Premium account whose profile came back without `product` (Spotify only returns it with the
+   * `user-read-private` scope, and leaves it out of some app modes) was told it is not Premium and the night fell back
+   * to 30 s clips. Now: a session without the `streaming` scope is asked to reconnect (one tap, re-consent); an
+   * explicit non-Premium product says so; an unknown product is tried — the Web Playback SDK itself reports a
+   * non-Premium account (`account_error`) when the night connects.
+   */
+  async available(): Promise<{
+    ok: boolean;
+    reason?: string;
+    reconnect?: boolean;
+    premium?: boolean | null;
+  }> {
     const j = await this.fetchImpl("/api/spotify/me")
       .then((r) => (r.ok ? r.json() : null))
       .catch(() => null);
@@ -107,8 +124,15 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
       this.premium = null;
       return { ok: false, reason: NOT_LOGGED_IN };
     }
-    this.premium = j.user.product === "premium";
-    return this.premium ? { ok: true } : { ok: false, reason: NOT_PREMIUM };
+    const scopes: string[] | undefined = Array.isArray(j.scopes) ? j.scopes : undefined;
+    if (scopes && !STREAMING_SCOPES.every((x) => scopes.includes(x))) {
+      this.premium = null;
+      return { ok: false, reason: NEEDS_RECONNECT, reconnect: true };
+    }
+    const product = typeof j.user.product === "string" ? j.user.product : null;
+    this.premium = product === null ? null : product === "premium";
+    if (this.premium === false) return { ok: false, reason: NOT_PREMIUM, premium: false };
+    return { ok: true, premium: this.premium };
   }
 
   async resolve(_item: BoothRow, entity: PlanEntity) {
@@ -175,6 +199,28 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
   async transfer() {
     if (!this.deviceId) return;
     await this.api("/me/player", { device_ids: [this.deviceId], play: false }).catch(() => {});
+  }
+
+  /**
+   * Round 21 — audition a track (a tap on a row before the night, or "Preview only"): connect this device if needed
+   * and play the recording from its start; `pauseAudition` stops it.
+   */
+  async audition(uri: string): Promise<void> {
+    await this.connect();
+    const t = await this.token();
+    const r = await this.fetchImpl(
+      `https://api.spotify.com/v1/me/player/play?device_id=${encodeURIComponent(this.deviceId ?? "")}`,
+      {
+        method: "PUT",
+        headers: { authorization: `Bearer ${t}`, "content-type": "application/json" },
+        body: JSON.stringify({ uris: [uri], position_ms: 0 }),
+      },
+    );
+    if (!r.ok && r.status !== 204) throw new Error(`Spotify answered ${r.status}`);
+    await this.player?.setVolume(this.master).catch(() => {});
+  }
+  async pauseAudition(): Promise<void> {
+    await this.player?.pause().catch(() => {});
   }
 
   setMaster(gain: number) {

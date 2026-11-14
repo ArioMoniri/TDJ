@@ -1922,6 +1922,19 @@ html.theming *::after {
   width: 110px;
   min-height: 44px;
 }
+/* round 21: the label says what the fader does (the strip keeps the label only; the hint is its description) */
+.booth-fader-label {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.booth-strip .booth-fader-label {
+  flex: none;
+}
+.booth-strip .booth-fader-hint {
+  display: none;
+}
 .booth-fader-v {
   flex-direction: column;
   gap: 2px;
@@ -1939,6 +1952,21 @@ html.theming *::after {
 }
 .booth-strip .booth-fader > span:last-child {
   min-width: 4.5ch;
+}
+/* round 21: Stop says its name beside the square from 640 px (the phone strip keeps the glyph, its label is aria) */
+.booth-stop-label {
+  display: none;
+}
+@media (min-width: 640px) {
+  .booth-strip .booth-stop {
+    width: auto;
+    padding-inline: 12px;
+    gap: 6px;
+  }
+  .booth-stop-label {
+    display: inline;
+    font-weight: 600;
+  }
 }
 /* the stop ring is red only once a night runs; before that it is a quiet glyph (round8-ux.md §2 Booth) */
 .booth-stop {

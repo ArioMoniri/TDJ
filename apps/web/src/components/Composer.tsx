@@ -81,6 +81,8 @@ import { PageHeader } from "./PageHeader";
 import { PrimaryBar } from "./PrimaryBar";
 import { ScoreCounter } from "./ScoreCounter";
 import { Sheet } from "./Sheet";
+import { SwapSheet } from "./SwapSheet";
+import { TandaRulesGroup } from "./TandaRules";
 
 /* Below-the-fold / on-demand pieces: their code arrives when first needed, not with the composer. */
 const ExportSheet = dynamic(() => import("./ExportSheet").then((m) => m.ExportSheet), { ssr: false });
@@ -206,6 +208,16 @@ const ultimaKey = (r: NightRules) =>
   r.ultimaOrchestra
     ? `${r.ultimaOrchestra}|${r.ultimaSinger === null ? "~" : r.ultimaSinger === undefined ? "*" : r.ultimaSinger}`
     : "auto";
+/** round 21: where La Cumparsita plays (the default opens and closes the night) */
+const CUMPARSITA_AT: Array<[NonNullable<NightRules["cumparsita"]>, string]> = [
+  ["both", "Open and close the night"],
+  ["open", "Open the night"],
+  ["close", "Close the night"],
+  ["none", "Not at all"],
+];
+const cumparsitaKey = (r: NightRules, close?: boolean): NonNullable<NightRules["cumparsita"]> =>
+  r.cumparsita ??
+  ((r.openWithCumparsita ?? true) ? (close === false ? "open" : "both") : close === false ? "none" : "close");
 const CUMPARSITAS: Array<["1" | "2", string]> = [
   ["1", "One (Europe)"],
   ["2", "Two (Buenos Aires)"],
@@ -519,11 +531,17 @@ const SetupForm = memo(function SetupForm({
         footer="Defaults follow the era. These travel with every compose, feedback and refine."
         id="night-rules"
       >
-        <SwitchRow
-          label="Open with La Cumparsita"
-          sub="Some Buenos Aires and festival openings"
-          checked={!!rules.openWithCumparsita}
-          onChange={(v) => setRules({ openWithCumparsita: v })}
+        <PickerRow
+          label="La Cumparsita"
+          sub="Opening: the first tanda's orchestra, its nearest year, instrumental"
+          ariaLabel="La Cumparsita"
+          value={cumparsitaKey(rules, options.closeWithCumparsita)}
+          items={CUMPARSITA_AT}
+          onChange={(k) => {
+            if (!k) return;
+            setRules({ cumparsita: k, openWithCumparsita: undefined });
+            setOptions({ closeWithCumparsita: k === "close" || k === "both" });
+          }}
         />
         <SegmentedRow
           label="Closing Cumparsitas"
@@ -675,6 +693,8 @@ const SetupForm = memo(function SetupForm({
         />
       </Group>
 
+      <TandaRulesGroup value={options.tandaRules} onChange={(tandaRules) => setOptions({ tandaRules })} />
+
       <div className="md:col-span-2">
         <ContextStrip
           value={(options.context ?? {}) as ComposeContext}
@@ -741,7 +761,7 @@ export function Composer() {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [active, setActive] = useState<number | null>(null);
   const [swapping, setSwapping] = useState<number | null>(null);
-  const [swappingTrack, setSwappingTrack] = useState<[number, number] | null>(null);
+  const [swappingTrack] = useState<[number, number] | null>(null);
   /** the card whose lock just flipped: the only one (with the swapping one) that gets layout animations */
   const [lockedCard, setLockedCard] = useState<number | null>(null);
   const [ai, setAi] = useState<string | null>(null);
@@ -761,7 +781,7 @@ export function Composer() {
   const [meta, setMeta] = useState<Meta | null>(null);
   const [pendingChip, setPendingChip] = useState<Feedback | null>(null);
   const [errorKey, setErrorKey] = useState(0);
-  const [nudge, setNudge] = useState<{ i: number; k: number; n: number } | null>(null);
+  const [nudge] = useState<{ i: number; k: number; n: number } | null>(null);
   /** the score before the last recompose, so the counter runs old → new instead of 0 → new */
   const prevScore = useRef<number | null>(null);
   /** energy per tanda before the last swap/recompose (keyed by index) */
@@ -1080,30 +1100,18 @@ export function Composer() {
     },
     [setPlaylist, addSnapshot, remember],
   );
-  const swapTrack = useCallback(
-    async (i: number, k: number) => {
-      const playlist = useStore.getState().playlist;
-      if (!playlist) return;
-      setSwappingTrack([i, k]);
-      setNote(null);
-      try {
-        const r = await fetch("/api/swap-track", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ playlist, tandaIndex: i, trackIndex: k }),
-        });
-        const j = (await r.json()) as Playlist & { changed?: boolean };
-        if (r.ok && j.changed) {
-          remember(playlist);
-          setPlaylist(j);
-          addSnapshot(makeSnapshot(j, fullOptions(useStore.getState().options), "swap"));
-        } else {
-          setNote(`No other ${playlist.tandas[i]?.orchestra} recording fits that slot.`);
-          setNudge((n) => ({ i, k, n: (n?.n ?? 0) + 1 }));
-        }
-      } finally {
-        setSwappingTrack(null);
-      }
+  // round 21: a side's swap opens its Swap sheet (suggestions that keep the tanda valid, search, AI pick)
+  const [swapAt, setSwapAt] = useState<{ i: number; k: number } | null>(null);
+  const swapTrack = useCallback((i: number, k: number) => {
+    setNote(null);
+    setSwapAt({ i, k });
+  }, []);
+  const swapApplied = useCallback(
+    (p: Playlist) => {
+      const prev = useStore.getState().playlist;
+      if (prev) remember(prev);
+      setPlaylist(p);
+      addSnapshot(makeSnapshot(p, fullOptions(useStore.getState().options), "swap"));
     },
     [setPlaylist, addSnapshot, remember],
   );
@@ -1912,6 +1920,13 @@ export function Composer() {
       )}
 
       {exportMounted && <ExportSheet open={exportOpen} onClose={() => setExportOpen(false)} />}
+      <SwapSheet
+        playlist={swapAt ? playlist : null}
+        tandaIndex={swapAt?.i ?? null}
+        trackIndex={swapAt?.k ?? null}
+        onClose={() => setSwapAt(null)}
+        onApplied={(p) => swapApplied(p)}
+      />
 
       {playlist && (
         <Sheet

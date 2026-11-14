@@ -4,7 +4,7 @@ import { create } from "zustand";
 import { makeNightLog, makeSnapshot } from "@/lib/history";
 import { useStore } from "@/lib/store";
 import { cortinaStopSec } from "@/lib/types";
-import { clipSummary, withSpotifyLengths } from "./clips";
+import { clipSummary, rehearsalClip, spotifyOf, withSpotifyLengths } from "./clips";
 import {
   BoothEngine,
   type BoothItemRuntime,
@@ -77,7 +77,10 @@ interface BoothStore {
   rehearsal: boolean;
   /** round 18: the items no clip of their Spotify recording can rehearse, with the reason (plan indexes) */
   notRehearsable: Array<{ i: number; title: string; why: string }>;
-  availability: Record<SourceKind, { ok: boolean; reason?: string; checked: boolean }>;
+  availability: Record<
+    SourceKind,
+    { ok: boolean; reason?: string; checked: boolean; reconnect?: boolean; premium?: boolean | null }
+  >;
   folder: FolderStatus;
   suggestions: Record<string, Array<{ path: string; name: string }>>;
   decoding: number | null;
@@ -90,7 +93,14 @@ interface BoothStore {
   ready: boolean;
   /** sources are being matched (folder, Spotify, previews): the cards say so instead of showing 0 */
   resolving: boolean;
+  /** round 21: a row being auditioned (before the night, or "Preview only" during it) and how it plays */
+  audition: { i: number; via: "clip" | "spotify"; title: string } | null;
   /* actions */
+  /** round 21: tap a row — play it now (the running item fades), next, or audition it */
+  playNow: (i: number) => Promise<void>;
+  playNext: (i: number) => void;
+  auditionItem: (i: number) => Promise<string | null>;
+  stopAudition: () => void;
   boot: (p: Playlist, o?: { rehearsal?: boolean }) => Promise<void>;
   setSourceMode: (m: SourceMode) => Promise<void>;
   refreshSources: () => Promise<void>;
@@ -145,6 +155,8 @@ let lastTick = 0;
 let persistTimer: ReturnType<typeof setInterval> | null = null;
 let unsubDevice: (() => void) | null = null;
 let restoredLocal = false;
+/** round 21: the audition player (a clip through the default output; Spotify auditions play on the SDK device) */
+let auditionEl: HTMLAudioElement | null = null;
 
 const getCtx = () => ctx;
 function adapters(): { local: LocalAdapter; spotify: SpotifyAdapter; preview: PreviewAdapter } {
@@ -252,6 +264,7 @@ export const useBooth = create<BoothStore>()((set, get) => ({
   spotifyNoFades: false,
   ready: false,
   resolving: false,
+  audition: null,
 
   boot: async (p, o = {}) => {
     const a = adapters();
@@ -548,6 +561,74 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     applyPlan(rePlan(p, get().settings, { cortinaEdits: edits }));
   },
   next: () => engine?.next(),
+  playNow: async (i) => {
+    get().stopAudition();
+    if (!engine || !get().started) {
+      set({ planIndex: i });
+      return get().start();
+    }
+    if (ctx) unlockAudio(ctx);
+    await ctx?.resume().catch(() => {});
+    await engine.playNow(i);
+    startTicking();
+  },
+  playNext: (i) => {
+    engine?.playNext(i);
+    if (engine)
+      set({
+        ...derive(get().plan!, engine.planIndex, engine.position(), capFor(get().sources, get().rehearsal)),
+      });
+  },
+  // round 21: audition a row (a tap): Spotify Premium plays the checked recording on this device; otherwise the
+  // rehearsal clip of that recording; null when it plays, else why not
+  auditionItem: async (i) => {
+    const { entities, plan, sources, availability } = get();
+    const it = plan?.items[i];
+    if (!it || it.kind === "break") return "nothing to play";
+    get().stopAudition();
+    const e = entities[i] ?? null;
+    const sp = spotifyOf(e);
+    if (sp?.uri && availability.spotify.ok && (sources[i] === "spotify" || !get().started)) {
+      try {
+        await adapters().spotify.audition(sp.uri);
+        set({ audition: { i, via: "spotify", title: it.title } });
+        return null;
+      } catch (err) {
+        pushBanner({
+          key: "spotify",
+          text: err instanceof Error ? err.message : "Spotify could not play it",
+        });
+      }
+    }
+    const v = rehearsalClip(e);
+    const url = v.clip ? (v.clip.from === "spotify" ? v.clip.url : v.clip.resolved.previewUrl) : null;
+    if (!url) return v.why ?? "no clip of this recording";
+    const el = new Audio(url);
+    el.volume = 0.9;
+    auditionEl = el;
+    el.onended = () => {
+      if (auditionEl === el) {
+        auditionEl = null;
+        set({ audition: null });
+      }
+    };
+    try {
+      await el.play();
+    } catch {
+      auditionEl = null;
+      return "the browser blocked playback: tap again";
+    }
+    set({ audition: { i, via: "clip", title: it.title } });
+    return null;
+  },
+  stopAudition: () => {
+    if (auditionEl) {
+      auditionEl.pause();
+      auditionEl = null;
+    }
+    if (get().audition?.via === "spotify") void adapters().spotify.pauseAudition();
+    if (get().audition) set({ audition: null });
+  },
   skipNow: async () => engine?.skipNow(),
   stop: (fadeSec) => {
     engine?.stop("stop", fadeSec);

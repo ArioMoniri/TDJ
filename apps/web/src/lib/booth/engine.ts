@@ -318,11 +318,55 @@ export class BoothEngine {
     const k = this.sources[i];
     return (k && this.adapters.find((a) => a.kind === k)) ?? null;
   }
-  /** The next index after `from` that will play (not skipped; breaks count). */
+  /** round 21: the item the DJ asked to play next ("Play next"); the night continues from it */
+  forcedNext: number | null = null;
+  /** The next index after `from` that will play (not skipped; breaks count; "Play next" first). */
   nextPlayable(from: number): number | null {
     if (!this.plan) return null;
+    const f = this.forcedNext;
+    if (f !== null && f !== from && f >= 0 && f < this.plan.items.length && !this.skipped.has(f)) return f;
     for (let i = from + 1; i < this.plan.items.length; i++) if (!this.skipped.has(i)) return i;
     return null;
+  }
+
+  /**
+   * Round 21 — "Play now": the running item fades out over `fadeSec` and item `i` starts once the fade is through;
+   * the night continues from `i`. Before anything plays (armed, paused, stopped) the playhead moves to `i` and it starts.
+   */
+  async playNow(i: number, fadeSec = this.settings.fadeNowSec): Promise<void> {
+    if (!this.plan?.items[i] || this.item(i)?.kind === "break") return;
+    this.forcedNext = null;
+    this.skipped.delete(i);
+    if (this.state === "playing" || this.state === "cortina") {
+      this.stop("play now", fadeSec);
+      this.pausedAt = null;
+      this.planIndex = i;
+      this.transition("armed", "play now");
+      await this.play(Math.max(START_AHEAD, fadeSec));
+      return;
+    }
+    this.pausedAt = null;
+    this.planIndex = i;
+    if (this.state === "stopped" || this.state === "paused") this.transition("armed", "play now");
+    await this.play();
+  }
+
+  /** Round 21 — "Play next": item `i` follows the running one at the gap (then the night continues from it). */
+  playNext(i: number): void {
+    if (!this.plan?.items[i] || this.item(i)?.kind === "break") return;
+    this.skipped.delete(i);
+    if (this.state === "playing" || this.state === "cortina") {
+      this.forcedNext = i;
+      this.cancelQueued();
+      this.transition(this.state, "play next");
+      void this.scheduleNext();
+      return;
+    }
+    this.forcedNext = null;
+    this.pausedAt = null;
+    this.planIndex = i;
+    this.transition(this.state === "idle" ? "idle" : "armed", "play next");
+    void this.prepare(i).catch((e) => this.markMissing(i, e));
   }
 
   /* ---------- transitions ---------- */
@@ -968,6 +1012,7 @@ export class BoothEngine {
       return;
     }
     this.queued = s;
+    if (this.forcedNext === n) this.forcedNext = null;
     const after = this.nextPlayable(n);
     if (after !== null) void this.prepare(after).catch(() => {});
   }

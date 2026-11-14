@@ -66,6 +66,15 @@ export function getCatalogFor(overrides?: AppOverrides | null) {
     base.corpus,
     core as UserOverrides,
     base.trackEnergy,
+    // (round 21: the committed caches carry under the user's edits — previews, analysed audio, the heatmap, Deezer
+    // BPM and gain — so a DJ correction replaces one value and keeps the rest)
+    {
+      resolved: base.raw.resolved,
+      audio: base.raw.audio,
+      heatmap: base.heatmap,
+      deezer: base.raw.deezer,
+      learned: base.raw.learned,
+    },
   );
   const contextModel = mergeContextModel(base.contextModel, o.contextFactors);
   lru.set(key, { catalog, contextModel });

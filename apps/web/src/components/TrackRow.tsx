@@ -1,5 +1,5 @@
 "use client";
-import { AudioWaveform, LoaderCircle, Search } from "lucide-react";
+import { AudioWaveform, LoaderCircle, Repeat2, Search } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import dynamic from "next/dynamic";
 import { memo, useCallback, useState } from "react";
@@ -10,6 +10,7 @@ import { useMediaQuery } from "@/lib/hooks";
 import { lineSwap } from "@/lib/motion";
 import { sourceFor, trackFor, usePlayer } from "@/lib/player";
 import { useStore } from "@/lib/store";
+import { tempoLevel } from "@/lib/tempo";
 import type { Song } from "@/lib/types";
 import { I } from "./Icons";
 import { Menu } from "./Menu";
@@ -199,6 +200,15 @@ export const TrackRow = memo(function TrackRow({
               {keyLabel(audio)}
             </span>
           )}
+          {/* round 21: the measured tempo and level the tanda's bands read */}
+          {tempoLevel(song) && !isPhone && (
+            <span
+              className="text-caption1 shrink-0 tabular-nums text-[var(--label-3)]"
+              data-testid="row-tempo"
+            >
+              {tempoLevel(song)}
+            </span>
+          )}
           <span className="text-subhead tabular-nums text-[var(--label-2)]">
             <span className="sr-only">energy </span>
             {energy}
@@ -237,6 +247,8 @@ export const TrackRow = memo(function TrackRow({
               )
             }
             items={[
+              // round 21: the side's Swap sheet (suggestions that keep the tanda valid, search, AI pick)
+              { label: "Swap…", icon: Repeat2, onClick: swap, disabled: disabled || inFlight },
               { label: "Find on services…", icon: Search, onClick: openFind },
               {
                 label: audio ? "Analyse again in browser" : "Analyse in browser",

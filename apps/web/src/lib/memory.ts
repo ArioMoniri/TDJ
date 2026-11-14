@@ -16,6 +16,8 @@ export function normalizeMemory(m: unknown): AgentMemory {
     feedbackHistory: Array.isArray(o.feedbackHistory) ? o.feedbackHistory : e.feedbackHistory,
     sets: Array.isArray(o.sets) ? o.sets : e.sets,
     preferences: o.preferences && typeof o.preferences === "object" ? o.preferences : e.preferences,
+    // round 21: what the DJ's edits taught (swaps, pins, hand-made tandas)
+    ...(o.learned && typeof o.learned === "object" ? { learned: o.learned } : {}),
     updatedAt: typeof o.updatedAt === "string" ? o.updatedAt : undefined,
   };
 }

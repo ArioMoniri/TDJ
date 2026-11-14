@@ -186,11 +186,14 @@ export function ControlStrip({
         data-testid="booth-stop"
       >
         <Square size={18} fill="currentColor" strokeWidth={0} aria-hidden />
+        {/* round 21: the word, where there is room — Start, Pause / Resume and Stop read at a glance */}
+        <span className="booth-stop-label">Stop</span>
       </button>
       {wide ? (
         <>
           <Fader
-            label="Cortina"
+            label="Cortina volume"
+            hint="Cortinas against the tangos"
             value={cortinaFader}
             min={0}
             max={1}
@@ -200,7 +203,8 @@ export function ControlStrip({
             testId="booth-cortina-fader"
           />
           <Fader
-            label="Master"
+            label="Master volume"
+            hint="The whole output"
             value={master}
             min={-30}
             max={6}
