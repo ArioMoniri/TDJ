@@ -1,5 +1,5 @@
 import { attachBooth } from "./booth";
-import { sideBpm, sideGain, sideProblem } from "./coherence";
+import { sideBpm, sideGain, sideProblem, tandaRulesOf } from "./coherence";
 import { type ComposeDeps, computeStats } from "./compose";
 import { isDanceableSong, normTitle } from "./energy";
 import { scorePlaylist } from "./score";
@@ -94,7 +94,12 @@ export function swapReason(p: Playlist, ti: number, si: number, s: Song, deps: C
   if (!isDanceableSong(s, deps.catalog.blacklist) || deps.catalog.nonDance(s.orchestraId, s.title, s.year))
     return "not for dancing";
   const others = t.songs.filter((_, i) => i !== si);
-  const why = sideProblem(others, s, { rhythm: t.rhythm, o: p.options });
+  // (round 21c: voice, vocal style and the years decide; the tempo / level bands and the tone only rank — `fit`)
+  const soft = {
+    ...p.options,
+    tandaRules: { ...tandaRulesOf(p.options), bpmBand: false, levelBand: false, tone: "inside" as const },
+  };
+  const why = sideProblem(others, s, { rhythm: t.rhythm, o: soft });
   if (why) return why;
   if (!s.spotify?.uri) return "no checked Spotify recording";
   return null;

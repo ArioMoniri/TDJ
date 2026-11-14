@@ -1604,12 +1604,11 @@ export function buildTanda(
       continue;
     // round 21 (tanda rules): one tone, the tempo and the level bands, one vocal style — a side that breaks one waits
     // while enough others remain (the panel reports what the family could not avoid)
-    // (round 21b: voice, vocal style and the year cap wait always; the tempo / level bands and the tone are soft —
-    // a famous side (fame ≥ 4) is never passed over for them, so a peak keeps its hits and a tanda its known sides)
+    // (round 21c: voice, vocal style and the year cap wait always; the tempo / level bands and the tone never hold a
+    // side back — the panel reports them, at a quarter weight — so the round 9–17 placements keep their families)
     if (picked.length && rest.length >= need - picked.length) {
       const hard = sideProblem(picked, cand, { rhythm: slot.rhythm, o: softBands });
       if (hard) continue;
-      if ((cand.fame ?? 0) < 4 && sideProblem(picked, cand, { rhythm: slot.rhythm, o })) continue;
     }
     seen.add(k);
     picked.push(cand);

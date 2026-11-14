@@ -90,6 +90,17 @@ describe("A — La Cumparsita: where it plays and the opening version", () => {
       expect(Math.abs(p.stats.durationSec - 4 * 3600)).toBeLessThanOrEqual(6 * 60);
     }
   });
+  it("a night saved before round 21 (no opening, no placement setting) is not judged for the opening it never asked for", () => {
+    const old = readJson("docs/specs/round19-best-night.json") as Playlist;
+    const r = strictChecks(old);
+    expect(r.violations.filter((v) => v.rule === "nightShape" || v.rule === "cumparsitaOpener")).toEqual([]);
+    // an explicit setting is still judged
+    const asked = strictChecks({
+      ...old,
+      options: { ...old.options, rules: { ...old.options.rules, cumparsita: "both" } },
+    });
+    expect(asked.violations.some((v) => v.rule === "nightShape" || v.rule === "cumparsitaOpener")).toBe(true);
+  });
   it("the strict panel flags an opening by another orchestra without a recorded fallback", () => {
     const p = nights[0]!;
     const other = deps.catalog.songs.find(

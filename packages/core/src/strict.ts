@@ -600,6 +600,17 @@ export const MUST_HAVE: Array<{
   },
 ];
 export const MUST_HAVE_MIN = 8;
+/** round 21c: a night saved before round 21 — no opening and no placement setting — never asked for the opening the
+ * round-21 default adds (a round-21 night always carries one, or a recorded "opening: …" fallback) */
+const preOpening = (n: {
+  opening?: Song | null;
+  options: Night["options"];
+  stats?: { settingFallbacks?: string[] };
+}) =>
+  !n.opening &&
+  n.options.rules?.cumparsita === undefined &&
+  n.options.rules?.openWithCumparsita === undefined &&
+  !n.stats?.settingFallbacks?.some((f) => f.startsWith("opening:"));
 /** round 21b: the soft round-21 rules (a quarter in the penalty) */
 const SOFT_R21 = new Set(["tandaBpm", "tandaLevel", "tandaTone", "bigFour"]);
 /** the classic cycle's slots (R15-1) */
@@ -1694,7 +1705,13 @@ export function shapeProblems(n: Night): Array<{ tanda: number; detail: string }
       tanda: t.length,
       detail: `closes on ${cl?.title ?? "nothing"}, the setting is La Cumparsita`,
     });
-  if (place.open && n.opening !== undefined && !isCumpTitle(n.opening) && !fellBack(n, "opening"))
+  if (
+    place.open &&
+    n.opening !== undefined &&
+    !isCumpTitle(n.opening) &&
+    !fellBack(n, "opening") &&
+    !preOpening(n)
+  )
     out.push({ tanda: -1, detail: "the setting opens with La Cumparsita, the night does not" });
   if (!place.open && n.opening)
     out.push({
@@ -1866,7 +1883,7 @@ function round21(
   for (const p of bigFourProblems(n.tandas, o)) add("bigFour", p.tanda, p.detail, p.with);
   const place = cumparsitaPlacement(o);
   const first = n.tandas[0];
-  if (!place.open || !first) not("cumparsitaOpener");
+  if (!place.open || !first || preOpening(n)) not("cumparsitaOpener");
   else if (n.opening && isCumpTitle(n.opening) && !fellBack(n, "opening")) {
     const ys = dance(first)
       .map((s) => s.year)
