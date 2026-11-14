@@ -220,359 +220,370 @@ export default function Settings() {
   const remembered = memory.notes.length + memory.sets.length + memory.feedbackHistory.length;
 
   return (
-    <div className="mx-auto max-w-[720px]">
+    <div className="settings-page mx-auto max-w-[720px] lg:max-w-none">
       <PageHeader title="Settings" />
-
-      {/* order (round8-ux.md §1.10): what the DJ changes most first; accounts and the owner's rows last */}
-      <Group
-        header="Appearance"
-        footer="Reduce transparency makes navigation and sheets solid; easier to read, lighter on the battery."
-      >
-        <SegmentedRow
-          label="Theme"
-          value={settings.theme}
-          items={THEMES}
-          onChange={(t) => setSettings({ theme: t })}
-          tile={
-            <Tile color="#636366">
-              <Palette size={16} strokeWidth={2} />
-            </Tile>
-          }
-        />
-        <SwitchRow
-          label="Reduce transparency"
-          checked={settings.reduceGlass}
-          onChange={(v) => setSettings({ reduceGlass: v })}
-        />
-      </Group>
-
-      <Group header="Region" footer="Default for Tonight's region on the composer.">
-        <PickerRow
-          label="Where you usually play"
-          value={settings.region}
-          items={REGIONS}
-          onChange={(r) => r && setSettings({ region: r })}
-          tile={
-            <Tile color="#007aff">
-              <Globe size={16} strokeWidth={2} />
-            </Tile>
-          }
-        />
-      </Group>
-
-      {/* round 22: the song indicators (energy, BPM, key, era, artwork), the same switches as the player's Show */}
-      <IndicatorSwitches />
-
-      <Group
-        header="Composing"
-        footer="After every compose the night is checked against the published DJ sets and the engine's own rules (your heatmap's best years, one recording period per tanda, the golden core, bridge cues) and improved where a change makes nothing worse. The change summary under the set says what changed. Off: the night is shown as composed; the Benchmark sheet can still improve it."
-      >
-        <SwitchRow
-          label="Auto-improve against published sets"
-          checked={settings.autoImprove}
-          onChange={(v) => setSettings({ autoImprove: v })}
-          tile={
-            <Tile color="#34c759">
-              <Sparkles size={16} strokeWidth={2} />
-            </Tile>
-          }
-        />
-      </Group>
-
-      <Group
-        header="Playback"
-        footer={`Where a cortina stops: TDJ's player cuts it there, M3U8 and XSPF tell VLC to stop (#EXTVLCOPT / vlc:option stop-time), Rekordbox XML gets a hot cue at that second. ${settings.cortinaStopSec === null ? `Following the composer's cortina length (${cortinaStopSec(settings, options.cortinaLengthSec)} s).` : "Spotify playlists cannot trim tracks: cortinas there play in full, or leave them out when exporting."}`}
-      >
-        <StepperRow
-          label="Cortina play length"
-          sub={settings.cortinaStopSec === null ? "Follows the composer" : "Your own length"}
-          value={cortinaStopSec(settings, options.cortinaLengthSec)}
-          unit=" s"
-          min={CORTINA_STOP_RANGE.min}
-          max={CORTINA_STOP_RANGE.max}
-          step={CORTINA_STOP_RANGE.step}
-          onChange={(v) => setSettings({ cortinaStopSec: v })}
-          tile={
-            <Tile color="#ff2d55">
-              <Timer size={16} strokeWidth={2} />
-            </Tile>
-          }
-        />
-        <SwitchRow
-          label="Follow the composer's cortina length"
-          checked={settings.cortinaStopSec === null}
-          onChange={(v) =>
-            setSettings({ cortinaStopSec: v ? null : cortinaStopSec(settings, options.cortinaLengthSec) })
-          }
-        />
-      </Group>
-
-      <Group
-        header="DJ apps"
-        footer={`Exports point at real paths once a folder is set. Files are expected as “${settings.fileNaming || DEFAULT_NAMING}.mp3”, for example “${(
-          settings.fileNaming || DEFAULT_NAMING
-        )
-          .replace("{artist}", "Juan D'Arienzo")
-          .replace("{orchestra}", "Juan D'Arienzo")
-          .replace("{title}", "El Flete")
-          .replace("{singer}", "")
-          .replace("{year}", "1936")
-          .replace("{rhythm}", "tango")
-          .replace("{tanda}", "03")
-          .replace("{n}", "011")
-          .replace(/\s{2,}/g, " ")
-          .trim()}.mp3”. Placeholders: {artist} {title} {orchestra} {singer} {year} {rhythm} {tanda} {n}.`}
-      >
-        <FieldRow
-          label="File naming"
-          id="file-naming"
-          tile={
-            <Tile color="#ff9500">
-              <FolderOpen size={16} strokeWidth={2} />
-            </Tile>
-          }
+      {/* wide screens (round 23): the groups flow in two columns, the Mac preferences way */}
+      <div className="settings-cols">
+        {/* order (round8-ux.md §1.10): what the DJ changes most first; accounts and the owner's rows last */}
+        <Group
+          header="Appearance"
+          footer="Reduce transparency makes navigation and sheets solid; easier to read, lighter on the battery."
         >
-          <input
+          <SegmentedRow
+            label="Theme"
+            value={settings.theme}
+            items={THEMES}
+            onChange={(t) => setSettings({ theme: t })}
+            tile={
+              <Tile color="#636366">
+                <Palette size={16} strokeWidth={2} />
+              </Tile>
+            }
+          />
+          <SwitchRow
+            label="Reduce transparency"
+            checked={settings.reduceGlass}
+            onChange={(v) => setSettings({ reduceGlass: v })}
+          />
+          <SwitchRow
+            label="Sound effects"
+            checked={settings.sounds !== false}
+            onChange={(v) => setSettings({ sounds: v })}
+          />
+        </Group>
+
+        <Group header="Region" footer="Default for Tonight's region on the composer.">
+          <PickerRow
+            label="Where you usually play"
+            value={settings.region}
+            items={REGIONS}
+            onChange={(r) => r && setSettings({ region: r })}
+            tile={
+              <Tile color="#007aff">
+                <Globe size={16} strokeWidth={2} />
+              </Tile>
+            }
+          />
+        </Group>
+
+        {/* round 22: the song indicators (energy, BPM, key, era, artwork), the same switches as the player's Show */}
+        <IndicatorSwitches />
+
+        <Group
+          header="Composing"
+          footer="After every compose the night is checked against the published DJ sets and the engine's own rules (your heatmap's best years, one recording period per tanda, the golden core, bridge cues) and improved where a change makes nothing worse. The change summary under the set says what changed. Off: the night is shown as composed; the Benchmark sheet can still improve it."
+        >
+          <SwitchRow
+            label="Auto-improve against published sets"
+            checked={settings.autoImprove}
+            onChange={(v) => setSettings({ autoImprove: v })}
+            tile={
+              <Tile color="#34c759">
+                <Sparkles size={16} strokeWidth={2} />
+              </Tile>
+            }
+          />
+        </Group>
+
+        <Group
+          header="Playback"
+          footer={`Where a cortina stops: TDJ's player cuts it there, M3U8 and XSPF tell VLC to stop (#EXTVLCOPT / vlc:option stop-time), Rekordbox XML gets a hot cue at that second. ${settings.cortinaStopSec === null ? `Following the composer's cortina length (${cortinaStopSec(settings, options.cortinaLengthSec)} s).` : "Spotify playlists cannot trim tracks: cortinas there play in full, or leave them out when exporting."}`}
+        >
+          <StepperRow
+            label="Cortina play length"
+            sub={settings.cortinaStopSec === null ? "Follows the composer" : "Your own length"}
+            value={cortinaStopSec(settings, options.cortinaLengthSec)}
+            unit=" s"
+            min={CORTINA_STOP_RANGE.min}
+            max={CORTINA_STOP_RANGE.max}
+            step={CORTINA_STOP_RANGE.step}
+            onChange={(v) => setSettings({ cortinaStopSec: v })}
+            tile={
+              <Tile color="#ff2d55">
+                <Timer size={16} strokeWidth={2} />
+              </Tile>
+            }
+          />
+          <SwitchRow
+            label="Follow the composer's cortina length"
+            checked={settings.cortinaStopSec === null}
+            onChange={(v) =>
+              setSettings({ cortinaStopSec: v ? null : cortinaStopSec(settings, options.cortinaLengthSec) })
+            }
+          />
+        </Group>
+
+        <Group
+          header="DJ apps"
+          footer={`Exports point at real paths once a folder is set. Files are expected as “${settings.fileNaming || DEFAULT_NAMING}.mp3”, for example “${(
+            settings.fileNaming || DEFAULT_NAMING
+          )
+            .replace("{artist}", "Juan D'Arienzo")
+            .replace("{orchestra}", "Juan D'Arienzo")
+            .replace("{title}", "El Flete")
+            .replace("{singer}", "")
+            .replace("{year}", "1936")
+            .replace("{rhythm}", "tango")
+            .replace("{tanda}", "03")
+            .replace("{n}", "011")
+            .replace(/\s{2,}/g, " ")
+            .trim()}.mp3”. Placeholders: {artist} {title} {orchestra} {singer} {year} {rhythm} {tanda} {n}.`}
+        >
+          <FieldRow
+            label="File naming"
             id="file-naming"
-            className="field field-value min-w-0 flex-1 font-mono"
-            value={settings.fileNaming}
-            placeholder={DEFAULT_NAMING}
-            onChange={(e) => setSettings({ fileNaming: e.target.value })}
-            autoComplete="off"
-            spellCheck={false}
-          />
-        </FieldRow>
-        {DJ_APPS.map((a) => (
-          <Row
-            key={a.id}
-            label={a.label}
-            sub={a.format}
-            chevron
-            onClick={() => setFolderFor(a.id)}
-            value={settings.djApps[a.id]?.folder ? "Set" : "Off"}
-            id={`folder-row-${a.id}`}
-          />
-        ))}
-      </Group>
-
-      <TandaRulesGroup
-        id="settings-tanda-rules"
-        value={options.tandaRules}
-        onChange={(tandaRules) => setOptions({ tandaRules })}
-      />
-
-      <Group
-        header="What TDJ learned from your edits"
-        footer="Every swap, search-and-swap, AI pick or pinned tanda teaches TDJ what you prefer: the sides and families you chose weigh more in later nights, the ones you replaced a little less, and pinned tandas become your templates. Rules still apply; tonight's settings win."
-        data-testid="learned-edits"
-      >
-        {learnedLines.length ? (
-          learnedLines.slice(0, 12).map((l) => <Row key={l} label={l} />)
-        ) : (
-          <Row label="Nothing yet" sub="Swap a side or keep a tanda as is to teach TDJ" />
-        )}
-        {learnedLines.length > 0 && (
-          <ActionRow
-            label="Forget what TDJ learned from my edits"
-            destructive
-            onClick={() => updateMemory((m) => ({ ...m, learned: undefined }))}
-          />
-        )}
-      </Group>
-
-      <Group
-        header="Memory"
-        footer="The assistant keeps notes, the sets you composed and your feedback in your database, and applies what it learned under tonight's explicit choices. Review or forget any of it under Database → Memory."
-      >
-        <Row
-          tile={
-            <Tile color="#ff2d55">
-              <Brain size={16} strokeWidth={2} />
-            </Tile>
-          }
-          label="Stored"
-          value={`${storageMode === "server" ? "On the server" : "In this browser"} · ${remembered} ${remembered === 1 ? "item" : "items"}`}
-        />
-        <SwitchRow
-          label="Let the assistant learn from my feedback"
-          checked={settings.learn}
-          onChange={(v) => setSettings({ learn: v })}
-        />
-      </Group>
-
-      <Connectors />
-      {/* round 22: where missing BPM, key, level, artwork and dates come from, and "Add a source" */}
-      <DataSources />
-
-      <Group
-        header="Models"
-        footer={
-          <span
-            role="status"
-            aria-live="polite"
-            className={
-              test.state === "fail"
-                ? "text-[var(--destructive)]"
-                : test.state === "ok"
-                  ? "text-[var(--system-green)]"
-                  : undefined
+            tile={
+              <Tile color="#ff9500">
+                <FolderOpen size={16} strokeWidth={2} />
+              </Tile>
             }
           >
-            <TestIcon state={test.state} />
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.span
-                key={
-                  test.state === "idle"
-                    ? "idle"
-                    : test.state === "busy"
-                      ? checking
-                        ? "busy"
-                        : "idle"
-                      : test.text
-                }
-                variants={fade}
-                initial="hidden"
-                animate="show"
-                exit="exit"
-                // the result text lands as the check in the Lottie completes (300 ms in)
-                transition={
-                  test.state === "ok" || test.state === "fail" ? { ...tw.fade, delay: 0.3 } : tw.fade
-                }
-                className={test.state === "idle" ? "block" : "ml-1.5 inline"}
-              >
-                {test.state === "busy"
-                  ? checking
-                    ? "Checking…"
-                    : ""
-                  : (test.text ??
-                    (usingShared
-                      ? `The organiser's key writes your reviews and turns “Tell the DJ” into precise changes, up to ${shared?.limit ?? 20} requests a day per DJ. Add your own key under “Use my own key” for unlimited use; it stays in this browser.`
-                      : "A model key lets you ask for a written review of a set, edit the night in your own words and turn “Tell the DJ” into precise changes. Without one, simple requests still work by keyword. The key is sent with your own requests only and never stored on the server."))}
-              </motion.span>
-            </AnimatePresence>
-          </span>
-        }
-      >
-        <Row
-          tile={
-            <Tile color="#5856d6">
-              <KeyRound size={16} strokeWidth={2} />
-            </Tile>
-          }
-          label="Status"
-          value={
-            agentInUse
-              ? `Using ${agentInUse.name}`
-              : ai.key
-                ? "Key saved"
-                : shared === null
-                  ? "Checking…"
-                  : shared.shared
-                    ? `Using the organiser's key · ${shared.used} of ${shared.limit} today`
-                    : "Off"
-          }
-          id="ai-status"
-        />
-        {!showOwn && (
-          <Row
-            label="Use my own key"
-            sub="Unlimited, kept in this browser"
-            value="Show"
-            onClick={() => setOwnKey(true)}
-            id="ai-own-key"
-          />
-        )}
-        {showOwn && (
-          <>
-            <SegmentedRow
-              label="Provider"
-              value={ai.provider}
-              items={AI_PROVIDERS}
-              onChange={switchProvider}
+            <input
+              id="file-naming"
+              className="field field-value min-w-0 flex-1 font-mono"
+              value={settings.fileNaming}
+              placeholder={DEFAULT_NAMING}
+              onChange={(e) => setSettings({ fileNaming: e.target.value })}
+              autoComplete="off"
+              spellCheck={false}
             />
-            <FieldRow label="API key" id="ai-key">
-              <input
-                id="ai-key"
-                type={showKey ? "text" : "password"}
-                className="field field-value min-w-0 flex-1 font-mono"
-                placeholder={KEY_PLACEHOLDER[ai.provider]}
-                value={ai.key}
-                onChange={(e) => setAi({ key: e.target.value.trim() })}
-                autoComplete="off"
-                spellCheck={false}
+          </FieldRow>
+          {DJ_APPS.map((a) => (
+            <Row
+              key={a.id}
+              label={a.label}
+              sub={a.format}
+              chevron
+              onClick={() => setFolderFor(a.id)}
+              value={settings.djApps[a.id]?.folder ? "Set" : "Off"}
+              id={`folder-row-${a.id}`}
+            />
+          ))}
+        </Group>
+
+        <TandaRulesGroup
+          id="settings-tanda-rules"
+          value={options.tandaRules}
+          onChange={(tandaRules) => setOptions({ tandaRules })}
+        />
+
+        <Group
+          header="What TDJ learned from your edits"
+          footer="Every swap, search-and-swap, AI pick or pinned tanda teaches TDJ what you prefer: the sides and families you chose weigh more in later nights, the ones you replaced a little less, and pinned tandas become your templates. Rules still apply; tonight's settings win."
+          data-testid="learned-edits"
+        >
+          {learnedLines.length ? (
+            learnedLines.slice(0, 12).map((l) => <Row key={l} label={l} />)
+          ) : (
+            <Row label="Nothing yet" sub="Swap a side or keep a tanda as is to teach TDJ" />
+          )}
+          {learnedLines.length > 0 && (
+            <ActionRow
+              label="Forget what TDJ learned from my edits"
+              destructive
+              onClick={() => updateMemory((m) => ({ ...m, learned: undefined }))}
+            />
+          )}
+        </Group>
+
+        <Group
+          header="Memory"
+          footer="The assistant keeps notes, the sets you composed and your feedback in your database, and applies what it learned under tonight's explicit choices. Review or forget any of it under Database → Memory."
+        >
+          <Row
+            tile={
+              <Tile color="#ff2d55">
+                <Brain size={16} strokeWidth={2} />
+              </Tile>
+            }
+            label="Stored"
+            value={`${storageMode === "server" ? "On the server" : "In this browser"} · ${remembered} ${remembered === 1 ? "item" : "items"}`}
+          />
+          <SwitchRow
+            label="Let the assistant learn from my feedback"
+            checked={settings.learn}
+            onChange={(v) => setSettings({ learn: v })}
+          />
+        </Group>
+
+        <Connectors />
+        {/* round 22: where missing BPM, key, level, artwork and dates come from, and "Add a source" */}
+        <DataSources />
+
+        <Group
+          header="Models"
+          footer={
+            <span
+              role="status"
+              aria-live="polite"
+              className={
+                test.state === "fail"
+                  ? "text-[var(--destructive)]"
+                  : test.state === "ok"
+                    ? "text-[var(--system-green)]"
+                    : undefined
+              }
+            >
+              <TestIcon state={test.state} />
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.span
+                  key={
+                    test.state === "idle"
+                      ? "idle"
+                      : test.state === "busy"
+                        ? checking
+                          ? "busy"
+                          : "idle"
+                        : test.text
+                  }
+                  variants={fade}
+                  initial="hidden"
+                  animate="show"
+                  exit="exit"
+                  // the result text lands as the check in the Lottie completes (300 ms in)
+                  transition={
+                    test.state === "ok" || test.state === "fail" ? { ...tw.fade, delay: 0.3 } : tw.fade
+                  }
+                  className={test.state === "idle" ? "block" : "ml-1.5 inline"}
+                >
+                  {test.state === "busy"
+                    ? checking
+                      ? "Checking…"
+                      : ""
+                    : (test.text ??
+                      (usingShared
+                        ? `The organiser's key writes your reviews and turns “Tell the DJ” into precise changes, up to ${shared?.limit ?? 20} requests a day per DJ. Add your own key under “Use my own key” for unlimited use; it stays in this browser.`
+                        : "A model key lets you ask for a written review of a set, edit the night in your own words and turn “Tell the DJ” into precise changes. Without one, simple requests still work by keyword. The key is sent with your own requests only and never stored on the server."))}
+                </motion.span>
+              </AnimatePresence>
+            </span>
+          }
+        >
+          <Row
+            tile={
+              <Tile color="#5856d6">
+                <KeyRound size={16} strokeWidth={2} />
+              </Tile>
+            }
+            label="Status"
+            value={
+              agentInUse
+                ? `Using ${agentInUse.name}`
+                : ai.key
+                  ? "Key saved"
+                  : shared === null
+                    ? "Checking…"
+                    : shared.shared
+                      ? `Using the organiser's key · ${shared.used} of ${shared.limit} today`
+                      : "Off"
+            }
+            id="ai-status"
+          />
+          {!showOwn && (
+            <Row
+              label="Use my own key"
+              sub="Unlimited, kept in this browser"
+              value="Show"
+              onClick={() => setOwnKey(true)}
+              id="ai-own-key"
+            />
+          )}
+          {showOwn && (
+            <>
+              <SegmentedRow
+                label="Provider"
+                value={ai.provider}
+                items={AI_PROVIDERS}
+                onChange={switchProvider}
               />
-              <button
-                type="button"
-                className="btn-plain -mr-2"
-                onClick={() => setShowKey((v) => !v)}
-                aria-pressed={showKey}
-              >
-                {showKey ? "Hide" : "Show"}
-              </button>
-            </FieldRow>
-            <FieldRow label="Model" sub="Leave blank for the default" id="ai-model">
-              <input
-                id="ai-model"
-                list="ai-model-list"
-                className="field field-value min-w-0 flex-1 font-mono"
-                placeholder={AI_DEFAULT_MODEL[ai.provider]}
-                value={ai.model}
-                onChange={(e) => setAi({ model: e.target.value.trim() })}
-                autoComplete="off"
-                spellCheck={false}
-              />
-              <datalist id="ai-model-list">
-                {MODEL_SUGGESTIONS[ai.provider].map((m) => (
-                  <option key={m} value={m} />
-                ))}
-              </datalist>
-            </FieldRow>
-            {ai.provider === "anthropic" && (
-              <FieldRow label="Workspace ID" sub="Only for keys made at organisation level" id="ai-workspace">
+              <FieldRow label="API key" id="ai-key">
                 <input
-                  id="ai-workspace"
+                  id="ai-key"
+                  type={showKey ? "text" : "password"}
                   className="field field-value min-w-0 flex-1 font-mono"
-                  placeholder="wrkspc_…"
-                  value={ai.workspace ?? ""}
-                  onChange={(e) => setAi({ workspace: e.target.value.trim() })}
+                  placeholder={KEY_PLACEHOLDER[ai.provider]}
+                  value={ai.key}
+                  onChange={(e) => setAi({ key: e.target.value.trim() })}
                   autoComplete="off"
                   spellCheck={false}
                 />
+                <button
+                  type="button"
+                  className="btn-plain -mr-2"
+                  onClick={() => setShowKey((v) => !v)}
+                  aria-pressed={showKey}
+                >
+                  {showKey ? "Hide" : "Show"}
+                </button>
               </FieldRow>
-            )}
-          </>
+              <FieldRow label="Model" sub="Leave blank for the default" id="ai-model">
+                <input
+                  id="ai-model"
+                  list="ai-model-list"
+                  className="field field-value min-w-0 flex-1 font-mono"
+                  placeholder={AI_DEFAULT_MODEL[ai.provider]}
+                  value={ai.model}
+                  onChange={(e) => setAi({ model: e.target.value.trim() })}
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                <datalist id="ai-model-list">
+                  {MODEL_SUGGESTIONS[ai.provider].map((m) => (
+                    <option key={m} value={m} />
+                  ))}
+                </datalist>
+              </FieldRow>
+              {ai.provider === "anthropic" && (
+                <FieldRow
+                  label="Workspace ID"
+                  sub="Only for keys made at organisation level"
+                  id="ai-workspace"
+                >
+                  <input
+                    id="ai-workspace"
+                    className="field field-value min-w-0 flex-1 font-mono"
+                    placeholder="wrkspc_…"
+                    value={ai.workspace ?? ""}
+                    onChange={(e) => setAi({ workspace: e.target.value.trim() })}
+                    autoComplete="off"
+                    spellCheck={false}
+                  />
+                </FieldRow>
+              )}
+            </>
+          )}
+          <ActionRow
+            label="Test connection"
+            onClick={testConnection}
+            disabled={!ai.key && !usingShared}
+            busy={test.state === "busy"}
+            id="ai-test"
+          />
+        </Group>
+        {showOwn && ai.provider === "anthropic" && (
+          <p className="section-foot -mt-2">
+            Workspace ID: only needed when the key was created at organisation level; or create the key inside
+            a workspace at console.anthropic.com → API keys.
+          </p>
         )}
-        <ActionRow
-          label="Test connection"
-          onClick={testConnection}
-          disabled={!ai.key && !usingShared}
-          busy={test.state === "busy"}
-          id="ai-test"
-        />
-      </Group>
-      {showOwn && ai.provider === "anthropic" && (
-        <p className="section-foot -mt-2">
-          Workspace ID: only needed when the key was created at organisation level; or create the key inside a
-          workspace at console.anthropic.com → API keys.
-        </p>
-      )}
 
-      <ModelConnections />
+        <ModelConnections />
 
-      <Group
-        header="Storage"
-        footer="Set TDJ_DB_TABLE on the server to keep the database and memory across devices."
-      >
-        <Row
-          tile={
-            <Tile color="#636366">
-              <HardDrive size={16} strokeWidth={2} />
-            </Tile>
-          }
-          label="Database"
-          value={storageMode === "server" ? "Server" : "This browser"}
-        />
-      </Group>
+        <Group
+          header="Storage"
+          footer="Set TDJ_DB_TABLE on the server to keep the database and memory across devices."
+        >
+          <Row
+            tile={
+              <Tile color="#636366">
+                <HardDrive size={16} strokeWidth={2} />
+              </Tile>
+            }
+            label="Database"
+            value={storageMode === "server" ? "Server" : "This browser"}
+          />
+        </Group>
+      </div>
 
       <Sheet open={!!app} onClose={() => setFolderFor(null)} title={app?.label ?? ""} trailing="Done">
         {app && (

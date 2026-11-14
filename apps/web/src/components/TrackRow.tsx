@@ -182,7 +182,7 @@ export const TrackRow = memo(function TrackRow({
             className={`flex min-w-0 flex-1 items-baseline gap-1 ${nudge && !reduced ? "nudge-x" : ""}`}
             style={{ opacity: inFlight ? 0.6 : 1, transition: "opacity var(--dur-xs) var(--ease-settle)" }}
           >
-            <span className="min-w-0 truncate">{title}</span>
+            <span className="min-w-[5rem] truncate">{title}</span>
             {/* phones: the year is in the tanda header; here it took the title's room ("La Vida M…") */}
             <span className={`shrink-0 text-[var(--label-2)] ${isPhone ? "sr-only" : ""}`}>
               {song.transcription || approx ? (
@@ -210,7 +210,7 @@ export const TrackRow = memo(function TrackRow({
           {audio && !isPhone && (
             <button
               type="button"
-              className="text-caption1 -my-1 inline-flex min-h-[28px] items-center rounded-md bg-[var(--fill-4)] px-1.5 font-mono tabular-nums text-[var(--label-2)]"
+              className="key-chip text-caption1 -my-1 inline-flex min-h-[28px] shrink-0 items-center whitespace-nowrap rounded-md bg-[var(--fill-4)] px-1.5 font-mono tabular-nums text-[var(--label-2)]"
               title={`Key ${keyLabel(audio)} · ${Math.round(audio.bpm)} BPM · ${audio.loudnessDb.toFixed(1)} dBFS · analysed from a 30 s preview`}
               aria-label={`Key ${keyLabel(audio)}, ${Math.round(audio.bpm)} BPM, details`}
               data-testid="key-chip"
@@ -234,7 +234,7 @@ export const TrackRow = memo(function TrackRow({
           {/* round 21: the measured tempo and level the tanda's bands read */}
           {tempoLevel(song) && !isPhone && (
             <span
-              className="text-caption1 hidden shrink-0 tabular-nums text-[var(--label-3)] xl:inline"
+              className="row-tempo text-caption1 shrink-0 whitespace-nowrap tabular-nums text-[var(--label-3)]"
               data-testid="row-tempo"
             >
               {tempoLevel(song)}

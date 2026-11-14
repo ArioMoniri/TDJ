@@ -4,6 +4,7 @@ import {
   Clock,
   Database,
   Disc3,
+  Hand,
   ListMusic,
   PanelLeft,
   Pause,
@@ -32,6 +33,7 @@ const DEFAULT_W = 240;
 const library = [
   { href: "/", label: "Compose", icon: ListMusic },
   { href: "/booth", label: "Booth", icon: Play },
+  { href: "/build", label: "Build by hand", icon: Hand },
   { href: "/library", label: "Library", icon: Disc3 },
   { href: "/database", label: "Database", icon: Database },
   { href: "/history", label: "History", icon: Clock },
