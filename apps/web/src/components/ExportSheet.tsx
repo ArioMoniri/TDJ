@@ -44,6 +44,7 @@ import { CORTINA_STOP_RANGE, cortinaStopSec, DJ_APPS, type DjApp, type Playlist 
 import { youtubeBatches, youtubeQueries } from "@/lib/youtubePlan";
 import { CountUp } from "./CountUp";
 import { ActionRow, Group, PickerRow, Row, SegmentedRow, StepperRow, SwitchRow, Tile } from "./Form";
+import { ShareNightEntry } from "./ShareSheet";
 import { Sheet } from "./Sheet";
 
 const FORMAT_ITEMS = (Object.keys(EXPORT_META) as ExportFormat[]).map(
@@ -828,6 +829,7 @@ export function ExportSheet({
       detents={["large"]}
       footer={footer}
     >
+      <ShareNightEntry playlist={playlist} />
       <Group
         footer={
           includeCortinas

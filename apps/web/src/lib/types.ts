@@ -167,7 +167,7 @@ export interface HistorySnapshot {
   playlist: import("@tdj/core").Playlist;
   score: number;
   /** what produced it */
-  source: "compose" | "refine" | "swap";
+  source: "compose" | "refine" | "swap" | "import" | "room";
   /** the night as played from the Booth (lib/history.ts `NightLog`), set by "End the night" and every hold */
   nightLog?: import("./history").NightLog;
 }
