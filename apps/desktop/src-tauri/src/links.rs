@@ -33,6 +33,27 @@ pub enum DeepLink {
     Server { url: String },
     /// `tdj://open?path=/booth`
     Open { path: String },
+    /// `tdj://night#n1.…`: a shared night packed in the fragment (ROADMAP §13), opened at `/night#…`
+    Night { fragment: String },
+    /// `file:///…/Saturday.tdjnight`: a night file opened from Finder, Files or AirDrop
+    NightFile { path: std::path::PathBuf },
+    /// `tdj://room?server=https://…&code=ABC234`: a room on the server of whoever made it (§12, opt-in)
+    Room { server: String, code: String },
+}
+
+/// A night link's payload: `n1.` then base64url, at most 100 000 characters.
+fn valid_night_fragment(f: &str) -> bool {
+    f.starts_with("n1.")
+        && f.len() <= 100_000
+        && f.bytes()
+            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_' | b'.'))
+}
+
+/// A room code: six of `ABCDEFGHJKLMNPQRSTUVWXYZ23456789`.
+fn valid_room_code(c: &str) -> bool {
+    c.len() == 6
+        && c.bytes()
+            .all(|b| b"ABCDEFGHJKLMNPQRSTUVWXYZ23456789".contains(&b))
 }
 
 fn valid_ticket(t: &str) -> bool {
@@ -52,6 +73,11 @@ pub fn safe_path(p: &str) -> Option<String> {
 
 pub fn parse(raw: &str) -> Option<DeepLink> {
     let url = Url::parse(raw).ok()?;
+    if url.scheme() == "file" {
+        let path = url.to_file_path().ok()?;
+        let ext = path.extension()?.to_str()?.to_ascii_lowercase();
+        return (ext == "tdjnight").then_some(DeepLink::NightFile { path });
+    }
     if url.scheme() != SCHEME {
         return None;
     }
@@ -96,6 +122,23 @@ pub fn parse(raw: &str) -> Option<DeepLink> {
         "open" => get("path")
             .and_then(|p| safe_path(&p))
             .map(|path| DeepLink::Open { path }),
+        "night" => url
+            .fragment()
+            .filter(|f| valid_night_fragment(f))
+            .map(|f| DeepLink::Night {
+                fragment: f.to_string(),
+            }),
+        "room" => {
+            let code = get("code")
+                .map(|c| c.to_ascii_uppercase())
+                .filter(|c| valid_room_code(c))?;
+            let server = get("server").filter(|s| {
+                Url::parse(s)
+                    .map(|u| matches!(u.scheme(), "https" | "http") && u.host().is_some())
+                    .unwrap_or(false)
+            })?;
+            Some(DeepLink::Room { server, code })
+        }
         _ => None,
     }
 }
@@ -201,6 +244,38 @@ mod tests {
         );
         assert_eq!(parse("tdj://open?path=https://evil"), None);
         assert_eq!(parse("tdj://open?path=/a%5Cb"), None);
+    }
+
+    #[test]
+    fn night_and_room_links() {
+        assert_eq!(
+            parse("tdj://night#n1.abc-_DEF"),
+            Some(DeepLink::Night {
+                fragment: "n1.abc-_DEF".into()
+            })
+        );
+        assert_eq!(parse("tdj://night#%3Cscript%3E"), None);
+        assert_eq!(parse("tdj://night"), None);
+        assert_eq!(
+            parse("tdj://room?server=https%3A%2F%2Fmy.tdj&code=abc234"),
+            Some(DeepLink::Room {
+                server: "https://my.tdj".into(),
+                code: "ABC234".into()
+            })
+        );
+        assert_eq!(
+            parse("tdj://room?server=javascript%3Aalert(1)&code=ABC234"),
+            None
+        );
+        assert_eq!(
+            parse("tdj://room?server=https%3A%2F%2Fmy.tdj&code=ABC10"),
+            None
+        );
+        assert!(matches!(
+            parse("file:///Users/dj/Saturday.tdjnight"),
+            Some(DeepLink::NightFile { .. })
+        ));
+        assert_eq!(parse("file:///Users/dj/notes.txt"), None);
     }
 
     #[test]
