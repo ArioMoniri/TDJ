@@ -308,6 +308,13 @@ export class LocalAdapter implements SourceAdapter {
     return { kind: "file", buffer, measured, durationSec: buffer.duration };
   }
 
+  /** Round 22: the matched file of an item (pre-listen in the headphones, the waveform), or null. */
+  async fileFor(itemId: string): Promise<File | null> {
+    const m = this.matches[itemId];
+    const e = m ? this.entries.find((x) => x.path === m.path) : undefined;
+    return e ? this.fileOf(e) : null;
+  }
+
   release(itemId: string) {
     this.buffers.delete(itemId);
     this.order = this.order.filter((x) => x !== itemId);

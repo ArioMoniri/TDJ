@@ -2,10 +2,15 @@
 import { CORTINA_EDIT_RANGES } from "@tdj/core";
 import { useEffect, useRef, useState } from "react";
 import { STOP_NOW_SEC, TRANSPORT_RANGES } from "@/lib/booth/engine";
+import { MIX_EXPLAIN, MIX_PRESETS, type MixPresetId, presetOf } from "@/lib/booth/mix";
 import { BOOTH_RANGES, durationLabel } from "@/lib/booth/plan";
 import { useBooth } from "@/lib/booth/store";
-import { ActionRow, Group, Row, StepperRow, SwitchRow } from "../Form";
+import { useMediaQuery } from "@/lib/hooks";
+import { useStore } from "@/lib/store";
+import { CORTINA_STOP_RANGE, cortinaStopSec } from "@/lib/types";
+import { ActionRow, Group, Row, SegmentedRow, StepperRow, SwitchRow } from "../Form";
 import { Sheet } from "../Sheet";
+import { Stepper } from "../ui";
 import { Fader } from "./Fader";
 
 const Kbd = ({ k }: { k: string }) => (
@@ -47,9 +52,45 @@ function KeyAction({
   );
 }
 
+/** A stepper row whose one-line explanation is never cut (the Mix sheet says what every number does). */
+function MixStepper({
+  label,
+  explain,
+  value,
+  unit = " s",
+  display,
+  testId,
+  ...stepper
+}: {
+  label: string;
+  explain: string;
+  value: number;
+  unit?: string;
+  display?: string;
+  testId?: string;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (v: number) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="cell" data-testid={testId}>
+      <span className="min-w-0 flex-1">
+        <span className="block">{label}</span>
+        <span className="text-footnote block text-[var(--label-2)]">{explain}</span>
+      </span>
+      <span className="cell-value tabular-nums">{display ?? `${value}${unit}`}</span>
+      <Stepper label={label} value={value} unit={unit} {...stepper} />
+    </div>
+  );
+}
+
 /**
- * Mix (round 20; was Levels, round8-ux.md §1.5): what the DJ does to the sound right now (pause, fade out now, next
- * with crossfade, hold after this song, end the tanda, talk-over), the two faders, and the night's fade lengths.
+ * Mix (round 22, Spotify "Mix" style): the night's sound settings, every value visible in its row with one line
+ * saying what it does — transitions (a preset, the gap, the song end fade, the crossfade and fade lengths),
+ * cortinas (play length, fades, volume), levels (room volume, loudness, silence trim) and the source. The actions
+ * on the playing song live on the transport; a phone, whose transport has no room for them, gets them here first.
  */
 export function LevelsSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const cortinaFader = useBooth((s) => s.cortinaFader);
@@ -61,10 +102,17 @@ export function LevelsSheet({ open, onClose }: { open: boolean; onClose: () => v
   const holding = useBooth((s) => s.holding);
   const paused = useBooth((s) => s.paused);
   const settings = useBooth((s) => s.settings);
+  const sourceMode = useBooth((s) => s.sourceMode);
+  const spotifyOk = useBooth((s) => s.availability.spotify.ok);
   const kind = useBooth((s) => s.plan?.items[s.planIndex]?.kind);
+  const composerCortina = useBooth((s) => s.playlist?.options.cortinaLengthSec);
+  const userSettings = useStore((s) => s.settings);
+  const phone = useMediaQuery("(max-width: 639px)");
   const act = useBooth.getState();
   const live = state === "playing" || state === "cortina";
   const set = act.setSettings;
+  const preset = presetOf(settings);
+  const cortinaLen = cortinaStopSec(userSettings, composerCortina);
   return (
     <Sheet
       open={open}
@@ -74,61 +122,156 @@ export function LevelsSheet({ open, onClose }: { open: boolean; onClose: () => v
       detents={["medium", "large"]}
       testId="booth-levels-sheet"
     >
+      {phone && (
+        <Group
+          header="Now"
+          footer="Pause and Resume fade in and out; Hold lets the song finish and waits. The keys work without this sheet."
+        >
+          <KeyAction
+            label={live ? "Pause" : paused ? "Resume" : "Play"}
+            sub={`${settings.pauseFadeSec} s fade`}
+            k="space"
+            onClick={() => act.togglePause()}
+            disabled={!started}
+            testId="booth-mix-pause"
+          />
+          <KeyAction
+            label={`Fade out now (${settings.fadeNowSec} s)`}
+            sub="The song fades out; the next item follows at the gap"
+            k="f"
+            onClick={() => act.fadeOutNow()}
+            disabled={!live}
+            testId="booth-fade-now"
+          />
+          <KeyAction
+            label={`Next with crossfade (${settings.crossfadeSec} s)`}
+            sub="The next item starts now while this one fades out"
+            k="x"
+            onClick={() => void act.crossfadeNext()}
+            disabled={!live}
+            testId="booth-crossfade"
+          />
+          <KeyAction
+            label={holding ? "Cancel hold" : "Hold after this song"}
+            sub="The song finishes; the next one waits for Play"
+            k="h"
+            onClick={() => act.toggleHold()}
+            disabled={!live}
+            testId="booth-mix-hold"
+          />
+          <KeyAction
+            label="End the tanda after this song"
+            sub="The cortina comes next, at the gap"
+            k="c"
+            onClick={() => act.cueCortina()}
+            disabled={!live || kind !== "track"}
+            testId="booth-mix-cue"
+          />
+          <SwitchRow
+            label="Talk-over"
+            sub="The music dips 12 dB while you speak (t)"
+            checked={ducked}
+            onChange={(v) => act.setDucked(v)}
+          />
+        </Group>
+      )}
       <Group
-        header="Now"
-        footer="Pause and Resume fade in and out; Hold lets the song finish and waits. The keys work without this sheet."
+        header="Transitions"
+        footer={
+          preset === "custom"
+            ? "Custom: your own gap, fades and crossfade. Saved on this device; the night is re-timed, also while it plays."
+            : `${MIX_PRESETS.find((p) => p.id === preset)!.explain} Saved on this device.`
+        }
+        data-testid="booth-mix-transitions"
       >
-        <KeyAction
-          label={live ? "Pause" : paused ? "Resume" : "Play"}
-          sub={`${settings.pauseFadeSec} s fade`}
-          k="space"
-          onClick={() => act.togglePause()}
-          disabled={!started}
-          testId="booth-mix-pause"
+        <SegmentedRow
+          label="Style"
+          value={preset}
+          items={[...MIX_PRESETS.map((p) => [p.id, p.label] as [MixPresetId, string]), ["custom", "Custom"]]}
+          onChange={(k) => {
+            const p = MIX_PRESETS.find((x) => x.id === k);
+            if (p) set({ ...p.values });
+          }}
         />
-        <KeyAction
-          label={`Fade out now (${settings.fadeNowSec} s)`}
-          sub="The song fades out; the next item follows at the gap"
-          k="f"
-          onClick={() => act.fadeOutNow()}
-          disabled={!live}
-          testId="booth-fade-now"
+        <MixStepper
+          label="Gap between items"
+          explain={MIX_EXPLAIN.gapSec}
+          value={settings.gapSec}
+          {...BOOTH_RANGES.gapSec}
+          onChange={(v) => set({ gapSec: v })}
+          testId="booth-mix-gap"
         />
-        <KeyAction
-          label={`Next with crossfade (${settings.crossfadeSec} s)`}
-          sub="The next item starts now while this one fades out"
-          k="x"
-          onClick={() => void act.crossfadeNext()}
-          disabled={!live}
-          testId="booth-crossfade"
+        <MixStepper
+          label="Song end fade"
+          explain={MIX_EXPLAIN.songFadeOutSec}
+          value={settings.songFadeOutSec}
+          {...TRANSPORT_RANGES.songFadeOutSec}
+          onChange={(v) => set({ songFadeOutSec: v })}
         />
-        <KeyAction
-          label={holding ? "Cancel hold" : "Hold after this song"}
-          sub="The song finishes; the next one waits for Play"
-          k="h"
-          onClick={() => act.toggleHold()}
-          disabled={!live}
-          testId="booth-mix-hold"
+        <MixStepper
+          label="Crossfade"
+          explain={MIX_EXPLAIN.crossfadeSec}
+          value={settings.crossfadeSec}
+          {...TRANSPORT_RANGES.crossfadeSec}
+          onChange={(v) => set({ crossfadeSec: v })}
         />
-        <KeyAction
-          label="End the tanda after this song"
-          sub="The cortina comes next, at the gap"
-          k="c"
-          onClick={() => act.cueCortina()}
-          disabled={!live || kind !== "track"}
-          testId="booth-mix-cue"
+        <MixStepper
+          label="Fade out now"
+          explain={MIX_EXPLAIN.fadeNowSec}
+          value={settings.fadeNowSec}
+          {...TRANSPORT_RANGES.fadeNowSec}
+          onChange={(v) => set({ fadeNowSec: v })}
         />
-        <SwitchRow
-          label="Talk-over"
-          sub="The music dips 12 dB while you speak (t)"
-          checked={ducked}
-          onChange={(v) => act.setDucked(v)}
+        <MixStepper
+          label="Pause / resume fade"
+          explain={MIX_EXPLAIN.pauseFadeSec}
+          value={settings.pauseFadeSec}
+          {...TRANSPORT_RANGES.pauseFadeSec}
+          onChange={(v) => set({ pauseFadeSec: Math.round(v * 10) / 10 })}
+        />
+        <MixStepper
+          label="Fade out and stop"
+          explain={MIX_EXPLAIN.stopFadeSec}
+          value={settings.stopFadeSec}
+          {...TRANSPORT_RANGES.stopFadeSec}
+          onChange={(v) => set({ stopFadeSec: v })}
         />
       </Group>
       <Group
-        header="Volume"
-        footer="Cortina volume: how loud the cortinas play against the tangos (100 % = as loud; lower it so the cortina reads as a break). Master volume: the whole output to the room, in dB (0 = as mastered). ↑ / ↓ move the cortina volume from the keyboard, m mutes."
+        header="Cortinas"
+        footer="Each cortina can have its own fades and stop in the set list (the sliders on its row). Saved with the set; the exports follow it."
       >
+        <MixStepper
+          label="Cortina length"
+          explain={
+            userSettings.cortinaStopSec === null
+              ? `${MIX_EXPLAIN.cortinaStop} Follows the composer.`
+              : MIX_EXPLAIN.cortinaStop
+          }
+          value={cortinaLen}
+          {...CORTINA_STOP_RANGE}
+          onChange={(v) => act.setCortinaLength(v)}
+          testId="booth-mix-cortina-length"
+        />
+        <SwitchRow
+          label="Follow the composer's cortina length"
+          checked={userSettings.cortinaStopSec === null}
+          onChange={(v) => act.setCortinaLength(v ? null : cortinaLen)}
+        />
+        <MixStepper
+          label="Cortina fade-in"
+          explain={MIX_EXPLAIN.cortinaFadeInSec}
+          value={settings.cortinaFadeInSec}
+          {...BOOTH_RANGES.cortinaFadeInSec}
+          onChange={(v) => set({ cortinaFadeInSec: v })}
+        />
+        <MixStepper
+          label="Cortina fade-out"
+          explain={MIX_EXPLAIN.cortinaFadeOutSec}
+          value={settings.cortinaFadeOutSec}
+          {...BOOTH_RANGES.cortinaFadeOutSec}
+          onChange={(v) => set({ cortinaFadeOutSec: v })}
+        />
         <div className="cell">
           <Fader
             label="Cortina volume"
@@ -143,6 +286,11 @@ export function LevelsSheet({ open, onClose }: { open: boolean; onClose: () => v
             className="w-full"
           />
         </div>
+      </Group>
+      <Group
+        header="Levels"
+        footer="Master volume: the whole output to the room (0 dB = as mastered). ↑ / ↓ move the cortina volume from the keyboard, m mutes."
+      >
         <div className="cell">
           <Fader
             label="Master volume"
@@ -158,66 +306,35 @@ export function LevelsSheet({ open, onClose }: { open: boolean; onClose: () => v
           />
         </div>
         <ActionRow label={muted ? "Unmute" : "Mute"} onClick={() => act.toggleMute()} />
+        <MixStepper
+          label="Loudness"
+          explain={MIX_EXPLAIN.loudnessTargetLUFS}
+          value={settings.loudnessTargetLUFS}
+          unit=" LUFS"
+          {...BOOTH_RANGES.loudnessTargetLUFS}
+          onChange={(v) => set({ loudnessTargetLUFS: v })}
+        />
+        <SwitchRow
+          label="Trim silence at the start"
+          sub={MIX_EXPLAIN.trimLeadingSilence}
+          checked={settings.trimLeadingSilence}
+          onChange={(v) => set({ trimLeadingSilence: v })}
+        />
       </Group>
       <Group
-        header="Fades"
-        footer="Song end fade is 0 by default: dancers dislike faded tango sides. Cortina fades and the gap re-time the night (also while it plays); each cortina can have its own in the set list. Saved on this device."
+        header="Source"
+        footer={
+          spotifyOk
+            ? "Spotify Premium is connected: every song plays in full. A rehearsal plays 30 s of each to hear the night quickly."
+            : "Connect Spotify Premium (or link your music folder) to play full songs; without them the night plays 30 s clips."
+        }
       >
-        <StepperRow
-          label="Pause / resume fade"
-          value={settings.pauseFadeSec}
-          unit=" s"
-          {...TRANSPORT_RANGES.pauseFadeSec}
-          onChange={(v) => set({ pauseFadeSec: Math.round(v * 10) / 10 })}
-        />
-        <StepperRow
-          label="Fade out now"
-          value={settings.fadeNowSec}
-          unit=" s"
-          {...TRANSPORT_RANGES.fadeNowSec}
-          onChange={(v) => set({ fadeNowSec: v })}
-        />
-        <StepperRow
-          label="Crossfade"
-          value={settings.crossfadeSec}
-          unit=" s"
-          {...TRANSPORT_RANGES.crossfadeSec}
-          onChange={(v) => set({ crossfadeSec: v })}
-        />
-        <StepperRow
-          label="Fade out and stop"
-          value={settings.stopFadeSec}
-          unit=" s"
-          {...TRANSPORT_RANGES.stopFadeSec}
-          onChange={(v) => set({ stopFadeSec: v })}
-        />
-        <StepperRow
-          label="Song end fade"
-          value={settings.songFadeOutSec}
-          unit=" s"
-          {...TRANSPORT_RANGES.songFadeOutSec}
-          onChange={(v) => set({ songFadeOutSec: v })}
-        />
-        <StepperRow
-          label="Cortina fade-in"
-          value={settings.cortinaFadeInSec}
-          unit=" s"
-          {...BOOTH_RANGES.cortinaFadeInSec}
-          onChange={(v) => set({ cortinaFadeInSec: v })}
-        />
-        <StepperRow
-          label="Cortina fade-out"
-          value={settings.cortinaFadeOutSec}
-          unit=" s"
-          {...BOOTH_RANGES.cortinaFadeOutSec}
-          onChange={(v) => set({ cortinaFadeOutSec: v })}
-        />
-        <StepperRow
-          label="Gap between items"
-          value={settings.gapSec}
-          unit=" s"
-          {...BOOTH_RANGES.gapSec}
-          onChange={(v) => set({ gapSec: v })}
+        <SwitchRow
+          label="Rehearsal (30 s clips)"
+          sub="For trying the night out; off plays the full songs"
+          checked={sourceMode === "preview"}
+          disabled={started}
+          onChange={(v) => void act.setSourceMode(v ? "preview" : "file")}
         />
       </Group>
     </Sheet>
@@ -362,6 +479,8 @@ const KEYS: Array<[string, string]> = [
   ["t", "Talk-over: the music dips 12 dB"],
   ["↑ / ↓", "Cortina fader ± 5 %"],
   ["c", "Cue the cortina: end the tanda after this song"],
+  ["p", "Pre-listen the next item in the headphones"],
+  ["⇧ P", "Stop the pre-listen (the room keeps playing)"],
   ["b", "Birthday vals"],
   ["m", "Master mute"],
   ["?", "This sheet"],

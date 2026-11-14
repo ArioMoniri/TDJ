@@ -1,6 +1,7 @@
 "use client";
 import { durationLabel } from "@/lib/booth/plan";
 import { useBooth } from "@/lib/booth/store";
+import { Artwork, EraBadge } from "./Indicators";
 import { eyebrowFor } from "./NowCard";
 
 /**
@@ -16,6 +17,7 @@ export function NextCard({ onJump }: { onJump: (planIndex: number) => void }) {
   const decoding = useBooth((s) => s.decoding);
   const playlist = useBooth((s) => s.playlist);
   const holdBefore = useBooth((s) => s.holdBefore);
+  const entities = useBooth((s) => s.entities);
   if (!plan) return null;
   const isSkipped = (i: number) =>
     (sources[i] === "missing" && plan.items[i]?.kind !== "break") || skipped.includes(i);
@@ -36,13 +38,25 @@ export function NextCard({ onJump }: { onJump: (planIndex: number) => void }) {
   const ntCortina = nt ? plan.items.find((x) => x.kind === "cortina" && x.tanda === nt.tanda) : null;
   return (
     <section className="booth-card" data-testid="booth-next" aria-label="Next">
-      <p className="booth-eyebrow">Next{decoding === next ? " · decoding…" : ""}</p>
+      <p className="booth-eyebrow" data-hint="What the room hears after this song">
+        Up next{decoding === next ? " · decoding…" : ""}
+      </p>
       {item ? (
         <>
-          <p className="text-caption1 text-[var(--label-2)]">{eyebrowFor(item, tandas)}</p>
-          <h3 className="booth-mid booth-next-title font-semibold" data-testid="booth-next-title">
-            {item.title}
-          </h3>
+          <div className="mt-1 flex items-center gap-3">
+            <Artwork
+              e={entities[next]}
+              orchestra={(entities[next] as { orchestra?: string } | null)?.orchestra ?? item.artist}
+              size={48}
+            />
+            <div className="min-w-0 flex-1">
+              <p className="text-caption1 text-[var(--label-2)]">{eyebrowFor(item, tandas)}</p>
+              <h3 className="booth-mid booth-next-title font-semibold" data-testid="booth-next-title">
+                {item.title}
+              </h3>
+            </div>
+            <EraBadge e={entities[next]} />
+          </div>
           {noSource && <p className="text-footnote text-[var(--label-2)]">no source: skipped</p>}
           {holdBefore === next && (
             <p className="text-footnote text-[var(--tint)]">holds before this tanda (birthday vals)</p>

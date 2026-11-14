@@ -1,13 +1,17 @@
 "use client";
-import { Keyboard, LogOut } from "lucide-react";
+import { Eye, Keyboard, LogOut } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { Banners } from "@/components/booth/Banners";
 import { ControlStrip } from "@/components/booth/ControlStrip";
+import { EnergyRail } from "@/components/booth/EnergyRail";
+import { HintLayer } from "@/components/booth/Indicators";
 import { NextCard } from "@/components/booth/NextCard";
+import { NightBar } from "@/components/booth/NightBar";
 import { NowCard } from "@/components/booth/NowCard";
 import { OnboardingSheet } from "@/components/booth/OnboardingSheet";
+import { PlayerToolbar, ShowSheet } from "@/components/booth/PlayerToolbar";
 import { SetColumn } from "@/components/booth/SetColumn";
 import {
   BreakSheet,
@@ -18,12 +22,13 @@ import {
   ShortcutsSheet,
   StopSheet,
 } from "@/components/booth/Sheets";
-import { TimeCard } from "@/components/booth/TimeCard";
+import { SongSheet } from "@/components/booth/SongSheet";
 import { EmptyState } from "@/components/EmptyState";
 import { type MenuItem, MenuList } from "@/components/Menu";
 import { PageHeader } from "@/components/PageHeader";
 import { Sheet } from "@/components/Sheet";
 import { boothContextState, boothEngine, useBooth } from "@/lib/booth/store";
+import { useMediaQuery } from "@/lib/hooks";
 import { usePlayer } from "@/lib/player";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
@@ -64,6 +69,16 @@ function Booth() {
   const [levels, setLevels] = useState(false);
   const [stopOpen, setStopOpen] = useState(false);
   const [cortina, setCortina] = useState<number | null>(null);
+  // round 22: the song sheet (tap any row, or Song info on Now), the phone's set-list sheet, the Show sheet
+  const [song, setSong] = useState<number | null>(null);
+  const [setOpen, setSetOpen] = useState(false);
+  const [show, setShow] = useState(false);
+  const phone = useMediaQuery("(max-width: 639px)", false);
+  // a tanda tapped on the energy chart or the Next card: the set list scrolls to it (a phone opens the sheet first)
+  const showInSet = (i: number) => {
+    if (phone) setSetOpen(true);
+    setJump(i);
+  };
   // the stored theme, read at mount: the persisting effect waits until `light` holds it (round 18: with the booth
   // already ready at mount, its first run wrote "dark" over a stored "light" before setLight(true) landed)
   const storedLight = useRef<boolean | null>(null);
@@ -170,6 +185,10 @@ function Booth() {
         e.preventDefault();
         b.setCortinaFader(Math.max(0, Math.min(1, b.cortinaFader + (e.key === "ArrowUp" ? 0.05 : -0.05))));
       } else if (e.key === "c") b.cueCortina();
+      // round 22: p pre-listens the next item in the headphones, P stops the pre-listen (the room keeps playing)
+      else if (e.key === "p") {
+        if (b.plan) void b.prelisten({ i: Math.min(b.plan.items.length - 1, b.planIndex + 1) });
+      } else if (e.key === "P") b.stopAudition();
       else if (e.key === "b") b.birthdayVals();
       else if (e.key === "m") b.toggleMute();
       else if (e.key === "?") setKeys(true);
@@ -196,6 +215,8 @@ function Booth() {
     );
 
   const b = useBooth.getState();
+  // round 22: every night and song tool has its own home (the night bar, the transport, Mix, the song sheet); the
+  // overflow keeps set-up and the app
   const menu: Array<MenuItem | false> = [
     { label: "Set-up (source, output, night)…", onClick: () => setOnboarding(true) },
     {
@@ -208,35 +229,7 @@ function Booth() {
       onClick: () =>
         b.folder.canKeep ? void b.linkFolder() : document.getElementById("booth-folder-input")?.click(),
     },
-    started && {
-      label: b.holding ? "Cancel hold" : "Hold after this song",
-      onClick: () => b.toggleHold(),
-      disabled: !(state === "playing" || state === "cortina"),
-    },
-    started && { label: "Mix: fades, talk-over, levels…", onClick: () => setLevels(true) },
-    started && { label: "Birthday vals", onClick: () => b.birthdayVals() },
-    // round 21: the end of the night on the DJ's call
-    started &&
-      !!b.playlist?.closing && {
-        label: "Play the rest, then La Cumparsita",
-        onClick: () => {
-          void b.jumpToClosing(false);
-          toast("La Cumparsita follows this tanda");
-        },
-        disabled: !(state === "playing" || state === "cortina"),
-      },
-    started &&
-      !!b.playlist?.closing && {
-        label: "Jump to La Cumparsita now",
-        onClick: () => void b.jumpToClosing(true),
-      },
-    {
-      label: b.playlist?.options.rules?.lastFourTango
-        ? "Last 4 tandas tango only · on"
-        : "Last 4 tandas tango only",
-      onClick: () => void b.setLastFourTango(!b.playlist?.options.rules?.lastFourTango),
-    },
-    started && { label: "Break…", onClick: () => setBreakOpen(true) },
+    { label: "Show: energy, BPM, key, era, artwork…", icon: Eye, onClick: () => setShow(true) },
     { label: "Keyboard shortcuts", icon: Keyboard, onClick: () => setKeys(true) },
     { label: light ? "Dark theme" : "Light theme", onClick: () => setLight((v) => !v) },
     started && { label: "Leave the booth", icon: LogOut, onClick: () => router.push("/") },
@@ -254,30 +247,57 @@ function Booth() {
     <div className="booth" data-state={state} data-testid="booth" data-rehearsal={rehearsal || undefined}>
       {/* the title keeps one width; the mode is a chip under it (round8-ux.md §2 Booth) */}
       <PageHeader title="Booth" />
-      <SourceLine rehearsal={rehearsal} />
+      <PlayerToolbar rehearsal={rehearsal} />
       <Banners />
       <div className="booth-grid">
-        <div className="booth-col-now">
-          <NowCard />
+        <div className="booth-deck">
+          <NowCard onInfo={(i) => setSong(i)} />
+          {phone && <NightBar onBreak={() => setBreakOpen(true)} />}
+          <div className="booth-deck-row">
+            <EnergyRail onJump={showInSet} />
+            <NextCard onJump={showInSet} />
+          </div>
         </div>
-        <div className="booth-col-mid">
-          <NextCard onJump={(i) => setJump(i)} />
-          <TimeCard />
-        </div>
-        <div className="booth-col-set">
-          <SetColumn
-            jumpTo={jump}
-            onFind={(id, title) => setFind({ id, title })}
-            onCortina={(i) => setCortina(i)}
-          />
-        </div>
+        {!phone && (
+          <aside className="booth-col-set" aria-label="The night and its set list">
+            <NightBar onBreak={() => setBreakOpen(true)} />
+            <SetColumn
+              jumpTo={jump}
+              onFind={(id, title) => setFind({ id, title })}
+              onCortina={(i) => setCortina(i)}
+              onTapRow={(i) => setSong(i)}
+            />
+          </aside>
+        )}
       </div>
+      {phone && (
+        <Sheet
+          open={setOpen}
+          onClose={() => setSetOpen(false)}
+          title="Set list"
+          trailing="Done"
+          detents={["large"]}
+          testId="booth-set-sheet"
+        >
+          <div className="booth-set-sheet">
+            <SetColumn
+              jumpTo={jump}
+              onFind={(id, title) => setFind({ id, title })}
+              onCortina={(i) => setCortina(i)}
+              onTapRow={(i) => setSong(i)}
+            />
+          </div>
+        </Sheet>
+      )}
       <ControlStrip
         onMore={() => setMore(true)}
-        onBreak={() => setBreakOpen(true)}
         onLevels={() => setLevels(true)}
         onStop={() => setStopOpen(true)}
+        onSet={phone ? () => setSetOpen(true) : undefined}
       />
+      <SongSheet i={song} onClose={() => setSong(null)} />
+      <ShowSheet open={show} onClose={() => setShow(false)} />
+      <HintLayer />
       <LevelsSheet open={levels} onClose={() => setLevels(false)} />
       <StopSheet open={stopOpen} onClose={() => setStopOpen(false)} />
       <CortinaSheet planIndex={cortina} onClose={() => setCortina(null)} />
@@ -329,51 +349,5 @@ function Booth() {
       <FindFileSheet item={find} onClose={() => setFind(null)} />
       <ResumeSheet />
     </div>
-  );
-}
-
-/**
- * Round 21: where the night's sound comes from, said plainly under the title — "Spotify · full tracks" when the
- * Premium session plays, "Rehearsal · 30 s clips" otherwise with what would play the full songs: one tap back to
- * Spotify when the rehearsal switch is on, "Reconnect Spotify" when the login lacks the playback permission, a
- * note when the account is not Premium.
- */
-function SourceLine({ rehearsal }: { rehearsal: boolean }) {
-  const sp = useBooth((s) => s.availability.spotify);
-  const sources = useBooth((s) => s.sources);
-  const mode = useBooth((s) => s.sourceMode);
-  const started = useBooth((s) => s.started);
-  const onSpotify = !rehearsal && sources.includes("spotify");
-  if (!rehearsal && !onSpotify && !sp.reconnect) return null;
-  return (
-    <p className="mt-1 flex flex-wrap items-center gap-2">
-      <span className="booth-chip" data-testid="booth-mode" data-source={onSpotify ? "spotify" : "clips"}>
-        {onSpotify ? "Spotify · full tracks" : "Rehearsal · 30 s clips"}
-      </span>
-      {rehearsal && sp.ok && mode === "preview" && !started && (
-        <button
-          type="button"
-          className="btn-plain min-h-11"
-          onClick={() => void useBooth.getState().setSourceMode("file")}
-          data-testid="booth-full-tracks"
-        >
-          Play full tracks on Spotify
-        </button>
-      )}
-      {sp.reconnect && (
-        <a
-          className="btn-plain min-h-11 inline-flex items-center"
-          href="/api/spotify/login?next=/booth"
-          data-testid="booth-reconnect"
-        >
-          Reconnect Spotify to play full songs
-        </a>
-      )}
-      {rehearsal && sp.checked && sp.premium === false && (
-        <span className="text-footnote text-[var(--label-2)]">
-          Spotify Free: the browser can only play 30 s clips.
-        </span>
-      )}
-    </p>
   );
 }

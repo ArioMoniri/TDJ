@@ -42,7 +42,7 @@ export function canPrelisten(o: {
   roomId: string | null;
   cueId: string | null;
   devices?: ReadonlyArray<OutputDevice>;
-}): { ok: true } | { ok: false; why: string } {
+}): { ok: boolean; why?: string } {
   if (!o.supported) return { ok: false, why: SINK_UNSUPPORTED };
   if (!o.cueId) return { ok: false, why: "Pick your headphones first (Headphones ▾ at the top)." };
   const room = o.roomId ?? "default";
