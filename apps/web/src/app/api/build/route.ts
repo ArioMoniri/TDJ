@@ -36,6 +36,17 @@ export async function POST(req: Request) {
     byId.set(s.id, s);
     for (const a of s.altIds ?? []) if (!byId.has(a)) byId.set(a, s);
   }
+  // Database → Memory names the learned sides: { lookup: ids } → the songs
+  if (Array.isArray(body.lookup))
+    return noStore(
+      NextResponse.json({
+        songs: body.lookup
+          .slice(0, 200)
+          .map((id: unknown) => byId.get(String(id)))
+          .filter((s: Song | undefined): s is Song => !!s)
+          .map(slimSong),
+      }),
+    );
   const draft: Song[][] = raw
     .map((t) =>
       (Array.isArray(t) ? t : [])

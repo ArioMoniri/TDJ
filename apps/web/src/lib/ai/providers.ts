@@ -1,12 +1,6 @@
 import { type AcpConnection, acpComplete, transportFor } from "./acp";
 import { type AiProvider, modelFor } from "./models";
-import {
-  LlmError,
-  type ModelProvider,
-  type ModelReply,
-  type ToolCall,
-  type ToolSpec,
-} from "./provider";
+import { LlmError, type ModelProvider, type ModelReply, type ToolCall, type ToolSpec } from "./provider";
 
 /**
  * Round 22 — the providers behind one interface (provider.ts). Anthropic through its SDK, OpenAI / OpenRouter and

@@ -8,6 +8,7 @@ import type { AgentMemory } from "@/lib/types";
 import { ActionRow, Group, Row } from "../Form";
 import { Sheet } from "../Sheet";
 import { SwipeRow } from "../SwipeRow";
+import { LearnedRules } from "./LearnedRules";
 import { useDbEdit } from "./shared";
 
 const when = (iso: string) => {
@@ -94,6 +95,7 @@ export function MemoryTab() {
 
   return (
     <div>
+      <LearnedRules />
       <Group
         header="Notes"
         footer="Things to remember about rooms, crowds and what worked. The assistant reads these before a review or a refine."

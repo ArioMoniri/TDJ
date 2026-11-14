@@ -1,7 +1,6 @@
 "use client";
 import { rememberEdit } from "@tdj/core";
 import { useEffect, useState } from "react";
-import { aiFetch, hasOwnModel } from "@/lib/ai/client";
 import { useStore } from "@/lib/store";
 import { tempoLevel } from "@/lib/tempo";
 import type { Playlist } from "@/lib/types";
@@ -129,7 +128,17 @@ export function SwapSheet({
     if (!playlist) return;
     setBusy("ai");
     try {
-      const r = await aiFetch("/api/ai/swap", { playlist, tandaIndex, trackIndex }, settings);
+      const r = await fetch("/api/ai/swap", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-ai-provider": settings.ai.provider,
+          "x-ai-key": settings.ai.key,
+          "x-ai-model": settings.ai.model,
+          "x-ai-workspace": settings.ai.workspace ?? "",
+        },
+        body: JSON.stringify({ playlist, tandaIndex, trackIndex }),
+      });
       const j = (await r.json()) as {
         songId?: string;
         source?: "ai" | "engine";
@@ -210,7 +219,7 @@ export function SwapSheet({
           )}
           <Group>
             <ActionRow
-              label={hasOwnModel(settings) ? "AI pick" : "AI pick (engine's best fit: no AI key)"}
+              label={settings.ai.key ? "AI pick" : "AI pick (engine's best fit: no AI key)"}
               onClick={aiPick}
               busy={busy === "ai"}
               disabled={!!lockedReason || !lists.suggestions.length}
