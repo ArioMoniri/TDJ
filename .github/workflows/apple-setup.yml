@@ -1,0 +1,55 @@
+name: Apple setup
+# Idempotent Apple signing setup on Linux through the App Store Connect API (scripts/release/apple-setup.mjs):
+# bundle ID + capabilities, certificates from CSRs generated here, App Store profiles. The .p12 files, their
+# random passwords and the profiles go to AWS SSM SecureStrings under /tdj/apple/* with the same GitHub OIDC
+# role as "Deploy to AWS", so nobody handles a certificate. Release builds read them back (release-apps.yml).
+# Needs the repository secrets APP_STORE_CONNECT_ISSUER_ID, APP_STORE_CONNECT_KEY_ID, APP_STORE_CONNECT_PRIVATE_KEY
+# and the variable AWS_DEPLOY_ROLE_ARN. What the API cannot do is printed in the run summary with links.
+on:
+  workflow_dispatch:
+    inputs:
+      only:
+        description: "Subset (comma list): distribution,installer,devid,ios,mac — empty = everything"
+        default: ""
+        required: false
+      revoke_oldest:
+        description: "If Apple's certificate limit is reached, revoke the oldest Apple Distribution / Mac Installer certificate (never Developer ID)"
+        type: boolean
+        default: false
+      devid_cer:
+        description: "Manual Developer ID path only: base64 of the .cer downloaded from Apple (a certificate is public)"
+        default: ""
+        required: false
+permissions:
+  contents: read
+  id-token: write
+concurrency: apple-setup
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 22 }
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+      - name: Register, create or reuse, store in SSM
+        env:
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          TDJ_APP_BUNDLE_ID: ${{ vars.TDJ_APP_BUNDLE_ID }}
+          ONLY: ${{ inputs.only }}
+          REVOKE: ${{ inputs.revoke_oldest }}
+          DEVID_CER: ${{ inputs.devid_cer }}
+        run: |
+          set -euo pipefail
+          args=(setup --store ssm:/tdj/apple)
+          [ -n "$ONLY" ] && args+=(--only "$ONLY")
+          [ "$REVOKE" = "true" ] && args+=(--revoke-oldest)
+          [ -n "$DEVID_CER" ] && args+=(--devid-cer "$DEVID_CER")
+          node scripts/release/apple-setup.mjs "${args[@]}"

@@ -1,0 +1,27 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "The app's own pages (bundled UI and first-launch screen) in the main window.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "allow-get-native-info",
+    "allow-set-server",
+    "allow-start-login",
+    "allow-forget-sessions",
+    "allow-open-external",
+    "allow-save-file",
+    "allow-print-page",
+    "allow-keep-awake",
+    "allow-now-playing",
+    "allow-folder-add",
+    "allow-folder-list",
+    "allow-folder-remove",
+    "allow-folder-files",
+    "allow-folder-read",
+    "allow-cue-devices",
+    "allow-cue-play",
+    "allow-cue-stop",
+    "allow-check-updates"
+  ]
+}

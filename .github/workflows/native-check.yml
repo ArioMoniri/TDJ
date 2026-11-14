@@ -1,0 +1,63 @@
+name: Native check
+# Linux-only checks for the apps, the release tooling and the deploy CLI (no macOS minutes):
+# Rust fmt/clippy/tests for the Tauri app, a type-check of the macOS and iPadOS code, the release-script tests
+# (mocked App Store Connect API), the CLI tests, the store-metadata limits and actionlint on every workflow.
+on:
+  pull_request:
+    paths:
+      - "apps/desktop/**"
+      - "packages/cli/**"
+      - "scripts/release/**"
+      - ".github/workflows/**"
+  push:
+    branches: [main]
+    paths:
+      - "apps/desktop/**"
+      - "packages/cli/**"
+      - "scripts/release/**"
+      - ".github/workflows/**"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: npx biome check apps/desktop packages/cli scripts/release
+      - name: Release scripts (mocked App Store Connect API, real openssl)
+        run: node --test scripts/release/test/*.test.mjs
+      - run: pnpm --filter @tdj/desktop typecheck
+      - run: pnpm --filter @tdj/desktop test
+      - run: pnpm --filter tdj-deploy typecheck
+      - run: pnpm --filter tdj-deploy test
+      - name: Shell scripts
+        run: shellcheck -S warning scripts/release/*.sh apps/desktop/scripts/*.sh
+      - name: actionlint
+        run: |
+          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.7/scripts/download-actionlint.bash) 1.7.7
+          # the workflows of the apps and the release tooling (ci.yml / deploy-aws.yml are checked by their owners)
+          ./actionlint -color .github/workflows/{apple-setup,check-secrets,native-check,release-apps,store-assets}.yml
+
+  rust:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/desktop/src-tauri
+    steps:
+      - uses: actions/checkout@v5
+      - name: WebKitGTK (Linux build of the shell)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libwebkit2gtk-4.1-dev libxdo-dev libssl-dev librsvg2-dev
+      - uses: dtolnay/rust-toolchain@stable
+        with: { components: "rustfmt, clippy", targets: "aarch64-apple-darwin,aarch64-apple-ios" }
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: "apps/desktop/src-tauri -> target" }
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets --all-features -- -D warnings
+      - run: cargo test
+      - name: macOS + iPadOS type-check (no Xcode needed)
+        run: ../scripts/check-apple.sh all

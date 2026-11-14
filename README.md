@@ -10,6 +10,12 @@
 <p align="center"><img src="media/video/usage.gif" width="880" alt="TDJ usage: compose a 4-hour golden-age milonga, swap a tanda, export"/></p>
 <p align="center"><img src="media/video/motion.gif" width="880" alt="Motion: compose narrative, curve draw-on, tanda choreography, export sheet, mobile tab bar"/></p>
 
+## Download for macOS
+<p align="center">
+  <a href="https://github.com/ArioMoniri/TDJ/releases/latest/download/TDJ-macOS.dmg"><img alt="Download for macOS" src="https://img.shields.io/badge/Download%20for-macOS-000000?style=for-the-badge&logo=apple&logoColor=white" height="44"></a>
+</p>
+<p align="center"><sub><b>Coming with the first release.</b> One universal app for Apple silicon and Intel, macOS 13 or later, signed and notarised by Apple, updates itself. iPad and the Mac App Store follow through TestFlight. How releases work: <a href="docs/RELEASING.md">docs/RELEASING.md</a> · run your own server: <a href="docs/SELF_DEPLOY.md">docs/SELF_DEPLOY.md</a></sub></p>
+
 ## What it does
 - **Composes a milonga** for 1–8 h: TTVTTM cycles, 4-3-3 tandas, one orchestra · one singer · ≤ 4 years per tanda, no repeats, orchestras spaced.
 - **Shapes the night**: warm-up → build → peak → cool-down → **La Cumparsita**, or a *double peak* with a real breather between (Arc shape, nights ≥ 3 h); marathons get a second rise and a lower vocal share. Inside each tanda: slow → up → strongest → settle (or *hammock*, *rising*, *flat*).

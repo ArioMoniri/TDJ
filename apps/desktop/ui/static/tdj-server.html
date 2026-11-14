@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Welcome to TDJ</title>
+<style>
+  :root { color-scheme: light dark; --bg: #f5f3f7; --cell: #fff; --label: #1c1724; --secondary: #6e6779; --tint: #7c3aed; --sep: rgba(60,50,80,.14); --danger: #d1344d; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #111015; --cell: #1d1b22; --label: #f3f0f7; --secondary: #a39dae; --tint: #a78bfa; --sep: rgba(255,255,255,.1); --danger: #ff6b81; } }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { background: var(--bg); color: var(--label); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; display: grid; place-items: center; padding: 24px; -webkit-user-select: none; user-select: none; }
+  .drag { position: fixed; inset: 0 0 auto 0; height: 52px; -webkit-app-region: drag; }
+  main { width: min(460px, 100%); }
+  h1 { font: 600 28px/1.15 -apple-system, "SF Pro Display", sans-serif; margin: 0 0 6px; letter-spacing: -.01em; }
+  p.lead { color: var(--secondary); margin: 0 0 24px; }
+  .group { background: var(--cell); border-radius: 12px; overflow: hidden; margin-bottom: 18px; }
+  button.row { all: unset; display: flex; gap: 12px; align-items: center; width: 100%; box-sizing: border-box; min-height: 56px; padding: 12px 16px; cursor: pointer; }
+  button.row + button.row, .row + .row { border-top: 1px solid var(--sep); }
+  button.row:focus-visible { outline: 2px solid var(--tint); outline-offset: -2px; }
+  .row b { display: block; font-weight: 600; }
+  .row small { color: var(--secondary); }
+  .chev { margin-left: auto; color: var(--secondary); }
+  form { padding: 14px 16px 16px; }
+  label { display: block; font-weight: 600; margin-bottom: 6px; }
+  input { width: 100%; min-height: 44px; border-radius: 10px; border: 1px solid var(--sep); background: transparent; color: inherit; font: inherit; padding: 0 12px; -webkit-user-select: text; user-select: text; }
+  input:focus { outline: 2px solid var(--tint); border-color: transparent; }
+  .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 12px; }
+  .btn { min-height: 44px; min-width: 96px; border-radius: 10px; border: 0; font: 600 15px -apple-system, sans-serif; padding: 0 16px; cursor: pointer; background: var(--tint); color: #fff; }
+  .btn[disabled] { opacity: .5; cursor: default; }
+  .err { color: var(--danger); min-height: 1.45em; margin: 8px 0 0; font-size: 13px; }
+  .foot { color: var(--secondary); font-size: 13px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="drag" data-tauri-drag-region></div>
+<main>
+  <h1>Welcome to TDJ</h1>
+  <p class="lead">Compose and play a milonga. Choose where your nights, database and connections live. You can change this later in the TDJ menu → Change Server.</p>
+  <div class="group">
+    <button class="row" id="cloud" type="button">
+      <span><b>TDJ cloud</b><small id="cloud-host">The free public server</small></span><span class="chev">›</span>
+    </button>
+  </div>
+  <div class="group">
+    <form id="own">
+      <label for="url">My own TDJ server</label>
+      <input id="url" type="url" inputmode="url" autocomplete="url" autocapitalize="off" spellcheck="false" placeholder="https://tdj.example.org" required>
+      <p class="err" id="err" role="alert" aria-live="polite"></p>
+      <div class="actions"><button class="btn" id="go" type="submit">Connect</button></div>
+    </form>
+  </div>
+  <p class="foot">Your model keys stay on this device. TDJ never stores them on a server.</p>
+</main>
+<script>
+  const invoke = (c, a) => window.__TAURI_INTERNALS__.invoke(c, a || {});
+  const err = document.getElementById("err");
+  const go = document.getElementById("go");
+  invoke("get_native_info").then((i) => {
+    document.getElementById("cloud-host").textContent = new URL(i.defaultServer).host;
+    document.getElementById("cloud").onclick = () => connect(i.defaultServer);
+    if (i.server && i.server !== i.defaultServer) document.getElementById("url").value = i.server;
+  });
+  async function connect(url) {
+    err.textContent = "";
+    go.disabled = true;
+    try { await invoke("set_server", { url }); }
+    catch (e) { err.textContent = String(e); }
+    finally { go.disabled = false; }
+  }
+  document.getElementById("own").addEventListener("submit", (e) => { e.preventDefault(); connect(document.getElementById("url").value); });
+</script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TDJ</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; height: 100vh; display: grid; place-items: center; font: 15px -apple-system, BlinkMacSystemFont, sans-serif; background: #111015; color: #a39dae; }
+</style>
+</head>
+<body>
+<!-- Shown only in a build without the bundled UI (remote mode): hand over to the chosen server. -->
+<p>Opening your TDJ server…</p>
+<script>
+  window.__TAURI_INTERNALS__.invoke("get_native_info").then((i) => location.replace(i.server));
+</script>
+</body>
+</html>

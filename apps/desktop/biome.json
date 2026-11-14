@@ -1,0 +1,17 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
+  "root": false,
+  "extends": "//",
+  "files": {
+    "includes": [
+      "**",
+      "!ui/dist",
+      "!src-tauri/target",
+      "!src-tauri/gen",
+      "!src-tauri/icons",
+      "!store/out",
+      "!fastlane/screenshots",
+      "!fastlane/screenshots_mac"
+    ]
+  }
+}

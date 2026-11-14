@@ -1,0 +1,78 @@
+name: Store assets
+# App Store screenshots (bundled app UI at 2880x1800 and 2752x2064, en-US + tr), metadata checks and a contact
+# sheet for review: Linux only, no macOS minutes. Uploading to App Store Connect (fastlane deliver with the API
+# key) waits for the owner's approval in the `app-store` environment.
+on:
+  pull_request:
+    paths: ["apps/desktop/fastlane/**", "apps/desktop/store/**", "apps/desktop/ui/**", "apps/web/src/**"]
+  workflow_dispatch:
+    inputs:
+      upload:
+        description: "Upload metadata + screenshots to App Store Connect (after approval)"
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      upload: { type: boolean, default: false }
+permissions:
+  contents: read
+concurrency: store-assets-${{ github.ref }}
+jobs:
+  assets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: Metadata limits and pipeline tests
+        run: pnpm --filter @tdj/desktop test
+      - name: Bundled UI (static export of apps/web)
+        run: pnpm --filter @tdj/desktop ui
+      - name: Browser
+        run: pnpm --filter @tdj/desktop exec playwright install --with-deps chromium
+      - name: Capture, compose, contact sheet
+        env:
+          CHROMIUM: ""
+          TDJ_STORE_BACKEND: ${{ vars.TDJ_APP_BACKEND_URL || 'https://d3k5k2c1l0s5ri.cloudfront.net' }}
+        run: pnpm --filter @tdj/desktop run screenshots
+      - uses: actions/upload-artifact@v4
+        with:
+          name: store-assets
+          path: |
+            apps/desktop/fastlane/screenshots
+            apps/desktop/fastlane/screenshots_mac
+            apps/desktop/store/out/contact-sheet.html
+          retention-days: 30
+      - name: Summary
+        run: |
+          {
+            echo "## Store assets"
+            echo "Download the **store-assets** artifact and open \`store/out/contact-sheet.html\` (keep the folder layout)."
+            find apps/desktop/fastlane/screenshots apps/desktop/fastlane/screenshots_mac -name '*.jpg' | sort | sed 's/^/- /'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  upload:
+    needs: assets
+    if: inputs.upload
+    runs-on: ubuntu-latest
+    environment: app-store
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with: { name: store-assets, path: apps/desktop }
+      - uses: ruby/setup-ruby@v1
+        with: { ruby-version: "3.3", bundler-cache: true, working-directory: apps/desktop }
+      - name: fastlane deliver (iPad, then Mac) — metadata and screenshots, no binary
+        working-directory: apps/desktop
+        env:
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+          TDJ_APP_BUNDLE_ID: ${{ vars.TDJ_APP_BUNDLE_ID || 'com.ariomoniri.tdj' }}
+        run: |
+          bundle exec fastlane ios metadata
+          bundle exec fastlane mac metadata

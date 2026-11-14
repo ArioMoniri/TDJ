@@ -1,0 +1,155 @@
+name: Release apps
+# macOS DMG (Developer ID, notarised) on a GitHub Release as TDJ-macOS.dmg + updater latest.json, the Mac App
+# Store pkg and the iPad IPA to TestFlight; App Review submission waits for approval in the `app-store`
+# environment. macOS minutes are spent only here, only on v* tags or a manual run, in ONE job that runs the same
+# script as a rented Mac (scripts/release/mac-build.sh). docs/RELEASING.md explains every step and the cost.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      targets:
+        description: "dmg, mas, ipad (comma list)"
+        default: "dmg,mas,ipad"
+      channel:
+        description: "testflight = upload only · appstore-review = also submit for review (after approval)"
+        type: choice
+        options: [testflight, appstore-review]
+        default: testflight
+      metadata:
+        description: "Also upload store metadata + screenshots (after approval)"
+        type: boolean
+        default: false
+permissions:
+  contents: write
+  id-token: write
+concurrency: release-apps
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      build: ${{ steps.v.outputs.build }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: v
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then v="${GITHUB_REF#refs/tags/v}"; else v=$(node -p 'require("./apps/desktop/package.json").version'); fi
+          # same formula as mac-build.sh: UTC minutes since 2026-01-01, monotonic, one number for every platform
+          b=$(( ($(date -u +%s) - 1767225600) / 60 ))
+          echo "version=$v" >> "$GITHUB_OUTPUT"; echo "build=$b" >> "$GITHUB_OUTPUT"
+          echo "TDJ $v (build $b)" >> "$GITHUB_STEP_SUMMARY"
+
+  apple:
+    needs: version
+    runs-on: ${{ vars.TDJ_MAC_RUNNER || 'macos-26' }}
+    environment: apple-release
+    timeout-minutes: 90
+    env:
+      TDJ_DRIVE: ${{ github.workspace }}/../drive
+      TDJ_OUT: ${{ github.workspace }}/../out
+      CARGO_TARGET_DIR: ${{ github.workspace }}/apps/desktop/src-tauri/target
+      RUSTUP_HOME: /Users/runner/.rustup
+      CARGO_HOME: /Users/runner/.cargo
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+      APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID || 'FF68N39FU5' }}
+      TDJ_APP_BUNDLE_ID: ${{ vars.TDJ_APP_BUNDLE_ID || 'com.ariomoniri.tdj' }}
+      TDJ_APP_BACKEND_URL: ${{ vars.TDJ_APP_BACKEND_URL }}
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      TAURI_UPDATER_PUBKEY: ${{ vars.TAURI_UPDATER_PUBKEY }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with: { node-version: 22, cache: pnpm }
+      - uses: dtolnay/rust-toolchain@stable
+        with: { targets: "aarch64-apple-darwin,x86_64-apple-darwin,aarch64-apple-ios" }
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: "apps/desktop/src-tauri -> target" }
+      - name: AWS (signing store in SSM)
+        if: vars.AWS_DEPLOY_ROLE_ARN != ''
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+      - name: Build, sign, notarise, upload (scripts/release/mac-build.sh)
+        env:
+          # fallback when SSM is not set up: the environment secrets of APPLE_SETUP.md
+          APPLE_DISTRIBUTION_CERT_P12: ${{ secrets.APPLE_DISTRIBUTION_CERT_P12 }}
+          APPLE_DISTRIBUTION_CERT_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_CERT_PASSWORD }}
+          MAC_INSTALLER_CERT_P12: ${{ secrets.MAC_INSTALLER_CERT_P12 }}
+          MAC_INSTALLER_CERT_PASSWORD: ${{ secrets.MAC_INSTALLER_CERT_PASSWORD }}
+          DEVELOPER_ID_APPLICATION_CERT_P12: ${{ secrets.DEVELOPER_ID_APPLICATION_CERT_P12 }}
+          DEVELOPER_ID_APPLICATION_CERT_PASSWORD: ${{ secrets.DEVELOPER_ID_APPLICATION_CERT_PASSWORD }}
+          IOS_APPSTORE_PROFILE: ${{ secrets.IOS_APPSTORE_PROFILE }}
+          MAC_APPSTORE_PROFILE: ${{ secrets.MAC_APPSTORE_PROFILE }}
+          SIGNING: ${{ vars.AWS_DEPLOY_ROLE_ARN != '' && 'ssm' || 'env' }}
+          TARGETS: ${{ inputs.targets || 'dmg,mas,ipad' }}
+        run: |
+          scripts/release/mac-build.sh --signing "$SIGNING" --targets "$TARGETS" \
+            --version "${{ needs.version.outputs.version }}" --build "${{ needs.version.outputs.build }}" --github-release
+      - name: Certificate and profile expiry (warn 30 days ahead)
+        if: always()
+        run: |
+          for f in "$TDJ_DRIVE"/tdj-signing/*.keychain-db; do [ -f "$f" ] || continue
+            security find-certificate -a -p "$f" | awk '/BEGIN/{n++} {print > ("/tmp/c" n ".pem")}'
+          done
+          for c in /tmp/c*.pem; do [ -f "$c" ] || continue
+            end=$(openssl x509 -enddate -noout -in "$c" | cut -d= -f2); subj=$(openssl x509 -subject -noout -in "$c" | sed 's/.*CN *= *//')
+            if ! openssl x509 -checkend $((30*86400)) -noout -in "$c" >/dev/null; then echo "::warning::$subj expires $end"; fi
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: apple-builds
+          path: ${{ github.workspace }}/../out
+          retention-days: 14
+
+  publish:
+    needs: [version, apple]
+    if: contains(inputs.targets || 'dmg', 'dmg')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          V: ${{ needs.version.outputs.version }}
+        run: |
+          gh release edit "v$V" -R "$GITHUB_REPOSITORY" --draft=false --latest
+          {
+            echo "## Released TDJ $V"
+            echo "- Download: https://github.com/$GITHUB_REPOSITORY/releases/latest/download/TDJ-macOS.dmg"
+            echo "- TestFlight: build ${{ needs.version.outputs.build }} (iPad + Mac), processing takes 5–30 min"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  metadata:
+    needs: apple
+    if: inputs.metadata || startsWith(github.ref, 'refs/tags/v')
+    uses: ./.github/workflows/store-assets.yml
+    with: { upload: true }
+    secrets: inherit
+
+  submit-review:
+    needs: [version, apple]
+    if: inputs.channel == 'appstore-review'
+    runs-on: ubuntu-latest
+    environment: app-store
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ruby/setup-ruby@v1
+        with: { ruby-version: "3.3", bundler-cache: true, working-directory: apps/desktop }
+      - name: Submit iPad and Mac for App Review (phased, manual release)
+        working-directory: apps/desktop
+        env:
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+          TDJ_APP_BUNDLE_ID: ${{ vars.TDJ_APP_BUNDLE_ID || 'com.ariomoniri.tdj' }}
+          BUILD: ${{ needs.version.outputs.build }}
+        run: |
+          bundle exec fastlane ios submit build_number:"$BUILD"
+          bundle exec fastlane mac submit build_number:"$BUILD"
