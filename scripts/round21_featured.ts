@@ -130,11 +130,84 @@ const PINS: Array<{ slot: number; ids: string[]; why: string }> = [
     why: "the DJ's De Angelis / Dante–Martel valses (1944–47)",
   },
   {
+    slot: 10,
+    ids: ["6233830410", "2171c0196b", "deac5ee8db", "cebfbd8996"],
+    why: "the DJ's Biagi instrumentals (Pura Clase, El Yaguarón, Bélgica, El Trece; 1938–42)",
+  },
+  {
+    slot: 11,
+    ids: ["24801db04a", "e851d595be", "c02b739977", "6e9afb7087"],
+    why: "the DJ's Federico tanda (Vidal 1944–45, Cualquier Cosa with Valentino 1951, Leyenda Gaucha instr. 1952)",
+  },
+  {
+    slot: 13,
+    ids: ["16814cca76", "86e53db337", "ddfdb2c29b", "89bc9d7eef"],
+    why: "the DJ's Demare / Berón tanda (1943)",
+  },
+  {
+    slot: 14,
+    ids: ["13fe376eb1", "0265a65075", "00a061a315", "166b2a4f3e"],
+    why: "the DJ's Troilo / Rufino 1963 tanda (Danzarín instr. 1963, the session nearest the Rufino sides)",
+  },
+  {
     slot: 15,
     ids: ["68f9f78507", "cfbb4947c7", "8106c5a228"],
     why: "the DJ's valses (D'Arienzo 1935, Canaro 1938)",
   },
+  {
+    slot: 16,
+    ids: ["28c8dff26b", "ac9c62f5b5", "d642ae0730", "c668717864"],
+    why: "the DJ's Tanturi / Castillo tanda (Noches de Colón, Pocas Palabras, La Vida Es Corta, La Última Copa)",
+  },
+  {
+    slot: 17,
+    ids: ["e02b2e4f92", "be7917b0c8", "f29c7184ba", "6ac37b2ef8"],
+    why: "the DJ's Caló / Iriarte tanda (1943–45)",
+  },
+  {
+    slot: 18,
+    ids: ["32fdbfc82d", "67f9a28a62", "38f03bac6d", "a2e1839ef1"],
+    why: "the DJ's Pugliese instrumentals (Don Agustín Bardi, Chiqué, Emancipación, Nochero Soy; 1950s)",
+  },
+  {
+    slot: 19,
+    ids: ["655a908b21", "94056c42f4", "a2a56b32a2", "ae692df479"],
+    why: "the DJ's Tango Bardo tanda (a contemporary orchestra in D'Arienzo's repertoire: No Mientas, Humillación, Maipo, El Cencerro)",
+  },
+  {
+    slot: 23,
+    ids: ["130fe70e7e", "a81d03fa26", "979e83ad3f", "5486994f6f"],
+    why: "the última, Tanturi / Castillo: Pocas Palabras and La Vida Es Corta now play in T16, so Muñeca Brava and Como Se Pianta la Vida (1942) take their chairs; it still ends on Así Se Baila el Tango",
+  },
 ];
+/** the Spotify ids the DJ's sides play where the match rules cannot prove the take (a later take the index knows,
+ * another transfer's length): kept on the night as the DJ's choice, never written to the judged cache */
+const DJ_IDS: Record<
+  string,
+  { uri: string; album: string; durationMs: number; matched: string; why: string }
+> = {
+  "166b2a4f3e": {
+    uri: "spotify:track:1TcXgz8vA1gN25RgShGeQl",
+    album: "Los 25 Mejores Tangos",
+    durationMs: 239800,
+    matched: "Aníbal Troilo, Orquesta Anibal Troilo – Danzarín",
+    why: "the index knows a 1973 take; the transfer on the album of the 1963 Rufino sides",
+  },
+  "67f9a28a62": {
+    uri: "spotify:track:3npc4k1OPe3MU3F1hf8y3o",
+    album: "Desde el alma",
+    durationMs: 192653,
+    matched: "Osvaldo Pugliese – Chiqué",
+    why: "the index knows 1979–92 takes; no dated transfer",
+  },
+  a2e1839ef1: {
+    uri: "spotify:track:07H6MGl2J73fhNeMW9Imha",
+    album: "Tango Classics 114: La guitarrita",
+    durationMs: 213291,
+    matched: "Osvaldo Pugliese – Nochero soy",
+    why: "every Spotify transfer runs 212–214 s against the index's 231 s",
+  },
+};
 /** a rebuilt tanda drops the fields the composer derived from its old sides (heat label, band, golden class …) */
 const fresh = (t: Tanda): Tanda => {
   const {
@@ -149,11 +222,27 @@ const fresh = (t: Tanda): Tanda => {
   } = t;
   return rest as Tanda;
 };
+const djIds: string[] = [];
 const label = (xs: Array<string | null>) => [...new Set(xs.filter((x): x is string => !!x))].join(" · ");
 for (const pin of PINS) {
   const i = pin.slot - 1;
   const old = tandas[i]!;
-  const songs = pin.ids.map(song);
+  const songs = pin.ids.map((id) => {
+    const x = song(id);
+    const dj = DJ_IDS[x.id];
+    if (x.spotify?.uri || !dj) return x;
+    djIds.push(`${x.title} (${x.orchestra} ${x.year ?? "?"}): ${dj.uri} — ${dj.why}`);
+    return {
+      ...x,
+      spotify: {
+        uri: dj.uri,
+        url: `https://open.spotify.com/track/${dj.uri.split(":").pop()}`,
+        durationMs: dj.durationMs,
+        album: dj.album,
+        matched: dj.matched,
+      },
+    };
+  });
   const byOrch = new Map<string, number>();
   for (const s of songs) byOrch.set(s.orchestraId, (byOrch.get(s.orchestraId) ?? 0) + 1);
   const main = [...byOrch.entries()].sort((a, b) => b[1] - a[1])[0]![0];
@@ -162,7 +251,13 @@ for (const pin of PINS) {
   const t = retimeTanda(
     {
       ...fresh(old),
-      rhythm: songs.every((s) => s.rhythm === "vals") ? "vals" : old.rhythm,
+      // (the years are the DJ's sides' — none for a contemporary orchestra's undated sides)
+      yearRange: null,
+      // (the tanda's rhythm is its sides' — T18 and T19 take former milonga slots with tangos)
+      rhythm: (["tango", "vals", "milonga"] as const).reduce((a, r) =>
+        songs.filter((x) => x.rhythm === r).length > songs.filter((x) => x.rhythm === a).length ? r : a,
+      ),
+      peak: pin.slot === 23 ? old.peak : undefined,
       orchestraId: main,
       orchestra: label(songs.map((s) => s.orchestra)),
       singer: vocal ? label(songs.map((s) => s.singer)) || null : null,
@@ -182,147 +277,132 @@ for (const pin of PINS) {
 
 const afterPins = tandas.slice();
 
-// --- 3. the forced follow-ups: T10, T11 -----------------------------------------------------------------------
+// --- 3. the inserts the DJ asked for: T16–T19 are four tango tandas in a row ---------------------------------
+// "make those tandas of tango with the correct vals or milonga in between": a vals after T17 and a milonga after T19
+// keep the night's TTV / TTM cycle (V T T V T T M T V T T); the families are Spotify-ready, never big four (the
+// neighbours T18 Pugliese and T20 Troilo are), not already in the night, not one the DJ replaced tonight
 const night = (ts: Tanda[]): Playlist => ({ ...base, tandas: ts });
-const pen = (p: Playlist) => {
-  const r = strictChecks(p);
-  return (
-    r.blockers * 10 +
-    r.shouldFix +
-    bigFourProblems(p.tandas, p.options).filter(
-      (x) => !(p.tandas[x.tanda]?.pinned || (x.with !== undefined && p.tandas[x.with]?.pinned)),
-    ).length *
-      2
-  );
-};
-for (const slot of [10, 11]) {
-  const i = slot - 1;
-  const old = tandas[i]!;
+// (the families the DJ replaced; the shipped T16–T19 were not rejected, the DJ's new tango tandas took their slots)
+const removedFam = new Set(
+  base.tandas
+    .filter((_t, i) => i < 15 || i > 18)
+    .flatMap((t) => t.songs)
+    .filter((s) => !afterPins.some((t) => t.songs.some((x) => x.id === s.id)))
+    .map((s) => `${s.orchestraId}|${s.singer ?? ""}|${s.rhythm}`),
+);
+const inserted: Array<{ after: number; t: Tanda }> = [];
+for (const [after, rhythm] of [
+  [17, "vals"],
+  [19, "milonga"],
+] as const) {
   const o = base.options;
-  const gap = o.orchestraRepeatGap;
-  const near = new Set(tandas.filter((_, j) => Math.abs(j - i) < gap && j !== i).map((t) => t.orchestraId));
-  // (the other forced chair is replaced too: its old titles are free)
-  const pending = new Set([9, 10].filter((j) => j > i));
-  const titles = new Set(
-    tandas.flatMap((t, j) => (j === i || pending.has(j) ? [] : t.songs.map((s) => normTitle(s.title)))),
-  );
-  const singersNear = new Set(
-    tandas.filter((t, j) => Math.abs(j - i) < o.singerRepeatGap && j !== i && t.singer).map((t) => t.singer),
-  );
-  // another family: not the orchestra the chair had, none already in the night, no big four, the orchestra gap
-  // (a family already in the night only when it plays ≥ 8 tandas away and in other years)
-  const inNight = new Set(
-    tandas.filter((t, j) => j !== i && Math.abs(j - i) < 8).map((t) => `${t.orchestraId}|${t.singer ?? ""}`),
-  );
-  const usedYears = new Map<string, Array<[number, number]>>();
-  tandas.forEach((t, j) => {
-    if (j === i || !t.yearRange) return;
-    const k = `${t.orchestraId}|${t.singer ?? ""}`;
-    usedYears.set(k, [...(usedYears.get(k) ?? []), t.yearRange]);
-  });
-  const fams = nightFamilies(cat, o, old.rhythm).filter(
-    (c) =>
-      c.orchestraId !== old.orchestraId &&
-      !inNight.has(`${c.orchestraId}|${c.singer ?? ""}`) &&
-      !near.has(c.orchestraId) &&
-      !isBigFour(c) &&
-      c.vocal === old.vocal &&
-      !singersNear.has(c.singer) &&
-      // (a planned peak never takes a colour family)
-      !(old.peak && isColour(cat.profile(c.orchestraId))),
-  );
+  const inNight = new Set(tandas.map((t) => `${t.orchestraId}|${t.singer ?? ""}`));
+  const titles = new Set(tandas.flatMap((t) => t.songs.map((s) => normTitle(s.title))));
+  const prev = tandas[after - 1]!,
+    next = tandas[after]!;
+  const target = Math.round((prev.energy + next.energy) / 2);
+  const tpl =
+    tandas.find((t) => t.rhythm === rhythm && !t.pinned) ?? tandas.find((t) => t.rhythm === rhythm)!;
   let best: { t: Tanda; v: number } | null = null;
-  for (const f of fams) {
-    const sides = f.songs
-      .filter(
-        (s) => s.spotify?.uri && !titles.has(normTitle(s.title)) && (s.fame ?? 0) >= 2 && !s.streamSuspect,
+  // (tier 0: a family not yet in the night, famous sides; tier 1 — the milonga catalogue on Spotify is thin — a
+  // family that plays tonight in another rhythm, not within three tandas, sides of fame ≥ 1)
+  for (const tier of [0, 1, 2]) {
+    if (best) break;
+    for (const f of nightFamilies(cat, o, rhythm)) {
+      const fk = `${f.orchestraId}|${f.singer ?? ""}`;
+      if (isBigFour(f)) continue;
+      if (tier === 0 && (inNight.has(fk) || removedFam.has(`${fk}|${rhythm}`))) continue;
+      // (an orchestra already playing this rhythm tonight, or one of the neighbours' orchestras, never)
+      // (tier 2 — the vals catalogue on Spotify is thinner still: another singer of an orchestra that plays this rhythm
+      // tonight, not a neighbour)
+      if (
+        tandas.some(
+          (t, k) =>
+            t.orchestraId === f.orchestraId &&
+            (Math.abs(k - after) <= 2 || (t.rhythm === rhythm && (tier < 2 || t.singer === f.singer))),
+        )
       )
-      .sort(
-        (a, b) =>
-          (b.fame ?? 0) - (a.fame ?? 0) ||
-          Math.abs((a.energy ?? 50) - old.targetEnergy) - Math.abs((b.energy ?? 50) - old.targetEnergy),
-      );
-    // every side may anchor the tanda (one tone around it); the set with the best fame near the slot's energy wins
-    let pick: Song[] = [];
-    let pickV = Number.NEGATIVE_INFINITY;
-    for (const anchor of sides) {
-      const cur: Song[] = [anchor];
-      for (const s of sides) {
-        if (cur.length >= old.songs.length) break;
-        if (cur.some((x) => normTitle(x.title) === normTitle(s.title))) continue;
-        // (the night keeps its round-20 rules — the new bands and tone are for future nights: voice, style, years here)
+        continue;
+      if (removedFam.has(`${fk}|${rhythm}`)) continue;
+      if (
+        tier === 1 &&
+        tandas.some(
+          (t, k) =>
+            `${t.orchestraId}|${t.singer ?? ""}` === fk && (t.rhythm === rhythm || Math.abs(k - after) <= 3),
+        )
+      )
+        continue;
+      const sides = f.songs
+        .filter(
+          (x) =>
+            x.spotify?.uri &&
+            !titles.has(normTitle(x.title)) &&
+            (x.fame ?? 0) >= (tier === 0 ? 2 : 1) &&
+            !x.streamSuspect,
+        )
+        .sort((a, b) => (b.fame ?? 0) - (a.fame ?? 0));
+      const pick: Song[] = [];
+      for (const x of sides) {
+        if (pick.length >= (rhythm === "vals" ? o.valsTandaSize : o.milongaTandaSize)) break;
+        if (pick.some((y) => normTitle(y.title) === normTitle(x.title))) continue;
         if (
-          sideProblem(cur, s, {
-            rhythm: old.rhythm,
+          pick.length &&
+          sideProblem(pick, x, {
+            rhythm,
             o: { ...o, tandaRules: { bpmBand: false, levelBand: false, tone: "inside" } },
           })
         )
           continue;
-        cur.push(s);
+        pick.push(x);
       }
-      if (cur.length < old.songs.length) continue;
-      const mf = cur.reduce((a, x) => a + (x.fame ?? 0), 0) / cur.length;
-      const me = cur.reduce((a, x) => a + (x.energy ?? 50), 0) / cur.length;
-      const v = mf - Math.abs(me - old.targetEnergy) / 20;
-      if (v > pickV) {
-        pickV = v;
-        pick = cur;
-      }
+      if (pick.length < (rhythm === "vals" ? o.valsTandaSize : o.milongaTandaSize)) continue;
+      const t = retimeTanda(
+        {
+          ...fresh(tpl),
+          index: after,
+          rhythm,
+          orchestraId: f.orchestraId,
+          orchestra: f.orchestra,
+          singer: f.singer,
+          vocal: f.vocal,
+          era: pick[0]!.era,
+          style: cat.profile(f.orchestraId)?.style,
+          targetEnergy: target,
+          phase: next.phase,
+          peak: undefined,
+          // (placed where the DJ asked: the panel reads its slot as the DJ's order, the learner never as a DJ template)
+          locked: true,
+          pinned: {
+            by: "dj",
+            reason: `the ${rhythm} the DJ asked for between the new tango tandas (TDJ's pick)`,
+            at: AT,
+          },
+          note: `Inserted between the DJ's tango tandas (the ${rhythm} the cycle asks for; bypass it to play the tangos straight)`,
+          reason: `The ${rhythm} between T${after} and T${after + 1}`,
+          cortina: null,
+        },
+        strictOrder(pick, false),
+      );
+      const ts = [...tandas.slice(0, after), t, ...tandas.slice(after)];
+      const r = strictChecks(night(ts));
+      const mf = pick.reduce((a, x) => a + (x.fame ?? 0), 0) / pick.length;
+      const v = r.blockers * 10 + r.penalty + Math.abs(t.energy - target) / 5 - mf;
+      if (!best || v < best.v) best = { t, v };
     }
-    const fy = pick.map((x) => x.year ?? 0);
-    const clash = (usedYears.get(`${f.orchestraId}|${f.singer ?? ""}`) ?? []).some(
-      ([a, b]) => Math.min(...fy) <= b && Math.max(...fy) >= a,
-    );
-    if (clash) continue;
-    if (pick.length < old.songs.length) {
-      if (process.env.DEBUG)
-        console.error(`T${slot} ${f.orchestraId}|${f.singer}: ${sides.length} sides, ${pick.length} picked`);
-      continue;
-    }
-    const t = retimeTanda(
-      {
-        ...fresh(old),
-        orchestraId: f.orchestraId,
-        orchestra: f.orchestra,
-        singer: f.singer,
-        vocal: f.vocal,
-        style: cat.profile(f.orchestraId)?.style,
-        era: pick[0]!.era,
-        note: undefined,
-        reason: `Replaces ${old.orchestra}${old.singer ? ` / ${old.singer}` : ""} (a side now in a DJ tanda)`,
-      },
-      strictOrder(pick, !!old.peak),
-    );
-    const ts = tandas.slice();
-    ts[i] = t;
-    const v =
-      pen(night(ts)) +
-      Math.abs(t.energy - old.targetEnergy) / 4 -
-      t.songs.reduce((a, s) => a + (s.fame ?? 0), 0) / t.songs.length / 2;
-    if (!best || v < best.v) best = { t, v };
   }
-  if (!best)
-    throw new Error(
-      `no family fits T${slot}: ${nightFamilies(cat, o, old.rhythm)
-        .filter((c) => c.vocal === old.vocal && !isBigFour(c))
-        .map(
-          (c) =>
-            `${c.orchestraId}|${c.singer}|${c.songs.length}|${near.has(c.orchestraId) ? "near" : ""}${inNight.has(`${c.orchestraId}|${c.singer ?? ""}`) ? "in" : ""}${singersNear.has(c.singer) ? "sing" : ""}`,
-        )
-        .join(" ")} :: ${fams.length}`,
-    );
-  const nt = best.t;
+  if (!best) throw new Error(`no ${rhythm} fits after T${after}`);
   diff.push({
-    slot: `T${slot}`,
-    old: nm(old),
-    new: nm(nt),
-    why:
-      slot === 10
-        ? "forced: La Bruja and No Mientas now play in T8, and D'Arienzo / Echagüe would return 2 tandas after T8"
-        : "forced: Garúa now plays in T5, and Láurenz would return 6 tandas after T5 with the same singer",
+    slot: `new after T${after}`,
+    old: "—",
+    new: nm(best.t),
+    why: `the DJ: a ${rhythm} between the new tango tandas (the TTV / TTM cycle)`,
   });
-  tandas[i] = nt;
+  inserted.push({ after, t: best.t });
 }
+// (the later insert first, so the earlier index stays right)
+for (const x of inserted.slice().sort((a, b) => b.after - a.after)) tandas.splice(x.after, 0, x.t);
+const pen = (p: Playlist) => strictChecks(p).penalty;
+void pen;
 
 // --- 4. the big four ----------------------------------------------------------------------------------------------
 const realBig = (ts: Tanda[]) =>
@@ -370,13 +450,23 @@ const cueBad = (p: Playlist, i: number) =>
 const cueOk = (c: Cortina) =>
   !!c.spotify?.uri && !cortinaMatchProblem(c, spotifyCandidate(c.spotify, c.title));
 const cueChanges: string[] = [];
-const changedSlots = new Set([1, 3, 4, 6, 7, 8, 9, 10, 14]);
-for (const i of [...changedSlots]
-  .flatMap((s) => [s - 1, s])
-  .filter((x, k, xs) => xs.indexOf(x) === k)
+const shippedIds = new Set(base.tandas.map((t) => t.songs.map((x) => x.id).join()));
+const changedAt = tandas
+  .map((t, i) =>
+    shippedIds.has(t.songs.map((x) => x.id).join()) && (t.cortina || i === tandas.length - 1) ? -1 : i,
+  )
+  .filter((i) => i >= 0);
+for (const i of [...new Set(changedAt.flatMap((k) => [k - 1, k]))]
+  .filter((k) => k >= 0)
   .sort((a, b) => a - b)) {
   const t = tandas[i];
-  if (!t?.cortina || !tandas[i + 1]) continue;
+  if (!t || !tandas[i + 1]) continue;
+  if (!t.cortina) {
+    // (an inserted tanda: its gap takes a cue — a placeholder the picker replaces)
+    const src = tandas[i - 1]?.cortina ?? tandas.find((x) => x.cortina)!.cortina!;
+    tandas[i] = { ...t, cortina: { ...src, id: `${src.id}-placeholder`, spotify: null } };
+  }
+  const cue = tandas[i]!.cortina!;
   const next = tandas[i + 1]!;
   const used = new Set(
     tandas
@@ -385,25 +475,25 @@ for (const i of [...changedSlots]
       .filter(Boolean),
   );
   const fit = (c: Cortina) => Math.abs(c.energy - next.energy);
-  const curBad = cueBad(night(tandas), i) + (cueOk(t.cortina) ? 0 : 1) + (fit(t.cortina) > 18 ? 1 : 0);
+  const curBad = cueBad(night(tandas), i) + (cueOk(cue) ? 0 : 1) + (fit(cue) > 18 ? 1 : 0);
   if (!curBad) continue;
   let best: { c: Cortina; v: number } | null = null;
   for (const c of pool) {
     if (used.has(c.id) || !cueOk(c)) continue;
     const ts = tandas.slice();
-    ts[i] = { ...t, cortina: { ...c, lengthSec: t.cortina.lengthSec } };
+    ts[i] = { ...tandas[i]!, cortina: { ...c, lengthSec: cue.lengthSec } };
     const v = cueBad(night(ts), i) * 10 + strictChecks(night(ts)).penalty + fit(c) / 10;
     if (!best || v < best.v) best = { c, v };
   }
   if (!best) continue;
   cueChanges.push(
-    `after T${i + 1}: ${t.cortina.title} — ${t.cortina.artist} → ${best.c.title} — ${best.c.artist}`,
+    `after T${i + 1} (${tandas[i]!.orchestra}): ${cue.id.endsWith("-placeholder") ? "new gap" : `${cue.title} — ${cue.artist}`} → ${best.c.title} — ${best.c.artist}`,
   );
-  tandas[i] = { ...t, cortina: { ...best.c, lengthSec: t.cortina.lengthSec } };
+  tandas[i] = { ...tandas[i]!, cortina: { ...best.c, lengthSec: cue.lengthSec } };
 }
 
 // --- 6. the opening La Cumparsita ------------------------------------------------------------------------------
-const op = openingCumparsita(cat, base.options, tandas[0]!, base.closing);
+const op = openingCumparsita(cat, base.options, tandas[0]!, null);
 const fallbacks = [
   ...(base.stats.settingFallbacks ?? []).filter((f) => !f.startsWith("opening:")),
   ...(op.fallback ? [op.fallback] : []),
@@ -418,9 +508,27 @@ diff.unshift({
 });
 
 // --- 7. re-time and re-score ------------------------------------------------------------------------------------
+// the DJ's closing version: Bandonegro's La Cumparsita (a contemporary orchestra; the opening stays D'Agostino's)
+const closing = song("499d9ecc71");
+diff.push({
+  slot: "Closing",
+  old: base.closing ? `La Cumparsita · ${base.closing.orchestra} ${base.closing.year}` : "none",
+  new: `La Cumparsita · ${closing.orchestra}`,
+  why: "the DJ's closing version",
+});
 const out0: Playlist = {
   ...base,
-  options: { ...base.options, rules: { ...(base.options.rules ?? {}), cumparsita: "both" } },
+  closing,
+  closingPinned: { by: "dj", reason: "the DJ's closing version (Bandonegro)", at: AT },
+  // (the DJ's inserts make the night longer than its 4 h request: the night says so, to the half hour)
+  options: {
+    ...base.options,
+    hours:
+      Math.round(
+        ((tandas.reduce((a, t) => a + t.durationSec + (t.cortina?.lengthSec ?? 0), 0) + 2 * 180) / 3600) * 2,
+      ) / 2,
+    rules: { ...(base.options.rules ?? {}), cumparsita: "both" },
+  },
   opening: op.song,
   tandas: tandas.map((t, i) => ({ ...t, index: i })),
   stats: { ...base.stats, ...(fallbacks.length ? { settingFallbacks: fallbacks } : {}) },
@@ -438,6 +546,7 @@ const report = {
   },
   bigFour: { before: before4.map((x) => x.detail), after: after4.map((x) => x.detail), swaps },
   spotifyFixed: fixed,
+  djSpotifyIds: djIds,
   cortinas: cueChanges,
   spotifySides: `${out.tandas.flatMap((t) => t.songs).filter((s) => s.spotify?.uri).length}/${out.tandas.flatMap((t) => t.songs).length}`,
   cues: `${out.tandas.filter((t) => t.cortina?.spotify?.uri).length}/${out.tandas.filter((t) => t.cortina).length}`,
@@ -460,10 +569,12 @@ console.log(
 );
 // what TDJ learns from the DJ's edits of this night (learn.ts): the repo-level preferences every later night reads
 // (only the DJ's own edits teach: the pinned tandas and the opening, never the forced follow-ups the engine chose)
+// (the shipped T16–T19 were not rejected — the DJ's new tango tandas took their slots — so they teach nothing taken out;
+// the inserted vals and milonga are TDJ's picks and teach nothing either)
 const learned = learnFromEdit(
   undefined,
-  base,
-  { ...base, opening: op.song, tandas: afterPins },
+  { ...base, tandas: base.tandas.map((t, i) => (i >= 15 && i <= 18 ? { ...t, songs: [] } : t)) },
+  { ...base, opening: op.song, closing, tandas: afterPins },
   AT,
   "the DJ's edits of the featured night (round 21)",
 );

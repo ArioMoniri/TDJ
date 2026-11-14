@@ -63,6 +63,12 @@ they break — and the stretch rules they make a neighbour break (hour, run, pai
 tandas the DJ did not pin) — into `exceptions` ("DJ exceptions"), never a blocker; the score's hard-failure cap
 ignores them.
 
+**The DJ's order and closing** (late round 21): a tanda the DJ pinned off its slot of the classic cycle shifts every
+later slot — those shifted slots, and a three-tango run through a pinned tanda, are DJ exceptions; the cycle's vals /
+milonga balance is judged over the tandas the DJ did not pin. `Playlist.closingPinned` marks a closing La Cumparsita
+the DJ chose: the closer rule reports it as an exception and never swaps it. The score's integrity and singer factors
+skip pinned tandas (their mixes are the DJ's), as the hard-failure cap already did.
+
 ## 3. La Cumparsita
 
 `rules.cumparsita`: `both` (the new default), `open`, `close`, `none` (unset: the legacy keys). The opening version
@@ -71,6 +77,21 @@ unless that orchestra only recorded it sung (then its singer's); else the same o
 orchestra of the same style from the nearest year inside the night's range — each step recorded ("opening: …"). The
 opening plays inside the requested hours (the slot plan and the length fit reserve it). The panel's
 `cumparsitaOpener` checks it; `nightShape` checks the placement.
+
+**Closing harmony** (`rules.cumparsitaHarmony`, Composer "Closing matches the última", off by default): the closing
+version by the última's orchestra near its years, by the opening's ladder (`closingFor`, fallbacks recorded as
+"closer: …"); the closer rule then judges only its stream and `closerVary` does not apply. Off, the classic rule
+stands (another orchestra than the última's, the long-standing invariant in `compose.test.ts`); turning it on by
+default is a product decision left open — it changes every night's last side.
+
+**Bypass** (`bypass.ts`): `Tanda.bypass` ("Skip tonight", the composer card menu and a Skip button on each booth
+tanda) — the player passes over its tracks and the cortina after it (the cortina before it when it is the última);
+the night and its exports keep it unless the export asks `dropBypassed`. `rules.lastFourTango` ("Last 4 tandas tango
+only", Composer and the booth menu) bypasses every vals / milonga among the last four tandas, again until four tangos
+close; the flat export (every format) then ends on four tangos as well. Booth menu: **Jump to La Cumparsita now**
+(the running item fades, the closing starts) and **Play the rest, then La Cumparsita** (the running tanda finishes,
+everything between is left out). "La Cumparsita at: start / end / both" is `rules.cumparsita`; the featured night
+sets "both".
 
 ## 4. Stream dates, BPM, loudness and the database
 
@@ -148,16 +169,16 @@ weights — a chosen side +1 (×1.5 per point in its family, up to ×2.5), a cho
 up to ×2.2), a replaced side −0.5 and a replaced family −1 (×0.6) — and a pinned tanda a template. Stored in the DJ's
 memory (`AgentMemory.learned`, IndexedDB / the server row), applied to every later compose (`applyMemory`), shown and
 resettable in Settings ("What TDJ learned from your edits"); the repo-level store `data/knowledge/dj_preferences.json`
-holds what the featured-night edits taught (47 sides, 20 families, 7 templates). Rules still apply; tonight's settings
-win. Effect on fresh nights (the same seeds composed without and with the learned store): featured options seed 199
-score 85 → 87, default seed 1 89 → 91, seed 2 90 → 88; the DJ-chosen sides each night carries 5 → 5, 8 → 6, 6 → 7.
-The weights move families (D'Arienzo / Echagüe 1938 and Láurenz / Podestá stay, Di Sarli / Rufino 1939–40 opens the
-featured-options night) but a replaced family at ×0.6 can still return under the night's own random bias (Rodríguez /
-Flores valses did in seed 1): the learning is a preference, not an exclusion — a "never" is the database's hide.
+holds what the featured-night edits taught (87 sides, 35 families, 16 templates, after the DJ's last update: T10–T19,
+T23 and the closing; the shipped T16–T19 the new tango tandas displaced teach nothing taken out, and TDJ's two inserted
+tandas teach nothing). Rules still apply; tonight's settings win. Effect on fresh nights (the same seeds composed
+without and with the learned store): featured options seed 199 score 85 → 85, default seed 1 90 → 91, seed 2 90 → 88;
+the DJ-chosen sides each night carries 2 → 3, 4 → 4, 3 → 4. The learning is a preference, not an exclusion: a
+replaced family at ×0.6 can still return under the night's own random bias — a "never" is the database's hide.
 
 ## 8. Tests
 
-- `packages/core/test/round21.test.ts` (25 invariants: placement and the opening version, the vocal-style table and
+- `packages/core/test/round21.test.ts` (31 invariants: the DJ's order / closing exceptions, bypass, last four tango, closing harmony, placement and the opening version, the vocal-style table and
   coverage, sideProblem, composed nights keep voice / style / years, the singer-led setting, the stream-date rule and
   the clean cache, Deezer data and the DJ's correction, enrichment updates, one tone, the big four, Swap, pinned
   exceptions, learning, the featured night's edits). Run on the round-20 engine (the HEAD before this round) the new
