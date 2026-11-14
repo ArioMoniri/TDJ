@@ -22,6 +22,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { aiFetch, hasOwnModel } from "@/lib/ai/client";
 import {
   type AutoImproved,
   autoImproveLine,
@@ -935,13 +936,6 @@ export function Composer() {
     if (!ctx?.region) setOptions({ context: { ...(ctx ?? {}), region } });
   }, [hydrated, region, setOptions]);
 
-  const aiHeaders = () => ({
-    "content-type": "application/json",
-    "x-ai-provider": settings.ai.provider,
-    "x-ai-key": settings.ai.key,
-    "x-ai-model": settings.ai.model,
-    "x-ai-workspace": settings.ai.workspace ?? "",
-  });
   const era: Era = (options.eras ?? ["golden"])[0] ?? "golden";
   const eraDefaults = ERA_SETTINGS[era] ?? ERA_SETTINGS.golden!;
   const togglePin = useCallback(
@@ -1215,17 +1209,11 @@ export function Composer() {
     setBusy(true);
     try {
       const prev = fullOptions({ ...DEFAULT_OPTS, ...eraDefaults, ...useStore.getState().options });
-      const r = await fetch("/api/ai/refine", {
-        method: "POST",
-        headers: aiHeaders(),
-        body: JSON.stringify({
-          options: prev,
-          playlist,
-          instruction,
-          memory,
-          houseRules: overrides.guide?.houseRules ?? "",
-        }),
-      });
+      const r = await aiFetch(
+        "/api/ai/refine",
+        { options: prev, playlist, instruction, memory, houseRules: overrides.guide?.houseRules ?? "" },
+        settings,
+      );
       const j = (await r.json()) as {
         options?: Partial<ComposeOptions>;
         feedback?: Feedback[];
@@ -1274,11 +1262,11 @@ export function Composer() {
     if (ai || aiBusy) return;
     setAiBusy(true);
     try {
-      const r = await fetch("/api/ai/review", {
-        method: "POST",
-        headers: aiHeaders(),
-        body: JSON.stringify({ playlist, memory, houseRules: overrides.guide?.houseRules ?? "" }),
-      });
+      const r = await aiFetch(
+        "/api/ai/review",
+        { playlist, memory, houseRules: overrides.guide?.houseRules ?? "" },
+        settings,
+      );
       const j = await r.json();
       setAi(j.text ?? j.error);
       setAiError(!r.ok);
@@ -1706,7 +1694,7 @@ export function Composer() {
               value={
                 aiBusy
                   ? "Reading the set…"
-                  : ai || settings.ai.key || aiShared
+                  : ai || hasOwnModel(settings) || aiShared
                     ? "Ready"
                     : aiShared === false
                       ? "Off · needs an AI key"

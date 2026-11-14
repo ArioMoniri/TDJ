@@ -1,12 +1,20 @@
 import { DJ_RULES, summarizeMemory, toSetList } from "@tdj/core";
 import { NextResponse } from "next/server";
 import { crossOriginResponse, noStore } from "@/lib/server/guard";
-import { complete, houseRulesBlock, LlmError, resolveAi, sharedQuota } from "@/lib/server/llm";
+import {
+  complete,
+  houseRulesBlock,
+  LlmError,
+  RelayNeeded,
+  relayResponse,
+  resolveAi,
+  sharedQuota,
+} from "@/lib/server/llm";
 export const dynamic = "force-dynamic";
 
 const SYSTEM = `You are a veteran tango DJ (milonguero tradition, Buenos Aires and the European marathon circuit). Review tanda playlists: energy arc, orchestra sequencing, singer and era coherence, cortina fit, última tanda and La Cumparsita. Be concrete and brief; use dancer language; suggest specific swaps by tanda number. No em-dashes.\n\n${DJ_RULES}`;
 
-/** Settings → Written reviews: whether the organiser's shared key exists and how much of today's allowance is used. */
+/** Settings → Models: whether the organiser's shared key exists and how much of today's allowance is used. */
 export async function GET(req: Request) {
   const q = await sharedQuota(req);
   const { setCookie, ...body } = q;
@@ -25,7 +33,7 @@ export async function POST(req: Request) {
   const cross = await crossOriginResponse(req);
   if (cross) return cross;
   const body = await req.json().catch(() => ({}));
-  const r = await resolveAi(req);
+  const r = await resolveAi(req, { body });
   if (!r.ok) {
     const res = noStore(NextResponse.json({ error: r.error }, { status: r.status }));
     if (r.setCookie) res.headers.append("set-cookie", r.setCookie);
@@ -66,6 +74,7 @@ export async function POST(req: Request) {
       NextResponse.json({ text, model: ai.model || "default", provider: ai.provider, shared: r.shared }),
     );
   } catch (e) {
+    if (e instanceof RelayNeeded) return relayResponse(e);
     const status = e instanceof LlmError ? e.status : 502;
     return noStore(
       NextResponse.json({ error: e instanceof Error ? e.message : "Model request failed" }, { status }),

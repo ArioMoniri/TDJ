@@ -1,4 +1,6 @@
 import type { AudioFeatures, ContextFactorOption, ResolvedTrack, Song, UserOverrides } from "@tdj/core";
+import type { AcpConnection } from "./ai/acp";
+import { type AiProvider, DEFAULT_MODEL, KEY_PROVIDERS, type KeyProvider } from "./ai/models";
 
 export type {
   AgentMemory,
@@ -26,19 +28,12 @@ export type AppOptions = Partial<import("@tdj/core").ComposeOptions> & {
   touched?: string[];
 };
 
-export type AiProvider = "anthropic" | "openai" | "gemini" | "openrouter";
-export const AI_PROVIDERS: Array<[AiProvider, string]> = [
-  ["anthropic", "Anthropic"],
-  ["openai", "OpenAI"],
-  ["gemini", "Gemini"],
-  ["openrouter", "OpenRouter"],
-];
-export const AI_DEFAULT_MODEL: Record<AiProvider, string> = {
-  anthropic: "claude-sonnet-5-5",
-  openai: "gpt-5.2",
-  gemini: "gemini-4-argon",
-  openrouter: "openrouter/auto",
-};
+export type { AcpConnection } from "./ai/acp";
+export type { AiProvider, KeyProvider } from "./ai/models";
+/** API key providers (BYOK); ACP agents are listed separately (Settings → Models) */
+export const AI_PROVIDERS = KEY_PROVIDERS;
+/** the model each provider runs when the DJ leaves the field blank (lib/ai/models.ts) */
+export const AI_DEFAULT_MODEL = DEFAULT_MODEL;
 
 export type DjApp = "rekordbox" | "traktor" | "serato" | "virtualdj" | "enginedj";
 export const DJ_APPS: Array<{ id: DjApp; label: string; format: string; note: string }> = [
@@ -76,13 +71,26 @@ export const DJ_APPS: Array<{ id: DjApp; label: string; format: string; note: st
 
 export interface UserSettings {
   spotifyClientId: string;
+  /** the model every generation uses: an API key provider (its key and model below) or an ACP agent (`acpId`) */
   ai: {
     provider: AiProvider;
     key: string;
+    /** blank: the provider's default (lib/ai/models.ts; Anthropic's is the newest Claude model) */
     model: string;
     /** Anthropic only: the workspace an organisation-level key bills (`wrkspc_…`); blank for a key made inside a workspace */
     workspace?: string;
+    /** provider "acp": the connection in `acp` that answers */
+    acpId?: string;
   };
+  /**
+   * Round 22: every key the DJ saved, per provider (so switching providers keeps them). BYOK: kept in this browser,
+   * sent with the DJ's own requests only, never stored on the server.
+   */
+  aiKeys?: Partial<Record<KeyProvider, { key: string; model?: string; workspace?: string }>>;
+  /** Round 22: ACP agent connections (local or remote agents), usable exactly like a key */
+  acp?: AcpConnection[];
+  /** Round 22: live suggestions while building a night by hand */
+  buildSuggestions?: boolean;
   djApps: Record<DjApp, { folder: string }>;
   /** file naming pattern used for exported paths; tokens: {artist} {title} {orchestra} {singer} {year} {rhythm} {tanda} {n} */
   fileNaming: string;
@@ -106,7 +114,10 @@ export interface UserSettings {
 export const DEFAULT_NAMING = "{artist} - {title}";
 export const DEFAULT_SETTINGS: UserSettings = {
   spotifyClientId: "",
-  ai: { provider: "anthropic", key: "", model: AI_DEFAULT_MODEL.anthropic },
+  ai: { provider: "anthropic", key: "", model: "" },
+  aiKeys: {},
+  acp: [],
+  buildSuggestions: true,
   djApps: {
     rekordbox: { folder: "" },
     traktor: { folder: "" },
