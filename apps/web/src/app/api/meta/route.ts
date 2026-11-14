@@ -11,6 +11,12 @@ export async function GET() {
   const orchestras = [...catalog.byOrchestra.entries()]
     .map(([id, songs]) => {
       const p = catalog.profile(id);
+      // round 22 (Orchestras tab): the years it recorded, its most-recorded singers and a cover from its best-known side
+      const years = songs.map((s) => s.year).filter((y): y is number => !!y && y > 1900);
+      const counts = new Map<string, number>();
+      for (const s of songs) if (s.singer) counts.set(s.singer, (counts.get(s.singer) ?? 0) + 1);
+      const cover = songs.filter((s) => s.resolved?.artwork).sort((a, b) => (b.fame ?? 0) - (a.fame ?? 0))[0]
+        ?.resolved?.artwork;
       return {
         id,
         name: songs[0]!.orchestra,
@@ -21,6 +27,10 @@ export async function GET() {
         phase: p?.phase,
         notBefore: p?.notBefore,
         singers: p?.singers,
+        years: years.length ? [Math.min(...years), Math.max(...years)] : undefined,
+        topSingers: [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8),
+        instrumentals: songs.filter((s) => !s.singer).length,
+        artwork: cover,
       };
     })
     .filter((o) => o.count >= 12)
