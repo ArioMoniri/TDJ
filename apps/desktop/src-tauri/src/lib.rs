@@ -67,6 +67,8 @@ fn init_script(state: &AppState) -> String {
         "appStore": APP_STORE_BUILD,
         "updater": cfg!(feature = "updater"),
         "vibrancy": false,
+        // macOS draws the page under a transparent title bar (build_main): the page reserves it (layout.tsx)
+        "titleBar": if cfg!(target_os = "macos") { "overlay" } else { "native" },
     });
     format!(
         "window.__TDJ_NATIVE__=Object.freeze({native});\
@@ -144,13 +146,42 @@ fn build_main(app: &AppHandle) -> tauri::Result<WebviewWindow> {
         .title("T-DJ")
         .inner_size(1280.0, 820.0)
         .min_inner_size(900.0, 600.0);
-    // r22-motion.md §4.5: content to the window edge, traffic lights inside the sidebar at (20, 20)
+    // Content to the window edge under a transparent title bar (r22-motion.md §4.5), with the traffic lights at
+    // their standard place: the page reserves a 28 pt title-bar strip and a 78 pt leading inset for them
+    // (`html.titlebar-overlay`, set by the page from `titleBar` below) and marks its bars `data-tauri-drag-region`. Round 23: the
+    // lights used to sit at (20, 20), inside the sidebar's logo and over the header, with nothing reserved.
     #[cfg(target_os = "macos")]
     let b = b
         .title_bar_style(tauri::TitleBarStyle::Overlay)
         .hidden_title(true)
-        .traffic_light_position(tauri::LogicalPosition::new(20.0, 20.0));
-    b.build()
+        .on_page_load(|w, p| {
+            if p.event() == PageLoadEvent::Finished {
+                mark_fullscreen(&w);
+            }
+        });
+    let w = b.build()?;
+    // full screen hides the title bar and the lights: the page drops the reserved strip
+    #[cfg(target_os = "macos")]
+    {
+        let wc = w.clone();
+        w.on_window_event(move |e| {
+            if let tauri::WindowEvent::Resized(_) = e {
+                mark_fullscreen(&wc);
+            }
+        });
+    }
+    #[cfg(target_os = "ios")]
+    let _ = w.with_webview(|v| apple::tune_ios_webview(v.inner()));
+    Ok(w)
+}
+
+/// `html[data-fullscreen]` while the window is full screen (macOS): the title-bar strip goes away with the bar.
+#[cfg(target_os = "macos")]
+fn mark_fullscreen(w: &WebviewWindow) {
+    let fs = w.is_fullscreen().unwrap_or(false);
+    let _ = w.eval(format!(
+        "document.documentElement.toggleAttribute('data-fullscreen',{fs})"
+    ));
 }
 
 /// Can this server finish a login in the system browser (the `client=app` ticket branch)? Cached per server.

@@ -25,6 +25,7 @@
   <dict>
     <key>UIColorName</key><string>LaunchBackground</string>
   </dict>
-  <key>UIStatusBarStyle</key><string>UIStatusBarStyleLightContent</string>
+  <!-- round 23: dark glyphs on the light theme, light on the dark one (LightContent drew white on cream) -->
+  <key>UIStatusBarStyle</key><string>UIStatusBarStyleDefault</string>
 </dict>
 </plist>
