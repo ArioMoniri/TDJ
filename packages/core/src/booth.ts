@@ -51,6 +51,8 @@ export interface BoothPlanItem {
   peakCapped?: boolean;
   /** belongs to the tanda reserved for the birthday vals */
   birthday?: boolean;
+  /** round 22: a track the DJ cued — the player starts at `trimInSec` and stops at `stopSec` (else its end) */
+  cued?: boolean;
 }
 export interface BoothMarker {
   kind: "opening" | "tanda" | "break" | "closing";
@@ -308,6 +310,7 @@ export function planBooth(p: Playlist, s: BoothInputs = {}): BoothPlan {
       gapAfterSec: gapAfter,
       ...(trimIn > 0 ? { trimInSec: trimIn } : {}),
       ...(cue?.outSec !== undefined ? { stopSec: cue.outSec } : {}),
+      ...(cue ? { cued: true } : {}),
       ...gainFor(num(m?.lufs) ?? prior, target, trimFor(song.id), num(m?.peakDbFS)),
     };
     if (birthday) it.birthday = true;

@@ -1126,11 +1126,13 @@ export class BoothEngine {
 
     // where in the clip we start and how long we play
     let offset = 0;
-    if (it.kind === "cortina") offset = Math.min(it.trimInSec ?? 0, Math.max(0, buffer.duration - 1));
+    // round 22: a song the DJ cued (Song info → waveform) starts at its cue and stops at its stop second
+    const cued = it.kind !== "cortina" && isCued(it);
+    if (it.kind === "cortina" || cued) offset = Math.min(it.trimInSec ?? 0, Math.max(0, buffer.duration - 1));
     else if (this.settings.trimLeadingSilence)
       offset = Math.min(prepared.measured?.introSec ?? 0, TRIM_MAX_SEC, buffer.duration / 2);
     let duration: number | undefined;
-    if (it.kind === "cortina") duration = Math.min(it.lengthSec, buffer.duration - offset);
+    if (it.kind === "cortina" || cued) duration = Math.min(it.lengthSec, buffer.duration - offset);
     const cap = this.capFor(i) ?? (prepared.kind === "preview" ? PREVIEW_CAP_SEC : null);
     if (cap) duration = Math.min(duration ?? buffer.duration - offset, cap);
     const full = duration ?? buffer.duration - offset;
@@ -1195,7 +1197,8 @@ export class BoothEngine {
     const length = full - from;
     base.startedAt = base.when - from;
     base.endsAt = base.when + length;
-    const start0 = it.kind === "cortina" ? (it.trimInSec ?? 0) : 0;
+    const cued = it.kind !== "cortina" && isCued(it);
+    const start0 = it.kind === "cortina" || cued ? (it.trimInSec ?? 0) : 0;
     base.extStart = start0;
     const songFade = it.kind === "cortina" ? 0 : this.settings.songFadeOutSec;
     base.external = a.startItem({
@@ -1203,7 +1206,9 @@ export class BoothEngine {
       delaySec: delay,
       positionSec: start0 + from,
       durationSec:
-        it.kind === "cortina" || this.capFor(base.planIndex) || songFade > 0 || from > 0 ? length : undefined,
+        it.kind === "cortina" || cued || this.capFor(base.planIndex) || songFade > 0 || from > 0
+          ? length
+          : undefined,
       fadeInSec: o.fadeIn ?? (it.kind === "cortina" ? it.fadeInSec : 0),
       fadeOutSec: it.kind === "cortina" ? it.fadeOutSec : songFade,
       gainDb: Math.min(0, gainDb),
@@ -1266,6 +1271,11 @@ export class BoothEngine {
     this.transition("stopped", "end of the night");
     this.onEvent({ type: "ended" });
   }
+}
+
+/** A track the DJ cued (round 22): the plan's cue-in and stop second, not the leading-silence trim. */
+function isCued(it: BoothRow): boolean {
+  return !!it.cued;
 }
 
 function setTimeoutSafe(fn: () => void, ms: number) {

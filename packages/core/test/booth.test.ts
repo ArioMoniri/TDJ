@@ -587,6 +587,7 @@ describe("per-song cue and stop", () => {
     const cued = planBooth(p, { songCues: { [song.id]: { inSec: 2.5, outSec: dur - 10 } } });
     const it = cued.items.find((x) => x.id === song.id)!;
     expect(it.trimInSec).toBe(2.5);
+    expect(it.cued).toBe(true);
     expect(it.stopSec).toBe(round3(dur - 10));
     expect(it.lengthSec).toBe(round3(dur - 12.5));
     // the rest of the night moves up by exactly what was cut
