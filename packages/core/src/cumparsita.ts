@@ -36,6 +36,13 @@ const profileStyle = (id: string) => staticProfile(id)?.style ?? "balanced";
 /** the distance of a year from a tanda's years */
 const yearDist = (y: number, yr: [number, number]) => Math.max(0, yr[0] - y, y - yr[1]);
 export const OPENING_SAME_ERA = 4;
+/** the documented La Cumparsita years of an orchestra: profile `cumparsitaVersions` ∪ corpus `role:"cumparsita"` */
+function documented(cat: Catalog, orchestraId: string): Set<number> {
+  const ys = new Set<number>(cat.profile(orchestraId)?.cumparsitaVersions ?? []);
+  for (const f of cat.corpus.famousRecordings ?? [])
+    if (f.role === "cumparsita" && f.orchestraId === orchestraId && f.year) ys.add(f.year);
+  return ys;
+}
 
 export function openingCumparsita(
   cat: Catalog,
@@ -53,7 +60,9 @@ export function openingCumparsita(
       isTandaEligible(s) &&
       !!s.year &&
       s.id !== closing?.id &&
-      !(closing && s.orchestraId === closing.orchestraId && s.year === closing.year),
+      !(closing && s.orchestraId === closing.orchestraId && s.year === closing.year) &&
+      // (an orchestra with documented La Cumparsita versions — profile, corpus — offers only those years)
+      (!documented(cat, s.orchestraId).size || documented(cat, s.orchestraId).has(s.year)),
   );
   const yrN = o.yearRange;
   const inNight = (s: Song) => !yrN || (s.year! >= yrN[0] && s.year! <= yrN[1]);
@@ -81,10 +90,14 @@ export function openingCumparsita(
       fallback: `opening: no ${first.orchestra} La Cumparsita near ${yrs}; its ${anyGolden[0].year}${anyGolden[0].singer ? ` version (${anyGolden[0].singer})` : ""} opens`,
     };
   const style = profileStyle(first.orchestraId);
-  const same = all
+  // (another orchestra's version: one of the documented closing versions when there is one)
+  const doc = all.filter((s) => documented(cat, s.orchestraId).has(s.year!));
+  const pool = doc.some((s) => !s.vocal && !s.streamSuspect && inNight(s)) ? doc : all;
+  const same = pool
     .filter((s) => !s.vocal && !s.streamSuspect && inNight(s) && profileStyle(s.orchestraId) === style)
     .sort(rank);
-  const pick = same[0] ?? all.filter((s) => !s.vocal && !s.streamSuspect && inNight(s)).sort(rank)[0] ?? null;
+  const pick =
+    same[0] ?? pool.filter((s) => !s.vocal && !s.streamSuspect && inNight(s)).sort(rank)[0] ?? null;
   return {
     song: pick,
     fallback: pick

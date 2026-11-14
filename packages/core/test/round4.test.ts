@@ -441,7 +441,9 @@ describe("B11/B12/C14 — banks and variety", () => {
     // round 13: the golden-purist rules (≤ 3 colour tandas, family core bands, the user's heatmap) narrow a golden
     // night's bench to the same ~15 orchestras, so nights differ by family, years and order more than by orchestra
     // round 14 (DJ S5): an orchestra may now take a second tango tanda in another mode, so the benches overlap more
-    expect(s / n).toBeLessThan(0.97);
+    // round 21 (the big four in every quartile, the learned DJ preferences): Di Sarli, D'Arienzo, Troilo and Pugliese
+    // play every night, so the orchestra benches overlap a little more (0.975 measured) — nights still differ by family
+    expect(s / n).toBeLessThan(0.98);
     const slots = SEEDS.map((seed) => golden(seed).tandas.map((t) => `${t.orchestraId}|${t.singer}`));
     const low: string[] = [];
     for (let k = 1; k < 22; k++) {
