@@ -279,7 +279,7 @@ function TandaCardImpl({
                     text={`The tanda's tone: ${tone.mode ? `${tone.mode === "mixed" ? "mixed major and minor keys" : `${tone.mode} keys`}${tone.keys.length ? ` (${tone.keys.join(", ")})` : ""}, ` : ""}${tone.feel} energy${tone.bpm ? `, about ${tone.bpm} BPM` : ""}`}
                   >
                     <span
-                      className="text-caption1 inline-flex rounded-full bg-[var(--fill-4)] px-2 py-0.5 font-medium text-[var(--label-2)]"
+                      className="text-caption1 inline-flex whitespace-nowrap rounded-full bg-[var(--fill-4)] px-2 py-0.5 font-medium text-[var(--label-2)]"
                       data-testid="tanda-tone"
                     >
                       {tone.label}

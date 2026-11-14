@@ -176,7 +176,7 @@ export const TrackRow = memo(function TrackRow({
               span could still overflow the viewport by a pixel on phones (round4 mobile-overflow flake) */}
           <span
             key={`${title}-${nudge}`}
-            className={`flex min-w-0 flex-1 items-baseline gap-1 ${nudge && !reduced ? "nudge-x" : ""}`}
+            className={`flex min-w-[5.5rem] flex-1 items-baseline gap-1 ${nudge && !reduced ? "nudge-x" : ""}`}
             style={{ opacity: inFlight ? 0.6 : 1, transition: "opacity var(--dur-xs) var(--ease-settle)" }}
           >
             <span className="min-w-0 truncate">{title}</span>
@@ -232,7 +232,7 @@ export const TrackRow = memo(function TrackRow({
           {/* round 21: the measured tempo and level the tanda's bands read */}
           {tempoLevel(song) && !isPhone && (
             <span
-              className="text-caption1 hidden shrink-0 tabular-nums text-[var(--label-3)] md:inline"
+              className="text-caption1 hidden shrink-0 tabular-nums text-[var(--label-3)] xl:inline"
               data-testid="row-tempo"
             >
               {tempoLevel(song)}

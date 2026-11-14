@@ -378,7 +378,7 @@ export function SongsTab() {
                   onChange={(t) => setField(s, "release", t.trim() || undefined)}
                 />
                 <ValueCell
-                  label={`Deezer${from("deezerId")}`}
+                  label={data.deezerId?.source === "dj" ? "Deezer · yours" : "Deezer"}
                   inputLabel={`Deezer track of ${s.title}`}
                   editing={editing}
                   mono
