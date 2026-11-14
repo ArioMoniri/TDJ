@@ -4,6 +4,10 @@ import { normTitle } from "./energy";
 import { monthIndex, staticProfile } from "./knowledge";
 import { CORPUS_CAPS, CUMPARSITA_CLOSING_YEARS, DEFAULT_CAP, ULTIMA_CLOSERS } from "./rules";
 import { strictChecks, strictSummary } from "./strict";
+
+/** round 21: the in-tanda band rules of the strict panel */
+const BAND_RULES = new Set(["tandaBpm", "tandaLevel", "tandaTone"]);
+
 import { isTandaEligible, songRhythm } from "./tanda";
 import { nightTransitions } from "./transitions";
 import type { Playlist, ScoreCard, ScoreFactor, Song, Tanda } from "./types";
@@ -412,7 +416,10 @@ export function scorePlaylist(p: Pick<Playlist, "tandas" | "closing" | "options"
       "strict",
       "Strict panel (round-14 dancer, DJ and discography rules)",
       judged ? 8 : 0,
-      1 - sr.blockers * 0.15 - sr.shouldFix * 0.02,
+      // (round 21: the tempo, level and tone bands weigh a quarter here — the tempo and cohesion factors score them too)
+      1 -
+        sr.blockers * 0.15 -
+        (sr.shouldFix - 0.75 * sr.violations.filter((v) => BAND_RULES.has(v.rule)).length) * 0.02,
       strictSummary(sr),
     );
   }
@@ -439,6 +446,8 @@ export function hardFailures(p: Pick<Playlist, "tandas" | "options" | "stats">):
   const out: string[] = [];
   const allow = !!o.rules?.allowUndated;
   t.forEach((x, i) => {
+    // (round 21: a tanda the DJ pinned is the DJ's — its sides are reported as DJ exceptions, never a hard failure)
+    if (x.pinned) return;
     const ult = i === t.length - 1;
     const bad = x.songs.filter((s) => !isTandaEligible(s));
     if (bad.length && !allow) {

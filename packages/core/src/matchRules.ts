@@ -44,6 +44,8 @@ export interface MatchCandidate {
    * singer rule does not judge it. Spotify credits list every artist and are judged.
    */
   mainArtistOnly?: boolean;
+  /** round 21: the album's release date as the provider dates it ("1939-01-09", "1979") */
+  release?: string;
 }
 export interface MatchContext {
   /** every singer the index knows (full names): a credit naming one the row lacks is another voice (M6) */
@@ -293,8 +295,13 @@ export function namesLeader(orchestra: string, artist: string): boolean {
   // the surname (with its particle: "di sarli", "d arienzo", "de angelis") and the given name
   const given = core[0]!;
   const surname = core.slice(1).join(" ");
-  const aw = words(artist);
   const sw = surname.split(" ");
+  // (round 21: "De Agostino" spells the particle of "D'Agostino": "Orquesta Angel De Agostino")
+  const aw0 = words(artist);
+  const aw: string[] = [];
+  for (let i = 0; i < aw0.length; i++)
+    if (aw0[i] === "de" && aw0[i + 1] && sw.includes(`d${aw0[i + 1]}`)) aw.push(`d${aw0[++i]}`);
+    else aw.push(aw0[i]!);
   for (let i = 0; i + sw.length <= aw.length; i++) {
     if (aw.slice(i, i + sw.length).join(" ") !== surname) continue;
     const before = aw[i - 1];
@@ -379,6 +386,11 @@ export function matchProblem(
   const namesSinger = !!singerSur && credit.includes(` ${singerSur} `);
   if (ENSEMBLE.test(credit) && !ENSEMBLE.test(` ${normTitle(row.orchestra)} `))
     return `another ensemble (${c.artists.join(", ")})`;
+  // round 21: a contemporary orchestra named after a leader ("La Juan D'Arienzo") is not the leader's side
+  const tribute = c.artists.find(
+    (a) => /^la\s/.test(normTitle(a)) && namesLeader(row.orchestra, a.replace(/^la\s+/i, "")),
+  );
+  if (tribute && !/^la\s/.test(normTitle(row.orchestra))) return `a tribute orchestra (${tribute})`;
   // (a row with no real orchestra — "Guitarras (solo singer)", "Orquesta (unspecified)" — is the singer's own side)
   const pseudo =
     !words(row.orchestra.replace(/\(.*?\)/g, " ")).some((w) => !NOISE.has(w)) ||
@@ -424,6 +436,8 @@ export function matchProblem(
   }
   // the album's whole year range (G3): a range that starts after the side, or ends before it, is another recording
   const span = albumSpan(c.album);
+  const why = releaseProblem(row, c);
+  if (why) return why;
   if (row.year && span && span[0] > row.year + 2) return `a later album (${c.album})`;
   if (row.year && span && span[1] < row.year - 1) return `an earlier album (${c.album})`;
   // positive evidence (M2, M5): the index knows a later take of this title, or a sung take of this instrumental
@@ -432,7 +446,11 @@ export function matchProblem(
   if (lt.length || twins.length) {
     const dated = (() => {
       const td = titleDate(c.name) ?? titleDate(c.album);
-      return td !== null && !!row.date && /^\d{4}-\d{2}-\d{2}$/.test(row.date) && !dateMismatch(row, c.name);
+      if (td !== null && row.date && /^\d{4}-\d{2}-\d{2}$/.test(row.date) && !dateMismatch(row, c.name))
+        return true;
+      // (round 21: an album the provider dates in the side's own year — a session-dated series such as Canaro's
+      // "Colección Completa (Remasterizado)" — is the side's record)
+      return !!c.release && !!row.year && Number(c.release.slice(0, 4)) === row.year;
     })();
     const lengthOk =
       !!ref &&
@@ -478,6 +496,35 @@ export function matchProblem(
 }
 
 /**
+ * Round 21 (the "1941 … 1979" tanda): the provider's release date of the album is the year a listener sees beside the
+ * track. An album dated before the side (more than a year: "Laura" 1939-01-09 for a 1941-07-24 Tres Esquinas, a
+ * 1924 "¡Ay, Mis Amores!" for 1943 Laurenz sides) is a mis-dated compilation, and a release dated more than two years
+ * after the side before 2000 (an LP: "Geometría Del Arrabal" 1976 for a 1942 Caló) is another record or a later
+ * reissue — unless the track or the album names the side's own date or years (a "Buenos Aires 24/07/1941
+ * (Restauración 2022)" title, a "1940 - 1942" album, a dated title). A digital-era release (2000 on) of a historical
+ * side is a reissue and judged by the other rules.
+ */
+export function releaseProblem(
+  row: Pick<MatchRow, "year" | "date">,
+  c: Pick<MatchCandidate, "name" | "album" | "release">,
+): string | null {
+  const rel = c.release ? Number(c.release.slice(0, 4)) : null;
+  if (!row.year || !rel || !Number.isFinite(rel)) return null;
+  const span = albumSpan(c.album);
+  const named =
+    (!!span && span[0] <= row.year + 1 && span[1] >= row.year - 1) ||
+    titleDate(c.name) !== null ||
+    titleDate(c.album) !== null;
+  if (named) return null;
+  // (an album dated in a year before the side was recorded: "Laura" 1939-01-09 and "Presentando a Angel D'agostino"
+  // 1940-02-25 for the 1941-07-24 Tres Esquinas)
+  if (rel < row.year) return `an album dated ${c.release} before the ${row.year} side (${c.album ?? "?"})`;
+  if (rel > row.year + 2 && rel < 2000)
+    return `a ${rel} release of a ${row.year} side (${c.album ?? "?"}): another record or a later reissue`;
+  return null;
+}
+
+/**
  * Round 16 (M7): a cortina candidate is the cue's record — the same title, the artist by whole name, never a duet,
  * live, remix, karaoke, cover or re-recording album, never an album dated before the song.
  */
@@ -511,6 +558,9 @@ export function cortinaMatchProblem(
     return `another artist (${c.artists.join(", ")})`;
   if (!cue.tags?.includes("audio:original") && CORTINA_BAD_ALBUM.test(`${c.name} ${c.album ?? ""}`))
     return `not the original record (${c.album ?? c.name})`;
+  // round 21: an artist's own re-recording ("Gel (Mabel's Version)")
+  if (!cue.tags?.includes("audio:original") && /['’]s version\b/i.test(`${c.name} ${c.album ?? ""}`))
+    return `a re-recording (${c.name})`;
   // round 17 (discography §1, §3): a second credited performer marks a duet unless the cue's artist names them too
   // (Fikret Kızılok, Sibel Sezal on Yana Yana is "Fikret Kızılok & Sibel Sezal")
   // round 19: any credited performer the cue does not name, first-credited or not ("Duke Ellington, Count Basie" on
@@ -525,12 +575,16 @@ export function cortinaMatchProblem(
   if (other) return `a duet with ${other} (the cue credits ${cue.artist})`;
   const span = cueYears(c.album);
   if (cue.year && span && span[1] < cue.year - 1) return `an album before the song (${c.album})`;
+  // round 21: Spotify's release date of the record never before the song's year
+  const rel = c.release ? Number(c.release.slice(0, 4)) : null;
+  if (cue.year && rel && rel < cue.year - 1)
+    return `a record dated ${c.release}, before the ${cue.year} song`;
   return null;
 }
 
 /** a cached Spotify entry and a Deezer resolve as match candidates */
 type SpotifyEntry =
-  | { uri?: string; durationMs?: number; album?: string; matched?: string }
+  | { uri?: string; durationMs?: number; album?: string; matched?: string; release?: string }
   | null
   | undefined;
 type DeezerEntry =
@@ -544,6 +598,7 @@ export const spotifyCandidate = (v: NonNullable<SpotifyEntry>, title: string): M
     artists: artist ? artist.split(/,\s*/) : [],
     album: v.album,
     durationMs: v.durationMs,
+    ...(v.release ? { release: v.release } : {}),
   };
 };
 export const deezerCandidate = (v: NonNullable<DeezerEntry>, title: string): MatchCandidate => ({

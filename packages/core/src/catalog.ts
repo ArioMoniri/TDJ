@@ -1,11 +1,20 @@
 import { setActiveCatalog } from "./active";
 import type { AudioFeatures, ResolvedTrack } from "./audio/index";
+import { knownVocalStyle } from "./coherence";
 import { estimateDuration, normTitle, parseNonDanceTitle, songEnergy } from "./energy";
+import type { DeezerCache } from "./enrich";
 import { DEFAULT_HEATMAP, type Heatmap, monthIndex } from "./knowledge";
 import { judgeStreams, takesIndex } from "./matchRules";
 import { ERA_PRESETS, mergeProfiles } from "./profiles";
 import { creditNamesOther, dateMismatch, knownSingers } from "./streams";
-import type { DanceRhythm, EraPreset, OrchestraProfile, Song, UserOverrides } from "./types";
+import type {
+  DanceRhythm,
+  EraPreset,
+  LearnedPreferences,
+  OrchestraProfile,
+  Song,
+  UserOverrides,
+} from "./types";
 
 export interface ReferenceCorpus {
   famousRecordings?: Array<{
@@ -84,6 +93,8 @@ export class Catalog {
   corpus: ReferenceCorpus;
   /** round 13: the user's orchestra × year × mode grades (coverage.json) */
   readonly heatmap: Heatmap;
+  /** round 21: the repo-level DJ preferences learned from edits (data/knowledge/dj_preferences.json) */
+  readonly learned?: LearnedPreferences;
   private months?: Map<string, number[]>;
   /** per-orchestra non-dance titles: title → year (null = every version) */
   private readonly nonDanceByOrch = new Map<string, Array<{ title: string; year: number | null }>>();
@@ -100,8 +111,13 @@ export class Catalog {
       audio?: Record<string, AudioFeatures | null>;
       /** round 13: the user's heatmap (data/index/coverage.json); the committed copy when absent */
       heatmap?: Heatmap;
+      /** round 21: Deezer BPM and gain per song (data/cache/deezer/tracks.json) */
+      deezer?: DeezerCache;
+      /** round 21: the repo-level learned preferences */
+      learned?: LearnedPreferences;
     } = {},
   ) {
+    this.learned = caches.learned;
     this.heatmap = caches.heatmap ?? DEFAULT_HEATMAP;
     const profs = extraProfiles.map((p) => ({ ...p, ...(overrides?.profiles?.[p.id] ?? {}) }));
     for (const [id, patch] of Object.entries(overrides?.profiles ?? {}))
@@ -204,6 +220,46 @@ export class Catalog {
           .find((x) => x);
       song.fame = fame?.fame ?? 0;
       if (fame?.role) song.role = fame.role as Song["role"];
+      // round 21: the measured tempo and loudness a tanda's cohesion reads, the vocal style — the DJ's correction
+      // (the user's database) wins over the index, the index over Deezer (only for the judged Deezer match), Deezer
+      // over the analysed 30 s preview
+      const dzRec =
+        caches.deezer?.[raw.id] ?? raw.altIds?.map((a) => caches.deezer?.[a]).find((x) => x) ?? null;
+      const dz = dzRec && song.resolved?.id && String(song.resolved.id) === dzRec.id ? dzRec : null;
+      if (dz)
+        song.deezer = {
+          id: dz.id,
+          bpm: dz.bpm ?? null,
+          gain: dz.gain ?? null,
+          release: dz.release ?? null,
+          fetchedAt: dz.fetchedAt,
+        };
+      const tempo: Song["tempo"] =
+        typeof patch?.bpm === "number"
+          ? { bpm: patch.bpm, source: "dj" }
+          : raw.bpm
+            ? { bpm: raw.bpm, source: "index" }
+            : dz?.bpm
+              ? { bpm: dz.bpm, source: "deezer", fetchedAt: dz.fetchedAt }
+              : audio?.bpm && (audio.pulseClarity ?? 0) >= 0.7
+                ? { bpm: audio.bpm, source: "audio" }
+                : undefined;
+      if (tempo) song.tempo = tempo;
+      const level: Song["level"] =
+        typeof patch?.gainDb === "number"
+          ? { gainDb: patch.gainDb, source: "dj" }
+          : typeof dz?.gain === "number"
+            ? { gainDb: dz.gain, source: "deezer", fetchedAt: dz.fetchedAt }
+            : undefined;
+      if (level) song.level = level;
+      if (patch?.vocalStyle) song.vocalStyleSource = "dj";
+      else {
+        const vs = knownVocalStyle(song);
+        if (vs) {
+          song.vocalStyle = vs.style;
+          song.vocalStyleSource = vs.source;
+        } else delete song.vocalStyle;
+      }
       if (!song.bpm && audio?.bpm) song.bpm = Math.round(audio.bpm);
       // energy: explicit per-track values win; a famous recording's corpus energy is a prior blended with the
       // per-track model (orchestra, era, singer, title jitter) so the tracks of one family keep a gradient

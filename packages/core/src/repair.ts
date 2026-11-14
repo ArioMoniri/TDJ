@@ -1,6 +1,7 @@
 import { tandaCohesion } from "./audio/compat";
 import { attachBooth } from "./booth";
 import type { Catalog } from "./catalog";
+import { withPinsLocked } from "./coherence";
 import { type ComposeDeps, computeStats, familyBreaks, makeScoring } from "./compose";
 import { candidatesFor, cortinaPool, cortinaTempo, familyOf } from "./cortinas";
 import { isDanceableSong, normTitle } from "./energy";
@@ -179,7 +180,8 @@ export function strictRepair(
   deps: ComposeDeps,
   opts: RepairOptions = {},
 ): { playlist: Playlist; edits: Array<Omit<RepairEdit, "playlist">> } {
-  let cur = p;
+  // round 21: a tanda the DJ pinned is locked for every edit
+  let cur = withPinsLocked(p);
   let curR = strictChecks(cur);
   const edits: Array<Omit<RepairEdit, "playlist">> = [];
   const maxSteps = opts.maxSteps ?? 40;
@@ -419,6 +421,7 @@ export function editsFor(
     "cueSpotify",
   ];
   const STRUCT = [
+    "bigFour",
     "colourPeak",
     "colourBudget",
     "hotSlot",
@@ -498,6 +501,8 @@ export function editsFor(
     // round 16: a cliff is mended on either side of the boundary; the orchestra count by the over-played orchestras
     if (v.rule === "openCliff" && v.tanda > 0) badTandas.push(v.tanda - 1);
     if (v.rule === "orchestraCount") for (const i of overPlayed()) badTandas.push(i);
+    // round 21: a big-four pair is mended on either tanda
+    if (v.rule === "bigFour" && v.with !== undefined) badTandas.push(v.with);
   }
   const firstDAIdx = cur.tandas.findIndex((t) => t.orchestraId === "juan-d-arienzo" && t.rhythm === "tango");
   const earlyDA =

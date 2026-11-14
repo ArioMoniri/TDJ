@@ -1,5 +1,6 @@
 import BENCH from "../../../data/knowledge/benchmark.json";
 import { attachBooth } from "./booth";
+import { withPinsLocked } from "./coherence";
 import { type ComposeDeps, computeStats, swapTanda } from "./compose";
 import { cortinaTempo, familyOf } from "./cortinas";
 import { isDanceableSong, normTitle } from "./energy";
@@ -632,7 +633,9 @@ function refreshTanda(t: Tanda, old: Tanda): Tanda {
 }
 
 /** Improve a night against the benchmark and the engine score. Pure; `p` is not touched. */
-export function improveNight(p: Playlist, deps: ComposeDeps, opts: ImproveOptions = {}): ImproveResult {
+export function improveNight(p0: Playlist, deps: ComposeDeps, opts: ImproveOptions = {}): ImproveResult {
+  // round 21: a tanda the DJ pinned is locked for every fixer (and restored as pinned)
+  const p = withPinsLocked(p0);
   const cat = deps.catalog;
   const original: Playlist = structuredClone(p);
   const maxRounds = opts.maxRounds ?? 8;

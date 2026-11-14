@@ -64,6 +64,9 @@ export interface Song {
     popularity?: number;
     /** "Artist – Title" of the match (round 15: re-validated before an export uses it) */
     matched?: string;
+    /** round 21: the album's release date as Spotify dates it (judged by the match rules) and when it was checked */
+    release?: string;
+    checkedAt?: string;
   } | null;
   /** 0..100; computed */
   energy?: number;
@@ -107,6 +110,24 @@ export interface Song {
   audio?: import("./audio/dsp").AudioFeatures | null;
   /** resolved streaming/preview track (data/cache/resolve/tracks.json) */
   resolved?: import("./audio/index").ResolvedTrack | null;
+  /** round 21: the DJ's loudness correction (dB); the catalogue fills `level` from it or from Deezer's gain */
+  gainDb?: number;
+  /** round 21: rhythm-led (estribillista) or singer-led (cantor) — the DJ's correction, else data/knowledge/vocal_styles.json */
+  vocalStyle?: "estribillo" | "cantor";
+  /** round 21: where vocalStyle came from */
+  vocalStyleSource?: "dj" | "knowledge" | "heuristic";
+  /** round 21: the measured tempo a tanda's cohesion reads, and where it came from (the DJ's bpm wins) */
+  tempo?: { bpm: number; source: "dj" | "deezer" | "audio" | "index"; fetchedAt?: string };
+  /** round 21: the measured loudness (dB) a tanda's cohesion reads (the DJ's gainDb wins over Deezer's gain) */
+  level?: { gainDb: number; source: "dj" | "deezer"; fetchedAt?: string };
+  /** round 21: the Deezer track record (data/cache/deezer/tracks.json: id, bpm, gain, release, fetchedAt) */
+  deezer?: {
+    id: string;
+    bpm?: number | null;
+    gain?: number | null;
+    release?: string | null;
+    fetchedAt?: string;
+  } | null;
 }
 
 export interface OrchestraProfile {
@@ -244,6 +265,11 @@ export interface Tanda {
   spreadFloor?: number;
   /** round 13 (cohesion R7): a vals pool too small for the 2-year cap (cap + 1 inside one stint) */
   poolSmall?: boolean;
+  /**
+   * round 21: the DJ kept this tanda as is ("Keep my tanda as is", or a hand-made tanda): no rule, fixer or repair
+   * edits it, and the strict panel reports what it breaks as a DJ exception, never a fault. Implies `locked`.
+   */
+  pinned?: { by: "dj"; reason?: string; at?: string };
 }
 
 export interface PlaylistStats {
@@ -342,6 +368,10 @@ export interface ComposeOptions {
   spotifyCortinas?: boolean;
   cortinaLengthSec: number;
   closeWithCumparsita: boolean;
+  /** round 21: the tanda coherence rules (voice, vocal style, tempo and level bands, the big four), all on by default */
+  tandaRules?: TandaRules;
+  /** round 21: preferences learned from the DJ's edits (the user's memory; merged over the repo-level store) */
+  learned?: LearnedPreferences;
   /** night rules that DJs toggle per event (all optional; era presets set sensible defaults) */
   rules?: NightRules;
   /** minimum tandas between repeats of the same orchestra */
@@ -387,8 +417,31 @@ export interface ComposeOptions {
   bandOverrides?: boolean;
 }
 
+/** Round 21: tanda coherence settings (packages/core/src/coherence.ts; unset = the default, on) */
+export interface TandaRules {
+  /** a tanda is all instrumental or all vocal (default on; `mixVocalInstrumental: true` turns it off) */
+  voice?: boolean;
+  /** vocal tandas: "either" (default: rhythm-led or singer-led, never mixed), "singer-led" (cantor sides only),
+   * "rhythm-led" (estribillista sides only), "off" (not checked) */
+  vocalStyle?: "either" | "singer-led" | "rhythm-led" | "off";
+  /** the measured tempo of a tanda's sides within a band (default on) */
+  bpmBand?: boolean;
+  /** the measured loudness of a tanda's sides within a band (default on) */
+  levelBand?: boolean;
+  /** Di Sarli, D'Arienzo, Troilo, Pugliese spread over the night's quartiles, never back to back (default on) */
+  bigFour?: boolean;
+  /** tandas between two of the same big-four orchestra (default 5; never fewer than the orchestra gap) */
+  bigFourGap?: number;
+  /** where the night rises and falls: "between" (default: each tanda keeps one tone, the changes happen between
+   * tandas) or "inside" (a tanda may build gently inside, the round-20 behaviour) */
+  tone?: "between" | "inside";
+}
+
 /** Event-level rules a DJ chooses per night. */
 export interface NightRules {
+  /** round 21: where La Cumparsita plays — "open" (before the first tanda, a version matching it), "close" (after
+   * the última), "both" (the default), "none". Unset: openWithCumparsita / closeWithCumparsita decide (legacy). */
+  cumparsita?: "open" | "close" | "both" | "none";
   /** play La Cumparsita as the very first track too (some Buenos Aires and festival openings) */
   openWithCumparsita?: boolean;
   /** 1 = single closing Cumparsita (Europe); 2 = Buenos Aires style: Cumparsita closes the última tanda AND a final standalone version */
@@ -439,8 +492,23 @@ export interface PreferredFamily {
   years?: [number, number];
 }
 
+/** Round 21: what TDJ learned from the DJ's hand edits (packages/core/src/learn.ts) */
+export interface LearnedPreferences {
+  /** song id → −1 … 3 (chosen +1 each time, replaced −0.5) */
+  sides?: Record<string, number>;
+  /** `${orchestraId}|${normTitle(singer)}|${rhythm}` → −1 … 3 */
+  families?: Record<string, number>;
+  /** tandas the DJ pinned, reusable as templates */
+  templates?: Array<{ id: string; rhythm: string; name: string; songIds: string[]; at: string }>;
+  /** the edits it learned from (newest first, 100 kept) */
+  edits?: Array<{ at: string; playlistId: string; added: string[]; removed: string[]; note?: string }>;
+  updatedAt?: string;
+}
+
 /** What the AI DJ and the engine remember for a user between sessions (stored in the user's database). */
 export interface AgentMemory {
+  /** round 21: what TDJ learned from the DJ's edits (swaps, pins, hand-made tandas) */
+  learned?: LearnedPreferences;
   /** free-form notes the DJ or the assistant wrote ("this room likes Donato milongas") */
   notes: Array<{ at: string; text: string; source: "dj" | "assistant" }>;
   /** feedback given on sets, kept so the next composition starts from it */

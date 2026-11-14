@@ -11,14 +11,19 @@ export function applyMemory(
   const recent = recentFromMemory(memory);
   const withRecent = (o: Partial<ComposeOptions>): Partial<ComposeOptions> =>
     o.recent || !recent ? o : { ...o, recent };
-  if (!memory?.preferences) return withRecent(partial);
+  // round 21: what the DJ's edits taught (learn.ts) rides with every compose; tonight's own `learned` wins
+  const withLearned = (o: Partial<ComposeOptions>): Partial<ComposeOptions> =>
+    memory?.learned && !o.learned ? { ...o, learned: memory.learned } : o;
+  if (!memory?.preferences) return withLearned(withRecent(partial));
   const { rules, context, ...prefs } = memory.preferences;
-  return withRecent({
-    ...prefs,
-    ...partial,
-    rules: { ...(rules ?? {}), ...(partial.rules ?? {}) },
-    context: { ...(context ?? {}), ...(partial.context ?? {}) },
-  });
+  return withLearned(
+    withRecent({
+      ...prefs,
+      ...partial,
+      rules: { ...(rules ?? {}), ...(partial.rules ?? {}) },
+      context: { ...(context ?? {}), ...(partial.context ?? {}) },
+    }),
+  );
 }
 
 /** Record a composed set (keeps the last 50). */

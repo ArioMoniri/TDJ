@@ -59,7 +59,12 @@ export function sanitizeOptions(o: ComposeOptions): ComposeOptions {
 export function planSlots(raw: ComposeOptions): Slot[] {
   const o = sanitizeOptions(raw);
   const pat = patternString(o);
-  const total = o.hours * 3600 - (o.closeWithCumparsita ? 190 : 0);
+  // (round 21: the opening La Cumparsita, the default, plays inside the hours too — rules.cumparsita, cumparsita.ts)
+  const r = o.rules ?? {};
+  const opens = r.cumparsita
+    ? r.cumparsita === "open" || r.cumparsita === "both"
+    : (r.openWithCumparsita ?? true);
+  const total = o.hours * 3600 - (o.closeWithCumparsita ? 190 : 0) - (opens ? 170 : 0);
   const slots: Slot[] = [];
   let t = 0,
     i = 0;

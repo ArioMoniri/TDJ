@@ -4,9 +4,17 @@ import type { AudioFeatures, ResolvedTrack } from "./audio/index";
 import type { ReferenceCorpus } from "./catalog";
 import { Catalog } from "./catalog";
 import { BUILTIN_CORTINAS } from "./cortinas";
+import type { DeezerCache } from "./enrich";
 import { type CoverageRow, Heatmap } from "./knowledge";
 import { cortinaMatchProblem } from "./matchRules";
-import type { ContextModel, Cortina, OrchestraProfile, Song, UserOverrides } from "./types";
+import type {
+  ContextModel,
+  Cortina,
+  LearnedPreferences,
+  OrchestraProfile,
+  Song,
+  UserOverrides,
+} from "./types";
 
 /** Node-only loader: reads the committed index from `data/` (repo root). */
 export interface Loaded {
@@ -24,11 +32,14 @@ export interface Loaded {
     cache: Record<string, Song["spotify"] & { durationMs?: number }>;
     resolved: Record<string, ResolvedTrack | null>;
     audio: Record<string, AudioFeatures | null>;
+    /** round 21: Deezer BPM and gain (data/cache/deezer/tracks.json) */
+    deezer: DeezerCache;
+    learned?: LearnedPreferences;
   };
 }
 export function loadCatalog(root = findRoot(), overrides?: UserOverrides): Loaded {
   const j = (p: string) => join(/* turbopackIgnore: true */ root, p);
-  const songs = JSON.parse(readFileSync(j("data/index/songs.json"), "utf8")) as Song[];
+  const songs = readIndexSongs(root);
   const pf = j("data/knowledge/orchestra_profiles.json");
   const profiles = existsSync(pf) ? (JSON.parse(readFileSync(pf, "utf8")) as OrchestraProfile[]) : [];
   const cf = j("data/knowledge/cortinas.json");
@@ -67,6 +78,7 @@ export function loadCatalog(root = findRoot(), overrides?: UserOverrides): Loade
           artists: (artist ?? "").split(/,\s*/),
           album: sp0.album,
           durationMs: sp0.durationMs,
+          release: (sp0 as { release?: string }).release,
         }))
         ? sp0
         : null;
@@ -106,6 +118,10 @@ export function loadCatalog(root = findRoot(), overrides?: UserOverrides): Loade
   const audio = existsSync(af)
     ? (JSON.parse(readFileSync(af, "utf8")) as Record<string, AudioFeatures | null>)
     : {};
+  const dzf = j("data/cache/deezer/tracks.json");
+  const deezer = existsSync(dzf) ? (JSON.parse(readFileSync(dzf, "utf8")) as DeezerCache) : {};
+  const lpf = j("data/knowledge/dj_preferences.json");
+  const learned = existsSync(lpf) ? (JSON.parse(readFileSync(lpf, "utf8")) as LearnedPreferences) : undefined;
   const cvf = j("data/index/coverage.json");
   const heatmap = new Heatmap(
     existsSync(cvf) ? (JSON.parse(readFileSync(cvf, "utf8")) as CoverageRow[]) : [],
@@ -117,6 +133,8 @@ export function loadCatalog(root = findRoot(), overrides?: UserOverrides): Loade
       resolved,
       audio,
       heatmap,
+      deezer,
+      learned,
     }),
     cortinas,
     meta,
@@ -124,8 +142,42 @@ export function loadCatalog(root = findRoot(), overrides?: UserOverrides): Loade
     corpus,
     trackEnergy,
     heatmap,
-    raw: { songs, profiles, cache, resolved, audio },
+    raw: { songs, profiles, cache, resolved, audio, deezer, learned },
   };
+}
+
+/**
+ * Round 21: the index as the app reads it — data/index/songs.json (built from the listado) with the repo-level
+ * database applied: corrections of rows with their source (data/knowledge/song_patches.json) and the sides the DJ
+ * added that the listado does not hold (data/knowledge/added_songs.json). A DJ's own database edits apply on top.
+ */
+export function readIndexSongs(root = findRoot()): Song[] {
+  const j = (p: string) => join(/* turbopackIgnore: true */ root, p);
+  const songs = JSON.parse(readFileSync(j("data/index/songs.json"), "utf8")) as Song[];
+  const pf = j("data/knowledge/song_patches.json");
+  const patches = existsSync(pf)
+    ? ((
+        JSON.parse(readFileSync(pf, "utf8")) as {
+          songs?: Record<string, Partial<Song> & { source?: string; at?: string }>;
+        }
+      ).songs ?? {})
+    : {};
+  const af = j("data/knowledge/added_songs.json");
+  const added = existsSync(af)
+    ? ((JSON.parse(readFileSync(af, "utf8")) as { songs?: Song[] }).songs ?? [])
+    : [];
+  const out = songs.map((s) => {
+    const p = patches[s.id];
+    if (!p) return s;
+    const { source: _s, at: _a, ...fields } = p;
+    return {
+      ...s,
+      ...fields,
+      notes: [s.notes, `corrected: ${p.source ?? "repo database"}`].filter(Boolean).join(" · "),
+    };
+  });
+  const ids = new Set(out.map((s) => s.id));
+  return [...out, ...added.filter((s) => !ids.has(s.id))];
 }
 
 export function findRoot(start = process.cwd()): string {
@@ -170,6 +222,7 @@ export function auditCortinaCaches(root = findRoot()): Array<{ id: string; why: 
       artists: (artist ?? "").split(/,\s*/),
       album: v.album,
       durationMs: v.durationMs,
+      release: (v as { release?: string }).release,
     });
     if (why) out.push({ id, why: `${v.uri} ${why}` });
   }

@@ -1,6 +1,8 @@
 import { ACTIVE_CATALOG } from "./active";
 import { patternString } from "./arc";
+import { bigFourProblems, tandaProblems, tandaRulesOf } from "./coherence";
 import { cortinaTempo, cueMetaOk } from "./cortinas";
+import { cumparsitaPlacement, OPENING_SAME_ERA } from "./cumparsita";
 import { normTitle } from "./energy";
 import { goldenClassOf, isColour, isGoldenNight, staticProfile } from "./knowledge";
 import { cliffOf, isPeakSlot, isReleaseCut, meanFameOf, type OrderCtx, orderVerdictOf } from "./order";
@@ -31,6 +33,8 @@ export interface StrictViolation {
   /** 0-based tanda index (-1 = the night as a whole, the tanda count = the closing Cumparsita) */
   tanda: number;
   detail: string;
+  /** round 21: the other tanda a pair rule (the big four) involves */
+  with?: number;
 }
 export interface StrictRuleResult extends StrictRuleDef {
   /** false when the rule does not apply to this night (no year range, not a golden night, no cortinas …) */
@@ -45,6 +49,8 @@ export interface StrictResult {
   shouldFix: number;
   /** blockers × 10 + should-fix: the number the composer and the fixers drive down */
   penalty: number;
+  /** round 21: what the DJ's pinned tandas break — informational "DJ exceptions", never counted */
+  exceptions?: StrictViolation[];
 }
 
 const D = "docs/reviews/round14-dancer.md";
@@ -473,6 +479,57 @@ STRICT_RULES.push(
     source: `${J16} R16-10`,
   },
 );
+/** round 21 (docs/specs/round21-engine.md): the tanda coherence settings, the big four, the opening Cumparsita */
+const R21 = "docs/specs/round21-engine.md";
+STRICT_RULES.push(
+  {
+    key: "tandaVoice",
+    label: "Tanda rules · voice: a tanda is all instrumental or all vocal",
+    severity: "blocker",
+    source: `${R21} §2 (the user: "all instrumental or all singer")`,
+  },
+  {
+    key: "tandaVocalStyle",
+    label:
+      "Tanda rules · vocal style: a vocal tanda never mixes rhythm-led (estribillista) and singer-led (cantor) sides, and keeps the style the night asks for",
+    severity: "blocker",
+    source: `${R21} §2 (the user: "all starts with rhythm or with instrument")`,
+  },
+  {
+    key: "tandaBpm",
+    label:
+      "Tanda rules · tempo: the measured BPM of a tanda's sides within the band (tango 10 %, vals / milonga 12 %)",
+    severity: "should-fix",
+    source: `${R21} §3`,
+  },
+  {
+    key: "tandaLevel",
+    label: "Tanda rules · level: the measured loudness of a tanda's sides within 6 dB",
+    severity: "should-fix",
+    source: `${R21} §3`,
+  },
+  {
+    key: "tandaTone",
+    label:
+      "Tanda rules · one tone per tanda (rises and falls between tandas only): the sides' energy within the tone band",
+    severity: "should-fix",
+    source: `${R21} §5 (the user: "keep tones in each tanda the same")`,
+  },
+  {
+    key: "bigFour",
+    label:
+      "The big four (Di Sarli, D'Arienzo, Troilo, Pugliese): one in every quartile, never two back to back, the same one ≥ 5 tandas apart, all four in a night of ≥ 3 h",
+    severity: "should-fix",
+    source: `${R21} §6`,
+  },
+  {
+    key: "cumparsitaOpener",
+    label:
+      "The opening La Cumparsita matches the first tanda: its orchestra, within 4 years of its sides, instrumental when there is one (a fallback is recorded)",
+    severity: "should-fix",
+    source: `${R21} §1`,
+  },
+);
 /** the rule keys the round-15 panel added (round15.test.ts tests them; round14.test.ts the older ones) */
 export const R15_RULES = STRICT_RULES.filter((r) => r.source.includes("round15-")).map((r) => r.key);
 const DEF = new Map(STRICT_RULES.map((r) => [r.key, r]));
@@ -630,8 +687,14 @@ export function strictChecks(n: Night): StrictResult {
   const not = (key: string) => {
     out.get(key)!.applies = false;
   };
-  const add = (key: string, tanda: number, detail: string) =>
-    out.get(key)!.v.push({ rule: key, severity: DEF.get(key)!.severity, tanda, detail });
+  const add = (key: string, tanda: number, detail: string, w?: number) =>
+    out.get(key)!.v.push({
+      rule: key,
+      severity: DEF.get(key)!.severity,
+      tanda,
+      detail,
+      ...(w !== undefined ? { with: w } : {}),
+    });
   const name = (x: Tanda) =>
     `${x.orchestra}${x.vocal && x.singer ? ` / ${x.singer}` : x.vocal ? "" : " instr."}`;
   const last = t.length - 1;
@@ -1066,7 +1129,54 @@ export function strictChecks(n: Night): StrictResult {
     if (cliff) add("openCliff", i, `${name(x)} ${cliff}`);
   });
   round16(n, { add, not, golden, name });
+  round21(n, { add, not, name });
 
+  // round 21: a tanda the DJ pinned is the DJ's — what it breaks (or a rule it makes a neighbour break) is reported as
+  // a DJ exception, never a fault the composer or a fixer acts on
+  const pinned = (i: number) => !!t[i]?.pinned;
+  const anyPinned = t.some((x) => x.pinned);
+  const exceptions: StrictViolation[] = [];
+  const hb = anyPinned ? hourBuckets(n) : [];
+  /** a rule judged on a stretch of the night: the violation is the DJ's when a pinned tanda is in that stretch */
+  const scopeOf = (v: StrictViolation): number[] => {
+    const i = v.tanda;
+    if (i < 0 || i >= t.length) return [];
+    if (v.rule === "instrHour") return hb.find((b) => b.includes(i)) ?? [];
+    if (v.rule === "rhythmicRun" || v.rule === "valley" || v.rule === "wedge") return [i - 2, i - 1, i];
+    if (
+      ["dramaticAfterSummit", "energyStep", "hotCold", "openCliff", "cuePlace", "afterSummit"].includes(
+        v.rule,
+      )
+    )
+      return [i - 1, i, i + 1];
+    if (v.rule === "gap" || v.rule === "rotation" || v.rule === "singerOnce") {
+      const x = t[i]!;
+      return t.map((y, j) =>
+        y.orchestraId === x.orchestraId || (!!y.singer && y.singer === x.singer) ? j : -1,
+      );
+    }
+    return [];
+  };
+  // a night-level share (the vocal band) is the DJ's when it holds over the tandas the DJ did not pin
+  const nightOk = (v: StrictViolation) => {
+    if (v.rule !== "vocalBand") return false;
+    const tg = t.filter((x) => x.rhythm === "tango" && !x.pinned);
+    const band = o.rules?.vocalShare ?? [0.55, 0.75];
+    const share = tg.length ? tg.filter((x) => x.vocal).length / tg.length : 0;
+    return share >= band[0] - 1e-9 && share <= band[1] + 1e-9;
+  };
+  for (const x of out.values()) {
+    const keep: StrictViolation[] = [];
+    for (const v of x.v) {
+      const inv =
+        anyPinned &&
+        ((v.tanda >= 0 && (pinned(v.tanda) || (v.with !== undefined && pinned(v.with)))) ||
+          scopeOf(v).some((j) => j >= 0 && pinned(j)) ||
+          (v.tanda < 0 && nightOk(v)));
+      (inv ? exceptions : keep).push(v);
+    }
+    x.v = keep;
+  }
   const rules: StrictRuleResult[] = STRICT_RULES.map((r) => {
     const x = out.get(r.key)!;
     return {
@@ -1082,7 +1192,14 @@ export function strictChecks(n: Night): StrictResult {
   // (round 15: a song-order item weighs a quarter in the penalty — the order is mended by reordering, never by
   // trading a tanda-level rule for it)
   const order = violations.filter((v) => v.rule === "sideOrder").length;
-  return { rules, violations, blockers, shouldFix, penalty: blockers * 10 + shouldFix - 0.75 * order };
+  return {
+    rules,
+    violations,
+    blockers,
+    shouldFix,
+    penalty: blockers * 10 + shouldFix - 0.75 * order,
+    ...(exceptions.length ? { exceptions } : {}),
+  };
 }
 
 /** a one-line summary: "0 blockers · 2 should-fix (canon, wedge)" */
@@ -1533,8 +1650,9 @@ export function shapeProblems(n: Night): Array<{ tanda: number; detail: string }
       });
     if (ult.rhythm !== "tango") out.push({ tanda: t.length - 1, detail: `the última is a ${ult.rhythm}` });
   }
+  const place = cumparsitaPlacement(n.options);
   const want =
-    !n.options.closeWithCumparsita || r.closer === "none"
+    !place.close || r.closer === "none"
       ? "none"
       : r.closer === "felicia" && !fellBack(n, "closer")
         ? "felicia"
@@ -1549,8 +1667,13 @@ export function shapeProblems(n: Night): Array<{ tanda: number; detail: string }
       tanda: t.length,
       detail: `closes on ${cl?.title ?? "nothing"}, the setting is La Cumparsita`,
     });
-  if (r.openWithCumparsita && n.opening !== undefined && !isCumpTitle(n.opening))
+  if (place.open && n.opening !== undefined && !isCumpTitle(n.opening) && !fellBack(n, "opening"))
     out.push({ tanda: -1, detail: "the setting opens with La Cumparsita, the night does not" });
+  if (!place.open && n.opening)
+    out.push({
+      tanda: -1,
+      detail: `opens on ${n.opening.title}, the setting does not open with La Cumparsita`,
+    });
   return out;
 }
 function shapeChecks(n: Night, add: (key: string, tanda: number, detail: string) => void) {
@@ -1682,4 +1805,57 @@ function round16(
         `${cl.orchestra} closes after a ${t[last]!.orchestra} última; ${alt.orchestra} ${alt.year} streams`,
       );
   }
+}
+
+// --- round 21 ------------------------------------------------------------------------------------------------------
+function round21(
+  n: Night,
+  ctx: {
+    add: (key: string, tanda: number, detail: string, w?: number) => void;
+    not: (key: string) => void;
+    name: (x: Tanda) => string;
+  },
+) {
+  const { add, not, name } = ctx;
+  const o = n.options;
+  const tr = tandaRulesOf(o);
+  if (!tr.voice) not("tandaVoice");
+  if (tr.vocalStyle === "off") not("tandaVocalStyle");
+  if (!tr.bpmBand) not("tandaBpm");
+  if (!tr.levelBand) not("tandaLevel");
+  if (tr.tone !== "between") not("tandaTone");
+  if (!tr.bigFour) not("bigFour");
+  const key: Record<string, string> = {
+    voice: "tandaVoice",
+    vocalStyle: "tandaVocalStyle",
+    bpm: "tandaBpm",
+    level: "tandaLevel",
+    tone: "tandaTone",
+  };
+  n.tandas.forEach((x, i) => {
+    for (const p of tandaProblems(x, o)) if (key[p.key]) add(key[p.key]!, i, `${name(x)}: ${p.detail}`);
+  });
+  for (const p of bigFourProblems(n.tandas, o)) add("bigFour", p.tanda, p.detail, p.with);
+  const place = cumparsitaPlacement(o);
+  const first = n.tandas[0];
+  if (!place.open || !first) not("cumparsitaOpener");
+  else if (n.opening && isCumpTitle(n.opening) && !fellBack(n, "opening")) {
+    const ys = dance(first)
+      .map((s) => s.year)
+      .filter((y): y is number => !!y);
+    const op = n.opening;
+    const far =
+      !!op.year &&
+      ys.length > 0 &&
+      Math.max(0, Math.min(...ys) - op.year, op.year - Math.max(...ys)) > OPENING_SAME_ERA;
+    if (op.orchestraId !== first.orchestraId)
+      add("cumparsitaOpener", -1, `opens with ${op.orchestra}'s La Cumparsita before ${first.orchestra}`);
+    else if (far)
+      add(
+        "cumparsitaOpener",
+        -1,
+        `the ${op.year} version opens a ${Math.min(...ys)}–${Math.max(...ys)} tanda`,
+      );
+  } else if (!n.opening && n.opening !== undefined && !fellBack(n, "opening"))
+    add("cumparsitaOpener", -1, "no opening La Cumparsita");
 }

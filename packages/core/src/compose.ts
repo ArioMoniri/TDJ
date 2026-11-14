@@ -1,10 +1,13 @@
 import { arcShapeFor, capPeakRuns, planSlots, sanitizeOptions } from "./arc";
 import { attachBooth } from "./booth";
 import type { Catalog } from "./catalog";
+import { bigFourProblems, STYLE_MIN_FAMILIES, styleFilter, tandaRulesOf } from "./coherence";
 import { applyContextToOptions, BUILTIN_CONTEXT, resolveContext } from "./context";
 import { cortinaPool, pickCortina, planCortinas, spotifyCueFallbacks } from "./cortinas";
+import { cumparsitaPlacement, openingCumparsita } from "./cumparsita";
 import { isDanceableSong, normTitle } from "./energy";
 import { familyBand, goldenClassOf, isColour, isGoldenNight } from "./knowledge";
+import { mergeLearned } from "./learn";
 import { isPeakSlot, meanFameOf } from "./order";
 import { ERA_PRESETS, ERA_SETTINGS } from "./profiles";
 import { cueFamilies, pickStrictCloser, recue, recueBetter, strictRepair } from "./repair";
@@ -26,6 +29,7 @@ import {
   streamable,
   strictChecks,
 } from "./strict";
+import { renight, replaceSide, swapOptions } from "./swap";
 import {
   type BuildContext,
   buildTanda,
@@ -286,6 +290,8 @@ export function makeScoring(cat: Catalog, o: ComposeOptions, contextModel?: Cont
     golden: isGoldenNight(o),
     bandOverrides: !!o.bandOverrides,
     hours: o.hours,
+    // round 21: the repo-level DJ preferences (data/knowledge/dj_preferences.json) under the DJ's own
+    learned: mergeLearned(cat.learned, o.learned),
   };
 }
 
@@ -351,6 +357,8 @@ export function compose(
   }
   return best;
 }
+/** the opening Cumparsita's planned length before its version is known (s) */
+export const OPENING_PLAN_SEC = 170;
 /** how many extra draws a golden night gets when the strict panel still finds a rule broken */
 export const STRICT_REDRAWS = 3;
 
@@ -375,6 +383,10 @@ function composeOnce(
     rules: { ...eraRules, ...(req.rules ?? {}) },
   });
   const rules = o.rules ?? {};
+  // round 21: where La Cumparsita plays (rules.cumparsita; legacy openWithCumparsita / closeWithCumparsita)
+  const place = cumparsitaPlacement(o);
+  const tr = tandaRulesOf(o);
+  o.closeWithCumparsita = place.close;
   if (o.arcShape) o.arcShape = arcShapeFor(o);
   const rc = resolveContext(o.context, deps.contextModel ?? BUILTIN_CONTEXT);
   o = sanitizeOptions(applyContextToOptions(o, rc, explicitKeys));
@@ -469,13 +481,28 @@ function composeOnce(
       // La Cumparsita only ever opens or closes a night (rules), never inside an ordinary tanda;
       // undated and transcription rows never build a tanda (rules.allowUndated opts in)
       .filter((s) => normTitle(s.title) !== "la cumparsita" && isTandaEligible(s, !!rules.allowUndated));
-    byRhythm[r] = families(
-      pool,
-      o.maxYearSpread,
-      o.mixVocalInstrumental || (r !== "tango" && !!rules.mixedMilongaVals),
-      orchTotals(cat),
-      { rhythm: r, need: sizeOf(o, r), breaks: breaksOf },
-    );
+    // round 21 (tanda rules): the voice rule wins over the mixed milonga / vals rule; a night that asks for one vocal
+    // style keeps the vocal sides of that style (and those of unknown style) — unless too few families are left
+    const styled = styleFilter(pool, tr.vocalStyle);
+    const fams0 = (xs: Song[]) =>
+      families(
+        xs,
+        o.maxYearSpread,
+        !tr.voice || (r !== "tango" && !!rules.mixedMilongaVals && !tr.voice),
+        orchTotals(cat),
+        { rhythm: r, need: sizeOf(o, r), breaks: breaksOf, vocalStyle: tr.vocalStyle !== "off" },
+      );
+    let fams = fams0(styled);
+    if (styled.length !== pool.length) {
+      const vocalFams = fams.filter((f) => f.vocal && f.songs.length >= sizeOf(o, r)).length;
+      if (vocalFams < STYLE_MIN_FAMILIES) {
+        fallbacks.push(
+          `vocalStyle: only ${vocalFams} ${r} families sing ${tr.vocalStyle}; every vocal style plays (never mixed in one tanda)`,
+        );
+        fams = fams0(pool);
+      }
+    }
+    byRhythm[r] = fams;
   }
   // a night's mood for orchestras: every orchestra gets a seed-drawn 0.5–1.6 factor so twelve nights are twelve nights (round 9 widened it)
   const nightBias = new Map<string, number>();
@@ -1832,7 +1859,9 @@ function composeOnce(
   // score sheet shows it). The target is the playing time: a show break is added on top, never paid for by cortinas.
   const cycle15 = isClassicCycle(o);
   const fitLength = () => {
-    const target = playHours * 3600 - (closing ? (closing.durationSec ?? 180) : 0);
+    // (round 21: the opening Cumparsita plays inside the requested hours too)
+    const target =
+      playHours * 3600 - (closing ? (closing.durationSec ?? 180) : 0) - (place.open ? OPENING_PLAN_SEC : 0);
     const total = () => tandas.reduce((a, t) => a + t.durationSec + (t.cortina?.lengthSec ?? 0), 0);
     const setCortinas = (len: number) => {
       tandas.forEach((t, i) => {
@@ -2195,12 +2224,77 @@ function composeOnce(
     closing = r.playlist.closing;
   }
   // La Cumparsita: closing versions only (corpus/profile years), preferred orchestras, varied by seed, never the última's orchestra
+  // round 21 — the big four: two big-four tandas back to back (or the same one too soon) trade places with a tanda of
+  // the same rhythm when the strict panel as a whole is no worse for it (never the first, the última, a peak, a lock)
+  if (tr.bigFour && !lockedByIndex.size) {
+    const night = () => ({ tandas, closing, options: o });
+    const faults = () => bigFourProblems(tandas, o).filter((x) => x.kind === "adjacent" || x.kind === "gap");
+    const rest = (r: StrictResult) => r.penalty - r.violations.filter((v) => v.rule === "bigFour").length;
+    for (let round = 0; round < 4 && faults().length; round++) {
+      const r0 = strictChecks(night());
+      const f0 = faults().length;
+      let best: { a: number; b: number; v: number } | null = null;
+      const movable = (i: number) => {
+        const x = tandas[i];
+        return !!x && i > 0 && i < tandas.length - 1 && !x.peak && !x.birthday && !x.locked;
+      };
+      for (const f of faults())
+        for (const a of [f.tanda, f.with ?? -1]) {
+          if (!movable(a)) continue;
+          for (let b = 1; b < tandas.length - 1; b++) {
+            if (b === a || !movable(b) || tandas[b]!.rhythm !== tandas[a]!.rhythm) continue;
+            const A = tandas[a]!,
+              B = tandas[b]!;
+            const put = (x: Tanda, at: Tanda): Tanda => ({
+              ...x,
+              index: at.index,
+              targetEnergy: at.targetEnergy,
+              phase: at.phase,
+              cortina: at.cortina,
+            });
+            tandas[a] = put(B, A);
+            tandas[b] = put(A, B);
+            const f1 = faults().length;
+            const r1 = f1 < f0 ? strictChecks(night()) : null;
+            tandas[a] = A;
+            tandas[b] = B;
+            // (the panel as a whole no worse: a big-four fault mended may cost one other should-fix item)
+            if (!r1 || r1.blockers > r0.blockers || r1.penalty > r0.penalty + 1e-9) continue;
+            const v = f1 * 10 + rest(r1);
+            if (!best || v < best.v) best = { a, b, v };
+          }
+        }
+      if (!best) break;
+      const A = tandas[best.a]!,
+        B = tandas[best.b]!;
+      tandas[best.a] = {
+        ...B,
+        index: A.index,
+        targetEnergy: A.targetEnergy,
+        phase: A.phase,
+        cortina: A.cortina,
+      };
+      tandas[best.b] = {
+        ...A,
+        index: B.index,
+        targetEnergy: B.targetEnergy,
+        phase: B.phase,
+        cortina: B.cortina,
+      };
+    }
+    if (faults().length)
+      fallbacks.push(
+        `bigFour: ${faults()
+          .map((x) => x.detail)
+          .join("; ")} (no swap keeps the other rules)`,
+      );
+  }
+  // round 21: the opening Cumparsita matches the first tanda (its orchestra, the nearest year, instrumental)
   let opening: Song | null = null;
-  if (rules.openWithCumparsita) {
-    const cands = cumparsitaCandidates(cat, o).filter(
-      (s) => s.id !== closing?.id && s.orchestraId !== tandas[0]?.orchestraId,
-    );
-    opening = rng.weighted(cands, (s) => cumparsitaWeight(cat, o, s)) ?? null;
+  if (place.open && tandas[0]) {
+    const op = openingCumparsita(cat, o, tandas[0], closing);
+    opening = op.song;
+    if (op.fallback) fallbacks.push(op.fallback);
   }
   const breaks =
     breakAfter >= 0 && tandas[breakAfter]
@@ -2307,8 +2401,9 @@ export function swapTanda(
   const rng = makeRng(seed);
   const cat = deps.catalog;
   const t = p.tandas[index];
-  if (!t) return p;
+  if (!t || t.pinned) return p;
   const rules = o.rules ?? {};
+  const tr = tandaRulesOf(o);
   const pool = cat
     .filter({
       eras: o.eras,
@@ -2357,13 +2452,12 @@ export function swapTanda(
     position: index / Math.max(1, p.tandas.length - 1),
   };
   const sc = makeScoring(cat, o, deps.contextModel);
-  const fams = families(
-    pool,
-    o.maxYearSpread,
-    o.mixVocalInstrumental || (t.rhythm !== "tango" && !!rules.mixedMilongaVals),
-    orchTotals(cat),
-    { rhythm: t.rhythm, need: t.songs.length, breaks: familyBreaks(cat) },
-  ).filter((c) => c.orchestraId !== t.orchestraId && (!only || only(c)));
+  const fams = families(styleFilter(pool, tr.vocalStyle), o.maxYearSpread, !tr.voice, orchTotals(cat), {
+    rhythm: t.rhythm,
+    need: t.songs.length,
+    breaks: familyBreaks(cat),
+    vocalStyle: tr.vocalStyle !== "off",
+  }).filter((c) => c.orchestraId !== t.orchestraId && (!only || only(c)));
   const gapOk = (id: string) => !neighbours.some((n) => n.d < o.orchestraRepeatGap && n.x.orchestraId === id);
   let nt: Tanda | null = null;
   for (let attempt = 0; attempt < 6 && !nt; attempt++) {
@@ -2381,12 +2475,15 @@ export function swapTanda(
   nt.cortina = t.cortina;
   nt.locked = t.locked;
   const tandas = p.tandas.map((x, i) => (i === index ? nt : x));
-  const np = attachBooth({ ...p, tandas, stats: computeStats(tandas, p.closing, o) });
-  np.score = scorePlaylist(np);
-  return np;
+  return renight(p, tandas);
 }
 
-/** Replace one track inside a tanda with another from the same family (same orchestra/singer/year window). */
+/**
+ * Replace one track inside a tanda with another from the same family. Round 21: only a side that keeps the tanda
+ * valid (swapOptions: the singer, the voice, the vocal style, the year band, the tempo / level / tone bands, not in the
+ * night, a checked Spotify id), drawn among the best fits; the night is re-timed and re-scored. A pinned tanda is the
+ * DJ's and is left as it is.
+ */
 export function swapTrack(
   p: Playlist,
   tandaIndex: number,
@@ -2395,46 +2492,12 @@ export function swapTrack(
   seed = Date.now(),
 ): Playlist {
   const t = p.tandas[tandaIndex];
-  const cur = t?.songs[trackIndex];
-  if (!t || !cur) return p;
+  if (!t?.songs[trackIndex] || t.pinned) return p;
   const rng = makeRng(seed);
-  const cat = deps.catalog;
-  const used = new Set(p.tandas.flatMap((x) => x.songs.map((s) => normTitle(s.title))));
-  const cands = (cat.byOrchestra.get(t.orchestraId) ?? []).filter(
-    (s) =>
-      s.rhythm === t.rhythm &&
-      (s.singerId ?? null) === (cur.singerId ?? null) &&
-      s.year &&
-      t.yearRange &&
-      s.year >= t.yearRange[0] - 1 &&
-      s.year <= t.yearRange[1] + 1 &&
-      !used.has(normTitle(s.title)) &&
-      normTitle(s.title) !== "la cumparsita" &&
-      isTandaEligible(s, !!p.options.rules?.allowUndated) &&
-      isDanceableSong(s, cat.blacklist) &&
-      !cat.nonDance(s.orchestraId, s.title, s.year),
-  );
-  const pick = rng.weighted(
-    cands,
-    (s) =>
-      Math.max(0.05, 1 - Math.abs((s.energy ?? 50) - (cur.energy ?? 50)) / 25) * (1 + (s.fame ?? 0) * 0.4),
-  );
+  const { suggestions } = swapOptions(p, tandaIndex, trackIndex, deps, { limit: 8 });
+  const pick = rng.weighted(suggestions, (x) => 0.05 + x.fit ** 2);
   if (!pick) return p;
-  const songs = t.songs.map((s, i) => (i === trackIndex ? pick : s));
-  const years = songs.map((s) => (s.year && !s.yearApprox ? s.year : null)).filter((y): y is number => !!y);
-  const curve = songs.map((s) => s.energy ?? 50);
-  const nt: Tanda = {
-    ...t,
-    songs,
-    energyCurve: curve,
-    energy: Math.round(curve.reduce((a, b) => a + b, 0) / curve.length),
-    yearRange: years.length ? [Math.min(...years), Math.max(...years)] : t.yearRange,
-    durationSec: songs.reduce((a, s) => a + (s.durationSec ?? 170), 0),
-  };
-  const tandas = p.tandas.map((x, i) => (i === tandaIndex ? nt : x));
-  const np = attachBooth({ ...p, tandas, stats: computeStats(tandas, p.closing, p.options) });
-  np.score = scorePlaylist(np);
-  return np;
+  return replaceSide(p, tandaIndex, trackIndex, pick.song.id, deps).playlist;
 }
 
 /** Natural-language-ish feedback → option changes ("more energetic", "calmer start", "more vals", "fewer repeats", "shorter cortinas"…). */
