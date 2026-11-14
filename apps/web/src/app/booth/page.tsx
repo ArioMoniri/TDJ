@@ -1,5 +1,5 @@
 "use client";
-import { Keyboard, LogOut, Search } from "lucide-react";
+import { Keyboard, LogOut } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
@@ -65,8 +65,6 @@ function Booth() {
   const [levels, setLevels] = useState(false);
   const [stopOpen, setStopOpen] = useState(false);
   const [cortina, setCortina] = useState<number | null>(null);
-  // round 22: the song search side panel (swap in, add, preview)
-  const [findSongs, setFindSongs] = useState(false);
   // the stored theme, read at mount: the persisting effect waits until `light` holds it (round 18: with the booth
   // already ready at mount, its first run wrote "dark" over a stored "light" before setLight(true) landed)
   const storedLight = useRef<boolean | null>(null);
@@ -240,7 +238,6 @@ function Booth() {
       onClick: () => void b.setLastFourTango(!b.playlist?.options.rules?.lastFourTango),
     },
     started && { label: "Break…", onClick: () => setBreakOpen(true) },
-    { label: "Find songs…", icon: Search, onClick: () => setFindSongs(true) },
     { label: "Keyboard shortcuts", icon: Keyboard, onClick: () => setKeys(true) },
     { label: light ? "Dark theme" : "Light theme", onClick: () => setLight((v) => !v) },
     started && { label: "Leave the booth", icon: LogOut, onClick: () => router.push("/") },
@@ -260,6 +257,7 @@ function Booth() {
       <PageHeader title="Booth" />
       <SourceLine rehearsal={rehearsal} />
       <Banners />
+      <BoothSongSearch />
       <div className="booth-grid">
         <div className="booth-col-now">
           <NowCard />
@@ -332,7 +330,6 @@ function Booth() {
       <BreakSheet open={breakOpen} onClose={() => setBreakOpen(false)} />
       <FindFileSheet item={find} onClose={() => setFind(null)} />
       <ResumeSheet />
-      <BoothSongSearch open={findSongs} onClose={() => setFindSongs(false)} />
     </div>
   );
 }

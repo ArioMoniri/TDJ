@@ -176,7 +176,7 @@ export const TrackRow = memo(function TrackRow({
               span could still overflow the viewport by a pixel on phones (round4 mobile-overflow flake) */}
           <span
             key={`${title}-${nudge}`}
-            className={`flex min-w-[5.5rem] flex-1 items-baseline gap-1 ${nudge && !reduced ? "nudge-x" : ""}`}
+            className={`flex min-w-0 flex-1 items-baseline gap-1 ${nudge && !reduced ? "nudge-x" : ""}`}
             style={{ opacity: inFlight ? 0.6 : 1, transition: "opacity var(--dur-xs) var(--ease-settle)" }}
           >
             <span className="min-w-0 truncate">{title}</span>

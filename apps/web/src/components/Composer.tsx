@@ -1750,8 +1750,9 @@ export function Composer() {
             </Group>
           )}
 
-          <div className="flex items-end justify-between gap-2">
-            <h2 className="section-head">Tandas</h2>
+          <h2 className="section-head">Tandas</h2>
+          {/* round 22: the song search side panel */}
+          <div className="-mt-10 mb-1 flex justify-end">
             <Tip text="Search every recording by title, orchestra, singer, years and rhythm; swap one in, add it or play it">
               <button
                 type="button"
