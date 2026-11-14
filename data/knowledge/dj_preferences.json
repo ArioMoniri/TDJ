@@ -1,0 +1,217 @@
+{
+ "about": "Round 21: what TDJ learned from the DJ's hand edits (packages/core/src/learn.ts) — the repo-level store every composed night reads under the DJ's own memory. Regenerate with scripts/round21_featured.ts.",
+ "sides": {
+  "54e1304409": 1,
+  "8509c04168": 1,
+  "eb345072d6": 1,
+  "b313688f75": 1,
+  "3e9af572cf": 1,
+  "f9150b4c8a": 1,
+  "131567e74b": 1,
+  "7b191bb215": 1,
+  "bb6ae09db6": 1,
+  "8e3307b8a1": 1,
+  "07a6e0c944": 1,
+  "78239049b7": 1,
+  "74fbbdee53": 1,
+  "b895e7cf5c": 1,
+  "26b1ef8a48": 1,
+  "e72cc6516f": 1,
+  "c1b0ecf332": 1,
+  "aa6b36ab7b": 1,
+  "71540229e1": 1,
+  "ea9b927fa5": 1,
+  "68f9f78507": 1,
+  "cfbb4947c7": 1,
+  "8106c5a228": 1,
+  "a6a1772a7f": 1,
+  "43eb2300e8": -0.5,
+  "312fdc9b9a": -0.5,
+  "65d3ead45b": -0.5,
+  "03cb76273f": -0.5,
+  "2a56a78278": -0.5,
+  "b61d8c4dc7": -0.5,
+  "dfb6142e35": -0.5,
+  "6c3aefab5e": -0.5,
+  "c6f9812d13": -0.5,
+  "a5c2fd23c3": -0.5,
+  "a81ce3747d": -0.5,
+  "03dbca3af3": -0.5,
+  "4d0e9d5353": -0.5,
+  "8b42603f14": -0.5,
+  "1169f59052": -0.5,
+  "686b61e78d": -0.5,
+  "2a2974e7eb": -0.5,
+  "38603b22d6": -0.5,
+  "c1435b8ebe": -0.5,
+  "67af743962": -0.5,
+  "8da828c3ea": -0.5,
+  "3a302c4ffd": -0.5,
+  "be0a6e03c2": -0.5
+ },
+ "families": {
+  "carlos-di-sarli||tango": 1,
+  "orquesta-tipica-victor|angel vargas|tango": 1,
+  "orquesta-tipica-victor|charlo|tango": 1,
+  "orquesta-tipica-victor|alberto gomez|tango": 1,
+  "pedro-laurenz|alberto podesta|tango": 1,
+  "pedro-laurenz|martin podesta|tango": 1,
+  "edgardo-donato|horacio lagos|tango": 1,
+  "edgardo-donato|lita morales h lagos|vals": 1,
+  "juan-d-arienzo|alberto echague|tango": 1,
+  "alfredo-de-angelis|c dante j martel|vals": 1,
+  "juan-d-arienzo||vals": 1,
+  "francisco-canaro||vals": 1,
+  "angel-d-agostino|tino garcia|tango": 1,
+  "carlos-di-sarli|roberto rufino|tango": -1,
+  "juan-d-arienzo||tango": -1,
+  "pedro-laurenz|juan carlos casas|tango": -1,
+  "rodolfo-biagi|andres falgas|tango": -1,
+  "edgardo-donato||tango": -1,
+  "enrique-rodriguez|roberto chato flores|vals": -1,
+  "ricardo-tanturi|alberto castillo|vals": -1
+ },
+ "templates": [
+  {
+   "id": "tango:54e1304409,8509c04168,67d75c4496,e5cccb8a87",
+   "rhythm": "tango",
+   "name": "Carlos Di Sarli · Shusheta, Catamarca, Lo Pasado, Pasó, Corazón",
+   "songIds": [
+    "54e1304409",
+    "8509c04168",
+    "67d75c4496",
+    "e5cccb8a87"
+   ],
+   "at": "2026-11-14T12:00:00.000Z"
+  },
+  {
+   "id": "tango:eb345072d6,b313688f75,3e9af572cf,f9150b4c8a",
+   "rhythm": "tango",
+   "name": "Orquesta Típica Víctor · Adios Buenos Aires, Llámale \"h\", El Mortero del Globito, Ventarrón",
+   "songIds": [
+    "eb345072d6",
+    "b313688f75",
+    "3e9af572cf",
+    "f9150b4c8a"
+   ],
+   "at": "2026-11-14T12:00:00.000Z"
+  },
+  {
+   "id": "tango:e9d31466ec,131567e74b,7b191bb215,bb6ae09db6",
+   "rhythm": "tango",
+   "name": "Pedro Láurenz · No Me Extraña, Alma de Bohemio, Garúa, Al Verla Pasar",
+   "songIds": [
+    "e9d31466ec",
+    "131567e74b",
+    "7b191bb215",
+    "bb6ae09db6"
+   ],
+   "at": "2026-11-14T12:00:00.000Z"
+  },
+  {
+   "id": "tango:8e3307b8a1,07a6e0c944,78239049b7,74fbbdee53",
+   "rhythm": "tango",
+   "name": "Edgardo Donato · Me Voy a Baraja, Gato, Mis Pesares, Carnaval de mi Barrio",
+   "songIds": [
+    "8e3307b8a1",
+    "07a6e0c944",
+    "78239049b7",
+    "74fbbdee53"
+   ],
+   "at": "2026-11-14T12:00:00.000Z"
+  },
+  {
+   "id": "tango:b895e7cf5c,26b1ef8a48,e72cc6516f,c1b0ecf332",
+   "rhythm": "tango",
+   "name": "Juan D'Arienzo · Ansiedad, Farabute, No Mientas, La Bruja",
+   "songIds": [
+    "b895e7cf5c",
+    "26b1ef8a48",
+    "e72cc6516f",
+    "c1b0ecf332"
+   ],
+   "at": "2026-11-14T12:00:00.000Z"
+  },
+  {
+   "id": "vals:aa6b36ab7b,71540229e1,ea9b927fa5",
+   "rhythm": "vals",
+   "name": "Alfredo De Angelis · Soñar y Nada Más, Pobre Flor (Primera Ilusión), Flores del Alma",
+   "songIds": [
+    "aa6b36ab7b",
+    "71540229e1",
+    "ea9b927fa5"
+   ],
+   "at": "2026-11-14T12:00:00.000Z"
+  },
+  {
+   "id": "vals:68f9f78507,cfbb4947c7,8106c5a228",
+   "rhythm": "vals",
+   "name": "Juan D'Arienzo + Francisco Canaro · Desde el Alma, Francia, Corazón de Oro",
+   "songIds": [
+    "68f9f78507",
+    "cfbb4947c7",
+    "8106c5a228"
+   ],
+   "at": "2026-11-14T12:00:00.000Z"
+  }
+ ],
+ "edits": [
+  {
+   "at": "2026-11-14T12:00:00.000Z",
+   "playlistId": "tdj-5j",
+   "added": [
+    "54e1304409",
+    "8509c04168",
+    "eb345072d6",
+    "b313688f75",
+    "3e9af572cf",
+    "f9150b4c8a",
+    "131567e74b",
+    "7b191bb215",
+    "bb6ae09db6",
+    "8e3307b8a1",
+    "07a6e0c944",
+    "78239049b7",
+    "74fbbdee53",
+    "b895e7cf5c",
+    "26b1ef8a48",
+    "e72cc6516f",
+    "c1b0ecf332",
+    "aa6b36ab7b",
+    "71540229e1",
+    "ea9b927fa5",
+    "68f9f78507",
+    "cfbb4947c7",
+    "8106c5a228",
+    "a6a1772a7f"
+   ],
+   "removed": [
+    "43eb2300e8",
+    "312fdc9b9a",
+    "65d3ead45b",
+    "03cb76273f",
+    "2a56a78278",
+    "b61d8c4dc7",
+    "dfb6142e35",
+    "6c3aefab5e",
+    "c6f9812d13",
+    "a5c2fd23c3",
+    "a81ce3747d",
+    "03dbca3af3",
+    "4d0e9d5353",
+    "8b42603f14",
+    "1169f59052",
+    "686b61e78d",
+    "2a2974e7eb",
+    "38603b22d6",
+    "c1435b8ebe",
+    "67af743962",
+    "8da828c3ea",
+    "3a302c4ffd",
+    "be0a6e03c2"
+   ],
+   "note": "the DJ's edits of the featured night (round 21)"
+  }
+ ],
+ "updatedAt": "2026-11-14T12:00:00.000Z"
+}
