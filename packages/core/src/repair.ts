@@ -420,8 +420,8 @@ export function editsFor(
     "cueAudio",
     "cueSpotify",
   ];
+  // (round 21b: the big four is a soft preference the composer shades and swaps for; the repair never chases it)
   const STRUCT = [
-    "bigFour",
     "colourPeak",
     "colourBudget",
     "hotSlot",

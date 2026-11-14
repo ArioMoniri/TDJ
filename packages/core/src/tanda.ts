@@ -1,5 +1,5 @@
 import { BPM_DELTA_MAX, tandaCohesion } from "./audio/compat";
-import { isBigFour, quartileOf, sideProblem, tandaRulesOf, vocalStyleOf } from "./coherence";
+import { sideProblem, tandaRulesOf, vocalStyleOf } from "./coherence";
 import { normTitle } from "./energy";
 import type {
   ComposeOptions,
@@ -1308,9 +1308,6 @@ export function buildTanda(
   }
 
   const prevProfile = ctx.recentOrchestras[0] ? sc.profile?.(ctx.recentOrchestras[0]) : undefined;
-  const trules = tandaRulesOf(o);
-  const bigFourOn = trules.bigFour;
-  const bigFourGap = trules.bigFourGap;
   const weight = (c: TandaCandidate) => {
     const av = availOf(c);
     const prof = sc.profile?.(c.orchestraId);
@@ -1344,28 +1341,9 @@ export function buildTanda(
     const fame = av.reduce((a, s) => a + (s.fame ?? 0), 0) / av.length;
     w *= 1 + fame * 0.4;
     if (fame === 0 && c.vocal && slot.position >= 0.2 && slot.position <= 0.9) w *= 0.5; // unknown vocal material stays out of prime slots
-    // round 21 — the big four (Di Sarli, D'Arienzo, Troilo, Pugliese): never straight after another big-four tanda or
-    // straight before one already planned, the same one only `bigFourGap` tandas later, and a quartile that has none
-    // yet asks for one in its last chairs
-    if (bigFourOn) {
-      const n = ctx.totalSlots ?? 0;
-      if (isBigFour(c)) {
-        const prevBig = !!ctx.recentOrchestras[0] && isBigFour({ orchestraId: ctx.recentOrchestras[0] });
-        const nextBig = !!ctx.next && isBigFour(ctx.next);
-        // (the golden night's 3 D'Arienzo tandas — the benchmark's band — outrank the pair rule: a D'Arienzo the night
-        // still needs steps back less, and the strict repair moves its neighbour instead)
-        if (prevBig || nextBig)
-          w *= c.orchestraId === "juan-d-arienzo" && count("juan-d-arienzo") < 3 ? 0.3 : 0.02;
-        const k = ctx.recentOrchestras.indexOf(c.orchestraId);
-        if (k >= 0 && k + 1 < bigFourGap) w *= 0.05;
-      }
-      if (n >= 8 && ctx.history) {
-        const q = quartileOf(slot.index, n);
-        const has = ctx.history.some((t, i) => quartileOf(i, n) === q && isBigFour(t));
-        const left = [...Array(n).keys()].filter((i) => i >= slot.index && quartileOf(i, n) === q).length;
-        if (!has && left <= 2 && isBigFour(c)) w *= left === 1 ? 12 : 3;
-      }
-    }
+    // (round 21b: the big four is not weighed here — shading the draw moved the orchestras the round 9–17 rules place
+    // (the gap, the summit, the late milonga) and cost their fame; compose.ts swaps for it after the repair, and
+    // only when no other rule is worse for it)
     // gradual steps (corpus rule 15): a family more than 14 points from the previous tanda needs a reason
     if (ctx.prevEnergy !== undefined && !earlyDA) {
       const planned = slot.targetEnergy - (ctx.prevTarget ?? slot.targetEnergy);
@@ -1532,6 +1510,10 @@ export function buildTanda(
   );
   const recentTitles = new Set(o.recent?.titles ?? []);
   const chosenProf = sc.profile?.(chosen.orchestraId);
+  const softBands: ComposeOptions = {
+    ...o,
+    tandaRules: { ...tandaRulesOf(o), bpmBand: false, levelBand: false, tone: "inside" },
+  };
   const scored = avail
     .map((s) => ({
       s,
@@ -1546,7 +1528,7 @@ export function buildTanda(
         (s.reissue ? 0.5 : 1) *
         (recentTitles.has(normTitle(s.title)) ? 0.55 : 1) *
         sideKnowledge(s, chosenProf, chosen.singer, sc.bandOverrides) *
-        learnedSideFactor(sc.learned, s.id) *
+        learnedSideFactor(sc.learned, s.id, s) *
         (0.6 + rng.next() * 0.8),
     }))
     .sort((a, b) => b.w - a.w);
@@ -1622,12 +1604,13 @@ export function buildTanda(
       continue;
     // round 21 (tanda rules): one tone, the tempo and the level bands, one vocal style — a side that breaks one waits
     // while enough others remain (the panel reports what the family could not avoid)
-    if (
-      picked.length &&
-      rest.length >= need - picked.length &&
-      sideProblem(picked, cand, { rhythm: slot.rhythm, o })
-    )
-      continue;
+    // (round 21b: voice, vocal style and the year cap wait always; the tempo / level bands and the tone are soft —
+    // a famous side (fame ≥ 4) is never passed over for them, so a peak keeps its hits and a tanda its known sides)
+    if (picked.length && rest.length >= need - picked.length) {
+      const hard = sideProblem(picked, cand, { rhythm: slot.rhythm, o: softBands });
+      if (hard) continue;
+      if ((cand.fame ?? 0) < 4 && sideProblem(picked, cand, { rhythm: slot.rhythm, o })) continue;
+    }
     seen.add(k);
     picked.push(cand);
   }

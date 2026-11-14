@@ -600,6 +600,8 @@ export const MUST_HAVE: Array<{
   },
 ];
 export const MUST_HAVE_MIN = 8;
+/** round 21b: the soft round-21 rules (a quarter in the penalty) */
+const SOFT_R21 = new Set(["tandaBpm", "tandaLevel", "tandaTone", "bigFour"]);
 /** the classic cycle's slots (R15-1) */
 const CYCLE_PATTERN = "TTVTTM";
 const cycleChar = (x: Tanda) => (x.rhythm === "vals" ? "V" : x.rhythm === "milonga" ? "M" : "T");
@@ -1214,12 +1216,15 @@ export function strictChecks(n: Night): StrictResult {
   // (round 15: a song-order item weighs a quarter in the penalty — the order is mended by reordering, never by
   // trading a tanda-level rule for it)
   const order = violations.filter((v) => v.rule === "sideOrder").length;
+  // (round 21b: the tempo / level / tone bands and the big four are soft preferences — a quarter each, so a fixer never
+  // refuses a round 9–17 mend because it costs a band item, and never trades one of those rules for a band)
+  const soft = violations.filter((v) => SOFT_R21.has(v.rule)).length;
   return {
     rules,
     violations,
     blockers,
     shouldFix,
-    penalty: blockers * 10 + shouldFix - 0.75 * order,
+    penalty: blockers * 10 + shouldFix - 0.75 * order - 0.75 * soft,
     ...(exceptions.length ? { exceptions } : {}),
   };
 }

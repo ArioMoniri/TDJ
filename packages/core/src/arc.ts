@@ -111,6 +111,10 @@ export function planSlots(raw: ComposeOptions): Slot[] {
     s.position = n <= 1 ? 0 : k / (n - 1);
   });
   applyArc(slots, o);
+  // round 21b: the summit plateau (≥ 78, the panel's hot slot) is a tango chair's — a vals or milonga chair under it
+  // plans 77 at most (the opening Cumparsita makes the 4 h night 22 chairs, whose arc put 78 on the milonga after the
+  // summit, where no milonga family is that hot: Di Sarli / Rufino e68 was the hotSlot item on every seed)
+  for (const s of slots) if (s.rhythm !== "tango" && s.targetEnergy > 77) s.targetEnergy = 77;
   return slots;
 }
 

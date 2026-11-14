@@ -2232,6 +2232,69 @@ function composeOnce(
   // La Cumparsita: closing versions only (corpus/profile years), preferred orchestras, varied by seed, never the última's orchestra
   // round 21 — the big four: two big-four tandas back to back (or the same one too soon) trade places with a tanda of
   // the same rhythm when the strict panel as a whole is no worse for it (never the first, the última, a peak, a lock)
+  // round 21b — a fame blocker the repair could not mend (a thin vals / milonga family in the last hour, where the
+  // panel asks mean fame ≥ 3): the tanda trades places with one of its rhythm earlier in the night when that clears the
+  // blocker and the panel as a whole is no worse
+  if (!lockedByIndex.size) {
+    const night = () => ({ tandas, closing, options: o });
+    for (let round = 0; round < 3; round++) {
+      const r0 = strictChecks(night());
+      const bad = r0.violations.filter(
+        (v) => v.rule === "fameMean" && v.tanda > 0 && v.tanda < tandas.length - 1,
+      );
+      if (!bad.length) break;
+      let best: { a: number; b: number; v: number } | null = null;
+      for (const f of bad) {
+        const a = f.tanda;
+        for (let b = 1; b < tandas.length - 1; b++) {
+          const A = tandas[a]!,
+            B = tandas[b]!;
+          if (
+            b === a ||
+            B.rhythm !== A.rhythm ||
+            A.peak ||
+            B.peak ||
+            A.locked ||
+            B.locked ||
+            A.birthday ||
+            B.birthday
+          )
+            continue;
+          const put = (x: Tanda, at: Tanda): Tanda => ({
+            ...x,
+            index: at.index,
+            targetEnergy: at.targetEnergy,
+            phase: at.phase,
+            cortina: at.cortina,
+          });
+          tandas[a] = put(B, A);
+          tandas[b] = put(A, B);
+          const r1 = strictChecks(night());
+          tandas[a] = A;
+          tandas[b] = B;
+          if (r1.blockers >= r0.blockers || r1.penalty > r0.penalty + 1e-9) continue;
+          if (!best || r1.penalty < best.v) best = { a, b, v: r1.penalty };
+        }
+      }
+      if (!best) break;
+      const A = tandas[best.a]!,
+        B = tandas[best.b]!;
+      tandas[best.a] = {
+        ...B,
+        index: A.index,
+        targetEnergy: A.targetEnergy,
+        phase: A.phase,
+        cortina: A.cortina,
+      };
+      tandas[best.b] = {
+        ...A,
+        index: B.index,
+        targetEnergy: B.targetEnergy,
+        phase: B.phase,
+        cortina: B.cortina,
+      };
+    }
+  }
   if (tr.bigFour && !lockedByIndex.size) {
     const night = () => ({ tandas, closing, options: o });
     const faults = () => bigFourProblems(tandas, o).filter((x) => x.kind === "adjacent" || x.kind === "gap");
@@ -2264,8 +2327,9 @@ function composeOnce(
             const r1 = f1 < f0 ? strictChecks(night()) : null;
             tandas[a] = A;
             tandas[b] = B;
-            // (the panel as a whole no worse: a big-four fault mended may cost one other should-fix item)
-            if (!r1 || r1.blockers > r0.blockers || r1.penalty > r0.penalty + 1e-9) continue;
+            // (round 21b: a soft preference — a swap that costs any other rule, or a blocker, is not taken; the fault
+            // stays and is recorded as a fallback)
+            if (!r1 || r1.blockers > r0.blockers || rest(r1) > rest(r0) + 1e-9) continue;
             const v = f1 * 10 + rest(r1);
             if (!best || v < best.v) best = { a, b, v };
           }

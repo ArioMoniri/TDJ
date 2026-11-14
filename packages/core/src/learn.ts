@@ -118,14 +118,29 @@ export function mergeLearned(
   };
 }
 
-/** the compose weights: a side ×0.6…×2.5, a family ×0.6…×2.2 */
-export const learnedSideFactor = (L: LearnedPreferences | undefined, id: string) => {
+/**
+ * The compose weights (round 21b, capped so a fresh night stays inside the benchmark band): a chosen side ×1.15 per
+ * point up to ×1.45, only when it has a checked Spotify id and is not a suspect stream (a learned side never pulls in
+ * one the stream rule would refuse); a replaced side steps back to ×0.9 at most (never enough to push a famous side
+ * out for an unknown one); a family ×1.04 per point up to ×1.12, a replaced family down to ×0.9 (a family weight moves the night's
+ * orchestras, and so the round 9–17 placement rules — rhythmic runs, the last side — it stays a nudge). The weights carry no
+ * era: the DJ's out-of-era tandas teach their families and sides, never "these years are fine" — the night's era
+ * settings and the year rules still decide.
+ */
+export const learnedSideFactor = (
+  L: LearnedPreferences | undefined,
+  id: string,
+  s?: Pick<Song, "spotify" | "streamSuspect">,
+) => {
   const v = L?.sides?.[id];
-  return v === undefined ? 1 : v >= 0 ? 1 + 0.5 * v : 1 + 0.4 * v;
+  if (v === undefined) return 1;
+  if (v < 0) return Math.max(0.9, 1 + 0.1 * v);
+  if (s && (!s.spotify?.uri || s.streamSuspect)) return 1;
+  return Math.min(1.45, 1 + 0.15 * v);
 };
 export const learnedFamilyFactor = (L: LearnedPreferences | undefined, key: string) => {
   const v = L?.families?.[key];
-  return v === undefined ? 1 : v >= 0 ? 1 + 0.4 * v : 1 + 0.4 * v;
+  return v === undefined ? 1 : v >= 0 ? Math.min(1.12, 1 + 0.04 * v) : Math.max(0.9, 1 + 0.1 * v);
 };
 
 /** the learned store kept in the DJ's memory (AgentMemory.learned) */
