@@ -215,6 +215,27 @@ function Booth() {
     },
     started && { label: "Mix: fades, talk-over, levels…", onClick: () => setLevels(true) },
     started && { label: "Birthday vals", onClick: () => b.birthdayVals() },
+    // round 21: the end of the night on the DJ's call
+    started &&
+      !!b.playlist?.closing && {
+        label: "Play the rest, then La Cumparsita",
+        onClick: () => {
+          void b.jumpToClosing(false);
+          toast("La Cumparsita follows this tanda");
+        },
+        disabled: !(state === "playing" || state === "cortina"),
+      },
+    started &&
+      !!b.playlist?.closing && {
+        label: "Jump to La Cumparsita now",
+        onClick: () => void b.jumpToClosing(true),
+      },
+    {
+      label: b.playlist?.options.rules?.lastFourTango
+        ? "Last 4 tandas tango only · on"
+        : "Last 4 tandas tango only",
+      onClick: () => void b.setLastFourTango(!b.playlist?.options.rules?.lastFourTango),
+    },
     started && { label: "Break…", onClick: () => setBreakOpen(true) },
     { label: "Keyboard shortcuts", icon: Keyboard, onClick: () => setKeys(true) },
     { label: light ? "Dark theme" : "Light theme", onClick: () => setLight((v) => !v) },

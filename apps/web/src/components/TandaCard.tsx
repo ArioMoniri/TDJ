@@ -1,5 +1,5 @@
 "use client";
-import { AudioWaveform, Headphones, ListMusic, Lock, LockOpen, Repeat2 } from "lucide-react";
+import { AudioWaveform, Headphones, ListMusic, Lock, LockOpen, Repeat2, SkipForward } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import dynamic from "next/dynamic";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
@@ -40,6 +40,8 @@ export interface TandaCardProps {
   onSwapTrack: (i: number, k: number) => void;
   /** called with the tanda index */
   onLock: (i: number) => void;
+  /** round 21: "Skip tonight" — called with the tanda index (the player passes over it; exports keep it) */
+  onBypass?: (i: number) => void;
   /** History: no swap / lock actions, everything else as on the composer */
   readOnly?: boolean;
   /** this tanda was replaced by the last chip / refine */
@@ -71,6 +73,7 @@ function TandaCardImpl({
   onSwap,
   onSwapTrack,
   onLock,
+  onBypass,
   busy,
   swappingTrack,
   active,
@@ -144,6 +147,12 @@ function TandaCardImpl({
     icon: t.locked ? LockOpen : Lock,
     onClick: lock,
   };
+  const bypassItem = !readOnly &&
+    onBypass && {
+      label: t.bypass ? "Play it tonight" : "Skip tonight",
+      icon: SkipForward,
+      onClick: () => onBypass(i),
+    };
   const swapItem = !readOnly && {
     label: "Swap tanda",
     icon: Repeat2,
@@ -187,6 +196,7 @@ function TandaCardImpl({
       data-rhythm={t.rhythm}
       data-tanda={i + 1}
       data-pinned={t.pinned ? "dj" : undefined}
+      data-bypass={t.bypass || undefined}
     >
       {/* curve dot → card hand-off: a one-shot ring pulse on arrival */}
       {active && !reduced && (
@@ -235,6 +245,14 @@ function TandaCardImpl({
                     title={t.pinned.reason}
                   >
                     Your tanda · kept as is
+                  </span>
+                )}
+                {t.bypass && (
+                  <span
+                    className="text-caption1 inline-flex rounded-full bg-[var(--fill-3)] px-2 py-0.5 font-medium text-[var(--label-2)]"
+                    data-testid="tanda-bypass"
+                  >
+                    Skipped tonight · still in exports
                   </span>
                 )}
                 {t.note && (
@@ -309,6 +327,7 @@ function TandaCardImpl({
               items={[
                 lockItem,
                 swapItem,
+                bypassItem,
                 !isPhone && {
                   label: listen ? "Hide player" : "Listen",
                   icon: Headphones,

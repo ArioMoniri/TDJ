@@ -550,6 +550,18 @@ const SetupForm = memo(function SetupForm({
           onChange={(k) => setRules({ cumparsitaCount: Number(k) as 1 | 2 })}
         />
         <SwitchRow
+          label="Closing matches the última"
+          sub="La Cumparsita by the last tanda's orchestra, near its years (off: another orchestra)"
+          checked={!!rules.cumparsitaHarmony}
+          onChange={(v) => setRules({ cumparsitaHarmony: v || undefined })}
+        />
+        <SwitchRow
+          label="Last 4 tandas tango only"
+          sub="The player skips a vals or milonga among the last four; exports end on four tangos"
+          checked={!!rules.lastFourTango}
+          onChange={(v) => setRules({ lastFourTango: v || undefined })}
+        />
+        <SwitchRow
           label="Birthday vals"
           sub="A vals tanda reserved for the birthday dance"
           checked={rules.birthdayValsAt != null}
@@ -1127,6 +1139,22 @@ export function Composer() {
         ...playlist,
         tandas: playlist.tandas.map((t, k) => (k === i ? { ...t, locked: !t.locked } : t)),
       });
+    },
+    [setPlaylist],
+  );
+  // round 21: "Skip tonight" — the player passes over the tanda; it stays in the night and its exports
+  const bypass = useCallback(
+    (i: number) => {
+      const playlist = useStore.getState().playlist;
+      if (!playlist) return;
+      const on = !playlist.tandas[i]?.bypass;
+      setPlaylist({
+        ...playlist,
+        tandas: playlist.tandas.map((t, k) => (k === i ? { ...t, bypass: on || undefined } : t)),
+      });
+      toast(
+        on ? `Tanda ${i + 1} is skipped tonight (it stays in the exports)` : `Tanda ${i + 1} plays tonight`,
+      );
     },
     [setPlaylist],
   );
@@ -1727,6 +1755,7 @@ export function Composer() {
                   onSwap={swap}
                   onSwapTrack={swapTrack}
                   onLock={lock}
+                  onBypass={bypass}
                   busy={swapping === i}
                   swappingTrack={swappingTrack?.[0] === i ? swappingTrack[1] : null}
                   active={active === i}

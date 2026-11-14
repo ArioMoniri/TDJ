@@ -320,13 +320,52 @@ export class BoothEngine {
   }
   /** round 21: the item the DJ asked to play next ("Play next"); the night continues from it */
   forcedNext: number | null = null;
-  /** The next index after `from` that will play (not skipped; breaks count; "Play next" first). */
+  /** round 21: the items of the tandas the DJ bypasses tonight ("skip tonight", the last-four-tango setting) */
+  bypassed = new Set<number>();
+  setBypass(items: Iterable<number>): void {
+    this.bypassed = new Set(items);
+    // (the queued item is now bypassed: rebuild it)
+    if (this.queued && this.bypassed.has(this.queued.planIndex) && !this.queued.started) {
+      this.cancelQueued();
+      if (this.state === "playing" || this.state === "cortina") void this.scheduleNext();
+    }
+  }
+  private passes(i: number): boolean {
+    return !this.skipped.has(i) && !this.bypassed.has(i);
+  }
+  /** The next index after `from` that will play (not skipped or bypassed; breaks count; "Play next" first). */
   nextPlayable(from: number): number | null {
     if (!this.plan) return null;
     const f = this.forcedNext;
     if (f !== null && f !== from && f >= 0 && f < this.plan.items.length && !this.skipped.has(f)) return f;
-    for (let i = from + 1; i < this.plan.items.length; i++) if (!this.skipped.has(i)) return i;
+    for (let i = from + 1; i < this.plan.items.length; i++) if (this.passes(i)) return i;
     return null;
+  }
+  /** the closing La Cumparsita's plan index (the last item when it is the closing) */
+  closingIndex(): number | null {
+    const items = this.plan?.items ?? [];
+    const k = items.length - 1;
+    return k >= 0 && items[k]!.kind === "closing" && items[k]!.tanda > 0 ? k : null;
+  }
+  /**
+   * Round 21 — "Jump to La Cumparsita now" (`now`: the running item fades and the closing starts) or "Play the rest,
+   * then La Cumparsita" (the rest of the running tanda plays, then the closing: every item between is left out).
+   */
+  async jumpToClosing(now: boolean): Promise<void> {
+    const c = this.closingIndex();
+    if (c === null) return;
+    if (now) return this.playNow(c);
+    const cur = this.item();
+    const tanda = cur?.kind === "track" ? cur.tanda : -1;
+    for (let i = this.planIndex + 1; i < c; i++) {
+      const it = this.plan!.items[i]!;
+      if (!(it.kind === "track" && it.tanda === tanda)) this.skipped.add(i);
+    }
+    this.skipped.delete(c);
+    this.forcedNext = null;
+    if (this.queued && !this.queued.started) this.cancelQueued();
+    this.transition(this.state, "cumparsita next");
+    if (this.state === "playing" || this.state === "cortina") void this.scheduleNext();
   }
 
   /**
@@ -397,7 +436,7 @@ export class BoothEngine {
     await this.ctx.resume().catch(() => {});
     if (!this.startedWall) this.startedWall = this.wall();
     if (this.state !== "idle" && this.state !== "stopped") return;
-    if (this.skipped.has(this.planIndex) || this.item()?.kind === "break") {
+    if (!this.passes(this.planIndex) || this.item()?.kind === "break") {
       const n = this.nextPlayable(this.planIndex);
       if (n === null) return this.finish();
       this.planIndex = n;

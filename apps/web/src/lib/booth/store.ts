@@ -1,5 +1,12 @@
 "use client";
-import { attachBooth, type BoothInputs, boothInputs, type CortinaEdit, type Playlist } from "@tdj/core";
+import {
+  attachBooth,
+  type BoothInputs,
+  boothInputs,
+  bypassPlanItems,
+  type CortinaEdit,
+  type Playlist,
+} from "@tdj/core";
 import { create } from "zustand";
 import { makeNightLog, makeSnapshot } from "@/lib/history";
 import { useStore } from "@/lib/store";
@@ -47,6 +54,8 @@ export interface FolderStatus {
 
 interface BoothStore {
   playlist: Playlist | null;
+  /** round 21: the plan items the player passes over tonight (bypassed tandas) */
+  bypassed: number[];
   plan: BoothRows | null;
   entities: PlanEntity[];
   sources: ItemSource[];
@@ -140,6 +149,12 @@ interface BoothStore {
   endNight: () => Promise<void>;
   dismissBanner: (key: string) => void;
   applySwappedPlaylist: (p: Playlist) => Promise<void>;
+  /** round 21: "Skip tonight" on tanda `tanda` (1-based) — the player passes over it; exports keep it */
+  toggleBypass: (tanda: number) => Promise<void>;
+  /** round 21: "Last 4 tandas tango only" — the player bypasses the vals / milonga among the last four */
+  setLastFourTango: (on: boolean) => Promise<void>;
+  /** round 21: "Jump to La Cumparsita now" (`now`) or "Play the rest, then La Cumparsita" */
+  jumpToClosing: (now: boolean) => Promise<void>;
   leave: () => void;
 }
 
@@ -227,6 +242,7 @@ const capFor = (sources: ItemSource[], rehearsal: boolean) => (i: number) =>
 
 export const useBooth = create<BoothStore>()((set, get) => ({
   playlist: null,
+  bypassed: [],
   plan: null,
   entities: [],
   sources: [],
@@ -394,6 +410,7 @@ export const useBooth = create<BoothStore>()((set, get) => ({
         ),
       });
       engine?.replacePlan(plan, entities, sources);
+      syncBypass();
       if (a.local.permission === "prompt")
         pushBanner({
           key: "folder",
@@ -468,6 +485,7 @@ export const useBooth = create<BoothStore>()((set, get) => ({
         onEvent: onEngineEvent,
       });
       engine.load(plan, entities, sources);
+      syncBypass();
       engine.planIndex = get().planIndex;
       engine.setMaster(get().master);
       engine.setCortinaFader(get().cortinaFader);
@@ -718,10 +736,40 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     set({ playlist: r.playlist, plan: r.plan, entities: planEntities(r.playlist, r.plan) });
     await get().refreshSources();
   },
+  toggleBypass: async (tanda) => {
+    const p = get().playlist;
+    if (!p?.tandas[tanda - 1]) return;
+    await get().applySwappedPlaylist({
+      ...p,
+      tandas: p.tandas.map((t, i) => (i === tanda - 1 ? { ...t, bypass: !t.bypass || undefined } : t)),
+    });
+    syncBypass();
+  },
+  setLastFourTango: async (on) => {
+    const p = get().playlist;
+    if (!p) return;
+    await get().applySwappedPlaylist({
+      ...p,
+      options: { ...p.options, rules: { ...(p.options.rules ?? {}), lastFourTango: on || undefined } },
+    });
+    syncBypass();
+  },
+  jumpToClosing: async (now) => {
+    await engine?.jumpToClosing(now);
+    if (engine) useBooth.setState({ skipped: [...engine.skipped] });
+  },
   leave: () => {
     stopTicking();
   },
 }));
+
+/** the engine passes over the tandas the DJ bypasses tonight (round 21) */
+function syncBypass() {
+  const { playlist, plan } = useBooth.getState();
+  const items = playlist && plan ? bypassPlanItems(playlist, plan.items) : [];
+  engine?.setBypass(items);
+  useBooth.setState({ bypassed: items });
+}
 
 /* ---------- engine → store ---------- */
 

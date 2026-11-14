@@ -1,4 +1,5 @@
 "use client";
+import { bypassedTandas } from "@tdj/core";
 import { Lock, Repeat2, Search, SlidersHorizontal } from "lucide-react";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { spotifyOf } from "@/lib/booth/clips";
@@ -107,6 +108,7 @@ export function SetColumn({
     }
   };
   if (!plan || !playlist) return null;
+  const bypassedT = bypassedTandas(playlist);
   const groups: Array<{ tanda: number; items: Array<{ i: number }> }> = [];
   plan.items.forEach((it, i) => {
     const g = groups[groups.length - 1];
@@ -124,6 +126,7 @@ export function SetColumn({
             key={g.tanda}
             className={`booth-tanda ${played ? "booth-played" : ""}`}
             data-tanda={g.tanda}
+            data-bypassed={bypassedT.has(g.tanda - 1) || undefined}
             data-locked={locked || undefined}
           >
             <header className="flex items-center gap-2 px-2 pt-3 pb-1">
@@ -149,6 +152,27 @@ export function SetColumn({
                 t?.locked && (
                   <Lock size={14} strokeWidth={2} className="text-[var(--system-gold)]" aria-label="Locked" />
                 )
+              )}
+              {/* round 21: skip tonight — the player passes over it; it stays in the exports */}
+              {t && !locked && (
+                <button
+                  type="button"
+                  className="booth-bypass"
+                  data-testid="booth-bypass"
+                  aria-pressed={!!bypassedT.has(g.tanda - 1)}
+                  aria-label={`${bypassedT.has(g.tanda - 1) ? "Play" : "Skip"} tanda ${g.tanda} tonight`}
+                  title={
+                    t.bypass
+                      ? "Skipped tonight (tap to play it)"
+                      : bypassedT.has(g.tanda - 1)
+                        ? "Skipped by Last 4 tandas tango only"
+                        : "Skip tonight"
+                  }
+                  disabled={!t.bypass && bypassedT.has(g.tanda - 1)}
+                  onClick={() => void useBooth.getState().toggleBypass(g.tanda)}
+                >
+                  {bypassedT.has(g.tanda - 1) ? "Skipped" : "Skip"}
+                </button>
               )}
               {t && (
                 <SwapButton

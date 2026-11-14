@@ -132,3 +132,26 @@ test("booth: during the night a tapped row offers Play now, Play next and Previe
     timeout: 20000,
   });
 });
+
+test("bypass: Skip tonight passes a tanda over in the booth; Last 4 tandas tango only skips the tail's vals / milonga", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openFeatured(page);
+  await page.getByTestId("play-the-night").first().click();
+  await expect(page).toHaveURL(/\/booth/);
+  await expect(page.getByTestId("booth-ttc")).not.toHaveAttribute("data-resolving", "1", { timeout: 30000 });
+  // T18 is the vals the DJ asked for between the new tango tandas: skip it tonight
+  const t18 = page.locator('.booth-tanda[data-tanda="18"]');
+  await t18.getByTestId("booth-bypass").click();
+  await expect(t18).toHaveAttribute("data-bypassed", "true");
+  await expect(t18.getByTestId("booth-bypass")).toHaveAttribute("aria-pressed", "true");
+  await t18.getByTestId("booth-bypass").click();
+  await expect(t18).not.toHaveAttribute("data-bypassed", "true");
+  // the setting: the vals (T23) and the milonga (T21) among the closing stretch are passed over
+  await page.getByTestId("booth-more").click();
+  await page.getByRole("menuitem", { name: /Last 4 tandas tango only/ }).click();
+  await expect(page.locator('.booth-tanda[data-tanda="23"]')).toHaveAttribute("data-bypassed", "true");
+  await expect(page.locator('.booth-tanda[data-tanda="21"]')).toHaveAttribute("data-bypassed", "true");
+  await expect(page.locator('.booth-tanda[data-tanda="24"]')).not.toHaveAttribute("data-bypassed", "true");
+});

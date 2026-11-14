@@ -1,4 +1,4 @@
-import { type Playlist, planBooth } from "@tdj/core";
+import { bypassPlanItems, type Playlist, planBooth } from "@tdj/core";
 import { beforeEach, describe, expect, it } from "vitest";
 import { makeNightLog, nightLogSummary } from "@/lib/history";
 import {
@@ -827,6 +827,30 @@ describe("round 21: a tapped row plays — Play now (with a fade) and Play next"
     await flush();
     expect(e.planIndex).toBe(target);
     expect(e.forcedNext).toBeNull();
+  });
+  it("a bypassed tanda is passed over (its tracks and the cortina after it); the export plan keeps it", async () => {
+    const p = set({ thirdTanda: true });
+    const plan = build(p);
+    const e = engineFor(ctx, plan);
+    const q = { ...p, tandas: p.tandas.map((t, i) => (i === 1 ? { ...t, bypass: true } : t)) };
+    const by = bypassPlanItems(q, plan.items);
+    e.setBypass(by);
+    const lastOf1 = plan.items.findLastIndex((it) => it.tanda === 1);
+    const firstOf3 = plan.items.findIndex((it) => it.tanda === 3);
+    expect(e.nextPlayable(lastOf1)).toBe(firstOf3);
+    expect(plan.items.length).toBe(build(q).items.length);
+  });
+  it("Play the rest, then La Cumparsita: the running tanda finishes, then the closing; Jump now plays it at once", async () => {
+    const plan = build(set({ thirdTanda: true }));
+    const e = engineFor(ctx, plan);
+    await e.start();
+    await e.play();
+    await e.jumpToClosing(false);
+    const c = plan.items.length - 1;
+    expect(e.nextPlayable(0)).toBe(1);
+    expect(e.nextPlayable(1)).toBe(c);
+    await e.jumpToClosing(true);
+    expect(e.planIndex).toBe(c);
   });
   it("before the night: Play now arms the tapped item and starts it", async () => {
     const plan = build(set());

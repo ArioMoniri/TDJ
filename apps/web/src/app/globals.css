@@ -1813,6 +1813,26 @@ html.theming *::after {
 .booth-row-on .booth-row-n {
   color: var(--tint);
 }
+/* round 21: a tanda the player passes over tonight (skip tonight, last four tango only) */
+.booth-tanda[data-bypassed] ol {
+  opacity: 0.45;
+}
+.booth-bypass {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tint);
+}
+.booth-bypass[aria-pressed="true"] {
+  color: var(--label-2);
+  background: var(--fill-3);
+}
+.booth-bypass:disabled {
+  opacity: 0.7;
+}
 .booth-played {
   opacity: 0.45;
 }
