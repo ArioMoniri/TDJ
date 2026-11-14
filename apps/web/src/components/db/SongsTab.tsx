@@ -1,18 +1,27 @@
 "use client";
-import { AudioWaveform, CircleMinus, Link2, Trash2 } from "lucide-react";
+import { missingFields, normTitle, songData } from "@tdj/core";
+import { AudioWaveform, CircleMinus, DatabaseZap, Link2, Trash2 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
 import { SEARCH_FOCUS_EVENT } from "@/components/Nav";
 import { analyseSong, keyLabel } from "@/lib/analyze";
+import { djDataOf } from "@/lib/artwork";
 import { effectiveSong } from "@/lib/audio";
+import { fillMissing } from "@/lib/fill/client";
 import { rise, spring } from "@/lib/motion";
-import type { Song } from "@/lib/types";
+import { SOURCE_LABEL } from "@/lib/songView";
+import { toast } from "@/lib/toast";
+import type { Song, SongPatch } from "@/lib/types";
 import { ActionRow, FieldRow, Group, PickerRow, RhythmTile, Row, SwitchRow } from "../Form";
 import { ResolveSheet } from "../ResolveSheet";
 import { SearchField } from "../SearchField";
 import { Sheet } from "../Sheet";
 import { SwipeRow } from "../SwipeRow";
+import { Artwork } from "../ui/Artwork";
+import { EraBadge } from "../ui/EraBadge";
+import { Tip } from "../ui/Tip";
 import { Empty, patchMap, useDb, useDbEdit, ValueCell } from "./shared";
+import { VersionsRow } from "./Versions";
 
 const RHYTHMS = ["tango", "vals", "milonga", "cancion", "foxtrot", "other"] as const;
 const RHYTHM_LABEL: Record<string, string> = {
@@ -51,6 +60,13 @@ const eraOf = (y?: number): Song["era"] =>
                   ? "nuevo"
                   : "contemporary";
 const num = (v: string) => (v === "" ? undefined : Number(v));
+const FILL_LABEL: Record<string, string> = {
+  bpm: "BPM",
+  key: "key",
+  gainDb: "level",
+  artwork: "artwork",
+  release: "date",
+};
 /** round 21: where an enriched value came from */
 const SOURCE: Record<string, string> = {
   dj: "yours",
@@ -76,6 +92,7 @@ export function SongsTab() {
   const [adding, setAdding] = useState(false);
   const [finding, setFinding] = useState<Song | null>(null);
   const [analysing, setAnalysing] = useState<string | null>(null);
+  const [filling, setFilling] = useState<string | null>(null);
   const [form, setForm] = useState({
     title: "",
     orchestra: "",
@@ -94,7 +111,17 @@ export function SongsTab() {
     const t = setTimeout(() => {
       fetch(`/api/search?q=${encodeURIComponent(q)}`)
         .then((r) => r.json())
-        .then((r: Song[]) => setRows(r))
+        // the versions of one title sit together, oldest first (round 22)
+        .then((r: Song[]) =>
+          setRows(
+            r
+              .slice()
+              .sort(
+                (a, b) =>
+                  normTitle(a.title).localeCompare(normTitle(b.title)) || (a.year ?? 9999) - (b.year ?? 9999),
+              ),
+          ),
+        )
         .catch(() => setRows([]))
         .finally(() => setSearching(false));
     }, 200);
@@ -139,6 +166,23 @@ export function SongsTab() {
       await analyseSong(s);
     } finally {
       setAnalysing(null);
+    }
+  };
+  /** round 22: ask every connected source for this side's missing BPM, key, level, artwork and date */
+  const fill = async (s: Song, force = false) => {
+    setFilling(s.id);
+    try {
+      const r = await fillMissing(s, { force });
+      const label = (f: string) => FILL_LABEL[f] ?? f;
+      toast(
+        r.filled.length
+          ? `Filled ${r.filled.map(label).join(", ")} for ${s.title}`
+          : r.asked.length
+            ? `No new data for ${s.title}${r.stillMissing.length ? ` (still missing: ${r.stillMissing.map(label).join(", ")})` : ""}`
+            : `${s.title} is up to date with your sources`,
+      );
+    } finally {
+      setFilling(null);
     }
   };
   const revert = (id: string) =>
@@ -201,7 +245,7 @@ export function SongsTab() {
       {rows.length > 0 && (
         <div className="min-w-0 lg:grid lg:grid-cols-2 lg:gap-x-4">
           {rows.map((s) => {
-            const p = (songs[s.id] ?? {}) as Partial<Song> & {
+            const p = (songs[s.id] ?? {}) as SongPatch & {
               hidden?: boolean;
               hiddenScope?: "title" | "copy";
             };
@@ -209,6 +253,11 @@ export function SongsTab() {
             const edited = !!songs[s.id];
             const eff = effectiveSong(s, overrides);
             const res = eff.resolved;
+            const scraped = overrides.scraped?.[s.id];
+            const data = songData(eff, scraped, djDataOf(p));
+            const missing = missingFields(data);
+            const from = (f: keyof typeof data) =>
+              data[f] ? ` · ${SOURCE_LABEL[data[f]!.source] ?? data[f]!.source}` : "";
             return (
               <Group
                 key={s.id}
@@ -217,12 +266,19 @@ export function SongsTab() {
                 className="min-w-0"
               >
                 <div className="cell" data-leading="art">
-                  <RhythmTile rhythm={v.rhythm} />
+                  <Artwork
+                    src={data.artwork?.value as string | undefined}
+                    orchestra={s.orchestra}
+                    orchestraId={s.orchestraId}
+                  />
                   <span className="min-w-0 flex-1">
                     <span className="text-headline block truncate">{s.title}</span>
                     <span className="text-subhead block truncate text-[var(--label-2)]">
                       {s.orchestra}
-                      {s.singer ? ` · ${s.singer}` : ""}
+                      {s.singer ? ` · ${s.singer}` : ""} · {labelOf(v.rhythm)}
+                    </span>
+                    <span className="mt-0.5 flex flex-wrap gap-1">
+                      <EraBadge song={eff} />
                     </span>
                   </span>
                   {editing && edited && (
@@ -305,6 +361,73 @@ export function SongsTab() {
                     disabled={!editing}
                   />
                 )}
+                <ValueCell
+                  label={`Key${from("key")}`}
+                  inputLabel={`Key of ${s.title}`}
+                  editing={editing}
+                  value={p.key}
+                  placeholder={(data.key?.value as string | undefined) ?? "–"}
+                  onChange={(t) => setField(s, "key", t.trim() || undefined)}
+                />
+                <ValueCell
+                  label={`Date${from("release")}`}
+                  inputLabel={`Release date of ${s.title}`}
+                  editing={editing}
+                  value={p.release}
+                  placeholder={(data.release?.value as string | undefined) ?? "–"}
+                  onChange={(t) => setField(s, "release", t.trim() || undefined)}
+                />
+                <ValueCell
+                  label={`Deezer${from("deezerId")}`}
+                  inputLabel={`Deezer track of ${s.title}`}
+                  editing={editing}
+                  mono
+                  value={p.deezerId}
+                  placeholder={(data.deezerId?.value as string | undefined) ?? "–"}
+                  onChange={(t) => setField(s, "deezerId", t.replace(/\D/g, "") || undefined)}
+                />
+                <ValueCell
+                  label={`Artwork${from("artwork")}`}
+                  inputLabel={`Artwork link of ${s.title}`}
+                  editing={editing}
+                  mono
+                  value={p.artwork}
+                  placeholder={data.artwork ? "cached" : "–"}
+                  onChange={(t) =>
+                    setField(s, "artwork", /^https:\/\//.test(t.trim()) ? t.trim() : undefined)
+                  }
+                />
+                <Tip
+                  text="Asks Deezer, MusicBrainz, the Cover Art Archive and the sources you added in Settings for what is missing. Your own values always win."
+                  className="w-full"
+                >
+                  <Row
+                    tile={
+                      <span
+                        className="tile"
+                        style={{ background: missing.length ? "#5856d6" : "var(--fill-2)" }}
+                        aria-hidden
+                      >
+                        <DatabaseZap size={14} strokeWidth={2} />
+                      </span>
+                    }
+                    label={missing.length ? "Fill missing data" : "Refresh from sources"}
+                    sub={
+                      missing.length
+                        ? `Missing: ${missing.map((f) => FILL_LABEL[f] ?? f).join(", ")}`
+                        : scraped
+                          ? `Fetched ${Object.entries(scraped.sources)
+                              .map(([k, v]) => `${SOURCE_LABEL[k] ?? k} ${v.fetchedAt.slice(0, 10)}`)
+                              .join(" · ")}`
+                          : "Everything is known"
+                    }
+                    chevron
+                    busy={filling === s.id}
+                    onClick={() => void fill(s, !missing.length)}
+                    data-testid="db-fill"
+                  />
+                </Tip>
+                <VersionsRow song={s} />
                 <Row
                   label="Streams"
                   sub={[
