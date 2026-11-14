@@ -1,5 +1,17 @@
 "use client";
-import { Copy, Download, FileDown, GitCompare, Pencil, Play, RotateCcw, Share, Trash2 } from "lucide-react";
+import {
+  Copy,
+  Download,
+  FileDown,
+  FolderOpen,
+  GitCompare,
+  Pencil,
+  Play,
+  RotateCcw,
+  Share,
+  Trash2,
+  Users,
+} from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -169,6 +181,8 @@ export default function HistoryPage() {
             <Menu
               label="More"
               items={[
+                { label: "Open a shared night…", icon: FolderOpen, onClick: () => router.push("/night") },
+                { label: "Rooms…", icon: Users, onClick: () => router.push("/rooms") },
                 {
                   label: "Export history as JSON",
                   icon: Download,
