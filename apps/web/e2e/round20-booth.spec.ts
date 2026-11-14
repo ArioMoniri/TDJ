@@ -317,20 +317,26 @@ test.describe("phone 390 × 844", () => {
     const mix = page.getByTestId("booth-levels-sheet");
     await expect(mix.getByTestId("booth-fade-now")).toBeVisible();
     await expect(mix).toContainText("Song end fade");
-    const s = await page.evaluate(() => {
-      const sheet = document.querySelector('[data-testid="booth-levels-sheet"]')!;
-      const btns = [...sheet.querySelectorAll("button")].filter((el) => el.getBoundingClientRect().width > 0);
-      return {
-        small: btns
-          .filter((el) => {
-            const r = el.getBoundingClientRect();
-            return r.height < 44 || r.width < 44;
-          })
-          .map((el) => el.getAttribute("aria-label") || el.textContent),
-        wide: btns.filter((el) => el.getBoundingClientRect().right > 390.5).length,
-        overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-      };
-    });
+    // (the sheet settles its detent and rows after the tap: measure once nothing is still growing)
+    const measure = () =>
+      page.evaluate(() => {
+        const sheet = document.querySelector('[data-testid="booth-levels-sheet"]')!;
+        const btns = [...sheet.querySelectorAll("button")].filter(
+          (el) => el.getBoundingClientRect().width > 0,
+        );
+        return {
+          small: btns
+            .filter((el) => {
+              const r = el.getBoundingClientRect();
+              return r.height < 44 || r.width < 44;
+            })
+            .map((el) => el.getAttribute("aria-label") || el.textContent),
+          wide: btns.filter((el) => el.getBoundingClientRect().right > 390.5).length,
+          overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        };
+      });
+    await expect.poll(async () => (await measure()).small, { timeout: 5000 }).toEqual([]);
+    const s = await measure();
     expect(s.small).toEqual([]);
     expect(s.wide).toBe(0);
     expect(s.overflow).toBe(0);

@@ -7790,8 +7790,9 @@
   "era": "contemporary",
   "album": null,
   "source": "dj-added",
-  "notes": "Added round 21: Bandonegro (a contemporary orchestra), album \"Color Aires\" on Spotify; the DJ's closing version.",
+  "notes": "Added round 21: Bandonegro (a contemporary orchestra), album \"Color Aires\" (RecArt, released 2022-09-30; Spotify 71xZvSB3Nrb5HMclJKi9jU, Deezer 1842266617, 235 s); the DJ's closing version. No recording date is published: the index keeps year null (it holds no side after 2008) and the release date here and in the Spotify cache.",
   "addedAt": "2026-11-14",
+  "release": "2022-09-30",
   "spotify": {
    "uri": "spotify:track:71xZvSB3Nrb5HMclJKi9jU",
    "url": "https://open.spotify.com/track/71xZvSB3Nrb5HMclJKi9jU",
@@ -7800,7 +7801,9 @@
    "popularity": 0,
    "matched": "Bandonegro – La Cumparsita",
    "checkedAt": "2026-11-14T14:32:29.925Z",
-   "via": "spotify-connector"
+   "via": "spotify-connector",
+   "release": "2022-09-30",
+   "releaseSource": "deezer album 340133577 (Color Aires, RecArt; the same 235 s recording)"
   },
   "resolved": null,
   "audio": null,

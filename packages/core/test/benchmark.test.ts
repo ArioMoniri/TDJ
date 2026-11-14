@@ -90,7 +90,12 @@ describe("benchmarkNight", () => {
   });
 
   it("the featured night has no 'off' check except informational ones", () => {
-    const b = benchmarkNight(featured);
+    // (round 21: the featured file is the DJ's hand-edited night — 1932–63 tandas, Tango Bardo, mixed singers — whose
+    // off checks are the DJ's choices; this check is about the composed seed-199 night the panel approved)
+    const composed = JSON.parse(
+      readFileSync(join(findRoot(), "docs/specs/round19-best-night.json"), "utf8"),
+    ) as Playlist;
+    const b = benchmarkNight(composed);
     // round 13: the round-11 featured night predates the year-spread, golden-core, transitions and heatmap checks
     // (the cohesion review grades it loose: median 2 y, 55 % ≤ 2 y); the main session regenerates it, so those four
     // are judged in round13.test.ts, not here

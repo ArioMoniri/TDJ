@@ -40,7 +40,9 @@ const ROOT = findRoot();
 const readJson = (p: string) => JSON.parse(readFileSync(join(ROOT, p), "utf8"));
 beforeAll(() => {
   deps = loadCatalog();
-  featured = readJson("apps/web/public/featured/golden-double-peak.json") as Playlist;
+  // (round 21: the featured file is now the DJ's hand-edited night; these round-17 checks are about the seed-199 night
+  // the panel approved, which ships as docs/specs/round19-best-night.json)
+  featured = readJson("docs/specs/round19-best-night.json") as Playlist;
   const fo = { ...featured.options } as Record<string, unknown>;
   for (const k of ["contextApplied", "trackSecByRhythm", "cortinaGenres", "vocalBias", "tempoShift", "seed"])
     delete fo[k];

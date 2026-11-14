@@ -588,7 +588,13 @@ describe("E — the shipped featured night", () => {
     for (const t of featured.tandas)
       for (const s of t.songs) {
         const c = byId.get(s.id);
-        // the night carries the catalogue's (judged) id, never a rejected one
+        // the night carries the catalogue's (judged) id, never a rejected one — round 21: except the transfers the
+        // DJ chose for sides the match rules cannot prove (Danzarín, Chiqué, Nochero Soy), kept on the DJ's pinned
+        // tanda only and listed in docs/specs/round21-best-night.md
+        if (t.pinned && !c?.spotify?.uri) {
+          expect(s.spotify?.uri).toMatch(/^spotify:track:/);
+          continue;
+        }
         expect(s.spotify?.uri ?? null).toBe(c?.spotify?.uri ?? null);
         if (s.spotify?.uri) expect(sp[s.id]?.uri ?? c?.spotify?.uri).toBe(s.spotify.uri);
       }
