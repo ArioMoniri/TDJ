@@ -20,3 +20,5 @@ media/video/raw
 
 # agent worktrees (local only)
 .claude/worktrees/
+.claude/settings.local.json
+*.certSigningRequest

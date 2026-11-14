@@ -107,3 +107,10 @@ Every item has an on/off switch in Settings where it is an indicator, a rule or 
 - ☐ Guide page refreshed with Lottie, illustrations and motion.
 - ☐ One-click self-deploy that sets everything up (database, storage, connectors) from the app, no manual env steps.
 - ☐ Features from other tango and DJ apps (competitor survey).
+
+## 13. Share a night between accounts, instances and apps (the DJ's request of 2026-11-14)
+- ☐ Export a composed night as a `.tdjnight` file (versioned JSON: tandas, sides with every stream id, cortinas, Cumparsitas, skip/bypass flags, the night's settings and score; no keys, tokens or personal data) and import it anywhere: web, self-deployed instance, macOS and iPad apps (Files, AirDrop, drag-and-drop, "Open in T-DJ").
+- ☐ Share link: "Copy link" packs the night into the URL fragment (compressed, so it never reaches a server log), or a short link stored by the instance when it has a database; opening it on any instance shows a preview, then "Import this night".
+- ☐ Universal link / `tdj://night?...` opens the link straight in the installed Mac or iPad app (the apps already route `tdj://open`); QR code in the share sheet for phone → iPad.
+- ☐ On import: sides resolved against the local catalogue by stable id, then title/orchestra/year; anything missing listed, never silently dropped; the imported night lands in History ("On this device") and can be edited, played and exported to Spotify like a composed one.
+- ☐ Tests: export → import round-trip is identical (core vitest); a link made on one deploy opens on another (e2e); a file from the web opens in the app.
