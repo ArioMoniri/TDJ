@@ -22,6 +22,7 @@ import {
   type RoomState,
   roomLink,
   roomPresence,
+  sameJson,
 } from "../src/index";
 
 const side = (id: string, title = `Song ${id}`): NightSide => ({
@@ -207,6 +208,31 @@ describe("room op merge", () => {
     );
     expect(echo.room.rev).toBe(a.room.rev);
     expect(echo.ignored).toBe(1);
+  });
+
+  it("a stored room read back with its keys in another order is the same room (no phantom edits)", () => {
+    const r0 = fresh();
+    const shuffle = (x: unknown): unknown =>
+      Array.isArray(x)
+        ? x.map(shuffle)
+        : x && typeof x === "object"
+          ? Object.fromEntries(
+              Object.entries(x as object)
+                .reverse()
+                .map(([k, v]) => [k, shuffle(v)]),
+            )
+          : x;
+    const stored = shuffle(r0) as RoomState;
+    const echo = applyRoomOps(
+      stored,
+      [{ type: "slot", slot: "s1", tanda: r0.night!.tandas[0]!, base: r0.rev }],
+      "Ana",
+      at(1),
+    );
+    expect(echo.ignored).toBe(1);
+    expect(echo.room.rev).toBe(r0.rev);
+    expect(diffNight({ night: stored.night, slots: stored.slots, rev: stored.rev }, r0.night)).toEqual([]);
+    expect(sameJson({ a: 1, b: { c: 2, d: undefined } }, { b: { c: 2 }, a: 1 })).toBe(true);
   });
 
   it("keeps the log bounded and knows who is here", () => {

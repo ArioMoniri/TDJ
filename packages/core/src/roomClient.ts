@@ -86,7 +86,8 @@ export class RoomClient {
   }
   private url(q?: Record<string, string | number | boolean | undefined>) {
     const p = new URLSearchParams();
-    for (const [k, v] of Object.entries(q ?? {})) if (v !== undefined && v !== false) p.set(k, String(v));
+    for (const [k, v] of Object.entries(q ?? {}))
+      if (v !== undefined && v !== false) p.set(k, v === true ? "1" : String(v));
     const s = p.toString();
     return `${this.server}/api/rooms/${this.code}${s ? `?${s}` : ""}`;
   }

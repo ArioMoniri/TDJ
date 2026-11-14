@@ -138,7 +138,21 @@ export function createRoom(o: {
 }
 
 const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x)) as T;
-const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+/** JSON with object keys sorted: a store that returns maps in another key order (DynamoDB) reads as the same value */
+export function stableJson(x: unknown): string {
+  return JSON.stringify(x ?? null, (_k, v) =>
+    v && typeof v === "object" && !Array.isArray(v)
+      ? Object.fromEntries(
+          Object.keys(v as object)
+            .sort()
+            .map((k) => [k, (v as Record<string, unknown>)[k]]),
+        )
+      : v,
+  );
+}
+/** deep equality of two JSON values, whatever their key order (undefined reads as absent) */
+export const sameJson = (a: unknown, b: unknown) => stableJson(a) === stableJson(b);
+const same = sameJson;
 
 /** how long before, in words: "12 s", "3 min" */
 function ago(from: string, to: string): string {
