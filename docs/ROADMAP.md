@@ -30,3 +30,67 @@ Catalogue index in-repo (21,932 recordings, orchestra heatmap), composer engine 
 - Public set gallery with benchmark scores, import tandas from El Recodo / tango.info links.
 - Multi-user accounts on AWS (Cognito) with encrypted BYOK storage (KMS envelope) instead of localStorage.
 - Remotion "set trailer" per playlist.
+
+---
+
+# Round 22 onward (the DJ's requests of 2026-11-14)
+
+Status legend: ☐ to do · ◐ in progress · ☑ done (with the commit that did it)
+
+Every item has an on/off switch in Settings where it is an indicator, a rule or an automatic behaviour ("all indicators and features can be turned on or off in the UI").
+
+## 0. In flight
+- ◐ Round 21b — the DJ's featured night (25 tandas, pinned tandas, Tango Bardo, Bandonegro), skip tonight, last 4 tandas tango only, Jump to La Cumparsita, closing-harmony setting (OFF by default; the DJ matches manually this time), learned preferences; making the full core suite and `pnpm quality` green again.
+
+## 1. Player (Booth) — information architecture and DJ features
+- ☐ Re-organise the player like DJ apps and Spotify: transport and now-playing always in one place, queue/set list beside it, tools (mix, fades, cortina, skip, Cumparsita) grouped where a DJ expects them (research: Mobbin, Spotify, djay, rekordbox, Serato, Traktor, Mixxx, Engine DJ).
+- ☐ Headphone pre-listen (cue on a second output, `setSinkId`) of the next song or any song, without disturbing the room; unmistakable "room vs headphones" UI.
+- ☐ Tap any song to play/test; play any version of a song from the database.
+- ☐ Spotify "Mix" style settings in the player (crossfade, gap, automix-like transitions), with every setting and its info visible.
+- ☐ Skip tonight per tanda (milongas/valses), last-4-tango mode, Jump to Cumparsita — polished UX (engine from round 21).
+- ☐ Energy chart (vertical, like the night's arc), BPM and key indicators per song.
+- ☐ Per-song trim and waveform with drag-to-set cue/stop.
+- ☐ Premium: full Spotify tracks by default when connected.
+
+## 2. Compose page
+- ☐ Song search side panel (title, orchestra, singer, year, rhythm tango/milonga/vals), filterable, showing which tanda/part a song is in.
+- ☐ Energy chart, BPM and key per song; tanda-level tone.
+- ☐ Swap sheet (round 21) polish: search, suggestions, AI pick.
+
+## 3. Database tab
+- ☐ Every song's versions/years shown together, each playable.
+- ☐ Scraped data (Spotify/Deezer ids, BPM, gain, key, release dates, vocal style) stored and refreshed when sources change; per-user editable; the DJ's edit wins.
+- ☐ Era indicator data (the user's All_orchestras heatmap grades, `data/index/coverage.json`) editable per user; shipped as defaults for every self-deployed instance.
+
+## 4. Era indicator (toggle)
+- ☐ Colour badge on every song in the player, compose and database: where the side sits in its orchestra's best years (grade from the user's heatmap: best / good / weak / outside), with a legend.
+
+## 5. Learning per instance (toggle)
+- ☐ Every deployed instance learns from its DJ's swaps, pins and edits (like an autocorrect), applies it to future generations, and shows the learned preferences and rules as a list the DJ can edit, weight or delete.
+
+## 6. Settings, connections and accounts
+- ☐ One clear Settings layout; every indicator/rule/automation toggleable with a one-line explanation.
+- ☐ Easier connections (Spotify, Deezer, YouTube, Dropbox, Drive): one "Connections" screen with status and one-tap reconnect.
+- ☐ Models: API keys (BYOK) and ACP (Agent Client Protocol) connections to local/remote agents.
+
+## 7. Language
+- ☐ Turkish across every screen (and the language switch in Settings).
+
+## 8. Design and motion
+- ☐ Native macOS feel (sidebar, toolbar, sheets, keyboard, hover, focus rings, springs), iPadOS feel on tablets.
+- ☐ Motion spec applied to navigation, sheets, player transport, tanda changes, swaps.
+
+## 9. Apps and release
+- ☐ macOS app and iPadOS app with every web feature (DJ player included).
+- ☐ CI on macOS runners: build, sign, notarise (macOS), upload to App Store Connect (both), TestFlight.
+- ☐ App Store assets generated automatically (screenshots per device, banners, description, keywords, what's new), reviewed by the designers.
+- ☐ GitHub Release with the macOS download; "Download for macOS" button in the README.
+- ☐ Needs from the owner: Apple Developer team, App Store Connect API key (Issuer ID, Key ID, .p8), signing certificates — stored as GitHub Actions secrets (names in docs/APPLE_SETUP.md).
+
+## 10. Data rounds carried over
+- ☐ Spotify ids for 99.5 % of the golden-set sides (re-measure the ratchets first).
+- ☐ A gentler final vals option.
+
+## 11. Quality loop
+- ☐ Test-user agents (DJ, organiser, newcomer, iPad DJ) on web and apps → issues → engineers/designers fix → re-test.
+- ☐ CI green, README images and videos regenerated (`pnpm media`, `pnpm video`), deploy.
