@@ -41,7 +41,7 @@ export interface BoothPlanItem {
   gapAfterSec: number;
   /** cortina cue-in (`Cortina.startSec`), or the intro trim of a track when `trimLeadingSilence` is on */
   trimInSec?: number;
-  /** cortina: absolute second in the clip where the fade reaches silence */
+  /** cortina: absolute second in the clip where the fade reaches silence; track (round 22): the DJ's stop-at second */
   stopSec?: number;
   fadeInSec?: number;
   fadeOutSec?: number;
@@ -85,6 +85,8 @@ export interface BoothPlan {
   cortinaStopSec?: number;
   /** cortina id → the DJ's own fade in / fade out / stop second for that cortina (round 20) */
   cortinaEdits?: Record<string, CortinaEdit>;
+  /** song id → the DJ's cue in / stop at (round 22) */
+  songCues?: Record<string, SongCue>;
   /** filled by the booth while the night plays */
   log?: BoothLogEntry[];
   anchors?: Array<{ planIndex: number; at: string }>;
@@ -98,6 +100,16 @@ export interface CortinaEdit {
   /** absolute second in the clip where the cortina reaches silence (20–90) */
   stopSec?: number;
 }
+/**
+ * Round 22: the DJ's cue for one side — where it starts (`inSec`, seconds into the recording) and where it stops
+ * (`outSec`, absolute). Either may be left out. The plan clamps both so at least `SONG_CUE_MIN_SEC` play.
+ */
+export interface SongCue {
+  inSec?: number;
+  outSec?: number;
+}
+/** a cued side always plays at least this long */
+export const SONG_CUE_MIN_SEC = 10;
 export const CORTINA_EDIT_RANGES = {
   fadeInSec: { min: 0, max: 4, step: 0.5 },
   fadeOutSec: { min: 0, max: 10, step: 0.5 },
@@ -119,6 +131,8 @@ export interface BoothInputs extends Partial<BoothSettings> {
   cortinaStopSec?: number;
   /** cortina id → the DJ's envelope for that cortina */
   cortinaEdits?: Record<string, CortinaEdit>;
+  /** round 22: song id → the DJ's cue in / stop at for that side (Player → Song info → waveform) */
+  songCues?: Record<string, SongCue>;
 }
 
 export const BOOTH_DEFAULTS: BoothSettings = {
@@ -199,6 +213,7 @@ export function boothInputs(plan?: BoothPlan | null): BoothInputs {
   if (plan.trims) out.trims = plan.trims;
   if (plan.cortinaStopSec !== undefined) out.cortinaStopSec = plan.cortinaStopSec;
   if (plan.cortinaEdits) out.cortinaEdits = plan.cortinaEdits;
+  if (plan.songCues) out.songCues = plan.songCues;
   return out;
 }
 
@@ -239,6 +254,20 @@ const tandaLabel = (p: Playlist, i: number) => {
   return `${String(i + 1).padStart(2, "0")} ${t.rhythm.toUpperCase()} · ${t.orchestra}${t.singer ? ` / ${t.singer}` : ""}`;
 };
 
+/**
+ * A side's cue clamped to its length: `inSec` in [0, dur − min], `outSec` in [in + min, dur]; `outSec` is dropped
+ * when it is the side's end. Null when the cue changes nothing.
+ */
+export function songCue(c: SongCue | undefined, dur: number): { inSec: number; outSec?: number } | null {
+  if (!c) return null;
+  const min = Math.min(SONG_CUE_MIN_SEC, dur);
+  const inSec = round3(clamp(num(c.inSec) ?? 0, 0, Math.max(0, dur - min)));
+  const o = num(c.outSec);
+  const outSec = o === undefined ? undefined : round3(clamp(o, inSec + min, dur));
+  if (inSec === 0 && (outSec === undefined || outSec >= dur)) return null;
+  return outSec === undefined || outSec >= dur ? { inSec } : { inSec, outSec };
+}
+
 /** The night's timing plan. Pure and deterministic: the same set and inputs give the same plan; `p` is not touched. */
 export function planBooth(p: Playlist, s: BoothInputs = {}): BoothPlan {
   const settings = boothSettings(s);
@@ -261,17 +290,24 @@ export function planBooth(p: Playlist, s: BoothInputs = {}): BoothPlan {
     const m = measure(song.id);
     const prior = song.audio ? num(song.audio.loudnessDb) : undefined;
     const intro = num(m?.introSec) ?? (song.audio ? num(song.audio.introSec) : undefined) ?? 0;
-    const trimIn = settings.trimLeadingSilence ? round3(clamp(intro, 0, TRIM_IN_MAX_SEC)) : 0;
     const dur = Math.max(1, num(song.durationSec) ?? (kind === "closing" ? 180 : 170));
+    const cue = songCue(s.songCues?.[song.id], dur);
+    const trimIn = cue
+      ? cue.inSec
+      : settings.trimLeadingSilence
+        ? round3(clamp(intro, 0, TRIM_IN_MAX_SEC))
+        : 0;
+    const end = cue?.outSec ?? dur;
     const it: BoothPlanItem = {
       n: n++,
       kind,
       id: song.id,
       tanda,
       startSec: 0,
-      lengthSec: round3(Math.max(1, dur - trimIn)),
+      lengthSec: round3(Math.max(1, end - trimIn)),
       gapAfterSec: gapAfter,
       ...(trimIn > 0 ? { trimInSec: trimIn } : {}),
+      ...(cue?.outSec !== undefined ? { stopSec: cue.outSec } : {}),
       ...gainFor(num(m?.lufs) ?? prior, target, trimFor(song.id), num(m?.peakDbFS)),
     };
     if (birthday) it.birthday = true;
@@ -391,6 +427,7 @@ export function planBooth(p: Playlist, s: BoothInputs = {}): BoothPlan {
   if (s.trims) plan.trims = { ...s.trims };
   if (s.cortinaStopSec !== undefined) plan.cortinaStopSec = s.cortinaStopSec;
   if (s.cortinaEdits && Object.keys(s.cortinaEdits).length) plan.cortinaEdits = { ...s.cortinaEdits };
+  if (s.songCues && Object.keys(s.songCues).length) plan.songCues = { ...s.songCues };
   return plan;
 }
 
