@@ -17,3 +17,6 @@ __pycache__
 .open-next
 *.tsbuildinfo
 media/video/raw
+
+# agent worktrees (local only)
+.claude/worktrees/
