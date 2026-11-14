@@ -11,6 +11,7 @@ import {
   PinOff,
   Play,
   Repeat2,
+  Search,
   Share,
   SlidersHorizontal,
   Star,
@@ -83,11 +84,16 @@ import { ScoreCounter } from "./ScoreCounter";
 import { Sheet } from "./Sheet";
 import { SwapSheet } from "./SwapSheet";
 import { TandaRulesGroup } from "./TandaRules";
+import { NightProfile } from "./ui/NightProfile";
+import { Tip } from "./ui/Tip";
 
 /* Below-the-fold / on-demand pieces: their code arrives when first needed, not with the composer. */
 const ExportSheet = dynamic(() => import("./ExportSheet").then((m) => m.ExportSheet), { ssr: false });
 const MoodCheck = dynamic(() => import("./Listen").then((m) => m.MoodCheck), { ssr: false });
 const Vinyl = dynamic(() => import("./Vinyl").then((m) => m.Vinyl), { ssr: false });
+const SongSearchPanel = dynamic(() => import("./ui/SongSearchPanel").then((m) => m.SongSearchPanel), {
+  ssr: false,
+});
 const NO_PLAYLISTS: never[] = [];
 /* Result-only code (cards, rows, curve): not in the first-load graph; prefetched on idle, and the result section
    renders only once the modules are in hand (not through `dynamic()`, whose own loading state would commit
@@ -1114,6 +1120,8 @@ export function Composer() {
   );
   // round 21: a side's swap opens its Swap sheet (suggestions that keep the tanda valid, search, AI pick)
   const [swapAt, setSwapAt] = useState<{ i: number; k: number } | null>(null);
+  // round 22: the song search side panel (a column on wide screens, a sheet on phones)
+  const [findOpen, setFindOpen] = useState(false);
   const swapTrack = useCallback((i: number, k: number) => {
     setNote(null);
     setSwapAt({ i, k });
@@ -1467,6 +1475,7 @@ export function Composer() {
                   { label: "Copy seed", icon: Copy, onClick: copySeed },
                   { label: "Written review", icon: MessageSquareText, onClick: explain },
                   { label: "Play the night", icon: Play, onClick: () => router.push("/booth") },
+                  { label: "Find songs…", icon: Search, onClick: () => setFindOpen(true) },
                   {
                     label: "Tell the DJ…",
                     icon: SlidersHorizontal,
@@ -1741,7 +1750,22 @@ export function Composer() {
             </Group>
           )}
 
-          <h2 className="section-head">Tandas</h2>
+          <div className="flex items-end justify-between gap-2">
+            <h2 className="section-head">Tandas</h2>
+            <Tip text="Search every recording by title, orchestra, singer, years and rhythm; swap one in, add it or play it">
+              <button
+                type="button"
+                className="btn-plain mb-1 min-h-11"
+                onClick={() => setFindOpen(true)}
+                aria-expanded={findOpen}
+                data-testid="find-songs"
+              >
+                <Search size={16} strokeWidth={2} aria-hidden /> Find songs
+              </button>
+            </Tip>
+          </div>
+          {/* round 22: the night's energy song by song and a tone per tanda */}
+          <NightProfile playlist={playlist} onPick={onPick} />
           {/* no AnimatePresence here: exiting cards stayed mounted across recomposes (round8-qa.md B1); a new set
               mounts fresh cards with new keys and the old ones leave at once */}
           <div className="tanda-grid">
@@ -1949,6 +1973,12 @@ export function Composer() {
       )}
 
       {exportMounted && <ExportSheet open={exportOpen} onClose={() => setExportOpen(false)} />}
+      <SongSearchPanel
+        open={findOpen && !!playlist}
+        onClose={() => setFindOpen(false)}
+        playlist={playlist}
+        onChange={(p) => swapApplied(p)}
+      />
       <SwapSheet
         playlist={swapAt ? playlist : null}
         tandaIndex={swapAt?.i ?? null}
