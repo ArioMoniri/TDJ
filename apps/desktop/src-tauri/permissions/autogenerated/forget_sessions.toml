@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-forget-sessions"
+description = "Enables the forget_sessions command without any pre-configured scope."
+commands.allow = ["forget_sessions"]
+
+[[permission]]
+identifier = "deny-forget-sessions"
+description = "Denies the forget_sessions command without any pre-configured scope."
+commands.deny = ["forget_sessions"]

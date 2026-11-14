@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-cue-devices"
+description = "Enables the cue_devices command without any pre-configured scope."
+commands.allow = ["cue_devices"]
+
+[[permission]]
+identifier = "deny-cue-devices"
+description = "Denies the cue_devices command without any pre-configured scope."
+commands.deny = ["cue_devices"]

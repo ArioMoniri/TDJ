@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- merged into the iPadOS Info.plist by the Tauri iOS project -->
+  <key>ITSAppUsesNonExemptEncryption</key><false/>
+  <!-- the Booth keeps playing with the screen locked -->
+  <key>UIBackgroundModes</key><array><string>audio</string></array>
+  <!-- open the Spotify app for Spotify playback (App Remote) -->
+  <key>LSApplicationQueriesSchemes</key><array><string>spotify</string></array>
+  <key>NSLocalNetworkUsageDescription</key><string>TDJ connects to a TDJ server or DJ agent on your local network when you choose one.</string>
+  <!-- iPad: every orientation, Split View, Slide Over and Stage Manager -->
+  <key>UIRequiresFullScreen</key><false/>
+  <key>UISupportedInterfaceOrientations~ipad</key>
+  <array>
+    <string>UIInterfaceOrientationPortrait</string>
+    <string>UIInterfaceOrientationPortraitUpsideDown</string>
+    <string>UIInterfaceOrientationLandscapeLeft</string>
+    <string>UIInterfaceOrientationLandscapeRight</string>
+  </array>
+  <!-- launch screen: the ink background of the icon (no storyboard needed since iOS 14) -->
+  <key>UILaunchScreen</key>
+  <dict>
+    <key>UIColorName</key><string>LaunchBackground</string>
+  </dict>
+  <key>UIStatusBarStyle</key><string>UIStatusBarStyleLightContent</string>
+</dict>
+</plist>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- Developer ID build (DMG from GitHub Releases): hardened runtime, not sandboxed (the local agent bridge,
+       r22-acp-plan.md, starts the DJ's own tools later). WebKit's JIT runs in its own process, so no JIT or
+       unsigned-memory exceptions are needed. -->
+</dict>
+</plist>

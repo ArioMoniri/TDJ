@@ -1,0 +1,96 @@
+# TDJ App Store lanes (docs/RELEASING.md). Every lane uses the App Store Connect API key, never an Apple ID.
+# Key: APP_STORE_CONNECT_KEY_ID + APP_STORE_CONNECT_ISSUER_ID, and either APP_STORE_CONNECT_PRIVATE_KEY (the .p8
+# text, CI) or the file ~/.appstoreconnect/private_keys/AuthKey_TDJ.p8 (the rented Mac), or
+# APP_STORE_CONNECT_KEY_PATH. Metadata/screenshot lanes run on Linux; upload lanes need the built binaries.
+
+opt_out_usage
+default_platform(:ios)
+
+APP_ID = ENV.fetch("TDJ_APP_BUNDLE_ID", "com.ariomoniri.tdj")
+META = File.expand_path("metadata", __dir__)
+
+def asc_key
+  path = ENV["APP_STORE_CONNECT_KEY_PATH"]
+  path = File.expand_path("~/.appstoreconnect/private_keys/AuthKey_TDJ.p8") if path.to_s.empty?
+  content = ENV["APP_STORE_CONNECT_PRIVATE_KEY"]
+  args = { key_id: ENV.fetch("APP_STORE_CONNECT_KEY_ID"), issuer_id: ENV.fetch("APP_STORE_CONNECT_ISSUER_ID"), in_house: false }
+  if content && !content.empty?
+    args[:key_content] = content
+  elsif File.exist?(path)
+    args[:key_filepath] = path
+  else
+    UI.user_error!("No App Store Connect key: set APP_STORE_CONNECT_PRIVATE_KEY or put the .p8 at #{path}")
+  end
+  app_store_connect_api_key(**args)
+end
+
+def review_info
+  {
+    first_name: ENV["TDJ_REVIEW_FIRST_NAME"],
+    last_name: ENV["TDJ_REVIEW_LAST_NAME"],
+    email_address: ENV["TDJ_REVIEW_EMAIL"],
+    phone_number: ENV["TDJ_REVIEW_PHONE"],
+    demo_required: false,
+    notes: File.read(File.join(META, "review_information", "notes.txt")),
+  }.compact
+end
+
+def deliver_common(platform, screenshots)
+  {
+    api_key: asc_key,
+    app_identifier: APP_ID,
+    platform: platform,
+    metadata_path: META,
+    screenshots_path: screenshots,
+    skip_screenshots: !File.directory?(screenshots),
+    overwrite_screenshots: true,
+    app_rating_config_path: File.join(META, "app_rating_config.json"),
+    app_review_information: review_info,
+    precheck_include_in_app_purchases: false,
+    run_precheck_before_submit: false,
+    force: true, # no HTML preview prompt (CI / unattended Mac)
+  }
+end
+
+platform :ios do
+  desc "Upload iPad metadata + screenshots (no binary)"
+  lane :metadata do
+    deliver(**deliver_common("ios", File.expand_path("screenshots", __dir__)), skip_binary_upload: true)
+  end
+
+  desc "Upload an IPA to TestFlight: fastlane ios beta ipa:path/TDJ.ipa"
+  lane :beta do |o|
+    pilot(api_key: asc_key, app_identifier: APP_ID, ipa: o[:ipa], skip_waiting_for_build_processing: true,
+          changelog: File.read(File.join(META, "en-US", "release_notes.txt")))
+  end
+
+  desc "Submit the iPad version for App Review (build_number:), phased release, manual release"
+  lane :submit do |o|
+    deliver(**deliver_common("ios", File.expand_path("screenshots", __dir__)),
+            skip_binary_upload: true, submit_for_review: true, build_number: o[:build_number],
+            automatic_release: false, phased_release: true,
+            submission_information: { export_compliance_uses_encryption: false, add_id_info_uses_idfa: false })
+  end
+end
+
+platform :mac do
+  desc "Upload Mac metadata + screenshots (no binary)"
+  lane :metadata do
+    deliver(**deliver_common("osx", File.expand_path("screenshots_mac", __dir__)), skip_binary_upload: true)
+  end
+
+  desc "Upload a Mac App Store pkg to TestFlight: fastlane mac beta pkg:path/TDJ.pkg"
+  lane :beta do |o|
+    pilot(api_key: asc_key, app_identifier: APP_ID, pkg: o[:pkg], app_platform: "osx",
+          skip_waiting_for_build_processing: true,
+          changelog: File.read(File.join(META, "en-US", "release_notes.txt")))
+  end
+
+  desc "Submit the Mac version for App Review (build_number:)"
+  lane :submit do |o|
+    deliver(**deliver_common("osx", File.expand_path("screenshots_mac", __dir__)),
+            skip_binary_upload: true, submit_for_review: true, build_number: o[:build_number],
+            automatic_release: false, phased_release: true,
+            submission_information: { export_compliance_uses_encryption: false, add_id_info_uses_idfa: false })
+  end
+end

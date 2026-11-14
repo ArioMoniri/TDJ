@@ -1,0 +1,2 @@
+app_identifier(ENV.fetch("TDJ_APP_BUNDLE_ID", "com.ariomoniri.tdj"))
+team_id(ENV.fetch("APPLE_TEAM_ID", "FF68N39FU5"))

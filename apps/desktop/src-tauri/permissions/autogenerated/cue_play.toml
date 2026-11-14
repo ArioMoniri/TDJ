@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-cue-play"
+description = "Enables the cue_play command without any pre-configured scope."
+commands.allow = ["cue_play"]
+
+[[permission]]
+identifier = "deny-cue-play"
+description = "Denies the cue_play command without any pre-configured scope."
+commands.deny = ["cue_play"]

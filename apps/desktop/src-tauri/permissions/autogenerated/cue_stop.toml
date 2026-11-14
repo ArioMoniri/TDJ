@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-cue-stop"
+description = "Enables the cue_stop command without any pre-configured scope."
+commands.allow = ["cue_stop"]
+
+[[permission]]
+identifier = "deny-cue-stop"
+description = "Denies the cue_stop command without any pre-configured scope."
+commands.deny = ["cue_stop"]

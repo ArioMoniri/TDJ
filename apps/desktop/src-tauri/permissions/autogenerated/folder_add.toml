@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-folder-add"
+description = "Enables the folder_add command without any pre-configured scope."
+commands.allow = ["folder_add"]
+
+[[permission]]
+identifier = "deny-folder-add"
+description = "Denies the folder_add command without any pre-configured scope."
+commands.deny = ["folder_add"]

@@ -1,0 +1,11 @@
+TDJ composes a tango milonga the way working DJs build one: tandas of one orchestra, one singer and close years, cortinas between them, and an energy arc that warms up, peaks and closes with La Cumparsita.
+
+• Compose a 1–8 hour night in seconds, golden age or any era, single or double peak.
+• Swap, lock and refine tandas; ask the AI DJ with your own model key.
+• Play the night in the Booth: your own music files with exact gaps, loudness matching and cortina fades; 30-second previews to rehearse; Spotify Premium as a second source.
+• Your own database of 19,000 recordings: years, singers, versions, edits that stay yours.
+• Export to Spotify, Rekordbox, Traktor, Serato, M3U8 or a printed set list.
+• Mac: menu bar commands and shortcuts, media keys and Now Playing, the display stays awake through the night.
+• Works with the TDJ cloud or your own self-hosted server.
+
+No account needed. Spotify features need Spotify Premium.

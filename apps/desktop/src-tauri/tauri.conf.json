@@ -1,0 +1,73 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "TDJ",
+  "mainBinaryName": "TDJ",
+  "version": "../package.json",
+  "identifier": "com.ariomoniri.tdj",
+  "build": {
+    "frontendDist": "../ui/dist"
+  },
+  "app": {
+    "windows": [],
+    "withGlobalTauri": false,
+    "security": {
+      "csp": null,
+      "capabilities": ["default", "remote"]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["app", "dmg"],
+    "category": "Music",
+    "publisher": "Ario Moniri",
+    "copyright": "© 2026 Ario Moniri",
+    "shortDescription": "Compose and play tango milongas",
+    "longDescription": "TDJ composes a tango milonga the way working DJs build one: tandas, cortinas and a night-long energy arc, then plays it from the booth.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.png"
+    ],
+    "macOS": {
+      "minimumSystemVersion": "13.0",
+      "hardenedRuntime": true,
+      "entitlements": "entitlements/mac-dmg.plist",
+      "dmg": {
+        "windowSize": {
+          "width": 640,
+          "height": 400
+        },
+        "appPosition": {
+          "x": 180,
+          "y": 190
+        },
+        "applicationFolderPosition": {
+          "x": 460,
+          "y": 190
+        }
+      },
+      "files": {
+        "Resources/PrivacyInfo.xcprivacy": "./PrivacyInfo.xcprivacy"
+      }
+    },
+    "iOS": {
+      "minimumSystemVersion": "16.0",
+      "developmentTeam": "FF68N39FU5"
+    }
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["tdj"]
+      },
+      "mobile": [
+        {
+          "scheme": ["tdj"],
+          "appLink": false
+        }
+      ]
+    }
+  }
+}

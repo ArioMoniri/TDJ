@@ -1,0 +1,9 @@
+No login or account is required.
+
+How to test without Spotify:
+1. On the Compose screen, open the featured night ("Golden-age double peak") or press Compose (Cmd+Return on Mac).
+2. Open the Booth and press Play: TDJ plays 30-second rehearsal previews of every song (streamed through the TDJ server), with the gaps and cortinas of a real night.
+3. File → Add Music Folder (Mac) links a folder of your own audio files; the Booth then plays full songs from it.
+4. Export (Cmd+E) writes M3U8, CSV, Rekordbox XML or Traktor NML through the system save panel.
+
+Spotify features need a Spotify Premium account and are optional. The AI DJ needs the reviewer's own model API key and is optional; nothing else depends on it.
