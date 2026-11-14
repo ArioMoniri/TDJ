@@ -31,8 +31,10 @@ export function scorePlaylist(p: Pick<Playlist, "tandas" | "closing" | "options"
   const posOf = (i: number) => i / Math.max(1, t.length - 1);
 
   // --- hygiene (one orchestra / rhythm / singer per tanda, sizes, cycle, titles)
+  // (round 21: a tanda the DJ pinned is the DJ's — its mix is reported by the panel as a DJ exception, never scored)
   let bad = 0;
   for (const x of t) {
+    if (x.pinned) continue;
     const orch = new Set(x.songs.map((s) => s.orchestraId));
     const r = new Set(x.songs.map((s) => s.rhythm));
     const v = new Set(x.songs.map((s) => s.vocal));
@@ -47,6 +49,7 @@ export function scorePlaylist(p: Pick<Playlist, "tandas" | "closing" | "options"
   );
   let ms = 0;
   for (const x of t) {
+    if (x.pinned) continue;
     const s = new Set(x.songs.filter((y) => y.vocal).map((y) => y.singerId));
     if (s.size > 1) ms++;
   }

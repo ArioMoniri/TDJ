@@ -4,7 +4,7 @@ import type { Catalog } from "./catalog";
 import { bigFourProblems, STYLE_MIN_FAMILIES, styleFilter, tandaRulesOf } from "./coherence";
 import { applyContextToOptions, BUILTIN_CONTEXT, resolveContext } from "./context";
 import { cortinaPool, pickCortina, planCortinas, spotifyCueFallbacks } from "./cortinas";
-import { cumparsitaPlacement, openingCumparsita } from "./cumparsita";
+import { closingFor, cumparsitaPlacement, openingCumparsita } from "./cumparsita";
 import { isDanceableSong, normTitle } from "./energy";
 import { familyBand, goldenClassOf, isColour, isGoldenNight } from "./knowledge";
 import { mergeLearned } from "./learn";
@@ -2140,6 +2140,12 @@ function composeOnce(
         );
       if (fel[0]) return fel[0];
       fallbacks.push("closer: no Felicia recording in the index; La Cumparsita closes instead");
+    }
+    // round 21 (rules.cumparsitaHarmony): the última's orchestra near its years, by the opening's ladder
+    if (rules.cumparsitaHarmony && tandas.length) {
+      const h = closingFor(cat, o, tandas[tandas.length - 1]!);
+      if (h.fallback) fallbacks.push(h.fallback);
+      if (h.song) return h.song;
     }
     const lastOrch = tandas[tandas.length - 1]?.orchestraId ?? "";
     let cands = cumparsitaCandidates(cat, o).filter((s) => s.orchestraId !== lastOrch);

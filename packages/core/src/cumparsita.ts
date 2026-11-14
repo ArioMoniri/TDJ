@@ -92,3 +92,28 @@ export function openingCumparsita(
       : `opening: no La Cumparsita to open with`,
   };
 }
+
+/**
+ * Round 21 — the harmony setting for the closing (`rules.cumparsitaHarmony`): the closing La Cumparsita by the
+ * última's orchestra near its years (its singer's when it only recorded it sung), by the same ladder as the opening,
+ * each step recorded ("closer: …"). Off (the default) the classic rule stands: another orchestra than the última's.
+ */
+export function closingFor(
+  cat: Catalog,
+  o: Pick<ComposeOptions, "yearRange" | "rules">,
+  last: Pick<Tanda, "orchestraId" | "orchestra" | "yearRange" | "singer" | "vocal" | "songs">,
+  opening: Song | null = null,
+): { song: Song | null; fallback?: string } {
+  const r = openingCumparsita(cat, o, last, opening);
+  return {
+    song: r.song,
+    ...(r.fallback
+      ? {
+          fallback: r.fallback
+            .replace(/^opening: /, "closer: ")
+            .replace(/ opens$/, " closes")
+            .replace("to open with", "to close with"),
+        }
+      : {}),
+  };
+}

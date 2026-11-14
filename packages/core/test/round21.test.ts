@@ -11,10 +11,15 @@ import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
   auditStreamMatches,
   bigFourProblems,
+  bypassedTandas,
+  bypassPlanItems,
   Catalog,
+  closingFor,
   compose,
   cumparsitaPlacement,
   editDiff,
+  exportTandas,
+  flatten,
   improveNight,
   knownSingers,
   knownVocalStyle,
@@ -27,6 +32,7 @@ import {
   pinTanda,
   replaceSide,
   type Song,
+  scorePlaylist,
   sideProblem,
   strictChecks,
   swapOptions,
@@ -316,8 +322,47 @@ describe("pinned tandas — the DJ's exception", () => {
     const r = strictChecks(q);
     expect(r.violations.some((v) => v.tanda === 3)).toBe(false);
     expect(r.exceptions?.some((v) => v.tanda === 3 && v.rule === "tandaVoice")).toBe(true);
+    // (the score agrees: a pinned tanda's mix is the DJ's, never an integrity fault)
+    const f0 = (x: Playlist) => scorePlaylist(x).factors.find((f) => f.key === "integrity")!.score;
+    expect(f0(q)).toBe(f0(p));
     const im = improveNight(q, deps, { maxRounds: 1 });
     expect(im.playlist.tandas[3]!.songs.map((s) => s.id)).toEqual(mixed.songs.map((s) => s.id));
+  });
+});
+
+describe("the DJ's order and closing — exceptions, not faults", () => {
+  it("a closing La Cumparsita the DJ chose is a DJ exception (the closer rule never asks to change it)", () => {
+    const p = nights[0]!;
+    const odd = deps.catalog.songs.find((s) => s.title === "La Cumparsita" && (s.fame ?? 0) < 2)!;
+    const q: Playlist = { ...p, closing: odd };
+    expect(strictChecks(q).violations.some((v) => v.rule === "closer")).toBe(true);
+    const r = strictChecks({ ...q, closingPinned: { by: "dj", reason: "the DJ's closing version" } });
+    expect(r.violations.some((v) => v.rule === "closer")).toBe(false);
+    expect(r.exceptions?.some((v) => v.rule === "closer")).toBe(true);
+  });
+  it("tango tandas the DJ inserted shift the cycle: the shifted slots after them are DJ exceptions", () => {
+    const p = nights[0]!;
+    const k = p.tandas.findIndex(
+      (t, i) => i > 2 && t.rhythm === "tango" && p.tandas[i + 1]?.rhythm === "tango",
+    );
+    // the DJ pins one more tango tanda right after a pair (three in a row) — every later slot shifts by one
+    const extra = pinTanda(
+      { ...p, tandas: [...p.tandas.slice(0, k + 2), p.tandas[k]!, ...p.tandas.slice(k + 2)] },
+      k + 2,
+      "the DJ's",
+    );
+    const r = strictChecks(extra);
+    expect(r.violations.filter((v) => v.rule === "cycle" && v.tanda > k + 2)).toEqual([]);
+    expect(r.exceptions?.some((v) => v.rule === "cycle")).toBe(true);
+    // a vals the DJ adds: the vals / milonga balance is judged over the tandas the DJ did not pin
+    const v = p.tandas.find((t) => t.rhythm === "vals")!;
+    const more = pinTanda(
+      pinTanda({ ...extra, tandas: [...extra.tandas.slice(0, 3), v, v, ...extra.tandas.slice(3)] }, 3, "x"),
+      4,
+      "y",
+    );
+    const r2 = strictChecks(more);
+    expect(r2.violations.some((x) => x.rule === "cycle" && / vals and /.test(x.detail))).toBe(false);
   });
 });
 
@@ -346,10 +391,31 @@ describe("F — the featured night: only the DJ's edits", () => {
   const shipped = readJson("docs/specs/round19-best-night.json") as Playlist;
   const f = readJson("apps/web/public/featured/golden-double-peak.json") as Playlist;
   const ids = (t: Tanda) => t.songs.map((s) => s.id);
-  it("the DJ's tandas, exactly, pinned (T2, T4, T5, T7, T8, T9, T15)", () => {
-    expect(ids(f.tandas[1]!)).toEqual(["54e1304409", "8509c04168", "67d75c4496", "e5cccb8a87"]);
-    expect(ids(f.tandas[3]!)).toEqual(["eb345072d6", "b313688f75", "3e9af572cf", "f9150b4c8a"]);
-    expect(ids(f.tandas[4]!)).toEqual(["e9d31466ec", "131567e74b", "7b191bb215", "bb6ae09db6"]);
+  // the DJ's slots, by the shipped numbering; the two tandas the DJ asked for between the new tango tandas sit after
+  // T17 and T19, so T18 and later move down one, T20 and later two
+  const at = (slot: number) => (slot <= 17 ? slot - 1 : slot <= 19 ? slot : slot + 1);
+  const DJ: Record<number, string[]> = {
+    2: ["54e1304409", "8509c04168", "67d75c4496", "e5cccb8a87"],
+    4: ["eb345072d6", "b313688f75", "3e9af572cf", "f9150b4c8a"],
+    5: ["e9d31466ec", "131567e74b", "7b191bb215", "bb6ae09db6"],
+    9: ["aa6b36ab7b", "71540229e1", "ea9b927fa5"],
+    10: ["6233830410", "2171c0196b", "deac5ee8db", "cebfbd8996"],
+    11: ["24801db04a", "e851d595be", "c02b739977", "6e9afb7087"],
+    13: ["16814cca76", "86e53db337", "ddfdb2c29b", "89bc9d7eef"],
+    14: ["13fe376eb1", "0265a65075", "00a061a315", "166b2a4f3e"],
+    15: ["68f9f78507", "cfbb4947c7", "8106c5a228"],
+    16: ["28c8dff26b", "ac9c62f5b5", "d642ae0730", "c668717864"],
+    17: ["e02b2e4f92", "be7917b0c8", "f29c7184ba", "6ac37b2ef8"],
+    18: ["32fdbfc82d", "67f9a28a62", "38f03bac6d", "a2e1839ef1"],
+    19: ["655a908b21", "94056c42f4", "a2a56b32a2", "ae692df479"],
+    23: ["130fe70e7e", "a81d03fa26", "979e83ad3f", "5486994f6f"],
+  };
+  it("the DJ's tandas, exactly and in order, pinned", () => {
+    for (const [slot, want] of Object.entries(DJ)) {
+      const t = f.tandas[at(Number(slot))]!;
+      expect(ids(t), `T${slot}`).toEqual(want);
+      expect(t.pinned?.by, `T${slot}`).toBe("dj");
+    }
     expect(f.tandas[6]!.songs.map((s) => s.title)).toEqual([
       "Me Voy a Baraja",
       "Gato",
@@ -362,32 +428,103 @@ describe("F — the featured night: only the DJ's edits", () => {
       "No Mientas",
       "La Bruja",
     ]);
-    expect(ids(f.tandas[8]!)).toEqual(["aa6b36ab7b", "71540229e1", "ea9b927fa5"]);
-    expect(f.tandas[14]!.songs.map((s) => s.title)).toEqual(["Desde el Alma", "Francia", "Corazón de Oro"]);
-    for (const i of [1, 3, 4, 6, 7, 8, 14]) expect(f.tandas[i]!.pinned?.by).toBe("dj");
+    expect(f.tandas[19]!.orchestra).toBe("Tango Bardo");
+    expect(f.tandas[18]!.rhythm).toBe("tango");
     // the panel: what the DJ's tandas break is a DJ exception, never a blocker
     expect(strictChecks(f).blockers).toBe(0);
     expect(strictChecks(f).exceptions?.length).toBeGreaterThan(0);
   });
-  it("Tres Esquinas is the 1941 restoration; the night opens with D'Agostino's La Cumparsita", () => {
+  it("a vals after T17 and a milonga after T19 keep the cycle; the última still ends on Así Se Baila el Tango", () => {
+    expect(f.tandas).toHaveLength(25);
+    expect(f.tandas[17]!.rhythm).toBe("vals");
+    expect(f.tandas[20]!.rhythm).toBe("milonga");
+    for (const i of [17, 20])
+      expect(["carlos-di-sarli", "juan-d-arienzo", "anibal-troilo", "osvaldo-pugliese"]).not.toContain(
+        f.tandas[i]!.orchestraId,
+      );
+    expect(f.tandas.at(-1)!.songs.at(-1)!.title).toBe("Así Se Baila el Tango");
+    let run = 0;
+    for (const t of f.tandas) {
+      run = t.rhythm === "tango" ? run + 1 : 0;
+      expect(run).toBeLessThanOrEqual(2);
+    }
+  });
+  it("Tres Esquinas is the 1941 restoration; D'Agostino opens, Bandonegro closes (the DJ's)", () => {
     expect(f.tandas[0]!.songs.find((s) => s.id === "d1d4a2ee18")?.spotify?.uri).toBe(
       "spotify:track:5HftCmLhynna9guHF1xz8b",
     );
     expect(f.opening?.title).toBe("La Cumparsita");
     expect(f.opening?.orchestraId).toBe("angel-d-agostino");
-    expect(f.closing?.id).toBe(shipped.closing?.id);
+    expect(f.closing?.id).toBe("499d9ecc71");
+    expect(f.closingPinned?.by).toBe("dj");
   });
-  it("every other tanda is the shipped one (its sides and order), except the forced T10 and T11", () => {
-    const allowed = new Set([1, 3, 4, 6, 7, 8, 14, 9, 10]);
-    f.tandas.forEach((t, i) => {
-      if (!allowed.has(i)) expect(ids(t)).toEqual(ids(shipped.tandas[i]!));
-    });
-    expect(f.tandas[9]!.orchestraId).not.toBe("juan-d-arienzo");
-    expect(f.tandas[10]!.orchestraId).not.toBe("pedro-laurenz");
+  it("every other tanda is the shipped one (its sides and order)", () => {
+    const changed = new Set([2, 4, 5, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 23]);
+    for (let slot = 1; slot <= 23; slot++)
+      if (!changed.has(slot))
+        expect(ids(f.tandas[at(slot)]!), `T${slot}`).toEqual(ids(shipped.tandas[slot - 1]!));
   });
   it("no side twice, every side with a checked Spotify id", () => {
     const all = f.tandas.flatMap((t) => t.songs.map((s) => s.id));
     expect(new Set(all).size).toBe(all.length);
     for (const t of f.tandas) for (const s of t.songs) expect(s.spotify?.uri).toMatch(/^spotify:track:/);
+  });
+});
+
+describe("bypass — skip tonight, the last four tango only, the closing", () => {
+  const f = readJson("apps/web/public/featured/golden-double-peak.json") as Playlist;
+  it("a tanda marked skip tonight is bypassed in the player; its cortina goes with it; the export keeps it", () => {
+    const p: Playlist = { ...f, tandas: f.tandas.map((t, i) => (i === 17 ? { ...t, bypass: true } : t)) };
+    expect([...bypassedTandas(p)]).toEqual([17]);
+    const plan = p.booth!.items;
+    const skip = new Set(bypassPlanItems(p, plan));
+    for (const [k, it] of plan.entries()) {
+      const mine = it.tanda === 18 && (it.kind === "track" || it.kind === "cortina");
+      expect(skip.has(k), `${it.kind} ${it.tanda}`).toBe(mine);
+    }
+    expect(exportTandas(p)).toHaveLength(p.tandas.length);
+    expect(exportTandas(p, { dropBypassed: true })).toHaveLength(p.tandas.length - 1);
+  });
+  it("last four tandas tango only: the vals or milonga among the last four is bypassed until four tangos close", () => {
+    const p: Playlist = {
+      ...f,
+      options: { ...f.options, rules: { ...f.options.rules, lastFourTango: true } },
+    };
+    const by = bypassedTandas(p);
+    const left = p.tandas.filter((_t, i) => !by.has(i));
+    expect(left.slice(-4).every((t) => t.rhythm === "tango")).toBe(true);
+    expect([...by].every((i) => p.tandas[i]!.rhythm !== "tango")).toBe(true);
+    expect([...by].every((i) => i >= p.tandas.length - 6)).toBe(true);
+    // the export's last four are tango too (the flat export and every format built on it)
+    expect(
+      exportTandas(p)
+        .slice(-4)
+        .every((t) => t.rhythm === "tango"),
+    ).toBe(true);
+    const rows = flatten(p).filter((r) => r.kind === "track");
+    const lastTandas = [...new Set(rows.map((r) => r.tanda))].slice(-4);
+    expect(lastTandas.every((k) => rows.find((r) => r.tanda === k)!.rhythm === "tango")).toBe(true);
+    expect(
+      new Set(
+        flatten(f)
+          .filter((r) => r.kind === "track")
+          .map((r) => r.tanda),
+      ).size,
+    ).toBe(f.tandas.length);
+  });
+  it("the closing follows the harmony setting: the última's orchestra near its years, or the classic contrast", () => {
+    const n = nights[0]!;
+    const last = n.tandas.at(-1)!;
+    const h = closingFor(deps.catalog, n.options, last);
+    expect(h.song?.title).toBe("La Cumparsita");
+    if (h.song?.orchestraId !== last.orchestraId) expect(h.fallback).toMatch(/^closer: /);
+    const hn = compose({ hours: 4, seed: 1, rules: { cumparsitaHarmony: true } }, deps);
+    const hl = hn.tandas.at(-1)!;
+    expect(
+      hn.closing?.orchestraId === hl.orchestraId ||
+        !!hn.stats.settingFallbacks?.some((x) => x.startsWith("closer: ")),
+    ).toBe(true);
+    // the default keeps the classic rule: another orchestra than the última's
+    expect(n.closing!.orchestraId).not.toBe(last.orchestraId);
   });
 });

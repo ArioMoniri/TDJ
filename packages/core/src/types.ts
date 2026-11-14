@@ -270,6 +270,8 @@ export interface Tanda {
    * edits it, and the strict panel reports what it breaks as a DJ exception, never a fault. Implies `locked`.
    */
   pinned?: { by: "dj"; reason?: string; at?: string };
+  /** round 21: "skip tonight" — the player passes over it (its tracks and the cortina after it); exports keep it */
+  bypass?: boolean;
 }
 
 export interface PlaylistStats {
@@ -310,6 +312,8 @@ export interface Playlist {
   options: ComposeOptions;
   tandas: Tanda[];
   closing: Song | null; // La Cumparsita
+  /** round 21: the closing version is the DJ's choice — the panel reports what it breaks as a DJ exception */
+  closingPinned?: { by: "dj"; reason?: string; at?: string };
   /** optional La Cumparsita played before the first tanda (rules.openWithCumparsita) */
   opening?: Song | null;
   /** show / performance breaks inserted after a tanda index */
@@ -442,6 +446,10 @@ export interface NightRules {
   /** round 21: where La Cumparsita plays — "open" (before the first tanda, a version matching it), "close" (after
    * the última), "both" (the default), "none". Unset: openWithCumparsita / closeWithCumparsita decide (legacy). */
   cumparsita?: "open" | "close" | "both" | "none";
+  /** round 21: the closing La Cumparsita by the última's orchestra near its years (harmony); off = another orchestra */
+  cumparsitaHarmony?: boolean;
+  /** round 21: "Last 4 tandas tango only" — the player bypasses every vals / milonga among the last four tandas */
+  lastFourTango?: boolean;
   /** play La Cumparsita as the very first track too (some Buenos Aires and festival openings) */
   openWithCumparsita?: boolean;
   /** 1 = single closing Cumparsita (Europe); 2 = Buenos Aires style: Cumparsita closes the última tanda AND a final standalone version */

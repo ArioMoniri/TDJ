@@ -2,6 +2,7 @@ export * from "./arc";
 export * from "./audio/index";
 export * from "./benchmark";
 export * from "./booth";
+export * from "./bypass";
 export * from "./catalog";
 export * from "./coherence";
 export * from "./compose";

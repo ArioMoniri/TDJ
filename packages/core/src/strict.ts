@@ -534,7 +534,8 @@ STRICT_RULES.push(
 export const R15_RULES = STRICT_RULES.filter((r) => r.source.includes("round15-")).map((r) => r.key);
 const DEF = new Map(STRICT_RULES.map((r) => [r.key, r]));
 
-type Night = Pick<Playlist, "tandas" | "closing" | "options"> & Partial<Pick<Playlist, "opening" | "stats">>;
+type Night = Pick<Playlist, "tandas" | "closing" | "options"> &
+  Partial<Pick<Playlist, "opening" | "stats" | "closingPinned">>;
 
 /** a side the floor can stream tonight (a Spotify match or a resolved preview/stream) */
 export const streamable = (s: Pick<Song, "spotify" | "resolved">) => !!(s.spotify || s.resolved);
@@ -599,6 +600,9 @@ export const MUST_HAVE: Array<{
   },
 ];
 export const MUST_HAVE_MIN = 8;
+/** the classic cycle's slots (R15-1) */
+const CYCLE_PATTERN = "TTVTTM";
+const cycleChar = (x: Tanda) => (x.rhythm === "vals" ? "V" : x.rhythm === "milonga" ? "M" : "T");
 export function mustHaveOf(t: Pick<Tanda, "orchestraId" | "singer" | "vocal" | "rhythm">): string | null {
   for (const f of MUST_HAVE) {
     if (f.orchestraId !== t.orchestraId) continue;
@@ -799,8 +803,11 @@ export function strictChecks(n: Night): StrictResult {
   else {
     const why: string[] = [];
     if (!streamable(cl)) why.push("no stream");
-    if (fameOf(cl) < 2) why.push(`fame ${fameOf(cl)}`);
-    if (yr && (!cl.year || cl.year < yr[0] || cl.year > yr[1])) why.push(`${cl.year} outside the range`);
+    // (round 21: under the harmony setting the última's own version is the DJ's setting — only the stream is judged)
+    const harmony = !!o.rules?.cumparsitaHarmony && cl.orchestraId === t[t.length - 1]?.orchestraId;
+    if (fameOf(cl) < 2 && !harmony) why.push(`fame ${fameOf(cl)}`);
+    if (!harmony && yr && (!cl.year || cl.year < yr[0] || cl.year > yr[1]))
+      why.push(`${cl.year} outside the range`);
     if (why.length) add("closer", t.length, `${cl.orchestra} ${cl.year ?? ""}: ${why.join(", ")}`);
   }
 
@@ -1134,7 +1141,7 @@ export function strictChecks(n: Night): StrictResult {
   // round 21: a tanda the DJ pinned is the DJ's — what it breaks (or a rule it makes a neighbour break) is reported as
   // a DJ exception, never a fault the composer or a fixer acts on
   const pinned = (i: number) => !!t[i]?.pinned;
-  const anyPinned = t.some((x) => x.pinned);
+  const anyPinned = t.some((x) => x.pinned) || !!n.closingPinned;
   const exceptions: StrictViolation[] = [];
   const hb = anyPinned ? hourBuckets(n) : [];
   /** a rule judged on a stretch of the night: the violation is the DJ's when a pinned tanda is in that stretch */
@@ -1143,6 +1150,13 @@ export function strictChecks(n: Night): StrictResult {
     if (i < 0 || i >= t.length) return [];
     if (v.rule === "instrHour") return hb.find((b) => b.includes(i)) ?? [];
     if (v.rule === "rhythmicRun" || v.rule === "valley" || v.rule === "wedge") return [i - 2, i - 1, i];
+    // (the cycle: a tanda the DJ pinned off its slot shifts every later slot — those shifts are the DJ's order)
+    if (v.rule === "cycle")
+      return [
+        i - 2,
+        i - 1,
+        ...t.map((y, j) => (j < i && y.pinned && cycleChar(y) !== CYCLE_PATTERN[j % 6] ? j : -1)),
+      ];
     if (
       ["dramaticAfterSummit", "energyStep", "hotCold", "openCliff", "cuePlace", "afterSummit"].includes(
         v.rule,
@@ -1159,6 +1173,13 @@ export function strictChecks(n: Night): StrictResult {
   };
   // a night-level share (the vocal band) is the DJ's when it holds over the tandas the DJ did not pin
   const nightOk = (v: StrictViolation) => {
+    // (the cycle's vals / milonga balance holds over the tandas the DJ did not pin)
+    if (v.rule === "cycle" && / vals and \d+ milonga/.test(v.detail)) {
+      const free = t.filter((x) => !x.pinned);
+      const fv = free.filter((x) => x.rhythm === "vals").length;
+      const fm = free.filter((x) => x.rhythm === "milonga").length;
+      return Math.abs(fv - fm) <= 1;
+    }
     if (v.rule !== "vocalBand") return false;
     const tg = t.filter((x) => x.rhythm === "tango" && !x.pinned);
     const band = o.rules?.vocalShare ?? [0.55, 0.75];
@@ -1172,7 +1193,8 @@ export function strictChecks(n: Night): StrictResult {
         anyPinned &&
         ((v.tanda >= 0 && (pinned(v.tanda) || (v.with !== undefined && pinned(v.with)))) ||
           scopeOf(v).some((j) => j >= 0 && pinned(j)) ||
-          (v.tanda < 0 && nightOk(v)));
+          (v.tanda < 0 && nightOk(v)) ||
+          (v.rule === "closer" && !!n.closingPinned));
       (inv ? exceptions : keep).push(v);
     }
     x.v = keep;
@@ -1308,8 +1330,8 @@ function round15(
   // R15-1 — the classic cycle (a blocker on any night that asks for it)
   if (!isClassicCycle(o) || t.length < 3) not("cycle");
   else {
-    const pat = "TTVTTM";
-    const ch = (x: Tanda) => (x.rhythm === "vals" ? "V" : x.rhythm === "milonga" ? "M" : "T");
+    const pat = CYCLE_PATTERN;
+    const ch = cycleChar;
     t.forEach((x, i) => {
       if (i < last && ch(x) !== pat[i % 6])
         add("cycle", i, `tanda ${i + 1} is a ${x.rhythm} on a ${pat[i % 6]} slot of the cycle`);
@@ -1776,6 +1798,7 @@ function round16(
     !cl ||
     !o.closeWithCumparsita ||
     (r.closer ?? "auto") !== "auto" ||
+    r.cumparsitaHarmony ||
     t.length < 2 ||
     !ACTIVE_CATALOG.byOrchestra
   )

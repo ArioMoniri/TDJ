@@ -6,6 +6,7 @@ import {
   planBooth,
   planMatches,
 } from "../booth";
+import { exportTandas } from "../bypass";
 import type { Cortina, Playlist, Song } from "../types";
 
 export interface FlatTrack {
@@ -51,6 +52,8 @@ export interface FlatTrack {
 
 export interface ExportOpts {
   includeCortinas?: boolean;
+  /** round 21: leave the tandas the DJ marked "skip tonight" out of the export (default: they stay) */
+  dropBypassed?: boolean;
   /** show breaks as rows (off for players; the booth plan always has them) */
   includeBreaks?: boolean;
   /**
@@ -125,6 +128,15 @@ const cortinaRow = (
 
 /** The set as rows, in play order, each carrying its booth-plan timing. */
 export function flatten(p: Playlist, eo: ExportOpts = {}): FlatTrack[] {
+  // round 21: the bypassed tandas stay in the export unless the DJ drops them; "Last 4 tandas tango only" leaves out
+  // the vals / milonga it passes over, so the export ends on four tangos too
+  const kept = exportTandas(p, { dropBypassed: eo.dropBypassed });
+  if (kept.length !== p.tandas.length) {
+    const tandas = kept.map((t, i) =>
+      i === kept.length - 1 && t !== p.tandas.at(-1) ? { ...t, cortina: null } : t,
+    );
+    return flatten({ ...p, tandas }, { ...eo, dropBypassed: false });
+  }
   const inc = eo.includeCortinas ?? true;
   const incB = eo.includeBreaks ?? false;
   const plan = planFor(p, eo);
