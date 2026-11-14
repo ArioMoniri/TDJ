@@ -1,0 +1,34 @@
+{
+  "name": "tdj-deploy",
+  "version": "0.1.0",
+  "description": "Deploy your own TDJ (tango DJ composer) to AWS in one command, and set up the Apple release secrets.",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "tdj-deploy": "bin/tdj.mjs",
+    "tdj": "bin/tdj.mjs"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ArioMoniri/TDJ",
+    "directory": "packages/cli"
+  },
+  "scripts": {
+    "start": "node bin/tdj.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  }
+}
