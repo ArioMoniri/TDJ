@@ -94,3 +94,16 @@ Every item has an on/off switch in Settings where it is an indicator, a rule or 
 ## 11. Quality loop
 - ☐ Test-user agents (DJ, organiser, newcomer, iPad DJ) on web and apps → issues → engineers/designers fix → re-test.
 - ☐ CI green, README images and videos regenerated (`pnpm media`, `pnpm video`), deploy.
+
+## 12. The DJ's requests of 2026-11-14 (second batch)
+- ☐ Compose UI: tanda cards one shape whatever the count (3 valses vs 4 tangos), correct bar spacing, the song data menu never cropped (portal/flip), no overlaps anywhere, header on scroll uses a material that never mixes with content (the large-title → inline-title transition).
+- ☐ Artwork on every song (player, compose, database) from Spotify/Deezer album art, cached; a placeholder per orchestra when none.
+- ☐ Hover/long-press explanations on every feature (tooltips with the one-line "what it does"), no engineer-facing text in the UI (e.g. "Set TDJ_DB_TABLE on the server…", workspace-ID notes) — those settings are handled by the deploy and the app itself.
+- ☐ Missing data (BPM, key, gain, artwork, dates): fill from every source the DJ connects (Spotify, Deezer, MusicBrainz/Discogs and others found by the council), with an "add a source" flow in Settings → Connections.
+- ☐ Rooms: create a room (named, renamable), share a code, several DJs edit the same night live; a log tab of who did what; a list of previous rooms with their logs. Apps: username + room code. Web self-deploys: the same.
+- ☐ Prompt the model in Compose to edit and swap songs ("make tanda 7 calmer", "swap the 2nd song for a Fiorentino"), fast and accurate, besides the manual controls; ACP agents usable exactly like API keys for every generation.
+- ☐ Manual playlist creation: pick songs yourself with live suggestions/guidance for what comes next that update after each added song (switchable).
+- ☐ Database → Orchestras tab redesigned (clear grouping, eras, singers, best years).
+- ☐ Guide page refreshed with Lottie, illustrations and motion.
+- ☐ One-click self-deploy that sets everything up (database, storage, connectors) from the app, no manual env steps.
+- ☐ Features from other tango and DJ apps (competitor survey).
