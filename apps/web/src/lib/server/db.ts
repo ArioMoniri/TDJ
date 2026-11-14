@@ -76,6 +76,16 @@ async function dynamo() {
   return client;
 }
 
+/** The same lazily loaded document client and Get / Put commands, for the other server stores (rooms, short links). */
+export async function dynamoDoc(): Promise<{
+  send: (cmd: unknown) => Promise<{ Item?: Record<string, unknown> }>;
+  Get: new (i: unknown) => unknown;
+  Put: new (i: unknown) => unknown;
+}> {
+  const { doc, Get, Put } = await dynamo();
+  return { send: (cmd) => doc.send(cmd) as Promise<{ Item?: Record<string, unknown> }>, Get, Put };
+}
+
 /** One row per user: the database overrides, what the agents remember and the previous generations (bounded). */
 export async function getUserRow(
   user: string,
