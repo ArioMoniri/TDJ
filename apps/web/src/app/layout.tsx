@@ -43,11 +43,15 @@ export const viewport: Viewport = {
   ],
   width: "device-width",
   initialScale: 1,
+  // round 23: never zoom out past the layout width (a zoom-out showed the web view's black beyond the page);
+  // zooming in stays available
+  minimumScale: 1,
   viewportFit: "cover",
 };
 
-/* Applies the saved theme / reduce-transparency choice before first paint so there is no flash. */
-const themeScript = `try{var s=JSON.parse(localStorage.getItem("tdj-v1")).state.settings;var e=document.documentElement;if(s.theme&&s.theme!=="auto")e.dataset.theme=s.theme;if(s.theme==="dark")e.classList.add("dark");if(s.reduceGlass)e.classList.add("reduce-glass")}catch(_){}`;
+/* Applies the saved theme / reduce-transparency choice before first paint so there is no flash; then the macOS
+   window's title bar (the app draws under it) and the sidebar's saved width / collapsed state. */
+const themeScript = `try{var s=JSON.parse(localStorage.getItem("tdj-v1")).state.settings;var e=document.documentElement;if(s.theme&&s.theme!=="auto")e.dataset.theme=s.theme;if(s.theme==="dark")e.classList.add("dark");if(s.reduceGlass)e.classList.add("reduce-glass")}catch(_){}try{var n=window.__TDJ_NATIVE__;if(n&&n.titleBar==="overlay")document.documentElement.classList.add("titlebar-overlay")}catch(_){}try{var b=JSON.parse(localStorage.getItem("tdj-sidebar"));var r=document.documentElement;if(b.collapsed)r.dataset.sidebar="collapsed";if(b.w>=200&&b.w<=360)r.style.setProperty("--sidebar-open-w",b.w+"px")}catch(_){}`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -63,10 +67,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Boot />
         <ToolbarProvider>
           <Nav />
-          <div className="scroll-edge-top sm:hidden" aria-hidden />
           <div className="scroll-edge-bottom sm:hidden" aria-hidden />
-          <main className="mx-auto w-full max-w-[720px] px-4 pb-[calc(env(safe-area-inset-bottom)+150px)] pt-2 sm:px-6 sm:pb-16 lg:mx-0 lg:ml-[220px] lg:w-auto lg:max-w-none lg:px-8 lg:pt-0">
-            <div className="lg:mx-auto lg:max-w-[980px]">
+          <main className="mx-auto w-full max-w-[720px] px-4 pb-[calc(env(safe-area-inset-bottom)+150px)] pt-2 sm:px-6 sm:pb-16 lg:mx-0 lg:ml-[var(--sidebar-w)] lg:w-auto lg:max-w-none lg:px-8 lg:pt-0">
+            <div className="lg:mx-auto lg:max-w-[var(--col-max,1320px)]">
               <Motion>
                 <PageTransition>{children}</PageTransition>
               </Motion>

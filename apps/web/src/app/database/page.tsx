@@ -113,7 +113,7 @@ export default function DatabasePage() {
     );
 
   return (
-    <div className="mx-auto min-w-0 max-w-[720px] lg:max-w-[980px]">
+    <div className="mx-auto min-w-0 max-w-[720px] lg:max-w-[1100px]">
       <PageHeader
         title="Database"
         subtitle={

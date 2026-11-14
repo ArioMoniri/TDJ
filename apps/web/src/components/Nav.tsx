@@ -9,6 +9,7 @@ import { useFitLevel, useScrollDirection } from "@/lib/hooks";
 import { spring } from "@/lib/motion";
 import { Logo } from "./Logo";
 import { useToolbar } from "./PageHeader";
+import { Sidebar } from "./Sidebar";
 
 const items = [
   { href: "/", label: "Compose", icon: ListMusic },
@@ -120,12 +121,15 @@ export function Nav() {
       {/* Tablet (sm–lg): glass pill as a toolbar. Left: logo (+ page title once the large title scrolled out),
           centre: tabs, right: the page's bar actions. Every piece is `shrink-0`, so the pill can only overflow to
           the right, and `useFitLevel` collapses it one step at a time until it fits (title text → icon-only
-          primary → icon-only tabs): nothing ever overlaps. The band behind the pill is a scroll-edge fade once the
-          page is scrolled, so content never peeks out around the capsule. */}
+          primary → icon-only tabs): nothing ever overlaps. The band starts at the status bar / title bar and adds
+          its spacing under it; once content scrolls under it, the full-width bar material and hairline fade in
+          (`bar-edge`), so content never peeks out around the capsule and never reads next to it. */}
       <header
-        className="toolbar-pill-band sticky top-0 z-40 hidden px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 sm:block sm:px-6 lg:hidden"
+        className="toolbar-pill-band bar-edge sticky top-0 z-40 hidden px-4 pt-[calc(var(--chrome-top)+0.75rem)] pb-3 sm:block sm:px-6 lg:hidden"
         data-collapsed={bar.collapsed || undefined}
+        data-scrolled={bar.scrolled || undefined}
         data-testid="nav-pill-band"
+        data-tauri-drag-region
       >
         <div
           ref={pill}
@@ -180,48 +184,8 @@ export function Nav() {
         </div>
       </header>
 
-      {/* Desktop (lg+): macOS sidebar with source-list rows */}
-      <aside
-        className="material-thin fixed left-0 top-0 z-40 hidden h-dvh w-[220px] flex-col border-r border-[var(--separator)] px-3 pt-[max(1rem,env(safe-area-inset-top))] lg:flex"
-        aria-label="Sidebar"
-      >
-        <Link href="/" className="flex items-center gap-2.5 px-3 py-2" aria-label="TDJ home">
-          <Logo size={28} />
-          <span className="text-headline">TDJ</span>
-        </Link>
-        <nav className="mt-4 flex flex-col gap-0.5" aria-label="Primary sidebar">
-          <LayoutGroup id="sidebar-nav">
-            {sidebarItems.map((it) => {
-              const on = path === it.href;
-              return (
-                <Link
-                  key={it.href}
-                  href={it.href}
-                  aria-current={on ? "page" : undefined}
-                  className="side-row"
-                >
-                  {on && (
-                    <motion.span
-                      layoutId="side-pill"
-                      layoutDependency={path}
-                      transition={spring.thumb}
-                      className="absolute inset-0 -z-10 rounded-[8px] bg-[var(--fill-3)]"
-                      aria-hidden
-                    />
-                  )}
-                  <it.icon
-                    size={18}
-                    strokeWidth={1.75}
-                    className={on ? "text-[var(--tint)]" : "text-[var(--label-2)]"}
-                    aria-hidden
-                  />
-                  {it.label}
-                </Link>
-              );
-            })}
-          </LayoutGroup>
-        </nav>
-      </aside>
+      {/* Desktop and iPad landscape (lg+): the sectioned, resizable sidebar */}
+      <Sidebar />
 
       {/* Phone: Liquid Glass tab capsule that minimises on scroll, plus a detached search button on search pages */}
       <LayoutGroup id="mobile-nav">

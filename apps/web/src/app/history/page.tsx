@@ -3,7 +3,7 @@ import { Copy, Download, FileDown, GitCompare, Pencil, Play, RotateCcw, Share, T
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import { EnergyCurve } from "@/components/EnergyCurve";
 import { ExportSheet } from "@/components/ExportSheet";
@@ -110,6 +110,16 @@ export default function HistoryPage() {
   const reduced = useReducedMotion();
   const isPhone = useMediaQuery("(max-width: 639px)");
   const [openId, setOpenId] = useState<string | null>(null);
+  // the sidebar's Recent nights link here as #night=<id>: open that night
+  useEffect(() => {
+    const read = () => {
+      const m = /^#night=(.+)$/.exec(location.hash);
+      if (m) setOpenId(decodeURIComponent(m[1]!));
+    };
+    read();
+    window.addEventListener("hashchange", read);
+    return () => window.removeEventListener("hashchange", read);
+  }, []);
   const [compareWith, setCompareWith] = useState<HistorySnapshot | null>(null);
   const [picking, setPicking] = useState(false);
   const [renaming, setRenaming] = useState(false);
@@ -147,7 +157,7 @@ export default function HistoryPage() {
     downloadBlob("tdj-history.json", JSON.stringify(history, null, 2), "application/json");
 
   return (
-    <div className="mx-auto max-w-[720px] lg:max-w-[980px]">
+    <div className="mx-auto max-w-[720px] lg:max-w-[1100px]">
       <PageHeader
         title="History"
         subtitle={
