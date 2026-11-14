@@ -65,6 +65,15 @@ command -v pnpm >/dev/null || { corepack enable --install-directory "$DRIVE/node
 if ! command -v rustup >/dev/null; then
   curl -fsSL https://sh.rustup.rs | sh -s -- -y --no-modify-path --profile minimal
 fi
+rustup default stable >/dev/null 2>&1 || rustup default stable
+# Xcode's "Build Rust Code" phase (iPad) runs with Xcode's own environment, not this shell's: it finds rustup and
+# cargo only at their default homes, so point those at the copies cached on the drive
+for pair in "$RUSTUP_HOME:$HOME/.rustup" "$CARGO_HOME:$HOME/.cargo"; do
+  src="${pair%%:*}"; dst="${pair#*:}"
+  [ "$src" = "$dst" ] && continue
+  [ -d "$dst" ] && [ ! -L "$dst" ] && rmdir "$dst" 2>/dev/null || true   # an empty leftover from a failed run
+  [ -e "$dst" ] || ln -s "$src" "$dst"
+done
 RUST_TARGETS=()
 { want dmg || want mas; } && RUST_TARGETS+=(aarch64-apple-darwin x86_64-apple-darwin)
 want ipad && RUST_TARGETS+=(aarch64-apple-ios)
@@ -220,6 +229,9 @@ if want mas; then
     tauri build --target universal-apple-darwin --bundles app --config "$WORK/mas.json" --ci )
   MAS_APP="$CARGO_TARGET_DIR/universal-apple-darwin/release/bundle/macos/TDJ.app"
   codesign -d --entitlements - "$MAS_APP" 2>/dev/null | grep -q app-sandbox || die "the store build is not sandboxed"
+  # files copied from the owner-only signing folder (the embedded profile) keep mode 600, which App Store Connect
+  # rejects (90255: readable only by root once installed); permissions are not part of the code signature
+  chmod -R u+rwX,go+rX "$MAS_APP"
   productbuild --component "$MAS_APP" /Applications --sign "$INSTALLER" --keychain "$KC" "$OUT/TDJ-MacAppStore.pkg"
   if [ "$UPLOAD" = 1 ]; then altool_upload "$OUT/TDJ-MacAppStore.pkg" macos && UPLOADED+=("Mac App Store pkg → TestFlight"); fi
 fi

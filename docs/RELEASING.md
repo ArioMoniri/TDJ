@@ -39,7 +39,7 @@ privacy policy [PRIVACY.md](PRIVACY.md).
 | # | Step | Link | Time |
 |---|---|---|---|
 | 1 | Create the **App Store Connect API key** (Team Keys; access *App Manager*, or *Admin* so the Developer ID certificate can be created automatically). Download the `.p8` once. | https://appstoreconnect.apple.com/access/integrations/api | 2 min |
-| 2 | Create the **app record**: + → New App → platforms iOS **and** macOS, name `TDJ – Tango DJ`, English (U.S.), bundle ID `com.ariomoniri.tdj` (registered by the scripts if missing), SKU `tdj`. Then add the Turkish localisation. | https://appstoreconnect.apple.com/apps | 3 min |
+| 2 | Create the **app record**: + → New App → platforms iOS **and** macOS, name `T-DJ` (created: Apple ID 6834924534), English (U.S.), bundle ID `com.ariomoniri.tdj` (registered by the scripts if missing), SKU `tdj`. Then add the Turkish localisation. | https://appstoreconnect.apple.com/apps | 3 min |
 | 3 | Accept any pending agreement banner (a free app needs no paid agreement). | https://appstoreconnect.apple.com/business | 1 min |
 | 4 | **App Privacy** answers and the newer age-rating questions (AI: yes). Copy from `apps/desktop/fastlane/app_privacy.md`. | the app → App Privacy / version → Age Rating | 3 min |
 | 5 | **Spotify**: add redirect URI `tdj://spotify-callback` and the iOS bundle ID `com.ariomoniri.tdj`. | https://developer.spotify.com/dashboard | 1 min |

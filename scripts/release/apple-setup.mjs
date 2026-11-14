@@ -429,7 +429,7 @@ export function manualSteps({ app, devid, bundleId, teamId }) {
   if (!app) {
     out.push(
       `Create the App Store Connect app record (the API cannot): ${LINKS.newApp} → "+" → New App → platforms iOS and macOS, ` +
-        `name "TDJ – Tango DJ", primary language English (U.S.), bundle ID ${bundleId}, SKU "tdj", Full Access. ` +
+        `name "T-DJ", primary language English (U.S.), bundle ID ${bundleId}, SKU "tdj", Full Access. ` +
         "Then add the Turkish localisation (App Information → language menu).",
     );
   }

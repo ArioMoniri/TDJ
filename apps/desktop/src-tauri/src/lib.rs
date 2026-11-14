@@ -141,7 +141,7 @@ fn build_main(app: &AppHandle) -> tauri::Result<WebviewWindow> {
         .on_navigation(move |u| on_navigate(&handle, u));
     #[cfg(desktop)]
     let b = b
-        .title("TDJ")
+        .title("T-DJ")
         .inner_size(1280.0, 820.0)
         .min_inner_size(900.0, 600.0);
     // r22-motion.md §4.5: content to the window edge, traffic lights inside the sidebar at (20, 20)

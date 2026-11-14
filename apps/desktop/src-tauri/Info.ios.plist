@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CFBundleDisplayName</key>
+	<string>T-DJ</string>
   <!-- merged into the iPadOS Info.plist by the Tauri iOS project -->
   <key>ITSAppUsesNonExemptEncryption</key><false/>
   <!-- the Booth keeps playing with the screen locked -->

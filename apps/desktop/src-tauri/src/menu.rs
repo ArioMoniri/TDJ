@@ -159,7 +159,7 @@ pub fn build<R: Runtime>(app: &AppHandle<R>, with_updates: bool) -> tauri::Resul
     };
     let group = |g: Group| COMMANDS.iter().filter(move |c| c.group == g);
 
-    let mut app_menu = SubmenuBuilder::new(app, "TDJ").item(&PredefinedMenuItem::about(
+    let mut app_menu = SubmenuBuilder::new(app, "T-DJ").item(&PredefinedMenuItem::about(
         app,
         Some("About TDJ"),
         None,

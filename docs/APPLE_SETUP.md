@@ -63,7 +63,7 @@ gh variable set TDJ_APP_BACKEND_URL --repo ArioMoniri/TDJ --body https://d3k5k2c
 
 appstoreconnect.apple.com → **Apps** → **+** → **New App**
 - Platforms: tick **iOS** and **macOS**.
-- Name: `TDJ – Tango DJ` (30 characters max, must be unique on the store; if taken, try `TDJ Tango DJ`).
+- Name: `T-DJ` (done: the app record exists, Apple ID `6834924534`; "TDJ – Tango DJ" was taken).
 - Primary Language: **English (U.S.)**.
 - Bundle ID: pick the one from step 2.
 - SKU: `tdj` (internal, any text).
