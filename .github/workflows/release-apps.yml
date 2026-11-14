@@ -1,7 +1,7 @@
 name: Release apps
 # macOS DMG (Developer ID, notarised) on a GitHub Release as TDJ-macOS.dmg + updater latest.json, the Mac App
-# Store pkg and the iPad IPA to TestFlight; App Review submission waits for approval in the `app-store`
-# environment. macOS minutes are spent only here, only on v* tags or a manual run, in ONE job that runs the same
+# Store pkg and the iPad IPA to TestFlight; App Review submission runs in the same
+# run (secrets: repository secrets). macOS minutes are spent only here, only on v* tags or a manual run, in ONE job that runs the same
 # script as a rented Mac (scripts/release/mac-build.sh). docs/RELEASING.md explains every step and the cost.
 on:
   push:
@@ -43,7 +43,6 @@ jobs:
   apple:
     needs: version
     runs-on: ${{ vars.TDJ_MAC_RUNNER || 'macos-26' }}
-    environment: apple-release
     timeout-minutes: 90
     env:
       TDJ_DRIVE: ${{ github.workspace }}/../drive
@@ -137,7 +136,6 @@ jobs:
     needs: [version, apple]
     if: inputs.channel == 'appstore-review'
     runs-on: ubuntu-latest
-    environment: app-store
     steps:
       - uses: actions/checkout@v5
       - uses: ruby/setup-ruby@v1

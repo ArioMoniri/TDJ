@@ -214,11 +214,7 @@ describe("apple", () => {
       "TDJ_APP_BACKEND_URL=https://d3k5k2c1l0s5ri.cloudfront.net",
       "APPLE_APP_ID=6740000000",
     ]);
-    const store = sys.calls.find((c) => c.args.includes("repos/ArioMoniri/TDJ/environments/app-store"));
-    expect(JSON.parse(store?.input ?? "{}")).toMatchObject({ reviewers: [{ type: "User", id: 92126657 }] });
-    expect(sys.calls.some((c) => c.args.includes("repos/ArioMoniri/TDJ/environments/apple-release"))).toBe(
-      true,
-    );
+    expect(sys.calls.some((c) => c.args.join(" ").includes("/environments/"))).toBe(false);
   });
 
   it("refuses a file that is not a .p8 key", async () => {

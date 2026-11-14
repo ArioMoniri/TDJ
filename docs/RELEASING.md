@@ -50,7 +50,7 @@ privacy policy [PRIVACY.md](PRIVACY.md).
 Everything else is automated: bundle ID and capabilities, certificates (CSRs made on the build machine,
 private keys never leave it), provisioning profiles, signing, notarisation, TestFlight uploads, metadata and
 screenshots, the GitHub Release. To set the GitHub side in one go from your own computer (secrets via stdin,
-the `apple-release` and `app-store` environments with you as reviewer):
+all as repository secrets):
 
 ```bash
 node packages/cli/bin/tdj.mjs apple        # or: npx tdj-deploy apple
@@ -110,15 +110,14 @@ the Mac (they are normally uploaded from Linux, below).
 | Workflow | Runner | When | What |
 |---|---|---|---|
 | **Native check** (`native-check.yml`) | Linux | PRs touching the apps, CLI, release scripts or workflows | `cargo fmt/clippy/test`, macOS + iPadOS type-check from Linux, release-script tests (mocked API), CLI tests, metadata limits, shellcheck, actionlint |
-| **Store assets** (`store-assets.yml`) | Linux | PRs touching metadata, store pipeline or `apps/web/src`; manual | screenshots of the bundled UI at 2880×1800 (Mac) and 2752×2064 (iPad 13"), en-US + tr; contact sheet artifact; with `upload` (after your approval in `app-store`): `fastlane deliver` metadata + screenshots |
+| **Store assets** (`store-assets.yml`) | Linux | PRs touching metadata, store pipeline or `apps/web/src`; manual | screenshots of the bundled UI at 2880×1800 (Mac) and 2752×2064 (iPad 13"), en-US + tr; contact sheet artifact; with `upload`: `fastlane deliver` metadata + screenshots |
 | **Apple setup** (`apple-setup.yml`) | Linux | manual | the same idempotent signing setup through the API; stores `.p12` + passwords + profiles in AWS SSM `/tdj/apple/*` with the deploy OIDC role |
-| **Release apps** (`release-apps.yml`) | **one macOS job** | `v*` tag or manual | runs `scripts/release/mac-build.sh` (signing from SSM, else the `apple-release` environment secrets), publishes the release, then metadata upload and App Review submission each wait for your approval in `app-store` |
+| **Release apps** (`release-apps.yml`) | **one macOS job** | `v*` tag or manual | runs `scripts/release/mac-build.sh` (signing from SSM, else the repository secrets), publishes the release, then uploads metadata and submits for App Review |
 | **Check secrets** (`check-secrets.yml`) | Linux | manual, or when that file changes | prints only `true/false` per expected secret/variable name |
 
 Cost: GitHub-hosted macOS minutes are free for public repositories; for a private repository they count
 10× (one release ≈ 25–45 min ≈ 250–450 Linux-equivalent minutes). Everything else runs on Linux. Signing
-secrets are scoped to the `apple-release` environment (branch `main` + tags `v*`), so forks and PRs never
-see them.
+secrets are repository secrets (the owner's choice); GitHub never passes secrets to workflows run from forks.
 
 Release:
 ```bash

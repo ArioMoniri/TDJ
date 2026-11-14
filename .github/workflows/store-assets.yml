@@ -1,7 +1,7 @@
 name: Store assets
 # App Store screenshots (bundled app UI at 2880x1800 and 2752x2064, en-US + tr), metadata checks and a contact
 # sheet for review: Linux only, no macOS minutes. Uploading to App Store Connect (fastlane deliver with the API
-# key) waits for the owner's approval in the `app-store` environment.
+# key) runs only when the upload input is set (repository secrets).
 on:
   pull_request:
     paths: ["apps/desktop/fastlane/**", "apps/desktop/store/**", "apps/desktop/ui/**", "apps/web/src/**"]
@@ -58,7 +58,6 @@ jobs:
     needs: assets
     if: inputs.upload
     runs-on: ubuntu-latest
-    environment: app-store
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5

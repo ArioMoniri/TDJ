@@ -107,42 +107,9 @@ export async function apple(ctx, flags) {
       await secret("TAURI_SIGNING_PRIVATE_KEY_PASSWORD", readFileSync(pwFile, "utf8").trim());
   }
 
-  // 3. environments: apple-release (main + v* tags only), app-store (you approve uploads and submissions)
+  // 3. what the API cannot do
   log();
-  log(c.bold("3. GitHub environments"));
-  const me = ctx.run("gh", ["api", "user", "--jq", ".id"]).stdout.trim();
-  await step(ctx, "gh", ["api", "-X", "PUT", `repos/${repo}/environments/apple-release`, "--input", "-"], {
-    input: JSON.stringify({
-      deployment_branch_policy: { protected_branches: false, custom_branch_policies: true },
-    }),
-  });
-  for (const [type, pattern] of [
-    ["branch", "main"],
-    ["tag", "v*"],
-  ]) {
-    await step(
-      ctx,
-      "gh",
-      [
-        "api",
-        "-X",
-        "POST",
-        `repos/${repo}/environments/apple-release/deployment-branch-policies`,
-        "-f",
-        `name=${pattern}`,
-        "-f",
-        `type=${type}`,
-      ],
-      { input: "" },
-    ).catch(() => {});
-  }
-  await step(ctx, "gh", ["api", "-X", "PUT", `repos/${repo}/environments/app-store`, "--input", "-"], {
-    input: JSON.stringify({ reviewers: [{ type: "User", id: Number(me) }], deployment_branch_policy: null }),
-  });
-
-  // 4. what the API cannot do
-  log();
-  log(c.bold("4. Only you can do these (links open one by one)"));
+  log(c.bold("3. Only you can do these (links open one by one)"));
   const todo = [
     [
       `Create the app record: ${PAGES.newApp} → + → New App → iOS and macOS, "TDJ – Tango DJ", English (U.S.), bundle ID ${bundleId}, SKU tdj.`,

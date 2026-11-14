@@ -18,15 +18,15 @@ Apple's web pages change their wording from time to time; the paths below are th
 | 4 | App Store Connect → Users and Access → Integrations → App Store Connect API | Issuer ID | `APP_STORE_CONNECT_ISSUER_ID` | repository **secret** |
 | 4 | same | Key ID | `APP_STORE_CONNECT_KEY_ID` | repository **secret** |
 | 4 | same | contents of `AuthKey_<KeyID>.p8` | `APP_STORE_CONNECT_PRIVATE_KEY` | repository **secret** |
-| 5a | Certificates → Apple Distribution | `.p12`, base64 | `APPLE_DISTRIBUTION_CERT_P12` | environment `apple-release` secret |
-| 5a | (you choose) | its password | `APPLE_DISTRIBUTION_CERT_PASSWORD` | environment `apple-release` secret |
-| 5b | Certificates → Mac Installer Distribution | `.p12`, base64 | `MAC_INSTALLER_CERT_P12` | environment `apple-release` secret |
-| 5b | (you choose) | its password | `MAC_INSTALLER_CERT_PASSWORD` | environment `apple-release` secret |
-| 5c | Certificates → Developer ID Application | `.p12`, base64 | `DEVELOPER_ID_APPLICATION_CERT_P12` | environment `apple-release` secret |
-| 5c | (you choose) | its password | `DEVELOPER_ID_APPLICATION_CERT_PASSWORD` | environment `apple-release` secret |
-| 6a | Profiles → App Store Connect (iOS) | `.mobileprovision`, base64 | `IOS_APPSTORE_PROFILE` | environment `apple-release` secret |
-| 6b | Profiles → Mac App Store Connect | `.provisionprofile`, base64 | `MAC_APPSTORE_PROFILE` | environment `apple-release` secret |
-| 7 | (optional) `tauri signer generate` | updater private key + password | `TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | environment `apple-release` secret |
+| 5a | Certificates → Apple Distribution | `.p12`, base64 | `APPLE_DISTRIBUTION_CERT_P12` | repository secret |
+| 5a | (you choose) | its password | `APPLE_DISTRIBUTION_CERT_PASSWORD` | repository secret |
+| 5b | Certificates → Mac Installer Distribution | `.p12`, base64 | `MAC_INSTALLER_CERT_P12` | repository secret |
+| 5b | (you choose) | its password | `MAC_INSTALLER_CERT_PASSWORD` | repository secret |
+| 5c | Certificates → Developer ID Application | `.p12`, base64 | `DEVELOPER_ID_APPLICATION_CERT_P12` | repository secret |
+| 5c | (you choose) | its password | `DEVELOPER_ID_APPLICATION_CERT_PASSWORD` | repository secret |
+| 6a | Profiles → App Store Connect (iOS) | `.mobileprovision`, base64 | `IOS_APPSTORE_PROFILE` | repository secret |
+| 6b | Profiles → Mac App Store Connect | `.provisionprofile`, base64 | `MAC_APPSTORE_PROFILE` | repository secret |
+| 7 | (optional) `tauri signer generate` | updater private key + password | `TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | repository secret |
 | 8 | (you choose) | default server URL | `TDJ_APP_BACKEND_URL` = `https://d3k5k2c1l0s5ri.cloudfront.net` | repository **variable** |
 
 Notarisation uses the API key from row 4: **no Apple ID password or app-specific password is needed anywhere.**
@@ -118,10 +118,9 @@ mkp12 () {  # $1 = name, $2 = SECRET prefix
   openssl x509 -inform DER -in "$1.cer" -out "$1.pem"
   PW=$(openssl rand -base64 24)
   openssl pkcs12 -export -legacy -inkey "$1.key" -in "$1.pem" -out "$1.p12" -passout "pass:$PW"
-  base64 < "$1.p12" | tr -d '\n' | gh secret set "$2_P12"      --repo ArioMoniri/TDJ --env apple-release
-  printf %s "$PW"                  | gh secret set "$2_PASSWORD" --repo ArioMoniri/TDJ --env apple-release
+  base64 < "$1.p12" | tr -d '\n' | gh secret set "$2_P12"      --repo ArioMoniri/TDJ
+  printf %s "$PW"                  | gh secret set "$2_PASSWORD" --repo ArioMoniri/TDJ
 }
-gh api -X PUT repos/ArioMoniri/TDJ/environments/apple-release >/dev/null   # creates the environment (step 9 configures it)
 mkp12 distribution APPLE_DISTRIBUTION_CERT
 mkp12 installer    MAC_INSTALLER_CERT
 mkp12 devid        DEVELOPER_ID_APPLICATION_CERT
@@ -135,8 +134,8 @@ developer.apple.com → **Profiles** → **+**:
 - **6b** Distribution → **Mac App Store Connect** → Continue → App ID: *TDJ* → Certificate: the Apple Distribution from 5a → Name: `TDJ Mac App Store` → Generate → Download (`.provisionprofile`).
 
 ```bash
-base64 < TDJ_iPad_App_Store.mobileprovision | tr -d '\n' | gh secret set IOS_APPSTORE_PROFILE --repo ArioMoniri/TDJ --env apple-release
-base64 < TDJ_Mac_App_Store.provisionprofile | tr -d '\n' | gh secret set MAC_APPSTORE_PROFILE --repo ArioMoniri/TDJ --env apple-release
+base64 < TDJ_iPad_App_Store.mobileprovision | tr -d '\n' | gh secret set IOS_APPSTORE_PROFILE --repo ArioMoniri/TDJ
+base64 < TDJ_Mac_App_Store.provisionprofile | tr -d '\n' | gh secret set MAC_APPSTORE_PROFILE --repo ArioMoniri/TDJ
 ```
 The DMG (Developer ID) build needs **no** profile. Keep the profile names exactly as above — the workflow refers to them by name.
 
@@ -149,18 +148,14 @@ The DMG (Developer ID) build needs **no** profile. Keep the profile names exactl
 
 Only if you want the downloaded Mac app to update itself from GitHub Releases. In a terminal with Node: `npx @tauri-apps/cli signer generate -w tdj-updater.key` (choose a password), then
 ```bash
-gh secret set TAURI_SIGNING_PRIVATE_KEY          --repo ArioMoniri/TDJ --env apple-release < tdj-updater.key
-gh secret set TAURI_SIGNING_PRIVATE_KEY_PASSWORD --repo ArioMoniri/TDJ --env apple-release   # type the password, Ctrl-D
+gh secret set TAURI_SIGNING_PRIVATE_KEY          --repo ArioMoniri/TDJ < tdj-updater.key
+gh secret set TAURI_SIGNING_PRIVATE_KEY_PASSWORD --repo ArioMoniri/TDJ   # type the password, Ctrl-D
 ```
 Send the engineers the **public** key (`tdj-updater.key.pub`) — that one is not secret and goes into `tauri.conf.json`.
 
-## 9. GitHub environments
+## 9. GitHub secrets
 
-github.com/ArioMoniri/TDJ → **Settings → Environments**:
-1. **`apple-release`** (created in step 5): *Deployment branches and tags* → **Selected branches and tags** → add branch `main` and tag pattern `v*`. This keeps certificates away from pull requests and forks.
-2. **New environment `app-store`**: *Required reviewers* → yourself. Same branch/tag rule. The "submit for App Store review" and "upload store metadata" jobs wait here for your click.
-
-Check with `gh secret list --repo ArioMoniri/TDJ` and `gh secret list --repo ArioMoniri/TDJ --env apple-release`: you should see the 4 repository secrets and 8 (or 10) environment secrets from the summary table.
+All signing material is kept as **repository secrets** (the owner's choice, no environments). Check the names with `gh secret list --repo ArioMoniri/TDJ`.
 
 ## 10. Clean up
 
@@ -187,5 +182,5 @@ The release workflow prints a warning in its summary 30 days before any certific
 ## 13. What happens after this
 
 - Push a tag `v1.0.0` (or Actions → **Release apps** → Run workflow): CI builds the notarised **`TDJ-macOS.dmg`** on a GitHub Release (the README "Download for macOS" button points at it), and uploads the iPad and Mac builds to **TestFlight**.
-- Store texts and screenshots arrive as a pull request with a contact sheet for the designers; after merge, **Store assets** uploads them (waits for your approval in `app-store`).
+- Store texts and screenshots arrive as a pull request with a contact sheet for the designers; after merge, **Store assets** uploads them.
 - **Release apps** with `channel = appstore-review` submits the version for review (again after your approval). Release is manual and phased once Apple approves.
