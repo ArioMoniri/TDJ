@@ -29,6 +29,7 @@ import {
 import { PageHeader } from "@/components/PageHeader";
 import { Sheet } from "@/components/Sheet";
 import { TandaRulesGroup } from "@/components/TandaRules";
+import { DataSources } from "@/components/ui/DataSources";
 import { fade, t as tw } from "@/lib/motion";
 import { useStore } from "@/lib/store";
 import {
@@ -395,6 +396,8 @@ export default function Settings() {
       </Group>
 
       <Connectors />
+      {/* round 22: where missing BPM, key, level, artwork and dates come from, and "Add a source" */}
+      <DataSources />
 
       <Group
         header="Written reviews"
