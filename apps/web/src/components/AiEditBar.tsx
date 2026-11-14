@@ -1,5 +1,5 @@
 "use client";
-import { type EditChange, type NightEditOp, rememberEdit, type TandaBrief } from "@tdj/core";
+import { type EditChange, learnFromLock, type NightEditOp, rememberEdit, type TandaBrief } from "@tdj/core";
 import { ArrowRight, ArrowUp, LoaderCircle, RotateCcw, Sparkles } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
@@ -75,14 +75,24 @@ export function AiEditBar({ playlist }: { playlist: Playlist }) {
   }, []);
   const [learnedBefore, setLearnedBefore] = useState<{ v: typeof memory.learned } | null>(null);
   /** the engine-checked night replaces the set; the DJ's request teaches like a hand edit */
-  const onApplied = (next: Playlist, prev: Playlist, instruction: string) => {
+  const onApplied = (next: Playlist, prev: Playlist, instruction: string, applied: EditChange[]) => {
     const st = useStore.getState();
     skipNextLearn();
     st.setPlaylist(next);
     st.addSnapshot(makeSnapshot(next, fullOptions(st.options), "swap"));
     setLearnedBefore({ v: st.memory.learned });
     if (st.settings.learn)
-      st.updateMemory((m) => rememberEdit(m, prev, next, `asked: ${instruction.slice(0, 80)}`));
+      st.updateMemory((m) => {
+        let nm = rememberEdit(m, prev, next, `asked: ${instruction.slice(0, 80)}`);
+        // a lock changes no side: it teaches as a half vote for the tanda's family
+        for (const c of applied)
+          if (c.op === "lock" && c.after?.locked && next.tandas[c.tanda - 1])
+            nm = {
+              ...nm,
+              learned: learnFromLock(nm.learned, next.tandas[c.tanda - 1]!, true, undefined, next.id),
+            };
+        return nm;
+      });
   };
   const onUndo = (prev: Playlist) => {
     const st = useStore.getState();
@@ -126,7 +136,7 @@ export function AiEditBar({ playlist }: { playlist: Playlist }) {
       }
       setResult({ r, prev, instruction });
       if (r.applied?.length) {
-        onApplied(r.playlist, prev, instruction);
+        onApplied(r.playlist, prev, instruction, r.applied);
         setText("");
       }
     } catch {

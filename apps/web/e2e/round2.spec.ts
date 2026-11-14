@@ -140,16 +140,23 @@ test("settings: switching the model provider changes the default model and survi
   page,
 }) => {
   await page.goto("/settings");
+  // round 22: a blank model is the provider's default from the model config (Anthropic's newest Claude model)
   const model = page.locator("#ai-model");
-  await expect(model).toHaveValue("claude-sonnet-5-5");
+  await expect(model).toHaveValue("");
+  await expect(model).toHaveAttribute("placeholder", "claude-opus-5-5");
   await page.getByRole("radio", { name: "OpenAI" }).click();
-  await expect(model).toHaveValue("gpt-5.2");
+  await expect(model).toHaveAttribute("placeholder", "gpt-5.2");
   await page.locator("#ai-key").fill("sk-test");
   await page.getByRole("radio", { name: "Gemini" }).click();
-  await expect(model).toHaveValue("gemini-4-argon");
+  await expect(model).toHaveAttribute("placeholder", "gemini-4-argon");
   await page.reload();
   await expect(page.getByRole("radio", { name: "Gemini" })).toHaveAttribute("aria-checked", "true");
-  await expect(page.locator("#ai-model")).toHaveValue("gemini-4-argon");
+  await expect(page.locator("#ai-model")).toHaveAttribute("placeholder", "gemini-4-argon");
+  // the OpenAI key is kept for when the DJ switches back
+  await page.getByRole("radio", { name: "OpenAI" }).click();
+  await expect(page.locator("#ai-key")).toHaveValue("sk-test");
+  await page.getByRole("radio", { name: "Gemini" }).click();
+  await page.locator("#ai-key").fill("sk-test");
   // Test connection with a bogus key reports a provider error in the group footer, not a crash
   await page.getByRole("button", { name: "Test connection" }).click();
   const status = page.getByRole("status").first();

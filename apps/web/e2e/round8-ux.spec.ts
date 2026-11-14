@@ -301,7 +301,7 @@ test("settings: the DJ's own preferences first, accounts after Memory, statuses 
   await expect(heads.first()).toHaveText(/Appearance/i);
   const texts = (await heads.allInnerTexts()).map((t) => t.trim().toLowerCase());
   expect(texts.indexOf("memory")).toBeLessThan(texts.indexOf("accounts and services"));
-  expect(texts.indexOf("accounts and services")).toBeLessThan(texts.indexOf("written reviews"));
+  expect(texts.indexOf("accounts and services")).toBeLessThan(texts.indexOf("models"));
   await expect(page.locator("#connector-deezer")).toContainText("Built in");
   await expect(page.locator("#connector-webhook")).toContainText("Off");
   await expect(page.locator("#connector-webhook")).not.toContainText("Not set");
