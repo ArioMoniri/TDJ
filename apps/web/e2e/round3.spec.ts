@@ -27,7 +27,13 @@ test("night rules: opening with La Cumparsita shows the Opening card; Buenos Air
 
   // UI: the rules group drives the compose request and the result renders opening, note and break
   await page.goto("/");
-  await page.getByRole("switch", { name: "Open with La Cumparsita" }).click();
+  // round 21: where La Cumparsita plays is one setting (the default opens and closes the night)
+  await expect(page.getByTestId("first-run")).toBeVisible();
+  // (the picker shows "both" by default: choose another first so the choice is an explicit one)
+  const cump = page.getByLabel("La Cumparsita", { exact: true }).first();
+  await cump.selectOption("open");
+  await cump.selectOption("both");
+  await expect(cump).toHaveValue("both");
   await page.getByRole("radio", { name: "Two (Buenos Aires)" }).click();
   await page.getByRole("switch", { name: "Show or break" }).click();
   await page.getByRole("switch", { name: "Birthday vals" }).click();
@@ -37,7 +43,7 @@ test("night rules: opening with La Cumparsita shows the Opening card; Buenos Air
   );
   await page.getByRole("button", { name: /Compose the night/ }).click();
   const body = (await req).postDataJSON();
-  expect(body.rules.openWithCumparsita).toBe(true);
+  expect(body.rules.cumparsita).toBe("both");
   expect(body.rules.cumparsitaCount).toBe(2);
   expect(body.rules.showBreakAt).toBe(0.5);
   const set = (await (await res).json()) as { tandas: Array<{ note?: string }> };

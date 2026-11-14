@@ -203,7 +203,7 @@ export const TrackRow = memo(function TrackRow({
           {/* round 21: the measured tempo and level the tanda's bands read */}
           {tempoLevel(song) && !isPhone && (
             <span
-              className="text-caption1 shrink-0 tabular-nums text-[var(--label-3)]"
+              className="text-caption1 hidden shrink-0 tabular-nums text-[var(--label-3)] xl:inline"
               data-testid="row-tempo"
             >
               {tempoLevel(song)}

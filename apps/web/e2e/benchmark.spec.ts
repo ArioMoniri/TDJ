@@ -27,14 +27,8 @@ test("the featured night: the benchmark row opens every check with its range and
   await expect(sheet.locator('[data-key="pugliese"]')).toContainText("Reference:");
   await expect(sheet.locator('[data-key="instrumental"]')).toContainText("Victor Tran");
   await expect(sheet.locator('[data-key="cumparsita"]')).toHaveAttribute("data-status", "ok");
-  // nothing is out of range on the featured night except notes; round 13: the round-11 featured night predates the
-  // year-spread / golden-core / transitions / heatmap checks (the main session regenerates it), so those may read off
-  await expect(
-    sheet.locator(
-      // round 14: and the strict panel, which finds the shipped night's 1946 sides and colour at a peak (round14.test.ts)
-      '[data-testid="bench-check"][data-status="off"]:not([data-key="yearSpread"]):not([data-key="goldenCore"]):not([data-key="transitions"]):not([data-key="heatmapBest"]):not([data-key="strictPanel"])',
-    ),
-  ).toHaveCount(0);
+  // round 21: the featured night is the DJ's own (seven pinned tandas: 1932–49 sides, mixed singers): checks may read
+  // off and say so; each still opens with its range (the rows above) — what this test is about
   expect(await checks.count()).toBeGreaterThanOrEqual(17);
   // round 14: the strict panel lists its rules, each with its source review
   const rules = sheet.getByTestId("strict-rule");

@@ -290,7 +290,10 @@ test("API: every export format downloads with the right headers, counts and esca
     p.tandas.reduce(
       (a: number, t: { songs: unknown[]; cortina: unknown }) => a + t.songs.length + (t.cortina ? 1 : 0),
       0,
-    ) + (p.closing ? 1 : 0);
+    ) +
+    (p.closing ? 1 : 0) +
+    // (round 21: a night opens with La Cumparsita by default)
+    (p.opening ? 1 : 0);
   const want: Record<string, [string, string]> = {
     m3u8: ["audio/mpegurl", "m3u8"],
     csv: ["text/csv", "csv"],

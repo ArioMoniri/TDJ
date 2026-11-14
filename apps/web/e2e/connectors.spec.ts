@@ -542,7 +542,9 @@ test("playlist creation POSTs name/description/public, adds items in chunks of â
   }
   expect(total).toBe(j.added);
   const songs =
-    p.tandas.reduce((n: number, t: { songs: unknown[] }) => n + t.songs.length, 0) + (p.closing ? 1 : 0);
+    p.tandas.reduce((n: number, t: { songs: unknown[] }) => n + t.songs.length, 0) +
+    (p.closing ? 1 : 0) +
+    (p.opening ? 1 : 0);
   // every unresolved track was searched; round 16: a side whose index knows a later take needs positive evidence the
   // mock's undated "Album" cannot give, so it is reported in `missing` ("Not matched") instead of guessed
   expect(j.added + j.missing.length).toBe(songs);
@@ -607,6 +609,8 @@ test("Spotify keeps the running order: searched cortinas stay between their tand
     else if (x.spotify?.uri) want.push(x.spotify.uri);
     else if (!missing.has(`${x.title} ${x.orchestra ?? x.artist}`)) want.push("SEARCHED");
   };
+  // (round 21: the night opens with La Cumparsita by default: the first row)
+  if (p.opening) push(p.opening as Row);
   for (const t of p.tandas as Array<{ songs: Row[]; cortina?: Row | null }>) {
     for (const s of t.songs) push(s);
     if (t.cortina) push(t.cortina);
@@ -1381,7 +1385,9 @@ test("YouTube: creates the playlist, searches each track, inserts items and stop
   const { session } = await googleLogin(await playwright.request.newContext(), "youtube", "code-gg-youtube");
   const p = await (await request.post(`${APP}/api/compose`, { data: { hours: 2, seed: 5 } })).json();
   const songs =
-    p.tandas.reduce((n: number, t: { songs: unknown[] }) => n + t.songs.length, 0) + (p.closing ? 1 : 0);
+    p.tandas.reduce((n: number, t: { songs: unknown[] }) => n + t.songs.length, 0) +
+    (p.closing ? 1 : 0) +
+    (p.opening ? 1 : 0);
   hits.length = 0;
   const r = await request.post(`${APP}/api/google/youtube`, {
     headers: { cookie: session },
