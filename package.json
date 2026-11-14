@@ -21,7 +21,8 @@
     "e2e": "pnpm --filter @tdj/web e2e",
     "media": "pnpm --filter @tdj/web media",
     "video": "pnpm --filter @tdj/video render",
-    "deploy": "sst deploy --stage production"
+    "deploy": "sst deploy --stage production",
+    "tdj": "node packages/cli/bin/tdj.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.0",
