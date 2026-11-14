@@ -4,6 +4,15 @@ use std::path::Path;
 const COMMANDS: &[&str] = &[
     "get_native_info",
     "set_server",
+    "unlink_server",
+    "secret_set",
+    "secret_has",
+    "secret_delete",
+    "net_fetch",
+    "ai_complete",
+    "spotify_token",
+    "spotify_access",
+    "spotify_logout",
     "start_login",
     "forget_sessions",
     "open_external",
@@ -39,7 +48,7 @@ fn main() {
     println!("cargo:rerun-if-changed=../ui/static");
     println!("cargo:rerun-if-changed=../ui/dist/tdj-bundle.json");
     println!("cargo:rerun-if-env-changed=TDJ_APP_STORE");
-    println!("cargo:rerun-if-env-changed=TDJ_APP_BACKEND_URL");
+    println!("cargo:rerun-if-env-changed=TDJ_SPOTIFY_CLIENT_ID");
     tauri_build::try_build(
         tauri_build::Attributes::new()
             .app_manifest(tauri_build::AppManifest::new().commands(COMMANDS)),

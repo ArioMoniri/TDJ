@@ -27,7 +27,7 @@ Apple's web pages change their wording from time to time; the paths below are th
 | 6a | Profiles → App Store Connect (iOS) | `.mobileprovision`, base64 | `IOS_APPSTORE_PROFILE` | repository secret |
 | 6b | Profiles → Mac App Store Connect | `.provisionprofile`, base64 | `MAC_APPSTORE_PROFILE` | repository secret |
 | 7 | (optional) `tauri signer generate` | updater private key + password | `TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | repository secret |
-| 8 | (you choose) | default server URL | `TDJ_APP_BACKEND_URL` = `https://d3k5k2c1l0s5ri.cloudfront.net` | repository **variable** |
+| 8 | developer.spotify.com → your app (optional) | the app's Spotify **Client ID** (public; PKCE, no secret), redirect URI `tdj://spotify-callback` | `TDJ_SPOTIFY_CLIENT_ID` | repository **variable** |
 
 Notarisation uses the API key from row 4: **no Apple ID password or app-specific password is needed anywhere.**
 
@@ -56,7 +56,8 @@ developer.apple.com → **Account** → **Certificates, IDs & Profiles** → **I
 The same App ID is used by the iPad app and the Mac app (one App Store record, one purchase for both).
 ```bash
 gh variable set TDJ_APP_BUNDLE_ID --repo ArioMoniri/TDJ --body com.ariomoniri.tdj
-gh variable set TDJ_APP_BACKEND_URL --repo ArioMoniri/TDJ --body https://d3k5k2c1l0s5ri.cloudfront.net
+# optional: the apps' own Spotify app (without it, DJs paste their own Client ID under Settings → Spotify)
+gh variable set TDJ_SPOTIFY_CLIENT_ID --repo ArioMoniri/TDJ --body <client id>
 ```
 
 ## 3. The app record in App Store Connect → `APPLE_APP_ID`

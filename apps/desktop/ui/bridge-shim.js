@@ -1,67 +1,15 @@
 // TDJ app bridge shim — loaded as the first script of every page of the bundled UI (scripts/build-ui.mjs).
-// The UI runs from the app bundle (tauri://localhost); every `/api/*` request goes to the DJ's TDJ server through
-// the native API bridge (src-tauri/src/bridge.rs, `tdjapi://` scheme), which keeps the server's sealed session
-// cookies in the app's own cookie jar. Nothing here stores a key or a token.
+// The UI runs from the app bundle (tauri://localhost) and is standalone: every `/api/*` request is answered on the
+// device by the page's own adapter (apps/web/src/lib/app/adapter.ts, built with TDJ_TARGET=app). This shim only
+// connects the page to the native shell: logins in the system browser, native save and print, Now Playing and the
+// menu bar. Nothing here stores a key or a token.
 (() => {
   if (window.__TDJ_SHIM__) return;
   window.__TDJ_SHIM__ = true;
-  const native = window.__TDJ_NATIVE__ || {};
   const invoke = (cmd, args) => window.__TAURI_INTERNALS__.invoke(cmd, args || {});
-  // Apple and Linux WebKit: `tdjapi://localhost/…`; Windows/Android WebView2-style: `http://tdjapi.localhost/…`
-  const API = native.apiBase || "tdjapi://localhost";
-  const SERVER = native.server || "";
-
-  /** `/api/x` (relative or on this origin) → the bridge; anything else untouched. */
-  function toBridge(input) {
-    try {
-      const u = new URL(String(input), location.href);
-      if (u.origin === location.origin && u.pathname.startsWith("/api/")) return API + u.pathname + u.search;
-    } catch {}
-    return null;
-  }
-  /** media elements cannot use the custom scheme reliably (range requests): send them to the server itself. */
-  function toServer(input) {
-    try {
-      const u = new URL(String(input), location.href);
-      if (SERVER && u.origin === location.origin && u.pathname.startsWith("/api/"))
-        return SERVER + u.pathname + u.search;
-    } catch {}
-    return null;
-  }
-  window.__TDJ_BRIDGE__ = { toBridge, toServer };
-
   const origFetch = window.fetch.bind(window);
-  window.fetch = (input, init) => {
-    const raw = input instanceof Request ? input.url : input;
-    const target = toBridge(raw);
-    if (!target) return origFetch(input, init);
-    if (input instanceof Request) return origFetch(new Request(target, input), init);
-    return origFetch(target, init);
-  };
-
-  if (window.EventSource) {
-    const ES = window.EventSource;
-    window.EventSource = (url, cfg) => new ES(toBridge(url) || url, cfg);
-    window.EventSource.prototype = ES.prototype;
-  }
-
-  for (const proto of [HTMLMediaElement.prototype, HTMLSourceElement.prototype]) {
-    const desc = Object.getOwnPropertyDescriptor(proto, "src");
-    if (!desc?.set) continue;
-    Object.defineProperty(proto, "src", {
-      ...desc,
-      set(v) {
-        desc.set.call(this, toServer(v) || v);
-      },
-    });
-  }
-  const origSetAttr = Element.prototype.setAttribute;
-  Element.prototype.setAttribute = function (name, value) {
-    if (name === "src" && (this instanceof HTMLMediaElement || this instanceof HTMLSourceElement)) {
-      return origSetAttr.call(this, name, toServer(value) || value);
-    }
-    return origSetAttr.call(this, name, value);
-  };
+  // a custom scheme's `origin` reads "null": compare scheme and host instead
+  const same = (u) => u.protocol === location.protocol && u.host === location.host;
 
   // Logins: `<a href="/api/spotify/login">` → the system browser (location.assign(...) is caught natively).
   const LOGIN = /^\/api\/(spotify|google|dropbox)\/login$/;
@@ -71,14 +19,13 @@
       const a = e.target instanceof Element ? e.target.closest("a[href]") : null;
       if (!a) return;
       const u = new URL(a.getAttribute("href"), location.href);
-      const m = u.origin === location.origin && u.pathname.match(LOGIN);
+      const m = same(u) && u.pathname.match(LOGIN);
       if (m) {
         e.preventDefault();
-        invoke("start_login", {
-          provider: m[1],
-          scope: u.searchParams.get("scope"),
-          next: u.searchParams.get("next"),
-        });
+        const next = u.searchParams.get("next") || "/settings";
+        // Spotify: PKCE from the device; Google and Dropbox: through a linked TDJ server (lib/app/login.ts)
+        if (window.__TDJ_APP__) window.__TDJ_APP__.login(m[1], next);
+        else invoke("start_login", { provider: m[1], scope: u.searchParams.get("scope"), next });
         return;
       }
       // downloads (exports): a native save panel instead of WebKit's silent no-op on blob links
@@ -92,7 +39,7 @@
         return;
       }
       // links to other sites open in the system browser
-      if (u.origin !== location.origin && /^https?:$/.test(u.protocol)) {
+      if (!same(u) && /^https?:$/.test(u.protocol)) {
         e.preventDefault();
         invoke("open_external", { url: u.href });
       }

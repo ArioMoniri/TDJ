@@ -10,6 +10,7 @@
     "ui": "node scripts/build-ui.mjs",
     "icons": "node src-tauri/icons/src/render.mjs",
     "build:mac": "bash ../../scripts/release/mac-build.sh",
+    "standalone": "tsx store/standalone.ts",
     "store:capture": "tsx store/capture.ts",
     "store:compose": "tsx store/compose.ts",
     "store:sheet": "tsx store/contact-sheet.ts",

@@ -1,7 +1,10 @@
-//! TDJ for macOS and iPadOS (r22-apps-plan.md). Two UI modes, one binary:
+//! TDJ for macOS and iPadOS (r22-apps-plan.md), standalone: each installed app works entirely on its own device.
 //! - **bundled** (store builds, and the DMG): the UI is a static export of apps/web packaged in the app
-//!   (`scripts/build-ui.mjs`); `/api/*` goes to the DJ's TDJ server through the native bridge (`bridge.rs`).
-//! - **remote** (development, or a bundle-less build): the window loads the server origin itself.
+//!   (`scripts/build-ui.mjs`, TDJ_TARGET=app) with the catalogue; the composer runs in the page (a Web Worker) and
+//!   every `/api/*` request is answered on the device. Native help: HTTP without CORS and model calls (`net.rs`),
+//!   the Keychain (`secrets.rs`), SQLite (tauri-plugin-sql). A TDJ server is an opt-in link, off by default
+//!   (`settings.rs`, `bridge.rs`).
+//! - **remote** (development only, a bundle-less build with a linked server): the window loads that server.
 //!
 //! Native value on top: menu bar + shortcuts, Now Playing and media keys, keep-awake for the night, linked music
 //! folders (security-scoped bookmarks), a headphone cue device, native save/print, system-browser logins.
@@ -15,6 +18,8 @@ mod folders;
 mod links;
 #[cfg_attr(mobile, allow(dead_code))] // the menu bar is macOS-only
 mod menu;
+mod net;
+mod secrets;
 mod settings;
 mod system;
 mod updates;
@@ -45,8 +50,17 @@ pub struct AppState {
     pub folders: Mutex<folders::Store>,
     pub keep_awake: system::KeepAwake,
     pub bundled: bool,
+    /// the DJ's model keys and the Spotify session (the Keychain on Apple platforms)
+    pub secrets: Box<dyn secrets::SecretStore>,
+    /// the app's own HTTP client (no cookies): Deezer, MusicBrainz, model providers, Spotify accounts
+    pub http: reqwest::Client,
+    /// the Spotify access token in memory (the refresh token stays in the Keychain)
+    pub spotify: Mutex<Option<net::SpotifyAccess>>,
     tickets: Mutex<Option<(String, bool)>>,
 }
+
+/// The Spotify Client ID this build ships with (public: PKCE needs no secret). Repository variable of the same name.
+pub const SPOTIFY_CLIENT_ID: Option<&str> = option_env!("TDJ_SPOTIFY_CLIENT_ID");
 
 fn api_base() -> &'static str {
     if cfg!(windows) {
@@ -62,7 +76,8 @@ fn init_script(state: &AppState) -> String {
         "platform": commands::platform(),
         "version": env!("CARGO_PKG_VERSION"),
         "bundled": state.bundled,
-        "server": state.bridge.server(),
+        "linkedServer": state.bridge.server(),
+        "spotifyClientId": SPOTIFY_CLIENT_ID.filter(|c| !c.is_empty()),
         "apiBase": api_base(),
         "appStore": APP_STORE_BUILD,
         "updater": cfg!(feature = "updater"),
@@ -78,16 +93,15 @@ fn init_script(state: &AppState) -> String {
     )
 }
 
-/// The page the main window opens: first launch asks for a server; then the bundle or the server itself.
+/// The page the main window opens: the bundled app, always (no first-launch server question). Only a development
+/// build without the bundle loads a linked server's own pages.
 fn start_url(state: &AppState) -> WebviewUrl {
-    let chosen = state.settings.lock().unwrap().server.is_some();
-    if !chosen {
-        return WebviewUrl::App("tdj-server.html".into());
-    }
     if state.bundled {
-        WebviewUrl::App("index.html".into())
-    } else {
-        WebviewUrl::External(state.bridge.server().parse().expect("valid origin"))
+        return WebviewUrl::App("index.html".into());
+    }
+    match state.bridge.server().and_then(|s| s.parse().ok()) {
+        Some(u) => WebviewUrl::External(u),
+        None => WebviewUrl::App("index.html".into()),
     }
 }
 
@@ -101,7 +115,9 @@ fn on_navigate(app: &AppHandle, url: &Url) -> bool {
     let state = app.state::<AppState>();
     let server = state.bridge.server();
     let local = app_origin(url);
-    let on_server = links::same_origin(url, &server);
+    let on_server = server
+        .as_deref()
+        .is_some_and(|s| links::same_origin(url, s));
     if local || on_server {
         if let Some(provider) = url
             .path()
@@ -114,7 +130,21 @@ fn on_navigate(app: &AppHandle, url: &Url) -> bool {
                     .find(|(q, _)| q == k)
                     .map(|(_, v)| v.into_owned())
             };
-            login(app, provider.to_string(), get("scope"), get("next"));
+            if local {
+                // the bundled UI signs in from the device (Spotify: PKCE; others: a linked server), lib/app/login.ts
+                if let Some(main) = app.get_webview_window(MAIN) {
+                    let next = get("next")
+                        .and_then(|n| links::safe_path(&n))
+                        .unwrap_or_else(|| "/settings".into());
+                    let _ = main.eval(format!(
+                        "window.__TDJ_APP__&&window.__TDJ_APP__.login({},{})",
+                        serde_json::to_string(provider).unwrap(),
+                        serde_json::to_string(&next).unwrap()
+                    ));
+                }
+            } else {
+                login(app, provider.to_string(), get("scope"), get("next"));
+            }
             return false;
         }
         return true;
@@ -212,7 +242,13 @@ pub(crate) fn login(
 ) {
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
-        let server = app.state::<AppState>().bridge.server();
+        let Some(server) = app.state::<AppState>().bridge.server() else {
+            app.dialog()
+                .message("Link your TDJ server under Settings → Connections to use this.")
+                .title("No server linked")
+                .show(|_| {});
+            return;
+        };
         if server_has_tickets(&app, &server).await {
             if let Some(u) = links::login_url(&server, &provider, scope.as_deref(), next.as_deref())
             {
@@ -222,7 +258,7 @@ pub(crate) fn login(
         }
         if provider == "google" {
             app.dialog()
-                .message("Google sign-in needs your TDJ server to be updated for the app. Until then, connect Google from the website.")
+                .message("Google sign-in needs a newer version of your TDJ server. Until then, connect Google on its website.")
                 .title("Connect Google")
                 .show(|_| {});
             return;
@@ -297,32 +333,40 @@ pub(crate) async fn check_server(origin: &str) -> Result<(), String> {
     }
 }
 
+/// Turns the opt-in link on (Settings → Connections, or a confirmed `tdj://server` link).
 pub(crate) fn apply_server(app: &AppHandle, origin: &str) -> std::io::Result<()> {
     let state = app.state::<AppState>();
     {
         let mut s = state.settings.lock().unwrap();
         s.server = Some(origin.to_string());
+        s.link = true;
         s.trust(origin);
         s.save(&state.config_dir)?;
     }
-    state.bridge.set_server(origin.to_string());
-    if origin != settings::DEFAULT_SERVER {
+    state.bridge.set_server(Some(origin.to_string()));
+    if !state.bundled {
+        // development: the window shows the linked server's own pages
         grant_remote(app, origin);
-    }
-    if let Some(main) = app.get_webview_window(MAIN) {
-        let target = if state.bundled {
-            main.url().ok().and_then(|u| u.join("/index.html").ok())
-        } else {
-            Url::parse(origin).ok()
-        };
-        if let Some(t) = target {
-            let _ = main.navigate(t);
+        if let (Some(main), Ok(u)) = (app.get_webview_window(MAIN), Url::parse(origin)) {
+            let _ = main.navigate(u);
         }
     }
     Ok(())
 }
 
-/// A self-hosted server the DJ trusted gets the same IPC rights the TDJ cloud has (capabilities/remote.json).
+/// Turns the link off: the app is standalone again and the server's session cookies are forgotten.
+pub(crate) fn unlink_server(app: &AppHandle) -> std::io::Result<()> {
+    let state = app.state::<AppState>();
+    {
+        let mut s = state.settings.lock().unwrap();
+        s.link = false;
+        s.save(&state.config_dir)?;
+    }
+    state.bridge.set_server(None);
+    Ok(())
+}
+
+/// Development only (remote mode): the linked server's own pages get the native commands a page may use.
 fn grant_remote(app: &AppHandle, origin: &str) {
     let mut cap = tauri::ipc::CapabilityBuilder::new(format!(
         "remote-{}",
@@ -362,7 +406,7 @@ fn handle_link(app: &AppHandle, raw: &str) {
         return;
     };
     let state = app.state::<AppState>();
-    let server = state.bridge.server();
+    let server = state.bridge.server().unwrap_or_default();
     let bundled = state.bundled;
     let Some(main) = app.get_webview_window(MAIN) else {
         return;
@@ -384,6 +428,9 @@ fn handle_link(app: &AppHandle, raw: &str) {
             ticket,
             next,
         } => {
+            if server.is_empty() {
+                return;
+            }
             let Some(redeem) = links::redeem_url(&server, &provider, &ticket, &next) else {
                 return;
             };
@@ -392,7 +439,7 @@ fn handle_link(app: &AppHandle, raw: &str) {
                 let main = main.clone();
                 tauri::async_runtime::spawn(async move {
                     let req = tauri::http::Request::builder()
-                        .uri(redeem.replacen(&bridge.server(), api_base(), 1))
+                        .uri(redeem.replacen(&bridge.server().unwrap_or_default(), api_base(), 1))
                         .body(Vec::new())
                         .unwrap();
                     let _ = bridge.handle(req).await;
@@ -435,9 +482,9 @@ fn handle_link(app: &AppHandle, raw: &str) {
             };
             let app = app.clone();
             app.dialog()
-                .message(format!("Use this TDJ server?\n\n{origin}\n\nOnly continue if you trust the person who runs it."))
-                .title("Change server")
-                .buttons(MessageDialogButtons::OkCancelCustom("Use This Server".into(), "Cancel".into()))
+                .message(format!("Link this TDJ server?\n\n{origin}\n\nT-DJ keeps working on this device; the server gets your database changes and serves Google, Dropbox and rooms. Only continue if you trust the person who runs it."))
+                .title("Link a server")
+                .buttons(MessageDialogButtons::OkCancelCustom("Link This Server".into(), "Cancel".into()))
                 .show(move |yes| {
                     if yes {
                         let _ = apply_server(&app, &origin);
@@ -451,13 +498,9 @@ fn handle_link(app: &AppHandle, raw: &str) {
 fn on_menu(app: &AppHandle, id: &str) {
     match id {
         "app.server" => {
+            // Settings → Connections (the opt-in server link)
             if let Some(main) = app.get_webview_window(MAIN) {
-                let page = if cfg!(windows) {
-                    "http://tauri.localhost/tdj-server.html"
-                } else {
-                    "tauri://localhost/tdj-server.html"
-                };
-                let _ = main.navigate(Url::parse(page).expect("static url"));
+                let _ = main.eval("location.assign('/settings#app-connections')");
             }
             return;
         }
@@ -491,6 +534,8 @@ fn on_menu(app: &AppHandle, id: &str) {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default()
+        // the on-device database (sqlite:tdj.db in the app's data folder); migrations: apps/web/src/lib/app/store.ts
+        .plugin(tauri_plugin_sql::Builder::default().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_deep_link::init());
@@ -510,29 +555,33 @@ pub fn run() {
             let config_dir = app.path().app_config_dir()?;
             let data_dir = app.path().app_data_dir()?;
             let mut s = settings::Settings::load(&config_dir);
-            // a server that is no longer valid (edited file) falls back to the first-launch question
+            // a server address that is no longer valid (edited file) is dropped: the app stays standalone
             if let Some(cur) = s.server.clone() {
                 if settings::normalize_server(&cur).is_err() {
                     s.server = None;
+                    s.link = false;
                 }
             }
-            let server = s.server_or_default();
+            let linked = s.linked();
             let bundled = app.asset_resolver().get(BUNDLE_MARKER.into()).is_some();
-            let trusted: Vec<String> = s.trusted.clone();
             app.manage(AppState {
-                bridge: Arc::new(bridge::Bridge::new(server, &data_dir)),
+                bridge: Arc::new(bridge::Bridge::new(linked.clone(), &data_dir)),
                 folders: Mutex::new(folders::Store::load(&data_dir)),
                 settings: Mutex::new(s),
                 keep_awake: system::KeepAwake::default(),
                 config_dir,
                 data_dir,
                 bundled,
+                secrets: secrets::platform_store(),
+                http: reqwest::Client::builder()
+                    .user_agent(net::UA)
+                    .redirect(reqwest::redirect::Policy::limited(3))
+                    .build()
+                    .expect("http client"),
+                spotify: Mutex::new(None),
                 tickets: Mutex::new(None),
             });
-            for origin in trusted
-                .iter()
-                .filter(|o| o.as_str() != settings::DEFAULT_SERVER)
-            {
+            if let (false, Some(origin)) = (bundled, linked.as_deref()) {
                 grant_remote(app.handle(), origin);
             }
 
@@ -574,6 +623,15 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::get_native_info,
             commands::set_server,
+            commands::unlink_server,
+            commands::secret_set,
+            commands::secret_has,
+            commands::secret_delete,
+            commands::net_fetch,
+            commands::ai_complete,
+            commands::spotify_token,
+            commands::spotify_access,
+            commands::spotify_logout,
             commands::start_login,
             commands::forget_sessions,
             commands::open_external,
@@ -626,15 +684,50 @@ mod tests {
     }
 
     #[test]
-    fn capability_files_match_the_commands() {
-        let remote = include_str!("../capabilities/remote.json");
+    fn the_app_names_no_server() {
+        let default = include_str!("../capabilities/default.json");
+        let conf = include_str!("../tauri.conf.json");
+        for text in [default, conf] {
+            assert!(!text.contains(".cloudfront."));
+            assert!(!text.contains("\"remote\""));
+        }
         for c in super::REMOTE_COMMANDS {
             assert!(
-                remote.contains(&format!("\"allow-{}\"", c.replace('_', "-"))),
-                "{c} missing in remote.json"
+                default.contains(&format!("\"allow-{}\"", c.replace('_', "-"))),
+                "{c} missing in default.json"
             );
         }
-        assert!(!remote.contains("allow-set-server"));
-        assert!(remote.contains(super::settings::DEFAULT_SERVER));
+        for c in [
+            "unlink-server",
+            "secret-set",
+            "net-fetch",
+            "ai-complete",
+            "spotify-token",
+        ] {
+            assert!(
+                default.contains(&format!("\"allow-{c}\"")),
+                "{c} missing in default.json"
+            );
+        }
+        assert!(default.contains("\"sql:allow-execute\""));
+    }
+
+    #[test]
+    fn a_remote_page_never_reads_secrets_or_switches_server() {
+        for c in [
+            "secret_set",
+            "secret_has",
+            "secret_delete",
+            "ai_complete",
+            "net_fetch",
+            "spotify_token",
+            "spotify_access",
+            "unlink_server",
+        ] {
+            assert!(
+                !super::REMOTE_COMMANDS.contains(&c),
+                "{c} must stay app-only"
+            );
+        }
     }
 }

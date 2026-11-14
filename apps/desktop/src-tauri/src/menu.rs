@@ -43,7 +43,7 @@ const fn c(
 /// it would swallow spaces typed in fields; the page handles it (r22-motion §7.3).
 pub const COMMANDS: &[Command] = &[
     c("app.settings", "Settings…", Some("CmdOrCtrl+,"), Group::App),
-    c("app.server", "Change Server…", None, Group::App),
+    c("app.server", "Connections…", None, Group::App),
     c("app.updates", "Check for Updates…", None, Group::App),
     c(
         "compose.run",

@@ -211,7 +211,6 @@ describe("apple", () => {
       .map((c) => `${c.args[2]}=${c.args.at(-1)}`);
     expect(vars).toEqual([
       "TDJ_APP_BUNDLE_ID=com.ariomoniri.tdj",
-      "TDJ_APP_BACKEND_URL=https://d3k5k2c1l0s5ri.cloudfront.net",
       "APPLE_APP_ID=6740000000",
     ]);
     expect(sys.calls.some((c) => c.args.join(" ").includes("/environments/"))).toBe(false);

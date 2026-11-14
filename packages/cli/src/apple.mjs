@@ -11,7 +11,6 @@ import * as v from "./validate.mjs";
 export const DEFAULTS = {
   teamId: "FF68N39FU5",
   bundleId: "com.ariomoniri.tdj",
-  backend: "https://d3k5k2c1l0s5ri.cloudfront.net",
 };
 
 export const PAGES = {
@@ -87,7 +86,8 @@ export async function apple(ctx, flags) {
   await secret("APP_STORE_CONNECT_PRIVATE_KEY", p8);
   await secret("APPLE_TEAM_ID", teamId);
   await variable("TDJ_APP_BUNDLE_ID", bundleId);
-  await variable("TDJ_APP_BACKEND_URL", /** @type {string} */ (flags.backend || DEFAULTS.backend));
+  // the apps are standalone (no server address is built in); the Spotify Client ID is public (PKCE, no secret)
+  if (flags["spotify-client-id"]) await variable("TDJ_SPOTIFY_CLIENT_ID", String(flags["spotify-client-id"]));
   const appId = /** @type {string} */ (
     flags["app-id"] ??
       (await ctx.ask("appId", "Apple ID of the app record (digits; Enter to skip until it exists)", {

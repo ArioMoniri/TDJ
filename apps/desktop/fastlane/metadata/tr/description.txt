@@ -6,6 +6,6 @@ TDJ, bir tango milongasını çalışan DJ'lerin kurduğu gibi oluşturur: aynı
 • 19.000 kayıtlık kendi veritabanınız: yıllar, şarkıcılar, versiyonlar ve size ait kalan düzenlemeler.
 • Spotify, Rekordbox, Traktor, Serato, M3U8 ya da basılı set listesine aktarın.
 • Mac: menü çubuğu komutları ve kısayollar, medya tuşları ve Şimdi Çalıyor, ekran gece boyu açık kalır.
-• TDJ bulutuyla ya da kendi sunucunuzla çalışır.
+• Tamamen Mac'inizde ya da iPad'inizde çalışır: hesap yok, sunucu yok. İsterseniz kendi TDJ sunucunuzu bağlayabilirsiniz.
 
 Hesap gerekmez. Spotify özellikleri için Spotify Premium gerekir.

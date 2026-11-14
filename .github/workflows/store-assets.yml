@@ -33,10 +33,13 @@ jobs:
         run: pnpm --filter @tdj/desktop ui
       - name: Browser
         run: pnpm --filter @tdj/desktop exec playwright install --with-deps chromium
+      - name: Standalone check (the bundle with the native side mocked; no request may leave the runner)
+        env:
+          CHROMIUM: ""
+        run: pnpm --filter @tdj/desktop standalone
       - name: Capture, compose, contact sheet
         env:
           CHROMIUM: ""
-          TDJ_STORE_BACKEND: ${{ vars.TDJ_APP_BACKEND_URL || 'https://d3k5k2c1l0s5ri.cloudfront.net' }}
         run: pnpm --filter @tdj/desktop run screenshots
       - uses: actions/upload-artifact@v4
         with:

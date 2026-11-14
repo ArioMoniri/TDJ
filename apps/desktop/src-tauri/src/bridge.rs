@@ -1,9 +1,8 @@
-//! The native API bridge of the bundled UI (r22-apps-plan.md §3.1 phase 2, without any server change).
+//! The bridge to a TDJ server the DJ linked (Settings → Connections; off by default).
 //!
-//! The UI ships inside the app (`tauri://localhost`), so a browser `fetch("/api/…")` would be cross-site and
-//! WebKit would drop the server's session cookies. Instead the shim (ui/bridge-shim.js) sends `/api/*` to the
-//! `tdjapi://` scheme handled here: the request is replayed against the DJ's TDJ server **as a first-party
-//! request** (`Origin` = the server, so `guard.ts` accepts it) with the app's own cookie jar. The jar holds only
+//! The app is standalone: its UI answers every `/api/*` request on the device (apps/web/src/lib/app/adapter.ts).
+//! Only the services that need a server (Google, Dropbox, Pipedream, rooms, database sync) are sent here, through
+//! the `tdjapi://` scheme: the request is replayed against the linked server **as a first-party request** (`Origin` = the server, so `guard.ts` accepts it) with the app's own cookie jar. The jar holds only
 //! what a browser would hold for that site (the server's sealed, encrypted session cookies), lives in the app's
 //! data folder with owner-only permissions, and is never sent anywhere but that server.
 
@@ -96,14 +95,14 @@ pub fn target_url(server: &str, request_uri: &str) -> Option<Url> {
 }
 
 pub struct Bridge {
-    server: RwLock<String>,
+    server: RwLock<Option<String>>,
     jar: Arc<CookieStoreMutex>,
     jar_path: PathBuf,
     client: reqwest::Client,
 }
 
 impl Bridge {
-    pub fn new(server: String, data_dir: &Path) -> Bridge {
+    pub fn new(server: Option<String>, data_dir: &Path) -> Bridge {
         let jar_path = data_dir.join("cookies.json");
         let store = std::fs::File::open(&jar_path)
             .ok()
@@ -125,12 +124,13 @@ impl Bridge {
         }
     }
 
-    pub fn server(&self) -> String {
+    /// The linked server, if any.
+    pub fn server(&self) -> Option<String> {
         self.server.read().unwrap().clone()
     }
 
-    /// A different server means a different site: its cookies never mix with the previous one's.
-    pub fn set_server(&self, server: String) {
+    /// A different server (or none) means a different site: its cookies never mix with the previous one's.
+    pub fn set_server(&self, server: Option<String>) {
         let mut cur = self.server.write().unwrap();
         if *cur != server {
             self.jar.lock().unwrap().clear();
@@ -155,7 +155,7 @@ impl Bridge {
 
     /// Cookies a login window received from the server (fallback login, see `auth.rs`) join the jar.
     pub fn import_cookies(&self, cookies: Vec<tauri::webview::Cookie<'static>>) {
-        let server = self.server();
+        let Some(server) = self.server() else { return };
         let Ok(url) = Url::parse(&server) else { return };
         {
             let mut jar = self.jar.lock().unwrap();
@@ -182,7 +182,13 @@ impl Bridge {
             cors(res.headers_mut(), page_origin.as_ref());
             return res;
         }
-        let server = self.server();
+        let Some(server) = self.server() else {
+            return error(
+                404,
+                "Link your TDJ server under Settings → Connections to use this.",
+                page_origin.as_ref(),
+            );
+        };
         let Some(url) = target_url(&server, &req.uri().to_string()) else {
             return error(404, "Not an API path.", page_origin.as_ref());
         };
@@ -223,7 +229,11 @@ impl Bridge {
             }
             Err(e) => {
                 log::warn!("bridge: {e}");
-                error(503, "Can't reach your TDJ server. The night you already composed still plays from this device.", page_origin.as_ref())
+                error(
+                    503,
+                    "Can't reach your TDJ server. Everything else keeps working on this device.",
+                    page_origin.as_ref(),
+                )
             }
         }
     }
@@ -254,7 +264,7 @@ fn restrict(_: &Path) {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    const S: &str = "https://d3k5k2c1l0s5ri.cloudfront.net";
+    const S: &str = "https://tdj.example.org";
 
     #[test]
     fn maps_only_api_paths_both_scheme_styles() {
@@ -315,7 +325,7 @@ mod tests {
     #[test]
     fn switching_server_clears_cookies_and_jar_is_private() {
         let dir = tempfile::tempdir().unwrap();
-        let b = Bridge::new(S.into(), dir.path());
+        let b = Bridge::new(Some(S.into()), dir.path());
         let url = Url::parse(S).unwrap();
         b.jar
             .lock()
@@ -323,7 +333,7 @@ mod tests {
             .parse("tdj_uid=abc; Max-Age=3600; Path=/", &url)
             .unwrap();
         b.persist();
-        let reloaded = Bridge::new(S.into(), dir.path());
+        let reloaded = Bridge::new(Some(S.into()), dir.path());
         assert_eq!(reloaded.jar.lock().unwrap().iter_unexpired().count(), 1);
         #[cfg(unix)]
         {
@@ -334,7 +344,9 @@ mod tests {
                 .mode();
             assert_eq!(mode & 0o077, 0);
         }
-        reloaded.set_server("https://my.tdj".into());
+        reloaded.set_server(Some("https://my.tdj".into()));
         assert_eq!(reloaded.jar.lock().unwrap().iter_unexpired().count(), 0);
+        reloaded.set_server(None);
+        assert_eq!(reloaded.server(), None);
     }
 }

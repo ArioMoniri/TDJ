@@ -55,7 +55,8 @@ jobs:
       APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID || 'FF68N39FU5' }}
       TDJ_APP_BUNDLE_ID: ${{ vars.TDJ_APP_BUNDLE_ID || 'com.ariomoniri.tdj' }}
-      TDJ_APP_BACKEND_URL: ${{ vars.TDJ_APP_BACKEND_URL }}
+      # the apps are standalone: no server address is built in; the Spotify Client ID is public (PKCE)
+      TDJ_SPOTIFY_CLIENT_ID: ${{ vars.TDJ_SPOTIFY_CLIENT_ID }}
       TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
       TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
       TAURI_UPDATER_PUBKEY: ${{ vars.TAURI_UPDATER_PUBKEY }}

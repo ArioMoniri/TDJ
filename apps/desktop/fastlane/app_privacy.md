@@ -1,28 +1,33 @@
 # App Privacy answers (App Store Connect → TDJ → App Privacy)
 
 The App Store Connect API cannot set these, so they are entered once by hand (about 3 minutes). They match
-what the code does (checked 2026-11-14) and `src-tauri/PrivacyInfo.xcprivacy`. Re-check when a feature that
-sends data is added.
+what the code does (checked 2026-11-14, the standalone app) and `src-tauri/PrivacyInfo.xcprivacy`. Re-check when a
+feature that sends data is added.
 
 **Privacy Policy URL:** https://github.com/ArioMoniri/TDJ/blob/HEAD/docs/PRIVACY.md
 
-**Do you or your third-party partners collect data from this app?** Yes.
+**Do you or your third-party partners collect data from this app?** **No** ("Data Not Collected").
 
-| Data type (Apple's list) | Collected | Linked to the user | Tracking | Purpose | Why |
-|---|---|---|---|---|---|
-| Identifiers → User ID | Yes | **No** | **No** | App Functionality | the anonymous signed `tdj_uid` cookie (random id, no name or e-mail): the daily limit of the shared AI key and, when the server database is on, the rows of the DJ's own database |
-| User Content → Other User Content | Yes | **No** | **No** | App Functionality | feedback text the DJ sends, saved sets and database edits when the server database is on |
+Why: the apps are standalone. The catalogue, the composer, the DJ's database, history, settings and learned
+preferences live on the device (the bundled UI and its SQLite database); no TDJ server is contacted and there is
+no account, no identifier, no analytics or advertising SDK. Nothing is sent to the developer.
 
-Everything else: **not collected** — no contact info, no location, no health, no financial info, no browsing
-history, no purchases, no diagnostics, no usage data, no advertising data. No third-party SDK for analytics or
-ads.
-
-Facts behind the answers:
-- Model API keys (Anthropic, OpenAI, Gemini, OpenRouter) stay on the device; each request carries the key in a
-  header to the TDJ server, which forwards it to the chosen provider and stores nothing.
-- Spotify, Google and Dropbox logins: the tokens live in an encrypted (sealed) cookie on the device; the server
-  keeps no copy. The service itself receives what the DJ sends to it (a playlist, a file).
+Facts behind the answer:
+- Composing, improving, benchmarking and swaps run in the app (`@tdj/core` in a Web Worker) over the catalogue
+  shipped inside it.
+- Song previews and recording facts come from Deezer and MusicBrainz, requested by the app with the song's title
+  and orchestra only (no personal data, no identifier).
+- Model API keys (Anthropic, OpenAI, Gemini, OpenRouter) are the DJ's own, kept in the Keychain; the app sends
+  requests straight to the provider the DJ chose. There is no shared key and no TDJ server in between.
+- Spotify: the DJ signs in to their own account (Authorization Code with PKCE, no client secret in the app); the
+  tokens stay in the Keychain and the app talks to Spotify directly. Spotify receives what the DJ sends (a
+  playlist, a search).
 - Local music files never leave the device.
+- **Optional link to a TDJ server** (Settings → Connections, off by default): a DJ may link a server they run
+  themselves (or their organiser runs) for rooms, database sync, Google and Dropbox. That server is the DJ's own
+  choice and not operated for this app; nothing is linked unless the DJ types its address and confirms. It does
+  not change the answer above. If the developer ever operates a server that the app links to by default, revisit
+  these answers.
 
 ## Age rating (App Store Connect → the version → Age Rating)
 
