@@ -11,4 +11,4 @@ npx tdj-deploy --help
 
 It asks only what cannot be set inside the app later: the AWS region, the one-time deploy role (fork route),
 and optionally your Spotify app (default: set it later at `/admin`). Secrets never go on a command line or
-into a file. Full guide: [docs/SELF_DEPLOY.md](https://github.com/ArioMoniri/TDJ/blob/main/docs/SELF_DEPLOY.md).
+into a file. Full guide: [docs/SELF_DEPLOY.md](https://github.com/ArioMoniri/TDJ/blob/HEAD/docs/SELF_DEPLOY.md).

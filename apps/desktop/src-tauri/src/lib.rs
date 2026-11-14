@@ -417,7 +417,7 @@ fn on_menu(app: &AppHandle, id: &str) {
         }
         "help.privacy" => {
             let _ = app.opener().open_url(
-                "https://github.com/ArioMoniri/TDJ/blob/main/docs/PRIVACY.md",
+                "https://github.com/ArioMoniri/TDJ/blob/HEAD/docs/PRIVACY.md",
                 None::<&str>,
             );
             return;

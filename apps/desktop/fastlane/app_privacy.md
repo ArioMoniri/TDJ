@@ -4,7 +4,7 @@ The App Store Connect API cannot set these, so they are entered once by hand (ab
 what the code does (checked 2026-11-14) and `src-tauri/PrivacyInfo.xcprivacy`. Re-check when a feature that
 sends data is added.
 
-**Privacy Policy URL:** https://github.com/ArioMoniri/TDJ/blob/main/docs/PRIVACY.md
+**Privacy Policy URL:** https://github.com/ArioMoniri/TDJ/blob/HEAD/docs/PRIVACY.md
 
 **Do you or your third-party partners collect data from this app?** Yes.
 
