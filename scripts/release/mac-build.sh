@@ -149,6 +149,12 @@ for p in APPLE_DISTRIBUTION_CERT MAC_INSTALLER_CERT DEVELOPER_ID_APPLICATION_CER
   security import "$SIGN/$p.p12" -k "$KC" -P "$(cat "$SIGN/$p.password")" -f pkcs12 \
     -T /usr/bin/codesign -T /usr/bin/productbuild -T /usr/bin/productsign -T /usr/bin/security >/dev/null 2>&1 || true
 done
+# Apple's intermediate CAs: a Developer ID identity is not "valid" (CSSMERR_TP_NOT_TRUSTED) without the G2 CA, and
+# a fresh macOS image ships only some of them
+for ca in DeveloperIDG2CA AppleWWDRCAG3; do
+  curl -fsSL "https://www.apple.com/certificateauthority/$ca.cer" -o "$WORK/$ca.cer" \
+    && security import "$WORK/$ca.cer" -k "$KC" >/dev/null 2>&1 || true
+done
 security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KC_PW" "$KC" >/dev/null
 # search list: ours first, keep the user's
 OTHER_KCS=()
@@ -246,7 +252,14 @@ if want ipad; then
     echo "!! gen/apple was generated: commit apps/desktop/src-tauri/gen/apple so later builds reuse it"
   fi
   # iPad only (TARGETED_DEVICE_FAMILY 2), every orientation, privacy manifest, launch colour, icons without alpha
-  sed -i '' -E 's/TARGETED_DEVICE_FAMILY: .*/TARGETED_DEVICE_FAMILY: "2"/' "$GEN/project.yml"
+  # (tauri's project.yml has no TARGETED_DEVICE_FAMILY key, so xcodegen's default "1,2" shipped iPhone support and
+  # App Store Connect then asked for iPhone screenshots: set it in the iOS target's base settings)
+  if grep -q 'TARGETED_DEVICE_FAMILY:' "$GEN/project.yml"; then
+    sed -i '' -E 's/TARGETED_DEVICE_FAMILY: .*/TARGETED_DEVICE_FAMILY: "2"/' "$GEN/project.yml"
+  else
+    perl -0pi -e 's/(\n    settings:\n      base:\n)/$1        TARGETED_DEVICE_FAMILY: "2"\n/' "$GEN/project.yml"
+  fi
+  grep -q 'TARGETED_DEVICE_FAMILY: "2"' "$GEN/project.yml" || die "could not make the iOS target iPad-only (project.yml)"
   IOS_SRC=$(find "$GEN" -maxdepth 1 -type d -name '*_iOS' | head -1)
   [ -n "$IOS_SRC" ] && cp "$TAURI_DIR/PrivacyInfo.xcprivacy" "$IOS_SRC/PrivacyInfo.xcprivacy"
   mkdir -p "$GEN/Assets.xcassets/LaunchBackground.colorset"

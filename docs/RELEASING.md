@@ -167,6 +167,9 @@ Scenes and captions: `apps/desktop/store/scenes.ts`. Upload (Linux, API key in e
 |---|---|
 | `apple-setup`: certificate limit reached | revoke an unused one at https://developer.apple.com/account/resources/certificates/list, or `--revoke-oldest` (never revokes Developer ID) |
 | No Developer ID identity | the key could not create it: owner step 6 |
+| `openssl pkcs12 failed: No certificate matches private key` on `--devid-cer` | the `.cer` was made from an older CSR. Since 2026-11-14 the pending key + CSR are kept until a `.cer` is imported; make the certificate from `DEVELOPER_ID_APPLICATION_CERT_CSR` in the store |
+| Developer ID identity listed as `CSSMERR_TP_NOT_TRUSTED` | the Developer ID G2 intermediate CA is missing; `mac-build.sh` now imports it (and WWDR G3) into the signing keychain |
+| App Store Connect asks for iPhone screenshots | the IPA declared iPhone support (`UIDeviceFamily` 1,2); `mac-build.sh` now sets `TARGETED_DEVICE_FAMILY: "2"` in `gen/apple/project.yml`, rebuild and upload |
 | `tauri ios build` cannot sign | rerun: every run re-checks the profile against the current certificate and replaces a stale one |
 | altool upload: "No suitable application records" | owner step 2 (app record) missing or bundle ID differs |
 | Notarisation "Invalid" | `xcrun notarytool log <id> --key … --key-id … --issuer …` prints the reason |

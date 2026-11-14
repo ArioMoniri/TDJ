@@ -229,6 +229,11 @@ test("Developer ID refused for a non-Account-Holder key → manual path keeps th
     manualSteps({ app: null, devid: first, bundleId: "b", teamId: "T" }).join("\n"),
     /--devid-cer/,
   );
+  // a second run before the owner is done (e.g. the release script's own setup step) keeps the same key + CSR,
+  // so the certificate made from the first CSR still matches
+  const again = await ensureCert(api, store, "devid", { log: quiet });
+  assert.equal(again.status, "manual");
+  assert.equal(again.csrPem, first.csrPem);
   cert = appleSigns(first.csrPem); // the owner uploads the CSR and downloads the .cer
   const done = await ensureCert(api, store, "devid", { log: quiet, devidCer: cert });
   assert.deepEqual(done, { status: "imported", id: "DEV9" });

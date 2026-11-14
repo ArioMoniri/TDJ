@@ -35,6 +35,15 @@ def review_info
   }.compact
 end
 
+# App Review answers: HTTPS + OS crypto only; third-party music (played through the services' own APIs, which
+# grant the rights); no advertising identifier
+SUBMISSION_INFO = {
+  export_compliance_uses_encryption: false,
+  add_id_info_uses_idfa: false,
+  content_rights_contains_third_party_content: true,
+  content_rights_has_rights: true,
+}.freeze
+
 def deliver_common(platform, screenshots)
   {
     api_key: asc_key,
@@ -64,12 +73,12 @@ platform :ios do
           changelog: File.read(File.join(META, "en-US", "release_notes.txt")))
   end
 
-  desc "Submit the iPad version for App Review (build_number:), phased release, manual release"
+  desc "Submit the iPad version for App Review (build_number: as App Store Connect shows it, e.g. 1.0.0.457765; app_version:), phased release, manual release"
   lane :submit do |o|
     deliver(**deliver_common("ios", File.expand_path("screenshots", __dir__)),
-            skip_binary_upload: true, submit_for_review: true, build_number: o[:build_number],
+            skip_binary_upload: true, submit_for_review: true, build_number: o[:build_number], app_version: o[:app_version],
             automatic_release: false, phased_release: true,
-            submission_information: { export_compliance_uses_encryption: false, add_id_info_uses_idfa: false })
+            submission_information: SUBMISSION_INFO)
   end
 end
 
@@ -86,11 +95,11 @@ platform :mac do
           changelog: File.read(File.join(META, "en-US", "release_notes.txt")))
   end
 
-  desc "Submit the Mac version for App Review (build_number:)"
+  desc "Submit the Mac version for App Review (build_number:, app_version:)"
   lane :submit do |o|
     deliver(**deliver_common("osx", File.expand_path("screenshots_mac", __dir__)),
-            skip_binary_upload: true, submit_for_review: true, build_number: o[:build_number],
+            skip_binary_upload: true, submit_for_review: true, build_number: o[:build_number], app_version: o[:app_version],
             automatic_release: false, phased_release: true,
-            submission_information: { export_compliance_uses_encryption: false, add_id_info_uses_idfa: false })
+            submission_information: SUBMISSION_INFO)
   end
 end

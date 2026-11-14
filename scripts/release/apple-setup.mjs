@@ -341,7 +341,11 @@ export async function ensureCert(api, store, kind, opts) {
     return save(match?.id ?? "imported", b64, keyPem, "imported");
   }
 
-  const { keyPem, csrPem } = makeCsr(c.label, run);
+  // Developer ID (Account Holder only): keep the pending key + CSR of an earlier run, so the certificate the owner
+  // makes from the CSR printed then still matches the key here (a fresh CSR per run would orphan it)
+  const pendingKey = kind === "devid" ? await store.get(`${c.prefix}_PENDING_KEY`) : null;
+  const pendingCsr = pendingKey ? await store.get(`${c.prefix}_CSR`) : null;
+  const { keyPem, csrPem } = pendingKey && pendingCsr ? { keyPem: pendingKey, csrPem: pendingCsr } : makeCsr(c.label, run);
   let lastErr = null;
   for (const certificateType of c.types) {
     for (let attempt = 0; attempt < 2; attempt++) {
