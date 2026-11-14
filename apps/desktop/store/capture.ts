@@ -19,6 +19,9 @@ async function run(page: Page, scene: Scene) {
       else if ("press" in step) await page.keyboard.press(step.press);
       else if ("scroll" in step)
         await page.locator(step.scroll).first().scrollIntoViewIfNeeded({ timeout: 8000 });
+      else if ("fill" in step) await page.locator(step.fill).first().fill(step.text, { timeout: 8000 });
+      else if ("blur" in step)
+        await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
       else if ("waitFor" in step) await page.waitForSelector(step.waitFor, { timeout: 60000 });
       else await page.waitForTimeout(step.wait);
     } catch (e) {

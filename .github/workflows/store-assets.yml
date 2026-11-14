@@ -37,7 +37,7 @@ jobs:
         env:
           CHROMIUM: ""
           TDJ_STORE_BACKEND: ${{ vars.TDJ_APP_BACKEND_URL || 'https://d3k5k2c1l0s5ri.cloudfront.net' }}
-        run: pnpm --filter @tdj/desktop store
+        run: pnpm --filter @tdj/desktop run screenshots
       - uses: actions/upload-artifact@v4
         with:
           name: store-assets

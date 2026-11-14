@@ -9,3 +9,4 @@ fastlane/screenshots/
 *.p12
 *.mobileprovision
 *.provisionprofile
+fastlane/screenshots_mac/

@@ -34,7 +34,13 @@ export interface Scene {
   path: string;
   /** steps after load (selectors are tolerant: a missing control never fails the run, the shot is still taken) */
   steps?: Array<
-    { click: string } | { press: string } | { scroll: string } | { wait: number } | { waitFor: string }
+    | { click: string }
+    | { press: string }
+    | { scroll: string }
+    | { wait: number }
+    | { waitFor: string }
+    | { fill: string; text: string }
+    | { blur: true }
   >;
   dark?: boolean;
   caption: Record<Locale, string>;
@@ -55,21 +61,27 @@ export const SCENES: Scene[] = [
   },
   {
     id: "03_booth",
-    path: "/booth",
+    // the Booth plays the night composed on Compose: open the featured night, then "Play the night"
+    path: "/?featured=golden-double-peak",
     dark: true,
-    steps: [{ wait: 1500 }],
+    steps: [{ waitFor: "#result" }, { click: "text=Play the night" }, { wait: 2500 }],
     caption: { "en-US": "Play the night from the booth", tr: "Geceyi kabinden çalın" },
   },
   {
     id: "04_database",
     path: "/database",
-    steps: [{ wait: 1500 }],
+    steps: [
+      { wait: 1200 },
+      { fill: "input[type=search], input[placeholder*='orchestra']", text: "Di Sarli" },
+      { wait: 6000 },
+      { blur: true },
+    ],
     caption: { "en-US": "Your own tango database", tr: "Kendi tango veritabanınız" },
   },
   {
     id: "05_export",
     path: "/?featured=golden-double-peak",
-    steps: [{ waitFor: "#result" }, { press: "ControlOrMeta+e" }, { wait: 1000 }],
+    steps: [{ waitFor: "#result" }, { press: "ControlOrMeta+e" }, { wait: 1000 }, { blur: true }],
     caption: { "en-US": "Send it to Spotify or your DJ app", tr: "Spotify'a ya da DJ uygulamanıza gönderin" },
   },
   {
