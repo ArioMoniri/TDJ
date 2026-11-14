@@ -16,6 +16,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { BUILTIN_CORTINAS } from "../packages/core/src/cortinas";
 import { normTitle } from "../packages/core/src/energy";
+import { readIndexSongs } from "../packages/core/src/load";
 import {
   bareTitle,
   cortinaMatchProblem,
@@ -47,12 +48,16 @@ type Entry = {
   album: string;
   popularity: number;
   matched: string;
+  /** round 21: the album's release date as Spotify dates it, and when it was last checked */
+  release?: string;
+  checkedAt?: string;
 } | null;
 const cache: Record<string, Entry> = existsSync(CACHE) ? JSON.parse(readFileSync(CACHE, "utf8")) : {};
 const cueCache: Record<string, Entry> = existsSync(CUE_CACHE)
   ? JSON.parse(readFileSync(CUE_CACHE, "utf8"))
   : {};
-const songs = JSON.parse(readFileSync(`${ROOT}data/index/songs.json`, "utf8")) as Song[];
+// (round 21: the index with the repo-level database — corrections and the DJ's added sides)
+const songs = readIndexSongs(ROOT) as Song[];
 const resolved = JSON.parse(readFileSync(`${ROOT}data/cache/resolve/tracks.json`, "utf8")) as Record<
   string,
   { id?: string; title?: string; artist?: string; album?: string; durationMs?: number } | null
@@ -124,6 +129,7 @@ const asCand = (t: Item): MatchCandidate => ({
   artists: t.artists.map((a) => a.name),
   album: t.album.name,
   durationMs: t.duration_ms,
+  ...(t.album.release_date ? { release: t.album.release_date } : {}),
 });
 const entryOf = (t: Item): NonNullable<Entry> => ({
   uri: t.uri,
@@ -132,6 +138,8 @@ const entryOf = (t: Item): NonNullable<Entry> => ({
   album: t.album.name,
   popularity: t.popularity,
   matched: `${t.artists.map((a) => a.name).join(", ")} – ${t.name}`,
+  ...(t.album.release_date ? { release: t.album.release_date } : {}),
+  checkedAt: new Date().toISOString(),
 });
 const bare = (x: string) =>
   x
@@ -576,13 +584,61 @@ async function enrichCortinasByCrawl() {
   if (none.length) console.log(`crawled artist, no correct record found:\n  ${none.join("\n  ")}`);
 }
 
-(args.crawl && args.cortinas === "true"
-  ? enrichCortinasByCrawl()
-  : args.crawl
-    ? enrichByCrawl()
-    : args.cortinas === "true"
-      ? enrichCortinas()
-      : enrichSongs()
+/**
+ * Round 21 (--dates): every cached Spotify id (sides and cortinas) re-read from the track endpoint: the album's
+ * release date (`release`), the album name and the length as Spotify serves them now, with `checkedAt`. A changed
+ * value replaces the stored one (the run reports it); an id Spotify no longer serves is reported, not kept silently.
+ * The release date feeds the round-21 match rule (an album Spotify dates before the side, or a pre-2000 release more
+ * than two years after it, is another record unless it names the side's years).
+ */
+async function enrichDates() {
+  const refresh = args.refresh === "true";
+  let n = 0,
+    changed = 0;
+  const gone: string[] = [];
+  for (const [label, c, file] of [
+    ["sides", cache, CACHE],
+    ["cortinas", cueCache, CUE_CACHE],
+  ] as const) {
+    for (const [k, v] of Object.entries(c)) {
+      if (!v?.uri || (!refresh && v.release && v.checkedAt)) continue;
+      const t = await get(`https://api.spotify.com/v1/tracks/${v.uri.split(":").pop()}`).catch(() => null);
+      if (!t?.album) {
+        gone.push(`${label} ${k} ${v.uri}`);
+        continue;
+      }
+      const next = {
+        ...v,
+        album: t.album.name as string,
+        durationMs: t.duration_ms as number,
+        release: t.album.release_date as string,
+        checkedAt: new Date().toISOString(),
+      };
+      if (v.release && (v.release !== next.release || v.album !== next.album)) {
+        changed++;
+        console.log(`changed ${k}: ${v.album} ${v.release ?? "?"} → ${next.album} ${next.release}`);
+      }
+      c[k] = next;
+      if (++n % 50 === 0) {
+        writeFileSync(file, JSON.stringify(c, null, 0));
+        console.log(`${n} checked`);
+      }
+    }
+    writeFileSync(file, JSON.stringify(c, null, 0));
+  }
+  console.log(`dates: ${n} ids checked, ${changed} changed, ${gone.length} not served`);
+  if (gone.length) console.log(`  ${gone.join("\n  ")}`);
+}
+
+(args.dates === "true"
+  ? enrichDates()
+  : args.crawl && args.cortinas === "true"
+    ? enrichCortinasByCrawl()
+    : args.crawl
+      ? enrichByCrawl()
+      : args.cortinas === "true"
+        ? enrichCortinas()
+        : enrichSongs()
 ).catch((e) => {
   console.error(e);
   process.exit(1);

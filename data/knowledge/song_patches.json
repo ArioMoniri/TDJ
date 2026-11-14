@@ -1,0 +1,12 @@
+{
+ "about": "Round 21: corrections of index rows with their source (the repo-level database, applied at load under the DJ's own corrections).",
+ "songs": {
+  "8106c5a228": {
+   "year": 1938,
+   "date": "1938-01-21",
+   "era": "golden-early",
+   "source": "Spotify 5g3zxHHVxvxwA6iFARCZ8H 'Corazon de Oro - Instrumental (Remasterizado)', Colección Completa, Vol. 90 (Remasterizado), the series dated by recording session: 1938-01-21",
+   "at": "2026-11-14"
+  }
+ }
+}

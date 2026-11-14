@@ -1,0 +1,28 @@
+{
+ "about": "Round 21: sides the DJ added that the listado does not hold (the repo-level database). Merged into the index at load (packages/core/src/load.ts); each names where its year comes from.",
+ "songs": [
+  {
+   "id": "8e3307b8a1",
+   "title": "Me Voy a Baraja",
+   "rhythm": "tango",
+   "rhythmCode": "T",
+   "orchestra": "Edgardo Donato",
+   "orchestraId": "edgardo-donato",
+   "singer": "Horacio Lagos",
+   "singerId": "horacio-lagos",
+   "vocal": true,
+   "year": 1938,
+   "yearApprox": true,
+   "dateRange": [
+    1936,
+    1938
+   ],
+   "date": null,
+   "era": "golden-early",
+   "album": null,
+   "source": "dj-added",
+   "notes": "Added round 21 for the DJ's featured-night tanda. Not in the listado. Years: the Spotify album 'Embrujo gitano, Edgardo Donato (1936-1938)' (2CLDdxYcYTvCVaO5VdJqbg) carries it; no dated transfer found.",
+   "addedAt": "2026-11-14"
+  }
+ ]
+}
