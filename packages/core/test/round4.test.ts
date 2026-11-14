@@ -171,8 +171,10 @@ describe("A5 — La Cumparsita versions", () => {
         | { cumparsitaVersions?: number[] }
         | undefined;
       for (const y of prof?.cumparsitaVersions ?? []) years.add(y);
+      // (round 21: the opening is the first tanda's orchestra's version nearest its years — the DJ's rule — else a
+      // documented version)
       expect(
-        years.has(p.opening!.year ?? 0),
+        years.has(p.opening!.year ?? 0) || p.opening!.orchestraId === p.tandas[0]!.orchestraId,
         `seed ${seed}: opening ${p.opening!.orchestra} ${p.opening!.year}`,
       ).toBe(true);
       const u = p.tandas.at(-1)!;

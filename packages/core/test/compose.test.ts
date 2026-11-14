@@ -165,7 +165,9 @@ describe("compose", () => {
 describe("exports", () => {
   it("produces every format with the right track count", () => {
     const p = compose({ hours: 2, seed: 5 }, deps);
-    const n = p.tandas.reduce((a, t) => a + t.songs.length + (t.cortina ? 1 : 0), 0) + 1;
+    // (+ the closing, + the opening La Cumparsita of round 21)
+    const n =
+      p.tandas.reduce((a, t) => a + t.songs.length + (t.cortina ? 1 : 0), 0) + 1 + (p.opening ? 1 : 0);
     expect(EXPORTERS.m3u8(p).split("#EXTINF").length - 1).toBe(n);
     expect(EXPORTERS.csv(p).trim().split("\n").length - 1).toBe(n);
     expect(EXPORTERS.rekordbox(p)).toContain('<DJ_PLAYLISTS Version="1.0.0">');

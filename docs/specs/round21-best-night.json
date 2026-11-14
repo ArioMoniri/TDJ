@@ -3,7 +3,7 @@
  "name": "Golden 1935–45 · 4 h · Turkish cortinas · double peak",
  "createdAt": "2026-11-11T22:39:49.125Z",
  "options": {
-  "hours": 4.5,
+  "hours": 4,
   "eras": [
    "golden"
   ],
@@ -7984,7 +7984,7 @@
   "gapsSec": 292.5
  },
  "score": {
-  "total": 75,
+  "total": 73,
   "factors": [
    {
     "key": "integrity",
@@ -8032,8 +8032,8 @@
     "key": "variety",
     "label": "Orchestra variety per hour",
     "weight": 5,
-    "score": 0.8823529411764706,
-    "detail": "15 orchestras for 4.5 h (target ≥17)"
+    "score": 1,
+    "detail": "15 orchestras for 4 h (target ≥15)"
    },
    {
     "key": "titles",
@@ -8158,8 +8158,8 @@
     "key": "duration",
     "label": "Duration fit (±4 min of target)",
     "weight": 3,
-    "score": 0.9091666666666667,
-    "detail": "5.8 min off target"
+    "score": 0,
+    "detail": "35.8 min off target"
    },
    {
     "key": "strict",

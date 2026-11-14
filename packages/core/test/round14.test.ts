@@ -270,9 +270,21 @@ const R16_RULES = [
   "orchestraCount",
   "closerVary",
 ];
+/** the round-21 rules (round21.test.ts judges them; their distributions are measured in docs/specs/round21-engine.md) */
+const R21_RULES = [
+  "tandaVoice",
+  "tandaVocalStyle",
+  "tandaBpm",
+  "tandaLevel",
+  "tandaTone",
+  "bigFour",
+  "cumparsitaOpener",
+];
 describe("B–F — the strict panel on every composed night (golden set S1–S12 and the featured options)", () => {
   // (the round-15 rules are judged by round15.test.ts)
-  for (const r of STRICT_RULES.filter((x) => !R15_RULES.includes(x.key) && !R16_RULES.includes(x.key)))
+  for (const r of STRICT_RULES.filter(
+    (x) => !R15_RULES.includes(x.key) && !R16_RULES.includes(x.key) && !R21_RULES.includes(x.key),
+  ))
     it(`${r.key} (${r.severity}): ${r.label}`, () => {
       const bad = all().flatMap((p) => fmt(p, r.key));
       if (r.severity === "blocker" || !(r.key in RATCHET)) expect(bad.slice(0, 6)).toEqual([]);
@@ -290,7 +302,9 @@ describe("E — improveNight keeps the panel clean (fixer parity)", () => {
   it("after improveNight the golden set has zero blockers and no more should-fix items than composed (≤ 63 in all)", () => {
     let total = 0;
     const r14 = (r: ReturnType<typeof strictChecks>) =>
-      r.violations.filter((v) => v.severity === "should-fix" && !R15_RULES.includes(v.rule)).length;
+      r.violations.filter(
+        (v) => v.severity === "should-fix" && !R15_RULES.includes(v.rule) && !R21_RULES.includes(v.rule),
+      ).length;
     for (const s of SEEDS) {
       const a = strictChecks(golden(s)),
         r = strictChecks(improved(s));

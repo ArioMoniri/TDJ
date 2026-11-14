@@ -411,7 +411,11 @@ describe("compose and stats", () => {
     expect(p.stats.wallClockSec).toBe(plan.wallClockSec);
     expect(p.stats.gapsSec).toBe(round3(plan.items.reduce((a, i) => a + i.gapAfterSec, 0)));
     expect(p.stats.wallClockSec!).toBeGreaterThanOrEqual(p.stats.durationSec);
-    expect(p.stats.durationSec).toBe(computeStats(p.tandas, p.closing, p.options).durationSec);
+    // (round 21: the opening La Cumparsita plays inside the night's length)
+    expect(p.stats.durationSec).toBe(
+      computeStats(p.tandas, p.closing, p.options).durationSec +
+        (p.opening ? (p.opening.durationSec ?? 180) : 0),
+    );
   });
 
   it("attachBooth keeps the DJ's settings and trims, and swapTanda re-plans with them", () => {
@@ -438,11 +442,13 @@ describe("compose and stats", () => {
     expect(a).toEqual(b);
     expect(JSON.stringify(p)).toBe(before);
     expect(JSON.stringify(a)).toBe(JSON.stringify(b));
-    a.items[0]!.gapAfterSec = 99;
-    expect(planBooth(p, { gapSec: 3, trims: { x: 1 }, gapOverrides: { 1: 2 } }).items[0]!.gapAfterSec).toBe(
+    // (round 21: the opening La Cumparsita comes first — the first tanda's first track is the one gapOverrides[1] sets)
+    const k = a.items.findIndex((it) => it.kind === "track" && it.tanda === 1);
+    a.items[k]!.gapAfterSec = 99;
+    expect(planBooth(p, { gapSec: 3, trims: { x: 1 }, gapOverrides: { 1: 2 } }).items[k]!.gapAfterSec).toBe(
       2,
     );
-    expect(planBooth(p, { gapSec: 3, trims: { x: 1 } }).items[0]!.gapAfterSec).toBe(3);
+    expect(planBooth(p, { gapSec: 3, trims: { x: 1 } }).items[k]!.gapAfterSec).toBe(3);
   });
 });
 
@@ -560,12 +566,13 @@ describe("exports write the plan's seconds", () => {
     const tm = plan.markers.filter((m) => m.kind === "tanda");
     const lines = text.split("\n").filter((l) => /^T\+\d+:\d\d {2}\d\d\. \[/.test(l));
     expect(lines).toHaveLength(tm.length);
-    expect(lines[0]).toMatch(/^T\+0:00 {2}01\./);
+    // (round 21: the opening La Cumparsita plays first, so tanda 1 starts after it)
+    expect(lines[0]).toMatch(p.opening ? /^T\+0:0[2-4] {2}01\./ : /^T\+0:00 {2}01\./);
     const q = attachBooth(p, { startAt: "2026-10-19T21:30:00" });
     const clocked = toSetList(q)
       .split("\n")
       .filter((l) => /^\d\d:\d\d {2}\d\d\. \[/.test(l));
     expect(clocked).toHaveLength(tm.length);
-    expect(clocked[0]).toMatch(/^21:30 {2}01\./);
+    expect(clocked[0]).toMatch(p.opening ? /^21:3[2-4] {2}01\./ : /^21:30 {2}01\./);
   });
 });

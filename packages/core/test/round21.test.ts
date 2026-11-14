@@ -325,6 +325,9 @@ describe("pinned tandas — the DJ's exception", () => {
     // (the score agrees: a pinned tanda's mix is the DJ's, never an integrity fault)
     const f0 = (x: Playlist) => scorePlaylist(x).factors.find((f) => f.key === "integrity")!.score;
     expect(f0(q)).toBe(f0(p));
+    // a night the DJ's pinned tandas make longer than the request is never a duration failure
+    const longer = { ...q, stats: { ...q.stats, durationSec: q.options.hours! * 3600 * 1.2 } };
+    expect(scorePlaylist(longer).reasons ?? []).not.toContainEqual(expect.stringMatching(/^duration/));
     const im = improveNight(q, deps, { maxRounds: 1 });
     expect(im.playlist.tandas[3]!.songs.map((s) => s.id)).toEqual(mixed.songs.map((s) => s.id));
   });

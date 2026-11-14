@@ -520,13 +520,10 @@ const out0: Playlist = {
   ...base,
   closing,
   closingPinned: { by: "dj", reason: "the DJ's closing version (Bandonegro)", at: AT },
-  // (the DJ's inserts make the night longer than its 4 h request: the night says so, to the half hour)
+  // (the DJ's inserts make the night longer than its 4 h request: the request stays 4 h — the featured options are
+  // the seed-199 recipe the tests compose — and the score reads the extra length as the DJ's)
   options: {
     ...base.options,
-    hours:
-      Math.round(
-        ((tandas.reduce((a, t) => a + t.durationSec + (t.cortina?.lengthSec ?? 0), 0) + 2 * 180) / 3600) * 2,
-      ) / 2,
     rules: { ...(base.options.rules ?? {}), cumparsita: "both" },
   },
   opening: op.song,

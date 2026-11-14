@@ -470,7 +470,9 @@ export function hardFailures(p: Pick<Playlist, "tandas" | "options" | "stats">):
   });
   const hours = o.hours || 4;
   const minutes = p.stats.durationSec / 60;
-  if (Math.abs(p.stats.durationSec - hours * 3600) > 0.1 * hours * 3600)
+  // (round 21: tandas the DJ pinned past the request make the night longer by the DJ's choice — never a failure)
+  const djLonger = t.some((x) => x.pinned) && p.stats.durationSec > hours * 3600;
+  if (!djLonger && Math.abs(p.stats.durationSec - hours * 3600) > 0.1 * hours * 3600)
     out.push(`duration ${Math.round(minutes)} min for a ${hours} h request (more than 10 % off)`);
   const counts = new Map<string, number>();
   for (const x of t) counts.set(x.orchestraId, (counts.get(x.orchestraId) ?? 0) + 1);

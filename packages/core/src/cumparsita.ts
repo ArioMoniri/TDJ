@@ -60,9 +60,7 @@ export function openingCumparsita(
       isTandaEligible(s) &&
       !!s.year &&
       s.id !== closing?.id &&
-      !(closing && s.orchestraId === closing.orchestraId && s.year === closing.year) &&
-      // (an orchestra with documented La Cumparsita versions — profile, corpus — offers only those years)
-      (!documented(cat, s.orchestraId).size || documented(cat, s.orchestraId).has(s.year)),
+      !(closing && s.orchestraId === closing.orchestraId && s.year === closing.year),
   );
   const yrN = o.yearRange;
   const inNight = (s: Song) => !yrN || (s.year! >= yrN[0] && s.year! <= yrN[1]);
