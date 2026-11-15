@@ -109,12 +109,12 @@ test("Skip tanda 2 tonight: Up next and the night's time move past it and its co
   const first2 = items.findIndex((x) => x.kind === "track" && x.tanda === 2);
   const first3 = items.findIndex((x) => x.kind === "track" && x.tanda === 3);
   const nextTanda = page.getByTestId("booth-next-tanda");
-  await expect(nextTanda).toHaveAttribute("data-plan-index", String(first2));
+  await expect(nextTanda).toHaveAttribute("data-next-index", String(first2));
   const ttc0 = Number(await page.getByTestId("booth-time").getAttribute("data-ttc"));
   const cortina2 = await page.getByTestId("booth-next-cortina").innerText();
   await page.locator('.booth-tanda[data-tanda="2"]').getByTestId("booth-bypass").click();
   await expect(page.locator('.booth-tanda[data-tanda="2"]')).toHaveAttribute("data-bypassed", "true");
-  await expect(nextTanda).toHaveAttribute("data-plan-index", String(first3));
+  await expect(nextTanda).toHaveAttribute("data-next-index", String(first3));
   await expect(nextTanda).toContainText("3 of 25");
   await expect(page.getByTestId("booth-next-cortina")).not.toHaveText(cortina2);
   await expect
@@ -126,7 +126,7 @@ test("Skip tanda 2 tonight: Up next and the night's time move past it and its co
     const b = (window as unknown as { __tdjBooth: { setState: (s: object) => void } }).__tdjBooth;
     b.setState({ planIndex: i });
   }, last1);
-  const next = Number(await page.getByTestId("booth-next-title").getAttribute("data-plan-index"));
+  const next = Number(await page.getByTestId("booth-next-title").getAttribute("data-next-index"));
   expect(items[next]!.tanda === 2).toBe(false);
 });
 

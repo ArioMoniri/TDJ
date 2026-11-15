@@ -132,8 +132,10 @@ test("booth: the plan for a composed set, time to Cumparsita, dark forced, no gl
   const m = await page.evaluate(() => {
     const card = document.querySelector('[data-testid="booth-now"]')!;
     const strip = document.querySelector('[data-testid="booth-strip"]')!;
+    // (a control the strip hides at this width, e.g. the room volume below 1400 px, has no box: not counted)
     const small = [...strip.querySelectorAll("button, input")].filter((el) => {
       const r = el.getBoundingClientRect();
+      if (!r.width && !r.height) return false;
       return r.width < 44 || r.height < 44;
     }).length;
     const title = getComputedStyle(document.querySelector('[data-testid="booth-now-title"]')!).fontSize;

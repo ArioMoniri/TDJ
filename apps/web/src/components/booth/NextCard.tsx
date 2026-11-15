@@ -57,7 +57,7 @@ export function NextCard({ onJump }: { onJump: (planIndex: number) => void }) {
               <h3
                 className="booth-mid booth-next-title font-semibold"
                 data-testid="booth-next-title"
-                data-plan-index={up.next ?? undefined}
+                data-next-index={up.next ?? undefined}
               >
                 {item.title}
               </h3>
@@ -84,7 +84,7 @@ export function NextCard({ onJump }: { onJump: (planIndex: number) => void }) {
           className="mt-3 block w-full rounded-[var(--radius-m)] bg-[var(--fill-4)] px-3 py-2 text-left"
           onClick={() => onJump(nextTandaFirst)}
           data-testid="booth-next-tanda"
-          data-plan-index={nextTandaFirst}
+          data-next-index={nextTandaFirst}
         >
           <span className="text-caption1 block text-[var(--label-2)]">
             next tanda · {nt.tanda} of {tandas} · {ntTanda.rhythm}
