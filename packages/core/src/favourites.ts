@@ -1,4 +1,5 @@
 import { familyKey, yearBand } from "./learn";
+import { databasePrior, popularityOn, withPopularityPrior } from "./popularity";
 import type { Phase, Song, Tanda } from "./types";
 
 /**
@@ -59,6 +60,8 @@ export interface FloorTap {
 export interface DancerFavourites {
   /** "Use dancer favourites when composing" switched off (the evidence is kept, compose ignores it) */
   off?: boolean;
+  /** "Use popularity from databases" switched off (popularity.ts: the prior is the fame prior again) */
+  popularityOff?: boolean;
   /** the floor reactions (the latest per night and target; a tap on the same reaction again takes it back) */
   taps: FloorTap[];
   /** room hearts: night id → song id → { n: distinct dancers, role } (anonymous counts) */
@@ -100,6 +103,8 @@ export type Evidence = [number, number, number, number];
 export interface FavouriteTable {
   v: 1;
   off?: boolean;
+  /** popularity from databases on (popularity.ts `withPopularity`; read where the data is loaded) */
+  pop?: 1;
   sides: Record<string, Partial<Record<SlotRole, Evidence>>>;
   families: Record<string, Partial<Record<SlotRole, Evidence>>>;
 }
@@ -482,7 +487,7 @@ export function asFavouriteTable(
 }
 /** the table is on and holds evidence (compose stays exactly as without favourites otherwise) */
 export const favouritesActive = (T: FavouriteTable | null | undefined): T is FavouriteTable =>
-  tableOn(T) && (Object.keys(T.sides).length > 0 || Object.keys(T.families).length > 0);
+  tableOn(T) && (Object.keys(T.sides).length > 0 || Object.keys(T.families).length > 0 || popularityOn(T));
 
 const famIndex = new WeakMap<FavouriteTable, Map<string, Array<[number | null, string]>>>();
 /** families by key without the band: [band start (null = undated), full key] */
@@ -541,7 +546,10 @@ export function favouriteSideFactor(
 ): number {
   if (!tableOn(T)) return 1;
   const e = T.sides[id]?.[role];
-  return e && e[2] > 0 ? sideFactorOf(smoothedRate(e)) : 1;
+  if (e && e[2] > 0) return sideFactorOf(smoothedRate(withPopularityPrior(T, e, id, role)));
+  // popularity from databases (popularity.ts): a side without evidence of the DJ's own, by its prior alone
+  const p = databasePrior(T, id, role);
+  return p > 0 ? sideFactorOf(p) : 1;
 }
 
 /** a side is a crowd favourite (♥) in any role / in this role: its smoothed rate is clearly positive */
@@ -553,7 +561,9 @@ export function isFavouriteSide(T: FavouriteTable | null | undefined, id: string
   const roles = role ? [role] : SLOT_ROLES;
   return roles.some((r) => {
     const e = row[r];
-    return !!e && e[2] > 0 && e[0] > 0 && smoothedRate(e) >= FAVOURITE_BADGE_RATE;
+    return (
+      !!e && e[2] > 0 && e[0] > 0 && smoothedRate(withPopularityPrior(T, e, id, r)) >= FAVOURITE_BADGE_RATE
+    );
   });
 }
 
@@ -737,6 +747,7 @@ export function normalizeFavourites(x: unknown): DancerFavourites | undefined {
     v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, never>) : {};
   return {
     ...(o.off ? { off: true } : {}),
+    ...(o.popularityOff ? { popularityOff: true } : {}),
     taps: Array.isArray(o.taps)
       ? o.taps.filter(
           (t) =>
@@ -774,5 +785,11 @@ export function cleanFavouriteTable(x: unknown): FavouriteTable | undefined {
     }
     return out;
   };
-  return { v: 1, ...(o.off ? { off: true } : {}), sides: clean(o.sides), families: clean(o.families) };
+  return {
+    v: 1,
+    ...(o.off ? { off: true } : {}),
+    ...(o.pop === 1 ? { pop: 1 as const } : {}),
+    sides: clean(o.sides),
+    families: clean(o.families),
+  };
 }

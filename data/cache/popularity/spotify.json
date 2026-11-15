@@ -1,0 +1,8 @@
+{
+ "tracks": {},
+ "status": {
+  "status": "blocked",
+  "note": "GET /v1/tracks?ids= → HTTP 403; GET /v1/tracks/{id} answers without a popularity field for this app",
+  "checkedAt": "2026-11-15T17:26:18.602Z"
+ }
+}
