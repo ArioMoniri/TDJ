@@ -1,4 +1,5 @@
 import { importNight, NightFormatError } from "@tdj/core";
+import { artwork } from "@/lib/api/artwork";
 import {
   benchmark,
   checkEditRoute,
@@ -185,6 +186,8 @@ const LOCAL: Record<string, Partial<Record<Method, Handler>>> = {
   "/api/swap-track": { POST: swapTrack },
   "/api/meta": { GET: meta },
   "/api/popularity": { GET: popularity },
+  // covers without a Spotify login (lib/api/artwork.ts): the shipped cache, else oEmbed through the native client
+  "/api/artwork": { GET: (req, d) => artwork(req, d) },
   "/api/search": { GET: search },
   "/api/feedback": { POST: feedback },
   "/api/export": { POST: exportFile },
