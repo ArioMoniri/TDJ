@@ -2505,6 +2505,14 @@ html.theming *::after {
   .settings-cols > * {
     break-inside: avoid;
   }
+  /* a component that brings several groups (the featured night's learned rules: one of them taller than a column)
+     may break between them, never inside one */
+  .settings-cols > .settings-flow {
+    break-inside: auto;
+  }
+  .settings-cols > .settings-flow > * {
+    break-inside: avoid;
+  }
   .settings-cols > section:first-child > .section-head {
     margin-top: 0;
   }
