@@ -53,6 +53,10 @@ export interface BoothPlanItem {
   birthday?: boolean;
   /** round 22: a track the DJ cued — the player starts at `trimInSec` and stops at `stopSec` (else its end) */
   cued?: boolean;
+  /** wave 4: the next item starts this long before this one ends (a blend or rise); absent = none */
+  overlapAfterSec?: number;
+  /** wave 4: the DJ's edited transition into the next item, resolved against both sides (absent = the night's gap) */
+  transitionAfter?: PlannedTransition;
 }
 export interface BoothMarker {
   kind: "opening" | "tanda" | "break" | "closing";
@@ -89,6 +93,8 @@ export interface BoothPlan {
   cortinaEdits?: Record<string, CortinaEdit>;
   /** song id → the DJ's cue in / stop at (round 22) */
   songCues?: Record<string, SongCue>;
+  /** wave 4: transition key (`fromId→toId`) → the DJ's edit of that transition */
+  transitions?: Record<string, TransitionEdit>;
   /** filled by the booth while the night plays */
   log?: BoothLogEntry[];
   anchors?: Array<{ planIndex: number; at: string }>;
@@ -135,6 +141,8 @@ export interface BoothInputs extends Partial<BoothSettings> {
   cortinaEdits?: Record<string, CortinaEdit>;
   /** round 22: song id → the DJ's cue in / stop at for that side (Player → Song info → waveform) */
   songCues?: Record<string, SongCue>;
+  /** wave 4: transition key (`fromId→toId`) → the DJ's edit of that transition (Booth → transition editor) */
+  transitions?: Record<string, TransitionEdit>;
 }
 
 export const BOOTH_DEFAULTS: BoothSettings = {
@@ -216,6 +224,7 @@ export function boothInputs(plan?: BoothPlan | null): BoothInputs {
   if (plan.cortinaStopSec !== undefined) out.cortinaStopSec = plan.cortinaStopSec;
   if (plan.cortinaEdits) out.cortinaEdits = plan.cortinaEdits;
   if (plan.songCues) out.songCues = plan.songCues;
+  if (plan.transitions) out.transitions = plan.transitions;
   return out;
 }
 
@@ -374,10 +383,29 @@ export function planBooth(p: Playlist, s: BoothInputs = {}): BoothPlan {
   // the night ends with its last item: no gap after it
   const last = items[items.length - 1];
   if (last) last.gapAfterSec = 0;
+  // wave 4: the DJ's edited transitions, between two neighbours (never across a break, never after the last item)
+  if (s.transitions && Object.keys(s.transitions).length)
+    for (let i = 0; i + 1 < items.length; i++) {
+      const a = items[i]!;
+      const b = items[i + 1]!;
+      if (a.kind === "break" || b.kind === "break" || !a.id || !b.id) continue;
+      const edit = s.transitions[transitionKey(a.id, b.id)];
+      if (!edit) continue;
+      const tr = resolveTransition(edit, {
+        from: { kind: a.kind, lengthSec: a.lengthSec, tanda: a.tanda },
+        to: { kind: b.kind, lengthSec: b.lengthSec, tanda: b.tanda },
+        cortinaFadeOutSec: a.fadeOutSec,
+      });
+      a.transitionAfter = tr;
+      a.gapAfterSec = tr.gapSec;
+      if (tr.overlapSec > 0) a.overlapAfterSec = tr.overlapSec;
+      // a cortina cut: the cortina's own fade, ending at its stop second (its length is unchanged)
+      if (tr.preset === "cortinaCut" && a.kind === "cortina") a.fadeOutSec = tr.fadeOutSec;
+    }
   let t = 0;
   for (const it of items) {
     it.startSec = round3(t);
-    t = it.startSec + it.lengthSec + it.gapAfterSec;
+    t = it.startSec + it.lengthSec + it.gapAfterSec - (it.overlapAfterSec ?? 0);
   }
   const markers: BoothMarker[] = [];
   const seen = new Set<number>();
@@ -431,6 +459,7 @@ export function planBooth(p: Playlist, s: BoothInputs = {}): BoothPlan {
   if (s.cortinaStopSec !== undefined) plan.cortinaStopSec = s.cortinaStopSec;
   if (s.cortinaEdits && Object.keys(s.cortinaEdits).length) plan.cortinaEdits = { ...s.cortinaEdits };
   if (s.songCues && Object.keys(s.songCues).length) plan.songCues = { ...s.songCues };
+  if (s.transitions && Object.keys(s.transitions).length) plan.transitions = { ...s.transitions };
   return plan;
 }
 
@@ -481,4 +510,142 @@ export function boothClock(plan: Pick<BoothPlan, "settings">, atSec: number): st
   }
   const s = Math.max(0, Math.floor(atSec));
   return `T+${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}`;
+}
+
+/* ---------- wave 4: per-transition edits ---------- */
+
+/**
+ * A transition preset (the Booth's transition editor). `gap`: silence between the two; `fade`: the outgoing fades
+ * out, silence, the incoming fades in; `blend`: the two overlap with crossing curves; `rise`: the incoming rises
+ * under the outgoing's tail; `cortinaCut`: the cortina fades out at its stop second, then the gap. "Auto" is no edit
+ * at all: the night's Mix settings decide.
+ */
+export type TransitionPreset = "gap" | "fade" | "blend" | "rise" | "cortinaCut";
+export type CurveShape = "linear" | "equalPower" | "sCurve";
+/** The DJ's edit of one transition, as stored (every number optional: the preset's defaults fill in). */
+export interface TransitionEdit {
+  preset: TransitionPreset;
+  /** silence after the outgoing (gap, fade, cortina cut) */
+  gapSec?: number;
+  /** blend / rise: the incoming starts this long before the outgoing ends */
+  overlapSec?: number;
+  fadeOutSec?: number;
+  fadeInSec?: number;
+  curveOut?: CurveShape;
+  curveIn?: CurveShape;
+  /** blend / rise: swap the bass at the centre of the overlap (EQ) */
+  bassSwap?: boolean;
+}
+/** A transition resolved against its two sides: every number present and inside the rules. */
+export interface PlannedTransition {
+  preset: TransitionPreset;
+  gapSec: number;
+  overlapSec: number;
+  fadeOutSec: number;
+  fadeInSec: number;
+  curveOut: CurveShape;
+  curveIn: CurveShape;
+  bassSwap: boolean;
+}
+export const TRANSITION_RANGES = {
+  gapSec: { min: 0.5, max: 5, step: 0.5 },
+  overlapSec: { min: 1, max: 12, step: 0.5 },
+  fadeSec: { min: 0, max: 10, step: 0.5 },
+} as const;
+const T_BASE = { overlapSec: 0, fadeOutSec: 0, fadeInSec: 0, bassSwap: false } as const;
+/** what each preset starts from */
+export const TRANSITION_DEFAULTS: Record<TransitionPreset, Omit<PlannedTransition, "preset">> = {
+  gap: { ...T_BASE, gapSec: 2.5, curveOut: "linear", curveIn: "linear" },
+  fade: { ...T_BASE, gapSec: 1, fadeOutSec: 3, fadeInSec: 2, curveOut: "sCurve", curveIn: "sCurve" },
+  blend: {
+    ...T_BASE,
+    gapSec: 0,
+    overlapSec: 4,
+    fadeOutSec: 4,
+    fadeInSec: 4,
+    curveOut: "equalPower",
+    curveIn: "equalPower",
+  },
+  rise: { ...T_BASE, gapSec: 0, overlapSec: 4, fadeInSec: 4, curveOut: "linear", curveIn: "sCurve" },
+  cortinaCut: { ...T_BASE, gapSec: 2.5, fadeOutSec: 4, curveOut: "equalPower", curveIn: "linear" },
+};
+export const TRANSITION_PRESETS = Object.keys(TRANSITION_DEFAULTS) as TransitionPreset[];
+export const CURVE_SHAPES: ReadonlyArray<CurveShape> = ["linear", "equalPower", "sCurve"];
+
+/** The key a transition is stored under: the outgoing id, an arrow, the incoming id. */
+export function transitionKey(fromId: string, toId: string): string {
+  return `${fromId}→${toId}`;
+}
+
+export interface TransitionEnd {
+  kind: BoothPlanItem["kind"];
+  lengthSec: number;
+  tanda: number;
+}
+
+/**
+ * The rules every edit passes through (pure; the plan and the booth both use it):
+ * - La Cumparsita (the opening and the closing) plays whole: no fade and no overlap on its side; a blend or rise
+ *   touching it becomes a fade (only the other side fades), with a gap of at least 0.5 s.
+ * - A cortina cut only follows a cortina (elsewhere it is a gap); its fade ends at the cortina's stop second.
+ * - An overlap is 1–12 s and never more than half of either side; the fades stay inside the overlap.
+ * - A fade never takes more than half of its side; gaps are 0.5–5 s.
+ */
+export function resolveTransition(
+  edit: TransitionEdit,
+  ctx: { from: TransitionEnd; to: TransitionEnd; cortinaFadeOutSec?: number },
+): PlannedTransition {
+  const G = TRANSITION_RANGES;
+  const cumpOut = ctx.from.kind === "closing";
+  const cumpIn = ctx.to.kind === "closing";
+  let preset: TransitionPreset = TRANSITION_PRESETS.includes(edit.preset) ? edit.preset : "gap";
+  if (preset === "cortinaCut" && ctx.from.kind !== "cortina") preset = "gap";
+  const overlapAsked = preset === "blend" || preset === "rise";
+  if (overlapAsked && (cumpOut || cumpIn)) preset = "fade";
+  const d = TRANSITION_DEFAULTS[preset];
+  const curve = (c: CurveShape | undefined, dflt: CurveShape) => (c && CURVE_SHAPES.includes(c) ? c : dflt);
+  const halfOut = Math.max(0, ctx.from.lengthSec / 2);
+  const halfIn = Math.max(0, ctx.to.lengthSec / 2);
+  const fade = (v: number | undefined, dflt: number, half: number) =>
+    round1(clamp(num(v) ?? dflt, G.fadeSec.min, Math.min(G.fadeSec.max, half)));
+  const out: PlannedTransition = {
+    preset,
+    gapSec: 0,
+    overlapSec: 0,
+    fadeOutSec: 0,
+    fadeInSec: 0,
+    curveOut: curve(edit.curveOut, d.curveOut),
+    curveIn: curve(edit.curveIn, d.curveIn),
+    bassSwap: false,
+  };
+  if (preset === "blend" || preset === "rise") {
+    const max = Math.min(G.overlapSec.max, halfOut, halfIn);
+    out.overlapSec = round1(
+      Math.max(0, Math.min(max, Math.max(G.overlapSec.min, num(edit.overlapSec) ?? d.overlapSec))),
+    );
+    out.fadeInSec = round1(clamp(num(edit.fadeInSec) ?? out.overlapSec, 0, out.overlapSec));
+    out.fadeOutSec =
+      preset === "blend" ? round1(clamp(num(edit.fadeOutSec) ?? out.overlapSec, 0, out.overlapSec)) : 0;
+    out.bassSwap = !!edit.bassSwap && out.overlapSec > 0;
+    return out;
+  }
+  out.gapSec = round1(
+    clamp(num(edit.gapSec) ?? (overlapAsked ? G.gapSec.min : d.gapSec), G.gapSec.min, G.gapSec.max),
+  );
+  if (preset === "fade") {
+    // a blend / rise turned into a fade (La Cumparsita) keeps the asked overlap as the other side's fade length
+    const asked = overlapAsked ? num(edit.overlapSec) : undefined;
+    out.fadeOutSec = cumpOut ? 0 : fade(edit.fadeOutSec ?? asked, d.fadeOutSec, halfOut);
+    out.fadeInSec = cumpIn ? 0 : fade(edit.fadeInSec ?? asked, d.fadeInSec, halfIn);
+  } else if (preset === "cortinaCut") {
+    // the cortina's fade reaches silence at its stop second; at least one second of it plays at full level
+    out.fadeOutSec = round1(
+      clamp(
+        num(edit.fadeOutSec) ?? ctx.cortinaFadeOutSec ?? d.fadeOutSec,
+        0,
+        Math.min(G.fadeSec.max, Math.max(0, ctx.from.lengthSec - 1)),
+      ),
+    );
+  }
+  return out;
 }
