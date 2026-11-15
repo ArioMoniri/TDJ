@@ -1057,7 +1057,10 @@ export function ExportSheet({
       <Group
         footer={
           includeCortinas
-            ? tx("exportSheet.cortinas_stop_at_s_in_files", { cortinaStop })
+            ? // 2026-11: files and the Booth start a cortina at its chorus; a Spotify playlist cannot carry a start
+              settings.cortinaHookStart !== false
+              ? tx("exportSheet.cortinas_stop_at_s_after_chorus", { cortinaStop })
+              : tx("exportSheet.cortinas_stop_at_s_in_files", { cortinaStop })
             : tx("exportSheet.no_cortinas_in_the_files_or")
         }
       >

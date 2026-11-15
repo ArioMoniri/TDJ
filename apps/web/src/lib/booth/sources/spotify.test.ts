@@ -199,6 +199,35 @@ describe("round 18: logged into Spotify, the booth plays exactly the checked rec
   });
 });
 
+describe("2026-11: a cortina starts at its chorus on Spotify too", () => {
+  it("the featured night's cortinas: /me/player/play carries position_ms at the plan's start (the chorus)", async () => {
+    vi.useFakeTimers();
+    const plan = decorate(featured, planBooth(featured));
+    const cortinas = plan.items.filter((it) => it.kind === "cortina" && (it.trimInSec ?? 0) > 0);
+    expect(cortinas.length).toBeGreaterThan(15);
+    const sp = spotify();
+    const { Ctor } = fakeSdk();
+    const a = new SpotifyAdapter({
+      fetchImpl: sp.fetchImpl,
+      loadSdk: async () => Ctor,
+      noFades: false,
+      phone: false,
+    });
+    const connecting = a.connect();
+    await vi.advanceTimersByTimeAsync(10);
+    await connecting;
+    const it = cortinas[0]!;
+    const uri = featured.tandas[it.tanda - 1]!.cortina!.spotify!.uri;
+    const { r, ev } = req(uri, { positionSec: it.trimInSec!, durationSec: it.lengthSec });
+    a.startItem(r);
+    await vi.advanceTimersByTimeAsync(50);
+    expect(ev.errors).toEqual([]);
+    const body = JSON.parse(sp.plays().at(-1)!.body!);
+    expect(body).toEqual({ uris: [uri], position_ms: Math.round(it.trimInSec! * 1000) });
+    expect(body.position_ms).toBeGreaterThan(0);
+  });
+});
+
 describe("round 23: a 404 from Spotify never stops the night", () => {
   it("connect waits for the SDK device to be registered before the transfer", async () => {
     vi.useFakeTimers();

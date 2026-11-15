@@ -1252,6 +1252,8 @@ export function Composer() {
           locked: live?.tandas.filter((t) => t.locked) ?? [],
           overrides: overridesForRequest(overrides),
           autoImprove: useStore.getState().settings.autoImprove !== false,
+          // 2026-11: Settings → Cortinas → "Start cortinas at the chorus"
+          cortinaHookStart: useStore.getState().settings.cortinaHookStart !== false,
         }),
       });
       const { autoImproved, ...p } = (await r.json()) as Playlist & {

@@ -471,6 +471,9 @@ export function CortinaSheet({ planIndex, onClose }: { planIndex: number | null;
               value={it.stopSec ?? 45}
               display={durationLabel(it.stopSec ?? 45)}
               {...CORTINA_EDIT_RANGES.stopSec}
+              // 2026-11: the stop is 20–90 s after the cortina's start (its chorus)
+              min={(it.trimInSec ?? 0) + CORTINA_EDIT_RANGES.stopSec.min}
+              max={(it.trimInSec ?? 0) + CORTINA_EDIT_RANGES.stopSec.max}
               onChange={(v) => setEdit(id, { stopSec: v })}
             />
             <Row label={tx("booth.sheets.plays_for")} value={durationLabel(it.lengthSec)} />

@@ -9,6 +9,7 @@ import {
   KeyRound,
   Languages,
   LoaderCircle,
+  Music2,
   Palette,
   ShieldCheck,
   Sparkles,
@@ -358,7 +359,8 @@ export default function Settings() {
         </Group>
 
         <Group
-          header={tx("settings.playback")}
+          header={tx("settings.cortinas")}
+          data-testid="settings-cortinas"
           footer={tx("settings.where_a_cortina_stops_t_dj", {
             p1:
               settings.cortinaStopSec === null
@@ -368,6 +370,23 @@ export default function Settings() {
                 : tx("settings.spotify_playlists_cannot_trim_tracks_cortinas"),
           })}
         >
+          {/* 2026-11: a cortina must be told from tango at once: it starts at its chorus, not its intro */}
+          <SwitchRow
+            label={tx("settings.start_cortinas_at_the_chorus")}
+            sub={
+              settings.cortinaHookStart === false
+                ? tx("settings.start_cortinas_at_the_chorus_sub")
+                : undefined
+            }
+            tip={tx("settings.start_cortinas_at_the_chorus_tip")}
+            checked={settings.cortinaHookStart !== false}
+            onChange={(v) => setSettings({ cortinaHookStart: v })}
+            tile={
+              <Tile color="#ff2d55">
+                <Music2 size={16} strokeWidth={2} />
+              </Tile>
+            }
+          />
           <StepperRow
             label={tx("settings.cortina_play_length")}
             sub={
