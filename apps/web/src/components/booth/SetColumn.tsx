@@ -153,11 +153,17 @@ export function SetColumn({
               data-hint={t ? tandaHint(t) : undefined}
             >
               <span className="text-caption1 min-w-0 flex-1 truncate font-semibold uppercase tracking-wide text-[var(--label-2)]">
-                {g.tanda === 0
-                  ? tx("booth.setColumn.opening")
-                  : t
-                    ? `${g.tanda} · ${t.rhythm} · ${t.orchestra}${t.singer ? ` / ${t.singer}` : ""}`
-                    : tx("booth.setColumn.closing")}
+                {g.tanda === 0 ? (
+                  tx("booth.setColumn.opening")
+                ) : t ? (
+                  <>
+                    {`${g.tanda} · ${t.rhythm} · `}
+                    {/* wave 3: names keep their Spanish capitals (no Turkish dotted İ) */}
+                    <span lang="es">{`${t.orchestra}${t.singer ? ` / ${t.singer}` : ""}`}</span>
+                  </>
+                ) : (
+                  tx("booth.setColumn.closing")
+                )}
               </span>
               {bypassedT.has(g.tanda - 1) && (
                 <span className="booth-skipped-chip" data-testid="booth-skipped-tonight">

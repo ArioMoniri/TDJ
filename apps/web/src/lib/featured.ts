@@ -1,13 +1,18 @@
 "use client";
+import { t } from "@/lib/i18n";
 import type { Playlist } from "./types";
 
 /** Built-in nights the app ships under /featured/<id>.json: a full Playlist as the engine returns it. */
 export const FEATURED = [
   {
     id: "golden-double-peak",
-    title: "Featured night",
+    get title() {
+      return t("featured.golden_title");
+    },
     // (wave 2: the night's real length and the one era label, as History and Share print them)
-    sub: "4 h 36 min · Golden Age · double peak, Turkish cortinas",
+    get sub() {
+      return t("featured.golden_sub");
+    },
   },
 ] as const;
 export type FeaturedId = (typeof FEATURED)[number]["id"];

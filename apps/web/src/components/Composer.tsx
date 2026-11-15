@@ -1560,13 +1560,16 @@ export function Composer() {
   const resultFooter = playlist
     ? [
         fmtDuration(playlist.stats.durationSec),
-        `${playlist.tandas.length} tandas`,
-        `${Object.keys(playlist.stats.orchestras).length} orchestras`,
-        `${(CORTINA_STYLES.find(([k]) => k === (playlist.options.cortinaStyle ?? "family"))?.[1] ?? "family").toLowerCase()} cortinas`,
-        lockedCount
-          ? `${lockedCount} locked ${lockedCount === 1 ? "tanda stays" : "tandas stay"} on recompose`
-          : null,
-        dbChanges ? "using your database edits" : null,
+        tx("composer.footer_tandas", { n: playlist.tandas.length }),
+        tx("composer.footer_orchestras", { n: Object.keys(playlist.stats.orchestras).length }),
+        tx("composer.footer_cortinas", {
+          style: lower(
+            CORTINA_STYLES.find(([k]) => k === (playlist.options.cortinaStyle ?? "family"))?.[1] ??
+              tx("composer.family"),
+          ),
+        }),
+        lockedCount ? plural("plural.locked_stay", lockedCount) : null,
+        dbChanges ? tx("composer.footer_db_edits") : null,
       ]
         .filter(Boolean)
         .join(" · ")
@@ -1724,12 +1727,9 @@ export function Composer() {
           <ol className="mt-4 grid gap-2 sm:grid-cols-3">
             {(
               [
-                ["Compose", "one tap builds the set and scores it"],
-                ["Read", "the energy arc, the tandas, the cortinas"],
-                [
-                  tx("composer.play_or_send"),
-                  "the Booth plays it; Export sends it to VLC, Rekordbox or Spotify",
-                ],
+                [tx("composer.step_compose"), tx("composer.step_compose_sub")],
+                [tx("composer.step_read"), tx("composer.step_read_sub")],
+                [tx("composer.play_or_send"), tx("composer.step_play_sub")],
               ] as const
             ).map(([h, d], i) => (
               <li key={h} className="flex items-start gap-3">
@@ -1781,7 +1781,7 @@ export function Composer() {
                 <span className="block truncate">{FEATURED[0].title}</span>
                 <span className="text-footnote block truncate text-[var(--label-2)]">{FEATURED[0].sub}</span>
               </span>
-              <span className="cell-value text-body">{tx("composer.open")}</span>
+              <span className="cell-value text-body">{tx("featuredCard.open")}</span>
             </button>
           </Tip>
           {/* round 22 AI / round 23: picking every tanda yourself, with suggestions, is one tap from the first run */}

@@ -135,7 +135,7 @@ export function NightBar({ onBreak }: { onBreak: () => void }) {
         )}
         {breakUntil !== null && (
           <span className="booth-chip text-[var(--tint)]" data-testid="booth-break">
-            {t("booth.nightBar.break", { time: durationLabel(Math.max(0, (breakUntil - now) / 1000)) })}
+            {t("booth.nightBar.break_chip", { time: durationLabel(Math.max(0, (breakUntil - now) / 1000)) })}
           </span>
         )}
       </div>
