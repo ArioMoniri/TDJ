@@ -576,7 +576,7 @@ export default function Settings() {
             </>
           )}
           <ActionRow
-            label="Test connection"
+            label={!ai.key && !usingShared ? "Test connection: add a key first" : "Test connection"}
             tip="Sends one short request to check the key works"
             onClick={testConnection}
             disabled={!ai.key && !usingShared}
@@ -585,7 +585,8 @@ export default function Settings() {
           />
         </Group>
         {showOwn && ai.provider === "anthropic" && (
-          <p className="section-foot -mt-2">
+          // its own paragraph under the group's footer: the -0.5 rem pull overlapped a long footer (wave 2)
+          <p className="section-foot mt-1" data-testid="ai-workspace-note">
             Organisation ID: only needed when the key was made for an organisation; you find it next to the
             key in your Anthropic account. A key you made for yourself needs nothing here.
           </p>
