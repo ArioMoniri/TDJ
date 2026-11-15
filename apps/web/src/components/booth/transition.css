@@ -1,6 +1,8 @@
 /* Wave 4 — the transition editor (TransitionSheet.tsx), laid out like a playlist "Mix" editor in T-DJ's own dark
-   tokens: a full-screen page on a phone, a full-height panel at most 760 px wide on an iPad or a desktop. The lanes
-   are full bleed; everything else sits on a 16 px gutter. Touch targets are 44 px or more. */
+   tokens: a full-screen page on a phone; on an iPad or a desktop a rounded panel at most 760 px wide, centred in the
+   content area (right of the sidebar), clear of the browser's chrome and the safe areas, as tall as the viewport
+   allows and scrolling inside. The lanes are full bleed inside the panel and clipped to it; everything else sits on
+   an even gutter (`--trx-gut`: 16 px on a phone, 24 px in the panel). Touch targets are 44 px or more. */
 
 .trx-root {
   position: fixed;
@@ -8,7 +10,20 @@
   z-index: 55;
   display: flex;
   justify-content: center;
+  align-items: stretch;
   background: rgb(0 0 0 / 0.6);
+}
+@media (min-width: 600px) {
+  .trx-root {
+    padding: calc(var(--chrome-top, 0px) + 16px) max(env(safe-area-inset-right, 0px), 24px)
+      max(env(safe-area-inset-bottom, 0px), 16px) max(env(safe-area-inset-left, 0px), 24px);
+  }
+}
+/* the lg sidebar stays where it is: the panel centres in the content beside it */
+@media (min-width: 1024px) {
+  .trx-root {
+    padding-left: calc(var(--sidebar-w, 0px) + 24px);
+  }
 }
 .trx {
   /* T-DJ's dark tokens (globals.css .dark), fixed here: the editor is always dark, as a mixing view is */
@@ -28,19 +43,23 @@
   --trx-mid: #a5642d;
   --trx-high: #f4ead4;
   --trx-panel: rgb(46 43 58 / 0.78);
+  --trx-gut: 16px;
   color-scheme: dark;
   position: relative;
   width: 100%;
   max-width: 760px;
   height: 100%;
+  min-height: 0;
   background: var(--trx-bg);
   color: var(--trx-label);
   overflow: hidden;
 }
 @media (min-width: 600px) {
   .trx {
+    --trx-gut: 24px;
+    border-radius: 24px;
     box-shadow:
-      0 0 0 0.5px rgb(255 255 255 / 0.08),
+      0 0 0 1px rgb(255 255 255 / 0.12),
       0 24px 80px rgb(0 0 0 / 0.45);
   }
 }
@@ -51,19 +70,33 @@
   height: 100%;
 }
 
-/* the top bar: a round close button, then Beta, ••• and Save on the right */
+/* the top bar, one 44 px row: the round close button on the left; Beta, ••• and Save on the right, all centred on
+   one line. On a phone it starts below the status bar (`--chrome-top`); the panel already sits below it. */
 .trx-top {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: max(env(safe-area-inset-top, 0px), 12px) 16px 8px;
+  min-height: 44px;
+  padding: calc(var(--chrome-top, 0px) + 8px) max(env(safe-area-inset-right, 0px), var(--trx-gut)) 8px
+    max(env(safe-area-inset-left, 0px), var(--trx-gut));
   flex: none;
+}
+@media (min-width: 600px) {
+  .trx-top {
+    padding: var(--trx-gut) var(--trx-gut) 8px;
+  }
+}
+.trx-top > * {
+  flex: none;
+}
+.trx-top > .flex-1 {
+  flex: 1;
 }
 .trx-round {
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   flex: none;
   border-radius: 999px;
   background: var(--trx-fill);
@@ -84,7 +117,10 @@
   outline-offset: 2px;
 }
 .trx-beta {
-  padding: 4px 12px;
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 12px;
   border-radius: 8px;
   background: var(--trx-fill-2);
   color: var(--trx-label);
@@ -92,7 +128,10 @@
   font-weight: 600;
 }
 .trx-save {
-  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
   min-width: 84px;
   padding: 0 20px;
   border-radius: 999px;
@@ -114,7 +153,12 @@
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding-bottom: max(env(safe-area-inset-bottom, 0px), 16px);
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--trx-gut));
+}
+@media (min-width: 600px) {
+  .trx-scroll {
+    padding-bottom: var(--trx-gut);
+  }
 }
 
 /* a side: artwork, title and artist; BPM, then the Camelot key chip and the length */
@@ -122,7 +166,7 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 10px 16px;
+  padding: 10px var(--trx-gut);
 }
 .trx-side[data-side="out"] {
   margin-top: clamp(8px, 4dvh, 40px);
@@ -152,7 +196,9 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  justify-content: center;
   gap: 4px;
+  min-height: 52px;
   font-size: 15px;
   font-variant-numeric: tabular-nums;
   color: var(--trx-label);
@@ -171,14 +217,17 @@
   color: rgb(17 16 22);
 }
 
-/* the lanes, full bleed, with the panel over the transition */
+/* the lanes, full bleed inside the editor and clipped to it, with the panel over the transition; the length pill
+   hangs 23 px below the stage, inside the wrap's bottom margin */
 .trx-stage-wrap {
-  margin: clamp(12px, 4dvh, 44px) 0 calc(24px + clamp(4px, 1.5dvh, 20px));
+  margin: clamp(12px, 3dvh, 36px) 0 clamp(4px, 1.5dvh, 20px);
+  padding-bottom: 24px;
+  overflow: hidden;
 }
 .trx-stage {
   position: relative;
   width: 100%;
-  height: clamp(250px, 40dvh, 430px);
+  height: clamp(240px, 38dvh, 430px);
   touch-action: pan-y;
   user-select: none;
   -webkit-user-select: none;
@@ -187,7 +236,7 @@
   position: absolute;
   inset: 0;
   display: block;
-  overflow: visible;
+  overflow: hidden;
 }
 .trx-panel {
   fill: var(--trx-panel);
@@ -323,7 +372,7 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  margin: 4px 16px 0;
+  margin: 4px var(--trx-gut) 0;
   font-size: 15px;
   color: var(--trx-label-2);
 }
@@ -334,25 +383,39 @@
   height: 1px;
   background: var(--trx-sep);
 }
+/* equal tiles; the row scrolls sideways between the gutters (4 px of it is room for the focus ring) */
 .trx-presets {
   display: flex;
   gap: 10px;
   overflow-x: auto;
-  padding: 12px 16px 6px;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  margin: 8px calc(var(--trx-gut) - 4px) 0;
+  padding: 4px;
+  scroll-padding-inline: 4px;
+}
+/* on a phone the row runs to the screen's edge, as in the reference: the next tile peeks out to say it scrolls */
+@media (max-width: 599px) {
+  .trx-presets {
+    margin-inline: 0;
+    padding-inline: var(--trx-gut);
+    scroll-padding-inline: var(--trx-gut);
+  }
 }
 .trx-presets > button {
-  flex: none;
+  flex: 0 0 112px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-width: 100px;
   height: 52px;
-  padding: 0 20px;
+  padding: 0 12px;
   border-radius: 12px;
   background: var(--trx-fill);
   color: var(--trx-label);
   font-size: 16px;
+  white-space: nowrap;
+  scroll-snap-align: start;
 }
 .trx-presets > button[aria-checked="true"] {
   background: var(--trx-label);
@@ -366,7 +429,7 @@
   display: flex;
   align-items: flex-start;
   gap: 6px;
-  margin: 6px 16px 0;
+  margin: 6px var(--trx-gut) 0;
   font-size: 13px;
   line-height: 1.35;
   color: var(--trx-volume);
@@ -378,7 +441,7 @@
 
 /* the settings rows: a coloured tick and a label, the value and a chevron */
 .trx-rows {
-  margin: 10px 16px 0;
+  margin: 10px var(--trx-gut) 0;
 }
 .trx-row {
   display: flex;

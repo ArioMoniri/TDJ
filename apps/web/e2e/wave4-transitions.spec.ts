@@ -491,7 +491,7 @@ test("iPhone: open from the gap marker, Fade, a length from the bars pill, drag 
   await ctx.close();
 });
 
-test("iPad: the same page as a full-height panel at most 760 px wide; the edges drag with the pointer", async ({
+test("iPad: the same page as a panel at most 760 px wide, as tall as the viewport allows; the edges drag with the pointer", async ({
   browser,
 }) => {
   const ctx = await browser.newContext(IPAD);
@@ -507,7 +507,9 @@ test("iPad: the same page as a full-height panel at most 760 px wide; the edges 
   await ed.getByTestId("booth-tr-preset-blend").click();
   const r = (await ed.boundingBox())!;
   expect(r.width).toBeLessThanOrEqual(760);
-  expect(r.height).toBeGreaterThanOrEqual(1179);
+  // as tall as the viewport allows, with a margin above and below
+  expect(r.height).toBeGreaterThanOrEqual(1180 - 40);
+  expect(r.y + r.height).toBeLessThanOrEqual(1180 - 8);
   expect(Math.abs(r.x + r.width / 2 - 410)).toBeLessThan(2);
   const box = ed.getByTestId("booth-tr-box");
   const box0 = Number(await box.getAttribute("data-start"));
@@ -534,6 +536,162 @@ test("iPad: the same page as a full-height panel at most 760 px wide; the edges 
   }
   await ctx.close();
 });
+
+/* ---------- the owner's iPad photo: the header and the panel's margins ---------- */
+
+/**
+ * The editor's frame, measured: one top bar (X and Save share a centre, at or below the safe top), every part of
+ * the editor inside the panel (the lanes clipped to it), the panel centred in the content area beside the sidebar
+ * and as tall as the viewport allows, the Volume and EQ rows reachable by scrolling, and the track rows without
+ * stray "–" glyphs.
+ */
+async function frameChecks(page: Page, o: { panel: boolean }) {
+  const ed = page.getByTestId("booth-transition-sheet");
+  // its entrance has settled
+  let last = -1;
+  await expect
+    .poll(async () => {
+      const y = (await ed.boundingBox())?.y ?? -1;
+      const still = Math.abs(y - last) < 0.25;
+      last = y;
+      return still;
+    })
+    .toBe(true);
+  const m = await page.evaluate(() => {
+    const probe = document.createElement("div");
+    probe.style.cssText = "position:fixed;top:0;left:0;width:1px;height:var(--chrome-top);visibility:hidden";
+    document.body.append(probe);
+    const safeTop = probe.getBoundingClientRect().height;
+    probe.remove();
+    const panelEl = document.querySelector<HTMLElement>('[data-testid="booth-transition-sheet"]')!;
+    const panel = panelEl.getBoundingClientRect();
+    const at = (sel: string) => panelEl.querySelector(sel)!.getBoundingClientRect();
+    const cy = (r: DOMRect) => r.top + r.height / 2;
+    const top = ["booth-tr-close", "booth-tr-more", "booth-tr-save"].map((id) => at(`[data-testid="${id}"]`));
+    // every laid-out part of the editor sits inside the panel: sideways for all of it, up and down for the top bar
+    // and the scroller (what is in the scroller scrolls); what the SVG draws is clipped to the SVG
+    const out: string[] = [];
+    for (const el of panelEl.querySelectorAll<Element>("*")) {
+      if (el.closest("svg") && el.tagName.toLowerCase() !== "svg") continue;
+      if (el.closest(".trx-presets") && !el.classList.contains("trx-presets")) continue;
+      if (el.closest(".sr-only") || el.closest(".trx-picker-root")) continue;
+      const r = el.getBoundingClientRect();
+      if (!r.width && !r.height) continue;
+      const name = `${el.tagName.toLowerCase()}.${String(el.getAttribute("class") ?? "").split(" ")[0]}`;
+      if (r.left < panel.left - 0.5 || r.right > panel.right + 0.5)
+        out.push(`${name} x ${r.left}…${r.right}`);
+      const vertical = !el.closest(".trx-scroll") || el.classList.contains("trx-scroll");
+      if (vertical && (r.top < panel.top - 0.5 || r.bottom > panel.bottom + 0.5))
+        out.push(`${name} y ${r.top}…${r.bottom}`);
+    }
+    const svg = panelEl.querySelector(".trx-stage > svg")!;
+    const sidebar = document.querySelector<HTMLElement>('[data-testid="sidebar"]');
+    const sideR =
+      sidebar && getComputedStyle(sidebar).display !== "none" ? sidebar.getBoundingClientRect() : null;
+    // the track rows: no lone dash where an unknown BPM or key would be
+    const dashes = [...panelEl.querySelectorAll(".trx-facts *")].filter(
+      (e) => e.textContent?.trim() === "–",
+    ).length;
+    return {
+      safeTop,
+      panel: { x: panel.left, y: panel.top, w: panel.width, h: panel.height, b: panel.bottom },
+      centres: top.map(cy),
+      heights: top.map((r) => r.height),
+      tops: top.map((r) => r.top),
+      out,
+      svgClip: getComputedStyle(svg).overflow,
+      contentLeft: sideR ? sideR.right : 0,
+      vw: innerWidth,
+      vh: innerHeight,
+      dashes,
+    };
+  });
+  // one 44 px top bar: X, ••• and Save on one centre line, below the status bar / browser chrome
+  for (const c of m.centres) expect(Math.abs(c - m.centres[0]!)).toBeLessThanOrEqual(2);
+  for (const h of m.heights) expect(h).toBeGreaterThanOrEqual(43.5);
+  for (const t of m.tops) expect(t).toBeGreaterThanOrEqual(m.safeTop - 0.5);
+  // nothing spills out of the panel; the lanes are clipped to it
+  expect(m.out).toEqual([]);
+  expect(m.svgClip).toBe("hidden");
+  expect(m.dashes).toBe(0);
+  if (o.panel) {
+    // a panel at most 760 px wide, centred in the content area, with a margin to the viewport's edges
+    expect(m.panel.w).toBeLessThanOrEqual(760);
+    expect(Math.abs(m.panel.x + m.panel.w / 2 - (m.contentLeft + m.vw) / 2)).toBeLessThanOrEqual(2);
+    expect(m.panel.y).toBeGreaterThanOrEqual(m.safeTop + 8);
+    expect(m.panel.b).toBeLessThanOrEqual(m.vh - 8);
+    expect(m.panel.h).toBeGreaterThan(m.vh * 0.85);
+  } else {
+    expect(m.panel.x).toBeLessThanOrEqual(0.5);
+    expect(m.panel.w).toBeGreaterThanOrEqual(m.vw - 1);
+  }
+  // Volume and EQ are reachable: scrolled to its end, each row is inside the scroller and is what a tap hits
+  await page.evaluate(() => {
+    const el = document.querySelector<HTMLElement>(".trx-scroll")!;
+    el.scrollTo(0, el.scrollHeight);
+  });
+  await page.waitForTimeout(150);
+  for (const id of ["booth-tr-volume", "booth-tr-eq"]) {
+    const ok = await ed.getByTestId(id).evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      const sc = document.querySelector<HTMLElement>(".trx-scroll")!.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return (
+        r.top >= sc.top - 0.5 && r.bottom <= sc.bottom + 0.5 && !!hit && (hit === el || el.contains(hit))
+      );
+    });
+    expect(ok, `${id} is reachable`).toBe(true);
+  }
+  await page.evaluate(() => document.querySelector(".trx-scroll")?.scrollTo(0, 0));
+}
+
+const FRAMES: Array<
+  [string, BrowserContextOptions, { panel: boolean; collapsed?: boolean; safeTop?: number }]
+> = [
+  ["ipad-landscape-sidebar", touch(1194, 834), { panel: true }],
+  ["ipad-landscape-collapsed", touch(1194, 834), { panel: true, collapsed: true }],
+  ["ipad-portrait", touch(834, 1194), { panel: true }],
+  ["ipad-portrait-collapsed", touch(834, 1194), { panel: true, collapsed: true }],
+  ["iphone-15-pro", IPHONE, { panel: false, safeTop: 59 }],
+  ["desktop-1440", { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 }, { panel: true }],
+];
+for (const [name, use, o] of FRAMES)
+  test(`${name}: one top bar; the editor fits its panel, centred; Volume and EQ reachable`, async ({
+    browser,
+  }) => {
+    const ctx = await browser.newContext(use);
+    if (o.collapsed)
+      await ctx.addInitScript(() =>
+        localStorage.setItem("tdj-sidebar", JSON.stringify({ w: 240, collapsed: true })),
+      );
+    if (o.safeTop)
+      await ctx.addInitScript((top) => {
+        document.addEventListener("DOMContentLoaded", () => {
+          const s = document.createElement("style");
+          s.textContent = `:root{--safe-top:${top}px !important}`;
+          document.head.append(s);
+        });
+      }, o.safeTop);
+    const page = await ctx.newPage();
+    await openBooth(page);
+    // on a phone the set list is a sheet
+    if (!o.panel) await page.getByTestId("booth-set-open").click();
+    const k = await clipPair(page);
+    const i = k >= 0 ? k : await song4(page);
+    const scope = o.panel ? page : page.getByTestId("booth-set-sheet");
+    const marker = scope.locator(`[data-testid="booth-gap"][data-from="${i}"]`);
+    await marker.scrollIntoViewIfNeeded();
+    await marker.click();
+    const ed = page.getByTestId("booth-transition-sheet");
+    await expect(ed.getByTestId("booth-tr-stage")).toBeVisible();
+    if (k >= 0)
+      await expect(ed.getByTestId("booth-tr-stage")).toHaveAttribute("data-has-bands", "true", {
+        timeout: 20000,
+      });
+    await frameChecks(page, o);
+    if (SHOTS) await shot(page, `frame-${name}`);
+    await ctx.close();
+  });
 
 /* ---------- the owner's iPhone feedback: the tab capsule over the guide box ---------- */
 
