@@ -136,10 +136,9 @@ export function SongSheet({ i, onClose }: { i: number | null; onClose: () => voi
                   aria-hidden
                 />
                 <span className="min-w-0 flex-1 text-[var(--cue)]">
-                  {t("booth.songSheet.stop_the")}{" "}
                   {audition.where === "headphones"
-                    ? t("booth.songSheet.pre_listen")
-                    : t("booth.songSheet.test")}
+                    ? t("booth.songSheet.stop_pre_listen")
+                    : t("booth.songSheet.stop_test")}
                 </span>
               </button>
             ) : (

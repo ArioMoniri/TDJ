@@ -127,7 +127,7 @@ export function MiniPlayer() {
             className="glass mini-docked fixed inset-x-3 z-30 rounded-[var(--radius-m)] p-2 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:w-[360px] lg:bottom-6"
             style={{ bottom: `var(--mini-bottom, ${offset})` }}
           >
-            <style>{t("miniPlayer.media_min_width_640px")}</style>
+            <style>{'@media (min-width: 640px){[data-testid="mini-player"]{--mini-bottom:1.5rem}}'}</style>
             <div className="flex items-center gap-2">
               {track.source.kind === "preview" ? (
                 <button

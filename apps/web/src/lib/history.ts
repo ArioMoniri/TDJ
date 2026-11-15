@@ -1,6 +1,6 @@
 "use client";
 import { del, delMany, get, getMany, keys, setMany } from "idb-keyval";
-import { fmtDate, lazy, t as tx } from "@/lib/i18n";
+import { fmtDate, lazy, plural, t as tx } from "@/lib/i18n";
 import { eraName, hoursText, lengthText, nightTitle } from "./nightName";
 import type { StorageMode } from "./overrides";
 import {
@@ -412,8 +412,8 @@ export function nightLogSummary(n: NightLog): string {
     const m = Math.floor((n.playedSec % 3600) / 60);
     parts.push(`${n.ended ? "played" : tx("history.played_unfinished")} ${h}:${pad(m)} h`);
   }
-  if (n.holds) parts.push(tx("history.hold", { holds: n.holds, p1: n.holds === 1 ? "" : "s" }));
+  if (n.holds) parts.push(plural("plural.holds", n.holds));
   if (n.birthdayVals) parts.push(tx("history.birthday_vals", { birthdayVals: n.birthdayVals }));
-  if (n.stops) parts.push(tx("history.stop", { stops: n.stops, p1: n.stops === 1 ? "" : "s" }));
+  if (n.stops) parts.push(plural("plural.stops", n.stops));
   return parts.join(" · ");
 }

@@ -701,7 +701,7 @@ export function SongsTab() {
           })}
           {field("own-uri", tx("db.songsTab.spotify_link"), "uri", {
             placeholder: tx("db.songsTab.paste_a_spotify_link"),
-            className: tx("db.songsTab.field_field_value_min_w_0"),
+            className: "field field-value min-w-0 flex-1 font-mono",
           })}
         </Group>
       </Sheet>

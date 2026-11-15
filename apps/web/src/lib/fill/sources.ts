@@ -327,7 +327,7 @@ export async function lookup(source: SourceId, want: FillWant, deps: LookupDeps)
       });
       const dg = parseDiscogs(
         await getJson(deps.fetch, `https://api.discogs.com/database/search?${q}`, {
-          authorization: tx("fill.sources.discogs_token", { discogsToken: deps.discogsToken }),
+          authorization: `Discogs token=${deps.discogsToken}`,
         }),
         want,
       );

@@ -4,7 +4,7 @@ import { fmtDate, fmtNumber, plural, resolveLocale, setLocale, t, upper } from "
 import { SAME_IN_TURKISH, tr } from "./tr";
 
 /** the {placeholders} of a message, sorted */
-const holes = (s: string) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
+const holes = (s: string) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1] as string).sort();
 
 /**
  * A Turkish value may equal the English one only when nothing translatable is left: tango terms, orchestra and
@@ -46,12 +46,13 @@ describe("dictionaries", () => {
     const bad = enKeys.filter((k) => {
       const v = tr[k as keyof typeof en];
       if (v === undefined) return false;
-      // a plural form may drop {count} ("bir şarkı"), nothing else
-      const e = holes(en[k as keyof typeof en] as string).filter(
-        (h) => !(k.endsWith(".one") && h === "count"),
-      );
-      const got = holes(v).filter((h) => !(k.endsWith(".one") && h === "count"));
-      return got.some((h) => !e.includes(h)) || e.some((h) => !got.includes(h));
+      // never a placeholder English does not fill; every named one kept. A positional {p1} may go: some hold an
+      // English-only piece (a plural "s", an optional clause Turkish words another way). A plural form may drop
+      // {count} ("bir şarkı").
+      const e = holes(en[k as keyof typeof en] as string);
+      const got = holes(v);
+      const must = e.filter((h) => !/^p\d+$/.test(h) && !(k.endsWith(".one") && h === "count"));
+      return got.some((h) => !e.includes(h)) || must.some((h) => !got.includes(h));
     });
     expect(bad).toEqual([]);
   });

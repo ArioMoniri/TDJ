@@ -1,6 +1,6 @@
 "use client";
 import { EVIDENCE_COLOR, EVIDENCE_LABEL } from "@/lib/context";
-import { t as tx } from "@/lib/i18n";
+import { plural, t as tx } from "@/lib/i18n";
 import type { ContextModel } from "@/lib/types";
 import { Disclosure } from "../Disclosure";
 import { Group } from "../Form";
@@ -92,9 +92,7 @@ export function ContextTab({ model }: { model: ContextModel | null }) {
           <Group
             key={f.id}
             header={f.label}
-            footer={
-              edited ? tx("db.contextTab.option_edited", { edited, p1: edited === 1 ? "" : "s" }) : undefined
-            }
+            footer={edited ? plural("plural.options_edited", edited) : undefined}
           >
             {f.options.map((op) => {
               const e = cf[f.id]?.[op.id] ?? {};

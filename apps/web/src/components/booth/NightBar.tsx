@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { driftWords, lastFourChange, ttcCaption } from "@/lib/booth/nightView";
 import { clockLabel, durationLabel, remainingFrom } from "@/lib/booth/plan";
 import { useBooth } from "@/lib/booth/store";
-import { t } from "@/lib/i18n";
+import { plural, t } from "@/lib/i18n";
 import { toast } from "@/lib/toast";
 import { Group } from "../Form";
 import { Sheet } from "../Sheet";
@@ -109,9 +109,7 @@ export function NightBar({ onBreak }: { onBreak: () => void }) {
         >
           {started ? driftWords(drift) : t("booth.nightBar.not_started")}
         </span>
-        <span className="booth-chip">
-          {t("booth.nightBar.tanda_left", { left, p1: left === 1 ? "" : "s" })}
-        </span>
+        <span className="booth-chip">{plural("plural.tandas_left", left)}</span>
         {full && (
           <span
             className="booth-chip tabular-nums"

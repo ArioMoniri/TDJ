@@ -120,7 +120,7 @@ export function Row({
       )}
     </>
   );
-  const cls = tx("form.cell_w_full_text_left", { p1: onClick || href ? "cell-tap" : "", className });
+  const cls = `cell w-full text-left ${onClick || href ? "cell-tap" : ""} ${className}`;
   const lead = tile ? "tile" : leading;
   if (href)
     return (
