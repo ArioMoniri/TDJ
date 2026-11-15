@@ -38,9 +38,18 @@ export default $config({
     ] as const;
     const connectors: Record<string, string> = {};
     for (const k of secrets) if (process.env[k]) connectors[k] = process.env[k]!;
+    // the server database: rooms, short night links and each DJ's synced database rows (lib/server/db.ts, rooms.ts),
+    // one key `pk`, rows expiring on `ttl`. Linked, so the function may read and write it.
+    const db = new sst.aws.Dynamo("Db", {
+      fields: { pk: "string" },
+      primaryIndex: { hashKey: "pk" },
+      ttl: "ttl",
+    });
     const web = new sst.aws.Nextjs("Web", {
       path: "apps/web",
+      link: [db],
       environment: {
+        TDJ_DB_TABLE: db.name,
         TDJ_DATA_ROOT: "/var/task",
         // the in-app owner setup (/admin) keeps its values in SSM Parameter Store under /tdj/<stage>/*
         TDJ_STAGE: $app.stage,
