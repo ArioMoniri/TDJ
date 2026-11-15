@@ -92,7 +92,8 @@ export function FeaturedLearned() {
   const changed = !!(repo?.deleted?.length || Object.keys(repo?.weights ?? {}).length);
 
   return (
-    <div data-testid="featured-learned">
+    // its groups flow as Settings' own groups do: in two columns each one stays whole (globals.css .settings-flow)
+    <div className="settings-flow" data-testid="featured-learned">
       <Group
         header={t("featuredLearned.header")}
         footer={on ? t("featuredLearned.footer") : t("featuredLearned.off_footer")}

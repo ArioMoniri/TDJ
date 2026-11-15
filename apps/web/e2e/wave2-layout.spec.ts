@@ -284,18 +284,43 @@ test("Settings: no check beside a provider with no key, Test says why it is off,
   await expect(test1).toBeDisabled();
   await expect(test1).toHaveAttribute("aria-description", /add a .* key/i);
   // the own-key notes under Models do not overlap
+  // (once the organiser's-key check has answered: with no shared key the own-key fields open by themselves and the
+  // "Use my own key" row leaves, so a click aimed at it would wait for a row that is gone)
+  await expect(page.locator("#ai-status")).not.toContainText("Checking", { timeout: 20_000 });
   const own = page.locator("#ai-own-key");
   if (await own.isVisible().catch(() => false)) await own.click();
+  // (measured once the featured night's learned rules, which load late and are taller than a column, are in)
+  await expect(page.getByTestId("featured-learned").getByTestId("learned-rule").first()).toBeVisible({
+    timeout: 30_000,
+  });
   const note = page.getByTestId("ai-workspace-note");
   if (await note.isVisible().catch(() => false)) {
-    const n = (await note.boundingBox())!;
-    const foot = await note.evaluate((el) => {
+    // both edges in one frame: the note sits under the Models footer, in the same column
+    const { n, foot } = await note.evaluate((el) => {
       const prev = el.previousElementSibling?.querySelector(".section-foot") ?? el.previousElementSibling;
       const r = prev?.getBoundingClientRect();
-      return r ? r.bottom : 0;
+      const m = el.getBoundingClientRect();
+      return {
+        n: { y: m.top, x: m.left },
+        foot: r ? { bottom: r.bottom, x: r.left } : { bottom: 0, x: m.left },
+      };
     });
-    expect(n.y).toBeGreaterThanOrEqual(foot - 0.5);
+    expect(n.y).toBeGreaterThanOrEqual(foot.bottom - 0.5);
+    expect(Math.abs(n.x - foot.x)).toBeLessThanOrEqual(1);
   }
+  // no group splits across the two columns (its rows in one, its footer in the other) and no footer runs over rows
+  const bad = await page.evaluate(() => {
+    const out: string[] = [];
+    for (const s of document.querySelectorAll("main section")) {
+      const head = s.querySelector(":scope > .section-head")?.textContent ?? "";
+      if (s.getClientRects().length > 1) out.push(`split: ${head}`);
+      const body = s.querySelector(":scope > .group-inset")?.getBoundingClientRect();
+      const foot = s.querySelector(":scope > .section-foot")?.getBoundingClientRect();
+      if (body && foot && foot.top < body.bottom - 0.5) out.push(`footer over rows: ${head}`);
+    }
+    return out;
+  });
+  expect(bad).toEqual([]);
 });
 
 test("iPad landscape: toolbar capsules and chart dots are 44 px touch targets", async ({ page }) => {

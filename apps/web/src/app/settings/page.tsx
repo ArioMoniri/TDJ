@@ -514,188 +514,191 @@ export default function Settings() {
         {/* round 22: where missing BPM, key, level, artwork and dates come from, and "Add a source" */}
         <DataSources />
 
-        <Group
-          header={tx("settings.models")}
-          footer={
-            <span
-              role="status"
-              aria-live="polite"
-              className={
-                test.state === "fail"
-                  ? "text-[var(--destructive)]"
-                  : test.state === "ok"
-                    ? "text-[var(--system-green)]"
-                    : undefined
-              }
-            >
-              <TestIcon state={test.state} />
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.span
-                  key={
-                    test.state === "idle"
-                      ? "idle"
-                      : test.state === "busy"
-                        ? checking
-                          ? "busy"
-                          : "idle"
-                        : test.text
-                  }
-                  variants={fade}
-                  initial="hidden"
-                  animate="show"
-                  exit="exit"
-                  // the result text lands as the check in the Lottie completes (300 ms in)
-                  transition={
-                    test.state === "ok" || test.state === "fail" ? { ...tw.fade, delay: 0.3 } : tw.fade
-                  }
-                  className={test.state === "idle" ? "block" : "ml-1.5 inline"}
-                >
-                  {test.state === "busy"
-                    ? checking
-                      ? tx("settings.checking")
-                      : ""
-                    : (test.text ??
-                      (usingShared
-                        ? tx("settings.the_organiser_s_key_writes_your", { p1: shared?.limit ?? 20 })
-                        : APP
-                          ? tx("settings.a_model_key_lets_you_ask_2")
-                          : tx("settings.a_model_key_lets_you_ask")))}
-                </motion.span>
-              </AnimatePresence>
-            </span>
-          }
-        >
-          <Row
-            tile={
-              <Tile color="#5856d6">
-                <KeyRound size={16} strokeWidth={2} />
-              </Tile>
-            }
-            label={tx("settings.status")}
-            value={
-              agentInUse
-                ? tx("settings.using", { name: agentInUse.name })
-                : ai.key
-                  ? tx("settings.key_saved")
-                  : shared === null
-                    ? tx("settings.checking")
-                    : shared.shared
-                      ? tx("settings.using_the_organiser_s_key_of", {
-                          used: shared.used,
-                          limit: shared.limit,
-                        })
-                      : tx("settings.off")
-            }
-            id="ai-status"
-          />
-          {!showOwn && (
-            <Row
-              label={tx("settings.use_my_own_key")}
-              tip={tx("settings.paste_a_key_of_your_own")}
-              sub={tx("settings.unlimited_kept_in_this_browser")}
-              value={tx("settings.show")}
-              onClick={() => setOwnKey(true)}
-              id="ai-own-key"
-            />
-          )}
-          {showOwn && (
-            <>
-              <SegmentedRow
-                label={tx("settings.provider")}
-                tip={tx("settings.the_company_whose_model_writes_your")}
-                value={ai.provider}
-                items={AI_PROVIDERS}
-                onChange={switchProvider}
-              />
-              <FieldRow
-                label={tx("settings.api_key")}
-                id="ai-key"
-                tip={tx("settings.your_own_key_from_the_provider")}
+        {/* Models and the note under its footer are one block: a column break never parts them (wide screens) */}
+        <div data-testid="ai-models">
+          <Group
+            header={tx("settings.models")}
+            footer={
+              <span
+                role="status"
+                aria-live="polite"
+                className={
+                  test.state === "fail"
+                    ? "text-[var(--destructive)]"
+                    : test.state === "ok"
+                      ? "text-[var(--system-green)]"
+                      : undefined
+                }
               >
-                <input
-                  id="ai-key"
-                  type={showKey ? "text" : "password"}
-                  className="field field-value min-w-0 flex-1 font-mono"
-                  placeholder={
-                    APP && ai.key ? tx("settings.saved_in_your_keychain") : KEY_PLACEHOLDER[ai.provider]
-                  }
-                  value={APP ? (draft ?? "") : ai.key}
-                  onChange={(e) =>
-                    APP ? setDraft(e.target.value.trim()) : setAi({ key: e.target.value.trim() })
-                  }
-                  autoComplete="off"
-                  spellCheck={false}
-                />
-                <Tip text={showKey ? tx("settings.hide_the_key") : tx("settings.show_the_key_to_check_it")}>
-                  <button
-                    type="button"
-                    className="btn-plain -mr-2"
-                    onClick={() => setShowKey((v) => !v)}
-                    aria-pressed={showKey}
+                <TestIcon state={test.state} />
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.span
+                    key={
+                      test.state === "idle"
+                        ? "idle"
+                        : test.state === "busy"
+                          ? checking
+                            ? "busy"
+                            : "idle"
+                          : test.text
+                    }
+                    variants={fade}
+                    initial="hidden"
+                    animate="show"
+                    exit="exit"
+                    // the result text lands as the check in the Lottie completes (300 ms in)
+                    transition={
+                      test.state === "ok" || test.state === "fail" ? { ...tw.fade, delay: 0.3 } : tw.fade
+                    }
+                    className={test.state === "idle" ? "block" : "ml-1.5 inline"}
                   >
-                    {showKey ? tx("settings.hide") : tx("settings.show")}
-                  </button>
-                </Tip>
-              </FieldRow>
-              <FieldRow
-                label={tx("settings.model")}
-                sub={tx("settings.leave_blank_for_the_default")}
-                id="ai-model"
-              >
-                <input
-                  id="ai-model"
-                  list="ai-model-list"
-                  className="field field-value min-w-0 flex-1 font-mono"
-                  placeholder={AI_DEFAULT_MODEL[ai.provider]}
-                  value={ai.model}
-                  onChange={(e) => setAi({ model: e.target.value.trim() })}
-                  autoComplete="off"
-                  spellCheck={false}
+                    {test.state === "busy"
+                      ? checking
+                        ? tx("settings.checking")
+                        : ""
+                      : (test.text ??
+                        (usingShared
+                          ? tx("settings.the_organiser_s_key_writes_your", { p1: shared?.limit ?? 20 })
+                          : APP
+                            ? tx("settings.a_model_key_lets_you_ask_2")
+                            : tx("settings.a_model_key_lets_you_ask")))}
+                  </motion.span>
+                </AnimatePresence>
+              </span>
+            }
+          >
+            <Row
+              tile={
+                <Tile color="#5856d6">
+                  <KeyRound size={16} strokeWidth={2} />
+                </Tile>
+              }
+              label={tx("settings.status")}
+              value={
+                agentInUse
+                  ? tx("settings.using", { name: agentInUse.name })
+                  : ai.key
+                    ? tx("settings.key_saved")
+                    : shared === null
+                      ? tx("settings.checking")
+                      : shared.shared
+                        ? tx("settings.using_the_organiser_s_key_of", {
+                            used: shared.used,
+                            limit: shared.limit,
+                          })
+                        : tx("settings.off")
+              }
+              id="ai-status"
+            />
+            {!showOwn && (
+              <Row
+                label={tx("settings.use_my_own_key")}
+                tip={tx("settings.paste_a_key_of_your_own")}
+                sub={tx("settings.unlimited_kept_in_this_browser")}
+                value={tx("settings.show")}
+                onClick={() => setOwnKey(true)}
+                id="ai-own-key"
+              />
+            )}
+            {showOwn && (
+              <>
+                <SegmentedRow
+                  label={tx("settings.provider")}
+                  tip={tx("settings.the_company_whose_model_writes_your")}
+                  value={ai.provider}
+                  items={AI_PROVIDERS}
+                  onChange={switchProvider}
                 />
-                <datalist id="ai-model-list">
-                  {MODEL_SUGGESTIONS[ai.provider].map((m) => (
-                    <option key={m} value={m} />
-                  ))}
-                </datalist>
-              </FieldRow>
-              {ai.provider === "anthropic" && (
                 <FieldRow
-                  label={tx("settings.organisation_id")}
-                  sub={tx("settings.only_for_an_anthropic_key_made")}
-                  id="ai-workspace"
+                  label={tx("settings.api_key")}
+                  id="ai-key"
+                  tip={tx("settings.your_own_key_from_the_provider")}
                 >
                   <input
-                    id="ai-workspace"
+                    id="ai-key"
+                    type={showKey ? "text" : "password"}
                     className="field field-value min-w-0 flex-1 font-mono"
-                    placeholder="wrkspc_…"
-                    value={ai.workspace ?? ""}
-                    onChange={(e) => setAi({ workspace: e.target.value.trim() })}
+                    placeholder={
+                      APP && ai.key ? tx("settings.saved_in_your_keychain") : KEY_PLACEHOLDER[ai.provider]
+                    }
+                    value={APP ? (draft ?? "") : ai.key}
+                    onChange={(e) =>
+                      APP ? setDraft(e.target.value.trim()) : setAi({ key: e.target.value.trim() })
+                    }
                     autoComplete="off"
                     spellCheck={false}
                   />
+                  <Tip text={showKey ? tx("settings.hide_the_key") : tx("settings.show_the_key_to_check_it")}>
+                    <button
+                      type="button"
+                      className="btn-plain -mr-2"
+                      onClick={() => setShowKey((v) => !v)}
+                      aria-pressed={showKey}
+                    >
+                      {showKey ? tx("settings.hide") : tx("settings.show")}
+                    </button>
+                  </Tip>
                 </FieldRow>
-              )}
-            </>
+                <FieldRow
+                  label={tx("settings.model")}
+                  sub={tx("settings.leave_blank_for_the_default")}
+                  id="ai-model"
+                >
+                  <input
+                    id="ai-model"
+                    list="ai-model-list"
+                    className="field field-value min-w-0 flex-1 font-mono"
+                    placeholder={AI_DEFAULT_MODEL[ai.provider]}
+                    value={ai.model}
+                    onChange={(e) => setAi({ model: e.target.value.trim() })}
+                    autoComplete="off"
+                    spellCheck={false}
+                  />
+                  <datalist id="ai-model-list">
+                    {MODEL_SUGGESTIONS[ai.provider].map((m) => (
+                      <option key={m} value={m} />
+                    ))}
+                  </datalist>
+                </FieldRow>
+                {ai.provider === "anthropic" && (
+                  <FieldRow
+                    label={tx("settings.organisation_id")}
+                    sub={tx("settings.only_for_an_anthropic_key_made")}
+                    id="ai-workspace"
+                  >
+                    <input
+                      id="ai-workspace"
+                      className="field field-value min-w-0 flex-1 font-mono"
+                      placeholder="wrkspc_…"
+                      value={ai.workspace ?? ""}
+                      onChange={(e) => setAi({ workspace: e.target.value.trim() })}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </FieldRow>
+                )}
+              </>
+            )}
+            <ActionRow
+              label={
+                !ai.key && !usingShared
+                  ? tx("settings.test_connection_add_a_key_first")
+                  : tx("settings.test_connection")
+              }
+              tip={tx("settings.sends_one_short_request_to_check")}
+              onClick={testConnection}
+              disabled={!ai.key && !usingShared}
+              busy={test.state === "busy"}
+              id="ai-test"
+            />
+          </Group>
+          {showOwn && ai.provider === "anthropic" && (
+            // its own paragraph under the group's footer: the -0.5 rem pull overlapped a long footer (wave 2)
+            <p className="section-foot mt-1" data-testid="ai-workspace-note">
+              {tx("settings.organisation_id_only_needed_when_the")}
+            </p>
           )}
-          <ActionRow
-            label={
-              !ai.key && !usingShared
-                ? tx("settings.test_connection_add_a_key_first")
-                : tx("settings.test_connection")
-            }
-            tip={tx("settings.sends_one_short_request_to_check")}
-            onClick={testConnection}
-            disabled={!ai.key && !usingShared}
-            busy={test.state === "busy"}
-            id="ai-test"
-          />
-        </Group>
-        {showOwn && ai.provider === "anthropic" && (
-          // its own paragraph under the group's footer: the -0.5 rem pull overlapped a long footer (wave 2)
-          <p className="section-foot mt-1" data-testid="ai-workspace-note">
-            {tx("settings.organisation_id_only_needed_when_the")}
-          </p>
-        )}
+        </div>
 
         <ModelConnections />
 
