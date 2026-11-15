@@ -1610,6 +1610,15 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "contextStrip.vals_2": "vals %{v}",
   "contextStrip.vals_tanda_size": "vals tandası boyu",
   "contextStrip.your_own_kept": "Kendi {skipped} ayarınız korundu.",
+  "cover.added": "Kapak çalma listesine eklendi.",
+  "cover.brand_line": "T-DJ ile kurulmuş bir tango gecesi",
+  "cover.alt": "{title} kapağı",
+  "cover.h": "{h} sa",
+  "cover.h_min": "{h} sa {r}",
+  "cover.min": "{r} dk",
+  "cover.reconnect": "Kapağı eklemek için Spotify'a yeniden bağlanın.",
+  "cover.tandas.one": "{count} tanda",
+  "cover.tandas.other": "{count} tanda",
   "dataSources.a_source_fills_only_what_is":
     "Bir kaynak yalnızca eksik olanı doldurur; sizin girdiğiniz bir değeri asla değiştirmez.",
   "dataSources.add": "Ekle",
@@ -3052,6 +3061,12 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "settings.cortina_play_length": "Kortina çalma süresi",
   "settings.could_not_reach_the_server": "Sunucuya ulaşılamadı.",
   "settings.dark": "Koyu",
+  "settings.export.cover": "Dışa aktarılan listelere kapak ekle",
+  "settings.export.cover_tip":
+    "Spotify listeleri gecenin kendi kapağını alır: enerji eğrisi, ritme göre tandalar, başlık ve dönem.",
+  "settings.export.footer":
+    "Kapak gecenin kendisinden çizilir; aynı gece hep aynı kapağı alır. Spotify görsel yükleme iznini bir kez ister.",
+  "settings.export.header": "Dışa aktarma",
   "settings.database": "Veritabanı",
   "settings.default_for_tonight_s_region_on": "Gece oluşturucudaki Bu gece bölgesinin varsayılanı.",
   "settings.did_not_answer": "{name} yanıt vermedi ({status}). Yeniden deneyin.",

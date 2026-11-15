@@ -1,5 +1,6 @@
 "use client";
 import { del, delMany, get, getMany, keys, setMany } from "idb-keyval";
+import { coverSeedOf } from "@/lib/cover/seed";
 import { fmtDate, lazy, plural, t as tx } from "@/lib/i18n";
 import { eraName, hoursText, lengthText, nightTitle } from "./nightName";
 import type { StorageMode } from "./overrides";
@@ -90,6 +91,8 @@ export function makeSnapshot(
     playlist: compactPlaylist(p),
     score: p.score.total,
     source,
+    // wave 4: one cover per generation; the entry's later versions keep this family (lib/cover/seed.ts)
+    coverSeed: coverSeedOf(p),
   };
 }
 

@@ -5,6 +5,7 @@ import {
   FolderOpen,
   Globe,
   HardDrive,
+  ImageIcon,
   KeyRound,
   Languages,
   LoaderCircle,
@@ -424,6 +425,21 @@ export default function Settings() {
               id={`folder-row-${a.id}`}
             />
           ))}
+        </Group>
+
+        {/* wave 4: the night's generated cover on the playlists it is exported to (Spotify) */}
+        <Group header={tx("settings.export.header")} footer={tx("settings.export.footer")}>
+          <SwitchRow
+            label={tx("settings.export.cover")}
+            tip={tx("settings.export.cover_tip")}
+            checked={settings.exportCover !== false}
+            onChange={(v) => setSettings({ exportCover: v })}
+            tile={
+              <Tile color="#a33159">
+                <ImageIcon size={16} strokeWidth={2} />
+              </Tile>
+            }
+          />
         </Group>
 
         <TandaRulesGroup

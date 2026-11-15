@@ -8,7 +8,7 @@ export const SPOTIFY_APP_REDIRECT = "tdj://spotify-callback";
 export const SPOTIFY_AUTHORIZE = "https://accounts.spotify.com/authorize";
 /** the scopes the web's hosted login asks for (lib/server/oauth.ts → SPOTIFY), so every feature works the same */
 export const SPOTIFY_APP_SCOPES =
-  "playlist-modify-private playlist-modify-public user-read-email streaming user-read-private user-modify-playback-state user-read-playback-state";
+  "playlist-modify-private playlist-modify-public user-read-email streaming user-read-private user-modify-playback-state user-read-playback-state ugc-image-upload";
 
 export function base64url(bytes: Uint8Array): string {
   let s = "";

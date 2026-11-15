@@ -396,9 +396,9 @@ test("login redirects to Spotify with the app's Client ID, scopes, state cookie 
   expect(to.searchParams.get("client_id")).toBe("test-client");
   expect(to.searchParams.get("response_type")).toBe("code");
   expect(to.searchParams.get("redirect_uri")).toBe(`${APP}/api/spotify/callback`);
-  // round 7: the Booth's Web Playback SDK needs the two playback scopes
+  // round 7: the Booth's Web Playback SDK needs the two playback scopes; wave 4: the playlist cover, image upload
   expect(to.searchParams.get("scope")).toBe(
-    "playlist-modify-private playlist-modify-public user-read-email streaming user-read-private user-modify-playback-state user-read-playback-state",
+    "playlist-modify-private playlist-modify-public user-read-email streaming user-read-private user-modify-playback-state user-read-playback-state ugc-image-upload",
   );
   const state = to.searchParams.get("state") ?? "";
   expect(state.length).toBeGreaterThan(16);

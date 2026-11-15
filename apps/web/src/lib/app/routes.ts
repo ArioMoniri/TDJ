@@ -14,6 +14,7 @@ import {
 import { json, jsonNoStore, noStore } from "@/lib/api/http";
 import { preview, resolve, resolveStatus } from "@/lib/api/net";
 import { spotifyMatch, spotifyPlaylist } from "@/lib/api/spotify";
+import { spotifyCover } from "@/lib/api/spotifyCover";
 import { t } from "@/lib/i18n";
 import { profile } from "@/lib/spotifyWeb";
 import type { AgentMemory, AppOverrides, HistorySnapshot } from "@/lib/types";
@@ -187,6 +188,7 @@ const LOCAL: Record<string, Partial<Record<Method, Handler>>> = {
   "/api/preview": { GET: preview },
   "/api/spotify/match": { POST: spotifyMatch },
   "/api/spotify/playlist": { POST: spotifyPlaylist },
+  "/api/spotify/cover": { POST: spotifyCover },
   "/api/spotify/me": { GET: spotifyMe },
   "/api/spotify/access": { GET: spotifyAccess },
   "/api/spotify/logout": { POST: spotifyLogout },

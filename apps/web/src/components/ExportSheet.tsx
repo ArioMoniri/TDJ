@@ -5,6 +5,7 @@ import { ArrowRightLeft, Check, Cloud, FileDown, HardDrive, ListVideo, Radio, We
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { coverAfterExport } from "@/lib/cover/spotify";
 import { downloadBlob } from "@/lib/download";
 import { withoutCortinas } from "@/lib/exportPaths";
 import { haptic } from "@/lib/haptics";
@@ -422,6 +423,18 @@ export function ExportSheet({
           : await hostedCreatePlaylist({ uris, includeCortinas, ...details });
         rememberTarget(r.url);
         setResult({ label: tx("exportSheet.open_in_spotify"), url: r.url });
+        // wave 4: the night's cover, after the write and never in its way (lib/cover/spotify.ts)
+        coverAfterExport(
+          {
+            playlist,
+            playlistId: r.id,
+            enabled: settings.exportCover !== false,
+            hosted: true,
+            access: spotify?.token?.access,
+            scopes: spotify?.scopes,
+          },
+          (line) => setLog((l) => [...l, line]),
+        );
         if (targetId && r.details === false) toast(tx("exportSheet.tracks_updated_spotify_kept_the_old"));
         finishLog(r.added, si.missing, m.paused, m.remaining.length, si.note);
         if (m.paused && m.remaining.length) {
@@ -487,6 +500,18 @@ export function ExportSheet({
           );
       rememberTarget(pl.external_urls.spotify);
       setResult({ label: tx("exportSheet.open_in_spotify"), url: pl.external_urls.spotify });
+      // wave 4: the night's cover, after the write and never in its way (lib/cover/spotify.ts)
+      coverAfterExport(
+        {
+          playlist,
+          playlistId: pl.id,
+          enabled: settings.exportCover !== false,
+          hosted: false,
+          access: tok.access,
+          scopes: tok.scope,
+        },
+        (line) => setLog((l) => [...l, line]),
+      );
       finishLog(uris.length, si.missing, m.paused, m.remaining.length, si.note);
       if (m.paused && m.remaining.length) {
         const pend = { playlistId: pl.id, url: pl.external_urls.spotify, remaining: m.remaining };

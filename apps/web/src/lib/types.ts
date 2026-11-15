@@ -148,6 +148,8 @@ export interface UserSettings {
   sounds: boolean;
   /** wave 3: the app's language; Auto follows the browser (the system, in the apps). English is the default */
   language?: "auto" | "en" | "tr";
+  /** wave 4: exported playlists (Spotify) get the night's generated cover; on unless turned off */
+  exportCover?: boolean;
 }
 export const DEFAULT_NAMING = "{artist} - {title}";
 export const DEFAULT_SETTINGS: UserSettings = {
@@ -172,6 +174,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   autoImprove: true,
   sounds: true,
   language: "auto",
+  exportCover: true,
 };
 export const CORTINA_STOP_RANGE = { min: 20, max: 90, step: 5 } as const;
 /** The effective cortina play length: the Playback setting, else the composer's cortina length, clamped to 20–90. */
@@ -235,6 +238,11 @@ export interface HistorySnapshot {
   versions?: HistoryVersion[];
   /** what made the current version, in the DJ's words ("Calmer", "Changed a song"); absent: as composed */
   change?: string;
+  /**
+   * Wave 4: the cover family (lib/cover/seed.ts), the generation id of the night the entry began with. Every version
+   * keeps it, so an edited night keeps its cover's colours and motif; only the arc follows the edit.
+   */
+  coverSeed?: string;
   /** the last edit (ISO); the row keeps its place by `createdAt` */
   updatedAt?: string;
   /** the night as played from the Booth (lib/history.ts `NightLog`), set by "End the night" and every hold */
