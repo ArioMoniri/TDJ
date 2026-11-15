@@ -1,4 +1,6 @@
 "use client";
+import { ChevronRight } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
@@ -184,6 +186,14 @@ export function GuideBody({
         The rules from working DJs that every night follows, whoever builds it.
       </p>
       <GuideSections sections={rows} editing={editing} className="mt-2" />
+      <Link
+        href="/#result"
+        className="mx-4 mt-1 inline-flex min-h-11 items-center gap-1 text-[var(--tint)]"
+        data-testid="guide-score-link"
+      >
+        See how your night scored
+        <ChevronRight size={16} strokeWidth={2.25} aria-hidden />
+      </Link>
       <h2 className="text-title3 mt-8 px-4">What a great set takes into account</h2>
       <p className="text-subhead mt-1 px-4 text-[var(--label-2)]">
         Five layers, from the notes inside a tanda to the booth.

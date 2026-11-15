@@ -52,7 +52,7 @@ export const DJ_APPS: Array<{ id: DjApp; label: string; format: string; note: st
   {
     id: "serato",
     label: "Serato DJ",
-    format: "DJ CSV via Lexicon",
+    format: "A list for Serato, through Lexicon",
     note: "Serato reads crates, not CSV: import the CSV in Lexicon (File → Import → CSV) and sync to Serato.",
   },
   {

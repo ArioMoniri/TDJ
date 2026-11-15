@@ -20,7 +20,7 @@ export const PROVIDER_LABEL: Record<AiProvider, string> = {
   openai: "OpenAI",
   gemini: "Gemini",
   openrouter: "OpenRouter",
-  acp: "Agent (ACP)",
+  acp: "AI agent app",
 };
 
 /** the newest Claude model: the default whenever Anthropic runs with a blank model */

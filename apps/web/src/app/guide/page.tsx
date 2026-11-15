@@ -32,7 +32,7 @@ export default function Guide() {
     ],
     [
       "Score",
-      "The score checks that tandas hold together, singers and years match, orchestras are spaced out and varied, the energy follows the night, cortinas behave and the ending lands. 85 or more is headline marathon DJ territory.",
+      "The score reads a night the way an experienced DJ would: tandas that hold together, singers and years that match, orchestras spaced out and varied, energy that follows the night, cortinas that clear the floor and an ending that lands. A night scoring 85 out of 100 or more is one you could play at a big marathon. After you compose, How this set scored shows each part.",
     ],
   ];
   const takes: Array<[string, string]> = [
@@ -90,7 +90,8 @@ export default function Guide() {
         <>
           <h2 className="text-title3 mt-8 px-4">Context factors</h2>
           <p className="text-subhead mt-1 px-4 text-[var(--label-2)]">
-            What “Tonight” does. Shifts are energy points; vals and milonga are the share of the night.
+            What “Tonight” does: + livens the night, − calms it; vals and milonga are their share of the
+            night.
           </p>
           {contextModel.factors.map((f) => (
             <Group key={f.id} header={f.label}>

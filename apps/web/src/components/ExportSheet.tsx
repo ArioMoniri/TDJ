@@ -1124,7 +1124,7 @@ export function ExportSheet({
                 {noFolders && (
                   <>
                     {" "}
-                    Paths use a TDJ/ placeholder. Set each app's music folder in{" "}
+                    Your DJ app finds the songs once you set its music folder in{" "}
                     <Link href="/settings" className="text-[var(--tint)]">
                       Settings
                     </Link>

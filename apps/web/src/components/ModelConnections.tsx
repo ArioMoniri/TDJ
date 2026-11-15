@@ -183,7 +183,7 @@ export function ModelConnections() {
     <>
       <Group
         header="Keys and agents"
-        footer="The one with the check mark writes your reviews, reads “Tell the DJ”, edits the night with AI and makes the AI pick. Keys and agent addresses stay in this browser and go only with your own requests. An agent is any ACP agent (Claude Code, Gemini CLI and others) on this computer or elsewhere, reached by its address."
+        footer="The one with the check mark writes your reviews, reads “Tell the DJ”, edits the night with AI and makes the AI pick. Keys and agent addresses stay in this browser and go only with your own requests. An agent is an AI agent app on your computer or server (Claude Code, Gemini CLI and others), reached by its address."
         data-testid="model-connections"
       >
         {KEY_PROVIDERS.map(([p, label]) => {
@@ -251,7 +251,7 @@ export function ModelConnections() {
             <Group
               footer={
                 editing.kind === "url"
-                  ? "The agent's WebSocket address: an ACP agent behind a bridge on this computer (ws://localhost:…) or a remote one (wss://…). Ask your agent's docs for the bridge command."
+                  ? "The address of your AI agent app: one on this computer starts with ws://localhost, one on a server with wss://. The agent's own help says how to get it."
                   : local
                     ? "The command that starts the agent on this Mac, for example npx @zed-industries/claude-code-acp."
                     : "A local agent process runs in the Mac app. On the web, connect with an address."
