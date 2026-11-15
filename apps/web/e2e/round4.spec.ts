@@ -324,6 +324,8 @@ test("compose sends only explicit keys plus the explicit list; the DJ CSV genre 
   request,
 }) => {
   await page.goto("/");
+  await page.waitForLoadState("networkidle");
+  await page.getByRole("button", { name: /^Cortinas/ }).click(); // a folded section (round 23)
   await page.getByRole("button", { name: "Pin cortina length" }).click();
   await page.getByLabel("Era", { exact: true }).selectOption("nuevo");
   const req = page.waitForRequest((r) => r.url().includes("/api/compose") && r.method() === "POST");
