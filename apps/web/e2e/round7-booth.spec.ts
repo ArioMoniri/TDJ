@@ -132,8 +132,10 @@ test("booth: the plan for a composed set, time to Cumparsita, dark forced, no gl
   const m = await page.evaluate(() => {
     const card = document.querySelector('[data-testid="booth-now"]')!;
     const strip = document.querySelector('[data-testid="booth-strip"]')!;
+    // (a control the strip hides at this width, e.g. the room volume below 1400 px, has no box: not counted)
     const small = [...strip.querySelectorAll("button, input")].filter((el) => {
       const r = el.getBoundingClientRect();
+      if (!r.width && !r.height) return false;
       return r.width < 44 || r.height < 44;
     }).length;
     const title = getComputedStyle(document.querySelector('[data-testid="booth-now-title"]')!).fontSize;
@@ -155,7 +157,7 @@ test("booth: the plan for a composed set, time to Cumparsita, dark forced, no gl
   expect(m.big).toBe("44px");
 });
 
-test("rehearsal: the night plays through the mocked previews; h holds, space pauses / resumes, esc + Enter stops, → arms the next", async ({
+test("rehearsal: the night plays through the mocked previews; h holds, space pauses / resumes, Stop + Fade out stops, → arms the next", async ({
   page,
 }) => {
   await mockPreviews(page);
@@ -183,10 +185,11 @@ test("rehearsal: the night plays through the mocked previews; h holds, space pau
   await expect(page.getByTestId("booth-play")).toHaveText(/Resume/);
   await page.keyboard.press("Space");
   await expect(page.getByTestId("booth")).toHaveAttribute("data-state", "playing");
-  // esc opens the Stop confirm (round 20: no hidden press-and-hold); Enter fades out and stops
-  await page.keyboard.press("Escape");
-  await expect(page.getByTestId("booth-stop-fade")).toBeFocused();
-  await page.keyboard.press("Enter");
+  // Stop opens the confirm (round 20: no hidden press-and-hold; wave 2: esc never opens it and Cancel has the
+  // focus); "Fade out and stop" fades out and stops
+  await page.getByTestId("booth-stop").click();
+  await expect(page.getByTestId("booth-stop-cancel")).toBeFocused();
+  await page.getByTestId("booth-stop-fade").click();
   await expect(page.getByTestId("booth")).toHaveAttribute("data-state", "stopped");
   // (keys are ignored while a sheet is up: wait for it to leave)
   await expect(page.getByTestId("booth-stop-sheet")).toHaveCount(0);

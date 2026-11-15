@@ -154,8 +154,8 @@ test("logged into Spotify Premium, the booth plays exactly the stored uri (one p
   // nothing else: no search, no track lookup, no re-match
   for (const c of api)
     expect(c.url).toMatch(/^https:\/\/api\.spotify\.com\/v1\/me\/player(\/play\?device_id=e2e-device)?$/);
-  // (round 20) esc opens the Stop confirm; Stop now ends the Spotify item
-  await page.keyboard.press("Escape");
+  // (round 20) Stop opens the confirm (wave 2: esc no longer does); Stop now ends the Spotify item
+  await page.getByTestId("booth-stop").click();
   await page.getByTestId("booth-stop-now").click();
   await expect(page.getByTestId("booth")).toHaveAttribute("data-state", "stopped");
 });

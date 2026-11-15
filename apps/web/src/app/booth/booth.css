@@ -100,21 +100,43 @@
     grid-template-columns: minmax(0, 1fr) minmax(360px, min(520px, 44%));
     align-items: start;
   }
+  /* wave 2: the column reaches the viewport's foot from wherever it sits (--booth-set-top, measured by the page:
+     the old formula assumed the stuck top, so at the top of the page the list ran under the transport), and the
+     list's foot pads by the space the transport takes (its height + its offset + the safe area): every row scrolls
+     fully above it */
   .booth .booth-col-set {
     grid-column: 2;
     grid-row: 1;
     position: sticky;
     top: 68px;
-    max-height: calc(100dvh - 68px - var(--booth-strip-space, 120px) - 8px);
+    max-height: calc(100dvh - var(--booth-set-top, 68px) - 8px);
     grid-template-rows: auto minmax(0, 1fr);
     overflow: hidden;
   }
   .booth .booth-col-set > .booth-set {
     overflow-y: auto;
     min-height: 0;
+    padding-bottom: calc(var(--booth-strip-space, 88px) + 8px);
+    scroll-padding-bottom: calc(var(--booth-strip-space, 88px) + 8px);
   }
   .booth-deck {
     grid-column: 1;
+  }
+}
+/* a short landscape screen (iPad landscape, 834 px): the night bar took most of the column and left ~135 px of the
+   list; the whole column scrolls instead, so the list can fill it (the playhead follows in the column) */
+@media (min-width: 900px) and (max-height: 860px) {
+  .booth .booth-col-set {
+    display: block;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-padding-bottom: calc(var(--booth-strip-space, 88px) + 8px);
+  }
+  .booth .booth-col-set > .booth-night {
+    margin-bottom: 12px;
+  }
+  .booth .booth-col-set > .booth-set {
+    overflow: visible;
   }
 }
 @media (min-width: 1600px) {
@@ -384,19 +406,50 @@
 .booth-strip .booth-tbtn > .booth-tbtn-l {
   line-height: 1;
 }
-/* the words under the glyphs where there is room; below that the same words are the tooltip and the name */
-@media (max-width: 1399px) {
+/* wave 2: the words under the glyphs from 640 px (an iPad's transport was icons only, with no hover on a
+   trackpad); the phone's one row keeps the glyphs, its words are the hint (long-press) and the accessible name */
+@media (max-width: 639px) {
   .booth-strip .booth-tbtn > .booth-tbtn-l {
     display: none;
   }
-  .booth-strip .booth-tbtn {
-    min-width: 44px;
+}
+/* 640–819 (iPad mini portrait, split view): no room for the words on one row — the hint layer says them on
+   hover, focus and long-press, and every control keeps its accessible name */
+@media (min-width: 640px) and (max-width: 819px) {
+  .booth-strip .booth-tbtn > .booth-tbtn-l {
+    display: none;
   }
 }
-/* below 1180 the room volume lives in Mix: the transport keeps every button on one row */
-@media (max-width: 1179px) {
+/* below 1400 the room volume lives in Mix: the transport keeps every button, labelled, on one row */
+@media (max-width: 1399px) {
   .booth .booth-strip .booth-fader {
     display: none;
+  }
+}
+/* one row of one height from 640 px, before and after Start (the iPad strip was 112 px with the Start label, then
+   64 px): it never wraps, and the pre-listen line floats over it instead of joining the row */
+@media (min-width: 640px) {
+  .booth .booth-strip {
+    flex-wrap: nowrap;
+    height: 64px;
+    min-height: 64px;
+  }
+  .booth-strip .booth-cueline {
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    bottom: calc(100% + 6px);
+  }
+}
+/* wave 2 (iPhone): no tab bar under the booth's transport — the two stacked over the deck; the transport takes the
+   tab bar's place from the start, and ••• holds "Leave the booth" */
+@media (max-width: 639px) {
+  html[data-booth] nav[aria-label="Primary mobile"] {
+    visibility: hidden;
+    pointer-events: none;
+  }
+  html[data-booth] .booth-strip {
+    bottom: max(0.75rem, env(safe-area-inset-bottom));
   }
 }
 .booth-strip-now {

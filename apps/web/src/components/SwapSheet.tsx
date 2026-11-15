@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useStore } from "@/lib/store";
 import { tempoLevel } from "@/lib/tempo";
 import type { Playlist, Song } from "@/lib/types";
+import { yearText } from "@/lib/year";
 import { ActionRow, Group, Row, SwitchRow } from "./Form";
 import { SearchField } from "./SearchField";
 import { Sheet } from "./Sheet";
@@ -51,7 +52,7 @@ const ranked = (xs: SwapSide[]) => xs.slice().sort((a, b) => Number(b.ok) - Numb
 
 const sub = (s: SwapSide["song"]) =>
   [
-    s.year ?? "?",
+    yearText(s.year),
     s.singer ?? "instrumental",
     s.vocalStyle === "cantor" ? "singer-led" : s.vocalStyle === "estribillo" ? "rhythm-led" : null,
     s.energy !== undefined ? `e${s.energy}` : null,

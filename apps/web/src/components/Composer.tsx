@@ -61,6 +61,7 @@ import type {
   NightRules,
   Playlist,
 } from "@/lib/types";
+import { metaLine, yearText } from "@/lib/year";
 import { AiEditBar } from "./AiEditBar";
 import { BenchmarkSheet, benchLabel, type ImproveResponse } from "./BenchmarkSheet";
 import { ComposeLabel, ComposeNarrative } from "./ComposeNarrative";
@@ -1874,9 +1875,11 @@ export function Composer() {
                   <span className="min-w-0 flex-1">
                     <span className="text-headline block truncate">La Cumparsita</span>
                     <span className="text-subhead block truncate text-[var(--label-2)]">
-                      {playlist.opening.orchestra}
-                      {playlist.opening.singer ? ` · ${playlist.opening.singer}` : ""} ·{" "}
-                      {playlist.opening.year ?? "?"}
+                      {metaLine(
+                        playlist.opening.orchestra,
+                        playlist.opening.singer,
+                        yearText(playlist.opening.year),
+                      )}
                     </span>
                   </span>
                 </div>
@@ -1944,14 +1947,14 @@ export function Composer() {
             <AiEditBar playlist={playlist} />
             {playlist.closing && (
               <Group header="Closing">
-                <div className="cell" data-leading="art">
+                <div className="cell" data-leading="art" data-testid="closing">
                   <span className="tile-art" data-rhythm="tango" aria-hidden>
                     <Disc3 size={20} strokeWidth={1.75} />
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="text-headline block truncate">La Cumparsita</span>
                     <span className="text-subhead block truncate text-[var(--label-2)]">
-                      {playlist.closing.orchestra} · {playlist.closing.year ?? "?"}
+                      {metaLine(playlist.closing.orchestra, yearText(playlist.closing.year))}
                     </span>
                   </span>
                 </div>

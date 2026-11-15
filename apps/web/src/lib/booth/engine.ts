@@ -204,6 +204,8 @@ export interface EngineOptions {
   /** 30 in rehearsal mode: every item is capped there */
   rehearsalSec?: number | null;
   now?: () => number;
+  /** wave 2: why an item has nothing to play it from, in plain words (the banner says it instead of "No source") */
+  whyMissing?: (planIndex: number) => string | null;
 }
 
 /**
@@ -263,6 +265,7 @@ export class BoothEngine {
     this.onEvent = o.onEvent ?? (() => {});
     this.rehearsalSec = o.rehearsalSec ?? null;
     this.wall = o.now ?? (() => Date.now());
+    this.whyMissing = o.whyMissing ?? (() => null);
     this.master = ctx.createGain();
     this.analyser = ctx.createAnalyser();
     this.analyser.fftSize = 256;
@@ -322,6 +325,7 @@ export class BoothEngine {
   forcedNext: number | null = null;
   /** round 21: the items of the tandas the DJ bypasses tonight ("skip tonight", the last-four-tango setting) */
   bypassed = new Set<number>();
+  private whyMissing: (planIndex: number) => string | null;
   setBypass(items: Iterable<number>): void {
     this.bypassed = new Set(items);
     // (the queued item is now bypassed: rebuild it)
@@ -862,7 +866,8 @@ export class BoothEngine {
     if (!this.plan) return { remainingSec: 0, timeToCumparsita: 0 };
     const pos = this.position();
     return remainingFrom(this.plan, this.planIndex, pos, {
-      skipped: this.skipped,
+      // a tanda skipped tonight (and its cortina) leaves the night's time too (wave 2)
+      skipped: this.bypassed.size ? new Set([...this.skipped, ...this.bypassed]) : this.skipped,
       currentLength: this.current || this.pausedAt ? this.currentLength() : undefined,
       capFor: (i) => this.capFor(i),
     });
@@ -965,8 +970,14 @@ export class BoothEngine {
   private markMissing(i: number, e: unknown) {
     this.skipped.add(i);
     const it = this.item(i);
+    // plain words (wave 2: "La Cumparsita: No source (skipped)" said nothing a DJ could act on)
+    const why =
+      this.whyMissing(i) ??
+      (e instanceof Error && e.message && !/^no source$/i.test(e.message)
+        ? e.message
+        : "there is no file, Spotify recording or 30 s clip to play it from");
     this.banner(
-      `${it?.title ?? "An item"}: ${e instanceof Error ? e.message : "no source"} (skipped)`,
+      `${it?.title ?? "An item"} is passed over: ${why}. The night moves on to the next song.`,
       `missing-${i}`,
     );
   }

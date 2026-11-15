@@ -1,8 +1,9 @@
 "use client";
 import { CORTINA_EDIT_RANGES } from "@tdj/core";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { STOP_NOW_SEC, TRANSPORT_RANGES } from "@/lib/booth/engine";
 import { MIX_EXPLAIN, MIX_PRESETS, type MixPresetId, presetOf } from "@/lib/booth/mix";
+import { cortinaSpan } from "@/lib/booth/nightView";
 import { BOOTH_RANGES, durationLabel } from "@/lib/booth/plan";
 import { useBooth } from "@/lib/booth/store";
 import { useMediaQuery } from "@/lib/hooks";
@@ -159,14 +160,16 @@ export function LevelsSheet({ open, onClose }: { open: boolean; onClose: () => v
             disabled={!live}
             testId="booth-mix-hold"
           />
-          <KeyAction
-            label="End the tanda after this song"
-            sub="The cortina comes next, at the gap"
-            k="c"
-            onClick={() => act.cueCortina()}
-            disabled={!live || kind !== "track"}
-            testId="booth-mix-cue"
-          />
+          {kind !== "closing" && (
+            <KeyAction
+              label="End the tanda after this song"
+              sub="The cortina comes next, at the gap"
+              k="c"
+              onClick={() => act.cueCortina()}
+              disabled={!live || kind !== "track"}
+              testId="booth-mix-cue"
+            />
+          )}
           <SwitchRow
             label="Talk-over"
             sub="The music dips 12 dB while you speak (t)"
@@ -342,34 +345,13 @@ export function LevelsSheet({ open, onClose }: { open: boolean; onClose: () => v
 }
 
 /**
- * Stop (round 20): one tap on the strip's Stop (or esc) opens this; no hidden press-and-hold. "Fade out and stop"
- * has the focus (Enter); "Stop now" cuts with a 0.1 s declick. Play restarts the same item.
+ * Stop (round 20; wave 2): the strip's Stop opens this; esc never does (two esc presses after Mix opened it with the
+ * destructive action focused, so Enter faded the room out). The focus lands on Cancel: Enter or esc keeps playing;
+ * "Fade out and stop" and "Stop now" each take a deliberate tap (or Tab, then Enter). Play restarts the same item.
  */
 export function StopSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const stop = useBooth((s) => s.stop);
   const fade = useBooth((s) => s.settings.stopFadeSec);
-  const gentle = useRef<HTMLButtonElement>(null);
-  const now = useRef<HTMLButtonElement>(null);
-  const done = useRef(onClose);
-  done.current = onClose;
-  // Enter = "Fade out and stop" wherever the focus is (the sheet's own focus lands on its first control, Cancel);
-  // only a focused "Stop now" takes Enter for itself
-  useEffect(() => {
-    if (!open) return;
-    const t = setTimeout(() => gentle.current?.focus({ preventScroll: true }), 60);
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Enter" || e.repeat || document.activeElement === now.current) return;
-      e.preventDefault();
-      e.stopPropagation();
-      useBooth.getState().stop(useBooth.getState().settings.stopFadeSec);
-      done.current();
-    };
-    document.addEventListener("keydown", onKey, true);
-    return () => {
-      clearTimeout(t);
-      document.removeEventListener("keydown", onKey, true);
-    };
-  }, [open]);
   return (
     <Sheet
       open={open}
@@ -377,12 +359,21 @@ export function StopSheet({ open, onClose }: { open: boolean; onClose: () => voi
       title="Stop the music?"
       detents={["medium"]}
       testId="booth-stop-sheet"
+      hideCancel
     >
-      <Group footer="Esc opens this, Enter fades out, esc again keeps playing. Play restarts the same song from the top.">
+      <Group footer="Cancel keeps the music playing (Enter or esc). Play restarts the same song from the top.">
+        <button
+          type="button"
+          className="cell cell-tap w-full justify-center font-semibold"
+          data-autofocus
+          data-testid="booth-stop-cancel"
+          onClick={onClose}
+        >
+          Cancel
+        </button>
         <button
           type="button"
           className="cell cell-tap w-full justify-center font-semibold text-[var(--tint)]"
-          ref={gentle}
           data-testid="booth-stop-fade"
           onClick={() => {
             stop(fade);
@@ -394,7 +385,6 @@ export function StopSheet({ open, onClose }: { open: boolean; onClose: () => voi
         <button
           type="button"
           className="cell cell-tap w-full justify-center font-semibold text-[var(--destructive)]"
-          ref={now}
           data-testid="booth-stop-now"
           onClick={() => {
             stop(STOP_NOW_SEC);
@@ -425,7 +415,7 @@ export function CortinaSheet({ planIndex, onClose }: { planIndex: number | null;
       {it && (
         <>
           <p className="section-foot mt-2">
-            {it.title} · {it.artist} · in {durationLabel(it.trimInSec ?? 0)}
+            {it.title} · {it.artist} · {cortinaSpan(it.trimInSec ?? 0, it.stopSec ?? 45)}
           </p>
           <Group
             header="Envelope"
@@ -471,7 +461,6 @@ export function CortinaSheet({ planIndex, onClose }: { planIndex: number | null;
 
 const KEYS: Array<[string, string]> = [
   ["space", "Pause / resume (a short fade)"],
-  ["esc", "Stop…: fade out and stop, or stop now"],
   ["→", "Next at gap: the queued item is skipped"],
   ["f", "Fade out now; the next item follows at the gap"],
   ["x", "Next with crossfade"],

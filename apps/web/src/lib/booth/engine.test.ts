@@ -885,3 +885,53 @@ describe("round 21: a tapped row plays — Play now (with a fade) and Play next"
     expect(e.state === "playing" || e.state === "cortina").toBe(true);
   });
 });
+
+describe("wave 2: a skipped tanda leaves the plan; a missing item is explained", () => {
+  let ctx: FakeCtx;
+  beforeEach(() => {
+    ctx = new FakeCtx();
+  });
+  it("time to La Cumparsita and the remaining time leave out a tanda skipped tonight and its cortina", () => {
+    const p = set({ thirdTanda: true });
+    const plan = build(p);
+    const e = engineFor(ctx, plan);
+    const before = e.remaining();
+    const q = { ...p, tandas: p.tandas.map((t, i) => (i === 1 ? { ...t, bypass: true } : t)) };
+    const by = bypassPlanItems(q, plan.items);
+    e.setBypass(by);
+    const after = e.remaining();
+    const out = by.reduce((s, i) => s + plan.items[i]!.lengthSec + plan.items[i]!.gapAfterSec, 0);
+    expect(out).toBeGreaterThan(0);
+    expect(before.remainingSec - after.remainingSec).toBeCloseTo(out, 3);
+    expect(before.timeToCumparsita - after.timeToCumparsita).toBeCloseTo(out, 3);
+  });
+  it("an item with nothing to play is passed over in plain words, with the reason the booth gives", async () => {
+    const plan = build(set());
+    const events: EngineEvent[] = [];
+    const base = fakeAdapter();
+    const adapter: SourceAdapter = {
+      ...base,
+      async prepare(item, ent) {
+        if (item.id === "a1") throw new Error("No source");
+        return base.prepare(item, ent);
+      },
+    };
+    const e = new BoothEngine(ctx, {
+      adapters: [adapter],
+      onEvent: (ev) => events.push(ev),
+      now: () => 1_000_000,
+      whyMissing: () => "the rehearsal has no 30 s clip of this recording",
+    });
+    e.load(
+      plan,
+      plan.items.map(() => null),
+      plan.items.map(() => "file"),
+    );
+    await e.start();
+    const b = events.find((x) => x.type === "banner") as { text: string } | undefined;
+    expect(b?.text).toBe(
+      "a1 is passed over: the rehearsal has no 30 s clip of this recording. The night moves on to the next song.",
+    );
+    expect(b?.text).not.toMatch(/\(skipped\)|No source/);
+  });
+});

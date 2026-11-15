@@ -583,6 +583,7 @@ export const useBooth = create<BoothStore>()((set, get) => ({
         settings,
         rehearsalSec: sourceMode === "preview" ? REHEARSAL_SEC : null,
         onEvent: onEngineEvent,
+        whyMissing,
       });
       engine.load(plan, entities, sources);
       syncBypass();
@@ -1015,6 +1016,17 @@ function syncBypass() {
   const items = playlist && plan ? bypassPlanItems(playlist, plan.items) : [];
   engine?.setBypass(items);
   useBooth.setState({ bypassed: items });
+  // the night's time follows at once (before the night; the tick does it while it runs)
+  const s = useBooth.getState();
+  if (plan && !s.started) useBooth.setState(derive(plan, s.planIndex, 0, capFor(s.sources, s.rehearsal)));
+}
+
+/** wave 2: why the engine passes an item over, in the DJ's words (the banner) */
+function whyMissing(i: number): string | null {
+  const s = useBooth.getState();
+  if (!s.rehearsal) return null;
+  const why = s.notRehearsable.find((x) => x.i === i)?.why;
+  return `the rehearsal has no 30 s clip of this recording${why && why !== "no clip of the Spotify recording" ? ` (${why})` : ""}; on the night it plays in full from your file or Spotify`;
 }
 
 /* ---------- engine → store ---------- */
@@ -1138,12 +1150,14 @@ function watchVisibility() {
 
 function derive(plan: BoothRows, planIndex: number, position: number, cap: (i: number) => number | null) {
   // before the engine exists the items without a source are the ones the night will leave out
-  const sources = useBooth.getState().sources;
+  const { sources, bypassed } = useBooth.getState();
   const skipped = new Set(
     sources
       .map((s, i) => (s === "missing" && plan.items[i]?.kind !== "break" ? i : -1))
       .filter((i) => i >= 0),
   );
+  // a tanda skipped tonight and its cortina leave the night's time (wave 2)
+  for (const i of bypassed) skipped.add(i);
   const r = remainingFrom(plan, planIndex, position, { capFor: cap, skipped });
   return { remaining: r.remainingSec, timeToCumparsita: r.timeToCumparsita };
 }

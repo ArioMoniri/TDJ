@@ -1,7 +1,9 @@
 "use client";
+import { bypassedTandas } from "@tdj/core";
 import { Cake, Coffee, FastForward, Flag, ListChecks } from "lucide-react";
 import { useEffect, useState } from "react";
-import { clockLabel, driftLabel, durationLabel, remainingFrom } from "@/lib/booth/plan";
+import { driftWords, lastFourChange, ttcCaption } from "@/lib/booth/nightView";
+import { clockLabel, durationLabel, remainingFrom } from "@/lib/booth/plan";
 import { useBooth } from "@/lib/booth/store";
 import { toast } from "@/lib/toast";
 import { Group } from "../Form";
@@ -25,6 +27,8 @@ export function NightBar({ onBreak }: { onBreak: () => void }) {
   const resolving = useBooth((s) => s.resolving);
   const playlist = useBooth((s) => s.playlist);
   const state = useBooth((s) => s.state);
+  const sources = useBooth((s) => s.sources);
+  const bypassed = useBooth((s) => s.bypassed);
   const lastFour = !!playlist?.options.rules?.lastFourTango;
   const [jump, setJump] = useState(false);
   // 0 until mounted: the server cannot know the DJ's clock (a hydration mismatch otherwise)
@@ -42,9 +46,23 @@ export function NightBar({ onBreak }: { onBreak: () => void }) {
     ? Math.max(0, tandas - (cur.kind === "closing" && cur.tanda > 0 ? tandas : cur.tanda))
     : tandas;
   const end = (started && startedWall ? startedWall : now) + remaining * 1000;
-  const full = rehearsal && !started ? remainingFrom(plan, planIndex, 0) : null;
+  const full =
+    rehearsal && !started ? remainingFrom(plan, planIndex, 0, { skipped: new Set(bypassed) }) : null;
   const live = state === "playing" || state === "cortina";
   const hasClosing = !!playlist?.closing;
+  const closingNoClip = rehearsal && sources[plan.items.length - 1] === "missing";
+  const ttc0 = ttcCaption({ rehearsal, started });
+  // wave 2: the switch says what it changed, with Undo
+  const toggleLastFour = async () => {
+    const p = useBooth.getState().playlist;
+    if (!p) return;
+    const on = !p.options.rules?.lastFourTango;
+    const before = bypassedTandas(p);
+    await b.setLastFourTango(on);
+    const q = useBooth.getState().playlist;
+    const after = q ? bypassedTandas(q) : before;
+    toast(lastFourChange(before, after, p.tandas), () => void useBooth.getState().setLastFourTango(!on));
+  };
   return (
     <section
       className="booth-night"
@@ -63,8 +81,10 @@ export function NightBar({ onBreak }: { onBreak: () => void }) {
             {rehearsal ? " · rehearsal" : ""}
           </span>
         </div>
-        <div className="text-right" data-hint="How long until La Cumparsita, the last song of the night">
-          <p className="booth-eyebrow booth-eyebrow-wrap">Time to La Cumparsita</p>
+        <div className="text-right" data-hint={ttc0.explain}>
+          <p className="booth-eyebrow booth-eyebrow-wrap" data-testid="booth-ttc-label">
+            {ttc0.label}
+          </p>
           {resolving && !started ? (
             <span
               className="booth-big block text-[var(--label-3)]"
@@ -86,9 +106,7 @@ export function NightBar({ onBreak }: { onBreak: () => void }) {
           data-testid="booth-drift"
           data-hint="Ahead of or behind the planned clock"
         >
-          {started
-            ? `${driftLabel(drift)} ${drift > 1 ? "late" : drift < -1 ? "early" : "on plan"}`
-            : "not started"}
+          {started ? driftWords(drift) : "not started"}
         </span>
         <span className="booth-chip">
           {left} tanda{left === 1 ? "" : "s"} left
@@ -98,10 +116,10 @@ export function NightBar({ onBreak }: { onBreak: () => void }) {
             className="booth-chip tabular-nums"
             data-testid="booth-full-night"
             data-remaining={Math.round(full.remainingSec)}
-            data-hint="The night played in full from the Spotify recordings"
+            data-hint="The night with every song played in full (the rehearsal plays 30 s of each)"
           >
-            full night {durationLabel(full.remainingSec)}
-            {now ? ` · ends ${clockLabel(now + full.remainingSec * 1000)}` : ""}
+            Every song in full: {durationLabel(full.remainingSec)}
+            {now ? `, ends ${clockLabel(now + full.remainingSec * 1000)}` : ""}
           </span>
         )}
         {resolving && !started && (
@@ -150,7 +168,7 @@ export function NightBar({ onBreak }: { onBreak: () => void }) {
           aria-pressed={lastFour}
           data-testid="booth-last4"
           data-hint="The vals and milonga tandas among the last four are skipped tonight: the night ends on tangos"
-          onClick={() => void b.setLastFourTango(!lastFour)}
+          onClick={() => void toggleLastFour()}
         >
           <ListChecks size={16} strokeWidth={2} aria-hidden /> Last 4 tandas tango only
         </button>
@@ -182,7 +200,9 @@ export function NightBar({ onBreak }: { onBreak: () => void }) {
         detents={["medium"]}
         testId="booth-jump-sheet"
       >
-        <Group footer="The song playing fades out and La Cumparsita closes the night. Everything between is left out tonight (it stays in the set).">
+        <Group
+          footer={`The song playing fades out and La Cumparsita closes the night. Everything between is left out tonight (it stays in the set).${closingNoClip ? " The rehearsal has no 30 s clip of this La Cumparsita: it is passed over and the rehearsal ends (on the night it plays in full)." : ""}`}
+        >
           <button
             type="button"
             className="cell cell-tap w-full justify-center font-semibold text-[var(--destructive)]"

@@ -5,6 +5,7 @@ import { haptic } from "@/lib/haptics";
 import { sourceFor, trackFor, usePlayer } from "@/lib/player";
 import { useStore } from "@/lib/store";
 import type { Playlist } from "@/lib/types";
+import { metaLine, yearText } from "@/lib/year";
 import { RhythmTile } from "./Form";
 import { SELECT_TANDA_EVENT } from "./Sidebar";
 import { Tip } from "./ui/Tip";
@@ -116,8 +117,7 @@ export function TandaInspector({
             <span className="min-w-0 flex-1">
               <span className="block truncate">{s.title}</span>
               <span className="text-footnote block truncate text-[var(--label-2)]">
-                {s.year ?? "?"}
-                {s.singer ? ` · ${s.singer}` : ""}
+                {metaLine(yearText(s.year), s.singer)}
               </span>
             </span>
             <span className="text-subhead shrink-0 tabular-nums text-[var(--label-2)]">

@@ -3,6 +3,7 @@ import { Info, ListEnd } from "lucide-react";
 import { durationLabel } from "@/lib/booth/plan";
 import { SOURCE_LABEL } from "@/lib/booth/sources/types";
 import { useBooth } from "@/lib/booth/store";
+import { metaLine, yearText } from "@/lib/year";
 import { Artwork } from "../ui/Artwork";
 import { BpmKey, EnergyChip } from "../ui/BpmKey";
 import { EraBadge } from "../ui/EraBadge";
@@ -34,7 +35,7 @@ export function eyebrowFor(
     where,
     RHYTHM[item.rhythm] ?? item.rhythm,
     withArtist ? item.artist : null,
-    withArtist && item.year ? String(item.year) : null,
+    withArtist ? yearText(item.year) : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -100,10 +101,7 @@ export function NowCard({ onInfo }: { onInfo?: (planIndex: number) => void }) {
           <h2 className="booth-title" data-testid="booth-now-title">
             {item.title}
           </h2>
-          <p className="booth-now-artist">
-            {item.artist}
-            {item.year ? ` · ${item.year}` : ""}
-          </p>
+          <p className="booth-now-artist">{metaLine(item.artist, yearText(item.year))}</p>
           <div className="booth-meta">
             <EraBadge entity={entity} />
             <BpmKey e={entity} />
@@ -150,7 +148,11 @@ export function NowCard({ onInfo }: { onInfo?: (planIndex: number) => void }) {
           data-testid="booth-source"
           data-hint="Where this song plays from: your file, Spotify or a 30 s clip"
         >
-          {SOURCE_LABEL[src]}
+          {src === "missing" && item.kind !== "break"
+            ? rehearsal
+              ? "No 30 s clip of this song: the rehearsal passes over it"
+              : "Nothing to play this song from: passed over"
+            : SOURCE_LABEL[src]}
         </span>
         {current && (
           <span
@@ -178,16 +180,19 @@ export function NowCard({ onInfo }: { onInfo?: (planIndex: number) => void }) {
         {rehearsal && src !== "preview" && <span className="booth-chip">30 s rehearsal</span>}
       </div>
       <div className="booth-now-actions">
-        <button
-          type="button"
-          className="booth-tool"
-          onClick={() => useBooth.getState().cueCortina()}
-          disabled={!live || item.kind !== "track"}
-          data-testid="booth-end-tanda"
-          data-hint="The song plays to its end, then the cortina: the rest of this tanda is left out (c)"
-        >
-          <ListEnd size={16} strokeWidth={2} aria-hidden /> End tanda after this song
-        </button>
+        {/* wave 2: never offered on the opening or closing La Cumparsita (no tanda to end) */}
+        {item.kind !== "closing" && (
+          <button
+            type="button"
+            className="booth-tool"
+            onClick={() => useBooth.getState().cueCortina()}
+            disabled={!live || item.kind !== "track"}
+            data-testid="booth-end-tanda"
+            data-hint="The song plays to its end, then the cortina: the rest of this tanda is left out (c)"
+          >
+            <ListEnd size={16} strokeWidth={2} aria-hidden /> End tanda after this song
+          </button>
+        )}
         {onInfo && item.kind !== "break" && (
           <button
             type="button"

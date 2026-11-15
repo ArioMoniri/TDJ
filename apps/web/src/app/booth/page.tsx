@@ -95,6 +95,40 @@ function Booth() {
     };
   }, [started]);
 
+  // wave 2: where the set column sits now (it is sticky: lower at the top of the page, 68 px once stuck), so it
+  // reaches the viewport's foot and its last rows scroll clear of the transport (booth.css)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-measured once the booth is ready (the column mounts)
+  useEffect(() => {
+    if (phone) return;
+    const root = document.documentElement;
+    let frame = 0;
+    const measure = () => {
+      frame = 0;
+      const col = document.querySelector<HTMLElement>(".booth-col-set");
+      if (col)
+        root.style.setProperty(
+          "--booth-set-top",
+          `${Math.max(0, Math.round(col.getBoundingClientRect().top))}px`,
+        );
+    };
+    const soon = () => {
+      if (!frame) frame = requestAnimationFrame(measure);
+    };
+    measure();
+    window.addEventListener("scroll", soon, { passive: true });
+    window.addEventListener("resize", soon);
+    const ro = typeof ResizeObserver === "function" ? new ResizeObserver(soon) : null;
+    const grid = document.querySelector(".booth-grid");
+    if (grid) ro?.observe(grid);
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", soon);
+      window.removeEventListener("resize", soon);
+      ro?.disconnect();
+      root.style.removeProperty("--booth-set-top");
+    };
+  }, [phone, ready]);
+
   // dark forced while mounted; the DJ's per-device choice overrides it
   useEffect(() => {
     const el = document.documentElement;
@@ -154,7 +188,8 @@ function Booth() {
     w.__tdjBoothCtx = boothContextState;
   }, [plan]);
 
-  // keyboard (§1.1, round 20): ignored while an input has focus or a sheet is up; esc opens the Stop confirm
+  // keyboard (§1.1, round 20): ignored while an input has focus or a sheet is up. Esc only closes sheets (wave 2:
+  // esc used to open the Stop confirm, so the esc that closed Mix plus one more put "Fade out and stop" under Enter)
   useEffect(() => {
     const typing = () => {
       const a = document.activeElement as HTMLElement | null;
@@ -174,9 +209,6 @@ function Booth() {
       } else if (e.key === "ArrowRight") {
         e.preventDefault();
         b.next();
-      } else if (e.key === "Escape") {
-        if (e.repeat) return;
-        if (b.started && b.state !== "stopped" && b.state !== "idle") setStopOpen(true);
       } else if (e.key === "f") b.fadeOutNow();
       else if (e.key === "x") void b.crossfadeNext();
       else if (e.key === "h") {
@@ -233,7 +265,8 @@ function Booth() {
     { label: "Show: energy, BPM, key, era, artwork…", icon: Eye, onClick: () => setShow(true) },
     { label: "Keyboard shortcuts", icon: Keyboard, onClick: () => setKeys(true) },
     { label: light ? "Dark theme" : "Light theme", onClick: () => setLight((v) => !v) },
-    started && { label: "Leave the booth", icon: LogOut, onClick: () => router.push("/") },
+    // (a phone has no tab bar on the booth: this is its way out, before the night too)
+    (started || phone) && { label: "Leave the booth", icon: LogOut, onClick: () => router.push("/") },
     started && {
       label: "End the night",
       destructive: true,

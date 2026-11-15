@@ -4,12 +4,14 @@ import { Headphones, Lock, Repeat2, Search, SlidersHorizontal } from "lucide-rea
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { spotifyOf } from "@/lib/booth/clips";
 import { useIndicators } from "@/lib/booth/indicatorPrefs";
+import { cortinaSpan, cortinaSwapLabel, swapLabel } from "@/lib/booth/nightView";
 import { durationLabel } from "@/lib/booth/plan";
 import { energyOf } from "@/lib/booth/songInfo";
 import { useBooth } from "@/lib/booth/store";
 import { tempoLevel } from "@/lib/tempo";
 import { toast } from "@/lib/toast";
 import type { Playlist } from "@/lib/types";
+import { metaLine, yearText } from "@/lib/year";
 import { SwapSheet } from "../SwapSheet";
 import { Artwork } from "../ui/Artwork";
 import { BpmKey } from "../ui/BpmKey";
@@ -58,11 +60,18 @@ export function SetColumn({
   // follow the playhead inside the column's own scroller only (≥ 1024 the column scrolls): on a phone the column is
   // part of the page, and scrolling the window to the current row pushed the Now card under the glass header
   useEffect(() => {
-    const box = list.current;
-    const row = box?.querySelector<HTMLElement>(`[data-plan-index="${planIndex}"]`);
-    if (!box || !row) return;
-    const oy = getComputedStyle(box).overflowY;
-    if ((oy !== "auto" && oy !== "scroll") || box.scrollHeight <= box.clientHeight) return;
+    const own = list.current;
+    const row = own?.querySelector<HTMLElement>(`[data-plan-index="${planIndex}"]`);
+    if (!own || !row) return;
+    // the list's own scroller, or (wave 2: a short iPad landscape) the column that scrolls the night bar and the list
+    const scrolls = (el: HTMLElement | null) => {
+      if (!el) return false;
+      const oy = getComputedStyle(el).overflowY;
+      return (oy === "auto" || oy === "scroll") && el.scrollHeight > el.clientHeight;
+    };
+    const col = own.parentElement?.classList.contains("booth-col-set") ? own.parentElement : null;
+    const box = scrolls(own) ? own : scrolls(col) ? col : null;
+    if (!box) return;
     const b = box.getBoundingClientRect();
     const r = row.getBoundingClientRect();
     if (r.top < b.top) box.scrollTop -= b.top - r.top + 8;
@@ -352,7 +361,9 @@ const Row = memo(function Row({
         className="booth-row-tap min-h-11 min-w-0 flex-1 text-left"
         onClick={() => onTap?.(i)}
         disabled={!onTap || it.kind === "break"}
-        aria-label={`Play ${it.title}`}
+        aria-label={
+          it.kind === "cortina" ? `Play the cortina after tanda ${it.tanda}: ${it.title}` : `Play ${it.title}`
+        }
         data-testid="booth-row-play"
       >
         <span className="booth-row-title block">
@@ -361,9 +372,12 @@ const Row = memo(function Row({
         </span>
         <span className="booth-row-sub text-footnote block truncate text-[var(--label-2)]">
           {it.kind === "cortina"
-            ? `cortina · ${it.artist} · in ${durationLabel(it.trimInSec ?? 0)} · stop ${durationLabel(it.stopSec ?? 0)}`
-            : it.artist}
-          {it.year ? ` · ${it.year}` : ""}
+            ? metaLine(
+                `cortina · ${it.artist}`,
+                yearText(it.year),
+                cortinaSpan(it.trimInSec ?? 0, it.stopSec ?? 0),
+              )
+            : metaLine(it.artist, yearText(it.year))}
           {entity && "tempo" in entity && tempoLevel(entity) ? ` · ${tempoLevel(entity)}` : ""}
           {source === "spotify" ? " · Spotify" : missing ? (rehearsal ? " · no clip" : " · no source") : ""}
         </span>
@@ -414,7 +428,7 @@ const Row = memo(function Row({
       </span>
       {onSwap ? (
         <SwapButton
-          label={`Swap track ${it.n}`}
+          label={swapLabel(it.tanda, k)}
           disabled={locked}
           busy={busy}
           onClick={onSwap}
@@ -424,7 +438,7 @@ const Row = memo(function Row({
         <button
           type="button"
           className="icon-btn icon-btn-bare h-11 w-11 shrink-0"
-          aria-label={`Fades and stop of the cortina ${it.title}`}
+          aria-label={cortinaSwapLabel(it.tanda)}
           data-hint="Fade in, fade out, stop at"
           onClick={() => onCortina(i)}
           data-testid="booth-cortina-edit"
