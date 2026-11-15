@@ -59,7 +59,9 @@ export function Tip({
     };
   }, [at, hide]);
   const child = isValidElement(children)
-    ? cloneElement(children as ReactElement<{ "aria-describedby"?: string }>, { "aria-describedby": id })
+    ? cloneElement(children as ReactElement<{ "aria-description"?: string }>, {
+        "aria-description": typeof text === "string" ? text : undefined,
+      })
     : children;
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: a passive host for the help tag; the child stays the control
@@ -95,13 +97,11 @@ export function Tip({
       onBlur={hide}
     >
       {child}
-      <span id={id} className="sr-only">
-        {text}
-      </span>
       {at &&
         createPortal(
           <span
             role="tooltip"
+            id={id}
             className="tip-tag text-footnote"
             data-testid="tip"
             style={{
