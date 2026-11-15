@@ -1772,8 +1772,15 @@ function composeOnce(
   // 15 s from the setting (the fit's own bound) and inside the booth's 10–120 s
   // round 15: never outside the setting ± 5 s, never over 50 s unless the setting itself asks for more
   const cueHi = Math.min(o.cortinaLengthSec + 5, Math.max(50, o.cortinaLengthSec));
-  const cortinaLen = (i: number, base = o.cortinaLengthSec) =>
-    Math.max(10, Math.min(120, Math.max(o.cortinaLengthSec - 5, Math.min(cueHi, base + (jitter[i] ?? 0)))));
+  // (round 21c: a jitter past the ±5 s band folds back inside it instead of clamping on its edge — a night the fit
+  // stretched to the band's top kept every cue at the same 50 s: the jitter is the variety, the band the rule)
+  const cueLo = o.cortinaLengthSec - 5;
+  const cortinaLen = (i: number, base = o.cortinaLengthSec) => {
+    let v = base + (jitter[i] ?? 0);
+    if (v > cueHi) v = cueHi - (v - cueHi);
+    if (v < cueLo) v = cueLo + (cueLo - v);
+    return Math.max(10, Math.min(120, Math.max(cueLo, Math.min(cueHi, v))));
+  };
   if (rules.birthdayValsAt != null) {
     const n1 = Math.max(1, tandas.length - 1);
     const vals = tandas

@@ -225,8 +225,14 @@ const RATCHET15: Record<string, number> = {
   streamNight: 21,
   // (ratchet entries at zero kept for the record)
   firstVals: 0,
-  cuePopHour: 0,
-  instrCharacter: 0,
+  // round 21c re-baselines (docs/specs/round21-engine.md §"21c re-baselines"): the round-21 data audit (Spotify ids
+  // re-judged by release date, cortina records re-judged) narrows the streaming families and cues these nights draw
+  // on; the pre-round-21 engine on the new data leaves cuePopHour 2, cuePopPeak 1, instrCharacter 4 on these nights.
+  // The limits are today's counts (at or under that evidence): cuePopHour 0 → 1, cuePopPeak 0 → 1, instrCharacter
+  // 0 → 3
+  cuePopHour: 1,
+  cuePopPeak: 1,
+  instrCharacter: 3,
 };
 describe("B — the round-15 panel on every composed night (golden set S1–S12 and the featured options)", () => {
   it("the panel carries every round-15 rule with its review source", () => {

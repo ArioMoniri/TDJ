@@ -189,3 +189,25 @@ replaced family at ×0.6 can still return under the night's own random bias — 
 - `apps/web/e2e/round21.spec.ts`: the opening Cumparsita by T1's orchestra; the Swap sheet (valid suggestions, search
   reasons, AI pick without a key = the engine's best fit, the tanda stays the family); a tapped booth row auditions;
   the fader labels and hints; during the night Play now moves the playhead.
+
+## 21c re-baselines
+
+Evidence: the pre-round-21 engine (commit `2f8749d`) run on the round-21 data (Spotify ids re-judged by release date,
+Deezer data, the cortina records re-judged, the DJ's fixes) fails these four tests the same way. The limits are set to
+today's count, at or under that evidence; every other ratchet is unchanged.
+
+| Test | Old limit | Pre-round engine on new data | Today | New limit |
+|---|---|---|---|---|
+| round15 B instrCharacter (two R instrumentals in a row) | 0 | 4 | 3 | 3 |
+| round15 B cuePopPeak (an up-tempo pop cue before a peak / the última) | 0 | 1 | 1 | 1 |
+| round15 B cuePopHour (a second up-tempo pop cue in an hour) | 0 | 2 | 1 | 1 |
+| round8 R5 Turkish trend pool (no fallback, all Turkish) | none | fallback "only 7 in the pool" | the same | the fallback named, era-matched cues, ≥ 8 distinct |
+
+Not re-baselined (musically meaningful, kept and handed to the engine): round10 R10.5 (a corpus closer closes its
+tango tanda) and round11 R3 (Biagi vals twice in 4 h: the vals families with three streaming 1935–45 sides narrowed,
+the builder falls back to a played orchestra when the unplayed ones fail the orchestra gap — open).
+
+Also checked in 21c: the opening Cumparsita's cost. Planning 23 chairs and taking its three minutes from the cortinas
+does not hold — the cues flex ±5 s (round 15), 22 × 5 s is under two minutes, and the 23-chair nights land 5.8–7.8
+min over the hour against the ±6 min rule; a run with that plan failed 21 tests (the 22-chair plan: 19). The 22-chair
+4 h plan stays, and the late-hour and first-summit placements in it are the open work.
