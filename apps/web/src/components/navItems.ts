@@ -90,8 +90,8 @@ const ALL = [...NAV_MAIN, ...NAV_PINNED];
 
 /** the sm–lg pill: everything, in the sidebar's order */
 export const PILL_ITEMS: NavItem[] = ALL;
-/** the phone tab bar: five tabs, then More */
-export const PHONE_TABS: NavItem[] = ["/", "/booth", "/library", "/history", "/database"].map(at);
-export const PHONE_MORE: NavItem[] = ["/build", "/rooms", "/guide", "/settings"].map(at);
+/** the phone tab bar: four tabs, then More (wave 4: five items at most, as the HIG asks of a tab bar) */
+export const PHONE_TABS: NavItem[] = ["/", "/booth", "/library", "/history"].map(at);
+export const PHONE_MORE: NavItem[] = ["/database", "/build", "/rooms", "/guide", "/settings"].map(at);
 /** the sidebar's first section: the night and what it is made from (it was "Library", like the item inside it) */
 export const NAV_MAIN_TITLE = () => t("navItems.night");

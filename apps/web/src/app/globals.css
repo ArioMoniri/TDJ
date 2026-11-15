@@ -12,9 +12,14 @@
   --color-teal: #4fd1c5; /* vals */
   --color-violet: #8b7cf6; /* milonga */
 
-  /* Apple text styles, 17 pt body. Names are Apple's. */
-  --text-large-title: 2.125rem;
-  --text-large-title--line-height: 2.5625rem;
+  /* Wave 4: the HIG size classes. compact < 600 (iPhone, iPad split view): tab bar; regular 600–1023: the nav pill;
+     wide ≥ 1024: sidebar (+ inspector). */
+  --breakpoint-sm: 37.5rem;
+
+  /* Apple text styles, 17 pt body. Names are Apple's. All rem, so the user's text size (browser zoom, iOS text
+     size) scales them; the large title is fluid between the HIG compact (28) and regular (34) sizes. */
+  --text-large-title: clamp(1.75rem, 1rem + 4.5vw, 2.125rem);
+  --text-large-title--line-height: 1.2;
   --text-large-title--font-weight: 700;
   --text-large-title--letter-spacing: 0.011em;
   --text-title1: 1.75rem;
@@ -346,15 +351,7 @@ a {
     --ambient-wash: 14%;
   }
 }
-/* the composer's phone primary bar (50 pt + 12 pt gap over the tab bar): the page's last rows must clear it */
-@media (max-width: 639px) {
-  html[data-primary-bar] {
-    scroll-padding-bottom: 210px;
-  }
-  html[data-primary-bar] main {
-    padding-bottom: calc(env(safe-area-inset-bottom) + 210px);
-  }
-}
+/* the composer's phone Compose button: wave 4 block at the end (`--bottom-chrome`) */
 /* the pin glyph of an unpinned control: only on hover / focus where there is a pointer, faint on touch
    (round4-ux.md P0-5c: nine grey pins were drawn on every first run) */
 @media (hover: hover) {
@@ -374,7 +371,7 @@ a {
   }
 }
 /* the mini-player docked onto the phone tab bar: one glass unit (round8-ux.md §1.12) */
-@media (max-width: 639px) {
+@media (max-width: 599.98px) {
   .mini-docked {
     border-radius: 22px 22px 0 0;
     border-bottom-width: 0;
@@ -382,7 +379,10 @@ a {
   }
   [data-testid="tab-bar"][data-docked] {
     border-radius: 0 0 var(--radius-l) var(--radius-l);
-    width: calc(100vw - 1.5rem);
+    /* biome-ignore lint/complexity/noImportantStyles: the tab bar's position is an inline style (Nav.tsx) */
+    right: max(1rem, env(safe-area-inset-right, 0px)) !important;
+    /* biome-ignore lint/complexity/noImportantStyles: as above */
+    margin-inline: auto !important;
     justify-content: space-evenly;
   }
   [data-testid="tab-bar"][data-docked]::before,
@@ -405,7 +405,7 @@ a {
   border-radius: var(--radius-m);
   overflow: clip;
   @apply rounded-continuous;
-  @media (min-width: 640px) {
+  @media (min-width: 600px) {
     border-radius: var(--radius-s);
   }
 }
@@ -689,25 +689,35 @@ li + li > .cell[data-leading="num"]:first-child::before,
   border: var(--separator-w) solid rgb(255 255 255 / 0.18);
   border-radius: var(--radius-l);
   background: transparent;
-  box-shadow: 0 8px 24px rgb(0 0 0 / 0.14);
+  /* wave 4: lighter, two-step shadow; a specular rim at the top edge and a soft refraction (the backdrop a little
+     brighter and more saturated than the page under it) */
+  box-shadow:
+    0 6px 20px rgb(0 0 0 / 0.1),
+    0 1px 2px rgb(0 0 0 / 0.06);
   &::after {
     @apply glass-layer;
     z-index: -2;
     background: var(--material-regular);
-    backdrop-filter: blur(var(--blur-regular)) saturate(160%);
+    backdrop-filter: blur(var(--blur-regular)) saturate(180%) brightness(1.04);
     box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.35),
-      inset 0 -0.5px 0 rgb(0 0 0 / 0.08);
+      inset 0 1px 0 rgb(255 255 255 / 0.45),
+      inset 0 -1px 0 rgb(255 255 255 / 0.08),
+      inset 0 0 0 0.5px rgb(255 255 255 / 0.12);
   }
   &::before {
     @apply glass-layer;
     z-index: -1;
-    background: linear-gradient(120deg, rgb(255 255 255 / 0.22), transparent 40%);
+    background:
+      radial-gradient(120% 80% at 20% 0%, rgb(255 255 255 / 0.22), transparent 60%),
+      linear-gradient(180deg, rgb(255 255 255 / 0.06), transparent 40%);
   }
   @media (prefers-reduced-transparency: reduce) {
     &::after {
       backdrop-filter: none;
       background: rgb(var(--surface) / 0.98);
+    }
+    &::before {
+      display: none;
     }
   }
 }
@@ -801,7 +811,7 @@ li + li > .cell[data-leading="num"]:first-child::before,
    content scrolls under the bar, a full-width bar material fades in (square edges, the bar's own height, edge to
    edge including the status-bar inset) with a hairline under it. The material is the theme's surface at 86 % with
    a blur, so content under it reads as colour, never as text next to the title. */
-@media (min-width: 640px) {
+@media (min-width: 600px) {
   html {
     scroll-padding-top: calc(var(--chrome-top) + 84px);
   }
@@ -1265,7 +1275,7 @@ select.field {
     border-radius: 11px;
   }
 }
-@media (max-width: 640px) {
+@media (max-width: 599.98px) {
   .segmented {
     flex-wrap: nowrap;
     width: 100%;
@@ -1291,7 +1301,7 @@ select.field {
   margin-left: auto;
   flex: 0 0 auto;
 }
-@media (max-width: 640px) {
+@media (max-width: 599.98px) {
   .seg-row .segmented.seg-row-control {
     flex: 1 1 100%;
   }
@@ -1402,7 +1412,7 @@ select.field {
   padding: 6px 6px 6px 16px;
   border-radius: 999px;
 }
-@media (max-width: 639px) {
+@media (max-width: 599.98px) {
   .compose-dock {
     display: none;
   }
@@ -1422,28 +1432,43 @@ select.field {
   transition-delay: 0s;
 }
 /* the floating mini player (bottom right, 360 px) never sits on the dock's Compose button */
-@media (min-width: 640px) {
+@media (min-width: 600px) {
   html:has([data-testid="mini-player"]) .compose-dock {
     margin-right: 384px;
   }
 }
 
-/* Stepper (UIStepper): joined, 94×32, two halves, hairline divider */
+/* Stepper (UIStepper): joined, 94×32, two halves, hairline divider. Wave 4: 94 × 32 on touch screens too (it had
+   grown into a 94 × 44 grey block); the 44 px hit area is a transparent ::after above and below each half, and the
+   negative block margin keeps its row at 44 pt. */
 .stepper {
   display: inline-flex;
   flex: none;
+  width: 94px;
   height: 32px;
+  margin-block: -5px;
   border-radius: 8px;
   background: var(--fill-3);
-  overflow: hidden;
 }
 .stepper button {
+  position: relative;
   width: 47px;
   height: 32px;
   display: grid;
   place-items: center;
   color: var(--label);
   -webkit-tap-highlight-color: transparent;
+}
+.stepper button:first-of-type {
+  border-radius: 8px 0 0 8px;
+}
+.stepper button:last-of-type {
+  border-radius: 0 8px 8px 0;
+}
+.stepper button::after {
+  content: "";
+  position: absolute;
+  inset: -6px 0;
 }
 .stepper button + button {
   border-left: var(--separator-w) solid var(--separator);
@@ -1454,16 +1479,9 @@ select.field {
 .stepper button:disabled {
   color: var(--label-4);
 }
-@media (hover: none) {
-  .stepper {
-    height: 44px;
-  }
-  .stepper button {
-    height: 44px;
-  }
-}
 
-/* Switch: 44 px hit area around a 51×31 track */
+/* Switch: a 51×31 track; wave 4: the row stays 44 pt (the switch took 44 of height and made it 53), the 44 px hit
+   area is the transparent ::after */
 .switch {
   position: relative;
   display: inline-flex;
@@ -1471,11 +1489,17 @@ select.field {
   justify-content: center;
   flex: none;
   min-width: 51px;
-  min-height: 44px;
+  min-height: 31px;
+  margin-block: -4.5px;
   padding: 0 2px;
   border-radius: 999px;
   background: transparent;
   -webkit-tap-highlight-color: transparent;
+}
+.switch::after {
+  content: "";
+  position: absolute;
+  inset: -6.5px -4px;
 }
 .switch-track {
   position: relative;
@@ -1938,12 +1962,12 @@ html.theming *::after {
   max-width: 1400px;
 }
 /* phones: the glanceable number (time to Cumparsita) above the next title */
-@media (max-width: 639px) {
+@media (max-width: 599.98px) {
   .booth-col-mid > [data-testid="booth-time"] {
     order: -1;
   }
 }
-@media (min-width: 640px) {
+@media (min-width: 600px) {
   .booth-grid {
     grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
   }
@@ -2224,7 +2248,7 @@ html.theming *::after {
 }
 /* phones (round8-ux.md §1.5): one 64 pt row (Hold / Next / Stop / Levels / •••; the faders live in the Levels
    sheet), and while a night runs the tab bar leaves so no accidental tap leaves the page; the strip takes its place */
-@media (max-width: 639px) {
+@media (max-width: 599.98px) {
   .booth-strip {
     flex-wrap: nowrap;
     gap: 8px;
@@ -2278,7 +2302,7 @@ html.theming *::after {
   }
 }
 /* the capsule fits its content (or wraps it): nothing is ever clipped at its edge */
-@media (min-width: 640px) {
+@media (min-width: 600px) {
   .booth-strip {
     bottom: 12px;
     left: 50%;
@@ -2341,11 +2365,11 @@ html.theming *::after {
 .booth-strip .booth-fader > span:last-child {
   min-width: 4.5ch;
 }
-/* round 21: Stop says its name beside the square from 640 px (the phone strip keeps the glyph, its label is aria) */
+/* round 21: Stop says its name beside the square from 600 px (the phone strip keeps the glyph, its label is aria) */
 .booth-stop-label {
   display: none;
 }
-@media (min-width: 640px) {
+@media (min-width: 600px) {
   .booth-strip .booth-stop {
     width: auto;
     padding-inline: 12px;
@@ -2501,10 +2525,7 @@ html.theming *::after {
   .chip-filter {
     min-height: 44px;
   }
-  .stepper,
-  .stepper button {
-    height: 44px;
-  }
+  /* (wave 4: the stepper keeps its 94 × 32 and reaches 44 px through its halves' transparent ::after) */
   /* the energy chart's dots: a 44 px round hit area (the chart draws at about 0.77 of its viewBox on iPad landscape) */
   .dot-hit {
     r: 30px;
@@ -2525,7 +2546,7 @@ html:has([data-rooms-page]) {
 /* Wave 2: room for the floating bars. The Compose dock floats over the foot of the window on iPad and the Mac
    (Composer.tsx owns it): the page reserves its height plus the safe area, below the content and as scroll padding,
    so a control scrolled or tabbed into view (Arc) lands above the dock, never under it. */
-@media (min-width: 640px) {
+@media (min-width: 600px) {
   html:has([data-testid="compose-dock"]) {
     --dock-reserve: 88px;
     scroll-padding-bottom: calc(var(--dock-reserve) + env(safe-area-inset-bottom, 0px));
@@ -2577,4 +2598,171 @@ html:has([data-rooms-page]) {
 /* Wave 3: a Turkish night waits for the LocaleRoot (components/LocaleRoot.tsx) so English never flashes */
 html.i18n-pending body {
   visibility: hidden;
+}
+
+/* ───────────────────────── Wave 4: native iOS 26 sizes on a phone (e2e/wave4-mobile.spec.ts) ─────────────────────
+   One floating glass tab capsule (62 px, 4 tabs + More), page actions in the navigation bar, at most one compact
+   floating action and never a bar stacked on the tab bar; controls at UIKit's visible sizes (stepper 94 × 32,
+   switch 51 × 31) with their 44 px hit areas drawn as transparent pseudo-elements, so the rows are 44 pt again. */
+:root {
+  --tabbar-h: 62px;
+  /* the capsule's distance from the bottom edge: the home indicator's inset, or 12 px without one */
+  --tabbar-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+  /* what the page reserves under its last row on a phone: the tab capsule, its offset and a 16 px breath */
+  --bottom-chrome: calc(var(--tabbar-bottom) + var(--tabbar-h) + 16px);
+  /* the one compact floating action (Compose on an empty page) sits 10 px above the tab capsule */
+  --fab-h: 50px;
+  /* fluid page gutter: 16 on a phone, up to 32 on wide windows */
+  --gutter: clamp(1rem, 0.25rem + 3vw, 2rem);
+}
+@media (max-width: 599.98px) {
+  html {
+    scroll-padding-bottom: var(--bottom-chrome);
+  }
+  html[data-primary-bar] {
+    scroll-padding-bottom: calc(var(--bottom-chrome) + var(--fab-h) + 10px);
+  }
+  html[data-primary-bar] main {
+    padding-bottom: calc(var(--bottom-chrome) + var(--fab-h) + 10px);
+  }
+}
+
+/* The tab capsule. Items share the width; the selection is the tint plus a faint glass lens, never a filled block. */
+.tabbar {
+  height: var(--tabbar-h);
+  padding: 4px;
+  gap: 0;
+  border-radius: 999px;
+}
+.tabbar::before,
+.tabbar::after {
+  border-radius: 999px;
+}
+.tab-item {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border-radius: 999px;
+  color: var(--label);
+  -webkit-tap-highlight-color: transparent;
+  transition: color var(--dur-xs) var(--ease-settle);
+}
+.tab-item[aria-current="page"],
+.tab-item[data-on] {
+  color: var(--tint-text);
+}
+/* 10 pt, never above 12: the HIG keeps tab labels out of Dynamic Type (the large-content viewer reads them) */
+.tab-label {
+  font-size: clamp(10px, 0.625rem, 12px);
+  line-height: 1.2;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  max-width: 100%;
+  white-space: nowrap;
+}
+.tab-lens {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 999px;
+  background: rgb(var(--text) / 0.07);
+  box-shadow:
+    inset 0 0.5px 0 rgb(255 255 255 / 0.5),
+    inset 0 -0.5px 0 rgb(0 0 0 / 0.04);
+}
+.dark .tab-lens,
+:root[data-theme="dark"] .tab-lens {
+  background: rgb(var(--text) / 0.1);
+  box-shadow: inset 0 0.5px 0 rgb(255 255 255 / 0.14);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .tab-lens {
+    background: rgb(var(--text) / 0.1);
+    box-shadow: inset 0 0.5px 0 rgb(255 255 255 / 0.14);
+  }
+}
+/* the detached search circle on Library / Database: the tab capsule's height, on the same row */
+.tab-search {
+  width: var(--tabbar-h);
+  height: var(--tabbar-h);
+}
+
+/* Navigation-bar icon buttons (Regenerate, Export): 36 px glass circles inside a 44 px hit area */
+.nav-btn::before {
+  inset: 4px;
+  background: var(--material-thin);
+  backdrop-filter: blur(var(--blur-thin)) saturate(160%);
+  box-shadow:
+    inset 0 0.5px 0 rgb(255 255 255 / 0.4),
+    0 0 0 0.5px rgb(var(--text) / 0.08);
+  mask-image: radial-gradient(#fff, #000);
+}
+@media (prefers-reduced-transparency: reduce) {
+  .nav-btn::before {
+    backdrop-filter: none;
+    background: var(--fill-3);
+  }
+}
+
+/* A trailing value gives way before the label does: it truncates, the label wraps onto a second line */
+.cell-value {
+  min-width: 0;
+  flex-shrink: 1;
+  max-width: 55%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cell-label,
+.cell-sub {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+/* Sheets: the body is a size container, so rows react to the sheet's own width (an iPhone SE, a 540 px panel) */
+.sheet-body {
+  container: sheet / inline-size;
+}
+@container sheet (max-width: 360px) {
+  .cell-value {
+    max-width: 42%;
+  }
+}
+/* the inline status row a toast becomes while a sheet is open: under the title, inside the sheet, never over it */
+.sheet-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  margin: 0 16px 8px;
+  padding: 4px 4px 4px 14px;
+  border-radius: 12px;
+  background: var(--fill-4);
+  font-size: var(--text-subhead);
+  line-height: var(--text-subhead--line-height);
+  color: var(--label);
+}
+.sheet-status-slot:empty {
+  display: none;
+}
+/* the pinned primary (Export's Save / Create playlist): a 50 pt capsule inset 16 pt, on the sheet's material */
+.sheet-footer {
+  padding: 8px 16px max(0.75rem, env(safe-area-inset-bottom, 0px));
+}
+
+/* The compact score stat (Compose result): a 28 pt semibold numeral with a caption, not a hero number */
+.score-stat {
+  font-size: var(--text-title1);
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }

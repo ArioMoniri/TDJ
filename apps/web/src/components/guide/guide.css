@@ -5,7 +5,7 @@
   display: grid;
   gap: 0;
 }
-@media (min-width: 640px) {
+@media (min-width: 600px) {
   .guide-chapter {
     grid-template-columns: 184px minmax(0, 1fr);
   }
@@ -17,7 +17,7 @@
   padding: 12px;
   background: color-mix(in srgb, var(--tint) 7%, transparent);
 }
-@media (min-width: 640px) {
+@media (min-width: 600px) {
   .guide-art {
     min-height: 100%;
   }

@@ -91,10 +91,11 @@ export function PageHeader({
   const [scrolled, setScrolled] = useState(false);
   const sentinel = useRef<HTMLDivElement>(null);
   const bar = useRef<HTMLDivElement>(null);
+  const trail = useRef<HTMLDivElement>(null);
   const header = useRef<HTMLElement>(null);
   const set = useContext(SetCtx);
   const id = useId();
-  const isPhone = useMediaQuery("(max-width: 639px)");
+  const isPhone = useMediaQuery("(max-width: 599.98px)");
   useEffect(() => {
     const el = sentinel.current;
     if (!el) return;
@@ -109,7 +110,7 @@ export function PageHeader({
       // the bar the title goes under: the phone's own bar, the tablet's pill band, or this sticky toolbar (lg)
       const w = window.innerWidth;
       const over =
-        w < 640
+        w < 600
           ? bar.current
           : w < 1024
             ? document.querySelector<HTMLElement>('[data-testid="nav-pill-band"]')
@@ -154,6 +155,17 @@ export function PageHeader({
     });
   });
   useEffect(() => () => set?.(EMPTY), [set]);
+  // the collapsed bar's trailing width, as `--bar-trail` on the bar (its title pads both sides by it); re-run when
+  // the bar mounts or unmounts with the size class
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `isPhone` decides whether the bar (and its refs) exist
+  useEffect(() => {
+    const el = trail.current;
+    const host = bar.current;
+    if (!el || !host || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => host.style.setProperty("--bar-trail", `${el.offsetWidth}px`));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [isPhone]);
   return (
     <>
       {/* Collapsed bar (phone): 44 pt + the status-bar inset, title centred, trailing actions right. Transparent
@@ -170,8 +182,17 @@ export function PageHeader({
         >
           <div style={{ opacity: collapsed ? 1 : 0, transition: "opacity var(--dur-s) var(--ease-settle)" }}>
             <div className="relative mx-auto flex h-11 max-w-[720px] items-center justify-center px-4">
-              <span className="text-headline truncate px-20">{title}</span>
-              <div className="absolute right-2 flex items-center gap-1">{collapsed && trailing}</div>
+              {/* the centred title keeps clear of the trailing buttons on both sides (three icon buttons are 132 px:
+                  a fixed 80 px inset let a Turkish title run under them) */}
+              <span
+                className="text-headline truncate"
+                style={{ paddingInline: `max(5rem, calc(var(--bar-trail, 0px) + 0.5rem))` }}
+              >
+                {title}
+              </span>
+              <div ref={trail} className="absolute right-2 flex items-center gap-1">
+                {collapsed && trailing}
+              </div>
             </div>
             {inBar && collapsed && <div className="mx-auto max-w-[720px] px-4 pb-2">{inBar}</div>}
           </div>

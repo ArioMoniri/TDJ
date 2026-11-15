@@ -68,92 +68,66 @@ function pixelAt(buf: Buffer, x: number, y: number): number[] {
   return [out[o]!, out[o + 1]!, out[o + 2]!];
 }
 
-test("phone: the primary bar sits above the tab bar at the top, middle and bottom of the result, hides under sheets, and ••• opens Tell the DJ", async ({
+test("phone: one compact Compose above the tab bar, then the set's actions in the navigation bar at the top, middle and bottom; ••• opens Tell the DJ", async ({
   browser,
 }) => {
+  // wave 4 (iOS 26): the full-width Regenerate / Export bar stacked on the tab bar is gone. No set: one compact
+  // 50 pt Compose capsule at the trailing edge above the tab capsule; with a set: Regenerate, Export and ••• are
+  // navigation-bar icon buttons (the large-title row, then the collapsed bar once scrolled)
   const ctx = await browser.newContext({ ...devices["iPhone 15 Pro"], baseURL: BASE });
   const page = await ctx.newPage();
   await page.goto("/");
-  // no set: one full-width Compose capsule, 50 pt, directly above the tab bar
   const bar = page.getByTestId("primary-bar");
-  const pill = page.getByTestId("primary-pill");
   const tab = page.getByTestId("tab-bar");
   await expect(bar).toBeVisible();
   const composeBtn = page.getByTestId("bar-compose");
-  expect((await composeBtn.boundingBox())!.height).toBeGreaterThanOrEqual(50);
-  const above = async () => {
-    const m = await page.evaluate(() => {
-      const t = document.querySelector('[data-testid="tab-bar"]')!.getBoundingClientRect();
-      const pick = (id: string) => {
-        const el = document.querySelector<HTMLElement>(`[data-testid="${id}"]`)!;
-        const r = el.getBoundingClientRect();
-        return { r, on: getComputedStyle(el).opacity !== "0" && r.width > 0 };
-      };
-      const full = pick("primary-bar");
-      const min = pick("primary-pill");
-      const shown = full.on ? full : min.on ? min : null;
-      return shown
-        ? {
-            shown: true,
-            bottom: shown.r.bottom,
-            tabTop: t.top,
-            inView: shown.r.top >= 0 && shown.r.bottom <= innerHeight,
-          }
-        : { shown: false, bottom: 0, tabTop: t.top, inView: false };
-    });
-    expect(m.shown).toBe(true);
-    expect(m.inView).toBe(true);
-    expect(m.bottom).toBeLessThanOrEqual(m.tabTop + 1);
-  };
-  await above();
+  const c = (await composeBtn.boundingBox())!;
+  expect(c.height).toBe(50);
+  expect(c.width).toBeLessThan(page.viewportSize()!.width * 0.75);
+  expect(c.y + c.height).toBeLessThanOrEqual((await tab.boundingBox())!.y);
+  // under a sheet the floating Compose leaves the screen
+  await tab.getByTestId("tab-more").click();
+  await expect(page.getByTestId("more-sheet")).toBeVisible();
+  await expect(bar).toHaveAttribute("data-hidden", "true");
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("more-sheet")).toHaveCount(0);
+  await expect(bar).not.toHaveAttribute("data-hidden", "true");
   await composeBtn.click();
   await expect(page.locator("#result")).toBeVisible({ timeout: 60000 });
   await page.waitForTimeout(800);
-  // with a set: Regenerate + Export + •••
-  await expect(page.getByTestId("bar-regenerate")).toBeVisible();
-  await expect(page.getByTestId("bar-export")).toBeVisible();
-  await expect(bar.getByRole("button", { name: "Set actions" })).toBeVisible();
-  // top
+  // with a set nothing floats over it but the tab capsule
+  await expect(bar).toHaveCount(0);
+  const actionsIn = async (where: "page-toolbar" | "collapsed-bar") => {
+    const host = page.getByTestId(where);
+    for (const id of ["bar-regenerate", "bar-export", "bar-more"]) {
+      await expect(host.getByTestId(id)).toBeVisible();
+      // in view, at the top of the screen, never under the tab capsule
+      expect((await host.getByTestId(id).boundingBox())!.y).toBeGreaterThanOrEqual(0);
+      expect((await host.getByTestId(id).boundingBox())!.y).toBeLessThan(120);
+    }
+  };
+  // top: in the large-title row
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.waitForTimeout(400);
-  await above();
-  await expect(bar).toBeVisible();
-  // middle: the tab bar minimises and the bar becomes the icon-only pill, still above the tab bar
+  await actionsIn("page-toolbar");
+  // middle and bottom: in the collapsed navigation bar
   const height = await page.evaluate(() => document.documentElement.scrollHeight);
-  await page.evaluate(() => window.scrollTo(0, 300));
-  await page.waitForTimeout(150);
   await page.evaluate((h) => window.scrollTo(0, h / 2), height);
   await page.waitForTimeout(600);
-  await expect(tab).toHaveAttribute("data-min", "true");
-  await expect(pill).toBeVisible();
-  await expect(pill.getByRole("button", { name: "Export" })).toBeVisible();
-  await above();
-  // scrolling up (a finger, not a layout shift) brings the full bar back
-  await page.evaluate(() => {
-    const touch = (clientY: number) =>
-      new Touch({ identifier: 1, target: document.body, clientX: 180, clientY });
-    window.dispatchEvent(new TouchEvent("touchstart", { touches: [touch(200)] }));
-    window.dispatchEvent(new TouchEvent("touchmove", { touches: [touch(420)] }));
-    window.scrollBy(0, -400);
-  }, height);
-  await page.waitForTimeout(600);
-  await expect(bar).toBeVisible();
-  await above();
-  // bottom
+  await expect(page.getByTestId("collapsed-bar")).toHaveAttribute("data-collapsed", "true");
+  await actionsIn("collapsed-bar");
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
   await page.waitForTimeout(600);
-  await above();
-  // under a sheet the bar leaves the screen
-  await page.evaluate(() => window.scrollTo(0, 0));
-  await page.waitForTimeout(500);
-  await page.getByTestId("bar-export").click();
+  await actionsIn("collapsed-bar");
+  // Export opens its sheet from the navigation bar
+  await page.getByTestId("collapsed-bar").getByTestId("bar-export").click();
   await expect(page.getByTestId("export-sheet")).toBeVisible();
-  await expect(bar).toHaveAttribute("data-hidden", "true");
   await page.keyboard.press("Escape");
   await expect(page.getByTestId("export-sheet")).toHaveCount(0);
-  await expect(bar).not.toHaveAttribute("data-hidden", "true");
   // ••• → Tell the DJ… opens the Adjust sheet with the chips and the field
-  await bar.getByRole("button", { name: "Set actions" }).click();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(500);
+  await page.getByTestId("page-toolbar").getByRole("button", { name: "Set actions" }).click();
   await page.getByRole("menuitem", { name: "Tell the DJ…" }).click();
   const adjust = page.getByTestId("adjust-sheet");
   await expect(adjust).toBeVisible();

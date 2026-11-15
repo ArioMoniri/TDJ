@@ -31,7 +31,7 @@ export function SearchField({
 }) {
   const [focused, setFocused] = useState(false);
   const t = useTip<HTMLLabelElement>(tip ?? tx("searchField.search_by", { placeholder: lower(placeholder) }));
-  const isPhone = useMediaQuery("(max-width: 639px)");
+  const isPhone = useMediaQuery("(max-width: 599.98px)");
   const showCancel = isPhone && (focused || value.length > 0);
   const focus = (f: boolean) => {
     setFocused(f);

@@ -89,7 +89,7 @@
   align-content: start;
   min-width: 0;
 }
-@media (min-width: 640px) {
+@media (min-width: 600px) {
   .booth-deck-row {
     grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
   }
@@ -159,7 +159,7 @@
 .booth-now-head > .booth-art {
   --art: 96px;
 }
-@media (max-width: 639px) {
+@media (max-width: 599.98px) {
   .booth-now-head > .booth-art {
     --art: 72px;
   }
@@ -406,16 +406,16 @@
 .booth-strip .booth-tbtn > .booth-tbtn-l {
   line-height: 1;
 }
-/* wave 2: the words under the glyphs from 640 px (an iPad's transport was icons only, with no hover on a
+/* wave 2: the words under the glyphs from 600 px (an iPad's transport was icons only, with no hover on a
    trackpad); the phone's one row keeps the glyphs, its words are the hint (long-press) and the accessible name */
-@media (max-width: 639px) {
+@media (max-width: 599.98px) {
   .booth-strip .booth-tbtn > .booth-tbtn-l {
     display: none;
   }
 }
-/* 640–819 (iPad mini portrait, split view): no room for the words on one row — the hint layer says them on
+/* 600–819 (iPad mini portrait, split view): no room for the words on one row — the hint layer says them on
    hover, focus and long-press, and every control keeps its accessible name */
-@media (min-width: 640px) and (max-width: 819px) {
+@media (min-width: 600px) and (max-width: 819px) {
   .booth-strip .booth-tbtn > .booth-tbtn-l {
     display: none;
   }
@@ -426,9 +426,9 @@
     display: none;
   }
 }
-/* one row of one height from 640 px, before and after Start (the iPad strip was 112 px with the Start label, then
+/* one row of one height from 600 px, before and after Start (the iPad strip was 112 px with the Start label, then
    64 px): it never wraps, and the pre-listen line floats over it instead of joining the row */
-@media (min-width: 640px) {
+@media (min-width: 600px) {
   .booth .booth-strip {
     flex-wrap: nowrap;
     height: 64px;
@@ -443,7 +443,7 @@
 }
 /* wave 2 (iPhone): no tab bar under the booth's transport — the two stacked over the deck; the transport takes the
    tab bar's place from the start, and ••• holds "Leave the booth" */
-@media (max-width: 639px) {
+@media (max-width: 599.98px) {
   html[data-booth] nav[aria-label="Primary mobile"] {
     visibility: hidden;
     pointer-events: none;
@@ -505,7 +505,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-@media (max-width: 639px) {
+@media (max-width: 599.98px) {
   .booth .booth-strip {
     gap: 4px;
   }
@@ -524,7 +524,7 @@
     bottom: calc(100% + 6px);
   }
 }
-@media (min-width: 640px) {
+@media (min-width: 600px) {
   .booth-strip .booth-phone-only {
     display: none;
   }

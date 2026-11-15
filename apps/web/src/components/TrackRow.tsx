@@ -60,7 +60,7 @@ export const TrackRow = memo(function TrackRow({
   lockedWhy?: string;
 }) {
   const reduced = useReducedMotion();
-  const isPhone = useMediaQuery("(max-width: 639px)");
+  const isPhone = useMediaQuery("(max-width: 599.98px)");
   const patch = useStore((s) => s.overrides.songs?.[song.id]);
   const connected = useStore((s) => !!s.spotifyToken && s.spotifyToken.expires > Date.now());
   const eff = patchedSong(song, patch);

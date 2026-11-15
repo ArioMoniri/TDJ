@@ -193,11 +193,12 @@ test("navigation: every page on iPad portrait and iPhone, with a More tab", asyn
     await expect(pill.getByRole("link", { name: "Rooms" })).toHaveAttribute("aria-description", "Rooms");
   } else {
     const bar = page.getByTestId("tab-bar");
-    for (const name of ["Compose", "Booth", "Library", "History", "Database"])
+    // wave 4: four tabs and More (the HIG's five at most); Database moved behind More
+    for (const name of ["Compose", "Booth", "Library", "History"])
       await expect(bar.getByRole("link", { name })).toHaveCount(1);
     await bar.getByTestId("tab-more").click();
     const more = page.getByTestId("more-sheet");
-    for (const name of ["Build by hand", "Rooms", "Guide", "Settings"])
+    for (const name of ["Database", "Build by hand", "Rooms", "Guide", "Settings"])
       await expect(more.getByRole("link", { name })).toBeVisible();
     await more.getByRole("link", { name: "Rooms" }).click();
     await expect(page).toHaveURL(/\/rooms/);
@@ -215,7 +216,7 @@ test("phone: a toast sits clear of the tab bar and the Compose / Export bar", as
   const toast = page.getByTestId("toast");
   await expect(toast).toContainText("loaded", { timeout: 150_000 });
   const t = (await toast.boundingBox())!;
-  for (const id of ["tab-bar", "primary-bar", "primary-pill"]) {
+  for (const id of ["tab-bar", "primary-bar"]) {
     const el = page.getByTestId(id);
     if (!(await el.isVisible().catch(() => false))) continue;
     const b = (await el.boundingBox())!;

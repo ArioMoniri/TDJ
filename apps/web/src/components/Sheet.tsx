@@ -49,7 +49,7 @@ export function Sheet({
   const close = useRef(onClose);
   close.current = onClose;
   const reduced = useReducedMotion();
-  const isPhone = useMediaQuery("(max-width: 639px)");
+  const isPhone = useMediaQuery("(max-width: 599.98px)");
   const [settling, setSettling] = useState(false);
   const [detent, setDetent] = useState<"medium" | "large">(detents[0] ?? "large");
   const titleId = useId();
@@ -67,9 +67,12 @@ export function Sheet({
     return _dec;
   }, [open]);
 
+  // keyed by value: callers pass a fresh array literal on every render, and an effect keyed by that identity re-ran
+  // on each parent render — re-focusing the sheet's first control after every keystroke in one of its fields
+  const detentKey = detents.join(",");
   useEffect(() => {
     if (!open) return;
-    setDetent(detents[0] ?? "large");
+    setDetent((detentKey.split(",")[0] as "medium" | "large" | "") || "large");
     const prev = document.activeElement as HTMLElement | null;
     const t = setTimeout(() => {
       panel.current
@@ -109,7 +112,7 @@ export function Sheet({
       unlock();
       prev?.focus?.({ preventScroll: true });
     };
-  }, [open, detents]);
+  }, [open, detentKey]);
 
   const panelMotion = useMemo(() => {
     if (reduced)
@@ -234,9 +237,12 @@ export function Sheet({
                 )}
               </div>
             </div>
+            {/* wave 4: a toast raised while this sheet is open shows here, as an inline status row under the title
+                (Toast.tsx portals into the topmost slot), so it never floats over the grabber or the title */}
+            <div className="sheet-status-slot shrink-0" data-sheet-status data-testid="sheet-status-slot" />
             <div
               ref={body}
-              className="hide-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-4 [&>section:first-child>.section-head]:mt-2 [&>section:first-child>.group-inset]:mt-2"
+              className="sheet-body hide-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-4 [&>section:first-child>.section-head]:mt-2 [&>section:first-child>.group-inset]:mt-2"
               onPointerDownCapture={(e) => {
                 // a scrolled list must never turn a scroll into a dismiss
                 if ((body.current?.scrollTop ?? 0) > 0) e.stopPropagation();
@@ -253,7 +259,7 @@ export function Sheet({
               />
             </div>
             {footer && (
-              <div className="shrink-0 border-t border-[var(--separator)] px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
+              <div className="sheet-footer shrink-0" data-testid="sheet-footer">
                 {footer}
               </div>
             )}

@@ -106,7 +106,7 @@ export function Menu({
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const reduced = useReducedMotion();
-  const isPhone = useMediaQuery("(max-width: 639px)");
+  const isPhone = useMediaQuery("(max-width: 599.98px)");
   const id = useId();
 
   useEffect(() => {
