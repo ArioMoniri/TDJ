@@ -498,7 +498,8 @@ export function withPraise(
   };
   const out: FavouriteTable =
     T && !T.off
-      ? { v: 1, sides: copy(T.sides), families: copy(T.families) }
+      ? // (keeps the table's other flags: the databases' prior, pop / popularityOff, rides along with the praise)
+        { ...T, v: 1, sides: copy(T.sides), families: copy(T.families) }
       : { v: 1, sides: {}, families: {} };
   const full = (m: FavouriteTable["sides"], key: string, role: SlotRole) => {
     const row = m[key] ?? {};
