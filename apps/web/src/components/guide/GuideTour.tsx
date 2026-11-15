@@ -69,10 +69,7 @@ export function GuideTour() {
       <p className="text-subhead mt-1 px-4 text-[var(--label-2)]">
         From the first idea of a night to its last tanda.
       </p>
-      <nav
-        aria-label="Chapters"
-        className="guide-jump mt-3 flex flex-wrap gap-2 px-4 pb-1"
-      >
+      <nav aria-label="Chapters" className="guide-jump mt-3 flex flex-wrap gap-2 px-4 pb-1">
         {GUIDE_CHAPTERS.map((c) => (
           <a
             key={c.id}

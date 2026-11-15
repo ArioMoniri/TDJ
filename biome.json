@@ -18,6 +18,7 @@
       "!pnpm-lock.yaml",
       "!docs/specs/*-best-night.json",
       "!apps/web/public/featured/*.json",
+      "!apps/web/public/lottie/*.json",
       "!.claude/**"
     ]
   },
