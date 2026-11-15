@@ -554,7 +554,49 @@ export interface LearnedPreferences {
   repo?: RepoLearnedOverrides;
   /** the repo-level store only: the featured night's night-level choices (scripts/featured_learned.ts); shown, not applied */
   night?: FeaturedNightChoices;
+  /** 2026-11: tandas the DJ praised (praise.ts): the tanda, its order and its connections, bounded weights */
+  praise?: TandaPraise[];
   updatedAt?: string;
+}
+
+/**
+ * 2026-11 — one tanda the DJ praised on a night ("it started and connected so nicely"): what it teaches compose and
+ * the suggestions (praise.ts) — its family and sides in its slot role, its order as a template, the links from the
+ * previous family and to the next one (and the cortinas in those gaps). Family keys are learn.ts `familyKey`.
+ */
+export interface TandaPraise {
+  /** `${nightId}#${tanda}` */
+  id: string;
+  /** the night (Playlist.id) */
+  nightId: string;
+  /** 0-based tanda index in the night */
+  tanda: number;
+  rhythm: string;
+  /** the tanda's sides, in the praised order */
+  songIds: string[];
+  /** the tanda's family (its first side's orchestra + singer, the tanda's rhythm) */
+  family: string;
+  /** the tanda's recording years (the favourites tracker's year band) */
+  years: [number, number] | null;
+  /** the slot role (the tanda's phase) */
+  role: Phase;
+  prevFamily: string | null;
+  prevRole: Phase | null;
+  /** the cortina between the previous tanda and this one */
+  prevCortinaId: string | null;
+  /** the cortina between this tanda and the next */
+  nextCortinaId: string | null;
+  nextFamily: string | null;
+  nextRole: Phase | null;
+  /** the DJ's words */
+  reason: string;
+  /** an optional short note (the Booth's praise action) */
+  note?: string;
+  /** the tanda, for the list ("Orchestra · title, title …") */
+  name?: string;
+  at: string;
+  /** the featured night's store, or the DJ in the app (their memory) */
+  source?: "featured" | "dj";
 }
 
 export interface RepoLearnedOverrides {

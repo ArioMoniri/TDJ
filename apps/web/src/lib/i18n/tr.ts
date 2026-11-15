@@ -4006,4 +4006,28 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "fav.dancer_link_tip":
     "Dansçılar telefonlarında açar ve çalan şarkıya kalp atar: DJ yalnızca sayıları görür",
   "fav.dancer_link_copied": "Dansçı bağlantısı kopyalandı",
+  "praise.action": "Bu tandayı öv ★",
+  "praise.action_tanda": "{tanda}. tandayı öv ★",
+  "praise.praised": "Övüldü ★",
+  "praise.praised_tanda": "{tanda}. tanda övüldü ★ (geri almak için dokunun)",
+  "praise.sheet_title": "{tanda}. tandayı öv",
+  "praise.note_label": "Kısa bir not (isteğe bağlı)",
+  "praise.note_placeholder": "Onu bu kadar iyi yapan neydi",
+  "praise.save": "Kaydet",
+  "praise.sheet_footer":
+    "TDJ tandayı, sırasını ve bağlantılarını öğrenir: ailesi ve kayıtları gecenin bu bölümünde daha çok ağırlık taşır, onları seçtiğinde sırası korunur, komşularıyla eşleşmesi biraz artar. Hiçbir kuralı çiğnemez.",
+  "praise.saved_toast": "Övüldü: TDJ bu tandayı öğreniyor",
+  "praise.cleared_toast": "Övgü geri alındı",
+  "praise.reason_booth": "Kabinde övüldü",
+  "praise.after": "{family} sonrası",
+  "praise.before": "{family} öncesi",
+  "praise.teaches_tanda": "Tanda: {family}, {role} bölümünde daha çok",
+  "praise.teaches_order": "Sıra: {first} ile açılır, {last} ile biter",
+  "praise.teaches_order_plain": "{count} kaydının sırası",
+  "praise.teaches_links": "Bağlantılar: {links}",
+  "praise.no_links": "Kayıtlı bağlantı yok",
+  "praise.header": "Sizin övdükleriniz",
+  "praise.footer":
+    "Övdüğünüz tandalar: ailesi ve kayıtları gecenin aynı bölümünde daha çok ağırlık taşır, oluşturucu onları seçtiğinde sıraları korunur, komşularıyla eşleşmesi biraz artar. Karışık bir tanda o gecenin istisnası olarak kalır.",
+  "praise.delete": "Övgüyü sil: {label}",
 };

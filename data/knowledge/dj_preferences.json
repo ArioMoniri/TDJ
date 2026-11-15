@@ -1,5 +1,5 @@
 {
- "about": "What TDJ learned from the DJ's edits of the featured night (packages/core/src/learn.ts): the repo-level store every composed night reads under the DJ's own memory (Database → Memory lists it; the DJ can weigh, delete or switch it off, recorded in the DJ's memory). `night` records the night-level choices; compose does not apply them to other nights. Audit / regenerate with scripts/featured_learned.ts.",
+ "about": "What TDJ learned from the DJ's edits of the featured night (packages/core/src/learn.ts): the repo-level store every composed night reads under the DJ's own memory (Database → Memory lists it; the DJ can weigh, delete or switch it off, recorded in the DJ's memory). `night` records the night-level choices; compose does not apply them to other nights. `praise` holds the tandas the DJ praised (packages/core/src/praise.ts): their family and sides in their role, their order and their connections, bounded. Audit / regenerate with scripts/featured_learned.ts.",
  "sides": {
   "54e1304409": 1,
   "8509c04168": 1,
@@ -359,6 +359,36 @@
   }
  ],
  "updatedAt": "2026-11-14T12:00:00.000Z",
+ "praise": [
+  {
+   "id": "tdj-5j#13",
+   "nightId": "tdj-5j",
+   "tanda": 13,
+   "rhythm": "tango",
+   "songIds": [
+    "13fe376eb1",
+    "0265a65075",
+    "00a061a315",
+    "166b2a4f3e"
+   ],
+   "family": "anibal-troilo|roberto rufino|tango",
+   "years": [
+    1963,
+    1963
+   ],
+   "role": "build",
+   "prevFamily": "lucio-demare|raul beron|tango",
+   "prevRole": "build",
+   "prevCortinaId": "c-tr-karaca-resimdeki",
+   "nextCortinaId": "c-tr-mfo-peki-peki",
+   "nextFamily": "francisco-canaro||vals",
+   "nextRole": "build",
+   "reason": "The 14th Troilo tanda was amazing. It finished so nicely, the tanda started and connected so nicely. Have that also in the learned things.",
+   "name": "Aníbal Troilo · Desencuentro, Por Qué la Quise Tanto, Quién lo Había de Pensar, Danzarín",
+   "at": "2026-11-15T12:00:00.000Z",
+   "source": "featured"
+  }
+ ],
  "night": {
   "cumparsita": "both",
   "openingCumparsita": {

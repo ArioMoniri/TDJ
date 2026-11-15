@@ -6,11 +6,12 @@ import { applyContextToOptions, BUILTIN_CONTEXT, resolveContext } from "./contex
 import { cortinaPool, pickCortina, planCortinas, spotifyCueFallbacks } from "./cortinas";
 import { closingFor, cumparsitaPlacement, openingCumparsita } from "./cumparsita";
 import { isDanceableSong, normTitle } from "./energy";
-import { asFavouriteTable, favouritesActive } from "./favourites";
+import { asFavouriteTable, favouritesActive, withPraise } from "./favourites";
 import { withCortinaStarts } from "./hooks";
 import { familyBand, goldenClassOf, isColour, isGoldenNight } from "./knowledge";
-import { mergeLearned } from "./learn";
+import { mergeLearned, praiseCortinaFactor, praiseList } from "./learn";
 import { isPeakSlot, meanFameOf } from "./order";
+import { applyPraisedOrders, tandaFamilyKey } from "./praise";
 import { ERA_PRESETS, ERA_SETTINGS } from "./profiles";
 import { cueFamilies, pickStrictCloser, recue, recueBetter, strictRepair } from "./repair";
 import { makeRng } from "./rng";
@@ -256,6 +257,8 @@ export function makeScoring(cat: Catalog, o: ComposeOptions, contextModel?: Cont
   const rc = resolveContext(o.context, contextModel ?? BUILTIN_CONTEXT);
   const extraBl = new Set([...cat.blacklist]);
   const puglieseOnce = rules.puglieseOnce ?? o.hours < 6;
+  // round 21: the repo-level DJ preferences (data/knowledge/dj_preferences.json) under the DJ's own
+  const learned = mergeLearned(cat.learned, o.learned);
   return {
     energy: (id) => cat.profile(id)?.energy ?? 50,
     phase: (id) => cat.profile(id)?.phase,
@@ -301,12 +304,15 @@ export function makeScoring(cat: Catalog, o: ComposeOptions, contextModel?: Cont
     golden: isGoldenNight(o),
     bandOverrides: !!o.bandOverrides,
     hours: o.hours,
-    // round 21: the repo-level DJ preferences (data/knowledge/dj_preferences.json) under the DJ's own
-    learned: mergeLearned(cat.learned, o.learned),
-    // 2026-11: dancer favourites (off, or no evidence: exactly as without)
+    learned,
+    // 2026-11: dancer favourites (off, or no evidence: exactly as without), with the DJ's praised tandas as DJ
+    // evidence (praise.ts; they follow the learning switch, in `learned`)
     ...(() => {
-      const table = asFavouriteTable(o.favourites);
-      return favouritesActive(table) ? { favourites: { table, trace: [] } } : {};
+      const dancer = asFavouriteTable(o.favourites);
+      const table = withPraise(dancer, learned.praise);
+      return favouritesActive(table)
+        ? { favourites: { table, trace: [], ...(favouritesActive(dancer) ? { dancer } : {}) } }
+        : {};
     })(),
   };
 }
@@ -1869,6 +1875,14 @@ function composeOnce(
     tandas.filter(
       (_, j) => j > i && j + 1 < tandas.length && (tandas[j + 1]?.energy ?? 0) >= 75 && !reserved.has(j),
     ).length;
+  // 2026-11: a cue a praised connection used in this gap (the same families and roles either side) weighs a little
+  // more among the cues the rules leave (praise.ts); none praised: no bonus at all
+  const cueBonus = (a: Tanda, b: Tanda) => {
+    if (!praiseList(sc.learned).length) return undefined;
+    const before = { family: tandaFamilyKey(a) ?? "", role: a.phase };
+    const after = { family: tandaFamilyKey(b) ?? "", role: b.phase };
+    return (c: { id: string }) => praiseCortinaFactor(sc.learned, before, after, c.id);
+  };
   // the gaps are served in play order (round 10: an extreme-first order broke the four-tanda window of small pools)
   const gapOrder = tandas.map((_, i) => i);
   for (const i of gapOrder) {
@@ -1894,6 +1908,7 @@ function composeOnce(
         t.style,
         reservedIds,
         next,
+        cueBonus(t, next),
       );
     t.cortina = c ? { ...c, lengthSec: cortinaLen(i) } : null;
     if (c) remember(c);
@@ -2516,6 +2531,25 @@ function composeOnce(
       tandas[best.a] = { ...A, cortina: { ...B.cortina!, lengthSec: A.cortina!.lengthSec } };
       tandas[best.b] = { ...B, cortina: { ...A.cortina!, lengthSec: B.cortina!.lengthSec } };
     }
+  }
+  // 2026-11 — learned DJ praise (praise.ts): a tanda drawn with two or more sides of a praised tanda takes the praised
+  // order when it keeps the order rules (templateOrder) — on a golden night only when the strict panel is no worse.
+  // Last, so no later fixer re-orders it; only the sides drawn are ordered, never one added (one mode stays one mode)
+  if (praiseList(sc.learned).length) {
+    const golden = isGoldenNight(o) && o.hours < 5;
+    const panel = (ts: Tanda[]) => strictChecks({ tandas: ts, closing, options: o });
+    const next = applyPraisedOrders(
+      tandas,
+      sc.learned,
+      golden
+        ? (ts, cur) => {
+            const a = panel(cur),
+              b = panel(ts);
+            return b.blockers <= a.blockers && b.penalty <= a.penalty + 1e-9;
+          }
+        : undefined,
+    );
+    if (next !== tandas) tandas.splice(0, tandas.length, ...next);
   }
   // round 21: the opening Cumparsita matches the first tanda (its orchestra, the nearest year, instrumental)
   let opening: Song | null = null;

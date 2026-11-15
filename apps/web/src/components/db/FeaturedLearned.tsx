@@ -1,5 +1,6 @@
 "use client";
 import {
+  applyRepoOverrides,
   type LearnedPreferences,
   type LearnedRule,
   nightExceptions,
@@ -21,6 +22,7 @@ import { useStore } from "@/lib/store";
 import type { Meta } from "@/lib/types";
 import { ActionRow, Group, Row, SwitchRow } from "../Form";
 import { RuleRow } from "./LearnedRules";
+import { PraiseRows } from "./PraiseRows";
 
 const SIDES_SHOWN = 30;
 
@@ -57,7 +59,14 @@ export function FeaturedLearned() {
         .map((r) => r.id.slice(5)),
     [all],
   );
-  const want = sideIds.filter((id) => !songs[id]).join(",");
+  // the DJ's praise of the featured night's tandas (deleted ones gone): their sides name the order
+  const praise = useMemo(
+    () => applyRepoOverrides(store, { ...(repo ?? {}), off: false })?.praise ?? [],
+    [store, repo],
+  );
+  const want = [...new Set([...sideIds, ...praise.flatMap((p) => p.songIds)])]
+    .filter((id) => !songs[id])
+    .join(",");
   useEffect(() => {
     if (!want) return;
     fetch("/api/build", {
@@ -122,6 +131,15 @@ export function FeaturedLearned() {
         </Group>
       )}
       {on && temps.length > 0 && <Group header={t("db.learnedRules.your_tandas")}>{rows(temps)}</Group>}
+      {on && (
+        <PraiseRows
+          praise={praise}
+          nameOf={nameOf}
+          titleOf={(id) => songs[id]?.title}
+          onForget={(id) => edit((x) => forgetFeatured(x, `praise:${id}`))}
+          testId="featured-praise"
+        />
+      )}
       {on && nightLines.length > 0 && (
         <Group header={t("featuredLearned.night_header")} footer={t("featuredLearned.night_footer")}>
           {nightLines.map((l) => (

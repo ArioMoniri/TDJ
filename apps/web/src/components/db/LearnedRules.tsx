@@ -9,6 +9,7 @@ import type { Meta } from "@/lib/types";
 import { ActionRow, Group, SwitchRow } from "../Form";
 import { SwipeRow } from "../SwipeRow";
 import { Tip } from "../ui/Tip";
+import { PraiseRows } from "./PraiseRows";
 
 const SIDES_SHOWN = 30;
 const fmt = (w: number) => `${w > 0 ? "+" : ""}${Number.isInteger(w) ? w : w.toFixed(1)}`;
@@ -117,7 +118,10 @@ export function LearnedRules() {
         .map(([id]) => id),
     [L?.sides],
   );
-  const want = sideIds.filter((id) => !songs[id]).join(",");
+  const praise = L?.praise ?? [];
+  const want = [...new Set([...sideIds, ...praise.flatMap((p) => p.songIds)])]
+    .filter((id) => !songs[id])
+    .join(",");
   useEffect(() => {
     if (!want) return;
     fetch("/api/build", {
@@ -197,6 +201,13 @@ export function LearnedRules() {
         </Group>
       )}
       {temps.length > 0 && <Group header={t("db.learnedRules.your_tandas")}>{rows(temps)}</Group>}
+      <PraiseRows
+        praise={praise}
+        nameOf={(id) => names[id] ?? id.replace(/-/g, " ")}
+        titleOf={(id) => songs[id]?.title}
+        onForget={(id) => forget(`praise:${id}`)}
+        testId="learned-praise"
+      />
       {rated.length > 0 && (
         <Group
           header={t("db.learnedRules.from_your_nights")}

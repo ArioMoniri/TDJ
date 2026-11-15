@@ -1,5 +1,5 @@
 import { familyKey, yearBand } from "./learn";
-import type { Phase, Song, Tanda } from "./types";
+import type { Phase, Song, Tanda, TandaPraise } from "./types";
 
 /**
  * Dancer favourites (2026-11, "a tracker of which songs are liked most by dancers; know them and use them in place").
@@ -469,6 +469,49 @@ export function favouriteTable(
 }
 
 const tableOn = (T: FavouriteTable | null | undefined): T is FavouriteTable => !!T && !T.off;
+
+/**
+ * 2026-11 — learned DJ praise (praise.ts) as DJ evidence in the table: each praised tanda counts as one "Floor full ♥"
+ * on the tanda in its slot role — its family (with the year band) and each of its sides. It is the DJ's own statement,
+ * so it does not decay, and it follows the learning switch (it travels in `learned`), not the dancer-favourites
+ * switch: a table switched off keeps only the praise. The table given is never changed.
+ */
+export function withPraise(
+  T: FavouriteTable | null | undefined,
+  praise: readonly TandaPraise[] | null | undefined,
+): FavouriteTable | undefined {
+  const ps = (praise ?? []).filter((p) => p && SLOT_ROLES.includes(p.role) && Array.isArray(p.songIds));
+  if (!ps.length) return T ?? undefined;
+  const copy = (m: FavouriteTable["sides"]) => {
+    const out: FavouriteTable["sides"] = {};
+    for (const [k, row] of Object.entries(m)) {
+      const r: Partial<Record<SlotRole, Evidence>> = {};
+      for (const [role, e] of Object.entries(row)) if (e) r[role as SlotRole] = [...e] as Evidence;
+      out[k] = r;
+    }
+    return out;
+  };
+  const out: FavouriteTable =
+    T && !T.off
+      ? { v: 1, sides: copy(T.sides), families: copy(T.families) }
+      : { v: 1, sides: {}, families: {} };
+  const full = (m: FavouriteTable["sides"], key: string, role: SlotRole) => {
+    const row = m[key] ?? {};
+    m[key] = row;
+    const e: Evidence = row[role] ? ([...row[role]!] as Evidence) : [0, 0, 0, 0];
+    e[0] += 1;
+    e[2] += 1;
+    row[role] = e;
+  };
+  const seen = new Set<string>();
+  for (const p of ps.slice(0, 100)) {
+    if (seen.has(p.id)) continue;
+    seen.add(p.id);
+    full(out.families, `${p.family}|${yearBand(p.years)}`, p.role);
+    for (const id of new Set(p.songIds)) full(out.sides, id, p.role);
+  }
+  return out;
+}
 
 /** what ComposeOptions.favourites may hold: the table (the web builds it at request time) or the tracker itself */
 export function asFavouriteTable(
