@@ -4,7 +4,7 @@
  * - Start gives audible output: the master output (the analyser right before the speakers) has a non-silent RMS
  *   and the AudioContext runs
  * - Pause / Resume is one tap (and space), with a short fade measured at the output
- * - Stop is one tap + a confirm ("Fade out and stop" / "Stop now"); esc opens the same confirm
+ * - Stop is one tap + a confirm ("Fade out and stop" / "Stop now"); esc never opens it (wave 2)
  * - Fade out now and Next with crossfade apply (gain measured at the output)
  * - a cortina's fade out / stop at is edited from the set and re-times the night
  * - in clip mode the local-files banner never shows; controls ≥ 44 px; no overflow at 390 and 1440
@@ -99,7 +99,7 @@ const SILENT = -70;
 test.describe("1440 × 900", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  test("Start is audible; Pause / Resume one tap with fades; fade out now; crossfade; Stop tap + confirm; esc", async ({
+  test("Start is audible; Pause / Resume one tap with fades; fade out now; crossfade; Stop tap + confirm", async ({
     page,
   }) => {
     test.setTimeout(150_000);
@@ -138,12 +138,11 @@ test.describe("1440 × 900", () => {
     await expect.poll(() => rms(page), { timeout: 4000 }).toBeGreaterThan(AUDIBLE);
 
     // Fade out now (4 s): the level falls through the fade (the −60 dB log curve), silence, then the next item
-    await page.getByTestId("booth-mix").click();
-    const mix = page.getByTestId("booth-levels-sheet");
-    await expect(mix).toBeVisible();
+    // (round 22: Fade and Crossfade are on the transport, labelled)
+    const strip = page.getByTestId("booth-strip");
     const startLevel = await rms(page);
     const atFade = await planIndex(page);
-    await mix.getByTestId("booth-fade-now").click();
+    await strip.getByTestId("booth-strip-fade").click();
     await page.waitForTimeout(1500);
     const mid = await rms(page, 150);
     expect(mid).toBeLessThan(startLevel - 10);
@@ -153,30 +152,28 @@ test.describe("1440 × 900", () => {
 
     // Next with crossfade (3 s): the next item starts at once, the output never drops to silence
     const atX = await planIndex(page);
-    await mix.getByTestId("booth-crossfade").click();
+    await strip.getByTestId("booth-strip-crossfade").click();
     await expect.poll(() => planIndex(page), { timeout: 3000 }).toBeGreaterThan(atX);
     let quietest = 0;
     for (let k = 0; k < 6; k++) quietest = Math.min(quietest, await rms(page, 120));
     expect(quietest).toBeGreaterThan(-50);
-    await page.keyboard.press("Escape");
-    await expect(mix).toHaveCount(0);
 
     // Stop: one tap opens the confirm; "Stop now" silences the output at once and keeps the position
     await page.getByTestId("booth-stop").click();
     const sheet = page.getByTestId("booth-stop-sheet");
     await expect(sheet).toBeVisible();
-    await expect(sheet.getByTestId("booth-stop-fade")).toBeFocused();
+    // wave 2: Cancel has the focus, never the destructive action
+    await expect(sheet.getByTestId("booth-stop-cancel")).toBeFocused();
     await sheet.getByTestId("booth-stop-now").click();
     await expect(page.getByTestId("booth")).toHaveAttribute("data-state", "stopped");
     await expect.poll(() => rms(page, 100), { timeout: 1500 }).toBeLessThan(SILENT);
-    // Play restarts; esc opens the confirm, Enter fades out and stops
+    // Play restarts; Stop opens the confirm, "Fade out and stop" fades out and stops
     await page.getByTestId("booth-play").click();
     await expect(page.getByTestId("booth")).toHaveAttribute("data-state", "playing", { timeout: 10000 });
     await expect.poll(() => rms(page), { timeout: 4000 }).toBeGreaterThan(AUDIBLE);
-    await page.keyboard.press("Escape");
+    await page.getByTestId("booth-stop").click();
     await expect(page.getByTestId("booth-stop-sheet")).toBeVisible();
-    await expect(page.getByTestId("booth-stop-fade")).toBeFocused();
-    await page.keyboard.press("Enter");
+    await page.getByTestId("booth-stop-fade").click();
     await expect(page.getByTestId("booth")).toHaveAttribute("data-state", "stopped");
     await expect(page.getByTestId("booth-stop-sheet")).toHaveCount(0);
     // a fade, not a cut: still audible a moment after Enter, silent once the 3 s are through
@@ -281,7 +278,7 @@ test.describe("1440 × 900", () => {
 test.describe("phone 390 × 844", () => {
   test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 
-  test("one row: Pause, Next, Stop, Mix, •••; ≥ 44 px; no overflow; the Mix and Stop sheets fit; no files banner", async ({
+  test("one row: Pause, Next, Stop, Set list, Mix, •••; ≥ 44 px; no overflow; the Mix and Stop sheets fit; no files banner", async ({
     page,
   }) => {
     await openFeaturedBooth(page);
@@ -303,7 +300,7 @@ test.describe("phone 390 × 844", () => {
         overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       };
     });
-    expect(m.labels).toEqual(["Pause", "Next at gap", "Stop…", "Mix: levels and fades", "More"]);
+    expect(m.labels).toEqual(["Pause", "Next at gap", "Stop…", "Set list", "Mix: levels and fades", "More"]);
     expect(m.small).toBe(0);
     expect(m.right).toBeLessThanOrEqual(390);
     expect(m.overflow).toBe(0);

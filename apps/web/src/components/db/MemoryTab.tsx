@@ -8,6 +8,7 @@ import type { AgentMemory } from "@/lib/types";
 import { ActionRow, Group, Row } from "../Form";
 import { Sheet } from "../Sheet";
 import { SwipeRow } from "../SwipeRow";
+import { LearnedRules } from "./LearnedRules";
 import { useDbEdit } from "./shared";
 
 const when = (iso: string) => {
@@ -94,6 +95,7 @@ export function MemoryTab() {
 
   return (
     <div>
+      <LearnedRules />
       <Group
         header="Notes"
         footer="Things to remember about rooms, crowds and what worked. The assistant reads these before a review or a refine."
@@ -111,7 +113,11 @@ export function MemoryTab() {
             </Row>
           </SwipeRow>
         ))}
-        <ActionRow label="Add a note…" onClick={() => setNoteOpen({ text: "" })} />
+        <ActionRow
+          label="Add a note…"
+          tip="Write something the assistant should always remember about your nights"
+          onClick={() => setNoteOpen({ text: "" })}
+        />
       </Group>
 
       <Group
@@ -172,7 +178,12 @@ export function MemoryTab() {
       </Group>
 
       <Group>
-        <ActionRow label="Clear memory" destructive onClick={() => setConfirmClear(true)} />
+        <ActionRow
+          label="Clear memory"
+          tip="Remove notes, past sets, feedback and learned preferences (asks first)"
+          destructive
+          onClick={() => setConfirmClear(true)}
+        />
       </Group>
 
       <Sheet

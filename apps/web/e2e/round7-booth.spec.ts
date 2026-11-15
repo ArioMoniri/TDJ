@@ -82,6 +82,8 @@ async function openBooth(page: Page, query = "") {
       timeout: 15000,
     })
     .toBe(true);
+  // the sources settle (and re-time the plan) before anything is measured
+  await expect(page.getByTestId("booth-ttc")).not.toHaveAttribute("data-resolving", "1", { timeout: 30000 });
   return page.evaluate(() => (window as unknown as { __tdjBoothPlan: Plan }).__tdjBoothPlan);
 }
 
@@ -116,7 +118,7 @@ test("booth: the plan for a composed set, time to Cumparsita, dark forced, no gl
     return rest - (playable(lastI) ? len(lastI) : 0);
   }, plan.items);
   const ttc = Number(await page.getByTestId("booth-time").getAttribute("data-ttc"));
-  expect(Math.abs(ttc - expected)).toBeLessThanOrEqual(1);
+  expect(Math.abs(ttc - expected), `ttc ${ttc} expected ${expected}`).toBeLessThanOrEqual(1);
   // the Now card shows the item at the playhead, the set column every item
   const curIdx = Number(
     await page.locator('[data-plan-index][aria-current="true"]').getAttribute("data-plan-index"),
@@ -130,8 +132,10 @@ test("booth: the plan for a composed set, time to Cumparsita, dark forced, no gl
   const m = await page.evaluate(() => {
     const card = document.querySelector('[data-testid="booth-now"]')!;
     const strip = document.querySelector('[data-testid="booth-strip"]')!;
+    // (a control the strip hides at this width, e.g. the room volume below 1400 px, has no box: not counted)
     const small = [...strip.querySelectorAll("button, input")].filter((el) => {
       const r = el.getBoundingClientRect();
+      if (!r.width && !r.height) return false;
       return r.width < 44 || r.height < 44;
     }).length;
     const title = getComputedStyle(document.querySelector('[data-testid="booth-now-title"]')!).fontSize;
@@ -153,7 +157,7 @@ test("booth: the plan for a composed set, time to Cumparsita, dark forced, no gl
   expect(m.big).toBe("44px");
 });
 
-test("rehearsal: the night plays through the mocked previews; h holds, space pauses / resumes, esc + Enter stops, → arms the next", async ({
+test("rehearsal: the night plays through the mocked previews; h holds, space pauses / resumes, Stop + Fade out stops, → arms the next", async ({
   page,
 }) => {
   await mockPreviews(page);
@@ -181,10 +185,11 @@ test("rehearsal: the night plays through the mocked previews; h holds, space pau
   await expect(page.getByTestId("booth-play")).toHaveText(/Resume/);
   await page.keyboard.press("Space");
   await expect(page.getByTestId("booth")).toHaveAttribute("data-state", "playing");
-  // esc opens the Stop confirm (round 20: no hidden press-and-hold); Enter fades out and stops
-  await page.keyboard.press("Escape");
-  await expect(page.getByTestId("booth-stop-fade")).toBeFocused();
-  await page.keyboard.press("Enter");
+  // Stop opens the confirm (round 20: no hidden press-and-hold; wave 2: esc never opens it and Cancel has the
+  // focus); "Fade out and stop" fades out and stops
+  await page.getByTestId("booth-stop").click();
+  await expect(page.getByTestId("booth-stop-cancel")).toBeFocused();
+  await page.getByTestId("booth-stop-fade").click();
   await expect(page.getByTestId("booth")).toHaveAttribute("data-state", "stopped");
   // (keys are ignored while a sheet is up: wait for it to leave)
   await expect(page.getByTestId("booth-stop-sheet")).toHaveCount(0);
@@ -267,10 +272,16 @@ test("the plan equals the export cue points (M3U8 stop/start lines) and History'
   await page.getByTestId("history-detail").getByRole("button", { name: "Play the night" }).click();
   await expect(page).toHaveURL(/\/booth/);
   await expect(page.getByTestId("booth-now-title")).toBeVisible({ timeout: 15000 });
-  const idx = Number(
-    await page.locator('[data-plan-index][aria-current="true"]').getAttribute("data-plan-index"),
-  );
-  await expect(page.getByTestId("booth-now-title")).toHaveText(plan.items[idx]!.title);
+  // the playhead settles on the first playable item once the sources resolve: Now and the set agree on it
+  await expect(page.getByTestId("booth-ttc")).not.toHaveAttribute("data-resolving", "1", { timeout: 30000 });
+  await expect
+    .poll(async () => {
+      const idx = Number(
+        await page.locator('[data-plan-index][aria-current="true"]').getAttribute("data-plan-index"),
+      );
+      return (await page.getByTestId("booth-now-title").textContent()) === plan.items[idx]?.title;
+    })
+    .toBe(true);
 });
 
 test("spotify source: a free account sees the plain statement and the row is disabled; Premium shows the licence note", async ({
@@ -367,9 +378,14 @@ test("1440 × 900: the set column keeps whole titles (≥ 360 px), the transport
       const r = el.getBoundingClientRect();
       return r.right > sr.right + 1 || r.left < sr.left - 1 || r.bottom > sr.bottom + 1;
     }).length;
-    const secondary = [...strip.querySelectorAll<HTMLElement>(".booth-secondary")].filter(
-      (b) => b.offsetParent !== null,
-    ).length;
+    // round 22: the modes and the room keep their place on the transport (nothing hides on an iPad)
+    const secondary = [
+      "booth-mute",
+      "booth-hold",
+      "booth-talk",
+      "booth-strip-fade",
+      "booth-strip-crossfade",
+    ].filter((id) => strip.querySelector<HTMLElement>(`[data-testid="${id}"]`)?.offsetParent).length;
     return {
       setWidth: set.width,
       cut,
@@ -387,19 +403,22 @@ test("1440 × 900: the set column keeps whole titles (≥ 360 px), the transport
   expect(m.subVisible).toBe(m.subs);
   expect(m.out).toBe(0);
   expect(m.stripScroll).toBeLessThanOrEqual(1);
-  // mute, birthday vals, break and (round 20) hold after this song
-  expect(m.secondary).toBe(4);
+  // mute, hold, talk-over, fade and crossfade
+  expect(m.secondary).toBe(5);
   expect(m.stripRight).toBeLessThanOrEqual(m.vw);
-  // below 1200 px the secondary controls leave the capsule for the overflow menu
+  // at 1100 px (an iPad in landscape) the same controls stay on one row, icon-only
   await page.setViewportSize({ width: 1100, height: 800 });
   await expect
     .poll(() =>
-      page.evaluate(
-        () =>
-          [...document.querySelectorAll<HTMLElement>('[data-testid="booth-strip"] .booth-secondary')].filter(
-            (b) => b.offsetParent !== null,
+      page.evaluate(() => {
+        const strip = document.querySelector<HTMLElement>('[data-testid="booth-strip"]')!;
+        return {
+          visible: ["booth-mute", "booth-hold", "booth-talk"].filter(
+            (id) => strip.querySelector<HTMLElement>(`[data-testid="${id}"]`)?.offsetParent,
           ).length,
-      ),
+          oneRow: strip.getBoundingClientRect().height <= 72,
+        };
+      }),
     )
-    .toBe(0);
+    .toEqual({ visible: 3, oneRow: true });
 });

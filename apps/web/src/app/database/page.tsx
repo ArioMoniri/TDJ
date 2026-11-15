@@ -16,6 +16,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Sheet } from "@/components/Sheet";
 import { Toast, useToast } from "@/components/Toast";
 import { Segmented } from "@/components/ui";
+import { Tip } from "@/components/ui/Tip";
 import { downloadBlob } from "@/lib/download";
 import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
@@ -38,6 +39,14 @@ const TABS: Array<[Tab, string]> = [
   ["context", "Context"],
   ["memory", "Memory"],
 ];
+const TAB_TIPS: Record<Tab, string> = {
+  songs: "Every recording: search, edit its details, hear its versions",
+  orchestras: "Each orchestra's energy and your heatmap of its best years",
+  cortinas: "The songs played between tandas",
+  rules: "What the composer follows, rule by rule",
+  context: "How the room, the crowd and the season move the night",
+  memory: "Your notes, past nights and what T-DJ learned from you",
+};
 
 export default function DatabasePage() {
   const { overrides, overridesReady, updateOverrides, resetOverrides } = useStore();
@@ -106,21 +115,26 @@ export default function DatabasePage() {
         value={inMore ? "more" : tab}
         onChange={(k) => (k === "more" ? setMoreOpen(true) : setTab(k))}
         items={phoneItems}
+        tips={{ ...TAB_TIPS, more: "Rules, context and memory" }}
         className={cls}
       />
     ) : (
-      <Segmented label="Section" value={tab} onChange={setTab} items={TABS} className={cls} />
+      <Segmented label="Section" value={tab} onChange={setTab} items={TABS} tips={TAB_TIPS} className={cls} />
     );
 
   return (
-    <div className="mx-auto min-w-0 max-w-[720px] lg:max-w-[980px]">
+    <div className="mx-auto min-w-0 max-w-[720px] lg:max-w-[1100px]">
       <PageHeader
         title="Database"
         subtitle={
           <>
-            {meta ? meta.meta.songs.toLocaleString() : "…"} recordings · updated {built}
-            {/* the DJ's edits: said only once there are some ("0 changes" read as engineering, round8-ux.md §2) */}
-            <span className={changes ? "" : "sr-only"}>
+            <span className="whitespace-nowrap">
+              {meta ? meta.meta.songs.toLocaleString() : "…"} recordings
+            </span>{" "}
+            <span className="whitespace-nowrap">· updated {built}</span>
+            {/* the DJ's edits: said only once there are some ("0 changes" read as engineering, round8-ux.md §2);
+                one unbreakable run, so "· 3 changes" never wraps onto a line of its own (wave 2) */}
+            <span className={changes ? "whitespace-nowrap" : "sr-only"}>
               {" · "}
               <span data-testid="db-changes">
                 {overridesReady ? <CountUp value={changes} /> : "…"} {changes === 1 ? "change" : "changes"}
@@ -130,24 +144,32 @@ export default function DatabasePage() {
         }
         trailing={
           <>
-            <button
-              type="button"
-              className={`btn-plain ${editing ? "font-semibold" : ""}`}
-              aria-pressed={editing}
-              onClick={() => setEditing((v) => !v)}
+            <Tip
+              text={
+                editing
+                  ? "Stop editing"
+                  : "Change any recording, orchestra or cortina; your changes stay in your database"
+              }
             >
-              {editing ? "Done" : "Edit"}
-            </button>
+              <button
+                type="button"
+                className={`btn-plain ${editing ? "font-semibold" : ""}`}
+                aria-pressed={editing}
+                onClick={() => setEditing((v) => !v)}
+              >
+                {editing ? "Done" : "Edit"}
+              </button>
+            </Tip>
             <Menu
               label="More"
               items={[
                 {
-                  label: "Import JSON…",
+                  label: "Restore a backup…",
                   icon: Upload,
                   onClick: () => file.current?.click(),
                   disabled: importing,
                 },
-                { label: "Export JSON", icon: Download, onClick: exportJson },
+                { label: "Save a backup", icon: Download, onClick: exportJson },
                 {
                   label: "Reset to index…",
                   icon: RotateCcw,
@@ -169,7 +191,7 @@ export default function DatabasePage() {
         type="file"
         accept="application/json,.json"
         className="hidden"
-        aria-label="Import database JSON"
+        aria-label="Restore a database backup"
         onChange={(e) => {
           const f = e.target.files?.[0];
           if (f) importJson(f);

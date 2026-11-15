@@ -66,10 +66,11 @@ test("desktop: the hero leads the first run; after a set the tinted capsule is E
   await page.goto("/");
   const hero = page.getByTestId("first-run");
   await expect(hero).toBeVisible();
-  await expect(hero.getByRole("button", { name: /Compose a \d+ h/ })).toBeVisible();
+  await expect(hero.getByRole("button", { name: /Compose the night/ })).toBeVisible();
   const toolbar = page.getByTestId("page-toolbar");
-  await expect(toolbar.getByTestId("toolbar-compose")).toHaveClass(/btn-primary/);
-  await hero.getByRole("button", { name: /Compose a \d+ h/ }).click();
+  // wave 2: one Compose at a time — the hero's on the empty page, none in the toolbar
+  await expect(toolbar.getByTestId("toolbar-compose")).toHaveCount(0);
+  await hero.getByRole("button", { name: /Compose the night/ }).click();
   await expect(page.locator("#result")).toBeVisible({ timeout: 60000 });
   await expect(hero).toHaveCount(0);
   // one tinted capsule: Export; Regenerate next to it as a ghost; the share icon-button is gone
@@ -105,10 +106,10 @@ test("compose narrative: one step label at a time", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/?slow=1");
   await page.getByRole("button", { name: /Compose the night/ }).click();
-  const narrative = page.getByTestId("compose-narrative");
+  const narrative = page.getByTestId("compose-progress");
   await expect(narrative).toBeVisible({ timeout: 3000 });
   for (let i = 0; i < 8; i++) {
-    const labels = await narrative.locator("span.col-start-1").count();
+    const labels = await narrative.getByTestId("compose-progress-step").count();
     expect(labels, `sample ${i}: labels painted at once`).toBeLessThanOrEqual(1);
     await page.waitForTimeout(90);
   }
@@ -221,9 +222,12 @@ test("phone booth: a 64 pt strip with the faders behind Levels, Time above Next,
   }));
   expect(order.time).toBeLessThan(order.next);
   expect(order.chips.filter((c) => c === "30 s rehearsal").length).toBeLessThanOrEqual(1);
-  // the set column numbers tracks inside their tanda
+  // the set column numbers tracks inside their tanda (round 22: on a phone the set list is a sheet)
+  await page.getByTestId("booth-set-open").click();
   const firstOfTanda2 = page.locator('[data-tanda="2"] [data-kind="track"] .booth-row-n').first();
   await expect(firstOfTanda2).toHaveText("1");
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("booth-set-sheet")).toHaveCount(0);
   // Levels: the two faders in a sheet
   await strip.getByTestId("booth-levels").click();
   const levels = page.getByTestId("booth-levels-sheet");
@@ -255,7 +259,7 @@ test("phone booth: a 64 pt strip with the faders behind Levels, Time above Next,
   await ctx.close();
 });
 
-test("1440 booth: Time above Next in one column, the Cumparsita label whole, Find… only on hover", async ({
+test("1440 booth: the night bar heads the set list, the Cumparsita label whole, Find… only on hover", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -264,7 +268,7 @@ test("1440 booth: Time above Next in one column, the Cumparsita label whole, Fin
   await expect(page.getByTestId("booth-now-title")).toBeVisible({ timeout: 15000 });
   const m = await page.evaluate(() => {
     const t = document.querySelector('[data-testid="booth-time"]')!.getBoundingClientRect();
-    const n = document.querySelector('[data-testid="booth-next"]')!.getBoundingClientRect();
+    const n = document.querySelector('[data-testid="booth-set"]')!.getBoundingClientRect();
     const label = [
       ...document.querySelectorAll<HTMLElement>('[data-testid="booth-time"] .booth-eyebrow'),
     ].find((e) => /Cumparsita/i.test(e.textContent ?? ""))!;
@@ -301,7 +305,7 @@ test("settings: the DJ's own preferences first, accounts after Memory, statuses 
   await expect(heads.first()).toHaveText(/Appearance/i);
   const texts = (await heads.allInnerTexts()).map((t) => t.trim().toLowerCase());
   expect(texts.indexOf("memory")).toBeLessThan(texts.indexOf("accounts and services"));
-  expect(texts.indexOf("accounts and services")).toBeLessThan(texts.indexOf("written reviews"));
+  expect(texts.indexOf("accounts and services")).toBeLessThan(texts.indexOf("models"));
   await expect(page.locator("#connector-deezer")).toContainText("Built in");
   await expect(page.locator("#connector-webhook")).toContainText("Off");
   await expect(page.locator("#connector-webhook")).not.toContainText("Not set");
@@ -343,7 +347,7 @@ test("history: nights are named by the event, the sub-line reads plainly, the em
   await expect(row).toContainText(
     /(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday) (milonga|práctica|marathon|encuentro|festival night|wedding|show night)/,
   );
-  await expect(row).toContainText(/\d+ h · \d+ tandas · Golden age · Two peaks · composed/);
+  await expect(row).toContainText(/\d+ h( \d+ min)? · \d+ tandas · Golden Age · Two peaks · composed/);
   await expect(row).not.toContainText(/\d{4}-\d{2}-\d{2}/);
   await row.click();
   const detail = page.getByTestId("history-detail");

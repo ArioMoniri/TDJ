@@ -1,5 +1,6 @@
 "use client";
 import { featuresSummary, keyLabel } from "@/lib/analyze";
+import type { BpmChoice } from "@/lib/songData";
 import type { AudioFeatures, Song } from "@/lib/types";
 import { ActionRow, Group, Row } from "./Form";
 import { Sheet } from "./Sheet";
@@ -11,6 +12,7 @@ export function AudioDetails({
   open,
   onClose,
   onSwap,
+  bpm,
 }: {
   song: Pick<Song, "title" | "orchestra" | "resolved">;
   audio: AudioFeatures;
@@ -18,6 +20,8 @@ export function AudioDetails({
   onClose: () => void;
   /** "Swap for a better fit" (round4-ux.md §10.1): another recording of the same family in this slot */
   onSwap?: () => void;
+  /** wave 2: the side's one BPM (the row's number) with every value and its source */
+  bpm?: BpmChoice | null;
 }) {
   const edition = song.resolved?.provider === "deezer" ? "Deezer" : (song.resolved?.provider ?? "preview");
   return (
@@ -28,18 +32,29 @@ export function AudioDetails({
       >
         <Row label="Key" value={<span className="font-mono">{keyLabel(audio)}</span>} />
         <Row label="Key confidence" value={`${Math.round(audio.keyConfidence * 100)} %`} />
+        {/* wave 2: the tempo the row shows (one number), then every value with its source */}
         <Row
           label="Tempo"
-          value={`${Math.round(audio.bpm)} BPM${
-            audio.bpmCandidates?.length > 1
-              ? ` (or ${audio.bpmCandidates
-                  .filter((b) => Math.round(b) !== Math.round(audio.bpm))
-                  .slice(0, 2)
-                  .map((b) => Math.round(b))
-                  .join(", ")})`
-              : ""
-          }`}
+          sub={bpm ? `From ${bpm.used.label.toLowerCase()}` : "Analysed preview"}
+          value={`${bpm?.value ?? Math.round(audio.bpm)} BPM`}
+          data-testid="details-bpm"
         />
+        {bpm?.all
+          .filter((v) => !v.used)
+          .map((v) => (
+            <Row
+              key={`${v.source}-${v.label}`}
+              label={v.label}
+              sub={
+                v.agrees
+                  ? v.halfDouble
+                    ? "The same tempo counted at another beat level"
+                    : "Agrees"
+                  : "Disagrees; not used"
+              }
+              value={`${Math.round(v.raw)} BPM`}
+            />
+          ))}
         <Row
           label="Loudness"
           value={`${audio.loudnessDb.toFixed(1)} dBFS · range ${audio.loudnessRange.toFixed(1)} dB`}

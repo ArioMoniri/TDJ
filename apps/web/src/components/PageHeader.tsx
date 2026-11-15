@@ -15,6 +15,8 @@ import { useMediaQuery } from "@/lib/hooks";
 interface ToolbarState {
   title: string;
   collapsed: boolean;
+  /** content has scrolled under the top bar: the bars show their material and hairline */
+  scrolled: boolean;
   trailing: ReactNode;
   /** the page's filled primary action (Compose): the tablet pill shows it once the large title scrolled out */
   primary: ReactNode;
@@ -25,6 +27,7 @@ interface ToolbarState {
 const EMPTY: ToolbarState = {
   title: "",
   collapsed: false,
+  scrolled: false,
   trailing: null,
   primary: null,
   primaryCompact: null,
@@ -85,26 +88,65 @@ export function PageHeader({
   className?: string;
 }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const sentinel = useRef<HTMLDivElement>(null);
+  const bar = useRef<HTMLDivElement>(null);
+  const header = useRef<HTMLElement>(null);
   const set = useContext(SetCtx);
   const id = useId();
   const isPhone = useMediaQuery("(max-width: 639px)");
   useEffect(() => {
     const el = sentinel.current;
-    if (!el || typeof IntersectionObserver === "undefined") return;
-    // the sentinel sits under the large title: once its bottom edge scrolls above the bar, the bar takes over
-    const io = new IntersectionObserver(
-      ([e]) => setCollapsed(!e!.isIntersecting && e!.boundingClientRect.top < 60),
-      { rootMargin: "-56px 0px 0px 0px" },
-    );
-    io.observe(el);
-    return () => io.disconnect();
+    if (!el) return;
+    // One rAF-throttled scroll read: `scrolled` once anything has moved under the bars, `collapsed` once the large
+    // title has gone under the top bar (its bottom edge, status-bar inset included, measured, not assumed: a fixed
+    // 56 px margin ignored the inset). State changes only on a flip.
+    let raf = 0;
+    let c = false;
+    let s = false;
+    const read = () => {
+      raf = 0;
+      // the bar the title goes under: the phone's own bar, the tablet's pill band, or this sticky toolbar (lg)
+      const w = window.innerWidth;
+      const over =
+        w < 640
+          ? bar.current
+          : w < 1024
+            ? document.querySelector<HTMLElement>('[data-testid="nav-pill-band"]')
+            : header.current;
+      const edge = over ? over.getBoundingClientRect().bottom : 56;
+      const y = el.getBoundingClientRect().top;
+      const nextC = y < edge - 0.5;
+      const nextS = window.scrollY > 0;
+      if (nextC !== c) {
+        c = nextC;
+        setCollapsed(nextC);
+      }
+      if (nextS !== s) {
+        s = nextS;
+        setScrolled(nextS);
+      }
+    };
+    const on = () => {
+      if (!raf) raf = requestAnimationFrame(read);
+    };
+    // the first read waits for the next frame too (wave 2): read at mount it forced a synchronous layout of the
+    // whole incoming page inside the navigation's commit (returning to Compose froze for one ~0.5 s frame)
+    on();
+    window.addEventListener("scroll", on, { passive: true });
+    window.addEventListener("resize", on);
+    return () => {
+      window.removeEventListener("scroll", on);
+      window.removeEventListener("resize", on);
+      if (raf) cancelAnimationFrame(raf);
+    };
   }, []);
   useIso(() => {
     // the chrome shows the actions only while collapsed: hand it stable nulls otherwise
     set?.({
       title,
       collapsed,
+      scrolled,
       trailing: collapsed ? trailing : null,
       primary: collapsed ? (primary ?? null) : null,
       primaryCompact: collapsed ? (primaryCompact ?? null) : null,
@@ -114,18 +156,19 @@ export function PageHeader({
   useEffect(() => () => set?.(EMPTY), [set]);
   return (
     <>
-      {/* Collapsed bar (phone): glass, 44 pt + safe area, title centred, trailing actions right. Tablets use the pill. */}
+      {/* Collapsed bar (phone): 44 pt + the status-bar inset, title centred, trailing actions right. Transparent
+          while the large title shows; once the title has gone under it, the bar material and its hairline fade in
+          (`bar-edge`: full width, square, its own height). Tablets use the pill. */}
       {isPhone && (
         <div
-          className={`fixed inset-x-0 top-0 z-40 ${collapsed ? "pointer-events-auto" : "pointer-events-none"}`}
+          ref={bar}
+          className={`bar-edge fixed inset-x-0 top-0 z-40 pt-[var(--chrome-top)] ${collapsed ? "pointer-events-auto" : "pointer-events-none"}`}
           aria-hidden={!collapsed}
           data-testid="collapsed-bar"
           data-collapsed={collapsed || undefined}
+          data-scrolled={collapsed || undefined}
         >
-          <div
-            className="material-regular border-b border-[var(--separator)] pt-[env(safe-area-inset-top)]"
-            style={{ opacity: collapsed ? 1 : 0, transition: "opacity var(--dur-s) var(--ease-settle)" }}
-          >
+          <div style={{ opacity: collapsed ? 1 : 0, transition: "opacity var(--dur-s) var(--ease-settle)" }}>
             <div className="relative mx-auto flex h-11 max-w-[720px] items-center justify-center px-4">
               <span className="text-headline truncate px-20">{title}</span>
               <div className="absolute right-2 flex items-center gap-1">{collapsed && trailing}</div>
@@ -135,19 +178,24 @@ export function PageHeader({
         </div>
       )}
       {/* lg (macOS): the title row is the page's sticky toolbar (a sibling of the page content, so it can stick
-          the whole way down): the primary action stays at every scroll position. Its scrolled state is a
-          full-bleed grouped-background band (`toolbar-band`: sidebar edge to viewport edge, no corners, a
-          scroll-edge fade at its foot instead of a hairline), not blur: the sidebar already blurs on lg and the
-          wallpaper is static (performance-budget.md caps backdrop-filter at the control layer that must lens).
+          the whole way down): the primary action stays at every scroll position. At the top it sits on the page;
+          once content scrolls under it, the bar material fades in edge to edge (sidebar edge to window edge) with a
+          hairline (`bar-edge`). On the Mac app it starts below the title bar and is the window's drag region.
           sm–lg: a plain row under the nav pill; the pill carries the actions once the title scrolled out. */}
       <header
-        className={`toolbar-row flex items-end justify-between gap-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:pt-2 lg:sticky lg:top-0 lg:z-30 lg:min-h-[60px] lg:items-center lg:pt-3 lg:pb-1 ${
-          collapsed ? "toolbar-band" : ""
-        } ${className}`}
+        ref={header}
+        className={`toolbar-row bar-edge flex items-end justify-between gap-3 pt-[calc(var(--chrome-top)+0.75rem)] sm:pt-2 lg:sticky lg:top-0 lg:z-30 lg:min-h-[calc(var(--chrome-top)+60px)] lg:items-center lg:pt-[calc(var(--chrome-top)+0.75rem)] lg:pb-2 ${className}`}
         data-testid="page-toolbar"
         data-collapsed={collapsed || undefined}
+        data-scrolled={scrolled || undefined}
+        data-tauri-drag-region
       >
-        <h1 className="text-large-title lg:text-title1 min-w-0 truncate" data-testid="page-title" id={id}>
+        <h1
+          className="text-large-title lg:text-title1 min-w-0 truncate"
+          data-testid="page-title"
+          id={id}
+          data-tauri-drag-region
+        >
           {title}
         </h1>
         <div className="flex shrink-0 items-center gap-1 pb-0.5 lg:pb-0">

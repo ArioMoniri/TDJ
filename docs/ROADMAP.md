@@ -43,27 +43,27 @@ Every item has an on/off switch in Settings where it is an indicator, a rule or 
 - ◐ Round 21b — the DJ's featured night (25 tandas, pinned tandas, Tango Bardo, Bandonegro), skip tonight, last 4 tandas tango only, Jump to La Cumparsita, closing-harmony setting (OFF by default; the DJ matches manually this time), learned preferences; making the full core suite and `pnpm quality` green again.
 
 ## 1. Player (Booth) — information architecture and DJ features
-- ☐ Re-organise the player like DJ apps and Spotify: transport and now-playing always in one place, queue/set list beside it, tools (mix, fades, cortina, skip, Cumparsita) grouped where a DJ expects them (research: Mobbin, Spotify, djay, rekordbox, Serato, Traktor, Mixxx, Engine DJ).
-- ☐ Headphone pre-listen (cue on a second output, `setSinkId`) of the next song or any song, without disturbing the room; unmistakable "room vs headphones" UI.
-- ☐ Tap any song to play/test; play any version of a song from the database.
-- ☐ Spotify "Mix" style settings in the player (crossfade, gap, automix-like transitions), with every setting and its info visible.
-- ☐ Skip tonight per tanda (milongas/valses), last-4-tango mode, Jump to Cumparsita — polished UX (engine from round 21).
-- ☐ Energy chart (vertical, like the night's arc), BPM and key indicators per song.
-- ☐ Per-song trim and waveform with drag-to-set cue/stop.
-- ☐ Premium: full Spotify tracks by default when connected.
+- ☑ Re-organise the player like DJ apps and Spotify: transport and now-playing always in one place, queue/set list beside it, tools (mix, fades, cortina, skip, Cumparsita) grouped where a DJ expects them (research: Mobbin, Spotify, djay, rekordbox, Serato, Traktor, Mixxx, Engine DJ). (round 22 booth branch, `1b6eb3e`)
+- ☑ Headphone pre-listen (cue on a second output, `setSinkId`) of the next song or any song, without disturbing the room; unmistakable "room vs headphones" UI. (round 22 booth branch, `1b6eb3e`)
+- ☑ Tap any song to play/test; play any version of a song from the database. (round 22 booth branch, `1b6eb3e`)
+- ☑ Spotify "Mix" style settings in the player (crossfade, gap, automix-like transitions), with every setting and its info visible. (round 22 booth branch, `1b6eb3e`)
+- ☑ Skip tonight per tanda (milongas/valses), last-4-tango mode, Jump to Cumparsita — polished UX (engine from round 21). (round 22 booth branch, `1b6eb3e`)
+- ☑ Energy chart (vertical, like the night's arc), BPM and key indicators per song. (round 22 booth branch, `1b6eb3e`)
+- ☑ Per-song trim and waveform with drag-to-set cue/stop. (round 22 booth branch, `1b6eb3e`)
+- ☑ Premium: full Spotify tracks by default when connected. (round 22 booth branch, `1b6eb3e`)
 
 ## 2. Compose page
-- ☐ Song search side panel (title, orchestra, singer, year, rhythm tango/milonga/vals), filterable, showing which tanda/part a song is in.
-- ☐ Energy chart, BPM and key per song; tanda-level tone.
-- ☐ Swap sheet (round 21) polish: search, suggestions, AI pick.
+- ☑ Song search side panel (title, orchestra, singer, year, rhythm tango/milonga/vals), filterable, showing which tanda/part a song is in (round 22: Compose and the Booth; swap in, add, preview).
+- ☑ Energy chart, BPM and key per song; tanda-level tone (round 22: song-by-song chart, tone chip per tanda).
+- ☑ Swap sheet (round 21) polish: search, suggestions, AI pick (round 22: ranked by fit, artwork, era).
 
 ## 3. Database tab
-- ☐ Every song's versions/years shown together, each playable.
-- ☐ Scraped data (Spotify/Deezer ids, BPM, gain, key, release dates, vocal style) stored and refreshed when sources change; per-user editable; the DJ's edit wins.
-- ☐ Era indicator data (the user's All_orchestras heatmap grades, `data/index/coverage.json`) editable per user; shipped as defaults for every self-deployed instance.
+- ☑ Every song's versions/years shown together, each playable (round 22).
+- ☑ Scraped data (Spotify/Deezer ids, BPM, gain, key, release dates, vocal style) stored and refreshed when sources change; per-user editable; the DJ's edit wins (round 22: `overrides.scraped`, core `songData`).
+- ☑ Era indicator data (the user's All_orchestras heatmap grades, `data/index/coverage.json`) editable per user; shipped as defaults for every self-deployed instance (round 22: Orchestras › Edit era grades).
 
 ## 4. Era indicator (toggle)
-- ☐ Colour badge on every song in the player, compose and database: where the side sits in its orchestra's best years (grade from the user's heatmap: best / good / weak / outside), with a legend.
+- ☑ Colour badge on every song in the player, compose and database (round 22: the booth branch for the player; the compose/database branch for compose, database and search): where the side sits in its orchestra's best years (grade from the user's heatmap: best / good / weak / outside), with a legend.
 
 ## 5. Learning per instance (toggle)
 - ☐ Every deployed instance learns from its DJ's swaps, pins and edits (like an autocorrect), applies it to future generations, and shows the learned preferences and rules as a list the DJ can edit, weight or delete.
@@ -97,13 +97,13 @@ Every item has an on/off switch in Settings where it is an indicator, a rule or 
 
 ## 12. The DJ's requests of 2026-11-14 (second batch)
 - ☐ Compose UI: tanda cards one shape whatever the count (3 valses vs 4 tangos), correct bar spacing, the song data menu never cropped (portal/flip), no overlaps anywhere, header on scroll uses a material that never mixes with content (the large-title → inline-title transition).
-- ☐ Artwork on every song (player, compose, database) from Spotify/Deezer album art, cached; a placeholder per orchestra when none.
+- ☑ Artwork on every song (player, compose, database; round 22) from Spotify/Deezer album art, cached; a placeholder per orchestra when none.
 - ☐ Hover/long-press explanations on every feature (tooltips with the one-line "what it does"), no engineer-facing text in the UI (e.g. "Set TDJ_DB_TABLE on the server…", workspace-ID notes) — those settings are handled by the deploy and the app itself.
-- ☐ Missing data (BPM, key, gain, artwork, dates): fill from every source the DJ connects (Spotify, Deezer, MusicBrainz/Discogs and others found by the council), with an "add a source" flow in Settings → Connections.
+- ◐ Missing data (BPM, key, gain, artwork, dates; round 22: Deezer, MusicBrainz, Cover Art Archive, Discogs with a token, Spotify login, Settings › Data sources): fill from every source the DJ connects (Spotify, Deezer, MusicBrainz/Discogs and others found by the council), with an "add a source" flow in Settings → Connections.
 - ☐ Rooms: create a room (named, renamable), share a code, several DJs edit the same night live; a log tab of who did what; a list of previous rooms with their logs. Apps: username + room code. Web self-deploys: the same.
-- ☐ Prompt the model in Compose to edit and swap songs ("make tanda 7 calmer", "swap the 2nd song for a Fiorentino"), fast and accurate, besides the manual controls; ACP agents usable exactly like API keys for every generation.
-- ☐ Manual playlist creation: pick songs yourself with live suggestions/guidance for what comes next that update after each added song (switchable).
-- ☐ Database → Orchestras tab redesigned (clear grouping, eras, singers, best years).
+- ☑ Prompt the model in Compose to edit and swap songs ("make tanda 7 calmer", "swap the 2nd song for a Fiorentino"), fast and accurate, besides the manual controls; ACP agents usable exactly like API keys for every generation.
+- ☑ Manual playlist creation: pick songs yourself with live suggestions/guidance for what comes next that update after each added song (switchable).
+- ☑ Database → Orchestras tab redesigned (clear grouping, eras, singers, best years; round 22).
 - ☐ Guide page refreshed with Lottie, illustrations and motion.
 - ☐ One-click self-deploy that sets everything up (database, storage, connectors) from the app, no manual env steps.
 - ☐ Features from other tango and DJ apps (competitor survey).

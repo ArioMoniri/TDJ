@@ -6,12 +6,23 @@ import {
   bypassPlanItems,
   type CortinaEdit,
   type Playlist,
+  type Song,
+  type SongCue,
 } from "@tdj/core";
 import { create } from "zustand";
 import { makeNightLog, makeSnapshot } from "@/lib/history";
 import { useStore } from "@/lib/store";
 import { cortinaStopSec } from "@/lib/types";
 import { clipSummary, rehearsalClip, spotifyOf, withSpotifyLengths } from "./clips";
+import {
+  CuePlayer,
+  canPrelisten,
+  listOutputs,
+  type OutputDevice,
+  roomSinkSupported,
+  routeRoom,
+  sinkSupported,
+} from "./cue";
 import {
   BoothEngine,
   type BoothItemRuntime,
@@ -30,11 +41,13 @@ import {
   saveNight,
 } from "./persist";
 import { type BoothRows, decorate, planEntities, remainingFrom } from "./plan";
+import { resolveSourceMode } from "./sourceMode";
 import { LocalAdapter } from "./sources/local";
 import { PreviewAdapter, REHEARSAL_SEC } from "./sources/preview";
 import { SpotifyAdapter } from "./sources/spotify";
 import type { ItemSource, PlanEntity, SourceAdapter, SourceKind } from "./sources/types";
 import { isSilentState, unlockAudio } from "./unlock";
+import { bufferPeaks } from "./waveform";
 
 export interface Banner {
   key: string;
@@ -42,6 +55,33 @@ export interface Banner {
   action?: { label: string; run: () => void };
 }
 export type SourceMode = "file" | "spotify" | "preview";
+/** Round 22: where a pre-listen sounds — the headphones output, or this device's own (only before the night). */
+export type CueWhere = "headphones" | "device";
+/** A song being pre-listened: a plan row (`i`) or any catalogue side (a version). */
+export interface Audition {
+  i: number | null;
+  songId: string;
+  via: "clip" | "spotify" | "file";
+  title: string;
+  where: CueWhere;
+}
+/** Round 22: the room and headphones outputs. */
+export interface Outputs {
+  devices: OutputDevice[];
+  room: string;
+  cue: string | null;
+  /** `HTMLMediaElement.setSinkId`: a pre-listen can go to a second output */
+  cueSupported: boolean;
+  /** `AudioContext.setSinkId`: the room can be sent to a chosen device */
+  roomSupported: boolean;
+  /** the browser named the devices (Chromium asks for the microphone permission once) */
+  named: boolean;
+}
+export interface Waveform {
+  peaks: number[];
+  durationSec: number;
+  from: "file" | "clip";
+}
 export interface FolderStatus {
   name: string | null;
   files: number;
@@ -102,14 +142,33 @@ interface BoothStore {
   ready: boolean;
   /** sources are being matched (folder, Spotify, previews): the cards say so instead of showing 0 */
   resolving: boolean;
-  /** round 21: a row being auditioned (before the night, or "Preview only" during it) and how it plays */
-  audition: { i: number; via: "clip" | "spotify"; title: string } | null;
+  /** round 21: a row being auditioned; round 22: where it sounds (headphones or this device) */
+  audition: Audition | null;
+  /** round 22: the room / headphones outputs */
+  outputs: Outputs;
+  /** round 22: the cue player's position (s) and length while a pre-listen plays */
+  cuePos: { at: number; of: number };
   /* actions */
   /** round 21: tap a row — play it now (the running item fades), next, or audition it */
   playNow: (i: number) => Promise<void>;
   playNext: (i: number) => void;
   auditionItem: (i: number) => Promise<string | null>;
+  /** round 22: pre-listen a plan row or any catalogue side; null when it plays, else why not */
+  prelisten: (t: { i?: number; song?: Song }, o?: { startSec?: number }) => Promise<string | null>;
+  /** round 22: why a pre-listen cannot go to the headphones now (null = it can) */
+  cueBlocked: () => string | null;
   stopAudition: () => void;
+  refreshOutputs: (askNames?: boolean) => Promise<void>;
+  setRoomOutput: (id: string) => Promise<void>;
+  setCueOutput: (id: string | null) => void;
+  /** round 22: the DJ's cue in / stop at for one side (null resets it) */
+  setSongCue: (id: string, cue: SongCue | null) => void;
+  /** round 22: the cortina play length (null follows the composer) */
+  setCortinaLength: (sec: number | null) => void;
+  /** round 22: play another take of a side tonight (same title, same orchestra) */
+  playVersion: (songId: string, version: Song) => Promise<boolean>;
+  /** round 22: the waveform of a plan row (its file, else its 30 s clip) */
+  waveformOf: (i: number) => Promise<Waveform | null>;
   boot: (p: Playlist, o?: { rehearsal?: boolean }) => Promise<void>;
   setSourceMode: (m: SourceMode) => Promise<void>;
   refreshSources: () => Promise<void>;
@@ -170,8 +229,23 @@ let lastTick = 0;
 let persistTimer: ReturnType<typeof setInterval> | null = null;
 let unsubDevice: (() => void) | null = null;
 let restoredLocal = false;
-/** round 21: the audition player (a clip through the default output; Spotify auditions play on the SDK device) */
-let auditionEl: HTMLAudioElement | null = null;
+/** round 22: the pre-listen player (headphones output, or this device before the night) */
+let cuePlayer: CuePlayer | null = null;
+let cueTimer: ReturnType<typeof setInterval> | null = null;
+const waveforms = new Map<string, Promise<Waveform | null>>();
+const OUTPUTS_KEY = "tdj-booth-outputs";
+function loadOutputPrefs(): { room?: string; cue?: string | null } {
+  try {
+    return JSON.parse(localStorage.getItem(OUTPUTS_KEY) ?? "{}") as { room?: string; cue?: string | null };
+  } catch {
+    return {};
+  }
+}
+function saveOutputPrefs(o: { room: string; cue: string | null }) {
+  try {
+    localStorage.setItem(OUTPUTS_KEY, JSON.stringify(o));
+  } catch {}
+}
 
 const getCtx = () => ctx;
 function adapters(): { local: LocalAdapter; spotify: SpotifyAdapter; preview: PreviewAdapter } {
@@ -281,15 +355,27 @@ export const useBooth = create<BoothStore>()((set, get) => ({
   ready: false,
   resolving: false,
   audition: null,
+  outputs: {
+    devices: [{ id: "default", label: "This device" }],
+    room: "default",
+    cue: null,
+    cueSupported: false,
+    roomSupported: false,
+    named: false,
+  },
+  cuePos: { at: 0, of: 0 },
 
   boot: async (p, o = {}) => {
     const a = adapters();
     const saved = (await loadBoothSettings()) ?? {};
     const settings: BoothSettings = { ...DEFAULT_BOOTH_SETTINGS, ...(saved as Partial<BoothSettings>) };
     const sameSet = get().playlist?.id === p.id && engine;
-    const mode: SourceMode = o.rehearsal
-      ? "preview"
-      : ((saved.sourceMode as SourceMode | undefined) ?? get().sourceMode);
+    // round 22: a rehearsal is a choice for one session; with Premium connected the night plays full tracks
+    const mode: SourceMode = resolveSourceMode({
+      saved: (saved.sourceMode as SourceMode | undefined) ?? get().sourceMode,
+      rehearsalParam: !!o.rehearsal,
+      spotifyOk: false,
+    });
     const { playlist, plan } = rePlan(p, settings);
     const entities = planEntities(playlist, plan);
     set({
@@ -313,6 +399,17 @@ export const useBooth = create<BoothStore>()((set, get) => ({
       await a.local.restore();
     }
     await get().refreshSources();
+    if (
+      mode === "preview" &&
+      !o.rehearsal &&
+      resolveSourceMode({
+        saved: "preview",
+        rehearsalParam: false,
+        spotifyOk: get().availability.spotify.ok,
+      }) !== "preview"
+    )
+      await get().setSourceMode("file");
+    void get().refreshOutputs();
     // a night younger than 12 h for this set: offer to resume at its playhead
     const night = await loadNight();
     if (
@@ -468,7 +565,10 @@ export const useBooth = create<BoothStore>()((set, get) => ({
       pushBanner({ key: "audio", text: "This browser cannot play audio." });
       return;
     }
-    if (!ctx) ctx = new Ctor({ latencyHint: "playback" });
+    if (!ctx) {
+      ctx = new Ctor({ latencyHint: "playback" });
+      if (get().outputs.room !== "default") void routeRoom(ctx, get().outputs.room);
+    }
     // round 20: everything that opens the output happens here, in the tap, before the first await (iOS: the
     // playback session, which the silent switch does not mute; the keep-alive element; the primed context)
     unlockAudio(ctx);
@@ -483,6 +583,7 @@ export const useBooth = create<BoothStore>()((set, get) => ({
         settings,
         rehearsalSec: sourceMode === "preview" ? REHEARSAL_SEC : null,
         onEvent: onEngineEvent,
+        whyMissing,
       });
       engine.load(plan, entities, sources);
       syncBypass();
@@ -597,19 +698,58 @@ export const useBooth = create<BoothStore>()((set, get) => ({
         ...derive(get().plan!, engine.planIndex, engine.position(), capFor(get().sources, get().rehearsal)),
       });
   },
-  // round 21: audition a row (a tap): Spotify Premium plays the checked recording on this device; otherwise the
-  // rehearsal clip of that recording; null when it plays, else why not
-  auditionItem: async (i) => {
-    const { entities, plan, sources, availability } = get();
-    const it = plan?.items[i];
-    if (!it || it.kind === "break") return "nothing to play";
+  // round 21: audition a row (a tap); round 22: a pre-listen in the headphones when a second output is set
+  auditionItem: async (i) => get().prelisten({ i }),
+  cueBlocked: () => {
+    const o = get().outputs;
+    const v = canPrelisten({ supported: o.cueSupported, roomId: o.room, cueId: o.cue, devices: o.devices });
+    return v.ok ? null : (v.why ?? "Pick your headphones first.");
+  },
+  prelisten: async (t, o = {}) => {
+    const { entities, plan, sources, availability, started } = get();
+    const it = t.i !== undefined ? plan?.items[t.i] : undefined;
+    if (t.i !== undefined && (!it || it.kind === "break")) return "nothing to play";
+    const e: PlanEntity = t.song ?? (t.i !== undefined ? (entities[t.i] ?? null) : null);
+    if (!e) return "nothing to play";
+    const title = it?.title ?? e.title;
     get().stopAudition();
-    const e = entities[i] ?? null;
+    const blocked = get().cueBlocked();
+    // during the night a pre-listen never goes to the room: headphones only
+    if (blocked && started) return blocked;
+    const where: CueWhere = blocked ? "device" : "headphones";
+    const sink = where === "headphones" ? get().outputs.cue : null;
+    const base = { i: t.i ?? null, songId: e.id, title, where };
+    const play = async (src: string | Blob, via: Audition["via"]) => {
+      cuePlayer ??= new CuePlayer();
+      cuePlayer.onEnded = () => {
+        stopCueTimer();
+        useBooth.setState({ audition: null, cuePos: { at: 0, of: 0 } });
+      };
+      await cuePlayer.play(src, { sinkId: sink, startSec: o.startSec });
+      set({ audition: { ...base, via } });
+      startCueTimer();
+    };
+    // 1. the DJ's own file (the whole song)
+    const file = await adapters()
+      .local.fileFor(it?.id ?? e.id)
+      .catch(() => null);
+    if (file) {
+      try {
+        await play(file, "file");
+        return null;
+      } catch {}
+    }
+    // 2. this device before the night: Spotify Premium plays the checked recording on the SDK device
     const sp = spotifyOf(e);
-    if (sp?.uri && availability.spotify.ok && (sources[i] === "spotify" || !get().started)) {
+    if (
+      where === "device" &&
+      sp?.uri &&
+      availability.spotify.ok &&
+      (t.i === undefined || sources[t.i] === "spotify" || !started)
+    ) {
       try {
         await adapters().spotify.audition(sp.uri);
-        set({ audition: { i, via: "spotify", title: it.title } });
+        set({ audition: { ...base, via: "spotify" } });
         return null;
       } catch (err) {
         pushBanner({
@@ -618,34 +758,92 @@ export const useBooth = create<BoothStore>()((set, get) => ({
         });
       }
     }
+    // 3. the 30 s clip of that recording
     const v = rehearsalClip(e);
-    const url = v.clip ? (v.clip.from === "spotify" ? v.clip.url : v.clip.resolved.previewUrl) : null;
-    if (!url) return v.why ?? "no clip of this recording";
-    const el = new Audio(url);
-    el.volume = 0.9;
-    auditionEl = el;
-    el.onended = () => {
-      if (auditionEl === el) {
-        auditionEl = null;
-        set({ audition: null });
-      }
-    };
+    const url = v.clip ? (v.clip.from === "spotify" ? v.clip.url : clipUrl(v.clip.resolved)) : null;
+    if (!url)
+      return where === "headphones" && sp
+        ? "Spotify plays only to the room: link the file to pre-listen in the headphones"
+        : (v.why ?? "no clip of this recording");
     try {
-      await el.play();
+      await play(url, "clip");
     } catch {
-      auditionEl = null;
       return "the browser blocked playback: tap again";
     }
-    set({ audition: { i, via: "clip", title: it.title } });
     return null;
   },
   stopAudition: () => {
-    if (auditionEl) {
-      auditionEl.pause();
-      auditionEl = null;
-    }
+    cuePlayer?.stop();
+    stopCueTimer();
     if (get().audition?.via === "spotify") void adapters().spotify.pauseAudition();
-    if (get().audition) set({ audition: null });
+    if (get().audition) set({ audition: null, cuePos: { at: 0, of: 0 } });
+  },
+  refreshOutputs: async (askNames = false) => {
+    const devices = await listOutputs(askNames);
+    const prefs = loadOutputPrefs();
+    const has = (id?: string | null): id is string => !!id && devices.some((d) => d.id === id);
+    set({
+      outputs: {
+        devices,
+        room: has(prefs.room) ? prefs.room : "default",
+        cue: has(prefs.cue) ? prefs.cue : null,
+        cueSupported: sinkSupported(),
+        roomSupported: roomSinkSupported(),
+        named: devices.some((d) => d.id !== "default"),
+      },
+    });
+  },
+  setRoomOutput: async (id) => {
+    const o = get().outputs;
+    set({ outputs: { ...o, room: id } });
+    saveOutputPrefs({ room: id, cue: o.cue });
+    if (ctx) await routeRoom(ctx, id);
+  },
+  setCueOutput: (id) => {
+    const o = get().outputs;
+    get().stopAudition();
+    set({ outputs: { ...o, cue: id } });
+    saveOutputPrefs({ room: o.room, cue: id });
+  },
+  setSongCue: (id, cue) => {
+    const p = get().playlist;
+    if (!p) return;
+    const cues: Record<string, SongCue> = { ...(p.booth?.songCues ?? {}) };
+    if (cue === null) delete cues[id];
+    else cues[id] = { ...cue };
+    applyPlan(rePlan(p, get().settings, { songCues: cues }));
+  },
+  setCortinaLength: (sec) => {
+    useStore.getState().setSettings({ cortinaStopSec: sec });
+    const p = get().playlist;
+    if (p) applyPlan(rePlan(p, get().settings));
+  },
+  playVersion: async (songId, version) => {
+    const p = get().playlist;
+    if (!p) return false;
+    const ti = p.tandas.findIndex((t) => t.songs.some((x) => x.id === songId));
+    const cur = get().plan?.items[get().planIndex];
+    if (ti < 0 || (get().started && cur && ti + 1 <= cur.tanda)) return false;
+    get().stopAudition();
+    await get().applySwappedPlaylist({
+      ...p,
+      tandas: p.tandas.map((t, i) =>
+        i === ti ? { ...t, songs: t.songs.map((x) => (x.id === songId ? version : x)) } : t,
+      ),
+    });
+    return true;
+  },
+  waveformOf: (i) => {
+    const it = get().plan?.items[i];
+    const e = get().entities[i] ?? null;
+    if (!it || it.kind === "break" || !e) return Promise.resolve(null);
+    const key = it.id ?? String(it.n);
+    let p = waveforms.get(key);
+    if (!p) {
+      p = decodePeaks(key, e).catch(() => null);
+      waveforms.set(key, p);
+    }
+    return p;
   },
   skipNow: async () => engine?.skipNow(),
   stop: (fadeSec) => {
@@ -763,12 +961,72 @@ export const useBooth = create<BoothStore>()((set, get) => ({
   },
 }));
 
+/** A Deezer clip through the instance's fresh-link redirect (signed links expire within minutes). */
+function clipUrl(r: { provider?: string; id?: string; previewUrl?: string | null }): string | null {
+  if (r.provider === "deezer" && r.id && /^\d+$/.test(r.id)) return `/api/preview?provider=deezer&id=${r.id}`;
+  return r.previewUrl ?? null;
+}
+function startCueTimer() {
+  stopCueTimer();
+  cueTimer = setInterval(() => {
+    if (!cuePlayer?.el) return stopCueTimer();
+    useBooth.setState({ cuePos: { at: cuePlayer.position(), of: cuePlayer.duration() } });
+  }, 250);
+}
+function stopCueTimer() {
+  if (cueTimer) clearInterval(cueTimer);
+  cueTimer = null;
+}
+/** Round 22: the waveform of a side — its file (the whole song) else its clip — decoded off the room's graph. */
+async function decodePeaks(id: string, e: NonNullable<PlanEntity>): Promise<Waveform | null> {
+  const Off =
+    typeof OfflineAudioContext !== "undefined"
+      ? OfflineAudioContext
+      : (globalThis as unknown as { webkitOfflineAudioContext?: typeof OfflineAudioContext })
+          .webkitOfflineAudioContext;
+  if (!Off) return null;
+  const file = await adapters()
+    .local.fileFor(id)
+    .catch(() => null);
+  let bytes: ArrayBuffer | null = null;
+  let from: Waveform["from"] = "file";
+  if (file) bytes = await file.arrayBuffer();
+  else {
+    const v = rehearsalClip(e);
+    let u = v.clip ? (v.clip.from === "spotify" ? v.clip.url : clipUrl(v.clip.resolved)) : null;
+    if (!u) return null;
+    if (u.startsWith("/api/preview")) {
+      const j = (await (await fetch(`${u}&json=1`)).json().catch(() => ({}))) as { url?: string };
+      if (!j.url) return null;
+      u = j.url;
+    }
+    const r = await fetch(u);
+    if (!r.ok) return null;
+    bytes = await r.arrayBuffer();
+    from = "clip";
+  }
+  const dec = new Off(1, 1, 44100);
+  const buf = await dec.decodeAudioData(bytes);
+  return { peaks: bufferPeaks(buf, 240), durationSec: buf.duration, from };
+}
+
 /** the engine passes over the tandas the DJ bypasses tonight (round 21) */
 function syncBypass() {
   const { playlist, plan } = useBooth.getState();
   const items = playlist && plan ? bypassPlanItems(playlist, plan.items) : [];
   engine?.setBypass(items);
   useBooth.setState({ bypassed: items });
+  // the night's time follows at once (before the night; the tick does it while it runs)
+  const s = useBooth.getState();
+  if (plan && !s.started) useBooth.setState(derive(plan, s.planIndex, 0, capFor(s.sources, s.rehearsal)));
+}
+
+/** wave 2: why the engine passes an item over, in the DJ's words (the banner) */
+function whyMissing(i: number): string | null {
+  const s = useBooth.getState();
+  if (!s.rehearsal) return null;
+  const why = s.notRehearsable.find((x) => x.i === i)?.why;
+  return `the rehearsal has no 30 s clip of this recording${why && why !== "no clip of the Spotify recording" ? ` (${why})` : ""}; on the night it plays in full from your file or Spotify`;
 }
 
 /* ---------- engine → store ---------- */
@@ -892,12 +1150,14 @@ function watchVisibility() {
 
 function derive(plan: BoothRows, planIndex: number, position: number, cap: (i: number) => number | null) {
   // before the engine exists the items without a source are the ones the night will leave out
-  const sources = useBooth.getState().sources;
+  const { sources, bypassed } = useBooth.getState();
   const skipped = new Set(
     sources
       .map((s, i) => (s === "missing" && plan.items[i]?.kind !== "break" ? i : -1))
       .filter((i) => i >= 0),
   );
+  // a tanda skipped tonight and its cortina leave the night's time (wave 2)
+  for (const i of bypassed) skipped.add(i);
   const r = remainingFrom(plan, planIndex, position, { capFor: cap, skipped });
   return { remaining: r.remainingSec, timeToCumparsita: r.timeToCumparsita };
 }

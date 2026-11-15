@@ -23,6 +23,9 @@ export function countChanges(o: AppOverrides | null | undefined): number {
     for (const op of Object.values(f)) n += Object.keys(op).length;
   n += Object.values(o.guide ?? {}).filter((v) => typeof v === "string" && v.trim()).length;
   if (o.connectors?.webhookUrl) n += 1;
+  // round 22: the DJ's era grades (one change per cell); fetched data (`scraped`) is not an edit
+  for (const m of Object.values(o.heatmap ?? {}))
+    n += Object.keys(m.instrumental ?? {}).length + Object.keys(m.vocal ?? {}).length;
   return n;
 }
 export function isEmptyOverrides(o: AppOverrides | null | undefined): boolean {
@@ -131,7 +134,7 @@ export function parseImport(text: string): AppOverrides {
   const j = JSON.parse(text);
   const o =
     j && typeof j === "object" && "overrides" in j && typeof j.overrides === "object" ? j.overrides : j;
-  if (!o || typeof o !== "object" || Array.isArray(o)) throw new Error("Not a TDJ database file");
+  if (!o || typeof o !== "object" || Array.isArray(o)) throw new Error("Not a T-DJ database file");
   const out: AppOverrides = {};
   for (const k of [
     "songs",

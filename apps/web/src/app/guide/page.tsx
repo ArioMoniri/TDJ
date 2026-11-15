@@ -1,6 +1,7 @@
 import { ExternalLink } from "lucide-react";
 import { Group, Row } from "@/components/Form";
 import { GuideBody } from "@/components/GuideSections";
+import { Tip } from "@/components/ui/Tip";
 import { EVIDENCE_COLOR, EVIDENCE_LABEL, fmtShift } from "@/lib/context";
 import { getCatalog } from "@/lib/server/catalog";
 
@@ -27,11 +28,11 @@ export default function Guide() {
     ],
     [
       "Cortina",
-      "30–60 s of non-tango music that clears the floor and cues the next tanda; TDJ picks each one ~8 energy points below the tanda that follows.",
+      "30–60 s of non-tango music that clears the floor and cues the next tanda; T-DJ picks each one a little calmer than the tanda that follows.",
     ],
     [
       "Score",
-      "The benchmark checks integrity, singer and era coherence, spacing, variety, arc fit, cortina discipline and the ending. 85 or more is headline marathon DJ territory.",
+      "The score reads a night the way an experienced DJ would: tandas that hold together, singers and years that match, orchestras spaced out and varied, energy that follows the night, cortinas that clear the floor and an ending that lands. A night scoring 85 out of 100 or more is one you could play at a big marathon. After you compose, How this set scored shows each part.",
     ],
   ];
   const takes: Array<[string, string]> = [
@@ -53,7 +54,7 @@ export default function Guide() {
     ],
     [
       "Technical",
-      "Real file paths, correct durations, cortinas that cue in cleanly, exports your DJ app can read without a fight.",
+      "Every song found in your music folder, the right lengths, cortinas that cue in cleanly, and a set your DJ app opens without a fight.",
     ],
   ];
   const slug = (k: string) => k.toLowerCase().replace(/[^a-z0-9]+/g, "-");
@@ -62,8 +63,8 @@ export default function Guide() {
   return (
     <article className="mx-auto max-w-[680px]">
       <GuideBody
-        title="How TDJ composes"
-        subtitle="Rules from working DJs and the research behind the index."
+        title="Guide"
+        subtitle="How T-DJ works, in a DJ's words."
         rows={toSections(rows)}
         takes={toSections(takes)}
       />
@@ -89,7 +90,8 @@ export default function Guide() {
         <>
           <h2 className="text-title3 mt-8 px-4">Context factors</h2>
           <p className="text-subhead mt-1 px-4 text-[var(--label-2)]">
-            What “Tonight” does. Shifts are energy points; vals and milonga are the share of the night.
+            What “Tonight” does: + livens the night, − calms it; vals and milonga are their share of the
+            night.
           </p>
           {contextModel.factors.map((f) => (
             <Group key={f.id} header={f.label}>
@@ -102,12 +104,14 @@ export default function Guide() {
                 ].filter(Boolean);
                 return (
                   <div key={o.id} className="cell items-start">
-                    <span
-                      className="mt-2 h-2 w-2 shrink-0 rounded-full"
-                      style={{ background: EVIDENCE_COLOR[o.evidence ?? "speculative"] }}
-                      title={EVIDENCE_LABEL[o.evidence ?? "speculative"]}
-                      aria-hidden
-                    />
+                    <Tip text={EVIDENCE_LABEL[o.evidence ?? "speculative"]} className="mt-2 shrink-0">
+                      <span
+                        className="block h-2 w-2 rounded-full"
+                        style={{ background: EVIDENCE_COLOR[o.evidence ?? "speculative"] }}
+                        role="img"
+                        aria-label={EVIDENCE_LABEL[o.evidence ?? "speculative"]}
+                      />
+                    </Tip>
                     <span className="min-w-0 flex-1">
                       <span className="block">
                         {o.label}

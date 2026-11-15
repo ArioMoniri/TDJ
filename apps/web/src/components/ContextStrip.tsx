@@ -101,6 +101,10 @@ export function ContextStrip({
       <PickerRow
         key={f.key}
         label={f.label}
+        tip={
+          r?.option?.notes ??
+          `${f.label.split(" (")[0]} tonight: it moves the energy, the vals and milonga share and the cortinas`
+        }
         ariaLabel={r?.factorLabel ?? f.label}
         value={v}
         placeholder="Not set"
@@ -142,7 +146,13 @@ export function ContextStrip({
       <Group header="Tonight">{rows.slice(0, 6)}</Group>
       <Group header="Also tonight" className="md:[&>.section-head]:visible" footer={footer}>
         {rows.slice(6)}
-        {chosen > 0 && <ActionRow label="Clear tonight" onClick={() => onChange({})} />}
+        {chosen > 0 && (
+          <ActionRow
+            label="Clear tonight"
+            tip="Forget tonight's room, crowd and floor choices"
+            onClick={() => onChange({})}
+          />
+        )}
       </Group>
     </div>
   );

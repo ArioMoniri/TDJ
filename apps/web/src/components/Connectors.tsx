@@ -45,7 +45,7 @@ const APP_META: Record<ConnectApp, { color: string; icon: ReactNode; sub: string
     icon: <ListVideo size={16} strokeWidth={2} />,
     sub: "Playlists · YouTube Music sees them too",
     blurb:
-      "Creates a YouTube playlist in your account (YouTube Music shows it as well). Matching uses a daily search budget shared by every TDJ user, so some 78-rpm recordings may be left out; the result lists them.",
+      "Creates a YouTube playlist in your account (YouTube Music shows it as well). Matching uses a daily search budget shared by every T-DJ user, so some 78-rpm recordings may be left out; the result lists them.",
   },
   dropbox: {
     color: "#0061ff",
@@ -58,7 +58,7 @@ const APP_META: Record<ConnectApp, { color: string; icon: ReactNode; sub: string
     color: "#1fa463",
     icon: <HardDrive size={16} strokeWidth={2} />,
     sub: "Export files to your Drive",
-    blurb: "Saves the chosen export file into your Google Drive. TDJ only sees files it created.",
+    blurb: "Saves the chosen export file into your Google Drive. T-DJ only sees files it created.",
   },
   spotify: {
     color: "#1db954",
@@ -86,7 +86,7 @@ export async function fetchPublicStatus(): Promise<PublicStatus | null> {
 }
 /** The message a DJ sends the organiser to get one of the Spotify seats. */
 export const seatRequest = (origin: string) =>
-  `Hi! I would like to use TDJ (${origin}) with my Spotify account. Could you add my Spotify e-mail to the app's User Management list in the Spotify dashboard? My Spotify e-mail: ______. Thanks!`;
+  `Hi! I would like to use T-DJ (${origin}) with my Spotify account. Could you add my Spotify e-mail to the app's User Management list in the Spotify dashboard? My Spotify e-mail: ______. Thanks!`;
 
 /** The status dot in front of a row value: green connected, grey not, amber needs attention. */
 function Dot({ tone }: { tone: "on" | "off" | "warn" }) {
@@ -288,13 +288,13 @@ export function Connectors() {
     }
   };
   const tile = (color: string, icon: ReactNode) => <Tile color={color}>{icon}</Tile>;
-  const notEnabled = (what: string, secrets: string) => (
+  const notEnabled = (what: string, service: string) => (
     <Group
       header="Account"
-      footer={`${what} This deployment has not enabled it: the owner adds ${secrets} as described in docs/DEPLOY.md → Connectors.${pdEnabled ? " Pipedream Connect is enabled here instead; see Advanced below." : ""}`}
+      footer={`${what} The person who runs this T-DJ site has not turned it on yet: they paste ${service}'s sign-in details in Owner setup.${pdEnabled ? " Pipedream Connect is on here instead; see Advanced below." : ""}`}
     >
-      <Row label="Status" value="Not enabled on this deployment" />
-      <Row label="How to enable" sub="docs/DEPLOY.md → Connectors" chevron href={DEPLOY_DOCS} />
+      <Row label="Status" value="Not turned on for this site" />
+      <Row label="How to turn it on" sub="Step by step, for the site's owner" chevron href={DEPLOY_DOCS} />
     </Group>
   );
   const googleUser = google?.user ?? null;
@@ -327,7 +327,7 @@ export function Connectors() {
       >
         <Group
           header="Account"
-          footer={`${APP_META[app].blurb} One button: ${label} asks for your permission in a new tab and Pipedream keeps the connection; TDJ never sees your password or your tokens.`}
+          footer={`${APP_META[app].blurb} One button: ${label} asks for your permission in a new tab and Pipedream keeps the connection; T-DJ never sees your password or your tokens.`}
         >
           <Row
             label="Status"
@@ -391,7 +391,7 @@ export function Connectors() {
           <Row
             tile={tile("#636366", <KeyRound size={16} strokeWidth={2} />)}
             label="Owner setup"
-            sub="Enable one-tap logins for this deployment"
+            sub="Turn on one-tap logins for this site"
             value="Open"
             chevron
             onClick={() => location.assign("/admin")}
@@ -560,7 +560,7 @@ export function Connectors() {
           <>
             <Group
               header="Account"
-              footer="One Google account for two things: export files go to a TDJ folder in your Drive (TDJ only ever sees files it created), and playlists go to YouTube (YouTube Music shows them too). Google asks for each permission the first time you use it. The login is kept in a sealed cookie in this browser; myaccount.google.com → Security → Third-party access removes it."
+              footer="One Google account for two things: export files go to a TDJ folder in your Drive (T-DJ only ever sees files it created), and playlists go to YouTube (YouTube Music shows them too). Google asks for each permission the first time you use it. The login is kept in a sealed cookie in this browser; myaccount.google.com → Security → Third-party access removes it."
             >
               <Row
                 label="Status"
@@ -594,7 +594,7 @@ export function Connectors() {
             {googleUser && (
               <Group
                 header="Permissions"
-                footer="Each permission is asked once, on Google's own page, and only for what it names. YouTube matching uses a daily search budget shared by every TDJ user, so some 78-rpm recordings may be left out; the export sheet lists them."
+                footer="Each permission is asked once, on Google's own page, and only for what it names. YouTube matching uses a daily search budget shared by every T-DJ user, so some 78-rpm recordings may be left out; the export sheet lists them."
               >
                 <Row
                   tile={tile(APP_META.google_drive.color, APP_META.google_drive.icon)}
@@ -628,10 +628,7 @@ export function Connectors() {
             )}
           </>
         ) : (
-          notEnabled(
-            "Google would save export files to your Drive and create YouTube playlists.",
-            "GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET",
-          )
+          notEnabled("Google would save export files to your Drive and create YouTube playlists.", "Google")
         )}
       </Sheet>
 
@@ -639,7 +636,7 @@ export function Connectors() {
         {dropbox === null || dropbox.hosted ? (
           <Group
             header="Account"
-            footer="Saves the chosen export file (Rekordbox XML, Traktor NML, M3U8, CSV…) into Apps/TDJ/<set name>/ in your Dropbox and gives you a share link. TDJ only sees that folder. The login is kept in a sealed cookie in this browser; dropbox.com → Settings → Connected apps removes it."
+            footer="Saves the chosen export file (Rekordbox XML, Traktor NML, M3U8, CSV…) into Apps/TDJ/<set name>/ in your Dropbox and gives you a share link. T-DJ only sees that folder. The login is kept in a sealed cookie in this browser; dropbox.com → Settings → Connected apps removes it."
           >
             <Row
               label="Status"
@@ -671,10 +668,7 @@ export function Connectors() {
             )}
           </Group>
         ) : (
-          notEnabled(
-            "Dropbox would receive your export files in Apps/TDJ.",
-            "DROPBOX_APP_KEY and DROPBOX_APP_SECRET",
-          )
+          notEnabled("Dropbox would receive your export files in Apps/TDJ.", "Dropbox")
         )}
       </Sheet>
 
@@ -729,7 +723,7 @@ export function Connectors() {
         {otherWays && (
           <Group
             header="Other ways"
-            footer="The transfer service matches every track in your own Spotify login, so no seat is needed. YouTube, Dropbox and Google Drive have room for everyone on this deployment when the organiser has enabled them."
+            footer="The transfer service matches every track in your own Spotify login, so no seat is needed. YouTube, Dropbox and Google Drive have room for everyone on this site when the organiser has turned them on."
             id="not-listed-other-ways"
           >
             <Row
@@ -770,7 +764,7 @@ export function Connectors() {
       >
         <Group
           header="Keyless"
-          footer="Deezer's public search gives TDJ 30 s previews, artwork and durations for the play buttons and the in-browser analysis. Nothing is written to Deezer and no account is needed. Deezer export is not offered: new developer apps have been closed since June 2025."
+          footer="Deezer's public search gives T-DJ 30 s previews, artwork and durations for the play buttons and the in-browser analysis. Nothing is written to Deezer and no account is needed. Deezer export is not offered: new developer apps have been closed since June 2025."
         >
           <Row label="Status" value={statusText[deezer]} busy={deezer === "checking"} />
           <Row label="Used for" value="Previews · Metadata" />
@@ -787,7 +781,7 @@ export function Connectors() {
       >
         <Group
           header="Keyless"
-          footer="MusicBrainz recordings give the first-release year that 'Find on services' suggests for a catalogue entry (streaming reissue dates are never used as the recording year). Requests go through the TDJ server with its own user agent."
+          footer="MusicBrainz recordings give the first-release year that 'Find on services' suggests for a catalogue entry (streaming reissue dates are never used as the recording year). T-DJ asks MusicBrainz for you, so you need no account there."
         >
           <Row label="Status" value={statusText[mb]} busy={mb === "checking"} />
           <Row label="Used for" value="Recording dates · Singers" />
@@ -805,7 +799,7 @@ export function Connectors() {
       >
         <Group
           header="Webhook URL"
-          footer="Paste a Pipedream, Make, Zapier or n8n URL. TDJ sends the exported file there (the Guide lists the headers it adds). The URL stays in this browser."
+          footer="Paste a Pipedream, Make, Zapier or n8n URL. T-DJ sends the exported file there (the Guide lists the headers it adds). The URL stays in this browser."
         >
           <label htmlFor="connector-webhook-url" className="cell">
             <span className="sr-only">Webhook URL</span>

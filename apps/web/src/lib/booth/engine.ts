@@ -204,6 +204,8 @@ export interface EngineOptions {
   /** 30 in rehearsal mode: every item is capped there */
   rehearsalSec?: number | null;
   now?: () => number;
+  /** wave 2: why an item has nothing to play it from, in plain words (the banner says it instead of "No source") */
+  whyMissing?: (planIndex: number) => string | null;
 }
 
 /**
@@ -263,6 +265,7 @@ export class BoothEngine {
     this.onEvent = o.onEvent ?? (() => {});
     this.rehearsalSec = o.rehearsalSec ?? null;
     this.wall = o.now ?? (() => Date.now());
+    this.whyMissing = o.whyMissing ?? (() => null);
     this.master = ctx.createGain();
     this.analyser = ctx.createAnalyser();
     this.analyser.fftSize = 256;
@@ -322,6 +325,7 @@ export class BoothEngine {
   forcedNext: number | null = null;
   /** round 21: the items of the tandas the DJ bypasses tonight ("skip tonight", the last-four-tango setting) */
   bypassed = new Set<number>();
+  private whyMissing: (planIndex: number) => string | null;
   setBypass(items: Iterable<number>): void {
     this.bypassed = new Set(items);
     // (the queued item is now bypassed: rebuild it)
@@ -862,7 +866,8 @@ export class BoothEngine {
     if (!this.plan) return { remainingSec: 0, timeToCumparsita: 0 };
     const pos = this.position();
     return remainingFrom(this.plan, this.planIndex, pos, {
-      skipped: this.skipped,
+      // a tanda skipped tonight (and its cortina) leaves the night's time too (wave 2)
+      skipped: this.bypassed.size ? new Set([...this.skipped, ...this.bypassed]) : this.skipped,
       currentLength: this.current || this.pausedAt ? this.currentLength() : undefined,
       capFor: (i) => this.capFor(i),
     });
@@ -965,8 +970,14 @@ export class BoothEngine {
   private markMissing(i: number, e: unknown) {
     this.skipped.add(i);
     const it = this.item(i);
+    // plain words (wave 2: "La Cumparsita: No source (skipped)" said nothing a DJ could act on)
+    const why =
+      this.whyMissing(i) ??
+      (e instanceof Error && e.message && !/^no source$/i.test(e.message)
+        ? e.message
+        : "there is no file, Spotify recording or 30 s clip to play it from");
     this.banner(
-      `${it?.title ?? "An item"}: ${e instanceof Error ? e.message : "no source"} (skipped)`,
+      `${it?.title ?? "An item"} is passed over: ${why}. The night moves on to the next song.`,
       `missing-${i}`,
     );
   }
@@ -1126,11 +1137,13 @@ export class BoothEngine {
 
     // where in the clip we start and how long we play
     let offset = 0;
-    if (it.kind === "cortina") offset = Math.min(it.trimInSec ?? 0, Math.max(0, buffer.duration - 1));
+    // round 22: a song the DJ cued (Song info → waveform) starts at its cue and stops at its stop second
+    const cued = it.kind !== "cortina" && isCued(it);
+    if (it.kind === "cortina" || cued) offset = Math.min(it.trimInSec ?? 0, Math.max(0, buffer.duration - 1));
     else if (this.settings.trimLeadingSilence)
       offset = Math.min(prepared.measured?.introSec ?? 0, TRIM_MAX_SEC, buffer.duration / 2);
     let duration: number | undefined;
-    if (it.kind === "cortina") duration = Math.min(it.lengthSec, buffer.duration - offset);
+    if (it.kind === "cortina" || cued) duration = Math.min(it.lengthSec, buffer.duration - offset);
     const cap = this.capFor(i) ?? (prepared.kind === "preview" ? PREVIEW_CAP_SEC : null);
     if (cap) duration = Math.min(duration ?? buffer.duration - offset, cap);
     const full = duration ?? buffer.duration - offset;
@@ -1195,7 +1208,8 @@ export class BoothEngine {
     const length = full - from;
     base.startedAt = base.when - from;
     base.endsAt = base.when + length;
-    const start0 = it.kind === "cortina" ? (it.trimInSec ?? 0) : 0;
+    const cued = it.kind !== "cortina" && isCued(it);
+    const start0 = it.kind === "cortina" || cued ? (it.trimInSec ?? 0) : 0;
     base.extStart = start0;
     const songFade = it.kind === "cortina" ? 0 : this.settings.songFadeOutSec;
     base.external = a.startItem({
@@ -1203,7 +1217,9 @@ export class BoothEngine {
       delaySec: delay,
       positionSec: start0 + from,
       durationSec:
-        it.kind === "cortina" || this.capFor(base.planIndex) || songFade > 0 || from > 0 ? length : undefined,
+        it.kind === "cortina" || cued || this.capFor(base.planIndex) || songFade > 0 || from > 0
+          ? length
+          : undefined,
       fadeInSec: o.fadeIn ?? (it.kind === "cortina" ? it.fadeInSec : 0),
       fadeOutSec: it.kind === "cortina" ? it.fadeOutSec : songFade,
       gainDb: Math.min(0, gainDb),
@@ -1266,6 +1282,11 @@ export class BoothEngine {
     this.transition("stopped", "end of the night");
     this.onEvent({ type: "ended" });
   }
+}
+
+/** A track the DJ cued (round 22): the plan's cue-in and stop second, not the leading-silence trim. */
+function isCued(it: BoothRow): boolean {
+  return !!it.cued;
 }
 
 function setTimeoutSafe(fn: () => void, ms: number) {

@@ -19,6 +19,19 @@
     "active": true,
     "targets": ["app", "dmg"],
     "category": "Music",
+    "fileAssociations": [
+      {
+        "ext": ["tdjnight"],
+        "name": "T-DJ Night",
+        "description": "A composed tango night shared from T-DJ",
+        "role": "Editor",
+        "mimeType": "application/vnd.tdj.night+json",
+        "exportedType": {
+          "identifier": "com.ariomoniri.tdj.night",
+          "conformsTo": ["public.json", "public.data"]
+        }
+      }
+    ],
     "publisher": "Ario Moniri",
     "copyright": "© 2026 Ario Moniri",
     "shortDescription": "Compose and play tango milongas",
@@ -35,17 +48,18 @@
       "hardenedRuntime": true,
       "entitlements": "entitlements/mac-dmg.plist",
       "dmg": {
+        "background": "dmg/background.png",
         "windowSize": {
-          "width": 640,
+          "width": 660,
           "height": 400
         },
         "appPosition": {
           "x": 180,
-          "y": 190
+          "y": 200
         },
         "applicationFolderPosition": {
-          "x": 460,
-          "y": 190
+          "x": 480,
+          "y": 200
         }
       },
       "files": {

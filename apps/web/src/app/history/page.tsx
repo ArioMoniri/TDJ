@@ -1,9 +1,21 @@
 "use client";
-import { Copy, Download, FileDown, GitCompare, Pencil, Play, RotateCcw, Share, Trash2 } from "lucide-react";
+import {
+  Copy,
+  Download,
+  FileDown,
+  FolderOpen,
+  GitCompare,
+  Pencil,
+  Play,
+  RotateCcw,
+  Share,
+  Trash2,
+  Users,
+} from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import { EnergyCurve } from "@/components/EnergyCurve";
 import { ExportSheet } from "@/components/ExportSheet";
@@ -14,11 +26,13 @@ import { PageHeader } from "@/components/PageHeader";
 import { Sheet } from "@/components/Sheet";
 import { SwipeRow } from "@/components/SwipeRow";
 import { TandaCard } from "@/components/TandaCard";
+import { Tip } from "@/components/ui/Tip";
 import { downloadBlob } from "@/lib/download";
 import { haptic } from "@/lib/haptics";
-import { eraLabel, groupByDay, nightLogSummary } from "@/lib/history";
+import { changeLabel, eraLabel, groupByDay, nightLogSummary, versionsOf } from "@/lib/history";
 import { useMediaQuery } from "@/lib/hooks";
 import { reduced as reducedV, rise } from "@/lib/motion";
+import { lengthText } from "@/lib/nightName";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import type { HistorySnapshot } from "@/lib/types";
@@ -105,11 +119,24 @@ export default function HistoryPage() {
     setPlaylist,
     replaceOptions,
     playlist,
+    currentEntry,
+    setCurrentEntry,
+    restoreEntryVersion,
   } = useStore();
   const router = useRouter();
   const reduced = useReducedMotion();
   const isPhone = useMediaQuery("(max-width: 639px)");
   const [openId, setOpenId] = useState<string | null>(null);
+  // the sidebar's Recent nights link here as #night=<id>: open that night
+  useEffect(() => {
+    const read = () => {
+      const m = /^#night=(.+)$/.exec(location.hash);
+      if (m) setOpenId(decodeURIComponent(m[1]!));
+    };
+    read();
+    window.addEventListener("hashchange", read);
+    return () => window.removeEventListener("hashchange", read);
+  }, []);
   const [compareWith, setCompareWith] = useState<HistorySnapshot | null>(null);
   const [picking, setPicking] = useState(false);
   const [renaming, setRenaming] = useState(false);
@@ -125,9 +152,31 @@ export default function HistoryPage() {
     haptic(8);
     removeSnapshot(s.id);
     if (openId === s.id) setOpenId(null);
-    toast(`Deleted "${s.title}"`, () => useStore.getState().addSnapshot(s));
+    toast(`Deleted "${s.title}"`, () => {
+      // Undo puts the entry back where it was; it does not become tonight's night
+      const st = useStore.getState();
+      const cur = st.currentEntry;
+      st.addSnapshot(s);
+      st.setCurrentEntry(cur);
+    });
+  };
+  /** wave 2: one entry is Current — the night on screen in Compose (older browsers: the one holding that night) */
+  const currentId =
+    currentEntry && history.some((h) => h.id === currentEntry)
+      ? currentEntry
+      : (history.find((h) => playlist && h.playlist.id === playlist.id)?.id ?? null);
+  /** an earlier version comes back: kept as a version of its own; on screen when the entry is tonight's */
+  const restore = (s: HistorySnapshot, versionId: string, label: string) => {
+    const back = restoreEntryVersion(s.id, versionId);
+    if (!back) return;
+    haptic(6);
+    if (currentId === s.id) {
+      setPlaylist({ ...back.playlist, tandas: back.playlist.tandas.map((t) => ({ ...t, locked: false })) });
+      toast(`Back to “${label}” in Compose`);
+    } else toast(`“${label}” is the current version of this night`);
   };
   const reopen = (s: HistorySnapshot) => {
+    setCurrentEntry(s.id);
     setPlaylist({ ...s.playlist, tandas: s.playlist.tandas.map((t) => ({ ...t, locked: false })) });
     replaceOptions({ ...s.options, seed: s.playlist.options.seed });
     toast(`Reopened "${s.title}" in Compose`);
@@ -135,9 +184,10 @@ export default function HistoryPage() {
   };
   /** "4 h · 22 tandas · Golden age · Two peaks · rehearsed 06:36" (no ISO dates, no repeat of the title) */
   const sub = (s: HistorySnapshot) =>
-    `${fmtH(s.playlist.options.hours)} · ${s.playlist.tandas.length} tandas · ${eraLabel(s.playlist)} · ${ARC[s.playlist.options.arc] ?? s.playlist.options.arc}${s.nightLog ? ` · ${nightLogSummary(s.nightLog)}` : ` · composed ${time(s.createdAt)}`}`;
+    `${s.playlist.stats?.durationSec ? lengthText(s.playlist.stats.durationSec) : fmtH(s.playlist.options.hours)} · ${s.playlist.tandas.length} tandas · ${eraLabel(s.playlist)} · ${ARC[s.playlist.options.arc] ?? s.playlist.options.arc}${s.nightLog ? ` · ${nightLogSummary(s.nightLog)}` : ` · composed ${time(s.createdAt)}`}`;
   /** Booth: the set becomes the current one (locks cleared) and /booth opens on it. */
   const playNight = (s: HistorySnapshot) => {
+    setCurrentEntry(s.id);
     setPlaylist({ ...s.playlist, tandas: s.playlist.tandas.map((t) => ({ ...t, locked: false })) });
     replaceOptions({ ...s.options, seed: s.playlist.options.seed });
     router.push("/booth");
@@ -147,7 +197,7 @@ export default function HistoryPage() {
     downloadBlob("tdj-history.json", JSON.stringify(history, null, 2), "application/json");
 
   return (
-    <div className="mx-auto max-w-[720px] lg:max-w-[980px]">
+    <div className="mx-auto max-w-[720px] lg:max-w-[1100px]">
       <PageHeader
         title="History"
         subtitle={
@@ -158,19 +208,20 @@ export default function HistoryPage() {
         trailing={
           <>
             {trend.length >= 2 && (
-              <span
-                className="mr-1 inline-flex items-center gap-2"
-                title={`Average ${avg} over the last ${trend.length}`}
-              >
-                <Sparkline scores={trend} />
-                <span className="text-subhead tabular-nums text-[var(--label-2)]">{avg}</span>
-              </span>
+              <Tip text={`Average ${avg} over the last ${trend.length}`}>
+                <span className="mr-1 inline-flex items-center gap-2">
+                  <Sparkline scores={trend} />
+                  <span className="text-subhead tabular-nums text-[var(--label-2)]">{avg}</span>
+                </span>
+              </Tip>
             )}
             <Menu
               label="More"
               items={[
+                { label: "Open a shared night…", icon: FolderOpen, onClick: () => router.push("/night") },
+                { label: "Rooms…", icon: Users, onClick: () => router.push("/rooms") },
                 {
-                  label: "Export history as JSON",
+                  label: "Save history as a file",
                   icon: Download,
                   onClick: exportAll,
                   disabled: !history.length,
@@ -192,9 +243,11 @@ export default function HistoryPage() {
         <EmptyState
           action={
             <span className="flex flex-col items-center gap-3">
-              <Link href="/" className="btn btn-primary">
-                Compose a night
-              </Link>
+              <Tip text="Compose your first night; every night you compose is kept here">
+                <Link href="/" className="btn btn-primary">
+                  Compose a night
+                </Link>
+              </Tip>
               <FeaturedCard />
             </span>
           }
@@ -233,8 +286,8 @@ export default function HistoryPage() {
                   <Row
                     tile={<ScoreRing score={s.score} />}
                     label={s.title}
-                    sub={`${sub(s)}${s.source !== "compose" ? ` · ${s.source}` : ""}`}
-                    value={playlist?.id === s.playlist.id ? "Current" : undefined}
+                    sub={`${sub(s)}${s.change || s.source !== "compose" ? ` · ${changeLabel(s)}` : ""}${s.versions?.length ? ` · ${s.versions.length + 1} versions` : ""}`}
+                    value={currentId === s.id ? "Current" : undefined}
                     chevron
                     onClick={() => setOpenId(s.id)}
                     id={`history-${s.id}`}
@@ -281,7 +334,7 @@ export default function HistoryPage() {
                       .then(() => toast("Seed copied")),
                 },
                 {
-                  label: "Download JSON",
+                  label: "Save as a file",
                   icon: FileDown,
                   onClick: () =>
                     downloadBlob(
@@ -316,6 +369,34 @@ export default function HistoryPage() {
               <ActionRow label="Reopen in Compose" onClick={() => reopen(open)} />
               <ActionRow label="Play the night" onClick={() => playNight(open)} />
             </Group>
+            {!!open.versions?.length && (
+              <Group
+                header="Versions"
+                footer="Every change to this night is kept here, newest first. Restore brings one back; the version it replaces stays in the list."
+                data-testid="history-versions"
+              >
+                {versionsOf(open).map((v) => (
+                  <Row
+                    key={v.id}
+                    label={v.label}
+                    sub={`${when(v.at)} · score ${v.score}`}
+                    value={v.current ? "Current" : undefined}
+                    data-testid="history-version"
+                  >
+                    {!v.current && (
+                      <button
+                        type="button"
+                        className="btn-plain -my-2 -mr-2 min-h-11"
+                        onClick={() => restore(open, v.id, v.label)}
+                        aria-label={`Restore “${v.label}”`}
+                      >
+                        Restore
+                      </button>
+                    )}
+                  </Row>
+                ))}
+              </Group>
+            )}
             <h2 className="section-head">Tandas</h2>
             <div className="grid min-w-0 grid-cols-1 gap-3">
               {open.playlist.tandas.map((t, i) => (
@@ -406,7 +487,7 @@ export default function HistoryPage() {
         title="Clear history"
         detents={["medium"]}
       >
-        <Group footer="Removes every kept set from this browser (and the server copy when enabled).">
+        <Group footer="Removes every kept set from this browser (and the copy this site keeps for you, if it keeps one).">
           <ActionRow
             label={`Delete ${history.length} ${history.length === 1 ? "set" : "sets"}`}
             destructive

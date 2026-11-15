@@ -44,6 +44,7 @@ import { CORTINA_STOP_RANGE, cortinaStopSec, DJ_APPS, type DjApp, type Playlist 
 import { youtubeBatches, youtubeQueries } from "@/lib/youtubePlan";
 import { CountUp } from "./CountUp";
 import { ActionRow, Group, PickerRow, Row, SegmentedRow, StepperRow, SwitchRow, Tile } from "./Form";
+import { ShareNightEntry } from "./ShareSheet";
 import { Sheet } from "./Sheet";
 
 const FORMAT_ITEMS = (Object.keys(EXPORT_META) as ExportFormat[]).map(
@@ -828,6 +829,7 @@ export function ExportSheet({
       detents={["large"]}
       footer={footer}
     >
+      <ShareNightEntry playlist={playlist} />
       <Group
         footer={
           includeCortinas
@@ -1122,7 +1124,7 @@ export function ExportSheet({
                 {noFolders && (
                   <>
                     {" "}
-                    Paths use a TDJ/ placeholder. Set each app's music folder in{" "}
+                    Your DJ app finds the songs once you set its music folder in{" "}
                     <Link href="/settings" className="text-[var(--tint)]">
                       Settings
                     </Link>
@@ -1173,7 +1175,7 @@ export function ExportSheet({
       >
         <Group
           header="Webhook URL"
-          footer="Paste the HTTPS URL of a Pipedream, Make, Zapier or n8n webhook. TDJ POSTs the file as the request body with X-TDJ-Format and X-TDJ-Set headers plus ?format=&filename=. Stored in this browser only, never on the server."
+          footer="Paste the address of a Pipedream, Make, Zapier or n8n webhook: T-DJ sends it the file, with the format and the set's name. The address stays in this browser only."
         >
           <label htmlFor="webhook-url" className="cell">
             <span className="sr-only">Webhook URL</span>

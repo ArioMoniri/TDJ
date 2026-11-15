@@ -86,6 +86,8 @@ const RESOLVE_MOCK = {
 
 async function compose(page: Page) {
   await page.goto("/");
+  // a click before hydration is lost (the toolbar is server-rendered); a restored set hydrates later on a busy machine
+  await page.waitForLoadState("networkidle");
   // the toolbar capsule reads Compose the night, or Regenerate once a set is restored (round8-ux.md §1.2)
   await page
     .getByRole("button", { name: /Compose the night|^Regenerate$/ })
@@ -235,7 +237,7 @@ test("history: every compose stores a snapshot; rename, compare and reopen work;
   // (round 15: a golden compose takes a few seconds now and #result is already on screen: wait for it to land)
   await page.waitForTimeout(8000);
   await page.goto("/history");
-  await expect(page.locator('[id^="history-"]')).toHaveCount(2, { timeout: 15000 });
+  await expect(page.locator('[id^="history-"]')).toHaveCount(2, { timeout: 30000 });
   await expect(page.getByTestId("score-trend")).toBeVisible();
   await page.locator('[id^="history-"]').first().click();
   await page.getByTestId("history-detail").getByRole("button", { name: "Set actions" }).click();
@@ -324,6 +326,8 @@ test("compose sends only explicit keys plus the explicit list; the DJ CSV genre 
   request,
 }) => {
   await page.goto("/");
+  await page.waitForLoadState("networkidle");
+  await page.getByRole("button", { name: /^Cortinas/ }).click(); // a folded section (round 23)
   await page.getByRole("button", { name: "Pin cortina length" }).click();
   await page.getByLabel("Era", { exact: true }).selectOption("nuevo");
   const req = page.waitForRequest((r) => r.url().includes("/api/compose") && r.method() === "POST");
@@ -334,7 +338,8 @@ test("compose sends only explicit keys plus the explicit list; the DJ CSV genre 
   expect(body.explicit).toContain("tangoTandaSize");
   expect(body.tangoTandaSize).toBe(3);
   expect(body.eras).toEqual(["nuevo"]);
-  expect(body.name).toMatch(/Milonga · 4 h · Nuevo/);
+  // wave 2: the name is the title alone (the day and the event); the length and era are its sub-line
+  expect(body.name).toMatch(/^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday) milonga$/);
   await expect(page.locator("#result")).toBeVisible({ timeout: 60000 });
   const p = await (await request.post("/api/compose", { data: { hours: 2, seed: 7 } })).json();
   const csv = await (await request.post("/api/export", { data: { playlist: p, format: "serato" } })).text();
@@ -395,13 +400,14 @@ test("mobile: no horizontal overflow after compose, cards fill the column, tab b
   expect(m.sw).toBeLessThanOrEqual(m.iw);
   expect(m.over).toBe(0);
   expect(m.card).toBeGreaterThan(m.iw - 40);
-  expect(await page.getByRole("navigation", { name: "Primary mobile" }).locator("a").count()).toBe(6);
+  // five tabs and More (wave 2: Booth is a tab; Build by hand, Rooms, Guide and Settings sit behind More)
+  expect(await page.getByRole("navigation", { name: "Primary mobile" }).locator("a, button").count()).toBe(6);
   await page.evaluate(() => window.scrollTo(0, 400));
   await page.waitForTimeout(150);
   await page.evaluate(() => window.scrollTo(0, 900));
   await page.waitForTimeout(600);
   await expect(page.getByTestId("tab-bar")).toHaveAttribute("data-min", "true");
-  expect(await page.getByTestId("tab-bar").locator("a").count()).toBe(6);
+  expect(await page.getByTestId("tab-bar").locator("a, button").count()).toBe(6);
   // the mini-player sits above the accessory bar on phones
   await page.goto("/library");
   await page.waitForTimeout(300);
@@ -416,7 +422,9 @@ test("mobile: no horizontal overflow after compose, cards fill the column, tab b
 
 test("a práctica context never shrinks the tango tandas the stepper shows", async ({ page }) => {
   await page.goto("/");
+  await page.waitForLoadState("networkidle");
   const req = page.waitForRequest((r) => r.url().includes("/api/compose") && r.method() === "POST");
+  await page.getByRole("button", { name: /^Tonight/ }).click(); // a folded section (round 23)
   await page.getByLabel("Event type").selectOption("practica");
   await page.getByRole("button", { name: /Compose the night/ }).click();
   const body = (await req).postDataJSON();

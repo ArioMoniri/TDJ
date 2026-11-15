@@ -32,6 +32,8 @@ test("night rules: opening with La Cumparsita shows the Opening card; Buenos Air
   // (the picker shows "both" by default: choose another first so the choice is an explicit one)
   // (the composer hydrates its settings after first paint: a change before that is lost)
   await page.waitForLoadState("networkidle");
+  // round 23: the night rules are a folded section
+  await page.getByRole("button", { name: /^Night rules/ }).click();
   const cump = page.getByLabel("La Cumparsita", { exact: true }).first();
   await cump.selectOption("open");
   await cump.selectOption("both");
@@ -70,6 +72,9 @@ test("era presets: switching era applies its defaults unless a control is pinned
   await expect(page.getByTestId("first-run")).toBeVisible();
   const era = page.getByLabel("Era", { exact: true });
   await expect(era).toHaveValue("golden");
+  // round 23: Structure and Cortinas are folded sections
+  await page.getByRole("button", { name: /^Structure/ }).click();
+  await page.getByRole("button", { name: /^Cortinas/ }).click();
   await expect(page.getByText("4 tracks").first()).toBeVisible();
   await era.selectOption("nuevo");
   await expect(page.getByText(/^Era defaults applied:/)).toBeVisible();

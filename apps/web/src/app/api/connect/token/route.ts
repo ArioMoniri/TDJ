@@ -9,7 +9,7 @@ export async function POST(req: Request) {
   const cross = await crossOriginResponse(req);
   if (cross) return cross;
   if (!connectEnabled())
-    return jsonNoStore({ error: "Pipedream Connect is not enabled on this deployment" }, { status: 404 });
+    return jsonNoStore({ error: "Pipedream Connect is not turned on for this T-DJ site" }, { status: 404 });
   const body = await req.json().catch(() => ({}));
   const app = isConnectApp(body?.app) ? body.app : undefined;
   const user = await userFromRequest(req);

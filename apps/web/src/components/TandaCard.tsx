@@ -1,4 +1,5 @@
 "use client";
+import { tandaTone } from "@tdj/core";
 import { AudioWaveform, Headphones, ListMusic, Lock, LockOpen, Repeat2, SkipForward } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import dynamic from "next/dynamic";
@@ -6,6 +7,7 @@ import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { analyseTanda } from "@/lib/analyze";
 import { cohesionWith, patchedSong } from "@/lib/audio";
+import { tandaNote } from "@/lib/djMessage";
 import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
 import { CARD_STAGGER_CAP, DUR, EASE, STAGGER } from "@/lib/motion";
@@ -18,6 +20,7 @@ import { I } from "./Icons";
 import { Menu } from "./Menu";
 import { SwipeRow } from "./SwipeRow";
 import { TrackRow } from "./TrackRow";
+import { Tip, useTip } from "./ui/Tip";
 
 /* Spotify embeds and the connected-account lookups load with the first "Listen" / cortina tap, not with the set. */
 const TandaListen = dynamic(() => import("./Listen").then((m) => m.TandaListen), { ssr: false });
@@ -86,6 +89,7 @@ function TandaCardImpl({
   changed = false,
   animateLayout = false,
 }: TandaCardProps) {
+  const cortinaTip = useTip<HTMLButtonElement>("The cortina after this tanda: open it to hear it");
   const reduced = useReducedMotion();
   const isPhone = useMediaQuery("(max-width: 639px)");
   const [listen, setListen] = useState(false);
@@ -94,6 +98,14 @@ function TandaCardImpl({
   // only this tanda's song patches: an analysis elsewhere in the set does not re-render this card
   const patches = useStore(useShallow((s) => t.songs.map((x) => s.overrides.songs?.[x.id])));
   const cohesion = useMemo(() => cohesionWith(t, patches), [t, patches]);
+  // round 22: the tanda's tone — its mode and keys, its feel and mean tempo (the DJ's own keys win)
+  const tone = useMemo(() => {
+    const keys = patches.map((p) => p?.key);
+    return tandaTone(
+      t.songs.map((s, k) => patchedSong(s, patches[k])),
+      keys.some(Boolean) ? keys : undefined,
+    );
+  }, [t, patches]);
   const connected = useStore((s) => !!s.spotifyToken && s.spotifyToken.expires > Date.now());
   /** "Preview tanda": the 30 s previews of this tanda back to back, 10 s each (round4-ux.md §10.1) */
   const previewTracks = useMemo(
@@ -136,7 +148,7 @@ function TandaCardImpl({
   const swapTrack = useCallback((k: number) => onSwapTrack(i, k), [onSwapTrack, i]);
   const sub = [
     t.singer ?? "Instrumental",
-    t.yearRange ? yr(t.yearRange[0], t.yearRange[1]) : "year ?",
+    t.yearRange ? yr(t.yearRange[0], t.yearRange[1]) : null,
     PHASE[t.phase] ?? t.phase,
     t.locked ? "locked" : null,
   ]
@@ -153,8 +165,16 @@ function TandaCardImpl({
       icon: SkipForward,
       onClick: () => onBypass(i),
     };
+  // wave 2: a greyed-out action says why
+  const swapWhy = t.pinned
+    ? "Swap tanda (kept as is: unpin it first)"
+    : t.locked
+      ? "Swap tanda (unlock it first)"
+      : busy
+        ? "Swap tanda (swapping…)"
+        : "Swap tanda…";
   const swapItem = !readOnly && {
-    label: "Swap tanda",
+    label: swapWhy,
     icon: Repeat2,
     onClick: swap,
     disabled: t.locked || busy,
@@ -239,13 +259,14 @@ function TandaCardImpl({
               <span className="mt-0.5 flex flex-wrap items-center gap-1.5">
                 {/* round 21: the DJ's tanda — the rules leave it alone, its exceptions are the DJ's */}
                 {t.pinned && (
-                  <span
-                    className="text-caption1 inline-flex rounded-full bg-[color-mix(in_srgb,var(--system-gold)_18%,transparent)] px-2 py-0.5 font-medium text-[var(--label)]"
-                    data-testid="tanda-pinned"
-                    title={t.pinned.reason}
-                  >
-                    Your tanda · kept as is
-                  </span>
+                  <Tip text={t.pinned.reason}>
+                    <span
+                      className="text-caption1 inline-flex rounded-full bg-[color-mix(in_srgb,var(--system-gold)_18%,transparent)] px-2 py-0.5 font-medium text-[var(--label)]"
+                      data-testid="tanda-pinned"
+                    >
+                      Your tanda · kept as is
+                    </span>
+                  </Tip>
                 )}
                 {t.bypass && (
                   <span
@@ -256,14 +277,28 @@ function TandaCardImpl({
                   </span>
                 )}
                 {t.note && (
-                  <span
-                    className="text-caption1 inline-flex rounded-full bg-[color-mix(in_srgb,var(--tint)_14%,transparent)] px-2 py-0.5 font-medium text-[var(--tint)]"
-                    data-testid="tanda-note"
-                  >
-                    {t.note}
-                  </span>
+                  <Tip text={tandaNote(t.note)}>
+                    <span
+                      className="tanda-note text-caption1 rounded-[10px] bg-[color-mix(in_srgb,var(--tint)_14%,transparent)] px-2 py-0.5 font-medium text-[var(--tint)]"
+                      data-testid="tanda-note"
+                    >
+                      {tandaNote(t.note)}
+                    </span>
+                  </Tip>
                 )}
                 {cohesion && <CohesionBadge info={cohesion} tandaLabel={`tanda ${i + 1}`} />}
+                {tone && (
+                  <Tip
+                    text={`The tanda's tone: ${tone.mode ? `${tone.mode === "mixed" ? "mixed major and minor keys" : `${tone.mode} keys`}${tone.keys.length ? ` (${tone.keys.join(", ")})` : ""}, ` : ""}${tone.feel} energy${tone.bpm ? `, about ${tone.bpm} BPM` : ""}`}
+                  >
+                    <span
+                      className="text-caption1 inline-flex whitespace-nowrap rounded-full bg-[var(--fill-4)] px-2 py-0.5 font-medium text-[var(--label-2)]"
+                      data-testid="tanda-tone"
+                    >
+                      {tone.label}
+                    </span>
+                  </Tip>
+                )}
               </span>
             </span>
             <span className="text-right">
@@ -271,41 +306,61 @@ function TandaCardImpl({
                 <CountUp value={t.energy} from={prevEnergy ?? t.energy} duration={DUR.slow} />
               </span>
               {!isPhone && (
-                <span
-                  className="text-caption1 block text-[var(--label-2)]"
-                  title="The arc's target energy for this slot"
-                >
-                  target {t.targetEnergy}
-                </span>
+                <Tip text={"The arc's target energy for this slot"}>
+                  <span className="text-caption1 block text-[var(--label-2)]">target {t.targetEnergy}</span>
+                </Tip>
               )}
             </span>
+            {/* wave 2: the header's two actions are always on screen (they hid until hover), each with a tooltip;
+                a locked tanda shows one lock: this button, gold and closed */}
             {!readOnly && !isPhone && (
               <span className="inline-flex items-center gap-0.5">
-                <button
-                  type="button"
-                  className="icon-btn icon-btn-bare -my-2 h-9 w-9 opacity-0 transition-opacity focus-visible:opacity-100 group-hover/card:opacity-100 data-[on]:opacity-100"
-                  aria-label={t.locked ? `Unlock tanda ${i + 1}` : `Lock tanda ${i + 1}`}
-                  aria-pressed={t.locked}
-                  data-on={t.locked || undefined}
-                  onClick={lock}
+                <Tip
+                  text={
+                    t.locked
+                      ? "Unlock: the next compose may change this tanda"
+                      : "Lock: keep this tanda when you compose again"
+                  }
                 >
-                  <span key={t.locked ? "locked" : "open"} className="lock-pop">
-                    <I name={t.locked ? "unlock" : "lock"} size={17} strokeWidth={1.75} />
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  className="icon-btn icon-btn-bare -my-2 h-9 w-9 opacity-0 transition-opacity focus-visible:opacity-100 disabled:opacity-0 group-hover/card:opacity-100"
-                  aria-label={`Swap tanda ${i + 1}`}
-                  disabled={t.locked || busy}
-                  onClick={swap}
+                  <button
+                    type="button"
+                    className={`icon-btn icon-btn-bare -my-2 h-11 w-11 ${t.locked ? "text-[var(--system-gold)]" : "text-[var(--label-2)]"}`}
+                    aria-label={t.locked ? `Unlock tanda ${i + 1}` : `Lock tanda ${i + 1}`}
+                    aria-pressed={t.locked}
+                    data-on={t.locked || undefined}
+                    data-testid="tanda-lock"
+                    onClick={lock}
+                  >
+                    <span key={t.locked ? "locked" : "open"} className="lock-pop">
+                      <I name={t.locked ? "lock" : "unlock"} size={17} strokeWidth={t.locked ? 2.25 : 1.75} />
+                    </span>
+                  </button>
+                </Tip>
+                <Tip
+                  text={
+                    t.locked
+                      ? "Swap: unlock the tanda first"
+                      : busy
+                        ? "Swapping…"
+                        : "Swap: another tanda of the same rhythm in this place"
+                  }
                 >
-                  <I name="swap" size={17} strokeWidth={1.75} className={busy ? "animate-spin" : ""} />
-                </button>
+                  <button
+                    type="button"
+                    className="icon-btn icon-btn-bare -my-2 h-11 w-11 text-[var(--label-2)] disabled:opacity-40"
+                    aria-label={`Swap tanda ${i + 1}`}
+                    aria-disabled={t.locked || busy || undefined}
+                    disabled={t.locked || busy}
+                    data-testid="tanda-swap"
+                    onClick={swap}
+                  >
+                    <I name="swap" size={17} strokeWidth={1.75} className={busy ? "animate-spin" : ""} />
+                  </button>
+                </Tip>
               </span>
             )}
             <AnimatePresence initial={false}>
-              {t.locked && (
+              {t.locked && (readOnly || isPhone) && (
                 <motion.span
                   key="locked"
                   initial={{ opacity: 0, scale: 0.8 }}
@@ -352,6 +407,15 @@ function TandaCardImpl({
                 onSwap={swapTrack}
                 disabled={t.locked || readOnly}
                 swapLabel={`Swap track ${k + 1} of tanda ${i + 1}`}
+                lockedWhy={
+                  readOnly
+                    ? "open the night in Compose to change it"
+                    : t.pinned
+                      ? "the tanda is kept as is: unpin it first"
+                      : t.locked
+                        ? "unlock the tanda first"
+                        : undefined
+                }
                 animateLayout={animateLayout}
               />
             ))}
@@ -413,7 +477,9 @@ function TandaCardImpl({
               onClick={() => setCortinaOpen((v) => !v)}
               aria-expanded={cortinaOpen}
               aria-controls={`cortina-${i + 1}`}
+              {...cortinaTip.props}
             >
+              {cortinaTip.tag}
               {/* the wave breathes on hover / focus / while the preview is open (motion-composer.md §2.9) */}
               <span
                 className={`wave ${cortinaOpen || listen ? "text-[var(--tint)]" : "text-[var(--label-2)]"}`}

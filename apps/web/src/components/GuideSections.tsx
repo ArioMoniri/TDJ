@@ -1,9 +1,12 @@
 "use client";
+import { ChevronRight } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import { HOUSE_RULES_MAX } from "@/lib/types";
 import { ActionRow, Group } from "./Form";
+import { GuideTour } from "./guide/GuideTour";
 import { PageHeader } from "./PageHeader";
 import { Sheet } from "./Sheet";
 
@@ -140,7 +143,11 @@ export function GuideSections({
   );
 }
 
-/** Guide page client shell: the large title with its Edit / Done bar button, the editable groups; the context factors stay server-rendered below. */
+/**
+ * Guide page client shell: the large title with its Edit / Done bar button, the tour of what T-DJ does (round 22: one
+ * chapter per feature, with Lottie loops and drawings), then the editable groups; the context factors stay
+ * server-rendered below.
+ */
 export function GuideBody({
   title,
   subtitle,
@@ -173,7 +180,20 @@ export function GuideBody({
           </button>
         }
       />
-      <GuideSections sections={rows} editing={editing} className="mt-6" />
+      <GuideTour />
+      <h2 className="text-title3 mt-10 px-4">How a night is composed</h2>
+      <p className="text-subhead mt-1 px-4 text-[var(--label-2)]">
+        The rules from working DJs that every night follows, whoever builds it.
+      </p>
+      <GuideSections sections={rows} editing={editing} className="mt-2" />
+      <Link
+        href="/#result"
+        className="mx-4 mt-1 inline-flex min-h-11 items-center gap-1 text-[var(--tint)]"
+        data-testid="guide-score-link"
+      >
+        See how your night scored
+        <ChevronRight size={16} strokeWidth={2.25} aria-hidden />
+      </Link>
       <h2 className="text-title3 mt-8 px-4">What a great set takes into account</h2>
       <p className="text-subhead mt-1 px-4 text-[var(--label-2)]">
         Five layers, from the notes inside a tanda to the booth.
@@ -186,7 +206,7 @@ export function GuideBody({
       />
       <p className="section-foot">
         {editing
-          ? "Tap a section to rewrite it. Edits live in your database (Database → changes) and count there."
+          ? "Tap a section to rewrite it. Your edits are kept in your database (Database › Changes)."
           : "Edit lets you rewrite any section and add house rules the assistant follows."}
       </p>
     </>

@@ -1,7 +1,14 @@
 "use client";
 import { del, delMany, get, getMany, keys, setMany } from "idb-keyval";
+import { eraName, hoursText, lengthText, nightTitle } from "./nightName";
 import type { StorageMode } from "./overrides";
-import { HISTORY_MAX, type HistorySnapshot, type Playlist } from "./types";
+import {
+  HISTORY_MAX,
+  HISTORY_VERSIONS_MAX,
+  type HistorySnapshot,
+  type HistoryVersion,
+  type Playlist,
+} from "./types";
 
 /** v1 stored the whole list under one key: every save re-cloned up to 50 sets (~5 MB) on the main thread */
 const LEGACY_KEY = "tdj-history-v1";
@@ -12,17 +19,6 @@ const keyOf = (id: string) => `tdj-history-v2:${id}`;
 const stored = new Map<string, HistorySnapshot>();
 /** the server row is one DynamoDB item (400 KB): history there keeps the newest snapshots that fit this budget */
 export const SERVER_HISTORY_BYTES = 300_000;
-
-const ERA_LABEL: Record<string, string> = {
-  golden: "Golden age",
-  "golden-extended": "Golden extended",
-  "guardia-vieja": "Guardia Vieja",
-  "post-golden": "Post-golden",
-  nuevo: "Nuevo",
-  contemporary: "Contemporary",
-  all: "All eras",
-};
-const fmtHours = (h: number) => (Number.isInteger(h) ? `${h} h` : `${h} h`.replace(".5 h", "½ h"));
 
 const WEEKDAY = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const EVENT_LABEL: Record<string, string> = {
@@ -38,20 +34,22 @@ const pad = (n: number) => String(n).padStart(2, "0");
 
 /** Era label for a set ("Golden age", "Nuevo"…) for the History sub-lines. */
 export function eraLabel(p: Playlist): string {
-  return ERA_LABEL[p.options.eras?.[0] ?? "golden"] ?? p.options.eras?.[0] ?? "Golden age";
+  return eraName(p.options.eras?.[0]);
 }
 
 /** Auto title: the event, "Tuesday milonga" / "Saturday práctica" (the era and length go in the sub-line,
  *  round8-ux.md §2 History). No `Intl`: its first call loads ICU data on the main thread right after the result
  *  paints (100 ms on a phone). */
 export function snapshotTitle(p: Playlist, at = new Date()): string {
+  // wave 2: the night's own title (lib/nightName.ts), the same one Share and the result header show
+  if (p.name) return nightTitle(p);
   const day = WEEKDAY[at.getDay()] ?? "";
   const ev = p.options.context?.event ?? "milonga";
   return `${day} ${EVENT_LABEL[ev] ?? ev}`;
 }
 /** "4 h · 22 tandas · Golden age": what the title used to carry. */
 export function snapshotMeta(p: Playlist): string {
-  return `${fmtHours(p.options.hours)} · ${p.tandas.length} tandas · ${eraLabel(p)}`;
+  return `${p.stats?.durationSec ? lengthText(p.stats.durationSec) : hoursText(p.options.hours)} · ${p.tandas.length} tandas · ${eraLabel(p)}`;
 }
 
 /** The playlist without per-song chroma vectors (12 floats per track: the one bulky field nobody re-reads). */
@@ -137,6 +135,100 @@ async function writeLocal(list: HistorySnapshot[]) {
 /** Newest first, capped at 50 entries. */
 export function pushSnapshot(list: HistorySnapshot[], s: HistorySnapshot): HistorySnapshot[] {
   return [s, ...list.filter((x) => x.id !== s.id)].slice(0, HISTORY_MAX);
+}
+
+/* ---------- one night, its versions (wave 2) ---------- */
+
+/** what made a version, in the DJ's words (the stored `source` tags never show) */
+export const SOURCE_WORDS: Record<HistorySnapshot["source"], string> = {
+  compose: "Composed",
+  refine: "Adjusted",
+  swap: "Changed a song",
+  import: "Opened from a file",
+  room: "From a room",
+};
+/** the current version's label: the edit that made it, else how the entry began */
+export const changeLabel = (s: HistorySnapshot) => s.change ?? SOURCE_WORDS[s.source] ?? "Composed";
+
+const vid = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+
+/**
+ * An edit to the night an entry holds: the entry keeps its place and its title, the version it replaces goes into
+ * `versions` (oldest first, at most HISTORY_VERSIONS_MAX), and the new night becomes its current version.
+ */
+export function recordEdit(
+  entry: HistorySnapshot,
+  p: Playlist,
+  label: string,
+  options?: HistorySnapshot["options"],
+  at = new Date(),
+): HistorySnapshot {
+  const before: HistoryVersion = {
+    id: vid(),
+    at: entry.updatedAt ?? entry.createdAt,
+    label: changeLabel(entry),
+    playlist: entry.playlist,
+    score: entry.score,
+  };
+  return {
+    ...entry,
+    versions: [...(entry.versions ?? []), before].slice(-HISTORY_VERSIONS_MAX),
+    playlist: compactPlaylist(p),
+    score: p.score.total,
+    change: label,
+    updatedAt: at.toISOString(),
+    ...(options ? { options } : {}),
+  };
+}
+
+/** Bring an earlier version back: it becomes the current one (an edit of its own, so nothing is lost). */
+export function restoreVersion(entry: HistorySnapshot, versionId: string): HistorySnapshot | null {
+  const v = entry.versions?.find((x) => x.id === versionId);
+  if (!v) return null;
+  return recordEdit(entry, v.playlist, `Back to “${v.label}”`);
+}
+
+/** every version of an entry, newest first: the current one, then the kept ones */
+export function versionsOf(entry: HistorySnapshot): Array<HistoryVersion & { current: boolean }> {
+  const cur = {
+    id: "current",
+    at: entry.updatedAt ?? entry.createdAt,
+    label: changeLabel(entry),
+    playlist: entry.playlist,
+    score: entry.score,
+    current: true,
+  };
+  return [cur, ...[...(entry.versions ?? [])].reverse().map((v) => ({ ...v, current: false }))];
+}
+
+/** what changes History: a new night (Compose, an import), or an edit to the night on screen */
+export type HistoryEvent =
+  | { kind: "new"; snap: HistorySnapshot }
+  | {
+      kind: "edit";
+      playlist: Playlist;
+      label: string;
+      options: HistorySnapshot["options"];
+      source?: HistorySnapshot["source"];
+    };
+
+/**
+ * History after one event. A new night is one new entry and becomes the current one; an edit updates the current
+ * entry (a version is kept inside it); an edit with no current entry (History cleared, an older browser) starts one.
+ */
+export function historyAfter(
+  list: HistorySnapshot[],
+  currentId: string | null,
+  ev: HistoryEvent,
+): { list: HistorySnapshot[]; currentId: string } {
+  if (ev.kind === "new") return { list: pushSnapshot(list, ev.snap), currentId: ev.snap.id };
+  const cur = currentId ? list.find((h) => h.id === currentId) : undefined;
+  if (!cur) {
+    const snap = { ...makeSnapshot(ev.playlist, ev.options, ev.source ?? "compose"), change: ev.label };
+    return { list: pushSnapshot(list, snap), currentId: snap.id };
+  }
+  const next = recordEdit(cur, ev.playlist, ev.label, ev.options);
+  return { list: list.map((h) => (h.id === cur.id ? next : h)), currentId: cur.id };
 }
 
 /** The newest snapshots whose JSON fits the byte budget (server storage). */

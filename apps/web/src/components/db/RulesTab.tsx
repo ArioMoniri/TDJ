@@ -174,7 +174,11 @@ export function RulesTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
             </Row>
           </SwipeRow>
         ))}
-        <ActionRow label="Add a track energy…" onClick={() => setTeOpen(true)} />
+        <ActionRow
+          label="Add a track energy…"
+          tip="Set how lively one recording feels, from 0 calm to 100 driving"
+          onClick={() => setTeOpen(true)}
+        />
       </Group>
 
       <Group
@@ -215,7 +219,11 @@ export function RulesTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
             </Row>
           </SwipeRow>
         ))}
-        <ActionRow label="Add an orchestra…" onClick={() => setNbOpen(true)} />
+        <ActionRow
+          label="Add an orchestra…"
+          tip="Describe an orchestra the composer does not know yet"
+          onClick={() => setNbOpen(true)}
+        />
       </Group>
 
       <Sheet

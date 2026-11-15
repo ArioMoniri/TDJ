@@ -251,6 +251,31 @@ describe("BoothEngine scheduler (round7-booth.md §6.3, §12.1)", () => {
     expect(g.of("linearRampToValueAtTime")[1]!.args[1]).toBeCloseTo(171, 9);
   });
 
+  it("round 22: a song's cue in / stop at plays only that span, and the next item follows it by the gap", async () => {
+    const plan = build(set(), { songCues: { a1: { inSec: 5, outSec: 150 } } });
+    // the file is the whole side (170 s); the plan plays 5 … 150
+    const adapter = fakeAdapter();
+    const prep = adapter.prepare.bind(adapter);
+    adapter.prepare = async (item, ent) => {
+      const p = await prep(item, ent);
+      return item.id === "a1" ? { ...p, buffer: buffer(170), durationSec: 170 } : p;
+    };
+    const e = engineFor(ctx, plan, adapter);
+    await e.start();
+    await e.play();
+    expect(ctx.sources[0]!.starts[0]![1]).toBe(5);
+    expect(ctx.sources[0]!.starts[0]![2]).toBeCloseTo(145, 9);
+    expect(ctx.sources[1]!.starts[0]![0]).toBeCloseTo(0.05 + 145 + 2.5, 9);
+    // the trim of leading silence never moves a cued start
+    const plan2 = build(set(), { trimLeadingSilence: true, songCues: { a1: { inSec: 2 } } });
+    const ctx2 = new FakeCtx();
+    const e2 = engineFor(ctx2, plan2, fakeAdapter({ a1: { lufs: -16, peakDbFS: -3, introSec: 1.5 } }));
+    e2.setSettings({ trimLeadingSilence: true });
+    await e2.start();
+    await e2.play();
+    expect(ctx2.sources[0]!.starts[0]![1]).toBe(2);
+  });
+
   it("gapOverrides[2] = 4: the tracks of tanda 2 are 4 s apart, tanda 1 keeps 2.5", async () => {
     const plan = build(set(), { gapOverrides: { 2: 4 } });
     const e = engineFor(ctx, plan);
@@ -858,5 +883,55 @@ describe("round 21: a tapped row plays — Play now (with a fade) and Play next"
     await e.playNow(3);
     expect(e.planIndex).toBe(3);
     expect(e.state === "playing" || e.state === "cortina").toBe(true);
+  });
+});
+
+describe("wave 2: a skipped tanda leaves the plan; a missing item is explained", () => {
+  let ctx: FakeCtx;
+  beforeEach(() => {
+    ctx = new FakeCtx();
+  });
+  it("time to La Cumparsita and the remaining time leave out a tanda skipped tonight and its cortina", () => {
+    const p = set({ thirdTanda: true });
+    const plan = build(p);
+    const e = engineFor(ctx, plan);
+    const before = e.remaining();
+    const q = { ...p, tandas: p.tandas.map((t, i) => (i === 1 ? { ...t, bypass: true } : t)) };
+    const by = bypassPlanItems(q, plan.items);
+    e.setBypass(by);
+    const after = e.remaining();
+    const out = by.reduce((s, i) => s + plan.items[i]!.lengthSec + plan.items[i]!.gapAfterSec, 0);
+    expect(out).toBeGreaterThan(0);
+    expect(before.remainingSec - after.remainingSec).toBeCloseTo(out, 3);
+    expect(before.timeToCumparsita - after.timeToCumparsita).toBeCloseTo(out, 3);
+  });
+  it("an item with nothing to play is passed over in plain words, with the reason the booth gives", async () => {
+    const plan = build(set());
+    const events: EngineEvent[] = [];
+    const base = fakeAdapter();
+    const adapter: SourceAdapter = {
+      ...base,
+      async prepare(item, ent) {
+        if (item.id === "a1") throw new Error("No source");
+        return base.prepare(item, ent);
+      },
+    };
+    const e = new BoothEngine(ctx, {
+      adapters: [adapter],
+      onEvent: (ev) => events.push(ev),
+      now: () => 1_000_000,
+      whyMissing: () => "the rehearsal has no 30 s clip of this recording",
+    });
+    e.load(
+      plan,
+      plan.items.map(() => null),
+      plan.items.map(() => "file"),
+    );
+    await e.start();
+    const b = events.find((x) => x.type === "banner") as { text: string } | undefined;
+    expect(b?.text).toBe(
+      "a1 is passed over: the rehearsal has no 30 s clip of this recording. The night moves on to the next song.",
+    );
+    expect(b?.text).not.toMatch(/\(skipped\)|No source/);
   });
 });

@@ -1,5 +1,5 @@
 "use client";
-import { BookOpen, Clock, Database, Disc3, ListMusic, Play, Search, SlidersHorizontal } from "lucide-react";
+import { Ellipsis, Search } from "lucide-react";
 import { LayoutGroup, motion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -8,25 +8,12 @@ import { haptic } from "@/lib/haptics";
 import { useFitLevel, useScrollDirection } from "@/lib/hooks";
 import { spring } from "@/lib/motion";
 import { Logo } from "./Logo";
+import { type NavItem, PHONE_MORE, PHONE_TABS, PILL_ITEMS } from "./navItems";
 import { useToolbar } from "./PageHeader";
+import { Sheet } from "./Sheet";
+import { Sidebar } from "./Sidebar";
+import { useTip } from "./ui/Tip";
 
-const items = [
-  { href: "/", label: "Compose", icon: ListMusic },
-  { href: "/library", label: "Library", icon: Disc3 },
-  { href: "/history", label: "History", icon: Clock },
-  { href: "/database", label: "Database", icon: Database },
-  { href: "/guide", label: "Guide", icon: BookOpen },
-  { href: "/settings", label: "Settings", icon: SlidersHorizontal },
-];
-/**
- * Booth (round7-booth.md): a sidebar item on desktop and a tab in the tablet pill (an iPad in the booth needs a way
- * back mid-night, round8-ux.md §2); phones keep the six-tab capsule and reach it from the result's `•••`.
- */
-const sidebarItems = [
-  ...items.slice(0, 1),
-  { href: "/booth", label: "Booth", icon: Play },
-  ...items.slice(1),
-];
 const SEARCH_ID: Record<string, string> = { "/library": "library-search", "/database": "db-search" };
 
 /** Fired by `SearchField` on phones so the tab bar can make room for the keyboard. */
@@ -43,29 +30,28 @@ function MobileTab({
   min,
   compact = false,
   hidden = false,
+  onOpen,
 }: {
-  it: (typeof items)[number];
+  it: NavItem;
   on: boolean;
   min: boolean;
   compact?: boolean;
   hidden?: boolean;
+  /** the More tab: a button that opens the sheet of the other pages */
+  onOpen?: () => void;
 }) {
-  return (
-    <Link
-      href={it.href}
-      aria-current={on ? "page" : undefined}
-      aria-hidden={hidden || undefined}
-      tabIndex={hidden ? -1 : undefined}
-      onClick={() => !on && haptic(4)}
-      className={`relative flex min-h-[52px] flex-col items-center justify-center gap-0.5 rounded-full ${
-        hidden
-          ? "w-0 min-w-0 overflow-hidden px-0 opacity-0"
-          : compact
-            ? "min-w-[44px] px-1.5"
-            : "min-w-[48px] px-2"
-      } ${on ? "text-[var(--tint-text)]" : "text-[var(--label-2)]"}`}
-      style={{ transition: "color var(--dur-xs) var(--ease-settle)" }}
-    >
+  // the name on hover and long-press, the app's help tag (a title attribute is not used anywhere, wave 2)
+  const tip = useTip<HTMLElement>(it.label);
+  const cls = `relative flex min-h-[52px] flex-col items-center justify-center gap-0.5 rounded-full ${
+    hidden
+      ? "w-0 min-w-0 overflow-hidden px-0 opacity-0"
+      : compact
+        ? "min-w-[44px] px-1.5"
+        : "min-w-[48px] px-2"
+  } ${on ? "text-[var(--tint-text)]" : "text-[var(--label-2)]"}`;
+  const style = { transition: "color var(--dur-xs) var(--ease-settle)" };
+  const inner = (
+    <>
       {on && (
         <motion.span
           layoutId="tab-pill"
@@ -93,6 +79,72 @@ function MobileTab({
         />
       </span>
       <span className={`text-tab relative ${min || compact ? "sr-only" : ""}`}>{it.label}</span>
+    </>
+  );
+  if (onOpen)
+    return (
+      <button
+        type="button"
+        aria-haspopup="dialog"
+        data-testid="tab-more"
+        {...(tip.props as object)}
+        aria-hidden={hidden || undefined}
+        tabIndex={hidden ? -1 : undefined}
+        onClick={() => {
+          haptic(4);
+          onOpen();
+        }}
+        className={cls}
+        style={style}
+      >
+        {inner}
+        {tip.tag}
+      </button>
+    );
+  return (
+    <Link
+      href={it.href}
+      aria-current={on ? "page" : undefined}
+      {...(tip.props as object)}
+      aria-hidden={hidden || undefined}
+      tabIndex={hidden ? -1 : undefined}
+      onClick={() => !on && haptic(4)}
+      className={cls}
+      style={style}
+    >
+      {inner}
+      {tip.tag}
+    </Link>
+  );
+}
+const MORE: NavItem = { href: "#more", label: "More", icon: Ellipsis };
+
+/** one link of the sm–lg pill: its name, or its icon with the name on hover and long-press */
+function PillLink({ it, on, icon, path }: { it: NavItem; on: boolean; icon: boolean; path: string }) {
+  const tip = useTip<HTMLElement>(it.label);
+  return (
+    <Link
+      href={it.href}
+      aria-current={on ? "page" : undefined}
+      aria-label={icon ? it.label : undefined}
+      {...(tip.props as object)}
+      onClick={() => !on && haptic(4)}
+      className={`text-subhead relative isolate inline-flex min-h-11 items-center rounded-full ${
+        icon ? "min-w-11 justify-center px-2.5" : "px-3"
+      } ${on ? "font-semibold text-[var(--label)]" : "text-[var(--label-2)]"}`}
+      style={{ transition: "color var(--dur-xs) var(--ease-settle) 60ms" }}
+    >
+      {on && (
+        <motion.span
+          layoutId="nav-pill"
+          layoutDependency={path}
+          transition={spring.thumb}
+          className="absolute inset-y-1 inset-x-0 -z-10 rounded-full bg-[var(--fill-3)]"
+          aria-hidden
+        />
+      )}
+      {icon ? <it.icon size={20} strokeWidth={on ? 2.25 : 1.75} aria-hidden /> : it.label}
+      {tip.tag}
     </Link>
   );
 }
@@ -115,17 +167,22 @@ export function Nav() {
   const pill = useRef<HTMLDivElement>(null);
   // re-measure when the pill's content changes: the page's actions arrive with `collapsed`, the tab set with the path
   const fit = useFitLevel(pill, 3, `${path}|${bar.collapsed}|${!!bar.trailing}|${!!bar.primary}`);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const inMore = PHONE_MORE.some((i) => i.href === path);
   return (
     <>
       {/* Tablet (sm–lg): glass pill as a toolbar. Left: logo (+ page title once the large title scrolled out),
           centre: tabs, right: the page's bar actions. Every piece is `shrink-0`, so the pill can only overflow to
           the right, and `useFitLevel` collapses it one step at a time until it fits (title text → icon-only
-          primary → icon-only tabs): nothing ever overlaps. The band behind the pill is a scroll-edge fade once the
-          page is scrolled, so content never peeks out around the capsule. */}
+          primary → icon-only tabs): nothing ever overlaps. The band starts at the status bar / title bar and adds
+          its spacing under it; once content scrolls under it, the full-width bar material and hairline fade in
+          (`bar-edge`), so content never peeks out around the capsule and never reads next to it. */}
       <header
-        className="toolbar-pill-band sticky top-0 z-40 hidden px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 sm:block sm:px-6 lg:hidden"
+        className="toolbar-pill-band bar-edge sticky top-0 z-40 hidden px-4 pt-[calc(var(--chrome-top)+0.75rem)] pb-3 sm:block sm:px-6 lg:hidden"
         data-collapsed={bar.collapsed || undefined}
+        data-scrolled={bar.scrolled || undefined}
         data-testid="nav-pill-band"
+        data-tauri-drag-region
       >
         <div
           ref={pill}
@@ -133,43 +190,19 @@ export function Nav() {
           data-testid="nav-pill"
           data-fit={fit}
         >
-          <Link href="/" className="flex shrink-0 items-center gap-2.5 pl-1" aria-label="TDJ home">
+          <Link href="/" className="flex shrink-0 items-center gap-2.5 pl-1" aria-label="T-DJ home">
             <Logo size={28} />
             {fit < 1 && (
               <span className="text-headline max-w-[200px] truncate">
-                {bar.collapsed && bar.title ? bar.title : "TDJ"}
+                {bar.collapsed && bar.title ? bar.title : "T-DJ"}
               </span>
             )}
           </Link>
           <nav className="flex shrink-0 items-center" aria-label="Primary">
             <LayoutGroup id="desktop-nav">
-              {sidebarItems.map((it) => {
+              {PILL_ITEMS.map((it) => {
                 const on = path === it.href;
-                return (
-                  <Link
-                    key={it.href}
-                    href={it.href}
-                    aria-current={on ? "page" : undefined}
-                    aria-label={fit >= 3 ? it.label : undefined}
-                    title={fit >= 3 ? it.label : undefined}
-                    onClick={() => !on && haptic(4)}
-                    className={`text-subhead relative isolate inline-flex min-h-11 items-center rounded-full ${
-                      fit >= 3 ? "min-w-11 justify-center px-2.5" : "px-3"
-                    } ${on ? "font-semibold text-[var(--label)]" : "text-[var(--label-2)]"}`}
-                    style={{ transition: "color var(--dur-xs) var(--ease-settle) 60ms" }}
-                  >
-                    {on && (
-                      <motion.span
-                        layoutId="nav-pill"
-                        layoutDependency={path}
-                        transition={spring.thumb}
-                        className="absolute inset-y-1 inset-x-0 -z-10 rounded-full bg-[var(--fill-3)]"
-                        aria-hidden
-                      />
-                    )}
-                    {fit >= 3 ? <it.icon size={20} strokeWidth={on ? 2.25 : 1.75} aria-hidden /> : it.label}
-                  </Link>
-                );
+                return <PillLink key={it.href} it={it} on={on} icon={fit >= 3} path={path} />;
               })}
             </LayoutGroup>
           </nav>
@@ -180,48 +213,8 @@ export function Nav() {
         </div>
       </header>
 
-      {/* Desktop (lg+): macOS sidebar with source-list rows */}
-      <aside
-        className="material-thin fixed left-0 top-0 z-40 hidden h-dvh w-[220px] flex-col border-r border-[var(--separator)] px-3 pt-[max(1rem,env(safe-area-inset-top))] lg:flex"
-        aria-label="Sidebar"
-      >
-        <Link href="/" className="flex items-center gap-2.5 px-3 py-2" aria-label="TDJ home">
-          <Logo size={28} />
-          <span className="text-headline">TDJ</span>
-        </Link>
-        <nav className="mt-4 flex flex-col gap-0.5" aria-label="Primary sidebar">
-          <LayoutGroup id="sidebar-nav">
-            {sidebarItems.map((it) => {
-              const on = path === it.href;
-              return (
-                <Link
-                  key={it.href}
-                  href={it.href}
-                  aria-current={on ? "page" : undefined}
-                  className="side-row"
-                >
-                  {on && (
-                    <motion.span
-                      layoutId="side-pill"
-                      layoutDependency={path}
-                      transition={spring.thumb}
-                      className="absolute inset-0 -z-10 rounded-[8px] bg-[var(--fill-3)]"
-                      aria-hidden
-                    />
-                  )}
-                  <it.icon
-                    size={18}
-                    strokeWidth={1.75}
-                    className={on ? "text-[var(--tint)]" : "text-[var(--label-2)]"}
-                    aria-hidden
-                  />
-                  {it.label}
-                </Link>
-              );
-            })}
-          </LayoutGroup>
-        </nav>
-      </aside>
+      {/* Desktop and iPad landscape (lg+): the sectioned, resizable sidebar */}
+      <Sidebar />
 
       {/* Phone: Liquid Glass tab capsule that minimises on scroll, plus a detached search button on search pages */}
       <LayoutGroup id="mobile-nav">
@@ -240,7 +233,7 @@ export function Nav() {
             maxWidth: searchId ? "calc(100vw - 96px)" : "calc(100vw - 1.5rem)",
           }}
         >
-          {items.map((it) => (
+          {PHONE_TABS.map((it) => (
             <MobileTab
               key={it.href}
               it={it}
@@ -250,7 +243,37 @@ export function Nav() {
               hidden={minimised && path !== it.href}
             />
           ))}
+          <MobileTab
+            it={MORE}
+            on={inMore}
+            min={minimised}
+            compact={!!searchId}
+            hidden={minimised && !inMore}
+            onOpen={() => setMoreOpen(true)}
+          />
         </nav>
+        <Sheet open={moreOpen} onClose={() => setMoreOpen(false)} title="More" testId="more-sheet">
+          <nav className="group-inset mt-2" aria-label="More pages">
+            {PHONE_MORE.map((it) => (
+              <Link
+                key={it.href}
+                href={it.href}
+                aria-current={path === it.href ? "page" : undefined}
+                className="cell cell-tap w-full text-left"
+                data-leading="tile"
+                onClick={() => setMoreOpen(false)}
+              >
+                <it.icon
+                  size={22}
+                  strokeWidth={1.75}
+                  className={path === it.href ? "text-[var(--tint)]" : "text-[var(--label-2)]"}
+                  aria-hidden
+                />
+                <span className="min-w-0 flex-1 truncate">{it.label}</span>
+              </Link>
+            ))}
+          </nav>
+        </Sheet>
         {searchId && (
           <button
             type="button"

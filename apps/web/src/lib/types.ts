@@ -1,4 +1,6 @@
 import type { AudioFeatures, ContextFactorOption, ResolvedTrack, Song, UserOverrides } from "@tdj/core";
+import type { AcpConnection } from "./ai/acp";
+import { type AiProvider, DEFAULT_MODEL, KEY_PROVIDERS, type KeyProvider } from "./ai/models";
 
 export type {
   AgentMemory,
@@ -26,19 +28,12 @@ export type AppOptions = Partial<import("@tdj/core").ComposeOptions> & {
   touched?: string[];
 };
 
-export type AiProvider = "anthropic" | "openai" | "gemini" | "openrouter";
-export const AI_PROVIDERS: Array<[AiProvider, string]> = [
-  ["anthropic", "Anthropic"],
-  ["openai", "OpenAI"],
-  ["gemini", "Gemini"],
-  ["openrouter", "OpenRouter"],
-];
-export const AI_DEFAULT_MODEL: Record<AiProvider, string> = {
-  anthropic: "claude-sonnet-5-5",
-  openai: "gpt-5.2",
-  gemini: "gemini-4-argon",
-  openrouter: "openrouter/auto",
-};
+export type { AcpConnection } from "./ai/acp";
+export type { AiProvider, KeyProvider } from "./ai/models";
+/** API key providers (BYOK); ACP agents are listed separately (Settings → Models) */
+export const AI_PROVIDERS = KEY_PROVIDERS;
+/** the model each provider runs when the DJ leaves the field blank (lib/ai/models.ts) */
+export const AI_DEFAULT_MODEL = DEFAULT_MODEL;
 
 export type DjApp = "rekordbox" | "traktor" | "serato" | "virtualdj" | "enginedj";
 export const DJ_APPS: Array<{ id: DjApp; label: string; format: string; note: string }> = [
@@ -57,7 +52,7 @@ export const DJ_APPS: Array<{ id: DjApp; label: string; format: string; note: st
   {
     id: "serato",
     label: "Serato DJ",
-    format: "DJ CSV via Lexicon",
+    format: "A list for Serato, through Lexicon",
     note: "Serato reads crates, not CSV: import the CSV in Lexicon (File → Import → CSV) and sync to Serato.",
   },
   {
@@ -76,13 +71,26 @@ export const DJ_APPS: Array<{ id: DjApp; label: string; format: string; note: st
 
 export interface UserSettings {
   spotifyClientId: string;
+  /** the model every generation uses: an API key provider (its key and model below) or an ACP agent (`acpId`) */
   ai: {
     provider: AiProvider;
     key: string;
+    /** blank: the provider's default (lib/ai/models.ts; Anthropic's is the newest Claude model) */
     model: string;
     /** Anthropic only: the workspace an organisation-level key bills (`wrkspc_…`); blank for a key made inside a workspace */
     workspace?: string;
+    /** provider "acp": the connection in `acp` that answers */
+    acpId?: string;
   };
+  /**
+   * Round 22: every key the DJ saved, per provider (so switching providers keeps them). BYOK: kept in this browser,
+   * sent with the DJ's own requests only, never stored on the server.
+   */
+  aiKeys?: Partial<Record<KeyProvider, { key: string; model?: string; workspace?: string }>>;
+  /** Round 22: ACP agent connections (local or remote agents), usable exactly like a key */
+  acp?: AcpConnection[];
+  /** Round 22: live suggestions while building a night by hand */
+  buildSuggestions?: boolean;
   djApps: Record<DjApp, { folder: string }>;
   /** file naming pattern used for exported paths; tokens: {artist} {title} {orchestra} {singer} {year} {rhythm} {tanda} {n} */
   fileNaming: string;
@@ -102,11 +110,23 @@ export interface UserSettings {
    * neither the engine score nor the benchmark falls.
    */
   autoImprove: boolean;
+  /**
+   * Round 22: the data sources that fill missing BPM, key, level, artwork and dates (Settings › Connections). Keyless
+   * sources are on unless turned off; a Discogs token stays in this browser and is never stored by the server.
+   */
+  dataSources?: { enabled?: Partial<Record<string, boolean>>; discogsToken?: string; autoFill?: boolean };
+  /** round 22: the era badge on every song (best / good / uneven / outside years); on by default */
+  eraBadges?: boolean;
+  /** round 23: small sound effects (the gramophone's crackle); off silences them */
+  sounds: boolean;
 }
 export const DEFAULT_NAMING = "{artist} - {title}";
 export const DEFAULT_SETTINGS: UserSettings = {
   spotifyClientId: "",
-  ai: { provider: "anthropic", key: "", model: AI_DEFAULT_MODEL.anthropic },
+  ai: { provider: "anthropic", key: "", model: "" },
+  aiKeys: {},
+  acp: [],
+  buildSuggestions: true,
   djApps: {
     rekordbox: { folder: "" },
     traktor: { folder: "" },
@@ -121,6 +141,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   learn: true,
   cortinaStopSec: null,
   autoImprove: true,
+  sounds: true,
 };
 export const CORTINA_STOP_RANGE = { min: 20, max: 90, step: 5 } as const;
 /** The effective cortina play length: the Playback setting, else the composer's cortina length, clamped to 20–90. */
@@ -141,6 +162,11 @@ export type SongPatch = Partial<Song> & {
   audio?: AudioFeatures | null;
   /** the streaming/preview track the user picked in "Find on services" */
   resolved?: ResolvedTrack | null;
+  /** round 22: the DJ's own key ("Am", "F♯m"), artwork, release date and Deezer track (they win over every source) */
+  key?: string;
+  artwork?: string;
+  release?: string;
+  deezerId?: string;
 };
 
 /** Guide section ids whose text the user may rewrite; `houseRules` is appended to the AI prompts. */
@@ -155,6 +181,10 @@ export interface AppOverrides extends UserOverrides {
   guide?: GuideOverrides;
   /** BYO automation: a webhook URL exports can be POSTed to (never stored server-side by TDJ) */
   connectors?: { webhookUrl?: string };
+  /** round 22: the DJ's era-indicator grades over the shipped heatmap (orchestra → mode → year → grade, null clears) */
+  heatmap?: import("@tdj/core").CoverageEdits;
+  /** round 22: what this DJ's data sources fetched per song (BPM, key, level, artwork, dates), each with its source */
+  scraped?: Record<string, import("@tdj/core").ScrapedRecord>;
 }
 
 /** One previous generation (History tab): the whole set plus what composed it. */
@@ -167,11 +197,32 @@ export interface HistorySnapshot {
   playlist: import("@tdj/core").Playlist;
   score: number;
   /** what produced it */
-  source: "compose" | "refine" | "swap";
+  source: "compose" | "refine" | "swap" | "import" | "room";
+  /**
+   * Wave 2: the edits made to this night after it was composed (a chip, an AI edit, a swap), each kept as the version
+   * it replaced, oldest first. `playlist` above is always the newest version; `change` says what produced it.
+   */
+  versions?: HistoryVersion[];
+  /** what made the current version, in the DJ's words ("Calmer", "Changed a song"); absent: as composed */
+  change?: string;
+  /** the last edit (ISO); the row keeps its place by `createdAt` */
+  updatedAt?: string;
   /** the night as played from the Booth (lib/history.ts `NightLog`), set by "End the night" and every hold */
   nightLog?: import("./history").NightLog;
 }
 export const HISTORY_MAX = 50;
+/** one earlier version of a night in History (wave 2) */
+export interface HistoryVersion {
+  id: string;
+  /** when this version was made */
+  at: string;
+  /** what made it ("Composed", "Calmer", "Changed a song", the DJ's own words for an AI edit) */
+  label: string;
+  playlist: import("@tdj/core").Playlist;
+  score: number;
+}
+/** the versions a History entry keeps (older ones drop off) */
+export const HISTORY_VERSIONS_MAX = 12;
 
 export interface ReferencePlaylist {
   id: string;
@@ -193,6 +244,13 @@ export interface MetaOrchestra {
   phase?: string[];
   notBefore?: number;
   singers?: Record<string, [number, number]>;
+  /** round 22: first and last recording year in the index */
+  years?: [number, number];
+  /** round 22: the most-recorded singers with their number of sides */
+  topSingers?: Array<[string, number]>;
+  instrumentals?: number;
+  /** round 22: a cover from its best-known side with artwork */
+  artwork?: string;
 }
 export interface MetaCortina {
   id: string;

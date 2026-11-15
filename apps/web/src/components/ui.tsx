@@ -4,20 +4,69 @@ import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "motion/r
 import { type KeyboardEvent, useId, useRef } from "react";
 import { haptic } from "@/lib/haptics";
 import { spring, t } from "@/lib/motion";
+import { useTip } from "./ui/Tip";
 
-/** Single-select control for 2–5 mutually exclusive choices (UISegmentedControl). */
+/** one choice of a segmented control; its help tag goes straight on the button (no wrapper: arrows move by index) */
+function SegItem({
+  on,
+  label,
+  tip,
+  layoutId,
+  onPick,
+}: {
+  on: boolean;
+  label: string;
+  tip?: string;
+  layoutId: string;
+  onPick: () => void;
+}) {
+  const t = useTip<HTMLButtonElement>(tip);
+  return (
+    // biome-ignore lint/a11y/useSemanticElements: segmented control built from buttons (WAI-ARIA radio group pattern)
+    <button
+      type="button"
+      role="radio"
+      aria-checked={on}
+      tabIndex={on ? 0 : -1}
+      {...t.props}
+      onClick={() => {
+        if (!on) haptic(4);
+        onPick();
+      }}
+      className={`seg relative isolate ${on ? "seg-on" : ""}`}
+    >
+      {on && (
+        <motion.span
+          layoutId={layoutId}
+          transition={spring.thumb}
+          className="seg-thumb absolute inset-0 -z-10 rounded-[7px]"
+          aria-hidden
+        />
+      )}
+      {label}
+      {t.tag}
+    </button>
+  );
+}
+
+/** Single-select control for 2–5 mutually exclusive choices (UISegmentedControl). `tips`: a help tag per choice. */
 export function Segmented<K extends string>({
   value,
   items,
   onChange,
   label,
   className = "",
+  tips,
+  size = "regular",
 }: {
   value: K;
   items: Array<[K, string]>;
   onChange: (k: K) => void;
   label?: string;
   className?: string;
+  tips?: Partial<Record<K, string>>;
+  /** `large`: 44 px segments with a mouse too (a page's main switch, e.g. Night / Log in a room) */
+  size?: "regular" | "large";
 }) {
   const id = useId();
   const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -30,44 +79,28 @@ export function Segmented<K extends string>({
     if (next < 0) return;
     e.preventDefault();
     onChange(items[next]![0]);
-    (e.currentTarget.children[next] as HTMLElement | undefined)?.focus();
+    (
+      e.currentTarget.querySelectorAll<HTMLElement>('[role="radio"]')[next] as HTMLElement | undefined
+    )?.focus();
   };
   return (
     <LayoutGroup id={id}>
       <div
         role="radiogroup"
         aria-label={label}
-        className={`segmented scroll-x ${className}`}
+        className={`segmented scroll-x ${size === "large" ? "segmented-l" : ""} ${className}`}
         onKeyDown={onKey}
       >
-        {items.map(([k, l]) => {
-          const on = value === k;
-          return (
-            // biome-ignore lint/a11y/useSemanticElements: segmented control built from buttons (WAI-ARIA radio group pattern)
-            <button
-              type="button"
-              role="radio"
-              aria-checked={on}
-              tabIndex={on ? 0 : -1}
-              key={k}
-              onClick={() => {
-                if (!on) haptic(4);
-                onChange(k);
-              }}
-              className={`seg relative isolate ${on ? "seg-on" : ""}`}
-            >
-              {on && (
-                <motion.span
-                  layoutId={`seg-${id}`}
-                  transition={spring.thumb}
-                  className="seg-thumb absolute inset-0 -z-10 rounded-[7px]"
-                  aria-hidden
-                />
-              )}
-              {l}
-            </button>
-          );
-        })}
+        {items.map(([k, l]) => (
+          <SegItem
+            key={k}
+            on={value === k}
+            label={l}
+            tip={tips?.[k]}
+            layoutId={`seg-${id}`}
+            onPick={() => onChange(k)}
+          />
+        ))}
       </div>
     </LayoutGroup>
   );
@@ -138,23 +171,34 @@ export function Stepper({
     haptic(4);
     onChange(v);
   };
+  // each button says where it takes the value
+  const down = Math.max(min, +(value - step).toFixed(2));
+  const up = Math.min(max, +(value + step).toFixed(2));
+  const less = useTip<HTMLButtonElement>(
+    value <= min ? "Already the lowest" : `Down to ${down}${unit ?? ""}`,
+  );
+  const more = useTip<HTMLButtonElement>(value >= max ? "Already the highest" : `Up to ${up}${unit ?? ""}`);
   return (
     // biome-ignore lint/a11y/useSemanticElements: stepper is an inline control group, not a form section
     <div className="stepper" role="group" aria-label={label}>
       <button
         type="button"
+        {...less.props}
         aria-label={`Decrease ${label.toLowerCase()}`}
         disabled={disabled || value <= min}
-        onClick={() => change(Math.max(min, +(value - step).toFixed(2)))}
+        onClick={() => change(down)}
       >
+        {less.tag}
         <Minus size={16} strokeWidth={2.25} />
       </button>
       <button
         type="button"
+        {...more.props}
         aria-label={`Increase ${label.toLowerCase()}`}
         disabled={disabled || value >= max}
-        onClick={() => change(Math.min(max, +(value + step).toFixed(2)))}
+        onClick={() => change(up)}
       >
+        {more.tag}
         <Plus size={16} strokeWidth={2.25} />
       </button>
       <span className="sr-only" aria-live="polite">

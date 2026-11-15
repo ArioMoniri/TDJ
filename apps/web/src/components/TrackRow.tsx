@@ -9,12 +9,16 @@ import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
 import { lineSwap } from "@/lib/motion";
 import { sourceFor, trackFor, usePlayer } from "@/lib/player";
+import { bpmText, keyText, useSongData } from "@/lib/songView";
 import { useStore } from "@/lib/store";
-import { tempoLevel } from "@/lib/tempo";
 import type { Song } from "@/lib/types";
+import { yearText } from "@/lib/year";
 import { I } from "./Icons";
 import { Menu } from "./Menu";
 import { SwipeRow } from "./SwipeRow";
+import { Artwork } from "./ui/Artwork";
+import { EraBadge } from "./ui/EraBadge";
+import { Tip, useTip } from "./ui/Tip";
 
 /* The two sheets are rare (one row at a time): their code arrives when the first one opens. */
 const AudioDetails = dynamic(() => import("./AudioDetails").then((m) => m.AudioDetails), { ssr: false });
@@ -38,6 +42,7 @@ export const TrackRow = memo(function TrackRow({
   disabled,
   swapLabel,
   animateLayout = false,
+  lockedWhy,
 }: {
   n: number;
   song: Song;
@@ -50,12 +55,23 @@ export const TrackRow = memo(function TrackRow({
   swapLabel: string;
   /** the parent card is the one being swapped/locked: animate this row's position */
   animateLayout?: boolean;
+  /** why Swap is off ("unlock the tanda first", "a night from History is read-only") */
+  lockedWhy?: string;
 }) {
   const reduced = useReducedMotion();
   const isPhone = useMediaQuery("(max-width: 639px)");
   const patch = useStore((s) => s.overrides.songs?.[song.id]);
   const connected = useStore((s) => !!s.spotifyToken && s.spotifyToken.expires > Date.now());
   const eff = patchedSong(song, patch);
+  // round 22: artwork, BPM and key from the DJ's edits, their sources, then the index
+  const { data, bpm: bpmPick } = useSongData(song);
+  // wave 2: one BPM per side (DJ edit > analysed preview > source > estimate), printed once on the row
+  const bpm = bpmText(data);
+  const level = typeof eff.level?.gainDb === "number" ? eff.level.gainDb : null;
+  const tempoLine = [bpm, level !== null ? `${level.toFixed(1).replace("-", "−")} dB` : null]
+    .filter(Boolean)
+    .join(" · ");
+  const keyOnly = !eff.audio ? keyText(data) : null;
   const source = sourceFor(eff, connected);
   const playing = usePlayer((s) => s.playing && s.track?.id === song.id);
   const [details, setDetails] = useState(false);
@@ -97,6 +113,13 @@ export const TrackRow = memo(function TrackRow({
   const swap = () => onSwap(k);
   const analysing = busy || isAnalysing(song.id);
   const playLabel = playing ? `Pause ${title}` : source ? `Play ${title}` : `Find ${title} on services`;
+  const playTip = useTip<HTMLButtonElement>(
+    playing
+      ? "Pause"
+      : source
+        ? "Play a preview in the mini player"
+        : "Look for this side on Spotify, Deezer or YouTube",
+  );
 
   return (
     <motion.li
@@ -127,10 +150,12 @@ export const TrackRow = memo(function TrackRow({
             className={`icon-btn icon-btn-bare -my-2 -ml-3 h-11 w-11 shrink-0 ${playing ? "text-[var(--tint)]" : "text-[var(--label-2)]"}`}
             aria-label={playLabel}
             aria-pressed={playing}
+            {...playTip.props}
             data-testid="play-button"
             onPointerDown={(e) => e.stopPropagation()}
             onClick={toggle}
           >
+            {playTip.tag}
             {playing ? (
               <I name="pause" size={18} fill="currentColor" strokeWidth={0} />
             ) : (
@@ -157,6 +182,16 @@ export const TrackRow = memo(function TrackRow({
               </>
             )}
           </button>
+          {/* round 22: the cover with the era badge on its corner (one slot, so the title keeps its room) */}
+          <span className="relative -my-1 shrink-0">
+            <Artwork
+              src={data.artwork?.value as string | undefined}
+              orchestra={song.orchestra}
+              orchestraId={song.orchestraId}
+              size="s"
+            />
+            <EraBadge song={eff} compact overlay />
+          </span>
           {/* the title truncates in its own block and the year never shrinks: an inline year inside a truncated
               span could still overflow the viewport by a pixel on phones (round4 mobile-overflow flake) */}
           <span
@@ -164,7 +199,7 @@ export const TrackRow = memo(function TrackRow({
             className={`flex min-w-0 flex-1 items-baseline gap-1 ${nudge && !reduced ? "nudge-x" : ""}`}
             style={{ opacity: inFlight ? 0.6 : 1, transition: "opacity var(--dur-xs) var(--ease-settle)" }}
           >
-            <span className="min-w-0 truncate">{title}</span>
+            <span className="min-w-[5rem] truncate">{title}</span>
             {/* phones: the year is in the tanda header; here it took the title's room ("La Vida M…") */}
             <span className={`shrink-0 text-[var(--label-2)] ${isPhone ? "sr-only" : ""}`}>
               {song.transcription || approx ? (
@@ -172,23 +207,36 @@ export const TrackRow = memo(function TrackRow({
                   undated transcription{year ? ` · c. ${year}` : ""}
                 </span>
               ) : (
-                (year ?? "?")
+                yearText(year)
               )}
             </span>
           </span>
+          {keyOnly && (
+            <span className="data-chip font-mono" data-testid="key-chip">
+              <span className="sr-only">Key </span>
+              {keyOnly}
+            </span>
+          )}
+          {bpm && !isPhone && level === null && (
+            <Tip text={bpmPick?.note ?? "Beats per minute"}>
+              <span className="data-chip" data-testid="row-bpm">
+                {bpm}
+              </span>
+            </Tip>
+          )}
           {audio && !isPhone && (
-            <button
-              type="button"
-              className="text-caption1 -my-1 inline-flex min-h-[28px] items-center rounded-md bg-[var(--fill-4)] px-1.5 font-mono tabular-nums text-[var(--label-2)]"
-              title={`Key ${keyLabel(audio)} · ${Math.round(audio.bpm)} BPM · ${audio.loudnessDb.toFixed(1)} dBFS · analysed from a 30 s preview`}
-              aria-label={`Key ${keyLabel(audio)}, ${Math.round(audio.bpm)} BPM, details`}
-              data-testid="key-chip"
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={openDetails}
-            >
-              {keyLabel(audio)}
-              <span className="ml-1.5 text-[var(--label-2)]">{Math.round(audio.bpm)}</span>
-            </button>
+            <Tip text={`Key ${keyLabel(audio)} · analysed from a 30 s preview`}>
+              <button
+                type="button"
+                className="key-chip text-caption1 -my-1 inline-flex min-h-[28px] shrink-0 items-center whitespace-nowrap rounded-md bg-[var(--fill-4)] px-1.5 font-mono tabular-nums text-[var(--label-2)]"
+                aria-label={`Key ${keyLabel(audio)}, details`}
+                data-testid="key-chip"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={openDetails}
+              >
+                {keyLabel(audio)}
+              </button>
+            </Tip>
           )}
           {/* phones: a 55 × 28 chip is not a target; the key is a label, the details are on ••• */}
           {audio && isPhone && (
@@ -201,13 +249,15 @@ export const TrackRow = memo(function TrackRow({
             </span>
           )}
           {/* round 21: the measured tempo and level the tanda's bands read */}
-          {tempoLevel(song) && !isPhone && (
-            <span
-              className="text-caption1 hidden shrink-0 tabular-nums text-[var(--label-3)] xl:inline"
-              data-testid="row-tempo"
-            >
-              {tempoLevel(song)}
-            </span>
+          {level !== null && tempoLine && !isPhone && (
+            <Tip text={bpmPick?.note ?? "The side's level"}>
+              <span
+                className="row-tempo text-caption1 shrink-0 whitespace-nowrap tabular-nums text-[var(--label-3)]"
+                data-testid="row-tempo"
+              >
+                {tempoLine}
+              </span>
+            </Tip>
           )}
           <span className="text-subhead tabular-nums text-[var(--label-2)]">
             <span className="sr-only">energy </span>
@@ -225,16 +275,23 @@ export const TrackRow = memo(function TrackRow({
             </span>
           )}
           {!isPhone && (
-            <button
-              type="button"
-              onClick={swap}
-              disabled={disabled || inFlight}
-              aria-label={swapLabel}
-              title="Swap this track for another of the same family"
-              className="icon-btn icon-btn-bare -my-2 inline-flex h-9 w-9 opacity-0 transition-opacity focus-visible:opacity-100 disabled:opacity-0 group-hover/row:opacity-100"
+            <Tip
+              text={
+                disabled
+                  ? `Swap: ${lockedWhy ?? "unlock the tanda first"}`
+                  : "Swap this track for another of the same family"
+              }
             >
-              <I name="swap" size={18} strokeWidth={1.75} className={inFlight ? "animate-spin" : ""} />
-            </button>
+              <button
+                type="button"
+                onClick={swap}
+                disabled={disabled || inFlight}
+                aria-label={swapLabel}
+                className="icon-btn icon-btn-bare -my-2 inline-flex h-9 w-9 opacity-0 transition-opacity focus-visible:opacity-100 disabled:opacity-0 group-hover/row:opacity-100"
+              >
+                <I name="swap" size={18} strokeWidth={1.75} className={inFlight ? "animate-spin" : ""} />
+              </button>
+            </Tip>
           )}
           <Menu
             label={`Track ${n} actions`}
@@ -248,7 +305,17 @@ export const TrackRow = memo(function TrackRow({
             }
             items={[
               // round 21: the side's Swap sheet (suggestions that keep the tanda valid, search, AI pick)
-              { label: "Swap…", icon: Repeat2, onClick: swap, disabled: disabled || inFlight },
+              // wave 2: a greyed-out Swap says why
+              {
+                label: disabled
+                  ? `Swap… (${lockedWhy ?? "unlock the tanda first"})`
+                  : inFlight
+                    ? "Swap… (swapping)"
+                    : "Swap…",
+                icon: Repeat2,
+                onClick: swap,
+                disabled: disabled || inFlight,
+              },
               { label: "Find on services…", icon: Search, onClick: openFind },
               {
                 label: audio ? "Analyse again in browser" : "Analyse in browser",
@@ -268,6 +335,7 @@ export const TrackRow = memo(function TrackRow({
           open={details}
           onClose={() => setDetails(false)}
           onSwap={disabled || inFlight ? undefined : swap}
+          bpm={bpmPick}
         />
       )}
       {findMounted && <ResolveSheet song={find ? song : null} open={find} onClose={() => setFind(false)} />}

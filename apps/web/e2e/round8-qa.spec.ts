@@ -194,8 +194,8 @@ test("B7 / B8 / B9: the Time card says it is resolving, Start counts the clips, 
   // Space with a queued break ends the break instead of leaving the transport unreadable (B8)
   await page.getByTestId("booth-start").click();
   await expect(page.getByTestId("booth")).toHaveAttribute("data-state", "playing", { timeout: 20000 });
-  await page.getByTestId("booth-more").click();
-  await page.getByRole("menuitem", { name: "Break…" }).click();
+  // (round 22: Break… is a night tool, in the night bar)
+  await page.getByTestId("booth-night-break").click();
   await page.getByRole("button", { name: /^Break for 10 min/ }).click();
   await expect(page.getByTestId("booth-play")).toHaveText(/End break/, { timeout: 5000 });
   await expect(page.getByRole("dialog")).toHaveCount(0); // keys are ignored while a sheet is up
@@ -207,9 +207,9 @@ test("B7 / B8 / B9: the Time card says it is resolving, Start counts the clips, 
 
 test("B10 / B17: one Cancel in Clear history; every page has its own title", async ({ page }) => {
   await compose(page);
-  await expect(page).toHaveTitle("Compose · TDJ");
+  await expect(page).toHaveTitle("Compose · T-DJ");
   await page.goto("/history");
-  await expect(page).toHaveTitle("History · TDJ");
+  await expect(page).toHaveTitle("History · T-DJ");
   await page.getByTestId("page-toolbar").getByRole("button", { name: "More", exact: true }).click();
   await page.getByRole("menuitem", { name: "Clear history…" }).click();
   const sheet = page.getByRole("dialog", { name: "Clear history" });
@@ -223,7 +223,7 @@ test("B10 / B17: one Cancel in Clear history; every page has its own title", asy
     ["/guide", "Guide"],
   ] as const) {
     await page.goto(path);
-    await expect(page).toHaveTitle(`${title} · TDJ`);
+    await expect(page).toHaveTitle(`${title} · T-DJ`);
   }
 });
 
@@ -295,7 +295,7 @@ test("featured night: the deep link loads it into the result with Export and Boo
   await page.getByTestId("page-toolbar").getByRole("button", { name: "More", exact: true }).click();
   await page.getByRole("menuitem", { name: "Clear set" }).click();
   await expect(page.getByTestId("first-run")).toBeVisible();
-  await page.getByTestId("toolbar-compose").click();
+  await page.getByTestId("hero-compose").click();
   await expect(page.locator("#result")).toBeVisible({ timeout: 60000 });
   await page.goto("/booth");
   await expect(page.getByTestId("booth-now-title")).toBeVisible({ timeout: 15000 });

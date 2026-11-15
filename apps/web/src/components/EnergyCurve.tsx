@@ -1,6 +1,6 @@
 "use client";
 import { motion, useReducedMotion } from "motion/react";
-import { useId, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 import { DUR, EASE, SPRING, STAGGER } from "@/lib/motion";
 import type { Playlist } from "@/lib/types";
 
@@ -19,8 +19,12 @@ const PHASE_LABEL: Record<string, string> = {
 
 /**
  * Night arc (Health-style chart): target curve (dashed) vs actual tanda energy, two gridlines with the labels on the
- * right, phase bands, keyboard-reachable dots. A fresh set (new `playKey`) draws on: bands → grid → path (pathLength)
- * → dots → area → caption (1.3 s). A recompose with the same tanda count morphs: path `d`, dots and bands tween in place.
+ * right, phase bands, keyboard-reachable dots. A fresh set (new `playKey`) draws on once: bands and grid fade in, then
+ * one left-to-right sweep (a clip) reveals the line and its fill together, each dot popping as the sweep reaches it.
+ * A recompose with the same tanda count morphs: the path `d`, the fill and the dots tween in place.
+ * Wave 2: the line and the fill used to run two animations (a pathLength draw, then a late fade of a `d` tween that
+ * started from another shape), and band rects animated `x` from null (a console error on every render): one sweep now,
+ * and SVG attributes are plain numbers (only opacity, `d`, cx/cy and transforms animate).
  */
 export function EnergyCurve({
   p,
@@ -77,16 +81,22 @@ export function EnergyCurve({
   const last = p.tandas.length - 1;
   const key: string | number = playKey ?? p.options.seed ?? p.id;
 
-  // morph mode: same playKey as the previous render (a recompose that kept the length) → tween in place
+  // morph mode: the same playKey as the last committed render (a recompose that kept the length) → tween in place.
+  // (read from the last commit, not the last render: a render React throws away must not turn a fresh set's draw off)
   const lastKey = useRef<string | number | null>(null);
   const morph = lastKey.current === key;
-  lastKey.current = key;
+  useEffect(() => {
+    lastKey.current = key;
+  }, [key]);
 
   const energyD = smooth(p.stats.energyArc);
   const areaD = `${energyD} L${x(last)},${y(0)} L${x(0)},${y(0)} Z`;
   const targetD = smooth(p.stats.targetArc);
   const morphT = { duration: DUR.slow, ease: EASE.inOut };
-  const dotDelay = (i: number) => (reduced ? 0 : 0.3 + (i / n) * DUR.draw);
+  /** the sweep: one linear reveal, so a dot at x pops exactly when the line reaches it */
+  const SWEEP_DELAY = 0.3;
+  const dotDelay = (i: number) => (reduced ? 0 : SWEEP_DELAY + (i / n) * DUR.draw);
+  const clipId = `${id}-sweep`;
   const fadeV = (delay: number) => ({
     hidden: { opacity: 0 },
     show: { opacity: 1, transition: { delay: reduced ? 0 : delay, duration: DUR.base } },
@@ -99,20 +109,16 @@ export function EnergyCurve({
       transition: { delay: reduced ? 0 : k * STAGGER.bands, duration: DUR.base },
     }),
   };
-  const lineV = {
-    hidden: { d: energyD, pathLength: reduced ? 1 : 0, opacity: reduced ? 0 : 1 },
+  const sweepV = {
+    hidden: { width: reduced ? W : 0, opacity: reduced ? 0 : 1 },
     show: {
-      d: energyD,
-      pathLength: 1,
+      width: W,
       opacity: 1,
-      transition: { delay: reduced ? 0 : 0.3, duration: reduced ? DUR.base : DUR.draw, ease: EASE.out },
+      transition: reduced
+        ? { duration: DUR.base }
+        : { delay: SWEEP_DELAY, duration: DUR.draw + half / plotW, ease: "linear" as const },
     },
   };
-  const areaV = {
-    hidden: { d: areaD, opacity: 0 },
-    show: { d: areaD, opacity: 1, transition: { delay: reduced ? 0 : 1.1, duration: DUR.slow } },
-  };
-  const targetV = { hidden: { d: targetD }, show: { d: targetD } };
   const dotV = {
     hidden: { scale: reduced ? 1 : 0, opacity: reduced ? 0 : 1 },
     show: (i: number) => ({
@@ -161,6 +167,9 @@ export function EnergyCurve({
             <stop offset="0" stopColor="var(--tint)" stopOpacity=".22" />
             <stop offset="1" stopColor="var(--tint)" stopOpacity="0" />
           </linearGradient>
+          <clipPath id={clipId}>
+            <motion.rect variants={sweepV} x={0} y={0} height={H} />
+          </clipPath>
         </defs>
         {bands.map((b, k) => {
           const bx = Math.max(px, x(b.a) - half);
@@ -169,15 +178,12 @@ export function EnergyCurve({
             <motion.rect
               key={b.ph}
               custom={k}
-              variants={{
-                hidden: { ...bandV.hidden, attrX: bx, width: bw },
-                show: (j: number) => ({ ...bandV.show(j), attrX: bx, width: bw }),
-              }}
-              animate={morph ? { attrX: bx, width: bw, opacity: k % 2 ? 1 : 0 } : "show"}
+              variants={bandV}
+              animate={morph ? { opacity: k % 2 ? 1 : 0 } : "show"}
               transition={morphT}
-              // a numeric x before the first animation frame: motion's attrX would otherwise render x="null"
               x={bx}
               y={py}
+              width={Math.max(0, bw)}
               height={plotH}
               fill="rgb(var(--text) / var(--band-alpha))"
             />
@@ -201,8 +207,8 @@ export function EnergyCurve({
             </g>
           ))}
           <motion.path
-            variants={targetV}
-            animate={morph ? { d: targetD } : "show"}
+            initial={false}
+            animate={{ d: targetD }}
             transition={morphT}
             fill="none"
             stroke="currentColor"
@@ -211,22 +217,26 @@ export function EnergyCurve({
             strokeDasharray="3 4"
           />
         </motion.g>
-        <motion.path
-          variants={areaV}
-          animate={morph ? { d: areaD, opacity: dimmed ? 0.4 : 1 } : "show"}
-          transition={morphT}
-          fill={`url(#${id})`}
-        />
-        <motion.path
-          variants={lineV}
-          animate={morph ? { d: energyD, opacity: dimmed ? 0.4 : 1, pathLength: 1 } : "show"}
-          transition={morphT}
-          fill="none"
-          stroke="var(--tint)"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          data-testid="energy-path"
-        />
+        {/* the line and its fill share one clip: a single sweep reveals both, in step */}
+        <g clipPath={`url(#${clipId})`}>
+          <motion.path
+            initial={false}
+            animate={{ d: areaD, opacity: dimmed ? 0.4 : 1 }}
+            transition={morphT}
+            fill={`url(#${id})`}
+            data-testid="energy-area"
+          />
+          <motion.path
+            initial={false}
+            animate={{ d: energyD, opacity: dimmed ? 0.4 : 1 }}
+            transition={morphT}
+            fill="none"
+            stroke="var(--tint)"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            data-testid="energy-path"
+          />
+        </g>
         {p.tandas.map((t, i) => {
           const cx = x(i);
           const cy = y(t.energy);
@@ -252,6 +262,15 @@ export function EnergyCurve({
               }}
               className="group/dot"
             >
+              {/* the hit area: 14 units round with a mouse, 44 px across on touch (globals.css .dot-hit) */}
+              <motion.circle
+                initial={false}
+                animate={{ cx, cy }}
+                transition={morphT}
+                r={14}
+                fill="transparent"
+                className="dot-hit"
+              />
               <motion.circle
                 initial={false}
                 animate={{ cx, cy }}
@@ -275,12 +294,12 @@ export function EnergyCurve({
                 <motion.circle initial={false} animate={{ cx, cy }} transition={morphT} r={1.8} fill="#fff" />
               )}
               {t.rhythm === "milonga" && (
+                // a square marker positioned by transform (x/y on an SVG element are transforms in motion), so
+                // no attribute ever animates from null
                 <motion.rect
                   initial={false}
-                  animate={{ attrX: cx - 1.8, attrY: cy - 1.8 }}
+                  animate={{ x: cx - 1.8, y: cy - 1.8 }}
                   transition={morphT}
-                  x={cx - 1.8}
-                  y={cy - 1.8}
                   width={3.6}
                   height={3.6}
                   fill="#fff"
@@ -300,11 +319,9 @@ export function EnergyCurve({
         })}
         <motion.g variants={fadeV(1.2)}>
           {bands.map((b) => (
-            <motion.text
+            <text
               key={b.ph}
-              initial={false}
-              animate={{ attrX: (x(b.a) + x(b.b)) / 2 }}
-              transition={morphT}
+              x={(x(b.a) + x(b.b)) / 2}
               y={H - 6}
               fontSize={fs}
               textAnchor="middle"
@@ -312,7 +329,7 @@ export function EnergyCurve({
               fillOpacity=".5"
             >
               {PHASE_LABEL[b.ph] ?? b.ph}
-            </motion.text>
+            </text>
           ))}
         </motion.g>
       </motion.svg>

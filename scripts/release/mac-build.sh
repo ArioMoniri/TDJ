@@ -194,12 +194,21 @@ if want dmg; then
   fi
   PUBKEY="${TAURI_UPDATER_PUBKEY:-$(cat "$UPDATER_KEY.pub" 2>/dev/null || true)}"
   [ -n "$PUBKEY" ] || die "updater public key missing (TAURI_UPDATER_PUBKEY)"
+  # installer window art (src-tauri/dmg, laid out by tauri.conf.json bundle.macOS.dmg): Finder draws a sharp retina
+  # background only from a multi-resolution TIFF, so pair the 1x and 2x PNGs here; the committed config uses the 1x PNG
+  DMG_BG="$TAURI_DIR/dmg/background.png"
+  tiffutil -cathidpicheck "$TAURI_DIR/dmg/background.png" "$TAURI_DIR/dmg/background@2x.png" \
+    -out "$WORK/dmg-background.tiff" >/dev/null 2>&1 && DMG_BG="$WORK/dmg-background.tiff"
   node -e '
-    const [v,b,id,pub,repo]=process.argv.slice(1);
-    process.stdout.write(JSON.stringify({version:v,bundle:{createUpdaterArtifacts:true,macOS:{bundleVersion:b,signingIdentity:id}},
+    const [v,b,id,pub,repo,bg]=process.argv.slice(1);
+    process.stdout.write(JSON.stringify({version:v,bundle:{createUpdaterArtifacts:true,macOS:{bundleVersion:b,signingIdentity:id,
+      dmg:{background:bg}}},
       plugins:{updater:{pubkey:pub,endpoints:[`https://github.com/${repo}/releases/latest/download/latest.json`]}}}))' \
-    "$VERSION" "$BUILD" "$DEVID" "$PUBKEY" "$REPO" > "$WORK/dmg.json"
-  tauri build --target universal-apple-darwin --bundles app,dmg --features updater --config "$WORK/dmg.json" --ci
+    "$VERSION" "$BUILD" "$DEVID" "$PUBKEY" "$REPO" "$DMG_BG" > "$WORK/dmg.json"
+  # Tauri's DMG bundler skips the Finder layout step (background, icon positions) when CI=true, as on GitHub runners;
+  # keep it unless the caller sets TAURI_BUNDLER_DMG_IGNORE_CI=false (e.g. a runner without a Finder session)
+  TAURI_BUNDLER_DMG_IGNORE_CI="${TAURI_BUNDLER_DMG_IGNORE_CI:-true}" \
+    tauri build --target universal-apple-darwin --bundles app,dmg --features updater --config "$WORK/dmg.json" --ci
   B="$CARGO_TARGET_DIR/universal-apple-darwin/release/bundle"
   DMG=$(ls "$B"/dmg/*.dmg | head -1); APP="$B/macos/TDJ.app"
   codesign --verify --deep --strict "$APP"

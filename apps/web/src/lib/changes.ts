@@ -126,15 +126,6 @@ const EVENT: Record<string, string> = {
   wedding: "wedding",
   show: "show night",
 };
-const ERA: Record<string, string> = {
-  golden: "Golden Age",
-  "golden-extended": "Golden Age, extended",
-  "guardia-vieja": "Guardia Vieja",
-  "post-golden": "Post-golden",
-  nuevo: "Nuevo",
-  contemporary: "Contemporary",
-  all: "All eras",
-};
 const DAY: Record<string, string> = {
   weekday: "Weekday",
   thursday: "Thursday",
@@ -142,18 +133,21 @@ const DAY: Record<string, string> = {
   saturday: "Saturday",
   sunday: "Sunday",
 };
-const fmtH = (h: number) => (Number.isInteger(h) ? `${h} h` : `${`${h}`.replace(".5", "½")} h`);
+const WEEKDAY = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-/** "Tuesday práctica · 2 h · Golden Age": the set name from the event, the length and the era. */
-export function autoSetName(o: Partial<ComposeOptions>): string {
+/**
+ * "Tuesday práctica": the night's title, from the day (tonight's, or the one set under Tonight) and the event.
+ * Wave 2: the title alone — the length and the era are the sub-line (lib/nightName.ts `nightSub`), so History, Share
+ * and the result header read one name.
+ */
+export function autoSetName(o: Partial<ComposeOptions>, at = new Date()): string {
   const ctx = (o.context ?? {}) as ComposeContext;
   const ev = EVENT[ctx.event ?? "milonga"] ?? "milonga";
-  const day = ctx.dayOfWeek ? DAY[ctx.dayOfWeek] : undefined;
+  const day =
+    (ctx.dayOfWeek && DAY[ctx.dayOfWeek] !== "Weekday" ? DAY[ctx.dayOfWeek] : undefined) ??
+    WEEKDAY[at.getDay()];
   const time = ctx.timeOfDay === "afternoon" ? "afternoon " : "";
-  const head = day
-    ? `${day} ${time}${ev}`
-    : `${time ? time[0]!.toUpperCase() + time.slice(1) : ""}${time ? ev : ev[0]!.toUpperCase() + ev.slice(1)}`;
-  return `${head} · ${fmtH(o.hours ?? 4)} · ${ERA[o.eras?.[0] ?? "golden"] ?? "Golden Age"}`;
+  return `${day} ${time}${ev}`;
 }
 
 /** what /api/compose's auto-improve pass did (round 13), as the change summary line says it */
@@ -166,7 +160,8 @@ export function autoImproveLine(r: AutoImproved | null | undefined): string | nu
   if (!r?.changes.length) return null;
   const n = r.changes.length;
   const kinds = [...new Set(r.changes.map((c) => KIND_LABEL[c.kind] ?? c.kind))].join(", ");
-  return `Auto-improved against published sets: ${n} ${n === 1 ? "change" : "changes"} (${kinds}) · engine ${r.before.score} → ${r.after.score} · benchmark ${r.before.inRange}/${r.before.scored} → ${r.after.inRange}/${r.after.scored}`;
+  // (wave 2: the engine score and the benchmark count stay in the Benchmark sheet; the line says what changed)
+  return `Polished against published DJ sets: ${n} ${n === 1 ? "change" : "changes"} (${kinds})`;
 }
 const KIND_LABEL: Record<string, string> = {
   instrumental: "instrumental hour",
@@ -178,5 +173,5 @@ const KIND_LABEL: Record<string, string> = {
   bridge: "bridge cue",
   core: "golden core",
   energy: "energy step",
-  strict: "strict panel",
+  strict: "DJ review rules",
 };

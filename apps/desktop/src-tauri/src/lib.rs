@@ -67,6 +67,8 @@ fn init_script(state: &AppState) -> String {
         "appStore": APP_STORE_BUILD,
         "updater": cfg!(feature = "updater"),
         "vibrancy": false,
+        // macOS draws the page under a transparent title bar (build_main): the page reserves it (layout.tsx)
+        "titleBar": if cfg!(target_os = "macos") { "overlay" } else { "native" },
     });
     format!(
         "window.__TDJ_NATIVE__=Object.freeze({native});\
@@ -144,13 +146,42 @@ fn build_main(app: &AppHandle) -> tauri::Result<WebviewWindow> {
         .title("T-DJ")
         .inner_size(1280.0, 820.0)
         .min_inner_size(900.0, 600.0);
-    // r22-motion.md §4.5: content to the window edge, traffic lights inside the sidebar at (20, 20)
+    // Content to the window edge under a transparent title bar (r22-motion.md §4.5), with the traffic lights at
+    // their standard place: the page reserves a 28 pt title-bar strip and a 78 pt leading inset for them
+    // (`html.titlebar-overlay`, set by the page from `titleBar` below) and marks its bars `data-tauri-drag-region`. Round 23: the
+    // lights used to sit at (20, 20), inside the sidebar's logo and over the header, with nothing reserved.
     #[cfg(target_os = "macos")]
     let b = b
         .title_bar_style(tauri::TitleBarStyle::Overlay)
         .hidden_title(true)
-        .traffic_light_position(tauri::LogicalPosition::new(20.0, 20.0));
-    b.build()
+        .on_page_load(|w, p| {
+            if p.event() == PageLoadEvent::Finished {
+                mark_fullscreen(&w);
+            }
+        });
+    let w = b.build()?;
+    // full screen hides the title bar and the lights: the page drops the reserved strip
+    #[cfg(target_os = "macos")]
+    {
+        let wc = w.clone();
+        w.on_window_event(move |e| {
+            if let tauri::WindowEvent::Resized(_) = e {
+                mark_fullscreen(&wc);
+            }
+        });
+    }
+    #[cfg(target_os = "ios")]
+    let _ = w.with_webview(|v| apple::tune_ios_webview(v.inner()));
+    Ok(w)
+}
+
+/// `html[data-fullscreen]` while the window is full screen (macOS): the title-bar strip goes away with the bar.
+#[cfg(target_os = "macos")]
+fn mark_fullscreen(w: &WebviewWindow) {
+    let fs = w.is_fullscreen().unwrap_or(false);
+    let _ = w.eval(format!(
+        "document.documentElement.toggleAttribute('data-fullscreen',{fs})"
+    ));
 }
 
 /// Can this server finish a login in the system browser (the `client=app` ticket branch)? Cached per server.
@@ -376,6 +407,28 @@ fn handle_link(app: &AppHandle, raw: &str) {
         }
         links::DeepLink::SpotifyCallback { query } => go(&format!("/callback?{query}")),
         links::DeepLink::Open { path } => go(&path),
+        links::DeepLink::Night { fragment } => go(&format!("/night#{fragment}")),
+        // the Rooms page asks before it talks to that server (the one opt-in case where the app reaches a server)
+        links::DeepLink::Room { server, code } => go(&format!(
+            "/rooms?join={code}&server={}",
+            url::form_urlencoded::byte_serialize(server.as_bytes()).collect::<String>()
+        )),
+        links::DeepLink::NightFile { path } => {
+            // the page reads it from sessionStorage (apps/web/src/app/night/page.tsx); 2 MB is far past any night
+            let Ok(meta) = std::fs::metadata(&path) else {
+                return;
+            };
+            if meta.len() > 2_000_000 {
+                return;
+            }
+            let Ok(text) = std::fs::read_to_string(&path) else {
+                return;
+            };
+            let _ = main.eval(format!(
+                "try{{sessionStorage.setItem('tdj-night-file',{})}}catch(_){{}};location.assign('/night?from=file')",
+                serde_json::to_string(&text).unwrap()
+            ));
+        }
         links::DeepLink::Server { url } => {
             let Ok(origin) = settings::normalize_server(&url) else {
                 return;
@@ -541,6 +594,13 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("error while building TDJ")
         .run(|app, event| {
+            // a .tdjnight opened from Finder, Files or AirDrop (bundle.fileAssociations)
+            #[cfg(any(target_os = "macos", target_os = "ios"))]
+            if let tauri::RunEvent::Opened { urls } = &event {
+                for u in urls {
+                    handle_link(app, u.as_str());
+                }
+            }
             if let tauri::RunEvent::Exit = event {
                 let state = app.state::<AppState>();
                 state.keep_awake.set(false);

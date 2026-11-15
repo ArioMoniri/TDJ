@@ -6,7 +6,7 @@ describe("auto-improve (round 13)", () => {
   it("is on by default", () => {
     expect(DEFAULT_SETTINGS.autoImprove).toBe(true);
   });
-  it("says nothing when nothing changed, and names the kinds and both numbers when something did", () => {
+  it("says nothing when nothing changed, and names the kinds (never the engine or benchmark numbers) when something did", () => {
     expect(autoImproveLine(null)).toBeNull();
     expect(
       autoImproveLine({
@@ -24,9 +24,7 @@ describe("auto-improve (round 13)", () => {
       before: { score: 89, inRange: 13, scored: 17 },
       after: { score: 91, inRange: 15, scored: 17 },
     });
-    expect(line).toBe(
-      "Auto-improved against published sets: 3 changes (one recording period, heatmap years) · engine 89 → 91 · benchmark 13/17 → 15/17",
-    );
+    expect(line).toBe("Polished against published DJ sets: 3 changes (one recording period, heatmap years)");
   });
   it("round 14: the strict panel's own edits are named", () => {
     const line = autoImproveLine({
@@ -36,6 +34,6 @@ describe("auto-improve (round 13)", () => {
       before: { score: 86, inRange: 15, scored: 18 },
       after: { score: 88, inRange: 16, scored: 18 },
     });
-    expect(line).toContain("(strict panel)");
+    expect(line).toContain("(DJ review rules)");
   });
 });

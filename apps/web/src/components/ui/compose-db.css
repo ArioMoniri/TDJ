@@ -1,0 +1,296 @@
+/* Round 22 — shared pieces for Compose, the Booth and the Database: help tags, artwork, era badges, the song search
+   side panel and the era heatmap. Content stays on the surface colour; only control chrome would take glass. */
+
+.tip-tag {
+  position: fixed;
+  z-index: 90;
+  max-width: min(280px, calc(100vw - 32px));
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgb(var(--bg-cell));
+  color: var(--label);
+  box-shadow:
+    0 0 0 0.5px var(--separator),
+    0 6px 20px rgb(0 0 0 / 0.18);
+  pointer-events: none;
+  text-align: center;
+  animation: tip-in var(--dur-xs, 120ms) ease-out;
+}
+@keyframes tip-in {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tip-tag {
+    animation: none;
+  }
+}
+
+/* artwork: the cover, or the orchestra's colour and initials */
+.art {
+  position: relative;
+  flex: none;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border-radius: var(--radius-xs);
+  background: var(--fill-3);
+}
+.art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.art[data-size="s"] {
+  width: 36px;
+  height: 36px;
+  border-radius: 7px;
+  font-size: 0.75rem;
+}
+.art[data-size="m"] {
+  width: 44px;
+  height: 44px;
+  font-size: 0.8125rem;
+}
+.art[data-size="l"] {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-s);
+  font-size: 1.125rem;
+}
+
+/* era badge */
+.era-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 999px;
+  padding: 1px 7px 1px 5px;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--label);
+  background: color-mix(in srgb, var(--era-c) 16%, transparent);
+}
+.era-badge::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--era-c);
+}
+.era-badge[data-compact] {
+  padding: 0;
+  background: none;
+  width: 22px;
+  height: 22px;
+  justify-content: center;
+}
+.era-badge[data-compact]::before {
+  width: 9px;
+  height: 9px;
+}
+.era-badge[data-mark="best"],
+.heat-cell[data-g="4"],
+.grade-swatch[data-g="4"] {
+  --era-c: #28b24c;
+}
+.era-badge[data-mark="good"],
+.heat-cell[data-g="3"],
+.grade-swatch[data-g="3"] {
+  --era-c: #3a9bdc;
+}
+.era-badge[data-mark="weak"],
+.heat-cell[data-g="2"],
+.grade-swatch[data-g="2"] {
+  --era-c: #e8a33a;
+}
+.heat-cell[data-g="1"],
+.grade-swatch[data-g="1"] {
+  --era-c: #d9783a;
+}
+.era-badge[data-mark="outside"],
+.heat-cell[data-g="0"],
+.grade-swatch[data-g="0"] {
+  --era-c: #8e8e93;
+}
+
+/* wave 2: a grade in the Era grades sheet is a word with its colour, not a digit on a 14 px strip; a 44 px target
+   on touch, 32 px with a mouse */
+.grade-swatch {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--era-c, transparent);
+  box-shadow: inset 0 0 0 1px var(--separator);
+}
+.grade-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  max-width: 11rem;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 8px;
+  background: var(--fill-4);
+  color: var(--label);
+  font-size: var(--text-footnote);
+  font-weight: 500;
+}
+.grade-btn[data-g=""] {
+  color: var(--label-2);
+}
+.grade-btn[data-edited] {
+  box-shadow: inset 0 0 0 1.5px var(--label);
+}
+.grade-btn:not(:disabled) {
+  cursor: pointer;
+}
+.grade-btn:disabled {
+  opacity: 1;
+}
+@media (pointer: coarse) {
+  .grade-btn {
+    min-height: 44px;
+  }
+}
+
+/* the era heatmap: one row per mode, one cell per year */
+.heat-grid {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(7px, 1fr);
+  gap: 2px;
+}
+.heat-cell {
+  height: 14px;
+  border-radius: 3px;
+  background: var(--era-c, var(--fill-4));
+  border: 0;
+  padding: 0;
+}
+.heat-cell[data-g=""] {
+  background: var(--fill-4);
+}
+.heat-cell[data-edited] {
+  box-shadow: inset 0 0 0 1.5px var(--label);
+}
+button.heat-cell {
+  cursor: pointer;
+}
+/* a 44 px target behind every editable cell, without changing the grid's look */
+.heat-edit .heat-cell {
+  height: 28px;
+}
+
+/* the song search side panel (wide screens): a resizable column on the surface, the page shifts beside it */
+.side-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  background: rgb(var(--bg-grouped));
+  border-left: 0.5px solid var(--separator);
+  box-shadow: -8px 0 28px rgb(0 0 0 / 0.08);
+}
+.side-panel-handle {
+  position: absolute;
+  left: -6px;
+  top: 0;
+  bottom: 0;
+  width: 12px;
+  cursor: col-resize;
+  touch-action: none;
+  background: none;
+  border: 0;
+}
+.side-panel-handle::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  width: 4px;
+  height: 36px;
+  margin-top: -18px;
+  border-radius: 2px;
+  background: var(--fill-1);
+  opacity: 0;
+  transition: opacity var(--dur-s, 200ms);
+}
+.side-panel-handle:hover::after,
+.side-panel-handle:focus-visible::after,
+.side-panel-handle[data-dragging]::after {
+  opacity: 1;
+}
+@media (min-width: 1024px) {
+  html[data-side-panel] main {
+    margin-right: var(--side-panel-w, 380px);
+    transition: margin-right var(--dur-s, 200ms) ease-out;
+  }
+}
+.chip-filter {
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--fill-4);
+  color: var(--label);
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+.chip-filter[aria-pressed="true"] {
+  background: var(--tint-fill);
+  color: var(--on-tint);
+}
+.place-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0 7px;
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--tint);
+  background: color-mix(in srgb, var(--tint) 13%, transparent);
+}
+.data-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 6px;
+  padding: 0 6px;
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--label-2);
+  background: var(--fill-4);
+  white-space: nowrap;
+}
+
+/* the era dot on the corner of a row's artwork */
+.era-overlay {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+}
+.era-overlay .era-badge[data-compact] {
+  width: 14px;
+  height: 14px;
+}
+.era-overlay .era-badge[data-compact]::before {
+  width: 10px;
+  height: 10px;
+  box-shadow: 0 0 0 2px rgb(var(--bg-cell));
+}
