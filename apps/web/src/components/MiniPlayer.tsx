@@ -1,5 +1,5 @@
 "use client";
-import { Pause, Play, X } from "lucide-react";
+import { Pause, Play, SkipBack, SkipForward, X } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef } from "react";
 import { mediaUrl } from "@/lib/app/media";
@@ -7,7 +7,9 @@ import { APP } from "@/lib/app/target";
 import { haptic } from "@/lib/haptics";
 import { t } from "@/lib/i18n";
 import { sheetUp } from "@/lib/motion";
-import { stopAt, usePlayer } from "@/lib/player";
+import { externalSeek, loadPlayAccess, stepList } from "@/lib/playback";
+import { externalAudio, ownAudio, stopAt, usePlayer } from "@/lib/player";
+import { playableStart } from "@/lib/playSource";
 import { SpotifyEmbed } from "./Listen";
 import { SeekBar } from "./ui/SeekBar";
 
@@ -23,11 +25,51 @@ const fmt = (s: number) => {
  * The one `<audio playsInline>` element of the app lives here; Spotify sources render the inline embed instead.
  */
 export function MiniPlayer() {
-  const { track, playing, position, duration, error, queue, toggle, close, seek, _tick, _ended, _error } =
-    usePlayer();
+  const {
+    track,
+    playing,
+    position,
+    duration,
+    error,
+    queue,
+    list,
+    toggle,
+    close,
+    seek,
+    _tick,
+    _ended,
+    _error,
+  } = usePlayer();
   const audio = useRef<HTMLAudioElement>(null);
   const reduced = useReducedMotion();
-  const preview = track?.source.kind === "preview" ? track.source.ref : null;
+  const preview = ownAudio(track?.source) ? track!.source.ref : null;
+  const external = externalAudio(track?.source);
+  const controllable = !!track && track.source.kind !== "spotify";
+  // whether a Spotify session streams full tracks: asked once, when the page is idle
+  useEffect(() => {
+    const ric = (window as unknown as { requestIdleCallback?: (f: () => void) => number })
+      .requestIdleCallback;
+    const go = () => void loadPlayAccess();
+    if (ric) ric(go);
+    else setTimeout(go, 1500);
+  }, []);
+  // a cortina starts at its chorus: once the clip's length is known, where the clip can honour it
+  const startFor = useRef<{ ref: string; sec: number } | null>(null);
+  useEffect(() => {
+    startFor.current = preview && track?.startSec ? { ref: preview, sec: track.startSec } : null;
+  }, [preview, track?.startSec]);
+  const onMeta = (el: HTMLAudioElement) => {
+    const want = startFor.current;
+    if (!want || !preview || want.ref !== preview) return;
+    startFor.current = null;
+    const at = playableStart(want.sec, el.duration);
+    if (at > 0) el.currentTime = at;
+    else if (track?.stopSec && track.startSec) {
+      // a 30 s excerpt shorter than the chorus start: it plays from its own beginning for the cortina length
+      const len = track.stopSec - track.startSec;
+      usePlayer.setState({ track: { ...track, startSec: 0, stopSec: len }, position: 0 });
+    }
+  };
 
   // play / pause follow the store; a new source loads and starts
   useEffect(() => {
@@ -92,8 +134,10 @@ export function MiniPlayer() {
   }, [position, preview]);
 
   const total = stopAt(track, queue) ?? (duration || 30);
+  const onSeek = (sec: number) => (external ? void externalSeek(sec) : seek(sec));
   // the phone tab capsule (wave 4: --tabbar-h over --tabbar-bottom): the player's bottom edge sits on its top edge
-  const offset = "calc(var(--tabbar-bottom) + var(--tabbar-h))";
+  // (--chrome-stack is the tab capsule plus this player's own reserve: the player sits on the capsule, under it)
+  const offset = "calc(var(--chrome-stack) - var(--mini-reserve))";
   // the page reserves the docked player's height (globals.css: --mini-h → --mini-reserve → --bottom-chrome), so the
   // last rows, the guide box and anything scrolled into view clear the player as well as the tab capsule
   const docked = useRef<HTMLDivElement>(null);
@@ -129,6 +173,7 @@ export function MiniPlayer() {
         playsInline
         preload="none"
         onTimeUpdate={(e) => _tick(e.currentTarget.currentTime, e.currentTarget.duration || 30)}
+        onLoadedMetadata={(e) => onMeta(e.currentTarget)}
         onEnded={_ended}
         onError={() => _error(t("miniPlayer.could_not_load_this_preview"))}
         aria-hidden
@@ -145,15 +190,34 @@ export function MiniPlayer() {
             role="region"
             aria-label={t("miniPlayer.now_playing")}
             data-testid="mini-player"
+            data-source={track.source.kind}
+            data-kind={track.kind ?? "song"}
             className="glass mini-docked fixed inset-x-4 z-30 mx-auto max-w-[440px] sm:max-w-none rounded-[var(--radius-m)] p-2 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:w-[360px] lg:bottom-6"
             style={{ bottom: `var(--mini-bottom, ${offset})` }}
           >
             <style>{'@media (min-width: 600px){[data-testid="mini-player"]{--mini-bottom:1.5rem}}'}</style>
             <div className="flex items-center gap-2">
-              {track.source.kind === "preview" ? (
+              {list && list.items.length > 1 && (
+                <button
+                  type="button"
+                  className="icon-btn icon-btn-bare"
+                  aria-label={t("play.previous")}
+                  disabled={list.index <= 0}
+                  data-testid="mini-prev"
+                  onClick={() => {
+                    haptic(4);
+                    void stepList(-1);
+                  }}
+                >
+                  <SkipBack size={18} fill="currentColor" strokeWidth={0} />
+                </button>
+              )}
+              {controllable ? (
                 <button
                   type="button"
                   className="icon-btn"
+                  data-testid="mini-toggle"
+                  data-playing={playing || undefined}
                   aria-label={playing ? t("miniPlayer.pause") : t("miniPlayer.play")}
                   onClick={() => {
                     haptic(4);
@@ -167,8 +231,25 @@ export function MiniPlayer() {
                   )}
                 </button>
               ) : null}
+              {list && list.items.length > 1 && (
+                <button
+                  type="button"
+                  className="icon-btn icon-btn-bare"
+                  aria-label={t("play.next")}
+                  disabled={list.index >= list.items.length - 1}
+                  data-testid="mini-next"
+                  onClick={() => {
+                    haptic(4);
+                    void stepList(1);
+                  }}
+                >
+                  <SkipForward size={18} fill="currentColor" strokeWidth={0} />
+                </button>
+              )}
               <span className="min-w-0 flex-1 px-1">
-                <span className="text-subhead block truncate font-semibold">{track.title}</span>
+                <span className="text-subhead block truncate font-semibold" data-testid="mini-title">
+                  {track.title}
+                </span>
                 <span className="text-footnote block truncate text-[var(--label-2)]">
                   {track.orchestra}
                   {track.singer ? ` · ${track.singer}` : ""}
@@ -185,11 +266,19 @@ export function MiniPlayer() {
                       p1: queue.index + 1,
                       length: queue.tracks.length,
                     })
-                  : track.kind === "cortina" && track.stopSec
-                    ? t("miniPlayer.cortina_s", { stopSec: track.stopSec })
-                    : track.source.kind === "preview"
-                      ? t("miniPlayer.30_s_preview")
-                      : t("miniPlayer.spotify")}
+                  : track.source.kind === "cue"
+                    ? t("play.headphones")
+                    : track.kind === "cortina" && track.stopSec
+                      ? t("miniPlayer.cortina_s", {
+                          stopSec: Math.round(track.stopSec - (track.startSec ?? 0)),
+                        })
+                      : track.source.kind === "preview"
+                        ? t("miniPlayer.30_s_preview")
+                        : track.source.kind === "file"
+                          ? t("play.your_file")
+                          : track.source.kind === "spotify-full"
+                            ? t("play.full_track")
+                            : t("miniPlayer.spotify")}
               </span>
               <button
                 type="button"
@@ -200,14 +289,19 @@ export function MiniPlayer() {
                 <X size={18} strokeWidth={2} />
               </button>
             </div>
-            {track.source.kind === "preview" ? (
+            {track.where && (
+              <p className="text-caption1 truncate px-3 text-[var(--label-2)]" data-testid="mini-where">
+                {track.where}
+              </p>
+            )}
+            {track.source.kind !== "spotify" ? (
               <div className="flex items-center gap-2 px-2 pb-1">
                 <span className="text-caption1 w-8 tabular-nums text-[var(--label-2)]">{fmt(position)}</span>
                 {/* 2026-11: the shared seek bar (drag, tap, ← / → ±5 s; a 44 px target, the 32 px range was not) */}
                 <SeekBar
                   value={Math.min(position, total)}
                   max={total}
-                  onSeek={seek}
+                  onSeek={onSeek}
                   label={t("miniPlayer.position")}
                   hint={t("miniPlayer.seek_hint")}
                   testId="mini-seek"

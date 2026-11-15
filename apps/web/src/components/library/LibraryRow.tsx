@@ -2,16 +2,18 @@
 import type { Playlist, SongSearchHit } from "@tdj/core";
 import { Heart, Plus } from "lucide-react";
 import dynamic from "next/dynamic";
-import { memo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { Group, Row } from "@/components/Form";
 import { I } from "@/components/Icons";
 import { Sheet } from "@/components/Sheet";
 import { Highlight } from "@/components/search/Highlight";
 import { Artwork } from "@/components/ui/Artwork";
+import { NowBars } from "@/components/ui/NowPlaying";
 import { coverFor } from "@/lib/artwork";
 import { haptic } from "@/lib/haptics";
 import { t } from "@/lib/i18n";
-import { sourceFor, trackFor, usePlayer } from "@/lib/player";
+import { useTapPlay } from "@/lib/playback";
+import type { PlayItem } from "@/lib/player";
 import { gateEdit } from "@/lib/ruleCheck";
 import { targetsFor } from "@/lib/searchPanel";
 import { useStore } from "@/lib/store";
@@ -25,14 +27,8 @@ const ResolveSheet = dynamic(() => import("@/components/ResolveSheet").then((m) 
 
 const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
 
-/** play / pause in the app's one player (or "Find on services" when the side has nothing to play yet) */
-export function playSong(song: Song, connected: boolean, patch?: Partial<Song> | null): boolean {
-  const source = sourceFor(song, connected, patch);
-  if (!source) return false;
-  haptic(4);
-  usePlayer.getState().toggle(trackFor({ ...song, ...(patch ?? {}) } as Song, source));
-  return true;
-}
+/** the Library's results as a play item (the mini player's previous / next step through the results) */
+export const libraryItem = (song: Song): PlayItem => ({ kind: "song", song, where: t("library.library") });
 
 /**
  * One search result in the Library (2026-11): artwork, the title and orchestra / singer · year with the matched words
@@ -54,10 +50,11 @@ export const LibraryRow = memo(function LibraryRow({
   findSignal?: number;
 }) {
   const s = hit.song;
-  const connected = useStore((st) => !!st.spotifyToken && st.spotifyToken.expires > Date.now());
-  const patch = useStore((st) => st.overrides.songs?.[s.id]);
   const playlist = useStore((st) => st.playlist);
-  const playing = usePlayer((p) => p.playing && p.track?.id === s.id);
+  // 2026-11: the app-wide tap-to-play (lib/playback.ts): the results' list comes from the page's PlayListContext
+  const item = useMemo(() => libraryItem(s), [s]);
+  const tp = useTapPlay(item);
+  const playing = tp.playing;
   const [find, setFind] = useState(false);
   const [lastSignal, setLastSignal] = useState(findSignal);
   if (findSignal !== lastSignal) {
@@ -65,9 +62,9 @@ export const LibraryRow = memo(function LibraryRow({
     if (findSignal) setFind(true);
   }
   const [adding, setAdding] = useState(false);
-  const source = sourceFor(s, connected, patch);
   const play = () => {
-    if (!playSong(s, connected, patch)) setFind(true);
+    haptic(4);
+    void tp.tap({ find: () => setFind(true) });
   };
   const len = s.durationSec ? `${s.durationEstimated ? "≈" : ""}${mmss(s.durationSec)}` : null;
   const popular = !hit.favourite && hit.popularity >= 0.6;
@@ -78,8 +75,9 @@ export const LibraryRow = memo(function LibraryRow({
       role="option"
       aria-selected={active}
       tabIndex={-1}
-      className="cell search-row"
+      className={`cell search-row ${tp.state ? "row-now" : ""}`}
       data-leading="art"
+      data-now={tp.state ?? undefined}
       data-testid="library-row"
       data-song={s.id}
       onClick={play}
@@ -91,7 +89,7 @@ export const LibraryRow = memo(function LibraryRow({
         aria-label={
           playing
             ? t("library.pause", { title: s.title })
-            : source
+            : tp.audible
               ? t("library.play", { title: s.title })
               : t("library.find_on_services", { title: s.title })
         }
@@ -104,13 +102,20 @@ export const LibraryRow = memo(function LibraryRow({
       >
         {playing ? (
           <I name="pause" size={18} fill="currentColor" strokeWidth={0} />
-        ) : source ? (
+        ) : tp.audible ? (
           <I name="play" size={18} fill="currentColor" strokeWidth={0} />
         ) : (
           <I name="search" size={16} strokeWidth={2.25} />
         )}
       </button>
-      <Artwork src={coverFor(s)} orchestra={s.orchestra} orchestraId={s.orchestraId} song={s} />
+      <span className="relative shrink-0" data-testid="row-art">
+        <Artwork src={coverFor(s)} orchestra={s.orchestra} orchestraId={s.orchestraId} song={s} />
+        {tp.state && (
+          <span className="absolute inset-0 grid place-items-center rounded-[inherit] bg-black/45 text-white">
+            <NowBars on={tp.playing} className="!text-white" />
+          </span>
+        )}
+      </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate" data-testid="library-row-title">
           <Highlight text={s.title} spans={hit.highlights.title} />

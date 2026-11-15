@@ -3,7 +3,6 @@ import { missingFields, type SongFilters, type SongSearchHit, songData } from "@
 import { AudioWaveform, CircleMinus, DatabaseZap, Link2, Trash2 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
-import { playSong } from "@/components/library/LibraryRow";
 import { SEARCH_FOCUS_EVENT } from "@/components/Nav";
 import { Highlight } from "@/components/search/Highlight";
 import { filtersActive, SearchChips } from "@/components/search/SearchChips";
@@ -13,10 +12,10 @@ import { effectiveSong } from "@/lib/audio";
 import { fillMissing } from "@/lib/fill/client";
 import { lazy, lower, t as tx } from "@/lib/i18n";
 import { rise, spring } from "@/lib/motion";
+import { tapPlay } from "@/lib/playback";
 import { bpmChoice } from "@/lib/songData";
 import { SOURCE_LABEL } from "@/lib/songView";
 import { spotifyUri, spotifyUrl } from "@/lib/spotifyLink";
-import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import type { Song, SongPatch } from "@/lib/types";
 import { useSongSearch } from "@/lib/useSongSearch";
@@ -28,6 +27,8 @@ import { Sheet } from "../Sheet";
 import { SwipeRow } from "../SwipeRow";
 import { Artwork } from "../ui/Artwork";
 import { EraBadge } from "../ui/EraBadge";
+import { PlayRow } from "../ui/PlayRow";
+import { rhythmWord } from "../ui/TandaTypeBadge";
 import { Tip } from "../ui/Tip";
 import { Empty, patchMap, useDb, useDbEdit, ValueCell } from "./shared";
 import { VersionsRow } from "./Versions";
@@ -146,8 +147,10 @@ export function SongsTab() {
       const s = rows[active >= 0 ? active : 0];
       if (s) {
         setActive(active >= 0 ? active : 0);
-        const connected = !!useStore.getState().spotifyToken;
-        playSong(s, connected, overrides.songs?.[s.id]);
+        // the app-wide tap-to-play (lib/playback.ts), as a tap on the row's header
+        void tapPlay({ kind: "song", song: effectiveSong(s, overrides), where: tx("play.database") }, null, {
+          find: () => setFinding(s),
+        });
       }
     } else if (e.key === "Escape" && q) {
       e.preventDefault();
@@ -341,18 +344,26 @@ export function SongsTab() {
                 footer={edited ? tx("db.songsTab.edited_revert_in_edit_mode") : undefined}
                 className={`min-w-0 ${i === active ? "rounded-xl outline-2 outline-offset-2 outline-[var(--tint)]" : ""}`}
               >
-                <div className="cell" data-leading="art">
-                  <Artwork
-                    src={data.artwork?.value as string | undefined}
-                    orchestra={s.orchestra}
-                    orchestraId={s.orchestraId}
-                    song={s}
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="text-headline block truncate">
+                {/* 2026-11: the side's header plays it (a tap on the cover or the title) */}
+                <PlayRow
+                  song={eff}
+                  where={tx("play.database")}
+                  testId="db-song-row"
+                  leading={
+                    <Artwork
+                      src={data.artwork?.value as string | undefined}
+                      orchestra={s.orchestra}
+                      orchestraId={s.orchestraId}
+                      song={s}
+                    />
+                  }
+                  title={
+                    <span className="text-headline">
                       <Highlight text={s.title} spans={hl.title} />
                     </span>
-                    <span className="text-subhead block truncate text-[var(--label-2)]">
+                  }
+                  sub={
+                    <>
                       <Highlight text={s.orchestra} spans={hl.orchestra} />
                       {s.singer ? (
                         <>
@@ -362,18 +373,19 @@ export function SongsTab() {
                       ) : (
                         ""
                       )}
-                      {s.year ? ` · ${s.year}` : ""} · {labelOf(v.rhythm)}
-                    </span>
-                    <span className="mt-0.5 flex flex-wrap gap-1">
-                      <EraBadge song={eff} />
-                    </span>
-                  </span>
-                  {editing && edited && (
-                    <button type="button" className="btn-plain -mr-2" onClick={() => revert(s.id)}>
-                      {tx("db.songsTab.revert")}
-                    </button>
-                  )}
-                </div>
+                      {s.year ? ` · ${s.year}` : ""} · {labelOf(v.rhythm)} <EraBadge song={eff} />
+                    </>
+                  }
+                  lengthSec={eff.durationSec ?? null}
+                  onFind={() => setFinding(s)}
+                  trailing={
+                    editing && edited ? (
+                      <button type="button" className="btn-plain -mr-2" onClick={() => revert(s.id)}>
+                        {tx("db.songsTab.revert")}
+                      </button>
+                    ) : undefined
+                  }
+                />
                 <ValueCell
                   label={tx("db.songsTab.year")}
                   inputLabel={tx("db.songsTab.year_of", { title: s.title })}
@@ -725,8 +737,8 @@ export function SongsTab() {
                   { kind: "destructive", label: "Delete", icon: Trash2, onClick: () => removeOwn(s.id) },
                 ]}
               >
-                <div className="cell" data-leading="art">
-                  {editing ? (
+                {editing ? (
+                  <div className="cell" data-leading="art">
                     <button
                       type="button"
                       className="icon-btn icon-btn-bare -ml-3 text-[var(--destructive)]"
@@ -735,16 +747,23 @@ export function SongsTab() {
                     >
                       <CircleMinus size={22} strokeWidth={2} fill="currentColor" stroke="#fff" />
                     </button>
-                  ) : (
-                    <RhythmTile rhythm={s.rhythm} />
-                  )}
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate">{s.title}</span>
-                    <span className="text-footnote block truncate text-[var(--label-2)]">
-                      {metaLine(s.orchestra, s.singer, s.rhythm, yearText(s.year))}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate">{s.title}</span>
+                      <span className="text-footnote block truncate text-[var(--label-2)]">
+                        {metaLine(s.orchestra, s.singer, s.rhythm, yearText(s.year))}
+                      </span>
                     </span>
-                  </span>
-                </div>
+                  </div>
+                ) : (
+                  <PlayRow
+                    song={s as Song}
+                    where={tx("play.database")}
+                    leadingKind="tile"
+                    leading={<RhythmTile rhythm={s.rhythm} label={rhythmWord(s.rhythm)} />}
+                    sub={metaLine(s.orchestra, s.singer, s.rhythm, yearText(s.year))}
+                    lengthSec={(s as Song).durationSec ?? null}
+                  />
+                )}
               </SwipeRow>
             </motion.div>
           ))}

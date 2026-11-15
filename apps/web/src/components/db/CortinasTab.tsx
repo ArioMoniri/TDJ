@@ -8,6 +8,7 @@ import { ActionRow, Group, Row } from "../Form";
 import { SearchField } from "../SearchField";
 import { Sheet } from "../Sheet";
 import { Highlight } from "../search/Highlight";
+import { CortinaPlayButton } from "../ui/PlayRow";
 import { Empty, useDb } from "./shared";
 
 const TEMPLATE: Cortina = {
@@ -178,37 +179,42 @@ export function CortinasTab({ base }: { base: MetaCortina[] }) {
         data-testid="cortina-list"
       >
         {shown.map(({ doc: { c, state }, highlights: hl }, i) => (
-          <Row
-            key={c.id}
-            id={`cortina-row-${i}`}
-            data-testid="cortina-row"
-            aria-current={i === active ? "true" : undefined}
-            className={i === active ? "search-row-active" : ""}
-            tile={
-              <span
-                className="tile"
-                style={{ background: state === "deleted" ? "#8e8e93" : "#ff9500" }}
-                aria-hidden
-              >
-                <AudioLines size={16} strokeWidth={2} />
-              </span>
-            }
-            label={
-              <span className={state === "deleted" ? "line-through text-[var(--label-2)]" : ""}>
-                <Highlight text={c.artist} spans={hl.artist} /> –{" "}
-                <Highlight text={c.title} spans={hl.title} />
-              </span>
-            }
-            sub={t("db.cortinasTab.energy", {
-              genre: c.genre,
-              culture: c.culture,
-              energy: c.energy,
-              p1: state !== "index" ? ` · ${state}` : "",
-            })}
-            value={`${c.lengthSec ?? 45} s`}
-            chevron
-            onClick={() => open(c)}
-          />
+          // 2026-11: the play button beside the row plays the cortina from its chorus (the row opens the editor)
+          <div key={c.id} className="relative flex items-center pr-2" data-testid="db-cortina-row">
+            <div className="min-w-0 flex-1">
+              <Row
+                id={`cortina-row-${i}`}
+                data-testid="cortina-row"
+                aria-current={i === active ? "true" : undefined}
+                className={i === active ? "search-row-active" : ""}
+                tile={
+                  <span
+                    className="tile"
+                    style={{ background: state === "deleted" ? "#8e8e93" : "#ff9500" }}
+                    aria-hidden
+                  >
+                    <AudioLines size={16} strokeWidth={2} />
+                  </span>
+                }
+                label={
+                  <span className={state === "deleted" ? "line-through text-[var(--label-2)]" : ""}>
+                    <Highlight text={c.artist} spans={hl.artist} /> –{" "}
+                    <Highlight text={c.title} spans={hl.title} />
+                  </span>
+                }
+                sub={t("db.cortinasTab.energy", {
+                  genre: c.genre,
+                  culture: c.culture,
+                  energy: c.energy,
+                  p1: state !== "index" ? ` · ${state}` : "",
+                })}
+                value={`${c.lengthSec ?? 45} s`}
+                chevron
+                onClick={() => open(c)}
+              />
+            </div>
+            {state !== "deleted" && <CortinaPlayButton cortina={c} where={t("db.cortinasTab.cortinas")} />}
+          </div>
         ))}
         <ActionRow
           label={t("db.cortinasTab.add_a_cortina")}

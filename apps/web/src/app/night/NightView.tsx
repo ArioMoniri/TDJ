@@ -9,18 +9,22 @@ import {
 } from "@tdj/core";
 import { CircleAlert, FileUp, Link2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { Group, RhythmTile, Tile } from "@/components/Form";
 import { NightCover } from "@/components/NightCover";
 import { PageHeader } from "@/components/PageHeader";
 import { TipRow } from "@/components/TipRow";
+import { NightLength, PlayRow } from "@/components/ui/PlayRow";
+import { isMixedTanda, rhythmWord, TandaTypeBadge } from "@/components/ui/TandaTypeBadge";
 import { Tip } from "@/components/ui/Tip";
 import { haptic } from "@/lib/haptics";
 import { makeSnapshot } from "@/lib/history";
 import { t as tx } from "@/lib/i18n";
+import { lengthOf, tandaTotal, totalText } from "@/lib/lengths";
+import { nightItems, PlayListContext } from "@/lib/playback";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
-import { yearSpan } from "@/lib/year";
+import { metaLine, yearSpan, yearText } from "@/lib/year";
 
 /** where the Mac / iPad app leaves a .tdjnight it was asked to open (apps/desktop: links::DeepLink::NightFile) */
 const APP_FILE_KEY = "tdj-night-file";
@@ -301,28 +305,78 @@ export default function NightPage() {
               ))}
             </Group>
           )}
-          <Group header={tx("night.tandas")} data-testid="night-tandas">
-            {p.tandas.map((t, i) => (
-              <TipRow
-                key={`${i}-${t.orchestraId}`}
-                tile={<RhythmTile rhythm={t.rhythm} />}
-                label={`${i + 1}. ${t.orchestra}${t.singer ? ` · ${t.singer}` : ""}`}
-                sub={t.songs.map((s) => s.title).join(" · ")}
-                value={
-                  t.bypass
-                    ? tx("night.skipped")
-                    : t.locked
-                      ? tx("night.locked")
-                      : t.yearRange
-                        ? (yearSpan(t.yearRange) ?? undefined)
-                        : undefined
-                }
-              />
-            ))}
-            {p.closing && (
-              <TipRow label={tx("night.closing", { title: p.closing.title })} sub={p.closing.orchestra} />
-            )}
-          </Group>
+          {/* 2026-11: every side plays on a tap (the mini player steps through the night); a badge and a total per
+              tanda, a length per side (the shared night is read-only: no reorder here) */}
+          <PlayListContext.Provider value={{ label: p.name, items: nightItems(p) }}>
+            <Group
+              header={
+                <>
+                  {tx("night.tandas")} · <NightLength playlist={p} />
+                </>
+              }
+              data-testid="night-tandas"
+            >
+              {p.tandas.map((t, i) => (
+                <Fragment key={`${i}-${t.orchestraId}`}>
+                  <TipRow
+                    tile={<RhythmTile rhythm={t.rhythm} label={rhythmWord(t.rhythm)} />}
+                    label={`${i + 1}. ${t.orchestra}${t.singer ? ` · ${t.singer}` : ""}`}
+                    sub={
+                      <span className="inline-flex flex-wrap items-center gap-1.5">
+                        <TandaTypeBadge
+                          rhythm={t.rhythm}
+                          singer={t.singer}
+                          vocal={t.vocal}
+                          mixed={isMixedTanda(t)}
+                        />
+                        <span className="tabular-nums" data-testid="tanda-total">
+                          {tx("play.songs_total", {
+                            n: t.songs.length,
+                            total: totalText(tandaTotal(t.songs, p.booth?.songCues)),
+                          })}
+                        </span>
+                      </span>
+                    }
+                    value={
+                      t.bypass
+                        ? tx("night.skipped")
+                        : t.locked
+                          ? tx("night.locked")
+                          : t.yearRange
+                            ? (yearSpan(t.yearRange) ?? undefined)
+                            : undefined
+                    }
+                  />
+                  {t.songs.map((s, k) => (
+                    <PlayRow
+                      key={s.id}
+                      song={s}
+                      where={tx("play.tanda", { n: i + 1 })}
+                      leadingKind="num"
+                      leading={
+                        <span className="text-subhead inline-block w-5 tabular-nums text-[var(--label-2)]">
+                          {k + 1}
+                        </span>
+                      }
+                      sub={metaLine(s.singer, yearText(s.year))}
+                      lengthSec={lengthOf(s, p.booth?.songCues)}
+                      testId="night-song"
+                    />
+                  ))}
+                </Fragment>
+              ))}
+              {p.closing && (
+                <PlayRow
+                  song={p.closing}
+                  where={tx("play.closing")}
+                  title={tx("night.closing", { title: p.closing.title })}
+                  sub={p.closing.orchestra}
+                  lengthSec={lengthOf(p.closing, p.booth?.songCues)}
+                  testId="night-closing"
+                />
+              )}
+            </Group>
+          </PlayListContext.Provider>
         </>
       )}
     </section>

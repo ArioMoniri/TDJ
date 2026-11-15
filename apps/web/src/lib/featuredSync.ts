@@ -13,15 +13,17 @@ import type { Playlist } from "./types";
  * shipped version, with Undo back to the copy the browser had.
  */
 const sides = (p: Pick<Playlist, "tandas">) => p.tandas.flatMap((x) => x.songs.map((s) => s.id));
+// 2026-11 ("order in each tanda should be changeable in all tabs"): the songs of a tanda are compared as a set, so
+// the DJ's own order inside a tanda is not taken for an older copy (and survives a reload)
 const signature = (p: Playlist) =>
   JSON.stringify([
-    sides(p),
+    p.tandas.map((x) => x.songs.map((s) => s.id).sort()),
     p.tandas.map((x) => x.cortina?.id ?? null),
     // 2026-11: a cortina's start (its chorus) shipped since reaches a browser's older copy too
     p.tandas.map((x) => x.cortina?.startSec ?? 0),
     p.opening?.id ?? null,
     p.closing?.id ?? null,
-    p.tandas.map((x) => x.songs.map((s) => s.spotify?.uri ?? null)),
+    p.tandas.map((x) => x.songs.map((s) => `${s.id}=${s.spotify?.uri ?? ""}`).sort()),
   ]);
 
 /** the open night is an older copy of the shipped one: its id, or ≥ 60 % of its sides */

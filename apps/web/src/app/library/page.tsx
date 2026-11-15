@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import { FeaturedCard } from "@/components/FeaturedCard";
 import { Group, Row } from "@/components/Form";
-import { LibraryRow, playSong } from "@/components/library/LibraryRow";
+import { LibraryRow, libraryItem } from "@/components/library/LibraryRow";
 import { SEARCH_FOCUS_EVENT } from "@/components/Nav";
 import { PageHeader } from "@/components/PageHeader";
 import { SearchField } from "@/components/SearchField";
@@ -14,6 +14,7 @@ import { filtersActive, SearchChips } from "@/components/search/SearchChips";
 import { favouritesOf } from "@/lib/favourites";
 import { useMediaQuery } from "@/lib/hooks";
 import { fmtNumber, t as tx } from "@/lib/i18n";
+import { PlayListContext, tapPlay } from "@/lib/playback";
 import { useStore } from "@/lib/store";
 import { forgetSearches, recentSearches, rememberSearch, useSongSearch } from "@/lib/useSongSearch";
 
@@ -49,7 +50,6 @@ export default function Library() {
   const [recent, setRecent] = useState<string[]>([]);
   const [findAt, setFindAt] = useState<{ i: number; n: number }>({ i: -1, n: 0 });
   const memory = useStore((s) => s.memory);
-  const connected = useStore((s) => !!s.spotifyToken && s.spotifyToken.expires > Date.now());
   const desktop = useMediaQuery("(hover: hover) and (pointer: fine)");
   // the DJ's dancer favourites (this device's memory): sent with the query so the ♥ chip counts and filters them
   const favourites = useMemo(() => {
@@ -91,6 +91,11 @@ export default function Library() {
     () => [...(meta?.orchestras ?? [])].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name)),
     [meta],
   );
+  // 2026-11: a tap plays from the results (the mini player's Previous / Next step through them)
+  const resultList = useMemo(
+    () => ({ label: tx("library.library"), items: items.map((h) => libraryItem(h.song)) }),
+    [items],
+  );
   const remember = useCallback(() => {
     if (q.trim().length >= 2 && items.length) setRecent(rememberSearch(q));
   }, [q, items.length]);
@@ -108,8 +113,8 @@ export default function Library() {
       if (!hit) return;
       setActive(i);
       remember();
-      const patch = useStore.getState().overrides.songs?.[hit.song.id];
-      if (!playSong(hit.song, connected, patch)) setFindAt((f) => ({ i, n: f.n + 1 }));
+      // the app-wide tap-to-play: from the results, so Previous / Next step through them
+      void tapPlay(libraryItem(hit.song), resultList, { find: () => setFindAt((f) => ({ i, n: f.n + 1 })) });
     } else if (e.key === "Escape") {
       if (q || filtersActive(filters)) {
         e.preventDefault();
@@ -223,37 +228,39 @@ export default function Library() {
               {grouped ? tx("search.ungroup") : tx("search.group_by_orchestra")}
             </button>
           </div>
-          <div
-            className={`group-inset transition-opacity ${loading ? "opacity-70" : ""}`}
-            role="listbox"
-            id="library-results"
-            aria-label={tx("library.results", { length: fmtNumber(total) })}
-            data-testid="library-results"
-          >
-            {items.map((h, i) => {
-              const g = groupOf(i);
-              return (
-                <div key={h.song.id} role="presentation">
-                  {g && (
-                    <div
-                      role="presentation"
-                      className="text-footnote px-4 pt-3 pb-1 font-semibold text-[var(--label-2)]"
-                      data-testid="library-group-head"
-                    >
-                      {g.orchestra} · {fmtNumber(g.count)}
-                    </div>
-                  )}
-                  <LibraryRow
-                    hit={h}
-                    id={rowId(i)}
-                    active={i === active}
-                    onHover={desktop ? () => setActive(i) : undefined}
-                    findSignal={findAt.i === i ? findAt.n : undefined}
-                  />
-                </div>
-              );
-            })}
-          </div>
+          <PlayListContext.Provider value={resultList}>
+            <div
+              className={`group-inset transition-opacity ${loading ? "opacity-70" : ""}`}
+              role="listbox"
+              id="library-results"
+              aria-label={tx("library.results", { length: fmtNumber(total) })}
+              data-testid="library-results"
+            >
+              {items.map((h, i) => {
+                const g = groupOf(i);
+                return (
+                  <div key={h.song.id} role="presentation">
+                    {g && (
+                      <div
+                        role="presentation"
+                        className="text-footnote px-4 pt-3 pb-1 font-semibold text-[var(--label-2)]"
+                        data-testid="library-group-head"
+                      >
+                        {g.orchestra} · {fmtNumber(g.count)}
+                      </div>
+                    )}
+                    <LibraryRow
+                      hit={h}
+                      id={rowId(i)}
+                      active={i === active}
+                      onHover={desktop ? () => setActive(i) : undefined}
+                      findSignal={findAt.i === i ? findAt.n : undefined}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </PlayListContext.Provider>
           {hasMore && (
             <div className="mt-3 flex justify-center">
               <button

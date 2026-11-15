@@ -52,12 +52,15 @@ import { haptic } from "@/lib/haptics";
 import { makeSnapshot } from "@/lib/history";
 import { testSlowdownMs, useMediaQuery, whenIdle } from "@/lib/hooks";
 import { lazy, lower, plural, t as tx } from "@/lib/i18n";
+import { lengthOf } from "@/lib/lengths";
 import { rateTap, ratingOf, undoRate } from "@/lib/likes";
 import { describePreferences } from "@/lib/memory";
 import { DUR, EASE, rise, STAGGER } from "@/lib/motion";
 import { nightEraLabel, nightSub, nightTitle } from "@/lib/nightName";
+import { nightItems, PlayListContext } from "@/lib/playback";
 import { usePlayer } from "@/lib/player";
 import { requestFavourites } from "@/lib/popularity";
+import { moveSongInNight } from "@/lib/reorder";
 import { approvedKeys, gateEdit } from "@/lib/ruleCheck";
 import { useSheetOpen } from "@/lib/sheets";
 import {
@@ -113,6 +116,7 @@ import { TandaChoices } from "./TandaChoices";
 import { TandaInspector } from "./TandaInspector";
 import { TandaRulesGroup } from "./TandaRules";
 import { NightProfile } from "./ui/NightProfile";
+import { NightLength, PlayRow } from "./ui/PlayRow";
 import { Tip } from "./ui/Tip";
 
 /* Below-the-fold / on-demand pieces: their code arrives when first needed, not with the composer. */
@@ -1403,6 +1407,41 @@ export function Composer() {
     },
     [setPlaylist, recordNightEdit, remember],
   );
+  /**
+   * 2026-11 ("order in each tanda should be changeable in all tabs"): song `from` of tanda `i` moves to `to` — the
+   * tanda re-timed, the night re-scored, through the rule check (the order rules are soft: it applies with Undo and
+   * "See suggestion"), learned from as a swap is, and saved to History.
+   */
+  const moveTrack = useCallback(
+    async (i: number, from: number, to: number) => {
+      const prev = useStore.getState().playlist;
+      if (!prev) return;
+      const next = moveSongInNight(prev, i, from, to);
+      if (next === prev) return;
+      haptic(6);
+      const label = tx("play.moved_song", {
+        title: prev.tandas[i]?.songs[from]?.title ?? "",
+        p1: to + 1,
+        p2: i + 1,
+      });
+      const res = await gateEdit({
+        before: prev,
+        after: next,
+        label,
+        apply: (x, l) => {
+          remember(useStore.getState().playlist);
+          setPlaylist(x);
+          recordNightEdit(x, l, "swap");
+        },
+      });
+      if (res !== "applied") return;
+      toast(label, () => {
+        setPlaylist(prev);
+        recordNightEdit(prev, tx("play.move_undone"), "swap");
+      });
+    },
+    [setPlaylist, recordNightEdit, remember],
+  );
   const lockTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lock = useCallback(
     (i: number) => {
@@ -1636,6 +1675,11 @@ export function Composer() {
     document.getElementById(`tanda-${i + 1}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, []);
   const breakAfter = new Map((playlist?.breaks ?? []).map((b) => [b.afterTanda, b]));
+  // 2026-11: a tap on any row plays from the night in order (the mini player steps through it)
+  const nightList = useMemo(
+    () => (playlist ? { label: nightTitle(playlist), items: nightItems(playlist) } : null),
+    [playlist],
+  );
   const resultFooter = playlist
     ? [
         fmtDuration(playlist.stats.durationSec),
@@ -1924,315 +1968,342 @@ export function Composer() {
       )}
 
       {hasPlaylist && playlist && mods && (
-        <section id="result" className="result-layout scroll-mt-24" aria-busy={busy}>
-          <div
-            className="result-main min-w-0"
-            onClickCapture={(e) => {
-              // the inspector follows the tanda the DJ touches (wide screens)
-              const card = (e.target as HTMLElement).closest<HTMLElement>('[id^="tanda-"]');
-              const n = card ? Number(card.id.slice(6)) : Number.NaN;
-              if (n >= 1) setInspected(n - 1);
-            }}
-          >
-            <Group
-              header={tx("composer.tonight_s_set")}
-              footer={
-                nightNotes.length ? (
-                  <>
-                    {resultFooter}
-                    <span className="mt-1 block" data-testid="night-notes">
-                      {nightNotes.join(" ")}
-                    </span>
-                  </>
-                ) : (
-                  resultFooter
-                )
-              }
+        <PlayListContext.Provider value={nightList}>
+          <section id="result" className="result-layout scroll-mt-24" aria-busy={busy}>
+            <div
+              className="result-main min-w-0"
+              onClickCapture={(e) => {
+                // the inspector follows the tanda the DJ touches (wide screens)
+                const card = (e.target as HTMLElement).closest<HTMLElement>('[id^="tanda-"]');
+                const n = card ? Number(card.id.slice(6)) : Number.NaN;
+                if (n >= 1) setInspected(n - 1);
+              }}
             >
-              <motion.div
-                key={`head-${setKey}`}
-                initial={fresh ? { opacity: 0, y: reduced ? 0 : 6 } : false}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: DUR.base, ease: EASE.out, delay: 0.04 }}
-                className="cell flex-col items-stretch gap-2 py-4"
+              <Group
+                header={tx("composer.tonight_s_set")}
+                footer={
+                  nightNotes.length ? (
+                    <>
+                      {resultFooter}
+                      <span className="mt-1 block" data-testid="night-notes">
+                        {nightNotes.join(" ")}
+                      </span>
+                    </>
+                  ) : (
+                    resultFooter
+                  )
+                }
               >
-                <div className="flex items-center justify-between gap-3">
-                  <h2 className="text-subhead min-w-0 truncate font-serif text-[var(--label-2)]">
-                    {nightTitle(playlist)} · {nightSub(playlist)}
-                  </h2>
-                  <span className="flex items-center gap-1">
-                    {/* phones: icon-only, 44 pt (the label wrapped to three lines, round8-ux.md §1.4) */}
-                    <Tip text={tx("composer.open_the_booth_and_play_this")}>
-                      <button
-                        type="button"
-                        className="btn btn-ghost -my-2 min-h-11 shrink-0 whitespace-nowrap px-3 max-sm:h-11 max-sm:w-11 max-sm:px-0"
-                        data-testid="play-the-night"
-                        aria-label={tx("composer.booth_play_the_night")}
-                        onClick={() => router.push("/booth")}
-                      >
-                        <Play size={16} fill="currentColor" strokeWidth={0} aria-hidden />
-                        <span className="max-sm:sr-only">{tx("composer.play_the_night")}</span>
-                      </button>
-                    </Tip>
-                    <Tip
-                      text={tx(settings.learn ? "composer.i_like_this_night_t_dj" : "composer.like_help_off")}
-                    >
-                      <button
-                        type="button"
-                        className={`icon-btn icon-btn-bare -my-2 h-11 w-11 ${liked === true ? "text-[var(--tint)]" : "text-[var(--label-3)]"}`}
-                        aria-pressed={liked === true}
-                        aria-label={tx("composer.mark_as_liked")}
-                        onClick={() => rate(true)}
-                      >
-                        <ThumbsUp size={18} strokeWidth={2} fill={liked === true ? "currentColor" : "none"} />
-                      </button>
-                    </Tip>
-                    <Tip
-                      text={tx(settings.learn ? "composer.not_for_me_t_dj_learns" : "composer.like_help_off")}
-                    >
-                      <button
-                        type="button"
-                        className={`icon-btn icon-btn-bare -my-2 -mr-3 h-11 w-11 ${liked === false ? "text-[var(--tint)]" : "text-[var(--label-3)]"}`}
-                        aria-pressed={liked === false}
-                        aria-label={tx("composer.mark_as_disliked")}
-                        onClick={() => rate(false)}
-                      >
-                        <ThumbsDown
-                          size={18}
-                          strokeWidth={2}
-                          fill={liked === false ? "currentColor" : "none"}
-                        />
-                      </button>
-                    </Tip>
-                  </span>
-                </div>
-                {wide ? (
-                  <div className="flex items-baseline gap-1">
-                    <span className="score-stat tabular-nums text-[var(--tint)]" data-testid="score-value">
-                      <ScoreCounter key={setKey} value={playlist.score.total} from={scoreFrom} />
+                <motion.div
+                  key={`head-${setKey}`}
+                  initial={fresh ? { opacity: 0, y: reduced ? 0 : 6 } : false}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: DUR.base, ease: EASE.out, delay: 0.04 }}
+                  className="cell flex-col items-stretch gap-2 py-4"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="min-w-0">
+                      <h2 className="text-subhead min-w-0 truncate font-serif text-[var(--label-2)]">
+                        {nightTitle(playlist)} · {nightSub(playlist)}
+                      </h2>
+                      {/* 2026-11: the night as it plays (cues, cortinas from their start), ≈ when a length is unknown */}
+                      <NightLength playlist={playlist} className="block truncate" />
                     </span>
-                    <span className="text-subhead text-[var(--label-2)]">/100</span>
+                    <span className="flex items-center gap-1">
+                      {/* phones: icon-only, 44 pt (the label wrapped to three lines, round8-ux.md §1.4) */}
+                      <Tip text={tx("composer.open_the_booth_and_play_this")}>
+                        <button
+                          type="button"
+                          className="btn btn-ghost -my-2 min-h-11 shrink-0 whitespace-nowrap px-3 max-sm:h-11 max-sm:w-11 max-sm:px-0"
+                          data-testid="play-the-night"
+                          aria-label={tx("composer.booth_play_the_night")}
+                          onClick={() => router.push("/booth")}
+                        >
+                          <Play size={16} fill="currentColor" strokeWidth={0} aria-hidden />
+                          <span className="max-sm:sr-only">{tx("composer.play_the_night")}</span>
+                        </button>
+                      </Tip>
+                      <Tip
+                        text={tx(
+                          settings.learn ? "composer.i_like_this_night_t_dj" : "composer.like_help_off",
+                        )}
+                      >
+                        <button
+                          type="button"
+                          className={`icon-btn icon-btn-bare -my-2 h-11 w-11 ${liked === true ? "text-[var(--tint)]" : "text-[var(--label-3)]"}`}
+                          aria-pressed={liked === true}
+                          aria-label={tx("composer.mark_as_liked")}
+                          onClick={() => rate(true)}
+                        >
+                          <ThumbsUp
+                            size={18}
+                            strokeWidth={2}
+                            fill={liked === true ? "currentColor" : "none"}
+                          />
+                        </button>
+                      </Tip>
+                      <Tip
+                        text={tx(
+                          settings.learn ? "composer.not_for_me_t_dj_learns" : "composer.like_help_off",
+                        )}
+                      >
+                        <button
+                          type="button"
+                          className={`icon-btn icon-btn-bare -my-2 -mr-3 h-11 w-11 ${liked === false ? "text-[var(--tint)]" : "text-[var(--label-3)]"}`}
+                          aria-pressed={liked === false}
+                          aria-label={tx("composer.mark_as_disliked")}
+                          onClick={() => rate(false)}
+                        >
+                          <ThumbsDown
+                            size={18}
+                            strokeWidth={2}
+                            fill={liked === false ? "currentColor" : "none"}
+                          />
+                        </button>
+                      </Tip>
+                    </span>
                   </div>
-                ) : (
+                  {wide ? (
+                    <div className="flex items-baseline gap-1">
+                      <span className="score-stat tabular-nums text-[var(--tint)]" data-testid="score-value">
+                        <ScoreCounter key={setKey} value={playlist.score.total} from={scoreFrom} />
+                      </span>
+                      <span className="text-subhead text-[var(--label-2)]">/100</span>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="-mx-2 flex items-baseline gap-1 rounded-[var(--radius-xs)] px-2 text-left"
+                      onClick={() => setAdjustOpen(true)}
+                      aria-label={tx("composer.score_of_100_adjust_the_set", { total: playlist.score.total })}
+                      data-testid="score-button"
+                    >
+                      <span className="score-stat tabular-nums text-[var(--tint)]" data-testid="score-value">
+                        <ScoreCounter key={setKey} value={playlist.score.total} from={scoreFrom} />
+                      </span>
+                      <span className="text-subhead text-[var(--label-2)]">/100</span>
+                      <SlidersHorizontal
+                        size={16}
+                        strokeWidth={2}
+                        className="ml-1 self-center text-[var(--label-3)]"
+                        aria-hidden
+                      />
+                    </button>
+                  )}
+                  <motion.p
+                    key={`verdict-text-${setKey}`}
+                    initial={fresh ? { opacity: 0 } : false}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: reduced ? 0 : 0.7, duration: DUR.base }}
+                    className="text-footnote text-[var(--label-2)]"
+                  >
+                    {playlist.score.verdict}
+                    {playlist.options.arcShape && (
+                      <span data-testid="arc-shape">
+                        {" "}
+                        ·{" "}
+                        {playlist.options.arcShape === "double"
+                          ? tx("composer.double")
+                          : tx("composer.single")}{" "}
+                        {tx("composer.peak_arc")}
+                      </span>
+                    )}
+                  </motion.p>
+                  {/* hard failures that capped the total (round-8 engine): said under the number, not hidden in a sheet */}
+                  {playlist.score.reasons && playlist.score.reasons.length > 0 && (
+                    <ul
+                      className="text-footnote mt-1 list-disc pl-4 text-[var(--system-gold)]"
+                      data-testid="score-reasons"
+                    >
+                      {playlist.score.reasons.map((r) => (
+                        <li key={r}>{r}</li>
+                      ))}
+                    </ul>
+                  )}
+                  <div className="mt-1">
+                    {/* one chart per breakpoint (not both hidden/shown via CSS) so only one draw-on runs */}
+                    {wide ? (
+                      <mods.EnergyCurve
+                        p={playlist}
+                        active={active}
+                        onPick={onPick}
+                        playKey={setKey}
+                        dimmed={busy}
+                      />
+                    ) : (
+                      <mods.EnergyCurve
+                        compact
+                        p={playlist}
+                        active={active}
+                        onPick={onPick}
+                        playKey={setKey}
+                        dimmed={busy}
+                      />
+                    )}
+                  </div>
+                </motion.div>
+                <Row
+                  label={tx("composer.how_this_set_scored")}
+                  tip={tx("composer.each_part_of_the_score_tandas")}
+                  value={tx("composer.factors", { length: playlist.score.factors.length })}
+                  chevron
+                  onClick={() => setScoreOpen(true)}
+                />
+                {bench && (
+                  <Row
+                    label={tx("composer.compared_with_published_dj_sets_2")}
+                    value={tx("composer.of_close", { inRange: bench.inRange, scored: bench.scored })}
+                    aria-label={tx("composer.compared_with_published_dj_sets", { p1: benchLabel(bench) })}
+                    tip={tx("composer.how_this_night_compares_with_sets")}
+                    chevron
+                    onClick={() => setBenchOpen(true)}
+                    data-testid="benchmark-row"
+                  />
+                )}
+                {playlists.some((p) => p.kind === "tandas") && (
+                  <Row
+                    label={tx("composer.mood_check")}
+                    tip={tx("composer.compares_the_mood_of_each_tanda")}
+                    sub={tx("composer.against_reference_tandas_aren_leon")}
+                    chevron
+                    onClick={() => setMoodOpen(true)}
+                  />
+                )}
+                <Row
+                  label={tx("composer.written_review")}
+                  tip={tx("composer.a_few_paragraphs_on_the_night")}
+                  value={
+                    aiBusy
+                      ? tx("composer.reading_the_set")
+                      : ai || settings.ai.key || aiShared
+                        ? tx("composer.ready")
+                        : aiShared === false
+                          ? tx("composer.off_needs_an_ai_key")
+                          : undefined
+                  }
+                  chevron
+                  busy={aiBusy}
+                  onClick={explain}
+                />
+              </Group>
+
+              {wide && feedbackBar}
+
+              {playlist.opening && (
+                <Group
+                  header={tx("composer.opening")}
+                  footer={tx("composer.la_cumparsita_before_the_first_tanda")}
+                >
+                  <PlayRow
+                    song={playlist.opening}
+                    where={tx("play.opening")}
+                    testId="opening"
+                    leading={
+                      <span className="tile-art" data-rhythm="tango" aria-hidden>
+                        <Disc3 size={20} strokeWidth={1.75} />
+                      </span>
+                    }
+                    title={<span className="text-headline">{tx("composer.la_cumparsita")}</span>}
+                    sub={metaLine(
+                      playlist.opening.orchestra,
+                      playlist.opening.singer,
+                      yearText(playlist.opening.year),
+                    )}
+                    lengthSec={lengthOf(playlist.opening, playlist.booth?.songCues)}
+                  />
+                </Group>
+              )}
+
+              <h2 className="section-head">{tx("composer.tandas")}</h2>
+              {/* round 22: the song search side panel */}
+              <div className="-mt-10 mb-1 flex justify-end">
+                <Tip text={tx("composer.search_every_recording_by_title_orchestra")}>
                   <button
                     type="button"
-                    className="-mx-2 flex items-baseline gap-1 rounded-[var(--radius-xs)] px-2 text-left"
-                    onClick={() => setAdjustOpen(true)}
-                    aria-label={tx("composer.score_of_100_adjust_the_set", { total: playlist.score.total })}
-                    data-testid="score-button"
+                    className="btn-plain mb-1 min-h-11"
+                    onClick={() => setFindOpen(true)}
+                    aria-expanded={findOpen}
+                    data-testid="find-songs"
                   >
-                    <span className="score-stat tabular-nums text-[var(--tint)]" data-testid="score-value">
-                      <ScoreCounter key={setKey} value={playlist.score.total} from={scoreFrom} />
-                    </span>
-                    <span className="text-subhead text-[var(--label-2)]">/100</span>
-                    <SlidersHorizontal
-                      size={16}
-                      strokeWidth={2}
-                      className="ml-1 self-center text-[var(--label-3)]"
-                      aria-hidden
-                    />
+                    <Search size={16} strokeWidth={2} aria-hidden /> {tx("composer.find_songs")}
                   </button>
-                )}
-                <motion.p
-                  key={`verdict-text-${setKey}`}
-                  initial={fresh ? { opacity: 0 } : false}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: reduced ? 0 : 0.7, duration: DUR.base }}
-                  className="text-footnote text-[var(--label-2)]"
-                >
-                  {playlist.score.verdict}
-                  {playlist.options.arcShape && (
-                    <span data-testid="arc-shape">
-                      {" "}
-                      ·{" "}
-                      {playlist.options.arcShape === "double" ? tx("composer.double") : tx("composer.single")}{" "}
-                      {tx("composer.peak_arc")}
-                    </span>
-                  )}
-                </motion.p>
-                {/* hard failures that capped the total (round-8 engine): said under the number, not hidden in a sheet */}
-                {playlist.score.reasons && playlist.score.reasons.length > 0 && (
-                  <ul
-                    className="text-footnote mt-1 list-disc pl-4 text-[var(--system-gold)]"
-                    data-testid="score-reasons"
-                  >
-                    {playlist.score.reasons.map((r) => (
-                      <li key={r}>{r}</li>
-                    ))}
-                  </ul>
-                )}
-                <div className="mt-1">
-                  {/* one chart per breakpoint (not both hidden/shown via CSS) so only one draw-on runs */}
-                  {wide ? (
-                    <mods.EnergyCurve
-                      p={playlist}
-                      active={active}
-                      onPick={onPick}
-                      playKey={setKey}
-                      dimmed={busy}
-                    />
-                  ) : (
-                    <mods.EnergyCurve
-                      compact
-                      p={playlist}
-                      active={active}
-                      onPick={onPick}
-                      playKey={setKey}
-                      dimmed={busy}
-                    />
-                  )}
-                </div>
-              </motion.div>
-              <Row
-                label={tx("composer.how_this_set_scored")}
-                tip={tx("composer.each_part_of_the_score_tandas")}
-                value={tx("composer.factors", { length: playlist.score.factors.length })}
-                chevron
-                onClick={() => setScoreOpen(true)}
-              />
-              {bench && (
-                <Row
-                  label={tx("composer.compared_with_published_dj_sets_2")}
-                  value={tx("composer.of_close", { inRange: bench.inRange, scored: bench.scored })}
-                  aria-label={tx("composer.compared_with_published_dj_sets", { p1: benchLabel(bench) })}
-                  tip={tx("composer.how_this_night_compares_with_sets")}
-                  chevron
-                  onClick={() => setBenchOpen(true)}
-                  data-testid="benchmark-row"
-                />
-              )}
-              {playlists.some((p) => p.kind === "tandas") && (
-                <Row
-                  label={tx("composer.mood_check")}
-                  tip={tx("composer.compares_the_mood_of_each_tanda")}
-                  sub={tx("composer.against_reference_tandas_aren_leon")}
-                  chevron
-                  onClick={() => setMoodOpen(true)}
-                />
-              )}
-              <Row
-                label={tx("composer.written_review")}
-                tip={tx("composer.a_few_paragraphs_on_the_night")}
-                value={
-                  aiBusy
-                    ? tx("composer.reading_the_set")
-                    : ai || settings.ai.key || aiShared
-                      ? tx("composer.ready")
-                      : aiShared === false
-                        ? tx("composer.off_needs_an_ai_key")
-                        : undefined
-                }
-                chevron
-                busy={aiBusy}
-                onClick={explain}
-              />
-            </Group>
-
-            {wide && feedbackBar}
-
-            {playlist.opening && (
-              <Group
-                header={tx("composer.opening")}
-                footer={tx("composer.la_cumparsita_before_the_first_tanda")}
-              >
-                <div className="cell" data-leading="art" data-testid="opening">
-                  <span className="tile-art" data-rhythm="tango" aria-hidden>
-                    <Disc3 size={20} strokeWidth={1.75} />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="text-headline block truncate">{tx("composer.la_cumparsita")}</span>
-                    <span className="text-subhead block truncate text-[var(--label-2)]">
-                      {metaLine(
-                        playlist.opening.orchestra,
-                        playlist.opening.singer,
-                        yearText(playlist.opening.year),
-                      )}
-                    </span>
-                  </span>
-                </div>
-              </Group>
-            )}
-
-            <h2 className="section-head">{tx("composer.tandas")}</h2>
-            {/* round 22: the song search side panel */}
-            <div className="-mt-10 mb-1 flex justify-end">
-              <Tip text={tx("composer.search_every_recording_by_title_orchestra")}>
-                <button
-                  type="button"
-                  className="btn-plain mb-1 min-h-11"
-                  onClick={() => setFindOpen(true)}
-                  aria-expanded={findOpen}
-                  data-testid="find-songs"
-                >
-                  <Search size={16} strokeWidth={2} aria-hidden /> {tx("composer.find_songs")}
-                </button>
-              </Tip>
-            </div>
-            {/* round 22: the night's energy song by song and a tone per tanda */}
-            <NightProfile playlist={playlist} onPick={onPick} />
-            {/* no AnimatePresence here: exiting cards stayed mounted across recomposes (round8-qa.md B1); a new set
+                </Tip>
+              </div>
+              {/* round 22: the night's energy song by song and a tone per tanda */}
+              <NightProfile playlist={playlist} onPick={onPick} />
+              {/* no AnimatePresence here: exiting cards stayed mounted across recomposes (round8-qa.md B1); a new set
               mounts fresh cards with new keys and the old ones leave at once */}
-            <div className="tanda-grid">
-              {playlist.tandas.flatMap((t, i) => {
-                const b = breakAfter.get(i);
-                const card = (
-                  <mods.TandaCard
-                    key={`${t.index}-${t.songs[0]?.id}`}
-                    t={t}
-                    i={i}
-                    onSwap={swap}
-                    onSwapTrack={swapTrack}
-                    onLock={lock}
-                    onBypass={bypass}
-                    busy={swapping === i}
-                    swappingTrack={swappingTrack?.[0] === i ? swappingTrack[1] : null}
-                    active={active === i}
-                    playlists={playlists}
-                    settling={busy}
-                    fresh={fresh}
-                    nudge={nudge?.i === i ? nudge : null}
-                    prevEnergy={prevEnergy.current[i]}
-                    changed={changedSet.has(i + 1)}
-                    animateLayout={swapping === i || lockedCard === i}
-                  />
-                );
-                if (!b) return [card];
-                return [
-                  card,
-                  <div
-                    key={`break-${i}`}
-                    className="text-footnote flex items-center gap-3 px-4 text-[var(--label-2)] md:col-span-2"
-                    data-testid="break"
-                  >
-                    <span className="h-px flex-1 bg-[var(--separator)]" aria-hidden />
+              <div className="tanda-grid">
+                {playlist.tandas.flatMap((t, i) => {
+                  const b = breakAfter.get(i);
+                  const card = (
+                    <mods.TandaCard
+                      key={`${t.index}-${t.songs[0]?.id}`}
+                      t={t}
+                      i={i}
+                      onSwap={swap}
+                      onSwapTrack={swapTrack}
+                      onLock={lock}
+                      onBypass={bypass}
+                      busy={swapping === i}
+                      swappingTrack={swappingTrack?.[0] === i ? swappingTrack[1] : null}
+                      active={active === i}
+                      playlists={playlists}
+                      settling={busy}
+                      fresh={fresh}
+                      nudge={nudge?.i === i ? nudge : null}
+                      prevEnergy={prevEnergy.current[i]}
+                      changed={changedSet.has(i + 1)}
+                      animateLayout={swapping === i || lockedCard === i}
+                      onMoveTrack={moveTrack}
+                      cues={playlist.booth?.songCues}
+                    />
+                  );
+                  if (!b) return [card];
+                  return [
+                    card,
+                    <div
+                      key={`break-${i}`}
+                      className="text-footnote flex items-center gap-3 px-4 text-[var(--label-2)] md:col-span-2"
+                      data-testid="break"
+                    >
+                      <span className="h-px flex-1 bg-[var(--separator)]" aria-hidden />
 
-                    {tx("composer.min_2", { label: b.label, minutes: b.minutes })}
-                    <span className="h-px flex-1 bg-[var(--separator)]" aria-hidden />
-                  </div>,
-                ];
-              })}
+                      {tx("composer.min_2", { label: b.label, minutes: b.minutes })}
+                      <span className="h-px flex-1 bg-[var(--separator)]" aria-hidden />
+                    </div>,
+                  ];
+                })}
+              </div>
+              <AiEditBar playlist={playlist} onChip={feedback} />
+              {/* the tandas the DJ kept as they are against a rule: accepted for this night only */}
+              <NightExceptions nightId={playlist.id} />
+              {playlist.closing && (
+                <Group header={tx("composer.closing")}>
+                  <PlayRow
+                    song={playlist.closing}
+                    where={tx("play.closing")}
+                    testId="closing"
+                    leading={
+                      <span className="tile-art" data-rhythm="tango" aria-hidden>
+                        <Disc3 size={20} strokeWidth={1.75} />
+                      </span>
+                    }
+                    title={<span className="text-headline">{tx("composer.la_cumparsita")}</span>}
+                    sub={metaLine(playlist.closing.orchestra, yearText(playlist.closing.year))}
+                    lengthSec={lengthOf(playlist.closing, playlist.booth?.songCues)}
+                  />
+                </Group>
+              )}
             </div>
-            <AiEditBar playlist={playlist} onChip={feedback} />
-            {/* the tandas the DJ kept as they are against a rule: accepted for this night only */}
-            <NightExceptions nightId={playlist.id} />
-            {playlist.closing && (
-              <Group header={tx("composer.closing")}>
-                <div className="cell" data-leading="art" data-testid="closing">
-                  <span className="tile-art" data-rhythm="tango" aria-hidden>
-                    <Disc3 size={20} strokeWidth={1.75} />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="text-headline block truncate">{tx("composer.la_cumparsita")}</span>
-                    <span className="text-subhead block truncate text-[var(--label-2)]">
-                      {metaLine(playlist.closing.orchestra, yearText(playlist.closing.year))}
-                    </span>
-                  </span>
-                </div>
-              </Group>
-            )}
-          </div>
-          <TandaInspector playlist={playlist} selected={inspected} onSelect={setInspected} />
-        </section>
+            <TandaInspector
+              playlist={playlist}
+              selected={inspected}
+              onSelect={setInspected}
+              onMoveTrack={moveTrack}
+            />
+          </section>
+        </PlayListContext.Provider>
       )}
       {/* once a set exists the result leads and the form folds into one summary row (UX review P1-1) */}
       {hasPlaylist && !setupOpen && (

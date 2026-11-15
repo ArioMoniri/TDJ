@@ -8,8 +8,10 @@ import { plural, t } from "@/lib/i18n";
 import { popularityText } from "@/lib/popularity";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
+import type { Song } from "@/lib/types";
 import { ActionRow, Group, Row, SwitchRow, Tile } from "../Form";
 import { Segmented } from "../ui";
+import { PlayButton } from "../ui/SongRow";
 import { DatabaseFavourites, PopularitySwitch, usePopularity } from "./DatabaseFavourites";
 
 type RoleFilter = "all" | SlotRole;
@@ -150,6 +152,9 @@ export function DancerFavourites() {
                   </>
                 }
               >
+                {r.song && (
+                  <PlayButton song={{ ...r.song, id: r.key.slice(5) } as unknown as Song} className="-my-2" />
+                )}
                 {resetButton(r, r.song?.title ?? "")}
               </Row>
             </div>

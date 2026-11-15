@@ -1718,6 +1718,43 @@ input[type="range"]::-moz-range-thumb {
   background: linear-gradient(160deg, #8b7cf6, #6d28d9);
 }
 
+/* a row that is playing: a tint wash (the bars are in the row's leading slot) */
+.row-now {
+  background: color-mix(in srgb, var(--tint) 10%, transparent);
+}
+.no-audio {
+  color: var(--label-2);
+  background: var(--fill-4);
+}
+.len {
+  font-variant-numeric: tabular-nums;
+  color: var(--label-2);
+  white-space: nowrap;
+  flex: none;
+  text-align: right;
+}
+/* the drag handle of a song row (touch: long-press to drag) */
+.drag-handle {
+  touch-action: none;
+  cursor: grab;
+}
+.drag-handle:active {
+  cursor: grabbing;
+}
+[data-dragging] {
+  opacity: 0.55;
+}
+[data-drop-before]::after {
+  content: "";
+  position: absolute;
+  left: var(--cell-px);
+  right: 0;
+  top: -1px;
+  height: 2px;
+  background: var(--tint);
+  z-index: 2;
+}
+
 /* Sidebar (macOS source list) rows */
 .side-row {
   display: flex;
@@ -1869,36 +1906,42 @@ html[data-sidebar="collapsed"] [data-testid="sidebar"] {
   }
 }
 
-/* the tanda's type (TandaTypeBadge): the rhythm in its colour with a glyph, then the mode in words */
+/* the tanda's type (components/ui/TandaTypeBadge.tsx, one badge for the Booth, the sidebar, Compose, History, the
+   shared night and Build by hand): the rhythm in words on its own fill with a glyph, then the mode in words, then a
+   subtle "mixed" tag. The fills are fixed pairs, AA in both themes whatever the row behind them (text ≥ 6:1 on its
+   fill); light-dark() follows the page's colour scheme: Auto, Light, Dark, `.dark` and the Booth's forced dark. */
 .tanda-type {
+  --tt-fg: light-dark(#a3173f, #ff9db6);
+  --tt-bg: light-dark(#fde3ea, #4a1626);
   display: inline-flex;
   align-items: center;
   gap: 6px;
   min-width: 0;
   max-width: 100%;
-  font-size: 12px;
+  font-size: var(--text-caption1);
   font-weight: 600;
   line-height: 1;
   white-space: nowrap;
   text-transform: none;
   letter-spacing: 0;
 }
+.tanda-type[data-rhythm="vals"] {
+  --tt-fg: light-dark(#0b5e57, #7ee8dc);
+  --tt-bg: light-dark(#d5f5f1, #0f3b37);
+}
+.tanda-type[data-rhythm="milonga"] {
+  --tt-fg: light-dark(#5b21b6, #c4b5fd);
+  --tt-bg: light-dark(#ece7fe, #2e1f5c);
+}
 .tanda-type-rhythm {
-  --tone: var(--tone-tango);
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   flex: none;
-  padding: 3px 7px;
+  padding: 3px 8px;
   border-radius: 999px;
-  color: var(--tone);
-  background: color-mix(in srgb, var(--tone) 14%, rgb(var(--bg-cell)));
-}
-.tanda-type[data-rhythm="vals"] .tanda-type-rhythm {
-  --tone: var(--tone-vals);
-}
-.tanda-type[data-rhythm="milonga"] .tanda-type-rhythm {
-  --tone: var(--tone-milonga);
+  color: var(--tt-fg);
+  background: var(--tt-bg);
 }
 .tanda-type-mode {
   min-width: 0;
@@ -1906,6 +1949,15 @@ html[data-sidebar="collapsed"] [data-testid="sidebar"] {
   text-overflow: ellipsis;
   font-weight: 500;
   color: var(--label-2);
+}
+.tanda-type-mixed {
+  flex: none;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: var(--text-caption2);
+  font-weight: 500;
+  color: var(--label-2);
+  border: 1px solid var(--separator);
 }
 /* Motion: only what changed moves; everything respects reduced motion */
 @keyframes rise {

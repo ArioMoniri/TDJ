@@ -3,7 +3,7 @@ import { tandaTone } from "@tdj/core";
 import { AudioWaveform, Headphones, ListMusic, Lock, LockOpen, Repeat2, SkipForward } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import dynamic from "next/dynamic";
-import { memo, useCallback, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useContext, useMemo, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { analyseTanda } from "@/lib/analyze";
 import { cohesionWith, patchedSong } from "@/lib/audio";
@@ -11,8 +11,10 @@ import { tandaNote } from "@/lib/djMessage";
 import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
 import { lazy, lower, t as tx } from "@/lib/i18n";
+import { type Cue, fmtLen, sidePlaySec, tandaTotal, totalText } from "@/lib/lengths";
 import { CARD_STAGGER_CAP, DUR, EASE, STAGGER } from "@/lib/motion";
-import { sourceFor, trackFor, usePlayer } from "@/lib/player";
+import { cortinaWindow, PlayListContext, useTapPlay } from "@/lib/playback";
+import { type PlayItem, sourceFor, trackFor, usePlayer } from "@/lib/player";
 import { useStore } from "@/lib/store";
 import type { ReferencePlaylist, Tanda } from "@/lib/types";
 import { CohesionBadge } from "./CohesionBadge";
@@ -21,7 +23,10 @@ import { I } from "./Icons";
 import { Menu } from "./Menu";
 import { SwipeRow } from "./SwipeRow";
 import { TrackRow } from "./TrackRow";
+import { NowBars } from "./ui/NowPlaying";
+import { isMixedTanda, TandaTypeBadge } from "./ui/TandaTypeBadge";
 import { Tip, useTip } from "./ui/Tip";
+import { useDragReorder } from "./ui/useDragReorder";
 
 /* Spotify embeds and the connected-account lookups load with the first "Listen" / cortina tap, not with the set. */
 const TandaListen = dynamic(() => import("./Listen").then((m) => m.TandaListen), { ssr: false });
@@ -68,6 +73,10 @@ export interface TandaCardProps {
    * compose-time cost on phones).
    */
   animateLayout?: boolean;
+  /** 2026-11: reorder a song inside the tanda — (tanda, from, to); absent on a read-only night */
+  onMoveTrack?: (i: number, from: number, to: number) => void;
+  /** the night's cue in / stop at per side (booth.songCues): the lengths honour them */
+  cues?: Record<string, Cue> | null;
 }
 
 /** A tanda as one inset group: artwork tile + title row, track rows, cortina row, Listen (row on phone, menu on desktop). */
@@ -89,6 +98,8 @@ function TandaCardImpl({
   readOnly = false,
   changed = false,
   animateLayout = false,
+  onMoveTrack,
+  cues,
 }: TandaCardProps) {
   const cortinaTip = useTip<HTMLButtonElement>(tx("tandaCard.the_cortina_after_this_tanda_open"));
   const reduced = useReducedMotion();
@@ -123,7 +134,21 @@ function TandaCardImpl({
     usePlayer.getState().playQueue(tx("tandaCard.tanda_2", { p1: i + 1 }), previewTracks, 10);
   }, [i, previewTracks]);
   const ref = useRef<HTMLElement>(null);
-  // the stagger applies to the mount only; later renders (settling, swaps) must not inherit the delay
+  // 2026-11: a tap plays from the night's list (Compose provides it), else from this tanda and its cortina
+  const parentList = useContext(PlayListContext);
+  const ownList = useMemo(() => {
+    const where = tx("play.tanda", { n: i + 1 });
+    const items: PlayItem[] = t.songs.map((song) => ({ kind: "song", song, where }));
+    if (t.cortina)
+      items.push({ kind: "cortina", cortina: t.cortina, where: tx("play.cortina_after", { n: i + 1 }) });
+    return { label: where, items };
+  }, [t.songs, t.cortina, i]);
+  const playList = parentList ?? ownList;
+  const total = useMemo(() => tandaTotal(t.songs, cues), [t.songs, cues]);
+  const canMove = !readOnly && !!onMoveTrack;
+  const moveTrack = useCallback((from: number, to: number) => onMoveTrack?.(i, from, to), [onMoveTrack, i]);
+  const drag = useDragReorder(moveTrack, !canMove);
+  // the ref stays: the stagger applies to the mount only; later renders (settling, swaps) must not inherit the delay
   const freshAtMount = useRef(fresh).current;
   const dim = settling && !t.locked;
   const analyseAll = async () => {
@@ -264,6 +289,18 @@ function TandaCardImpl({
                 {sub}
               </span>
               <span className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                <TandaTypeBadge
+                  rhythm={t.rhythm}
+                  singer={t.singer}
+                  vocal={t.vocal}
+                  mixed={isMixedTanda(t)}
+                  mixedWhy={
+                    t.pinned?.exception ? tx("tandaType.mixed_exception") : tx("tandaType.mixed_sides")
+                  }
+                />
+                <span className="text-caption1 tabular-nums text-[var(--label-2)]" data-testid="tanda-total">
+                  {tx("play.songs_total", { n: t.songs.length, total: totalText(total) })}
+                </span>
                 {/* round 21: the DJ's tanda — the rules leave it alone, its exceptions are the DJ's */}
                 {t.pinned && (
                   <Tip text={t.pinned.reason}>
@@ -415,33 +452,39 @@ function TandaCardImpl({
             />
           </div>
         </SwipeRow>
-        <ol>
-          <AnimatePresence mode="popLayout" initial={false}>
-            {t.songs.map((s, k) => (
-              <TrackRow
-                key={s.id}
-                n={k + 1}
-                song={s}
-                rhythm={t.rhythm}
-                inFlight={swappingTrack === k}
-                nudge={nudge?.k === k ? nudge.n : 0}
-                onSwap={swapTrack}
-                disabled={t.locked || readOnly}
-                swapLabel={tx("tandaCard.swap_track_of_tanda", { p1: k + 1, p2: i + 1 })}
-                lockedWhy={
-                  readOnly
-                    ? tx("tandaCard.open_the_night_in_compose_to")
-                    : t.pinned
-                      ? tx("tandaCard.the_tanda_is_kept_as_is")
-                      : t.locked
-                        ? tx("tandaCard.unlock_the_tanda_first")
-                        : undefined
-                }
-                animateLayout={animateLayout}
-              />
-            ))}
-          </AnimatePresence>
-        </ol>
+        <PlayListContext.Provider value={playList}>
+          <ol data-reorder-list>
+            <AnimatePresence mode="popLayout" initial={false}>
+              {t.songs.map((s, k) => (
+                <TrackRow
+                  lengthSec={sidePlaySec(s.durationSec, cues?.[s.id])}
+                  count={t.songs.length}
+                  onMove={canMove ? moveTrack : undefined}
+                  dragHandle={canMove ? drag : undefined}
+                  key={s.id}
+                  n={k + 1}
+                  song={s}
+                  rhythm={t.rhythm}
+                  inFlight={swappingTrack === k}
+                  nudge={nudge?.k === k ? nudge.n : 0}
+                  onSwap={swapTrack}
+                  disabled={t.locked || readOnly}
+                  swapLabel={tx("tandaCard.swap_track_of_tanda", { p1: k + 1, p2: i + 1 })}
+                  lockedWhy={
+                    readOnly
+                      ? tx("tandaCard.open_the_night_in_compose_to")
+                      : t.pinned
+                        ? tx("tandaCard.the_tanda_is_kept_as_is")
+                        : t.locked
+                          ? tx("tandaCard.unlock_the_tanda_first")
+                          : undefined
+                  }
+                  animateLayout={animateLayout}
+                />
+              ))}
+            </AnimatePresence>
+          </ol>
+        </PlayListContext.Provider>
         {isPhone && (
           <div className="flex">
             <button
@@ -494,40 +537,16 @@ function TandaCardImpl({
         </AnimatePresence>
         {t.cortina && (
           <>
-            <button
-              type="button"
-              className="cell cell-tap w-full text-left"
-              onClick={() => setCortinaOpen((v) => !v)}
-              aria-expanded={cortinaOpen}
-              aria-controls={`cortina-${i + 1}`}
-              {...cortinaTip.props}
-            >
-              {cortinaTip.tag}
-              {/* the wave breathes on hover / focus / while the preview is open (motion-composer.md §2.9) */}
-              <span
-                className={`wave ${cortinaOpen || listen ? "text-[var(--tint)]" : "text-[var(--label-2)]"}`}
-                data-on={cortinaOpen || listen || undefined}
-                aria-hidden
-              >
-                <i />
-                <i />
-                <i />
-                <i />
-              </span>
-              <span className="min-w-0 flex-1 truncate text-[var(--label-2)]">
-                {tx("tandaCard.cortina_s", {
-                  artist: t.cortina.artist,
-                  title: t.cortina.title,
-                  p1: t.cortina.lengthSec ?? 45,
-                })}
-              </span>
-              <I
-                name="chevron"
-                size={16}
-                strokeWidth={2.5}
-                className={`cell-chevron transition-transform ${cortinaOpen ? "rotate-90" : ""}`}
-              />
-            </button>
+            <CortinaRow
+              c={t.cortina}
+              list={playList}
+              where={tx("play.cortina_after", { n: i + 1 })}
+              open={cortinaOpen}
+              listen={listen}
+              onToggle={() => setCortinaOpen((v) => !v)}
+              controls={`cortina-${i + 1}`}
+              tip={cortinaTip}
+            />
             <AnimatePresence initial={false}>
               {(cortinaOpen || listen) && (
                 <motion.div
@@ -549,6 +568,100 @@ function TandaCardImpl({
         )}
       </div>
     </motion.article>
+  );
+}
+
+/**
+ * 2026-11: the cortina row — one tap plays it from its chorus for its cortina length (the row's body); the chevron
+ * opens the preview panel (Spotify, the playlist links) as before. The length is the one it plays.
+ */
+function CortinaRow({
+  c,
+  list,
+  where,
+  open,
+  listen,
+  onToggle,
+  controls,
+  tip,
+}: {
+  c: NonNullable<Tanda["cortina"]>;
+  list: { label: string; items: PlayItem[] };
+  where: string;
+  open: boolean;
+  listen: boolean;
+  onToggle: () => void;
+  controls: string;
+  tip: ReturnType<typeof useTip<HTMLButtonElement>>;
+}) {
+  const item = useMemo<PlayItem>(() => ({ kind: "cortina", cortina: c, where }), [c, where]);
+  const play = useTapPlay(item, list);
+  const settings = useStore((s) => s.settings);
+  const edits = useStore((s) => s.playlist?.booth?.cortinaEdits);
+  const w = cortinaWindow(c, { settings, edits });
+  return (
+    <div
+      className={`cell gap-0 p-0 ${play.state ? "row-now" : ""}`}
+      data-testid="cortina-row"
+      data-now={play.state ?? undefined}
+    >
+      <button
+        type="button"
+        className="cell cell-tap min-w-0 flex-1 text-left"
+        onClick={() => {
+          haptic(4);
+          void play.tap();
+        }}
+        aria-label={
+          play.playing
+            ? tx("play.pause_cortina", { title: c.title })
+            : tx("play.play_cortina", { title: c.title, at: fmtLen(w.start) })
+        }
+        data-testid="cortina-row-play"
+        {...tip.props}
+      >
+        {tip.tag}
+        {play.state ? (
+          <NowBars on={play.playing} />
+        ) : (
+          <span
+            className={`wave ${open || listen ? "text-[var(--tint)]" : "text-[var(--label-2)]"}`}
+            aria-hidden
+          >
+            <i />
+            <i />
+            <i />
+            <i />
+          </span>
+        )}
+        <span className="min-w-0 flex-1 truncate text-[var(--label-2)]">
+          {tx("tandaCard.cortina_s", {
+            artist: c.artist,
+            title: c.title,
+            p1: Math.round(w.stop - w.start),
+          })}
+        </span>
+        <span className="len text-subhead" data-testid="cortina-len">
+          {fmtLen(w.stop - w.start)}
+        </span>
+      </button>
+      <button
+        type="button"
+        className="icon-btn icon-btn-bare mr-1 h-11 w-11 shrink-0"
+        onClick={onToggle}
+        aria-expanded={open}
+        aria-controls={controls}
+        aria-label={open ? tx("play.hide_cortina_details") : tx("play.cortina_details")}
+        data-testid="cortina-open"
+      >
+        <I
+          name="chevron"
+          size={16}
+          strokeWidth={2.5}
+          className={`cell-chevron transition-transform ${open ? "rotate-90" : ""}`}
+        />
+      </button>
+    </div>
   );
 }
 

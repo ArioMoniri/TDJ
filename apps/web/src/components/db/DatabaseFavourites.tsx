@@ -6,7 +6,9 @@ import type { PopularityApi, PopularityApiRow } from "@/lib/api/popularity";
 import { t } from "@/lib/i18n";
 import { popularityText, popularityUse, setPopularityUse } from "@/lib/popularity";
 import { useStore } from "@/lib/store";
+import type { Song } from "@/lib/types";
 import { Group, Row, SwitchRow, Tile } from "../Form";
+import { PlayButton } from "../ui/SongRow";
 
 /**
  * 2026-11 (Database → Memory → Dancer favourites, "From databases"): the dancer-popularity prior from DJ sets,
@@ -105,7 +107,11 @@ export function DatabaseFavourites({ role }: { role?: SlotRole }) {
               </>
             }
             value={t("pop.score", { score: Math.round(r.score * 100) })}
-          />
+          >
+            {r.song && (
+              <PlayButton song={{ ...r.song, id: r.id } as unknown as Song} className="-my-2 -mr-2" />
+            )}
+          </Row>
         </div>
       ))}
     </Group>
