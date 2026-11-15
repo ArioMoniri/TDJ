@@ -1,5 +1,17 @@
-import { type CoverageEdits, type CoverageRow, Heatmap, mergeCoverage, songEra } from "@tdj/core";
+import {
+  type Cortina,
+  type CoverageEdits,
+  type CoverageRow,
+  DEFAULT_HEATMAP,
+  type EraMark,
+  eraMark,
+  type HeatGrade,
+  Heatmap,
+  mergeCoverage,
+  songEra,
+} from "@tdj/core";
 import COVERAGE from "../../../../data/index/coverage.json";
+import { surnameOf } from "./booth/songInfo";
 import type { Song } from "./types";
 
 /**
@@ -47,4 +59,61 @@ export function editGrade(
   if (Object.keys(o).length) next[orchestraId] = o;
   else delete next[orchestraId];
   return next;
+}
+
+/* ---------- the Booth's era glyph (four bars), one module with Compose's badge ---------- */
+
+/**
+ * In the Booth a side carries the grade the catalogue stamped on it (`heat`); a side that came without one (an older
+ * saved night) is looked up in the shipped heatmap. Same four marks as Compose's badge.
+ */
+export type EraClass = EraMark;
+
+export const ERA_CLASSES: ReadonlyArray<{ cls: EraClass; label: string; bars: number; explain: string }> = [
+  { cls: "best", label: "Best years", bars: 4, explain: "The orchestra's finest years in your heatmap." },
+  { cls: "good", label: "Good years", bars: 3, explain: "Good years: dependable sides for the floor." },
+  {
+    cls: "weak",
+    label: "Weaker years",
+    bars: 2,
+    explain: "Uneven years, or only single tracks worth playing.",
+  },
+  {
+    cls: "outside",
+    label: "Outside the best years",
+    bars: 0,
+    explain: "Years your heatmap marks to avoid for this orchestra.",
+  },
+];
+
+export function eraClassOf(g: HeatGrade): EraClass {
+  return eraMark(g, true)!;
+}
+
+export interface Era {
+  grade: HeatGrade;
+  cls: EraClass;
+  label: string;
+  bars: number;
+  /** "D'Agostino, vocal, 1941: best years" — the tooltip */
+  why: string;
+}
+
+const isSong = (e: Song | Cortina): e is Song => "rhythm" in e && "orchestraId" in e;
+
+/** The era of a side in the Booth, or null (a cortina, an undated side, an orchestra the heatmap does not grade). */
+export function eraOf(e: Song | Cortina | null | undefined): Era | null {
+  if (!e || !isSong(e)) return null;
+  const g =
+    typeof e.heat === "number" ? e.heat : DEFAULT_HEATMAP.grade(e.orchestraId, !!e.vocal, e.year ?? null);
+  if (g === undefined || g === null) return null;
+  const cls = eraClassOf(g as HeatGrade);
+  const c = ERA_CLASSES.find((x) => x.cls === cls)!;
+  return {
+    grade: g as HeatGrade,
+    cls,
+    label: c.label,
+    bars: g as number,
+    why: `${surnameOf(e.orchestra)}, ${e.vocal ? "vocal" : "instrumental"}, ${e.year ?? "undated"}: ${c.label.toLowerCase()}`,
+  };
 }

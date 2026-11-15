@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export const OPTIONS = preflight;
 
 type Ctx = { params: Promise<{ code: string }> };
-const off = () => json({ error: "Rooms are not available on this server." }, { status: 503 });
+const off = () => json({ error: "Rooms are not available on this T-DJ site." }, { status: 503 });
 const missing = () => json({ error: "No room has this code. Check it and try again." }, { status: 404 });
 
 /** `?since=<rev>&user=<name>[&resolve=1][&log=all]`: the room after `since`, or `{ unchanged }`. */

@@ -13,6 +13,7 @@ import { fullOptions, useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import type { Playlist } from "@/lib/types";
 import { Group } from "./Form";
+import { Tip } from "./ui/Tip";
 
 export interface AiEditResponse {
   playlist?: Playlist;
@@ -44,21 +45,23 @@ function SidesDiff({ before, after }: { before?: TandaBrief; after?: TandaBrief 
       {Array.from({ length: Math.max(out.length, inn.length) }, (_, k) => (
         <span key={`${out[k]?.id ?? ""}-${inn[k]?.id ?? ""}`} className="flex min-w-0 items-center gap-1.5">
           {out[k] && (
-            <del
-              className="truncate"
-              title={`${out[k]!.title} (${out[k]!.year ?? "?"}), energy ${out[k]!.energy}`}
+            <Tip
+              text={`${out[k]!.title} (${out[k]!.year ?? "?"}), energy ${out[k]!.energy}`}
+              className="min-w-0"
             >
-              {out[k]!.title}
-            </del>
+              <del className="truncate">{out[k]!.title}</del>
+            </Tip>
           )}
           {out[k] && inn[k] && <ArrowRight size={12} className="shrink-0" aria-hidden />}
           {inn[k] && (
-            <ins
-              className="truncate text-[var(--label)] no-underline"
-              title={`${inn[k]!.title} (${inn[k]!.year ?? "?"}), energy ${inn[k]!.energy}`}
+            <Tip
+              text={`${inn[k]!.title} (${inn[k]!.year ?? "?"}), energy ${inn[k]!.energy}`}
+              className="min-w-0"
             >
-              {inn[k]!.title} <span className="text-[var(--label-2)]">({inn[k]!.year ?? "?"})</span>
-            </ins>
+              <ins className="truncate text-[var(--label)] no-underline">
+                {inn[k]!.title} <span className="text-[var(--label-2)]">({inn[k]!.year ?? "?"})</span>
+              </ins>
+            </Tip>
           )}
         </span>
       ))}
@@ -144,7 +147,7 @@ export function AiEditBar({ playlist }: { playlist: Playlist }) {
         setText("");
       }
     } catch {
-      setError("Could not reach the server.");
+      setError("Could not reach T-DJ. Check your connection and try again.");
     } finally {
       setBusy(false);
     }
@@ -172,9 +175,11 @@ export function AiEditBar({ playlist }: { playlist: Playlist }) {
             "Without a model in Settings → Models, simple requests (calmer, livelier, lock, move, swap a song) still work."
           )}{" "}
           {!busy && !error && (
-            <Link href="/build" className="text-[var(--tint)]" data-testid="build-by-hand">
-              Or build a night by hand.
-            </Link>
+            <Tip text="Start from an empty night and choose every tanda yourself">
+              <Link href="/build" className="text-[var(--tint)]" data-testid="build-by-hand">
+                Or build a night by hand.
+              </Link>
+            </Tip>
           )}
         </span>
       }
@@ -186,43 +191,44 @@ export function AiEditBar({ playlist }: { playlist: Playlist }) {
         <label htmlFor="ai-edit-input" className="sr-only">
           Edit the night
         </label>
-        <input
-          id="ai-edit-input"
-          className="field min-w-0 flex-1"
-          placeholder={`${EXAMPLES[0]} · ${EXAMPLES[1]}`}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          maxLength={400}
-          autoComplete="off"
-          enterKeyHint="send"
-          title="Say what to change: a tanda calmer or livelier, a song swapped, a tanda moved, locked or replaced"
-        />
-        <button
-          type="submit"
-          className="icon-btn icon-btn-send -mr-2"
-          disabled={busy || !text.trim()}
-          aria-label="Make the change"
-          title="Make the change"
+        <Tip
+          text="Say what to change: a tanda calmer or livelier, a song swapped, a tanda moved, locked or replaced"
+          className="min-w-0 flex-1"
         >
-          {busy ? (
-            <LoaderCircle size={18} className="animate-spin" />
-          ) : (
-            <ArrowUp size={18} strokeWidth={2.5} />
-          )}
-        </button>
+          <input
+            id="ai-edit-input"
+            className="field w-full min-w-0"
+            placeholder={`${EXAMPLES[0]} · ${EXAMPLES[1]}`}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            maxLength={400}
+            autoComplete="off"
+            enterKeyHint="send"
+          />
+        </Tip>
+        <Tip text={"Make the change"}>
+          <button
+            type="submit"
+            className="icon-btn icon-btn-send -mr-2"
+            disabled={busy || !text.trim()}
+            aria-label="Make the change"
+          >
+            {busy ? (
+              <LoaderCircle size={18} className="animate-spin" />
+            ) : (
+              <ArrowUp size={18} strokeWidth={2.5} />
+            )}
+          </button>
+        </Tip>
       </form>
       {!result && !busy && (
         <div className="cell flex-wrap gap-2 py-2.5">
           {EXAMPLES.map((x) => (
-            <button
-              key={x}
-              type="button"
-              className="chip"
-              onClick={() => setText(x)}
-              title="Use this example"
-            >
-              {x}
-            </button>
+            <Tip key={x} text={"Use this example"}>
+              <button type="button" className="chip" onClick={() => setText(x)}>
+                {x}
+              </button>
+            </Tip>
           ))}
         </div>
       )}
@@ -238,23 +244,23 @@ export function AiEditBar({ playlist }: { playlist: Playlist }) {
             data-testid="ai-edit-diff"
           >
             <div className="flex items-center justify-between gap-3">
-              <span
-                className="text-subhead min-w-0 truncate text-[var(--label-2)]"
-                title={result!.instruction}
-              >
-                “{result!.instruction}”{r.source === "words" ? " · read by keyword" : ""}
-              </span>
+              <Tip text={result!.instruction}>
+                <span className="text-subhead min-w-0 truncate text-[var(--label-2)]">
+                  “{result!.instruction}”{r.source === "words" ? " · read by keyword" : ""}
+                </span>
+              </Tip>
               <span className="flex shrink-0 items-center gap-1">
                 {!!r.applied?.length && (
-                  <button
-                    type="button"
-                    className="btn btn-ghost min-h-[44px] px-3"
-                    onClick={undo}
-                    data-testid="ai-edit-undo"
-                    title="Put the night back as it was"
-                  >
-                    <RotateCcw size={16} aria-hidden /> Undo
-                  </button>
+                  <Tip text={"Put the night back as it was"}>
+                    <button
+                      type="button"
+                      className="btn btn-ghost min-h-[44px] px-3"
+                      onClick={undo}
+                      data-testid="ai-edit-undo"
+                    >
+                      <RotateCcw size={16} aria-hidden /> Undo
+                    </button>
+                  </Tip>
                 )}
                 <button
                   type="button"
@@ -271,12 +277,11 @@ export function AiEditBar({ playlist }: { playlist: Playlist }) {
               {(r.applied ?? []).map((c) => (
                 <li key={`${c.op}-${c.tanda}-${c.line}`} className="min-w-0">
                   <span className="text-subhead flex items-start gap-2">
-                    <span
-                      className="mt-0.5 inline-grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-[var(--tint)] px-1 text-[11px] font-semibold text-white tabular-nums"
-                      title={`Tanda ${c.tanda}`}
-                    >
-                      {c.tanda}
-                    </span>
+                    <Tip text={`Tanda ${c.tanda}`}>
+                      <span className="mt-0.5 inline-grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-[var(--tint)] px-1 text-[11px] font-semibold text-white tabular-nums">
+                        {c.tanda}
+                      </span>
+                    </Tip>
                     <span className="min-w-0">{c.line}</span>
                   </span>
                   <span className="block pl-7">

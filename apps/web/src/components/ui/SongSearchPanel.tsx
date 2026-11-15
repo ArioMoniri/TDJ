@@ -428,34 +428,35 @@ export function SongSearchPanel({
         aria-label="Find songs"
         data-testid="song-search-panel"
       >
-        {/* biome-ignore lint/a11y/useSemanticElements: a focusable splitter (WAI-ARIA window splitter), resized with the arrow keys */}
-        <button
-          type="button"
-          className="side-panel-handle"
-          aria-label="Resize the panel"
-          role="separator"
-          aria-orientation="vertical"
-          aria-valuemin={PANEL_MIN}
-          aria-valuemax={PANEL_MAX}
-          aria-valuenow={width}
-          data-dragging={dragging || undefined}
-          title="Drag to resize"
-          onKeyDown={(e) => {
-            if (e.key === "ArrowLeft") saveWidth(width + 20);
-            if (e.key === "ArrowRight") saveWidth(width - 20);
-          }}
-          onPointerDown={(e) => {
-            e.currentTarget.setPointerCapture(e.pointerId);
-            setDragging(true);
-          }}
-          onPointerMove={(e) => {
-            if (dragging) setWidth(clampPanel(window.innerWidth - e.clientX));
-          }}
-          onPointerUp={(e) => {
-            setDragging(false);
-            saveWidth(window.innerWidth - e.clientX);
-          }}
-        />
+        <Tip text="Drag to make the panel wider or narrower">
+          {/* biome-ignore lint/a11y/useSemanticElements: a focusable splitter (WAI-ARIA window splitter), resized with the arrow keys */}
+          <button
+            type="button"
+            className="side-panel-handle"
+            aria-label="Resize the panel"
+            role="separator"
+            aria-orientation="vertical"
+            aria-valuemin={PANEL_MIN}
+            aria-valuemax={PANEL_MAX}
+            aria-valuenow={width}
+            data-dragging={dragging || undefined}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowLeft") saveWidth(width + 20);
+              if (e.key === "ArrowRight") saveWidth(width - 20);
+            }}
+            onPointerDown={(e) => {
+              e.currentTarget.setPointerCapture(e.pointerId);
+              setDragging(true);
+            }}
+            onPointerMove={(e) => {
+              if (dragging) setWidth(clampPanel(window.innerWidth - e.clientX));
+            }}
+            onPointerUp={(e) => {
+              setDragging(false);
+              saveWidth(window.innerWidth - e.clientX);
+            }}
+          />
+        </Tip>
         <header className="flex min-h-[52px] items-center gap-2 border-b border-[var(--separator)] px-4">
           <h2 className="text-headline min-w-0 flex-1 truncate">Find songs</h2>
           <button

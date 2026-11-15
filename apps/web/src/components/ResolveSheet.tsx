@@ -57,7 +57,11 @@ export function ResolveSheet({
           alive &&
           setState({
             busy: false,
-            data: { candidates: [], suggestions: {}, error: "Could not reach the server" },
+            data: {
+              candidates: [],
+              suggestions: {},
+              error: "Could not reach T-DJ. Check your connection and try again.",
+            },
           }),
       );
     return () => {

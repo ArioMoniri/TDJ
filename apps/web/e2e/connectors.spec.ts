@@ -791,8 +791,8 @@ test("env-absent fallback: without server credentials the sheet shows the BYO Cl
   await sheet.getByRole("button", { name: "Done" }).click();
   await page.locator("#connector-dropbox").click();
   const dbx = page.getByRole("dialog", { name: "Dropbox" });
-  await expect(dbx).toContainText("Not enabled on this deployment");
-  await expect(dbx.getByRole("link", { name: /How to enable/ })).toHaveAttribute(
+  await expect(dbx).toContainText("Not turned on for this site");
+  await expect(dbx.getByRole("link", { name: /How to turn it on/ })).toHaveAttribute(
     "href",
     /DEPLOY\.md#connectors/,
   );
@@ -800,8 +800,8 @@ test("env-absent fallback: without server credentials the sheet shows the BYO Cl
   await dbx.getByRole("button", { name: "Done" }).click();
   await page.locator("#connector-google").click();
   const gg = page.getByRole("dialog", { name: "Google" });
-  await expect(gg).toContainText("Not enabled on this deployment");
-  await expect(gg.getByRole("link", { name: /How to enable/ })).toHaveAttribute(
+  await expect(gg).toContainText("Not turned on for this site");
+  await expect(gg.getByRole("link", { name: /How to turn it on/ })).toHaveAttribute(
     "href",
     /DEPLOY\.md#connectors/,
   );

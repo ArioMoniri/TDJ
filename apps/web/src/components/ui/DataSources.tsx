@@ -8,7 +8,6 @@ import { SOURCES, type SourceId, type SourceInfo } from "@/lib/fill/sources";
 import { useStore } from "@/lib/store";
 import { ActionRow, FieldRow, Group, Row, SwitchRow } from "../Form";
 import { Sheet } from "../Sheet";
-import { Tip } from "./Tip";
 
 const ICON: Record<SourceId, ReactNode> = {
   deezer: <Disc size={16} strokeWidth={2} />,
@@ -97,28 +96,29 @@ export function DataSources() {
             data-testid={`source-${s.id}`}
           />
         ))}
-        <ActionRow label="Add a source…" onClick={() => setAdding(true)} disabled={!available.length} />
-        <Tip
-          text="Asks your sources for every side of tonight's night that is missing something"
-          className="w-full"
-        >
-          <Row
-            tile={
-              <span className="tile" style={{ background: "#5856d6" }} aria-hidden>
-                <DatabaseZap size={16} strokeWidth={2} />
-              </span>
-            }
-            label="Fill tonight's night"
-            sub={
-              progress ??
-              (playlist ? "BPM, key, level, artwork and dates for its sides" : "Compose a night first")
-            }
-            chevron
-            disabled={!playlist}
-            onClick={() => void fillNight()}
-            data-testid="fill-night"
-          />
-        </Tip>
+        <ActionRow
+          label="Add a source…"
+          tip="Another place to fill in missing BPM, key, artwork or dates, such as Discogs or Spotify"
+          onClick={() => setAdding(true)}
+          disabled={!available.length}
+        />
+        <Row
+          tip="Asks your sources for every side of tonight's night that is missing something"
+          tile={
+            <span className="tile" style={{ background: "#5856d6" }} aria-hidden>
+              <DatabaseZap size={16} strokeWidth={2} />
+            </span>
+          }
+          label="Fill tonight's night"
+          sub={
+            progress ??
+            (playlist ? "BPM, key, level, artwork and dates for its sides" : "Compose a night first")
+          }
+          chevron
+          disabled={!playlist}
+          onClick={() => void fillNight()}
+          data-testid="fill-night"
+        />
       </Group>
 
       <Sheet

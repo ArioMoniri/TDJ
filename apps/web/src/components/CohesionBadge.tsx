@@ -6,6 +6,7 @@ import { useMediaQuery } from "@/lib/hooks";
 import { DUR, EASE } from "@/lib/motion";
 import { Group } from "./Form";
 import { Sheet } from "./Sheet";
+import { Tip } from "./ui/Tip";
 
 /** Five tiny bars per consecutive pair: tempo / loudness / key / brightness / energy. */
 function PairBars({ parts }: { parts: Record<string, number> | null }) {
@@ -14,21 +15,21 @@ function PairBars({ parts }: { parts: Record<string, number> | null }) {
       {PART_ORDER.map((k) => {
         const v = parts?.[k];
         return (
-          <span
-            key={k}
-            title={`${PART_LABEL[k]}: ${v == null ? "unknown" : `${Math.round(v)} %`}`}
-            className="block w-1.5 rounded-sm bg-[var(--fill-3)]"
-            style={{ height: 14, position: "relative" }}
-          >
+          <Tip key={k} text={`${PART_LABEL[k]}: ${v == null ? "unknown" : `${Math.round(v)} %`}`}>
             <span
-              className="absolute inset-x-0 bottom-0 rounded-sm"
-              style={{
-                height: `${v == null ? 0 : Math.max(8, v)}%`,
-                background:
-                  v == null ? "transparent" : v >= 70 ? "var(--tint)" : v >= 45 ? "#d9822b" : "#e5484d",
-              }}
-            />
-          </span>
+              className="block w-1.5 rounded-sm bg-[var(--fill-3)]"
+              style={{ height: 14, position: "relative" }}
+            >
+              <span
+                className="absolute inset-x-0 bottom-0 rounded-sm"
+                style={{
+                  height: `${v == null ? 0 : Math.max(8, v)}%`,
+                  background:
+                    v == null ? "transparent" : v >= 70 ? "var(--tint)" : v >= 45 ? "#d9822b" : "#e5484d",
+                }}
+              />
+            </span>
+          </Tip>
         );
       })}
     </span>
@@ -84,20 +85,22 @@ export function CohesionBadge({ info, tandaLabel }: { info: CohesionInfo; tandaL
   }, [open, isPhone]);
   const color = COHESION_COLOR[info.label];
   const trigger = (
-    <button
-      type="button"
-      className="text-caption1 -my-1 inline-flex min-h-[28px] items-center gap-1 rounded-full px-2 font-medium"
-      style={{ color, background: `color-mix(in srgb, ${color} 14%, transparent)` }}
-      aria-label={`Cohesion ${info.score}, ${info.label}, ${tandaLabel}`}
-      aria-expanded={open}
-      aria-controls={open && !isPhone ? id : undefined}
-      data-testid="cohesion-badge"
-      data-label={info.label}
-      onPointerDown={(e) => e.stopPropagation()}
-      onClick={() => setOpen((v) => !v)}
-    >
-      <span className="capitalize">{info.label}</span>
-    </button>
+    <Tip text="How smoothly the songs of this tanda follow each other: tap for each step">
+      <button
+        type="button"
+        className="text-caption1 -my-1 inline-flex min-h-[28px] items-center gap-1 rounded-full px-2 font-medium"
+        style={{ color, background: `color-mix(in srgb, ${color} 14%, transparent)` }}
+        aria-label={`Cohesion ${info.score}, ${info.label}, ${tandaLabel}`}
+        aria-expanded={open}
+        aria-controls={open && !isPhone ? id : undefined}
+        data-testid="cohesion-badge"
+        data-label={info.label}
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className="capitalize">{info.label}</span>
+      </button>
+    </Tip>
   );
   if (isPhone)
     return (

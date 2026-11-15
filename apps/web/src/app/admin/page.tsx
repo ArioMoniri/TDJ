@@ -14,6 +14,7 @@ import {
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { ActionRow, FieldRow, Group, Row, SegmentedRow, StepperRow, Tile } from "@/components/Form";
 import { PageHeader } from "@/components/PageHeader";
+import { Tip } from "@/components/ui/Tip";
 import { toast } from "@/lib/toast";
 import { AI_DEFAULT_MODEL, AI_PROVIDERS, type AiProvider } from "@/lib/types";
 
@@ -462,18 +463,19 @@ export default function AdminPage() {
         }
         trailing={
           // phones: the book glyph alone, so the title never truncates to "Owner se…" (round8-ux.md §2 Admin)
-          <a
-            href={OWNER_GUIDE}
-            target="_blank"
-            rel="noreferrer"
-            className="btn-plain max-sm:icon-btn max-sm:icon-btn-bare max-sm:px-0"
-            id="admin-guide"
-            aria-label="Owner guide"
-            title="Owner guide"
-          >
-            <BookOpen size={18} strokeWidth={2} className="inline sm:mr-1" aria-hidden />
-            <span className="max-sm:sr-only">Owner guide</span>
-          </a>
+          <Tip text={"Owner guide"}>
+            <a
+              href={OWNER_GUIDE}
+              target="_blank"
+              rel="noreferrer"
+              className="btn-plain max-sm:icon-btn max-sm:icon-btn-bare max-sm:px-0"
+              id="admin-guide"
+              aria-label="Owner guide"
+            >
+              <BookOpen size={18} strokeWidth={2} className="inline sm:mr-1" aria-hidden />
+              <span className="max-sm:sr-only">Owner guide</span>
+            </a>
+          </Tip>
         }
       />
 
@@ -616,10 +618,10 @@ export default function AdminPage() {
         <>
           {!status.storeAvailable && (
             <Group
-              footer="The config store did not answer (on AWS the function needs ssm:* on /tdj/*; locally use TDJ_CONFIG_BACKEND=memory). Saving will fail until it does."
+              footer="The place this site keeps its settings did not answer, so saving will fail for now. The owner guide (top right) explains how to give the site access to it."
               id="admin-store-warning"
             >
-              <Row label="Config store" value="Unavailable" />
+              <Row label="Saved settings" value="Unavailable" />
             </Group>
           )}
           {status.providers?.map((p) => {
@@ -831,9 +833,9 @@ export default function AdminPage() {
                   {aiTest.text}
                 </span>
               ) : status.ai?.source === "env" ? (
-                "The shared model key is set by the deployment's environment; change it there, not here."
+                "The shared model key was set when this site was installed; change it there, not here."
               ) : (
-                "One model key, paid by you, writes reviews for every DJ who has not added a key of their own, up to the daily limit per DJ (counted per server instance, so treat it as a courtesy cap). The key never reaches a browser. The Workspace ID is only needed for an Anthropic key created at organisation level."
+                "One model key, paid by you, writes reviews for every DJ who has not added a key of their own, up to the daily limit per DJ (a courtesy cap, not an exact count). The key never reaches a browser. The organisation ID is only needed for an Anthropic key made for an organisation."
               )
             }
           >
@@ -900,7 +902,7 @@ export default function AdminPage() {
                 </FieldRow>
                 {aiDraft.provider === "anthropic" && (
                   <FieldRow
-                    label="Workspace ID"
+                    label="Organisation ID"
                     sub={status.ai?.hasWorkspace ? "Saved · paste to replace" : "Optional"}
                     id="admin-ai-workspace"
                   >
@@ -950,8 +952,8 @@ export default function AdminPage() {
             header="Public address"
             footer={
               status.publicUrl?.source === "env"
-                ? "The public URL is set by the deployment's environment (NEXT_PUBLIC_APP_URL)."
-                : "Leave empty to use the address the app is opened on (the CloudFront URL). Set it when a custom domain fronts the app, so the redirect URIs above match what the providers see."
+                ? "The public address was set when this site was installed; change it there."
+                : "Leave empty to use the address the app is opened on. Set it when the site has a domain of its own, so the sign-in links above match what Spotify, Google and Dropbox see."
             }
             id="admin-public-url"
           >

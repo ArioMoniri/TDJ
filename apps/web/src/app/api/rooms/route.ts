@@ -14,7 +14,7 @@ export async function GET() {
 
 /** Body: `{ user, name, night? }` → the new room. */
 export async function POST(req: Request) {
-  if (!roomStoreKind()) return json({ error: "Rooms are not available on this server." }, { status: 503 });
+  if (!roomStoreKind()) return json({ error: "Rooms are not available on this T-DJ site." }, { status: 503 });
   if (rateLimited(`create:${clientKey(req)}`, 10))
     return json({ error: "Too many new rooms at once. Wait a minute." }, { status: 429 });
   const body = await readBody(req);

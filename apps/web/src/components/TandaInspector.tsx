@@ -7,6 +7,7 @@ import { useStore } from "@/lib/store";
 import type { Playlist } from "@/lib/types";
 import { RhythmTile } from "./Form";
 import { SELECT_TANDA_EVENT } from "./Sidebar";
+import { Tip } from "./ui/Tip";
 
 const PHASE: Record<string, string> = {
   warmup: "Warm-up",
@@ -79,28 +80,32 @@ export function TandaInspector({
           <dd>{mmss(t.durationSec)}</dd>
         </dl>
         <div className="mt-4 flex flex-wrap gap-2">
-          <button
-            type="button"
-            className="btn btn-ghost min-h-[44px]"
-            disabled={!previews.length}
-            onClick={() => {
-              haptic(4);
-              usePlayer.getState().playQueue(`Tanda ${i + 1}`, previews, 10);
-            }}
-          >
-            <Headphones size={16} aria-hidden /> Preview
-          </button>
-          <button
-            type="button"
-            className="btn btn-ghost min-h-[44px]"
-            onClick={() =>
-              document
-                .getElementById(`tanda-${i + 1}`)
-                ?.scrollIntoView({ behavior: "smooth", block: "start" })
-            }
-          >
-            <ListMusic size={16} aria-hidden /> Show in set
-          </button>
+          <Tip text="Hear 10 seconds of each song in this tanda">
+            <button
+              type="button"
+              className="btn btn-ghost min-h-[44px]"
+              disabled={!previews.length}
+              onClick={() => {
+                haptic(4);
+                usePlayer.getState().playQueue(`Tanda ${i + 1}`, previews, 10);
+              }}
+            >
+              <Headphones size={16} aria-hidden /> Preview
+            </button>
+          </Tip>
+          <Tip text="Scroll the set to this tanda">
+            <button
+              type="button"
+              className="btn btn-ghost min-h-[44px]"
+              onClick={() =>
+                document
+                  .getElementById(`tanda-${i + 1}`)
+                  ?.scrollIntoView({ behavior: "smooth", block: "start" })
+              }
+            >
+              <ListMusic size={16} aria-hidden /> Show in set
+            </button>
+          </Tip>
         </div>
       </div>
       <h3 className="section-head">Tracks</h3>

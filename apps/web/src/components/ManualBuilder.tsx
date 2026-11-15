@@ -25,6 +25,7 @@ import { toast } from "@/lib/toast";
 import { Group, RhythmTile, Row, SegmentedRow, SwitchRow } from "./Form";
 import { PageHeader } from "./PageHeader";
 import { SearchField } from "./SearchField";
+import { Tip } from "./ui/Tip";
 
 interface Suggestion {
   key: string;
@@ -212,16 +213,17 @@ export function ManualBuilder() {
             : "Pick songs or whole tandas; TDJ suggests what comes next"
         }
         primary={
-          <button
-            type="button"
-            className="btn btn-primary min-h-[44px]"
-            onClick={finish}
-            disabled={!draft.length || finishing}
-            data-testid="build-finish"
-            title="Make this the night on Compose: cortinas, score, the booth and the exports"
-          >
-            <Check size={18} aria-hidden /> Use this night
-          </button>
+          <Tip text={"Make this the night on Compose: cortinas, score, the booth and the exports"}>
+            <button
+              type="button"
+              className="btn btn-primary min-h-[44px]"
+              onClick={finish}
+              disabled={!draft.length || finishing}
+              data-testid="build-finish"
+            >
+              <Check size={18} aria-hidden /> Use this night
+            </button>
+          </Tip>
         }
       />
 
@@ -263,25 +265,27 @@ export function ManualBuilder() {
                         </span>
                       </span>
                       {ti > 0 && (
+                        <Tip text={"Move up"}>
+                          <button
+                            type="button"
+                            className="icon-btn icon-btn-bare h-11 w-11"
+                            onClick={() => setDraft(moveTanda(draft, ti, ti - 1))}
+                            aria-label={`Move tanda ${ti + 1} up`}
+                          >
+                            <ArrowUp size={16} aria-hidden />
+                          </button>
+                        </Tip>
+                      )}
+                      <Tip text={"Remove this tanda"}>
                         <button
                           type="button"
-                          className="icon-btn icon-btn-bare h-11 w-11"
-                          onClick={() => setDraft(moveTanda(draft, ti, ti - 1))}
-                          aria-label={`Move tanda ${ti + 1} up`}
-                          title="Move up"
+                          className="icon-btn icon-btn-bare -mr-2 h-11 w-11 text-[var(--destructive)]"
+                          onClick={() => setDraft(removeTanda(draft, ti))}
+                          aria-label={`Remove tanda ${ti + 1}`}
                         >
-                          <ArrowUp size={16} aria-hidden />
+                          <Trash2 size={16} aria-hidden />
                         </button>
-                      )}
-                      <button
-                        type="button"
-                        className="icon-btn icon-btn-bare -mr-2 h-11 w-11 text-[var(--destructive)]"
-                        onClick={() => setDraft(removeTanda(draft, ti))}
-                        aria-label={`Remove tanda ${ti + 1}`}
-                        title="Remove this tanda"
-                      >
-                        <Trash2 size={16} aria-hidden />
-                      </button>
+                      </Tip>
                     </div>
                     {t.map((s, si) => (
                       <div key={s.id} className="cell" data-leading="num">
@@ -295,15 +299,16 @@ export function ManualBuilder() {
                             {s.energy !== undefined ? ` · energy ${s.energy}` : ""}
                           </span>
                         </span>
-                        <button
-                          type="button"
-                          className="icon-btn icon-btn-bare -mr-2 h-11 w-11 text-[var(--label-3)]"
-                          onClick={() => setDraft(removeSong(draft, ti, si))}
-                          aria-label={`Remove ${s.title}`}
-                          title="Remove this side"
-                        >
-                          <Trash2 size={15} aria-hidden />
-                        </button>
+                        <Tip text={"Remove this side"}>
+                          <button
+                            type="button"
+                            className="icon-btn icon-btn-bare -mr-2 h-11 w-11 text-[var(--label-3)]"
+                            onClick={() => setDraft(removeSong(draft, ti, si))}
+                            aria-label={`Remove ${s.title}`}
+                          >
+                            <Trash2 size={15} aria-hidden />
+                          </button>
+                        </Tip>
                       </div>
                     ))}
                   </Group>
@@ -362,7 +367,7 @@ export function ManualBuilder() {
                   className="cell items-start gap-3 py-3"
                   data-leading="tile"
                   data-testid="build-suggestion"
-                  title={s.reasons.join(" · ")}
+                  aria-description={s.reasons.join(" · ")}
                 >
                   <RhythmTile rhythm={s.rhythm} />
                   <span className="min-w-0 flex-1">
@@ -386,15 +391,20 @@ export function ManualBuilder() {
                       ))}
                     </span>
                   </span>
-                  <button
-                    type="button"
-                    className="btn btn-ghost -mr-1 min-h-[44px] shrink-0 px-3"
-                    onClick={() => pick(s)}
-                    aria-label={s.kind === "song" ? `Add ${s.songs[0]!.title}` : `Add the ${family(s)} tanda`}
-                    title={s.kind === "song" ? "Add this side to the tanda" : "Add this tanda to the night"}
+                  <Tip
+                    text={s.kind === "song" ? "Add this side to the tanda" : "Add this tanda to the night"}
                   >
-                    <Plus size={16} aria-hidden /> Add
-                  </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost -mr-1 min-h-[44px] shrink-0 px-3"
+                      onClick={() => pick(s)}
+                      aria-label={
+                        s.kind === "song" ? `Add ${s.songs[0]!.title}` : `Add the ${family(s)} tanda`
+                      }
+                    >
+                      <Plus size={16} aria-hidden /> Add
+                    </button>
+                  </Tip>
                 </div>
               ))}
             </Group>
@@ -427,15 +437,16 @@ export function ManualBuilder() {
                       {open && !h.fits && h.why ? ` · ${h.why}` : ""}
                     </span>
                   </span>
-                  <button
-                    type="button"
-                    className="btn btn-ghost -mr-1 min-h-[44px] shrink-0 px-3"
-                    onClick={() => addHit(h)}
-                    aria-label={`Add ${h.song.title}`}
-                    title={open && h.fits ? `Add to tanda ${draft.length}` : "Start a new tanda with it"}
-                  >
-                    <Plus size={16} aria-hidden /> Add
-                  </button>
+                  <Tip text={open && h.fits ? `Add to tanda ${draft.length}` : "Start a new tanda with it"}>
+                    <button
+                      type="button"
+                      className="btn btn-ghost -mr-1 min-h-[44px] shrink-0 px-3"
+                      onClick={() => addHit(h)}
+                      aria-label={`Add ${h.song.title}`}
+                    >
+                      <Plus size={16} aria-hidden /> Add
+                    </button>
+                  </Tip>
                 </div>
               ))}
             </Group>

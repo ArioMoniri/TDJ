@@ -22,6 +22,7 @@ import { usePlayer } from "@/lib/player";
 import { useStore } from "@/lib/store";
 import { Logo } from "./Logo";
 import { ROOMS_NAV } from "./RoomsNav";
+import { Tip } from "./ui/Tip";
 
 /** Fired with the tanda index when the sidebar's Tonight list picks a tanda: the Compose inspector follows it. */
 export const SELECT_TANDA_EVENT = "tdj:select-tanda";
@@ -243,16 +244,17 @@ export function Sidebar() {
             <Logo size={28} />
             <span className="text-headline">TDJ</span>
           </Link>
-          <button
-            type="button"
-            className="icon-btn icon-btn-bare text-[var(--label-2)]"
-            aria-label="Hide sidebar"
-            title="Hide sidebar (⌃⌘S)"
-            onClick={() => setCollapsed(true)}
-            data-testid="sidebar-hide"
-          >
-            <PanelLeft size={20} strokeWidth={1.75} aria-hidden />
-          </button>
+          <Tip text={"Hide sidebar (⌃⌘S)"}>
+            <button
+              type="button"
+              className="icon-btn icon-btn-bare text-[var(--label-2)]"
+              aria-label="Hide sidebar"
+              onClick={() => setCollapsed(true)}
+              data-testid="sidebar-hide"
+            >
+              <PanelLeft size={20} strokeWidth={1.75} aria-hidden />
+            </button>
+          </Tip>
         </div>
 
         <div className="side-scroll min-h-0 flex-1 overflow-y-auto px-3 pb-3">
@@ -408,17 +410,18 @@ export function Sidebar() {
 
       {/* collapsed: one glass button brings it back, clear of the traffic lights on the Mac app */}
       {state.collapsed && (
-        <button
-          type="button"
-          className="icon-btn icon-btn-glass fixed z-40 hidden lg:grid"
-          style={{ top: "calc(var(--chrome-top) + 14px)", left: "calc(var(--traffic-left) + 12px)" }}
-          aria-label="Show sidebar"
-          title="Show sidebar (⌃⌘S)"
-          onClick={() => setCollapsed(false)}
-          data-testid="sidebar-show"
-        >
-          <PanelLeft size={20} strokeWidth={1.75} aria-hidden />
-        </button>
+        <Tip text={"Show sidebar (⌃⌘S)"}>
+          <button
+            type="button"
+            className="icon-btn icon-btn-glass fixed z-40 hidden lg:grid"
+            style={{ top: "calc(var(--chrome-top) + 14px)", left: "calc(var(--traffic-left) + 12px)" }}
+            aria-label="Show sidebar"
+            onClick={() => setCollapsed(false)}
+            data-testid="sidebar-show"
+          >
+            <PanelLeft size={20} strokeWidth={1.75} aria-hidden />
+          </button>
+        </Tip>
       )}
     </>
   );

@@ -258,20 +258,21 @@ function fmtDuration(sec: number) {
 /** Pin glyph: keeps a control through era changes. */
 function PinButton({ on, label, onToggle }: { on: boolean; label: string; onToggle: () => void }) {
   return (
-    <button
-      type="button"
-      className={`icon-btn icon-btn-bare -my-2 h-11 w-11 ${on ? "text-[var(--tint)]" : "pin-idle text-[var(--label-3)]"}`}
-      aria-pressed={on}
-      aria-label={`${on ? "Unpin" : "Pin"} ${label.toLowerCase()}`}
-      title={on ? "Pinned: era presets leave this alone" : "Pin so era presets leave this alone"}
-      onClick={(e) => {
-        e.preventDefault();
-        haptic(4);
-        onToggle();
-      }}
-    >
-      {on ? <Pin size={15} strokeWidth={2} fill="currentColor" /> : <PinOff size={15} strokeWidth={2} />}
-    </button>
+    <Tip text={on ? "Pinned: era presets leave this alone" : "Pin so era presets leave this alone"}>
+      <button
+        type="button"
+        className={`icon-btn icon-btn-bare -my-2 h-11 w-11 ${on ? "text-[var(--tint)]" : "pin-idle text-[var(--label-3)]"}`}
+        aria-pressed={on}
+        aria-label={`${on ? "Unpin" : "Pin"} ${label.toLowerCase()}`}
+        onClick={(e) => {
+          e.preventDefault();
+          haptic(4);
+          onToggle();
+        }}
+      >
+        {on ? <Pin size={15} strokeWidth={2} fill="currentColor" /> : <PinOff size={15} strokeWidth={2} />}
+      </button>
+    </Tip>
   );
 }
 
@@ -335,6 +336,7 @@ const SetupForm = memo(function SetupForm({
         <SliderRow
           id="hours"
           label="Length"
+          tip="How long the night runs; the number of tandas follows"
           display={`${hours} h · ≈${tandasEst} tandas`}
           min={1}
           max={8}
@@ -342,7 +344,14 @@ const SetupForm = memo(function SetupForm({
           value={hours}
           onChange={(v) => setOptions({ hours: v })}
         />
-        <PickerRow label="Era" ariaLabel="Era" value={era} items={ERAS} onChange={(k) => k && applyEra(k)} />
+        <PickerRow
+          label="Era"
+          ariaLabel="Era"
+          tip="Which recordings the night draws on; it also sets the tanda sizes and rules to suit"
+          value={era}
+          items={ERAS}
+          onChange={(k) => k && applyEra(k)}
+        />
         <SegmentedRow
           label="Arc"
           sub={
@@ -362,6 +371,12 @@ const SetupForm = memo(function SetupForm({
         />
         <SegmentedRow
           label="Cortinas"
+          tips={{
+            family: "One artist or genre family all night",
+            matched: "Each cortina picked for the tanda that follows",
+            constant: "One cortina repeated all night, the salón way",
+            none: "No cortinas: tandas follow each other",
+          }}
           value={cortinaStyle}
           items={CORTINA_STYLES}
           onChange={(k) => setOptions({ cortinaStyle: k })}
@@ -374,6 +389,7 @@ const SetupForm = memo(function SetupForm({
         </SegmentedRow>
         <SwitchRow
           label="Close with La Cumparsita"
+          tip="The night ends on La Cumparsita, the traditional last song"
           checked={options.closeWithCumparsita ?? true}
           onChange={(v) => setOptions({ closeWithCumparsita: v })}
         />
@@ -381,6 +397,7 @@ const SetupForm = memo(function SetupForm({
 
       <FoldGroup
         header="Structure"
+        tip="The cycle of tango, vals and milonga, and how many songs each tanda has"
         summary={`${PATTERNS.find(([k]) => k === (options.pattern ?? "classic"))?.[1] ?? "Custom"} · ${options.tangoTandaSize ?? 4}/${options.valsTandaSize ?? 3}/${options.milongaTandaSize ?? 3} tracks`}
         footer="Sizes are in tracks; gap in tandas; spread in years. The era preset sets these; pin a control to keep your own value when the era changes."
         id="structure"
@@ -406,7 +423,11 @@ const SetupForm = memo(function SetupForm({
           <PinButton on={isPinned("pattern")} label="Cycle" onToggle={() => togglePin("pattern")} />
         </PickerRow>
         {options.pattern === "custom" && (
-          <FieldRow label="Custom cycle" id="custom-pattern">
+          <FieldRow
+            label="Custom cycle"
+            id="custom-pattern"
+            tip="Your own order of rhythms: T for tango, V for vals, M for milonga"
+          >
             <input
               id="custom-pattern"
               className="field field-value min-w-0 flex-1 font-mono uppercase"
@@ -422,6 +443,7 @@ const SetupForm = memo(function SetupForm({
         )}
         <StepperRow
           label="Tango tanda"
+          tip="How many songs in each tango tanda"
           value={options.tangoTandaSize ?? 4}
           unit=" tracks"
           min={3}
@@ -437,6 +459,7 @@ const SetupForm = memo(function SetupForm({
         </StepperRow>
         <StepperRow
           label="Vals tanda"
+          tip="How many songs in each vals tanda"
           value={options.valsTandaSize ?? 3}
           unit=" tracks"
           min={3}
@@ -452,6 +475,7 @@ const SetupForm = memo(function SetupForm({
         </StepperRow>
         <StepperRow
           label="Milonga tanda"
+          tip="How many songs in each milonga tanda"
           value={options.milongaTandaSize ?? 3}
           unit=" tracks"
           min={3}
@@ -467,6 +491,7 @@ const SetupForm = memo(function SetupForm({
         </StepperRow>
         <StepperRow
           label="Orchestra repeat gap"
+          tip="How many tandas pass before the same orchestra plays again"
           value={options.orchestraRepeatGap ?? 6}
           unit=" tandas"
           min={1}
@@ -482,6 +507,7 @@ const SetupForm = memo(function SetupForm({
         </StepperRow>
         <StepperRow
           label="Year spread"
+          tip="How many years apart the songs of one tanda may be"
           value={options.maxYearSpread ?? 4}
           unit=" y"
           min={1}
@@ -495,12 +521,17 @@ const SetupForm = memo(function SetupForm({
             onToggle={() => togglePin("maxYearSpread")}
           />
         </StepperRow>
-        <ActionRow label="Reset to era defaults" onClick={() => applyEra(era, true)} />
+        <ActionRow
+          label="Reset to era defaults"
+          tip="Put the tanda sizes, gap and spread back to what the era suggests"
+          onClick={() => applyEra(era, true)}
+        />
       </FoldGroup>
 
       {cortinaStyle !== "none" && (
         <FoldGroup
           header="Cortinas"
+          tip="What the cortinas sound like and how long each one plays"
           summary={`${CORTINA_TRENDS.find(([k]) => k === (options.cortinaTrend ?? "mixed"))?.[1] ?? ""} · ${options.cortinaLengthSec ?? 45} s`}
           footer={
             cortinaStyle === "family"
@@ -513,12 +544,18 @@ const SetupForm = memo(function SetupForm({
         >
           <SegmentedRow
             label="Flavour"
+            tips={{
+              mixed: "A mix of today's hits and classics",
+              trend: "Songs people know from the radio now",
+              classic: "Older songs everyone recognises",
+            }}
             value={options.cortinaTrend ?? "mixed"}
             items={CORTINA_TRENDS}
             onChange={(k) => setOptions({ cortinaTrend: k })}
           />
           <MultiPickerRow
             label="Cultures"
+            tip="Where the cortina songs come from"
             values={cultures}
             items={CULTURES}
             min={1}
@@ -527,6 +564,7 @@ const SetupForm = memo(function SetupForm({
           />
           <StepperRow
             label="Length"
+            tip="How many seconds each cortina plays"
             value={options.cortinaLengthSec ?? 45}
             unit=" s"
             min={20}
@@ -545,6 +583,7 @@ const SetupForm = memo(function SetupForm({
 
       <FoldGroup
         header="Night rules"
+        tip="Rules for the whole night: the última, spacing of orchestras, the big four"
         summary={`Última: ${(ULTIMA.find(([k]) => k === (rules.ultimaRule ?? "emotional-vocal"))?.[1] ?? "").toLowerCase()}`}
         footer="Defaults follow the era. These travel with every compose, feedback and refine."
         id="night-rules"
@@ -563,6 +602,10 @@ const SetupForm = memo(function SetupForm({
         />
         <SegmentedRow
           label="Closing Cumparsitas"
+          tips={{
+            "1": "One La Cumparsita, as in most of Europe",
+            "2": "Two, as in Buenos Aires: the night really ends",
+          }}
           value={String(rules.cumparsitaCount ?? 1) as "1" | "2"}
           items={CUMPARSITAS}
           onChange={(k) => setRules({ cumparsitaCount: Number(k) as 1 | 2 })}
@@ -636,6 +679,7 @@ const SetupForm = memo(function SetupForm({
         />
         <PickerRow
           label="Opener"
+          tip="What the first tanda of the night is like"
           ariaLabel="Opener"
           value={rules.openerRule ?? "canon"}
           items={OPENER}
@@ -685,6 +729,7 @@ const SetupForm = memo(function SetupForm({
         />
         <PickerRow
           label="Cool-down"
+          tip="How the night calms down before the última"
           ariaLabel="Cool-down"
           value={rules.cooldown ?? "lift"}
           items={COOLDOWNS}
@@ -710,6 +755,7 @@ const SetupForm = memo(function SetupForm({
         />
         <SwitchRow
           label="Cortina before La Cumparsita"
+          tip="A cortina clears the floor before the last song, so everyone hears it is the end"
           checked={!!rules.cortinaBeforeCumparsita}
           onChange={(v) => setRules({ cortinaBeforeCumparsita: v })}
         />
@@ -723,12 +769,18 @@ const SetupForm = memo(function SetupForm({
         />
       </FoldGroup>
 
-      <FoldGroup header="Tanda rules" bare id="tanda-rules-fold">
+      <FoldGroup
+        header="Tanda rules"
+        tip="Rules inside each tanda: one voice, tempo and level kept close"
+        bare
+        id="tanda-rules-fold"
+      >
         <TandaRulesGroup value={options.tandaRules} onChange={(tandaRules) => setOptions({ tandaRules })} />
       </FoldGroup>
 
       <FoldGroup
         header="Tonight"
+        tip="The room, the crowd and the floor tonight; each choice moves the energy and the mix"
         summary={contextCount ? `${contextCount} set` : "Room, crowd, floor…"}
         bare
         id="tonight-fold"
@@ -751,16 +803,18 @@ const SetupForm = memo(function SetupForm({
         <span className="text-footnote min-w-0 flex-1 truncate text-[var(--label-2)]">
           {ERAS.find(([k]) => k === era)?.[1] ?? era} · {hours} h · ≈{tandasEst} tandas
         </span>
-        <button
-          type="button"
-          className="btn btn-primary min-h-[44px]"
-          onClick={onCompose}
-          disabled={busy}
-          aria-label="Compose with these settings"
-          data-testid="form-compose"
-        >
-          <Disc3 size={18} aria-hidden /> Compose
-        </button>
+        <Tip text="Compose the night with these settings (⌘↩)">
+          <button
+            type="button"
+            className="btn btn-primary min-h-[44px]"
+            onClick={onCompose}
+            disabled={busy}
+            aria-label="Compose with these settings"
+            data-testid="form-compose"
+          >
+            <Disc3 size={18} aria-hidden /> Compose
+          </button>
+        </Tip>
       </div>
     </div>
   );
@@ -1408,64 +1462,68 @@ export function Composer() {
    * (round8-ux.md §1.2). ⌘↩ stays on Regenerate (the same action), ⌘E on Export.
    */
   const composeButton = (
-    <motion.button
-      type="button"
-      onClick={() => run()}
-      disabled={busy}
-      className={`btn ${hasPlaylist ? "btn-ghost" : "btn-primary"} min-h-[44px] lg:min-h-[40px] lg:px-4 lg:text-subhead`}
-      animate={errorNudge}
-      transition={{ duration: 0.28, ease: EASE.inOut }}
-      title="⌘↩"
-      data-testid={hasPlaylist ? "toolbar-regenerate" : "toolbar-compose"}
-    >
-      <ComposeLabel
-        busy={busy}
-        steps={!!playlist}
-        idle={hasPlaylist ? "Regenerate" : "Compose the night"}
-        spin={false}
-      />
-    </motion.button>
+    <Tip text={hasPlaylist ? "Compose again with the same settings (⌘↩)" : "Compose the night (⌘↩)"}>
+      <motion.button
+        type="button"
+        onClick={() => run()}
+        disabled={busy}
+        className={`btn ${hasPlaylist ? "btn-ghost" : "btn-primary"} min-h-[44px] lg:min-h-[40px] lg:px-4 lg:text-subhead`}
+        animate={errorNudge}
+        transition={{ duration: 0.28, ease: EASE.inOut }}
+        data-testid={hasPlaylist ? "toolbar-regenerate" : "toolbar-compose"}
+      >
+        <ComposeLabel
+          busy={busy}
+          steps={!!playlist}
+          idle={hasPlaylist ? "Regenerate" : "Compose the night"}
+          spin={false}
+        />
+      </motion.button>
+    </Tip>
   );
   // icon-only twin of the capsule for the tablet pill when the full label would overflow it
   const composeCompact = (
-    <button
-      type="button"
-      onClick={() => run()}
-      disabled={busy}
-      className={`btn ${hasPlaylist ? "btn-ghost" : "btn-primary"} h-11 min-h-[44px] w-11 px-0`}
-      aria-label={hasPlaylist ? "Regenerate" : "Compose the night"}
-      title={hasPlaylist ? "Regenerate (⌘↩)" : "Compose the night (⌘↩)"}
-    >
-      {busy ? (
-        <LoaderCircle size={18} className="animate-spin" aria-hidden />
-      ) : hasPlaylist ? (
-        <Repeat2 size={18} aria-hidden />
-      ) : (
-        <Disc3 size={18} aria-hidden />
-      )}
-    </button>
+    <Tip text={hasPlaylist ? "Regenerate (⌘↩)" : "Compose the night (⌘↩)"}>
+      <button
+        type="button"
+        onClick={() => run()}
+        disabled={busy}
+        className={`btn ${hasPlaylist ? "btn-ghost" : "btn-primary"} h-11 min-h-[44px] w-11 px-0`}
+        aria-label={hasPlaylist ? "Regenerate" : "Compose the night"}
+      >
+        {busy ? (
+          <LoaderCircle size={18} className="animate-spin" aria-hidden />
+        ) : hasPlaylist ? (
+          <Repeat2 size={18} aria-hidden />
+        ) : (
+          <Disc3 size={18} aria-hidden />
+        )}
+      </button>
+    </Tip>
   );
   const exportButton = (
-    <button
-      type="button"
-      onClick={openExport}
-      className="btn btn-primary min-h-[44px] lg:min-h-[40px] lg:px-4 lg:text-subhead"
-      title="⌘E"
-      data-testid="toolbar-export"
-    >
-      <Share size={18} strokeWidth={2} aria-hidden /> Export
-    </button>
+    <Tip text="Export the night to your DJ app (⌘E)">
+      <button
+        type="button"
+        onClick={openExport}
+        className="btn btn-primary min-h-[44px] lg:min-h-[40px] lg:px-4 lg:text-subhead"
+        data-testid="toolbar-export"
+      >
+        <Share size={18} strokeWidth={2} aria-hidden /> Export
+      </button>
+    </Tip>
   );
   const exportCompact = (
-    <button
-      type="button"
-      onClick={openExport}
-      className="btn btn-primary h-11 min-h-[44px] w-11 px-0"
-      aria-label="Export"
-      title="Export (⌘E)"
-    >
-      <Share size={18} strokeWidth={2} aria-hidden />
-    </button>
+    <Tip text={"Export (⌘E)"}>
+      <button
+        type="button"
+        onClick={openExport}
+        className="btn btn-primary h-11 min-h-[44px] w-11 px-0"
+        aria-label="Export"
+      >
+        <Share size={18} strokeWidth={2} aria-hidden />
+      </button>
+    </Tip>
   );
   const feedbackBar = (
     <FeedbackBar
@@ -1555,56 +1613,65 @@ export function Composer() {
             ))}
           </ol>
           <div className="mt-5 hidden flex-wrap items-center gap-3 sm:flex">
-            <button
-              type="button"
-              className="btn btn-primary min-h-[50px]"
-              onClick={() => run()}
-              disabled={busy}
-              data-testid="hero-compose"
-            >
-              <Disc3 size={18} aria-hidden /> Compose a {hours} h {options.context?.event ?? "milonga"}
-            </button>
+            <Tip text="Compose a whole night now with the settings below; you can change everything after (⌘↩)">
+              <button
+                type="button"
+                className="btn btn-primary min-h-[50px]"
+                onClick={() => run()}
+                disabled={busy}
+                data-testid="hero-compose"
+              >
+                <Disc3 size={18} aria-hidden /> Compose a {hours} h {options.context?.event ?? "milonga"}
+              </button>
+            </Tip>
             <span className="text-footnote text-[var(--label-2)]">Or set up the night below.</span>
           </div>
           <p className="text-footnote mt-4 text-[var(--label-2)] sm:hidden">
             Compose the night is in the bar below; everything under it is optional.
           </p>
           {/* a built-in night to read before composing one */}
-          <button
-            type="button"
-            className="cell cell-tap group-inset mt-4 w-full text-left"
-            data-leading="tile"
-            onClick={() => openFeatured(FEATURED[0].id)}
-            disabled={busy}
-            data-testid="featured-card"
+          <Tip
+            text="Open a night a DJ built, to read and play before you compose your own"
+            className="mt-4 w-full"
           >
-            <span className="tile" style={{ background: "var(--system-gold)" }} aria-hidden>
-              <Star size={16} strokeWidth={2} fill="currentColor" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate">{FEATURED[0].title}</span>
-              <span className="text-footnote block truncate text-[var(--label-2)]">{FEATURED[0].sub}</span>
-            </span>
-            <span className="cell-value text-body">Open</span>
-          </button>
-          {/* round 22 AI / round 23: picking every tanda yourself, with suggestions, is one tap from the first run */}
-          <Link
-            href="/build"
-            className="cell cell-tap group-inset mt-2 w-full text-left"
-            data-leading="tile"
-            data-testid="first-run-build"
-          >
-            <span className="tile" style={{ background: "var(--tint)" }} aria-hidden>
-              <Hand size={16} strokeWidth={2} />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate">Build by hand</span>
-              <span className="text-footnote block truncate text-[var(--label-2)]">
-                Pick every tanda yourself, with suggestions and their reasons
+            <button
+              type="button"
+              className="cell cell-tap group-inset w-full text-left"
+              data-leading="tile"
+              onClick={() => openFeatured(FEATURED[0].id)}
+              disabled={busy}
+              data-testid="featured-card"
+            >
+              <span className="tile" style={{ background: "var(--system-gold)" }} aria-hidden>
+                <Star size={16} strokeWidth={2} fill="currentColor" />
               </span>
-            </span>
-            <ChevronRight size={16} strokeWidth={2.5} className="cell-chevron" aria-hidden />
-          </Link>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate">{FEATURED[0].title}</span>
+                <span className="text-footnote block truncate text-[var(--label-2)]">{FEATURED[0].sub}</span>
+              </span>
+              <span className="cell-value text-body">Open</span>
+            </button>
+          </Tip>
+          {/* round 22 AI / round 23: picking every tanda yourself, with suggestions, is one tap from the first run */}
+          <Tip text="Start from an empty night and choose every tanda yourself" className="mt-2 w-full">
+            <Link
+              href="/build"
+              className="cell cell-tap group-inset w-full text-left"
+              data-leading="tile"
+              data-testid="first-run-build"
+            >
+              <span className="tile" style={{ background: "var(--tint)" }} aria-hidden>
+                <Hand size={16} strokeWidth={2} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate">Build by hand</span>
+                <span className="text-footnote block truncate text-[var(--label-2)]">
+                  Pick every tanda yourself, with suggestions and their reasons
+                </span>
+              </span>
+              <ChevronRight size={16} strokeWidth={2.5} className="cell-chevron" aria-hidden />
+            </Link>
+          </Tip>
         </section>
       )}
 
@@ -1633,38 +1700,44 @@ export function Composer() {
                   </h2>
                   <span className="flex items-center gap-1">
                     {/* phones: icon-only, 44 pt (the label wrapped to three lines, round8-ux.md §1.4) */}
-                    <button
-                      type="button"
-                      className="btn btn-ghost -my-2 min-h-11 shrink-0 whitespace-nowrap px-3 max-sm:h-11 max-sm:w-11 max-sm:px-0"
-                      data-testid="play-the-night"
-                      aria-label="Booth: play the night"
-                      onClick={() => router.push("/booth")}
-                    >
-                      <Play size={16} fill="currentColor" strokeWidth={0} aria-hidden />
-                      <span className="max-sm:sr-only">Play the night</span>
-                    </button>
-                    <button
-                      type="button"
-                      className={`icon-btn icon-btn-bare -my-2 h-11 w-11 ${liked === true ? "text-[var(--tint)]" : "text-[var(--label-3)]"}`}
-                      aria-pressed={liked === true}
-                      aria-label="Mark as liked"
-                      onClick={() => rate(true)}
-                    >
-                      <ThumbsUp size={18} strokeWidth={2} fill={liked === true ? "currentColor" : "none"} />
-                    </button>
-                    <button
-                      type="button"
-                      className={`icon-btn icon-btn-bare -my-2 -mr-3 h-11 w-11 ${liked === false ? "text-[var(--tint)]" : "text-[var(--label-3)]"}`}
-                      aria-pressed={liked === false}
-                      aria-label="Mark as disliked"
-                      onClick={() => rate(false)}
-                    >
-                      <ThumbsDown
-                        size={18}
-                        strokeWidth={2}
-                        fill={liked === false ? "currentColor" : "none"}
-                      />
-                    </button>
+                    <Tip text="Open the Booth and play this night">
+                      <button
+                        type="button"
+                        className="btn btn-ghost -my-2 min-h-11 shrink-0 whitespace-nowrap px-3 max-sm:h-11 max-sm:w-11 max-sm:px-0"
+                        data-testid="play-the-night"
+                        aria-label="Booth: play the night"
+                        onClick={() => router.push("/booth")}
+                      >
+                        <Play size={16} fill="currentColor" strokeWidth={0} aria-hidden />
+                        <span className="max-sm:sr-only">Play the night</span>
+                      </button>
+                    </Tip>
+                    <Tip text="I like this night: T-DJ learns from it">
+                      <button
+                        type="button"
+                        className={`icon-btn icon-btn-bare -my-2 h-11 w-11 ${liked === true ? "text-[var(--tint)]" : "text-[var(--label-3)]"}`}
+                        aria-pressed={liked === true}
+                        aria-label="Mark as liked"
+                        onClick={() => rate(true)}
+                      >
+                        <ThumbsUp size={18} strokeWidth={2} fill={liked === true ? "currentColor" : "none"} />
+                      </button>
+                    </Tip>
+                    <Tip text="Not for me: T-DJ learns from it">
+                      <button
+                        type="button"
+                        className={`icon-btn icon-btn-bare -my-2 -mr-3 h-11 w-11 ${liked === false ? "text-[var(--tint)]" : "text-[var(--label-3)]"}`}
+                        aria-pressed={liked === false}
+                        aria-label="Mark as disliked"
+                        onClick={() => rate(false)}
+                      >
+                        <ThumbsDown
+                          size={18}
+                          strokeWidth={2}
+                          fill={liked === false ? "currentColor" : "none"}
+                        />
+                      </button>
+                    </Tip>
                   </span>
                 </div>
                 {wide ? (
@@ -1744,6 +1817,7 @@ export function Composer() {
               </motion.div>
               <Row
                 label="How this set scored"
+                tip="Each part of the score: tandas, singers and years, spacing, energy, cortinas, the ending"
                 value={`${playlist.score.factors.length} factors`}
                 chevron
                 onClick={() => setScoreOpen(true)}
@@ -1753,6 +1827,7 @@ export function Composer() {
                   label="Benchmark · published DJ sets"
                   value={wide ? benchLabel(bench) : `${bench.inRange}/${bench.scored}`}
                   aria-label={`Benchmark against published DJ sets: ${benchLabel(bench)}`}
+                  tip="How this night compares with sets from working DJs, measure by measure"
                   chevron
                   onClick={() => setBenchOpen(true)}
                   data-testid="benchmark-row"
@@ -1761,6 +1836,7 @@ export function Composer() {
               {playlists.some((p) => p.kind === "tandas") && (
                 <Row
                   label="Mood check"
+                  tip="Compares the mood of each tanda with reference tandas"
                   sub="Against reference tandas (Aren León)"
                   chevron
                   onClick={() => setMoodOpen(true)}
@@ -1768,6 +1844,7 @@ export function Composer() {
               )}
               <Row
                 label="Written review"
+                tip="A few paragraphs on the night from your AI model, as a fellow DJ would write them"
                 value={
                   aiBusy
                     ? "Reading the set…"
@@ -1898,18 +1975,22 @@ export function Composer() {
             {/* desktop: the trailing control is Regenerate, Edit stays a plain button (round5-design.md §1) */}
             {wide && (
               <span className="-my-2 -mr-2 inline-flex items-center gap-1">
-                <button type="button" className="btn-plain" onClick={() => setSetupOpen(true)}>
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  className="btn-plain font-semibold"
-                  onClick={() => run()}
-                  disabled={busy}
-                  data-testid="summary-regenerate"
-                >
-                  <Repeat2 size={16} strokeWidth={2} aria-hidden /> Regenerate
-                </button>
+                <Tip text="Change the night's settings">
+                  <button type="button" className="btn-plain" onClick={() => setSetupOpen(true)}>
+                    Edit
+                  </button>
+                </Tip>
+                <Tip text="Compose again with the same settings (⌘↩)">
+                  <button
+                    type="button"
+                    className="btn-plain font-semibold"
+                    onClick={() => run()}
+                    disabled={busy}
+                    data-testid="summary-regenerate"
+                  >
+                    <Repeat2 size={16} strokeWidth={2} aria-hidden /> Regenerate
+                  </button>
+                </Tip>
               </span>
             )}
           </Row>

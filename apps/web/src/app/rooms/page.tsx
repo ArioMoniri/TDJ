@@ -32,6 +32,7 @@ import { QrCode } from "@/components/QrCode";
 import { Sheet } from "@/components/Sheet";
 import { TipRow } from "@/components/TipRow";
 import { Segmented } from "@/components/ui";
+import { Tip } from "@/components/ui/Tip";
 import { haptic } from "@/lib/haptics";
 import { type RoomRef, roomShareLink, useRooms } from "@/lib/rooms";
 import { copyText } from "@/lib/share";
@@ -67,22 +68,23 @@ function IconButton({
   testId?: string;
 }) {
   return (
-    <button
-      type="button"
-      className={`grid h-11 w-11 shrink-0 place-items-center rounded-full disabled:opacity-30 ${on ? "bg-[var(--fill-3)] text-[var(--tint)]" : "text-[var(--label-2)]"}`}
-      onClick={(e) => {
-        e.stopPropagation();
-        haptic(4);
-        onClick();
-      }}
-      disabled={disabled}
-      aria-label={label}
-      aria-pressed={on}
-      title={label}
-      data-testid={testId}
-    >
-      {children}
-    </button>
+    <Tip text={label}>
+      <button
+        type="button"
+        className={`grid h-11 w-11 shrink-0 place-items-center rounded-full disabled:opacity-30 ${on ? "bg-[var(--fill-3)] text-[var(--tint)]" : "text-[var(--label-2)]"}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          haptic(4);
+          onClick();
+        }}
+        disabled={disabled}
+        aria-label={label}
+        aria-pressed={on}
+        data-testid={testId}
+      >
+        {children}
+      </button>
+    </Tip>
   );
 }
 
@@ -92,20 +94,11 @@ function LogList({ log, me }: { log: RoomLogEntry[]; me: string }) {
   return (
     <Group data-testid="room-log">
       {items.map((e, i) => (
-        <div
-          key={`${e.rev}-${i}`}
-          className="cell items-start"
-          data-kind={e.kind}
-          title={
-            e.kind === "conflict" ? "Two DJs changed the same thing; the later change was kept" : undefined
-          }
-        >
+        <div key={`${e.rev}-${i}`} className="cell items-start" data-kind={e.kind}>
           {e.kind === "conflict" ? (
-            <TriangleAlert
-              size={18}
-              className="mt-0.5 shrink-0 text-[var(--warning,#ff9500)]"
-              aria-label="Conflict"
-            />
+            <Tip text="Two DJs changed the same thing; the later change was kept" className="mt-0.5 shrink-0">
+              <TriangleAlert size={18} className="text-[var(--warning,#ff9500)]" aria-label="Conflict" />
+            </Tip>
           ) : (
             <span
               className="mt-0.5 grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full bg-[var(--fill-3)] text-[10px] font-semibold"
@@ -238,15 +231,16 @@ export default function RoomsPage() {
         }
         trailing={
           info ? (
-            <button
-              type="button"
-              className="btn btn-plain min-h-11"
-              onClick={() => setQrOpen(true)}
-              title="Show the room's code and links"
-              aria-label="Invite"
-            >
-              <Users size={18} aria-hidden /> Invite
-            </button>
+            <Tip text={"Show the room's code and links"}>
+              <button
+                type="button"
+                className="btn btn-plain min-h-11"
+                onClick={() => setQrOpen(true)}
+                aria-label="Invite"
+              >
+                <Users size={18} aria-hidden /> Invite
+              </button>
+            </Tip>
           ) : undefined
         }
       />
@@ -281,7 +275,7 @@ export default function RoomsPage() {
           {remote && code && (
             <Group
               header="Invitation"
-              footer={`This room is kept by ${host(remote)}. Joining connects to that server while you are in the room.`}
+              footer={`This room is kept by ${host(remote)}. Joining connects to that site while you are in the room.`}
             >
               <ActionRow
                 label={`Join room ${formatRoomCode(code)} on ${host(remote)}`}
@@ -311,15 +305,16 @@ export default function RoomsPage() {
                 aria-label="Room code"
                 data-testid="room-code-input"
               />
-              <button
-                type="submit"
-                className="btn btn-primary min-h-[44px]"
-                disabled={!normalizeRoomCode(code) || busy}
-                title="Join this room and load its night"
-                data-testid="room-join"
-              >
-                Join
-              </button>
+              <Tip text={"Join this room and load its night"}>
+                <button
+                  type="submit"
+                  className="btn btn-primary min-h-[44px]"
+                  disabled={!normalizeRoomCode(code) || busy}
+                  data-testid="room-join"
+                >
+                  Join
+                </button>
+              </Tip>
             </form>
           </Group>
 
@@ -524,7 +519,7 @@ export default function RoomsPage() {
                 setRenameDraft(info.name);
                 setRenaming(true);
               }}
-              title="Give the room a new name for everyone"
+              tip="Give the room a new name for everyone"
               data-testid="room-rename"
             />
             <ActionRow label="Leave room" destructive onClick={r.leave} id="room-leave" />
@@ -546,7 +541,7 @@ export default function RoomsPage() {
               sub={`${formatRoomCode(p.code)}${p.server ? ` · ${host(p.server)}` : ""} · ${day(p.lastSeen)}`}
               chevron
               onClick={() => void openPast(p)}
-              title="Read what happened in this room"
+              tip="Read what happened in this room"
               data-testid={`room-past-${p.code}`}
             />
           ))}
@@ -580,7 +575,7 @@ export default function RoomsPage() {
                 onClick={async () =>
                   toast((await copyText(link)) ? "Room link copied" : "Copying was blocked")
                 }
-                title="Copies a link that opens this room"
+                tip="Copies a link that opens this room"
               />
               <TipRow
                 tile={
@@ -592,7 +587,7 @@ export default function RoomsPage() {
                 onClick={async () =>
                   toast((await copyText(appLink)) ? "App link copied" : "Copying was blocked")
                 }
-                title="Copies a tdj:// link that opens this room in the T-DJ app"
+                tip="Copies a tdj:// link that opens this room in the T-DJ app"
               />
               <TipRow
                 tile={
@@ -605,7 +600,7 @@ export default function RoomsPage() {
                 onClick={async () =>
                   toast((await copyText(info.code)) ? "Code copied" : "Copying was blocked")
                 }
-                title="Copies the six-character code"
+                tip="Copies the six-character code"
               />
             </Group>
           </>

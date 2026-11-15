@@ -2,6 +2,7 @@
 import { CircleX, LoaderCircle, Search } from "lucide-react";
 import { useState } from "react";
 import { useMediaQuery } from "@/lib/hooks";
+import { Tip, useTip } from "./ui/Tip";
 
 /** UISearchBar: 36 pt field, magnifier, clear glyph, Cancel on focus (phone). 17 pt text so iOS never zooms. */
 export function SearchField({
@@ -13,6 +14,7 @@ export function SearchField({
   busy = false,
   className = "",
   onFocusChange,
+  tip,
 }: {
   id: string;
   value: string;
@@ -23,8 +25,11 @@ export function SearchField({
   busy?: boolean;
   className?: string;
   onFocusChange?: (focused: boolean) => void;
+  /** the field's help tag; defaults to its placeholder, which says what it searches */
+  tip?: string;
 }) {
   const [focused, setFocused] = useState(false);
+  const t = useTip<HTMLLabelElement>(tip ?? `Search by ${placeholder.toLowerCase()}`);
   const isPhone = useMediaQuery("(max-width: 639px)");
   const showCancel = isPhone && (focused || value.length > 0);
   const focus = (f: boolean) => {
@@ -33,7 +38,8 @@ export function SearchField({
   };
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      <label htmlFor={id} className="search-field min-w-0 flex-1">
+      <label htmlFor={id} className="search-field min-w-0 flex-1" {...t.props}>
+        {t.tag}
         {busy ? (
           <LoaderCircle size={16} strokeWidth={2} className="animate-spin" aria-hidden />
         ) : (
@@ -54,15 +60,17 @@ export function SearchField({
           spellCheck={false}
         />
         {value && (
-          <button
-            type="button"
-            className="-my-1 grid h-11 w-10 shrink-0 place-items-center"
-            aria-label="Clear search"
-            onPointerDown={(e) => e.preventDefault()}
-            onClick={() => onChange("")}
-          >
-            <CircleX size={18} strokeWidth={2} fill="currentColor" stroke="rgb(var(--bg-cell))" />
-          </button>
+          <Tip text="Clear the search">
+            <button
+              type="button"
+              className="-my-1 grid h-11 w-10 shrink-0 place-items-center"
+              aria-label="Clear search"
+              onPointerDown={(e) => e.preventDefault()}
+              onClick={() => onChange("")}
+            >
+              <CircleX size={18} strokeWidth={2} fill="currentColor" stroke="rgb(var(--bg-cell))" />
+            </button>
+          </Tip>
         )}
       </label>
       {showCancel && (

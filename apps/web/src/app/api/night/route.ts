@@ -35,7 +35,13 @@ export async function POST(req: Request) {
   }
   try {
     const id = await putShortNight(night);
-    if (!id) return json({ error: "This server keeps no short links." }, { status: 503 });
+    if (!id)
+      return json(
+        {
+          error: "This T-DJ site makes no short links: share the long link, the file or the QR code instead.",
+        },
+        { status: 503 },
+      );
     return json({ id });
   } catch (e) {
     return json({ error: (e as Error).message }, { status: 500 });

@@ -34,7 +34,7 @@ export function ShareNightEntry({ playlist }: { playlist: Playlist | null }) {
           sub="Link, file or a code to scan"
           chevron
           onClick={() => setOpen(true)}
-          title="Send the whole night to another DJ or device"
+          tip="Send the whole night to another DJ or device"
           id="export-share"
         />
       </Group>
@@ -121,7 +121,7 @@ export function ShareSheet({
           onClick={() => copy(share?.link, "Link")}
           disabled={!share?.link}
           busy={!share}
-          title="Copies a link that opens this night on any T-DJ site"
+          tip="Copies a link that opens this night on any T-DJ site"
           data-testid="share-copy-link"
         />
         <TipRow
@@ -134,7 +134,7 @@ export function ShareSheet({
           sub="Opens straight in T-DJ on Mac and iPad"
           onClick={() => copy(share?.appLink, "App link")}
           disabled={!share?.appLink}
-          title="Copies a tdj:// link that opens this night in the installed T-DJ app"
+          tip="Copies a tdj:// link that opens this night in the installed T-DJ app"
           data-testid="share-copy-app-link"
         />
         {canShare && share?.link && (
@@ -147,7 +147,7 @@ export function ShareSheet({
             label="Share…"
             sub="Messages, Mail, AirDrop"
             onClick={() => navigator.share({ title: playlist.name, url: share.link! }).catch(() => {})}
-            title="Opens the system share sheet with the link"
+            tip="Opens the system share sheet with the link"
           />
         )}
         <TipRow
@@ -160,7 +160,7 @@ export function ShareSheet({
           sub=".tdjnight · open it in T-DJ anywhere"
           onClick={() => share && saveNightFile(share.night)}
           disabled={!share}
-          title="Saves the night as a .tdjnight file you can AirDrop, mail or keep"
+          tip="Saves the night as a .tdjnight file you can AirDrop, mail or keep"
           data-testid="share-save-file"
         />
       </Group>
@@ -185,7 +185,7 @@ export function ShareSheet({
             onClick={showCode}
             busy={qrBusy}
             disabled={!share || !!qrNote}
-            title="Shows a QR code that opens this night on another device"
+            tip="Shows a QR code that opens this night on another device"
             data-testid="share-show-code"
           />
         )}

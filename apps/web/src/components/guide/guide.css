@@ -1,0 +1,201 @@
+/* The Guide's tour: chapters on the surface colour (content, never glass), a picture panel per chapter, and gentle
+   loops that stop under reduced motion. */
+
+.guide-chapter {
+  display: grid;
+  gap: 0;
+}
+@media (min-width: 640px) {
+  .guide-chapter {
+    grid-template-columns: 184px minmax(0, 1fr);
+  }
+}
+.guide-art {
+  display: grid;
+  place-items: center;
+  min-height: 136px;
+  padding: 12px;
+  background: color-mix(in srgb, var(--tint) 7%, transparent);
+}
+@media (min-width: 640px) {
+  .guide-art {
+    min-height: 100%;
+  }
+}
+.guide-lottie,
+.guide-illustration {
+  width: 160px;
+  height: 120px;
+  display: block;
+}
+.guide-point {
+  border-top: 0.5px solid var(--separator);
+  padding-top: 10px;
+}
+
+/* illustration palette: theme colours only */
+.gi-tint {
+  fill: var(--tint);
+}
+.gi-tint-soft {
+  fill: color-mix(in srgb, var(--tint) 18%, transparent);
+}
+.gi-on-tint {
+  fill: rgb(255 255 255 / 0.85);
+}
+.gi-soft {
+  fill: var(--fill-3);
+}
+.gi-soft-2 {
+  fill: var(--fill-1);
+}
+.gi-line {
+  fill: var(--label-3);
+}
+.gi-amber {
+  fill: var(--system-gold);
+}
+.gi-green {
+  fill: var(--system-green);
+}
+.gi-check,
+.gi-ink {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.gi-check {
+  stroke: #fff;
+}
+.gi-ink {
+  stroke: var(--label-2);
+}
+.gi-ink-fill {
+  fill: var(--label-2);
+}
+.gi-hand {
+  fill: rgb(var(--bg-cell));
+  stroke: var(--label-2);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.gi-slot {
+  fill: none;
+  stroke: var(--label-3);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+.gi-strike,
+.gi-pole,
+.gi-wire {
+  fill: none;
+  stroke: var(--label-2);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.gi-wire {
+  stroke: var(--label-3);
+  stroke-dasharray: 3 4;
+}
+.gi-disc {
+  fill: var(--label);
+}
+.gi-label,
+.gi-label-on,
+.gi-year {
+  font: 600 12px / 1 var(--font-sans, system-ui);
+  fill: var(--label-2);
+}
+.gi-label-on {
+  fill: #fff;
+}
+.gi-year {
+  font-weight: 500;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .guide-chapter {
+      animation: guide-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 40%;
+    }
+  }
+  .gi-rise {
+    animation: gi-rise 4s var(--ease-settle, ease-out) infinite both;
+  }
+  .gi-drop {
+    animation: gi-drop 3s ease-in-out infinite;
+  }
+  .gi-flag {
+    transform-origin: 134px 86px;
+    animation: gi-sway 2.4s ease-in-out infinite;
+  }
+  .gi-travel {
+    animation: gi-pulse 1.5s ease-in-out infinite;
+  }
+  .gi-pick {
+    animation: gi-pick 3s ease-in-out infinite;
+  }
+}
+@keyframes guide-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+@keyframes gi-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  15%,
+  80% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes gi-drop {
+  0%,
+  100% {
+    transform: translateY(-18px);
+  }
+  45%,
+  70% {
+    transform: none;
+  }
+}
+@keyframes gi-sway {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  50% {
+    transform: rotate(-4deg);
+  }
+}
+@keyframes gi-pulse {
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes gi-pick {
+  0%,
+  100% {
+    transform: none;
+  }
+  50% {
+    transform: translateX(4px);
+  }
+}

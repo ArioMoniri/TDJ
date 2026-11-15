@@ -32,6 +32,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Sheet } from "@/components/Sheet";
 import { TandaRulesGroup } from "@/components/TandaRules";
 import { DataSources } from "@/components/ui/DataSources";
+import { Tip } from "@/components/ui/Tip";
 import { activeAcp } from "@/lib/ai/client";
 import { KEY_PLACEHOLDER, MODEL_SUGGESTIONS } from "@/lib/ai/models";
 import { chooseKeyProvider, keyOf, withKey } from "@/lib/ai/settings";
@@ -125,7 +126,7 @@ function humanError(provider: AiProvider, status: number, raw: unknown): string 
   const text = typeof raw === "string" ? raw : "";
   // an Anthropic key made at organisation level must name the workspace it bills
   if (/not scoped to a workspace|anthropic-workspace-id/i.test(text))
-    return "This key needs a workspace: paste its Workspace ID below or create the key inside a workspace.";
+    return "This key belongs to an organisation: paste the organisation ID shown next to it in your Anthropic account below, or make a key of your own there.";
   if (status === 429 && /organiser/i.test(text)) return text;
   if (
     status === 401 ||
@@ -231,6 +232,11 @@ export default function Settings() {
         >
           <SegmentedRow
             label="Theme"
+            tips={{
+              auto: "Follow this device: light by day, dark at night",
+              light: "Always light",
+              dark: "Always dark, easier on the eyes in a dim room",
+            }}
             value={settings.theme}
             items={THEMES}
             onChange={(t) => setSettings({ theme: t })}
@@ -242,11 +248,13 @@ export default function Settings() {
           />
           <SwitchRow
             label="Reduce transparency"
+            tip="Makes the bars and sheets solid instead of see-through"
             checked={settings.reduceGlass}
             onChange={(v) => setSettings({ reduceGlass: v })}
           />
           <SwitchRow
             label="Sound effects"
+            tip="Small clicks and chimes when you tap, compose or save"
             checked={settings.sounds !== false}
             onChange={(v) => setSettings({ sounds: v })}
           />
@@ -255,6 +263,7 @@ export default function Settings() {
         <Group header="Region" footer="Default for Tonight's region on the composer.">
           <PickerRow
             label="Where you usually play"
+            tip="Sets the region in Tonight for every new night: the cortinas and the mix follow local taste"
             value={settings.region}
             items={REGIONS}
             onChange={(r) => r && setSettings({ region: r })}
@@ -275,6 +284,7 @@ export default function Settings() {
         >
           <SwitchRow
             label="Auto-improve against published sets"
+            tip="After each compose, T-DJ compares the night with sets from working DJs and fixes what it can"
             checked={settings.autoImprove}
             onChange={(v) => setSettings({ autoImprove: v })}
             tile={
@@ -287,7 +297,7 @@ export default function Settings() {
 
         <Group
           header="Playback"
-          footer={`Where a cortina stops: TDJ's player cuts it there, M3U8 and XSPF tell VLC to stop (#EXTVLCOPT / vlc:option stop-time), Rekordbox XML gets a hot cue at that second. ${settings.cortinaStopSec === null ? `Following the composer's cortina length (${cortinaStopSec(settings, options.cortinaLengthSec)} s).` : "Spotify playlists cannot trim tracks: cortinas there play in full, or leave them out when exporting."}`}
+          footer={`Where a cortina stops: T-DJ's player fades it there, playlists for VLC stop it there, and Rekordbox gets a cue at that second. ${settings.cortinaStopSec === null ? `Following the composer's cortina length (${cortinaStopSec(settings, options.cortinaLengthSec)} s).` : "Spotify playlists cannot trim tracks: cortinas there play in full, or leave them out when exporting."}`}
         >
           <StepperRow
             label="Cortina play length"
@@ -306,6 +316,7 @@ export default function Settings() {
           />
           <SwitchRow
             label="Follow the composer's cortina length"
+            tip="Use the cortina length you set in Compose instead of a length of your own"
             checked={settings.cortinaStopSec === null}
             onChange={(v) =>
               setSettings({ cortinaStopSec: v ? null : cortinaStopSec(settings, options.cortinaLengthSec) })
@@ -331,6 +342,7 @@ export default function Settings() {
         >
           <FieldRow
             label="File naming"
+            tip="How your music files are named, so the exported set finds each song"
             id="file-naming"
             tile={
               <Tile color="#ff9500">
@@ -355,6 +367,7 @@ export default function Settings() {
               sub={a.format}
               chevron
               onClick={() => setFolderFor(a.id)}
+              tip={`Choose the folder where ${a.label} finds your music`}
               value={settings.djApps[a.id]?.folder ? "Set" : "Off"}
               id={`folder-row-${a.id}`}
             />
@@ -380,6 +393,7 @@ export default function Settings() {
           {learnedLines.length > 0 && (
             <ActionRow
               label="Forget what TDJ learned from my edits"
+              tip="Clears what your swaps and pinned tandas taught; your nights stay"
               destructive
               onClick={() => updateMemory((m) => ({ ...m, learned: undefined }))}
             />
@@ -397,10 +411,11 @@ export default function Settings() {
               </Tile>
             }
             label="Stored"
-            value={`${storageMode === "server" ? "On the server" : "In this browser"} · ${remembered} ${remembered === 1 ? "item" : "items"}`}
+            value={`${storageMode === "server" ? "Kept by this site" : "In this browser"} · ${remembered} ${remembered === 1 ? "item" : "items"}`}
           />
           <SwitchRow
             label="Let the assistant learn from my feedback"
+            tip="Repeated feedback becomes a preference for your next nights; you can review it in Database › Memory"
             checked={settings.learn}
             onChange={(v) => setSettings({ learn: v })}
           />
@@ -482,6 +497,7 @@ export default function Settings() {
           {!showOwn && (
             <Row
               label="Use my own key"
+              tip="Paste a key of your own from Anthropic, OpenAI, Google or OpenRouter"
               sub="Unlimited, kept in this browser"
               value="Show"
               onClick={() => setOwnKey(true)}
@@ -492,11 +508,16 @@ export default function Settings() {
             <>
               <SegmentedRow
                 label="Provider"
+                tip="The company whose model writes your reviews and edits"
                 value={ai.provider}
                 items={AI_PROVIDERS}
                 onChange={switchProvider}
               />
-              <FieldRow label="API key" id="ai-key">
+              <FieldRow
+                label="API key"
+                id="ai-key"
+                tip="Your own key from the provider; it stays in this browser"
+              >
                 <input
                   id="ai-key"
                   type={showKey ? "text" : "password"}
@@ -507,14 +528,16 @@ export default function Settings() {
                   autoComplete="off"
                   spellCheck={false}
                 />
-                <button
-                  type="button"
-                  className="btn-plain -mr-2"
-                  onClick={() => setShowKey((v) => !v)}
-                  aria-pressed={showKey}
-                >
-                  {showKey ? "Hide" : "Show"}
-                </button>
+                <Tip text={showKey ? "Hide the key" : "Show the key to check it"}>
+                  <button
+                    type="button"
+                    className="btn-plain -mr-2"
+                    onClick={() => setShowKey((v) => !v)}
+                    aria-pressed={showKey}
+                  >
+                    {showKey ? "Hide" : "Show"}
+                  </button>
+                </Tip>
               </FieldRow>
               <FieldRow label="Model" sub="Leave blank for the default" id="ai-model">
                 <input
@@ -535,8 +558,8 @@ export default function Settings() {
               </FieldRow>
               {ai.provider === "anthropic" && (
                 <FieldRow
-                  label="Workspace ID"
-                  sub="Only for keys made at organisation level"
+                  label="Organisation ID"
+                  sub="Only for an Anthropic key made for an organisation"
                   id="ai-workspace"
                 >
                   <input
@@ -554,6 +577,7 @@ export default function Settings() {
           )}
           <ActionRow
             label="Test connection"
+            tip="Sends one short request to check the key works"
             onClick={testConnection}
             disabled={!ai.key && !usingShared}
             busy={test.state === "busy"}
@@ -562,8 +586,8 @@ export default function Settings() {
         </Group>
         {showOwn && ai.provider === "anthropic" && (
           <p className="section-foot -mt-2">
-            Workspace ID: only needed when the key was created at organisation level; or create the key inside
-            a workspace at console.anthropic.com → API keys.
+            Organisation ID: only needed when the key was made for an organisation; you find it next to the
+            key in your Anthropic account. A key you made for yourself needs nothing here.
           </p>
         )}
 
@@ -571,7 +595,11 @@ export default function Settings() {
 
         <Group
           header="Storage"
-          footer="Set TDJ_DB_TABLE on the server to keep the database and memory across devices."
+          footer={
+            storageMode === "server"
+              ? "Your database and memory are kept by this T-DJ site, so they are there on every device."
+              : "Your database and memory stay in this browser. The person who runs this T-DJ site can keep them for you on every device."
+          }
         >
           <Row
             tile={
@@ -580,7 +608,7 @@ export default function Settings() {
               </Tile>
             }
             label="Database"
-            value={storageMode === "server" ? "Server" : "This browser"}
+            value={storageMode === "server" ? "This site" : "This browser"}
           />
         </Group>
       </div>

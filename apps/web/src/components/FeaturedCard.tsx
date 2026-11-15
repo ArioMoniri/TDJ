@@ -2,17 +2,23 @@
 import { Star } from "lucide-react";
 import Link from "next/link";
 import { FEATURED } from "@/lib/featured";
+import { useTip } from "./ui/Tip";
 
 /** The built-in night as one row card: a deep link into the composer's result view (`/?featured=<id>`). */
 export function FeaturedCard({ className = "" }: { className?: string }) {
   const f = FEATURED[0];
+  const t = useTip<HTMLAnchorElement>(
+    "Open a night a DJ built, to read and play before you compose your own",
+  );
   return (
     <Link
+      {...t.props}
       href={`/?featured=${f.id}`}
       className={`cell cell-tap group-inset w-full max-w-[420px] text-left ${className}`}
       data-leading="tile"
       data-testid="featured-card"
     >
+      {t.tag}
       <span className="tile" style={{ background: "var(--system-gold)" }} aria-hidden>
         <Star size={16} strokeWidth={2} fill="currentColor" />
       </span>
