@@ -14,8 +14,8 @@ import {
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import { IndicatorSwitches } from "@/components/booth/IndicatorSwitches";
 import { AppConnections } from "@/components/AppConnections";
+import { IndicatorSwitches } from "@/components/booth/IndicatorSwitches";
 import { Connectors } from "@/components/Connectors";
 import {
   ActionRow,
