@@ -3,6 +3,7 @@ import {
   BUILTIN_CORTINAS,
   benchmarkNight,
   checkEdit,
+  cleanFavouriteTable,
   compose as composeNight,
   cortinaPool,
   type EditSuggestion,
@@ -11,9 +12,11 @@ import {
   EXPORTERS,
   type ExportFormat,
   type Feedback,
+  favouriteTable,
   improveNight,
   type NightException,
   nightExceptionKeys,
+  normalizeFavourites,
   type Playlist,
   replaceSide,
   type SwapOption,
@@ -61,7 +64,10 @@ export async function compose(req: Request, d: ApiDeps): Promise<Response> {
     if (v !== undefined && !(ok as readonly number[]).includes(Number(v)))
       return bad(`${k} must be one of ${ok.join(", ")}`);
   }
-  const { locked: lockedRaw, overrides: ovRaw, autoImprove, ...rest } = body;
+  const { locked: lockedRaw, overrides: ovRaw, autoImprove, favourites: favRaw, ...rest } = body;
+  // 2026-11: the DJ's dancer favourites — the decayed table the web sends (numbers only), or the tracker itself
+  // (the apps and scripts), decayed here
+  const favourites = favouritesOf(favRaw) ?? undefined;
   const locked = Array.isArray(lockedRaw)
     ? (lockedRaw as Tanda[]).filter((t) => t && typeof t.index === "number" && Array.isArray(t.songs))
     : [];
@@ -70,7 +76,12 @@ export async function compose(req: Request, d: ApiDeps): Promise<Response> {
     const { catalog, cortinas, contextModel } = d.catalogFor(overrides);
     const { contextFactors: _cf, ...coreOverrides } = overrides ?? {};
     const p = composeNight(
-      { ...rest, hours, overrides: overrides ? coreOverrides : undefined },
+      {
+        ...rest,
+        hours,
+        overrides: overrides ? coreOverrides : undefined,
+        ...(favourites ? { favourites } : {}),
+      },
       { catalog, cortinas, contextModel },
       { locked },
     );
@@ -136,7 +147,19 @@ interface SwapBody {
   songId?: unknown;
   force?: unknown;
   pin?: unknown;
+  /** 2026-11: the DJ's dancer favourites now (null: switched off; absent: the night's own) */
+  favourites?: unknown;
 }
+
+/** the request's dancer favourites: a table (or a tracker, decayed now), null (none), or undefined (the night's own) */
+const favouritesOf = (x: unknown) => {
+  if (x === null) return null;
+  if (x && typeof x === "object" && Array.isArray((x as { taps?: unknown }).taps)) {
+    const f = normalizeFavourites(x);
+    return f ? favouriteTable(f) : undefined;
+  }
+  return cleanFavouriteTable(x);
+};
 
 /**
  * Swap one tanda. Body: { playlist, index, options? }. Wave 2: with `options: true` the answer is up to three
@@ -167,6 +190,7 @@ export async function swapOptions(req: Request, d: ApiDeps): Promise<Response> {
     si = Number(trackIndex);
   const r = swapOptionsFor(playlist, ti, si, deps, {
     query: typeof query === "string" ? query.slice(0, 80) : undefined,
+    favourites: favouritesOf(body.favourites),
   });
   // a side excluded only by a tanda rule (another singer, an instrumental, the years, a title already tonight) may
   // still be chosen: the rule check asks the DJ first (core editCheck, the tanda rules only: cheap per row)
@@ -222,6 +246,7 @@ export async function checkEditRoute(req: Request, d: ApiDeps): Promise<Response
     after?: Playlist;
     exceptions?: NightException[];
     scope?: unknown;
+    favourites?: unknown;
   }>(req);
   const before = body?.before,
     after = body?.after;
@@ -239,7 +264,10 @@ export async function checkEditRoute(req: Request, d: ApiDeps): Promise<Response
       if (suggestions.length >= 3) break;
       let found: EditSuggestion[] = [];
       try {
-        found = suggestFixes(before, after, v, deps, 3 - suggestions.length, { scope });
+        found = suggestFixes(before, after, v, deps, 3 - suggestions.length, {
+          scope,
+          favourites: favouritesOf(body?.favourites),
+        });
       } catch {}
       for (const s of found) if (!suggestions.some((x) => x.text === s.text)) suggestions.push(s);
     }

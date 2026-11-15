@@ -30,6 +30,7 @@ import { type MenuItem, MenuList } from "@/components/Menu";
 import { PageHeader } from "@/components/PageHeader";
 import { Sheet } from "@/components/Sheet";
 import { BoothSongSearch } from "@/components/ui/BoothSongSearch";
+import { startRoomHearts } from "@/lib/booth/roomHearts";
 import { boothContextState, boothEngine, useBooth } from "@/lib/booth/store";
 import { useMediaQuery } from "@/lib/hooks";
 import { t } from "@/lib/i18n";
@@ -103,6 +104,9 @@ function Booth() {
   // already ready at mount, its first run wrote "dark" over a stored "light" before setLight(true) landed)
   const storedLight = useRef<boolean | null>(null);
   const themeSynced = useRef(false);
+
+  // 2026-11: in a room, the playing song goes to the room and its dancers' hearts come back (dancer favourites)
+  useEffect(() => startRoomHearts(), []);
 
   // while a night runs the phone tab bar leaves (round8-ux.md §1.5); "Leave the booth" in ••• is the way out
   useEffect(() => {

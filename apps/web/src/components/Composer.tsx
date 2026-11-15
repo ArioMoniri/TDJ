@@ -46,6 +46,7 @@ import {
 } from "@/lib/changes";
 import { rememberComposeMs } from "@/lib/composeProgress";
 import { djMessages } from "@/lib/djMessage";
+import { favouritesForRequest } from "@/lib/favourites";
 import { FEATURED, type FeaturedId, featuredMeta, loadFeatured } from "@/lib/featured";
 import { FEEDBACK_CHIPS } from "@/lib/feedback";
 import { haptic } from "@/lib/haptics";
@@ -1214,7 +1215,9 @@ export function Composer() {
       ? applyMemory(base, cur.memory)
       : { ...base, recent, learned: base.learned ?? learnedForRequest(cur.memory, false) };
     const name = base.name ?? autoSetName({ ...DEFAULT_OPTS, ...eraDefaults, ...fullOptions(merged) });
-    return { ...withMemory, name, explicit: base.explicit };
+    // 2026-11: the dancer favourites (Database → Memory), decayed to now; switched off they travel as `off`
+    const favourites = favouritesForRequest(cur.memory);
+    return { ...withMemory, name, explicit: base.explicit, ...(favourites ? { favourites } : {}) };
   };
 
   /** Compose with the current (or given) options; locked tandas are sent so they survive every recompose. */

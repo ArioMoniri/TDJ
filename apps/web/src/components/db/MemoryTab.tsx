@@ -10,6 +10,7 @@ import { ActionRow, Group, Row } from "../Form";
 import { ExceptionRow } from "../NightExceptions";
 import { Sheet } from "../Sheet";
 import { SwipeRow } from "../SwipeRow";
+import { DancerFavourites } from "./DancerFavourites";
 import { FeaturedLearned } from "./FeaturedLearned";
 import { LearnedRules } from "./LearnedRules";
 import { useDbEdit } from "./shared";
@@ -162,6 +163,7 @@ export function MemoryTab() {
 
   return (
     <div>
+      <DancerFavourites />
       <LearnedRules />
       <MyNightExceptions />
       <FeaturedLearned />

@@ -13,6 +13,7 @@ import {
   transitionKey,
 } from "@tdj/core";
 import { create } from "zustand";
+import { playsIn } from "@/lib/favourites";
 import { makeNightLog, makeSnapshot } from "@/lib/history";
 import { t as tx } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
@@ -1463,6 +1464,24 @@ function logToHistory(ended: boolean) {
   const existing = app.history.find((h) => h.playlist.id === s.playlist!.id);
   if (existing) app.updateSnapshot(existing.id, { nightLog });
   else app.addSnapshot({ ...makeSnapshot(s.playlist, s.playlist.options, "compose"), nightLog });
+  // 2026-11 (dancer favourites, repeat evidence): a night played to its end (not a rehearsal) counts each side
+  // played and kept, and each one the DJ skipped (once per night: the night's record is replaced)
+  if (ended && !s.rehearsal && s.plan) {
+    const idAt = (i: number) => {
+      const e = s.entities[i];
+      return s.plan!.items[i]?.kind === "track" && e && "rhythm" in e ? e.id : null;
+    };
+    const skipped = new Set(engine.skipped);
+    const played = [...new Set(snap.anchors.map((a) => a.planIndex))].filter((i) => !skipped.has(i));
+    const ids = (xs: number[]) => xs.map(idAt).filter((x): x is string => !!x);
+    const playedIds = ids(played);
+    if (playedIds.length) {
+      const p = s.playlist;
+      // (a side with nothing to play it from was never the DJ's skip)
+      const skippedByDj = [...skipped].filter((i) => s.sources[i] !== "missing");
+      app.updateMemory((m) => playsIn(m, p, playedIds, ids(skippedByDj)));
+    }
+  }
 }
 
 /** For tests and the Find sheet: the engine behind the store (null before the first start). */

@@ -21,6 +21,8 @@ export const swapWire = (x: SwapOption) => ({
   ok: x.ok,
   reason: x.reason,
   fit: x.fit,
+  // 2026-11: a dancer favourite in this tanda's role (♥)
+  ...(x.favourite ? { favourite: true } : {}),
   song: {
     id: x.song.id,
     title: x.song.title,

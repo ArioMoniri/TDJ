@@ -13,6 +13,7 @@ import {
   ArrowUp,
   Copy,
   DoorOpen,
+  Heart,
   ListMusic,
   Lock,
   LockOpen,
@@ -28,6 +29,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { DancerHeart } from "@/components/DancerHeart";
 import { ActionRow, FieldRow, Group, RhythmTile, SwitchRow, Tile } from "@/components/Form";
 import { PageHeader } from "@/components/PageHeader";
 import { QrCode } from "@/components/QrCode";
@@ -143,6 +145,8 @@ export default function RoomsPage() {
   const [renaming, setRenaming] = useState(false);
   const [renameDraft, setRenameDraft] = useState("");
   const [past, setPast] = useState<{ ref: RoomRef; log: RoomLogEntry[] | null; name: string } | null>(null);
+  // 2026-11: `?dance=<code>` is a dancer's page: the playing song and one heart (no name, no joining)
+  const [dance, setDance] = useState<{ code: string; server: string } | null>(null);
   const router = useRouter();
   // the apps keep rooms on a T-DJ server the DJ linked (Settings → Connections); without one they cannot open one
   const [linked, setLinked] = useState<boolean | null>(APP ? null : true);
@@ -159,6 +163,14 @@ export default function RoomsPage() {
     const q = new URLSearchParams(location.search);
     const join = normalizeRoomCode(q.get("join"));
     if (join) setCode(join);
+    const dancing = normalizeRoomCode(q.get("dance"));
+    const ds = q.get("server");
+    if (dancing)
+      setDance({
+        code: dancing,
+        server:
+          ds && /^https?:\/\//i.test(ds) && new URL(ds).origin !== location.origin ? new URL(ds).origin : "",
+      });
     const server = q.get("server");
     if (server && /^https?:\/\//i.test(server) && new URL(server).origin !== location.origin)
       setRemote(new URL(server).origin);
@@ -237,6 +249,8 @@ export default function RoomsPage() {
     () => r.rooms.filter((x) => !(r.active && x.code === r.active.code && x.server === r.active.server)),
     [r.rooms, r.active],
   );
+
+  if (dance) return <DancerHeart code={dance.code} server={dance.server} />;
 
   return (
     <div className="mx-auto max-w-[720px] lg:max-w-[980px]" data-rooms-page>
@@ -664,6 +678,23 @@ export default function RoomsPage() {
                   )
                 }
                 tip={tx("rooms.copies_the_six_character_code")}
+              />
+              {/* 2026-11: dancers heart the playing song (anonymous counts into the DJ's dancer favourites) */}
+              <TipRow
+                tile={
+                  <Tile color="#c9426a">
+                    <Heart size={16} strokeWidth={2} />
+                  </Tile>
+                }
+                label={tx("fav.dancer_link")}
+                onClick={async () => {
+                  const origin = info.server || location.origin;
+                  const url = `${origin}/rooms?dance=${info.code}${info.server ? `&server=${encodeURIComponent(info.server)}` : ""}`;
+                  toast(
+                    (await copyText(url)) ? tx("fav.dancer_link_copied") : tx("rooms.copying_was_blocked"),
+                  );
+                }}
+                tip={tx("fav.dancer_link_tip")}
               />
             </Group>
           </>

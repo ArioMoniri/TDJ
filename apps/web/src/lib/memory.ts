@@ -1,5 +1,5 @@
 "use client";
-import { emptyMemory, likedShapeDefaults } from "@tdj/core";
+import { emptyMemory, likedShapeDefaults, normalizeFavourites } from "@tdj/core";
 import { del, get, set } from "idb-keyval";
 import { t } from "@/lib/i18n";
 import type { StorageMode } from "./overrides";
@@ -21,6 +21,11 @@ export function normalizeMemory(m: unknown): AgentMemory {
     ...(o.learned && typeof o.learned === "object" ? { learned: o.learned } : {}),
     // the DJ's overrides of the featured night's store (off, reweighted, deleted rules)
     ...(o.repoLearned && typeof o.repoLearned === "object" ? { repoLearned: o.repoLearned } : {}),
+    // 2026-11: dancer favourites (floor reactions, room hearts, the nights played)
+    ...(() => {
+      const f = normalizeFavourites(o.favourites);
+      return f ? { favourites: f } : {};
+    })(),
     updatedAt: typeof o.updatedAt === "string" ? o.updatedAt : undefined,
   };
 }

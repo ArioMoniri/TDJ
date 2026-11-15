@@ -1,6 +1,7 @@
 "use client";
 import { Info, ListEnd } from "lucide-react";
 import { durationLabel } from "@/lib/booth/plan";
+import { useRoomHearts } from "@/lib/booth/roomHearts";
 import { SOURCE_LABEL } from "@/lib/booth/sources/types";
 import { useBooth } from "@/lib/booth/store";
 import { t } from "@/lib/i18n";
@@ -9,6 +10,7 @@ import { Artwork } from "../ui/Artwork";
 import { BpmKey, EnergyChip } from "../ui/BpmKey";
 import { EraBadge } from "../ui/EraBadge";
 import { SeekBar } from "../ui/SeekBar";
+import { FloorReaction } from "./FloorReaction";
 import { Meter } from "./Meter";
 
 const RHYTHM: Record<string, string> = {
@@ -64,6 +66,8 @@ export function NowCard({ onInfo }: { onInfo?: (planIndex: number) => void }) {
   const notRehearsable = useBooth((s) => s.notRehearsable);
   const entity = useBooth((s) => s.entities[s.planIndex] ?? null);
   const started = useBooth((s) => s.started);
+  // 2026-11: the room's dancers' hearts on this song (counts only)
+  const hearts = useRoomHearts((s) => (entity && "rhythm" in entity ? (s.counts[entity.id] ?? 0) : 0));
   const item = plan?.items[planIndex];
   if (!plan || !item) return null;
   const length = current
@@ -192,6 +196,11 @@ export function NowCard({ onInfo }: { onInfo?: (planIndex: number) => void }) {
           </span>
         )}
         {item.birthday && <span className="booth-chip">{t("booth.nowCard.birthday_vals")}</span>}
+        {hearts > 0 && (
+          <span className="booth-chip booth-fav tabular-nums" data-testid="booth-hearts">
+            {t("fav.hearts_live", { count: hearts })}
+          </span>
+        )}
         {ducked && (
           <span className="booth-chip" data-testid="booth-ducked">
             {t("booth.nowCard.talk_over_12_db")}
@@ -228,6 +237,8 @@ export function NowCard({ onInfo }: { onInfo?: (planIndex: number) => void }) {
           </button>
         )}
       </div>
+      {/* 2026-11: how the floor took this song (dancer favourites) */}
+      {item.kind === "track" && <FloorReaction scope="song" testPrefix="now" />}
       {/* round 18: say which items cannot be rehearsed and why, instead of skipping them silently */}
       {rehearsal && notRehearsable.length > 0 && (
         <details className="booth-norehearse mt-2" data-testid="booth-skipped">

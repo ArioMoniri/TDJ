@@ -16,6 +16,7 @@ import {
   withoutExceptionMarker,
 } from "@tdj/core";
 import { create } from "zustand";
+import { favouritesForRequest } from "./favourites";
 import { t } from "./i18n";
 import { en, type MsgKey } from "./i18n/en";
 import { useStore } from "./store";
@@ -94,7 +95,14 @@ async function details(
     const r = await fetch("/api/check-edit", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ before, after, exceptions, scope }),
+      body: JSON.stringify({
+        before,
+        after,
+        exceptions,
+        scope,
+        // 2026-11: the DJ's dancer favourites rank first (♥)
+        favourites: favouritesForRequest(useStore.getState().memory) ?? null,
+      }),
     });
     if (!r.ok) return null;
     return (await r.json()) as { violations: RuleViolation[]; suggestions: EditSuggestion[] };
