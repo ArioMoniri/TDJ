@@ -1,9 +1,9 @@
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { deflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
-import { injectShim, SHIM_TAG, stripDynamic } from "../scripts/build-ui.mjs";
+import { DATA_DIR, dataFiles, injectShim, SHIM_TAG, stripDynamic } from "../scripts/build-ui.mjs";
 import { flattenAlpha, info, jpegSize } from "../scripts/png.mjs";
 import { frameHtml } from "../store/compose";
 import { LOCALES, outPath, PLATFORMS, SCENES, SIZES } from "../store/scenes";
@@ -18,10 +18,49 @@ describe("bundled UI build", () => {
     expect(injectShim(once)).toBe(once);
   });
 
+  it("ships every data file the engine loads (one list: packages/core/src/data.ts)", () => {
+    const files = dataFiles();
+    expect(files).toContain("data/index/songs.json");
+    expect(files).toContain("data/knowledge/context_factors.json");
+    expect(files.length).toBeGreaterThanOrEqual(15);
+    for (const f of files)
+      expect(existsSync(new URL(`../../../${f}`, import.meta.url).pathname), f).toBe(true);
+    expect(DATA_DIR).toBe("tdj-data");
+  });
+
   it("removes only the per-request rendering switches", () => {
     const src =
       'import x from "y";\nexport const dynamic = "force-dynamic";\nexport const revalidate = 0;\nexport const dynamicParams = true;\n';
     expect(stripDynamic(src)).toBe('import x from "y";\n\n\nexport const dynamicParams = true;\n');
+  });
+});
+
+describe("standalone app", () => {
+  const read = (p: string) => readFileSync(new URL(p, import.meta.url), "utf8");
+  it("names no TDJ server: not in the config, the capabilities, the shim or the Rust sources", () => {
+    for (const p of [
+      "../src-tauri/tauri.conf.json",
+      "../src-tauri/capabilities/default.json",
+      "../ui/bridge-shim.js",
+      "../src-tauri/src/settings.rs",
+      "../src-tauri/src/lib.rs",
+      "../src-tauri/src/commands.rs",
+    ])
+      expect(read(p), p).not.toMatch(/cloudfront\.net|DEFAULT_SERVER|TDJ_APP_BACKEND_URL/);
+    expect(existsSync(new URL("../src-tauri/capabilities/remote.json", import.meta.url))).toBe(false);
+  });
+
+  it("the shim no longer sends /api to a server (the page's adapter answers it)", () => {
+    const shim = read("../ui/bridge-shim.js");
+    expect(shim).not.toMatch(/window\.fetch\s*=/);
+    expect(shim).not.toMatch(/tdjapi/);
+  });
+
+  it("privacy answers: no data collected", () => {
+    expect(read("../src-tauri/PrivacyInfo.xcprivacy")).toMatch(
+      /<key>NSPrivacyCollectedDataTypes<\/key><array\/>/,
+    );
+    expect(read("../fastlane/app_privacy.md")).toMatch(/\*\*No\*\* \("Data Not Collected"\)/);
   });
 });
 

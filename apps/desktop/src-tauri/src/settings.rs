@@ -1,25 +1,26 @@
-//! Which TDJ server the window loads, and the servers the DJ has explicitly trusted.
+//! The app's own settings, and the TDJ server the DJ may link (opt-in, off by default).
+//!
+//! T-DJ is standalone: the catalogue, the composer and the DJ's database live in the app (the bundled UI and its
+//! on-device SQLite). A server is only an opt-in link under Settings → Connections, for rooms and for keeping a
+//! self-deployed instance in sync; nothing is linked on first launch, and no address is built into the app.
 //!
 //! Stored as JSON in the app's config directory (`~/Library/Application Support/com.ariomoniri.tdj/settings.json`
-//! on macOS, the app container on iPadOS). Nothing secret lives here: provider tokens stay in the server's sealed
-//! first-party cookies and model keys stay in the web view (later: the Keychain).
+//! on macOS, the app container on iPadOS). Nothing secret lives here: keys and tokens are in the Keychain.
 
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use url::Url;
 
-/// The TDJ cloud. Overridden at build time with `TDJ_APP_BACKEND_URL` (repository variable of the same name).
-pub const DEFAULT_SERVER: &str = match option_env!("TDJ_APP_BACKEND_URL") {
-    Some(url) => url,
-    None => "https://d3k5k2c1l0s5ri.cloudfront.net",
-};
-
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct Settings {
-    /// Origin the main window loads. `None` until the first-launch screen has been answered.
+    /// The last TDJ server address the DJ entered (kept when the link is turned off, so it is not typed again).
     pub server: Option<String>,
-    /// Self-hosted origins the DJ confirmed with "Trust this server?" (the TDJ cloud is always trusted).
+    /// The link is on: the server gets this device's database writes and serves Google, Dropbox and rooms.
+    /// Off by default; settings files from before the standalone app (which named a server) start unlinked.
+    #[serde(default)]
+    pub link: bool,
+    /// Self-hosted origins the DJ confirmed with "Trust this server?".
     #[serde(default)]
     pub trusted: Vec<String>,
     /// Keep the display awake while the Booth plays (default on; the web asks through `keepAwake`).
@@ -106,15 +107,17 @@ impl Settings {
         std::fs::rename(tmp, Self::path(config_dir))
     }
 
-    /// The origin to load: the chosen server, else the TDJ cloud.
-    pub fn server_or_default(&self) -> String {
-        self.server
-            .clone()
-            .unwrap_or_else(|| DEFAULT_SERVER.to_string())
+    /// The linked server, when the link is on.
+    pub fn linked(&self) -> Option<String> {
+        if self.link {
+            self.server.clone()
+        } else {
+            None
+        }
     }
 
     pub fn is_trusted(&self, origin: &str) -> bool {
-        origin == DEFAULT_SERVER || self.trusted.iter().any(|t| t == origin)
+        self.trusted.iter().any(|t| t == origin)
     }
 
     pub fn trust(&mut self, origin: &str) {
@@ -178,8 +181,19 @@ mod tests {
     }
 
     #[test]
-    fn default_server_is_a_valid_origin() {
-        assert_eq!(normalize_server(DEFAULT_SERVER).unwrap(), DEFAULT_SERVER);
+    fn standalone_by_default_and_old_files_start_unlinked() {
+        assert_eq!(Settings::default().linked(), None);
+        // a settings.json written by the server-shell builds (first-launch screen) named a server, without `link`
+        let old: Settings =
+            serde_json::from_str(r#"{"server":"https://tdj.example.org","trusted":[]}"#).unwrap();
+        assert!(!old.link);
+        assert_eq!(old.linked(), None);
+        let on = Settings {
+            server: Some("https://my.tdj".into()),
+            link: true,
+            ..Default::default()
+        };
+        assert_eq!(on.linked().as_deref(), Some("https://my.tdj"));
     }
 
     #[test]
@@ -192,7 +206,6 @@ mod tests {
         };
         s.trust("https://my.tdj");
         s.trust("https://my.tdj");
-        s.trust(DEFAULT_SERVER);
         assert_eq!(s.trusted, vec!["https://my.tdj".to_string()]);
         s.save(dir.path()).unwrap();
         assert_eq!(Settings::load(dir.path()), s);

@@ -3,26 +3,10 @@
 <plist version="1.0">
 <dict>
   <!-- Privacy manifest (macOS + iPadOS). Matches docs/PRIVACY.md and apps/desktop/fastlane/app_privacy.md.
-       No tracking, no tracking domains. -->
+       The apps are standalone and collect no data: no tracking, no tracking domains, no collected data types. -->
   <key>NSPrivacyTracking</key><false/>
   <key>NSPrivacyTrackingDomains</key><array/>
-  <key>NSPrivacyCollectedDataTypes</key>
-  <array>
-    <!-- the anonymous signed tdj_uid id: daily limit of the shared AI key, the DJ's server database rows -->
-    <dict>
-      <key>NSPrivacyCollectedDataType</key><string>NSPrivacyCollectedDataTypeUserID</string>
-      <key>NSPrivacyCollectedDataTypeLinked</key><false/>
-      <key>NSPrivacyCollectedDataTypeTracking</key><false/>
-      <key>NSPrivacyCollectedDataTypePurposes</key><array><string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string></array>
-    </dict>
-    <!-- feedback text, saved sets and database edits when the server database is on -->
-    <dict>
-      <key>NSPrivacyCollectedDataType</key><string>NSPrivacyCollectedDataTypeOtherUserContent</string>
-      <key>NSPrivacyCollectedDataTypeLinked</key><false/>
-      <key>NSPrivacyCollectedDataTypeTracking</key><false/>
-      <key>NSPrivacyCollectedDataTypePurposes</key><array><string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string></array>
-    </dict>
-  </array>
+  <key>NSPrivacyCollectedDataTypes</key><array/>
   <key>NSPrivacyAccessedAPITypes</key>
   <array>
     <!-- file sizes inside music folders the DJ picked -->
@@ -35,7 +19,7 @@
       <key>NSPrivacyAccessedAPIType</key><string>NSPrivacyAccessedAPICategorySystemBootTime</string>
       <key>NSPrivacyAccessedAPITypeReasons</key><array><string>35F9.1</string></array>
     </dict>
-    <!-- the web view's own settings storage -->
+    <!-- the web view's own settings storage (and the app's settings file) -->
     <dict>
       <key>NSPrivacyAccessedAPIType</key><string>NSPrivacyAccessedAPICategoryUserDefaults</string>
       <key>NSPrivacyAccessedAPITypeReasons</key><array><string>CA92.1</string></array>

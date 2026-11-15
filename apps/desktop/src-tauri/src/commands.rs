@@ -1,7 +1,7 @@
 //! IPC commands the page may call (`window.__TAURI_INTERNALS__.invoke(name, args)`). Every one is listed in
 //! build.rs (app manifest) and granted per window in capabilities/*.json; nothing else is reachable from a page.
 
-use crate::{folders, links, settings, system, AppState};
+use crate::{agents, folders, links, net, secrets, settings, system, AppState};
 use serde::Serialize;
 use tauri::{AppHandle, Manager, State, WebviewWindow};
 use tauri_plugin_dialog::DialogExt;
@@ -14,8 +14,10 @@ type Res<T> = Result<T, String>;
 pub struct NativeInfo {
     pub platform: &'static str,
     pub version: &'static str,
-    pub server: String,
-    pub default_server: &'static str,
+    /// the TDJ server the DJ linked (Settings → Connections), when the link is on; none by default
+    pub linked_server: Option<String>,
+    /// the Spotify Client ID this build ships with (public; PKCE needs no secret)
+    pub spotify_client_id: Option<&'static str>,
     pub bundled: bool,
     pub app_store: bool,
     pub updater: bool,
@@ -38,21 +40,165 @@ pub fn get_native_info(state: State<'_, AppState>) -> NativeInfo {
     NativeInfo {
         platform: platform(),
         version: env!("CARGO_PKG_VERSION"),
-        server: state.bridge.server(),
-        default_server: settings::DEFAULT_SERVER,
+        linked_server: state.bridge.server(),
+        spotify_client_id: crate::SPOTIFY_CLIENT_ID.filter(|c| !c.is_empty()),
         bundled: state.bundled,
         app_store: crate::APP_STORE_BUILD,
         updater: cfg!(feature = "updater"),
     }
 }
 
-/// First launch / "Change Server…": returns the normalised origin, or a sentence to show under the field.
+/// Settings → Connections → "Link a TDJ server" (opt-in): returns the normalised origin, or a sentence to show
+/// under the field.
 #[tauri::command]
 pub async fn set_server(app: AppHandle, url: String) -> Res<String> {
     let origin = settings::normalize_server(&url).map_err(|e| e.to_string())?;
     crate::check_server(&origin).await?;
     crate::apply_server(&app, &origin).map_err(|e| e.to_string())?;
     Ok(origin)
+}
+
+/// Settings → Connections → "Unlink this server": the app is standalone again.
+#[tauri::command]
+pub fn unlink_server(app: AppHandle) -> Res<()> {
+    crate::unlink_server(&app).map_err(|e| e.to_string())
+}
+
+// ---------------------------------------------------------------- Keychain (model keys)
+
+#[tauri::command]
+pub fn secret_set(state: State<'_, AppState>, name: String, value: String) -> Res<()> {
+    secrets::page_set(state.secrets.as_ref(), &name, &value)
+}
+
+/// Whether a key is saved; the page never reads one back.
+#[tauri::command]
+pub fn secret_has(state: State<'_, AppState>, name: String) -> bool {
+    secrets::page_may_write(&name) && state.secrets.get(&name).is_some()
+}
+
+#[tauri::command]
+pub fn secret_delete(state: State<'_, AppState>, name: String) -> Res<()> {
+    if !secrets::page_may_write(&name) {
+        return Err("Unknown key.".into());
+    }
+    state.secrets.delete(&name)
+}
+
+// ---------------------------------------------------------------- network (no TDJ server involved)
+
+/// Deezer and MusicBrainz lookups for the on-device routes (api.deezer.com sends no CORS headers).
+#[tauri::command]
+pub async fn net_fetch(
+    state: State<'_, AppState>,
+    req: net::WireRequest,
+) -> Result<net::WireResponse, net::NetError> {
+    net::fetch(&state.http, req).await
+}
+
+/// One request of the provider layer (apps/web/src/lib/ai/providers.ts) to a model provider: the provider is the
+/// request's host, and the DJ's key for that provider comes from the Keychain in place of the page's mark.
+#[tauri::command]
+pub async fn model_fetch(
+    state: State<'_, AppState>,
+    req: net::WireRequest,
+) -> Result<net::WireResponse, net::NetError> {
+    let method = req.method.as_deref().unwrap_or("POST").to_ascii_uppercase();
+    let (_, provider) = net::model_target(&req.url, &method)?;
+    let Some(key) = state
+        .secrets
+        .get(&net::key_name(provider))
+        .filter(|k| !k.is_empty())
+    else {
+        return Err(net::NetError::new(
+            "No API key for this provider. Add one in Settings → Models.",
+            401,
+        ));
+    };
+    net::model_fetch(&state.http, req, provider, &key).await
+}
+
+// ---------------------------------------------------------------- local ACP agents (the Mac app)
+
+/// Starts the agent command the DJ entered (Settings → Models → Keys and agents); returns its id.
+#[tauri::command]
+pub fn acp_spawn(state: State<'_, AppState>, command: String, args: Vec<String>) -> Res<u32> {
+    state.agents.spawn(&command, &args)
+}
+/// One protocol line to the agent.
+#[tauri::command]
+pub fn acp_write(state: State<'_, AppState>, id: u32, data: String) -> Res<()> {
+    state.agents.write(id, &data)
+}
+/// What the agent printed since the last read, and whether it stopped.
+#[tauri::command]
+pub fn acp_read(state: State<'_, AppState>, id: u32) -> Res<agents::Read> {
+    state.agents.read(id)
+}
+#[tauri::command]
+pub fn acp_kill(state: State<'_, AppState>, id: u32) {
+    state.agents.kill(id)
+}
+
+// ---------------------------------------------------------------- Spotify (PKCE, tokens in the Keychain)
+
+/// The end of the PKCE sign-in: the page's checked code-exchange form → tokens; the refresh token goes to the
+/// Keychain, the short-lived access token stays in memory and is handed to the page.
+#[tauri::command]
+pub async fn spotify_token(
+    state: State<'_, AppState>,
+    client_id: String,
+    form: String,
+) -> Result<net::SpotifyAccess, net::NetError> {
+    net::check_exchange_form(&form, &client_id)?;
+    let j = net::spotify_token_request(&state.http, form).await?;
+    let t = net::parse_token(&j, net::now_ms())?;
+    if let Some(r) = &t.refresh {
+        state
+            .secrets
+            .set(secrets::SPOTIFY_REFRESH, r)
+            .map_err(|m| net::NetError::new(m, 500))?;
+    }
+    *state.spotify.lock().unwrap() = Some(t.access.clone());
+    Ok(t.access)
+}
+
+/// A valid access token, refreshed from the Keychain when needed; none when the DJ is not signed in.
+#[tauri::command]
+pub async fn spotify_access(
+    state: State<'_, AppState>,
+    client_id: String,
+) -> Result<Option<net::SpotifyAccess>, net::NetError> {
+    let cached = state.spotify.lock().unwrap().clone();
+    if let Some(a) = cached.filter(|a| a.expires > net::now_ms() + 60_000) {
+        return Ok(Some(a));
+    }
+    let Some(refresh) = state.secrets.get(secrets::SPOTIFY_REFRESH) else {
+        return Ok(None);
+    };
+    match net::spotify_token_request(&state.http, net::refresh_form(&client_id, &refresh)).await {
+        Ok(j) => {
+            let t = net::parse_token(&j, net::now_ms())?;
+            if let Some(r) = t.refresh.as_deref().filter(|r| *r != refresh) {
+                let _ = state.secrets.set(secrets::SPOTIFY_REFRESH, r);
+            }
+            *state.spotify.lock().unwrap() = Some(t.access.clone());
+            Ok(Some(t.access))
+        }
+        // the grant is gone (revoked, or another Client ID): signed out, not an error
+        Err(e) if e.status == 401 => {
+            let _ = state.secrets.delete(secrets::SPOTIFY_REFRESH);
+            *state.spotify.lock().unwrap() = None;
+            Ok(None)
+        }
+        Err(e) => Err(e),
+    }
+}
+
+#[tauri::command]
+pub fn spotify_logout(state: State<'_, AppState>) -> Res<()> {
+    *state.spotify.lock().unwrap() = None;
+    state.secrets.delete(secrets::SPOTIFY_REFRESH)
 }
 
 #[tauri::command]

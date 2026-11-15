@@ -188,7 +188,7 @@ function finish(ctx, url, code, stage) {
   log(`     ${app}/api/spotify/callback`);
   log(`     ${app}/callback`);
   log("     tdj://spotify-callback   (the Mac and iPad apps)");
-  log(`4. In the TDJ app for Mac or iPad: TDJ menu → Change Server → ${app}`);
+  log(`4. In the TDJ app for Mac or iPad (optional): Settings → Connections → Link a TDJ server → ${app}`);
 }
 
 /** @param {Ctx} ctx @param {{ region: string, stage: string, spotify: {id: string, secret: string} | null, flags: Record<string, any> }} o */

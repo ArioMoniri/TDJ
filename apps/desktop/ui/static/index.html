@@ -10,10 +10,10 @@
 </style>
 </head>
 <body>
-<!-- Shown only in a build without the bundled UI (remote mode): hand over to the chosen server. -->
-<p>Opening your TDJ server…</p>
+<!-- Only in a development build without the bundled UI (node scripts/build-ui.mjs makes it); a linked server opens instead when there is one. -->
+<p>T-DJ is getting ready…</p>
 <script>
-  window.__TAURI_INTERNALS__.invoke("get_native_info").then((i) => location.replace(i.server));
+  window.__TAURI_INTERNALS__.invoke("get_native_info").then((i) => i.linkedServer && location.replace(i.linkedServer));
 </script>
 </body>
 </html>

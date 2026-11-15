@@ -33,7 +33,7 @@ Deploy options
 Apple options
   --repo OWNER/NAME        repository to configure (default ArioMoniri/TDJ)
   --issuer-id ID --key-id ID --p8 PATH     the App Store Connect API key (asked if missing)
-  --team-id ID --bundle-id ID --app-id DIGITS --backend URL
+  --team-id ID --bundle-id ID --app-id DIGITS --spotify-client-id ID (the apps' own Spotify app; public, PKCE)
   --updater-key PATH       also store the Tauri updater key (+ .pub) made on the release Mac
 
 Common
@@ -58,7 +58,7 @@ const OPTIONS = /** @type {const} */ ({
   "team-id": { type: "string" },
   "bundle-id": { type: "string" },
   "app-id": { type: "string" },
-  backend: { type: "string" },
+  "spotify-client-id": { type: "string" },
   "updater-key": { type: "string" },
   yes: { type: "boolean", short: "y" },
   "dry-run": { type: "boolean" },

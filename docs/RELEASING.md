@@ -17,13 +17,26 @@ App Store record, universal purchase), Team `FF68N39FU5`.
 
 ### Why App Review accepts it (guideline 4.2 / 2.5.2)
 
-The UI is **bundled in the app**, not loaded from a website: `apps/desktop/scripts/build-ui.mjs` builds a
-static export of `apps/web` (route handlers removed) into the app. Only `/api/*` calls go to the DJ's TDJ
-server, through a native bridge (`src-tauri/src/bridge.rs`, `tdjapi://` scheme) that keeps the server's
-sealed session cookies in the app's own jar. No server change was needed. Native features on top:
+The apps are **standalone**: each works entirely on its own device. `apps/desktop/scripts/build-ui.mjs` builds
+a static export of `apps/web` with `TDJ_TARGET=app` and ships it with the catalogue (`data/`) inside the app.
+Every `/api/*` call is answered on the device by one client adapter (`apps/web/src/lib/app/adapter.ts`): the
+same route handlers as the server (`apps/web/src/lib/api/*`) run with `@tdj/core` in a Web Worker, and the
+server routes listed in `apps/web/scripts/device-routes.mjs` (the AI routes, song search, add a side, build by
+hand, fill) ship unchanged, copied with their server imports pointed at `apps/web/src/lib/app/server/*`; the DJ's
+database, history, settings and learned preferences live in SQLite (tauri-plugin-sql, versioned migrations in
+`apps/web/src/lib/app/store.ts`). Lookups go out natively (`net_fetch`, `src-tauri/src/net.rs`: Deezer,
+MusicBrainz, Cover Art Archive, Discogs); model calls run on the provider layer (`apps/web/src/lib/ai/*`) with a
+native fetch (`model_fetch`) that puts the DJ's key from the Keychain in place of the page's mark, for that
+provider's host only; the Mac app starts local ACP agents (`src-tauri/src/agents.rs`, `registerAcpSpawner`).
+Spotify signs in with PKCE through `tdj://spotify-callback`,
+tokens in the Keychain. A TDJ server is an opt-in link under Settings → Connections (off by default) for rooms,
+database sync, Google and Dropbox (`src-tauri/src/bridge.rs`). No server address is built into the app.
+`pnpm --filter @tdj/desktop standalone` runs the bundle in Chromium with the native side mocked and fails if
+any request leaves the machine (only cover artwork from the services' image servers is allowed). Native
+features on top:
 menu bar with every command and shortcut, media keys / Now Playing, keep-awake during a night (IOKit on Mac,
 idle timer on iPad), linked music folders with security-scoped bookmarks, headphone cue output device
-(Mac), native save panel and print, background audio on iPad, first-launch server choice (self-hosters),
+(Mac), native save panel and print, background audio on iPad, an optional link to a self-hosted server,
 offline playback of the composed night from local files. Nothing executable is downloaded.
 
 Store compliance files: `src-tauri/PrivacyInfo.xcprivacy`, `Info.plist` / `Info.ios.plist`

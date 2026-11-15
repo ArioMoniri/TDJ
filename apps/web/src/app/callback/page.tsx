@@ -4,6 +4,8 @@ import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { finishAppLogin } from "@/lib/app/login";
+import { APP } from "@/lib/app/target";
 import { rise, t } from "@/lib/motion";
 import { finishAuth } from "@/lib/spotify";
 import { useStore } from "@/lib/store";
@@ -13,6 +15,13 @@ export default function Callback() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   useEffect(() => {
+    // apps: back from Spotify through tdj://spotify-callback; the tokens go to the Keychain, not this page
+    if (APP) {
+      void finishAppLogin(location.search).then((r) =>
+        "next" in r ? router.replace(r.next) : setError(r.error),
+      );
+      return;
+    }
     const params = new URLSearchParams(location.search);
     const code = params.get("code");
     if (!code) {

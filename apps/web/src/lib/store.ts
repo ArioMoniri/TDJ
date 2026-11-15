@@ -3,6 +3,7 @@ import { emptyMemory } from "@tdj/core";
 import { create } from "zustand";
 import { type PersistStorage, persist } from "zustand/middleware";
 import { RETIRED_DEFAULTS } from "./ai/models";
+import { APP } from "./app/target";
 import {
   clearHistoryStore,
   historyAfter,
@@ -139,7 +140,8 @@ export const useStore = create<State>()(
       spotifyToken: null,
       overrides: {},
       overridesReady: false,
-      storageMode: "browser",
+      // apps: the on-device database is there from the first write (no detection round trip to lose a night in)
+      storageMode: APP ? "server" : "browser",
       memory: emptyMemory(),
       history: [],
       currentEntry: null,
@@ -224,6 +226,9 @@ export const useStore = create<State>()(
           .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
           .slice(0, 50);
         set({ overrides, memory, history: merged, storageMode: mode, overridesReady: true });
+        // apps: a night kept only in the web view's cache (written before the database answered) joins the device database
+        if (APP && mode === "server" && merged.length > (serverHistory?.length ?? 0))
+          saveHistory(merged, mode, true);
       },
       updateOverrides: (fn) => {
         const next = fn(get().overrides);

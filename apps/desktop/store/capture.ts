@@ -1,13 +1,15 @@
 /**
  * Step 1 of the store pipeline: raw captures of the bundled app UI at the store viewports.
  * Needs ui/dist (`pnpm --filter @tdj/desktop ui`). Output: store/out/raw/<platform>/<locale>/<scene>.png
- * Env: TDJ_STORE_BACKEND (default: the TDJ cloud), CHROMIUM (browser path; empty = Playwright's own).
+ * The bundle is standalone (its own adapter answers /api), so no server is involved. Env: CHROMIUM (browser path;
+ * empty = Playwright's own).
  */
 import { mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { chromium, type Page } from "playwright";
 import { LOCALES, PLATFORMS, SCENES, type Scene, SIZES } from "./scenes";
-import { DEFAULT_BACKEND, startPreview } from "./serve";
+import { startPreview } from "./serve";
+import { installTauriMock } from "./tauri-mock";
 
 const OUT = fileURLToPath(new URL("./out/raw/", import.meta.url));
 const PORT = Number(process.env.PORT ?? 4173);
@@ -33,7 +35,7 @@ async function run(page: Page, scene: Scene) {
 }
 
 async function main() {
-  const server = await startPreview(PORT, DEFAULT_BACKEND);
+  const server = await startPreview(PORT);
   const exe = process.env.CHROMIUM ?? "/opt/pw-browsers/chromium";
   const browser = await chromium.launch({ ...(exe ? { executablePath: exe } : {}), args: ["--no-sandbox"] });
   try {
@@ -51,18 +53,8 @@ async function main() {
             reducedMotion: "reduce",
             locale: locale === "tr" ? "tr-TR" : "en-US",
           });
-          await ctx.addInitScript(
-            ({ platform, server }) => {
-              (window as unknown as Record<string, unknown>).__TDJ_NATIVE__ = Object.freeze({
-                platform: platform === "mac" ? "macos" : "ipados",
-                bundled: true,
-                server,
-                apiBase: location.origin,
-                vibrancy: false,
-              });
-            },
-            { platform, server: DEFAULT_BACKEND },
-          );
+          // the app's native side, mocked (SQLite in memory, no network): the bundle runs as it does on the device
+          await installTauriMock(ctx, { platform: platform === "mac" ? "macos" : "ipados" });
           const page = await ctx.newPage();
           // `lang` is ignored until the UI has a Turkish switch (ROADMAP §7); then the tr set shows Turkish UI
           const sep = scene.path.includes("?") ? "&" : "?";

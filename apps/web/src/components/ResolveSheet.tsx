@@ -1,7 +1,7 @@
 "use client";
 import { Check, LoaderCircle, Pause, Play } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { ResolveResponse } from "@/app/api/resolve/route";
+import type { ResolveResponse } from "@/lib/api/net";
 import { haptic } from "@/lib/haptics";
 import { usePlayer } from "@/lib/player";
 import { useStore } from "@/lib/store";

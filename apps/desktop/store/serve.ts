@@ -1,7 +1,8 @@
 /**
- * Serves the bundled app UI (ui/dist) on Linux the way the app's asset protocol does (`/booth` → booth.html),
- * and proxies `/api/*` to a TDJ server as a first-party request (what the native bridge does in the app).
- * Used for store screenshots and for reviewing the bundle in any browser:
+ * Serves the bundled app UI (ui/dist) on Linux the way the app's asset protocol does (`/booth` → booth.html).
+ * The bundle is standalone: its own adapter answers `/api/*` in the page, so this server serves files only and
+ * counts any `/api/*` request that reaches it (there should be none). Used for store screenshots, the standalone
+ * check (store/standalone.ts) and for reviewing the bundle in any browser:
  *   pnpm --filter @tdj/desktop exec tsx store/serve.ts   →  http://127.0.0.1:4173
  */
 import { existsSync, readFileSync, statSync } from "node:fs";
@@ -10,7 +11,6 @@ import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const DIST = fileURLToPath(new URL("../ui/dist/", import.meta.url));
-export const DEFAULT_BACKEND = process.env.TDJ_STORE_BACKEND ?? "https://d3k5k2c1l0s5ri.cloudfront.net";
 
 const TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -39,42 +39,16 @@ export function resolveAsset(root: string, urlPath: string): string | null {
   return null;
 }
 
-export function startPreview(port = 4173, backend = DEFAULT_BACKEND, root = DIST): Promise<Server> {
-  const server = createServer(async (req, res) => {
+export type Preview = Server & { apiHits: string[] };
+
+export function startPreview(port = 4173, root = DIST): Promise<Preview> {
+  const apiHits: string[] = [];
+  const server = createServer((req, res) => {
     const url = req.url ?? "/";
     if (url.startsWith("/api/")) {
-      const body = await new Promise<Buffer>((ok) => {
-        const parts: Buffer[] = [];
-        req.on("data", (c) => parts.push(c));
-        req.on("end", () => ok(Buffer.concat(parts)));
-      });
-      const headers: Record<string, string> = {
-        origin: backend,
-        referer: `${backend}/`,
-        "x-tdj-client": "app",
-      };
-      for (const [k, v] of Object.entries(req.headers)) {
-        if (typeof v === "string" && /^(accept|content-type|cookie|x-ai-|x-anthropic-|x-tdj-)/.test(k))
-          headers[k] = v;
-      }
-      try {
-        const r = await fetch(backend + url, {
-          method: req.method,
-          headers,
-          body: ["GET", "HEAD"].includes(req.method ?? "GET") ? undefined : new Uint8Array(body),
-          redirect: "manual",
-        });
-        const out: Record<string, string> = {};
-        r.headers.forEach((v, k) => {
-          if (!["content-encoding", "content-length", "transfer-encoding", "connection"].includes(k))
-            out[k] = v;
-        });
-        res.writeHead(r.status, out);
-        res.end(Buffer.from(await r.arrayBuffer()));
-      } catch {
-        res.writeHead(503, { "content-type": "application/json" });
-        res.end(JSON.stringify({ error: "offline", offline: true }));
-      }
+      apiHits.push(`${req.method} ${url}`);
+      res.writeHead(404, { "content-type": "application/json" });
+      res.end(JSON.stringify({ error: "The app answers /api itself; nothing is served here." }));
       return;
     }
     const file = resolveAsset(root, url) ?? resolveAsset(root, "/404.html");
@@ -86,13 +60,12 @@ export function startPreview(port = 4173, backend = DEFAULT_BACKEND, root = DIST
       "content-type": TYPES[extname(file)] ?? "application/octet-stream",
     });
     res.end(readFileSync(file));
-  });
+  }) as Preview;
+  server.apiHits = apiHits;
   return new Promise((ok) => server.listen(port, "127.0.0.1", () => ok(server)));
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const port = Number(process.env.PORT ?? 4173);
-  startPreview(port).then(() =>
-    console.log(`bundled UI on http://127.0.0.1:${port} (API → ${DEFAULT_BACKEND})`),
-  );
+  startPreview(port).then(() => console.log(`bundled UI on http://127.0.0.1:${port} (standalone)`));
 }

@@ -188,7 +188,7 @@ pub fn same_origin(url: &Url, origin: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    const S: &str = "https://d3k5k2c1l0s5ri.cloudfront.net";
+    const S: &str = "https://tdj.example.org";
     const T: &str = "v1.abcdefghijklmnopqrstuvwxyz_0123456789-AB";
 
     #[test]
@@ -310,7 +310,7 @@ mod tests {
             S
         ));
         assert!(!same_origin(
-            &Url::parse("http://d3k5k2c1l0s5ri.cloudfront.net/").unwrap(),
+            &Url::parse("http://tdj.example.org/").unwrap(),
             S
         ));
     }

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-acp-kill"
+description = "Enables the acp_kill command without any pre-configured scope."
+commands.allow = ["acp_kill"]
+
+[[permission]]
+identifier = "deny-acp-kill"
+description = "Denies the acp_kill command without any pre-configured scope."
+commands.deny = ["acp_kill"]

@@ -70,8 +70,9 @@ npx tdj-deploy --help
 ## After deploying
 
 - **Updates**: on your fork press **Sync fork** (GitHub) → the push to `main` redeploys.
-- **Apps**: TDJ for Mac/iPad → TDJ menu → **Change Server** → your URL (or open
-  `tdj://server?url=<your url>`). The app asks you to confirm the server once.
+- **Apps** (optional: they work on their own): TDJ for Mac/iPad → Settings → **Connections** → Link a TDJ
+  server → your URL (or open `tdj://server?url=<your url>`). The app asks you to confirm the server once; it then
+  syncs the DJ's database to it and signs in to Google and Dropbox through it.
 - **Spotify app**: add `<url>/api/spotify/callback`, `<url>/callback` and `tdj://spotify-callback` as redirect
   URIs; add each DJ under *User Management* (5 seats in Development Mode).
 - **Remove**: `npx sst remove --stage production` in a checkout with AWS credentials (production tables are

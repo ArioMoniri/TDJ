@@ -1,8 +1,6 @@
-import { NextResponse } from "next/server";
-import { getCatalog } from "@/lib/server/catalog";
+import { search } from "@/lib/api/engine";
+import { onServer } from "@/lib/server/deps";
+
+/** Handler: lib/api/engine.ts (shared with the macOS and iPadOS apps, which run it on the device). */
 export const dynamic = "force-dynamic";
-export async function GET(req: Request) {
-  const q = new URL(req.url).searchParams.get("q") ?? "";
-  const { catalog } = getCatalog();
-  return NextResponse.json(q.trim().length < 2 ? [] : catalog.search(q, 40));
-}
+export const GET = onServer(search);

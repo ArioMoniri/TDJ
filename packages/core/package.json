@@ -7,7 +7,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./export": "./src/export/index.ts",
-    "./load": "./src/load.ts"
+    "./load": "./src/load.ts",
+    "./data": "./src/data.ts"
   },
   "scripts": {
     "test": "vitest run",

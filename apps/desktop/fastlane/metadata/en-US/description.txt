@@ -6,6 +6,6 @@ TDJ composes a tango milonga the way working DJs build one: tandas of one orches
 • Your own database of 19,000 recordings: years, singers, versions, edits that stay yours.
 • Export to Spotify, Rekordbox, Traktor, Serato, M3U8 or a printed set list.
 • Mac: menu bar commands and shortcuts, media keys and Now Playing, the display stays awake through the night.
-• Works with the TDJ cloud or your own self-hosted server.
+• Works entirely on your Mac or iPad: no account, no server. Link your own TDJ server only if you want to.
 
 No account needed. Spotify features need Spotify Premium.

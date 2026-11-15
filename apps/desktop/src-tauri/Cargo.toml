@@ -1,7 +1,7 @@
 [package]
 name = "tdj-desktop"
 version = "0.1.0"
-description = "TDJ for macOS and iPadOS (Tauri 2 shell around the TDJ server)"
+description = "TDJ for macOS and iPadOS (Tauri 2), standalone on each device"
 edition = "2021"
 rust-version = "1.80"
 license = "MIT"
@@ -31,6 +31,7 @@ tauri-plugin-deep-link = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-opener = "2"
 tauri-plugin-process = { version = "2", optional = true }
+tauri-plugin-sql = { version = "2", features = ["sqlite"] }
 tauri-plugin-updater = { version = "2", optional = true }
 url = "2"
 
@@ -41,6 +42,12 @@ core-foundation = "0.10"
 block2 = "0.6"
 objc2 = "0.6"
 objc2-foundation = { version = "0.3", features = ["NSString", "NSData", "NSURL", "NSError", "NSArray"] }
+# the DJ's model keys and the Spotify session: macOS and iPadOS Keychain
+keyring = { version = "3", features = ["apple-native"] }
+
+[target.'cfg(not(any(target_os = "macos", target_os = "ios")))'.dependencies]
+# Linux checks and tests: the crate's own in-memory store (secrets.rs uses `Memory` there)
+keyring = { version = "3" }
 
 [features]
 default = []
