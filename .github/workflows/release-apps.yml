@@ -64,8 +64,10 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
+      # (no pnpm cache here: mac-build.sh keeps its own store under TDJ_DRIVE, so setup-node's post step found no
+      # pnpm store to save and failed the job after a successful build)
       - uses: actions/setup-node@v5
-        with: { node-version: 22, cache: pnpm }
+        with: { node-version: 22 }
       - uses: dtolnay/rust-toolchain@stable
         with: { targets: "aarch64-apple-darwin,x86_64-apple-darwin,aarch64-apple-ios" }
       - uses: Swatinem/rust-cache@v2
