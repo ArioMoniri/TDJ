@@ -1,7 +1,8 @@
 import type { Catalog } from "./catalog";
 import { isDanceableSong, normTitle } from "./energy";
-import { strictOrder } from "./order";
+import { heatOfSides, isPeakSlot, strictOrder } from "./order";
 import { nightFamilies } from "./repair";
+import { orderCtxOf, streamable } from "./strict";
 import { retimeTanda } from "./swap";
 import { isTandaEligible } from "./tanda";
 import type { ComposeOptions, DanceRhythm, Song, Tanda } from "./types";
@@ -586,4 +587,215 @@ export function mendBenchVariety(
   const pick = ok.sort((a, b) => a.key - b.key)[0]!;
   fallbacks.push(pick.label);
   return { tandas: pick.ts, fallbacks };
+}
+
+/**
+ * Round 8 (one family never twice) — the early D'Arienzo instrumental and the D'Arienzo instrumental summit never
+ * share a family (orchestra, singer, overlapping years, rhythm). The builder draws the early chair before the summit,
+ * so the two can overlap (an early 1936–37 set and the 1935–38 Hotel Victoria summit). The two chairs then part their
+ * years: one keeps its sides and the other moves outside them, or both split at a year (the early chair before it and
+ * the summit after, or the other way round). The early chair stays inside 1935–39 (the round-4 window) and never takes
+ * the summit's hooks (round 10 R10.5); the summit stays inside the darienzoPeak window (1937–40, from 1935 with a
+ * fame-5 side) with two sides of fame ≥ 4. Each chair has at most one side nobody streams. Of the splits that add no
+ * blocker and no −20/+20 sawtooth, the one the strict panel judges best is taken: the round-8 rule is a hard one, so
+ * the night parts the two chairs even when every split costs the panel a should-fix item.
+ */
+const DA_SUMMIT_HOOKS = ["hotel victoria", "el flete", "el internado"].map(normTitle);
+const DA_EARLY_WINDOW: [number, number] = [1935, 1939];
+const DA_SUMMIT_WINDOW: [number, number] = [1935, 1940];
+
+export function mendDarienzoFamily(
+  tandas0: Tanda[],
+  o: ComposeOptions,
+  cat: Catalog,
+  judge: (ts: Tanda[]) => { blockers: number; penalty: number; violations?: Array<{ rule: string }> },
+): VmMend {
+  const tandas = tandas0.slice();
+  const fallbacks: string[] = [];
+  const DA = "juan-d-arienzo";
+  const yr: [number, number] = o.yearRange ?? [1935, 1945];
+  const fixed = (t: Tanda) => !!(t.pinned || t.locked || t.birthday);
+  const instr = (t: Tanda) => t.orchestraId === DA && t.rhythm === "tango" && !t.vocal;
+  const overlap = (a: Tanda, b: Tanda) =>
+    !!a.yearRange && !!b.yearRange && a.yearRange[0] <= b.yearRange[1] && b.yearRange[0] <= a.yearRange[1];
+  const i = tandas.findIndex((t) => instr(t) && !t.peak);
+  const j = tandas.findIndex((t) => instr(t) && !!t.peak);
+  if (i < 0 || j < 0 || fixed(tandas[i]!) || fixed(tandas[j]!) || !overlap(tandas[i]!, tandas[j]!))
+    return { tandas, fallbacks };
+  const early = tandas[i]!,
+    summit = tandas[j]!;
+  const used = new Set(
+    tandas.flatMap((t, k) => (k === i || k === j ? [] : t.songs.map((s) => normTitle(s.title)))),
+  );
+  const before = judge(tandas);
+  const fameOf = (s: Song) => s.fame ?? 0;
+  const meanE = (xs: Song[]) => xs.reduce((a, s) => a + (s.energy ?? 50), 0) / Math.max(1, xs.length);
+  const pool = (() => {
+    const seen = new Set<string>();
+    return cat.songs
+      .filter(
+        (s) =>
+          s.orchestraId === DA &&
+          s.rhythm === "tango" &&
+          !s.vocal &&
+          !!s.year &&
+          s.year >= yr[0] &&
+          s.year <= yr[1] &&
+          streamable(s) &&
+          !s.streamSuspect &&
+          isTandaEligible(s, !!o.rules?.allowUndated) &&
+          isDanceableSong(s, cat.blacklist) &&
+          !used.has(normTitle(s.title)),
+      )
+      .sort(
+        (a, b) =>
+          Number(streams(b)) - Number(streams(a)) || fameOf(b) - fameOf(a) || a.id.localeCompare(b.id),
+      )
+      .filter((s) => {
+        const k = normTitle(s.title);
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      });
+  })();
+  // (a side nobody streams at all: one per chair at most, never two in the night's two chairs)
+  const offPool = (lo: number, hi: number) =>
+    cat.songs.filter(
+      (s) =>
+        s.orchestraId === DA &&
+        s.rhythm === "tango" &&
+        !s.vocal &&
+        !!s.year &&
+        s.year >= Math.max(lo, yr[0]) &&
+        s.year <= Math.min(hi, yr[1]) &&
+        !streamable(s) &&
+        (s.fame ?? 0) >= 4 &&
+        isTandaEligible(s, !!o.rules?.allowUndated) &&
+        isDanceableSong(s, cat.blacklist) &&
+        !used.has(normTitle(s.title)),
+    );
+  /** a chair's best side sets from the years [lo, hi]: known, streaming, near the chair's energy */
+  const setsFor = (
+    t: Tanda,
+    lo: number,
+    hi: number,
+    avoid: Set<string>,
+    keep: (xs: Song[]) => boolean,
+  ): Song[][] => {
+    const n = t.songs.length;
+    const free = (s: Song) => !!s.year && s.year >= lo && s.year <= hi && !avoid.has(normTitle(s.title));
+    const xs = pool.filter(free).slice(0, 12);
+    const extra = offPool(lo, hi).filter(free).slice(0, 2);
+    const all = [...xs, ...extra];
+    const out: Song[][] = [];
+    const pick = (from: number, cur: Song[]) => {
+      if (cur.length === n) {
+        if (keep(cur)) out.push(cur);
+        return;
+      }
+      for (let k = from; k < all.length; k++) {
+        const s = all[k]!;
+        if (!streamable(s) && cur.some((x) => !streamable(x))) continue;
+        pick(k + 1, [...cur, s]);
+      }
+    };
+    pick(0, []);
+    const e0 = t.energy;
+    const worth = (ss: Song[]) =>
+      ss.reduce((a, s) => a + fameOf(s), 0) -
+      Math.abs(meanE(ss) - e0) -
+      ss.filter((s) => !streams(s)).length * 1.5;
+    return out.sort((a, b) => worth(b) - worth(a)).slice(0, 16);
+  };
+  // (ordered for its slot: the summit's order, the step in from the previous tanda's last side)
+  const rebuild = (t: Tanda, sides: Song[]) => {
+    const off = sides.find((s) => !streamable(s));
+    const k = tandas.indexOf(t);
+    const nt = retimeTanda(
+      {
+        ...t,
+        era: sides[0]!.era,
+        note: off ? `${off.title} has no checked stream: play it from your files (or swap it)` : undefined,
+      },
+      strictOrder(sides, isPeakSlot(t), orderCtxOf(tandas, k)),
+    );
+    // (the heat label follows the sides: "fantastic" needs a mean side fame of 3)
+    const heat = heatOfSides(nt.songs);
+    if (heat) nt.heat = heat;
+    else delete nt.heat;
+    return nt;
+  };
+  const titlesOf = (xs: Song[]) => new Set(xs.map((s) => normTitle(s.title)));
+  const earlyOk = (xs: Song[]) =>
+    !xs.some((s) => DA_SUMMIT_HOOKS.includes(normTitle(s.title))) &&
+    xs.reduce((a, s) => a + fameOf(s), 0) / xs.length >= 2.5 - 1e-9;
+  // (from 1935 only with a fame-5 side and a mean fame of 3.75, as the panel's darienzoPeak asks)
+  const summitOk = (xs: Song[]) => {
+    if (xs.filter((s) => fameOf(s) >= 4).length < 2) return false;
+    const lo = Math.min(...xs.map((s) => s.year!));
+    const mf = xs.reduce((a, s) => a + fameOf(s), 0) / xs.length;
+    return lo >= 1937 || (xs.some((s) => fameOf(s) >= 5) && mf >= 3.75 - 1e-9);
+  };
+  const pairs: Array<{ e: Tanda; s: Tanda }> = [];
+  const span = (t: Tanda) => t.yearRange!;
+  const [E0, E1] = DA_EARLY_WINDOW,
+    [S0, S1] = DA_SUMMIT_WINDOW;
+  // one chair keeps its sides, the other moves outside its years
+  for (const [lo, hi] of [
+    [E0, span(summit)[0] - 1],
+    [span(summit)[1] + 1, E1],
+  ] as const)
+    for (const xs of setsFor(early, lo, hi, titlesOf(summit.songs), earlyOk))
+      pairs.push({ e: rebuild(early, xs), s: summit });
+  for (const [lo, hi] of [
+    [S0, span(early)[0] - 1],
+    [span(early)[1] + 1, S1],
+  ] as const)
+    for (const xs of setsFor(summit, lo, hi, titlesOf(early.songs), summitOk))
+      pairs.push({ e: early, s: rebuild(summit, xs) });
+  // or both split at a year
+  for (let y = E0; y < S1; y++)
+    for (const earlyFirst of [true, false]) {
+      const [elo, ehi] = earlyFirst ? [E0, y] : [y + 1, E1];
+      const [slo, shi] = earlyFirst ? [y + 1, S1] : [S0, y];
+      if (elo > ehi || slo > shi) continue;
+      const es = setsFor(early, elo, ehi, new Set(), earlyOk);
+      if (!es.length) continue;
+      for (const exs of es)
+        for (const sxs of setsFor(summit, slo, shi, titlesOf(exs), summitOk).slice(0, 6))
+          pairs.push({ e: rebuild(early, exs), s: rebuild(summit, sxs) });
+    }
+  // (never a −20/+20 sawtooth: two consecutive opposite tanda-energy steps both above 18, round 8 R4)
+  const saws = (ts: Tanda[]) => {
+    let n = 0;
+    for (let k = 1; k < ts.length - 1; k++) {
+      const x = ts[k]!.energy - ts[k - 1]!.energy,
+        y = ts[k + 1]!.energy - ts[k]!.energy;
+      if (x * y < 0 && Math.abs(x) > 18 && Math.abs(y) > 18) n++;
+    }
+    return n;
+  };
+  const saw0 = saws(tandas);
+  let best: { ts: Tanda[]; p: number; label: string } | null = null;
+  for (const c of pairs) {
+    if (overlap(c.e, c.s)) continue;
+    if (
+      Math.abs(c.e.durationSec - early.durationSec) > 150 ||
+      Math.abs(c.s.durationSec - summit.durationSec) > 150
+    )
+      continue;
+    const trial = tandas.map((x, k) => (k === i ? c.e : k === j ? c.s : x));
+    if (saws(trial) > saw0) continue;
+    const after = judge(trial);
+    if (after.blockers > before.blockers) continue;
+    if (best && after.penalty >= best.p - 1e-9) continue;
+    best = {
+      ts: trial,
+      p: after.penalty,
+      label: `darienzo: the early chair (tanda ${i + 1}) plays ${span(c.e).join("–")} and the summit (tanda ${j + 1}) ${span(c.s).join("–")}, never one family`,
+    };
+  }
+  if (!best) return { tandas, fallbacks };
+  fallbacks.push(best.label);
+  return { tandas: best.ts, fallbacks };
 }
