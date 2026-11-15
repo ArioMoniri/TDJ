@@ -1,3 +1,4 @@
+import { importNight, NightFormatError } from "@tdj/core";
 import {
   benchmark,
   compose,
@@ -135,6 +136,24 @@ async function settingsPut(req: Request, d: AppDeps): Promise<Response> {
   return jsonNoStore({ ok: true });
 }
 
+/**
+ * A shared night (a .tdjnight file, a tdj:// or web link) rebuilt against the catalogue in the app, as
+ * /api/night/resolve does on a server. Opening a night needs no server; rooms and short links do.
+ */
+async function nightResolve(req: Request, d: AppDeps): Promise<Response> {
+  const body = (await req.json().catch(() => null)) as { night?: unknown } | null;
+  if (!body || typeof body !== "object") return json({ error: "This is not a night." }, { status: 400 });
+  try {
+    const { catalog, cortinas } = d.catalog();
+    return json(importNight(body.night, { catalog, cortinas }));
+  } catch (e) {
+    return json(
+      { error: e instanceof NightFormatError ? e.message : "This night could not be opened." },
+      { status: 400 },
+    );
+  }
+}
+
 /** No organiser, no shared seats or key in an app: what /api/admin/public says about a server with none set up. */
 async function publicStatus(): Promise<Response> {
   return jsonNoStore({
@@ -171,14 +190,18 @@ const LOCAL: Record<string, Partial<Record<Method, Handler>>> = {
   "/api/db/export": { GET: dbExport },
   "/api/admin/public": { GET: publicStatus },
   "/api/app/settings": { GET: settingsGet, PUT: settingsPut },
+  "/api/night/resolve": { POST: nightResolve },
 };
 
 /**
- * Services whose sign-in needs a client secret (Google, Dropbox) or a server-side account (Pipedream Connect): they
- * work only through a TDJ server the DJ linked; without one the app shows them as off.
+ * Services whose sign-in needs a client secret (Google, Dropbox) or a server-side account (Pipedream Connect), and
+ * what several DJs share (rooms, short share links): they work only through a TDJ server the DJ linked; without
+ * one the app shows them as off.
  */
-const VIA_LINKED_SERVER = ["/api/google/", "/api/dropbox/", "/api/connect/"];
-function offline(path: string): Response {
+const VIA_LINKED_SERVER = ["/api/google/", "/api/dropbox/", "/api/connect/", "/api/rooms", "/api/night"];
+function offline(path: string, method: string): Response {
+  // what /api/rooms says on a server that keeps no rooms
+  if (path === "/api/rooms" && method === "GET") return jsonNoStore({ available: false, shortLinks: false });
   if (path === "/api/google/me" || path === "/api/dropbox/me")
     return jsonNoStore({ hosted: false, user: null });
   if (path === "/api/connect/accounts") return jsonNoStore({ enabled: false, accounts: [] });
@@ -217,7 +240,7 @@ export async function dispatch(req: Request, d: AppDeps): Promise<Response> {
       const r = await d.host.remote(await toWire(req));
       return new Response(r.status === 204 ? null : r.body, { status: r.status, headers: r.headers });
     }
-    return offline(path);
+    return offline(path, req.method);
   }
   return json({ error: "Not found" }, { status: 404 });
 }

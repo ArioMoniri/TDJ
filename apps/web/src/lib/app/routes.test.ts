@@ -7,6 +7,7 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { exportNight, type Playlist } from "@tdj/core";
 import { DATA_FILES, type DataFiles } from "@tdj/core/data";
 import { findRoot } from "@tdj/core/load";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
@@ -23,6 +24,7 @@ import * as Feedback from "@/app/api/feedback/route";
 import * as Fill from "@/app/api/fill/route";
 import * as Improve from "@/app/api/improve/route";
 import * as Meta from "@/app/api/meta/route";
+import * as NightResolve from "@/app/api/night/resolve/route";
 import * as Preview from "@/app/api/preview/route";
 import * as Resolve from "@/app/api/resolve/route";
 import * as Search from "@/app/api/search/route";
@@ -409,6 +411,30 @@ describe("round 22 routes, run unchanged on the device", () => {
     await same(Fill.POST, "/api/fill", { body: { source: "musicbrainz", song } });
     await same(Fill.POST, "/api/fill", { body: { source: "spotify", song } });
     await same(Fill.POST, "/api/fill", { body: { source: "deezer", song: { title: "x" } } });
+  });
+});
+
+describe("shared nights and rooms", () => {
+  it("a shared night opens against the app's catalogue, as on a server", async () => {
+    const night = (await (
+      await Compose.POST(req("/api/compose", { body: { hours: 1, seed: 4 } }))
+    ).json()) as Playlist;
+    await same(NightResolve.POST, "/api/night/resolve", { body: { night: exportNight(night) } });
+    await same(NightResolve.POST, "/api/night/resolve", { body: { night: { v: 99 } } });
+  });
+  it("rooms and short links need a linked server: off, with the reason", async () => {
+    const rooms = await dispatch(req("/api/rooms"), local);
+    expect(await rooms.json()).toEqual({ available: false, shortLinks: false });
+    for (const [path, init] of [
+      ["/api/rooms", { body: { user: "Ana", name: "x" } }],
+      ["/api/rooms/ABC234", {}],
+      ["/api/night", { body: { night: {} } }],
+      ["/api/night?id=abc", {}],
+    ] as const) {
+      const r = await dispatch(req(path, init), local);
+      expect(r.status, path).toBe(404);
+      expect((await r.json()).error).toMatch(/Settings → Connections/);
+    }
   });
 });
 
