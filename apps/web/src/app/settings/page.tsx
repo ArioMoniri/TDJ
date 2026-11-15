@@ -22,6 +22,7 @@ import { useEffect, useState } from "react";
 import { AppConnections } from "@/components/AppConnections";
 import { IndicatorSwitches } from "@/components/booth/IndicatorSwitches";
 import { Connectors } from "@/components/Connectors";
+import { PopularitySwitch } from "@/components/db/DatabaseFavourites";
 import { FeaturedLearned } from "@/components/db/FeaturedLearned";
 import {
   ActionRow,
@@ -523,6 +524,8 @@ export default function Settings() {
             onClick={() => router.push("/database?tab=memory#dancer-favourites")}
             id="settings-dancer-favourites"
           />
+          {/* 2026-11: popularity from databases (DJ sets, canonical tandas, set lists), default on */}
+          <PopularitySwitch />
         </Group>
 
         {APP && <AppConnections />}

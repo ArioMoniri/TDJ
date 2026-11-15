@@ -3759,6 +3759,32 @@ export const en = {
     "Spotify plays one track at a time: no overlap, the next song follows the gap",
   "booth.controls.why_spotify_cue":
     "Spotify plays one track at a time: a second track cannot sound in the headphones",
+  // 2026-11: popularity from databases (dancer favourites' prior)
+  "pop.use_switch": "Use popularity from databases",
+  "pop.use_tip":
+    "DJ sets, canonical tandas, public set lists and listening ranks give each recording a weak starting score in the part of the night where DJs play it. Your own floor reactions outweigh it after a few nights.",
+  "pop.source_filter": "Where the favourites come from",
+  "pop.from_nights": "From my nights",
+  "pop.from_databases": "From databases",
+  "pop.top_songs": "Popular with DJs",
+  "pop.loading": "Loading…",
+  "pop.none": "No popularity data for this part of the night.",
+  "pop.score": "{score}",
+  "pop.part": "{source}: {value}",
+  "pop.footer":
+    "Built offline from {sources} (as of {date}). Listening ranks count for little: they measure listening, not dancing.",
+  "pop.unavailable": "Not available: {sources}.",
+  "pop.off_note": "Switched off: compose does not use these.",
+  "pop.source.djSets": "DJ sets",
+  "pop.source.canonicalTandas": "Canonical tandas",
+  "pop.source.famous": "Fame",
+  "pop.source.setlists": "Set lists",
+  "pop.source.tangoInfo": "tango.info",
+  "pop.source.deezer": "Deezer",
+  "pop.source.spotify": "Spotify",
+  "pop.tier.high": "high",
+  "pop.tier.mid": "mid",
+  "pop.tier.low": "low",
   // 2026-11: dancer favourites
   "fav.title": "Dancer favourites",
   "fav.floor_full": "Floor full ♥",

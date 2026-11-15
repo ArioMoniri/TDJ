@@ -3935,6 +3935,32 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.controls.why_spotify_overlap":
     "Spotify aynı anda tek parça çalar: üst üste binme yok, sıradaki şarkı aradan sonra gelir",
   "booth.controls.why_spotify_cue": "Spotify aynı anda tek parça çalar: kulaklıkta ikinci bir parça çalamaz",
+  // 2026-11: veritabanlarından popülerlik (dansçı favorilerinin ön bilgisi)
+  "pop.use_switch": "Veritabanlarındaki popülerliği kullan",
+  "pop.use_tip":
+    "DJ setleri, kanonik tandalar, herkese açık set listeleri ve dinlenme sıralamaları her kayda, DJ'lerin onu çaldığı gece bölümünde zayıf bir başlangıç puanı verir. Birkaç gece sonra kendi pist tepkileriniz ağır basar.",
+  "pop.source_filter": "Favoriler nereden geliyor",
+  "pop.from_nights": "Gecelerimden",
+  "pop.from_databases": "Veritabanlarından",
+  "pop.top_songs": "DJ'ler arasında popüler",
+  "pop.loading": "Yükleniyor…",
+  "pop.none": "Gecenin bu bölümü için popülerlik verisi yok.",
+  "pop.score": "{score}",
+  "pop.part": "{source}: {value}",
+  "pop.footer":
+    "{sources} kaynaklarından çevrimdışı oluşturuldu ({date} itibarıyla). Dinlenme sıralamaları az sayılır: dansı değil, dinlemeyi ölçerler.",
+  "pop.unavailable": "Kullanılamıyor: {sources}.",
+  "pop.off_note": "Kapalı: set kurarken bunlar kullanılmaz.",
+  "pop.source.djSets": "DJ setleri",
+  "pop.source.canonicalTandas": "Kanonik tandalar",
+  "pop.source.famous": "Ün",
+  "pop.source.setlists": "Set listeleri",
+  "pop.source.tangoInfo": "tango.info sitesi",
+  "pop.source.deezer": "Deezer",
+  "pop.source.spotify": "Spotify",
+  "pop.tier.high": "yüksek",
+  "pop.tier.mid": "orta",
+  "pop.tier.low": "düşük",
   // 2026-11: dancer favourites
   "fav.title": "Dansçıların favorileri",
   "fav.floor_full": "Pist dolu ♥",

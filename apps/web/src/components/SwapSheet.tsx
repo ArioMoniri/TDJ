@@ -1,8 +1,8 @@
 "use client";
 import { rememberEdit } from "@tdj/core";
 import { useEffect, useState } from "react";
-import { favouritesForRequest } from "@/lib/favourites";
 import { t as tx } from "@/lib/i18n";
+import { requestFavourites } from "@/lib/popularity";
 import { gateEdit } from "@/lib/ruleCheck";
 import { useStore } from "@/lib/store";
 import { tempoLevel } from "@/lib/tempo";
@@ -120,7 +120,7 @@ export function SwapSheet({
             tandaIndex,
             trackIndex,
             query: q,
-            favourites: favouritesForRequest(useStore.getState().memory) ?? null,
+            favourites: requestFavourites(useStore.getState().memory) ?? null,
           }),
           signal: ctl.signal,
         })
