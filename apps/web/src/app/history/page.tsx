@@ -28,6 +28,7 @@ import { Sheet } from "@/components/Sheet";
 import { SwipeRow } from "@/components/SwipeRow";
 import { TandaCard } from "@/components/TandaCard";
 import { Tip } from "@/components/ui/Tip";
+import { APP } from "@/lib/app/target";
 import { downloadBlob } from "@/lib/download";
 import { haptic } from "@/lib/haptics";
 import { changeLabel, eraLabel, groupByDay, nightLogSummary, versionsOf } from "@/lib/history";
@@ -144,7 +145,10 @@ export default function HistoryPage() {
     currentEntry,
     setCurrentEntry,
     restoreEntryVersion,
+    storageMode,
   } = useStore();
+  // the apps keep History in the device's own database; the web keeps it in this browser unless a server row syncs it
+  const onDevice = APP || storageMode === "browser";
   const router = useRouter();
   const reduced = useReducedMotion();
   const isPhone = useMediaQuery("(max-width: 599.98px)");
@@ -277,6 +281,11 @@ export default function HistoryPage() {
           </>
         }
       />
+      {overridesReady && onDevice && (
+        <p className="text-footnote px-4 pb-2 text-[var(--label-2)]" data-testid="history-on-device">
+          {tx("history.on_this_device")}
+        </p>
+      )}
       {!overridesReady && (
         <p className="text-subhead py-8 text-center text-[var(--label-2)]">{tx("history.loading")}</p>
       )}

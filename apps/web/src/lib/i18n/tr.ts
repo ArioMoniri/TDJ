@@ -2706,6 +2706,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "history.name": "Ad",
   "history.nov": "Kas",
   "history.oct": "Eki",
+  "history.on_this_device": "Bu cihazda",
   "history.open_a_shared_night": "Paylaşılan bir geceyi aç…",
   "history.opened_from_a_file": "Bir dosyadan açıldı",
   "history.orchestras": "Orkestralar",

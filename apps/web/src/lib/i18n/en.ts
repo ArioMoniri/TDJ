@@ -2549,6 +2549,7 @@ export const en = {
   "history.name": "Name",
   "history.nov": "Nov",
   "history.oct": "Oct",
+  "history.on_this_device": "On this device",
   "history.open_a_shared_night": "Open a shared night…",
   "history.opened_from_a_file": "Opened from a file",
   "history.orchestras": "Orchestras",
