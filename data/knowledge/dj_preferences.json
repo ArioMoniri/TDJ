@@ -127,7 +127,8 @@
   "enrique-rodriguez|roberto chato flores|vals": -1,
   "anibal-troilo|francisco fiorentino|tango": -1,
   "ricardo-tanturi|alberto castillo|vals": -1,
-  "ricardo-tanturi||tango": -1
+  "ricardo-tanturi||tango": -1,
+  "carlos-di-sarli|roberto rufino|milonga": 0.5
  },
  "templates": [
   {
@@ -244,6 +245,17 @@
     "3b4476d64c",
     "a6a1af0e1d",
     "8106c5a228"
+   ],
+   "at": "2026-11-14T12:00:00.000Z"
+  },
+  {
+   "id": "milonga:0bdaadeef1,16baa4103e,c42ea450d8",
+   "rhythm": "milonga",
+   "name": "Carlos Di Sarli · Zorzal, La Mulateada, Pena Mulata",
+   "songIds": [
+    "0bdaadeef1",
+    "16baa4103e",
+    "c42ea450d8"
    ],
    "at": "2026-11-14T12:00:00.000Z"
   }

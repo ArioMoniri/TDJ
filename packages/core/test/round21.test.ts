@@ -640,6 +640,8 @@ describe("F — the featured night: only the DJ's edits", () => {
     9: ["aa6b36ab7b", "71540229e1", "ea9b927fa5"],
     10: ["6233830410", "2171c0196b", "deac5ee8db", "cebfbd8996"],
     11: ["24801db04a", "e851d595be", "c02b739977", "6e9afb7087"],
+    // (the Di Sarli milonga, the owner's as shipped: Zorzal, La Mulateada, Pena Mulata)
+    12: ["0bdaadeef1", "16baa4103e", "c42ea450d8"],
     13: ["16814cca76", "86e53db337", "ddfdb2c29b", "89bc9d7eef"],
     14: ["13fe376eb1", "0265a65075", "00a061a315", "166b2a4f3e"],
     15: ["3b4476d64c", "a6a1af0e1d", "8106c5a228"],
