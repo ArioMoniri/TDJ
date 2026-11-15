@@ -73,13 +73,19 @@ export function Sheet({
   useEffect(() => {
     if (!open) return;
     setDetent((detentKey.split(",")[0] as "medium" | "large" | "") || "large");
-    const prev = document.activeElement as HTMLElement | null;
+    const active = document.activeElement as HTMLElement | null;
+    const prev = active && panel.current?.contains(active) ? null : active;
     const t = setTimeout(() => {
-      panel.current
-        ?.querySelector<HTMLElement>(
-          "[data-autofocus], input:not([type=hidden]), button:not([disabled]), a[href]",
-        )
-        ?.focus({ preventScroll: true });
+      const root = panel.current;
+      // a field that already took the focus (autoFocus, inside the tap that opened the sheet, so iOS raises the
+      // keyboard) keeps it; else `[data-autofocus]` first, then the first control. One selector list matched in
+      // document order, so the desktop bar's Cancel won over a search field marked to take the focus, and a
+      // hardware keyboard's typing went nowhere (the Booth's "Find in tonight's night", 2026-11)
+      if (!root || root.contains(document.activeElement)) return;
+      (
+        root.querySelector<HTMLElement>("[data-autofocus]") ??
+        root.querySelector<HTMLElement>("input:not([type=hidden]), button:not([disabled]), a[href]")
+      )?.focus({ preventScroll: true });
     }, 30);
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {

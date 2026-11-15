@@ -1,6 +1,8 @@
 "use client";
+import { Repeat2 } from "lucide-react";
 import { cortinaSpan, upNext } from "@/lib/booth/nightView";
 import { useBooth } from "@/lib/booth/store";
+import { useBoothSwap } from "@/lib/booth/swap";
 import { t } from "@/lib/i18n";
 import { metaLine } from "@/lib/year";
 import { Artwork } from "../ui/Artwork";
@@ -65,6 +67,19 @@ export function NextCard({ onJump }: { onJump: (planIndex: number) => void }) {
               </h3>
             </div>
             <EraBadge entity={entities[next]} />
+            {/* 2026-11: swap what plays next in one tap (the room keeps playing the current song) */}
+            {(item.kind === "track" || item.kind === "cortina") && (
+              <button
+                type="button"
+                className="icon-btn icon-btn-bare h-11 w-11 shrink-0"
+                aria-label={t("boothSwap.swap_label", { title: item.title })}
+                data-hint={t("boothSwap.swap")}
+                onClick={() => useBoothSwap.getState().open(next)}
+                data-testid="booth-next-swap"
+              >
+                <Repeat2 size={16} strokeWidth={2} aria-hidden />
+              </button>
+            )}
           </div>
           {noSource && (
             <p className="text-footnote text-[var(--label-2)]" data-testid="booth-next-nosource">
