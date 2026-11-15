@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 import type { BoothSettings } from "./engine";
 
 /**
@@ -16,21 +17,32 @@ export const MIX_PRESETS: ReadonlyArray<{
 }> = [
   {
     id: "milonga",
-    label: "Milonga floor",
-    explain: "Each song plays to its last note, then a short silence: what dancers expect at a milonga.",
+    get label() {
+      return t("booth.mix.milonga_floor");
+    },
+    get explain() {
+      return t("booth.mix.each_song_plays_to_its_last");
+    },
     values: { gapSec: 2.5, songFadeOutSec: 0, crossfadeSec: 3 },
   },
   {
     id: "tight",
-    label: "Tight",
-    explain: "Almost no silence between songs, no fades: the next song follows at once.",
+    get label() {
+      return t("booth.mix.tight");
+    },
+    get explain() {
+      return t("booth.mix.almost_no_silence_between_songs_no");
+    },
     values: { gapSec: 0.5, songFadeOutSec: 0, crossfadeSec: 2 },
   },
   {
     id: "smooth",
-    label: "Smooth",
-    explain:
-      "A gentle fade at the end of each song and a short gap, like Spotify's automix (practicas, background).",
+    get label() {
+      return t("booth.mix.smooth");
+    },
+    get explain() {
+      return t("booth.mix.a_gentle_fade_at_the_end");
+    },
     values: { gapSec: 1, songFadeOutSec: 3, crossfadeSec: 5 },
   },
 ];
@@ -48,16 +60,40 @@ export function presetOf(s: Pick<BoothSettings, MixKey>): MixPresetId {
 
 /** One line per Mix setting: what it does, in the DJ's words. */
 export const MIX_EXPLAIN = {
-  gapSec: "Silence between two items (songs, cortinas). 2–3 s lets the floor reset.",
-  songFadeOutSec: "Fade at the end of every song. 0 = play to the last note (dancers prefer it).",
-  crossfadeSec: "How long the Crossfade button blends the playing song into the next.",
-  fadeNowSec: "How long the Fade button takes to bring the playing song down.",
-  pauseFadeSec: "Pause and Resume ease the sound out and in over this time.",
-  stopFadeSec: "Fade out and stop: how long the music takes to reach silence.",
-  cortinaStop: "How long each cortina plays before it fades away.",
-  cortinaFadeInSec: "Cortinas start softly over this time.",
-  cortinaFadeOutSec: "Cortinas fade out over this time, ending at their stop second.",
-  cortinaLevelDb: "How much quieter cortinas play than the tandas.",
-  loudnessTargetLUFS: "The level every song is evened out to, so the room never jumps.",
-  trimLeadingSilence: "Cut the silence at the start of each file (never more than 3 s).",
+  get gapSec() {
+    return t("booth.mix.silence_between_two_items_songs_cortinas");
+  },
+  get songFadeOutSec() {
+    return t("booth.mix.fade_at_the_end_of_every");
+  },
+  get crossfadeSec() {
+    return t("booth.mix.how_long_the_crossfade_button_blends");
+  },
+  get fadeNowSec() {
+    return t("booth.mix.how_long_the_fade_button_takes");
+  },
+  get pauseFadeSec() {
+    return t("booth.mix.pause_and_resume_ease_the_sound");
+  },
+  get stopFadeSec() {
+    return t("booth.mix.fade_out_and_stop_how_long");
+  },
+  get cortinaStop() {
+    return t("booth.mix.how_long_each_cortina_plays_before");
+  },
+  get cortinaFadeInSec() {
+    return t("booth.mix.cortinas_start_softly_over_this_time");
+  },
+  get cortinaFadeOutSec() {
+    return t("booth.mix.cortinas_fade_out_over_this_time");
+  },
+  get cortinaLevelDb() {
+    return t("booth.mix.how_much_quieter_cortinas_play_than");
+  },
+  get loudnessTargetLUFS() {
+    return t("booth.mix.the_level_every_song_is_evened");
+  },
+  get trimLeadingSilence() {
+    return t("booth.mix.cut_the_silence_at_the_start");
+  },
 } as const;

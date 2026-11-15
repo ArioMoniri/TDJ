@@ -1,6 +1,7 @@
 "use client";
 import { cortinaSpan, upNext } from "@/lib/booth/nightView";
 import { useBooth } from "@/lib/booth/store";
+import { t } from "@/lib/i18n";
 import { metaLine } from "@/lib/year";
 import { Artwork } from "../ui/Artwork";
 import { EraBadge } from "../ui/EraBadge";
@@ -40,9 +41,10 @@ export function NextCard({ onJump }: { onJump: (planIndex: number) => void }) {
   const ntTanda = nt ? playlist?.tandas[nt.tanda - 1] : null;
   const ntCortina = up.nextTandaCortina >= 0 ? plan.items[up.nextTandaCortina] : null;
   return (
-    <section className="booth-card" data-testid="booth-next" aria-label="Next">
-      <p className="booth-eyebrow" data-hint="What the room hears after this song">
-        Up next{decoding === next ? " · decoding…" : ""}
+    <section className="booth-card" data-testid="booth-next" aria-label={t("booth.nextCard.next")}>
+      <p className="booth-eyebrow" data-hint={t("booth.nextCard.what_the_room_hears_after_this")}>
+        {t("booth.nextCard.up_next")}
+        {decoding === next ? t("booth.nextCard.decoding") : ""}
       </p>
       {item ? (
         <>
@@ -67,16 +69,18 @@ export function NextCard({ onJump }: { onJump: (planIndex: number) => void }) {
           {noSource && (
             <p className="text-footnote text-[var(--label-2)]" data-testid="booth-next-nosource">
               {rehearsal
-                ? "The rehearsal has no 30 s clip of this song: it is passed over (on the night it plays in full)."
-                : "Nothing to play this song from (no file or Spotify): it is passed over."}
+                ? t("booth.nextCard.the_rehearsal_has_no_30_s")
+                : t("booth.nextCard.nothing_to_play_this_song_from")}
             </p>
           )}
           {holdBefore === next && (
-            <p className="text-footnote text-[var(--tint)]">holds before this tanda (birthday vals)</p>
+            <p className="text-footnote text-[var(--tint)]">
+              {t("booth.nextCard.holds_before_this_tanda_birthday_vals")}
+            </p>
           )}
         </>
       ) : (
-        <h3 className="booth-mid font-semibold">End of the night</h3>
+        <h3 className="booth-mid font-semibold">{t("booth.nextCard.end_of_the_night")}</h3>
       )}
       {nt && ntTanda && (
         <button
@@ -87,7 +91,7 @@ export function NextCard({ onJump }: { onJump: (planIndex: number) => void }) {
           data-next-index={nextTandaFirst}
         >
           <span className="text-caption1 block text-[var(--label-2)]">
-            next tanda · {nt.tanda} of {tandas} · {ntTanda.rhythm}
+            {t("booth.nextCard.next_tanda_of", { tanda: nt.tanda, tandas, rhythm: ntTanda.rhythm })}
           </span>
           <span className="booth-mid block truncate">
             {metaLine(
@@ -100,8 +104,12 @@ export function NextCard({ onJump }: { onJump: (planIndex: number) => void }) {
               className="text-footnote block truncate text-[var(--label-2)]"
               data-testid="booth-next-cortina"
             >
-              then the cortina {ntCortina.artist} – {ntCortina.title}, which{" "}
-              {cortinaSpan(ntCortina.trimInSec ?? 0, ntCortina.stopSec ?? 0)}
+              {t("booth.nextCard.then_the_cortina_which", {
+                artist: ntCortina.artist,
+                title: ntCortina.title,
+                p1: " ",
+                p2: cortinaSpan(ntCortina.trimInSec ?? 0, ntCortina.stopSec ?? 0),
+              })}
             </span>
           )}
         </button>

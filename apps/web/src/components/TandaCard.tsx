@@ -10,6 +10,7 @@ import { cohesionWith, patchedSong } from "@/lib/audio";
 import { tandaNote } from "@/lib/djMessage";
 import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
+import { lazy, lower, t as tx } from "@/lib/i18n";
 import { CARD_STAGGER_CAP, DUR, EASE, STAGGER } from "@/lib/motion";
 import { sourceFor, trackFor, usePlayer } from "@/lib/player";
 import { useStore } from "@/lib/store";
@@ -26,13 +27,13 @@ import { Tip, useTip } from "./ui/Tip";
 const TandaListen = dynamic(() => import("./Listen").then((m) => m.TandaListen), { ssr: false });
 const CortinaPreview = dynamic(() => import("./Listen").then((m) => m.CortinaPreview), { ssr: false });
 
-const PHASE: Record<string, string> = {
-  warmup: "warm-up",
-  build: "build",
-  peak: "peak",
-  cooldown: "cool-down",
-  close: "close",
-};
+const PHASE: Record<string, string> = lazy(() => ({
+  warmup: lower(tx("phase.warmup")),
+  build: lower(tx("phase.build")),
+  peak: lower(tx("phase.peak")),
+  cooldown: lower(tx("phase.cooldown")),
+  close: lower(tx("phase.close")),
+}));
 
 export interface TandaCardProps {
   t: Tanda;
@@ -89,7 +90,7 @@ function TandaCardImpl({
   changed = false,
   animateLayout = false,
 }: TandaCardProps) {
-  const cortinaTip = useTip<HTMLButtonElement>("The cortina after this tanda: open it to hear it");
+  const cortinaTip = useTip<HTMLButtonElement>(tx("tandaCard.the_cortina_after_this_tanda_open"));
   const reduced = useReducedMotion();
   const isPhone = useMediaQuery("(max-width: 639px)");
   const [listen, setListen] = useState(false);
@@ -119,7 +120,7 @@ function TandaCardImpl({
   );
   const previewTanda = useCallback(() => {
     haptic(4);
-    usePlayer.getState().playQueue(`Tanda ${i + 1}`, previewTracks, 10);
+    usePlayer.getState().playQueue(tx("tandaCard.tanda_2", { p1: i + 1 }), previewTracks, 10);
   }, [i, previewTracks]);
   const ref = useRef<HTMLElement>(null);
   // the stagger applies to the mount only; later renders (settling, swaps) must not inherit the delay
@@ -155,24 +156,24 @@ function TandaCardImpl({
     .filter(Boolean)
     .join(" · ");
   const lockItem = !readOnly && {
-    label: t.locked ? "Unlock tanda" : "Lock tanda",
+    label: t.locked ? tx("tandaCard.unlock_tanda_2") : tx("tandaCard.lock_tanda_2"),
     icon: t.locked ? LockOpen : Lock,
     onClick: lock,
   };
   const bypassItem = !readOnly &&
     onBypass && {
-      label: t.bypass ? "Play it tonight" : "Skip tonight",
+      label: t.bypass ? tx("tandaCard.play_it_tonight") : tx("tandaCard.skip_tonight"),
       icon: SkipForward,
       onClick: () => onBypass(i),
     };
   // wave 2: a greyed-out action says why
   const swapWhy = t.pinned
-    ? "Swap tanda (kept as is: unpin it first)"
+    ? tx("tandaCard.swap_tanda_kept_as_is_unpin")
     : t.locked
-      ? "Swap tanda (unlock it first)"
+      ? tx("tandaCard.swap_tanda_unlock_it_first")
       : busy
-        ? "Swap tanda (swapping…)"
-        : "Swap tanda…";
+        ? tx("tandaCard.swap_tanda_swapping")
+        : tx("tandaCard.swap_tanda_2");
   const swapItem = !readOnly && {
     label: swapWhy,
     icon: Repeat2,
@@ -180,15 +181,15 @@ function TandaCardImpl({
     disabled: t.locked || busy,
   };
   const analyseItem = {
-    label: analysing ? "Analysing…" : "Analyse all tracks",
+    label: analysing ? tx("tandaCard.analysing") : tx("tandaCard.analyse_all_tracks"),
     icon: AudioWaveform,
     onClick: analyseAll,
     disabled: analysing,
   };
   const previewItem = {
     label: previewTracks.length
-      ? `Preview tanda (${previewTracks.length} × 10 s)`
-      : "Preview tanda (no previews yet)",
+      ? tx("tandaCard.preview_tanda_10_s", { length: previewTracks.length })
+      : tx("tandaCard.preview_tanda_no_previews_yet"),
     icon: ListMusic,
     onClick: previewTanda,
     disabled: previewTracks.length === 0,
@@ -238,11 +239,17 @@ function TandaCardImpl({
               : [
                   {
                     kind: "lock",
-                    label: t.locked ? "Unlock" : "Lock",
+                    label: t.locked ? tx("tandaCard.unlock") : tx("tandaCard.lock"),
                     icon: t.locked ? "unlock" : "lock",
                     onClick: lock,
                   },
-                  { kind: "swap", label: "Swap", icon: "swap", onClick: swap, disabled: t.locked || busy },
+                  {
+                    kind: "swap",
+                    label: tx("tandaCard.swap"),
+                    icon: "swap",
+                    onClick: swap,
+                    disabled: t.locked || busy,
+                  },
                 ]
           }
         >
@@ -264,7 +271,7 @@ function TandaCardImpl({
                       className="text-caption1 inline-flex rounded-full bg-[color-mix(in_srgb,var(--system-gold)_18%,transparent)] px-2 py-0.5 font-medium text-[var(--label)]"
                       data-testid="tanda-pinned"
                     >
-                      Your tanda · kept as is
+                      {tx("tandaCard.your_tanda_kept_as_is")}
                     </span>
                   </Tip>
                 )}
@@ -273,7 +280,7 @@ function TandaCardImpl({
                     className="text-caption1 inline-flex rounded-full bg-[var(--fill-3)] px-2 py-0.5 font-medium text-[var(--label-2)]"
                     data-testid="tanda-bypass"
                   >
-                    Skipped tonight · still in exports
+                    {tx("tandaCard.skipped_tonight_still_in_exports")}
                   </span>
                 )}
                 {t.note && (
@@ -286,10 +293,18 @@ function TandaCardImpl({
                     </span>
                   </Tip>
                 )}
-                {cohesion && <CohesionBadge info={cohesion} tandaLabel={`tanda ${i + 1}`} />}
+                {cohesion && (
+                  <CohesionBadge info={cohesion} tandaLabel={tx("tandaCard.tanda", { p1: i + 1 })} />
+                )}
                 {tone && (
                   <Tip
-                    text={`The tanda's tone: ${tone.mode ? `${tone.mode === "mixed" ? "mixed major and minor keys" : `${tone.mode} keys`}${tone.keys.length ? ` (${tone.keys.join(", ")})` : ""}, ` : ""}${tone.feel} energy${tone.bpm ? `, about ${tone.bpm} BPM` : ""}`}
+                    text={tx("tandaCard.the_tanda_s_tone_energy", {
+                      p1: tone.mode
+                        ? `${tone.mode === "mixed" ? tx("tandaCard.mixed_major_and_minor_keys") : tx("tandaCard.keys", { mode: tone.mode })}${tone.keys.length ? ` (${tone.keys.join(", ")})` : ""}, `
+                        : "",
+                      feel: tone.feel,
+                      p2: tone.bpm ? tx("tandaCard.about_bpm", { bpm: tone.bpm }) : "",
+                    })}
                   >
                     <span
                       className="text-caption1 inline-flex whitespace-nowrap rounded-full bg-[var(--fill-4)] px-2 py-0.5 font-medium text-[var(--label-2)]"
@@ -306,8 +321,10 @@ function TandaCardImpl({
                 <CountUp value={t.energy} from={prevEnergy ?? t.energy} duration={DUR.slow} />
               </span>
               {!isPhone && (
-                <Tip text={"The arc's target energy for this slot"}>
-                  <span className="text-caption1 block text-[var(--label-2)]">target {t.targetEnergy}</span>
+                <Tip text={tx("tandaCard.the_arc_s_target_energy_for")}>
+                  <span className="text-caption1 block text-[var(--label-2)]">
+                    {tx("tandaCard.target", { targetEnergy: t.targetEnergy })}
+                  </span>
                 </Tip>
               )}
             </span>
@@ -318,14 +335,18 @@ function TandaCardImpl({
                 <Tip
                   text={
                     t.locked
-                      ? "Unlock: the next compose may change this tanda"
-                      : "Lock: keep this tanda when you compose again"
+                      ? tx("tandaCard.unlock_the_next_compose_may_change")
+                      : tx("tandaCard.lock_keep_this_tanda_when_you")
                   }
                 >
                   <button
                     type="button"
                     className={`icon-btn icon-btn-bare -my-2 h-11 w-11 ${t.locked ? "text-[var(--system-gold)]" : "text-[var(--label-2)]"}`}
-                    aria-label={t.locked ? `Unlock tanda ${i + 1}` : `Lock tanda ${i + 1}`}
+                    aria-label={
+                      t.locked
+                        ? tx("tandaCard.unlock_tanda", { p1: i + 1 })
+                        : tx("tandaCard.lock_tanda", { p1: i + 1 })
+                    }
                     aria-pressed={t.locked}
                     data-on={t.locked || undefined}
                     data-testid="tanda-lock"
@@ -339,16 +360,16 @@ function TandaCardImpl({
                 <Tip
                   text={
                     t.locked
-                      ? "Swap: unlock the tanda first"
+                      ? tx("tandaCard.swap_unlock_the_tanda_first")
                       : busy
-                        ? "Swapping…"
-                        : "Swap: another tanda of the same rhythm in this place"
+                        ? tx("tandaCard.swapping")
+                        : tx("tandaCard.swap_another_tanda_of_the_same")
                   }
                 >
                   <button
                     type="button"
                     className="icon-btn icon-btn-bare -my-2 h-11 w-11 text-[var(--label-2)] disabled:opacity-40"
-                    aria-label={`Swap tanda ${i + 1}`}
+                    aria-label={tx("tandaCard.swap_tanda", { p1: i + 1 })}
                     aria-disabled={t.locked || busy || undefined}
                     disabled={t.locked || busy}
                     data-testid="tanda-swap"
@@ -369,13 +390,13 @@ function TandaCardImpl({
                   transition={{ duration: DUR.base, ease: EASE.out }}
                   className="inline-flex text-[var(--system-gold)]"
                 >
-                  <Lock size={14} strokeWidth={2.25} aria-label="Locked" />
+                  <Lock size={14} strokeWidth={2.25} aria-label={tx("tandaCard.locked")} />
                 </motion.span>
               )}
             </AnimatePresence>
             {/* the tanda's actions live on the header row at every width: the Listen row keeps one disclosure */}
             <Menu
-              label={`Tanda ${i + 1} actions`}
+              label={tx("tandaCard.tanda_actions", { p1: i + 1 })}
               className="-mr-3 inline-flex"
               contextRef={ref}
               icon={<I name="more" size={20} strokeWidth={2} />}
@@ -384,7 +405,7 @@ function TandaCardImpl({
                 swapItem,
                 bypassItem,
                 !isPhone && {
-                  label: listen ? "Hide player" : "Listen",
+                  label: listen ? tx("tandaCard.hide_player") : tx("tandaCard.listen"),
                   icon: Headphones,
                   onClick: () => setListen((v) => !v),
                 },
@@ -406,14 +427,14 @@ function TandaCardImpl({
                 nudge={nudge?.k === k ? nudge.n : 0}
                 onSwap={swapTrack}
                 disabled={t.locked || readOnly}
-                swapLabel={`Swap track ${k + 1} of tanda ${i + 1}`}
+                swapLabel={tx("tandaCard.swap_track_of_tanda", { p1: k + 1, p2: i + 1 })}
                 lockedWhy={
                   readOnly
-                    ? "open the night in Compose to change it"
+                    ? tx("tandaCard.open_the_night_in_compose_to")
                     : t.pinned
-                      ? "the tanda is kept as is: unpin it first"
+                      ? tx("tandaCard.the_tanda_is_kept_as_is")
                       : t.locked
-                        ? "unlock the tanda first"
+                        ? tx("tandaCard.unlock_the_tanda_first")
                         : undefined
                 }
                 animateLayout={animateLayout}
@@ -442,7 +463,9 @@ function TandaCardImpl({
               ) : (
                 <I name="headphones" size={16} strokeWidth={2} className="text-[var(--label-2)]" />
               )}
-              <span className="min-w-0 flex-1 truncate">{listen ? "Hide player" : "Listen"}</span>
+              <span className="min-w-0 flex-1 truncate">
+                {listen ? tx("tandaCard.hide_player") : tx("tandaCard.listen")}
+              </span>
               <I
                 name="chevron"
                 size={16}
@@ -492,7 +515,11 @@ function TandaCardImpl({
                 <i />
               </span>
               <span className="min-w-0 flex-1 truncate text-[var(--label-2)]">
-                Cortina · {t.cortina.artist} – {t.cortina.title} · {t.cortina.lengthSec ?? 45} s
+                {tx("tandaCard.cortina_s", {
+                  artist: t.cortina.artist,
+                  title: t.cortina.title,
+                  p1: t.cortina.lengthSec ?? 45,
+                })}
               </span>
               <I
                 name="chevron"

@@ -1,32 +1,85 @@
+import { lazy, plural, t as tx } from "@/lib/i18n";
 import type { ComposeContext, ComposeOptions, Playlist } from "./types";
 
 const LABEL: Record<string, string> = {
-  hours: "Length",
-  eras: "Era",
-  pattern: "Cycle",
-  customPattern: "Custom cycle",
-  tangoTandaSize: "Tango tanda",
-  valsTandaSize: "Vals tanda",
-  milongaTandaSize: "Milonga tanda",
-  tandaShape: "Tanda shape",
-  arc: "Arc",
-  arcShape: "Arc peaks",
-  yearRange: "Years",
-  preferOrchestras: "Preferred orchestras",
-  cortinaStyle: "Cortina style",
-  cortinaCultures: "Cortina cultures",
-  cortinaGenres: "Cortina genres",
-  cortinaTrend: "Cortina flavour",
-  cortinaLengthSec: "Cortina length",
-  closeWithCumparsita: "Close with La Cumparsita",
-  orchestraRepeatGap: "Repeat gap",
-  singerRepeatGap: "Singer repeat gap",
-  maxYearSpread: "Year spread",
-  mixVocalInstrumental: "Mixed vocal/instrumental",
-  includeOrchestras: "Orchestras to include",
-  excludeOrchestras: "Orchestras to leave out",
-  floorMood: "Floor mood",
-  rules: "Night rules",
+  get hours() {
+    return tx("changes.length");
+  },
+  get eras() {
+    return tx("changes.era");
+  },
+  get pattern() {
+    return tx("changes.cycle");
+  },
+  get customPattern() {
+    return tx("changes.custom_cycle");
+  },
+  get tangoTandaSize() {
+    return tx("changes.tango_tanda");
+  },
+  get valsTandaSize() {
+    return tx("changes.vals_tanda");
+  },
+  get milongaTandaSize() {
+    return tx("changes.milonga_tanda");
+  },
+  get tandaShape() {
+    return tx("changes.tanda_shape");
+  },
+  get arc() {
+    return tx("changes.arc");
+  },
+  get arcShape() {
+    return tx("changes.arc_peaks");
+  },
+  get yearRange() {
+    return tx("changes.years");
+  },
+  get preferOrchestras() {
+    return tx("changes.preferred_orchestras");
+  },
+  get cortinaStyle() {
+    return tx("changes.cortina_style");
+  },
+  get cortinaCultures() {
+    return tx("changes.cortina_cultures");
+  },
+  get cortinaGenres() {
+    return tx("changes.cortina_genres");
+  },
+  get cortinaTrend() {
+    return tx("changes.cortina_flavour");
+  },
+  get cortinaLengthSec() {
+    return tx("changes.cortina_length");
+  },
+  get closeWithCumparsita() {
+    return tx("changes.close_with_la_cumparsita");
+  },
+  get orchestraRepeatGap() {
+    return tx("changes.repeat_gap");
+  },
+  get singerRepeatGap() {
+    return tx("changes.singer_repeat_gap");
+  },
+  get maxYearSpread() {
+    return tx("changes.year_spread");
+  },
+  get mixVocalInstrumental() {
+    return tx("changes.mixed_vocal_instrumental");
+  },
+  get includeOrchestras() {
+    return tx("changes.orchestras_to_include");
+  },
+  get excludeOrchestras() {
+    return tx("changes.orchestras_to_leave_out");
+  },
+  get floorMood() {
+    return tx("changes.floor_mood");
+  },
+  get rules() {
+    return tx("changes.night_rules");
+  },
 };
 const VALUE: Record<string, Record<string, string>> = {
   arc: {
@@ -43,11 +96,21 @@ const VALUE: Record<string, Record<string, string>> = {
   },
   cortinaStyle: { family: "family", matched: "matched", constant: "same", none: "none" },
   tandaShape: {
-    "rise-settle": "slow, up, settle",
-    hammock: "hammock",
-    rise: "rising",
-    "peak-middle": "peak in the middle",
-    flat: "flat",
+    get "rise-settle"() {
+      return tx("changes.slow_up_settle");
+    },
+    get hammock() {
+      return tx("changes.hammock");
+    },
+    get rise() {
+      return tx("changes.rising");
+    },
+    get "peak-middle"() {
+      return tx("changes.peak_in_the_middle");
+    },
+    get flat() {
+      return tx("changes.flat");
+    },
   },
 };
 const fmt = (k: string, v: unknown): string => {
@@ -63,7 +126,7 @@ const fmt = (k: string, v: unknown): string => {
     );
   const s = String(v);
   if (k === "cortinaLengthSec") return `${s} s`;
-  if (k === "orchestraRepeatGap" || k === "singerRepeatGap") return `${s} tandas`;
+  if (k === "orchestraRepeatGap" || k === "singerRepeatGap") return tx("changes.tandas", { s });
   if (k === "maxYearSpread") return `${s} y`;
   return VALUE[k]?.[s] ?? s;
 };
@@ -89,7 +152,7 @@ export function describeOptionChanges(
     const b = (after as Record<string, unknown>)[k];
     if (JSON.stringify(a) === JSON.stringify(b)) continue;
     if (k === "pattern" && b === "custom" && after.customPattern) {
-      out.push(`Cycle → custom ${after.customPattern}`);
+      out.push(tx("changes.cycle_custom", { customPattern: after.customPattern }));
       continue;
     }
     if (k === "customPattern" && after.pattern === "custom" && before.pattern !== "custom") continue;
@@ -101,7 +164,7 @@ export function describeOptionChanges(
   for (const k of new Set([...Object.keys(ca), ...Object.keys(cb)])) {
     if (ca[k] === cb[k]) continue;
     const label = k[0]!.toUpperCase() + k.slice(1);
-    out.push(cb[k] === undefined ? `${label} cleared` : `${label} → ${String(cb[k])}`);
+    out.push(cb[k] === undefined ? tx("changes.cleared", { label }) : `${label} → ${String(cb[k])}`);
   }
   return out;
 }
@@ -126,14 +189,22 @@ const EVENT: Record<string, string> = {
   wedding: "wedding",
   show: "show night",
 };
-const DAY: Record<string, string> = {
-  weekday: "Weekday",
-  thursday: "Thursday",
-  friday: "Friday",
-  saturday: "Saturday",
-  sunday: "Sunday",
-};
-const WEEKDAY = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const DAY: Record<string, string> = lazy(() => ({
+  weekday: tx("changes.weekday"),
+  thursday: tx("changes.thursday"),
+  friday: tx("changes.friday"),
+  saturday: tx("changes.saturday"),
+  sunday: tx("changes.sunday"),
+}));
+const WEEKDAY = lazy(() => [
+  tx("changes.sunday"),
+  tx("changes.monday"),
+  tx("changes.tuesday"),
+  tx("changes.wednesday"),
+  tx("changes.thursday"),
+  tx("changes.friday"),
+  tx("changes.saturday"),
+]);
 
 /**
  * "Tuesday práctica": the night's title, from the day (tonight's, or the one set under Tonight) and the event.
@@ -161,17 +232,35 @@ export function autoImproveLine(r: AutoImproved | null | undefined): string | nu
   const n = r.changes.length;
   const kinds = [...new Set(r.changes.map((c) => KIND_LABEL[c.kind] ?? c.kind))].join(", ");
   // (wave 2: the engine score and the benchmark count stay in the Benchmark sheet; the line says what changed)
-  return `Polished against published DJ sets: ${n} ${n === 1 ? "change" : "changes"} (${kinds})`;
+  return tx("changes.polished_line", { changes: plural("plural.changes", n), kinds });
 }
 const KIND_LABEL: Record<string, string> = {
-  instrumental: "instrumental hour",
+  get instrumental() {
+    return tx("changes.instrumental_hour");
+  },
   "stream-suspect": "re-recording",
-  "cue-fit": "cue fit",
-  roles: "running order",
-  tighten: "one recording period",
-  heatmap: "heatmap years",
-  bridge: "bridge cue",
-  core: "golden core",
-  energy: "energy step",
-  strict: "DJ review rules",
+  get "cue-fit"() {
+    return tx("changes.cue_fit");
+  },
+  get roles() {
+    return tx("changes.running_order");
+  },
+  get tighten() {
+    return tx("changes.one_recording_period");
+  },
+  get heatmap() {
+    return tx("changes.heatmap_years");
+  },
+  get bridge() {
+    return tx("changes.bridge_cue");
+  },
+  get core() {
+    return tx("changes.golden_core");
+  },
+  get energy() {
+    return tx("changes.energy_step");
+  },
+  get strict() {
+    return tx("changes.dj_review_rules");
+  },
 };

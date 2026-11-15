@@ -1,10 +1,19 @@
+import { lazy, t } from "@/lib/i18n";
 /**
  * Wave 2 — what a compose is doing while the DJ waits (it can take 5–15 s on the server). /api/compose answers once,
  * so the steps are estimated from how long this browser's last composes took (kept in localStorage), in the order the
  * engine runs them: choose the tandas, order them, plan the cortinas, then check the night (the strict panel and the
  * improve pass, the longest part). The last step holds until the answer arrives; the DJ can cancel at any time.
  */
-export const COMPOSE_STEPS = ["Choosing tandas", "Ordering", "Cortinas", "Checking the night"] as const;
+export const COMPOSE_STEPS = lazy(
+  () =>
+    [
+      t("composeProgress.choosing_tandas"),
+      t("composeProgress.ordering"),
+      t("composeProgress.cortinas"),
+      t("composeProgress.checking_the_night"),
+    ] as const,
+);
 /** where each step starts, as a share of the expected time (measured on the 4 h golden set) */
 const STARTS = [0, 0.3, 0.45, 0.55];
 const KEY = "tdj-compose-ms";

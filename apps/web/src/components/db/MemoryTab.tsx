@@ -2,6 +2,7 @@
 import { addNote } from "@tdj/core";
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
+import { fmtDate, fmtTime, t } from "@/lib/i18n";
 import { describePreferences } from "@/lib/memory";
 import { useStore } from "@/lib/store";
 import type { AgentMemory } from "@/lib/types";
@@ -15,25 +16,53 @@ const when = (iso: string) => {
   const d = new Date(iso);
   return Number.isNaN(d.getTime())
     ? ""
-    : d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) +
+    : fmtDate(d, { month: "short", day: "numeric" }) +
         " " +
-        d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+        fmtTime(d, { hour: "2-digit", minute: "2-digit" });
 };
 const PREF_LABEL: Record<string, string> = {
-  floorMood: "Floor mood",
-  pattern: "Cycle",
-  customPattern: "Custom cycle",
-  cortinaLengthSec: "Cortina length",
-  excludeOrchestras: "Orchestras left out",
-  includeOrchestras: "Orchestras preferred",
-  eras: "Era",
-  tandaShape: "Shape inside a tanda",
-  arc: "Arc",
-  cortinaStyle: "Cortina style",
-  cortinaCultures: "Cortina cultures",
-  cortinaTrend: "Cortina flavour",
-  rules: "Night rules",
-  context: "Tonight",
+  get floorMood() {
+    return t("db.memoryTab.floor_mood");
+  },
+  get pattern() {
+    return t("db.memoryTab.cycle");
+  },
+  get customPattern() {
+    return t("db.memoryTab.custom_cycle");
+  },
+  get cortinaLengthSec() {
+    return t("db.memoryTab.cortina_length");
+  },
+  get excludeOrchestras() {
+    return t("db.memoryTab.orchestras_left_out");
+  },
+  get includeOrchestras() {
+    return t("db.memoryTab.orchestras_preferred");
+  },
+  get eras() {
+    return t("db.memoryTab.era");
+  },
+  get tandaShape() {
+    return t("db.memoryTab.shape_inside_a_tanda");
+  },
+  get arc() {
+    return t("db.memoryTab.arc");
+  },
+  get cortinaStyle() {
+    return t("db.memoryTab.cortina_style");
+  },
+  get cortinaCultures() {
+    return t("db.memoryTab.cortina_cultures");
+  },
+  get cortinaTrend() {
+    return t("db.memoryTab.cortina_flavour");
+  },
+  get rules() {
+    return t("db.memoryTab.night_rules");
+  },
+  get context() {
+    return t("db.memoryTab.tonight");
+  },
 };
 const fmt = (v: unknown) =>
   Array.isArray(v)
@@ -86,81 +115,84 @@ export function MemoryTab() {
         aria-label={label}
         onClick={onClick}
       >
-        Forget
+        {t("db.memoryTab.forget_2")}
       </button>
     ) : null;
   const swipe = (onClick: () => void) => [
-    { kind: "destructive" as const, label: "Forget", icon: Trash2, onClick },
+    { kind: "destructive" as const, label: t("db.memoryTab.forget_2"), icon: Trash2, onClick },
   ];
 
   return (
     <div>
       <LearnedRules />
       <Group
-        header="Notes"
-        footer="Things to remember about rooms, crowds and what worked. The assistant reads these before a review or a refine."
+        header={t("db.memoryTab.notes")}
+        footer={t("db.memoryTab.things_to_remember_about_rooms_crowds")}
         data-testid="memory-notes"
       >
         {memory.notes.map((n) => (
           <SwipeRow key={n.at} actions={swipe(() => forgetNote(n.at))}>
             <Row
               label={n.text}
-              sub={`${n.source === "dj" ? "You" : "Assistant"} · ${when(n.at)}`}
+              sub={`${n.source === "dj" ? t("db.memoryTab.you") : t("db.memoryTab.assistant")} · ${when(n.at)}`}
               chevron={!editing}
               onClick={editing ? undefined : () => setNoteOpen({ at: n.at, text: n.text })}
             >
-              {forgetButton(`Forget note ${n.text.slice(0, 20)}`, () => forgetNote(n.at))}
+              {forgetButton(t("db.memoryTab.forget_note", { p1: n.text.slice(0, 20) }), () =>
+                forgetNote(n.at),
+              )}
             </Row>
           </SwipeRow>
         ))}
         <ActionRow
-          label="Add a note…"
-          tip="Write something the assistant should always remember about your nights"
+          label={t("db.memoryTab.add_a_note")}
+          tip={t("db.memoryTab.write_something_the_assistant_should_always")}
           onClick={() => setNoteOpen({ text: "" })}
         />
       </Group>
 
       <Group
-        header="Learned preferences"
+        header={t("db.memoryTab.learned_preferences")}
         footer={
           settings.learn
             ? learned.length
-              ? `Applied under tonight's explicit choices: ${learned.join(", ")}.`
-              : "Repeated feedback becomes a preference: three times “more energetic”, twice “shorter cortinas”."
-            : "Learning is off in Settings → Memory; nothing here is applied."
+              ? t("db.memoryTab.applied_under_tonight_s_explicit_choices", { learned: learned.join(", ") })
+              : t("db.memoryTab.repeated_feedback_becomes_a_preference_three")
+            : t("db.memoryTab.learning_is_off_in_settings_memory")
         }
       >
-        {prefs.length === 0 && <div className="cell text-[var(--label-2)]">Nothing learned yet.</div>}
+        {prefs.length === 0 && (
+          <div className="cell text-[var(--label-2)]">{t("db.memoryTab.nothing_learned_yet")}</div>
+        )}
         {prefs.map(([k, v]) => (
           <SwipeRow key={k} actions={swipe(() => forgetPref(k))}>
             <Row label={PREF_LABEL[k] ?? k} value={fmt(v)}>
-              {forgetButton(`Forget ${PREF_LABEL[k] ?? k}`, () => forgetPref(k))}
+              {forgetButton(t("db.memoryTab.forget", { p1: PREF_LABEL[k] ?? k }), () => forgetPref(k))}
             </Row>
           </SwipeRow>
         ))}
       </Group>
 
-      <Group
-        header="Sets"
-        footer="The last 50 sets you composed. Thumbs on the result mark a set as liked or not."
-      >
-        {memory.sets.length === 0 && <div className="cell text-[var(--label-2)]">No sets yet.</div>}
+      <Group header={t("db.memoryTab.sets")} footer={t("db.memoryTab.the_last_50_sets_you_composed")}>
+        {memory.sets.length === 0 && (
+          <div className="cell text-[var(--label-2)]">{t("db.memoryTab.no_sets_yet")}</div>
+        )}
         {memory.sets.map((s) => (
           <SwipeRow key={s.id} actions={swipe(() => forgetSet(s.id))}>
             <Row
               label={s.name}
               sub={`${when(s.at)} · ${s.hours} h · ${s.eras.join(", ")}${s.context?.event ? ` · ${s.context.event}` : ""}`}
-              value={`${s.score}${s.liked === true ? " · liked" : s.liked === false ? " · disliked" : ""}`}
+              value={`${s.score}${s.liked === true ? t("db.memoryTab.liked") : s.liked === false ? t("db.memoryTab.disliked") : ""}`}
             >
-              {forgetButton(`Forget set ${s.name}`, () => forgetSet(s.id))}
+              {forgetButton(t("db.memoryTab.forget_set", { name: s.name }), () => forgetSet(s.id))}
             </Row>
           </SwipeRow>
         ))}
       </Group>
 
-      <Group header="Feedback" footer="Chips and “Tell the DJ” requests, newest first.">
+      <Group header={t("db.memoryTab.feedback")} footer={t("db.memoryTab.chips_and_tell_the_dj_requests")}>
         {memory.feedbackHistory.length === 0 && (
-          <div className="cell text-[var(--label-2)]">No feedback yet.</div>
+          <div className="cell text-[var(--label-2)]">{t("db.memoryTab.no_feedback_yet")}</div>
         )}
         {memory.feedbackHistory.map((f) => (
           <SwipeRow key={f.at} actions={swipe(() => forgetFeedback(f.at))}>
@@ -171,7 +203,9 @@ export function MemoryTab() {
               }
               sub={when(f.at)}
             >
-              {forgetButton(`Forget feedback from ${when(f.at)}`, () => forgetFeedback(f.at))}
+              {forgetButton(t("db.memoryTab.forget_feedback_from", { p1: when(f.at) }), () =>
+                forgetFeedback(f.at),
+              )}
             </Row>
           </SwipeRow>
         ))}
@@ -179,8 +213,8 @@ export function MemoryTab() {
 
       <Group>
         <ActionRow
-          label="Clear memory"
-          tip="Remove notes, past sets, feedback and learned preferences (asks first)"
+          label={t("db.memoryTab.clear_memory")}
+          tip={t("db.memoryTab.remove_notes_past_sets_feedback_and")}
           destructive
           onClick={() => setConfirmClear(true)}
         />
@@ -189,13 +223,13 @@ export function MemoryTab() {
       <Sheet
         open={!!noteOpen}
         onClose={() => setNoteOpen(null)}
-        title={noteOpen?.at ? "Edit note" : "New note"}
-        trailing="Save"
+        title={noteOpen?.at ? t("db.memoryTab.edit_note") : t("db.memoryTab.new_note")}
+        trailing={t("db.memoryTab.save")}
         onTrailing={saveNote}
       >
-        <Group footer="One line is enough: “Thursday crowd likes Donato milongas”.">
+        <Group footer={t("db.memoryTab.one_line_is_enough_thursday_crowd")}>
           <label htmlFor="memory-note" className="cell">
-            <span className="sr-only">Note</span>
+            <span className="sr-only">{t("db.memoryTab.note")}</span>
             <textarea
               id="memory-note"
               className="field min-h-28 py-2"
@@ -209,7 +243,7 @@ export function MemoryTab() {
         {noteOpen?.at && (
           <Group>
             <ActionRow
-              label="Forget this note"
+              label={t("db.memoryTab.forget_this_note")}
               destructive
               onClick={() => {
                 forgetNote(noteOpen.at!);
@@ -223,19 +257,19 @@ export function MemoryTab() {
       <Sheet
         open={confirmClear}
         onClose={() => setConfirmClear(false)}
-        title="Clear memory"
+        title={t("db.memoryTab.clear_memory")}
         detents={["medium"]}
       >
-        <Group footer="Notes, sets, feedback and learned preferences are removed. This cannot be undone.">
+        <Group footer={t("db.memoryTab.notes_sets_feedback_and_learned_preferences")}>
           <ActionRow
-            label="Clear everything"
+            label={t("db.memoryTab.clear_everything")}
             destructive
             onClick={async () => {
               await clearMemory();
               setConfirmClear(false);
             }}
           />
-          <ActionRow label="Cancel" onClick={() => setConfirmClear(false)} />
+          <ActionRow label={t("db.memoryTab.cancel")} onClick={() => setConfirmClear(false)} />
         </Group>
       </Sheet>
     </div>

@@ -2,6 +2,7 @@ import { buildLoaded, type DataFiles } from "@tdj/core/data";
 import { LlmError } from "@/lib/ai/provider";
 import { catalogStore } from "@/lib/api/catalog";
 import type { ApiDeps } from "@/lib/api/deps";
+import { t } from "@/lib/i18n";
 import type { ReferencePlaylist } from "@/lib/types";
 import type { HostCalls, HostError } from "./host";
 import type { DeviceRuntime } from "./server/runtime";
@@ -92,7 +93,7 @@ export function deviceRuntime(d: AppDeps): DeviceRuntime {
         return await d.host.ask(ai, req);
       } catch (e) {
         const h = e as HostError;
-        throw new LlmError(h?.message || "The model request failed.", h?.status ?? 502);
+        throw new LlmError(h?.message || t("ai.providers.the_model_request_failed"), h?.status ?? 502);
       }
     },
   };

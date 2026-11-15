@@ -1,5 +1,6 @@
 "use client";
 import { EVIDENCE_COLOR, EVIDENCE_LABEL } from "@/lib/context";
+import { plural, t as tx } from "@/lib/i18n";
 import type { ContextModel } from "@/lib/types";
 import { Disclosure } from "../Disclosure";
 import { Group } from "../Form";
@@ -14,13 +15,49 @@ const FIELDS: Array<{
   step: number;
   pct?: boolean;
 }> = [
-  { key: "energyShift", label: "Energy", min: -18, max: 18, step: 1 },
-  { key: "tempoShift", label: "Tempo", min: -8, max: 8, step: 1 },
-  { key: "valsShare", label: "Vals %", min: 0, max: 40, step: 1, pct: true },
-  { key: "milongaShare", label: "Milonga %", min: 0, max: 40, step: 1, pct: true },
+  {
+    key: "energyShift",
+    get label() {
+      return tx("db.contextTab.energy");
+    },
+    min: -18,
+    max: 18,
+    step: 1,
+  },
+  {
+    key: "tempoShift",
+    get label() {
+      return tx("db.contextTab.tempo");
+    },
+    min: -8,
+    max: 8,
+    step: 1,
+  },
+  {
+    key: "valsShare",
+    get label() {
+      return tx("db.contextTab.vals");
+    },
+    min: 0,
+    max: 40,
+    step: 1,
+    pct: true,
+  },
+  {
+    key: "milongaShare",
+    get label() {
+      return tx("db.contextTab.milonga");
+    },
+    min: 0,
+    max: 40,
+    step: 1,
+    pct: true,
+  },
   {
     key: "vocalRatioShift",
-    label: "Vocal %",
+    get label() {
+      return tx("db.contextTab.vocal");
+    },
     min: -30,
     max: 30,
     step: 1,
@@ -32,7 +69,7 @@ export function ContextTab({ model }: { model: ContextModel | null }) {
   const { overrides, update } = useDb();
   const editing = useDbEdit();
   const cf = overrides.contextFactors ?? {};
-  if (!model) return <Empty>Loading the context model…</Empty>;
+  if (!model) return <Empty>{tx("db.contextTab.loading_the_context_model")}</Empty>;
   const set = (fid: string, oid: string, key: string, value: number | undefined, original: unknown) =>
     update((o) => {
       const next = { ...(o.contextFactors ?? {}) };
@@ -48,17 +85,14 @@ export function ContextTab({ model }: { model: ContextModel | null }) {
     });
   return (
     <div>
-      <p className="section-foot mt-3">
-        Each factor's shifts come from the research model. Edit a value in Edit mode to override it for your
-        sets; blanks follow the model.
-      </p>
+      <p className="section-foot mt-3">{tx("db.contextTab.each_factor_s_shifts_come_from")}</p>
       {model.factors.map((f) => {
         const edited = Object.keys(cf[f.id] ?? {}).length;
         return (
           <Group
             key={f.id}
             header={f.label}
-            footer={edited ? `${edited} option${edited === 1 ? "" : "s"} edited` : undefined}
+            footer={edited ? plural("plural.options_edited", edited) : undefined}
           >
             {f.options.map((op) => {
               const e = cf[f.id]?.[op.id] ?? {};
@@ -66,10 +100,7 @@ export function ContextTab({ model }: { model: ContextModel | null }) {
                 <Disclosure
                   key={op.id}
                   className="cell flex-col items-stretch gap-0 py-0"
-                  tip={
-                    op.notes ??
-                    `How “${op.label}” moves the energy, the vals and milonga share and the cortinas`
-                  }
+                  tip={op.notes ?? tx("db.contextTab.how_moves_the_energy_the_vals", { label: op.label })}
                   summary={
                     <span className="flex min-w-0 flex-1 items-center gap-3">
                       <Tip text={EVIDENCE_LABEL[op.evidence ?? "speculative"]}>
@@ -83,7 +114,7 @@ export function ContextTab({ model }: { model: ContextModel | null }) {
                         <span className="block truncate">{op.label}</span>
                         <span className="text-footnote block truncate text-[var(--label-2)]">
                           {EVIDENCE_LABEL[op.evidence ?? "speculative"]}
-                          {Object.keys(e).length ? " · edited" : ""}
+                          {Object.keys(e).length ? tx("db.contextTab.edited") : ""}
                         </span>
                       </span>
                     </span>

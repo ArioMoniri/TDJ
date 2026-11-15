@@ -1,6 +1,7 @@
 "use client";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { t } from "@/lib/i18n";
 import { toastIn } from "@/lib/motion";
 
 export interface ToastItem {
@@ -62,7 +63,7 @@ export function Toast({ toast, onDismiss }: { toast: ToastItem | null; onDismiss
                 onDismiss();
               }}
             >
-              {toast.actionLabel ?? "Undo"}
+              {toast.actionLabel ?? t("toast.undo")}
             </button>
           )}
         </motion.div>

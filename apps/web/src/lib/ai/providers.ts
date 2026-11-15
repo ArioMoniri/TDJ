@@ -1,3 +1,4 @@
+import { t as tx } from "@/lib/i18n";
 import { type AcpConnection, acpComplete, transportFor } from "./acp";
 import { type AiProvider, modelFor } from "./models";
 import { LlmError, type ModelProvider, type ModelReply, type ToolCall, type ToolSpec } from "./provider";
@@ -24,7 +25,7 @@ export interface ProviderEnv {
 }
 
 export const MODEL_TIMEOUT_MS = 25_000;
-const TIMEOUT_MESSAGE = "The model took too long; try again or ask a shorter question.";
+const TIMEOUT_MESSAGE = () => tx("ai.providers.the_model_took_too_long_try");
 /** reasoning models (OpenAI's o-series and gpt-5 family, Gemini's thinking models) spend tokens before any text */
 const MIN_OUTPUT_TOKENS = 4000;
 const env = (k: string) => (typeof process !== "undefined" ? process.env?.[k] : undefined);
@@ -46,13 +47,13 @@ const isTimeout = (e: unknown) => {
 /** the SDK's APIError carries the provider's own message in `error.error.message`; show that, not the raw body */
 function asLlmError(e: unknown): LlmError {
   if (e instanceof LlmError) return e;
-  if (isTimeout(e)) return new LlmError(TIMEOUT_MESSAGE, 504);
+  if (isTimeout(e)) return new LlmError(TIMEOUT_MESSAGE(), 504);
   const body = (e as { error?: { error?: { message?: string; type?: string } } }).error?.error;
   const msg = body?.message
-    ? `${body.type === "not_found_error" ? "Unknown model: " : ""}${body.message}`
+    ? `${body.type === "not_found_error" ? tx("ai.providers.unknown_model") : ""}${body.message}`
     : e instanceof Error
       ? e.message
-      : "The model request failed.";
+      : tx("ai.providers.the_model_request_failed");
   const status = (e as { status?: number }).status;
   return new LlmError(msg.slice(0, 300), typeof status === "number" && status >= 400 ? status : 502);
 }
@@ -71,7 +72,7 @@ function anthropic(c: ProviderCreds, e: ProviderEnv): ModelProvider {
     id: "anthropic",
     model,
     async complete(req) {
-      if (!c.key) throw new LlmError("No API key for Anthropic. Add one in Settings → Models.", 401);
+      if (!c.key) throw new LlmError(tx("ai.no_key_anthropic"), 401);
       try {
         const { default: Anthropic } = await import("@anthropic-ai/sdk");
         const client = new Anthropic({
@@ -124,10 +125,7 @@ function anthropic(c: ProviderCreds, e: ProviderEnv): ModelProvider {
           .filter((b) => b.type === "tool_use")
           .map((b) => ({ name: (b as { name: string }).name, input: (b as { input: unknown }).input }));
         if (!text && !toolCalls.length && msg.stop_reason === "max_tokens")
-          throw new LlmError(
-            "The model ran out of room before answering. Try again or pick a smaller model.",
-            502,
-          );
+          throw new LlmError(tx("ai.out_of_room"), 502);
         return { text, toolCalls };
       } catch (err) {
         throw asLlmError(err);
@@ -272,7 +270,7 @@ function acp(c: ProviderCreds, e: ProviderEnv): ModelProvider {
     id: "acp",
     model: "",
     async complete(req): Promise<ModelReply> {
-      if (!c.acp) throw new LlmError("Choose an agent connection in Settings → Models.", 401);
+      if (!c.acp) throw new LlmError(tx("ai.choose_agent"), 401);
       // agents take one text prompt; the tool's arguments come back as JSON text (parsed by the caller)
       const text = `${req.system}${req.tools?.length ? toolsAsText(req.tools) : req.json ? jsonInstruction : ""}\n\n---\n\n${req.user}`;
       try {
@@ -298,6 +296,6 @@ export function providerFor(c: ProviderCreds, e: ProviderEnv = {}): ModelProvide
     case "acp":
       return acp(c, e);
     default:
-      throw new LlmError("Unknown model provider.", 400);
+      throw new LlmError(tx("ai.unknown_provider"), 400);
   }
 }

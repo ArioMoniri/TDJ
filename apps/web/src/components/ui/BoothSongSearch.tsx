@@ -3,6 +3,7 @@ import type { Playlist } from "@tdj/core";
 import { Search } from "lucide-react";
 import { useState } from "react";
 import { useBooth } from "@/lib/booth/store";
+import { t as tx } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 import { SongSearchPanel } from "./SongSearchPanel";
 import { Tip } from "./Tip";
@@ -29,7 +30,7 @@ export function BoothSongSearch() {
   return (
     <>
       <div className="mt-3 flex justify-end">
-        <Tip text="Search every recording; swap one in or add it ahead of the playhead, or play its preview">
+        <Tip text={tx("boothSongSearch.search_every_recording_swap_one_in")}>
           <button
             type="button"
             className="btn-plain min-h-11"
@@ -37,7 +38,7 @@ export function BoothSongSearch() {
             aria-expanded={open}
             data-testid="booth-find-songs"
           >
-            <Search size={16} strokeWidth={2} aria-hidden /> Find songs
+            <Search size={16} strokeWidth={2} aria-hidden /> {tx("boothSongSearch.find_songs")}
           </button>
         </Tip>
       </div>

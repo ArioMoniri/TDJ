@@ -1,6 +1,7 @@
 "use client";
 import { rememberEdit } from "@tdj/core";
 import { useEffect, useState } from "react";
+import { t as tx } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 import { tempoLevel } from "@/lib/tempo";
 import { toast } from "@/lib/toast";
@@ -137,7 +138,7 @@ export function SwapSheet({
       });
       const j = (await r.json()) as Playlist & { changed?: boolean; reason?: string };
       if (!r.ok || !j.changed) {
-        setNote(j.reason ? `Not swapped: ${j.reason}.` : "Not swapped.");
+        setNote(j.reason ? tx("swapSheet.not_swapped_2", { reason: j.reason }) : tx("swapSheet.not_swapped"));
         return;
       }
       if (settings.learn) updateMemory((m) => rememberEdit(m, playlist, j, how));
@@ -146,7 +147,10 @@ export function SwapSheet({
       // wave 2: every pick can be taken back from the toast
       const was = playlist;
       const name = title ?? j.tandas[tandaIndex]?.songs[trackIndex]?.title;
-      toast(name ? `Swapped in “${name}”` : "Song swapped", () => void onApplied(was, "Swap undone"));
+      toast(
+        name ? tx("swapSheet.swapped_in_2", { name }) : tx("swapSheet.song_swapped"),
+        () => void onApplied(was, tx("swapSheet.swap_undone")),
+      );
     } finally {
       setBusy(null);
     }
@@ -173,13 +177,13 @@ export function SwapSheet({
         error?: string;
       };
       if (!j.songId) {
-        setNote(j.error ?? "No pick.");
+        setNote(j.error ?? tx("swapSheet.no_pick"));
         return;
       }
       setBusy(null);
       await apply(
         j.songId,
-        `${j.source === "ai" ? "Your AI's pick" : "Best fit"}${j.why ? `: ${j.why}` : ""}`,
+        `${j.source === "ai" ? tx("swapSheet.your_ai_s_pick") : tx("swapSheet.best_fit")}${j.why ? `: ${j.why}` : ""}`,
       );
     } finally {
       setBusy(null);
@@ -197,12 +201,16 @@ export function SwapSheet({
       return {
         ...x,
         locked: true,
-        pinned: { by: "dj" as const, reason: "Keep my tanda as is", at: new Date().toISOString() },
+        pinned: {
+          by: "dj" as const,
+          reason: tx("swapSheet.keep_my_tanda_as_is"),
+          at: new Date().toISOString(),
+        },
       };
     });
     const np = { ...playlist, tandas };
-    if (on && settings.learn) updateMemory((m) => rememberEdit(m, playlist, np, "kept as is"));
-    await onApplied(np, on ? "Tanda kept as is (pinned)" : "Tanda unpinned");
+    if (on && settings.learn) updateMemory((m) => rememberEdit(m, playlist, np, tx("swapSheet.kept_as_is")));
+    await onApplied(np, on ? tx("swapSheet.tanda_kept_as_is_pinned") : tx("swapSheet.tanda_unpinned"));
   };
 
   const row = (x: SwapSide, list: string) => {
@@ -215,16 +223,12 @@ export function SwapSheet({
         dim={!x.ok}
         busy={busy === x.song.id}
         sub={x.ok ? sub(x.song) : `${sub(x.song)} — ${x.reason}`}
-        pill={x.ok ? `${fit} % fit` : undefined}
-        pillTip={
-          x.ok
-            ? "How well it fits this place in the tanda: energy, tempo, level and how often DJs play it"
-            : undefined
-        }
-        ariaLabel={x.ok ? `Swap in ${x.song.title}` : `${x.song.title}: ${x.reason}`}
+        pill={x.ok ? tx("swapSheet.fit", { fit }) : undefined}
+        pillTip={x.ok ? tx("swapSheet.how_well_it_fits_this_place") : undefined}
+        ariaLabel={x.ok ? tx("swapSheet.swap_in", { title: x.song.title }) : `${x.song.title}: ${x.reason}`}
         onClick={
           x.ok && !lockedReason
-            ? () => apply(x.song.id, `Swapped in ${x.song.title}`, false, x.song.title)
+            ? () => apply(x.song.id, tx("swapSheet.swapped_in", { title: x.song.title }), false, x.song.title)
             : undefined
         }
       />
@@ -235,16 +239,17 @@ export function SwapSheet({
     <Sheet
       open={open}
       onClose={onClose}
-      title={cur ? `Swap ${cur.title}` : "Swap"}
+      title={cur ? tx("swapSheet.swap_2", { title: cur.title }) : tx("swapSheet.swap")}
       detents={["large"]}
       testId="swap-sheet"
     >
       {t && cur && (
         <>
           <p className="text-footnote px-4 pt-2 text-[var(--label-2)]">
-            Tanda {tandaIndex! + 1} · {t.rhythm} · {t.orchestra}
-            {t.singer ? ` / ${t.singer}` : t.vocal ? "" : " instrumental"} · {t.yearRange?.join("–")}
-            {tempoLevel(cur) ? ` · this side ${tempoLevel(cur)}` : ""}
+            {tx("swapSheet.tanda", { p1: tandaIndex! + 1, rhythm: t.rhythm, orchestra: t.orchestra })}
+            {t.singer ? ` / ${t.singer}` : t.vocal ? "" : tx("swapSheet.instrumental")} ·{" "}
+            {t.yearRange?.join("–")}
+            {tempoLevel(cur) ? ` ${tx("swapSheet.this_side", { p1: tempoLevel(cur) })}` : ""}
           </p>
           {lockedReason && <p className="text-footnote px-4 pt-2 text-[var(--label-2)]">{lockedReason}</p>}
           {note && (
@@ -256,58 +261,63 @@ export function SwapSheet({
               {note}
             </p>
           )}
-          <Group header="Now in this chair">
+          <Group header={tx("swapSheet.now_in_this_chair")}>
             <SongRow song={cur} testId="swap-current" />
           </Group>
           <Group>
             <Tip
               text={
                 settings.ai.key
-                  ? "Your model reads the tanda and the night and picks the side that fits best"
-                  : "Without a model key, the best fit below is picked for you"
+                  ? tx("swapSheet.your_model_reads_the_tanda_and")
+                  : tx("swapSheet.without_a_model_key_the_best")
               }
               className="w-full"
             >
               <ActionRow
-                label={settings.ai.key ? "Let my AI pick" : "Pick the best fit for me"}
+                label={
+                  settings.ai.key ? tx("swapSheet.let_my_ai_pick") : tx("swapSheet.pick_the_best_fit_for_me")
+                }
                 onClick={aiPick}
                 busy={busy === "ai"}
                 disabled={!!lockedReason || !lists.suggestions.length}
               />
             </Tip>
             <SwitchRow
-              label="Keep my tanda as is"
-              sub="Regenerate and the automatic fixes leave this tanda as it is; anything unusual in it is pointed out, never changed"
+              label={tx("swapSheet.keep_my_tanda_as_is")}
+              sub={tx("swapSheet.regenerate_and_the_automatic_fixes_leave")}
               checked={pin}
               onChange={(v) => void togglePin(v)}
               disabled={!!lockedReason}
             />
           </Group>
           <Group
-            header="Fits this tanda"
-            footer="Same orchestra and singer, the same voice and vocal style, the tanda's years, tempo and level, not already in the night, a checked Spotify recording."
+            header={tx("swapSheet.fits_this_tanda")}
+            footer={tx("swapSheet.same_orchestra_and_singer_the_same")}
             data-testid="swap-suggestions"
           >
             {lists.suggestions.length ? (
               ranked(lists.suggestions).map((x) => row(x, "s"))
             ) : (
-              <Row label="No other side keeps this tanda valid" sub="Search below to see why" />
+              <Row
+                label={tx("swapSheet.no_other_side_keeps_this_tanda")}
+                sub={tx("swapSheet.search_below_to_see_why")}
+              />
             )}
           </Group>
           <SearchField
             id="swap-search"
             value={q}
             onChange={setQ}
-            placeholder="Title, orchestra or singer"
-            label="Search the catalogue"
+            placeholder={tx("swapSheet.title_orchestra_or_singer")}
+            label={tx("swapSheet.search_the_catalogue")}
             className="mt-2"
           />
           {q.length >= 2 && (
-            <Group header="Search" data-testid="swap-results">
+            <Group header={tx("swapSheet.search")} data-testid="swap-results">
               {lists.results.length ? (
                 ranked(lists.results).map((x) => row(x, "r"))
               ) : (
-                <Row label={`Nothing matches “${q}”`} />
+                <Row label={tx("swapSheet.nothing_matches", { q })} />
               )}
             </Group>
           )}

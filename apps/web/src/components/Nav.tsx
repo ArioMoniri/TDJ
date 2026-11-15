@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { haptic } from "@/lib/haptics";
 import { useFitLevel, useScrollDirection } from "@/lib/hooks";
+import { t } from "@/lib/i18n";
 import { spring } from "@/lib/motion";
 import { Logo } from "./Logo";
 import { type NavItem, PHONE_MORE, PHONE_TABS, PILL_ITEMS } from "./navItems";
@@ -117,7 +118,13 @@ function MobileTab({
     </Link>
   );
 }
-const MORE: NavItem = { href: "#more", label: "More", icon: Ellipsis };
+const MORE: NavItem = {
+  href: "#more",
+  get label() {
+    return t("nav.more");
+  },
+  icon: Ellipsis,
+};
 
 /** one link of the sm–lg pill: its name, or its icon with the name on hover and long-press */
 function PillLink({ it, on, icon, path }: { it: NavItem; on: boolean; icon: boolean; path: string }) {
@@ -190,15 +197,15 @@ export function Nav() {
           data-testid="nav-pill"
           data-fit={fit}
         >
-          <Link href="/" className="flex shrink-0 items-center gap-2.5 pl-1" aria-label="T-DJ home">
+          <Link href="/" className="flex shrink-0 items-center gap-2.5 pl-1" aria-label={t("nav.t_dj_home")}>
             <Logo size={28} />
             {fit < 1 && (
               <span className="text-headline max-w-[200px] truncate">
-                {bar.collapsed && bar.title ? bar.title : "T-DJ"}
+                {bar.collapsed && bar.title ? bar.title : t("nav.t_dj")}
               </span>
             )}
           </Link>
-          <nav className="flex shrink-0 items-center" aria-label="Primary">
+          <nav className="flex shrink-0 items-center" aria-label={t("nav.primary")}>
             <LayoutGroup id="desktop-nav">
               {PILL_ITEMS.map((it) => {
                 const on = path === it.href;
@@ -222,7 +229,7 @@ export function Nav() {
           className="glass fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-1/2 z-40 flex items-center p-1 sm:hidden"
           data-min={minimised || undefined}
           data-testid="tab-bar"
-          aria-label="Primary mobile"
+          aria-label={t("nav.primary_mobile")}
           style={{
             transition:
               "transform var(--dur-s) var(--ease-settle), opacity var(--dur-s) var(--ease-settle), width var(--dur-s) var(--ease-settle)",
@@ -252,8 +259,8 @@ export function Nav() {
             onOpen={() => setMoreOpen(true)}
           />
         </nav>
-        <Sheet open={moreOpen} onClose={() => setMoreOpen(false)} title="More" testId="more-sheet">
-          <nav className="group-inset mt-2" aria-label="More pages">
+        <Sheet open={moreOpen} onClose={() => setMoreOpen(false)} title={t("nav.more")} testId="more-sheet">
+          <nav className="group-inset mt-2" aria-label={t("nav.more_pages")}>
             {PHONE_MORE.map((it) => (
               <Link
                 key={it.href}
@@ -278,7 +285,7 @@ export function Nav() {
           <button
             type="button"
             className="glass fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] right-3 z-40 grid h-[60px] w-[60px] place-items-center rounded-full text-[var(--label)] sm:hidden"
-            aria-label="Search"
+            aria-label={t("nav.search")}
             style={{
               transition:
                 "transform var(--dur-s) var(--ease-settle), opacity var(--dur-s) var(--ease-settle)",

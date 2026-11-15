@@ -1,4 +1,5 @@
 import { normTitle, type Song } from "@tdj/core";
+import { t as tx } from "@/lib/i18n";
 
 /**
  * Round 22: every take of a song — the same title by the same orchestra (any singer, any year) — so the DJ can
@@ -29,7 +30,7 @@ export type SongSearch = (q: string) => Promise<Song[]>;
 /** The catalogue search the web app serves (`/api/search`). */
 export const catalogueSearch: SongSearch = async (q) => {
   const r = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
-  if (!r.ok) throw new Error("The catalogue did not answer");
+  if (!r.ok) throw new Error(tx("booth.versions.the_catalogue_did_not_answer"));
   return (await r.json()) as Song[];
 };
 

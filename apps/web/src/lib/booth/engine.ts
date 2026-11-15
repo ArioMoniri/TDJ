@@ -1,3 +1,4 @@
+import { t as tx } from "@/lib/i18n";
 import {
   DECLICK_IN,
   DECLICK_OUT,
@@ -975,9 +976,9 @@ export class BoothEngine {
       this.whyMissing(i) ??
       (e instanceof Error && e.message && !/^no source$/i.test(e.message)
         ? e.message
-        : "there is no file, Spotify recording or 30 s clip to play it from");
+        : tx("booth.engine.there_is_no_file_spotify_recording"));
     this.banner(
-      `${it?.title ?? "An item"} is passed over: ${why}. The night moves on to the next song.`,
+      tx("booth.engine.is_passed_over_the_night_moves", { p1: it?.title ?? tx("booth.engine.an_item"), why }),
       `missing-${i}`,
     );
   }

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { driftWords, lastFourChange, ttcCaption } from "@/lib/booth/nightView";
 import { clockLabel, durationLabel, remainingFrom } from "@/lib/booth/plan";
 import { useBooth } from "@/lib/booth/store";
+import { plural, t } from "@/lib/i18n";
 import { toast } from "@/lib/toast";
 import { Group } from "../Form";
 import { Sheet } from "../Sheet";
@@ -67,18 +68,25 @@ export function NightBar({ onBreak }: { onBreak: () => void }) {
     <section
       className="booth-night"
       data-testid="booth-time"
-      aria-label="The night"
+      aria-label={t("booth.nightBar.the_night")}
       data-ttc={Math.round(ttc)}
       data-remaining={Math.round(remaining)}
     >
       <div className="booth-night-row">
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0">
-          <span className="booth-clock" data-testid="booth-clock" data-hint="The time now">
+          <span
+            className="booth-clock"
+            data-testid="booth-clock"
+            data-hint={t("booth.nightBar.the_time_now")}
+          >
             {now ? clockLabel(now) : "--:--"}
           </span>
-          <span className="text-subhead text-[var(--label-2)]" data-hint="When the night ends at this pace">
-            ends {now ? clockLabel(end) : "--:--"}
-            {rehearsal ? " · rehearsal" : ""}
+          <span
+            className="text-subhead text-[var(--label-2)]"
+            data-hint={t("booth.nightBar.when_the_night_ends_at_this")}
+          >
+            {t("booth.nightBar.ends_2", { p1: now ? clockLabel(end) : "--:--" })}
+            {rehearsal ? t("booth.nightBar.rehearsal") : ""}
           </span>
         </div>
         <div className="text-right" data-hint={ttc0.explain}>
@@ -104,49 +112,47 @@ export function NightBar({ onBreak }: { onBreak: () => void }) {
         <span
           className={`booth-chip tabular-nums ${Math.abs(drift) >= 60 ? "text-[var(--system-gold)]" : ""}`}
           data-testid="booth-drift"
-          data-hint="Ahead of or behind the planned clock"
+          data-hint={t("booth.nightBar.ahead_of_or_behind_the_planned")}
         >
-          {started ? driftWords(drift) : "not started"}
+          {started ? driftWords(drift) : t("booth.nightBar.not_started")}
         </span>
-        <span className="booth-chip">
-          {left} tanda{left === 1 ? "" : "s"} left
-        </span>
+        <span className="booth-chip">{plural("plural.tandas_left", left)}</span>
         {full && (
           <span
             className="booth-chip tabular-nums"
             data-testid="booth-full-night"
             data-remaining={Math.round(full.remainingSec)}
-            data-hint="The night with every song played in full (the rehearsal plays 30 s of each)"
+            data-hint={t("booth.nightBar.the_night_with_every_song_played")}
           >
-            Every song in full: {durationLabel(full.remainingSec)}
-            {now ? `, ends ${clockLabel(now + full.remainingSec * 1000)}` : ""}
+            {t("booth.nightBar.every_song_in_full", { p1: durationLabel(full.remainingSec) })}
+            {now ? t("booth.nightBar.ends", { p1: clockLabel(now + full.remainingSec * 1000) }) : ""}
           </span>
         )}
         {resolving && !started && (
           <span className="booth-chip" data-testid="booth-resolving">
-            resolving sources…
+            {t("booth.nightBar.resolving_sources")}
           </span>
         )}
         {breakUntil !== null && (
           <span className="booth-chip text-[var(--tint)]" data-testid="booth-break">
-            break · {durationLabel(Math.max(0, (breakUntil - now) / 1000))}
+            {t("booth.nightBar.break_chip", { time: durationLabel(Math.max(0, (breakUntil - now) / 1000)) })}
           </span>
         )}
       </div>
-      <fieldset className="booth-night-actions" aria-label="Night tools">
+      <fieldset className="booth-night-actions" aria-label={t("booth.nightBar.night_tools")}>
         {hasClosing && (
           <button
             type="button"
             className="booth-tool"
             disabled={!live}
             data-testid="booth-rest-cumparsita"
-            data-hint="This tanda plays to its end, then La Cumparsita closes the night; the tandas between are left out"
+            data-hint={t("booth.nightBar.this_tanda_plays_to_its_end")}
             onClick={() => {
               void b.jumpToClosing(false);
-              toast("La Cumparsita follows this tanda");
+              toast(t("booth.nightBar.la_cumparsita_follows_this_tanda"));
             }}
           >
-            <Flag size={16} strokeWidth={2} aria-hidden /> Rest, then La Cumparsita
+            <Flag size={16} strokeWidth={2} aria-hidden /> {t("booth.nightBar.rest_then_la_cumparsita")}
           </button>
         )}
         {hasClosing && (
@@ -156,10 +162,10 @@ export function NightBar({ onBreak }: { onBreak: () => void }) {
             data-tone="destructive"
             disabled={!started}
             data-testid="booth-jump-cumparsita"
-            data-hint="La Cumparsita now: the song playing fades out (asks first)"
+            data-hint={t("booth.nightBar.la_cumparsita_now_the_song_playing")}
             onClick={() => setJump(true)}
           >
-            <FastForward size={16} strokeWidth={2} aria-hidden /> La Cumparsita now…
+            <FastForward size={16} strokeWidth={2} aria-hidden /> {t("booth.nightBar.la_cumparsita_now_2")}
           </button>
         )}
         <button
@@ -167,41 +173,43 @@ export function NightBar({ onBreak }: { onBreak: () => void }) {
           className="booth-tool"
           aria-pressed={lastFour}
           data-testid="booth-last4"
-          data-hint="The vals and milonga tandas among the last four are skipped tonight: the night ends on tangos"
+          data-hint={t("booth.nightBar.the_vals_and_milonga_tandas_among")}
           onClick={() => void toggleLastFour()}
         >
-          <ListChecks size={16} strokeWidth={2} aria-hidden /> Last 4 tandas tango only
+          <ListChecks size={16} strokeWidth={2} aria-hidden /> {t("booth.nightBar.last_4_tandas_tango_only")}
         </button>
         <button
           type="button"
           className="booth-tool"
           disabled={!started}
           data-testid="booth-night-break"
-          data-hint="A timed break after the song playing; Play ends it early"
+          data-hint={t("booth.nightBar.a_timed_break_after_the_song")}
           onClick={onBreak}
         >
-          <Coffee size={16} strokeWidth={2} aria-hidden /> Break…
+          <Coffee size={16} strokeWidth={2} aria-hidden /> {t("booth.nightBar.break")}
         </button>
         <button
           type="button"
           className="booth-tool"
           disabled={!started}
           data-testid="booth-night-birthday"
-          data-hint="Marks the next vals tanda for a birthday: the player holds before it (b)"
+          data-hint={t("booth.nightBar.marks_the_next_vals_tanda_for")}
           onClick={() => b.birthdayVals()}
         >
-          <Cake size={16} strokeWidth={2} aria-hidden /> Birthday vals
+          <Cake size={16} strokeWidth={2} aria-hidden /> {t("booth.nightBar.birthday_vals")}
         </button>
       </fieldset>
       <Sheet
         open={jump}
         onClose={() => setJump(false)}
-        title="La Cumparsita now?"
+        title={t("booth.nightBar.la_cumparsita_now")}
         detents={["medium"]}
         testId="booth-jump-sheet"
       >
         <Group
-          footer={`The song playing fades out and La Cumparsita closes the night. Everything between is left out tonight (it stays in the set).${closingNoClip ? " The rehearsal has no 30 s clip of this La Cumparsita: it is passed over and the rehearsal ends (on the night it plays in full)." : ""}`}
+          footer={t("booth.nightBar.the_song_playing_fades_out_and", {
+            p1: closingNoClip ? t("booth.nightBar.the_rehearsal_has_no_30_s") : "",
+          })}
         >
           <button
             type="button"
@@ -212,7 +220,7 @@ export function NightBar({ onBreak }: { onBreak: () => void }) {
               setJump(false);
             }}
           >
-            Play La Cumparsita now
+            {t("booth.nightBar.play_la_cumparsita_now")}
           </button>
         </Group>
       </Sheet>

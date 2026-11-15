@@ -1,4 +1,5 @@
 import type { Playlist } from "@tdj/core";
+import { lazy, t as tx } from "@/lib/i18n";
 
 /**
  * "Spotify via a transfer service": the zero-setup route to Spotify for DJs the deployment's 5-seat Spotify app
@@ -24,28 +25,32 @@ export interface TransferService {
   importUrl: string;
   steps: [string, string, string];
 }
-export const TRANSFER_SERVICES: TransferService[] = [
+export const TRANSFER_SERVICES: TransferService[] = lazy(() => [
   {
     id: "tunemymusic",
-    label: "TuneMyMusic",
+    get label() {
+      return tx("transferCsv.tunemymusic");
+    },
     importUrl: "https://www.tunemymusic.com/transfer/csv-to-spotify",
     steps: [
-      "Download the CSV below; TuneMyMusic opens in a new tab.",
-      "On TuneMyMusic choose the file as the source (Upload file) and Spotify as the destination, then log in to Spotify there.",
-      "Check the matches and start the transfer; the playlist appears in your Spotify library.",
+      tx("transferCsv.download_the_csv_below_tunemymusic_opens"),
+      tx("transferCsv.on_tunemymusic_choose_the_file_as"),
+      tx("transferCsv.check_the_matches_and_start_the"),
     ],
   },
   {
     id: "soundiiz",
-    label: "Soundiiz",
+    get label() {
+      return tx("transferCsv.soundiiz");
+    },
     importUrl: "https://soundiiz.com/tutorial/import-excel-to-soundiiz",
     steps: [
-      "Download the CSV below; Soundiiz opens in a new tab.",
-      "In Soundiiz choose Import playlist → From file, upload the CSV and name the playlist.",
-      "Open the playlist in Soundiiz and send it to Spotify (Convert → Spotify) after logging in there.",
+      tx("transferCsv.download_the_csv_below_soundiiz_opens"),
+      tx("transferCsv.in_soundiiz_choose_import_playlist_from"),
+      tx("transferCsv.open_the_playlist_in_soundiiz_and"),
     ],
   },
-];
+]);
 
 const q = (s: unknown) => `"${String(s ?? "").replace(/"/g, '""')}"`;
 

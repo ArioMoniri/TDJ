@@ -5,6 +5,7 @@ import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from "rea
 import { createPortal } from "react-dom";
 import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
+import { lower, t as tx } from "@/lib/i18n";
 import { DUR, EASE, SPRING } from "@/lib/motion";
 import { lockScroll } from "@/lib/scrollLock";
 import { useSheets } from "@/lib/sheets";
@@ -158,7 +159,7 @@ export function Sheet({
             animate={{ opacity: 1, transition: { duration: DUR.base } }}
             exit={{ opacity: 0, transition: { duration: DUR.fast } }}
             onClick={onClose}
-            aria-label={`Close ${title.toLowerCase()}`}
+            aria-label={tx("sheet.close_2", { title: lower(title) })}
             tabIndex={-1}
           />
           <motion.div
@@ -213,7 +214,7 @@ export function Sheet({
             <div className="relative flex h-11 shrink-0 items-center justify-center px-4">
               {!isPhone && !hideCancel && (
                 <button type="button" className="btn-plain absolute left-2" onClick={onClose}>
-                  Cancel
+                  {tx("sheet.cancel")}
                 </button>
               )}
               <h2 id={titleId} className="text-headline truncate px-16">
@@ -226,7 +227,7 @@ export function Sheet({
                     type="button"
                     className="icon-btn icon-btn-glass"
                     onClick={onClose}
-                    aria-label="Close"
+                    aria-label={tx("sheet.close")}
                   >
                     <X size={18} strokeWidth={2.25} className="text-[var(--label)]" />
                   </button>

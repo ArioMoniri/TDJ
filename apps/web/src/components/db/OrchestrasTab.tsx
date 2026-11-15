@@ -1,9 +1,11 @@
 "use client";
+import { lazy, lower, t as tx } from "@/lib/i18n";
 import "../ui/compose-db.css";
-import { bestYears, type CoverageRow, ERA_WORDS, gradeWord, rangesLabel } from "@tdj/core";
+import { bestYears, type CoverageRow, rangesLabel } from "@tdj/core";
 import { ChevronRight, Grid3x3 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { coverageWith, DEFAULT_COVERAGE, editGrade, nextGrade } from "@/lib/era";
+import { eraWords, gradeWords as gradeWord } from "@/lib/eraWords";
 import type { MetaOrchestra, OrchestraProfile } from "@/lib/types";
 import { ActionRow, CheckRow, Group, PickerRow, Row } from "../Form";
 import { SearchField } from "../SearchField";
@@ -14,52 +16,54 @@ import { EraLegend } from "../ui/EraBadge";
 import { Tip, useTip } from "../ui/Tip";
 import { Empty, patchMap, useDb, useDbEdit, ValueCell } from "./shared";
 
-const STYLES: Array<[OrchestraProfile["style"], string]> = [
-  ["rhythmic", "Rhythmic"],
-  ["lyrical", "Lyrical"],
-  ["dramatic", "Dramatic"],
-  ["guardia", "Guardia"],
-  ["nuevo", "Nuevo"],
-  ["contemporary", "Contemporary"],
-  ["balanced", "Balanced"],
-];
+const STYLES: Array<[OrchestraProfile["style"], string]> = lazy(() => [
+  ["rhythmic", tx("db.orchestrasTab.rhythmic")],
+  ["lyrical", tx("db.orchestrasTab.lyrical")],
+  ["dramatic", tx("db.orchestrasTab.dramatic")],
+  ["guardia", tx("db.orchestrasTab.guardia")],
+  ["nuevo", tx("db.orchestrasTab.nuevo")],
+  ["contemporary", tx("db.orchestrasTab.contemporary")],
+  ["balanced", tx("db.orchestrasTab.balanced")],
+]);
 const STYLE_LABEL = Object.fromEntries(STYLES) as Record<string, string>;
-const TIERS: Array<[string, string]> = [
-  ["1", "Core: every night"],
-  ["2", "Secondary: a tanda or two"],
-  ["3", "Rarely: special nights"],
-];
+const TIERS: Array<[string, string]> = lazy(() => [
+  ["1", tx("db.orchestrasTab.core_every_night")],
+  ["2", tx("db.orchestrasTab.secondary_a_tanda_or_two")],
+  ["3", tx("db.orchestrasTab.rarely_special_nights")],
+]);
 /** the grades a cell cycles through, in the app's one era vocabulary (ERA_WORDS / gradeWord) */
 const GRADE_LEGEND: Array<number | null> = [4, 3, 2, 1, 0, null];
-const TIER_GROUP: Record<number, [string, string]> = {
-  1: ["The core", "The orchestras a milonga is built on"],
-  2: ["Secondary", "Good for variety, a tanda or two a night"],
-  3: ["Rarely", "Special nights and single tandas"],
-};
+const TIER_GROUP: Record<number, [string, string]> = lazy(() => ({
+  1: [tx("db.orchestrasTab.the_core"), tx("db.orchestrasTab.the_orchestras_a_milonga_is_built")],
+  2: [tx("db.orchestrasTab.secondary"), tx("db.orchestrasTab.good_for_variety_a_tanda_or")],
+  3: [tx("db.orchestrasTab.rarely"), tx("db.orchestrasTab.special_nights_and_single_tandas")],
+}));
 const PHASES = ["warmup", "build", "peak", "cooldown", "any"] as const;
-const PHASE_LABEL: Record<string, string> = {
-  warmup: "Warm-up",
-  build: "Build",
-  peak: "Peak",
-  cooldown: "Cool-down",
-  any: "Any",
-};
+const PHASE_LABEL: Record<string, string> = lazy(() => ({
+  warmup: tx("phase.warmup"),
+  build: tx("phase.build"),
+  peak: tx("phase.peak"),
+  cooldown: tx("phase.cooldown"),
+  any: tx("phase.any"),
+}));
 type GroupBy = "tier" | "style" | "era";
 const ERA_GROUP = (y?: number) =>
   !y
-    ? "Undated"
+    ? tx("db.orchestrasTab.undated")
     : y < 1935
-      ? "Guardia (before 1935)"
+      ? tx("db.orchestrasTab.guardia_before_1935")
       : y < 1950
-        ? "Golden age (1935–49)"
+        ? tx("db.orchestrasTab.golden_age_1935_49")
         : y < 1970
-          ? "After the golden age (1950–69)"
-          : "Nuevo and contemporary";
+          ? tx("db.orchestrasTab.after_the_golden_age_1950_69")
+          : tx("db.orchestrasTab.nuevo_and_contemporary");
 const PAGE = 24;
 const num = (v: string) => (v === "" ? undefined : Number(v));
 /** "Not before" in a DJ's words: 0 → "From the start", 25 → "After 25 % of the night" */
 const notBeforeText = (pct: string | number) =>
-  Math.round(Number(pct)) <= 0 ? "From the start" : `After ${Math.round(Number(pct))} % of the night`;
+  Math.round(Number(pct)) <= 0
+    ? tx("db.orchestrasTab.from_the_start")
+    : tx("db.orchestrasTab.after_of_the_night", { p1: Math.round(Number(pct)) });
 const yr = (r?: [number, number]) =>
   r
     ? r[0] === r[1]
@@ -95,14 +99,14 @@ function OrchestraButton({
   onClick: () => void;
   children: React.ReactNode;
 }) {
-  const t = useTip<HTMLButtonElement>(`Open ${name}: energy, style, singers and best years`);
+  const t = useTip<HTMLButtonElement>(tx("db.orchestrasTab.open_energy_style_singers_and_best", { name }));
   return (
     <button
       type="button"
       className="cell cell-tap w-full text-left"
       data-leading="art"
       onClick={onClick}
-      aria-label={`${name}: details`}
+      aria-label={tx("db.orchestrasTab.details", { name })}
       {...t.props}
     >
       {t.tag}
@@ -135,7 +139,7 @@ function Heatmap({
         className="heat-cell"
         data-g={has ? g : ""}
         data-edited={edited(mode, y) || undefined}
-        data-tip={`${y} · ${mode === "vocal" ? "with a singer" : "instrumental"}: ${gradeWord(has ? g : null).word}`}
+        data-tip={`${y} · ${mode === "vocal" ? tx("db.orchestrasTab.with_a_singer") : tx("db.orchestrasTab.instrumental")}: ${gradeWord(has ? g : null).word}`}
       />
     );
   };
@@ -143,7 +147,13 @@ function Heatmap({
     <Tip
       text={
         cellTip ??
-        `${name}'s years from your heatmap: green ${ERA_WORDS.best.word.toLowerCase()}, blue ${ERA_WORDS.good.word.toLowerCase()}, orange ${ERA_WORDS.weak.word.toLowerCase()}, grey ${ERA_WORDS.outside.word.toLowerCase()}`
+        tx("db.orchestrasTab.s_years_from_your_heatmap_green", {
+          name,
+          word: lower(eraWords("best").word),
+          word1: lower(eraWords("good").word),
+          word2: lower(eraWords("weak").word),
+          word3: lower(eraWords("outside").word),
+        })
       }
       className="w-full"
     >
@@ -152,15 +162,23 @@ function Heatmap({
         onPointerOver={(e) => setCellTip((e.target as HTMLElement).dataset.tip ?? null)}
         onPointerLeave={() => setCellTip(null)}
         role="img"
-        aria-label={`Era heatmap of ${name}, ${years[0]} to ${years[years.length - 1]}`}
+        aria-label={tx("db.orchestrasTab.era_heatmap_of_to", {
+          name,
+          p1: years[0],
+          p2: years[years.length - 1],
+        })}
         data-testid="heatmap"
       >
         <div className="flex items-center gap-2">
-          <span className="text-caption2 w-9 shrink-0 text-[var(--label-2)]">Instr.</span>
+          <span className="text-caption2 w-9 shrink-0 text-[var(--label-2)]">
+            {tx("db.orchestrasTab.instr")}
+          </span>
           <div className="heat-grid min-w-0 flex-1">{years.map((y) => cell("instrumental", y))}</div>
         </div>
         <div className="mt-[3px] flex items-center gap-2">
-          <span className="text-caption2 w-9 shrink-0 text-[var(--label-2)]">Vocal</span>
+          <span className="text-caption2 w-9 shrink-0 text-[var(--label-2)]">
+            {tx("db.orchestrasTab.vocal")}
+          </span>
           <div className="heat-grid min-w-0 flex-1">{years.map((y) => cell("vocal", y))}</div>
         </div>
         <div className="text-caption2 mt-0.5 flex justify-between pl-11 tabular-nums text-[var(--label-3)]">
@@ -234,16 +252,16 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
         : by === "style"
           ? STYLES.findIndex(([s]) => s === k)
           : [
-              "Guardia (before 1935)",
-              "Golden age (1935–49)",
-              "After the golden age (1950–69)",
-              "Nuevo and contemporary",
-              "Undated",
+              tx("db.orchestrasTab.guardia_before_1935"),
+              tx("db.orchestrasTab.golden_age_1935_49"),
+              tx("db.orchestrasTab.after_the_golden_age_1950_69"),
+              tx("db.orchestrasTab.nuevo_and_contemporary"),
+              tx("db.orchestrasTab.undated"),
             ].indexOf(k);
     return [...m.entries()].sort((a, b) => order(a[0]) - order(b[0]));
   })();
 
-  if (!orchestras.length) return <Empty>Loading orchestras…</Empty>;
+  if (!orchestras.length) return <Empty>{tx("db.orchestrasTab.loading_orchestras")}</Empty>;
 
   const card = (o: MetaOrchestra) => {
     const row = coverage.get(o.id);
@@ -270,7 +288,7 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
             </span>
             {edited && (
               <span className="text-caption1 mt-0.5 inline-flex rounded-full bg-[color-mix(in_srgb,var(--tint)_14%,transparent)] px-2 py-0.5 font-medium text-[var(--tint)]">
-                Edited
+                {tx("db.orchestrasTab.edited")}
               </span>
             )}
           </span>
@@ -278,13 +296,13 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
         </OrchestraButton>
         <div className="cell flex-col items-stretch gap-2 py-3">
           <div className="text-footnote grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
-            <span className="text-[var(--label-2)]">Best instrumental</span>
+            <span className="text-[var(--label-2)]">{tx("db.orchestrasTab.best_instrumental")}</span>
             <span className="truncate tabular-nums" data-testid="best-instrumental">
-              {instBest.length ? rangesLabel(instBest) : row ? "–" : "Not graded yet"}
+              {instBest.length ? rangesLabel(instBest) : row ? "–" : tx("db.orchestrasTab.not_graded_yet")}
             </span>
-            <span className="text-[var(--label-2)]">Best with a singer</span>
+            <span className="text-[var(--label-2)]">{tx("db.orchestrasTab.best_with_a_singer")}</span>
             <span className="truncate tabular-nums" data-testid="best-vocal">
-              {vocBest.length ? rangesLabel(vocBest) : row ? "–" : "Not graded yet"}
+              {vocBest.length ? rangesLabel(vocBest) : row ? "–" : tx("db.orchestrasTab.not_graded_yet")}
             </span>
           </div>
           <Heatmap
@@ -319,7 +337,9 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
               data-testid="edit-grades"
             >
               <Grid3x3 size={16} strokeWidth={2} className="text-[var(--tint)]" aria-hidden />
-              <span className="min-w-0 flex-1 truncate text-[var(--tint)]">Edit era grades</span>
+              <span className="min-w-0 flex-1 truncate text-[var(--tint)]">
+                {tx("db.orchestrasTab.edit_era_grades")}
+              </span>
             </button>
           </div>
         )}
@@ -344,38 +364,39 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
           setQ(v);
           setLimit(PAGE);
         }}
-        placeholder="Filter orchestras"
-        label="Filter orchestras"
+        placeholder={tx("db.orchestrasTab.filter_orchestras")}
+        label={tx("db.orchestrasTab.filter_orchestras")}
         className="mt-3"
       />
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
         <Segmented<GroupBy>
-          label="Group by"
+          label={tx("db.orchestrasTab.group_by")}
           tips={{
-            tier: "The big orchestras first, then the rest",
-            style: "Grouped by how they play: rhythmic, lyrical, dramatic…",
-            era: "Grouped by their best decade",
+            tier: tx("db.orchestrasTab.the_big_orchestras_first_then_the"),
+            style: tx("db.orchestrasTab.grouped_by_how_they_play_rhythmic"),
+            era: tx("db.orchestrasTab.grouped_by_their_best_decade"),
           }}
           value={by}
           onChange={setBy}
           items={[
-            ["tier", "Importance"],
-            ["style", "Style"],
-            ["era", "Era"],
+            ["tier", tx("db.orchestrasTab.importance")],
+            ["style", tx("booth.sheets.style")],
+            ["era", tx("changes.era")],
           ]}
         />
         <EraLegend />
       </div>
       <p className="section-foot mt-2">
-        The heatmap is your grading of each orchestra's years; it drives the era badges and the years a night
-        picks.
-        {editing ? " Tap Edit era grades on a card to change a year." : " Tap Edit to change a grade."}
+        {tx("db.orchestrasTab.the_heatmap_is_your_grading_of")}
+        {editing
+          ? tx("db.orchestrasTab.tap_edit_era_grades_on_a")
+          : tx("db.orchestrasTab.tap_edit_to_change_a_grade")}
       </p>
       {groups.map(([k, list]) => (
         <section key={k} className="min-w-0" data-testid="orchestra-group">
           <h2 className="section-head">
             {by === "tier"
-              ? (TIER_GROUP[Number(k)]?.[0] ?? "Other")
+              ? (TIER_GROUP[Number(k)]?.[0] ?? tx("db.orchestrasTab.other"))
               : by === "style"
                 ? (STYLE_LABEL[k] ?? k)
                 : k}
@@ -389,8 +410,8 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
       {filtered.length > limit && (
         <Group className="mt-4">
           <ActionRow
-            label={`Show more (${filtered.length - limit} left)`}
-            tip="Show the next orchestras"
+            label={tx("db.orchestrasTab.show_more_left", { p1: filtered.length - limit })}
+            tip={tx("db.orchestrasTab.show_the_next_orchestras")}
             onClick={() => setLimit((l) => l + PAGE)}
           />
         </Group>
@@ -400,7 +421,7 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
         open={!!detail}
         onClose={() => setDetail(null)}
         title={detail?.name ?? ""}
-        trailing="Done"
+        trailing={tx("db.orchestrasTab.done")}
         testId="orchestra-detail"
       >
         {detail &&
@@ -412,16 +433,16 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
             return (
               <>
                 <Group
-                  header="How nights use it"
+                  header={tx("db.orchestrasTab.how_nights_use_it")}
                   footer={
                     editing
-                      ? "Your changes apply to every night you compose."
-                      : "Tap Edit in the Database bar to change these."
+                      ? tx("db.orchestrasTab.your_changes_apply_to_every_night")
+                      : tx("db.orchestrasTab.tap_edit_in_the_database_bar_2")
                   }
                 >
                   <ValueCell
-                    label="Energy"
-                    inputLabel={`${o.name} energy`}
+                    label={tx("db.orchestrasTab.energy_2")}
+                    inputLabel={tx("db.orchestrasTab.energy", { name: o.name })}
                     editing={editing}
                     value={p.energy}
                     placeholder={o.energy ?? 50}
@@ -431,24 +452,28 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
                     onChange={(t) => setField(o, "energy", num(t))}
                   />
                   <PickerRow
-                    label="Style"
-                    ariaLabel={`${o.name} style`}
+                    label={tx("db.orchestrasTab.style_2")}
+                    ariaLabel={tx("db.orchestrasTab.style", { name: o.name })}
                     value={p.style ?? o.style ?? "balanced"}
                     items={STYLES}
                     onChange={(s) => s && setField(o, "style", s)}
                     disabled={!editing}
                   />
                   <PickerRow
-                    label="Importance"
-                    ariaLabel={`${o.name} tier`}
+                    label={tx("db.orchestrasTab.importance")}
+                    ariaLabel={tx("db.orchestrasTab.tier", { name: o.name })}
                     value={String(p.tier ?? o.tier)}
                     items={TIERS}
                     onChange={(t) => t && setField(o, "tier", Number(t))}
                     disabled={!editing}
                   />
                   <ValueCell
-                    label={editing ? "Earliest in the night, %" : "Earliest in the night"}
-                    inputLabel={`${o.name}: earliest point in the night, in percent`}
+                    label={
+                      editing
+                        ? tx("db.orchestrasTab.earliest_in_the_night_2")
+                        : tx("db.orchestrasTab.earliest_in_the_night")
+                    }
+                    inputLabel={tx("db.orchestrasTab.earliest_point_in_the_night_in", { name: o.name })}
                     editing={editing}
                     value={p.notBefore === undefined ? undefined : Math.round(p.notBefore * 100)}
                     placeholder={
@@ -462,38 +487,49 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
                     onChange={(t) => setField(o, "notBefore", t === "" ? undefined : Number(t) / 100)}
                   />
                   <Row
-                    label="Parts of the night"
-                    value={phases.length ? phases.map((ph) => PHASE_LABEL[ph] ?? ph).join(", ") : "Any"}
+                    label={tx("db.orchestrasTab.parts_of_the_night")}
+                    value={
+                      phases.length
+                        ? phases.map((ph) => PHASE_LABEL[ph] ?? ph).join(", ")
+                        : tx("db.orchestrasTab.any")
+                    }
                     chevron
                     onClick={() => setPhasesFor(o)}
                   />
                   {Object.keys(singers).length > 0 && (
                     <Row
-                      label="Singers and their years"
-                      value={`${Object.keys(singers).length} ${Object.keys(singers).length === 1 ? "singer" : "singers"}`}
+                      label={tx("db.orchestrasTab.singers_and_their_years")}
+                      value={`${Object.keys(singers).length} ${Object.keys(singers).length === 1 ? tx("db.orchestrasTab.singer") : tx("db.orchestrasTab.singers")}`}
                       chevron
                       onClick={() => setSingersFor(o)}
                     />
                   )}
                   <Row
-                    label="Era grades"
-                    value={coverage.has(o.id) ? "Graded" : "Not graded"}
+                    label={tx("db.orchestrasTab.era_grades_2")}
+                    value={
+                      coverage.has(o.id) ? tx("db.orchestrasTab.graded") : tx("db.orchestrasTab.not_graded")
+                    }
                     chevron
                     onClick={() => setGradesFor(o)}
                   />
                 </Group>
                 {(o.topSingers?.length ?? 0) > 0 && (
-                  <Group header="Most recorded with">
+                  <Group header={tx("db.orchestrasTab.most_recorded_with")}>
                     {o.topSingers!.map(([n, c]) => (
-                      <Row key={n} label={n} value={`${c} sides`} />
+                      <Row key={n} label={n} value={tx("db.orchestrasTab.sides_2", { c })} />
                     ))}
-                    {o.instrumentals ? <Row label="Instrumental" value={`${o.instrumentals} sides`} /> : null}
+                    {o.instrumentals ? (
+                      <Row
+                        label={tx("db.orchestrasTab.instrumental_2")}
+                        value={tx("db.orchestrasTab.sides", { instrumentals: o.instrumentals })}
+                      />
+                    ) : null}
                   </Group>
                 )}
                 {editing && (profiles[o.id] || heatEdits?.[o.id]) && (
                   <Group>
                     <ActionRow
-                      label="Revert to the shipped values"
+                      label={tx("db.orchestrasTab.revert_to_the_shipped_values")}
                       destructive
                       onClick={() => revert(o.id)}
                     />
@@ -507,12 +543,12 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
         open={!!phasesFor}
         onClose={() => setPhasesFor(null)}
         title={phasesFor?.name ?? ""}
-        trailing="Done"
+        trailing={tx("db.orchestrasTab.done")}
       >
         {phasesFor && (
           <Group
-            header="Parts of the night"
-            footer="Where this orchestra belongs. None ticked means anywhere."
+            header={tx("db.orchestrasTab.parts_of_the_night")}
+            footer={tx("db.orchestrasTab.where_this_orchestra_belongs_none_ticked")}
           >
             {PHASES.map((ph) => {
               const phases = phasesOf(phasesFor);
@@ -535,12 +571,12 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
         open={!!singersFor}
         onClose={() => setSingersFor(null)}
         title={singersFor?.name ?? ""}
-        trailing="Done"
+        trailing={tx("db.orchestrasTab.done")}
       >
         {singersFor && (
           <Group
-            header="Singers and their years"
-            footer="First and last year each singer recorded with the orchestra."
+            header={tx("db.orchestrasTab.singers_and_their_years")}
+            footer={tx("db.orchestrasTab.first_and_last_year_each_singer")}
           >
             {Object.entries(singersOf(singersFor)).map(([name, yrs]) => {
               const singers = singersOf(singersFor);
@@ -549,8 +585,8 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
                   <span className="text-headline">{name}</span>
                   <div className="-mx-4 flex">
                     <ValueCell
-                      label="From"
-                      inputLabel={`${name} from`}
+                      label={tx("db.orchestrasTab.from_2")}
+                      inputLabel={tx("db.orchestrasTab.from", { name })}
                       editing
                       value={yrs[0]}
                       type="number"
@@ -561,8 +597,8 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
                       }
                     />
                     <ValueCell
-                      label="To"
-                      inputLabel={`${name} to`}
+                      label={tx("db.orchestrasTab.to_2")}
+                      inputLabel={tx("db.orchestrasTab.to", { name })}
                       editing
                       value={yrs[1]}
                       type="number"
@@ -582,15 +618,19 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
       <Sheet
         open={!!gradesFor}
         onClose={() => setGradesFor(null)}
-        title={gradesFor ? `Era grades · ${gradesFor.name}` : ""}
-        trailing="Done"
+        title={gradesFor ? tx("db.orchestrasTab.era_grades", { name: gradesFor.name }) : ""}
+        trailing={tx("db.orchestrasTab.done")}
         detents={["large"]}
         testId="grades-sheet"
       >
         {gradesFor && (
           <Group
-            header={editing ? "Tap a grade to change it" : "Grades by year"}
-            footer="Your grades win over the shipped ones; set one back to remove your change."
+            header={
+              editing
+                ? tx("db.orchestrasTab.tap_a_grade_to_change_it")
+                : tx("db.orchestrasTab.grades_by_year")
+            }
+            footer={tx("db.orchestrasTab.your_grades_win_over_the_shipped")}
           >
             <div className="cell flex-wrap gap-x-3 gap-y-1 py-2" data-testid="grade-legend">
               {GRADE_LEGEND.map((g) => (
@@ -607,9 +647,9 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
               ))}
             </div>
             <div className="cell text-footnote py-2 text-[var(--label-2)]">
-              <span className="w-14 shrink-0">Year</span>
-              <span className="flex-1 text-center">Instrumental</span>
-              <span className="flex-1 text-center">With a singer</span>
+              <span className="w-14 shrink-0">{tx("db.orchestrasTab.year")}</span>
+              <span className="flex-1 text-center">{tx("db.orchestrasTab.instrumental_2")}</span>
+              <span className="flex-1 text-center">{tx("db.orchestrasTab.with_a_singer_2")}</span>
             </div>
             {gradeYears.map((y) => (
               <div key={y} className="cell py-1" data-year={y}>
@@ -626,7 +666,7 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
                         className="grade-btn"
                         data-g={has ? g : ""}
                         data-edited={mine || undefined}
-                        aria-label={`${y} ${mode === "vocal" ? "with a singer" : "instrumental"}: ${word}${editing ? ". Change" : ""}`}
+                        aria-label={`${y} ${mode === "vocal" ? tx("db.orchestrasTab.with_a_singer") : tx("db.orchestrasTab.instrumental")}: ${word}${editing ? tx("db.orchestrasTab.change") : ""}`}
                         onClick={() => setGrade(gradesFor, mode, y)}
                         disabled={!editing}
                         data-testid="grade-cell"
@@ -642,7 +682,7 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
           </Group>
         )}
         {gradesFor && !editing && (
-          <p className="section-foot">Tap Edit in the Database bar to change grades.</p>
+          <p className="section-foot">{tx("db.orchestrasTab.tap_edit_in_the_database_bar")}</p>
         )}
       </Sheet>
     </div>

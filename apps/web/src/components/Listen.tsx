@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { keyLabel } from "@/lib/analyze";
 import { effectiveSong } from "@/lib/audio";
+import { t as tx } from "@/lib/i18n";
 import { fade, t as tw } from "@/lib/motion";
 import { previewEndpoint, usePlayer } from "@/lib/player";
 import { resolveTrack } from "@/lib/spotify";
@@ -111,17 +112,24 @@ export function TandaListen({ t, playlists }: { t: Tanda; playlists: ReferencePl
     if (!ids)
       return (
         <p className={`${foot} flex items-center gap-2`}>
-          <LoaderCircle size={14} className="animate-spin" /> Finding these recordings on Spotify…
+          <LoaderCircle size={14} className="animate-spin" />{" "}
+          {tx("listen.finding_these_recordings_on_spotify")}
         </p>
       );
     return (
       <div className="space-y-2">
         {t.songs.map((s, k) =>
           ids[k] ? (
-            <SpotifyEmbed key={s.id} kind="track" id={ids[k]!} title={`${s.title} on Spotify`} height={80} />
+            <SpotifyEmbed
+              key={s.id}
+              kind="track"
+              id={ids[k]!}
+              title={tx("listen.on_spotify", { title: s.title })}
+              height={80}
+            />
           ) : (
             <motion.p key={s.id} variants={fade} initial="hidden" animate="show" className={foot}>
-              {s.title}: not on Spotify under this title.
+              {tx("listen.not_on_spotify_under_this_title", { title: s.title })}
             </motion.p>
           ),
         )}
@@ -129,18 +137,18 @@ export function TandaListen({ t, playlists }: { t: Tanda; playlists: ReferencePl
     );
   }
   const ref = referenceFor(playlists, t);
-  const first = t.songs[0]?.title ?? "the tracks";
+  const first = t.songs[0]?.title ?? tx("listen.the_tracks");
   if (!ref)
     return (
       <p className={foot}>
-        No public {t.orchestra} playlist to preview. Use the play buttons on the rows for 30 s previews, or{" "}
+        {tx("listen.no_public_playlist_to_preview_use", { orchestra: t.orchestra, p1: " " })}
         <a
           className={link}
           href={`https://open.spotify.com/search/${encodeURIComponent(`${t.orchestra} ${first}`.trim())}`}
           target="_blank"
           rel="noreferrer"
         >
-          open on Spotify
+          {tx("listen.open_on_spotify_2")}
         </a>
         .
       </p>
@@ -149,8 +157,10 @@ export function TandaListen({ t, playlists }: { t: Tanda; playlists: ReferencePl
     <div className="space-y-2">
       <SpotifyEmbed kind="playlist" id={ref.id} title={ref.title} height={152} />
       <p className={foot}>
-        Preview: a public {t.orchestra} playlist{ref.owner ? ` by ${ref.owner}` : ""}. Connect Spotify to play{" "}
-        <em>{first}</em> and the other tracks; the row play buttons give 30 s previews.
+        {tx("listen.preview_a_public_playlist", { orchestra: t.orchestra })}
+        {ref.owner ? ` ${tx("listen.by", { owner: ref.owner })}` : ""}
+        {tx("listen.connect_spotify_to_play", { p1: " " })}
+        <em>{first}</em> {tx("listen.and_the_other_tracks_the_row")}
       </p>
     </div>
   );
@@ -218,7 +228,13 @@ export function CortinaPreview({ c }: { c: Cortina }) {
     if (r) setId(trackId(r.uri));
     setState(r ? "idle" : "embed-none");
   };
-  const meta = `${c.genre} · ${c.culture} · energy ${c.energy}${c.year ? ` · ${c.year}` : ""} · plays ${stopSec} s`;
+  const meta = tx("listen.energy_plays_s", {
+    genre: c.genre,
+    culture: c.culture,
+    energy: c.energy,
+    p1: c.year ? ` · ${c.year}` : "",
+    stopSec,
+  });
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-3">
@@ -236,12 +252,12 @@ export function CortinaPreview({ c }: { c: Cortina }) {
           ) : (
             <Play size={16} fill="currentColor" strokeWidth={0} />
           )}{" "}
-          {playingThis && player.playing ? "Pause" : `Preview cortina (${stopSec} s)`}
+          {playingThis && player.playing ? tx("listen.pause") : tx("listen.preview_cortina_s", { stopSec })}
         </button>
         {connected && !id && (
           <button type="button" className="btn-plain" onClick={embed} disabled={state === "embed-busy"}>
-            {state === "embed-busy" ? <LoaderCircle size={16} className="animate-spin" /> : null} Full track
-            on Spotify
+            {state === "embed-busy" ? <LoaderCircle size={16} className="animate-spin" /> : null}{" "}
+            {tx("listen.full_track_on_spotify")}
           </button>
         )}
         {!connected && !id && (
@@ -251,7 +267,7 @@ export function CortinaPreview({ c }: { c: Cortina }) {
             target="_blank"
             rel="noreferrer"
           >
-            Open on Spotify
+            {tx("listen.open_on_spotify")}
           </a>
         )}
         <span className={foot}>{meta}</span>
@@ -265,7 +281,7 @@ export function CortinaPreview({ c }: { c: Cortina }) {
               exit="exit"
               className={foot}
             >
-              {state === "none" ? "No preview found." : "Not found on Spotify."}
+              {state === "none" ? tx("listen.no_preview_found") : tx("listen.not_found_on_spotify")}
             </motion.span>
           )}
         </AnimatePresence>
@@ -310,14 +326,14 @@ export function MoodCheck({
   const peakAt = playlist ? playlist.tandas.findIndex((t) => t.energy === peak) + 1 : 0;
   // the reference tandas sit around a 60–65 mean with the peak past the middle of the night
   const verdict = !playlist
-    ? "Compose a set to compare it."
+    ? tx("listen.compose_a_set_to_compare_it")
     : energy != null && energy > 70
-      ? "Hotter than the reference tandas: a marathon peak, not a salón night."
+      ? tx("listen.hotter_than_the_reference_tandas_a")
       : energy != null && energy < 52
-        ? "Softer than the reference tandas: a práctica or an early-evening feel."
+        ? tx("listen.softer_than_the_reference_tandas_a")
         : peakAt && tandas && peakAt / tandas < 0.4
-          ? "Same warmth as the reference, but the peak comes early."
-          : "In the same mood as the reference tandas: warm, with the peak past the middle.";
+          ? tx("listen.same_warmth_as_the_reference_but")
+          : tx("listen.in_the_same_mood_as_the");
   const cell = (label: string, v: string) => (
     <div className="cell py-2">
       <span className="min-w-0 flex-1">{label}</span>
@@ -331,16 +347,24 @@ export function MoodCheck({
           <div className="cell flex-col items-stretch gap-0.5 py-3">
             <span className="text-headline">{verdict}</span>
             <span className={foot}>
-              Your set vs the reference tandas · {withAudio.length} of {songs.length} tracks analysed
+              {tx("listen.your_set_vs_the_reference_tandas", {
+                length: withAudio.length,
+                length1: songs.length,
+              })}
             </span>
           </div>
-          {cell("Mean energy", `${energy ?? "–"} · ref ≈ 62`)}
-          {cell("Peak", `${peak} at tanda ${peakAt} of ${tandas}`)}
-          {cell("Vals · milonga", `${vals} · ${milongas} of ${tandas}`)}
-          {cell("Tempo (analysed)", bpm ? `${bpm} BPM mean` : "no analysed audio yet")}
+          {cell(tx("listen.mean_energy"), tx("listen.ref_62", { p1: energy ?? "–" }))}
+          {cell("Peak", tx("listen.at_tanda_of", { peak, peakAt, tandas }))}
+          {cell(tx("listen.vals_milonga"), tx("listen.of", { vals, milongas, tandas }))}
           {cell(
-            "Keys (analysed)",
-            keys.length ? `${keys.join(", ")}${minor != null ? ` · ${minor}% minor` : ""}` : "–",
+            tx("listen.tempo_analysed"),
+            bpm ? tx("listen.bpm_mean", { bpm }) : tx("listen.no_analysed_audio_yet"),
+          )}
+          {cell(
+            tx("listen.keys_analysed"),
+            keys.length
+              ? `${keys.join(", ")}${minor != null ? ` ${tx("listen.minor", { minor })}` : ""}`
+              : "–",
           )}
         </div>
       )}
@@ -352,7 +376,7 @@ export function MoodCheck({
           </div>
         ))}
       </div>
-      <p className={foot}>Listen to Aren León's reference tandas on Spotify to hear the yardstick.</p>
+      <p className={foot}>{tx("listen.listen_to_aren_leon_s_reference")}</p>
     </div>
   );
 }

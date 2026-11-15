@@ -5,6 +5,7 @@ import { type AcpConnection, acpProbe, canSpawnAgents, transportFor } from "@/li
 import { KEY_PROVIDERS, type KeyProvider, modelFor, PROVIDER_LABEL } from "@/lib/ai/models";
 import { chooseAgent, chooseKeyProvider, keyOf, newAgentId, removeAgent, saveAgent } from "@/lib/ai/settings";
 import { haptic } from "@/lib/haptics";
+import { t } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 import { ActionRow, FieldRow, Group, SegmentedRow, Tile } from "./Form";
 import { Sheet } from "./Sheet";
@@ -49,7 +50,9 @@ function ModelRow({
   tile: React.ReactNode;
 }) {
   const useAs = useTip<HTMLButtonElement>(
-    active ? "Every generation uses this" : `Use ${label} for every generation`,
+    active
+      ? t("modelConnections.every_generation_uses_this")
+      : t("modelConnections.use_for_every_generation", { label }),
   );
   return (
     <div className="cell gap-1 pr-2" data-leading="tile" id={id} data-active={active || undefined}>
@@ -73,16 +76,23 @@ function ModelRow({
           </span>
         </span>
         <span className="grid h-5 w-5 shrink-0 place-items-center">
-          {active && <Check size={18} strokeWidth={2.5} className="text-[var(--tint)]" aria-label="In use" />}
+          {active && (
+            <Check
+              size={18}
+              strokeWidth={2.5}
+              className="text-[var(--tint)]"
+              aria-label={t("modelConnections.in_use")}
+            />
+          )}
         </span>
       </button>
       {onEdit && (
-        <Tip text={"Edit"}>
+        <Tip text={t("modelConnections.edit_2")}>
           <button
             type="button"
             className="icon-btn icon-btn-bare h-11 w-11"
             onClick={onEdit}
-            aria-label={`Edit ${label}`}
+            aria-label={t("modelConnections.edit", { label })}
           >
             <Pencil size={16} aria-hidden />
           </button>
@@ -96,7 +106,7 @@ function ModelRow({
           disabled={testDisabled || probe?.state === "busy"}
           data-testid={`${id}-test`}
         >
-          Test
+          {t("modelConnections.test")}
         </button>
       </Tip>
     </div>
@@ -135,17 +145,20 @@ export function ModelConnections() {
       setProbe((x) => ({
         ...x,
         [p]: r.ok
-          ? { state: "ok", text: `Connected · ${modelFor(p, k.model)} answered` }
+          ? { state: "ok", text: t("modelConnections.connected_answered", { p1: modelFor(p, k.model) }) }
           : {
               state: "fail",
               text:
                 r.status === 401 || r.status === 403
-                  ? "The key was rejected"
+                  ? t("modelConnections.the_key_was_rejected")
                   : String(j.error ?? r.status).slice(0, 90),
             },
       }));
     } catch {
-      setProbe((x) => ({ ...x, [p]: { state: "fail", text: "Could not reach the server" } }));
+      setProbe((x) => ({
+        ...x,
+        [p]: { state: "fail", text: t("modelConnections.could_not_reach_the_server") },
+      }));
     }
   };
   const testAgent = async (c: AcpConnection) => {
@@ -158,18 +171,18 @@ export function ModelConnections() {
       setProbe((x) => ({ ...x, [c.id]: { state: "ok", text } }));
       setSettings(saveAgent(useStore.getState().settings, { ...c, lastTest: { ok: true, at, agent } }));
     } catch (e) {
-      const message = e instanceof Error ? e.message : "Could not reach the agent";
+      const message = e instanceof Error ? e.message : t("modelConnections.could_not_reach_the_agent");
       setProbe((x) => ({ ...x, [c.id]: { state: "fail", text: message } }));
       setSettings(saveAgent(useStore.getState().settings, { ...c, lastTest: { ok: false, at, message } }));
     }
   };
   const agentSub = (c: AcpConnection) => {
-    const where = c.kind === "process" ? (c.command ?? "Local app") : (c.url ?? "");
-    if (c.kind === "process" && !local) return `${where} · runs in the Mac app`;
-    if (!c.lastTest) return `${where} · not tested yet`;
+    const where = c.kind === "process" ? (c.command ?? t("modelConnections.local_app")) : (c.url ?? "");
+    if (c.kind === "process" && !local) return t("modelConnections.runs_in_the_mac_app", { where });
+    if (!c.lastTest) return t("modelConnections.not_tested_yet", { where });
     return c.lastTest.ok
-      ? `${where} · connected${c.lastTest.agent ? ` (${c.lastTest.agent})` : ""}`
-      : `${where} · did not answer last time`;
+      ? t("modelConnections.connected", { where, p1: c.lastTest.agent ? ` (${c.lastTest.agent})` : "" })
+      : t("modelConnections.did_not_answer_last_time", { where });
   };
 
   const save = () => {
@@ -182,8 +195,8 @@ export function ModelConnections() {
   return (
     <>
       <Group
-        header="Keys and agents"
-        footer="The one with the check mark writes your reviews, reads “Tell the DJ”, edits the night with AI and makes the AI pick. Keys and agent addresses stay in this browser and go only with your own requests. An agent is an AI agent app on your computer or server (Claude Code, Gemini CLI and others), reached by its address."
+        header={t("modelConnections.keys_and_agents")}
+        footer={t("modelConnections.the_one_with_the_check_mark")}
         data-testid="model-connections"
       >
         {KEY_PROVIDERS.map(([p, label]) => {
@@ -193,7 +206,11 @@ export function ModelConnections() {
               key={p}
               id={`model-${p}`}
               label={label}
-              sub={k.key ? `Key saved · ${modelFor(p, k.model)}` : "No key"}
+              sub={
+                k.key
+                  ? t("modelConnections.key_saved", { p1: modelFor(p, k.model) })
+                  : t("modelConnections.no_key")
+              }
               // the check mark means "this runs every generation": never beside a provider with no key
               active={settings.ai.provider === p && !!k.key}
               onUse={() => setSettings(chooseKeyProvider(ms, p))}
@@ -201,8 +218,8 @@ export function ModelConnections() {
               testDisabled={!k.key}
               testTitle={
                 k.key
-                  ? `Ask ${label} for one word`
-                  : `Test is off: add a ${label} key under Models above first`
+                  ? t("modelConnections.ask_for_one_word", { label })
+                  : t("modelConnections.test_is_off_add_a_key", { label })
               }
               probe={probe[p]}
               tile={
@@ -225,8 +242,8 @@ export function ModelConnections() {
             testDisabled={c.kind === "process" && !local}
             testTitle={
               c.kind === "process" && !local
-                ? "Test is off: an agent started as a program only runs in the Mac app"
-                : "Connect to the agent and ask for one word"
+                ? t("modelConnections.test_is_off_an_agent_started")
+                : t("modelConnections.connect_to_the_agent_and_ask")
             }
             probe={probe[c.id]}
             onEdit={() => setEditing(c)}
@@ -238,10 +255,15 @@ export function ModelConnections() {
           />
         ))}
         <ActionRow
-          label="Add an agent connection…"
-          tip="Use an AI app on your own computer, such as Claude Code, instead of a key"
+          label={t("modelConnections.add_an_agent_connection")}
+          tip={t("modelConnections.use_an_ai_app_on_your")}
           onClick={() =>
-            setEditing({ id: newAgentId(), name: "My agent", kind: "url", url: "ws://localhost:8765" })
+            setEditing({
+              id: newAgentId(),
+              name: t("modelConnections.my_agent"),
+              kind: "url",
+              url: "ws://localhost:8765",
+            })
           }
           id="model-add-agent"
         />
@@ -250,8 +272,12 @@ export function ModelConnections() {
       <Sheet
         open={!!editing}
         onClose={() => setEditing(null)}
-        title={agents.some((a) => a.id === editing?.id) ? "Agent connection" : "New agent connection"}
-        trailing="Save"
+        title={
+          agents.some((a) => a.id === editing?.id)
+            ? t("modelConnections.agent_connection")
+            : t("modelConnections.new_agent_connection")
+        }
+        trailing={t("modelConnections.save")}
         onTrailing={save}
         testId="agent-sheet"
       >
@@ -260,13 +286,13 @@ export function ModelConnections() {
             <Group
               footer={
                 editing.kind === "url"
-                  ? "The address of your AI agent app: one on this computer starts with ws://localhost, one on a server with wss://. The agent's own help says how to get it."
+                  ? t("modelConnections.the_address_of_your_ai_agent")
                   : local
-                    ? "The command that starts the agent on this Mac, for example npx @zed-industries/claude-code-acp."
-                    : "A local agent process runs in the Mac app. On the web, connect with an address."
+                    ? t("modelConnections.the_command_that_starts_the_agent")
+                    : t("modelConnections.a_local_agent_process_runs_in")
               }
             >
-              <FieldRow label="Name" id="agent-name">
+              <FieldRow label={t("modelConnections.name")} id="agent-name">
                 <input
                   id="agent-name"
                   className="field field-value min-w-0 flex-1"
@@ -277,29 +303,33 @@ export function ModelConnections() {
                 />
               </FieldRow>
               <SegmentedRow
-                label="Connects by"
+                label={t("modelConnections.connects_by")}
                 value={editing.kind}
                 items={[
-                  ["url", "Address"],
-                  ["process", "Local app"],
+                  ["url", t("modelConnections.address")],
+                  ["process", t("modelConnections.local_app")],
                 ]}
                 onChange={(kind) => setEditing({ ...editing, kind })}
               />
               {editing.kind === "url" ? (
                 <>
-                  <FieldRow label="Address" id="agent-url">
+                  <FieldRow label={t("modelConnections.address")} id="agent-url">
                     <input
                       id="agent-url"
                       className="field field-value min-w-0 flex-1 font-mono"
                       value={editing.url ?? ""}
-                      placeholder="ws://localhost:8765"
+                      placeholder={t("modelConnections.ws_localhost_8765")}
                       onChange={(e) => setEditing({ ...editing, url: e.target.value.trim() })}
                       autoComplete="off"
                       spellCheck={false}
                       inputMode="url"
                     />
                   </FieldRow>
-                  <FieldRow label="Token" sub="Only if the bridge asks for one" id="agent-token">
+                  <FieldRow
+                    label={t("modelConnections.token")}
+                    sub={t("modelConnections.only_if_the_bridge_asks_for")}
+                    id="agent-token"
+                  >
                     <input
                       id="agent-token"
                       type="password"
@@ -312,12 +342,12 @@ export function ModelConnections() {
                   </FieldRow>
                 </>
               ) : (
-                <FieldRow label="Command" id="agent-command">
+                <FieldRow label={t("modelConnections.command")} id="agent-command">
                   <input
                     id="agent-command"
                     className="field field-value min-w-0 flex-1 font-mono"
                     value={[editing.command ?? "", ...(editing.args ?? [])].join(" ").trim()}
-                    placeholder="npx @zed-industries/claude-code-acp"
+                    placeholder={t("modelConnections.npx_zed_industries_claude_code_acp")}
                     onChange={(e) => {
                       const [command, ...args] = e.target.value.split(/\s+/);
                       setEditing({ ...editing, command, args: args.filter(Boolean) });
@@ -332,22 +362,22 @@ export function ModelConnections() {
               footer={
                 <span role="status" aria-live="polite" data-testid="agent-sheet-status">
                   {probe[editing.id]?.state === "busy"
-                    ? "Connecting…"
+                    ? t("modelConnections.connecting")
                     : probe[editing.id]
                       ? (probe[editing.id] as { text: string }).text
-                      : `${PROVIDER_LABEL.acp}: T-DJ only asks it questions; it gets no files, no terminal and no permissions.`}
+                      : t("modelConnections.t_dj_only_asks_it_questions", { acp: PROVIDER_LABEL.acp })}
                 </span>
               }
             >
               <ActionRow
-                label="Test connection"
+                label={t("modelConnections.test_connection")}
                 onClick={() => testAgent(editing)}
                 busy={probe[editing.id]?.state === "busy"}
                 disabled={editing.kind === "process" && !local}
                 id="agent-test"
               />
               <ActionRow
-                label="Save and use for every generation"
+                label={t("modelConnections.save_and_use_for_every_generation")}
                 onClick={() => {
                   const c = { ...editing, name: editing.name.trim() || "Agent" };
                   const s1 = {
@@ -361,7 +391,7 @@ export function ModelConnections() {
               />
               {agents.some((a) => a.id === editing.id) && (
                 <ActionRow
-                  label="Delete this connection"
+                  label={t("modelConnections.delete_this_connection")}
                   destructive
                   onClick={() => {
                     setSettings(removeAgent(useStore.getState().settings, editing.id));

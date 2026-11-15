@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 /**
  * A small QR Code encoder (ISO/IEC 18004, byte mode, versions 1–40, error correction L/M/Q/H) for the share sheet,
  * so a night or a room travels phone → iPad without a dependency. After Project Nayuki's reference implementation
@@ -87,7 +88,7 @@ export function qrMatrix(text: string, ecc: QrEcc = "M"): boolean[][] {
     const ccBits = ver <= 9 ? 8 : 16;
     if (4 + ccBits + bytes.length * 8 <= numDataCodewords(ver, e) * 8) break;
   }
-  if (ver > 40) throw new Error("Too much data for a QR code");
+  if (ver > 40) throw new Error(t("qr.too_much_data_for_a_qr"));
   const cap = numDataCodewords(ver, e) * 8;
   const bits: number[] = [];
   const put = (v: number, n: number) => {

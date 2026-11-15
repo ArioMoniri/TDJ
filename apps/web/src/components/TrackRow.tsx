@@ -7,6 +7,7 @@ import { analyseSong, isAnalysing, keyLabel } from "@/lib/analyze";
 import { patchedSong } from "@/lib/audio";
 import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
+import { t } from "@/lib/i18n";
 import { lineSwap } from "@/lib/motion";
 import { sourceFor, trackFor, usePlayer } from "@/lib/player";
 import { bpmText, keyText, useSongData } from "@/lib/songView";
@@ -112,13 +113,17 @@ export const TrackRow = memo(function TrackRow({
   };
   const swap = () => onSwap(k);
   const analysing = busy || isAnalysing(song.id);
-  const playLabel = playing ? `Pause ${title}` : source ? `Play ${title}` : `Find ${title} on services`;
+  const playLabel = playing
+    ? t("trackRow.pause", { title })
+    : source
+      ? t("trackRow.play", { title })
+      : t("trackRow.find_on_services_2", { title });
   const playTip = useTip<HTMLButtonElement>(
     playing
       ? "Pause"
       : source
-        ? "Play a preview in the mini player"
-        : "Look for this side on Spotify, Deezer or YouTube",
+        ? t("trackRow.play_a_preview_in_the_mini")
+        : t("trackRow.look_for_this_side_on_spotify"),
   );
 
   return (
@@ -141,7 +146,13 @@ export const TrackRow = memo(function TrackRow({
       <SwipeRow
         leading="num"
         actions={[
-          { kind: "swap", label: "Swap", icon: "swap", onClick: swap, disabled: disabled || inFlight },
+          {
+            kind: "swap",
+            label: t("trackRow.swap_2"),
+            icon: "swap",
+            onClick: swap,
+            disabled: disabled || inFlight,
+          },
         ]}
       >
         <div className="cell" data-leading="num">
@@ -204,7 +215,7 @@ export const TrackRow = memo(function TrackRow({
             <span className={`shrink-0 text-[var(--label-2)] ${isPhone ? "sr-only" : ""}`}>
               {song.transcription || approx ? (
                 <span className="text-caption1" data-testid="undated">
-                  undated transcription{year ? ` · c. ${year}` : ""}
+                  {t("trackRow.undated_transcription", { p1: year ? ` · c. ${year}` : "" })}
                 </span>
               ) : (
                 yearText(year)
@@ -213,23 +224,23 @@ export const TrackRow = memo(function TrackRow({
           </span>
           {keyOnly && (
             <span className="data-chip font-mono" data-testid="key-chip">
-              <span className="sr-only">Key </span>
+              <span className="sr-only">{t("trackRow.key")} </span>
               {keyOnly}
             </span>
           )}
           {bpm && !isPhone && level === null && (
-            <Tip text={bpmPick?.note ?? "Beats per minute"}>
+            <Tip text={bpmPick?.note ?? t("trackRow.beats_per_minute")}>
               <span className="data-chip" data-testid="row-bpm">
                 {bpm}
               </span>
             </Tip>
           )}
           {audio && !isPhone && (
-            <Tip text={`Key ${keyLabel(audio)} · analysed from a 30 s preview`}>
+            <Tip text={t("trackRow.key_analysed_from_a_30_s", { p1: keyLabel(audio) })}>
               <button
                 type="button"
                 className="key-chip text-caption1 -my-1 inline-flex min-h-[28px] shrink-0 items-center whitespace-nowrap rounded-md bg-[var(--fill-4)] px-1.5 font-mono tabular-nums text-[var(--label-2)]"
-                aria-label={`Key ${keyLabel(audio)}, details`}
+                aria-label={t("trackRow.key_details", { p1: keyLabel(audio) })}
                 data-testid="key-chip"
                 onPointerDown={(e) => e.stopPropagation()}
                 onClick={openDetails}
@@ -244,13 +255,13 @@ export const TrackRow = memo(function TrackRow({
               className="text-caption1 rounded-md bg-[var(--fill-4)] px-1.5 py-0.5 font-mono tabular-nums text-[var(--label-2)]"
               data-testid="key-chip"
             >
-              <span className="sr-only">Key </span>
+              <span className="sr-only">{t("trackRow.key")} </span>
               {keyLabel(audio)}
             </span>
           )}
           {/* round 21: the measured tempo and level the tanda's bands read */}
           {level !== null && tempoLine && !isPhone && (
-            <Tip text={bpmPick?.note ?? "The side's level"}>
+            <Tip text={bpmPick?.note ?? t("trackRow.the_side_s_level")}>
               <span
                 className="row-tempo text-caption1 shrink-0 whitespace-nowrap tabular-nums text-[var(--label-3)]"
                 data-testid="row-tempo"
@@ -260,7 +271,7 @@ export const TrackRow = memo(function TrackRow({
             </Tip>
           )}
           <span className="text-subhead tabular-nums text-[var(--label-2)]">
-            <span className="sr-only">energy </span>
+            <span className="sr-only">{t("trackRow.energy")} </span>
             {energy}
           </span>
           {!isPhone && (
@@ -278,8 +289,8 @@ export const TrackRow = memo(function TrackRow({
             <Tip
               text={
                 disabled
-                  ? `Swap: ${lockedWhy ?? "unlock the tanda first"}`
-                  : "Swap this track for another of the same family"
+                  ? `Swap: ${lockedWhy ?? t("trackRow.unlock_the_tanda_first")}`
+                  : t("trackRow.swap_this_track_for_another_of")
               }
             >
               <button
@@ -294,7 +305,7 @@ export const TrackRow = memo(function TrackRow({
             </Tip>
           )}
           <Menu
-            label={`Track ${n} actions`}
+            label={t("trackRow.track_actions", { n })}
             className="icon-btn-bare -my-2 -mr-3 h-11 w-10"
             icon={
               analysing ? (
@@ -308,22 +319,24 @@ export const TrackRow = memo(function TrackRow({
               // wave 2: a greyed-out Swap says why
               {
                 label: disabled
-                  ? `Swap… (${lockedWhy ?? "unlock the tanda first"})`
+                  ? `Swap… (${lockedWhy ?? t("trackRow.unlock_the_tanda_first")})`
                   : inFlight
-                    ? "Swap… (swapping)"
-                    : "Swap…",
+                    ? t("trackRow.swap_swapping")
+                    : t("trackRow.swap"),
                 icon: Repeat2,
                 onClick: swap,
                 disabled: disabled || inFlight,
               },
-              { label: "Find on services…", icon: Search, onClick: openFind },
+              { label: t("trackRow.find_on_services"), icon: Search, onClick: openFind },
               {
-                label: audio ? "Analyse again in browser" : "Analyse in browser",
+                label: audio ? t("trackRow.analyse_again_in_browser") : t("trackRow.analyse_in_browser"),
                 icon: AudioWaveform,
                 onClick: analyse,
                 disabled: analysing || !eff.resolved?.previewUrl,
               },
-              audio ? { label: "Audio details", icon: AudioWaveform, onClick: openDetails } : null,
+              audio
+                ? { label: t("trackRow.audio_details"), icon: AudioWaveform, onClick: openDetails }
+                : null,
             ]}
           />
         </div>

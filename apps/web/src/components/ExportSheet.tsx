@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { downloadBlob } from "@/lib/download";
 import { withoutCortinas } from "@/lib/exportPaths";
 import { haptic } from "@/lib/haptics";
+import { lazy, t as tx } from "@/lib/i18n";
 import type { Match, MatchItem } from "@/lib/match";
 import { DUR, SPRING } from "@/lib/motion";
 import {
@@ -73,7 +74,7 @@ export async function sendToWebhook(
   };
   try {
     const r = await fetch(u.toString(), init);
-    if (!r.ok) throw new Error(`Webhook answered ${r.status}`);
+    if (!r.ok) throw new Error(tx("exportSheet.webhook_answered", { status: r.status }));
     return "ok";
   } catch (e) {
     if (e instanceof Error && /answered \d+/.test(e.message)) throw e;
@@ -82,11 +83,11 @@ export async function sendToWebhook(
   }
 }
 
-const GROUPS: Array<[string, ExportFormat[]]> = [
-  ["DJ software", ["rekordbox", "traktor", "serato"]],
-  ["Playlist files", ["m3u8", "xspf", "csv"]],
-  ["Other", ["json", "setlist"]],
-];
+const GROUPS: Array<[string, ExportFormat[]]> = lazy(() => [
+  [tx("exportSheet.dj_software"), ["rekordbox", "traktor", "serato"]],
+  [tx("exportSheet.playlist_files"), ["m3u8", "xspf", "csv"]],
+  [tx("exportSheet.other"), ["json", "setlist"]],
+]);
 /** Which DJ-app folder a format uses for real file paths. */
 const APP_FOR: Partial<Record<ExportFormat, DjApp[]>> = {
   rekordbox: ["rekordbox"],
@@ -226,10 +227,10 @@ export function ExportSheet({
           naming: settings.fileNaming,
         }),
       });
-      if (!r.ok) throw new Error(`Export failed (${r.status})`);
+      if (!r.ok) throw new Error(tx("exportSheet.export_failed", { status: r.status }));
       downloadBlob(`${playlist.name.replace(/[^a-z0-9-]+/gi, "_")}.${m.ext}`, await r.text(), m.mime);
       haptic(6);
-      toast(`Downloaded ${m.label} (.${m.ext})`);
+      toast(tx("exportSheet.downloaded_2", { label: m.label, ext: m.ext }));
       setJustDone(f);
       setTimeout(() => setJustDone((j) => (j === f ? null : j)), 1200);
       onClose();
@@ -261,8 +262,7 @@ export function ExportSheet({
       return { ...o, songs: next };
     });
   };
-  const pauseMessage = (sec: number) =>
-    `Spotify is pausing searches for ${sec} s; the playlist will contain the tracks found so far, try again in a minute to add the rest`;
+  const pauseMessage = (sec: number) => tx("exportSheet.spotify_is_pausing_searches_for_s", { sec });
   /**
    * Hosted: the unresolved recordings go to the server in batches of 10 (one search in flight at a time there);
    * a rate limit ends the matching cleanly and the playlist is made with what was found.
@@ -277,7 +277,9 @@ export function ExportSheet({
     let done = 0;
     for (let i = 0; i < bs.length; i++) {
       const b = bs[i]!;
-      setProgress(`Matching ${Math.min(done + b.length, items.length)} of ${items.length}…`);
+      setProgress(
+        tx("exportSheet.matching_of", { p1: Math.min(done + b.length, items.length), length: items.length }),
+      );
       const r = await hostedMatch(b);
       for (const m of r.matches) {
         uris.push(m.uri);
@@ -308,7 +310,7 @@ export function ExportSheet({
     let remaining: MatchItem[] = [];
     for (let i = 0; i < items.length; i++) {
       const it = items[i]!;
-      setProgress(`Matching ${i + 1} of ${items.length}…`);
+      setProgress(tx("exportSheet.matching_of", { p1: i + 1, length: items.length }));
       try {
         const r = await resolveTrack(token, it);
         if (r) {
@@ -355,10 +357,17 @@ export function ExportSheet({
       return { missing: m.missing, note: "" };
     const r = standInCortinas(playlist, m.missingIds, found.current, await loadCuePool());
     const note = r.standIns.length
-      ? ` ${r.standIns.length === 1 ? "A cortina was" : `${r.standIns.length} cortinas were`} not on Spotify: ${r.standIns
-          .slice(0, 2)
-          .map((x) => `${x.standIn} stands in for ${x.cue}`)
-          .join("; ")}${r.standIns.length > 2 ? "…" : ""}.`
+      ? ` ${tx("exportSheet.not_on_spotify", {
+          p1:
+            r.standIns.length === 1
+              ? tx("exportSheet.a_cortina_was")
+              : tx("exportSheet.cortinas_were", { length: r.standIns.length }),
+          p2: r.standIns
+            .slice(0, 2)
+            .map((x) => tx("exportSheet.stands_in_for", { standIn: x.standIn, cue: x.cue }))
+            .join("; "),
+          p3: r.standIns.length > 2 ? "…" : "",
+        })}`
       : "";
     return { missing: r.missing.map((id) => labels.get(id) ?? id), note };
   };
@@ -366,7 +375,7 @@ export function ExportSheet({
     setNotMatched(missing);
     setLog((l) => [
       ...l,
-      `${added} tracks in the playlist${missing.length ? ` (${missing.length} not found: ${missing.slice(0, 3).join(", ")}${missing.length > 3 ? "…" : ""})` : ""}${paused ? `. Spotify paused searches for ${paused} s: ${left} still to match.` : "."}${note}`,
+      `${tx("exportSheet.tracks_in_playlist", { added })}${missing.length ? ` ${tx("exportSheet.not_found_list", { n: missing.length, list: `${missing.slice(0, 3).join(", ")}${missing.length > 3 ? "…" : ""}` })}` : ""}${paused ? tx("exportSheet.spotify_paused_searches_for_s_still", { paused, left }) : "."}${note}`,
     ]);
   };
 
@@ -392,8 +401,14 @@ export function ExportSheet({
         const uris = orderedUris(plan, found.current);
         // the same title and description (with the set's current score) for a new playlist and an update
         const details = {
-          name: `TDJ · ${playlist.name}`,
-          description: `${playlist.tandas.length} tandas composed with TDJ, cortinas ${includeCortinas ? "included" : "excluded"}. Score ${playlist.score?.total ?? "–"}/100.`,
+          name: tx("exportSheet.tdj", { name: playlist.name }),
+          description: tx(
+            includeCortinas ? "exportSheet.desc_with_cortinas" : "exportSheet.desc_without_cortinas",
+            {
+              n: playlist.tandas.length,
+              score: playlist.score?.total ?? "–",
+            },
+          ),
         };
         const r = targetId
           ? await hostedCreatePlaylist({
@@ -406,16 +421,13 @@ export function ExportSheet({
             })
           : await hostedCreatePlaylist({ uris, includeCortinas, ...details });
         rememberTarget(r.url);
-        setResult({ label: "Open in Spotify", url: r.url });
-        if (targetId && r.details === false)
-          toast(
-            "Tracks updated. Spotify kept the old title and description: only the playlist's owner can change them.",
-          );
+        setResult({ label: tx("exportSheet.open_in_spotify"), url: r.url });
+        if (targetId && r.details === false) toast(tx("exportSheet.tracks_updated_spotify_kept_the_old"));
         finishLog(r.added, si.missing, m.paused, m.remaining.length, si.note);
         if (m.paused && m.remaining.length) {
           const pend = { playlistId: r.id, url: r.url, remaining: m.remaining };
           setPending(pend);
-          toast(pauseMessage(m.paused), () => void tryAgain(pend), "Try again");
+          toast(pauseMessage(m.paused), () => void tryAgain(pend), tx("exportSheet.try_again"));
           haptic([20, 30, 20]);
         } else {
           setDone(true);
@@ -466,17 +478,20 @@ export function ExportSheet({
           }))
         : await createPlaylist(
             tok.access,
-            `TDJ · ${playlist.name}`,
-            `${playlist.tandas.length} tandas composed with TDJ, cortinas ${includeCortinas ? "included" : "excluded"}. Score ${playlist.score.total}/100.`,
+            tx("exportSheet.tdj", { name: playlist.name }),
+            tx(includeCortinas ? "exportSheet.desc_with_cortinas" : "exportSheet.desc_without_cortinas", {
+              n: playlist.tandas.length,
+              score: playlist.score.total,
+            }),
             uris,
           );
       rememberTarget(pl.external_urls.spotify);
-      setResult({ label: "Open in Spotify", url: pl.external_urls.spotify });
+      setResult({ label: tx("exportSheet.open_in_spotify"), url: pl.external_urls.spotify });
       finishLog(uris.length, si.missing, m.paused, m.remaining.length, si.note);
       if (m.paused && m.remaining.length) {
         const pend = { playlistId: pl.id, url: pl.external_urls.spotify, remaining: m.remaining };
         setPending(pend);
-        toast(pauseMessage(m.paused), () => void tryAgain(pend), "Try again");
+        toast(pauseMessage(m.paused), () => void tryAgain(pend), tx("exportSheet.try_again"));
       } else {
         setDone(true);
         check.current?.play();
@@ -524,12 +539,22 @@ export function ExportSheet({
       }
       setLog((l) => [
         ...l,
-        `Added ${m.uris.length} more${si.missing.length ? ` (${si.missing.length} not found)` : ""}${m.paused ? `. Spotify paused again for ${m.paused} s: ${m.remaining.length} still to match.` : "."}${si.note}`,
+        tx("exportSheet.added_more", {
+          length: m.uris.length,
+          p1: si.missing.length ? ` ${tx("exportSheet.not_found_3", { length: si.missing.length })}` : "",
+          p2: m.paused
+            ? tx("exportSheet.spotify_paused_again_for_s_still", {
+                paused: m.paused,
+                length: m.remaining.length,
+              })
+            : ".",
+          note: si.note,
+        }),
       ]);
       if (m.paused && m.remaining.length) {
         const next = { ...pend, remaining: m.remaining };
         setPending(next);
-        toast(pauseMessage(m.paused), () => void tryAgain(next), "Try again");
+        toast(pauseMessage(m.paused), () => void tryAgain(next), tx("exportSheet.try_again"));
       } else {
         setPending(null);
         setDone(true);
@@ -554,10 +579,12 @@ export function ExportSheet({
       setLog((l) => [
         ...l,
         how === "ok"
-          ? `Webhook accepted the ${EXPORT_META[hookFormat].label}.`
-          : `Sent the ${EXPORT_META[hookFormat].label} to the webhook (no CORS reply, so no confirmation).`,
+          ? tx("exportSheet.webhook_accepted_the", { label: EXPORT_META[hookFormat].label })
+          : tx("exportSheet.sent_the_to_the_webhook_no", { label: EXPORT_META[hookFormat].label }),
       ]);
-      toast(how === "ok" ? "Webhook accepted the export" : "Sent to the webhook");
+      toast(
+        how === "ok" ? tx("exportSheet.webhook_accepted_the_export") : tx("exportSheet.sent_to_the_webhook"),
+      );
     } catch (e) {
       setLog((l) => [...l, `Error: ${(e as Error).message}`]);
       haptic([20, 30, 20]);
@@ -582,19 +609,33 @@ export function ExportSheet({
         });
         setLog((l) => [
           ...l,
-          `Saved ${EXPORT_META[hookFormat].label} to ${a.label}${r.path ? ` (${r.path})` : ""}.`,
+          tx("exportSheet.saved_to_2", {
+            label: EXPORT_META[hookFormat].label,
+            label1: a.label,
+            p1: r.path ? ` (${r.path})` : "",
+          }),
         ]);
       } else {
         r = await connectExport({ app: a.app, accountId: a.id, playlist, includeCortinas });
         const miss = Array.isArray(r.missing) ? r.missing.length : 0;
         setLog((l) => [
           ...l,
-          `Created the ${a.label} playlist with ${r.added} tracks${miss ? `, ${miss} not found` : ""}${r.quota ? " (YouTube's daily search budget ran out; the rest fills in another day)" : ""}.`,
+          tx("exportSheet.created_the_playlist_with_tracks", {
+            label: a.label,
+            added: r.added,
+            p1: miss ? tx("exportSheet.not_found_2", { miss }) : "",
+            p2: r.quota ? tx("exportSheet.youtube_s_daily_search_budget_ran") : "",
+          }),
         ]);
       }
-      if (typeof r.url === "string") setResult({ label: `Open in ${a.label}`, url: r.url });
+      if (typeof r.url === "string")
+        setResult({ label: tx("exportSheet.open_in", { label: a.label }), url: r.url });
       haptic([10, 40, 10]);
-      toast(isFile ? `Saved to ${a.label}` : `${a.label} playlist created`);
+      toast(
+        isFile
+          ? tx("exportSheet.saved_to", { label: a.label })
+          : tx("exportSheet.playlist_created_2", { label: a.label }),
+      );
     } catch (e) {
       setLog((l) => [...l, `Error: ${(e as Error).message}`]);
       haptic([20, 30, 20]);
@@ -604,7 +645,7 @@ export function ExportSheet({
   };
   /** The export text of the chosen file format, with the DJ's folders and naming applied. */
   const exportText = async (format: ExportFormat) => {
-    if (!playlist) throw new Error("No playlist");
+    if (!playlist) throw new Error(tx("exportSheet.no_playlist"));
     const x = await fetch("/api/export", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -617,14 +658,19 @@ export function ExportSheet({
         naming: settings.fileNaming,
       }),
     });
-    if (!x.ok) throw new Error(`Export failed (${x.status})`);
+    if (!x.ok) throw new Error(tx("exportSheet.export_failed", { status: x.status }));
     return x.text();
   };
   const here = () => `${location.pathname}${location.search}`;
   /** Direct: the chosen file to Dropbox or Google Drive, or a playlist on YouTube, with the sealed-cookie session. */
   const toDirect = async (target: "dropbox" | "google_drive" | "youtube") => {
     if (!playlist) return;
-    const label = target === "dropbox" ? "Dropbox" : target === "google_drive" ? "Google Drive" : "YouTube";
+    const label =
+      target === "dropbox"
+        ? tx("exportSheet.dropbox")
+        : target === "google_drive"
+          ? tx("exportSheet.google_drive")
+          : tx("exportSheet.youtube");
     if (target === "dropbox" && !dropbox?.user) return location.assign(dropboxLoginUrl(here()));
     if (target !== "dropbox" && !google?.user)
       return location.assign(googleLoginUrl(target === "youtube" ? "youtube" : "drive", here()));
@@ -636,7 +682,7 @@ export function ExportSheet({
         const queries = youtubeQueries(playlist, includeCortinas);
         const bs = youtubeBatches(queries);
         const common = {
-          name: `TDJ · ${playlist.name}`,
+          name: tx("exportSheet.tdj", { name: playlist.name }),
           includeCortinas,
           tandas: playlist.tandas.length,
         };
@@ -652,7 +698,12 @@ export function ExportSheet({
             skipped += b.length;
             continue;
           }
-          setYtProgress(`Adding ${Math.min(done + b.length, queries.length)} of ${queries.length}…`);
+          setYtProgress(
+            tx("exportSheet.adding_of", {
+              p1: Math.min(done + b.length, queries.length),
+              length: queries.length,
+            }),
+          );
           const body: Record<string, unknown> = { ...common, queries: b };
           if (playlistId) body.playlistId = playlistId;
           const r: YoutubeResult = await directPost<YoutubeResult>("/api/google/youtube", body);
@@ -667,10 +718,18 @@ export function ExportSheet({
         setYtProgress(null);
         setLog((l) => [
           ...l,
-          `Created the YouTube playlist with ${added} tracks${missing ? `, ${missing} not found` : ""}${skipped ? `, ${skipped} left out (YouTube's daily search budget ran out; try the rest another day)` : ""}.`,
+          tx("exportSheet.created_the_youtube_playlist_with_tracks", {
+            added,
+            p1: missing ? tx("exportSheet.not_found", { missing }) : "",
+            p2: skipped ? tx("exportSheet.left_out_youtube_s_daily_search", { skipped }) : "",
+          }),
         ]);
-        if (url) setResult({ label: "Open in YouTube", url });
-        toast(skipped ? "YouTube playlist created, part left out" : "YouTube playlist created");
+        if (url) setResult({ label: tx("exportSheet.open_in_youtube"), url });
+        toast(
+          skipped
+            ? tx("exportSheet.youtube_playlist_created_part_left_out")
+            : tx("exportSheet.youtube_playlist_created"),
+        );
       } else {
         const filename = `${playlist.name.replace(/[^a-z0-9-]+/gi, "_")}.${EXPORT_META[hookFormat].ext}`;
         const text = await exportText(hookFormat);
@@ -680,10 +739,14 @@ export function ExportSheet({
         );
         setLog((l) => [
           ...l,
-          `Saved ${EXPORT_META[hookFormat].label} to ${label}${r.path ? ` (${r.path})` : ""}.`,
+          tx("exportSheet.saved_to_2", {
+            label: EXPORT_META[hookFormat].label,
+            label1: label,
+            p1: r.path ? ` (${r.path})` : "",
+          }),
         ]);
-        if (r.url) setResult({ label: `Open in ${label}`, url: r.url });
-        toast(`Saved to ${label}`);
+        if (r.url) setResult({ label: tx("exportSheet.open_in", { label }), url: r.url });
+        toast(tx("exportSheet.saved_to", { label }));
       }
       haptic([10, 40, 10]);
     } catch (e) {
@@ -706,12 +769,12 @@ export function ExportSheet({
     );
     window.open(service.importUrl, "_blank", "noreferrer");
     haptic(6);
-    toast(`Downloaded ${rows} rows for ${service.label}`);
+    toast(tx("exportSheet.downloaded_rows_for", { rows, label: service.label }));
   };
   const saveHook = () => {
     const v = hookDraft.trim();
     if (v && !/^https:\/\//i.test(v)) {
-      toast("The webhook must be an https:// URL");
+      toast(tx("exportSheet.the_webhook_must_be_an_https"));
       return;
     }
     updateOverrides((o) => ({ ...o, connectors: { ...(o.connectors ?? {}), webhookUrl: v || undefined } }));
@@ -758,32 +821,32 @@ export function ExportSheet({
             >
               {done
                 ? madeNew
-                  ? "Playlist created"
-                  : "Playlist updated"
+                  ? tx("exportSheet.playlist_created")
+                  : tx("exportSheet.playlist_updated")
                 : busy && progress
                   ? progress
                   : pending
-                    ? `Try again · ${pending.remaining.length} left`
+                    ? tx("exportSheet.try_again_left", { length: pending.remaining.length })
                     : hosted
                       ? hostedUser
                         ? targetId
-                          ? "Update playlist in Spotify"
-                          : "Create playlist in Spotify"
-                        : "Log in with Spotify and create playlist"
+                          ? tx("exportSheet.update_playlist_in_spotify")
+                          : tx("exportSheet.create_playlist_in_spotify")
+                        : tx("exportSheet.log_in_with_spotify_and_create")
                       : spotifyToken
                         ? targetId
-                          ? "Update playlist in Spotify"
-                          : "Create playlist in Spotify"
-                        : "Connect Spotify and create playlist"}
+                          ? tx("exportSheet.update_playlist_in_spotify")
+                          : tx("exportSheet.create_playlist_in_spotify")
+                        : tx("exportSheet.connect_spotify_and_create_playlist")}
             </motion.span>
           </AnimatePresence>
         </span>
       </button>
       {!hosted && !settings.spotifyClientId && (
         <p id="spotify-why" className="section-foot mt-2 text-center">
-          Needs a Spotify Client ID. Add one in{" "}
+          {tx("exportSheet.needs_a_spotify_client_id_add", { p1: " " })}
           <Link href="/settings" className="text-[var(--tint)]">
-            Settings
+            {tx("exportSheet.settings")}
           </Link>
           .
         </p>
@@ -808,22 +871,25 @@ export function ExportSheet({
       disabled={dlBusy !== null}
       data-testid="export-primary"
     >
-      <FileDown size={18} aria-hidden /> Save for VLC and the Booth (M3U8)
+      <FileDown size={18} aria-hidden /> {tx("exportSheet.save_for_vlc_and_the_booth")}
     </button>
   );
   const countLine = (
     <span id="export-count">
-      <CountUp value={tracks} /> {tracks === 1 ? "song" : "songs"}
-      {includeCortinas ? ` + ${cortinas} ${cortinas === 1 ? "cortina" : "cortinas"}` : ""} (
-      <CountUp value={count} /> {count === 1 ? "file" : "files"})
-      {includeCortinas ? "" : ` · ${cortinas} cortinas left out`}.
+      <CountUp value={tracks} /> {tracks === 1 ? tx("exportSheet.song") : tx("exportSheet.songs")}
+      {includeCortinas
+        ? ` + ${cortinas} ${cortinas === 1 ? tx("exportSheet.cortina") : tx("exportSheet.cortinas")}`
+        : ""}{" "}
+      (
+      <CountUp value={count} /> {count === 1 ? tx("exportSheet.file") : tx("exportSheet.files")})
+      {includeCortinas ? "" : ` ${tx("exportSheet.cortinas_left_out_2", { cortinas })}`}.
     </span>
   );
   return (
     <Sheet
       open={open}
       onClose={onClose}
-      title="Export"
+      title={tx("exportSheet.export")}
       describedBy="export-count"
       testId="export-sheet"
       detents={["large"]}
@@ -833,15 +899,23 @@ export function ExportSheet({
       <Group
         footer={
           includeCortinas
-            ? `Cortinas stop at ${cortinaStop} s in files and in the Booth; Spotify plays them in full.`
-            : "No cortinas in the files or in Spotify."
+            ? tx("exportSheet.cortinas_stop_at_s_in_files", { cortinaStop })
+            : tx("exportSheet.no_cortinas_in_the_files_or")
         }
       >
-        <SwitchRow label="Include cortinas" checked={includeCortinas} onChange={setIncludeCortinas} />
+        <SwitchRow
+          label={tx("exportSheet.include_cortinas")}
+          checked={includeCortinas}
+          onChange={setIncludeCortinas}
+        />
         {includeCortinas && (
           <StepperRow
-            label="Cortina play length"
-            sub={settings.cortinaStopSec === null ? "Follows the composer" : "Set in Playback"}
+            label={tx("exportSheet.cortina_play_length")}
+            sub={
+              settings.cortinaStopSec === null
+                ? tx("exportSheet.follows_the_composer")
+                : tx("exportSheet.set_in_playback")
+            }
             value={cortinaStop}
             unit=" s"
             min={CORTINA_STOP_RANGE.min}
@@ -852,15 +926,21 @@ export function ExportSheet({
         )}
       </Group>
       <Group
-        header="Send to"
+        header={tx("exportSheet.send_to")}
         footer={
           accounts.length || googleOn || dropboxOn
-            ? `Spotify creates a playlist in your account. ${hasFileTarget ? "Cloud folders receive the file format chosen above. " : ""}${googleOn || listAccounts.some((a) => a.app === "youtube_data_api") ? "YouTube matching shares a daily budget with every TDJ user, so some recordings may be left out. " : ""}Connections are managed in Settings.`
+            ? tx("exportSheet.spotify_creates_a_playlist_in_your_3", {
+                p1: hasFileTarget ? tx("exportSheet.cloud_folders_receive_the_file_format") : "",
+                p2:
+                  googleOn || listAccounts.some((a) => a.app === "youtube_data_api")
+                    ? tx("exportSheet.youtube_matching_shares_a_daily_budget")
+                    : "",
+              })
             : webhookUrl
-              ? "The chosen format is POSTed to your webhook: Pipedream, Make, Zapier or n8n can file it, mail it or push it to a DJ app. The URL lives in this browser only."
+              ? tx("exportSheet.the_chosen_format_is_posted_to")
               : hosted
-                ? "Spotify creates a playlist in your account; log in once in Settings or right here. Connect YouTube, Dropbox or Google Drive in Settings to send sets there too."
-                : "Spotify creates a playlist in your account. A webhook sends the file to your own automation (Pipedream, Make, Zapier, n8n)."
+                ? tx("exportSheet.spotify_creates_a_playlist_in_your_2")
+                : tx("exportSheet.spotify_creates_a_playlist_in_your")
         }
       >
         <Row
@@ -869,18 +949,18 @@ export function ExportSheet({
               <Radio size={16} strokeWidth={2} />
             </Tile>
           }
-          label="Spotify"
-          sub={!hosted && !settings.spotifyClientId ? "Set up in Settings ›" : undefined}
+          label={tx("exportSheet.spotify")}
+          sub={!hosted && !settings.spotifyClientId ? tx("exportSheet.set_up_in_settings") : undefined}
           value={
             hosted
               ? hostedUser
                 ? hostedUser.name
-                : "Log in"
+                : tx("exportSheet.log_in")
               : spotifyToken
-                ? "Connected"
+                ? tx("exportSheet.connected")
                 : settings.spotifyClientId
-                  ? "Connect"
-                  : "Set up"
+                  ? tx("exportSheet.connect")
+                  : tx("exportSheet.set_up")
           }
           chevron
           onClick={!hosted && !settings.spotifyClientId ? () => location.assign("/settings") : toSpotify}
@@ -891,8 +971,8 @@ export function ExportSheet({
         <label htmlFor="spotify-target" className="cell flex-col items-stretch gap-1">
           <span className="text-footnote text-[var(--label-2)]">
             {targetId
-              ? "Updates this playlist in place, in running order. Clear it to make a new one."
-              : "To update a playlist made before, paste its Spotify link; empty makes a new one."}
+              ? tx("exportSheet.updates_this_playlist_in_place_in")
+              : tx("exportSheet.to_update_a_playlist_made_before")}
           </span>
           <input
             id="spotify-target"
@@ -911,9 +991,9 @@ export function ExportSheet({
               <ArrowRightLeft size={16} strokeWidth={2} />
             </Tile>
           }
-          label="Spotify via a transfer service"
-          sub="Any Spotify account · TuneMyMusic or Soundiiz"
-          value="CSV"
+          label={tx("exportSheet.spotify_via_a_transfer_service")}
+          sub={tx("exportSheet.any_spotify_account_tunemymusic_or_soundiiz")}
+          value={tx("exportSheet.csv")}
           chevron
           onClick={() => setTransferOpen(true)}
           id="send-transfer"
@@ -925,9 +1005,9 @@ export function ExportSheet({
                 <ListVideo size={16} strokeWidth={2} />
               </Tile>
             }
-            label="YouTube"
-            sub="Connect in Settings"
-            value="Off"
+            label={tx("exportSheet.youtube")}
+            sub={tx("exportSheet.connect_in_settings")}
+            value={tx("exportSheet.off")}
             disabled
             className="text-[var(--label-2)]"
             id="send-youtube-off"
@@ -940,16 +1020,16 @@ export function ExportSheet({
                 <ListVideo size={16} strokeWidth={2} />
               </Tile>
             }
-            label="YouTube"
+            label={tx("exportSheet.youtube")}
             sub={ytProgress ?? google?.user?.email ?? google?.user?.name}
             value={
               ytProgress
                 ? ""
                 : !google?.user
-                  ? "Connect"
+                  ? tx("exportSheet.connect")
                   : google.scopes?.youtube
-                    ? "Create playlist"
-                    : "Allow"
+                    ? tx("exportSheet.create_playlist")
+                    : tx("exportSheet.allow")
             }
             chevron
             onClick={() => toDirect("youtube")}
@@ -970,9 +1050,9 @@ export function ExportSheet({
                 )}
               </Tile>
             }
-            label={`${a.label} via Pipedream`}
+            label={tx("exportSheet.via_pipedream", { label: a.label })}
             sub={a.name}
-            value="Create playlist"
+            value={tx("exportSheet.create_playlist")}
             chevron
             onClick={() => toCloud(a)}
             busy={cloudBusy === a.id}
@@ -982,8 +1062,8 @@ export function ExportSheet({
         ))}
         {(hasFileTarget || webhookUrl) && (
           <PickerRow
-            label="File format"
-            ariaLabel="File format"
+            label={tx("exportSheet.file_format")}
+            ariaLabel={tx("exportSheet.file_format")}
             value={hookFormat}
             items={FORMAT_ITEMS}
             onChange={(f) => f && setHookFormat(f)}
@@ -1001,9 +1081,9 @@ export function ExportSheet({
                 <Cloud size={16} strokeWidth={2} />
               </Tile>
             }
-            label="Save to Dropbox"
-            sub="Connect in Settings"
-            value="Off"
+            label={tx("exportSheet.save_to_dropbox")}
+            sub={tx("exportSheet.connect_in_settings")}
+            value={tx("exportSheet.off")}
             disabled
             className="text-[var(--label-2)]"
             id="send-dropbox-off"
@@ -1016,9 +1096,9 @@ export function ExportSheet({
                 <Cloud size={16} strokeWidth={2} />
               </Tile>
             }
-            label="Save to Dropbox"
+            label={tx("exportSheet.save_to_dropbox")}
             sub={dropbox?.user?.email ?? dropbox?.user?.name}
-            value={dropbox?.user ? `.${EXPORT_META[hookFormat].ext}` : "Connect"}
+            value={dropbox?.user ? `.${EXPORT_META[hookFormat].ext}` : tx("exportSheet.connect")}
             chevron
             onClick={() => toDirect("dropbox")}
             busy={cloudBusy === "dropbox"}
@@ -1033,9 +1113,9 @@ export function ExportSheet({
                 <HardDrive size={16} strokeWidth={2} />
               </Tile>
             }
-            label="Save to Google Drive"
-            sub="Connect in Settings"
-            value="Off"
+            label={tx("exportSheet.save_to_google_drive")}
+            sub={tx("exportSheet.connect_in_settings")}
+            value={tx("exportSheet.off")}
             disabled
             className="text-[var(--label-2)]"
             id="send-google_drive-off"
@@ -1048,10 +1128,14 @@ export function ExportSheet({
                 <HardDrive size={16} strokeWidth={2} />
               </Tile>
             }
-            label="Save to Google Drive"
+            label={tx("exportSheet.save_to_google_drive")}
             sub={google?.user?.email ?? google?.user?.name}
             value={
-              !google?.user ? "Connect" : google.scopes?.drive ? `.${EXPORT_META[hookFormat].ext}` : "Allow"
+              !google?.user
+                ? tx("exportSheet.connect")
+                : google.scopes?.drive
+                  ? `.${EXPORT_META[hookFormat].ext}`
+                  : tx("exportSheet.allow")
             }
             chevron
             onClick={() => toDirect("google_drive")}
@@ -1072,7 +1156,7 @@ export function ExportSheet({
                 )}
               </Tile>
             }
-            label={`Save to ${a.label} via Pipedream`}
+            label={tx("exportSheet.save_to_via_pipedream", { label: a.label })}
             sub={a.name}
             value={`.${EXPORT_META[hookFormat].ext}`}
             chevron
@@ -1089,7 +1173,7 @@ export function ExportSheet({
                 <Webhook size={16} strokeWidth={2} />
               </Tile>
             }
-            label="Send to webhook"
+            label={tx("exportSheet.send_to_webhook")}
             sub={webhookUrl.replace(/^https?:\/\//, "").slice(0, 48)}
             chevron
             onClick={toWebhook}
@@ -1103,8 +1187,8 @@ export function ExportSheet({
                 <Webhook size={16} strokeWidth={2} />
               </Tile>
             }
-            label="Webhook"
-            value="Set up"
+            label={tx("exportSheet.webhook")}
+            value={tx("exportSheet.set_up")}
             chevron
             onClick={() => {
               setHookDraft(webhookUrl);
@@ -1123,10 +1207,9 @@ export function ExportSheet({
                 {countLine}
                 {noFolders && (
                   <>
-                    {" "}
-                    Your DJ app finds the songs once you set its music folder in{" "}
+                    {tx("exportSheet.your_dj_app_finds_the_songs", { p1: " ", p2: " " })}
                     <Link href="/settings" className="text-[var(--tint)]">
-                      Settings
+                      {tx("exportSheet.settings")}
                     </Link>
                     .
                   </>
@@ -1144,7 +1227,7 @@ export function ExportSheet({
                 </span>
               }
               label={EXPORT_META[f].label}
-              sub={folderFor(f) ? `Paths under ${folderFor(f)}` : undefined}
+              sub={folderFor(f) ? tx("exportSheet.paths_under", { p1: folderFor(f) }) : undefined}
               value={`.${EXPORT_META[f].ext}`}
               chevron={justDone !== f}
               onClick={() => dl(f)}
@@ -1156,7 +1239,7 @@ export function ExportSheet({
                   animate={{ scale: 1, opacity: 1 }}
                   transition={SPRING.snappy}
                   className="cell-chevron inline-flex text-[var(--system-green)]"
-                  aria-label="Downloaded"
+                  aria-label={tx("exportSheet.downloaded")}
                 >
                   <Check size={16} strokeWidth={2.5} />
                 </motion.span>
@@ -1168,17 +1251,17 @@ export function ExportSheet({
       <Sheet
         open={hookOpen}
         onClose={() => setHookOpen(false)}
-        title="Webhook"
-        trailing="Save"
+        title={tx("exportSheet.webhook")}
+        trailing={tx("exportSheet.save")}
         onTrailing={saveHook}
         detents={["medium"]}
       >
         <Group
-          header="Webhook URL"
-          footer="Paste the address of a Pipedream, Make, Zapier or n8n webhook: T-DJ sends it the file, with the format and the set's name. The address stays in this browser only."
+          header={tx("exportSheet.webhook_url")}
+          footer={tx("exportSheet.paste_the_address_of_a_pipedream")}
         >
           <label htmlFor="webhook-url" className="cell">
-            <span className="sr-only">Webhook URL</span>
+            <span className="sr-only">{tx("exportSheet.webhook_url")}</span>
             <input
               id="webhook-url"
               className="field font-mono"
@@ -1196,23 +1279,23 @@ export function ExportSheet({
       <Sheet
         open={transferOpen}
         onClose={() => setTransferOpen(false)}
-        title="Spotify via a transfer service"
-        trailing="Done"
+        title={tx("exportSheet.spotify_via_a_transfer_service")}
+        trailing={tx("exportSheet.done")}
         detents={["large"]}
         testId="transfer-sheet"
       >
         <Group
-          header="Service"
-          footer="Works with any Spotify account and needs nothing from the organiser: the service matches each row in your own Spotify login. Both offer a free tier for a playlist this size."
+          header={tx("exportSheet.service")}
+          footer={tx("exportSheet.works_with_any_spotify_account_and")}
         >
           <SegmentedRow
-            label="Transfer with"
+            label={tx("exportSheet.transfer_with")}
             value={transfer}
             items={TRANSFER_SERVICES.map((t) => [t.id, t.label])}
             onChange={setTransfer}
           />
         </Group>
-        <Group header="Three steps" id="transfer-steps">
+        <Group header={tx("exportSheet.three_steps")} id="transfer-steps">
           {(TRANSFER_SERVICES.find((t) => t.id === transfer) ?? TRANSFER_SERVICES[0]!).steps.map(
             (step, i) => (
               <div key={step} className="cell items-start">
@@ -1223,10 +1306,15 @@ export function ExportSheet({
           )}
         </Group>
         <Group
-          footer={`A CSV with the columns title, artist and album: ${playlist ? transferRows(playlist, includeCortinas).length : 0} rows in set order${includeCortinas ? ", cortinas included" : ", cortinas left out"}.`}
+          footer={tx("exportSheet.a_csv_with_the_columns_title", {
+            p1: playlist ? transferRows(playlist, includeCortinas).length : 0,
+            p2: includeCortinas ? tx("exportSheet.cortinas_included") : tx("exportSheet.cortinas_left_out"),
+          })}
         >
           <ActionRow
-            label={`Download CSV and open ${(TRANSFER_SERVICES.find((t) => t.id === transfer) ?? TRANSFER_SERVICES[0]!).label}`}
+            label={tx("exportSheet.download_csv_and_open", {
+              label: (TRANSFER_SERVICES.find((t) => t.id === transfer) ?? TRANSFER_SERVICES[0]!).label,
+            })}
             onClick={toTransfer}
             id="transfer-download"
           />
@@ -1239,7 +1327,7 @@ export function ExportSheet({
       )}
       <div role="status" aria-live="polite">
         {log.length > 0 && (
-          <Group header="Progress">
+          <Group header={tx("exportSheet.progress")}>
             <div className="cell text-footnote whitespace-pre-wrap text-[var(--label-2)]">
               {log.join("\n")}
             </div>
@@ -1247,8 +1335,8 @@ export function ExportSheet({
         )}
         {notMatched.length > 0 && (
           <Group
-            header={`Not matched (${notMatched.length})`}
-            footer="No streaming track is confidently this recording (another singer, orchestra, take or length): left out rather than guessed."
+            header={tx("exportSheet.not_matched", { length: notMatched.length })}
+            footer={tx("exportSheet.no_streaming_track_is_confidently_this")}
           >
             <ul data-testid="export-missing" className="cell text-footnote text-[var(--label-2)]">
               {notMatched.map((m) => (

@@ -2,6 +2,7 @@
 import { rangesLabel, versionsOf } from "@tdj/core";
 import { ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
+import { t as tx } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 import type { Song } from "@/lib/types";
 import { SongRow } from "../ui/SongRow";
@@ -15,9 +16,7 @@ export function VersionsRow({ song }: { song: Song }) {
   const overrides = useStore((s) => s.overrides);
   const [open, setOpen] = useState(false);
   const [list, setList] = useState<Song[] | null>(null);
-  const t = useTip<HTMLButtonElement>(
-    "Every recording of this title, any orchestra and year, each one playable",
-  );
+  const t = useTip<HTMLButtonElement>(tx("db.versions.every_recording_of_this_title_any"));
   useEffect(() => {
     if (!open || list) return;
     const ctl = new AbortController();
@@ -34,7 +33,7 @@ export function VersionsRow({ song }: { song: Song }) {
   }, [open, list, song, overrides]);
   const years = (list ?? []).map((s) => s.year).filter((y): y is number => !!y);
   const span = years.length ? rangesLabel([[Math.min(...years), Math.max(...years)]]) : "";
-  const value = list ? [list.length, span].filter(Boolean).join(" · ") : "Show";
+  const value = list ? [list.length, span].filter(Boolean).join(" · ") : tx("db.versions.show");
   return (
     <>
       <button
@@ -47,9 +46,9 @@ export function VersionsRow({ song }: { song: Song }) {
       >
         {t.tag}
         <span className="min-w-0 flex-1">
-          <span className="block truncate">Versions</span>
+          <span className="block truncate">{tx("db.versions.versions")}</span>
           <span className="text-footnote block truncate text-[var(--label-2)]">
-            Every recording of “{song.title}”, by any orchestra
+            {tx("db.versions.every_recording_of_by_any_orchestra", { title: song.title })}
           </span>
         </span>
         <span className="cell-value text-body tabular-nums">{value}</span>
@@ -63,14 +62,16 @@ export function VersionsRow({ song }: { song: Song }) {
       {open && (
         <div className="bg-[var(--fill-4)]" data-testid="db-versions-list">
           {!list ? (
-            <p className="text-footnote px-4 py-3 text-[var(--label-2)]">Finding versions…</p>
+            <p className="text-footnote px-4 py-3 text-[var(--label-2)]">
+              {tx("db.versions.finding_versions")}
+            </p>
           ) : (
             list.map((v) => (
               <SongRow
                 key={v.id}
                 song={v}
                 testId="db-version"
-                pill={v.id === song.id ? "This side" : undefined}
+                pill={v.id === song.id ? tx("db.versions.this_side") : undefined}
               />
             ))
           )}

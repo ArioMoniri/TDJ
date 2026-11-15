@@ -1,4 +1,5 @@
 import type { AudioFeatures, ContextFactorOption, ResolvedTrack, Song, UserOverrides } from "@tdj/core";
+import { t } from "@/lib/i18n";
 import type { AcpConnection } from "./ai/acp";
 import { type AiProvider, DEFAULT_MODEL, KEY_PROVIDERS, type KeyProvider } from "./ai/models";
 
@@ -39,33 +40,59 @@ export type DjApp = "rekordbox" | "traktor" | "serato" | "virtualdj" | "enginedj
 export const DJ_APPS: Array<{ id: DjApp; label: string; format: string; note: string }> = [
   {
     id: "rekordbox",
-    label: "Rekordbox",
-    format: "Rekordbox XML",
-    note: "Preferences → Advanced → Database → Imported Library: pick the XML, then drag the playlist from the rekordbox xml tree into Playlists.",
+    get label() {
+      return t("types.rekordbox");
+    },
+    get format() {
+      return t("types.rekordbox_xml");
+    },
+    get note() {
+      return t("types.preferences_advanced_database_imported_library_pick");
+    },
   },
   {
     id: "traktor",
-    label: "Traktor",
-    format: "Traktor NML",
-    note: "Right-click Playlists in the browser → Import Playlist, choose the .nml. Tracks relink when the folder path matches.",
+    get label() {
+      return t("types.traktor");
+    },
+    get format() {
+      return t("types.traktor_nml");
+    },
+    get note() {
+      return t("types.right_click_playlists_in_the_browser");
+    },
   },
   {
     id: "serato",
-    label: "Serato DJ",
-    format: "A list for Serato, through Lexicon",
-    note: "Serato reads crates, not CSV: import the CSV in Lexicon (File → Import → CSV) and sync to Serato.",
+    get label() {
+      return t("types.serato_dj");
+    },
+    get format() {
+      return t("types.a_list_for_serato_through_lexicon");
+    },
+    get note() {
+      return t("types.serato_reads_crates_not_csv_import");
+    },
   },
   {
     id: "virtualdj",
-    label: "VirtualDJ",
+    get label() {
+      return t("types.virtualdj");
+    },
     format: "M3U8",
-    note: "Drop the .m3u8 into the VirtualDJ/Playlists folder or File → Import playlist.",
+    get note() {
+      return t("types.drop_the_m3u8_into_the_virtualdj");
+    },
   },
   {
     id: "enginedj",
-    label: "Engine DJ",
+    get label() {
+      return t("types.engine_dj");
+    },
     format: "M3U8",
-    note: "Engine DJ desktop: Playlists → Import from M3U; paths must match your library drive.",
+    get note() {
+      return t("types.engine_dj_desktop_playlists_import_from");
+    },
   },
 ];
 
@@ -119,6 +146,8 @@ export interface UserSettings {
   eraBadges?: boolean;
   /** round 23: small sound effects (the gramophone's crackle); off silences them */
   sounds: boolean;
+  /** wave 3: the app's language; Auto follows the browser (the system, in the apps). English is the default */
+  language?: "auto" | "en" | "tr";
 }
 export const DEFAULT_NAMING = "{artist} - {title}";
 export const DEFAULT_SETTINGS: UserSettings = {
@@ -142,6 +171,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   cortinaStopSec: null,
   autoImprove: true,
   sounds: true,
+  language: "auto",
 };
 export const CORTINA_STOP_RANGE = { min: 20, max: 90, step: 5 } as const;
 /** The effective cortina play length: the Playback setting, else the composer's cortina length, clamped to 20–90. */

@@ -34,15 +34,15 @@ import { TipRow } from "@/components/TipRow";
 import { Segmented } from "@/components/ui";
 import { Tip } from "@/components/ui/Tip";
 import { haptic } from "@/lib/haptics";
+import { fmtDate, fmtTime, t as tx, upper } from "@/lib/i18n";
 import { type RoomRef, roomShareLink, useRooms } from "@/lib/rooms";
 import { copyText } from "@/lib/share";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import type { Playlist } from "@/lib/types";
 
-const hhmm = (iso: string) =>
-  new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+const hhmm = (iso: string) => fmtTime(iso, { hour: "2-digit", minute: "2-digit" });
+const day = (iso: string) => fmtDate(iso, { day: "numeric", month: "short" });
 const host = (server: string) => {
   try {
     return new URL(server).host;
@@ -90,26 +90,30 @@ function IconButton({
 
 function LogList({ log, me }: { log: RoomLogEntry[]; me: string }) {
   const items = [...log].reverse();
-  if (!items.length) return <p className="section-foot">Nothing has happened in this room yet.</p>;
+  if (!items.length) return <p className="section-foot">{tx("rooms.nothing_has_happened_in_this_room")}</p>;
   return (
     <Group data-testid="room-log">
       {items.map((e, i) => (
         <div key={`${e.rev}-${i}`} className="cell items-start" data-kind={e.kind}>
           {e.kind === "conflict" ? (
-            <Tip text="Two DJs changed the same thing; the later change was kept" className="mt-0.5 shrink-0">
-              <TriangleAlert size={18} className="text-[var(--warning,#ff9500)]" aria-label="Conflict" />
+            <Tip text={tx("rooms.two_djs_changed_the_same_thing")} className="mt-0.5 shrink-0">
+              <TriangleAlert
+                size={18}
+                className="text-[var(--warning,#ff9500)]"
+                aria-label={tx("rooms.conflict")}
+              />
             </Tip>
           ) : (
             <span
               className="mt-0.5 grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full bg-[var(--fill-3)] text-[10px] font-semibold"
               aria-hidden
             >
-              {e.by.slice(0, 1).toUpperCase()}
+              {upper(e.by.slice(0, 1))}
             </span>
           )}
           <span className="min-w-0 flex-1">
             <span className="block">
-              <b className="font-semibold">{e.by === me ? "You" : e.by}</b> {e.text}
+              <b className="font-semibold">{e.by === me ? tx("rooms.you") : e.by}</b> {e.text}
             </span>
             <span className="text-footnote block text-[var(--label-2)]">
               {day(e.at)}, {hhmm(e.at)}
@@ -188,7 +192,7 @@ export default function RoomsPage() {
   };
   const create = async () => {
     saveUser();
-    if (!useRooms.getState().user) return toast("Choose your name first");
+    if (!useRooms.getState().user) return toast(tx("rooms.choose_your_name_first"));
     setBusy(true);
     const ok = await r.create(roomName, withNight && !!playlist);
     setBusy(false);
@@ -199,7 +203,7 @@ export default function RoomsPage() {
   };
   const join = async (c = code, server = remote) => {
     saveUser();
-    if (!useRooms.getState().user) return toast("Choose your name first");
+    if (!useRooms.getState().user) return toast(tx("rooms.choose_your_name_first"));
     setBusy(true);
     const ok = await r.join(c, server);
     setBusy(false);
@@ -223,24 +227,28 @@ export default function RoomsPage() {
   return (
     <div className="mx-auto max-w-[720px] lg:max-w-[980px]" data-rooms-page>
       <PageHeader
-        title={info ? info.name : "Rooms"}
+        title={info ? info.name : tx("rooms.rooms")}
         subtitle={
           info
-            ? `Room ${formatRoomCode(info.code)} · ${
-                others.length ? `with ${others.join(", ")}` : "only you here right now"
-              }${r.status === "offline" ? " · reconnecting…" : ""}`
-            : "Edit one night with other DJs, live."
+            ? tx("rooms.room", {
+                code: formatRoomCode(info.code),
+                p1: others.length
+                  ? tx("rooms.with", { others: others.join(", ") })
+                  : tx("rooms.only_you_here_right_now"),
+                p2: r.status === "offline" ? tx("rooms.reconnecting") : "",
+              })
+            : tx("rooms.edit_one_night_with_other_djs")
         }
         trailing={
           info ? (
-            <Tip text={"Show the room's code and links"}>
+            <Tip text={tx("rooms.show_the_room_s_code_and")}>
               <button
                 type="button"
                 className="btn btn-plain min-h-11"
                 onClick={() => setQrOpen(true)}
-                aria-label="Invite"
+                aria-label={tx("rooms.invite")}
               >
-                <Users size={18} aria-hidden /> Invite
+                <Users size={18} aria-hidden /> {tx("rooms.invite")}
               </button>
             </Tip>
           ) : undefined
@@ -259,19 +267,19 @@ export default function RoomsPage() {
       {!inRoom && (
         <>
           <Group
-            header="You"
+            header={tx("rooms.you")}
             footer={
               <span data-testid="room-user-note" aria-live="polite">
-                {nameSaved ? "Name saved. " : ""}Other DJs see this name next to your edits. No account
-                needed.
+                {nameSaved ? tx("rooms.name_saved") : ""}
+                {tx("rooms.other_djs_see_this_name_next")}
               </span>
             }
           >
-            <FieldRow label="Your name" id="room-user">
+            <FieldRow label={tx("rooms.your_name")} id="room-user">
               <input
                 id="room-user"
                 className="field min-w-0 flex-1 text-right"
-                placeholder="DJ name"
+                placeholder={tx("rooms.dj_name")}
                 maxLength={ROOM_USER_MAX}
                 value={nameDraft}
                 onChange={(e) => {
@@ -287,18 +295,18 @@ export default function RoomsPage() {
 
           {remote && code && (
             <Group
-              header="Invitation"
-              footer={`This room is kept by ${host(remote)}. Joining connects to that site while you are in the room.`}
+              header={tx("rooms.invitation")}
+              footer={tx("rooms.this_room_is_kept_by_joining", { p1: host(remote) })}
             >
               <ActionRow
-                label={`Join room ${formatRoomCode(code)} on ${host(remote)}`}
+                label={tx("rooms.join_room_on", { code: formatRoomCode(code), p1: host(remote) })}
                 onClick={() => join(code, remote)}
                 busy={busy}
               />
             </Group>
           )}
 
-          <Group header="Join a room" footer="Ask the DJ who made the room for its six-character code.">
+          <Group header={tx("rooms.join_a_room")} footer={tx("rooms.ask_the_dj_who_made_the")}>
             <form
               className="cell gap-2"
               onSubmit={(e) => {
@@ -308,42 +316,42 @@ export default function RoomsPage() {
             >
               <input
                 className="field min-w-0 flex-1 font-mono uppercase tracking-[0.2em]"
-                placeholder="ABC 234"
+                placeholder={tx("rooms.abc_234")}
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
                 maxLength={8}
                 autoCapitalize="characters"
                 autoComplete="off"
                 spellCheck={false}
-                aria-label="Room code"
+                aria-label={tx("rooms.room_code")}
                 data-testid="room-code-input"
               />
-              <Tip text={"Join this room and load its night"}>
+              <Tip text={tx("rooms.join_this_room_and_load_its")}>
                 <button
                   type="submit"
                   className="btn btn-primary min-h-[44px]"
                   disabled={!normalizeRoomCode(code) || busy}
                   data-testid="room-join"
                 >
-                  Join
+                  {tx("rooms.join")}
                 </button>
               </Tip>
             </form>
           </Group>
 
           <Group
-            header="New room"
+            header={tx("rooms.new_room")}
             footer={
               playlist
-                ? "Everyone in the room edits this night together: swaps, locks, order and settings."
-                : "Compose a night first, or start empty and share one later."
+                ? tx("rooms.everyone_in_the_room_edits_this")
+                : tx("rooms.compose_a_night_first_or_start")
             }
           >
-            <FieldRow label="Room name" id="room-name">
+            <FieldRow label={tx("rooms.room_name")} id="room-name">
               <input
                 id="room-name"
                 className="field min-w-0 flex-1 text-right"
-                placeholder={r.user ? `${r.user}’s room` : "Saturday milonga"}
+                placeholder={r.user ? tx("rooms.s_room", { user: r.user }) : tx("rooms.saturday_milonga")}
                 maxLength={ROOM_NAME_MAX}
                 value={roomName}
                 onChange={(e) => setRoomName(e.target.value)}
@@ -351,13 +359,13 @@ export default function RoomsPage() {
               />
             </FieldRow>
             <SwitchRow
-              label="Start with my current night"
-              sub={playlist ? playlist.name : "No night composed yet"}
+              label={tx("rooms.start_with_my_current_night")}
+              sub={playlist ? playlist.name : tx("rooms.no_night_composed_yet")}
               checked={withNight && !!playlist}
               onChange={setWithNight}
               disabled={!playlist}
             />
-            <ActionRow label="Create room" onClick={create} busy={busy} id="room-create" />
+            <ActionRow label={tx("rooms.create_room")} onClick={create} busy={busy} id="room-create" />
           </Group>
         </>
       )}
@@ -367,11 +375,11 @@ export default function RoomsPage() {
           <div className="mb-3 px-1">
             <Segmented
               size="large"
-              label="Room view"
+              label={tx("rooms.room_view")}
               value={tab}
               items={[
-                ["night", "Night"],
-                ["log", `Log${r.log.length ? ` · ${r.log.length}` : ""}`],
+                ["night", tx("rooms.tab_night")],
+                ["log", r.log.length ? tx("rooms.tab_log_n", { n: r.log.length }) : tx("rooms.tab_log")],
               ]}
               onChange={setTab}
             />
@@ -380,22 +388,26 @@ export default function RoomsPage() {
           {tab === "night" && (
             <>
               {r.waitingForNight && (
-                <Group footer="The room has no night yet. The next night anyone composes or shares lands here.">
+                <Group footer={tx("rooms.the_room_has_no_night_yet")}>
                   {playlist ? (
                     <ActionRow
-                      label={`Share “${playlist.name}” with the room`}
+                      label={tx("rooms.share_with_the_room", { name: playlist.name })}
                       onClick={() => void r.shareNight()}
                     />
                   ) : (
-                    <TipRow label="Compose a night" chevron onClick={() => location.assign("/")} />
+                    <TipRow
+                      label={tx("rooms.compose_a_night")}
+                      chevron
+                      onClick={() => location.assign("/")}
+                    />
                   )}
                 </Group>
               )}
               {playlist && !r.waitingForNight && (
                 <>
                   <Group
-                    header={`Tandas · ${playlist.tandas.length}`}
-                    footer="Swap songs in Compose: every DJ in the room sees the change and the log says who made it."
+                    header={tx("rooms.tandas", { length: playlist.tandas.length })}
+                    footer={tx("rooms.swap_songs_in_compose_every_dj")}
                     data-testid="room-tandas"
                   >
                     {playlist.tandas.map((t, i) => (
@@ -420,8 +432,8 @@ export default function RoomsPage() {
                         <IconButton
                           label={
                             t.locked
-                              ? `Unlock tanda ${i + 1}`
-                              : `Lock tanda ${i + 1} (keeps it when the night is recomposed)`
+                              ? tx("rooms.unlock_tanda", { p1: i + 1 })
+                              : tx("rooms.lock_tanda_keeps_it_when_the", { p1: i + 1 })
                           }
                           on={!!t.locked}
                           onClick={() => toggle(i, "locked")}
@@ -432,8 +444,8 @@ export default function RoomsPage() {
                         <IconButton
                           label={
                             t.bypass
-                              ? `Play tanda ${i + 1} tonight`
-                              : `Skip tanda ${i + 1} tonight (stays in exports)`
+                              ? tx("rooms.play_tanda_tonight", { p1: i + 1 })
+                              : tx("rooms.skip_tanda_tonight_stays_in_exports", { p1: i + 1 })
                           }
                           on={!!t.bypass}
                           onClick={() => toggle(i, "bypass")}
@@ -442,7 +454,7 @@ export default function RoomsPage() {
                           <SkipForward size={18} aria-hidden />
                         </IconButton>
                         <IconButton
-                          label={`Move tanda ${i + 1} earlier`}
+                          label={tx("rooms.move_tanda_earlier", { p1: i + 1 })}
                           onClick={() => move(i, -1)}
                           disabled={i === 0}
                           testId={`room-up-${i + 1}`}
@@ -450,7 +462,7 @@ export default function RoomsPage() {
                           <ArrowUp size={18} aria-hidden />
                         </IconButton>
                         <IconButton
-                          label={`Move tanda ${i + 1} later`}
+                          label={tx("rooms.move_tanda_later", { p1: i + 1 })}
                           onClick={() => move(i, 1)}
                           disabled={i === playlist.tandas.length - 1}
                           testId={`room-down-${i + 1}`}
@@ -460,8 +472,11 @@ export default function RoomsPage() {
                       </div>
                     ))}
                   </Group>
-                  <Group header="Night settings" footer="A change here reaches every DJ in the room.">
-                    <FieldRow label="Night name" id="room-night-name">
+                  <Group
+                    header={tx("rooms.night_settings")}
+                    footer={tx("rooms.a_change_here_reaches_every_dj")}
+                  >
+                    <FieldRow label={tx("rooms.night_name")} id="room-night-name">
                       <input
                         id="room-night-name"
                         key={playlist.name}
@@ -477,8 +492,8 @@ export default function RoomsPage() {
                       />
                     </FieldRow>
                     <SwitchRow
-                      label="Last 4 tandas tango only"
-                      sub="Skips any vals or milonga among the last four"
+                      label={tx("rooms.last_4_tandas_tango_only")}
+                      sub={tx("rooms.skips_any_vals_or_milonga_among")}
                       checked={!!playlist.options.rules?.lastFourTango}
                       onChange={(v) =>
                         edit((p) => ({
@@ -494,18 +509,18 @@ export default function RoomsPage() {
                       href="/#result"
                       className="cell cell-tap"
                       data-leading="tile"
-                      title="Swap songs and tandas in the composer"
+                      title={tx("rooms.swap_songs_and_tandas_in_the")}
                     >
                       <Tile color="#007aff">
                         <ListMusic size={16} strokeWidth={2} />
                       </Tile>
-                      <span className="min-w-0 flex-1">Open in Compose</span>
+                      <span className="min-w-0 flex-1">{tx("rooms.open_in_compose")}</span>
                     </Link>
                   </Group>
                   {r.missing.length > 0 && (
                     <Group
-                      header="Not in this catalogue"
-                      footer="Shared by another DJ; they stay in their tandas."
+                      header={tx("rooms.not_in_this_catalogue")}
+                      footer={tx("rooms.shared_by_another_dj_they_stay")}
                     >
                       {r.missing.map((m) => (
                         <TipRow key={`${m.where}-${m.title}`} label={m.title} sub={`${m.where} · ${m.by}`} />
@@ -526,23 +541,23 @@ export default function RoomsPage() {
                   <Pencil size={16} strokeWidth={2} />
                 </Tile>
               }
-              label="Rename room"
+              label={tx("rooms.rename_room")}
               value={info.name}
               chevron
               onClick={() => {
                 setRenameDraft(info.name);
                 setRenaming(true);
               }}
-              tip="Give the room a new name for everyone"
+              tip={tx("rooms.give_the_room_a_new_name")}
               data-testid="room-rename"
             />
-            <ActionRow label="Leave room" destructive onClick={r.leave} id="room-leave" />
+            <ActionRow label={tx("rooms.leave_room")} destructive onClick={r.leave} id="room-leave" />
           </Group>
         </>
       )}
 
       {previous.length > 0 && (
-        <Group header="Previous rooms" footer="Rooms you were in on this device. Open one to read its log.">
+        <Group header={tx("rooms.previous_rooms")} footer={tx("rooms.rooms_you_were_in_on_this")}>
           {previous.map((p) => (
             <TipRow
               key={`${p.server}-${p.code}`}
@@ -555,7 +570,7 @@ export default function RoomsPage() {
               sub={`${formatRoomCode(p.code)}${p.server ? ` · ${host(p.server)}` : ""} · ${day(p.lastSeen)}`}
               chevron
               onClick={() => void openPast(p)}
-              tip="Read what happened in this room"
+              tip={tx("rooms.read_what_happened_in_this_room")}
               data-testid={`room-past-${p.code}`}
             />
           ))}
@@ -565,31 +580,33 @@ export default function RoomsPage() {
       <Sheet
         open={qrOpen}
         onClose={() => setQrOpen(false)}
-        title="Invite DJs"
-        trailing="Done"
+        title={tx("rooms.invite_djs")}
+        trailing={tx("rooms.done")}
         testId="room-invite"
       >
         {info && (
           <>
             <div className="flex flex-col items-center gap-3 px-4 pb-4">
-              <span className="text-footnote text-[var(--label-2)]">Room code</span>
+              <span className="text-footnote text-[var(--label-2)]">{tx("rooms.room_code")}</span>
               <span className="font-mono text-[34px] font-semibold tracking-[0.18em]" data-testid="room-code">
                 {formatRoomCode(info.code)}
               </span>
-              <QrCode value={link} label={`Code to join ${info.name}`} size={200} />
+              <QrCode value={link} label={tx("rooms.code_to_join", { name: info.name })} size={200} />
             </div>
-            <Group footer="The code works in T-DJ on this site; the app link opens the room in T-DJ on Mac and iPad.">
+            <Group footer={tx("rooms.the_code_works_in_t_dj")}>
               <TipRow
                 tile={
                   <Tile color="#007aff">
                     <Copy size={16} strokeWidth={2} />
                   </Tile>
                 }
-                label="Copy link"
+                label={tx("rooms.copy_link")}
                 onClick={async () =>
-                  toast((await copyText(link)) ? "Room link copied" : "Copying was blocked")
+                  toast(
+                    (await copyText(link)) ? tx("rooms.room_link_copied") : tx("rooms.copying_was_blocked"),
+                  )
                 }
-                tip="Copies a link that opens this room"
+                tip={tx("rooms.copies_a_link_that_opens_this")}
               />
               <TipRow
                 tile={
@@ -597,11 +614,13 @@ export default function RoomsPage() {
                     <Smartphone size={16} strokeWidth={2} />
                   </Tile>
                 }
-                label="Copy link for the app"
+                label={tx("rooms.copy_link_for_the_app")}
                 onClick={async () =>
-                  toast((await copyText(appLink)) ? "App link copied" : "Copying was blocked")
+                  toast(
+                    (await copyText(appLink)) ? tx("rooms.app_link_copied") : tx("rooms.copying_was_blocked"),
+                  )
                 }
-                tip="Copies a tdj:// link that opens this room in the T-DJ app"
+                tip={tx("rooms.copies_a_tdj_link_that_opens")}
               />
               <TipRow
                 tile={
@@ -609,12 +628,14 @@ export default function RoomsPage() {
                     <QrIcon size={16} strokeWidth={2} />
                   </Tile>
                 }
-                label="Copy code"
+                label={tx("rooms.copy_code")}
                 value={info.code}
                 onClick={async () =>
-                  toast((await copyText(info.code)) ? "Code copied" : "Copying was blocked")
+                  toast(
+                    (await copyText(info.code)) ? tx("rooms.code_copied") : tx("rooms.copying_was_blocked"),
+                  )
                 }
-                tip="Copies the six-character code"
+                tip={tx("rooms.copies_the_six_character_code")}
               />
             </Group>
           </>
@@ -624,16 +645,16 @@ export default function RoomsPage() {
       <Sheet
         open={renaming}
         onClose={() => setRenaming(false)}
-        title="Rename room"
-        trailing="Save"
+        title={tx("rooms.rename_room")}
+        trailing={tx("rooms.save")}
         onTrailing={() => {
           if (renameDraft.trim()) void r.rename(renameDraft);
           setRenaming(false);
         }}
         detents={["medium"]}
       >
-        <Group footer="Everyone in the room sees the new name.">
-          <FieldRow label="Name" id="room-rename-field">
+        <Group footer={tx("rooms.everyone_in_the_room_sees_the")}>
+          <FieldRow label={tx("rooms.name")} id="room-rename-field">
             <input
               id="room-rename-field"
               className="field min-w-0 flex-1 text-right"
@@ -656,15 +677,17 @@ export default function RoomsPage() {
         {past && (
           <>
             {past.log === null ? (
-              <p className="text-subhead py-8 text-center text-[var(--label-2)]">Loading the log…</p>
+              <p className="text-subhead py-8 text-center text-[var(--label-2)]">
+                {tx("rooms.loading_the_log")}
+              </p>
             ) : past.log.length ? (
               <LogList log={past.log} me={r.user} />
             ) : (
-              <p className="section-foot">This room's log is no longer kept by its server.</p>
+              <p className="section-foot">{tx("rooms.this_room_s_log_is_no")}</p>
             )}
             <Group>
               <ActionRow
-                label="Rejoin this room"
+                label={tx("rooms.rejoin_this_room")}
                 onClick={() => {
                   const ref = past.ref;
                   setPast(null);
@@ -673,7 +696,7 @@ export default function RoomsPage() {
                 }}
               />
               <ActionRow
-                label="Remove from this list"
+                label={tx("rooms.remove_from_this_list")}
                 destructive
                 onClick={() => {
                   r.forget(past.ref.code);
@@ -687,7 +710,8 @@ export default function RoomsPage() {
       {inRoom && !info && (
         <p className="text-subhead py-8 text-center text-[var(--label-2)]" role="status">
           <LogOut size={16} className="mr-1 inline" aria-hidden />
-          Connecting to the room…
+
+          {tx("rooms.connecting_to_the_room")}
         </p>
       )}
     </div>

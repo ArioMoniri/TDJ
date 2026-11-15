@@ -3,6 +3,7 @@ import { forgetLearned, type LearnedRule, learnedRules, setLearnedWeight } from 
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { DraftSong } from "@/lib/build";
+import { t } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 import type { Meta } from "@/lib/types";
 import { ActionRow, Group, SwitchRow } from "../Form";
@@ -33,14 +34,14 @@ function RuleRow({
           <span className="text-footnote block truncate text-[var(--label-2)]">{r.detail}</span>
         </span>
         {r.kind !== "template" && (
-          <Tip text={"How much this weighs in your next nights"}>
+          <Tip text={t("db.learnedRules.how_much_this_weighs_in_your")}>
             <span className="flex shrink-0 items-center">
               <button
                 type="button"
                 className="icon-btn icon-btn-bare h-11 w-11"
                 onClick={() => onWeight(r.weight - step)}
                 disabled={r.weight <= r.min}
-                aria-label={`Weigh ${r.label} less`}
+                aria-label={t("db.learnedRules.weigh_less", { label: r.label })}
               >
                 <Minus size={16} aria-hidden />
               </button>
@@ -52,14 +53,14 @@ function RuleRow({
                 className="icon-btn icon-btn-bare h-11 w-11"
                 onClick={() => onWeight(r.weight + step)}
                 disabled={r.weight >= r.max}
-                aria-label={`Weigh ${r.label} more`}
+                aria-label={t("db.learnedRules.weigh_more", { label: r.label })}
               >
                 <Plus size={16} aria-hidden />
               </button>
             </span>
           </Tip>
         )}
-        <Tip text={"Delete this rule"}>
+        <Tip text={t("db.learnedRules.delete_this_rule")}>
           <button
             type="button"
             className="icon-btn icon-btn-bare -mr-2 h-11 w-11 text-[var(--destructive)]"
@@ -142,44 +143,47 @@ export function LearnedRules() {
   return (
     <>
       <Group
-        header="Learned from your edits"
+        header={t("db.learnedRules.learned_from_your_edits")}
         footer={
           settings.learn
-            ? "Like an autocorrect: every swap, lock, AI edit and hand-built night teaches T-DJ what you prefer, and the next nights follow it under tonight's settings. Weigh a rule up or down, or delete it; the night's rules still apply."
-            : "Learning is off: your edits teach nothing and nothing learned is applied."
+            ? t("db.learnedRules.like_an_autocorrect_every_swap_lock")
+            : t("db.learnedRules.learning_is_off_your_edits_teach")
         }
         data-testid="learned-rules"
       >
         <SwitchRow
-          label="Learn from my edits"
-          tip="Your swaps and pinned tandas teach T-DJ what you prefer for later nights"
+          label={t("db.learnedRules.learn_from_my_edits")}
+          tip={t("db.learnedRules.your_swaps_and_pinned_tandas_teach")}
           checked={settings.learn}
           onChange={(v) => setSettings({ learn: v })}
         />
         {!all.length && (
           <div className="cell text-[var(--label-2)]">
-            Nothing yet: swap a song, lock a tanda or build a night by hand.
+            {t("db.learnedRules.nothing_yet_swap_a_song_lock")}
           </div>
         )}
       </Group>
-      {fams.length > 0 && <Group header="Families">{rows(fams)}</Group>}
+      {fams.length > 0 && <Group header={t("db.learnedRules.families")}>{rows(fams)}</Group>}
       {sides.length > 0 && (
         <Group
-          header="Sides"
+          header={t("db.learnedRules.sides")}
           footer={
             Object.keys(L?.sides ?? {}).length > SIDES_SHOWN
-              ? `The ${SIDES_SHOWN} strongest of ${Object.keys(L?.sides ?? {}).length}.`
+              ? t("db.learnedRules.the_strongest_of", {
+                  SIDES_SHOWN,
+                  length: Object.keys(L?.sides ?? {}).length,
+                })
               : undefined
           }
         >
           {rows(sides)}
         </Group>
       )}
-      {temps.length > 0 && <Group header="Your tandas">{rows(temps)}</Group>}
+      {temps.length > 0 && <Group header={t("db.learnedRules.your_tandas")}>{rows(temps)}</Group>}
       {all.length > 0 && (
         <Group>
           <ActionRow
-            label="Forget everything learned from my edits"
+            label={t("db.learnedRules.forget_everything_learned_from_my_edits")}
             destructive
             onClick={() =>
               updateMemory((m) => ({ ...m, learned: undefined, updatedAt: new Date().toISOString() }))

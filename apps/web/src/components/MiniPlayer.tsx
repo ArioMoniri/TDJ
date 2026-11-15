@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 import { mediaUrl } from "@/lib/app/media";
 import { APP } from "@/lib/app/target";
 import { haptic } from "@/lib/haptics";
+import { t } from "@/lib/i18n";
 import { sheetUp } from "@/lib/motion";
 import { stopAt, usePlayer } from "@/lib/player";
 import { SpotifyEmbed } from "./Listen";
@@ -45,11 +46,15 @@ export function MiniPlayer() {
           if (playing)
             el.play().catch((e: Error) => {
               if (e.name === "AbortError") return;
-              _error(e.name === "NotAllowedError" ? "Tap play to start" : "Could not play this preview");
+              _error(
+                e.name === "NotAllowedError"
+                  ? t("miniPlayer.tap_play_to_start")
+                  : t("miniPlayer.could_not_play_this_preview"),
+              );
             });
           else el.pause();
         },
-        () => live && _error("Could not load this preview"),
+        () => live && _error(t("miniPlayer.could_not_load_this_preview")),
       );
       return () => {
         live = false;
@@ -65,7 +70,11 @@ export function MiniPlayer() {
     if (playing)
       el.play().catch((e: Error) => {
         if (e.name === "AbortError") return; // superseded by a newer load/pause, not a failure
-        _error(e.name === "NotAllowedError" ? "Tap play to start" : "Could not play this preview");
+        _error(
+          e.name === "NotAllowedError"
+            ? t("miniPlayer.tap_play_to_start")
+            : t("miniPlayer.could_not_play_this_preview"),
+        );
       });
     else el.pause();
   }, [preview, playing, _error]);
@@ -101,7 +110,7 @@ export function MiniPlayer() {
         preload="none"
         onTimeUpdate={(e) => _tick(e.currentTarget.currentTime, e.currentTarget.duration || 30)}
         onEnded={_ended}
-        onError={() => _error("Could not load this preview")}
+        onError={() => _error(t("miniPlayer.could_not_load_this_preview"))}
         aria-hidden
       />
       <AnimatePresence>
@@ -113,18 +122,18 @@ export function MiniPlayer() {
             animate={reduced ? { opacity: 1 } : "show"}
             exit={reduced ? { opacity: 0 } : "exit"}
             role="region"
-            aria-label="Now playing"
+            aria-label={t("miniPlayer.now_playing")}
             data-testid="mini-player"
             className="glass mini-docked fixed inset-x-3 z-30 rounded-[var(--radius-m)] p-2 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:w-[360px] lg:bottom-6"
             style={{ bottom: `var(--mini-bottom, ${offset})` }}
           >
-            <style>{`@media (min-width: 640px){[data-testid="mini-player"]{--mini-bottom:1.5rem}}`}</style>
+            <style>{'@media (min-width: 640px){[data-testid="mini-player"]{--mini-bottom:1.5rem}}'}</style>
             <div className="flex items-center gap-2">
               {track.source.kind === "preview" ? (
                 <button
                   type="button"
                   className="icon-btn"
-                  aria-label={playing ? "Pause" : "Play"}
+                  aria-label={playing ? t("miniPlayer.pause") : t("miniPlayer.play")}
                   onClick={() => {
                     haptic(4);
                     toggle();
@@ -150,17 +159,21 @@ export function MiniPlayer() {
                 data-testid="player-badge"
               >
                 {queue
-                  ? `${queue.label} · ${queue.index + 1} of ${queue.tracks.length}`
+                  ? t("miniPlayer.of", {
+                      label: queue.label,
+                      p1: queue.index + 1,
+                      length: queue.tracks.length,
+                    })
                   : track.kind === "cortina" && track.stopSec
-                    ? `cortina · ${track.stopSec} s`
+                    ? t("miniPlayer.cortina_s", { stopSec: track.stopSec })
                     : track.source.kind === "preview"
-                      ? "30 s preview"
-                      : "Spotify"}
+                      ? t("miniPlayer.30_s_preview")
+                      : t("miniPlayer.spotify")}
               </span>
               <button
                 type="button"
                 className="icon-btn icon-btn-bare"
-                aria-label="Close player"
+                aria-label={t("miniPlayer.close_player")}
                 onClick={close}
               >
                 <X size={18} strokeWidth={2} />
@@ -171,7 +184,7 @@ export function MiniPlayer() {
                 <span className="text-caption1 w-8 tabular-nums text-[var(--label-2)]">{fmt(position)}</span>
                 <input
                   type="range"
-                  aria-label="Position"
+                  aria-label={t("miniPlayer.position")}
                   min={0}
                   max={Math.max(1, Math.floor(total))}
                   step={1}
@@ -189,7 +202,7 @@ export function MiniPlayer() {
                 <SpotifyEmbed
                   kind="track"
                   id={track.source.ref}
-                  title={`${track.title} on Spotify`}
+                  title={t("miniPlayer.on_spotify", { title: track.title })}
                   height={80}
                 />
               </div>

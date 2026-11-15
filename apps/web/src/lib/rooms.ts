@@ -15,6 +15,7 @@ import {
   sameJson,
 } from "@tdj/core";
 import { create } from "zustand";
+import { t } from "@/lib/i18n";
 import { makeSnapshot } from "./history";
 import { useStore } from "./store";
 import { toast } from "./toast";
@@ -137,11 +138,15 @@ function announce(entries: RoomLogEntry[], me: string) {
   const theirs = entries.filter((e) => e.by !== me && !comings.has(e.kind));
   if (!theirs.length) {
     const j = [...entries].reverse().find((e) => e.by !== me && comings.has(e.kind));
-    if (j) toast(`${j.by} ${j.kind === "leave" ? "left" : "joined"} the room`);
+    if (j) toast(t(j.kind === "leave" ? "rooms.left_the_room" : "rooms.joined_the_room", { name: j.by }));
     return;
   }
   const e = theirs[theirs.length - 1]!;
-  toast(theirs.length === 1 ? `${e.by} ${e.text}` : `${e.by} and others made ${theirs.length} changes`);
+  toast(
+    theirs.length === 1
+      ? `${e.by} ${e.text}`
+      : t("rooms.and_others_made_changes", { by: e.by, length: theirs.length }),
+  );
 }
 
 function applyView(v: RoomView, o: { entries?: boolean } = {}) {
@@ -226,7 +231,7 @@ async function tick() {
   } catch (e) {
     failures++;
     if (e instanceof RoomError && e.status === 404) {
-      useRooms.setState({ status: "offline", error: "This room no longer exists." });
+      useRooms.setState({ status: "offline", error: t("rooms.this_room_no_longer_exists") });
       stop();
     } else useRooms.setState({ status: "offline", error: (e as Error).message });
   } finally {
@@ -336,7 +341,7 @@ export const useRooms = create<RoomSession>()((set, get) => ({
     const user = get().user;
     const code = normalizeRoomCode(code0);
     if (!user || !code) {
-      set({ error: code ? "Choose a name first." : "That code is six letters and digits." });
+      set({ error: code ? t("rooms.choose_a_name_first") : t("rooms.that_code_is_six_letters_and") });
       return false;
     }
     set({ status: "connecting", error: null });

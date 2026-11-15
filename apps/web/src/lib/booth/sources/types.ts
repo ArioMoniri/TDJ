@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 import type { Measurement } from "../loudness";
 import type { BoothRow, PlanEntity } from "../plan";
 
@@ -59,8 +60,16 @@ export interface SourceAdapter {
 
 /** Badge text per source. */
 export const SOURCE_LABEL: Record<ItemSource, string> = {
-  file: "file",
-  spotify: "Spotify · ±0.5 s gaps",
-  preview: "30 s rehearsal",
-  missing: "no source",
+  get file() {
+    return t("booth.sources.types.file");
+  },
+  get spotify() {
+    return t("booth.sources.types.spotify_0_5_s_gaps");
+  },
+  get preview() {
+    return t("booth.sources.types.30_s_rehearsal");
+  },
+  get missing() {
+    return t("booth.sources.types.no_source");
+  },
 };

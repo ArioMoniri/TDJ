@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 import type { AiProvider } from "./models";
 
 /**
@@ -63,7 +64,7 @@ export interface RelayAnswer {
 export class RelayNeeded extends LlmError {
   relay: Relay;
   constructor(relay: Relay) {
-    super("The model runs on this device.", 202);
+    super(t("ai.provider.the_model_runs_on_this_device"), 202);
     this.relay = relay;
   }
 }

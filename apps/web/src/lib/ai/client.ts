@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 import type { AcpConnection } from "./acp";
 import type { AiProvider } from "./models";
 import { LlmError, type ModelReply, type Relay } from "./provider";
@@ -34,7 +35,7 @@ export const hasOwnModel = (s: AiSettingsLike) => (s.ai.provider === "acp" ? !!a
 /** run a relayed prompt on this device (the DJ's ACP agent) */
 export async function completeOnDevice(s: AiSettingsLike, relay: Relay): Promise<ModelReply> {
   const conn = activeAcp(s);
-  if (!conn) throw new LlmError("Choose an agent connection in Settings → Models.", 401);
+  if (!conn) throw new LlmError(t("ai.choose_agent"), 401);
   return providerFor({ provider: "acp", acp: conn }).complete({
     system: relay.system,
     user: relay.user,
@@ -66,7 +67,7 @@ export async function aiFetch(
   } catch (e) {
     const status = e instanceof LlmError ? e.status : 502;
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "The agent did not answer." }),
+      JSON.stringify({ error: e instanceof Error ? e.message : t("ai.client.the_agent_did_not_answer") }),
       {
         status: status >= 400 ? status : 502,
         headers: { "content-type": "application/json" },

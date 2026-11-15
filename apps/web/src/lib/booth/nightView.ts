@@ -1,3 +1,4 @@
+import { capFirst, t } from "@/lib/i18n";
 import { durationLabel } from "./plan";
 
 /**
@@ -45,29 +46,33 @@ export function upNext(
 
 /** "3:39 ahead of plan" / "1:15 behind plan" / "on plan" (was "−3:39 early"). */
 export function driftWords(sec: number): string {
-  if (Math.abs(sec) < 1) return "on plan";
-  return `${durationLabel(Math.abs(sec))} ${sec < 0 ? "ahead of" : "behind"} plan`;
+  if (Math.abs(sec) < 1) return t("booth.nightView.on_plan");
+  return `${durationLabel(Math.abs(sec))} ${sec < 0 ? t("booth.nightView.ahead_of") : "behind"} plan`;
 }
 
 /** A cortina's part of its song in words (was "in 0:00 · stop at 0:45"). */
 export function cortinaSpan(inSec: number, stopSec: number): string {
-  if (inSec <= 0) return `plays its first ${durationLabel(stopSec)}`;
-  return `plays ${durationLabel(inSec)} to ${durationLabel(stopSec)} of the song`;
+  if (inSec <= 0) return t("booth.nightView.plays_its_first", { p1: durationLabel(stopSec) });
+  return t("booth.nightView.plays_to_of_the_song", { p1: durationLabel(inSec), p2: durationLabel(stopSec) });
 }
 
 /** The night bar's big number: in a rehearsal it counts 30 s clips, so it says so. */
 export function ttcCaption(o: { rehearsal: boolean; started: boolean }): { label: string; explain: string } {
   return o.rehearsal
     ? {
-        label: "Rehearsal to La Cumparsita",
-        explain:
-          "How long the rehearsal takes to reach La Cumparsita: every song plays a 30 s clip. The full night, every song in full, is under it.",
+        label: t("booth.nightView.rehearsal_to_la_cumparsita"),
+        explain: t("booth.nightView.how_long_the_rehearsal_takes_to"),
       }
-    : { label: "Time to La Cumparsita", explain: "How long until La Cumparsita, the last song of the night" };
+    : {
+        label: t("booth.nightView.time_to_la_cumparsita"),
+        explain: t("booth.nightView.how_long_until_la_cumparsita_the"),
+      };
 }
 
 const listWords = (xs: string[]) =>
-  xs.length <= 1 ? (xs[0] ?? "") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`;
+  xs.length <= 1
+    ? (xs[0] ?? "")
+    : t("booth.nightView.and", { p1: xs.slice(0, -1).join(", "), p2: xs[xs.length - 1] });
 
 /** The toast after "Last 4 tandas tango only": which tandas it skips, or which play again (0-based sets). */
 export function lastFourChange(
@@ -78,13 +83,18 @@ export function lastFourChange(
   const name = (i: number) => `tanda ${i + 1} (${tandas[i]?.rhythm ?? "tanda"})`;
   const added = [...after].filter((i) => !before.has(i)).sort((a, b) => a - b);
   const removed = [...before].filter((i) => !after.has(i)).sort((a, b) => a - b);
-  const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-  if (added.length) return `Skipping ${listWords(added.map(name))} tonight: the night ends on tangos`;
+  const cap = capFirst;
+  if (added.length)
+    return t("booth.nightView.skipping_tonight_the_night_ends_on", { p1: listWords(added.map(name)) });
   if (removed.length)
-    return `${cap(listWords(removed.map(name)))} ${removed.length === 1 ? "plays" : "play"} again tonight`;
-  return "The last 4 tandas are already tangos: nothing changes";
+    return t(removed.length === 1 ? "booth.nightView.plays_again_one" : "booth.nightView.plays_again_many", {
+      names: cap(listWords(removed.map(name))),
+    });
+  return t("booth.nightView.the_last_4_tandas_are_already");
 }
 
 /** The set list's swap buttons, counted inside the tanda (a cortina is not a song). */
-export const swapLabel = (tanda: number, song: number) => `Swap tanda ${tanda}, song ${song}`;
-export const cortinaSwapLabel = (tanda: number) => `Cortina after tanda ${tanda}: fades and stop`;
+export const swapLabel = (tanda: number, song: number) =>
+  t("booth.nightView.swap_tanda_song", { tanda, song });
+export const cortinaSwapLabel = (tanda: number) =>
+  t("booth.nightView.cortina_after_tanda_fades_and_stop", { tanda });

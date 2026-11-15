@@ -1,4 +1,5 @@
 "use client";
+import { t } from "@/lib/i18n";
 import type { AppOverrides } from "@/lib/types";
 import { type Clip, type ClipVerdict, rehearsalClip } from "../clips";
 import { PREVIEW_CAP_SEC } from "../engine";
@@ -63,7 +64,7 @@ export class PreviewAdapter implements SourceAdapter {
   private async load(entity: PlanEntity): Promise<PreparedItem> {
     const clip = this.clipOf(entity);
     const ctx = this.ctx();
-    if (!clip || !ctx) throw new Error("No clip of the Spotify recording for this item");
+    if (!clip || !ctx) throw new Error(t("booth.sources.preview.no_clip_of_the_spotify_recording"));
     let url: string | undefined;
     let ep: string | null = null;
     if (clip.from === "spotify") url = clip.url;
@@ -72,14 +73,14 @@ export class PreviewAdapter implements SourceAdapter {
       ep = `/api/preview?provider=${encodeURIComponent(r.provider)}&id=${encodeURIComponent(r.id)}&json=1`;
       url = await this.signed(ep);
     }
-    if (!url) throw new Error("No preview available right now");
+    if (!url) throw new Error(t("booth.sources.preview.no_preview_available_right_now"));
     let res = await this.fetchImpl(url, { mode: "cors" });
     // a signed Deezer link that expired since it was handed out: ask once for a fresh one
     if (!res.ok && ep && (res.status === 403 || res.status === 410)) {
       const again = await this.signed(`${ep}&fresh=1`);
       if (again) res = await this.fetchImpl(again, { mode: "cors" });
     }
-    if (!res.ok) throw new Error(`Preview request failed (${res.status})`);
+    if (!res.ok) throw new Error(t("booth.sources.preview.preview_request_failed", { status: res.status }));
     const buffer = await ctx.decodeAudioData(await res.arrayBuffer());
     const measured = await measureBuffer(buffer);
     return {
@@ -87,7 +88,7 @@ export class PreviewAdapter implements SourceAdapter {
       buffer,
       measured,
       durationSec: Math.min(REHEARSAL_SEC, buffer.duration),
-      note: "30 s rehearsal",
+      note: t("booth.sources.preview.30_s_rehearsal"),
     };
   }
 

@@ -1,17 +1,18 @@
 "use client";
 import { DEFAULT_TANDA_RULES, type TandaRules } from "@tdj/core";
+import { lazy, t } from "@/lib/i18n";
 import { Group, PickerRow, SegmentedRow, StepperRow, SwitchRow } from "./Form";
 
-const VOCAL_STYLES: Array<[NonNullable<TandaRules["vocalStyle"]>, string]> = [
-  ["either", "Either, never mixed"],
-  ["singer-led", "Singer-led (cantor sides)"],
-  ["rhythm-led", "Rhythm-led (estribillista sides)"],
-  ["off", "Not checked"],
-];
-const TONES: Array<[NonNullable<TandaRules["tone"]>, string]> = [
-  ["between", "Between tandas only"],
-  ["inside", "Inside tandas too"],
-];
+const VOCAL_STYLES: Array<[NonNullable<TandaRules["vocalStyle"]>, string]> = lazy(() => [
+  ["either", t("tandaRules.either_never_mixed")],
+  ["singer-led", t("tandaRules.singer_led_cantor_sides")],
+  ["rhythm-led", t("tandaRules.rhythm_led_estribillista_sides")],
+  ["off", t("tandaRules.not_checked")],
+]);
+const TONES: Array<[NonNullable<TandaRules["tone"]>, string]> = lazy(() => [
+  ["between", t("tandaRules.between_tandas_only")],
+  ["inside", t("tandaRules.inside_tandas_too")],
+]);
 
 /**
  * Round 21 — "Tanda rules": the coherence rules every tanda keeps (all on by default), shown in the Composer and in
@@ -31,59 +32,59 @@ export function TandaRulesGroup({
   const set = (patch: Partial<TandaRules>) => onChange({ ...(value ?? {}), ...patch });
   return (
     <Group
-      header="Tanda rules"
+      header={t("tandaRules.tanda_rules")}
       id={id}
-      footer="Every tanda you compose, improve, swap or let the AI refine keeps these. A tanda you pin (Keep my tanda as is) is yours: its exceptions are shown, never fixed."
+      footer={t("tandaRules.every_tanda_you_compose_improve_swap")}
     >
       <SwitchRow
-        label="One voice per tanda"
-        sub="All instrumental or all with a singer"
+        label={t("tandaRules.one_voice_per_tanda")}
+        sub={t("tandaRules.all_instrumental_or_all_with_a")}
         checked={r.voice}
         onChange={(v) => set({ voice: v })}
       />
       <PickerRow
-        label="Vocal style"
-        sub="Singer-led: the singer starts and leads. Rhythm-led: the orchestra starts, the singer comes in later"
-        ariaLabel="Vocal style"
+        label={t("tandaRules.vocal_style")}
+        sub={t("tandaRules.singer_led_the_singer_starts_and")}
+        ariaLabel={t("tandaRules.vocal_style")}
         value={r.vocalStyle}
         items={VOCAL_STYLES}
         onChange={(k) => k && set({ vocalStyle: k })}
       />
       <SegmentedRow
-        label="Where the night rises and falls"
+        label={t("tandaRules.where_the_night_rises_and_falls")}
         sub={
           r.tone === "between"
-            ? "Each tanda keeps one tone; the changes happen between tandas"
-            : "A tanda may build gently inside"
+            ? t("tandaRules.each_tanda_keeps_one_tone_the")
+            : t("tandaRules.a_tanda_may_build_gently_inside")
         }
         value={r.tone}
         items={TONES}
         onChange={(k) => set({ tone: k })}
       />
       <SwitchRow
-        label="Tempo band"
-        sub="The sides' measured BPM within 10 % (vals, milonga 12 %)"
+        label={t("tandaRules.tempo_band")}
+        sub={t("tandaRules.the_sides_measured_bpm_within_10")}
         checked={r.bpmBand}
         onChange={(v) => set({ bpmBand: v })}
       />
       <SwitchRow
-        label="Level band"
-        sub="The sides' measured loudness within 6 dB"
+        label={t("tandaRules.level_band")}
+        sub={t("tandaRules.the_sides_measured_loudness_within_6")}
         checked={r.levelBand}
         onChange={(v) => set({ levelBand: v })}
       />
       <SwitchRow
-        label="Big four spread"
-        sub="Di Sarli, D'Arienzo, Troilo, Pugliese: one in every quarter of the night, never back to back"
+        label={t("tandaRules.big_four_spread")}
+        sub={t("tandaRules.di_sarli_d_arienzo_troilo_pugliese")}
         checked={r.bigFour}
         onChange={(v) => set({ bigFour: v })}
       />
       {r.bigFour && (
         <StepperRow
-          label="Big four apart"
-          sub="Tandas before the same one returns (never fewer than the orchestra gap)"
+          label={t("tandaRules.big_four_apart")}
+          sub={t("tandaRules.tandas_before_the_same_one_returns")}
           value={r.bigFourGap}
-          unit=" tandas"
+          unit={t("tandaRules.tandas")}
           min={3}
           max={10}
           step={1}

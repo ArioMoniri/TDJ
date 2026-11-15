@@ -15,6 +15,7 @@ import { aiFetch, hasOwnModel } from "@/lib/ai/client";
 import { EDIT_EXAMPLES } from "@/lib/ai/examples";
 import { installAiRelay } from "@/lib/ai/relayFetch";
 import { FEEDBACK_LABEL } from "@/lib/feedback";
+import { t } from "@/lib/i18n";
 import { installLearnWatch, skipNextLearn } from "@/lib/learnWatch";
 import { DUR, EASE } from "@/lib/motion";
 import { useStore } from "@/lib/store";
@@ -54,7 +55,11 @@ function SidesDiff({ before, after }: { before?: TandaBrief; after?: TandaBrief 
         <span key={`${out[k]?.id ?? ""}-${inn[k]?.id ?? ""}`} className="flex min-w-0 items-center gap-1.5">
           {out[k] && (
             <Tip
-              text={`${out[k]!.title}${yearText(out[k]!.year) ? ` (${yearText(out[k]!.year)})` : ""}, energy ${out[k]!.energy}`}
+              text={t("aiEditBar.energy", {
+                title: out[k]!.title,
+                p1: yearText(out[k]!.year) ? ` (${yearText(out[k]!.year)})` : "",
+                energy: out[k]!.energy,
+              })}
               className="min-w-0"
             >
               <del className="truncate">{out[k]!.title}</del>
@@ -63,7 +68,11 @@ function SidesDiff({ before, after }: { before?: TandaBrief; after?: TandaBrief 
           {out[k] && inn[k] && <ArrowRight size={12} className="shrink-0" aria-hidden />}
           {inn[k] && (
             <Tip
-              text={`${inn[k]!.title}${yearText(inn[k]!.year) ? ` (${yearText(inn[k]!.year)})` : ""}, energy ${inn[k]!.energy}`}
+              text={t("aiEditBar.energy", {
+                title: inn[k]!.title,
+                p1: yearText(inn[k]!.year) ? ` (${yearText(inn[k]!.year)})` : "",
+                energy: inn[k]!.energy,
+              })}
               className="min-w-0"
             >
               <ins className="truncate text-[var(--label)] no-underline">
@@ -128,10 +137,10 @@ export function AiEditBar({
     const st = useStore.getState();
     skipNextLearn();
     st.setPlaylist(prev);
-    st.recordNightEdit(prev, "Edit undone", "swap");
+    st.recordNightEdit(prev, t("aiEditBar.edit_undone"), "swap");
     if (learnedBefore) st.updateMemory((m) => ({ ...m, learned: learnedBefore.v }));
     setLearnedBefore(null);
-    toast("Edit undone");
+    toast(t("aiEditBar.edit_undone"));
   };
   const reduced = useReducedMotion();
   const [text, setText] = useState("");
@@ -162,7 +171,7 @@ export function AiEditBar({
       );
       const r = (await res.json().catch(() => ({}))) as AiEditResponse;
       if (!res.ok || !r.playlist) {
-        setError(r.error ?? "That did not work; try again.");
+        setError(r.error ?? t("aiEditBar.that_did_not_work_try_again"));
         return;
       }
       setResult({ r, prev, instruction });
@@ -176,7 +185,7 @@ export function AiEditBar({
         setText("");
       }
     } catch {
-      setError("Could not reach T-DJ. Check your connection and try again.");
+      setError(t("aiEditBar.could_not_reach_t_dj_check"));
     } finally {
       setBusy(false);
     }
@@ -191,39 +200,36 @@ export function AiEditBar({
   const nothing = r && !r.applied?.length;
   return (
     <Group
-      header="Edit with AI"
+      header={t("aiEditBar.edit_with_ai")}
       footer={
         <span aria-live="polite" className="block">
           {error ? (
             <span className="text-[var(--destructive)]">{error}</span>
           ) : busy ? (
-            "Reading the night…"
+            t("aiEditBar.reading_the_night")
           ) : own ? (
-            "Ask in your own words. Every change is checked against the night's rules; anything that would break it is refused and said why."
+            t("aiEditBar.ask_in_your_own_words_every")
           ) : (
-            "Without a model in Settings → Models, simple requests (calmer, livelier, lock, move, swap a song) still work."
+            t("aiEditBar.without_a_model_in_settings_models")
           )}{" "}
           {!busy && !error && (
-            <Tip text="Start from an empty night and choose every tanda yourself">
+            <Tip text={t("aiEditBar.start_from_an_empty_night_and")}>
               <Link href="/build" className="text-[var(--tint)]" data-testid="build-by-hand">
-                Or build a night by hand.
+                {t("aiEditBar.or_build_a_night_by_hand")}
               </Link>
             </Tip>
           )}
         </span>
       }
-      aria-label="Edit the night with AI"
+      aria-label={t("aiEditBar.edit_the_night_with_ai")}
       data-testid="ai-edit"
     >
       <form onSubmit={submit} className="cell">
         <Sparkles size={18} className="shrink-0 text-[var(--tint)]" aria-hidden />
         <label htmlFor="ai-edit-input" className="sr-only">
-          Edit the night
+          {t("aiEditBar.edit_the_night")}
         </label>
-        <Tip
-          text="Say what to change: a tanda calmer or livelier, a song swapped, a tanda moved, locked or replaced"
-          className="min-w-0 flex-1"
-        >
+        <Tip text={t("aiEditBar.say_what_to_change_a_tanda")} className="min-w-0 flex-1">
           <input
             id="ai-edit-input"
             className="field w-full min-w-0"
@@ -235,12 +241,12 @@ export function AiEditBar({
             enterKeyHint="send"
           />
         </Tip>
-        <Tip text={"Make the change"}>
+        <Tip text={t("aiEditBar.make_the_change")}>
           <button
             type="submit"
             className="icon-btn icon-btn-send -mr-2"
             disabled={busy || !text.trim()}
-            aria-label="Make the change"
+            aria-label={t("aiEditBar.make_the_change")}
           >
             {busy ? (
               <LoaderCircle size={18} className="animate-spin" />
@@ -253,7 +259,7 @@ export function AiEditBar({
       {!result && !busy && (
         <div className="cell flex-wrap gap-2 py-2.5">
           {EXAMPLES.map((x) => (
-            <Tip key={x} text={"Use this example"}>
+            <Tip key={x} text={t("aiEditBar.use_this_example")}>
               <button type="button" className="chip" onClick={() => setText(x)}>
                 {x}
               </button>
@@ -275,19 +281,19 @@ export function AiEditBar({
             <div className="flex items-center justify-between gap-3">
               <Tip text={result!.instruction}>
                 <span className="text-subhead min-w-0 truncate text-[var(--label-2)]">
-                  “{result!.instruction}”{r.source === "words" ? " · read by keyword" : ""}
+                  “{result!.instruction}”{r.source === "words" ? t("aiEditBar.read_by_keyword") : ""}
                 </span>
               </Tip>
               <span className="flex shrink-0 items-center gap-1">
                 {!!r.applied?.length && (
-                  <Tip text={"Put the night back as it was"}>
+                  <Tip text={t("aiEditBar.put_the_night_back_as_it")}>
                     <button
                       type="button"
                       className="btn btn-ghost min-h-[44px] px-3"
                       onClick={undo}
                       data-testid="ai-edit-undo"
                     >
-                      <RotateCcw size={16} aria-hidden /> Undo
+                      <RotateCcw size={16} aria-hidden /> {t("aiEditBar.undo")}
                     </button>
                   </Tip>
                 )}
@@ -297,7 +303,7 @@ export function AiEditBar({
                   onClick={() => setResult(null)}
                   data-testid="ai-edit-done"
                 >
-                  {r.applied?.length ? "Keep" : "Close"}
+                  {r.applied?.length ? t("aiEditBar.keep") : t("aiEditBar.close")}
                 </button>
               </span>
             </div>
@@ -306,7 +312,7 @@ export function AiEditBar({
               {(r.applied ?? []).map((c) => (
                 <li key={`${c.op}-${c.tanda}-${c.line}`} className="min-w-0">
                   <span className="text-subhead flex items-start gap-2">
-                    <Tip text={`Tanda ${c.tanda}`}>
+                    <Tip text={t("aiEditBar.tanda", { tanda: c.tanda })}>
                       <span className="mt-0.5 inline-grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-[var(--tint)] px-1 text-[11px] font-semibold text-white tabular-nums">
                         {c.tanda}
                       </span>
@@ -324,7 +330,7 @@ export function AiEditBar({
                   className="text-footnote text-[var(--label-2)]"
                   data-testid="ai-edit-refused"
                 >
-                  Not done (tanda {x.op.tanda}): {x.reason}.
+                  {t("aiEditBar.not_done_tanda", { tanda: x.op.tanda, reason: x.reason })}
                   {x.suggest && (
                     <>
                       {" "}
@@ -345,17 +351,18 @@ export function AiEditBar({
               ))}
               {r.chip && (
                 <li className="text-footnote text-[var(--label-2)]" data-testid="ai-edit-chip">
-                  That is a change to the whole night: recomposing with “{FEEDBACK_LABEL[r.chip]}”, as the
-                  Adjust chip does.
+                  {t("aiEditBar.that_is_a_change_to_the", { p1: FEEDBACK_LABEL[r.chip] })}
                 </li>
               )}
               {nothing && !r.rejected?.length && !r.chip && (
                 <li className="text-footnote text-[var(--label-2)]">
-                  Nothing to change:{" "}
-                  {r.notUnderstood?.length
-                    ? `“${r.notUnderstood.join("”, “")}” was not understood`
-                    : "no edit came back"}
-                  {r.why ? ` (${r.why})` : ""}. Try naming the tanda: “make tanda 7 calmer”.
+                  {t("aiEditBar.try_naming_the_tanda_make_tanda", {
+                    p1: t("aiEditBar.nothing_to_change", { p1: " " }),
+                    p2: r.notUnderstood?.length
+                      ? t("aiEditBar.was_not_understood", { notUnderstood: r.notUnderstood.join("”, “") })
+                      : t("aiEditBar.no_edit_came_back"),
+                    p3: r.why ? ` (${r.why})` : "",
+                  })}
                 </li>
               )}
             </ul>

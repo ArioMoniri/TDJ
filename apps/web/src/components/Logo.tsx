@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 /**
  * TDJ mark — "Tanda arc": a record whose groove rises as a tanda (slow → up → settle) and leaves the disc.
  * Geometry is the master in brand/logo.svg (256 grid, 24-unit stroke, overpass knockout where the line crosses the ring).
@@ -6,7 +7,7 @@
  */
 export function Logo({ size = 32 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 256 256" role="img" aria-label="T-DJ logo">
+    <svg width={size} height={size} viewBox="0 0 256 256" role="img" aria-label={t("logo.t_dj_logo")}>
       {/* record: full ring, cut where the settle tread passes over it */}
       <path fill="currentColor" d="M217.98 108 A100 100 0 1 1 200 68 L166.65 68 A76 76 0 1 0 193.32 108 Z" />
       {/* tanda line: grows out of the ring's inner edge, rises through the centre, exits right */}

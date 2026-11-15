@@ -1,4 +1,5 @@
 "use client";
+import { t as tx } from "@/lib/i18n";
 import type { HostCalls, HostError, SpotifyAccess, WireRequest, WireResponse } from "./host";
 
 /**
@@ -27,7 +28,8 @@ export const hasNative = () => typeof window !== "undefined" && !!window.__TAURI
 
 export function invoke<T = unknown>(cmd: string, args: Record<string, unknown> = {}): Promise<T> {
   const t = typeof window !== "undefined" ? window.__TAURI_INTERNALS__ : undefined;
-  if (!t) return Promise.reject({ message: "This needs the T-DJ app.", status: 501 } satisfies HostError);
+  if (!t)
+    return Promise.reject({ message: tx("native.this_needs_the_t_dj_app"), status: 501 } satisfies HostError);
   return t.invoke(cmd, args) as Promise<T>;
 }
 

@@ -136,6 +136,124 @@ pub const COMMANDS: &[Command] = &[
     c("help.privacy", "Privacy", None, Group::Help),
 ];
 
+/// Wave 3: the Turkish title of a command (the web app's own words, docs/i18n-glossary.md).
+pub fn title_tr(id: &str) -> Option<&'static str> {
+    Some(match id {
+        "app.settings" => "Ayarlar…",
+        "app.server" => "Bağlantılar…",
+        "app.updates" => "Güncellemeleri Denetle…",
+        "compose.run" => "Geceyi Oluştur",
+        "export.open" => "Aktar…",
+        "export.print" => "Set Listesini Yazdır…",
+        "folder.add" => "Müzik Klasörü Ekle…",
+        "edit.search" => "Bul…",
+        "edit.palette" => "Komut Paleti…",
+        "go.booth" => "Kabin",
+        "go.compose" => "Gece Oluştur",
+        "go.library" => "Kütüphane",
+        "go.database" => "Veritabanı",
+        "go.history" => "Geçmiş",
+        "go.guide" => "Rehber",
+        "view.sidebar" => "Kenar Çubuğunu Göster/Gizle",
+        "view.inspector" => "Denetçiyi Göster/Gizle",
+        "booth.next" => "Sonraki Şarkı",
+        "booth.restart" => "Şarkıyı Baştan Başlat",
+        "booth.cue" => "Ön Dinlemeyi Çal / Duraklat (Kulaklık)",
+        "booth.skip" => "Tandayı Bu Gece Atla",
+        "booth.cumparsita" => "La Cumparsita'ya Geç…",
+        "booth.stop" => "Acil Durdur",
+        "help.guide" => "TDJ Rehberi",
+        "help.shortcuts" => "Klavye Kısayolları",
+        "help.issue" => "Sorun Bildir…",
+        "help.privacy" => "Gizlilik",
+        _ => return None,
+    })
+}
+
+/// The menu's own words (submenus and the system items) in English or Turkish.
+pub fn chrome(turkish: bool) -> [&'static str; 18] {
+    if turkish {
+        [
+            "TDJ Hakkında",
+            "Dosya",
+            "Düzen",
+            "Görünüm",
+            "Çalma",
+            "Pencere",
+            "Yardım",
+            "Geri Al",
+            "Yinele",
+            "Kes",
+            "Kopyala",
+            "Yapıştır",
+            "Tümünü Seç",
+            "Küçült",
+            "Büyüt",
+            "Tam Ekran",
+            "Pencereyi Kapat",
+            "Hizmetler",
+        ]
+    } else {
+        [
+            "About TDJ",
+            "File",
+            "Edit",
+            "View",
+            "Playback",
+            "Window",
+            "Help",
+            "Undo",
+            "Redo",
+            "Cut",
+            "Copy",
+            "Paste",
+            "Select All",
+            "Minimize",
+            "Zoom",
+            "Enter Full Screen",
+            "Close Window",
+            "Services",
+        ]
+    }
+}
+
+/// A Turkish system: its first preferred language is Turkish (the web UI's Auto follows the same list).
+pub fn is_turkish(languages: &[String]) -> bool {
+    languages
+        .first()
+        .map(|l| l.to_ascii_lowercase().starts_with("tr"))
+        .unwrap_or(false)
+}
+
+/// The system's preferred languages, most preferred first.
+#[cfg(target_os = "macos")]
+pub fn system_languages() -> Vec<String> {
+    use core_foundation::array::{CFArray, CFArrayRef};
+    use core_foundation::base::TCFType;
+    use core_foundation::string::CFString;
+    extern "C" {
+        fn CFLocaleCopyPreferredLanguages() -> CFArrayRef;
+    }
+    // SAFETY: a Copy function returns a +1 array of CFStrings, owned by the wrapper
+    unsafe {
+        let r = CFLocaleCopyPreferredLanguages();
+        if r.is_null() {
+            return vec![];
+        }
+        let a: CFArray<CFString> = CFArray::wrap_under_create_rule(r);
+        a.iter().map(|s| s.to_string()).collect()
+    }
+}
+#[cfg(not(target_os = "macos"))]
+pub fn system_languages() -> Vec<String> {
+    ["LC_ALL", "LC_MESSAGES", "LANG"]
+        .iter()
+        .filter_map(|k| std::env::var(k).ok())
+        .filter(|v| !v.is_empty() && v != "C" && v != "POSIX")
+        .take(1)
+        .collect()
+}
+
 #[cfg(test)]
 pub fn find(id: &str) -> Option<&'static Command> {
     COMMANDS.iter().find(|c| c.id == id)
@@ -150,8 +268,17 @@ pub fn dispatch_js(id: &str) -> String {
 /// The menu bar (macOS); iPadOS 26 gets the same commands as key commands from the page (r22-motion §4.5).
 #[cfg(desktop)]
 pub fn build<R: Runtime>(app: &AppHandle<R>, with_updates: bool) -> tauri::Result<Menu<R>> {
+    // wave 3: Turkish titles on a Turkish system
+    let turkish = is_turkish(&system_languages());
+    let [about, file_t, edit_t, view_t, playback_t, window_t, help_t, undo, redo, cut, copy, paste, select_all, minimize, zoom, fullscreen, close, services] =
+        chrome(turkish);
     let item = |cmd: &Command| {
-        let mut b = MenuItemBuilder::with_id(cmd.id, cmd.title);
+        let title = if turkish {
+            title_tr(cmd.id).unwrap_or(cmd.title)
+        } else {
+            cmd.title
+        };
+        let mut b = MenuItemBuilder::with_id(cmd.id, title);
         if let Some(a) = cmd.accel {
             b = b.accelerator(a);
         }
@@ -159,17 +286,14 @@ pub fn build<R: Runtime>(app: &AppHandle<R>, with_updates: bool) -> tauri::Resul
     };
     let group = |g: Group| COMMANDS.iter().filter(move |c| c.group == g);
 
-    let mut app_menu = SubmenuBuilder::new(app, "T-DJ").item(&PredefinedMenuItem::about(
-        app,
-        Some("About TDJ"),
-        None,
-    )?);
+    let mut app_menu =
+        SubmenuBuilder::new(app, "T-DJ").item(&PredefinedMenuItem::about(app, Some(about), None)?);
     for cmd in group(Group::App).filter(|c| with_updates || c.id != "app.updates") {
         app_menu = app_menu.item(&item(cmd)?);
     }
     let app_menu = app_menu
         .separator()
-        .services()
+        .services_with_text(services)
         .separator()
         .hide()
         .hide_others()
@@ -178,36 +302,36 @@ pub fn build<R: Runtime>(app: &AppHandle<R>, with_updates: bool) -> tauri::Resul
         .quit()
         .build()?;
 
-    let mut file = SubmenuBuilder::new(app, "File");
+    let mut file = SubmenuBuilder::new(app, file_t);
     for cmd in group(Group::File) {
         file = file.item(&item(cmd)?);
     }
-    let file = file.separator().close_window().build()?;
+    let file = file.separator().close_window_with_text(close).build()?;
 
-    let mut edit = SubmenuBuilder::new(app, "Edit")
-        .undo()
-        .redo()
+    let mut edit = SubmenuBuilder::new(app, edit_t)
+        .undo_with_text(undo)
+        .redo_with_text(redo)
         .separator()
-        .cut()
-        .copy()
-        .paste()
-        .select_all()
+        .cut_with_text(cut)
+        .copy_with_text(copy)
+        .paste_with_text(paste)
+        .select_all_with_text(select_all)
         .separator();
     for cmd in group(Group::Edit) {
         edit = edit.item(&item(cmd)?);
     }
     let edit = edit.build()?;
 
-    let mut view = SubmenuBuilder::new(app, "View");
+    let mut view = SubmenuBuilder::new(app, view_t);
     for cmd in group(Group::View) {
         view = view.item(&item(cmd)?);
         if cmd.id == "go.guide" {
             view = view.separator();
         }
     }
-    let view = view.separator().fullscreen().build()?;
+    let view = view.separator().fullscreen_with_text(fullscreen).build()?;
 
-    let mut playback = SubmenuBuilder::new(app, "Playback");
+    let mut playback = SubmenuBuilder::new(app, playback_t);
     for cmd in group(Group::Playback) {
         if cmd.id == "booth.stop" {
             playback = playback.separator();
@@ -216,14 +340,14 @@ pub fn build<R: Runtime>(app: &AppHandle<R>, with_updates: bool) -> tauri::Resul
     }
     let playback = playback.build()?;
 
-    let window = SubmenuBuilder::new(app, "Window")
-        .minimize()
-        .maximize()
+    let window = SubmenuBuilder::new(app, window_t)
+        .minimize_with_text(minimize)
+        .maximize_with_text(zoom)
         .separator()
-        .close_window()
+        .close_window_with_text(close)
         .build()?;
 
-    let mut help = SubmenuBuilder::new(app, "Help");
+    let mut help = SubmenuBuilder::new(app, help_t);
     for cmd in group(Group::Help) {
         help = help.item(&item(cmd)?);
     }
@@ -265,6 +389,24 @@ mod tests {
             }
             assert_ne!(c.accel, Some("Space"), "Space must stay with the page");
         }
+    }
+
+    #[test]
+    fn every_command_has_a_turkish_title() {
+        for c in COMMANDS {
+            let t = title_tr(c.id).unwrap_or_else(|| panic!("no Turkish title for {}", c.id));
+            assert_ne!(t, c.title, "{} is not translated", c.id);
+        }
+        assert_eq!(chrome(true).len(), chrome(false).len());
+    }
+
+    #[test]
+    fn turkish_follows_the_first_system_language() {
+        let l = |xs: &[&str]| xs.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        assert!(is_turkish(&l(&["tr-TR", "en-US"])));
+        assert!(is_turkish(&l(&["tr"])));
+        assert!(!is_turkish(&l(&["en-GB", "tr-TR"])));
+        assert!(!is_turkish(&l(&[])));
     }
 
     #[test]

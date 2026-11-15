@@ -1,6 +1,7 @@
 "use client";
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
+import { t } from "@/lib/i18n";
 import type { MetaOrchestra, UserOverrides } from "@/lib/types";
 import { ActionRow, FieldRow, Group, PickerRow, Row, StepperRow, SwitchRow } from "../Form";
 import { Sheet } from "../Sheet";
@@ -20,8 +21,12 @@ const NUMERIC: Array<{
 }> = [
   {
     key: "orchestraRepeatGap",
-    label: "Orchestra repeat gap",
-    hint: "tandas between two of the same orchestra",
+    get label() {
+      return t("db.rulesTab.orchestra_repeat_gap");
+    },
+    get hint() {
+      return t("db.rulesTab.tandas_between_two_of_the_same_2");
+    },
     def: 6,
     min: 1,
     max: 12,
@@ -29,8 +34,12 @@ const NUMERIC: Array<{
   },
   {
     key: "singerRepeatGap",
-    label: "Singer repeat gap",
-    hint: "tandas between two of the same singer",
+    get label() {
+      return t("db.rulesTab.singer_repeat_gap");
+    },
+    get hint() {
+      return t("db.rulesTab.tandas_between_two_of_the_same");
+    },
     def: 4,
     min: 1,
     max: 12,
@@ -38,20 +47,56 @@ const NUMERIC: Array<{
   },
   {
     key: "maxYearSpread",
-    label: "Year spread inside a tanda",
-    hint: "recordings within this many years",
+    get label() {
+      return t("db.rulesTab.year_spread_inside_a_tanda");
+    },
+    get hint() {
+      return t("db.rulesTab.recordings_within_this_many_years");
+    },
     def: 4,
     min: 1,
     max: 12,
     step: 1,
     unit: " y",
   },
-  { key: "tangoTandaSize", label: "Tango tanda size", hint: "", def: 4, min: 3, max: 5, step: 1 },
-  { key: "valsTandaSize", label: "Vals tanda size", hint: "", def: 3, min: 3, max: 4, step: 1 },
-  { key: "milongaTandaSize", label: "Milonga tanda size", hint: "", def: 3, min: 3, max: 4, step: 1 },
+  {
+    key: "tangoTandaSize",
+    get label() {
+      return t("db.rulesTab.tango_tanda_size");
+    },
+    hint: "",
+    def: 4,
+    min: 3,
+    max: 5,
+    step: 1,
+  },
+  {
+    key: "valsTandaSize",
+    get label() {
+      return t("db.rulesTab.vals_tanda_size");
+    },
+    hint: "",
+    def: 3,
+    min: 3,
+    max: 4,
+    step: 1,
+  },
+  {
+    key: "milongaTandaSize",
+    get label() {
+      return t("db.rulesTab.milonga_tanda_size");
+    },
+    hint: "",
+    def: 3,
+    min: 3,
+    max: 4,
+    step: 1,
+  },
   {
     key: "cortinaLengthSec",
-    label: "Cortina length",
+    get label() {
+      return t("db.rulesTab.cortina_length");
+    },
     hint: "",
     def: 45,
     min: 20,
@@ -97,10 +142,7 @@ export function RulesTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
   };
   return (
     <div>
-      <Group
-        header="Rules"
-        footer="Rules set here override the composer's defaults for every set. Untouched rules follow the index."
-      >
+      <Group header={t("db.rulesTab.rules")} footer={t("db.rulesTab.rules_set_here_override_the_composer")}>
         {NUMERIC.map((r) => {
           const v = rules[r.key] as number | undefined;
           return (
@@ -110,7 +152,11 @@ export function RulesTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
               sub={r.hint || undefined}
               value={v ?? r.def}
               unit={r.unit ?? ""}
-              display={v === undefined ? `Index default ${r.def}${r.unit ?? ""}` : undefined}
+              display={
+                v === undefined
+                  ? t("db.rulesTab.index_default", { value: `${r.def}${r.unit ?? ""}` })
+                  : undefined
+              }
               min={r.min}
               max={r.max}
               step={r.step}
@@ -118,28 +164,25 @@ export function RulesTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
             >
               {editing && v !== undefined && (
                 <button type="button" className="btn-plain" onClick={() => setRule(r.key, undefined)}>
-                  Revert
+                  {t("db.rulesTab.revert")}
                 </button>
               )}
             </StepperRow>
           );
         })}
         <SwitchRow
-          label="Mix vocal and instrumental inside a tanda"
+          label={t("db.rulesTab.mix_vocal_and_instrumental_inside_a")}
           sub={
             rules.mixVocalInstrumental === undefined
-              ? "Index default: strict (one singer or all instrumental)"
-              : "Your rule"
+              ? t("db.rulesTab.index_default_strict_one_singer_or")
+              : t("db.rulesTab.your_rule")
           }
           checked={rules.mixVocalInstrumental ?? false}
           onChange={(v) => setRule("mixVocalInstrumental", v)}
         />
       </Group>
 
-      <Group
-        header="Track energy"
-        footer="Key is “title|orchestra-id” in lower case, e.g. “el flete|juan-d-arienzo”."
-      >
+      <Group header={t("db.rulesTab.track_energy")} footer={t("db.rulesTab.key_is_title_orchestra_id_in")}>
         {Object.entries(te).map(([k, v]) => (
           <SwipeRow
             key={k}
@@ -161,30 +204,27 @@ export function RulesTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
                 <button
                   type="button"
                   className="btn-plain text-[var(--destructive)]"
-                  aria-label={`Remove ${k}`}
+                  aria-label={t("db.rulesTab.remove_3", { k })}
                   onClick={() => {
                     const n = { ...te };
                     delete n[k];
                     setRule("trackEnergy", Object.keys(n).length ? n : undefined);
                   }}
                 >
-                  Remove
+                  {t("db.rulesTab.remove")}
                 </button>
               )}
             </Row>
           </SwipeRow>
         ))}
         <ActionRow
-          label="Add a track energy…"
-          tip="Set how lively one recording feels, from 0 calm to 100 driving"
+          label={t("db.rulesTab.add_a_track_energy")}
+          tip={t("db.rulesTab.set_how_lively_one_recording_feels")}
           onClick={() => setTeOpen(true)}
         />
       </Group>
 
-      <Group
-        header="Not before"
-        footer="Keep an orchestra out of the first part of the night (0.5 = second half)."
-      >
+      <Group header={t("db.rulesTab.not_before")} footer={t("db.rulesTab.keep_an_orchestra_out_of_the")}>
         {Object.entries(nb).map(([id, v]) => (
           <SwipeRow
             key={id}
@@ -206,22 +246,22 @@ export function RulesTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
                 <button
                   type="button"
                   className="btn-plain text-[var(--destructive)]"
-                  aria-label={`Remove ${id}`}
+                  aria-label={t("db.rulesTab.remove_2", { id })}
                   onClick={() => {
                     const n = { ...nb };
                     delete n[id];
                     setRule("notBefore", Object.keys(n).length ? n : undefined);
                   }}
                 >
-                  Remove
+                  {t("db.rulesTab.remove")}
                 </button>
               )}
             </Row>
           </SwipeRow>
         ))}
         <ActionRow
-          label="Add an orchestra…"
-          tip="Describe an orchestra the composer does not know yet"
+          label={t("db.rulesTab.add_an_orchestra")}
+          tip={t("db.rulesTab.describe_an_orchestra_the_composer_does")}
           onClick={() => setNbOpen(true)}
         />
       </Group>
@@ -229,23 +269,23 @@ export function RulesTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
       <Sheet
         open={teOpen}
         onClose={() => setTeOpen(false)}
-        title="Track energy"
-        trailing="Add"
+        title={t("db.rulesTab.track_energy")}
+        trailing={t("db.rulesTab.add")}
         onTrailing={addTe}
       >
-        <Group footer="The energy replaces the computed one for that recording.">
-          <FieldRow label="Track" id="te-key">
+        <Group footer={t("db.rulesTab.the_energy_replaces_the_computed_one")}>
+          <FieldRow label={t("db.rulesTab.track")} id="te-key">
             <input
               id="te-key"
               className="field field-value min-w-0 flex-1 font-mono"
-              placeholder="title|orchestra-id"
+              placeholder={t("db.rulesTab.title_orchestra_id")}
               value={teKey}
               onChange={(e) => setTeKey(e.target.value)}
               data-autofocus
               autoComplete="off"
             />
           </FieldRow>
-          <FieldRow label="Energy" id="te-val">
+          <FieldRow label={t("db.rulesTab.energy")} id="te-val">
             <input
               id="te-val"
               className="field field-value min-w-0 flex-1"
@@ -262,19 +302,19 @@ export function RulesTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
       <Sheet
         open={nbOpen}
         onClose={() => setNbOpen(false)}
-        title="Not before"
-        trailing="Add"
+        title={t("db.rulesTab.not_before")}
+        trailing={t("db.rulesTab.add")}
         onTrailing={addNb}
       >
         <Group>
           <PickerRow
-            label="Orchestra"
-            ariaLabel="Orchestra"
+            label={t("db.rulesTab.orchestra")}
+            ariaLabel={t("db.rulesTab.orchestra")}
             value={nbId}
             items={orchestras.map((o) => [o.id, o.name])}
             onChange={(v) => v && setNbId(v)}
           />
-          <FieldRow label="Fraction of the night" id="nb-val">
+          <FieldRow label={t("db.rulesTab.fraction_of_the_night")} id="nb-val">
             <input
               id="nb-val"
               className="field field-value min-w-0 flex-1"

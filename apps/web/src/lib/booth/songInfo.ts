@@ -1,4 +1,5 @@
 import type { Cortina, Song } from "@tdj/core";
+import { t } from "@/lib/i18n";
 
 /**
  * Round 22: what a row prints about a side — BPM, key and energy — with where each number came from (shown on
@@ -22,10 +23,16 @@ export function surnameOf(orchestra: string): string {
 }
 
 const TEMPO_SOURCE: Record<string, string> = {
-  dj: "Your edit",
+  get dj() {
+    return t("booth.songInfo.your_edit");
+  },
   deezer: "Deezer",
-  audio: "Analysed preview",
-  index: "Catalogue estimate",
+  get audio() {
+    return t("booth.songInfo.analysed_preview");
+  },
+  get index() {
+    return t("booth.songInfo.catalogue_estimate");
+  },
 };
 
 export interface Sourced<T> {
@@ -41,8 +48,9 @@ export function bpmOf(e: Entity): Sourced<number> | null {
   if (e.deezer?.bpm && Number.isFinite(e.deezer.bpm))
     return { value: Math.round(e.deezer.bpm), source: "Deezer" };
   if (e.audio?.bpm && Number.isFinite(e.audio.bpm))
-    return { value: Math.round(e.audio.bpm), source: "Analysed preview" };
-  if (e.bpm && Number.isFinite(e.bpm)) return { value: Math.round(e.bpm), source: "Catalogue estimate" };
+    return { value: Math.round(e.audio.bpm), source: t("booth.songInfo.analysed_preview") };
+  if (e.bpm && Number.isFinite(e.bpm))
+    return { value: Math.round(e.bpm), source: t("booth.songInfo.catalogue_estimate") };
   return null;
 }
 
@@ -55,7 +63,11 @@ export function keyOf(e: Entity): { camelot: string; name: string; source: strin
   if (!e || !isSong(e)) return null;
   const a = e.audio;
   if (!a?.camelot || !a.key || !(a.keyConfidence >= KEY_MIN_CONFIDENCE)) return null;
-  return { camelot: a.camelot, name: `${SHARP(a.key)} ${a.mode}`, source: "Analysed preview" };
+  return {
+    camelot: a.camelot,
+    name: `${SHARP(a.key)} ${a.mode}`,
+    source: t("booth.songInfo.analysed_preview"),
+  };
 }
 
 /** 0–100, rounded; null when the side has none. */

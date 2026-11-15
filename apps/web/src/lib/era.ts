@@ -3,7 +3,6 @@ import {
   type CoverageEdits,
   type CoverageRow,
   DEFAULT_HEATMAP,
-  ERA_WORDS,
   type EraMark,
   eraMark,
   type HeatGrade,
@@ -13,6 +12,8 @@ import {
 } from "@tdj/core";
 import COVERAGE from "../../../../data/index/coverage.json";
 import { surnameOf } from "./booth/songInfo";
+import { eraWords } from "./eraWords";
+import { lazy, lower, t } from "./i18n";
 import type { Song } from "./types";
 
 /**
@@ -70,33 +71,34 @@ export function editGrade(
  */
 export type EraClass = EraMark;
 
-export const ERA_CLASSES: ReadonlyArray<{ cls: EraClass; label: string; bars: number; explain: string }> = [
-  // the words are the app's one era vocabulary (core ERA_WORDS, wave 2); the bars are the Booth's glyph
-  {
-    cls: "best",
-    label: ERA_WORDS.best.label,
-    bars: 4,
-    explain: "The orchestra's best years in your heatmap.",
-  },
-  {
-    cls: "good",
-    label: ERA_WORDS.good.label,
-    bars: 3,
-    explain: "Good years: dependable sides for the floor.",
-  },
-  {
-    cls: "weak",
-    label: ERA_WORDS.weak.label,
-    bars: 2,
-    explain: "Uneven years: single tracks rather than whole tandas.",
-  },
-  {
-    cls: "outside",
-    label: ERA_WORDS.outside.label,
-    bars: 0,
-    explain: "Years outside the orchestra's best in your heatmap.",
-  },
-];
+export const ERA_CLASSES: ReadonlyArray<{ cls: EraClass; label: string; bars: number; explain: string }> =
+  lazy(() => [
+    // the words are the app's one era vocabulary (core ERA_WORDS, wave 2); the bars are the Booth's glyph
+    {
+      cls: "best",
+      label: eraWords("best").label,
+      bars: 4,
+      explain: t("era.explain.best"),
+    },
+    {
+      cls: "good",
+      label: eraWords("good").label,
+      bars: 3,
+      explain: t("era.explain.good"),
+    },
+    {
+      cls: "weak",
+      label: eraWords("weak").label,
+      bars: 2,
+      explain: t("era.explain.weak"),
+    },
+    {
+      cls: "outside",
+      label: eraWords("outside").label,
+      bars: 0,
+      explain: t("era.explain.outside"),
+    },
+  ]);
 
 export function eraClassOf(g: HeatGrade): EraClass {
   return eraMark(g, true)!;
@@ -126,6 +128,11 @@ export function eraOf(e: Song | Cortina | null | undefined): Era | null {
     cls,
     label: c.label,
     bars: g as number,
-    why: `${surnameOf(e.orchestra)}, ${e.vocal ? "vocal" : "instrumental"}, ${e.year ?? "undated"}: ${c.label.toLowerCase()}`,
+    why: t("era.why", {
+      orchestra: surnameOf(e.orchestra),
+      mode: e.vocal ? t("era.vocal") : t("era.instrumental"),
+      year: e.year ?? t("era.undated"),
+      label: lower(c.label),
+    }),
   };
 }

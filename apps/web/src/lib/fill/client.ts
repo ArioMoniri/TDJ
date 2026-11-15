@@ -7,6 +7,7 @@ import {
   type Song,
   songData,
 } from "@tdj/core";
+import { t } from "@/lib/i18n";
 import { djDataOf } from "../artwork";
 import { useStore } from "../store";
 import type { UserSettings } from "../types";
@@ -47,7 +48,7 @@ async function ask(source: SourceId, want: FillWant, settings: UserSettings, spo
     },
     body: JSON.stringify({ source, song: want }),
   });
-  if (!r.ok) return { source, values: {}, error: `fill ${r.status}` } as FillResult;
+  if (!r.ok) return { source, values: {}, error: t("fill.client.fill", { status: r.status }) } as FillResult;
   return (await r.json()) as FillResult;
 }
 

@@ -11,6 +11,7 @@ import {
 } from "@tdj/core";
 import { create } from "zustand";
 import { makeNightLog, makeSnapshot } from "@/lib/history";
+import { t as tx } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 import { cortinaStopSec } from "@/lib/types";
 import { clipSummary, rehearsalClip, spotifyOf, withSpotifyLengths } from "./clips";
@@ -356,7 +357,7 @@ export const useBooth = create<BoothStore>()((set, get) => ({
   resolving: false,
   audition: null,
   outputs: {
-    devices: [{ id: "default", label: "This device" }],
+    devices: [{ id: "default", label: tx("booth.store.this_device") }],
     room: "default",
     cue: null,
     cueSupported: false,
@@ -512,10 +513,10 @@ export const useBooth = create<BoothStore>()((set, get) => ({
         pushBanner({
           key: "folder",
           text: a.local.info?.session
-            ? "Your browser cannot remember the folder: pick it again for tonight."
-            : "Folder permission needed to play your files.",
+            ? tx("booth.store.your_browser_cannot_remember_the_folder")
+            : tx("booth.store.folder_permission_needed_to_play_your"),
           action: {
-            label: a.local.info?.session ? "Pick folder" : "Allow",
+            label: a.local.info?.session ? tx("booth.store.pick_folder") : tx("booth.store.allow"),
             run: () => void get().requestFolderPermission(),
           },
         });
@@ -562,7 +563,7 @@ export const useBooth = create<BoothStore>()((set, get) => ({
       window.AudioContext ??
       (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!Ctor) {
-      pushBanner({ key: "audio", text: "This browser cannot play audio." });
+      pushBanner({ key: "audio", text: tx("booth.store.this_browser_cannot_play_audio") });
       return;
     }
     if (!ctx) {
@@ -596,7 +597,10 @@ export const useBooth = create<BoothStore>()((set, get) => ({
       try {
         await adapters().spotify.connect();
       } catch (e) {
-        pushBanner({ key: "spotify", text: e instanceof Error ? e.message : "Spotify could not connect" });
+        pushBanner({
+          key: "spotify",
+          text: e instanceof Error ? e.message : tx("booth.store.spotify_could_not_connect"),
+        });
         if (sourceMode === "spotify") {
           media.setPlaying(false);
           return;
@@ -605,11 +609,13 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     }
     const held = await media.acquire();
     if (!held && !media.supports.wakeLock)
-      pushBanner({ key: "wake", text: "Keep the laptop awake (System Settings → Energy)." });
+      pushBanner({ key: "wake", text: tx("booth.store.keep_the_laptop_awake_system_settings") });
     media.setPlaying(true);
     applyMediaHandlers();
     unsubDevice?.();
-    unsubDevice = media.onDeviceChange(() => pushBanner({ key: "device", text: "Audio output changed." }));
+    unsubDevice = media.onDeviceChange(() =>
+      pushBanner({ key: "device", text: tx("booth.store.audio_output_changed") }),
+    );
     media.outputLabel().then((l) => set({ outputLabel: l }));
     set({ started: true, resumeOffer: null, wakeLock: held });
     // `sources` can still be the previous night's (longer) list for a moment after the plan changes
@@ -621,9 +627,9 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     if (missing && sourceMode !== "preview" && !get().rehearsal)
       pushBanner({
         key: "missing",
-        text: `${missing} of ${plan.items.length} items have no file yet: they are skipped. Link your music folder to play them.`,
+        text: tx("booth.store.of_items_have_no_file_yet", { missing, length: plan.items.length }),
         action: {
-          label: "Link folder…",
+          label: tx("booth.store.link_folder"),
           run: () => {
             const b = get();
             if (b.folder.canKeep) void b.linkFolder();
@@ -703,14 +709,14 @@ export const useBooth = create<BoothStore>()((set, get) => ({
   cueBlocked: () => {
     const o = get().outputs;
     const v = canPrelisten({ supported: o.cueSupported, roomId: o.room, cueId: o.cue, devices: o.devices });
-    return v.ok ? null : (v.why ?? "Pick your headphones first.");
+    return v.ok ? null : (v.why ?? tx("booth.store.pick_your_headphones_first"));
   },
   prelisten: async (t, o = {}) => {
     const { entities, plan, sources, availability, started } = get();
     const it = t.i !== undefined ? plan?.items[t.i] : undefined;
-    if (t.i !== undefined && (!it || it.kind === "break")) return "nothing to play";
+    if (t.i !== undefined && (!it || it.kind === "break")) return tx("booth.store.nothing_to_play");
     const e: PlanEntity = t.song ?? (t.i !== undefined ? (entities[t.i] ?? null) : null);
-    if (!e) return "nothing to play";
+    if (!e) return tx("booth.store.nothing_to_play");
     const title = it?.title ?? e.title;
     get().stopAudition();
     const blocked = get().cueBlocked();
@@ -754,7 +760,7 @@ export const useBooth = create<BoothStore>()((set, get) => ({
       } catch (err) {
         pushBanner({
           key: "spotify",
-          text: err instanceof Error ? err.message : "Spotify could not play it",
+          text: err instanceof Error ? err.message : tx("booth.store.spotify_could_not_play_it"),
         });
       }
     }
@@ -763,12 +769,12 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     const url = v.clip ? (v.clip.from === "spotify" ? v.clip.url : clipUrl(v.clip.resolved)) : null;
     if (!url)
       return where === "headphones" && sp
-        ? "Spotify plays only to the room: link the file to pre-listen in the headphones"
-        : (v.why ?? "no clip of this recording");
+        ? tx("booth.store.spotify_plays_only_to_the_room")
+        : (v.why ?? tx("booth.store.no_clip_of_this_recording"));
     try {
       await play(url, "clip");
     } catch {
-      return "the browser blocked playback: tap again";
+      return tx("booth.store.the_browser_blocked_playback_tap_again");
     }
     return null;
   },
@@ -1026,7 +1032,9 @@ function whyMissing(i: number): string | null {
   const s = useBooth.getState();
   if (!s.rehearsal) return null;
   const why = s.notRehearsable.find((x) => x.i === i)?.why;
-  return `the rehearsal has no 30 s clip of this recording${why && why !== "no clip of the Spotify recording" ? ` (${why})` : ""}; on the night it plays in full from your file or Spotify`;
+  return tx("booth.store.the_rehearsal_has_no_30_s", {
+    p1: why && why !== "no clip of the Spotify recording" ? ` (${why})` : "",
+  });
 }
 
 /* ---------- engine → store ---------- */
@@ -1056,7 +1064,10 @@ function onEngineEvent(e: EngineEvent) {
       media.setMetadata({
         title: it.title,
         artist: it.artist,
-        album: it.kind === "cortina" ? `Cortina · tanda ${it.tanda}` : `Tanda ${it.tanda} · ${it.rhythm}`,
+        album:
+          it.kind === "cortina"
+            ? tx("booth.store.cortina_tanda", { tanda: it.tanda })
+            : tx("booth.store.tanda", { tanda: it.tanda, rhythm: it.rhythm }),
       });
       media.setPosition(engine?.currentLength() ?? it.lengthSec, 0);
     }
@@ -1074,8 +1085,8 @@ function onEngineEvent(e: EngineEvent) {
       key: "birthday",
       text:
         e.result === "marked"
-          ? "Birthday vals: the next vals tanda is marked; the booth holds before it."
-          : "The next tanda is not a vals: swap it ahead of the playhead to a vals tanda.",
+          ? tx("booth.store.birthday_vals_the_next_vals_tanda")
+          : tx("booth.store.the_next_tanda_is_not_a"),
     });
   } else if (e.type === "decoding") {
     useBooth.setState({ decoding: e.busy ? e.planIndex : null });
@@ -1122,9 +1133,9 @@ function checkAudible() {
     if (isSilentState(ctx.state))
       pushBanner({
         key: "audio",
-        text: "The browser is holding the sound back. Tap to turn the sound on.",
+        text: tx("booth.store.the_browser_is_holding_the_sound"),
         action: {
-          label: "Turn sound on",
+          label: tx("booth.store.turn_sound_on"),
           run: () => {
             if (ctx) unlockAudio(ctx);
             media?.setPlaying(true);

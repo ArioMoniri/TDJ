@@ -2534,3 +2534,8 @@ html:has([data-rooms-page]) {
     padding-bottom: calc(var(--dock-reserve) + env(safe-area-inset-bottom, 0px));
   }
 }
+
+/* Wave 3: a Turkish night waits for the LocaleRoot (components/LocaleRoot.tsx) so English never flashes */
+html.i18n-pending body {
+  visibility: hidden;
+}

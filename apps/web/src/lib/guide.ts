@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 /**
  * The Guide's tour of the app (round 22 onward): one chapter per thing a DJ does, in the DJ's words. Each chapter has a
  * picture — a small Lottie loop from public/lottie or a drawn illustration — and points to where it lives.
@@ -29,130 +30,297 @@ export const LOTTIE_DIR = "/lottie";
 export const GUIDE_CHAPTERS: GuideChapter[] = [
   {
     id: "compose",
-    short: "Compose",
-    eyebrow: "Compose",
-    title: "A whole night in a few seconds",
-    text: "Say how long the night is, who is on the floor and how it should feel. You get every tanda: one orchestra and one voice each, cortinas between them, two peaks and La Cumparsita at the end. Lock a tanda you love and compose again: the rest changes around it.",
+    get short() {
+      return t("guide.compose");
+    },
+    get eyebrow() {
+      return t("guide.compose");
+    },
+    get title() {
+      return t("guide.a_whole_night_in_a_few");
+    },
+    get text() {
+      return t("guide.say_how_long_the_night_is");
+    },
     art: { kind: "lottie", src: `${LOTTIE_DIR}/compose.json`, still: 68 },
-    where: { label: "Open Compose", href: "/" },
+    where: {
+      get label() {
+        return t("guide.open_compose");
+      },
+      href: "/",
+    },
   },
   {
     id: "edit-with-ai",
-    short: "Edit with AI",
-    eyebrow: "Compose",
-    title: "Edit with AI",
-    text: "Ask in plain words, the way you would ask a friend at the booth: “calmer after midnight”, “more Di Sarli”, “no Biagi before the second peak”. The suggestions come back one by one, each checked against the rules of a good night, and you keep or drop each of them. It runs on your own model key, which stays on this device.",
+    get short() {
+      return t("guide.edit_with_ai");
+    },
+    get eyebrow() {
+      return t("guide.compose");
+    },
+    get title() {
+      return t("guide.edit_with_ai");
+    },
+    get text() {
+      return t("guide.ask_in_plain_words_the_way");
+    },
     art: { kind: "illustration", id: "chat" },
-    where: { label: "Open Compose", href: "/" },
+    where: {
+      get label() {
+        return t("guide.open_compose");
+      },
+      href: "/",
+    },
   },
   {
     id: "build-by-hand",
-    short: "Build by hand",
-    eyebrow: "Build by hand",
-    title: "Every tanda your own choice",
-    text: "Start from an empty night and pick every tanda yourself, from a suggestion or a song you search for. The tanda keeps its orchestra and years together, and the next suggestions are ranked by the night's rules (the cycle, the energy, orchestras spaced out), each with its reason.",
+    get short() {
+      return t("guide.build_by_hand");
+    },
+    get eyebrow() {
+      return t("guide.build_by_hand");
+    },
+    get title() {
+      return t("guide.every_tanda_your_own_choice");
+    },
+    get text() {
+      return t("guide.start_from_an_empty_night_and");
+    },
     art: { kind: "illustration", id: "hand" },
-    where: { label: "Build by hand", href: "/build" },
+    where: {
+      get label() {
+        return t("guide.build_by_hand");
+      },
+      href: "/build",
+    },
   },
   {
     id: "booth",
-    short: "The Booth",
-    eyebrow: "The Booth",
-    title: "Play the night from one screen",
-    text: "The set list on one side, what is playing now and what comes next on the other, and the night's energy as a line with “we are here” on it.",
+    get short() {
+      return t("guide.the_booth");
+    },
+    get eyebrow() {
+      return t("guide.the_booth");
+    },
+    get title() {
+      return t("guide.play_the_night_from_one_screen");
+    },
+    get text() {
+      return t("guide.the_set_list_on_one_side");
+    },
     points: [
       {
-        title: "Pre-listen in your headphones",
-        text: "Choose your headphones as the second output. Pre-listen plays a song only there: the room keeps dancing and never hears you check the next tanda.",
+        get title() {
+          return t("guide.pre_listen_in_your_headphones");
+        },
+        get text() {
+          return t("guide.choose_your_headphones_as_the_second");
+        },
       },
       {
-        title: "Mix",
-        text: "Milonga floor plays each song to its last note, then a short silence. Tight leaves almost no gap; Smooth fades each ending gently. Or set the silence and the fades yourself.",
+        get title() {
+          return t("guide.mix");
+        },
+        get text() {
+          return t("guide.milonga_floor_plays_each_song_to");
+        },
       },
       {
-        title: "Cue and stop",
-        text: "Open a song and drag the two handles on its waveform: where it starts (past a long intro or a scratchy first second) and where it ends.",
+        get title() {
+          return t("guide.cue_and_stop");
+        },
+        get text() {
+          return t("guide.open_a_song_and_drag_the");
+        },
       },
       {
-        title: "Skip tonight",
-        text: "Leaves a tanda out of tonight's playing without deleting it: the set and your exports keep it. Play it brings it back.",
+        get title() {
+          return t("guide.skip_tonight");
+        },
+        get text() {
+          return t("guide.leaves_a_tanda_out_of_tonight");
+        },
       },
     ],
     art: { kind: "lottie", src: `${LOTTIE_DIR}/headphones.json`, still: 22 },
-    where: { label: "Open the Booth", href: "/booth" },
+    where: {
+      get label() {
+        return t("guide.open_the_booth");
+      },
+      href: "/booth",
+    },
   },
   {
     id: "closing",
-    short: "Closing the night",
-    eyebrow: "The Booth",
-    title: "Closing the night",
-    text: "The night bar shows the time to La Cumparsita, so you always know how much night is left.",
+    get short() {
+      return t("guide.closing_the_night");
+    },
+    get eyebrow() {
+      return t("guide.the_booth");
+    },
+    get title() {
+      return t("guide.closing_the_night");
+    },
+    get text() {
+      return t("guide.the_night_bar_shows_the_time");
+    },
     points: [
       {
-        title: "Last 4 tandas tango only",
-        text: "The vals and milonga tandas among the last four are skipped tonight, so the night ends on tangos. Turn it off and they come back.",
+        get title() {
+          return t("guide.last_4_tandas_tango_only");
+        },
+        get text() {
+          return t("guide.the_vals_and_milonga_tandas_among");
+        },
       },
       {
-        title: "Jump to La Cumparsita",
-        text: "Rest, then La Cumparsita lets this tanda play to its end and closes the night. La Cumparsita now asks first, then fades the song playing. The tandas between stay in the set.",
+        get title() {
+          return t("guide.jump_to_la_cumparsita");
+        },
+        get text() {
+          return t("guide.rest_then_la_cumparsita_lets_this");
+        },
       },
     ],
     art: { kind: "illustration", id: "closing" },
-    where: { label: "Open the Booth", href: "/booth" },
+    where: {
+      get label() {
+        return t("guide.open_the_booth");
+      },
+      href: "/booth",
+    },
   },
   {
     id: "era-badges",
-    short: "Era badges",
-    eyebrow: "Everywhere",
-    title: "Era badges",
-    text: "A small badge on every side says where it sits in its orchestra's best years: best, good, uneven or outside. The grades come from your orchestra heatmap; tap a year there to change it and every badge follows. Hover or long-press a badge to read why.",
+    get short() {
+      return t("guide.era_badges");
+    },
+    get eyebrow() {
+      return t("guide.everywhere");
+    },
+    get title() {
+      return t("guide.era_badges");
+    },
+    get text() {
+      return t("guide.a_small_badge_on_every_side");
+    },
     art: { kind: "era" },
-    where: { label: "Your heatmap", href: "/database" },
+    where: {
+      get label() {
+        return t("guide.your_heatmap");
+      },
+      href: "/database",
+    },
   },
   {
     id: "rooms",
-    short: "Rooms",
-    eyebrow: "Rooms",
-    title: "One night, several DJs",
-    text: "Make a room and share its six-character code. Everyone in the room sees the same night; a swap made by one DJ reaches the others, and the room's log says who changed what. No account needed: just your name.",
+    get short() {
+      return t("guide.rooms");
+    },
+    get eyebrow() {
+      return t("guide.rooms");
+    },
+    get title() {
+      return t("guide.one_night_several_djs");
+    },
+    get text() {
+      return t("guide.make_a_room_and_share_its");
+    },
     art: { kind: "lottie", src: `${LOTTIE_DIR}/rooms.json`, still: 70 },
-    where: { label: "Open Rooms", href: "/rooms" },
+    where: {
+      get label() {
+        return t("guide.open_rooms");
+      },
+      href: "/rooms",
+    },
   },
   {
     id: "share",
-    short: "Share",
-    eyebrow: "Share",
-    title: "Send a night by link, file or QR",
-    text: "Copy a link, save the night as a file to send any way you like, or show the QR code and let the other DJ scan it with their phone. They open the night exactly as you built it and keep their own copy.",
+    get short() {
+      return t("guide.share");
+    },
+    get eyebrow() {
+      return t("guide.share");
+    },
+    get title() {
+      return t("guide.send_a_night_by_link_file");
+    },
+    get text() {
+      return t("guide.copy_a_link_save_the_night");
+    },
     art: { kind: "illustration", id: "share" },
-    where: { label: "Your history", href: "/history" },
+    where: {
+      get label() {
+        return t("guide.your_history");
+      },
+      href: "/history",
+    },
   },
   {
     id: "find-songs",
-    short: "Find songs",
-    eyebrow: "Compose and the Booth",
-    title: "Find songs",
-    text: "Search by title, orchestra or singer, narrow to the years you want and play a preview. Add a side straight into a tanda of its own rhythm; in the Booth, tandas already played stay closed.",
+    get short() {
+      return t("guide.find_songs");
+    },
+    get eyebrow() {
+      return t("guide.compose_and_the_booth");
+    },
+    get title() {
+      return t("guide.find_songs");
+    },
+    get text() {
+      return t("guide.search_by_title_orchestra_or_singer");
+    },
     art: { kind: "lottie", src: `${LOTTIE_DIR}/search.json`, still: 70 },
-    where: { label: "Open Compose", href: "/" },
+    where: {
+      get label() {
+        return t("guide.open_compose");
+      },
+      href: "/",
+    },
   },
   {
     id: "versions-and-sources",
-    short: "Versions and sources",
-    eyebrow: "Database",
-    title: "Versions and sources",
-    text: "Under any song, Versions lists every recording of that title, any orchestra and any year, each one playable, so you choose the right take. Each number says where it came from: your own edit, Deezer, MusicBrainz, the Cover Art Archive, Discogs or Spotify. A source only fills what is missing; your edits always win.",
+    get short() {
+      return t("guide.versions_and_sources");
+    },
+    get eyebrow() {
+      return t("guide.database");
+    },
+    get title() {
+      return t("guide.versions_and_sources");
+    },
+    get text() {
+      return t("guide.under_any_song_versions_lists_every");
+    },
     art: { kind: "illustration", id: "versions" },
-    where: { label: "Open the Database", href: "/database" },
+    where: {
+      get label() {
+        return t("guide.open_the_database");
+      },
+      href: "/database",
+    },
   },
   {
     id: "learned-preferences",
-    short: "Learned preferences",
-    eyebrow: "Memory",
-    title: "Learned preferences",
-    text: "Ask for the same change again and again (three times “more energetic”, twice “shorter cortinas”) and T-DJ remembers it as your taste for the next night, always under what you choose tonight. You see and remove each one in Database › Memory, and you can turn learning off in Settings.",
+    get short() {
+      return t("guide.learned_preferences");
+    },
+    get eyebrow() {
+      return t("guide.memory");
+    },
+    get title() {
+      return t("guide.learned_preferences");
+    },
+    get text() {
+      return t("guide.ask_for_the_same_change_again");
+    },
     art: { kind: "lottie", src: `${LOTTIE_DIR}/learn.json`, still: 70 },
-    where: { label: "Your memory", href: "/database" },
+    where: {
+      get label() {
+        return t("guide.your_memory");
+      },
+      href: "/database",
+    },
   },
 ];
 

@@ -3,6 +3,7 @@ import { FileDown, FolderOpen, Link2, QrCode as QrIcon, Share2, Smartphone, User
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { haptic } from "@/lib/haptics";
+import { t as tx } from "@/lib/i18n";
 import { nightSub, nightTitle } from "@/lib/nightName";
 import {
   copyText,
@@ -24,18 +25,18 @@ export function ShareNightEntry({ playlist }: { playlist: Playlist | null }) {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <Group footer="Another DJ, another device or the T-DJ app opens it as you made it.">
+      <Group footer={tx("shareSheet.another_dj_another_device_or_the")}>
         <TipRow
           tile={
             <Tile color="#007aff">
               <Share2 size={16} strokeWidth={2} />
             </Tile>
           }
-          label="Share this night"
-          sub="Link, file or a code to scan"
+          label={tx("shareSheet.share_this_night")}
+          sub={tx("shareSheet.link_file_or_a_code_to")}
           chevron
           onClick={() => setOpen(true)}
-          tip="Send the whole night to another DJ or device"
+          tip={tx("shareSheet.send_the_whole_night_to_another")}
           id="export-share"
         />
       </Group>
@@ -83,7 +84,11 @@ export function ShareSheet({
   const copy = async (text: string | null | undefined, what: string) => {
     if (!text) return;
     haptic(6);
-    toast((await copyText(text)) ? `${what} copied` : "Copying was blocked by the browser");
+    toast(
+      (await copyText(text))
+        ? tx("shareSheet.copied", { what })
+        : tx("shareSheet.copying_was_blocked_by_the_browser"),
+    );
   };
   const showCode = async () => {
     if (!share) return;
@@ -92,38 +97,41 @@ export function ShareSheet({
     setQrBusy(false);
     if (short) setQr(short);
     else if (share.link && share.link.length <= QR_MAX_CHARS) setQr(share.link);
-    else setQrNote("This night is too long for a code. Send the link or the file instead.");
+    else setQrNote(tx("shareSheet.this_night_is_too_long_for"));
   };
 
   return (
     <Sheet
       open={open}
       onClose={onClose}
-      title="Share this night"
+      title={tx("shareSheet.share_this_night")}
       detents={["large"]}
       testId="share-sheet"
-      trailing="Done"
+      trailing={tx("shareSheet.done")}
     >
       <p className="px-4 pb-3 text-footnote text-[var(--label-2)]">
-        “{nightTitle(playlist)}” · {nightSub(playlist)} · {tandas} tandas · {sides} songs · score{" "}
-        {playlist.score.total}. Anyone you send it to can open it in T-DJ, play it and export it to Spotify.
-        Keys and accounts never travel with it.
+        {tx("shareSheet.tandas_songs_score_anyone_you_send", {
+          playlist: nightTitle(playlist),
+          playlist1: nightSub(playlist),
+          tandas,
+          sides,
+          p1: " ",
+          total: playlist.score.total,
+        })}
       </p>
-      <Group
-        footer={share?.linkError ?? "The link carries the whole night, so nothing is uploaded to share it."}
-      >
+      <Group footer={share?.linkError ?? tx("shareSheet.the_link_carries_the_whole_night")}>
         <TipRow
           tile={
             <Tile color="#007aff">
               <Link2 size={16} strokeWidth={2} />
             </Tile>
           }
-          label="Copy link"
-          sub="Opens on any T-DJ site"
+          label={tx("shareSheet.copy_link")}
+          sub={tx("shareSheet.opens_on_any_t_dj_site")}
           onClick={() => copy(share?.link, "Link")}
           disabled={!share?.link}
           busy={!share}
-          tip="Copies a link that opens this night on any T-DJ site"
+          tip={tx("shareSheet.copies_a_link_that_opens_this")}
           data-testid="share-copy-link"
         />
         <TipRow
@@ -132,11 +140,11 @@ export function ShareSheet({
               <Smartphone size={16} strokeWidth={2} />
             </Tile>
           }
-          label="Copy link for the app"
-          sub="Opens straight in T-DJ on Mac and iPad"
-          onClick={() => copy(share?.appLink, "App link")}
+          label={tx("shareSheet.copy_link_for_the_app")}
+          sub={tx("shareSheet.opens_straight_in_t_dj_on")}
+          onClick={() => copy(share?.appLink, tx("shareSheet.app_link"))}
           disabled={!share?.appLink}
-          tip="Copies a tdj:// link that opens this night in the installed T-DJ app"
+          tip={tx("shareSheet.copies_a_tdj_link_that_opens")}
           data-testid="share-copy-app-link"
         />
         {canShare && share?.link && (
@@ -146,10 +154,10 @@ export function ShareSheet({
                 <Share2 size={16} strokeWidth={2} />
               </Tile>
             }
-            label="Share…"
-            sub="Messages, Mail, AirDrop"
+            label={tx("shareSheet.share")}
+            sub={tx("shareSheet.messages_mail_airdrop")}
             onClick={() => navigator.share({ title: playlist.name, url: share.link! }).catch(() => {})}
-            tip="Opens the system share sheet with the link"
+            tip={tx("shareSheet.opens_the_system_share_sheet_with")}
           />
         )}
         <TipRow
@@ -158,21 +166,21 @@ export function ShareSheet({
               <FileDown size={16} strokeWidth={2} />
             </Tile>
           }
-          label="Save as a file"
-          sub=".tdjnight · open it in T-DJ anywhere"
+          label={tx("shareSheet.save_as_a_file")}
+          sub={tx("shareSheet.tdjnight_open_it_in_t_dj")}
           onClick={() => share && saveNightFile(share.night)}
           disabled={!share}
-          tip="Saves the night as a .tdjnight file you can AirDrop, mail or keep"
+          tip={tx("shareSheet.saves_the_night_as_a_tdjnight")}
           data-testid="share-save-file"
         />
       </Group>
 
-      <Group header="Scan with a phone or iPad">
+      <Group header={tx("shareSheet.scan_with_a_phone_or_ipad")}>
         {qr ? (
           <div className="cell flex-col items-center gap-3 py-5">
-            <QrCode value={qr} label={`Code for ${playlist.name}`} />
+            <QrCode value={qr} label={tx("shareSheet.code_for", { name: playlist.name })} />
             <span className="text-footnote text-center text-[var(--label-2)]">
-              Point the camera at the code to open this night.
+              {tx("shareSheet.point_the_camera_at_the_code")}
             </span>
           </div>
         ) : (
@@ -182,32 +190,32 @@ export function ShareSheet({
                 <QrIcon size={16} strokeWidth={2} />
               </Tile>
             }
-            label="Show a code"
-            sub={qrNote ?? "Hold it up to a phone or an iPad"}
+            label={tx("shareSheet.show_a_code")}
+            sub={qrNote ?? tx("shareSheet.hold_it_up_to_a_phone")}
             onClick={showCode}
             busy={qrBusy}
             disabled={!share || !!qrNote}
-            tip="Shows a QR code that opens this night on another device"
+            tip={tx("shareSheet.shows_a_qr_code_that_opens")}
             data-testid="share-show-code"
           />
         )}
       </Group>
 
-      <Group header="More">
+      <Group header={tx("shareSheet.more")}>
         <Link
           href="/rooms"
           className="cell cell-tap"
           data-leading="tile"
           onClick={onClose}
-          title="Several DJs edit one night live"
+          title={tx("shareSheet.several_djs_edit_one_night_live")}
         >
           <Tile color="#af52de">
             <Users size={16} strokeWidth={2} />
           </Tile>
           <span className="min-w-0 flex-1">
-            <span className="block truncate">Edit together in a room</span>
+            <span className="block truncate">{tx("shareSheet.edit_together_in_a_room")}</span>
             <span className="text-footnote block truncate text-[var(--label-2)]">
-              Share a code, every DJ sees each edit
+              {tx("shareSheet.share_a_code_every_dj_sees")}
             </span>
           </span>
         </Link>
@@ -216,15 +224,15 @@ export function ShareSheet({
           className="cell cell-tap"
           data-leading="tile"
           onClick={onClose}
-          title="Open a night someone sent you"
+          title={tx("shareSheet.open_a_night_someone_sent_you")}
         >
           <Tile color="#8e8e93">
             <FolderOpen size={16} strokeWidth={2} />
           </Tile>
           <span className="min-w-0 flex-1">
-            <span className="block truncate">Open a night file or link</span>
+            <span className="block truncate">{tx("shareSheet.open_a_night_file_or_link")}</span>
             <span className="text-footnote block truncate text-[var(--label-2)]">
-              From another DJ or another device
+              {tx("shareSheet.from_another_dj_or_another_device")}
             </span>
           </span>
         </Link>

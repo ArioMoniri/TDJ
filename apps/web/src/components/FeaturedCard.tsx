@@ -2,15 +2,14 @@
 import { Star } from "lucide-react";
 import Link from "next/link";
 import { FEATURED } from "@/lib/featured";
+import { t as tx } from "@/lib/i18n";
 import { useTip } from "./ui/Tip";
 
 /** The built-in night as one row card (a definite width: inside a shrink-to-fit empty state its truncated text
  * used to size it, 8 px past an iPhone's edge, wave 2): a deep link into the composer's result view (`/?featured=<id>`). */
 export function FeaturedCard({ className = "" }: { className?: string }) {
   const f = FEATURED[0];
-  const t = useTip<HTMLAnchorElement>(
-    "Open a night a DJ built, to read and play before you compose your own",
-  );
+  const t = useTip<HTMLAnchorElement>(tx("featuredCard.open_a_night_a_dj_built"));
   return (
     <Link
       {...t.props}
@@ -27,7 +26,7 @@ export function FeaturedCard({ className = "" }: { className?: string }) {
         <span className="block truncate">{f.title}</span>
         <span className="text-footnote block truncate text-[var(--label-2)]">{f.sub}</span>
       </span>
-      <span className="cell-value text-body">Open</span>
+      <span className="cell-value text-body">{tx("featuredCard.open")}</span>
     </Link>
   );
 }

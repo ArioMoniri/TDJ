@@ -39,6 +39,7 @@ import { FEEDBACK_CHIPS } from "@/lib/feedback";
 import { haptic } from "@/lib/haptics";
 import { makeSnapshot } from "@/lib/history";
 import { testSlowdownMs, useMediaQuery, useScrollDirection, whenIdle } from "@/lib/hooks";
+import { lazy, lower, plural, t as tx } from "@/lib/i18n";
 import { describePreferences } from "@/lib/memory";
 import { DUR, EASE, rise, STAGGER } from "@/lib/motion";
 import { eraName, nightSub, nightTitle } from "@/lib/nightName";
@@ -122,76 +123,76 @@ const loadResult = (): Promise<ResultMods> =>
       });
 
 type Era = ComposeOptions["eras"][number];
-const ERAS: Array<[Era, string]> = [
-  ["golden", "Golden Age (1935–55)"],
-  ["golden-extended", "Golden Age, extended (1932–60)"],
-  ["guardia-vieja", "Guardia Vieja"],
-  ["post-golden", "Post-golden (1956–69)"],
-  ["nuevo", "Nuevo"],
-  ["contemporary", "Contemporary"],
-  ["all", "All eras"],
-];
-const CULTURES: Array<[string, string]> = [
-  ["global", "Global"],
-  ["latin", "Latin"],
-  ["french", "French"],
-  ["italian", "Italian"],
-  ["brazilian", "Brazilian"],
-  ["turkish", "Turkish"],
-  ["greek", "Greek"],
-  ["persian", "Persian"],
-  ["balkan", "Balkan"],
-  ["arabic", "Arabic"],
+const ERAS: Array<[Era, string]> = lazy(() => [
+  ["golden", tx("composer.golden_age_1935_55")],
+  ["golden-extended", tx("composer.golden_age_extended_1932_60")],
+  ["guardia-vieja", tx("composer.guardia_vieja")],
+  ["post-golden", tx("composer.post_golden_1956_69")],
+  ["nuevo", tx("composer.nuevo")],
+  ["contemporary", tx("composer.contemporary")],
+  ["all", tx("composer.all_eras")],
+]);
+const CULTURES: Array<[string, string]> = lazy(() => [
+  ["global", tx("composer.global")],
+  ["latin", tx("composer.latin")],
+  ["french", tx("composer.french")],
+  ["italian", tx("composer.italian")],
+  ["brazilian", tx("composer.brazilian")],
+  ["turkish", tx("composer.turkish")],
+  ["greek", tx("composer.greek")],
+  ["persian", tx("composer.persian")],
+  ["balkan", tx("composer.balkan")],
+  ["arabic", tx("composer.arabic")],
   ["kpop", "K-pop"],
   ["afrobeats", "Afrobeats"],
-];
-const ARCS: Array<[ComposeOptions["arc"], string]> = [
-  ["classic-two-peaks", "Two peaks"],
-  ["single-peak", "Single peak"],
-  ["marathon-plateau", "Marathon"],
-  ["gentle", "Gentle"],
-];
-const SHAPES: Array<[ComposeOptions["tandaShape"], string]> = [
-  ["rise-settle", "Slow, up, settle"],
-  ["hammock", "Hammock (Buenos Aires)"],
-  ["rise", "Rising"],
-  ["peak-middle", "Peak in the middle"],
-  ["flat", "Flat"],
-];
-const PATTERNS: Array<[ComposeOptions["pattern"], string]> = [
-  ["classic", "Classic TTVTTM"],
-  ["TTVTTM-strict", "Strict TTVTTM"],
+]);
+const ARCS: Array<[ComposeOptions["arc"], string]> = lazy(() => [
+  ["classic-two-peaks", tx("composer.two_peaks")],
+  ["single-peak", tx("composer.single_peak")],
+  ["marathon-plateau", tx("composer.marathon")],
+  ["gentle", tx("composer.gentle")],
+]);
+const SHAPES: Array<[ComposeOptions["tandaShape"], string]> = lazy(() => [
+  ["rise-settle", tx("composer.slow_up_settle")],
+  ["hammock", tx("composer.hammock_buenos_aires")],
+  ["rise", tx("composer.rising")],
+  ["peak-middle", tx("composer.peak_in_the_middle")],
+  ["flat", tx("composer.flat")],
+]);
+const PATTERNS: Array<[ComposeOptions["pattern"], string]> = lazy(() => [
+  ["classic", tx("composer.classic_ttvttm")],
+  ["TTVTTM-strict", tx("composer.strict_ttvttm")],
   ["TVTM", "TVTM"],
   ["TMTV", "TMTV"],
-  ["tango-only", "Tango only"],
-  ["custom", "Custom"],
-];
-const CORTINA_STYLES: Array<[ComposeOptions["cortinaStyle"], string]> = [
-  ["family", "Family"],
-  ["matched", "Matched"],
-  ["constant", "Same"],
-  ["none", "None"],
-];
-const CORTINA_TRENDS: Array<[NonNullable<ComposeOptions["cortinaTrend"]>, string]> = [
-  ["mixed", "Mix"],
-  ["trend", "Current hits"],
-  ["classic", "Classics"],
-];
-const ULTIMA: Array<[NonNullable<NightRules["ultimaRule"]>, string]> = [
-  ["emotional-vocal", "Emotional vocal"],
-  ["d-arienzo-rhythmic", "D'Arienzo rhythmic"],
+  ["tango-only", tx("composer.tango_only")],
+  ["custom", tx("composer.custom")],
+]);
+const CORTINA_STYLES: Array<[ComposeOptions["cortinaStyle"], string]> = lazy(() => [
+  ["family", tx("composer.family")],
+  ["matched", tx("composer.matched")],
+  ["constant", tx("composer.same")],
+  ["none", tx("composer.none")],
+]);
+const CORTINA_TRENDS: Array<[NonNullable<ComposeOptions["cortinaTrend"]>, string]> = lazy(() => [
+  ["mixed", tx("composer.mix")],
+  ["trend", tx("composer.current_hits")],
+  ["classic", tx("composer.classics")],
+]);
+const ULTIMA: Array<[NonNullable<NightRules["ultimaRule"]>, string]> = lazy(() => [
+  ["emotional-vocal", tx("composer.emotional_vocal")],
+  ["d-arienzo-rhythmic", tx("composer.d_arienzo_rhythmic")],
   ["pugliese", "Pugliese"],
-  ["any", "Any"],
-];
-const OPENER: Array<[NonNullable<NightRules["openerRule"]>, string]> = [
-  ["canon", "Canon (Di Sarli, Fresedo…)"],
-  ["lyrical", "Lyrical"],
-  ["rhythmic", "Rhythmic"],
-  ["any", "Any"],
-];
+  ["any", tx("composer.any")],
+]);
+const OPENER: Array<[NonNullable<NightRules["openerRule"]>, string]> = lazy(() => [
+  ["canon", tx("composer.canon_di_sarli_fresedo")],
+  ["lyrical", tx("composer.lyrical")],
+  ["rhythmic", tx("composer.rhythmic")],
+  ["any", tx("composer.any")],
+]);
 /** round 15: the night's shape as settings — who opens, who plays the última, what closes ("auto" = the rules) */
-const OPEN_WITH: Array<[string, string]> = [
-  ["auto", "Auto (the opener rule)"],
+const OPEN_WITH: Array<[string, string]> = lazy(() => [
+  ["auto", tx("composer.auto_the_opener_rule")],
   ["carlos-di-sarli", "Di Sarli"],
   ["francisco-canaro", "Canaro"],
   ["angel-d-agostino", "D'Agostino"],
@@ -199,46 +200,46 @@ const OPEN_WITH: Array<[string, string]> = [
   ["juan-d-arienzo", "D'Arienzo"],
   ["anibal-troilo", "Troilo"],
   ["enrique-rodriguez", "Rodríguez"],
-];
-const ULTIMA_WITH: Array<[string, string]> = [
-  ["auto", "Auto (the última rule)"],
+]);
+const ULTIMA_WITH: Array<[string, string]> = lazy(() => [
+  ["auto", tx("composer.auto_the_ultima_rule")],
   ["ricardo-tanturi|Alberto Castillo", "Tanturi / Castillo"],
   ["anibal-troilo|Francisco Fiorentino", "Troilo / Fiorentino"],
   ["rodolfo-biagi|Jorge Ortíz", "Biagi / Ortiz"],
   ["carlos-di-sarli|Roberto Rufino", "Di Sarli / Rufino"],
   ["angel-d-agostino|Angel Vargas", "D'Agostino / Vargas"],
-  ["juan-d-arienzo|~", "D'Arienzo instrumental"],
+  ["juan-d-arienzo|~", tx("composer.d_arienzo_instrumental")],
   ["osvaldo-pugliese|*", "Pugliese"],
-];
-const CLOSERS: Array<[NonNullable<NightRules["closer"]>, string]> = [
+]);
+const CLOSERS: Array<[NonNullable<NightRules["closer"]>, string]> = lazy(() => [
   ["auto", "La Cumparsita"],
-  ["in-range", "La Cumparsita, the night's years"],
+  ["in-range", tx("composer.la_cumparsita_the_night_s_years")],
   ["felicia", "Felicia"],
-  ["none", "None"],
-];
-const COOLDOWNS: Array<[NonNullable<NightRules["cooldown"]>, string]> = [
-  ["lift", "Lift into the última"],
-  ["gentle", "Gentle"],
-];
+  ["none", tx("composer.none")],
+]);
+const COOLDOWNS: Array<[NonNullable<NightRules["cooldown"]>, string]> = lazy(() => [
+  ["lift", tx("composer.lift_into_the_ultima")],
+  ["gentle", tx("composer.gentle")],
+]);
 const ultimaKey = (r: NightRules) =>
   r.ultimaOrchestra
     ? `${r.ultimaOrchestra}|${r.ultimaSinger === null ? "~" : r.ultimaSinger === undefined ? "*" : r.ultimaSinger}`
     : "auto";
 /** round 21: where La Cumparsita plays (the default opens and closes the night) */
 /** wave 2: one control for where La Cumparsita plays (it was a switch in Night and a picker in Night rules) */
-const CUMPARSITA_AT: Array<[NonNullable<NightRules["cumparsita"]>, string]> = [
-  ["open", "Open"],
-  ["close", "Close"],
-  ["both", "Both"],
-  ["none", "Off"],
-];
+const CUMPARSITA_AT: Array<[NonNullable<NightRules["cumparsita"]>, string]> = lazy(() => [
+  ["open", tx("composer.open")],
+  ["close", tx("composer.close")],
+  ["both", tx("composer.both")],
+  ["none", tx("composer.off")],
+]);
 const cumparsitaKey = (r: NightRules, close?: boolean): NonNullable<NightRules["cumparsita"]> =>
   r.cumparsita ??
   ((r.openWithCumparsita ?? true) ? (close === false ? "open" : "both") : close === false ? "none" : "close");
-const CUMPARSITAS: Array<["1" | "2", string]> = [
-  ["1", "One (Europe)"],
-  ["2", "Two (Buenos Aires)"],
-];
+const CUMPARSITAS: Array<["1" | "2", string]> = lazy(() => [
+  ["1", tx("composer.one_europe")],
+  ["2", tx("composer.two_buenos_aires")],
+]);
 /** Era-preset keys the user can pin so an era change leaves them alone. */
 const ERA_KEYS = [
   "pattern",
@@ -257,18 +258,22 @@ function fmtDuration(sec: number) {
   const total = Math.round(sec / 60);
   const h = Math.floor(total / 60);
   const m = total % 60;
-  return `${h} h ${String(m).padStart(2, "0")} min`;
+  return tx("composer.h_min", { h, p1: String(m).padStart(2, "0") });
 }
 
 /** Pin glyph: keeps a control through era changes. */
 function PinButton({ on, label, onToggle }: { on: boolean; label: string; onToggle: () => void }) {
   return (
-    <Tip text={on ? "Pinned: era presets leave this alone" : "Pin so era presets leave this alone"}>
+    <Tip
+      text={
+        on ? tx("composer.pinned_era_presets_leave_this_alone") : tx("composer.pin_so_era_presets_leave_this")
+      }
+    >
       <button
         type="button"
         className={`icon-btn icon-btn-bare -my-2 h-11 w-11 ${on ? "text-[var(--tint)]" : "pin-idle text-[var(--label-3)]"}`}
         aria-pressed={on}
-        aria-label={`${on ? "Unpin" : "Pin"} ${label.toLowerCase()}`}
+        aria-label={`${on ? tx("composer.unpin") : tx("composer.pin")} ${lower(label)}`}
         onClick={(e) => {
           e.preventDefault();
           haptic(4);
@@ -336,16 +341,16 @@ const SetupForm = memo(function SetupForm({
     // reach at every scroll position (the phone has its primary bar). The defaults compose a good night untouched.
     <div className={hidden ? "hidden" : "setup-form"} id="setup">
       <Group
-        header="Night"
-        footer={eraNote ?? "Guide: 2 h práctica · 4 h milonga · 6 h marathon block."}
+        header={tx("composer.night")}
+        footer={eraNote ?? tx("composer.guide_2_h_practica_4_h")}
         id="night"
         className="setup-essentials"
       >
         <SliderRow
           id="hours"
-          label="Length"
-          tip="How long the night runs; the number of tandas follows"
-          display={`${hours} h · ≈${tandasEst} tandas`}
+          label={tx("composer.length")}
+          tip={tx("composer.how_long_the_night_runs_the")}
+          display={tx("composer.h_tandas_2", { hours, tandasEst })}
           min={1}
           max={8}
           step={0.5}
@@ -353,19 +358,19 @@ const SetupForm = memo(function SetupForm({
           onChange={(v) => setOptions({ hours: v })}
         />
         <PickerRow
-          label="Era"
-          ariaLabel="Era"
-          tip="Which recordings the night draws on; it also sets the tanda sizes and rules to suit"
+          label={tx("composer.era")}
+          ariaLabel={tx("composer.era")}
+          tip={tx("composer.which_recordings_the_night_draws_on")}
           value={era}
           items={ERAS}
           onChange={(k) => k && applyEra(k)}
         />
         <SegmentedRow
-          label="Arc"
+          label={tx("composer.arc")}
           sub={
             hours < 3
-              ? "Two peaks need a night of 3 h or more; shorter nights climb once"
-              : "Two peaks: a real breather between them. Single: one climb to the última"
+              ? tx("composer.two_peaks_need_a_night_of")
+              : tx("composer.two_peaks_a_real_breather_between")
           }
           value={options.arc ?? "classic-two-peaks"}
           items={ARCS}
@@ -378,12 +383,12 @@ const SetupForm = memo(function SetupForm({
           }
         />
         <SegmentedRow
-          label="Cortinas"
+          label={tx("composer.cortinas")}
           tips={{
-            family: "One artist or genre family all night",
-            matched: "Each cortina picked for the tanda that follows",
-            constant: "One cortina repeated all night, the salón way",
-            none: "No cortinas: tandas follow each other",
+            family: tx("composer.one_artist_or_genre_family_all"),
+            matched: tx("composer.each_cortina_picked_for_the_tanda"),
+            constant: tx("composer.one_cortina_repeated_all_night_the"),
+            none: tx("composer.no_cortinas_tandas_follow_each_other"),
           }}
           value={cortinaStyle}
           items={CORTINA_STYLES}
@@ -391,15 +396,15 @@ const SetupForm = memo(function SetupForm({
         >
           <PinButton
             on={isPinned("cortinaStyle")}
-            label="Cortina style"
+            label={tx("composer.cortina_style")}
             onToggle={() => togglePin("cortinaStyle")}
           />
         </SegmentedRow>
         <PickerRow
-          label="La Cumparsita"
-          tip="Where La Cumparsita, the traditional last song, plays: before the first tanda, after the última, both, or not at all"
-          sub="Open: before the first tanda, by its orchestra near its year. Close: after the última"
-          ariaLabel="La Cumparsita"
+          label={tx("composer.la_cumparsita")}
+          tip={tx("composer.where_la_cumparsita_the_traditional_last")}
+          sub={tx("composer.open_before_the_first_tanda_by")}
+          ariaLabel={tx("composer.la_cumparsita")}
           value={cumparsitaKey(rules, options.closeWithCumparsita)}
           items={CUMPARSITA_AT}
           onChange={(k) => {
@@ -411,43 +416,56 @@ const SetupForm = memo(function SetupForm({
       </Group>
 
       <FoldGroup
-        header="Structure"
-        tip="The cycle of tango, vals and milonga, and how many songs each tanda has"
-        summary={`${PATTERNS.find(([k]) => k === (options.pattern ?? "classic"))?.[1] ?? "Custom"} · ${options.tangoTandaSize ?? 4}/${options.valsTandaSize ?? 3}/${options.milongaTandaSize ?? 3} tracks`}
-        footer="Sizes are in tracks; gap in tandas; spread in years. The era preset sets these; pin a control to keep your own value when the era changes."
+        header={tx("composer.structure")}
+        tip={tx("composer.the_cycle_of_tango_vals_and")}
+        summary={tx("composer.tracks_2", {
+          p1: PATTERNS.find(([k]) => k === (options.pattern ?? "classic"))?.[1] ?? tx("composer.custom"),
+          p2: options.tangoTandaSize ?? 4,
+          p3: options.valsTandaSize ?? 3,
+          p4: options.milongaTandaSize ?? 3,
+        })}
+        footer={tx("composer.sizes_are_in_tracks_gap_in")}
         id="structure"
       >
         <PickerRow
-          label="Tanda shape"
-          sub="How energy moves inside each tanda"
-          ariaLabel="Tanda shape"
+          label={tx("composer.tanda_shape")}
+          sub={tx("composer.how_energy_moves_inside_each_tanda")}
+          ariaLabel={tx("composer.tanda_shape")}
           value={options.tandaShape ?? eraDefaults.tandaShape}
           items={SHAPES}
           onChange={(k) => k && setOptions({ tandaShape: k })}
         >
-          <PinButton on={isPinned("tandaShape")} label="Shape" onToggle={() => togglePin("tandaShape")} />
+          <PinButton
+            on={isPinned("tandaShape")}
+            label={tx("composer.shape")}
+            onToggle={() => togglePin("tandaShape")}
+          />
         </PickerRow>
         <PickerRow
-          label="Cycle"
-          sub="The rhythm order the night repeats: tango, tango, vals, tango, tango, milonga"
-          ariaLabel="Cycle"
+          label={tx("composer.cycle")}
+          sub={tx("composer.the_rhythm_order_the_night_repeats")}
+          ariaLabel={tx("composer.cycle")}
           value={options.pattern ?? "classic"}
           items={PATTERNS}
           onChange={(k) => k && setOptions({ pattern: k })}
         >
-          <PinButton on={isPinned("pattern")} label="Cycle" onToggle={() => togglePin("pattern")} />
+          <PinButton
+            on={isPinned("pattern")}
+            label={tx("composer.cycle")}
+            onToggle={() => togglePin("pattern")}
+          />
         </PickerRow>
         {options.pattern === "custom" && (
           <FieldRow
-            label="Custom cycle"
+            label={tx("composer.custom_cycle")}
             id="custom-pattern"
-            tip="Your own order of rhythms: T for tango, V for vals, M for milonga"
+            tip={tx("composer.your_own_order_of_rhythms_t")}
           >
             <input
               id="custom-pattern"
               className="field field-value min-w-0 flex-1 font-mono uppercase"
               value={options.customPattern ?? ""}
-              placeholder="TTVTTM"
+              placeholder={tx("composer.ttvttm")}
               onChange={(e) =>
                 setOptions({ customPattern: e.target.value.toUpperCase().replace(/[^TVM]/g, "") })
               }
@@ -457,10 +475,10 @@ const SetupForm = memo(function SetupForm({
           </FieldRow>
         )}
         <StepperRow
-          label="Tango tanda"
-          tip="How many songs in each tango tanda"
+          label={tx("composer.tango_tanda")}
+          tip={tx("composer.how_many_songs_in_each_tango")}
           value={options.tangoTandaSize ?? 4}
-          unit=" tracks"
+          unit={tx("composer.tracks")}
           min={3}
           max={5}
           step={1}
@@ -468,15 +486,15 @@ const SetupForm = memo(function SetupForm({
         >
           <PinButton
             on={isPinned("tangoTandaSize")}
-            label="Tango tanda size"
+            label={tx("composer.tango_tanda_size")}
             onToggle={() => togglePin("tangoTandaSize")}
           />
         </StepperRow>
         <StepperRow
-          label="Vals tanda"
-          tip="How many songs in each vals tanda"
+          label={tx("composer.vals_tanda")}
+          tip={tx("composer.how_many_songs_in_each_vals")}
           value={options.valsTandaSize ?? 3}
-          unit=" tracks"
+          unit={tx("composer.tracks")}
           min={3}
           max={4}
           step={1}
@@ -484,15 +502,15 @@ const SetupForm = memo(function SetupForm({
         >
           <PinButton
             on={isPinned("valsTandaSize")}
-            label="Vals tanda size"
+            label={tx("composer.vals_tanda_size")}
             onToggle={() => togglePin("valsTandaSize")}
           />
         </StepperRow>
         <StepperRow
-          label="Milonga tanda"
-          tip="How many songs in each milonga tanda"
+          label={tx("composer.milonga_tanda")}
+          tip={tx("composer.how_many_songs_in_each_milonga")}
           value={options.milongaTandaSize ?? 3}
-          unit=" tracks"
+          unit={tx("composer.tracks")}
           min={3}
           max={4}
           step={1}
@@ -500,15 +518,15 @@ const SetupForm = memo(function SetupForm({
         >
           <PinButton
             on={isPinned("milongaTandaSize")}
-            label="Milonga tanda size"
+            label={tx("composer.milonga_tanda_size")}
             onToggle={() => togglePin("milongaTandaSize")}
           />
         </StepperRow>
         <StepperRow
-          label="Orchestra repeat gap"
-          tip="How many tandas pass before the same orchestra plays again"
+          label={tx("composer.orchestra_repeat_gap")}
+          tip={tx("composer.how_many_tandas_pass_before_the")}
           value={options.orchestraRepeatGap ?? 6}
-          unit=" tandas"
+          unit={tx("composer.tandas_2")}
           min={1}
           max={12}
           step={1}
@@ -516,13 +534,13 @@ const SetupForm = memo(function SetupForm({
         >
           <PinButton
             on={isPinned("orchestraRepeatGap")}
-            label="Repeat gap"
+            label={tx("composer.repeat_gap")}
             onToggle={() => togglePin("orchestraRepeatGap")}
           />
         </StepperRow>
         <StepperRow
-          label="Year spread"
-          tip="How many years apart the songs of one tanda may be"
+          label={tx("composer.year_spread")}
+          tip={tx("composer.how_many_years_apart_the_songs")}
           value={options.maxYearSpread ?? 4}
           unit=" y"
           min={1}
@@ -532,54 +550,54 @@ const SetupForm = memo(function SetupForm({
         >
           <PinButton
             on={isPinned("maxYearSpread")}
-            label="Year spread"
+            label={tx("composer.year_spread")}
             onToggle={() => togglePin("maxYearSpread")}
           />
         </StepperRow>
         <ActionRow
-          label="Reset to era defaults"
-          tip="Put the tanda sizes, gap and spread back to what the era suggests"
+          label={tx("composer.reset_to_era_defaults")}
+          tip={tx("composer.put_the_tanda_sizes_gap_and")}
           onClick={() => applyEra(era, true)}
         />
       </FoldGroup>
 
       {cortinaStyle !== "none" && (
         <FoldGroup
-          header="Cortinas"
-          tip="What the cortinas sound like and how long each one plays"
+          header={tx("composer.cortinas")}
+          tip={tx("composer.what_the_cortinas_sound_like_and")}
           summary={`${CORTINA_TRENDS.find(([k]) => k === (options.cortinaTrend ?? "mixed"))?.[1] ?? ""} · ${options.cortinaLengthSec ?? 45} s`}
           footer={
             cortinaStyle === "family"
-              ? "Family: one artist or genre family all night, each cortina about 8 energy points under the tanda that follows."
+              ? tx("composer.family_one_artist_or_genre_family")
               : cortinaStyle === "constant"
-                ? "Same: one cortina track repeated all night, the traditional salón way."
-                : "Matched: each cortina is picked for the tanda that follows, about 8 energy points under it."
+                ? tx("composer.same_one_cortina_track_repeated_all")
+                : tx("composer.matched_each_cortina_is_picked_for")
           }
           id="cortinas"
         >
           <SegmentedRow
-            label="Flavour"
+            label={tx("composer.flavour")}
             tips={{
-              mixed: "A mix of today's hits and classics",
-              trend: "Songs people know from the radio now",
-              classic: "Older songs everyone recognises",
+              mixed: tx("composer.a_mix_of_today_s_hits"),
+              trend: tx("composer.songs_people_know_from_the_radio"),
+              classic: tx("composer.older_songs_everyone_recognises"),
             }}
             value={options.cortinaTrend ?? "mixed"}
             items={CORTINA_TRENDS}
             onChange={(k) => setOptions({ cortinaTrend: k })}
           />
           <MultiPickerRow
-            label="Cultures"
-            tip="Where the cortina songs come from"
+            label={tx("composer.cultures")}
+            tip={tx("composer.where_the_cortina_songs_come_from")}
             values={cultures}
             items={CULTURES}
             min={1}
             onChange={(v) => setOptions({ cortinaCultures: v.length ? v : ["global"] })}
-            footer="At least one culture stays chosen."
+            footer={tx("composer.at_least_one_culture_stays_chosen")}
           />
           <StepperRow
-            label="Length"
-            tip="How many seconds each cortina plays"
+            label={tx("composer.length")}
+            tip={tx("composer.how_many_seconds_each_cortina_plays")}
             value={options.cortinaLengthSec ?? 45}
             unit=" s"
             min={20}
@@ -589,7 +607,7 @@ const SetupForm = memo(function SetupForm({
           >
             <PinButton
               on={isPinned("cortinaLengthSec")}
-              label="Cortina length"
+              label={tx("composer.cortina_length")}
               onToggle={() => togglePin("cortinaLengthSec")}
             />
           </StepperRow>
@@ -597,44 +615,44 @@ const SetupForm = memo(function SetupForm({
       )}
 
       <FoldGroup
-        header="Night rules"
-        tip="Rules for the whole night: the última, spacing of orchestras, the big four"
+        header={tx("composer.night_rules")}
+        tip={tx("composer.rules_for_the_whole_night_the")}
         summary={`Última: ${(ULTIMA.find(([k]) => k === (rules.ultimaRule ?? "emotional-vocal"))?.[1] ?? "").toLowerCase()}`}
-        footer="Defaults follow the era. These travel with every compose, feedback and refine."
+        footer={tx("composer.defaults_follow_the_era_these_travel")}
         id="night-rules"
       >
         <SegmentedRow
-          label="Closing Cumparsitas"
+          label={tx("composer.closing_cumparsitas")}
           tips={{
-            "1": "One La Cumparsita, as in most of Europe",
-            "2": "Two, as in Buenos Aires: the night really ends",
+            "1": tx("composer.one_la_cumparsita_as_in_most"),
+            "2": tx("composer.two_as_in_buenos_aires_the"),
           }}
           value={String(rules.cumparsitaCount ?? 1) as "1" | "2"}
           items={CUMPARSITAS}
           onChange={(k) => setRules({ cumparsitaCount: Number(k) as 1 | 2 })}
         />
         <SwitchRow
-          label="Closing matches the última"
-          sub="La Cumparsita by the last tanda's orchestra, near its years (off: another orchestra)"
+          label={tx("composer.closing_matches_the_ultima")}
+          sub={tx("composer.la_cumparsita_by_the_last_tanda")}
           checked={!!rules.cumparsitaHarmony}
           onChange={(v) => setRules({ cumparsitaHarmony: v || undefined })}
         />
         <SwitchRow
-          label="Last 4 tandas tango only"
-          sub="The player skips a vals or milonga among the last four; exports end on four tangos"
+          label={tx("composer.last_4_tandas_tango_only")}
+          sub={tx("composer.the_player_skips_a_vals_or")}
           checked={!!rules.lastFourTango}
           onChange={(v) => setRules({ lastFourTango: v || undefined })}
         />
         <SwitchRow
-          label="Birthday vals"
-          sub="A vals tanda reserved for the birthday dance"
+          label={tx("composer.birthday_vals")}
+          sub={tx("composer.a_vals_tanda_reserved_for_the")}
           checked={rules.birthdayValsAt != null}
           onChange={(v) => setRules({ birthdayValsAt: v ? 0.6 : null })}
         />
         {rules.birthdayValsAt != null && (
           <SliderRow
-            label="Birthday vals position"
-            display={`${Math.round(rules.birthdayValsAt * 100)} % of the night`}
+            label={tx("composer.birthday_vals_position")}
+            display={tx("composer.pct_of_night", { pct: Math.round(rules.birthdayValsAt * 100) })}
             min={10}
             max={90}
             step={5}
@@ -643,8 +661,8 @@ const SetupForm = memo(function SetupForm({
           />
         )}
         <SwitchRow
-          label="Show or break"
-          sub="A gap without cortina; energy re-ramps after it"
+          label={tx("composer.show_or_break")}
+          sub={tx("composer.a_gap_without_cortina_energy_re")}
           checked={rules.showBreakAt != null}
           onChange={(v) =>
             setRules({ showBreakAt: v ? 0.5 : null, showBreakMinutes: rules.showBreakMinutes ?? 20 })
@@ -653,8 +671,8 @@ const SetupForm = memo(function SetupForm({
         {rules.showBreakAt != null && (
           <>
             <SliderRow
-              label="Break position"
-              display={`${Math.round(rules.showBreakAt * 100)} % of the night`}
+              label={tx("composer.break_position")}
+              display={tx("composer.pct_of_night", { pct: Math.round(rules.showBreakAt * 100) })}
               min={10}
               max={90}
               step={5}
@@ -662,9 +680,9 @@ const SetupForm = memo(function SetupForm({
               onChange={(v) => setRules({ showBreakAt: v / 100 })}
             />
             <StepperRow
-              label="Break length"
+              label={tx("composer.break_length")}
               value={rules.showBreakMinutes ?? 20}
-              unit=" min"
+              unit={tx("composer.min")}
               min={5}
               max={60}
               step={5}
@@ -673,33 +691,33 @@ const SetupForm = memo(function SetupForm({
           </>
         )}
         <PickerRow
-          label="Última tanda"
-          sub="The last tanda before La Cumparsita"
-          ariaLabel="Última tanda"
+          label={tx("composer.ultima_tanda")}
+          sub={tx("composer.the_last_tanda_before_la_cumparsita")}
+          ariaLabel={tx("composer.ultima_tanda")}
           value={rules.ultimaRule ?? "emotional-vocal"}
           items={ULTIMA}
           onChange={(k) => k && setRules({ ultimaRule: k })}
         />
         <PickerRow
-          label="Opener"
-          tip="What the first tanda of the night is like"
-          ariaLabel="Opener"
+          label={tx("composer.opener")}
+          tip={tx("composer.what_the_first_tanda_of_the")}
+          ariaLabel={tx("composer.opener")}
           value={rules.openerRule ?? "canon"}
           items={OPENER}
           onChange={(k) => k && setRules({ openerRule: k })}
         />
         <PickerRow
-          label="Open with"
-          sub="The orchestra of the first tanda; auto follows the opener rule"
-          ariaLabel="Open with"
+          label={tx("composer.open_with")}
+          sub={tx("composer.the_orchestra_of_the_first_tanda")}
+          ariaLabel={tx("composer.open_with")}
           value={rules.openerOrchestra ?? "auto"}
           items={OPEN_WITH}
           onChange={(k) => k && setRules({ openerOrchestra: k === "auto" ? undefined : k })}
         />
         <PickerRow
-          label="Última with"
-          sub="The family of the last tanda; auto follows the última rule"
-          ariaLabel="Última with"
+          label={tx("composer.ultima_with")}
+          sub={tx("composer.the_family_of_the_last_tanda")}
+          ariaLabel={tx("composer.ultima_with")}
           value={ultimaKey(rules)}
           items={ULTIMA_WITH}
           onChange={(k) => {
@@ -713,68 +731,68 @@ const SetupForm = memo(function SetupForm({
           }}
         />
         <PickerRow
-          label="Closer"
-          sub="What plays after the última"
-          ariaLabel="Closer"
+          label={tx("composer.closer")}
+          sub={tx("composer.what_plays_after_the_ultima")}
+          ariaLabel={tx("composer.closer")}
           value={rules.closer ?? "auto"}
           items={CLOSERS}
           onChange={(k) => k && setRules({ closer: k })}
         />
         <StepperRow
-          label="Warm-up"
-          sub="Tandas planned gentle at the start (0 = the arc's own)"
+          label={tx("composer.warm_up")}
+          sub={tx("composer.tandas_planned_gentle_at_the_start")}
           value={rules.warmupTandas ?? 0}
-          unit=" tandas"
+          unit={tx("composer.tandas_2")}
           min={0}
           max={6}
           step={1}
           onChange={(v) => setRules({ warmupTandas: v || undefined })}
         />
         <PickerRow
-          label="Cool-down"
-          tip="How the night calms down before the última"
-          ariaLabel="Cool-down"
+          label={tx("composer.cool_down")}
+          tip={tx("composer.how_the_night_calms_down_before")}
+          ariaLabel={tx("composer.cool_down")}
           value={rules.cooldown ?? "lift"}
           items={COOLDOWNS}
           onChange={(k) => k && setRules({ cooldown: k })}
         />
         <SwitchRow
-          label="Pugliese once"
-          sub="At most one Pugliese tanda, late"
+          label={tx("composer.pugliese_once")}
+          sub={tx("composer.at_most_one_pugliese_tanda_late")}
           checked={rules.puglieseOnce ?? true}
           onChange={(v) => setRules({ puglieseOnce: v })}
         />
         <SwitchRow
-          label="Colour tanda"
-          sub="One foxtrot, Pirincho milonga or Hugo Díaz tanda"
+          label={tx("composer.colour_tanda")}
+          sub={tx("composer.one_foxtrot_pirincho_milonga_or_hugo")}
           checked={!!rules.colourTanda}
           onChange={(v) => setRules({ colourTanda: v })}
         />
         <SwitchRow
-          label="Mixed milonga and vals tandas"
-          sub="Allow more than one orchestra inside them"
+          label={tx("composer.mixed_milonga_and_vals_tandas")}
+          sub={tx("composer.allow_more_than_one_orchestra_inside")}
           checked={!!rules.mixedMilongaVals}
           onChange={(v) => setRules({ mixedMilongaVals: v })}
         />
         <SwitchRow
-          label="Cortina before La Cumparsita"
-          tip="A cortina clears the floor before the last song, so everyone hears it is the end"
+          label={tx("composer.cortina_before_la_cumparsita")}
+          tip={tx("composer.a_cortina_clears_the_floor_before")}
           checked={!!rules.cortinaBeforeCumparsita}
           onChange={(v) => setRules({ cortinaBeforeCumparsita: v })}
         />
         {/* the engine reads this on the night rules (round-8 engine): undated, placeholder-year and transcription
             rows never build a tanda unless the DJ opts in */}
         <SwitchRow
-          label="Include undated recordings"
-          sub="Undated, placeholder-year and transcription rows; off keeps them out of tandas"
+          label={tx("composer.include_undated_recordings")}
+          sub={tx("composer.undated_placeholder_year_and_transcription_rows")}
           checked={!!rules.allowUndated}
           onChange={(v) => setRules({ allowUndated: v })}
         />
       </FoldGroup>
 
       <FoldGroup
-        header="Tanda rules"
-        tip="Rules inside each tanda: one voice, tempo and level kept close"
+        header={tx("composer.tanda_rules")}
+        tip={tx("composer.rules_inside_each_tanda_one_voice")}
         bare
         id="tanda-rules-fold"
       >
@@ -782,9 +800,9 @@ const SetupForm = memo(function SetupForm({
       </FoldGroup>
 
       <FoldGroup
-        header="Tonight"
-        tip="The room, the crowd and the floor tonight; each choice moves the energy and the mix"
-        summary={contextCount ? `${contextCount} set` : "Room, crowd, floor…"}
+        header={tx("composer.tonight_2")}
+        tip={tx("composer.the_room_the_crowd_and_the")}
+        summary={contextCount ? tx("composer.set", { contextCount }) : tx("composer.room_crowd_floor")}
         bare
         id="tonight-fold"
       >
@@ -809,18 +827,18 @@ const SetupForm = memo(function SetupForm({
         inert={!dock || undefined}
       >
         <span className="text-footnote min-w-0 flex-1 truncate text-[var(--label-2)]">
-          {eraName(era)} · {hours} h · ≈{tandasEst} tandas
+          {tx("composer.h_tandas", { p1: eraName(era), hours, tandasEst })}
         </span>
-        <Tip text="Compose the night with these settings (⌘↩)">
+        <Tip text={tx("composer.compose_the_night_with_these_settings")}>
           <button
             type="button"
             className="btn btn-primary min-h-[44px]"
             onClick={onCompose}
             disabled={busy}
-            aria-label="Compose with these settings"
+            aria-label={tx("composer.compose_with_these_settings")}
             data-testid="form-compose"
           >
-            <Disc3 size={18} aria-hidden /> Compose
+            <Disc3 size={18} aria-hidden /> {tx("composer.compose")}
           </button>
         </Tip>
       </div>
@@ -1006,13 +1024,17 @@ export function Composer() {
       const prev = useStore.getState().playlist;
       remember(prev);
       setPlaylist(r.playlist);
-      recordNightEdit(r.playlist, "Polished against published DJ sets", "refine");
+      recordNightEdit(r.playlist, tx("composer.polished_against_published_dj_sets"), "refine");
       setChangedSet(new Set(changedTandas(prev, r.playlist)));
       setChangeSummary(
-        `Polished against published DJ sets: ${r.changes.length} ${r.changes.length === 1 ? "change" : "changes"} · score ${r.before.score} → ${r.after.score}`,
+        tx("composer.polished_score", {
+          changes: plural("plural.changes", r.changes.length),
+          before: r.before.score,
+          after: r.after.score,
+        }),
       );
       setBenchOpen(false);
-      toast("Improved set kept", () => prev && setPlaylist(prev));
+      toast(tx("composer.improved_set_kept"), () => prev && setPlaylist(prev));
     },
     [remember, setPlaylist, recordNightEdit],
   );
@@ -1033,12 +1055,12 @@ export function Composer() {
         setSetupOpen(false);
         setChangeSummary(null);
         setChangedSet(new Set());
-        toast(`${featuredMeta(id)?.title ?? "Featured night"} loaded`);
+        toast(tx("composer.loaded", { p1: featuredMeta(id)?.title ?? tx("composer.featured_night") }));
         requestAnimationFrame(() =>
           document.getElementById("result")?.scrollIntoView({ behavior: "smooth", block: "start" }),
         );
       } catch {
-        setError("The featured night could not be loaded.");
+        setError(tx("composer.the_featured_night_could_not_be"));
         setErrorKey((k) => k + 1);
       } finally {
         setBusy(false);
@@ -1111,7 +1133,7 @@ export function Composer() {
       setOptions({ eras: [next] });
       const { eras: _e, ...preset } = patch;
       presetOptions(preset);
-      setEraNote(`Era defaults applied: ${notes}`);
+      setEraNote(tx("composer.era_defaults_applied", { notes }));
     },
     [setOptions, presetOptions],
   );
@@ -1182,7 +1204,7 @@ export function Composer() {
       };
       if (r.ok) rememberComposeMs(Date.now() - t0 - slow);
       if (!r.ok || p.error) {
-        setError(p.error ?? "Could not compose this set.");
+        setError(p.error ?? tx("composer.could_not_compose_this_set"));
         setErrorKey((k) => k + 1);
         haptic([20, 30, 20]);
         return;
@@ -1202,14 +1224,19 @@ export function Composer() {
       if (morph && live) {
         const changed = changedTandas(live, p);
         setChangeSummary(
-          `${changed.length ? `${changed.length} ${changed.length === 1 ? "tanda" : "tandas"} replaced (${changed.slice(0, 8).join(", ")}${changed.length > 8 ? "…" : ""})` : "No tanda changed"} · score ${live.score.total} → ${p.score.total}${improvedLine ? ` · ${improvedLine}` : ""}`,
+          `${changed.length ? `${changed.length} ${changed.length === 1 ? "tanda" : "tandas"} replaced (${changed.slice(0, 8).join(", ")}${changed.length > 8 ? "…" : ""})` : tx("composer.no_tanda_changed")} · score ${live.score.total} → ${p.score.total}${improvedLine ? ` · ${improvedLine}` : ""}`,
         );
         setChangedSet(new Set(changed));
       } else {
         // a recompose that changed the night's length (another cycle, other hours) still says how the score moved
         setChangeSummary(
           live
-            ? `New set of ${p.tandas.length} tandas · score ${live.score.total} → ${p.score.total}${improvedLine ? ` · ${improvedLine}` : ""}`
+            ? tx("composer.new_set_of_tandas_score", {
+                length: p.tandas.length,
+                total: live.score.total,
+                total1: p.score.total,
+                p1: improvedLine ? ` · ${improvedLine}` : "",
+              })
             : improvedLine,
         );
         setChangedSet(new Set());
@@ -1222,10 +1249,10 @@ export function Composer() {
         );
     } catch {
       if (ctl.signal.aborted) {
-        toast("Compose cancelled: the night on screen stays as it was");
+        toast(tx("composer.compose_cancelled_the_night_on_screen"));
         return;
       }
-      setError("Could not reach the composer. Try again.");
+      setError(tx("composer.could_not_reach_the_composer_try"));
       setErrorKey((k) => k + 1);
       haptic([20, 30, 20]);
     } finally {
@@ -1274,11 +1301,17 @@ export function Composer() {
       if (!prev) return;
       remember(prev);
       setPlaylist(p);
-      recordNightEdit(p, `Changed tanda ${i + 1}`, "swap");
-      toast(`Tanda ${i + 1} is now ${p.tandas[i]?.orchestra ?? "another tanda"}`, () => {
-        setPlaylist(prev);
-        recordNightEdit(prev, "Swap undone", "swap");
-      });
+      recordNightEdit(p, tx("composer.changed_tanda", { p1: i + 1 }), "swap");
+      toast(
+        tx("composer.tanda_is_now", {
+          p1: i + 1,
+          p2: p.tandas[i]?.orchestra ?? tx("composer.another_tanda"),
+        }),
+        () => {
+          setPlaylist(prev);
+          recordNightEdit(prev, tx("composer.swap_undone"), "swap");
+        },
+      );
     },
     [choices, setPlaylist, recordNightEdit, remember],
   );
@@ -1295,7 +1328,7 @@ export function Composer() {
       const prev = useStore.getState().playlist;
       if (prev) remember(prev);
       setPlaylist(p);
-      recordNightEdit(p, label ?? "Changed a song", "swap");
+      recordNightEdit(p, label ?? tx("composer.changed_a_song"), "swap");
     },
     [setPlaylist, recordNightEdit, remember],
   );
@@ -1325,7 +1358,9 @@ export function Composer() {
         tandas: playlist.tandas.map((t, k) => (k === i ? { ...t, bypass: on || undefined } : t)),
       });
       toast(
-        on ? `Tanda ${i + 1} is skipped tonight (it stays in the exports)` : `Tanda ${i + 1} plays tonight`,
+        on
+          ? tx("composer.tanda_is_skipped_tonight_it_stays", { p1: i + 1 })
+          : tx("composer.tanda_plays_tonight", { p1: i + 1 }),
       );
     },
     [setPlaylist],
@@ -1335,7 +1370,7 @@ export function Composer() {
     if (!playlist) return;
     const all = playlist.tandas.every((t) => t.locked);
     setPlaylist({ ...playlist, tandas: playlist.tandas.map((t) => ({ ...t, locked: !all })) });
-    toast(all ? "All tandas unlocked" : "All tandas locked: Regenerate keeps every one");
+    toast(all ? tx("composer.all_tandas_unlocked") : tx("composer.all_tandas_locked_regenerate_keeps_every"));
   }, [setPlaylist]);
   /** Clear the set (undo for a few seconds via the toast); the form unfolds again. */
   const clearSet = useCallback(() => {
@@ -1344,7 +1379,7 @@ export function Composer() {
     setPlaylist(null);
     setChangeSummary(null);
     setChangedSet(new Set());
-    toast("Set cleared", () => setPlaylist(prev));
+    toast(tx("composer.set_cleared"), () => setPlaylist(prev));
   }, [setPlaylist]);
   /** A chip never leaves a custom cycle empty, and every structural change it makes is said out loud. */
   const settleOptions = (prev: Partial<ComposeOptions>, next: Partial<ComposeOptions>) => {
@@ -1371,7 +1406,7 @@ export function Composer() {
       const chipLabel = FEEDBACK_CHIPS.find(([k]) => k === f)?.[1] ?? f;
       const line = changes.length
         ? `${chipLabel}: ${changes.join(" · ")}`
-        : `${chipLabel}: nothing to change in the settings; recomposing with a new seed`;
+        : tx("composer.nothing_to_change_in_the_settings", { chipLabel });
       setNote(line);
       toast(line);
       const changed = changedKeys(prev, next);
@@ -1408,7 +1443,7 @@ export function Composer() {
         notApplied?: string[];
       };
       if (!r.ok || !j.options) {
-        setNote(j.error ?? "Could not read that request.");
+        setNote(j.error ?? tx("composer.could_not_read_that_request"));
         return;
       }
       const next = settleOptions(prev, j.options);
@@ -1418,11 +1453,13 @@ export function Composer() {
       const noteSaysIt = /Applied:|Not applied:|Nothing to apply/.test(j.note ?? "");
       setNote(
         [
-          j.source === "model" ? null : "Parsed by rules (no AI key; add one in Settings for a model).",
+          j.source === "model" ? null : tx("composer.parsed_by_rules"),
           j.note,
-          !noteSaysIt && j.applied?.length ? `Applied: ${j.applied.join(", ")}.` : null,
-          !noteSaysIt && j.notApplied?.length ? `Not applied: ${j.notApplied.join("; ")}.` : null,
-          changes.length ? `Changed: ${changes.join(" · ")}.` : null,
+          !noteSaysIt && j.applied?.length ? tx("composer.applied", { list: j.applied.join(", ") }) : null,
+          !noteSaysIt && j.notApplied?.length
+            ? tx("composer.not_applied", { list: j.notApplied.join("; ") })
+            : null,
+          changes.length ? tx("composer.changed_list", { list: changes.join(" · ") }) : null,
         ]
           .filter(Boolean)
           .join(" "),
@@ -1462,9 +1499,9 @@ export function Composer() {
     if (!playlist) return;
     try {
       await navigator.clipboard.writeText(String(playlist.options.seed));
-      setNote(`Seed ${playlist.options.seed} copied.`);
+      setNote(tx("composer.seed_copied", { seed: playlist.options.seed }));
     } catch {
-      setNote(`Seed ${playlist.options.seed}.`);
+      setNote(tx("composer.seed", { seed: playlist.options.seed }));
     }
   };
   const rate = (liked: boolean) => {
@@ -1523,13 +1560,16 @@ export function Composer() {
   const resultFooter = playlist
     ? [
         fmtDuration(playlist.stats.durationSec),
-        `${playlist.tandas.length} tandas`,
-        `${Object.keys(playlist.stats.orchestras).length} orchestras`,
-        `${(CORTINA_STYLES.find(([k]) => k === (playlist.options.cortinaStyle ?? "family"))?.[1] ?? "family").toLowerCase()} cortinas`,
-        lockedCount
-          ? `${lockedCount} locked ${lockedCount === 1 ? "tanda stays" : "tandas stay"} on recompose`
-          : null,
-        dbChanges ? "using your database edits" : null,
+        tx("composer.footer_tandas", { n: playlist.tandas.length }),
+        tx("composer.footer_orchestras", { n: Object.keys(playlist.stats.orchestras).length }),
+        tx("composer.footer_cortinas", {
+          style: lower(
+            CORTINA_STYLES.find(([k]) => k === (playlist.options.cortinaStyle ?? "family"))?.[1] ??
+              tx("composer.family"),
+          ),
+        }),
+        lockedCount ? plural("plural.locked_stay", lockedCount) : null,
+        dbChanges ? tx("composer.footer_db_edits") : null,
       ]
         .filter(Boolean)
         .join(" · ")
@@ -1548,7 +1588,11 @@ export function Composer() {
    * (round8-ux.md §1.2). ⌘↩ stays on Regenerate (the same action), ⌘E on Export.
    */
   const composeButton = (
-    <Tip text={hasPlaylist ? "Compose again with the same settings (⌘↩)" : "Compose the night (⌘↩)"}>
+    <Tip
+      text={
+        hasPlaylist ? tx("composer.compose_again_with_the_same_settings") : tx("composer.compose_the_night_2")
+      }
+    >
       <motion.button
         type="button"
         onClick={() => run()}
@@ -1561,7 +1605,7 @@ export function Composer() {
         <ComposeLabel
           busy={busy}
           steps={!!playlist}
-          idle={hasPlaylist ? "Regenerate" : "Compose the night"}
+          idle={hasPlaylist ? tx("composer.regenerate") : tx("primaryBar.compose_the_night")}
           spin={false}
         />
       </motion.button>
@@ -1569,13 +1613,13 @@ export function Composer() {
   );
   // icon-only twin of the capsule for the tablet pill when the full label would overflow it
   const composeCompact = (
-    <Tip text={hasPlaylist ? "Regenerate (⌘↩)" : "Compose the night (⌘↩)"}>
+    <Tip text={hasPlaylist ? tx("composer.regenerate_2") : tx("composer.compose_the_night_2")}>
       <button
         type="button"
         onClick={() => run()}
         disabled={busy}
         className={`btn ${hasPlaylist ? "btn-ghost" : "btn-primary"} h-11 min-h-[44px] w-11 px-0`}
-        aria-label={hasPlaylist ? "Regenerate" : "Compose the night"}
+        aria-label={hasPlaylist ? tx("composer.regenerate") : tx("composer.compose_the_night")}
       >
         {busy ? (
           <LoaderCircle size={18} className="animate-spin" aria-hidden />
@@ -1588,24 +1632,24 @@ export function Composer() {
     </Tip>
   );
   const exportButton = (
-    <Tip text="Export the night to your DJ app (⌘E)">
+    <Tip text={tx("composer.export_the_night_to_your_dj")}>
       <button
         type="button"
         onClick={openExport}
         className="btn btn-primary min-h-[44px] lg:min-h-[40px] lg:px-4 lg:text-subhead"
         data-testid="toolbar-export"
       >
-        <Share size={18} strokeWidth={2} aria-hidden /> Export
+        <Share size={18} strokeWidth={2} aria-hidden /> {tx("composer.export")}
       </button>
     </Tip>
   );
   const exportCompact = (
-    <Tip text={"Export (⌘E)"}>
+    <Tip text={tx("composer.export_e")}>
       <button
         type="button"
         onClick={openExport}
         className="btn btn-primary h-11 min-h-[44px] w-11 px-0"
-        aria-label="Export"
+        aria-label={tx("composer.export")}
       >
         <Share size={18} strokeWidth={2} aria-hidden />
       </button>
@@ -1627,7 +1671,7 @@ export function Composer() {
   return (
     <div>
       <PageHeader
-        title="Compose"
+        title={tx("composer.compose")}
         trailing={
           <>
             {/* phones have Regenerate in the primary bar; the title bar keeps only ••• there */}
@@ -1635,19 +1679,19 @@ export function Composer() {
             {hasPlaylist && wide && !setupOpen && (lg ? composeButton : composeCompact)}
             {hasPlaylist && playlist && (
               <Menu
-                label="More"
+                label={tx("composer.more")}
                 items={[
                   {
-                    label: "Recompose with same seed",
+                    label: tx("composer.recompose_with_same_seed"),
                     icon: Repeat2,
                     onClick: () => run(playlist.options.seed),
                     disabled: busy,
                   },
-                  { label: "Copy seed", icon: Copy, onClick: copySeed },
-                  { label: "Written review", icon: MessageSquareText, onClick: explain },
-                  { label: "Play the night", icon: Play, onClick: () => router.push("/booth") },
+                  { label: tx("composer.copy_seed"), icon: Copy, onClick: copySeed },
+                  { label: tx("composer.written_review"), icon: MessageSquareText, onClick: explain },
+                  { label: tx("composer.play_the_night"), icon: Play, onClick: () => router.push("/booth") },
                   {
-                    label: "Tell the DJ…",
+                    label: tx("composer.tell_the_dj"),
                     icon: SlidersHorizontal,
                     shortcut: "⌘K",
                     onClick: () => {
@@ -1656,7 +1700,7 @@ export function Composer() {
                       el?.focus({ preventScroll: true });
                     },
                   },
-                  { label: "Clear set", icon: Eraser, onClick: clearSet, destructive: true },
+                  { label: tx("composer.clear_set"), icon: Eraser, onClick: clearSet, destructive: true },
                 ]}
               />
             )}
@@ -1675,18 +1719,17 @@ export function Composer() {
           data-testid="first-run"
         >
           <h2 id="first-run-title" className="text-title2 font-serif">
-            A night, composed
+            {tx("composer.a_night_composed")}
           </h2>
           <p className="text-subhead mt-1 text-[var(--label-2)]">
-            {hours} hours of {eraName(era)} tandas with cortinas, scored against the house rules. Change
-            anything below, or just compose.
+            {tx("composer.hours_of_tandas_with_cortinas_scored", { hours, p1: eraName(era) })}
           </p>
           <ol className="mt-4 grid gap-2 sm:grid-cols-3">
             {(
               [
-                ["Compose", "one tap builds the set and scores it"],
-                ["Read", "the energy arc, the tandas, the cortinas"],
-                ["Play or send", "the Booth plays it; Export sends it to VLC, Rekordbox or Spotify"],
+                [tx("composer.step_compose"), tx("composer.step_compose_sub")],
+                [tx("composer.step_read"), tx("composer.step_read_sub")],
+                [tx("composer.play_or_send"), tx("composer.step_play_sub")],
               ] as const
             ).map(([h, d], i) => (
               <li key={h} className="flex items-start gap-3">
@@ -1701,7 +1744,7 @@ export function Composer() {
             ))}
           </ol>
           <div className="mt-5 hidden flex-wrap items-center gap-3 sm:flex">
-            <Tip text="Compose a whole night now with the settings below; you can change everything after (⌘↩)">
+            <Tip text={tx("composer.compose_a_whole_night_now_with")}>
               <button
                 type="button"
                 ref={heroRef}
@@ -1714,17 +1757,15 @@ export function Composer() {
               </button>
             </Tip>
             <span className="text-footnote text-[var(--label-2)]">
-              A {hours} h {options.context?.event ?? "milonga"}, or set up the night below.
+              A {hours} h {options.context?.event ?? tx("composer.milonga")}
+              {tx("composer.or_set_up_the_night_below")}
             </span>
           </div>
           <p className="text-footnote mt-4 text-[var(--label-2)] sm:hidden">
-            Compose the night is in the bar below; everything under it is optional.
+            {tx("composer.compose_the_night_is_in_the")}
           </p>
           {/* a built-in night to read before composing one */}
-          <Tip
-            text="Open a night a DJ built, to read and play before you compose your own"
-            className="mt-4 w-full"
-          >
+          <Tip text={tx("composer.open_a_night_a_dj_built")} className="mt-4 w-full">
             <button
               type="button"
               className="cell cell-tap group-inset w-full text-left"
@@ -1740,11 +1781,11 @@ export function Composer() {
                 <span className="block truncate">{FEATURED[0].title}</span>
                 <span className="text-footnote block truncate text-[var(--label-2)]">{FEATURED[0].sub}</span>
               </span>
-              <span className="cell-value text-body">Open</span>
+              <span className="cell-value text-body">{tx("featuredCard.open")}</span>
             </button>
           </Tip>
           {/* round 22 AI / round 23: picking every tanda yourself, with suggestions, is one tap from the first run */}
-          <Tip text="Start from an empty night and choose every tanda yourself" className="mt-2 w-full">
+          <Tip text={tx("composer.start_from_an_empty_night_and")} className="mt-2 w-full">
             <Link
               href="/build"
               className="cell cell-tap group-inset w-full text-left"
@@ -1755,9 +1796,9 @@ export function Composer() {
                 <Hand size={16} strokeWidth={2} />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate">Build by hand</span>
+                <span className="block truncate">{tx("composer.build_by_hand")}</span>
                 <span className="text-footnote block truncate text-[var(--label-2)]">
-                  Pick every tanda yourself, with suggestions and their reasons
+                  {tx("composer.pick_every_tanda_yourself_with_suggestions")}
                 </span>
               </span>
               <ChevronRight size={16} strokeWidth={2.5} className="cell-chevron" aria-hidden />
@@ -1778,7 +1819,7 @@ export function Composer() {
             }}
           >
             <Group
-              header="Tonight's set"
+              header={tx("composer.tonight_s_set")}
               footer={
                 nightNotes.length ? (
                   <>
@@ -1805,35 +1846,35 @@ export function Composer() {
                   </h2>
                   <span className="flex items-center gap-1">
                     {/* phones: icon-only, 44 pt (the label wrapped to three lines, round8-ux.md §1.4) */}
-                    <Tip text="Open the Booth and play this night">
+                    <Tip text={tx("composer.open_the_booth_and_play_this")}>
                       <button
                         type="button"
                         className="btn btn-ghost -my-2 min-h-11 shrink-0 whitespace-nowrap px-3 max-sm:h-11 max-sm:w-11 max-sm:px-0"
                         data-testid="play-the-night"
-                        aria-label="Booth: play the night"
+                        aria-label={tx("composer.booth_play_the_night")}
                         onClick={() => router.push("/booth")}
                       >
                         <Play size={16} fill="currentColor" strokeWidth={0} aria-hidden />
-                        <span className="max-sm:sr-only">Play the night</span>
+                        <span className="max-sm:sr-only">{tx("composer.play_the_night")}</span>
                       </button>
                     </Tip>
-                    <Tip text="I like this night: T-DJ learns from it">
+                    <Tip text={tx("composer.i_like_this_night_t_dj")}>
                       <button
                         type="button"
                         className={`icon-btn icon-btn-bare -my-2 h-11 w-11 ${liked === true ? "text-[var(--tint)]" : "text-[var(--label-3)]"}`}
                         aria-pressed={liked === true}
-                        aria-label="Mark as liked"
+                        aria-label={tx("composer.mark_as_liked")}
                         onClick={() => rate(true)}
                       >
                         <ThumbsUp size={18} strokeWidth={2} fill={liked === true ? "currentColor" : "none"} />
                       </button>
                     </Tip>
-                    <Tip text="Not for me: T-DJ learns from it">
+                    <Tip text={tx("composer.not_for_me_t_dj_learns")}>
                       <button
                         type="button"
                         className={`icon-btn icon-btn-bare -my-2 -mr-3 h-11 w-11 ${liked === false ? "text-[var(--tint)]" : "text-[var(--label-3)]"}`}
                         aria-pressed={liked === false}
-                        aria-label="Mark as disliked"
+                        aria-label={tx("composer.mark_as_disliked")}
                         onClick={() => rate(false)}
                       >
                         <ThumbsDown
@@ -1857,7 +1898,7 @@ export function Composer() {
                     type="button"
                     className="-mx-2 flex items-baseline gap-1 rounded-[var(--radius-xs)] px-2 text-left"
                     onClick={() => setAdjustOpen(true)}
-                    aria-label={`Score ${playlist.score.total} of 100. Adjust the set`}
+                    aria-label={tx("composer.score_of_100_adjust_the_set", { total: playlist.score.total })}
                     data-testid="score-button"
                   >
                     <span className="text-large-title tabular-nums text-[var(--tint)]">
@@ -1883,7 +1924,9 @@ export function Composer() {
                   {playlist.options.arcShape && (
                     <span data-testid="arc-shape">
                       {" "}
-                      · {playlist.options.arcShape === "double" ? "double" : "single"} peak arc
+                      ·{" "}
+                      {playlist.options.arcShape === "double" ? tx("composer.double") : tx("composer.single")}{" "}
+                      {tx("composer.peak_arc")}
                     </span>
                   )}
                 </motion.p>
@@ -1921,18 +1964,18 @@ export function Composer() {
                 </div>
               </motion.div>
               <Row
-                label="How this set scored"
-                tip="Each part of the score: tandas, singers and years, spacing, energy, cortinas, the ending"
-                value={`${playlist.score.factors.length} factors`}
+                label={tx("composer.how_this_set_scored")}
+                tip={tx("composer.each_part_of_the_score_tandas")}
+                value={tx("composer.factors", { length: playlist.score.factors.length })}
                 chevron
                 onClick={() => setScoreOpen(true)}
               />
               {bench && (
                 <Row
-                  label="Compared with published DJ sets"
-                  value={`${bench.inRange} of ${bench.scored} close`}
-                  aria-label={`Compared with published DJ sets: ${benchLabel(bench)}`}
-                  tip="How this night compares with sets from working DJs, measure by measure"
+                  label={tx("composer.compared_with_published_dj_sets_2")}
+                  value={tx("composer.of_close", { inRange: bench.inRange, scored: bench.scored })}
+                  aria-label={tx("composer.compared_with_published_dj_sets", { p1: benchLabel(bench) })}
+                  tip={tx("composer.how_this_night_compares_with_sets")}
                   chevron
                   onClick={() => setBenchOpen(true)}
                   data-testid="benchmark-row"
@@ -1940,23 +1983,23 @@ export function Composer() {
               )}
               {playlists.some((p) => p.kind === "tandas") && (
                 <Row
-                  label="Mood check"
-                  tip="Compares the mood of each tanda with reference tandas"
-                  sub="Against reference tandas (Aren León)"
+                  label={tx("composer.mood_check")}
+                  tip={tx("composer.compares_the_mood_of_each_tanda")}
+                  sub={tx("composer.against_reference_tandas_aren_leon")}
                   chevron
                   onClick={() => setMoodOpen(true)}
                 />
               )}
               <Row
-                label="Written review"
-                tip="A few paragraphs on the night from your AI model, as a fellow DJ would write them"
+                label={tx("composer.written_review")}
+                tip={tx("composer.a_few_paragraphs_on_the_night")}
                 value={
                   aiBusy
-                    ? "Reading the set…"
+                    ? tx("composer.reading_the_set")
                     : ai || settings.ai.key || aiShared
-                      ? "Ready"
+                      ? tx("composer.ready")
                       : aiShared === false
-                        ? "Off · needs an AI key"
+                        ? tx("composer.off_needs_an_ai_key")
                         : undefined
                 }
                 chevron
@@ -1969,15 +2012,15 @@ export function Composer() {
 
             {playlist.opening && (
               <Group
-                header="Opening"
-                footer="La Cumparsita before the first tanda, as some Buenos Aires and festival nights open."
+                header={tx("composer.opening")}
+                footer={tx("composer.la_cumparsita_before_the_first_tanda")}
               >
                 <div className="cell" data-leading="art" data-testid="opening">
                   <span className="tile-art" data-rhythm="tango" aria-hidden>
                     <Disc3 size={20} strokeWidth={1.75} />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="text-headline block truncate">La Cumparsita</span>
+                    <span className="text-headline block truncate">{tx("composer.la_cumparsita")}</span>
                     <span className="text-subhead block truncate text-[var(--label-2)]">
                       {metaLine(
                         playlist.opening.orchestra,
@@ -1990,10 +2033,10 @@ export function Composer() {
               </Group>
             )}
 
-            <h2 className="section-head">Tandas</h2>
+            <h2 className="section-head">{tx("composer.tandas")}</h2>
             {/* round 22: the song search side panel */}
             <div className="-mt-10 mb-1 flex justify-end">
-              <Tip text="Search every recording by title, orchestra, singer, years and rhythm; swap one in, add it or play it">
+              <Tip text={tx("composer.search_every_recording_by_title_orchestra")}>
                 <button
                   type="button"
                   className="btn-plain mb-1 min-h-11"
@@ -2001,7 +2044,7 @@ export function Composer() {
                   aria-expanded={findOpen}
                   data-testid="find-songs"
                 >
-                  <Search size={16} strokeWidth={2} aria-hidden /> Find songs
+                  <Search size={16} strokeWidth={2} aria-hidden /> {tx("composer.find_songs")}
                 </button>
               </Tip>
             </div>
@@ -2042,7 +2085,8 @@ export function Composer() {
                     data-testid="break"
                   >
                     <span className="h-px flex-1 bg-[var(--separator)]" aria-hidden />
-                    {b.label} · {b.minutes} min
+
+                    {tx("composer.min_2", { label: b.label, minutes: b.minutes })}
                     <span className="h-px flex-1 bg-[var(--separator)]" aria-hidden />
                   </div>,
                 ];
@@ -2050,13 +2094,13 @@ export function Composer() {
             </div>
             <AiEditBar playlist={playlist} onChip={feedback} />
             {playlist.closing && (
-              <Group header="Closing">
+              <Group header={tx("composer.closing")}>
                 <div className="cell" data-leading="art" data-testid="closing">
                   <span className="tile-art" data-rhythm="tango" aria-hidden>
                     <Disc3 size={20} strokeWidth={1.75} />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="text-headline block truncate">La Cumparsita</span>
+                    <span className="text-headline block truncate">{tx("composer.la_cumparsita")}</span>
                     <span className="text-subhead block truncate text-[var(--label-2)]">
                       {metaLine(playlist.closing.orchestra, yearText(playlist.closing.year))}
                     </span>
@@ -2070,24 +2114,28 @@ export function Composer() {
       )}
       {/* once a set exists the result leads and the form folds into one summary row (UX review P1-1) */}
       {hasPlaylist && !setupOpen && (
-        <Group header="Set-up" id="setup-summary">
+        <Group header={tx("composer.set_up")} id="setup-summary">
           <Row
             tile={<RhythmTile rhythm="tango" />}
             label={`${eraName(era)} · ${hours} h · ${ARCS.find(([k]) => k === (options.arc ?? "classic-two-peaks"))?.[1] ?? ""}`}
-            sub={`${PATTERNS.find(([k]) => k === (options.pattern ?? "classic"))?.[1] ?? ""} · cortinas ${(CORTINA_STYLES.find(([k]) => k === cortinaStyle)?.[1] ?? "").toLowerCase()}${chosenContext ? ` · ${chosenContext} tonight` : ""}`}
-            value={wide ? undefined : "Edit"}
+            sub={tx("composer.cortinas_2", {
+              p1: PATTERNS.find(([k]) => k === (options.pattern ?? "classic"))?.[1] ?? "",
+              p2: (CORTINA_STYLES.find(([k]) => k === cortinaStyle)?.[1] ?? "").toLowerCase(),
+              p3: chosenContext ? ` ${tx("composer.tonight", { chosenContext })}` : "",
+            })}
+            value={wide ? undefined : tx("composer.edit")}
             chevron={!wide}
             onClick={wide ? undefined : () => setSetupOpen(true)}
           >
             {/* desktop: the trailing control is Regenerate, Edit stays a plain button (round5-design.md §1) */}
             {wide && (
               <span className="-my-2 -mr-2 inline-flex items-center gap-1">
-                <Tip text="Change the night's settings">
+                <Tip text={tx("composer.change_the_night_s_settings")}>
                   <button type="button" className="btn-plain" onClick={() => setSetupOpen(true)}>
-                    Edit
+                    {tx("composer.edit")}
                   </button>
                 </Tip>
-                <Tip text="Compose again with the same settings (⌘↩)">
+                <Tip text={tx("composer.compose_again_with_the_same_settings")}>
                   <button
                     type="button"
                     className="btn-plain font-semibold"
@@ -2095,7 +2143,7 @@ export function Composer() {
                     disabled={busy}
                     data-testid="summary-regenerate"
                   >
-                    <Repeat2 size={16} strokeWidth={2} aria-hidden /> Regenerate
+                    <Repeat2 size={16} strokeWidth={2} aria-hidden /> {tx("composer.regenerate")}
                   </button>
                 </Tip>
               </span>
@@ -2122,9 +2170,9 @@ export function Composer() {
 
       {(usingMemory || dbChanges) && (
         <p className="section-foot mt-3" data-testid="using-memory">
-          {usingMemory && `Using what you taught me: ${learnedPrefs.join(", ")}.`}
+          {usingMemory && tx("composer.using_what_you_taught_me", { learnedPrefs: learnedPrefs.join(", ") })}
           {usingMemory && dbChanges ? " " : ""}
-          {dbChanges && "Using your database edits."}
+          {dbChanges && tx("composer.using_your_database_edits")}
         </p>
       )}
 
@@ -2149,9 +2197,9 @@ export function Composer() {
         </AnimatePresence>
         {!error &&
           (busy
-            ? "Composing the night…"
+            ? tx("composer.composing_the_night")
             : hasPlaylist && playlist
-              ? `Set ready: ${playlist.tandas.length} tandas.`
+              ? tx("composer.set_ready_tandas", { length: playlist.tandas.length })
               : "")}
       </div>
 
@@ -2176,27 +2224,33 @@ export function Composer() {
         <Sheet
           open={actionsOpen}
           onClose={() => setActionsOpen(false)}
-          title="Set actions"
+          title={tx("composer.set_actions")}
           detents={["medium", "large"]}
           testId="actions-sheet"
         >
           <MenuList
             items={[
-              { label: "Play the night", icon: Play, onClick: () => router.push("/booth") },
-              { label: "Tell the DJ…", icon: MessageSquareText, onClick: () => setAdjustOpen(true) },
+              { label: tx("composer.play_the_night"), icon: Play, onClick: () => router.push("/booth") },
               {
-                label: playlist.tandas.every((t) => t.locked) ? "Unlock all" : "Lock all",
+                label: tx("composer.tell_the_dj"),
+                icon: MessageSquareText,
+                onClick: () => setAdjustOpen(true),
+              },
+              {
+                label: playlist.tandas.every((t) => t.locked)
+                  ? tx("composer.unlock_all")
+                  : tx("composer.lock_all"),
                 icon: Lock,
                 onClick: lockAll,
               },
               {
-                label: "Recompose with same seed",
+                label: tx("composer.recompose_with_same_seed"),
                 icon: Repeat2,
                 onClick: () => run(playlist.options.seed),
                 disabled: busy,
               },
-              { label: "Copy seed", icon: Copy, onClick: copySeed },
-              { label: "Clear set", icon: Eraser, onClick: clearSet, destructive: true },
+              { label: tx("composer.copy_seed"), icon: Copy, onClick: copySeed },
+              { label: tx("composer.clear_set"), icon: Eraser, onClick: clearSet, destructive: true },
             ]}
             onPick={(it: MenuItem) => {
               haptic(4);
@@ -2210,8 +2264,8 @@ export function Composer() {
         <Sheet
           open={adjustOpen}
           onClose={() => setAdjustOpen(false)}
-          title="Adjust"
-          trailing="Done"
+          title={tx("composer.adjust")}
+          trailing={tx("composer.done")}
           testId="adjust-sheet"
         >
           {feedbackBar}
@@ -2238,20 +2292,24 @@ export function Composer() {
         tandaIndex={swapAt?.i ?? null}
         trackIndex={swapAt?.k ?? null}
         onClose={() => setSwapAt(null)}
-        onApplied={(p, note) => swapApplied(p, /undone|kept|unpinned/i.test(note) ? note : "Changed a song")}
+        onApplied={(p, note) =>
+          swapApplied(p, /undone|kept|unpinned/i.test(note) ? note : tx("composer.changed_a_song"))
+        }
       />
 
       {playlist && (
         <Sheet
           open={scoreOpen}
           onClose={() => setScoreOpen(false)}
-          title="How this set scored"
-          trailing="Done"
+          title={tx("composer.how_this_set_scored")}
+          trailing={tx("composer.done")}
         >
-          <Group footer="Each bar is as long as the factor counts for the total; 85 or more is headline marathon DJ territory.">
+          <Group footer={tx("composer.each_bar_is_as_long_as")}>
             {playlist.score.reasons && playlist.score.reasons.length > 0 && (
               <div className="cell flex-col items-start gap-1 py-3">
-                <span className="text-footnote font-semibold text-[var(--system-gold)]">Capped at 60</span>
+                <span className="text-footnote font-semibold text-[var(--system-gold)]">
+                  {tx("composer.capped_at_60")}
+                </span>
                 {playlist.score.reasons.map((r) => (
                   <span key={r} className="text-footnote text-[var(--label-2)]">
                     {r}
@@ -2278,7 +2336,11 @@ export function Composer() {
                     width: `${Math.max(12, (f.weight / Math.max(1, ...playlist.score.factors.map((x) => x.weight))) * 100)}%`,
                   }}
                   role="img"
-                  aria-label={`${f.label}: ${Math.round(f.score * 100)} percent, weight ${f.weight}`}
+                  aria-label={tx("composer.percent_weight", {
+                    label: f.label,
+                    p1: Math.round(f.score * 100),
+                    weight: f.weight,
+                  })}
                 >
                   <motion.div
                     className="h-full w-full origin-left rounded-full bg-[var(--tint)]"
@@ -2306,20 +2368,25 @@ export function Composer() {
           onKeep={keepImproved}
         />
       )}
-      <Sheet open={moodOpen} onClose={() => setMoodOpen(false)} title="Mood check" trailing="Done">
+      <Sheet
+        open={moodOpen}
+        onClose={() => setMoodOpen(false)}
+        title={tx("composer.mood_check")}
+        trailing={tx("composer.done")}
+      >
         <MoodCheck playlists={playlists} playlist={playlist} />
       </Sheet>
       <Sheet
         open={reviewOpen}
         onClose={() => setReviewOpen(false)}
-        title="Written review"
-        trailing={aiError ? "OK" : "Done"}
+        title={tx("composer.written_review")}
+        trailing={aiError ? tx("composer.ok") : tx("composer.done")}
         hideCancel={aiError}
       >
         <div role="status" aria-live="polite" className="mt-2">
           {aiBusy && (
             <p className="text-subhead flex items-center gap-2 px-4 text-[var(--label-2)]">
-              <LoaderCircle size={16} className="animate-spin" /> Reading the set…
+              <LoaderCircle size={16} className="animate-spin" /> {tx("composer.reading_the_set")}
             </p>
           )}
           {ai && !aiBusy && (
@@ -2334,7 +2401,7 @@ export function Composer() {
                 <>
                   {" "}
                   <Link href="/settings" className="text-[var(--tint)]">
-                    Open Settings
+                    {tx("composer.open_settings")}
                   </Link>
                 </>
               )}

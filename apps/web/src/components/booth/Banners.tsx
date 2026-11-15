@@ -1,6 +1,7 @@
 "use client";
 import { X } from "lucide-react";
 import { useBooth } from "@/lib/booth/store";
+import { t } from "@/lib/i18n";
 
 /** Status banners (round7-booth.md §1.1): sticky under the header, never toasts that vanish. */
 export function Banners() {
@@ -20,7 +21,7 @@ export function Banners() {
           <button
             type="button"
             className="icon-btn icon-btn-bare -my-2"
-            aria-label="Dismiss"
+            aria-label={t("booth.banners.dismiss")}
             onClick={() => dismiss(b.key)}
           >
             <X size={16} strokeWidth={2} />

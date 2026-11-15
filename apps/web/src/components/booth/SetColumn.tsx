@@ -8,6 +8,7 @@ import { cortinaSpan, cortinaSwapLabel, swapLabel } from "@/lib/booth/nightView"
 import { durationLabel } from "@/lib/booth/plan";
 import { energyOf } from "@/lib/booth/songInfo";
 import { useBooth } from "@/lib/booth/store";
+import { t as tx } from "@/lib/i18n";
 import { tempoLevel } from "@/lib/tempo";
 import { toast } from "@/lib/toast";
 import type { Playlist } from "@/lib/types";
@@ -106,12 +107,16 @@ export function SetColumn({
         headers: { "content-type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (!r.ok) throw new Error(`swap failed (${r.status})`);
+      if (!r.ok) throw new Error(tx("booth.setColumn.swap_failed_2", { status: r.status }));
       const np = (await r.json()) as Playlist;
       await apply({ ...np, tandas: np.tandas.map((t, i) => ({ ...t, locked: playlist.tandas[i]?.locked })) });
-      toast(track === undefined ? `Tanda ${tanda} swapped` : `Track ${track + 1} of tanda ${tanda} swapped`);
+      toast(
+        track === undefined
+          ? tx("booth.setColumn.tanda_swapped", { tanda })
+          : tx("booth.setColumn.track_of_tanda_swapped", { p1: track + 1, tanda }),
+      );
     } catch (e) {
-      toast(e instanceof Error ? e.message : "Swap failed");
+      toast(e instanceof Error ? e.message : tx("booth.setColumn.swap_failed"));
     } finally {
       setBusy(null);
     }
@@ -125,7 +130,12 @@ export function SetColumn({
     else groups.push({ tanda: it.tanda, items: [{ i }] });
   });
   return (
-    <section ref={list} className="booth-set" data-testid="booth-set" aria-label="Set list">
+    <section
+      ref={list}
+      className="booth-set"
+      data-testid="booth-set"
+      aria-label={tx("booth.setColumn.set_list")}
+    >
       {groups.map((g) => {
         const t = playlist.tandas[g.tanda - 1];
         const locked = started && g.tanda <= runningTanda && g.tanda > 0;
@@ -143,15 +153,21 @@ export function SetColumn({
               data-hint={t ? tandaHint(t) : undefined}
             >
               <span className="text-caption1 min-w-0 flex-1 truncate font-semibold uppercase tracking-wide text-[var(--label-2)]">
-                {g.tanda === 0
-                  ? "Opening"
-                  : t
-                    ? `${g.tanda} · ${t.rhythm} · ${t.orchestra}${t.singer ? ` / ${t.singer}` : ""}`
-                    : "Closing"}
+                {g.tanda === 0 ? (
+                  tx("booth.setColumn.opening")
+                ) : t ? (
+                  <>
+                    {`${g.tanda} · ${t.rhythm} · `}
+                    {/* wave 3: names keep their Spanish capitals (no Turkish dotted İ) */}
+                    <span lang="es">{`${t.orchestra}${t.singer ? ` / ${t.singer}` : ""}`}</span>
+                  </>
+                ) : (
+                  tx("booth.setColumn.closing")
+                )}
               </span>
               {bypassedT.has(g.tanda - 1) && (
                 <span className="booth-skipped-chip" data-testid="booth-skipped-tonight">
-                  Skipped tonight
+                  {tx("booth.setColumn.skipped_tonight")}
                 </span>
               )}
               {/* the running tanda: a filled lock in tint ("Playing now"); the DJ's own lock stays gold */}
@@ -161,13 +177,18 @@ export function SetColumn({
                   strokeWidth={2}
                   fill="currentColor"
                   className="text-[var(--tint)]"
-                  aria-label="Playing now: read-only"
+                  aria-label={tx("booth.setColumn.playing_now_read_only")}
                 >
-                  <title>Playing now</title>
+                  <title>{tx("booth.setColumn.playing_now")}</title>
                 </Lock>
               ) : (
                 t?.locked && (
-                  <Lock size={14} strokeWidth={2} className="text-[var(--system-gold)]" aria-label="Locked" />
+                  <Lock
+                    size={14}
+                    strokeWidth={2}
+                    className="text-[var(--system-gold)]"
+                    aria-label={tx("booth.setColumn.locked")}
+                  />
                 )
               )}
               {/* round 21: skip tonight — the player passes over it; it stays in the exports */}
@@ -177,27 +198,34 @@ export function SetColumn({
                   className="booth-bypass"
                   data-testid="booth-bypass"
                   aria-pressed={!!bypassedT.has(g.tanda - 1)}
-                  aria-label={`${bypassedT.has(g.tanda - 1) ? "Play" : "Skip"} tanda ${g.tanda} tonight`}
+                  aria-label={tx("booth.setColumn.tanda_tonight", {
+                    p1: bypassedT.has(g.tanda - 1)
+                      ? tx("booth.setColumn.play_2")
+                      : tx("booth.setColumn.skip"),
+                    tanda: g.tanda,
+                  })}
                   data-hint={
                     t.bypass
-                      ? "Skipped tonight: the player passes over it (tap to play it). It stays in the set and the exports."
+                      ? tx("booth.setColumn.skipped_tonight_the_player_passes_over")
                       : bypassedT.has(g.tanda - 1)
-                        ? "Skipped by Last 4 tandas tango only (turn it off in the night bar)"
-                        : "Skip this tanda tonight: the player passes over it; it stays in the set and the exports"
+                        ? tx("booth.setColumn.skipped_by_last_4_tandas_tango")
+                        : tx("booth.setColumn.skip_this_tanda_tonight_the_player")
                   }
                   disabled={!t.bypass && bypassedT.has(g.tanda - 1)}
                   onClick={() => void useBooth.getState().toggleBypass(g.tanda)}
                 >
-                  {bypassedT.has(g.tanda - 1) ? "Play it" : "Skip tonight"}
+                  {bypassedT.has(g.tanda - 1)
+                    ? tx("booth.setColumn.play_it")
+                    : tx("booth.setColumn.skip_tonight")}
                 </button>
               )}
               {t && (
                 <SwapButton
-                  label={`Swap tanda ${g.tanda}`}
+                  label={tx("booth.setColumn.swap_tanda", { tanda: g.tanda })}
                   disabled={locked}
                   busy={busy === `${g.tanda}-t`}
                   onClick={() => swap(g.tanda)}
-                  title={locked ? "Playing: locked" : undefined}
+                  title={locked ? tx("booth.setColumn.playing_locked") : undefined}
                 />
               )}
             </header>
@@ -242,7 +270,7 @@ export function SetColumn({
         onClose={() => setSwapAt(null)}
         lockedReason={
           swapAt && started && swapAt.tanda <= runningTanda
-            ? "Playing or played: this tanda is read-only."
+            ? tx("booth.setColumn.playing_or_played_this_tanda_is")
             : undefined
         }
         onApplied={async (np, how) => {
@@ -346,7 +374,7 @@ const Row = memo(function Row({
         <span
           className="booth-row-energy"
           style={{ ["--e" as string]: 0.2 + (energy / 100) * 0.8 }}
-          data-hint={`Energy ${energy} of 100`}
+          data-hint={tx("booth.setColumn.energy_of_100", { energy })}
           aria-hidden
         />
       )}
@@ -362,24 +390,32 @@ const Row = memo(function Row({
         onClick={() => onTap?.(i)}
         disabled={!onTap || it.kind === "break"}
         aria-label={
-          it.kind === "cortina" ? `Play the cortina after tanda ${it.tanda}: ${it.title}` : `Play ${it.title}`
+          it.kind === "cortina"
+            ? tx("booth.setColumn.play_the_cortina_after_tanda", { tanda: it.tanda, title: it.title })
+            : tx("booth.setColumn.play", { title: it.title })
         }
         data-testid="booth-row-play"
       >
         <span className="booth-row-title block">
           {it.title}
-          {it.birthday ? " · birthday" : ""}
+          {it.birthday ? tx("booth.setColumn.birthday") : ""}
         </span>
         <span className="booth-row-sub text-footnote block truncate text-[var(--label-2)]">
           {it.kind === "cortina"
             ? metaLine(
-                `cortina · ${it.artist}`,
+                tx("booth.setColumn.cortina", { artist: it.artist }),
                 yearText(it.year),
                 cortinaSpan(it.trimInSec ?? 0, it.stopSec ?? 0),
               )
             : metaLine(it.artist, yearText(it.year))}
           {entity && "tempo" in entity && tempoLevel(entity) ? ` · ${tempoLevel(entity)}` : ""}
-          {source === "spotify" ? " · Spotify" : missing ? (rehearsal ? " · no clip" : " · no source") : ""}
+          {source === "spotify"
+            ? tx("booth.setColumn.spotify")
+            : missing
+              ? rehearsal
+                ? tx("booth.setColumn.no_clip")
+                : tx("booth.setColumn.no_source")
+              : ""}
         </span>
       </button>
       {auditioning && (
@@ -387,7 +423,11 @@ const Row = memo(function Row({
           size={16}
           strokeWidth={2}
           className="booth-row-cue"
-          aria-label={cueWhere === "headphones" ? "In your headphones" : "Testing on this device"}
+          aria-label={
+            cueWhere === "headphones"
+              ? tx("booth.setColumn.in_your_headphones")
+              : tx("booth.setColumn.testing_on_this_device")
+          }
           data-testid="booth-row-cue"
         />
       )}
@@ -406,8 +446,8 @@ const Row = memo(function Row({
             type="button"
             className="icon-btn icon-btn-bare booth-find h-11 w-11"
             onClick={() => onFind(it.id!, it.title)}
-            aria-label={`Find a file for ${it.title}`}
-            data-hint="Find a file…"
+            aria-label={tx("booth.setColumn.find_a_file_for", { title: it.title })}
+            data-hint={tx("booth.setColumn.find_a_file")}
             data-testid="booth-find"
           >
             <Search size={16} strokeWidth={2} aria-hidden />
@@ -418,8 +458,8 @@ const Row = memo(function Row({
             target="_blank"
             rel="noopener noreferrer"
             className="booth-spotify icon-btn icon-btn-bare h-11 w-11"
-            aria-label={`Open ${it.title} in Spotify (the recording the booth plays)`}
-            data-hint="The Spotify recording · open in Spotify"
+            aria-label={tx("booth.setColumn.open_in_spotify_the_recording_the", { title: it.title })}
+            data-hint={tx("booth.setColumn.the_spotify_recording_open_in_spotify")}
             data-testid="booth-spotify-link"
           >
             <SpotifyMark />
@@ -432,14 +472,14 @@ const Row = memo(function Row({
           disabled={locked}
           busy={busy}
           onClick={onSwap}
-          title={locked ? "Playing: locked" : undefined}
+          title={locked ? tx("booth.setColumn.playing_locked") : undefined}
         />
       ) : it.kind === "cortina" && onCortina && !played ? (
         <button
           type="button"
           className="icon-btn icon-btn-bare h-11 w-11 shrink-0"
           aria-label={cortinaSwapLabel(it.tanda)}
-          data-hint="Fade in, fade out, stop at"
+          data-hint={tx("booth.setColumn.fade_in_fade_out_stop_at")}
           onClick={() => onCortina(i)}
           data-testid="booth-cortina-edit"
         >
@@ -471,6 +511,13 @@ function SpotifyMark() {
 /** The hover / long-press line of a tanda header. */
 function tandaHint(t: Playlist["tandas"][number]): string {
   const years = t.yearRange ? ` · ${t.yearRange[0]}–${t.yearRange[1]}` : "";
-  const e = typeof t.energy === "number" ? ` · energy ${Math.round(t.energy)}` : "";
-  return `${t.rhythm} tanda · ${t.orchestra}${t.singer ? ` / ${t.singer}` : ""}${years}${e}`;
+  const e =
+    typeof t.energy === "number" ? ` ${tx("booth.setColumn.energy", { p1: Math.round(t.energy) })}` : "";
+  return tx("booth.setColumn.tanda", {
+    rhythm: t.rhythm,
+    orchestra: t.orchestra,
+    p1: t.singer ? ` / ${t.singer}` : "",
+    years,
+    e,
+  });
 }

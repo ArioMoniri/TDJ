@@ -1,5 +1,6 @@
 "use client";
 import type { Cortina, Song } from "@tdj/core";
+import { t as tx } from "@/lib/i18n";
 import { dbToGain, fadeOutCurve, VOLUME_STEP_SEC, volumeSteps } from "../envelope";
 import type { BoothRow } from "../plan";
 import type {
@@ -38,15 +39,13 @@ declare global {
 }
 
 export const SDK_URL = "https://sdk.scdn.co/spotify-player.js";
-export const NOT_PREMIUM =
-  "Your Spotify account is not Premium: Spotify does not allow playback in the browser.";
-export const NOT_LOGGED_IN = "Not logged in with Spotify.";
-export const NEEDS_RECONNECT =
-  "Reconnect Spotify to play full songs (the login lacks the playback permission).";
+export const NOT_PREMIUM = () => tx("booth.sources.spotify.your_spotify_account_is_not_premium");
+export const NOT_LOGGED_IN = () => tx("booth.sources.spotify.not_logged_in_with_spotify");
+export const NEEDS_RECONNECT = () => tx("booth.sources.spotify.reconnect_spotify_to_play_full_songs");
 /** the Web Playback SDK and the Web API's play endpoints need these */
 export const STREAMING_SCOPES = ["streaming", "user-modify-playback-state", "user-read-playback-state"];
-export const LICENCE_NOTE = "Spotify's SDK terms restrict commercial use; check them for paid events.";
-export const NO_FADES_IPAD = "No fades on iPad with Spotify: cortinas stop at their planned second instead.";
+export const LICENCE_NOTE = () => tx("booth.sources.spotify.spotify_s_sdk_terms_restrict_commercial");
+export const NO_FADES_IPAD = () => tx("booth.sources.spotify.no_fades_on_ipad_with_spotify");
 
 export const isAppleMobile = (ua = typeof navigator !== "undefined" ? navigator.userAgent : "") =>
   /iPad|iPhone|iPod/.test(ua) ||
@@ -72,7 +71,7 @@ function defaultLoadSdk(): Promise<SdkPlayerCtor> {
     const s = document.createElement("script");
     s.src = SDK_URL;
     s.async = true;
-    s.onerror = () => fail(new Error("Could not load the Spotify player"));
+    s.onerror = () => fail(new Error(tx("booth.sources.spotify.could_not_load_the_spotify_player")));
     document.head.appendChild(s);
   });
 }
@@ -122,16 +121,16 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
       .catch(() => null);
     if (!j?.user) {
       this.premium = null;
-      return { ok: false, reason: NOT_LOGGED_IN };
+      return { ok: false, reason: NOT_LOGGED_IN() };
     }
     const scopes: string[] | undefined = Array.isArray(j.scopes) ? j.scopes : undefined;
     if (scopes && !STREAMING_SCOPES.every((x) => scopes.includes(x))) {
       this.premium = null;
-      return { ok: false, reason: NEEDS_RECONNECT, reconnect: true };
+      return { ok: false, reason: NEEDS_RECONNECT(), reconnect: true };
     }
     const product = typeof j.user.product === "string" ? j.user.product : null;
     this.premium = product === null ? null : product === "premium";
-    if (this.premium === false) return { ok: false, reason: NOT_PREMIUM, premium: false };
+    if (this.premium === false) return { ok: false, reason: NOT_PREMIUM(), premium: false };
     return { ok: true, premium: this.premium };
   }
 
@@ -140,14 +139,14 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
   }
   async prepare(item: BoothRow, entity: PlanEntity): Promise<PreparedItem> {
     const uri = uriOf(entity);
-    if (!uri) throw new Error("No Spotify track for this item");
+    if (!uri) throw new Error(tx("booth.sources.spotify.no_spotify_track_for_this_item"));
     return { kind: "spotify", spotifyUri: uri, durationSec: item.lengthSec };
   }
   release() {}
 
   private async token(): Promise<string> {
     const j = await this.fetchImpl("/api/spotify/access").then((r) => (r.ok ? r.json() : null));
-    if (!j?.access) throw new Error("Spotify session expired: log in again");
+    if (!j?.access) throw new Error(tx("booth.sources.spotify.spotify_session_expired_log_in_again"));
     return j.access as string;
   }
 
@@ -156,33 +155,39 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
     if (this.player && this.deviceId) return;
     const Player = await this.loadSdk();
     const p = new Player({
-      name: "TDJ Booth",
+      name: tx("booth.sources.spotify.tdj_booth"),
       getOAuthToken: (cb) =>
-        this.token().then(cb, () => this.onBanner?.("Spotify session expired: log in again")),
+        this.token().then(cb, () =>
+          this.onBanner?.(tx("booth.sources.spotify.spotify_session_expired_log_in_again")),
+        ),
       volume: this.master,
     });
     this.player = p;
     const ready = new Promise<string>((ok, fail) => {
       p.addListener("ready", (e) => ok((e as { device_id: string }).device_id));
       p.addListener("not_ready", () =>
-        this.onBanner?.("Spotify moved to another device", {
-          label: "Take back",
+        this.onBanner?.(tx("booth.sources.spotify.spotify_moved_to_another_device"), {
+          label: tx("booth.sources.spotify.take_back"),
           run: () => void this.transfer(),
         }),
       );
-      p.addListener("authentication_error", () => fail(new Error("Spotify session expired: log in again")));
-      p.addListener("account_error", () => fail(new Error(NOT_PREMIUM)));
+      p.addListener("authentication_error", () =>
+        fail(new Error(tx("booth.sources.spotify.spotify_session_expired_log_in_again"))),
+      );
+      p.addListener("account_error", () => fail(new Error(NOT_PREMIUM())));
       p.addListener("initialization_error", () =>
-        fail(new Error("This browser cannot run the Spotify player")),
+        fail(new Error(tx("booth.sources.spotify.this_browser_cannot_run_the_spotify"))),
       );
       p.addListener("playback_error", (e) =>
         this.onBanner?.(`Spotify: ${(e as { message?: string }).message ?? "playback error"}`),
       );
-      p.addListener("autoplay_failed", () => this.onBanner?.("Spotify needs a tap: press play again"));
+      p.addListener("autoplay_failed", () =>
+        this.onBanner?.(tx("booth.sources.spotify.spotify_needs_a_tap_press_play")),
+      );
       p.addListener("player_state_changed", (s) => this.live?.onState(s as SdkState | null));
     });
     const ok = await p.connect();
-    if (!ok) throw new Error("Could not connect to Spotify");
+    if (!ok) throw new Error(tx("booth.sources.spotify.could_not_connect_to_spotify"));
     this.deviceId = await ready;
     await this.transfer();
   }
@@ -194,7 +199,8 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
       headers: { authorization: `Bearer ${t}`, "content-type": "application/json" },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
-    if (!r.ok && r.status !== 204) throw new Error(`Spotify answered ${r.status}`);
+    if (!r.ok && r.status !== 204)
+      throw new Error(tx("booth.sources.spotify.spotify_answered", { status: r.status }));
   }
   async transfer() {
     if (!this.deviceId) return;
@@ -216,7 +222,8 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
         body: JSON.stringify({ uris: [uri], position_ms: 0 }),
       },
     );
-    if (!r.ok && r.status !== 204) throw new Error(`Spotify answered ${r.status}`);
+    if (!r.ok && r.status !== 204)
+      throw new Error(tx("booth.sources.spotify.spotify_answered", { status: r.status }));
     await this.player?.setVolume(this.master).catch(() => {});
   }
   async pauseAudition(): Promise<void> {

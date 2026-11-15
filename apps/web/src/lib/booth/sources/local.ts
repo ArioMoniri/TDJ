@@ -1,4 +1,5 @@
 "use client";
+import { t } from "@/lib/i18n";
 import { measureBuffer } from "../measure";
 import {
   type FolderInfo,
@@ -249,8 +250,9 @@ export class LocalAdapter implements SourceAdapter {
 
   async available() {
     if (this.permission === "granted" && this.entries.length) return { ok: true };
-    if (this.permission === "prompt") return { ok: false, reason: "Folder permission needed" };
-    return { ok: false, reason: "No folder linked" };
+    if (this.permission === "prompt")
+      return { ok: false, reason: t("booth.sources.local.folder_permission_needed") };
+    return { ok: false, reason: t("booth.sources.local.no_folder_linked") };
   }
 
   async resolve(item: BoothRow, _entity: PlanEntity) {
@@ -287,14 +289,14 @@ export class LocalAdapter implements SourceAdapter {
     const m = this.matches[id];
     const e = m ? this.entries.find((x) => x.path === m.path) : undefined;
     const ctx = this.ctx();
-    if (!m || !e || !ctx) throw new Error("No file for this item");
+    if (!m || !e || !ctx) throw new Error(t("booth.sources.local.no_file_for_this_item"));
     const f = await this.fileOf(e);
-    if (!f) throw new Error(`Cannot open ${e.name}`);
+    if (!f) throw new Error(t("booth.sources.local.cannot_open", { name: e.name }));
     let buffer: AudioBuffer;
     try {
       buffer = await ctx.decodeAudioData(await f.arrayBuffer());
     } catch {
-      throw new Error(`Cannot decode ${e.name} (unsupported or protected file)`);
+      throw new Error(t("booth.sources.local.cannot_decode_unsupported_or_protected_file", { name: e.name }));
     }
     const key = measurementKey(e.path, e.size, e.lastModified);
     let measured = this.measurements[key];

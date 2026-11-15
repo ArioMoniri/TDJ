@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 /**
  * Round 22 — the model configuration, in one place (no model id is written in the UI). The default for each provider
  * is used when the DJ leaves the model blank; Anthropic's is the newest Claude model. `MODEL_SUGGESTIONS` fills the
@@ -20,7 +21,9 @@ export const PROVIDER_LABEL: Record<AiProvider, string> = {
   openai: "OpenAI",
   gemini: "Gemini",
   openrouter: "OpenRouter",
-  acp: "AI agent app",
+  get acp() {
+    return t("ai.models.ai_agent_app");
+  },
 };
 
 /** the newest Claude model: the default whenever Anthropic runs with a blank model */

@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 import type { AcpTransport } from "./acp";
 
 /**
@@ -59,7 +60,12 @@ export function memoryAgent(
             },
           });
         emit({ jsonrpc: "2.0", id: m.id, result: { stopReason: "end_turn" } });
-      } else emit({ jsonrpc: "2.0", id: m.id, error: { code: -32601, message: "no such method" } });
+      } else
+        emit({
+          jsonrpc: "2.0",
+          id: m.id,
+          error: { code: -32601, message: t("ai.testAgent.no_such_method") },
+        });
     },
   };
 }

@@ -1,6 +1,7 @@
 "use client";
 import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useId, useRef } from "react";
+import { lazy, lower, t as tx } from "@/lib/i18n";
 import { DUR, EASE, SPRING, STAGGER } from "@/lib/motion";
 import type { Playlist } from "@/lib/types";
 
@@ -10,12 +11,12 @@ export const RHYTHM_COLORS: Record<string, string> = {
   milonga: "#8b7cf6",
 };
 const PHASES = ["warmup", "build", "peak", "cooldown"] as const;
-const PHASE_LABEL: Record<string, string> = {
-  warmup: "warm-up",
-  build: "build",
-  peak: "peak",
-  cooldown: "cool-down",
-};
+const PHASE_LABEL: Record<string, string> = lazy(() => ({
+  warmup: lower(tx("phase.warmup")),
+  build: lower(tx("phase.build")),
+  peak: lower(tx("phase.peak")),
+  cooldown: lower(tx("phase.cooldown")),
+}));
 
 /**
  * Night arc (Health-style chart): target curve (dashed) vs actual tanda energy, two gridlines with the labels on the
@@ -158,7 +159,7 @@ export function EnergyCurve({
         viewBox={`0 0 ${W} ${H}`}
         className="h-auto w-full select-none"
         role="group"
-        aria-label="Energy arc of the night"
+        aria-label={tx("energyCurve.energy_arc_of_the_night")}
         onPointerDown={onSvgPointerDown}
         data-mode={morph ? "morph" : "draw"}
       >
@@ -252,7 +253,14 @@ export function EnergyCurve({
               role="button"
               tabIndex={onPick ? 0 : -1}
               aria-pressed={on}
-              aria-label={`Tanda ${i + 1}, ${t.rhythm}, ${t.orchestra}${t.singer ? ` with ${t.singer}` : ""}, energy ${t.energy} of target ${t.targetEnergy}`}
+              aria-label={tx("energyCurve.tanda_energy_of_target", {
+                p1: i + 1,
+                rhythm: t.rhythm,
+                orchestra: t.orchestra,
+                p2: t.singer ? ` ${tx("energyCurve.with", { singer: t.singer })}` : "",
+                energy: t.energy,
+                targetEnergy: t.targetEnergy,
+              })}
               onClick={() => onPick?.(i)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
@@ -341,8 +349,8 @@ export function EnergyCurve({
         animate="show"
         className="sr-only"
       >
-        Line: energy · dashed: target · dots: tango, vals, milonga by colour
-        {p.options.arcShape ? ` · arc shape: ${p.options.arcShape} peak` : ""}
+        {tx("energyCurve.line_energy_dashed_target_dots_tango")}
+        {p.options.arcShape ? ` ${tx("energyCurve.arc_shape_peak", { arcShape: p.options.arcShape })}` : ""}
       </motion.figcaption>
     </figure>
   );
