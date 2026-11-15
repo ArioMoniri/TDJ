@@ -154,7 +154,7 @@ for (const device of ["desktop", "ipad-landscape"] as const) {
       expect(db.cover).toBeGreaterThan(db.total / 2);
 
       await page.goto("/library");
-      const field = page.getByRole("searchbox").first();
+      const field = page.getByRole("combobox", { name: /search the library/i }).first(); // (the Library's search is a combobox over its results)
       await field.fill("biagi");
       await expect(page.locator('main [data-testid="artwork"]').first()).toBeVisible({ timeout: 30000 });
       const lib = await tally(page, "main", "artwork");
