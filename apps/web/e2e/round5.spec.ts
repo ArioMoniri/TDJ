@@ -234,10 +234,23 @@ test("light mode: the wallpaper does not tint content (a sampled cell pixel is t
   await page.goto("/", { waitUntil: "networkidle" });
   await page.waitForTimeout(600);
   const cell = page.locator("#night .group-inset").first();
+  // round 23: the first-run card grew (Build by hand), so the group now starts under the phone's fixed bottom chrome
+  // (tab bar, primary bar, the scroll-edge fade over content): bring it to mid-screen, clear of every bar, first
+  await cell.evaluate((el) => window.scrollBy(0, el.getBoundingClientRect().top - 200));
+  await page.waitForTimeout(400);
   const box = (await cell.boundingBox())!;
   // a pixel inside the first cell, clear of its text (6 px in from the right edge, 6 px down)
   const x = Math.round(box.x + box.width - 6);
   const y = Math.round(box.y + 6);
+  // nothing fixed (a bar, a fade) sits over that pixel: what is sampled is the cell itself
+  const topmost = await page.evaluate(
+    ([px, py]) => {
+      const el = document.elementFromPoint(px!, py!);
+      return el?.closest("#night .group-inset") ? "cell" : `${el?.tagName}.${el?.className}`;
+    },
+    [x, y],
+  );
+  expect(topmost).toBe("cell");
   const png = await page.screenshot({ clip: { x, y, width: 1, height: 1 } });
   const [r, g, b] = pixelAt(png, 0, 0);
   const want = await cell.evaluate((el) => getComputedStyle(el).backgroundColor.match(/\d+/g)!.map(Number));
