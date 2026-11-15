@@ -239,7 +239,12 @@ test.describe("sidebar and wide layouts", () => {
       for (const l of await side.locator(".side-row").all())
         expect((await l.boundingBox())!.height).toBeGreaterThanOrEqual(44);
     // Tonight → tanda 3
-    const third = side.getByTestId("sidebar-tonight").getByRole("button").nth(2);
+    // (the tandas' list: the Tonight heading is a disclosure button of its own)
+    const third = side
+      .getByTestId("sidebar-tonight")
+      .locator("#side-tonight-list")
+      .getByRole("button")
+      .nth(2);
     const orchestra = (await third.locator("span.truncate").innerText())
       .replace(/^(Tanda 3|3\. tanda):\s*/, "")
       .trim();

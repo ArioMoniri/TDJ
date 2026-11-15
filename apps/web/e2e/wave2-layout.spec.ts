@@ -284,6 +284,9 @@ test("Settings: no check beside a provider with no key, Test says why it is off,
   await expect(test1).toBeDisabled();
   await expect(test1).toHaveAttribute("aria-description", /add a .* key/i);
   // the own-key notes under Models do not overlap
+  // (once the organiser's-key check has answered: with no shared key the own-key fields open by themselves and the
+  // "Use my own key" row leaves, so a click aimed at it would wait for a row that is gone)
+  await expect(page.locator("#ai-status")).not.toContainText("Checking", { timeout: 20_000 });
   const own = page.locator("#ai-own-key");
   if (await own.isVisible().catch(() => false)) await own.click();
   // (measured once the featured night's learned rules, which load late and are taller than a column, are in)
