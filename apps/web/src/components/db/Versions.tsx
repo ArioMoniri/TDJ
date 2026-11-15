@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useStore } from "@/lib/store";
 import type { Song } from "@/lib/types";
 import { SongRow } from "../ui/SongRow";
+import { useTip } from "../ui/Tip";
 
 /**
  * Round 22 — every version of a title together (any orchestra, any year), each playable: a disclosure row under a
@@ -14,6 +15,9 @@ export function VersionsRow({ song }: { song: Song }) {
   const overrides = useStore((s) => s.overrides);
   const [open, setOpen] = useState(false);
   const [list, setList] = useState<Song[] | null>(null);
+  const t = useTip<HTMLButtonElement>(
+    "Every recording of this title, any orchestra and year, each one playable",
+  );
   useEffect(() => {
     if (!open || list) return;
     const ctl = new AbortController();
@@ -37,9 +41,11 @@ export function VersionsRow({ song }: { song: Song }) {
         type="button"
         className="cell cell-tap w-full text-left"
         aria-expanded={open}
+        {...t.props}
         onClick={() => setOpen((v) => !v)}
         data-testid="db-versions"
       >
+        {t.tag}
         <span className="min-w-0 flex-1">
           <span className="block truncate">Versions</span>
           <span className="text-footnote block truncate text-[var(--label-2)]">

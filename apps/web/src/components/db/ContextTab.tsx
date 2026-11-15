@@ -66,6 +66,10 @@ export function ContextTab({ model }: { model: ContextModel | null }) {
                 <Disclosure
                   key={op.id}
                   className="cell flex-col items-stretch gap-0 py-0"
+                  tip={
+                    op.notes ??
+                    `How “${op.label}” moves the energy, the vals and milonga share and the cortinas`
+                  }
                   summary={
                     <span className="flex min-w-0 flex-1 items-center gap-3">
                       <Tip text={EVIDENCE_LABEL[op.evidence ?? "speculative"]}>

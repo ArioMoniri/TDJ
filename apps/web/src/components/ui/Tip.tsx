@@ -80,8 +80,11 @@ export function useTip<T extends HTMLElement = HTMLElement>(text: ReactNode | un
           // the long-press shows the tag instead of the system menu
           if (at) e.preventDefault();
         },
-        onFocus: () => {
+        onFocus: (e: { target: EventTarget }) => {
           clear();
+          // a text field being typed in keeps its tag to hover: it would cover what the DJ types
+          if ((e.target as HTMLElement).matches?.("input:not([type=checkbox]):not([type=radio]), textarea"))
+            return;
           timer.current = setTimeout(show, 700);
         },
         onBlur: hide,

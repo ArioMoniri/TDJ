@@ -168,23 +168,34 @@ export function Stepper({
     haptic(4);
     onChange(v);
   };
+  // each button says where it takes the value
+  const down = Math.max(min, +(value - step).toFixed(2));
+  const up = Math.min(max, +(value + step).toFixed(2));
+  const less = useTip<HTMLButtonElement>(
+    value <= min ? "Already the lowest" : `Down to ${down}${unit ?? ""}`,
+  );
+  const more = useTip<HTMLButtonElement>(value >= max ? "Already the highest" : `Up to ${up}${unit ?? ""}`);
   return (
     // biome-ignore lint/a11y/useSemanticElements: stepper is an inline control group, not a form section
     <div className="stepper" role="group" aria-label={label}>
       <button
         type="button"
+        {...less.props}
         aria-label={`Decrease ${label.toLowerCase()}`}
         disabled={disabled || value <= min}
-        onClick={() => change(Math.max(min, +(value - step).toFixed(2)))}
+        onClick={() => change(down)}
       >
+        {less.tag}
         <Minus size={16} strokeWidth={2.25} />
       </button>
       <button
         type="button"
+        {...more.props}
         aria-label={`Increase ${label.toLowerCase()}`}
         disabled={disabled || value >= max}
-        onClick={() => change(Math.min(max, +(value + step).toFixed(2)))}
+        onClick={() => change(up)}
       >
+        {more.tag}
         <Plus size={16} strokeWidth={2.25} />
       </button>
       <span className="sr-only" aria-live="polite">

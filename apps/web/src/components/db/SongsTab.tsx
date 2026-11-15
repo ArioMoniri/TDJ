@@ -308,6 +308,7 @@ export function SongsTab() {
                 />
                 <PickerRow
                   label="Rhythm"
+                  tip="Tango, vals or milonga: decides which tandas this side can join"
                   ariaLabel={`Rhythm of ${s.title}`}
                   value={v.rhythm}
                   items={
@@ -355,6 +356,7 @@ export function SongsTab() {
                   <PickerRow
                     label={`Vocal style${s.vocalStyleSource ? ` · ${p.vocalStyle ? "yours" : (SOURCE[s.vocalStyleSource] ?? s.vocalStyleSource)}` : ""}`}
                     ariaLabel={`Vocal style of ${s.title}`}
+                    tip="How the singer sings: one voice per tanda keeps the same style together"
                     value={(p.vocalStyle ?? s.vocalStyle ?? "unknown") as string}
                     items={VOCAL_STYLE_ITEMS}
                     onChange={(k) => k && setField(s, "vocalStyle", k === "unknown" ? undefined : k)}
@@ -474,6 +476,7 @@ export function SongsTab() {
                   chevron
                   onClick={() => setFinding(s)}
                   aria-label={`Find ${s.title} on services`}
+                  tip="Look for this side on Deezer, Spotify or YouTube and choose the right recording"
                   data-resolved={res ? "true" : "false"}
                 />
                 <Row
@@ -527,6 +530,7 @@ export function SongsTab() {
                 {!p.hidden && (
                   <ActionRow
                     label="Hide only this copy"
+                    tip="This copy stops appearing in your nights; other recordings of the song stay"
                     onClick={() => {
                       setField(s, "hidden", true);
                       setField(s, "hiddenScope", "copy");
@@ -590,7 +594,11 @@ export function SongsTab() {
             </motion.div>
           ))}
         </AnimatePresence>
-        <ActionRow label="Add a recording" onClick={() => setAdding(true)} />
+        <ActionRow
+          label="Add a recording"
+          tip="Add a side the catalogue does not have, so the composer can use it"
+          onClick={() => setAdding(true)}
+        />
       </Group>
 
       <ResolveSheet song={finding} open={!!finding} onClose={() => setFinding(null)} />

@@ -175,9 +175,11 @@ export function AiEditBar({ playlist }: { playlist: Playlist }) {
             "Without a model in Settings → Models, simple requests (calmer, livelier, lock, move, swap a song) still work."
           )}{" "}
           {!busy && !error && (
-            <Link href="/build" className="text-[var(--tint)]" data-testid="build-by-hand">
-              Or build a night by hand.
-            </Link>
+            <Tip text="Start from an empty night and choose every tanda yourself">
+              <Link href="/build" className="text-[var(--tint)]" data-testid="build-by-hand">
+                Or build a night by hand.
+              </Link>
+            </Tip>
           )}
         </span>
       }

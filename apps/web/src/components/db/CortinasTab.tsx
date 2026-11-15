@@ -105,6 +105,7 @@ export function CortinasTab({ base }: { base: MetaCortina[] }) {
         ))}
         <ActionRow
           label="Add a cortina…"
+          tip="Add a song of your own to play between tandas"
           onClick={() => {
             setEditing("new");
             setText(JSON.stringify({ ...TEMPLATE, id: `c-own-${Date.now().toString(36)}` }, null, 2));

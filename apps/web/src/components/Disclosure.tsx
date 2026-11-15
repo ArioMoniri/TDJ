@@ -3,6 +3,7 @@ import { ChevronRight } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { type ReactNode, useId, useState } from "react";
 import { DUR, EASE } from "@/lib/motion";
+import { useTip } from "./ui/Tip";
 
 /** <details> cannot animate height: same semantics (button[aria-expanded][aria-controls] + region), animated content. */
 export function Disclosure({
@@ -10,23 +11,29 @@ export function Disclosure({
   children,
   defaultOpen = false,
   className = "mt-3",
+  tip,
 }: {
   summary: ReactNode;
   children: ReactNode;
   defaultOpen?: boolean;
   className?: string;
+  /** the help tag of the summary button */
+  tip?: string;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const id = useId();
+  const t = useTip<HTMLButtonElement>(tip);
   return (
     <div className={className} data-open={open || undefined}>
       <button
         type="button"
         aria-expanded={open}
         aria-controls={id}
+        {...t.props}
         onClick={() => setOpen((v) => !v)}
         className="flex min-h-11 w-full items-center gap-3 text-left"
       >
+        {t.tag}
         {summary}
         <motion.span
           animate={{ rotate: open ? 90 : 0 }}

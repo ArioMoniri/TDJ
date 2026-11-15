@@ -2,9 +2,10 @@
 import { ArrowUp, LoaderCircle } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
-import { FEEDBACK_CHIPS } from "@/lib/feedback";
+import { FEEDBACK_CHIPS, FEEDBACK_LABEL } from "@/lib/feedback";
 import type { Feedback } from "@/lib/types";
 import { Group } from "./Form";
+import { Tip } from "./ui/Tip";
 
 /** After a set: one-tap adjustments (the one chip wall that stays) and a line to the DJ; both recompose with locks kept. */
 export function FeedbackBar({
@@ -56,43 +57,51 @@ export function FeedbackBar({
     >
       <div className="cell flex-wrap gap-2 py-3">
         {FEEDBACK_CHIPS.map(([k, l]) => (
-          <motion.button
-            type="button"
-            key={k}
-            className={`chip ${pending === k ? "chip-on" : ""}`}
-            disabled={busy}
-            whileTap={{ scale: 0.96 }}
-            onClick={() => onFeedback(k)}
-          >
-            {pending === k && <LoaderCircle size={14} className="animate-spin" aria-hidden />} {l}
-          </motion.button>
+          <Tip key={k} text={`Compose again with ${FEEDBACK_LABEL[k]}; locked tandas stay as they are`}>
+            <motion.button
+              type="button"
+              className={`chip ${pending === k ? "chip-on" : ""}`}
+              disabled={busy}
+              whileTap={{ scale: 0.96 }}
+              onClick={() => onFeedback(k)}
+            >
+              {pending === k && <LoaderCircle size={14} className="animate-spin" aria-hidden />} {l}
+            </motion.button>
+          </Tip>
         ))}
       </div>
       <form onSubmit={submit} className="cell">
         <label htmlFor="tell-dj" className="sr-only">
           Tell the DJ
         </label>
-        <input
-          id="tell-dj"
-          className="field min-w-0 flex-1"
-          placeholder="Tell the DJ: warmer start, more vals, no Canaro"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          maxLength={600}
-          autoComplete="off"
-        />
-        <button
-          type="submit"
-          className="icon-btn icon-btn-send -mr-2"
-          disabled={busy || !text.trim()}
-          aria-label="Apply"
+        <Tip
+          text="Say in your own words what to change; locked tandas stay as they are"
+          className="min-w-0 flex-1"
         >
-          {busy ? (
-            <LoaderCircle size={18} className="animate-spin" />
-          ) : (
-            <ArrowUp size={18} strokeWidth={2.5} />
-          )}
-        </button>
+          <input
+            id="tell-dj"
+            className="field w-full min-w-0"
+            placeholder="Tell the DJ: warmer start, more vals, no Canaro"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            maxLength={600}
+            autoComplete="off"
+          />
+        </Tip>
+        <Tip text="Compose again with your words">
+          <button
+            type="submit"
+            className="icon-btn icon-btn-send -mr-2"
+            disabled={busy || !text.trim()}
+            aria-label="Apply"
+          >
+            {busy ? (
+              <LoaderCircle size={18} className="animate-spin" />
+            ) : (
+              <ArrowUp size={18} strokeWidth={2.5} />
+            )}
+          </button>
+        </Tip>
       </form>
     </Group>
   );

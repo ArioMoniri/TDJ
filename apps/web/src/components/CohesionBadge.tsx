@@ -85,20 +85,22 @@ export function CohesionBadge({ info, tandaLabel }: { info: CohesionInfo; tandaL
   }, [open, isPhone]);
   const color = COHESION_COLOR[info.label];
   const trigger = (
-    <button
-      type="button"
-      className="text-caption1 -my-1 inline-flex min-h-[28px] items-center gap-1 rounded-full px-2 font-medium"
-      style={{ color, background: `color-mix(in srgb, ${color} 14%, transparent)` }}
-      aria-label={`Cohesion ${info.score}, ${info.label}, ${tandaLabel}`}
-      aria-expanded={open}
-      aria-controls={open && !isPhone ? id : undefined}
-      data-testid="cohesion-badge"
-      data-label={info.label}
-      onPointerDown={(e) => e.stopPropagation()}
-      onClick={() => setOpen((v) => !v)}
-    >
-      <span className="capitalize">{info.label}</span>
-    </button>
+    <Tip text="How smoothly the songs of this tanda follow each other: tap for each step">
+      <button
+        type="button"
+        className="text-caption1 -my-1 inline-flex min-h-[28px] items-center gap-1 rounded-full px-2 font-medium"
+        style={{ color, background: `color-mix(in srgb, ${color} 14%, transparent)` }}
+        aria-label={`Cohesion ${info.score}, ${info.label}, ${tandaLabel}`}
+        aria-expanded={open}
+        aria-controls={open && !isPhone ? id : undefined}
+        data-testid="cohesion-badge"
+        data-label={info.label}
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className="capitalize">{info.label}</span>
+      </button>
+    </Tip>
   );
   if (isPhone)
     return (

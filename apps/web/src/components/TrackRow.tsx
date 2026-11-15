@@ -18,7 +18,7 @@ import { Menu } from "./Menu";
 import { SwipeRow } from "./SwipeRow";
 import { Artwork } from "./ui/Artwork";
 import { EraBadge } from "./ui/EraBadge";
-import { Tip } from "./ui/Tip";
+import { Tip, useTip } from "./ui/Tip";
 
 /* The two sheets are rare (one row at a time): their code arrives when the first one opens. */
 const AudioDetails = dynamic(() => import("./AudioDetails").then((m) => m.AudioDetails), { ssr: false });
@@ -105,6 +105,13 @@ export const TrackRow = memo(function TrackRow({
   const swap = () => onSwap(k);
   const analysing = busy || isAnalysing(song.id);
   const playLabel = playing ? `Pause ${title}` : source ? `Play ${title}` : `Find ${title} on services`;
+  const playTip = useTip<HTMLButtonElement>(
+    playing
+      ? "Pause"
+      : source
+        ? "Play a preview in the mini player"
+        : "Look for this side on Spotify, Deezer or YouTube",
+  );
 
   return (
     <motion.li
@@ -135,10 +142,12 @@ export const TrackRow = memo(function TrackRow({
             className={`icon-btn icon-btn-bare -my-2 -ml-3 h-11 w-11 shrink-0 ${playing ? "text-[var(--tint)]" : "text-[var(--label-2)]"}`}
             aria-label={playLabel}
             aria-pressed={playing}
+            {...playTip.props}
             data-testid="play-button"
             onPointerDown={(e) => e.stopPropagation()}
             onClick={toggle}
           >
+            {playTip.tag}
             {playing ? (
               <I name="pause" size={18} fill="currentColor" strokeWidth={0} />
             ) : (

@@ -19,7 +19,7 @@ import { I } from "./Icons";
 import { Menu } from "./Menu";
 import { SwipeRow } from "./SwipeRow";
 import { TrackRow } from "./TrackRow";
-import { Tip } from "./ui/Tip";
+import { Tip, useTip } from "./ui/Tip";
 
 /* Spotify embeds and the connected-account lookups load with the first "Listen" / cortina tap, not with the set. */
 const TandaListen = dynamic(() => import("./Listen").then((m) => m.TandaListen), { ssr: false });
@@ -88,6 +88,7 @@ function TandaCardImpl({
   changed = false,
   animateLayout = false,
 }: TandaCardProps) {
+  const cortinaTip = useTip<HTMLButtonElement>("The cortina after this tanda: open it to hear it");
   const reduced = useReducedMotion();
   const isPhone = useMediaQuery("(max-width: 639px)");
   const [listen, setListen] = useState(false);
@@ -303,27 +304,37 @@ function TandaCardImpl({
             </span>
             {!readOnly && !isPhone && (
               <span className="inline-flex items-center gap-0.5">
-                <button
-                  type="button"
-                  className="icon-btn icon-btn-bare -my-2 h-9 w-9 opacity-0 transition-opacity focus-visible:opacity-100 group-hover/card:opacity-100 data-[on]:opacity-100"
-                  aria-label={t.locked ? `Unlock tanda ${i + 1}` : `Lock tanda ${i + 1}`}
-                  aria-pressed={t.locked}
-                  data-on={t.locked || undefined}
-                  onClick={lock}
+                <Tip
+                  text={
+                    t.locked
+                      ? "Unlock: the next compose may change this tanda"
+                      : "Lock: keep this tanda when you compose again"
+                  }
                 >
-                  <span key={t.locked ? "locked" : "open"} className="lock-pop">
-                    <I name={t.locked ? "unlock" : "lock"} size={17} strokeWidth={1.75} />
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  className="icon-btn icon-btn-bare -my-2 h-9 w-9 opacity-0 transition-opacity focus-visible:opacity-100 disabled:opacity-0 group-hover/card:opacity-100"
-                  aria-label={`Swap tanda ${i + 1}`}
-                  disabled={t.locked || busy}
-                  onClick={swap}
-                >
-                  <I name="swap" size={17} strokeWidth={1.75} className={busy ? "animate-spin" : ""} />
-                </button>
+                  <button
+                    type="button"
+                    className="icon-btn icon-btn-bare -my-2 h-9 w-9 opacity-0 transition-opacity focus-visible:opacity-100 group-hover/card:opacity-100 data-[on]:opacity-100"
+                    aria-label={t.locked ? `Unlock tanda ${i + 1}` : `Lock tanda ${i + 1}`}
+                    aria-pressed={t.locked}
+                    data-on={t.locked || undefined}
+                    onClick={lock}
+                  >
+                    <span key={t.locked ? "locked" : "open"} className="lock-pop">
+                      <I name={t.locked ? "unlock" : "lock"} size={17} strokeWidth={1.75} />
+                    </span>
+                  </button>
+                </Tip>
+                <Tip text="Swap: another tanda of the same rhythm in this place">
+                  <button
+                    type="button"
+                    className="icon-btn icon-btn-bare -my-2 h-9 w-9 opacity-0 transition-opacity focus-visible:opacity-100 disabled:opacity-0 group-hover/card:opacity-100"
+                    aria-label={`Swap tanda ${i + 1}`}
+                    disabled={t.locked || busy}
+                    onClick={swap}
+                  >
+                    <I name="swap" size={17} strokeWidth={1.75} className={busy ? "animate-spin" : ""} />
+                  </button>
+                </Tip>
               </span>
             )}
             <AnimatePresence initial={false}>
@@ -435,7 +446,9 @@ function TandaCardImpl({
               onClick={() => setCortinaOpen((v) => !v)}
               aria-expanded={cortinaOpen}
               aria-controls={`cortina-${i + 1}`}
+              {...cortinaTip.props}
             >
+              {cortinaTip.tag}
               {/* the wave breathes on hover / focus / while the preview is open (motion-composer.md §2.9) */}
               <span
                 className={`wave ${cortinaOpen || listen ? "text-[var(--tint)]" : "text-[var(--label-2)]"}`}

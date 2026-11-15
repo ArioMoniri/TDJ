@@ -216,9 +216,11 @@ export default function HistoryPage() {
         <EmptyState
           action={
             <span className="flex flex-col items-center gap-3">
-              <Link href="/" className="btn btn-primary">
-                Compose a night
-              </Link>
+              <Tip text="Compose your first night; every night you compose is kept here">
+                <Link href="/" className="btn btn-primary">
+                  Compose a night
+                </Link>
+              </Tip>
               <FeaturedCard />
             </span>
           }

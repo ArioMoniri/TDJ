@@ -11,7 +11,7 @@ import { Sheet } from "../Sheet";
 import { Segmented } from "../ui";
 import { Artwork } from "../ui/Artwork";
 import { EraLegend } from "../ui/EraBadge";
-import { Tip } from "../ui/Tip";
+import { Tip, useTip } from "../ui/Tip";
 import { Empty, patchMap, useDb, useDbEdit, ValueCell } from "./shared";
 
 const STYLES: Array<[OrchestraProfile["style"], string]> = [
@@ -78,6 +78,32 @@ function heatYears(row: CoverageRow | undefined, years?: [number, number]): numb
   } else return [];
   if (b < a) return [];
   return Array.from({ length: b - a + 1 }, (_, i) => a + i);
+}
+
+/** an orchestra card's main button: opens its details */
+function OrchestraButton({
+  name,
+  onClick,
+  children,
+}: {
+  name: string;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  const t = useTip<HTMLButtonElement>(`Open ${name}: energy, style, singers and best years`);
+  return (
+    <button
+      type="button"
+      className="cell cell-tap w-full text-left"
+      data-leading="art"
+      onClick={onClick}
+      aria-label={`${name}: details`}
+      {...t.props}
+    >
+      {t.tag}
+      {children}
+    </button>
+  );
 }
 
 /** the era heatmap of one orchestra: two rows (instrumental, with a singer), one cell per year */
@@ -228,13 +254,7 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
     );
     return (
       <article key={o.id} className="group-inset min-w-0" data-orchestra={o.id} data-testid="orchestra-card">
-        <button
-          type="button"
-          className="cell cell-tap w-full text-left"
-          data-leading="art"
-          onClick={() => setDetail(o)}
-          aria-label={`${o.name}: details`}
-        >
+        <OrchestraButton name={o.name} onClick={() => setDetail(o)}>
           <Artwork src={o.artwork} orchestra={o.name} orchestraId={o.id} size="l" />
           <span className="min-w-0 flex-1">
             <span className="text-headline block truncate">{o.name}</span>
@@ -250,7 +270,7 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
             )}
           </span>
           <ChevronRight size={16} strokeWidth={2.5} className="cell-chevron" aria-hidden />
-        </button>
+        </OrchestraButton>
         <div className="cell flex-col items-stretch gap-2 py-3">
           <div className="text-footnote grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
             <span className="text-[var(--label-2)]">Best instrumental</span>
@@ -326,6 +346,11 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
         <Segmented<GroupBy>
           label="Group by"
+          tips={{
+            tier: "The big orchestras first, then the rest",
+            style: "Grouped by how they play: rhythmic, lyrical, dramatic…",
+            era: "Grouped by their best decade",
+          }}
           value={by}
           onChange={setBy}
           items={[
@@ -360,6 +385,7 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
         <Group className="mt-4">
           <ActionRow
             label={`Show more (${filtered.length - limit} left)`}
+            tip="Show the next orchestras"
             onClick={() => setLimit((l) => l + PAGE)}
           />
         </Group>

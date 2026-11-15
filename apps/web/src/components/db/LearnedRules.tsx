@@ -152,6 +152,7 @@ export function LearnedRules() {
       >
         <SwitchRow
           label="Learn from my edits"
+          tip="Your swaps and pinned tandas teach T-DJ what you prefer for later nights"
           checked={settings.learn}
           onChange={(v) => setSettings({ learn: v })}
         />

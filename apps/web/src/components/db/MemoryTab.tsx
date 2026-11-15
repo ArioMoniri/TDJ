@@ -113,7 +113,11 @@ export function MemoryTab() {
             </Row>
           </SwipeRow>
         ))}
-        <ActionRow label="Add a note…" onClick={() => setNoteOpen({ text: "" })} />
+        <ActionRow
+          label="Add a note…"
+          tip="Write something the assistant should always remember about your nights"
+          onClick={() => setNoteOpen({ text: "" })}
+        />
       </Group>
 
       <Group
@@ -174,7 +178,12 @@ export function MemoryTab() {
       </Group>
 
       <Group>
-        <ActionRow label="Clear memory" destructive onClick={() => setConfirmClear(true)} />
+        <ActionRow
+          label="Clear memory"
+          tip="Remove notes, past sets, feedback and learned preferences (asks first)"
+          destructive
+          onClick={() => setConfirmClear(true)}
+        />
       </Group>
 
       <Sheet

@@ -7,6 +7,7 @@ import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
 import { DUR, EASE } from "@/lib/motion";
 import { Sheet } from "./Sheet";
+import { useTip } from "./ui/Tip";
 
 export interface MenuItem {
   label: string;
@@ -59,6 +60,7 @@ export function Menu({
   contextRef,
   align = "right",
   children,
+  tip,
 }: {
   label: string;
   items: Array<MenuItem | false | null | undefined>;
@@ -69,9 +71,12 @@ export function Menu({
   align?: "right" | "left";
   /** custom trigger content; defaults to the ellipsis glyph in an icon-btn */
   children?: ReactNode;
+  /** the trigger's help tag; defaults to what the menu holds */
+  tip?: string;
 }) {
   const list = items.filter(Boolean) as MenuItem[];
   const [open, setOpen] = useState(false);
+  const t = useTip<HTMLButtonElement>(open ? undefined : (tip ?? list.map((i) => i.label).join(" · ")));
   const [focus, setFocus] = useState(-1);
   const root = useRef<HTMLDivElement>(null);
   const pop = useRef<HTMLDivElement>(null);
@@ -175,11 +180,13 @@ export function Menu({
       aria-haspopup="menu"
       aria-expanded={open}
       aria-controls={open ? id : undefined}
+      {...t.props}
       onClick={() => {
         setFocus(-1);
         setOpen((v) => !v);
       }}
     >
+      {t.tag}
       {children ?? icon ?? <Ellipsis size={20} strokeWidth={2} />}
     </button>
   );
