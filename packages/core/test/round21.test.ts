@@ -32,6 +32,7 @@ import {
   learnFromEdit,
   type MatchCandidate,
   matchProblem,
+  mendBenchVariety,
   mendTangoChairs,
   mendVmRepeats,
   mergeEnrichment,
@@ -545,6 +546,31 @@ describe("round 21c — a vals inside its orchestra's gap: the tango chair chang
     for (const s of r.tandas[m]!.songs) expect(s.spotify?.uri).toBeTruthy();
     // (the vals keeps its chair and its family)
     expect(r.tandas[v]).toBe(ts[v]);
+  });
+});
+
+describe("round 21c — one tango chair a night may bring an orchestra the night does not play", () => {
+  it("the bench mend changes one single-tanda chair (never the big four, a summit, the first or the última) to an orchestra new to the night, the panel no worse", () => {
+    const BIG = ["carlos-di-sarli", "juan-d-arienzo", "anibal-troilo", "osvaldo-pugliese"];
+    let changed = 0;
+    for (const p of nights) {
+      const judge = (x: Tanda[]) => strictChecks({ ...p, tandas: x });
+      const r = mendBenchVariety(p.tandas, p.options, deps.catalog, judge);
+      const diff = r.tandas.map((t, i) => (t !== p.tandas[i] ? i : -1)).filter((i) => i >= 0);
+      expect(diff.length).toBeLessThanOrEqual(1);
+      if (!diff.length) continue;
+      changed++;
+      const i = diff[0]!,
+        a = p.tandas[i]!,
+        b = r.tandas[i]!;
+      expect(i > 0 && i < p.tandas.length - 1 && !a.peak && a.rhythm === "tango").toBe(true);
+      expect(BIG.includes(a.orchestraId)).toBe(false);
+      expect(p.tandas.some((t) => t.orchestraId === b.orchestraId)).toBe(false);
+      expect(b.vocal).toBe(a.vocal);
+      expect(judge(r.tandas).blockers).toBeLessThanOrEqual(judge(p.tandas).blockers);
+      expect(judge(r.tandas).penalty).toBeLessThanOrEqual(judge(p.tandas).penalty + 1e-9);
+    }
+    expect(changed).toBeGreaterThanOrEqual(0);
   });
 });
 

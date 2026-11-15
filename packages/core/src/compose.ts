@@ -58,7 +58,7 @@ import type {
   Song,
   Tanda,
 } from "./types";
-import { mendInstrHours, mendPreSummit, mendTangoChairs, mendVmRepeats } from "./vmRepeat";
+import { mendBenchVariety, mendInstrHours, mendPreSummit, mendTangoChairs, mendVmRepeats } from "./vmRepeat";
 
 export const DEFAULT_OPTIONS: ComposeOptions = {
   hours: 4,
@@ -2281,6 +2281,9 @@ function composeOnce(
       const tg = mendTangoChairs(tandas, o, cat, (ts) => strictChecks(night(ts)));
       tandas.splice(0, tandas.length, ...tg.tandas);
       fallbacks.push(...tg.fallbacks);
+      const bv = mendBenchVariety(tandas, o, cat, (ts) => strictChecks(night(ts)));
+      tandas.splice(0, tandas.length, ...bv.tandas);
+      fallbacks.push(...bv.fallbacks);
     }
     // (a chair the mends changed is re-cued under the panel's cue rules, as after the length fit)
     if (m.fallbacks.length || (isGoldenNight(o) && tandas.some((t, i) => t !== draftTandas[i]))) {
