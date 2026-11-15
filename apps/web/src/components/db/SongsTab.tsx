@@ -12,6 +12,7 @@ import { rise, spring } from "@/lib/motion";
 import { SOURCE_LABEL } from "@/lib/songView";
 import { toast } from "@/lib/toast";
 import type { Song, SongPatch } from "@/lib/types";
+import { metaLine, yearText } from "@/lib/year";
 import { ActionRow, FieldRow, Group, PickerRow, RhythmTile, Row, SwitchRow } from "../Form";
 import { ResolveSheet } from "../ResolveSheet";
 import { SearchField } from "../SearchField";
@@ -585,8 +586,7 @@ export function SongsTab() {
                   <span className="min-w-0 flex-1">
                     <span className="block truncate">{s.title}</span>
                     <span className="text-footnote block truncate text-[var(--label-2)]">
-                      {s.orchestra}
-                      {s.singer ? ` · ${s.singer}` : ""} · {s.rhythm} · {s.year ?? "?"}
+                      {metaLine(s.orchestra, s.singer, s.rhythm, yearText(s.year))}
                     </span>
                   </span>
                 </div>

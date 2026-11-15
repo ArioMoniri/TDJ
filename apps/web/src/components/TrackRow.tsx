@@ -13,6 +13,7 @@ import { bpmText, keyText, useSongData } from "@/lib/songView";
 import { useStore } from "@/lib/store";
 import { tempoLevel } from "@/lib/tempo";
 import type { Song } from "@/lib/types";
+import { yearText } from "@/lib/year";
 import { I } from "./Icons";
 import { Menu } from "./Menu";
 import { SwipeRow } from "./SwipeRow";
@@ -199,7 +200,7 @@ export const TrackRow = memo(function TrackRow({
                   undated transcription{year ? ` · c. ${year}` : ""}
                 </span>
               ) : (
-                (year ?? "?")
+                yearText(year)
               )}
             </span>
           </span>
