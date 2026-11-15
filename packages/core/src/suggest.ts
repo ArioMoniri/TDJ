@@ -175,7 +175,7 @@ function suggestSides(
       reasons.push(`lifts the tanda (energy ${Math.round(e)} after ${Math.round(last.energy ?? 50)})`);
     else if (chair === size - 1 && e <= (last.energy ?? 50) + 2)
       reasons.push(`settles the tanda to close it (energy ${Math.round(e)})`);
-    if ((s.fame ?? 0) >= 3) reasons.push("a floor favourite in published sets");
+    if ((s.fame ?? 0) >= 3) reasons.push("a floor favourite with DJs");
     if (lf > 1) reasons.push("you chose this side before");
     out.push({
       key: `${familyKey(s)}|${s.id}`,
@@ -289,7 +289,9 @@ export function suggestNext(draft: Song[][], deps: ComposeDeps, opts: SuggestOpt
     const tier = deps.catalog.profile(orch)?.tier ?? 3;
     const fame = mean(rep.map((s) => s.fame ?? 0));
     const reasons: Array<[number, string]> = [];
-    let score = (tier === 1 ? 10 : tier === 2 ? 5 : 0) + fame * 3 - Math.abs(e - want) * 0.8;
+    // wave 2: fit to the plan's energy weighs most (2 a point: a headline family 25 points over a warm-up slot
+    // planned at 51 no longer leads the list; the lift after two calm tandas still counts through `want`)
+    let score = (tier === 1 ? 10 : tier === 2 ? 5 : 0) + fame * 3 - Math.abs(e - want) * 2;
     if (calm) {
       if (e > lastMean + 3)
         reasons.push([30, `lifts the energy after two calm tandas (${e} after ${Math.round(lastMean)})`]);
@@ -304,7 +306,8 @@ export function suggestNext(draft: Song[][], deps: ComposeDeps, opts: SuggestOpt
     } else if (Math.abs(e - target) <= 6)
       reasons.push([12, `fits the arc here (energy ${e}, plan ${Math.round(target)})`]);
     if (isBig(orch) && sinceBig >= 2 && tandas.length >= 2) {
-      score += 6 * Math.min(sinceBig, 4);
+      // (wave 2: scaled with the energy weight, so a due big-four tanda still rises to the top three)
+      score += 12 * Math.min(sinceBig, 4);
       reasons.push([25, `a big four tanda is due (none in the last ${sinceBig})`]);
     }
     if (seen === undefined) {
@@ -323,7 +326,7 @@ export function suggestNext(draft: Song[][], deps: ComposeDeps, opts: SuggestOpt
       if (lv > 0) reasons.push([20, "you often choose this family"]);
       else if (lv < 0) reasons.push([4, "you replaced this family before"]);
     }
-    if (fame >= 3) reasons.push([3, "sides DJs play in published sets"]);
+    if (fame >= 3) reasons.push([3, "a floor favourite with DJs"]);
     if (!reasons.length)
       reasons.push([1, `a ${tier === 1 ? "headline" : "strong"} ${rhythm} family for this slot`]);
     out.push({

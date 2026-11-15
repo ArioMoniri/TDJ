@@ -81,6 +81,21 @@ export function normTitle(t: string): string {
   return out;
 }
 
+const SURNAME_MEMO = new Map<string, string>();
+/**
+ * A singer's normalised surname ("Roberto Rufino" → "rufino"), memoised: the strict panel and its repair compare
+ * singers thousands of times per compose (wave 2 profile: the split + pop were a fifth of compose time).
+ */
+export function surnameKey(s: string | null | undefined): string {
+  const k = s ?? "";
+  const hit = SURNAME_MEMO.get(k);
+  if (hit !== undefined) return hit;
+  const out = normTitle(k).split(" ").pop() ?? "";
+  if (SURNAME_MEMO.size > 50_000) SURNAME_MEMO.clear();
+  SURNAME_MEMO.set(k, out);
+  return out;
+}
+
 /** Deterministic pseudo-variation so tracks from the same orchestra are not all identical (±4). */
 function titleJitter(id: string): number {
   let h = 0;
