@@ -5,6 +5,7 @@ import { ArrowRightLeft, Check, Cloud, FileDown, HardDrive, ListVideo, Radio, We
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { coverAfterExport } from "@/lib/cover/spotify";
 import { downloadBlob } from "@/lib/download";
 import { type CheckView, checkView, fileCheckLine, uploadCheckLine } from "@/lib/exportCheckView";
 import { withoutCortinas } from "@/lib/exportPaths";
@@ -613,6 +614,18 @@ export function ExportSheet({
       if (targetId && r.details === false) toast(tx("exportSheet.tracks_updated_spotify_kept_the_old"));
       finishLog(r.check.inPlace, si.missing, m.paused, m.remaining.length, si.note);
       const ok = showSpotifyCheck(r, rows);
+      // wave 4: the night's cover, after the verified write and never in its way (lib/cover/spotify.ts)
+      coverAfterExport(
+        {
+          playlist,
+          playlistId: r.id,
+          enabled: settings.exportCover !== false,
+          hosted,
+          access: hosted ? spotify?.token?.access : tok?.access,
+          scopes: hosted ? spotify?.scopes : tok?.scope,
+        },
+        (line) => setLog((l) => [...l, line]),
+      );
       if (m.paused && m.remaining.length) {
         const pend = { playlistId: r.id, url: r.url, remaining: m.remaining };
         setPending(pend);

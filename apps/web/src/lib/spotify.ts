@@ -12,7 +12,7 @@ import { useStore } from "@/lib/store";
  *    lib/server/spotify.ts): the browser calls /api/spotify/*, never Spotify's token endpoint.
  * 2. BYO Client ID with PKCE (below), when the server has no Spotify credentials.
  */
-const SCOPES = "playlist-modify-private playlist-modify-public playlist-read-private";
+const SCOPES = "playlist-modify-private playlist-modify-public playlist-read-private ugc-image-upload";
 const b64url = (buf: ArrayBuffer) =>
   btoa(String.fromCharCode(...new Uint8Array(buf)))
     .replace(/\+/g, "-")
@@ -58,6 +58,8 @@ export async function finishAuth(clientId: string, code: string) {
     access: j.access_token as string,
     refresh: j.refresh_token as string | undefined,
     expires: Date.now() + (j.expires_in ?? 3600) * 1000,
+    /** the granted scopes (wave 4: the playlist cover needs ugc-image-upload) */
+    scope: typeof j.scope === "string" ? (j.scope as string) : undefined,
   };
 }
 
@@ -242,12 +244,19 @@ export interface HostedState {
   user: HostedUser | null;
   /** short-lived access token for the Listen tab's searches; the refresh token never leaves the server */
   token?: { access: string; expires: number };
+  /** the scopes the session was granted, when Spotify reported them (wave 4: the cover needs ugc-image-upload) */
+  scopes?: string[];
 }
 export async function fetchHosted(): Promise<HostedState> {
   try {
     const r = await fetch("/api/spotify/me", { cache: "no-store" });
     const j = (await r.json()) as HostedState;
-    return { hosted: !!j.hosted, user: r.ok ? (j.user ?? null) : null, token: r.ok ? j.token : undefined };
+    return {
+      hosted: !!j.hosted,
+      user: r.ok ? (j.user ?? null) : null,
+      token: r.ok ? j.token : undefined,
+      scopes: r.ok && Array.isArray(j.scopes) ? j.scopes : undefined,
+    };
   } catch {
     return { hosted: false, user: null };
   }

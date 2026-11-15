@@ -1469,6 +1469,15 @@ export const en = {
   "contextStrip.vals_2": "vals {v}%",
   "contextStrip.vals_tanda_size": "vals tanda size",
   "contextStrip.your_own_kept": "Your own {skipped} kept.",
+  "cover.added": "Cover added to the playlist.",
+  "cover.brand_line": "A tango night, composed with T-DJ",
+  "cover.alt": "Cover of {title}",
+  "cover.h": "{h} h",
+  "cover.h_min": "{h} h {r}",
+  "cover.min": "{r} min",
+  "cover.reconnect": "Reconnect Spotify to add the cover.",
+  "cover.tandas.one": "{count} tanda",
+  "cover.tandas.other": "{count} tandas",
   "dataSources.a_source_fills_only_what_is":
     "A source fills only what is missing; it never changes a value you set yourself.",
   "dataSources.add": "Add",
@@ -2930,6 +2939,12 @@ export const en = {
   "settings.cortina_play_length": "Cortina play length",
   "settings.could_not_reach_the_server": "Could not reach the server.",
   "settings.dark": "Dark",
+  "settings.export.cover": "Add a cover to exported playlists",
+  "settings.export.cover_tip":
+    "Spotify playlists get the night's own cover: its energy arc, its tandas by rhythm, the title and the era.",
+  "settings.export.footer":
+    "The cover is drawn from the night itself, so the same night always gets the same cover. Spotify asks once for permission to upload images.",
+  "settings.export.header": "Export",
   "settings.database": "Database",
   "settings.default_for_tonight_s_region_on": "Default for Tonight's region on the composer.",
   "settings.did_not_answer": "{name} did not answer ({status}). Try again.",

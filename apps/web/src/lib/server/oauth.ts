@@ -47,7 +47,7 @@ export const SPOTIFY: Provider = {
   idKey: "SPOTIFY_CLIENT_ID",
   secretKey: "SPOTIFY_CLIENT_SECRET",
   scopes:
-    "playlist-modify-private playlist-modify-public user-read-email streaming user-read-private user-modify-playback-state user-read-playback-state",
+    "playlist-modify-private playlist-modify-public user-read-email streaming user-read-private user-modify-playback-state user-read-playback-state ugc-image-upload",
   pkce: false,
   clientAuth: "basic",
   authorizeParams: {},

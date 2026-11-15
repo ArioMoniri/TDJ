@@ -18,6 +18,7 @@ import {
 import { toast } from "@/lib/toast";
 import type { Playlist } from "@/lib/types";
 import { Group, Tile } from "./Form";
+import { NightCover } from "./NightCover";
 import { QrCode } from "./QrCode";
 import { Sheet } from "./Sheet";
 import { TipRow } from "./TipRow";
@@ -111,6 +112,17 @@ export function ShareSheet({
       testId="share-sheet"
       trailing={tx("shareSheet.done")}
     >
+      {/* wave 4: the night's cover, as the link's preview and the .tdjnight file show it */}
+      <div className="flex justify-center px-4 pb-3">
+        <NightCover
+          night={playlist}
+          size={640}
+          display={168}
+          testId="share-cover"
+          alt={tx("cover.alt", { title: nightTitle(playlist) })}
+          className="shadow-md"
+        />
+      </div>
       <p className="px-4 pb-3 text-footnote text-[var(--label-2)]">
         {tx("shareSheet.tandas_songs_score_anyone_you_send", {
           playlist: nightTitle(playlist),
