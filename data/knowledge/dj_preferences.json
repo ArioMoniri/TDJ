@@ -1,5 +1,5 @@
 {
- "about": "What TDJ learned from the DJ's edits of the featured night (packages/core/src/learn.ts): the repo-level store every composed night reads under the DJ's own memory (Database → Memory lists it; the DJ can weigh, delete or switch it off, recorded in the DJ's memory). `night` records the night-level choices; compose does not apply them to other nights. `praise` holds the tandas the DJ praised (packages/core/src/praise.ts): their family and sides in their role, their order and their connections, bounded. Audit / regenerate with scripts/featured_learned.ts.",
+ "about": "What TDJ learned from the DJ's edits of the featured night (packages/core/src/learn.ts): the repo-level store every composed night reads under the DJ's own memory (Database → Memory lists it; the DJ can weigh, delete or switch it off, recorded in the DJ's memory). `night` records the night-level choices; compose does not apply them to other nights. `praise` records the tandas the DJ praised (packages/core/src/praise.ts): feedback that each was great, read by compose as one \"Floor full ♥\" for its songs and family in its role, nothing more. Audit / regenerate with scripts/featured_learned.ts.",
  "sides": {
   "54e1304409": 1,
   "8509c04168": 1,

@@ -4041,19 +4041,13 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "praise.note_placeholder": "Onu bu kadar iyi yapan neydi",
   "praise.save": "Kaydet",
   "praise.sheet_footer":
-    "TDJ tandayı, sırasını ve bağlantılarını öğrenir: ailesi ve kayıtları gecenin bu bölümünde daha çok ağırlık taşır, onları seçtiğinde sırası korunur, komşularıyla eşleşmesi biraz artar. Hiçbir kuralı çiğnemez.",
-  "praise.saved_toast": "Övüldü: TDJ bu tandayı öğreniyor",
+    "Bu tandanın harika olduğuna dair geri bildirim. Pist dolu ♥ gibi, gecenin bu bölümünde kayıtları için bir ♥ sayılır.",
+  "praise.saved_toast": "Övüldü: bu kayıtlar için bir ♥",
   "praise.cleared_toast": "Övgü geri alındı",
   "praise.reason_booth": "Kabinde övüldü",
-  "praise.after": "{family} sonrası",
-  "praise.before": "{family} öncesi",
-  "praise.teaches_tanda": "Tanda: {family}, {role} bölümünde daha çok",
-  "praise.teaches_order": "Sıra: {first} ile açılır, {last} ile biter",
-  "praise.teaches_order_plain": "{count} kaydının sırası",
-  "praise.teaches_links": "Bağlantılar: {links}",
-  "praise.no_links": "Kayıtlı bağlantı yok",
+  "praise.feedback": "Geri bildirim: bu tanda harikaydı. Bu kayıtlar için bir ♥ sayılır.",
   "praise.header": "Sizin övdükleriniz",
   "praise.footer":
-    "Övdüğünüz tandalar: ailesi ve kayıtları gecenin aynı bölümünde daha çok ağırlık taşır, oluşturucu onları seçtiğinde sıraları korunur, komşularıyla eşleşmesi biraz artar. Karışık bir tanda o gecenin istisnası olarak kalır.",
+    "Övdüğünüz tandalar. Her biri, Dansçı favorilerindeki bir dokunuş gibi, gecenin kendi bölümünde kayıtları için bir Pist dolu ♥ sayılır.",
   "praise.delete": "Övgüyü sil: {label}",
 };

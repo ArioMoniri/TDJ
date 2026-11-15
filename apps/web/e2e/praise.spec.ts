@@ -1,10 +1,10 @@
 /**
- * 2026-11-15 (the owner, live: "The 14th Troilo tanda was amazing. It finished so nicely, the tanda started and
- * connected so nicely. Have that also in the learned things."). In the Booth the DJ taps "Praise this tanda ★" in
- * the Controls panel's Floor group, adds a short note and saves: the DJ's memory holds the praise (the night, the
- * tanda, its sides in order, its neighbours and cortinas, its role, the note); the button reads as pressed.
- * Database → Memory lists it under "Praised by you" with what it teaches, next to the featured night's own praise,
- * and deletes it. A compose that carries the praise still keeps every tanda in one mode.
+ * 2026-11-15 (the owner, live: "The 14th Troilo tanda was amazing …", then: "just feedback of greatness, not a
+ * rule"). In the Booth the DJ taps "Praise this tanda ★" in the Controls panel's Floor group, adds a short note and
+ * saves: the DJ's memory holds the praise as a record (the night, the tanda, its sides, its role, the note, the
+ * neighbours for context); the button reads as pressed. Database → Memory lists it under "Praised by you" as
+ * feedback that counts as a ♥ for its songs, next to the featured night's own praise, and deletes it. A compose that
+ * carries the praise still keeps every tanda in one mode.
  */
 import { expect, type Page, test } from "@playwright/test";
 
@@ -95,7 +95,7 @@ const memoryOf = (page: Page) =>
 const praiseOf = async (page: Page) =>
   (((await memoryOf(page))?.learned as { praise?: Praise[] } | undefined)?.praise ?? []) as Praise[];
 
-test("Praise this tanda ★ in the Booth → the DJ's memory holds it → Database → Memory lists what it teaches and deletes it", async ({
+test("Praise this tanda ★ in the Booth → the DJ's memory holds it → Database → Memory lists it as feedback and deletes it", async ({
   page,
 }) => {
   test.setTimeout(240000);
@@ -149,11 +149,15 @@ test("Praise this tanda ★ in the Booth → the DJ's memory holds it → Databa
   await expect(mine).toContainText("Praised by you");
   const row = mine.locator(`[data-testid="praise-row"][data-praise="${p.id}"]`);
   await expect(row).toContainText("the floor sang along");
-  await expect(row.getByTestId("praise-teaches")).toContainText("The tanda:");
-  await expect(row).toContainText("The order:");
+  const FEEDBACK = "Feedback: this tanda was great. It counts as a ♥ for these songs.";
+  await expect(row.getByTestId("praise-feedback")).toHaveText(FEEDBACK);
+  // no "what it teaches" lines any more: no order, no connections
+  await expect(mine).not.toContainText("The order:");
+  await expect(mine).not.toContainText("The connections:");
   const featured = page.getByTestId("featured-praise");
   await expect(featured).toContainText("The 14th Troilo tanda was amazing", { timeout: 30000 });
-  await expect(featured).toContainText("The connections:");
+  await expect(featured.getByTestId("praise-feedback").first()).toHaveText(FEEDBACK);
+  await expect(featured).not.toContainText("The connections:");
 
   // a compose that carries the praise keeps every tanda it builds in one mode
   const { learned: _l, favourites: _f, overrides: _o, recent: _r, explicit: _e, ...options } = night.options;

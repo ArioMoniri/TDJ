@@ -130,8 +130,9 @@ for (const slot of exceptionSlots) {
   }
 }
 
-// the DJ's praise of the featured night's tandas (`praise`, praise.ts): refreshed from the head night when the tanda
-// or its neighbours changed (the DJ's words and the date stay); a praised tanda that is gone is reported
+// the DJ's praise of the featured night's tandas (`praise`, praise.ts: a record of the feedback, read as a "Floor full ♥"):
+// refreshed from the head night when the tanda or its neighbours (context) changed (the DJ's words and the date stay); a
+// praised tanda that is gone is reported
 store.praise = (store.praise ?? []).map((p) => {
   if (p.nightId !== head.id) return p;
   const t = head.tandas[p.tanda];
@@ -270,7 +271,7 @@ console.log(
 );
 if (write) {
   const about =
-    "What TDJ learned from the DJ's edits of the featured night (packages/core/src/learn.ts): the repo-level store every composed night reads under the DJ's own memory (Database → Memory lists it; the DJ can weigh, delete or switch it off, recorded in the DJ's memory). `night` records the night-level choices; compose does not apply them to other nights. `praise` holds the tandas the DJ praised (packages/core/src/praise.ts): their family and sides in their role, their order and their connections, bounded. Audit / regenerate with scripts/featured_learned.ts.";
+    "What TDJ learned from the DJ's edits of the featured night (packages/core/src/learn.ts): the repo-level store every composed night reads under the DJ's own memory (Database → Memory lists it; the DJ can weigh, delete or switch it off, recorded in the DJ's memory). `night` records the night-level choices; compose does not apply them to other nights. `praise` records the tandas the DJ praised (packages/core/src/praise.ts): feedback that each was great, read by compose as one \"Floor full ♥\" for its songs and family in its role, nothing more. Audit / regenerate with scripts/featured_learned.ts.";
   const { about: _a, ...rest } = store as typeof store & { about?: string };
   writeFileSync(STORE, `${JSON.stringify({ about, ...rest, night }, null, 1)}\n`);
 } else if (missing.length) process.exit(1);

@@ -910,8 +910,6 @@ export function pickCortina(
   afterStyle?: string,
   exclude?: Set<string>,
   next?: { rhythm?: string; style?: string; energy?: number },
-  /** 2026-11: a mild weight on the cues the rules leave (a praised connection's cue, praise.ts); unset = none */
-  bonus?: (c: Cortina) => number,
 ): Cortina | null {
   if (o.cortinaStyle === "none") return null;
   if (plan.constant) return plan.constant;
@@ -1093,7 +1091,7 @@ export function pickCortina(
     : fresh.length
       ? fresh.slice(0, Math.max(3, Math.ceil(fresh.length / 3)))
       : sorted.slice(0, Math.max(3, Math.ceil(sorted.length / 3)));
-  return rng.weighted(pickFrom, (c) => Math.max(0.05, 1 - fitOf(c) / 28) ** 2 * (bonus?.(c) ?? 1)) ?? null;
+  return rng.weighted(pickFrom, (c) => Math.max(0.05, 1 - fitOf(c) / 28) ** 2) ?? null;
 }
 
 /**

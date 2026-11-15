@@ -2,25 +2,20 @@
 import type { TandaPraise } from "@tdj/core";
 import { Trash2 } from "lucide-react";
 import { t } from "@/lib/i18n";
-import { praiseLines } from "@/lib/praise";
 import { Group } from "../Form";
 import { SwipeRow } from "../SwipeRow";
 
 /**
  * 2026-11 — Database → Memory → "Praised by you": the tandas the DJ praised (the featured night's store, or the DJ's
- * memory), each with the DJ's words and what it teaches — the tanda in its part of the night, its order, its
- * connections — and delete (swipe or the bin, 44 pt).
+ * memory), each with the DJ's words and what it means — feedback that the tanda was great, counted as a ♥ for its
+ * songs — and delete (swipe or the bin, 44 pt).
  */
 export function PraiseRows({
   praise,
-  nameOf,
-  titleOf,
   onForget,
   testId,
 }: {
   praise: TandaPraise[];
-  nameOf: (orchestraId: string) => string;
-  titleOf: (songId: string) => string | undefined;
   onForget: (id: string) => void;
   testId: string;
 }) {
@@ -28,7 +23,6 @@ export function PraiseRows({
   return (
     <Group header={t("praise.header")} footer={t("praise.footer")} data-testid={testId}>
       {praise.map((p) => {
-        const l = praiseLines(p, nameOf, titleOf);
         const label = p.note ? `${p.reason} · ${p.note}` : p.reason;
         return (
           <SwipeRow
@@ -43,11 +37,9 @@ export function PraiseRows({
                 {p.name && (
                   <span className="text-footnote block truncate text-[var(--label-2)]">{p.name}</span>
                 )}
-                <span className="text-footnote block text-[var(--label-2)]" data-testid="praise-teaches">
-                  {l.tanda}
+                <span className="text-footnote block text-[var(--label-2)]" data-testid="praise-feedback">
+                  {t("praise.feedback")}
                 </span>
-                <span className="text-footnote block text-[var(--label-2)]">{l.order}</span>
-                <span className="text-footnote block text-[var(--label-2)]">{l.connections}</span>
               </span>
               <button
                 type="button"
