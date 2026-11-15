@@ -277,15 +277,30 @@ test.describe("sidebar and wide layouts", () => {
     await expect(page.getByLabel("Cycle", { exact: true })).toBeHidden();
     await structure.getByRole("button", { name: /Structure/ }).click();
     await expect(page.getByLabel("Cycle", { exact: true })).toBeVisible();
-    // the primary action is on screen at the top and at the bottom of the form
+    // the primary action is on screen at the top and at the bottom of the form, one Compose at a time (wave 2: the
+    // hero's at the top of the empty page, then the form's dock; phones: the primary bar)
     const compose =
       kind(page) === "phone"
-        ? page.getByTestId("primary-bar").getByRole("button").first()
-        : page.getByTestId("form-compose");
+        ? page.getByTestId("primary-bar").getByRole("button")
+        : page.locator(
+            '[data-testid="hero-compose"], .compose-dock:not(.compose-dock-off) [data-testid="form-compose"]',
+          );
     for (const y of [0, 100_000]) {
       await page.evaluate((v) => window.scrollTo(0, v), y);
       await page.waitForTimeout(400);
-      await expect(compose).toBeInViewport();
+      const inView = await compose.evaluateAll(
+        (els) =>
+          els.filter((e) => {
+            const r = e.getBoundingClientRect();
+            return (
+              r.width > 0 &&
+              r.bottom > 0 &&
+              r.top < innerHeight &&
+              getComputedStyle(e).visibility !== "hidden"
+            );
+          }).length,
+      );
+      expect(inView).toBe(1);
     }
     // two columns from lg: essentials beside the folds
     if (lg(page)) {
@@ -417,7 +432,7 @@ test.describe("scrolling, overscroll and zoom", () => {
     await page.keyboard.press("Escape");
     await page
       .locator("#result")
-      .getByText(/Benchmark/)
+      .getByText(/Compared with published DJ sets/)
       .first()
       .click();
     await page.waitForTimeout(150);

@@ -3,7 +3,7 @@ import { patternString } from "./arc";
 import { bigFourProblems, tandaProblems, tandaRulesOf } from "./coherence";
 import { cortinaTempo, cueMetaOk } from "./cortinas";
 import { cumparsitaPlacement, OPENING_SAME_ERA } from "./cumparsita";
-import { normTitle } from "./energy";
+import { normTitle, surnameKey } from "./energy";
 import { goldenClassOf, isColour, isGoldenNight, staticProfile } from "./knowledge";
 import { cliffOf, isPeakSlot, isReleaseCut, meanFameOf, type OrderCtx, orderVerdictOf } from "./order";
 import { NEVER_OPEN, OPENERS } from "./rules";
@@ -547,10 +547,7 @@ export { isPeakSlot };
 
 /** the singers the dancer counts as lyrical, never a peak (dancer R14-7b) */
 const LYRICAL_SINGERS = ["maure", "iriarte", "beron"];
-const surname = (s: string | null | undefined) =>
-  normTitle(s ?? "")
-    .split(" ")
-    .pop() ?? "";
+const surname = surnameKey;
 
 /** the nine must-have families of a golden Istanbul night (DJ review §2.11, S5) */
 export const MUST_HAVE: Array<{
@@ -1277,7 +1274,35 @@ const coarse = (t: Tanda) => (isRhythmic(t) ? "R" : cls(t));
 
 /** the family of a tanda in the active catalogue: the sides the panel judges the tanda's window against */
 function familySides(t: Tanda, yr: [number, number] | undefined): Song[] {
-  const all = ACTIVE_CATALOG.byOrchestra?.get(t.orchestraId) ?? [];
+  const by = ACTIVE_CATALOG.byOrchestra;
+  if (!by) return [];
+  // Wave 2 (compose profile): the strict repair asks for the same few families thousands of times per compose, so
+  // each family's sides are filtered once per catalogue (keyed by the catalogue's own map: a new catalogue, a new
+  // memo). The filter is pure over the catalogue's sides: the same sides, in the same order, as before.
+  let memo = FAMILY_MEMO.get(by);
+  if (!memo) {
+    memo = new Map();
+    FAMILY_MEMO.set(by, memo);
+  }
+  const key = `${t.orchestraId}|${t.vocal ? `v|${surname(t.singer)}` : "i"}|${t.rhythm}|${yr ? `${yr[0]}-${yr[1]}` : ""}`;
+  const hit = memo.get(key);
+  if (hit) return hit;
+  const out = familySidesOf(t, yr, by.get(t.orchestraId) ?? []);
+  memo.set(key, out);
+  return out;
+}
+const FAMILY_MEMO = new WeakMap<Map<string, Song[]>, Map<string, Song[]>>();
+const NORMS_MEMO = new WeakMap<Song[], string[]>();
+/** a family's normalised titles, index for index (computed once per memoised family) */
+function familyNorms(sides: Song[]): string[] {
+  let out = NORMS_MEMO.get(sides);
+  if (!out) {
+    out = sides.map((s) => normTitle(s.title));
+    NORMS_MEMO.set(sides, out);
+  }
+  return out;
+}
+function familySidesOf(t: Tanda, yr: [number, number] | undefined, all: Song[]): Song[] {
   const sur0 = surname(t.singer);
   const p = staticProfile(t.orchestraId);
   return all.filter(
@@ -1302,12 +1327,15 @@ export function bestFreeWindow(
   sides: Song[],
   need: number,
   spread: number,
-  free: (s: Song) => boolean,
+  free: (s: Song, k: number) => boolean,
+  /** the sides' normalised titles, when the caller has them (wave 2: the family memo keeps them) */
+  norms?: string[],
 ): number | null {
   const byTitle = new Map<string, Song>();
-  for (const s of sides) {
-    if (!free(s)) continue;
-    const k = normTitle(s.title);
+  for (let j = 0; j < sides.length; j++) {
+    const s = sides[j]!;
+    if (!free(s, j)) continue;
+    const k = norms ? norms[j]! : normTitle(s.title);
     const prev = byTitle.get(k);
     if (!prev || fameOf(s) > fameOf(prev)) byTitle.set(k, s);
   }
@@ -1502,12 +1530,21 @@ function round15(
       const spread = Math.min(2, o.maxYearSpread ?? 4);
       // (the early D'Arienzo instrumental is a seeded draw by design, round 8: its window is not judged)
       const earlyDA = t.findIndex((x) => x.orchestraId === "juan-d-arienzo" && x.rhythm === "tango");
+      // (wave 2: every title is normalised once per check; "another tanda plays it" is the night's count minus this
+      // tanda's own, the same answer as a set rebuilt per tanda)
+      const tandaNorms = t.map((y) => y.songs.map((q) => normTitle(q.title)));
+      const nightCount = new Map<string, number>();
+      for (const ks of tandaNorms) for (const k of ks) nightCount.set(k, (nightCount.get(k) ?? 0) + 1);
+      const closingNorm = n.closing ? normTitle(n.closing.title) : null;
       t.forEach((x, i) => {
         const ss = dance(x);
         if (!ss.length) return;
         if (i === earlyDA && !x.vocal && !x.peak && i / Math.max(1, last) < 0.35) return;
-        const others = new Set(t.flatMap((y, j) => (j === i ? [] : y.songs.map((q) => normTitle(q.title)))));
-        if (n.closing) others.add(normTitle(n.closing.title));
+        const own = tandaNorms[i]!;
+        const others = {
+          has: (k: string) =>
+            k === closingNorm || (nightCount.get(k) ?? 0) - own.filter((z) => z === k).length > 0,
+        };
         // a D'Arienzo summit is judged inside its own years (DJ S2); years another tanda of the family plays are taken
         const yr: [number, number] | undefined =
           x.peak && x.orchestraId === "juan-d-arienzo" && x.rhythm === "tango"
@@ -1526,9 +1563,11 @@ function round15(
               y.yearRange,
           )
           .map((y) => y.yearRange!);
-        const free = (q: Song) =>
-          !others.has(normTitle(q.title)) && !taken.some((r) => q.year! >= r[0] && q.year! <= r[1]);
-        const best = bestFreeWindow(familySides(x, yr), ss.length, spread, free);
+        const fam = familySides(x, yr);
+        const norms = familyNorms(fam);
+        const free = (q: Song, j: number) =>
+          !others.has(norms[j]!) && !taken.some((r) => q.year! >= r[0] && q.year! <= r[1]);
+        const best = bestFreeWindow(fam, ss.length, spread, free, norms);
         const mf = meanFame(x);
         if (best !== null && mf < best - 0.75 - 1e-9)
           add(

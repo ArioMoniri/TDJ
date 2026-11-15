@@ -1,0 +1,127 @@
+import { BPM_RANGE, type DjSongData, foldBpm, type ScrapedRecord, type Song } from "@tdj/core";
+
+/**
+ * Wave 2 — one BPM per song. A side can carry up to four tempos (the DJ's edit, the analysed 30 s preview, a data
+ * source such as Deezer, the catalogue's estimate) and trackers disagree on the beat level: one counts a tango at
+ * 165, another at 83. The row shows one number, picked by a fixed priority, in the catalogue's convention for the
+ * rhythm (tango 96–150, vals 150–215, milonga 88–135: core `BPM_RANGE`); the Database lists every value with its
+ * source and marks the one used.
+ */
+export type BpmSource = "dj" | "audio" | "source" | "index";
+export const BPM_PRIORITY: BpmSource[] = ["dj", "audio", "source", "index"];
+export const BPM_SOURCE_LABEL: Record<BpmSource, string> = {
+  dj: "Your edit",
+  audio: "Analysed preview",
+  source: "Data source",
+  index: "Catalogue estimate",
+};
+const PROVIDER: Record<string, string> = {
+  deezer: "Deezer",
+  musicbrainz: "MusicBrainz",
+  discogs: "Discogs",
+  spotify: "Spotify",
+};
+
+export interface BpmValue {
+  source: BpmSource;
+  /** "Deezer", "Analysed preview", "Your edit", "Catalogue estimate" */
+  label: string;
+  /** as the source gave it */
+  raw: number;
+  /** in the rhythm's range (the octave nearest it when no octave falls inside) */
+  value: number;
+}
+export interface BpmChoice {
+  /** the one number a row shows */
+  value: number;
+  used: BpmValue;
+  /** every value, priority order; `agrees` once each is brought to the used value's beat level */
+  all: Array<BpmValue & { used: boolean; agrees: boolean; halfDouble: boolean }>;
+  /** the hover: where the number came from and how the others compare */
+  note: string;
+}
+
+const RANGE_TEXT = (rhythm: string) => {
+  const r = BPM_RANGE[rhythm as keyof typeof BPM_RANGE];
+  return r ? `${r[0]}–${r[1]}` : "60–240";
+};
+
+/** a tempo in the rhythm's range; outside it, the octave whose distance to the range is smallest */
+export function normaliseBpm(b: number, rhythm: string): number {
+  const f = foldBpm(b, rhythm);
+  if (f !== null) return f;
+  const [lo, hi] = BPM_RANGE[rhythm as keyof typeof BPM_RANGE] ?? [60, 240];
+  const dist = (x: number) => (x < lo ? Math.log2(lo / x) : x >= hi ? Math.log2(x / hi) : 0);
+  let best = b;
+  for (const x of [b / 4, b / 2, b, b * 2, b * 4]) if (dist(x) < dist(best)) best = x;
+  return best;
+}
+/** `b` at the beat level nearest `ref` (half, same or double) */
+const toward = (b: number, ref: number) =>
+  [b / 2, b, b * 2].reduce((a, x) => (Math.abs(Math.log2(x / ref)) < Math.abs(Math.log2(a / ref)) ? x : a));
+/** within 6 % counts as the same tempo (the round-21 tango band is 10 %) */
+const AGREE = 0.06;
+
+/** every tempo a side has, priority order (the DJ's, the analysed preview, a data source, the catalogue) */
+export function bpmValues(
+  s: Pick<Song, "rhythm" | "bpm" | "tempo" | "audio" | "deezer">,
+  scraped?: ScrapedRecord | null,
+  dj?: DjSongData | null,
+): BpmValue[] {
+  const rhythm = s.rhythm ?? "tango";
+  const out: BpmValue[] = [];
+  const add = (source: BpmSource, label: string, raw: number | null | undefined) => {
+    if (!raw || !Number.isFinite(raw) || raw <= 0) return;
+    if (out.some((x) => x.source === source && Math.round(x.raw) === Math.round(raw))) return;
+    out.push({ source, label, raw, value: normaliseBpm(raw, rhythm) });
+  };
+  add("dj", BPM_SOURCE_LABEL.dj, dj?.bpm ?? (s.tempo?.source === "dj" ? s.tempo.bpm : undefined));
+  add(
+    "audio",
+    BPM_SOURCE_LABEL.audio,
+    s.audio?.bpm ?? (s.tempo?.source === "audio" ? s.tempo.bpm : undefined),
+  );
+  if (scraped?.bpm) add("source", PROVIDER[scraped.fields?.bpm ?? ""] ?? "Your data source", scraped.bpm);
+  add("source", "Deezer", s.deezer?.bpm ?? (s.tempo?.source === "deezer" ? s.tempo.bpm : undefined));
+  add("index", BPM_SOURCE_LABEL.index, s.bpm ?? (s.tempo?.source === "index" ? s.tempo.bpm : undefined));
+  return out.sort((a, b) => BPM_PRIORITY.indexOf(a.source) - BPM_PRIORITY.indexOf(b.source));
+}
+
+/** the one BPM a side shows: DJ edit > analysed preview > source > estimate, in the rhythm's convention */
+export function bpmChoice(
+  s: Pick<Song, "rhythm" | "bpm" | "tempo" | "audio" | "deezer">,
+  scraped?: ScrapedRecord | null,
+  dj?: DjSongData | null,
+): BpmChoice | null {
+  const vs = bpmValues(s, scraped, dj);
+  const used = vs[0];
+  if (!used) return null;
+  const rhythm = s.rhythm ?? "tango";
+  const all = vs.map((v, k) => {
+    // compared as given, each brought to the used value's beat level first
+    const at = toward(v.raw, used.raw);
+    const agrees = Math.abs(at - used.raw) / used.raw <= AGREE;
+    return { ...v, used: k === 0, agrees, halfDouble: agrees && Math.abs(at - v.raw) > 1 };
+  });
+  const others = all
+    .slice(1)
+    .map((v) =>
+      v.agrees
+        ? v.halfDouble
+          ? `${v.label} says ${Math.round(v.raw)}, the same tempo counted at ${v.raw > used.raw ? "double" : "half"} speed`
+          : `${v.label} agrees (${Math.round(v.raw)})`
+        : `${v.label} says ${Math.round(v.raw)} (${Math.round(toward(v.raw, used.value))} at this beat level)`,
+    );
+  const note = [
+    `${Math.round(used.value)} BPM from ${used.label.toLowerCase()}`,
+    Math.round(used.value) !== Math.round(used.raw)
+      ? `(given as ${Math.round(used.raw)}; ${rhythm} is counted at ${RANGE_TEXT(rhythm)} BPM here)`
+      : null,
+    others.length ? `. ${others.join("; ")}.` : ".",
+    " Order: your edit, the analysed preview, a data source, the catalogue's estimate; trackers often count a beat at half or double speed, so every value is brought to the same beat level before comparing.",
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .replace(" .", ".");
+  return { value: Math.round(used.value), used, all, note };
+}

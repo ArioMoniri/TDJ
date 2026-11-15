@@ -7,6 +7,7 @@ import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { analyseTanda } from "@/lib/analyze";
 import { cohesionWith, patchedSong } from "@/lib/audio";
+import { tandaNote } from "@/lib/djMessage";
 import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
 import { CARD_STAGGER_CAP, DUR, EASE, STAGGER } from "@/lib/motion";
@@ -147,7 +148,7 @@ function TandaCardImpl({
   const swapTrack = useCallback((k: number) => onSwapTrack(i, k), [onSwapTrack, i]);
   const sub = [
     t.singer ?? "Instrumental",
-    t.yearRange ? yr(t.yearRange[0], t.yearRange[1]) : "year ?",
+    t.yearRange ? yr(t.yearRange[0], t.yearRange[1]) : null,
     PHASE[t.phase] ?? t.phase,
     t.locked ? "locked" : null,
   ]
@@ -164,8 +165,16 @@ function TandaCardImpl({
       icon: SkipForward,
       onClick: () => onBypass(i),
     };
+  // wave 2: a greyed-out action says why
+  const swapWhy = t.pinned
+    ? "Swap tanda (kept as is: unpin it first)"
+    : t.locked
+      ? "Swap tanda (unlock it first)"
+      : busy
+        ? "Swap tanda (swapping…)"
+        : "Swap tanda…";
   const swapItem = !readOnly && {
-    label: "Swap tanda",
+    label: swapWhy,
     icon: Repeat2,
     onClick: swap,
     disabled: t.locked || busy,
@@ -268,12 +277,12 @@ function TandaCardImpl({
                   </span>
                 )}
                 {t.note && (
-                  <Tip text={t.note}>
+                  <Tip text={tandaNote(t.note)}>
                     <span
                       className="tanda-note text-caption1 rounded-[10px] bg-[color-mix(in_srgb,var(--tint)_14%,transparent)] px-2 py-0.5 font-medium text-[var(--tint)]"
                       data-testid="tanda-note"
                     >
-                      {t.note}
+                      {tandaNote(t.note)}
                     </span>
                   </Tip>
                 )}
@@ -302,6 +311,8 @@ function TandaCardImpl({
                 </Tip>
               )}
             </span>
+            {/* wave 2: the header's two actions are always on screen (they hid until hover), each with a tooltip;
+                a locked tanda shows one lock: this button, gold and closed */}
             {!readOnly && !isPhone && (
               <span className="inline-flex items-center gap-0.5">
                 <Tip
@@ -313,23 +324,34 @@ function TandaCardImpl({
                 >
                   <button
                     type="button"
-                    className="icon-btn icon-btn-bare -my-2 h-9 w-9 opacity-0 transition-opacity focus-visible:opacity-100 group-hover/card:opacity-100 data-[on]:opacity-100"
+                    className={`icon-btn icon-btn-bare -my-2 h-11 w-11 ${t.locked ? "text-[var(--system-gold)]" : "text-[var(--label-2)]"}`}
                     aria-label={t.locked ? `Unlock tanda ${i + 1}` : `Lock tanda ${i + 1}`}
                     aria-pressed={t.locked}
                     data-on={t.locked || undefined}
+                    data-testid="tanda-lock"
                     onClick={lock}
                   >
                     <span key={t.locked ? "locked" : "open"} className="lock-pop">
-                      <I name={t.locked ? "unlock" : "lock"} size={17} strokeWidth={1.75} />
+                      <I name={t.locked ? "lock" : "unlock"} size={17} strokeWidth={t.locked ? 2.25 : 1.75} />
                     </span>
                   </button>
                 </Tip>
-                <Tip text="Swap: another tanda of the same rhythm in this place">
+                <Tip
+                  text={
+                    t.locked
+                      ? "Swap: unlock the tanda first"
+                      : busy
+                        ? "Swapping…"
+                        : "Swap: another tanda of the same rhythm in this place"
+                  }
+                >
                   <button
                     type="button"
-                    className="icon-btn icon-btn-bare -my-2 h-9 w-9 opacity-0 transition-opacity focus-visible:opacity-100 disabled:opacity-0 group-hover/card:opacity-100"
+                    className="icon-btn icon-btn-bare -my-2 h-11 w-11 text-[var(--label-2)] disabled:opacity-40"
                     aria-label={`Swap tanda ${i + 1}`}
+                    aria-disabled={t.locked || busy || undefined}
                     disabled={t.locked || busy}
+                    data-testid="tanda-swap"
                     onClick={swap}
                   >
                     <I name="swap" size={17} strokeWidth={1.75} className={busy ? "animate-spin" : ""} />
@@ -338,7 +360,7 @@ function TandaCardImpl({
               </span>
             )}
             <AnimatePresence initial={false}>
-              {t.locked && (
+              {t.locked && (readOnly || isPhone) && (
                 <motion.span
                   key="locked"
                   initial={{ opacity: 0, scale: 0.8 }}
@@ -385,6 +407,15 @@ function TandaCardImpl({
                 onSwap={swapTrack}
                 disabled={t.locked || readOnly}
                 swapLabel={`Swap track ${k + 1} of tanda ${i + 1}`}
+                lockedWhy={
+                  readOnly
+                    ? "open the night in Compose to change it"
+                    : t.pinned
+                      ? "the tanda is kept as is: unpin it first"
+                      : t.locked
+                        ? "unlock the tanda first"
+                        : undefined
+                }
                 animateLayout={animateLayout}
               />
             ))}

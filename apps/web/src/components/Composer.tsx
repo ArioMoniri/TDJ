@@ -32,6 +32,8 @@ import {
   changedTandas,
   describeOptionChanges,
 } from "@/lib/changes";
+import { rememberComposeMs } from "@/lib/composeProgress";
+import { djMessages } from "@/lib/djMessage";
 import { FEATURED, type FeaturedId, featuredMeta, loadFeatured } from "@/lib/featured";
 import { FEEDBACK_CHIPS } from "@/lib/feedback";
 import { haptic } from "@/lib/haptics";
@@ -39,6 +41,7 @@ import { makeSnapshot } from "@/lib/history";
 import { testSlowdownMs, useMediaQuery, useScrollDirection, whenIdle } from "@/lib/hooks";
 import { describePreferences } from "@/lib/memory";
 import { DUR, EASE, rise, STAGGER } from "@/lib/motion";
+import { eraName, nightSub, nightTitle } from "@/lib/nightName";
 import { usePlayer } from "@/lib/player";
 import { useSheetOpen } from "@/lib/sheets";
 import {
@@ -64,7 +67,7 @@ import type {
 import { metaLine, yearText } from "@/lib/year";
 import { AiEditBar } from "./AiEditBar";
 import { BenchmarkSheet, benchLabel, type ImproveResponse } from "./BenchmarkSheet";
-import { ComposeLabel, ComposeNarrative } from "./ComposeNarrative";
+import { ComposeLabel, ComposeProgress } from "./ComposeNarrative";
 import { ContextStrip } from "./ContextStrip";
 import { FeedbackBar } from "./FeedbackBar";
 import {
@@ -89,6 +92,7 @@ import { PrimaryBar } from "./PrimaryBar";
 import { ScoreCounter } from "./ScoreCounter";
 import { Sheet } from "./Sheet";
 import { SwapSheet } from "./SwapSheet";
+import { TandaChoices } from "./TandaChoices";
 import { TandaInspector } from "./TandaInspector";
 import { TandaRulesGroup } from "./TandaRules";
 import { NightProfile } from "./ui/NightProfile";
@@ -97,7 +101,6 @@ import { Tip } from "./ui/Tip";
 /* Below-the-fold / on-demand pieces: their code arrives when first needed, not with the composer. */
 const ExportSheet = dynamic(() => import("./ExportSheet").then((m) => m.ExportSheet), { ssr: false });
 const MoodCheck = dynamic(() => import("./Listen").then((m) => m.MoodCheck), { ssr: false });
-const Vinyl = dynamic(() => import("./Vinyl").then((m) => m.Vinyl), { ssr: false });
 const SongSearchPanel = dynamic(() => import("./ui/SongSearchPanel").then((m) => m.SongSearchPanel), {
   ssr: false,
 });
@@ -120,10 +123,10 @@ const loadResult = (): Promise<ResultMods> =>
 
 type Era = ComposeOptions["eras"][number];
 const ERAS: Array<[Era, string]> = [
-  ["golden", "Golden Age 35–55"],
+  ["golden", "Golden Age (1935–55)"],
   ["golden-extended", "Golden Age, extended (1932–60)"],
   ["guardia-vieja", "Guardia Vieja"],
-  ["post-golden", "Post-golden 56–69"],
+  ["post-golden", "Post-golden (1956–69)"],
   ["nuevo", "Nuevo"],
   ["contemporary", "Contemporary"],
   ["all", "All eras"],
@@ -222,11 +225,12 @@ const ultimaKey = (r: NightRules) =>
     ? `${r.ultimaOrchestra}|${r.ultimaSinger === null ? "~" : r.ultimaSinger === undefined ? "*" : r.ultimaSinger}`
     : "auto";
 /** round 21: where La Cumparsita plays (the default opens and closes the night) */
+/** wave 2: one control for where La Cumparsita plays (it was a switch in Night and a picker in Night rules) */
 const CUMPARSITA_AT: Array<[NonNullable<NightRules["cumparsita"]>, string]> = [
-  ["both", "Open and close the night"],
-  ["open", "Open the night"],
-  ["close", "Close the night"],
-  ["none", "Not at all"],
+  ["open", "Open"],
+  ["close", "Close"],
+  ["both", "Both"],
+  ["none", "Off"],
 ];
 const cumparsitaKey = (r: NightRules, close?: boolean): NonNullable<NightRules["cumparsita"]> =>
   r.cumparsita ??
@@ -295,6 +299,7 @@ const SetupForm = memo(function SetupForm({
   togglePin,
   onCompose,
   busy,
+  dock,
 }: {
   options: AppOptions;
   eraNote: string | null;
@@ -308,6 +313,8 @@ const SetupForm = memo(function SetupForm({
   /** the inline secondary Compose at the end of the form (the primary lives in the toolbar / phone bar) */
   onCompose: () => void;
   busy: boolean;
+  /** the dock's Compose is the one on screen (off while the empty page's hero button is in view) */
+  dock: boolean;
 }) {
   const era: Era = (options.eras ?? ["golden"])[0] ?? "golden";
   const eraDefaults = ERA_SETTINGS[era] ?? ERA_SETTINGS.golden!;
@@ -388,11 +395,18 @@ const SetupForm = memo(function SetupForm({
             onToggle={() => togglePin("cortinaStyle")}
           />
         </SegmentedRow>
-        <SwitchRow
-          label="Close with La Cumparsita"
-          tip="The night ends on La Cumparsita, the traditional last song"
-          checked={options.closeWithCumparsita ?? true}
-          onChange={(v) => setOptions({ closeWithCumparsita: v })}
+        <PickerRow
+          label="La Cumparsita"
+          tip="Where La Cumparsita, the traditional last song, plays: before the first tanda, after the última, both, or not at all"
+          sub="Open: before the first tanda, by its orchestra near its year. Close: after the última"
+          ariaLabel="La Cumparsita"
+          value={cumparsitaKey(rules, options.closeWithCumparsita)}
+          items={CUMPARSITA_AT}
+          onChange={(k) => {
+            if (!k) return;
+            setRules({ cumparsita: k, openWithCumparsita: undefined });
+            setOptions({ closeWithCumparsita: k === "close" || k === "both" });
+          }}
         />
       </Group>
 
@@ -589,18 +603,6 @@ const SetupForm = memo(function SetupForm({
         footer="Defaults follow the era. These travel with every compose, feedback and refine."
         id="night-rules"
       >
-        <PickerRow
-          label="La Cumparsita"
-          sub="Opening: the first tanda's orchestra, its nearest year, instrumental"
-          ariaLabel="La Cumparsita"
-          value={cumparsitaKey(rules, options.closeWithCumparsita)}
-          items={CUMPARSITA_AT}
-          onChange={(k) => {
-            if (!k) return;
-            setRules({ cumparsita: k, openWithCumparsita: undefined });
-            setOptions({ closeWithCumparsita: k === "close" || k === "both" });
-          }}
-        />
         <SegmentedRow
           label="Closing Cumparsitas"
           tips={{
@@ -800,9 +802,14 @@ const SetupForm = memo(function SetupForm({
 
       {/* Compose stays in reach (round 23): a dock that sticks to the bottom of the window while the form is on
           screen (sm+; the phone's primary bar does this job there). The toolbar keeps its own primary too. */}
-      <div className="compose-dock glass" data-testid="compose-dock">
+      <div
+        className={`compose-dock glass ${dock ? "" : "compose-dock-off"}`}
+        data-testid="compose-dock"
+        aria-hidden={!dock || undefined}
+        inert={!dock || undefined}
+      >
         <span className="text-footnote min-w-0 flex-1 truncate text-[var(--label-2)]">
-          {ERAS.find(([k]) => k === era)?.[1] ?? era} · {hours} h · ≈{tandasEst} tandas
+          {eraName(era)} · {hours} h · ≈{tandasEst} tandas
         </span>
         <Tip text="Compose the night with these settings (⌘↩)">
           <button
@@ -821,6 +828,12 @@ const SetupForm = memo(function SetupForm({
   );
 });
 
+/** "make tanda 7 a little calmer please" → at most `n` characters, on a word */
+const clipWords = (s: string, n: number) => (s.length <= n ? s : `${s.slice(0, n).replace(/\s+\S*$/, "")}…`);
+
+/** wave 2: the reveal key of a fresh set, carried by the playlist object (see `setKey` in Composer) */
+const REVEAL = new WeakMap<Playlist, string>();
+
 export function Composer() {
   const router = useRouter();
   const {
@@ -838,6 +851,7 @@ export function Composer() {
     memory,
     updateMemory,
     addSnapshot,
+    recordNightEdit,
   } = useStore();
   const [exportOpen, setExportOpen] = useState(false);
   /** the export sheet (and its export code) mounts on the first open only */
@@ -883,33 +897,63 @@ export function Composer() {
   const [nudge] = useState<{ i: number; k: number; n: number } | null>(null);
   /** the score before the last recompose, so the counter runs old → new instead of 0 → new */
   const prevScore = useRef<number | null>(null);
+  /** the compose request in flight (Cancel aborts it) */
+  const abortRef = useRef<AbortController | null>(null);
+  const [composing, setComposing] = useState(false);
   /** energy per tanda before the last swap/recompose (keyed by index) */
   const prevEnergy = useRef<Record<number, number>>({});
-  /**
-   * `key` changes on a fresh set (Compose pressed, or a recompose that changed the tanda count) and drives the
-   * full reveal (score 0 → n, curve draw-on, card stagger). `fresh` is true for the commit that mounts it only.
-   * Feedback / "Tell the DJ" with the same tanda count keep the key: the curve morphs and the score counts on.
-   */
-  const [reveal, setReveal] = useState<{ key: string; fresh: boolean }>({ key: "", fresh: false });
   /**
    * The result renders from deferred values: a new set is a time-sliced, interruptible render (React yields to
    * input and paint every few ms) that commits once, instead of one long synchronous task of 22 cards. The store's
    * live playlist drives the requests; the deferred one drives what is on screen.
    */
-  const playlist = useDeferredValue(livePlaylist);
+  // (wave 2: the set mounts in a second, interruptible pass — `null` first — so returning to Compose paints the page
+  // before the 22 cards render)
+  const playlist = useDeferredValue(livePlaylist, null);
   /** the night against the published DJ sets: pure and fast, recomputed with the set */
   const bench = useMemo(() => (playlist ? benchmarkNight(playlist) : null), [playlist]);
-  const viewReveal = useDeferredValue(reveal);
+  /**
+   * The reveal key changes on a fresh set (Compose pressed, or a recompose that changed the tanda count) and drives
+   * the full reveal (score 0 → n, curve draw-on, card stagger); feedback / "Tell the DJ" with the same tanda count keep
+   * it: the curve morphs and the score counts on. Wave 2: the key travels with the playlist object itself (REVEAL),
+   * so the deferred playlist and its key always commit together: a separate deferred key could land one commit after
+   * the set and play the chart twice (a morph from the old curve, then the draw-on).
+   */
+  const committedKey = useRef("");
+  const ownKey = playlist ? REVEAL.get(playlist) : undefined;
+  // a restored playlist (localStorage) has no reveal key yet: adopt it without animating
+  const setKey = ownKey ?? (committedKey.current || (playlist ? String(playlist.options.seed) : ""));
+  /** true for the renders before the new key commits (the mount of a fresh set) */
+  const fresh = !!ownKey && ownKey !== committedKey.current;
   useEffect(() => {
-    // `fresh` is for the commit that mounts the set only: clear it once that (deferred) commit has happened
-    if (viewReveal.fresh) setReveal((r) => (r.fresh ? { ...r, fresh: false } : r));
-  }, [viewReveal]);
+    committedKey.current = setKey;
+  }, [setKey]);
   const reduced = useReducedMotion();
   const wide = useMediaQuery("(min-width: 640px)", true);
   const lg = useMediaQuery("(min-width: 1024px)", true);
   const minimised = useScrollDirection();
   const playerOpen = usePlayer((s) => !!s.track);
   useEffect(() => setHydrated(true), []);
+  /**
+   * Wave 2 — one Compose button at a time: on the empty page the hero's; once it scrolls away, the form's dock
+   * (phones: the primary bar only). The dock sits out while the hero is on screen.
+   */
+  const heroRef = useRef<HTMLButtonElement | null>(null);
+  const [heroInView, setHeroInView] = useState(true);
+  const hasSet = !!livePlaylist;
+  useEffect(() => {
+    const el = heroRef.current;
+    if (!hydrated || hasSet || !el || typeof IntersectionObserver === "undefined") {
+      setHeroInView(false);
+      return;
+    }
+    setHeroInView(true);
+    const io = new IntersectionObserver(([e]) =>
+      setHeroInView(!!e?.isIntersecting && e.intersectionRatio > 0),
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hydrated, hasSet]);
   // the phone primary bar needs room under the form (round8-ux.md §2): `main` pads for it while this page is up
   useEffect(() => {
     document.documentElement.dataset.primaryBar = "1";
@@ -962,15 +1006,15 @@ export function Composer() {
       const prev = useStore.getState().playlist;
       remember(prev);
       setPlaylist(r.playlist);
-      addSnapshot(makeSnapshot(r.playlist, fullOptions(useStore.getState().options), "refine"));
+      recordNightEdit(r.playlist, "Polished against published DJ sets", "refine");
       setChangedSet(new Set(changedTandas(prev, r.playlist)));
       setChangeSummary(
-        `Improved against published sets: engine ${r.before.score} → ${r.after.score}, benchmark ${r.before.inRange}/${r.before.scored} → ${r.after.inRange}/${r.after.scored}`,
+        `Polished against published DJ sets: ${r.changes.length} ${r.changes.length === 1 ? "change" : "changes"} · score ${r.before.score} → ${r.after.score}`,
       );
       setBenchOpen(false);
       toast("Improved set kept", () => prev && setPlaylist(prev));
     },
-    [remember, setPlaylist, addSnapshot],
+    [remember, setPlaylist, recordNightEdit],
   );
   /** A built-in night: `/?featured=<id>` or the hero / empty-state cards load it into the result view. */
   const openFeatured = useCallback(
@@ -978,9 +1022,11 @@ export function Composer() {
       setBusy(true);
       setError(null);
       try {
-        const p = await loadFeatured(id);
+        // wave 2: the featured night carries the one title its card shows (its music is the DJ's, unchanged)
+        const raw = await loadFeatured(id);
+        const p = { ...raw, name: featuredMeta(id)?.title ?? raw.name };
         remember(useStore.getState().playlist);
-        setReveal({ key: `featured-${id}`, fresh: true });
+        REVEAL.set(p, `featured-${id}-${Date.now()}`);
         setPlaylist(p);
         replaceOptions({ ...p.options, seed: p.options.seed });
         setActive(null);
@@ -1099,6 +1145,8 @@ export function Composer() {
     opts?: Partial<ComposeOptions>,
     extraExplicit: string[] = [],
     source: HistorySnapshot["source"] = "compose",
+    /** an edit's label in History ("Calmer", the DJ's words); a compose is a new entry */
+    editLabel?: string,
   ) => {
     setBusy(true);
     setAi(null);
@@ -1106,11 +1154,19 @@ export function Composer() {
     const o = requestOptions(opts ?? useStore.getState().options, extraExplicit);
     const live = useStore.getState().playlist;
     const first = !live;
+    // wave 2: a compose can be cancelled (the progress panel's Cancel); its time teaches the next estimate
+    abortRef.current?.abort();
+    const ctl = new AbortController();
+    abortRef.current = ctl;
+    setComposing(true);
+    const t0 = Date.now();
     try {
       const slow = testSlowdownMs();
       if (slow) await new Promise((res) => setTimeout(res, slow));
+      if (ctl.signal.aborted) throw new DOMException("cancelled", "AbortError");
       const r = await fetch("/api/compose", {
         method: "POST",
+        signal: ctl.signal,
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           ...o,
@@ -1124,6 +1180,7 @@ export function Composer() {
         error?: string;
         autoImproved?: AutoImproved;
       };
+      if (r.ok) rememberComposeMs(Date.now() - t0 - slow);
       if (!r.ok || p.error) {
         setError(p.error ?? "Could not compose this set.");
         setErrorKey((k) => k + 1);
@@ -1132,12 +1189,15 @@ export function Composer() {
       }
       remember(live);
       const morph = !!opts && !!live && p.tandas.length === live.tandas.length;
-      if (!morph) setReveal({ key: String(p.options.seed), fresh: true });
+      if (!morph) REVEAL.set(p, `${p.options.seed}-${p.id}`);
       setPlaylist(p);
       setActive(null);
       setSetupOpen(false);
       updateMemory((m) => rememberSet(m, p));
-      addSnapshot(makeSnapshot(p, fullOptions(useStore.getState().options), source));
+      // wave 2: Compose is a new night in History; a chip or "Tell the DJ" is a version of the current one
+      if (source === "compose")
+        addSnapshot(makeSnapshot(p, fullOptions(useStore.getState().options), source));
+      else recordNightEdit(p, editLabel ?? "Adjusted", source);
       const improvedLine = autoImproveLine(autoImproved);
       if (morph && live) {
         const changed = changedTandas(live, p);
@@ -1161,13 +1221,22 @@ export function Composer() {
           document.getElementById("result")?.scrollIntoView({ behavior: "smooth", block: "start" }),
         );
     } catch {
+      if (ctl.signal.aborted) {
+        toast("Compose cancelled: the night on screen stays as it was");
+        return;
+      }
       setError("Could not reach the composer. Try again.");
       setErrorKey((k) => k + 1);
       haptic([20, 30, 20]);
     } finally {
+      if (abortRef.current === ctl) {
+        abortRef.current = null;
+        setComposing(false);
+      }
       setBusy(false);
     }
   };
+  const cancelCompose = useCallback(() => abortRef.current?.abort(), []);
   /** A stable "compose now" for the memoised form (its button must not hand the click event to `run` as a seed). */
   const runRef = useRef(run);
   useEffect(() => {
@@ -1176,28 +1245,42 @@ export function Composer() {
   const composeNow = useCallback(() => {
     runRef.current();
   }, []);
-  const swap = useCallback(
-    async (i: number) => {
-      const playlist = useStore.getState().playlist;
-      if (!playlist) return;
-      setSwapping(i);
-      try {
-        const r = await fetch("/api/swap", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ playlist, index: i }),
-        });
-        if (r.ok) {
-          remember(playlist);
-          const p = (await r.json()) as Playlist;
-          setPlaylist(p);
-          addSnapshot(makeSnapshot(p, fullOptions(useStore.getState().options), "swap"));
-        }
-      } finally {
-        setSwapping(null);
-      }
+  /** wave 2: Swap tanda offers up to three families, nearest the slot's planned energy first; the DJ chooses */
+  const [choices, setChoices] = useState<{ i: number; options: Playlist[] | null } | null>(null);
+  const swap = useCallback(async (i: number) => {
+    const playlist = useStore.getState().playlist;
+    if (!playlist) return;
+    setChoices({ i, options: null });
+    setSwapping(i);
+    try {
+      const r = await fetch("/api/swap", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ playlist, index: i, options: true }),
+      });
+      const j = r.ok ? ((await r.json()) as { options?: Playlist[] }) : null;
+      setChoices((c) => (c?.i === i ? { i, options: j?.options ?? [] } : c));
+    } catch {
+      setChoices((c) => (c?.i === i ? { i, options: [] } : c));
+    } finally {
+      setSwapping(null);
+    }
+  }, []);
+  const pickChoice = useCallback(
+    (p: Playlist) => {
+      const prev = useStore.getState().playlist;
+      const i = choices?.i ?? 0;
+      setChoices(null);
+      if (!prev) return;
+      remember(prev);
+      setPlaylist(p);
+      recordNightEdit(p, `Changed tanda ${i + 1}`, "swap");
+      toast(`Tanda ${i + 1} is now ${p.tandas[i]?.orchestra ?? "another tanda"}`, () => {
+        setPlaylist(prev);
+        recordNightEdit(prev, "Swap undone", "swap");
+      });
     },
-    [setPlaylist, addSnapshot, remember],
+    [choices, setPlaylist, recordNightEdit, remember],
   );
   // round 21: a side's swap opens its Swap sheet (suggestions that keep the tanda valid, search, AI pick)
   const [swapAt, setSwapAt] = useState<{ i: number; k: number } | null>(null);
@@ -1208,13 +1291,13 @@ export function Composer() {
     setSwapAt({ i, k });
   }, []);
   const swapApplied = useCallback(
-    (p: Playlist) => {
+    (p: Playlist, label?: string) => {
       const prev = useStore.getState().playlist;
       if (prev) remember(prev);
       setPlaylist(p);
-      addSnapshot(makeSnapshot(p, fullOptions(useStore.getState().options), "swap"));
+      recordNightEdit(p, label ?? "Changed a song", "swap");
     },
-    [setPlaylist, addSnapshot, remember],
+    [setPlaylist, recordNightEdit, remember],
   );
   const lockTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lock = useCallback(
@@ -1293,7 +1376,7 @@ export function Composer() {
       toast(line);
       const changed = changedKeys(prev, next);
       replaceOptions(next, changed);
-      await run(undefined, next, changed, "refine");
+      await run(undefined, next, changed, "refine", chipLabel);
     } finally {
       setPendingChip(null);
       setBusy(false);
@@ -1352,7 +1435,7 @@ export function Composer() {
         });
       const changed = changedKeys(prev, next);
       replaceOptions(next, changed);
-      await run(undefined, next, changed, "refine");
+      await run(undefined, next, changed, "refine", `“${clipWords(instruction, 48)}”`);
     } finally {
       setBusy(false);
     }
@@ -1417,7 +1500,9 @@ export function Composer() {
   });
 
   const hours = options.hours ?? 4;
-  const hasPlaylist = hydrated && !!mods && !!playlist;
+  // (the chrome follows the live set: the deferred one only gates the result section, so the hero and the form never
+  // flash while the set mounts in its second pass)
+  const hasPlaylist = hydrated && !!mods && !!livePlaylist;
   const chosenContext = Object.entries(options.context ?? {}).filter(
     ([k, v]) => !!v && k !== "region",
   ).length;
@@ -1425,9 +1510,6 @@ export function Composer() {
   const lockedCount = playlist?.tandas.filter((t) => t.locked).length ?? 0;
   const playlists = meta?.referencePlaylists ?? NO_PLAYLISTS;
   const dbChanges = overridesReady && Object.keys(overrides).some((k) => k !== "updatedAt");
-  // a restored playlist (localStorage) has no reveal key yet: adopt it without animating
-  const setKey = viewReveal.key || (playlist ? String(playlist.options.seed) : "");
-  const fresh = viewReveal.fresh;
   const scoreFrom = fresh ? 0 : (prevScore.current ?? playlist?.score.total ?? 0);
   const errorNudge = useMemo(
     () => (errorKey && !reduced ? { x: [0, -4, 4, -2, 0] } : { x: 0 }),
@@ -1443,19 +1525,22 @@ export function Composer() {
         fmtDuration(playlist.stats.durationSec),
         `${playlist.tandas.length} tandas`,
         `${Object.keys(playlist.stats.orchestras).length} orchestras`,
-        `${(CORTINA_STYLES.find(([k]) => k === (playlist.options.cortinaStyle ?? "family"))?.[1] ?? "family").toLowerCase()} cortinas${playlist.stats.cortinaFallback ? ` (${playlist.stats.cortinaFallback})` : ""}`,
+        `${(CORTINA_STYLES.find(([k]) => k === (playlist.options.cortinaStyle ?? "family"))?.[1] ?? "family").toLowerCase()} cortinas`,
         lockedCount
           ? `${lockedCount} locked ${lockedCount === 1 ? "tanda stays" : "tandas stay"} on recompose`
           : null,
         dbChanges ? "using your database edits" : null,
-        // round 15: a night-shape setting the year range could not meet says so, and what played instead
-        playlist.stats.settingFallbacks?.length
-          ? `setting fell back: ${playlist.stats.settingFallbacks.join("; ")}`
-          : null,
       ]
         .filter(Boolean)
         .join(" · ")
     : "";
+  // round 15: a setting the night could not keep says so, and what played instead (wave 2: in the DJ's words)
+  const nightNotes = playlist
+    ? djMessages([
+        ...(playlist.stats.cortinaFallback ? [playlist.stats.cortinaFallback] : []),
+        ...(playlist.stats.settingFallbacks ?? []),
+      ])
+    : [];
 
   /**
    * The toolbar's one tinted capsule is Compose until a set exists, then Export: a second Compose would silently
@@ -1546,7 +1631,8 @@ export function Composer() {
         trailing={
           <>
             {/* phones have Regenerate in the primary bar; the title bar keeps only ••• there */}
-            {hasPlaylist && wide && (lg ? composeButton : composeCompact)}
+            {/* (the open set-up form has its own Compose in the dock: Regenerate steps aside, one at a time) */}
+            {hasPlaylist && wide && !setupOpen && (lg ? composeButton : composeCompact)}
             {hasPlaylist && playlist && (
               <Menu
                 label="More"
@@ -1576,12 +1662,13 @@ export function Composer() {
             )}
           </>
         }
-        primary={hasPlaylist ? exportButton : composeButton}
-        primaryCompact={hasPlaylist ? exportCompact : composeCompact}
+        // wave 2: no Compose in the bar on the empty page (the hero has it, then the form's dock): one at a time
+        primary={hasPlaylist ? exportButton : undefined}
+        primaryCompact={hasPlaylist ? exportCompact : undefined}
       />
 
       {/* first run: what one tap produces, before the 38 controls (round8-ux.md §3); the same action as the bar */}
-      {hydrated && !playlist && (
+      {hydrated && !livePlaylist && (
         <section
           className="group-inset mt-2 mb-2 p-5"
           aria-labelledby="first-run-title"
@@ -1591,8 +1678,8 @@ export function Composer() {
             A night, composed
           </h2>
           <p className="text-subhead mt-1 text-[var(--label-2)]">
-            {hours} hours of {ERAS.find(([k]) => k === era)?.[1] ?? "Golden Age"} tandas with cortinas, scored
-            against the house rules. Change anything below, or just compose.
+            {hours} hours of {eraName(era)} tandas with cortinas, scored against the house rules. Change
+            anything below, or just compose.
           </p>
           <ol className="mt-4 grid gap-2 sm:grid-cols-3">
             {(
@@ -1617,15 +1704,18 @@ export function Composer() {
             <Tip text="Compose a whole night now with the settings below; you can change everything after (⌘↩)">
               <button
                 type="button"
+                ref={heroRef}
                 className="btn btn-primary min-h-[50px]"
                 onClick={() => run()}
                 disabled={busy}
                 data-testid="hero-compose"
               >
-                <Disc3 size={18} aria-hidden /> Compose a {hours} h {options.context?.event ?? "milonga"}
+                <ComposeLabel busy={busy} spin={false} />
               </button>
             </Tip>
-            <span className="text-footnote text-[var(--label-2)]">Or set up the night below.</span>
+            <span className="text-footnote text-[var(--label-2)]">
+              A {hours} h {options.context?.event ?? "milonga"}, or set up the night below.
+            </span>
           </div>
           <p className="text-footnote mt-4 text-[var(--label-2)] sm:hidden">
             Compose the night is in the bar below; everything under it is optional.
@@ -1687,7 +1777,21 @@ export function Composer() {
               if (n >= 1) setInspected(n - 1);
             }}
           >
-            <Group header="Tonight's set" footer={resultFooter}>
+            <Group
+              header="Tonight's set"
+              footer={
+                nightNotes.length ? (
+                  <>
+                    {resultFooter}
+                    <span className="mt-1 block" data-testid="night-notes">
+                      {nightNotes.join(" ")}
+                    </span>
+                  </>
+                ) : (
+                  resultFooter
+                )
+              }
+            >
               <motion.div
                 key={`head-${setKey}`}
                 initial={fresh ? { opacity: 0, y: reduced ? 0 : 6 } : false}
@@ -1697,7 +1801,7 @@ export function Composer() {
               >
                 <div className="flex items-center justify-between gap-3">
                   <h2 className="text-subhead min-w-0 truncate font-serif text-[var(--label-2)]">
-                    {playlist.name}
+                    {nightTitle(playlist)} · {nightSub(playlist)}
                   </h2>
                   <span className="flex items-center gap-1">
                     {/* phones: icon-only, 44 pt (the label wrapped to three lines, round8-ux.md §1.4) */}
@@ -1825,9 +1929,9 @@ export function Composer() {
               />
               {bench && (
                 <Row
-                  label="Benchmark · published DJ sets"
-                  value={wide ? benchLabel(bench) : `${bench.inRange}/${bench.scored}`}
-                  aria-label={`Benchmark against published DJ sets: ${benchLabel(bench)}`}
+                  label="Compared with published DJ sets"
+                  value={`${bench.inRange} of ${bench.scored} close`}
+                  aria-label={`Compared with published DJ sets: ${benchLabel(bench)}`}
                   tip="How this night compares with sets from working DJs, measure by measure"
                   chevron
                   onClick={() => setBenchOpen(true)}
@@ -1944,7 +2048,7 @@ export function Composer() {
                 ];
               })}
             </div>
-            <AiEditBar playlist={playlist} />
+            <AiEditBar playlist={playlist} onChip={feedback} />
             {playlist.closing && (
               <Group header="Closing">
                 <div className="cell" data-leading="art" data-testid="closing">
@@ -1969,7 +2073,7 @@ export function Composer() {
         <Group header="Set-up" id="setup-summary">
           <Row
             tile={<RhythmTile rhythm="tango" />}
-            label={`${ERAS.find(([k]) => k === era)?.[1] ?? era} · ${hours} h · ${ARCS.find(([k]) => k === (options.arc ?? "classic-two-peaks"))?.[1] ?? ""}`}
+            label={`${eraName(era)} · ${hours} h · ${ARCS.find(([k]) => k === (options.arc ?? "classic-two-peaks"))?.[1] ?? ""}`}
             sub={`${PATTERNS.find(([k]) => k === (options.pattern ?? "classic"))?.[1] ?? ""} · cortinas ${(CORTINA_STYLES.find(([k]) => k === cortinaStyle)?.[1] ?? "").toLowerCase()}${chosenContext ? ` · ${chosenContext} tonight` : ""}`}
             value={wide ? undefined : "Edit"}
             chevron={!wide}
@@ -2012,6 +2116,7 @@ export function Composer() {
           togglePin={togglePin}
           onCompose={composeNow}
           busy={busy}
+          dock={!(hydrated && !livePlaylist && wide && heroInView)}
         />
       </LazyHydrate>
 
@@ -2050,13 +2155,8 @@ export function Composer() {
               : "")}
       </div>
 
-      {/* empty state (desktop): the vinyl spins and the narrative runs under it while the first set composes */}
-      {hydrated && wide && !playlist && busy && (
-        <div className="flex flex-col items-center gap-3 py-12 text-center">
-          <Vinyl playing className="w-[120px]" />
-          <ComposeNarrative busy={busy} className="flex" />
-        </div>
-      )}
+      {/* wave 2: every compose says what it is doing, and can be cancelled */}
+      <ComposeProgress busy={busy && composing} onCancel={cancelCompose} />
       {/* round 23: the gramophone is an easter egg under the page's foot (pull past the end) */}
       {hydrated && <Gramophone />}
 
@@ -2125,12 +2225,20 @@ export function Composer() {
         playlist={playlist}
         onChange={(p) => swapApplied(p)}
       />
+      <TandaChoices
+        index={choices?.i ?? null}
+        current={choices ? playlist : null}
+        options={choices?.options ?? null}
+        busy={!!choices && !choices.options}
+        onPick={pickChoice}
+        onClose={() => setChoices(null)}
+      />
       <SwapSheet
         playlist={swapAt ? playlist : null}
         tandaIndex={swapAt?.i ?? null}
         trackIndex={swapAt?.k ?? null}
         onClose={() => setSwapAt(null)}
-        onApplied={(p) => swapApplied(p)}
+        onApplied={(p, note) => swapApplied(p, /undone|kept|unpinned/i.test(note) ? note : "Changed a song")}
       />
 
       {playlist && (

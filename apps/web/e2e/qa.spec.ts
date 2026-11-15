@@ -353,6 +353,10 @@ test("swap: the Swap action replaces one tanda, keeps the others and the cortina
     .innerText();
   await menu().click();
   await page.getByRole("menuitem", { name: "Swap tanda" }).click();
+  // wave 2: up to three choices, nearest the slot's planned energy first; the DJ picks one
+  const choices = page.getByTestId("tanda-choices");
+  await expect(choices.getByTestId("tanda-choice").first()).toBeVisible({ timeout: 30000 });
+  await choices.getByTestId("tanda-choice").first().click();
   await expect(cards.nth(target).locator("h3")).not.toHaveText(orchestraBefore, { timeout: 15000 });
   const after = await cards.allInnerTexts();
   expect(after.length).toBe(before.length);

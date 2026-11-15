@@ -2552,6 +2552,45 @@ export function swapTanda(
 }
 
 /**
+ * Wave 2 — Swap tanda as a choice: the composer's own builder runs for the slot a few times (other seeds) and the
+ * distinct families it offers are ranked by distance to the slot's planned energy, nearest first (then by the night's
+ * score). A warm-up slot planned at 51 is offered its calm families first instead of whatever one draw returned.
+ * `swapTanda` itself is unchanged (the fixers and the AI edits still call it).
+ */
+export function swapTandaOptions(
+  p: Playlist,
+  index: number,
+  deps: ComposeDeps,
+  seed = Date.now(),
+  n = 3,
+  draws = 8,
+): Playlist[] {
+  const t = p.tandas[index];
+  if (!t || t.pinned) return [];
+  const key = (x: Tanda) => x.songs.map((s) => s.id).join(",");
+  const seen = new Set<string>([key(t)]);
+  const out: Playlist[] = [];
+  for (let k = 0; k < draws; k++) {
+    // each draw leaves out the families already offered, so the choices differ
+    const taken = new Set(out.map((q) => `${q.tandas[index]!.orchestraId}|${q.tandas[index]!.singer ?? ""}`));
+    const q = swapTanda(
+      p,
+      index,
+      deps,
+      seed + k * 7919,
+      (c) => !taken.has(`${c.orchestraId}|${c.singer ?? ""}`),
+    );
+    if (q === p) continue;
+    const kk = key(q.tandas[index]!);
+    if (seen.has(kk)) continue;
+    seen.add(kk);
+    out.push(q);
+  }
+  const dist = (q: Playlist) => Math.abs(q.tandas[index]!.energy - t.targetEnergy);
+  return out.sort((a, b) => dist(a) - dist(b) || b.score.total - a.score.total).slice(0, n);
+}
+
+/**
  * Replace one track inside a tanda with another from the same family. Round 21: only a side that keeps the tanda
  * valid (swapOptions: the singer, the voice, the vocal style, the year band, the tempo / level / tone bands, not in the
  * night, a checked Spotify id), drawn among the best fits; the night is re-timed and re-scored. A pinned tanda is the

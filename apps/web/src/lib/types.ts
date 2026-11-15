@@ -198,10 +198,31 @@ export interface HistorySnapshot {
   score: number;
   /** what produced it */
   source: "compose" | "refine" | "swap" | "import" | "room";
+  /**
+   * Wave 2: the edits made to this night after it was composed (a chip, an AI edit, a swap), each kept as the version
+   * it replaced, oldest first. `playlist` above is always the newest version; `change` says what produced it.
+   */
+  versions?: HistoryVersion[];
+  /** what made the current version, in the DJ's words ("Calmer", "Changed a song"); absent: as composed */
+  change?: string;
+  /** the last edit (ISO); the row keeps its place by `createdAt` */
+  updatedAt?: string;
   /** the night as played from the Booth (lib/history.ts `NightLog`), set by "End the night" and every hold */
   nightLog?: import("./history").NightLog;
 }
 export const HISTORY_MAX = 50;
+/** one earlier version of a night in History (wave 2) */
+export interface HistoryVersion {
+  id: string;
+  /** when this version was made */
+  at: string;
+  /** what made it ("Composed", "Calmer", "Changed a song", the DJ's own words for an AI edit) */
+  label: string;
+  playlist: import("@tdj/core").Playlist;
+  score: number;
+}
+/** the versions a History entry keeps (older ones drop off) */
+export const HISTORY_VERSIONS_MAX = 12;
 
 export interface ReferencePlaylist {
   id: string;

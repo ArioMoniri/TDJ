@@ -22,6 +22,7 @@ import { makeSnapshot } from "@/lib/history";
 import { DUR, EASE } from "@/lib/motion";
 import { fullOptions, useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
+import { metaLine, yearText } from "@/lib/year";
 import { Group, RhythmTile, Row, SegmentedRow, SwitchRow } from "./Form";
 import { PageHeader } from "./PageHeader";
 import { SearchField } from "./SearchField";
@@ -201,7 +202,7 @@ export function ManualBuilder() {
     ? ""
     : next.mode === "song"
       ? `Next side of tanda ${draft.length}`
-      : `Tanda ${next.slot + 1}: a ${next.rhythm} (the plan's energy here: ${next.targetEnergy})`;
+      : `Tanda ${next.slot + 1}: a ${next.rhythm}, around energy ${next.targetEnergy} tonight`;
 
   return (
     <div className="mx-auto max-w-[1100px]">
@@ -295,8 +296,7 @@ export function ManualBuilder() {
                         <span className="min-w-0 flex-1">
                           <span className="block truncate">{s.title}</span>
                           <span className="text-footnote block truncate text-[var(--label-2)]">
-                            {s.year ?? "?"}
-                            {s.energy !== undefined ? ` · energy ${s.energy}` : ""}
+                            {metaLine(yearText(s.year), s.energy !== undefined && `energy ${s.energy}`)}
                           </span>
                         </span>
                         <Tip text={"Remove this side"}>
@@ -376,8 +376,12 @@ export function ManualBuilder() {
                     </span>
                     <span className="text-footnote block truncate text-[var(--label-2)]">
                       {s.kind === "song"
-                        ? `${s.songs[0]!.year ?? "?"} · energy ${s.energy}`
-                        : `${yearsText(s.years)} · energy ${s.energy} · ${s.songs.map((x) => x.title).join(", ")}`}
+                        ? metaLine(yearText(s.songs[0]!.year), `energy ${s.energy}`)
+                        : metaLine(
+                            yearsText(s.years),
+                            `energy ${s.energy}`,
+                            s.songs.map((x) => x.title).join(", "),
+                          )}
                     </span>
                     <span className="mt-1.5 flex flex-wrap gap-1.5">
                       {s.reasons.slice(0, 3).map((r) => (
@@ -433,7 +437,7 @@ export function ManualBuilder() {
                   <span className="min-w-0 flex-1">
                     <span className="block truncate">{h.song.title}</span>
                     <span className="text-footnote block truncate text-[var(--label-2)]">
-                      {family(h.song)} · {h.song.year ?? "?"}
+                      {metaLine(family(h.song), yearText(h.song.year))}
                       {open && !h.fits && h.why ? ` · ${h.why}` : ""}
                     </span>
                   </span>

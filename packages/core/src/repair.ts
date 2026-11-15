@@ -4,7 +4,7 @@ import type { Catalog } from "./catalog";
 import { withPinsLocked } from "./coherence";
 import { type ComposeDeps, computeStats, familyBreaks, makeScoring } from "./compose";
 import { candidatesFor, cortinaPool, cortinaTempo, familyOf } from "./cortinas";
-import { isDanceableSong, normTitle } from "./energy";
+import { isDanceableSong, normTitle, surnameKey } from "./energy";
 import { familyBand, goldenClassOf, isColour, isGoldenNight } from "./knowledge";
 import { heatOfSides, isReleaseCut, type OrderCtx, orderCost, orderVerdictOf, strictOrder } from "./order";
 import { CORPUS_CAPS, DEFAULT_CAP, NEVER_OPEN, OPENERS } from "./rules";
@@ -67,10 +67,7 @@ const ULTIMA_CLOSERS = [
   "rodolfo-biagi",
   "miguel-calo",
 ];
-const surname = (s: string | null | undefined) =>
-  normTitle(s ?? "")
-    .split(" ")
-    .pop() ?? "";
+const surname = surnameKey;
 const tName = (t: Pick<Tanda, "orchestra" | "singer" | "vocal">) =>
   `${t.orchestra}${t.vocal && t.singer ? ` / ${t.singer}` : t.vocal ? "" : " instrumental"}`;
 const yearsStr = (songs: Song[]) => {

@@ -7,7 +7,7 @@ import { expect, type Page, test } from "@playwright/test";
 
 async function openBenchmark(page: Page) {
   const row = page.getByTestId("benchmark-row");
-  await expect(row).toContainText(/\d+\/\d+/);
+  await expect(row).toContainText(/\d+ of \d+ close/);
   await expect(row).toHaveAttribute("aria-label", /\d+\/\d+ in range/);
   await row.click();
   const sheet = page.getByTestId("benchmark-sheet");

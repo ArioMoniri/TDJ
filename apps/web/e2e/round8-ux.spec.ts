@@ -66,10 +66,11 @@ test("desktop: the hero leads the first run; after a set the tinted capsule is E
   await page.goto("/");
   const hero = page.getByTestId("first-run");
   await expect(hero).toBeVisible();
-  await expect(hero.getByRole("button", { name: /Compose a \d+ h/ })).toBeVisible();
+  await expect(hero.getByRole("button", { name: /Compose the night/ })).toBeVisible();
   const toolbar = page.getByTestId("page-toolbar");
-  await expect(toolbar.getByTestId("toolbar-compose")).toHaveClass(/btn-primary/);
-  await hero.getByRole("button", { name: /Compose a \d+ h/ }).click();
+  // wave 2: one Compose at a time — the hero's on the empty page, none in the toolbar
+  await expect(toolbar.getByTestId("toolbar-compose")).toHaveCount(0);
+  await hero.getByRole("button", { name: /Compose the night/ }).click();
   await expect(page.locator("#result")).toBeVisible({ timeout: 60000 });
   await expect(hero).toHaveCount(0);
   // one tinted capsule: Export; Regenerate next to it as a ghost; the share icon-button is gone
@@ -105,10 +106,10 @@ test("compose narrative: one step label at a time", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/?slow=1");
   await page.getByRole("button", { name: /Compose the night/ }).click();
-  const narrative = page.getByTestId("compose-narrative");
+  const narrative = page.getByTestId("compose-progress");
   await expect(narrative).toBeVisible({ timeout: 3000 });
   for (let i = 0; i < 8; i++) {
-    const labels = await narrative.locator("span.col-start-1").count();
+    const labels = await narrative.getByTestId("compose-progress-step").count();
     expect(labels, `sample ${i}: labels painted at once`).toBeLessThanOrEqual(1);
     await page.waitForTimeout(90);
   }
@@ -346,7 +347,7 @@ test("history: nights are named by the event, the sub-line reads plainly, the em
   await expect(row).toContainText(
     /(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday) (milonga|práctica|marathon|encuentro|festival night|wedding|show night)/,
   );
-  await expect(row).toContainText(/\d+ h · \d+ tandas · Golden age · Two peaks · composed/);
+  await expect(row).toContainText(/\d+ h( \d+ min)? · \d+ tandas · Golden Age · Two peaks · composed/);
   await expect(row).not.toContainText(/\d{4}-\d{2}-\d{2}/);
   await row.click();
   const detail = page.getByTestId("history-detail");

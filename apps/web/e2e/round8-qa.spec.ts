@@ -295,7 +295,7 @@ test("featured night: the deep link loads it into the result with Export and Boo
   await page.getByTestId("page-toolbar").getByRole("button", { name: "More", exact: true }).click();
   await page.getByRole("menuitem", { name: "Clear set" }).click();
   await expect(page.getByTestId("first-run")).toBeVisible();
-  await page.getByTestId("toolbar-compose").click();
+  await page.getByTestId("hero-compose").click();
   await expect(page.locator("#result")).toBeVisible({ timeout: 60000 });
   await page.goto("/booth");
   await expect(page.getByTestId("booth-now-title")).toBeVisible({ timeout: 15000 });

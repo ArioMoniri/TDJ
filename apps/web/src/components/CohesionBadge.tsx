@@ -63,6 +63,12 @@ function PairList({ info }: { info: CohesionInfo }) {
   );
 }
 
+/** wave 2: the badge in sentence case ("Audible step", not "Audible Step") */
+export const cohesionText = (label: string) => (label ? label[0]!.toUpperCase() + label.slice(1) : label);
+/** wave 2: what the badge means, on hover and to assistive tech */
+export const COHESION_HELP =
+  "How smoothly the songs of this tanda follow each other: tempo, loudness, key, brightness and energy, from the analysed previews. Tap for each transition.";
+
 /** Tanda header badge with the label; tap for a popover (desktop) or sheet (phone) listing each pair's parts. */
 export function CohesionBadge({ info, tandaLabel }: { info: CohesionInfo; tandaLabel: string }) {
   const [open, setOpen] = useState(false);
@@ -85,7 +91,7 @@ export function CohesionBadge({ info, tandaLabel }: { info: CohesionInfo; tandaL
   }, [open, isPhone]);
   const color = COHESION_COLOR[info.label];
   const trigger = (
-    <Tip text="How smoothly the songs of this tanda follow each other: tap for each step">
+    <Tip text={`${cohesionText(info.label)} flow between songs (${info.score} of 100). ${COHESION_HELP}`}>
       <button
         type="button"
         className="text-caption1 -my-1 inline-flex min-h-[28px] items-center gap-1 rounded-full px-2 font-medium"
@@ -98,7 +104,7 @@ export function CohesionBadge({ info, tandaLabel }: { info: CohesionInfo; tandaL
         onPointerDown={(e) => e.stopPropagation()}
         onClick={() => setOpen((v) => !v)}
       >
-        <span className="capitalize">{info.label}</span>
+        <span>{cohesionText(info.label)}</span>
       </button>
     </Tip>
   );
@@ -108,7 +114,7 @@ export function CohesionBadge({ info, tandaLabel }: { info: CohesionInfo; tandaL
         {trigger}
         <Sheet open={open} onClose={() => setOpen(false)} title="Cohesion" trailing="Done">
           <Group
-            footer={`Cohesion ${info.score}. ${info.known} of ${info.pairs.length} transitions have analysed audio on both sides. Seamless ≥ 85, fine ≥ 70, audible step ≥ 55; bars are tempo, loudness, key, brightness, energy.`}
+            footer={`${COHESION_HELP.replace(" Tap for each transition.", "")} Cohesion ${info.score}. ${info.known} of ${info.pairs.length} transitions have analysed audio on both sides. Seamless ≥ 85, fine ≥ 70, audible step ≥ 55; bars are tempo, loudness, key, brightness, energy.`}
           >
             <PairList info={info} />
           </Group>
@@ -134,8 +140,8 @@ export function CohesionBadge({ info, tandaLabel }: { info: CohesionInfo; tandaL
           >
             <PairList info={info} />
             <p className="text-caption1 px-2 pt-2 text-[var(--label-2)]">
-              Cohesion {info.score}. Bars: tempo · loudness · key · brightness · energy. Seamless ≥ 85, fine ≥
-              70, audible step ≥ 55.
+              {COHESION_HELP.replace(" Tap for each transition.", "")} Cohesion {info.score}. Bars: tempo ·
+              loudness · key · brightness · energy. Seamless ≥ 85, fine ≥ 70, audible step ≥ 55.
             </p>
           </motion.div>
         )}

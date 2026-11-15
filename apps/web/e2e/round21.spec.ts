@@ -81,8 +81,8 @@ test("the Swap sheet: valid suggestions, search with reasons, AI pick falls back
     timeout: 20000,
   });
   // AI pick without a key: the engine's best fit, labelled
-  const ai = sheet.getByRole("button", { name: /AI pick/ });
-  await expect(ai).toContainText(/engine/);
+  const ai = sheet.getByRole("button", { name: /Pick the best fit for me/ });
+  await expect(ai).not.toContainText(/engine/);
   await ai.click();
   await expect(sheet).toBeHidden({ timeout: 20000 });
   await expect(card.locator("li[data-song]").nth(1)).not.toHaveAttribute("data-song", before ?? "", {
