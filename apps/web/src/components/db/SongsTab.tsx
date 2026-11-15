@@ -483,7 +483,7 @@ export function SongsTab() {
                   tile={
                     <span
                       className="tile"
-                      style={{ background: eff.audio ? "var(--tint)" : "var(--fill-2)" }}
+                      style={{ background: eff.audio ? "var(--tint-fill)" : "var(--fill-2)" }}
                       aria-hidden
                     >
                       <AudioWaveform size={14} strokeWidth={2} />

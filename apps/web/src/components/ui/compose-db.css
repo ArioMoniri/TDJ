@@ -202,8 +202,8 @@ button.heat-cell {
   white-space: nowrap;
 }
 .chip-filter[aria-pressed="true"] {
-  background: var(--tint);
-  color: #fff;
+  background: var(--tint-fill);
+  color: var(--on-tint);
 }
 .place-pill {
   display: inline-flex;
