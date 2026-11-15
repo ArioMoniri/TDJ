@@ -194,6 +194,28 @@ function suggestSides(
   return out.sort((a, b) => b.score - a.score || a.key.localeCompare(b.key)).slice(0, limit);
 }
 
+/** how far past the best fit to the plan a family may be and still lead the list */
+const LEAD_FIT = 8;
+/**
+ * Fit to the plan's energy leads (wave 2): a family more than LEAD_FIT off what the slot wants, past the closest
+ * family on offer, may rank high (a due big-four tanda still reaches the top three) but never first. The bonuses
+ * (big four due: 24–48; learned family: 6 a level) can outweigh 12–24 points of energy gap at 2 a point, so such a
+ * family is held just under the best-scored family that fits, keeping its order among the others it passes.
+ */
+function leadFitsThePlan(out: NextSuggestion[], want: number) {
+  if (out.length < 2) return;
+  const gap = (s: NextSuggestion) => Math.abs(s.energy - want);
+  const closest = Math.min(...out.map(gap));
+  const fits = out.filter((s) => gap(s) <= closest + LEAD_FIT);
+  const top = Math.max(...fits.map((s) => s.score));
+  out
+    .filter((s) => gap(s) > closest + LEAD_FIT && s.score >= top)
+    .sort((a, b) => b.score - a.score || a.key.localeCompare(b.key))
+    .forEach((s, i) => {
+      s.score = Math.round((top - 0.5 - 0.1 * i) * 10) / 10;
+    });
+}
+
 /**
  * What comes next in a hand-built night `draft` (its tandas, in order; the last one may be unfinished). An unfinished
  * last tanda → the next side of its family; otherwise → the next tanda, as whole families with their best sides.
@@ -343,6 +365,7 @@ export function suggestNext(draft: Song[][], deps: ComposeDeps, opts: SuggestOpt
       reasons: reasons.sort((a, b) => b[0] - a[0]).map((r) => r[1]),
     });
   }
+  leadFitsThePlan(out, want);
   return {
     mode: "tanda",
     rhythm,

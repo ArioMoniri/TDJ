@@ -76,6 +76,29 @@ describe("Build by hand: suggestions ranked by fit to the plan's energy", () => 
       expect(sc).toEqual([...sc].sort((a, b) => b - a));
     }
   });
+  it("no bonus lifts a family far from the plan to the lead, slot after slot of two nights", () => {
+    // the night's third tanda is a Caló vals since the round-21c engine, so Caló is spaced out of slot 3 and a due
+    // Pugliese at 70 (plan 51) once led on the big-four bonus over a Lomuto at 53
+    const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+    const eOf = (ss: { energy?: number | null }[]) => Math.round(mean(ss.map((s) => s.energy ?? 50)));
+    for (const p of [night, compose({ hours: 4, seed: 11 }, deps)])
+      for (let k = 0; k <= 10; k++) {
+        const songs = p.tandas.slice(0, k).map((t) => t.songs);
+        const r = suggestNext(songs, deps, { hours: 4, limit: 8 });
+        if (r.suggestions.length < 2) continue;
+        // what the slot wants: the plan, or the lift / breather after two calm / strong tandas
+        const last2 = songs.slice(-2).map(eOf);
+        const lm = last2.length ? mean(last2) : r.targetEnergy;
+        const want =
+          last2.length === 2 && last2.every((e) => e < 60)
+            ? Math.max(r.targetEnergy, lm + 10)
+            : last2.length === 2 && last2.every((e) => e > 72)
+              ? Math.min(r.targetEnergy, lm - 10)
+              : r.targetEnergy;
+        const d = r.suggestions.map((s) => Math.abs(s.energy - want));
+        expect(d[0]!, `slot ${k}`).toBeLessThanOrEqual(Math.min(...d) + 8);
+      }
+  }, 600000);
 });
 
 describe("compose profile (wave 2): faster, the same night", () => {
