@@ -324,8 +324,15 @@ test.describe("phone 390 × 844", () => {
         return {
           small: btns
             .filter((el) => {
+              // the hit area: the box plus a transparent ::after that reaches past it (wave 4: the 94 × 32
+              // stepper and the 51 × 31 switch reach 44 px that way, like UIKit's controls)
               const r = el.getBoundingClientRect();
-              return r.height < 44 || r.width < 44;
+              const a = getComputedStyle(el, "::after");
+              const px = (v: string) => (v.endsWith("px") ? Number.parseFloat(v) : 0);
+              const out = a.content !== "none" && a.position === "absolute";
+              const h = r.height - (out ? Math.min(0, px(a.top)) + Math.min(0, px(a.bottom)) : 0);
+              const w = r.width - (out ? Math.min(0, px(a.left)) + Math.min(0, px(a.right)) : 0);
+              return h < 44 || w < 44;
             })
             .map((el) => el.getAttribute("aria-label") || el.textContent),
           wide: btns.filter((el) => el.getBoundingClientRect().right > 390.5).length,
