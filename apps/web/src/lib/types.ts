@@ -317,6 +317,8 @@ export interface Meta {
   orchestras: MetaOrchestra[];
   contextModel: import("@tdj/core").ContextModel | null;
   referencePlaylists: ReferencePlaylist[];
+  /** the repo-level learned store: the DJ's edits of the featured night (Database → Memory lists it) */
+  featuredLearned?: import("@tdj/core").LearnedPreferences | null;
   knowledge: Record<string, number>;
   storage: "browser" | "server";
 }

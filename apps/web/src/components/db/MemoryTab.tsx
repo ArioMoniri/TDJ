@@ -9,6 +9,7 @@ import type { AgentMemory } from "@/lib/types";
 import { ActionRow, Group, Row } from "../Form";
 import { Sheet } from "../Sheet";
 import { SwipeRow } from "../SwipeRow";
+import { FeaturedLearned } from "./FeaturedLearned";
 import { LearnedRules } from "./LearnedRules";
 import { useDbEdit } from "./shared";
 
@@ -125,6 +126,7 @@ export function MemoryTab() {
   return (
     <div>
       <LearnedRules />
+      <FeaturedLearned />
       <Group
         header={t("db.memoryTab.notes")}
         footer={t("db.memoryTab.things_to_remember_about_rooms_crowds")}

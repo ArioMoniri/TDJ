@@ -1,5 +1,5 @@
 "use client";
-import { type Playlist, rememberEdit } from "@tdj/core";
+import { emptyMemory, learnedForRequest, type Playlist, rememberEdit } from "@tdj/core";
 import { ArrowUp, Check, Plus, Trash2, Wand2 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useRouter } from "next/navigation";
@@ -115,6 +115,7 @@ export function ManualBuilder() {
 
   // the live suggestions, again after every change
   const seq = useRef(0);
+  const { learned: myLearned, repoLearned } = memory;
   useEffect(() => {
     if (!ready || !suggestOn) return;
     const n = ++seq.current;
@@ -127,7 +128,7 @@ export function ManualBuilder() {
           body: JSON.stringify({
             draft: draftIds(draft),
             options,
-            learned: settings.learn ? memory.learned : undefined,
+            learned: learnedForRequest({ ...emptyMemory(), learned: myLearned, repoLearned }, settings.learn),
             rhythm: rhythm === "auto" ? undefined : rhythm,
           }),
         });
@@ -138,7 +139,7 @@ export function ManualBuilder() {
       }
     }, 120);
     return () => clearTimeout(t);
-  }, [draft, ready, suggestOn, rhythm, options, settings.learn, memory.learned]);
+  }, [draft, ready, suggestOn, rhythm, options, settings.learn, myLearned, repoLearned]);
 
   const qseq = useRef(0);
   useEffect(() => {

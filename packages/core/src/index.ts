@@ -16,6 +16,7 @@ export * from "./export/index";
 export * from "./knowledge";
 export * from "./learn";
 export * from "./learnedRules";
+export * from "./likes";
 export * from "./matchRules";
 export * from "./memory";
 export * from "./night";

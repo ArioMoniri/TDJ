@@ -14,6 +14,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { type BenchResult, benchmarkNight, improveNight } from "./benchmark";
 import { compose } from "./compose";
+import { nightExceptionKeys } from "./learnedRules";
 import { auditCortinaCaches, findRoot, loadCatalog } from "./load";
 import { auditStreamMatches } from "./matchRules";
 import { scorePlaylist } from "./score";
@@ -70,9 +71,11 @@ function row(
   /** round 14: a composed night (never the shipped JSON) fails the run on a strict-panel blocker */
   strictGated = gated,
 ): QualityRow {
-  const bench = benchmarkNight(p);
+  // the tandas the DJ approved as they are for this night only (the featured night's exceptions) are accepted
+  const approved = { approved: nightExceptionKeys(deps.catalog.learned, p.id) };
+  const bench = benchmarkNight(p, approved);
   const r = improveNight(p, deps);
-  const improved = benchmarkNight(r.playlist);
+  const improved = benchmarkNight(r.playlist, approved);
   const failures: string[] = [];
   if (gated && p.score.total < MIN_SCORE) failures.push(`engine score ${p.score.total} < ${MIN_SCORE}`);
   if (gated && r.playlist.score.total < MIN_SCORE)
@@ -81,7 +84,7 @@ function row(
     failures.push(`improveNight lowered the engine score ${r.before.score} → ${r.after.score}`);
   if (r.after.bench < r.before.bench)
     failures.push(`improveNight lowered the benchmark ${r.before.bench} → ${r.after.bench}`);
-  const strict = strictChecks(r.playlist);
+  const strict = strictChecks(r.playlist, approved);
   const known: string[] = [];
   if (gated)
     for (const c of improved.checks)

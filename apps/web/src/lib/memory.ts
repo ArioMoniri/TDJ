@@ -1,5 +1,5 @@
 "use client";
-import { emptyMemory } from "@tdj/core";
+import { emptyMemory, likedShapeDefaults } from "@tdj/core";
 import { del, get, set } from "idb-keyval";
 import { t } from "@/lib/i18n";
 import type { StorageMode } from "./overrides";
@@ -19,6 +19,8 @@ export function normalizeMemory(m: unknown): AgentMemory {
     preferences: o.preferences && typeof o.preferences === "object" ? o.preferences : e.preferences,
     // round 21: what the DJ's edits taught (swaps, pins, hand-made tandas)
     ...(o.learned && typeof o.learned === "object" ? { learned: o.learned } : {}),
+    // the DJ's overrides of the featured night's store (off, reweighted, deleted rules)
+    ...(o.repoLearned && typeof o.repoLearned === "object" ? { repoLearned: o.repoLearned } : {}),
     updatedAt: typeof o.updatedAt === "string" ? o.updatedAt : undefined,
   };
 }
@@ -91,5 +93,14 @@ export function describePreferences(m: AgentMemory | null | undefined): string[]
   if (p.excludeOrchestras?.length)
     out.push(t("memory.orchestras_left_out", { length: p.excludeOrchestras.length }));
   if (p.eras?.length) out.push(t("memory.era", { p1: p.eras[0] }));
+  // thumbs up on two or more nights of the same shape (likes.ts)
+  const s = likedShapeDefaults(m?.learned);
+  const parts = [
+    s.hours ? `${s.hours} h` : null,
+    s.eras?.join(", "),
+    (s.arcShape ?? s.arc)?.replace(/-/g, " "),
+    s.cortinaCultures?.join(", "),
+  ].filter(Boolean);
+  if (parts.length) out.push(t("memory.liked_shape", { list: parts.join(" · ") }));
   return out;
 }
