@@ -8,12 +8,12 @@
  *   3. stills (scripts/media/stills.ts): framed screenshots → media/readme/<still>.webp
  *
  * Run against a production build (`pnpm --filter @tdj/web build && pnpm --filter @tdj/web start -p 3417`) and
- * TDJ_URL=http://localhost:3417. Flags: --only=compose,booth  --skip=stills,clips,render
+ * TDJ_URL=http://localhost:3417. Flags: --only=compose,booth  --skip=stills,clips,render  (--skip=… --gifs: GIFs only)
  * The machine is shared with the test suites: clips are filmed one at a time, and with --wait-load=N each clip waits
  * until the 1-minute load average drops under N.
  */
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, renameSync, statSync } from "node:fs";
 import { loadavg } from "node:os";
 import { chromium } from "playwright";
 import { CLIPS } from "./media/clips";
@@ -59,19 +59,52 @@ function render(name: string) {
       mp4,
       `--props=${JSON.stringify({ name })}`,
       "--codec=h264",
-      "--crf=23",
+      "--crf=18",
       "--concurrency=2",
       "--log=error",
     ],
     { stdio: "inherit", cwd: ROOT },
   );
+  // Remotion's encode is quick and large: a slower x264 pass keeps a clip at 1-3 MB (README size budget)
+  const tmp = `${OUT}/.${name}.mp4`;
+  ffmpeg(
+    ["-i", mp4, "-c:v", "libx264", "-preset", "slow", "-crf", "28", "-tune", "animation"].concat([
+      "-pix_fmt",
+      "yuv420p",
+      "-movflags",
+      "+faststart",
+      "-threads",
+      "2",
+      tmp,
+    ]),
+  );
+  renameSync(tmp, mp4);
+  gif(name);
+}
+
+/**
+ * The README GIF from the 60 fps MP4: the largest of these that stays under 4 MB (the camera moves, so every frame
+ * changes and a GIF grows fast; the README links each GIF to its MP4 for the full 60 fps).
+ */
+const GIF_LADDER: Array<[fps: number, width: number, dither: string]> = [
+  [25, 800, "bayer:bayer_scale=3"],
+  [25, 720, "bayer:bayer_scale=3"],
+  [20, 720, "bayer:bayer_scale=3"],
+  [20, 640, "bayer:bayer_scale=3"],
+  [18, 640, "none"],
+  [15, 560, "none"],
+  [12, 560, "none"],
+  [12, 480, "none"],
+];
+function gif(name: string) {
+  const mp4 = `${OUT}/${name}.mp4`;
   const gif = `${OUT}/${name}.gif`;
-  for (const w of [800, 720, 640, 560]) {
+  for (const [fps, w, dither] of GIF_LADDER) {
     ffmpeg([
       "-i",
       mp4,
       "-vf",
-      `fps=25,scale=${w}:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=160:stats_mode=diff[p];[b][p]paletteuse=dither=sierra2_4a:diff_mode=rectangle`,
+      `fps=${fps},scale=${w}:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128:stats_mode=diff[p];[b][p]paletteuse=dither=${dither}:diff_mode=rectangle`,
       "-loop",
       "0",
       gif,
@@ -121,6 +154,9 @@ async function main() {
       console.log(`render ${name}`);
       render(name);
     }
+  else if (process.argv.includes("--gifs"))
+    // only the GIFs again, from the MP4s already rendered
+    for (const [name] of pick(CLIPS)) if (existsSync(`${OUT}/${name}.mp4`)) gif(name);
   if (failed.length) {
     console.error(`failed: ${failed.join(", ")}`);
     process.exit(1);

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "remotion studio src/index.ts",
-    "render": "node scripts/sync-clips.mjs && remotion render src/index.ts Launch ../../media/video/launch.mp4 --codec h264 --crf 24",
+    "render": "node scripts/sync-clips.mjs && remotion render src/index.ts Launch ../../media/video/launch.mp4 --codec h264 --crf 18 && ffmpeg -y -loglevel error -i ../../media/video/launch.mp4 -c:v libx264 -preset slow -crf 28 -tune animation -pix_fmt yuv420p -movflags +faststart ../../media/video/.launch.mp4 && mv ../../media/video/.launch.mp4 ../../media/video/launch.mp4",
     "typecheck": "tsc --noEmit",
     "build": "echo skip"
   },

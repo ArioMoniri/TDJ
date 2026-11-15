@@ -169,28 +169,30 @@ export const CLIPS: Record<string, Clip> = {
       .waitFor({ timeout: 60_000 })
       .catch(() => {});
     await settle(page, 1200);
-    const r = new Recorder(page, "booth", raw, { zoom: 1.3 });
+    // one steady zoom on the top of the deck (the outputs and the transport), then out for the pre-listen line:
+    // the Booth is dark and busy, so a calm camera keeps the clip readable and its GIF small
+    const r = new Recorder(page, "booth", raw, { zoom: 1.25 });
     await r.start();
-    await r.wait(500);
-    await r.click(page.getByTestId("booth-out-cue"));
-    const out = page.getByTestId("booth-output-sheet");
-    await r.click(out.locator('[data-device="hp"]'), { settle: 500 });
-    await page.keyboard.press("Escape");
     await r.wait(400);
-    await r.click(page.getByTestId("booth-start"), { settle: 1000 });
+    r.focus({ x: 700, y: 260 }, 1.2);
+    await r.click(page.getByTestId("booth-out-cue"), { zoom: false });
+    const out = page.getByTestId("booth-output-sheet");
+    await r.click(out.locator('[data-device="hp"]'), { zoom: false, settle: 500 });
+    await page.keyboard.press("Escape");
+    await r.wait(300);
+    r.focus(null);
+    await r.click(page.getByTestId("booth-start"), { zoom: false, settle: 800 });
     const row = page.locator('.booth-row[data-kind="track"]').nth(6);
-    await r.click(row.getByTestId("booth-row-play"), { settle: 600 });
+    await r.click(row.getByTestId("booth-row-play"), { zoom: false, settle: 500 });
     const pre = page.getByTestId("booth-play-sheet").getByTestId("booth-prelisten");
-    await r.click(pre, { settle: 700 });
+    await r.click(pre, { zoom: false, settle: 600 });
     await page.keyboard.press("Escape");
     await r.wait(300);
     const line = page.getByTestId("booth-cueline");
     await line.waitFor({ timeout: 10_000 }).catch(() => {});
-    r.focus(await r.centre(line), 1.35);
+    r.focus(await r.centre(line), 1.25);
     await r.glide({ x: 820, y: 560 });
     await r.wait(1800);
-    r.focus(null);
-    await r.wait(1200);
     await r.stop();
     await ctx.close();
   },
@@ -199,7 +201,14 @@ export const CLIPS: Record<string, Clip> = {
   async "ai-edit"({ browser, base, raw }) {
     const ctx = await newCtx(browser, DESKTOP);
     const page = await ctx.newPage();
-    await openFeatured(page, base);
+    // a freshly composed night: the featured one keeps the DJ's own tandas as they are, tanda 7 among them
+    await page.goto(base, { waitUntil: "networkidle" });
+    await page
+      .getByRole("button", { name: /Compose the night/ })
+      .first()
+      .click();
+    await page.locator("#result").waitFor({ timeout: 120_000 });
+    await page.waitForTimeout(1500);
     const input = page.locator("#ai-edit-input");
     await input.scrollIntoViewIfNeeded();
     await page.evaluate(() => window.scrollBy(0, -160));

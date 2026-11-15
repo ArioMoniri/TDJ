@@ -11,6 +11,8 @@
       "!**/.sst",
       "!**/.turbo",
       "!media/**",
+      "!apps/video/public/raw",
+      "!apps/video/public/clips",
       "!brand/**",
       "!**/.open-next",
       "!**/test-results",

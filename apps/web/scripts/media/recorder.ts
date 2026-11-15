@@ -153,7 +153,7 @@ export class Recorder {
     await this.warp(this.slow);
     await this.cdp.send("Page.startScreencast", {
       format: "jpeg",
-      quality: Number(process.env.MEDIA_JPEG_Q ?? 85),
+      quality: Number(process.env.MEDIA_JPEG_Q ?? 92),
       maxWidth: vp.width * 2,
       maxHeight: vp.height * 2,
       everyNthFrame: 1,

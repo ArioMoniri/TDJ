@@ -15,7 +15,7 @@ let checked = 0;
 for (const f of FILES) {
   const md = readFileSync(join(ROOT, f), "utf8");
   const refs = [
-    ...[...md.matchAll(/(?:src|href)="([^"]+)"/g)].map((m) => m[1]),
+    ...[...md.matchAll(/(?:src|href|srcset)="([^"]+)"/g)].map((m) => m[1]),
     ...[...md.matchAll(/\]\(([^)\s]+)\)/g)].map((m) => m[1]),
   ];
   for (const raw of refs) {

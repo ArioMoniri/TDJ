@@ -52,7 +52,15 @@ const Scene = ({ clip, caption, frames }: { clip: string; caption: string; frame
       <OffthreadVideo
         src={staticFile(`clips/${clip}.mp4`)}
         muted
-        style={{ position: "absolute", left: 240, top: 120, width: 1440, height: 900 }}
+        style={{
+          position: "absolute",
+          left: 240,
+          top: 120,
+          width: 1440,
+          height: 900,
+          borderRadius: 28,
+          boxShadow: "0 40px 90px -30px rgba(30,6,24,.6)",
+        }}
       />
       <div
         style={{
