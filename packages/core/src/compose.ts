@@ -2428,12 +2428,45 @@ function composeOnce(
   // round 21c: the swaps above moved tandas past their cues — the cortinas are re-picked once more under the panel's
   // cue rules (cueDramatic, cueVals …), kept only when the panel is better for it
   if (isGoldenNight(o) && !lockedByIndex.size && o.hours < 5) {
-    const rq = recue(tandas, deps, o);
+    // (the night's own families only: a cue's "before" tanda is final here — cueVals and the pop-cue rules are judged
+    // together, never by opening a third family)
+    const rq = recue(tandas, deps, o, true);
     const cn = (ts: Tanda[]) => strictChecks({ tandas: ts, closing, options: o });
     if (rq && recueBetter(cn(rq), cn(tandas)) && cueFamilies({ tandas: rq }) <= cueFamilies({ tandas }))
       rq.forEach((t, i) => {
         tandas[i] = t;
       });
+  }
+  // round 21c: a cue still too hot for the vals after it trades places with a softer cue of another gap, when the
+  // panel as a whole is better for it (the soft cues the earlier gaps took are the night's own; no new family)
+  if (isGoldenNight(o) && !lockedByIndex.size && o.hours < 5) {
+    const cn = (ts: Tanda[]) => strictChecks({ tandas: ts, closing, options: o });
+    for (let round = 0; round < 4; round++) {
+      const r0 = cn(tandas);
+      const bad = r0.violations.filter((v) => v.rule === "cueVals" && v.tanda >= 0);
+      if (!bad.length) break;
+      let best: { a: number; b: number; p: number } | null = null;
+      for (const v of bad) {
+        const a = v.tanda;
+        for (let b = 0; b < tandas.length - 1; b++) {
+          if (b === a || !tandas[b]!.cortina || !tandas[a]!.cortina) continue;
+          const A = tandas[a]!,
+            B = tandas[b]!;
+          tandas[a] = { ...A, cortina: { ...B.cortina!, lengthSec: A.cortina!.lengthSec } };
+          tandas[b] = { ...B, cortina: { ...A.cortina!, lengthSec: B.cortina!.lengthSec } };
+          const r1 = cn(tandas);
+          tandas[a] = A;
+          tandas[b] = B;
+          if (r1.blockers > r0.blockers || r1.penalty >= r0.penalty - 1e-9) continue;
+          if (!best || r1.penalty < best.p) best = { a, b, p: r1.penalty };
+        }
+      }
+      if (!best) break;
+      const A = tandas[best.a]!,
+        B = tandas[best.b]!;
+      tandas[best.a] = { ...A, cortina: { ...B.cortina!, lengthSec: A.cortina!.lengthSec } };
+      tandas[best.b] = { ...B, cortina: { ...A.cortina!, lengthSec: B.cortina!.lengthSec } };
+    }
   }
   // round 21: the opening Cumparsita matches the first tanda (its orchestra, the nearest year, instrumental)
   let opening: Song | null = null;

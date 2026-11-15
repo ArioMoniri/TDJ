@@ -1593,7 +1593,13 @@ function pickCloser(cat: Catalog, o: ComposeOptions, lastOrch: string): Song | n
  * placement rules (round 10/11): a cue that already fits stays; the others take the closest-fitting fresh cue of the
  * night's culture. Returns null when nothing changes.
  */
-export function recue(tandas: Tanda[], deps: ComposeDeps, o: ComposeOptions): Tanda[] | null {
+export function recue(
+  tandas: Tanda[],
+  deps: ComposeDeps,
+  o: ComposeOptions,
+  /** round 21c: only the night's own cortina families (the final pass: never a third family, round 4 B9) */
+  ownOnly = false,
+): Tanda[] | null {
   if (o.cortinaStyle === "none" || o.cortinaStyle === "constant") return null;
   const all = candidatesFor(cortinaPool(deps.cortinas, o.overrides?.cortinas), o).filter(cueHasAudio);
   // the night's own cortina families first (a re-pick never opens a new family while these can serve)
@@ -1678,14 +1684,14 @@ export function recue(tandas: Tanda[], deps: ComposeDeps, o: ComposeOptions): Ta
     // round 19: a cue that lost its Spotify record (an older night's JSON) gets its own record back first
     const same = !cur.spotify?.uri ? all.find((x) => x.id === cur.id && !!x.spotify?.uri) : undefined;
     let c: Cortina | undefined = same && placed(same, k) && panel(same, k) && fresh(same) ? same : undefined;
-    for (const pool of c ? [] : [own, all]) {
+    for (const pool of c ? [] : ownOnly ? [own] : [own, all]) {
       for (const ok of tiers) {
         c = pickFrom(ok, pool);
         if (c) break;
       }
       if (c) break;
     }
-    if (!c) c = placed(cur, k) ? cur : (pickFrom((x) => placed(x, k), all) ?? cur);
+    if (!c) c = placed(cur, k) ? cur : (pickFrom((x) => placed(x, k), ownOnly ? own : all) ?? cur);
     // (round 19: the same cue re-picked from the pool brings its checked Spotify record back)
     if (c.id !== cur.id || (!cur.spotify?.uri && !!c.spotify?.uri)) {
       out[k] = { ...t, cortina: { ...c, lengthSec: cur.lengthSec ?? c.lengthSec } };
