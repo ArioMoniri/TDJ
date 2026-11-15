@@ -34,63 +34,74 @@ const fmtMin = (sec: number) => {
 export default function NightPage() {
   const router = useRouter();
   const { addSnapshot, setPlaylist, replaceOptions } = useStore();
-  const [state, setState] = useState<
+  type View =
     | { kind: "pick" }
     | { kind: "loading" }
     | { kind: "error"; message: string }
-    | { kind: "ready"; night: NightFile; result: ImportResult }
-  >({ kind: "loading" });
+    | { kind: "ready"; night: NightFile; result: ImportResult };
+  const [state, setView] = useState<View>({ kind: "loading" });
+  // every open (a link, a file, a new fragment) takes a ticket; an answer for an older ticket is dropped, so a
+  // damaged link opened after a good one shows its error, never the good night still resolving (wave 2)
+  const ticket = useRef(0);
+  const setState = useCallback((v: View, t = ticket.current) => {
+    if (t === ticket.current) setView(v);
+  }, []);
   const [pasted, setPasted] = useState("");
   const [dragging, setDragging] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
-  const resolve = useCallback(async (night: NightFile) => {
-    setState({ kind: "loading" });
-    try {
-      const r = await fetch("/api/night/resolve", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ night }),
-      });
-      const body = (await r.json()) as ImportResult & { error?: string };
-      if (!r.ok) throw new Error(body.error || "This night could not be opened.");
-      setState({ kind: "ready", night, result: body });
-    } catch (e) {
-      setState({ kind: "error", message: (e as Error).message });
-    }
-  }, []);
+  const resolve = useCallback(
+    async (night: NightFile, t = ++ticket.current) => {
+      setState({ kind: "loading" }, t);
+      try {
+        const r = await fetch("/api/night/resolve", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ night }),
+        });
+        const body = (await r.json()) as ImportResult & { error?: string };
+        if (!r.ok) throw new Error(body.error || "This night could not be opened.");
+        setState({ kind: "ready", night, result: body }, t);
+      } catch (e) {
+        setState({ kind: "error", message: (e as Error).message }, t);
+      }
+    },
+    [setState],
+  );
 
   const fromLink = useCallback(
     async (link: string) => {
+      const t = ++ticket.current;
+      setState({ kind: "loading" }, t);
       const payload = payloadFromLink(link);
       try {
-        if (payload) return resolve(await decodeNightPayload(payload));
+        if (payload) return resolve(await decodeNightPayload(payload), t);
         const id = /[?&]s=([a-z2-9]{10})\b/.exec(link)?.[1];
         if (id) {
-          setState({ kind: "loading" });
           const r = await fetch(`/api/night?id=${id}`);
           const body = (await r.json()) as { night?: NightFile; error?: string };
           if (!r.ok || !body.night) throw new Error(body.error || "This link has expired.");
-          return resolve(body.night);
+          return resolve(body.night, t);
         }
-        setState({ kind: "error", message: "This is not a T-DJ night link." });
+        setState({ kind: "error", message: "This is not a T-DJ night link." }, t);
       } catch (e) {
-        setState({ kind: "error", message: (e as Error).message });
+        setState({ kind: "error", message: (e as Error).message }, t);
       }
     },
-    [resolve],
+    [resolve, setState],
   );
 
   const fromFile = useCallback(
     async (f: File) => {
+      const t = ++ticket.current;
       try {
         if (f.size > 2_000_000) throw new Error("This file is too large to be a night.");
-        await resolve(parseNightFile(await f.text()));
+        await resolve(parseNightFile(await f.text()), t);
       } catch (e) {
-        setState({ kind: "error", message: (e as Error).message });
+        setState({ kind: "error", message: (e as Error).message }, t);
       }
     },
-    [resolve],
+    [resolve, setState],
   );
 
   useEffect(() => {
@@ -107,8 +118,23 @@ export default function NightPage() {
         setState({ kind: "error", message: (e as Error).message });
       }
     } else if (location.hash.length > 1 || q.get("s")) void fromLink(location.href);
-    else setState({ kind: "pick" });
-  }, [fromLink, resolve]);
+    else setState({ kind: "pick" }, ++ticket.current);
+    // a new link in the same tab (the fragment changed, or back / forward): open it, or show its error
+    let last = location.href;
+    const onNav = () => {
+      if (location.href === last) return;
+      last = location.href;
+      if (location.hash.length > 1 || new URLSearchParams(location.search).get("s"))
+        void fromLink(location.href);
+      else setState({ kind: "pick" }, ++ticket.current);
+    };
+    window.addEventListener("hashchange", onNav);
+    window.addEventListener("popstate", onNav);
+    return () => {
+      window.removeEventListener("hashchange", onNav);
+      window.removeEventListener("popstate", onNav);
+    };
+  }, [fromLink, resolve, setState]);
 
   const importIt = () => {
     if (state.kind !== "ready") return;
