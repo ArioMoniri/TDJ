@@ -1,17 +1,5 @@
 "use client";
-import {
-  BookOpen,
-  Clock,
-  Database,
-  Disc3,
-  Hand,
-  ListMusic,
-  PanelLeft,
-  Pause,
-  Play,
-  SlidersHorizontal,
-  Volume2,
-} from "lucide-react";
+import { Clock, Disc3, PanelLeft, Pause, Play, Volume2 } from "lucide-react";
 import { LayoutGroup, motion } from "motion/react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -21,7 +9,7 @@ import { spring } from "@/lib/motion";
 import { usePlayer } from "@/lib/player";
 import { useStore } from "@/lib/store";
 import { Logo } from "./Logo";
-import { ROOMS_NAV } from "./RoomsNav";
+import { NAV_MAIN, NAV_MAIN_TITLE, NAV_PINNED } from "./navItems";
 import { Tip } from "./ui/Tip";
 
 /** Fired with the tanda index when the sidebar's Tonight list picks a tanda: the Compose inspector follows it. */
@@ -32,19 +20,8 @@ const MIN_W = 200;
 const MAX_W = 360;
 const DEFAULT_W = 240;
 
-const library = [
-  { href: "/", label: "Compose", icon: ListMusic },
-  { href: "/booth", label: "Booth", icon: Play },
-  { href: "/build", label: "Build by hand", icon: Hand },
-  { href: "/library", label: "Library", icon: Disc3 },
-  { href: "/database", label: "Database", icon: Database },
-  { href: "/history", label: "History", icon: Clock },
-  ROOMS_NAV,
-];
-const pinned = [
-  { href: "/guide", label: "Guide", icon: BookOpen },
-  { href: "/settings", label: "Settings", icon: SlidersHorizontal },
-];
+const library = NAV_MAIN;
+const pinned = NAV_PINNED;
 
 interface Saved {
   w: number;
@@ -259,7 +236,7 @@ export function Sidebar() {
 
         <div className="side-scroll min-h-0 flex-1 overflow-y-auto px-3 pb-3">
           <nav aria-label="Primary sidebar">
-            <h2 className="side-head">Library</h2>
+            <h2 className="side-head">{NAV_MAIN_TITLE}</h2>
             <LayoutGroup id="sidebar-nav">
               <div className="flex flex-col gap-0.5">
                 {library.map((it) => (

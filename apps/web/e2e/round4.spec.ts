@@ -399,13 +399,14 @@ test("mobile: no horizontal overflow after compose, cards fill the column, tab b
   expect(m.sw).toBeLessThanOrEqual(m.iw);
   expect(m.over).toBe(0);
   expect(m.card).toBeGreaterThan(m.iw - 40);
-  expect(await page.getByRole("navigation", { name: "Primary mobile" }).locator("a").count()).toBe(6);
+  // five tabs and More (wave 2: Booth is a tab; Build by hand, Rooms, Guide and Settings sit behind More)
+  expect(await page.getByRole("navigation", { name: "Primary mobile" }).locator("a, button").count()).toBe(6);
   await page.evaluate(() => window.scrollTo(0, 400));
   await page.waitForTimeout(150);
   await page.evaluate(() => window.scrollTo(0, 900));
   await page.waitForTimeout(600);
   await expect(page.getByTestId("tab-bar")).toHaveAttribute("data-min", "true");
-  expect(await page.getByTestId("tab-bar").locator("a").count()).toBe(6);
+  expect(await page.getByTestId("tab-bar").locator("a, button").count()).toBe(6);
   // the mini-player sits above the accessory bar on phones
   await page.goto("/library");
   await page.waitForTimeout(300);

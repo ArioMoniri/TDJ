@@ -216,7 +216,7 @@ test.describe("sidebar and wide layouts", () => {
     await simulateInsets(page);
     await compose(page);
     const side = page.getByTestId("sidebar");
-    await expect(side.getByRole("heading", { name: "Library" })).toBeVisible();
+    await expect(side.getByRole("heading", { name: "Night", exact: true })).toBeVisible();
     await expect(side.getByRole("heading", { name: /Tonight/ })).toBeVisible();
     await expect(side.getByRole("heading", { name: "Recent nights" })).toBeVisible();
     await expect(side.getByRole("link", { name: "Settings" })).toBeVisible();

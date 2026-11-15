@@ -1,5 +1,5 @@
 "use client";
-import { BookOpen, Clock, Database, Disc3, ListMusic, Play, Search, SlidersHorizontal } from "lucide-react";
+import { Ellipsis, Search } from "lucide-react";
 import { LayoutGroup, motion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -8,26 +8,11 @@ import { haptic } from "@/lib/haptics";
 import { useFitLevel, useScrollDirection } from "@/lib/hooks";
 import { spring } from "@/lib/motion";
 import { Logo } from "./Logo";
+import { type NavItem, PHONE_MORE, PHONE_TABS, PILL_ITEMS } from "./navItems";
 import { useToolbar } from "./PageHeader";
+import { Sheet } from "./Sheet";
 import { Sidebar } from "./Sidebar";
 
-const items = [
-  { href: "/", label: "Compose", icon: ListMusic },
-  { href: "/library", label: "Library", icon: Disc3 },
-  { href: "/history", label: "History", icon: Clock },
-  { href: "/database", label: "Database", icon: Database },
-  { href: "/guide", label: "Guide", icon: BookOpen },
-  { href: "/settings", label: "Settings", icon: SlidersHorizontal },
-];
-/**
- * Booth (round7-booth.md): a sidebar item on desktop and a tab in the tablet pill (an iPad in the booth needs a way
- * back mid-night, round8-ux.md §2); phones keep the six-tab capsule and reach it from the result's `•••`.
- */
-const sidebarItems = [
-  ...items.slice(0, 1),
-  { href: "/booth", label: "Booth", icon: Play },
-  ...items.slice(1),
-];
 const SEARCH_ID: Record<string, string> = { "/library": "library-search", "/database": "db-search" };
 
 /** Fired by `SearchField` on phones so the tab bar can make room for the keyboard. */
@@ -44,29 +29,26 @@ function MobileTab({
   min,
   compact = false,
   hidden = false,
+  onOpen,
 }: {
-  it: (typeof items)[number];
+  it: NavItem;
   on: boolean;
   min: boolean;
   compact?: boolean;
   hidden?: boolean;
+  /** the More tab: a button that opens the sheet of the other pages */
+  onOpen?: () => void;
 }) {
-  return (
-    <Link
-      href={it.href}
-      aria-current={on ? "page" : undefined}
-      aria-hidden={hidden || undefined}
-      tabIndex={hidden ? -1 : undefined}
-      onClick={() => !on && haptic(4)}
-      className={`relative flex min-h-[52px] flex-col items-center justify-center gap-0.5 rounded-full ${
-        hidden
-          ? "w-0 min-w-0 overflow-hidden px-0 opacity-0"
-          : compact
-            ? "min-w-[44px] px-1.5"
-            : "min-w-[48px] px-2"
-      } ${on ? "text-[var(--tint-text)]" : "text-[var(--label-2)]"}`}
-      style={{ transition: "color var(--dur-xs) var(--ease-settle)" }}
-    >
+  const cls = `relative flex min-h-[52px] flex-col items-center justify-center gap-0.5 rounded-full ${
+    hidden
+      ? "w-0 min-w-0 overflow-hidden px-0 opacity-0"
+      : compact
+        ? "min-w-[44px] px-1.5"
+        : "min-w-[48px] px-2"
+  } ${on ? "text-[var(--tint-text)]" : "text-[var(--label-2)]"}`;
+  const style = { transition: "color var(--dur-xs) var(--ease-settle)" };
+  const inner = (
+    <>
       {on && (
         <motion.span
           layoutId="tab-pill"
@@ -94,9 +76,43 @@ function MobileTab({
         />
       </span>
       <span className={`text-tab relative ${min || compact ? "sr-only" : ""}`}>{it.label}</span>
+    </>
+  );
+  if (onOpen)
+    return (
+      <button
+        type="button"
+        aria-haspopup="dialog"
+        data-testid="tab-more"
+        title={it.label}
+        aria-hidden={hidden || undefined}
+        tabIndex={hidden ? -1 : undefined}
+        onClick={() => {
+          haptic(4);
+          onOpen();
+        }}
+        className={cls}
+        style={style}
+      >
+        {inner}
+      </button>
+    );
+  return (
+    <Link
+      href={it.href}
+      aria-current={on ? "page" : undefined}
+      title={it.label}
+      aria-hidden={hidden || undefined}
+      tabIndex={hidden ? -1 : undefined}
+      onClick={() => !on && haptic(4)}
+      className={cls}
+      style={style}
+    >
+      {inner}
     </Link>
   );
 }
+const MORE: NavItem = { href: "#more", label: "More", icon: Ellipsis };
 
 export function Nav() {
   const path = usePathname();
@@ -116,6 +132,8 @@ export function Nav() {
   const pill = useRef<HTMLDivElement>(null);
   // re-measure when the pill's content changes: the page's actions arrive with `collapsed`, the tab set with the path
   const fit = useFitLevel(pill, 3, `${path}|${bar.collapsed}|${!!bar.trailing}|${!!bar.primary}`);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const inMore = PHONE_MORE.some((i) => i.href === path);
   return (
     <>
       {/* Tablet (sm–lg): glass pill as a toolbar. Left: logo (+ page title once the large title scrolled out),
@@ -147,7 +165,7 @@ export function Nav() {
           </Link>
           <nav className="flex shrink-0 items-center" aria-label="Primary">
             <LayoutGroup id="desktop-nav">
-              {sidebarItems.map((it) => {
+              {PILL_ITEMS.map((it) => {
                 const on = path === it.href;
                 return (
                   <Link
@@ -155,7 +173,7 @@ export function Nav() {
                     href={it.href}
                     aria-current={on ? "page" : undefined}
                     aria-label={fit >= 3 ? it.label : undefined}
-                    title={fit >= 3 ? it.label : undefined}
+                    title={it.label}
                     onClick={() => !on && haptic(4)}
                     className={`text-subhead relative isolate inline-flex min-h-11 items-center rounded-full ${
                       fit >= 3 ? "min-w-11 justify-center px-2.5" : "px-3"
@@ -204,7 +222,7 @@ export function Nav() {
             maxWidth: searchId ? "calc(100vw - 96px)" : "calc(100vw - 1.5rem)",
           }}
         >
-          {items.map((it) => (
+          {PHONE_TABS.map((it) => (
             <MobileTab
               key={it.href}
               it={it}
@@ -214,7 +232,37 @@ export function Nav() {
               hidden={minimised && path !== it.href}
             />
           ))}
+          <MobileTab
+            it={MORE}
+            on={inMore}
+            min={minimised}
+            compact={!!searchId}
+            hidden={minimised && !inMore}
+            onOpen={() => setMoreOpen(true)}
+          />
         </nav>
+        <Sheet open={moreOpen} onClose={() => setMoreOpen(false)} title="More" testId="more-sheet">
+          <nav className="group-inset mt-2" aria-label="More pages">
+            {PHONE_MORE.map((it) => (
+              <Link
+                key={it.href}
+                href={it.href}
+                aria-current={path === it.href ? "page" : undefined}
+                className="cell cell-tap w-full text-left"
+                data-leading="tile"
+                onClick={() => setMoreOpen(false)}
+              >
+                <it.icon
+                  size={22}
+                  strokeWidth={1.75}
+                  className={path === it.href ? "text-[var(--tint)]" : "text-[var(--label-2)]"}
+                  aria-hidden
+                />
+                <span className="min-w-0 flex-1 truncate">{it.label}</span>
+              </Link>
+            ))}
+          </nav>
+        </Sheet>
         {searchId && (
           <button
             type="button"
