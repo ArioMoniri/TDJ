@@ -1,6 +1,7 @@
 "use client";
 import { type Song, type SongDataView, songData } from "@tdj/core";
 import { useMemo } from "react";
+import { t } from "@/lib/i18n";
 import { djDataOf } from "./artwork";
 import { patchedSong } from "./audio";
 import { type BpmChoice, bpmChoice } from "./songData";
@@ -34,18 +35,31 @@ export function useSongData(s: Song): { song: Song; data: SongDataView; bpm: Bpm
 }
 
 /** "124 BPM", "Am" — the short chips of a row */
-export const bpmText = (d: SongDataView) => (d.bpm ? `${Math.round(d.bpm.value as number)} BPM` : null);
+export const bpmText = (d: SongDataView) =>
+  d.bpm ? t("songView.bpm", { p1: Math.round(d.bpm.value as number) }) : null;
 export const keyText = (d: SongDataView) => (d.key ? String(d.key.value) : null);
 /** where a value came from, in the DJ's words */
 export const SOURCE_LABEL: Record<string, string> = {
-  dj: "yours",
+  get dj() {
+    return t("songView.yours");
+  },
   deezer: "Deezer",
   musicbrainz: "MusicBrainz",
-  coverart: "Cover Art Archive",
+  get coverart() {
+    return t("songView.cover_art_archive");
+  },
   discogs: "Discogs",
   spotify: "Spotify",
-  audio: "analysed preview",
-  index: "T-DJ catalogue",
-  knowledge: "tango reference",
-  heuristic: "guessed from the era",
+  get audio() {
+    return t("songView.analysed_preview");
+  },
+  get index() {
+    return t("songView.t_dj_catalogue");
+  },
+  get knowledge() {
+    return t("songView.tango_reference");
+  },
+  get heuristic() {
+    return t("songView.guessed_from_the_era");
+  },
 };

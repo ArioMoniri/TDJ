@@ -9,6 +9,7 @@ import {
   planBooth,
   type Song,
 } from "@tdj/core";
+import { t as tx } from "@/lib/i18n";
 
 export type { BoothLogEntry, BoothPlan, BoothPlanItem };
 /**
@@ -53,8 +54,8 @@ export function decorate(p: Playlist, plan: BoothPlan): BoothRows {
       const b = p.breaks?.find((x) => x.afterTanda === it.tanda - 1);
       return {
         ...it,
-        title: b?.label || "Break",
-        artist: `${Math.round(it.lengthSec / 60)} min`,
+        title: b?.label || tx("booth.plan.break"),
+        artist: tx("booth.plan.min", { p1: Math.round(it.lengthSec / 60) }),
         rhythm: "break",
       };
     }

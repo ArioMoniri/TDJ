@@ -1,5 +1,6 @@
 "use client";
 import { del, delMany, get, getMany, keys, setMany } from "idb-keyval";
+import { fmtDate, lazy, t as tx } from "@/lib/i18n";
 import { eraName, hoursText, lengthText, nightTitle } from "./nightName";
 import type { StorageMode } from "./overrides";
 import {
@@ -20,7 +21,15 @@ const stored = new Map<string, HistorySnapshot>();
 /** the server row is one DynamoDB item (400 KB): history there keeps the newest snapshots that fit this budget */
 export const SERVER_HISTORY_BYTES = 300_000;
 
-const WEEKDAY = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const WEEKDAY = lazy(() => [
+  tx("history.sunday"),
+  tx("history.monday"),
+  tx("history.tuesday"),
+  tx("history.wednesday"),
+  tx("history.thursday"),
+  tx("history.friday"),
+  tx("history.saturday"),
+]);
 const EVENT_LABEL: Record<string, string> = {
   milonga: "milonga",
   marathon: "marathon",
@@ -49,7 +58,11 @@ export function snapshotTitle(p: Playlist, at = new Date()): string {
 }
 /** "4 h · 22 tandas · Golden age": what the title used to carry. */
 export function snapshotMeta(p: Playlist): string {
-  return `${p.stats?.durationSec ? lengthText(p.stats.durationSec) : hoursText(p.options.hours)} · ${p.tandas.length} tandas · ${eraLabel(p)}`;
+  return tx("history.tandas_3", {
+    p1: p.stats?.durationSec ? lengthText(p.stats.durationSec) : hoursText(p.options.hours),
+    length: p.tandas.length,
+    p2: eraLabel(p),
+  });
 }
 
 /** The playlist without per-song chroma vectors (12 floats per track: the one bulky field nobody re-reads). */
@@ -141,14 +154,25 @@ export function pushSnapshot(list: HistorySnapshot[], s: HistorySnapshot): Histo
 
 /** what made a version, in the DJ's words (the stored `source` tags never show) */
 export const SOURCE_WORDS: Record<HistorySnapshot["source"], string> = {
-  compose: "Composed",
-  refine: "Adjusted",
-  swap: "Changed a song",
-  import: "Opened from a file",
-  room: "From a room",
+  get compose() {
+    return tx("history.composed_2");
+  },
+  get refine() {
+    return tx("history.adjusted");
+  },
+  get swap() {
+    return tx("history.changed_a_song");
+  },
+  get import() {
+    return tx("history.opened_from_a_file");
+  },
+  get room() {
+    return tx("history.from_a_room");
+  },
 };
 /** the current version's label: the edit that made it, else how the entry began */
-export const changeLabel = (s: HistorySnapshot) => s.change ?? SOURCE_WORDS[s.source] ?? "Composed";
+export const changeLabel = (s: HistorySnapshot) =>
+  s.change ?? SOURCE_WORDS[s.source] ?? tx("history.composed_2");
 
 const vid = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 
@@ -185,7 +209,7 @@ export function recordEdit(
 export function restoreVersion(entry: HistorySnapshot, versionId: string): HistorySnapshot | null {
   const v = entry.versions?.find((x) => x.id === versionId);
   if (!v) return null;
-  return recordEdit(entry, v.playlist, `Back to “${v.label}”`);
+  return recordEdit(entry, v.playlist, tx("history.back_to", { label: v.label }));
 }
 
 /** every version of an entry, newest first: the current one, then the kept ones */
@@ -308,10 +332,10 @@ export function groupByDay(list: HistorySnapshot[]): Array<{ label: string; item
     if (!g) {
       const label =
         key === dayKey(today)
-          ? "Today"
+          ? tx("history.today")
           : key === dayKey(yest)
-            ? "Yesterday"
-            : d.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
+            ? tx("history.yesterday")
+            : fmtDate(d, { weekday: "long", day: "numeric", month: "long" });
       g = { key, label, items: [] };
       out.push(g);
     }
@@ -386,10 +410,10 @@ export function nightLogSummary(n: NightLog): string {
   else {
     const h = Math.floor(n.playedSec / 3600);
     const m = Math.floor((n.playedSec % 3600) / 60);
-    parts.push(`${n.ended ? "played" : "played (unfinished)"} ${h}:${pad(m)} h`);
+    parts.push(`${n.ended ? "played" : tx("history.played_unfinished")} ${h}:${pad(m)} h`);
   }
-  if (n.holds) parts.push(`${n.holds} hold${n.holds === 1 ? "" : "s"}`);
-  if (n.birthdayVals) parts.push(`${n.birthdayVals} birthday vals`);
-  if (n.stops) parts.push(`${n.stops} stop${n.stops === 1 ? "" : "s"}`);
+  if (n.holds) parts.push(tx("history.hold", { holds: n.holds, p1: n.holds === 1 ? "" : "s" }));
+  if (n.birthdayVals) parts.push(tx("history.birthday_vals", { birthdayVals: n.birthdayVals }));
+  if (n.stops) parts.push(tx("history.stop", { stops: n.stops, p1: n.stops === 1 ? "" : "s" }));
   return parts.join(" · ");
 }

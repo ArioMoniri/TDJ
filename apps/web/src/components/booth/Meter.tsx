@@ -2,6 +2,7 @@
 import { useReducedMotion } from "motion/react";
 import { useEffect, useRef } from "react";
 import { useBooth } from "@/lib/booth/store";
+import { t } from "@/lib/i18n";
 
 /**
  * Level meter (round7-booth.md §4): a horizontal bar −60…0 dBFS with marks at −18 (room target region), −6 and −1
@@ -71,7 +72,7 @@ export function Meter({ className = "" }: { className?: string }) {
       ref={canvas}
       className={`block h-2 w-full rounded-full text-[var(--label)] ${className}`}
       role="img"
-      aria-label="Output level"
+      aria-label={t("booth.meter.output_level")}
       data-testid="booth-meter"
     />
   );

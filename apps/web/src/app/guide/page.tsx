@@ -3,6 +3,7 @@ import { Group, Row } from "@/components/Form";
 import { GuideBody } from "@/components/GuideSections";
 import { Tip } from "@/components/ui/Tip";
 import { EVIDENCE_COLOR, EVIDENCE_LABEL, fmtShift } from "@/lib/context";
+import { t } from "@/lib/i18n";
 import { getCatalog } from "@/lib/server/catalog";
 
 const REPO = "https://github.com/ArioMoniri/TDJ/blob/main";
@@ -10,52 +11,19 @@ const REPO = "https://github.com/ArioMoniri/TDJ/blob/main";
 export default function Guide() {
   const { contextModel } = getCatalog();
   const rows: Array<[string, string]> = [
-    [
-      "Tanda",
-      "3–4 recordings of one orchestra, one singer (or all instrumental), recorded within ~4 years. Tango tandas have 4; vals and milonga 3.",
-    ],
-    [
-      "Cycle",
-      "TTVTTM: two tango tandas, a vals tanda, two tango tandas, a milonga tanda. Vals and milonga never touch.",
-    ],
-    [
-      "Energy arc",
-      "Warm-up (Fresedo, Di Sarli, Canaro) → build (Caló, Tanturi, Troilo) → peaks (D'Arienzo, Biagi, Rodríguez, Donato) → Pugliese late → cool-down → La Cumparsita.",
-    ],
-    [
-      "Inside a tanda",
-      "Default shape: slow start, climb, strongest third, settle on the fourth so the floor exits gracefully. Hammock (Buenos Aires): announce with a hit, dip, close strongest.",
-    ],
-    [
-      "Cortina",
-      "30–60 s of non-tango music that clears the floor and cues the next tanda; T-DJ picks each one a little calmer than the tanda that follows.",
-    ],
-    [
-      "Score",
-      "The score reads a night the way an experienced DJ would: tandas that hold together, singers and years that match, orchestras spaced out and varied, energy that follows the night, cortinas that clear the floor and an ending that lands. A night scoring 85 out of 100 or more is one you could play at a big marathon. After you compose, How this set scored shows each part.",
-    ],
+    [t("guide.tanda"), t("guide.3_4_recordings_of_one_orchestra")],
+    [t("guide.cycle"), t("guide.ttvttm_two_tango_tandas_a_vals")],
+    [t("guide.energy_arc"), t("guide.warm_up_fresedo_di_sarli_canaro")],
+    [t("guide.inside_a_tanda"), t("guide.default_shape_slow_start_climb_strongest")],
+    [t("guide.cortina"), t("guide.30_60_s_of_non_tango")],
+    [t("guide.score"), t("guide.the_score_reads_a_night_the")],
   ];
   const takes: Array<[string, string]> = [
-    [
-      "Musical",
-      "One orchestra, one voice, a tight year window, energy that rises and settles; the right recording of a title, not just the title.",
-    ],
-    [
-      "Structural",
-      "The TTVTTM cycle, two peaks across the night, orchestras spaced out, a última tanda that sends people home singing.",
-    ],
-    [
-      "Floor",
-      "Who is dancing: level, age, ratio of roles, how full the room is, and when it empties. Milongueros and beginners want different Biagi.",
-    ],
-    [
-      "Context",
-      "Season, weather, room temperature, time slot, event type, holiday and region all move the energy, the vals and milonga share, and the cortina flavour.",
-    ],
-    [
-      "Technical",
-      "Every song found in your music folder, the right lengths, cortinas that cue in cleanly, and a set your DJ app opens without a fight.",
-    ],
+    [t("guide.musical"), t("guide.one_orchestra_one_voice_a_tight")],
+    [t("guide.structural"), t("guide.the_ttvttm_cycle_two_peaks_across")],
+    [t("guide.floor"), t("guide.who_is_dancing_level_age_ratio")],
+    [t("guide.context"), t("guide.season_weather_room_temperature_time_slot")],
+    [t("guide.technical"), t("guide.every_song_found_in_your_music")],
   ];
   const slug = (k: string) => k.toLowerCase().replace(/[^a-z0-9]+/g, "-");
   const toSections = (items: Array<[string, string]>) =>
@@ -63,14 +31,14 @@ export default function Guide() {
   return (
     <article className="mx-auto max-w-[680px]">
       <GuideBody
-        title="Guide"
-        subtitle="How T-DJ works, in a DJ's words."
+        title={t("guide.guide")}
+        subtitle={t("guide.how_t_dj_works_in_a")}
         rows={toSections(rows)}
         takes={toSections(takes)}
       />
-      <Group header="Read more" titleHeader>
+      <Group header={t("guide.read_more")} titleHeader>
         <Row
-          label="Factors, with sources"
+          label={t("guide.factors_with_sources")}
           chevron={false}
           href={`${REPO}/docs/ENHANCEMENTS.md#3-factors-a-great-milonga-set-takes-into-account`}
           className="text-[var(--tint)]"
@@ -78,7 +46,7 @@ export default function Guide() {
           <ExternalLink size={14} strokeWidth={2} className="cell-chevron" aria-hidden />
         </Row>
         <Row
-          label="Rules the DJ follows"
+          label={t("guide.rules_the_dj_follows")}
           chevron={false}
           href={`${REPO}/docs/AGENT_GUIDE.md`}
           className="text-[var(--tint)]"
@@ -88,10 +56,9 @@ export default function Guide() {
       </Group>
       {contextModel && (
         <>
-          <h2 className="text-title3 mt-8 px-4">Context factors</h2>
+          <h2 className="text-title3 mt-8 px-4">{t("guide.context_factors")}</h2>
           <p className="text-subhead mt-1 px-4 text-[var(--label-2)]">
-            What “Tonight” does: + livens the night, − calms it; vals and milonga are their share of the
-            night.
+            {t("guide.what_tonight_does_livens_the_night")}
           </p>
           {contextModel.factors.map((f) => (
             <Group key={f.id} header={f.label}>
@@ -129,10 +96,12 @@ export default function Guide() {
             </Group>
           ))}
           <p className="section-foot mt-3">
-            Dot:{" "}
-            {Object.entries(EVIDENCE_LABEL)
-              .map(([, l]) => l)
-              .join(" · ")}
+            {t("guide.dot", {
+              p1: " ",
+              p2: Object.entries(EVIDENCE_LABEL)
+                .map(([, l]) => l)
+                .join(" · "),
+            })}
           </p>
         </>
       )}

@@ -1,4 +1,5 @@
 "use client";
+import { lazy, t as tx } from "@/lib/i18n";
 import "./compose-db.css";
 import { type Playlist, placements, type SongQuery, searchSongs } from "@tdj/core";
 import { ListPlus, Repeat2, SlidersHorizontal, X } from "lucide-react";
@@ -15,12 +16,12 @@ import { SongRow } from "./SongRow";
 import { Tip } from "./Tip";
 
 const WIDTH_KEY = "tdj-search-panel-w";
-const RHYTHMS: Array<[string, string]> = [
-  ["", "All"],
-  ["tango", "Tango"],
-  ["vals", "Vals"],
-  ["milonga", "Milonga"],
-];
+const RHYTHMS: Array<[string, string]> = lazy(() => [
+  ["", tx("songSearchPanel.all")],
+  ["tango", tx("songSearchPanel.tango")],
+  ["vals", tx("songSearchPanel.vals")],
+  ["milonga", tx("songSearchPanel.milonga")],
+]);
 const yearNum = (v: string) => {
   const n = Number(v);
   return v.length === 4 && n >= 1900 && n <= 2030 ? n : undefined;
@@ -170,10 +171,15 @@ export function SongSearchPanel({
     });
     const j = (await r.json().catch(() => ({}))) as Playlist & { changed?: boolean; reason?: string };
     if (!j.changed) {
-      setNote({ text: j.reason ? `Not changed: ${j.reason}.` : "Not changed.", error: true });
+      setNote({
+        text: j.reason
+          ? tx("songSearchPanel.not_changed_2", { reason: j.reason })
+          : tx("songSearchPanel.not_changed"),
+        error: true,
+      });
       return;
     }
-    const msg = j.reason ? `${ok}. The tanda is yours now (${j.reason}).` : `${ok}.`;
+    const msg = j.reason ? tx("songSearchPanel.the_tanda_is_yours_now", { ok, reason: j.reason }) : `${ok}.`;
     setNote({ text: msg });
     await onChange?.(j, msg);
   };
@@ -181,10 +187,14 @@ export function SongSearchPanel({
     post(
       "/api/swap-track",
       { tandaIndex: tanda, trackIndex: track, songId: s.id, force: true, pin: true },
-      `${s.title} swapped into tanda ${tanda + 1}`,
+      tx("songSearchPanel.swapped_into_tanda", { title: s.title, p1: tanda + 1 }),
     );
   const addTo = (s: Song, tanda: number) =>
-    post("/api/add-side", { tandaIndex: tanda, songId: s.id }, `${s.title} added to tanda ${tanda + 1}`);
+    post(
+      "/api/add-side",
+      { tandaIndex: tanda, songId: s.id },
+      tx("songSearchPanel.added_to_tanda", { title: s.title, p1: tanda + 1 }),
+    );
   const startSwap = (s: Song) => {
     const t = target && playlist?.tandas[target.tanda];
     if (t && t.rhythm === s.rhythm && !(closedBefore !== undefined && target!.tanda <= closedBefore))
@@ -199,12 +209,12 @@ export function SongSearchPanel({
           id="song-search-text"
           value={text}
           onChange={setText}
-          placeholder="Title, orchestra or singer"
-          label="Search songs"
+          placeholder={tx("songSearchPanel.title_orchestra_or_singer")}
+          label={tx("songSearchPanel.search_songs")}
           busy={busy}
         />
         <fieldset className="mt-2 flex flex-wrap items-center gap-1.5 border-0 p-0">
-          <legend className="sr-only">Rhythm and filters</legend>
+          <legend className="sr-only">{tx("songSearchPanel.rhythm_and_filters")}</legend>
           {RHYTHMS.map(([k, l]) => (
             <button
               key={k || "all"}
@@ -216,7 +226,7 @@ export function SongSearchPanel({
               {l}
             </button>
           ))}
-          <Tip text="Only the sides already in tonight's night">
+          <Tip text={tx("songSearchPanel.only_the_sides_already_in_tonight")}>
             <button
               type="button"
               className="chip-filter min-h-11 sm:min-h-8"
@@ -224,15 +234,15 @@ export function SongSearchPanel({
               onClick={() => setInNight((v) => !v)}
               disabled={!playlist}
             >
-              Tonight
+              {tx("songSearchPanel.tonight")}
             </button>
           </Tip>
-          <Tip text="Orchestra, singer and a year range">
+          <Tip text={tx("songSearchPanel.orchestra_singer_and_a_year_range")}>
             <button
               type="button"
               className="icon-btn icon-btn-bare h-11 w-11"
               aria-expanded={more}
-              aria-label="More filters"
+              aria-label={tx("songSearchPanel.more_filters")}
               onClick={() => setMore((v) => !v)}
             >
               <SlidersHorizontal size={18} strokeWidth={2} />
@@ -242,31 +252,31 @@ export function SongSearchPanel({
         {more && (
           <div className="group-inset mt-2" data-testid="song-search-filters">
             <label className="cell" htmlFor="ss-orchestra">
-              <span className="w-24 shrink-0">Orchestra</span>
+              <span className="w-24 shrink-0">{tx("songSearchPanel.orchestra")}</span>
               <input
                 id="ss-orchestra"
                 className="field field-value min-w-0 flex-1"
                 value={orchestra}
                 onChange={(e) => setOrchestra(e.target.value)}
-                placeholder="Any"
+                placeholder={tx("songSearchPanel.any")}
                 autoComplete="off"
               />
             </label>
             <label className="cell" htmlFor="ss-singer">
-              <span className="w-24 shrink-0">Singer</span>
+              <span className="w-24 shrink-0">{tx("songSearchPanel.singer")}</span>
               <input
                 id="ss-singer"
                 className="field field-value min-w-0 flex-1"
                 value={singer}
                 onChange={(e) => setSinger(e.target.value)}
-                placeholder="Any, or instrumental"
+                placeholder={tx("songSearchPanel.any_or_instrumental")}
                 autoComplete="off"
               />
             </label>
             <div className="cell">
-              <span className="w-24 shrink-0">Years</span>
+              <span className="w-24 shrink-0">{tx("songSearchPanel.years")}</span>
               <input
-                aria-label="From year"
+                aria-label={tx("songSearchPanel.from_year")}
                 className="field field-value min-w-0 flex-1"
                 inputMode="numeric"
                 value={from}
@@ -275,7 +285,7 @@ export function SongSearchPanel({
               />
               <span className="text-[var(--label-2)]">–</span>
               <input
-                aria-label="To year"
+                aria-label={tx("songSearchPanel.to_year")}
                 className="field field-value min-w-0 flex-1"
                 inputMode="numeric"
                 value={to}
@@ -298,10 +308,12 @@ export function SongSearchPanel({
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-6" data-testid="song-search-results">
         {!ready ? (
           <p className="text-subhead py-8 text-center text-[var(--label-2)]">
-            Type a title, an orchestra or a singer, or pick filters.
+            {tx("songSearchPanel.type_a_title_an_orchestra_or")}
           </p>
         ) : !busy && !results.length ? (
-          <p className="text-subhead py-8 text-center text-[var(--label-2)]">Nothing matches.</p>
+          <p className="text-subhead py-8 text-center text-[var(--label-2)]">
+            {tx("songSearchPanel.nothing_matches")}
+          </p>
         ) : (
           <div className="group-inset mt-3">
             {results.map((s) => {
@@ -312,23 +324,26 @@ export function SongSearchPanel({
                   song={s}
                   testId="song-result"
                   pill={pl ? pl.label : undefined}
-                  pillTip={pl ? "Where this side plays tonight" : undefined}
+                  pillTip={pl ? tx("songSearchPanel.where_this_side_plays_tonight") : undefined}
                   trailing={
                     playlist && onChange ? (
                       <Menu
-                        label={`Actions for ${s.title}`}
+                        label={tx("songSearchPanel.actions_for", { title: s.title })}
                         className="icon-btn-bare -my-2 -mr-3 h-11 w-10"
                         items={[
                           {
                             label: target
-                              ? `Swap in for tanda ${target.tanda + 1}, song ${target.track + 1}`
-                              : "Swap in…",
+                              ? tx("songSearchPanel.swap_in_for_tanda_song", {
+                                  p1: target.tanda + 1,
+                                  p2: target.track + 1,
+                                })
+                              : tx("songSearchPanel.swap_in_2"),
                             icon: Repeat2,
                             onClick: () => startSwap(s),
                             disabled: !!pl,
                           },
                           {
-                            label: "Add to a tanda…",
+                            label: tx("songSearchPanel.add_to_a_tanda"),
                             icon: ListPlus,
                             onClick: () => setPick({ song: s, mode: "add" }),
                             disabled: !!pl,
@@ -351,13 +366,19 @@ export function SongSearchPanel({
     <Sheet
       open={!!pick}
       onClose={() => setPick(null)}
-      title={pick ? (pick.mode === "swap" ? `Swap in ${pick.song.title}` : `Add ${pick.song.title}`) : ""}
+      title={
+        pick
+          ? pick.mode === "swap"
+            ? tx("songSearchPanel.swap_in", { title: pick.song.title })
+            : tx("songSearchPanel.add", { title: pick.song.title })
+          : ""
+      }
       detents={["large"]}
       testId="song-target"
     >
       {pick && !targets.length && (
         <p className="text-subhead px-4 py-6 text-[var(--label-2)]">
-          Tonight has no {pick.song.rhythm} tanda.
+          {tx("songSearchPanel.tonight_has_no_tanda", { rhythm: pick.song.rhythm })}
         </p>
       )}
       {pick &&
@@ -367,7 +388,7 @@ export function SongSearchPanel({
               t.chairs.map((c) => (
                 <Row
                   key={c.track}
-                  label={`Replace ${c.title}`}
+                  label={tx("songSearchPanel.replace", { title: c.title })}
                   sub={c.year ? String(c.year) : undefined}
                   disabled={!!t.closed}
                   onClick={
@@ -384,7 +405,7 @@ export function SongSearchPanel({
               ))
             ) : (
               <Row
-                label={`Add as song ${t.chairs.length + 1}`}
+                label={tx("songSearchPanel.add_as_song", { p1: t.chairs.length + 1 })}
                 disabled={!!t.closed}
                 onClick={
                   t.closed
@@ -409,7 +430,7 @@ export function SongSearchPanel({
         <Sheet
           open={open}
           onClose={onClose}
-          title="Find songs"
+          title={tx("songSearchPanel.find_songs")}
           detents={["large"]}
           testId="song-search-sheet"
         >
@@ -425,15 +446,15 @@ export function SongSearchPanel({
         ref={panel}
         className="side-panel"
         style={{ width }}
-        aria-label="Find songs"
+        aria-label={tx("songSearchPanel.find_songs")}
         data-testid="song-search-panel"
       >
-        <Tip text="Drag to make the panel wider or narrower">
+        <Tip text={tx("songSearchPanel.drag_to_make_the_panel_wider")}>
           {/* biome-ignore lint/a11y/useSemanticElements: a focusable splitter (WAI-ARIA window splitter), resized with the arrow keys */}
           <button
             type="button"
             className="side-panel-handle"
-            aria-label="Resize the panel"
+            aria-label={tx("songSearchPanel.resize_the_panel")}
             role="separator"
             aria-orientation="vertical"
             aria-valuemin={PANEL_MIN}
@@ -458,11 +479,11 @@ export function SongSearchPanel({
           />
         </Tip>
         <header className="flex min-h-[52px] items-center gap-2 border-b border-[var(--separator)] px-4">
-          <h2 className="text-headline min-w-0 flex-1 truncate">Find songs</h2>
+          <h2 className="text-headline min-w-0 flex-1 truncate">{tx("songSearchPanel.find_songs")}</h2>
           <button
             type="button"
             className="icon-btn icon-btn-bare -mr-2 h-11 w-11"
-            aria-label="Close"
+            aria-label={tx("songSearchPanel.close")}
             onClick={onClose}
           >
             <X size={18} strokeWidth={2} />

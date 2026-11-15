@@ -14,6 +14,7 @@ import {
 import { json, jsonNoStore, noStore } from "@/lib/api/http";
 import { preview, resolve, resolveStatus } from "@/lib/api/net";
 import { spotifyMatch, spotifyPlaylist } from "@/lib/api/spotify";
+import { t } from "@/lib/i18n";
 import { profile } from "@/lib/spotifyWeb";
 import type { AgentMemory, AppOverrides, HistorySnapshot } from "@/lib/types";
 import type { AppDeps } from "./deps";
@@ -51,7 +52,8 @@ async function dbPut(req: Request, d: AppDeps): Promise<Response> {
   try {
     body = JSON.parse(text);
   } catch {}
-  if (!body || typeof body !== "object") return jsonNoStore({ error: "Invalid JSON" }, { status: 400 });
+  if (!body || typeof body !== "object")
+    return jsonNoStore({ error: t("routes.invalid_json") }, { status: 400 });
   const s = await d.store();
   const stamp = (o: AppOverrides) => {
     // connector URLs stay in the page's own storage, exactly as on the web
@@ -107,9 +109,9 @@ async function spotifyMe(_req: Request, d: AppDeps): Promise<Response> {
 
 async function spotifyAccess(req: Request, d: AppDeps): Promise<Response> {
   if (!(await d.spotify.enabled()))
-    return json({ error: "Spotify is not set up in this app" }, { status: 404 });
+    return json({ error: t("routes.spotify_is_not_set_up_in") }, { status: 404 });
   const s = await d.spotify.session(req);
-  if (!s) return json({ error: "Not logged in with Spotify" }, { status: 401 });
+  if (!s) return json({ error: t("routes.not_logged_in_with_spotify") }, { status: 401 });
   return jsonNoStore({ access: s.access, expires: s.expires });
 }
 
@@ -124,7 +126,8 @@ async function settingsGet(_req: Request, d: AppDeps): Promise<Response> {
 }
 async function settingsPut(req: Request, d: AppDeps): Promise<Response> {
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
-  if (!body || typeof body !== "object") return jsonNoStore({ error: "Invalid JSON" }, { status: 400 });
+  if (!body || typeof body !== "object")
+    return jsonNoStore({ error: t("routes.invalid_json") }, { status: 400 });
   // the Keychain holds the keys; the database only ever the mark that one is saved, for every provider
   const marked = (k: unknown) => {
     const o = k as { key?: string } | null;
@@ -142,13 +145,14 @@ async function settingsPut(req: Request, d: AppDeps): Promise<Response> {
  */
 async function nightResolve(req: Request, d: AppDeps): Promise<Response> {
   const body = (await req.json().catch(() => null)) as { night?: unknown } | null;
-  if (!body || typeof body !== "object") return json({ error: "This is not a night." }, { status: 400 });
+  if (!body || typeof body !== "object")
+    return json({ error: t("routes.this_is_not_a_night") }, { status: 400 });
   try {
     const { catalog, cortinas } = d.catalog();
     return json(importNight(body.night, { catalog, cortinas }));
   } catch (e) {
     return json(
-      { error: e instanceof NightFormatError ? e.message : "This night could not be opened." },
+      { error: e instanceof NightFormatError ? e.message : t("routes.this_night_could_not_be_opened") },
       { status: 400 },
     );
   }
@@ -205,10 +209,7 @@ function offline(path: string, method: string): Response {
   if (path === "/api/google/me" || path === "/api/dropbox/me")
     return jsonNoStore({ hosted: false, user: null });
   if (path === "/api/connect/accounts") return jsonNoStore({ enabled: false, accounts: [] });
-  return jsonNoStore(
-    { error: "Link your TDJ server under Settings → Connections to use this." },
-    { status: 404 },
-  );
+  return jsonNoStore({ error: t("routes.link_your_tdj_server_under_settings") }, { status: 404 });
 }
 
 export async function toWire(req: Request): Promise<WireRequest> {
@@ -231,10 +232,13 @@ export async function dispatch(req: Request, d: AppDeps): Promise<Response> {
     try {
       return await h(req, d);
     } catch (e) {
-      return json({ error: e instanceof Error ? e.message : "Something went wrong" }, { status: 500 });
+      return json(
+        { error: e instanceof Error ? e.message : t("routes.something_went_wrong") },
+        { status: 500 },
+      );
     }
   }
-  if (LOCAL[path] || device) return json({ error: "Method not allowed" }, { status: 405 });
+  if (LOCAL[path] || device) return json({ error: t("routes.method_not_allowed") }, { status: 405 });
   if (VIA_LINKED_SERVER.some((p) => path.startsWith(p))) {
     if (await d.host.linked().catch(() => false)) {
       const r = await d.host.remote(await toWire(req));
@@ -242,5 +246,5 @@ export async function dispatch(req: Request, d: AppDeps): Promise<Response> {
     }
     return offline(path, req.method);
   }
-  return json({ error: "Not found" }, { status: 404 });
+  return json({ error: t("routes.not_found") }, { status: 404 });
 }

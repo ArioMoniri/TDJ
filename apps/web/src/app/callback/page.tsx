@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { finishAppLogin } from "@/lib/app/login";
 import { APP } from "@/lib/app/target";
+import { t as tx } from "@/lib/i18n";
 import { rise, t } from "@/lib/motion";
 import { finishAuth } from "@/lib/spotify";
 import { useStore } from "@/lib/store";
@@ -25,7 +26,11 @@ export default function Callback() {
     const params = new URLSearchParams(location.search);
     const code = params.get("code");
     if (!code) {
-      setError(params.get("error") ? "Spotify did not grant access." : "Spotify did not return a code.");
+      setError(
+        params.get("error")
+          ? tx("callback.spotify_did_not_grant_access")
+          : tx("callback.spotify_did_not_return_a_code"),
+      );
       return;
     }
     finishAuth(settings.spotifyClientId, code)
@@ -33,7 +38,9 @@ export default function Callback() {
         setSpotifyToken(t);
         router.replace("/");
       })
-      .catch((e: unknown) => setError(e instanceof Error ? e.message : "Could not finish connecting."));
+      .catch((e: unknown) =>
+        setError(e instanceof Error ? e.message : tx("callback.could_not_finish_connecting")),
+      );
   }, [settings.spotifyClientId, setSpotifyToken, router]);
   // the card mounts with `rise`; on error the spinner cross-fades to the alert icon (125 ms) and the copy rises in
   return (
@@ -72,14 +79,14 @@ export default function Callback() {
       </span>
       {error ? (
         <motion.div variants={rise} initial="hidden" animate="show">
-          <p className="mt-2 font-semibold">Could not connect Spotify</p>
+          <p className="mt-2 font-semibold">{tx("callback.could_not_connect_spotify")}</p>
           <p className="text-muted mt-1 text-sm">{error}</p>
           <Link href="/settings" className="btn btn-ghost mt-4">
-            Back to Settings
+            {tx("callback.back_to_settings")}
           </Link>
         </motion.div>
       ) : (
-        <p className="mt-2 text-sm">Connecting to Spotify…</p>
+        <p className="mt-2 text-sm">{tx("callback.connecting_to_spotify")}</p>
       )}
     </motion.div>
   );

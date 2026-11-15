@@ -1,4 +1,5 @@
 import type { Feedback } from "@tdj/core";
+import { lazy, t } from "@/lib/i18n";
 
 export const FEEDBACK_VALUES: Feedback[] = [
   "more-energetic",
@@ -44,18 +45,18 @@ export const FEEDBACK_LABEL: Record<Feedback, string> = {
 };
 
 /** The chips shown under a finished set, in display order. */
-export const FEEDBACK_CHIPS: Array<[Feedback, string]> = [
-  ["more-energetic", "More energetic"],
-  ["calmer", "Calmer"],
-  ["warmer-start", "Warmer start"],
-  ["stronger-finish", "Stronger finish"],
-  ["more-vals", "More vals"],
-  ["more-milongas", "More milongas"],
-  ["fewer-repeats", "Fewer repeats"],
-  ["more-romantic", "More romantic"],
-  ["more-playful", "More playful"],
-  ["shorter-cortinas", "Shorter cortinas"],
-];
+export const FEEDBACK_CHIPS: Array<[Feedback, string]> = lazy(() => [
+  ["more-energetic", t("feedback.more_energetic")],
+  ["calmer", t("feedback.calmer")],
+  ["warmer-start", t("feedback.warmer_start")],
+  ["stronger-finish", t("feedback.stronger_finish")],
+  ["more-vals", t("feedback.more_vals")],
+  ["more-milongas", t("feedback.more_milongas")],
+  ["fewer-repeats", t("feedback.fewer_repeats")],
+  ["more-romantic", t("feedback.more_romantic")],
+  ["more-playful", t("feedback.more_playful")],
+  ["shorter-cortinas", t("feedback.shorter_cortinas")],
+]);
 
 const KEYWORDS: Array<[RegExp, Feedback]> = [
   [/\b(more )?(energ|lively|faster|punch|drive|up-?tempo)/i, "more-energetic"],

@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 /**
  * Round 22 (ROADMAP §1.7, §6): every indicator on a song row can be turned on or off, each with one line saying what
  * it shows. Pure data: the Settings page, the player's Show menu and the app builds read the same list.
@@ -7,20 +8,48 @@ export type IndicatorId = "energy" | "bpm" | "key" | "era" | "artwork";
 export const INDICATORS: ReadonlyArray<{ id: IndicatorId; label: string; explain: string }> = [
   {
     id: "energy",
-    label: "Energy",
-    explain: "How lively each song and tanda is (0–100), and the night's energy chart.",
+    get label() {
+      return t("booth.indicatorList.energy");
+    },
+    get explain() {
+      return t("booth.indicatorList.how_lively_each_song_and_tanda");
+    },
   },
-  { id: "bpm", label: "BPM", explain: "The tempo in beats per minute, where it was measured." },
-  { id: "key", label: "Key", explain: "The musical key (Camelot and name), from the analysed preview." },
+  {
+    id: "bpm",
+    get label() {
+      return t("booth.indicatorList.bpm");
+    },
+    get explain() {
+      return t("booth.indicatorList.the_tempo_in_beats_per_minute");
+    },
+  },
+  {
+    id: "key",
+    get label() {
+      return t("booth.indicatorList.key");
+    },
+    get explain() {
+      return t("booth.indicatorList.the_musical_key_camelot_and_name");
+    },
+  },
   {
     id: "era",
-    label: "Era badge",
-    explain: "Where each side sits in its orchestra's best years, from your heatmap.",
+    get label() {
+      return t("booth.indicatorList.era_badge");
+    },
+    get explain() {
+      return t("booth.indicatorList.where_each_side_sits_in_its");
+    },
   },
   {
     id: "artwork",
-    label: "Artwork",
-    explain: "Album covers on every row; a coloured tile per orchestra without one.",
+    get label() {
+      return t("booth.indicatorList.artwork");
+    },
+    get explain() {
+      return t("booth.indicatorList.album_covers_on_every_row_a");
+    },
   },
 ];
 

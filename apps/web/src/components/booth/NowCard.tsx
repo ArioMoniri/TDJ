@@ -3,6 +3,7 @@ import { Info, ListEnd } from "lucide-react";
 import { durationLabel } from "@/lib/booth/plan";
 import { SOURCE_LABEL } from "@/lib/booth/sources/types";
 import { useBooth } from "@/lib/booth/store";
+import { t } from "@/lib/i18n";
 import { metaLine, yearText } from "@/lib/year";
 import { Artwork } from "../ui/Artwork";
 import { BpmKey, EnergyChip } from "../ui/BpmKey";
@@ -30,7 +31,7 @@ export function eyebrowFor(
         : "closing"
       : item.kind === "break"
         ? "break"
-        : `tanda ${item.tanda} of ${tandas}`;
+        : t("booth.nowCard.tanda_of", { tanda: item.tanda, tandas });
   return [
     where,
     RHYTHM[item.rhythm] ?? item.rhythm,
@@ -77,25 +78,25 @@ export function NowCard({ onInfo }: { onInfo?: (planIndex: number) => void }) {
   const orchestra = entity && "orchestra" in entity ? entity.orchestra : item.artist;
   const statusText =
     state === "idle"
-      ? "Ready"
+      ? t("booth.nowCard.ready")
       : state === "armed"
-        ? "Ready: tap play"
+        ? t("booth.nowCard.ready_tap_play")
         : state === "paused"
           ? paused
-            ? "Paused: tap Resume"
-            : "Holding"
+            ? t("booth.nowCard.paused_tap_resume")
+            : t("booth.nowCard.holding")
           : state === "stopped"
-            ? "Stopped"
+            ? t("booth.nowCard.stopped")
             : holding
-              ? "Holding after this song"
+              ? t("booth.nowCard.holding_after_this_song")
               : null;
   return (
-    <section className="booth-card" data-testid="booth-now" aria-label="Now playing">
+    <section className="booth-card" data-testid="booth-now" aria-label={t("booth.nowCard.now_playing")}>
       <div className="booth-now-head">
         <Artwork entity={entity} orchestra={orchestra} size={96} />
         <div className="min-w-0 flex-1">
           <p className="booth-eyebrow" data-hint="Where this song sits in the night">
-            <span className="text-[var(--room)]">● Room</span> ·{" "}
+            <span className="text-[var(--room)]">{t("booth.nowCard.room")}</span> ·{" "}
             {eyebrowFor(item, playlist?.tandas.length ?? 0, false)}
           </p>
           <h2 className="booth-title" data-testid="booth-now-title">
@@ -118,7 +119,7 @@ export function NowCard({ onInfo }: { onInfo?: (planIndex: number) => void }) {
             <span
               className="flex items-center gap-1"
               role="img"
-              aria-label={`${k + 1} of ${tandaItems.length}`}
+              aria-label={t("booth.nowCard.of", { p1: k + 1, length: tandaItems.length })}
             >
               {tandaItems.map((x, i) => (
                 <i
@@ -129,14 +130,17 @@ export function NowCard({ onInfo }: { onInfo?: (planIndex: number) => void }) {
             </span>
           )}
           <span className="text-caption1 text-[var(--label-2)]">
-            {statusText ?? (item.kind === "cortina" ? "cortina" : `${k + 1} of ${tandaItems.length}`)}
+            {statusText ??
+              (item.kind === "cortina"
+                ? t("booth.nowCard.cortina")
+                : t("booth.nowCard.of", { p1: k + 1, length: tandaItems.length }))}
           </span>
         </div>
         <span
           className="booth-big"
           data-testid="booth-remaining"
           role="timer"
-          aria-label="Remaining in this song"
+          aria-label={t("booth.nowCard.remaining_in_this_song")}
         >
           {live || state === "paused" ? durationLabel(remaining) : durationLabel(length)}
         </span>
@@ -150,8 +154,8 @@ export function NowCard({ onInfo }: { onInfo?: (planIndex: number) => void }) {
         >
           {src === "missing" && item.kind !== "break"
             ? rehearsal
-              ? "No 30 s clip of this song: the rehearsal passes over it"
-              : "Nothing to play this song from: passed over"
+              ? t("booth.nowCard.no_30_s_clip_of_this")
+              : t("booth.nowCard.nothing_to_play_this_song_from")
             : SOURCE_LABEL[src]}
         </span>
         {current && (
@@ -160,24 +164,29 @@ export function NowCard({ onInfo }: { onInfo?: (planIndex: number) => void }) {
             data-testid="booth-gain"
             data-hint="The level correction that keeps every song as loud as the last"
           >
-            {current.gainDb > 0 ? "+" : ""}
-            {current.gainDb.toFixed(1)} dB
-            {current.peakCapped ? " · peak-capped" : ""}
-            {current.gainFrom === "prior"
-              ? " · estimated from a preview"
-              : current.gainFrom === "none"
-                ? " · no measurement"
-                : ""}
+            {t("booth.nowCard.db", {
+              p1: current.gainDb > 0 ? "+" : "",
+              gainDb: current.gainDb.toFixed(1),
+              p2: current.peakCapped ? t("booth.nowCard.peak_capped") : "",
+              p3:
+                current.gainFrom === "prior"
+                  ? t("booth.nowCard.estimated_from_a_preview")
+                  : current.gainFrom === "none"
+                    ? t("booth.nowCard.no_measurement")
+                    : "",
+            })}
           </span>
         )}
-        {item.birthday && <span className="booth-chip">birthday vals</span>}
+        {item.birthday && <span className="booth-chip">{t("booth.nowCard.birthday_vals")}</span>}
         {ducked && (
           <span className="booth-chip" data-testid="booth-ducked">
-            talk-over · −12 dB
+            {t("booth.nowCard.talk_over_12_db")}
           </span>
         )}
         {/* the source badge already says "30 s rehearsal" when the item plays from a preview */}
-        {rehearsal && src !== "preview" && <span className="booth-chip">30 s rehearsal</span>}
+        {rehearsal && src !== "preview" && (
+          <span className="booth-chip">{t("booth.nowCard.30_s_rehearsal")}</span>
+        )}
       </div>
       <div className="booth-now-actions">
         {/* wave 2: never offered on the opening or closing La Cumparsita (no tanda to end) */}
@@ -190,7 +199,7 @@ export function NowCard({ onInfo }: { onInfo?: (planIndex: number) => void }) {
             data-testid="booth-end-tanda"
             data-hint="The song plays to its end, then the cortina: the rest of this tanda is left out (c)"
           >
-            <ListEnd size={16} strokeWidth={2} aria-hidden /> End tanda after this song
+            <ListEnd size={16} strokeWidth={2} aria-hidden /> {t("booth.nowCard.end_tanda_after_this_song")}
           </button>
         )}
         {onInfo && item.kind !== "break" && (
@@ -201,7 +210,7 @@ export function NowCard({ onInfo }: { onInfo?: (planIndex: number) => void }) {
             data-testid="booth-now-info"
             data-hint="Versions, cue and stop, BPM and key of this song"
           >
-            <Info size={16} strokeWidth={2} aria-hidden /> Song info
+            <Info size={16} strokeWidth={2} aria-hidden /> {t("booth.nowCard.song_info")}
           </button>
         )}
       </div>
@@ -209,7 +218,7 @@ export function NowCard({ onInfo }: { onInfo?: (planIndex: number) => void }) {
       {rehearsal && notRehearsable.length > 0 && (
         <details className="booth-norehearse mt-2" data-testid="booth-skipped">
           <summary className="text-footnote text-[var(--label-2)]">
-            {notRehearsable.length} not rehearsable: no clip of the Spotify recording
+            {t("booth.nowCard.not_rehearsable_no_clip_of_the", { length: notRehearsable.length })}
           </summary>
           <ul className="text-footnote mt-1 grid gap-0.5 text-[var(--label-2)]">
             {notRehearsable.map((x) => (
@@ -219,7 +228,7 @@ export function NowCard({ onInfo }: { onInfo?: (planIndex: number) => void }) {
             ))}
           </ul>
           <p className="text-footnote mt-1 text-[var(--label-3)]">
-            They are left out of the rehearsal and play in full from Spotify or your files.
+            {t("booth.nowCard.they_are_left_out_of_the")}
           </p>
         </details>
       )}

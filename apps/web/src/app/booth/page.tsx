@@ -30,6 +30,7 @@ import { Sheet } from "@/components/Sheet";
 import { BoothSongSearch } from "@/components/ui/BoothSongSearch";
 import { boothContextState, boothEngine, useBooth } from "@/lib/booth/store";
 import { useMediaQuery } from "@/lib/hooks";
+import { t } from "@/lib/i18n";
 import { usePlayer } from "@/lib/player";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
@@ -233,16 +234,16 @@ function Booth() {
   if (!playlist)
     return (
       <div>
-        <PageHeader title="Booth" />
+        <PageHeader title={t("booth.booth")} />
         <EmptyState
           action={
             <Link href="/" className="btn btn-primary">
-              Compose
+              {t("booth.compose")}
             </Link>
           }
         >
-          <span className="text-headline block text-[var(--label)]">Compose a night first</span>
-          <span className="block">The booth plays the set on the Compose tab.</span>
+          <span className="text-headline block text-[var(--label)]">{t("booth.compose_a_night_first")}</span>
+          <span className="block">{t("booth.the_booth_plays_the_set_on")}</span>
         </EmptyState>
       </div>
     );
@@ -251,28 +252,32 @@ function Booth() {
   // round 22: every night and song tool has its own home (the night bar, the transport, Mix, the song sheet); the
   // overflow keeps set-up and the app
   const menu: Array<MenuItem | false> = [
-    { label: "Set-up (source, output, night)…", onClick: () => setOnboarding(true) },
+    { label: t("booth.set_up_source_output_night"), onClick: () => setOnboarding(true) },
     {
-      label: rehearsal ? "Rehearsal (30 s) · on" : "Rehearsal (30 s)",
+      label: rehearsal ? t("booth.rehearsal_30_s_on") : t("booth.rehearsal_30_s"),
       onClick: () => void b.setSourceMode(rehearsal ? "file" : "preview"),
       disabled: started,
     },
     {
-      label: "Link music folder…",
+      label: t("booth.link_music_folder"),
       onClick: () =>
         b.folder.canKeep ? void b.linkFolder() : document.getElementById("booth-folder-input")?.click(),
     },
-    { label: "Show: energy, BPM, key, era, artwork…", icon: Eye, onClick: () => setShow(true) },
-    { label: "Keyboard shortcuts", icon: Keyboard, onClick: () => setKeys(true) },
-    { label: light ? "Dark theme" : "Light theme", onClick: () => setLight((v) => !v) },
+    { label: t("booth.show_energy_bpm_key_era_artwork"), icon: Eye, onClick: () => setShow(true) },
+    { label: t("booth.keyboard_shortcuts"), icon: Keyboard, onClick: () => setKeys(true) },
+    { label: light ? t("booth.dark_theme") : t("booth.light_theme"), onClick: () => setLight((v) => !v) },
     // (a phone has no tab bar on the booth: this is its way out, before the night too)
-    (started || phone) && { label: "Leave the booth", icon: LogOut, onClick: () => router.push("/") },
+    (started || phone) && {
+      label: t("booth.leave_the_booth"),
+      icon: LogOut,
+      onClick: () => router.push("/"),
+    },
     started && {
-      label: "End the night",
+      label: t("booth.end_the_night"),
       destructive: true,
       onClick: () => {
         void b.endNight();
-        toast("The night's log is in History");
+        toast(t("booth.the_night_s_log_is_in"));
       },
     },
   ];
@@ -280,7 +285,7 @@ function Booth() {
   return (
     <div className="booth" data-state={state} data-testid="booth" data-rehearsal={rehearsal || undefined}>
       {/* the title keeps one width; the mode is a chip under it (round8-ux.md §2 Booth) */}
-      <PageHeader title="Booth" />
+      <PageHeader title={t("booth.booth")} />
       <PlayerToolbar rehearsal={rehearsal} />
       <Banners />
       <BoothSongSearch />
@@ -294,7 +299,7 @@ function Booth() {
           </div>
         </div>
         {!phone && (
-          <aside className="booth-col-set" aria-label="The night and its set list">
+          <aside className="booth-col-set" aria-label={t("booth.the_night_and_its_set_list")}>
             <NightBar onBreak={() => setBreakOpen(true)} />
             <SetColumn
               jumpTo={jump}
@@ -309,7 +314,7 @@ function Booth() {
         <Sheet
           open={setOpen}
           onClose={() => setSetOpen(false)}
-          title="Set list"
+          title={t("booth.controlStrip.set_list")}
           trailing="Done"
           detents={["large"]}
           testId="booth-set-sheet"
@@ -342,7 +347,7 @@ function Booth() {
         type="file"
         multiple
         className="sr-only"
-        aria-label="Music folder"
+        aria-label={t("booth.music_folder")}
         data-testid="booth-folder-input"
         {...({ webkitdirectory: "" } as Record<string, string>)}
         onChange={(e) => {
@@ -367,7 +372,7 @@ function Booth() {
       <Sheet
         open={more}
         onClose={() => setMore(false)}
-        title="Booth"
+        title={t("booth.booth")}
         detents={["medium", "large"]}
         testId="booth-menu"
       >

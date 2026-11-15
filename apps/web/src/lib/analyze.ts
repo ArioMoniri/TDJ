@@ -1,4 +1,5 @@
 "use client";
+import { t } from "@/lib/i18n";
 import { effectiveSong } from "./audio";
 import { previewEndpoint } from "./player";
 import { useStore } from "./store";
@@ -17,10 +18,10 @@ function getWorker(): Worker {
     if (!w) return;
     waiting.delete(e.data.id);
     if (e.data.features) w.ok(e.data.features);
-    else w.fail(new Error(e.data.error ?? "Analysis failed"));
+    else w.fail(new Error(e.data.error ?? t("analyze.analysis_failed")));
   };
   worker.onerror = () => {
-    for (const w of waiting.values()) w.fail(new Error("The analysis worker crashed"));
+    for (const w of waiting.values()) w.fail(new Error(t("analyze.the_analysis_worker_crashed")));
     waiting.clear();
     worker = null;
   };
@@ -35,16 +36,16 @@ export async function analyzePreview(previewUrl: string, rhythm?: string): Promi
     const j = await fetch(previewUrl)
       .then((x) => (x.ok ? x.json() : null))
       .catch(() => null);
-    if (!j?.url) throw new Error("no preview available right now");
+    if (!j?.url) throw new Error(t("analyze.no_preview_available_right_now"));
     src = j.url as string;
   }
   const r = await fetch(src, { mode: "cors" });
-  if (!r.ok) throw new Error(`Preview request failed (${r.status})`);
+  if (!r.ok) throw new Error(t("analyze.preview_request_failed", { status: r.status }));
   const buf = await r.arrayBuffer();
   const Ctx =
     window.AudioContext ??
     (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-  if (!Ctx) throw new Error("This browser cannot decode audio");
+  if (!Ctx) throw new Error(t("analyze.this_browser_cannot_decode_audio"));
   const ctx = new Ctx();
   let decoded: AudioBuffer;
   try {
@@ -75,7 +76,7 @@ export function keyLabel(a: Pick<AudioFeatures, "key" | "mode" | "camelot">): st
 /** "F♯ minor · 118 BPM" */
 export function featuresSummary(a: AudioFeatures): string {
   const k = NOTE_NAMES[a.key] ?? a.key;
-  return `${k} ${a.mode} · ${Math.round(a.bpm)} BPM`;
+  return t("analyze.bpm", { k, mode: a.mode, p1: Math.round(a.bpm) });
 }
 
 /* ---- store-aware helpers ---- */
@@ -93,7 +94,7 @@ export async function analyseSong(song: Song, rhythm?: string, quiet = false): P
   const eff = effectiveSong(song, st.overrides);
   const url = eff.resolved?.previewUrl ? `${previewEndpoint(eff.resolved)}&json=1` : null;
   if (!url) {
-    if (!quiet) toast(`No preview for ${song.title}: use "Find on services" first.`);
+    if (!quiet) toast(t("analyze.no_preview_for_use_find_on", { title: song.title }));
     return null;
   }
   if (inFlight.has(song.id)) return null;
@@ -107,7 +108,7 @@ export async function analyseSong(song: Song, rhythm?: string, quiet = false): P
     if (!quiet) toast(`Analysed: ${featuresSummary(features)}`);
     return features;
   } catch (e) {
-    if (!quiet) toast(`Could not analyse ${song.title}: ${(e as Error).message}`);
+    if (!quiet) toast(t("analyze.could_not_analyse", { title: song.title, message: (e as Error).message }));
     return null;
   } finally {
     inFlight.delete(song.id);
@@ -129,10 +130,13 @@ export async function analyseTanda(songs: Song[], rhythm: string): Promise<numbe
   }
   toast(
     n
-      ? `Analysed ${n} ${n === 1 ? "track" : "tracks"}${skipped ? ` · ${skipped} without a preview` : ""}`
+      ? `Analysed ${n} ${n === 1 ? "track" : "tracks"}${skipped ? ` ${t("analyze.without_a_preview", { skipped })}` : ""}`
       : skipped
-        ? `${skipped} ${skipped === 1 ? "track has" : "tracks have"} no preview yet: use "Find on services"`
-        : "Every track in this tanda is already analysed",
+        ? t("analyze.no_preview_yet_use_find_on", {
+            skipped,
+            p1: skipped === 1 ? t("analyze.track_has") : t("analyze.tracks_have"),
+          })
+        : t("analyze.every_track_in_this_tanda_is"),
   );
   return n;
 }

@@ -3,6 +3,7 @@ import { Check, ChevronRight, ChevronsUpDown, LoaderCircle, Music } from "lucide
 import { type HTMLAttributes, type ReactNode, useId, useState } from "react";
 import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
+import { t as tx } from "@/lib/i18n";
 import { Sheet } from "./Sheet";
 import { useTip } from "./ui/Tip";
 
@@ -119,7 +120,7 @@ export function Row({
       )}
     </>
   );
-  const cls = `cell w-full text-left ${onClick || href ? "cell-tap" : ""} ${className}`;
+  const cls = tx("form.cell_w_full_text_left", { p1: onClick || href ? "cell-tap" : "", className });
   const lead = tile ? "tile" : leading;
   if (href)
     return (
@@ -400,7 +401,7 @@ export function ActionRow({
       className={`cell cell-tap w-full justify-center ${destructive ? "text-[var(--destructive)]" : "text-[var(--tint)]"} disabled:text-[var(--label-3)]`}
     >
       {t.tag}
-      {busy ? <LoaderCircle size={16} className="animate-spin" aria-label="Working" /> : label}
+      {busy ? <LoaderCircle size={16} className="animate-spin" aria-label={tx("form.working")} /> : label}
     </button>
   );
 }
@@ -587,7 +588,11 @@ export function MultiPickerRow<K extends string>({
   const [open, setOpen] = useState(false);
   const chosen = items.filter(([k]) => values.includes(k)).map(([, l]) => l);
   const text =
-    chosen.length === 0 ? "None" : chosen.length <= 2 ? chosen.join(", ") : `${chosen.length} chosen`;
+    chosen.length === 0
+      ? tx("form.none")
+      : chosen.length <= 2
+        ? chosen.join(", ")
+        : tx("form.chosen", { length: chosen.length });
   return (
     <>
       <Row label={label} value={text} chevron onClick={() => setOpen(true)} tip={tip}>

@@ -5,6 +5,7 @@ import { type ReactNode, useState } from "react";
 import { djDataOf } from "@/lib/artwork";
 import { enabledSources, fillMissing } from "@/lib/fill/client";
 import { SOURCES, type SourceId, type SourceInfo } from "@/lib/fill/sources";
+import { t as tx } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 import { ActionRow, FieldRow, Group, Row, SwitchRow } from "../Form";
 import { Sheet } from "../Sheet";
@@ -45,12 +46,12 @@ export function DataSources() {
     setSettings({ dataSources: { ...ds, enabled: { ...(ds.enabled ?? {}), [id]: on } } });
   const status = (s: SourceInfo) =>
     active.includes(s.id)
-      ? "On"
+      ? tx("dataSources.on")
       : s.needs === "token"
-        ? "Needs your token"
+        ? tx("dataSources.needs_your_token")
         : s.needs === "spotify"
-          ? "Log in to Spotify"
-          : "Off";
+          ? tx("dataSources.log_in_to_spotify")
+          : tx("dataSources.off");
 
   const fillNight = async () => {
     if (!playlist) return;
@@ -63,22 +64,22 @@ export function DataSources() {
     );
     let filled = 0;
     for (const [i, s] of todo.entries()) {
-      setProgress(`Filling ${i + 1} of ${todo.length}: ${s.title}`);
+      setProgress(tx("dataSources.filling_of", { p1: i + 1, length: todo.length, title: s.title }));
       const r = await fillMissing(s).catch(() => null);
       if (r?.filled.length) filled++;
     }
     setProgress(
       todo.length
-        ? `Done: new data for ${filled} of ${todo.length} sides with gaps.`
-        : "Every side of tonight's night already has its data.",
+        ? tx("dataSources.done_new_data_for_of_sides", { filled, length: todo.length })
+        : tx("dataSources.every_side_of_tonight_s_night"),
     );
   };
 
   return (
     <>
       <Group
-        header="Data sources"
-        footer="Where missing BPM, key, level, artwork and dates come from. Your own edits in the Database always win over every source."
+        header={tx("dataSources.data_sources")}
+        footer={tx("dataSources.where_missing_bpm_key_level_artwork")}
         id="data-sources"
       >
         {added.map((s) => (
@@ -97,22 +98,24 @@ export function DataSources() {
           />
         ))}
         <ActionRow
-          label="Add a source…"
-          tip="Another place to fill in missing BPM, key, artwork or dates, such as Discogs or Spotify"
+          label={tx("dataSources.add_a_source_2")}
+          tip={tx("dataSources.another_place_to_fill_in_missing")}
           onClick={() => setAdding(true)}
           disabled={!available.length}
         />
         <Row
-          tip="Asks your sources for every side of tonight's night that is missing something"
+          tip={tx("dataSources.asks_your_sources_for_every_side")}
           tile={
             <span className="tile" style={{ background: "#5856d6" }} aria-hidden>
               <DatabaseZap size={16} strokeWidth={2} />
             </span>
           }
-          label="Fill tonight's night"
+          label={tx("dataSources.fill_tonight_s_night")}
           sub={
             progress ??
-            (playlist ? "BPM, key, level, artwork and dates for its sides" : "Compose a night first")
+            (playlist
+              ? tx("dataSources.bpm_key_level_artwork_and_dates")
+              : tx("dataSources.compose_a_night_first"))
           }
           chevron
           disabled={!playlist}
@@ -124,17 +127,17 @@ export function DataSources() {
       <Sheet
         open={adding}
         onClose={() => setAdding(false)}
-        title="Add a source"
+        title={tx("dataSources.add_a_source")}
         trailing="Done"
         testId="add-source"
       >
-        <Group footer="A source fills only what is missing; it never changes a value you set yourself.">
+        <Group footer={tx("dataSources.a_source_fills_only_what_is")}>
           {available.map((s) => (
             <Row
               key={s.id}
               tile={tile(s)}
               label={s.name}
-              sub={`${s.gives} · ${s.needs === "nothing" ? "no account needed" : s.needs === "token" ? "your own token" : "your Spotify login"}`}
+              sub={`${s.gives} · ${s.needs === "nothing" ? tx("dataSources.no_account_needed") : s.needs === "token" ? tx("dataSources.your_own_token") : tx("dataSources.your_spotify_login")}`}
               value="Add"
               onClick={() => {
                 setOn(s.id, true);
@@ -147,7 +150,7 @@ export function DataSources() {
               data-testid={`add-${s.id}`}
             />
           ))}
-          {!available.length && <Row label="Every source is added" />}
+          {!available.length && <Row label={tx("dataSources.every_source_is_added")} />}
         </Group>
       </Sheet>
 
@@ -166,14 +169,14 @@ export function DataSources() {
           <>
             <Group footer={open.gives}>
               <SwitchRow
-                label={`Use ${open.name}`}
+                label={tx("dataSources.use", { name: open.name })}
                 checked={isOn(open)}
                 onChange={(v) => setOn(open.id, v)}
               />
             </Group>
             {open.needs === "token" && (
-              <Group header="Your token" footer={open.tokenHelp}>
-                <FieldRow label="Token" id="discogs-token">
+              <Group header={tx("dataSources.your_token")} footer={open.tokenHelp}>
+                <FieldRow label={tx("dataSources.token")} id="discogs-token">
                   <input
                     id="discogs-token"
                     type="password"
@@ -182,15 +185,13 @@ export function DataSources() {
                     onChange={(e) => setToken(e.target.value)}
                     autoComplete="off"
                     spellCheck={false}
-                    placeholder="Paste it here"
+                    placeholder={tx("dataSources.paste_it_here")}
                   />
                 </FieldRow>
               </Group>
             )}
             {open.needs === "spotify" && !connected && (
-              <p className="section-foot">
-                Log in to Spotify above; artwork and dates then come from your account.
-              </p>
+              <p className="section-foot">{tx("dataSources.log_in_to_spotify_above_artwork")}</p>
             )}
           </>
         )}

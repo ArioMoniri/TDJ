@@ -3,6 +3,7 @@ import { Check, LoaderCircle, Pause, Play } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { ResolveResponse } from "@/lib/api/net";
 import { haptic } from "@/lib/haptics";
+import { t } from "@/lib/i18n";
 import { usePlayer } from "@/lib/player";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
@@ -60,7 +61,7 @@ export function ResolveSheet({
             data: {
               candidates: [],
               suggestions: {},
-              error: "Could not reach T-DJ. Check your connection and try again.",
+              error: t("resolveSheet.could_not_reach_t_dj_check"),
             },
           }),
       );
@@ -84,7 +85,13 @@ export function ResolveSheet({
   const use = (c: ResolvedTrack) => {
     haptic(6);
     setPatch({ resolved: c });
-    toast(`Using ${c.artist} – ${c.title}${c.previewUrl ? " (preview available)" : ""}`);
+    toast(
+      t("resolveSheet.using", {
+        artist: c.artist,
+        title: c.title,
+        p1: c.previewUrl ? t("resolveSheet.preview_available") : "",
+      }),
+    );
   };
   const previewId = (c: ResolvedTrack) => `cand-${c.provider}-${c.id}`;
   const togglePreview = (c: ResolvedTrack) => {
@@ -98,11 +105,17 @@ export function ResolveSheet({
     });
   };
   return (
-    <Sheet open={open} onClose={onClose} title="Find on services" trailing="Done" testId="resolve-sheet">
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title={t("resolveSheet.find_on_services")}
+      trailing="Done"
+      testId="resolve-sheet"
+    >
       <p className="section-foot mt-2">
         {song.title} · {song.orchestra}
         {song.singer ? ` · ${song.singer}` : ""}
-        {yearNow ? ` · ${song.yearApprox ? "c. " : ""}${yearNow}` : " · year unknown"}
+        {yearNow ? ` · ${song.yearApprox ? "c. " : ""}${yearNow}` : t("resolveSheet.year_unknown")}
       </p>
       {(yearChip || singerChip) && (
         <div className="flex flex-wrap gap-2 px-4 pt-3" data-testid="resolve-suggestions">
@@ -112,10 +125,10 @@ export function ResolveSheet({
               className="chip"
               onClick={() => {
                 setPatch({ year: sug.year });
-                toast(`Year set to ${sug.year}`);
+                toast(t("resolveSheet.year_set_to", { year: sug.year }));
               }}
             >
-              Apply year {sug.year}
+              {t("resolveSheet.apply_year", { year: sug.year })}
             </button>
           )}
           {singerChip && (
@@ -124,29 +137,35 @@ export function ResolveSheet({
               className="chip"
               onClick={() => {
                 setPatch({ singer: sug.singer });
-                toast(`Singer set to ${sug.singer}`);
+                toast(t("resolveSheet.singer_set_to", { singer: sug.singer }));
               }}
             >
-              Apply singer {sug.singer}
+              {t("resolveSheet.apply_singer", { singer: sug.singer })}
             </button>
           )}
         </div>
       )}
       <Group
-        header={state.busy ? "Searching…" : `${state.data?.candidates.length ?? 0} candidates`}
+        header={
+          state.busy
+            ? t("resolveSheet.searching_2")
+            : t("resolveSheet.candidates", { p1: state.data?.candidates.length ?? 0 })
+        }
         footer={
           state.data?.error
-            ? `Some services did not answer: ${state.data.error}. Deezer previews are 30 s; recording years come from MusicBrainz first-release dates, never from streaming reissue dates.`
-            : "Deezer gives the 30 s preview and artwork; MusicBrainz gives the recording's first-release year. Streaming album dates are reissues and are never used as the year."
+            ? t("resolveSheet.some_services_did_not_answer_deezer", { error: state.data.error })
+            : t("resolveSheet.deezer_gives_the_30_s_preview")
         }
       >
         {state.busy && (
           <div className="cell justify-center text-[var(--label-2)]">
-            <LoaderCircle size={16} className="animate-spin" aria-label="Searching" />
+            <LoaderCircle size={16} className="animate-spin" aria-label={t("resolveSheet.searching")} />
           </div>
         )}
         {!state.busy && state.data?.candidates.length === 0 && (
-          <div className="cell text-[var(--label-2)]">Nothing matched on Deezer or MusicBrainz.</div>
+          <div className="cell text-[var(--label-2)]">
+            {t("resolveSheet.nothing_matched_on_deezer_or_musicbrainz")}
+          </div>
         )}
         {state.data?.candidates.map((c) => {
           const isChosen = chosen?.provider === c.provider && chosen.id === c.id;
@@ -170,7 +189,9 @@ export function ResolveSheet({
                 />
               ) : (
                 <span className="tile-art" aria-hidden>
-                  <span className="text-caption1 font-semibold">{c.provider === "deezer" ? "DZ" : "MB"}</span>
+                  <span className="text-caption1 font-semibold">
+                    {c.provider === "deezer" ? t("resolveSheet.dz") : t("resolveSheet.mb")}
+                  </span>
                 </span>
               )}
               <span className="min-w-0 flex-1">
@@ -180,14 +201,19 @@ export function ResolveSheet({
                   {c.album ? ` · ${c.album}` : ""}
                   {c.year ? ` · ${c.year}` : ""}
                   {c.durationMs ? ` · ${fmtDur(c.durationMs)}` : ""} ·{" "}
-                  {c.provider === "deezer" ? "Deezer" : "MusicBrainz"} · {Math.round(c.confidence * 100)} %
+                  {c.provider === "deezer" ? t("resolveSheet.deezer") : t("resolveSheet.musicbrainz")} ·{" "}
+                  {Math.round(c.confidence * 100)} %
                 </span>
               </span>
               {c.previewUrl && (
                 <button
                   type="button"
                   className="icon-btn icon-btn-bare -my-2"
-                  aria-label={playing ? `Pause preview of ${c.title}` : `Play preview of ${c.title}`}
+                  aria-label={
+                    playing
+                      ? t("resolveSheet.pause_preview_of", { title: c.title })
+                      : t("resolveSheet.play_preview_of", { title: c.title })
+                  }
                   onClick={() => togglePreview(c)}
                 >
                   {playing ? (
@@ -205,10 +231,10 @@ export function ResolveSheet({
               >
                 {isChosen ? (
                   <>
-                    <Check size={16} strokeWidth={2.5} aria-hidden /> In use
+                    <Check size={16} strokeWidth={2.5} aria-hidden /> {t("resolveSheet.in_use")}
                   </>
                 ) : (
-                  "Use this"
+                  t("resolveSheet.use_this")
                 )}
               </button>
             </div>
@@ -216,8 +242,12 @@ export function ResolveSheet({
         })}
       </Group>
       {patch.resolved && (
-        <Group footer="Back to the shared index entry for this recording.">
-          <ActionRow label="Forget my choice" destructive onClick={() => setPatch({ resolved: undefined })} />
+        <Group footer={t("resolveSheet.back_to_the_shared_index_entry")}>
+          <ActionRow
+            label={t("resolveSheet.forget_my_choice")}
+            destructive
+            onClick={() => setPatch({ resolved: undefined })}
+          />
         </Group>
       )}
     </Sheet>

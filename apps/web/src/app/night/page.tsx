@@ -16,6 +16,7 @@ import { TipRow } from "@/components/TipRow";
 import { Tip } from "@/components/ui/Tip";
 import { haptic } from "@/lib/haptics";
 import { makeSnapshot } from "@/lib/history";
+import { t as tx } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 
@@ -23,7 +24,7 @@ import { toast } from "@/lib/toast";
 const APP_FILE_KEY = "tdj-night-file";
 const fmtMin = (sec: number) => {
   const m = Math.round(sec / 60);
-  return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60 ? `${m % 60} min` : ""}`.trim() : `${m} min`;
+  return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60 ? `${m % 60} min` : ""}`.trim() : tx("night.min", { m });
 };
 
 /**
@@ -60,7 +61,7 @@ export default function NightPage() {
           body: JSON.stringify({ night }),
         });
         const body = (await r.json()) as ImportResult & { error?: string };
-        if (!r.ok) throw new Error(body.error || "This night could not be opened.");
+        if (!r.ok) throw new Error(body.error || tx("night.this_night_could_not_be_opened"));
         setState({ kind: "ready", night, result: body }, t);
       } catch (e) {
         setState({ kind: "error", message: (e as Error).message }, t);
@@ -80,10 +81,10 @@ export default function NightPage() {
         if (id) {
           const r = await fetch(`/api/night?id=${id}`);
           const body = (await r.json()) as { night?: NightFile; error?: string };
-          if (!r.ok || !body.night) throw new Error(body.error || "This link has expired.");
+          if (!r.ok || !body.night) throw new Error(body.error || tx("night.this_link_has_expired"));
           return resolve(body.night, t);
         }
-        setState({ kind: "error", message: "This is not a T-DJ night link." }, t);
+        setState({ kind: "error", message: tx("night.this_is_not_a_t_dj") }, t);
       } catch (e) {
         setState({ kind: "error", message: (e as Error).message }, t);
       }
@@ -95,7 +96,7 @@ export default function NightPage() {
     async (f: File) => {
       const t = ++ticket.current;
       try {
-        if (f.size > 2_000_000) throw new Error("This file is too large to be a night.");
+        if (f.size > 2_000_000) throw new Error(tx("night.this_file_is_too_large_to"));
         await resolve(parseNightFile(await f.text()), t);
       } catch (e) {
         setState({ kind: "error", message: (e as Error).message }, t);
@@ -143,7 +144,7 @@ export default function NightPage() {
     addSnapshot(makeSnapshot(p, p.options, "import"));
     setPlaylist(p);
     replaceOptions({ ...p.options });
-    toast(`“${p.name}” is in History and open in Compose`);
+    toast(tx("night.is_in_history_and_open_in", { name: p.name }));
     router.push("/#result");
   };
 
@@ -154,7 +155,7 @@ export default function NightPage() {
   return (
     <section
       className="mx-auto max-w-[720px]"
-      aria-label="Open a night"
+      aria-label={tx("night.open_a_night")}
       onDragOver={(e) => {
         e.preventDefault();
         setDragging(true);
@@ -168,11 +169,16 @@ export default function NightPage() {
       }}
     >
       <PageHeader
-        title={p ? p.name : "Open a night"}
+        title={p ? p.name : tx("night.open_a_night")}
         subtitle={
           p
-            ? `${p.tandas.length} tandas · ${p.tandas.reduce((a, t) => a + t.songs.length, 0)} songs · ${fmtMin(p.stats.durationSec)} · score ${p.score.total}`
-            : "A night another DJ shared, from a link or a file."
+            ? tx("night.tandas_songs_score", {
+                length: p.tandas.length,
+                p1: p.tandas.reduce((a, t) => a + t.songs.length, 0),
+                durationSec: fmtMin(p.stats.durationSec),
+                total: p.score.total,
+              })
+            : tx("night.a_night_another_dj_shared_from")
         }
       />
       <input
@@ -180,7 +186,7 @@ export default function NightPage() {
         type="file"
         accept={`${NIGHT_EXTENSION},application/json,application/vnd.tdj.night+json`}
         className="sr-only"
-        aria-label="Choose a night file"
+        aria-label={tx("night.choose_a_night_file_2")}
         data-testid="night-file-input"
         onChange={(e) => {
           const f = e.target.files?.[0];
@@ -191,7 +197,7 @@ export default function NightPage() {
 
       {state.kind === "loading" && (
         <p className="text-subhead py-10 text-center text-[var(--label-2)]" role="status">
-          Opening the night…
+          {tx("night.opening_the_night")}
         </p>
       )}
 
@@ -207,9 +213,9 @@ export default function NightPage() {
       {(state.kind === "pick" || state.kind === "error") && (
         <>
           <Group
-            header="From a file"
+            header={tx("night.from_a_file")}
             footer={
-              dragging ? "Drop the file to open it." : "Or drop a .tdjnight file anywhere on this page."
+              dragging ? tx("night.drop_the_file_to_open_it") : tx("night.or_drop_a_tdjnight_file_anywhere")
             }
           >
             <TipRow
@@ -218,14 +224,14 @@ export default function NightPage() {
                   <FileUp size={16} strokeWidth={2} />
                 </Tile>
               }
-              label="Choose a night file…"
-              sub=".tdjnight"
+              label={tx("night.choose_a_night_file")}
+              sub={tx("night.tdjnight")}
               chevron
               onClick={() => fileInput.current?.click()}
-              tip="Opens a .tdjnight file from this device"
+              tip={tx("night.opens_a_tdjnight_file_from_this")}
             />
           </Group>
-          <Group header="From a link" footer="Paste a T-DJ night link someone sent you.">
+          <Group header={tx("night.from_a_link")} footer={tx("night.paste_a_t_dj_night_link")}>
             <form
               className="cell gap-2"
               onSubmit={(e) => {
@@ -242,10 +248,10 @@ export default function NightPage() {
                 inputMode="url"
                 autoComplete="off"
                 spellCheck={false}
-                aria-label="Night link"
+                aria-label={tx("night.night_link")}
               />
               <button type="submit" className="btn btn-primary min-h-[44px]" disabled={!pasted.trim()}>
-                Open
+                {tx("night.open")}
               </button>
             </form>
           </Group>
@@ -254,22 +260,22 @@ export default function NightPage() {
 
       {ready && p && (
         <>
-          <Group footer="It lands in History and opens in Compose, ready to edit, play and export to Spotify.">
-            <Tip text="Keeps this night in History and opens it in Compose" className="w-full">
+          <Group footer={tx("night.it_lands_in_history_and_opens")}>
+            <Tip text={tx("night.keeps_this_night_in_history_and")} className="w-full">
               <button
                 type="button"
                 className="btn btn-primary min-h-[50px] w-full"
                 onClick={importIt}
                 data-testid="night-import"
               >
-                Import this night
+                {tx("night.import_this_night")}
               </button>
             </Tip>
           </Group>
           {missing.length > 0 && (
             <Group
-              header={`Not in this catalogue (${missing.length})`}
-              footer="These stay in their tandas as shared. Those with a Spotify recording still export to Spotify."
+              header={tx("night.not_in_this_catalogue", { length: missing.length })}
+              footer={tx("night.these_stay_in_their_tandas_as")}
               data-testid="night-missing"
             >
               {missing.map((m) => (
@@ -282,7 +288,7 @@ export default function NightPage() {
               ))}
             </Group>
           )}
-          <Group header="Tandas" data-testid="night-tandas">
+          <Group header={tx("night.tandas")} data-testid="night-tandas">
             {p.tandas.map((t, i) => (
               <TipRow
                 key={`${i}-${t.orchestraId}`}
@@ -300,7 +306,9 @@ export default function NightPage() {
                 }
               />
             ))}
-            {p.closing && <TipRow label={`Closing · ${p.closing.title}`} sub={p.closing.orchestra} />}
+            {p.closing && (
+              <TipRow label={tx("night.closing", { title: p.closing.title })} sub={p.closing.orchestra} />
+            )}
           </Group>
         </>
       )}

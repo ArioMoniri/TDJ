@@ -1,17 +1,19 @@
 "use client";
+import { t } from "@/lib/i18n";
 import "./compose-db.css";
 import "./indicators.css";
-import { type Cortina, ERA_MARK_LABEL, ERA_MARKS, ERA_WORDS, type EraMark } from "@tdj/core";
+import { type Cortina, ERA_MARKS, type EraMark } from "@tdj/core";
 import { memo } from "react";
 import { useIndicators } from "@/lib/booth/indicatorPrefs";
 import { ERA_CLASSES, eraOf, eraOfSong } from "@/lib/era";
+import { eraMarkLabel, eraWords } from "@/lib/eraWords";
 import { useStore } from "@/lib/store";
 import type { Song } from "@/lib/types";
 import { Tip } from "./Tip";
 
 /* the app's one era vocabulary (core ERA_WORDS, wave 2): the chip's word and its meaning */
-const SHORT = (m: EraMark) => ERA_WORDS[m].word;
-const WHY = (m: EraMark) => ERA_WORDS[m].meaning;
+const SHORT = (m: EraMark) => eraWords(m).word;
+const WHY = (m: EraMark) => eraWords(m).meaning;
 
 type EraSong = Pick<Song, "orchestraId" | "orchestra" | "vocal" | "year" | "yearApprox">;
 type Entity = Song | Cortina | null | undefined;
@@ -72,7 +74,7 @@ export const EraBadge = memo(function EraBadge(
   const { song, compact = false, overlay = false, className = "" } = props;
   const e = chipOn ? eraOfSong(song, edits) : undefined;
   if (!e) return null;
-  const text = `${e.year} is ${WHY(e.mark)} (${song.vocal ? "with a singer" : "instrumental"}).`;
+  const text = `${e.year} is ${WHY(e.mark)} (${song.vocal ? t("eraBadge.with_a_singer") : "instrumental"}).`;
   return (
     <Tip text={text} className={`${overlay ? "era-overlay" : ""} ${className}`}>
       <span
@@ -81,7 +83,7 @@ export const EraBadge = memo(function EraBadge(
         data-compact={compact || undefined}
         data-testid="era-badge"
         role="img"
-        aria-label={ERA_MARK_LABEL[e.mark]}
+        aria-label={eraMarkLabel(e.mark)}
       >
         {compact ? null : SHORT(e.mark)}
       </span>
@@ -117,7 +119,7 @@ export function EraLegend({
   return (
     <span className={`flex flex-wrap items-center gap-2 ${className}`} data-testid="era-legend">
       {ERA_MARKS.map((m) => (
-        <Tip key={m} text={`${ERA_MARK_LABEL[m]}: ${WHY(m)}.`}>
+        <Tip key={m} text={`${eraMarkLabel(m)}: ${WHY(m)}.`}>
           <span className="era-badge" data-mark={m}>
             {SHORT(m)}
           </span>

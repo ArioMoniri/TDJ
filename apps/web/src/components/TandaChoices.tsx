@@ -1,4 +1,5 @@
 "use client";
+import { t as tx } from "@/lib/i18n";
 import type { Playlist } from "@/lib/types";
 import { Group, RhythmTile, Row } from "./Form";
 import { Sheet } from "./Sheet";
@@ -30,16 +31,16 @@ export function TandaChoices({
   const planFit = (e: number, plan: number) => {
     const d = Math.round(e - plan);
     return Math.abs(d) <= 4
-      ? "right on the plan"
+      ? tx("tandaChoices.right_on_the_plan")
       : d > 0
-        ? `${d} livelier than the plan`
-        : `${-d} calmer than the plan`;
+        ? tx("tandaChoices.livelier_than_the_plan", { d })
+        : tx("tandaChoices.calmer_than_the_plan", { p1: -d });
   };
   return (
     <Sheet
       open={open}
       onClose={onClose}
-      title={t ? `Swap tanda ${index! + 1}` : "Swap tanda"}
+      title={t ? tx("tandaChoices.swap_tanda_2", { p1: index! + 1 }) : tx("tandaChoices.swap_tanda")}
       trailing="Cancel"
       detents={["medium", "large"]}
       testId="tanda-choices"
@@ -47,18 +48,22 @@ export function TandaChoices({
       {t && (
         <>
           <p className="text-footnote px-4 pt-2 text-[var(--label-2)]">
-            Now: {t.orchestra}
-            {t.singer ? ` / ${t.singer}` : ""} · {t.rhythm} · energy {Math.round(t.energy)}. The plan here is
-            about {Math.round(t.targetEnergy)}; the closest choices come first.
+            {tx("tandaChoices.now_energy_the_plan_here_is", {
+              orchestra: t.orchestra,
+              p1: t.singer ? ` / ${t.singer}` : "",
+              rhythm: t.rhythm,
+              p2: Math.round(t.energy),
+              p3: Math.round(t.targetEnergy),
+            })}
           </p>
           <Group
-            header="Choose one"
+            header={tx("tandaChoices.choose_one")}
             footer={
               busy
-                ? "Finding tandas that keep the night's rules…"
+                ? tx("tandaChoices.finding_tandas_that_keep_the_night")
                 : options && !options.length
-                  ? "No other family keeps the night's rules in this place."
-                  : "Every choice keeps the night's rules: the orchestra gaps, the years, the songs already played."
+                  ? tx("tandaChoices.no_other_family_keeps_the_night")
+                  : tx("tandaChoices.every_choice_keeps_the_night_s")
             }
           >
             {(options ?? []).map((p) => {
@@ -67,10 +72,13 @@ export function TandaChoices({
                 <Row
                   key={x.songs.map((s) => s.id).join(",")}
                   tile={<RhythmTile rhythm={x.rhythm} />}
-                  label={`${x.orchestra}${x.singer ? ` / ${x.singer}` : " · instrumental"}`}
-                  sub={`${yrs(x.yearRange)} · energy ${Math.round(x.energy)}, ${planFit(x.energy, t.targetEnergy)} · ${x.songs
-                    .map((s) => s.title)
-                    .join(", ")}`}
+                  label={`${x.orchestra}${x.singer ? ` / ${x.singer}` : tx("tandaChoices.instrumental")}`}
+                  sub={tx("tandaChoices.energy", {
+                    p1: yrs(x.yearRange),
+                    p2: Math.round(x.energy),
+                    p3: planFit(x.energy, t.targetEnergy),
+                    p4: x.songs.map((s) => s.title).join(", "),
+                  })}
                   chevron
                   onClick={() => onPick(p)}
                   data-testid="tanda-choice"

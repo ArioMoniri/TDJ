@@ -7,6 +7,7 @@ import {
   type ResolvedTrack,
   type Song,
 } from "@tdj/core";
+import { t as tx } from "@/lib/i18n";
 
 /**
  * Round 18 (docs/specs/round18-booth.md): the booth plays, times and rehearses the side's checked Spotify recording.
@@ -69,26 +70,30 @@ const secs = (ms: number) => Math.round(ms / 1000);
  * (the DJ's pick in "Find on services").
  */
 export function rehearsalClip(e: Entity, resolved?: ResolvedTrack | null): ClipVerdict {
-  if (!e) return { clip: null, why: "nothing to play" };
+  if (!e) return { clip: null, why: tx("booth.clips.nothing_to_play") };
   const sp = spotifyOf(e);
   if (sp?.previewUrl && SPOTIFY_PREVIEW.test(sp.previewUrl))
     return { clip: { from: "spotify", url: sp.previewUrl } };
   const r = resolved === undefined ? (e.resolved ?? null) : resolved;
   if (!r?.previewUrl && !r?.id)
-    return { clip: null, why: sp ? "no clip of the Spotify recording" : "no clip and no Spotify match" };
+    return {
+      clip: null,
+      why: sp
+        ? tx("booth.clips.no_clip_of_the_spotify_recording")
+        : tx("booth.clips.no_clip_and_no_spotify_match"),
+    };
   // no Spotify match: the Deezer record is the item's only recording
   if (!sp) return { clip: { from: "deezer", resolved: r } };
   const spMs = sp.durationMs;
-  if (!spMs || !r.durationMs)
-    return { clip: null, why: "no length to prove the clip is the Spotify recording" };
+  if (!spMs || !r.durationMs) return { clip: null, why: tx("booth.clips.no_length_to_prove_the_clip") };
   if (Math.abs(r.durationMs - spMs) / 1000 > SAME_RECORDING_TOL_SEC)
     return {
       clip: null,
-      why: `the clip is another transfer or take (${secs(r.durationMs)} s, Spotify ${secs(spMs)} s)`,
+      why: tx("booth.clips.the_clip_is_another_transfer_or", { p1: secs(r.durationMs), p2: secs(spMs) }),
     };
   const cand = deezerCandidate(r, e.title);
   const why = isSong(e) ? matchProblem(e, cand, spMs / 1000) : cortinaMatchProblem(e, cand);
-  if (why) return { clip: null, why: `the clip is not the Spotify recording: ${why}` };
+  if (why) return { clip: null, why: tx("booth.clips.the_clip_is_not_the_spotify", { why }) };
   return { clip: { from: "deezer", resolved: r } };
 }
 

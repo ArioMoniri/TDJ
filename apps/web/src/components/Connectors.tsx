@@ -16,6 +16,7 @@ import { appLogin } from "@/lib/app/login";
 import { nativeInfo } from "@/lib/app/native";
 import { SPOTIFY_APP_REDIRECT } from "@/lib/app/pkce";
 import { APP } from "@/lib/app/target";
+import { t } from "@/lib/i18n";
 import {
   beginAuth,
   CONNECT_FALLBACK,
@@ -37,38 +38,60 @@ import { Sheet } from "./Sheet";
 type Status = "checking" | "ok" | "down" | "idle";
 /* status values in the DJ's words, not the engineering's (round8-ux.md §1.10) */
 const statusText: Record<Status, string> = {
-  checking: "Checking…",
-  ok: "Reachable",
-  down: "Offline",
-  idle: "Built in",
+  get checking() {
+    return t("connectors.checking");
+  },
+  get ok() {
+    return t("connectors.reachable");
+  },
+  get down() {
+    return t("connectors.offline");
+  },
+  get idle() {
+    return t("connectors.built_in");
+  },
 };
 const DEPLOY_DOCS = "https://github.com/ArioMoniri/TDJ/blob/main/docs/DEPLOY.md#connectors";
 const APP_META: Record<ConnectApp, { color: string; icon: ReactNode; sub: string; blurb: string }> = {
   youtube_data_api: {
     color: "#ff0000",
     icon: <ListVideo size={16} strokeWidth={2} />,
-    sub: "Playlists · YouTube Music sees them too",
-    blurb:
-      "Creates a YouTube playlist in your account (YouTube Music shows it as well). Matching uses a daily search budget shared by every T-DJ user, so some 78-rpm recordings may be left out; the result lists them.",
+    get sub() {
+      return t("connectors.playlists_youtube_music_sees_them_too");
+    },
+    get blurb() {
+      return t("connectors.creates_a_youtube_playlist_in_your");
+    },
   },
   dropbox: {
     color: "#0061ff",
     icon: <Cloud size={16} strokeWidth={2} />,
-    sub: "Export files to your Dropbox",
-    blurb:
-      "Saves the chosen export file (Rekordbox XML, Traktor NML, M3U8, CSV…) into the TDJ app folder of your Dropbox.",
+    get sub() {
+      return t("connectors.export_files_to_your_dropbox");
+    },
+    get blurb() {
+      return t("connectors.saves_the_chosen_export_file_rekordbox_2");
+    },
   },
   google_drive: {
     color: "#1fa463",
     icon: <HardDrive size={16} strokeWidth={2} />,
-    sub: "Export files to your Drive",
-    blurb: "Saves the chosen export file into your Google Drive. T-DJ only sees files it created.",
+    get sub() {
+      return t("connectors.export_files_to_your_drive");
+    },
+    get blurb() {
+      return t("connectors.saves_the_chosen_export_file_into");
+    },
   },
   spotify: {
     color: "#1db954",
     icon: <Radio size={16} strokeWidth={2} />,
-    sub: "Playlists",
-    blurb: "Spotify through Pipedream: the same 5-listeners-per-app rule applies to Pipedream's Spotify app.",
+    get sub() {
+      return t("connectors.playlists");
+    },
+    get blurb() {
+      return t("connectors.spotify_through_pipedream_the_same_5");
+    },
   },
 };
 const GOOGLE_COLOR = "#4285f4";
@@ -89,8 +112,7 @@ export async function fetchPublicStatus(): Promise<PublicStatus | null> {
   }
 }
 /** The message a DJ sends the organiser to get one of the Spotify seats. */
-export const seatRequest = (origin: string) =>
-  `Hi! I would like to use T-DJ (${origin}) with my Spotify account. Could you add my Spotify e-mail to the app's User Management list in the Spotify dashboard? My Spotify e-mail: ______. Thanks!`;
+export const seatRequest = (origin: string) => t("connectors.hi_i_would_like_to_use", { origin });
 
 /** The status dot in front of a row value: green connected, grey not, amber needs attention. */
 function Dot({ tone }: { tone: "on" | "off" | "warn" }) {
@@ -112,18 +134,23 @@ const withDot = (tone: "on" | "off" | "warn", text: string) => (
 
 /** What the OAuth callback says in the URL, as one toast. */
 function arrivalToast(connected: string | null, error: string | null): string {
-  if (connected === "spotify") return "Logged in with Spotify";
-  if (connected === "google") return "Connected with Google";
-  if (connected === "dropbox") return "Connected to Dropbox";
-  if (connected) return "Connected. You can close the other tab.";
+  if (connected === "spotify") return t("connectors.logged_in_with_spotify");
+  if (connected === "google") return t("connectors.connected_with_google");
+  if (connected === "dropbox") return t("connectors.connected_to_dropbox");
+  if (connected) return t("connectors.connected_you_can_close_the_other");
   const m = error?.match(/^(spotify|google|dropbox)_(\w+)$/);
   if (m) {
-    const who = m[1] === "spotify" ? "Spotify" : m[1] === "google" ? "Google" : "Dropbox";
-    if (m[2] === "denied") return `${who} did not grant access.`;
-    if (m[2] === "state") return "The login expired; try again.";
-    return `Could not finish the ${who} login.`;
+    const who =
+      m[1] === "spotify"
+        ? t("connectors.spotify")
+        : m[1] === "google"
+          ? t("connectors.google")
+          : t("connectors.dropbox");
+    if (m[2] === "denied") return t("connectors.did_not_grant_access", { who });
+    if (m[2] === "state") return t("connectors.the_login_expired_try_again");
+    return t("connectors.could_not_finish_the_login", { who });
   }
-  return "The connection was not completed.";
+  return t("connectors.the_connection_was_not_completed");
 }
 
 /**
@@ -189,14 +216,18 @@ export function Connectors() {
       await navigator.clipboard.writeText(seatRequest(location.origin));
       setRequestCopied(true);
       setTimeout(() => setRequestCopied(false), 1500);
-      toast("Request copied; paste it to the organiser");
+      toast(t("connectors.request_copied_paste_it_to_the"));
     } catch {
-      toast("Copy failed; select the text and copy it by hand");
+      toast(t("connectors.copy_failed_select_the_text_and"));
     }
   };
   const seats = pub?.seats.spotify;
-  const seatsNote = seats ? ` ${seats.used} of ${seats.max} seats are handed out.` : "";
-  const contactNote = pub?.ownerContact ? ` Organiser: ${pub.ownerContact}.` : "";
+  const seatsNote = seats
+    ? ` ${t("connectors.of_seats_are_handed_out", { used: seats.used, max: seats.max })}`
+    : "";
+  const contactNote = pub?.ownerContact
+    ? ` ${t("connectors.organiser_2", { ownerContact: pub.ownerContact })}`
+    : "";
   const webhookUrl = overrides.connectors?.webhookUrl ?? "";
   const hosted = spotify?.hosted ?? false;
   const hostedUser = spotify?.user ?? null;
@@ -204,19 +235,19 @@ export function Connectors() {
   const minutesLeft = spotifyToken ? Math.max(0, Math.round((spotifyToken.expires - Date.now()) / 60000)) : 0;
   const spotifyValue =
     spotify === null
-      ? "Checking…"
+      ? t("connectors.checking")
       : hosted
         ? hostedUser
           ? withDot("on", hostedUser.name)
-          : withDot("off", "Log in")
+          : withDot("off", t("connectors.log_in"))
         : byoConnected
-          ? withDot("on", `Connected · ${minutesLeft} min`)
+          ? withDot("on", t("connectors.connected_min", { minutesLeft }))
           : settings.spotifyClientId
             ? withDot("off", "Connect")
-            : withDot("warn", "Set up");
+            : withDot("warn", t("connectors.set_up"));
   const directValue = (s: typeof google) =>
     s === null
-      ? "Checking…"
+      ? t("connectors.checking")
       : !s.hosted
         ? withDot("off", "Off")
         : s.user
@@ -225,7 +256,7 @@ export function Connectors() {
   const pdEnabled = connect?.enabled ?? false;
   const accountFor = (app: ConnectApp) => connect?.accounts.find((a) => a.app === app);
   const connectValue = (app: ConnectApp) => {
-    if (connect === null) return "Checking…";
+    if (connect === null) return t("connectors.checking");
     if (!connect.enabled) return withDot("off", "Off");
     const a = accountFor(app);
     return a
@@ -263,12 +294,12 @@ export function Connectors() {
   const saveHook = () => {
     const v = draft.trim();
     if (v && !/^https:\/\//i.test(v)) {
-      toast("The webhook must be an https:// URL");
+      toast(t("connectors.the_webhook_must_be_an_https"));
       return;
     }
     updateOverrides((o) => ({ ...o, connectors: { ...(o.connectors ?? {}), webhookUrl: v || undefined } }));
     setOpen(null);
-    toast(v ? "Webhook saved in this browser" : "Webhook removed");
+    toast(v ? t("connectors.webhook_saved_in_this_browser") : t("connectors.webhook_removed"));
   };
   const logout = async () => {
     setBusy("logout");
@@ -276,7 +307,7 @@ export function Connectors() {
       await hostedLogout();
       setSpotifyToken(null);
       await reload();
-      toast("Logged out of Spotify");
+      toast(t("connectors.logged_out_of_spotify"));
     } finally {
       setBusy(null);
     }
@@ -286,7 +317,11 @@ export function Connectors() {
     try {
       await directLogout(provider);
       await reload();
-      toast(provider === "google" ? "Disconnected from Google" : "Disconnected from Dropbox");
+      toast(
+        provider === "google"
+          ? t("connectors.disconnected_from_google")
+          : t("connectors.disconnected_from_dropbox"),
+      );
     } finally {
       setBusy(null);
     }
@@ -295,7 +330,7 @@ export function Connectors() {
     setBusy(app);
     try {
       await openConnectLink(app);
-      toast("Finish in the new tab, then come back here");
+      toast(t("connectors.finish_in_the_new_tab_then"));
     } catch (e) {
       toast((e as Error).message);
     } finally {
@@ -305,11 +340,20 @@ export function Connectors() {
   const tile = (color: string, icon: ReactNode) => <Tile color={color}>{icon}</Tile>;
   const notEnabled = (what: string, service: string) => (
     <Group
-      header="Account"
-      footer={`${what} The person who runs this T-DJ site has not turned it on yet: they paste ${service}'s sign-in details in Owner setup.${pdEnabled ? " Pipedream Connect is on here instead; see Advanced below." : ""}`}
+      header={t("connectors.account")}
+      footer={t("connectors.the_person_who_runs_this_t", {
+        what,
+        service,
+        p1: pdEnabled ? t("connectors.pipedream_connect_is_on_here_instead") : "",
+      })}
     >
-      <Row label="Status" value="Not turned on for this site" />
-      <Row label="How to turn it on" sub="Step by step, for the site's owner" chevron href={DEPLOY_DOCS} />
+      <Row label={t("connectors.status")} value="Not turned on for this site" />
+      <Row
+        label={t("connectors.how_to_turn_it_on")}
+        sub={t("connectors.step_by_step_for_the_site")}
+        chevron
+        href={DEPLOY_DOCS}
+      />
     </Group>
   );
   const googleUser = google?.user ?? null;
@@ -327,7 +371,9 @@ export function Connectors() {
     <Row
       key={app}
       tile={tile(APP_META[app].color, APP_META[app].icon)}
-      label={`${(connect ?? CONNECT_FALLBACK).apps.find((a) => a.slug === app)?.label ?? app} via Pipedream`}
+      label={t("connectors.via_pipedream_2", {
+        p1: (connect ?? CONNECT_FALLBACK).apps.find((a) => a.slug === app)?.label ?? app,
+      })}
       sub={APP_META[app].sub}
       value={connectValue(app)}
       chevron
@@ -343,24 +389,24 @@ export function Connectors() {
         key={app}
         open={open === `pd:${app}`}
         onClose={() => setOpen(null)}
-        title={`${label} via Pipedream`}
+        title={t("connectors.via_pipedream", { label })}
         trailing="Done"
       >
         <Group
-          header="Account"
-          footer={`${APP_META[app].blurb} One button: ${label} asks for your permission in a new tab and Pipedream keeps the connection; T-DJ never sees your password or your tokens.`}
+          header={t("connectors.account")}
+          footer={t("connectors.one_button_asks_for_your_permission", { blurb: APP_META[app].blurb, label })}
         >
           <Row
-            label="Status"
+            label={t("connectors.status")}
             value={
               a
                 ? `Connected${a.name ? ` · ${a.name}` : ""}${a.healthy ? "" : " · needs attention"}`
                 : "Not connected"
             }
           />
-          <Row label="Used for" value={APP_META[app].sub.split(" · ")[0]} />
+          <Row label={t("connectors.used_for")} value={APP_META[app].sub.split(" · ")[0]} />
           <ActionRow
-            label={a ? `Reconnect ${label}` : `Connect ${label}`}
+            label={a ? t("connectors.reconnect_2", { label }) : t("connectors.connect", { label })}
             onClick={() => connectApp(app)}
             busy={busy === app}
             id={`connect-${app}`}
@@ -373,20 +419,20 @@ export function Connectors() {
   return (
     <>
       <Group
-        header="Accounts and services"
+        header={t("connectors.accounts_and_services")}
         footer={
           APP && !linked
-            ? "Log in with Spotify to create playlists and play full tracks in Listen. Google Drive, YouTube and Dropbox work through your own TDJ server once it is linked under Connections."
+            ? t("connectors.log_in_with_spotify_to_create_2")
             : hosted
-              ? "Log in with Spotify to create playlists and play full tracks in Listen; nothing to paste. Google (Drive files and YouTube playlists) and Dropbox connect in one tap when the owner has enabled them."
-              : "Spotify: set up your own developer app under Spotify › Advanced. Google and Dropbox connect in one tap once the owner has enabled them."
+              ? t("connectors.log_in_with_spotify_to_create")
+              : t("connectors.spotify_set_up_your_own_developer")
         }
         id="connectors"
       >
         <Row
           tile={tile("#1db954", <Radio size={16} strokeWidth={2} />)}
-          label="Spotify"
-          sub="Playlists · full tracks in Listen"
+          label={t("connectors.spotify")}
+          sub={t("connectors.playlists_full_tracks_in_listen")}
           value={spotifyValue}
           chevron
           onClick={() => setOpen("spotify")}
@@ -395,8 +441,8 @@ export function Connectors() {
         {showDirect && (
           <Row
             tile={tile(GOOGLE_COLOR, <HardDrive size={16} strokeWidth={2} />)}
-            label="Google"
-            sub="Drive files · YouTube playlists"
+            label={t("connectors.google")}
+            sub={t("connectors.drive_files_youtube_playlists")}
             value={directValue(google)}
             chevron
             onClick={() => setOpen("google")}
@@ -406,7 +452,7 @@ export function Connectors() {
         {showDirect && (
           <Row
             tile={tile(APP_META.dropbox.color, APP_META.dropbox.icon)}
-            label="Dropbox"
+            label={t("connectors.dropbox")}
             sub={APP_META.dropbox.sub}
             value={directValue(dropbox)}
             chevron
@@ -417,8 +463,8 @@ export function Connectors() {
         {needsOwnerSetup && (
           <Row
             tile={tile("#636366", <KeyRound size={16} strokeWidth={2} />)}
-            label="Owner setup"
-            sub="Turn on one-tap logins for this site"
+            label={t("connectors.owner_setup")}
+            sub={t("connectors.turn_on_one_tap_logins_for")}
             value="Open"
             chevron
             onClick={() => location.assign("/admin")}
@@ -428,13 +474,13 @@ export function Connectors() {
       </Group>
 
       <Group
-        header="Also used"
-        footer="Deezer and MusicBrainz need no account: they give the 30 s previews, artwork and recording dates."
+        header={t("connectors.also_used")}
+        footer={t("connectors.deezer_and_musicbrainz_need_no_account")}
       >
         <Row
           tile={tile("#a238ff", <Disc size={16} strokeWidth={2} />)}
-          label="Deezer"
-          sub="Used for previews and metadata"
+          label={t("connectors.deezer")}
+          sub={t("connectors.used_for_previews_and_metadata")}
           value={statusText[deezer]}
           chevron
           onClick={() => {
@@ -445,8 +491,8 @@ export function Connectors() {
         />
         <Row
           tile={tile("#ba478f", <Library size={16} strokeWidth={2} />)}
-          label="MusicBrainz"
-          sub="Recording dates and singers"
+          label={t("connectors.musicbrainz")}
+          sub={t("connectors.recording_dates_and_singers")}
           value={statusText[mb]}
           chevron
           onClick={() => {
@@ -458,17 +504,15 @@ export function Connectors() {
       </Group>
 
       <Group
-        header="Advanced"
+        header={t("connectors.advanced")}
         footer={
-          pdEnabled
-            ? "For DJs who run their own automation. Keys and URLs stay in this browser. The Pipedream rows are an alternative to the direct logins above: Pipedream keeps the connection and proxies every request."
-            : "For DJs who run their own automation. Keys and URLs stay in this browser."
+          pdEnabled ? t("connectors.for_djs_who_run_their_own_2") : t("connectors.for_djs_who_run_their_own")
         }
       >
         <Row
           tile={tile("#5856d6", <Webhook size={16} strokeWidth={2} />)}
-          label="Bring your own automation"
-          sub="Export → Webhook for Pipedream, Make, Zapier, n8n"
+          label={t("connectors.bring_your_own_automation")}
+          sub={t("connectors.export_webhook_for_pipedream_make_zapier")}
           value={webhookUrl ? "Set" : "Off"}
           chevron
           onClick={() => {
@@ -481,19 +525,24 @@ export function Connectors() {
           (["youtube_data_api", "dropbox", "google_drive", "spotify"] as ConnectApp[]).map(connectRow)}
       </Group>
 
-      <Sheet open={open === "spotify"} onClose={() => setOpen(null)} title="Spotify" trailing="Done">
+      <Sheet
+        open={open === "spotify"}
+        onClose={() => setOpen(null)}
+        title={t("connectors.spotify")}
+        trailing="Done"
+      >
         <Group
-          header="Account"
+          header={t("connectors.account")}
           footer={
             APP && hosted
-              ? "Log in with your Spotify account; there is nothing to paste. Connected, Listen plays the exact recordings and Export creates playlists in your library (private by default). The login is kept in your Keychain on this device."
+              ? t("connectors.log_in_with_your_spotify_account_2")
               : hosted
-                ? `Log in with your Spotify account; there is nothing to paste. Connected, Listen plays the exact recordings and Export creates playlists in your library (private by default). This app can let in 5 Spotify accounts, which the organiser adds by e-mail in the Spotify dashboard.${seatsNote}${contactNote} Not on the list? Export → Send to → Spotify via a transfer service works with any Spotify account. The login is kept in a sealed cookie in this browser; Spotify asks again after six months.`
-                : "Connect with your own Spotify app: paste its Client ID under Advanced. Connected, Listen plays the exact recordings and Export creates playlists."
+                ? t("connectors.log_in_with_your_spotify_account", { seatsNote, contactNote })
+                : t("connectors.connect_with_your_own_spotify_app")
           }
         >
           <Row
-            label="Status"
+            label={t("connectors.status")}
             value={
               spotify === null
                 ? "Checking…"
@@ -507,37 +556,47 @@ export function Connectors() {
             }
             busy={spotify === null}
           />
-          <Row label="Used for" value="Playlists · Listen" />
+          <Row label={t("connectors.used_for")} value="Playlists · Listen" />
           {hosted ? (
             hostedUser ? (
               <ActionRow
-                label="Log out"
+                label={t("connectors.log_out")}
                 destructive
                 onClick={logout}
                 busy={busy === "logout"}
                 id="spotify-logout"
               />
             ) : (
-              <ActionRow label="Log in with Spotify" onClick={spotifyLogin} id="spotify-login" />
+              <ActionRow
+                label={t("connectors.log_in_with_spotify")}
+                onClick={spotifyLogin}
+                id="spotify-login"
+              />
             )
           ) : (
             <>
               <ActionRow
-                label={byoConnected ? "Reconnect" : "Connect Spotify"}
+                label={byoConnected ? t("connectors.reconnect") : t("connectors.connect_spotify")}
                 onClick={ownAppLogin}
                 disabled={!settings.spotifyClientId}
                 id="spotify-connect"
               />
               {byoConnected && (
-                <ActionRow label="Disconnect" destructive onClick={() => setSpotifyToken(null)} />
+                <ActionRow
+                  label={t("connectors.disconnect")}
+                  destructive
+                  onClick={() => setSpotifyToken(null)}
+                />
               )}
             </>
           )}
         </Group>
         <Group>
           <Row
-            label="Advanced"
-            sub={hosted ? "Use your own Spotify app instead" : "Your own Spotify app"}
+            label={t("connectors.advanced")}
+            sub={
+              hosted ? t("connectors.use_your_own_spotify_app_instead") : t("connectors.your_own_spotify_app")
+            }
             value={advanced ? "Hide" : "Show"}
             onClick={() => setAdvanced((v) => !v)}
             id="spotify-advanced"
@@ -545,25 +604,25 @@ export function Connectors() {
         </Group>
         {advanced && (
           <Group
-            header="Your own app"
+            header={t("connectors.your_own_app")}
             footer={
               APP
-                ? "To sign in with your own Spotify developer app, add this redirect URI to it at developer.spotify.com and paste its Client ID here."
+                ? t("connectors.to_sign_in_with_your_own")
                 : hosted
-                  ? "With a Client ID here, Connect Spotify uses your own developer app in this browser (PKCE) instead of the hosted login. Useful when the deployment's 5 listener seats are taken."
-                  : "Add this exact redirect URI to your app at developer.spotify.com, then paste its Client ID."
+                  ? t("connectors.with_a_client_id_here_connect")
+                  : t("connectors.add_this_exact_redirect_uri_to")
             }
           >
-            <Row label="Redirect URI" sub={<span className="font-mono">{redirect}</span>}>
+            <Row label={t("connectors.redirect_uri")} sub={<span className="font-mono">{redirect}</span>}>
               <button type="button" className="btn-plain" onClick={copyRedirect} aria-live="polite">
-                {copied ? "Copied" : "Copy"}
+                {copied ? t("connectors.copied") : t("connectors.copy")}
               </button>
             </Row>
-            <FieldRow label="Client ID" id="spotify-client-id">
+            <FieldRow label={t("connectors.client_id")} id="spotify-client-id">
               <input
                 id="spotify-client-id"
                 className="field field-value min-w-0 flex-1"
-                placeholder={hosted ? "Optional" : "Required"}
+                placeholder={hosted ? t("connectors.optional") : t("connectors.required")}
                 value={settings.spotifyClientId}
                 onChange={(e) => setSettings({ spotifyClientId: e.target.value.trim() })}
                 autoComplete="off"
@@ -572,7 +631,7 @@ export function Connectors() {
             </FieldRow>
             {hosted && (
               <ActionRow
-                label="Connect with my own app"
+                label={t("connectors.connect_with_my_own_app")}
                 onClick={ownAppLogin}
                 disabled={!settings.spotifyClientId}
                 id="spotify-connect"
@@ -582,15 +641,20 @@ export function Connectors() {
         )}
       </Sheet>
 
-      <Sheet open={open === "google"} onClose={() => setOpen(null)} title="Google" trailing="Done">
+      <Sheet
+        open={open === "google"}
+        onClose={() => setOpen(null)}
+        title={t("connectors.google")}
+        trailing="Done"
+      >
         {google === null || google.hosted ? (
           <>
             <Group
-              header="Account"
-              footer="One Google account for two things: export files go to a TDJ folder in your Drive (T-DJ only ever sees files it created), and playlists go to YouTube (YouTube Music shows them too). Google asks for each permission the first time you use it. The login is kept in a sealed cookie in this browser; myaccount.google.com → Security → Third-party access removes it."
+              header={t("connectors.account")}
+              footer={t("connectors.one_google_account_for_two_things")}
             >
               <Row
-                label="Status"
+                label={t("connectors.status")}
                 value={
                   google === null
                     ? "Checking…"
@@ -601,10 +665,10 @@ export function Connectors() {
                 sub={googleUser?.email}
                 busy={google === null}
               />
-              <Row label="Used for" value="Drive files · YouTube playlists" />
+              <Row label={t("connectors.used_for")} value="Drive files · YouTube playlists" />
               {googleUser ? (
                 <ActionRow
-                  label="Disconnect"
+                  label={t("connectors.disconnect")}
                   destructive
                   onClick={() => disconnectDirect("google")}
                   busy={busy === "google-logout"}
@@ -612,7 +676,7 @@ export function Connectors() {
                 />
               ) : (
                 <ActionRow
-                  label="Connect with Google"
+                  label={t("connectors.connect_with_google")}
                   onClick={() => location.assign(googleLoginUrl("", "/settings"))}
                   id="google-login"
                 />
@@ -620,33 +684,37 @@ export function Connectors() {
             </Group>
             {googleUser && (
               <Group
-                header="Permissions"
-                footer="Each permission is asked once, on Google's own page, and only for what it names. YouTube matching uses a daily search budget shared by every T-DJ user, so some 78-rpm recordings may be left out; the export sheet lists them."
+                header={t("connectors.permissions")}
+                footer={t("connectors.each_permission_is_asked_once_on")}
               >
                 <Row
                   tile={tile(APP_META.google_drive.color, APP_META.google_drive.icon)}
-                  label="Google Drive"
-                  sub="Export files in a TDJ folder"
-                  value={granted("drive") ? withDot("on", "Allowed") : withDot("off", "Not yet")}
+                  label={t("connectors.google_drive")}
+                  sub={t("connectors.export_files_in_a_tdj_folder")}
+                  value={
+                    granted("drive") ? withDot("on", "Allowed") : withDot("off", t("connectors.not_yet"))
+                  }
                   id="google-scope-drive"
                 />
                 {!granted("drive") && (
                   <ActionRow
-                    label="Allow Google Drive"
+                    label={t("connectors.allow_google_drive")}
                     onClick={() => location.assign(googleLoginUrl("drive", "/settings"))}
                     id="google-grant-drive"
                   />
                 )}
                 <Row
                   tile={tile(APP_META.youtube_data_api.color, APP_META.youtube_data_api.icon)}
-                  label="YouTube"
-                  sub="Playlists · YouTube Music sees them too"
-                  value={granted("youtube") ? withDot("on", "Allowed") : withDot("off", "Not yet")}
+                  label={t("connectors.youtube")}
+                  sub={t("connectors.playlists_youtube_music_sees_them_too")}
+                  value={
+                    granted("youtube") ? withDot("on", "Allowed") : withDot("off", t("connectors.not_yet"))
+                  }
                   id="google-scope-youtube"
                 />
                 {!granted("youtube") && (
                   <ActionRow
-                    label="Allow YouTube"
+                    label={t("connectors.allow_youtube")}
                     onClick={() => location.assign(googleLoginUrl("youtube", "/settings"))}
                     id="google-grant-youtube"
                   />
@@ -655,18 +723,23 @@ export function Connectors() {
             )}
           </>
         ) : (
-          notEnabled("Google would save export files to your Drive and create YouTube playlists.", "Google")
+          notEnabled(t("connectors.google_would_save_export_files_to"), "Google")
         )}
       </Sheet>
 
-      <Sheet open={open === "dropbox"} onClose={() => setOpen(null)} title="Dropbox" trailing="Done">
+      <Sheet
+        open={open === "dropbox"}
+        onClose={() => setOpen(null)}
+        title={t("connectors.dropbox")}
+        trailing="Done"
+      >
         {dropbox === null || dropbox.hosted ? (
           <Group
-            header="Account"
-            footer="Saves the chosen export file (Rekordbox XML, Traktor NML, M3U8, CSV…) into Apps/TDJ/<set name>/ in your Dropbox and gives you a share link. T-DJ only sees that folder. The login is kept in a sealed cookie in this browser; dropbox.com → Settings → Connected apps removes it."
+            header={t("connectors.account")}
+            footer={t("connectors.saves_the_chosen_export_file_rekordbox")}
           >
             <Row
-              label="Status"
+              label={t("connectors.status")}
               value={
                 dropbox === null
                   ? "Checking…"
@@ -677,10 +750,10 @@ export function Connectors() {
               sub={dropbox?.user?.email}
               busy={dropbox === null}
             />
-            <Row label="Used for" value="Export files" />
+            <Row label={t("connectors.used_for")} value="Export files" />
             {dropbox?.user ? (
               <ActionRow
-                label="Disconnect"
+                label={t("connectors.disconnect")}
                 destructive
                 onClick={() => disconnectDirect("dropbox")}
                 busy={busy === "dropbox-logout"}
@@ -688,14 +761,14 @@ export function Connectors() {
               />
             ) : (
               <ActionRow
-                label="Connect Dropbox"
+                label={t("connectors.connect_dropbox")}
                 onClick={() => location.assign(dropboxLoginUrl("/settings"))}
                 id="dropbox-login"
               />
             )}
           </Group>
         ) : (
-          notEnabled("Dropbox would receive your export files in Apps/TDJ.", "Dropbox")
+          notEnabled(t("connectors.dropbox_would_receive_your_export_files"), "Dropbox")
         )}
       </Sheet>
 
@@ -708,22 +781,16 @@ export function Connectors() {
           setOpen(null);
           setOtherWays(false);
         }}
-        title="Spotify did not let you in"
+        title={t("connectors.spotify_did_not_let_you_in")}
         trailing="Done"
         detents={["medium", "large"]}
         testId="spotify-not-listed"
       >
-        <Group
-          header="Why"
-          footer="Spotify limits a small app like this one to 5 listed accounts, and the organiser chooses them by e-mail in the Spotify dashboard. Nothing is wrong with your account or this app."
-        >
+        <Group header={t("connectors.why")} footer={t("connectors.spotify_limits_a_small_app_like")}>
           <div className="cell">
-            <span className="whitespace-normal">
-              This app can let in 5 Spotify accounts. Ask the organiser to add your Spotify email, or send
-              your set to Spotify another way.
-            </span>
+            <span className="whitespace-normal">{t("connectors.this_app_can_let_in_5")}</span>
           </div>
-          {seats && <Row label="Seats handed out" value={`${seats.used} of ${seats.max}`} />}
+          {seats && <Row label={t("connectors.seats_handed_out")} value={`${seats.used} of ${seats.max}`} />}
           {pub?.ownerContact && (
             <Row
               tile={
@@ -731,26 +798,26 @@ export function Connectors() {
                   <UserRound size={16} strokeWidth={2} />
                 </Tile>
               }
-              label="Organiser"
+              label={t("connectors.organiser")}
               value={<span className="select-all">{pub.ownerContact}</span>}
               id="not-listed-contact"
             />
           )}
           <ActionRow
-            label={requestCopied ? "Copied" : "Copy my request"}
+            label={requestCopied ? t("connectors.copied") : t("connectors.copy_my_request")}
             onClick={copyRequest}
             id="not-listed-copy"
           />
           <ActionRow
-            label={otherWays ? "Hide other ways" : "Other ways"}
+            label={otherWays ? t("connectors.hide_other_ways") : t("connectors.other_ways")}
             onClick={() => setOtherWays((v) => !v)}
             id="not-listed-other"
           />
         </Group>
         {otherWays && (
           <Group
-            header="Other ways"
-            footer="The transfer service matches every track in your own Spotify login, so no seat is needed. YouTube, Dropbox and Google Drive have room for everyone on this site when the organiser has turned them on."
+            header={t("connectors.other_ways")}
+            footer={t("connectors.the_transfer_service_matches_every_track")}
             id="not-listed-other-ways"
           >
             <Row
@@ -759,8 +826,8 @@ export function Connectors() {
                   <ArrowRightLeft size={16} strokeWidth={2} />
                 </Tile>
               }
-              label="Spotify via a transfer service"
-              sub="Export → Send to: a CSV for TuneMyMusic or Soundiiz"
+              label={t("connectors.spotify_via_a_transfer_service")}
+              sub={t("connectors.export_send_to_a_csv_for")}
               value="Open Compose"
               chevron
               onClick={() => location.assign("/")}
@@ -768,14 +835,14 @@ export function Connectors() {
             />
             <Row
               tile={tile("#ff0000", <ListVideo size={16} strokeWidth={2} />)}
-              label="YouTube playlist"
-              sub="Export → Send to → YouTube"
+              label={t("connectors.youtube_playlist")}
+              sub={t("connectors.export_send_to_youtube")}
               value={google?.hosted ? "Available" : "Not enabled"}
             />
             <Row
               tile={tile(APP_META.dropbox.color, APP_META.dropbox.icon)}
-              label="Files to Dropbox or Drive"
-              sub="Rekordbox, Traktor, M3U8, CSV…"
+              label={t("connectors.files_to_dropbox_or_drive")}
+              sub={t("connectors.rekordbox_traktor_m3u8_csv")}
               value={dropbox?.hosted || google?.hosted ? "Available" : "Not enabled"}
             />
           </Group>
@@ -785,51 +852,45 @@ export function Connectors() {
       <Sheet
         open={open === "deezer"}
         onClose={() => setOpen(null)}
-        title="Deezer"
+        title={t("connectors.deezer")}
         trailing="Done"
         detents={["medium"]}
       >
-        <Group
-          header="Keyless"
-          footer="Deezer's public search gives T-DJ 30 s previews, artwork and durations for the play buttons and the in-browser analysis. Nothing is written to Deezer and no account is needed. Deezer export is not offered: new developer apps have been closed since June 2025."
-        >
-          <Row label="Status" value={statusText[deezer]} busy={deezer === "checking"} />
-          <Row label="Used for" value="Previews · Metadata" />
-          <ActionRow label="Check again" onClick={checkDeezer} busy={deezer === "checking"} />
+        <Group header={t("connectors.keyless")} footer={t("connectors.deezer_s_public_search_gives_t")}>
+          <Row label={t("connectors.status")} value={statusText[deezer]} busy={deezer === "checking"} />
+          <Row label={t("connectors.used_for")} value="Previews · Metadata" />
+          <ActionRow label={t("connectors.check_again")} onClick={checkDeezer} busy={deezer === "checking"} />
         </Group>
       </Sheet>
 
       <Sheet
         open={open === "musicbrainz"}
         onClose={() => setOpen(null)}
-        title="MusicBrainz"
+        title={t("connectors.musicbrainz")}
         trailing="Done"
         detents={["medium"]}
       >
         <Group
-          header="Keyless"
-          footer="MusicBrainz recordings give the first-release year that 'Find on services' suggests for a catalogue entry (streaming reissue dates are never used as the recording year). T-DJ asks MusicBrainz for you, so you need no account there."
+          header={t("connectors.keyless")}
+          footer={t("connectors.musicbrainz_recordings_give_the_first_release")}
         >
-          <Row label="Status" value={statusText[mb]} busy={mb === "checking"} />
-          <Row label="Used for" value="Recording dates · Singers" />
-          <ActionRow label="Check again" onClick={checkMb} busy={mb === "checking"} />
+          <Row label={t("connectors.status")} value={statusText[mb]} busy={mb === "checking"} />
+          <Row label={t("connectors.used_for")} value="Recording dates · Singers" />
+          <ActionRow label={t("connectors.check_again")} onClick={checkMb} busy={mb === "checking"} />
         </Group>
       </Sheet>
 
       <Sheet
         open={open === "webhook"}
         onClose={() => setOpen(null)}
-        title="Your automation"
+        title={t("connectors.your_automation")}
         trailing="Save"
         onTrailing={saveHook}
         detents={["medium", "large"]}
       >
-        <Group
-          header="Webhook URL"
-          footer="Paste a Pipedream, Make, Zapier or n8n URL. T-DJ sends the exported file there (the Guide lists the headers it adds). The URL stays in this browser."
-        >
+        <Group header={t("connectors.webhook_url")} footer={t("connectors.paste_a_pipedream_make_zapier_or")}>
           <label htmlFor="connector-webhook-url" className="cell">
-            <span className="sr-only">Webhook URL</span>
+            <span className="sr-only">{t("connectors.webhook_url")}</span>
             <input
               id="connector-webhook-url"
               className="field font-mono"
@@ -846,7 +907,7 @@ export function Connectors() {
         {webhookUrl && (
           <Group>
             <ActionRow
-              label="Remove webhook"
+              label={t("connectors.remove_webhook")}
               destructive
               onClick={() => {
                 setDraft("");

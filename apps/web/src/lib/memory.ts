@@ -1,6 +1,7 @@
 "use client";
 import { emptyMemory } from "@tdj/core";
 import { del, get, set } from "idb-keyval";
+import { t } from "@/lib/i18n";
 import type { StorageMode } from "./overrides";
 import type { AgentMemory } from "./types";
 
@@ -78,15 +79,17 @@ export function describePreferences(m: AgentMemory | null | undefined): string[]
   const p = m?.preferences;
   if (!p) return [];
   const out: string[] = [];
-  if (p.floorMood === "energetic") out.push("energetic floor");
-  if (p.floorMood === "romantic") out.push("romantic floor");
-  if (p.floorMood === "traditional") out.push("traditional floor");
-  if (p.pattern === "custom" && p.customPattern) out.push(`cycle ${p.customPattern}`);
-  if (p.cortinaLengthSec && p.cortinaLengthSec <= 30) out.push("shorter cortinas");
-  else if (p.cortinaLengthSec && p.cortinaLengthSec >= 60) out.push("longer cortinas");
-  if (p.arc) out.push(`${p.arc.replace(/-/g, " ")} arc`);
-  if (p.tandaShape) out.push(`${p.tandaShape.replace(/-/g, " ")} tandas`);
-  if (p.excludeOrchestras?.length) out.push(`${p.excludeOrchestras.length} orchestras left out`);
-  if (p.eras?.length) out.push(`${p.eras[0]} era`);
+  if (p.floorMood === "energetic") out.push(t("memory.energetic_floor"));
+  if (p.floorMood === "romantic") out.push(t("memory.romantic_floor"));
+  if (p.floorMood === "traditional") out.push(t("memory.traditional_floor"));
+  if (p.pattern === "custom" && p.customPattern)
+    out.push(t("memory.cycle", { customPattern: p.customPattern }));
+  if (p.cortinaLengthSec && p.cortinaLengthSec <= 30) out.push(t("memory.shorter_cortinas"));
+  else if (p.cortinaLengthSec && p.cortinaLengthSec >= 60) out.push(t("memory.longer_cortinas"));
+  if (p.arc) out.push(t("memory.arc", { p1: p.arc.replace(/-/g, " ") }));
+  if (p.tandaShape) out.push(t("memory.tandas", { p1: p.tandaShape.replace(/-/g, " ") }));
+  if (p.excludeOrchestras?.length)
+    out.push(t("memory.orchestras_left_out", { length: p.excludeOrchestras.length }));
+  if (p.eras?.length) out.push(t("memory.era", { p1: p.eras[0] }));
   return out;
 }

@@ -1,3 +1,4 @@
+import { t as tx } from "@/lib/i18n";
 /**
  * Round 22 (ROADMAP §1): headphone pre-listen. The room plays through the booth's AudioContext (optionally routed
  * to a chosen device with `AudioContext.setSinkId`); a pre-listen plays through its own <audio> element sent to the
@@ -23,18 +24,18 @@ export function outputsFrom(devices: ReadonlyArray<MediaDeviceInfo>, keepDuplica
       label:
         d.deviceId === "default"
           ? name
-            ? `This device (${name})`
-            : "This device"
-          : name || `Output ${i + 1}`,
+            ? tx("booth.cue.this_device_2", { name })
+            : tx("booth.cue.this_device")
+          : name || tx("booth.cue.output", { p1: i + 1 }),
       groupId: d.groupId || undefined,
     });
   });
-  if (!list.some((d) => d.id === "default")) list.unshift({ id: "default", label: "This device" });
+  if (!list.some((d) => d.id === "default"))
+    list.unshift({ id: "default", label: tx("booth.cue.this_device") });
   return list;
 }
 
-export const SINK_UNSUPPORTED =
-  "This browser cannot send sound to a second output (Safari cannot). Use Chrome or Edge, or the T-DJ app, to pre-listen in headphones.";
+export const SINK_UNSUPPORTED = () => tx("booth.cue.this_browser_cannot_send_sound_to");
 
 /** Whether a pre-listen can go to the headphones without the room hearing it, and if not, why (in words). */
 export function canPrelisten(o: {
@@ -43,14 +44,13 @@ export function canPrelisten(o: {
   cueId: string | null;
   devices?: ReadonlyArray<OutputDevice>;
 }): { ok: boolean; why?: string } {
-  if (!o.supported) return { ok: false, why: SINK_UNSUPPORTED };
-  if (!o.cueId) return { ok: false, why: "Pick your headphones first (Headphones ▾ at the top)." };
+  if (!o.supported) return { ok: false, why: SINK_UNSUPPORTED() };
+  if (!o.cueId) return { ok: false, why: tx("booth.cue.pick_your_headphones_first_headphones_at") };
   const room = o.roomId ?? "default";
-  if (o.cueId === room)
-    return { ok: false, why: "Headphones and room are the same output: pick another one." };
+  if (o.cueId === room) return { ok: false, why: tx("booth.cue.headphones_and_room_are_the_same") };
   const g = (id: string) => o.devices?.find((d) => d.id === id)?.groupId;
   if (g(room) && g(room) === g(o.cueId))
-    return { ok: false, why: "Headphones and room are the same output: pick another one." };
+    return { ok: false, why: tx("booth.cue.headphones_and_room_are_the_same") };
   return { ok: true };
 }
 
@@ -66,7 +66,7 @@ export function roomSinkSupported(): boolean {
 /** The outputs this browser can see. Names need the microphone permission once in Chromium (`askNames`). */
 export async function listOutputs(askNames = false): Promise<OutputDevice[]> {
   const md = typeof navigator !== "undefined" ? navigator.mediaDevices : undefined;
-  if (!md?.enumerateDevices) return [{ id: "default", label: "This device" }];
+  if (!md?.enumerateDevices) return [{ id: "default", label: tx("booth.cue.this_device") }];
   if (askNames && md.getUserMedia) {
     try {
       const s = await md.getUserMedia({ audio: true });
@@ -76,7 +76,7 @@ export async function listOutputs(askNames = false): Promise<OutputDevice[]> {
   try {
     return outputsFrom(await md.enumerateDevices());
   } catch {
-    return [{ id: "default", label: "This device" }];
+    return [{ id: "default", label: tx("booth.cue.this_device") }];
   }
 }
 
@@ -108,7 +108,7 @@ export class CuePlayer {
     const sink = o.sinkId;
     const withSink = el as HTMLAudioElement & { setSinkId?: (id: string) => Promise<void> };
     if (sink && sink !== "default") {
-      if (!withSink.setSinkId) throw new Error(SINK_UNSUPPORTED);
+      if (!withSink.setSinkId) throw new Error(SINK_UNSUPPORTED());
       await withSink.setSinkId(sink);
     }
     if (o.startSec) el.currentTime = o.startSec;

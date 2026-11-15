@@ -1,5 +1,6 @@
 "use client";
 import { learnFromLock, type Playlist, rememberEdit } from "@tdj/core";
+import { t as tx } from "@/lib/i18n";
 import { useStore } from "./store";
 
 /**
@@ -39,7 +40,7 @@ export function learnFromChange(prev: Playlist, next: Playlist) {
         m,
         prev,
         { ...prev, tandas: prev.tandas.map((t, k) => (k === i ? { ...t, songs: [] } : t)) },
-        "replaced a tanda",
+        tx("learnWatch.replaced_a_tanda"),
       ),
     );
   }

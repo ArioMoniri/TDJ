@@ -19,6 +19,7 @@ import {
 } from "@/lib/build";
 import { haptic } from "@/lib/haptics";
 import { makeSnapshot } from "@/lib/history";
+import { lazy, t as tx } from "@/lib/i18n";
 import { DUR, EASE } from "@/lib/motion";
 import { fullOptions, useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
@@ -68,13 +69,13 @@ const saveDraft = (d: Draft) => {
 };
 const yearsText = (y: [number, number] | null) => (y ? (y[0] === y[1] ? `${y[0]}` : `${y[0]}–${y[1]}`) : "");
 const family = (s: { orchestra: string; singer: string | null }) =>
-  `${s.orchestra}${s.singer ? ` / ${s.singer}` : " · instrumental"}`;
-const RHYTHM_ITEMS: Array<["auto" | "tango" | "vals" | "milonga", string]> = [
-  ["auto", "Next in cycle"],
-  ["tango", "Tango"],
-  ["vals", "Vals"],
-  ["milonga", "Milonga"],
-];
+  `${s.orchestra}${s.singer ? ` / ${s.singer}` : tx("manualBuilder.instrumental")}`;
+const RHYTHM_ITEMS: Array<["auto" | "tango" | "vals" | "milonga", string]> = lazy(() => [
+  ["auto", tx("manualBuilder.next_in_cycle")],
+  ["tango", tx("manualBuilder.tango")],
+  ["vals", tx("manualBuilder.vals")],
+  ["milonga", tx("manualBuilder.milonga")],
+]);
 
 /**
  * Round 22 — build a night by hand: pick songs or whole tandas; after each one TDJ suggests what comes next (the
@@ -188,9 +189,14 @@ export function ManualBuilder() {
       // a hand-built night is the clearest statement of taste: its sides, families and tandas teach
       if (settings.learn)
         updateMemory((m) =>
-          rememberEdit(m, { tandas: [], opening: null, closing: null }, j.playlist!, "built by hand"),
+          rememberEdit(
+            m,
+            { tandas: [], opening: null, closing: null },
+            j.playlist!,
+            tx("manualBuilder.built_by_hand"),
+          ),
         );
-      toast("Your night is on Compose");
+      toast(tx("manualBuilder.your_night_is_on_compose"));
       router.push("/");
     } finally {
       setFinishing(false);
@@ -201,20 +207,28 @@ export function ManualBuilder() {
   const nextTitle = !next
     ? ""
     : next.mode === "song"
-      ? `Next side of tanda ${draft.length}`
-      : `Tanda ${next.slot + 1}: a ${next.rhythm}, around energy ${next.targetEnergy} tonight`;
+      ? tx("manualBuilder.next_side_of_tanda", { length: draft.length })
+      : tx("manualBuilder.tanda_a_around_energy_tonight", {
+          p1: next.slot + 1,
+          rhythm: next.rhythm,
+          targetEnergy: next.targetEnergy,
+        });
 
   return (
     <div className="mx-auto max-w-[1100px]">
       <PageHeader
-        title="Build by hand"
+        title={tx("manualBuilder.build_by_hand")}
         subtitle={
           draft.length
-            ? `${draft.length} ${draft.length === 1 ? "tanda" : "tandas"} · about ${minutes} min`
-            : "Pick songs or whole tandas; TDJ suggests what comes next"
+            ? tx("manualBuilder.about_min", {
+                length: draft.length,
+                p1: draft.length === 1 ? tx("manualBuilder.tanda") : tx("manualBuilder.tandas"),
+                minutes,
+              })
+            : tx("manualBuilder.pick_songs_or_whole_tandas_tdj")
         }
         primary={
-          <Tip text={"Make this the night on Compose: cortinas, score, the booth and the exports"}>
+          <Tip text={tx("manualBuilder.make_this_the_night_on_compose")}>
             <button
               type="button"
               className="btn btn-primary min-h-[44px]"
@@ -222,18 +236,21 @@ export function ManualBuilder() {
               disabled={!draft.length || finishing}
               data-testid="build-finish"
             >
-              <Check size={18} aria-hidden /> Use this night
+              <Check size={18} aria-hidden /> {tx("manualBuilder.use_this_night")}
             </button>
           </Tip>
         }
       />
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-x-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <section aria-label="Your night" className="min-w-0">
-          <h2 className="section-head">Your night</h2>
+        <section aria-label={tx("manualBuilder.your_night")} className="min-w-0">
+          <h2 className="section-head">{tx("manualBuilder.your_night")}</h2>
           {!draft.length && (
-            <Group footer="Start with a suggestion or search for a song: TDJ keeps the tanda's orchestra and years together and tells you what fits next.">
-              <Row label="Nothing yet" sub="Your first tanda goes here" />
+            <Group footer={tx("manualBuilder.start_with_a_suggestion_or_search")}>
+              <Row
+                label={tx("manualBuilder.nothing_yet")}
+                sub={tx("manualBuilder.your_first_tanda_goes_here")}
+              />
             </Group>
           )}
           <AnimatePresence initial={false}>
@@ -251,7 +268,12 @@ export function ManualBuilder() {
                   transition={{ duration: DUR.base, ease: EASE.out }}
                 >
                   <Group
-                    header={`Tanda ${ti + 1}${isOpen ? ` · ${t.length} of ${sizes[s0.rhythm as keyof typeof sizes] ?? 4}` : ""}`}
+                    header={tx("manualBuilder.tanda_2", {
+                      p1: ti + 1,
+                      p2: isOpen
+                        ? ` ${tx("manualBuilder.of", { length: t.length, p1: sizes[s0.rhythm as keyof typeof sizes] ?? 4 })}`
+                        : "",
+                    })}
                     data-testid="build-tanda"
                   >
                     <div className="cell" data-leading="tile">
@@ -266,23 +288,23 @@ export function ManualBuilder() {
                         </span>
                       </span>
                       {ti > 0 && (
-                        <Tip text={"Move up"}>
+                        <Tip text={tx("manualBuilder.move_up")}>
                           <button
                             type="button"
                             className="icon-btn icon-btn-bare h-11 w-11"
                             onClick={() => setDraft(moveTanda(draft, ti, ti - 1))}
-                            aria-label={`Move tanda ${ti + 1} up`}
+                            aria-label={tx("manualBuilder.move_tanda_up", { p1: ti + 1 })}
                           >
                             <ArrowUp size={16} aria-hidden />
                           </button>
                         </Tip>
                       )}
-                      <Tip text={"Remove this tanda"}>
+                      <Tip text={tx("manualBuilder.remove_this_tanda")}>
                         <button
                           type="button"
                           className="icon-btn icon-btn-bare -mr-2 h-11 w-11 text-[var(--destructive)]"
                           onClick={() => setDraft(removeTanda(draft, ti))}
-                          aria-label={`Remove tanda ${ti + 1}`}
+                          aria-label={tx("manualBuilder.remove_tanda", { p1: ti + 1 })}
                         >
                           <Trash2 size={16} aria-hidden />
                         </button>
@@ -296,15 +318,18 @@ export function ManualBuilder() {
                         <span className="min-w-0 flex-1">
                           <span className="block truncate">{s.title}</span>
                           <span className="text-footnote block truncate text-[var(--label-2)]">
-                            {metaLine(yearText(s.year), s.energy !== undefined && `energy ${s.energy}`)}
+                            {metaLine(
+                              yearText(s.year),
+                              s.energy !== undefined && tx("manualBuilder.energy", { energy: s.energy }),
+                            )}
                           </span>
                         </span>
-                        <Tip text={"Remove this side"}>
+                        <Tip text={tx("manualBuilder.remove_this_side")}>
                           <button
                             type="button"
                             className="icon-btn icon-btn-bare -mr-2 h-11 w-11 text-[var(--label-3)]"
                             onClick={() => setDraft(removeSong(draft, ti, si))}
-                            aria-label={`Remove ${s.title}`}
+                            aria-label={tx("manualBuilder.remove", { title: s.title })}
                           >
                             <Trash2 size={15} aria-hidden />
                           </button>
@@ -325,39 +350,44 @@ export function ManualBuilder() {
               disabled={finishing}
               data-testid="build-finish-phone"
             >
-              <Check size={18} aria-hidden /> Use this night
+              <Check size={18} aria-hidden /> {tx("manualBuilder.use_this_night")}
             </button>
           )}
         </section>
 
-        <section aria-label="What comes next" className="min-w-0">
-          <h2 className="section-head">What comes next</h2>
+        <section aria-label={tx("manualBuilder.what_comes_next")} className="min-w-0">
+          <h2 className="section-head">{tx("manualBuilder.what_comes_next")}</h2>
           <Group
             footer={
               suggestOn
-                ? "Ranked by the night's rules: the rhythm cycle, the energy against the arc and the last tandas, orchestra and singer spacing, the big four, the years of the last tanda, and what you chose before."
-                : "Suggestions are off: pick freely; the night is still scored when you use it."
+                ? tx("manualBuilder.ranked_by_the_night_s_rules")
+                : tx("manualBuilder.suggestions_are_off_pick_freely_the")
             }
           >
             <SwitchRow
-              label="Suggestions"
-              sub="Update after every song you add"
+              label={tx("manualBuilder.suggestions")}
+              sub={tx("manualBuilder.update_after_every_song_you_add")}
               checked={suggestOn}
               onChange={(v) => setSettings({ buildSuggestions: v })}
             />
             {suggestOn && (!next || next.mode === "tanda") && (
-              <SegmentedRow label="Next tanda" value={rhythm} items={RHYTHM_ITEMS} onChange={setRhythm} />
+              <SegmentedRow
+                label={tx("manualBuilder.next_tanda")}
+                value={rhythm}
+                items={RHYTHM_ITEMS}
+                onChange={setRhythm}
+              />
             )}
           </Group>
           {suggestOn && (
             <Group
-              header={nextTitle || "Suggestions"}
+              header={nextTitle || tx("manualBuilder.suggestions")}
               data-testid="build-suggestions"
               footer={
                 loading
-                  ? "Updating…"
+                  ? tx("manualBuilder.updating")
                   : next && !next.suggestions.length
-                    ? "Nothing fits the rules here; search instead, or change the rhythm."
+                    ? tx("manualBuilder.nothing_fits_the_rules_here_search")
                     : undefined
               }
             >
@@ -376,10 +406,13 @@ export function ManualBuilder() {
                     </span>
                     <span className="text-footnote block truncate text-[var(--label-2)]">
                       {s.kind === "song"
-                        ? metaLine(yearText(s.songs[0]!.year), `energy ${s.energy}`)
+                        ? metaLine(
+                            yearText(s.songs[0]!.year),
+                            tx("manualBuilder.energy", { energy: s.energy }),
+                          )
                         : metaLine(
                             yearsText(s.years),
-                            `energy ${s.energy}`,
+                            tx("manualBuilder.energy", { energy: s.energy }),
                             s.songs.map((x) => x.title).join(", "),
                           )}
                     </span>
@@ -396,17 +429,23 @@ export function ManualBuilder() {
                     </span>
                   </span>
                   <Tip
-                    text={s.kind === "song" ? "Add this side to the tanda" : "Add this tanda to the night"}
+                    text={
+                      s.kind === "song"
+                        ? tx("manualBuilder.add_this_side_to_the_tanda")
+                        : tx("manualBuilder.add_this_tanda_to_the_night")
+                    }
                   >
                     <button
                       type="button"
                       className="btn btn-ghost -mr-1 min-h-[44px] shrink-0 px-3"
                       onClick={() => pick(s)}
                       aria-label={
-                        s.kind === "song" ? `Add ${s.songs[0]!.title}` : `Add the ${family(s)} tanda`
+                        s.kind === "song"
+                          ? tx("manualBuilder.add_2", { title: s.songs[0]!.title })
+                          : tx("manualBuilder.add_the_tanda", { p1: family(s) })
                       }
                     >
-                      <Plus size={16} aria-hidden /> Add
+                      <Plus size={16} aria-hidden /> {tx("manualBuilder.add")}
                     </button>
                   </Tip>
                 </div>
@@ -414,21 +453,21 @@ export function ManualBuilder() {
             </Group>
           )}
 
-          <h2 className="section-head">Search</h2>
+          <h2 className="section-head">{tx("manualBuilder.search")}</h2>
           <SearchField
             id="build-search"
             value={query}
             onChange={setQuery}
-            placeholder="Title, orchestra, singer or year"
-            label="Search for a song to add"
+            placeholder={tx("manualBuilder.title_orchestra_singer_or_year")}
+            label={tx("manualBuilder.search_for_a_song_to_add")}
             busy={searching}
           />
           {hits.length > 0 && (
             <Group
               footer={
                 open
-                  ? `Sides that fit tanda ${draft.length} join it; the others start a new tanda.`
-                  : "Each side starts a new tanda; the next sides of the same orchestra join it."
+                  ? tx("manualBuilder.sides_that_fit_tanda_join_it", { length: draft.length })
+                  : tx("manualBuilder.each_side_starts_a_new_tanda")
               }
             >
               {hits.map((h) => (
@@ -441,14 +480,20 @@ export function ManualBuilder() {
                       {open && !h.fits && h.why ? ` · ${h.why}` : ""}
                     </span>
                   </span>
-                  <Tip text={open && h.fits ? `Add to tanda ${draft.length}` : "Start a new tanda with it"}>
+                  <Tip
+                    text={
+                      open && h.fits
+                        ? tx("manualBuilder.add_to_tanda", { length: draft.length })
+                        : tx("manualBuilder.start_a_new_tanda_with_it")
+                    }
+                  >
                     <button
                       type="button"
                       className="btn btn-ghost -mr-1 min-h-[44px] shrink-0 px-3"
                       onClick={() => addHit(h)}
-                      aria-label={`Add ${h.song.title}`}
+                      aria-label={tx("manualBuilder.add_2", { title: h.song.title })}
                     >
-                      <Plus size={16} aria-hidden /> Add
+                      <Plus size={16} aria-hidden /> {tx("manualBuilder.add")}
                     </button>
                   </Tip>
                 </div>
@@ -457,7 +502,7 @@ export function ManualBuilder() {
           )}
           {!draft.length && suggestOn && (
             <p className="section-foot mt-3 flex items-center gap-1.5">
-              <Wand2 size={14} aria-hidden /> Or let TDJ compose the whole night on Compose.
+              <Wand2 size={14} aria-hidden /> {tx("manualBuilder.or_let_tdj_compose_the_whole")}
             </p>
           )}
         </section>

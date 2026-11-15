@@ -3,6 +3,7 @@ import { Check, ChevronDown, Eye, Headphones, Speaker } from "lucide-react";
 import { useState } from "react";
 import { SINK_UNSUPPORTED } from "@/lib/booth/cue";
 import { useBooth } from "@/lib/booth/store";
+import { t } from "@/lib/i18n";
 import { toast } from "@/lib/toast";
 import { ActionRow, Group } from "../Form";
 import { Sheet } from "../Sheet";
@@ -19,7 +20,8 @@ export function PlayerToolbar({ rehearsal }: { rehearsal: boolean }) {
   const audition = useBooth((s) => s.audition);
   const [pick, setPick] = useState<"room" | "headphones" | null>(null);
   const [show, setShow] = useState(false);
-  const label = (id: string | null) => outputs.devices.find((d) => d.id === id)?.label ?? "This device";
+  const label = (id: string | null) =>
+    outputs.devices.find((d) => d.id === id)?.label ?? t("booth.playerToolbar.this_device");
   const hearing = audition?.where === "headphones";
   return (
     <div className="booth-toolbar" data-testid="booth-toolbar">
@@ -30,11 +32,11 @@ export function PlayerToolbar({ rehearsal }: { rehearsal: boolean }) {
         data-out="room"
         data-testid="booth-out-room"
         data-hint="ROOM: where the night plays for the dancers. Tap to choose the output."
-        aria-label={`Room output: ${label(outputs.room)}`}
+        aria-label={t("booth.playerToolbar.room_output_2", { p1: label(outputs.room) })}
         onClick={() => setPick("room")}
       >
         <Speaker size={16} strokeWidth={2} aria-hidden />
-        <span className="booth-out-word">Room</span>
+        <span className="booth-out-word">{t("booth.playerToolbar.room")}</span>
         <span className="booth-out-name">{label(outputs.room)}</span>
         <ChevronDown size={14} strokeWidth={2} aria-hidden />
       </button>
@@ -47,12 +49,16 @@ export function PlayerToolbar({ rehearsal }: { rehearsal: boolean }) {
           data-off={outputs.cue ? undefined : true}
           data-testid="booth-out-cue"
           data-hint="HEADPHONES: pre-listen here; the room never hears it. Tap to choose your headphones."
-          aria-label={`Headphones output: ${outputs.cue ? label(outputs.cue) : "not set"}`}
+          aria-label={t("booth.playerToolbar.headphones_output_2", {
+            p1: outputs.cue ? label(outputs.cue) : t("booth.playerToolbar.not_set"),
+          })}
           onClick={() => setPick("headphones")}
         >
           <Headphones size={16} strokeWidth={2} aria-hidden />
-          <span className="booth-out-word">Headphones</span>
-          <span className="booth-out-name">{outputs.cue ? label(outputs.cue) : "Choose…"}</span>
+          <span className="booth-out-word">{t("booth.playerToolbar.headphones")}</span>
+          <span className="booth-out-name">
+            {outputs.cue ? label(outputs.cue) : t("booth.playerToolbar.choose")}
+          </span>
           <ChevronDown size={14} strokeWidth={2} aria-hidden />
         </button>
       ) : (
@@ -61,13 +67,15 @@ export function PlayerToolbar({ rehearsal }: { rehearsal: boolean }) {
           className="booth-out"
           data-off
           data-testid="booth-out-cue-unsupported"
-          data-hint={SINK_UNSUPPORTED}
-          aria-label={`Headphones pre-listen unavailable. ${SINK_UNSUPPORTED}`}
-          onClick={() => toast(SINK_UNSUPPORTED)}
+          data-hint={SINK_UNSUPPORTED()}
+          aria-label={t("booth.playerToolbar.headphones_pre_listen_unavailable", {
+            SINK_UNSUPPORTED: SINK_UNSUPPORTED(),
+          })}
+          onClick={() => toast(SINK_UNSUPPORTED())}
         >
           <Headphones size={16} strokeWidth={2} aria-hidden />
-          <span className="booth-out-word">Headphones</span>
-          <span className="booth-out-name">not in this browser</span>
+          <span className="booth-out-word">{t("booth.playerToolbar.headphones")}</span>
+          <span className="booth-out-name">{t("booth.playerToolbar.not_in_this_browser")}</span>
         </button>
       )}
       <button
@@ -78,7 +86,7 @@ export function PlayerToolbar({ rehearsal }: { rehearsal: boolean }) {
         onClick={() => setShow(true)}
       >
         <Eye size={16} strokeWidth={2} aria-hidden />
-        <span>Show</span>
+        <span>{t("booth.playerToolbar.show")}</span>
       </button>
       <OutputSheet which={pick} onClose={() => setPick(null)} />
       <ShowSheet open={show} onClose={() => setShow(false)} />
@@ -95,18 +103,26 @@ function OutputSheet({ which, onClose }: { which: "room" | "headphones" | null; 
     <Sheet
       open={which !== null}
       onClose={onClose}
-      title={which === "room" ? "Room output" : "Headphones output"}
+      title={
+        which === "room" ? t("booth.playerToolbar.room_output") : t("booth.playerToolbar.headphones_output")
+      }
       trailing="Done"
       testId="booth-output-sheet"
     >
       <Group
-        header={which === "room" ? "Where the dancers hear the night" : "Where you pre-listen"}
+        header={
+          which === "room"
+            ? t("booth.playerToolbar.where_the_dancers_hear_the_night")
+            : t("booth.playerToolbar.where_you_pre_listen")
+        }
         footer={
           which === "room"
             ? outputs.roomSupported
-              ? "The night plays here. Changing it moves the music at once."
-              : "This browser plays the night on this device's output: choose the speakers in the system's sound settings."
-            : `Pick the headphones (or the interface's second output). The room never hears a pre-listen.${blocked && outputs.cue ? ` ${blocked}` : ""}`
+              ? t("booth.playerToolbar.the_night_plays_here_changing_it")
+              : t("booth.playerToolbar.this_browser_plays_the_night_on")
+            : t("booth.playerToolbar.pick_the_headphones_or_the_interface", {
+                p1: blocked && outputs.cue ? ` ${blocked}` : "",
+              })
         }
       >
         {outputs.devices.map((d) => {
@@ -132,22 +148,35 @@ function OutputSheet({ which, onClose }: { which: "room" | "headphones" | null; 
               <span className="min-w-0 flex-1">
                 <span className="block truncate">{d.label}</span>
                 {isRoomDevice && (
-                  <span className="text-footnote block text-[var(--label-2)]">The room plays here</span>
+                  <span className="text-footnote block text-[var(--label-2)]">
+                    {t("booth.playerToolbar.the_room_plays_here")}
+                  </span>
                 )}
               </span>
               {cur === d.id && (
-                <Check size={18} strokeWidth={2.5} className="text-[var(--tint)]" aria-label="Chosen" />
+                <Check
+                  size={18}
+                  strokeWidth={2.5}
+                  className="text-[var(--tint)]"
+                  aria-label={t("booth.playerToolbar.chosen")}
+                />
               )}
             </button>
           );
         })}
         {which === "headphones" && outputs.cue && (
-          <ActionRow label="Turn pre-listen off" onClick={() => b.setCueOutput(null)} />
+          <ActionRow
+            label={t("booth.playerToolbar.turn_pre_listen_off")}
+            onClick={() => b.setCueOutput(null)}
+          />
         )}
       </Group>
       {!outputs.named && (
-        <Group footer="Your browser names the outputs once it may use the microphone; nothing is recorded.">
-          <ActionRow label="Show device names" onClick={() => void b.refreshOutputs(true)} />
+        <Group footer={t("booth.playerToolbar.your_browser_names_the_outputs_once")}>
+          <ActionRow
+            label={t("booth.playerToolbar.show_device_names")}
+            onClick={() => void b.refreshOutputs(true)}
+          />
         </Group>
       )}
     </Sheet>
@@ -157,7 +186,13 @@ function OutputSheet({ which, onClose }: { which: "room" | "headphones" | null; 
 /** Show: the indicator switches (the same ones as Settings → Indicators) and the era legend. */
 export function ShowSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
-    <Sheet open={open} onClose={onClose} title="Show" trailing="Done" testId="booth-show-sheet">
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title={t("booth.playerToolbar.show")}
+      trailing="Done"
+      testId="booth-show-sheet"
+    >
       <IndicatorSwitches />
     </Sheet>
   );
@@ -186,7 +221,9 @@ function SourceLine({ rehearsal }: { rehearsal: boolean }) {
             : "A rehearsal plays 30 s of every song so you can hear the night quickly"
         }
       >
-        {onSpotify ? "Spotify · full tracks" : "Rehearsal · 30 s clips"}
+        {onSpotify
+          ? t("booth.playerToolbar.spotify_full_tracks")
+          : t("booth.playerToolbar.rehearsal_30_s_clips")}
       </span>
       {rehearsal && sp.ok && mode === "preview" && !started && (
         <button
@@ -195,7 +232,7 @@ function SourceLine({ rehearsal }: { rehearsal: boolean }) {
           onClick={() => void useBooth.getState().setSourceMode("file")}
           data-testid="booth-full-tracks"
         >
-          Play full tracks on Spotify
+          {t("booth.playerToolbar.play_full_tracks_on_spotify")}
         </button>
       )}
       {sp.reconnect && (
@@ -204,12 +241,12 @@ function SourceLine({ rehearsal }: { rehearsal: boolean }) {
           href="/api/spotify/login?next=/booth"
           data-testid="booth-reconnect"
         >
-          Reconnect Spotify to play full songs
+          {t("booth.playerToolbar.reconnect_spotify_to_play_full_songs")}
         </a>
       )}
       {rehearsal && sp.checked && sp.premium === false && (
         <span className="text-footnote text-[var(--label-2)]">
-          Spotify Free: the browser can only play 30 s clips.
+          {t("booth.playerToolbar.spotify_free_the_browser_can_only")}
         </span>
       )}
     </>

@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
+import { t } from "@/lib/i18n";
 import { bestMatch, type Match, type MatchItem, rejectReason, searchQueries } from "@/lib/match";
 import { useStore } from "@/lib/store";
 
@@ -49,7 +50,7 @@ export async function finishAuth(clientId: string, code: string) {
       code_verifier: verifier,
     }),
   });
-  if (!r.ok) throw new Error(`Spotify token exchange failed: ${r.status}`);
+  if (!r.ok) throw new Error(t("spotify.spotify_token_exchange_failed", { status: r.status }));
   const j = await r.json();
   return {
     access: j.access_token as string,
@@ -68,7 +69,7 @@ export async function refresh(clientId: string, refreshToken: string) {
       refresh_token: refreshToken,
     }),
   });
-  if (!r.ok) throw new Error("refresh failed");
+  if (!r.ok) throw new Error(t("spotify.refresh_failed"));
   const j = await r.json();
   return {
     access: j.access_token as string,
@@ -81,7 +82,7 @@ export async function refresh(clientId: string, refreshToken: string) {
 export class SpotifyRateLimit extends Error {
   retryAfter: number;
   constructor(retryAfter: number) {
-    super(`Spotify is pausing searches for ${retryAfter} s`);
+    super(t("spotify.spotify_is_pausing_searches_for_s", { retryAfter }));
     this.retryAfter = retryAfter;
   }
 }
@@ -102,7 +103,7 @@ async function api<T>(token: string, path: string, init: RequestInit = {}, attem
     await new Promise((res) => setTimeout(res, wait * 1000));
     return api<T>(token, path, init, attempt + 1);
   }
-  if (!r.ok) throw new Error(`Spotify ${path}: ${r.status} ${await r.text()}`);
+  if (!r.ok) throw new Error(t("spotify.spotify_2", { path, status: r.status, p1: await r.text() }));
   return r.status === 204 ? (undefined as T) : r.json();
 }
 
@@ -297,7 +298,7 @@ export async function hostedCreatePlaylist(body: {
     body: JSON.stringify(body),
   });
   const j = await r.json();
-  if (!r.ok) throw new Error(j.error ?? `Spotify answered ${r.status}`);
+  if (!r.ok) throw new Error(j.error ?? t("spotify.spotify_answered", { status: r.status }));
   return j as PlaylistResult;
 }
 export interface MatchResponse {
@@ -314,7 +315,7 @@ export async function hostedMatch(items: MatchItem[]): Promise<MatchResponse> {
     body: JSON.stringify({ items }),
   });
   const j = await r.json();
-  if (!r.ok) throw new Error(j.error ?? `Spotify answered ${r.status}`);
+  if (!r.ok) throw new Error(j.error ?? t("spotify.spotify_answered", { status: r.status }));
   return j as MatchResponse;
 }
 
@@ -335,10 +336,34 @@ export interface ConnectState {
 export const CONNECT_FALLBACK: ConnectState = {
   enabled: false,
   apps: [
-    { slug: "youtube_data_api", label: "YouTube", kind: "playlist" },
-    { slug: "dropbox", label: "Dropbox", kind: "file" },
-    { slug: "google_drive", label: "Google Drive", kind: "file" },
-    { slug: "spotify", label: "Spotify", kind: "playlist" },
+    {
+      slug: "youtube_data_api",
+      get label() {
+        return t("spotify.youtube");
+      },
+      kind: "playlist",
+    },
+    {
+      slug: "dropbox",
+      get label() {
+        return t("spotify.dropbox");
+      },
+      kind: "file",
+    },
+    {
+      slug: "google_drive",
+      get label() {
+        return t("spotify.google_drive");
+      },
+      kind: "file",
+    },
+    {
+      slug: "spotify",
+      get label() {
+        return t("spotify.spotify");
+      },
+      kind: "playlist",
+    },
   ],
   accounts: [],
 };
@@ -365,7 +390,7 @@ export async function openConnectLink(app: ConnectApp): Promise<void> {
     });
     const j = await r.json();
     if (!r.ok || !j.connect_link_url)
-      throw new Error(j.error ?? `Could not start the connection (${r.status})`);
+      throw new Error(j.error ?? t("spotify.could_not_start_the_connection", { status: r.status }));
     if (tab) {
       tab.opener = null;
       tab.location.href = j.connect_link_url;
@@ -384,7 +409,7 @@ export async function connectExport(
     body: JSON.stringify(body),
   });
   const j = await r.json();
-  if (!r.ok) throw new Error(j.error ?? `Export answered ${r.status}`);
+  if (!r.ok) throw new Error(j.error ?? t("spotify.export_answered", { status: r.status }));
   return j;
 }
 
@@ -429,7 +454,7 @@ export async function directPost<T>(path: string, body: Record<string, unknown>)
     location.assign(j.login);
     return new Promise<T>(() => {});
   }
-  if (!r.ok) throw new Error(j.error ?? `${path} answered ${r.status}`);
+  if (!r.ok) throw new Error(j.error ?? t("spotify.answered", { path, status: r.status }));
   return j as T;
 }
 export interface FileResult {

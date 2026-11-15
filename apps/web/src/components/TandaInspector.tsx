@@ -2,6 +2,7 @@
 import { Headphones, ListMusic } from "lucide-react";
 import { useEffect } from "react";
 import { haptic } from "@/lib/haptics";
+import { lazy, t as tx } from "@/lib/i18n";
 import { sourceFor, trackFor, usePlayer } from "@/lib/player";
 import { useStore } from "@/lib/store";
 import type { Playlist } from "@/lib/types";
@@ -10,13 +11,13 @@ import { RhythmTile } from "./Form";
 import { SELECT_TANDA_EVENT } from "./Sidebar";
 import { Tip } from "./ui/Tip";
 
-const PHASE: Record<string, string> = {
-  warmup: "Warm-up",
-  build: "Build",
-  peak: "Peak",
-  cooldown: "Cool-down",
-  close: "Close",
-};
+const PHASE: Record<string, string> = lazy(() => ({
+  warmup: tx("phase.warmup"),
+  build: tx("phase.build"),
+  peak: tx("phase.peak"),
+  cooldown: tx("phase.cooldown"),
+  close: tx("phase.close"),
+}));
 const years = (r: [number, number] | null) => (!r ? "–" : r[0] === r[1] ? `${r[0]}` : `${r[0]}–${r[1]}`);
 const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
 
@@ -52,13 +53,13 @@ export function TandaInspector({
     return src?.kind === "preview" ? [trackFor(s, src)] : [];
   });
   return (
-    <aside className="inspector" aria-label="Inspector" data-testid="inspector">
+    <aside className="inspector" aria-label={tx("tandaInspector.inspector")} data-testid="inspector">
       <div className="group-inset p-4">
         <div className="flex items-center gap-3">
           <RhythmTile rhythm={t.rhythm} />
           <div className="min-w-0 flex-1">
             <p className="text-footnote text-[var(--label-2)]">
-              Tanda {i + 1} of {playlist.tandas.length} · {t.rhythm}
+              {tx("tandaInspector.tanda_of", { p1: i + 1, length: playlist.tandas.length, rhythm: t.rhythm })}
             </p>
             <h2 className="text-title3 truncate" data-testid="inspector-title">
               {t.orchestra}
@@ -66,35 +67,37 @@ export function TandaInspector({
           </div>
         </div>
         <dl className="inspector-facts mt-3">
-          <dt>Voice</dt>
-          <dd>{t.singer ?? "Instrumental"}</dd>
-          <dt>Years</dt>
+          <dt>{tx("tandaInspector.voice")}</dt>
+          <dd>{t.singer ?? tx("tandaInspector.instrumental")}</dd>
+          <dt>{tx("tandaInspector.years")}</dt>
           <dd>{years(t.yearRange)}</dd>
-          <dt>Moment</dt>
+          <dt>{tx("tandaInspector.moment")}</dt>
           <dd>{PHASE[t.phase] ?? t.phase}</dd>
-          <dt>Energy</dt>
+          <dt>{tx("tandaInspector.energy")}</dt>
           <dd>
             {Math.round(t.energy)}{" "}
-            <span className="text-[var(--label-2)]">· target {Math.round(t.targetEnergy)}</span>
+            <span className="text-[var(--label-2)]">
+              {tx("tandaInspector.target", { p1: Math.round(t.targetEnergy) })}
+            </span>
           </dd>
-          <dt>Length</dt>
+          <dt>{tx("tandaInspector.length")}</dt>
           <dd>{mmss(t.durationSec)}</dd>
         </dl>
         <div className="mt-4 flex flex-wrap gap-2">
-          <Tip text="Hear 10 seconds of each song in this tanda">
+          <Tip text={tx("tandaInspector.hear_10_seconds_of_each_song")}>
             <button
               type="button"
               className="btn btn-ghost min-h-[44px]"
               disabled={!previews.length}
               onClick={() => {
                 haptic(4);
-                usePlayer.getState().playQueue(`Tanda ${i + 1}`, previews, 10);
+                usePlayer.getState().playQueue(tx("tandaInspector.tanda", { p1: i + 1 }), previews, 10);
               }}
             >
-              <Headphones size={16} aria-hidden /> Preview
+              <Headphones size={16} aria-hidden /> {tx("tandaInspector.preview")}
             </button>
           </Tip>
-          <Tip text="Scroll the set to this tanda">
+          <Tip text={tx("tandaInspector.scroll_the_set_to_this_tanda")}>
             <button
               type="button"
               className="btn btn-ghost min-h-[44px]"
@@ -104,12 +107,12 @@ export function TandaInspector({
                   ?.scrollIntoView({ behavior: "smooth", block: "start" })
               }
             >
-              <ListMusic size={16} aria-hidden /> Show in set
+              <ListMusic size={16} aria-hidden /> {tx("tandaInspector.show_in_set")}
             </button>
           </Tip>
         </div>
       </div>
-      <h3 className="section-head">Tracks</h3>
+      <h3 className="section-head">{tx("tandaInspector.tracks")}</h3>
       <ol className="group-inset">
         {t.songs.map((s, k) => (
           <li key={s.id} className="cell" data-leading="num" data-now={track?.id === s.id || undefined}>
@@ -128,7 +131,7 @@ export function TandaInspector({
         {t.cortina && (
           <li className="cell">
             <span className="text-footnote min-w-0 flex-1 truncate text-[var(--label-2)]">
-              Cortina · {t.cortina.artist} – {t.cortina.title}
+              {tx("tandaInspector.cortina", { artist: t.cortina.artist, title: t.cortina.title })}
             </span>
           </li>
         )}

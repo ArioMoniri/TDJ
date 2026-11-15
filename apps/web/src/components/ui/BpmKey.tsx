@@ -1,4 +1,5 @@
 "use client";
+import { t } from "@/lib/i18n";
 import "./indicators.css";
 import type { Cortina, Song } from "@tdj/core";
 import { memo } from "react";
@@ -22,8 +23,12 @@ export const BpmKey = memo(function BpmKey({ e, compact = false }: { e: Entity; 
     if (ind.bpm && bpm) parts.push(String(bpm.value));
     if (ind.key && key) parts.push(key.camelot);
     const hint = [
-      ind.bpm ? (bpm ? `${bpm.value} BPM · ${bpm.source}` : "BPM unknown") : null,
-      ind.key ? (key ? `Key ${key.camelot} (${key.name}) · ${key.source}` : "Key unknown") : null,
+      ind.bpm ? (bpm ? `${bpm.value} BPM · ${bpm.source}` : t("bpmKey.bpm_unknown")) : null,
+      ind.key
+        ? key
+          ? t("bpmKey.key_line", { camelot: key.camelot, name: key.name, source: key.source })
+          : t("bpmKey.key_unknown")
+        : null,
     ]
       .filter(Boolean)
       .join(" — ");
@@ -41,7 +46,7 @@ export const BpmKey = memo(function BpmKey({ e, compact = false }: { e: Entity; 
           data-testid="booth-bpm"
           data-hint={bpm ? `${bpm.value} BPM · from ${bpm.source}. ${explain("bpm")}` : explain("bpm")}
         >
-          {bpm ? `${bpm.value} BPM` : "BPM –"}
+          {bpm ? t("bpmKey.bpm_2", { value: bpm.value }) : t("bpmKey.bpm")}
         </span>
       )}
       {ind.key && key && (
@@ -50,7 +55,7 @@ export const BpmKey = memo(function BpmKey({ e, compact = false }: { e: Entity; 
           data-testid="booth-key"
           data-hint={key ? `${key.name} · from ${key.source}. ${explain("key")}` : explain("key")}
         >
-          {key ? `${key.camelot} · ${key.name}` : "Key –"}
+          {key ? `${key.camelot} · ${key.name}` : t("bpmKey.key")}
         </span>
       )}
     </>
@@ -67,7 +72,7 @@ export function EnergyChip({ e }: { e: Entity }) {
       data-testid="booth-energy"
       data-hint={`Energy ${v} of 100. ${explain("energy")}`}
     >
-      Energy {v}
+      {t("bpmKey.energy", { v })}
     </span>
   );
 }

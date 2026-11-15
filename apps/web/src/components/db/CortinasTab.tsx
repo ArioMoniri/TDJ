@@ -1,6 +1,7 @@
 "use client";
 import { AudioLines } from "lucide-react";
 import { useState } from "react";
+import { t } from "@/lib/i18n";
 import type { Cortina, MetaCortina } from "@/lib/types";
 import { ActionRow, Group, Row } from "../Form";
 import { Sheet } from "../Sheet";
@@ -8,8 +9,12 @@ import { Empty, useDb } from "./shared";
 
 const TEMPLATE: Cortina = {
   id: "c-my-cortina",
-  title: "Title",
-  artist: "Artist",
+  get title() {
+    return t("db.cortinasTab.title");
+  },
+  get artist() {
+    return t("db.cortinasTab.artist");
+  },
   genre: "swing",
   culture: "global",
   energy: 60,
@@ -45,9 +50,9 @@ export function CortinasTab({ base }: { base: MetaCortina[] }) {
     try {
       const c = JSON.parse(text) as Cortina;
       for (const k of ["id", "title", "artist", "genre", "culture"] as const)
-        if (typeof c[k] !== "string" || !c[k]) throw new Error(`"${k}" is required`);
+        if (typeof c[k] !== "string" || !c[k]) throw new Error(t("db.cortinasTab.is_required", { k }));
       if (typeof c.energy !== "number" || c.energy < 0 || c.energy > 100)
-        throw new Error("energy must be 0–100");
+        throw new Error(t("db.cortinasTab.energy_must_be_0_100"));
       update((o) => {
         const next = { ...(o.cortinas ?? {}) };
         if (editing && editing !== c.id && editing !== "new") delete next[editing];
@@ -72,13 +77,15 @@ export function CortinasTab({ base }: { base: MetaCortina[] }) {
       delete next[id];
       return { ...o, cortinas: next };
     });
-  if (!base.length) return <Empty>Loading cortinas…</Empty>;
+  if (!base.length) return <Empty>{t("db.cortinasTab.loading_cortinas")}</Empty>;
   const current = merged.find((m) => m.c.id === editing);
   return (
     <div>
       <Group
-        header="Cortinas"
-        footer={`${merged.filter((m) => m.state !== "deleted").length} cortinas in your pool. A Spotify URI makes one previewable.`}
+        header={t("db.cortinasTab.cortinas")}
+        footer={t("db.cortinasTab.cortinas_in_your_pool_a_spotify", {
+          length: merged.filter((m) => m.state !== "deleted").length,
+        })}
       >
         {merged.map(({ c, state }) => (
           <Row
@@ -97,15 +104,20 @@ export function CortinasTab({ base }: { base: MetaCortina[] }) {
                 {c.artist} – {c.title}
               </span>
             }
-            sub={`${c.genre} · ${c.culture} · energy ${c.energy}${state !== "index" ? ` · ${state}` : ""}`}
+            sub={t("db.cortinasTab.energy", {
+              genre: c.genre,
+              culture: c.culture,
+              energy: c.energy,
+              p1: state !== "index" ? ` · ${state}` : "",
+            })}
             value={`${c.lengthSec ?? 45} s`}
             chevron
             onClick={() => open(c)}
           />
         ))}
         <ActionRow
-          label="Add a cortina…"
-          tip="Add a song of your own to play between tandas"
+          label={t("db.cortinasTab.add_a_cortina")}
+          tip={t("db.cortinasTab.add_a_song_of_your_own")}
           onClick={() => {
             setEditing("new");
             setText(JSON.stringify({ ...TEMPLATE, id: `c-own-${Date.now().toString(36)}` }, null, 2));
@@ -116,23 +128,23 @@ export function CortinasTab({ base }: { base: MetaCortina[] }) {
       <Sheet
         open={!!editing}
         onClose={() => setEditing(null)}
-        title={editing === "new" ? "New cortina" : "Edit cortina"}
+        title={editing === "new" ? t("db.cortinasTab.new_cortina") : t("db.cortinasTab.edit_cortina")}
         trailing="Save"
         onTrailing={save}
         detents={["large"]}
       >
         <Group
-          header="Details"
+          header={t("db.cortinasTab.details")}
           footer={
             err ? (
               <span className="text-[var(--destructive)]">{err}</span>
             ) : (
-              "id, title, artist, genre and culture are required; energy is 0–100."
+              t("db.cortinasTab.id_title_artist_genre_and_culture")
             )
           }
         >
           <label htmlFor="cortina-json" className="cell">
-            <span className="sr-only">Cortina details</span>
+            <span className="sr-only">{t("db.cortinasTab.cortina_details")}</span>
             <textarea
               id="cortina-json"
               className="field min-h-56 py-2 font-mono text-footnote"
@@ -147,7 +159,7 @@ export function CortinasTab({ base }: { base: MetaCortina[] }) {
           <Group>
             {current.state === "deleted" ? (
               <ActionRow
-                label="Restore from the index"
+                label={t("db.cortinasTab.restore_from_the_index")}
                 onClick={() => {
                   restore(current.c.id);
                   setEditing(null);
@@ -155,7 +167,11 @@ export function CortinasTab({ base }: { base: MetaCortina[] }) {
               />
             ) : (
               <ActionRow
-                label={current.state === "added" ? "Delete cortina" : "Leave out of my pool"}
+                label={
+                  current.state === "added"
+                    ? t("db.cortinasTab.delete_cortina")
+                    : t("db.cortinasTab.leave_out_of_my_pool")
+                }
                 destructive
                 onClick={() => {
                   remove(current.c.id, current.state === "added");

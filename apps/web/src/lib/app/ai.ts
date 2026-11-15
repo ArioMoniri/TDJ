@@ -3,6 +3,7 @@ import { type AcpTransport, registerAcpSpawner, streamTransport } from "@/lib/ai
 import { activeAcp } from "@/lib/ai/client";
 import { LlmError, type ModelReply, type ModelRequest } from "@/lib/ai/provider";
 import { providerFor } from "@/lib/ai/providers";
+import { t } from "@/lib/i18n";
 import type { WireResponse } from "./host";
 import { invoke, nativeInfo } from "./native";
 import type { AiCreds } from "./server/llm";
@@ -57,13 +58,13 @@ export async function deviceAsk(ai: AiCreds, req: Omit<ModelRequest, "signal">):
   if (ai.provider === "acp") {
     const { useStore } = await import("@/lib/store");
     const conn = activeAcp(useStore.getState().settings);
-    if (!conn) throw new LlmError("Choose an agent connection in Settings → Models.", 401);
+    if (!conn) throw new LlmError(t("ai.choose_agent"), 401);
     return providerFor({ provider: "acp", acp: conn }).complete(req);
   }
-  if (!ai.key) throw new LlmError("No API key. Add one in Settings → Models.", 401);
+  if (!ai.key) throw new LlmError(t("ai.no_key"), 401);
   // a mark with no key behind it (the Keychain was cleared): say so, rather than a connection error from the SDK
   const saved = await invoke<boolean>("secret_has", { name: `ai.${ai.provider}` }).catch(() => true);
-  if (!saved) throw new LlmError("No API key for this provider. Add one in Settings → Models.", 401);
+  if (!saved) throw new LlmError(t("ai.no_key_provider"), 401);
   // whatever the page holds, only the mark leaves it: the Keychain's key is the one the provider sees
   return providerFor(
     { provider: ai.provider, key: KEYCHAIN_KEY, model: ai.model, workspace: ai.workspace },
@@ -80,7 +81,7 @@ export function nativeAgent(command: string, args: string[]): AcpTransport {
   const poll = async (pid: number) => {
     while (open) {
       const r = await invoke<{ data: string; exited: string | null }>("acp_read", { id: pid }).catch(
-        (e: { message?: string }) => ({ data: "", exited: e?.message ?? "The agent stopped." }),
+        (e: { message?: string }) => ({ data: "", exited: e?.message ?? t("ai.the_agent_stopped") }),
       );
       if (r.data) onData(r.data);
       if (r.exited !== null) {
@@ -93,7 +94,7 @@ export function nativeAgent(command: string, args: string[]): AcpTransport {
   };
   id.then(poll, (e: { message?: string }) => {
     open = false;
-    onExit(e?.message ?? "The agent could not be started.");
+    onExit(e?.message ?? t("ai.the_agent_could_not_be_started"));
   });
   return streamTransport({
     write: (line) => {

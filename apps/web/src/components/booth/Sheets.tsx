@@ -7,6 +7,7 @@ import { cortinaSpan } from "@/lib/booth/nightView";
 import { BOOTH_RANGES, durationLabel } from "@/lib/booth/plan";
 import { useBooth } from "@/lib/booth/store";
 import { useMediaQuery } from "@/lib/hooks";
+import { lazy, t as tx } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 import { CORTINA_STOP_RANGE, cortinaStopSec } from "@/lib/types";
 import { ActionRow, Group, Row, SegmentedRow, StepperRow, SwitchRow } from "../Form";
@@ -118,43 +119,42 @@ export function LevelsSheet({ open, onClose }: { open: boolean; onClose: () => v
     <Sheet
       open={open}
       onClose={onClose}
-      title="Mix"
+      title={tx("booth.sheets.mix")}
       trailing="Done"
       detents={["medium", "large"]}
       testId="booth-levels-sheet"
     >
       {phone && (
-        <Group
-          header="Now"
-          footer="Pause and Resume fade in and out; Hold lets the song finish and waits. The keys work without this sheet."
-        >
+        <Group header={tx("booth.sheets.now")} footer={tx("booth.sheets.pause_and_resume_fade_in_and")}>
           <KeyAction
-            label={live ? "Pause" : paused ? "Resume" : "Play"}
-            sub={`${settings.pauseFadeSec} s fade`}
+            label={
+              live ? tx("booth.sheets.pause") : paused ? tx("booth.sheets.resume") : tx("booth.sheets.play")
+            }
+            sub={tx("booth.sheets.s_fade", { pauseFadeSec: settings.pauseFadeSec })}
             k="space"
             onClick={() => act.togglePause()}
             disabled={!started}
             testId="booth-mix-pause"
           />
           <KeyAction
-            label={`Fade out now (${settings.fadeNowSec} s)`}
-            sub="The song fades out; the next item follows at the gap"
+            label={tx("booth.sheets.fade_out_now_s", { fadeNowSec: settings.fadeNowSec })}
+            sub={tx("booth.sheets.the_song_fades_out_the_next")}
             k="f"
             onClick={() => act.fadeOutNow()}
             disabled={!live}
             testId="booth-fade-now"
           />
           <KeyAction
-            label={`Next with crossfade (${settings.crossfadeSec} s)`}
-            sub="The next item starts now while this one fades out"
+            label={tx("booth.sheets.next_with_crossfade_s", { crossfadeSec: settings.crossfadeSec })}
+            sub={tx("booth.sheets.the_next_item_starts_now_while")}
             k="x"
             onClick={() => void act.crossfadeNext()}
             disabled={!live}
             testId="booth-crossfade"
           />
           <KeyAction
-            label={holding ? "Cancel hold" : "Hold after this song"}
-            sub="The song finishes; the next one waits for Play"
+            label={holding ? tx("booth.sheets.cancel_hold") : tx("booth.sheets.hold_after_this_song")}
+            sub={tx("booth.sheets.the_song_finishes_the_next_one")}
             k="h"
             onClick={() => act.toggleHold()}
             disabled={!live}
@@ -162,8 +162,8 @@ export function LevelsSheet({ open, onClose }: { open: boolean; onClose: () => v
           />
           {kind !== "closing" && (
             <KeyAction
-              label="End the tanda after this song"
-              sub="The cortina comes next, at the gap"
+              label={tx("booth.sheets.end_the_tanda_after_this_song")}
+              sub={tx("booth.sheets.the_cortina_comes_next_at_the")}
               k="c"
               onClick={() => act.cueCortina()}
               disabled={!live || kind !== "track"}
@@ -171,24 +171,26 @@ export function LevelsSheet({ open, onClose }: { open: boolean; onClose: () => v
             />
           )}
           <SwitchRow
-            label="Talk-over"
-            sub="The music dips 12 dB while you speak (t)"
+            label={tx("booth.sheets.talk_over")}
+            sub={tx("booth.sheets.the_music_dips_12_db_while")}
             checked={ducked}
             onChange={(v) => act.setDucked(v)}
           />
         </Group>
       )}
       <Group
-        header="Transitions"
+        header={tx("booth.sheets.transitions")}
         footer={
           preset === "custom"
-            ? "Custom: your own gap, fades and crossfade. Saved on this device; the night is re-timed, also while it plays."
-            : `${MIX_PRESETS.find((p) => p.id === preset)!.explain} Saved on this device.`
+            ? tx("booth.sheets.custom_your_own_gap_fades_and")
+            : tx("booth.sheets.saved_on_this_device", {
+                explain: MIX_PRESETS.find((p) => p.id === preset)!.explain,
+              })
         }
         data-testid="booth-mix-transitions"
       >
         <SegmentedRow
-          label="Style"
+          label={tx("booth.sheets.style")}
           value={preset}
           items={[...MIX_PRESETS.map((p) => [p.id, p.label] as [MixPresetId, string]), ["custom", "Custom"]]}
           onChange={(k) => {
@@ -197,7 +199,7 @@ export function LevelsSheet({ open, onClose }: { open: boolean; onClose: () => v
           }}
         />
         <MixStepper
-          label="Gap between items"
+          label={tx("booth.sheets.gap_between_items")}
           explain={MIX_EXPLAIN.gapSec}
           value={settings.gapSec}
           {...BOOTH_RANGES.gapSec}
@@ -205,50 +207,47 @@ export function LevelsSheet({ open, onClose }: { open: boolean; onClose: () => v
           testId="booth-mix-gap"
         />
         <MixStepper
-          label="Song end fade"
+          label={tx("booth.sheets.song_end_fade")}
           explain={MIX_EXPLAIN.songFadeOutSec}
           value={settings.songFadeOutSec}
           {...TRANSPORT_RANGES.songFadeOutSec}
           onChange={(v) => set({ songFadeOutSec: v })}
         />
         <MixStepper
-          label="Crossfade"
+          label={tx("booth.sheets.crossfade")}
           explain={MIX_EXPLAIN.crossfadeSec}
           value={settings.crossfadeSec}
           {...TRANSPORT_RANGES.crossfadeSec}
           onChange={(v) => set({ crossfadeSec: v })}
         />
         <MixStepper
-          label="Fade out now"
+          label={tx("booth.sheets.fade_out_now")}
           explain={MIX_EXPLAIN.fadeNowSec}
           value={settings.fadeNowSec}
           {...TRANSPORT_RANGES.fadeNowSec}
           onChange={(v) => set({ fadeNowSec: v })}
         />
         <MixStepper
-          label="Pause / resume fade"
+          label={tx("booth.sheets.pause_resume_fade")}
           explain={MIX_EXPLAIN.pauseFadeSec}
           value={settings.pauseFadeSec}
           {...TRANSPORT_RANGES.pauseFadeSec}
           onChange={(v) => set({ pauseFadeSec: Math.round(v * 10) / 10 })}
         />
         <MixStepper
-          label="Fade out and stop"
+          label={tx("booth.sheets.fade_out_and_stop")}
           explain={MIX_EXPLAIN.stopFadeSec}
           value={settings.stopFadeSec}
           {...TRANSPORT_RANGES.stopFadeSec}
           onChange={(v) => set({ stopFadeSec: v })}
         />
       </Group>
-      <Group
-        header="Cortinas"
-        footer="Each cortina can have its own fades and stop in the set list (the sliders on its row). Saved with the set; the exports follow it."
-      >
+      <Group header={tx("booth.sheets.cortinas")} footer={tx("booth.sheets.each_cortina_can_have_its_own")}>
         <MixStepper
-          label="Cortina length"
+          label={tx("booth.sheets.cortina_length")}
           explain={
             userSettings.cortinaStopSec === null
-              ? `${MIX_EXPLAIN.cortinaStop} Follows the composer.`
+              ? tx("booth.sheets.follows_the_composer", { cortinaStop: MIX_EXPLAIN.cortinaStop })
               : MIX_EXPLAIN.cortinaStop
           }
           value={cortinaLen}
@@ -257,19 +256,19 @@ export function LevelsSheet({ open, onClose }: { open: boolean; onClose: () => v
           testId="booth-mix-cortina-length"
         />
         <SwitchRow
-          label="Follow the composer's cortina length"
+          label={tx("booth.sheets.follow_the_composer_s_cortina_length")}
           checked={userSettings.cortinaStopSec === null}
           onChange={(v) => act.setCortinaLength(v ? null : cortinaLen)}
         />
         <MixStepper
-          label="Cortina fade-in"
+          label={tx("booth.sheets.cortina_fade_in")}
           explain={MIX_EXPLAIN.cortinaFadeInSec}
           value={settings.cortinaFadeInSec}
           {...BOOTH_RANGES.cortinaFadeInSec}
           onChange={(v) => set({ cortinaFadeInSec: v })}
         />
         <MixStepper
-          label="Cortina fade-out"
+          label={tx("booth.sheets.cortina_fade_out")}
           explain={MIX_EXPLAIN.cortinaFadeOutSec}
           value={settings.cortinaFadeOutSec}
           {...BOOTH_RANGES.cortinaFadeOutSec}
@@ -277,8 +276,8 @@ export function LevelsSheet({ open, onClose }: { open: boolean; onClose: () => v
         />
         <div className="cell">
           <Fader
-            label="Cortina volume"
-            hint="How loud cortinas play against the tangos"
+            label={tx("booth.sheets.cortina_volume")}
+            hint={tx("booth.sheets.how_loud_cortinas_play_against_the")}
             value={cortinaFader}
             min={0}
             max={1}
@@ -290,14 +289,11 @@ export function LevelsSheet({ open, onClose }: { open: boolean; onClose: () => v
           />
         </div>
       </Group>
-      <Group
-        header="Levels"
-        footer="Master volume: the whole output to the room (0 dB = as mastered). ↑ / ↓ move the cortina volume from the keyboard, m mutes."
-      >
+      <Group header={tx("booth.sheets.levels")} footer={tx("booth.sheets.master_volume_the_whole_output_to")}>
         <div className="cell">
           <Fader
-            label="Master volume"
-            hint="The whole output to the room"
+            label={tx("booth.sheets.master_volume")}
+            hint={tx("booth.sheets.the_whole_output_to_the_room")}
             value={master}
             min={-30}
             max={6}
@@ -308,33 +304,36 @@ export function LevelsSheet({ open, onClose }: { open: boolean; onClose: () => v
             className="w-full"
           />
         </div>
-        <ActionRow label={muted ? "Unmute" : "Mute"} onClick={() => act.toggleMute()} />
+        <ActionRow
+          label={muted ? tx("booth.sheets.unmute") : tx("booth.sheets.mute")}
+          onClick={() => act.toggleMute()}
+        />
         <MixStepper
-          label="Loudness"
+          label={tx("booth.sheets.loudness")}
           explain={MIX_EXPLAIN.loudnessTargetLUFS}
           value={settings.loudnessTargetLUFS}
-          unit=" LUFS"
+          unit={tx("booth.sheets.lufs")}
           {...BOOTH_RANGES.loudnessTargetLUFS}
           onChange={(v) => set({ loudnessTargetLUFS: v })}
         />
         <SwitchRow
-          label="Trim silence at the start"
+          label={tx("booth.sheets.trim_silence_at_the_start")}
           sub={MIX_EXPLAIN.trimLeadingSilence}
           checked={settings.trimLeadingSilence}
           onChange={(v) => set({ trimLeadingSilence: v })}
         />
       </Group>
       <Group
-        header="Source"
+        header={tx("booth.sheets.source")}
         footer={
           spotifyOk
-            ? "Spotify Premium is connected: every song plays in full. A rehearsal plays 30 s of each to hear the night quickly."
-            : "Connect Spotify Premium (or link your music folder) to play full songs; without them the night plays 30 s clips."
+            ? tx("booth.sheets.spotify_premium_is_connected_every_song")
+            : tx("booth.sheets.connect_spotify_premium_or_link_your")
         }
       >
         <SwitchRow
-          label="Rehearsal (30 s clips)"
-          sub="For trying the night out; off plays the full songs"
+          label={tx("booth.sheets.rehearsal_30_s_clips")}
+          sub={tx("booth.sheets.for_trying_the_night_out_off")}
           checked={sourceMode === "preview"}
           disabled={started}
           onChange={(v) => void act.setSourceMode(v ? "preview" : "file")}
@@ -356,12 +355,12 @@ export function StopSheet({ open, onClose }: { open: boolean; onClose: () => voi
     <Sheet
       open={open}
       onClose={onClose}
-      title="Stop the music?"
+      title={tx("booth.sheets.stop_the_music")}
       detents={["medium"]}
       testId="booth-stop-sheet"
       hideCancel
     >
-      <Group footer="Cancel keeps the music playing (Enter or esc). Play restarts the same song from the top.">
+      <Group footer={tx("booth.sheets.cancel_keeps_the_music_playing_enter")}>
         <button
           type="button"
           className="cell cell-tap w-full justify-center font-semibold"
@@ -369,7 +368,7 @@ export function StopSheet({ open, onClose }: { open: boolean; onClose: () => voi
           data-testid="booth-stop-cancel"
           onClick={onClose}
         >
-          Cancel
+          {tx("booth.sheets.cancel")}
         </button>
         <button
           type="button"
@@ -380,7 +379,7 @@ export function StopSheet({ open, onClose }: { open: boolean; onClose: () => voi
             onClose();
           }}
         >
-          Fade out and stop ({fade} s)
+          {tx("booth.sheets.fade_out_and_stop_s", { fade })}
         </button>
         <button
           type="button"
@@ -391,7 +390,7 @@ export function StopSheet({ open, onClose }: { open: boolean; onClose: () => voi
             onClose();
           }}
         >
-          Stop now
+          {tx("booth.sheets.stop_now")}
         </button>
       </Group>
     </Sheet>
@@ -411,46 +410,55 @@ export function CortinaSheet({ planIndex, onClose }: { planIndex: number | null;
   const id = it?.id ?? "";
   const edited = !!edits?.[id];
   return (
-    <Sheet open={open} onClose={onClose} title="Cortina" trailing="Done" testId="booth-cortina-sheet">
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title={tx("booth.sheets.cortina_2")}
+      trailing="Done"
+      testId="booth-cortina-sheet"
+    >
       {it && (
         <>
           <p className="section-foot mt-2">
             {it.title} · {it.artist} · {cortinaSpan(it.trimInSec ?? 0, it.stopSec ?? 45)}
           </p>
           <Group
-            header="Envelope"
+            header={tx("booth.sheets.envelope")}
             footer={
               current
-                ? "The cortina playing now keeps its envelope; the change applies the next time it plays and re-times the night."
-                : "Saved with the set: the booth, History and the DJ-app exports use it. The rest of the night is re-timed."
+                ? tx("booth.sheets.the_cortina_playing_now_keeps_its")
+                : tx("booth.sheets.saved_with_the_set_the_booth")
             }
           >
             <StepperRow
-              label="Fade in"
+              label={tx("booth.sheets.fade_in")}
               value={it.fadeInSec ?? settings.cortinaFadeInSec}
               unit=" s"
               {...CORTINA_EDIT_RANGES.fadeInSec}
               onChange={(v) => setEdit(id, { fadeInSec: v })}
             />
             <StepperRow
-              label="Fade out"
+              label={tx("booth.sheets.fade_out")}
               value={it.fadeOutSec ?? settings.cortinaFadeOutSec}
               unit=" s"
               {...CORTINA_EDIT_RANGES.fadeOutSec}
               onChange={(v) => setEdit(id, { fadeOutSec: v })}
             />
             <StepperRow
-              label="Stop at"
+              label={tx("booth.sheets.stop_at")}
               value={it.stopSec ?? 45}
               display={durationLabel(it.stopSec ?? 45)}
               {...CORTINA_EDIT_RANGES.stopSec}
               onChange={(v) => setEdit(id, { stopSec: v })}
             />
-            <Row label="Plays for" value={durationLabel(it.lengthSec)} />
+            <Row label={tx("booth.sheets.plays_for")} value={durationLabel(it.lengthSec)} />
           </Group>
           {edited && (
             <Group>
-              <ActionRow label="Use the night's settings" onClick={() => setEdit(id, null)} />
+              <ActionRow
+                label={tx("booth.sheets.use_the_night_s_settings")}
+                onClick={() => setEdit(id, null)}
+              />
             </Group>
           )}
         </>
@@ -459,26 +467,32 @@ export function CortinaSheet({ planIndex, onClose }: { planIndex: number | null;
   );
 }
 
-const KEYS: Array<[string, string]> = [
-  ["space", "Pause / resume (a short fade)"],
-  ["→", "Next at gap: the queued item is skipped"],
-  ["f", "Fade out now; the next item follows at the gap"],
-  ["x", "Next with crossfade"],
-  ["h", "Hold after this song / cancel the hold"],
-  ["t", "Talk-over: the music dips 12 dB"],
-  ["↑ / ↓", "Cortina fader ± 5 %"],
-  ["c", "Cue the cortina: end the tanda after this song"],
-  ["p", "Pre-listen the next item in the headphones"],
-  ["⇧ P", "Stop the pre-listen (the room keeps playing)"],
-  ["b", "Birthday vals"],
-  ["m", "Master mute"],
-  ["?", "This sheet"],
-];
+const KEYS: Array<[string, string]> = lazy(() => [
+  ["space", tx("booth.sheets.pause_resume_a_short_fade")],
+  ["→", tx("booth.sheets.next_at_gap_the_queued_item")],
+  ["f", tx("booth.sheets.fade_out_now_the_next_item")],
+  ["x", tx("booth.sheets.next_with_crossfade")],
+  ["h", tx("booth.sheets.hold_after_this_song_cancel_the")],
+  ["t", tx("booth.sheets.talk_over_the_music_dips_12")],
+  ["↑ / ↓", tx("booth.sheets.cortina_fader_5")],
+  ["c", tx("booth.sheets.cue_the_cortina_end_the_tanda")],
+  ["p", tx("booth.sheets.pre_listen_the_next_item_in")],
+  ["⇧ P", tx("booth.sheets.stop_the_pre_listen_the_room")],
+  ["b", tx("booth.sheets.birthday_vals")],
+  ["m", tx("booth.sheets.master_mute")],
+  ["?", tx("booth.sheets.this_sheet")],
+]);
 
 export function ShortcutsSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
-    <Sheet open={open} onClose={onClose} title="Keyboard" trailing="Done" testId="booth-shortcuts">
-      <Group footer="Shortcuts are ignored while a text field has focus. Every key calls the same engine method the buttons do.">
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title={tx("booth.sheets.keyboard")}
+      trailing="Done"
+      testId="booth-shortcuts"
+    >
+      <Group footer={tx("booth.sheets.shortcuts_are_ignored_while_a_text")}>
         {KEYS.map(([k, d]) => (
           <Row
             key={k}
@@ -495,13 +509,18 @@ export function BreakSheet({ open, onClose }: { open: boolean; onClose: () => vo
   const startBreak = useBooth((s) => s.startBreak);
   const [min, setMin] = useState(10);
   return (
-    <Sheet open={open} onClose={onClose} title="Break" testId="booth-break-sheet">
-      <Group footer="The booth holds after the current song and counts down; Play (or End break) resumes with the next item.">
+    <Sheet open={open} onClose={onClose} title={tx("booth.sheets.break")} testId="booth-break-sheet">
+      <Group footer={tx("booth.sheets.the_booth_holds_after_the_current")}>
         {[5, 10, 15, 20, 30].map((m) => (
-          <Row key={m} label={`${m} minutes`} onClick={() => setMin(m)} value={min === m ? "✓" : undefined} />
+          <Row
+            key={m}
+            label={tx("booth.sheets.minutes", { m })}
+            onClick={() => setMin(m)}
+            value={min === m ? "✓" : undefined}
+          />
         ))}
         <ActionRow
-          label={`Break for ${min} min after this song`}
+          label={tx("booth.sheets.break_for_min_after_this_song", { min })}
           onClick={() => {
             startBreak(min);
             onClose();
@@ -524,13 +543,23 @@ export function FindFileSheet({
   const pickFile = useBooth((s) => s.pickFile);
   const input = useRef<HTMLInputElement>(null);
   return (
-    <Sheet open={!!item} onClose={onClose} title="Pick file" trailing="Done" testId="booth-find-sheet">
+    <Sheet
+      open={!!item}
+      onClose={onClose}
+      title={tx("booth.sheets.pick_file_2")}
+      trailing="Done"
+      testId="booth-find-sheet"
+    >
       {item && (
         <>
           <p className="section-foot mt-2">{item.title}</p>
           <Group
-            header={suggestions.length ? "Closest files in your folder" : "No close file name in your folder"}
-            footer="A file picked by hand is remembered for this recording and never overwritten by a re-index."
+            header={
+              suggestions.length
+                ? tx("booth.sheets.closest_files_in_your_folder")
+                : tx("booth.sheets.no_close_file_name_in_your")
+            }
+            footer={tx("booth.sheets.a_file_picked_by_hand_is")}
           >
             {suggestions.map((s) => (
               <Row
@@ -543,7 +572,7 @@ export function FindFileSheet({
                 }}
               />
             ))}
-            <ActionRow label="Pick file…" onClick={() => input.current?.click()} />
+            <ActionRow label={tx("booth.sheets.pick_file")} onClick={() => input.current?.click()} />
           </Group>
           <input
             ref={input}
@@ -579,20 +608,29 @@ export function ResumeSheet() {
     <Sheet
       open={!!offer}
       onClose={() => void resume(false)}
-      title="Resume the night?"
+      title={tx("booth.sheets.resume_the_night")}
       hideCancel
       detents={["medium"]}
       testId="booth-resume"
     >
-      <Group footer="The audio cannot survive a reload; the position and the log do.">
+      <Group footer={tx("booth.sheets.the_audio_cannot_survive_a_reload")}>
         <ActionRow
           label={
-            it ? `Resume at tanda ${it.tanda}, ${it.kind === "cortina" ? "cortina" : `track ${k}`}` : "Resume"
+            it
+              ? tx("booth.sheets.resume_at_tanda", {
+                  tanda: it.tanda,
+                  p1: it.kind === "cortina" ? tx("booth.sheets.cortina") : tx("booth.sheets.track", { k }),
+                })
+              : tx("booth.sheets.resume")
           }
           onClick={() => void resume(true)}
           id="booth-resume-yes"
         />
-        <ActionRow label="Start from the beginning" destructive onClick={() => void resume(false)} />
+        <ActionRow
+          label={tx("booth.sheets.start_from_the_beginning")}
+          destructive
+          onClick={() => void resume(false)}
+        />
       </Group>
     </Sheet>
   );

@@ -1,4 +1,5 @@
 "use client";
+import { t as tx } from "@/lib/i18n";
 import "./compose-db.css";
 import { tandaTone } from "@tdj/core";
 import { memo, useMemo, useState } from "react";
@@ -55,15 +56,19 @@ export const NightProfile = memo(function NightProfile({
   return (
     <div className="group-inset px-4 py-3" data-testid="night-profile">
       <div className="flex items-baseline justify-between gap-2">
-        <h3 className="text-subhead font-semibold">Song by song</h3>
+        <h3 className="text-subhead font-semibold">{tx("nightProfile.song_by_song")}</h3>
         <span
           className="text-footnote truncate text-[var(--label-2)]"
           aria-live="polite"
           data-testid="night-profile-caption"
         >
           {cur
-            ? `Tanda ${cur.t.index + 1} · ${cur.t.orchestra} · ${cur.tone?.label ?? ""}`
-            : "Energy of every side; hover a tanda for its tone"}
+            ? tx("nightProfile.tanda_2", {
+                p1: cur.t.index + 1,
+                orchestra: cur.t.orchestra,
+                p2: cur.tone?.label ?? "",
+              })
+            : tx("nightProfile.energy_of_every_side_hover_a")}
         </span>
       </div>
       <svg
@@ -71,7 +76,7 @@ export const NightProfile = memo(function NightProfile({
         preserveAspectRatio="none"
         className="mt-2 block h-14 w-full"
         role="img"
-        aria-label={`Energy of each of the ${ids.length} sides, tanda by tanda`}
+        aria-label={tx("nightProfile.energy_of_each_of_the_sides", { length: ids.length })}
       >
         {layout.map(({ i, t, x0, w, bars }) => (
           // biome-ignore lint/a11y/useSemanticElements: an SVG group stands for the tanda; it is focusable and labelled
@@ -79,7 +84,11 @@ export const NightProfile = memo(function NightProfile({
             key={`${i}-${t.songs[0]?.id}`}
             role="button"
             tabIndex={0}
-            aria-label={`Tanda ${i + 1}, ${t.orchestra}: ${tandas[i]?.tone?.label ?? ""}`}
+            aria-label={tx("nightProfile.tanda", {
+              p1: i + 1,
+              orchestra: t.orchestra,
+              p2: tandas[i]?.tone?.label ?? "",
+            })}
             onPointerEnter={() => setHover(i)}
             onPointerLeave={() => setHover(null)}
             onFocus={() => setHover(i)}
@@ -113,7 +122,14 @@ export const NightProfile = memo(function NightProfile({
                 opacity={t.bypass ? 0.35 : hover === null || hover === i ? 1 : 0.55}
               >
                 <title>
-                  {`${b.s.title} · energy ${b.s.energy ?? 50}${b.s.tempo?.bpm || b.s.audio?.bpm ? ` · ${Math.round((b.s.tempo?.bpm || b.s.audio?.bpm)!)} BPM` : ""}`}
+                  {tx("nightProfile.energy", {
+                    title: b.s.title,
+                    p1: b.s.energy ?? 50,
+                    p2:
+                      b.s.tempo?.bpm || b.s.audio?.bpm
+                        ? ` ${tx("nightProfile.bpm", { p1: Math.round((b.s.tempo?.bpm || b.s.audio?.bpm)!) })}`
+                        : "",
+                  })}
                 </title>
               </rect>
             ))}

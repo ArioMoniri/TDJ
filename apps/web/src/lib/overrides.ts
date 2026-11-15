@@ -1,5 +1,6 @@
 "use client";
 import { del, get, set } from "idb-keyval";
+import { t } from "@/lib/i18n";
 import { APP } from "./app/target";
 import { loadMemoryLocal, normalizeMemory } from "./memory";
 import type { AgentMemory, AppOverrides, HistorySnapshot } from "./types";
@@ -137,7 +138,8 @@ export function parseImport(text: string): AppOverrides {
   const j = JSON.parse(text);
   const o =
     j && typeof j === "object" && "overrides" in j && typeof j.overrides === "object" ? j.overrides : j;
-  if (!o || typeof o !== "object" || Array.isArray(o)) throw new Error("Not a T-DJ database file");
+  if (!o || typeof o !== "object" || Array.isArray(o))
+    throw new Error(t("overrides.not_a_t_dj_database_file"));
   const out: AppOverrides = {};
   for (const k of [
     "songs",

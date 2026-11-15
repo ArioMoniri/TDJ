@@ -1,6 +1,7 @@
 "use client";
 import { animate, useReducedMotion } from "motion/react";
 import { useEffect, useRef } from "react";
+import { t } from "@/lib/i18n";
 import { ease } from "@/lib/motion";
 
 /**
@@ -33,7 +34,7 @@ export function ScoreCounter({ value, from = 0 }: { value: number; from?: number
   }, [value, reduced]);
   return (
     <span className="tabular-nums" data-testid="score">
-      <span className="sr-only">{value} of 100</span>
+      <span className="sr-only">{t("scoreCounter.of_100", { value })}</span>
       <span ref={ref} aria-hidden>
         {value}
       </span>

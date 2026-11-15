@@ -31,6 +31,7 @@ import { downloadBlob } from "@/lib/download";
 import { haptic } from "@/lib/haptics";
 import { changeLabel, eraLabel, groupByDay, nightLogSummary, versionsOf } from "@/lib/history";
 import { useMediaQuery } from "@/lib/hooks";
+import { fmtTime, lazy, t as tx } from "@/lib/i18n";
 import { reduced as reducedV, rise } from "@/lib/motion";
 import { lengthText } from "@/lib/nightName";
 import { useStore } from "@/lib/store";
@@ -38,17 +39,37 @@ import { toast } from "@/lib/toast";
 import type { HistorySnapshot } from "@/lib/types";
 
 const ARC: Record<string, string> = {
-  "classic-two-peaks": "Two peaks",
-  "single-peak": "Single peak",
-  "marathon-plateau": "Marathon",
-  gentle: "Gentle",
+  get "classic-two-peaks"() {
+    return tx("history.two_peaks");
+  },
+  get "single-peak"() {
+    return tx("history.single_peak");
+  },
+  get "marathon-plateau"() {
+    return tx("history.marathon");
+  },
+  get gentle() {
+    return tx("history.gentle");
+  },
 };
 const noop = () => {};
 const NO_PLAYLISTS: never[] = [];
 const fmtH = (h: number) => `${h} h`.replace(".5 h", "½ h");
-const time = (iso: string) =>
-  new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-const MONTH = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const time = (iso: string) => fmtTime(iso, { hour: "2-digit", minute: "2-digit" });
+const MONTH = lazy(() => [
+  tx("history.jan"),
+  tx("history.feb"),
+  tx("history.mar"),
+  tx("history.apr"),
+  tx("history.may"),
+  tx("history.jun"),
+  tx("history.jul"),
+  tx("history.aug"),
+  tx("history.sep"),
+  tx("history.oct"),
+  tx("history.nov"),
+  tx("history.dec"),
+]);
 /** "20 Oct, 06:36" */
 const when = (iso: string) => {
   const d = new Date(iso);
@@ -64,7 +85,7 @@ function ScoreRing({ score }: { score: number }) {
         background: `conic-gradient(var(--tint) ${score * 3.6}deg, var(--fill-3) 0)`,
       }}
       role="img"
-      aria-label={`score ${score}`}
+      aria-label={tx("history.score_2", { score })}
     >
       <span className="grid h-[34px] w-[34px] place-items-center rounded-full bg-[rgb(var(--bg-cell))] text-[var(--label)] tabular-nums">
         {score}
@@ -90,7 +111,7 @@ function Sparkline({ scores }: { scores: number[] }) {
       width={w}
       height={h}
       viewBox={`0 0 ${w} ${h}`}
-      aria-label={`Score trend over the last ${scores.length} sets`}
+      aria-label={tx("history.score_trend_over_the_last_sets", { length: scores.length })}
       role="img"
       data-testid="score-trend"
     >
@@ -172,19 +193,29 @@ export default function HistoryPage() {
     haptic(6);
     if (currentId === s.id) {
       setPlaylist({ ...back.playlist, tandas: back.playlist.tandas.map((t) => ({ ...t, locked: false })) });
-      toast(`Back to “${label}” in Compose`);
-    } else toast(`“${label}” is the current version of this night`);
+      toast(tx("history.back_to_in_compose", { label }));
+    } else toast(tx("history.is_the_current_version_of_this", { label }));
   };
   const reopen = (s: HistorySnapshot) => {
     setCurrentEntry(s.id);
     setPlaylist({ ...s.playlist, tandas: s.playlist.tandas.map((t) => ({ ...t, locked: false })) });
     replaceOptions({ ...s.options, seed: s.playlist.options.seed });
-    toast(`Reopened "${s.title}" in Compose`);
+    toast(tx("history.reopened_in_compose", { title: s.title }));
     router.push("/#result");
   };
   /** "4 h · 22 tandas · Golden age · Two peaks · rehearsed 06:36" (no ISO dates, no repeat of the title) */
   const sub = (s: HistorySnapshot) =>
-    `${s.playlist.stats?.durationSec ? lengthText(s.playlist.stats.durationSec) : fmtH(s.playlist.options.hours)} · ${s.playlist.tandas.length} tandas · ${eraLabel(s.playlist)} · ${ARC[s.playlist.options.arc] ?? s.playlist.options.arc}${s.nightLog ? ` · ${nightLogSummary(s.nightLog)}` : ` · composed ${time(s.createdAt)}`}`;
+    tx("history.tandas_2", {
+      p1: s.playlist.stats?.durationSec
+        ? lengthText(s.playlist.stats.durationSec)
+        : fmtH(s.playlist.options.hours),
+      length: s.playlist.tandas.length,
+      p2: eraLabel(s.playlist),
+      p3: ARC[s.playlist.options.arc] ?? s.playlist.options.arc,
+      p4: s.nightLog
+        ? ` · ${nightLogSummary(s.nightLog)}`
+        : ` ${tx("history.composed", { p1: time(s.createdAt) })}`,
+    });
   /** Booth: the set becomes the current one (locks cleared) and /booth opens on it. */
   const playNight = (s: HistorySnapshot) => {
     setCurrentEntry(s.id);
@@ -199,16 +230,19 @@ export default function HistoryPage() {
   return (
     <div className="mx-auto max-w-[720px] lg:max-w-[1100px]">
       <PageHeader
-        title="History"
+        title={tx("history.history")}
         subtitle={
           history.length
-            ? `${history.length} ${history.length === 1 ? "set" : "sets"} kept · last 50`
-            : "Every set you compose lands here."
+            ? tx("history.kept_last_50", {
+                length: history.length,
+                p1: history.length === 1 ? tx("history.set") : tx("history.sets"),
+              })
+            : tx("history.every_set_you_compose_lands_here")
         }
         trailing={
           <>
             {trend.length >= 2 && (
-              <Tip text={`Average ${avg} over the last ${trend.length}`}>
+              <Tip text={tx("history.average_over_the_last", { avg, length: trend.length })}>
                 <span className="mr-1 inline-flex items-center gap-2">
                   <Sparkline scores={trend} />
                   <span className="text-subhead tabular-nums text-[var(--label-2)]">{avg}</span>
@@ -216,18 +250,22 @@ export default function HistoryPage() {
               </Tip>
             )}
             <Menu
-              label="More"
+              label={tx("history.more")}
               items={[
-                { label: "Open a shared night…", icon: FolderOpen, onClick: () => router.push("/night") },
-                { label: "Rooms…", icon: Users, onClick: () => router.push("/rooms") },
                 {
-                  label: "Save history as a file",
+                  label: tx("history.open_a_shared_night"),
+                  icon: FolderOpen,
+                  onClick: () => router.push("/night"),
+                },
+                { label: tx("history.rooms"), icon: Users, onClick: () => router.push("/rooms") },
+                {
+                  label: tx("history.save_history_as_a_file"),
                   icon: Download,
                   onClick: exportAll,
                   disabled: !history.length,
                 },
                 {
-                  label: "Clear history…",
+                  label: tx("history.clear_history_2"),
                   icon: Trash2,
                   destructive: true,
                   onClick: () => setConfirmClear(true),
@@ -238,21 +276,23 @@ export default function HistoryPage() {
           </>
         }
       />
-      {!overridesReady && <p className="text-subhead py-8 text-center text-[var(--label-2)]">Loading…</p>}
+      {!overridesReady && (
+        <p className="text-subhead py-8 text-center text-[var(--label-2)]">{tx("history.loading")}</p>
+      )}
       {overridesReady && history.length === 0 && (
         <EmptyState
           action={
             <span className="flex flex-col items-center gap-3">
-              <Tip text="Compose your first night; every night you compose is kept here">
+              <Tip text={tx("history.compose_your_first_night_every_night")}>
                 <Link href="/" className="btn btn-primary">
-                  Compose a night
+                  {tx("history.compose_a_night")}
                 </Link>
               </Tip>
               <FeaturedCard />
             </span>
           }
         >
-          Sets you compose land here, with their score, options and tandas. The trend starts after two.
+          {tx("history.sets_you_compose_land_here_with")}
         </EmptyState>
       )}
       {groups.map((g) => (
@@ -273,7 +313,7 @@ export default function HistoryPage() {
                   actions={[
                     {
                       kind: "lock",
-                      label: "Compare",
+                      label: tx("history.compare"),
                       icon: GitCompare,
                       onClick: () => {
                         setOpenId(s.id);
@@ -286,7 +326,7 @@ export default function HistoryPage() {
                   <Row
                     tile={<ScoreRing score={s.score} />}
                     label={s.title}
-                    sub={`${sub(s)}${s.change || s.source !== "compose" ? ` · ${changeLabel(s)}` : ""}${s.versions?.length ? ` · ${s.versions.length + 1} versions` : ""}`}
+                    sub={`${sub(s)}${s.change || s.source !== "compose" ? ` · ${changeLabel(s)}` : ""}${s.versions?.length ? ` ${tx("history.versions_2", { p1: s.versions.length + 1 })}` : ""}`}
                     value={currentId === s.id ? "Current" : undefined}
                     chevron
                     onClick={() => setOpenId(s.id)}
@@ -306,19 +346,19 @@ export default function HistoryPage() {
         trailing={
           open ? (
             <Menu
-              label="Set actions"
+              label={tx("history.set_actions")}
               items={[
-                { label: "Reopen in Compose", icon: RotateCcw, onClick: () => reopen(open) },
-                { label: "Play the night", icon: Play, onClick: () => playNight(open) },
-                { label: "Re-export…", icon: Share, onClick: () => setExporting(true) },
+                { label: tx("history.reopen_in_compose"), icon: RotateCcw, onClick: () => reopen(open) },
+                { label: tx("history.play_the_night"), icon: Play, onClick: () => playNight(open) },
+                { label: tx("history.re_export"), icon: Share, onClick: () => setExporting(true) },
                 {
-                  label: "Compare…",
+                  label: tx("history.compare_2"),
                   icon: GitCompare,
                   onClick: () => setPicking(true),
                   disabled: history.length < 2,
                 },
                 {
-                  label: "Rename…",
+                  label: tx("history.rename_2"),
                   icon: Pencil,
                   onClick: () => {
                     setDraft(open.title);
@@ -326,15 +366,15 @@ export default function HistoryPage() {
                   },
                 },
                 {
-                  label: "Copy seed",
+                  label: tx("history.copy_seed"),
                   icon: Copy,
                   onClick: () =>
                     navigator.clipboard
                       ?.writeText(String(open.playlist.options.seed))
-                      .then(() => toast("Seed copied")),
+                      .then(() => toast(tx("history.seed_copied"))),
                 },
                 {
-                  label: "Save as a file",
+                  label: tx("history.save_as_a_file"),
                   icon: FileDown,
                   onClick: () =>
                     downloadBlob(
@@ -355,7 +395,10 @@ export default function HistoryPage() {
         {open && (
           <>
             <Group
-              footer={`Composed ${when(open.createdAt)} · ${open.playlist.score.verdict} · seed under •••`}
+              footer={tx("history.composed_seed_under", {
+                p1: when(open.createdAt),
+                verdict: open.playlist.score.verdict,
+              })}
             >
               <div className="cell flex-col items-stretch gap-2 py-4">
                 {/* the score on its own line, as the Compose header does; the metadata under it */}
@@ -366,20 +409,20 @@ export default function HistoryPage() {
                 <p className="text-footnote text-[var(--label-2)]">{sub(open)}</p>
                 {isPhone ? <EnergyCurve compact p={open.playlist} /> : <EnergyCurve p={open.playlist} />}
               </div>
-              <ActionRow label="Reopen in Compose" onClick={() => reopen(open)} />
-              <ActionRow label="Play the night" onClick={() => playNight(open)} />
+              <ActionRow label={tx("history.reopen_in_compose")} onClick={() => reopen(open)} />
+              <ActionRow label={tx("history.play_the_night")} onClick={() => playNight(open)} />
             </Group>
             {!!open.versions?.length && (
               <Group
-                header="Versions"
-                footer="Every change to this night is kept here, newest first. Restore brings one back; the version it replaces stays in the list."
+                header={tx("history.versions")}
+                footer={tx("history.every_change_to_this_night_is")}
                 data-testid="history-versions"
               >
                 {versionsOf(open).map((v) => (
                   <Row
                     key={v.id}
                     label={v.label}
-                    sub={`${when(v.at)} · score ${v.score}`}
+                    sub={tx("history.score", { p1: when(v.at), score: v.score })}
                     value={v.current ? "Current" : undefined}
                     data-testid="history-version"
                   >
@@ -388,16 +431,16 @@ export default function HistoryPage() {
                         type="button"
                         className="btn-plain -my-2 -mr-2 min-h-11"
                         onClick={() => restore(open, v.id, v.label)}
-                        aria-label={`Restore “${v.label}”`}
+                        aria-label={tx("history.restore_2", { label: v.label })}
                       >
-                        Restore
+                        {tx("history.restore")}
                       </button>
                     )}
                   </Row>
                 ))}
               </Group>
             )}
-            <h2 className="section-head">Tandas</h2>
+            <h2 className="section-head">{tx("history.tandas")}</h2>
             <div className="grid min-w-0 grid-cols-1 gap-3">
               {open.playlist.tandas.map((t, i) => (
                 <TandaCard
@@ -419,11 +462,11 @@ export default function HistoryPage() {
       <Sheet
         open={picking}
         onClose={() => setPicking(false)}
-        title="Compare with"
+        title={tx("history.compare_with")}
         trailing="Cancel"
         testId="history-pick"
       >
-        <Group footer="Pick the second set: scores side by side, factor by factor, then the orchestras each one uses.">
+        <Group footer={tx("history.pick_the_second_set_scores_side")}>
           {history
             .filter((h) => h.id !== openId)
             .map((h) => (
@@ -445,7 +488,7 @@ export default function HistoryPage() {
       <Sheet
         open={!!compareWith && !!open}
         onClose={() => setCompareWith(null)}
-        title="Compare"
+        title={tx("history.compare")}
         trailing="Done"
         detents={["large"]}
         width={720}
@@ -457,7 +500,7 @@ export default function HistoryPage() {
       <Sheet
         open={renaming}
         onClose={() => setRenaming(false)}
-        title="Rename"
+        title={tx("history.rename")}
         trailing="Save"
         onTrailing={() => {
           if (open && draft.trim()) updateSnapshot(open.id, { title: draft.trim().slice(0, 80) });
@@ -467,7 +510,7 @@ export default function HistoryPage() {
       >
         <Group>
           <label htmlFor="history-rename" className="cell">
-            <span className="sr-only">Name</span>
+            <span className="sr-only">{tx("history.name")}</span>
             <input
               id="history-rename"
               className="field"
@@ -484,17 +527,17 @@ export default function HistoryPage() {
       <Sheet
         open={confirmClear}
         onClose={() => setConfirmClear(false)}
-        title="Clear history"
+        title={tx("history.clear_history")}
         detents={["medium"]}
       >
-        <Group footer="Removes every kept set from this browser (and the copy this site keeps for you, if it keeps one).">
+        <Group footer={tx("history.removes_every_kept_set_from_this")}>
           <ActionRow
-            label={`Delete ${history.length} ${history.length === 1 ? "set" : "sets"}`}
+            label={`Delete ${history.length} ${history.length === 1 ? tx("history.set") : tx("history.sets")}`}
             destructive
             onClick={async () => {
               setConfirmClear(false);
               await clearHistory();
-              toast("History cleared");
+              toast(tx("history.history_cleared"));
             }}
           />
         </Group>
@@ -526,16 +569,16 @@ function Compare({ a, b }: { a: HistorySnapshot; b: HistorySnapshot }) {
               <span className="text-footnote block truncate text-[var(--label-2)]">{s.title}</span>
               <span className="text-title1 tabular-nums text-[var(--tint)]">{s.score}</span>
               <span className="text-footnote block text-[var(--label-2)]">
-                {fmtH(s.playlist.options.hours)} · {s.playlist.tandas.length} tandas
+                {tx("history.tandas_4", {
+                  hours: fmtH(s.playlist.options.hours),
+                  length: s.playlist.tandas.length,
+                })}
               </span>
             </span>
           ))}
         </div>
       </Group>
-      <Group
-        header="Score factors"
-        footer="Percent per factor; the delta is coloured only when it moves 5 points or more."
-      >
+      <Group header={tx("history.score_factors")} footer={tx("history.percent_per_factor_the_delta_is")}>
         {factors.map((f) => {
           const d = f.b - f.a;
           return (
@@ -560,7 +603,7 @@ function Compare({ a, b }: { a: HistorySnapshot; b: HistorySnapshot }) {
           );
         })}
       </Group>
-      <Group header="Orchestras">
+      <Group header={tx("history.orchestras")}>
         <div className="cell grid grid-cols-2 items-start gap-3 py-3">
           {[a, b].map((s) => (
             <span key={s.id} className="text-footnote min-w-0 whitespace-pre-wrap text-[var(--label-2)]">

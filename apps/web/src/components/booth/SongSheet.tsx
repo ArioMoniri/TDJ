@@ -7,6 +7,7 @@ import { durationLabel } from "@/lib/booth/plan";
 import { useBooth, type Waveform as WaveData } from "@/lib/booth/store";
 import { loadVersions, type Version } from "@/lib/booth/versions";
 import { eraOf } from "@/lib/era";
+import { t } from "@/lib/i18n";
 import { toast } from "@/lib/toast";
 import { ActionRow, Group } from "../Form";
 import { Sheet } from "../Sheet";
@@ -35,18 +36,22 @@ export function SongSheet({ i, onClose }: { i: number | null; onClose: () => voi
   const curTanda = useBooth((s) => s.plan?.items[s.planIndex]?.tanda ?? 0);
   const readOnly = started && !!it && it.tanda <= curTanda && it.tanda > 0;
   const song = entity && "rhythm" in entity && "orchestraId" in entity ? (entity as Song) : null;
-  const cueLabel = blocked ? (started ? null : "Test on this device") : "Pre-listen in headphones";
+  const cueLabel = blocked
+    ? started
+      ? null
+      : t("booth.songSheet.test_on_this_device")
+    : t("booth.songSheet.pre_listen_in_headphones");
   const hearing = audition && i !== null && audition.i === i;
   const prelisten = async (o: { song?: Song; startSec?: number } = {}) => {
     if (i === null) return;
     const why = await b.prelisten(o.song ? { song: o.song } : { i }, { startSec: o.startSec });
-    if (why) toast(`Can't pre-listen: ${why}`);
+    if (why) toast(t("booth.songSheet.can_t_pre_listen", { why }));
   };
   return (
     <Sheet
       open={open}
       onClose={onClose}
-      title={it ? it.title : "Song"}
+      title={it ? it.title : t("booth.songSheet.song")}
       detents={["large"]}
       trailing="Done"
       testId="booth-play-sheet"
@@ -73,19 +78,24 @@ export function SongSheet({ i, onClose }: { i: number | null; onClose: () => voi
             </div>
           </div>
           <Group
-            header="Play"
+            header={t("booth.songSheet.play")}
             footer={
               started
-                ? `Play now fades the room's song out over ${fade} s. ${blocked ? `Pre-listen: ${blocked}` : "Pre-listen plays only in your headphones: the room does not hear it."}`
+                ? t("booth.songSheet.play_now_fades_the_room_s", {
+                    fade,
+                    p1: blocked
+                      ? `Pre-listen: ${blocked}`
+                      : t("booth.songSheet.pre_listen_plays_only_in_your_2"),
+                  })
                 : blocked
-                  ? `The night has not started, so a test plays on this device. ${blocked}`
-                  : "Pre-listen plays only in your headphones."
+                  ? t("booth.songSheet.the_night_has_not_started_so", { blocked })
+                  : t("booth.songSheet.pre_listen_plays_only_in_your")
             }
           >
             {started ? (
               <>
                 <ActionRow
-                  label="Play now (fade the current)"
+                  label={t("booth.songSheet.play_now_fade_the_current")}
                   disabled={i === planIndex}
                   onClick={() => {
                     void b.playNow(i);
@@ -93,18 +103,18 @@ export function SongSheet({ i, onClose }: { i: number | null; onClose: () => voi
                   }}
                 />
                 <ActionRow
-                  label="Play next"
+                  label={t("booth.songSheet.play_next")}
                   disabled={i <= planIndex}
                   onClick={() => {
                     b.playNext(i);
-                    toast(`${it.title} plays next`);
+                    toast(t("booth.songSheet.plays_next", { title: it.title }));
                     onClose();
                   }}
                 />
               </>
             ) : (
               <ActionRow
-                label="Start the night here"
+                label={t("booth.songSheet.start_the_night_here")}
                 onClick={() => {
                   void b.playNow(i);
                   onClose();
@@ -126,7 +136,10 @@ export function SongSheet({ i, onClose }: { i: number | null; onClose: () => voi
                   aria-hidden
                 />
                 <span className="min-w-0 flex-1 text-[var(--cue)]">
-                  Stop the {audition.where === "headphones" ? "pre-listen" : "test"}
+                  {t("booth.songSheet.stop_the")}{" "}
+                  {audition.where === "headphones"
+                    ? t("booth.songSheet.pre_listen")
+                    : t("booth.songSheet.test")}
                 </span>
               </button>
             ) : (
@@ -148,8 +161,9 @@ export function SongSheet({ i, onClose }: { i: number | null; onClose: () => voi
                   </span>
                   <span className="text-footnote text-[var(--label-2)]">
                     {blocked
-                      ? "This device"
-                      : (outputs.devices.find((d) => d.id === outputs.cue)?.label ?? "Headphones")}
+                      ? t("booth.songSheet.this_device")
+                      : (outputs.devices.find((d) => d.id === outputs.cue)?.label ??
+                        t("booth.songSheet.headphones"))}
                   </span>
                 </button>
               )
@@ -222,15 +236,16 @@ function CueEditor({
   const peaks = wave && wave.from === "file" ? wave.peaks : null;
   return (
     <Group
-      header="Cue and stop"
+      header={t("booth.songSheet.cue_and_stop")}
       footer={
         readOnly
-          ? "This tanda is playing or has played: its songs keep their cue."
-          : `Drag Cue and Stop on the song to skip a long intro or cut the ending; the night is re-timed. ${
-              wave?.from === "file"
-                ? "The waveform is your file."
-                : "Link the file to see its waveform; the handles work on the song's length."
-            } Saved with the set, and the DJ-app exports follow it.`
+          ? t("booth.songSheet.this_tanda_is_playing_or_has_2")
+          : t("booth.songSheet.drag_cue_and_stop_on_the", {
+              p1:
+                wave?.from === "file"
+                  ? t("booth.songSheet.the_waveform_is_your_file")
+                  : t("booth.songSheet.link_the_file_to_see_its"),
+            })
       }
     >
       <div className="cell block">
@@ -243,9 +258,13 @@ function CueEditor({
           onChange={(c) => change(c)}
         />
         <div className="text-footnote mt-2 flex items-center justify-between tabular-nums text-[var(--label-2)]">
-          <span data-testid="booth-cue-in-label">Cue {durationLabel(local.inSec)}</span>
-          <span>Plays {durationLabel(local.outSec - local.inSec)}</span>
-          <span data-testid="booth-cue-out-label">Stop {durationLabel(local.outSec)}</span>
+          <span data-testid="booth-cue-in-label">
+            {t("booth.songSheet.cue", { p1: durationLabel(local.inSec) })}
+          </span>
+          <span>{t("booth.songSheet.plays", { p1: durationLabel(local.outSec - local.inSec) })}</span>
+          <span data-testid="booth-cue-out-label">
+            {t("booth.songSheet.stop", { p1: durationLabel(local.outSec) })}
+          </span>
         </div>
       </div>
       <button
@@ -255,11 +274,11 @@ function CueEditor({
         data-testid="booth-cue-listen"
       >
         <Headphones size={16} strokeWidth={2} className="text-[var(--cue)]" aria-hidden />
-        <span className="min-w-0 flex-1 text-[var(--cue)]">Listen from the cue</span>
+        <span className="min-w-0 flex-1 text-[var(--cue)]">{t("booth.songSheet.listen_from_the_cue")}</span>
       </button>
       {edited && !readOnly && (
         <ActionRow
-          label="Play the whole song"
+          label={t("booth.songSheet.play_the_whole_song")}
           onClick={() => {
             setLocal({ inSec: 0, outSec: dur });
             useBooth.getState().setSongCue(song.id, null);
@@ -288,25 +307,27 @@ function Versions({
     setErr(null);
     loadVersions(song)
       .then((v) => live && setList(v))
-      .catch(() => live && setErr("The catalogue could not be searched right now."));
+      .catch(() => live && setErr(t("booth.songSheet.the_catalogue_could_not_be_searched")));
     return () => {
       live = false;
     };
   }, [song]);
   return (
     <Group
-      header="Versions"
+      header={t("booth.songSheet.versions")}
       footer={
         err ??
         (readOnly
-          ? "This tanda is playing or has played: pre-listen to other versions, swap ahead of the playhead."
-          : "Every recording of this title by the same orchestra. Pre-listen, or play one tonight instead.")
+          ? t("booth.songSheet.this_tanda_is_playing_or_has")
+          : t("booth.songSheet.every_recording_of_this_title_by"))
       }
       data-testid="booth-versions"
     >
-      {list === null && !err && <div className="cell text-[var(--label-2)]">Looking for other versions…</div>}
+      {list === null && !err && (
+        <div className="cell text-[var(--label-2)]">{t("booth.songSheet.looking_for_other_versions")}</div>
+      )}
       {list?.length === 1 && (
-        <div className="cell text-[var(--label-2)]">Only this version is in the catalogue.</div>
+        <div className="cell text-[var(--label-2)]">{t("booth.songSheet.only_this_version_is_in_the")}</div>
       )}
       {list?.map((v) => (
         <div
@@ -318,7 +339,10 @@ function Versions({
           <button
             type="button"
             className="icon-btn icon-btn-bare h-11 w-11 shrink-0 text-[var(--cue)]"
-            aria-label={`Pre-listen ${v.song.year ?? ""} ${v.song.singer ?? "instrumental"}`}
+            aria-label={t("booth.songSheet.pre_listen_2", {
+              p1: v.song.year ?? "",
+              p2: v.song.singer ?? t("booth.songSheet.instrumental_2"),
+            })}
             data-hint="Pre-listen this version in your headphones"
             onClick={() => (hearing === v.song.id ? useBooth.getState().stopAudition() : onListen(v.song))}
           >
@@ -330,10 +354,11 @@ function Versions({
           </button>
           <span className="min-w-0 flex-1">
             <span className="block truncate">
-              {v.song.year ?? "Undated"} · {v.song.singer ?? "Instrumental"}
+              {v.song.year ?? t("booth.songSheet.undated")} ·{" "}
+              {v.song.singer ?? t("booth.songSheet.instrumental")}
             </span>
             <span className="text-footnote block truncate text-[var(--label-2)]">
-              {v.current ? "In tonight's set" : (v.song.album ?? v.song.orchestra)}
+              {v.current ? t("booth.songSheet.in_tonight_s_set") : (v.song.album ?? v.song.orchestra)}
               {v.song.durationSec ? ` · ${durationLabel(v.song.durationSec)}` : ""}
             </span>
           </span>
@@ -346,10 +371,14 @@ function Versions({
               data-hint="Play this version tonight instead (the tanda keeps its place)"
               onClick={async () => {
                 const ok = await useBooth.getState().playVersion(song.id, v.song);
-                toast(ok ? `Tonight plays the ${v.song.year ?? ""} version` : "This tanda is read-only now");
+                toast(
+                  ok
+                    ? t("booth.songSheet.tonight_plays_the_version", { p1: v.song.year ?? "" })
+                    : t("booth.songSheet.this_tanda_is_read_only_now"),
+                );
               }}
             >
-              <Play size={14} fill="currentColor" strokeWidth={0} aria-hidden /> Use
+              <Play size={14} fill="currentColor" strokeWidth={0} aria-hidden /> {t("booth.songSheet.use")}
             </button>
           )}
         </div>

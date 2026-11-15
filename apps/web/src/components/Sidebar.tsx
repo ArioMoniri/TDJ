@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { type KeyboardEvent, type PointerEvent, useCallback, useEffect, useRef, useState } from "react";
 import { haptic } from "@/lib/haptics";
+import { fmtDate, t as tx } from "@/lib/i18n";
 import { spring } from "@/lib/motion";
 import { lengthText } from "@/lib/nightName";
 import { usePlayer } from "@/lib/player";
@@ -56,12 +57,12 @@ const RHYTHM: Record<string, string> = { tango: "T", vals: "V", milonga: "M" };
 const ago = (iso: string) => {
   const d = Math.round((Date.now() - new Date(iso).getTime()) / 86_400_000);
   return d <= 0
-    ? "Today"
+    ? tx("sidebar.today")
     : d === 1
-      ? "Yesterday"
+      ? tx("sidebar.yesterday")
       : d < 7
-        ? `${d} days ago`
-        : new Date(iso).toLocaleDateString();
+        ? tx("sidebar.days_ago", { d })
+        : fmtDate(iso);
 };
 
 function SideLink({
@@ -202,7 +203,7 @@ export function Sidebar() {
       <aside
         className="material-thin fixed left-0 top-0 z-40 hidden h-dvh flex-col border-r border-[var(--separator)] lg:flex"
         style={{ width: "var(--sidebar-w)" }}
-        aria-label="Sidebar"
+        aria-label={tx("sidebar.sidebar")}
         data-testid="sidebar"
         data-collapsed={state.collapsed || undefined}
       >
@@ -217,16 +218,16 @@ export function Sidebar() {
           <Link
             href="/"
             className="flex min-h-11 min-w-0 flex-1 items-center gap-2.5 px-2"
-            aria-label="T-DJ home"
+            aria-label={tx("sidebar.t_dj_home")}
           >
             <Logo size={28} />
-            <span className="text-headline">T-DJ</span>
+            <span className="text-headline">{tx("sidebar.t_dj")}</span>
           </Link>
-          <Tip text={"Hide sidebar (⌃⌘S)"}>
+          <Tip text={tx("sidebar.hide_sidebar_s")}>
             <button
               type="button"
               className="icon-btn icon-btn-bare text-[var(--label-2)]"
-              aria-label="Hide sidebar"
+              aria-label={tx("sidebar.hide_sidebar")}
               onClick={() => setCollapsed(true)}
               data-testid="sidebar-hide"
             >
@@ -236,8 +237,8 @@ export function Sidebar() {
         </div>
 
         <div className="side-scroll min-h-0 flex-1 overflow-y-auto px-3 pb-3">
-          <nav aria-label="Primary sidebar">
-            <h2 className="side-head">{NAV_MAIN_TITLE}</h2>
+          <nav aria-label={tx("sidebar.primary_sidebar")}>
+            <h2 className="side-head">{NAV_MAIN_TITLE()}</h2>
             <LayoutGroup id="sidebar-nav">
               <div className="flex flex-col gap-0.5">
                 {library.map((it) => (
@@ -250,9 +251,12 @@ export function Sidebar() {
           {playlist && playlist.tandas.length > 0 && (
             <section aria-labelledby="side-tonight" data-testid="sidebar-tonight">
               <h2 className="side-head" id="side-tonight">
-                Tonight
+                {tx("sidebar.tonight")}
                 <span className="side-head-meta">
-                  {playlist.tandas.length} tandas · {lengthText(playlist.stats.durationSec)}
+                  {tx("sidebar.tandas", {
+                    length: playlist.tandas.length,
+                    durationSec: lengthText(playlist.stats.durationSec),
+                  })}
                 </span>
               </h2>
               <ol className="flex flex-col gap-0.5">
@@ -275,14 +279,14 @@ export function Sidebar() {
                           {RHYTHM[t.rhythm] ?? "·"}
                         </span>
                         <span className="min-w-0 flex-1 truncate">
-                          <span className="sr-only">Tanda {i + 1}: </span>
+                          <span className="sr-only">{tx("sidebar.tanda", { p1: i + 1 })} </span>
                           {t.orchestra}
                         </span>
                         {now ? (
                           <Volume2
                             size={14}
                             className="shrink-0 text-[var(--tint)]"
-                            aria-label="Now playing"
+                            aria-label={tx("sidebar.now_playing")}
                           />
                         ) : (
                           <span
@@ -303,7 +307,7 @@ export function Sidebar() {
           {recent.length > 0 && (
             <section aria-labelledby="side-recent" data-testid="sidebar-recent">
               <h2 className="side-head" id="side-recent">
-                Recent nights
+                {tx("sidebar.recent_nights")}
               </h2>
               <ul className="flex flex-col gap-0.5">
                 {recent.map((s) => (
@@ -331,12 +335,16 @@ export function Sidebar() {
 
         <div className="shrink-0 border-t border-[var(--separator)] px-3 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
           {track && (
-            <section className="side-now mb-2" aria-label="Now playing" data-testid="sidebar-now">
+            <section
+              className="side-now mb-2"
+              aria-label={tx("sidebar.now_playing")}
+              data-testid="sidebar-now"
+            >
               {track.source.kind === "preview" ? (
                 <button
                   type="button"
                   className="icon-btn shrink-0"
-                  aria-label={playing ? "Pause" : "Play"}
+                  aria-label={playing ? tx("sidebar.pause") : tx("sidebar.play")}
                   onClick={() => toggle()}
                 >
                   {playing ? (
@@ -370,7 +378,7 @@ export function Sidebar() {
         <div
           role="separator"
           aria-orientation="vertical"
-          aria-label="Resize sidebar"
+          aria-label={tx("sidebar.resize_sidebar")}
           aria-valuemin={MIN_W}
           aria-valuemax={MAX_W}
           aria-valuenow={state.w}
@@ -388,12 +396,12 @@ export function Sidebar() {
 
       {/* collapsed: one glass button brings it back, clear of the traffic lights on the Mac app */}
       {state.collapsed && (
-        <Tip text={"Show sidebar (⌃⌘S)"}>
+        <Tip text={tx("sidebar.show_sidebar_s")}>
           <button
             type="button"
             className="icon-btn icon-btn-glass fixed z-40 hidden lg:grid"
             style={{ top: "calc(var(--chrome-top) + 14px)", left: "calc(var(--traffic-left) + 12px)" }}
-            aria-label="Show sidebar"
+            aria-label={tx("sidebar.show_sidebar")}
             onClick={() => setCollapsed(false)}
             data-testid="sidebar-show"
           >

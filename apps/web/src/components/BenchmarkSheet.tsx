@@ -4,6 +4,7 @@ import { LoaderCircle, Sparkles } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
 import { haptic } from "@/lib/haptics";
+import { t } from "@/lib/i18n";
 import { DUR, EASE } from "@/lib/motion";
 import { overridesForRequest, useStore } from "@/lib/store";
 import type { Playlist } from "@/lib/types";
@@ -18,9 +19,24 @@ export interface ImproveResponse {
 }
 
 const DOT: Record<BenchCheck["status"], { color: string; word: string }> = {
-  ok: { color: "var(--system-green)", word: "In range" },
-  near: { color: "var(--system-gold)", word: "Near the range" },
-  off: { color: "var(--destructive)", word: "Out of range" },
+  ok: {
+    color: "var(--system-green)",
+    get word() {
+      return t("benchmarkSheet.in_range");
+    },
+  },
+  near: {
+    color: "var(--system-gold)",
+    get word() {
+      return t("benchmarkSheet.near_the_range");
+    },
+  },
+  off: {
+    color: "var(--destructive)",
+    get word() {
+      return t("benchmarkSheet.out_of_range");
+    },
+  },
 };
 
 /** "11/13 in range" for the result card row */
@@ -66,10 +82,10 @@ export function BenchmarkSheet({
         body: JSON.stringify({ playlist, overrides: overridesForRequest(useStore.getState().overrides) }),
       });
       const j = (await r.json()) as ImproveResponse & { error?: string };
-      if (!r.ok || j.error) setError(j.error ?? "Could not improve this set.");
+      if (!r.ok || j.error) setError(j.error ?? t("benchmarkSheet.could_not_improve_this_set"));
       else setResult(j);
     } catch {
-      setError("Could not reach the engine. Check the connection and try again.");
+      setError(t("benchmarkSheet.could_not_reach_the_engine_check"));
     } finally {
       setBusy(false);
     }
@@ -87,7 +103,7 @@ export function BenchmarkSheet({
         }}
         data-testid="improve-undo"
       >
-        Undo
+        {t("benchmarkSheet.undo")}
       </button>
       <button
         type="button"
@@ -99,7 +115,7 @@ export function BenchmarkSheet({
         }}
         data-testid="improve-keep"
       >
-        Keep
+        {t("benchmarkSheet.keep")}
       </button>
     </div>
   ) : (
@@ -112,11 +128,11 @@ export function BenchmarkSheet({
     >
       {busy ? (
         <>
-          <LoaderCircle size={18} className="animate-spin" aria-hidden /> Improving…
+          <LoaderCircle size={18} className="animate-spin" aria-hidden /> {t("benchmarkSheet.improving")}
         </>
       ) : (
         <>
-          <Sparkles size={18} aria-hidden /> Improve automatically
+          <Sparkles size={18} aria-hidden /> {t("benchmarkSheet.improve_automatically")}
         </>
       )}
     </button>
@@ -126,14 +142,14 @@ export function BenchmarkSheet({
     <Sheet
       open={open}
       onClose={onClose}
-      title="Benchmark"
+      title={t("benchmarkSheet.benchmark")}
       trailing="Done"
       testId="benchmark-sheet"
       detents={["large"]}
       footer={footer}
     >
       <div role="status" aria-live="polite" className="sr-only">
-        {busy ? "Improving the set" : result ? "Improvement ready" : ""}
+        {busy ? t("benchmarkSheet.improving_the_set") : result ? t("benchmarkSheet.improvement_ready") : ""}
       </div>
       {error && (
         <p className="text-footnote px-4 pt-2 text-[var(--destructive)]" role="alert">
@@ -147,19 +163,24 @@ export function BenchmarkSheet({
           transition={{ duration: DUR.base, ease: EASE.out }}
         >
           <Group
-            header="Improved"
-            footer="A change is kept only when neither the engine score nor the benchmark falls. Keep replaces tonight's set (Export and the booth use it); Undo leaves it as it was."
+            header={t("benchmarkSheet.improved")}
+            footer={t("benchmarkSheet.a_change_is_kept_only_when")}
           >
             <div className="cell flex-col items-start gap-1 py-3">
               <span className="text-headline tabular-nums" data-testid="improve-summary">
-                Engine {result.before.score} → {result.after.score} · Benchmark{" "}
-                {benchLabel(result.before).replace(" in range", "")} →{" "}
-                {benchLabel(result.after).replace(" in range", "")}
+                {t("benchmarkSheet.engine_benchmark", {
+                  score: result.before.score,
+                  score1: result.after.score,
+                  p1: " ",
+                  p2: benchLabel(result.before).replace(" in range", ""),
+                  p3: " ",
+                  p4: benchLabel(result.after).replace(" in range", ""),
+                })}
               </span>
               <span className="text-footnote text-[var(--label-2)]">
                 {result.changes.length
-                  ? `${result.changes.length} ${result.changes.length === 1 ? "change" : "changes"}`
-                  : "Nothing to change: every fix would lower the engine score or the benchmark."}
+                  ? `${result.changes.length} ${result.changes.length === 1 ? t("benchmarkSheet.change") : t("benchmarkSheet.changes")}`
+                  : t("benchmarkSheet.nothing_to_change_every_fix_would")}
               </span>
             </div>
             {result.changes.map((c) => (
@@ -176,8 +197,8 @@ export function BenchmarkSheet({
       )}
       {shown && (
         <Group
-          header={`Against published DJ sets · ${benchLabel(shown)}`}
-          footer="Eleven published nights (Charlotte, Missoula, London, Hamburg, Istanbul and more) and DJ guidance from Victor Tran, Michael Lavocah and Demirbaş. Ranges, not targets."
+          header={t("benchmarkSheet.against_published_dj_sets", { p1: benchLabel(shown) })}
+          footer={t("benchmarkSheet.eleven_published_nights_charlotte_missoula_london")}
         >
           {shown.checks.map((c) => (
             <div
@@ -192,12 +213,14 @@ export function BenchmarkSheet({
                   className="h-2.5 w-2.5 shrink-0 rounded-full"
                   style={{ background: c.info ? "var(--label-3)" : DOT[c.status].color }}
                   role="img"
-                  aria-label={c.info ? "Note" : DOT[c.status].word}
+                  aria-label={c.info ? t("benchmarkSheet.note") : DOT[c.status].word}
                 />
                 <span className="min-w-0 flex-1">{c.label}</span>
                 <span className="cell-value text-subhead max-w-[55%] text-right tabular-nums">{c.value}</span>
               </div>
-              <span className="text-footnote pl-5 text-[var(--label-2)]">Reference: {c.range}</span>
+              <span className="text-footnote pl-5 text-[var(--label-2)]">
+                {t("benchmarkSheet.reference", { range: c.range })}
+              </span>
               <span className="text-caption1 pl-5 text-[var(--label-3)]">{c.source}</span>
             </div>
           ))}
@@ -205,8 +228,11 @@ export function BenchmarkSheet({
       )}
       {shown?.strict && (
         <Group
-          header={`Strict panel · ${shown.strict.blockers} blockers · ${shown.strict.shouldFix} should-fix`}
-          footer="The strict panel of rounds 14–15: a milonguera, a purist encuentro DJ and a discographer (the classic cycle, energy steps, the última, streams and cortina length since round 15). Every rule runs on every night the engine composes or improves; a blocker means the night is not played as it is."
+          header={t("benchmarkSheet.strict_panel_blockers_should_fix", {
+            blockers: shown.strict.blockers,
+            shouldFix: shown.strict.shouldFix,
+          })}
+          footer={t("benchmarkSheet.the_strict_panel_of_rounds_14")}
         >
           {shown.strict.rules
             .filter((r) => r.applies)
@@ -229,11 +255,17 @@ export function BenchmarkSheet({
                           : "var(--system-gold)",
                     }}
                     role="img"
-                    aria-label={r.pass ? "Pass" : r.severity === "blocker" ? "Blocker" : "Should fix"}
+                    aria-label={
+                      r.pass
+                        ? t("benchmarkSheet.pass_2")
+                        : r.severity === "blocker"
+                          ? t("benchmarkSheet.blocker")
+                          : t("benchmarkSheet.should_fix")
+                    }
                   />
                   <span className="min-w-0 flex-1">{r.label}</span>
                   <span className="cell-value text-subhead text-right tabular-nums">
-                    {r.pass ? "pass" : `${r.violations.length} × ${r.severity}`}
+                    {r.pass ? t("benchmarkSheet.pass") : `${r.violations.length} × ${r.severity}`}
                   </span>
                 </div>
                 {!r.pass && (

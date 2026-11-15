@@ -1,4 +1,5 @@
 "use client";
+import { t } from "@/lib/i18n";
 import { type Measurement, measurePcm } from "./loudness";
 
 let worker: Worker | null = null;
@@ -18,10 +19,10 @@ function getWorker(): Worker | null {
     if (!w) return;
     waiting.delete(e.data.id);
     if (e.data.measurement) w.ok(e.data.measurement);
-    else w.fail(new Error(e.data.error ?? "Measurement failed"));
+    else w.fail(new Error(e.data.error ?? t("booth.measure.measurement_failed")));
   };
   worker.onerror = () => {
-    for (const w of waiting.values()) w.fail(new Error("The loudness worker crashed"));
+    for (const w of waiting.values()) w.fail(new Error(t("booth.measure.the_loudness_worker_crashed")));
     waiting.clear();
     worker = null;
   };

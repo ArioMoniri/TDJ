@@ -1,4 +1,5 @@
 import { mergeScraped, needsRefresh, normTitle, type ScrapedRecord, type ScrapedValues } from "@tdj/core";
+import { t as tx } from "@/lib/i18n";
 
 /**
  * Round 22 — filling missing data (BPM, key, level, artwork, dates) from every source the DJ connects. Plain functions
@@ -27,7 +28,9 @@ export const SOURCES: SourceInfo[] = [
   {
     id: "deezer",
     name: "Deezer",
-    gives: "BPM, level, artwork, release date and the 30 s preview",
+    get gives() {
+      return tx("fill.sources.bpm_level_artwork_release_date_and");
+    },
     needs: "nothing",
     defaultOn: true,
     color: "#a238ff",
@@ -35,15 +38,21 @@ export const SOURCES: SourceInfo[] = [
   {
     id: "musicbrainz",
     name: "MusicBrainz",
-    gives: "The recording's first release date",
+    get gives() {
+      return tx("fill.sources.the_recording_s_first_release_date");
+    },
     needs: "nothing",
     defaultOn: true,
     color: "#ba478f",
   },
   {
     id: "coverart",
-    name: "Cover Art Archive",
-    gives: "Album artwork for the MusicBrainz release",
+    get name() {
+      return tx("fill.sources.cover_art_archive");
+    },
+    get gives() {
+      return tx("fill.sources.album_artwork_for_the_musicbrainz_release");
+    },
     needs: "nothing",
     defaultOn: true,
     color: "#eb743b",
@@ -51,16 +60,22 @@ export const SOURCES: SourceInfo[] = [
   {
     id: "discogs",
     name: "Discogs",
-    gives: "Year and artwork of the 78 or LP",
+    get gives() {
+      return tx("fill.sources.year_and_artwork_of_the_78");
+    },
     needs: "token",
     defaultOn: false,
-    tokenHelp: "Discogs › Settings › Developers › Generate new token. It stays in this browser.",
+    get tokenHelp() {
+      return tx("fill.sources.discogs_settings_developers_generate_new_token");
+    },
     color: "#333333",
   },
   {
     id: "spotify",
     name: "Spotify",
-    gives: "Album artwork and release date of the matched track",
+    get gives() {
+      return tx("fill.sources.album_artwork_and_release_date_of");
+    },
     needs: "spotify",
     defaultOn: false,
     color: "#1db954",
@@ -274,7 +289,7 @@ export async function lookup(source: SourceId, want: FillWant, deps: LookupDeps)
           await getJson(deps.fetch, `https://api.deezer.com/search?q=${encodeURIComponent(q)}&limit=10`),
           want,
         );
-        if (!hit) return { source, values: {}, error: "no match" };
+        if (!hit) return { source, values: {}, error: tx("fill.sources.no_match") };
         id = String(hit.id);
       }
       const t = parseDeezerTrack(
@@ -293,16 +308,17 @@ export async function lookup(source: SourceId, want: FillWant, deps: LookupDeps)
         ),
         want,
       );
-      if (!mb) return { source, values: {}, error: "no match" };
+      if (!mb) return { source, values: {}, error: tx("fill.sources.no_match") };
       if (source === "musicbrainz") return { source, values: mb.values, ...(mb.ref ? { ref: mb.ref } : {}) };
-      if (!mb.releaseId) return { source, values: {}, error: "no release" };
+      if (!mb.releaseId) return { source, values: {}, error: tx("fill.sources.no_release") };
       const art = parseCoverArt(
         await getJson(deps.fetch, `https://coverartarchive.org/release/${mb.releaseId}`),
       );
       return { source, values: art ? { artwork: art } : {}, ref: `caa:${mb.releaseId}` };
     }
     if (source === "discogs") {
-      if (!deps.discogsToken) return { source, values: {}, error: "needs your Discogs token" };
+      if (!deps.discogsToken)
+        return { source, values: {}, error: tx("fill.sources.needs_your_discogs_token") };
       const q = new URLSearchParams({
         track: want.title,
         artist: want.orchestra.replace(/\(.*?\)/g, "").trim(),
@@ -311,16 +327,17 @@ export async function lookup(source: SourceId, want: FillWant, deps: LookupDeps)
       });
       const dg = parseDiscogs(
         await getJson(deps.fetch, `https://api.discogs.com/database/search?${q}`, {
-          authorization: `Discogs token=${deps.discogsToken}`,
+          authorization: tx("fill.sources.discogs_token", { discogsToken: deps.discogsToken }),
         }),
         want,
       );
-      return dg ? { source, ...dg } : { source, values: {}, error: "no match" };
+      return dg ? { source, ...dg } : { source, values: {}, error: tx("fill.sources.no_match") };
     }
     if (source === "spotify") {
-      if (!deps.spotifyToken) return { source, values: {}, error: "needs your Spotify login" };
+      if (!deps.spotifyToken)
+        return { source, values: {}, error: tx("fill.sources.needs_your_spotify_login") };
       const id = want.spotifyUri?.replace(/^spotify:track:/, "");
-      if (!id) return { source, values: {}, error: "no Spotify recording" };
+      if (!id) return { source, values: {}, error: tx("fill.sources.no_spotify_recording") };
       return {
         source,
         ...parseSpotifyTrack(
@@ -330,7 +347,7 @@ export async function lookup(source: SourceId, want: FillWant, deps: LookupDeps)
         ),
       };
     }
-    return { source, values: {}, error: "unknown source" };
+    return { source, values: {}, error: tx("fill.sources.unknown_source") };
   } catch (e) {
     return { source, values: {}, error: (e as Error).message };
   }

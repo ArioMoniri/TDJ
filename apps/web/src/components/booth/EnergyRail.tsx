@@ -2,6 +2,7 @@
 import { nightEnergy } from "@/lib/booth/energyChart";
 import { useIndicators } from "@/lib/booth/indicatorPrefs";
 import { useBooth } from "@/lib/booth/store";
+import { t } from "@/lib/i18n";
 
 const RHYTHM_COLOR: Record<string, string> = {
   tango: "var(--tone-tango, #b3264f)",
@@ -38,18 +39,21 @@ export function EnergyRail({ onJump }: { onJump?: (planIndex: number) => void })
     <section
       className="booth-card booth-energy"
       data-testid="booth-energy-rail"
-      aria-label="The night's energy"
+      aria-label={t("booth.energyRail.the_night_s_energy")}
     >
       <p
         className="booth-eyebrow"
         data-hint="How lively each tanda is, from the start of the night (top) to the end"
       >
-        Energy tonight
+        {t("booth.energyRail.energy_tonight")}
       </p>
       <svg
         viewBox={`0 0 ${W} ${H}`}
         role="img"
-        aria-label={`Energy of ${c.points.length} tandas; we are in tanda ${c.hereTanda}`}
+        aria-label={t("booth.energyRail.energy_of_tandas_we_are_in", {
+          length: c.points.length,
+          hereTanda: c.hereTanda,
+        })}
       >
         {[25, 50, 75].map((g) => (
           <line
@@ -125,24 +129,27 @@ export function EnergyRail({ onJump }: { onJump?: (planIndex: number) => void })
             textAnchor="end"
             fill="var(--room)"
           >
-            we are here
+            {t("booth.energyRail.we_are_here")}
           </text>
         </g>
       </svg>
       <div className="booth-energy-legend" aria-hidden>
         <span>
           <i style={{ background: RHYTHM_COLOR.tango }} />
-          tango
+
+          {t("booth.energyRail.tango")}
         </span>
         <span>
           <i style={{ background: RHYTHM_COLOR.vals }} />
-          vals
+
+          {t("booth.energyRail.vals")}
         </span>
         <span>
           <i style={{ background: RHYTHM_COLOR.milonga }} />
-          milonga
+
+          {t("booth.energyRail.milonga")}
         </span>
-        <span>┄ planned</span>
+        <span>{t("booth.energyRail.planned")}</span>
       </div>
     </section>
   );

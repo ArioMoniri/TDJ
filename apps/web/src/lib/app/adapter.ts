@@ -1,5 +1,6 @@
 "use client";
 import { DATA_FILES } from "@tdj/core/data";
+import { t } from "@/lib/i18n";
 import type { HostCalls, HostError } from "./host";
 import { nativeHost } from "./native";
 
@@ -22,7 +23,7 @@ declare global {
 const toHostError = (e: unknown): HostError => {
   if (e && typeof e === "object" && "message" in e)
     return { message: String((e as HostError).message), status: (e as HostError).status };
-  return { message: typeof e === "string" ? e : "The app could not do that." };
+  return { message: typeof e === "string" ? e : t("adapter.the_app_could_not_do_that") };
 };
 
 type Adapter = { request(input: RequestInfo | URL, init?: RequestInit): Promise<Response> };
@@ -65,7 +66,7 @@ export function installAppAdapter(base: typeof fetch = window.fetch.bind(window)
       );
     } else if (m.type === "failed") {
       failed = m.error;
-      for (const p of pending.values()) p.no(new TypeError("T-DJ could not load its catalogue."));
+      for (const p of pending.values()) p.no(new TypeError(t("adapter.t_dj_could_not_load_its")));
       pending.clear();
     }
   };
@@ -103,7 +104,7 @@ export function installAppAdapter(base: typeof fetch = window.fetch.bind(window)
   };
 
   const request = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-    if (failed) throw new TypeError("T-DJ could not load its catalogue.");
+    if (failed) throw new TypeError(t("adapter.t_dj_could_not_load_its"));
     const { method, headers, body, url } = await serialise(input, init);
     const id = ++seq;
     return new Promise<Response>((ok, no) => {

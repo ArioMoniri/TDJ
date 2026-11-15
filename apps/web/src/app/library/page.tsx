@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { SearchField } from "@/components/SearchField";
 import { Sheet } from "@/components/Sheet";
 import { haptic } from "@/lib/haptics";
+import { fmtNumber, t as tx } from "@/lib/i18n";
 import { fade, reduced as reducedV, rise, t } from "@/lib/motion";
 import { sourceFor, trackFor, usePlayer } from "@/lib/player";
 import { useStore } from "@/lib/store";
@@ -38,7 +39,11 @@ const PlayCell = memo(function PlayCell({ song }: { song: Song }) {
         type="button"
         className={`icon-btn icon-btn-bare -my-2 -ml-2 h-11 w-11 shrink-0 ${playing ? "text-[var(--tint)]" : "text-[var(--tint)]"}`}
         aria-label={
-          playing ? `Pause ${song.title}` : source ? `Play ${song.title}` : `Find ${song.title} on services`
+          playing
+            ? tx("library.pause", { title: song.title })
+            : source
+              ? tx("library.play", { title: song.title })
+              : tx("library.find_on_services", { title: song.title })
         }
         aria-pressed={playing}
         data-testid="play-button"
@@ -121,9 +126,11 @@ export default function Library() {
       value={q}
       onChange={setQ}
       placeholder={
-        meta ? `Search ${meta.meta.songs.toLocaleString()} recordings` : "Orchestra, singer, title or year"
+        meta
+          ? tx("library.search_recordings", { songs: fmtNumber(meta.meta.songs) })
+          : tx("library.orchestra_singer_title_or_year")
       }
-      label="Search the library"
+      label={tx("library.search_the_library")}
       busy={searching}
       className={cls}
       onFocusChange={(f) => window.dispatchEvent(new CustomEvent(SEARCH_FOCUS_EVENT, { detail: f }))}
@@ -132,10 +139,14 @@ export default function Library() {
   return (
     <div className="mx-auto max-w-[720px]">
       <PageHeader
-        title="Library"
+        title={tx("library.library")}
         subtitle={
           meta &&
-          `${meta.meta.songs.toLocaleString()} recordings · ${meta.meta.orchestras} orchestras · ${meta.meta.singers} singers`
+          tx("library.recordings_orchestras_singers", {
+            songs: fmtNumber(meta.meta.songs),
+            orchestras: meta.meta.orchestras,
+            singers: meta.meta.singers,
+          })
         }
         inBar={search()}
       >
@@ -143,9 +154,7 @@ export default function Library() {
       </PageHeader>
       <div role="status" aria-live="polite">
         {q.length < 2 && (
-          <EmptyState action={<FeaturedCard />}>
-            Type an orchestra, singer, title or year to search.
-          </EmptyState>
+          <EmptyState action={<FeaturedCard />}>{tx("library.type_an_orchestra_singer_title_or")}</EmptyState>
         )}
         {q.length >= 2 && !searching && rows.length === 0 && (
           <motion.p
@@ -154,7 +163,7 @@ export default function Library() {
             animate="show"
             className="text-subhead py-8 text-center text-[var(--label-2)]"
           >
-            Nothing matches “{q}”. Try a shorter spelling.
+            {tx("library.nothing_matches_try_a_shorter_spelling", { q })}
           </motion.p>
         )}
         <AnimatePresence mode="wait" initial={false}>
@@ -166,7 +175,7 @@ export default function Library() {
               animate={{ opacity: searching ? 0.6 : 1, transition: searching ? t.press : t.fade }}
               exit="exit"
             >
-              <Group header={`${rows.length} results`}>
+              <Group header={tx("library.results", { length: rows.length })}>
                 <AnimatePresence initial={false}>
                   {rows.map((s, i) => (
                     <motion.div
@@ -191,7 +200,7 @@ export default function Library() {
                       <span className="cell-value text-body">
                         <span className="tabular-nums">{yearText(s.year)}</span>
                         <span className="text-footnote ml-2 tabular-nums text-[var(--label-2)]">
-                          <span className="sr-only">energy </span>
+                          <span className="sr-only">{tx("library.energy")} </span>
                           {s.energy}
                         </span>
                       </span>
@@ -205,34 +214,33 @@ export default function Library() {
       </div>
       {q.length < 2 && meta && (
         <Group
-          header="Orchestras by recordings"
-          footer="The number beside an orchestra is how many of its recordings the catalogue holds."
+          header={tx("library.orchestras_by_recordings")}
+          footer={tx("library.the_number_beside_an_orchestra_is")}
         >
           {byCount.slice(0, 30).map((o) => (
-            <Row
-              key={o.id}
-              label={o.name}
-              value={o.count.toLocaleString()}
-              chevron
-              onClick={() => setQ(o.name)}
-            />
+            <Row key={o.id} label={o.name} value={fmtNumber(o.count)} chevron onClick={() => setQ(o.name)} />
           ))}
           <Row
-            label="All orchestras"
-            value={`${meta.orchestras.length.toLocaleString()} orchestras`}
+            label={tx("library.all_orchestras")}
+            value={`${fmtNumber(meta.orchestras.length)} orchestras`}
             data-testid="library-all-orchestras"
             chevron
             onClick={() => setShowAll(true)}
           />
         </Group>
       )}
-      <Sheet open={showAll} onClose={() => setShowAll(false)} title="Orchestras" trailing="Done">
-        <Group footer="Sorted by how many recordings the catalogue holds.">
+      <Sheet
+        open={showAll}
+        onClose={() => setShowAll(false)}
+        title={tx("library.orchestras")}
+        trailing="Done"
+      >
+        <Group footer={tx("library.sorted_by_how_many_recordings_the")}>
           {byCount.map((o) => (
             <Row
               key={o.id}
               label={o.name}
-              value={o.count.toLocaleString()}
+              value={fmtNumber(o.count)}
               chevron
               onClick={() => {
                 setQ(o.name);

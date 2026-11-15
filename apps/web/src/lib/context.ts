@@ -1,4 +1,5 @@
 import type { ComposeContext, ContextFactorOption, ContextModel } from "@tdj/core";
+import { t } from "@/lib/i18n";
 
 export type ContextKey = keyof Pick<
   ComposeContext,
@@ -37,7 +38,9 @@ export const VALUE_MAP: Record<string, Record<string, string>> = {
 export const CONTEXT_FIELDS: Array<{ key: ContextKey; label: string; options: Array<[string, string]> }> = [
   {
     key: "season",
-    label: "Season",
+    get label() {
+      return t("context.season");
+    },
     options: [
       ["winter", "Winter"],
       ["spring", "Spring"],
@@ -47,7 +50,9 @@ export const CONTEXT_FIELDS: Array<{ key: ContextKey; label: string; options: Ar
   },
   {
     key: "weather",
-    label: "Weather",
+    get label() {
+      return t("context.weather");
+    },
     options: [
       ["clear", "Clear"],
       ["rain", "Rain"],
@@ -60,28 +65,34 @@ export const CONTEXT_FIELDS: Array<{ key: ContextKey; label: string; options: Ar
   },
   {
     key: "roomTemp",
-    label: "Room",
+    get label() {
+      return t("context.room");
+    },
     options: [
-      ["cold", "Cold room"],
+      ["cold", t("context.cold_room")],
       ["comfortable", "Comfortable"],
-      ["warm", "Warm room"],
-      ["hot", "Hot room"],
+      ["warm", t("context.warm_room")],
+      ["hot", t("context.hot_room")],
     ],
   },
   {
     key: "timeOfDay",
-    label: "Time",
+    get label() {
+      return t("context.time");
+    },
     options: [
       ["afternoon", "Afternoon"],
-      ["evening", "Early evening"],
-      ["night", "Prime night"],
-      ["late-night", "After midnight"],
+      ["evening", t("context.early_evening")],
+      ["night", t("context.prime_night")],
+      ["late-night", t("context.after_midnight")],
       ["sunrise", "Sunrise"],
     ],
   },
   {
     key: "event",
-    label: "Event",
+    get label() {
+      return t("context.event");
+    },
     options: [
       ["milonga", "Milonga"],
       ["marathon", "Marathon"],
@@ -94,28 +105,34 @@ export const CONTEXT_FIELDS: Array<{ key: ContextKey; label: string; options: Ar
   },
   {
     key: "crowdLevel",
-    label: "Dancers",
+    get label() {
+      return t("context.dancers");
+    },
     options: [
       ["beginner", "Beginners"],
-      ["mixed", "Mixed level"],
+      ["mixed", t("context.mixed_level")],
       ["advanced", "Advanced"],
       ["milonguero", "Milongueros"],
     ],
   },
   {
     key: "crowdSize",
-    label: "Crowd",
+    get label() {
+      return t("context.crowd");
+    },
     options: [
-      ["small", "Small crowd"],
-      ["medium", "Medium crowd"],
-      ["large", "Large crowd"],
+      ["small", t("context.small_crowd")],
+      ["medium", t("context.medium_crowd")],
+      ["large", t("context.large_crowd")],
     ],
   },
   {
     key: "region",
-    label: "Region",
+    get label() {
+      return t("context.region");
+    },
     options: [
-      ["buenos-aires", "Buenos Aires"],
+      ["buenos-aires", t("context.buenos_aires")],
       ["europe", "Europe"],
       ["istanbul", "Istanbul"],
       ["asia", "Asia"],
@@ -124,18 +141,22 @@ export const CONTEXT_FIELDS: Array<{ key: ContextKey; label: string; options: Ar
   },
   {
     key: "holiday",
-    label: "Holiday",
+    get label() {
+      return t("context.holiday");
+    },
     options: [
-      ["none", "No holiday"],
+      ["none", t("context.no_holiday")],
       ["christmas", "Christmas"],
-      ["new-year", "New Year"],
+      ["new-year", t("context.new_year")],
       ["valentines", "Valentine's"],
       ["carnival", "Carnival"],
     ],
   },
   {
     key: "mood",
-    label: "Mood",
+    get label() {
+      return t("context.mood");
+    },
     options: [
       ["romantic", "Romantic"],
       ["energetic", "Energetic"],
@@ -147,9 +168,11 @@ export const CONTEXT_FIELDS: Array<{ key: ContextKey; label: string; options: Ar
   },
   {
     key: "dayOfWeek",
-    label: "Day",
+    get label() {
+      return t("context.day");
+    },
     options: [
-      ["weekday", "Mon–Wed"],
+      ["weekday", t("context.mon_wed")],
       ["thursday", "Thursday"],
       ["friday", "Friday"],
       ["saturday", "Saturday"],
@@ -181,11 +204,21 @@ export const EVIDENCE_COLOR: Record<string, string> = {
   speculative: "#9ca3af",
 };
 export const EVIDENCE_LABEL: Record<string, string> = {
-  strong: "strong evidence",
-  moderate: "moderate evidence",
-  weak: "weak evidence",
-  lore: "DJ lore",
-  speculative: "untested",
+  get strong() {
+    return t("context.strong_evidence");
+  },
+  get moderate() {
+    return t("context.moderate_evidence");
+  },
+  get weak() {
+    return t("context.weak_evidence");
+  },
+  get lore() {
+    return t("context.dj_lore");
+  },
+  get speculative() {
+    return t("context.untested");
+  },
 };
 
 export const fmtShift = (n: number | undefined | null, unit = "") =>

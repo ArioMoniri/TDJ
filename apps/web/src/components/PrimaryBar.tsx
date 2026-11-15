@@ -1,6 +1,7 @@
 "use client";
 import { Disc3, Ellipsis, Repeat2, Share } from "lucide-react";
 import { motion } from "motion/react";
+import { t } from "@/lib/i18n";
 import { EASE } from "@/lib/motion";
 import { ComposeLabel } from "./ComposeNarrative";
 
@@ -73,9 +74,14 @@ export function PrimaryBar({
               className="btn btn-primary min-h-[50px] flex-1 px-3"
               data-testid="bar-export"
             >
-              <Share size={18} strokeWidth={2} aria-hidden /> Export
+              <Share size={18} strokeWidth={2} aria-hidden /> {t("primaryBar.export")}
             </button>
-            <button type="button" className="icon-btn" aria-label="Set actions" onClick={onMore}>
+            <button
+              type="button"
+              className="icon-btn"
+              aria-label={t("primaryBar.set_actions")}
+              onClick={onMore}
+            >
               <Ellipsis size={20} strokeWidth={2} aria-hidden />
             </button>
           </>
@@ -114,7 +120,7 @@ export function PrimaryBar({
               onClick={onCompose}
               disabled={busy}
               className="icon-btn icon-btn-bare h-11 w-11"
-              aria-label="Regenerate"
+              aria-label={t("primaryBar.regenerate")}
               tabIndex={showPill ? 0 : -1}
             >
               <Repeat2 size={20} strokeWidth={2} className={busy ? "animate-spin" : ""} aria-hidden />
@@ -123,7 +129,7 @@ export function PrimaryBar({
               type="button"
               onClick={onExport}
               className="icon-btn icon-btn-send h-11 w-11"
-              aria-label="Export"
+              aria-label={t("primaryBar.export")}
               tabIndex={showPill ? 0 : -1}
             >
               <Share size={20} strokeWidth={2} aria-hidden />
@@ -135,7 +141,7 @@ export function PrimaryBar({
             onClick={onCompose}
             disabled={busy}
             className="icon-btn icon-btn-send h-11 w-11"
-            aria-label="Compose the night"
+            aria-label={t("primaryBar.compose_the_night")}
             tabIndex={showPill ? 0 : -1}
           >
             <Disc3 size={20} strokeWidth={2} className={busy ? "animate-spin" : ""} aria-hidden />

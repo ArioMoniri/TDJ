@@ -8,6 +8,7 @@ import { analyseSong, keyLabel } from "@/lib/analyze";
 import { djDataOf } from "@/lib/artwork";
 import { effectiveSong } from "@/lib/audio";
 import { fillMissing } from "@/lib/fill/client";
+import { lazy, t as tx } from "@/lib/i18n";
 import { rise, spring } from "@/lib/motion";
 import { bpmChoice } from "@/lib/songData";
 import { SOURCE_LABEL } from "@/lib/songView";
@@ -72,18 +73,28 @@ const FILL_LABEL: Record<string, string> = {
 };
 /** round 21: where an enriched value came from */
 const SOURCE: Record<string, string> = {
-  dj: "yours",
+  get dj() {
+    return tx("db.songsTab.yours");
+  },
   deezer: "Deezer",
-  audio: "analysed preview",
-  index: "T-DJ catalogue",
-  knowledge: "tango reference",
-  heuristic: "guessed from the era",
+  get audio() {
+    return tx("db.songsTab.analysed_preview");
+  },
+  get index() {
+    return tx("db.songsTab.t_dj_catalogue");
+  },
+  get knowledge() {
+    return tx("db.songsTab.tango_reference");
+  },
+  get heuristic() {
+    return tx("db.songsTab.guessed_from_the_era");
+  },
 };
-const VOCAL_STYLE_ITEMS: Array<[string, string]> = [
-  ["cantor", "Singer-led (cantor)"],
-  ["estribillo", "Rhythm-led (estribillista)"],
-  ["unknown", "Unknown"],
-];
+const VOCAL_STYLE_ITEMS: Array<[string, string]> = lazy(() => [
+  ["cantor", tx("db.songsTab.singer_led_cantor")],
+  ["estribillo", tx("db.songsTab.rhythm_led_estribillista")],
+  ["unknown", tx("db.songsTab.unknown")],
+]);
 
 export function SongsTab() {
   const { overrides, update } = useDb();
@@ -179,10 +190,15 @@ export function SongsTab() {
       const label = (f: string) => FILL_LABEL[f] ?? f;
       toast(
         r.filled.length
-          ? `Filled ${r.filled.map(label).join(", ")} for ${s.title}`
+          ? tx("db.songsTab.filled_for", { p1: r.filled.map(label).join(", "), title: s.title })
           : r.asked.length
-            ? `No new data for ${s.title}${r.stillMissing.length ? ` (still missing: ${r.stillMissing.map(label).join(", ")})` : ""}`
-            : `${s.title} is up to date with your sources`,
+            ? r.stillMissing.length
+              ? tx("db.songsTab.no_new_data_missing", {
+                  title: s.title,
+                  missing: r.stillMissing.map(label).join(", "),
+                })
+              : tx("db.songsTab.no_new_data", { title: s.title })
+            : tx("db.songsTab.is_up_to_date_with_your", { title: s.title }),
       );
     } finally {
       setFilling(null);
@@ -237,14 +253,16 @@ export function SongsTab() {
         id="db-search"
         value={q}
         onChange={setQ}
-        placeholder="Title, orchestra, singer or year"
-        label="Search the index"
+        placeholder={tx("db.songsTab.title_orchestra_singer_or_year")}
+        label={tx("db.songsTab.search_the_index")}
         busy={searching}
         className="mt-3"
         onFocusChange={(f) => window.dispatchEvent(new CustomEvent(SEARCH_FOCUS_EVENT, { detail: f }))}
       />
-      {q.length < 2 && <Empty crate>Search the index to edit a recording, or add your own below.</Empty>}
-      {q.length >= 2 && !searching && rows.length === 0 && <Empty>Nothing matches “{q}”.</Empty>}
+      {q.length < 2 && <Empty crate>{tx("db.songsTab.search_the_index_to_edit_a")}</Empty>}
+      {q.length >= 2 && !searching && rows.length === 0 && (
+        <Empty>{tx("db.songsTab.nothing_matches", { q })}</Empty>
+      )}
       {rows.length > 0 && (
         <div className="min-w-0 lg:grid lg:grid-cols-2 lg:gap-x-4">
           {rows.map((s) => {
@@ -267,7 +285,7 @@ export function SongsTab() {
               <Group
                 key={s.id}
                 data-song={s.id}
-                footer={edited ? "Edited · Revert in Edit mode" : undefined}
+                footer={edited ? tx("db.songsTab.edited_revert_in_edit_mode") : undefined}
                 className="min-w-0"
               >
                 <div className="cell" data-leading="art">
@@ -288,13 +306,13 @@ export function SongsTab() {
                   </span>
                   {editing && edited && (
                     <button type="button" className="btn-plain -mr-2" onClick={() => revert(s.id)}>
-                      Revert
+                      {tx("db.songsTab.revert")}
                     </button>
                   )}
                 </div>
                 <ValueCell
-                  label="Year"
-                  inputLabel={`Year of ${s.title}`}
+                  label={tx("db.songsTab.year")}
+                  inputLabel={tx("db.songsTab.year_of", { title: s.title })}
                   editing={editing}
                   value={p.year}
                   placeholder={s.year}
@@ -304,17 +322,17 @@ export function SongsTab() {
                   onChange={(t) => setField(s, "year", num(t))}
                 />
                 <ValueCell
-                  label="Singer"
-                  inputLabel={`Singer of ${s.title}`}
+                  label={tx("db.songsTab.singer")}
+                  inputLabel={tx("db.songsTab.singer_of", { title: s.title })}
                   editing={editing}
                   value={p.singer}
-                  placeholder={s.singer ?? "Instrumental"}
+                  placeholder={s.singer ?? tx("db.songsTab.instrumental")}
                   onChange={(t) => setField(s, "singer", t)}
                 />
                 <PickerRow
-                  label="Rhythm"
-                  tip="Tango, vals or milonga: decides which tandas this side can join"
-                  ariaLabel={`Rhythm of ${s.title}`}
+                  label={tx("db.songsTab.rhythm")}
+                  tip={tx("db.songsTab.tango_vals_or_milonga_decides_which")}
+                  ariaLabel={tx("db.songsTab.rhythm_of", { title: s.title })}
                   value={v.rhythm}
                   items={
                     [...new Map([...RHYTHM_ITEMS, [s.rhythm, s.rhythm]]).entries()] as Array<[string, string]>
@@ -323,8 +341,8 @@ export function SongsTab() {
                   disabled={!editing}
                 />
                 <ValueCell
-                  label="Energy"
-                  inputLabel={`Energy of ${s.title}`}
+                  label={tx("db.songsTab.energy")}
+                  inputLabel={tx("db.songsTab.energy_of", { title: s.title })}
                   editing={editing}
                   value={p.energy}
                   placeholder={s.energy}
@@ -334,8 +352,8 @@ export function SongsTab() {
                   onChange={(t) => setField(s, "energy", num(t))}
                 />
                 <ValueCell
-                  label={`BPM${bpm ? ` · ${p.bpm !== undefined ? "yours" : bpm.used.label.toLowerCase()}` : ""}`}
-                  inputLabel={`BPM of ${s.title}`}
+                  label={`BPM${bpm ? ` · ${p.bpm !== undefined ? tx("db.songsTab.yours") : bpm.used.label.toLowerCase()}` : ""}`}
+                  inputLabel={tx("db.songsTab.bpm_of", { title: s.title })}
                   editing={editing}
                   value={p.bpm}
                   placeholder={bpm ? bpm.value : "–"}
@@ -347,11 +365,11 @@ export function SongsTab() {
                 {bpm && bpm.all.length > 1 && (
                   <Tip text={bpm.note} className="w-full">
                     <Row
-                      label="Every BPM value"
+                      label={tx("db.songsTab.every_bpm_value")}
                       sub={bpm.all
                         .map(
                           (x) =>
-                            `${x.label} ${Math.round(x.raw)}${x.used ? " (used)" : x.agrees ? (x.halfDouble ? " (same tempo, other beat level)" : " (agrees)") : " (disagrees)"}`,
+                            `${x.label} ${Math.round(x.raw)}${x.used ? " (used)" : x.agrees ? (x.halfDouble ? tx("db.songsTab.same_tempo_other_beat_level") : " (agrees)") : " (disagrees)"}`,
                         )
                         .join(" · ")}
                       data-testid="db-bpm-values"
@@ -361,8 +379,12 @@ export function SongsTab() {
                 {/* round 21: the loudness and the vocal style the tanda rules read; a correction here wins over
                     the enrichment (Deezer, the knowledge table) and is kept when the enrich scripts run again */}
                 <ValueCell
-                  label={`Level dB${s.level ? ` · ${p.gainDb !== undefined ? "yours" : (SOURCE[s.level.source] ?? s.level.source)}` : ""}`}
-                  inputLabel={`Level of ${s.title}`}
+                  label={tx("db.songsTab.level_db", {
+                    p1: s.level
+                      ? ` · ${p.gainDb !== undefined ? tx("db.songsTab.yours") : (SOURCE[s.level.source] ?? s.level.source)}`
+                      : "",
+                  })}
+                  inputLabel={tx("db.songsTab.level_of", { title: s.title })}
                   editing={editing}
                   value={p.gainDb}
                   placeholder={s.level ? s.level.gainDb.toFixed(1) : "–"}
@@ -373,9 +395,13 @@ export function SongsTab() {
                 />
                 {v.vocal && (
                   <PickerRow
-                    label={`Vocal style${s.vocalStyleSource ? ` · ${p.vocalStyle ? "yours" : (SOURCE[s.vocalStyleSource] ?? s.vocalStyleSource)}` : ""}`}
-                    ariaLabel={`Vocal style of ${s.title}`}
-                    tip="How the singer sings: one voice per tanda keeps the same style together"
+                    label={tx("db.songsTab.vocal_style", {
+                      p1: s.vocalStyleSource
+                        ? ` · ${p.vocalStyle ? tx("db.songsTab.yours") : (SOURCE[s.vocalStyleSource] ?? s.vocalStyleSource)}`
+                        : "",
+                    })}
+                    ariaLabel={tx("db.songsTab.vocal_style_of", { title: s.title })}
+                    tip={tx("db.songsTab.how_the_singer_sings_one_voice")}
                     value={(p.vocalStyle ?? s.vocalStyle ?? "unknown") as string}
                     items={VOCAL_STYLE_ITEMS}
                     onChange={(k) => k && setField(s, "vocalStyle", k === "unknown" ? undefined : k)}
@@ -384,7 +410,7 @@ export function SongsTab() {
                 )}
                 <ValueCell
                   label={`Key${from("key")}`}
-                  inputLabel={`Key of ${s.title}`}
+                  inputLabel={tx("db.songsTab.key_of", { title: s.title })}
                   editing={editing}
                   value={p.key}
                   placeholder={(data.key?.value as string | undefined) ?? "–"}
@@ -392,15 +418,17 @@ export function SongsTab() {
                 />
                 <ValueCell
                   label={`Date${from("release")}`}
-                  inputLabel={`Release date of ${s.title}`}
+                  inputLabel={tx("db.songsTab.release_date_of", { title: s.title })}
                   editing={editing}
                   value={p.release}
                   placeholder={(data.release?.value as string | undefined) ?? "–"}
                   onChange={(t) => setField(s, "release", t.trim() || undefined)}
                 />
                 <ValueCell
-                  label={data.deezerId?.source === "dj" ? "Deezer · yours" : "Deezer"}
-                  inputLabel={`Deezer track of ${s.title}`}
+                  label={
+                    data.deezerId?.source === "dj" ? tx("db.songsTab.deezer_yours") : tx("db.songsTab.deezer")
+                  }
+                  inputLabel={tx("db.songsTab.deezer_track_of", { title: s.title })}
                   editing={editing}
                   mono
                   value={p.deezerId}
@@ -409,19 +437,16 @@ export function SongsTab() {
                 />
                 <ValueCell
                   label={`Artwork${from("artwork")}`}
-                  inputLabel={`Artwork link of ${s.title}`}
+                  inputLabel={tx("db.songsTab.artwork_link_of", { title: s.title })}
                   editing={editing}
                   mono
                   value={p.artwork}
-                  placeholder={data.artwork ? "Found" : "–"}
+                  placeholder={data.artwork ? tx("db.songsTab.found") : "–"}
                   onChange={(t) =>
                     setField(s, "artwork", /^https:\/\//.test(t.trim()) ? t.trim() : undefined)
                   }
                 />
-                <Tip
-                  text="Asks Deezer, MusicBrainz, the Cover Art Archive and the sources you added in Settings for what is missing. Your own values always win."
-                  className="w-full"
-                >
+                <Tip text={tx("db.songsTab.asks_deezer_musicbrainz_the_cover_art")} className="w-full">
                   <Row
                     tile={
                       <span
@@ -432,15 +457,21 @@ export function SongsTab() {
                         <DatabaseZap size={14} strokeWidth={2} />
                       </span>
                     }
-                    label={missing.length ? "Fill missing data" : "Refresh from sources"}
+                    label={
+                      missing.length
+                        ? tx("db.songsTab.fill_missing_data")
+                        : tx("db.songsTab.refresh_from_sources")
+                    }
                     sub={
                       missing.length
                         ? `Missing: ${missing.map((f) => FILL_LABEL[f] ?? f).join(", ")}`
                         : scraped
-                          ? `Fetched ${Object.entries(scraped.sources)
-                              .map(([k, v]) => `${SOURCE_LABEL[k] ?? k} ${v.fetchedAt.slice(0, 10)}`)
-                              .join(" · ")}`
-                          : "Everything is known"
+                          ? tx("db.songsTab.fetched", {
+                              p1: Object.entries(scraped.sources)
+                                .map(([k, v]) => `${SOURCE_LABEL[k] ?? k} ${v.fetchedAt.slice(0, 10)}`)
+                                .join(" · "),
+                            })
+                          : tx("db.songsTab.everything_is_known")
                     }
                     chevron
                     busy={filling === s.id}
@@ -450,11 +481,11 @@ export function SongsTab() {
                 </Tip>
                 <VersionsRow song={s} />
                 <Row
-                  label="Streams"
+                  label={tx("db.songsTab.streams")}
                   sub={[
                     s.spotify?.uri
                       ? `Spotify ${s.spotify.album ?? ""}${s.spotify.release ? ` (${s.spotify.release.slice(0, 4)})` : ""}${s.spotify.checkedAt ? ` · checked ${s.spotify.checkedAt.slice(0, 10)}` : ""}`
-                      : "No checked Spotify recording",
+                      : tx("db.songsTab.no_checked_spotify_recording"),
                     s.deezer?.id
                       ? `Deezer ${s.deezer.id}${s.deezer.fetchedAt ? ` · fetched ${s.deezer.fetchedAt.slice(0, 10)}` : ""}`
                       : null,
@@ -485,17 +516,17 @@ export function SongsTab() {
                       </span>
                     )
                   }
-                  label="Resolved"
+                  label={tx("db.songsTab.resolved")}
                   sub={
                     res
-                      ? `${res.artist} – ${res.title}${res.previewUrl ? " · 30 s preview" : ""}${p.resolved ? " · your choice" : ""}`
-                      : "No preview track yet"
+                      ? `${res.artist} – ${res.title}${res.previewUrl ? tx("db.songsTab.30_s_preview") : ""}${p.resolved ? tx("db.songsTab.your_choice") : ""}`
+                      : tx("db.songsTab.no_preview_track_yet")
                   }
                   value={res ? (res.provider === "deezer" ? "Deezer" : res.provider) : "Find…"}
                   chevron
                   onClick={() => setFinding(s)}
-                  aria-label={`Find ${s.title} on services`}
-                  tip="Look for this side on Deezer, Spotify or YouTube and choose the right recording"
+                  aria-label={tx("db.songsTab.find_on_services", { title: s.title })}
+                  tip={tx("db.songsTab.look_for_this_side_on_deezer")}
                   data-resolved={res ? "true" : "false"}
                 />
                 <Row
@@ -508,13 +539,18 @@ export function SongsTab() {
                       <AudioWaveform size={14} strokeWidth={2} />
                     </span>
                   }
-                  label="Analysed audio"
+                  label={tx("db.songsTab.analysed_audio")}
                   sub={
                     eff.audio
-                      ? `${keyLabel(eff.audio)} · ${Math.round(eff.audio.bpm)} BPM · ${eff.audio.loudnessDb.toFixed(1)} dBFS${p.audio ? " · analysed here" : ""}`
+                      ? tx("db.songsTab.bpm_dbfs", {
+                          p1: keyLabel(eff.audio),
+                          p2: Math.round(eff.audio.bpm),
+                          loudnessDb: eff.audio.loudnessDb.toFixed(1),
+                          p3: p.audio ? tx("db.songsTab.analysed_here") : "",
+                        })
                       : res?.previewUrl
-                        ? "Analyse the 30 s preview in this browser"
-                        : "Needs a preview first"
+                        ? tx("db.songsTab.analyse_the_30_s_preview_in")
+                        : tx("db.songsTab.needs_a_preview_first")
                   }
                   value={eff.audio ? "Analyse again" : "Analyse"}
                   chevron
@@ -524,12 +560,12 @@ export function SongsTab() {
                 />
                 {editing ? (
                   <ValueCell
-                    label="Spotify link"
-                    inputLabel={`Spotify link of ${s.title}`}
+                    label={tx("db.songsTab.spotify_link")}
+                    inputLabel={tx("db.songsTab.spotify_link_of", { title: s.title })}
                     editing
                     mono
                     value={p.spotify?.uri}
-                    placeholder={s.spotify?.uri ?? "Paste a Spotify link"}
+                    placeholder={s.spotify?.uri ?? tx("db.songsTab.paste_a_spotify_link")}
                     onChange={(t) => setField(s, "spotify", t.trim() ? { uri: spotifyUri(t) } : null)}
                   />
                 ) : (
@@ -537,26 +573,26 @@ export function SongsTab() {
                     const url = spotifyUrl(p.spotify?.uri ?? s.spotify?.uri);
                     return url ? (
                       <Row
-                        label="Spotify"
+                        label={tx("db.songsTab.spotify")}
                         value="Open in Spotify"
                         href={url}
                         chevron
-                        aria-label={`Open ${s.title} in Spotify`}
+                        aria-label={tx("db.songsTab.open_in_spotify", { title: s.title })}
                         data-testid="db-spotify-link"
                       />
                     ) : (
-                      <Row label="Spotify" value="Not matched yet" />
+                      <Row label={tx("db.songsTab.spotify")} value="Not matched yet" />
                     );
                   })()
                 )}
                 <SwitchRow
-                  label="Shown in sets"
+                  label={tx("db.songsTab.shown_in_sets")}
                   sub={
                     p.hidden
                       ? p.hiddenScope === "copy"
-                        ? "Hidden: this copy only"
-                        : "Hidden: every copy of this title"
-                      : "Off hides every copy of this orchestra + title"
+                        ? tx("db.songsTab.hidden_this_copy_only")
+                        : tx("db.songsTab.hidden_every_copy_of_this_title")
+                      : tx("db.songsTab.off_hides_every_copy_of_this")
                   }
                   checked={!p.hidden}
                   onChange={(on) => {
@@ -566,8 +602,8 @@ export function SongsTab() {
                 />
                 {!p.hidden && (
                   <ActionRow
-                    label="Hide only this copy"
-                    tip="This copy stops appearing in your nights; other recordings of the song stay"
+                    label={tx("db.songsTab.hide_only_this_copy")}
+                    tip={tx("db.songsTab.this_copy_stops_appearing_in_your")}
                     onClick={() => {
                       setField(s, "hidden", true);
                       setField(s, "hiddenScope", "copy");
@@ -582,11 +618,11 @@ export function SongsTab() {
       )}
 
       <Group
-        header="Your recordings"
+        header={tx("db.songsTab.your_recordings")}
         footer={
           (overrides.addedSongs ?? []).length === 0
-            ? "None yet. Added recordings join the index for your sets only."
-            : "Added recordings join the index for your sets only."
+            ? tx("db.songsTab.none_yet_added_recordings_join_the")
+            : tx("db.songsTab.added_recordings_join_the_index_for")
         }
       >
         <AnimatePresence initial={false}>
@@ -611,7 +647,7 @@ export function SongsTab() {
                     <button
                       type="button"
                       className="icon-btn icon-btn-bare -ml-3 text-[var(--destructive)]"
-                      aria-label={`Remove ${s.title}`}
+                      aria-label={tx("db.songsTab.remove", { title: s.title })}
                       onClick={() => removeOwn(s.id)}
                     >
                       <CircleMinus size={22} strokeWidth={2} fill="currentColor" stroke="#fff" />
@@ -631,8 +667,8 @@ export function SongsTab() {
           ))}
         </AnimatePresence>
         <ActionRow
-          label="Add a recording"
-          tip="Add a side the catalogue does not have, so the composer can use it"
+          label={tx("db.songsTab.add_a_recording")}
+          tip={tx("db.songsTab.add_a_side_the_catalogue_does")}
           onClick={() => setAdding(true)}
         />
       </Group>
@@ -641,17 +677,17 @@ export function SongsTab() {
       <Sheet
         open={adding}
         onClose={() => setAdding(false)}
-        title="Add a recording"
+        title={tx("db.songsTab.add_a_recording")}
         trailing="Save"
         onTrailing={addSong}
       >
-        <Group footer="Title and orchestra are required. Leave the singer blank for an instrumental.">
+        <Group footer={tx("db.songsTab.title_and_orchestra_are_required_leave")}>
           {field("own-title", "Title", "title", { required: true, "data-autofocus": true })}
           {field("own-orchestra", "Orchestra", "orchestra", { required: true })}
-          {field("own-singer", "Singer", "singer", { placeholder: "Instrumental" })}
+          {field("own-singer", "Singer", "singer", { placeholder: tx("db.songsTab.instrumental") })}
           <PickerRow
-            label="Rhythm"
-            ariaLabel="Rhythm"
+            label={tx("db.songsTab.rhythm")}
+            ariaLabel={tx("db.songsTab.rhythm")}
             value={form.rhythm}
             items={RHYTHM_ITEMS}
             onChange={(r) => r && setForm({ ...form, rhythm: r })}
@@ -663,9 +699,9 @@ export function SongsTab() {
             max: 100,
             placeholder: "0–100",
           })}
-          {field("own-uri", "Spotify link", "uri", {
-            placeholder: "Paste a Spotify link",
-            className: "field field-value min-w-0 flex-1 font-mono",
+          {field("own-uri", tx("db.songsTab.spotify_link"), "uri", {
+            placeholder: tx("db.songsTab.paste_a_spotify_link"),
+            className: tx("db.songsTab.field_field_value_min_w_0"),
           })}
         </Group>
       </Sheet>

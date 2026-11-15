@@ -1,4 +1,5 @@
 "use client";
+import { t } from "@/lib/i18n";
 import "./guide.css";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
@@ -65,11 +66,14 @@ function Chapter({ chapter }: { chapter: GuideChapter }) {
 export function GuideTour() {
   return (
     <div className="mt-6" data-testid="guide-tour">
-      <h2 className="text-title3 px-4">What you can do</h2>
+      <h2 className="text-title3 px-4">{t("guide.guideTour.what_you_can_do")}</h2>
       <p className="text-subhead mt-1 px-4 text-[var(--label-2)]">
-        From the first idea of a night to its last tanda.
+        {t("guide.guideTour.from_the_first_idea_of_a")}
       </p>
-      <nav aria-label="Chapters" className="guide-jump mt-3 flex flex-wrap gap-2 px-4 pb-1">
+      <nav
+        aria-label={t("guide.guideTour.chapters")}
+        className="guide-jump mt-3 flex flex-wrap gap-2 px-4 pb-1"
+      >
         {GUIDE_CHAPTERS.map((c) => (
           <a
             key={c.id}

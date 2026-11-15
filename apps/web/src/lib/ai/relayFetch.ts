@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 import { type AiSettingsLike, completeOnDevice } from "./client";
 import type { Relay } from "./provider";
 
@@ -39,7 +40,9 @@ export function installAiRelay(getSettings: () => AiSettingsLike) {
       });
     } catch (e) {
       return new Response(
-        JSON.stringify({ error: e instanceof Error ? e.message : "The agent did not answer." }),
+        JSON.stringify({
+          error: e instanceof Error ? e.message : t("ai.relayFetch.the_agent_did_not_answer"),
+        }),
         { status: 502, headers: { "content-type": "application/json" } },
       );
     }

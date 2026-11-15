@@ -9,6 +9,7 @@ import {
   Play,
   SlidersHorizontal,
 } from "lucide-react";
+import { t } from "@/lib/i18n";
 import { ROOMS_NAV } from "./RoomsNav";
 
 /**
@@ -25,17 +26,65 @@ export interface NavItem {
 const at = (href: string): NavItem => ALL.find((i) => i.href === href)!;
 
 export const NAV_MAIN: NavItem[] = [
-  { href: "/", label: "Compose", icon: ListMusic },
-  { href: "/booth", label: "Booth", icon: Play },
-  { href: "/build", label: "Build by hand", icon: Hand },
-  { href: "/library", label: "Library", icon: Disc3 },
-  { href: "/database", label: "Database", icon: Database },
-  { href: "/history", label: "History", icon: Clock },
+  {
+    href: "/",
+    get label() {
+      return t("navItems.compose");
+    },
+    icon: ListMusic,
+  },
+  {
+    href: "/booth",
+    get label() {
+      return t("navItems.booth");
+    },
+    icon: Play,
+  },
+  {
+    href: "/build",
+    get label() {
+      return t("navItems.build_by_hand");
+    },
+    icon: Hand,
+  },
+  {
+    href: "/library",
+    get label() {
+      return t("navItems.library");
+    },
+    icon: Disc3,
+  },
+  {
+    href: "/database",
+    get label() {
+      return t("navItems.database");
+    },
+    icon: Database,
+  },
+  {
+    href: "/history",
+    get label() {
+      return t("navItems.history");
+    },
+    icon: Clock,
+  },
   ROOMS_NAV,
 ];
 export const NAV_PINNED: NavItem[] = [
-  { href: "/guide", label: "Guide", icon: BookOpen },
-  { href: "/settings", label: "Settings", icon: SlidersHorizontal },
+  {
+    href: "/guide",
+    get label() {
+      return t("navItems.guide");
+    },
+    icon: BookOpen,
+  },
+  {
+    href: "/settings",
+    get label() {
+      return t("navItems.settings");
+    },
+    icon: SlidersHorizontal,
+  },
 ];
 const ALL = [...NAV_MAIN, ...NAV_PINNED];
 
@@ -45,4 +94,4 @@ export const PILL_ITEMS: NavItem[] = ALL;
 export const PHONE_TABS: NavItem[] = ["/", "/booth", "/library", "/history", "/database"].map(at);
 export const PHONE_MORE: NavItem[] = ["/build", "/rooms", "/guide", "/settings"].map(at);
 /** the sidebar's first section: the night and what it is made from (it was "Library", like the item inside it) */
-export const NAV_MAIN_TITLE = "Night";
+export const NAV_MAIN_TITLE = () => t("navItems.night");

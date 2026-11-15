@@ -3,6 +3,7 @@ import { Minus, Plus } from "lucide-react";
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "motion/react";
 import { type KeyboardEvent, useId, useRef } from "react";
 import { haptic } from "@/lib/haptics";
+import { t as tx } from "@/lib/i18n";
 import { spring, t } from "@/lib/motion";
 import { useTip } from "./ui/Tip";
 
@@ -175,16 +176,18 @@ export function Stepper({
   const down = Math.max(min, +(value - step).toFixed(2));
   const up = Math.min(max, +(value + step).toFixed(2));
   const less = useTip<HTMLButtonElement>(
-    value <= min ? "Already the lowest" : `Down to ${down}${unit ?? ""}`,
+    value <= min ? tx("ui.already_the_lowest") : tx("ui.down_to", { down, p1: unit ?? "" }),
   );
-  const more = useTip<HTMLButtonElement>(value >= max ? "Already the highest" : `Up to ${up}${unit ?? ""}`);
+  const more = useTip<HTMLButtonElement>(
+    value >= max ? tx("ui.already_the_highest") : tx("ui.up_to", { up, p1: unit ?? "" }),
+  );
   return (
     // biome-ignore lint/a11y/useSemanticElements: stepper is an inline control group, not a form section
     <div className="stepper" role="group" aria-label={label}>
       <button
         type="button"
         {...less.props}
-        aria-label={`Decrease ${label.toLowerCase()}`}
+        aria-label={tx("ui.decrease", { label: label.toLowerCase() })}
         disabled={disabled || value <= min}
         onClick={() => change(down)}
       >
@@ -194,7 +197,7 @@ export function Stepper({
       <button
         type="button"
         {...more.props}
-        aria-label={`Increase ${label.toLowerCase()}`}
+        aria-label={tx("ui.increase", { label: label.toLowerCase() })}
         disabled={disabled || value >= max}
         onClick={() => change(up)}
       >

@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import { COMPOSE_STEPS, composeStep, expectedComposeMs } from "@/lib/composeProgress";
+import { t } from "@/lib/i18n";
 import { DUR } from "@/lib/motion";
 
 /* The dotLottie player (its chunk and its WASM) loads the first time the narrative shows, not with the page. */
@@ -60,7 +61,7 @@ export function ComposeProgress({ busy, onCancel }: { busy: boolean; onCancel: (
           exit={{ opacity: 0, transition: { duration: DUR.fast } }}
           className="glass fixed inset-x-3 bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+136px)] z-40 mx-auto max-w-[520px] rounded-[22px] px-4 py-3 sm:bottom-6"
           role="group"
-          aria-label="Composing the night"
+          aria-label={t("composeNarrative.composing_the_night")}
           data-testid="compose-progress"
         >
           <div className="flex items-center gap-3">
@@ -88,7 +89,7 @@ export function ComposeProgress({ busy, onCancel }: { busy: boolean; onCancel: (
               onClick={onCancel}
               data-testid="compose-cancel"
             >
-              Cancel
+              {t("composeNarrative.cancel")}
             </button>
           </div>
           <div className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--fill-3)]" aria-hidden>
@@ -176,7 +177,7 @@ export function ComposeNarrative({ busy, className = "" }: { busy: boolean; clas
 export function ComposeLabel({
   busy,
   steps = false,
-  idle = "Compose the night",
+  idle,
   spin = true,
 }: {
   busy: boolean;
@@ -228,7 +229,7 @@ export function ComposeLabel({
               transition={{ duration: DUR.fast }}
               className="col-start-1 row-start-1 whitespace-nowrap"
             >
-              {busy ? "Composing…" : idle}
+              {busy ? t("composeNarrative.composing") : (idle ?? t("primaryBar.compose_the_night"))}
             </motion.span>
           )}
         </AnimatePresence>

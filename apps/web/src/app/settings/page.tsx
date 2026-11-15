@@ -6,6 +6,7 @@ import {
   Globe,
   HardDrive,
   KeyRound,
+  Languages,
   LoaderCircle,
   Palette,
   Sparkles,
@@ -39,6 +40,7 @@ import { KEY_PLACEHOLDER, MODEL_SUGGESTIONS } from "@/lib/ai/models";
 import { chooseKeyProvider, keyOf, withKey } from "@/lib/ai/settings";
 import { saveAiKey } from "@/lib/app/boot";
 import { APP, KEYCHAIN_KEY } from "@/lib/app/target";
+import { LOCALE_NAME, lazy, t as tx } from "@/lib/i18n";
 import { fade, t as tw } from "@/lib/motion";
 import { useStore } from "@/lib/store";
 import {
@@ -54,18 +56,18 @@ import {
   type UserSettings,
 } from "@/lib/types";
 
-const REGIONS: Array<[UserSettings["region"], string]> = [
+const REGIONS: Array<[UserSettings["region"], string]> = lazy(() => [
   ["buenos-aires", "Buenos Aires"],
-  ["europe", "Europe"],
-  ["istanbul", "Istanbul"],
-  ["asia", "Asia"],
+  ["europe", tx("settings.europe")],
+  ["istanbul", tx("settings.istanbul")],
+  ["asia", tx("settings.asia")],
   ["us", "US"],
-];
-const THEMES: Array<[UserSettings["theme"], string]> = [
-  ["auto", "Auto"],
-  ["light", "Light"],
-  ["dark", "Dark"],
-];
+]);
+const THEMES: Array<[UserSettings["theme"], string]> = lazy(() => [
+  ["auto", tx("settings.auto")],
+  ["light", tx("settings.light")],
+  ["dark", tx("settings.dark")],
+]);
 
 /* The dotLottie player loads with the first test result, not with the page. */
 const DotLottieReact = dynamic(() => import("@lottiefiles/dotlottie-react").then((m) => m.DotLottieReact), {
@@ -129,24 +131,25 @@ function humanError(provider: AiProvider, status: number, raw: unknown): string 
   const text = typeof raw === "string" ? raw : "";
   // an Anthropic key made at organisation level must name the workspace it bills
   if (/not scoped to a workspace|anthropic-workspace-id/i.test(text))
-    return "This key belongs to an organisation: paste the organisation ID shown next to it in your Anthropic account below, or make a key of your own there.";
+    return tx("settings.this_key_belongs_to_an_organisation");
   if (status === 429 && /organiser/i.test(text)) return text;
   if (
     status === 401 ||
     status === 403 ||
     /invalid x-api-key|authentication|unauthori[sz]ed|invalid api key/i.test(text)
   )
-    return `The key was rejected by ${name} (${status || 401}). Check it and try again.`;
+    return tx("settings.the_key_was_rejected_by_check", { name, p1: status || 401 });
   if (status === 404 || /model.*not (found|exist)|does not exist/i.test(text))
-    return `${name} does not know this model (${status}). Leave the model blank for the default.`;
+    return tx("settings.does_not_know_this_model_leave", { name, status });
   if (status === 429 || /rate limit|quota/i.test(text))
-    return `${name} is rate-limiting this key (${status}). Try again in a minute.`;
-  if (status >= 500 || !status) return `${name} did not answer (${status || "network"}). Try again.`;
+    return tx("settings.is_rate_limiting_this_key_try", { name, status });
+  if (status >= 500 || !status)
+    return tx("settings.did_not_answer", { name, status: status || tx("settings.network") });
   const short = text
     .replace(/\{[\s\S]*\}/, "")
     .trim()
     .slice(0, 80);
-  return `${name} answered ${status}${short ? `: ${short}` : ""}.`;
+  return tx("settings.answered", { name, status, p1: short ? `: ${short}` : "" });
 }
 
 export default function Settings() {
@@ -202,7 +205,7 @@ export default function Settings() {
     const id = setTimeout(() => {
       void saveAiKey(editProvider, draft)
         .then(() => setAi({ key: draft ? KEYCHAIN_KEY : "" }))
-        .catch(() => setTest({ state: "fail", text: "The key could not be saved in your Keychain." }));
+        .catch(() => setTest({ state: "fail", text: tx("settings.the_key_could_not_be_saved") }));
     }, 450);
     return () => clearTimeout(id);
   }, [draft]);
@@ -225,13 +228,16 @@ export default function Settings() {
         setTest({
           state: "ok",
           text: j.shared
-            ? `Connected through the organiser's key; the model answered "${j.text}".`
-            : `Connected. ${ai.model || "The default model"} answered "${j.text}".`,
+            ? tx("settings.connected_through_the_organiser_s_key", { text: j.text })
+            : tx("settings.connected_answered", {
+                p1: ai.model || tx("settings.the_default_model"),
+                text: j.text,
+              }),
         });
         if (j.shared && shared) setShared({ ...shared, used: Math.min(shared.limit, shared.used + 1) });
       } else setTest({ state: "fail", text: humanError(ai.provider, r.status, j.error) });
     } catch {
-      setTest({ state: "fail", text: "Could not reach the server." });
+      setTest({ state: "fail", text: tx("settings.could_not_reach_the_server") });
     }
   };
   const app = DJ_APPS.find((a) => a.id === folderFor);
@@ -239,20 +245,40 @@ export default function Settings() {
 
   return (
     <div className="settings-page mx-auto max-w-[720px] lg:max-w-none">
-      <PageHeader title="Settings" />
+      <PageHeader title={tx("settings.settings")} />
       {/* wide screens (round 23): the groups flow in two columns, the Mac preferences way */}
       <div className="settings-cols">
         {/* order (round8-ux.md §1.10): what the DJ changes most first; accounts and the owner's rows last */}
+        {/* wave 3: the app's language; Auto follows the browser (the system, in the apps) */}
+        <Group header={tx("settings.language.header")} footer={tx("settings.language.footer")}>
+          <SegmentedRow
+            label={tx("settings.language.label")}
+            tip={tx("settings.language.tip")}
+            tips={{ auto: tx("settings.language.tip_auto"), en: LOCALE_NAME.en, tr: LOCALE_NAME.tr }}
+            value={settings.language ?? "auto"}
+            items={[
+              ["auto", tx("settings.language.auto")],
+              ["en", LOCALE_NAME.en],
+              ["tr", LOCALE_NAME.tr],
+            ]}
+            onChange={(l) => setSettings({ language: l })}
+            tile={
+              <Tile color="#5856d6">
+                <Languages size={16} strokeWidth={2} />
+              </Tile>
+            }
+          />
+        </Group>
         <Group
-          header="Appearance"
-          footer="Reduce transparency makes navigation and sheets solid; easier to read, lighter on the battery."
+          header={tx("settings.appearance")}
+          footer={tx("settings.reduce_transparency_makes_navigation_and_sheets")}
         >
           <SegmentedRow
-            label="Theme"
+            label={tx("settings.theme")}
             tips={{
-              auto: "Follow this device: light by day, dark at night",
-              light: "Always light",
-              dark: "Always dark, easier on the eyes in a dim room",
+              auto: tx("settings.follow_this_device_light_by_day"),
+              light: tx("settings.always_light"),
+              dark: tx("settings.always_dark_easier_on_the_eyes"),
             }}
             value={settings.theme}
             items={THEMES}
@@ -264,23 +290,23 @@ export default function Settings() {
             }
           />
           <SwitchRow
-            label="Reduce transparency"
-            tip="Makes the bars and sheets solid instead of see-through"
+            label={tx("settings.reduce_transparency")}
+            tip={tx("settings.makes_the_bars_and_sheets_solid")}
             checked={settings.reduceGlass}
             onChange={(v) => setSettings({ reduceGlass: v })}
           />
           <SwitchRow
-            label="Sound effects"
-            tip="Small clicks and chimes when you tap, compose or save"
+            label={tx("settings.sound_effects")}
+            tip={tx("settings.small_clicks_and_chimes_when_you")}
             checked={settings.sounds !== false}
             onChange={(v) => setSettings({ sounds: v })}
           />
         </Group>
 
-        <Group header="Region" footer="Default for Tonight's region on the composer.">
+        <Group header={tx("settings.region")} footer={tx("settings.default_for_tonight_s_region_on")}>
           <PickerRow
-            label="Where you usually play"
-            tip="Sets the region in Tonight for every new night: the cortinas and the mix follow local taste"
+            label={tx("settings.where_you_usually_play")}
+            tip={tx("settings.sets_the_region_in_tonight_for")}
             value={settings.region}
             items={REGIONS}
             onChange={(r) => r && setSettings({ region: r })}
@@ -295,13 +321,10 @@ export default function Settings() {
         {/* round 22: the song indicators (energy, BPM, key, era, artwork), the same switches as the player's Show */}
         <IndicatorSwitches />
 
-        <Group
-          header="Composing"
-          footer="After every compose the night is checked against the published DJ sets and the engine's own rules (your heatmap's best years, one recording period per tanda, the golden core, bridge cues) and improved where a change makes nothing worse. The change summary under the set says what changed. Off: the night is shown as composed; the Benchmark sheet can still improve it."
-        >
+        <Group header={tx("settings.composing")} footer={tx("settings.after_every_compose_the_night_is")}>
           <SwitchRow
-            label="Auto-improve against published sets"
-            tip="After each compose, T-DJ compares the night with sets from working DJs and fixes what it can"
+            label={tx("settings.auto_improve_against_published_sets")}
+            tip={tx("settings.after_each_compose_t_dj_compares")}
             checked={settings.autoImprove}
             onChange={(v) => setSettings({ autoImprove: v })}
             tile={
@@ -313,12 +336,23 @@ export default function Settings() {
         </Group>
 
         <Group
-          header="Playback"
-          footer={`Where a cortina stops: T-DJ's player fades it there, playlists for VLC stop it there, and Rekordbox gets a cue at that second. ${settings.cortinaStopSec === null ? `Following the composer's cortina length (${cortinaStopSec(settings, options.cortinaLengthSec)} s).` : "Spotify playlists cannot trim tracks: cortinas there play in full, or leave them out when exporting."}`}
+          header={tx("settings.playback")}
+          footer={tx("settings.where_a_cortina_stops_t_dj", {
+            p1:
+              settings.cortinaStopSec === null
+                ? tx("settings.following_the_composer_s_cortina_length", {
+                    p1: cortinaStopSec(settings, options.cortinaLengthSec),
+                  })
+                : tx("settings.spotify_playlists_cannot_trim_tracks_cortinas"),
+          })}
         >
           <StepperRow
-            label="Cortina play length"
-            sub={settings.cortinaStopSec === null ? "Follows the composer" : "Your own length"}
+            label={tx("settings.cortina_play_length")}
+            sub={
+              settings.cortinaStopSec === null
+                ? tx("settings.follows_the_composer")
+                : tx("settings.your_own_length")
+            }
             value={cortinaStopSec(settings, options.cortinaLengthSec)}
             unit=" s"
             min={CORTINA_STOP_RANGE.min}
@@ -332,8 +366,8 @@ export default function Settings() {
             }
           />
           <SwitchRow
-            label="Follow the composer's cortina length"
-            tip="Use the cortina length you set in Compose instead of a length of your own"
+            label={tx("settings.follow_the_composer_s_cortina_length")}
+            tip={tx("settings.use_the_cortina_length_you_set")}
             checked={settings.cortinaStopSec === null}
             onChange={(v) =>
               setSettings({ cortinaStopSec: v ? null : cortinaStopSec(settings, options.cortinaLengthSec) })
@@ -342,24 +376,25 @@ export default function Settings() {
         </Group>
 
         <Group
-          header="DJ apps"
-          footer={`Exports point at real paths once a folder is set. Files are expected as “${settings.fileNaming || DEFAULT_NAMING}.mp3”, for example “${(
-            settings.fileNaming || DEFAULT_NAMING
-          )
-            .replace("{artist}", "Juan D'Arienzo")
-            .replace("{orchestra}", "Juan D'Arienzo")
-            .replace("{title}", "El Flete")
-            .replace("{singer}", "")
-            .replace("{year}", "1936")
-            .replace("{rhythm}", "tango")
-            .replace("{tanda}", "03")
-            .replace("{n}", "011")
-            .replace(/\s{2,}/g, " ")
-            .trim()}.mp3”. Placeholders: {artist} {title} {orchestra} {singer} {year} {rhythm} {tanda} {n}.`}
+          header={tx("settings.dj_apps")}
+          footer={tx("settings.exports_point_at_real_paths_once", {
+            p1: settings.fileNaming || DEFAULT_NAMING,
+            p2: (settings.fileNaming || DEFAULT_NAMING)
+              .replace("{artist}", "Juan D'Arienzo")
+              .replace("{orchestra}", "Juan D'Arienzo")
+              .replace("{title}", "El Flete")
+              .replace("{singer}", "")
+              .replace("{year}", "1936")
+              .replace("{rhythm}", "tango")
+              .replace("{tanda}", "03")
+              .replace("{n}", "011")
+              .replace(/\s{2,}/g, " ")
+              .trim(),
+          })}
         >
           <FieldRow
-            label="File naming"
-            tip="How your music files are named, so the exported set finds each song"
+            label={tx("settings.file_naming")}
+            tip={tx("settings.how_your_music_files_are_named")}
             id="file-naming"
             tile={
               <Tile color="#ff9500">
@@ -384,7 +419,7 @@ export default function Settings() {
               sub={a.format}
               chevron
               onClick={() => setFolderFor(a.id)}
-              tip={`Choose the folder where ${a.label} finds your music`}
+              tip={tx("settings.choose_the_folder_where_finds_your", { label: a.label })}
               value={settings.djApps[a.id]?.folder ? "Set" : "Off"}
               id={`folder-row-${a.id}`}
             />
@@ -398,41 +433,38 @@ export default function Settings() {
         />
 
         <Group
-          header="What T-DJ learned from your edits"
-          footer="Every swap, search-and-swap, AI pick or pinned tanda teaches T-DJ what you prefer: the sides and families you chose weigh more in later nights, the ones you replaced a little less, and pinned tandas become your templates. Rules still apply; tonight's settings win."
+          header={tx("settings.what_t_dj_learned_from_your")}
+          footer={tx("settings.every_swap_search_and_swap_ai")}
           data-testid="learned-edits"
         >
           {learnedLines.length ? (
             learnedLines.slice(0, 12).map((l) => <Row key={l} label={l} />)
           ) : (
-            <Row label="Nothing yet" sub="Swap a side or keep a tanda as is to teach T-DJ" />
+            <Row label={tx("settings.nothing_yet")} sub={tx("settings.swap_a_side_or_keep_a")} />
           )}
           {learnedLines.length > 0 && (
             <ActionRow
-              label="Forget what T-DJ learned from my edits"
-              tip="Clears what your swaps and pinned tandas taught; your nights stay"
+              label={tx("settings.forget_what_t_dj_learned_from")}
+              tip={tx("settings.clears_what_your_swaps_and_pinned")}
               destructive
               onClick={() => updateMemory((m) => ({ ...m, learned: undefined }))}
             />
           )}
         </Group>
 
-        <Group
-          header="Memory"
-          footer="The assistant keeps notes, the sets you composed and your feedback in your database, and applies what it learned under tonight's explicit choices. Review or forget any of it under Database → Memory."
-        >
+        <Group header={tx("settings.memory")} footer={tx("settings.the_assistant_keeps_notes_the_sets")}>
           <Row
             tile={
               <Tile color="#ff2d55">
                 <Brain size={16} strokeWidth={2} />
               </Tile>
             }
-            label="Stored"
+            label={tx("settings.stored")}
             value={`${APP ? "On this device" : storageMode === "server" ? "Kept by this site" : "In this browser"} · ${remembered} ${remembered === 1 ? "item" : "items"}`}
           />
           <SwitchRow
-            label="Let the assistant learn from my feedback"
-            tip="Repeated feedback becomes a preference for your next nights; you can review it in Database › Memory"
+            label={tx("settings.let_the_assistant_learn_from_my")}
+            tip={tx("settings.repeated_feedback_becomes_a_preference_for")}
             checked={settings.learn}
             onChange={(v) => setSettings({ learn: v })}
           />
@@ -444,7 +476,7 @@ export default function Settings() {
         <DataSources />
 
         <Group
-          header="Models"
+          header={tx("settings.models")}
           footer={
             <span
               role="status"
@@ -481,14 +513,14 @@ export default function Settings() {
                 >
                   {test.state === "busy"
                     ? checking
-                      ? "Checking…"
+                      ? tx("settings.checking")
                       : ""
                     : (test.text ??
                       (usingShared
-                        ? `The organiser's key writes your reviews and turns “Tell the DJ” into precise changes, up to ${shared?.limit ?? 20} requests a day per DJ. Add your own key under “Use my own key” for unlimited use; it stays in this browser.`
+                        ? tx("settings.the_organiser_s_key_writes_your", { p1: shared?.limit ?? 20 })
                         : APP
-                          ? "A model key lets you ask for a written review of a set, edit the night in your own words and turn “Tell the DJ” into precise changes. Without one, simple requests still work by keyword. The key stays in your Keychain and goes only to the provider you chose."
-                          : "A model key lets you ask for a written review of a set, edit the night in your own words and turn “Tell the DJ” into precise changes. Without one, simple requests still work by keyword. The key is sent with your own requests only and never stored on the server."))}
+                          ? tx("settings.a_model_key_lets_you_ask_2")
+                          : tx("settings.a_model_key_lets_you_ask")))}
                 </motion.span>
               </AnimatePresence>
             </span>
@@ -500,7 +532,7 @@ export default function Settings() {
                 <KeyRound size={16} strokeWidth={2} />
               </Tile>
             }
-            label="Status"
+            label={tx("settings.status")}
             value={
               agentInUse
                 ? `Using ${agentInUse.name}`
@@ -516,9 +548,9 @@ export default function Settings() {
           />
           {!showOwn && (
             <Row
-              label="Use my own key"
-              tip="Paste a key of your own from Anthropic, OpenAI, Google or OpenRouter"
-              sub="Unlimited, kept in this browser"
+              label={tx("settings.use_my_own_key")}
+              tip={tx("settings.paste_a_key_of_your_own")}
+              sub={tx("settings.unlimited_kept_in_this_browser")}
               value="Show"
               onClick={() => setOwnKey(true)}
               id="ai-own-key"
@@ -527,22 +559,24 @@ export default function Settings() {
           {showOwn && (
             <>
               <SegmentedRow
-                label="Provider"
-                tip="The company whose model writes your reviews and edits"
+                label={tx("settings.provider")}
+                tip={tx("settings.the_company_whose_model_writes_your")}
                 value={ai.provider}
                 items={AI_PROVIDERS}
                 onChange={switchProvider}
               />
               <FieldRow
-                label="API key"
+                label={tx("settings.api_key")}
                 id="ai-key"
-                tip="Your own key from the provider; it stays in this browser"
+                tip={tx("settings.your_own_key_from_the_provider")}
               >
                 <input
                   id="ai-key"
                   type={showKey ? "text" : "password"}
                   className="field field-value min-w-0 flex-1 font-mono"
-                  placeholder={APP && ai.key ? "Saved in your Keychain" : KEY_PLACEHOLDER[ai.provider]}
+                  placeholder={
+                    APP && ai.key ? tx("settings.saved_in_your_keychain") : KEY_PLACEHOLDER[ai.provider]
+                  }
                   value={APP ? (draft ?? "") : ai.key}
                   onChange={(e) =>
                     APP ? setDraft(e.target.value.trim()) : setAi({ key: e.target.value.trim() })
@@ -550,18 +584,22 @@ export default function Settings() {
                   autoComplete="off"
                   spellCheck={false}
                 />
-                <Tip text={showKey ? "Hide the key" : "Show the key to check it"}>
+                <Tip text={showKey ? tx("settings.hide_the_key") : tx("settings.show_the_key_to_check_it")}>
                   <button
                     type="button"
                     className="btn-plain -mr-2"
                     onClick={() => setShowKey((v) => !v)}
                     aria-pressed={showKey}
                   >
-                    {showKey ? "Hide" : "Show"}
+                    {showKey ? tx("settings.hide") : tx("settings.show")}
                   </button>
                 </Tip>
               </FieldRow>
-              <FieldRow label="Model" sub="Leave blank for the default" id="ai-model">
+              <FieldRow
+                label={tx("settings.model")}
+                sub={tx("settings.leave_blank_for_the_default")}
+                id="ai-model"
+              >
                 <input
                   id="ai-model"
                   list="ai-model-list"
@@ -580,8 +618,8 @@ export default function Settings() {
               </FieldRow>
               {ai.provider === "anthropic" && (
                 <FieldRow
-                  label="Organisation ID"
-                  sub="Only for an Anthropic key made for an organisation"
+                  label={tx("settings.organisation_id")}
+                  sub={tx("settings.only_for_an_anthropic_key_made")}
                   id="ai-workspace"
                 >
                   <input
@@ -598,8 +636,12 @@ export default function Settings() {
             </>
           )}
           <ActionRow
-            label={!ai.key && !usingShared ? "Test connection: add a key first" : "Test connection"}
-            tip="Sends one short request to check the key works"
+            label={
+              !ai.key && !usingShared
+                ? tx("settings.test_connection_add_a_key_first")
+                : tx("settings.test_connection")
+            }
+            tip={tx("settings.sends_one_short_request_to_check")}
             onClick={testConnection}
             disabled={!ai.key && !usingShared}
             busy={test.state === "busy"}
@@ -609,21 +651,20 @@ export default function Settings() {
         {showOwn && ai.provider === "anthropic" && (
           // its own paragraph under the group's footer: the -0.5 rem pull overlapped a long footer (wave 2)
           <p className="section-foot mt-1" data-testid="ai-workspace-note">
-            Organisation ID: only needed when the key was made for an organisation; you find it next to the
-            key in your Anthropic account. A key you made for yourself needs nothing here.
+            {tx("settings.organisation_id_only_needed_when_the")}
           </p>
         )}
 
         <ModelConnections />
 
         <Group
-          header="Storage"
+          header={tx("settings.storage")}
           footer={
             APP
-              ? "Your database, memory, settings and the nights you composed are kept in T-DJ on this device."
+              ? tx("settings.your_database_memory_settings_and_the")
               : storageMode === "server"
-                ? "Your database and memory are kept by this T-DJ site, so they are there on every device."
-                : "Your database and memory stay in this browser. The person who runs this T-DJ site can keep them for you on every device."
+                ? tx("settings.your_database_and_memory_are_kept")
+                : tx("settings.your_database_and_memory_stay_in")
           }
         >
           <Row
@@ -632,7 +673,7 @@ export default function Settings() {
                 <HardDrive size={16} strokeWidth={2} />
               </Tile>
             }
-            label="Database"
+            label={tx("settings.database")}
             value={APP ? "This device" : storageMode === "server" ? "This site" : "This browser"}
           />
         </Group>
@@ -640,9 +681,9 @@ export default function Settings() {
 
       <Sheet open={!!app} onClose={() => setFolderFor(null)} title={app?.label ?? ""} trailing="Done">
         {app && (
-          <Group header="Music folder" footer={app.note}>
+          <Group header={tx("settings.music_folder")} footer={app.note}>
             <label htmlFor={`folder-${app.id}`} className="cell">
-              <span className="sr-only">{app.label} folder</span>
+              <span className="sr-only">{tx("settings.folder", { label: app.label })}</span>
               <input
                 id={`folder-${app.id}`}
                 className="field font-mono"
@@ -651,7 +692,9 @@ export default function Settings() {
                 onChange={(e) =>
                   setSettings({ djApps: { ...settings.djApps, [app.id]: { folder: e.target.value } } })
                 }
-                placeholder={app.id === "rekordbox" ? "/Users/you/Music/Tango" : "Music folder path"}
+                placeholder={
+                  app.id === "rekordbox" ? "/Users/you/Music/Tango" : tx("settings.music_folder_path")
+                }
                 autoComplete="off"
                 spellCheck={false}
               />

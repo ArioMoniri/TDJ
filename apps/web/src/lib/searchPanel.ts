@@ -1,4 +1,5 @@
 import type { Playlist } from "@tdj/core";
+import { t as tx } from "@/lib/i18n";
 
 /**
  * Round 22 — where a side from the search panel can go: the tandas of its rhythm (a vals never joins a tango tanda),
@@ -23,11 +24,11 @@ export function targetsFor(
       : [
           {
             tanda: i,
-            label: `Tanda ${i + 1} · ${t.orchestra}`,
+            label: tx("searchPanel.tanda", { p1: i + 1, orchestra: t.orchestra }),
             sub: [t.singer ?? "Instrumental", t.yearRange?.join("–")].filter(Boolean).join(" · "),
             chairs: t.songs.map((s, k) => ({ track: k, title: s.title, year: s.year ?? null })),
             ...(opts.closedBefore !== undefined && i <= opts.closedBefore
-              ? { closed: "Playing or played: it can no longer change" }
+              ? { closed: tx("searchPanel.playing_or_played_it_can_no") }
               : {}),
           },
         ],

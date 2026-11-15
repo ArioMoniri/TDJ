@@ -2,6 +2,7 @@
 import { useRef } from "react";
 import { durationLabel } from "@/lib/booth/plan";
 import { clampCue, cueFromX } from "@/lib/booth/waveform";
+import { t } from "@/lib/i18n";
 
 /**
  * Round 22: a side's waveform with two handles — Cue (where it starts) and Stop (where it ends). Drag a handle, or
@@ -97,7 +98,11 @@ export function Waveform({
             style={{ left: pct(v) }}
             role="slider"
             tabIndex={disabled ? -1 : 0}
-            aria-label={which === "in" ? "Cue: where the song starts" : "Stop: where the song ends"}
+            aria-label={
+              which === "in"
+                ? t("booth.waveform.cue_where_the_song_starts")
+                : t("booth.waveform.stop_where_the_song_ends")
+            }
             aria-valuemin={0}
             aria-valuemax={Math.round(dur)}
             aria-valuenow={Math.round(v * 10) / 10}
@@ -113,7 +118,7 @@ export function Waveform({
             onKeyDown={key(which)}
           >
             <span style={which === "in" ? { left: 24 } : { right: 24 }}>
-              {which === "in" ? "CUE" : "STOP"}
+              {which === "in" ? t("booth.waveform.cue") : t("booth.waveform.stop")}
             </span>
           </div>
         );

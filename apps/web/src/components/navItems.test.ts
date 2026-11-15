@@ -18,6 +18,6 @@ describe("navigation reaches every page on every device (wave 2)", () => {
   });
 
   it("the sidebar section is not named like an item inside it", () => {
-    expect(NAV_MAIN.map((i) => i.label)).not.toContain(NAV_MAIN_TITLE);
+    expect(NAV_MAIN.map((i) => i.label)).not.toContain(NAV_MAIN_TITLE());
   });
 });

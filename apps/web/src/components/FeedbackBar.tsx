@@ -3,6 +3,7 @@ import { ArrowUp, LoaderCircle } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
 import { FEEDBACK_CHIPS, FEEDBACK_LABEL } from "@/lib/feedback";
+import { t } from "@/lib/i18n";
 import type { Feedback } from "@/lib/types";
 import { Group } from "./Form";
 import { Tip } from "./ui/Tip";
@@ -39,13 +40,17 @@ export function FeedbackBar({
   };
   return (
     <Group
-      header={bare ? undefined : "Adjust"}
+      header={bare ? undefined : t("feedbackBar.adjust")}
       footer={
         <span aria-live="polite" className="block min-h-[1.125rem]">
           {note ??
             (lockedCount
-              ? `${lockedCount} locked ${lockedCount === 1 ? "tanda stays" : "tandas stay"} where ${lockedCount === 1 ? "it is" : "they are"}.`
-              : "Tap a chip to recompose, or lock tandas you want to keep.")}
+              ? t("feedbackBar.locked_where", {
+                  lockedCount,
+                  p1: lockedCount === 1 ? t("feedbackBar.tanda_stays") : t("feedbackBar.tandas_stay"),
+                  p2: lockedCount === 1 ? t("feedbackBar.it_is") : t("feedbackBar.they_are"),
+                })
+              : t("feedbackBar.tap_a_chip_to_recompose_or"))}
           {changeSummary && (
             <span className="block" data-testid="change-summary">
               {changeSummary}
@@ -53,11 +58,14 @@ export function FeedbackBar({
           )}
         </span>
       }
-      aria-label="Adjust the set"
+      aria-label={t("feedbackBar.adjust_the_set")}
     >
       <div className="cell flex-wrap gap-2 py-3">
         {FEEDBACK_CHIPS.map(([k, l]) => (
-          <Tip key={k} text={`Compose again with ${FEEDBACK_LABEL[k]}; locked tandas stay as they are`}>
+          <Tip
+            key={k}
+            text={t("feedbackBar.compose_again_with_locked_tandas_stay", { p1: FEEDBACK_LABEL[k] })}
+          >
             <motion.button
               type="button"
               className={`chip ${pending === k ? "chip-on" : ""}`}
@@ -72,28 +80,25 @@ export function FeedbackBar({
       </div>
       <form onSubmit={submit} className="cell">
         <label htmlFor="tell-dj" className="sr-only">
-          Tell the DJ
+          {t("feedbackBar.tell_the_dj")}
         </label>
-        <Tip
-          text="Say in your own words what to change; locked tandas stay as they are"
-          className="min-w-0 flex-1"
-        >
+        <Tip text={t("feedbackBar.say_in_your_own_words_what")} className="min-w-0 flex-1">
           <input
             id="tell-dj"
             className="field w-full min-w-0"
-            placeholder="Tell the DJ: warmer start, more vals, no Canaro"
+            placeholder={t("feedbackBar.tell_the_dj_warmer_start_more")}
             value={text}
             onChange={(e) => setText(e.target.value)}
             maxLength={600}
             autoComplete="off"
           />
         </Tip>
-        <Tip text="Compose again with your words">
+        <Tip text={t("feedbackBar.compose_again_with_your_words")}>
           <button
             type="submit"
             className="icon-btn icon-btn-send -mr-2"
             disabled={busy || !text.trim()}
-            aria-label="Apply"
+            aria-label={t("feedbackBar.apply")}
           >
             {busy ? (
               <LoaderCircle size={18} className="animate-spin" />

@@ -1,4 +1,5 @@
 "use client";
+import { t } from "@/lib/i18n";
 import "./compose-db.css";
 import { Pause, Play } from "lucide-react";
 import { memo, type ReactNode } from "react";
@@ -21,13 +22,19 @@ export function PlayButton({ song, className = "" }: { song: Song; className?: s
   return (
     <Tip
       text={
-        src ? (playing ? "Pause" : "Play a preview in the mini player") : "No preview found for this side yet"
+        src
+          ? playing
+            ? t("songRow.pause_2")
+            : t("songRow.play_a_preview_in_the_mini")
+          : t("songRow.no_preview_found_for_this_side")
       }
     >
       <button
         type="button"
         className={`icon-btn icon-btn-bare h-11 w-11 shrink-0 ${playing ? "text-[var(--tint)]" : "text-[var(--label-2)]"} ${className}`}
-        aria-label={playing ? `Pause ${song.title}` : `Play ${song.title}`}
+        aria-label={
+          playing ? t("songRow.pause", { title: song.title }) : t("songRow.play", { title: song.title })
+        }
         aria-pressed={playing}
         disabled={!src}
         data-testid="song-play"

@@ -113,3 +113,35 @@ export const upper = (s: string) => s.toLocaleUpperCase(current === "tr" ? "tr" 
 export const lower = (s: string) => s.toLocaleLowerCase(current === "tr" ? "tr" : "en");
 /** the first letter in capitals, the locale's way */
 export const capFirst = (s: string) => (s ? upper(s[0]!) + s.slice(1) : s);
+
+/**
+ * A module-level list or table of words (a picker's choices, a tab list): built in the current locale on first read
+ * and kept per locale, so a module constant never freezes the language it was loaded in.
+ */
+export function lazy<T extends object>(make: () => T): T {
+  const cache = new Map<Locale, T>();
+  const real = (): T => {
+    let v = cache.get(current);
+    if (!v) {
+      v = make();
+      cache.set(current, v);
+    }
+    return v;
+  };
+  const target = (Array.isArray(real()) ? [] : {}) as T;
+  return new Proxy(target, {
+    get(_, k) {
+      const v = real();
+      const r = Reflect.get(v, k);
+      return typeof r === "function" && k !== "constructor" ? r.bind(v) : r;
+    },
+    has: (_, k) => Reflect.has(real(), k),
+    ownKeys: () => Reflect.ownKeys(real()),
+    getOwnPropertyDescriptor(_, k) {
+      const d = Reflect.getOwnPropertyDescriptor(real(), k);
+      if (d && k !== "length") d.configurable = true;
+      return d;
+    },
+    set: () => false,
+  });
+}
