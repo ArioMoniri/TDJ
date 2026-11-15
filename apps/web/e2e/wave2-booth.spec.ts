@@ -97,7 +97,8 @@ test("esc never opens Stop (Mix, esc, esc keeps playing); the Stop confirm focus
   await page.getByTestId("booth-stop").click();
   await page.getByTestId("booth-stop-fade").click();
   await expect(page.getByTestId("booth")).toHaveAttribute("data-state", "stopped", { timeout: 10000 });
-  // the keyboard sheet no longer offers esc for Stop
+  // the keyboard sheet no longer offers esc for Stop (the booth ignores keys while a sheet is still closing)
+  await expect(page.locator('[role="dialog"]')).toHaveCount(0);
   await page.keyboard.press("?");
   await expect(page.getByTestId("booth-shortcuts")).not.toContainText(/Stop…/);
 });

@@ -302,7 +302,9 @@ test("settings: the DJ's own preferences first, accounts after Memory, statuses 
 }) => {
   await page.goto("/settings");
   const heads = page.locator("h2.section-head");
-  await expect(heads.first()).toHaveText(/Appearance/i);
+  // the DJ's own preferences lead: Language (round 23), then Appearance
+  await expect(heads.first()).toHaveText(/Language/i);
+  await expect(heads.nth(1)).toHaveText(/Appearance/i);
   const texts = (await heads.allInnerTexts()).map((t) => t.trim().toLowerCase());
   expect(texts.indexOf("memory")).toBeLessThan(texts.indexOf("accounts and services"));
   expect(texts.indexOf("accounts and services")).toBeLessThan(texts.indexOf("models"));
