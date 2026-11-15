@@ -394,6 +394,14 @@
   padding: 4px;
   scroll-padding-inline: 4px;
 }
+/* on a phone the row runs to the screen's edge, as in the reference: the next tile peeks out to say it scrolls */
+@media (max-width: 599px) {
+  .trx-presets {
+    margin-inline: 0;
+    padding-inline: var(--trx-gut);
+    scroll-padding-inline: var(--trx-gut);
+  }
+}
 .trx-presets > button {
   flex: 0 0 112px;
   display: inline-flex;
