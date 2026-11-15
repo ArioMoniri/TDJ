@@ -146,7 +146,8 @@ test("a night link made on one origin opens on another and lands in History", as
   await other.getByTestId("night-import").click();
   await expect(other.locator("#result")).toBeVisible({ timeout: 30_000 });
   await other.goto(`${new URL(there).origin}/history`);
-  await expect(other.getByText(/· import/).first()).toBeVisible({ timeout: 15_000 });
+  // History names an imported night in plain words (lib/history.ts SOURCE_WORDS.import)
+  await expect(other.getByText(/· Opened from a file/).first()).toBeVisible({ timeout: 15_000 });
   if (name) await expect(other.getByText(name).first()).toBeVisible();
 
   // the file opens the same way
