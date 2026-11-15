@@ -18,6 +18,7 @@ import { Artwork } from "../ui/Artwork";
 import { BpmKey } from "../ui/BpmKey";
 import { EraBadge } from "../ui/EraBadge";
 import { FloorReaction } from "./FloorReaction";
+import { PraiseTanda } from "./PraiseTanda";
 import { SongSheet } from "./SongSheet";
 import { hasTransition, transitionSummary } from "./TransitionSheet";
 
@@ -227,6 +228,9 @@ export function SetColumn({
               {/* 2026-11: how the floor took the tanda, once it plays (dancer favourites) */}
               {t && started && g.tanda <= runningTanda && (
                 <FloorReaction scope="tanda" tanda={g.tanda} compact testPrefix={`set-${g.tanda}`} />
+              )}
+              {t && started && g.tanda <= runningTanda && (
+                <PraiseTanda tanda={g.tanda} compact testPrefix={`set-${g.tanda}`} />
               )}
               {t && (
                 <SwapButton

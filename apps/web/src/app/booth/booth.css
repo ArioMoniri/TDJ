@@ -340,6 +340,22 @@
 .booth-fav {
   color: var(--energy);
 }
+/* 2026-11: "Praise this tanda" (learned DJ praise) sits with the floor reactions */
+.booth-praise-btn[aria-pressed="true"] {
+  background: var(--room-fill);
+  color: var(--system-gold);
+}
+.booth-praise-compact {
+  padding: 0;
+  background: transparent;
+  color: var(--label-2);
+}
+.booth-praise-compact[aria-pressed="true"] {
+  background: transparent;
+}
+.booth-praise-btn:disabled {
+  color: var(--label-3);
+}
 
 /* ---------- energy rail (vertical) ---------- */
 .booth-energy {

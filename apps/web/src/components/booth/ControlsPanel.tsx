@@ -24,6 +24,7 @@ import { toast } from "@/lib/toast";
 import { SeekBar } from "../ui/SeekBar";
 import { Fader } from "./Fader";
 import { FloorReaction } from "./FloorReaction";
+import { PraiseTanda } from "./PraiseTanda";
 
 const OPEN_KEY = "tdj-booth-controls";
 /** the panel's open / closed state, per device (this browser) */
@@ -382,6 +383,10 @@ export function ControlsPanel({
             {/* 2026-11, dancer favourites: the playing song and its tanda, one tap each */}
             <FloorReaction scope="song" testPrefix="ctl-song" />
             <FloorReaction scope="tanda" testPrefix="ctl-tanda" />
+            {/* 2026-11: praise the playing tanda as a whole (its order, its connections): learned, lib/praise.ts */}
+            <div className="booth-floor">
+              <PraiseTanda testPrefix="ctl-tanda" />
+            </div>
           </Group>
           <Group title={t("booth.controls.tanda")}>
             <div className="booth-ctl-row flex-wrap">

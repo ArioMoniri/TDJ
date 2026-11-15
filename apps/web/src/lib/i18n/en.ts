@@ -3809,6 +3809,30 @@ export const en = {
   "fav.dancer_link_tip":
     "Dancers open it on their phone and heart the song that plays: the DJ sees counts only",
   "fav.dancer_link_copied": "Dancers' link copied",
+  "praise.action": "Praise this tanda ★",
+  "praise.action_tanda": "Praise tanda {tanda} ★",
+  "praise.praised": "Praised ★",
+  "praise.praised_tanda": "Tanda {tanda} praised ★ (tap to take it back)",
+  "praise.sheet_title": "Praise tanda {tanda}",
+  "praise.note_label": "A short note (optional)",
+  "praise.note_placeholder": "What made it work",
+  "praise.save": "Save",
+  "praise.sheet_footer":
+    "TDJ learns the tanda, its order and how it connected: its family and sides weigh more in this part of the night, its order is kept when it draws them, and its neighbours pair a little more. Never against a rule.",
+  "praise.saved_toast": "Praised: TDJ learns this tanda",
+  "praise.cleared_toast": "Praise taken back",
+  "praise.reason_booth": "Praised in the Booth",
+  "praise.after": "after {family}",
+  "praise.before": "before {family}",
+  "praise.teaches_tanda": "The tanda: {family}, more in the {role}",
+  "praise.teaches_order": "The order: opens on {first}, ends on {last}",
+  "praise.teaches_order_plain": "The order of its {count} sides",
+  "praise.teaches_links": "The connections: {links}",
+  "praise.no_links": "No connections recorded",
+  "praise.header": "Praised by you",
+  "praise.footer":
+    "Tandas you praised: their family and sides weigh more in the same part of the night, their order is kept when compose draws them, and their neighbours pair a little more. A mixed tanda stays that night's exception.",
+  "praise.delete": "Delete the praise {label}",
 } as const;
 
 export type MsgKey = keyof typeof en;
