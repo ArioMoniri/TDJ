@@ -2443,7 +2443,9 @@ function composeOnce(
     const cn = (ts: Tanda[]) => strictChecks({ tandas: ts, closing, options: o });
     for (let round = 0; round < 4; round++) {
       const r0 = cn(tandas);
-      const bad = r0.violations.filter((v) => v.rule === "cueVals" && v.tanda >= 0);
+      const bad = r0.violations.filter(
+        (v) => (v.rule === "cueVals" || v.rule === "cuePopPeak" || v.rule === "cuePopHour") && v.tanda >= 0,
+      );
       if (!bad.length) break;
       let best: { a: number; b: number; p: number } | null = null;
       for (const v of bad) {
@@ -2452,6 +2454,10 @@ function composeOnce(
           if (b === a || !tandas[b]!.cortina || !tandas[a]!.cortina) continue;
           const A = tandas[a]!,
             B = tandas[b]!;
+          // (never the same cue within four tandas of itself after the trade, round 4 B9 / round 8 R5)
+          const near = (k: number, id: string) =>
+            tandas.some((t, j) => j !== a && j !== b && Math.abs(j - k) < 4 && t.cortina?.id === id);
+          if (near(a, B.cortina!.id) || near(b, A.cortina!.id)) continue;
           tandas[a] = { ...A, cortina: { ...B.cortina!, lengthSec: A.cortina!.lengthSec } };
           tandas[b] = { ...B, cortina: { ...A.cortina!, lengthSec: B.cortina!.lengthSec } };
           const r1 = cn(tandas);
