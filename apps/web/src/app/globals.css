@@ -1388,6 +1388,12 @@ select.field {
     display: none;
   }
 }
+/* the floating mini player (bottom right, 360 px) never sits on the dock's Compose button */
+@media (min-width: 640px) {
+  html:has([data-testid="mini-player"]) .compose-dock {
+    margin-right: 384px;
+  }
+}
 
 /* Stepper (UIStepper): joined, 94×32, two halves, hairline divider */
 .stepper {
@@ -1751,13 +1757,6 @@ html[data-sidebar="collapsed"] [data-testid="sidebar"] {
   .side-resize {
     right: -11px;
     width: 22px;
-  }
-}
-/* the sidebar's card shows the preview playing; the floating player stays for Spotify (its embed) and when the
-   sidebar is hidden */
-@media (min-width: 1024px) {
-  html:not([data-sidebar="collapsed"]) [data-testid="mini-player"][data-kind="preview"] {
-    display: none;
   }
 }
 @media (hover: hover) {

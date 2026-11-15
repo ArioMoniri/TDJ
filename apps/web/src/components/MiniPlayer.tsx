@@ -89,7 +89,6 @@ export function MiniPlayer() {
             role="region"
             aria-label="Now playing"
             data-testid="mini-player"
-            data-kind={track.source.kind}
             className="glass mini-docked fixed inset-x-3 z-30 rounded-[var(--radius-m)] p-2 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:w-[360px] lg:bottom-6"
             style={{ bottom: `var(--mini-bottom, ${offset})` }}
           >
