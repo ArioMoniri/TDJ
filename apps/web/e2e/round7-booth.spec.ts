@@ -82,6 +82,8 @@ async function openBooth(page: Page, query = "") {
       timeout: 15000,
     })
     .toBe(true);
+  // the sources settle (and re-time the plan) before anything is measured
+  await expect(page.getByTestId("booth-ttc")).not.toHaveAttribute("data-resolving", "1", { timeout: 30000 });
   return page.evaluate(() => (window as unknown as { __tdjBoothPlan: Plan }).__tdjBoothPlan);
 }
 

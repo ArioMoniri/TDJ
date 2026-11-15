@@ -43,6 +43,7 @@ export function NextCard({ onJump }: { onJump: (planIndex: number) => void }) {
       </p>
       {item ? (
         <>
+          <p className="text-caption1 text-[var(--label-2)]">{eyebrowFor(item, tandas)}</p>
           <div className="mt-1 flex items-center gap-3">
             <Artwork
               e={entities[next]}
@@ -50,7 +51,6 @@ export function NextCard({ onJump }: { onJump: (planIndex: number) => void }) {
               size={48}
             />
             <div className="min-w-0 flex-1">
-              <p className="text-caption1 text-[var(--label-2)]">{eyebrowFor(item, tandas)}</p>
               <h3 className="booth-mid booth-next-title font-semibold" data-testid="booth-next-title">
                 {item.title}
               </h3>
