@@ -59,14 +59,12 @@ export function FeaturedLearned() {
         .map((r) => r.id.slice(5)),
     [all],
   );
-  // the DJ's praise of the featured night's tandas (deleted ones gone): their sides name the order
+  // the DJ's praise of the featured night's tandas (deleted ones gone): feedback, listed with the DJ's words
   const praise = useMemo(
     () => applyRepoOverrides(store, { ...(repo ?? {}), off: false })?.praise ?? [],
     [store, repo],
   );
-  const want = [...new Set([...sideIds, ...praise.flatMap((p) => p.songIds)])]
-    .filter((id) => !songs[id])
-    .join(",");
+  const want = sideIds.filter((id) => !songs[id]).join(",");
   useEffect(() => {
     if (!want) return;
     fetch("/api/build", {
@@ -134,8 +132,6 @@ export function FeaturedLearned() {
       {on && (
         <PraiseRows
           praise={praise}
-          nameOf={nameOf}
-          titleOf={(id) => songs[id]?.title}
           onForget={(id) => edit((x) => forgetFeatured(x, `praise:${id}`))}
           testId="featured-praise"
         />

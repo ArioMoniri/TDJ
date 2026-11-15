@@ -554,15 +554,15 @@ export interface LearnedPreferences {
   repo?: RepoLearnedOverrides;
   /** the repo-level store only: the featured night's night-level choices (scripts/featured_learned.ts); shown, not applied */
   night?: FeaturedNightChoices;
-  /** 2026-11: tandas the DJ praised (praise.ts): the tanda, its order and its connections, bounded weights */
+  /** 2026-11: tandas the DJ praised (praise.ts): feedback, each read as one "Floor full ♥" on the tanda */
   praise?: TandaPraise[];
   updatedAt?: string;
 }
 
 /**
- * 2026-11 — one tanda the DJ praised on a night ("it started and connected so nicely"): what it teaches compose and
- * the suggestions (praise.ts) — its family and sides in its slot role, its order as a template, the links from the
- * previous family and to the next one (and the cortinas in those gaps). Family keys are learn.ts `familyKey`.
+ * 2026-11 — one tanda the DJ praised on a night: a record of the DJ's feedback (praise.ts). Compose reads only its
+ * sides, family, years, role and date, as one "Floor full ♥" on the tanda (favourites.ts withPraise); the neighbours
+ * and cortinas are kept as context of what the DJ heard, and are read by nothing. Family keys are learn.ts `familyKey`.
  */
 export interface TandaPraise {
   /** `${nightId}#${tanda}` */
@@ -572,7 +572,7 @@ export interface TandaPraise {
   /** 0-based tanda index in the night */
   tanda: number;
   rhythm: string;
-  /** the tanda's sides, in the praised order */
+  /** the tanda's sides, as they were played */
   songIds: string[];
   /** the tanda's family (its first side's orchestra + singer, the tanda's rhythm) */
   family: string;
@@ -580,12 +580,14 @@ export interface TandaPraise {
   years: [number, number] | null;
   /** the slot role (the tanda's phase) */
   role: Phase;
+  /** context: the tanda before (its family and role) */
   prevFamily: string | null;
   prevRole: Phase | null;
-  /** the cortina between the previous tanda and this one */
+  /** context: the cortina between the previous tanda and this one */
   prevCortinaId: string | null;
-  /** the cortina between this tanda and the next */
+  /** context: the cortina between this tanda and the next */
   nextCortinaId: string | null;
+  /** context: the tanda after (its family and role) */
   nextFamily: string | null;
   nextRole: Phase | null;
   /** the DJ's words */

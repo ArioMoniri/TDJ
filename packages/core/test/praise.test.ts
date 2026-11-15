@@ -1,25 +1,21 @@
 /**
- * Learned DJ praise (2026-11-15, from the night: "The 14th Troilo tanda was amazing. It finished so nicely, the tanda
- * started and connected so nicely. Have that also in the learned things."). A praised tanda teaches three things,
- * bounded like the rest of the learning and never against a rule:
- *   (a) the tanda: its family and sides in its slot role, like a "Floor full ♥" (favourites.ts) and in the learned
- *       family / side weights — in that role only;
- *   (b) its order: when compose draws the family with these sides, the praised order is the template (opening and
- *       closing side first, then the order as a whole), through the sideOrder logic, only when it breaks no rule;
- *   (c) its connections: previous family → this family → next family in adjacent slots of the same roles, and the
- *       cortinas in those gaps, a mild bonus capped.
- * The night's mixed vocal / instrumental tanda stays that night's exception: praise never makes a composed tanda mix.
- * The entry lives in data (data/knowledge/dj_preferences.json `praise`, the DJ's memory `learned.praise`); no title or
- * orchestra is named in code. Written before the code.
+ * The DJ's praise of a tanda (2026-11-15, from the night: "The 14th Troilo tanda was amazing. It finished so nicely,
+ * the tanda started and connected so nicely." — then the owner's correction: "The Troilo praise was just feedback of
+ * greatness, not a rule."). A praise is positive feedback and nothing more: it counts exactly as one "Floor full ♥"
+ * tapped on that tanda in the dancer-favourites tracker — one unit of evidence for each of its songs and for its
+ * family, in its slot role, bounded and decaying like a tap (favourites.ts withPraise). It sets no order, no
+ * connection and no cortina, and adds nothing to the learned family / side weights. The entry stays a record of what
+ * the DJ said (data/knowledge/dj_preferences.json `praise`, the DJ's memory `learned.praise`). Written before the code.
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import * as core from "../src/index";
 import {
-  applyPraisedOrders,
   compose,
-  costOfOrder,
+  type DancerFavourites,
   emptyMemory,
+  FAVOURITE_LIMITS,
   familyFactorOf,
   familyKey,
   favouriteFamilyFactor,
@@ -35,23 +31,18 @@ import {
   mergeLearned,
   nightExceptionKeys,
   type Playlist,
-  PRAISE_LIMITS,
-  praiseCortinaFactor,
-  praisedFamilyPoints,
   praiseFromNight,
-  praiseLinkFactor,
-  praiseTemplateFor,
   rankProbe,
   recordFloor,
-  type Song,
-  strictOrder,
+  SLOT_ROLES,
+  setFavouritesOff,
   type Tanda,
   type TandaPraise,
   tandaFamily,
   templateIdOf,
   templateMix,
-  templateOrder,
   withPraise,
+  yearBand,
 } from "../src/index";
 import { findRoot, loadCatalog } from "../src/load";
 
@@ -77,254 +68,204 @@ afterEach(() => {
 });
 const only = (p: TandaPraise): LearnedPreferences => ({ praise: [p] });
 const fam = (t: Tanda) => familyKey({ ...t.songs[0]!, rhythm: t.rhythm });
+/** one "Floor full ♥" tapped on tanda `index` of a night, at `at` */
+const fullTap = (night: Pick<Playlist, "id" | "tandas">, index: number, at: string, F?: DancerFavourites) =>
+  recordFloor(F, {
+    nightId: night.id,
+    scope: "tanda",
+    tanda: night.tandas[index]!,
+    tandaIndex: index,
+    reaction: "full",
+    at,
+  });
+/** every favourite factor of the praised tanda's family and sides, in every role */
+const factors = (tbl: ReturnType<typeof withPraise>, p: TandaPraise) =>
+  SLOT_ROLES.flatMap((role) => [
+    favouriteFamilyFactor(tbl, p.family, role, p.years),
+    ...p.songIds.map((id) => favouriteSideFactor(tbl, id, role)),
+  ]);
+/** a night as its tandas' sides (the order kept) and cortinas */
+const shape = (n: Playlist) => ({
+  tandas: n.tandas.map((t) => t.songs.map((s) => s.id).join()),
+  cortinas: n.tandas.map((t) => t.cortina?.id ?? ""),
+});
 
-describe("the praise entry (data)", () => {
-  it("records the featured night's 14th tanda: its sides in order, its neighbours and cortinas, its role, the DJ's words", () => {
+describe("the praise entry (a record of what the DJ said)", () => {
+  it("records the featured night's 14th tanda: its sides, its role, the DJ's words, and its neighbours for context", () => {
     expect(P).toBeDefined();
     expect(P.songIds).toEqual(T.songs.map((s) => s.id));
-    expect(P.role).toBe(T.phase);
     expect(P.role).toBe("build");
-    expect(P.prevCortinaId).toBe(featured.tandas[12]!.cortina!.id);
-    expect(P.nextCortinaId).toBe(T.cortina!.id);
+    expect(P.role).toBe(T.phase);
+    expect(P.family).toBe(fam(T));
     expect(P.reason).toBe(QUOTE);
     expect(P.at).toMatch(/^2026-11-15/);
-    // the same entry the Booth's "Praise this tanda" records for any night (praiseFromNight): data, not code
-    const fresh = praiseFromNight(featured, 13, QUOTE, { at: P.at, source: P.source });
-    expect(fresh).toEqual(P);
     expect(P.prevFamily).toBe(fam(featured.tandas[12]!));
     expect(P.nextFamily).toBe(fam(featured.tandas[14]!));
-    expect(P.family).toBe(fam(T));
-    expect(P.prevRole).toBe(featured.tandas[12]!.phase);
-    expect(P.nextRole).toBe(featured.tandas[14]!.phase);
+    expect(P.prevCortinaId).toBe(featured.tandas[12]!.cortina!.id);
+    expect(P.nextCortinaId).toBe(T.cortina!.id);
+    // the same entry the Booth's "Praise this tanda" records for any night (praiseFromNight): data, not code
+    expect(praiseFromNight(featured, 13, QUOTE, { at: P.at, source: P.source })).toEqual(P);
   });
-  it("is listed as a learned rule (kind praise) the DJ can delete; the store also keeps it as a one-night exception", () => {
-    const rules = learnedRules(store);
-    const r = rules.find((x) => x.id === `praise:${P.id}`);
+  it("is listed as a learned rule (kind praise) the DJ can delete; the store still keeps the mixed tanda as a one-night exception", () => {
+    const r = learnedRules(store).find((x) => x.id === `praise:${P.id}`);
     expect(r?.kind).toBe("praise");
     expect(r?.label).toContain(QUOTE.slice(0, 20));
     const gone = mergeLearned(store, { repo: { deleted: [`praise:${P.id}`] } });
     expect((gone.praise ?? []).some((x) => x.id === P.id)).toBe(false);
-    expect(nightExceptionKeys(store, featured.id).has(templateIdOf(T))).toBe(true);
-    expect(nightExceptionKeys(store, "another-night").size).toBe(0);
     expect(forgetLearned(only(P), `praise:${P.id}`).praise ?? []).toHaveLength(0);
+    expect(nightExceptionKeys(store, featured.id).has(templateIdOf(T))).toBe(true);
+    expect(learnedRules(only(P)).filter((x) => x.kind === "template")).toHaveLength(0);
+  });
+  it("recording praise from the Booth toggles: the same tanda praised again takes it back; a note is kept", () => {
+    const once = learnFromPraise(undefined, P);
+    expect(once.praise).toHaveLength(1);
+    expect(learnFromPraise(once, P).praise ?? []).toHaveLength(0);
+    expect(learnFromPraise(undefined, { ...P, note: "the floor sang along" }).praise?.[0]?.note).toBe(
+      "the floor sang along",
+    );
   });
 });
 
-describe("(a) the tanda: its family and sides in its role only", () => {
-  it("raises the learned family and side weights in the praised role, nowhere else", () => {
-    const L = only(P);
-    for (const role of ["warmup", "peak", "cooldown", "close"] as const) {
-      expect(learnedFamilyFactor(L, P.family, P.years, role)).toBe(1);
-      for (const id of P.songIds) expect(learnedSideFactor(L, id, undefined, role)).toBe(1);
+describe("a praise is one Floor full ♥ on the tanda", () => {
+  it("the same table as one Floor full tap on that tanda: its family and each of its songs, in its role, with a tap's fame prior", () => {
+    const at = Date.parse(P.at);
+    const praised = withPraise(undefined, [P], { at, songs: deps.catalog.songs })!;
+    const tapped = favouriteTable(fullTap(featured, 13, P.at), at);
+    expect(`${P.family}|${yearBand(P.years)}`).toBe(tandaFamily(T));
+    expect(praised).toEqual(tapped);
+    expect(favouriteFamilyFactor(praised, P.family, "build", P.years)).toBeGreaterThan(1);
+    expect(favouriteFamilyFactor(praised, P.family, "build", P.years)).toBeLessThanOrEqual(familyFactorOf(1));
+    for (const role of SLOT_ROLES.filter((r) => r !== "build")) {
+      expect(favouriteFamilyFactor(praised, P.family, role, P.years)).toBe(1);
+      for (const id of P.songIds) expect(favouriteSideFactor(praised, id, role)).toBe(1);
     }
-    expect(learnedFamilyFactor(L, P.family, P.years, "build")).toBeGreaterThan(1);
-    for (const id of P.songIds) expect(learnedSideFactor(L, id, undefined, "build")).toBeGreaterThan(1);
-    // a caller that names no role (the night-wide weights) is unchanged
-    expect(learnedFamilyFactor(L, P.family, P.years)).toBe(1);
   });
-  it("is DJ evidence in the dancer-favourites tracker: the same as a Floor full ♥ on the tanda, in its role only", () => {
-    const tbl = withPraise(undefined, [P])!;
-    const tap = favouriteTable(
-      recordFloor(undefined, {
-        nightId: P.nightId,
-        scope: "tanda",
-        tanda: T,
-        tandaIndex: 13,
-        reaction: "full",
-        at: P.at,
-      }),
-      Date.parse(P.at),
+  it("on top of the DJ's own taps it adds exactly what one more tap (on another night) would add", () => {
+    const at = Date.parse("2026-12-01T00:00:00.000Z");
+    const earlier = fullTap({ ...featured, id: "another-night" }, 13, "2026-10-01T00:00:00.000Z");
+    const before = JSON.stringify(favouriteTable(earlier, at));
+    const base = favouriteTable(earlier, at);
+    const praised = withPraise(base, [P], { at, songs: deps.catalog.songs });
+    const twoTaps = favouriteTable(fullTap(featured, 13, P.at, earlier), at);
+    const a = factors(praised, P);
+    const b = factors(twoTaps, P);
+    a.forEach((f, i) => expect(f).toBeCloseTo(b[i]!, 3));
+    // the table given is never changed
+    expect(JSON.stringify(base)).toBe(before);
+  });
+  it("decays like a tap (half-life 180 days) and stays bounded however often it is given", () => {
+    const later = Date.parse(P.at) + FAVOURITE_LIMITS.halfLifeDays * 864e5;
+    const old = withPraise(undefined, [P], { at: later })!;
+    expect(old.sides[P.songIds[0]!]!.build![0]).toBeCloseTo(0.5, 4);
+    const tapOld = favouriteTable(fullTap(featured, 13, P.at), later);
+    expect(old.sides[P.songIds[0]!]!.build![0]).toBe(tapOld.sides[P.songIds[0]!]!.build![0]);
+    const many = Array.from({ length: 400 }, (_, i) => ({ ...P, id: `${P.id}-${i}`, nightId: `n${i}` }));
+    const tbl = withPraise(undefined, many, { at: Date.parse(P.at) })!;
+    expect(tbl.sides[P.songIds[0]!]!.build![2]).toBe(FAVOURITE_LIMITS.maxPraise);
+    expect(favouriteFamilyFactor(tbl, P.family, "build", P.years)).toBeLessThanOrEqual(
+      FAVOURITE_LIMITS.familyMax,
     );
-    const years = T.yearRange ?? null;
-    const key = tandaFamily(T).split("|").slice(0, 3).join("|");
-    expect(favouriteFamilyFactor(tbl, key, "build", years)).toBeCloseTo(
-      favouriteFamilyFactor(tap, key, "build", years),
-      6,
-    );
-    expect(favouriteFamilyFactor(tbl, key, "build", years)).toBeGreaterThan(1);
-    expect(favouriteFamilyFactor(tbl, key, "build", years)).toBeLessThanOrEqual(familyFactorOf(1));
-    expect(favouriteFamilyFactor(tbl, key, "peak", years)).toBe(1);
-    for (const id of P.songIds) {
-      expect(favouriteSideFactor(tbl, id, "build")).toBeGreaterThan(1);
-      expect(favouriteSideFactor(tbl, id, "warmup")).toBe(1);
-    }
-    // the DJ's own tracker evidence stays, the praise is added to it (never mutated in place)
-    const before = JSON.stringify(tap);
-    const both = withPraise(tap, [P])!;
-    expect(JSON.stringify(tap)).toBe(before);
-    expect(favouriteFamilyFactor(both, key, "build", years)).toBeGreaterThan(
-      favouriteFamilyFactor(tap, key, "build", years),
-    );
+    expect(favouriteSideFactor(tbl, P.songIds[0]!, "build")).toBeLessThanOrEqual(FAVOURITE_LIMITS.sideMax);
+  });
+  it("adds nothing to the learned family or side weights (the DJ's edits)", () => {
+    const L = only(P);
+    expect(learnedFamilyFactor(L, P.family, P.years)).toBe(1);
+    for (const id of P.songIds) expect(learnedSideFactor(L, id)).toBe(1);
   });
   it("compose weighs the praised family up in build slots only", () => {
     const base = compose({ hours: 2, seed: 7 }, deps);
     const k = base.tandas.findIndex((t, i) => t.phase === "build" && i > 0 && t.rhythm === "tango");
     expect(k).toBeGreaterThan(0);
-    const p = praiseFromNight(base, k, "a test praise", { at: "2026-11-15T00:00:00.000Z", source: "dj" });
+    const p = praiseFromNight(base, k, "a test praise", { at: new Date().toISOString(), source: "dj" });
     const rows: Array<{ key: string; fav: number; phase: string }> = [];
     rankProbe.on = (_s, rs, phase) => {
       for (const r of rs) rows.push({ key: r.key, fav: r.fav, phase });
     };
-    compose({ hours: 2, seed: 7, learned: only(p) }, deps);
+    compose({ hours: 2, seed: 7, learned: { repo: { off: true }, praise: [p] } }, deps);
     const mine = rows.filter((r) => r.key === p.family);
     expect(mine.some((r) => r.phase === "build" && r.fav > 1)).toBe(true);
     expect(mine.filter((r) => r.phase !== "build").every((r) => r.fav === 1)).toBe(true);
   }, 600000);
 });
 
-describe("(b) its order is the template", () => {
-  it("the praised order wins over the composer's own order when it breaks no rule", () => {
-    // (the sides a composed tanda can hold: one mode — the night's instrumental closer was its own exception)
-    const vocal = T.songs.filter((s) => s.vocal);
-    const shuffled = [vocal[2]!, vocal[0]!, vocal[1]!];
-    const out = templateOrder(shuffled, P.songIds, false)!;
-    expect(out.map((s) => s.id)).toEqual(vocal.map((s) => s.id));
-    // (no rule the composer's own order keeps is broken for it)
-    expect(Math.floor(costOfOrder(out) / 10)).toBeLessThanOrEqual(
-      Math.floor(costOfOrder(strictOrder(shuffled)) / 10),
-    );
-  });
-  it("opens and closes on the praised sides, the rest in the praised order (a side it did not hold fits between)", () => {
-    const vocal = T.songs.filter((s) => s.vocal);
-    const peer = deps.catalog.byOrchestra
-      .get(T.orchestraId)!
-      .find(
-        (s) =>
-          s.vocal &&
-          s.singer === vocal[0]!.singer &&
-          s.year === vocal[0]!.year &&
-          s.rhythm === "tango" &&
-          !P.songIds.includes(s.id),
-      )!;
-    expect(peer).toBeDefined();
-    const out = templateOrder([vocal[2]!, peer, vocal[1]!, vocal[0]!], P.songIds, false)!;
-    const ids = out.map((s) => s.id);
-    const tpl = P.songIds.filter((id) => ids.includes(id));
-    expect(ids[0]).toBe(tpl[0]);
-    expect(ids.at(-1)).toBe(tpl.at(-1));
-    expect(ids.filter((id) => tpl.includes(id))).toEqual(tpl);
-  });
-  it("a template that would break an order rule is not applied (nothing here breaks a rule)", () => {
-    // a tanda of famous sides: a template opening on its one unknown side breaks the fame rule of the first side
-    const t = featured.tandas.find(
-      (x) => x.songs.filter((s) => (s.fame ?? 0) >= 4).length >= 3 && x.songs.some((s) => !s.fame),
-    )!;
-    const unknown = t.songs.find((s) => !s.fame)!;
-    const tpl = [unknown.id, ...t.songs.filter((s) => s !== unknown).map((s) => s.id)];
-    const out = templateOrder(t.songs, tpl, false);
-    expect(out === null || out[0]!.id !== unknown.id).toBe(true);
-    if (out)
-      expect(Math.floor(costOfOrder(out) / 10)).toBeLessThanOrEqual(
-        Math.floor(costOfOrder(strictOrder(t.songs)) / 10),
-      );
-    // as the template asks, it would break a rule
-    const asked = tpl.map((id) => t.songs.find((s) => s.id === id)!);
-    expect(Math.floor(costOfOrder(asked) / 10)).toBeGreaterThan(
-      Math.floor(costOfOrder(strictOrder(t.songs)) / 10),
-    );
-  });
-  it("applyPraisedOrders reorders a matching tanda of a night and leaves the others as they are", () => {
-    const ts = featured.tandas.map((t) => ({ ...t, pinned: undefined, locked: undefined }));
-    const k = 13;
-    const vocal = ts[k]!.songs.filter((s) => s.vocal);
-    ts[k] = { ...ts[k]!, songs: [vocal[1]!, vocal[2]!, vocal[0]!] };
-    const out = applyPraisedOrders(ts, only(P));
-    expect(out[k]!.songs.map((s) => s.id)).toEqual(vocal.map((s) => s.id));
-    out.forEach((t, i) => {
-      if (i !== k) expect(t).toBe(ts[i]);
-    });
-    // a DJ's pinned or locked tanda is never reordered
-    const pinned = ts.map((t, i) => (i === k ? { ...t, locked: true } : t));
-    expect(applyPraisedOrders(pinned, only(P))[k]).toBe(pinned[k]);
-  });
-  it("praiseTemplateFor needs two of the praised sides in a tanda of the praised rhythm", () => {
-    expect(praiseTemplateFor(only(P), T.songs.slice(0, 2), T.rhythm)).toEqual(P.songIds);
-    expect(praiseTemplateFor(only(P), T.songs.slice(0, 1), T.rhythm)).toBeUndefined();
-    expect(praiseTemplateFor(only(P), T.songs.slice(0, 2), "vals")).toBeUndefined();
-  });
-});
-
-describe("(c) its connections: a mild bonus, bounded", () => {
-  it("previous family → this family and this family → next family, in adjacent slots of the same roles", () => {
-    const L = only(P);
-    const prev = { family: P.prevFamily!, role: P.prevRole! };
-    const cur = { family: P.family, role: P.role };
-    const next = { family: P.nextFamily!, role: P.nextRole! };
-    const into = praiseLinkFactor(L, prev, cur);
-    const out = praiseLinkFactor(L, cur, next);
-    for (const f of [into, out]) {
-      expect(f).toBeGreaterThan(1);
-      expect(f).toBeLessThanOrEqual(PRAISE_LIMITS.linkMax);
-    }
-    // another role, another family, no previous tanda: nothing
-    expect(praiseLinkFactor(L, { ...prev, role: "peak" }, cur)).toBe(1);
-    expect(praiseLinkFactor(L, prev, { ...cur, role: "peak" })).toBe(1);
-    expect(praiseLinkFactor(L, { family: "x|y|tango", role: "build" }, cur)).toBe(1);
-    expect(praiseLinkFactor(L, null, cur)).toBe(1);
-    // the cortinas in those two gaps
-    expect(praiseCortinaFactor(L, prev, cur, P.prevCortinaId!)).toBeGreaterThan(1);
-    expect(praiseCortinaFactor(L, cur, next, P.nextCortinaId!)).toBeGreaterThan(1);
-    expect(praiseCortinaFactor(L, cur, next, P.prevCortinaId!)).toBe(1);
-    expect(praiseCortinaFactor(L, prev, cur, "another-cue")).toBe(1);
-    expect(praiseCortinaFactor(L, prev, cur, P.prevCortinaId!)).toBeLessThanOrEqual(PRAISE_LIMITS.cortinaMax);
-  });
-  it("many praises of the same tanda stay inside the caps", () => {
-    const many: LearnedPreferences = {
-      praise: Array.from({ length: 40 }, (_, i) => ({ ...P, id: `${P.id}-${i}`, nightId: `n${i}` })),
-    };
-    const prev = { family: P.prevFamily!, role: P.prevRole! };
-    const cur = { family: P.family, role: P.role };
-    expect(praiseLinkFactor(many, prev, cur)).toBeLessThanOrEqual(PRAISE_LIMITS.linkMax);
-    expect(praiseCortinaFactor(many, prev, cur, P.prevCortinaId!)).toBeLessThanOrEqual(
-      PRAISE_LIMITS.cortinaMax,
-    );
-    expect(praisedFamilyPoints(many, P.family, "build")).toBeLessThanOrEqual(PRAISE_LIMITS.familyMax);
-    expect(learnedFamilyFactor(many, P.family, P.years, "build")).toBeLessThanOrEqual(1.12);
-    expect(learnedSideFactor(many, P.songIds[0]!, undefined, "build")).toBeLessThanOrEqual(1.45);
-    const tbl = withPraise(undefined, many.praise)!;
-    expect(favouriteFamilyFactor(tbl, P.family, "build", P.years)).toBeLessThanOrEqual(1.8);
-    expect(favouriteSideFactor(tbl, P.songIds[0]!, "build")).toBeLessThanOrEqual(2);
-  });
-});
-
-describe("the mixed tanda stays a this-night-only exception", () => {
-  it("the template orders only the sides the draw holds: never adds the instrumental side to a vocal tanda", () => {
-    const vocal = T.songs.filter((s) => s.vocal);
-    expect(vocal.length).toBe(3);
-    expect(templateMix(T.songs, T.rhythm)).toContain("mode");
-    const out = templateOrder([vocal[1]!, vocal[2]!, vocal[0]!], P.songIds, false)!;
-    expect(out).toHaveLength(3);
-    expect(out.every((s: Song) => s.vocal)).toBe(true);
-    expect(out.map((s) => s.id)).toEqual(P.songIds.filter((id) => vocal.some((s) => s.id === id)));
-    expect(templateMix(out, T.rhythm)).not.toContain("mode");
-  });
-  it("praise is no template and no exception of another night, and composed nights with it never mix mode", () => {
-    const L = only(P);
-    expect(learnedRules(L).filter((r) => r.kind === "template")).toHaveLength(0);
-    const memory = { ...emptyMemory(), learned: learnFromPraise(undefined, P) };
-    for (const seed of [5, 23]) {
-      const p = compose({ hours: 2, seed, learned: learnedForRequest(memory, true) }, deps);
-      for (const t of p.tandas.filter((x) => !x.pinned))
-        expect(templateMix(t.songs, t.rhythm)).not.toContain("mode");
-    }
+describe("compose: the praise acts only through the favourite weights", () => {
+  // (the repo store's own praise switched off on both sides, so only the praise under test differs)
+  const noRepo = { repo: { off: true } } as const;
+  let night: Playlist;
+  let p: TandaPraise;
+  beforeAll(() => {
+    night = compose({ hours: 2, seed: 11, learned: noRepo }, deps);
+    const k = night.tandas.findIndex((t, i) => t.phase === "build" && i > 0 && t.rhythm === "tango");
+    p = praiseFromNight(night, k, "a test praise", { at: new Date().toISOString(), source: "dj" });
   }, 600000);
-});
-
-describe("the learning switch", () => {
-  it("off: the DJ's praise has no effect; the store's praise goes with the store's own switch", () => {
-    const memory = { ...emptyMemory(), learned: learnFromPraise(undefined, P) };
+  it("a night with the praise is the night with one Floor full tap on that tanda instead", () => {
+    const withIt = compose({ hours: 2, seed: 11, learned: { ...noRepo, praise: [p] } }, deps);
+    const k = p.tanda;
+    const tapped = compose(
+      { hours: 2, seed: 11, learned: noRepo, favourites: fullTap(night, k, p.at) },
+      deps,
+    );
+    expect(shape(withIt)).toEqual(shape(tapped));
+  }, 600000);
+  it("with vs without the praise: the same night as without it, given the praise's favourite table", () => {
+    const withIt = compose({ hours: 2, seed: 11, learned: { ...noRepo, praise: [p] } }, deps);
+    const table = withPraise(undefined, [p], { songs: deps.catalog.songs });
+    const viaTable = compose({ hours: 2, seed: 11, learned: noRepo, favourites: table }, deps);
+    expect(shape(withIt)).toEqual(shape(viaTable));
+  }, 600000);
+  it("no effect on order, links or cortinas: the record's order, neighbours and cortinas change nothing", () => {
+    const a = compose({ hours: 2, seed: 11, learned: { ...noRepo, praise: [p] } }, deps);
+    const scrambled: TandaPraise = {
+      ...p,
+      songIds: [...p.songIds].reverse(),
+      prevFamily: "x|y|tango",
+      nextFamily: "z||vals",
+      prevRole: "peak",
+      nextRole: "close",
+      prevCortinaId: night.tandas.at(-2)?.cortina?.id ?? "c-x",
+      nextCortinaId: night.tandas.at(-3)?.cortina?.id ?? "c-y",
+    };
+    const b = compose({ hours: 2, seed: 11, learned: { ...noRepo, praise: [scrambled] } }, deps);
+    expect(shape(b)).toEqual(shape(a));
+    // and nothing of the old rule-like layer is left to call
+    for (const name of [
+      "templateOrder",
+      "applyPraisedOrders",
+      "praiseTemplateFor",
+      "praiseLinkFactor",
+      "praiseCortinaFactor",
+      "praisedFamilyPoints",
+      "praisedSidePoints",
+      "PRAISE_LIMITS",
+    ])
+      expect(name in core).toBe(false);
+  }, 600000);
+  it("favourites switched off: the praise has no effect, as a tap has none", () => {
+    const off = setFavouritesOff(undefined, true);
+    const withIt = compose(
+      { hours: 2, seed: 11, learned: { ...noRepo, praise: [p] }, favourites: off },
+      deps,
+    );
+    const without = compose({ hours: 2, seed: 11, learned: noRepo, favourites: off }, deps);
+    expect(shape(withIt)).toEqual(shape(without));
+    expect(withPraise({ v: 1, off: true, sides: {}, families: {} }, [p])).toEqual({
+      v: 1,
+      off: true,
+      sides: {},
+      families: {},
+    });
+  }, 600000);
+  it("learning switched off: no praise is sent, and the store's praise goes with the store's own switch", () => {
+    const memory = { ...emptyMemory(), learned: learnFromPraise(undefined, p) };
     expect(learnedForRequest(memory, false)).toBeUndefined();
     expect(mergeLearned(store, { repo: { off: true } }).praise ?? []).toHaveLength(0);
-    const ids = (learned?: LearnedPreferences) =>
-      compose({ hours: 2, seed: 11, learned }, deps).tandas.map((t) => t.songs.map((s) => s.id).join());
-    // learning off sends no praise: the night is the night without it
+    const ids = (learned?: LearnedPreferences) => shape(compose({ hours: 2, seed: 11, learned }, deps));
     expect(ids(learnedForRequest(memory, false))).toEqual(ids(undefined));
   }, 600000);
-  it("recording praise from the Booth toggles: the same tanda praised again takes it back", () => {
-    const once = learnFromPraise(undefined, P);
-    expect(once.praise).toHaveLength(1);
-    expect(learnFromPraise(once, P).praise ?? []).toHaveLength(0);
-    const note = learnFromPraise(undefined, { ...P, note: "the floor sang along" });
-    expect(note.praise?.[0]?.note).toBe("the floor sang along");
-  });
+  it("composed nights with the praise never mix vocal and instrumental in a tanda", () => {
+    const memory = { ...emptyMemory(), learned: learnFromPraise(undefined, P) };
+    const n = compose({ hours: 2, seed: 5, learned: learnedForRequest(memory, true) }, deps);
+    for (const t of n.tandas.filter((x) => !x.pinned))
+      expect(templateMix(t.songs, t.rhythm)).not.toContain("mode");
+  }, 600000);
 });

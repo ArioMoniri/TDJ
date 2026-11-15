@@ -2,7 +2,6 @@ import { normTitle } from "./energy";
 import type {
   AgentMemory,
   LearnedPreferences,
-  Phase,
   Playlist,
   RepoLearnedOverrides,
   Song,
@@ -185,12 +184,8 @@ export const learnedSideFactor = (
   L: LearnedPreferences | undefined,
   id: string,
   s?: Pick<Song, "spotify" | "streamSuspect">,
-  /** the slot role: a praised tanda's sides weigh more in its role (praise.ts); unset = no praise */
-  role?: Phase,
 ) => {
-  const edit = L?.sides?.[id];
-  const pr = role ? praisedSidePoints(L, id, role) : 0;
-  const v = pr ? clamp((edit ?? 0) + pr, LEARN_LIMITS.sideMin, LEARN_LIMITS.sideMax) : edit;
+  const v = L?.sides?.[id];
   if (v === undefined) return 1;
   if (v < 0) return Math.max(0.9, 1 + 0.1 * v);
   if (s && (!s.spotify?.uri || s.streamSuspect)) return 1;
@@ -200,10 +195,8 @@ export const learnedFamilyFactor = (
   L: LearnedPreferences | undefined,
   key: string,
   years?: readonly [number, number] | null,
-  /** the slot role: a praised tanda's family weighs more in its role (praise.ts); unset = no praise */
-  role?: Phase,
 ) => {
-  const v = learnedFamilyWeight(L, key, years, role);
+  const v = learnedFamilyWeight(L, key, years);
   return v === undefined ? 1 : v >= 0 ? Math.min(1.12, 1 + 0.04 * v) : Math.max(0.9, 1 + 0.1 * v);
 };
 
@@ -265,40 +258,17 @@ export function learnedFamilyWeight(
   L: LearnedPreferences | undefined,
   key: string,
   years?: readonly [number, number] | null,
-  /** the slot role: adds what a praised tanda of this family in this role teaches (praise.ts) */
-  role?: Phase,
 ): number | undefined {
   const edit = L?.families?.[key];
   const like = likedFamilyWeight(L, key, years);
-  const pr = role ? praisedFamilyPoints(L, key, role) : 0;
-  if (like === undefined && !pr) return edit;
-  return (
-    Math.round(clamp((edit ?? 0) + (like ?? 0) + pr, LEARN_LIMITS.familyMin, LEARN_LIMITS.familyMax) * 100) /
-    100
-  );
+  if (like === undefined) return edit;
+  return Math.round(clamp((edit ?? 0) + like, LEARN_LIMITS.familyMin, LEARN_LIMITS.familyMax) * 100) / 100;
 }
 
 /**
- * 2026-11 — learned DJ praise (praise.ts: "the tanda started and connected so nicely"). A praised tanda adds, in its
- * slot role only, +1 to its family and +1 to each of its sides (at most +2 each from praise, inside LEARN_LIMITS: the
- * caps of learnedFamilyFactor / learnedSideFactor still hold), and a link bonus ×1.04 per praised connection (at most
- * ×1.08) for the previous family → this family and this family → the next one in adjacent slots of the same roles;
- * the cortinas in those two gaps ×1.1 at most. Weights only: no rule, setting or pin is overridden.
+ * The tandas the DJ praised (praise.ts), the well-formed entries, at most 100: a record of the DJ's feedback (Database
+ * → Memory lists it); compose reads each only as one "Floor full ♥" on the tanda (favourites.ts withPraise).
  */
-export const PRAISE_LIMITS = {
-  family: 1,
-  side: 1,
-  familyMax: 2,
-  sideMax: 2,
-  link: 1.04,
-  linkMax: 1.08,
-  cortina: 1.1,
-  cortinaMax: 1.1,
-  /** entries read */
-  entries: 100,
-} as const;
-
-/** the praise entries compose reads (well-formed ones, at most PRAISE_LIMITS.entries) */
 export function praiseList(L: LearnedPreferences | null | undefined): TandaPraise[] {
   const ps = L?.praise;
   if (!Array.isArray(ps) || !ps.length) return [];
@@ -311,73 +281,7 @@ export function praiseList(L: LearnedPreferences | null | undefined): TandaPrais
         Array.isArray(p.songIds) &&
         p.songIds.every((x) => typeof x === "string"),
     )
-    .slice(0, PRAISE_LIMITS.entries);
-}
-
-/** the family points the praised tandas give `key` in `role` (0 elsewhere) */
-export function praisedFamilyPoints(
-  L: LearnedPreferences | null | undefined,
-  key: string,
-  role: Phase,
-): number {
-  let n = 0;
-  for (const p of praiseList(L)) if (p.family === key && p.role === role) n += PRAISE_LIMITS.family;
-  return Math.min(PRAISE_LIMITS.familyMax, n);
-}
-
-/** the side points the praised tandas give a side in `role` (0 elsewhere) */
-export function praisedSidePoints(L: LearnedPreferences | null | undefined, id: string, role: Phase): number {
-  let n = 0;
-  for (const p of praiseList(L)) if (p.role === role && p.songIds.includes(id)) n += PRAISE_LIMITS.side;
-  return Math.min(PRAISE_LIMITS.sideMax, n);
-}
-
-/** a tanda as the praise links read it: its family (familyKey) and its slot role */
-export type PraiseSlot = { family: string; role: Phase | null | undefined } | null | undefined;
-/** the praised connections that join the tanda `prev` to `cur` (adjacent slots, the praised roles) */
-function praisedLinks(L: LearnedPreferences | null | undefined, prev: PraiseSlot, cur: PraiseSlot) {
-  if (!prev || !cur) return [];
-  const out: Array<{ p: TandaPraise; at: "into" | "out" }> = [];
-  for (const p of praiseList(L)) {
-    if (
-      p.family === cur.family &&
-      p.role === cur.role &&
-      p.prevFamily === prev.family &&
-      p.prevRole === prev.role
-    )
-      out.push({ p, at: "into" });
-    if (
-      p.family === prev.family &&
-      p.role === prev.role &&
-      p.nextFamily === cur.family &&
-      p.nextRole === cur.role
-    )
-      out.push({ p, at: "out" });
-  }
-  return out;
-}
-
-/** the link bonus of a family `cur` after the tanda `prev`: ×1.04 per praised connection, ×1.08 at most */
-export function praiseLinkFactor(
-  L: LearnedPreferences | null | undefined,
-  prev: PraiseSlot,
-  cur: PraiseSlot,
-): number {
-  const n = praisedLinks(L, prev, cur).length;
-  return n ? Math.min(PRAISE_LIMITS.linkMax, PRAISE_LIMITS.link ** n) : 1;
-}
-
-/** the bonus of a cortina in the gap between `before` and `after` when a praised connection there used it */
-export function praiseCortinaFactor(
-  L: LearnedPreferences | null | undefined,
-  before: PraiseSlot,
-  after: PraiseSlot,
-  cortinaId: string,
-): number {
-  const n = praisedLinks(L, before, after).filter(({ p, at }) =>
-    at === "into" ? p.prevCortinaId === cortinaId : p.nextCortinaId === cortinaId,
-  ).length;
-  return n ? Math.min(PRAISE_LIMITS.cortinaMax, PRAISE_LIMITS.cortina ** n) : 1;
+    .slice(0, 100);
 }
 
 /** the learned store kept in the DJ's memory (AgentMemory.learned) */
@@ -412,7 +316,7 @@ export function describeLearned(
   if (L.templates?.length) out.push(`${L.templates.length} tandas kept as your templates`);
   for (const p of praiseList(L).slice(0, 5))
     out.push(
-      `praised tanda: ${p.name ?? p.family} (${p.role}): "${p.reason}"${p.note ? ` (${p.note})` : ""}`,
+      `feedback, a tanda was great (a ♥ for its songs): ${p.name ?? p.family} (${p.role}): "${p.reason}"${p.note ? ` (${p.note})` : ""}`,
     );
   const rated = Object.values(L.likes ?? {});
   if (rated.length)

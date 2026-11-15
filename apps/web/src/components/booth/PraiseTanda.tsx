@@ -12,7 +12,7 @@ import { Sheet } from "../Sheet";
 
 /**
  * 2026-11 — "Praise this tanda ★", next to the floor reactions (the Controls panel's Floor group, a set-list tanda's
- * header): the DJ praises the tanda as a whole, its order and how it connected. A sheet asks for an optional short
+ * header): the DJ records feedback that the tanda was great (a ♥ for its songs). A sheet asks for an optional short
  * note; the praise is kept in the DJ's memory (lib/praise.ts) for any night. Praised already: a tap takes it back.
  * 44 pt; `compact` shows the star only.
  */

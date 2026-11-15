@@ -93,6 +93,8 @@ export const FAVOURITE_LIMITS = {
   play: 0.25,
   /** taps kept */
   maxTaps: 4000,
+  /** praised tandas read (withPraise) */
+  maxPraise: 100,
 } as const;
 
 const VALUE: Record<FloorReaction, number> = { full: 1, ok: 0, emptied: -1 };
@@ -476,17 +478,24 @@ export function favouriteTable(
 const tableOn = (T: FavouriteTable | null | undefined): T is FavouriteTable => !!T && !T.off;
 
 /**
- * 2026-11 — learned DJ praise (praise.ts) as DJ evidence in the table: each praised tanda counts as one "Floor full ♥"
- * on the tanda in its slot role — its family (with the year band) and each of its sides. It is the DJ's own statement,
- * so it does not decay, and it follows the learning switch (it travels in `learned`), not the dancer-favourites
- * switch: a table switched off keeps only the praise. The table given is never changed.
+ * 2026-11 — the DJ's praise of a tanda (praise.ts) is feedback and nothing more: each praised tanda counts exactly as
+ * one "Floor full ♥" tapped on that tanda in its slot role — one unit for its family (with the year band) and one for
+ * each of its sides, with a tap's fame prior (`songs`: the catalogue, for the sides' fame) and a tap's decay from the
+ * praise's date to `at`. A table switched off ("Use dancer favourites when composing") ignores it as it ignores the
+ * taps; it travels in `learned`, so learning switched off sends none. The table given is never changed.
  */
 export function withPraise(
   T: FavouriteTable | null | undefined,
   praise: readonly TandaPraise[] | null | undefined,
+  o: { at?: number; songs?: Iterable<Pick<Song, "id" | "fame">> } = {},
 ): FavouriteTable | undefined {
+  if (T?.off) return T;
   const ps = (praise ?? []).filter((p) => p && SLOT_ROLES.includes(p.role) && Array.isArray(p.songIds));
   if (!ps.length) return T ?? undefined;
+  const at = o.at ?? Date.now();
+  const need = new Set(ps.flatMap((p) => p.songIds));
+  const fame = new Map<string, number>();
+  for (const s of o.songs ?? []) if (s.fame && need.has(s.id)) fame.set(s.id, s.fame);
   const copy = (m: FavouriteTable["sides"]) => {
     const out: FavouriteTable["sides"] = {};
     for (const [k, row] of Object.entries(m)) {
@@ -496,25 +505,28 @@ export function withPraise(
     }
     return out;
   };
-  const out: FavouriteTable =
-    T && !T.off
-      ? // (keeps the table's other flags: the databases' prior, pop / popularityOff, rides along with the praise)
-        { ...T, v: 1, sides: copy(T.sides), families: copy(T.families) }
-      : { v: 1, sides: {}, families: {} };
-  const full = (m: FavouriteTable["sides"], key: string, role: SlotRole) => {
+  // (keeps the table's other flags: the databases' prior, pop, rides along with the praise)
+  const out: FavouriteTable = T
+    ? { ...T, v: 1, sides: copy(T.sides), families: copy(T.families) }
+    : { v: 1, sides: {}, families: {} };
+  const r4 = (x: number) => Math.round(x * 1e4) / 1e4;
+  // one "full" unit, as favouriteTable adds a tap's
+  const full = (m: FavouriteTable["sides"], key: string, role: SlotRole, d: number, f: number) => {
     const row = m[key] ?? {};
     m[key] = row;
-    const e: Evidence = row[role] ? ([...row[role]!] as Evidence) : [0, 0, 0, 0];
-    e[0] += 1;
-    e[2] += 1;
-    row[role] = e;
+    const e: Evidence = row[role] ? ([...row[role]!] as Evidence) : [0, 0, 0, priorOf(f)];
+    row[role] = [r4(e[0] + d), e[1], r4(e[2] + d), r4(Math.max(e[3], priorOf(f)))];
   };
   const seen = new Set<string>();
-  for (const p of ps.slice(0, 100)) {
+  for (const p of ps.slice(0, FAVOURITE_LIMITS.maxPraise)) {
     if (seen.has(p.id)) continue;
     seen.add(p.id);
-    full(out.families, `${p.family}|${yearBand(p.years)}`, p.role);
-    for (const id of new Set(p.songIds)) full(out.sides, id, p.role);
+    const d = decay(days(p.at, at));
+    const ids = [...new Set(p.songIds)];
+    const fames = ids.map((id) => fame.get(id) ?? 0);
+    const mean = fames.reduce((a, b) => a + b, 0) / (fames.length || 1);
+    full(out.families, `${p.family}|${yearBand(p.years)}`, p.role, d, mean);
+    ids.forEach((id, i) => full(out.sides, id, p.role, d, fames[i]!));
   }
   return out;
 }

@@ -3865,20 +3865,14 @@ export const en = {
   "praise.note_placeholder": "What made it work",
   "praise.save": "Save",
   "praise.sheet_footer":
-    "TDJ learns the tanda, its order and how it connected: its family and sides weigh more in this part of the night, its order is kept when it draws them, and its neighbours pair a little more. Never against a rule.",
-  "praise.saved_toast": "Praised: TDJ learns this tanda",
+    "Feedback that this tanda was great. It counts as a ♥ for its songs in this part of the night, like Floor full ♥.",
+  "praise.saved_toast": "Praised: a ♥ for these songs",
   "praise.cleared_toast": "Praise taken back",
   "praise.reason_booth": "Praised in the Booth",
-  "praise.after": "after {family}",
-  "praise.before": "before {family}",
-  "praise.teaches_tanda": "The tanda: {family}, more in the {role}",
-  "praise.teaches_order": "The order: opens on {first}, ends on {last}",
-  "praise.teaches_order_plain": "The order of its {count} sides",
-  "praise.teaches_links": "The connections: {links}",
-  "praise.no_links": "No connections recorded",
+  "praise.feedback": "Feedback: this tanda was great. It counts as a ♥ for these songs.",
   "praise.header": "Praised by you",
   "praise.footer":
-    "Tandas you praised: their family and sides weigh more in the same part of the night, their order is kept when compose draws them, and their neighbours pair a little more. A mixed tanda stays that night's exception.",
+    "Tandas you praised. Each counts as one Floor full ♥ for its songs in its part of the night, like a tap in Dancer favourites.",
   "praise.delete": "Delete the praise {label}",
 } as const;
 

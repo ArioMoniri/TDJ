@@ -340,7 +340,7 @@
 .booth-fav {
   color: var(--energy);
 }
-/* 2026-11: "Praise this tanda" (learned DJ praise) sits with the floor reactions */
+/* 2026-11: "Praise this tanda" (the DJ's feedback, a ♥ for its songs) sits with the floor reactions */
 .booth-praise-btn[aria-pressed="true"] {
   background: var(--room-fill);
   color: var(--system-gold);

@@ -122,7 +122,7 @@ export function learnedRules(
       max: 1,
       source: "edits",
     });
-  // 2026-11: the tandas the DJ praised (praise.ts): the DJ's words, and the tanda it teaches (its order, its links)
+  // 2026-11: the tandas the DJ praised (praise.ts): the DJ's words; feedback, a "Floor full ♥" for their songs
   for (const p of praiseList(L))
     out.push({
       id: `praise:${p.id}`,

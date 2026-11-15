@@ -9,7 +9,9 @@ import {
 } from "@tdj/core";
 import { describe, expect, it } from "vitest";
 import { featuredRuleList, forgetFeatured } from "./featuredLearned";
-import { familyWords, isPraised, praiseLines, praiseTanda } from "./praise";
+import { en } from "./i18n/en";
+import { tr } from "./i18n/tr";
+import { isPraised, praiseTanda } from "./praise";
 
 const read = (rel: string) => JSON.parse(readFileSync(new URL(rel, import.meta.url), "utf8"));
 const store = read("../../../../data/knowledge/dj_preferences.json") as LearnedPreferences;
@@ -40,23 +42,21 @@ describe("Praise this tanda (the Booth, store logic)", () => {
     expect(mergeLearned(undefined, learnedForRequest(m, true)).praise).toHaveLength(1);
     expect(mergeLearned(undefined, learnedForRequest(m, false)).praise ?? []).toHaveLength(0);
   });
-  it("Database → Memory: the store's praise is listed (what it teaches) and can be deleted as an override", () => {
+  it("Database → Memory: the store's praise is listed as feedback and can be deleted as an override", () => {
     expect(featuredRuleList(store, undefined).some((r) => r.kind === "praise")).toBe(true);
     const p = store.praise![0]!;
     const repo = forgetFeatured(undefined, `praise:${p.id}`);
     expect(featuredRuleList(store, repo).some((r) => r.kind === "praise")).toBe(false);
     expect(mergeLearned(store, { repo }).praise ?? []).toHaveLength(0);
-    const titles: Record<string, string> = Object.fromEntries(
-      night.tandas[13]!.songs.map((s) => [s.id, s.title]),
-    );
-    const l = praiseLines(
-      p,
-      (id) => id,
-      (id) => titles[id],
-    );
-    expect(l.order).toContain(titles[p.songIds[0]!]!);
-    expect(l.order).toContain(titles[p.songIds.at(-1)!]!);
-    expect(l.connections).toContain(familyWords(p.prevFamily, (id) => id));
-    expect(l.connections).toContain(familyWords(p.nextFamily, (id) => id));
+  });
+  it("says plainly what a praise is, in en and tr: feedback, a ♥ for these songs (no order, no connections)", () => {
+    expect(en["praise.feedback"]).toBe("Feedback: this tanda was great. It counts as a ♥ for these songs.");
+    expect(tr["praise.feedback"]).toContain("♥");
+    for (const dict of [en, tr] as Array<Partial<Record<string, string>>>) {
+      const keys = Object.keys(dict).filter((k) => k.startsWith("praise."));
+      expect(keys.some((k) => /teaches|links|after|before/.test(k))).toBe(false);
+    }
+    for (const k of ["praise.footer", "praise.sheet_footer", "praise.saved_toast"] as const)
+      expect(en[k]).not.toMatch(/order|connect|neighbour|learns/i);
   });
 });

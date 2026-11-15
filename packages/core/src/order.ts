@@ -52,90 +52,9 @@ export function orderCost(songs: Song[], peak = false, ctx: OrderCtx = {}): numb
   return orderWithCost(songs, peak, ctx).cost;
 }
 function orderWithCost(songs0: Song[], peak: boolean, ctx: OrderCtx = {}): { songs: Song[]; cost: number } {
-  const m = orderModel(songs0, peak, ctx);
-  if (!m) return { songs: songs0, cost: 0 };
-  const { songs, cump, evalPair } = m;
-  let best: { first: Song; last: Song; mid: Song[]; cost: number } | null = null;
-  for (const last of songs)
-    for (const first of songs) {
-      if (first === last) continue;
-      if (ctx.first && first.id !== ctx.first) continue;
-      const { cost, mid } = evalPair(first, last);
-      if (!best || cost < best.cost - 1e-9) best = { first, last, mid, cost };
-    }
-  if (!best) return { songs: songs0, cost: 99 };
-  const { first, last, mid, cost } = best;
-  return { songs: [first, ...mid, last, ...cump], cost: Math.max(0, cost) };
-}
-
-/** the cost of exactly this order of the sides (orderCost's terms; ≥ 10 per broken rule) */
-export function costOfOrder(songs0: Song[], peak = false, ctx: OrderCtx = {}): number {
-  const m = orderModel(songs0, peak, ctx);
-  if (!m) return 0;
-  const ss = songs0.filter((s) => !isCump(s));
-  return Math.max(0, m.evalPair(ss[0]!, ss[ss.length - 1]!, ss.slice(1, -1)).cost);
-}
-
-/**
- * 2026-11 (learned DJ praise, praise.ts): the sides in the order of a praised tanda — its opening and closing side
- * first, then the order as a whole — through the same order rules: the template's whole order (the sides the
- * template does not hold fit between, where they cost least), else its opener and closer with the middle the rules'
- * own, else its opener alone. An order is taken only when it breaks no rule the composer's own order keeps (the same
- * tier of `costOfOrder`, no more items in the order verdict). Only the sides given are ordered: none is ever added.
- * Null: fewer than two of the template's sides, or no template order keeps the rules.
- */
-export function templateOrder(
-  songs0: Song[],
-  template: readonly string[],
-  peak = false,
-  ctx: OrderCtx = {},
-): Song[] | null {
-  const m = orderModel(songs0, peak, ctx);
-  if (!m) return null;
-  const { songs, cump, evalPair } = m;
-  const present = template
-    .map((id) => songs.find((s) => s.id === id))
-    .filter((s): s is Song => !!s)
-    .filter((s, i, xs) => xs.indexOf(s) === i);
-  if (present.length < 2) return null;
-  const free = orderWithCost(songs0, peak, ctx);
-  const tier = (c: number) => Math.floor(Math.max(0, c) / 10);
-  const freeTier = tier(free.cost);
-  const freeV = orderVerdictOf(free.songs, ctx).length;
-  const ok = (order: Song[]) =>
-    tier(costOfOrder(order, peak, ctx)) <= freeTier && orderVerdictOf(order, ctx).length <= freeV;
-  const first = present[0]!;
-  const last = present[present.length - 1]!;
-  // 1. the whole order: the template's middle sides in its order, the others where they cost least
-  let mid = present.slice(1, -1);
-  for (const x of songs.filter((s) => !present.includes(s))) {
-    let bestAt = 0;
-    let bestC = Number.POSITIVE_INFINITY;
-    for (let k = 0; k <= mid.length; k++) {
-      const c = evalPair(first, last, [...mid.slice(0, k), x, ...mid.slice(k)]).cost;
-      if (c < bestC - 1e-9) {
-        bestC = c;
-        bestAt = k;
-      }
-    }
-    mid = [...mid.slice(0, bestAt), x, ...mid.slice(bestAt)];
-  }
-  const whole = [first, ...mid, last];
-  if (ok(whole)) return [...whole, ...cump];
-  // 2. its opener and closer, the middle as the rules order it
-  const ends = [first, ...evalPair(first, last).mid, last];
-  if (ok(ends)) return [...ends, ...cump];
-  // 3. its opener
-  const opener = orderWithCost(songs0, peak, { ...ctx, first: first.id }).songs;
-  if (opener[0] === first && ok(opener.filter((s) => !isCump(s)))) return opener;
-  return null;
-}
-
-/** the order rules of one set of sides: `evalPair` costs an order by its first and last side (and middle) */
-function orderModel(songs0: Song[], peak: boolean, ctx: OrderCtx) {
   const cump = songs0.filter(isCump);
   const songs = songs0.filter((s) => !isCump(s));
-  if (songs.length < 2) return null;
+  if (songs.length < 2) return { songs: songs0, cost: 0 };
   const e = (s: Song) => s.energy ?? 50;
   const max = Math.max(...songs.map(fame));
   const need = peak ? 4 : 3;
@@ -159,8 +78,11 @@ function orderModel(songs0: Song[], peak: boolean, ctx: OrderCtx) {
   // panel order rule: the fame of the first and last side, the one hit, the order verdict and the cliff stay)
   const relax = !!ctx.releaseCut;
   const rhythmic = rhythmicSides(songs);
-  const evalPair = (first: Song, last: Song, fixedMid?: Song[]): { cost: number; mid: Song[] } => {
-    {
+  let best: { first: Song; last: Song; mid: Song[]; cost: number } | null = null;
+  for (const last of songs)
+    for (const first of songs) {
+      if (first === last) continue;
+      if (ctx.first && first.id !== ctx.first) continue;
       let cost = 0;
       if (fame(first) < need) cost += 10 + (need - fame(first));
       if (fame(last) < max - 1) cost += 10 + (max - 1 - fame(last));
@@ -210,9 +132,9 @@ function orderModel(songs0: Song[], peak: boolean, ctx: OrderCtx) {
       // the middle sides rise (rounds 4–11); round 19 (review F4): when that puts a fame-5 side of a lyrical or balanced
       // tanda straight after the opener, 9 or more under it, the other middle order is weighed too — the loved slow side
       // third, "the classic emotional peak" (De Puro Guapo, Desconsuelo, Como Dos Extraños, No Me Extraña)
-      let mid = fixedMid ?? midOf(first, last);
+      let mid = midOf(first, last);
       let vc = verdictCost(mid);
-      if (!fixedMid && vc.r19 && mid.length === 2) {
+      if (vc.r19 && mid.length === 2) {
         const alt = [mid[1]!, mid[0]!];
         // (round 9: the one hit is never second)
         const hitSecond = songs.length >= 4 && hits === 1 && fame(alt[0]!) === max;
@@ -223,10 +145,11 @@ function orderModel(songs0: Song[], peak: boolean, ctx: OrderCtx) {
         }
       }
       cost += vc.c;
-      return { cost, mid };
+      if (!best || cost < best.cost - 1e-9) best = { first, last, mid, cost };
     }
-  };
-  return { songs, cump, evalPair };
+  if (!best) return { songs: songs0, cost: 99 };
+  const { first, last, mid, cost } = best;
+  return { songs: [first, ...mid, last, ...cump], cost: Math.max(0, cost) };
   function midOf(first: Song, last: Song): Song[] {
     const mid = songs
       .filter((s) => s !== first && s !== last)
