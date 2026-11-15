@@ -311,6 +311,18 @@ export function ManualBuilder() {
               );
             })}
           </AnimatePresence>
+          {/* phones: the header keeps no primary button, so the night is used from here */}
+          {draft.length > 0 && (
+            <button
+              type="button"
+              className="btn btn-primary mt-2 mb-4 min-h-[50px] w-full sm:hidden"
+              onClick={finish}
+              disabled={finishing}
+              data-testid="build-finish-phone"
+            >
+              <Check size={18} aria-hidden /> Use this night
+            </button>
+          )}
         </section>
 
         <section aria-label="What comes next" className="min-w-0">
