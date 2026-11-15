@@ -879,10 +879,13 @@ function Side({
           {row.kind === "cortina" ? t("booth.transition.cortina_by", { artist: row.artist }) : row.artist}
         </p>
       </div>
+      {/* BPM over the Camelot chip and the length, as in the reference; an unknown BPM or key is left out */}
       <div className="trx-facts">
-        <span data-hint={bpm ? `${bpm.value} BPM · ${bpm.source}` : t("bpmKey.bpm_unknown")}>
-          {bpm ? t("booth.transition.bpm", { bpm: bpm.value }) : "–"}
-        </span>
+        {bpm && (
+          <span data-hint={`${bpm.value} BPM · ${bpm.source}`} data-testid="booth-tr-bpm">
+            {t("booth.transition.bpm", { bpm: bpm.value })}
+          </span>
+        )}
         <span className="trx-facts-line">
           {key && (
             <span
