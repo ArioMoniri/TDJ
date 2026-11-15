@@ -92,7 +92,9 @@ test("the Swap sheet: valid suggestions, search with reasons, AI pick falls back
   await expect(card).toContainText("D'Agostino");
 });
 
-test("booth: tapping a row before the night auditions it; the faders say what they do", async ({ page }) => {
+test("booth: tapping a row before the night tests it on this device; the faders say what they do", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await openFeatured(page);
   await page.getByTestId("play-the-night").first().click();
@@ -101,18 +103,21 @@ test("booth: tapping a row before the night auditions it; the faders say what th
   await expect(page.getByTestId("booth-ttc")).not.toHaveAttribute("data-resolving", "1", { timeout: 30000 });
   const row = page.locator('.booth-row[data-kind="track"]').nth(2);
   await row.getByTestId("booth-row-play").click();
+  // round 22: the tap opens the song sheet; without headphones set, the test plays on this device (said so)
+  await page.getByTestId("booth-prelisten").click();
   await expect(row).toHaveAttribute("data-auditioning", "true", { timeout: 10000 });
+  await page.keyboard.press("Escape");
   // the night has not started: the strip still offers Start
   await expect(page.getByTestId("booth-start")).toBeVisible();
   // the faders: named for what they do, with a one-line hint in the Mix sheet
-  await expect(page.getByRole("slider", { name: "Cortina volume" }).first()).toBeVisible();
   await expect(page.getByRole("slider", { name: "Master volume" }).first()).toBeVisible();
   await page.getByRole("button", { name: "Mix: levels and fades" }).click();
+  await expect(page.getByRole("slider", { name: "Cortina volume" }).first()).toBeVisible();
   await expect(page.getByTestId("booth-cortina-fader-hint").last()).toContainText(/against the tangos/);
   await expect(page.getByTestId("booth-master-hint").last()).toContainText(/whole output/);
 });
 
-test("booth: during the night a tapped row offers Play now, Play next and Preview only", async ({ page }) => {
+test("booth: during the night a tapped row offers Play now, Play next and its versions", async ({ page }) => {
   await openFeatured(page);
   await page.getByTestId("play-the-night").first().click();
   await expect(page).toHaveURL(/\/booth/);
@@ -125,7 +130,10 @@ test("booth: during the night a tapped row offers Play now, Play next and Previe
   await expect(sheet).toBeVisible();
   await expect(sheet.getByRole("button", { name: "Play now (fade the current)" })).toBeVisible();
   await expect(sheet.getByRole("button", { name: "Play next" })).toBeVisible();
-  await expect(sheet.getByRole("button", { name: /Preview only/ })).toBeVisible();
+  // round 22: no headphones output chosen: no pre-listen during the night (it would reach the room), said why
+  await expect(sheet.getByTestId("booth-prelisten")).toHaveCount(0);
+  await expect(sheet).toContainText(/headphones/i);
+  await expect(sheet.getByTestId("booth-versions")).toBeVisible();
   const idx = Number(await target.getAttribute("data-plan-index"));
   await sheet.getByRole("button", { name: "Play now (fade the current)" }).click();
   await expect(page.locator(`.booth-row[data-plan-index="${idx}"]`)).toHaveAttribute("aria-current", "true", {
@@ -149,8 +157,9 @@ test("bypass: Skip tonight passes a tanda over in the booth; Last 4 tandas tango
   await t18.getByTestId("booth-bypass").click();
   await expect(t18).not.toHaveAttribute("data-bypassed", "true");
   // the setting: the vals (T23) and the milonga (T21) among the closing stretch are passed over
-  await page.getByTestId("booth-more").click();
-  await page.getByRole("menuitem", { name: /Last 4 tandas tango only/ }).click();
+  // round 22: the switch lives in the night bar on top of the set list
+  await page.getByTestId("booth-last4").click();
+  await expect(page.getByTestId("booth-last4")).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator('.booth-tanda[data-tanda="23"]')).toHaveAttribute("data-bypassed", "true");
   await expect(page.locator('.booth-tanda[data-tanda="21"]')).toHaveAttribute("data-bypassed", "true");
   await expect(page.locator('.booth-tanda[data-tanda="24"]')).not.toHaveAttribute("data-bypassed", "true");

@@ -138,12 +138,11 @@ test.describe("1440 × 900", () => {
     await expect.poll(() => rms(page), { timeout: 4000 }).toBeGreaterThan(AUDIBLE);
 
     // Fade out now (4 s): the level falls through the fade (the −60 dB log curve), silence, then the next item
-    await page.getByTestId("booth-mix").click();
-    const mix = page.getByTestId("booth-levels-sheet");
-    await expect(mix).toBeVisible();
+    // (round 22: Fade and Crossfade are on the transport, labelled)
+    const strip = page.getByTestId("booth-strip");
     const startLevel = await rms(page);
     const atFade = await planIndex(page);
-    await mix.getByTestId("booth-fade-now").click();
+    await strip.getByTestId("booth-strip-fade").click();
     await page.waitForTimeout(1500);
     const mid = await rms(page, 150);
     expect(mid).toBeLessThan(startLevel - 10);
@@ -153,13 +152,11 @@ test.describe("1440 × 900", () => {
 
     // Next with crossfade (3 s): the next item starts at once, the output never drops to silence
     const atX = await planIndex(page);
-    await mix.getByTestId("booth-crossfade").click();
+    await strip.getByTestId("booth-strip-crossfade").click();
     await expect.poll(() => planIndex(page), { timeout: 3000 }).toBeGreaterThan(atX);
     let quietest = 0;
     for (let k = 0; k < 6; k++) quietest = Math.min(quietest, await rms(page, 120));
     expect(quietest).toBeGreaterThan(-50);
-    await page.keyboard.press("Escape");
-    await expect(mix).toHaveCount(0);
 
     // Stop: one tap opens the confirm; "Stop now" silences the output at once and keeps the position
     await page.getByTestId("booth-stop").click();
@@ -281,7 +278,7 @@ test.describe("1440 × 900", () => {
 test.describe("phone 390 × 844", () => {
   test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 
-  test("one row: Pause, Next, Stop, Mix, •••; ≥ 44 px; no overflow; the Mix and Stop sheets fit; no files banner", async ({
+  test("one row: Pause, Next, Stop, Set list, Mix, •••; ≥ 44 px; no overflow; the Mix and Stop sheets fit; no files banner", async ({
     page,
   }) => {
     await openFeaturedBooth(page);
@@ -303,7 +300,7 @@ test.describe("phone 390 × 844", () => {
         overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       };
     });
-    expect(m.labels).toEqual(["Pause", "Next at gap", "Stop…", "Mix: levels and fades", "More"]);
+    expect(m.labels).toEqual(["Pause", "Next at gap", "Stop…", "Set list", "Mix: levels and fades", "More"]);
     expect(m.small).toBe(0);
     expect(m.right).toBeLessThanOrEqual(390);
     expect(m.overflow).toBe(0);

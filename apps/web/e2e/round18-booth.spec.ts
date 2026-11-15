@@ -163,7 +163,7 @@ test("logged into Spotify Premium, the booth plays exactly the stored uri (one p
 test.describe("phone 390 × 844", () => {
   test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 
-  test("no overflow, the Start pill fits, the Now card stays under the title, the strip never covers the set", async ({
+  test("no overflow, the Start pill fits, the Now card stays under the title, the strip never covers the deck", async ({
     page,
   }) => {
     await openFeaturedBooth(page);
@@ -195,8 +195,9 @@ test.describe("phone 390 × 844", () => {
     await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
     await page.waitForTimeout(600);
     const foot = await page.evaluate(() => {
-      const rows = document.querySelectorAll("[data-plan-index]");
-      const last = rows[rows.length - 1]!.getBoundingClientRect();
+      // round 22: on a phone the set list is a sheet; the deck's last card clears the strip
+      const cards = document.querySelectorAll(".booth-deck .booth-card");
+      const last = cards[cards.length - 1]!.getBoundingClientRect();
       const strip = document.querySelector('[data-testid="booth-strip"]')!.getBoundingClientRect();
       const nav = document.querySelector('nav[aria-label="Primary mobile"]')!;
       return { lastBottom: last.bottom, stripTop: strip.top, navMin: nav.hasAttribute("data-min") };
@@ -206,7 +207,7 @@ test.describe("phone 390 × 844", () => {
   });
 });
 
-test("1440 × 900: Time right under Now, the faders inside the strip, every row's length in one column", async ({
+test("1440 × 900: the night bar level with Now, the faders inside the strip, every row's length in one column", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -227,7 +228,8 @@ test("1440 × 900: Time right under Now, the faders inside the strip, every row'
       .slice(0, 30)
       .map((e) => Math.round(e.getBoundingClientRect().right));
     return {
-      gap: box('[data-testid="booth-time"]').top - box('[data-testid="booth-now"]').bottom,
+      // round 22: the night bar heads the set list, level with Now
+      gap: Math.abs(box('[data-testid="booth-time"]').top - box('[data-testid="booth-now"]').top),
       stripH: strip.height,
       fadersInside: faders.every((f) => f.top >= strip.top - 0.5 && f.bottom <= strip.bottom + 0.5),
       lens: new Set(lens).size,
@@ -235,7 +237,7 @@ test("1440 × 900: Time right under Now, the faders inside the strip, every row'
     };
   });
   expect(m.gap).toBeLessThanOrEqual(16);
-  expect(m.stripH).toBeLessThanOrEqual(72);
+  expect(m.stripH, "strip height").toBeLessThanOrEqual(72);
   expect(m.fadersInside).toBe(true);
   expect(m.lens).toBe(1);
   expect(m.overflow).toBe(0);

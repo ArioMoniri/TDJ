@@ -221,9 +221,12 @@ test("phone booth: a 64 pt strip with the faders behind Levels, Time above Next,
   }));
   expect(order.time).toBeLessThan(order.next);
   expect(order.chips.filter((c) => c === "30 s rehearsal").length).toBeLessThanOrEqual(1);
-  // the set column numbers tracks inside their tanda
+  // the set column numbers tracks inside their tanda (round 22: on a phone the set list is a sheet)
+  await page.getByTestId("booth-set-open").click();
   const firstOfTanda2 = page.locator('[data-tanda="2"] [data-kind="track"] .booth-row-n').first();
   await expect(firstOfTanda2).toHaveText("1");
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("booth-set-sheet")).toHaveCount(0);
   // Levels: the two faders in a sheet
   await strip.getByTestId("booth-levels").click();
   const levels = page.getByTestId("booth-levels-sheet");
@@ -255,7 +258,7 @@ test("phone booth: a 64 pt strip with the faders behind Levels, Time above Next,
   await ctx.close();
 });
 
-test("1440 booth: Time above Next in one column, the Cumparsita label whole, Find… only on hover", async ({
+test("1440 booth: the night bar heads the set list, the Cumparsita label whole, Find… only on hover", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -264,7 +267,7 @@ test("1440 booth: Time above Next in one column, the Cumparsita label whole, Fin
   await expect(page.getByTestId("booth-now-title")).toBeVisible({ timeout: 15000 });
   const m = await page.evaluate(() => {
     const t = document.querySelector('[data-testid="booth-time"]')!.getBoundingClientRect();
-    const n = document.querySelector('[data-testid="booth-next"]')!.getBoundingClientRect();
+    const n = document.querySelector('[data-testid="booth-set"]')!.getBoundingClientRect();
     const label = [
       ...document.querySelectorAll<HTMLElement>('[data-testid="booth-time"] .booth-eyebrow'),
     ].find((e) => /Cumparsita/i.test(e.textContent ?? ""))!;

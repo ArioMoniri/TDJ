@@ -194,8 +194,8 @@ test("B7 / B8 / B9: the Time card says it is resolving, Start counts the clips, 
   // Space with a queued break ends the break instead of leaving the transport unreadable (B8)
   await page.getByTestId("booth-start").click();
   await expect(page.getByTestId("booth")).toHaveAttribute("data-state", "playing", { timeout: 20000 });
-  await page.getByTestId("booth-more").click();
-  await page.getByRole("menuitem", { name: "Break…" }).click();
+  // (round 22: Break… is a night tool, in the night bar)
+  await page.getByTestId("booth-night-break").click();
   await page.getByRole("button", { name: /^Break for 10 min/ }).click();
   await expect(page.getByTestId("booth-play")).toHaveText(/End break/, { timeout: 5000 });
   await expect(page.getByRole("dialog")).toHaveCount(0); // keys are ignored while a sheet is up

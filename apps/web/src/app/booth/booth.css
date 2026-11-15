@@ -227,9 +227,6 @@
   justify-content: space-between;
   gap: 6px 16px;
 }
-.booth-night .booth-big {
-  font-size: 34px;
-}
 .booth-night-actions {
   border: 0;
   padding: 0;
@@ -295,7 +292,7 @@
   background: var(--fill-4);
   touch-action: none;
   user-select: none;
-  overflow: hidden;
+  margin: 0 8px;
 }
 .booth-wave svg {
   position: absolute;
@@ -387,8 +384,18 @@
 .booth-strip .booth-tbtn > .booth-tbtn-l {
   line-height: 1;
 }
-@media (max-width: 1179px) {
+/* the words under the glyphs where there is room; below that the same words are the tooltip and the name */
+@media (max-width: 1399px) {
   .booth-strip .booth-tbtn > .booth-tbtn-l {
+    display: none;
+  }
+  .booth-strip .booth-tbtn {
+    min-width: 44px;
+  }
+}
+/* below 1180 the room volume lives in Mix: the transport keeps every button on one row */
+@media (max-width: 1179px) {
+  .booth .booth-strip .booth-fader {
     display: none;
   }
 }
@@ -418,7 +425,7 @@
 .booth-strip-now-t > span {
   color: var(--label-2);
 }
-@media (max-width: 1279px) {
+@media (max-width: 1499px) {
   .booth-strip-now {
     display: none;
   }
