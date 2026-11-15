@@ -1475,7 +1475,6 @@ export function Composer() {
                   { label: "Copy seed", icon: Copy, onClick: copySeed },
                   { label: "Written review", icon: MessageSquareText, onClick: explain },
                   { label: "Play the night", icon: Play, onClick: () => router.push("/booth") },
-                  { label: "Find songs…", icon: Search, onClick: () => setFindOpen(true) },
                   {
                     label: "Tell the DJ…",
                     icon: SlidersHorizontal,

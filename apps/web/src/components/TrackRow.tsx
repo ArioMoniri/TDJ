@@ -165,13 +165,16 @@ export const TrackRow = memo(function TrackRow({
               </>
             )}
           </button>
-          <Artwork
-            src={data.artwork?.value as string | undefined}
-            orchestra={song.orchestra}
-            orchestraId={song.orchestraId}
-            size="s"
-            className="-my-1"
-          />
+          {/* round 22: the cover with the era badge on its corner (one slot, so the title keeps its room) */}
+          <span className="relative -my-1 shrink-0">
+            <Artwork
+              src={data.artwork?.value as string | undefined}
+              orchestra={song.orchestra}
+              orchestraId={song.orchestraId}
+              size="s"
+            />
+            <EraBadge song={eff} compact overlay />
+          </span>
           {/* the title truncates in its own block and the year never shrinks: an inline year inside a truncated
               span could still overflow the viewport by a pixel on phones (round4 mobile-overflow flake) */}
           <span
@@ -191,7 +194,6 @@ export const TrackRow = memo(function TrackRow({
               )}
             </span>
           </span>
-          <EraBadge song={eff} compact />
           {keyOnly && (
             <span className="data-chip font-mono" data-testid="key-chip">
               <span className="sr-only">Key </span>

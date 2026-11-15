@@ -230,3 +230,19 @@ button.heat-cell {
   background: var(--fill-4);
   white-space: nowrap;
 }
+
+/* the era dot on the corner of a row's artwork */
+.era-overlay {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+}
+.era-overlay .era-badge[data-compact] {
+  width: 14px;
+  height: 14px;
+}
+.era-overlay .era-badge[data-compact]::before {
+  width: 10px;
+  height: 10px;
+  box-shadow: 0 0 0 2px rgb(var(--bg-cell));
+}

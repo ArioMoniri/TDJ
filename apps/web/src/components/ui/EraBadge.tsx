@@ -23,10 +23,13 @@ const WHY: Record<EraMark, string> = {
 export const EraBadge = memo(function EraBadge({
   song,
   compact = false,
+  overlay = false,
   className = "",
 }: {
   song: Pick<Song, "orchestraId" | "orchestra" | "vocal" | "year" | "yearApprox">;
   compact?: boolean;
+  /** a dot on the corner of the artwork */
+  overlay?: boolean;
   className?: string;
 }) {
   const edits = useStore((s) => s.overrides.heatmap);
@@ -35,7 +38,7 @@ export const EraBadge = memo(function EraBadge({
   if (!e) return null;
   const text = `${e.year} is ${WHY[e.mark]} (${song.vocal ? "with a singer" : "instrumental"}).`;
   return (
-    <Tip text={text} className={className}>
+    <Tip text={text} className={`${overlay ? "era-overlay" : ""} ${className}`}>
       <span
         className="era-badge"
         data-mark={e.mark}
