@@ -3,10 +3,11 @@ import {
   addNote,
   applyMemory,
   benchmarkNight,
+  checkEdit,
   ERA_SETTINGS,
+  hardViolations,
   learnedForRequest,
   likedShapeDefaults,
-  nightExceptionKeys,
   rememberFeedback,
   rememberSet,
 } from "@tdj/core";
@@ -56,6 +57,7 @@ import { describePreferences } from "@/lib/memory";
 import { DUR, EASE, rise, STAGGER } from "@/lib/motion";
 import { nightEraLabel, nightSub, nightTitle } from "@/lib/nightName";
 import { usePlayer } from "@/lib/player";
+import { approvedKeys, gateEdit } from "@/lib/ruleCheck";
 import { useSheetOpen } from "@/lib/sheets";
 import {
   changedKeys,
@@ -100,6 +102,7 @@ import {
 import { Gramophone } from "./Gramophone";
 import { LazyHydrate } from "./LazyHydrate";
 import { Menu, type MenuItem, MenuList } from "./Menu";
+import { NightExceptions } from "./NightExceptions";
 import { PageHeader } from "./PageHeader";
 import { PrimaryBar } from "./PrimaryBar";
 import { ScoreCounter } from "./ScoreCounter";
@@ -943,8 +946,8 @@ export function Composer() {
   /** the night against the published DJ sets: pure and fast, recomputed with the set */
   // the tandas the DJ approved as they are for this night only (the featured night's exceptions) are accepted
   const approved = useMemo(
-    () => nightExceptionKeys(meta?.featuredLearned, playlist?.id),
-    [meta?.featuredLearned, playlist?.id],
+    () => approvedKeys(meta?.featuredLearned, memory.learned, playlist?.id),
+    [meta?.featuredLearned, memory.learned, playlist?.id],
   );
   const bench = useMemo(
     () => (playlist ? benchmarkNight(playlist, { approved }) : null),
@@ -1130,11 +1133,37 @@ export function Composer() {
   );
   const setRules = useCallback(
     (patch: Partial<NightRules>) => {
-      const o = useStore.getState().options;
-      const d = ERA_SETTINGS[(o.eras ?? ["golden"])[0] ?? "golden"] ?? ERA_SETTINGS.golden!;
-      setOptions({ rules: { ...d.rules, ...(o.rules ?? {}), ...patch } });
+      const write = () => {
+        const o = useStore.getState().options;
+        const d = ERA_SETTINGS[(o.eras ?? ["golden"])[0] ?? "golden"] ?? ERA_SETTINGS.golden!;
+        setOptions({ rules: { ...d.rules, ...(o.rules ?? {}), ...patch } });
+      };
+      // a setting that conflicts with a tanda the DJ pinned in the night on screen (the last-4-tango setting would
+      // skip it): the rule check asks first — keep the setting and move or skip the tanda, or do it as asked (the
+      // tanda plays this night); the night on screen takes the setting with the choice
+      const p = useStore.getState().playlist;
+      if (p && patch.lastFourTango) {
+        const after = { ...p, options: { ...p.options, rules: { ...(p.options.rules ?? {}), ...patch } } };
+        if (hardViolations(checkEdit(p, after)).length) {
+          void gateEdit({
+            before: p,
+            after,
+            label: tx("composer.last_4_tandas_tango_only"),
+            apply: (x, label) => {
+              remember(p);
+              setPlaylist(x);
+              recordNightEdit(x, label, "swap");
+            },
+            learn: false,
+          }).then((r) => {
+            if (r !== "cancelled") write();
+          });
+          return;
+        }
+      }
+      write();
     },
-    [setOptions],
+    [setOptions, setPlaylist, recordNightEdit, remember],
   );
 
   /** Era change: apply the era's defaults to every unpinned control, keep the rest, and say so. */
@@ -1321,14 +1350,24 @@ export function Composer() {
     }
   }, []);
   const pickChoice = useCallback(
-    (p: Playlist) => {
+    async (p: Playlist) => {
       const prev = useStore.getState().playlist;
       const i = choices?.i ?? 0;
       setChoices(null);
       if (!prev) return;
-      remember(prev);
-      setPlaylist(p);
-      recordNightEdit(p, tx("composer.changed_tanda", { p1: i + 1 }), "swap");
+      // the rule check: a new tanda that breaks the night's flow says so (Undo, See suggestion)
+      const res = await gateEdit({
+        before: prev,
+        after: p,
+        label: tx("composer.changed_tanda", { p1: i + 1 }),
+        apply: (x, label) => {
+          remember(prev);
+          setPlaylist(x);
+          recordNightEdit(x, label, "swap");
+        },
+        learn: false,
+      });
+      if (res !== "applied") return;
       toast(
         tx("composer.tanda_is_now", {
           p1: i + 1,
@@ -2169,6 +2208,8 @@ export function Composer() {
               })}
             </div>
             <AiEditBar playlist={playlist} onChip={feedback} />
+            {/* the tandas the DJ kept as they are against a rule: accepted for this night only */}
+            <NightExceptions nightId={playlist.id} />
             {playlist.closing && (
               <Group header={tx("composer.closing")}>
                 <div className="cell" data-leading="art" data-testid="closing">

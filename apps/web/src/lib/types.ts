@@ -118,6 +118,11 @@ export interface UserSettings {
   acp?: AcpConnection[];
   /** Round 22: live suggestions while building a night by hand */
   buildSuggestions?: boolean;
+  /**
+   * Settings → Compose rules: an edit that breaks a tanda rule asks first ("Use suggestion" / "Do it as I said");
+   * off, it applies at once with a toast and Undo. Unset = on.
+   */
+  askBeforeRuleBreak?: boolean;
   djApps: Record<DjApp, { folder: string }>;
   /** file naming pattern used for exported paths; tokens: {artist} {title} {orchestra} {singer} {year} {rhythm} {tanda} {n} */
   fileNaming: string;

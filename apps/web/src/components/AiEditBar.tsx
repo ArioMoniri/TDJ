@@ -18,6 +18,7 @@ import { FEEDBACK_LABEL } from "@/lib/feedback";
 import { t } from "@/lib/i18n";
 import { installLearnWatch, skipNextLearn } from "@/lib/learnWatch";
 import { DUR, EASE } from "@/lib/motion";
+import { type GateResult, gateEdit } from "@/lib/ruleCheck";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import type { Playlist } from "@/lib/types";
@@ -36,6 +37,8 @@ export interface AiEditResponse {
   source?: "model" | "words";
   why?: string;
   error?: string;
+  /** the refused swap done as asked: the rule check describes the conflict and asks before it applies */
+  asSaid?: { playlist: Playlist; tanda: number; reason: string };
 }
 
 /* wave 2: examples that work on a freshly composed night (lib/ai/words.test.ts) */
@@ -145,9 +148,13 @@ export function AiEditBar({
   const reduced = useReducedMotion();
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState<{ r: AiEditResponse; prev: Playlist; instruction: string } | null>(
-    null,
-  );
+  const [result, setResult] = useState<{
+    r: AiEditResponse;
+    prev: Playlist;
+    instruction: string;
+    /** what the DJ chose for the refused swap the rule check asked about */
+    asked?: GateResult;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const own = hasOwnModel(settings);
 
@@ -184,6 +191,30 @@ export function AiEditBar({
         onApplied(r.playlist, prev, instruction, r.applied);
         setText("");
       }
+      // a swap the engine refused, as the DJ asked it: the same rule check as a hand swap (facts, suggestions,
+      // "Do it as I said" for this night only) before anything applies
+      if (r.asSaid) {
+        setBusy(false);
+        const base = r.applied?.length ? r.playlist : prev;
+        const label = `“${instruction.length > 48 ? `${instruction.slice(0, 47)}…` : instruction}”`;
+        const asked = await gateEdit({
+          before: base,
+          after: r.asSaid.playlist,
+          label,
+          apply: (p) => {
+            const st = useStore.getState();
+            skipNextLearn();
+            st.setPlaylist(p);
+            st.recordNightEdit(p, label, "swap");
+            if (!r.applied?.length) setLearnedBefore({ v: st.memory.learned });
+            if (st.settings.learn)
+              st.updateMemory((m) => rememberEdit(m, base, p, `asked: ${instruction.slice(0, 80)}`));
+          },
+          learn: false,
+        });
+        setResult((x) => (x && x.r === r ? { ...x, asked } : x));
+        if (asked !== "cancelled") setText("");
+      }
     } catch {
       setError(t("aiEditBar.could_not_reach_t_dj_check"));
     } finally {
@@ -197,7 +228,8 @@ export function AiEditBar({
   };
 
   const r = result?.r;
-  const nothing = r && !r.applied?.length;
+  const changed = !!r?.applied?.length || (!!result?.asked && result.asked !== "cancelled");
+  const nothing = r && !changed;
   return (
     <Group
       header={t("aiEditBar.edit_with_ai")}
@@ -285,7 +317,7 @@ export function AiEditBar({
                 </span>
               </Tip>
               <span className="flex shrink-0 items-center gap-1">
-                {!!r.applied?.length && (
+                {changed && (
                   <Tip text={t("aiEditBar.put_the_night_back_as_it")}>
                     <button
                       type="button"
@@ -303,7 +335,7 @@ export function AiEditBar({
                   onClick={() => setResult(null)}
                   data-testid="ai-edit-done"
                 >
-                  {r.applied?.length ? t("aiEditBar.keep") : t("aiEditBar.close")}
+                  {changed ? t("aiEditBar.keep") : t("aiEditBar.close")}
                 </button>
               </span>
             </div>
@@ -349,12 +381,19 @@ export function AiEditBar({
                   )}
                 </li>
               ))}
+              {r.asSaid && (
+                <li className="text-footnote text-[var(--label)]" data-testid="ai-edit-breaks">
+                  {t("ruleCheck.ai_breaks", { line: r.asSaid.reason })}
+                  {result?.asked === "exception" && ` ${t("ruleCheck.done_as_said")}`}
+                  {result?.asked === "suggestion" && ` ${t("ruleCheck.suggestion_used")}.`}
+                </li>
+              )}
               {r.chip && (
                 <li className="text-footnote text-[var(--label-2)]" data-testid="ai-edit-chip">
                   {t("aiEditBar.that_is_a_change_to_the", { p1: FEEDBACK_LABEL[r.chip] })}
                 </li>
               )}
-              {nothing && !r.rejected?.length && !r.chip && (
+              {nothing && !r.rejected?.length && !r.chip && !r.asSaid && (
                 <li className="text-footnote text-[var(--label-2)]">
                   {t("aiEditBar.try_naming_the_tanda_make_tanda", {
                     p1: t("aiEditBar.nothing_to_change", { p1: " " }),

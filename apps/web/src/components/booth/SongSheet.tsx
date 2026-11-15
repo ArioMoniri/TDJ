@@ -8,6 +8,7 @@ import { useBooth, type Waveform as WaveData } from "@/lib/booth/store";
 import { loadVersions, type Version } from "@/lib/booth/versions";
 import { eraOf } from "@/lib/era";
 import { t } from "@/lib/i18n";
+import { gateEdit } from "@/lib/ruleCheck";
 import { toast } from "@/lib/toast";
 import { ActionRow, Group } from "../Form";
 import { Sheet } from "../Sheet";
@@ -392,12 +393,26 @@ function Versions({
               data-testid="booth-version-use"
               data-hint={t("booth.songSheet.play_this_version_tonight_instead_the")}
               onClick={async () => {
-                const ok = await useBooth.getState().playVersion(song.id, v.song);
-                toast(
-                  ok
-                    ? t("booth.songSheet.tonight_plays_the_version", { p1: v.song.year ?? "" })
-                    : t("booth.songSheet.this_tanda_is_read_only_now"),
-                );
+                const b = useBooth.getState();
+                const before = b.playlist;
+                const after = b.versionNight(song.id, v.song);
+                if (!before || !after) {
+                  toast(t("booth.songSheet.this_tanda_is_read_only_now"));
+                  return;
+                }
+                // another version may be another singer's or another year's: the rule check asks first
+                const said = t("booth.songSheet.tonight_plays_the_version", { p1: v.song.year ?? "" });
+                const res = await gateEdit({
+                  before,
+                  after,
+                  label: said,
+                  apply: async (np) => {
+                    useBooth.getState().stopAudition();
+                    await useBooth.getState().applySwappedPlaylist(np);
+                  },
+                  learn: false,
+                });
+                if (res === "applied") toast(said);
               }}
             >
               <Play size={14} fill="currentColor" strokeWidth={0} aria-hidden /> {t("booth.songSheet.use")}

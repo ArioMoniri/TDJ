@@ -187,6 +187,8 @@ interface BoothStore {
   auditionTransition: (i: number, edit: TransitionEdit | null) => Promise<string | null>;
   /** round 22: play another take of a side tonight (same title, same orchestra) */
   playVersion: (songId: string, version: Song) => Promise<boolean>;
+  /** the night with `version` in place of `songId`, or null when that tanda is playing or played (read-only) */
+  versionNight: (songId: string, version: Song) => Playlist | null;
   /** round 22: the waveform of a plan row (its file, else its 30 s clip) */
   waveformOf: (i: number) => Promise<Waveform | null>;
   boot: (p: Playlist, o?: { rehearsal?: boolean }) => Promise<void>;
@@ -948,19 +950,24 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     startCueTimer();
     return null;
   },
-  playVersion: async (songId, version) => {
+  versionNight: (songId, version) => {
     const p = get().playlist;
-    if (!p) return false;
+    if (!p) return null;
     const ti = p.tandas.findIndex((t) => t.songs.some((x) => x.id === songId));
     const cur = get().plan?.items[get().planIndex];
-    if (ti < 0 || (get().started && cur && ti + 1 <= cur.tanda)) return false;
-    get().stopAudition();
-    await get().applySwappedPlaylist({
+    if (ti < 0 || (get().started && cur && ti + 1 <= cur.tanda)) return null;
+    return {
       ...p,
       tandas: p.tandas.map((t, i) =>
         i === ti ? { ...t, songs: t.songs.map((x) => (x.id === songId ? version : x)) } : t,
       ),
-    });
+    };
+  },
+  playVersion: async (songId, version) => {
+    const np = get().versionNight(songId, version);
+    if (!np) return false;
+    get().stopAudition();
+    await get().applySwappedPlaylist(np);
     return true;
   },
   waveformOf: (i) => {

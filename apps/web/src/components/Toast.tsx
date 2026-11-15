@@ -14,6 +14,8 @@ export interface ToastItem {
   actionLabel?: string;
   /** ms before auto-dismiss: 6 s with Undo, 3 s informational */
   ttl?: number;
+  /** a second action before the first (the rule check's "See suggestion") */
+  secondary?: { label: string; run: () => void };
 }
 
 /** One toast at a time; the newest replaces the older with a cross-fade. Hover/focus pauses dismissal. */
@@ -56,17 +58,34 @@ export function Toast({ toast, onDismiss }: { toast: ToastItem | null; onDismiss
     const id = setTimeout(onDismiss, toast.ttl ?? 3000);
     return () => clearTimeout(id);
   }, [toast, paused, onDismiss]);
-  const action = toast?.undo && (
-    <button
-      type="button"
-      className="btn-plain shrink-0 font-semibold"
-      onClick={() => {
-        toast.undo?.();
-        onDismiss();
-      }}
-    >
-      {toast.actionLabel ?? t("toast.undo")}
-    </button>
+  const action = (toast?.undo || toast?.secondary) && (
+    <>
+      {toast.secondary && (
+        <button
+          type="button"
+          className="btn-plain min-h-11 shrink-0"
+          data-testid="toast-secondary"
+          onClick={() => {
+            toast.secondary?.run();
+            onDismiss();
+          }}
+        >
+          {toast.secondary.label}
+        </button>
+      )}
+      {toast.undo && (
+        <button
+          type="button"
+          className="btn-plain shrink-0 font-semibold"
+          onClick={() => {
+            toast.undo?.();
+            onDismiss();
+          }}
+        >
+          {toast.actionLabel ?? t("toast.undo")}
+        </button>
+      )}
+    </>
   );
   // wave 4: while a sheet is open the toast is an inline status row under the sheet's title (it floated over the
   // grabber and the title, cut to one line); the text wraps there instead of truncating

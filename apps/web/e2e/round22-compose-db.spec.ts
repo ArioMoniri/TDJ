@@ -72,6 +72,10 @@ test("search panel: filters, where a side sits tonight, add a side to a tanda", 
   const target = page.getByTestId("song-target");
   await expect(target).toBeVisible();
   await target.getByTestId("target-tanda").first().click();
+  // a side of another orchestra or years breaks a tanda rule: the rule check asks first, the DJ keeps it as said
+  const rule = page.getByTestId("rule-sheet");
+  await expect(rule.or(panel.getByTestId("song-search-note"))).toBeVisible({ timeout: 30000 });
+  if (await rule.isVisible()) await rule.getByTestId("rule-as-said").click();
   await expect(panel.getByTestId("song-search-note")).toContainText(`${title} added to tanda`, {
     timeout: 30000,
   });

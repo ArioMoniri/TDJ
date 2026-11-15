@@ -10,6 +10,7 @@ import {
   Languages,
   LoaderCircle,
   Palette,
+  ShieldCheck,
   Sparkles,
   Timer,
 } from "lucide-react";
@@ -332,6 +333,25 @@ export default function Settings() {
             tile={
               <Tile color="#34c759">
                 <Sparkles size={16} strokeWidth={2} />
+              </Tile>
+            }
+          />
+        </Group>
+
+        {/* the rule check before an edit (lib/ruleCheck.ts): ask first, or apply with a toast and Undo */}
+        <Group
+          header={tx("settings.compose_rules")}
+          footer={tx("settings.compose_rules_footer")}
+          data-testid="settings-compose-rules"
+        >
+          <SwitchRow
+            label={tx("settings.ask_before_breaking_a_rule")}
+            sub={tx("settings.ask_before_breaking_a_rule_sub")}
+            checked={settings.askBeforeRuleBreak !== false}
+            onChange={(v) => setSettings({ askBeforeRuleBreak: v })}
+            tile={
+              <Tile color="#ff9500">
+                <ShieldCheck size={16} strokeWidth={2} />
               </Tile>
             }
           />

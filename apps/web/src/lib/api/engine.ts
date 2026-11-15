@@ -2,17 +2,22 @@ import {
   applyFeedback,
   BUILTIN_CORTINAS,
   benchmarkNight,
+  checkEdit,
   compose as composeNight,
   cortinaPool,
+  type EditSuggestion,
   ERA_PRESETS,
   EXPORT_META,
   EXPORTERS,
   type ExportFormat,
   type Feedback,
   improveNight,
+  type NightException,
   nightExceptionKeys,
   type Playlist,
   replaceSide,
+  type SwapOption,
+  suggestFixes,
   swapOptions as swapOptionsFor,
   swapTanda,
   swapTandaOptions,
@@ -158,10 +163,26 @@ export async function swapOptions(req: Request, d: ApiDeps): Promise<Response> {
   if (!body?.playlist?.tandas) return bad("playlist required");
   const { playlist, tandaIndex, trackIndex, query } = body;
   const deps = d.catalogFor(playlist.options?.overrides as AppOverrides);
-  const r = swapOptionsFor(playlist, Number(tandaIndex), Number(trackIndex), deps, {
+  const ti = Number(tandaIndex),
+    si = Number(trackIndex);
+  const r = swapOptionsFor(playlist, ti, si, deps, {
     query: typeof query === "string" ? query.slice(0, 80) : undefined,
   });
-  return json({ suggestions: r.suggestions.map(swapWire), results: r.results.map(swapWire) });
+  // a side excluded only by a tanda rule (another singer, an instrumental, the years, a title already tonight) may
+  // still be chosen: the rule check asks the DJ first (core editCheck, the tanda rules only: cheap per row)
+  const asks = (x: SwapOption) => {
+    const t = playlist.tandas[ti];
+    if (x.ok || !t?.songs[si]) return false;
+    const after = {
+      ...playlist,
+      tandas: playlist.tandas.map((y, i) =>
+        i === ti ? { ...y, songs: y.songs.map((s, k) => (k === si ? x.song : s)) } : y,
+      ),
+    };
+    return checkEdit(playlist, after, { scope: "tandas" }).violations.some((v) => v.severity === "hard");
+  };
+  const wire = (x: SwapOption) => ({ ...swapWire(x), ...(asks(x) ? { asks: true } : {}) });
+  return json({ suggestions: r.suggestions.map(swapWire), results: r.results.map(wire) });
 }
 
 /**
@@ -187,6 +208,48 @@ export async function swapTrack(req: Request, d: ApiDeps): Promise<Response> {
   }
   const np = swapTrackIn(playlist, Number(tandaIndex), Number(trackIndex), deps);
   return json({ ...forWire(np), changed: np !== playlist });
+}
+
+/**
+ * The rule check before an edit (core editCheck.ts). Body: { before, after, exceptions? } — the night before and after
+ * the DJ's edit, and the night's approved one-night exceptions. Answer: { violations } (each with its facts from the
+ * catalogue) and { suggestions } (up to three nights that keep the hard rules — or, with none broken, the soft ones —
+ * each one passing the check for its rule).
+ */
+export async function checkEditRoute(req: Request, d: ApiDeps): Promise<Response> {
+  const body = await bodyJson<{
+    before?: Playlist;
+    after?: Playlist;
+    exceptions?: NightException[];
+    scope?: unknown;
+  }>(req);
+  const before = body?.before,
+    after = body?.after;
+  if (!before?.tandas || !after?.tandas || !after.options) return bad("before and after required");
+  const exceptions = Array.isArray(body?.exceptions) ? body.exceptions : [];
+  // (a hand-built draft: the tanda rules only)
+  const scope = body?.scope === "tandas" ? ("tandas" as const) : ("all" as const);
+  try {
+    const deps = d.catalogFor(after.options?.overrides as AppOverrides);
+    const { violations } = checkEdit(before, after, { catalog: deps.catalog, exceptions, scope });
+    const hard = violations.filter((v) => v.severity === "hard");
+    const asked = hard.length ? hard : violations;
+    const suggestions: EditSuggestion[] = [];
+    for (const v of asked) {
+      if (suggestions.length >= 3) break;
+      let found: EditSuggestion[] = [];
+      try {
+        found = suggestFixes(before, after, v, deps, 3 - suggestions.length, { scope });
+      } catch {}
+      for (const s of found) if (!suggestions.some((x) => x.text === s.text)) suggestions.push(s);
+    }
+    return json({
+      violations,
+      suggestions: suggestions.slice(0, 3).map((s) => ({ ...s, playlist: forWire(s.playlist) })),
+    });
+  } catch (e) {
+    return bad(e instanceof Error ? e.message : "Could not check this edit");
+  }
 }
 
 export async function meta(_req: Request, d: ApiDeps): Promise<Response> {

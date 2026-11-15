@@ -9,6 +9,7 @@ import { DUR, EASE } from "@/lib/motion";
 import { overridesForRequest, useStore } from "@/lib/store";
 import type { Playlist } from "@/lib/types";
 import { Group } from "./Form";
+import { NightExceptions } from "./NightExceptions";
 import { Sheet } from "./Sheet";
 
 export interface ImproveResponse {
@@ -195,6 +196,8 @@ export function BenchmarkSheet({
           </Group>
         </motion.div>
       )}
+      {/* the score breakdown accepts what the DJ approved as it is, this night only */}
+      <NightExceptions nightId={playlist.id} />
       {shown && (
         <Group
           header={t("benchmarkSheet.against_published_dj_sets", { p1: benchLabel(shown) })}
