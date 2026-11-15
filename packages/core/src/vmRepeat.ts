@@ -372,3 +372,112 @@ export function mendPreSummit(
     ],
   };
 }
+
+/**
+ * Round 21c — two panel items a tango chair can mend by changing family:
+ *   - the orchestra gap a vals / milonga chair broke because its pool was thin (the builder found no other family
+ *     for it): the tango tanda of that orchestra inside the gap changes family;
+ *   - the last four tandas before the última under the panel's fame floor (lastFour): one of their tango tandas
+ *     changes to a better-known family.
+ * The new family keeps the chair's mode (vocal or instrumental) and every gap, plays inside the night's years with
+ * streaming sides of known fame, and is taken only when the strict panel as a whole comes out better for it. Never
+ * the first, the última, a planned summit, the Pugliese chair or the DJ's.
+ */
+export function mendTangoChairs(
+  tandas0: Tanda[],
+  o: ComposeOptions,
+  cat: Catalog,
+  judge: (ts: Tanda[]) => {
+    blockers: number;
+    penalty: number;
+    violations: Array<{ rule: string; severity?: string; tanda?: number }>;
+  },
+): VmMend {
+  let tandas = tandas0.slice();
+  const fallbacks: string[] = [];
+  const gap = Math.max(1, o.orchestraRepeatGap ?? 6);
+  const yr: [number, number] = o.yearRange ?? [1935, 1945];
+  const fixed = (t: Tanda) => !!(t.pinned || t.locked || t.birthday);
+  const fame = (t: Tanda) => t.songs.reduce((a, s) => a + (s.fame ?? 0), 0) / Math.max(1, t.songs.length);
+  for (let round = 0; round < 3; round++) {
+    const r0 = judge(tandas);
+    const chairs = new Map<number, "gap" | "lastFour">();
+    // the tango chairs inside the gap of a vals / milonga tanda of their orchestra
+    tandas.forEach((t, i) => {
+      if (t.rhythm === "tango") return;
+      tandas.forEach((x, k) => {
+        if (k !== i && x.rhythm === "tango" && x.orchestraId === t.orchestraId && Math.abs(k - i) < gap)
+          chairs.set(k, "gap");
+      });
+    });
+    if (r0.violations.some((v) => v.rule === "lastFour")) {
+      const last = tandas.length - 1;
+      for (let k = Math.max(0, last - 4); k < last; k++)
+        if (tandas[k]!.rhythm === "tango" && !chairs.has(k)) chairs.set(k, "lastFour");
+    }
+    if (!chairs.size) break;
+    let best: { ts: Tanda[]; v: number; label: string } | null = null;
+    for (const [i, why] of chairs) {
+      const t = tandas[i]!;
+      if (i === 0 || i === tandas.length - 1 || t.peak || fixed(t) || t.orchestraId === "osvaldo-pugliese")
+        continue;
+      const tg = (id: string) =>
+        tandas.filter((x, k) => k !== i && x.rhythm === "tango" && x.orchestraId === id);
+      const used = new Set(tandas.flatMap((x, k) => (k === i ? [] : x.songs.map((s) => normTitle(s.title)))));
+      for (const f of nightFamilies(cat, o, "tango")) {
+        if (f.vocal !== t.vocal || f.orchestraId === t.orchestraId || tg(f.orchestraId).length >= 2) continue;
+        if (tandas.some((x, k) => k !== i && x.orchestraId === f.orchestraId && Math.abs(k - i) < gap))
+          continue;
+        const seen = new Set<string>();
+        const sides = f.songs
+          .filter((s) => {
+            const k = normTitle(s.title);
+            if (seen.has(k) || used.has(k)) return false;
+            seen.add(k);
+            return (
+              streams(s) &&
+              isTandaEligible(s, !!o.rules?.allowUndated) &&
+              isDanceableSong(s, cat.blacklist) &&
+              !!s.year &&
+              s.year >= yr[0] &&
+              s.year <= yr[1] &&
+              (s.fame ?? 0) >= 2
+            );
+          })
+          .sort((a, b) => (b.fame ?? 0) - (a.fame ?? 0))
+          .slice(0, t.songs.length);
+        if (sides.length < t.songs.length) continue;
+        const nt = retimeTanda(
+          {
+            ...t,
+            orchestraId: f.orchestraId,
+            orchestra: f.orchestra,
+            singer: f.singer,
+            vocal: f.vocal,
+            era: sides[0]!.era,
+            style: cat.profile(f.orchestraId)?.style,
+          },
+          strictOrder(sides, false),
+        );
+        if (Math.abs(nt.durationSec - t.durationSec) > 150) continue;
+        if (why === "lastFour" && fame(nt) <= fame(t)) continue;
+        const ts = tandas.map((x, k) => (k === i ? nt : x));
+        const r1 = judge(ts);
+        // (the cues are re-picked after the mend, as for the instrumental hours)
+        const p1 = noCue(r1),
+          p0 = noCue(r0);
+        if (r1.blockers > r0.blockers || p1 >= p0 - 1e-9) continue;
+        if (!best || p1 < best.v)
+          best = {
+            ts,
+            v: p1,
+            label: `${why}: tanda ${i + 1}: ${t.orchestra}${t.singer ? ` / ${t.singer}` : ""} → ${f.orchestra}${f.singer ? ` / ${f.singer}` : ""}${why === "gap" ? " (its orchestra's vals / milonga sat inside the orchestra gap)" : " (the last four tandas were under the fame floor)"}`,
+          };
+      }
+    }
+    if (!best) break;
+    tandas = best.ts;
+    fallbacks.push(best.label);
+  }
+  return { tandas, fallbacks };
+}

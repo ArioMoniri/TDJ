@@ -32,6 +32,7 @@ import {
   learnFromEdit,
   type MatchCandidate,
   matchProblem,
+  mendTangoChairs,
   mendVmRepeats,
   mergeEnrichment,
   orderVerdictOf,
@@ -513,6 +514,37 @@ describe("round 21c — one vals / milonga tanda per orchestra, the gap kept: th
       for (const f of p.stats.settingFallbacks ?? [])
         if (/^(vals|milonga): /.test(f)) expect(f).toMatch(/plays \(|moved to|no family fits/);
     }
+  });
+});
+
+describe("round 21c — a vals inside its orchestra's gap: the tango chair changes family", () => {
+  it("the tango tanda of that orchestra inside the gap takes another family of its mode; the panel is better", () => {
+    const p = nights[0]!;
+    const gap = p.options.orchestraRepeatGap;
+    const v = p.tandas.findIndex((t, i) => t.rhythm === "vals" && i > gap && i < p.tandas.length - 2);
+    // a tango chair two places before the vals plays the vals's orchestra (the gap broken, as a thin pool leaves it)
+    const k = p.tandas.findIndex((t, i) => i >= v - 3 && i < v && t.rhythm === "tango" && !t.peak && i > 0);
+    expect(v > 0 && k > 0).toBe(true);
+    const ts = p.tandas.map((t) => ({ ...t }));
+    ts[k] = {
+      ...ts[k]!,
+      orchestraId: ts[v]!.orchestraId,
+      orchestra: ts[v]!.orchestra,
+    };
+    const judge = (x: Tanda[]) => strictChecks({ ...p, tandas: x });
+    const before = judge(ts);
+    expect(before.violations.some((x) => x.rule === "gap")).toBe(true);
+    const r = mendTangoChairs(ts, p.options, deps.catalog, judge);
+    expect(r.fallbacks.some((f) => /^gap: tanda/.test(f))).toBe(true);
+    const after = judge(r.tandas);
+    expect(after.blockers).toBeLessThanOrEqual(before.blockers);
+    expect(after.penalty).toBeLessThan(before.penalty);
+    const m = r.tandas.findIndex((t, i) => t !== ts[i]);
+    expect(r.tandas[m]!.rhythm).toBe("tango");
+    expect(r.tandas[m]!.vocal).toBe(ts[m]!.vocal);
+    for (const s of r.tandas[m]!.songs) expect(s.spotify?.uri).toBeTruthy();
+    // (the vals keeps its chair and its family)
+    expect(r.tandas[v]).toBe(ts[v]);
   });
 });
 
