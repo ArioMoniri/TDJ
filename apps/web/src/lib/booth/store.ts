@@ -6,14 +6,18 @@ import {
   bypassPlanItems,
   type CortinaEdit,
   type Playlist,
+  resolveTransition,
   type Song,
   type SongCue,
+  type TransitionEdit,
+  transitionKey,
 } from "@tdj/core";
 import { create } from "zustand";
 import { makeNightLog, makeSnapshot } from "@/lib/history";
 import { t as tx } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 import { cortinaStopSec } from "@/lib/types";
+import { encodeWav, renderTransition } from "./audition";
 import { clipSummary, rehearsalClip, spotifyOf, withSpotifyLengths } from "./clips";
 import {
   CuePlayer,
@@ -32,6 +36,7 @@ import {
   DEFAULT_BOOTH_SETTINGS,
   type EngineEvent,
 } from "./engine";
+import { dbToGain } from "./envelope";
 import { BoothMedia } from "./media";
 import {
   loadBoothSettings,
@@ -47,6 +52,8 @@ import { LocalAdapter } from "./sources/local";
 import { PreviewAdapter, REHEARSAL_SEC } from "./sources/preview";
 import { SpotifyAdapter } from "./sources/spotify";
 import type { ItemSource, PlanEntity, SourceAdapter, SourceKind } from "./sources/types";
+import { type Bands, renderBands } from "./spectral";
+import { transitionWindow } from "./transition";
 import { isSilentState, unlockAudio } from "./unlock";
 import { bufferPeaks } from "./waveform";
 
@@ -62,9 +69,12 @@ export type CueWhere = "headphones" | "device";
 export interface Audition {
   i: number | null;
   songId: string;
-  via: "clip" | "spotify" | "file";
+  /** wave 4: "transition" — a rendered transition between `i` and the item after it */
+  via: "clip" | "spotify" | "file" | "transition";
   title: string;
   where: CueWhere;
+  /** wave 4: what the audition could not play (a side with no audio here is silence) */
+  note?: string;
 }
 /** Round 22: the room and headphones outputs. */
 export interface Outputs {
@@ -82,6 +92,8 @@ export interface Waveform {
   peaks: number[];
   durationSec: number;
   from: "file" | "clip";
+  /** wave 4: the low / mid / high envelopes the transition editor draws (absent where the split failed) */
+  bands?: Bands;
 }
 export interface FolderStatus {
   name: string | null;
@@ -166,6 +178,13 @@ interface BoothStore {
   setSongCue: (id: string, cue: SongCue | null) => void;
   /** round 22: the cortina play length (null follows the composer) */
   setCortinaLength: (sec: number | null) => void;
+  /** wave 4: the DJ's edit of the transition after plan item `i` (null = Auto, the night's Mix settings) */
+  setTransition: (i: number, edit: TransitionEdit | null) => void;
+  /**
+   * wave 4: hear the transition after plan item `i` as `edit` would play it (the last ~8 s into the first ~8 s), in
+   * the headphones during the night (never the room); null when it plays, else why not
+   */
+  auditionTransition: (i: number, edit: TransitionEdit | null) => Promise<string | null>;
   /** round 22: play another take of a side tonight (same title, same orchestra) */
   playVersion: (songId: string, version: Song) => Promise<boolean>;
   /** round 22: the waveform of a plan row (its file, else its 30 s clip) */
@@ -824,6 +843,111 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     const p = get().playlist;
     if (p) applyPlan(rePlan(p, get().settings));
   },
+  setTransition: (i, edit) => {
+    const p = get().playlist;
+    const a = get().plan?.items[i];
+    const b = get().plan?.items[i + 1];
+    if (!p || !a?.id || !b?.id) return;
+    const key = transitionKey(a.id, b.id);
+    const all: Record<string, TransitionEdit> = { ...(p.booth?.transitions ?? {}) };
+    if (edit === null) delete all[key];
+    else all[key] = { ...edit };
+    applyPlan(rePlan(p, get().settings, { transitions: all }));
+  },
+  auditionTransition: async (i, edit) => {
+    const { plan, entities, started, settings } = get();
+    const a = plan?.items[i];
+    const b = plan?.items[i + 1];
+    const ea = entities[i];
+    const eb = entities[i + 1];
+    if (!a || !b || a.kind === "break" || b.kind === "break" || !ea || !eb)
+      return tx("booth.store.nothing_to_play");
+    get().stopAudition();
+    const blocked = get().cueBlocked();
+    // during the night an audition never goes to the room: headphones only
+    if (blocked && started) return blocked;
+    const where: CueWhere = blocked ? "device" : "headphones";
+    const Off = offlineCtor();
+    if (!Off) return tx("booth.store.this_browser_cannot_mix_a_transition");
+    const [da, db] = await Promise.all([
+      decodeAudio(a.id ?? "", ea).catch(() => null),
+      decodeAudio(b.id ?? "", eb).catch(() => null),
+    ]);
+    if (!da && !db) return tx("booth.store.no_audio_to_mix_spotify_plays");
+    // one side with nothing decodable (Spotify only, no clip): it is silence, and the line under the stage says so
+    const silent = (it: typeof a) => {
+      const sec = Math.max(1, Math.min(it.lengthSec, 30));
+      return {
+        buffer: new Off(1, 1, 44100).createBuffer(1, Math.ceil(sec * 44100), 44100),
+        from: "clip" as const,
+      };
+    };
+    const note = !da
+      ? tx("booth.store.only_one_side_has_audio", { title: a.title })
+      : !db
+        ? tx("booth.store.only_one_side_has_audio", { title: b.title })
+        : undefined;
+    const side = (it: typeof a, d: { buffer: AudioBuffer; from: Waveform["from"] }) => {
+      const offset = d.from === "file" ? Math.min(it.trimInSec ?? 0, Math.max(0, d.buffer.duration - 1)) : 0;
+      return {
+        buffer: d.buffer,
+        offset,
+        length: Math.max(0.5, Math.min(it.lengthSec, d.buffer.duration - offset)),
+        gain: Math.min(
+          1,
+          dbToGain(Math.min(0, it.gainDb ?? (it.kind === "cortina" ? settings.cortinaLevelDb : 0))),
+        ),
+      };
+    };
+    const out = side(a, da ?? silent(a));
+    const inn = side(b, db ?? silent(b));
+    const tr = edit
+      ? resolveTransition(edit, {
+          from: { kind: a.kind, lengthSec: a.lengthSec, tanda: a.tanda },
+          to: { kind: b.kind, lengthSec: b.lengthSec, tanda: b.tanda },
+          cortinaFadeOutSec: a.fadeOutSec,
+        })
+      : null;
+    const window = transitionWindow(tr, {
+      outLen: out.length,
+      inLen: inn.length,
+      gapSec: a.gapAfterSec || settings.gapSec,
+      songFadeOutSec: settings.songFadeOutSec,
+      outKind: a.kind,
+      cortinaFadeOutSec: a.fadeOutSec ?? settings.cortinaFadeOutSec,
+    });
+    let blob: Blob;
+    try {
+      blob = encodeWav(await renderTransition(Off, { out, in: inn, window }));
+    } catch {
+      return tx("booth.store.this_browser_cannot_mix_a_transition");
+    }
+    const sink = where === "headphones" ? get().outputs.cue : null;
+    cuePlayer ??= new CuePlayer();
+    cuePlayer.onEnded = () => {
+      stopCueTimer();
+      useBooth.setState({ audition: null, cuePos: { at: 0, of: 0 } });
+    };
+    try {
+      await cuePlayer.play(blob, { sinkId: sink });
+    } catch (err) {
+      return err instanceof Error && err.message
+        ? err.message
+        : tx("booth.store.the_browser_blocked_playback_tap_again");
+    }
+    set({
+      audition: {
+        i,
+        songId: a.id ?? "",
+        via: "transition",
+        title: `${a.title} → ${b.title}`,
+        where,
+        ...(note ? { note } : {}),
+      },
+    });
+    startCueTimer();
+    return null;
+  },
   playVersion: async (songId, version) => {
     const p = get().playlist;
     if (!p) return false;
@@ -985,11 +1109,27 @@ function stopCueTimer() {
 }
 /** Round 22: the waveform of a side — its file (the whole song) else its clip — decoded off the room's graph. */
 async function decodePeaks(id: string, e: NonNullable<PlanEntity>): Promise<Waveform | null> {
-  const Off =
-    typeof OfflineAudioContext !== "undefined"
-      ? OfflineAudioContext
-      : (globalThis as unknown as { webkitOfflineAudioContext?: typeof OfflineAudioContext })
-          .webkitOfflineAudioContext;
+  const d = await decodeAudio(id, e);
+  if (!d) return null;
+  const Off = offlineCtor();
+  const bands = Off ? await renderBands(d.buffer, Off).catch(() => undefined) : undefined;
+  return { peaks: bufferPeaks(d.buffer, 240), durationSec: d.buffer.duration, from: d.from, bands };
+}
+
+/** The offline context constructor (Safari's prefixed one too); null where there is none. */
+function offlineCtor(): typeof OfflineAudioContext | null {
+  return typeof OfflineAudioContext !== "undefined"
+    ? OfflineAudioContext
+    : ((globalThis as unknown as { webkitOfflineAudioContext?: typeof OfflineAudioContext })
+        .webkitOfflineAudioContext ?? null);
+}
+
+/** A side's decodable audio: the DJ's file, else its 30 s clip; null when only Spotify has it. */
+async function decodeAudio(
+  id: string,
+  e: NonNullable<PlanEntity>,
+): Promise<{ buffer: AudioBuffer; from: Waveform["from"] } | null> {
+  const Off = offlineCtor();
   if (!Off) return null;
   const file = await adapters()
     .local.fileFor(id)
@@ -1012,8 +1152,8 @@ async function decodePeaks(id: string, e: NonNullable<PlanEntity>): Promise<Wave
     from = "clip";
   }
   const dec = new Off(1, 1, 44100);
-  const buf = await dec.decodeAudioData(bytes);
-  return { peaks: bufferPeaks(buf, 240), durationSec: buf.duration, from };
+  const buffer = await dec.decodeAudioData(bytes);
+  return { buffer, from };
 }
 
 /** the engine passes over the tandas the DJ bypasses tonight (round 21) */

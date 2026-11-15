@@ -75,6 +75,11 @@ export function t(key: MsgKey, vars?: Record<string, unknown>): string {
   return fill(lookup(key), vars);
 }
 
+/** the text of `key` in a given locale, whatever the app's current one (a cover drawn in the language asked for) */
+export function tIn(locale: Locale, key: MsgKey, vars?: Record<string, unknown>): string {
+  return fill(DICTS[locale]?.[key] ?? en[key] ?? key, vars);
+}
+
 let reverse: Map<string, MsgKey> | null = null;
 /**
  * Words that arrive in English from data (the research model's labels, the core's notes): the dictionary's text for

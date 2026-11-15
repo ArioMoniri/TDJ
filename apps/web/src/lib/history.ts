@@ -1,7 +1,8 @@
 "use client";
 import { del, delMany, get, getMany, keys, setMany } from "idb-keyval";
+import { coverSeedOf } from "@/lib/cover/seed";
 import { fmtDate, lazy, plural, t as tx } from "@/lib/i18n";
-import { eraName, hoursText, lengthText, nightTitle } from "./nightName";
+import { hoursText, lengthText, nightEraLabel, nightTitle } from "./nightName";
 import type { StorageMode } from "./overrides";
 import {
   HISTORY_MAX,
@@ -41,9 +42,9 @@ const EVENT_LABEL: Record<string, string> = {
 };
 const pad = (n: number) => String(n).padStart(2, "0");
 
-/** Era label for a set ("Golden age", "Nuevo"…) for the History sub-lines. */
+/** Era label for a set ("Golden Age", "Golden Age + Nuevo", "1938–1956"…) for the History sub-lines, from its own options and songs. */
 export function eraLabel(p: Playlist): string {
-  return eraName(p.options.eras?.[0]);
+  return nightEraLabel(p);
 }
 
 /** Auto title: the event, "Tuesday milonga" / "Saturday práctica" (the era and length go in the sub-line,
@@ -90,6 +91,8 @@ export function makeSnapshot(
     playlist: compactPlaylist(p),
     score: p.score.total,
     source,
+    // wave 4: one cover per generation; the entry's later versions keep this family (lib/cover/seed.ts)
+    coverSeed: coverSeedOf(p),
   };
 }
 

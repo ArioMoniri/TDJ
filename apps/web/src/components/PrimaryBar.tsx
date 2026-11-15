@@ -1,153 +1,58 @@
 "use client";
-import { Disc3, Ellipsis, Repeat2, Share } from "lucide-react";
 import { motion } from "motion/react";
-import { t } from "@/lib/i18n";
 import { EASE } from "@/lib/motion";
 import { ComposeLabel } from "./ComposeNarrative";
 
 /**
- * Phone primary bar (round5-design.md §1): a glass capsule directly above the tab bar, in thumb reach.
- * No set yet: one full-width "Compose the night" (50 pt). With a set: Regenerate (secondary) + Export (primary)
- * + the `•••` menu. It hides under sheets, and when the tab bar minimises on scroll-down it becomes an icon-only
- * pill that returns with the bar on scroll-up. Transform/opacity only; the two states cross-fade.
+ * Phone primary action (wave 4). iOS 26 keeps a page's actions in its navigation bar: once a set exists, Regenerate
+ * and Export are icon buttons there (Composer.tsx) and nothing floats over the content. Before the first set, the
+ * one compact floating action is "Compose the night": a 50 pt capsule sized to its label at the trailing edge,
+ * 10 pt above the tab capsule, never a full-width bar stacked on it. It leaves the screen under sheets and the
+ * mini-player. Transform/opacity only.
  */
 export function PrimaryBar({
   hasPlaylist,
   busy,
-  minimised,
   hidden,
   onCompose,
-  onExport,
   errorNudge,
-  onMore,
 }: {
   hasPlaylist: boolean;
   busy: boolean;
-  /** the tab bar is minimised: show the icon-only pill */
-  minimised: boolean;
-  /** a sheet or the mini-player is open: the bar leaves the screen (one glass unit over the tab bar at a time) */
+  /** a sheet or the mini-player is open: the button leaves the screen (one glass unit over the tab bar at a time) */
   hidden: boolean;
   onCompose: () => void;
-  onExport: () => void;
   errorNudge: { x: number | number[] };
-  /** opens the `•••` actions sheet; it lives outside the bar, which leaves the screen while any sheet is up */
-  onMore: () => void;
 }) {
+  if (hasPlaylist) return null;
   // visibility rides along so a hidden state is not a composited (blurred) layer at all; it flips after the fade
-  const tr = (on: boolean) =>
-    `transform var(--dur-s) var(--ease-settle), opacity var(--dur-s) var(--ease-settle), visibility 0s linear ${on ? "0s" : "var(--dur-s)"}`;
-  const showFull = !hidden && !minimised;
-  const showPill = !hidden && minimised;
+  const show = !hidden;
   return (
-    <>
-      {/* full bar */}
-      <div
-        className="glass fixed inset-x-3 bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+68px)] z-30 flex items-center gap-1.5 rounded-full p-1.5 sm:hidden"
-        data-testid="primary-bar"
-        data-min={minimised || undefined}
-        data-hidden={hidden || undefined}
-        aria-hidden={!showFull || undefined}
-        style={{
-          transition: tr(showFull),
-          transform: showFull ? "none" : "translateY(calc(100% + 80px))",
-          opacity: showFull ? 1 : 0,
-          visibility: showFull ? "visible" : "hidden",
-          pointerEvents: showFull ? "auto" : "none",
-        }}
+    <div
+      className="fixed right-[max(1rem,env(safe-area-inset-right,0px))] bottom-[calc(var(--chrome-stack)+10px)] z-30 sm:hidden"
+      data-testid="primary-bar"
+      data-hidden={hidden || undefined}
+      aria-hidden={!show || undefined}
+      style={{
+        transition: `transform var(--dur-s) var(--ease-settle), opacity var(--dur-s) var(--ease-settle), visibility 0s linear ${show ? "0s" : "var(--dur-s)"}`,
+        transform: show ? "none" : "translateY(calc(100% + 80px))",
+        opacity: show ? 1 : 0,
+        visibility: show ? "visible" : "hidden",
+        pointerEvents: show ? "auto" : "none",
+      }}
+    >
+      <motion.button
+        type="button"
+        onClick={onCompose}
+        disabled={busy}
+        className="btn btn-primary h-[var(--fab-h)] min-h-0 max-w-[calc(100vw-2rem)] px-5 shadow-[0_6px_20px_rgb(0_0_0/0.18)]"
+        animate={errorNudge}
+        transition={{ duration: 0.28, ease: EASE.inOut }}
+        data-testid="bar-compose"
+        tabIndex={show ? 0 : -1}
       >
-        {hasPlaylist ? (
-          <>
-            <motion.button
-              type="button"
-              onClick={onCompose}
-              disabled={busy}
-              className="btn btn-ghost min-h-[50px] flex-1 px-3"
-              animate={errorNudge}
-              transition={{ duration: 0.28, ease: EASE.inOut }}
-              data-testid="bar-regenerate"
-            >
-              <ComposeLabel busy={busy} steps idle={t("primaryBar.regenerate")} />
-            </motion.button>
-            <button
-              type="button"
-              onClick={onExport}
-              className="btn btn-primary min-h-[50px] flex-1 px-3"
-              data-testid="bar-export"
-            >
-              <Share size={18} strokeWidth={2} aria-hidden /> {t("primaryBar.export")}
-            </button>
-            <button
-              type="button"
-              className="icon-btn"
-              aria-label={t("primaryBar.set_actions")}
-              onClick={onMore}
-            >
-              <Ellipsis size={20} strokeWidth={2} aria-hidden />
-            </button>
-          </>
-        ) : (
-          <motion.button
-            type="button"
-            onClick={onCompose}
-            disabled={busy}
-            className="btn btn-primary min-h-[50px] flex-1"
-            animate={errorNudge}
-            transition={{ duration: 0.28, ease: EASE.inOut }}
-            data-testid="bar-compose"
-          >
-            <ComposeLabel busy={busy} steps />
-          </motion.button>
-        )}
-      </div>
-      {/* minimised: an icon-only pill that keeps the primary action within reach while reading the set; at the
-          right edge, so it never sits on a tanda header's ••• (round8-ux.md §2, Global) */}
-      <div
-        className="glass fixed bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+68px)] right-3 z-30 flex items-center gap-0.5 rounded-full p-1 sm:hidden"
-        data-testid="primary-pill"
-        aria-hidden={!showPill || undefined}
-        style={{
-          transition: tr(showPill),
-          transform: showPill ? "translateY(0)" : "translateY(8px)",
-          opacity: showPill ? 1 : 0,
-          visibility: showPill ? "visible" : "hidden",
-          pointerEvents: showPill ? "auto" : "none",
-        }}
-      >
-        {hasPlaylist ? (
-          <>
-            <button
-              type="button"
-              onClick={onCompose}
-              disabled={busy}
-              className="icon-btn icon-btn-bare h-11 w-11"
-              aria-label={t("primaryBar.regenerate")}
-              tabIndex={showPill ? 0 : -1}
-            >
-              <Repeat2 size={20} strokeWidth={2} className={busy ? "animate-spin" : ""} aria-hidden />
-            </button>
-            <button
-              type="button"
-              onClick={onExport}
-              className="icon-btn icon-btn-send h-11 w-11"
-              aria-label={t("primaryBar.export")}
-              tabIndex={showPill ? 0 : -1}
-            >
-              <Share size={20} strokeWidth={2} aria-hidden />
-            </button>
-          </>
-        ) : (
-          <button
-            type="button"
-            onClick={onCompose}
-            disabled={busy}
-            className="icon-btn icon-btn-send h-11 w-11"
-            aria-label={t("primaryBar.compose_the_night")}
-            tabIndex={showPill ? 0 : -1}
-          >
-            <Disc3 size={20} strokeWidth={2} className={busy ? "animate-spin" : ""} aria-hidden />
-          </button>
-        )}
-      </div>
-    </>
+        <ComposeLabel busy={busy} steps />
+      </motion.button>
+    </div>
   );
 }

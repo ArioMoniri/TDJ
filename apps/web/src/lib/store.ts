@@ -50,7 +50,7 @@ interface State {
   playlist: Playlist | null;
   busy: boolean;
   settings: UserSettings;
-  spotifyToken: { access: string; expires: number; refresh?: string } | null;
+  spotifyToken: { access: string; expires: number; refresh?: string; scope?: string } | null;
   /** the user's database (IndexedDB, or the server when enabled); not part of localStorage */
   overrides: AppOverrides;
   overridesReady: boolean;

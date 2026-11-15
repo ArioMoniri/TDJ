@@ -21,9 +21,9 @@ const SEARCH_ID: Record<string, string> = { "/library": "library-search", "/data
 export const SEARCH_FOCUS_EVENT = "tdj:search-focus";
 
 /**
- * iOS tab: one shared pill slides between tabs; icon weight cross-fades; 10 pt label. `compact` drops the label
- * (search pages make room for the detached search button); `hidden` collapses the link while the bar is minimised
- * but keeps it in the DOM.
+ * iOS 26 tab: 24 pt glyph over a 10 pt label, sharing the capsule's width. The selection is the tint plus a faint
+ * glass lens that slides between tabs (never a filled block). `compact` drops the label (search pages make room for
+ * the detached search button); `hidden` collapses the link while the bar is minimised but keeps it in the DOM.
  */
 function MobileTab({
   it,
@@ -43,21 +43,14 @@ function MobileTab({
 }) {
   // the name on hover and long-press, the app's help tag (a title attribute is not used anywhere, wave 2)
   const tip = useTip<HTMLElement>(it.label);
-  const cls = `relative flex min-h-[52px] flex-col items-center justify-center gap-0.5 rounded-full ${
-    hidden
-      ? "w-0 min-w-0 overflow-hidden px-0 opacity-0"
-      : compact
-        ? "min-w-[44px] px-1.5"
-        : "min-w-[48px] px-2"
-  } ${on ? "text-[var(--tint-text)]" : "text-[var(--label-2)]"}`;
-  const style = { transition: "color var(--dur-xs) var(--ease-settle)" };
+  const cls = `tab-item ${hidden ? "!w-0 !flex-none overflow-hidden !px-0 opacity-0" : min ? "!flex-none w-[54px]" : "px-1"}`;
   const inner = (
     <>
       {on && (
         <motion.span
           layoutId="tab-pill"
           layoutDependency={on}
-          className="absolute inset-0 rounded-full bg-[var(--fill-3)]"
+          className="tab-lens"
           transition={spring.thumb}
           aria-hidden
         />
@@ -79,7 +72,9 @@ function MobileTab({
           aria-hidden
         />
       </span>
-      <span className={`text-tab relative ${min || compact ? "sr-only" : ""}`}>{it.label}</span>
+      <span className={`tab-label relative ${min || compact ? "sr-only" : ""}`} data-testid="tab-label">
+        {it.label}
+      </span>
     </>
   );
   if (onOpen)
@@ -88,6 +83,7 @@ function MobileTab({
         type="button"
         aria-haspopup="dialog"
         data-testid="tab-more"
+        data-on={on || undefined}
         {...(tip.props as object)}
         aria-hidden={hidden || undefined}
         tabIndex={hidden ? -1 : undefined}
@@ -96,7 +92,6 @@ function MobileTab({
           onOpen();
         }}
         className={cls}
-        style={style}
       >
         {inner}
         {tip.tag}
@@ -111,7 +106,6 @@ function MobileTab({
       tabIndex={hidden ? -1 : undefined}
       onClick={() => !on && haptic(4)}
       className={cls}
-      style={style}
     >
       {inner}
       {tip.tag}
@@ -197,7 +191,11 @@ export function Nav() {
           data-testid="nav-pill"
           data-fit={fit}
         >
-          <Link href="/" className="flex shrink-0 items-center gap-2.5 pl-1" aria-label={t("nav.t_dj_home")}>
+          <Link
+            href="/"
+            className="flex min-h-11 min-w-11 shrink-0 items-center gap-2.5 pl-1"
+            aria-label={t("nav.t_dj_home")}
+          >
             <Logo size={28} />
             {fit < 1 && (
               <span className="text-headline max-w-[200px] truncate">
@@ -225,19 +223,27 @@ export function Nav() {
 
       {/* Phone: Liquid Glass tab capsule that minimises on scroll, plus a detached search button on search pages */}
       <LayoutGroup id="mobile-nav">
+        {/* One capsule, 16 px from the edges (at most 440 wide, centred); on search pages it leaves room on its
+            right for the search circle on the same row; minimised (scrolling down) it shrinks to the current tab at
+            the leading edge, as iOS 26 does */}
         <nav
-          className="glass fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-1/2 z-40 flex items-center p-1 sm:hidden"
+          className="glass tabbar fixed z-40 flex items-center sm:hidden"
           data-min={minimised || undefined}
           data-testid="tab-bar"
           aria-label={t("nav.primary_mobile")}
           style={{
-            transition:
-              "transform var(--dur-s) var(--ease-settle), opacity var(--dur-s) var(--ease-settle), width var(--dur-s) var(--ease-settle)",
-            transform: hidden
-              ? "translate(-50%, 120%)"
-              : `translate(calc(-50% - ${searchId && !minimised ? 30 : 0}px), 0)`,
+            bottom: "var(--tabbar-bottom)",
+            left: "max(1rem, env(safe-area-inset-left, 0px))",
+            right: minimised
+              ? "auto"
+              : searchId
+                ? "calc(max(1rem, env(safe-area-inset-right, 0px)) + var(--tabbar-h) + 10px)"
+                : "max(1rem, env(safe-area-inset-right, 0px))",
+            marginInline: minimised || searchId ? undefined : "auto",
+            maxWidth: 440,
+            transition: "transform var(--dur-s) var(--ease-settle), opacity var(--dur-s) var(--ease-settle)",
+            transform: hidden ? "translateY(120%)" : "none",
             opacity: hidden ? 0 : 1,
-            maxWidth: searchId ? "calc(100vw - 96px)" : "calc(100vw - 1.5rem)",
           }}
         >
           {PHONE_TABS.map((it) => (
@@ -246,7 +252,7 @@ export function Nav() {
               it={it}
               on={path === it.href}
               min={minimised}
-              compact={!!searchId}
+              compact={false}
               hidden={minimised && path !== it.href}
             />
           ))}
@@ -254,7 +260,7 @@ export function Nav() {
             it={MORE}
             on={inMore}
             min={minimised}
-            compact={!!searchId}
+            compact={false}
             hidden={minimised && !inMore}
             onOpen={() => setMoreOpen(true)}
           />
@@ -284,7 +290,7 @@ export function Nav() {
         {searchId && (
           <button
             type="button"
-            className="glass fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] right-3 z-40 grid h-[60px] w-[60px] place-items-center rounded-full text-[var(--label)] sm:hidden"
+            className="glass tab-search fixed bottom-[var(--tabbar-bottom)] right-[max(1rem,env(safe-area-inset-right,0px))] z-40 grid place-items-center rounded-full text-[var(--label)] sm:hidden"
             aria-label={t("nav.search")}
             style={{
               transition:

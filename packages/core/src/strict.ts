@@ -5,6 +5,7 @@ import { cortinaTempo, cueMetaOk } from "./cortinas";
 import { cumparsitaPlacement, OPENING_SAME_ERA } from "./cumparsita";
 import { normTitle, surnameKey } from "./energy";
 import { goldenClassOf, isColour, isGoldenNight, staticProfile } from "./knowledge";
+import { tandaTitleKeyOf, templateIdOf } from "./learnedRules";
 import { cliffOf, isPeakSlot, isReleaseCut, meanFameOf, type OrderCtx, orderVerdictOf } from "./order";
 import { NEVER_OPEN, OPENERS } from "./rules";
 import { isTandaEligible, songRhythm } from "./tanda";
@@ -51,6 +52,16 @@ export interface StrictResult {
   penalty: number;
   /** round 21: what the DJ's pinned tandas break — informational "DJ exceptions", never counted */
   exceptions?: StrictViolation[];
+  /**
+   * what a pinned tanda the DJ approved as it is breaks inside itself (a DJ tanda template with `approved`, in the
+   * learned store): accepted, neither a fault nor an exception to flag
+   */
+  accepted?: StrictViolation[];
+}
+
+/** strictChecks' options: the tandas the DJ approved as they are for this night only (nightExceptionKeys) */
+export interface StrictOptions {
+  approved?: ReadonlySet<string>;
 }
 
 const D = "docs/reviews/round14-dancer.md";
@@ -691,7 +702,7 @@ export const cueMoody = (c: Cortina) =>
   cortinaTempo(c) === "slow" || MOODY.some((m) => c.tags?.includes(`mood:${m}`));
 
 /** Run every strict-panel rule on a night. Pure and deterministic. */
-export function strictChecks(n: Night): StrictResult {
+export function strictChecks(n: Night, opts: StrictOptions = {}): StrictResult {
   const t = n.tandas;
   const o = n.options;
   const golden = isGoldenNight(o);
@@ -1153,6 +1164,12 @@ export function strictChecks(n: Night): StrictResult {
   const pinned = (i: number) => !!t[i]?.pinned;
   const anyPinned = t.some((x) => x.pinned) || !!n.closingPinned;
   const exceptions: StrictViolation[] = [];
+  const accepted: StrictViolation[] = [];
+  // a pinned tanda the DJ approved as it is (learning data: the rule stays for composed tandas)
+  const approvedAt = (i: number) =>
+    !!opts.approved?.size &&
+    pinned(i) &&
+    (opts.approved.has(templateIdOf(t[i]!)) || opts.approved.has(tandaTitleKeyOf(t[i]!)));
   const hb = anyPinned ? hourBuckets(n) : [];
   /** a rule judged on a stretch of the night: the violation is the DJ's when a pinned tanda is in that stretch */
   const scopeOf = (v: StrictViolation): number[] => {
@@ -1205,7 +1222,8 @@ export function strictChecks(n: Night): StrictResult {
           scopeOf(v).some((j) => j >= 0 && pinned(j)) ||
           (v.tanda < 0 && nightOk(v)) ||
           (v.rule === "closer" && !!n.closingPinned));
-      (inv ? exceptions : keep).push(v);
+      if (inv && v.tanda >= 0 && v.with === undefined && approvedAt(v.tanda)) accepted.push(v);
+      else (inv ? exceptions : keep).push(v);
     }
     x.v = keep;
   }
@@ -1234,6 +1252,7 @@ export function strictChecks(n: Night): StrictResult {
     shouldFix,
     penalty: blockers * 10 + shouldFix - 0.75 * order - 0.75 * soft,
     ...(exceptions.length ? { exceptions } : {}),
+    ...(accepted.length ? { accepted } : {}),
   };
 }
 

@@ -1,7 +1,22 @@
 import { normTitle } from "./energy";
-import type { AgentMemory, ComposeOptions, Playlist } from "./types";
+import { forgetLike, learnFromLike, likedShapeDefaults } from "./likes";
+import type { AgentMemory, ComposeOptions, LearnedPreferences, Playlist } from "./types";
 
 export const emptyMemory = (): AgentMemory => ({ notes: [], feedbackHistory: [], sets: [], preferences: {} });
+
+/**
+ * The `learned` a request carries: the DJ's own (when learning is on) and, always, the DJ's overrides of the
+ * repo-level store (the featured night's edits: switched off, reweighted, deleted rules), which mergeLearned applies.
+ */
+export function learnedForRequest(
+  memory: AgentMemory | null | undefined,
+  learn: boolean,
+): LearnedPreferences | undefined {
+  const mine = learn ? memory?.learned : undefined;
+  const repo = memory?.repoLearned;
+  if (!repo) return mine;
+  return { ...(mine ?? {}), repo };
+}
 
 /** Learned preferences sit under explicit options: memory never overrides what the DJ set tonight. */
 export function applyMemory(
@@ -12,12 +27,16 @@ export function applyMemory(
   const withRecent = (o: Partial<ComposeOptions>): Partial<ComposeOptions> =>
     o.recent || !recent ? o : { ...o, recent };
   // round 21: what the DJ's edits taught (learn.ts) rides with every compose; tonight's own `learned` wins
+  const learned = learnedForRequest(memory, true);
   const withLearned = (o: Partial<ComposeOptions>): Partial<ComposeOptions> =>
-    memory?.learned && !o.learned ? { ...o, learned: memory.learned } : o;
-  if (!memory?.preferences) return withLearned(withRecent(partial));
+    learned && !o.learned ? { ...o, learned } : o;
+  // thumbs up on nights of the same shape (likes.ts): the lowest layer, under preferences and tonight's settings
+  const shape = likedShapeDefaults(memory?.learned);
+  if (!memory?.preferences) return withLearned(withRecent({ ...shape, ...partial }));
   const { rules, context, ...prefs } = memory.preferences;
   return withLearned(
     withRecent({
+      ...shape,
       ...prefs,
       ...partial,
       rules: { ...(rules ?? {}), ...(partial.rules ?? {}) },
@@ -28,6 +47,8 @@ export function applyMemory(
 
 /** Record a composed set (keeps the last 50). */
 export function rememberSet(memory: AgentMemory, p: Playlist, liked?: boolean): AgentMemory {
+  // the same night recorded again keeps its rating (rateNight is the one that changes or clears it)
+  liked ??= memory.sets.find((s) => s.id === p.id)?.liked;
   const entry = {
     at: new Date().toISOString(),
     id: p.id,
@@ -45,6 +66,34 @@ export function rememberSet(memory: AgentMemory, p: Playlist, liked?: boolean): 
     sets: [entry, ...memory.sets.filter((s) => s.id !== p.id)].slice(0, 50),
     updatedAt: entry.at,
   };
+}
+
+/**
+ * Thumbs up (true), down (false) or neither (undefined) on a night: the set's entry keeps its place and time (so the
+ * variety memory of the next nights does not move), and with learning on the rating feeds the learned preferences
+ * (likes.ts); with learning off the rating is recorded only, and any earlier contribution of the night is taken back.
+ */
+export function rateNight(
+  memory: AgentMemory,
+  p: Playlist,
+  liked: boolean | undefined,
+  opts: { learn?: boolean; at?: string } = {},
+): AgentMemory {
+  const at = opts.at ?? new Date().toISOString();
+  const has = memory.sets.some((s) => s.id === p.id);
+  const base = has ? memory : rememberSet(memory, p);
+  const sets = base.sets.map((s) => {
+    if (s.id !== p.id) return s;
+    const { liked: _l, ...rest } = s;
+    return liked === undefined ? rest : { ...rest, liked };
+  });
+  const learned =
+    opts.learn !== false && liked !== undefined
+      ? learnFromLike(memory.learned, p, liked, at)
+      : forgetLike(memory.learned, p.id);
+  const out: AgentMemory = { ...memory, sets, updatedAt: at };
+  if (learned) out.learned = learned;
+  return out;
 }
 
 export function rememberFeedback(

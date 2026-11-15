@@ -218,3 +218,84 @@ test("learned rules: a lock teaches, Database → Memory lists it, the DJ weight
   await expect(page.getByTestId("learned-rule")).toHaveCount(n - 1);
   await expect(page.getByRole("switch", { name: "Learn from my edits" })).toBeVisible();
 });
+
+test("thumbs up teaches: a toast says so, the next night composes with it, Database → Memory lists it from nights you liked", async ({
+  page,
+}) => {
+  await openFeatured(page);
+  const up = page.getByRole("button", { name: "Mark as liked" });
+  await up.click();
+  await expect(up).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("toast")).toContainText(
+    "Got it: future nights will lean towards these tandas.",
+  );
+  // compose again: the liked night's families ride with the request
+  const compose = page.waitForRequest((r) => r.url().includes("/api/compose") && r.method() === "POST");
+  await page.getByTestId("toolbar-regenerate").click();
+  const body = (await compose).postDataJSON();
+  expect(Object.values(body.learned?.likes ?? {})).toHaveLength(1);
+  await expect(page.getByTestId("toolbar-regenerate")).toBeEnabled({ timeout: 90000 });
+  // the memory is written to this browser's database a moment after the edit
+  await page.waitForTimeout(1000);
+  await page.goto("/database");
+  const memoryTab = page.getByRole("radio", { name: "Memory" });
+  if (await memoryTab.isVisible()) await memoryTab.click();
+  else {
+    await page.getByRole("button", { name: "More" }).click();
+    await page.getByRole("menuitem", { name: "Memory" }).click();
+  }
+  const rated = page.getByTestId("learned-from-likes");
+  await expect(rated).toBeVisible();
+  await expect(rated.getByTestId("learned-source").first()).toContainText(/from nights you liked/i);
+  const n = await rated.getByTestId("learned-rule").count();
+  await rated
+    .getByTestId("learned-rule")
+    .first()
+    .getByRole("button", { name: /^Delete / })
+    .click();
+  await expect(rated.getByTestId("learned-rule")).toHaveCount(n - 1);
+});
+
+test("a fresh profile sees what the featured night's edits taught: Settings and Database → Memory list it, and it switches off", async ({
+  page,
+}) => {
+  await page.goto("/settings");
+  const group = page.getByTestId("featured-learned");
+  await group.scrollIntoViewIfNeeded();
+  await expect(group).toContainText("Learned from your edits to the featured night", { timeout: 30000 });
+  expect(await group.getByTestId("learned-rule").count()).toBeGreaterThan(10);
+  await expect(group).toContainText("Last 4 tandas tango only");
+  await expect(group.getByTestId("featured-exceptions")).toContainText("Exception for this night only");
+  await expect(page.getByText("Nothing learned yet")).toHaveCount(0);
+  await page.goto("/database");
+  const memoryTab = page.getByRole("radio", { name: "Memory" });
+  if (await memoryTab.isVisible()) await memoryTab.click();
+  else {
+    await page.getByRole("button", { name: "More" }).click();
+    await page.getByRole("menuitem", { name: "Memory" }).click();
+  }
+  const db = page.getByTestId("featured-learned");
+  await expect(db.getByTestId("learned-rule").first()).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("Nothing learned yet")).toHaveCount(0);
+  // one rule deleted, then the whole store switched off: both are the DJ's overrides, and compose receives them
+  const n = await db.getByTestId("learned-rule").count();
+  await db
+    .getByTestId("learned-rule")
+    .first()
+    .getByRole("button", { name: /^Delete / })
+    .click();
+  await expect(db.getByTestId("learned-rule")).toHaveCount(n - 1);
+  await db.getByRole("switch", { name: "Use the featured night's edits" }).click();
+  await expect(db.getByTestId("learned-rule")).toHaveCount(0);
+  await expect(db).toContainText("Off: compose does not use the featured night's edits.");
+  await page.waitForTimeout(1000);
+  await page.goto("/");
+  const compose = page.waitForRequest((r) => r.url().includes("/api/compose") && r.method() === "POST");
+  await page
+    .getByRole("button", { name: /Compose the night/ })
+    .first()
+    .click();
+  const body = (await compose).postDataJSON();
+  expect(body.learned?.repo?.off).toBe(true);
+  expect(body.learned?.repo?.deleted).toHaveLength(1);
+});

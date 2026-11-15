@@ -14,6 +14,7 @@ import { Sheet } from "../Sheet";
 import { Artwork } from "../ui/Artwork";
 import { BpmKey, EnergyChip } from "../ui/BpmKey";
 import { EraBadge } from "../ui/EraBadge";
+import { hasTransition } from "./TransitionSheet";
 import { Waveform } from "./Waveform";
 
 /**
@@ -21,8 +22,18 @@ import { Waveform } from "./Waveform";
  * it in the headphones, set its cue and stop on the waveform, and hear or play any other version of it (the same
  * title by the same orchestra). The room and the headphones are named on every button.
  */
-export function SongSheet({ i, onClose }: { i: number | null; onClose: () => void }) {
+export function SongSheet({
+  i,
+  onClose,
+  onTransition,
+}: {
+  i: number | null;
+  onClose: () => void;
+  /** wave 4: "Transition…" opens the editor of the transition out of this item */
+  onTransition?: (i: number) => void;
+}) {
   const it = useBooth((s) => (i === null ? null : s.plan?.items[i]));
+  const canTransition = useBooth((s) => i !== null && hasTransition(s.plan?.items, i));
   const entity = useBooth((s) => (i === null ? null : (s.entities[i] ?? null)));
   const started = useBooth((s) => s.started);
   const planIndex = useBooth((s) => s.planIndex);
@@ -168,6 +179,18 @@ export function SongSheet({ i, onClose }: { i: number | null; onClose: () => voi
               )
             )}
           </Group>
+          {onTransition && canTransition && (
+            <Group footer={t("booth.songSheet.transition_footer")}>
+              <ActionRow
+                label={t("booth.songSheet.transition")}
+                tip={t("booth.songSheet.transition_footer")}
+                onClick={() => {
+                  onClose();
+                  onTransition(i);
+                }}
+              />
+            </Group>
+          )}
           {it.kind !== "cortina" && song && (
             <CueEditor
               i={i}

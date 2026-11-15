@@ -18,6 +18,7 @@ import { Artwork } from "../ui/Artwork";
 import { BpmKey } from "../ui/BpmKey";
 import { EraBadge } from "../ui/EraBadge";
 import { SongSheet } from "./SongSheet";
+import { hasTransition, transitionSummary } from "./TransitionSheet";
 
 /**
  * The set (round7-booth.md §1.1): every plan item grouped by tanda; the current item highlighted, played items
@@ -30,6 +31,7 @@ export function SetColumn({
   onFind,
   onCortina,
   onTapRow,
+  onTransition,
 }: {
   /** round 22: a tapped row opens the song sheet (the page owns it, so Now's "Song info" opens the same one) */
   onTapRow?: (planIndex: number) => void;
@@ -37,6 +39,8 @@ export function SetColumn({
   onFind: (itemId: string, title: string) => void;
   /** round 20: open the cortina's envelope sheet (fade in / fade out / stop at) */
   onCortina?: (planIndex: number) => void;
+  /** wave 4: the gap marker between two items opens the transition editor (the outgoing item's plan index) */
+  onTransition?: (planIndex: number) => void;
 }) {
   const plan = useBooth((s) => s.plan);
   const planIndex = useBooth((s) => s.planIndex);
@@ -230,7 +234,7 @@ export function SetColumn({
               )}
             </header>
             <ol>
-              {g.items.map(({ i }, k) => (
+              {g.items.map(({ i }, k) => [
                 <Row
                   key={i}
                   i={i}
@@ -256,8 +260,11 @@ export function SetColumn({
                   onTap={tap}
                   onFind={onFind}
                   onCortina={onCortina}
-                />
-              ))}
+                />,
+                onTransition && hasTransition(plan.items, i) ? (
+                  <GapMarker key={`gap-${i}`} i={i} played={started && i < planIndex} onOpen={onTransition} />
+                ) : null,
+              ])}
             </ol>
           </section>
         );
@@ -488,6 +495,41 @@ const Row = memo(function Row({
       ) : (
         <span className="booth-row-act" aria-hidden />
       )}
+    </li>
+  );
+});
+
+/**
+ * Wave 4: the marker between two items — the silence (or the edited transition) in a small chip; tapping it opens the
+ * transition editor. Its 44 px target reaches over the next rows' number and artwork columns, which take no taps.
+ */
+const GapMarker = memo(function GapMarker({
+  i,
+  played,
+  onOpen,
+}: {
+  i: number;
+  played: boolean;
+  onOpen: (i: number) => void;
+}) {
+  const it = useBooth((s) => s.plan?.items[i]);
+  const next = useBooth((s) => s.plan?.items[i + 1]);
+  if (!it || !next) return null;
+  const summary = transitionSummary(it);
+  const edited = !!it.transitionAfter;
+  return (
+    <li className="booth-gap" data-edited={edited || undefined} data-played={played || undefined}>
+      <button
+        type="button"
+        className="booth-gap-btn"
+        onClick={() => onOpen(i)}
+        aria-label={tx("booth.transition.marker_label", { from: it.title, to: next.title, summary })}
+        data-hint={tx("booth.transition.marker_hint", { summary })}
+        data-testid="booth-gap"
+        data-from={i}
+      >
+        <span className="tabular-nums">{summary}</span>
+      </button>
     </li>
   );
 });

@@ -88,8 +88,24 @@ export function MiniPlayer() {
   }, [position, preview]);
 
   const total = stopAt(track, queue) ?? (duration || 30);
-  // the phone tab bar is 60 px tall over the safe area: the player's bottom edge sits exactly on its top edge
-  const offset = "calc(max(0.75rem, env(safe-area-inset-bottom)) + 60px)";
+  // the phone tab capsule (wave 4: --tabbar-h over --tabbar-bottom): the player's bottom edge sits on its top edge
+  const offset = "calc(var(--tabbar-bottom) + var(--tabbar-h))";
+  // the page reserves the docked player's height (globals.css: --mini-h → --mini-reserve → --bottom-chrome), so the
+  // last rows, the guide box and anything scrolled into view clear the player as well as the tab capsule
+  const docked = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = docked.current;
+    const root = document.documentElement;
+    if (!track || !el) return;
+    const put = () => root.style.setProperty("--mini-h", `${Math.ceil(el.offsetHeight)}px`);
+    put();
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(put) : null;
+    ro?.observe(el);
+    return () => {
+      ro?.disconnect();
+      root.style.removeProperty("--mini-h");
+    };
+  }, [track]);
   // the tab bar squares its top corners while the player is docked on it
   useEffect(() => {
     const nav = document.querySelector<HTMLElement>('[data-testid="tab-bar"]');
@@ -117,6 +133,7 @@ export function MiniPlayer() {
         {track && (
           <motion.div
             key="mini-player"
+            ref={docked}
             variants={reduced ? undefined : sheetUp}
             initial={reduced ? { opacity: 0 } : "hidden"}
             animate={reduced ? { opacity: 1 } : "show"}
@@ -124,10 +141,10 @@ export function MiniPlayer() {
             role="region"
             aria-label={t("miniPlayer.now_playing")}
             data-testid="mini-player"
-            className="glass mini-docked fixed inset-x-3 z-30 rounded-[var(--radius-m)] p-2 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:w-[360px] lg:bottom-6"
+            className="glass mini-docked fixed inset-x-4 z-30 mx-auto max-w-[440px] sm:max-w-none rounded-[var(--radius-m)] p-2 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:w-[360px] lg:bottom-6"
             style={{ bottom: `var(--mini-bottom, ${offset})` }}
           >
-            <style>{'@media (min-width: 640px){[data-testid="mini-player"]{--mini-bottom:1.5rem}}'}</style>
+            <style>{'@media (min-width: 600px){[data-testid="mini-player"]{--mini-bottom:1.5rem}}'}</style>
             <div className="flex items-center gap-2">
               {track.source.kind === "preview" ? (
                 <button

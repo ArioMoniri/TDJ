@@ -10,6 +10,7 @@ import {
   type ExportFormat,
   type Feedback,
   improveNight,
+  nightExceptionKeys,
   type Playlist,
   replaceSide,
   swapOptions as swapOptionsFor,
@@ -113,7 +114,9 @@ export async function benchmark(req: Request, d: ApiDeps): Promise<Response> {
   const playlist = (body?.playlist ?? body) as Playlist | null;
   if (!playlist || !Array.isArray(playlist.tandas) || !playlist.options) return bad("playlist required");
   try {
-    return json(benchmarkNight(playlist));
+    // the tandas the DJ approved as they are for this night only (the featured night's exceptions) are accepted
+    const approved = nightExceptionKeys(d.catalog().catalog.learned, playlist.id);
+    return json(benchmarkNight(playlist, { approved }));
   } catch (e) {
     return bad(e instanceof Error ? e.message : "Could not benchmark this set");
   }
@@ -255,6 +258,7 @@ export async function meta(_req: Request, d: ApiDeps): Promise<Response> {
           }
         : null,
       referencePlaylists,
+      featuredLearned: catalog.learned ?? null,
       knowledge: {
         profiles: catalog.profiles.size,
         cortinas: pool.length,

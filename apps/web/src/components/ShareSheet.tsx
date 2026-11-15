@@ -2,6 +2,8 @@
 import { FileDown, FolderOpen, Link2, QrCode as QrIcon, Share2, Smartphone, Users } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { fileCheckLine } from "@/lib/exportCheckView";
+import { verifyFile } from "@/lib/fileVerify";
 import { haptic } from "@/lib/haptics";
 import { t as tx } from "@/lib/i18n";
 import { nightSub, nightTitle } from "@/lib/nightName";
@@ -16,6 +18,7 @@ import {
 import { toast } from "@/lib/toast";
 import type { Playlist } from "@/lib/types";
 import { Group, Tile } from "./Form";
+import { NightCover } from "./NightCover";
 import { QrCode } from "./QrCode";
 import { Sheet } from "./Sheet";
 import { TipRow } from "./TipRow";
@@ -109,6 +112,17 @@ export function ShareSheet({
       testId="share-sheet"
       trailing={tx("shareSheet.done")}
     >
+      {/* wave 4: the night's cover, as the link's preview and the .tdjnight file show it */}
+      <div className="flex justify-center px-4 pb-3">
+        <NightCover
+          night={playlist}
+          size={640}
+          display={168}
+          testId="share-cover"
+          alt={tx("cover.alt", { title: nightTitle(playlist) })}
+          className="shadow-md"
+        />
+      </div>
       <p className="px-4 pb-3 text-footnote text-[var(--label-2)]">
         {tx("shareSheet.tandas_songs_score_anyone_you_send", {
           playlist: nightTitle(playlist),
@@ -168,7 +182,17 @@ export function ShareSheet({
           }
           label={tx("shareSheet.save_as_a_file")}
           sub={tx("shareSheet.tdjnight_open_it_in_t_dj")}
-          onClick={() => share && saveNightFile(share.night)}
+          onClick={() => {
+            if (!share) return;
+            // the file read back: the night's rows, in order, with their names and letters intact
+            const text = saveNightFile(share.night);
+            toast(
+              fileCheckLine(
+                tx("exportCheck.file_label", { label: "T-DJ" }),
+                verifyFile("tdjnight", text, playlist),
+              ),
+            );
+          }}
           disabled={!share}
           tip={tx("shareSheet.saves_the_night_as_a_tdjnight")}
           data-testid="share-save-file"

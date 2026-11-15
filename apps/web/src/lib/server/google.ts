@@ -1,5 +1,7 @@
 import "server-only";
+import { verifyYoutube, type YoutubeCheck, type YtCall, type YtExpected, ytRetry } from "@/lib/youtubeVerify";
 import { ApiError, api, GOOGLE, GOOGLE_SCOPE, type GoogleFeature, type Session, safeName } from "./oauth";
+import { checkUpload, type UploadCheck } from "./uploadVerify";
 
 /**
  * Google with the deployment's own OAuth client: Drive uploads (`drive.file`: TDJ only ever sees files it created)
@@ -52,7 +54,7 @@ async function tdjFolder(access: string): Promise<string> {
 export async function uploadDrive(
   access: string,
   f: { filename: string; mime: string; text: string },
-): Promise<{ id: string; path: string; url: string }> {
+): Promise<{ id: string; path: string; url: string; verified: UploadCheck }> {
   const folder = await tdjFolder(access);
   const name = safeName(f.filename);
   const boundary = `tdj${Date.now().toString(36)}`;
@@ -73,10 +75,23 @@ export async function uploadDrive(
     "/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink",
     { method: "POST", headers: { "content-type": `multipart/related; boundary=${boundary}` }, body },
   );
+  // asked again: the size and MD5 Drive reports for the stored file against the bytes sent
+  const verified = await checkUpload(
+    f.text,
+    async () => {
+      const m = await google<{ size?: string; md5Checksum?: string }>(
+        access,
+        `/drive/v3/files/${encodeURIComponent(r.id)}?fields=size,md5Checksum`,
+      );
+      return { size: m.size, hash: m.md5Checksum };
+    },
+    "md5",
+  );
   return {
     id: r.id,
     path: `TDJ/${r.name ?? name}`,
     url: r.webViewLink ?? `https://drive.google.com/file/d/${r.id}/view`,
+    verified,
   };
 }
 
@@ -106,6 +121,8 @@ export async function createYoutubePlaylist(
 
 export interface YoutubeAddResult {
   added: number;
+  /** what went in, by the query's place in this batch (the Export sheet checks the playlist against it) */
+  videos: Array<{ at: number; videoId: string }>;
   /** searched, nothing found */
   missing: string[];
   /** not searched: the quota ran out (`quota`) or the time budget did (`timeout`) */
@@ -126,20 +143,24 @@ export async function addYoutubeItems(
   o: { deadline?: number } = {},
 ): Promise<YoutubeAddResult> {
   const deadline = o.deadline ?? Date.now() + YOUTUBE_BUDGET_MS;
+  // a short rate error (403 rateLimitExceeded, 429) is waited out with backoff, never counted as "not found";
+  // the daily quota is not retried here: it ends the batch (`quota`)
+  const yt = ytRetry(youtubeCall(access), { maxRetries: 3, retryQuota: false });
+  const videos: Array<{ at: number; videoId: string }> = [];
   let added = 0;
   let quota = false;
   let timeout = false;
   const missing: string[] = [];
   const skipped: string[] = [];
-  for (const q of queries) {
+  for (const [at, q] of queries.entries()) {
     if (!quota && !timeout && Date.now() >= deadline) timeout = true;
     if (quota || timeout) {
       skipped.push(q);
       continue;
     }
     try {
-      const s = await google<{ items?: Array<{ id?: { videoId?: string } }> }>(
-        access,
+      const s = await yt<{ items?: Array<{ id?: { videoId?: string } }> }>(
+        "GET",
         `/youtube/v3/search?${new URLSearchParams({ part: "snippet", type: "video", maxResults: "1", q })}`,
       );
       const videoId = s.items?.[0]?.id?.videoId;
@@ -147,12 +168,11 @@ export async function addYoutubeItems(
         missing.push(q);
         continue;
       }
-      await google(access, "/youtube/v3/playlistItems?part=snippet", {
-        method: "POST",
-        body: JSON.stringify({
-          snippet: { playlistId, resourceId: { kind: "youtube#video", videoId } },
-        }),
+      // one insert after the other, in running order
+      await yt("POST", "/youtube/v3/playlistItems?part=snippet", {
+        snippet: { playlistId, resourceId: { kind: "youtube#video", videoId } },
       });
+      videos.push({ at, videoId });
       added++;
     } catch (e) {
       if (isQuotaError(e)) {
@@ -162,7 +182,23 @@ export async function addYoutubeItems(
       else throw e;
     }
   }
-  return { added, missing, skipped, quota, timeout };
+  return { added, videos, missing, skipped, quota, timeout };
+}
+
+/** The YouTube Data API with the DJ's own Google token, as lib/youtubeVerify.ts calls it. */
+export const youtubeCall =
+  (access: string): YtCall =>
+  <T>(method: "GET" | "POST" | "PUT" | "DELETE", path: string, body?: unknown) =>
+    google<T>(access, path, { method, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
+
+/** Reads the playlist back with the DJ's token and puts it right (lib/youtubeVerify.ts). */
+export function checkYoutube(
+  access: string,
+  playlistId: string,
+  expected: YtExpected[],
+  region?: string,
+): Promise<YoutubeCheck> {
+  return verifyYoutube(youtubeCall(access), playlistId, expected, { region });
 }
 
 /** The whole set in one request (older callers): the playlist, then as many items as the time budget allows. */

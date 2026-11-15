@@ -64,7 +64,7 @@ export function ControlStrip({
   const nowItem = useBooth((s) => s.plan?.items[s.planIndex]);
   const nowEntity = useBooth((s) => s.entities[s.planIndex] ?? null);
   const act = useBooth.getState();
-  const wide = useMediaQuery("(min-width: 640px)", true);
+  const wide = useMediaQuery("(min-width: 600px)", true);
   const sourceMode = useBooth((s) => s.sourceMode);
   const stripRef = useRef<HTMLDivElement>(null);
   // the page's bottom padding follows the strip (round 18): the space it takes from the viewport's foot (its height,

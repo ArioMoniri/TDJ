@@ -59,7 +59,7 @@ export function ComposeProgress({ busy, onCancel }: { busy: boolean; onCancel: (
           initial={{ opacity: 0, y: reduced ? 0 : 8 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, transition: { duration: DUR.fast } }}
-          className="glass fixed inset-x-3 bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+136px)] z-40 mx-auto max-w-[520px] rounded-[22px] px-4 py-3 sm:bottom-6"
+          className="glass fixed inset-x-3 bottom-[calc(var(--chrome-stack)+var(--fab-h)+24px)] z-40 mx-auto max-w-[520px] rounded-[22px] px-4 py-3 sm:bottom-6"
           role="group"
           aria-label={t("composeNarrative.composing_the_night")}
           data-testid="compose-progress"

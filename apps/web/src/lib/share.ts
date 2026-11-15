@@ -9,6 +9,7 @@ import {
   nightFileText,
   nightLink,
 } from "@tdj/core";
+import { coverSeedFor } from "./cover/entrySeed";
 import { downloadBlob } from "./download";
 import type { Playlist } from "./types";
 
@@ -31,7 +32,8 @@ function webOrigin(): string | null {
 }
 
 export async function shareNight(p: Playlist): Promise<NightShare> {
-  const night = exportNight(p);
+  // wave 4: the cover family travels with the night, so the link preview and the .tdjnight show the same cover
+  const night: NightFile & { coverSeed?: string } = { ...exportNight(p), coverSeed: coverSeedFor(p) };
   try {
     const payload = await encodeNightPayload(night);
     return {
@@ -45,8 +47,11 @@ export async function shareNight(p: Playlist): Promise<NightShare> {
   }
 }
 
-export function saveNightFile(n: NightFile) {
-  downloadBlob(nightFileName(n.name), nightFileText(n), NIGHT_MIME);
+/** Saves the night as a `.tdjnight` file; returns the text that was saved (the caller reads it back). */
+export function saveNightFile(n: NightFile): string {
+  const text = nightFileText(n);
+  downloadBlob(nightFileName(n.name), text, NIGHT_MIME);
+  return text;
 }
 
 /** a short link kept by this server (30 days), or null when it keeps none */

@@ -45,6 +45,29 @@ export interface TandaCandidate {
 
 const dated = (s: Song) => (s.year && !s.yearApprox ? s.year : null);
 
+/** a family window's recording years (dated sides only), for the year band of a liked night (likes.ts) */
+export const candidateYears = (c: Pick<TandaCandidate, "songs">): [number, number] | null => {
+  let lo = Infinity;
+  let hi = -Infinity;
+  for (const s of c.songs) {
+    const y = dated(s);
+    if (y === null) continue;
+    if (y < lo) lo = y;
+    if (y > hi) hi = y;
+  }
+  return lo <= hi ? [lo, hi] : null;
+};
+
+/**
+ * A test probe on the family draw: called with every slot's weighted families before the draw (tests only; null in
+ * the app). Lets an invariant see that a learned preference moves a family's rank without composing many nights.
+ */
+export const rankProbe: {
+  on:
+    | ((slot: number, rows: Array<{ key: string; years: [number, number] | null; w: number }>) => void)
+    | null;
+} = { on: null };
+
 /**
  * A row a tanda may be built from (round 8): dated (no decade placeholder, no missing year) and a studio side,
  * never a radio/live transcription or an "inéditos" bootleg. `allowUndated` (rules.allowUndated) lets a DJ opt in.
@@ -1327,8 +1350,13 @@ export function buildTanda(
     if (spp?.preferred && spp.phase?.includes(slot.phase)) w *= 1.5;
     if (sc.weightOf) w *= sc.weightOf(c);
     // round 21: the families the DJ chose by hand weigh more, the ones they replaced a little less
+    // (and the nights the DJ liked or disliked, in their year band: likes.ts)
     if (sc.learned)
-      w *= learnedFamilyFactor(sc.learned, familyKey({ ...c, rhythm: slot.rhythm as Song["rhythm"] }));
+      w *= learnedFamilyFactor(
+        sc.learned,
+        familyKey({ ...c, rhythm: slot.rhythm as Song["rhythm"] }),
+        sc.learned.likes ? candidateYears(c) : undefined,
+      );
     const st = sc.style(c.orchestraId) ?? "balanced";
     w *= PHASE_STYLE[slot.phase]?.[st] ?? 1;
     if (sc.preferStyles?.includes(st)) w *= 1.4;
@@ -1478,6 +1506,14 @@ export function buildTanda(
     return w;
   };
   let scoredFams = pool.map((c) => ({ c, w: weight(c) }));
+  rankProbe.on?.(
+    slot.index,
+    scoredFams.map((r) => ({
+      key: familyKey({ ...r.c, rhythm: slot.rhythm as Song["rhythm"] }),
+      years: candidateYears(r.c),
+      w: r.w,
+    })),
+  );
   // the first D'Arienzo bonus must survive the energy term: floor it at 90 % of the best weight in the slot
   if (
     slot.rhythm === "tango" &&

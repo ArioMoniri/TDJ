@@ -1,9 +1,20 @@
 "use client";
-import { addNote, applyMemory, benchmarkNight, ERA_SETTINGS, rememberFeedback, rememberSet } from "@tdj/core";
+import {
+  addNote,
+  applyMemory,
+  benchmarkNight,
+  ERA_SETTINGS,
+  learnedForRequest,
+  likedShapeDefaults,
+  nightExceptionKeys,
+  rememberFeedback,
+  rememberSet,
+} from "@tdj/core";
 import {
   ChevronRight,
   Copy,
   Disc3,
+  Ellipsis,
   Eraser,
   Hand,
   LoaderCircle,
@@ -38,11 +49,12 @@ import { FEATURED, type FeaturedId, featuredMeta, loadFeatured } from "@/lib/fea
 import { FEEDBACK_CHIPS } from "@/lib/feedback";
 import { haptic } from "@/lib/haptics";
 import { makeSnapshot } from "@/lib/history";
-import { testSlowdownMs, useMediaQuery, useScrollDirection, whenIdle } from "@/lib/hooks";
+import { testSlowdownMs, useMediaQuery, whenIdle } from "@/lib/hooks";
 import { lazy, lower, plural, t as tx } from "@/lib/i18n";
+import { rateTap, ratingOf, undoRate } from "@/lib/likes";
 import { describePreferences } from "@/lib/memory";
 import { DUR, EASE, rise, STAGGER } from "@/lib/motion";
-import { eraName, nightSub, nightTitle } from "@/lib/nightName";
+import { nightEraLabel, nightSub, nightTitle } from "@/lib/nightName";
 import { usePlayer } from "@/lib/player";
 import { useSheetOpen } from "@/lib/sheets";
 import {
@@ -827,7 +839,7 @@ const SetupForm = memo(function SetupForm({
         inert={!dock || undefined}
       >
         <span className="text-footnote min-w-0 flex-1 truncate text-[var(--label-2)]">
-          {tx("composer.h_tandas", { p1: eraName(era), hours, tandasEst })}
+          {tx("composer.h_tandas", { p1: nightEraLabel({ options }), hours, tandasEst })}
         </span>
         <Tip text={tx("composer.compose_the_night_with_these_settings")}>
           <button
@@ -929,7 +941,15 @@ export function Composer() {
   // before the 22 cards render)
   const playlist = useDeferredValue(livePlaylist, null);
   /** the night against the published DJ sets: pure and fast, recomputed with the set */
-  const bench = useMemo(() => (playlist ? benchmarkNight(playlist) : null), [playlist]);
+  // the tandas the DJ approved as they are for this night only (the featured night's exceptions) are accepted
+  const approved = useMemo(
+    () => nightExceptionKeys(meta?.featuredLearned, playlist?.id),
+    [meta?.featuredLearned, playlist?.id],
+  );
+  const bench = useMemo(
+    () => (playlist ? benchmarkNight(playlist, { approved }) : null),
+    [playlist, approved],
+  );
   /**
    * The reveal key changes on a fresh set (Compose pressed, or a recompose that changed the tanda count) and drives
    * the full reveal (score 0 → n, curve draw-on, card stagger); feedback / "Tell the DJ" with the same tanda count keep
@@ -947,9 +967,8 @@ export function Composer() {
     committedKey.current = setKey;
   }, [setKey]);
   const reduced = useReducedMotion();
-  const wide = useMediaQuery("(min-width: 640px)", true);
+  const wide = useMediaQuery("(min-width: 600px)", true);
   const lg = useMediaQuery("(min-width: 1024px)", true);
-  const minimised = useScrollDirection();
   const playerOpen = usePlayer((s) => !!s.track);
   useEffect(() => setHydrated(true), []);
   /**
@@ -973,12 +992,15 @@ export function Composer() {
     return () => io.disconnect();
   }, [hydrated, hasSet]);
   // the phone primary bar needs room under the form (round8-ux.md §2): `main` pads for it while this page is up
+  // wave 4: only the empty page floats a Compose button; with a set the actions live in the navigation bar
+  const floatingCompose = !hasSet;
   useEffect(() => {
+    if (!floatingCompose) return;
     document.documentElement.dataset.primaryBar = "1";
     return () => {
       delete document.documentElement.dataset.primaryBar;
     };
-  }, []);
+  }, [floatingCompose]);
   useEffect(() => {
     let alive = true;
     const cancel = whenIdle(() => {
@@ -1141,7 +1163,10 @@ export function Composer() {
   /** What the DJ set tonight: touched or pinned controls (era presets and defaults are not explicit). */
   const explicit = explicitKeys(options);
   const learnedPrefs = settings.learn ? describePreferences(memory) : [];
-  const prefKeys = Object.keys(memory.preferences ?? {}).filter((k) => !explicit.includes(k));
+  const prefKeys = [
+    ...Object.keys(memory.preferences ?? {}),
+    ...Object.keys(likedShapeDefaults(memory.learned)),
+  ].filter((k) => !explicit.includes(k));
   const usingMemory = settings.learn && learnedPrefs.length > 0 && prefKeys.length > 0;
   /**
    * The request from the state at call time: only explicit keys travel, learned preferences fill the keys that are
@@ -1156,7 +1181,9 @@ export function Composer() {
     };
     const base = optionsForRequest(merged);
     const { recent } = applyMemory({}, cur.memory);
-    const withMemory = cur.settings.learn ? applyMemory(base, cur.memory) : { ...base, recent };
+    const withMemory = cur.settings.learn
+      ? applyMemory(base, cur.memory)
+      : { ...base, recent, learned: base.learned ?? learnedForRequest(cur.memory, false) };
     const name = base.name ?? autoSetName({ ...DEFAULT_OPTS, ...eraDefaults, ...fullOptions(merged) });
     return { ...withMemory, name, explicit: base.explicit };
   };
@@ -1504,12 +1531,20 @@ export function Composer() {
       setNote(tx("composer.seed", { seed: playlist.options.seed }));
     }
   };
-  const rate = (liked: boolean) => {
+  /**
+   * Thumbs up / down: tapping the pressed thumb again takes the rating back. With learning on, the night's tandas
+   * and shape feed the learned preferences (Database → Memory, "from nights you liked"); with it off the rating is
+   * only recorded. The toast says which, and its Undo restores exactly the rating before the tap.
+   */
+  const rate = (tapped: boolean) => {
     if (!playlist) return;
     haptic(6);
-    updateMemory((m) => rememberSet(m, playlist, liked));
+    const learn = useStore.getState().settings.learn;
+    const r = rateTap(useStore.getState().memory, playlist, tapped, learn);
+    updateMemory(() => r.memory);
+    toast(tx(r.message), () => updateMemory((m) => undoRate(m, playlist, r.previous, learn)));
   };
-  const liked = memory.sets.find((s) => s.id === playlist?.id)?.liked;
+  const liked = ratingOf(memory, playlist?.id);
 
   // ⌘↩ composes, ⌘E exports, ⌘K focuses Tell the DJ (opens the Adjust sheet on phones)
   useEffect(() => {
@@ -1674,10 +1709,50 @@ export function Composer() {
         title={tx("composer.compose")}
         trailing={
           <>
-            {/* phones have Regenerate in the primary bar; the title bar keeps only ••• there */}
             {/* (the open set-up form has its own Compose in the dock: Regenerate steps aside, one at a time) */}
             {hasPlaylist && wide && !setupOpen && (lg ? composeButton : composeCompact)}
-            {hasPlaylist && playlist && (
+            {/* wave 4, phones: the page's actions are navigation-bar icon buttons, iOS 26 style (Regenerate, the
+                share glyph for Export, •••); nothing floats over the set */}
+            {hasPlaylist && !wide && playlist && (
+              <span className="-mr-1 flex items-center" data-testid="nav-actions">
+                <motion.button
+                  type="button"
+                  onClick={() => run()}
+                  disabled={busy}
+                  className="icon-btn nav-btn text-[var(--tint)]"
+                  aria-label={tx("composer.regenerate")}
+                  animate={errorNudge}
+                  transition={{ duration: 0.28, ease: EASE.inOut }}
+                  data-testid="bar-regenerate"
+                >
+                  {busy ? (
+                    <LoaderCircle size={20} strokeWidth={2} className="animate-spin" aria-hidden />
+                  ) : (
+                    <Repeat2 size={20} strokeWidth={2} aria-hidden />
+                  )}
+                </motion.button>
+                <button
+                  type="button"
+                  onClick={openExport}
+                  className="icon-btn nav-btn text-[var(--tint)]"
+                  aria-label={tx("composer.export")}
+                  data-testid="bar-export"
+                >
+                  <Share size={20} strokeWidth={2} aria-hidden />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActionsOpen(true)}
+                  className="icon-btn nav-btn text-[var(--tint)]"
+                  aria-label={tx("primaryBar.set_actions")}
+                  aria-haspopup="dialog"
+                  data-testid="bar-more"
+                >
+                  <Ellipsis size={20} strokeWidth={2} aria-hidden />
+                </button>
+              </span>
+            )}
+            {hasPlaylist && wide && playlist && (
               <Menu
                 label={tx("composer.more")}
                 items={[
@@ -1722,7 +1797,7 @@ export function Composer() {
             {tx("composer.a_night_composed")}
           </h2>
           <p className="text-subhead mt-1 text-[var(--label-2)]">
-            {tx("composer.hours_of_tandas_with_cortinas_scored", { hours, p1: eraName(era) })}
+            {tx("composer.hours_of_tandas_with_cortinas_scored", { hours, p1: nightEraLabel({ options }) })}
           </p>
           <ol className="mt-4 grid gap-2 sm:grid-cols-3">
             {(
@@ -1761,9 +1836,6 @@ export function Composer() {
               {tx("composer.or_set_up_the_night_below")}
             </span>
           </div>
-          <p className="text-footnote mt-4 text-[var(--label-2)] sm:hidden">
-            {tx("composer.compose_the_night_is_in_the")}
-          </p>
           {/* a built-in night to read before composing one */}
           <Tip text={tx("composer.open_a_night_a_dj_built")} className="mt-4 w-full">
             <button
@@ -1858,7 +1930,9 @@ export function Composer() {
                         <span className="max-sm:sr-only">{tx("composer.play_the_night")}</span>
                       </button>
                     </Tip>
-                    <Tip text={tx("composer.i_like_this_night_t_dj")}>
+                    <Tip
+                      text={tx(settings.learn ? "composer.i_like_this_night_t_dj" : "composer.like_help_off")}
+                    >
                       <button
                         type="button"
                         className={`icon-btn icon-btn-bare -my-2 h-11 w-11 ${liked === true ? "text-[var(--tint)]" : "text-[var(--label-3)]"}`}
@@ -1869,7 +1943,9 @@ export function Composer() {
                         <ThumbsUp size={18} strokeWidth={2} fill={liked === true ? "currentColor" : "none"} />
                       </button>
                     </Tip>
-                    <Tip text={tx("composer.not_for_me_t_dj_learns")}>
+                    <Tip
+                      text={tx(settings.learn ? "composer.not_for_me_t_dj_learns" : "composer.like_help_off")}
+                    >
                       <button
                         type="button"
                         className={`icon-btn icon-btn-bare -my-2 -mr-3 h-11 w-11 ${liked === false ? "text-[var(--tint)]" : "text-[var(--label-3)]"}`}
@@ -1888,10 +1964,10 @@ export function Composer() {
                 </div>
                 {wide ? (
                   <div className="flex items-baseline gap-1">
-                    <span className="text-large-title tabular-nums text-[var(--tint)]">
+                    <span className="score-stat tabular-nums text-[var(--tint)]" data-testid="score-value">
                       <ScoreCounter key={setKey} value={playlist.score.total} from={scoreFrom} />
                     </span>
-                    <span className="text-title3 text-[var(--label-2)]">/100</span>
+                    <span className="text-subhead text-[var(--label-2)]">/100</span>
                   </div>
                 ) : (
                   <button
@@ -1901,10 +1977,10 @@ export function Composer() {
                     aria-label={tx("composer.score_of_100_adjust_the_set", { total: playlist.score.total })}
                     data-testid="score-button"
                   >
-                    <span className="text-large-title tabular-nums text-[var(--tint)]">
+                    <span className="score-stat tabular-nums text-[var(--tint)]" data-testid="score-value">
                       <ScoreCounter key={setKey} value={playlist.score.total} from={scoreFrom} />
                     </span>
-                    <span className="text-title3 text-[var(--label-2)]">/100</span>
+                    <span className="text-subhead text-[var(--label-2)]">/100</span>
                     <SlidersHorizontal
                       size={16}
                       strokeWidth={2}
@@ -2117,7 +2193,7 @@ export function Composer() {
         <Group header={tx("composer.set_up")} id="setup-summary">
           <Row
             tile={<RhythmTile rhythm="tango" />}
-            label={`${eraName(era)} · ${hours} h · ${ARCS.find(([k]) => k === (options.arc ?? "classic-two-peaks"))?.[1] ?? ""}`}
+            label={`${nightEraLabel({ options })} · ${hours} h · ${ARCS.find(([k]) => k === (options.arc ?? "classic-two-peaks"))?.[1] ?? ""}`}
             sub={tx("composer.cortinas_2", {
               p1: PATTERNS.find(([k]) => k === (options.pattern ?? "classic"))?.[1] ?? "",
               p2: (CORTINA_STYLES.find(([k]) => k === cortinaStyle)?.[1] ?? "").toLowerCase(),
@@ -2213,12 +2289,9 @@ export function Composer() {
       <PrimaryBar
         hasPlaylist={hasPlaylist}
         busy={busy}
-        minimised={minimised}
         hidden={sheetOpen || playerOpen}
         onCompose={() => run()}
-        onExport={openExport}
         errorNudge={errorNudge}
-        onMore={() => setActionsOpen(true)}
       />
       {!wide && playlist && (
         <Sheet

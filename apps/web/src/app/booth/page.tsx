@@ -23,6 +23,7 @@ import {
   StopSheet,
 } from "@/components/booth/Sheets";
 import { SongSheet } from "@/components/booth/SongSheet";
+import { hasTransition, TransitionSheet } from "@/components/booth/TransitionSheet";
 import { EmptyState } from "@/components/EmptyState";
 import { type MenuItem, MenuList } from "@/components/Menu";
 import { PageHeader } from "@/components/PageHeader";
@@ -71,11 +72,19 @@ function Booth() {
   const [levels, setLevels] = useState(false);
   const [stopOpen, setStopOpen] = useState(false);
   const [cortina, setCortina] = useState<number | null>(null);
+  // wave 4: the transition editor, at the transition after this plan item
+  const [transition, setTransition] = useState<number | null>(null);
+  const editTransitions = () => {
+    const s = useBooth.getState();
+    const items = s.plan?.items;
+    const k = items?.findIndex((_, j) => j >= s.planIndex && hasTransition(items, j)) ?? -1;
+    if (k >= 0) setTransition(k);
+  };
   // round 22: the song sheet (tap any row, or Song info on Now), the phone's set-list sheet, the Show sheet
   const [song, setSong] = useState<number | null>(null);
   const [setOpen, setSetOpen] = useState(false);
   const [show, setShow] = useState(false);
-  const phone = useMediaQuery("(max-width: 639px)", false);
+  const phone = useMediaQuery("(max-width: 599.98px)", false);
   // a tanda tapped on the energy chart or the Next card: the set list scrolls to it (a phone opens the sheet first)
   const showInSet = (i: number) => {
     if (phone) setSetOpen(true);
@@ -306,6 +315,7 @@ function Booth() {
               onFind={(id, title) => setFind({ id, title })}
               onCortina={(i) => setCortina(i)}
               onTapRow={(i) => setSong(i)}
+              onTransition={(i) => setTransition(i)}
             />
           </aside>
         )}
@@ -325,6 +335,7 @@ function Booth() {
               onFind={(id, title) => setFind({ id, title })}
               onCortina={(i) => setCortina(i)}
               onTapRow={(i) => setSong(i)}
+              onTransition={(i) => setTransition(i)}
             />
           </div>
         </Sheet>
@@ -335,10 +346,11 @@ function Booth() {
         onStop={() => setStopOpen(true)}
         onSet={phone ? () => setSetOpen(true) : undefined}
       />
-      <SongSheet i={song} onClose={() => setSong(null)} />
+      <SongSheet i={song} onClose={() => setSong(null)} onTransition={(i) => setTransition(i)} />
       <ShowSheet open={show} onClose={() => setShow(false)} />
       <HintLayer />
-      <LevelsSheet open={levels} onClose={() => setLevels(false)} />
+      <LevelsSheet open={levels} onClose={() => setLevels(false)} onEditTransitions={editTransitions} />
+      <TransitionSheet at={transition} onClose={() => setTransition(null)} />
       <StopSheet open={stopOpen} onClose={() => setStopOpen(false)} />
       <CortinaSheet planIndex={cortina} onClose={() => setCortina(null)} />
       {/* any browser: the folder as a FileList (Chromium prefers the persisted handle) */}

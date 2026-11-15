@@ -635,14 +635,16 @@ describe("F — the featured night: only the DJ's edits", () => {
   const at = (slot: number) => (slot <= 17 ? slot - 1 : slot <= 19 ? slot : slot + 1);
   const DJ: Record<number, string[]> = {
     2: ["54e1304409", "8509c04168", "67d75c4496", "e5cccb8a87"],
-    4: ["eb345072d6", "b313688f75", "3e9af572cf", "f9150b4c8a"],
+    4: ["eb345072d6", "9673dd79e8", "3e9af572cf", "f9150b4c8a"],
     5: ["e9d31466ec", "131567e74b", "7b191bb215", "bb6ae09db6"],
     9: ["aa6b36ab7b", "71540229e1", "ea9b927fa5"],
     10: ["6233830410", "2171c0196b", "deac5ee8db", "cebfbd8996"],
     11: ["24801db04a", "e851d595be", "c02b739977", "6e9afb7087"],
+    // (the Di Sarli milonga, the owner's as shipped: Zorzal, La Mulateada, Pena Mulata)
+    12: ["0bdaadeef1", "16baa4103e", "c42ea450d8"],
     13: ["16814cca76", "86e53db337", "ddfdb2c29b", "89bc9d7eef"],
     14: ["13fe376eb1", "0265a65075", "00a061a315", "166b2a4f3e"],
-    15: ["68f9f78507", "cfbb4947c7", "8106c5a228"],
+    15: ["3b4476d64c", "a6a1af0e1d", "8106c5a228"],
     16: ["28c8dff26b", "ac9c62f5b5", "d642ae0730", "c668717864"],
     17: ["e02b2e4f92", "be7917b0c8", "f29c7184ba", "6ac37b2ef8"],
     18: ["32fdbfc82d", "67f9a28a62", "38f03bac6d", "a2e1839ef1"],
@@ -672,6 +674,28 @@ describe("F — the featured night: only the DJ's edits", () => {
     // the panel: what the DJ's tandas break is a DJ exception, never a blocker
     expect(strictChecks(f).blockers).toBe(0);
     expect(strictChecks(f).exceptions?.length).toBeGreaterThan(0);
+  });
+  it("T4 and T15 are one orchestra each, in the versions the DJ chose", () => {
+    const row = (slot: number) =>
+      f.tandas[at(slot)]!.songs.map((s) => [s.title, s.orchestraId, s.singer, s.spotify?.uri]);
+    // T15: Canaro instrumental valses (no D'Arienzo 1935 side)
+    expect(f.tandas[at(15)]!.orchestraId).toBe("francisco-canaro");
+    expect(f.tandas[at(15)]!.orchestra).toBe("Francisco Canaro");
+    expect(f.tandas[at(15)]!.vocal).toBe(false);
+    expect(row(15)).toEqual([
+      ["Desde el Alma", "francisco-canaro", null, "spotify:track:1eNQxurcsXpnSABkovjQdM"],
+      ["Francia", "francisco-canaro", null, "spotify:track:4gKY2486rJizr3nqXBnHbz"],
+      ["Corazón de Oro", "francisco-canaro", null, "spotify:track:5g3zxHHVxvxwA6iFARCZ8H"],
+    ]);
+    // T4: Llámale "h" is the Alberto Gómez take, beside the Gómez 1933 sides
+    expect(row(4)[1]).toEqual([
+      'Llámale "h"',
+      "orquesta-tipica-victor",
+      "Alberto Gómez",
+      "spotify:track:7aL601bNX5PsjELQaZISPw",
+    ]);
+    expect(f.tandas[at(4)]!.songs.every((s) => s.orchestraId === "orquesta-tipica-victor")).toBe(true);
+    expect(f.tandas[at(4)]!.singer).toBe("Angel Vargas · Alberto Gómez");
   });
   it("a vals after T17 and a milonga after T19 keep the cycle; the última still ends on Así Se Baila el Tango", () => {
     expect(f.tandas).toHaveLength(25);

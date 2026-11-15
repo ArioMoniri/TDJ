@@ -19,12 +19,14 @@ import {
   LogOut,
   Pencil,
   QrCode as QrIcon,
+  Server,
   SkipForward,
   Smartphone,
   TriangleAlert,
   Users,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { ActionRow, FieldRow, Group, RhythmTile, SwitchRow, Tile } from "@/components/Form";
 import { PageHeader } from "@/components/PageHeader";
@@ -33,6 +35,8 @@ import { Sheet } from "@/components/Sheet";
 import { TipRow } from "@/components/TipRow";
 import { Segmented } from "@/components/ui";
 import { Tip } from "@/components/ui/Tip";
+import { nativeInfo } from "@/lib/app/native";
+import { APP } from "@/lib/app/target";
 import { haptic } from "@/lib/haptics";
 import { fmtDate, fmtTime, t as tx, upper } from "@/lib/i18n";
 import { type RoomRef, roomShareLink, useRooms } from "@/lib/rooms";
@@ -139,6 +143,16 @@ export default function RoomsPage() {
   const [renaming, setRenaming] = useState(false);
   const [renameDraft, setRenameDraft] = useState("");
   const [past, setPast] = useState<{ ref: RoomRef; log: RoomLogEntry[] | null; name: string } | null>(null);
+  const router = useRouter();
+  // the apps keep rooms on a T-DJ server the DJ linked (Settings → Connections); without one they cannot open one
+  const [linked, setLinked] = useState<boolean | null>(APP ? null : true);
+  useEffect(() => {
+    if (!APP) return;
+    nativeInfo()
+      .then((i) => setLinked(!!i.linkedServer))
+      .catch(() => setLinked(false));
+  }, []);
+  const needsServer = APP && linked === false;
 
   useEffect(() => {
     r.boot();
@@ -264,7 +278,21 @@ export default function RoomsPage() {
         </Group>
       )}
 
-      {!inRoom && (
+      {needsServer && !inRoom && (
+        <Group header={tx("rooms.needs_a_linked_server")} data-testid="rooms-needs-server">
+          <div className="cell">
+            <Server size={18} className="shrink-0 text-[var(--label-2)]" aria-hidden />
+            <span className="min-w-0 flex-1">{tx("rooms.rooms_need_a_linked_server")}</span>
+          </div>
+          <ActionRow
+            label={tx("rooms.open_settings_connections")}
+            onClick={() => router.push("/settings#app-connections")}
+            id="rooms-open-connections"
+          />
+        </Group>
+      )}
+
+      {!inRoom && !needsServer && (
         <>
           <Group
             header={tx("rooms.you")}

@@ -22,11 +22,13 @@ import { ExportSheet } from "@/components/ExportSheet";
 import { FeaturedCard } from "@/components/FeaturedCard";
 import { ActionRow, Group, Row } from "@/components/Form";
 import { Menu } from "@/components/Menu";
+import { NightCover } from "@/components/NightCover";
 import { PageHeader } from "@/components/PageHeader";
 import { Sheet } from "@/components/Sheet";
 import { SwipeRow } from "@/components/SwipeRow";
 import { TandaCard } from "@/components/TandaCard";
 import { Tip } from "@/components/ui/Tip";
+import { APP } from "@/lib/app/target";
 import { downloadBlob } from "@/lib/download";
 import { haptic } from "@/lib/haptics";
 import { changeLabel, eraLabel, groupByDay, nightLogSummary, versionsOf } from "@/lib/history";
@@ -143,10 +145,13 @@ export default function HistoryPage() {
     currentEntry,
     setCurrentEntry,
     restoreEntryVersion,
+    storageMode,
   } = useStore();
+  // the apps keep History in the device's own database; the web keeps it in this browser unless a server row syncs it
+  const onDevice = APP || storageMode === "browser";
   const router = useRouter();
   const reduced = useReducedMotion();
-  const isPhone = useMediaQuery("(max-width: 639px)");
+  const isPhone = useMediaQuery("(max-width: 599.98px)");
   const [openId, setOpenId] = useState<string | null>(null);
   // the sidebar's Recent nights link here as #night=<id>: open that night
   useEffect(() => {
@@ -276,6 +281,11 @@ export default function HistoryPage() {
           </>
         }
       />
+      {overridesReady && onDevice && (
+        <p className="text-footnote px-4 pb-2 text-[var(--label-2)]" data-testid="history-on-device">
+          {tx("history.on_this_device")}
+        </p>
+      )}
       {!overridesReady && (
         <p className="text-subhead py-8 text-center text-[var(--label-2)]">{tx("history.loading")}</p>
       )}
@@ -295,49 +305,68 @@ export default function HistoryPage() {
           {tx("history.sets_you_compose_land_here_with")}
         </EmptyState>
       )}
-      {groups.map((g) => (
-        <Group key={g.label} header={g.label}>
-          <AnimatePresence initial={false}>
-            {g.items.map((s, i) => (
-              <motion.div
-                key={s.id}
-                layout={reduced ? false : "position"}
-                variants={rowV}
-                custom={i}
-                initial="hidden"
-                animate="show"
-                exit="exit"
-              >
-                <SwipeRow
-                  leading="art"
-                  actions={[
-                    {
-                      kind: "lock",
-                      label: tx("history.compare"),
-                      icon: GitCompare,
-                      onClick: () => {
-                        setOpenId(s.id);
-                        setPicking(true);
-                      },
-                    },
-                    { kind: "destructive", label: "Delete", icon: Trash2, onClick: () => remove(s) },
-                  ]}
+      <div className="history-covers">
+        {groups.map((g) => (
+          <Group key={g.label} header={g.label}>
+            <AnimatePresence initial={false}>
+              {g.items.map((s, i) => (
+                <motion.div
+                  key={s.id}
+                  layout={reduced ? false : "position"}
+                  variants={rowV}
+                  custom={i}
+                  initial="hidden"
+                  animate="show"
+                  exit="exit"
                 >
-                  <Row
-                    tile={<ScoreRing score={s.score} />}
-                    label={s.title}
-                    sub={`${sub(s)}${s.change || s.source !== "compose" ? ` · ${changeLabel(s)}` : ""}${s.versions?.length ? ` ${tx("history.versions_2", { p1: s.versions.length + 1 })}` : ""}`}
-                    value={currentId === s.id ? tx("history.current") : undefined}
-                    chevron
-                    onClick={() => setOpenId(s.id)}
-                    id={`history-${s.id}`}
-                  />
-                </SwipeRow>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </Group>
-      ))}
+                  <SwipeRow
+                    leading="art"
+                    actions={[
+                      {
+                        kind: "lock",
+                        label: tx("history.compare"),
+                        icon: GitCompare,
+                        onClick: () => {
+                          setOpenId(s.id);
+                          setPicking(true);
+                        },
+                      },
+                      { kind: "destructive", label: "Delete", icon: Trash2, onClick: () => remove(s) },
+                    ]}
+                  >
+                    <Row
+                      tile={
+                        // wave 4: the night's own cover (56 px, light or dark with the app), its score in the corner
+                        <NightCover
+                          night={s.playlist}
+                          coverSeed={s.coverSeed}
+                          size={56}
+                          testId="history-cover"
+                          badge={
+                            <span
+                              className="night-cover-score"
+                              role="img"
+                              aria-label={tx("history.score_2", { score: s.score })}
+                            >
+                              {s.score}
+                            </span>
+                          }
+                        />
+                      }
+                      label={s.title}
+                      sub={`${sub(s)}${s.change || s.source !== "compose" ? ` · ${changeLabel(s)}` : ""}${s.versions?.length ? ` ${tx("history.versions_2", { p1: s.versions.length + 1 })}` : ""}`}
+                      value={currentId === s.id ? tx("history.current") : undefined}
+                      chevron
+                      onClick={() => setOpenId(s.id)}
+                      id={`history-${s.id}`}
+                    />
+                  </SwipeRow>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </Group>
+        ))}
+      </div>
 
       <Sheet
         open={!!open && !picking && !compareWith}
@@ -403,7 +432,7 @@ export default function HistoryPage() {
               <div className="cell flex-col items-stretch gap-2 py-4">
                 {/* the score on its own line, as the Compose header does; the metadata under it */}
                 <div className="flex items-baseline gap-1">
-                  <span className="text-large-title tabular-nums text-[var(--tint)]">{open.score}</span>
+                  <span className="score-stat tabular-nums text-[var(--tint)]">{open.score}</span>
                   <span className="text-title3 text-[var(--label-2)]">/100</span>
                 </div>
                 <p className="text-footnote text-[var(--label-2)]">{sub(open)}</p>

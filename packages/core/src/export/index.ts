@@ -48,6 +48,24 @@ export interface FlatTrack {
   /** gain prior in dB (booth plan) */
   gainDb?: number;
   peakCapped?: boolean;
+  /**
+   * wave 4: where the DJ's edited transition out of this song starts (seconds into the recording) and what it is
+   * (`blend 6 s`), for the DJ apps that take a memory cue; a plain gap has none
+   */
+  mixOut?: { atSec: number; label: string };
+}
+
+/** The mix-out cue of a song whose edited transition fades or overlaps (wave 4); none for a gap or a cortina. */
+function mixOutOf(it: BoothPlanItem): FlatTrack["mixOut"] | undefined {
+  const tr = it.transitionAfter;
+  if (!tr || it.kind === "cortina") return undefined;
+  const span = Math.max(tr.overlapSec, tr.fadeOutSec);
+  if (span <= 0) return undefined;
+  const end = (it.trimInSec ?? 0) + it.lengthSec;
+  return {
+    atSec: Math.round(Math.max(0, end - span) * 1000) / 1000,
+    label: `${tr.preset} ${span} s`,
+  };
 }
 
 export interface ExportOpts {
@@ -179,6 +197,7 @@ export function flatten(p: Playlist, eo: ExportOpts = {}): FlatTrack[] {
       ...(it.fadeOutSec !== undefined ? { fadeOutSec: it.fadeOutSec } : {}),
       ...(it.gainDb !== undefined ? { gainDb: it.gainDb } : {}),
       ...(it.peakCapped ? { peakCapped: true } : {}),
+      ...(mixOutOf(it) ? { mixOut: mixOutOf(it) } : {}),
     });
   });
   return out;
@@ -274,6 +293,9 @@ export function toJSON(p: Playlist): string {
 export function toRekordboxXML(p: Playlist, eo: ExportOpts = {}): string {
   const tracks = flatten(p, eo);
   const marks = (t: FlatTrack) => {
+    // wave 4: a song whose edited transition fades or overlaps gets a memory cue where it starts
+    if (t.mixOut)
+      return `>\n      <POSITION_MARK Name="${esc(`Mix out (${t.mixOut.label})`)}" Type="0" Start="${t.mixOut.atSec.toFixed(3)}" Num="-1"/>\n    </TRACK>`;
     if (t.kind !== "cortina" || !t.stopSec) return "/>";
     const m = [
       `      <POSITION_MARK Name="Cortina out (${t.stopSec} s)" Type="0" Start="${t.stopSec.toFixed(3)}" Num="0"/>`,
@@ -328,9 +350,11 @@ export function toTraktorNML(p: Playlist, eo: ExportOpts = {}): string {
   const cue = (name: string, sec: number, hot: number) =>
     `<CUE_V2 NAME="${name}" DISPL_ORDER="0" TYPE="0" START="${(sec * 1000).toFixed(3)}" LEN="0" REPEATS="-1" HOTCUE="${hot}"></CUE_V2>`;
   const cues = (t: FlatTrack) =>
-    t.kind === "cortina" && t.stopSec
-      ? `${cue("Cortina out", t.stopSec, 0)}${t.fadeOutSec ? cue("Fade", t.stopSec - t.fadeOutSec, 1) : ""}`
-      : "";
+    t.mixOut
+      ? cue(esc(`Mix out (${t.mixOut.label})`), t.mixOut.atSec, -1)
+      : t.kind === "cortina" && t.stopSec
+        ? `${cue("Cortina out", t.stopSec, 0)}${t.fadeOutSec ? cue("Fade", t.stopSec - t.fadeOutSec, 1) : ""}`
+        : "";
   const coll = tracks
     .map(
       (t) =>

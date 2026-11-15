@@ -1,5 +1,5 @@
 import { normTitle } from "./energy";
-import type { AgentMemory, LearnedPreferences, Playlist, Song, Tanda } from "./types";
+import type { AgentMemory, LearnedPreferences, Playlist, RepoLearnedOverrides, Song, Tanda } from "./types";
 
 /**
  * Round 21 — what TDJ learns from the DJ's edits (docs/specs/round21-engine.md §8). Every hand edit of a night (a
@@ -107,6 +107,8 @@ export function mergeLearned(
   base?: LearnedPreferences | null,
   mine?: LearnedPreferences | null,
 ): LearnedPreferences {
+  // the DJ's overrides of the repo-level store (Database → Memory: off, reweighted, deleted)
+  base = applyRepoOverrides(base, mine?.repo);
   return {
     sides: { ...(base?.sides ?? {}), ...(mine?.sides ?? {}) },
     families: { ...(base?.families ?? {}), ...(mine?.families ?? {}) },
@@ -115,6 +117,38 @@ export function mergeLearned(
       ...(base?.templates ?? []).filter((t) => !mine?.templates?.some((m) => m.id === t.id)),
     ],
     edits: [...(mine?.edits ?? []), ...(base?.edits ?? [])].slice(0, 100),
+    ...(base?.likes || mine?.likes ? { likes: { ...(base?.likes ?? {}), ...(mine?.likes ?? {}) } } : {}),
+  };
+}
+
+/**
+ * The repo-level store (the featured night's edits) as the DJ left it: none when switched off, a deleted rule gone,
+ * a reweighted family or side at the DJ's weight (inside LEARN_LIMITS). Rule ids are learnedRules' (`family:<key>`,
+ * `side:<id>`, `template:<id>`). The store object itself is never changed.
+ */
+export function applyRepoOverrides(
+  base: LearnedPreferences | null | undefined,
+  repo: RepoLearnedOverrides | undefined,
+): LearnedPreferences | undefined {
+  if (!base) return undefined;
+  if (!repo) return base;
+  if (repo.off) return undefined;
+  const del = new Set(repo.deleted ?? []);
+  const keep = (kind: string, m?: Record<string, number>, lo = -1, hi = 3) => {
+    const out: Record<string, number> = {};
+    for (const [k, v] of Object.entries(m ?? {})) {
+      const id = `${kind}:${k}`;
+      if (del.has(id)) continue;
+      const w = repo.weights?.[id];
+      out[k] = w === undefined || !Number.isFinite(w) ? v : Math.round(clamp(w, lo, hi) * 100) / 100;
+    }
+    return out;
+  };
+  return {
+    ...base,
+    sides: keep("side", base.sides, LEARN_LIMITS.sideMin, LEARN_LIMITS.sideMax),
+    families: keep("family", base.families, LEARN_LIMITS.familyMin, LEARN_LIMITS.familyMax),
+    templates: (base.templates ?? []).filter((t) => !del.has(`template:${t.id}`)),
   };
 }
 
@@ -138,10 +172,79 @@ export const learnedSideFactor = (
   if (s && (!s.spotify?.uri || s.streamSuspect)) return 1;
   return Math.min(1.45, 1 + 0.15 * v);
 };
-export const learnedFamilyFactor = (L: LearnedPreferences | undefined, key: string) => {
-  const v = L?.families?.[key];
+export const learnedFamilyFactor = (
+  L: LearnedPreferences | undefined,
+  key: string,
+  years?: readonly [number, number] | null,
+) => {
+  const v = learnedFamilyWeight(L, key, years);
   return v === undefined ? 1 : v >= 0 ? Math.min(1.12, 1 + 0.04 * v) : Math.max(0.9, 1 + 0.1 * v);
 };
+
+/**
+ * Thumbs up / down on a night (likes.ts). A like gives each of the night's tanda families (orchestra + singer + rhythm
+ * + year band) +0.3, a pinned DJ tanda +0.45 — both under a lock (+0.5) and a swap (+1), so one like never outweighs
+ * an explicit edit; a dislike −0.1 (scaled down: a dislike nudges, never bans). Summed over the rated nights and
+ * capped at +0.9 / −0.3 per family (×1.036 / ×0.97 in its slot), then added to the edits' weight inside LEARN_LIMITS.
+ */
+export const LIKE_WEIGHTS = { like: 0.3, pinned: 0.45, dislike: -0.1, max: 0.9, min: -0.3 } as const;
+
+/** a year band of five years ("1940" = 1940–44) from a tanda's or a family window's years; "" when undated */
+export const yearBand = (years?: readonly [number, number] | null) =>
+  years ? String(Math.floor((years[0] + years[1]) / 2 / 5) * 5) : "";
+
+const likeIndex = new WeakMap<LearnedPreferences, Map<string, Array<[number | null, number]>>>();
+/** the rated nights summed per family key: [band start (null = any year), weight] */
+function likesByFamily(L: LearnedPreferences) {
+  let m = likeIndex.get(L);
+  if (m) return m;
+  m = new Map();
+  for (const n of Object.values(L.likes ?? {}))
+    for (const [k4, w] of Object.entries(n.families ?? {})) {
+      const i = k4.lastIndexOf("|");
+      const key = k4.slice(0, i);
+      const band = k4.slice(i + 1) ? Number(k4.slice(i + 1)) : null;
+      const arr = m.get(key) ?? [];
+      const at = arr.find((x) => x[0] === band);
+      if (at) at[1] += w;
+      else arr.push([band, w]);
+      m.set(key, arr);
+    }
+  likeIndex.set(L, m);
+  return m;
+}
+
+/** what the rated nights add to a family in these years (capped); undefined when no rated night carries it */
+export function likedFamilyWeight(
+  L: LearnedPreferences | undefined,
+  key: string,
+  years?: readonly [number, number] | null,
+): number | undefined {
+  if (!L?.likes) return undefined;
+  const rows = likesByFamily(L).get(key);
+  if (!rows) return undefined;
+  let sum = 0;
+  let hit = false;
+  for (const [band, w] of rows)
+    if (band === null || !years || (years[0] <= band + 4 && years[1] >= band)) {
+      sum += w;
+      hit = true;
+    }
+  if (!hit) return undefined;
+  return Math.round(clamp(sum, LIKE_WEIGHTS.min, LIKE_WEIGHTS.max) * 100) / 100;
+}
+
+/** a family's learned weight: the DJ's edits plus the rated nights (inside LEARN_LIMITS); undefined = never learned */
+export function learnedFamilyWeight(
+  L: LearnedPreferences | undefined,
+  key: string,
+  years?: readonly [number, number] | null,
+): number | undefined {
+  const edit = L?.families?.[key];
+  const like = likedFamilyWeight(L, key, years);
+  if (like === undefined) return edit;
+  return Math.round(clamp((edit ?? 0) + like, LEARN_LIMITS.familyMin, LEARN_LIMITS.familyMax) * 100) / 100;
+}
 
 /** the learned store kept in the DJ's memory (AgentMemory.learned) */
 export function rememberEdit(
@@ -173,5 +276,10 @@ export function describeLearned(
   const down = sides.filter(([, v]) => v < 0).length;
   if (sides.length) out.push(`${up} sides you chose, ${down} you replaced`);
   if (L.templates?.length) out.push(`${L.templates.length} tandas kept as your templates`);
+  const rated = Object.values(L.likes ?? {});
+  if (rated.length)
+    out.push(
+      `${rated.filter((n) => n.liked).length} nights you liked, ${rated.filter((n) => !n.liked).length} you disliked (their families weigh a little more / less)`,
+    );
   return out;
 }

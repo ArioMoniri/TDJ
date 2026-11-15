@@ -21,7 +21,7 @@ pub fn check(app: AppHandle, manual: bool) {
             Ok(Some(update)) => {
                 let notes = update.body.clone().unwrap_or_default();
                 let msg = format!(
-                    "TDJ {} is available (you have {}).\n\n{}",
+                    "T-DJ {} is available (you have {}).\n\n{}",
                     update.version,
                     update.current_version,
                     crate::updates::trim_notes(&notes)
@@ -29,7 +29,7 @@ pub fn check(app: AppHandle, manual: bool) {
                 let yes = app
                     .dialog()
                     .message(msg)
-                    .title("Update TDJ")
+                    .title("Update T-DJ")
                     .buttons(MessageDialogButtons::OkCancelCustom(
                         "Install and Relaunch".into(),
                         "Later".into(),
@@ -41,13 +41,13 @@ pub fn check(app: AppHandle, manual: bool) {
             }
             Ok(None) if manual => {
                 app.dialog()
-                    .message("You have the newest TDJ.")
+                    .message("You have the newest T-DJ.")
                     .kind(MessageDialogKind::Info)
                     .blocking_show();
             }
             Err(e) if manual => {
                 app.dialog()
-                    .message(format!("TDJ couldn't check for updates: {e}"))
+                    .message(format!("T-DJ couldn't check for updates: {e}"))
                     .kind(MessageDialogKind::Warning)
                     .blocking_show();
             }

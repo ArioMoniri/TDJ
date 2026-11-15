@@ -1,5 +1,6 @@
 "use client";
 import { t } from "@/lib/i18n";
+import { nightEraLabel } from "./nightName";
 import type { Playlist } from "./types";
 
 /** Built-in nights the app ships under /featured/<id>.json: a full Playlist as the engine returns it. */
@@ -9,9 +10,11 @@ export const FEATURED = [
     get title() {
       return t("featured.golden_title");
     },
+    /** the shipped night's settings, so the card's era label is the one nightEraLabel gives the loaded night */
+    options: { eras: ["golden"], yearRange: [1935, 1945] as [number, number] },
     // (wave 2: the night's real length and the one era label, as History and Share print them)
     get sub() {
-      return t("featured.golden_sub");
+      return t("featured.golden_sub", { era: nightEraLabel(this) });
     },
   },
 ] as const;

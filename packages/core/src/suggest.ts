@@ -2,7 +2,7 @@ import { patternString, planSlots, sanitizeOptions } from "./arc";
 import { BIG_FOUR, sideProblem } from "./coherence";
 import { type ComposeDeps, DEFAULT_OPTIONS } from "./compose";
 import { isDanceableSong, normTitle } from "./energy";
-import { familyKey, learnedSideFactor, mergeLearned } from "./learn";
+import { familyKey, learnedFamilyWeight, learnedSideFactor, mergeLearned } from "./learn";
 import { withEraSettings } from "./profiles";
 import { recue } from "./repair";
 import { renight, retimeTanda } from "./swap";
@@ -342,11 +342,13 @@ export function suggestNext(draft: Song[][], deps: ComposeDeps, opts: SuggestOpt
       score -= Math.min(d, 15) * 1.2;
       if (d <= 3) reasons.push([10, `stays in the ${Math.floor(y / 10) * 10}s, the years of the last tanda`]);
     }
-    const lv = L.families?.[key];
+    const lv = learnedFamilyWeight(L, key, ys);
     if (lv !== undefined) {
       score += lv * 6;
-      if (lv > 0) reasons.push([20, "you often choose this family"]);
-      else if (lv < 0) reasons.push([4, "you replaced this family before"]);
+      const fromLikes = L.families?.[key] === undefined;
+      if (lv > 0) reasons.push([20, fromLikes ? "from nights you liked" : "you often choose this family"]);
+      else if (lv < 0)
+        reasons.push([4, fromLikes ? "from nights you disliked" : "you replaced this family before"]);
     }
     if (fame >= 3) reasons.push([3, "a floor favourite with DJs"]);
     if (!reasons.length)
