@@ -20,7 +20,7 @@ import type {
   Tanda,
 } from "./index";
 import { familyBand, goldenClassOf, isColour } from "./knowledge";
-import { familyKey, learnedFamilyFactor, learnedSideFactor } from "./learn";
+import { familyKey, learnedFamilyFactor, learnedSideFactor, praiseLinkFactor, praiseList } from "./learn";
 import { heatOfSides, orderCost, orderVerdictOf, strictOrder } from "./order";
 import {
   CORPUS_CAPS,
@@ -556,7 +556,12 @@ export interface Scoring {
   /** round 21: preferences learned from the DJ's edits */
   learned?: import("./types").LearnedPreferences;
   /** 2026-11: dancer favourites (favourites.ts), read in the slot's role; `trace` is the debug readout (stats) */
-  favourites?: { table: FavouriteTable; trace: FavouriteTrace[] };
+  favourites?: {
+    table: FavouriteTable;
+    trace: FavouriteTrace[];
+    /** the dancers' own evidence (the trace reads it; `table` also holds the DJ's praised tandas, praise.ts) */
+    dancer?: FavouriteTable;
+  };
   /** round 13: a preference layer (the hourly instrumental, …): return null rather than break more than this weight of rules */
   strict?: number;
 }
@@ -1355,6 +1360,14 @@ export function buildTanda(
           candidateYears(c),
         )
       : 1;
+  // 2026-11: the tanda just before this slot, as the praised connections read it (praise.ts)
+  const praisePrev = (() => {
+    if (!praiseList(sc.learned).length) return null;
+    const prev = ctx.history?.at(-1);
+    const s = prev?.songs.find((x) => normTitle(x.title) !== "la cumparsita");
+    if (!prev || !s || prev.index !== slot.index - 1) return null;
+    return { family: familyKey({ ...s, rhythm: prev.rhythm }), role: prev.phase };
+  })();
   const weight = (c: TandaCandidate) => {
     const av = availOf(c);
     const prof = sc.profile?.(c.orchestraId);
@@ -1374,12 +1387,12 @@ export function buildTanda(
     if (sc.weightOf) w *= sc.weightOf(c);
     // round 21: the families the DJ chose by hand weigh more, the ones they replaced a little less
     // (and the nights the DJ liked or disliked, in their year band: likes.ts)
-    if (sc.learned)
-      w *= learnedFamilyFactor(
-        sc.learned,
-        familyKey({ ...c, rhythm: slot.rhythm as Song["rhythm"] }),
-        sc.learned.likes ? candidateYears(c) : undefined,
-      );
+    // (2026-11: and a tanda the DJ praised, in its slot role, with its links from the tanda before: praise.ts)
+    if (sc.learned) {
+      const key = familyKey({ ...c, rhythm: slot.rhythm as Song["rhythm"] });
+      w *= learnedFamilyFactor(sc.learned, key, sc.learned.likes ? candidateYears(c) : undefined, slot.phase);
+      if (praisePrev) w *= praiseLinkFactor(sc.learned, praisePrev, { family: key, role: slot.phase });
+    }
     w *= favOf(c);
     const st = sc.style(c.orchestraId) ?? "balanced";
     w *= PHASE_STYLE[slot.phase]?.[st] ?? 1;
@@ -1538,12 +1551,18 @@ export function buildTanda(
       fav: favOf(r.c),
     }));
     rankProbe.on?.(slot.index, rows, slot.phase);
-    if (sc.favourites)
+    // (the trace is the dancers' readout: the DJ's praise moves the draw but is not a dancer favourite)
+    const dancer = sc.favourites?.dancer;
+    if (dancer)
       traceFavourites(
-        sc.favourites.trace,
+        sc.favourites!.trace,
         slot.index,
         slot.phase,
-        rows.map((r) => ({ key: r.key, w: r.w, f: r.fav })),
+        rows.map((r) => ({
+          key: r.key,
+          w: r.w,
+          f: favouriteFamilyFactor(dancer, r.key, slot.phase, r.years),
+        })),
       );
   }
   // the first D'Arienzo bonus must survive the energy term: floor it at 90 % of the best weight in the slot
@@ -1597,7 +1616,7 @@ export function buildTanda(
         (s.reissue ? 0.5 : 1) *
         (recentTitles.has(normTitle(s.title)) ? 0.55 : 1) *
         sideKnowledge(s, chosenProf, chosen.singer, sc.bandOverrides) *
-        learnedSideFactor(sc.learned, s.id, s) *
+        learnedSideFactor(sc.learned, s.id, s, slot.phase) *
         (sc.favourites ? favouriteSideFactor(sc.favourites.table, s.id, slot.phase) : 1) *
         (0.6 + rng.next() * 0.8),
     }))

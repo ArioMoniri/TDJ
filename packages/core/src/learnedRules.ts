@@ -1,5 +1,5 @@
 import { normTitle } from "./energy";
-import { emptyLearned, familyKey, LEARN_LIMITS, LIKE_WEIGHTS } from "./learn";
+import { emptyLearned, familyKey, LEARN_LIMITS, LIKE_WEIGHTS, praiseList } from "./learn";
 import { spreadCap } from "./tanda";
 import type { LearnedPreferences, NightException, Song, Tanda } from "./types";
 
@@ -11,9 +11,9 @@ import type { LearnedPreferences, NightException, Song, Tanda } from "./types";
  * vote for its family and sides.
  */
 export interface LearnedRule {
-  /** `family:<key>`, `side:<songId>`, `template:<id>`, `liked:<key>|<band>` or `shape:<nightId>` */
+  /** `family:<key>`, `side:<songId>`, `template:<id>`, `liked:<key>|<band>`, `shape:<nightId>` or `praise:<id>` */
   id: string;
-  kind: "family" | "side" | "template" | "liked" | "shape";
+  kind: "family" | "side" | "template" | "liked" | "shape" | "praise";
   /** where it came from: the DJ's edits, or the nights the DJ liked / disliked (thumbs up / down) */
   source: "edits" | "liked" | "disliked";
   label: string;
@@ -122,6 +122,18 @@ export function learnedRules(
       max: 1,
       source: "edits",
     });
+  // 2026-11: the tandas the DJ praised (praise.ts): the DJ's words, and the tanda it teaches (its order, its links)
+  for (const p of praiseList(L))
+    out.push({
+      id: `praise:${p.id}`,
+      kind: "praise",
+      label: p.note ? `${p.reason} · ${p.note}` : p.reason,
+      detail: p.name ?? p.family,
+      weight: 1,
+      min: 0,
+      max: 1,
+      source: "edits",
+    });
   // thumbs up / down on nights (likes.ts): one rule per family and year band, summed over the rated nights
   const liked = new Map<string, number>();
   for (const n of Object.values(L.likes ?? {}))
@@ -183,7 +195,7 @@ export function setLearnedWeight(
     };
   if (kind === "side")
     next.sides = { ...(next.sides ?? {}), [key]: clamp(w, LEARN_LIMITS.sideMin, LEARN_LIMITS.sideMax) };
-  if (kind === "template" && w <= 0) return forgetLearned(next, id);
+  if ((kind === "template" || kind === "praise") && w <= 0) return forgetLearned(next, id);
   next.updatedAt = new Date().toISOString();
   return next;
 }
@@ -195,6 +207,10 @@ export function forgetLearned(L: LearnedPreferences | undefined, id: string): Le
   if (kind === "family" && next.families) delete next.families[key];
   if (kind === "side" && next.sides) delete next.sides[key];
   if (kind === "template") next.templates = (next.templates ?? []).filter((t) => t.id !== key);
+  if (kind === "praise" && next.praise) {
+    next.praise = next.praise.filter((p) => p.id !== key);
+    if (!next.praise.length) delete next.praise;
+  }
   if (kind === "liked" && next.likes) for (const n of Object.values(next.likes)) delete n.families[key];
   if (kind === "shape" && next.likes?.[key]) delete next.likes[key].shape;
   next.updatedAt = new Date().toISOString();

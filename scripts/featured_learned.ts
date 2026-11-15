@@ -35,6 +35,7 @@ import {
   type NightException,
   normTitle,
   type Playlist,
+  praiseFromNight,
   type Song,
   type Tanda,
   tandaTitleKeyOf,
@@ -128,6 +129,27 @@ for (const slot of exceptionSlots) {
     store.templates = store.templates.filter((x) => x.id !== id);
   }
 }
+
+// the DJ's praise of the featured night's tandas (`praise`, praise.ts): refreshed from the head night when the tanda
+// or its neighbours changed (the DJ's words and the date stay); a praised tanda that is gone is reported
+store.praise = (store.praise ?? []).map((p) => {
+  if (p.nightId !== head.id) return p;
+  const t = head.tandas[p.tanda];
+  if (!t || !p.songIds.some((id) => t.songs.some((s) => s.id === id))) {
+    missing.push(
+      `praise “${p.reason}” (${p.name ?? p.id}): tanda ${p.tanda + 1} of the night no longer holds it`,
+    );
+    return p;
+  }
+  const fresh = praiseFromNight(head, p.tanda, p.reason, {
+    at: p.at,
+    ...(p.source ? { source: p.source } : {}),
+    ...(p.note ? { note: p.note } : {}),
+  });
+  if (JSON.stringify(fresh) !== JSON.stringify(p)) missing.push(`praise T${p.tanda + 1} refreshed`);
+  return fresh;
+});
+if (!store.praise.length) delete store.praise;
 
 // 1. the sides and families the DJ put in (pinned tandas; the forced follow-ups the engine chose teach nothing)
 const { added: addedSides, pinned } = editDiff(base, head);
@@ -248,7 +270,7 @@ console.log(
 );
 if (write) {
   const about =
-    "What TDJ learned from the DJ's edits of the featured night (packages/core/src/learn.ts): the repo-level store every composed night reads under the DJ's own memory (Database → Memory lists it; the DJ can weigh, delete or switch it off, recorded in the DJ's memory). `night` records the night-level choices; compose does not apply them to other nights. Audit / regenerate with scripts/featured_learned.ts.";
+    "What TDJ learned from the DJ's edits of the featured night (packages/core/src/learn.ts): the repo-level store every composed night reads under the DJ's own memory (Database → Memory lists it; the DJ can weigh, delete or switch it off, recorded in the DJ's memory). `night` records the night-level choices; compose does not apply them to other nights. `praise` holds the tandas the DJ praised (packages/core/src/praise.ts): their family and sides in their role, their order and their connections, bounded. Audit / regenerate with scripts/featured_learned.ts.";
   const { about: _a, ...rest } = store as typeof store & { about?: string };
   writeFileSync(STORE, `${JSON.stringify({ about, ...rest, night }, null, 1)}\n`);
 } else if (missing.length) process.exit(1);

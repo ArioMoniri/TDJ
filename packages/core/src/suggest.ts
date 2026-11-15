@@ -9,8 +9,11 @@ import {
   favouriteSideFactor,
   isFavouriteSide,
   type SlotRole,
+  withPraise,
 } from "./favourites";
-import { familyKey, learnedFamilyWeight, learnedSideFactor, mergeLearned } from "./learn";
+import { familyKey, learnedFamilyWeight, learnedSideFactor, mergeLearned, praiseLinkFactor } from "./learn";
+import { templateOrder } from "./order";
+import { praiseTemplateFor } from "./praise";
 import { withEraSettings } from "./profiles";
 import { recue } from "./repair";
 import { renight, retimeTanda } from "./swap";
@@ -155,6 +158,7 @@ function suggestSides(
   L: LearnedPreferences,
   limit: number,
   fav?: { table: FavouriteTable; role: SlotRole },
+  role?: SlotRole,
 ) {
   const cur = draft.at(-1)!;
   const s0 = cur[0]!;
@@ -168,6 +172,10 @@ function suggestSides(
   const chair = cur.length; // 0-based chair being filled
   const want = (last.energy ?? 50) + (chair < size - 1 ? 3 : -2);
   const out: NextSuggestion[] = [];
+  // 2026-11: a tanda the DJ praised holding the sides so far: its next side comes next (praise.ts)
+  const tpl = praiseTemplateFor(L, cur, rhythm, 1);
+  const lastIn = tpl ? Math.max(...cur.map((x) => tpl.indexOf(x.id))) : -1;
+  const praisedNext = tpl && lastIn >= 0 ? tpl[lastIn + 1] : undefined;
   for (const s of deps.catalog.byOrchestra.get(s0.orchestraId) ?? []) {
     if (rhythmOf(s) !== rhythm || s.rhythm !== s0.rhythm || used.has(s.id) || titles.has(normTitle(s.title)))
       continue;
@@ -175,14 +183,16 @@ function suggestSides(
     if (!playable(s, deps, o)) continue;
     if (sideProblem(cur, s, { rhythm, o }, { orchestraId: s0.orchestraId })) continue;
     const e = s.energy ?? 50;
-    const lf = learnedSideFactor(L, s.id, s);
+    const lf = learnedSideFactor(L, s.id, s, role);
     const ff = fav ? favouriteSideFactor(fav.table, s.id, fav.role) : 1;
+    const praised = s.id === praisedNext;
     const score =
       (s.fame ?? 0) * 4 -
       Math.abs((s.year ?? my) - my) * 3 -
       Math.abs(e - want) / 2 +
       (lf - 1) * 40 +
       (ff - 1) * 30 +
+      (praised ? 15 : 0) +
       10;
     const reasons: string[] = [];
     reasons.push(
@@ -194,6 +204,7 @@ function suggestSides(
       reasons.push(`settles the tanda to close it (energy ${Math.round(e)})`);
     if ((s.fame ?? 0) >= 3) reasons.push("a floor favourite with DJs");
     if (lf > 1) reasons.push("you chose this side before");
+    if (praised) reasons.unshift("★ next in a tanda you praised");
     const heart = !!fav && isFavouriteSide(fav.table, s.id, fav.role);
     if (heart) reasons.unshift("♥ dancers filled the floor with it here");
     out.push({
@@ -249,7 +260,8 @@ export function suggestNext(draft: Song[][], deps: ComposeDeps, opts: SuggestOpt
   const slots = planSlots(o);
   const cur = tandas.at(-1);
   // 2026-11: dancer favourites, read in the slot's role
-  const table = asFavouriteTable(opts.favourites);
+  // (and the tandas the DJ praised, as DJ evidence in their role: praise.ts)
+  const table = withPraise(asFavouriteTable(opts.favourites), L.praise);
   const favAt = (k: number) =>
     table && !table.off ? { table, role: slots[Math.min(k, slots.length - 1)]?.phase ?? "build" } : undefined;
   if (cur && cur.length < sizeFor(o, rhythmOf(cur[0]!))) {
@@ -259,7 +271,7 @@ export function suggestNext(draft: Song[][], deps: ComposeDeps, opts: SuggestOpt
       rhythm: rhythmOf(cur[0]!),
       slot,
       targetEnergy: slots[slot]?.targetEnergy ?? 60,
-      suggestions: suggestSides(tandas, deps, o, L, limit, favAt(slot)),
+      suggestions: suggestSides(tandas, deps, o, L, limit, favAt(slot), slots[slot]?.phase),
     };
   }
   const slot = tandas.length;
@@ -279,6 +291,9 @@ export function suggestNext(draft: Song[][], deps: ComposeDeps, opts: SuggestOpt
   const lastMean = last2.length ? mean(last2) : target;
   const want = calm ? Math.max(target, lastMean + 10) : strong ? Math.min(target, lastMean - 10) : target;
   const prev = tandas.at(-1);
+  const prevSlot = prev?.[0]
+    ? { family: familyKey({ ...prev[0], rhythm: rhythmOf(prev[0]) }), role: slots[slot - 1]?.phase }
+    : null;
   const prevYears = prev ? datedYears(prev) : [];
   const prevYear = prevYears.length ? mean(prevYears) : null;
   const og = o.orchestraRepeatGap ?? 6;
@@ -328,8 +343,11 @@ export function suggestNext(draft: Song[][], deps: ComposeDeps, opts: SuggestOpt
       tandas.length - singerAt.get(normTitle(s0.singer))! < sg
     )
       continue;
-    const rep = representative(songs, size, rhythm, o, L);
-    if (!rep) continue;
+    const rep0 = representative(songs, size, rhythm, o, L);
+    if (!rep0) continue;
+    // (a praised tanda's sides keep the praised order: praise.ts)
+    const tpl = praiseTemplateFor(L, rep0, rhythm);
+    const rep = (tpl && templateOrder(rep0, tpl)) || rep0;
     const e = energyOf(rep);
     const ys = yearsOf(rep);
     const tier = deps.catalog.profile(orch)?.tier ?? 3;
@@ -366,13 +384,20 @@ export function suggestNext(draft: Song[][], deps: ComposeDeps, opts: SuggestOpt
       score -= Math.min(d, 15) * 1.2;
       if (d <= 3) reasons.push([10, `stays in the ${Math.floor(y / 10) * 10}s, the years of the last tanda`]);
     }
-    const lv = learnedFamilyWeight(L, key, ys);
+    const role = slots[Math.min(slot, slots.length - 1)]?.phase;
+    const lv = learnedFamilyWeight(L, key, ys, role);
     if (lv !== undefined) {
       score += lv * 6;
       const fromLikes = L.families?.[key] === undefined;
       if (lv > 0) reasons.push([20, fromLikes ? "from nights you liked" : "you often choose this family"]);
       else if (lv < 0)
         reasons.push([4, fromLikes ? "from nights you disliked" : "you replaced this family before"]);
+    }
+    // 2026-11: a connection the DJ praised (the tanda before → this family, in these roles: praise.ts)
+    const lk = prevSlot ? praiseLinkFactor(L, prevSlot, { family: key, role }) : 1;
+    if (lk > 1) {
+      score += (lk - 1) * 150;
+      reasons.push([18, "★ a connection you praised"]);
     }
     const fv = favAt(slot);
     const ff = fv ? favouriteFamilyFactor(fv.table, key, fv.role, ys) : 1;
