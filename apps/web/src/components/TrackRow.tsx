@@ -11,7 +11,6 @@ import { lineSwap } from "@/lib/motion";
 import { sourceFor, trackFor, usePlayer } from "@/lib/player";
 import { bpmText, keyText, useSongData } from "@/lib/songView";
 import { useStore } from "@/lib/store";
-import { tempoLevel } from "@/lib/tempo";
 import type { Song } from "@/lib/types";
 import { yearText } from "@/lib/year";
 import { I } from "./Icons";
@@ -43,6 +42,7 @@ export const TrackRow = memo(function TrackRow({
   disabled,
   swapLabel,
   animateLayout = false,
+  lockedWhy,
 }: {
   n: number;
   song: Song;
@@ -55,6 +55,8 @@ export const TrackRow = memo(function TrackRow({
   swapLabel: string;
   /** the parent card is the one being swapped/locked: animate this row's position */
   animateLayout?: boolean;
+  /** why Swap is off ("unlock the tanda first", "a night from History is read-only") */
+  lockedWhy?: string;
 }) {
   const reduced = useReducedMotion();
   const isPhone = useMediaQuery("(max-width: 639px)");
@@ -62,8 +64,13 @@ export const TrackRow = memo(function TrackRow({
   const connected = useStore((s) => !!s.spotifyToken && s.spotifyToken.expires > Date.now());
   const eff = patchedSong(song, patch);
   // round 22: artwork, BPM and key from the DJ's edits, their sources, then the index
-  const { data } = useSongData(song);
+  const { data, bpm: bpmPick } = useSongData(song);
+  // wave 2: one BPM per side (DJ edit > analysed preview > source > estimate), printed once on the row
   const bpm = bpmText(data);
+  const level = typeof eff.level?.gainDb === "number" ? eff.level.gainDb : null;
+  const tempoLine = [bpm, level !== null ? `${level.toFixed(1).replace("-", "−")} dB` : null]
+    .filter(Boolean)
+    .join(" · ");
   const keyOnly = !eff.audio ? keyText(data) : null;
   const source = sourceFor(eff, connected);
   const playing = usePlayer((s) => s.playing && s.track?.id === song.id);
@@ -210,27 +217,24 @@ export const TrackRow = memo(function TrackRow({
               {keyOnly}
             </span>
           )}
-          {bpm && !isPhone && !tempoLevel(song) && (
-            <Tip text="Beats per minute: from your edit, your sources or the analysed preview">
+          {bpm && !isPhone && level === null && (
+            <Tip text={bpmPick?.note ?? "Beats per minute"}>
               <span className="data-chip" data-testid="row-bpm">
                 {bpm}
               </span>
             </Tip>
           )}
           {audio && !isPhone && (
-            <Tip
-              text={`Key ${keyLabel(audio)} · ${Math.round(audio.bpm)} BPM · ${audio.loudnessDb.toFixed(1)} dBFS · analysed from a 30 s preview`}
-            >
+            <Tip text={`Key ${keyLabel(audio)} · analysed from a 30 s preview`}>
               <button
                 type="button"
                 className="key-chip text-caption1 -my-1 inline-flex min-h-[28px] shrink-0 items-center whitespace-nowrap rounded-md bg-[var(--fill-4)] px-1.5 font-mono tabular-nums text-[var(--label-2)]"
-                aria-label={`Key ${keyLabel(audio)}, ${Math.round(audio.bpm)} BPM, details`}
+                aria-label={`Key ${keyLabel(audio)}, details`}
                 data-testid="key-chip"
                 onPointerDown={(e) => e.stopPropagation()}
                 onClick={openDetails}
               >
                 {keyLabel(audio)}
-                <span className="ml-1.5 text-[var(--label-2)]">{Math.round(audio.bpm)}</span>
               </button>
             </Tip>
           )}
@@ -245,13 +249,15 @@ export const TrackRow = memo(function TrackRow({
             </span>
           )}
           {/* round 21: the measured tempo and level the tanda's bands read */}
-          {tempoLevel(song) && !isPhone && (
-            <span
-              className="row-tempo text-caption1 shrink-0 whitespace-nowrap tabular-nums text-[var(--label-3)]"
-              data-testid="row-tempo"
-            >
-              {tempoLevel(song)}
-            </span>
+          {level !== null && tempoLine && !isPhone && (
+            <Tip text={bpmPick?.note ?? "The side's level"}>
+              <span
+                className="row-tempo text-caption1 shrink-0 whitespace-nowrap tabular-nums text-[var(--label-3)]"
+                data-testid="row-tempo"
+              >
+                {tempoLine}
+              </span>
+            </Tip>
           )}
           <span className="text-subhead tabular-nums text-[var(--label-2)]">
             <span className="sr-only">energy </span>
@@ -269,7 +275,13 @@ export const TrackRow = memo(function TrackRow({
             </span>
           )}
           {!isPhone && (
-            <Tip text={"Swap this track for another of the same family"}>
+            <Tip
+              text={
+                disabled
+                  ? `Swap: ${lockedWhy ?? "unlock the tanda first"}`
+                  : "Swap this track for another of the same family"
+              }
+            >
               <button
                 type="button"
                 onClick={swap}
@@ -293,7 +305,17 @@ export const TrackRow = memo(function TrackRow({
             }
             items={[
               // round 21: the side's Swap sheet (suggestions that keep the tanda valid, search, AI pick)
-              { label: "Swap…", icon: Repeat2, onClick: swap, disabled: disabled || inFlight },
+              // wave 2: a greyed-out Swap says why
+              {
+                label: disabled
+                  ? `Swap… (${lockedWhy ?? "unlock the tanda first"})`
+                  : inFlight
+                    ? "Swap… (swapping)"
+                    : "Swap…",
+                icon: Repeat2,
+                onClick: swap,
+                disabled: disabled || inFlight,
+              },
               { label: "Find on services…", icon: Search, onClick: openFind },
               {
                 label: audio ? "Analyse again in browser" : "Analyse in browser",
@@ -313,6 +335,7 @@ export const TrackRow = memo(function TrackRow({
           open={details}
           onClose={() => setDetails(false)}
           onSwap={disabled || inFlight ? undefined : swap}
+          bpm={bpmPick}
         />
       )}
       {findMounted && <ResolveSheet song={find ? song : null} open={find} onClose={() => setFind(false)} />}

@@ -1,24 +1,35 @@
 "use client";
-import { type EditChange, learnFromLock, type NightEditOp, rememberEdit, type TandaBrief } from "@tdj/core";
+import {
+  type EditChange,
+  type Feedback,
+  learnFromLock,
+  type NightEditOp,
+  rememberEdit,
+  type TandaBrief,
+} from "@tdj/core";
 import { ArrowRight, ArrowUp, LoaderCircle, RotateCcw, Sparkles } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { aiFetch, hasOwnModel } from "@/lib/ai/client";
+import { EDIT_EXAMPLES } from "@/lib/ai/examples";
 import { installAiRelay } from "@/lib/ai/relayFetch";
-import { makeSnapshot } from "@/lib/history";
+import { FEEDBACK_LABEL } from "@/lib/feedback";
 import { installLearnWatch, skipNextLearn } from "@/lib/learnWatch";
 import { DUR, EASE } from "@/lib/motion";
-import { fullOptions, useStore } from "@/lib/store";
+import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import type { Playlist } from "@/lib/types";
+import { yearText } from "@/lib/year";
 import { Group } from "./Form";
 import { Tip } from "./ui/Tip";
 
 export interface AiEditResponse {
   playlist?: Playlist;
   applied?: EditChange[];
-  rejected?: Array<{ op: NightEditOp; reason: string }>;
+  rejected?: Array<{ op: NightEditOp; reason: string; suggest?: string }>;
+  /** wave 2: a whole-night request is one of the Adjust chips ("more vals please") */
+  chip?: Feedback;
   notUnderstood?: string[];
   note?: string | null;
   source?: "model" | "words";
@@ -26,11 +37,8 @@ export interface AiEditResponse {
   error?: string;
 }
 
-const EXAMPLES = [
-  "Make tanda 7 calmer",
-  "Swap the 2nd song of tanda 3 for a Fiorentino",
-  "Lock the first tanda",
-];
+/* wave 2: examples that work on a freshly composed night (lib/ai/words.test.ts) */
+const EXAMPLES = EDIT_EXAMPLES;
 
 /** the sides that changed in one tanda: the old title struck through, the new one after it */
 function SidesDiff({ before, after }: { before?: TandaBrief; after?: TandaBrief }) {
@@ -46,7 +54,7 @@ function SidesDiff({ before, after }: { before?: TandaBrief; after?: TandaBrief 
         <span key={`${out[k]?.id ?? ""}-${inn[k]?.id ?? ""}`} className="flex min-w-0 items-center gap-1.5">
           {out[k] && (
             <Tip
-              text={`${out[k]!.title} (${out[k]!.year ?? "?"}), energy ${out[k]!.energy}`}
+              text={`${out[k]!.title}${yearText(out[k]!.year) ? ` (${yearText(out[k]!.year)})` : ""}, energy ${out[k]!.energy}`}
               className="min-w-0"
             >
               <del className="truncate">{out[k]!.title}</del>
@@ -55,11 +63,14 @@ function SidesDiff({ before, after }: { before?: TandaBrief; after?: TandaBrief 
           {out[k] && inn[k] && <ArrowRight size={12} className="shrink-0" aria-hidden />}
           {inn[k] && (
             <Tip
-              text={`${inn[k]!.title} (${inn[k]!.year ?? "?"}), energy ${inn[k]!.energy}`}
+              text={`${inn[k]!.title}${yearText(inn[k]!.year) ? ` (${yearText(inn[k]!.year)})` : ""}, energy ${inn[k]!.energy}`}
               className="min-w-0"
             >
               <ins className="truncate text-[var(--label)] no-underline">
-                {inn[k]!.title} <span className="text-[var(--label-2)]">({inn[k]!.year ?? "?"})</span>
+                {inn[k]!.title}{" "}
+                {yearText(inn[k]!.year) && (
+                  <span className="text-[var(--label-2)]">({yearText(inn[k]!.year)})</span>
+                )}
               </ins>
             </Tip>
           )}
@@ -73,7 +84,14 @@ function SidesDiff({ before, after }: { before?: TandaBrief; after?: TandaBrief 
  * Round 22 — Edit with AI (Compose): the DJ asks in words, the model answers with edits, the engine checks each
  * one; the changes show as a diff with Undo. Without a model, simple requests are read by keyword.
  */
-export function AiEditBar({ playlist }: { playlist: Playlist }) {
+export function AiEditBar({
+  playlist,
+  onChip,
+}: {
+  playlist: Playlist;
+  /** wave 2: run an Adjust chip the request named ("more vals please" → More vals) */
+  onChip?: (f: Feedback) => void | Promise<void>;
+}) {
   const { settings, memory, overrides } = useStore();
   // the relay lets every AI request on the page use the DJ's own agent; the watcher learns from locks and swaps
   useEffect(() => {
@@ -86,7 +104,12 @@ export function AiEditBar({ playlist }: { playlist: Playlist }) {
     const st = useStore.getState();
     skipNextLearn();
     st.setPlaylist(next);
-    st.addSnapshot(makeSnapshot(next, fullOptions(st.options), "swap"));
+    // wave 2: an AI edit is a version of tonight's History entry, labelled with the DJ's own words
+    st.recordNightEdit(
+      next,
+      `“${instruction.length > 48 ? `${instruction.slice(0, 47)}…` : instruction}”`,
+      "swap",
+    );
     setLearnedBefore({ v: st.memory.learned });
     if (st.settings.learn)
       st.updateMemory((m) => {
@@ -105,6 +128,7 @@ export function AiEditBar({ playlist }: { playlist: Playlist }) {
     const st = useStore.getState();
     skipNextLearn();
     st.setPlaylist(prev);
+    st.recordNightEdit(prev, "Edit undone", "swap");
     if (learnedBefore) st.updateMemory((m) => ({ ...m, learned: learnedBefore.v }));
     setLearnedBefore(null);
     toast("Edit undone");
@@ -118,9 +142,9 @@ export function AiEditBar({ playlist }: { playlist: Playlist }) {
   const [error, setError] = useState<string | null>(null);
   const own = hasOwnModel(settings);
 
-  const submit = async (e?: React.FormEvent) => {
+  const submit = async (e?: React.FormEvent, asked?: string) => {
     e?.preventDefault();
-    const instruction = text.trim();
+    const instruction = (asked ?? text).trim();
     if (!instruction || busy) return;
     setBusy(true);
     setError(null);
@@ -142,6 +166,11 @@ export function AiEditBar({ playlist }: { playlist: Playlist }) {
         return;
       }
       setResult({ r, prev, instruction });
+      if (r.chip && !r.applied?.length && onChip) {
+        setText("");
+        await onChip(r.chip);
+        return;
+      }
       if (r.applied?.length) {
         onApplied(r.playlist, prev, instruction, r.applied);
         setText("");
@@ -296,9 +325,31 @@ export function AiEditBar({ playlist }: { playlist: Playlist }) {
                   data-testid="ai-edit-refused"
                 >
                   Not done (tanda {x.op.tanda}): {x.reason}.
+                  {x.suggest && (
+                    <>
+                      {" "}
+                      <button
+                        type="button"
+                        className="btn-plain min-h-11 px-1 font-semibold"
+                        onClick={() => {
+                          setText(x.suggest!);
+                          void submit(undefined, x.suggest);
+                        }}
+                        data-testid="ai-edit-suggest"
+                      >
+                        {x.suggest}
+                      </button>
+                    </>
+                  )}
                 </li>
               ))}
-              {nothing && !r.rejected?.length && (
+              {r.chip && (
+                <li className="text-footnote text-[var(--label-2)]" data-testid="ai-edit-chip">
+                  That is a change to the whole night: recomposing with “{FEEDBACK_LABEL[r.chip]}”, as the
+                  Adjust chip does.
+                </li>
+              )}
+              {nothing && !r.rejected?.length && !r.chip && (
                 <li className="text-footnote text-[var(--label-2)]">
                   Nothing to change:{" "}
                   {r.notUnderstood?.length

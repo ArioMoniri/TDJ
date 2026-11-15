@@ -30,7 +30,12 @@ export async function POST(req: Request) {
       NextResponse.json({
         playlist: r.playlist,
         applied: r.applied,
-        rejected: r.rejected.map((x) => ({ op: x.op, reason: x.reason })),
+        rejected: r.rejected.map((x) => ({
+          op: x.op,
+          reason: x.reason,
+          ...(x.suggest ? { suggest: x.suggest } : {}),
+        })),
+        ...(r.chip ? { chip: r.chip } : {}),
         notUnderstood: r.notUnderstood,
         note: r.note ?? null,
         source: r.source,

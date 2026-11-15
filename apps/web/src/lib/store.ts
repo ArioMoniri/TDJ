@@ -3,7 +3,14 @@ import { emptyMemory } from "@tdj/core";
 import { create } from "zustand";
 import { type PersistStorage, persist } from "zustand/middleware";
 import { RETIRED_DEFAULTS } from "./ai/models";
-import { clearHistoryStore, isSnapshot, loadHistoryLocal, pushSnapshot, saveHistory } from "./history";
+import {
+  clearHistoryStore,
+  historyAfter,
+  isSnapshot,
+  loadHistoryLocal,
+  restoreVersion,
+  saveHistory,
+} from "./history";
 import { whenIdle } from "./hooks";
 import { clearMemoryStore, saveMemory } from "./memory";
 import { clearOverrides, loadOverrides, type StorageMode, saveOverrides } from "./overrides";
@@ -51,7 +58,16 @@ interface State {
   memory: AgentMemory;
   /** previous generations, newest first (IndexedDB `tdj-history-v1`, plus the server row when enabled) */
   history: HistorySnapshot[];
+  /** a new night: one new History entry, which becomes the current one */
   addSnapshot: (s: HistorySnapshot) => void;
+  /** wave 2: the History entry the night on screen belongs to (edits land in it as versions) */
+  currentEntry: string | null;
+  /** an edit to the night on screen (a chip, an AI edit, a swap): the current entry keeps a version */
+  recordNightEdit: (p: Playlist, label: string, source?: HistorySnapshot["source"]) => void;
+  /** Reopen / Play from History: that entry becomes the current one */
+  setCurrentEntry: (id: string | null) => void;
+  /** bring back an earlier version of an entry */
+  restoreEntryVersion: (entryId: string, versionId: string) => HistorySnapshot | null;
   updateSnapshot: (id: string, patch: Partial<HistorySnapshot>) => void;
   removeSnapshot: (id: string) => void;
   clearHistory: () => Promise<void>;
@@ -126,12 +142,37 @@ export const useStore = create<State>()(
       storageMode: "browser",
       memory: emptyMemory(),
       history: [],
+      currentEntry: null,
       addSnapshot: (snap) => {
-        const next = pushSnapshot(get().history, snap);
-        set({ history: next });
+        const { list: next, currentId } = historyAfter(get().history, get().currentEntry, {
+          kind: "new",
+          snap,
+        });
+        set({ history: next, currentEntry: currentId });
         // a new night is written now, not after the debounce: opening History right after composing (or leaving
         // the page) lost it, because a write started in pagehide is not guaranteed to finish
         saveHistory(next, get().storageMode, true);
+      },
+      recordNightEdit: (p, label, source = "swap") => {
+        const { list: next, currentId } = historyAfter(get().history, get().currentEntry, {
+          kind: "edit",
+          playlist: p,
+          label,
+          options: fullOptions(get().options),
+          source,
+        });
+        set({ history: next, currentEntry: currentId });
+        saveHistory(next, get().storageMode, true);
+      },
+      setCurrentEntry: (currentEntry) => set({ currentEntry }),
+      restoreEntryVersion: (entryId, versionId) => {
+        const e = get().history.find((h) => h.id === entryId);
+        const back = e ? restoreVersion(e, versionId) : null;
+        if (!back) return null;
+        const next = get().history.map((h) => (h.id === entryId ? back : h));
+        set({ history: next });
+        saveHistory(next, get().storageMode, true);
+        return back;
       },
       updateSnapshot: (id, patch) => {
         const next = get().history.map((h) => (h.id === id ? { ...h, ...patch } : h));
@@ -144,7 +185,7 @@ export const useStore = create<State>()(
         saveHistory(next, get().storageMode, true);
       },
       clearHistory: async () => {
-        set({ history: [] });
+        set({ history: [], currentEntry: null });
         await clearHistoryStore(get().storageMode);
       },
       setOptions: (o) =>
@@ -212,6 +253,7 @@ export const useStore = create<State>()(
         settings: s.settings,
         spotifyToken: s.spotifyToken,
         playlist: s.playlist,
+        currentEntry: s.currentEntry,
       }),
       migrate: (persisted, version) => {
         const p = (persisted ?? {}) as { settings?: Record<string, unknown> };

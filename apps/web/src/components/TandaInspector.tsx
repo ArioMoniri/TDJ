@@ -17,7 +17,7 @@ const PHASE: Record<string, string> = {
   cooldown: "Cool-down",
   close: "Close",
 };
-const years = (r: [number, number] | null) => (!r ? "year ?" : r[0] === r[1] ? `${r[0]}` : `${r[0]}–${r[1]}`);
+const years = (r: [number, number] | null) => (!r ? "–" : r[0] === r[1] ? `${r[0]}` : `${r[0]}–${r[1]}`);
 const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
 
 /**

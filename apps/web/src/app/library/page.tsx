@@ -15,6 +15,7 @@ import { fade, reduced as reducedV, rise, t } from "@/lib/motion";
 import { sourceFor, trackFor, usePlayer } from "@/lib/player";
 import { useStore } from "@/lib/store";
 import type { Song } from "@/lib/types";
+import { yearText } from "@/lib/year";
 
 const ResolveSheet = dynamic(() => import("@/components/ResolveSheet").then((m) => m.ResolveSheet), {
   ssr: false,
@@ -188,7 +189,7 @@ export default function Library() {
                         </span>
                       </span>
                       <span className="cell-value text-body">
-                        <span className="tabular-nums">{s.year ?? "?"}</span>
+                        <span className="tabular-nums">{yearText(s.year)}</span>
                         <span className="text-footnote ml-2 tabular-nums text-[var(--label-2)]">
                           <span className="sr-only">energy </span>
                           {s.energy}

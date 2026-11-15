@@ -3,6 +3,7 @@ import { FileDown, FolderOpen, Link2, QrCode as QrIcon, Share2, Smartphone, User
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { haptic } from "@/lib/haptics";
+import { nightSub, nightTitle } from "@/lib/nightName";
 import {
   copyText,
   type NightShare,
@@ -104,8 +105,9 @@ export function ShareSheet({
       trailing="Done"
     >
       <p className="px-4 pb-3 text-footnote text-[var(--label-2)]">
-        “{playlist.name}” · {tandas} tandas · {sides} songs · score {playlist.score.total}. Anyone you send it
-        to can open it in T-DJ, play it and export it to Spotify. Keys and accounts never travel with it.
+        “{nightTitle(playlist)}” · {nightSub(playlist)} · {tandas} tandas · {sides} songs · score{" "}
+        {playlist.score.total}. Anyone you send it to can open it in T-DJ, play it and export it to Spotify.
+        Keys and accounts never travel with it.
       </p>
       <Group
         footer={share?.linkError ?? "The link carries the whole night, so nothing is uploaded to share it."}

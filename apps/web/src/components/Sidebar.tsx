@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { type KeyboardEvent, type PointerEvent, useCallback, useEffect, useRef, useState } from "react";
 import { haptic } from "@/lib/haptics";
 import { spring } from "@/lib/motion";
+import { lengthText } from "@/lib/nightName";
 import { usePlayer } from "@/lib/player";
 import { useStore } from "@/lib/store";
 import { Logo } from "./Logo";
@@ -251,7 +252,7 @@ export function Sidebar() {
               <h2 className="side-head" id="side-tonight">
                 Tonight
                 <span className="side-head-meta">
-                  {playlist.tandas.length} tandas · {Math.round(playlist.stats.durationSec / 3600)} h
+                  {playlist.tandas.length} tandas · {lengthText(playlist.stats.durationSec)}
                 </span>
               </h2>
               <ol className="flex flex-col gap-0.5">

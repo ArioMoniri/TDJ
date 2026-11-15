@@ -1407,6 +1407,20 @@ select.field {
     display: none;
   }
 }
+/* wave 2: one Compose at a time — the dock sits out (its place kept) while the empty page's hero button is on screen */
+.compose-dock-off {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+.compose-dock {
+  transition:
+    opacity var(--dur-s, 0.2s) var(--ease-settle, ease),
+    visibility 0s linear var(--dur-s, 0.2s);
+}
+.compose-dock:not(.compose-dock-off) {
+  transition-delay: 0s;
+}
 /* the floating mini player (bottom right, 360 px) never sits on the dock's Compose button */
 @media (min-width: 640px) {
   html:has([data-testid="mini-player"]) .compose-dock {

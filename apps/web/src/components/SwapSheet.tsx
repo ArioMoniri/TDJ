@@ -3,6 +3,7 @@ import { rememberEdit } from "@tdj/core";
 import { useEffect, useState } from "react";
 import { useStore } from "@/lib/store";
 import { tempoLevel } from "@/lib/tempo";
+import { toast } from "@/lib/toast";
 import type { Playlist, Song } from "@/lib/types";
 import { yearText } from "@/lib/year";
 import { ActionRow, Group, Row, SwitchRow } from "./Form";
@@ -55,7 +56,7 @@ const sub = (s: SwapSide["song"]) =>
     yearText(s.year),
     s.singer ?? "instrumental",
     s.vocalStyle === "cantor" ? "singer-led" : s.vocalStyle === "estribillo" ? "rhythm-led" : null,
-    s.energy !== undefined ? `e${s.energy}` : null,
+    s.energy !== undefined ? `energy ${s.energy}` : null,
     tempoLevel(s) || null,
   ]
     .filter(Boolean)
@@ -125,7 +126,7 @@ export function SwapSheet({
     if (!open) setQ("");
   }, [open]);
 
-  const apply = async (songId: string, how: string, force = false) => {
+  const apply = async (songId: string, how: string, force = false, title?: string) => {
     if (!playlist || tandaIndex === null || trackIndex === null) return;
     setBusy(songId);
     try {
@@ -142,6 +143,10 @@ export function SwapSheet({
       if (settings.learn) updateMemory((m) => rememberEdit(m, playlist, j, how));
       await onApplied(j, how);
       onClose();
+      // wave 2: every pick can be taken back from the toast
+      const was = playlist;
+      const name = title ?? j.tandas[tandaIndex]?.songs[trackIndex]?.title;
+      toast(name ? `Swapped in “${name}”` : "Song swapped", () => void onApplied(was, "Swap undone"));
     } finally {
       setBusy(null);
     }
@@ -174,7 +179,7 @@ export function SwapSheet({
       setBusy(null);
       await apply(
         j.songId,
-        `${j.source === "ai" ? "AI pick" : "Engine pick (no AI key)"}: ${j.why ?? ""}`.trim(),
+        `${j.source === "ai" ? "Your AI's pick" : "Best fit"}${j.why ? `: ${j.why}` : ""}`,
       );
     } finally {
       setBusy(null);
@@ -212,10 +217,16 @@ export function SwapSheet({
         sub={x.ok ? sub(x.song) : `${sub(x.song)} — ${x.reason}`}
         pill={x.ok ? `${fit} % fit` : undefined}
         pillTip={
-          x.ok ? "How well it matches this chair: energy, tempo, level and how often DJs play it" : undefined
+          x.ok
+            ? "How well it fits this place in the tanda: energy, tempo, level and how often DJs play it"
+            : undefined
         }
         ariaLabel={x.ok ? `Swap in ${x.song.title}` : `${x.song.title}: ${x.reason}`}
-        onClick={x.ok && !lockedReason ? () => apply(x.song.id, `Swapped in ${x.song.title}`) : undefined}
+        onClick={
+          x.ok && !lockedReason
+            ? () => apply(x.song.id, `Swapped in ${x.song.title}`, false, x.song.title)
+            : undefined
+        }
       />
     );
   };
@@ -258,7 +269,7 @@ export function SwapSheet({
               className="w-full"
             >
               <ActionRow
-                label={settings.ai.key ? "AI pick" : "AI pick (engine's best fit: no AI key)"}
+                label={settings.ai.key ? "Let my AI pick" : "Pick the best fit for me"}
                 onClick={aiPick}
                 busy={busy === "ai"}
                 disabled={!!lockedReason || !lists.suggestions.length}
@@ -266,7 +277,7 @@ export function SwapSheet({
             </Tip>
             <SwitchRow
               label="Keep my tanda as is"
-              sub="Pinned: no rule, fixer or regenerate changes it; its exceptions are shown, not fixed"
+              sub="Regenerate and the automatic fixes leave this tanda as it is; anything unusual in it is pointed out, never changed"
               checked={pin}
               onChange={(v) => void togglePin(v)}
               disabled={!!lockedReason}

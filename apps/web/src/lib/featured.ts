@@ -6,7 +6,8 @@ export const FEATURED = [
   {
     id: "golden-double-peak",
     title: "Featured night",
-    sub: "4 h golden era, double peak, Turkish cortinas",
+    // (wave 2: the night's real length and the one era label, as History and Share print them)
+    sub: "4 h 36 min · Golden Age · double peak, Turkish cortinas",
   },
 ] as const;
 export type FeaturedId = (typeof FEATURED)[number]["id"];

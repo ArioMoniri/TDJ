@@ -9,6 +9,7 @@ import { djDataOf } from "@/lib/artwork";
 import { effectiveSong } from "@/lib/audio";
 import { fillMissing } from "@/lib/fill/client";
 import { rise, spring } from "@/lib/motion";
+import { bpmChoice } from "@/lib/songData";
 import { SOURCE_LABEL } from "@/lib/songView";
 import { spotifyUri, spotifyUrl } from "@/lib/spotifyLink";
 import { toast } from "@/lib/toast";
@@ -257,6 +258,8 @@ export function SongsTab() {
             const res = eff.resolved;
             const scraped = overrides.scraped?.[s.id];
             const data = songData(eff, scraped, djDataOf(p));
+            // wave 2: one BPM per side; every value with its source below it, the used one marked
+            const bpm = bpmChoice(eff, scraped, djDataOf(p));
             const missing = missingFields(data);
             const from = (f: keyof typeof data) =>
               data[f] ? ` · ${SOURCE_LABEL[data[f]!.source] ?? data[f]!.source}` : "";
@@ -331,16 +334,30 @@ export function SongsTab() {
                   onChange={(t) => setField(s, "energy", num(t))}
                 />
                 <ValueCell
-                  label={`BPM${s.tempo ? ` · ${p.bpm !== undefined ? "yours" : (SOURCE[s.tempo.source] ?? s.tempo.source)}` : ""}`}
+                  label={`BPM${bpm ? ` · ${p.bpm !== undefined ? "yours" : bpm.used.label.toLowerCase()}` : ""}`}
                   inputLabel={`BPM of ${s.title}`}
                   editing={editing}
                   value={p.bpm}
-                  placeholder={s.tempo ? Math.round(s.tempo.bpm) : (s.bpm ?? "–")}
+                  placeholder={bpm ? bpm.value : "–"}
                   type="number"
                   min={40}
                   max={240}
                   onChange={(t) => setField(s, "bpm", num(t))}
                 />
+                {bpm && bpm.all.length > 1 && (
+                  <Tip text={bpm.note} className="w-full">
+                    <Row
+                      label="Every BPM value"
+                      sub={bpm.all
+                        .map(
+                          (x) =>
+                            `${x.label} ${Math.round(x.raw)}${x.used ? " (used)" : x.agrees ? (x.halfDouble ? " (same tempo, other beat level)" : " (agrees)") : " (disagrees)"}`,
+                        )
+                        .join(" · ")}
+                      data-testid="db-bpm-values"
+                    />
+                  </Tip>
+                )}
                 {/* round 21: the loudness and the vocal style the tanda rules read; a correction here wins over
                     the enrichment (Deezer, the knowledge table) and is kept when the enrich scripts run again */}
                 <ValueCell
