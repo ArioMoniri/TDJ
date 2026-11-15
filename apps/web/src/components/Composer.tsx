@@ -1836,9 +1836,6 @@ export function Composer() {
               {tx("composer.or_set_up_the_night_below")}
             </span>
           </div>
-          <p className="text-footnote mt-4 text-[var(--label-2)] sm:hidden">
-            {tx("composer.compose_the_night_is_in_the")}
-          </p>
           {/* a built-in night to read before composing one */}
           <Tip text={tx("composer.open_a_night_a_dj_built")} className="mt-4 w-full">
             <button

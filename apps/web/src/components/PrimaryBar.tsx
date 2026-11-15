@@ -29,7 +29,7 @@ export function PrimaryBar({
   const show = !hidden;
   return (
     <div
-      className="fixed right-[max(1rem,env(safe-area-inset-right,0px))] bottom-[calc(var(--tabbar-bottom)+var(--tabbar-h)+10px)] z-30 sm:hidden"
+      className="fixed right-[max(1rem,env(safe-area-inset-right,0px))] bottom-[calc(var(--chrome-stack)+10px)] z-30 sm:hidden"
       data-testid="primary-bar"
       data-hidden={hidden || undefined}
       aria-hidden={!show || undefined}
