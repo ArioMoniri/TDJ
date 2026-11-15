@@ -240,7 +240,9 @@ test.describe("sidebar and wide layouts", () => {
         expect((await l.boundingBox())!.height).toBeGreaterThanOrEqual(44);
     // Tonight → tanda 3
     const third = side.getByTestId("sidebar-tonight").getByRole("button").nth(2);
-    const orchestra = (await third.locator("span.truncate").innerText()).replace(/^Tanda 3:\s*/, "").trim();
+    const orchestra = (await third.locator("span.truncate").innerText())
+      .replace(/^(Tanda 3|3\. tanda):\s*/, "")
+      .trim();
     await third.click();
     await page.waitForTimeout(900);
     const card = (await page.locator("#tanda-3").boundingBox())!;
@@ -321,7 +323,7 @@ test.describe("sidebar and wide layouts", () => {
   test("choice rows: label left, control right, the row's width used", async ({ page }) => {
     test.skip(kind(page) === "phone", "phones put the control on its own full-width line");
     await page.goto("/");
-    const row = page.locator("#night .seg-row").filter({ hasText: "Cortinas" });
+    const row = page.locator("#night .seg-row").filter({ hasText: W("Cortinas") });
     const r = (await row.boundingBox())!;
     const seg = (await row.getByRole("radiogroup").boundingBox())!;
     const label = (await row.getByText(W("Cortinas"), { exact: true }).boundingBox())!;
