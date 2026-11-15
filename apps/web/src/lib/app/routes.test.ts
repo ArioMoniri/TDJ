@@ -264,8 +264,9 @@ describe("engine routes: local result equals the server's", () => {
   it("benchmark", async () => {
     await same(Benchmark.POST, "/api/benchmark", { body: { playlist: night } });
   });
-  it("swap a tanda", async () => {
+  it("swap a tanda, and the three choices nearest the plan", async () => {
     await same(Swap.POST, "/api/swap", { body: { playlist: night, index: 2 } });
+    await same(Swap.POST, "/api/swap", { body: { playlist: night, index: 2, options: true } });
   });
   it("swap options and a swapped side", async () => {
     await same(SwapOptions.POST, "/api/swap-options", {
