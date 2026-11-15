@@ -5,6 +5,7 @@
  * the night (the API's debug readout `stats.favourites`); with the switch off the night is the night without.
  */
 import { expect, type Page, test } from "@playwright/test";
+import { hold } from "./confirm";
 
 function wav(sec = 30): Buffer {
   const rate = 22050;
@@ -134,7 +135,8 @@ test("Floor full on two songs → Memory lists them → their families weigh mor
   await expect(full).toHaveAttribute("aria-pressed", "true");
 
   // song 2: Next, then Floor full ♥ again (the Controls panel holds the same one-tap control)
-  await page.getByTestId("ctl-next").click();
+  // (2026-11: mid-night Next is press-and-hold)
+  await hold(page, page.getByTestId("booth-next-now"));
   await expect.poll(async () => (await boothNow(page)).id, { timeout: 20000 }).not.toBe(first.id);
   const second = await boothNow(page);
   await expect(page.getByTestId("now-floor-full")).toHaveAttribute("aria-pressed", "false");

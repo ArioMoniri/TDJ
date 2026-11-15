@@ -14,12 +14,14 @@ import { t as tx } from "@/lib/i18n";
 import { tempoLevel } from "@/lib/tempo";
 import { toast } from "@/lib/toast";
 import type { Playlist } from "@/lib/types";
-import { metaLine, yearText } from "@/lib/year";
+import { metaLine, yearSpan, yearText } from "@/lib/year";
 import { Artwork } from "../ui/Artwork";
 import { BpmKey } from "../ui/BpmKey";
 import { EraBadge } from "../ui/EraBadge";
+import { TandaTypeBadge } from "../ui/TandaTypeBadge";
 import { FloorReaction } from "./FloorReaction";
 import { PraiseTanda } from "./PraiseTanda";
+import { dragHandle } from "./reorder";
 import { SongSheet } from "./SongSheet";
 import { hasTransition, transitionSummary } from "./TransitionSheet";
 
@@ -34,10 +36,17 @@ export function SetColumn({
   onFind,
   onCortina,
   onTapRow,
+  onOpenRow,
   onTransition,
+  follow = false,
 }: {
-  /** round 22: a tapped row opens the song sheet (the page owns it, so Now's "Song info" opens the same one) */
+  /** 2026-11: a tapped row plays (the page decides how: from here before the night, the headphones during it) */
   onTapRow?: (planIndex: number) => void;
+  /** the row's number opens its sheet (the page owns it, so Now's "Song info" opens the same one) */
+  onOpenRow?: (planIndex: number) => void;
+  /** 2026-11: the column scrolls on its own: keep the playing row in view (unless the DJ scrolled in the last 10 s),
+   *  with "Back to now" while it is out of view */
+  follow?: boolean;
   jumpTo: number | null;
   onFind: (itemId: string, title: string) => void;
   /** round 20: open the cortina's envelope sheet (fade in / fade out / stop at) */
@@ -60,32 +69,88 @@ export function SetColumn({
   const openSwap = useBoothSwap((s) => s.open);
   // round 22: tap any song — the sheet plays it (now, next, from here), pre-listens it, edits its cue, its versions
   const tap = useCallback((i: number) => (onTapRow ? onTapRow(i) : setTapped(i)), [onTapRow]);
+  const open = useCallback((i: number) => (onOpenRow ? onOpenRow(i) : setTapped(i)), [onOpenRow]);
+  const [away, setAway] = useState(false);
+  const userAt = useRef(0);
+  const hasPlan = !!plan && !!playlist;
   useEffect(() => {
     if (jumpTo === null) return;
     list.current
       ?.querySelector<HTMLElement>(`[data-plan-index="${jumpTo}"]`)
       ?.scrollIntoView({ block: "center" });
   }, [jumpTo]);
-  // follow the playhead inside the column's own scroller only (≥ 1024 the column scrolls): on a phone the column is
-  // part of the page, and scrolling the window to the current row pushed the Now card under the glass header
-  useEffect(() => {
+  // follow the playhead inside the column's own scroller only (on two columns the column scrolls): on a phone the
+  // column is part of the page, and scrolling the window to the current row pushed the Now card under the header
+  const scroller = useCallback((): HTMLElement | null => {
     const own = list.current;
-    const row = own?.querySelector<HTMLElement>(`[data-plan-index="${planIndex}"]`);
-    if (!own || !row) return;
-    // the list's own scroller, or (wave 2: a short iPad landscape) the column that scrolls the night bar and the list
     const scrolls = (el: HTMLElement | null) => {
       if (!el) return false;
       const oy = getComputedStyle(el).overflowY;
       return (oy === "auto" || oy === "scroll") && el.scrollHeight > el.clientHeight;
     };
-    const col = own.parentElement?.classList.contains("booth-col-set") ? own.parentElement : null;
-    const box = scrolls(own) ? own : scrolls(col) ? col : null;
-    if (!box) return;
+    const col = own?.closest<HTMLElement>(".booth-col-set") ?? null;
+    return scrolls(own ?? null) ? own : scrolls(col) ? col : null;
+  }, []);
+  const rowBox = useCallback(() => {
+    const box = scroller();
+    const row = list.current?.querySelector<HTMLElement>(
+      `[data-plan-index="${useBooth.getState().planIndex}"]`,
+    );
+    if (!box || !row) return null;
     const b = box.getBoundingClientRect();
     const r = row.getBoundingClientRect();
-    if (r.top < b.top) box.scrollTop -= b.top - r.top + 8;
-    else if (r.bottom > b.bottom) box.scrollTop += r.bottom - b.bottom + 8;
-  }, [planIndex]);
+    // the column's foot is padded by the transport's space: the visible part ends above it
+    const pad = Number.parseFloat(getComputedStyle(box).scrollPaddingBottom) || 0;
+    return { box, b, r, foot: b.bottom - pad };
+  }, [scroller]);
+  const toNow = useCallback(
+    (force = false) => {
+      const m = rowBox();
+      if (!m) return;
+      if (!force && Date.now() - userAt.current < 10_000) return;
+      const { box, b, r, foot } = m;
+      if (r.top < b.top + 8) box.scrollTop -= b.top - r.top + 8;
+      else if (r.bottom > foot - 8) box.scrollTop += r.bottom - foot + 8;
+    },
+    [rowBox],
+  );
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the playhead moved
+  useEffect(() => {
+    // (before the night the column stays at its top: the night bar first; a tapped row is in view already)
+    if (follow && !useBooth.getState().started) return;
+    toNow(!follow);
+    // (once more when the row has settled: the playing row grows by its badges)
+    const t = setTimeout(() => toNow(!follow), 350);
+    return () => clearTimeout(t);
+  }, [planIndex, toNow, follow]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: attached once the set has rendered (hasPlan)
+  useEffect(() => {
+    if (!follow) return;
+    const box = list.current?.closest<HTMLElement>(".booth-col-set");
+    if (!box) return;
+    const mark = () => {
+      userAt.current = Date.now();
+    };
+    const check = () => {
+      const m = rowBox();
+      setAway(!!m && (m.r.bottom < m.b.top || m.r.top > m.foot));
+    };
+    box.addEventListener("wheel", mark, { passive: true });
+    box.addEventListener("touchmove", mark, { passive: true });
+    box.addEventListener("scroll", check, { passive: true });
+    // the DJ left the list alone for 10 s: it comes back to the playing row
+    const id = setInterval(() => {
+      if (useBooth.getState().started) toNow();
+      check();
+    }, 2000);
+    check();
+    return () => {
+      box.removeEventListener("wheel", mark);
+      box.removeEventListener("touchmove", mark);
+      box.removeEventListener("scroll", check);
+      clearInterval(id);
+    };
+  }, [follow, rowBox, toNow, hasPlan]);
 
   const cur = plan?.items[planIndex];
   const runningTanda = cur
@@ -160,17 +225,28 @@ export function SetColumn({
               className="flex items-center gap-2 px-2 pt-3 pb-1"
               data-hint={t ? tandaHint(t) : undefined}
             >
-              <span className="text-caption1 min-w-0 flex-1 truncate font-semibold uppercase tracking-wide text-[var(--label-2)]">
-                {g.tanda === 0 ? (
-                  tx("booth.setColumn.opening")
-                ) : t ? (
-                  <>
-                    {`${g.tanda} · ${t.rhythm} · `}
-                    {/* wave 3: names keep their Spanish capitals (no Turkish dotted İ) */}
-                    <span lang="es">{`${t.orchestra}${t.singer ? ` / ${t.singer}` : ""}`}</span>
-                  </>
-                ) : (
-                  tx("booth.setColumn.closing")
+              <span className="min-w-0 flex-1">
+                <span className="text-caption1 block truncate font-semibold uppercase tracking-wide text-[var(--label-2)]">
+                  {g.tanda === 0 ? (
+                    tx("booth.setColumn.opening")
+                  ) : t ? (
+                    <>
+                      {`${g.tanda} · ${t.rhythm} · `}
+                      {/* wave 3: names keep their Spanish capitals (no Turkish dotted İ) */}
+                      <span lang="es">{`${t.orchestra}${t.singer ? ` / ${t.singer}` : ""}`}</span>
+                    </>
+                  ) : (
+                    tx("booth.setColumn.closing")
+                  )}
+                </span>
+                {/* 2026-11: the tanda's type in words and its total (songs and length, cues and trims counted) */}
+                {t && (
+                  <span className="booth-tanda-meta" data-testid="booth-tanda-meta">
+                    <TandaTypeBadge rhythm={t.rhythm} vocal={t.vocal} singer={t.singer} />
+                    <span className="booth-tanda-total tabular-nums" data-testid="booth-tanda-total">
+                      {tandaTotal(g.items.map(({ i }) => plan.items[i]!))}
+                    </span>
+                  </span>
                 )}
               </span>
               {bypassedT.has(g.tanda - 1) && (
@@ -265,6 +341,7 @@ export function SetColumn({
                       : undefined
                   }
                   onTap={tap}
+                  onOpen={open}
                   onFind={onFind}
                   onCortina={onCortina}
                 />,
@@ -276,6 +353,20 @@ export function SetColumn({
           </section>
         );
       })}
+      {follow && away && (
+        <button
+          type="button"
+          className="booth-to-now"
+          onClick={() => {
+            userAt.current = 0;
+            toNow(true);
+            setAway(false);
+          }}
+          data-testid="booth-back-to-now"
+        >
+          {tx("booth.setColumn.back_to_now")}
+        </button>
+      )}
       {!onTapRow && <SongSheet i={tapped} onClose={() => setTapped(null)} />}
     </section>
   );
@@ -329,8 +420,11 @@ const Row = memo(function Row({
   onFind,
   onCortina,
   onTap,
+  onOpen,
 }: {
   onTap?: (i: number) => void;
+  /** the number opens the row's sheet */
+  onOpen?: (i: number) => void;
   i: number;
   /** the track's number inside its tanda (the DJ thinks "track 2 of tanda 7", not plan index 9) */
   k: number;
@@ -386,9 +480,20 @@ const Row = memo(function Row({
           aria-hidden
         />
       )}
-      <span className="booth-row-n tabular-nums">
-        {it.kind === "cortina" ? "♪" : it.kind === "break" ? "—" : k}
-      </span>
+      {it.kind === "break" ? (
+        <span className="booth-row-n tabular-nums">—</span>
+      ) : (
+        // 2026-11: the number opens the sheet (Play next, pre-listen, the start point, versions); the rest plays
+        <button
+          type="button"
+          className="booth-row-n tabular-nums"
+          {...dragHandle(i, () => onOpen?.(i))}
+          aria-label={tx("booth.setColumn.details", { title: it.title })}
+          data-testid="booth-row-open"
+        >
+          {it.kind === "cortina" ? "♪" : k}
+        </button>
+      )}
       {it.kind !== "break" && <Artwork entity={entity} orchestra={orchestra} size={36} />}
       {/* round 21: the row itself is the play control — before the night it auditions the side, during the night it
           offers Play now / Play next / Preview only */}
@@ -396,15 +501,6 @@ const Row = memo(function Row({
         type="button"
         className="booth-row-tap min-h-11 min-w-0 flex-1 text-left"
         onClick={() => onTap?.(i)}
-        onKeyDown={(e) => {
-          // 2026-11: Enter on a focused row plays from it (before the night: it starts there)
-          if (e.key !== "Enter" || !onTap || it.kind === "break") return;
-          e.preventDefault();
-          const b = useBooth.getState();
-          if (!b.started) {
-            if (b.select(i)) void b.start();
-          } else void b.playNow(i);
-        }}
         disabled={!onTap || it.kind === "break"}
         aria-label={
           it.kind === "cortina"
@@ -457,7 +553,7 @@ const Row = memo(function Row({
         className="booth-row-len text-caption1 tabular-nums text-[var(--label-3)]"
         data-testid="booth-row-len"
       >
-        {durationLabel(it.lengthSec)}
+        {lenLabel(it.lengthSec)}
       </span>
       <span className="booth-row-act">
         {find ? (
@@ -571,7 +667,8 @@ function SpotifyMark() {
 
 /** The hover / long-press line of a tanda header. */
 function tandaHint(t: Playlist["tandas"][number]): string {
-  const years = t.yearRange ? ` · ${t.yearRange[0]}–${t.yearRange[1]}` : "";
+  const span = yearSpan(t.yearRange);
+  const years = span ? ` · ${span}` : "";
   const e =
     typeof t.energy === "number" ? ` ${tx("booth.setColumn.energy", { p1: Math.round(t.energy) })}` : "";
   return tx("booth.setColumn.tanda", {
@@ -581,4 +678,20 @@ function tandaHint(t: Playlist["tandas"][number]): string {
     years,
     e,
   });
+}
+
+/** a length the plan knows, else "–:–" (never "0:00" for an unknown one) */
+export function lenLabel(sec: number | null | undefined): string {
+  return typeof sec === "number" && Number.isFinite(sec) && sec > 0 ? durationLabel(sec) : "–:–";
+}
+
+/** "4 songs · 11:48" — the songs' planned lengths (start and stop cues, trims); "≈" when one is unknown */
+export function tandaTotal(items: Array<{ kind: string; lengthSec: number }>): string {
+  const songs = items.filter((x) => x.kind === "track");
+  const known = songs.filter((x) => Number.isFinite(x.lengthSec) && x.lengthSec > 0);
+  const sec = known.reduce((s, x) => s + x.lengthSec, 0);
+  const length = `${known.length < songs.length ? "≈" : ""}${known.length ? durationLabel(sec) : "–:–"}`;
+  return songs.length === 1
+    ? tx("booth.setColumn.tanda_total_one", { length })
+    : tx("booth.setColumn.tanda_total", { count: songs.length, length });
 }

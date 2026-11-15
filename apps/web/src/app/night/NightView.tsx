@@ -20,6 +20,7 @@ import { makeSnapshot } from "@/lib/history";
 import { t as tx } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
+import { yearSpan } from "@/lib/year";
 
 /** where the Mac / iPad app leaves a .tdjnight it was asked to open (apps/desktop: links::DeepLink::NightFile) */
 const APP_FILE_KEY = "tdj-night-file";
@@ -313,7 +314,7 @@ export default function NightPage() {
                     : t.locked
                       ? tx("night.locked")
                       : t.yearRange
-                        ? `${t.yearRange[0]}–${t.yearRange[1]}`
+                        ? (yearSpan(t.yearRange) ?? undefined)
                         : undefined
                 }
               />

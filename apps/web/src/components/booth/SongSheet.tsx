@@ -18,6 +18,8 @@ import { Sheet } from "../Sheet";
 import { Artwork } from "../ui/Artwork";
 import { BpmKey, EnergyChip } from "../ui/BpmKey";
 import { EraBadge } from "../ui/EraBadge";
+import { ArmButton } from "./Confirm";
+import { movable, moveSong, stepTarget } from "./reorder";
 import { hasTransition } from "./TransitionSheet";
 import { Waveform } from "./Waveform";
 
@@ -60,6 +62,11 @@ export function SongSheet({
       : t("booth.songSheet.test_on_this_device")
     : t("booth.songSheet.pre_listen_in_headphones");
   const hearing = audition && i !== null && audition.i === i;
+  // (re-read on every render: the playhead moves, a reorder moves the rows)
+  useBooth((s) => s.planIndex);
+  const canMove = i !== null && movable(i);
+  const upTo = i !== null && canMove ? stepTarget(i, -1) : null;
+  const downTo = i !== null && canMove ? stepTarget(i, 1) : null;
   const prelisten = async (o: { song?: Song; startSec?: number } = {}) => {
     if (i === null) return;
     const why = await b.prelisten(o.song ? { song: o.song } : { i }, { startSec: o.startSec });
@@ -112,16 +119,21 @@ export function SongSheet({
           >
             {started ? (
               <>
-                <ActionRow
-                  label={t("booth.songSheet.play_now_fade_the_current")}
+                {/* 2026-11: it cuts the room's song — the first tap arms it, the second plays (Confirm.tsx) */}
+                <ArmButton
+                  armKey={`play-now:${i}`}
+                  className="cell cell-tap w-full justify-center text-[var(--tint)] disabled:text-[var(--label-3)]"
                   disabled={i === planIndex}
-                  onClick={() => {
-                    void b.playNow(i);
+                  onConfirm={() => {
+                    void useBooth.getState().playNow(i);
                     onClose();
                     onPlayed?.();
                   }}
                   id="booth-play-now"
-                />
+                  data-testid="booth-play-now"
+                >
+                  {t("booth.songSheet.play_now_in_the_room")}
+                </ArmButton>
                 <ActionRow
                   label={t("booth.songSheet.play_next")}
                   disabled={i === planIndex}
@@ -191,6 +203,31 @@ export function SongSheet({
               )
             )}
           </Group>
+          {/* 2026-11: the order inside the tanda (only songs not played nor playing; no confirmation, Undo) */}
+          {canMove && (
+            <Group header={t("booth.reorder.header")} footer={t("booth.reorder.footer")}>
+              <ActionRow
+                label={t("booth.reorder.move_up")}
+                disabled={upTo === null}
+                onClick={() => {
+                  if (upTo === null) return;
+                  onClose();
+                  void moveSong(i, upTo);
+                }}
+                id="booth-move-up"
+              />
+              <ActionRow
+                label={t("booth.reorder.move_down")}
+                disabled={downTo === null}
+                onClick={() => {
+                  if (downTo === null) return;
+                  onClose();
+                  void moveSong(i, downTo);
+                }}
+                id="booth-move-down"
+              />
+            </Group>
+          )}
           {onTransition && canTransition && (
             <Group footer={t("booth.songSheet.transition_footer")}>
               <ActionRow

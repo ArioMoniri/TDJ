@@ -1822,6 +1822,91 @@ html[data-sidebar="collapsed"] [data-testid="sidebar"] {
   }
 }
 
+/* 2026-11 (the owner on an iPad: "the sidebar structure breaks when sliding"): one structure at every width between
+   200 and 360 px — every label truncates on one line, rows keep their height, the Tonight header's meta and each
+   tanda's type line give way below 230 px, a vertical swipe in the list never resizes, a drag on the edge never
+   scrolls the page */
+.side-aside {
+  container: side / inline-size;
+}
+.side-aside[data-resizing] {
+  user-select: none;
+  -webkit-user-select: none;
+}
+.side-aside[data-resizing] * {
+  transition: none;
+}
+.side-scroll {
+  touch-action: pan-y;
+}
+.side-row {
+  white-space: nowrap;
+}
+.side-head-btn {
+  min-width: 0;
+  white-space: nowrap;
+}
+.side-head-meta {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.side-row.side-tanda {
+  height: 44px;
+  min-height: 44px;
+  padding-block: 0;
+}
+.side-tanda-type {
+  font-size: var(--text-caption1);
+  line-height: 1.25;
+  color: var(--label-2);
+}
+@container side (max-width: 229px) {
+  .side-head-meta,
+  .side-tanda-type {
+    display: none;
+  }
+}
+
+/* the tanda's type (TandaTypeBadge): the rhythm in its colour with a glyph, then the mode in words */
+.tanda-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.tanda-type-rhythm {
+  --tone: var(--tone-tango);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex: none;
+  padding: 3px 7px;
+  border-radius: 999px;
+  color: var(--tone);
+  background: color-mix(in srgb, var(--tone) 14%, rgb(var(--bg-cell)));
+}
+.tanda-type[data-rhythm="vals"] .tanda-type-rhythm {
+  --tone: var(--tone-vals);
+}
+.tanda-type[data-rhythm="milonga"] .tanda-type-rhythm {
+  --tone: var(--tone-milonga);
+}
+.tanda-type-mode {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+  color: var(--label-2);
+}
 /* Motion: only what changed moves; everything respects reduced motion */
 @keyframes rise {
   from {

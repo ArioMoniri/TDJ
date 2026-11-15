@@ -38,8 +38,34 @@ export function HintLayer() {
       const el = target(ev);
       clear();
       if (!el) return setHint(null);
-      timer.current = setTimeout(() => show(el), 350);
+      timer.current = setTimeout(() => {
+        shownAt = { x: ev.clientX, y: ev.clientY };
+        show(el);
+      }, 350);
     };
+    // 2026-11 (an iPad trackpad: a tanda's hint sat over Last 4 tandas and Birthday vals): a hover hint needs the
+    // pointer at rest — any move restarts the wait, and a move of a few px once it shows takes it away, so it never
+    // covers the control the DJ is heading for
+    let shownAt: { x: number; y: number } | null = null;
+    const move = (ev: PointerEvent) => {
+      if (ev.pointerType !== "mouse") return;
+      if (shownAt && Math.hypot(ev.clientX - shownAt.x, ev.clientY - shownAt.y) > 6) {
+        shownAt = null;
+        clear();
+        setHint(null);
+        return;
+      }
+      if (timer.current && !shownAt) {
+        const el = target(ev);
+        clear();
+        if (el)
+          timer.current = setTimeout(() => {
+            shownAt = { x: ev.clientX, y: ev.clientY };
+            show(el);
+          }, 450);
+      }
+    };
+    document.addEventListener("pointermove", move);
     const down = (ev: PointerEvent) => {
       if (ev.pointerType === "mouse") return;
       lastTouch = ev.timeStamp;
@@ -82,6 +108,7 @@ export function HintLayer() {
     return () => {
       clear();
       document.removeEventListener("pointerover", over);
+      document.removeEventListener("pointermove", move);
       document.removeEventListener("pointerdown", down);
       document.removeEventListener("pointerup", up);
       document.removeEventListener("pointercancel", hide);

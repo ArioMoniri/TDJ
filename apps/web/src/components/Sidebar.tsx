@@ -12,6 +12,7 @@ import { usePlayer } from "@/lib/player";
 import { useStore } from "@/lib/store";
 import { Logo } from "./Logo";
 import { NAV_MAIN, NAV_MAIN_TITLE, NAV_PINNED } from "./navItems";
+import { tandaTypeWords } from "./ui/TandaTypeBadge";
 import { Tip } from "./ui/Tip";
 
 /** Fired with the tanda index when the sidebar's Tonight list picks a tanda: the Compose inspector follows it. */
@@ -116,7 +117,8 @@ export function Sidebar() {
   const toggle = usePlayer((s) => s.toggle);
   const [state, setState] = useState<Saved>({ w: DEFAULT_W, collapsed: false });
   const [hash, setHash] = useState("");
-  const drag = useRef<{ x: number; w: number } | null>(null);
+  const drag = useRef<{ x: number; w: number; now: number } | null>(null);
+  const aside = useRef<HTMLElement>(null);
   // the Tonight list's disclosure, remembered on this device
   const [tonightOpen, setTonightOpenState] = useState(true);
   useEffect(() => {
@@ -166,20 +168,30 @@ export function Sidebar() {
     };
   }, [setCollapsed]);
 
+  // 2026-11 (the owner: "the sidebar structure breaks when sliding"): while the edge is dragged only the sidebar's
+  // own width follows the pointer (one style on its element, no React render per move); the page beside it moves
+  // once, on release — the content never reflows mid-drag, and the rows keep their height at every width
   const onResizeDown = (e: PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
-    drag.current = { x: e.clientX, w: state.w };
+    drag.current = { x: e.clientX, w: state.w, now: state.w };
+    aside.current?.setAttribute("data-resizing", "");
   };
   const onResizeMove = (e: PointerEvent<HTMLDivElement>) => {
     const d = drag.current;
     if (!d) return;
     const w = Math.round(Math.min(MAX_W, Math.max(MIN_W, d.w + e.clientX - d.x)));
-    if (w !== state.w) update({ ...state, w }, false);
+    if (w === d.now) return;
+    d.now = w;
+    aside.current?.style.setProperty("width", `${w}px`);
   };
   const onResizeUp = () => {
-    if (!drag.current) return;
+    const d = drag.current;
+    if (!d) return;
     drag.current = null;
-    save(state);
+    aside.current?.removeAttribute("data-resizing");
+    aside.current?.style.setProperty("width", "var(--sidebar-w)");
+    update({ ...state, w: d.now });
   };
   const onResizeKey = (e: KeyboardEvent<HTMLDivElement>) => {
     const step = e.shiftKey ? 40 : 10;
@@ -214,7 +226,8 @@ export function Sidebar() {
   return (
     <>
       <aside
-        className="material-thin fixed left-0 top-0 z-40 hidden h-dvh flex-col border-r border-[var(--separator)] lg:flex"
+        ref={aside}
+        className="side-aside material-thin fixed left-0 top-0 z-40 hidden h-dvh flex-col border-r border-[var(--separator)] lg:flex"
         style={{ width: "var(--sidebar-w)" }}
         aria-label={tx("sidebar.sidebar")}
         data-testid="sidebar"
@@ -267,7 +280,7 @@ export function Sidebar() {
               <h2 className="side-head" id="side-tonight">
                 <button
                   type="button"
-                  className="flex min-h-11 w-full items-center gap-1 text-left"
+                  className="side-head-btn flex min-h-11 w-full items-center gap-1 text-left"
                   aria-expanded={tonightOpen}
                   aria-controls="side-tonight-list"
                   data-testid="sidebar-tonight-toggle"
@@ -279,8 +292,8 @@ export function Sidebar() {
                     className="shrink-0 transition-transform duration-200"
                     style={{ transform: tonightOpen ? "rotate(90deg)" : undefined }}
                   />
-                  {tx("sidebar.tonight")}
-                  <span className="side-head-meta ml-auto">
+                  <span className="shrink-0">{tx("sidebar.tonight")}</span>
+                  <span className="side-head-meta ml-auto" data-testid="sidebar-tonight-meta">
                     {tx("sidebar.tandas", {
                       length: playlist.tandas.length,
                       durationSec: lengthText(playlist.stats.durationSec),
@@ -296,7 +309,7 @@ export function Sidebar() {
                     <li key={`${t.index}-${t.songs[0]?.id}`}>
                       <button
                         type="button"
-                        className="side-row w-full text-left"
+                        className="side-row side-tanda w-full text-left"
                         aria-current={here ? "location" : undefined}
                         onClick={() => {
                           setHash(`#tanda-${i + 1}`);
@@ -307,9 +320,15 @@ export function Sidebar() {
                         <span className="side-num" data-rhythm={t.rhythm} aria-hidden>
                           {RHYTHM[t.rhythm] ?? "·"}
                         </span>
-                        <span className="min-w-0 flex-1 truncate">
-                          <span className="sr-only">{tx("sidebar.tanda", { p1: i + 1 })} </span>
-                          {t.orchestra}
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate">
+                            <span className="sr-only">{tx("sidebar.tanda", { p1: i + 1 })} </span>
+                            {t.orchestra}
+                          </span>
+                          {/* 2026-11: the tanda's type in words (rhythm, vocal or instrumental) */}
+                          <span className="side-tanda-type block truncate" data-rhythm={t.rhythm}>
+                            {tandaTypeWords({ rhythm: t.rhythm, vocal: t.vocal, singer: t.singer })}
+                          </span>
                         </span>
                         {now ? (
                           <Volume2

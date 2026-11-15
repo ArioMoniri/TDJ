@@ -4,7 +4,7 @@ import { type Playlist, planBooth, type Song } from "@tdj/core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { BoothRow } from "../plan";
 import { decorate, planEntities } from "../plan";
-import { isTrackUri, type SdkPlayer, type SdkPlayerCtor, SpotifyAdapter } from "./spotify";
+import { isAppleMobile, isTrackUri, type SdkPlayer, type SdkPlayerCtor, SpotifyAdapter } from "./spotify";
 import type { ExternalStart } from "./types";
 
 const featured = JSON.parse(
@@ -565,5 +565,43 @@ describe("round 21: Premium plays full tracks (the booth no longer falls back to
   it("a free account says so", async () => {
     const a = new SpotifyAdapter({ fetchImpl: me({ user: { id: "u", product: "free" }, scopes: ALL }) });
     expect(await a.available()).toMatchObject({ ok: false, premium: false });
+  });
+});
+
+describe("2026-11: an iPad in Safari plays through the Spotify app (Spotify Connect)", () => {
+  const IPAD_SAFARI =
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15";
+  afterEach(() => vi.unstubAllGlobals());
+  const me = (body: unknown) =>
+    (async () => new Response(JSON.stringify(body), { status: 200 })) as typeof fetch;
+  const ALL = ["streaming", "user-modify-playback-state", "user-read-playback-state", "user-read-private"];
+  it("iPadOS Safari reports a Mac: its touch points tell it apart, a real Mac stays a Mac", () => {
+    vi.stubGlobal("navigator", { userAgent: IPAD_SAFARI, maxTouchPoints: 5 });
+    expect(isAppleMobile(IPAD_SAFARI)).toBe(true);
+    vi.stubGlobal("navigator", { userAgent: IPAD_SAFARI, maxTouchPoints: 0 });
+    expect(isAppleMobile(IPAD_SAFARI)).toBe(false);
+  });
+  it("on an iPad the browser is never the player: no SDK, the iPad's own Spotify app is picked, no fades", async () => {
+    vi.stubGlobal("navigator", { userAgent: IPAD_SAFARI, maxTouchPoints: 5 });
+    const sp = spotify({
+      devices: () => [dev("tv", { type: "TV" }), dev("ipad", { type: "Tablet", name: "iPad" })],
+    });
+    const loadSdk = vi.fn();
+    const a = new SpotifyAdapter({ fetchImpl: sp.fetchImpl, loadSdk });
+    expect(a.roomState().browserUnusable).toBe(true);
+    await a.connect();
+    expect(loadSdk).not.toHaveBeenCalled();
+    expect(a.roomState().remote).toBe("ipad");
+    expect(a.capabilities.fade).toBe(false);
+  });
+  it("Premium with no device: availability stays Spotify (the booth asks for a device, never 30 s clips)", async () => {
+    vi.stubGlobal("navigator", { userAgent: IPAD_SAFARI, maxTouchPoints: 5 });
+    const a = new SpotifyAdapter({
+      fetchImpl: me({ user: { id: "u", product: "premium" }, scopes: ALL }),
+      loadSdk: vi.fn(),
+    });
+    expect(await a.available()).toMatchObject({ ok: true, premium: true });
+    expect(a.roomState().remote).toBeNull();
+    expect(a.roomState().browserUnusable).toBe(true);
   });
 });

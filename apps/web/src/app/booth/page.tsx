@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { Banners } from "@/components/booth/Banners";
 import { ControlStrip } from "@/components/booth/ControlStrip";
-import { ControlsPanel } from "@/components/booth/ControlsPanel";
+import { ControlsPanel, loadControlsOpen, saveControlsOpen } from "@/components/booth/ControlsPanel";
 import { EnergyRail } from "@/components/booth/EnergyRail";
 import { HintLayer } from "@/components/booth/HintLayer";
 import { NextCard } from "@/components/booth/NextCard";
@@ -30,6 +30,7 @@ import { type MenuItem, MenuList } from "@/components/Menu";
 import { PageHeader } from "@/components/PageHeader";
 import { Sheet } from "@/components/Sheet";
 import { BoothSongSearch } from "@/components/ui/BoothSongSearch";
+import { arm, confirmArmed, confirmNeeded, disarm, guard } from "@/lib/booth/confirm";
 import { startRoomHearts } from "@/lib/booth/roomHearts";
 import { boothContextState, boothEngine, useBooth } from "@/lib/booth/store";
 import { useMediaQuery } from "@/lib/hooks";
@@ -89,11 +90,38 @@ function Booth() {
   // 2026-11 ("can't start on the song I want"): before the night a tap also puts the playhead on the row — the Now
   // card shows it and Start (or the sheet's "Start the night here") begins there; during the night a tap only opens
   // the sheet (Play now / Play next), so an accidental tap never cuts the room
-  const tapRow = (i: number) => {
+  const openRow = (i: number) => {
     const b = useBooth.getState();
     if (!b.started) b.select(i);
     setSong(i);
   };
+  // 2026-11 ("every song playable on one tap"): a row, the Up Next card, the next tanda. Before the night a tap plays
+  // that item in the room at once (the night starts there, from its start point); during the night it pre-listens in
+  // the headphones (the room untouched) when a headphone output is chosen, else its sheet opens with "Play now in the
+  // room" armed (one more tap). The row's number opens the sheet itself (openRow).
+  const tapRow = (i: number) => {
+    const b = useBooth.getState();
+    const it = b.plan?.items[i];
+    if (!it || it.kind === "break") return;
+    if (!b.started) {
+      if (b.select(i)) void b.start();
+      return;
+    }
+    if (b.outputs.cue && !b.cueBlocked()) {
+      void b.prelisten({ i });
+      return;
+    }
+    setSong(i);
+    if (i !== b.planIndex && confirmNeeded()) arm(`play-now:${i}`, () => void useBooth.getState().playNow(i));
+  };
+  // the Controls panel: open / closed per device; its toggle is on the transport
+  const [ctlOpen, setCtlOpen] = useState(false);
+  useEffect(() => setCtlOpen(loadControlsOpen()), []);
+  const toggleControls = () =>
+    setCtlOpen((o) => {
+      saveControlsOpen(!o);
+      return !o;
+    });
   const phone = useMediaQuery("(max-width: 599.98px)", false);
   // a tanda tapped on the energy chart or the Next card: the set list scrolls to it (a phone opens the sheet first)
   const showInSet = (i: number) => {
@@ -125,13 +153,15 @@ function Booth() {
     if (phone) return;
     const root = document.documentElement;
     let frame = 0;
+    // 2026-11: on two columns the page holds still and each column scrolls on its own between the chip row (the
+    // grid's top, below any banner) and the transport: the grid's top is measured at the page's own top
     const measure = () => {
       frame = 0;
-      const col = document.querySelector<HTMLElement>(".booth-col-set");
-      if (col)
+      const grid = document.querySelector<HTMLElement>(".booth-grid");
+      if (grid)
         root.style.setProperty(
-          "--booth-set-top",
-          `${Math.max(0, Math.round(col.getBoundingClientRect().top))}px`,
+          "--booth-grid-top",
+          `${Math.max(0, Math.round(grid.getBoundingClientRect().top + window.scrollY))}px`,
         );
     };
     const soon = () => {
@@ -141,14 +171,14 @@ function Booth() {
     window.addEventListener("scroll", soon, { passive: true });
     window.addEventListener("resize", soon);
     const ro = typeof ResizeObserver === "function" ? new ResizeObserver(soon) : null;
-    const grid = document.querySelector(".booth-grid");
+    const grid = document.querySelector(".booth");
     if (grid) ro?.observe(grid);
     return () => {
       if (frame) cancelAnimationFrame(frame);
       window.removeEventListener("scroll", soon);
       window.removeEventListener("resize", soon);
       ro?.disconnect();
-      root.style.removeProperty("--booth-set-top");
+      root.style.removeProperty("--booth-grid-top");
     };
   }, [phone, ready]);
 
@@ -222,6 +252,15 @@ function Booth() {
       );
     };
     const down = (e: KeyboardEvent) => {
+      // 2026-11: Esc cancels an armed control, Enter confirms it (a focused button confirms by its own click)
+      if (e.key === "Escape") disarm();
+      if (e.key === "Enter" && !typing()) {
+        const a = document.activeElement as HTMLElement | null;
+        if (!a?.closest("button, a, [role='button'], [role='slider']") && confirmArmed()) {
+          e.preventDefault();
+          return;
+        }
+      }
       if (typing() || document.querySelector('[role="dialog"]')) return;
       const b = useBooth.getState();
       if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -233,9 +272,12 @@ function Booth() {
         // 2026-11: ← one back, → one ahead now (a focused seek bar or slider keeps its own arrows)
         if ((document.activeElement as HTMLElement | null)?.getAttribute("role") === "slider") return;
         e.preventDefault();
-        void (e.key === "ArrowRight" ? b.nextNow() : b.previous());
-      } else if (e.key === "f") b.fadeOutNow();
-      else if (e.key === "x") void b.crossfadeNext();
+        if (e.repeat) return;
+        // mid-night the first press arms (the transport button shows it), the second (or Enter) runs
+        if (e.key === "ArrowRight") guard("next", () => void useBooth.getState().nextNow());
+        else guard("prev", () => void useBooth.getState().previous());
+      } else if (e.key === "f") guard("fade", () => useBooth.getState().fadeOutNow());
+      else if (e.key === "x") guard("crossfade", () => void useBooth.getState().crossfadeNext());
       else if (e.key === "h") {
         if (b.state === "playing" || b.state === "cortina") b.toggleHold();
       } else if (e.key === "t") b.setDucked(!b.ducked);
@@ -277,8 +319,9 @@ function Booth() {
   // overflow keeps set-up and the app
   const menu: Array<MenuItem | false> = [
     { label: t("booth.set_up_source_output_night"), onClick: () => setOnboarding(true) },
-    // (a phone's transport has Previous / Next now; Next at gap lives here)
+    // (a phone's transport has Previous / Next now; Next at gap and Mix live here)
     started && phone && { label: t("booth.setColumn.next_at_gap_menu"), onClick: () => b.next() },
+    phone && { label: t("booth.controlStrip.mix_menu"), onClick: () => setLevels(true) },
     {
       label: rehearsal ? t("booth.rehearsal_30_s_on") : t("booth.rehearsal_30_s"),
       onClick: () => void b.setSourceMode(rehearsal ? "file" : "preview"),
@@ -312,17 +355,20 @@ function Booth() {
     <div className="booth" data-state={state} data-testid="booth" data-rehearsal={rehearsal || undefined}>
       {/* the title keeps one width; the mode is a chip under it (round8-ux.md §2 Booth) */}
       <PageHeader title={t("booth.booth")} />
-      <PlayerToolbar rehearsal={rehearsal} />
+      {/* the chips under the title and "Find songs" share one row */}
+      <div className="booth-head-row">
+        <PlayerToolbar rehearsal={rehearsal} />
+        <BoothSongSearch onGoTo={showInSet} />
+      </div>
       <Banners />
-      <BoothSongSearch onGoTo={showInSet} />
       <div className="booth-grid">
-        <div className="booth-deck">
-          <NowCard onInfo={(i) => setSong(i)} />
-          {phone && <NightBar onBreak={() => setBreakOpen(true)} />}
+        <div className="booth-deck" data-testid="booth-deck-col">
+          <NowCard onInfo={(i) => setSong(i)} onPlay={tapRow} />
           <div className="booth-deck-row">
+            <NextCard onJump={showInSet} onPlay={tapRow} />
             <EnergyRail onJump={showInSet} />
-            <NextCard onJump={showInSet} />
           </div>
+          {phone && <NightBar onBreak={() => setBreakOpen(true)} />}
         </div>
         {!phone && (
           <aside className="booth-col-set" aria-label={t("booth.the_night_and_its_set_list")}>
@@ -332,7 +378,9 @@ function Booth() {
               onFind={(id, title) => setFind({ id, title })}
               onCortina={(i) => setCortina(i)}
               onTapRow={tapRow}
+              onOpenRow={openRow}
               onTransition={(i) => setTransition(i)}
+              follow
             />
           </aside>
         )}
@@ -352,6 +400,7 @@ function Booth() {
               onFind={(id, title) => setFind({ id, title })}
               onCortina={(i) => setCortina(i)}
               onTapRow={tapRow}
+              onOpenRow={openRow}
               onTransition={(i) => setTransition(i)}
             />
           </div>
@@ -362,8 +411,12 @@ function Booth() {
         onLevels={() => setLevels(true)}
         onStop={() => setStopOpen(true)}
         onSet={phone ? () => setSetOpen(true) : undefined}
+        controlsOpen={ctlOpen}
+        onControls={toggleControls}
       />
       <ControlsPanel
+        open={ctlOpen}
+        onClose={toggleControls}
         onStop={() => setStopOpen(true)}
         onKeys={() => setKeys(true)}
         onSong={(i) => setSong(i)}

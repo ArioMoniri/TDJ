@@ -117,6 +117,13 @@ export function NightBar({ onBreak }: { onBreak: () => void }) {
           {started ? driftWords(drift) : t("booth.nightBar.not_started")}
         </span>
         <span className="booth-chip">{plural("plural.tandas_left", left)}</span>
+        {/* 2026-11: the night's total and what is left of it */}
+        <span className="booth-chip tabular-nums" data-testid="booth-night-total">
+          {t("booth.nightBar.total_left", {
+            total: durationLabel(remainingFrom(plan, 0, 0, { skipped: new Set(bypassed) }).remainingSec),
+            left: durationLabel(remaining),
+          })}
+        </span>
         {full && (
           <span
             className="booth-chip tabular-nums"
@@ -139,65 +146,75 @@ export function NightBar({ onBreak }: { onBreak: () => void }) {
           </span>
         )}
       </div>
-      <fieldset className="booth-night-actions" aria-label={t("booth.nightBar.night_tools")}>
-        {hasClosing && (
+      {/* 2026-11: the night's tools in two groups, one button style */}
+      <fieldset className="booth-night-group" data-testid="booth-night-ending">
+        <legend>{t("booth.nightBar.group_ending")}</legend>
+        <div className="booth-night-actions">
+          {hasClosing && (
+            <button
+              type="button"
+              className="booth-tool"
+              disabled={!live}
+              data-testid="booth-rest-cumparsita"
+              data-hint={t("booth.nightBar.this_tanda_plays_to_its_end")}
+              onClick={() => {
+                void b.jumpToClosing(false);
+                toast(t("booth.nightBar.la_cumparsita_follows_this_tanda"));
+              }}
+            >
+              <Flag size={16} strokeWidth={2} aria-hidden /> {t("booth.nightBar.rest_then_la_cumparsita")}
+            </button>
+          )}
+          {hasClosing && (
+            <button
+              type="button"
+              className="booth-tool"
+              data-tone="destructive"
+              disabled={!started}
+              data-testid="booth-jump-cumparsita"
+              data-hint={t("booth.nightBar.la_cumparsita_now_the_song_playing")}
+              onClick={() => setJump(true)}
+            >
+              <FastForward size={16} strokeWidth={2} aria-hidden /> {t("booth.nightBar.la_cumparsita_now_2")}
+            </button>
+          )}
           <button
             type="button"
             className="booth-tool"
-            disabled={!live}
-            data-testid="booth-rest-cumparsita"
-            data-hint={t("booth.nightBar.this_tanda_plays_to_its_end")}
-            onClick={() => {
-              void b.jumpToClosing(false);
-              toast(t("booth.nightBar.la_cumparsita_follows_this_tanda"));
-            }}
+            aria-pressed={lastFour}
+            data-testid="booth-last4"
+            data-hint={t("booth.nightBar.the_vals_and_milonga_tandas_among")}
+            onClick={() => void toggleLastFour()}
           >
-            <Flag size={16} strokeWidth={2} aria-hidden /> {t("booth.nightBar.rest_then_la_cumparsita")}
+            <ListChecks size={16} strokeWidth={2} aria-hidden />{" "}
+            {t("booth.nightBar.last_4_tandas_tango_only")}
           </button>
-        )}
-        {hasClosing && (
+        </div>
+      </fieldset>
+      <fieldset className="booth-night-group" data-testid="booth-night-moments">
+        <legend>{t("booth.nightBar.group_moments")}</legend>
+        <div className="booth-night-actions">
           <button
             type="button"
             className="booth-tool"
-            data-tone="destructive"
             disabled={!started}
-            data-testid="booth-jump-cumparsita"
-            data-hint={t("booth.nightBar.la_cumparsita_now_the_song_playing")}
-            onClick={() => setJump(true)}
+            data-testid="booth-night-break"
+            data-hint={t("booth.nightBar.a_timed_break_after_the_song")}
+            onClick={onBreak}
           >
-            <FastForward size={16} strokeWidth={2} aria-hidden /> {t("booth.nightBar.la_cumparsita_now_2")}
+            <Coffee size={16} strokeWidth={2} aria-hidden /> {t("booth.nightBar.break")}
           </button>
-        )}
-        <button
-          type="button"
-          className="booth-tool"
-          aria-pressed={lastFour}
-          data-testid="booth-last4"
-          data-hint={t("booth.nightBar.the_vals_and_milonga_tandas_among")}
-          onClick={() => void toggleLastFour()}
-        >
-          <ListChecks size={16} strokeWidth={2} aria-hidden /> {t("booth.nightBar.last_4_tandas_tango_only")}
-        </button>
-        <button
-          type="button"
-          className="booth-tool"
-          disabled={!started}
-          data-testid="booth-night-break"
-          data-hint={t("booth.nightBar.a_timed_break_after_the_song")}
-          onClick={onBreak}
-        >
-          <Coffee size={16} strokeWidth={2} aria-hidden /> {t("booth.nightBar.break")}
-        </button>
-        <button
-          type="button"
-          className="booth-tool"
-          disabled={!started}
-          data-testid="booth-night-birthday"
-          data-hint={t("booth.nightBar.marks_the_next_vals_tanda_for")}
-          onClick={() => b.birthdayVals()}
-        >
-          <Cake size={16} strokeWidth={2} aria-hidden /> {t("booth.nightBar.birthday_vals")}
-        </button>
+          <button
+            type="button"
+            className="booth-tool"
+            disabled={!started}
+            data-testid="booth-night-birthday"
+            data-hint={t("booth.nightBar.marks_the_next_vals_tanda_for")}
+            onClick={() => b.birthdayVals()}
+          >
+            <Cake size={16} strokeWidth={2} aria-hidden /> {t("booth.nightBar.birthday_vals")}
+          </button>
+        </div>
       </fieldset>
       <Sheet
         open={jump}

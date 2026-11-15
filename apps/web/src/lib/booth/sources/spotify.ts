@@ -267,7 +267,9 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
     this.fetchImpl = o.fetchImpl ?? ((...a) => fetch(...a));
     this.loadSdk = o.loadSdk ?? defaultLoadSdk;
     this.sdkFades = !(o.noFades ?? isAppleMobile());
-    this.phone = o.phone ?? isPhone();
+    // 2026-11: an iPad too (iPadOS Safari reports a Mac; isAppleMobile checks its touch points): Safari on iOS and
+    // iPadOS has no Web Playback SDK (no Widevine), so the night plays through the Spotify app from the start
+    this.phone = o.phone ?? (isPhone() || isAppleMobile());
     this.sdkUnusable = this.phone;
     this.capabilities.fade = this.sdkFades && !this.sdkUnusable;
     this.onBanner = o.onBanner;
@@ -1220,7 +1222,7 @@ export function autoPick(list: SpotifyDevice[], phone: boolean): SpotifyDevice |
   const usable = list.filter((d) => !d.restricted && !d.isThis);
   return (
     usable.find((d) => d.isActive) ??
-    (phone ? usable.find((d) => d.type === "Smartphone") : undefined) ??
+    (phone ? usable.find((d) => d.type === "Smartphone" || d.type === "Tablet") : undefined) ??
     (usable.length === 1 ? usable[0]! : null)
   );
 }

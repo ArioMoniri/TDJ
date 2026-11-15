@@ -20,6 +20,7 @@ import { useStore } from "@/lib/store";
 import { cortinaStopSec } from "@/lib/types";
 import { encodeWav, renderTransition } from "./audition";
 import { clipSummary, rehearsalClip, spotifyOf, withSpotifyLengths } from "./clips";
+import { setConfirmNeeded } from "./confirm";
 import { cortinaHookOf } from "./cortinaStart";
 import {
   CuePlayer,
@@ -1505,3 +1506,11 @@ function logToHistory(ended: boolean) {
 export const boothEngine = () => engine;
 /** For the e2e audibility check: the context's state. */
 export const boothContextState = () => ctx?.state ?? null;
+
+// 2026-11: the light confirmation (lib/booth/confirm.ts) applies once the night runs and a song sounds, unless
+// Settings → Booth turned it off
+setConfirmNeeded(() => {
+  if (useStore.getState().settings.boothConfirm === false) return false;
+  const s = useBooth.getState();
+  return s.started && (s.state === "playing" || s.state === "cortina");
+});

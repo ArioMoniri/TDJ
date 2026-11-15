@@ -3948,6 +3948,48 @@ export const en = {
   "praise.footer":
     "Tandas you praised. Each counts as one Floor full ♥ for its songs in its part of the night, like a tap in Dancer favourites.",
   "praise.delete": "Delete the praise {label}",
+  // 2026-11: the Booth's iPad pass (confirmation, order in the tanda, tanda types, status)
+  "booth.confirm.again": "Tap again",
+  "booth.confirm.hold": "Hold",
+  "booth.confirm.hold_hint":
+    "During the night: press and hold to confirm (a tap alone changes nothing). Keyboard: Enter twice; Esc cancels.",
+  "booth.confirm.tap_again": "Tap again to confirm",
+  "booth.controlStrip.mix_menu": "Mix: transitions, fades and levels",
+  "booth.controls.close": "Close the Controls panel",
+  "booth.controls.toggle_hint":
+    "Every DJ control in one panel above the transport: cue, mixer, timing, tanda, song",
+  "booth.nextCard.play_next_tanda": "Play the first song of tanda {tanda}",
+  "booth.nightBar.group_ending": "Ending the night",
+  "booth.nightBar.group_moments": "Moments",
+  "booth.nightBar.total_left": "Night {total} · {left} left",
+  "booth.playerToolbar.spotify_pick_device": "Spotify · pick a device",
+  "booth.playerToolbar.spotify_pick_device_hint":
+    "Spotify Premium plays the night through the Spotify app here: open Spotify on this iPad or iPhone (or another device), then pick it under Room.",
+  "booth.playerToolbar.status_paused": "Paused · {source}",
+  "booth.playerToolbar.status_playing": "Playing · {source}",
+  "booth.playerToolbar.your_files": "Your files",
+  "booth.reorder.footer":
+    "Only songs that have not played and are not playing can move. Drag a row's number to move it too (a long press on touch).",
+  "booth.reorder.header": "Order in the tanda",
+  "booth.reorder.move_down": "Move down",
+  "booth.reorder.move_up": "Move up",
+  "booth.reorder.moved": "Moved “{title}” in its tanda",
+  "booth.setColumn.back_to_now": "Back to now",
+  "booth.setColumn.details": "Details of {title}: play next, pre-listen, start point, order (drag to move)",
+  "booth.setColumn.tanda_total": "{count} songs · {length}",
+  "booth.setColumn.tanda_total_one": "1 song · {length}",
+  "booth.songSheet.play_now_in_the_room": "Play now in the room",
+  "settings.booth.confirm": "Confirm actions that change the song",
+  "settings.booth.confirm_footer":
+    "Once the night runs, Next, Previous, Play now, Fade, Crossfade, End tanda and La Cumparsita now need a second tap (or a press and hold on the transport), so a mistaken tap never cuts the song. Volume, the headphones and floor reactions never ask.",
+  "settings.booth.header": "Booth",
+  "tandaType.instrumental": "Instrumental",
+  "tandaType.milonga": "Milonga",
+  "tandaType.mixed": "Vocal and instrumental",
+  "tandaType.tango": "Tango",
+  "tandaType.vals": "Vals",
+  "tandaType.vocal": "Vocal",
+  "tandaType.vocal_singer": "Vocal · {singer}",
 } as const;
 
 export type MsgKey = keyof typeof en;

@@ -4124,4 +4124,47 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "praise.footer":
     "Övdüğünüz tandalar. Her biri, Dansçı favorilerindeki bir dokunuş gibi, gecenin kendi bölümünde kayıtları için bir Pist dolu ♥ sayılır.",
   "praise.delete": "Övgüyü sil: {label}",
+  // 2026-11: the Booth's iPad pass (confirmation, order in the tanda, tanda types, status)
+  "booth.confirm.again": "Tekrar dokun",
+  "booth.confirm.hold": "Basılı tut",
+  "booth.confirm.hold_hint":
+    "Gece boyunca: onaylamak için basılı tutun (tek dokunuş hiçbir şeyi değiştirmez). Klavye: iki kez Enter; Esc iptal eder.",
+  "booth.confirm.tap_again": "Onaylamak için tekrar dokunun",
+  "booth.controlStrip.mix_menu": "Miks: geçişler, kısmalar ve seviyeler",
+  "booth.controls.close": "Kontroller panelini kapat",
+  "booth.controls.toggle_hint":
+    "Bütün DJ kontrolleri, çalma çubuğunun üstünde tek panelde: cue, mikser, zamanlama, tanda, şarkı",
+  "booth.nextCard.play_next_tanda": "{tanda}. tandanın ilk şarkısını çal",
+  "booth.nightBar.group_ending": "Geceyi bitirmek",
+  "booth.nightBar.group_moments": "Anlar",
+  "booth.nightBar.total_left": "Gece {total} · {left} kaldı",
+  "booth.playerToolbar.spotify_pick_device": "Spotify · bir cihaz seçin",
+  "booth.playerToolbar.spotify_pick_device_hint":
+    "Spotify Premium geceyi burada Spotify uygulamasıyla çalar: bu iPad'de veya iPhone'da (ya da başka bir cihazda) Spotify'ı açın, sonra Salon altında seçin.",
+  "booth.playerToolbar.status_paused": "Duraklatıldı · {source}",
+  "booth.playerToolbar.status_playing": "Çalıyor · {source}",
+  "booth.playerToolbar.your_files": "Dosyalarınız",
+  "booth.reorder.footer":
+    "Yalnızca çalmamış ve şu an çalmayan şarkılar yer değiştirebilir. Bir satırın numarasını sürükleyerek de taşıyabilirsiniz (dokunmatikte uzun basın).",
+  "booth.reorder.header": "Tandadaki sıra",
+  "booth.reorder.move_down": "Aşağı taşı",
+  "booth.reorder.move_up": "Yukarı taşı",
+  "booth.reorder.moved": "“{title}” tandasında taşındı",
+  "booth.setColumn.back_to_now": "Şu ana dön",
+  "booth.setColumn.details":
+    "{title} ayrıntıları: sonra çal, ön dinleme, başlangıç noktası, sıra (taşımak için sürükleyin)",
+  "booth.setColumn.tanda_total": "{count} şarkı · {length}",
+  "booth.setColumn.tanda_total_one": "1 şarkı · {length}",
+  "booth.songSheet.play_now_in_the_room": "Şimdi salonda çal",
+  "settings.booth.confirm": "Şarkıyı değiştiren eylemleri onayla",
+  "settings.booth.confirm_footer":
+    "Gece başladıktan sonra Sonraki, Önceki, Şimdi çal, Kıs, Geçiş, Tandayı bitir ve Şimdi La Cumparsita ikinci bir dokunuş (ya da çalma çubuğunda basılı tutma) ister; yanlış bir dokunuş şarkıyı asla kesmez. Ses düzeyi, kulaklık ve pist tepkileri hiç sormaz.",
+  "settings.booth.header": "Kabin",
+  "tandaType.instrumental": "Enstrümantal",
+  "tandaType.milonga": "Milonga",
+  "tandaType.mixed": "Vokal ve enstrümantal",
+  "tandaType.tango": "Tango",
+  "tandaType.vals": "Vals",
+  "tandaType.vocal": "Vokal",
+  "tandaType.vocal_singer": "Vokal · {singer}",
 };

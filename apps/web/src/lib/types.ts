@@ -160,6 +160,11 @@ export interface UserSettings {
   language?: "auto" | "en" | "tr";
   /** wave 4: exported playlists (Spotify) get the night's generated cover; on unless turned off */
   exportCover?: boolean;
+  /**
+   * 2026-11 (Settings → Booth): once the night runs, an action that changes what the room hears (Next, Previous,
+   * Play now, Skip tonight on the playing tanda…) asks for a light confirmation. Unset = on.
+   */
+  boothConfirm?: boolean;
 }
 export const DEFAULT_NAMING = "{artist} - {title}";
 export const DEFAULT_SETTINGS: UserSettings = {

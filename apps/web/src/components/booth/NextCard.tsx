@@ -1,12 +1,13 @@
 "use client";
-import { Repeat2 } from "lucide-react";
+import { Headphones, Play, Repeat2 } from "lucide-react";
 import { cortinaSpan, upNext } from "@/lib/booth/nightView";
 import { useBooth } from "@/lib/booth/store";
 import { useBoothSwap } from "@/lib/booth/swap";
 import { t } from "@/lib/i18n";
-import { metaLine } from "@/lib/year";
+import { metaLine, yearSpan } from "@/lib/year";
 import { Artwork } from "../ui/Artwork";
 import { EraBadge } from "../ui/EraBadge";
+import { TandaTypeBadge } from "../ui/TandaTypeBadge";
 import { eyebrowFor } from "./NowCard";
 
 /**
@@ -14,7 +15,15 @@ import { eyebrowFor } from "./NowCard";
  * first track) with the same eyebrow, the next tanda's summary and its cortina in words. Wave 2: a tanda skipped
  * tonight and its cortina are passed over. Tapping the next tanda jumps the set column there.
  */
-export function NextCard({ onJump }: { onJump: (planIndex: number) => void }) {
+export function NextCard({
+  onJump,
+  onPlay,
+}: {
+  onJump: (planIndex: number) => void;
+  /** 2026-11: one tap plays the item (the page's row tap: from here before the night, the headphones during it) */
+  onPlay?: (planIndex: number) => void;
+}) {
+  const hearing = useBooth((s) => s.audition?.i ?? null);
   const plan = useBooth((s) => s.plan);
   const planIndex = useBooth((s) => s.planIndex);
   const sources = useBooth((s) => s.sources);
@@ -51,36 +60,47 @@ export function NextCard({ onJump }: { onJump: (planIndex: number) => void }) {
       {item ? (
         <>
           <p className="text-caption1 text-[var(--label-2)]">{eyebrowFor(item, tandas)}</p>
-          <div className="mt-1 flex items-center gap-3">
+          {/* 2026-11: the song is one tap to play (before the night: from here; during it: the headphones) */}
+          <button
+            type="button"
+            className="booth-next-play mt-1 flex w-full items-center gap-3 text-left"
+            onClick={() => up.next !== null && onPlay?.(up.next)}
+            disabled={!onPlay || up.next === null}
+            aria-label={t("booth.setColumn.play", { title: item.title })}
+            data-testid="booth-next-play"
+            data-auditioning={hearing === next || undefined}
+          >
             <Artwork
               entity={entities[next]}
               orchestra={(entities[next] as { orchestra?: string } | null)?.orchestra ?? item.artist}
               size={48}
             />
-            <div className="min-w-0 flex-1">
-              <h3
-                className="booth-mid booth-next-title font-semibold"
+            <span className="min-w-0 flex-1">
+              <span
+                className="booth-mid booth-next-title block font-semibold"
                 data-testid="booth-next-title"
                 data-next-index={up.next ?? undefined}
               >
                 {item.title}
-              </h3>
-            </div>
+              </span>
+            </span>
             <EraBadge entity={entities[next]} />
-            {/* 2026-11: swap what plays next in one tap (the room keeps playing the current song) */}
-            {(item.kind === "track" || item.kind === "cortina") && (
-              <button
-                type="button"
-                className="icon-btn icon-btn-bare h-11 w-11 shrink-0"
-                aria-label={t("boothSwap.swap_label", { title: item.title })}
-                data-hint={t("boothSwap.swap")}
-                onClick={() => useBoothSwap.getState().open(next)}
-                data-testid="booth-next-swap"
-              >
-                <Repeat2 size={16} strokeWidth={2} aria-hidden />
-              </button>
-            )}
-          </div>
+            <PlayIcon hearing={hearing === next} />
+          </button>
+          {/* 2026-11: swap what plays next in one tap (the room keeps playing the current song); a sibling of the
+              card's play button, never inside it */}
+          {(item.kind === "track" || item.kind === "cortina") && (
+            <button
+              type="button"
+              className="icon-btn icon-btn-bare h-11 w-11 shrink-0 self-start"
+              aria-label={t("boothSwap.swap_label", { title: item.title })}
+              data-hint={t("boothSwap.swap")}
+              onClick={() => useBoothSwap.getState().open(next)}
+              data-testid="booth-next-swap"
+            >
+              <Repeat2 size={16} strokeWidth={2} aria-hidden />
+            </button>
+          )}
           {noSource && (
             <p className="text-footnote text-[var(--label-2)]" data-testid="booth-next-nosource">
               {rehearsal
@@ -100,18 +120,26 @@ export function NextCard({ onJump }: { onJump: (planIndex: number) => void }) {
       {nt && ntTanda && (
         <button
           type="button"
-          className="mt-3 block w-full rounded-[var(--radius-m)] bg-[var(--fill-4)] px-3 py-2 text-left"
-          onClick={() => onJump(nextTandaFirst)}
+          className="booth-next-tanda mt-3 block w-full rounded-[var(--radius-m)] px-3 py-2 text-left"
+          onClick={() => {
+            onJump(nextTandaFirst);
+            onPlay?.(nextTandaFirst);
+          }}
+          aria-label={t("booth.nextCard.play_next_tanda", { tanda: nt.tanda })}
           data-testid="booth-next-tanda"
           data-next-index={nextTandaFirst}
+          data-auditioning={hearing === nextTandaFirst || undefined}
         >
           <span className="text-caption1 block text-[var(--label-2)]">
             {t("booth.nextCard.next_tanda_of", { tanda: nt.tanda, tandas, rhythm: ntTanda.rhythm })}
           </span>
+          <span className="my-1 flex">
+            <TandaTypeBadge rhythm={ntTanda.rhythm} vocal={ntTanda.vocal} singer={ntTanda.singer} />
+          </span>
           <span className="booth-mid block truncate">
             {metaLine(
               ntTanda.singer ? `${ntTanda.orchestra} / ${ntTanda.singer}` : ntTanda.orchestra,
-              ntTanda.yearRange ? `${ntTanda.yearRange[0]}–${ntTanda.yearRange[1]}` : null,
+              yearSpan(ntTanda.yearRange),
             )}
           </span>
           {ntCortina && (
@@ -130,5 +158,20 @@ export function NextCard({ onJump }: { onJump: (planIndex: number) => void }) {
         </button>
       )}
     </section>
+  );
+}
+
+/** the play glyph on a tappable song (headphones while it pre-listens) */
+function PlayIcon({ hearing }: { hearing: boolean }) {
+  return hearing ? (
+    <Headphones size={18} strokeWidth={2} className="flex-none text-[var(--cue)]" aria-hidden />
+  ) : (
+    <Play
+      size={18}
+      fill="currentColor"
+      strokeWidth={0}
+      className="flex-none text-[var(--label-2)]"
+      aria-hidden
+    />
   );
 }
