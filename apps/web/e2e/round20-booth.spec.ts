@@ -205,7 +205,13 @@ test.describe("1440 × 900", () => {
     const r = await page.evaluate(() => {
       const w = window as unknown as {
         __tdjBoothPlan: {
-          items: Array<{ kind: string; id?: string; fadeOutSec?: number; stopSec?: number; trimInSec?: number }>;
+          items: Array<{
+            kind: string;
+            id?: string;
+            fadeOutSec?: number;
+            stopSec?: number;
+            trimInSec?: number;
+          }>;
         };
         __tdjBooth: { getState(): { playlist: { booth?: { cortinaEdits?: Record<string, unknown> } } } };
       };
