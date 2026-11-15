@@ -315,7 +315,8 @@ test("Mix → Edit transitions; ••• steps through the night; a song's shee
   await expect(ed).toHaveCount(0);
   // the song sheet's Transition… opens the transition after that song
   const row = page.locator('.booth-tanda[data-tanda="2"] .booth-row[data-kind="track"]').first();
-  await row.getByTestId("booth-row-play").click();
+  // (a tap on the row plays it; the row number opens its sheet)
+  await row.getByTestId("booth-row-open").click();
   await page.getByTestId("booth-play-sheet").getByRole("button", { name: "Transition…" }).click();
   await expect(ed.getByTestId("booth-tr-out")).toContainText(
     await row.locator(".booth-row-title").innerText(),
