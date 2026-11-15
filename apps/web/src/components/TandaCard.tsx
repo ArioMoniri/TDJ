@@ -460,7 +460,7 @@ function TandaCardImpl({
                   lengthSec={sidePlaySec(s.durationSec, cues?.[s.id])}
                   count={t.songs.length}
                   onMove={canMove ? moveTrack : undefined}
-                  dragHandle={canMove ? drag(k) : undefined}
+                  dragHandle={canMove ? drag : undefined}
                   key={s.id}
                   n={k + 1}
                   song={s}

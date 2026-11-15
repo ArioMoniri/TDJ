@@ -17,7 +17,12 @@ export type DraftSong = Pick<
   | "rhythm"
   | "energy"
   | "fame"
-> & { spotify?: { uri: string } | null };
+  | "durationSec"
+> & {
+  spotify?: { uri: string } | null;
+  /** 2026-11: the cached preview (tap to play in the builder) */
+  resolved?: Pick<NonNullable<Song["resolved"]>, "provider" | "id" | "previewUrl"> | null;
+};
 export type Draft = DraftSong[][];
 
 export function slimSong(s: Song | DraftSong): DraftSong {
@@ -33,7 +38,11 @@ export function slimSong(s: Song | DraftSong): DraftSong {
     rhythm: s.rhythm,
     energy: s.energy !== undefined ? Math.round(s.energy) : undefined,
     fame: s.fame,
+    durationSec: s.durationSec,
     spotify: s.spotify?.uri ? { uri: s.spotify.uri } : null,
+    resolved: s.resolved?.previewUrl
+      ? { provider: s.resolved.provider, id: s.resolved.id, previewUrl: s.resolved.previewUrl }
+      : null,
   };
 }
 
@@ -60,6 +69,42 @@ export function addTanda(d: Draft, songs: DraftSong[], sizes?: Parameters<typeof
   const fresh = songs.filter((s) => !base.some((t) => t.some((x) => x.id === s.id)));
   if (!fresh.length) return d;
   return [...base, fresh];
+}
+/**
+ * 2026-11 (the guided builder): add sides to tanda `ti` (the selected one), skipping sides already in the night;
+ * `ti` past the end (or no tandas) starts a new tanda with them
+ */
+export function addSongsTo(d: Draft, ti: number, songs: DraftSong[]): Draft {
+  const used = new Set(d.flat().map((s) => s.id));
+  const fresh = songs.filter((s, i) => !used.has(s.id) && songs.findIndex((x) => x.id === s.id) === i);
+  if (!fresh.length) return d;
+  if (ti < 0 || ti >= d.length) return [...d, fresh];
+  return d.map((t, i) => (i === ti ? [...t, ...fresh] : t));
+}
+/** a new tanda with these sides (at the end, or at `at`) */
+export function newTanda(d: Draft, songs: DraftSong[], at = d.length): Draft {
+  const used = new Set(d.flat().map((s) => s.id));
+  const fresh = songs.filter((s) => !used.has(s.id));
+  if (!fresh.length) return d;
+  const out = d.slice();
+  out.splice(Math.max(0, Math.min(at, d.length)), 0, fresh);
+  return out;
+}
+/** move side `from` of tanda `ti` to place `to` */
+export function moveSong(d: Draft, ti: number, from: number, to: number): Draft {
+  const t = d[ti];
+  if (!t || from === to || from < 0 || to < 0 || from >= t.length || to >= t.length) return d;
+  const songs = t.slice();
+  const [x] = songs.splice(from, 1);
+  songs.splice(to, 0, x!);
+  return d.map((y, i) => (i === ti ? songs : y));
+}
+/** a per-tanda list (the cortina after each tanda) kept in step with a tanda move / removal */
+export function moveAligned<T>(list: T[], from: number, to: number): T[] {
+  const out = list.slice();
+  const [x] = out.splice(from, 1);
+  out.splice(to, 0, x as T);
+  return out;
 }
 export function removeSong(d: Draft, ti: number, si: number): Draft {
   return d.map((t, i) => (i === ti ? t.filter((_, k) => k !== si) : t)).filter((t) => t.length);

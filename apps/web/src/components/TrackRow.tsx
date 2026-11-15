@@ -71,8 +71,8 @@ export const TrackRow = memo(function TrackRow({
   count?: number;
   /** 2026-11: reorder inside the tanda — called with (from, to) track indexes; absent on a read-only night */
   onMove?: (from: number, to: number) => void;
-  /** the drag handle's pointer props (useDragReorder) */
-  dragHandle?: Record<string, unknown>;
+  /** the drag handle's pointer props for track index k (useDragReorder: stable, so the row stays memoised) */
+  dragHandle?: (k: number) => Record<string, unknown>;
 }) {
   const reduced = useReducedMotion();
   const isPhone = useMediaQuery("(max-width: 599.98px)");
@@ -342,7 +342,7 @@ export const TrackRow = memo(function TrackRow({
               className="drag-handle icon-btn icon-btn-bare -my-2 -mx-2 h-11 w-11 shrink-0 text-[var(--label-3)]"
               aria-label={t("play.drag_to_reorder", { title })}
               data-testid="drag-handle"
-              {...dragHandle}
+              {...dragHandle?.(k)}
             >
               <GripVertical size={16} strokeWidth={2} aria-hidden />
             </button>

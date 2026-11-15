@@ -148,10 +148,21 @@ export const SongRow = memo(function SongRow({
     >
       {onClick ? (
         // a row whose body picks the side (Swap, search): the cover plays it, the body picks
+        // (the pick comes first in the DOM, so the row's first button is still its action; the cover sits first on
+        // screen through `order`)
         <>
           <button
             type="button"
-            className="-my-1 shrink-0"
+            className="flex min-h-11 min-w-0 flex-1 items-center gap-3 text-left disabled:opacity-60"
+            onClick={onClick}
+            aria-label={ariaLabel}
+            disabled={busy}
+          >
+            {text}
+          </button>
+          <button
+            type="button"
+            className="order-first -my-1 shrink-0"
             onClick={tapPlay}
             aria-label={
               play.playing
@@ -161,15 +172,6 @@ export const SongRow = memo(function SongRow({
             data-testid="art-play"
           >
             {art}
-          </button>
-          <button
-            type="button"
-            className="flex min-h-11 min-w-0 flex-1 items-center gap-3 text-left disabled:opacity-60"
-            onClick={onClick}
-            aria-label={ariaLabel}
-            disabled={busy}
-          >
-            {text}
           </button>
         </>
       ) : (
@@ -190,7 +192,7 @@ export const SongRow = memo(function SongRow({
         </button>
       )}
       {!play.audible && <NoAudio />}
-      <span className="len text-footnote" data-testid="row-len">
+      <span className="len text-caption1" data-testid="row-len">
         <span className="sr-only">{t("play.length")} </span>
         {fmtLen(song.durationSec)}
       </span>

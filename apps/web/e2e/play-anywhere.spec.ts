@@ -275,6 +275,8 @@ for (const [name, opts] of DEVICES) {
       await page.goto("/build");
       await page.evaluate(() => localStorage.removeItem("tdj-build-draft"));
       await page.reload();
+      // phones: the Add panel is a sheet behind the floating Add button
+      if (name !== "desktop") await page.getByTestId("build-add-open").click();
       await page.getByLabel("Search for a song to add").first().fill("di sarli");
       const hit = page.getByTestId("build-hit").first();
       await expect(hit).toBeVisible({ timeout: 20000 });
