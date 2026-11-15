@@ -1,5 +1,6 @@
 import { type Locale, tIn } from "@/lib/i18n";
 import type { MsgKey } from "@/lib/i18n/en";
+import { eraInputs, nightEraLabel } from "@/lib/nightName";
 import { SANS, SERIF } from "./glyphs";
 import { coverSeedOf, fnv, isSeed } from "./seed";
 import { cleanText, fitLine, measure, textPath, wrap } from "./text";
@@ -37,7 +38,14 @@ export interface CoverData {
   seed: string;
   /** the night's name as kept (the title is its part before " · ") */
   name: string;
+  /** the first era chosen, as the cover hash has always read it (the era line reads eras, yearRange and songYears) */
   era: string | null;
+  /** every era chosen, as kept */
+  eras: string[];
+  /** the recording years the night was restricted to */
+  yearRange: [number, number] | null;
+  /** the tanda songs' recording years (no opening or closing): the era line of a night with no era */
+  songYears: number[];
   durationSec: number;
   /** the planned length, when there is no duration */
   hours: number | null;
@@ -90,10 +98,14 @@ export function coverData(p: unknown): CoverData {
       0,
     );
   const eras = n.options?.eras;
+  const label = eraInputs(n);
   return {
     seed: coverSeedOf(p),
     name: typeof n.name === "string" ? n.name : "",
     era: Array.isArray(eras) && typeof eras[0] === "string" ? eras[0] : null,
+    eras: label.eras,
+    yearRange: label.yearRange,
+    songYears: label.songYears,
     durationSec,
     hours: num(n.options?.hours) || null,
     tandas: tandas.map((t) => ({
@@ -109,6 +121,7 @@ const isCoverData = (p: unknown): p is CoverData =>
 /** a hash of everything the cover draws (its family and its arc, words and marks): the cache key's first part */
 export function nightHash(p: unknown): string {
   const d = isCoverData(p) ? p : coverData(p);
+  // (the inputs stay what they were, the first era included: an existing night keeps its cover key)
   return fnv(
     JSON.stringify([
       d.seed,
@@ -276,16 +289,6 @@ export function coverFamily(seed: string) {
   return { pairing, motif, angle: Math.floor(rand() * 180), density: 0.7 + rand() * 0.7, rand };
 }
 
-const ERA_KEY: Record<string, MsgKey> = {
-  golden: "nightName.golden_age",
-  "golden-extended": "nightName.golden_age_extended",
-  "guardia-vieja": "nightName.guardia_vieja",
-  "post-golden": "nightName.post_golden",
-  nuevo: "nightName.nuevo",
-  contemporary: "nightName.contemporary",
-  all: "nightName.all_eras",
-};
-
 /** the title: the name's part before " · " (lib/nightName.ts nightTitle), in the cover's language when unnamed */
 export function coverTitle(d: CoverData, locale: Locale = "en"): string {
   return cleanText(d.name.split(" · ")[0]) || tIn(locale, "nightName.tonight_s_milonga");
@@ -307,9 +310,12 @@ export function coverMeta(d: CoverData, locale: Locale = "en"): string {
   const count = tIn(locale, `cover.tandas.${cat}` as MsgKey, { count: n });
   return len ? `${len} · ${count}` : count;
 }
+/** the era line: lib/nightName.ts nightEraLabel in the cover's language ("Golden Age + Nuevo", "1950–1960") */
 export function coverEra(d: CoverData, locale: Locale = "en"): string {
-  const k = ERA_KEY[d.era ?? "golden"];
-  return k ? tIn(locale, k) : cleanText(d.era);
+  const eras = Array.isArray(d.eras) ? d.eras : d.era ? [d.era] : [];
+  return cleanText(
+    nightEraLabel({ eras, yearRange: d.yearRange ?? null, songYears: d.songYears ?? [] }, locale),
+  );
 }
 
 export function escapeXml(s: string): string {
@@ -426,7 +432,20 @@ export function nightCoverSvg(p: unknown, o: CoverOptions = {}): string {
   try {
     return draw(isCoverData(p) ? p : coverData(p), o);
   } catch {
-    return draw({ seed: "00000000", name: "", era: null, durationSec: 0, hours: null, tandas: [] }, o);
+    return draw(
+      {
+        seed: "00000000",
+        name: "",
+        era: null,
+        eras: [],
+        yearRange: null,
+        songYears: [],
+        durationSec: 0,
+        hours: null,
+        tandas: [],
+      },
+      o,
+    );
   }
 }
 

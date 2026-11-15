@@ -42,7 +42,7 @@ import { testSlowdownMs, useMediaQuery, useScrollDirection, whenIdle } from "@/l
 import { lazy, lower, plural, t as tx } from "@/lib/i18n";
 import { describePreferences } from "@/lib/memory";
 import { DUR, EASE, rise, STAGGER } from "@/lib/motion";
-import { eraName, nightSub, nightTitle } from "@/lib/nightName";
+import { nightEraLabel, nightSub, nightTitle } from "@/lib/nightName";
 import { usePlayer } from "@/lib/player";
 import { useSheetOpen } from "@/lib/sheets";
 import {
@@ -827,7 +827,7 @@ const SetupForm = memo(function SetupForm({
         inert={!dock || undefined}
       >
         <span className="text-footnote min-w-0 flex-1 truncate text-[var(--label-2)]">
-          {tx("composer.h_tandas", { p1: eraName(era), hours, tandasEst })}
+          {tx("composer.h_tandas", { p1: nightEraLabel({ options }), hours, tandasEst })}
         </span>
         <Tip text={tx("composer.compose_the_night_with_these_settings")}>
           <button
@@ -1722,7 +1722,7 @@ export function Composer() {
             {tx("composer.a_night_composed")}
           </h2>
           <p className="text-subhead mt-1 text-[var(--label-2)]">
-            {tx("composer.hours_of_tandas_with_cortinas_scored", { hours, p1: eraName(era) })}
+            {tx("composer.hours_of_tandas_with_cortinas_scored", { hours, p1: nightEraLabel({ options }) })}
           </p>
           <ol className="mt-4 grid gap-2 sm:grid-cols-3">
             {(
@@ -2117,7 +2117,7 @@ export function Composer() {
         <Group header={tx("composer.set_up")} id="setup-summary">
           <Row
             tile={<RhythmTile rhythm="tango" />}
-            label={`${eraName(era)} · ${hours} h · ${ARCS.find(([k]) => k === (options.arc ?? "classic-two-peaks"))?.[1] ?? ""}`}
+            label={`${nightEraLabel({ options })} · ${hours} h · ${ARCS.find(([k]) => k === (options.arc ?? "classic-two-peaks"))?.[1] ?? ""}`}
             sub={tx("composer.cortinas_2", {
               p1: PATTERNS.find(([k]) => k === (options.pattern ?? "classic"))?.[1] ?? "",
               p2: (CORTINA_STYLES.find(([k]) => k === cortinaStyle)?.[1] ?? "").toLowerCase(),

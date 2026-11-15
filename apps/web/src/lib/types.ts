@@ -230,7 +230,7 @@ export interface AppOverrides extends UserOverrides {
 export interface HistorySnapshot {
   id: string;
   createdAt: string;
-  /** auto: "Sat · Golden age · 4 h"; the user may rename it */
+  /** auto: the day and the event ("Saturday milonga"); the era and length are its sub-line; the user may rename it */
   title: string;
   options: Partial<import("@tdj/core").ComposeOptions>;
   playlist: import("@tdj/core").Playlist;
