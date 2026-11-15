@@ -1,7 +1,13 @@
+/**
+ * The launch video (`pnpm video` → media/video/launch.mp4): the logo, then the README clips one after another, each
+ * with one line of caption, then where to get it. The clips are the real captures from `pnpm media`
+ * (media/readme/*.mp4), copied into public/clips by scripts/sync-clips.mjs before the render.
+ */
 import {
   AbsoluteFill,
   Img,
   interpolate,
+  OffthreadVideo,
   Sequence,
   spring,
   staticFile,
@@ -9,194 +15,108 @@ import {
   useVideoConfig,
 } from "remotion";
 
-const Glass = ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
-  <div
-    style={{
-      background: "rgba(24,22,34,.55)",
-      border: "1px solid rgba(255,255,255,.3)",
-      borderRadius: 32,
-      boxShadow: "0 20px 60px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.4)",
-      backdropFilter: "blur(20px)",
-      ...style,
-    }}
-  >
-    {children}
-  </div>
-);
+export const LAUNCH_FPS = 30;
+const INTRO = 75;
+const OUTRO = 105;
 
-const Bg = () => {
-  const f = useCurrentFrame();
-  return (
-    <AbsoluteFill
-      style={{
-        background: `radial-gradient(1200px 800px at ${10 + f * 0.05}% 10%, #3a1a4a, transparent 60%), radial-gradient(1000px 700px at 90% ${20 + f * 0.04}%, #0f2a52, transparent 60%), radial-gradient(900px 900px at 50% 100%, #4a1626, transparent 60%), #0b0a10`,
-      }}
-    />
-  );
-};
+/** clip, caption, seconds of the clip to show (from its start) */
+export const SCENES: Array<[string, string, number]> = [
+  ["compose", "One tap composes the night: tandas, cortinas, the arc.", 7],
+  ["booth", "The Booth plays it. Pre-listen in your headphones.", 7],
+  ["ai-edit", "“Make tanda 7 calmer.” A checked change, with Undo.", 6],
+  ["rooms", "Two DJs, one night, every edit on both sides.", 7],
+  ["share", "Share a night with a QR code.", 5],
+  ["ipad", "On the iPad,", 5],
+  ["dark", "and in the dark booth.", 5],
+];
+export const LAUNCH_FRAMES = INTRO + OUTRO + SCENES.reduce((n, s) => n + s[2] * LAUNCH_FPS, 0);
 
-const Title = ({ text, sub, delay = 0 }: { text: string; sub?: string; delay?: number }) => {
+const BG =
+  "radial-gradient(1300px 800px at 12% 8%, #f07aa0 0%, transparent 60%), radial-gradient(1100px 900px at 92% 96%, #5b2a86 0%, transparent 62%), linear-gradient(135deg, #b0305e 0%, #7a2350 52%, #3b1840 100%)";
+
+const Rise = ({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const s = spring({ frame: frame - delay, fps, config: { damping: 200 } });
-  return (
-    <div
-      style={{
-        opacity: s,
-        transform: `translateY(${(1 - s) * 30}px)`,
-        color: "#f6f1e8",
-        fontFamily: "Georgia, 'New York', serif",
-      }}
-    >
-      <div style={{ fontSize: 96, fontWeight: 600, letterSpacing: -2, lineHeight: 1.05 }}>{text}</div>
-      {sub && (
-        <div
-          style={{
-            fontSize: 34,
-            marginTop: 18,
-            opacity: 0.75,
-            fontFamily: "-apple-system, Inter, system-ui, sans-serif",
-          }}
-        >
-          {sub}
-        </div>
-      )}
-    </div>
-  );
+  return <div style={{ opacity: s, transform: `translateY(${(1 - s) * 24}px)` }}>{children}</div>;
 };
 
-const Shot = ({
-  src,
-  delay = 0,
-  w = 1500,
-  tilt = -4,
-}: {
-  src: string;
-  delay?: number;
-  w?: number;
-  tilt?: number;
-}) => {
+const Scene = ({ clip, caption, frames }: { clip: string; caption: string; frames: number }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const s = spring({ frame: frame - delay, fps, config: { damping: 18, stiffness: 90 } });
+  const fade = interpolate(frame, [0, 8, frames - 8, frames], [0, 1, 1, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
   return (
-    <Img
-      src={staticFile(src)}
-      style={{
-        width: w,
-        borderRadius: 28,
-        boxShadow: "0 40px 120px rgba(0,0,0,.5)",
-        opacity: s,
-        transform: `perspective(1600px) rotateY(${tilt}deg) translateY(${(1 - s) * 80}px) scale(${0.96 + s * 0.04})`,
-        border: "1px solid rgba(255,255,255,.2)",
-      }}
-    />
-  );
-};
-
-const Arc = () => {
-  const frame = useCurrentFrame();
-  const pts = [44, 42, 50, 54, 58, 64, 70, 76, 74, 80, 84, 78, 72, 76, 82, 88, 86, 80, 70, 60, 52, 46];
-  const W = 1500,
-    H = 420;
-  const x = (i: number) => 40 + (i / (pts.length - 1)) * (W - 80),
-    y = (e: number) => H - 30 - (e / 100) * (H - 60);
-  const n = Math.min(
-    pts.length,
-    Math.floor(interpolate(frame, [0, 60], [0, pts.length], { extrapolateRight: "clamp" })),
-  );
-  const d = pts
-    .slice(0, Math.max(2, n))
-    .map((e, i) => `${i ? "L" : "M"}${x(i)},${y(e)}`)
-    .join(" ");
-  return (
-    <svg width={W} height={H}>
-      <path d={d} fill="none" stroke="#e0557a" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
-      {pts.slice(0, n).map((e, i) => (
-        <circle
-          key={i}
-          cx={x(i)}
-          cy={y(e)}
-          r="13"
-          fill={i % 6 === 2 ? "#4fd1c5" : i % 6 === 5 ? "#8b7cf6" : "#e0557a"}
-          stroke="#fff"
-          strokeWidth="4"
-        />
-      ))}
-      {["warm-up", "build", "peak", "second peak", "cool-down", "La Cumparsita"].map((t, i) => (
-        <text
-          key={t}
-          x={x(Math.round((i / 5) * (pts.length - 1)))}
-          y={H - 4}
-          fill="#fff"
-          opacity=".6"
-          fontSize="22"
-          textAnchor="middle"
-          fontFamily="Inter, system-ui"
-        >
-          {t}
-        </text>
-      ))}
-    </svg>
+    <AbsoluteFill style={{ opacity: fade }}>
+      <OffthreadVideo
+        src={staticFile(`clips/${clip}.mp4`)}
+        muted
+        style={{ position: "absolute", left: 240, top: 120, width: 1440, height: 900 }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          top: 36,
+          width: "100%",
+          textAlign: "center",
+          color: "#fff",
+          fontSize: 46,
+          fontWeight: 600,
+          letterSpacing: -0.5,
+          textShadow: "0 2px 18px rgba(40,0,30,.35)",
+        }}
+      >
+        <Rise>{caption}</Rise>
+      </div>
+    </AbsoluteFill>
   );
 };
 
 export const Launch = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const logoS = spring({ frame, fps, config: { damping: 14 } });
+  const logo = spring({ frame, fps, config: { damping: 14 } });
+  let at = INTRO;
   return (
-    <AbsoluteFill style={{ fontFamily: "-apple-system, Inter, system-ui, sans-serif" }}>
-      <Bg />
-      <Sequence from={0} durationInFrames={120}>
-        <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", gap: 40 }}>
+    <AbsoluteFill style={{ background: BG, fontFamily: "-apple-system, Inter, system-ui, sans-serif" }}>
+      <Sequence durationInFrames={INTRO}>
+        <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", gap: 28, color: "#fff" }}>
           <Img
-            src={staticFile("logo.svg")}
-            style={{ width: 220, transform: `scale(${logoS}) rotate(${(1 - logoS) * -40}deg)` }}
+            src={staticFile("logo-reversed.svg")}
+            style={{
+              width: 200,
+              transform: `scale(${logo}) rotate(${(1 - logo) * -40}deg)`,
+              filter: "drop-shadow(0 10px 30px rgba(0,0,0,.3))",
+            }}
           />
-          <Title text="TDJ" sub="Compose a milonga, tanda by tanda." delay={10} />
+          <Rise delay={8}>
+            <div style={{ fontSize: 110, fontWeight: 700, letterSpacing: -3 }}>T-DJ</div>
+          </Rise>
+          <Rise delay={16}>
+            <div style={{ fontSize: 38, opacity: 0.9 }}>A milonga, built the way a tango DJ builds one.</div>
+          </Rise>
         </AbsoluteFill>
       </Sequence>
-      <Sequence from={120} durationInFrames={150}>
-        <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", gap: 30 }}>
-          <Title
-            text="A night-long energy arc"
-            sub="Warm-up, two peaks, cool-down. Every tanda placed where the floor wants it."
-          />
-          <Glass style={{ padding: 30 }}>
-            <Arc />
-          </Glass>
-        </AbsoluteFill>
-      </Sequence>
-      <Sequence from={270} durationInFrames={150}>
-        <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", gap: 30 }}>
-          <Title
-            text="Coherent tandas, matched cortinas"
-            sub="One orchestra, one singer, four years max. Cortinas tuned to what plays next."
-          />
-          <Shot src="03-tandas.png" />
-        </AbsoluteFill>
-      </Sequence>
-      <Sequence from={420} durationInFrames={150}>
-        <AbsoluteFill
-          style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 60 }}
-        >
-          <Shot src="09-mobile-result.png" w={420} tilt={6} />
-          <div style={{ maxWidth: 800 }}>
-            <Title
-              text="Golden age or any era"
-              sub="21,932 recordings indexed in the repo. 1 to 8 hours. Turkish, Greek, Persian, Balkan or trend cortinas."
-            />
-          </div>
-        </AbsoluteFill>
-      </Sequence>
-      <Sequence from={570} durationInFrames={150}>
-        <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", gap: 30 }}>
-          <Title
-            text="Export anywhere"
-            sub="Spotify · Rekordbox · Traktor · Serato · M3U8 · XSPF · CSV · JSON"
-          />
-          <Shot src="04-export.png" w={1300} tilt={3} />
+      {SCENES.map(([clip, caption, secs]) => {
+        const from = at;
+        const frames = secs * LAUNCH_FPS;
+        at += frames;
+        return (
+          <Sequence key={clip} from={from} durationInFrames={frames}>
+            <Scene clip={clip} caption={caption} frames={frames} />
+          </Sequence>
+        );
+      })}
+      <Sequence from={LAUNCH_FRAMES - OUTRO}>
+        <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", gap: 26, color: "#fff" }}>
+          <Img src={staticFile("logo-reversed.svg")} style={{ width: 130 }} />
+          <Rise>
+            <div style={{ fontSize: 64, fontWeight: 700, letterSpacing: -1.5 }}>Mac, iPad and the web</div>
+          </Rise>
+          <Rise delay={8}>
+            <div style={{ fontSize: 34, opacity: 0.9 }}>github.com/ArioMoniri/TDJ</div>
+          </Rise>
         </AbsoluteFill>
       </Sequence>
     </AbsoluteFill>

@@ -17,6 +17,9 @@ __pycache__
 .open-next
 *.tsbuildinfo
 media/video/raw
+# capture intermediates (pnpm media) and the launch video's copies of the README clips
+apps/video/public/raw
+apps/video/public/clips
 
 # agent worktrees (local only)
 .claude/worktrees/

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "remotion studio src/index.ts",
-    "render": "remotion render src/index.ts Launch ../../media/video/launch.mp4 --codec h264 --crf 22",
+    "render": "node scripts/sync-clips.mjs && remotion render src/index.ts Launch ../../media/video/launch.mp4 --codec h264 --crf 24",
     "typecheck": "tsc --noEmit",
     "build": "echo skip"
   },

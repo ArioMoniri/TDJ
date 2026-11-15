@@ -1,12 +1,26 @@
 import { Composition } from "remotion";
-import { Launch } from "./Launch";
+import { Clip, type ClipProps, calculateClipMetadata, FPS, H, W } from "./Clip";
+import { LAUNCH_FPS, LAUNCH_FRAMES, Launch } from "./Launch";
+
 export const Root = () => (
-  <Composition
-    id="Launch"
-    component={Launch}
-    durationInFrames={30 * 24}
-    fps={30}
-    width={1920}
-    height={1080}
-  />
+  <>
+    <Composition
+      id="Launch"
+      component={Launch}
+      durationInFrames={LAUNCH_FRAMES}
+      fps={LAUNCH_FPS}
+      width={1920}
+      height={1080}
+    />
+    <Composition
+      id="Clip"
+      component={Clip}
+      durationInFrames={FPS * 10}
+      fps={FPS}
+      width={W}
+      height={H}
+      defaultProps={{ name: "compose" } as ClipProps}
+      calculateMetadata={calculateClipMetadata}
+    />
+  </>
 );

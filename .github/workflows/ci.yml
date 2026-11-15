@@ -12,6 +12,7 @@ jobs:
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
+      - run: pnpm readme:check
       - run: pnpm typecheck
       - run: pnpm --filter @tdj/core test
       - run: pnpm quality
