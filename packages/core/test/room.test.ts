@@ -19,6 +19,7 @@ import {
   parseRoomLink,
   ROOM_CODE_ALPHABET,
   ROOM_LOG_MAX,
+  ROOM_PRESENCE_MS,
   type RoomState,
   roomLink,
   roomPresence,
@@ -304,5 +305,40 @@ describe("client diff → ops", () => {
     );
     expect(ok?.map((o) => o.type)).toEqual(["slot"]);
     expect(cleanRoomOps("nope", parseNightFile)).toBeNull();
+  });
+});
+
+describe("leaving a room (wave 2: a DJ leaving was never logged, and stayed in the presence list)", () => {
+  it("logs the leave and drops the DJ from the members at once", () => {
+    const room = applyRoomOps(fresh(), [{ type: "join" }], "Ben", at(5)).room;
+    expect(roomPresence(room, Date.parse(at(6)))).toContain("Ben");
+    const r = applyRoomOps(room, [{ type: "leave" }], "Ben", at(10));
+    expect(r.entries).toEqual([expect.objectContaining({ by: "Ben", kind: "leave", text: "left the room" })]);
+    expect(r.room.rev).toBe(room.rev + 1);
+    expect(r.room.members.Ben).toBeUndefined();
+    expect(roomPresence(r.room, Date.parse(at(11)))).toEqual(["Ana"]);
+  });
+
+  it("a leave from someone not in the room changes nothing", () => {
+    const r = applyRoomOps(fresh(), [{ type: "leave" }], "Zoe", at(10));
+    expect(r.entries).toEqual([]);
+    expect(r.ignored).toBe(1);
+    expect(r.room.members.Zoe).toBeUndefined();
+  });
+
+  it("coming back after a leave logs a fresh join", () => {
+    let room = applyRoomOps(fresh(), [{ type: "join" }], "Ben", at(5)).room;
+    room = applyRoomOps(room, [{ type: "leave" }], "Ben", at(10)).room;
+    const r = applyRoomOps(room, [{ type: "join" }], "Ben", at(20));
+    expect(r.entries.map((e) => e.kind)).toEqual(["join"]);
+  });
+
+  it("the presence list drops a DJ who stopped polling after the timeout", () => {
+    const room = applyRoomOps(fresh(), [{ type: "join" }], "Ben", at(5)).room;
+    expect(roomPresence(room, Date.parse(at(5)) + ROOM_PRESENCE_MS + 1_000)).not.toContain("Ben");
+  });
+
+  it("cleanRoomOps keeps a leave", () => {
+    expect(cleanRoomOps([{ type: "leave" }], parseNightFile)).toEqual([{ type: "leave" }]);
   });
 });

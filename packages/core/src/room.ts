@@ -62,6 +62,7 @@ export interface RoomStamp {
 export type RoomLogKind =
   | "create"
   | "join"
+  | "leave"
   | "rename"
   | "night"
   | "swap"
@@ -106,6 +107,8 @@ export interface RoomState {
 
 export type RoomOp =
   | { type: "join" }
+  /** the DJ left on purpose: logged, and out of the presence list at once (a closed tab ages out instead) */
+  | { type: "leave" }
   | { type: "rename"; name: string; base: number }
   | { type: "night"; night: NightFile | null; base: number }
   | { type: "slot"; slot: string; tanda: NightTanda; base: number }
@@ -310,6 +313,16 @@ export function applyRoomOps(room0: RoomState, ops: RoomOp[], by: string, at: st
           room.rev++;
           push({ kind: "join", text: "joined the room" });
         } else ignored++;
+        break;
+      }
+      case "leave": {
+        delete room.members[by];
+        if (!seen) {
+          ignored++;
+          break;
+        }
+        room.rev++;
+        push({ kind: "leave", text: "left the room" });
         break;
       }
       case "rename": {
@@ -519,6 +532,9 @@ export function cleanRoomOps(input: unknown, parse: (n: unknown) => NightFile): 
     switch (x.type) {
       case "join":
         out.push({ type: "join" });
+        break;
+      case "leave":
+        out.push({ type: "leave" });
         break;
       case "rename":
         if (typeof x.name === "string") out.push({ type: "rename", name: x.name, base });

@@ -131,12 +131,13 @@ function infoOf(v: RoomView, server: string): RoomInfo {
   };
 }
 
+const comings = new Set(["join", "leave"]);
 /** what other DJs did, as one toast */
 function announce(entries: RoomLogEntry[], me: string) {
-  const theirs = entries.filter((e) => e.by !== me && e.kind !== "join");
+  const theirs = entries.filter((e) => e.by !== me && !comings.has(e.kind));
   if (!theirs.length) {
-    const j = entries.find((e) => e.by !== me && e.kind === "join");
-    if (j) toast(`${j.by} joined the room`);
+    const j = [...entries].reverse().find((e) => e.by !== me && comings.has(e.kind));
+    if (j) toast(`${j.by} ${j.kind === "leave" ? "left" : "joined"} the room`);
     return;
   }
   const e = theirs[theirs.length - 1]!;
@@ -350,6 +351,10 @@ export const useRooms = create<RoomSession>()((set, get) => ({
     }
   },
   leave: () => {
+    // tell the room, so the others' log says so and their presence list drops this DJ at once (wave 2: a leave was
+    // never logged); fire and forget: leaving never waits on the network
+    const c = client;
+    if (c) void c.send([{ type: "leave" }], { since: synced.rev }).catch(() => {});
     stop();
     synced = { night: null, slots: [], rev: 0 };
     held = null;
