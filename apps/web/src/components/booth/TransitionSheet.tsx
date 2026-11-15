@@ -22,7 +22,7 @@ import {
   TriangleAlert,
   X,
 } from "lucide-react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useIsPresent, useReducedMotion } from "motion/react";
 import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useIndicators } from "@/lib/booth/indicatorPrefs";
@@ -766,13 +766,7 @@ function Picker({
   return (
     <AnimatePresence>
       {open && (
-        <motion.div
-          key="picker"
-          className="trx-picker-root"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1, transition: { duration: DUR.fast } }}
-          exit={{ opacity: 0, transition: { duration: DUR.fast } }}
-        >
+        <PickerLayer key="picker">
           <button
             type="button"
             className="trx-picker-scrim"
@@ -834,9 +828,29 @@ function Picker({
             </div>
             {info && <div className="trx-picker-info">{info}</div>}
           </motion.div>
-        </motion.div>
+        </PickerLayer>
       )}
     </AnimatePresence>
+  );
+}
+
+/**
+ * The menu's layer over the whole editor. While it fades out it lets every pointer through: a finger that lands on a
+ * box edge right after picking a length drags that edge, not the leaving menu's scrim or rows (owner's iPhone).
+ */
+function PickerLayer({ children }: { children: ReactNode }) {
+  const present = useIsPresent();
+  return (
+    <motion.div
+      className="trx-picker-root"
+      data-leaving={present ? undefined : true}
+      style={present ? undefined : { pointerEvents: "none" }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1, transition: { duration: DUR.fast } }}
+      exit={{ opacity: 0, transition: { duration: DUR.fast } }}
+    >
+      {children}
+    </motion.div>
   );
 }
 

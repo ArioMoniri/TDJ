@@ -354,6 +354,17 @@ test("Mix → Edit transitions; ••• steps through the night; a song's shee
   }
 });
 
+/** A finger (real touch events, a fingertip's radius) pressed at x, y and slid dx px sideways in a few steps. */
+async function fingerDrag(page: Page, x: number, y: number, dx: number, steps = 6) {
+  const cdp = await page.context().newCDPSession(page);
+  const at = (px: number) => [{ x: px, y, radiusX: 11, radiusY: 11, force: 1, id: 1 }];
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: at(x) });
+  for (let k = 1; k <= steps; k++)
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: at(x + (dx * k) / steps) });
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  await cdp.detach();
+}
+
 async function phoneEditorChecks(page: Page) {
   const ed = page.getByTestId("booth-transition-sheet");
   const vp = page.viewportSize()!;
@@ -427,38 +438,33 @@ test("iPhone: open from the gap marker, Fade, a length from the bars pill, drag 
 
   await ed.getByTestId("booth-tr-preset-fade").click();
   if (SHOTS) await shot(page, "iphone-fade");
-  // the length pill reads bars when the BPM is known; pick another length from its menu
+  // the length pill reads bars when the BPM is known; pick another length from its menu: the shortest one not in
+  // use, so the fade out has room to grow (the menu's lengths are sorted, the longest is the limit)
   const pill = ed.getByTestId("booth-tr-length");
   const v0 = await pill.getAttribute("data-value");
   await pill.click();
   const opts = ed.locator('[data-testid^="booth-tr-picker-length-"][role="menuitemradio"]');
   const pickIt = opts.filter({ hasNot: page.locator("svg") }).first();
   const want = (await pickIt.getAttribute("data-testid"))!.replace("booth-tr-picker-length-", "");
+  const longest = (await opts.last().getAttribute("data-testid"))!.replace("booth-tr-picker-length-", "");
+  expect(Number(want)).toBeLessThan(Number(longest));
   await pickIt.click();
   await expect(pill).toHaveAttribute("data-value", want);
   expect(want).not.toBe(v0);
-  // drag the outgoing box's left edge with a finger-sized pointer: the fade out gets longer
+  // the outgoing box starts where the picked fade out begins
   const box = ed.getByTestId("booth-tr-box");
+  await expect(box).toHaveAttribute("data-out-start", String(-Number(want)));
   const start0 = Number(await box.getAttribute("data-out-start"));
+  // drag the outgoing box's left edge 50 px left with a finger, straight after the pick (the menu is still fading
+  // out: it must let the finger through): the fade out gets longer
   const h = (await ed.getByTestId("booth-tr-start").boundingBox())!;
-  await page.mouse.move(h.x + h.width / 2, h.y + h.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(h.x + h.width / 2 - 50, h.y + h.height / 2, { steps: 6 });
-  await page.mouse.up();
-  // (at the longest length the edge is already at its limit: then the drag goes the other way)
-  if (Number(await box.getAttribute("data-out-start")) === start0) {
-    const h2 = (await ed.getByTestId("booth-tr-start").boundingBox())!;
-    await page.mouse.move(h2.x + h2.width / 2, h2.y + h2.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(h2.x + h2.width / 2 + 50, h2.y + h2.height / 2, { steps: 6 });
-    await page.mouse.up();
-  }
-  await expect.poll(async () => Number(await box.getAttribute("data-out-start"))).not.toBe(start0);
+  await fingerDrag(page, h.x + h.width / 2, h.y + h.height / 2, -50);
+  await expect.poll(async () => Number(await box.getAttribute("data-out-start"))).toBeLessThan(start0);
   const dragged = Number(await box.getAttribute("data-out-start"));
   await ed.getByTestId("booth-tr-save").click();
   await expect(ed).toHaveCount(0);
   const saved = (await planOf(page)).items[i]?.transitionAfter;
-  expect(saved).toMatchObject({ preset: "fade", fadeOutSec: 0 - dragged + 0 });
+  expect(saved).toMatchObject({ preset: "fade", fadeOutSec: -dragged });
 
   await page.reload();
   await expect(page.getByTestId("booth-now-title")).toBeVisible({ timeout: 20000 });
