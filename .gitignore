@@ -28,3 +28,4 @@ apps/video/public/clips
 
 # device copies of server routes the app tests generate (apps/web/scripts/device-routes.mjs)
 apps/web/src/lib/app/__device__/
+.release/
