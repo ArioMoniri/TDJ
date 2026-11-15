@@ -109,10 +109,25 @@
   --material-regular: rgb(var(--surface) / 0.72);
   --material-thin: rgb(var(--surface) / 0.55);
   --material-ultrathin: rgb(var(--surface) / 0.38);
+  /* the top bars' scroll-edge material (round 23): the page colour lifted toward the surface, nearly opaque, so what
+     scrolls under it reads as colour and never as text beside the title, in either theme */
+  --material-bar: color-mix(in srgb, rgb(var(--bg-grouped)) 82%, rgb(var(--surface)) 18%);
+  --material-bar-alpha: 97%;
   /* capped at 20 px: backdrop-filter cost grows with the radius, and the bars are small enough that 20 reads as 40 */
   --blur-thick: 20px;
   --blur-regular: 16px;
   --blur-thin: 12px;
+
+  /* Top chrome (round 23). `--safe-top` is the status bar on iPad / iPhone (an e2e overrides it to simulate one);
+     `--titlebar-h` / `--traffic-left` are the macOS window's title bar and traffic lights when the app draws under
+     them (set on `html.titlebar-overlay` by the app, 0 in full screen and on the web). Every top-anchored bar starts
+     at `--chrome-top` and adds its own spacing below it: `max(0.75rem, inset)` gave no room under the inset. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --titlebar-h: 0px;
+  --traffic-left: 0px;
+  --chrome-top: max(var(--safe-top), var(--titlebar-h));
+  /* the lg sidebar: resizable (Nav.tsx writes `--sidebar-open-w` on the root) and collapsible */
+  --sidebar-w: var(--sidebar-open-w, 240px);
 
   /* Energy-curve phase band fill (round4-ux.md P2-10: lighter on cream) */
   --band-alpha: 0.03;
@@ -221,15 +236,36 @@ html {
 body {
   min-height: 100%;
 }
+/* Round 23: the root carries the theme background too, so a rubber-band past either end or a zoom-out shows the
+   page colour, never the web view's black. Vertical overscroll is native (it springs back); horizontal is off, and
+   nothing may be wider than the viewport (`clip` is the last guard, e2e round23 measures every element). */
 html {
   overflow-x: clip;
+  background: rgb(var(--bg-grouped));
+  overscroll-behavior-x: none;
+  -webkit-text-size-adjust: 100%;
 }
 body {
   color: rgb(var(--text));
   background: rgb(var(--bg-grouped));
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
-  overscroll-behavior-y: none;
+  max-width: 100vw;
+}
+/* the macOS window draws the page under its title bar: reserve it, unless the window is full screen */
+html[data-sidebar="collapsed"] {
+  --sidebar-w: 0px;
+}
+html[data-scroll-lock] {
+  overflow: hidden;
+}
+html.titlebar-overlay {
+  --titlebar-h: 28px;
+  --traffic-left: 78px;
+}
+html.titlebar-overlay[data-fullscreen] {
+  --titlebar-h: 0px;
+  --traffic-left: 0px;
 }
 :focus-visible {
   outline: 2px solid var(--tint);
@@ -737,18 +773,7 @@ li + li > .cell[data-leading="num"]:first-child::before,
   backdrop-filter: none;
   background: rgb(var(--surface) / 0.98);
 }
-/* Scroll-edge effect: content fades out under a glass bar (iOS 26) */
-@utility scroll-edge-top {
-  position: fixed;
-  inset-inline: 0;
-  top: 0;
-  height: calc(env(safe-area-inset-top) + 56px);
-  pointer-events: none;
-  z-index: 39;
-  background: linear-gradient(rgb(var(--bg-grouped) / 0.9), rgb(var(--bg-grouped) / 0));
-  -webkit-mask-image: linear-gradient(#000 40%, transparent);
-  mask-image: linear-gradient(#000 40%, transparent);
-}
+/* Scroll-edge effect at the foot: content fades out above the tab bar (the top uses the bar material, round 23) */
 @utility scroll-edge-bottom {
   position: fixed;
   inset-inline: 0;
@@ -761,46 +786,122 @@ li + li > .cell[data-leading="num"]:first-child::before,
   mask-image: linear-gradient(transparent, #000 60%);
 }
 
-/* Toolbar bands (round 6). The page content starts below the bar at every breakpoint: sticky bars keep their
-   height in flow, and anchors / scrollIntoView land under them through scroll-padding. Once the page is scrolled
-   the band behind a bar is a full-bleed scroll-edge fade in the page colour (no corners, no hairline), so content
-   never peeks around a capsule or past a band edge. */
-@media (min-width: 640px) and (max-width: 1023.98px) {
+/* Toolbar bands (round 6, replaced in round 23). The page content starts below the bar at every breakpoint: sticky
+   bars keep their height in flow, and anchors / scrollIntoView land under them through scroll-padding.
+   Scroll edge, the UINavigationBar way: at the top the large title sits on the page with nothing behind it; once
+   content scrolls under the bar, a full-width bar material fades in (square edges, the bar's own height, edge to
+   edge including the status-bar inset) with a hairline under it. The material is the theme's surface at 86 % with
+   a blur, so content under it reads as colour, never as text next to the title. */
+@media (min-width: 640px) {
   html {
-    scroll-padding-top: 84px;
+    scroll-padding-top: calc(var(--chrome-top) + 84px);
   }
 }
-@media (min-width: 1024px) {
-  html {
-    scroll-padding-top: 84px;
+.bar-edge {
+  isolation: isolate; /* always a positioned element: fixed (phone bar), sticky (pill band, lg toolbar) */
+}
+/* the page toolbar is a bar only where it sticks (lg); below that it is the in-flow large-title row */
+@media (max-width: 1023.98px) {
+  .toolbar-row.bar-edge::before,
+  .toolbar-row.bar-edge::after {
+    display: none;
   }
+}
+.bar-edge::before,
+.bar-edge::after {
+  content: "";
+  position: absolute;
+  inset-inline: var(--bar-bleed-l, 0) var(--bar-bleed-r, 0);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--dur-s) var(--ease-settle);
+}
+.bar-edge::before {
+  inset-block: 0;
+  z-index: -1;
+  background: color-mix(in srgb, var(--material-bar) var(--material-bar-alpha), transparent);
+  backdrop-filter: blur(var(--blur-thick)) saturate(160%);
+}
+.bar-edge::after {
+  bottom: 0;
+  height: var(--separator-w);
+  background: var(--separator);
+}
+.bar-edge[data-scrolled]::before,
+.bar-edge[data-scrolled]::after {
+  opacity: 1;
+}
+@media (prefers-reduced-transparency: reduce) {
+  .bar-edge::before {
+    backdrop-filter: none;
+    background: rgb(var(--surface) / 0.98);
+  }
+}
+:root.reduce-glass .bar-edge::before {
+  backdrop-filter: none;
+  background: rgb(var(--surface) / 0.98);
 }
 .toolbar-pill-band {
   overflow: visible; /* the capsule's shadow and hairline must never be cut by the band */
 }
-.toolbar-pill-band[data-collapsed] {
-  background: linear-gradient(rgb(var(--bg-grouped)) calc(100% - 12px), rgb(var(--bg-grouped) / 0));
-}
-/* lg: the page column is centred in `main` (max 980 px); `main` is a size container so the band can bleed to its
-   padding edges on both sides whatever the column's offset: -(2rem padding) - (spare width / 2). */
+/* lg: the page column sits in `main`, a size container, so the bar can bleed to its padding edges on both sides
+   whatever the column's offset: -(2rem padding) - (spare width / 2). */
 @media (min-width: 1024px) {
   main {
     container-type: inline-size;
   }
   .toolbar-row {
-    --bleed: calc(2rem + max(0px, (100cqw - 980px) / 2));
+    --bleed: calc(2rem + max(0px, (100cqw - var(--col-max, 1320px)) / 2));
     margin-inline: calc(-1 * var(--bleed));
     padding-inline: var(--bleed);
   }
-  /* the booth's column is 1400 px wide, not 980: the 980 bleed pushed the band 120 px past the viewport at 1440 */
-  [data-booth] .toolbar-row {
-    --bleed: calc(2rem + max(0px, (100cqw - 1400px) / 2));
+  /* the sidebar is collapsed: the traffic lights sit over the toolbar's leading edge */
+  html[data-sidebar="collapsed"] .toolbar-row {
+    padding-left: max(var(--bleed), calc(var(--traffic-left) + 4.5rem));
   }
-  .toolbar-band {
-    background: linear-gradient(rgb(var(--bg-grouped)) calc(100% - 10px), rgb(var(--bg-grouped) / 0));
-    padding-bottom: 12px;
-    margin-bottom: -8px;
+}
+
+/* Compose result on wide screens (round 23): the set and an inspector side by side once `main` holds both (iPad
+   landscape, Mac); the page column grows to the window instead of a narrow centred one */
+.inspector {
+  display: none;
+}
+@media (min-width: 1024px) {
+  @container (min-width: 860px) {
+    .result-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) clamp(280px, 28cqw, 360px);
+      column-gap: 24px;
+      align-items: start;
+    }
+    .inspector {
+      display: block;
+      position: sticky;
+      top: calc(var(--chrome-top) + 84px);
+      margin-top: 28px;
+      max-height: calc(100dvh - var(--chrome-top) - 100px);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+    }
   }
+}
+.inspector-facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  font-size: var(--text-subhead);
+  line-height: var(--text-subhead--line-height);
+}
+.inspector-facts dt {
+  color: var(--label-2);
+}
+.inspector-facts dd {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.inspector .cell[data-now] {
+  color: var(--tint-text);
 }
 
 /* Tanda cards: one column until a column can hold title + year + energy + menu (≥ 480 px), then as many as fit.
@@ -820,8 +921,33 @@ li + li > .cell[data-leading="num"]:first-child::before,
 .tanda-card {
   container-type: inline-size;
 }
+/* a long tanda note (the DJ's own tanda) wraps to two lines at most and never widens the card's header */
+.tanda-note {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
 @container (max-width: 440px) {
   .tanda-card .energy-bar {
+    display: none;
+  }
+}
+/* Round 23: a row's extras appear by the card's own width, not the window's (at xl two 560 px cards squeezed the
+   title to nothing and the key chip wrapped over the year): tempo / level from 720 px, the key chip from 480 px */
+.row-tempo {
+  display: none;
+}
+@container (min-width: 720px) {
+  .tanda-card .row-tempo {
+    display: inline;
+  }
+}
+@container (max-width: 480px) {
+  .tanda-card .key-chip {
     display: none;
   }
 }
@@ -1142,6 +1268,143 @@ select.field {
   }
 }
 
+/* Round 23: the choice row puts the segmented control on the label's line, trailing, sized to its options; it
+   wraps under the label (full width) only when both do not fit, and always on a phone */
+.seg-row {
+  flex-wrap: wrap;
+  row-gap: 6px;
+  container-type: inline-size;
+}
+.seg-row-label {
+  flex: 1 1 140px;
+}
+.seg-row .segmented.seg-row-control {
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+@media (max-width: 640px) {
+  .seg-row .segmented.seg-row-control {
+    flex: 1 1 100%;
+  }
+}
+/* a narrow column (iPad landscape's two-column form): the control takes its own line, full width */
+@container (max-width: 470px) {
+  .seg-row .segmented.seg-row-control {
+    flex: 1 1 100%;
+  }
+  .seg-row .seg-row-control .seg {
+    flex: 1 0 auto;
+  }
+}
+/* Folding form sections (Compose's advanced settings) */
+.fold-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 48px;
+  margin-top: 10px;
+  padding: 0 16px;
+  text-align: left;
+  border-radius: var(--radius-m, 12px);
+  background: rgb(var(--bg-cell));
+  -webkit-tap-highlight-color: transparent;
+}
+.fold-title {
+  flex-shrink: 0;
+  font-size: var(--text-footnote);
+  line-height: var(--text-footnote--line-height);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--label-2);
+}
+.fold-summary {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+  font-size: var(--text-footnote);
+  color: var(--label-3);
+}
+.fold-chevron {
+  flex-shrink: 0;
+  color: var(--label-3);
+  transition: transform var(--dur-s) var(--ease-settle);
+}
+.fold[data-open] .fold-chevron {
+  transform: rotate(90deg);
+}
+.fold[data-open] > .fold-head {
+  background: transparent;
+}
+@media (hover: hover) {
+  .fold:not([data-open]) > .fold-head:hover {
+    background: color-mix(in srgb, rgb(var(--bg-cell)) 92%, rgb(var(--text)));
+  }
+}
+@media (min-width: 1024px) {
+  .setup-form > .fold:first-of-type > .fold-head {
+    margin-top: 28px;
+  }
+}
+
+/* Compose's set-up form (round 23): essentials, then folded sections; two columns from lg (iPad landscape, Mac):
+   essentials on the left, the folds stacked on the right, the Compose dock under both */
+.setup-form > .fold #tonight {
+  display: block;
+}
+.fold > div > section:first-child > .section-head:first-child,
+.fold > div > #tonight > section:first-child > .section-head:first-child {
+  display: none;
+}
+.fold > div > section:first-child > .group-inset:first-of-type,
+.fold > div > #tonight > section:first-child > .group-inset {
+  margin-top: 4px;
+}
+@media (min-width: 1024px) {
+  .setup-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 24px;
+    align-items: start;
+  }
+  .setup-form > .setup-essentials {
+    grid-column: 1;
+    grid-row: 1 / span 8;
+  }
+  .setup-form > .fold {
+    grid-column: 2;
+  }
+  .setup-form > .compose-dock {
+    grid-column: 1 / -1;
+  }
+}
+.compose-dock {
+  position: sticky;
+  bottom: calc(env(safe-area-inset-bottom) + 16px);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+  padding: 6px 6px 6px 16px;
+  border-radius: 999px;
+}
+@media (max-width: 639px) {
+  .compose-dock {
+    display: none;
+  }
+}
+/* the floating mini player (bottom right, 360 px) never sits on the dock's Compose button */
+@media (min-width: 640px) {
+  html:has([data-testid="mini-player"]) .compose-dock {
+    margin-right: 384px;
+  }
+}
+
 /* Stepper (UIStepper): joined, 94×32, two halves, hairline divider */
 .stepper {
   display: inline-flex;
@@ -1413,8 +1676,8 @@ input[type="range"]::-moz-range-thumb {
   display: flex;
   align-items: center;
   gap: 10px;
-  height: 36px;
-  padding: 0 12px;
+  min-height: 36px;
+  padding: 3px 12px;
   border-radius: 8px;
   font-size: var(--text-subhead);
   line-height: var(--text-subhead--line-height);
@@ -1423,9 +1686,88 @@ input[type="range"]::-moz-range-thumb {
   isolation: isolate;
   transition: color var(--dur-xs) var(--ease-settle);
 }
-.side-row[aria-current="page"] {
+.side-row[aria-current="page"],
+.side-row[aria-current="location"] {
   color: var(--label);
   font-weight: 500;
+}
+.side-row[aria-current="location"] {
+  background: var(--fill-4);
+}
+.side-row[data-now] {
+  color: var(--tint-text);
+}
+/* round 23: the sidebar's sections, Tonight's rhythm tiles, the now-playing card and the resize edge */
+html[data-sidebar="collapsed"] [data-testid="sidebar"] {
+  display: none;
+}
+.side-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 18px 12px 4px;
+  font-size: var(--text-footnote);
+  line-height: var(--text-footnote--line-height);
+  font-weight: 600;
+  color: var(--label-2);
+}
+.side-head-meta {
+  font-weight: 400;
+  color: var(--label-3);
+  font-size: var(--text-caption1);
+}
+.side-num {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(160deg, #e0557a, #b3264f);
+}
+.side-num[data-rhythm="vals"] {
+  background: linear-gradient(160deg, #4fd1c5, #0f766e);
+}
+.side-num[data-rhythm="milonga"] {
+  background: linear-gradient(160deg, #8b7cf6, #6d28d9);
+}
+.side-now {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 4px;
+  border-radius: 10px;
+  background: var(--fill-4);
+}
+.side-scroll {
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.side-resize {
+  position: absolute;
+  top: 0;
+  right: -4px;
+  bottom: 0;
+  width: 8px;
+  cursor: col-resize;
+  touch-action: none;
+  z-index: 1;
+}
+.side-resize:focus-visible {
+  outline-offset: -3px;
+}
+@media (pointer: coarse) {
+  .side-row {
+    min-height: 44px;
+  }
+  .side-resize {
+    right: -11px;
+    width: 22px;
+  }
 }
 @media (hover: hover) {
   .side-row:not([aria-current="page"]):hover {
@@ -1565,7 +1907,10 @@ html.theming *::after {
   gap: 12px;
   margin-top: 8px;
 }
-/* the booth may use the whole width: the 980 px reading column of the other pages is too narrow for three cards */
+/* the booth may use the whole width: three cards side by side */
+[data-booth] {
+  --col-max: 1400px;
+}
 [data-booth] main > div {
   max-width: 1400px;
 }
@@ -2018,5 +2363,102 @@ html.theming *::after {
 @media (pointer: coarse) {
   .booth-kbd {
     display: none;
+  }
+}
+
+/* Round 23: the gramophone under the foot of the Compose page (Gramophone.tsx). Hidden until the DJ pulls past the
+   end; it rises with the pull (`--pull`), the record turns (`--spin`), the arm drops at the threshold, and on
+   release it springs back down. */
+.gramophone {
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  z-index: 25;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, calc(100% - var(--pull, 0px)));
+  padding-bottom: calc(env(safe-area-inset-bottom) + 8px);
+  transition: opacity var(--dur-xs) var(--ease-settle);
+}
+.gramophone[data-visible] {
+  opacity: 1;
+}
+.gramophone[data-releasing] {
+  transition:
+    transform var(--dur-l) cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity var(--dur-m) var(--ease-settle) var(--dur-s);
+}
+.gramo-plinth {
+  fill: rgb(var(--bg-cell));
+  stroke: var(--separator);
+  stroke-width: 1;
+}
+.gramo-record {
+  transform-origin: 86px 80px;
+  transform: rotate(var(--spin, 0deg));
+}
+.gramo-vinyl {
+  fill: #141218;
+}
+.gramo-groove {
+  fill: none;
+  stroke: rgb(255 255 255 / 0.08);
+  stroke-width: 1;
+}
+.gramo-label {
+  fill: var(--tint);
+}
+.gramo-mark {
+  fill: none;
+  stroke: rgb(255 255 255 / 0.7);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.gramo-spindle {
+  fill: rgb(var(--bg-cell));
+}
+.gramo-arm {
+  transform-origin: 168px 34px;
+  transform: rotate(-24deg);
+  transition: transform var(--dur-m) var(--ease-settle);
+}
+.gramophone[data-arm] .gramo-arm {
+  transform: rotate(0deg);
+}
+.gramo-pivot {
+  fill: var(--label-2);
+}
+.gramo-tube {
+  fill: none;
+  stroke: var(--label-2);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.gramo-head {
+  fill: var(--label);
+}
+@media (prefers-reduced-motion: reduce) {
+  .gramophone,
+  .gramophone[data-releasing] {
+    transform: translate(-50%, calc(100% - var(--pull, 0px)));
+    transition: opacity var(--dur-s) linear;
+  }
+  .gramo-arm {
+    transition: none;
+  }
+}
+
+/* Settings on wide screens: two balanced columns of groups; a group never splits */
+@media (min-width: 1024px) {
+  .settings-cols {
+    column-count: 2;
+    column-gap: 24px;
+  }
+  .settings-cols > * {
+    break-inside: avoid;
+  }
+  .settings-cols > section:first-child > .section-head {
+    margin-top: 0;
   }
 }

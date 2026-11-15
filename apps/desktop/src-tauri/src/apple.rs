@@ -81,6 +81,28 @@ pub fn audio_session_playback() {
     }
 }
 
+/// iPadOS web view, round 23 (the status bar overlapped the header; zoom-out showed black; the trackpad and the
+/// rubber band): the page lays out under the status bar itself (`viewport-fit=cover` + `env(safe-area-inset-*)`),
+/// so the scroll view must not inset its content a second time (`UIScrollViewContentInsetAdjustmentNever` = 2).
+/// Vertical bounce stays native (it springs back); horizontal bounce is off, and the scroll view never zooms out
+/// below 1 (the page's own viewport says the same). `webview` is the `WKWebView *` from `with_webview`.
+#[cfg(target_os = "ios")]
+pub fn tune_ios_webview(webview: *mut std::ffi::c_void) {
+    if webview.is_null() {
+        return;
+    }
+    unsafe {
+        let wv = &*(webview as *mut AnyObject);
+        let sv: *mut AnyObject = msg_send![wv, scrollView];
+        let Some(sv) = sv.as_ref() else { return };
+        let _: () = msg_send![sv, setContentInsetAdjustmentBehavior: 2isize];
+        let _: () = msg_send![sv, setBounces: true];
+        let _: () = msg_send![sv, setAlwaysBounceVertical: true];
+        let _: () = msg_send![sv, setAlwaysBounceHorizontal: false];
+        let _: () = msg_send![sv, setMinimumZoomScale: 1.0f64];
+    }
+}
+
 // ---------------------------------------------------------------- output devices (macOS CoreAudio)
 
 #[cfg(target_os = "macos")]

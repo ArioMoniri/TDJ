@@ -117,6 +117,8 @@ export interface UserSettings {
   dataSources?: { enabled?: Partial<Record<string, boolean>>; discogsToken?: string; autoFill?: boolean };
   /** round 22: the era badge on every song (best / good / uneven / outside years); on by default */
   eraBadges?: boolean;
+  /** round 23: small sound effects (the gramophone's crackle); off silences them */
+  sounds: boolean;
 }
 export const DEFAULT_NAMING = "{artist} - {title}";
 export const DEFAULT_SETTINGS: UserSettings = {
@@ -139,6 +141,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   learn: true,
   cortinaStopSec: null,
   autoImprove: true,
+  sounds: true,
 };
 export const CORTINA_STOP_RANGE = { min: 20, max: 90, step: 5 } as const;
 /** The effective cortina play length: the Playback setting, else the composer's cortina length, clamped to 20–90. */

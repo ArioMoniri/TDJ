@@ -86,6 +86,8 @@ const RESOLVE_MOCK = {
 
 async function compose(page: Page) {
   await page.goto("/");
+  // a click before hydration is lost (the toolbar is server-rendered); a restored set hydrates later on a busy machine
+  await page.waitForLoadState("networkidle");
   // the toolbar capsule reads Compose the night, or Regenerate once a set is restored (round8-ux.md §1.2)
   await page
     .getByRole("button", { name: /Compose the night|^Regenerate$/ })
@@ -235,7 +237,7 @@ test("history: every compose stores a snapshot; rename, compare and reopen work;
   // (round 15: a golden compose takes a few seconds now and #result is already on screen: wait for it to land)
   await page.waitForTimeout(8000);
   await page.goto("/history");
-  await expect(page.locator('[id^="history-"]')).toHaveCount(2, { timeout: 15000 });
+  await expect(page.locator('[id^="history-"]')).toHaveCount(2, { timeout: 30000 });
   await expect(page.getByTestId("score-trend")).toBeVisible();
   await page.locator('[id^="history-"]').first().click();
   await page.getByTestId("history-detail").getByRole("button", { name: "Set actions" }).click();
@@ -324,6 +326,8 @@ test("compose sends only explicit keys plus the explicit list; the DJ CSV genre 
   request,
 }) => {
   await page.goto("/");
+  await page.waitForLoadState("networkidle");
+  await page.getByRole("button", { name: /^Cortinas/ }).click(); // a folded section (round 23)
   await page.getByRole("button", { name: "Pin cortina length" }).click();
   await page.getByLabel("Era", { exact: true }).selectOption("nuevo");
   const req = page.waitForRequest((r) => r.url().includes("/api/compose") && r.method() === "POST");
@@ -416,7 +420,9 @@ test("mobile: no horizontal overflow after compose, cards fill the column, tab b
 
 test("a práctica context never shrinks the tango tandas the stepper shows", async ({ page }) => {
   await page.goto("/");
+  await page.waitForLoadState("networkidle");
   const req = page.waitForRequest((r) => r.url().includes("/api/compose") && r.method() === "POST");
+  await page.getByRole("button", { name: /^Tonight/ }).click(); // a folded section (round 23)
   await page.getByLabel("Event type").selectOption("practica");
   await page.getByRole("button", { name: /Compose the night/ }).click();
   const body = (await req).postDataJSON();

@@ -1,9 +1,11 @@
 "use client";
 import { addNote, applyMemory, benchmarkNight, ERA_SETTINGS, rememberFeedback, rememberSet } from "@tdj/core";
 import {
+  ChevronRight,
   Copy,
   Disc3,
   Eraser,
+  Hand,
   LoaderCircle,
   Lock,
   MessageSquareText,
@@ -67,6 +69,7 @@ import { FeedbackBar } from "./FeedbackBar";
 import {
   ActionRow,
   FieldRow,
+  FoldGroup,
   Group,
   MultiPickerRow,
   PickerRow,
@@ -77,6 +80,7 @@ import {
   StepperRow,
   SwitchRow,
 } from "./Form";
+import { Gramophone } from "./Gramophone";
 import { LazyHydrate } from "./LazyHydrate";
 import { Menu, type MenuItem, MenuList } from "./Menu";
 import { PageHeader } from "./PageHeader";
@@ -84,6 +88,7 @@ import { PrimaryBar } from "./PrimaryBar";
 import { ScoreCounter } from "./ScoreCounter";
 import { Sheet } from "./Sheet";
 import { SwapSheet } from "./SwapSheet";
+import { TandaInspector } from "./TandaInspector";
 import { TandaRulesGroup } from "./TandaRules";
 import { NightProfile } from "./ui/NightProfile";
 import { Tip } from "./ui/Tip";
@@ -313,12 +318,19 @@ const SetupForm = memo(function SetupForm({
   const tandasEst = Math.round(hours * 5.2);
   const cultures = options.cortinaCultures ?? ["global"];
   const cortinaStyle = options.cortinaStyle ?? "family";
+  const contextCount = Object.entries(options.context ?? {}).filter(
+    ([k, v]) => k !== "region" && v != null && v !== "",
+  ).length;
   return (
-    <div className={hidden ? "hidden" : "lg:grid lg:grid-cols-2 lg:gap-x-6"} id="setup">
+    // Round 23: essentials first (one group: length, era, arc, cortinas, closing), everything else in folded sections
+    // with their current values as a summary, two columns on wide screens, and Compose in a dock that stays in
+    // reach at every scroll position (the phone has its primary bar). The defaults compose a good night untouched.
+    <div className={hidden ? "hidden" : "setup-form"} id="setup">
       <Group
         header="Night"
         footer={eraNote ?? "Guide: 2 h práctica · 4 h milonga · 6 h marathon block."}
         id="night"
+        className="setup-essentials"
       >
         <SliderRow
           id="hours"
@@ -348,6 +360,31 @@ const SetupForm = memo(function SetupForm({
             })
           }
         />
+        <SegmentedRow
+          label="Cortinas"
+          value={cortinaStyle}
+          items={CORTINA_STYLES}
+          onChange={(k) => setOptions({ cortinaStyle: k })}
+        >
+          <PinButton
+            on={isPinned("cortinaStyle")}
+            label="Cortina style"
+            onToggle={() => togglePin("cortinaStyle")}
+          />
+        </SegmentedRow>
+        <SwitchRow
+          label="Close with La Cumparsita"
+          checked={options.closeWithCumparsita ?? true}
+          onChange={(v) => setOptions({ closeWithCumparsita: v })}
+        />
+      </Group>
+
+      <FoldGroup
+        header="Structure"
+        summary={`${PATTERNS.find(([k]) => k === (options.pattern ?? "classic"))?.[1] ?? "Custom"} · ${options.tangoTandaSize ?? 4}/${options.valsTandaSize ?? 3}/${options.milongaTandaSize ?? 3} tracks`}
+        footer="Sizes are in tracks; gap in tandas; spread in years. The era preset sets these; pin a control to keep your own value when the era changes."
+        id="structure"
+      >
         <PickerRow
           label="Tanda shape"
           sub="How energy moves inside each tanda"
@@ -358,18 +395,6 @@ const SetupForm = memo(function SetupForm({
         >
           <PinButton on={isPinned("tandaShape")} label="Shape" onToggle={() => togglePin("tandaShape")} />
         </PickerRow>
-        <SwitchRow
-          label="Close with La Cumparsita"
-          checked={options.closeWithCumparsita ?? true}
-          onChange={(v) => setOptions({ closeWithCumparsita: v })}
-        />
-      </Group>
-
-      <Group
-        header="Structure"
-        footer="Sizes are in tracks; gap in tandas; spread in years. The era preset sets these; pin a control to keep your own value when the era changes."
-        id="structure"
-      >
         <PickerRow
           label="Cycle"
           sub="The rhythm order the night repeats: tango, tango, vals, tango, tango, milonga"
@@ -471,70 +496,56 @@ const SetupForm = memo(function SetupForm({
           />
         </StepperRow>
         <ActionRow label="Reset to era defaults" onClick={() => applyEra(era, true)} />
-      </Group>
+      </FoldGroup>
 
-      <Group
-        header="Cortinas"
-        footer={
-          cortinaStyle === "none"
-            ? "Tandas follow each other without a break."
-            : cortinaStyle === "family"
+      {cortinaStyle !== "none" && (
+        <FoldGroup
+          header="Cortinas"
+          summary={`${CORTINA_TRENDS.find(([k]) => k === (options.cortinaTrend ?? "mixed"))?.[1] ?? ""} · ${options.cortinaLengthSec ?? 45} s`}
+          footer={
+            cortinaStyle === "family"
               ? "Family: one artist or genre family all night, each cortina about 8 energy points under the tanda that follows."
               : cortinaStyle === "constant"
                 ? "Same: one cortina track repeated all night, the traditional salón way."
                 : "Matched: each cortina is picked for the tanda that follows, about 8 energy points under it."
-        }
-        id="cortinas"
-      >
-        <SegmentedRow
-          label="Style"
-          value={cortinaStyle}
-          items={CORTINA_STYLES}
-          onChange={(k) => setOptions({ cortinaStyle: k })}
+          }
+          id="cortinas"
         >
-          <PinButton
-            on={isPinned("cortinaStyle")}
-            label="Cortina style"
-            onToggle={() => togglePin("cortinaStyle")}
+          <SegmentedRow
+            label="Flavour"
+            value={options.cortinaTrend ?? "mixed"}
+            items={CORTINA_TRENDS}
+            onChange={(k) => setOptions({ cortinaTrend: k })}
           />
-        </SegmentedRow>
-        {cortinaStyle !== "none" && (
-          <>
-            <SegmentedRow
-              label="Flavour"
-              value={options.cortinaTrend ?? "mixed"}
-              items={CORTINA_TRENDS}
-              onChange={(k) => setOptions({ cortinaTrend: k })}
+          <MultiPickerRow
+            label="Cultures"
+            values={cultures}
+            items={CULTURES}
+            min={1}
+            onChange={(v) => setOptions({ cortinaCultures: v.length ? v : ["global"] })}
+            footer="At least one culture stays chosen."
+          />
+          <StepperRow
+            label="Length"
+            value={options.cortinaLengthSec ?? 45}
+            unit=" s"
+            min={20}
+            max={90}
+            step={5}
+            onChange={(v) => setOptions({ cortinaLengthSec: v })}
+          >
+            <PinButton
+              on={isPinned("cortinaLengthSec")}
+              label="Cortina length"
+              onToggle={() => togglePin("cortinaLengthSec")}
             />
-            <MultiPickerRow
-              label="Cultures"
-              values={cultures}
-              items={CULTURES}
-              min={1}
-              onChange={(v) => setOptions({ cortinaCultures: v.length ? v : ["global"] })}
-              footer="At least one culture stays chosen."
-            />
-            <StepperRow
-              label="Length"
-              value={options.cortinaLengthSec ?? 45}
-              unit=" s"
-              min={20}
-              max={90}
-              step={5}
-              onChange={(v) => setOptions({ cortinaLengthSec: v })}
-            >
-              <PinButton
-                on={isPinned("cortinaLengthSec")}
-                label="Cortina length"
-                onToggle={() => togglePin("cortinaLengthSec")}
-              />
-            </StepperRow>
-          </>
-        )}
-      </Group>
+          </StepperRow>
+        </FoldGroup>
+      )}
 
-      <Group
+      <FoldGroup
         header="Night rules"
+        summary={`Última: ${(ULTIMA.find(([k]) => k === (rules.ultimaRule ?? "emotional-vocal"))?.[1] ?? "").toLowerCase()}`}
         footer="Defaults follow the era. These travel with every compose, feedback and refine."
         id="night-rules"
       >
@@ -710,11 +721,18 @@ const SetupForm = memo(function SetupForm({
           checked={!!rules.allowUndated}
           onChange={(v) => setRules({ allowUndated: v })}
         />
-      </Group>
+      </FoldGroup>
 
-      <TandaRulesGroup value={options.tandaRules} onChange={(tandaRules) => setOptions({ tandaRules })} />
+      <FoldGroup header="Tanda rules" bare id="tanda-rules-fold">
+        <TandaRulesGroup value={options.tandaRules} onChange={(tandaRules) => setOptions({ tandaRules })} />
+      </FoldGroup>
 
-      <div className="md:col-span-2">
+      <FoldGroup
+        header="Tonight"
+        summary={contextCount ? `${contextCount} set` : "Room, crowd, floor…"}
+        bare
+        id="tonight-fold"
+      >
         <ContextStrip
           value={(options.context ?? {}) as ComposeContext}
           onChange={(context) => setOptions({ context })}
@@ -725,19 +743,24 @@ const SetupForm = memo(function SetupForm({
             Object.keys(options.context ?? {}).filter((k) => k !== "region").length === 0
           }
         />
-        {/* secondary affordance at the end of the form (round5-design.md §1); the primary is in the toolbar / bar */}
-        <div className="mt-4 flex justify-center">
-          <button
-            type="button"
-            className="btn btn-ghost"
-            onClick={onCompose}
-            disabled={busy}
-            aria-label="Compose with these settings"
-            data-testid="form-compose"
-          >
-            <Disc3 size={18} aria-hidden /> Compose
-          </button>
-        </div>
+      </FoldGroup>
+
+      {/* Compose stays in reach (round 23): a dock that sticks to the bottom of the window while the form is on
+          screen (sm+; the phone's primary bar does this job there). The toolbar keeps its own primary too. */}
+      <div className="compose-dock glass" data-testid="compose-dock">
+        <span className="text-footnote min-w-0 flex-1 truncate text-[var(--label-2)]">
+          {ERAS.find(([k]) => k === era)?.[1] ?? era} · {hours} h · ≈{tandasEst} tandas
+        </span>
+        <button
+          type="button"
+          className="btn btn-primary min-h-[44px]"
+          onClick={onCompose}
+          disabled={busy}
+          aria-label="Compose with these settings"
+          data-testid="form-compose"
+        >
+          <Disc3 size={18} aria-hidden /> Compose
+        </button>
       </div>
     </div>
   );
@@ -779,6 +802,8 @@ export function Composer() {
   const [benchOpen, setBenchOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [active, setActive] = useState<number | null>(null);
+  /** the tanda the wide-screen inspector shows */
+  const [inspected, setInspected] = useState(0);
   const [swapping, setSwapping] = useState<number | null>(null);
   const [swappingTrack] = useState<[number, number] | null>(null);
   /** the card whose lock just flipped: the only one (with the swapping one) that gets layout animations */
@@ -1562,268 +1587,301 @@ export function Composer() {
             </span>
             <span className="cell-value text-body">Open</span>
           </button>
+          {/* round 22 AI / round 23: picking every tanda yourself, with suggestions, is one tap from the first run */}
+          <Link
+            href="/build"
+            className="cell cell-tap group-inset mt-2 w-full text-left"
+            data-leading="tile"
+            data-testid="first-run-build"
+          >
+            <span className="tile" style={{ background: "var(--tint)" }} aria-hidden>
+              <Hand size={16} strokeWidth={2} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate">Build by hand</span>
+              <span className="text-footnote block truncate text-[var(--label-2)]">
+                Pick every tanda yourself, with suggestions and their reasons
+              </span>
+            </span>
+            <ChevronRight size={16} strokeWidth={2.5} className="cell-chevron" aria-hidden />
+          </Link>
         </section>
       )}
 
       {hasPlaylist && playlist && mods && (
-        <section id="result" className="scroll-mt-24" aria-busy={busy}>
-          <Group header="Tonight's set" footer={resultFooter}>
-            <motion.div
-              key={`head-${setKey}`}
-              initial={fresh ? { opacity: 0, y: reduced ? 0 : 6 } : false}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: DUR.base, ease: EASE.out, delay: 0.04 }}
-              className="cell flex-col items-stretch gap-2 py-4"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <h2 className="text-subhead min-w-0 truncate font-serif text-[var(--label-2)]">
-                  {playlist.name}
-                </h2>
-                <span className="flex items-center gap-1">
-                  {/* phones: icon-only, 44 pt (the label wrapped to three lines, round8-ux.md §1.4) */}
-                  <button
-                    type="button"
-                    className="btn btn-ghost -my-2 min-h-11 shrink-0 whitespace-nowrap px-3 max-sm:h-11 max-sm:w-11 max-sm:px-0"
-                    data-testid="play-the-night"
-                    aria-label="Booth: play the night"
-                    onClick={() => router.push("/booth")}
-                  >
-                    <Play size={16} fill="currentColor" strokeWidth={0} aria-hidden />
-                    <span className="max-sm:sr-only">Play the night</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`icon-btn icon-btn-bare -my-2 h-11 w-11 ${liked === true ? "text-[var(--tint)]" : "text-[var(--label-3)]"}`}
-                    aria-pressed={liked === true}
-                    aria-label="Mark as liked"
-                    onClick={() => rate(true)}
-                  >
-                    <ThumbsUp size={18} strokeWidth={2} fill={liked === true ? "currentColor" : "none"} />
-                  </button>
-                  <button
-                    type="button"
-                    className={`icon-btn icon-btn-bare -my-2 -mr-3 h-11 w-11 ${liked === false ? "text-[var(--tint)]" : "text-[var(--label-3)]"}`}
-                    aria-pressed={liked === false}
-                    aria-label="Mark as disliked"
-                    onClick={() => rate(false)}
-                  >
-                    <ThumbsDown size={18} strokeWidth={2} fill={liked === false ? "currentColor" : "none"} />
-                  </button>
-                </span>
-              </div>
-              {wide ? (
-                <div className="flex items-baseline gap-1">
-                  <span className="text-large-title tabular-nums text-[var(--tint)]">
-                    <ScoreCounter key={setKey} value={playlist.score.total} from={scoreFrom} />
+        <section id="result" className="result-layout scroll-mt-24" aria-busy={busy}>
+          <div
+            className="result-main min-w-0"
+            onClickCapture={(e) => {
+              // the inspector follows the tanda the DJ touches (wide screens)
+              const card = (e.target as HTMLElement).closest<HTMLElement>('[id^="tanda-"]');
+              const n = card ? Number(card.id.slice(6)) : Number.NaN;
+              if (n >= 1) setInspected(n - 1);
+            }}
+          >
+            <Group header="Tonight's set" footer={resultFooter}>
+              <motion.div
+                key={`head-${setKey}`}
+                initial={fresh ? { opacity: 0, y: reduced ? 0 : 6 } : false}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: DUR.base, ease: EASE.out, delay: 0.04 }}
+                className="cell flex-col items-stretch gap-2 py-4"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="text-subhead min-w-0 truncate font-serif text-[var(--label-2)]">
+                    {playlist.name}
+                  </h2>
+                  <span className="flex items-center gap-1">
+                    {/* phones: icon-only, 44 pt (the label wrapped to three lines, round8-ux.md §1.4) */}
+                    <button
+                      type="button"
+                      className="btn btn-ghost -my-2 min-h-11 shrink-0 whitespace-nowrap px-3 max-sm:h-11 max-sm:w-11 max-sm:px-0"
+                      data-testid="play-the-night"
+                      aria-label="Booth: play the night"
+                      onClick={() => router.push("/booth")}
+                    >
+                      <Play size={16} fill="currentColor" strokeWidth={0} aria-hidden />
+                      <span className="max-sm:sr-only">Play the night</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`icon-btn icon-btn-bare -my-2 h-11 w-11 ${liked === true ? "text-[var(--tint)]" : "text-[var(--label-3)]"}`}
+                      aria-pressed={liked === true}
+                      aria-label="Mark as liked"
+                      onClick={() => rate(true)}
+                    >
+                      <ThumbsUp size={18} strokeWidth={2} fill={liked === true ? "currentColor" : "none"} />
+                    </button>
+                    <button
+                      type="button"
+                      className={`icon-btn icon-btn-bare -my-2 -mr-3 h-11 w-11 ${liked === false ? "text-[var(--tint)]" : "text-[var(--label-3)]"}`}
+                      aria-pressed={liked === false}
+                      aria-label="Mark as disliked"
+                      onClick={() => rate(false)}
+                    >
+                      <ThumbsDown
+                        size={18}
+                        strokeWidth={2}
+                        fill={liked === false ? "currentColor" : "none"}
+                      />
+                    </button>
                   </span>
-                  <span className="text-title3 text-[var(--label-2)]">/100</span>
                 </div>
-              ) : (
+                {wide ? (
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-large-title tabular-nums text-[var(--tint)]">
+                      <ScoreCounter key={setKey} value={playlist.score.total} from={scoreFrom} />
+                    </span>
+                    <span className="text-title3 text-[var(--label-2)]">/100</span>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="-mx-2 flex items-baseline gap-1 rounded-[var(--radius-xs)] px-2 text-left"
+                    onClick={() => setAdjustOpen(true)}
+                    aria-label={`Score ${playlist.score.total} of 100. Adjust the set`}
+                    data-testid="score-button"
+                  >
+                    <span className="text-large-title tabular-nums text-[var(--tint)]">
+                      <ScoreCounter key={setKey} value={playlist.score.total} from={scoreFrom} />
+                    </span>
+                    <span className="text-title3 text-[var(--label-2)]">/100</span>
+                    <SlidersHorizontal
+                      size={16}
+                      strokeWidth={2}
+                      className="ml-1 self-center text-[var(--label-3)]"
+                      aria-hidden
+                    />
+                  </button>
+                )}
+                <motion.p
+                  key={`verdict-text-${setKey}`}
+                  initial={fresh ? { opacity: 0 } : false}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: reduced ? 0 : 0.7, duration: DUR.base }}
+                  className="text-footnote text-[var(--label-2)]"
+                >
+                  {playlist.score.verdict}
+                  {playlist.options.arcShape && (
+                    <span data-testid="arc-shape">
+                      {" "}
+                      · {playlist.options.arcShape === "double" ? "double" : "single"} peak arc
+                    </span>
+                  )}
+                </motion.p>
+                {/* hard failures that capped the total (round-8 engine): said under the number, not hidden in a sheet */}
+                {playlist.score.reasons && playlist.score.reasons.length > 0 && (
+                  <ul
+                    className="text-footnote mt-1 list-disc pl-4 text-[var(--system-gold)]"
+                    data-testid="score-reasons"
+                  >
+                    {playlist.score.reasons.map((r) => (
+                      <li key={r}>{r}</li>
+                    ))}
+                  </ul>
+                )}
+                <div className="mt-1">
+                  {/* one chart per breakpoint (not both hidden/shown via CSS) so only one draw-on runs */}
+                  {wide ? (
+                    <mods.EnergyCurve
+                      p={playlist}
+                      active={active}
+                      onPick={onPick}
+                      playKey={setKey}
+                      dimmed={busy}
+                    />
+                  ) : (
+                    <mods.EnergyCurve
+                      compact
+                      p={playlist}
+                      active={active}
+                      onPick={onPick}
+                      playKey={setKey}
+                      dimmed={busy}
+                    />
+                  )}
+                </div>
+              </motion.div>
+              <Row
+                label="How this set scored"
+                value={`${playlist.score.factors.length} factors`}
+                chevron
+                onClick={() => setScoreOpen(true)}
+              />
+              {bench && (
+                <Row
+                  label="Benchmark · published DJ sets"
+                  value={wide ? benchLabel(bench) : `${bench.inRange}/${bench.scored}`}
+                  aria-label={`Benchmark against published DJ sets: ${benchLabel(bench)}`}
+                  chevron
+                  onClick={() => setBenchOpen(true)}
+                  data-testid="benchmark-row"
+                />
+              )}
+              {playlists.some((p) => p.kind === "tandas") && (
+                <Row
+                  label="Mood check"
+                  sub="Against reference tandas (Aren León)"
+                  chevron
+                  onClick={() => setMoodOpen(true)}
+                />
+              )}
+              <Row
+                label="Written review"
+                value={
+                  aiBusy
+                    ? "Reading the set…"
+                    : ai || settings.ai.key || aiShared
+                      ? "Ready"
+                      : aiShared === false
+                        ? "Off · needs an AI key"
+                        : undefined
+                }
+                chevron
+                busy={aiBusy}
+                onClick={explain}
+              />
+            </Group>
+
+            {wide && feedbackBar}
+
+            {playlist.opening && (
+              <Group
+                header="Opening"
+                footer="La Cumparsita before the first tanda, as some Buenos Aires and festival nights open."
+              >
+                <div className="cell" data-leading="art" data-testid="opening">
+                  <span className="tile-art" data-rhythm="tango" aria-hidden>
+                    <Disc3 size={20} strokeWidth={1.75} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="text-headline block truncate">La Cumparsita</span>
+                    <span className="text-subhead block truncate text-[var(--label-2)]">
+                      {playlist.opening.orchestra}
+                      {playlist.opening.singer ? ` · ${playlist.opening.singer}` : ""} ·{" "}
+                      {playlist.opening.year ?? "?"}
+                    </span>
+                  </span>
+                </div>
+              </Group>
+            )}
+
+            <h2 className="section-head">Tandas</h2>
+            {/* round 22: the song search side panel */}
+            <div className="-mt-10 mb-1 flex justify-end">
+              <Tip text="Search every recording by title, orchestra, singer, years and rhythm; swap one in, add it or play it">
                 <button
                   type="button"
-                  className="-mx-2 flex items-baseline gap-1 rounded-[var(--radius-xs)] px-2 text-left"
-                  onClick={() => setAdjustOpen(true)}
-                  aria-label={`Score ${playlist.score.total} of 100. Adjust the set`}
-                  data-testid="score-button"
+                  className="btn-plain mb-1 min-h-11"
+                  onClick={() => setFindOpen(true)}
+                  aria-expanded={findOpen}
+                  data-testid="find-songs"
                 >
-                  <span className="text-large-title tabular-nums text-[var(--tint)]">
-                    <ScoreCounter key={setKey} value={playlist.score.total} from={scoreFrom} />
-                  </span>
-                  <span className="text-title3 text-[var(--label-2)]">/100</span>
-                  <SlidersHorizontal
-                    size={16}
-                    strokeWidth={2}
-                    className="ml-1 self-center text-[var(--label-3)]"
-                    aria-hidden
-                  />
+                  <Search size={16} strokeWidth={2} aria-hidden /> Find songs
                 </button>
-              )}
-              <motion.p
-                key={`verdict-text-${setKey}`}
-                initial={fresh ? { opacity: 0 } : false}
-                animate={{ opacity: 1 }}
-                transition={{ delay: reduced ? 0 : 0.7, duration: DUR.base }}
-                className="text-footnote text-[var(--label-2)]"
-              >
-                {playlist.score.verdict}
-                {playlist.options.arcShape && (
-                  <span data-testid="arc-shape">
-                    {" "}
-                    · {playlist.options.arcShape === "double" ? "double" : "single"} peak arc
-                  </span>
-                )}
-              </motion.p>
-              {/* hard failures that capped the total (round-8 engine): said under the number, not hidden in a sheet */}
-              {playlist.score.reasons && playlist.score.reasons.length > 0 && (
-                <ul
-                  className="text-footnote mt-1 list-disc pl-4 text-[var(--system-gold)]"
-                  data-testid="score-reasons"
-                >
-                  {playlist.score.reasons.map((r) => (
-                    <li key={r}>{r}</li>
-                  ))}
-                </ul>
-              )}
-              <div className="mt-1">
-                {/* one chart per breakpoint (not both hidden/shown via CSS) so only one draw-on runs */}
-                {wide ? (
-                  <mods.EnergyCurve
-                    p={playlist}
-                    active={active}
-                    onPick={onPick}
-                    playKey={setKey}
-                    dimmed={busy}
-                  />
-                ) : (
-                  <mods.EnergyCurve
-                    compact
-                    p={playlist}
-                    active={active}
-                    onPick={onPick}
-                    playKey={setKey}
-                    dimmed={busy}
-                  />
-                )}
-              </div>
-            </motion.div>
-            <Row
-              label="How this set scored"
-              value={`${playlist.score.factors.length} factors`}
-              chevron
-              onClick={() => setScoreOpen(true)}
-            />
-            {bench && (
-              <Row
-                label="Benchmark · published DJ sets"
-                value={wide ? benchLabel(bench) : `${bench.inRange}/${bench.scored}`}
-                aria-label={`Benchmark against published DJ sets: ${benchLabel(bench)}`}
-                chevron
-                onClick={() => setBenchOpen(true)}
-                data-testid="benchmark-row"
-              />
-            )}
-            {playlists.some((p) => p.kind === "tandas") && (
-              <Row
-                label="Mood check"
-                sub="Against reference tandas (Aren León)"
-                chevron
-                onClick={() => setMoodOpen(true)}
-              />
-            )}
-            <Row
-              label="Written review"
-              value={
-                aiBusy
-                  ? "Reading the set…"
-                  : ai || settings.ai.key || aiShared
-                    ? "Ready"
-                    : aiShared === false
-                      ? "Off · needs an AI key"
-                      : undefined
-              }
-              chevron
-              busy={aiBusy}
-              onClick={explain}
-            />
-          </Group>
-
-          {wide && feedbackBar}
-
-          {playlist.opening && (
-            <Group
-              header="Opening"
-              footer="La Cumparsita before the first tanda, as some Buenos Aires and festival nights open."
-            >
-              <div className="cell" data-leading="art" data-testid="opening">
-                <span className="tile-art" data-rhythm="tango" aria-hidden>
-                  <Disc3 size={20} strokeWidth={1.75} />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="text-headline block truncate">La Cumparsita</span>
-                  <span className="text-subhead block truncate text-[var(--label-2)]">
-                    {playlist.opening.orchestra}
-                    {playlist.opening.singer ? ` · ${playlist.opening.singer}` : ""} ·{" "}
-                    {playlist.opening.year ?? "?"}
-                  </span>
-                </span>
-              </div>
-            </Group>
-          )}
-
-          <h2 className="section-head">Tandas</h2>
-          {/* round 22: the song search side panel */}
-          <div className="-mt-10 mb-1 flex justify-end">
-            <Tip text="Search every recording by title, orchestra, singer, years and rhythm; swap one in, add it or play it">
-              <button
-                type="button"
-                className="btn-plain mb-1 min-h-11"
-                onClick={() => setFindOpen(true)}
-                aria-expanded={findOpen}
-                data-testid="find-songs"
-              >
-                <Search size={16} strokeWidth={2} aria-hidden /> Find songs
-              </button>
-            </Tip>
-          </div>
-          {/* round 22: the night's energy song by song and a tone per tanda */}
-          <NightProfile playlist={playlist} onPick={onPick} />
-          {/* no AnimatePresence here: exiting cards stayed mounted across recomposes (round8-qa.md B1); a new set
+              </Tip>
+            </div>
+            {/* round 22: the night's energy song by song and a tone per tanda */}
+            <NightProfile playlist={playlist} onPick={onPick} />
+            {/* no AnimatePresence here: exiting cards stayed mounted across recomposes (round8-qa.md B1); a new set
               mounts fresh cards with new keys and the old ones leave at once */}
-          <div className="tanda-grid">
-            {playlist.tandas.flatMap((t, i) => {
-              const b = breakAfter.get(i);
-              const card = (
-                <mods.TandaCard
-                  key={`${t.index}-${t.songs[0]?.id}`}
-                  t={t}
-                  i={i}
-                  onSwap={swap}
-                  onSwapTrack={swapTrack}
-                  onLock={lock}
-                  onBypass={bypass}
-                  busy={swapping === i}
-                  swappingTrack={swappingTrack?.[0] === i ? swappingTrack[1] : null}
-                  active={active === i}
-                  playlists={playlists}
-                  settling={busy}
-                  fresh={fresh}
-                  nudge={nudge?.i === i ? nudge : null}
-                  prevEnergy={prevEnergy.current[i]}
-                  changed={changedSet.has(i + 1)}
-                  animateLayout={swapping === i || lockedCard === i}
-                />
-              );
-              if (!b) return [card];
-              return [
-                card,
-                <div
-                  key={`break-${i}`}
-                  className="text-footnote flex items-center gap-3 px-4 text-[var(--label-2)] md:col-span-2"
-                  data-testid="break"
-                >
-                  <span className="h-px flex-1 bg-[var(--separator)]" aria-hidden />
-                  {b.label} · {b.minutes} min
-                  <span className="h-px flex-1 bg-[var(--separator)]" aria-hidden />
-                </div>,
-              ];
-            })}
-          </div>
-          <AiEditBar playlist={playlist} />
-          {playlist.closing && (
-            <Group header="Closing">
-              <div className="cell" data-leading="art">
-                <span className="tile-art" data-rhythm="tango" aria-hidden>
-                  <Disc3 size={20} strokeWidth={1.75} />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="text-headline block truncate">La Cumparsita</span>
-                  <span className="text-subhead block truncate text-[var(--label-2)]">
-                    {playlist.closing.orchestra} · {playlist.closing.year ?? "?"}
+            <div className="tanda-grid">
+              {playlist.tandas.flatMap((t, i) => {
+                const b = breakAfter.get(i);
+                const card = (
+                  <mods.TandaCard
+                    key={`${t.index}-${t.songs[0]?.id}`}
+                    t={t}
+                    i={i}
+                    onSwap={swap}
+                    onSwapTrack={swapTrack}
+                    onLock={lock}
+                    onBypass={bypass}
+                    busy={swapping === i}
+                    swappingTrack={swappingTrack?.[0] === i ? swappingTrack[1] : null}
+                    active={active === i}
+                    playlists={playlists}
+                    settling={busy}
+                    fresh={fresh}
+                    nudge={nudge?.i === i ? nudge : null}
+                    prevEnergy={prevEnergy.current[i]}
+                    changed={changedSet.has(i + 1)}
+                    animateLayout={swapping === i || lockedCard === i}
+                  />
+                );
+                if (!b) return [card];
+                return [
+                  card,
+                  <div
+                    key={`break-${i}`}
+                    className="text-footnote flex items-center gap-3 px-4 text-[var(--label-2)] md:col-span-2"
+                    data-testid="break"
+                  >
+                    <span className="h-px flex-1 bg-[var(--separator)]" aria-hidden />
+                    {b.label} · {b.minutes} min
+                    <span className="h-px flex-1 bg-[var(--separator)]" aria-hidden />
+                  </div>,
+                ];
+              })}
+            </div>
+            <AiEditBar playlist={playlist} />
+            {playlist.closing && (
+              <Group header="Closing">
+                <div className="cell" data-leading="art">
+                  <span className="tile-art" data-rhythm="tango" aria-hidden>
+                    <Disc3 size={20} strokeWidth={1.75} />
                   </span>
-                </span>
-              </div>
-            </Group>
-          )}
+                  <span className="min-w-0 flex-1">
+                    <span className="text-headline block truncate">La Cumparsita</span>
+                    <span className="text-subhead block truncate text-[var(--label-2)]">
+                      {playlist.closing.orchestra} · {playlist.closing.year ?? "?"}
+                    </span>
+                  </span>
+                </div>
+              </Group>
+            )}
+          </div>
+          <TandaInspector playlist={playlist} selected={inspected} onSelect={setInspected} />
         </section>
       )}
       {/* once a set exists the result leads and the form folds into one summary row (UX review P1-1) */}
@@ -1909,12 +1967,14 @@ export function Composer() {
       </div>
 
       {/* empty state (desktop): the vinyl spins and the narrative runs under it while the first set composes */}
-      {hydrated && wide && !playlist && (
+      {hydrated && wide && !playlist && busy && (
         <div className="flex flex-col items-center gap-3 py-12 text-center">
-          <Vinyl playing={busy} className="w-[120px]" />
+          <Vinyl playing className="w-[120px]" />
           <ComposeNarrative busy={busy} className="flex" />
         </div>
       )}
+      {/* round 23: the gramophone is an easter egg under the page's foot (pull past the end) */}
+      {hydrated && <Gramophone />}
 
       {/* Phone primary bar: Compose, then Regenerate + Export + ••• once a set exists; hides under sheets,
           minimises with the tab bar (round5-design.md §1) */}

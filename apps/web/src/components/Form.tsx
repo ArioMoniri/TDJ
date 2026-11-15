@@ -360,6 +360,13 @@ export function ActionRow({
 }
 
 /** Inline segmented inside a cell: label on its own line, the control under it. */
+/**
+ * A choice row. Round 23 (native form rows): label left, control right, on one row with the whole width used:
+ * - 2–4 short choices: a segmented control sized to its content, trailing (NSSegmentedControl / UISegmentedControl);
+ *   on a phone, or when the label and the control do not fit side by side, the control takes its own full-width line;
+ * - more or longer choices: a pop-up button (`PickerRow`: the value on the right, the system menu / picker).
+ * The old row put every control on a second line, left-aligned, with the rest of the row empty.
+ */
 export function SegmentedRow<K extends string>({
   label,
   children,
@@ -376,18 +383,79 @@ export function SegmentedRow<K extends string>({
   /** leading Settings tile */
   tile?: ReactNode;
 }) {
-  return (
-    <div className="cell flex-col items-stretch gap-1.5" data-leading={tile ? "tile" : undefined}>
-      <div className="flex items-center gap-3">
-        {tile}
-        <span className="min-w-0 flex-1">
-          <span className="block truncate">{label}</span>
-          {sub && <span className="text-footnote block truncate text-[var(--label-2)]">{sub}</span>}
-        </span>
+  const chars = seg.items.reduce((n, [, l]) => n + l.length, 0);
+  if (seg.items.length > 4 || chars > 36)
+    return (
+      <PickerRow
+        label={label}
+        ariaLabel={label}
+        sub={sub}
+        tile={tile}
+        value={seg.value}
+        items={seg.items}
+        onChange={(k) => k && seg.onChange(k)}
+      >
         {children}
-      </div>
-      <Segmented label={label} {...seg} />
+      </PickerRow>
+    );
+  return (
+    <div className="cell seg-row" data-leading={tile ? "tile" : undefined}>
+      {tile}
+      <span className="seg-row-label min-w-0 flex-1">
+        <span className="block truncate">{label}</span>
+        {sub && <span className="text-footnote block text-[var(--label-2)]">{sub}</span>}
+      </span>
+      {children}
+      <Segmented label={label} {...seg} className="seg-row-control" />
     </div>
+  );
+}
+
+/**
+ * A form section that folds (Mac preferences / iPad Settings disclosure): the header is a 44 pt button with the
+ * section's current values as a one-line summary, so a DJ can compose without opening it and see what it holds.
+ * `bare`: the children bring their own groups (Tanda rules, Tonight).
+ */
+export function FoldGroup({
+  header,
+  summary,
+  children,
+  footer,
+  id,
+  bare = false,
+  defaultOpen = false,
+}: {
+  header: string;
+  summary?: ReactNode;
+  children: ReactNode;
+  footer?: ReactNode;
+  id?: string;
+  bare?: boolean;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  const body = useId();
+  return (
+    <section className="fold min-w-0" id={id} data-open={open || undefined}>
+      <button
+        type="button"
+        className="fold-head"
+        aria-expanded={open}
+        aria-controls={body}
+        onClick={() => {
+          haptic(4);
+          setOpen((v) => !v);
+        }}
+      >
+        <span className="fold-title">{header}</span>
+        <span className="fold-summary">{summary}</span>
+        <ChevronRight size={16} strokeWidth={2.5} className="fold-chevron" aria-hidden />
+      </button>
+      <div id={body} hidden={!open}>
+        {bare ? children : <div className="group-inset">{children}</div>}
+        {footer && <p className="section-foot">{footer}</p>}
+      </div>
+    </section>
   );
 }
 

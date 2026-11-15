@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
 import { DUR, EASE, SPRING } from "@/lib/motion";
+import { lockScroll } from "@/lib/scrollLock";
 import { useSheets } from "@/lib/sheets";
 
 /**
@@ -100,16 +101,11 @@ export function Sheet({
       }
     };
     document.addEventListener("keydown", onKey, true);
-    // Scroll lock on the root, not `body`: `html` has `overflow-x: clip`, so `body`'s overflow never reaches the
-    // viewport. `overflow: hidden` on a viewport-high `body` clipped the page to one screen instead, and the
-    // document snapped to the top under every sheet (round7-corners.md); the root keeps its scroll offset.
-    const root = document.documentElement;
-    const overflow = root.style.overflow;
-    root.style.overflow = "hidden";
+    const unlock = lockScroll();
     return () => {
       clearTimeout(t);
       document.removeEventListener("keydown", onKey, true);
-      root.style.overflow = overflow;
+      unlock();
       prev?.focus?.({ preventScroll: true });
     };
   }, [open, detents]);
@@ -151,7 +147,10 @@ export function Sheet({
   const tree = (
     <AnimatePresence>
       {open && (
-        <div key="sheet" className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6">
+        <div
+          key="sheet"
+          className="fixed inset-0 z-50 flex items-end justify-center pt-[calc(var(--chrome-top)+0.5rem)] sm:items-center sm:p-6 sm:pt-[calc(var(--chrome-top)+1.5rem)]"
+        >
           <motion.button
             type="button"
             className="absolute inset-0 cursor-default bg-black/40"
@@ -172,11 +171,13 @@ export function Sheet({
             data-detent={isPhone ? detent : undefined}
             className={`sheet-material rounded-continuous relative flex w-full flex-col rounded-t-[var(--radius-l)] pb-[env(safe-area-inset-bottom)] sm:rounded-[var(--radius-l)] sm:shadow-[0_24px_80px_rgb(0_0_0/.3)] ${
               settling ? "glass-settling" : ""
-            } ${isPhone ? (detent === "medium" ? "max-h-[62dvh]" : "max-h-[92dvh]") : "max-h-[80vh]"}`}
+            }`}
             style={{
               willChange: "transform",
               overscrollBehavior: "contain",
               maxWidth: isPhone ? undefined : width,
+              // never taller than the room under the status bar / title bar (the container's top padding)
+              maxHeight: `min(${isPhone ? (detent === "medium" ? "62dvh" : "92dvh") : "80vh"}, 100%)`,
               transition: "max-height var(--dur-s) var(--ease-settle)",
             }}
             {...panelMotion}

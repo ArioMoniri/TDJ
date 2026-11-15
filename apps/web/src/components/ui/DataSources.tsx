@@ -121,17 +121,6 @@ export function DataSources() {
         </Tip>
       </Group>
 
-      <Group
-        header="Indicators"
-        footer="Where each side sits in its orchestra's years, from your heatmap in Database › Orchestras."
-      >
-        <SwitchRow
-          label="Era badges"
-          sub="Best, good, uneven or outside years on every song"
-          checked={settings.eraBadges !== false}
-          onChange={(v) => setSettings({ eraBadges: v })}
-        />
-      </Group>
       <Sheet
         open={adding}
         onClose={() => setAdding(false)}
