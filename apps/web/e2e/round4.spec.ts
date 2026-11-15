@@ -418,7 +418,9 @@ test("mobile: no horizontal overflow after compose, cards fill the column, tab b
 
 test("a práctica context never shrinks the tango tandas the stepper shows", async ({ page }) => {
   await page.goto("/");
+  await page.waitForLoadState("networkidle");
   const req = page.waitForRequest((r) => r.url().includes("/api/compose") && r.method() === "POST");
+  await page.getByRole("button", { name: /^Tonight/ }).click(); // a folded section (round 23)
   await page.getByLabel("Event type").selectOption("practica");
   await page.getByRole("button", { name: /Compose the night/ }).click();
   const body = (await req).postDataJSON();
