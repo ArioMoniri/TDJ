@@ -11,6 +11,7 @@ import { Nav } from "@/components/Nav";
 import { ToolbarProvider } from "@/components/PageHeader";
 import { PageTransition } from "@/components/PageTransition";
 import { RoomSync } from "@/components/RoomSync";
+import { RuleConfirmSheet } from "@/components/RuleConfirmSheet";
 import { ThemeSync } from "@/components/ThemeSync";
 
 const sans = Inter({ subsets: ["latin"], variable: "--font-sans-loaded", display: "swap" });
@@ -82,6 +83,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </main>
             <MiniPlayer />
             <GlobalToast />
+            <RuleConfirmSheet />
           </ToolbarProvider>
         </LocaleRoot>
       </body>

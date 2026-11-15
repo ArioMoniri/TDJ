@@ -2,6 +2,7 @@
 import { rememberEdit } from "@tdj/core";
 import { useEffect, useState } from "react";
 import { t as tx } from "@/lib/i18n";
+import { gateEdit } from "@/lib/ruleCheck";
 import { useStore } from "@/lib/store";
 import { tempoLevel } from "@/lib/tempo";
 import { toast } from "@/lib/toast";
@@ -17,6 +18,8 @@ import { Tip } from "./ui/Tip";
 export interface SwapSide {
   ok: boolean;
   reason?: string;
+  /** excluded only by a tanda rule: the DJ may still choose it, and the rule check asks first */
+  asks?: boolean;
   fit: number;
   song: {
     id: string;
@@ -127,6 +130,11 @@ export function SwapSheet({
     if (!open) setQ("");
   }, [open]);
 
+  /**
+   * The DJ's pick takes the chair through the rule check (lib/ruleCheck.ts): a side that keeps every rule applies at
+   * once; one that breaks a tanda rule (a search result the sheet marks) asks first — a suggestion, "Do it as I said"
+   * (this night only) or Cancel. The gate teaches from what it applies, as a swap always did.
+   */
   const apply = async (songId: string, how: string, force = false, title?: string) => {
     if (!playlist || tandaIndex === null || trackIndex === null) return;
     setBusy(songId);
@@ -141,11 +149,19 @@ export function SwapSheet({
         setNote(j.reason ? tx("swapSheet.not_swapped_2", { reason: j.reason }) : tx("swapSheet.not_swapped"));
         return;
       }
-      if (settings.learn) updateMemory((m) => rememberEdit(m, playlist, j, how));
-      await onApplied(j, how);
-      onClose();
-      // wave 2: every pick can be taken back from the toast
+      const { changed: _c, reason: _r, ...after } = j;
       const was = playlist;
+      const res = await gateEdit({
+        before: playlist,
+        after: after as Playlist,
+        label: how,
+        apply: (p, l) => onApplied(p, l),
+        learn: settings.learn,
+      });
+      if (res === "cancelled") return;
+      onClose();
+      if (res !== "applied") return;
+      // wave 2: every pick can be taken back from the toast
       const name = title ?? j.tandas[tandaIndex]?.songs[trackIndex]?.title;
       toast(
         name ? tx("swapSheet.swapped_in_2", { name }) : tx("swapSheet.song_swapped"),
@@ -215,6 +231,8 @@ export function SwapSheet({
 
   const row = (x: SwapSide, list: string) => {
     const fit = Math.round(x.fit * 100);
+    // a side that only breaks a tanda rule can still be chosen: the rule check asks first
+    const asks = !x.ok && !!x.asks;
     return (
       <SongRow
         key={`${list}-${x.song.id}`}
@@ -227,8 +245,8 @@ export function SwapSheet({
         pillTip={x.ok ? tx("swapSheet.how_well_it_fits_this_place") : undefined}
         ariaLabel={x.ok ? tx("swapSheet.swap_in", { title: x.song.title }) : `${x.song.title}: ${x.reason}`}
         onClick={
-          x.ok && !lockedReason
-            ? () => apply(x.song.id, tx("swapSheet.swapped_in", { title: x.song.title }), false, x.song.title)
+          (x.ok || asks) && !lockedReason
+            ? () => apply(x.song.id, tx("swapSheet.swapped_in", { title: x.song.title }), asks, x.song.title)
             : undefined
         }
       />

@@ -10,6 +10,8 @@ import {
   type Playlist,
   parseEditCommand,
   parseEditOps,
+  replaceSide,
+  songById,
 } from "@tdj/core";
 import type { ModelReply, ModelRequest, ToolSpec } from "./provider";
 
@@ -174,6 +176,22 @@ export interface EditResult extends EditOutcome {
   /** wave 2: a whole-night request is an Adjust chip; the bar runs it */
   chip?: Feedback;
   rejected: Array<EditOutcome["rejected"][number] & { suggest?: string }>;
+  /**
+   * the first refused swap done as the DJ asked (the side in the chair, the tanda pinned as the DJ's): the client runs
+   * the rule check on it and offers a suggestion or "Do it as I said" before anything is applied
+   */
+  asSaid?: { playlist: Playlist; tanda: number; reason: string };
+}
+
+/** a refused swap of a named side, done as asked: for the rule check's question (never applied here) */
+export function withAsSaid(r: EditResult, deps: ComposeDeps): EditResult {
+  const x = r.rejected.find((y) => y.op.op === "swap" && !!y.op.songId);
+  if (x?.op.op !== "swap" || !x.op.songId) return r;
+  const s = songById(deps.catalog, x.op.songId);
+  if (!s) return r;
+  const f = replaceSide(r.playlist, x.op.tanda - 1, x.op.position - 1, s.id, deps, { force: true });
+  if (f.playlist === r.playlist) return r;
+  return { ...r, asSaid: { playlist: f.playlist, tanda: x.op.tanda, reason: x.reason } };
 }
 
 /** without a model: the plain-words reader, applied by the same engine */
@@ -182,9 +200,12 @@ export function editByWords(p: Playlist, deps: ComposeDeps, instruction: string)
   const chip = w.ops.length ? null : chipOf(instruction, p.tandas.length);
   if (chip)
     return { playlist: p, applied: [], rejected: [], source: "words", ops: [], notUnderstood: [], chip };
-  return withMoveSuggestions(
-    p,
-    { ...applyNightEdits(p, w.ops, deps), source: "words", ops: w.ops, notUnderstood: w.unparsed },
+  return withAsSaid(
+    withMoveSuggestions(
+      p,
+      { ...applyNightEdits(p, w.ops, deps), source: "words", ops: w.ops, notUnderstood: w.unparsed },
+      deps,
+    ),
     deps,
   );
 }
@@ -213,15 +234,18 @@ export async function editNight(o: {
       notUnderstood: parsed.errors.length ? parsed.errors : [o.instruction],
     };
   }
-  return withMoveSuggestions(
-    o.playlist,
-    {
-      ...applyNightEdits(o.playlist, parsed.ops, o.deps),
-      source: "model",
-      ops: parsed.ops,
-      note: parsed.note,
-      notUnderstood: parsed.errors,
-    },
+  return withAsSaid(
+    withMoveSuggestions(
+      o.playlist,
+      {
+        ...applyNightEdits(o.playlist, parsed.ops, o.deps),
+        source: "model",
+        ops: parsed.ops,
+        note: parsed.note,
+        notUnderstood: parsed.errors,
+      },
+      o.deps,
+    ),
     o.deps,
   );
 }

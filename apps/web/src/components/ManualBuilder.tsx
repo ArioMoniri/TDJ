@@ -1,5 +1,13 @@
 "use client";
-import { emptyMemory, learnedForRequest, type Playlist, rememberEdit } from "@tdj/core";
+import {
+  type ComposeOptions,
+  emptyMemory,
+  learnedForRequest,
+  type Playlist,
+  rememberEdit,
+  type Song,
+  type Tanda,
+} from "@tdj/core";
 import { ArrowUp, Check, Plus, Trash2, Wand2 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useRouter } from "next/navigation";
@@ -16,11 +24,13 @@ import {
   openTanda,
   removeSong,
   removeTanda,
+  slimSong,
 } from "@/lib/build";
 import { haptic } from "@/lib/haptics";
 import { makeSnapshot } from "@/lib/history";
 import { lazy, t as tx } from "@/lib/i18n";
 import { DUR, EASE } from "@/lib/motion";
+import { adoptDraftExceptions, DRAFT_NIGHT, gateEdit } from "@/lib/ruleCheck";
 import { fullOptions, useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import { metaLine, yearText } from "@/lib/year";
@@ -28,6 +38,31 @@ import { Group, RhythmTile, Row, SegmentedRow, SwitchRow } from "./Form";
 import { PageHeader } from "./PageHeader";
 import { SearchField } from "./SearchField";
 import { Tip } from "./ui/Tip";
+
+/** the draft as a night for the rule check (its tandas are what it judges) */
+function draftNight(d: Draft, options: ComposeOptions): Playlist {
+  return {
+    id: DRAFT_NIGHT,
+    name: "",
+    createdAt: "",
+    options,
+    closing: null,
+    tandas: d.map(
+      (ss, i) =>
+        ({
+          index: i + 1,
+          songs: ss as unknown as Song[],
+          rhythm: ss[0]?.rhythm ?? "tango",
+          orchestraId: ss[0]?.orchestraId ?? "",
+          orchestra: ss[0]?.orchestra ?? "",
+          singer: ss.find((s) => s.vocal)?.singer ?? null,
+          vocal: ss.some((s) => s.vocal),
+          cortina: null,
+        }) as unknown as Tanda,
+    ),
+  } as unknown as Playlist;
+}
+const draftOf = (p: Playlist): Draft => p.tandas.map((t) => t.songs.map(slimSong));
 
 interface Suggestion {
   key: string;
@@ -166,13 +201,24 @@ export function ManualBuilder() {
   }, [query, draft, options]);
 
   const open = openTanda(draft, sizes);
+  /** a side added to a tanda goes through the rule check: one that breaks a tanda rule asks first */
+  const addChecked = (next: Draft, label: string) =>
+    gateEdit({
+      before: draftNight(draft, options as ComposeOptions),
+      after: draftNight(next, options as ComposeOptions),
+      label,
+      apply: (p) => setDraft(draftOf(p)),
+      learn: false,
+      scope: "tandas",
+    });
   const pick = (s: Suggestion) => {
     haptic(6);
-    setDraft(s.kind === "tanda" ? addTanda(draft, s.songs, sizes) : addSong(draft, s.songs[0]!, sizes));
+    if (s.kind === "tanda") setDraft(addTanda(draft, s.songs, sizes));
+    else void addChecked(addSong(draft, s.songs[0]!, sizes), s.songs[0]!.title);
   };
   const addHit = (h: Hit) => {
     haptic(6);
-    setDraft(addSong(draft, h.song, sizes));
+    void addChecked(addSong(draft, h.song, sizes), h.song.title);
   };
   const finish = async () => {
     if (!draft.length) return;
@@ -185,6 +231,8 @@ export function ManualBuilder() {
       });
       const j = (await r.json()) as { playlist?: Playlist };
       if (!j.playlist) return;
+      // the draft's one-night exceptions ("Do it as I said") become this night's
+      j.playlist = adoptDraftExceptions(j.playlist);
       setPlaylist(j.playlist);
       addSnapshot(makeSnapshot(j.playlist, options, "compose"));
       // a hand-built night is the clearest statement of taste: its sides, families and tandas teach

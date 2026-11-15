@@ -7,7 +7,7 @@ import { normTitle } from "./energy";
 import { tandaTitleKeyOf, templateIdOf, templateMix } from "./learnedRules";
 import { cortinaMissing } from "./score";
 import { strictChecks } from "./strict";
-import { renight, replaceSide, swapOptions, swapReason } from "./swap";
+import { renight, replaceSide, retimeTanda, swapOptions, swapReason } from "./swap";
 import { songRhythm, spreadCap } from "./tanda";
 import type { LearnedPreferences, NightException, Playlist, Song, Tanda } from "./types";
 
@@ -185,28 +185,49 @@ function versionFact(
   );
   const singers = [...new Set(vs.map((s) => (s.vocal ? (s.singer ?? "") : "")))];
   const oddVoice = odd.vocal ? (odd.singer ?? "a singer") : "instrumental";
+  const tail = `; the rest of this tanda is ${restText}`;
   if (vs.length && restSinger !== null) {
     const match = vs.find((s) =>
       restSinger === "" ? !s.vocal : s.vocal && normTitle(s.singer ?? "") === normTitle(restSinger),
     );
-    if (match)
-      return fact(
-        "ruleCheck.fact.also_with",
-        { title: odd.title, voice: restSinger || "instrumental", year: match.year ?? "", rest: restText },
-        `${odd.title} also exists ${restSinger ? `with ${restSinger}` : "instrumental"}${match.year ? ` (${match.year})` : ""}; the rest of this tanda is ${restText}`,
-      );
+    if (match) {
+      const when = match.year ? ` (${match.year})` : "";
+      return restSinger
+        ? fact(
+            "ruleCheck.fact.also_with",
+            { title: odd.title, voice: restSinger, when, rest: restText },
+            `${odd.title} also exists with ${restSinger}${when}${tail}`,
+          )
+        : fact(
+            "ruleCheck.fact.also_instrumental",
+            { title: odd.title, when, rest: restText },
+            `${odd.title} also exists instrumental${when}${tail}`,
+          );
+    }
     if (singers.length === 1)
-      return fact(
-        "ruleCheck.fact.only_with",
-        { title: odd.title, voice: oddVoice, rest: restText },
-        `${odd.title} exists only ${odd.vocal ? `with ${oddVoice}` : "instrumental"}; the rest of this tanda is ${restText}`,
-      );
+      return odd.vocal
+        ? fact(
+            "ruleCheck.fact.only_with",
+            { title: odd.title, voice: oddVoice, rest: restText },
+            `${odd.title} exists only with ${oddVoice}${tail}`,
+          )
+        : fact(
+            "ruleCheck.fact.only_instrumental",
+            { title: odd.title, rest: restText },
+            `${odd.title} exists only instrumental${tail}`,
+          );
   }
-  return fact(
-    "ruleCheck.fact.is_with",
-    { title: odd.title, voice: oddVoice, rest: restText },
-    `${odd.title} is ${odd.vocal ? `sung by ${oddVoice}` : "instrumental"}; the rest of this tanda is ${restText}`,
-  );
+  return odd.vocal
+    ? fact(
+        "ruleCheck.fact.is_with",
+        { title: odd.title, voice: oddVoice, rest: restText },
+        `${odd.title} is sung by ${oddVoice}${tail}`,
+      )
+    : fact(
+        "ruleCheck.fact.is_instrumental",
+        { title: odd.title, rest: restText },
+        `${odd.title} is instrumental${tail}`,
+      );
 }
 
 /** the tanda rules: one orchestra, its rhythm, one voice, one singer, one vocal style, close years */
@@ -448,6 +469,18 @@ const unpinned = <N extends NightLike>(n: N): N => ({
   closingPinned: undefined,
 });
 
+const BIG_FOUR_NAME: Record<string, string> = {
+  "carlos-di-sarli": "Carlos Di Sarli",
+  "juan-d-arienzo": "Juan D'Arienzo",
+  "anibal-troilo": "Aníbal Troilo",
+  "osvaldo-pugliese": "Osvaldo Pugliese",
+};
+/** "no carlos-di-sarli tanda" (bigFourProblems) → "Carlos Di Sarli" */
+const bigFourName = (detail: string) => {
+  const id = detail.replace(/^no | tanda$/g, "");
+  return BIG_FOUR_NAME[id] ?? id;
+};
+
 /** the night's flow: the big four, back to back, the cortinas, the energy steps, the opening Cumparsita */
 function flowProblems(after: NightLike): Problem[] {
   const t = after.tandas;
@@ -470,14 +503,21 @@ function flowProblems(after: NightLike): Problem[] {
         [
           fact(
             `ruleCheck.fact.big_four_${p.kind}`,
-            { tanda: p.tanda + 1, other: (p.with ?? p.tanda) + 1, orchestra: t[p.tanda]?.orchestra ?? "" },
+            {
+              tanda: p.tanda + 1,
+              other: (p.with ?? p.tanda) + 1,
+              apart: p.tanda - (p.with ?? p.tanda),
+              orchestra: p.kind === "missing" ? bigFourName(p.detail) : (t[p.tanda]?.orchestra ?? ""),
+              first: p.with !== undefined ? (t[p.with]?.orchestra ?? "") : "",
+              second: t[p.tanda]?.orchestra ?? "",
+            },
             p.kind === "adjacent"
               ? `${t[p.with!]!.orchestra} then ${t[p.tanda]!.orchestra}: two big-four tandas back to back`
               : p.kind === "gap"
                 ? `${t[p.tanda]!.orchestra} plays again in tanda ${p.tanda + 1}, ${p.tanda - p.with!} tandas after tanda ${p.with! + 1}`
                 : p.kind === "quartile"
                   ? `A quarter of the night (from tanda ${p.tanda + 1}) has no Di Sarli, D'Arienzo, Troilo or Pugliese`
-                  : `The night has no ${p.detail.replace(/^no | tanda$/g, "")} tanda`,
+                  : `The night has no ${bigFourName(p.detail)} tanda`,
           ),
         ],
         p.with,
@@ -512,7 +552,7 @@ function flowProblems(after: NightLike): Problem[] {
         fact(
           "ruleCheck.fact.cortina",
           { tanda: i + 1, orchestra: x.orchestra },
-          `Tanda ${i + 1} (${x.orchestra}) runs straight into tanda ${i + 2} with no cortina`,
+          `Tanda ${i + 1} (${x.orchestra}) runs straight into the next tanda with no cortina`,
         ),
       ]),
     });
@@ -535,7 +575,13 @@ function flowProblems(after: NightLike): Problem[] {
             [
               fact(
                 "ruleCheck.fact.energy_step",
-                { a: v.tanda, b: v.tanda + 1, from: a.energy, to: b.energy },
+                {
+                  a: v.tanda,
+                  b: v.tanda + 1,
+                  from: a.energy,
+                  to: b.energy,
+                  step: Math.abs(b.energy - a.energy),
+                },
                 `Tanda ${v.tanda} has energy ${a.energy}, tanda ${v.tanda + 1} ${b.energy}: a step of ${Math.abs(b.energy - a.energy)}`,
               ),
             ],
@@ -555,10 +601,10 @@ function flowProblems(after: NightLike): Problem[] {
             "The opening La Cumparsita no longer matches tanda 1",
             [
               fact(
-                "ruleCheck.fact.opener",
+                op ? "ruleCheck.fact.opener" : "ruleCheck.fact.no_opener",
                 { opening: op?.orchestra ?? "", first: t[0]?.orchestra ?? "" },
                 op
-                  ? `The night opens with ${op.orchestra}'s La Cumparsita${op.year ? ` (${op.year})` : ""}; tanda 1 is ${t[0]?.orchestra}`
+                  ? `The night opens with ${op.orchestra}'s La Cumparsita; tanda 1 is ${t[0]?.orchestra}`
                   : `The night has no opening La Cumparsita before ${t[0]?.orchestra}`,
               ),
             ],
@@ -691,6 +737,27 @@ const tryRenight = (p: Playlist, tandas: Tanda[]): Playlist => {
   }
 };
 
+/** replaceSide on any night (a hand-built draft has no booth plan to re-time: its tandas are what matters) */
+function safeReplace(
+  p: Playlist,
+  ti: number,
+  si: number,
+  id: string,
+  deps: ComposeDeps,
+): { playlist: Playlist; reason?: string } {
+  try {
+    return replaceSide(p, ti, si, id, deps);
+  } catch {
+    const s = deps.catalog.songs.find((x) => x.id === id);
+    const t = p.tandas[ti];
+    if (!s || !t) return { playlist: p, reason: "no such side" };
+    const reason = swapReason(p, ti, si, s, deps);
+    if (reason) return { playlist: p, reason };
+    const songs = t.songs.map((x, k) => (k === si ? s : x));
+    return { playlist: { ...p, tandas: p.tandas.map((x, k) => (k === ti ? retimeTanda(x, songs) : x)) } };
+  }
+}
+
 function move(p: Playlist, from: number, to: number): Playlist {
   const tandas = p.tandas.slice();
   const [t] = tandas.splice(from, 1);
@@ -715,6 +782,7 @@ export function suggestFixes(
   v: RuleViolation,
   deps: ComposeDeps,
   max = 3,
+  opts: Pick<CheckEditOptions, "scope"> = {},
 ): EditSuggestion[] {
   const out: EditSuggestion[] = [];
   // a suggestion keeps this rule and adds no hard violation the DJ's edit did not already bring (another pinned
@@ -722,7 +790,7 @@ export function suggestFixes(
   // (by the sides a violation names, so a suggestion that moves a tanda is judged on the same tandas)
   const idOf = (x: RuleViolation) =>
     `${x.rule}|${x.songIds.slice().sort().join(",")}|${x.songIds.length ? "" : x.tanda}`;
-  const known = new Set(hardViolations(checkEdit(before, after)).map(idOf));
+  const known = new Set(hardViolations(checkEdit(before, after, opts)).map(idOf));
   const inTanda = TANDA_RULES.has(v.rule);
   const same = (x: RuleViolation) =>
     x.rule === v.rule &&
@@ -731,7 +799,7 @@ export function suggestFixes(
       x.songIds.some((id) => v.songIds.includes(id)) ||
       ((inTanda || !v.songIds.length) && x.tanda === v.tanda));
   const ok = (p: Playlist) => {
-    const c = checkEdit(before, p);
+    const c = checkEdit(before, p, opts);
     return !c.violations.some(same) && hardViolations(c).every((x) => known.has(idOf(x)));
   };
   const push = (s: Omit<EditSuggestion, "id">) => {
@@ -758,16 +826,16 @@ export function suggestFixes(
         .filter((s) => !swapReason(base, i, k, s, deps))
         .sort((a, b) => (b.fame ?? 0) - (a.fame ?? 0));
       for (const s of versions.slice(0, 2)) {
-        const r = replaceSide(base, i, k, s.id, deps);
+        const r = safeReplace(base, i, k, s.id, deps);
         if (r.reason) continue;
         const voice = s.vocal ? (s.singer ?? "") : "instrumental";
         push({
           kind: "version",
           message: {
-            key: "ruleCheck.suggest.version",
-            params: { title: s.title, voice, year: s.year ?? "" },
+            key: s.vocal ? "ruleCheck.suggest.version" : "ruleCheck.suggest.version_instrumental",
+            params: { title: s.title, voice, when: s.year ? ` (${s.year})` : "" },
           },
-          text: `${s.title} with ${voice}${s.year ? ` (${s.year})` : ""}, the version that fits this tanda`,
+          text: `${s.title} ${s.vocal ? `with ${voice}` : "instrumental"}${s.year ? ` (${s.year})` : ""}, the version that fits this tanda`,
           playlist: r.playlist,
           song: pick(s),
         });
@@ -782,13 +850,17 @@ export function suggestFixes(
           (singer === undefined || !x.song.vocal || (x.song.singerId ?? null) === singer),
       );
       for (const x of fits.slice(0, 2)) {
-        const r = replaceSide(base, i, k, x.song.id, deps);
+        const r = safeReplace(base, i, k, x.song.id, deps);
         if (r.reason) continue;
         push({
           kind: "side",
           message: {
             key: "ruleCheck.suggest.side",
-            params: { title: x.song.title, year: x.song.year ?? "", orchestra: x.song.orchestra },
+            params: {
+              title: x.song.title,
+              when: x.song.year ? ` (${x.song.year})` : "",
+              orchestra: x.song.orchestra,
+            },
           },
           text: `${x.song.title}${x.song.year ? ` (${x.song.year})` : ""} instead: the same orchestra, singer and years`,
           playlist: r.playlist,
@@ -808,14 +880,14 @@ export function suggestFixes(
           const tj = restored.tandas[j]!;
           if (tj.rhythm !== odd.rhythm || tj.orchestraId !== odd.orchestraId) continue;
           for (let m = 0; m < tj.songs.length && !done; m++) {
-            const r = replaceSide(restored, j, m, odd.id, deps);
+            const r = safeReplace(restored, j, m, odd.id, deps);
             if (r.reason) continue;
             done = true;
             push({
               kind: "move",
               message: {
                 key: "ruleCheck.suggest.move",
-                params: { title: odd.title, tanda: j + 1, replaced: tj.songs[m]!.title },
+                params: { title: odd.title, tanda: j + 1, replaced: tj.songs[m]!.title, from: i + 1 },
               },
               text: `${odd.title} in tanda ${j + 1} instead (for ${tj.songs[m]!.title}); tanda ${i + 1} stays as it was`,
               playlist: r.playlist,
@@ -835,7 +907,7 @@ export function suggestFixes(
       if (!lastFourProblems(p).some((x) => x.v.tanda === to)) {
         push({
           kind: "position",
-          message: { key: "ruleCheck.suggest.position", params: { tanda: i + 1, to: to + 1 } },
+          message: { key: "ruleCheck.suggest.position_keep", params: { tanda: i + 1, to: to + 1 } },
           text: `Keep the setting and move tanda ${i + 1} to place ${to + 1}, where it plays`,
           playlist: p,
         });
@@ -845,7 +917,10 @@ export function suggestFixes(
     // keep the setting, skip the tanda tonight (it stays in the night and its exports)
     push({
       kind: "skip",
-      message: { key: "ruleCheck.suggest.skip", params: { tanda: i + 1 } },
+      message: {
+        key: "ruleCheck.suggest.skip",
+        params: { tanda: i + 1, orchestra: t.orchestra, rhythm: t.rhythm },
+      },
       text: `Keep the setting and skip tanda ${i + 1} tonight (${t.orchestra}, ${t.rhythm})`,
       playlist: { ...after, tandas: after.tandas.map((x, k) => (k === i ? { ...x, bypass: true } : x)) },
     });
@@ -882,7 +957,7 @@ export function suggestFixes(
         kind: "opening",
         message: {
           key: "ruleCheck.suggest.opening",
-          params: { orchestra: r.song.orchestra, year: r.song.year ?? "" },
+          params: { orchestra: r.song.orchestra, when: r.song.year ? ` (${r.song.year})` : "" },
         },
         text: `Open with ${r.song.orchestra}'s La Cumparsita${r.song.year ? ` (${r.song.year})` : ""}, which matches tanda 1`,
         playlist: tryRenight({ ...after, opening: r.song }, after.tandas),

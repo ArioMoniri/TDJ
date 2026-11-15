@@ -36,6 +36,8 @@ export async function POST(req: Request) {
           ...(x.suggest ? { suggest: x.suggest } : {}),
         })),
         ...(r.chip ? { chip: r.chip } : {}),
+        // the refused swap as the DJ asked it: the client's rule check asks before anything applies
+        ...(r.asSaid ? { asSaid: r.asSaid } : {}),
         notUnderstood: r.notUnderstood,
         note: r.note ?? null,
         source: r.source,

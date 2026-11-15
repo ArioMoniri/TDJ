@@ -5,6 +5,7 @@ import { type Playlist, placements, type SongQuery, searchSongs } from "@tdj/cor
 import { ListPlus, Repeat2, SlidersHorizontal, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMediaQuery } from "@/lib/hooks";
+import { gateEdit } from "@/lib/ruleCheck";
 import { clampPanel, PANEL_DEFAULT, PANEL_MAX, PANEL_MIN, type Target, targetsFor } from "@/lib/searchPanel";
 import { useStore } from "@/lib/store";
 import type { Song } from "@/lib/types";
@@ -180,8 +181,19 @@ export function SongSearchPanel({
       return;
     }
     const msg = j.reason ? tx("songSearchPanel.the_tanda_is_yours_now", { ok, reason: j.reason }) : `${ok}.`;
-    setNote({ text: msg });
-    await onChange?.(j, msg);
+    const { changed: _c, reason: _r, ...after } = j;
+    // the rule check first: an edit that breaks a tanda rule asks (a suggestion, "Do it as I said" or Cancel)
+    const res = await gateEdit({
+      before: playlist,
+      after: after as Playlist,
+      label: msg,
+      apply: async (p, l) => {
+        await onChange?.(p, l);
+      },
+      learn: false,
+    });
+    if (res === "cancelled") return;
+    setNote({ text: res === "applied" ? msg : `${ok}.` });
   };
   const swapIn = (s: Song, tanda: number, track: number) =>
     post(

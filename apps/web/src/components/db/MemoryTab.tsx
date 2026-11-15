@@ -7,11 +7,48 @@ import { describePreferences } from "@/lib/memory";
 import { useStore } from "@/lib/store";
 import type { AgentMemory } from "@/lib/types";
 import { ActionRow, Group, Row } from "../Form";
+import { ExceptionRow } from "../NightExceptions";
 import { Sheet } from "../Sheet";
 import { SwipeRow } from "../SwipeRow";
 import { FeaturedLearned } from "./FeaturedLearned";
 import { LearnedRules } from "./LearnedRules";
 import { useDbEdit } from "./shared";
+
+/**
+ * The DJ's one-night exceptions ("Do it as I said"), night by night: each counts for its own night only and never
+ * becomes a rule or a template; each can be removed.
+ */
+function MyNightExceptions() {
+  const learned = useStore((s) => s.memory.learned);
+  const history = useStore((s) => s.history);
+  const mine = (learned?.night?.exceptions ?? []).filter((x) => x.source === "dj");
+  if (!mine.length) return null;
+  const nights = [...new Set(mine.map((x) => x.nightId))];
+  const nameOf = (id: string) =>
+    history.find((h) => h.playlist?.id === id)?.title ??
+    (useStore.getState().playlist?.id === id ? useStore.getState().playlist?.name : undefined) ??
+    id;
+  return (
+    <Group
+      header={t("ruleCheck.memory_header")}
+      footer={t("ruleCheck.memory_footer")}
+      data-testid="memory-night-exceptions"
+    >
+      {nights.map((id) => (
+        <div key={id}>
+          <div className="cell text-footnote font-semibold text-[var(--label-2)]">
+            {t("ruleCheck.memory_night", { name: nameOf(id) })}
+          </div>
+          {mine
+            .filter((x) => x.nightId === id)
+            .map((x) => (
+              <ExceptionRow key={`${x.nightId}-${x.tandaId}`} x={x} />
+            ))}
+        </div>
+      ))}
+    </Group>
+  );
+}
 
 const when = (iso: string) => {
   const d = new Date(iso);
@@ -126,6 +163,7 @@ export function MemoryTab() {
   return (
     <div>
       <LearnedRules />
+      <MyNightExceptions />
       <FeaturedLearned />
       <Group
         header={t("db.memoryTab.notes")}
