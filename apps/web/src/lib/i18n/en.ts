@@ -2180,7 +2180,7 @@ export const en = {
   "exportSheet.youtube_playlist_created_part_left_out": "YouTube playlist created, part left out",
   "exportSheet.youtube_s_daily_search_budget_ran":
     " (YouTube's daily search budget ran out; the rest fills in another day)",
-  "featured.golden_sub": "4 h 36 min · {era} · double peak, Turkish cortinas",
+  "featured.golden_sub": "4 h 35 min · {era} · double peak, Turkish cortinas",
   "featured.golden_title": "Featured night",
   "featuredCard.open": "Open",
   "featuredCard.open_a_night_a_dj_built":

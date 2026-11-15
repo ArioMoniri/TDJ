@@ -106,8 +106,8 @@ const PINS: Array<{ slot: number; ids: string[]; why: string }> = [
   },
   {
     slot: 4,
-    ids: ["eb345072d6", "b313688f75", "3e9af572cf", "f9150b4c8a"],
-    why: "the DJ's Típica Víctor tanda (Vargas, Charlo, Gómez 1932–38)",
+    ids: ["eb345072d6", "9673dd79e8", "3e9af572cf", "f9150b4c8a"],
+    why: 'the DJ\'s Típica Víctor tanda (Vargas 1938, Alberto Gómez 1933; Llámale "h" in the Gómez take)',
   },
   {
     slot: 5,
@@ -151,8 +151,8 @@ const PINS: Array<{ slot: number; ids: string[]; why: string }> = [
   },
   {
     slot: 15,
-    ids: ["68f9f78507", "cfbb4947c7", "8106c5a228"],
-    why: "the DJ's valses (D'Arienzo 1935, Canaro 1938)",
+    ids: ["3b4476d64c", "a6a1af0e1d", "8106c5a228"],
+    why: "the DJ's Canaro valses, instrumental (Desde el Alma 1940, Francia, Corazón de Oro 1938)",
   },
   {
     slot: 16,

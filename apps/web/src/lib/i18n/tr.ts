@@ -2336,7 +2336,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
     "YouTube çalma listesi oluşturuldu, bir kısmı dışarıda kaldı",
   "exportSheet.youtube_s_daily_search_budget_ran":
     " (YouTube'un günlük arama kotası doldu; kalanı başka bir gün tamamlanır)",
-  "featured.golden_sub": "4 sa 36 dk · {era} · çift zirve, Türk kortinaları",
+  "featured.golden_sub": "4 sa 35 dk · {era} · çift zirve, Türk kortinaları",
   "featured.golden_title": "Öne çıkan gece",
   "featuredCard.open": "Aç",
   "featuredCard.open_a_night_a_dj_built":

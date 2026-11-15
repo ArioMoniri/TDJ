@@ -28,7 +28,7 @@ your browser.
 
 **Composes a night.** Choose the length and the era, press Compose. You get tandas in a TTVTTM cycle, a cortina
 picked for the tanda that follows it, an energy arc with a breather between two peaks, and a score that tells you
-what it checked. The featured night is mine: 25 tandas, 4 h 36 min of the golden age with Turkish cortinas.
+what it checked. The featured night is mine: 25 tandas, 4 h 35 min of the golden age with Turkish cortinas.
 
 <img src="media/readme/compose-light.webp" width="640" alt="A composed night: the energy arc, the score and the first tandas"/>
 

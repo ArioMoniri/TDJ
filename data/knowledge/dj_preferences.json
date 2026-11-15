@@ -4,7 +4,7 @@
   "54e1304409": 1,
   "8509c04168": 1,
   "eb345072d6": 1,
-  "b313688f75": 1,
+  "9673dd79e8": 1,
   "3e9af572cf": 1,
   "f9150b4c8a": 1,
   "131567e74b": 1,
@@ -32,8 +32,8 @@
   "0265a65075": 1,
   "00a061a315": 1,
   "166b2a4f3e": 1,
-  "68f9f78507": 1,
-  "cfbb4947c7": 1,
+  "3b4476d64c": 1,
+  "a6a1af0e1d": 1,
   "8106c5a228": 1,
   "28c8dff26b": 1,
   "c668717864": 1,
@@ -92,7 +92,6 @@
  "families": {
   "carlos-di-sarli||tango": 1,
   "orquesta-tipica-victor|angel vargas|tango": 1,
-  "orquesta-tipica-victor|charlo|tango": 1,
   "orquesta-tipica-victor|alberto gomez|tango": 1,
   "pedro-laurenz|alberto podesta|tango": 1,
   "pedro-laurenz|martin podesta|tango": 1,
@@ -107,7 +106,6 @@
   "lucio-demare|raul beron|tango": 1,
   "anibal-troilo|roberto rufino|tango": 1,
   "anibal-troilo||tango": 1,
-  "juan-d-arienzo||vals": 1,
   "francisco-canaro||vals": 1,
   "ricardo-tanturi|alberto castillo|tango": 1,
   "miguel-calo|raul iriarte|tango": 1,
@@ -140,12 +138,12 @@
    "at": "2026-11-14T12:00:00.000Z"
   },
   {
-   "id": "tango:eb345072d6,b313688f75,3e9af572cf,f9150b4c8a",
+   "id": "tango:eb345072d6,9673dd79e8,3e9af572cf,f9150b4c8a",
    "rhythm": "tango",
    "name": "Orquesta Típica Víctor · Adios Buenos Aires, Llámale \"h\", El Mortero del Globito, Ventarrón",
    "songIds": [
     "eb345072d6",
-    "b313688f75",
+    "9673dd79e8",
     "3e9af572cf",
     "f9150b4c8a"
    ],
@@ -247,12 +245,12 @@
    "at": "2026-11-14T12:00:00.000Z"
   },
   {
-   "id": "vals:68f9f78507,cfbb4947c7,8106c5a228",
+   "id": "vals:3b4476d64c,a6a1af0e1d,8106c5a228",
    "rhythm": "vals",
-   "name": "Juan D'Arienzo + Francisco Canaro · Desde el Alma, Francia, Corazón de Oro",
+   "name": "Francisco Canaro · Desde el Alma, Francia, Corazón de Oro",
    "songIds": [
-    "68f9f78507",
-    "cfbb4947c7",
+    "3b4476d64c",
+    "a6a1af0e1d",
     "8106c5a228"
    ],
    "at": "2026-11-14T12:00:00.000Z"
@@ -326,7 +324,7 @@
     "54e1304409",
     "8509c04168",
     "eb345072d6",
-    "b313688f75",
+    "9673dd79e8",
     "3e9af572cf",
     "f9150b4c8a",
     "131567e74b",
@@ -354,8 +352,8 @@
     "0265a65075",
     "00a061a315",
     "166b2a4f3e",
-    "68f9f78507",
-    "cfbb4947c7",
+    "3b4476d64c",
+    "a6a1af0e1d",
     "8106c5a228",
     "28c8dff26b",
     "c668717864",
