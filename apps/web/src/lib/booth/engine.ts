@@ -1,3 +1,4 @@
+import type { PlannedTransition } from "@tdj/core";
 import { t as tx } from "@/lib/i18n";
 import {
   DECLICK_IN,
@@ -18,6 +19,16 @@ import type {
   SourceAdapter,
   SourceKind,
 } from "./sources/types";
+import {
+  applyEqPoints,
+  applyIncoming,
+  applyOutgoing,
+  BASS_SHELF_HZ,
+  bassSwapPoints,
+  HIGH_SHELF_HZ,
+  type TransitionWindow,
+  transitionWindow,
+} from "./transition";
 
 /* ---------- the subset of Web Audio the engine uses (tests inject a recording fake, §12.1) ---------- */
 export interface AudioParamLike {
@@ -48,6 +59,12 @@ export interface OscillatorLike extends NodeLike {
   stop(when?: number): void;
   onended: ((ev: Event) => unknown) | null;
 }
+/** wave 4: the EQ of a transition's bass swap (a lowshelf and a highshelf per item) */
+export interface BiquadLike extends NodeLike {
+  type: string;
+  frequency: AudioParamLike;
+  gain: AudioParamLike;
+}
 export interface AnalyserLike extends NodeLike {
   fftSize: number;
   getFloatTimeDomainData(a: Float32Array): void;
@@ -62,6 +79,7 @@ export interface AudioContextLike {
   createBufferSource(): SourceNodeLike;
   createAnalyser(): AnalyserLike;
   createOscillator?(): OscillatorLike;
+  createBiquadFilter?(): BiquadLike;
   resume(): Promise<void>;
   suspend?(): Promise<void>;
   /** `statechange`: iOS interrupts the context for a call / Siri, a Bluetooth route change can suspend it */
@@ -148,6 +166,13 @@ interface Scheduled extends BoothItemRuntime {
   cancelled?: boolean;
   /** Spotify: the track position the item was started at */
   extStart?: number;
+  /** wave 4: the item's EQ (flat until a transition's bass swap automates it) */
+  eqLow?: BiquadLike;
+  eqHigh?: BiquadLike;
+  /** wave 4: an edited transition rewrote this item's tail; `end` is where it would have ended on its own */
+  tail?: { end: number };
+  /** wave 4: the DJ acted on this item (fade now, pause, crossfade, cortina fader): no transition rewrites it */
+  interrupted?: boolean;
 }
 /** Where a Pause left the night: the item and the seconds into it. */
 export interface PausedAt {
@@ -585,6 +610,7 @@ export class BoothEngine {
     const at = c.external
       ? Math.max(0, c.external.position() - (c.extStart ?? 0))
       : Math.max(0, now - c.startedAt);
+    c.interrupted = true;
     this.cancelQueued();
     c.cancelled = true;
     const fade = Math.max(0, fadeSec);
@@ -629,6 +655,7 @@ export class BoothEngine {
     if (c.when > now) return;
     const fade = Math.max(DECLICK_OUT, sec);
     if (now + fade >= c.endsAt) return; // it ends sooner on its own
+    c.interrupted = true;
     c.endsAt = now + fade;
     if (c.external) c.external.stop(fade);
     else {
@@ -653,6 +680,7 @@ export class BoothEngine {
       return this.fadeOutNow(sec);
     const now = this.ctx.currentTime;
     const fade = Math.max(DECLICK_OUT, sec);
+    c.interrupted = true;
     this.cancelQueued();
     this.holding = false;
     if (this.holdBefore === n) this.holdBefore = null;
@@ -766,6 +794,7 @@ export class BoothEngine {
     ) {
       const c = this.current;
       const endsAt = now + PAUSE_RAMP * 5;
+      c.interrupted = true;
       c.endsAt = endsAt;
       if (c.external) c.external.stop(0);
       else c.node?.stop(endsAt);
@@ -1029,12 +1058,91 @@ export class BoothEngine {
     if (!q) return;
     this.queued = null;
     q.cancelled = true;
+    // wave 4: the transition into it no longer happens: the running item gets its own end back
+    if (this.current) this.restoreTail(this.current);
+    const now = this.ctx.currentTime;
     if (q.external) q.external.cancel();
-    else {
-      q.node?.stop(this.ctx.currentTime);
+    else if (q.when < now && q.gain) {
+      // already sounding (an overlap): a short fade, never a click
+      this.fadeNodes(q, now, 0.05);
+      q.node?.stop(now + 0.05);
+    } else {
+      q.node?.stop(now);
       q.node?.disconnect();
       q.gain?.disconnect();
       q.fader?.disconnect();
+    }
+  }
+
+  /**
+   * Wave 4 — the DJ's edited transition from item `i` into `n`: only between plan neighbours (a skip or "play next"
+   * in between makes it the night's gap again).
+   */
+  transitionAfter(i: number, n: number): PlannedTransition | null {
+    if (n !== i + 1) return null;
+    return this.item(i)?.transitionAfter ?? null;
+  }
+  private windowFor(c: Scheduled, n: number, tr: PlannedTransition | null): TransitionWindow {
+    const it = this.item(c.planIndex);
+    return transitionWindow(tr, {
+      outLen: Math.max(0, (c.tail?.end ?? c.endsAt) - c.startedAt),
+      inLen: this.itemLength(n),
+      gapSec: this.gapAfter(c.planIndex),
+      songFadeOutSec: this.settings.songFadeOutSec,
+      outKind: it?.kind,
+      cortinaFadeOutSec: it?.fadeOutSec ?? this.settings.cortinaFadeOutSec,
+    });
+  }
+  /** Rewrite the running item's tail for the transition into the queued one (its fade, an early stop, its EQ). */
+  private applyTail(c: Scheduled, w: TransitionWindow) {
+    if (!c.gain || c.external || c.interrupted || c.cancelled) return;
+    const end = c.tail?.end ?? c.endsAt;
+    const now = this.ctx.currentTime;
+    const it = this.item(c.planIndex);
+    const lead = it?.kind === "cortina" ? (it.fadeInSec ?? 0) : 0;
+    applyOutgoing(c.gain.gain, {
+      endsAt: end,
+      base: c.base,
+      window: w,
+      curve: w.curveOut,
+      now,
+      notBefore: c.when + Math.max(DECLICK_IN, lead) + 0.01,
+    });
+    c.tail = { end };
+    if (w.outStop < 0) {
+      c.endsAt = end + w.outStop;
+      c.node?.stop(c.endsAt);
+    }
+    const eq = bassSwapPoints(w);
+    if (eq && c.eqLow && c.eqHigh) {
+      applyEqPoints(c.eqLow.gain, eq.outLow, end, now);
+      applyEqPoints(c.eqHigh.gain, eq.outHigh, end, now);
+    }
+  }
+  /** Give an item whose transition was cancelled its own end back (the night's fade, its natural stop, a flat EQ). */
+  private restoreTail(c: Scheduled) {
+    const end = c.tail?.end;
+    if (end === undefined || c.interrupted || c.cancelled || !c.gain) return;
+    c.tail = undefined;
+    const now = this.ctx.currentTime;
+    const it = this.item(c.planIndex);
+    const w = transitionWindow(null, {
+      outLen: end - c.startedAt,
+      inLen: 0,
+      gapSec: 0,
+      songFadeOutSec: this.settings.songFadeOutSec,
+      outKind: it?.kind,
+      cortinaFadeOutSec: it?.fadeOutSec ?? this.settings.cortinaFadeOutSec,
+    });
+    applyOutgoing(c.gain.gain, { endsAt: end, base: c.base, window: w, curve: "equalPower", now });
+    if (c.endsAt !== end) {
+      c.endsAt = end;
+      c.node?.stop(end);
+    }
+    for (const f of [c.eqLow, c.eqHigh]) {
+      if (!f) continue;
+      this.cancelAutomation(f.gain, now);
+      f.gain.setValueAtTime(0, now);
     }
   }
 
@@ -1046,8 +1154,19 @@ export class BoothEngine {
     if (n === null) return;
     if (this.holdBefore === n) return;
     const gen = this.generation;
-    const when = c.endsAt + this.gapAfter(c.planIndex);
-    const s = await this.schedule(n, when);
+    // wave 4: the DJ's edited transition (Spotify plays one track at a time: an overlap is the night's gap there)
+    let tr = c.interrupted ? null : this.transitionAfter(c.planIndex, n);
+    if (tr && tr.overlapSec > 0 && (c.external || this.sources[n] === "spotify")) tr = null;
+    const w = tr ? this.windowFor(c, n, tr) : null;
+    const end = c.tail?.end ?? c.endsAt;
+    const when = w
+      ? Math.max(this.ctx.currentTime + START_AHEAD, end + w.inStart)
+      : c.endsAt + this.gapAfter(c.planIndex);
+    const s = await this.schedule(
+      n,
+      when,
+      w ? { transitionIn: { window: w, outEnd: when - w.inStart } } : {},
+    );
     if (gen !== this.generation || this.current !== c || this.holding) {
       if (s) {
         s.cancelled = true;
@@ -1063,6 +1182,7 @@ export class BoothEngine {
       return;
     }
     this.queued = s;
+    if (w) this.applyTail(c, w);
     if (this.forcedNext === n) this.forcedNext = null;
     const after = this.nextPlayable(n);
     if (after !== null) void this.prepare(after).catch(() => {});
@@ -1072,7 +1192,11 @@ export class BoothEngine {
   private async schedule(
     i: number,
     when: number,
-    o: { from?: number; fadeIn?: number } = {},
+    o: {
+      from?: number;
+      fadeIn?: number;
+      transitionIn?: { window: TransitionWindow; outEnd: number };
+    } = {},
   ): Promise<Scheduled | null> {
     const it = this.item(i);
     if (!it) return null;
@@ -1123,7 +1247,22 @@ export class BoothEngine {
     const node = ctx.createBufferSource();
     node.buffer = buffer;
     const gain = ctx.createGain();
-    node.connect(gain);
+    // wave 4: a lowshelf and a highshelf per item, flat (0 dB) unless a transition's bass swap automates them
+    const low = ctx.createBiquadFilter?.();
+    const high = low ? ctx.createBiquadFilter?.() : undefined;
+    if (low && high) {
+      low.type = "lowshelf";
+      low.frequency.value = BASS_SHELF_HZ;
+      low.gain.value = 0;
+      high.type = "highshelf";
+      high.frequency.value = HIGH_SHELF_HZ;
+      high.gain.value = 0;
+      node.connect(low);
+      low.connect(high);
+      high.connect(gain);
+      base.eqLow = low;
+      base.eqHigh = high;
+    } else node.connect(gain);
     let last: GainNodeLike = gain;
     if (it.kind === "cortina") {
       const fader = ctx.createGain();
@@ -1161,16 +1300,28 @@ export class BoothEngine {
 
     // envelopes: declick in (or the resume fade), fades for cortinas, the song end fade, declick out at the end
     const resumeFade = o.fadeIn !== undefined ? Math.min(o.fadeIn, length / 2) : null;
+    // wave 4: an edited transition's rise replaces the item's own start (the declick, a cortina's fade in)
+    const trIn = o.transitionIn && from === 0 ? o.transitionIn : null;
+    const rise = trIn ? Math.min(trIn.window.inFade.len, length / 2) : 0;
     const fadeIn =
-      resumeFade === null && it.kind === "cortina" && from === 0
+      resumeFade === null && it.kind === "cortina" && from === 0 && rise === 0
         ? Math.min(it.fadeInSec ?? this.settings.cortinaFadeInSec, length / 2)
         : 0;
-    if (fadeIn > 0) gain.gain.setValueCurveAtTime(fadeInCurve(64, g.base), when, fadeIn);
+    if (trIn && rise > 0)
+      applyIncoming(gain.gain, {
+        when,
+        base: g.base,
+        window: { ...trIn.window, inFade: { ...trIn.window.inFade, len: rise } },
+        curve: trIn.window.curveIn,
+      });
+    else if (fadeIn > 0) gain.gain.setValueCurveAtTime(fadeInCurve(64, g.base), when, fadeIn);
     else {
       gain.gain.setValueAtTime(0, when);
       gain.gain.linearRampToValueAtTime(g.base, when + Math.max(DECLICK_IN, resumeFade ?? 0));
     }
-    const lead = Math.max(fadeIn, resumeFade ?? 0);
+    const eq = trIn ? bassSwapPoints(trIn.window) : null;
+    if (trIn && eq && low) applyEqPoints(low.gain, eq.inLow, trIn.outEnd, ctx.currentTime);
+    const lead = Math.max(fadeIn, resumeFade ?? 0, rise);
     const wantOut =
       it.kind === "cortina"
         ? (it.fadeOutSec ?? this.settings.cortinaFadeOutSec)
@@ -1188,6 +1339,8 @@ export class BoothEngine {
       setTimeoutSafe(() => {
         gain.disconnect();
         base.fader?.disconnect();
+        low?.disconnect();
+        high?.disconnect();
       }, 1000);
       if (!base.cancelled) this.onEnded(base);
     };

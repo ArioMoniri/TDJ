@@ -94,7 +94,16 @@ function MixStepper({
  * cortinas (play length, fades, volume), levels (room volume, loudness, silence trim) and the source. The actions
  * on the playing song live on the transport; a phone, whose transport has no room for them, gets them here first.
  */
-export function LevelsSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function LevelsSheet({
+  open,
+  onClose,
+  onEditTransitions,
+}: {
+  open: boolean;
+  onClose: () => void;
+  /** wave 4: "Edit transitions…" opens the transition editor at the next transition */
+  onEditTransitions?: () => void;
+}) {
   const cortinaFader = useBooth((s) => s.cortinaFader);
   const master = useBooth((s) => s.master);
   const muted = useBooth((s) => s.muted);
@@ -244,6 +253,16 @@ export function LevelsSheet({ open, onClose }: { open: boolean; onClose: () => v
           {...TRANSPORT_RANGES.stopFadeSec}
           onChange={(v) => set({ stopFadeSec: v })}
         />
+        {onEditTransitions && (
+          <ActionRow
+            label={tx("booth.sheets.edit_transitions")}
+            tip={tx("booth.sheets.edit_transitions_hint")}
+            onClick={() => {
+              onClose();
+              onEditTransitions();
+            }}
+          />
+        )}
       </Group>
       <Group header={tx("booth.sheets.cortinas")} footer={tx("booth.sheets.each_cortina_can_have_its_own")}>
         <MixStepper

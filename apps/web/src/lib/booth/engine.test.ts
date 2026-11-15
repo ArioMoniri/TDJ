@@ -935,3 +935,126 @@ describe("wave 2: a skipped tanda leaves the plan; a missing item is explained",
     expect(b?.text).not.toMatch(/\(skipped\)|No source/);
   });
 });
+
+/* ---------- wave 4: the DJ's edited transitions ---------- */
+class FakeBiquad {
+  type = "peaking";
+  frequency = new FakeParam();
+  gain = new FakeParam();
+  connect() {}
+  disconnect() {}
+}
+class EqCtx extends FakeCtx {
+  filters: FakeBiquad[] = [];
+  createBiquadFilter() {
+    const f = new FakeBiquad();
+    this.filters.push(f);
+    return f;
+  }
+}
+const tKey = (a: string, b: string) => `${a}→${b}`;
+
+describe("wave 4: edited transitions in the engine", () => {
+  let ctx: FakeCtx;
+  beforeEach(() => {
+    ctx = new FakeCtx();
+  });
+
+  it("a blend: the next song starts overlapSec before the end; both gains follow setValueCurveAtTime curves", async () => {
+    const plan = build(set(), { transitions: { [tKey("a1", "a2")]: { preset: "blend", overlapSec: 6 } } });
+    const e = engineFor(ctx, plan);
+    await e.start();
+    await e.play();
+    await flush();
+    const end = 0.05 + 170;
+    expect(ctx.sources[1]!.starts[0]![0]).toBeCloseTo(end - 6, 9);
+    const out = ctx.gains[1]!.gain.of("setValueCurveAtTime").at(-1)!;
+    expect(out.args[1]).toBeCloseTo(end - 6, 9);
+    expect(out.args[2]).toBeCloseTo(6, 9);
+    expect((out.args[0] as Float32Array).at(-1)).toBe(0);
+    const inn = ctx.gains[2]!.gain.of("setValueCurveAtTime")[0]!;
+    expect(inn.args[1]).toBeCloseTo(end - 6, 9);
+    expect((inn.args[0] as Float32Array)[0]).toBe(0);
+    // the remaining time counts the overlap once: the plan's clock
+    expect(e.remaining().remainingSec).toBeCloseTo(plan.wallClockSec, 0);
+  });
+
+  it("a gap edit replaces the night's gap for that transition only", async () => {
+    const plan = build(set(), { transitions: { [tKey("a1", "a2")]: { preset: "gap", gapSec: 4.5 } } });
+    const e = engineFor(ctx, plan);
+    await e.start();
+    await e.play();
+    expect(ctx.sources[1]!.starts[0]![0]).toBeCloseTo(0.05 + 170 + 4.5, 9);
+    ctx.advance(0.05 + 170);
+    await flush();
+    // a2 → cortina keeps the night's 2.5 s
+    expect(ctx.sources[2]!.starts[0]![0]).toBeCloseTo(0.05 + 170 + 4.5 + 170 + 2.5, 9);
+  });
+
+  it("a cortina cut: the cortina's fade ends at its stop second with the edited length, then the edited gap", async () => {
+    const plan = build(set(), {
+      transitions: { [tKey("c0", "b1")]: { preset: "cortinaCut", fadeOutSec: 6, gapSec: 1.5 } },
+    });
+    const e = engineFor(ctx, plan);
+    await e.start();
+    await e.play();
+    ctx.advance(0.05 + 170);
+    await flush();
+    ctx.advance(0.05 + 170 + 2.5 + 170);
+    await flush();
+    const c = ctx.sources[2]!;
+    const item = plan.items[2]!;
+    expect(item.fadeOutSec).toBe(6);
+    const cg = ctx.gains.filter((g) => g.gain.of("setValueCurveAtTime").length).at(-1)!;
+    const fade = cg.gain.of("setValueCurveAtTime").at(-1)!;
+    expect((fade.args[1] as number) + (fade.args[2] as number)).toBeCloseTo(c.endsAt!, 6);
+    expect(fade.args[2]).toBeCloseTo(6, 6);
+    expect(ctx.sources[3]!.starts[0]![0]).toBeCloseTo(c.endsAt! + 1.5, 6);
+  });
+
+  it("the bass swap: each item gets a lowshelf and a highshelf; at the centre the outgoing loses its lows", async () => {
+    const eq = new EqCtx();
+    const plan = build(set(), {
+      transitions: { [tKey("a1", "a2")]: { preset: "blend", overlapSec: 8, bassSwap: true } },
+    });
+    const e = engineFor(eq, plan);
+    await e.start();
+    await e.play();
+    await flush();
+    expect(eq.filters.map((f) => f.type)).toEqual(["lowshelf", "highshelf", "lowshelf", "highshelf"]);
+    const end = 0.05 + 170;
+    const outLow = eq.filters[0]!.gain.of("linearRampToValueAtTime").at(-1)!;
+    expect(outLow.args).toEqual([-24, expect.closeTo(end - 4, 6)]);
+    const inLow = eq.filters[2]!.gain;
+    expect(inLow.of("setValueAtTime")[0]!.args[0]).toBe(-24);
+    expect(inLow.of("linearRampToValueAtTime").at(-1)!.args).toEqual([0, expect.closeTo(end - 4, 6)]);
+  });
+
+  it("Hold before the transition gives the running song its own end back (no fade, its natural stop)", async () => {
+    const plan = build(set(), {
+      transitions: { [tKey("a1", "a2")]: { preset: "blend", overlapSec: 6, fadeOutSec: 3 } },
+    });
+    const e = engineFor(ctx, plan);
+    await e.start();
+    await e.play();
+    await flush();
+    const end = 0.05 + 170;
+    // the blend's outgoing stops once its 3 s fade is through
+    expect(ctx.sources[0]!.stops.at(-1)).toBeCloseTo(end - 3, 6);
+    e.hold();
+    const g = ctx.gains[1]!.gain;
+    expect(g.of("linearRampToValueAtTime").at(-1)!.args).toEqual([0, expect.closeTo(end, 6)]);
+    expect(e.current?.endsAt).toBeCloseTo(end, 6);
+  });
+
+  it("a transition only joins plan neighbours: with the next song skipped, the night's gap applies", async () => {
+    const plan = build(set(), { transitions: { [tKey("a1", "a2")]: { preset: "blend", overlapSec: 6 } } });
+    const e = engineFor(ctx, plan);
+    await e.start();
+    await e.play();
+    e.next(); // a2 is left out: c0 follows a1 at the gap
+    await flush();
+    const q = ctx.sources.at(-1)!;
+    expect(q.starts[0]![0]).toBeCloseTo(0.05 + 170 + 2.5, 9);
+  });
+});

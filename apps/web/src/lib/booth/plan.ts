@@ -105,10 +105,16 @@ export function remainingFrom(
   };
   const cur = plan.items[planIndex];
   if (!cur) return { remainingSec: 0, timeToCumparsita: 0 };
-  let rest = Math.max(0, (o.currentLength ?? len(planIndex)) - positionSec) + cur.gapAfterSec;
+  // wave 4: an edited blend / rise starts the next item before this one ends (only between plan neighbours)
+  const join = (i: number) => {
+    const it = plan.items[i]!;
+    const ov = !o.skipped?.has(i + 1) ? (it.overlapAfterSec ?? 0) : 0;
+    return it.gapAfterSec - ov;
+  };
+  let rest = Math.max(0, (o.currentLength ?? len(planIndex)) - positionSec) + join(planIndex);
   for (let i = planIndex + 1; i < plan.items.length; i++) {
     if (o.skipped?.has(i)) continue;
-    rest += len(i) + plan.items[i]!.gapAfterSec;
+    rest += len(i) + join(i);
   }
   const ci = closingIndex(plan);
   const closingLen =
