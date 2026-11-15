@@ -134,7 +134,7 @@ export function parseImport(text: string): AppOverrides {
   const j = JSON.parse(text);
   const o =
     j && typeof j === "object" && "overrides" in j && typeof j.overrides === "object" ? j.overrides : j;
-  if (!o || typeof o !== "object" || Array.isArray(o)) throw new Error("Not a TDJ database file");
+  if (!o || typeof o !== "object" || Array.isArray(o)) throw new Error("Not a T-DJ database file");
   const out: AppOverrides = {};
   for (const k of [
     "songs",

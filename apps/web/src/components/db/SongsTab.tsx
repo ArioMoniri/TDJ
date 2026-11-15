@@ -10,6 +10,7 @@ import { effectiveSong } from "@/lib/audio";
 import { fillMissing } from "@/lib/fill/client";
 import { rise, spring } from "@/lib/motion";
 import { SOURCE_LABEL } from "@/lib/songView";
+import { spotifyUri, spotifyUrl } from "@/lib/spotifyLink";
 import { toast } from "@/lib/toast";
 import type { Song, SongPatch } from "@/lib/types";
 import { metaLine, yearText } from "@/lib/year";
@@ -73,9 +74,9 @@ const SOURCE: Record<string, string> = {
   dj: "yours",
   deezer: "Deezer",
   audio: "analysed preview",
-  index: "index",
-  knowledge: "knowledge table",
-  heuristic: "refrain-era rule",
+  index: "T-DJ catalogue",
+  knowledge: "tango reference",
+  heuristic: "guessed from the era",
 };
 const VOCAL_STYLE_ITEMS: Array<[string, string]> = [
   ["cantor", "Singer-led (cantor)"],
@@ -209,7 +210,7 @@ export function SongsTab() {
       year,
       era: eraOf(year ?? undefined),
       energy: form.energy ? Number(form.energy) : undefined,
-      spotify: form.uri.trim() ? { uri: form.uri.trim() } : null,
+      spotify: form.uri.trim() ? { uri: spotifyUri(form.uri) } : null,
       source: "own",
     };
     update((o) => ({ ...o, addedSongs: [...(o.addedSongs ?? []), song] }));
@@ -395,7 +396,7 @@ export function SongsTab() {
                   editing={editing}
                   mono
                   value={p.artwork}
-                  placeholder={data.artwork ? "cached" : "–"}
+                  placeholder={data.artwork ? "Found" : "–"}
                   onChange={(t) =>
                     setField(s, "artwork", /^https:\/\//.test(t.trim()) ? t.trim() : undefined)
                   }
@@ -484,7 +485,7 @@ export function SongsTab() {
                   tile={
                     <span
                       className="tile"
-                      style={{ background: eff.audio ? "var(--tint)" : "var(--fill-2)" }}
+                      style={{ background: eff.audio ? "var(--tint-fill)" : "var(--fill-2)" }}
                       aria-hidden
                     >
                       <AudioWaveform size={14} strokeWidth={2} />
@@ -504,15 +505,33 @@ export function SongsTab() {
                   busy={analysing === s.id}
                   disabled={!res?.previewUrl}
                 />
-                <ValueCell
-                  label="Spotify"
-                  inputLabel={`Spotify URI of ${s.title}`}
-                  editing={editing}
-                  mono
-                  value={p.spotify?.uri}
-                  placeholder={s.spotify?.uri ?? "spotify:track:…"}
-                  onChange={(t) => setField(s, "spotify", t.trim() ? { uri: t.trim() } : null)}
-                />
+                {editing ? (
+                  <ValueCell
+                    label="Spotify link"
+                    inputLabel={`Spotify link of ${s.title}`}
+                    editing
+                    mono
+                    value={p.spotify?.uri}
+                    placeholder={s.spotify?.uri ?? "Paste a Spotify link"}
+                    onChange={(t) => setField(s, "spotify", t.trim() ? { uri: spotifyUri(t) } : null)}
+                  />
+                ) : (
+                  (() => {
+                    const url = spotifyUrl(p.spotify?.uri ?? s.spotify?.uri);
+                    return url ? (
+                      <Row
+                        label="Spotify"
+                        value="Open in Spotify"
+                        href={url}
+                        chevron
+                        aria-label={`Open ${s.title} in Spotify`}
+                        data-testid="db-spotify-link"
+                      />
+                    ) : (
+                      <Row label="Spotify" value="Not matched yet" />
+                    );
+                  })()
+                )}
                 <SwitchRow
                   label="Shown in sets"
                   sub={
@@ -627,8 +646,8 @@ export function SongsTab() {
             max: 100,
             placeholder: "0–100",
           })}
-          {field("own-uri", "Spotify URI", "uri", {
-            placeholder: "spotify:track:…",
+          {field("own-uri", "Spotify link", "uri", {
+            placeholder: "Paste a Spotify link",
             className: "field field-value min-w-0 flex-1 font-mono",
           })}
         </Group>

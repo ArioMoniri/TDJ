@@ -59,11 +59,14 @@ export function useFitLevel(ref: React.RefObject<HTMLElement | null>, max: numbe
   }, [ref]);
   // `key` and `size` are the reset triggers, not values the effect reads
   useIso(() => setLevel(0), [key, size]);
+  // Wave 2: measure only when something that changes the fit changed, and never while the element is not laid out
+  // (`size` 0: the tablet pill is display:none from lg). Reading scrollWidth after every render forced a layout of
+  // the whole incoming page inside the navigation commit (part of the ~0.5 s frame when returning to Compose).
   useIso(() => {
     const el = ref.current;
-    if (!el || level >= max) return;
+    if (!el || size === 0 || level >= max) return;
     if (el.scrollWidth > el.clientWidth + 1) setLevel(level + 1);
-  });
+  }, [level, max, key, size, ref]);
   return level;
 }
 

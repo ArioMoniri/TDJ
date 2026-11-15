@@ -7,12 +7,41 @@ import type { Song } from "./types";
  * edits them per user (`CoverageEdits`, kept in their database) and an edit always wins.
  */
 export type EraMark = "best" | "good" | "weak" | "outside";
-export const ERA_MARK_LABEL: Record<EraMark, string> = {
-  best: "Best years",
-  good: "Good years",
-  weak: "Uneven years",
-  outside: "Outside the best years",
+/**
+ * The one vocabulary of the era grades (wave 2: the app spoke three, "Best / Uneven / Outside", "4 fantastic … 0
+ * avoid" and "Best years / Weaker years"). Every badge, legend, grade cell and tooltip takes its words from here.
+ */
+export const ERA_WORDS: Record<EraMark, { word: string; label: string; meaning: string }> = {
+  best: { word: "Best", label: "Best years", meaning: "the orchestra's best years: whole tandas" },
+  good: { word: "Good", label: "Good years", meaning: "good years: dependable sides for the floor" },
+  weak: {
+    word: "Uneven",
+    label: "Uneven years",
+    meaning: "uneven years: single tracks rather than whole tandas",
+  },
+  outside: {
+    word: "Outside",
+    label: "Outside the best years",
+    meaning: "outside the orchestra's best years",
+  },
 };
+export const ERA_MARK_LABEL: Record<EraMark, string> = {
+  best: ERA_WORDS.best.label,
+  good: ERA_WORDS.good.label,
+  weak: ERA_WORDS.weak.label,
+  outside: ERA_WORDS.outside.label,
+};
+/** A heatmap grade (0–4) in the same words: the grade cells tell the two uneven grades apart. */
+export function gradeWord(g: HeatGrade | number | null | undefined): {
+  word: string;
+  meaning: string;
+  mark?: EraMark;
+} {
+  if (g === null || g === undefined) return { word: "Not graded", meaning: "no grade for this year" };
+  const mark = eraMark(g, true)!;
+  if (g === 1) return { word: "Uneven, singles", meaning: "uneven: only single tracks worth playing", mark };
+  return { word: ERA_WORDS[mark].word, meaning: ERA_WORDS[mark].meaning, mark };
+}
 export const ERA_MARKS: EraMark[] = ["best", "good", "weak", "outside"];
 
 /** a grade as a mark; `known` = the orchestra has a heatmap row (an ungraded orchestra gets no badge) */

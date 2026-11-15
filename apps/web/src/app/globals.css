@@ -7,7 +7,7 @@
   --font-serif: var(--font-serif-loaded), "New York", Georgia, serif;
   --color-ink: #0b0a10;
   --color-cream: #f6f1e8;
-  --color-rose: #c9426a; /* bandoneón-red tint (4.6:1 with white) */
+  --color-rose: #a33159; /* bandoneón-red tint (6.7:1 with white) */
   --color-gold: #e8b85a; /* golden age / locked */
   --color-teal: #4fd1c5; /* vals */
   --color-violet: #8b7cf6; /* milonga */
@@ -59,7 +59,8 @@
   --text: 20 18 28;
   --muted: 92 88 110;
   --line: 255 255 255;
-  --accent: #c9426a;
+  /* one step darker than the old #c9426a, which measured 3.19:1 as text on a fill-3 button in light */
+  --accent: #a33159;
   --ok: #1f7a43;
   --tone-tango: #b3264f;
   --tone-vals: #0f766e;
@@ -86,8 +87,10 @@
 
   /* Label hierarchy (label / secondaryLabel / tertiaryLabel / quaternaryLabel) */
   --label: rgb(var(--text));
-  --label-2: rgb(var(--text) / 0.6);
-  --label-3: rgb(var(--text) / 0.3);
+  /* raised from 0.6 / 0.3 (wave 2 testers: tertiary text measured 2.5:1 in dark and 1.97:1 in light); every
+     label clears 4.5:1 on the page, a cell and a fill-3 control (src/lib/contrast.test.ts) */
+  --label-2: rgb(var(--text) / 0.74);
+  --label-3: rgb(var(--text) / 0.64);
   --label-4: rgb(var(--text) / 0.18);
 
   /* Fills (systemFill … quaternarySystemFill) */
@@ -135,8 +138,12 @@
   /* Tint (interactive text, pickers, links). Rose. `--tint-text` is one step darker for 10–13 pt text on light
      glass (the tab labels measured 4.09:1 at 10 pt, round8-ux.md §2 Settings). */
   --tint: var(--accent);
-  --tint-rgb: 201 66 106;
-  --tint-text: #b0365c;
+  --tint-rgb: 163 49 89;
+  --tint-text: #a33159;
+  /* a filled tint control (primary button, selected chip) and the glyphs on it: split from `--tint` because in dark
+     no single rose is both light enough as text on the near-black page and dark enough under white text */
+  --tint-fill: var(--tint);
+  --on-tint: #fff;
   --destructive: #e5484d;
   /* one step darker than Apple's green: 3.1:1 on white was below the 3:1 line for the booth meter in light */
   --system-green: #28b24c;
@@ -192,10 +199,11 @@
   --bg-grouped: 11 10 16;
   --bg-cell: 26 24 36;
   --band-alpha: 0.04;
-  --tint-rgb: 224 85 122;
-  --tint: #e0557a;
-  --tint-text: #e0557a;
-  --accent: #e0557a;
+  --tint-rgb: 244 120 150;
+  --tint: #f47896;
+  --tint-text: #f47896;
+  --tint-fill: #c9426a;
+  --accent: #f47896;
   --destructive: #ff6b6b;
   --system-green: #30d158;
   color-scheme: dark;
@@ -218,10 +226,11 @@
     --bg-grouped: 11 10 16;
     --bg-cell: 26 24 36;
     --band-alpha: 0.04;
-    --tint-rgb: 224 85 122;
-    --tint: #e0557a;
-    --tint-text: #e0557a;
-    --accent: #e0557a;
+    --tint-rgb: 244 120 150;
+    --tint: #f47896;
+    --tint-text: #f47896;
+    --tint-fill: #c9426a;
+    --accent: #f47896;
     --destructive: #ff6b6b;
     --system-green: #30d158;
   }
@@ -994,8 +1003,8 @@ li + li > .cell[data-leading="num"]:first-child::before,
   }
 }
 @utility btn-primary {
-  background: var(--tint);
-  color: #fff;
+  background: var(--tint-fill);
+  color: var(--on-tint);
   min-height: 50px;
   box-shadow: none;
 }
@@ -1070,10 +1079,10 @@ li + li > .cell[data-leading="num"]:first-child::before,
 }
 /* the send button in the Adjust group: "arrow.up.circle.fill" */
 .icon-btn-send:not(:disabled) {
-  color: #fff;
+  color: var(--on-tint);
 }
 .icon-btn-send:not(:disabled)::before {
-  background: var(--tint);
+  background: var(--tint-fill);
 }
 
 /* Field: text field inside a cell (no border, right aligned when it is a value) */
@@ -1198,8 +1207,8 @@ select.field {
   }
 }
 @utility chip-on {
-  background: var(--tint);
-  color: #fff;
+  background: var(--tint-fill);
+  color: var(--on-tint);
 }
 
 /* Segmented control (UISegmentedControl): 32 pt, radius 9, 13 pt medium, inside a 2 px padded track */
@@ -1629,7 +1638,7 @@ input[type="range"]::-moz-range-thumb {
   color: #1a1400;
 }
 .swipe-action[data-kind="swap"] {
-  background: var(--tint);
+  background: var(--tint-fill);
 }
 .swipe-action[data-kind="destructive"] {
   background: var(--destructive);
@@ -2460,5 +2469,54 @@ html.theming *::after {
   }
   .settings-cols > section:first-child > .section-head {
     margin-top: 0;
+  }
+}
+
+/* Wave 2 (testers): touch targets. On touch (pointer: coarse) every control is at least 44 px; with a mouse the
+   controls keep their native Mac sizes (28 px segments, 32 px chips and steppers, 36 px sidebar rows), all of them
+   at least 28 px. The toolbar's capsules are 40 px at lg with a mouse (Composer.tsx) and 44 px on an iPad. */
+@media (pointer: coarse) {
+  .toolbar-row .btn,
+  .toolbar-pill-band .btn {
+    min-height: 44px;
+  }
+  .seg {
+    min-height: 44px;
+  }
+  .chip,
+  .chip-filter {
+    min-height: 44px;
+  }
+  .stepper,
+  .stepper button {
+    height: 44px;
+  }
+  /* the energy chart's dots: a 44 px round hit area (the chart draws at about 0.77 of its viewBox on iPad landscape) */
+  .dot-hit {
+    r: 30px;
+  }
+}
+/* a page's main switch (Night / Log in a room): 44 px with a mouse too */
+.segmented-l .seg {
+  min-height: 44px;
+  padding: 0 16px;
+  font-size: var(--text-subhead);
+}
+/* the Rooms column never moves sideways when the page grows a scroll bar (once you are in a room); only there,
+   so the full-bleed top bars elsewhere still reach the window edge */
+html:has([data-rooms-page]) {
+  scrollbar-gutter: stable;
+}
+
+/* Wave 2: room for the floating bars. The Compose dock floats over the foot of the window on iPad and the Mac
+   (Composer.tsx owns it): the page reserves its height plus the safe area, below the content and as scroll padding,
+   so a control scrolled or tabbed into view (Arc) lands above the dock, never under it. */
+@media (min-width: 640px) {
+  html:has([data-testid="compose-dock"]) {
+    --dock-reserve: 88px;
+    scroll-padding-bottom: calc(var(--dock-reserve) + env(safe-area-inset-bottom, 0px));
+  }
+  html:has([data-testid="compose-dock"]) main {
+    padding-bottom: calc(var(--dock-reserve) + env(safe-area-inset-bottom, 0px));
   }
 }

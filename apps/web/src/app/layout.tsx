@@ -29,13 +29,13 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   // per page: "Compose · TDJ", "History · TDJ"… (round8-qa.md B17); route layouts set the page part
-  title: { default: "Compose · TDJ", template: "%s · TDJ" },
-  applicationName: "TDJ — Tango DJ playlist composer",
+  title: { default: "Compose · T-DJ", template: "%s · T-DJ" },
+  applicationName: "T-DJ — Tango DJ playlist composer",
   description:
     "Compose milonga sets: tandas, cortinas and a night-long energy arc from a 21,000-recording golden-age index. Export to Spotify, Rekordbox, Traktor, M3U.",
   icons: { icon: "/icon.svg" },
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, title: "TDJ", statusBarStyle: "black-translucent" },
+  appleWebApp: { capable: true, title: "T-DJ", statusBarStyle: "black-translucent" },
 };
 export const viewport: Viewport = {
   themeColor: [

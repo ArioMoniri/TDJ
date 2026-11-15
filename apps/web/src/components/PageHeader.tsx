@@ -130,7 +130,9 @@ export function PageHeader({
     const on = () => {
       if (!raf) raf = requestAnimationFrame(read);
     };
-    read();
+    // the first read waits for the next frame too (wave 2): read at mount it forced a synchronous layout of the
+    // whole incoming page inside the navigation's commit (returning to Compose froze for one ~0.5 s frame)
+    on();
     window.addEventListener("scroll", on, { passive: true });
     window.addEventListener("resize", on);
     return () => {

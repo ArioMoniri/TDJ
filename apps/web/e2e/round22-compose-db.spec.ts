@@ -165,7 +165,7 @@ test("orchestras: grouped, best years and singers, the era heatmap and editable 
   // the details sheet keeps the engine fields
   await page.keyboard.press("Escape");
   await disarli.getByRole("button", { name: /details/ }).click();
-  await expect(page.getByTestId("orchestra-detail")).toContainText("Not before");
+  await expect(page.getByTestId("orchestra-detail")).toContainText("Earliest in the night");
 });
 
 test("settings: add a source; Discogs takes the DJ's token and stays in this browser", async ({ page }) => {

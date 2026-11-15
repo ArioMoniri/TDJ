@@ -128,9 +128,13 @@ export default function DatabasePage() {
         title="Database"
         subtitle={
           <>
-            {meta ? meta.meta.songs.toLocaleString() : "…"} recordings · updated {built}
-            {/* the DJ's edits: said only once there are some ("0 changes" read as engineering, round8-ux.md §2) */}
-            <span className={changes ? "" : "sr-only"}>
+            <span className="whitespace-nowrap">
+              {meta ? meta.meta.songs.toLocaleString() : "…"} recordings
+            </span>{" "}
+            <span className="whitespace-nowrap">· updated {built}</span>
+            {/* the DJ's edits: said only once there are some ("0 changes" read as engineering, round8-ux.md §2);
+                one unbreakable run, so "· 3 changes" never wraps onto a line of its own (wave 2) */}
+            <span className={changes ? "whitespace-nowrap" : "sr-only"}>
               {" · "}
               <span data-testid="db-changes">
                 {overridesReady ? <CountUp value={changes} /> : "…"} {changes === 1 ? "change" : "changes"}

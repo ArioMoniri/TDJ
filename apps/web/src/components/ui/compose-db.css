@@ -97,23 +97,71 @@
   height: 9px;
 }
 .era-badge[data-mark="best"],
-.heat-cell[data-g="4"] {
+.heat-cell[data-g="4"],
+.grade-swatch[data-g="4"] {
   --era-c: #28b24c;
 }
 .era-badge[data-mark="good"],
-.heat-cell[data-g="3"] {
+.heat-cell[data-g="3"],
+.grade-swatch[data-g="3"] {
   --era-c: #3a9bdc;
 }
 .era-badge[data-mark="weak"],
-.heat-cell[data-g="2"] {
+.heat-cell[data-g="2"],
+.grade-swatch[data-g="2"] {
   --era-c: #e8a33a;
 }
-.heat-cell[data-g="1"] {
+.heat-cell[data-g="1"],
+.grade-swatch[data-g="1"] {
   --era-c: #d9783a;
 }
 .era-badge[data-mark="outside"],
-.heat-cell[data-g="0"] {
+.heat-cell[data-g="0"],
+.grade-swatch[data-g="0"] {
   --era-c: #8e8e93;
+}
+
+/* wave 2: a grade in the Era grades sheet is a word with its colour, not a digit on a 14 px strip; a 44 px target
+   on touch, 32 px with a mouse */
+.grade-swatch {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--era-c, transparent);
+  box-shadow: inset 0 0 0 1px var(--separator);
+}
+.grade-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  max-width: 11rem;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 8px;
+  background: var(--fill-4);
+  color: var(--label);
+  font-size: var(--text-footnote);
+  font-weight: 500;
+}
+.grade-btn[data-g=""] {
+  color: var(--label-2);
+}
+.grade-btn[data-edited] {
+  box-shadow: inset 0 0 0 1.5px var(--label);
+}
+.grade-btn:not(:disabled) {
+  cursor: pointer;
+}
+.grade-btn:disabled {
+  opacity: 1;
+}
+@media (pointer: coarse) {
+  .grade-btn {
+    min-height: 44px;
+  }
 }
 
 /* the era heatmap: one row per mode, one cell per year */
@@ -202,8 +250,8 @@ button.heat-cell {
   white-space: nowrap;
 }
 .chip-filter[aria-pressed="true"] {
-  background: var(--tint);
-  color: #fff;
+  background: var(--tint-fill);
+  color: var(--on-tint);
 }
 .place-pill {
   display: inline-flex;

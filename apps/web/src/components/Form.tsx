@@ -455,7 +455,8 @@ export function SegmentedRow<K extends string>({
       {t.tag}
       {tile}
       <span className="seg-row-label min-w-0 flex-1">
-        <span className="block truncate">{label}</span>
+        {/* the label wraps rather than truncating ("Where the night rises and …", wave 2) */}
+        <span className="block text-pretty">{label}</span>
         {sub && <span className="text-footnote block text-[var(--label-2)]">{sub}</span>}
       </span>
       {children}

@@ -1,6 +1,6 @@
 "use client";
 import "../ui/compose-db.css";
-import { bestYears, type CoverageRow, HEAT_LABEL, type HeatGrade, rangesLabel } from "@tdj/core";
+import { bestYears, type CoverageRow, ERA_WORDS, gradeWord, rangesLabel } from "@tdj/core";
 import { ChevronRight, Grid3x3 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { coverageWith, DEFAULT_COVERAGE, editGrade, nextGrade } from "@/lib/era";
@@ -25,10 +25,12 @@ const STYLES: Array<[OrchestraProfile["style"], string]> = [
 ];
 const STYLE_LABEL = Object.fromEntries(STYLES) as Record<string, string>;
 const TIERS: Array<[string, string]> = [
-  ["1", "1 · core"],
-  ["2", "2 · secondary"],
-  ["3", "3 · rarely"],
+  ["1", "Core: every night"],
+  ["2", "Secondary: a tanda or two"],
+  ["3", "Rarely: special nights"],
 ];
+/** the grades a cell cycles through, in the app's one era vocabulary (ERA_WORDS / gradeWord) */
+const GRADE_LEGEND: Array<number | null> = [4, 3, 2, 1, 0, null];
 const TIER_GROUP: Record<number, [string, string]> = {
   1: ["The core", "The orchestras a milonga is built on"],
   2: ["Secondary", "Good for variety, a tanda or two a night"],
@@ -55,6 +57,9 @@ const ERA_GROUP = (y?: number) =>
           : "Nuevo and contemporary";
 const PAGE = 24;
 const num = (v: string) => (v === "" ? undefined : Number(v));
+/** "Not before" in a DJ's words: 0 → "From the start", 25 → "After 25 % of the night" */
+const notBeforeText = (pct: string | number) =>
+  Math.round(Number(pct)) <= 0 ? "From the start" : `After ${Math.round(Number(pct))} % of the night`;
 const yr = (r?: [number, number]) =>
   r
     ? r[0] === r[1]
@@ -130,7 +135,7 @@ function Heatmap({
         className="heat-cell"
         data-g={has ? g : ""}
         data-edited={edited(mode, y) || undefined}
-        data-tip={`${y} · ${mode === "vocal" ? "with a singer" : "instrumental"}: ${has ? HEAT_LABEL[g as HeatGrade] : "not graded"}`}
+        data-tip={`${y} · ${mode === "vocal" ? "with a singer" : "instrumental"}: ${gradeWord(has ? g : null).word}`}
       />
     );
   };
@@ -138,7 +143,7 @@ function Heatmap({
     <Tip
       text={
         cellTip ??
-        `${name}'s years, graded from your heatmap: green best, blue good, orange uneven, grey avoid`
+        `${name}'s years from your heatmap: green ${ERA_WORDS.best.word.toLowerCase()}, blue ${ERA_WORDS.good.word.toLowerCase()}, orange ${ERA_WORDS.weak.word.toLowerCase()}, grey ${ERA_WORDS.outside.word.toLowerCase()}`
       }
       className="w-full"
     >
@@ -370,7 +375,7 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
         <section key={k} className="min-w-0" data-testid="orchestra-group">
           <h2 className="section-head">
             {by === "tier"
-              ? (TIER_GROUP[Number(k)]?.[0] ?? `Tier ${k}`)
+              ? (TIER_GROUP[Number(k)]?.[0] ?? "Other")
               : by === "style"
                 ? (STYLE_LABEL[k] ?? k)
                 : k}
@@ -434,7 +439,7 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
                     disabled={!editing}
                   />
                   <PickerRow
-                    label="Tier"
+                    label="Importance"
                     ariaLabel={`${o.name} tier`}
                     value={String(p.tier ?? o.tier)}
                     items={TIERS}
@@ -442,27 +447,30 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
                     disabled={!editing}
                   />
                   <ValueCell
-                    label="Not before"
-                    inputLabel={`${o.name} not before (fraction of the night)`}
+                    label={editing ? "Earliest in the night, %" : "Earliest in the night"}
+                    inputLabel={`${o.name}: earliest point in the night, in percent`}
                     editing={editing}
-                    value={p.notBefore}
-                    placeholder={o.notBefore ?? 0}
+                    value={p.notBefore === undefined ? undefined : Math.round(p.notBefore * 100)}
+                    placeholder={
+                      editing ? Math.round((o.notBefore ?? 0) * 100) : notBeforeText((o.notBefore ?? 0) * 100)
+                    }
                     type="number"
                     min={0}
-                    max={1}
-                    step={0.05}
-                    onChange={(t) => setField(o, "notBefore", num(t))}
+                    max={100}
+                    step={5}
+                    display={notBeforeText}
+                    onChange={(t) => setField(o, "notBefore", t === "" ? undefined : Number(t) / 100)}
                   />
                   <Row
-                    label="Phases"
+                    label="Parts of the night"
                     value={phases.length ? phases.map((ph) => PHASE_LABEL[ph] ?? ph).join(", ") : "Any"}
                     chevron
                     onClick={() => setPhasesFor(o)}
                   />
                   {Object.keys(singers).length > 0 && (
                     <Row
-                      label="Singer years"
-                      value={`${Object.keys(singers).length}`}
+                      label="Singers and their years"
+                      value={`${Object.keys(singers).length} ${Object.keys(singers).length === 1 ? "singer" : "singers"}`}
                       chevron
                       onClick={() => setSingersFor(o)}
                     />
@@ -502,7 +510,10 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
         trailing="Done"
       >
         {phasesFor && (
-          <Group header="Phases of the night" footer="Where this orchestra belongs. Empty means anywhere.">
+          <Group
+            header="Parts of the night"
+            footer="Where this orchestra belongs. None ticked means anywhere."
+          >
             {PHASES.map((ph) => {
               const phases = phasesOf(phasesFor);
               const on = phases.includes(ph);
@@ -527,7 +538,10 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
         trailing="Done"
       >
         {singersFor && (
-          <Group header="Singer years" footer="First and last year each singer recorded with the orchestra.">
+          <Group
+            header="Singers and their years"
+            footer="First and last year each singer recorded with the orchestra."
+          >
             {Object.entries(singersOf(singersFor)).map(([name, yrs]) => {
               const singers = singersOf(singersFor);
               return (
@@ -575,9 +589,23 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
       >
         {gradesFor && (
           <Group
-            header="Tap a grade to change it"
-            footer="4 fantastic · 3 good · 2 uneven · 1 single tracks only · 0 avoid · – not graded. Your grades win over the shipped ones; set one back to remove your change."
+            header={editing ? "Tap a grade to change it" : "Grades by year"}
+            footer="Your grades win over the shipped ones; set one back to remove your change."
           >
+            <div className="cell flex-wrap gap-x-3 gap-y-1 py-2" data-testid="grade-legend">
+              {GRADE_LEGEND.map((g) => (
+                <span key={String(g)} className="text-footnote inline-flex items-center gap-1.5">
+                  <span className="grade-swatch" data-g={g ?? ""} aria-hidden />
+                  <span>
+                    <b className="font-semibold">{gradeWord(g).word}</b>
+                    <span className="text-[var(--label-2)]">
+                      {" "}
+                      {gradeWord(g).meaning.replace(/^[^:]*: /, "")}
+                    </span>
+                  </span>
+                </span>
+              ))}
+            </div>
             <div className="cell text-footnote py-2 text-[var(--label-2)]">
               <span className="w-14 shrink-0">Year</span>
               <span className="flex-1 text-center">Instrumental</span>
@@ -590,20 +618,21 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
                   const g = gradeRow?.[mode]?.[String(y)];
                   const has = typeof g === "number";
                   const mine = heatEdits?.[gradesFor.id]?.[mode]?.[String(y)] !== undefined;
+                  const word = gradeWord(has ? g : null).word;
                   return (
-                    <span key={mode} className="flex flex-1 justify-center">
+                    <span key={mode} className="flex min-w-0 flex-1 justify-center">
                       <button
                         type="button"
-                        className="heat-cell text-footnote h-11 w-16 font-semibold text-white"
+                        className="grade-btn"
                         data-g={has ? g : ""}
                         data-edited={mine || undefined}
-                        style={has ? undefined : { color: "var(--label-2)" }}
-                        aria-label={`${y} ${mode === "vocal" ? "with a singer" : "instrumental"}: ${has ? HEAT_LABEL[g as HeatGrade] : "not graded"}. Change`}
+                        aria-label={`${y} ${mode === "vocal" ? "with a singer" : "instrumental"}: ${word}${editing ? ". Change" : ""}`}
                         onClick={() => setGrade(gradesFor, mode, y)}
                         disabled={!editing}
                         data-testid="grade-cell"
                       >
-                        {has ? g : "–"}
+                        <span className="grade-swatch" data-g={has ? g : ""} aria-hidden />
+                        <span className="truncate">{word}</span>
                       </button>
                     </span>
                   );

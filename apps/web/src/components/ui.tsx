@@ -57,6 +57,7 @@ export function Segmented<K extends string>({
   label,
   className = "",
   tips,
+  size = "regular",
 }: {
   value: K;
   items: Array<[K, string]>;
@@ -64,6 +65,8 @@ export function Segmented<K extends string>({
   label?: string;
   className?: string;
   tips?: Partial<Record<K, string>>;
+  /** `large`: 44 px segments with a mouse too (a page's main switch, e.g. Night / Log in a room) */
+  size?: "regular" | "large";
 }) {
   const id = useId();
   const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -85,7 +88,7 @@ export function Segmented<K extends string>({
       <div
         role="radiogroup"
         aria-label={label}
-        className={`segmented scroll-x ${className}`}
+        className={`segmented scroll-x ${size === "large" ? "segmented-l" : ""} ${className}`}
         onKeyDown={onKey}
       >
         {items.map(([k, l]) => (

@@ -66,10 +66,10 @@ function ModelRow({
         {useAs.tag}
         {tile}
         <span className="min-w-0 flex-1">
-          <span className="block truncate">{label}</span>
-          <span className="text-footnote flex items-center gap-1 truncate text-[var(--label-2)]">
+          <span className="block break-words">{label}</span>
+          <span className="text-footnote flex items-start gap-1 text-[var(--label-2)]">
             <StatusMark p={probe} />
-            <span className="truncate">{probe && probe.state !== "busy" ? probe.text : sub}</span>
+            <span className="min-w-0 break-words">{probe && probe.state !== "busy" ? probe.text : sub}</span>
           </span>
         </span>
         <span className="grid h-5 w-5 shrink-0 place-items-center">
@@ -194,11 +194,16 @@ export function ModelConnections() {
               id={`model-${p}`}
               label={label}
               sub={k.key ? `Key saved · ${modelFor(p, k.model)}` : "No key"}
-              active={settings.ai.provider === p}
+              // the check mark means "this runs every generation": never beside a provider with no key
+              active={settings.ai.provider === p && !!k.key}
               onUse={() => setSettings(chooseKeyProvider(ms, p))}
               onTest={() => testKey(p)}
               testDisabled={!k.key}
-              testTitle={k.key ? `Ask ${label} for one word` : "Add a key in Models above first"}
+              testTitle={
+                k.key
+                  ? `Ask ${label} for one word`
+                  : `Test is off: add a ${label} key under Models above first`
+              }
               probe={probe[p]}
               tile={
                 <Tile color="#5856d6">
@@ -218,7 +223,11 @@ export function ModelConnections() {
             onUse={() => setSettings(chooseAgent(ms, c.id))}
             onTest={() => testAgent(c)}
             testDisabled={c.kind === "process" && !local}
-            testTitle="Connect to the agent and ask for one word"
+            testTitle={
+              c.kind === "process" && !local
+                ? "Test is off: an agent started as a program only runs in the Mac app"
+                : "Connect to the agent and ask for one word"
+            }
             probe={probe[c.id]}
             onEdit={() => setEditing(c)}
             tile={
@@ -326,7 +335,7 @@ export function ModelConnections() {
                     ? "Connecting…"
                     : probe[editing.id]
                       ? (probe[editing.id] as { text: string }).text
-                      : `${PROVIDER_LABEL.acp}: TDJ only asks it questions; it gets no files, no terminal and no permissions.`}
+                      : `${PROVIDER_LABEL.acp}: T-DJ only asks it questions; it gets no files, no terminal and no permissions.`}
                 </span>
               }
             >

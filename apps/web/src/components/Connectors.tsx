@@ -45,7 +45,7 @@ const APP_META: Record<ConnectApp, { color: string; icon: ReactNode; sub: string
     icon: <ListVideo size={16} strokeWidth={2} />,
     sub: "Playlists · YouTube Music sees them too",
     blurb:
-      "Creates a YouTube playlist in your account (YouTube Music shows it as well). Matching uses a daily search budget shared by every TDJ user, so some 78-rpm recordings may be left out; the result lists them.",
+      "Creates a YouTube playlist in your account (YouTube Music shows it as well). Matching uses a daily search budget shared by every T-DJ user, so some 78-rpm recordings may be left out; the result lists them.",
   },
   dropbox: {
     color: "#0061ff",
@@ -58,7 +58,7 @@ const APP_META: Record<ConnectApp, { color: string; icon: ReactNode; sub: string
     color: "#1fa463",
     icon: <HardDrive size={16} strokeWidth={2} />,
     sub: "Export files to your Drive",
-    blurb: "Saves the chosen export file into your Google Drive. TDJ only sees files it created.",
+    blurb: "Saves the chosen export file into your Google Drive. T-DJ only sees files it created.",
   },
   spotify: {
     color: "#1db954",
@@ -86,7 +86,7 @@ export async function fetchPublicStatus(): Promise<PublicStatus | null> {
 }
 /** The message a DJ sends the organiser to get one of the Spotify seats. */
 export const seatRequest = (origin: string) =>
-  `Hi! I would like to use TDJ (${origin}) with my Spotify account. Could you add my Spotify e-mail to the app's User Management list in the Spotify dashboard? My Spotify e-mail: ______. Thanks!`;
+  `Hi! I would like to use T-DJ (${origin}) with my Spotify account. Could you add my Spotify e-mail to the app's User Management list in the Spotify dashboard? My Spotify e-mail: ______. Thanks!`;
 
 /** The status dot in front of a row value: green connected, grey not, amber needs attention. */
 function Dot({ tone }: { tone: "on" | "off" | "warn" }) {
@@ -327,7 +327,7 @@ export function Connectors() {
       >
         <Group
           header="Account"
-          footer={`${APP_META[app].blurb} One button: ${label} asks for your permission in a new tab and Pipedream keeps the connection; TDJ never sees your password or your tokens.`}
+          footer={`${APP_META[app].blurb} One button: ${label} asks for your permission in a new tab and Pipedream keeps the connection; T-DJ never sees your password or your tokens.`}
         >
           <Row
             label="Status"
@@ -560,7 +560,7 @@ export function Connectors() {
           <>
             <Group
               header="Account"
-              footer="One Google account for two things: export files go to a TDJ folder in your Drive (TDJ only ever sees files it created), and playlists go to YouTube (YouTube Music shows them too). Google asks for each permission the first time you use it. The login is kept in a sealed cookie in this browser; myaccount.google.com → Security → Third-party access removes it."
+              footer="One Google account for two things: export files go to a TDJ folder in your Drive (T-DJ only ever sees files it created), and playlists go to YouTube (YouTube Music shows them too). Google asks for each permission the first time you use it. The login is kept in a sealed cookie in this browser; myaccount.google.com → Security → Third-party access removes it."
             >
               <Row
                 label="Status"
@@ -594,7 +594,7 @@ export function Connectors() {
             {googleUser && (
               <Group
                 header="Permissions"
-                footer="Each permission is asked once, on Google's own page, and only for what it names. YouTube matching uses a daily search budget shared by every TDJ user, so some 78-rpm recordings may be left out; the export sheet lists them."
+                footer="Each permission is asked once, on Google's own page, and only for what it names. YouTube matching uses a daily search budget shared by every T-DJ user, so some 78-rpm recordings may be left out; the export sheet lists them."
               >
                 <Row
                   tile={tile(APP_META.google_drive.color, APP_META.google_drive.icon)}
@@ -636,7 +636,7 @@ export function Connectors() {
         {dropbox === null || dropbox.hosted ? (
           <Group
             header="Account"
-            footer="Saves the chosen export file (Rekordbox XML, Traktor NML, M3U8, CSV…) into Apps/TDJ/<set name>/ in your Dropbox and gives you a share link. TDJ only sees that folder. The login is kept in a sealed cookie in this browser; dropbox.com → Settings → Connected apps removes it."
+            footer="Saves the chosen export file (Rekordbox XML, Traktor NML, M3U8, CSV…) into Apps/TDJ/<set name>/ in your Dropbox and gives you a share link. T-DJ only sees that folder. The login is kept in a sealed cookie in this browser; dropbox.com → Settings → Connected apps removes it."
           >
             <Row
               label="Status"
@@ -764,7 +764,7 @@ export function Connectors() {
       >
         <Group
           header="Keyless"
-          footer="Deezer's public search gives TDJ 30 s previews, artwork and durations for the play buttons and the in-browser analysis. Nothing is written to Deezer and no account is needed. Deezer export is not offered: new developer apps have been closed since June 2025."
+          footer="Deezer's public search gives T-DJ 30 s previews, artwork and durations for the play buttons and the in-browser analysis. Nothing is written to Deezer and no account is needed. Deezer export is not offered: new developer apps have been closed since June 2025."
         >
           <Row label="Status" value={statusText[deezer]} busy={deezer === "checking"} />
           <Row label="Used for" value="Previews · Metadata" />
@@ -799,7 +799,7 @@ export function Connectors() {
       >
         <Group
           header="Webhook URL"
-          footer="Paste a Pipedream, Make, Zapier or n8n URL. TDJ sends the exported file there (the Guide lists the headers it adds). The URL stays in this browser."
+          footer="Paste a Pipedream, Make, Zapier or n8n URL. T-DJ sends the exported file there (the Guide lists the headers it adds). The URL stays in this browser."
         >
           <label htmlFor="connector-webhook-url" className="cell">
             <span className="sr-only">Webhook URL</span>
