@@ -3,7 +3,9 @@ import { Info, ListEnd } from "lucide-react";
 import { durationLabel } from "@/lib/booth/plan";
 import { SOURCE_LABEL } from "@/lib/booth/sources/types";
 import { useBooth } from "@/lib/booth/store";
-import { Artwork, BpmKey, EnergyChip, EraBadge } from "./Indicators";
+import { Artwork } from "../ui/Artwork";
+import { BpmKey, EnergyChip } from "../ui/BpmKey";
+import { EraBadge } from "../ui/EraBadge";
 import { Meter } from "./Meter";
 
 const RHYTHM: Record<string, string> = {
@@ -89,7 +91,7 @@ export function NowCard({ onInfo }: { onInfo?: (planIndex: number) => void }) {
   return (
     <section className="booth-card" data-testid="booth-now" aria-label="Now playing">
       <div className="booth-now-head">
-        <Artwork e={entity} orchestra={orchestra} size={96} />
+        <Artwork entity={entity} orchestra={orchestra} size={96} />
         <div className="min-w-0 flex-1">
           <p className="booth-eyebrow" data-hint="Where this song sits in the night">
             <span className="text-[var(--room)]">● Room</span> ·{" "}
@@ -103,7 +105,7 @@ export function NowCard({ onInfo }: { onInfo?: (planIndex: number) => void }) {
             {item.year ? ` · ${item.year}` : ""}
           </p>
           <div className="booth-meta">
-            <EraBadge e={entity} />
+            <EraBadge entity={entity} />
             <BpmKey e={entity} />
             <EnergyChip e={entity} />
           </div>

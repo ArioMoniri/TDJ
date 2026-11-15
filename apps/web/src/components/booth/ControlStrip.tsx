@@ -19,8 +19,8 @@ import { durationLabel } from "@/lib/booth/plan";
 import { useBooth } from "@/lib/booth/store";
 import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
+import { Artwork } from "../ui/Artwork";
 import { Fader } from "./Fader";
-import { Artwork } from "./Indicators";
 
 /**
  * Transport (round 22, the DJ-app bottom bar): the only glass surface of the page, one fixed place for now playing
@@ -176,7 +176,7 @@ export function ControlStrip({
       {nowItem && (
         <div className="booth-strip-now" data-testid="booth-strip-now">
           <Artwork
-            e={nowEntity}
+            entity={nowEntity}
             orchestra={(nowEntity as { orchestra?: string } | null)?.orchestra ?? nowItem.artist}
             size={40}
           />

@@ -3,7 +3,7 @@ import { INDICATORS } from "@/lib/booth/indicatorList";
 import { useIndicatorPrefs, useIndicators } from "@/lib/booth/indicatorPrefs";
 import { useStore } from "@/lib/store";
 import { Group, SwitchRow } from "../Form";
-import { EraLegend } from "./Indicators";
+import { EraLegend } from "../ui/EraBadge";
 
 /**
  * The indicator switches with their one-line explanations and the era legend (Settings and the player). Round 23: the
@@ -37,7 +37,7 @@ export function IndicatorSwitches() {
       </Group>
       <Group header="Era badge" footer="Grades from your orchestra heatmap.">
         <div className="cell block">
-          <EraLegend />
+          <EraLegend look="bars" />
         </div>
       </Group>
     </>

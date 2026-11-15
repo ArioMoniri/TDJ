@@ -6,7 +6,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { Banners } from "@/components/booth/Banners";
 import { ControlStrip } from "@/components/booth/ControlStrip";
 import { EnergyRail } from "@/components/booth/EnergyRail";
-import { HintLayer } from "@/components/booth/Indicators";
+import { HintLayer } from "@/components/booth/HintLayer";
 import { NextCard } from "@/components/booth/NextCard";
 import { NightBar } from "@/components/booth/NightBar";
 import { NowCard } from "@/components/booth/NowCard";

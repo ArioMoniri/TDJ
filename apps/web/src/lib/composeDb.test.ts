@@ -1,7 +1,7 @@
 import { mergeScraped, type Playlist, type Song } from "@tdj/core";
 import { describe, expect, it } from "vitest";
-import { artworkFor, djDataOf, orchestraPlaceholder } from "./artwork";
-import { coverageWith, DEFAULT_COVERAGE, editGrade, eraOfSong, nextGrade } from "./era";
+import { artworkFor, coverFor, djDataOf, orchestraPlaceholder, placeholderFor } from "./artwork";
+import { coverageWith, DEFAULT_COVERAGE, editGrade, eraOf, eraOfSong, nextGrade } from "./era";
 import { clampPanel, PANEL_MAX, PANEL_MIN, targetsFor } from "./searchPanel";
 import { songWire } from "./songWire";
 
@@ -55,6 +55,22 @@ describe("era indicator in the browser", () => {
     expect(eraOfSong(s, edits)?.mark).toBe("outside");
     expect(editGrade(edits, "carlos-di-sarli", "instrumental", year, 4)).toEqual({});
     expect(coverageWith(edits)).toBe(coverageWith(edits));
+  });
+  it("one era module: the Booth's glyph and Compose's badge read the same grade for a dated side", () => {
+    const row = DEFAULT_COVERAGE.find((r) => r.orchestraId === "carlos-di-sarli")!;
+    for (const [y, g] of Object.entries(row.instrumental)) {
+      const s = song({ year: Number(y) });
+      expect(eraOf(s)?.grade).toBe(g);
+      expect(eraOf(s)?.cls).toBe(eraOfSong(s)?.mark);
+    }
+    // the Booth trusts the grade stamped on the side; a cortina has none
+    expect(eraOf(song({ heat: 0 }))?.cls).toBe("outside");
+    expect(eraOf({ id: "c", title: "x", artist: "y" } as never)).toBeNull();
+  });
+  it("one artwork module: both placeholders stay as they were (Compose tiles and Booth tiles)", () => {
+    expect(orchestraPlaceholder("carlos-di-sarli", "Carlos Di Sarli").initials).toBe("CS");
+    expect(placeholderFor("Carlos Di Sarli").initials).toBe("DS");
+    expect(coverFor(song(), { s1: "https://i.scdn.co/image/a" })).toBe("https://i.scdn.co/image/a");
   });
   it("a cell cycles none → 4 → … → 0 → none", () => {
     const seq = [undefined, 4, 3, 2, 1, 0].map((g) => nextGrade(g));

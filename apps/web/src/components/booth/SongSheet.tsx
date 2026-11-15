@@ -3,14 +3,16 @@ import type { Song } from "@tdj/core";
 import { Headphones, Play, Square, Volume2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { spotifyLengthSec } from "@/lib/booth/clips";
-import { eraOf } from "@/lib/booth/era";
 import { durationLabel } from "@/lib/booth/plan";
 import { useBooth, type Waveform as WaveData } from "@/lib/booth/store";
 import { loadVersions, type Version } from "@/lib/booth/versions";
+import { eraOf } from "@/lib/era";
 import { toast } from "@/lib/toast";
 import { ActionRow, Group } from "../Form";
 import { Sheet } from "../Sheet";
-import { Artwork, BpmKey, EnergyChip, EraBadge } from "./Indicators";
+import { Artwork } from "../ui/Artwork";
+import { BpmKey, EnergyChip } from "../ui/BpmKey";
+import { EraBadge } from "../ui/EraBadge";
 import { Waveform } from "./Waveform";
 
 /**
@@ -52,7 +54,7 @@ export function SongSheet({ i, onClose }: { i: number | null; onClose: () => voi
       {it && entity && i !== null && (
         <>
           <div className="mt-2 flex items-start gap-3 px-4">
-            <Artwork e={entity} orchestra={song?.orchestra ?? it.artist} size={72} />
+            <Artwork entity={entity} orchestra={song?.orchestra ?? it.artist} size={72} />
             <div className="min-w-0 flex-1">
               <p className="text-headline">{it.title}</p>
               <p className="text-subhead text-[var(--label-2)]">
@@ -61,7 +63,7 @@ export function SongSheet({ i, onClose }: { i: number | null; onClose: () => voi
                 {` · ${durationLabel(it.lengthSec)}`}
               </p>
               <div className="booth-meta">
-                {song && <EraBadge e={song} />}
+                {song && <EraBadge entity={song} />}
                 {song && eraOf(song) && (
                   <span className="text-footnote text-[var(--label-2)]">{eraOf(song)!.label}</span>
                 )}
@@ -335,7 +337,7 @@ function Versions({
               {v.song.durationSec ? ` · ${durationLabel(v.song.durationSec)}` : ""}
             </span>
           </span>
-          <EraBadge e={v.song} />
+          <EraBadge entity={v.song} />
           {!v.current && !readOnly && (
             <button
               type="button"

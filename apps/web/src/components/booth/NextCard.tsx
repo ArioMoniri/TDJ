@@ -1,7 +1,8 @@
 "use client";
 import { durationLabel } from "@/lib/booth/plan";
 import { useBooth } from "@/lib/booth/store";
-import { Artwork, EraBadge } from "./Indicators";
+import { Artwork } from "../ui/Artwork";
+import { EraBadge } from "../ui/EraBadge";
 import { eyebrowFor } from "./NowCard";
 
 /**
@@ -46,7 +47,7 @@ export function NextCard({ onJump }: { onJump: (planIndex: number) => void }) {
           <p className="text-caption1 text-[var(--label-2)]">{eyebrowFor(item, tandas)}</p>
           <div className="mt-1 flex items-center gap-3">
             <Artwork
-              e={entities[next]}
+              entity={entities[next]}
               orchestra={(entities[next] as { orchestra?: string } | null)?.orchestra ?? item.artist}
               size={48}
             />
@@ -55,7 +56,7 @@ export function NextCard({ onJump }: { onJump: (planIndex: number) => void }) {
                 {item.title}
               </h3>
             </div>
-            <EraBadge e={entities[next]} />
+            <EraBadge entity={entities[next]} />
           </div>
           {noSource && <p className="text-footnote text-[var(--label-2)]">no source: skipped</p>}
           {holdBefore === next && (

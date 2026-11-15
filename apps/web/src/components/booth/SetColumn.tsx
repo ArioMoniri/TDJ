@@ -11,7 +11,9 @@ import { tempoLevel } from "@/lib/tempo";
 import { toast } from "@/lib/toast";
 import type { Playlist } from "@/lib/types";
 import { SwapSheet } from "../SwapSheet";
-import { Artwork, BpmKey, EraBadge } from "./Indicators";
+import { Artwork } from "../ui/Artwork";
+import { BpmKey } from "../ui/BpmKey";
+import { EraBadge } from "../ui/EraBadge";
 import { SongSheet } from "./SongSheet";
 
 /**
@@ -342,7 +344,7 @@ const Row = memo(function Row({
       <span className="booth-row-n tabular-nums">
         {it.kind === "cortina" ? "♪" : it.kind === "break" ? "—" : k}
       </span>
-      {it.kind !== "break" && <Artwork e={entity} orchestra={orchestra} size={36} />}
+      {it.kind !== "break" && <Artwork entity={entity} orchestra={orchestra} size={36} />}
       {/* round 21: the row itself is the play control — before the night it auditions the side, during the night it
           offers Play now / Play next / Preview only */}
       <button
@@ -376,7 +378,7 @@ const Row = memo(function Row({
         />
       )}
       {it.kind !== "break" && it.kind !== "cortina" && <BpmKey e={entity} compact />}
-      {it.kind !== "break" && it.kind !== "cortina" && <EraBadge e={entity} slot />}
+      {it.kind !== "break" && it.kind !== "cortina" && <EraBadge entity={entity} slot />}
       {/* the planned length (the Spotify recording's when the side has one), so the DJ can read the night */}
       <span
         className="booth-row-len text-caption1 tabular-nums text-[var(--label-3)]"
