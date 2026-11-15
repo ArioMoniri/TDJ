@@ -195,7 +195,7 @@ export const en = {
   "booth.controlStrip.the_next_item_starts_now_while":
     "The next item starts now while this one fades out over {crossfadeSec} s (x)",
   "booth.controlStrip.the_night_s_set_list": "The night's set list",
-  "booth.controlStrip.the_queued_item_is_skipped_at": "The queued item is skipped at the next gap (→)",
+  "booth.controlStrip.the_queued_item_is_skipped_at": "The queued item is skipped at the next gap",
   "booth.controlStrip.the_whole_output_to_the_room": "The whole output to the room",
   "booth.controlStrip.this_device": "This device",
   "booth.controlStrip.transitions_fades_cortina_length_and_levels":
@@ -3696,6 +3696,69 @@ export const en = {
   "settings.compose_rules": "Compose rules",
   "settings.compose_rules_footer":
     "A swap, an AI edit or a hand-built tanda that breaks a tanda rule shows the facts and up to three suggestions first. What you approve as it is counts for that night only.",
+  // 2026-11: start from any row, Previous / Next, seek, start point, tonight's search
+  "booth.controlStrip.previous": "Previous",
+  "booth.controlStrip.previous_hint":
+    "One back: past 3 s this song starts again, otherwise the song before it plays now (←)",
+  "booth.controlStrip.next_now": "Next",
+  "booth.controlStrip.next_now_hint": "One ahead now: the next song starts at once after a short fade (→)",
+  "booth.controlStrip.next_now_hint_before": "Choose the next song as the one the night starts from (→)",
+  "booth.sheets.next_now_key": "Next now (before the night: start from the next song)",
+  "booth.sheets.previous_key": "Previous (past 3 s: this song again)",
+  "booth.sheets.enter_key": "Play from the focused row",
+  "booth.nowCard.seek_label": "Position in this song",
+  "booth.nowCard.seek_hint": "Drag or tap to move inside the song; ← / → move 5 s when the bar has the focus",
+  "booth.setColumn.next_at_gap_menu": "Next at gap (skip the queued song)",
+  "booth.songSheet.start_point": "Start point",
+  "booth.songSheet.start_at": "Start at {p1}",
+  "booth.songSheet.start_at_label": "Start this song at (minutes:seconds)",
+  "booth.songSheet.start_from_zero": "Start from 0:00",
+  "booth.songSheet.start_point_footer":
+    "Where this song starts tonight, on files, clips and Spotify. Saved with the night.",
+  "boothSongSearch.tonight": "Tonight",
+  "boothSongSearch.whole_catalogue": "Whole catalogue",
+  "boothSongSearch.scope": "Search in",
+  "boothSongSearch.find_in_tonight": "Find in tonight's night",
+  "boothSongSearch.tonight_placeholder": "Title, orchestra, singer, year or T12",
+  "boothSongSearch.nothing_tonight":
+    "Nothing in tonight's night matches. The whole catalogue has every recording.",
+  "boothSongSearch.tanda_pos": "T{tanda} · {p1}",
+  "boothSongSearch.cortina_after": "T{tanda} · cortina",
+  "boothSongSearch.play_now": "Play now",
+  "boothSongSearch.play_next": "Play next",
+  "boothSongSearch.start_here": "Start here",
+  "boothSongSearch.go_to": "Go to",
+  "boothSongSearch.played": "played",
+  "miniPlayer.seek_hint": "Drag or tap to move inside the clip; ← / → move 5 s",
+  // 2026-11: the Controls panel
+  "booth.controls.title": "Controls",
+  "booth.controls.start": "Start",
+  "booth.controls.shortcuts": "Keyboard shortcuts",
+  "booth.controls.transport": "Transport",
+  "booth.controls.stop_fade": "Stop with a fade",
+  "booth.controls.song": "Song",
+  "booth.controls.trim": "Loudness trim {db} dB",
+  "booth.controls.trim_down": "Trim down 0.5 dB",
+  "booth.controls.trim_up": "Trim up 0.5 dB",
+  "booth.controls.start_point": "Start point…",
+  "booth.controls.cue": "Cue",
+  "booth.controls.cue_next": "Cue the next song in the headphones",
+  "booth.controls.mixer": "Mixer",
+  "booth.controls.cortina_fader": "Cortina fader",
+  "booth.controls.timing": "Timing",
+  "booth.controls.gap": "Gap between songs",
+  "booth.controls.fade_len": "Fade out now length",
+  "booth.controls.crossfade_len": "Crossfade length",
+  "booth.controls.tanda": "Tanda",
+  "booth.controls.skip_tanda": "Skip the rest of this tanda",
+  "booth.controls.rest_then_cumparsita": "Play the rest, then La Cumparsita",
+  "booth.controls.jump_cumparsita": "Jump to La Cumparsita now",
+  "booth.controls.keys_line":
+    "Keys: Space play / pause · ← / → previous / next · M mute · C cue the cortina · F fade out · ? all keys",
+  "booth.controls.why_spotify_overlap":
+    "Spotify plays one track at a time: no overlap, the next song follows the gap",
+  "booth.controls.why_spotify_cue":
+    "Spotify plays one track at a time: a second track cannot sound in the headphones",
 } as const;
 
 export type MsgKey = keyof typeof en;

@@ -185,6 +185,10 @@ export interface PausedAt {
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 /** The first start is this far ahead of "now": enough for the graph to settle, inaudible as a delay. */
 export const START_AHEAD = 0.05;
+/** a seek inside the song: the old position fades this fast and the new one rises as fast (no click, no gap) */
+export const SEEK_FADE = 0.03;
+/** Spotify plays one track at a time: the new position starts after the old play's pause went out */
+export const SEEK_EXTERNAL_DELAY = 0.25;
 export const TRIM_MAX_SEC = 3;
 /** Normalisation never adds or removes more than ±12 dB. */
 export const NORM_LIMIT_DB = 12;
@@ -407,11 +411,14 @@ export class BoothEngine {
     this.forcedNext = null;
     this.skipped.delete(i);
     if (this.state === "playing" || this.state === "cortina") {
+      // Spotify plays one track at a time: the outgoing play's pause (at the end of its fade) goes out before the
+      // new play, or it would pause the jump (2026-11)
+      const ext = !!this.current?.external || this.sources[i] === "spotify";
       this.stop("play now", fadeSec);
       this.pausedAt = null;
       this.planIndex = i;
       this.transition("armed", "play now");
-      await this.play(Math.max(START_AHEAD, fadeSec));
+      await this.play(Math.max(START_AHEAD, fadeSec) + (ext ? SEEK_EXTERNAL_DELAY : 0));
       return;
     }
     this.pausedAt = null;
@@ -436,6 +443,131 @@ export class BoothEngine {
     this.planIndex = i;
     this.transition(this.state === "idle" ? "idle" : "armed", "play next");
     void this.prepare(i).catch((e) => this.markMissing(i, e));
+  }
+
+  /* ---------- seek: start from any row, one ahead / one back, a point inside the song ---------- */
+
+  /** the night is sounding (an item plays or is queued to) */
+  get live(): boolean {
+    return this.state === "playing" || this.state === "cortina";
+  }
+  /** Whether row `i` can be the playhead: a song or cortina with a source, not left out tonight. */
+  canPlay(i: number): boolean {
+    const it = this.item(i);
+    return !!it && it.kind !== "break" && this.sources[i] !== "missing" && !this.bypassed.has(i);
+  }
+  /** The playable index before `from` (songs and cortinas; missing, bypassed and skipped rows are passed over). */
+  prevPlayable(from: number): number | null {
+    if (!this.plan) return null;
+    for (let i = Math.min(from, this.plan.items.length) - 1; i >= 0; i--)
+      if (this.passes(i) && this.item(i)?.kind !== "break") return i;
+    return null;
+  }
+  /**
+   * Fix 2026-11 ("can't start on the song I want") — move the playhead to row `i` while nothing sounds (before the
+   * night, stopped, paused or armed): `start` / `play` then begin there. During the night use `playNow` / `playNext`.
+   * False when the row cannot play (no source, a break, bypassed tonight).
+   */
+  select(i: number): boolean {
+    if (!this.plan || this.live || !this.canPlay(i)) return false;
+    this.skipped.delete(i);
+    this.forcedNext = null;
+    this.pausedAt = null;
+    this.holding = false;
+    this.planIndex = i;
+    this.transition(this.state === "idle" ? "idle" : "armed", "select");
+    void this.prepare(i).catch((e) => this.markMissing(i, e));
+    return true;
+  }
+  /** Next now: the next playable item starts at once (the night's short fade); before the night it is selected. */
+  async nextNow(): Promise<void> {
+    if (!this.plan) return;
+    const from = this.live && this.current ? this.current.planIndex : this.planIndex;
+    const n = this.nextPlayable(from);
+    if (n === null) return;
+    if (this.live) return this.playNow(n);
+    this.select(n);
+  }
+  /** seconds in after which Previous restarts the current item instead of going back */
+  static readonly RESTART_SEC = 3;
+  /**
+   * Previous: more than 3 s into the item it restarts; otherwise the previous playable item (missing and bypassed
+   * rows passed over) plays now, or, before the night, is selected.
+   */
+  async previous(): Promise<void> {
+    if (!this.plan) return;
+    const cur = this.live && this.current ? this.current.planIndex : this.planIndex;
+    if ((this.live || this.paused) && this.position() > BoothEngine.RESTART_SEC) {
+      if (this.live) return this.playNow(cur);
+      if (this.pausedAt) this.pausedAt = { ...this.pausedAt, at: 0 };
+      this.transition(this.state, "restart");
+      return;
+    }
+    const p = this.prevPlayable(cur);
+    if (p === null) {
+      if (this.live) return this.playNow(cur);
+      return;
+    }
+    if (this.live) return this.playNow(p);
+    this.select(p);
+  }
+  /**
+   * Seek inside the current item to `sec` seconds (as it plays: from its cue, within its cap). The item is rebuilt
+   * from there — files and clips at the new offset, Spotify with the new position — so its end fade, the gap and the
+   * next item's schedule follow the new end. Paused: Resume starts from `sec`.
+   */
+  async seek(sec: number): Promise<void> {
+    if (!this.plan) return;
+    if (!this.live) {
+      if (this.pausedAt) {
+        const len = Math.max(0, this.pausedAt.runtime.endsAt - this.pausedAt.runtime.startedAt);
+        this.pausedAt = { ...this.pausedAt, at: clamp(sec, 0, Math.max(0, len - 0.5)) };
+        this.transition(this.state, "seek");
+      }
+      return;
+    }
+    const c = this.current;
+    if (!c || c.kind === "break" || c.cancelled) return;
+    const len = Math.max(0, c.endsAt - c.startedAt);
+    const to = clamp(sec, 0, Math.max(0, len - 0.5));
+    const now = this.ctx.currentTime;
+    this.cancelQueued();
+    c.cancelled = true;
+    c.interrupted = true;
+    this.silenceTails(now, DECLICK_OUT);
+    if (c.external) c.external.cancel();
+    else if (c.when > now) {
+      c.node?.stop(now);
+      c.node?.disconnect();
+    } else {
+      this.fadeNodes(c, now, SEEK_FADE);
+      c.node?.stop(now + SEEK_FADE);
+    }
+    this.current = null;
+    const i = c.planIndex;
+    // Spotify: its pause of the old play goes out first, then the new play at the new position
+    const delay = c.external ? SEEK_EXTERNAL_DELAY : SEEK_FADE;
+    const gen = ++this.generation;
+    const s = await this.schedule(i, now + delay, { from: to, fadeIn: SEEK_FADE });
+    // a Stop, Pause, Play now or another seek came in while the item was rebuilt
+    if (gen !== this.generation || !this.live || this.current) {
+      if (s) {
+        s.cancelled = true;
+        s.external?.cancel();
+        s.node?.stop(this.ctx.currentTime);
+        s.node?.disconnect();
+      }
+      return;
+    }
+    if (!s) {
+      this.transition("paused", "seek failed");
+      return;
+    }
+    s.interrupted = true;
+    this.current = s;
+    this.planIndex = i;
+    this.transition(this.state, "seek");
+    await this.scheduleNext();
   }
 
   /* ---------- transitions ---------- */
@@ -872,7 +1004,8 @@ export class BoothEngine {
   position(): number {
     const c = this.current;
     if (!c) return this.pausedAt?.planIndex === this.planIndex ? this.pausedAt.at : 0;
-    if (c.external) return c.started ? c.external.position() : 0;
+    // Spotify reports the track position: the item's own clock starts at its cue (extStart)
+    if (c.external) return c.started ? Math.max(0, c.external.position() - (c.extStart ?? 0)) : 0;
     return Math.max(0, this.ctx.currentTime - c.startedAt - (this.ctx.outputLatency ?? 0));
   }
   /** the current item's length as it will actually play (rehearsal cap, early fader) */

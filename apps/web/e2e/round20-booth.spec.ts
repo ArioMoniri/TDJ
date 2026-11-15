@@ -300,7 +300,16 @@ test.describe("phone 390 × 844", () => {
         overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       };
     });
-    expect(m.labels).toEqual(["Pause", "Next at gap", "Stop…", "Set list", "Mix: levels and fades", "More"]);
+    // 2026-11: Previous / Next (now) on the phone's transport; Next at gap moved to •••
+    expect(m.labels).toEqual([
+      "Previous",
+      "Pause",
+      "Next",
+      "Stop…",
+      "Set list",
+      "Mix: levels and fades",
+      "More",
+    ]);
     expect(m.small).toBe(0);
     expect(m.right).toBeLessThanOrEqual(390);
     expect(m.overflow).toBe(0);

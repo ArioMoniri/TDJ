@@ -1946,7 +1946,11 @@ html.theming *::after {
 /* round 18: the foot of the page clears the control strip exactly (ControlStrip measures the space it takes from
    the viewport's bottom into --booth-strip-space: its height, its offset over the tab bar and the safe area) */
 .booth {
-  padding-bottom: calc(var(--booth-strip-space, calc(env(safe-area-inset-bottom) + 144px)) + 16px);
+  padding-bottom: calc(
+    var(--booth-strip-space, calc(env(safe-area-inset-bottom) + 144px)) +
+    var(--booth-ctl-space, 0px) +
+    16px
+  );
 }
 .booth-grid {
   display: grid;
@@ -2775,4 +2779,71 @@ html.i18n-pending body {
   line-height: 1;
   font-weight: 600;
   letter-spacing: -0.01em;
+}
+
+/* 2026-11: the scrubbable progress bar (Booth Now card, mini player): a 44 px row takes the pointer, the track is thin */
+.seekbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  min-width: 0;
+  flex: 1 1 auto;
+  cursor: pointer;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+.seekbar[aria-disabled="true"] {
+  cursor: default;
+}
+.seekbar-track {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--fill-3);
+}
+.seekbar-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 2px;
+  background: var(--tint);
+}
+.seekbar-thumb {
+  position: absolute;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  margin-left: -7px;
+  margin-top: -7px;
+  border-radius: 50%;
+  background: var(--tint);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.35);
+  transition: transform var(--dur-xs, 0.12s) ease;
+}
+.seekbar[aria-disabled="true"] .seekbar-thumb {
+  display: none;
+}
+.seekbar:hover .seekbar-thumb,
+.seekbar[data-dragging] .seekbar-thumb,
+.seekbar:focus-visible .seekbar-thumb {
+  transform: scale(1.3);
+}
+.seekbar:focus-visible .seekbar-track {
+  outline: 2px solid var(--tint);
+  outline-offset: 4px;
+}
+.booth-seek-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 2px;
+}
+.booth-seek-row > .tabular-nums {
+  flex: none;
+  min-width: 2.6em;
+  font-size: 12px;
+  color: var(--label-2);
 }

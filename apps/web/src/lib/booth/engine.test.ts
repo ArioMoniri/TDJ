@@ -1058,3 +1058,223 @@ describe("wave 4: edited transitions in the engine", () => {
     expect(q.starts[0]![0]).toBeCloseTo(0.05 + 170 + 2.5, 9);
   });
 });
+
+/* ---------- 2026-11: start from any row, Previous / Next now, seek inside the song ---------- */
+describe("seek: start from a row, Previous / Next now, seek inside the song", () => {
+  let ctx: FakeCtx;
+  beforeEach(() => {
+    ctx = new FakeCtx();
+  });
+  const idx = (plan: BoothRows, id: string) => plan.items.findIndex((it) => it.id === id);
+  const withSources = (plan: BoothRows, missing: number[] = []) => {
+    const e = new BoothEngine(ctx, {
+      adapters: [fakeAdapter()],
+      now: () => 1_000_000 + ctx.currentTime * 1000,
+    });
+    e.load(
+      plan,
+      plan.items.map(() => null),
+      plan.items.map((_, i) => (missing.includes(i) ? "missing" : "file")),
+    );
+    return e;
+  };
+  const bypassSecond = (p: Playlist, plan: BoothRows) =>
+    bypassPlanItems(
+      { ...p, tandas: p.tandas.map((t, i) => (i === 1 ? { ...t, bypass: true } : t)) },
+      plan.items,
+    );
+  const firstCortina = (plan: BoothRows) => plan.items.findIndex((it, i) => i > 0 && it.kind === "cortina");
+
+  it("start from index: select(i) before the night, then start + play begins at i (not item 0)", async () => {
+    const plan = build(set({ thirdTanda: true }));
+    const e = engineFor(ctx, plan);
+    const b2 = idx(plan, "b2");
+    expect(e.select(b2)).toBe(true);
+    expect(e.state).toBe("idle");
+    expect(e.planIndex).toBe(b2);
+    await e.start();
+    await e.play();
+    expect(e.current?.planIndex).toBe(b2);
+    expect(e.state).toBe("playing");
+    expect(e.nextPlayable(b2)).toBe(b2 + 1);
+    expect(e.log.some((l) => l.reason === "select" && l.planIndex === b2)).toBe(true);
+  });
+
+  it("select refuses a row that cannot play (missing, bypassed) and never moves a sounding night", async () => {
+    const p = set({ thirdTanda: true });
+    const plan = build(p);
+    const a2 = idx(plan, "a2");
+    const e = withSources(plan, [a2]);
+    expect(e.select(a2)).toBe(false);
+    e.setBypass(bypassSecond(p, plan));
+    expect(e.select(idx(plan, "b1"))).toBe(false);
+    expect(e.planIndex).toBe(0);
+    await e.start();
+    await e.play();
+    expect(e.select(idx(plan, "d1"))).toBe(false);
+    expect(e.current?.planIndex).toBe(0);
+  });
+
+  it("Next now: the next playable item starts at once, passing over missing and bypassed rows", async () => {
+    const p = set({ thirdTanda: true });
+    const plan = build(p);
+    const e = withSources(plan, [idx(plan, "a2")]);
+    e.setBypass(bypassSecond(p, plan));
+    await e.start();
+    await e.play();
+    expect(e.current?.planIndex).toBe(0);
+    await e.nextNow();
+    expect(e.current?.planIndex).toBe(firstCortina(plan));
+    await e.nextNow();
+    expect(e.current?.planIndex).toBe(idx(plan, "d1"));
+    expect(e.state).toBe("playing");
+  });
+
+  it("Previous: more than 3 s in restarts the item; under 3 s goes back, over missing and bypassed rows", async () => {
+    const p = set({ thirdTanda: true });
+    const plan = build(p);
+    const e = withSources(plan, [idx(plan, "a2")]);
+    e.setBypass(bypassSecond(p, plan));
+    const d1 = idx(plan, "d1");
+    expect(e.select(d1)).toBe(true);
+    await e.start();
+    await e.play();
+    const n0 = ctx.sources.length;
+    ctx.advance(10);
+    await e.previous();
+    expect(e.current?.planIndex).toBe(d1);
+    expect(ctx.sources.length).toBeGreaterThan(n0);
+    expect(e.position()).toBeLessThan(1);
+    ctx.advance(ctx.currentTime + 1.5);
+    await e.previous();
+    expect(e.current?.planIndex).toBe(firstCortina(plan));
+    await e.previous();
+    expect(e.current?.planIndex).toBe(0);
+    // nothing before the first item: it restarts
+    await e.previous();
+    expect(e.current?.planIndex).toBe(0);
+  });
+
+  it("before the night Previous / Next move the selection without starting anything", async () => {
+    const plan = build(set());
+    const e = engineFor(ctx, plan);
+    await e.nextNow();
+    expect(e.planIndex).toBe(1);
+    expect(e.state).toBe("idle");
+    expect(ctx.sources.length).toBe(0);
+    await e.previous();
+    expect(e.planIndex).toBe(0);
+    await e.previous();
+    expect(e.planIndex).toBe(0);
+  });
+
+  it("seek: the item restarts at the new offset; its end, its end fade and the next item's start follow", async () => {
+    const plan = build(set());
+    const e = engineFor(ctx, plan);
+    e.setSettings({ songFadeOutSec: 3 });
+    await e.start();
+    await e.play();
+    await flush();
+    ctx.advance(20);
+    const before = e.remaining().remainingSec;
+    await e.seek(100);
+    await flush();
+    const src = ctx.sources.find((s) => s.starts.some(([, off]) => (off ?? 0) >= 99));
+    expect(src).toBeDefined();
+    const [when, offset, dur] = src!.starts[0]!;
+    expect(offset).toBeCloseTo(100, 3);
+    expect(dur).toBeCloseTo(70, 3);
+    expect(e.current!.endsAt).toBeCloseTo(when! + 70, 3);
+    expect(e.position()).toBeCloseTo(100 - (when! - 20), 2);
+    const q = (e as unknown as { queued: { planIndex: number; when: number } | null }).queued;
+    expect(q?.planIndex).toBe(1);
+    expect(q!.when).toBeCloseTo(e.current!.endsAt + DEFAULT_BOOTH_SETTINGS.gapSec, 3);
+    // the end fade is still there and ends at the new end
+    const curve = ctx.gains
+      .flatMap((g) => g.gain.of("setValueCurveAtTime"))
+      .find((c) => Math.abs((c.args[1] as number) + (c.args[2] as number) - e.current!.endsAt) < 1e-3);
+    expect(curve?.args[2]).toBeCloseTo(3, 6);
+    // 20 s in → 100 s in: the night has 80 s less to go
+    expect(before - e.remaining().remainingSec).toBeCloseTo(80, 0);
+  });
+
+  it("seek while paused: Resume starts from the new point", async () => {
+    const plan = build(set());
+    const e = engineFor(ctx, plan);
+    await e.start();
+    await e.play();
+    ctx.advance(10);
+    e.pause();
+    await e.seek(50);
+    expect(e.position()).toBeCloseTo(50, 6);
+    await e.play();
+    const src = ctx.sources.at(-2)!;
+    expect(src.starts[0]![1]).toBeCloseTo(50, 6);
+  });
+
+  it("seek on Spotify: play again with the new position (position_ms), the old play cancelled", async () => {
+    const starts: ExternalStart[] = [];
+    let cancelled = 0;
+    const sp: SourceAdapter = {
+      kind: "spotify",
+      async available() {
+        return { ok: true };
+      },
+      async resolve() {
+        return "ready";
+      },
+      async prepare(item) {
+        return { kind: "spotify", spotifyUri: `spotify:track:${item.id}`, durationSec: item.lengthSec };
+      },
+      release() {},
+      external: {
+        capabilities: { fade: true },
+        startItem(r) {
+          starts.push(r);
+          return {
+            cancel() {
+              cancelled++;
+            },
+            stop() {},
+            position: () => r.positionSec,
+          };
+        },
+        setMaster() {},
+      },
+    };
+    const plan = build(set());
+    const e = new BoothEngine(ctx, { adapters: [sp], now: () => 1_000_000 });
+    e.load(
+      plan,
+      plan.items.map(() => null),
+      plan.items.map(() => "spotify"),
+    );
+    await e.start();
+    await e.play();
+    await e.seek(60);
+    expect(cancelled).toBeGreaterThan(0);
+    const r = starts.find((s) => s.uri === "spotify:track:a1" && s.positionSec > 0)!;
+    expect(r.positionSec).toBeCloseTo(60, 6);
+    expect(r.durationSec).toBeCloseTo(110, 6);
+    expect(e.position()).toBeCloseTo(60, 6);
+    // a jump: Play now calls play with the new uri at position 0
+    await e.playNow(idx(plan, "b1"));
+    const j = starts.at(-2)!;
+    expect(j.uri).toBe("spotify:track:b1");
+    expect(j.positionSec).toBe(0);
+  });
+
+  it("a start point (cue in) plays from there; a seek counts from it", async () => {
+    const plan = build(set(), { songCues: { a1: { inSec: 12 } } } as never);
+    const a1 = plan.items[idx(plan, "a1")]!;
+    expect(a1.cued).toBe(true);
+    expect(a1.trimInSec).toBe(12);
+    const e = engineFor(ctx, plan);
+    await e.start();
+    await e.play();
+    expect(ctx.sources[0]!.starts[0]![1]).toBeCloseTo(12, 6);
+    await e.seek(30);
+    const last = ctx.sources.find((s) => s.starts.some(([, off]) => (off ?? 0) > 40))!;
+    expect(last.starts[0]![1]).toBeCloseTo(42, 6);
+  });
+});

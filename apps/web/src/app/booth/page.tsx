@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { Banners } from "@/components/booth/Banners";
 import { ControlStrip } from "@/components/booth/ControlStrip";
+import { ControlsPanel } from "@/components/booth/ControlsPanel";
 import { EnergyRail } from "@/components/booth/EnergyRail";
 import { HintLayer } from "@/components/booth/HintLayer";
 import { NextCard } from "@/components/booth/NextCard";
@@ -84,6 +85,14 @@ function Booth() {
   const [song, setSong] = useState<number | null>(null);
   const [setOpen, setSetOpen] = useState(false);
   const [show, setShow] = useState(false);
+  // 2026-11 ("can't start on the song I want"): before the night a tap also puts the playhead on the row — the Now
+  // card shows it and Start (or the sheet's "Start the night here") begins there; during the night a tap only opens
+  // the sheet (Play now / Play next), so an accidental tap never cuts the room
+  const tapRow = (i: number) => {
+    const b = useBooth.getState();
+    if (!b.started) b.select(i);
+    setSong(i);
+  };
   const phone = useMediaQuery("(max-width: 599.98px)", false);
   // a tanda tapped on the energy chart or the Next card: the set list scrolls to it (a phone opens the sheet first)
   const showInSet = (i: number) => {
@@ -216,9 +225,11 @@ function Booth() {
         e.preventDefault();
         if (e.repeat) return;
         b.togglePause();
-      } else if (e.key === "ArrowRight") {
+      } else if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+        // 2026-11: ← one back, → one ahead now (a focused seek bar or slider keeps its own arrows)
+        if ((document.activeElement as HTMLElement | null)?.getAttribute("role") === "slider") return;
         e.preventDefault();
-        b.next();
+        void (e.key === "ArrowRight" ? b.nextNow() : b.previous());
       } else if (e.key === "f") b.fadeOutNow();
       else if (e.key === "x") void b.crossfadeNext();
       else if (e.key === "h") {
@@ -262,6 +273,8 @@ function Booth() {
   // overflow keeps set-up and the app
   const menu: Array<MenuItem | false> = [
     { label: t("booth.set_up_source_output_night"), onClick: () => setOnboarding(true) },
+    // (a phone's transport has Previous / Next now; Next at gap lives here)
+    started && phone && { label: t("booth.setColumn.next_at_gap_menu"), onClick: () => b.next() },
     {
       label: rehearsal ? t("booth.rehearsal_30_s_on") : t("booth.rehearsal_30_s"),
       onClick: () => void b.setSourceMode(rehearsal ? "file" : "preview"),
@@ -297,7 +310,7 @@ function Booth() {
       <PageHeader title={t("booth.booth")} />
       <PlayerToolbar rehearsal={rehearsal} />
       <Banners />
-      <BoothSongSearch />
+      <BoothSongSearch onGoTo={showInSet} />
       <div className="booth-grid">
         <div className="booth-deck">
           <NowCard onInfo={(i) => setSong(i)} />
@@ -314,7 +327,7 @@ function Booth() {
               jumpTo={jump}
               onFind={(id, title) => setFind({ id, title })}
               onCortina={(i) => setCortina(i)}
-              onTapRow={(i) => setSong(i)}
+              onTapRow={tapRow}
               onTransition={(i) => setTransition(i)}
             />
           </aside>
@@ -334,7 +347,7 @@ function Booth() {
               jumpTo={jump}
               onFind={(id, title) => setFind({ id, title })}
               onCortina={(i) => setCortina(i)}
-              onTapRow={(i) => setSong(i)}
+              onTapRow={tapRow}
               onTransition={(i) => setTransition(i)}
             />
           </div>
@@ -346,7 +359,17 @@ function Booth() {
         onStop={() => setStopOpen(true)}
         onSet={phone ? () => setSetOpen(true) : undefined}
       />
-      <SongSheet i={song} onClose={() => setSong(null)} onTransition={(i) => setTransition(i)} />
+      <ControlsPanel
+        onStop={() => setStopOpen(true)}
+        onKeys={() => setKeys(true)}
+        onSong={(i) => setSong(i)}
+      />
+      <SongSheet
+        i={song}
+        onClose={() => setSong(null)}
+        onTransition={(i) => setTransition(i)}
+        onPlayed={() => setSetOpen(false)}
+      />
       <ShowSheet open={show} onClose={() => setShow(false)} />
       <HintLayer />
       <LevelsSheet open={levels} onClose={() => setLevels(false)} onEditTransitions={editTransitions} />

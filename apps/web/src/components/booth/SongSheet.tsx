@@ -9,6 +9,7 @@ import { loadVersions, type Version } from "@/lib/booth/versions";
 import { eraOf } from "@/lib/era";
 import { t } from "@/lib/i18n";
 import { gateEdit } from "@/lib/ruleCheck";
+import { parseClock } from "@/lib/seek";
 import { toast } from "@/lib/toast";
 import { ActionRow, Group } from "../Form";
 import { Sheet } from "../Sheet";
@@ -27,9 +28,12 @@ export function SongSheet({
   i,
   onClose,
   onTransition,
+  onPlayed,
 }: {
   i: number | null;
   onClose: () => void;
+  /** 2026-11: a play action ran (the phone's set-list sheet closes so the DJ sees the Now card) */
+  onPlayed?: () => void;
   /** wave 4: "Transition…" opens the editor of the transition out of this item */
   onTransition?: (i: number) => void;
 }) {
@@ -112,16 +116,19 @@ export function SongSheet({
                   onClick={() => {
                     void b.playNow(i);
                     onClose();
+                    onPlayed?.();
                   }}
+                  id="booth-play-now"
                 />
                 <ActionRow
                   label={t("booth.songSheet.play_next")}
-                  disabled={i <= planIndex}
+                  disabled={i === planIndex}
                   onClick={() => {
                     b.playNext(i);
                     toast(t("booth.songSheet.plays_next", { title: it.title }));
                     onClose();
                   }}
+                  id="booth-play-next"
                 />
               </>
             ) : (
@@ -130,7 +137,9 @@ export function SongSheet({
                 onClick={() => {
                   void b.playNow(i);
                   onClose();
+                  onPlayed?.();
                 }}
+                id="booth-start-here"
               />
             )}
             {hearing ? (
@@ -197,7 +206,7 @@ export function SongSheet({
               i={i}
               song={song}
               cue={cues?.[song.id]}
-              readOnly={readOnly}
+              readOnly={started && i <= planIndex}
               onListen={(at) => void prelisten({ startSec: at })}
             />
           )}
@@ -290,6 +299,20 @@ function CueEditor({
           </span>
         </div>
       </div>
+      <StartPoint
+        inSec={local.inSec}
+        max={Math.max(0, local.outSec - 1)}
+        readOnly={readOnly}
+        onChange={(inSec) => {
+          const c = { inSec, outSec: local.outSec };
+          setLocal(c);
+          if (commit.current) clearTimeout(commit.current);
+          useBooth.getState().setSongCue(song.id, {
+            inSec: inSec > 0 ? inSec : undefined,
+            outSec: c.outSec < dur ? c.outSec : undefined,
+          });
+        }}
+      />
       <button
         type="button"
         className="cell cell-tap w-full text-left"
@@ -309,6 +332,70 @@ function CueEditor({
         />
       )}
     </Group>
+  );
+}
+
+/**
+ * 2026-11 ("can't change the start point"): where this song starts tonight, as a number — "Start at 0:12" — beside
+ * the waveform's drag, with a one-tap reset. Saved with the night (the set's song cues); files, clips and Spotify
+ * (position_ms) all start there.
+ */
+function StartPoint({
+  inSec,
+  max,
+  readOnly,
+  onChange,
+}: {
+  inSec: number;
+  max: number;
+  readOnly: boolean;
+  onChange: (sec: number) => void;
+}) {
+  const [text, setText] = useState(durationLabel(inSec));
+  useEffect(() => setText(durationLabel(inSec)), [inSec]);
+  const commit = () => {
+    const v = parseClock(text);
+    if (v === null) return setText(durationLabel(inSec));
+    const to = Math.max(0, Math.min(max, Math.round(v)));
+    setText(durationLabel(to));
+    if (to !== Math.round(inSec)) onChange(to);
+  };
+  return (
+    <div className="cell flex items-center gap-2" data-testid="booth-start-point">
+      <label htmlFor="booth-start-at" className="min-w-0 flex-1">
+        <span className="block">{t("booth.songSheet.start_at", { p1: durationLabel(inSec) })}</span>
+        <span className="text-footnote block text-[var(--label-2)]">
+          {t("booth.songSheet.start_point_footer")}
+        </span>
+      </label>
+      <input
+        id="booth-start-at"
+        className="field min-h-11 w-20 text-center tabular-nums"
+        inputMode="numeric"
+        aria-label={t("booth.songSheet.start_at_label")}
+        value={text}
+        disabled={readOnly}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            commit();
+          }
+        }}
+        data-testid="booth-start-at"
+      />
+      {inSec > 0 && !readOnly && (
+        <button
+          type="button"
+          className="btn-plain min-h-11 px-2"
+          onClick={() => onChange(0)}
+          data-testid="booth-start-reset"
+        >
+          {t("booth.songSheet.start_from_zero")}
+        </button>
+      )}
+    </div>
   );
 }
 
