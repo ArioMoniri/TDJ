@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { orderedUris, playlistIdFrom, standInCortinas } from "./spotifyPlan";
+import { orderedUris, playlistIdFrom, spotifyPlanFor, standInCortinas } from "./spotifyPlan";
 
 describe("playlistIdFrom", () => {
   it("reads a link, a share link with ?si=, a spotify: URI and a bare 22-character id", () => {
@@ -75,5 +75,15 @@ describe("standInCortinas (round 19)", () => {
     ]);
     // a side (not a cortina) stays missing
     expect(standInCortinas(night, ["song9"], new Map(), pool).missing).toEqual(["song9"]);
+  });
+});
+
+describe("a tanda the DJ pinned keeps the streams the DJ chose", () => {
+  it("the featured night needs no Spotify search: every side has its stored stream", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const p = JSON.parse(readFileSync(join(__dirname, "../../public/featured/golden-double-peak.json"), "utf8"));
+    const plan = spotifyPlanFor(p, {} as never, { includeCortinas: true });
+    expect(plan.items).toEqual([]);
   });
 });

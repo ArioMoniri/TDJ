@@ -28,6 +28,8 @@ export function spotifyPlanFor(
       songs: t.songs.map((s) => {
         const mine = own[s.id]?.spotify;
         if (mine && storedMatchOk(s, mine)) return { ...s, spotify: mine };
+        // a tanda the DJ pinned keeps the recordings the DJ chose: their stored stream is not second-guessed
+        if (t.pinned?.by === "dj" && s.spotify?.uri) return s;
         if (s.spotify && !storedMatchOk(s, s.spotify)) return { ...s, spotify: null };
         return mine ? s : s;
       }),
