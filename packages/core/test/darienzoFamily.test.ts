@@ -12,6 +12,7 @@ import {
   normTitle,
   retimeTanda,
   type Song,
+  streamable,
   strictChecks,
   strictOrder,
   type Tanda,
@@ -115,12 +116,12 @@ describe("mendDarienzoFamily", () => {
       }
       // the summit holds the darienzoPeak window (1937–40, or from 1935 with a fame-5 side)
       expect(s.yearRange![1]).toBeLessThanOrEqual(1940);
-      // no title twice in the night, at most one side without a checked stream per chair
+      // no title twice in the night, at most one side per chair that nothing streams (no Spotify id, no Deezer match)
       const titles = m.tandas.flatMap((t) => t.songs.map((x) => normTitle(x.title)));
       expect(new Set(titles).size).toBe(titles.length);
       for (const t of [e, s]) {
         for (const x of t.songs) expect(others.has(normTitle(x.title))).toBe(false);
-        expect(t.songs.filter((x) => !x.spotify?.uri || x.streamSuspect).length).toBeLessThanOrEqual(1);
+        expect(t.songs.filter((x) => !streamable(x)).length).toBeLessThanOrEqual(1);
       }
       // no new blocker; the round-8 rule is hard, so the split may cost the panel a little (never two should-fix items)
       const after = judge(m.tandas);
