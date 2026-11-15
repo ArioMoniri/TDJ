@@ -78,7 +78,6 @@ export function TandaInspector({
           <dt>Length</dt>
           <dd>{mmss(t.durationSec)}</dd>
         </dl>
-        {t.reason && <p className="text-footnote mt-3 text-[var(--label-2)]">{t.reason}</p>}
         <div className="mt-4 flex flex-wrap gap-2">
           <button
             type="button"
