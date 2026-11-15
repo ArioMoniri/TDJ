@@ -48,17 +48,18 @@
       "hardenedRuntime": true,
       "entitlements": "entitlements/mac-dmg.plist",
       "dmg": {
+        "background": "dmg/background.png",
         "windowSize": {
-          "width": 640,
+          "width": 660,
           "height": 400
         },
         "appPosition": {
           "x": 180,
-          "y": 190
+          "y": 200
         },
         "applicationFolderPosition": {
-          "x": 460,
-          "y": 190
+          "x": 480,
+          "y": 200
         }
       },
       "files": {
