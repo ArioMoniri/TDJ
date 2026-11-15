@@ -211,3 +211,20 @@ Also checked in 21c: the opening Cumparsita's cost. Planning 23 chairs and takin
 does not hold — the cues flex ±5 s (round 15), 22 × 5 s is under two minutes, and the 23-chair nights land 5.8–7.8
 min over the hour against the ±6 min rule; a run with that plan failed 21 tests (the 22-chair plan: 19). The 22-chair
 4 h plan stays, and the late-hour and first-summit placements in it are the open work.
+
+### 21c engine decisions
+
+- **The corpus closer closes a tango tanda.** A closer documented in the reference corpus is what real DJs did; the
+  fade-out, ends-below and slowest-side-last readings are this engine's heuristics, so they step aside for it
+  (`order.ts`). Vals and milonga keep the round-10 rule: they never end on their lowest side, corpus closer or not —
+  a three-side vals that ends on its quietest turn reads as the floor running out of breath, and the round-10 review
+  made that call explicitly (R10.5's second invariant).
+- **One vals / milonga tanda per orchestra, the gap kept** (`vmRepeat.ts`): an unplayed family in the night's years
+  with every side streaming → the chair's window widened to 1932–1950 → one side without a checked stream, named
+  for the DJ → only then the chair trades places with a neighbouring tango chair; every step keeps the fame floor
+  and is recorded in the night's fallbacks.
+- **The first summit is rhythmic**: the summit's first candidate layer holds a rhythmic family whenever any layer
+  does (Biagi sat in the protected-canon trailing layer), and the round-13 fallback pass prefers one too unless the
+  tango before was rhythmic.
+- **Every clock hour keeps an instrumental tango tanda** (`mendInstrHours`), and the post-repair swaps never move
+  the Pugliese chair (the big-four swap had carried him to 0.21 of a 6 h marathon).
