@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseClock } from "../seek";
 import type { BoothRow, PlanEntity } from "./plan";
-import { fold, searchTonight, tandaQuery } from "./tonightSearch";
+import { byTanda, findTonight, fold, searchTonight, tandaQuery } from "./tonightSearch";
 
 const row = (o: Partial<BoothRow> & Pick<BoothRow, "kind" | "tanda" | "title">): BoothRow =>
   ({ artist: "", rhythm: "tango", lengthSec: 170, startSec: 0, n: 0, gapAfterSec: 2.5, ...o }) as BoothRow;
@@ -34,6 +34,52 @@ describe("tonight's search (the Booth's song finder looks in the night first)", 
     expect(tandaQuery("12", 2)).toBeNull();
     expect(tandaQuery("1943", 30)).toBeNull();
     expect(searchTonight(items, entities, "T2").map((h) => h.i)).toEqual([4, 5]);
+  });
+  it("2026-11 (iPad): a title typed without its accent finds it, any case; T-numbers, 'tanda 2', cortinas", () => {
+    const night = [
+      ...items,
+      row({
+        kind: "track",
+        tanda: 3,
+        title: "Ahora No Me Conocés",
+        artist: "Ángel D'Agostino / Ángel Vargas",
+      }),
+      row({ kind: "cortina", tanda: 3, title: "Bésame Mucho", artist: "Trío Los Panchos" }),
+    ];
+    const ents: PlanEntity[] = night.map(() => null);
+    expect(searchTonight(night, ents, "conoces").map((h) => h.i)).toEqual([6]);
+    expect(searchTonight(night, ents, "AHORA no me CONOCÉS").map((h) => h.i)).toEqual([6]);
+    expect(searchTonight(night, ents, "dagostino").map((h) => h.i)).toEqual([0, 6]);
+    expect(searchTonight(night, ents, "d'agostino vargas").map((h) => h.i)).toEqual([6]);
+    expect(searchTonight(night, ents, "besame panchos").map((h) => h.kind)).toEqual(["cortina"]);
+    expect(searchTonight(night, ents, "tanda 2").map((h) => h.i)).toEqual([4, 5]);
+    expect(searchTonight(night, ents, "T3").map((h) => [h.i, h.k])).toEqual([
+      [6, 1],
+      [7, 0],
+    ]);
+    expect(tandaQuery("T 12", 30)).toBe(12);
+    expect(tandaQuery("Tánda 3", 30)).toBe(3);
+  });
+  it("the empty query lists the whole night grouped by tanda (no breaks)", () => {
+    const night = [...items, row({ kind: "break", tanda: 2, title: "Show" })];
+    const all = findTonight(
+      night,
+      night.map(() => null),
+      "  ",
+    );
+    expect(all.map((h) => h.i)).toEqual([0, 1, 2, 3, 4, 5]);
+    expect(byTanda(all).map((g) => [g.tanda, g.hits.length])).toEqual([
+      [0, 1],
+      [1, 3],
+      [2, 2],
+    ]);
+    expect(
+      findTonight(
+        night,
+        night.map(() => null),
+        "poema",
+      ).map((h) => h.i),
+    ).toEqual([4]);
   });
   it("a start point reads as m:ss or seconds", () => {
     expect(parseClock("0:12")).toBe(12);

@@ -9,12 +9,12 @@ import { cortinaSpan, cortinaSwapLabel, swapLabel } from "@/lib/booth/nightView"
 import { durationLabel } from "@/lib/booth/plan";
 import { energyOf } from "@/lib/booth/songInfo";
 import { useBooth } from "@/lib/booth/store";
+import { useBoothSwap } from "@/lib/booth/swap";
 import { t as tx } from "@/lib/i18n";
 import { tempoLevel } from "@/lib/tempo";
 import { toast } from "@/lib/toast";
 import type { Playlist } from "@/lib/types";
 import { metaLine, yearText } from "@/lib/year";
-import { SwapSheet } from "../SwapSheet";
 import { Artwork } from "../ui/Artwork";
 import { BpmKey } from "../ui/BpmKey";
 import { EraBadge } from "../ui/EraBadge";
@@ -54,9 +54,10 @@ export function SetColumn({
   const apply = useBooth((s) => s.applySwappedPlaylist);
   const list = useRef<HTMLElement>(null);
   const [busy, setBusy] = useState<string | null>(null);
-  // round 21: a tapped row (the play sheet during the night) and the per-song Swap sheet
+  // round 21: a tapped row (the play sheet during the night); 2026-11: a row's Swap opens the Booth's Swap sheet
+  // (BoothSwapSheet, mounted with the search) for that place, a song or a cortina, also inside the running tanda
   const [tapped, setTapped] = useState<number | null>(null);
-  const [swapAt, setSwapAt] = useState<{ tanda: number; track: number } | null>(null);
+  const openSwap = useBoothSwap((s) => s.open);
   // round 22: tap any song — the sheet plays it (now, next, from here), pre-listens it, edits its cue, its versions
   const tap = useCallback((i: number) => (onTapRow ? onTapRow(i) : setTapped(i)), [onTapRow]);
   useEffect(() => {
@@ -259,12 +260,8 @@ export function SetColumn({
                     `${g.tanda}-${plan.items[i]!.kind === "track" ? g.items.findIndex((x) => x.i === i) : "t"}`
                   }
                   onSwap={
-                    plan.items[i]!.kind === "track" && t
-                      ? () =>
-                          setSwapAt({
-                            tanda: g.tanda,
-                            track: t.songs.findIndex((s) => s.id === plan.items[i]!.id),
-                          })
+                    (plan.items[i]!.kind === "track" || plan.items[i]!.kind === "cortina") && t
+                      ? openSwap
                       : undefined
                   }
                   onTap={tap}
@@ -280,24 +277,6 @@ export function SetColumn({
         );
       })}
       {!onTapRow && <SongSheet i={tapped} onClose={() => setTapped(null)} />}
-      <SwapSheet
-        playlist={swapAt ? lockedPlaylist(playlist) : null}
-        tandaIndex={swapAt ? swapAt.tanda - 1 : null}
-        trackIndex={swapAt?.track ?? null}
-        onClose={() => setSwapAt(null)}
-        lockedReason={
-          swapAt && started && swapAt.tanda <= runningTanda
-            ? tx("booth.setColumn.playing_or_played_this_tanda_is")
-            : undefined
-        }
-        onApplied={async (np, how) => {
-          await apply({
-            ...np,
-            tandas: np.tandas.map((x, i) => ({ ...x, locked: x.pinned ? true : playlist.tandas[i]?.locked })),
-          });
-          toast(how);
-        }}
-      />
     </section>
   );
 }
@@ -308,12 +287,14 @@ function SwapButton({
   busy,
   onClick,
   title,
+  testId = "booth-swap",
 }: {
   label: string;
   disabled: boolean;
   busy: boolean;
   onClick: () => void;
   title?: string;
+  testId?: string;
 }) {
   return (
     <button
@@ -324,7 +305,7 @@ function SwapButton({
       data-hint={title}
       disabled={busy}
       onClick={() => !disabled && onClick()}
-      data-testid="booth-swap"
+      data-testid={testId}
     >
       <Repeat2
         size={16}
@@ -341,7 +322,6 @@ const Row = memo(function Row({
   k,
   current,
   played,
-  locked,
   source,
   rehearsal,
   busy,
@@ -356,11 +336,13 @@ const Row = memo(function Row({
   k: number;
   current: boolean;
   played: boolean;
+  /** the running or a played tanda (the per-row Swap stays open ahead of the playhead, 2026-11) */
   locked: boolean;
   source: string;
   rehearsal: boolean;
   busy: boolean;
-  onSwap?: () => void;
+  /** 2026-11: the one-tap Swap of this place (a song or a cortina); a played row is closed */
+  onSwap?: (planIndex: number) => void;
   onFind: (itemId: string, title: string) => void;
   onCortina?: (planIndex: number) => void;
 }) {
@@ -489,6 +471,19 @@ const Row = memo(function Row({
           >
             <Search size={16} strokeWidth={2} aria-hidden />
           </button>
+        ) : it.kind === "cortina" && onCortina && !played ? (
+          // 2026-11: a cortina's envelope takes its action slot, so its Swap sits in the swap column like a song's
+          // and every row keeps its length in one column
+          <button
+            type="button"
+            className="icon-btn icon-btn-bare h-11 w-11 shrink-0"
+            aria-label={cortinaSwapLabel(it.tanda)}
+            data-hint={tx("booth.setColumn.fade_in_fade_out_stop_at")}
+            onClick={() => onCortina(i)}
+            data-testid="booth-cortina-edit"
+          >
+            <SlidersHorizontal size={16} strokeWidth={2} aria-hidden />
+          </button>
         ) : sp?.url ? (
           <a
             href={sp.url}
@@ -503,25 +498,19 @@ const Row = memo(function Row({
           </a>
         ) : null}
       </span>
+      {/* 2026-11: one-tap Swap on every song and cortina (a place ahead of the playhead swaps at once; the playing
+          one asks first in the sheet; a played one is closed) */}
       {onSwap ? (
         <SwapButton
-          label={swapLabel(it.tanda, k)}
-          disabled={locked}
+          label={
+            it.kind === "cortina" ? tx("boothSwap.swap_label", { title: it.title }) : swapLabel(it.tanda, k)
+          }
+          disabled={played}
           busy={busy}
-          onClick={onSwap}
-          title={locked ? tx("booth.setColumn.playing_locked") : undefined}
+          onClick={() => onSwap(i)}
+          title={played ? tx("boothSwap.played_note") : tx("boothSwap.swap")}
+          testId="booth-row-swap"
         />
-      ) : it.kind === "cortina" && onCortina && !played ? (
-        <button
-          type="button"
-          className="icon-btn icon-btn-bare h-11 w-11 shrink-0"
-          aria-label={cortinaSwapLabel(it.tanda)}
-          data-hint={tx("booth.setColumn.fade_in_fade_out_stop_at")}
-          onClick={() => onCortina(i)}
-          data-testid="booth-cortina-edit"
-        >
-          <SlidersHorizontal size={16} strokeWidth={2} aria-hidden />
-        </button>
       ) : (
         <span className="booth-row-act" aria-hidden />
       )}
