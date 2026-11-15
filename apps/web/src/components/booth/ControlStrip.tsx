@@ -1,54 +1,66 @@
 "use client";
 import {
-  Cake,
-  Coffee,
+  Blend,
   Ellipsis,
   Hand,
+  Headphones,
+  ListMusic,
+  Mic,
   Pause,
   Play,
   SkipForward,
   SlidersHorizontal,
   Square,
+  TrendingDown,
   VolumeX,
 } from "lucide-react";
 import { useEffect, useRef } from "react";
+import { durationLabel } from "@/lib/booth/plan";
 import { useBooth } from "@/lib/booth/store";
 import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
 import { Fader } from "./Fader";
+import { Artwork } from "./Indicators";
 
 /**
- * Control strip (round7-booth.md §1.1, round20-booth.md): the only glass surface of the page, 64 px tall, every
- * control ≥ 44 px. Start the night → **Pause / Resume** (one tap, a 0.8 s fade, space), Next at gap, **Stop** (one
- * tap opens the confirm: "Fade out and stop" / "Stop now"; esc), the cortina and master faders, **Mix** (fades,
- * hold after this song, talk-over, the night's fade settings), Hold after this song, Birthday vals, Break, the
- * overflow. Phones (round8-ux.md §1.5): one row of five (Pause, Next, Stop, Mix, •••).
+ * Transport (round 22, the DJ-app bottom bar): the only glass surface of the page, one fixed place for now playing
+ * and every control on the playing song, in labelled zones — the song (artwork, title), the mix actions (Fade,
+ * Crossfade), the transport (Play / Pause, Next at gap, Stop), the room (volume, mute), the modes (Hold, Talk),
+ * then the pre-listen line in the headphones colour while one plays, and Mix / ••• for settings. Labels under the
+ * glyphs from 1180 px; below that the same words are the tooltip and the accessible name. Phones: one 64 pt row
+ * (Play, Next, Stop, Set list, Mix, •••).
  */
 export function ControlStrip({
   onMore,
-  onBreak,
   onLevels,
   onStop,
+  onSet,
 }: {
   onMore: () => void;
-  onBreak: () => void;
-  /** the Mix sheet (levels, fades, hold, talk-over) */
+  /** the Mix sheet (transitions, fades, cortinas, levels) */
   onLevels: () => void;
   /** the Stop confirm */
   onStop: () => void;
+  /** phones: the set list sheet */
+  onSet?: () => void;
 }) {
   const state = useBooth((s) => s.state);
   const started = useBooth((s) => s.started);
   const holding = useBooth((s) => s.holding);
   const paused = useBooth((s) => s.paused);
   const ready = useBooth((s) => s.ready);
-  const cortinaFader = useBooth((s) => s.cortinaFader);
   const master = useBooth((s) => s.master);
   const muted = useBooth((s) => s.muted);
+  const ducked = useBooth((s) => s.ducked);
   const breakUntil = useBooth((s) => s.breakUntil);
   const sources = useBooth((s) => s.sources);
   const plan = useBooth((s) => s.plan);
   const rehearsal = useBooth((s) => s.rehearsal);
+  const settings = useBooth((s) => s.settings);
+  const audition = useBooth((s) => s.audition);
+  const cuePos = useBooth((s) => s.cuePos);
+  const nowItem = useBooth((s) => s.plan?.items[s.planIndex]);
+  const nowEntity = useBooth((s) => s.entities[s.planIndex] ?? null);
   const act = useBooth.getState();
   const wide = useMediaQuery("(min-width: 640px)", true);
   const sourceMode = useBooth((s) => s.sourceMode);
@@ -99,10 +111,10 @@ export function ControlStrip({
       }}
       disabled={!ready}
       data-testid="booth-start"
+      data-hint="Start the night in the room (space)"
     >
       <Play size={18} fill="currentColor" strokeWidth={0} aria-hidden />
-      {/* the label names the source (round8-ux.md §3) and fits a 390 px phone (round 18): the count of items
-          without a source is the Now card's / the set's business, and only joins the label where there is room */}
+      {/* the label names the source (round8-ux.md §3) and fits a 390 px phone (round 18) */}
       <span className="booth-start-label">
         {rehearsal ? "Start · 30 s clips" : allSpotify ? "Start · Spotify" : "Start · your files"}
         {!rehearsal && !allSpotify && missing > 0 && (
@@ -117,7 +129,7 @@ export function ControlStrip({
       onClick={() => void act.endBreak()}
       data-testid="booth-play"
       aria-label="End break"
-      title="End the break now (space)"
+      data-hint="End the break now (space)"
     >
       <Play size={18} fill="currentColor" strokeWidth={0} aria-hidden /> End break
     </button>
@@ -131,7 +143,7 @@ export function ControlStrip({
       }}
       data-testid="booth-pause"
       aria-label="Pause"
-      title="Pause now, with a short fade (space)"
+      data-hint={`Pause now, with a ${settings.pauseFadeSec} s fade (space)`}
     >
       <Pause size={18} fill="currentColor" strokeWidth={0} aria-hidden /> Pause
     </button>
@@ -145,7 +157,7 @@ export function ControlStrip({
       }}
       data-testid="booth-play"
       aria-label={paused ? "Resume" : "Play"}
-      title={paused ? "Resume where it paused (space)" : "Play (space)"}
+      data-hint={paused ? "Resume where it paused (space)" : "Play (space)"}
     >
       <Play size={18} fill="currentColor" strokeWidth={0} aria-hidden /> {paused ? "Resume" : "Play"}
     </button>
@@ -160,24 +172,62 @@ export function ControlStrip({
       aria-label="Transport"
       data-started={started}
     >
+      {/* the song: always the same place (Spotify / Apple Music bottom bar) */}
+      {nowItem && (
+        <div className="booth-strip-now" data-testid="booth-strip-now">
+          <Artwork
+            e={nowEntity}
+            orchestra={(nowEntity as { orchestra?: string } | null)?.orchestra ?? nowItem.artist}
+            size={40}
+          />
+          <span className="booth-strip-now-t">
+            <b>{nowItem.title}</b>
+            <span>{nowItem.artist}</span>
+          </span>
+        </div>
+      )}
+      {wide && (
+        <>
+          <TBtn
+            label="Fade"
+            hint={`Fade out now over ${settings.fadeNowSec} s; the next item follows at the gap (f)`}
+            disabled={!live}
+            onClick={() => act.fadeOutNow()}
+            testId="booth-strip-fade"
+            className="booth-wide-only"
+          >
+            <TrendingDown size={20} strokeWidth={2} aria-hidden />
+          </TBtn>
+          <TBtn
+            label="Crossfade"
+            hint={`The next item starts now while this one fades out over ${settings.crossfadeSec} s (x)`}
+            disabled={!live}
+            onClick={() => void act.crossfadeNext()}
+            testId="booth-strip-crossfade"
+            className="booth-wide-only"
+          >
+            <Blend size={20} strokeWidth={2} aria-hidden />
+          </TBtn>
+          <span className="booth-strip-sep" aria-hidden />
+        </>
+      )}
       {primary}
-      <button
-        type="button"
-        className="icon-btn booth-prestart-hide"
-        aria-label="Next at gap"
-        title="The queued item is skipped at the next gap (→)"
+      <TBtn
+        label="Next at gap"
+        hint="The queued item is skipped at the next gap (→)"
         onClick={() => act.next()}
         disabled={!started}
-        data-testid="booth-next-btn"
+        testId="booth-next-btn"
+        className="booth-prestart-hide"
       >
         <SkipForward size={20} strokeWidth={2} aria-hidden />
-      </button>
+      </TBtn>
       <button
         type="button"
         className={`icon-btn booth-stop booth-prestart-hide ${started && state !== "stopped" ? "booth-stop-armed" : ""}`}
         aria-label="Stop…"
         aria-haspopup="dialog"
-        title="Stop: fade out and stop, or stop now (esc)"
+        data-hint="Stop: fade out and stop, or stop now (esc)"
         disabled={!started || state === "stopped"}
         onClick={() => {
           haptic(10);
@@ -186,25 +236,14 @@ export function ControlStrip({
         data-testid="booth-stop"
       >
         <Square size={18} fill="currentColor" strokeWidth={0} aria-hidden />
-        {/* round 21: the word, where there is room — Start, Pause / Resume and Stop read at a glance */}
         <span className="booth-stop-label">Stop</span>
       </button>
-      {wide ? (
+      {wide && (
         <>
-          <Fader
-            label="Cortina volume"
-            hint="Cortinas against the tangos"
-            value={cortinaFader}
-            min={0}
-            max={1}
-            step={0.05}
-            onChange={act.setCortinaFader}
-            display={`${Math.round(cortinaFader * 100)} %`}
-            testId="booth-cortina-fader"
-          />
+          <span className="booth-strip-sep" aria-hidden />
           <Fader
             label="Master volume"
-            hint="The whole output"
+            hint="The whole output to the room"
             value={master}
             min={-30}
             max={6}
@@ -213,66 +252,134 @@ export function ControlStrip({
             display={`${master > 0 ? "+" : ""}${master} dB`}
             testId="booth-master"
           />
+          <TBtn
+            label={muted ? "Unmute" : "Mute"}
+            hint="Silence the room at once; tap again to bring it back (m)"
+            pressed={muted}
+            onClick={() => act.toggleMute()}
+            testId="booth-mute"
+          >
+            <VolumeX
+              size={20}
+              strokeWidth={2}
+              aria-hidden
+              className={muted ? "text-[var(--destructive)]" : ""}
+            />
+          </TBtn>
+          <span className="booth-strip-sep" aria-hidden />
+          <TBtn
+            label="Hold"
+            ariaLabel={holding ? "Cancel hold" : "Hold after this song"}
+            hint="Hold after this song: it finishes, the next one waits for Play (h)"
+            pressed={holding}
+            onClick={() => act.toggleHold()}
+            disabled={!started || !live}
+            testId="booth-hold"
+          >
+            <Hand size={20} strokeWidth={2} aria-hidden />
+          </TBtn>
+          <TBtn
+            label="Talk"
+            ariaLabel="Talk-over"
+            hint="Talk-over: the music dips 12 dB while you speak (t)"
+            pressed={ducked}
+            onClick={() => act.setDucked(!ducked)}
+            testId="booth-talk"
+          >
+            <Mic size={20} strokeWidth={2} aria-hidden />
+          </TBtn>
         </>
-      ) : null}
-      {/* the Mix sheet: levels on a phone, and everywhere the fades, hold after this song and talk-over */}
-      <button
-        type="button"
-        className="icon-btn"
-        aria-label="Mix: levels and fades"
-        title="Fade out now (f), next with crossfade (x), hold (h), talk-over (t), levels, fade lengths"
+      )}
+      {audition && (
+        <div className="booth-cueline" data-testid="booth-cueline" data-where={audition.where} role="status">
+          <Headphones size={16} strokeWidth={2} aria-hidden />
+          <span>
+            {audition.where === "headphones" ? "Headphones" : "This device"} · {audition.title}
+            {cuePos.of ? ` · ${durationLabel(cuePos.at)} / ${durationLabel(cuePos.of)}` : ""}
+          </span>
+          <button
+            type="button"
+            className="icon-btn icon-btn-bare h-11 w-11"
+            aria-label="Stop the pre-listen"
+            data-hint="Stop the pre-listen (the room keeps playing)"
+            onClick={() => act.stopAudition()}
+            data-testid="booth-cueline-stop"
+          >
+            <Square size={14} fill="currentColor" strokeWidth={0} aria-hidden />
+          </button>
+        </div>
+      )}
+      {onSet && (
+        <TBtn
+          label="Set list"
+          hint="The night's set list"
+          onClick={onSet}
+          testId="booth-set-open"
+          className="booth-phone-only"
+        >
+          <ListMusic size={20} strokeWidth={2} aria-hidden />
+        </TBtn>
+      )}
+      {/* the Mix sheet: transitions, fades, cortinas, levels — every value with its explanation */}
+      <TBtn
+        label="Mix"
+        ariaLabel="Mix: levels and fades"
+        hint="Transitions, fades, cortina length and levels, each explained"
         onClick={onLevels}
-        data-testid={wide ? "booth-mix" : "booth-levels"}
+        testId={wide ? "booth-mix" : "booth-levels"}
       >
         <SlidersHorizontal size={20} strokeWidth={2} aria-hidden />
-      </button>
-      <button
-        type="button"
-        className={`icon-btn booth-secondary ${holding ? "text-[var(--tint)]" : ""}`}
-        aria-label={holding ? "Cancel hold" : "Hold after this song"}
-        aria-pressed={holding}
-        title="Hold after this song: the song finishes, the next does not start (h)"
-        onClick={() => act.toggleHold()}
-        disabled={!started || !live}
-        data-testid="booth-hold"
+      </TBtn>
+      <TBtn
+        label="More"
+        ariaLabel="More"
+        hint="Set-up, rehearsal, keyboard, theme, leave"
+        onClick={onMore}
+        testId="booth-more"
       >
-        <Hand size={20} strokeWidth={2} aria-hidden />
-      </button>
-      <button
-        type="button"
-        className={`icon-btn booth-secondary ${muted ? "text-[var(--destructive)]" : ""}`}
-        aria-label={muted ? "Unmute" : "Mute"}
-        aria-pressed={muted}
-        onClick={() => act.toggleMute()}
-        data-testid="booth-mute"
-      >
-        <VolumeX size={20} strokeWidth={2} aria-hidden />
-      </button>
-      <button
-        type="button"
-        className="icon-btn booth-secondary"
-        aria-label="Birthday vals"
-        title="Birthday vals (b)"
-        onClick={() => act.birthdayVals()}
-        disabled={!started}
-        data-testid="booth-birthday"
-      >
-        <Cake size={20} strokeWidth={2} aria-hidden />
-      </button>
-      <button
-        type="button"
-        className="icon-btn booth-secondary"
-        aria-label="Break"
-        title="Break after this song"
-        onClick={onBreak}
-        disabled={!started}
-        data-testid="booth-break-btn"
-      >
-        <Coffee size={20} strokeWidth={2} aria-hidden />
-      </button>
-      <button type="button" className="icon-btn" aria-label="More" onClick={onMore} data-testid="booth-more">
         <Ellipsis size={20} strokeWidth={2} aria-hidden />
-      </button>
+      </TBtn>
     </div>
+  );
+}
+
+/** A transport button: the glyph, the word under it where there is room, the explanation on hover / long-press. */
+function TBtn({
+  label,
+  ariaLabel,
+  hint,
+  onClick,
+  disabled,
+  pressed,
+  testId,
+  className = "",
+  children,
+}: {
+  label: string;
+  ariaLabel?: string;
+  hint: string;
+  onClick: () => void;
+  disabled?: boolean;
+  pressed?: boolean;
+  testId: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      className={`booth-tbtn ${className}`}
+      aria-label={ariaLabel ?? label}
+      aria-pressed={pressed === undefined ? undefined : pressed}
+      data-hint={hint}
+      onClick={onClick}
+      disabled={disabled}
+      data-testid={testId}
+    >
+      {children}
+      <span className="booth-tbtn-l" aria-hidden>
+        {label}
+      </span>
+    </button>
   );
 }

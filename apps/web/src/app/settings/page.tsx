@@ -14,6 +14,7 @@ import {
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
+import { IndicatorSwitches } from "@/components/booth/IndicatorSwitches";
 import { Connectors } from "@/components/Connectors";
 import {
   ActionRow,
@@ -258,6 +259,9 @@ export default function Settings() {
           }
         />
       </Group>
+
+      {/* round 22: the song indicators (energy, BPM, key, era, artwork), the same switches as the player's Show */}
+      <IndicatorSwitches />
 
       <Group
         header="Composing"

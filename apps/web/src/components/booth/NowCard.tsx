@@ -1,7 +1,9 @@
 "use client";
+import { Info, ListEnd } from "lucide-react";
 import { durationLabel } from "@/lib/booth/plan";
 import { SOURCE_LABEL } from "@/lib/booth/sources/types";
 import { useBooth } from "@/lib/booth/store";
+import { Artwork, BpmKey, EnergyChip, EraBadge } from "./Indicators";
 import { Meter } from "./Meter";
 
 const RHYTHM: Record<string, string> = {
@@ -16,6 +18,7 @@ const RHYTHM: Record<string, string> = {
 export function eyebrowFor(
   item: { tanda: number; kind: string; rhythm: string; artist: string; year?: number | null },
   tandas: number,
+  withArtist = true,
 ) {
   const where =
     item.kind === "closing"
@@ -25,16 +28,23 @@ export function eyebrowFor(
       : item.kind === "break"
         ? "break"
         : `tanda ${item.tanda} of ${tandas}`;
-  return [where, RHYTHM[item.rhythm] ?? item.rhythm, item.artist, item.year ? String(item.year) : null]
+  return [
+    where,
+    RHYTHM[item.rhythm] ?? item.rhythm,
+    withArtist ? item.artist : null,
+    withArtist && item.year ? String(item.year) : null,
+  ]
     .filter(Boolean)
     .join(" · ");
 }
 
 /**
- * Now (round7-booth.md §1.1): eyebrow, the title at 34 pt, a transform-only progress bar, `k of n` dots, the
- * remaining time at 44 pt tabular, the level meter, the applied gain, the source badge.
+ * Now playing (round 22: the deck): artwork, where it sits in the night, the title at 34 pt, orchestra / singer and
+ * year, the era badge, BPM / key and energy (each with its source on hover / long-press), a transform-only progress
+ * bar, `k of n` dots, the remaining time at 44 pt, the level meter, the source and gain, "End the tanda after this
+ * song" and the song's info sheet.
  */
-export function NowCard() {
+export function NowCard({ onInfo }: { onInfo?: (planIndex: number) => void }) {
   const plan = useBooth((s) => s.plan);
   const planIndex = useBooth((s) => s.planIndex);
   const state = useBooth((s) => s.state);
@@ -47,6 +57,7 @@ export function NowCard() {
   const rehearsal = useBooth((s) => s.rehearsal);
   const playlist = useBooth((s) => s.playlist);
   const notRehearsable = useBooth((s) => s.notRehearsable);
+  const entity = useBooth((s) => s.entities[s.planIndex] ?? null);
   const item = plan?.items[planIndex];
   if (!plan || !item) return null;
   const length = current
@@ -60,6 +71,7 @@ export function NowCard() {
   const k = tandaItems.findIndex((x) => x.n === item.n);
   const live = state === "playing" || state === "cortina";
   const src = sources[planIndex] ?? "missing";
+  const orchestra = entity && "orchestra" in entity ? entity.orchestra : item.artist;
   const statusText =
     state === "idle"
       ? "Ready"
@@ -76,10 +88,27 @@ export function NowCard() {
               : null;
   return (
     <section className="booth-card" data-testid="booth-now" aria-label="Now playing">
-      <p className="booth-eyebrow">{eyebrowFor(item, playlist?.tandas.length ?? 0)}</p>
-      <h2 className="booth-title" data-testid="booth-now-title">
-        {item.title}
-      </h2>
+      <div className="booth-now-head">
+        <Artwork e={entity} orchestra={orchestra} size={96} />
+        <div className="min-w-0 flex-1">
+          <p className="booth-eyebrow" data-hint="Where this song sits in the night">
+            <span className="text-[var(--room)]">● Room</span> ·{" "}
+            {eyebrowFor(item, playlist?.tandas.length ?? 0, false)}
+          </p>
+          <h2 className="booth-title" data-testid="booth-now-title">
+            {item.title}
+          </h2>
+          <p className="booth-now-artist">
+            {item.artist}
+            {item.year ? ` · ${item.year}` : ""}
+          </p>
+          <div className="booth-meta">
+            <EraBadge e={entity} />
+            <BpmKey e={entity} />
+            <EnergyChip e={entity} />
+          </div>
+        </div>
+      </div>
       <div className="booth-progress" aria-hidden>
         <div className="booth-progress-bar" style={{ transform: `scaleX(${pct})` }} />
       </div>
@@ -114,11 +143,19 @@ export function NowCard() {
       </div>
       <Meter className="mt-3" />
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <span className="booth-chip" data-testid="booth-source">
+        <span
+          className="booth-chip"
+          data-testid="booth-source"
+          data-hint="Where this song plays from: your file, Spotify or a 30 s clip"
+        >
           {SOURCE_LABEL[src]}
         </span>
         {current && (
-          <span className="booth-chip tabular-nums" data-testid="booth-gain">
+          <span
+            className="booth-chip tabular-nums"
+            data-testid="booth-gain"
+            data-hint="The level correction that keeps every song as loud as the last"
+          >
             {current.gainDb > 0 ? "+" : ""}
             {current.gainDb.toFixed(1)} dB
             {current.peakCapped ? " · peak-capped" : ""}
@@ -137,6 +174,29 @@ export function NowCard() {
         )}
         {/* the source badge already says "30 s rehearsal" when the item plays from a preview */}
         {rehearsal && src !== "preview" && <span className="booth-chip">30 s rehearsal</span>}
+      </div>
+      <div className="booth-now-actions">
+        <button
+          type="button"
+          className="booth-tool"
+          onClick={() => useBooth.getState().cueCortina()}
+          disabled={!live || item.kind !== "track"}
+          data-testid="booth-end-tanda"
+          data-hint="The song plays to its end, then the cortina: the rest of this tanda is left out (c)"
+        >
+          <ListEnd size={16} strokeWidth={2} aria-hidden /> End tanda after this song
+        </button>
+        {onInfo && item.kind !== "break" && (
+          <button
+            type="button"
+            className="booth-tool"
+            onClick={() => onInfo(planIndex)}
+            data-testid="booth-now-info"
+            data-hint="Versions, cue and stop, BPM and key of this song"
+          >
+            <Info size={16} strokeWidth={2} aria-hidden /> Song info
+          </button>
+        )}
       </div>
       {/* round 18: say which items cannot be rehearsed and why, instead of skipping them silently */}
       {rehearsal && notRehearsable.length > 0 && (

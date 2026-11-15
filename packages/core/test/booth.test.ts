@@ -10,6 +10,7 @@ import {
   BOOTH_DEFAULTS,
   BOOTH_RANGES,
   type BoothPlan,
+  boothInputs,
   compose,
   computeStats,
   cortinaStopFor,
@@ -20,6 +21,7 @@ import {
   PEAK_CEILING_DBFS,
   type Playlist,
   planBooth,
+  SONG_CUE_MIN_SEC,
   type Song,
   swapTanda,
   toCSV,
@@ -574,5 +576,55 @@ describe("exports write the plan's seconds", () => {
       .filter((l) => /^\d\d:\d\d {2}\d\d\. \[/.test(l));
     expect(clocked).toHaveLength(tm.length);
     expect(clocked[0]).toMatch(p.opening ? /^21:3[2-4] {2}01\./ : /^21:30 {2}01\./);
+  });
+});
+
+/** Round 22: the DJ's per-song cue and stop (Player → Song info → waveform): the plan plays exactly that span. */
+describe("per-song cue and stop", () => {
+  it("a cue in / stop at re-times the side, keeps every other item, and survives boothInputs", () => {
+    const song = p.tandas[0]!.songs[0]!;
+    const dur = plan.items.find((x) => x.id === song.id)!.lengthSec;
+    const cued = planBooth(p, { songCues: { [song.id]: { inSec: 2.5, outSec: dur - 10 } } });
+    const it = cued.items.find((x) => x.id === song.id)!;
+    expect(it.trimInSec).toBe(2.5);
+    expect(it.cued).toBe(true);
+    expect(it.stopSec).toBe(round3(dur - 10));
+    expect(it.lengthSec).toBe(round3(dur - 12.5));
+    // the rest of the night moves up by exactly what was cut
+    expect(round3(plan.wallClockSec - cued.wallClockSec)).toBe(12.5);
+    expect(cued.items.length).toBe(plan.items.length);
+    // the inputs that re-create the plan carry the cues (a swap or a new stop length keeps them)
+    expect(boothInputs(cued).songCues).toEqual({ [song.id]: { inSec: 2.5, outSec: dur - 10 } });
+    expect(planBooth(p, boothInputs(cued))).toEqual(cued);
+  });
+
+  it("cues are clamped: never negative, never past the side, at least SONG_CUE_MIN_SEC of music", () => {
+    const song = p.tandas[0]!.songs[1]!;
+    const dur = plan.items.find((x) => x.id === song.id)!.lengthSec;
+    const wild = planBooth(p, { songCues: { [song.id]: { inSec: -4, outSec: dur + 60 } } });
+    const a = wild.items.find((x) => x.id === song.id)!;
+    expect(a.trimInSec ?? 0).toBe(0);
+    expect(a.lengthSec).toBe(dur);
+    const tight = planBooth(p, { songCues: { [song.id]: { inSec: dur - 2, outSec: dur - 1 } } });
+    const b = tight.items.find((x) => x.id === song.id)!;
+    expect(b.lengthSec).toBeGreaterThanOrEqual(SONG_CUE_MIN_SEC);
+    expect((b.trimInSec ?? 0) + b.lengthSec).toBeLessThanOrEqual(dur + 1e-6);
+  });
+
+  it("a cue wins over the leading-silence trim; no cue leaves the plan as before", () => {
+    const song = p.tandas[0]!.songs[0]!;
+    const withAudio: Playlist = {
+      ...p,
+      tandas: p.tandas.map((t, i) =>
+        i === 0
+          ? { ...t, songs: t.songs.map((s) => (s.id === song.id ? { ...s, audio: audioFor(-20, 1.2) } : s)) }
+          : t,
+      ),
+    };
+    const trimmed = planBooth(withAudio, { trimLeadingSilence: true });
+    expect(trimmed.items.find((x) => x.id === song.id)!.trimInSec).toBe(1.2);
+    const cued = planBooth(withAudio, { trimLeadingSilence: true, songCues: { [song.id]: { inSec: 0.4 } } });
+    expect(cued.items.find((x) => x.id === song.id)!.trimInSec).toBe(0.4);
+    expect(planBooth(p, { songCues: {} })).toEqual(plan);
   });
 });

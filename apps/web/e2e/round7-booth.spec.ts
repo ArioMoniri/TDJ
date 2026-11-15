@@ -82,6 +82,8 @@ async function openBooth(page: Page, query = "") {
       timeout: 15000,
     })
     .toBe(true);
+  // the sources settle (and re-time the plan) before anything is measured
+  await expect(page.getByTestId("booth-ttc")).not.toHaveAttribute("data-resolving", "1", { timeout: 30000 });
   return page.evaluate(() => (window as unknown as { __tdjBoothPlan: Plan }).__tdjBoothPlan);
 }
 
@@ -116,7 +118,7 @@ test("booth: the plan for a composed set, time to Cumparsita, dark forced, no gl
     return rest - (playable(lastI) ? len(lastI) : 0);
   }, plan.items);
   const ttc = Number(await page.getByTestId("booth-time").getAttribute("data-ttc"));
-  expect(Math.abs(ttc - expected)).toBeLessThanOrEqual(1);
+  expect(Math.abs(ttc - expected), `ttc ${ttc} expected ${expected}`).toBeLessThanOrEqual(1);
   // the Now card shows the item at the playhead, the set column every item
   const curIdx = Number(
     await page.locator('[data-plan-index][aria-current="true"]').getAttribute("data-plan-index"),
@@ -267,10 +269,16 @@ test("the plan equals the export cue points (M3U8 stop/start lines) and History'
   await page.getByTestId("history-detail").getByRole("button", { name: "Play the night" }).click();
   await expect(page).toHaveURL(/\/booth/);
   await expect(page.getByTestId("booth-now-title")).toBeVisible({ timeout: 15000 });
-  const idx = Number(
-    await page.locator('[data-plan-index][aria-current="true"]').getAttribute("data-plan-index"),
-  );
-  await expect(page.getByTestId("booth-now-title")).toHaveText(plan.items[idx]!.title);
+  // the playhead settles on the first playable item once the sources resolve: Now and the set agree on it
+  await expect(page.getByTestId("booth-ttc")).not.toHaveAttribute("data-resolving", "1", { timeout: 30000 });
+  await expect
+    .poll(async () => {
+      const idx = Number(
+        await page.locator('[data-plan-index][aria-current="true"]').getAttribute("data-plan-index"),
+      );
+      return (await page.getByTestId("booth-now-title").textContent()) === plan.items[idx]?.title;
+    })
+    .toBe(true);
 });
 
 test("spotify source: a free account sees the plain statement and the row is disabled; Premium shows the licence note", async ({
@@ -367,9 +375,14 @@ test("1440 × 900: the set column keeps whole titles (≥ 360 px), the transport
       const r = el.getBoundingClientRect();
       return r.right > sr.right + 1 || r.left < sr.left - 1 || r.bottom > sr.bottom + 1;
     }).length;
-    const secondary = [...strip.querySelectorAll<HTMLElement>(".booth-secondary")].filter(
-      (b) => b.offsetParent !== null,
-    ).length;
+    // round 22: the modes and the room keep their place on the transport (nothing hides on an iPad)
+    const secondary = [
+      "booth-mute",
+      "booth-hold",
+      "booth-talk",
+      "booth-strip-fade",
+      "booth-strip-crossfade",
+    ].filter((id) => strip.querySelector<HTMLElement>(`[data-testid="${id}"]`)?.offsetParent).length;
     return {
       setWidth: set.width,
       cut,
@@ -387,19 +400,22 @@ test("1440 × 900: the set column keeps whole titles (≥ 360 px), the transport
   expect(m.subVisible).toBe(m.subs);
   expect(m.out).toBe(0);
   expect(m.stripScroll).toBeLessThanOrEqual(1);
-  // mute, birthday vals, break and (round 20) hold after this song
-  expect(m.secondary).toBe(4);
+  // mute, hold, talk-over, fade and crossfade
+  expect(m.secondary).toBe(5);
   expect(m.stripRight).toBeLessThanOrEqual(m.vw);
-  // below 1200 px the secondary controls leave the capsule for the overflow menu
+  // at 1100 px (an iPad in landscape) the same controls stay on one row, icon-only
   await page.setViewportSize({ width: 1100, height: 800 });
   await expect
     .poll(() =>
-      page.evaluate(
-        () =>
-          [...document.querySelectorAll<HTMLElement>('[data-testid="booth-strip"] .booth-secondary')].filter(
-            (b) => b.offsetParent !== null,
+      page.evaluate(() => {
+        const strip = document.querySelector<HTMLElement>('[data-testid="booth-strip"]')!;
+        return {
+          visible: ["booth-mute", "booth-hold", "booth-talk"].filter(
+            (id) => strip.querySelector<HTMLElement>(`[data-testid="${id}"]`)?.offsetParent,
           ).length,
-      ),
+          oneRow: strip.getBoundingClientRect().height <= 72,
+        };
+      }),
     )
-    .toBe(0);
+    .toEqual({ visible: 3, oneRow: true });
 });

@@ -1,16 +1,18 @@
 "use client";
 import { bypassedTandas } from "@tdj/core";
-import { Lock, Repeat2, Search, SlidersHorizontal } from "lucide-react";
+import { Headphones, Lock, Repeat2, Search, SlidersHorizontal } from "lucide-react";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { spotifyOf } from "@/lib/booth/clips";
+import { useIndicators } from "@/lib/booth/indicatorPrefs";
 import { durationLabel } from "@/lib/booth/plan";
+import { energyOf } from "@/lib/booth/songInfo";
 import { useBooth } from "@/lib/booth/store";
 import { tempoLevel } from "@/lib/tempo";
 import { toast } from "@/lib/toast";
 import type { Playlist } from "@/lib/types";
-import { ActionRow, Group } from "../Form";
-import { Sheet } from "../Sheet";
 import { SwapSheet } from "../SwapSheet";
+import { Artwork, BpmKey, EraBadge } from "./Indicators";
+import { SongSheet } from "./SongSheet";
 
 /**
  * The set (round7-booth.md §1.1): every plan item grouped by tanda; the current item highlighted, played items
@@ -22,7 +24,10 @@ export function SetColumn({
   jumpTo,
   onFind,
   onCortina,
+  onTapRow,
 }: {
+  /** round 22: a tapped row opens the song sheet (the page owns it, so Now's "Song info" opens the same one) */
+  onTapRow?: (planIndex: number) => void;
   jumpTo: number | null;
   onFind: (itemId: string, title: string) => void;
   /** round 20: open the cortina's envelope sheet (fade in / fade out / stop at) */
@@ -40,15 +45,8 @@ export function SetColumn({
   // round 21: a tapped row (the play sheet during the night) and the per-song Swap sheet
   const [tapped, setTapped] = useState<number | null>(null);
   const [swapAt, setSwapAt] = useState<{ tanda: number; track: number } | null>(null);
-  const tap = useCallback(async (i: number) => {
-    const b = useBooth.getState();
-    if (!b.started) {
-      const why = await b.auditionItem(i);
-      toast(why ? `Can't audition: ${why}` : `Auditioning ${b.plan?.items[i]?.title ?? ""}`);
-      return;
-    }
-    setTapped(i);
-  }, []);
+  // round 22: tap any song — the sheet plays it (now, next, from here), pre-listens it, edits its cue, its versions
+  const tap = useCallback((i: number) => (onTapRow ? onTapRow(i) : setTapped(i)), [onTapRow]);
   useEffect(() => {
     if (jumpTo === null) return;
     list.current
@@ -129,7 +127,10 @@ export function SetColumn({
             data-bypassed={bypassedT.has(g.tanda - 1) || undefined}
             data-locked={locked || undefined}
           >
-            <header className="flex items-center gap-2 px-2 pt-3 pb-1">
+            <header
+              className="flex items-center gap-2 px-2 pt-3 pb-1"
+              data-hint={t ? tandaHint(t) : undefined}
+            >
               <span className="text-caption1 min-w-0 flex-1 truncate font-semibold uppercase tracking-wide text-[var(--label-2)]">
                 {g.tanda === 0
                   ? "Opening"
@@ -137,6 +138,11 @@ export function SetColumn({
                     ? `${g.tanda} · ${t.rhythm} · ${t.orchestra}${t.singer ? ` / ${t.singer}` : ""}`
                     : "Closing"}
               </span>
+              {bypassedT.has(g.tanda - 1) && (
+                <span className="booth-skipped-chip" data-testid="booth-skipped-tonight">
+                  Skipped tonight
+                </span>
+              )}
               {/* the running tanda: a filled lock in tint ("Playing now"); the DJ's own lock stays gold */}
               {locked ? (
                 <Lock
@@ -161,17 +167,17 @@ export function SetColumn({
                   data-testid="booth-bypass"
                   aria-pressed={!!bypassedT.has(g.tanda - 1)}
                   aria-label={`${bypassedT.has(g.tanda - 1) ? "Play" : "Skip"} tanda ${g.tanda} tonight`}
-                  title={
+                  data-hint={
                     t.bypass
-                      ? "Skipped tonight (tap to play it)"
+                      ? "Skipped tonight: the player passes over it (tap to play it). It stays in the set and the exports."
                       : bypassedT.has(g.tanda - 1)
-                        ? "Skipped by Last 4 tandas tango only"
-                        : "Skip tonight"
+                        ? "Skipped by Last 4 tandas tango only (turn it off in the night bar)"
+                        : "Skip this tanda tonight: the player passes over it; it stays in the set and the exports"
                   }
                   disabled={!t.bypass && bypassedT.has(g.tanda - 1)}
                   onClick={() => void useBooth.getState().toggleBypass(g.tanda)}
                 >
-                  {bypassedT.has(g.tanda - 1) ? "Skipped" : "Skip"}
+                  {bypassedT.has(g.tanda - 1) ? "Play it" : "Skip tonight"}
                 </button>
               )}
               {t && (
@@ -217,7 +223,7 @@ export function SetColumn({
           </section>
         );
       })}
-      <PlaySheet i={tapped} onClose={() => setTapped(null)} />
+      {!onTapRow && <SongSheet i={tapped} onClose={() => setTapped(null)} />}
       <SwapSheet
         playlist={swapAt ? lockedPlaylist(playlist) : null}
         tandaIndex={swapAt ? swapAt.tanda - 1 : null}
@@ -237,59 +243,6 @@ export function SetColumn({
         }}
       />
     </section>
-  );
-}
-
-/**
- * Round 21 — a row tapped during the night: play it now (the running item fades out), next (after the running one),
- * or preview it alone (a 30 s clip through this device's default output: headphones, so the floor does not hear it).
- */
-function PlaySheet({ i, onClose }: { i: number | null; onClose: () => void }) {
-  const it = useBooth((s) => (i === null ? null : s.plan?.items[i]));
-  const audition = useBooth((s) => s.audition);
-  const fade = useBooth((s) => s.settings.fadeNowSec);
-  const b = useBooth.getState();
-  return (
-    <Sheet
-      open={i !== null && !!it}
-      onClose={onClose}
-      title={it ? `Play ${it.title}` : "Play"}
-      testId="booth-play-sheet"
-    >
-      <Group
-        footer={`Play now fades the running item out over ${fade} s. Preview only plays a 30 s clip on this device's default output: use headphones so the floor does not hear it.`}
-      >
-        <ActionRow
-          label="Play now (fade the current)"
-          onClick={() => {
-            if (i !== null) void b.playNow(i);
-            onClose();
-          }}
-        />
-        <ActionRow
-          label="Play next"
-          onClick={() => {
-            if (i !== null) {
-              b.playNext(i);
-              toast(`${it?.title} plays next`);
-            }
-            onClose();
-          }}
-        />
-        {audition?.i === i ? (
-          <ActionRow label="Stop the preview" onClick={() => b.stopAudition()} />
-        ) : (
-          <ActionRow
-            label="Preview only (headphones)"
-            onClick={async () => {
-              if (i === null) return;
-              const why = await b.auditionItem(i);
-              if (why) toast(`No preview: ${why}`);
-            }}
-          />
-        )}
-      </Group>
-    </Sheet>
   );
 }
 
@@ -358,7 +311,11 @@ const Row = memo(function Row({
   const it = useBooth((s) => s.plan?.items[i]);
   const entity = useBooth((s) => s.entities[i]);
   const auditioning = useBooth((s) => s.audition?.i === i);
+  const cueWhere = useBooth((s) => (s.audition?.i === i ? s.audition.where : null));
+  const showEnergy = useIndicators().energy;
   if (!it) return null;
+  const energy = showEnergy ? energyOf(entity) : null;
+  const orchestra = entity && "orchestra" in entity ? entity.orchestra : it.artist;
   const missing = source === "missing" && it.kind !== "break";
   const sp = spotifyOf(entity);
   // one fixed action slot (44 px): Find… a file where the night needs one, else the checked Spotify recording
@@ -372,17 +329,27 @@ const Row = memo(function Row({
       data-source={source}
       data-spotify={sp?.uri}
       data-auditioning={auditioning || undefined}
+      data-cue={cueWhere === "headphones" || undefined}
     >
+      {energy !== null && (
+        <span
+          className="booth-row-energy"
+          style={{ ["--e" as string]: 0.2 + (energy / 100) * 0.8 }}
+          data-hint={`Energy ${energy} of 100`}
+          aria-hidden
+        />
+      )}
       <span className="booth-row-n tabular-nums">
         {it.kind === "cortina" ? "♪" : it.kind === "break" ? "—" : k}
       </span>
+      {it.kind !== "break" && <Artwork e={entity} orchestra={orchestra} size={36} />}
       {/* round 21: the row itself is the play control — before the night it auditions the side, during the night it
           offers Play now / Play next / Preview only */}
       <button
         type="button"
         className="booth-row-tap min-h-11 min-w-0 flex-1 text-left"
         onClick={() => onTap?.(i)}
-        disabled={!onTap || it.kind === "break" || missing}
+        disabled={!onTap || it.kind === "break"}
         aria-label={`Play ${it.title}`}
         data-testid="booth-row-play"
       >
@@ -399,6 +366,17 @@ const Row = memo(function Row({
           {source === "spotify" ? " · Spotify" : missing ? (rehearsal ? " · no clip" : " · no source") : ""}
         </span>
       </button>
+      {auditioning && (
+        <Headphones
+          size={16}
+          strokeWidth={2}
+          className="booth-row-cue"
+          aria-label={cueWhere === "headphones" ? "In your headphones" : "Testing on this device"}
+          data-testid="booth-row-cue"
+        />
+      )}
+      {it.kind !== "break" && it.kind !== "cortina" && <BpmKey e={entity} compact />}
+      {it.kind !== "break" && it.kind !== "cortina" && <EraBadge e={entity} slot />}
       {/* the planned length (the Spotify recording's when the side has one), so the DJ can read the night */}
       <span
         className="booth-row-len text-caption1 tabular-nums text-[var(--label-3)]"
@@ -472,4 +450,11 @@ function SpotifyMark() {
       />
     </svg>
   );
+}
+
+/** The hover / long-press line of a tanda header. */
+function tandaHint(t: Playlist["tandas"][number]): string {
+  const years = t.yearRange ? ` · ${t.yearRange[0]}–${t.yearRange[1]}` : "";
+  const e = typeof t.energy === "number" ? ` · energy ${Math.round(t.energy)}` : "";
+  return `${t.rhythm} tanda · ${t.orchestra}${t.singer ? ` / ${t.singer}` : ""}${years}${e}`;
 }

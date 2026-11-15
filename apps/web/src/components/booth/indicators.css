@@ -1,0 +1,155 @@
+/* Round 22: the song indicators (era badge, BPM / key / energy chips, artwork), the room / headphones colours and
+   the hover / long-press explanations. Shared by the player, Settings and any page that shows a song row. */
+
+:root {
+  /* the room is rose, the headphones are blue; a glyph and a word always come with the colour */
+  --room: var(--tint);
+  --room-fill: color-mix(in srgb, var(--tint) 14%, transparent);
+  --cue: #0064d2;
+  --cue-fill: #e6f0fc;
+  --era: #9a6700;
+  --era-empty: #7a7587;
+  --era-weak: #b45309;
+  --era-out: #7a7587;
+  --energy: #c9426a;
+}
+.dark,
+:root[data-theme="dark"] {
+  --cue: #4da3ff;
+  --cue-fill: #0b2340;
+  --era: #f2c14e;
+  --era-empty: #7d7890;
+  --era-weak: #fbbf24;
+  --era-out: #7d7890;
+  --energy: #e0557a;
+}
+
+/* ---------- artwork ---------- */
+.booth-art {
+  --art: 40px;
+  flex: none;
+  width: var(--art);
+  height: var(--art);
+  border-radius: calc(var(--art) / 8);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: var(--fill-3);
+  position: relative;
+}
+.booth-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.booth-art-ph {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: calc(var(--art) * 0.36);
+  letter-spacing: 0.02em;
+  color: #fff;
+  background: linear-gradient(135deg, hsl(var(--hue) 45% 42%), hsl(calc(var(--hue) + 40) 50% 30%));
+}
+
+/* ---------- indicators ---------- */
+.booth-ind {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  line-height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--fill-3);
+  color: var(--label-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.booth-era {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 1.5px;
+  height: 10px;
+  flex: none;
+}
+.booth-era > i {
+  display: block;
+  width: 3px;
+  border-radius: 1px;
+  box-shadow: inset 0 0 0 1px var(--era-empty);
+}
+.booth-era > i:nth-child(1) {
+  height: 4px;
+}
+.booth-era > i:nth-child(2) {
+  height: 6px;
+}
+.booth-era > i:nth-child(3) {
+  height: 8px;
+}
+.booth-era > i:nth-child(4) {
+  height: 10px;
+}
+.booth-era > i[data-on] {
+  background: var(--era);
+  box-shadow: none;
+}
+.booth-era[data-era="weak"] > i[data-on] {
+  background: var(--era-weak);
+}
+.booth-era[data-era="outside"] > i {
+  box-shadow: none;
+  outline: 1px dashed var(--era-out);
+  outline-offset: -1px;
+}
+.booth-era-slot {
+  display: inline-grid;
+  place-items: center;
+  width: 14px;
+  height: 44px;
+  flex: none;
+}
+
+/* ---------- hover / long-press explanations ---------- */
+.booth-hint {
+  position: fixed;
+  z-index: 80;
+  max-width: min(320px, calc(100vw - 24px));
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--label);
+  background: rgb(var(--bg-cell));
+  box-shadow:
+    0 0 0 0.5px var(--separator),
+    0 8px 24px rgb(0 0 0 / 0.28);
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .booth-hint {
+    animation: booth-hint-in 120ms ease-out;
+  }
+}
+@keyframes booth-hint-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+}
+
+/* ---------- legend ---------- */
+.booth-legend {
+  display: grid;
+  gap: 6px;
+}
+.booth-legend > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
