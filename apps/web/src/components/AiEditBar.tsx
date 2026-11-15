@@ -25,7 +25,7 @@ export interface AiEditResponse {
   error?: string;
 }
 
-const EXAMPLES = ["Make tanda 7 calmer", "Swap the 2nd song of tanda 3 for a Fiorentino", "Lock tanda 1"];
+const EXAMPLES = ["Make tanda 7 calmer", "Swap the 2nd song of tanda 3 for a Fiorentino", "Lock the first tanda"];
 
 /** the sides that changed in one tanda: the old title struck through, the new one after it */
 function SidesDiff({ before, after }: { before?: TandaBrief; after?: TandaBrief }) {
@@ -197,8 +197,8 @@ export function AiEditBar({ playlist }: { playlist: Playlist }) {
           type="submit"
           className="icon-btn icon-btn-send -mr-2"
           disabled={busy || !text.trim()}
-          aria-label="Apply the edit"
-          title="Apply the edit"
+          aria-label="Send the edit"
+          title="Send the edit"
         >
           {busy ? (
             <LoaderCircle size={18} className="animate-spin" />

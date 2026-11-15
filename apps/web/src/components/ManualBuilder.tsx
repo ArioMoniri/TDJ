@@ -225,8 +225,8 @@ export function ManualBuilder() {
         }
       />
 
-      <div className="grid gap-x-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <section aria-label="Your night">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-x-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <section aria-label="Your night" className="min-w-0">
           <h2 className="section-head">Your night</h2>
           {!draft.length && (
             <Group footer="Start with a suggestion or search for a song: TDJ keeps the tanda's orchestra and years together and tells you what fits next.">
@@ -313,7 +313,7 @@ export function ManualBuilder() {
           </AnimatePresence>
         </section>
 
-        <section aria-label="What comes next">
+        <section aria-label="What comes next" className="min-w-0">
           <h2 className="section-head">What comes next</h2>
           <Group
             footer={

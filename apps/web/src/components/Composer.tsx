@@ -1742,7 +1742,6 @@ export function Composer() {
             </Group>
           )}
 
-          <AiEditBar playlist={playlist} />
           <h2 className="section-head">Tandas</h2>
           {/* no AnimatePresence here: exiting cards stayed mounted across recomposes (round8-qa.md B1); a new set
               mounts fresh cards with new keys and the old ones leave at once */}
@@ -1785,6 +1784,7 @@ export function Composer() {
               ];
             })}
           </div>
+          <AiEditBar playlist={playlist} />
           {playlist.closing && (
             <Group header="Closing">
               <div className="cell" data-leading="art">

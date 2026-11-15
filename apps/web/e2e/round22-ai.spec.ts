@@ -8,8 +8,6 @@ import http from "node:http";
 import type { Socket } from "node:net";
 import { expect, type Page, test } from "@playwright/test";
 
-const AGENT_PORT = 3197;
-
 /** a minimal WebSocket server (text frames) speaking ACP: the answer comes from `answer(prompt)` */
 function mockAcpAgent(answer: (prompt: string) => string) {
   const prompts: string[] = [];
@@ -103,7 +101,7 @@ test("Edit with AI: a request becomes a checked edit with a diff, and Undo puts 
   const bar = page.getByTestId("ai-edit");
   await expect(bar).toBeVisible();
   await page.locator("#ai-edit-input").fill("lock tanda 2");
-  await page.getByRole("button", { name: "Apply the edit" }).click();
+  await page.getByRole("button", { name: "Send the edit" }).click();
   const diff = page.getByTestId("ai-edit-diff");
   await expect(diff).toContainText("Tanda 2", { timeout: 30000 });
   await expect(diff).toContainText("locked");
@@ -112,7 +110,7 @@ test("Edit with AI: a request becomes a checked edit with a diff, and Undo puts 
   await expect(diff).toHaveCount(0);
   // a request that names an unknown tanda is refused with its reason, nothing changes
   await page.locator("#ai-edit-input").fill("make tanda 99 calmer");
-  await page.getByRole("button", { name: "Apply the edit" }).click();
+  await page.getByRole("button", { name: "Send the edit" }).click();
   await expect(page.getByTestId("ai-edit-diff")).toContainText("Nothing to change", { timeout: 30000 });
 });
 
@@ -124,7 +122,9 @@ test("an ACP agent works like a key: Settings → Models tests it, Edit with AI 
       ? '{"edits":[{"op":"lock","tanda":3}],"note":"Tanda 3 stays as it is."}'
       : "OK",
   );
-  await new Promise<void>((r) => agent.server.listen(AGENT_PORT, "127.0.0.1", r));
+  // a free port of its own: other suites and other checkouts on this machine use the fixed ones
+  await new Promise<void>((r) => agent.server.listen(0, "127.0.0.1", r));
+  const port = (agent.server.address() as { port: number }).port;
   try {
     await page.goto("/settings");
     const models = page.getByTestId("model-connections");
@@ -134,7 +134,7 @@ test("an ACP agent works like a key: Settings → Models tests it, Edit with AI 
     await page.locator("#model-add-agent").click();
     const sheet = page.getByTestId("agent-sheet");
     await sheet.locator("#agent-name").fill("Mock Agent");
-    await sheet.locator("#agent-url").fill(`ws://127.0.0.1:${AGENT_PORT}`);
+    await sheet.locator("#agent-url").fill(`ws://127.0.0.1:${port}`);
     await sheet.locator("#agent-test").click();
     await expect(sheet.getByTestId("agent-sheet-status")).toContainText("Connected · Mock Agent 1.0", {
       timeout: 20000,
@@ -146,7 +146,7 @@ test("an ACP agent works like a key: Settings → Models tests it, Edit with AI 
 
     await openFeatured(page);
     await page.locator("#ai-edit-input").fill("keep the third tanda");
-    await page.getByRole("button", { name: "Apply the edit" }).click();
+    await page.getByRole("button", { name: "Send the edit" }).click();
     const diff = page.getByTestId("ai-edit-diff");
     await expect(diff).toContainText("Tanda 3", { timeout: 30000 });
     await expect(diff).toContainText("Tanda 3 stays as it is.");
@@ -192,7 +192,7 @@ test("learned rules: a lock teaches, Database → Memory lists it, the DJ weight
 }) => {
   await openFeatured(page);
   await page.locator("#ai-edit-input").fill("lock tanda 4");
-  await page.getByRole("button", { name: "Apply the edit" }).click();
+  await page.getByRole("button", { name: "Send the edit" }).click();
   await expect(page.getByTestId("ai-edit-diff")).toContainText("Tanda 4", { timeout: 30000 });
   // the memory is written to this browser's database a moment after the edit
   await page.waitForTimeout(1000);
