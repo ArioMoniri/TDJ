@@ -23,6 +23,7 @@ import {
 import { scorePlaylist } from "./score";
 import {
   cycleCountOk,
+  hourBuckets,
   isClassicCycle,
   lineupPeriod,
   type StrictResult,
@@ -57,7 +58,7 @@ import type {
   Song,
   Tanda,
 } from "./types";
-import { mendVmRepeats } from "./vmRepeat";
+import { mendInstrHours, mendVmRepeats } from "./vmRepeat";
 
 export const DEFAULT_OPTIONS: ComposeOptions = {
   hours: 4,
@@ -2249,9 +2250,37 @@ function composeOnce(
   }
   // round 21c — never one orchestra's vals or milonga twice, never the gap broken for it (vmRepeat.ts, the ladder)
   if (!lockedByIndex.size && o.hours < 5) {
+    const draftTandas = tandas.slice();
     const m = mendVmRepeats(tandas, o, cat);
     tandas.splice(0, tandas.length, ...m.tandas);
     fallbacks.push(...m.fallbacks);
+    // round 21c — every clock hour keeps an instrumental tango tanda (the panel's instrHour), no other rule worse
+    if (isGoldenNight(o)) {
+      const night = (ts: Tanda[]) => ({
+        tandas: ts,
+        closing,
+        options: o,
+        opening: place.open ? (closing ?? null) : null,
+      });
+      const h = mendInstrHours(
+        tandas,
+        o,
+        cat,
+        (ts) => strictChecks(night(ts)),
+        (ts) => hourBuckets(night(ts)),
+      );
+      tandas.splice(0, tandas.length, ...h.tandas);
+      fallbacks.push(...h.fallbacks);
+    }
+    // (a chair the mends changed is re-cued under the panel's cue rules, as after the length fit)
+    if (m.fallbacks.length || (isGoldenNight(o) && tandas.some((t, i) => t !== draftTandas[i]))) {
+      const rq = recue(tandas, deps, o);
+      const cn = (ts: Tanda[]) => strictChecks({ tandas: ts, closing, options: o });
+      if (rq && recueBetter(cn(rq), cn(tandas)) && cueFamilies({ tandas: rq }) <= cueFamilies({ tandas }))
+        rq.forEach((t, i) => {
+          tandas[i] = t;
+        });
+    }
   }
   // La Cumparsita: closing versions only (corpus/profile years), preferred orchestras, varied by seed, never the última's orchestra
   // round 21 — the big four: two big-four tandas back to back (or the same one too soon) trade places with a tanda of
@@ -2280,6 +2309,7 @@ function composeOnce(
           const A = tandas[a]!,
             B = tandas[b]!;
           if (A.peak || B.peak || A.locked || B.locked || A.birthday || B.birthday) continue;
+          if (A.orchestraId === "osvaldo-pugliese" || B.orchestraId === "osvaldo-pugliese") continue;
           const put = (x: Tanda, at: Tanda): Tanda => ({
             ...x,
             index: at.index,
@@ -2325,7 +2355,16 @@ function composeOnce(
       let best: { a: number; b: number; v: number } | null = null;
       const movable = (i: number) => {
         const x = tandas[i];
-        return !!x && i > 0 && i < tandas.length - 1 && !x.peak && !x.birthday && !x.locked;
+        // (round 21c: never the Pugliese chair — the round 9–11 placement keeps him in the last 40 %)
+        return (
+          !!x &&
+          i > 0 &&
+          i < tandas.length - 1 &&
+          !x.peak &&
+          !x.birthday &&
+          !x.locked &&
+          x.orchestraId !== "osvaldo-pugliese"
+        );
       };
       for (const f of faults())
         for (const a of [f.tanda, f.with ?? -1]) {
@@ -2378,6 +2417,16 @@ function composeOnce(
           .map((x) => x.detail)
           .join("; ")} (no swap keeps the other rules)`,
       );
+  }
+  // round 21c: the swaps above moved tandas past their cues — the cortinas are re-picked once more under the panel's
+  // cue rules (cueDramatic, cueVals …), kept only when the panel is better for it
+  if (isGoldenNight(o) && !lockedByIndex.size && o.hours < 5) {
+    const rq = recue(tandas, deps, o);
+    const cn = (ts: Tanda[]) => strictChecks({ tandas: ts, closing, options: o });
+    if (rq && recueBetter(cn(rq), cn(tandas)) && cueFamilies({ tandas: rq }) <= cueFamilies({ tandas }))
+      rq.forEach((t, i) => {
+        tandas[i] = t;
+      });
   }
   // round 21: the opening Cumparsita matches the first tanda (its orchestra, the nearest year, instrumental)
   let opening: Song | null = null;

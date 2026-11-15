@@ -167,3 +167,122 @@ export function mendVmRepeats(tandas0: Tanda[], o: ComposeOptions, cat: Catalog)
   });
   return { tandas, fallbacks };
 }
+
+/**
+ * Round 21c — every clock hour holds an instrumental tango tanda (the panel's instrHour, as `hourBuckets` reads the
+ * hours). When the repair leaves an hour without one, a vocal tango tanda of that hour (never the first, the última, a
+ * planned summit, the Pugliese chair or the DJ's) is replaced by an instrumental family that is not playing tonight and
+ * keeps the orchestra gap — taken only when the strict panel as a whole is no worse for it.
+ */
+const noCue = (r: { penalty: number; violations: Array<{ rule: string; severity?: string }> }) =>
+  r.penalty - r.violations.filter((v) => v.rule.startsWith("cue") && v.severity !== "blocker").length;
+
+export function mendInstrHours(
+  tandas0: Tanda[],
+  o: ComposeOptions,
+  cat: Catalog,
+  judge: (ts: Tanda[]) => {
+    blockers: number;
+    penalty: number;
+    violations: Array<{ rule: string; severity?: string; tanda?: number }>;
+  },
+  buckets: (ts: Tanda[]) => number[][],
+): VmMend {
+  let tandas = tandas0.slice();
+  const fallbacks: string[] = [];
+  const gap = Math.max(1, o.orchestraRepeatGap ?? 6);
+  const yr: [number, number] = o.yearRange ?? [1935, 1945];
+  for (let round = 0; round < 3; round++) {
+    const r0 = judge(tandas);
+    const items = r0.violations.filter((v) => v.rule === "instrHour") as Array<{
+      rule: string;
+      tanda?: number;
+    }>;
+    if (!items.length) break;
+    // the chairs that can mend it: the vocal tangos of an hour without an instrumental one, and those of a run of four
+    const bad = new Set<number>();
+    for (const b of buckets(tandas))
+      if (!b.some((i) => tandas[i]!.rhythm === "tango" && !tandas[i]!.vocal)) for (const i of b) bad.add(i);
+    for (const v of items)
+      if (typeof v.tanda === "number" && v.tanda >= 0) {
+        const run = tandas
+          .map((x, k) => ({ x, k }))
+          .filter((y) => y.k <= v.tanda! && y.x.rhythm === "tango")
+          .slice(-4);
+        for (const y of run) bad.add(y.k);
+      }
+    if (!bad.size) break;
+    let best: { ts: Tanda[]; v: number; label: string } | null = null;
+    for (const i of bad) {
+      const t = tandas[i]!;
+      if (
+        t.rhythm !== "tango" ||
+        !t.vocal ||
+        i === 0 ||
+        i === tandas.length - 1 ||
+        t.peak ||
+        t.pinned ||
+        t.locked
+      )
+        continue;
+      if (t.orchestraId === "osvaldo-pugliese") continue;
+      // (an orchestra may add its instrumental mode to one vocal tango tanda tonight — round 14 S5 — never a third)
+      const tg = (id: string) =>
+        tandas.filter((x, k) => k !== i && x.rhythm === "tango" && x.orchestraId === id);
+      const blocked = (id: string) =>
+        tg(id).length >= 2 || tg(id).some((x) => !x.vocal) || id === "juan-d-arienzo";
+      const used = new Set(tandas.flatMap((x, k) => (k === i ? [] : x.songs.map((s) => normTitle(s.title)))));
+      for (const f of nightFamilies(cat, o, "tango")) {
+        if (f.vocal || blocked(f.orchestraId)) continue;
+        if (tandas.some((x, k) => k !== i && x.orchestraId === f.orchestraId && Math.abs(k - i) < gap))
+          continue;
+        const seen = new Set<string>();
+        const sides = f.songs
+          .filter((s) => {
+            const k = normTitle(s.title);
+            if (seen.has(k) || used.has(k)) return false;
+            seen.add(k);
+            return (
+              streams(s) &&
+              isTandaEligible(s, !!o.rules?.allowUndated) &&
+              !!s.year &&
+              s.year >= yr[0] &&
+              s.year <= yr[1] &&
+              (s.fame ?? 0) >= 2
+            );
+          })
+          .sort((a, b) => (b.fame ?? 0) - (a.fame ?? 0))
+          .slice(0, t.songs.length);
+        if (sides.length < t.songs.length) continue;
+        const nt = retimeTanda(
+          {
+            ...t,
+            orchestraId: f.orchestraId,
+            orchestra: f.orchestra,
+            singer: null,
+            vocal: false,
+            era: sides[0]!.era,
+            style: cat.profile(f.orchestraId)?.style,
+          },
+          strictOrder(sides, false),
+        );
+        const ts = tandas.map((x, k) => (k === i ? nt : x));
+        const r1 = judge(ts);
+        // (the cues are re-picked after the mend: a cue item the new tanda brings is the re-pick's, not the mend's)
+        const p1 = noCue(r1),
+          p0 = noCue(r0);
+        if (r1.blockers > r0.blockers || p1 >= p0 - 1e-9) continue;
+        if (!best || p1 < best.v)
+          best = {
+            ts,
+            v: p1,
+            label: `tanda ${i + 1}: ${t.orchestra}${t.singer ? ` / ${t.singer}` : ""} → ${f.orchestra} instr.`,
+          };
+      }
+    }
+    if (!best) break;
+    tandas = best.ts;
+    fallbacks.push(`instrHour: ${best.label} (the hour had no instrumental tango tanda)`);
+  }
+  return { tandas, fallbacks };
+}
