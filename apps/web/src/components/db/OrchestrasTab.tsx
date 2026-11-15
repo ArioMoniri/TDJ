@@ -92,6 +92,8 @@ function Heatmap({
   years: number[];
   edited: (mode: "instrumental" | "vocal", y: number) => boolean;
 }) {
+  // one help tag for the whole map; it names the year under the pointer
+  const [cellTip, setCellTip] = useState<string | null>(null);
   if (!years.length) return null;
   const cell = (mode: "instrumental" | "vocal", y: number) => {
     const g = row?.[mode]?.[String(y)];
@@ -102,14 +104,22 @@ function Heatmap({
         className="heat-cell"
         data-g={has ? g : ""}
         data-edited={edited(mode, y) || undefined}
-        title={`${y} · ${mode === "vocal" ? "with a singer" : "instrumental"}: ${has ? HEAT_LABEL[g as HeatGrade] : "not graded"}`}
+        data-tip={`${y} · ${mode === "vocal" ? "with a singer" : "instrumental"}: ${has ? HEAT_LABEL[g as HeatGrade] : "not graded"}`}
       />
     );
   };
   return (
-    <Tip text={`${name}'s years, graded from your heatmap: green best, blue good, orange uneven, grey avoid`}>
+    <Tip
+      text={
+        cellTip ??
+        `${name}'s years, graded from your heatmap: green best, blue good, orange uneven, grey avoid`
+      }
+      className="w-full"
+    >
       <div
         className="w-full"
+        onPointerOver={(e) => setCellTip((e.target as HTMLElement).dataset.tip ?? null)}
+        onPointerLeave={() => setCellTip(null)}
         role="img"
         aria-label={`Era heatmap of ${name}, ${years[0]} to ${years[years.length - 1]}`}
         data-testid="heatmap"

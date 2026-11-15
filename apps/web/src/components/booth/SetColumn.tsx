@@ -267,7 +267,7 @@ function SwapButton({
       className="icon-btn icon-btn-bare h-11 w-11 shrink-0"
       aria-label={label}
       aria-disabled={disabled || undefined}
-      title={title}
+      data-hint={title}
       disabled={busy}
       onClick={() => !disabled && onClick()}
       data-testid="booth-swap"
@@ -393,7 +393,7 @@ const Row = memo(function Row({
             className="icon-btn icon-btn-bare booth-find h-11 w-11"
             onClick={() => onFind(it.id!, it.title)}
             aria-label={`Find a file for ${it.title}`}
-            title="Find a file…"
+            data-hint="Find a file…"
             data-testid="booth-find"
           >
             <Search size={16} strokeWidth={2} aria-hidden />
@@ -405,7 +405,7 @@ const Row = memo(function Row({
             rel="noopener noreferrer"
             className="booth-spotify icon-btn icon-btn-bare h-11 w-11"
             aria-label={`Open ${it.title} in Spotify (the recording the booth plays)`}
-            title="The Spotify recording · open in Spotify"
+            data-hint="The Spotify recording · open in Spotify"
             data-testid="booth-spotify-link"
           >
             <SpotifyMark />
@@ -425,7 +425,7 @@ const Row = memo(function Row({
           type="button"
           className="icon-btn icon-btn-bare h-11 w-11 shrink-0"
           aria-label={`Fades and stop of the cortina ${it.title}`}
-          title="Fade in, fade out, stop at"
+          data-hint="Fade in, fade out, stop at"
           onClick={() => onCortina(i)}
           data-testid="booth-cortina-edit"
         >

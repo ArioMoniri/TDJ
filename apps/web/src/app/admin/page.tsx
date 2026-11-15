@@ -14,6 +14,7 @@ import {
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { ActionRow, FieldRow, Group, Row, SegmentedRow, StepperRow, Tile } from "@/components/Form";
 import { PageHeader } from "@/components/PageHeader";
+import { Tip } from "@/components/ui/Tip";
 import { toast } from "@/lib/toast";
 import { AI_DEFAULT_MODEL, AI_PROVIDERS, type AiProvider } from "@/lib/types";
 
@@ -462,18 +463,19 @@ export default function AdminPage() {
         }
         trailing={
           // phones: the book glyph alone, so the title never truncates to "Owner se…" (round8-ux.md §2 Admin)
-          <a
-            href={OWNER_GUIDE}
-            target="_blank"
-            rel="noreferrer"
-            className="btn-plain max-sm:icon-btn max-sm:icon-btn-bare max-sm:px-0"
-            id="admin-guide"
-            aria-label="Owner guide"
-            title="Owner guide"
-          >
-            <BookOpen size={18} strokeWidth={2} className="inline sm:mr-1" aria-hidden />
-            <span className="max-sm:sr-only">Owner guide</span>
-          </a>
+          <Tip text={"Owner guide"}>
+            <a
+              href={OWNER_GUIDE}
+              target="_blank"
+              rel="noreferrer"
+              className="btn-plain max-sm:icon-btn max-sm:icon-btn-bare max-sm:px-0"
+              id="admin-guide"
+              aria-label="Owner guide"
+            >
+              <BookOpen size={18} strokeWidth={2} className="inline sm:mr-1" aria-hidden />
+              <span className="max-sm:sr-only">Owner guide</span>
+            </a>
+          </Tip>
         }
       />
 

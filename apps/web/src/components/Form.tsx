@@ -4,6 +4,14 @@ import { type HTMLAttributes, type ReactNode, useId, useState } from "react";
 import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
 import { Sheet } from "./Sheet";
+import { useTip } from "./ui/Tip";
+
+/** a row's help tag: its own `tip`, else its one-line `sub` when that is plain text */
+const tipOf = (tip: string | undefined, sub: ReactNode) => tip ?? (typeof sub === "string" ? sub : undefined);
+/* the tag's props go on whichever element the row renders */
+// biome-ignore lint/suspicious/noExplicitAny: one spread for <a>, <button>, <div> and <label>
+const on = (p: unknown) => p as any;
+
 import { NudgeValue, Segmented, Stepper, Switch } from "./ui";
 
 /** Inset grouped list: optional uppercase header, the white/ink container, optional footer. */
@@ -70,6 +78,8 @@ export interface RowProps {
   "aria-label"?: string;
   "data-resolved"?: string;
   "data-testid"?: string;
+  /** the help tag on hover and long-press: what the row does */
+  tip?: string;
 }
 
 /** Label left, value right, optional tile, optional chevron. A button when it has `onClick`, a link with `href`. */
@@ -87,10 +97,14 @@ export function Row({
   className = "",
   href,
   id,
+  tip,
   ...aria
 }: RowProps) {
+  // a row you can tap explains itself; a row that only shows a value needs no tag
+  const t = useTip(onClick || href ? tipOf(tip, sub) : tip);
   const body = (
     <>
+      {t.tag}
       {tile}
       <span className="min-w-0 flex-1">
         <span className="block truncate">{label}</span>
@@ -109,7 +123,16 @@ export function Row({
   const lead = tile ? "tile" : leading;
   if (href)
     return (
-      <a href={href} target="_blank" rel="noreferrer" className={cls} data-leading={lead} id={id} {...aria}>
+      <a
+        href={href}
+        target="_blank"
+        rel="noreferrer"
+        className={cls}
+        data-leading={lead}
+        id={id}
+        {...aria}
+        {...on(t.props)}
+      >
         {body}
       </a>
     );
@@ -123,12 +146,13 @@ export function Row({
         data-leading={lead}
         id={id}
         {...aria}
+        {...on(t.props)}
       >
         {body}
       </button>
     );
   return (
-    <div className={cls} data-leading={lead} id={id} {...aria}>
+    <div className={cls} data-leading={lead} id={id} {...aria} {...on(t.props)}>
       {body}
     </div>
   );
@@ -148,6 +172,7 @@ export function PickerRow<K extends string>({
   ariaLabel,
   sub,
   tile,
+  tip,
 }: {
   label: ReactNode;
   value: K | undefined;
@@ -163,14 +188,18 @@ export function PickerRow<K extends string>({
   sub?: ReactNode;
   /** leading Settings tile */
   tile?: ReactNode;
+  tip?: string;
 }) {
   const id = useId();
+  const t = useTip(tipOf(tip, sub));
   const current = items.find(([k]) => k === value)?.[1];
   return (
     <div
       className={`cell relative w-full ${disabled ? "" : "cell-tap"}`}
       data-leading={tile ? "tile" : undefined}
+      {...on(t.props)}
     >
+      {t.tag}
       {tile}
       <label htmlFor={id} className="min-w-0 flex-1">
         <span className="block truncate">{label}</span>
@@ -180,8 +209,8 @@ export function PickerRow<K extends string>({
         <span
           className="h-2 w-2 shrink-0 rounded-full"
           style={{ background: trailingDot }}
-          title={trailingDotTitle}
-          aria-hidden
+          role="img"
+          aria-label={trailingDotTitle}
         />
       )}
       <span className="cell-value">{current ?? placeholder}</span>
@@ -217,6 +246,7 @@ export function SwitchRow({
   tile,
   disabled,
   children,
+  tip,
 }: {
   label: string;
   sub?: ReactNode;
@@ -225,9 +255,12 @@ export function SwitchRow({
   tile?: ReactNode;
   disabled?: boolean;
   children?: ReactNode;
+  tip?: string;
 }) {
+  const t = useTip(tipOf(tip, sub));
   return (
-    <div className="cell" data-leading={tile ? "tile" : undefined}>
+    <div className="cell" data-leading={tile ? "tile" : undefined} {...on(t.props)}>
+      {t.tag}
       {tile}
       <span className="min-w-0 flex-1">
         <span className="block">{label}</span>
@@ -247,6 +280,7 @@ export function StepperRow({
   tile,
   children,
   display,
+  tip,
   ...stepper
 }: {
   label: string;
@@ -263,11 +297,14 @@ export function StepperRow({
   children?: ReactNode;
   /** overrides the trailing text (defaults to value + unit) */
   display?: ReactNode;
+  tip?: string;
 }) {
   // phones show the bare number; the group footer names the units
   const isPhone = useMediaQuery("(max-width: 639px)");
+  const t = useTip(tipOf(tip, sub));
   return (
-    <div className="cell">
+    <div className="cell" {...on(t.props)}>
+      {t.tag}
       {tile}
       <span className="min-w-0 flex-1">
         <span className="block truncate">{label}</span>
@@ -293,6 +330,7 @@ export function SliderRow({
   onChange,
   id,
   children,
+  tip,
 }: {
   label: string;
   value: number;
@@ -303,11 +341,14 @@ export function SliderRow({
   onChange: (v: number) => void;
   id?: string;
   children?: ReactNode;
+  tip?: string;
 }) {
   const auto = useId();
   const sid = id ?? auto;
+  const t = useTip(tip);
   return (
-    <div className="cell flex-col items-stretch gap-1">
+    <div className="cell flex-col items-stretch gap-1" {...on(t.props)}>
+      {t.tag}
       <div className="flex items-center justify-between gap-3">
         <label htmlFor={sid}>{label}</label>
         <span className="flex items-center gap-1">
@@ -338,6 +379,7 @@ export function ActionRow({
   disabled,
   busy,
   id,
+  tip,
 }: {
   label: ReactNode;
   onClick: () => void;
@@ -345,15 +387,19 @@ export function ActionRow({
   disabled?: boolean;
   busy?: boolean;
   id?: string;
+  tip?: string;
 }) {
+  const t = useTip(tip);
   return (
     <button
       type="button"
+      {...on(t.props)}
       id={id}
       onClick={onClick}
       disabled={disabled || busy}
       className={`cell cell-tap w-full justify-center ${destructive ? "text-[var(--destructive)]" : "text-[var(--tint)]"} disabled:text-[var(--label-3)]`}
     >
+      {t.tag}
       {busy ? <LoaderCircle size={16} className="animate-spin" aria-label="Working" /> : label}
     </button>
   );
@@ -372,6 +418,7 @@ export function SegmentedRow<K extends string>({
   children,
   sub,
   tile,
+  tip,
   ...seg
 }: {
   label: string;
@@ -382,7 +429,11 @@ export function SegmentedRow<K extends string>({
   sub?: ReactNode;
   /** leading Settings tile */
   tile?: ReactNode;
+  tip?: string;
+  /** a help tag per choice */
+  tips?: Partial<Record<K, string>>;
 }) {
+  const t = useTip(tipOf(tip, sub));
   const chars = seg.items.reduce((n, [, l]) => n + l.length, 0);
   if (seg.items.length > 4 || chars > 36)
     return (
@@ -391,6 +442,7 @@ export function SegmentedRow<K extends string>({
         ariaLabel={label}
         sub={sub}
         tile={tile}
+        tip={tip}
         value={seg.value}
         items={seg.items}
         onChange={(k) => k && seg.onChange(k)}
@@ -399,7 +451,8 @@ export function SegmentedRow<K extends string>({
       </PickerRow>
     );
   return (
-    <div className="cell seg-row" data-leading={tile ? "tile" : undefined}>
+    <div className="cell seg-row" data-leading={tile ? "tile" : undefined} {...on(t.props)}>
+      {t.tag}
       {tile}
       <span className="seg-row-label min-w-0 flex-1">
         <span className="block truncate">{label}</span>
@@ -424,6 +477,7 @@ export function FoldGroup({
   id,
   bare = false,
   defaultOpen = false,
+  tip,
 }: {
   header: string;
   summary?: ReactNode;
@@ -432,14 +486,18 @@ export function FoldGroup({
   id?: string;
   bare?: boolean;
   defaultOpen?: boolean;
+  /** what the section holds, on hover and long-press of its header */
+  tip?: string;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const body = useId();
+  const t = useTip(tip);
   return (
     <section className="fold min-w-0" id={id} data-open={open || undefined}>
       <button
         type="button"
         className="fold-head"
+        {...on(t.props)}
         aria-expanded={open}
         aria-controls={body}
         onClick={() => {
@@ -447,6 +505,7 @@ export function FoldGroup({
           setOpen((v) => !v);
         }}
       >
+        {t.tag}
         <span className="fold-title">{header}</span>
         <span className="fold-summary">{summary}</span>
         <ChevronRight size={16} strokeWidth={2.5} className="fold-chevron" aria-hidden />
@@ -466,18 +525,22 @@ export function CheckRow({
   checked,
   onChange,
   tile,
+  tip,
 }: {
   label: ReactNode;
   sub?: ReactNode;
   checked: boolean;
   onChange: (v: boolean) => void;
   tile?: ReactNode;
+  tip?: string;
 }) {
+  const t = useTip(tipOf(tip, sub));
   return (
     // biome-ignore lint/a11y/useSemanticElements: a checkmark row (Apple Music add-to-playlist), not a checkbox glyph
     <button
       type="button"
       role="checkbox"
+      {...on(t.props)}
       aria-checked={checked}
       onClick={() => {
         haptic(4);
@@ -486,6 +549,7 @@ export function CheckRow({
       className="cell cell-tap w-full text-left"
       data-leading={tile ? "art" : undefined}
     >
+      {t.tag}
       {tile}
       <span className="min-w-0 flex-1">
         <span className="block truncate">{label}</span>
@@ -507,6 +571,7 @@ export function MultiPickerRow<K extends string>({
   footer,
   min = 0,
   children,
+  tip,
 }: {
   label: string;
   values: K[];
@@ -516,6 +581,7 @@ export function MultiPickerRow<K extends string>({
   /** at least this many must stay chosen */
   min?: number;
   children?: ReactNode;
+  tip?: string;
 }) {
   const [open, setOpen] = useState(false);
   const chosen = items.filter(([k]) => values.includes(k)).map(([, l]) => l);
@@ -523,7 +589,7 @@ export function MultiPickerRow<K extends string>({
     chosen.length === 0 ? "None" : chosen.length <= 2 ? chosen.join(", ") : `${chosen.length} chosen`;
   return (
     <>
-      <Row label={label} value={text} chevron onClick={() => setOpen(true)}>
+      <Row label={label} value={text} chevron onClick={() => setOpen(true)} tip={tip}>
         {children}
       </Row>
       <Sheet open={open} onClose={() => setOpen(false)} title={label} trailing="Done">
@@ -555,15 +621,19 @@ export function FieldRow({
   children,
   sub,
   tile,
+  tip,
 }: {
   label: ReactNode;
   id: string;
   children: ReactNode;
   sub?: ReactNode;
   tile?: ReactNode;
+  tip?: string;
 }) {
+  const t = useTip(tipOf(tip, sub));
   return (
-    <label htmlFor={id} className="cell" data-leading={tile ? "tile" : undefined}>
+    <label htmlFor={id} className="cell" data-leading={tile ? "tile" : undefined} {...on(t.props)}>
+      {t.tag}
       {tile}
       <span className="min-w-0 flex-[0_1_45%]">
         <span className="block truncate">{label}</span>

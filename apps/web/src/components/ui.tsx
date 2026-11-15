@@ -4,20 +4,66 @@ import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "motion/r
 import { type KeyboardEvent, useId, useRef } from "react";
 import { haptic } from "@/lib/haptics";
 import { spring, t } from "@/lib/motion";
+import { useTip } from "./ui/Tip";
 
-/** Single-select control for 2–5 mutually exclusive choices (UISegmentedControl). */
+/** one choice of a segmented control; its help tag goes straight on the button (no wrapper: arrows move by index) */
+function SegItem({
+  on,
+  label,
+  tip,
+  layoutId,
+  onPick,
+}: {
+  on: boolean;
+  label: string;
+  tip?: string;
+  layoutId: string;
+  onPick: () => void;
+}) {
+  const t = useTip<HTMLButtonElement>(tip);
+  return (
+    // biome-ignore lint/a11y/useSemanticElements: segmented control built from buttons (WAI-ARIA radio group pattern)
+    <button
+      type="button"
+      role="radio"
+      aria-checked={on}
+      tabIndex={on ? 0 : -1}
+      {...t.props}
+      onClick={() => {
+        if (!on) haptic(4);
+        onPick();
+      }}
+      className={`seg relative isolate ${on ? "seg-on" : ""}`}
+    >
+      {on && (
+        <motion.span
+          layoutId={layoutId}
+          transition={spring.thumb}
+          className="seg-thumb absolute inset-0 -z-10 rounded-[7px]"
+          aria-hidden
+        />
+      )}
+      {label}
+      {t.tag}
+    </button>
+  );
+}
+
+/** Single-select control for 2–5 mutually exclusive choices (UISegmentedControl). `tips`: a help tag per choice. */
 export function Segmented<K extends string>({
   value,
   items,
   onChange,
   label,
   className = "",
+  tips,
 }: {
   value: K;
   items: Array<[K, string]>;
   onChange: (k: K) => void;
   label?: string;
   className?: string;
+  tips?: Partial<Record<K, string>>;
 }) {
   const id = useId();
   const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -30,7 +76,9 @@ export function Segmented<K extends string>({
     if (next < 0) return;
     e.preventDefault();
     onChange(items[next]![0]);
-    (e.currentTarget.children[next] as HTMLElement | undefined)?.focus();
+    (
+      e.currentTarget.querySelectorAll<HTMLElement>('[role="radio"]')[next] as HTMLElement | undefined
+    )?.focus();
   };
   return (
     <LayoutGroup id={id}>
@@ -40,34 +88,16 @@ export function Segmented<K extends string>({
         className={`segmented scroll-x ${className}`}
         onKeyDown={onKey}
       >
-        {items.map(([k, l]) => {
-          const on = value === k;
-          return (
-            // biome-ignore lint/a11y/useSemanticElements: segmented control built from buttons (WAI-ARIA radio group pattern)
-            <button
-              type="button"
-              role="radio"
-              aria-checked={on}
-              tabIndex={on ? 0 : -1}
-              key={k}
-              onClick={() => {
-                if (!on) haptic(4);
-                onChange(k);
-              }}
-              className={`seg relative isolate ${on ? "seg-on" : ""}`}
-            >
-              {on && (
-                <motion.span
-                  layoutId={`seg-${id}`}
-                  transition={spring.thumb}
-                  className="seg-thumb absolute inset-0 -z-10 rounded-[7px]"
-                  aria-hidden
-                />
-              )}
-              {l}
-            </button>
-          );
-        })}
+        {items.map(([k, l]) => (
+          <SegItem
+            key={k}
+            on={value === k}
+            label={l}
+            tip={tips?.[k]}
+            layoutId={`seg-${id}`}
+            onPick={() => onChange(k)}
+          />
+        ))}
       </div>
     </LayoutGroup>
   );

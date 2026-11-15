@@ -26,6 +26,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Sheet } from "@/components/Sheet";
 import { SwipeRow } from "@/components/SwipeRow";
 import { TandaCard } from "@/components/TandaCard";
+import { Tip } from "@/components/ui/Tip";
 import { downloadBlob } from "@/lib/download";
 import { haptic } from "@/lib/haptics";
 import { eraLabel, groupByDay, nightLogSummary } from "@/lib/history";
@@ -180,13 +181,12 @@ export default function HistoryPage() {
         trailing={
           <>
             {trend.length >= 2 && (
-              <span
-                className="mr-1 inline-flex items-center gap-2"
-                title={`Average ${avg} over the last ${trend.length}`}
-              >
-                <Sparkline scores={trend} />
-                <span className="text-subhead tabular-nums text-[var(--label-2)]">{avg}</span>
-              </span>
+              <Tip text={`Average ${avg} over the last ${trend.length}`}>
+                <span className="mr-1 inline-flex items-center gap-2">
+                  <Sparkline scores={trend} />
+                  <span className="text-subhead tabular-nums text-[var(--label-2)]">{avg}</span>
+                </span>
+              </Tip>
             )}
             <Menu
               label="More"

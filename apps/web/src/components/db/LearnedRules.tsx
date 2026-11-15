@@ -7,6 +7,7 @@ import { useStore } from "@/lib/store";
 import type { Meta } from "@/lib/types";
 import { ActionRow, Group, SwitchRow } from "../Form";
 import { SwipeRow } from "../SwipeRow";
+import { Tip } from "../ui/Tip";
 
 const SIDES_SHOWN = 30;
 const fmt = (w: number) => `${w > 0 ? "+" : ""}${Number.isInteger(w) ? w : w.toFixed(1)}`;
@@ -26,45 +27,48 @@ function RuleRow({
     <SwipeRow actions={[{ kind: "destructive", label: "Delete", icon: Trash2, onClick: onForget }]}>
       <div className="cell" data-testid="learned-rule" data-rule={r.id}>
         <span className="min-w-0 flex-1">
-          <span className="block truncate" title={r.label}>
-            {r.label}
-          </span>
+          <Tip text={r.label}>
+            <span className="block truncate">{r.label}</span>
+          </Tip>
           <span className="text-footnote block truncate text-[var(--label-2)]">{r.detail}</span>
         </span>
         {r.kind !== "template" && (
-          <span className="flex shrink-0 items-center" title="How much this weighs in your next nights">
-            <button
-              type="button"
-              className="icon-btn icon-btn-bare h-11 w-11"
-              onClick={() => onWeight(r.weight - step)}
-              disabled={r.weight <= r.min}
-              aria-label={`Weigh ${r.label} less`}
-            >
-              <Minus size={16} aria-hidden />
-            </button>
-            <span className="w-9 text-center tabular-nums" data-testid="learned-weight">
-              {fmt(r.weight)}
+          <Tip text={"How much this weighs in your next nights"}>
+            <span className="flex shrink-0 items-center">
+              <button
+                type="button"
+                className="icon-btn icon-btn-bare h-11 w-11"
+                onClick={() => onWeight(r.weight - step)}
+                disabled={r.weight <= r.min}
+                aria-label={`Weigh ${r.label} less`}
+              >
+                <Minus size={16} aria-hidden />
+              </button>
+              <span className="w-9 text-center tabular-nums" data-testid="learned-weight">
+                {fmt(r.weight)}
+              </span>
+              <button
+                type="button"
+                className="icon-btn icon-btn-bare h-11 w-11"
+                onClick={() => onWeight(r.weight + step)}
+                disabled={r.weight >= r.max}
+                aria-label={`Weigh ${r.label} more`}
+              >
+                <Plus size={16} aria-hidden />
+              </button>
             </span>
-            <button
-              type="button"
-              className="icon-btn icon-btn-bare h-11 w-11"
-              onClick={() => onWeight(r.weight + step)}
-              disabled={r.weight >= r.max}
-              aria-label={`Weigh ${r.label} more`}
-            >
-              <Plus size={16} aria-hidden />
-            </button>
-          </span>
+          </Tip>
         )}
-        <button
-          type="button"
-          className="icon-btn icon-btn-bare -mr-2 h-11 w-11 text-[var(--destructive)]"
-          onClick={onForget}
-          aria-label={`Delete ${r.label}`}
-          title="Delete this rule"
-        >
-          <Trash2 size={15} aria-hidden />
-        </button>
+        <Tip text={"Delete this rule"}>
+          <button
+            type="button"
+            className="icon-btn icon-btn-bare -mr-2 h-11 w-11 text-[var(--destructive)]"
+            onClick={onForget}
+            aria-label={`Delete ${r.label}`}
+          >
+            <Trash2 size={15} aria-hidden />
+          </button>
+        </Tip>
       </div>
     </SwipeRow>
   );

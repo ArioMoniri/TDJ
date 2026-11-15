@@ -13,6 +13,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Group, RhythmTile, Tile } from "@/components/Form";
 import { PageHeader } from "@/components/PageHeader";
 import { TipRow } from "@/components/TipRow";
+import { Tip } from "@/components/ui/Tip";
 import { haptic } from "@/lib/haptics";
 import { makeSnapshot } from "@/lib/history";
 import { useStore } from "@/lib/store";
@@ -195,7 +196,7 @@ export default function NightPage() {
               sub=".tdjnight"
               chevron
               onClick={() => fileInput.current?.click()}
-              title="Opens a .tdjnight file from this device"
+              tip="Opens a .tdjnight file from this device"
             />
           </Group>
           <Group header="From a link" footer="Paste a T-DJ night link someone sent you.">
@@ -228,15 +229,16 @@ export default function NightPage() {
       {ready && p && (
         <>
           <Group footer="It lands in History and opens in Compose, ready to edit, play and export to Spotify.">
-            <button
-              type="button"
-              className="btn btn-primary min-h-[50px] w-full"
-              onClick={importIt}
-              data-testid="night-import"
-              title="Keeps this night in History and opens it in Compose"
-            >
-              Import this night
-            </button>
+            <Tip text="Keeps this night in History and opens it in Compose" className="w-full">
+              <button
+                type="button"
+                className="btn btn-primary min-h-[50px] w-full"
+                onClick={importIt}
+                data-testid="night-import"
+              >
+                Import this night
+              </button>
+            </Tip>
           </Group>
           {missing.length > 0 && (
             <Group

@@ -249,13 +249,14 @@ function TandaCardImpl({
               <span className="mt-0.5 flex flex-wrap items-center gap-1.5">
                 {/* round 21: the DJ's tanda — the rules leave it alone, its exceptions are the DJ's */}
                 {t.pinned && (
-                  <span
-                    className="text-caption1 inline-flex rounded-full bg-[color-mix(in_srgb,var(--system-gold)_18%,transparent)] px-2 py-0.5 font-medium text-[var(--label)]"
-                    data-testid="tanda-pinned"
-                    title={t.pinned.reason}
-                  >
-                    Your tanda · kept as is
-                  </span>
+                  <Tip text={t.pinned.reason}>
+                    <span
+                      className="text-caption1 inline-flex rounded-full bg-[color-mix(in_srgb,var(--system-gold)_18%,transparent)] px-2 py-0.5 font-medium text-[var(--label)]"
+                      data-testid="tanda-pinned"
+                    >
+                      Your tanda · kept as is
+                    </span>
+                  </Tip>
                 )}
                 {t.bypass && (
                   <span
@@ -266,13 +267,14 @@ function TandaCardImpl({
                   </span>
                 )}
                 {t.note && (
-                  <span
-                    className="tanda-note text-caption1 rounded-[10px] bg-[color-mix(in_srgb,var(--tint)_14%,transparent)] px-2 py-0.5 font-medium text-[var(--tint)]"
-                    data-testid="tanda-note"
-                    title={t.note}
-                  >
-                    {t.note}
-                  </span>
+                  <Tip text={t.note}>
+                    <span
+                      className="tanda-note text-caption1 rounded-[10px] bg-[color-mix(in_srgb,var(--tint)_14%,transparent)] px-2 py-0.5 font-medium text-[var(--tint)]"
+                      data-testid="tanda-note"
+                    >
+                      {t.note}
+                    </span>
+                  </Tip>
                 )}
                 {cohesion && <CohesionBadge info={cohesion} tandaLabel={`tanda ${i + 1}`} />}
                 {tone && (
@@ -294,12 +296,9 @@ function TandaCardImpl({
                 <CountUp value={t.energy} from={prevEnergy ?? t.energy} duration={DUR.slow} />
               </span>
               {!isPhone && (
-                <span
-                  className="text-caption1 block text-[var(--label-2)]"
-                  title="The arc's target energy for this slot"
-                >
-                  target {t.targetEnergy}
-                </span>
+                <Tip text={"The arc's target energy for this slot"}>
+                  <span className="text-caption1 block text-[var(--label-2)]">target {t.targetEnergy}</span>
+                </Tip>
               )}
             </span>
             {!readOnly && !isPhone && (

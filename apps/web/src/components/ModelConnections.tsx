@@ -8,6 +8,7 @@ import { haptic } from "@/lib/haptics";
 import { useStore } from "@/lib/store";
 import { ActionRow, FieldRow, Group, SegmentedRow, Tile } from "./Form";
 import { Sheet } from "./Sheet";
+import { Tip, useTip } from "./ui/Tip";
 
 type Probe = { state: "busy" } | { state: "ok"; text: string } | { state: "fail"; text: string };
 
@@ -47,6 +48,9 @@ function ModelRow({
   onEdit?: () => void;
   tile: React.ReactNode;
 }) {
+  const useAs = useTip<HTMLButtonElement>(
+    active ? "Every generation uses this" : `Use ${label} for every generation`,
+  );
   return (
     <div className="cell gap-1 pr-2" data-leading="tile" id={id} data-active={active || undefined}>
       <button
@@ -57,8 +61,9 @@ function ModelRow({
           onUse();
         }}
         aria-pressed={active}
-        title={active ? "Every generation uses this" : `Use ${label} for every generation`}
+        {...useAs.props}
       >
+        {useAs.tag}
         {tile}
         <span className="min-w-0 flex-1">
           <span className="block truncate">{label}</span>
@@ -72,26 +77,28 @@ function ModelRow({
         </span>
       </button>
       {onEdit && (
+        <Tip text={"Edit"}>
+          <button
+            type="button"
+            className="icon-btn icon-btn-bare h-11 w-11"
+            onClick={onEdit}
+            aria-label={`Edit ${label}`}
+          >
+            <Pencil size={16} aria-hidden />
+          </button>
+        </Tip>
+      )}
+      <Tip text={testTitle}>
         <button
           type="button"
-          className="icon-btn icon-btn-bare h-11 w-11"
-          onClick={onEdit}
-          aria-label={`Edit ${label}`}
-          title="Edit"
+          className="btn-plain min-h-[44px] px-2"
+          onClick={onTest}
+          disabled={testDisabled || probe?.state === "busy"}
+          data-testid={`${id}-test`}
         >
-          <Pencil size={16} aria-hidden />
+          Test
         </button>
-      )}
-      <button
-        type="button"
-        className="btn-plain min-h-[44px] px-2"
-        onClick={onTest}
-        disabled={testDisabled || probe?.state === "busy"}
-        title={testTitle}
-        data-testid={`${id}-test`}
-      >
-        Test
-      </button>
+      </Tip>
     </div>
   );
 }
@@ -223,6 +230,7 @@ export function ModelConnections() {
         ))}
         <ActionRow
           label="Add an agent connection…"
+          tip="Use an AI app on your own computer, such as Claude Code, instead of a key"
           onClick={() =>
             setEditing({ id: newAgentId(), name: "My agent", kind: "url", url: "ws://localhost:8765" })
           }

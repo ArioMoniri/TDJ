@@ -3,6 +3,7 @@ import { EVIDENCE_COLOR, EVIDENCE_LABEL } from "@/lib/context";
 import type { ContextModel } from "@/lib/types";
 import { Disclosure } from "../Disclosure";
 import { Group } from "../Form";
+import { Tip } from "../ui/Tip";
 import { Empty, useDb, useDbEdit, ValueCell } from "./shared";
 
 const FIELDS: Array<{
@@ -67,12 +68,13 @@ export function ContextTab({ model }: { model: ContextModel | null }) {
                   className="cell flex-col items-stretch gap-0 py-0"
                   summary={
                     <span className="flex min-w-0 flex-1 items-center gap-3">
-                      <span
-                        className="h-2 w-2 shrink-0 rounded-full"
-                        style={{ background: EVIDENCE_COLOR[op.evidence ?? "speculative"] ?? "#9ca3af" }}
-                        title={EVIDENCE_LABEL[op.evidence ?? "speculative"]}
-                        aria-hidden
-                      />
+                      <Tip text={EVIDENCE_LABEL[op.evidence ?? "speculative"]}>
+                        <span
+                          className="h-2 w-2 shrink-0 rounded-full"
+                          style={{ background: EVIDENCE_COLOR[op.evidence ?? "speculative"] ?? "#9ca3af" }}
+                          aria-hidden
+                        />
+                      </Tip>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate">{op.label}</span>
                         <span className="text-footnote block truncate text-[var(--label-2)]">
