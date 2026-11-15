@@ -4,6 +4,7 @@ import {
   cortinaStandIn,
   type ExportOpts,
   type FlatTrack,
+  flatten,
   matchProblem,
   orderSpotifyUris,
   type Song,
@@ -18,7 +19,7 @@ export function spotifyPlanFor(
   playlist: Playlist,
   overrides: AppOverrides | null | undefined,
   eo: ExportOpts = {},
-): { uris: string[]; items: MatchItem[]; tracks: FlatTrack[]; slots: SpotifySlot[] } {
+): { uris: string[]; items: MatchItem[]; tracks: FlatTrack[]; slots: SpotifySlot[]; rows: PlanRow[] } {
   const own = overrides?.songs ?? {};
   const patched: Playlist = {
     ...playlist,
@@ -49,8 +50,29 @@ export function spotifyPlanFor(
         : playlist.closing,
   };
   const plan = toSpotifyPlan(patched, eo);
+  // every row of the running order (the same rows as `slots`, in the same order), for labels and the check
+  const flat = flatten(patched, eo);
+  let song = 0;
+  let lastTanda = -1;
+  const rows: PlanRow[] = flat.map((t) => {
+    if (t.kind === "track") {
+      song = t.tanda === lastTanda ? song + 1 : 1;
+      lastTanda = t.tanda;
+    }
+    return {
+      id: t.id ?? `${t.kind}:${t.n}`,
+      kind: t.kind === "closing" ? (t.tanda === 0 ? "opening" : "closing") : t.kind,
+      tanda: t.tanda,
+      ...(t.kind === "track" ? { song } : {}),
+      title: t.title,
+      artist: t.artist,
+      item: matchItemFor(t),
+      ...(t.spotifyUri ? { uri: t.spotifyUri } : {}),
+    };
+  });
   return {
     uris: plan.uris,
+    rows,
     slots: plan.slots,
     items: plan.unresolved.map((u) => matchItemFor(u.track)),
     tracks: plan.unresolved.map((u) => u.track),
@@ -146,6 +168,46 @@ export function batches<T>(xs: T[], n = MATCH_BATCH): T[][] {
 /** The playlist in running order: matched rows go back into their own slot (cortinas stay between the tandas). */
 export function orderedUris(plan: { slots: SpotifySlot[] }, found: Map<string, string>): string[] {
   return orderSpotifyUris(plan, found);
+}
+
+/** One row of the night's running order, as the Spotify export and its check see it. */
+export interface PlanRow {
+  /** the song or cortina id (the key a match or a replacement is stored under) */
+  id: string;
+  kind: "track" | "cortina" | "opening" | "closing" | "break";
+  tanda: number;
+  /** a song's place in its tanda (1-based) */
+  song?: number;
+  title: string;
+  artist: string;
+  item: MatchItem;
+  /** the stored stream, when the row has one */
+  uri?: string;
+}
+/** A row the listener's country could not play and the version that replaced it (`AppOverrides.marketStreams`). */
+export interface MarketStream {
+  from: string;
+  uri: string;
+}
+/**
+ * The rows that go into the playlist, in running order, each with its URI: the stored stream or this export's
+ * match (`found`, by row id), then a replacement remembered for the listener's country (`subs`, when it replaced
+ * that very URI). Rows with neither are left out here and reported as not matched by the caller; a row is never
+ * dropped for any other reason (the same cortina twice is two rows).
+ */
+export function orderedRows(
+  plan: { rows: PlanRow[] },
+  found: Map<string, string>,
+  subs: Record<string, MarketStream> = {},
+): Array<PlanRow & { uri: string }> {
+  const out: Array<PlanRow & { uri: string }> = [];
+  for (const r of plan.rows) {
+    const u = r.uri ?? found.get(r.id);
+    if (!u) continue;
+    const s = subs[r.id];
+    out.push({ ...r, uri: s && s.from === u ? s.uri : u });
+  }
+  return out;
 }
 
 /** A Spotify playlist id from a link, a `spotify:playlist:` URI or a bare id; null when it is none of those. */

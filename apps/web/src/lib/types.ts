@@ -215,6 +215,12 @@ export interface AppOverrides extends UserOverrides {
   heatmap?: import("@tdj/core").CoverageEdits;
   /** round 22: what this DJ's data sources fetched per song (BPM, key, level, artwork, dates), each with its source */
   scraped?: Record<string, import("@tdj/core").ScrapedRecord>;
+  /**
+   * Spotify: a song or cortina the listener's country could not play and the playable version that replaced it,
+   * by country (`TR`, or `from_token` when Spotify did not say) and then by song or cortina id; a later export to
+   * that country writes the replacement straight away
+   */
+  marketStreams?: Record<string, Record<string, import("./spotifyPlan").MarketStream>>;
 }
 
 /** One previous generation (History tab): the whole set plus what composed it. */

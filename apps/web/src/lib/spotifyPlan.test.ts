@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { orderedUris, playlistIdFrom, spotifyPlanFor, standInCortinas } from "./spotifyPlan";
+import { orderedRows, orderedUris, playlistIdFrom, spotifyPlanFor, standInCortinas } from "./spotifyPlan";
 
 describe("playlistIdFrom", () => {
   it("reads a link, a share link with ?si=, a spotify: URI and a bare 22-character id", () => {
@@ -87,5 +87,53 @@ describe("a tanda the DJ pinned keeps the streams the DJ chose", () => {
     );
     const plan = spotifyPlanFor(p, {} as never, { includeCortinas: true });
     expect(plan.items).toEqual([]);
+  });
+});
+
+describe("orderedRows (the rows the Spotify export writes)", () => {
+  const row = (id: string, kind: "track" | "cortina", uri?: string) => ({
+    id,
+    kind,
+    tanda: 1,
+    title: id,
+    artist: "A",
+    item: { id, title: id, orchestra: "A" },
+    ...(uri ? { uri } : {}),
+  });
+  it("keeps the same cortina twice, fills a searched row by its id, and applies a country replacement", () => {
+    const plan = {
+      rows: [
+        row("s1", "track", "spotify:track:s1"),
+        row("c1", "cortina"),
+        row("s2", "track", "spotify:track:s2"),
+        row("c1", "cortina"),
+        row("gone", "track"),
+      ],
+    };
+    const got = orderedRows(plan, new Map([["c1", "spotify:track:cue"]]), {
+      s2: { from: "spotify:track:s2", uri: "spotify:track:s2tr" },
+    });
+    expect(got.map((r) => r.uri)).toEqual([
+      "spotify:track:s1",
+      "spotify:track:cue",
+      "spotify:track:s2tr",
+      "spotify:track:cue",
+    ]);
+    // a replacement remembered for another URI is not applied
+    expect(
+      orderedRows(plan, new Map(), { s1: { from: "spotify:track:old", uri: "spotify:track:x" } })[0]!.uri,
+    ).toBe("spotify:track:s1");
+  });
+  it("spotifyPlanFor gives every row of the running order, in slot order, with its tanda and song", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const p = JSON.parse(
+      readFileSync(join(__dirname, "../../public/featured/golden-double-peak.json"), "utf8"),
+    );
+    const plan = spotifyPlanFor(p, {} as never, { includeCortinas: true });
+    expect(plan.rows).toHaveLength(plan.slots.length);
+    expect(plan.rows.map((r) => r.uri)).toEqual(plan.slots.map((s) => s.uri));
+    expect(plan.rows.find((r) => r.kind === "track")!.song).toBe(1);
+    expect(orderedRows(plan, new Map()).map((r) => r.uri)).toEqual(orderedUris(plan, new Map()));
   });
 });

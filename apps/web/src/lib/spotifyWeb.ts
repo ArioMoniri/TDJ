@@ -1,5 +1,12 @@
 import { bestMatch, type Candidate, type Match, type MatchItem, searchQueries } from "./match";
 import { api, isRateLimited } from "./providerApi";
+import {
+  type PlaylistCheck,
+  type SpotifyCall,
+  type VerifiedWrite,
+  type WriteOpts,
+  writeVerified,
+} from "./spotifyWrite";
 
 /**
  * Spotify's Web API with an access token: profile, matching, playlists. The server calls it with the hosted
@@ -140,38 +147,70 @@ export async function matchItems(
 
 /* ---------- playlists ---------- */
 
-/** Adds URIs in chunks of ≤100 (the `/items` endpoint, then the older `/tracks` one). */
-export async function addTracks(access: string, playlistId: string, uris: string[]): Promise<number> {
-  let added = 0;
-  for (let i = 0; i < uris.length; i += 100) {
-    const chunk = uris.slice(i, i + 100);
-    await spotify(access, `/playlists/${playlistId}/items`, {
-      method: "POST",
-      body: JSON.stringify({ uris: chunk }),
-    }).catch(() =>
-      spotify(access, `/playlists/${playlistId}/tracks`, {
-        method: "POST",
-        body: JSON.stringify({ uris: chunk }),
-      }),
+/**
+ * The calls the playlist writer makes (lib/spotifyWrite.ts): a 429 is not waited out here but handed to the writer,
+ * which honours Retry-After per chunk within `deadline`.
+ */
+export const spotifyCall =
+  (access: string, deadline?: number): SpotifyCall =>
+  <T>(method: "GET" | "PUT" | "POST", path: string, body?: unknown) =>
+    api<T>(
+      access,
+      `${API()}${path}`,
+      { method, ...(body === undefined ? {} : { body: JSON.stringify(body) }) },
+      1,
+      deadline,
     );
-    added += chunk.length;
-  }
-  return added;
+
+/**
+ * A version of `item` the listener's country can play (Spotify's `market=from_token`): the same recording for a song
+ * (the match rules of lib/match.ts: orchestra, singer, year), the same song and artist for a cortina; never `avoid`.
+ */
+export async function findPlayable(
+  access: string,
+  item: MatchItem,
+  avoid: string,
+  deadline?: number,
+): Promise<Match | null> {
+  const q = searchQueries(item);
+  const playable = async (query: string) => {
+    const j = await spotify<{ tracks?: { items?: Array<SearchHit & { is_playable?: boolean }> } }>(
+      access,
+      `/search?${new URLSearchParams({ q: query, type: "track", limit: "10", market: "from_token" })}`,
+      {},
+      deadline,
+    );
+    return (j.tracks?.items ?? []).filter((h) => h.is_playable !== false && h.uri !== avoid).map(toCandidate);
+  };
+  return (
+    (item.isrc ? bestMatch(item, await playable(`isrc:${item.isrc}`), 0) : null) ??
+    bestMatch(item, await playable(q.filtered)) ??
+    bestMatch(item, await playable(q.plain))
+  );
 }
 
-/** Replaces a playlist's contents in running order: the first 100 with PUT (the `/items` endpoint, then `/tracks`), the rest appended. */
-export async function replaceTracks(access: string, playlistId: string, uris: string[]): Promise<number> {
-  const first = uris.slice(0, 100);
-  await spotify(access, `/playlists/${playlistId}/items`, {
-    method: "PUT",
-    body: JSON.stringify({ uris: first }),
-  }).catch(() =>
-    spotify(access, `/playlists/${playlistId}/tracks`, {
-      method: "PUT",
-      body: JSON.stringify({ uris: first }),
-    }),
-  );
-  return first.length + (uris.length > 100 ? await addTracks(access, playlistId, uris.slice(100)) : 0);
+/** The listener's country (`/me`, needs user-read-private): the key a replacement is remembered under. */
+export async function marketOf(access: string): Promise<string> {
+  try {
+    const j = await spotify<{ country?: string }>(access, "/me");
+    return /^[A-Z]{2}$/.test(j.country ?? "") ? j.country! : "from_token";
+  } catch {
+    return "from_token";
+  }
+}
+
+/**
+ * Writes `uris` into a playlist and reads it back (lib/spotifyWrite.ts): `replace` rewrites it, `append` adds
+ * after what it holds, `new` fills one just made. The answer is the check, never the count that was sent.
+ */
+export function writePlaylist(
+  access: string,
+  playlistId: string,
+  uris: string[],
+  w: VerifiedWrite,
+  o: WriteOpts = {},
+): Promise<PlaylistCheck> {
+  return writeVerified(spotifyCall(access, o.deadline), playlistId, uris, w, o);
 }
 
 /**
@@ -194,21 +233,16 @@ export async function updatePlaylistDetails(
   );
 }
 
+/** Makes an empty playlist in the DJ's library; the rows go in through `writePlaylist` (mode `new`). */
 export async function createPlaylist(
   access: string,
-  p: { name: string; description: string; isPublic: boolean; uris: string[] },
-): Promise<{ id: string; url: string }> {
+  p: { name: string; description: string; isPublic: boolean },
+): Promise<{ id: string; url: string; snapshot: string | null }> {
   const body = JSON.stringify({ name: p.name, description: p.description, public: p.isPublic });
-  const pl = await spotify<{ id: string; external_urls: { spotify: string } }>(access, "/me/playlists", {
-    method: "POST",
-    body,
-  }).catch(async () => {
+  type Made = { id: string; external_urls: { spotify: string }; snapshot_id?: string };
+  const pl = await spotify<Made>(access, "/me/playlists", { method: "POST", body }).catch(async () => {
     const me = await spotify<{ id: string }>(access, "/me");
-    return spotify<{ id: string; external_urls: { spotify: string } }>(access, `/users/${me.id}/playlists`, {
-      method: "POST",
-      body,
-    });
+    return spotify<Made>(access, `/users/${me.id}/playlists`, { method: "POST", body });
   });
-  await addTracks(access, pl.id, p.uris);
-  return { id: pl.id, url: pl.external_urls.spotify };
+  return { id: pl.id, url: pl.external_urls.spotify, snapshot: pl.snapshot_id ?? null };
 }
