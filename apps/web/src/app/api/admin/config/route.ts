@@ -27,8 +27,12 @@ export async function PUT(req: Request) {
       { status: r.errors.length && !r.saved.length ? 400 : 200 },
     );
   } catch (e) {
+    console.error("admin config save failed", e);
     return NextResponse.json(
-      { error: `Could not write the config store: ${(e as Error).message}` },
+      {
+        error:
+          "Could not save the settings. Try again in a minute; the owner guide explains how to give the site access to its settings.",
+      },
       { status: 502 },
     );
   }

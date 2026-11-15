@@ -194,7 +194,7 @@ export default function HistoryPage() {
                 { label: "Open a shared night…", icon: FolderOpen, onClick: () => router.push("/night") },
                 { label: "Rooms…", icon: Users, onClick: () => router.push("/rooms") },
                 {
-                  label: "Export history as JSON",
+                  label: "Save history as a file",
                   icon: Download,
                   onClick: exportAll,
                   disabled: !history.length,
@@ -305,7 +305,7 @@ export default function HistoryPage() {
                       .then(() => toast("Seed copied")),
                 },
                 {
-                  label: "Download JSON",
+                  label: "Save as a file",
                   icon: FileDown,
                   onClick: () =>
                     downloadBlob(
@@ -430,7 +430,7 @@ export default function HistoryPage() {
         title="Clear history"
         detents={["medium"]}
       >
-        <Group footer="Removes every kept set from this browser (and the server copy when enabled).">
+        <Group footer="Removes every kept set from this browser (and the copy this site keeps for you, if it keeps one).">
           <ActionRow
             label={`Delete ${history.length} ${history.length === 1 ? "set" : "sets"}`}
             destructive

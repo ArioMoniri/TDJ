@@ -121,7 +121,7 @@ export function CortinasTab({ base }: { base: MetaCortina[] }) {
         detents={["large"]}
       >
         <Group
-          header="JSON"
+          header="Details"
           footer={
             err ? (
               <span className="text-[var(--destructive)]">{err}</span>
@@ -131,7 +131,7 @@ export function CortinasTab({ base }: { base: MetaCortina[] }) {
           }
         >
           <label htmlFor="cortina-json" className="cell">
-            <span className="sr-only">Cortina JSON</span>
+            <span className="sr-only">Cortina details</span>
             <textarea
               id="cortina-json"
               className="field min-h-56 py-2 font-mono text-footnote"

@@ -288,13 +288,13 @@ export function Connectors() {
     }
   };
   const tile = (color: string, icon: ReactNode) => <Tile color={color}>{icon}</Tile>;
-  const notEnabled = (what: string, secrets: string) => (
+  const notEnabled = (what: string, service: string) => (
     <Group
       header="Account"
-      footer={`${what} This deployment has not enabled it: the owner adds ${secrets} as described in docs/DEPLOY.md → Connectors.${pdEnabled ? " Pipedream Connect is enabled here instead; see Advanced below." : ""}`}
+      footer={`${what} The person who runs this T-DJ site has not turned it on yet: they paste ${service}'s sign-in details in Owner setup.${pdEnabled ? " Pipedream Connect is on here instead; see Advanced below." : ""}`}
     >
-      <Row label="Status" value="Not enabled on this deployment" />
-      <Row label="How to enable" sub="docs/DEPLOY.md → Connectors" chevron href={DEPLOY_DOCS} />
+      <Row label="Status" value="Not turned on for this site" />
+      <Row label="How to turn it on" sub="Step by step, for the site's owner" chevron href={DEPLOY_DOCS} />
     </Group>
   );
   const googleUser = google?.user ?? null;
@@ -391,7 +391,7 @@ export function Connectors() {
           <Row
             tile={tile("#636366", <KeyRound size={16} strokeWidth={2} />)}
             label="Owner setup"
-            sub="Enable one-tap logins for this deployment"
+            sub="Turn on one-tap logins for this site"
             value="Open"
             chevron
             onClick={() => location.assign("/admin")}
@@ -628,10 +628,7 @@ export function Connectors() {
             )}
           </>
         ) : (
-          notEnabled(
-            "Google would save export files to your Drive and create YouTube playlists.",
-            "GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET",
-          )
+          notEnabled("Google would save export files to your Drive and create YouTube playlists.", "Google")
         )}
       </Sheet>
 
@@ -671,10 +668,7 @@ export function Connectors() {
             )}
           </Group>
         ) : (
-          notEnabled(
-            "Dropbox would receive your export files in Apps/TDJ.",
-            "DROPBOX_APP_KEY and DROPBOX_APP_SECRET",
-          )
+          notEnabled("Dropbox would receive your export files in Apps/TDJ.", "Dropbox")
         )}
       </Sheet>
 
@@ -729,7 +723,7 @@ export function Connectors() {
         {otherWays && (
           <Group
             header="Other ways"
-            footer="The transfer service matches every track in your own Spotify login, so no seat is needed. YouTube, Dropbox and Google Drive have room for everyone on this deployment when the organiser has enabled them."
+            footer="The transfer service matches every track in your own Spotify login, so no seat is needed. YouTube, Dropbox and Google Drive have room for everyone on this site when the organiser has turned them on."
             id="not-listed-other-ways"
           >
             <Row
@@ -787,7 +781,7 @@ export function Connectors() {
       >
         <Group
           header="Keyless"
-          footer="MusicBrainz recordings give the first-release year that 'Find on services' suggests for a catalogue entry (streaming reissue dates are never used as the recording year). Requests go through the TDJ server with its own user agent."
+          footer="MusicBrainz recordings give the first-release year that 'Find on services' suggests for a catalogue entry (streaming reissue dates are never used as the recording year). T-DJ asks MusicBrainz for you, so you need no account there."
         >
           <Row label="Status" value={statusText[mb]} busy={mb === "checking"} />
           <Row label="Used for" value="Recording dates · Singers" />

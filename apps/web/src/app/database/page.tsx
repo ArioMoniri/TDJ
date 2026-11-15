@@ -142,12 +142,12 @@ export default function DatabasePage() {
               label="More"
               items={[
                 {
-                  label: "Import JSON…",
+                  label: "Restore a backup…",
                   icon: Upload,
                   onClick: () => file.current?.click(),
                   disabled: importing,
                 },
-                { label: "Export JSON", icon: Download, onClick: exportJson },
+                { label: "Save a backup", icon: Download, onClick: exportJson },
                 {
                   label: "Reset to index…",
                   icon: RotateCcw,
@@ -169,7 +169,7 @@ export default function DatabasePage() {
         type="file"
         accept="application/json,.json"
         className="hidden"
-        aria-label="Import database JSON"
+        aria-label="Restore a database backup"
         onChange={(e) => {
           const f = e.target.files?.[0];
           if (f) importJson(f);

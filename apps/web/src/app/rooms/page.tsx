@@ -281,7 +281,7 @@ export default function RoomsPage() {
           {remote && code && (
             <Group
               header="Invitation"
-              footer={`This room is kept by ${host(remote)}. Joining connects to that server while you are in the room.`}
+              footer={`This room is kept by ${host(remote)}. Joining connects to that site while you are in the room.`}
             >
               <ActionRow
                 label={`Join room ${formatRoomCode(code)} on ${host(remote)}`}

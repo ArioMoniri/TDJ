@@ -97,9 +97,12 @@ export const EraBadge = memo(function EraBadge(
 export function EraLegend({
   className = "",
   look = "chips",
+  brief = false,
 }: {
   className?: string;
   look?: "chips" | "bars";
+  /** bars with their names only (the Guide's picture) */
+  brief?: boolean;
 }) {
   if (look === "bars")
     return (
@@ -109,7 +112,7 @@ export function EraLegend({
             <Bars cls={c.cls} bars={c.bars} aria-hidden />
             <span>
               <b className="font-semibold">{c.label}</b>
-              <span className="text-[var(--label-2)]"> · {c.explain}</span>
+              {!brief && <span className="text-[var(--label-2)]"> · {c.explain}</span>}
             </span>
           </div>
         ))}

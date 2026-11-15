@@ -1175,7 +1175,7 @@ export function ExportSheet({
       >
         <Group
           header="Webhook URL"
-          footer="Paste the HTTPS URL of a Pipedream, Make, Zapier or n8n webhook. TDJ POSTs the file as the request body with X-TDJ-Format and X-TDJ-Set headers plus ?format=&filename=. Stored in this browser only, never on the server."
+          footer="Paste the address of a Pipedream, Make, Zapier or n8n webhook: T-DJ sends it the file, with the format and the set's name. The address stays in this browser only."
         >
           <label htmlFor="webhook-url" className="cell">
             <span className="sr-only">Webhook URL</span>

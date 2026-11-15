@@ -144,7 +144,7 @@ export function AiEditBar({ playlist }: { playlist: Playlist }) {
         setText("");
       }
     } catch {
-      setError("Could not reach the server.");
+      setError("Could not reach T-DJ. Check your connection and try again.");
     } finally {
       setBusy(false);
     }

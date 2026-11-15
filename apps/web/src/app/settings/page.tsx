@@ -125,7 +125,7 @@ function humanError(provider: AiProvider, status: number, raw: unknown): string 
   const text = typeof raw === "string" ? raw : "";
   // an Anthropic key made at organisation level must name the workspace it bills
   if (/not scoped to a workspace|anthropic-workspace-id/i.test(text))
-    return "This key needs a workspace: paste its Workspace ID below or create the key inside a workspace.";
+    return "This key belongs to an organisation: paste the organisation ID shown next to it in your Anthropic account below, or make a key of your own there.";
   if (status === 429 && /organiser/i.test(text)) return text;
   if (
     status === 401 ||
@@ -535,8 +535,8 @@ export default function Settings() {
               </FieldRow>
               {ai.provider === "anthropic" && (
                 <FieldRow
-                  label="Workspace ID"
-                  sub="Only for keys made at organisation level"
+                  label="Organisation ID"
+                  sub="Only for an Anthropic key made for an organisation"
                   id="ai-workspace"
                 >
                   <input
@@ -562,8 +562,8 @@ export default function Settings() {
         </Group>
         {showOwn && ai.provider === "anthropic" && (
           <p className="section-foot -mt-2">
-            Workspace ID: only needed when the key was created at organisation level; or create the key inside
-            a workspace at console.anthropic.com → API keys.
+            Organisation ID: only needed when the key was made for an organisation; you find it next to the
+            key in your Anthropic account. A key you made for yourself needs nothing here.
           </p>
         )}
 
@@ -571,7 +571,11 @@ export default function Settings() {
 
         <Group
           header="Storage"
-          footer="Set TDJ_DB_TABLE on the server to keep the database and memory across devices."
+          footer={
+            storageMode === "server"
+              ? "Your database and memory are kept by this T-DJ site, so they are there on every device."
+              : "Your database and memory stay in this browser. The person who runs this T-DJ site can keep them for you on every device."
+          }
         >
           <Row
             tile={
@@ -580,7 +584,7 @@ export default function Settings() {
               </Tile>
             }
             label="Database"
-            value={storageMode === "server" ? "Server" : "This browser"}
+            value={storageMode === "server" ? "This site" : "This browser"}
           />
         </Group>
       </div>

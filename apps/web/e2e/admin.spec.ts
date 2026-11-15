@@ -635,8 +635,8 @@ test("the pages: /admin People and AI groups, Settings shows the organiser's key
   await page.locator("#ai-key").fill(AI.orgKey);
   await expect(page.locator("#ai-status")).toContainText("Key saved");
   await page.locator("#ai-test").click();
-  await expect(page.getByRole("status").filter({ hasText: /workspace/ })).toContainText(
-    "This key needs a workspace: paste its Workspace ID below or create the key inside a workspace",
+  await expect(page.getByRole("status").filter({ hasText: /organisation/ })).toContainText(
+    "This key belongs to an organisation: paste the organisation ID",
   );
   await page.locator("#ai-workspace").fill(AI.workspace);
   hits.length = 0;
