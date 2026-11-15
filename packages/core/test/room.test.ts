@@ -7,9 +7,11 @@ import { describe, expect, it } from "vitest";
 import {
   applyRoomOps,
   appRoomLink,
+  cleanDancerToken,
   cleanRoomOps,
   createRoom,
   diffNight,
+  heartRoom,
   type NightFile,
   type NightSide,
   type NightTanda,
@@ -21,9 +23,12 @@ import {
   ROOM_LOG_MAX,
   ROOM_PRESENCE_MS,
   type RoomState,
+  roomHearts,
+  roomHeartsView,
   roomLink,
   roomPresence,
   sameJson,
+  setRoomPlaying,
 } from "../src/index";
 
 const side = (id: string, title = `Song ${id}`): NightSide => ({
@@ -340,5 +345,51 @@ describe("leaving a room (wave 2: a DJ leaving was never logged, and stayed in t
 
   it("cleanRoomOps keeps a leave", () => {
     expect(cleanRoomOps([{ type: "leave" }], parseNightFile)).toEqual([{ type: "leave" }]);
+  });
+});
+
+describe("dancer hearts (2026-11): anonymous counts, once per dancer per song per night", () => {
+  const base = () =>
+    createRoom({ code: "ABC234", name: "Hearts", by: "ana", at: "2026-11-01T20:00:00.000Z" });
+  const playing = {
+    songId: "s1",
+    nightId: "n1",
+    title: "Song 1",
+    artist: "Orquesta",
+    at: "2026-11-01T21:00:00Z",
+  };
+  it("a heart counts only for the playing song, once per dancer; the room's revision does not move", () => {
+    let room = setRoomPlaying(base(), playing);
+    const rev = room.rev;
+    let r = heartRoom(room, { nightId: "n1", songId: "s1", dancer: "d-aaaaaaaa" });
+    expect(r).toMatchObject({ counted: true, count: 1 });
+    room = r.room;
+    r = heartRoom(room, { nightId: "n1", songId: "s1", dancer: "d-aaaaaaaa" });
+    expect(r).toMatchObject({ counted: false, count: 1 });
+    r = heartRoom(r.room, { nightId: "n1", songId: "s1", dancer: "d-bbbbbbbb" });
+    expect(r.count).toBe(2);
+    expect(r.room.rev).toBe(rev);
+    // not the playing song: nothing counted
+    const off = heartRoom(r.room, { nightId: "n1", songId: "s2", dancer: "d-cccccccc" });
+    expect(off.counted).toBe(false);
+    expect(roomHearts(off.room, "n1")).toEqual({ s1: 2 });
+    // another night of the same song counts again
+    const next = setRoomPlaying(off.room, { ...playing, nightId: "n2" });
+    expect(heartRoom(next, { nightId: "n2", songId: "s1", dancer: "d-aaaaaaaa" }).counted).toBe(true);
+  });
+  it("only counts leave the room: no dancer token is in what a client reads", () => {
+    const room = heartRoom(setRoomPlaying(base(), playing), {
+      nightId: "n1",
+      songId: "s1",
+      dancer: "d-aaaaaaaa",
+    }).room;
+    const view = roomHeartsView(room, "n1");
+    expect(view).toEqual({
+      playing: { songId: "s1", nightId: "n1", title: "Song 1", artist: "Orquesta" },
+      hearts: { s1: 1 },
+    });
+    expect(JSON.stringify(view)).not.toContain("d-aaaaaaaa");
+    expect(cleanDancerToken("x")).toBeNull();
+    expect(cleanDancerToken("d-aaaaaaaa")).toBe("d-aaaaaaaa");
   });
 });
