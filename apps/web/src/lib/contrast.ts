@@ -13,12 +13,12 @@ export function parseColor(value: string): Rgb {
   }
   const parts = v.split(/[\s,]+/).map(Number);
   if (parts.length < 3 || parts.some((n) => Number.isNaN(n))) throw new Error(`not a colour: ${value}`);
-  return [parts[0], parts[1], parts[2]];
+  return [parts[0]!, parts[1]!, parts[2]!];
 }
 
 /** `fg` at `alpha` over the opaque `bg`. */
 export function over(fg: Rgb, alpha: number, bg: Rgb): Rgb {
-  return [0, 1, 2].map((i) => fg[i] * alpha + bg[i] * (1 - alpha)) as unknown as Rgb;
+  return [0, 1, 2].map((i) => fg[i]! * alpha + bg[i]! * (1 - alpha)) as unknown as Rgb;
 }
 
 export function luminance([r, g, b]: Rgb): number {

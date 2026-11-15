@@ -15,7 +15,7 @@ function block(css: string, header: string): Record<string, string> {
     else if (css[i] === "}" && --depth === 0) break;
   }
   const out: Record<string, string> = {};
-  for (const m of css.slice(start, i).matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) out[m[1]] = m[2].trim();
+  for (const m of css.slice(start, i).matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) out[m[1]!] = m[2]!.trim();
   return out;
 }
 
@@ -26,13 +26,13 @@ const darkClass = { ...light, ...block(css, '.dark,\n:root[data-theme="dark"] {'
 const darkMedia = { ...light, ...block(css, ':root:not([data-theme="light"]) {') };
 
 function resolve(t: Record<string, string>, name: string): string {
-  let v = t[name];
-  if (v === undefined) throw new Error(`token ${name} is not declared`);
-  for (let n = 0; n < 5; n++) {
-    const m = v.match(/^var\((--[\w-]+)\)$/);
+  let v: string | undefined = t[name];
+  for (let n = 0; n < 5 && v !== undefined; n++) {
+    const m: RegExpMatchArray | null = v.match(/^var\((--[\w-]+)\)$/);
     if (!m) break;
-    v = t[m[1]];
+    v = t[m[1]!];
   }
+  if (v === undefined) throw new Error(`token ${name} is not declared`);
   return v;
 }
 const rgb = (t: Record<string, string>, name: string): Rgb => parseColor(resolve(t, name));
@@ -68,7 +68,11 @@ function pairs(t: Record<string, string>) {
     out.push({ fg: "--tint", bg: name, ratio: contrast(tint, bg) });
     out.push({ fg: "--tint-text", bg: name, ratio: contrast(rgb(t, "--tint-text"), bg) });
   }
-  out.push({ fg: "--on-tint", bg: "--tint-fill", ratio: contrast(rgb(t, "--on-tint"), rgb(t, "--tint-fill")) });
+  out.push({
+    fg: "--on-tint",
+    bg: "--tint-fill",
+    ratio: contrast(rgb(t, "--on-tint"), rgb(t, "--tint-fill")),
+  });
   return out;
 }
 
@@ -87,13 +91,22 @@ describe("design-token contrast (WCAG AA, 4.5:1 for text)", () => {
   }
 
   it("the two dark declarations agree on every colour token", () => {
-    for (const name of ["--tint", "--tint-text", "--tint-fill", "--on-tint", "--text", "--bg-grouped", "--bg-cell"]) {
+    for (const name of [
+      "--tint",
+      "--tint-text",
+      "--tint-fill",
+      "--on-tint",
+      "--text",
+      "--bg-grouped",
+      "--bg-cell",
+    ]) {
       expect(resolve(darkMedia, name), name).toBe(resolve(darkClass, name));
     }
   });
 
   it("keeps the label hierarchy: label-2 stronger than label-3", () => {
-    for (const t of [light, darkClass]) expect(alphaOf(t, "--label-2")).toBeGreaterThan(alphaOf(t, "--label-3"));
+    for (const t of [light, darkClass])
+      expect(alphaOf(t, "--label-2")).toBeGreaterThan(alphaOf(t, "--label-3"));
   });
 
   it("parses the token forms", () => {
