@@ -376,6 +376,28 @@ fn handle_link(app: &AppHandle, raw: &str) {
         }
         links::DeepLink::SpotifyCallback { query } => go(&format!("/callback?{query}")),
         links::DeepLink::Open { path } => go(&path),
+        links::DeepLink::Night { fragment } => go(&format!("/night#{fragment}")),
+        // the Rooms page asks before it talks to that server (the one opt-in case where the app reaches a server)
+        links::DeepLink::Room { server, code } => go(&format!(
+            "/rooms?join={code}&server={}",
+            url::form_urlencoded::byte_serialize(server.as_bytes()).collect::<String>()
+        )),
+        links::DeepLink::NightFile { path } => {
+            // the page reads it from sessionStorage (apps/web/src/app/night/page.tsx); 2 MB is far past any night
+            let Ok(meta) = std::fs::metadata(&path) else {
+                return;
+            };
+            if meta.len() > 2_000_000 {
+                return;
+            }
+            let Ok(text) = std::fs::read_to_string(&path) else {
+                return;
+            };
+            let _ = main.eval(format!(
+                "try{{sessionStorage.setItem('tdj-night-file',{})}}catch(_){{}};location.assign('/night?from=file')",
+                serde_json::to_string(&text).unwrap()
+            ));
+        }
         links::DeepLink::Server { url } => {
             let Ok(origin) = settings::normalize_server(&url) else {
                 return;
@@ -541,6 +563,13 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("error while building TDJ")
         .run(|app, event| {
+            // a .tdjnight opened from Finder, Files or AirDrop (bundle.fileAssociations)
+            #[cfg(any(target_os = "macos", target_os = "ios"))]
+            if let tauri::RunEvent::Opened { urls } = &event {
+                for u in urls {
+                    handle_link(app, u.as_str());
+                }
+            }
             if let tauri::RunEvent::Exit = event {
                 let state = app.state::<AppState>();
                 state.keep_awake.set(false);

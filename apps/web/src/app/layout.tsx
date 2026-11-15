@@ -9,6 +9,7 @@ import { Motion } from "@/components/Motion";
 import { Nav } from "@/components/Nav";
 import { ToolbarProvider } from "@/components/PageHeader";
 import { PageTransition } from "@/components/PageTransition";
+import { RoomSync } from "@/components/RoomSync";
 import { ThemeSync } from "@/components/ThemeSync";
 
 const sans = Inter({ subsets: ["latin"], variable: "--font-sans-loaded", display: "swap" });
@@ -61,6 +62,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <IconSprite />
         <ThemeSync />
         <Boot />
+        <RoomSync />
         <ToolbarProvider>
           <Nav />
           <div className="scroll-edge-top sm:hidden" aria-hidden />
