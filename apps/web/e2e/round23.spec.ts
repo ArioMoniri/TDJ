@@ -102,7 +102,10 @@ test.describe("top chrome and the scroll edge", () => {
       expect(pill.y, "nav pill: inset + spacing").toBeGreaterThanOrEqual(inset.top + 8);
     }
     if (lg(page)) {
-      const logo = (await page.getByTestId("sidebar").getByRole("link", { name: "TDJ home" }).boundingBox())!;
+      const logo = (await page
+        .getByTestId("sidebar")
+        .getByRole("link", { name: "T-DJ home" })
+        .boundingBox())!;
       expect(logo.y).toBeGreaterThanOrEqual(inset.top);
     }
     // collapsed: the phone's inline title sits in the 44 pt under the inset
@@ -189,7 +192,7 @@ test.describe("top chrome and the scroll edge", () => {
     await page.goto("/");
     await expect(page.locator("html")).toHaveClass(/titlebar-overlay/);
     const lights = { x: 0, y: 0, width: 78, height: 28 };
-    const logo = (await page.getByTestId("sidebar").getByRole("link", { name: "TDJ home" }).boundingBox())!;
+    const logo = (await page.getByTestId("sidebar").getByRole("link", { name: "T-DJ home" }).boundingBox())!;
     const title = (await page.getByTestId("page-title").boundingBox())!;
     expect(overlaps(lights, logo), "logo under the traffic lights").toBe(false);
     expect(logo.y).toBeGreaterThanOrEqual(28);

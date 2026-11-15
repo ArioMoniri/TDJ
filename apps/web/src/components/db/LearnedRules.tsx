@@ -145,7 +145,7 @@ export function LearnedRules() {
         header="Learned from your edits"
         footer={
           settings.learn
-            ? "Like an autocorrect: every swap, lock, AI edit and hand-built night teaches TDJ what you prefer, and the next nights follow it under tonight's settings. Weigh a rule up or down, or delete it; the night's rules still apply."
+            ? "Like an autocorrect: every swap, lock, AI edit and hand-built night teaches T-DJ what you prefer, and the next nights follow it under tonight's settings. Weigh a rule up or down, or delete it; the night's rules still apply."
             : "Learning is off: your edits teach nothing and nothing learned is applied."
         }
         data-testid="learned-rules"

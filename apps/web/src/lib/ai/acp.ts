@@ -211,7 +211,7 @@ export class AcpClient {
       this.t.send({
         jsonrpc: "2.0",
         id: m.id,
-        error: { code: -32601, message: "TDJ offers no files or terminal to agents." },
+        error: { code: -32601, message: "T-DJ offers no files or terminal to agents." },
       });
     }
   }

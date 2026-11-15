@@ -381,18 +381,18 @@ export default function Settings() {
         />
 
         <Group
-          header="What TDJ learned from your edits"
-          footer="Every swap, search-and-swap, AI pick or pinned tanda teaches TDJ what you prefer: the sides and families you chose weigh more in later nights, the ones you replaced a little less, and pinned tandas become your templates. Rules still apply; tonight's settings win."
+          header="What T-DJ learned from your edits"
+          footer="Every swap, search-and-swap, AI pick or pinned tanda teaches T-DJ what you prefer: the sides and families you chose weigh more in later nights, the ones you replaced a little less, and pinned tandas become your templates. Rules still apply; tonight's settings win."
           data-testid="learned-edits"
         >
           {learnedLines.length ? (
             learnedLines.slice(0, 12).map((l) => <Row key={l} label={l} />)
           ) : (
-            <Row label="Nothing yet" sub="Swap a side or keep a tanda as is to teach TDJ" />
+            <Row label="Nothing yet" sub="Swap a side or keep a tanda as is to teach T-DJ" />
           )}
           {learnedLines.length > 0 && (
             <ActionRow
-              label="Forget what TDJ learned from my edits"
+              label="Forget what T-DJ learned from my edits"
               tip="Clears what your swaps and pinned tandas taught; your nights stay"
               destructive
               onClick={() => updateMemory((m) => ({ ...m, learned: undefined }))}

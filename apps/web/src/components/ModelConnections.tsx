@@ -326,7 +326,7 @@ export function ModelConnections() {
                     ? "Connecting…"
                     : probe[editing.id]
                       ? (probe[editing.id] as { text: string }).text
-                      : `${PROVIDER_LABEL.acp}: TDJ only asks it questions; it gets no files, no terminal and no permissions.`}
+                      : `${PROVIDER_LABEL.acp}: T-DJ only asks it questions; it gets no files, no terminal and no permissions.`}
                 </span>
               }
             >

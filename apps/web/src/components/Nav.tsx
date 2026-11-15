@@ -155,11 +155,11 @@ export function Nav() {
           data-testid="nav-pill"
           data-fit={fit}
         >
-          <Link href="/" className="flex shrink-0 items-center gap-2.5 pl-1" aria-label="TDJ home">
+          <Link href="/" className="flex shrink-0 items-center gap-2.5 pl-1" aria-label="T-DJ home">
             <Logo size={28} />
             {fit < 1 && (
               <span className="text-headline max-w-[200px] truncate">
-                {bar.collapsed && bar.title ? bar.title : "TDJ"}
+                {bar.collapsed && bar.title ? bar.title : "T-DJ"}
               </span>
             )}
           </Link>

@@ -77,9 +77,10 @@ export const sheetUp: Variants = {
 };
 
 export const toastIn: Variants = {
-  hidden: { opacity: 0, y: 12, scale: 0.98 },
+  // the toast drops in from the top chrome (wave 2)
+  hidden: { opacity: 0, y: -12, scale: 0.98 },
   show: { opacity: 1, y: 0, scale: 1, transition: { ...t.fade, ease: ease.out } },
-  exit: { opacity: 0, y: 6, transition: { duration: dur.xs, ease: ease.in } },
+  exit: { opacity: 0, y: -6, transition: { duration: dur.xs, ease: ease.in } },
 };
 
 /** Composer row/line swap: old text leaves up, new text arrives from below. */

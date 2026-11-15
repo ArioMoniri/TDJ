@@ -146,6 +146,7 @@ export default function RoomsPage() {
       setRemote(new URL(server).origin);
   }, [r.boot]);
   useEffect(() => setNameDraft(r.user), [r.user]);
+  const [nameSaved, setNameSaved] = useState(false);
 
   const info = r.info;
   const inRoom = !!r.active;
@@ -181,7 +182,8 @@ export default function RoomsPage() {
   const saveUser = () => {
     if (nameDraft.trim() && nameDraft.trim() !== r.user) {
       r.setUser(nameDraft);
-      toast("Name saved");
+      // said in the group's footer: a toast covered the row buttons on iPad (wave 2)
+      setNameSaved(true);
     }
   };
   const create = async () => {
@@ -256,7 +258,15 @@ export default function RoomsPage() {
 
       {!inRoom && (
         <>
-          <Group header="You" footer="Other DJs see this name next to your edits. No account needed.">
+          <Group
+            header="You"
+            footer={
+              <span data-testid="room-user-note" aria-live="polite">
+                {nameSaved ? "Name saved. " : ""}Other DJs see this name next to your edits. No account
+                needed.
+              </span>
+            }
+          >
             <FieldRow label="Your name" id="room-user">
               <input
                 id="room-user"
@@ -264,7 +274,10 @@ export default function RoomsPage() {
                 placeholder="DJ name"
                 maxLength={ROOM_USER_MAX}
                 value={nameDraft}
-                onChange={(e) => setNameDraft(e.target.value)}
+                onChange={(e) => {
+                  setNameDraft(e.target.value);
+                  setNameSaved(false);
+                }}
                 onBlur={saveUser}
                 autoComplete="nickname"
                 data-testid="room-user"
@@ -353,6 +366,7 @@ export default function RoomsPage() {
         <>
           <div className="mb-3 px-1">
             <Segmented
+              size="large"
               label="Room view"
               value={tab}
               items={[

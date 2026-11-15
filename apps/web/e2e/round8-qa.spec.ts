@@ -207,9 +207,9 @@ test("B7 / B8 / B9: the Time card says it is resolving, Start counts the clips, 
 
 test("B10 / B17: one Cancel in Clear history; every page has its own title", async ({ page }) => {
   await compose(page);
-  await expect(page).toHaveTitle("Compose · TDJ");
+  await expect(page).toHaveTitle("Compose · T-DJ");
   await page.goto("/history");
-  await expect(page).toHaveTitle("History · TDJ");
+  await expect(page).toHaveTitle("History · T-DJ");
   await page.getByTestId("page-toolbar").getByRole("button", { name: "More", exact: true }).click();
   await page.getByRole("menuitem", { name: "Clear history…" }).click();
   const sheet = page.getByRole("dialog", { name: "Clear history" });
@@ -223,7 +223,7 @@ test("B10 / B17: one Cancel in Clear history; every page has its own title", asy
     ["/guide", "Guide"],
   ] as const) {
     await page.goto(path);
-    await expect(page).toHaveTitle(`${title} · TDJ`);
+    await expect(page).toHaveTitle(`${title} · T-DJ`);
   }
 });
 

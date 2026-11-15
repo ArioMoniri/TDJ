@@ -216,10 +216,10 @@ export function Sidebar() {
           <Link
             href="/"
             className="flex min-h-11 min-w-0 flex-1 items-center gap-2.5 px-2"
-            aria-label="TDJ home"
+            aria-label="T-DJ home"
           >
             <Logo size={28} />
-            <span className="text-headline">TDJ</span>
+            <span className="text-headline">T-DJ</span>
           </Link>
           <Tip text={"Hide sidebar (⌃⌘S)"}>
             <button

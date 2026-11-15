@@ -47,7 +47,9 @@ export function Toast({ toast, onDismiss }: { toast: ToastItem | null; onDismiss
           onHoverEnd={() => setPaused(false)}
           onFocus={() => setPaused(true)}
           onBlur={() => setPaused(false)}
-          className="glass glass-pill text-subhead fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+140px)] z-50 mx-auto flex max-w-md items-center gap-3 py-1 pl-4 pr-1 sm:inset-x-auto sm:right-6 sm:bottom-6"
+          // top centre, under the top chrome (wave 2): at the bottom it squeezed between the tab bar and the floating
+          // Compose / Export bar on iPhone, and covered the Rooms row buttons and the Compose dock on iPad
+          className="glass glass-pill text-subhead fixed inset-x-4 top-[calc(var(--chrome-top)+0.75rem)] z-50 mx-auto flex min-h-11 max-w-md items-center gap-3 py-1 pl-4 pr-1 sm:top-[calc(var(--chrome-top)+5.25rem)] sm:w-max sm:min-w-[16rem]"
           data-testid="toast"
         >
           <span className="min-w-0 flex-1 truncate">{toast.text}</span>
