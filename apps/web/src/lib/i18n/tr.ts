@@ -1128,7 +1128,8 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "composer.how_this_night_compares_with_sets":
     "Bu gecenin çalışan DJ'lerin setleriyle ölçüt ölçüt karşılaştırması",
   "composer.how_this_set_scored": "Bu setin aldığı puan",
-  "composer.i_like_this_night_t_dj": "Bu geceyi beğendim: T-DJ bundan öğrenir",
+  "composer.i_like_this_night_t_dj":
+    "Bu geceyi beğendim: sonraki geceler tandalarına ve biçimine yönelir. Geri almak için yeniden dokunun.",
   "composer.improved_set_kept": "İyileştirilmiş set tutuldu",
   "composer.include_undated_recordings": "Tarihsiz kayıtları dahil et",
   "composer.italian": "İtalyan",
@@ -1141,6 +1142,11 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "composer.last_4_tandas_tango_only": "Son 4 tanda yalnızca tango",
   "composer.latin": "Latin",
   "composer.length": "Süre",
+  "composer.like_help_off": "Öğrenme kapalı (Ayarlar): beğeni kaydedilir ama sonraki geceler değişmez.",
+  "composer.like_toast_away": "Anladım: sonraki geceler bunlardan uzaklaşacak.",
+  "composer.like_toast_cleared": "Değerlendirme kaldırıldı: öğrettikleri geri alındı.",
+  "composer.like_toast_off": "Kaydedildi. Öğrenme kapalı, bu yüzden sonraki geceler değişmeyecek.",
+  "composer.like_toast_towards": "Anladım: sonraki geceler bu tandalara yönelecek.",
   "composer.lift_into_the_ultima": "Última'ya doğru yükseliş",
   "composer.loaded": "{p1} yüklendi",
   "composer.lock_all": "Hepsini kilitle",
@@ -1167,7 +1173,8 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "composer.no_tanda_changed": "Hiçbir tanda değişmedi",
   "composer.none": "Hiçbiri",
   "composer.not_applied": "Uygulanmadı: {list}.",
-  "composer.not_for_me_t_dj_learns": "Bana göre değil: T-DJ bundan öğrenir",
+  "composer.not_for_me_t_dj_learns":
+    "Bana göre değil: sonraki geceler tandalarından biraz uzaklaşır, asla yasaklamaz. Geri almak için yeniden dokunun.",
   "composer.nothing_to_change_in_the_settings":
     "{chipLabel}: ayarlarda değişecek bir şey yok; yeni bir tohumla yeniden oluşturuluyor",
   "composer.nuevo": "Nuevo",
@@ -1742,11 +1749,19 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "db.cortinasTab.save": "Kaydet",
   "db.cortinasTab.title": "Ad",
   "db.learnedRules.delete_this_rule": "Bu kuralı sil",
+  "db.learnedRules.disliked_shape": "Beğenmediğiniz gecelerden: bu biçimin aleyhine sayılır",
   "db.learnedRules.families": "Aileler",
+  "db.learnedRules.from_nights_you_disliked": "Beğenmediğiniz gecelerden: biraz daha seyrek çıkar",
+  "db.learnedRules.from_nights_you_liked": "Beğendiğiniz gecelerden: biraz daha sık çıkar",
+  "db.learnedRules.from_your_nights": "Değerlendirdiğiniz gecelerden",
+  "db.learnedRules.from_your_nights_footer":
+    "Bir geceyi beğenmek: tandaları sonraki gecelerde biraz daha ağır basar, asla bir düzenlemenizden fazla değil; beğenmemek biraz daha az. Unutmak için birini silin.",
   "db.learnedRules.forget_everything_learned_from_my_edits": "Düzenlemelerimden öğrenilen her şeyi unut",
   "db.learnedRules.how_much_this_weighs_in_your": "Bunun sonraki gecelerinizde ne kadar ağırlık taşıdığı",
   "db.learnedRules.learn_from_my_edits": "Düzenlemelerimden öğren",
   "db.learnedRules.learned_from_your_edits": "Düzenlemelerinizden öğrenilenler",
+  "db.learnedRules.liked_shape":
+    "Beğendiğiniz gecelerden: benzer iki gece, boş bıraktığınız ayarları belirler",
   "db.learnedRules.learning_is_off_your_edits_teach":
     "Öğrenme kapalı: düzenlemeleriniz bir şey öğretmez ve öğrenilenler uygulanmaz.",
   "db.learnedRules.like_an_autocorrect_every_swap_lock":
@@ -1798,7 +1813,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "db.memoryTab.notes": "Notlar",
   "db.memoryTab.notes_sets_feedback_and_learned_preferences":
     "Notlar, setler, geri bildirimler ve öğrenilen tercihler silinir. Bu geri alınamaz.",
-  "db.memoryTab.nothing_learned_yet": "Henüz bir şey öğrenilmedi.",
+  "db.memoryTab.nothing_learned_yet": "Geri bildiriminizden henüz bir tercih yok.",
   "db.memoryTab.one_line_is_enough_thursday_crowd":
     "Tek satır yeter: “Perşembe kalabalığı Donato milongalarını seviyor”.",
   "db.memoryTab.orchestras_left_out": "Dışarıda bırakılan orkestralar",
@@ -2341,6 +2356,25 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "featuredCard.open": "Aç",
   "featuredCard.open_a_night_a_dj_built":
     "Kendi gecenizi oluşturmadan önce okuyup çalmak için bir DJ'in kurduğu geceyi açın",
+  "featuredLearned.big_four": "Büyük dörtlü gecenin çeyreklerine yayılır",
+  "featuredLearned.closing_cumparsita": "{orchestra} ile La Cumparsita kapanışı",
+  "featuredLearned.cortinas": "{cultures} kortinalar ({count} seçildi)",
+  "featuredLearned.exception_only": "Yalnızca bu gece için istisna",
+  "featuredLearned.exceptions_footer":
+    "Bu tandaları öne çıkan gecede oldukları gibi onayladınız. Şablon değiller ve diğer gecelere hiçbir şey öğretmezler: oluşturulan tandalar tek tür, tek şarkıcı ve yakın yıllarda kalır.",
+  "featuredLearned.exceptions_header": "Yalnızca bu gece için istisnalar",
+  "featuredLearned.footer":
+    "Öne çıkan gecede sabitlediğiniz, değiştirdiğiniz ya da taşıdığınız her tanda, açılışı ve kapanışı. Gece oluşturma bunları bu gecenin ayarlarının altında izler. Ağırlığını değiştirin, silin ya da kapatın: değişiklikleriniz hafızanızda tutulur, öne çıkan gece olduğu gibi kalır.",
+  "featuredLearned.header": "Öne çıkan gecede yaptığınız düzenlemelerden öğrenilenler",
+  "featuredLearned.last_four_tango": "Son 4 tanda yalnızca tango",
+  "featuredLearned.night_footer":
+    "Öne çıkan geceden kaydedildi; gece oluşturma bunları diğer gecelere uygulamaz (bir gecenin kurulumunda ayarlayın).",
+  "featuredLearned.night_header": "Öne çıkan gecenin seçimleri",
+  "featuredLearned.off_footer": "Kapalı: gece oluşturma öne çıkan gecenin düzenlemelerini kullanmaz.",
+  "featuredLearned.opening_cumparsita": "İlk tandanın orkestrası {orchestra} ile La Cumparsita açılışı",
+  "featuredLearned.restore": "Öne çıkan gecenin kurallarını geri yükle",
+  "featuredLearned.use": "Öne çıkan gecenin düzenlemelerini kullan",
+  "featuredLearned.use_tip": "Öne çıkan gecenin öğrettikleri olmadan gece oluşturmak için kapatın",
   "feedback.calmer": "Daha sakin",
   "feedback.fewer_repeats": "Daha az tekrar",
   "feedback.more_energetic": "Daha enerjik",
@@ -2763,6 +2797,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "memory.cycle": "döngü {customPattern}",
   "memory.energetic_floor": "enerjik pist",
   "memory.era": "{p1} dönemi",
+  "memory.liked_shape": "beğendiğiniz gecelerin biçimi ({list})",
   "memory.longer_cortinas": "daha uzun kortinalar",
   "memory.orchestras_left_out": "{length} orkestra dışarıda",
   "memory.romantic_floor": "romantik pist",

@@ -7,7 +7,7 @@ import { isDanceableSong, normTitle } from "./energy";
 import { DEFAULT_HEATMAP, goldenClassOf, isColour, isGoldenNight, staticProfile } from "./knowledge";
 import { bestEdit, recue } from "./repair";
 import { eraGrade, hardFailures, scorePlaylist } from "./score";
-import { mustHavesOf, type StrictResult, strictChecks, strictSummary } from "./strict";
+import { mustHavesOf, type StrictOptions, type StrictResult, strictChecks, strictSummary } from "./strict";
 import { isTandaEligible, songRhythm } from "./tanda";
 import { isBridge, nightTransitions } from "./transitions";
 import type { Cortina, Playlist, Song, Tanda } from "./types";
@@ -141,7 +141,7 @@ const band = (v: number, lo: number, hi: number, near: number): BenchStatus =>
   v >= lo - 1e-9 && v <= hi + 1e-9 ? "ok" : v >= lo - near && v <= hi + near ? "near" : "off";
 
 /** Benchmark a night against the published DJ sets. Pure and deterministic. */
-export function benchmarkNight(p: Night): BenchResult {
+export function benchmarkNight(p: Night, opts: StrictOptions = {}): BenchResult {
   const t = p.tandas;
   const n = t.length;
   const o = p.options;
@@ -529,7 +529,7 @@ export function benchmarkNight(p: Night): BenchResult {
   }
 
   // 18. round 14 — the strict panel (docs/specs/round14-engine.md)
-  const strict = strictChecks(p);
+  const strict = strictChecks(p, opts);
   {
     const c = K.strictPanel;
     const applies = strict.rules.some((r) => r.applies && r.key !== "gap" && !r.key.startsWith("cue"));

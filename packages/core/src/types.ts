@@ -510,13 +510,88 @@ export interface LearnedPreferences {
   templates?: Array<{ id: string; rhythm: string; name: string; songIds: string[]; at: string }>;
   /** the edits it learned from (newest first, 100 kept) */
   edits?: Array<{ at: string; playlistId: string; added: string[]; removed: string[]; note?: string }>;
+  /**
+   * thumbs up / down on composed nights (likes.ts), kept per night id so a toggle or an undo takes back exactly what
+   * the rating added; read at compose next to `families` (summed, capped by LIKE_WEIGHTS)
+   */
+  likes?: Record<string, NightLike>;
+  /**
+   * the DJ's overrides of the repo-level store (data/knowledge/dj_preferences.json, the featured night's edits),
+   * kept in the DJ's memory and sent with the request: the store switched off, a rule reweighted or deleted (rule ids
+   * as learnedRules gives them). mergeLearned applies them; the repo file itself never changes at runtime.
+   */
+  repo?: RepoLearnedOverrides;
+  /** the repo-level store only: the featured night's night-level choices (scripts/featured_learned.ts); shown, not applied */
+  night?: FeaturedNightChoices;
   updatedAt?: string;
+}
+
+export interface RepoLearnedOverrides {
+  off?: boolean;
+  weights?: Record<string, number>;
+  deleted?: string[];
+}
+
+export interface FeaturedNightChoices {
+  cumparsita?: string;
+  openingCumparsita?: { id: string; orchestraId: string; matchesFirstTanda?: boolean } | null;
+  closingCumparsita?: { id: string; orchestraId: string } | null;
+  bigFourQuartiles?: boolean;
+  lastFourTango?: boolean;
+  cortinaCultures?: string[];
+  cortinas?: string[];
+  /**
+   * tandas the DJ approved as they are in THIS night although they break the default tanda rule (one mode, one
+   * singer, close years): a one-time exception scoped to the night's id — never a template, never a compose signal.
+   * The strict panel accepts a pinned tanda of that night that matches (by song ids, or by rhythm + orchestras +
+   * titles when a take changes).
+   */
+  exceptions?: NightException[];
+}
+
+export interface NightException {
+  /** the night it applies to (Playlist.id) */
+  nightId: string;
+  /** `${rhythm}:${song ids}` (templateIdOf) when recorded */
+  tandaId?: string;
+  rhythm: string;
+  orchestraIds: string[];
+  /** normalised titles (normTitle), in order */
+  titles: string[];
+  /** the DJ's words */
+  reason: string;
+  /** what it mixes (templateMix) */
+  mixed?: Array<"mode" | "singer" | "years">;
+  /** the tanda, for the list ("Orchestra · title, title …") */
+  name?: string;
+  at?: string;
+}
+
+/** the settings of a rated night: its "shape" (likes.ts) */
+export interface LikedShape {
+  hours: number;
+  eras: EraPreset[];
+  arc: ComposeOptions["arc"];
+  arcShape?: ComposeOptions["arcShape"];
+  cortinaCultures: string[];
+}
+
+/** one rated night's contribution to the learned preferences */
+export interface NightLike {
+  at: string;
+  liked: boolean;
+  name: string;
+  /** `${familyKey}|${yearBand}` → weight (LIKE_WEIGHTS: positive for a like, scaled-down negative for a dislike) */
+  families: Record<string, number>;
+  shape?: LikedShape;
 }
 
 /** What the AI DJ and the engine remember for a user between sessions (stored in the user's database). */
 export interface AgentMemory {
   /** round 21: what TDJ learned from the DJ's edits (swaps, pins, hand-made tandas) */
   learned?: LearnedPreferences;
+  /** the DJ's overrides of the repo-level learned store (the featured night's edits): off, reweighted, deleted */
+  repoLearned?: RepoLearnedOverrides;
   /** free-form notes the DJ or the assistant wrote ("this room likes Donato milongas") */
   notes: Array<{ at: string; text: string; source: "dj" | "assistant" }>;
   /** feedback given on sets, kept so the next composition starts from it */

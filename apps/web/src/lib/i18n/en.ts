@@ -990,7 +990,8 @@ export const en = {
   "composer.how_this_night_compares_with_sets":
     "How this night compares with sets from working DJs, measure by measure",
   "composer.how_this_set_scored": "How this set scored",
-  "composer.i_like_this_night_t_dj": "I like this night: T-DJ learns from it",
+  "composer.i_like_this_night_t_dj":
+    "I like this night: future nights lean towards its tandas and its shape. Tap again to undo.",
   "composer.improved_set_kept": "Improved set kept",
   "composer.include_undated_recordings": "Include undated recordings",
   "composer.italian": "Italian",
@@ -1003,6 +1004,11 @@ export const en = {
   "composer.last_4_tandas_tango_only": "Last 4 tandas tango only",
   "composer.latin": "Latin",
   "composer.length": "Length",
+  "composer.like_help_off": "Learning is off (Settings): the like is kept, but future nights won't change.",
+  "composer.like_toast_away": "Got it: future nights will lean away from these.",
+  "composer.like_toast_cleared": "Rating removed: what it taught is taken back.",
+  "composer.like_toast_off": "Saved. Learning is off, so future nights won't change.",
+  "composer.like_toast_towards": "Got it: future nights will lean towards these tandas.",
   "composer.lift_into_the_ultima": "Lift into the última",
   "composer.loaded": "{p1} loaded",
   "composer.lock_all": "Lock all",
@@ -1029,7 +1035,8 @@ export const en = {
   "composer.no_tanda_changed": "No tanda changed",
   "composer.none": "None",
   "composer.not_applied": "Not applied: {list}.",
-  "composer.not_for_me_t_dj_learns": "Not for me: T-DJ learns from it",
+  "composer.not_for_me_t_dj_learns":
+    "Not for me: future nights lean a little away from its tandas, never a ban. Tap again to undo.",
   "composer.nothing_to_change_in_the_settings":
     "{chipLabel}: nothing to change in the settings; recomposing with a new seed",
   "composer.nuevo": "Nuevo",
@@ -1600,11 +1607,18 @@ export const en = {
   "db.cortinasTab.save": "Save",
   "db.cortinasTab.title": "Title",
   "db.learnedRules.delete_this_rule": "Delete this rule",
+  "db.learnedRules.disliked_shape": "From nights you disliked: counts against this shape",
   "db.learnedRules.families": "Families",
+  "db.learnedRules.from_nights_you_disliked": "From nights you disliked: comes up a little less often",
+  "db.learnedRules.from_nights_you_liked": "From nights you liked: comes up a little more often",
+  "db.learnedRules.from_your_nights": "From nights you rated",
+  "db.learnedRules.from_your_nights_footer":
+    "A thumbs up on a night: its tandas weigh a little more in later nights, never more than one of your edits; a thumbs down a little less. Delete one to forget it.",
   "db.learnedRules.forget_everything_learned_from_my_edits": "Forget everything learned from my edits",
   "db.learnedRules.how_much_this_weighs_in_your": "How much this weighs in your next nights",
   "db.learnedRules.learn_from_my_edits": "Learn from my edits",
   "db.learnedRules.learned_from_your_edits": "Learned from your edits",
+  "db.learnedRules.liked_shape": "From nights you liked: two alike set the settings you leave open",
   "db.learnedRules.learning_is_off_your_edits_teach":
     "Learning is off: your edits teach nothing and nothing learned is applied.",
   "db.learnedRules.like_an_autocorrect_every_swap_lock":
@@ -1656,7 +1670,7 @@ export const en = {
   "db.memoryTab.notes": "Notes",
   "db.memoryTab.notes_sets_feedback_and_learned_preferences":
     "Notes, sets, feedback and learned preferences are removed. This cannot be undone.",
-  "db.memoryTab.nothing_learned_yet": "Nothing learned yet.",
+  "db.memoryTab.nothing_learned_yet": "No preferences from your feedback yet.",
   "db.memoryTab.one_line_is_enough_thursday_crowd":
     "One line is enough: “Thursday crowd likes Donato milongas”.",
   "db.memoryTab.orchestras_left_out": "Orchestras left out",
@@ -2185,6 +2199,26 @@ export const en = {
   "featuredCard.open": "Open",
   "featuredCard.open_a_night_a_dj_built":
     "Open a night a DJ built, to read and play before you compose your own",
+  "featuredLearned.big_four": "The big four spread over the night's quartiles",
+  "featuredLearned.closing_cumparsita": "Closes with La Cumparsita by {orchestra}",
+  "featuredLearned.cortinas": "{cultures} cortinas ({count} chosen)",
+  "featuredLearned.exception_only": "Exception for this night only",
+  "featuredLearned.exceptions_footer":
+    "You approved these tandas as they are in the featured night. They are no templates and teach other nights nothing: composed tandas keep one mode, one singer and close years.",
+  "featuredLearned.exceptions_header": "Exceptions for this night only",
+  "featuredLearned.footer":
+    "Every tanda you pinned, swapped or moved in the featured night, its opening and its closing. Compose follows them under tonight's settings. Weigh, delete or switch them off: your changes are kept in your memory, the featured night stays as it is.",
+  "featuredLearned.header": "Learned from your edits to the featured night",
+  "featuredLearned.last_four_tango": "Last 4 tandas tango only",
+  "featuredLearned.night_footer":
+    "Recorded from the featured night; compose does not apply them to other nights (set them in a night's setup).",
+  "featuredLearned.night_header": "The featured night's choices",
+  "featuredLearned.off_footer": "Off: compose does not use the featured night's edits.",
+  "featuredLearned.opening_cumparsita":
+    "Opens with La Cumparsita by {orchestra}, the first tanda's orchestra",
+  "featuredLearned.restore": "Restore the featured night's rules",
+  "featuredLearned.use": "Use the featured night's edits",
+  "featuredLearned.use_tip": "Switch off to compose without what the featured night taught",
   "feedback.calmer": "Calmer",
   "feedback.fewer_repeats": "Fewer repeats",
   "feedback.more_energetic": "More energetic",
@@ -2604,6 +2638,7 @@ export const en = {
   "memory.cycle": "cycle {customPattern}",
   "memory.energetic_floor": "energetic floor",
   "memory.era": "{p1} era",
+  "memory.liked_shape": "the shape of nights you liked ({list})",
   "memory.longer_cortinas": "longer cortinas",
   "memory.orchestras_left_out": "{length} orchestras left out",
   "memory.romantic_floor": "romantic floor",

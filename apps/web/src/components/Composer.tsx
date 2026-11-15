@@ -1,5 +1,15 @@
 "use client";
-import { addNote, applyMemory, benchmarkNight, ERA_SETTINGS, rememberFeedback, rememberSet } from "@tdj/core";
+import {
+  addNote,
+  applyMemory,
+  benchmarkNight,
+  ERA_SETTINGS,
+  learnedForRequest,
+  likedShapeDefaults,
+  nightExceptionKeys,
+  rememberFeedback,
+  rememberSet,
+} from "@tdj/core";
 import {
   ChevronRight,
   Copy,
@@ -40,6 +50,7 @@ import { haptic } from "@/lib/haptics";
 import { makeSnapshot } from "@/lib/history";
 import { testSlowdownMs, useMediaQuery, useScrollDirection, whenIdle } from "@/lib/hooks";
 import { lazy, lower, plural, t as tx } from "@/lib/i18n";
+import { rateTap, ratingOf, undoRate } from "@/lib/likes";
 import { describePreferences } from "@/lib/memory";
 import { DUR, EASE, rise, STAGGER } from "@/lib/motion";
 import { eraName, nightSub, nightTitle } from "@/lib/nightName";
@@ -929,7 +940,15 @@ export function Composer() {
   // before the 22 cards render)
   const playlist = useDeferredValue(livePlaylist, null);
   /** the night against the published DJ sets: pure and fast, recomputed with the set */
-  const bench = useMemo(() => (playlist ? benchmarkNight(playlist) : null), [playlist]);
+  // the tandas the DJ approved as they are for this night only (the featured night's exceptions) are accepted
+  const approved = useMemo(
+    () => nightExceptionKeys(meta?.featuredLearned, playlist?.id),
+    [meta?.featuredLearned, playlist?.id],
+  );
+  const bench = useMemo(
+    () => (playlist ? benchmarkNight(playlist, { approved }) : null),
+    [playlist, approved],
+  );
   /**
    * The reveal key changes on a fresh set (Compose pressed, or a recompose that changed the tanda count) and drives
    * the full reveal (score 0 → n, curve draw-on, card stagger); feedback / "Tell the DJ" with the same tanda count keep
@@ -1141,7 +1160,10 @@ export function Composer() {
   /** What the DJ set tonight: touched or pinned controls (era presets and defaults are not explicit). */
   const explicit = explicitKeys(options);
   const learnedPrefs = settings.learn ? describePreferences(memory) : [];
-  const prefKeys = Object.keys(memory.preferences ?? {}).filter((k) => !explicit.includes(k));
+  const prefKeys = [
+    ...Object.keys(memory.preferences ?? {}),
+    ...Object.keys(likedShapeDefaults(memory.learned)),
+  ].filter((k) => !explicit.includes(k));
   const usingMemory = settings.learn && learnedPrefs.length > 0 && prefKeys.length > 0;
   /**
    * The request from the state at call time: only explicit keys travel, learned preferences fill the keys that are
@@ -1156,7 +1178,9 @@ export function Composer() {
     };
     const base = optionsForRequest(merged);
     const { recent } = applyMemory({}, cur.memory);
-    const withMemory = cur.settings.learn ? applyMemory(base, cur.memory) : { ...base, recent };
+    const withMemory = cur.settings.learn
+      ? applyMemory(base, cur.memory)
+      : { ...base, recent, learned: base.learned ?? learnedForRequest(cur.memory, false) };
     const name = base.name ?? autoSetName({ ...DEFAULT_OPTS, ...eraDefaults, ...fullOptions(merged) });
     return { ...withMemory, name, explicit: base.explicit };
   };
@@ -1504,12 +1528,20 @@ export function Composer() {
       setNote(tx("composer.seed", { seed: playlist.options.seed }));
     }
   };
-  const rate = (liked: boolean) => {
+  /**
+   * Thumbs up / down: tapping the pressed thumb again takes the rating back. With learning on, the night's tandas
+   * and shape feed the learned preferences (Database → Memory, "from nights you liked"); with it off the rating is
+   * only recorded. The toast says which, and its Undo restores exactly the rating before the tap.
+   */
+  const rate = (tapped: boolean) => {
     if (!playlist) return;
     haptic(6);
-    updateMemory((m) => rememberSet(m, playlist, liked));
+    const learn = useStore.getState().settings.learn;
+    const r = rateTap(useStore.getState().memory, playlist, tapped, learn);
+    updateMemory(() => r.memory);
+    toast(tx(r.message), () => updateMemory((m) => undoRate(m, playlist, r.previous, learn)));
   };
-  const liked = memory.sets.find((s) => s.id === playlist?.id)?.liked;
+  const liked = ratingOf(memory, playlist?.id);
 
   // ⌘↩ composes, ⌘E exports, ⌘K focuses Tell the DJ (opens the Adjust sheet on phones)
   useEffect(() => {
@@ -1858,7 +1890,9 @@ export function Composer() {
                         <span className="max-sm:sr-only">{tx("composer.play_the_night")}</span>
                       </button>
                     </Tip>
-                    <Tip text={tx("composer.i_like_this_night_t_dj")}>
+                    <Tip
+                      text={tx(settings.learn ? "composer.i_like_this_night_t_dj" : "composer.like_help_off")}
+                    >
                       <button
                         type="button"
                         className={`icon-btn icon-btn-bare -my-2 h-11 w-11 ${liked === true ? "text-[var(--tint)]" : "text-[var(--label-3)]"}`}
@@ -1869,7 +1903,9 @@ export function Composer() {
                         <ThumbsUp size={18} strokeWidth={2} fill={liked === true ? "currentColor" : "none"} />
                       </button>
                     </Tip>
-                    <Tip text={tx("composer.not_for_me_t_dj_learns")}>
+                    <Tip
+                      text={tx(settings.learn ? "composer.not_for_me_t_dj_learns" : "composer.like_help_off")}
+                    >
                       <button
                         type="button"
                         className={`icon-btn icon-btn-bare -my-2 -mr-3 h-11 w-11 ${liked === false ? "text-[var(--tint)]" : "text-[var(--label-3)]"}`}

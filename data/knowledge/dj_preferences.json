@@ -1,5 +1,5 @@
 {
- "about": "Round 21: what TDJ learned from the DJ's hand edits (packages/core/src/learn.ts) — the repo-level store every composed night reads under the DJ's own memory. Regenerate with scripts/round21_featured.ts.",
+ "about": "What TDJ learned from the DJ's edits of the featured night (packages/core/src/learn.ts): the repo-level store every composed night reads under the DJ's own memory (Database → Memory lists it; the DJ can weigh, delete or switch it off, recorded in the DJ's memory). `night` records the night-level choices; compose does not apply them to other nights. Audit / regenerate with scripts/featured_learned.ts.",
  "sides": {
   "54e1304409": 1,
   "8509c04168": 1,
@@ -128,42 +128,6 @@
  },
  "templates": [
   {
-   "id": "tango:54e1304409,8509c04168,67d75c4496,e5cccb8a87",
-   "rhythm": "tango",
-   "name": "Carlos Di Sarli · Shusheta, Catamarca, Lo Pasado, Pasó, Corazón",
-   "songIds": [
-    "54e1304409",
-    "8509c04168",
-    "67d75c4496",
-    "e5cccb8a87"
-   ],
-   "at": "2026-11-14T12:00:00.000Z"
-  },
-  {
-   "id": "tango:eb345072d6,b313688f75,3e9af572cf,f9150b4c8a",
-   "rhythm": "tango",
-   "name": "Orquesta Típica Víctor · Adios Buenos Aires, Llámale \"h\", El Mortero del Globito, Ventarrón",
-   "songIds": [
-    "eb345072d6",
-    "b313688f75",
-    "3e9af572cf",
-    "f9150b4c8a"
-   ],
-   "at": "2026-11-14T12:00:00.000Z"
-  },
-  {
-   "id": "tango:e9d31466ec,131567e74b,7b191bb215,bb6ae09db6",
-   "rhythm": "tango",
-   "name": "Pedro Láurenz · No Me Extraña, Alma de Bohemio, Garúa, Al Verla Pasar",
-   "songIds": [
-    "e9d31466ec",
-    "131567e74b",
-    "7b191bb215",
-    "bb6ae09db6"
-   ],
-   "at": "2026-11-14T12:00:00.000Z"
-  },
-  {
    "id": "tango:8e3307b8a1,07a6e0c944,78239049b7,74fbbdee53",
    "rhythm": "tango",
    "name": "Edgardo Donato · Me Voy a Baraja, Gato, Mis Pesares, Carnaval de mi Barrio",
@@ -172,18 +136,6 @@
     "07a6e0c944",
     "78239049b7",
     "74fbbdee53"
-   ],
-   "at": "2026-11-14T12:00:00.000Z"
-  },
-  {
-   "id": "tango:b895e7cf5c,26b1ef8a48,e72cc6516f,c1b0ecf332",
-   "rhythm": "tango",
-   "name": "Juan D'Arienzo · Ansiedad, Farabute, No Mientas, La Bruja",
-   "songIds": [
-    "b895e7cf5c",
-    "26b1ef8a48",
-    "e72cc6516f",
-    "c1b0ecf332"
    ],
    "at": "2026-11-14T12:00:00.000Z"
   },
@@ -211,18 +163,6 @@
    "at": "2026-11-14T12:00:00.000Z"
   },
   {
-   "id": "tango:24801db04a,e851d595be,c02b739977,6e9afb7087",
-   "rhythm": "tango",
-   "name": "Domingo Federico · Tu Melodía, Para Qué Te Quiero Tanto, Cualquier Cosa, Leyenda Gaucha",
-   "songIds": [
-    "24801db04a",
-    "e851d595be",
-    "c02b739977",
-    "6e9afb7087"
-   ],
-   "at": "2026-11-14T12:00:00.000Z"
-  },
-  {
    "id": "tango:16814cca76,86e53db337,ddfdb2c29b,89bc9d7eef",
    "rhythm": "tango",
    "name": "Lucio Demare · Cómo Se Hace un Tango, Moneda de Cobre, Oigo tu Voz, Canta Pajarito",
@@ -231,18 +171,6 @@
     "86e53db337",
     "ddfdb2c29b",
     "89bc9d7eef"
-   ],
-   "at": "2026-11-14T12:00:00.000Z"
-  },
-  {
-   "id": "tango:13fe376eb1,0265a65075,00a061a315,166b2a4f3e",
-   "rhythm": "tango",
-   "name": "Aníbal Troilo · Desencuentro, Por Qué la Quise Tanto, Quién lo Había de Pensar, Danzarín",
-   "songIds": [
-    "13fe376eb1",
-    "0265a65075",
-    "00a061a315",
-    "166b2a4f3e"
    ],
    "at": "2026-11-14T12:00:00.000Z"
   },
@@ -290,18 +218,6 @@
     "67f9a28a62",
     "38f03bac6d",
     "a2e1839ef1"
-   ],
-   "at": "2026-11-14T12:00:00.000Z"
-  },
-  {
-   "id": "tango:655a908b21,94056c42f4,a2a56b32a2,ae692df479",
-   "rhythm": "tango",
-   "name": "Tango Bardo · No Mientas, Humillación, Maipo, El Cencerro",
-   "songIds": [
-    "655a908b21",
-    "94056c42f4",
-    "a2a56b32a2",
-    "ae692df479"
    ],
    "at": "2026-11-14T12:00:00.000Z"
   },
@@ -416,5 +332,194 @@
    "note": "the DJ's edits of the featured night (round 21)"
   }
  ],
- "updatedAt": "2026-11-14T12:00:00.000Z"
+ "updatedAt": "2026-11-14T12:00:00.000Z",
+ "night": {
+  "cumparsita": "both",
+  "openingCumparsita": {
+   "id": "a6a1772a7f",
+   "orchestraId": "angel-d-agostino",
+   "matchesFirstTanda": true
+  },
+  "closingCumparsita": {
+   "id": "499d9ecc71",
+   "orchestraId": "bandonegro"
+  },
+  "bigFourQuartiles": true,
+  "lastFourTango": true,
+  "cortinaCultures": [
+   "turkish"
+  ],
+  "cortinas": [
+   "Olmasa Mektubun",
+   "Tamirci Çırağı",
+   "Dağlar Dağlar",
+   "Yaz Gazeteci Yaz",
+   "Ele Güne Karşı",
+   "Ben Sana Vurgunum",
+   "Dudu",
+   "Cemalim",
+   "Cambaz",
+   "Haram Geceler",
+   "Dönence",
+   "Kış Güneşi",
+   "Resimdeki Gözyaşları",
+   "Peki Peki Anladık",
+   "Bir Derdim Var",
+   "Bambaşka Biri",
+   "Sil Baştan",
+   "Araba",
+   "Benimle Oynar mısın",
+   "Göreceksin Kendini",
+   "Hadi Bakalım",
+   "Kuzu Kuzu",
+   "Bu Kalp Seni Unutur mu",
+   "Senden Daha Güzel"
+  ],
+  "exceptions": [
+   {
+    "nightId": "tdj-5j",
+    "tandaId": "tango:54e1304409,8509c04168,67d75c4496,e5cccb8a87",
+    "rhythm": "tango",
+    "orchestraIds": [
+     "carlos-di-sarli"
+    ],
+    "titles": [
+     "shusheta",
+     "catamarca",
+     "lo pasado paso",
+     "corazon"
+    ],
+    "reason": "the songs share context and the dancers are happy",
+    "mixed": [
+     "mode"
+    ],
+    "name": "Carlos Di Sarli · Shusheta, Catamarca, Lo Pasado, Pasó, Corazón",
+    "at": "2026-11-15T12:00:00.000Z"
+   },
+   {
+    "nightId": "tdj-5j",
+    "tandaId": "tango:13fe376eb1,0265a65075,00a061a315,166b2a4f3e",
+    "rhythm": "tango",
+    "orchestraIds": [
+     "anibal-troilo"
+    ],
+    "titles": [
+     "desencuentro",
+     "por que la quise tanto",
+     "quien lo habia de pensar",
+     "danzarin"
+    ],
+    "reason": "the songs share context and the dancers are happy",
+    "mixed": [
+     "mode"
+    ],
+    "name": "Aníbal Troilo · Desencuentro, Por Qué la Quise Tanto, Quién lo Había de Pensar, Danzarín",
+    "at": "2026-11-15T12:00:00.000Z"
+   },
+   {
+    "nightId": "tdj-5j",
+    "tandaId": "tango:24801db04a,e851d595be,c02b739977,6e9afb7087",
+    "rhythm": "tango",
+    "orchestraIds": [
+     "domingo-federico"
+    ],
+    "titles": [
+     "tu melodia",
+     "para que te quiero tanto",
+     "cualquier cosa",
+     "leyenda gaucha"
+    ],
+    "reason": "the songs share context and the dancers are happy",
+    "mixed": [
+     "mode",
+     "singer",
+     "years"
+    ],
+    "name": "Domingo Federico · Tu Melodía, Para Qué Te Quiero Tanto, Cualquier Cosa, Leyenda Gaucha",
+    "at": "2026-11-15T12:00:00.000Z"
+   },
+   {
+    "nightId": "tdj-5j",
+    "tandaId": "tango:655a908b21,94056c42f4,a2a56b32a2,ae692df479",
+    "rhythm": "tango",
+    "orchestraIds": [
+     "tango-bardo"
+    ],
+    "titles": [
+     "no mientas",
+     "humillacion",
+     "maipo",
+     "el cencerro"
+    ],
+    "reason": "the songs share context and the dancers are happy",
+    "mixed": [
+     "mode"
+    ],
+    "name": "Tango Bardo · No Mientas, Humillación, Maipo, El Cencerro",
+    "at": "2026-11-15T12:00:00.000Z"
+   },
+   {
+    "nightId": "tdj-5j",
+    "tandaId": "tango:b895e7cf5c,26b1ef8a48,e72cc6516f,c1b0ecf332",
+    "rhythm": "tango",
+    "orchestraIds": [
+     "juan-d-arienzo"
+    ],
+    "titles": [
+     "ansiedad",
+     "farabute",
+     "no mientas",
+     "la bruja"
+    ],
+    "reason": "the most coherent D'Arienzo tanda available",
+    "mixed": [
+     "years"
+    ],
+    "name": "Juan D'Arienzo · Ansiedad, Farabute, No Mientas, La Bruja",
+    "at": "2026-11-15T12:00:00.000Z"
+   },
+   {
+    "nightId": "tdj-5j",
+    "tandaId": "tango:e9d31466ec,131567e74b,7b191bb215,bb6ae09db6",
+    "rhythm": "tango",
+    "orchestraIds": [
+     "pedro-laurenz"
+    ],
+    "titles": [
+     "no me extrana",
+     "alma de bohemio",
+     "garua",
+     "al verla pasar"
+    ],
+    "reason": "the DJ keeps these titles although they don't match",
+    "mixed": [
+     "singer",
+     "years"
+    ],
+    "name": "Pedro Láurenz · No Me Extraña, Alma de Bohemio, Garúa, Al Verla Pasar",
+    "at": "2026-11-15T12:00:00.000Z"
+   },
+   {
+    "nightId": "tdj-5j",
+    "tandaId": "tango:eb345072d6,b313688f75,3e9af572cf,f9150b4c8a",
+    "rhythm": "tango",
+    "orchestraIds": [
+     "orquesta-tipica-victor"
+    ],
+    "titles": [
+     "adios buenos aires",
+     "llamale h",
+     "el mortero del globito",
+     "ventarron"
+    ],
+    "reason": "the DJ keeps these titles although they don't match",
+    "mixed": [
+     "singer",
+     "years"
+    ],
+    "name": "Orquesta Típica Víctor · Adios Buenos Aires, Llámale \"h\", El Mortero del Globito, Ventarrón",
+    "at": "2026-11-15T12:00:00.000Z"
+   }
+  ]
+ }
 }

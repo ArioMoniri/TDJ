@@ -12,9 +12,20 @@ import { Tip } from "../ui/Tip";
 
 const SIDES_SHOWN = 30;
 const fmt = (w: number) => `${w > 0 ? "+" : ""}${Number.isInteger(w) ? w : w.toFixed(1)}`;
+/** what a rule does, with its source for the ones the thumbs up / down taught ("from nights you liked") */
+const detailOf = (r: LearnedRule) =>
+  r.kind === "liked"
+    ? t(
+        r.source === "liked"
+          ? "db.learnedRules.from_nights_you_liked"
+          : "db.learnedRules.from_nights_you_disliked",
+      )
+    : r.kind === "shape"
+      ? t(r.source === "liked" ? "db.learnedRules.liked_shape" : "db.learnedRules.disliked_shape")
+      : r.detail;
 
 /** one rule: what it is, what it does, its weight with − / + (44 pt), and delete (swipe or the bin) */
-function RuleRow({
+export function RuleRow({
   r,
   onWeight,
   onForget,
@@ -31,9 +42,11 @@ function RuleRow({
           <Tip text={r.label}>
             <span className="block truncate">{r.label}</span>
           </Tip>
-          <span className="text-footnote block truncate text-[var(--label-2)]">{r.detail}</span>
+          <span className="text-footnote block truncate text-[var(--label-2)]" data-testid="learned-source">
+            {detailOf(r)}
+          </span>
         </span>
-        {r.kind !== "template" && (
+        {(r.kind === "family" || r.kind === "side") && (
           <Tip text={t("db.learnedRules.how_much_this_weighs_in_your")}>
             <span className="flex shrink-0 items-center">
               <button
@@ -123,6 +136,7 @@ export function LearnedRules() {
   const fams = all.filter((r) => r.kind === "family");
   const sides = all.filter((r) => r.kind === "side" && sideIds.includes(r.id.slice(5)));
   const temps = all.filter((r) => r.kind === "template");
+  const rated = all.filter((r) => r.kind === "liked" || r.kind === "shape");
   const weigh = (id: string, w: number) =>
     updateMemory((m) => ({
       ...m,
@@ -180,6 +194,15 @@ export function LearnedRules() {
         </Group>
       )}
       {temps.length > 0 && <Group header={t("db.learnedRules.your_tandas")}>{rows(temps)}</Group>}
+      {rated.length > 0 && (
+        <Group
+          header={t("db.learnedRules.from_your_nights")}
+          footer={t("db.learnedRules.from_your_nights_footer")}
+          data-testid="learned-from-likes"
+        >
+          {rows(rated)}
+        </Group>
+      )}
       {all.length > 0 && (
         <Group>
           <ActionRow
