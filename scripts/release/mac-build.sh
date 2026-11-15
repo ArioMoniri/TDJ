@@ -121,11 +121,19 @@ SIGN="$WORK/signing"; mkdir -m 700 "$SIGN"
 KC_DIR="$DRIVE/tdj-signing"; mkdir -p "$KC_DIR"; chmod 700 "$KC_DIR"
 cleanup() { rm -rf "$WORK"; }
 trap cleanup EXIT
+# ssm with an empty /tdj/apple (the material lives in the repository secrets): fall back to env, said once
+if [ "$SIGNING" = "ssm" ]; then
+  node scripts/release/apple-setup.mjs export --store "ssm:/tdj/apple" --out "$SIGN" || true
+  if [ -z "$(ls -A "$SIGN" 2>/dev/null)" ] && [ -n "${APPLE_DISTRIBUTION_CERT_P12:-}" ]; then
+    echo "SSM holds no signing material: using the repository secrets (--signing env)"
+    SIGNING="env"
+  fi
+fi
 case "$SIGNING" in
   store) node scripts/release/apple-setup.mjs setup --store "$SIGNING_STORE" --team-id "$TEAM_ID" --bundle-id "$BUNDLE_ID" \
            || echo "! apple-setup reported a problem above; continuing with what the store holds"
          node scripts/release/apple-setup.mjs export --store "$SIGNING_STORE" --out "$SIGN" ;;
-  ssm)   node scripts/release/apple-setup.mjs export --store "ssm:/tdj/apple" --out "$SIGN" ;;
+  ssm)   [ -n "$(ls -A "$SIGN" 2>/dev/null)" ] || die "no signing material in SSM /tdj/apple and no repository secrets" ;;
   env)   # GitHub environment secrets (APPLE_SETUP.md names), base64
          for p in APPLE_DISTRIBUTION_CERT MAC_INSTALLER_CERT DEVELOPER_ID_APPLICATION_CERT; do
            v="${p}_P12"; w="${p}_PASSWORD"

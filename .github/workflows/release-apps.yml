@@ -45,8 +45,8 @@ jobs:
     runs-on: ${{ vars.TDJ_MAC_RUNNER || 'macos-26' }}
     timeout-minutes: 90
     env:
-      TDJ_DRIVE: ${{ github.workspace }}/../drive
-      TDJ_OUT: ${{ github.workspace }}/../out
+      TDJ_DRIVE: ${{ runner.temp }}/drive
+      TDJ_OUT: ${{ runner.temp }}/out
       CARGO_TARGET_DIR: ${{ github.workspace }}/apps/desktop/src-tauri/target
       RUSTUP_HOME: /Users/runner/.rustup
       CARGO_HOME: /Users/runner/.cargo
@@ -106,7 +106,7 @@ jobs:
         if: always()
         with:
           name: apple-builds
-          path: ${{ github.workspace }}/../out
+          path: ${{ runner.temp }}/out
           retention-days: 14
 
   publish:
