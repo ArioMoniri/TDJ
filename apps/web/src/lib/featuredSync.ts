@@ -1,5 +1,6 @@
 "use client";
 import { t } from "@/lib/i18n";
+import { loadNight, NIGHT_MAX_AGE_MS } from "./booth/persist";
 import { FEATURED, loadFeatured } from "./featured";
 import { useStore } from "./store";
 import { toast } from "./toast";
@@ -41,9 +42,32 @@ export async function syncFeaturedNight() {
   for (const f of FEATURED) {
     const shipped = await loadFeatured(f.id).catch(() => null);
     if (!shipped || !isOlderCopy(local, shipped)) continue;
-    const before = local;
-    useStore.getState().setPlaylist(shipped);
-    toast(t("featuredSync.updated"), () => useStore.getState().setPlaylist(before));
+    // a night the booth is playing (or paused mid-way, or holds to resume) is never swapped under the DJ: the update
+    // waits for the DJ's tap, after the night
+    if (await nightInProgress(local.id)) {
+      toast(t("featuredSync.available_after_night"), () => apply(local, shipped), t("featuredSync.load_now"));
+      return;
+    }
+    apply(local, shipped);
     return;
   }
+}
+
+function apply(local: Playlist, shipped: Playlist) {
+  const before = local;
+  useStore.getState().setPlaylist(shipped);
+  toast(t("featuredSync.updated"), () => useStore.getState().setPlaylist(before));
+}
+
+/** the booth started this night less than 12 h ago (a saved playhead; the sync runs once, at page load) */
+export async function nightInProgress(playlistId: string): Promise<boolean> {
+  const n = await loadNight().catch(() => undefined);
+  if (
+    n &&
+    n.playlistId === playlistId &&
+    Date.now() - n.updatedAt < NIGHT_MAX_AGE_MS &&
+    (n.planIndex > 0 || n.state !== "idle")
+  )
+    return true;
+  return false;
 }

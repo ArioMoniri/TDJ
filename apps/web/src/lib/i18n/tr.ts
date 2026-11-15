@@ -2468,6 +2468,8 @@ export const tr: Partial<Record<MsgKey, string>> = {
     " (YouTube'un günlük arama kotası doldu; kalanı başka bir gün tamamlanır)",
   "featured.golden_sub": "4 sa 35 dk · {era} · çift zirve, Türk kortinaları",
   "featured.golden_title": "Öne çıkan gece",
+  "featuredSync.available_after_night": "Bu gecenin yeni sürümü hazır. Kabin bu geceyi çalarken bekliyor.",
+  "featuredSync.load_now": "Şimdi yükle",
   "featuredSync.updated":
     "Bu gece en son sürümüne güncellendi (düzenlemelerin, Spotify bağlantıları, Cumparsitalar).",
   "featuredCard.open": "Aç",

@@ -1,5 +1,5 @@
 "use client";
-import { Clock, Disc3, PanelLeft, Pause, Play, Volume2 } from "lucide-react";
+import { ChevronRight, Clock, Disc3, PanelLeft, Pause, Play, Volume2 } from "lucide-react";
 import { LayoutGroup, motion } from "motion/react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -117,6 +117,19 @@ export function Sidebar() {
   const [state, setState] = useState<Saved>({ w: DEFAULT_W, collapsed: false });
   const [hash, setHash] = useState("");
   const drag = useRef<{ x: number; w: number } | null>(null);
+  // the Tonight list's disclosure, remembered on this device
+  const [tonightOpen, setTonightOpenState] = useState(true);
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("tdj-side-tonight") === "0") setTonightOpenState(false);
+    } catch {}
+  }, []);
+  const setTonightOpen = (v: boolean) => {
+    setTonightOpenState(v);
+    try {
+      localStorage.setItem("tdj-side-tonight", v ? "1" : "0");
+    } catch {}
+  };
 
   useEffect(() => {
     const s = load();
@@ -250,16 +263,32 @@ export function Sidebar() {
 
           {playlist && playlist.tandas.length > 0 && (
             <section aria-labelledby="side-tonight" data-testid="sidebar-tonight">
+              {/* a Finder-style disclosure: the Tonight list folds away (remembered on this device) */}
               <h2 className="side-head" id="side-tonight">
-                {tx("sidebar.tonight")}
-                <span className="side-head-meta">
-                  {tx("sidebar.tandas", {
-                    length: playlist.tandas.length,
-                    durationSec: lengthText(playlist.stats.durationSec),
-                  })}
-                </span>
+                <button
+                  type="button"
+                  className="flex min-h-11 w-full items-center gap-1 text-left"
+                  aria-expanded={tonightOpen}
+                  aria-controls="side-tonight-list"
+                  data-testid="sidebar-tonight-toggle"
+                  onClick={() => setTonightOpen(!tonightOpen)}
+                >
+                  <ChevronRight
+                    size={14}
+                    aria-hidden
+                    className="shrink-0 transition-transform duration-200"
+                    style={{ transform: tonightOpen ? "rotate(90deg)" : undefined }}
+                  />
+                  {tx("sidebar.tonight")}
+                  <span className="side-head-meta ml-auto">
+                    {tx("sidebar.tandas", {
+                      length: playlist.tandas.length,
+                      durationSec: lengthText(playlist.stats.durationSec),
+                    })}
+                  </span>
+                </button>
               </h2>
-              <ol className="flex flex-col gap-0.5">
+              <ol className="flex flex-col gap-0.5" id="side-tonight-list" hidden={!tonightOpen}>
                 {playlist.tandas.map((t, i) => {
                   const now = i === nowTanda;
                   const here = hash === `#tanda-${i + 1}`;

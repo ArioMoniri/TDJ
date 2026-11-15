@@ -2310,6 +2310,9 @@ export const en = {
     " (YouTube's daily search budget ran out; the rest fills in another day)",
   "featured.golden_sub": "4 h 35 min · {era} · double peak, Turkish cortinas",
   "featured.golden_title": "Featured night",
+  "featuredSync.available_after_night":
+    "A newer version of this night is ready. It waits while the booth has this night going.",
+  "featuredSync.load_now": "Load now",
   "featuredSync.updated":
     "This night was updated to its latest version (your edits, Spotify links, the Cumparsitas).",
   "featuredCard.open": "Open",

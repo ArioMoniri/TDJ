@@ -357,7 +357,10 @@ test("Mix → Edit transitions; ••• steps through the night; a song's shee
 async function phoneEditorChecks(page: Page) {
   const ed = page.getByTestId("booth-transition-sheet");
   const vp = page.viewportSize()!;
-  // a full-screen page, not a sheet
+  // a full-screen page, not a sheet (measured once its entrance has settled)
+  await expect
+    .poll(async () => (await ed.boundingBox())?.y ?? 99, { timeout: 5000 })
+    .toBeLessThanOrEqual(0.5);
   const r = (await ed.boundingBox())!;
   expect(r.x).toBeLessThanOrEqual(0.5);
   expect(r.y).toBeLessThanOrEqual(0.5);
@@ -442,12 +445,20 @@ test("iPhone: open from the gap marker, Fade, a length from the bars pill, drag 
   await page.mouse.down();
   await page.mouse.move(h.x + h.width / 2 - 50, h.y + h.height / 2, { steps: 6 });
   await page.mouse.up();
-  await expect.poll(async () => Number(await box.getAttribute("data-out-start"))).toBeLessThan(start0);
+  // (at the longest length the edge is already at its limit: then the drag goes the other way)
+  if (Number(await box.getAttribute("data-out-start")) === start0) {
+    const h2 = (await ed.getByTestId("booth-tr-start").boundingBox())!;
+    await page.mouse.move(h2.x + h2.width / 2, h2.y + h2.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(h2.x + h2.width / 2 + 50, h2.y + h2.height / 2, { steps: 6 });
+    await page.mouse.up();
+  }
+  await expect.poll(async () => Number(await box.getAttribute("data-out-start"))).not.toBe(start0);
   const dragged = Number(await box.getAttribute("data-out-start"));
   await ed.getByTestId("booth-tr-save").click();
   await expect(ed).toHaveCount(0);
   const saved = (await planOf(page)).items[i]?.transitionAfter;
-  expect(saved).toMatchObject({ preset: "fade", fadeOutSec: -dragged });
+  expect(saved).toMatchObject({ preset: "fade", fadeOutSec: 0 - dragged + 0 });
 
   await page.reload();
   await expect(page.getByTestId("booth-now-title")).toBeVisible({ timeout: 20000 });
