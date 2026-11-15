@@ -15,7 +15,7 @@ type Pending = { ok: (r: Response) => void; no: (e: unknown) => void };
 
 declare global {
   interface Window {
-    __TDJ_ADAPTER__?: { request(req: Request): Promise<Response> };
+    __TDJ_ADAPTER__?: { request(input: RequestInfo | URL, init?: RequestInit): Promise<Response> };
   }
 }
 
@@ -25,9 +25,12 @@ const toHostError = (e: unknown): HostError => {
   return { message: typeof e === "string" ? e : "The app could not do that." };
 };
 
-export function installAppAdapter(): void {
-  if (typeof window === "undefined" || window.__TDJ_ADAPTER__) return;
-  const origFetch = window.fetch.bind(window);
+type Adapter = { request(input: RequestInfo | URL, init?: RequestInit): Promise<Response> };
+
+/** Installs the adapter over the page's own fetch (`base`: the browser's, before lib/app/boot.ts wrapped it). */
+export function installAppAdapter(base: typeof fetch = window.fetch.bind(window)): Adapter {
+  if (window.__TDJ_ADAPTER__) return window.__TDJ_ADAPTER__;
+  const origFetch = base;
   const host = nativeHost(origFetch);
   const worker = new Worker(new URL("../../workers/engine.worker.ts", import.meta.url));
   let seq = 0;
@@ -124,6 +127,7 @@ export function installAppAdapter(): void {
     if (!isApi(url)) return origFetch(input, init);
     return request(input, init);
   };
+  return window.__TDJ_ADAPTER__;
 }
 
 export type { HostCalls };

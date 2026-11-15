@@ -2,17 +2,32 @@
 import { useEffect } from "react";
 import { useStore } from "@/lib/store";
 import type { UserSettings } from "@/lib/types";
-import { installAppAdapter } from "./adapter";
-import { registerDeviceAgents } from "./ai";
-import "./login";
 import { invoke } from "./native";
 import { APP, KEYCHAIN_KEY } from "./target";
 
-// before any component mounts: the first /api/* call already goes to the device
+/** same scheme and host as the page, under /api/ (a custom scheme's `origin` reads "null", so it is not compared) */
+export const isApi = (url: string) => {
+  try {
+    const u = new URL(url, location.href);
+    return u.protocol === location.protocol && u.host === location.host && u.pathname.startsWith("/api/");
+  } catch {
+    return false;
+  }
+};
+
+// The app's own modules (the adapter with the engine, the provider layer, the sign-ins) load only in the app
+// build, as chunks of their own: every web page has this file (components/Boot.tsx) and must not carry them.
+// Before any component mounts, /api/* calls already wait for the adapter, which answers them on the device.
 if (APP && typeof window !== "undefined") {
-  installAppAdapter();
+  const base = window.fetch.bind(window);
+  const adapter = import("./adapter").then((m) => m.installAppAdapter(base));
+  window.fetch = (input: RequestInfo | URL, init?: RequestInit) =>
+    isApi(input instanceof Request ? input.url : String(input))
+      ? adapter.then((a) => a.request(input, init))
+      : base(input, init);
+  void import("./login");
   // the Mac app starts local ACP agents (Settings → Models → Keys and agents)
-  void registerDeviceAgents().catch(() => {});
+  void import("./ai").then((m) => m.registerDeviceAgents()).catch(() => {});
   // the animation player's WebAssembly ships in the app (apps/desktop/scripts/build-ui.mjs), not from a CDN
   void import("@lottiefiles/dotlottie-react").then((m) => m.setWasmUrl("/dotlottie-player.wasm"));
 }
