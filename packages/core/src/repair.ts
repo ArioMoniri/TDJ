@@ -1691,7 +1691,13 @@ export function recue(
       }
       if (c) break;
     }
-    if (!c) c = placed(cur, k) ? cur : (pickFrom((x) => placed(x, k), ownOnly ? own : all) ?? cur);
+    // (ownOnly, the final pass: a gap nothing in the night's families serves keeps its cue — never a repeat nearby)
+    if (!c)
+      c = ownOnly
+        ? (pickFrom((x) => notNear(x, k) && fresh(x)) ?? pickFrom((x) => notNear(x, k)) ?? cur)
+        : placed(cur, k)
+          ? cur
+          : (pickFrom((x) => placed(x, k), all) ?? cur);
     // (round 19: the same cue re-picked from the pool brings its checked Spotify record back)
     if (c.id !== cur.id || (!cur.spotify?.uri && !!c.spotify?.uri)) {
       out[k] = { ...t, cortina: { ...c, lengthSec: cur.lengthSec ?? c.lengthSec } };
