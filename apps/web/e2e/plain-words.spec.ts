@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { ENGINEER_PATTERNS } from "../src/lib/plainWords";
+import { W } from "./lang";
 
 /**
  * Wave 2 — every screen speaks the DJ's language: no setting names, cloud services or plumbing words in the text, the
@@ -52,7 +53,7 @@ test("no page shows engineer words", async ({ page }) => {
   }
   // the Database's other sections and Settings' own-key form
   await page.goto("/database");
-  for (const tab of ["Orchestras", "Cortinas", "Rules", "Context", "Memory"]) {
+  for (const tab of ["Orchestras", "Cortinas", "Rules", "Context", "Memory"].map((x) => W(x))) {
     await page.getByRole("radio", { name: tab }).click();
     await page.waitForTimeout(500);
     found.push(...(await engineerWords(page)).map((h) => `/database ${tab}: ${h}`));
@@ -108,6 +109,6 @@ test("every control on Compose, Settings, Database and History explains itself, 
   // the tag itself: hover a Compose control and read what it does
   await page.goto("/");
   // (wave 2: where La Cumparsita plays is one picker: Open / Close / Both / Off)
-  await page.locator("#night").getByLabel("La Cumparsita", { exact: true }).hover();
+  await page.locator("#night").getByLabel(W("La Cumparsita"), { exact: true }).hover();
   await expect(page.getByTestId("tip")).toContainText("La Cumparsita");
 });

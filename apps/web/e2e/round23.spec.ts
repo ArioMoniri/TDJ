@@ -6,7 +6,9 @@
  * and dark. iPads and phones get a simulated status bar: the real `env(safe-area-inset-*)` through Chromium's
  * safe-area override, and the same inset as a CSS override of the `--safe-top` token the bars read.
  */
+
 import { expect, type Locator, type Page, test } from "@playwright/test";
+import { W, WR } from "./lang";
 
 const INSET: Record<string, { top: number; bottom: number }> = {
   ipad: { top: 24, bottom: 20 },
@@ -39,7 +41,7 @@ async function simulateInsets(page: Page) {
 async function compose(page: Page) {
   await page.goto("/");
   await page
-    .getByRole("button", { name: /Compose the night/ })
+    .getByRole("button", { name: WR("Compose the night") })
     .first()
     .click();
   await expect(page.locator("#result")).toBeVisible({ timeout: 60000 });
@@ -104,7 +106,7 @@ test.describe("top chrome and the scroll edge", () => {
     if (lg(page)) {
       const logo = (await page
         .getByTestId("sidebar")
-        .getByRole("link", { name: "T-DJ home" })
+        .getByRole("link", { name: W("T-DJ home") })
         .boundingBox())!;
       expect(logo.y).toBeGreaterThanOrEqual(inset.top);
     }
@@ -114,7 +116,7 @@ test.describe("top chrome and the scroll edge", () => {
     if (w < 640) {
       const inline = (await page
         .getByTestId("collapsed-bar")
-        .getByText("Compose", { exact: true })
+        .getByText(W("Compose"), { exact: true })
         .boundingBox())!;
       expect(inline.y).toBeGreaterThanOrEqual(inset.top);
     }
@@ -124,7 +126,10 @@ test.describe("top chrome and the scroll edge", () => {
       await page.waitForTimeout(400);
       await (w < 640
         ? page.getByTestId("bar-export")
-        : page.getByRole("button", { name: "Export" }).filter({ visible: true }).first()
+        : page
+            .getByRole("button", { name: W("Export") })
+            .filter({ visible: true })
+            .first()
       ).click();
       const sheet = page.getByRole("dialog").first();
       await expect(sheet).toBeVisible({ timeout: 20000 });
@@ -192,7 +197,10 @@ test.describe("top chrome and the scroll edge", () => {
     await page.goto("/");
     await expect(page.locator("html")).toHaveClass(/titlebar-overlay/);
     const lights = { x: 0, y: 0, width: 78, height: 28 };
-    const logo = (await page.getByTestId("sidebar").getByRole("link", { name: "T-DJ home" }).boundingBox())!;
+    const logo = (await page
+      .getByTestId("sidebar")
+      .getByRole("link", { name: W("T-DJ home") })
+      .boundingBox())!;
     const title = (await page.getByTestId("page-title").boundingBox())!;
     expect(overlaps(lights, logo), "logo under the traffic lights").toBe(false);
     expect(logo.y).toBeGreaterThanOrEqual(28);
@@ -219,12 +227,12 @@ test.describe("sidebar and wide layouts", () => {
     await simulateInsets(page);
     await compose(page);
     const side = page.getByTestId("sidebar");
-    await expect(side.getByRole("heading", { name: "Night", exact: true })).toBeVisible();
-    await expect(side.getByRole("heading", { name: /Tonight/ })).toBeVisible();
-    await expect(side.getByRole("heading", { name: "Recent nights" })).toBeVisible();
-    await expect(side.getByRole("link", { name: "Settings" })).toBeVisible();
+    await expect(side.getByRole("heading", { name: W("Night"), exact: true })).toBeVisible();
+    await expect(side.getByRole("heading", { name: WR("Tonight") })).toBeVisible();
+    await expect(side.getByRole("heading", { name: W("Recent nights") })).toBeVisible();
+    await expect(side.getByRole("link", { name: W("Settings") })).toBeVisible();
     // Settings stays pinned at the foot
-    const settings = (await side.getByRole("link", { name: "Settings" }).boundingBox())!;
+    const settings = (await side.getByRole("link", { name: W("Settings") }).boundingBox())!;
     expect(settings.y + settings.height).toBeGreaterThan(page.viewportSize()!.height - 80);
     // touch targets on touch screens
     if (kind(page) === "ipad")
@@ -270,13 +278,13 @@ test.describe("sidebar and wide layouts", () => {
     await page.waitForTimeout(600);
     // folded by default with a summary, and opening one shows its rows
     const structure = page.locator("#structure");
-    await expect(structure.getByRole("button", { name: /Structure/ })).toHaveAttribute(
+    await expect(structure.getByRole("button", { name: WR("Structure") })).toHaveAttribute(
       "aria-expanded",
       "false",
     );
-    await expect(page.getByLabel("Cycle", { exact: true })).toBeHidden();
-    await structure.getByRole("button", { name: /Structure/ }).click();
-    await expect(page.getByLabel("Cycle", { exact: true })).toBeVisible();
+    await expect(page.getByLabel(W("Cycle"), { exact: true })).toBeHidden();
+    await structure.getByRole("button", { name: WR("Structure") }).click();
+    await expect(page.getByLabel(W("Cycle"), { exact: true })).toBeVisible();
     // the primary action is on screen at the top and at the bottom of the form, one Compose at a time (wave 2: the
     // hero's at the top of the empty page, then the form's dock; phones: the primary bar)
     const compose =
@@ -316,7 +324,7 @@ test.describe("sidebar and wide layouts", () => {
     const row = page.locator("#night .seg-row").filter({ hasText: "Cortinas" });
     const r = (await row.boundingBox())!;
     const seg = (await row.getByRole("radiogroup").boundingBox())!;
-    const label = (await row.getByText("Cortinas", { exact: true }).boundingBox())!;
+    const label = (await row.getByText(W("Cortinas"), { exact: true }).boundingBox())!;
     expect(r.x + r.width - (seg.x + seg.width), "control is trailing").toBeLessThanOrEqual(24);
     // on the label's line, or (a narrow column) on its own line at the row's full width: never half a row empty
     const sameLine = Math.abs(seg.y + seg.height / 2 - (label.y + label.height / 2)) <= 8;
@@ -324,7 +332,7 @@ test.describe("sidebar and wide layouts", () => {
     else expect(seg.width).toBeGreaterThanOrEqual(r.width - 48);
     // a long list is a pop-up, not a row of segments
     await page.goto("/settings");
-    await expect(page.getByRole("radiogroup", { name: "Theme" })).toBeVisible();
+    await expect(page.getByRole("radiogroup", { name: W("Theme") })).toBeVisible();
   });
 });
 
@@ -426,15 +434,15 @@ test.describe("scrolling, overscroll and zoom", () => {
     await compose(page);
     await page.evaluate(() => window.scrollTo(0, 0));
     // two sheets whose lives overlap: Export opens, closes, the benchmark opens right away
-    await page.getByRole("button", { name: "Export" }).filter({ visible: true }).first().click();
+    await page
+      .getByRole("button", { name: W("Export") })
+      .filter({ visible: true })
+      .first()
+      .click();
     // the export sheet loads with its first use
     await expect(page.getByRole("dialog").first()).toBeVisible({ timeout: 20000 });
     await page.keyboard.press("Escape");
-    await page
-      .locator("#result")
-      .getByText(/Compared with published DJ sets/)
-      .first()
-      .click();
+    await page.locator("#result").getByText(WR("Compared with published DJ sets")).first().click();
     await page.waitForTimeout(150);
     await page.keyboard.press("Escape");
     await page.waitForTimeout(800);
@@ -481,7 +489,7 @@ test.describe("motion", () => {
         : lg(page)
           ? page.getByTestId("sidebar")
           : page.getByTestId("nav-pill");
-    await nav.getByRole("link", { name: "History" }).click();
+    await nav.getByRole("link", { name: W("History") }).click();
     await expect(page).toHaveURL(/\/history/, { timeout: 15000 });
     await page.waitForTimeout(1200);
     const r = await page.evaluate(() => {
