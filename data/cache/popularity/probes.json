@@ -1,0 +1,29 @@
+{
+ "tango.info robots": {
+  "url": "https://tango.info/robots.txt",
+  "reachable": true,
+  "code": 200,
+  "note": "robots.txt: User-agent: Wget Disallow: /",
+  "checkedAt": "2026-11-15T17:23:03.171Z"
+ },
+ "tango.info work": {
+  "url": "https://tango.info/T0370120130",
+  "reachable": true,
+  "code": 200,
+  "note": "work page: performances / tracks / videos only, no play counts",
+  "checkedAt": "2026-11-15T17:23:05.053Z"
+ },
+ "tangodj.net": {
+  "url": "https://tangodj.net/",
+  "reachable": false,
+  "note": "unreachable (fetch failed)",
+  "checkedAt": "2026-11-15T17:23:06.077Z"
+ },
+ "tangotoolkit.com": {
+  "url": "https://www.tangotoolkit.com/robots.txt",
+  "reachable": false,
+  "code": 503,
+  "note": "HTTP 503",
+  "checkedAt": "2026-11-15T17:23:07.770Z"
+ }
+}

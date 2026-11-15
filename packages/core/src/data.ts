@@ -6,6 +6,7 @@ import type { DeezerCache } from "./enrich";
 import { type CortinaHookFile, cortinaDurationSec, validCortinaStart } from "./hooks";
 import { type CoverageRow, Heatmap } from "./knowledge";
 import { cortinaMatchProblem } from "./matchRules";
+import { setDancerPopularity } from "./popularity";
 import type {
   ContextModel,
   Cortina,
@@ -29,6 +30,8 @@ export const DATA_FILES = {
   contextFactors: "data/knowledge/context_factors.json",
   trackEnergy: "data/knowledge/track_energy.json",
   learned: "data/knowledge/dj_preferences.json",
+  /** 2026-11: dancer popularity from databases (scripts/build_popularity.ts; popularity.ts) */
+  popularity: "data/knowledge/dancer_popularity.json",
   referenceSets: "data/knowledge/reference_sets.json",
   referencePlaylists: "data/knowledge/reference_playlists.json",
   songPatches: "data/knowledge/song_patches.json",
@@ -96,6 +99,8 @@ export function indexSongs(songs: Song[], patchFile?: PatchFile, addedFile?: Add
 /** The catalogue, cortina pool and models from the parsed data files (what `loadCatalog` does after reading). */
 export function buildLoaded(f: DataFiles, overrides?: UserOverrides): Loaded {
   if (f.meta === undefined) throw new Error("data/index/meta.json is required");
+  // 2026-11: the dancer-popularity prior the favourites tracker reads (popularity.ts; absent: nothing changes)
+  setDancerPopularity(f.popularity);
   const songs = indexSongs((f.songs ?? []) as Song[], f.songPatches as PatchFile, f.addedSongs as AddedFile);
   const profiles = (f.profiles ?? []) as OrchestraProfile[];
   const cortinasRaw = (f.cortinas ?? []) as Cortina[];

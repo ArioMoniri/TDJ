@@ -5,10 +5,12 @@ import { useMemo, useState } from "react";
 import { downloadBlob } from "@/lib/download";
 import { favouritesOf, favouritesOn, resetFavouriteRow, setFavouritesUse } from "@/lib/favourites";
 import { plural, t } from "@/lib/i18n";
+import { popularityText } from "@/lib/popularity";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import { ActionRow, Group, Row, SwitchRow, Tile } from "../Form";
 import { Segmented } from "../ui";
+import { DatabaseFavourites, PopularitySwitch, usePopularity } from "./DatabaseFavourites";
 
 type RoleFilter = "all" | SlotRole;
 const ROLES: SlotRole[] = ["warmup", "build", "peak", "cooldown", "close"];
@@ -43,6 +45,13 @@ export function DancerFavourites() {
   const shown = rows.filter((r) => role === "all" || r.role === role);
   const songs = shown.filter((r) => r.kind === "song").slice(0, 12);
   const families = shown.filter((r) => r.kind === "family").slice(0, 8);
+  // 2026-11: popularity from databases — the list of its own, and the source line of the DJ's own favourites
+  const [from, setFrom] = useState<"nights" | "databases">("nights");
+  const db = usePopularity({ ids: songs.map((r) => r.key.slice(5)) });
+  const dbLine = (id: string) => {
+    const parts = db?.rows.find((x) => x.id === id)?.parts;
+    return parts?.length ? popularityText(parts) : "";
+  };
   const on = favouritesOn(memory);
   const reset = (r: FavouriteRow) => {
     updateMemory((m) => resetFavouriteRow(m, r.key as `song:${string}`));
@@ -80,8 +89,20 @@ export function DancerFavourites() {
             </Tile>
           }
         />
+        <PopularitySwitch />
       </Group>
-      {rows.length > 0 && (
+      <div className="px-4 pb-2">
+        <Segmented<"nights" | "databases">
+          value={from}
+          items={[
+            ["nights", t("pop.from_nights")],
+            ["databases", t("pop.from_databases")],
+          ]}
+          onChange={setFrom}
+          label={t("pop.source_filter")}
+        />
+      </div>
+      {(rows.length > 0 || from === "databases") && (
         <div className="px-4 pb-2">
           <Segmented<RoleFilter>
             value={role}
@@ -91,55 +112,63 @@ export function DancerFavourites() {
           />
         </div>
       )}
-      <Group header={t("fav.top_songs")} data-testid="fav-songs">
-        {rows.length === 0 && (
-          <div className="cell text-[var(--label-2)]" data-testid="fav-empty">
-            {t("fav.none")} {t("fav.seed_note")}
-          </div>
-        )}
-        {rows.length > 0 && songs.length === 0 && (
-          <div className="cell text-[var(--label-2)]">{t("fav.none_in_role")}</div>
-        )}
-        {songs.map((r) => (
-          <div key={`${r.key}#${r.role}`} data-testid="fav-song" data-song-id={r.key.slice(5)}>
-            <Row
-              label={
-                <span lang="es">
-                  {r.rate >= 0.25 && (
-                    <span className="mr-1 text-[var(--energy)]" aria-hidden>
-                      ♥
-                    </span>
-                  )}
-                  {r.song?.title ?? r.key.slice(5)}
-                </span>
-              }
-              sub={
-                <>
+      {from === "databases" && <DatabaseFavourites role={role === "all" ? undefined : role} />}
+      {from === "nights" && (
+        <Group header={t("fav.top_songs")} data-testid="fav-songs">
+          {rows.length === 0 && (
+            <div className="cell text-[var(--label-2)]" data-testid="fav-empty">
+              {t("fav.none")} {t("fav.seed_note")}
+            </div>
+          )}
+          {rows.length > 0 && songs.length === 0 && (
+            <div className="cell text-[var(--label-2)]">{t("fav.none_in_role")}</div>
+          )}
+          {songs.map((r) => (
+            <div key={`${r.key}#${r.role}`} data-testid="fav-song" data-song-id={r.key.slice(5)}>
+              <Row
+                label={
                   <span lang="es">
-                    {[r.song?.orchestra, r.song?.singer].filter(Boolean).join(" / ")}
-                    {r.song?.year ? ` · ${r.song.year}` : ""}
+                    {r.rate >= 0.25 && (
+                      <span className="mr-1 text-[var(--energy)]" aria-hidden>
+                        ♥
+                      </span>
+                    )}
+                    {r.song?.title ?? r.key.slice(5)}
                   </span>
-                  {" · "}
-                  {line(r)}
-                </>
-              }
-            >
-              {resetButton(r, r.song?.title ?? "")}
-            </Row>
-          </div>
-        ))}
-      </Group>
-      <Group header={t("fav.top_families")} data-testid="fav-families">
-        {families.length === 0 && <div className="cell text-[var(--label-2)]">{t("fav.none_in_role")}</div>}
-        {families.map((r) => (
-          <div key={`${r.key}#${r.role}`} data-testid="fav-family">
-            <Row label={<span lang="es">{familyLabel(r)}</span>} sub={line(r)}>
-              {resetButton(r, familyLabel(r))}
-            </Row>
-          </div>
-        ))}
-      </Group>
-      {rows.length > 0 && (
+                }
+                sub={
+                  <>
+                    <span lang="es">
+                      {[r.song?.orchestra, r.song?.singer].filter(Boolean).join(" / ")}
+                      {r.song?.year ? ` · ${r.song.year}` : ""}
+                    </span>
+                    {" · "}
+                    {line(r)}
+                    {dbLine(r.key.slice(5)) && (
+                      <span data-testid="fav-db-source"> · {dbLine(r.key.slice(5))}</span>
+                    )}
+                  </>
+                }
+              >
+                {resetButton(r, r.song?.title ?? "")}
+              </Row>
+            </div>
+          ))}
+        </Group>
+      )}
+      {from === "nights" && (
+        <Group header={t("fav.top_families")} data-testid="fav-families">
+          {families.length === 0 && <div className="cell text-[var(--label-2)]">{t("fav.none_in_role")}</div>}
+          {families.map((r) => (
+            <div key={`${r.key}#${r.role}`} data-testid="fav-family">
+              <Row label={<span lang="es">{familyLabel(r)}</span>} sub={line(r)}>
+                {resetButton(r, familyLabel(r))}
+              </Row>
+            </div>
+          ))}
+        </Group>
+      )}
+      {rows.length > 0 && from === "nights" && (
         <Group>
           <ActionRow
             label={

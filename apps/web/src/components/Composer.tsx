@@ -46,7 +46,6 @@ import {
 } from "@/lib/changes";
 import { rememberComposeMs } from "@/lib/composeProgress";
 import { djMessages } from "@/lib/djMessage";
-import { favouritesForRequest } from "@/lib/favourites";
 import { FEATURED, type FeaturedId, featuredMeta, loadFeatured } from "@/lib/featured";
 import { FEEDBACK_CHIPS } from "@/lib/feedback";
 import { haptic } from "@/lib/haptics";
@@ -58,6 +57,7 @@ import { describePreferences } from "@/lib/memory";
 import { DUR, EASE, rise, STAGGER } from "@/lib/motion";
 import { nightEraLabel, nightSub, nightTitle } from "@/lib/nightName";
 import { usePlayer } from "@/lib/player";
+import { requestFavourites } from "@/lib/popularity";
 import { approvedKeys, gateEdit } from "@/lib/ruleCheck";
 import { useSheetOpen } from "@/lib/sheets";
 import {
@@ -1216,7 +1216,7 @@ export function Composer() {
       : { ...base, recent, learned: base.learned ?? learnedForRequest(cur.memory, false) };
     const name = base.name ?? autoSetName({ ...DEFAULT_OPTS, ...eraDefaults, ...fullOptions(merged) });
     // 2026-11: the dancer favourites (Database → Memory), decayed to now; switched off they travel as `off`
-    const favourites = favouritesForRequest(cur.memory);
+    const favourites = requestFavourites(cur.memory);
     return { ...withMemory, name, explicit: base.explicit, ...(favourites ? { favourites } : {}) };
   };
 

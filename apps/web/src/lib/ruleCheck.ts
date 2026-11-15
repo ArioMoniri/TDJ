@@ -16,9 +16,9 @@ import {
   withoutExceptionMarker,
 } from "@tdj/core";
 import { create } from "zustand";
-import { favouritesForRequest } from "./favourites";
 import { t } from "./i18n";
 import { en, type MsgKey } from "./i18n/en";
+import { requestFavourites } from "./popularity";
 import { useStore } from "./store";
 import { toast } from "./toast";
 
@@ -101,7 +101,7 @@ async function details(
         exceptions,
         scope,
         // 2026-11: the DJ's dancer favourites rank first (♥)
-        favourites: favouritesForRequest(useStore.getState().memory) ?? null,
+        favourites: requestFavourites(useStore.getState().memory) ?? null,
       }),
     });
     if (!r.ok) return null;
