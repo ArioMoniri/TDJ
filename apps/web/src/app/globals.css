@@ -2471,3 +2471,51 @@ html.theming *::after {
     margin-top: 0;
   }
 }
+
+/* Wave 2 (testers): touch targets. On touch (pointer: coarse) every control is at least 44 px; with a mouse the
+   controls keep their native Mac sizes (28 px segments, 32 px chips and steppers, 36 px sidebar rows), all of them
+   at least 28 px. The toolbar's capsules are 40 px at lg with a mouse (Composer.tsx) and 44 px on an iPad. */
+@media (pointer: coarse) {
+  .toolbar-row .btn,
+  .toolbar-pill-band .btn {
+    min-height: 44px;
+  }
+  .seg {
+    min-height: 44px;
+  }
+  .chip,
+  .chip-filter {
+    min-height: 44px;
+  }
+  .stepper,
+  .stepper button {
+    height: 44px;
+  }
+  /* the energy chart's dots: a 44 px round hit area (the chart draws at about 0.8 of its viewBox on an iPad) */
+  .dot-hit {
+    r: 27px;
+  }
+}
+/* a page's main switch (Night / Log in a room): 44 px with a mouse too */
+.segmented-l .seg {
+  min-height: 44px;
+  padding: 0 16px;
+  font-size: var(--text-subhead);
+}
+/* the page column never moves sideways when a page grows a scroll bar (Rooms, once you are in a room) */
+html {
+  scrollbar-gutter: stable;
+}
+
+/* Wave 2: room for the floating bars. The Compose dock floats over the foot of the window on iPad and the Mac
+   (Composer.tsx owns it): the page reserves its height plus the safe area, below the content and as scroll padding,
+   so a control scrolled or tabbed into view (Arc) lands above the dock, never under it. */
+@media (min-width: 640px) {
+  html:has([data-testid="compose-dock"]) {
+    --dock-reserve: 88px;
+    scroll-padding-bottom: calc(var(--dock-reserve) + env(safe-area-inset-bottom, 0px));
+  }
+  html:has([data-testid="compose-dock"]) main {
+    padding-bottom: calc(var(--dock-reserve) + env(safe-area-inset-bottom, 0px));
+  }
+}

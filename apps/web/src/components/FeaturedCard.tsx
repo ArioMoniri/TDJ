@@ -4,7 +4,8 @@ import Link from "next/link";
 import { FEATURED } from "@/lib/featured";
 import { useTip } from "./ui/Tip";
 
-/** The built-in night as one row card: a deep link into the composer's result view (`/?featured=<id>`). */
+/** The built-in night as one row card (a definite width: inside a shrink-to-fit empty state its truncated text
+ * used to size it, 8 px past an iPhone's edge, wave 2): a deep link into the composer's result view (`/?featured=<id>`). */
 export function FeaturedCard({ className = "" }: { className?: string }) {
   const f = FEATURED[0];
   const t = useTip<HTMLAnchorElement>(
@@ -14,7 +15,7 @@ export function FeaturedCard({ className = "" }: { className?: string }) {
     <Link
       {...t.props}
       href={`/?featured=${f.id}`}
-      className={`cell cell-tap group-inset w-full max-w-[420px] text-left ${className}`}
+      className={`cell cell-tap group-inset w-[min(420px,calc(100vw-2rem))] max-w-full text-left ${className}`}
       data-leading="tile"
       data-testid="featured-card"
     >

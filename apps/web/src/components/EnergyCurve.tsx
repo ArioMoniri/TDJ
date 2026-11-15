@@ -252,6 +252,15 @@ export function EnergyCurve({
               }}
               className="group/dot"
             >
+              {/* the hit area: 14 units round with a mouse, 44 px across on touch (globals.css .dot-hit) */}
+              <motion.circle
+                initial={false}
+                animate={{ cx, cy }}
+                transition={morphT}
+                r={14}
+                fill="transparent"
+                className="dot-hit"
+              />
               <motion.circle
                 initial={false}
                 animate={{ cx, cy }}
