@@ -1,125 +1,123 @@
 "use client";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import dynamic from "next/dynamic";
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { favouriteTable, isFavouriteSide, type SongFilters } from "@tdj/core";
+import { History } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import { FeaturedCard } from "@/components/FeaturedCard";
-import { Group, RhythmTile, Row } from "@/components/Form";
-import { I } from "@/components/Icons";
+import { Group, Row } from "@/components/Form";
+import { LibraryRow, playSong } from "@/components/library/LibraryRow";
 import { SEARCH_FOCUS_EVENT } from "@/components/Nav";
 import { PageHeader } from "@/components/PageHeader";
 import { SearchField } from "@/components/SearchField";
 import { Sheet } from "@/components/Sheet";
-import { haptic } from "@/lib/haptics";
+import { filtersActive, SearchChips } from "@/components/search/SearchChips";
+import { favouritesOf } from "@/lib/favourites";
+import { useMediaQuery } from "@/lib/hooks";
 import { fmtNumber, t as tx } from "@/lib/i18n";
-import { fade, reduced as reducedV, rise, t } from "@/lib/motion";
-import { sourceFor, trackFor, usePlayer } from "@/lib/player";
 import { useStore } from "@/lib/store";
-import type { Song } from "@/lib/types";
-import { yearText } from "@/lib/year";
-
-const ResolveSheet = dynamic(() => import("@/components/ResolveSheet").then((m) => m.ResolveSheet), {
-  ssr: false,
-});
-
-/**
- * A 44 pt play / pause control in the row's leading slot (round8-qa.md B2): the 30 s preview in the one
- * mini-player, or "Find on services" when the recording has no preview yet.
- */
-const PlayCell = memo(function PlayCell({ song }: { song: Song }) {
-  const connected = useStore((s) => !!s.spotifyToken && s.spotifyToken.expires > Date.now());
-  const patch = useStore((s) => s.overrides.songs?.[song.id]);
-  const playing = usePlayer((s) => s.playing && s.track?.id === song.id);
-  const [find, setFind] = useState(false);
-  const [findMounted, setFindMounted] = useState(false);
-  const source = sourceFor(song, connected, patch);
-  return (
-    <>
-      <button
-        type="button"
-        className={`icon-btn icon-btn-bare -my-2 -ml-2 h-11 w-11 shrink-0 ${playing ? "text-[var(--tint)]" : "text-[var(--tint)]"}`}
-        aria-label={
-          playing
-            ? tx("library.pause", { title: song.title })
-            : source
-              ? tx("library.play", { title: song.title })
-              : tx("library.find_on_services", { title: song.title })
-        }
-        aria-pressed={playing}
-        data-testid="play-button"
-        onClick={() => {
-          if (!source) {
-            setFindMounted(true);
-            setFind(true);
-            return;
-          }
-          haptic(4);
-          usePlayer.getState().toggle(trackFor({ ...song, ...(patch ?? {}) } as Song, source));
-        }}
-      >
-        {playing ? (
-          <I name="pause" size={18} fill="currentColor" strokeWidth={0} />
-        ) : source ? (
-          <I name="play" size={18} fill="currentColor" strokeWidth={0} />
-        ) : (
-          <I name="search" size={16} strokeWidth={2.25} />
-        )}
-      </button>
-      {findMounted && <ResolveSheet song={find ? song : null} open={find} onClose={() => setFind(false)} />}
-    </>
-  );
-});
+import { forgetSearches, recentSearches, rememberSearch, useSongSearch } from "@/lib/useSongSearch";
 
 interface Meta {
   meta: { songs: number; orchestras: number; singers: number; builtAt: string };
   orchestras: Array<{ id: string; name: string; count: number; tier: number; style?: string }>;
 }
 
+/** what the empty Library offers to try (each shows a part of the syntax: words across fields, years, filters) */
+const EXAMPLES = [
+  "di sarli rufino 1941",
+  "pugliese 40s",
+  "d'arienzo instrumental",
+  "otv vals",
+  "laurenz milonga",
+];
+
+const rowId = (i: number) => `library-row-${i}`;
+
+/**
+ * The Library (2026-11, "search doesn't work nicely"): one field over the whole catalogue through the shared search
+ * (POST /api/search → core `searchSongs`): words across title, orchestra, singer and year, typo-tolerant, with inline
+ * filters ("40s", "vals", "instrumental"), chips with counts, matched words marked, "Did you mean", recent searches,
+ * ↑ ↓ Enter Esc on the field, 50 results a page.
+ */
 export default function Library() {
   const [q, setQ] = useState("");
-  const [rows, setRows] = useState<Song[]>([]);
+  const [filters, setFilters] = useState<SongFilters>({});
   const [meta, setMeta] = useState<Meta | null>(null);
-  const [searching, setSearching] = useState(false);
   const [showAll, setShowAll] = useState(false);
-  /** the query the current rows answer; a narrowing query (new ⊂ old) skips the stagger */
-  const [shown, setShown] = useState<{ q: string; fresh: boolean }>({ q: "", fresh: true });
-  const prevIds = useRef<Set<string>>(new Set());
-  const reduced = useReducedMotion();
+  const [active, setActive] = useState(-1);
+  const [grouped, setGrouped] = useState(false);
+  const [recent, setRecent] = useState<string[]>([]);
+  const [findAt, setFindAt] = useState<{ i: number; n: number }>({ i: -1, n: 0 });
+  const memory = useStore((s) => s.memory);
+  const connected = useStore((s) => !!s.spotifyToken && s.spotifyToken.expires > Date.now());
+  const desktop = useMediaQuery("(hover: hover) and (pointer: fine)");
+  // the DJ's dancer favourites (this device's memory): sent with the query so the ♥ chip counts and filters them
+  const favourites = useMemo(() => {
+    const F = favouritesOf(memory);
+    if (!F) return [];
+    const T = favouriteTable(F, Date.now());
+    return Object.keys(T.sides).filter((id) => isFavouriteSide(T, id));
+  }, [memory]);
+  const request = useMemo(
+    () => ({ ...filters, ...(favourites.length ? { favourites } : {}) }),
+    [filters, favourites],
+  );
+  const { data, loading, hasMore, loadMore } = useSongSearch(q, {
+    filters: request,
+    limit: 50,
+    group: grouped ? "orchestra" : undefined,
+  });
+  const searching = q.trim().length >= 2 || filtersActive(filters) > 0;
+  const items = searching ? (data?.items ?? []) : [];
   useEffect(() => {
     fetch("/api/meta")
       .then((r) => r.json())
       .then(setMeta)
       .catch(() => {});
+    setRecent(recentSearches());
   }, []);
+  // desktop: straight into the field (a phone keeps its keyboard down until the DJ taps)
   useEffect(() => {
-    if (q.length < 2) {
-      setRows([]);
-      setSearching(false);
-      return;
-    }
-    setSearching(true);
-    const timer = setTimeout(() => {
-      fetch(`/api/search?q=${encodeURIComponent(q)}`)
-        .then((r) => r.json())
-        .then((r: Song[]) => {
-          const narrowed = r.length > 0 && r.every((s) => prevIds.current.has(s.id));
-          prevIds.current = new Set(r.map((s) => s.id));
-          setShown({ q: narrowed ? shownRef.current : q, fresh: !narrowed });
-          setRows(r);
-        })
-        .catch(() => setRows([]))
-        .finally(() => setSearching(false));
-    }, 200);
-    return () => clearTimeout(timer);
-  }, [q]);
-  // most recorded first (wave 2: the shipped order read 801 … 72, then 228)
+    if (desktop)
+      (document.getElementById("library-search") as HTMLInputElement | null)?.focus({ preventScroll: true });
+  }, [desktop]);
+  // a new answer starts the keyboard selection over
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset on each new answer
+  useEffect(() => setActive(-1), [data]);
+  useEffect(() => {
+    if (active >= 0) document.getElementById(rowId(active))?.scrollIntoView({ block: "nearest" });
+  }, [active]);
   const byCount = useMemo(
     () => [...(meta?.orchestras ?? [])].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name)),
     [meta],
   );
-  const shownRef = useRef(shown.q);
-  shownRef.current = shown.q;
-  const rowV = reduced ? reducedV.rise : rise;
+  const remember = useCallback(() => {
+    if (q.trim().length >= 2 && items.length) setRecent(rememberSearch(q));
+  }, [q, items.length]);
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowDown" && items.length) {
+      e.preventDefault();
+      setActive((a) => Math.min(items.length - 1, a + 1));
+    } else if (e.key === "ArrowUp" && items.length) {
+      e.preventDefault();
+      setActive((a) => Math.max(-1, a - 1));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const i = active >= 0 ? active : 0;
+      const hit = items[i];
+      if (!hit) return;
+      setActive(i);
+      remember();
+      const patch = useStore.getState().overrides.songs?.[hit.song.id];
+      if (!playSong(hit.song, connected, patch)) setFindAt((f) => ({ i, n: f.n + 1 }));
+    } else if (e.key === "Escape") {
+      if (q || filtersActive(filters)) {
+        e.preventDefault();
+        setQ("");
+        setActive(-1);
+      }
+    }
+  };
   const search = (cls = "") => (
     <SearchField
       id="library-search"
@@ -131,11 +129,30 @@ export default function Library() {
           : tx("library.orchestra_singer_title_or_year")
       }
       label={tx("library.search_the_library")}
-      busy={searching}
+      busy={loading}
       className={cls}
-      onFocusChange={(f) => window.dispatchEvent(new CustomEvent(SEARCH_FOCUS_EVENT, { detail: f }))}
+      tip={tx("search.syntax_tip")}
+      onFocusChange={(f) => {
+        window.dispatchEvent(new CustomEvent(SEARCH_FOCUS_EVENT, { detail: f }));
+        if (!f) remember();
+      }}
+      inputProps={{
+        onKeyDown,
+        role: "combobox",
+        "aria-expanded": items.length > 0,
+        "aria-controls": "library-results",
+        "aria-autocomplete": "list",
+        "aria-activedescendant": active >= 0 ? rowId(active) : undefined,
+      }}
     />
   );
+  const total = data?.total ?? 0;
+  const empty = searching && !!data && !loading && total === 0;
+  // group heads: where the orchestra changes in the shown page
+  const groupOf = (i: number) =>
+    grouped && items[i] && (i === 0 || items[i - 1]!.song.orchestraId !== items[i]!.song.orchestraId)
+      ? data?.groups?.find((g) => g.orchestraId === items[i]!.song.orchestraId)
+      : undefined;
   return (
     <div className="mx-auto max-w-[720px]">
       <PageHeader
@@ -152,67 +169,150 @@ export default function Library() {
       >
         {search("mt-3")}
       </PageHeader>
-      <div role="status" aria-live="polite">
-        {q.length < 2 && (
-          <EmptyState action={<FeaturedCard />}>{tx("library.type_an_orchestra_singer_title_or")}</EmptyState>
+      <SearchChips
+        facets={searching ? data?.facets : null}
+        filters={filters}
+        onChange={(f) => setFilters(f)}
+        favourites={favourites.length > 0}
+        more={searching}
+        idPrefix="library-chip"
+      />
+      <div role="status" aria-live="polite" className="min-h-0">
+        {searching && data && (data.corrected?.length ?? 0) > 0 && total > 0 && (
+          <p className="text-footnote px-4 pt-3 text-[var(--label-2)]" data-testid="library-corrected">
+            {tx("search.showing_close_spellings", {
+              words: data.corrected!.map((c) => `“${c.found}”`).join(", "),
+            })}
+          </p>
         )}
-        {q.length >= 2 && !searching && rows.length === 0 && (
-          <motion.p
-            variants={fade}
-            initial="hidden"
-            animate="show"
-            className="text-subhead py-8 text-center text-[var(--label-2)]"
-          >
-            {tx("library.nothing_matches_try_a_shorter_spelling", { q })}
-          </motion.p>
+        {empty && (
+          <div className="py-8 text-center">
+            <p className="text-subhead text-[var(--label-2)]">
+              {tx("library.nothing_matches_try_a_shorter_spelling", { q })}
+            </p>
+            {data?.suggestion && (
+              <p className="mt-2">
+                {tx("search.did_you_mean")}{" "}
+                <button
+                  type="button"
+                  className="btn-plain min-h-11 font-semibold"
+                  data-testid="did-you-mean"
+                  onClick={() => setQ(data.suggestion!)}
+                >
+                  {data.suggestion}
+                </button>
+                ?
+              </p>
+            )}
+          </div>
         )}
-        <AnimatePresence mode="wait" initial={false}>
-          {rows.length > 0 && (
-            <motion.div
-              key={shown.q}
-              variants={fade}
-              initial="hidden"
-              animate={{ opacity: searching ? 0.6 : 1, transition: searching ? t.press : t.fade }}
-              exit="exit"
-            >
-              <Group header={tx("library.results", { length: rows.length })}>
-                <AnimatePresence initial={false}>
-                  {rows.map((s, i) => (
-                    <motion.div
-                      key={s.id}
-                      variants={rowV}
-                      custom={i}
-                      initial={shown.fresh ? "hidden" : false}
-                      animate="show"
-                      exit="exit"
-                      className="cell"
-                      data-leading="art"
-                    >
-                      <PlayCell song={s} />
-                      <RhythmTile rhythm={s.rhythm} />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate">{s.title}</span>
-                        <span className="text-footnote block truncate text-[var(--label-2)]">
-                          {s.orchestra}
-                          {s.singer ? ` · ${s.singer}` : ""}
-                        </span>
-                      </span>
-                      <span className="cell-value text-body">
-                        <span className="tabular-nums">{yearText(s.year)}</span>
-                        <span className="text-footnote ml-2 tabular-nums text-[var(--label-2)]">
-                          <span className="sr-only">{tx("library.energy")} </span>
-                          {s.energy}
-                        </span>
-                      </span>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </Group>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
-      {q.length < 2 && meta && (
+      {items.length > 0 && (
+        <section className="min-w-0" aria-busy={loading}>
+          <div className="flex items-center gap-2">
+            <h2 className="section-head flex-1" data-testid="library-total">
+              {tx("library.results", { length: fmtNumber(total) })}
+            </h2>
+            <button
+              type="button"
+              className="btn-plain min-h-11 px-4 text-footnote"
+              aria-pressed={grouped}
+              onClick={() => setGrouped((g) => !g)}
+              data-testid="library-group"
+            >
+              {grouped ? tx("search.ungroup") : tx("search.group_by_orchestra")}
+            </button>
+          </div>
+          <div
+            className={`group-inset transition-opacity ${loading ? "opacity-70" : ""}`}
+            role="listbox"
+            id="library-results"
+            aria-label={tx("library.results", { length: fmtNumber(total) })}
+            data-testid="library-results"
+          >
+            {items.map((h, i) => {
+              const g = groupOf(i);
+              return (
+                <div key={h.song.id} role="presentation">
+                  {g && (
+                    <div
+                      role="presentation"
+                      className="text-footnote px-4 pt-3 pb-1 font-semibold text-[var(--label-2)]"
+                      data-testid="library-group-head"
+                    >
+                      {g.orchestra} · {fmtNumber(g.count)}
+                    </div>
+                  )}
+                  <LibraryRow
+                    hit={h}
+                    id={rowId(i)}
+                    active={i === active}
+                    onHover={desktop ? () => setActive(i) : undefined}
+                    findSignal={findAt.i === i ? findAt.n : undefined}
+                  />
+                </div>
+              );
+            })}
+          </div>
+          {hasMore && (
+            <div className="mt-3 flex justify-center">
+              <button
+                type="button"
+                className="btn-plain min-h-11 px-4"
+                onClick={loadMore}
+                disabled={loading}
+                data-testid="library-more"
+              >
+                {tx("search.show_more", { shown: fmtNumber(items.length), total: fmtNumber(total) })}
+              </button>
+            </div>
+          )}
+        </section>
+      )}
+      {!searching && (
+        <>
+          <EmptyState action={<FeaturedCard />}>{tx("library.type_an_orchestra_singer_title_or")}</EmptyState>
+          <Group header={tx("search.try")} footer={tx("search.syntax_tip")}>
+            <div className="flex flex-wrap gap-1.5 px-4 py-3" data-testid="library-examples">
+              {EXAMPLES.map((x) => (
+                <button key={x} type="button" className="search-chip" onClick={() => setQ(x)}>
+                  {x}
+                </button>
+              ))}
+            </div>
+          </Group>
+          {recent.length > 0 && (
+            <Group
+              header={
+                <span className="flex items-center justify-between">
+                  {tx("search.recent")}
+                  <button
+                    type="button"
+                    className="btn-plain min-h-11 normal-case"
+                    onClick={() => {
+                      forgetSearches();
+                      setRecent([]);
+                    }}
+                  >
+                    {tx("search.clear_recent")}
+                  </button>
+                </span>
+              }
+            >
+              {recent.map((r) => (
+                <Row
+                  key={r}
+                  tile={<History size={18} strokeWidth={2} className="text-[var(--label-2)]" aria-hidden />}
+                  label={r}
+                  chevron
+                  onClick={() => setQ(r)}
+                />
+              ))}
+            </Group>
+          )}
+        </>
+      )}
+      {!searching && meta && (
         <Group
           header={tx("library.orchestras_by_recordings")}
           footer={tx("library.the_number_beside_an_orchestra_is")}

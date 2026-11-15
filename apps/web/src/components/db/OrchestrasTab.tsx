@@ -7,15 +7,23 @@ import { useMemo, useState } from "react";
 import { coverageWith, DEFAULT_COVERAGE, editGrade, nextGrade } from "@/lib/era";
 import { eraWords, gradeWords as gradeWord } from "@/lib/eraWords";
 import type { MetaOrchestra, OrchestraProfile } from "@/lib/types";
+import { useTextSearch } from "@/lib/useSongSearch";
 import { ActionRow, CheckRow, Group, PickerRow, Row } from "../Form";
 import { SearchField } from "../SearchField";
 import { Sheet } from "../Sheet";
+import { Highlight } from "../search/Highlight";
 import { Segmented } from "../ui";
 import { Artwork } from "../ui/Artwork";
 import { EraLegend } from "../ui/EraBadge";
 import { Tip, useTip } from "../ui/Tip";
 import { Empty, patchMap, useDb, useDbEdit, ValueCell } from "./shared";
 
+const ORCHESTRA_FIELDS = [
+  { name: "name", weight: 10, get: (o: MetaOrchestra) => o.name },
+  { name: "alias", weight: 8, get: (o: MetaOrchestra) => o.aliases },
+  { name: "singer", weight: 3, get: (o: MetaOrchestra) => (o.topSingers ?? []).map(([n]) => n) },
+  { name: "style", weight: 2, get: (o: MetaOrchestra) => o.style },
+];
 const STYLES: Array<[OrchestraProfile["style"], string]> = lazy(() => [
   ["rhythmic", tx("db.orchestrasTab.rhythmic")],
   ["lyrical", tx("db.orchestrasTab.lyrical")],
@@ -237,7 +245,13 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
   const tierOf = (o: MetaOrchestra) => Number(profiles[o.id]?.tier ?? o.tier);
   const styleOf = (o: MetaOrchestra) => (profiles[o.id]?.style ?? o.style ?? "balanced") as string;
 
-  const filtered = orchestras.filter((o) => !q || o.name.toLowerCase().includes(q.toLowerCase()));
+  // 2026-11: the shared engine over the list (accent- and apostrophe-blind, typos, the profiles' aliases such as
+  // "OTV", and the orchestra's singers: "fiorentino" finds Troilo); the best match first
+  const found = useTextSearch(orchestras, ORCHESTRA_FIELDS, q, {
+    highlight: [{ field: "name", get: (o) => o.name }],
+  });
+  const marks = new Map(found.items.map((h) => [h.doc.id, h.highlights.name]));
+  const filtered = q.trim() ? found.items.map((h) => h.doc) : orchestras;
   const groups = (() => {
     const key = (o: MetaOrchestra) =>
       by === "tier" ? String(tierOf(o)) : by === "style" ? styleOf(o) : ERA_GROUP(o.years?.[0]);
@@ -280,7 +294,9 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
         <OrchestraButton name={o.name} onClick={() => setDetail(o)}>
           <Artwork src={o.artwork} orchestra={o.name} orchestraId={o.id} size="l" />
           <span className="min-w-0 flex-1">
-            <span className="text-headline block truncate">{o.name}</span>
+            <span className="text-headline block truncate">
+              <Highlight text={o.name} spans={q.trim() ? marks.get(o.id) : undefined} />
+            </span>
             <span className="text-subhead block truncate text-[var(--label-2)]">
               {[STYLE_LABEL[styleOf(o)] ?? styleOf(o), active ?? yr(o.years), `${o.count} recordings`]
                 .filter(Boolean)

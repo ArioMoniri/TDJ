@@ -1,10 +1,13 @@
 "use client";
 import { AudioLines } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { t } from "@/lib/i18n";
 import type { Cortina, MetaCortina } from "@/lib/types";
+import { useTextSearch } from "@/lib/useSongSearch";
 import { ActionRow, Group, Row } from "../Form";
+import { SearchField } from "../SearchField";
 import { Sheet } from "../Sheet";
+import { Highlight } from "../search/Highlight";
 import { Empty, useDb } from "./shared";
 
 const TEMPLATE: Cortina = {
@@ -25,21 +28,56 @@ const TEMPLATE: Cortina = {
   tags: [],
 };
 
+type Merged = { c: Cortina; state: "index" | "edited" | "deleted" | "added" };
+/** 2026-11: cortinas are searched by title, artist, culture / language, genre, tags and year (the shared engine) */
+const CORTINA_FIELDS = [
+  { name: "title", weight: 10, get: (m: Merged) => m.c.title },
+  { name: "artist", weight: 8, get: (m: Merged) => m.c.artist },
+  { name: "culture", weight: 4, get: (m: Merged) => m.c.culture },
+  { name: "genre", weight: 4, get: (m: Merged) => m.c.genre },
+  { name: "tags", weight: 2, get: (m: Merged) => m.c.tags ?? [] },
+  { name: "year", weight: 2, get: (m: Merged) => (m.c.year ? String(m.c.year) : null) },
+];
+const HL = [
+  { field: "title", get: (m: Merged) => m.c.title },
+  { field: "artist", get: (m: Merged) => m.c.artist },
+];
+
 export function CortinasTab({ base }: { base: MetaCortina[] }) {
   const { overrides, update } = useDb();
   const ov = overrides.cortinas ?? {};
   const [editing, setEditing] = useState<string | null>(null);
   const [text, setText] = useState("");
   const [err, setErr] = useState<string | null>(null);
-  const merged: Array<{ c: Cortina; state: "index" | "edited" | "deleted" | "added" }> = [];
-  for (const b of base) {
-    const o = ov[b.id];
-    if (o === null) merged.push({ c: b as Cortina, state: "deleted" });
-    else if (o) merged.push({ c: o, state: "edited" });
-    else merged.push({ c: b as Cortina, state: "index" });
-  }
-  for (const [id, c] of Object.entries(ov))
-    if (c && !base.some((b) => b.id === id)) merged.push({ c, state: "added" });
+  const merged = useMemo(() => {
+    const out: Merged[] = [];
+    for (const b of base) {
+      const o = ov[b.id];
+      if (o === null) out.push({ c: b as Cortina, state: "deleted" });
+      else if (o) out.push({ c: o, state: "edited" });
+      else out.push({ c: b as Cortina, state: "index" });
+    }
+    for (const [id, c] of Object.entries(ov))
+      if (c && !base.some((b) => b.id === id)) out.push({ c, state: "added" });
+    return out;
+  }, [base, ov]);
+  const [q, setQ] = useState("");
+  const [active, setActive] = useState(-1);
+  const found = useTextSearch(merged, CORTINA_FIELDS, q, { highlight: HL });
+  const searching = !!q.trim();
+  const shown = searching
+    ? found.items
+    : merged.map((doc, index) => ({
+        doc,
+        index,
+        score: 0,
+        highlights: {} as Record<string, Array<[number, number]>>,
+      }));
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new query starts the keyboard selection over
+  useEffect(() => setActive(-1), [q]);
+  useEffect(() => {
+    if (active >= 0) document.getElementById(`cortina-row-${active}`)?.scrollIntoView({ block: "nearest" });
+  }, [active]);
 
   const open = (c: Cortina) => {
     setEditing(c.id);
@@ -79,17 +117,73 @@ export function CortinasTab({ base }: { base: MetaCortina[] }) {
     });
   if (!base.length) return <Empty>{t("db.cortinasTab.loading_cortinas")}</Empty>;
   const current = merged.find((m) => m.c.id === editing);
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowDown" && shown.length) {
+      e.preventDefault();
+      setActive((a) => Math.min(shown.length - 1, a + 1));
+    } else if (e.key === "ArrowUp" && shown.length) {
+      e.preventDefault();
+      setActive((a) => Math.max(-1, a - 1));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const m = shown[active >= 0 ? active : 0];
+      if (m) open(m.doc.c);
+    } else if (e.key === "Escape" && q) {
+      e.preventDefault();
+      setQ("");
+    }
+  };
   return (
     <div>
+      <SearchField
+        id="cortina-search"
+        value={q}
+        onChange={setQ}
+        placeholder={t("search.cortinas_placeholder")}
+        label={t("search.search_cortinas")}
+        className="mt-3"
+        inputProps={{
+          onKeyDown,
+          "aria-activedescendant": active >= 0 ? `cortina-row-${active}` : undefined,
+        }}
+      />
+      {searching && !shown.length && (
+        <Empty>
+          {t("search.nothing_matches", { q })}
+          {found.suggestion && (
+            <>
+              {" "}
+              {t("search.did_you_mean")}{" "}
+              <button
+                type="button"
+                className="btn-plain min-h-11 font-semibold"
+                onClick={() => setQ(found.suggestion!)}
+              >
+                {found.suggestion}
+              </button>
+              ?
+            </>
+          )}
+        </Empty>
+      )}
       <Group
-        header={t("db.cortinasTab.cortinas")}
+        header={
+          searching
+            ? t("search.cortinas_shown", { shown: shown.length, total: merged.length })
+            : t("db.cortinasTab.cortinas")
+        }
         footer={t("db.cortinasTab.cortinas_in_your_pool_a_spotify", {
           length: merged.filter((m) => m.state !== "deleted").length,
         })}
+        data-testid="cortina-list"
       >
-        {merged.map(({ c, state }) => (
+        {shown.map(({ doc: { c, state }, highlights: hl }, i) => (
           <Row
             key={c.id}
+            id={`cortina-row-${i}`}
+            data-testid="cortina-row"
+            aria-current={i === active ? "true" : undefined}
+            className={i === active ? "search-row-active" : ""}
             tile={
               <span
                 className="tile"
@@ -101,7 +195,8 @@ export function CortinasTab({ base }: { base: MetaCortina[] }) {
             }
             label={
               <span className={state === "deleted" ? "line-through text-[var(--label-2)]" : ""}>
-                {c.artist} – {c.title}
+                <Highlight text={c.artist} spans={hl.artist} /> –{" "}
+                <Highlight text={c.title} spans={hl.title} />
               </span>
             }
             sub={t("db.cortinasTab.energy", {

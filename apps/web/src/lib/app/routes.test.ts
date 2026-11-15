@@ -305,6 +305,17 @@ describe("engine routes: local result equals the server's", () => {
   it("search", async () => {
     await same(Search.GET, "/api/search?q=pugliese");
     await same(Search.GET, "/api/search?q=a");
+    // the shared search (2026-11): the same items, facets and spans on the device; only the timing differs
+    const noTime = (b: unknown) => ({ ...(b as Record<string, unknown>), tookMs: 0 });
+    const r = await same(
+      Search.POST,
+      "/api/search",
+      { body: { q: "di sarli 1941 instrumental", filters: { rhythms: ["tango"] }, limit: 5 } },
+      { normalise: noTime },
+    );
+    expect((r.body as { total: number }).total).toBeGreaterThan(5);
+    await same(Search.POST, "/api/search", { body: { q: "zugliasse" } }, { normalise: noTime });
+    await same(Search.POST, "/api/search", { body: [] }, { normalise: noTime });
   });
   it("feedback", async () => {
     await same(Feedback.POST, "/api/feedback", {

@@ -1,0 +1,93 @@
+/* 2026-11 search (Library, Database): matched words, the chips with counts, the active row */
+.search-hit {
+  background: color-mix(in srgb, var(--tint) 16%, transparent);
+  color: inherit;
+  font-weight: 600;
+  border-radius: 3px;
+  padding: 0 1px;
+}
+.search-chips {
+  /* a fieldset is as wide as its content by default: never wider than the page */
+  min-width: 0;
+  min-inline-size: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+/* a long run (decades, orchestras, singers) scrolls inside itself, never the page */
+.search-chips-scroll {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  margin-inline: -16px;
+  padding-inline: 16px;
+  scroll-padding-inline: 16px;
+}
+.search-chips-scroll::-webkit-scrollbar {
+  display: none;
+}
+.search-chip {
+  /* (its sr-only words stay inside the scrolling line, not out on the page) */
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--fill-4);
+  color: var(--label);
+  font-size: 0.9375rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+@media (hover: hover) and (pointer: fine) {
+  .search-chip {
+    min-height: 34px;
+  }
+}
+.search-chip[aria-pressed="true"] {
+  background: var(--tint-fill);
+  color: var(--on-tint);
+}
+.search-chip:disabled {
+  opacity: 0.45;
+}
+.search-chip-count {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8125rem;
+  color: var(--label-2);
+}
+.search-chip[aria-pressed="true"] .search-chip-count {
+  color: inherit;
+  opacity: 0.85;
+}
+.search-row[aria-selected="true"] {
+  background: color-mix(in srgb, var(--tint) 10%, rgb(var(--bg-cell)));
+}
+.search-row {
+  cursor: pointer;
+}
+.search-row-active {
+  background: color-mix(in srgb, var(--tint) 10%, rgb(var(--bg-cell)));
+}
+.search-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border-radius: 999px;
+  padding: 0 7px;
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--label-2);
+  background: var(--fill-4);
+}
+.search-badge-fav {
+  color: var(--destructive);
+  background: color-mix(in srgb, var(--destructive) 12%, transparent);
+}

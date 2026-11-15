@@ -15,6 +15,7 @@ import {
 import { json, jsonNoStore, noStore } from "@/lib/api/http";
 import { preview, resolve, resolveStatus } from "@/lib/api/net";
 import { popularity } from "@/lib/api/popularity";
+import { searchQuery } from "@/lib/api/search";
 import { spotifyMatch, spotifyPlaylist } from "@/lib/api/spotify";
 import { spotifyCover } from "@/lib/api/spotifyCover";
 import { t } from "@/lib/i18n";
@@ -185,7 +186,7 @@ const LOCAL: Record<string, Partial<Record<Method, Handler>>> = {
   "/api/swap-track": { POST: swapTrack },
   "/api/meta": { GET: meta },
   "/api/popularity": { GET: popularity },
-  "/api/search": { GET: search },
+  "/api/search": { GET: search, POST: searchQuery },
   "/api/feedback": { POST: feedback },
   "/api/export": { POST: exportFile },
   "/api/resolve": { POST: resolve, GET: resolveStatus },

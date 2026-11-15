@@ -298,6 +298,8 @@ export interface MetaOrchestra {
   phase?: string[];
   notBefore?: number;
   singers?: Record<string, [number, number]>;
+  /** 2026-11: the orchestra's other names (orchestra profiles), for the search */
+  aliases?: string[];
   /** round 22: first and last recording year in the index */
   years?: [number, number];
   /** round 22: the most-recorded singers with their number of sides */
