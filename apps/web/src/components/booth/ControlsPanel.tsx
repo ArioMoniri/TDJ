@@ -23,6 +23,7 @@ import { t } from "@/lib/i18n";
 import { toast } from "@/lib/toast";
 import { SeekBar } from "../ui/SeekBar";
 import { Fader } from "./Fader";
+import { FloorReaction } from "./FloorReaction";
 
 const OPEN_KEY = "tdj-booth-controls";
 /** the panel's open / closed state, per device (this browser) */
@@ -376,6 +377,11 @@ export function ControlsPanel({
               testId="ctl-crossfade-len"
             />
             {noOverlap && <span className="booth-ctl-why">{t("booth.controls.why_spotify_overlap")}</span>}
+          </Group>
+          <Group title={t("fav.floor_group")}>
+            {/* 2026-11, dancer favourites: the playing song and its tanda, one tap each */}
+            <FloorReaction scope="song" testPrefix="ctl-song" />
+            <FloorReaction scope="tanda" testPrefix="ctl-tanda" />
           </Group>
           <Group title={t("booth.controls.tanda")}>
             <div className="booth-ctl-row flex-wrap">

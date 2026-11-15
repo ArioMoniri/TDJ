@@ -281,6 +281,66 @@
   color: var(--destructive);
 }
 
+/* ---------- 2026-11: the floor reaction (dancer favourites) ---------- */
+.booth-floor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 12px 0 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.booth-floor-compact {
+  margin: 0;
+  flex-wrap: nowrap;
+  gap: 2px;
+}
+.booth-floor-title {
+  float: left;
+  width: 100%;
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--label-2);
+}
+.booth-floor-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 12px;
+  border-radius: 12px;
+  background: var(--fill-4);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--label);
+}
+.booth-floor-compact .booth-floor-btn {
+  padding: 0;
+  background: transparent;
+  color: var(--label-2);
+}
+.booth-floor:disabled .booth-floor-btn {
+  color: var(--label-3);
+}
+.booth-floor-btn[aria-pressed="true"] {
+  background: var(--room-fill);
+  color: var(--room);
+}
+.booth-floor-full[aria-pressed="true"] {
+  color: var(--energy);
+}
+.booth-floor-emptied[aria-pressed="true"] {
+  color: var(--destructive);
+}
+.booth-fav {
+  color: var(--energy);
+}
+
 /* ---------- energy rail (vertical) ---------- */
 .booth-energy {
   min-width: 0;

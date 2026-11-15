@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { Segmented } from "@/components/ui";
 import { useBooth } from "@/lib/booth/store";
 import { searchTonight, tandaQuery } from "@/lib/booth/tonightSearch";
+import { favouriteIds } from "@/lib/favourites";
 import { t as tx } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
@@ -38,6 +39,16 @@ export function BoothSongSearch({ onGoTo }: { onGoTo?: (planIndex: number) => vo
   const hits = useMemo(
     () => (plan && q.trim() ? searchTonight(plan.items, entities, q) : []),
     [plan, entities, q],
+  );
+  // 2026-11: tonight's crowd favourites (dancer favourites, any role) carry a ♥
+  const memory = useStore((s) => s.memory);
+  const hearts = useMemo(
+    () =>
+      favouriteIds(
+        memory,
+        entities.flatMap((e) => (e && "rhythm" in e ? [e.id] : [])),
+      ),
+    [memory, entities],
   );
   if (!playlist) return null;
   // the plan counts tandas from 1; the panel from 0
@@ -144,7 +155,20 @@ export function BoothSongSearch({ onGoTo }: { onGoTo?: (planIndex: number) => vo
                         : "—"}
                   </span>
                   <span className={`min-w-0 flex-1 ${played ? "opacity-60" : ""}`}>
-                    <span className="text-subhead block truncate font-semibold">{it.title}</span>
+                    <span className="text-subhead block truncate font-semibold">
+                      {!!it.id && hearts.has(it.id) && (
+                        <span
+                          className="booth-fav mr-1"
+                          title={tx("fav.badge_hint")}
+                          role="img"
+                          aria-label={tx("fav.crowd_favourite")}
+                          data-testid="booth-tonight-fav"
+                        >
+                          ♥
+                        </span>
+                      )}
+                      {it.title}
+                    </span>
                     <span className="text-footnote block truncate text-[var(--label-2)]">
                       {it.artist}
                       {it.year ? ` · ${yearText(it.year)}` : ""}

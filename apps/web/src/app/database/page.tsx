@@ -85,6 +85,15 @@ export default function DatabasePage() {
   const { toast, show, dismiss } = useToast();
   const file = useRef<HTMLInputElement>(null);
   const restore = (prev: AppOverrides) => () => updateOverrides(() => prev);
+  // 2026-11: `?tab=memory` (Settings → Dancer favourites) opens that tab; a #hash scrolls to its section
+  useEffect(() => {
+    const want = new URLSearchParams(location.search).get("tab") as Tab | null;
+    if (want && (["songs", "orchestras", "cortinas", "rules", "context", "memory"] as Tab[]).includes(want)) {
+      setTab(want);
+      const id = location.hash.slice(1);
+      if (id) setTimeout(() => document.getElementById(id)?.scrollIntoView({ block: "start" }), 120);
+    }
+  }, []);
   useEffect(() => {
     fetch("/api/meta")
       .then((r) => r.json())

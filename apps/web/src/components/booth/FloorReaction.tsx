@@ -1,0 +1,89 @@
+"use client";
+import type { FloorReaction as Reaction, Song } from "@tdj/core";
+import { Heart, Meh, TrendingDown } from "lucide-react";
+import { useBooth } from "@/lib/booth/store";
+import { floorReactionOf, floorTap } from "@/lib/favourites";
+import { haptic } from "@/lib/haptics";
+import { t } from "@/lib/i18n";
+import { useStore } from "@/lib/store";
+import { toast } from "@/lib/toast";
+
+const REACTIONS: Array<{ r: Reaction; key: "fav.floor_full" | "fav.floor_ok" | "fav.floor_emptied" }> = [
+  { r: "full", key: "fav.floor_full" },
+  { r: "ok", key: "fav.floor_ok" },
+  { r: "emptied", key: "fav.floor_emptied" },
+];
+const ICON = { full: Heart, ok: Meh, emptied: TrendingDown } as const;
+
+/**
+ * 2026-11, dancer favourites: the DJ's one-tap floor reaction — "Floor full ♥", "OK", "Floor emptied" — on the
+ * playing song (scope song: the Now card, the Controls panel) or on a tanda (scope tanda: its set-list row, the
+ * Controls panel). It is kept in the DJ's memory with the night id, the time and the tanda's role; the same tap again
+ * takes it back. Buttons are 44 pt; `compact` shows the icons only (the set list's tanda rows).
+ */
+export function FloorReaction({
+  scope,
+  tanda: tandaProp,
+  compact,
+  testPrefix,
+}: {
+  scope: "song" | "tanda";
+  /** the plan's tanda (1-based); default: the playing item's */
+  tanda?: number;
+  compact?: boolean;
+  testPrefix: string;
+}) {
+  const playlist = useBooth((s) => s.playlist);
+  const item = useBooth((s) => s.plan?.items[s.planIndex]);
+  const entity = useBooth((s) => s.entities[s.planIndex] ?? null);
+  const memory = useStore((s) => s.memory);
+  const tanda = tandaProp ?? item?.tanda ?? 0;
+  const song: Song | null =
+    scope === "song" && item?.kind === "track" && entity && "rhythm" in entity ? (entity as Song) : null;
+  const t0 = playlist?.tandas[tanda - 1];
+  const disabled = !playlist || !t0 || (scope === "song" && !song);
+  const pressed =
+    playlist && !disabled ? floorReactionOf(memory, playlist, { scope, tanda, songId: song?.id }) : undefined;
+  const label =
+    scope === "song" ? t("fav.floor_label") : t("fav.floor_tanda_label", { tanda: Math.max(1, tanda) });
+  const tap = (r: Reaction) => {
+    if (!playlist || disabled) return;
+    haptic(8);
+    const was = floorReactionOf(useStore.getState().memory, playlist, { scope, tanda, songId: song?.id });
+    useStore.getState().updateMemory((m) => floorTap(m, playlist, { scope, tanda, song, reaction: r }));
+    const what = REACTIONS.find((x) => x.r === r)!;
+    toast(was === r ? t("fav.cleared_toast") : t("fav.tapped_toast", { reaction: t(what.key) }));
+  };
+  return (
+    <fieldset
+      className={`booth-floor ${compact ? "booth-floor-compact" : ""}`}
+      data-testid={`${testPrefix}-floor`}
+      disabled={disabled}
+    >
+      <legend className={compact ? "sr-only" : "booth-floor-title"}>{label}</legend>
+      {REACTIONS.map(({ r, key }) => {
+        const Icon = ICON[r];
+        return (
+          <button
+            key={r}
+            type="button"
+            className={`booth-floor-btn booth-floor-${r}`}
+            aria-pressed={pressed === r}
+            aria-label={compact ? `${t(key)} · ${label}` : undefined}
+            title={compact ? t(key) : undefined}
+            onClick={() => tap(r)}
+            data-testid={`${testPrefix}-floor-${r}`}
+          >
+            <Icon
+              size={16}
+              strokeWidth={2}
+              aria-hidden
+              fill={r === "full" && pressed === r ? "currentColor" : "none"}
+            />
+            {!compact && <span>{t(key)}</span>}
+          </button>
+        );
+      })}
+    </fieldset>
+  );
+}

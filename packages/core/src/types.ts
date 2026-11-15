@@ -317,6 +317,11 @@ export interface PlaylistStats {
   heatBestShare?: number;
   /** the planned peak slots and what they delivered (round 9) */
   peaks?: Array<{ index: number; energy: number; target: number; orchestra: string }>;
+  /**
+   * 2026-11 (debug, read by the e2e): the dancer favourites the family draw weighed, per family and slot role — the
+   * factor and the family's rank / share of the slot's weight with and without it (the best slot of its role)
+   */
+  favourites?: import("./favourites").FavouriteTrace[];
 }
 
 export interface Playlist {
@@ -390,6 +395,11 @@ export interface ComposeOptions {
   tandaRules?: TandaRules;
   /** round 21: preferences learned from the DJ's edits (the user's memory; merged over the repo-level store) */
   learned?: LearnedPreferences;
+  /**
+   * 2026-11: dancer favourites (favourites.ts) — the decayed table the web builds from the DJ's memory, or the tracker
+   * itself. A favourite weighs more in the slot role where it filled the floor (bounded); `off` = compose as without.
+   */
+  favourites?: import("./favourites").FavouriteTable | import("./favourites").DancerFavourites;
   /** night rules that DJs toggle per event (all optional; era presets set sensible defaults) */
   rules?: NightRules;
   /** minimum tandas between repeats of the same orchestra */
@@ -608,6 +618,8 @@ export interface NightLike {
 export interface AgentMemory {
   /** round 21: what TDJ learned from the DJ's edits (swaps, pins, hand-made tandas) */
   learned?: LearnedPreferences;
+  /** 2026-11: dancer favourites (favourites.ts): floor reactions, room hearts, repeat evidence */
+  favourites?: import("./favourites").DancerFavourites;
   /** the DJ's overrides of the repo-level learned store (the featured night's edits): off, reweighted, deleted */
   repoLearned?: RepoLearnedOverrides;
   /** free-form notes the DJ or the assistant wrote ("this room likes Donato milongas") */

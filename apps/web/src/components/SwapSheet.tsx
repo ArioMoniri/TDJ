@@ -1,6 +1,7 @@
 "use client";
 import { rememberEdit } from "@tdj/core";
 import { useEffect, useState } from "react";
+import { favouritesForRequest } from "@/lib/favourites";
 import { t as tx } from "@/lib/i18n";
 import { gateEdit } from "@/lib/ruleCheck";
 import { useStore } from "@/lib/store";
@@ -21,6 +22,8 @@ export interface SwapSide {
   /** excluded only by a tanda rule: the DJ may still choose it, and the rule check asks first */
   asks?: boolean;
   fit: number;
+  /** 2026-11: a dancer favourite in this tanda's role (♥, listed first) */
+  favourite?: boolean;
   song: {
     id: string;
     title: string;
@@ -112,7 +115,13 @@ export function SwapSheet({
         fetch("/api/swap-options", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ playlist, tandaIndex, trackIndex, query: q }),
+          body: JSON.stringify({
+            playlist,
+            tandaIndex,
+            trackIndex,
+            query: q,
+            favourites: favouritesForRequest(useStore.getState().memory) ?? null,
+          }),
           signal: ctl.signal,
         })
           .then((r) => r.json())
@@ -240,7 +249,11 @@ export function SwapSheet({
         testId={x.ok ? "swap-option" : "swap-excluded"}
         dim={!x.ok}
         busy={busy === x.song.id}
-        sub={x.ok ? sub(x.song) : `${sub(x.song)} — ${x.reason}`}
+        sub={
+          x.ok
+            ? `${x.favourite ? `${tx("fav.crowd_favourite_badge")} · ` : ""}${sub(x.song)}`
+            : `${sub(x.song)} — ${x.reason}`
+        }
         pill={x.ok ? tx("swapSheet.fit", { fit }) : undefined}
         pillTip={x.ok ? tx("swapSheet.how_well_it_fits_this_place") : undefined}
         ariaLabel={x.ok ? tx("swapSheet.swap_in", { title: x.song.title }) : `${x.song.title}: ${x.reason}`}

@@ -415,3 +415,6 @@ export function roomShareLink(code: string, server = ""): string {
   const origin = server || (typeof location !== "undefined" ? location.origin : "");
   return `${origin}/rooms?join=${code}`;
 }
+
+/** 2026-11, dancer hearts: the sync engine's room client (null when the DJ is in no room) */
+export const roomClient = () => client;

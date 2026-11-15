@@ -4,6 +4,7 @@ import { bigFourProblems, tandaProblems, vocalStyleOf } from "./coherence";
 import type { ComposeDeps } from "./compose";
 import { isCumparsita, openingCumparsita } from "./cumparsita";
 import { normTitle } from "./energy";
+import { asFavouriteTable, type DancerFavourites, type FavouriteTable, isFavouriteSide } from "./favourites";
 import { tandaTitleKeyOf, templateIdOf, templateMix } from "./learnedRules";
 import { cortinaMissing } from "./score";
 import { strictChecks } from "./strict";
@@ -104,6 +105,8 @@ export interface EditSuggestion {
   playlist: Playlist;
   /** the side it brings in, for a play / preview button */
   song?: Pick<Song, "id" | "title" | "orchestra" | "singer" | "year" | "spotify" | "resolved">;
+  /** 2026-11: the side it brings in is a dancer favourite in that tanda's role (♥; such suggestions come first) */
+  favourite?: boolean;
 }
 
 type NightLike = Pick<Playlist, "tandas" | "options"> &
@@ -782,9 +785,14 @@ export function suggestFixes(
   v: RuleViolation,
   deps: ComposeDeps,
   max = 3,
-  opts: Pick<CheckEditOptions, "scope"> = {},
+  opts: Pick<CheckEditOptions, "scope"> & { favourites?: FavouriteTable | DancerFavourites | null } = {},
 ): EditSuggestion[] {
   const out: EditSuggestion[] = [];
+  // 2026-11: dancer favourites (the request's, else the night's own; null = none) rank first, with a ♥
+  const fav =
+    opts.favourites === null ? undefined : asFavouriteTable(opts.favourites ?? after.options?.favourites);
+  const heart = (s: Pick<Song, "id">, ti: number) =>
+    !!fav && isFavouriteSide(fav, s.id, after.tandas[ti]?.phase ?? "build");
   // a suggestion keeps this rule and adds no hard violation the DJ's edit did not already bring (another pinned
   // tanda under the same setting stays the DJ's question)
   // (by the sides a violation names, so a suggestion that moves a tanda is judged on the same tandas)
@@ -802,10 +810,14 @@ export function suggestFixes(
     const c = checkEdit(before, p, opts);
     return !c.violations.some(same) && hardViolations(c).every((x) => known.has(idOf(x)));
   };
-  const push = (s: Omit<EditSuggestion, "id">) => {
+  const push = (s: Omit<EditSuggestion, "id">, at = v.tanda) => {
     if (out.length >= max || out.some((x) => x.text === s.text)) return;
     if (!ok(s.playlist)) return;
-    out.push({ id: `${v.rule}-${out.length + 1}`, ...s });
+    out.push({
+      id: `${v.rule}-${out.length + 1}`,
+      ...s,
+      ...(s.song && heart(s.song, at) ? { favourite: true } : {}),
+    });
   };
   const i = v.tanda;
   const tandaRule = TANDA_RULES.has(v.rule);
@@ -824,7 +836,7 @@ export function suggestFixes(
       const versions = (deps.catalog.byOrchestra.get(orch) ?? [])
         .filter((s) => normTitle(s.title) === normTitle(odd.title) && s.id !== odd.id)
         .filter((s) => !swapReason(base, i, k, s, deps))
-        .sort((a, b) => (b.fame ?? 0) - (a.fame ?? 0));
+        .sort((a, b) => Number(heart(b, i)) - Number(heart(a, i)) || (b.fame ?? 0) - (a.fame ?? 0));
       for (const s of versions.slice(0, 2)) {
         const r = safeReplace(base, i, k, s.id, deps);
         if (r.reason) continue;
@@ -843,7 +855,7 @@ export function suggestFixes(
       // 2) a side of the same orchestra, singer and years
       // (not the side the DJ took out: that is Cancel)
       const was = before.tandas[i]?.songs[k]?.id;
-      const fits = swapOptions(base, i, k, deps, { limit: 6 }).suggestions.filter(
+      const fits = swapOptions(base, i, k, deps, { limit: 6, favourites: fav ?? null }).suggestions.filter(
         (x) =>
           x.ok &&
           x.song.id !== was &&
@@ -883,16 +895,19 @@ export function suggestFixes(
             const r = safeReplace(restored, j, m, odd.id, deps);
             if (r.reason) continue;
             done = true;
-            push({
-              kind: "move",
-              message: {
-                key: "ruleCheck.suggest.move",
-                params: { title: odd.title, tanda: j + 1, replaced: tj.songs[m]!.title, from: i + 1 },
+            push(
+              {
+                kind: "move",
+                message: {
+                  key: "ruleCheck.suggest.move",
+                  params: { title: odd.title, tanda: j + 1, replaced: tj.songs[m]!.title, from: i + 1 },
+                },
+                text: `${odd.title} in tanda ${j + 1} instead (for ${tj.songs[m]!.title}); tanda ${i + 1} stays as it was`,
+                playlist: r.playlist,
+                song: pick(odd),
               },
-              text: `${odd.title} in tanda ${j + 1} instead (for ${tj.songs[m]!.title}); tanda ${i + 1} stays as it was`,
-              playlist: r.playlist,
-              song: pick(odd),
-            });
+              j,
+            );
           }
         }
       }
@@ -964,7 +979,11 @@ export function suggestFixes(
         song: pick(r.song),
       });
   }
-  return out;
+  // favourites first (stable), the ids in the new order
+  return out
+    .map((x, k) => ({ x, k }))
+    .sort((a, b) => Number(!!b.x.favourite) - Number(!!a.x.favourite) || a.k - b.k)
+    .map(({ x }, k) => ({ ...x, id: `${v.rule}-${k + 1}` }));
 }
 
 /* ---------- the DJ's one-night approval ---------- */

@@ -131,6 +131,29 @@ export async function applyOps(code: string, ops: RoomOp[], by: string): Promise
 }
 
 /**
+ * 2026-11: a change that is not an edit of the night (the playing song, dancer hearts): written at the same
+ * revision, re-read and retried on a lost race. `fn` returns null to write nothing.
+ */
+export async function updateQuiet<T>(
+  code: string,
+  fn: (room: RoomState) => { room: RoomState | null; out: T },
+): Promise<{ room: RoomState; out: T } | null> {
+  for (let i = 0; i < 5; i++) {
+    const cur = await read(code);
+    if (!cur) return null;
+    const { room, out } = fn(cur);
+    if (!room) return { room: cur, out };
+    try {
+      await write(room, cur.rev);
+      return { room, out };
+    } catch (e) {
+      if (!(e instanceof Conflict)) throw e;
+    }
+  }
+  throw new Error("The room is busy. Try again.");
+}
+
+/**
  * Marks `user` as here. Presence does not change the revision; it is written at most every 20 s per DJ (a poll
  * every 2 s would otherwise write the room every time).
  */

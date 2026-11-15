@@ -6,6 +6,7 @@ import { applyContextToOptions, BUILTIN_CONTEXT, resolveContext } from "./contex
 import { cortinaPool, pickCortina, planCortinas, spotifyCueFallbacks } from "./cortinas";
 import { closingFor, cumparsitaPlacement, openingCumparsita } from "./cumparsita";
 import { isDanceableSong, normTitle } from "./energy";
+import { asFavouriteTable, favouritesActive } from "./favourites";
 import { familyBand, goldenClassOf, isColour, isGoldenNight } from "./knowledge";
 import { mergeLearned } from "./learn";
 import { isPeakSlot, meanFameOf } from "./order";
@@ -301,6 +302,11 @@ export function makeScoring(cat: Catalog, o: ComposeOptions, contextModel?: Cont
     hours: o.hours,
     // round 21: the repo-level DJ preferences (data/knowledge/dj_preferences.json) under the DJ's own
     learned: mergeLearned(cat.learned, o.learned),
+    // 2026-11: dancer favourites (off, or no evidence: exactly as without)
+    ...(() => {
+      const table = asFavouriteTable(o.favourites);
+      return favouritesActive(table) ? { favourites: { table, trace: [] } } : {};
+    })(),
   };
 }
 
@@ -2532,6 +2538,7 @@ function composeOnce(
     stats.tracks += 1;
   }
   if (breaks) stats.durationSec += breakMin * 60;
+  if (sc.favourites?.trace.length) stats.favourites = sc.favourites.trace;
   const playlist: Playlist = {
     id: `tdj-${(o.seed ?? seed).toString(36)}`,
     name: o.name ?? `${o.hours}h ${o.eras.join("+")} ${o.context?.event ?? "milonga"}`,

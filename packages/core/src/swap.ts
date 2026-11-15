@@ -2,6 +2,7 @@ import { attachBooth } from "./booth";
 import { sideBpm, sideGain, sideProblem, tandaRulesOf } from "./coherence";
 import { type ComposeDeps, computeStats } from "./compose";
 import { isDanceableSong, normTitle } from "./energy";
+import { asFavouriteTable, type DancerFavourites, type FavouriteTable, isFavouriteSide } from "./favourites";
 import { scorePlaylist } from "./score";
 import { isTandaEligible } from "./tanda";
 import type { Playlist, Song, Tanda } from "./types";
@@ -20,6 +21,8 @@ export interface SwapOption {
   reason?: string;
   /** 0..1, higher fits better (energy, tempo, level against the side it replaces, fame) */
   fit: number;
+  /** 2026-11: a dancer favourite in this tanda's slot role (♥; ranked first among the valid sides) */
+  favourite?: boolean;
 }
 
 /** the playlist's stats again, keeping the opening, the show break and the recorded fallbacks */
@@ -115,18 +118,31 @@ export function swapOptions(
   ti: number,
   si: number,
   deps: ComposeDeps,
-  opts: { query?: string; limit?: number } = {},
+  opts: { query?: string; limit?: number; favourites?: FavouriteTable | DancerFavourites | null } = {},
 ): { suggestions: SwapOption[]; results: SwapOption[] } {
   const t = p.tandas[ti];
   const cur = t?.songs[si];
   if (!t || !cur) return { suggestions: [], results: [] };
   const limit = opts.limit ?? 12;
+  // 2026-11: the dancer favourites of this tanda's role (the request's, else the night's own; null = none)
+  const fav =
+    opts.favourites === null ? undefined : asFavouriteTable(opts.favourites ?? p.options?.favourites);
   const judge = (s: Song): SwapOption => {
     const reason = swapReason(p, ti, si, s, deps);
-    return { song: s, ok: !reason, ...(reason ? { reason } : {}), fit: fitOf(cur, s, t.rhythm) };
+    const heart = !reason && isFavouriteSide(fav, s.id, t.phase);
+    return {
+      song: s,
+      ok: !reason,
+      ...(reason ? { reason } : {}),
+      fit: fitOf(cur, s, t.rhythm),
+      ...(heart ? { favourite: true } : {}),
+    };
   };
   const rank = (a: SwapOption, b: SwapOption) =>
-    Number(b.ok) - Number(a.ok) || b.fit - a.fit || a.song.id.localeCompare(b.song.id);
+    Number(b.ok) - Number(a.ok) ||
+    Number(!!b.favourite) - Number(!!a.favourite) ||
+    b.fit - a.fit ||
+    a.song.id.localeCompare(b.song.id);
   const fam = (deps.catalog.byOrchestra.get(t.orchestraId) ?? []).filter((s) => s.rhythm === t.rhythm);
   const suggestions = fam
     .map(judge)

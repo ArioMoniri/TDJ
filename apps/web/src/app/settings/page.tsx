@@ -5,6 +5,7 @@ import {
   FolderOpen,
   Globe,
   HardDrive,
+  Heart,
   ImageIcon,
   KeyRound,
   Languages,
@@ -16,6 +17,7 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AppConnections } from "@/components/AppConnections";
 import { IndicatorSwitches } from "@/components/booth/IndicatorSwitches";
@@ -158,6 +160,7 @@ function humanError(provider: AiProvider, status: number, raw: unknown): string 
 export default function Settings() {
   const { settings, setSettings, storageMode, memory, options, setOptions, updateMemory } = useStore();
   const learnedLines = describeLearned(memory.learned);
+  const router = useRouter();
   const [showKey, setShowKey] = useState(false);
   const [folderFor, setFolderFor] = useState<DjApp | null>(null);
   const [test, setTest] = useState<{ state: TestState; text?: string }>({ state: "idle" });
@@ -506,6 +509,19 @@ export default function Settings() {
             tip={tx("settings.repeated_feedback_becomes_a_preference_for")}
             checked={settings.learn}
             onChange={(v) => setSettings({ learn: v })}
+          />
+          {/* 2026-11: dancer favourites live with the memory (Database → Memory) */}
+          <Row
+            tile={
+              <Tile color="#c9426a">
+                <Heart size={16} strokeWidth={2} />
+              </Tile>
+            }
+            label={tx("fav.title")}
+            tip={tx("fav.settings_tip")}
+            chevron
+            onClick={() => router.push("/database?tab=memory#dancer-favourites")}
+            id="settings-dancer-favourites"
           />
         </Group>
 

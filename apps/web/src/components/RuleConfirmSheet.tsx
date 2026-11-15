@@ -127,7 +127,18 @@ export function RuleConfirmSheet() {
                         >
                           {on && <Check size={14} strokeWidth={3} />}
                         </span>
-                        <span className="text-body min-w-0">{suggestionText(s)}</span>
+                        <span className="text-body min-w-0">
+                          {s.favourite && (
+                            <span
+                              className="mr-1 text-[var(--energy)]"
+                              title={t("fav.badge_hint")}
+                              data-testid="rule-suggestion-favourite"
+                            >
+                              {t("fav.crowd_favourite_badge")}
+                            </span>
+                          )}
+                          {suggestionText(s)}
+                        </span>
                       </label>
                       {s.song && (s.song.spotify?.uri || s.song.resolved?.previewUrl) && (
                         <PlayButton song={s.song as unknown as Song} />
