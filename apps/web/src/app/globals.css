@@ -921,6 +921,16 @@ li + li > .cell[data-leading="num"]:first-child::before,
 .tanda-card {
   container-type: inline-size;
 }
+/* a long tanda note (the DJ's own tanda) wraps to two lines at most and never widens the card's header */
+.tanda-note {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
 @container (max-width: 440px) {
   .tanda-card .energy-bar {
     display: none;

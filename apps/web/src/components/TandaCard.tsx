@@ -267,8 +267,9 @@ function TandaCardImpl({
                 )}
                 {t.note && (
                   <span
-                    className="text-caption1 inline-flex rounded-full bg-[color-mix(in_srgb,var(--tint)_14%,transparent)] px-2 py-0.5 font-medium text-[var(--tint)]"
+                    className="tanda-note text-caption1 rounded-[10px] bg-[color-mix(in_srgb,var(--tint)_14%,transparent)] px-2 py-0.5 font-medium text-[var(--tint)]"
                     data-testid="tanda-note"
+                    title={t.note}
                   >
                     {t.note}
                   </span>

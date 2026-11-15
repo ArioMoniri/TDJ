@@ -310,6 +310,42 @@ test.describe("sidebar and wide layouts", () => {
   });
 });
 
+test.describe("tanda cards", () => {
+  test("a long tanda note never squeezes a card: titles keep their room, the note wraps to two lines", async ({
+    page,
+  }) => {
+    await page.goto("/?featured=golden-double-peak");
+    await expect(page.locator("#tanda-2")).toBeVisible({ timeout: 60000 });
+    await page.waitForTimeout(800);
+    for (const collapsed of [false, true]) {
+      if (collapsed) {
+        if (!lg(page)) break;
+        await page.getByTestId("sidebar-hide").click();
+        await page.waitForTimeout(300);
+      }
+      const r = await page.evaluate(() => {
+        const vw = document.documentElement.clientWidth;
+        const cards = [...document.querySelectorAll<HTMLElement>("article[id^=tanda-]")];
+        const narrow = cards
+          .filter((c) => c.getBoundingClientRect().width < Math.min(440, vw - 40))
+          .map((c) => c.id);
+        const collapsedTitles: string[] = [];
+        for (const li of document.querySelectorAll<HTMLElement>("article[id^=tanda-] li[data-song]")) {
+          const t = li.querySelector<HTMLElement>(".truncate");
+          if (t && t.clientWidth < Math.min(t.scrollWidth, 64))
+            collapsedTitles.push(`${t.textContent}:${t.clientWidth}`);
+        }
+        const note = document.querySelector<HTMLElement>("#tanda-2 [data-testid=tanda-note]");
+        const lh = note ? Number.parseFloat(getComputedStyle(note).lineHeight) : 0;
+        return { narrow, collapsedTitles, noteLines: note ? Math.round(note.clientHeight / lh) : 0 };
+      });
+      expect(r.narrow, "cards narrower than 440 px").toEqual([]);
+      expect(r.collapsedTitles, "titles collapsed to a letter").toEqual([]);
+      expect(r.noteLines).toBeLessThanOrEqual(2);
+    }
+  });
+});
+
 test.describe("scrolling, overscroll and zoom", () => {
   test("no element is wider than the viewport, on every page", async ({ page }) => {
     await simulateInsets(page);
