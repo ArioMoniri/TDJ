@@ -27,10 +27,14 @@ export function HintLayer() {
       if (timer.current) clearTimeout(timer.current);
       timer.current = null;
     };
-    // hover hints only where there is a real pointer (a phone's emulated mouse after a tap must not open one)
+    // hover hints for a real pointer: a mouse, or an iPad's trackpad (wave 2: the iPad reports `hover: none`, so the
+    // media check alone left its trackpad without hints); a phone keeps the check (its mouse is only ever emulated),
+    // and never the mouse a touch screen emulates right after a tap
     const canHover = typeof matchMedia === "function" && matchMedia("(hover: hover)").matches;
+    let lastTouch = Number.NEGATIVE_INFINITY;
     const over = (ev: PointerEvent) => {
-      if (ev.pointerType !== "mouse" || !canHover) return;
+      if (ev.pointerType !== "mouse" || ev.timeStamp - lastTouch < 1000) return;
+      if (!canHover && window.innerWidth < 640) return;
       const el = target(ev);
       clear();
       if (!el) return setHint(null);
@@ -38,6 +42,7 @@ export function HintLayer() {
     };
     const down = (ev: PointerEvent) => {
       if (ev.pointerType === "mouse") return;
+      lastTouch = ev.timeStamp;
       const el = target(ev);
       clear();
       setHint(null);

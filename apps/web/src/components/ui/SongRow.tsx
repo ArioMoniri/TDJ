@@ -7,6 +7,7 @@ import { sourceFor, trackFor, usePlayer } from "@/lib/player";
 import { bpmText, keyText, useSongData } from "@/lib/songView";
 import { useStore } from "@/lib/store";
 import type { Song } from "@/lib/types";
+import { metaLine, yearText } from "@/lib/year";
 import { Artwork } from "./Artwork";
 import { EraBadge } from "./EraBadge";
 import { Tip } from "./Tip";
@@ -91,7 +92,7 @@ export const SongRow = memo(function SongRow({
       <span className="min-w-0 flex-1">
         <span className="block truncate">{song.title}</span>
         <span className="text-footnote block truncate text-[var(--label-2)]">
-          {sub ?? [song.orchestra, song.singer ?? "instrumental", eff.year ?? "year ?"].join(" · ")}
+          {sub ?? metaLine(song.orchestra, song.singer ?? "instrumental", yearText(eff.year))}
         </span>
         <span className="mt-0.5 flex flex-wrap items-center gap-1">
           <EraBadge song={eff} />

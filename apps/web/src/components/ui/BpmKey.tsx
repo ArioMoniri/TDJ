@@ -18,8 +18,9 @@ export const BpmKey = memo(function BpmKey({ e, compact = false }: { e: Entity; 
   if (!ind.bpm && !ind.key) return null;
   if (compact) {
     const parts: string[] = [];
-    if (ind.bpm) parts.push(bpm ? String(bpm.value) : "–");
-    if (ind.key) parts.push(key ? key.camelot : "–");
+    // wave 2: an unknown value is left out (the "– · –" placeholder read as a broken cell); the hint says it
+    if (ind.bpm && bpm) parts.push(String(bpm.value));
+    if (ind.key && key) parts.push(key.camelot);
     const hint = [
       ind.bpm ? (bpm ? `${bpm.value} BPM · ${bpm.source}` : "BPM unknown") : null,
       ind.key ? (key ? `Key ${key.camelot} (${key.name}) · ${key.source}` : "Key unknown") : null,

@@ -20,6 +20,7 @@ import { useBooth } from "@/lib/booth/store";
 import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
 import { Artwork } from "../ui/Artwork";
+import { useTip } from "../ui/Tip";
 import { Fader } from "./Fader";
 
 /**
@@ -227,7 +228,7 @@ export function ControlStrip({
         className={`icon-btn booth-stop booth-prestart-hide ${started && state !== "stopped" ? "booth-stop-armed" : ""}`}
         aria-label="Stop…"
         aria-haspopup="dialog"
-        data-hint="Stop: fade out and stop, or stop now (esc)"
+        data-hint="Stop: fade out and stop, or stop now"
         disabled={!started || state === "stopped"}
         onClick={() => {
           haptic(10);
@@ -365,21 +366,27 @@ function TBtn({
   className?: string;
   children: React.ReactNode;
 }) {
+  // wave 2: the shared help tag (hover with a mouse or an iPad trackpad, long-press, keyboard focus) says what the
+  // control does; the word under the glyph shows from 820 px, and the accessible name never depends on either
+  const tip = useTip<HTMLButtonElement>(hint);
   return (
-    <button
-      type="button"
-      className={`booth-tbtn ${className}`}
-      aria-label={ariaLabel ?? label}
-      aria-pressed={pressed === undefined ? undefined : pressed}
-      data-hint={hint}
-      onClick={onClick}
-      disabled={disabled}
-      data-testid={testId}
-    >
-      {children}
-      <span className="booth-tbtn-l" aria-hidden>
-        {label}
-      </span>
-    </button>
+    <>
+      <button
+        type="button"
+        className={`booth-tbtn ${className}`}
+        aria-label={ariaLabel ?? label}
+        aria-pressed={pressed === undefined ? undefined : pressed}
+        onClick={onClick}
+        disabled={disabled}
+        data-testid={testId}
+        {...tip.props}
+      >
+        {children}
+        <span className="booth-tbtn-l" aria-hidden>
+          {label}
+        </span>
+      </button>
+      {tip.tag}
+    </>
   );
 }
