@@ -279,6 +279,10 @@ test("song sheet: drag-free cue / stop with the keyboard re-times the plan; anot
   const v = sheet.getByTestId("booth-version").filter({ hasText: "1955" });
   await expect(v).toBeVisible({ timeout: 20000 });
   await v.getByTestId("booth-version-use").click();
+  // a 1955 take in a 1941 tanda breaks the close-years rule: the rule check asks first, the DJ keeps the choice
+  const asSaid = page.getByTestId("rule-as-said");
+  await expect(asSaid).toBeVisible({ timeout: 10000 });
+  await asSaid.click();
   await expect.poll(async () => (await planOf(page))[idx]?.id).toBe("take-1955");
 });
 
