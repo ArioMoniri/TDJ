@@ -58,7 +58,7 @@ import type {
   Song,
   Tanda,
 } from "./types";
-import { mendInstrHours, mendVmRepeats } from "./vmRepeat";
+import { mendInstrHours, mendPreSummit, mendVmRepeats } from "./vmRepeat";
 
 export const DEFAULT_OPTIONS: ComposeOptions = {
   hours: 4,
@@ -1771,6 +1771,10 @@ function composeOnce(
     // the hot gaps, plus the two cues each dramatic tanda reserves (round 10: the set-up and the lift)
     tandas.filter((t, i) => i > 0 && t.energy >= 75).length +
       2 * tandas.filter((t) => t.style === "dramatic").length,
+    {
+      dramatic: tandas.filter((t) => t.style === "dramatic" && t.rhythm === "tango").length,
+      vals: tandas.filter((t) => t.rhythm === "vals").length,
+    },
   );
   // round 9: cortina lengths are jittered ±7 s around the DJ's setting (all 53 s is "the machine look"); the jitter
   // comes from its own stream so the tanda draws of a seed stay what they were
@@ -2271,6 +2275,9 @@ function composeOnce(
       );
       tandas.splice(0, tandas.length, ...h.tandas);
       fallbacks.push(...h.fallbacks);
+      const ps = mendPreSummit(tandas, o, cat, (ts) => strictChecks(night(ts)));
+      tandas.splice(0, tandas.length, ...ps.tandas);
+      fallbacks.push(...ps.fallbacks);
     }
     // (a chair the mends changed is re-cued under the panel's cue rules, as after the length fit)
     if (m.fallbacks.length || (isGoldenNight(o) && tandas.some((t, i) => t !== draftTandas[i]))) {

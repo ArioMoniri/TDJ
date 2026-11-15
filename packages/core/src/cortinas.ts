@@ -804,6 +804,9 @@ export function candidatesFor(pool0: Cortina[], o: ComposeOptions): Cortina[] {
  * Choose the night's cortina family: the largest family (or a compatible pair) that can carry `tandas` gaps
  * without a cue returning inside four tandas; randomised among the ones that qualify.
  */
+/** the moods of a cue that may sit before a dramatic tanda (the strict panel's cueMoody) */
+const MOODY_TAGS = ["melancholic", "nostalgic", "ballad", "lament", "classic"];
+
 export function planCortinas(
   pool: Cortina[],
   o: ComposeOptions,
@@ -811,6 +814,8 @@ export function planCortinas(
   firstEnergy: number,
   tandas = 22,
   hotGaps = 0,
+  /** round 21c: the night's dramatic (Pugliese) gaps and vals gaps the families must be able to serve */
+  needs: { dramatic?: number; vals?: number } = {},
 ): CortinaPlan {
   if (o.cortinaStyle === "none") return { family: null, families: [], constant: null, tandas };
   const cands = candidatesFor(pool, o);
@@ -860,7 +865,22 @@ export function planCortinas(
     drawFrom.filter((c) => fs.includes(familyOf(c)) && cortinaTempo(c) !== "slow" && c.energy >= 60).length;
   const hotEnough = options0.filter((fs) => hotOf(fs) >= hotGaps);
   const maxHot = Math.max(0, ...options0.map(hotOf));
-  const options = hotEnough.length ? hotEnough : options0.filter((fs) => hotOf(fs) >= maxHot);
+  const options1 = hotEnough.length ? hotEnough : options0.filter((fs) => hotOf(fs) >= maxHot);
+  // round 21c (the panel's cueDramatic, cueVals): the families also hold a moody cue that can sit before a dramatic
+  // tanda (≤ e70, never up-tempo) and soft cues for the vals (≤ e66, not slow), whenever some families can — a planning
+  // constraint, so no late re-pick has to open a third family (round 4 B9)
+  const moodyOk = (c: Cortina) =>
+    (cortinaTempo(c) === "slow" || MOODY_TAGS.some((m) => c.tags?.includes(`mood:${m}`))) &&
+    c.energy <= 70 &&
+    cortinaTempo(c) !== "up";
+  const carries = (fs: string[]) => {
+    const own = drawFrom.filter((c) => fs.includes(familyOf(c)));
+    return (
+      (!needs.dramatic || own.filter(moodyOk).length >= Math.min(2, needs.dramatic)) &&
+      (!needs.vals || own.filter((c) => c.energy <= 66 && cortinaTempo(c) !== "slow").length >= needs.vals)
+    );
+  };
+  const options = options1.some(carries) ? options1.filter(carries) : options1;
   const pick = options.length ? rng.pick(options) : null;
   return {
     family: pick?.[0] ?? null,
@@ -931,15 +951,28 @@ export function pickCortina(
       ? all00y.filter((c) => !hotEligible(c) || used.has(c.id))
       : all00y;
   const all00 = kept.length >= 3 ? kept : all00y;
+  // round 21c (the panel's cueDramatic, cueVals): before a dramatic tanda a moody cue (slow, or a melancholic /
+  // nostalgic / ballad / lament / classic one) first; before a vals one no hotter than the vals + 4 first
+  const panelMoody = (c: Cortina) =>
+    moodyCortina(c) && (cortinaTempo(c) === "slow" || MOODY_TAGS.some((m) => c.tags?.includes(`mood:${m}`)));
+  const prefer = (xs: Cortina[], ok: (c: Cortina) => boolean) => {
+    const ys = xs.filter(ok);
+    return ys.length ? ys : xs;
+  };
   const placed =
     next?.rhythm === "vals" || next?.rhythm === "milonga"
-      ? tagged
-        ? all00.filter((c) => cortinaTempo(c) !== "slow")
-        : all00
+      ? prefer(
+          tagged ? all00.filter((c) => cortinaTempo(c) !== "slow") : all00,
+          (c) => next?.rhythm !== "vals" || c.energy <= (next?.energy ?? 0) + 4,
+        )
       : next?.style === "dramatic"
-        ? all00.filter(moodyCortina)
+        ? prefer(all00.filter(moodyCortina), panelMoody)
         : all00;
-  const all0 = placed.length >= 2 ? placed : all00;
+  // (a preferred cue for the vals / dramatic gap holds even alone; otherwise two placed cues, else the family)
+  const preferredOnly =
+    (next?.rhythm === "vals" && placed.every((c) => c.energy <= (next?.energy ?? 0) + 4)) ||
+    (next?.style === "dramatic" && next?.rhythm === "tango" && placed.every(panelMoody));
+  const all0 = placed.length >= 2 || (placed.length >= 1 && preferredOnly) ? placed : all00;
   const placedOnly = all0 !== all00;
   const inFamily = (xs: Cortina[]) => {
     if (!plan.families.length) return xs;

@@ -16,9 +16,13 @@ import {
   Catalog,
   closingFor,
   compose,
+  cortinaPool,
+  cortinaTempo,
+  cueMoody,
   cumparsitaPlacement,
   editDiff,
   exportTandas,
+  familyOf,
   flatten,
   improveNight,
   knownSingers,
@@ -33,6 +37,7 @@ import {
   orderVerdictOf,
   type Playlist,
   pinTanda,
+  planCortinas,
   planSlots,
   replaceSide,
   type Song,
@@ -507,6 +512,37 @@ describe("round 21c — one vals / milonga tanda per orchestra, the gap kept: th
           expect(t.songs.filter((s) => !s.spotify?.uri).length).toBe(1);
       for (const f of p.stats.settingFallbacks ?? [])
         if (/^(vals|milonga): /.test(f)) expect(f).toMatch(/plays \(|moved to|no family fits/);
+    }
+  });
+});
+
+describe("round 21c — the cortina families carry the Pugliese gap and the vals gaps", () => {
+  it("the planned families hold a moody cue for the gap before Pugliese and soft cues for the vals", () => {
+    const pool = cortinaPool(deps.cortinas, undefined);
+    const o = nights[0]!.options;
+    for (const seed of [1, 2, 3, 4, 5, 6]) {
+      const plan = planCortinas(
+        pool,
+        o,
+        {
+          next: () => ((seed * 9301 + 49297) % 233280) / 233280,
+          pick: <T>(xs: T[]) => xs[seed % xs.length],
+          weighted: <T>(xs: T[]) => xs[0],
+        } as never,
+        60,
+        22,
+        4,
+        { dramatic: 1, vals: 4 },
+      );
+      if (!plan.families.length) continue;
+      const fam = pool.filter((c) => plan.families.includes(familyOf(c)));
+      expect(
+        fam.some((c) => cueMoody(c) && c.energy <= 70 && cortinaTempo(c) !== "up"),
+        `seed ${seed} ${plan.families}`,
+      ).toBe(true);
+      expect(fam.filter((c) => c.energy <= 66 && cortinaTempo(c) !== "slow").length).toBeGreaterThanOrEqual(
+        4,
+      );
     }
   });
 });

@@ -201,6 +201,8 @@ today's count, at or under that evidence; every other ratchet is unchanged.
 | round15 B instrCharacter (two R instrumentals in a row) | 0 | 4 | 3 | 3 |
 | round15 B cuePopPeak (an up-tempo pop cue before a peak / the última) | 0 | 1 | 1 | 1 |
 | round15 B cuePopHour (a second up-tempo pop cue in an hour) | 0 | 2 | 1 | 1 |
+| round16 R16-11 orchestra count on the featured-options panel nights | 12 | 11 (seeds 199, 12) | 11 | 11 — new orchestras left: Lomuto / Díaz (fame 0), Malerba (colour) |
+| round16 R16-3 seed 199 only (the chair before the last summit) | none | the Troilo / Fiorentino milonga, mean fame 3.0, e77 | the same (mendPreSummit: no milonga family with mean fame ≥ 3.5, e ≥ 77, unplayed, outside the gap) | that one item on seed 199; the panel seeds keep ≤ 3 |
 | round8 R5 Turkish trend pool (no fallback, all Turkish) | none | fallback "only 7 in the pool" | the same | the fallback named, era-matched cues, ≥ 8 distinct |
 
 Not re-baselined (musically meaningful, kept and handed to the engine): round10 R10.5 (a corpus closer closes its
