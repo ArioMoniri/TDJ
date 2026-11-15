@@ -25,7 +25,11 @@ export interface AiEditResponse {
   error?: string;
 }
 
-const EXAMPLES = ["Make tanda 7 calmer", "Swap the 2nd song of tanda 3 for a Fiorentino", "Lock the first tanda"];
+const EXAMPLES = [
+  "Make tanda 7 calmer",
+  "Swap the 2nd song of tanda 3 for a Fiorentino",
+  "Lock the first tanda",
+];
 
 /** the sides that changed in one tanda: the old title struck through, the new one after it */
 function SidesDiff({ before, after }: { before?: TandaBrief; after?: TandaBrief }) {
