@@ -1197,8 +1197,13 @@ function composeOnce(
                   ? [...echague(true), ...order0]
                   : order0;
     // round 14 (dancer R14-7b): on a golden night a planned peak is a rhythmic orchestra while one can take it
+    // (round 21c: on the round-13 fallback pass too — a summit the panel's filters could not fill still takes a
+    // rhythmic family before a balanced or lyrical one: Troilo instrumental took Biagi's first summit that way)
+    // (never straight after another rhythmic tango tanda on that pass: the panel's rhythmicRun outranks it there)
+    const prevTango = tandas.filter((t) => t.rhythm === "tango").at(-1);
+    const afterRhythmic = !!prevTango && cat.profile(prevTango.orchestraId)?.style === "rhythmic";
     const rhythmicPeak = (c: TandaCandidate) =>
-      !strict14 || !isGoldenNight(o) || cat.profile(c.orchestraId)?.style === "rhythmic";
+      !isGoldenNight(o) || (!strict14 && afterRhythmic) || cat.profile(c.orchestraId)?.style === "rhythmic";
     for (const l of order) {
       const pool0 = l.filter((c) => peakOk(sc, c));
       const pool = pool0.some(rhythmicPeak) ? pool0.filter(rhythmicPeak) : pool0;
@@ -1564,13 +1569,18 @@ function composeOnce(
             ? cands.filter((c) => c.orchestraId !== "juan-d-arienzo")
             : cands;
         const { layers, sc: lsc, soft } = tangoLayers(slot, held.length ? held : cands);
-        tanda = slot.peak
-          ? buildPeak(
-              slot,
-              layers.filter((l) => !soft.has(l)),
-              lsc,
-            )
-          : tryLayers(slot, layers, lsc, soft);
+        // round 21c (the panel's peakHits): a planned summit's first layer holds a rhythmic family whenever any layer
+        // does — the protected canon orchestras (round 11) were a trailing layer, so a balanced or lyrical orchestra of
+        // the first layer took the summit Biagi was there to lift
+        const peakLayers = (() => {
+          const ls = layers.filter((l) => !soft.has(l));
+          const rhythmicPk = (c: TandaCandidate) =>
+            isGoldenNight(o) && cat.profile(c.orchestraId)?.style === "rhythmic" && peakOk(lsc, c);
+          if (!ls.length || ls[0]!.some(rhythmicPk)) return ls;
+          const lift = [...new Set(ls.slice(1).flat())].filter(rhythmicPk);
+          return lift.length ? [lift, ...ls] : ls;
+        })();
+        tanda = slot.peak ? buildPeak(slot, peakLayers, lsc) : tryLayers(slot, layers, lsc, soft);
         // a peak slot nobody could fill as a peak: an ordinary slot (never a hole in the set)
         if (!tanda && slot.peak) tanda = tryLayers({ ...slot, peak: false }, layers, lsc, soft);
       } else tanda = buildTanda(slot, cands, o, rng, ctx, scFor(slot));
