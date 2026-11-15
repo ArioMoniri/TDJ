@@ -1,5 +1,6 @@
 "use client";
 import { del, get, set } from "idb-keyval";
+import { APP } from "./app/target";
 import { loadMemoryLocal, normalizeMemory } from "./memory";
 import type { AgentMemory, AppOverrides, HistorySnapshot } from "./types";
 
@@ -35,6 +36,8 @@ export function isEmptyOverrides(o: AppOverrides | null | undefined): boolean {
 /** Detect server storage mode once per page load (404 = browser mode). */
 let modeP: Promise<StorageMode> | null = null;
 export function storageMode(): Promise<StorageMode> {
+  // apps: the on-device database (lib/app/store.ts) answers /api/db like a server row, always
+  if (APP) return Promise.resolve("server");
   if (!modeP)
     modeP = fetch("/api/db", { method: "GET" })
       .then(async (r) => {

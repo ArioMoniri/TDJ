@@ -1,0 +1,84 @@
+"use client";
+import { useEffect } from "react";
+import { useStore } from "@/lib/store";
+import type { UserSettings } from "@/lib/types";
+import { installAppAdapter } from "./adapter";
+import "./login";
+import { invoke } from "./native";
+import { APP, KEYCHAIN_KEY } from "./target";
+
+// before any component mounts: the first /api/* call already goes to the device
+if (APP && typeof window !== "undefined") {
+  installAppAdapter();
+  // the animation player's WebAssembly ships in the app (apps/desktop/scripts/build-ui.mjs), not from a CDN
+  void import("@lottiefiles/dotlottie-react").then((m) => m.setWasmUrl("/dotlottie-player.wasm"));
+}
+
+/** settings as the device database keeps them: never a key (that is the Keychain's) */
+const storable = (s: UserSettings): UserSettings => ({
+  ...s,
+  ai: { ...s.ai, key: s.ai.key ? KEYCHAIN_KEY : "" },
+});
+
+/** A key typed in Settings goes to the Keychain; the page keeps only the mark that one is saved. */
+export async function saveAiKey(provider: string, value: string): Promise<void> {
+  const name = `ai.${provider}`;
+  if (value) await invoke("secret_set", { name, value });
+  else await invoke("secret_delete", { name });
+}
+export async function hasAiKey(provider: string): Promise<boolean> {
+  return invoke<boolean>("secret_has", { name: `ai.${provider}` }).catch(() => false);
+}
+
+/**
+ * The apps' settings live in the on-device database too (lib/app/store.ts → settings): restored when the web view's
+ * own storage was cleared, written back on every change. A key from an older build that sat in the page's storage
+ * moves to the Keychain on first launch.
+ */
+export function useAppBoot(): void {
+  useEffect(() => {
+    if (!APP) return;
+    const hadLocal = (() => {
+      try {
+        return !!localStorage.getItem("tdj-v1");
+      } catch {
+        return false;
+      }
+    })();
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let unsub: (() => void) | null = null;
+    void (async () => {
+      const st = useStore.getState();
+      const key = st.settings.ai.key;
+      if (key && key !== KEYCHAIN_KEY) {
+        try {
+          await saveAiKey(st.settings.ai.provider, key);
+          st.setSettings({ ai: { ...st.settings.ai, key: KEYCHAIN_KEY } });
+        } catch {}
+      }
+      if (!hadLocal) {
+        const r = await fetch("/api/app/settings").catch(() => null);
+        const saved = r?.ok ? ((await r.json()) as { settings?: UserSettings | null }).settings : null;
+        if (saved) useStore.getState().setSettings(saved);
+      }
+      let last = JSON.stringify(storable(useStore.getState().settings));
+      unsub = useStore.subscribe((s) => {
+        const next = JSON.stringify(storable(s.settings));
+        if (next === last) return;
+        last = next;
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => {
+          void fetch("/api/app/settings", {
+            method: "PUT",
+            headers: { "content-type": "application/json" },
+            body: next,
+          }).catch(() => {});
+        }, 400);
+      });
+    })();
+    return () => {
+      unsub?.();
+      if (timer) clearTimeout(timer);
+    };
+  }, []);
+}

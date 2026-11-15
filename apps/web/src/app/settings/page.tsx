@@ -15,6 +15,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { IndicatorSwitches } from "@/components/booth/IndicatorSwitches";
+import { AppConnections } from "@/components/AppConnections";
 import { Connectors } from "@/components/Connectors";
 import {
   ActionRow,
@@ -36,6 +37,8 @@ import { Tip } from "@/components/ui/Tip";
 import { activeAcp } from "@/lib/ai/client";
 import { KEY_PLACEHOLDER, MODEL_SUGGESTIONS } from "@/lib/ai/models";
 import { chooseKeyProvider, keyOf, withKey } from "@/lib/ai/settings";
+import { saveAiKey } from "@/lib/app/boot";
+import { APP, KEYCHAIN_KEY } from "@/lib/app/target";
 import { fade, t as tw } from "@/lib/motion";
 import { useStore } from "@/lib/store";
 import {
@@ -188,7 +191,21 @@ export default function Settings() {
     if (settings.ai.provider === "acp") setEditP(provider);
     else setSettings(chooseKeyProvider(useStore.getState().settings, provider));
     setTest({ state: "idle" });
+    // apps: a draft belongs to the provider it was typed for
+    if (APP) setDraft(null);
   };
+  /** apps: what the DJ is typing (null = untouched); saved to the Keychain shortly after the last keystroke */
+  const [draft, setDraft] = useState<string | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: saves on a new draft only (for the provider being edited)
+  useEffect(() => {
+    if (!APP || draft === null) return;
+    const id = setTimeout(() => {
+      void saveAiKey(editProvider, draft)
+        .then(() => setAi({ key: draft ? KEYCHAIN_KEY : "" }))
+        .catch(() => setTest({ state: "fail", text: "The key could not be saved in your Keychain." }));
+    }, 450);
+    return () => clearTimeout(id);
+  }, [draft]);
   const testConnection = async () => {
     setTest({ state: "busy" });
     try {
@@ -411,7 +428,7 @@ export default function Settings() {
               </Tile>
             }
             label="Stored"
-            value={`${storageMode === "server" ? "Kept by this site" : "In this browser"} · ${remembered} ${remembered === 1 ? "item" : "items"}`}
+            value={`${APP ? "On this device" : storageMode === "server" ? "Kept by this site" : "In this browser"} · ${remembered} ${remembered === 1 ? "item" : "items"}`}
           />
           <SwitchRow
             label="Let the assistant learn from my feedback"
@@ -421,6 +438,7 @@ export default function Settings() {
           />
         </Group>
 
+        {APP && <AppConnections />}
         <Connectors />
         {/* round 22: where missing BPM, key, level, artwork and dates come from, and "Add a source" */}
         <DataSources />
@@ -468,7 +486,9 @@ export default function Settings() {
                     : (test.text ??
                       (usingShared
                         ? `The organiser's key writes your reviews and turns “Tell the DJ” into precise changes, up to ${shared?.limit ?? 20} requests a day per DJ. Add your own key under “Use my own key” for unlimited use; it stays in this browser.`
-                        : "A model key lets you ask for a written review of a set, edit the night in your own words and turn “Tell the DJ” into precise changes. Without one, simple requests still work by keyword. The key is sent with your own requests only and never stored on the server."))}
+                        : APP
+                          ? "A model key lets you ask for a written review of a set, edit the night in your own words and turn “Tell the DJ” into precise changes. Without one, simple requests still work by keyword. The key stays in your Keychain and goes only to the provider you chose."
+                          : "A model key lets you ask for a written review of a set, edit the night in your own words and turn “Tell the DJ” into precise changes. Without one, simple requests still work by keyword. The key is sent with your own requests only and never stored on the server."))}
                 </motion.span>
               </AnimatePresence>
             </span>
@@ -522,9 +542,11 @@ export default function Settings() {
                   id="ai-key"
                   type={showKey ? "text" : "password"}
                   className="field field-value min-w-0 flex-1 font-mono"
-                  placeholder={KEY_PLACEHOLDER[ai.provider]}
-                  value={ai.key}
-                  onChange={(e) => setAi({ key: e.target.value.trim() })}
+                  placeholder={APP && ai.key ? "Saved in your Keychain" : KEY_PLACEHOLDER[ai.provider]}
+                  value={APP ? (draft ?? "") : ai.key}
+                  onChange={(e) =>
+                    APP ? setDraft(e.target.value.trim()) : setAi({ key: e.target.value.trim() })
+                  }
                   autoComplete="off"
                   spellCheck={false}
                 />
@@ -597,9 +619,11 @@ export default function Settings() {
         <Group
           header="Storage"
           footer={
-            storageMode === "server"
-              ? "Your database and memory are kept by this T-DJ site, so they are there on every device."
-              : "Your database and memory stay in this browser. The person who runs this T-DJ site can keep them for you on every device."
+            APP
+              ? "Your database, memory, settings and the nights you composed are kept in T-DJ on this device."
+              : storageMode === "server"
+                ? "Your database and memory are kept by this T-DJ site, so they are there on every device."
+                : "Your database and memory stay in this browser. The person who runs this T-DJ site can keep them for you on every device."
           }
         >
           <Row
@@ -609,7 +633,7 @@ export default function Settings() {
               </Tile>
             }
             label="Database"
-            value={storageMode === "server" ? "This site" : "This browser"}
+            value={APP ? "This device" : storageMode === "server" ? "This site" : "This browser"}
           />
         </Group>
       </div>

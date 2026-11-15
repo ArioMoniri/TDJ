@@ -2,6 +2,8 @@
 import { Pause, Play, X } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef } from "react";
+import { mediaUrl } from "@/lib/app/media";
+import { APP } from "@/lib/app/target";
 import { haptic } from "@/lib/haptics";
 import { sheetUp } from "@/lib/motion";
 import { stopAt, usePlayer } from "@/lib/player";
@@ -29,6 +31,30 @@ export function MiniPlayer() {
   useEffect(() => {
     const el = audio.current;
     if (!el || !preview) return;
+    // apps: a media element cannot reach the on-device /api/preview, so it gets the signed link itself
+    if (APP && preview.startsWith("/api/")) {
+      let live = true;
+      void mediaUrl(preview).then(
+        (url) => {
+          if (!live) return;
+          if (el.dataset.ref !== preview) {
+            el.dataset.ref = preview;
+            el.src = url;
+            el.load();
+          }
+          if (playing)
+            el.play().catch((e: Error) => {
+              if (e.name === "AbortError") return;
+              _error(e.name === "NotAllowedError" ? "Tap play to start" : "Could not play this preview");
+            });
+          else el.pause();
+        },
+        () => live && _error("Could not load this preview"),
+      );
+      return () => {
+        live = false;
+      };
+    }
     // `el.src` reads back absolute, our preview refs are relative: compare resolved URLs, or every run of this
     // effect reloads the element and the pending play() is aborted (cortinas never started)
     const want = new URL(preview, window.location.href).href;

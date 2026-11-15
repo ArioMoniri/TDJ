@@ -12,6 +12,10 @@ import {
   Webhook,
 } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
+import { appLogin } from "@/lib/app/login";
+import { nativeInfo } from "@/lib/app/native";
+import { SPOTIFY_APP_REDIRECT } from "@/lib/app/pkce";
+import { APP } from "@/lib/app/target";
 import {
   beginAuth,
   CONNECT_FALLBACK,
@@ -157,7 +161,18 @@ export function Connectors() {
   const [copied, setCopied] = useState(false);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
-  useEffect(() => setRedirect(`${location.origin}/callback`), []);
+  useEffect(() => setRedirect(APP ? SPOTIFY_APP_REDIRECT : `${location.origin}/callback`), []);
+  /** apps: Google and Dropbox sign in through a linked TDJ server only (Settings → Connections) */
+  const [linked, setLinked] = useState(false);
+  useEffect(() => {
+    if (APP) void nativeInfo().then((i) => setLinked(!!i.linkedServer));
+  }, []);
+  const showDirect = !APP || linked;
+  /** Spotify: the system browser + PKCE in the apps (lib/app/login.ts); the server's own login on the web */
+  const spotifyLogin = () =>
+    APP ? void appLogin("spotify", "/settings") : location.assign(hostedLoginUrl("/settings"));
+  const ownAppLogin = () =>
+    APP ? void appLogin("spotify", "/settings") : beginAuth(settings.spotifyClientId);
   // back from an OAuth dance (same tab for the direct logins, a second tab for Connect Link): say so once, clean the URL
   useEffect(() => {
     const q = new URLSearchParams(location.search);
@@ -301,7 +316,13 @@ export function Connectors() {
   const granted = (f: GoogleFeature) => google?.scopes?.[f] ?? false;
   // no service has credentials on this deployment: the owner configures them in-app at /admin (docs/DEPLOY.md)
   const needsOwnerSetup =
-    spotify !== null && google !== null && dropbox !== null && !hosted && !google.hosted && !dropbox.hosted;
+    !APP &&
+    spotify !== null &&
+    google !== null &&
+    dropbox !== null &&
+    !hosted &&
+    !google.hosted &&
+    !dropbox.hosted;
   const connectRow = (app: ConnectApp) => (
     <Row
       key={app}
@@ -354,9 +375,11 @@ export function Connectors() {
       <Group
         header="Accounts and services"
         footer={
-          hosted
-            ? "Log in with Spotify to create playlists and play full tracks in Listen; nothing to paste. Google (Drive files and YouTube playlists) and Dropbox connect in one tap when the owner has enabled them."
-            : "Spotify: set up your own developer app under Spotify › Advanced. Google and Dropbox connect in one tap once the owner has enabled them."
+          APP && !linked
+            ? "Log in with Spotify to create playlists and play full tracks in Listen. Google Drive, YouTube and Dropbox work through your own TDJ server once it is linked under Connections."
+            : hosted
+              ? "Log in with Spotify to create playlists and play full tracks in Listen; nothing to paste. Google (Drive files and YouTube playlists) and Dropbox connect in one tap when the owner has enabled them."
+              : "Spotify: set up your own developer app under Spotify › Advanced. Google and Dropbox connect in one tap once the owner has enabled them."
         }
         id="connectors"
       >
@@ -369,24 +392,28 @@ export function Connectors() {
           onClick={() => setOpen("spotify")}
           id="connector-spotify"
         />
-        <Row
-          tile={tile(GOOGLE_COLOR, <HardDrive size={16} strokeWidth={2} />)}
-          label="Google"
-          sub="Drive files · YouTube playlists"
-          value={directValue(google)}
-          chevron
-          onClick={() => setOpen("google")}
-          id="connector-google"
-        />
-        <Row
-          tile={tile(APP_META.dropbox.color, APP_META.dropbox.icon)}
-          label="Dropbox"
-          sub={APP_META.dropbox.sub}
-          value={directValue(dropbox)}
-          chevron
-          onClick={() => setOpen("dropbox")}
-          id="connector-dropbox"
-        />
+        {showDirect && (
+          <Row
+            tile={tile(GOOGLE_COLOR, <HardDrive size={16} strokeWidth={2} />)}
+            label="Google"
+            sub="Drive files · YouTube playlists"
+            value={directValue(google)}
+            chevron
+            onClick={() => setOpen("google")}
+            id="connector-google"
+          />
+        )}
+        {showDirect && (
+          <Row
+            tile={tile(APP_META.dropbox.color, APP_META.dropbox.icon)}
+            label="Dropbox"
+            sub={APP_META.dropbox.sub}
+            value={directValue(dropbox)}
+            chevron
+            onClick={() => setOpen("dropbox")}
+            id="connector-dropbox"
+          />
+        )}
         {needsOwnerSetup && (
           <Row
             tile={tile("#636366", <KeyRound size={16} strokeWidth={2} />)}
@@ -458,9 +485,11 @@ export function Connectors() {
         <Group
           header="Account"
           footer={
-            hosted
-              ? `Log in with your Spotify account; there is nothing to paste. Connected, Listen plays the exact recordings and Export creates playlists in your library (private by default). This app can let in 5 Spotify accounts, which the organiser adds by e-mail in the Spotify dashboard.${seatsNote}${contactNote} Not on the list? Export → Send to → Spotify via a transfer service works with any Spotify account. The login is kept in a sealed cookie in this browser; Spotify asks again after six months.`
-              : "Connect with your own Spotify app: paste its Client ID under Advanced. Connected, Listen plays the exact recordings and Export creates playlists."
+            APP && hosted
+              ? "Log in with your Spotify account; there is nothing to paste. Connected, Listen plays the exact recordings and Export creates playlists in your library (private by default). The login is kept in your Keychain on this device."
+              : hosted
+                ? `Log in with your Spotify account; there is nothing to paste. Connected, Listen plays the exact recordings and Export creates playlists in your library (private by default). This app can let in 5 Spotify accounts, which the organiser adds by e-mail in the Spotify dashboard.${seatsNote}${contactNote} Not on the list? Export → Send to → Spotify via a transfer service works with any Spotify account. The login is kept in a sealed cookie in this browser; Spotify asks again after six months.`
+                : "Connect with your own Spotify app: paste its Client ID under Advanced. Connected, Listen plays the exact recordings and Export creates playlists."
           }
         >
           <Row
@@ -489,17 +518,13 @@ export function Connectors() {
                 id="spotify-logout"
               />
             ) : (
-              <ActionRow
-                label="Log in with Spotify"
-                onClick={() => location.assign(hostedLoginUrl("/settings"))}
-                id="spotify-login"
-              />
+              <ActionRow label="Log in with Spotify" onClick={spotifyLogin} id="spotify-login" />
             )
           ) : (
             <>
               <ActionRow
                 label={byoConnected ? "Reconnect" : "Connect Spotify"}
-                onClick={() => beginAuth(settings.spotifyClientId)}
+                onClick={ownAppLogin}
                 disabled={!settings.spotifyClientId}
                 id="spotify-connect"
               />
@@ -522,9 +547,11 @@ export function Connectors() {
           <Group
             header="Your own app"
             footer={
-              hosted
-                ? "With a Client ID here, Connect Spotify uses your own developer app in this browser (PKCE) instead of the hosted login. Useful when the deployment's 5 listener seats are taken."
-                : "Add this exact redirect URI to your app at developer.spotify.com, then paste its Client ID."
+              APP
+                ? "To sign in with your own Spotify developer app, add this redirect URI to it at developer.spotify.com and paste its Client ID here."
+                : hosted
+                  ? "With a Client ID here, Connect Spotify uses your own developer app in this browser (PKCE) instead of the hosted login. Useful when the deployment's 5 listener seats are taken."
+                  : "Add this exact redirect URI to your app at developer.spotify.com, then paste its Client ID."
             }
           >
             <Row label="Redirect URI" sub={<span className="font-mono">{redirect}</span>}>
@@ -546,7 +573,7 @@ export function Connectors() {
             {hosted && (
               <ActionRow
                 label="Connect with my own app"
-                onClick={() => beginAuth(settings.spotifyClientId)}
+                onClick={ownAppLogin}
                 disabled={!settings.spotifyClientId}
                 id="spotify-connect"
               />
