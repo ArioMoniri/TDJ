@@ -57,9 +57,18 @@ const searchLimit = { after: Number.POSITIVE_INFINITY, count: 0, retryAfter: 30,
  * "chunk 2 never arrived" a DJ saw; `unplayable` are tracks the listener's market cannot play.
  */
 const lists = new Map<string, { uris: string[]; snap: number }>();
+/** the last file Dropbox and Drive stored, for their metadata answers */
+const stored = { dropbox: Buffer.alloc(0), drive: Buffer.alloc(0) };
 const spotifyWrites = { posts: 0, dropPosts: new Set<number>(), unplayable: new Set<string>() };
 /** YouTube search mock: this many searches (counted since the last `hits.length = 0`) answer, the next one is quotaExceeded. */
 const ytLimit = { searches: 2 };
+/** the YouTube playlist the mock holds */
+const yt = {
+  items: [] as Array<{ id: string; videoId: string }>,
+  seq: 0,
+  inserts: 0,
+  dropInserts: new Set<number>(),
+};
 
 function mockServer(): http.Server {
   return http.createServer((req, res) => {
@@ -272,13 +281,63 @@ function mockServer(): http.Server {
       if (url.startsWith("/google/drive/v3/files?") && req.method === "GET") return json(200, { files: [] });
       if (url.startsWith("/google/drive/v3/files?") && req.method === "POST")
         return json(200, { id: "folder1" });
-      if (url.startsWith("/google/upload/drive/v3/files?"))
+      if (url.startsWith("/google/upload/drive/v3/files?")) {
+        // the file part of the multipart body is what Drive stores (its size and MD5 answer files.get)
+        const b = body.slice(2, body.indexOf("\r\n"));
+        const part = body.split(`--${b}`)[2] ?? "";
+        stored.drive = Buffer.from(part.slice(part.indexOf("\r\n\r\n") + 4, part.length - 2), "utf8");
         return json(200, {
           id: "file1",
           name: "set.m3u8",
           webViewLink: "https://drive.google.com/file/d/file1/view",
         });
-      if (url.startsWith("/google/youtube/v3/playlists?")) return json(200, { id: "ytpl1" });
+      }
+      if (url.startsWith("/google/drive/v3/files/file1?") && req.method === "GET")
+        return json(200, {
+          size: String(stored.drive.length),
+          md5Checksum: createHash("md5").update(stored.drive).digest("hex"),
+        });
+      if (url.startsWith("/google/youtube/v3/playlists?")) {
+        yt.items = [];
+        return json(200, { id: "ytpl1" });
+      }
+      // the playlist YouTube holds: inserts (at a position or appended), moves, deletes, pages of ≤ 50
+      if (url.startsWith("/google/youtube/v3/playlistItems?") && req.method === "GET") {
+        const q = new URL(url, MOCK).searchParams;
+        const start = Number(q.get("pageToken") || 0);
+        const max = Math.min(50, Number(q.get("maxResults") ?? 5));
+        return json(200, {
+          items: yt.items.slice(start, start + max).map((x) => ({
+            id: x.id,
+            snippet: { title: `Video ${x.videoId}`, videoOwnerChannelTitle: "Mock Channel" },
+            contentDetails: { videoId: x.videoId },
+          })),
+          ...(start + max < yt.items.length ? { nextPageToken: String(start + max) } : {}),
+        });
+      }
+      if (url.startsWith("/google/youtube/v3/playlistItems?") && req.method === "PUT") {
+        const b = JSON.parse(body) as { id: string; snippet: { position: number } };
+        const k = yt.items.findIndex((x) => x.id === b.id);
+        const [it] = yt.items.splice(k, 1);
+        yt.items.splice(b.snippet.position, 0, it!);
+        return json(200, { id: b.id });
+      }
+      if (url.startsWith("/google/youtube/v3/playlistItems?") && req.method === "DELETE") {
+        const id = new URL(url, MOCK).searchParams.get("id");
+        yt.items = yt.items.filter((x) => x.id !== id);
+        res.writeHead(204);
+        return res.end();
+      }
+      if (url.startsWith("/google/youtube/v3/videos?")) {
+        const ids = (new URL(url, MOCK).searchParams.get("id") ?? "").split(",");
+        return json(200, {
+          items: ids.map((id) => ({
+            id,
+            status: { privacyStatus: "public", uploadStatus: "processed" },
+            contentDetails: {},
+          })),
+        });
+      }
       if (url.startsWith("/google/youtube/v3/search?")) {
         const n = hits.filter((h) => h.url.startsWith("/google/youtube/v3/search?")).length;
         return n <= ytLimit.searches
@@ -291,7 +350,15 @@ function mockServer(): http.Server {
               },
             });
       }
-      if (url.startsWith("/google/youtube/v3/playlistItems?")) return json(200, { id: "item" });
+      if (url.startsWith("/google/youtube/v3/playlistItems?")) {
+        const b = JSON.parse(body || "{}") as {
+          snippet?: { position?: number; resourceId?: { videoId?: string } };
+        };
+        const it = { id: `item${++yt.seq}`, videoId: b.snippet?.resourceId?.videoId ?? "" };
+        // `dropInserts`: inserts (counted from 1) that answer 200 and store nothing — a video that never arrived
+        if (!yt.dropInserts.has(++yt.inserts)) yt.items.splice(b.snippet?.position ?? yt.items.length, 0, it);
+        return json(200, { id: it.id });
+      }
       // Dropbox: token (PKCE), account, upload (content host), shared links (409 once the path says "again")
       if (url === "/dropbox/oauth2/token")
         return json(200, {
@@ -310,7 +377,16 @@ function mockServer(): http.Server {
           : json(401, { error_summary: "invalid_access_token/" });
       if (url === "/dropbox-content/2/files/upload") {
         const arg = JSON.parse(String(req.headers["dropbox-api-arg"] ?? "{}")) as { path: string };
+        stored.dropbox = Buffer.from(body, "utf8");
         return json(200, { path_display: arg.path, path_lower: arg.path.toLowerCase() });
+      }
+      if (url === "/dropbox/2/files/get_metadata") {
+        // Dropbox's content hash: SHA-256 of the SHA-256 of each 4 MiB block (one block here)
+        const block = createHash("sha256").update(stored.dropbox).digest();
+        return json(200, {
+          size: stored.dropbox.length,
+          content_hash: createHash("sha256").update(block).digest("hex"),
+        });
       }
       if (url === "/dropbox/2/sharing/create_shared_link_with_settings")
         return body.includes("again")
@@ -1498,7 +1574,10 @@ test("Drive upload: finds or creates the TDJ folder, then a multipart/related bo
     id: "file1",
     path: "TDJ/set.m3u8",
     url: "https://drive.google.com/file/d/file1/view",
+    // asked again after the upload: Drive's size and MD5 are the bytes that were sent
+    verified: { ok: true, bytes: 37, size: 37, hash: "match" },
   });
+  expect(last(/GET \/google\/drive\/v3\/files\/file1\?/)!.url).toContain("fields=size,md5Checksum");
   const lookup = last(/GET \/google\/drive\/v3\/files\?/)!;
   expect(new URL(lookup.url, MOCK).searchParams.get("q")).toContain("name = 'TDJ'");
   const mk = last(/POST \/google\/drive\/v3\/files\?/)!;
@@ -1705,7 +1784,10 @@ test("Dropbox upload: files/upload into /<set>/<file> of the app folder, then a 
     app: "dropbox",
     path: "/Apps/TDJ/Milonga _ test/set.m3u8",
     url: "https://www.dropbox.com/scl/fo/new?dl=0",
+    // asked again after the upload: Dropbox's size and content hash are the bytes that were sent
+    verified: { ok: true, bytes: 8, size: 8, hash: "match" },
   });
+  expect(JSON.parse(last(/get_metadata/)!.body)).toEqual({ path: "/milonga _ test/set.m3u8" });
   const up = last(/POST \/dropbox-content\/2\/files\/upload/)!;
   expect(up.headers["content-type"]).toBe("application/octet-stream");
   expect(up.headers.authorization).toBe("Bearer db-1");
@@ -1838,6 +1920,9 @@ test("Export sheet (direct): Save to Dropbox uploads the chosen format with the 
   expect(up.body).toMatch(/^"?#/); // the CSV export, not the m3u8
   expect(JSON.parse(String(up.headers["dropbox-api-arg"])).path).toMatch(/\.csv$/);
   await expect(sheet).toContainText("Saved CSV to Dropbox (/Apps/TDJ/");
+  // the file read back before it went up, and the copy Dropbox holds asked again after
+  await expect(sheet).toContainText(/CSV file: \d+ tracks, order checked ✓/);
+  await expect(sheet).toContainText(/Dropbox: the saved file matches the export, all \d+ bytes ✓/);
   await expect(sheet.getByRole("button", { name: "Open in Dropbox" })).toBeVisible();
   // Drive: the scope was never granted → the server says so and the browser goes to Google's consent for it
   const [consent] = await Promise.all([
@@ -2081,9 +2166,14 @@ test("Export sheet: 'Create playlist' on YouTube sends the set in batches with a
   expect(files).toBeGreaterThan(30);
   hits.length = 0;
   ytLimit.searches = 25; // the third batch hits the quota half way; the batches after it are never sent
+  yt.inserts = 0;
+  yt.dropInserts = new Set([5]); // the 5th video never arrives: the read-back finds it missing and puts it back
   const bodies: Array<Record<string, unknown>> = [];
+  const checks: Array<Record<string, unknown>> = [];
   page.on("request", (r) => {
-    if (r.url().includes("/api/google/youtube")) bodies.push(r.postDataJSON());
+    if (!r.url().includes("/api/google/youtube")) return;
+    const b = r.postDataJSON();
+    (b.verify ? checks : bodies).push(b);
   });
   try {
     await sheet.locator("#send-youtube").click();
@@ -2101,8 +2191,24 @@ test("Export sheet: 'Create playlist' on YouTube sends the set in batches with a
     await expect(sheet).toContainText(`Created the YouTube playlist with 25 tracks, ${files - 25} left out`);
     await expect(sheet.getByRole("button", { name: "Open in YouTube" })).toBeVisible();
     await expect(sheet.locator("#send-youtube")).not.toContainText("Adding");
+    // the playlist read back with the DJ's account (every page), the lost 5th video put back in its own place
+    await expect(page.getByTestId("youtube-verified-summary")).toHaveText("25 of 25 in YouTube, in order ✓", {
+      timeout: 30000,
+    });
+    expect(checks).toHaveLength(1);
+    expect((checks[0]!.expected as unknown[]).length).toBe(25);
+    expect(yt.items.map((x) => x.videoId)).toEqual(Array.from({ length: 25 }, (_, i) => `vid${i + 1}`));
+    const reads = hits.filter(
+      (h) => h.method === "GET" && h.url.startsWith("/google/youtube/v3/playlistItems?"),
+    );
+    expect(reads.length).toBeGreaterThanOrEqual(2);
+    for (const r of reads) expect(r.headers.authorization).toBe("Bearer gg-youtube");
+    const list = page.getByTestId("youtube-verified-list");
+    await list.locator("summary").click();
+    await expect(list.locator("li[data-mark=ok]")).toHaveCount(25);
   } finally {
     ytLimit.searches = 2;
+    yt.dropInserts = new Set();
   }
   await ctx.close();
 });

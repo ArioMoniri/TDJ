@@ -45,8 +45,11 @@ export async function shareNight(p: Playlist): Promise<NightShare> {
   }
 }
 
-export function saveNightFile(n: NightFile) {
-  downloadBlob(nightFileName(n.name), nightFileText(n), NIGHT_MIME);
+/** Saves the night as a `.tdjnight` file; returns the text that was saved (the caller reads it back). */
+export function saveNightFile(n: NightFile): string {
+  const text = nightFileText(n);
+  downloadBlob(nightFileName(n.name), text, NIGHT_MIME);
+  return text;
 }
 
 /** a short link kept by this server (30 days), or null when it keeps none */

@@ -1,6 +1,7 @@
 import "server-only";
 import { httpJson } from "./headerJson";
 import { ApiError, api, DROPBOX, safeName } from "./oauth";
+import { checkUpload, type UploadCheck } from "./uploadVerify";
 
 /**
  * Dropbox with the deployment's own app (App Folder access): files land in /Apps/TDJ/<set name>/ and come back
@@ -49,7 +50,7 @@ async function sharedLink(access: string, path: string): Promise<string | undefi
 export async function upload(
   access: string,
   f: { set: string; filename: string; mime: string; text: string },
-): Promise<{ path: string; url?: string }> {
+): Promise<{ path: string; url?: string; verified: UploadCheck }> {
   const path = `/${safeName(f.set)}/${safeName(f.filename)}`;
   const r = await api<{ path_display?: string; path_lower?: string }>(access, `${CONTENT()}/2/files/upload`, {
     method: "POST",
@@ -60,7 +61,18 @@ export async function upload(
     body: f.text,
   });
   const stored = r.path_display ?? path;
-  return { path: `/Apps/TDJ${stored}`, url: await sharedLink(access, r.path_lower ?? stored) };
+  // asked again: what Dropbox holds at that path, its size and content hash against the bytes sent
+  const verified = await checkUpload(
+    f.text,
+    async () => {
+      const m = await rpc<{ size?: number; content_hash?: string }>(access, "/2/files/get_metadata", {
+        path: r.path_lower ?? stored,
+      });
+      return { size: m.size, hash: m.content_hash };
+    },
+    "dropbox",
+  );
+  return { path: `/Apps/TDJ${stored}`, url: await sharedLink(access, r.path_lower ?? stored), verified };
 }
 
 export { DROPBOX };
