@@ -3141,6 +3141,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "rooms.move_tanda_later": "{p1}. tandayı geriye al",
   "rooms.name": "Ad",
   "rooms.name_saved": "Ad kaydedildi. ",
+  "rooms.needs_a_linked_server": "T-DJ sunucusu gerekir",
   "rooms.new_room": "Yeni oda",
   "rooms.night_name": "Gece adı",
   "rooms.night_settings": "Gece ayarları",
@@ -3149,6 +3150,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "rooms.nothing_has_happened_in_this_room": "Bu odada henüz bir şey olmadı.",
   "rooms.only_you_here_right_now": "şu an burada yalnızca siz varsınız",
   "rooms.open_in_compose": "Gece oluştur'da aç",
+  "rooms.open_settings_connections": "Ayarlar → Bağlantılar’ı aç",
   "rooms.other_djs_see_this_name_next":
     "Diğer DJ'ler bu adı düzenlemelerinizin yanında görür. Hesap gerekmez.",
   "rooms.play_tanda_tonight": "{p1}. tandayı bu gece çal",
@@ -3164,6 +3166,8 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "rooms.room_name": "Oda adı",
   "rooms.room_view": "Oda görünümü",
   "rooms.rooms": "Odalar",
+  "rooms.rooms_need_a_linked_server":
+    "Odalar için bağlı bir T-DJ sunucusu gerekir. Ayarlar → Bağlantılar altında bir sunucu bağlayın; geri kalan her şey bu cihazda çalışmaya devam eder.",
   "rooms.rooms_you_were_in_on_this": "Bu cihazda bulunduğunuz odalar. Kaydını okumak için birini açın.",
   "rooms.s_room": "{user} odası",
   "rooms.saturday_milonga": "Cumartesi milongası",
