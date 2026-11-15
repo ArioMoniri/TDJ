@@ -2291,7 +2291,8 @@ export const en = {
     " (YouTube's daily search budget ran out; the rest fills in another day)",
   "featured.golden_sub": "4 h 35 min · {era} · double peak, Turkish cortinas",
   "featured.golden_title": "Featured night",
-  "featuredSync.updated": "This night was updated to its latest version (your edits, Spotify links, the Cumparsitas).",
+  "featuredSync.updated":
+    "This night was updated to its latest version (your edits, Spotify links, the Cumparsitas).",
   "featuredCard.open": "Open",
   "featuredCard.open_a_night_a_dj_built":
     "Open a night a DJ built, to read and play before you compose your own",
