@@ -1,4 +1,4 @@
-import type { PlannedTransition } from "@tdj/core";
+import { energyHook, type PlannedTransition } from "@tdj/core";
 import { t as tx } from "@/lib/i18n";
 import {
   DECLICK_IN,
@@ -227,6 +227,20 @@ export function gainFor(
   return { gainDb, base: dbToGain(gainDb), peakCapped, from };
 }
 
+/** The loud part of a decoded full file (RMS per 0.5 s → `energyHook`), seconds; null when it has none. */
+export function fileHookSec(buffer: AudioBuffer): number | null {
+  const ch = typeof buffer.getChannelData === "function" ? buffer.getChannelData(0) : null;
+  if (!ch?.length || !(buffer.sampleRate > 0)) return null;
+  const hop = Math.round(buffer.sampleRate / 2);
+  const env: number[] = [];
+  for (let i = 0; i + hop <= ch.length; i += hop) {
+    let s = 0;
+    for (let j = i; j < i + hop; j += 16) s += ch[j]! * ch[j]!;
+    env.push(Math.sqrt(s / (hop / 16)));
+  }
+  return energyHook(env, 0.5)?.startSec ?? null;
+}
+
 export interface EngineOptions {
   adapters: SourceAdapter[];
   settings?: Partial<BoothSettings>;
@@ -236,6 +250,11 @@ export interface EngineOptions {
   now?: () => number;
   /** wave 2: why an item has nothing to play it from, in plain words (the banner says it instead of "No source") */
   whyMissing?: (planIndex: number) => string | null;
+  /**
+   * 2026-11 (the audio fallback): whether a cortina playing from a full local file may start at the loud part its
+   * energy shows — a cue without synced lyrics (no chorus in the data) and without the DJ's own start
+   */
+  audioHook?: (it: BoothRow) => boolean;
 }
 
 /**
@@ -296,6 +315,7 @@ export class BoothEngine {
     this.rehearsalSec = o.rehearsalSec ?? null;
     this.wall = o.now ?? (() => Date.now());
     this.whyMissing = o.whyMissing ?? (() => null);
+    this.audioHook = o.audioHook ?? (() => false);
     this.master = ctx.createGain();
     this.analyser = ctx.createAnalyser();
     this.analyser.fftSize = 256;
@@ -356,6 +376,7 @@ export class BoothEngine {
   /** round 21: the items of the tandas the DJ bypasses tonight ("skip tonight", the last-four-tango setting) */
   bypassed = new Set<number>();
   private whyMissing: (planIndex: number) => string | null;
+  private audioHook: (it: BoothRow) => boolean;
   setBypass(items: Iterable<number>): void {
     this.bypassed = new Set(items);
     // (the queued item is now bypassed: rebuild it)
@@ -1412,7 +1433,17 @@ export class BoothEngine {
     let offset = 0;
     // round 22: a song the DJ cued (Song info → waveform) starts at its cue and stops at its stop second
     const cued = it.kind !== "cortina" && isCued(it);
-    if (it.kind === "cortina" || cued) offset = Math.min(it.trimInSec ?? 0, Math.max(0, buffer.duration - 1));
+    if (it.kind === "cortina" && prepared.kind === "preview")
+      // 2026-11: a 30 s clip is Deezer's cut of the song's highlight, at an offset Deezer does not publish: the
+      // chorus start (seconds into the full recording) cannot be placed in it, so the clip plays from its start
+      offset = 0;
+    else if (it.kind === "cortina") {
+      // the chorus start, validated against the real file: start + the cortina's length stays inside it; a cue the
+      // lyrics could not place starts at the loud part of the file's energy (audio fallback)
+      let start = it.trimInSec ?? 0;
+      if (!start && prepared.kind === "file" && this.audioHook(it)) start = fileHookSec(buffer) ?? 0;
+      offset = Math.max(0, Math.min(start, buffer.duration - it.lengthSec, buffer.duration - 1));
+    } else if (cued) offset = Math.min(it.trimInSec ?? 0, Math.max(0, buffer.duration - 1));
     else if (this.settings.trimLeadingSilence)
       offset = Math.min(prepared.measured?.introSec ?? 0, TRIM_MAX_SEC, buffer.duration / 2);
     let duration: number | undefined;

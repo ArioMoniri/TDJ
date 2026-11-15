@@ -137,6 +137,11 @@ export interface UserSettings {
    */
   cortinaStopSec: number | null;
   /**
+   * 2026-11 (Settings → Cortinas): every cortina starts at its chorus (its most recognisable part) — compose writes
+   * the start, the Booth plays from it, the DJ-app exports put a cue there. Unset = on; false = from 0.
+   */
+  cortinaHookStart?: boolean;
+  /**
    * Round 13: run the benchmark's improveNight after every compose (heatmap years, tighter tandas, golden core,
    * bridge cues, the round-12 fixers) and say what changed in the change summary line. A change is kept only when
    * neither the engine score nor the benchmark falls.

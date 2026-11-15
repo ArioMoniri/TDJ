@@ -17,6 +17,8 @@ const signature = (p: Playlist) =>
   JSON.stringify([
     sides(p),
     p.tandas.map((x) => x.cortina?.id ?? null),
+    // 2026-11: a cortina's start (its chorus) shipped since reaches a browser's older copy too
+    p.tandas.map((x) => x.cortina?.startSec ?? 0),
     p.opening?.id ?? null,
     p.closing?.id ?? null,
     p.tandas.map((x) => x.songs.map((s) => s.spotify?.uri ?? null)),

@@ -3715,6 +3715,27 @@ export const en = {
   "booth.songSheet.start_from_zero": "Start from 0:00",
   "booth.songSheet.start_point_footer":
     "Where this song starts tonight, on files, clips and Spotify. Saved with the night.",
+  "booth.cortinaStart.starts_at": "Starts at {p1}",
+  "booth.cortinaStart.starts_at_why": "Starts at {p1} ({why})",
+  "booth.cortinaStart.why_chorus": "chorus",
+  "booth.cortinaStart.why_first_vocal": "first verse",
+  "booth.cortinaStart.why_energy": "loud part",
+  "booth.cortinaStart.why_manual": "your start",
+  "booth.cortinaStart.header": "Cortina start",
+  "booth.cortinaStart.label": "Start this cortina at (minutes:seconds)",
+  "booth.cortinaStart.footer":
+    "A cortina starts at its chorus, so the floor hears at once it is not a tango. Your start is saved with the night for this cortina, on files, clips and Spotify.",
+  "booth.cortinaStart.footer_off":
+    "Settings → Cortinas plays every cortina from its first second. Your start is saved with the night for this cortina.",
+  "booth.cortinaStart.use_chorus": "Use the chorus ({p1})",
+  "booth.cortinaStart.from_zero": "Start from 0:00",
+  "settings.cortinas": "Cortinas",
+  "settings.start_cortinas_at_the_chorus": "Start cortinas at the chorus (recognisable)",
+  "settings.start_cortinas_at_the_chorus_sub": "Off: every cortina plays from its first second",
+  "settings.start_cortinas_at_the_chorus_tip":
+    "A cortina's intro is mostly melody and sounds like the next tango: starting at the chorus tells the floor at once that the tanda is over.",
+  "exportSheet.cortinas_stop_at_s_after_chorus":
+    "Cortinas stop at {cortinaStop} s after their chorus in files and in the Booth (Rekordbox and Traktor get a cue at the chorus); a Spotify playlist cannot carry a start point, so Spotify plays them in full from the beginning.",
   "boothSongSearch.tonight": "Tonight",
   "boothSongSearch.whole_catalogue": "Whole catalogue",
   "boothSongSearch.scope": "Search in",

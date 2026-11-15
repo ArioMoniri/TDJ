@@ -7,6 +7,7 @@ import {
   planMatches,
 } from "../booth";
 import { exportTandas } from "../bypass";
+import { clockLabel } from "../hooks";
 import type { Cortina, Playlist, Song } from "../types";
 
 export interface FlatTrack {
@@ -300,6 +301,11 @@ export function toRekordboxXML(p: Playlist, eo: ExportOpts = {}): string {
     const m = [
       `      <POSITION_MARK Name="Cortina out (${t.stopSec} s)" Type="0" Start="${t.stopSec.toFixed(3)}" Num="0"/>`,
     ];
+    // 2026-11: a memory cue where the cortina starts (its chorus): Rekordbox's auto cue loads the track there
+    if (t.trimInSec)
+      m.unshift(
+        `      <POSITION_MARK Name="Cortina in (${clockLabel(t.trimInSec)})" Type="0" Start="${t.trimInSec.toFixed(3)}" Num="-1"/>`,
+      );
     if (t.fadeOutSec)
       m.push(
         `      <POSITION_MARK Name="Cortina fade (${t.fadeOutSec} s)" Type="0" Start="${(t.stopSec - t.fadeOutSec).toFixed(3)}" Num="1"/>`,
@@ -347,13 +353,15 @@ export function toTraktorNML(p: Playlist, eo: ExportOpts = {}): string {
   const tracks = flatten(p, eo);
   const loc = (t: FlatTrack) =>
     `<LOCATION DIR="/:TDJ/:" FILE="${esc(`${safe(t.artist)} - ${safe(t.title)}.mp3`)}" VOLUME="" VOLUMEID=""></LOCATION>`;
-  const cue = (name: string, sec: number, hot: number) =>
-    `<CUE_V2 NAME="${name}" DISPL_ORDER="0" TYPE="0" START="${(sec * 1000).toFixed(3)}" LEN="0" REPEATS="-1" HOTCUE="${hot}"></CUE_V2>`;
+  const cue = (name: string, sec: number, hot: number, type = 0) =>
+    `<CUE_V2 NAME="${name}" DISPL_ORDER="0" TYPE="${type}" START="${(sec * 1000).toFixed(3)}" LEN="0" REPEATS="-1" HOTCUE="${hot}"></CUE_V2>`;
+  // 2026-11: a load marker (type 3) where the cortina starts (its chorus): Traktor loads the track there
+  const cueIn = (t: FlatTrack) => (t.trimInSec ? cue("Cortina in", t.trimInSec, -1, 3) : "");
   const cues = (t: FlatTrack) =>
     t.mixOut
       ? cue(esc(`Mix out (${t.mixOut.label})`), t.mixOut.atSec, -1)
       : t.kind === "cortina" && t.stopSec
-        ? `${cue("Cortina out", t.stopSec, 0)}${t.fadeOutSec ? cue("Fade", t.stopSec - t.fadeOutSec, 1) : ""}`
+        ? `${cueIn(t)}${cue("Cortina out", t.stopSec, 0)}${t.fadeOutSec ? cue("Fade", t.stopSec - t.fadeOutSec, 1) : ""}`
         : "";
   const coll = tracks
     .map(
@@ -389,7 +397,7 @@ export function toXSPF(p: Playlist, eo: ExportOpts = {}): string {
   const tracks = flatten(p, eo)
     .map(
       (t) =>
-        `    <track><title>${esc(t.title)}</title><creator>${esc(t.artist)}</creator><album>${esc(t.album ?? "")}</album><duration>${(t.kind === "cortina" && t.stopSec ? t.stopSec : t.durationSec) * 1000}</duration><annotation>${esc(t.kind === "cortina" ? "cortina" : `tanda ${t.tanda}`)}</annotation>${t.spotifyUri ? `<location>${esc(t.spotifyUri)}</location>` : ""}${
+        `    <track><title>${esc(t.title)}</title><creator>${esc(t.artist)}</creator><album>${esc(t.album ?? "")}</album><duration>${(t.kind === "cortina" && t.stopSec ? t.stopSec - (t.trimInSec ?? 0) : t.durationSec) * 1000}</duration><annotation>${esc(t.kind === "cortina" ? "cortina" : `tanda ${t.tanda}`)}</annotation>${t.spotifyUri ? `<location>${esc(t.spotifyUri)}</location>` : ""}${
           t.kind === "cortina" && t.stopSec
             ? `<extension application="http://www.videolan.org/vlc/playlist/0">${t.trimInSec ? `<vlc:option>start-time=${t.trimInSec}</vlc:option>` : ""}<vlc:option>stop-time=${t.stopSec}</vlc:option></extension>`
             : ""

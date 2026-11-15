@@ -309,8 +309,8 @@ describe("BoothEngine scheduler (round7-booth.md §6.3, §12.1)", () => {
     expect(c.starts[0]![1]).toBe(item.trimInSec);
     expect(c.starts[0]![2]).toBeCloseTo(item.stopSec! - item.trimInSec!, 9);
     // the fade: a setValueCurveAtTime on the cortina gain at when + length − 4, lasting 4 s, last point 0
-    const cg = ctx.gains.find((g) => g.gain.of("setValueCurveAtTime").length)!;
-    const curve = cg.gain.of("setValueCurveAtTime")[0]!;
+    // (2026-11: a cortina cued in at 10 s also fades in over 0.5 s; the fade out is the 4 s curve)
+    const curve = ctx.gains.flatMap((g) => g.gain.of("setValueCurveAtTime")).find((c) => c.args[2] === 4)!;
     expect(curve.args[1]).toBeCloseTo(when + item.lengthSec - 4, 9);
     expect(curve.args[2]).toBe(4);
     expect((curve.args[0] as Float32Array).at(-1)).toBe(0);
@@ -453,7 +453,7 @@ describe("state machine (§6.2)", () => {
     e.next(); // a2 is left out: the cortina follows a1
     await flush();
     expect(e.skipped.has(1)).toBe(true);
-    expect(ctx.sources.at(-1)!.starts[0]![2]).toBe(35); // a cortina (45 − 10)
+    expect(ctx.sources.at(-1)!.starts[0]![2]).toBe(45); // a cortina: its 45 s from the cue-in (2026-11)
     ctx.advance(0.05 + 170);
     await flush();
     expect(e.state).toBe("cortina");
@@ -802,7 +802,7 @@ describe("round 20: transport and fades (round20-booth.md)", () => {
     ctx.advance(0.05 + 170); // a2 plays, c0 queued
     await flush();
     const queued = ctx.sources.at(-1)!;
-    expect(queued.starts[0]![2]).toBe(35);
+    expect(queued.starts[0]![2]).toBe(45);
     const edited = build(p, { cortinaEdits: { c0: { stopSec: 30, fadeOutSec: 6 } } });
     e.replacePlan(
       edited,
@@ -1276,5 +1276,157 @@ describe("seek: start from a row, Previous / Next now, seek inside the song", ()
     await e.seek(30);
     const last = ctx.sources.find((s) => s.starts.some(([, off]) => (off ?? 0) > 40))!;
     expect(last.starts[0]![1]).toBeCloseTo(42, 6);
+  });
+});
+
+/* ---------- 2026-11: a cortina starts at its chorus (the owner: "dancers don't recognise them") ---------- */
+describe("2026-11: the booth plays a cortina from its start point (its chorus)", () => {
+  let ctx: FakeCtx;
+  beforeEach(() => {
+    ctx = new FakeCtx();
+  });
+  /** the set with every cortina's chorus at 64.5 s of a 278 s recording */
+  const hooked = (): Playlist => {
+    const p = set();
+    return {
+      ...p,
+      tandas: p.tandas.map((t) => ({
+        ...t,
+        cortina: t.cortina
+          ? {
+              ...t.cortina,
+              startSec: 64.5,
+              spotify: { uri: `spotify:track:${t.cortina.id}`, durationMs: 277916 },
+            }
+          : null,
+      })),
+    };
+  };
+  const firstCortina = (plan: BoothRows) => plan.items.findIndex((it) => it.kind === "cortina");
+  const startAtCortina = async (e: BoothEngine, plan: BoothRows) => {
+    expect(e.select(firstCortina(plan))).toBe(true);
+    await e.start();
+    await e.play();
+    await flush();
+  };
+
+  it("the plan: trimIn = the chorus, the night's length plays from there, a short fade in", () => {
+    const plan = build(hooked());
+    const c = plan.items[firstCortina(plan)]!;
+    expect(c.trimInSec).toBe(64.5);
+    expect(c.lengthSec).toBe(45);
+    expect(c.stopSec).toBe(109.5);
+    expect(c.fadeInSec).toBeGreaterThan(0);
+    expect(c.fadeInSec).toBeLessThanOrEqual(1);
+  });
+
+  it("a file: start(when, 64.5, 45), a fade in from the chorus and the fade out ending at the stop", async () => {
+    const plan = build(hooked());
+    const e = engineFor(ctx, plan);
+    await startAtCortina(e, plan);
+    const [when, offset, dur] = ctx.sources[0]!.starts[0]!;
+    expect(offset).toBeCloseTo(64.5, 6);
+    expect(dur).toBeCloseTo(45, 6);
+    expect(e.state).toBe("cortina");
+    const curves = ctx.gains.flatMap((g) => g.gain.of("setValueCurveAtTime"));
+    // the fade in starts at the chorus (≤ 1 s), the fade out ends at the stop
+    expect(curves.some((c) => c.args[1] === when && (c.args[2] as number) <= 1)).toBe(true);
+    expect(
+      curves.some((c) => Math.abs((c.args[1] as number) + (c.args[2] as number) - (when! + 45)) < 1e-6),
+    ).toBe(true);
+  });
+
+  it("a file shorter than chorus + length: the start is pulled back so the cortina ends at the file's end", async () => {
+    const plan = build(hooked());
+    const adapter = fakeAdapter();
+    adapter.prepare = async () => ({ kind: "file", buffer: buffer(90), durationSec: 90 });
+    const e = engineFor(ctx, plan, adapter);
+    await startAtCortina(e, plan);
+    const [, offset, dur] = ctx.sources[0]!.starts[0]!;
+    expect(offset).toBeCloseTo(45, 6);
+    expect(dur).toBeCloseTo(45, 6);
+  });
+
+  it("a 30 s clip (Deezer's highlight, offset unknown) plays from its own start, never 1 s of its tail", async () => {
+    const plan = build(hooked());
+    const adapter = fakeAdapter();
+    adapter.prepare = async () => ({ kind: "preview", buffer: buffer(30), durationSec: 30 });
+    const e = engineFor(ctx, plan, adapter);
+    await startAtCortina(e, plan);
+    const [, offset, dur] = ctx.sources[0]!.starts[0]!;
+    expect(offset).toBe(0);
+    expect(dur).toBeCloseTo(30, 6);
+  });
+
+  it("the audio fallback: a cortina the lyrics could not place starts at its full file's loud part", async () => {
+    // a 120 s file: quiet 0–40 s, loud from 40 s
+    const rate = 8000;
+    const data = new Float32Array(rate * 120).map((_, i) => (i < rate * 40 ? 0.05 : 0.6) * Math.sin(i / 3));
+    const file = {
+      duration: 120,
+      length: data.length,
+      sampleRate: rate,
+      numberOfChannels: 1,
+      getChannelData: () => data,
+    } as unknown as AudioBuffer;
+    const adapter = fakeAdapter();
+    adapter.prepare = async () => ({ kind: "file", buffer: file, durationSec: 120 });
+    const s = set();
+    const unplaced: Playlist = {
+      ...s,
+      tandas: s.tandas.map((t) => ({ ...t, cortina: t.cortina ? { ...t.cortina, startSec: 0 } : null })),
+    };
+    const plan = build(unplaced);
+    const e = new BoothEngine(ctx, {
+      adapters: [adapter],
+      now: () => 1_000_000,
+      audioHook: (it) => it.kind === "cortina",
+    });
+    e.load(
+      plan,
+      plan.items.map(() => null),
+      plan.items.map(() => "file"),
+    );
+    await startAtCortina(e, plan);
+    const [, offset] = ctx.sources[0]!.starts[0]!;
+    expect(offset).toBeGreaterThan(36);
+    expect(offset).toBeLessThan(41);
+  });
+
+  it("Spotify: play with position_ms at the chorus (positionSec = 64.5) for the cortina's length", async () => {
+    const starts: ExternalStart[] = [];
+    const sp: SourceAdapter = {
+      kind: "spotify",
+      async available() {
+        return { ok: true };
+      },
+      async resolve() {
+        return "ready";
+      },
+      async prepare(item) {
+        return { kind: "spotify", spotifyUri: `spotify:track:${item.id}`, durationSec: item.lengthSec };
+      },
+      release() {},
+      external: {
+        capabilities: { fade: true },
+        startItem(r) {
+          starts.push(r);
+          return { cancel() {}, stop() {}, position: () => r.positionSec };
+        },
+        setMaster() {},
+      },
+    };
+    const plan = build(hooked());
+    const e = new BoothEngine(ctx, { adapters: [sp], now: () => 1_000_000 });
+    e.load(
+      plan,
+      plan.items.map(() => null),
+      plan.items.map(() => "spotify"),
+    );
+    await startAtCortina(e, plan);
+    const r = starts.find((x) => x.uri === "spotify:track:c0")!;
+    expect(r.positionSec).toBeCloseTo(64.5, 6);
+    expect(r.durationSec).toBeCloseTo(45, 6);
+    expect(r.fadeInSec).toBeGreaterThan(0);
   });
 });

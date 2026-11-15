@@ -20,6 +20,7 @@ import { useStore } from "@/lib/store";
 import { cortinaStopSec } from "@/lib/types";
 import { encodeWav, renderTransition } from "./audition";
 import { clipSummary, rehearsalClip, spotifyOf, withSpotifyLengths } from "./clips";
+import { cortinaHookOf } from "./cortinaStart";
 import {
   CuePlayer,
   canPrelisten,
@@ -47,7 +48,7 @@ import {
   saveBoothSettings,
   saveNight,
 } from "./persist";
-import { type BoothRows, decorate, planEntities, remainingFrom } from "./plan";
+import { type BoothRow, type BoothRows, decorate, planEntities, remainingFrom } from "./plan";
 import { resolveSourceMode } from "./sourceMode";
 import { LocalAdapter } from "./sources/local";
 import { PreviewAdapter, REHEARSAL_SEC } from "./sources/preview";
@@ -296,6 +297,12 @@ function pushBanner(b: Banner) {
   useBooth.setState((s) => ({ banners: [...s.banners.filter((x) => x.key !== b.key), b] }));
 }
 const EMPTY_AVAIL = { ok: false, checked: false } as const;
+/** 2026-11: a cortina without a chorus in the data, and without the DJ's own start, may start at its file's loud part */
+const audioHook = (it: BoothRow) =>
+  it.kind === "cortina" &&
+  useStore.getState().settings.cortinaHookStart !== false &&
+  useBooth.getState().playlist?.booth?.cortinaEdits?.[it.id ?? ""]?.startSec === undefined &&
+  (cortinaHookOf(it.id)?.source ?? "none") === "none";
 
 /**
  * The plan the booth plays is the plan the exports write: `attachBooth` on the set with the booth settings, the
@@ -316,6 +323,8 @@ function rePlan(
     loudnessTargetLUFS: settings.loudnessTargetLUFS,
     trimLeadingSilence: settings.trimLeadingSilence,
     cortinaStopSec: cortinaStopSec(user, p.options.cortinaLengthSec),
+    // 2026-11: Settings → Cortinas → "Start cortinas at the chorus" (on unless false)
+    cortinaHookStart: user.cortinaHookStart === false ? false : undefined,
     measurements: local?.measurementsById() ?? {},
     ...extra,
   };
@@ -620,6 +629,7 @@ export const useBooth = create<BoothStore>()((set, get) => ({
         rehearsalSec: sourceMode === "preview" ? REHEARSAL_SEC : null,
         onEvent: onEngineEvent,
         whyMissing,
+        audioHook,
       });
       engine.load(plan, entities, sources);
       syncBypass();
@@ -721,7 +731,14 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     if (!p) return;
     const edits: Record<string, CortinaEdit> = { ...(p.booth?.cortinaEdits ?? {}) };
     if (edit === null) delete edits[id];
-    else edits[id] = { ...edits[id], ...edit };
+    else {
+      // a field set to undefined goes back to the night's setting (2026-11: a start back to the chorus)
+      const next = Object.fromEntries(
+        Object.entries({ ...edits[id], ...edit }).filter(([, v]) => v !== undefined),
+      ) as CortinaEdit;
+      if (Object.keys(next).length) edits[id] = next;
+      else delete edits[id];
+    }
     applyPlan(rePlan(p, get().settings, { cortinaEdits: edits }));
   },
   next: () => engine?.next(),

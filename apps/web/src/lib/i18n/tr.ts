@@ -3891,6 +3891,27 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.songSheet.start_at": "Başlangıç {p1}",
   "booth.songSheet.start_at_label": "Bu şarkıyı şuradan başlat (dakika:saniye)",
   "booth.songSheet.start_from_zero": "0:00'dan başlat",
+  "booth.cortinaStart.starts_at": "Başlangıç {p1}",
+  "booth.cortinaStart.starts_at_why": "Başlangıç {p1} ({why})",
+  "booth.cortinaStart.why_chorus": "nakarat",
+  "booth.cortinaStart.why_first_vocal": "ilk kıta",
+  "booth.cortinaStart.why_energy": "güçlü bölüm",
+  "booth.cortinaStart.why_manual": "senin başlangıcın",
+  "booth.cortinaStart.header": "Kortina başlangıcı",
+  "booth.cortinaStart.label": "Bu kortinayı şuradan başlat (dakika:saniye)",
+  "booth.cortinaStart.footer":
+    "Kortina nakaratından başlar; pist bunun tango olmadığını hemen duyar. Senin başlangıcın bu kortina için gecenle birlikte kaydedilir; dosyalarda, kliplerde ve Spotify'da.",
+  "booth.cortinaStart.footer_off":
+    "Ayarlar → Kortinalar her kortinayı ilk saniyesinden çalıyor. Senin başlangıcın bu kortina için gecenle birlikte kaydedilir.",
+  "booth.cortinaStart.use_chorus": "Nakaratı kullan ({p1})",
+  "booth.cortinaStart.from_zero": "0:00'dan başlat",
+  "settings.cortinas": "Kortinalar",
+  "settings.start_cortinas_at_the_chorus": "Kortinaları nakarattan başlat (tanınır)",
+  "settings.start_cortinas_at_the_chorus_sub": "Kapalı: her kortina ilk saniyesinden çalar",
+  "settings.start_cortinas_at_the_chorus_tip":
+    "Kortinanın girişi çoğunlukla melodidir ve sıradaki tango gibi duyulur: nakarattan başlamak pistte tandanın bittiğini hemen söyler.",
+  "exportSheet.cortinas_stop_at_s_after_chorus":
+    "Kortinalar dosyalarda ve Kabin'de nakarattan {cortinaStop} sn sonra durur (Rekordbox ve Traktor nakaratta bir işaret alır); Spotify çalma listesi başlangıç noktası taşıyamaz, bu yüzden Spotify onları baştan, tam çalar.",
   "booth.songSheet.start_point_footer":
     "Bu şarkının bu gece başladığı yer; dosyalarda, kliplerde ve Spotify'da. Geceyle birlikte kaydedilir.",
   "boothSongSearch.tonight": "Bu gece",

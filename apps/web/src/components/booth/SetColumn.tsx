@@ -3,6 +3,7 @@ import { bypassedTandas } from "@tdj/core";
 import { Headphones, Lock, Repeat2, Search, SlidersHorizontal } from "lucide-react";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { spotifyOf } from "@/lib/booth/clips";
+import { cortinaStartOf } from "@/lib/booth/cortinaStart";
 import { useIndicators } from "@/lib/booth/indicatorPrefs";
 import { cortinaSpan, cortinaSwapLabel, swapLabel } from "@/lib/booth/nightView";
 import { durationLabel } from "@/lib/booth/plan";
@@ -363,6 +364,7 @@ const Row = memo(function Row({
   const entity = useBooth((s) => s.entities[i]);
   const auditioning = useBooth((s) => s.audition?.i === i);
   const cueWhere = useBooth((s) => (s.audition?.i === i ? s.audition.where : null));
+  const cortinaEdits = useBooth((s) => s.playlist?.booth?.cortinaEdits);
   const showEnergy = useIndicators().energy;
   if (!it) return null;
   const energy = showEnergy ? energyOf(entity) : null;
@@ -431,12 +433,14 @@ const Row = memo(function Row({
         </span>
         <span className="booth-row-sub text-footnote block truncate text-[var(--label-2)]">
           {it.kind === "cortina"
-            ? metaLine(
-                tx("booth.setColumn.cortina", { artist: it.artist }),
-                yearText(it.year),
-                cortinaSpan(it.trimInSec ?? 0, it.stopSec ?? 0),
-              )
+            ? metaLine(tx("booth.setColumn.cortina", { artist: it.artist }), yearText(it.year))
             : metaLine(it.artist, yearText(it.year))}
+          {/* 2026-11: where the cortina starts (its chorus, so the floor knows it at once) */}
+          {it.kind === "cortina" && (
+            <span data-testid="booth-cortina-start" title={cortinaSpan(it.trimInSec ?? 0, it.stopSec ?? 0)}>
+              {` · ${cortinaStartOf(it, cortinaEdits).label}`}
+            </span>
+          )}
           {entity && "tempo" in entity && tempoLevel(entity) ? ` · ${tempoLevel(entity)}` : ""}
           {source === "spotify"
             ? tx("booth.setColumn.spotify")

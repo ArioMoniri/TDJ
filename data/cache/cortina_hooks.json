@@ -1,0 +1,1297 @@
+{
+  "version": 1,
+  "generatedAt": "2026-11-15",
+  "hooks": {
+    "c-30s-dont-mean": {
+      "startSec": 46.7,
+      "source": "lyrics",
+      "kind": "first-vocal",
+      "confidence": 0.5,
+      "line": "It don't mean a thing if it ain't got that swing",
+      "durationSec": 188.2,
+      "matched": "lrclib:21909550 Duke Ellington – It Don't Mean a Thing (If It Ain't Got That Swing) (188.24 s)"
+    },
+    "c-30s-dream": {
+      "startSec": 0,
+      "source": "none",
+      "confidence": 0,
+      "note": "no matching synced lyrics"
+    },
+    "c-30s-minnie": {
+      "startSec": 48.8,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.7,
+      "line": "Hi-de-hi-de-hi-de-hi (hi-de-hi-de-hi-de-hi)",
+      "repeats": 2,
+      "durationSec": 194.213,
+      "matched": "lrclib:3856744 Cab Calloway – Minnie the Moocher (196 s)"
+    },
+    "c-30s-mood-indigo": {
+      "startSec": 0,
+      "source": "none",
+      "confidence": 0,
+      "durationSec": 186.2,
+      "matched": "lrclib:9846774 Duke Ellington – Mood Indigo (187 s)",
+      "note": "instrumental: no lyrics to place a chorus; the Deezer preview's offset in the track is unknown"
+    },
+    "c-30s-puttin": {
+      "startSec": 0,
+      "source": "none",
+      "confidence": 0,
+      "durationSec": 148.271,
+      "note": "no matching synced lyrics"
+    },
+    "c-af-1": {
+      "startSec": 70.3,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.8,
+      "line": "You don't need no other body",
+      "repeats": 3,
+      "durationSec": 249.033,
+      "matched": "lrclib:9246723 Wizkid – Essence (249 s)"
+    },
+    "c-af-2": {
+      "startSec": 34.9,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.8,
+      "line": "Baby, calm down, calm down",
+      "repeats": 3,
+      "durationSec": 219.813,
+      "matched": "lrclib:427 Rema – Calm Down (220 s)"
+    },
+    "c-af-3": {
+      "startSec": 48.9,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "I need igbo and shayo (shayo)",
+      "repeats": 4,
+      "durationSec": 172.342,
+      "matched": "lrclib:1491444 Burna Boy – Last Last (172 s)"
+    },
+    "c-af-burna-last-last": {
+      "startSec": 48.9,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "I need igbo and shayo (shayo)",
+      "repeats": 4,
+      "durationSec": 172.342,
+      "matched": "lrclib:1491444 Burna Boy – Last Last (172 s)"
+    },
+    "c-aicha": {
+      "startSec": 78.9,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.7,
+      "line": "Aïcha Aïcha écoute-moi",
+      "repeats": 2,
+      "durationSec": 259.666,
+      "matched": "lrclib:974235 Khaled – Aicha (259 s)"
+    },
+    "c-ba-soda-musica-ligera": {
+      "startSec": 53,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.8,
+      "line": "De aquel amor",
+      "repeats": 3,
+      "durationSec": 212.746,
+      "matched": "lrclib:1040023 Soda Stereo – De Música Ligera (213 s)"
+    },
+    "c-bk-2": {
+      "startSec": 25.9,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.7,
+      "line": "A a daje, amaro dive",
+      "repeats": 2,
+      "durationSec": 381.085,
+      "matched": "lrclib:23639562 Goran Bregovic – Ederlezı (380.6824448 s)"
+    },
+    "c-bk-ciocarlia-asfalt": {
+      "startSec": 0,
+      "source": "none",
+      "confidence": 0,
+      "durationSec": 372.893,
+      "note": "not on LRCLIB"
+    },
+    "c-bk-markovic-djelem": {
+      "startSec": 0,
+      "source": "none",
+      "confidence": 0,
+      "note": "not on LRCLIB"
+    },
+    "c-bk-proeski-cija-si": {
+      "startSec": 57.9,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "Još su ti usne umorne",
+      "repeats": 6,
+      "durationSec": 295.053,
+      "matched": "lrclib:18158895 Toše Proeski – Cija Si (295 s)"
+    },
+    "c-blue-monday": {
+      "startSec": 128.1,
+      "source": "lyrics",
+      "kind": "first-vocal",
+      "confidence": 0.5,
+      "line": "How does it feel",
+      "durationSec": 452.026,
+      "matched": "lrclib:3777944 New Order – Blue Monday (451 s)"
+    },
+    "c-boum": {
+      "startSec": 49.9,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.8,
+      "line": "Tout avec lui dit boum",
+      "repeats": 3,
+      "durationSec": 154.266,
+      "matched": "lrclib:1107449 Charles Trenet – Boum ! (155 s)"
+    },
+    "c-cr-beyond": {
+      "startSec": 74,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.7,
+      "line": "We'll kiss just as before",
+      "repeats": 2,
+      "durationSec": 172.48,
+      "matched": "lrclib:59160 Bobby Darin – Beyond The Sea (172 s)"
+    },
+    "c-cr-blue-moon": {
+      "startSec": 20.7,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "Without a dream in my heart",
+      "repeats": 4,
+      "durationSec": 191.36,
+      "matched": "lrclib:29911778 Mel Torme – Blue Moon (191 s)"
+    },
+    "c-cr-come-on": {
+      "startSec": 16.9,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.7,
+      "line": "Come on-a my house, my house a come on",
+      "repeats": 2,
+      "durationSec": 116.933,
+      "matched": "lrclib:1681991 Rosemary Clooney – Come On-A My House (119 s)"
+    },
+    "c-cr-falling-star": {
+      "startSec": 42.5,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.8,
+      "line": "Catch a falling star and put it in your pocket",
+      "repeats": 3,
+      "durationSec": 149.04,
+      "matched": "lrclib:30477215 Perry Como – Catch a Falling Star (149 s)"
+    },
+    "c-cr-love": {
+      "startSec": 30.7,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.7,
+      "line": "Love is all that I can give to you",
+      "repeats": 2,
+      "durationSec": 155.306,
+      "matched": "lrclib:1570562 Nat King Cole – L-O-V-E (153 s)"
+    },
+    "c-cr-mack": {
+      "startSec": 0,
+      "source": "lyrics",
+      "kind": "intro-short",
+      "confidence": 0.4,
+      "line": "Oh the shark, babe, has such teeth, dear",
+      "durationSec": 184.333,
+      "matched": "lrclib:1127439 Bobby Darin – Mack The Knife (184 s)"
+    },
+    "c-cr-moon": {
+      "startSec": 18,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.7,
+      "line": "Oh, dream maker, you heartbreaker",
+      "repeats": 2,
+      "durationSec": 162.893,
+      "matched": "lrclib:1525255 Andy Williams – Moon River (163 s)"
+    },
+    "c-cr-pennies": {
+      "startSec": 111,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.7,
+      "line": "You must have showers",
+      "repeats": 2,
+      "durationSec": 194.293,
+      "matched": "lrclib:2472352 Bing Crosby – Pennies From Heaven (192 s)"
+    },
+    "c-cr-que-sera": {
+      "startSec": 22.9,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.8,
+      "line": "Que sera, sera",
+      "repeats": 3,
+      "durationSec": 127.946,
+      "matched": "lrclib:1255313 Doris Day – Que Sera Sera (128 s)"
+    },
+    "c-cr-rags": {
+      "startSec": 82.9,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.7,
+      "line": "Must I forever be a begger",
+      "repeats": 2,
+      "durationSec": 168.48,
+      "matched": "lrclib:8021683 Tony Bennett – Rags to Riches (168 s)"
+    },
+    "c-cr-sway": {
+      "startSec": 53.5,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.7,
+      "line": "Only you have the magic technique",
+      "repeats": 2,
+      "durationSec": 165.133,
+      "matched": "lrclib:4105952 Dean Martin – Sway (165 s)"
+    },
+    "c-cr-swinging-star": {
+      "startSec": 39.1,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.7,
+      "line": "Or would you like to swing on a star",
+      "repeats": 2,
+      "durationSec": 151.866,
+      "matched": "lrclib:5099715 Bing Crosby – Swinging On A Star (152 s)"
+    },
+    "c-feeling-good": {
+      "startSec": 15.3,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "It's a new dawn",
+      "repeats": 4,
+      "durationSec": 174,
+      "matched": "lrclib:85222 Nina Simone – Feeling Good (174 s)"
+    },
+    "c-fly-me": {
+      "startSec": 46,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.7,
+      "line": "You are all I long for",
+      "repeats": 2,
+      "durationSec": 148.866,
+      "matched": "lrclib:2501905 Frank Sinatra – Fly Me To the Moon (149 s)"
+    },
+    "c-fr-bardot-moi-je-joue": {
+      "startSec": 8.8,
+      "source": "lyrics",
+      "kind": "first-vocal",
+      "confidence": 0.5,
+      "line": "Moi je joue",
+      "durationSec": 102.666,
+      "matched": "lrclib:5450762 Brigitte Bardot – Moi je joue (103 s)"
+    },
+    "c-fr-gainsbourg-poinconneur": {
+      "startSec": 33.6,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.7,
+      "line": "J'fais des trous, des p'tits trous, encore des p'tits trous",
+      "repeats": 2,
+      "durationSec": 163.106,
+      "matched": "lrclib:5088724 Serge Gainsbourg – Le poinçonneur des Lilas (164 s)"
+    },
+    "c-fr-piaf-padam": {
+      "startSec": 0,
+      "source": "lyrics",
+      "kind": "intro-short",
+      "confidence": 0.4,
+      "line": "Cet air qui m'obsède jour et nuit",
+      "durationSec": 198,
+      "matched": "lrclib:1729009 Edith Piaf – Padam padam (200 s)"
+    },
+    "c-fr-trenet-boum": {
+      "startSec": 49.9,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.8,
+      "line": "Tout avec lui dit boum",
+      "repeats": 3,
+      "durationSec": 154.266,
+      "matched": "lrclib:1107449 Charles Trenet – Boum ! (155 s)"
+    },
+    "c-garota": {
+      "startSec": 81,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.7,
+      "line": "Tall and tan and young and lovely",
+      "repeats": 2,
+      "durationSec": 324,
+      "matched": "lrclib:13473809 Stan Getz – Garota de Ipanema (324 s)"
+    },
+    "c-gr-3": {
+      "startSec": 0,
+      "source": "none",
+      "confidence": 0,
+      "durationSec": 191.085,
+      "note": "not on LRCLIB"
+    },
+    "c-gr-4": {
+      "startSec": 0,
+      "source": "none",
+      "confidence": 0,
+      "durationSec": 232.546,
+      "note": "not on LRCLIB"
+    },
+    "c-gr-alexiou-dirlada": {
+      "startSec": 0,
+      "source": "none",
+      "confidence": 0,
+      "note": "not on LRCLIB"
+    },
+    "c-gr-dalaras-ola-kala": {
+      "startSec": 0,
+      "source": "none",
+      "confidence": 0,
+      "durationSec": 188.653,
+      "note": "no matching synced lyrics"
+    },
+    "c-gr-foureira-fuego": {
+      "startSec": 52.2,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "Ah yeah ah yeah ah yeah, yeah ah yeah ah yeah",
+      "repeats": 5,
+      "durationSec": 183.397,
+      "matched": "lrclib:3231328 Eleni Foureira – Fuego (184 s)"
+    },
+    "c-in-the-mood": {
+      "startSec": 0,
+      "source": "none",
+      "confidence": 0,
+      "durationSec": 216.746,
+      "matched": "lrclib:9197491 Glenn Miller – In The Mood (217 s)",
+      "note": "instrumental: no lyrics to place a chorus; the Deezer preview's offset in the track is unknown"
+    },
+    "c-ir-1": {
+      "startSec": 0,
+      "source": "none",
+      "confidence": 0,
+      "note": "not on LRCLIB"
+    },
+    "c-ir-2": {
+      "startSec": 153.3,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.5,
+      "line": "وای، نازنین مریم",
+      "repeats": 3,
+      "durationSec": 310.973,
+      "matched": "lrclib:12161793 Mohammad Nouri – Jan-e-Maryam (614 s)",
+      "note": "lyrics timed on a 614 s recording (ours 311 s)"
+    },
+    "c-ir-3": {
+      "startSec": 33.7,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "عشق فریاد کند",
+      "repeats": 6,
+      "durationSec": 277.88,
+      "matched": "lrclib:11655538 Googoosh – Man Amadeh-Am (278 s)"
+    },
+    "c-ir-arash-boro-boro": {
+      "startSec": 25.5,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "برو برو دلم تو رو تو رو نمیخواد",
+      "repeats": 6,
+      "durationSec": 191,
+      "matched": "lrclib:4998261 Arash – Boro Boro (191 s)"
+    },
+    "c-ir-ebi-kavir": {
+      "startSec": 131.4,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.7,
+      "line": "اما این مثل یک خوابه",
+      "repeats": 2,
+      "durationSec": 241.96,
+      "matched": "lrclib:6550984 Ebi – Kavir (242 s)"
+    },
+    "c-ir-googoosh-man-amadeam": {
+      "startSec": 33.7,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "عشق فریاد کند",
+      "repeats": 6,
+      "durationSec": 278.8342,
+      "matched": "lrclib:16701657 Googoosh – Man Amadeam (278.8342 s)"
+    },
+    "c-it-buscaglione-bambola": {
+      "startSec": 14,
+      "source": "lyrics",
+      "kind": "first-vocal",
+      "confidence": 0.5,
+      "line": "Che bambola",
+      "durationSec": 146.626,
+      "matched": "lrclib:4426083 Fred Buscaglione – Che Bambola (147 s)"
+    },
+    "c-it-celentano-azzurro": {
+      "startSec": 31.1,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.8,
+      "line": "Azzurro, il pomeriggio è troppo azzurro e lungo per me",
+      "repeats": 3,
+      "durationSec": 222.866,
+      "matched": "lrclib:896106 Adriano Celentano – Azzurro (222 s)"
+    },
+    "c-it-celentano-prisencolin": {
+      "startSec": 0,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "Prisencoli",
+      "repeats": 6,
+      "durationSec": 231.626,
+      "matched": "lrclib:4070552 Adriano Celentano – Prisencolinensinainciusol (233 s)"
+    },
+    "c-it-mina-tintarella": {
+      "startSec": 33.6,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "E se c'è la luna piena",
+      "repeats": 5,
+      "durationSec": 179.06,
+      "matched": "lrclib:4583777 Mina – Tintarella di luna (178 s)"
+    },
+    "c-jz-baker-lost": {
+      "startSec": 89.1,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.4,
+      "line": "Let's defrost in a romantic mist",
+      "repeats": 2,
+      "durationSec": 177.214,
+      "matched": "lrclib:33278420 Chet Baker – Let's Get Lost (221 s)",
+      "note": "lyrics timed on a 221 s recording (ours 177 s)"
+    },
+    "c-jz-basie-woodside": {
+      "startSec": 0,
+      "source": "none",
+      "confidence": 0,
+      "durationSec": 190.026,
+      "matched": "lrclib:32466095 Count Basie and His Orchestra – Jumpin' At The Woodside (190 s)",
+      "note": "instrumental: no lyrics to place a chorus; the Deezer preview's offset in the track is unknown"
+    },
+    "c-jz-prima-jump": {
+      "startSec": 17.8,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "Oh, you gotta jump, jive, and then you wail",
+      "repeats": 4,
+      "durationSec": 209.293,
+      "matched": "lrclib:2252716 Louis Prima – Jump, Jive, An' Wail (209 s)"
+    },
+    "c-jz-simone-baby": {
+      "startSec": 8.1,
+      "source": "lyrics",
+      "kind": "first-vocal",
+      "confidence": 0.5,
+      "line": "My baby don't care for shows",
+      "durationSec": 215.746,
+      "matched": "lrclib:5649374 Nina Simone – My Baby Just Cares For Me (216 s)"
+    },
+    "c-kp-1": {
+      "startSec": 49.7,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "Shining through the city with a little funk and soul",
+      "repeats": 4,
+      "durationSec": 199.053,
+      "matched": "lrclib:942306 BTS – Dynamite (199 s)"
+    },
+    "c-kp-2": {
+      "startSec": 23.8,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.8,
+      "line": "사건은 다가와, ah-oh, ayy",
+      "repeats": 3,
+      "durationSec": 178.88,
+      "matched": "lrclib:9157016 aespa – Supernova (179 s)"
+    },
+    "c-kp-3": {
+      "startSec": 12,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "I'm super shy, super shy",
+      "repeats": 6,
+      "durationSec": 154.666,
+      "matched": "lrclib:2657343 NewJeans – Super Shy (155 s)"
+    },
+    "c-kp-ive-i-am": {
+      "startSec": 38.7,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.8,
+      "line": "제일 좋은 어느 날의 데자뷔",
+      "repeats": 3,
+      "durationSec": 183.853,
+      "matched": "lrclib:2228752 IVE – I AM (184 s)"
+    },
+    "c-kp-newjeans-super-shy": {
+      "startSec": 12,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "I'm super shy, super shy",
+      "repeats": 6,
+      "durationSec": 154.666,
+      "matched": "lrclib:2657343 NewJeans – Super Shy (155 s)"
+    },
+    "c-la-vie": {
+      "startSec": 25.7,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.7,
+      "line": "Quand il me prend dans ses bras",
+      "repeats": 2,
+      "durationSec": 187.733,
+      "matched": "lrclib:397074 Edith Piaf – La Vie En Rose (186 s)"
+    },
+    "c-mas-que": {
+      "startSec": 11.2,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "Ô Ariá raio",
+      "repeats": 6,
+      "durationSec": 158.773,
+      "matched": "lrclib:847110 Sergio Mendes & Brasil '66 – Mas Que Nada (161 s)"
+    },
+    "c-sing-sing": {
+      "startSec": 0,
+      "source": "none",
+      "confidence": 0,
+      "durationSec": 520.293,
+      "matched": "lrclib:10226649 Benny Goodman – Sing, Sing, Sing (520 s)",
+      "note": "instrumental: no lyrics to place a chorus; the Deezer preview's offset in the track is unknown"
+    },
+    "c-superstition": {
+      "startSec": 47.5,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.7,
+      "line": "13-month-old baby",
+      "repeats": 2,
+      "durationSec": 266.133,
+      "matched": "lrclib:389493 Stevie Wonder – Superstition (266 s)"
+    },
+    "c-sw-beguine": {
+      "startSec": 0,
+      "source": "none",
+      "confidence": 0,
+      "durationSec": 194.933,
+      "matched": "lrclib:25566404 Artie Shaw – Begin The Beguine (194.7428569 s)",
+      "note": "instrumental: no lyrics to place a chorus; the Deezer preview's offset in the track is unknown"
+    },
+    "c-sw-bugle-boy": {
+      "startSec": 96.8,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.7,
+      "line": "A-a-a-and the company jumps when he plays reveille",
+      "repeats": 2,
+      "durationSec": 164.16,
+      "matched": "lrclib:1500254 The Andrews Sisters – Boogie Woogie Bugle Boy (162 s)"
+    },
+    "c-sw-chattanooga": {
+      "startSec": 52.2,
+      "source": "lyrics",
+      "kind": "first-vocal",
+      "confidence": 0.5,
+      "line": "(Hi there, Tex, what you say?)",
+      "durationSec": 206.8,
+      "matched": "lrclib:6997521 Glenn Miller – Chattanooga Choo Choo (206 s)"
+    },
+    "c-sw-cheek": {
+      "startSec": 5.6,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.7,
+      "line": "Heaven, I'm in heaven",
+      "repeats": 2,
+      "durationSec": 198.106,
+      "matched": "lrclib:4065055 Fred Astaire – Cheek to Cheek (198 s)"
+    },
+    "c-sw-flying-home": {
+      "startSec": 0,
+      "source": "none",
+      "confidence": 0,
+      "durationSec": 177.04,
+      "matched": "lrclib:22713281 Lionel Hampton – Flying Home (2002 Remastered) (178.293356 s)",
+      "note": "instrumental: no lyrics to place a chorus; the Deezer preview's offset in the track is unknown"
+    },
+    "c-sw-opus-one": {
+      "startSec": 0,
+      "source": "none",
+      "confidence": 0,
+      "durationSec": 179.293,
+      "matched": "lrclib:18814645 Tommy Dorsey – Opus One (178.5011 s)",
+      "note": "instrumental: no lyrics to place a chorus; the Deezer preview's offset in the track is unknown"
+    },
+    "c-sw-savoy": {
+      "startSec": 0,
+      "source": "none",
+      "confidence": 0,
+      "durationSec": 351.266,
+      "matched": "lrclib:35756456 Benny Goodman – Stompin' at the Savoy (Take 2) (197 s)",
+      "note": "instrumental: no lyrics to place a chorus; the Deezer preview's offset in the track is unknown"
+    },
+    "c-sw-sentimental": {
+      "startSec": 100.6,
+      "source": "lyrics",
+      "kind": "first-vocal",
+      "confidence": 0.5,
+      "line": "Gonna take a sentimental journey",
+      "durationSec": 229.04,
+      "matched": "lrclib:3857674 Les Brown – Sentimental Journey (229 s)"
+    },
+    "c-sw-taint": {
+      "startSec": 59.8,
+      "source": "lyrics",
+      "kind": "first-vocal",
+      "confidence": 0.5,
+      "line": "When I was a kid about half past three",
+      "durationSec": 183.2,
+      "matched": "lrclib:14967361 Jimmie Lunceford – Tain't What You Do (It's The Way That You Do It) (183 s)"
+    },
+    "c-sw-tisket": {
+      "startSec": 80.5,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.7,
+      "line": "A-tisket, a-tasket",
+      "repeats": 2,
+      "durationSec": 159.733,
+      "matched": "lrclib:23231914 Ella Fitzgerald – A-Tisket, A-Tasket - 05 - A-Tisket, A-Tasket (157.1526529 s)"
+    },
+    "c-sw-tuxedo": {
+      "startSec": 0,
+      "source": "none",
+      "confidence": 0,
+      "durationSec": 206.293,
+      "matched": "lrclib:10303206 Glenn Miller – Tuxedo Junction (205 s)",
+      "note": "instrumental: no lyrics to place a chorus; the Deezer preview's offset in the track is unknown"
+    },
+    "c-sw-woodchopper": {
+      "startSec": 0,
+      "source": "none",
+      "confidence": 0,
+      "durationSec": 188.733,
+      "matched": "lrclib:25128569 Woody Herman – Woodchopper's Ball  (78rpm Version) (188.865306 s)",
+      "note": "instrumental: no lyrics to place a chorus; the Deezer preview's offset in the track is unknown"
+    },
+    "c-take-five": {
+      "startSec": 0,
+      "source": "none",
+      "confidence": 0,
+      "durationSec": 328.831,
+      "matched": "lrclib:9572927 Dave Brubeck Quartet – Take Five (327 s)",
+      "note": "instrumental: no lyrics to place a chorus; the Deezer preview's offset in the track is unknown"
+    },
+    "c-take-on-me": {
+      "startSec": 81.9,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "Take on me (take on me)",
+      "repeats": 5,
+      "durationSec": 288.84,
+      "matched": "lrclib:6838063 A-ha – Take on me (288 s)"
+    },
+    "c-tamally": {
+      "startSec": 91,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "تملي حبيبي بأشتاقلك، تملي عينيا تندهلك",
+      "repeats": 8,
+      "durationSec": 269.232,
+      "matched": "lrclib:4091560 Amr Diab – Tamally Maak (269 s)"
+    },
+    "c-tr-1": {
+      "startSec": 227.5,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.7,
+      "line": "Sonunda, tuz bastım gönül yarama",
+      "repeats": 2,
+      "durationSec": 328.773,
+      "matched": "lrclib:10600046 Zeki Müren – Ah Bu Şarkıların Gözü Kör Olsun (328 s)"
+    },
+    "c-tr-2": {
+      "startSec": 51.8,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.8,
+      "line": "Bütün dünya izler durur",
+      "repeats": 3,
+      "durationSec": 230.6,
+      "matched": "lrclib:2640712 mor ve ötesi – Cambaz (231 s)"
+    },
+    "c-tr-2025b": {
+      "startSec": 5.6,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "아파트, 아파트",
+      "repeats": 7,
+      "durationSec": 169.917,
+      "matched": "lrclib:13492826 ROSÉ, Bruno Mars – APT. (169 s)"
+    },
+    "c-tr-3": {
+      "startSec": 66.8,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "Seni gidi fındıkkıran",
+      "repeats": 8,
+      "durationSec": 235.218,
+      "matched": "lrclib:8931485 Tarkan – Simarik (235 s)"
+    },
+    "c-tr-4": {
+      "startSec": 0,
+      "source": "none",
+      "confidence": 0,
+      "durationSec": 198.6,
+      "note": "not on LRCLIB"
+    },
+    "c-tr-5": {
+      "startSec": 0,
+      "source": "none",
+      "confidence": 0,
+      "note": "not on LRCLIB"
+    },
+    "c-tr-6": {
+      "startSec": 97.7,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.8,
+      "line": "Dudağımda son bir türkü, gülpembe",
+      "repeats": 3,
+      "durationSec": 284.532,
+      "matched": "lrclib:11440928 Barış Manço – Gülpembe (286 s)"
+    },
+    "c-tr-aksu-firuze": {
+      "startSec": 48,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.7,
+      "line": "Bir gün dönüp bakınca düşler",
+      "repeats": 2,
+      "durationSec": 304.266,
+      "matched": "lrclib:2641403 Sezen Aksu – Firuze (304 s)"
+    },
+    "c-tr-aksu-gulumse": {
+      "startSec": 62.4,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "Belki şehre bir film gelir",
+      "repeats": 4,
+      "durationSec": 303.52,
+      "matched": "lrclib:2641748 Sezen Aksu – Gülümse (302 s)"
+    },
+    "c-tr-aksu-hadi-bakalim": {
+      "startSec": 78.6,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "(Ne-ne-ni-na, na-na-nı-na)",
+      "repeats": 9,
+      "durationSec": 296.386,
+      "matched": "lrclib:9769625 Sezen Aksu – Hadi Bakalım (296 s)"
+    },
+    "c-tr-aksu-sen-aglama": {
+      "startSec": 138.6,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "Sen ağlama, dayanamam",
+      "repeats": 4,
+      "durationSec": 346.196,
+      "matched": "lrclib:2644006 Sezen Aksu – Sen Ağlama (346 s)"
+    },
+    "c-tr-athena-holigan": {
+      "startSec": 47,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "Marş söylerken yumruk göklerde",
+      "repeats": 8,
+      "durationSec": 179.533,
+      "matched": "lrclib:2050550 Athena – Holigan (180 s)"
+    },
+    "c-tr-boz-janti": {
+      "startSec": 55.6,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.8,
+      "line": "Gelemem kendime yar",
+      "repeats": 3,
+      "durationSec": 202.686,
+      "matched": "lrclib:2642245 Murat Boz – Janti (203 s)"
+    },
+    "c-tr-duman-her-seyi-yak": {
+      "startSec": 28.2,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.8,
+      "line": "Beni yak, kendini yak, her şeyi yak",
+      "repeats": 3,
+      "durationSec": 270.28,
+      "matched": "lrclib:2641980 Duman – Her Şeyi Yak (270 s)"
+    },
+    "c-tr-duman-senden": {
+      "startSec": 67.9,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "Senden daha güzel",
+      "repeats": 6,
+      "durationSec": 239.093,
+      "matched": "lrclib:9100082 Duman – Senden Daha Güzel (239 s)"
+    },
+    "c-tr-duru-ben-sana": {
+      "startSec": 35.6,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "Ben gene sana vurgunum",
+      "repeats": 4,
+      "durationSec": 270.851,
+      "matched": "lrclib:12225013 Nukhet Duru – Ben Sana Vurgunum (270 s)"
+    },
+    "c-tr-edis-roman": {
+      "startSec": 43.9,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "Böyle bir vurgun olmaz",
+      "repeats": 4,
+      "durationSec": 228.138,
+      "matched": "lrclib:11778656 Edis – Roman (228 s)"
+    },
+    "c-tr-edis-yalan": {
+      "startSec": 39.9,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "Geçti artık uslu durmam",
+      "repeats": 4,
+      "durationSec": 176.865,
+      "matched": "lrclib:11753485 Edis – Yalan (176 s)"
+    },
+    "c-tr-evgin-iste-oyle": {
+      "startSec": 39.6,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.7,
+      "line": "Hani ıssız bir yoldan geçerken",
+      "repeats": 2,
+      "durationSec": 180.213,
+      "matched": "lrclib:10235851 Erol Evgin – İşte Öyle Bir Şey (180 s)"
+    },
+    "c-tr-ferah-sil-bastan": {
+      "startSec": 80.7,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "Sil baştan başlamak gerek bazen",
+      "repeats": 6,
+      "durationSec": 312.215,
+      "matched": "lrclib:2644213 Şebnem Ferah – Sil Baştan (312 s)"
+    },
+    "c-tr-gencebay-batsin": {
+      "startSec": 102,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.7,
+      "line": "Dolmamış çileler, yaşanmamış dertler",
+      "repeats": 2,
+      "durationSec": 336.533,
+      "matched": "lrclib:10601396 Orhan Gencebay – Batsın Bu Dünya (337 s)"
+    },
+    "c-tr-gulsen-bangir": {
+      "startSec": 78,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "Yavrum, kaldır kollarını",
+      "repeats": 6,
+      "durationSec": 233.63,
+      "matched": "lrclib:2640217 Gülşen – Bangır Bangır (234 s)"
+    },
+    "c-tr-gurses-nilufer": {
+      "startSec": 54.9,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "Bir şansım olsun",
+      "repeats": 4,
+      "durationSec": 258.159,
+      "matched": "lrclib:9907246 Müslüm Gürses – Nilüfer (258 s)"
+    },
+    "c-tr-hadise-dum-tek-tek": {
+      "startSec": 47,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "Always out it like there's no limit",
+      "repeats": 7,
+      "durationSec": 183.437,
+      "matched": "lrclib:2050253 Hadise – Düm Tek Tek (183 s)"
+    },
+    "c-tr-karaca-resimdeki": {
+      "startSec": 9.9,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.8,
+      "line": "Bir gün belki hayattan (ye yi ye yi ye yi ya)",
+      "repeats": 3,
+      "durationSec": 185.213,
+      "matched": "lrclib:9699166 Cem Karaca – Resimdeki Gözyaşları (186 s)"
+    },
+    "c-tr-karaca-tamirci": {
+      "startSec": 26,
+      "source": "lyrics",
+      "kind": "first-vocal",
+      "confidence": 0.5,
+      "line": "Gönlüme bir ateş düştü yanar ha yanar yanar",
+      "durationSec": 296.56,
+      "matched": "lrclib:2644482 Cem Karaca – Tamirci Çırağı (297 s)"
+    },
+    "c-tr-kizilok-bu-kalp": {
+      "startSec": 69.8,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "Bambaşka bir hâlin vardı",
+      "repeats": 4,
+      "durationSec": 274.713,
+      "matched": "lrclib:14386881 Fikret Kızılok, Sibel Sezal – Bu Kalp Seni Unutur mu (275 s)"
+    },
+    "c-tr-koray-cemalim": {
+      "startSec": 81.8,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.8,
+      "line": "Cemalım Cemalım algın Cemalım",
+      "repeats": 3,
+      "durationSec": 460.786,
+      "matched": "lrclib:5522191 Erkin Koray – Cemalim (461 s)"
+    },
+    "c-tr-livaneli-leylim": {
+      "startSec": 78.1,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.8,
+      "line": "Leylim ley",
+      "repeats": 3,
+      "durationSec": 175.333,
+      "matched": "lrclib:31623816 Zülfü Livaneli – Leylim Ley (176 s)"
+    },
+    "c-tr-manco-daglar": {
+      "startSec": 96.5,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "Dağlar dağlar",
+      "repeats": 4,
+      "durationSec": 203.885,
+      "matched": "lrclib:20320981 Barış Manço – Dağlar Dağlar (203.815313 s)"
+    },
+    "c-tr-manco-donence": {
+      "startSec": 260.4,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.8,
+      "line": "Dönence",
+      "repeats": 3,
+      "durationSec": 404.768,
+      "matched": "lrclib:19074390 Baris Manco – Donence (406.8025 s)"
+    },
+    "c-tr-matiz-gel": {
+      "startSec": 0,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.8,
+      "line": "Gel, anla dikenimden",
+      "repeats": 3,
+      "durationSec": 287,
+      "matched": "lrclib:8745483 Mabel Matiz – Gel (287 s)"
+    },
+    "c-tr-mfo-ele-gune": {
+      "startSec": 81.5,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.8,
+      "line": "Ele güne karşı yapayalnız böyle de olmaz ki",
+      "repeats": 3,
+      "durationSec": 189.367,
+      "matched": "lrclib:10023002 MFÖ – Ele Güne Karşı (188 s)"
+    },
+    "c-tr-mfo-peki-peki": {
+      "startSec": 11.7,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.7,
+      "line": "Peki peki anladık",
+      "repeats": 2,
+      "durationSec": 207.733,
+      "matched": "lrclib:12894850 MFÖ – Peki Peki Anladık (207 s)"
+    },
+    "c-tr-muren-simdi": {
+      "startSec": 82.2,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "Hiç ayrılamam derken",
+      "repeats": 4,
+      "durationSec": 193.948,
+      "matched": "lrclib:30381536 Zeki Müren – Şimdi Uzaklardasın (195 s)"
+    },
+    "c-tr-mvo-bir-derdim": {
+      "startSec": 31.1,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.7,
+      "line": "Bir derdim var, artık tutamam içimde",
+      "repeats": 2,
+      "durationSec": 204.32,
+      "matched": "lrclib:2640451 mor ve ötesi – Bir Derdim Var (204 s)"
+    },
+    "c-tr-nilufer-goreceksin": {
+      "startSec": 91.5,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.8,
+      "line": "Görecek-göreceksin kendini",
+      "repeats": 3,
+      "durationSec": 143.733,
+      "matched": "lrclib:11718913 Nilüfer – Göreceksin Kendini (143 s)"
+    },
+    "c-tr-nilufer-haram": {
+      "startSec": 43.6,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "Yar yine bana, haram geceler",
+      "repeats": 8,
+      "durationSec": 267.533,
+      "matched": "lrclib:10948970 Nilüfer – Haram Geceler (267 s)"
+    },
+    "c-tr-ortacgil-benimle": {
+      "startSec": 0,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.7,
+      "line": "Su olsam, ateş olsam",
+      "repeats": 2,
+      "durationSec": 144.24,
+      "matched": "lrclib:25674224 Bülent Ortaçgil – Benimle Oynar Mısın (144.222041 s)"
+    },
+    "c-tr-pekkan-bambaska": {
+      "startSec": 52.1,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.8,
+      "line": "Bugünü aslında nasıl sabırla bekledimdi",
+      "repeats": 3,
+      "durationSec": 323.693,
+      "matched": "lrclib:10008447 Ajda Pekkan – Bambaşka Biri (324 s)"
+    },
+    "c-tr-sandal-araba": {
+      "startSec": 109.9,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "Maalesef ruhu yok",
+      "repeats": 6,
+      "durationSec": 281.44,
+      "matched": "lrclib:2049820 Mustafa Sandal – Araba (281 s)"
+    },
+    "c-tr-selda-yaz-gazeteci": {
+      "startSec": 40.9,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "Yaz yaz gazeteci yaz,",
+      "repeats": 8,
+      "durationSec": 166.4,
+      "matched": "lrclib:11281472 Selda Bagcan – Yaz Gazeteci Yaz (166 s)"
+    },
+    "c-tr-sertab-everyway": {
+      "startSec": 42.6,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "Every way that I can",
+      "repeats": 4,
+      "durationSec": 156.933,
+      "matched": "lrclib:7501950 Sertab Erener – Everyway That I Can (157 s)"
+    },
+    "c-tr-simge-mis-mis": {
+      "startSec": 6.6,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.8,
+      "line": "La-la-la-la-lal-la, lal-la",
+      "repeats": 3,
+      "durationSec": 192.967,
+      "matched": "lrclib:2643057 Simge – Miş Miş (193 s)"
+    },
+    "c-tr-tarkan-dudu": {
+      "startSec": 64.5,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "Çiçek gibi tazecik, kıymetli bi' tanecik",
+      "repeats": 5,
+      "durationSec": 277.916,
+      "matched": "lrclib:1036698 Tarkan – Dudu (278 s)"
+    },
+    "c-tr-tarkan-gecce": {
+      "startSec": 36.5,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "Oh-oh, zilleri takıp oynıy'ca'z o zaman",
+      "repeats": 8,
+      "durationSec": 194.907,
+      "matched": "lrclib:7753410 Tarkan – Geççek (195 s)"
+    },
+    "c-tr-tarkan-kis-gunesi": {
+      "startSec": 79.9,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "Azar, coşar deli gönül",
+      "repeats": 6,
+      "durationSec": 235.171,
+      "matched": "lrclib:2050655 Tarkan – Kis Günesi (235 s)"
+    },
+    "c-tr-tarkan-kuzu": {
+      "startSec": 63.5,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "İşte kuzu kuzu geldim",
+      "repeats": 4,
+      "durationSec": 233.639,
+      "matched": "lrclib:2050688 Tarkan – Kuzu Kuzu (233 s)"
+    },
+    "c-tr-tarkan-yolla": {
+      "startSec": 68.9,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "Yolla, yolla, kaderim, yolla",
+      "repeats": 7,
+      "durationSec": 285.856,
+      "matched": "lrclib:2646138 Tarkan – Yolla (286 s)"
+    },
+    "c-tr-tatlises-haydi-soyle": {
+      "startSec": 80.3,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "Haydi söyle onu nasıl sevdiğimi",
+      "repeats": 5,
+      "durationSec": 258.866,
+      "matched": "lrclib:7123912 İbrahim Tatlıses – Haydi Söyle (259 s)"
+    },
+    "c-tr-teoman-sonbahar": {
+      "startSec": 30.2,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.8,
+      "line": "Akşama doğru azalırsa yağmur",
+      "repeats": 3,
+      "durationSec": 200.16,
+      "matched": "lrclib:10635447 Teoman – İstanbul'da Sonbahar (200 s)"
+    },
+    "c-tr-tilki-cevapsiz": {
+      "startSec": 64.4,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "Kalbimde kırılmadık yer mi bıraktı?",
+      "repeats": 5,
+      "durationSec": 212.535,
+      "matched": "lrclib:23379195 Emrah Karaduman/Aleyna Tilki – Cevapsız Çınlama (213 s)"
+    },
+    "c-tr-yeni-turku-olmasa": {
+      "startSec": 5,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.8,
+      "line": "Olmasa mektubun yazdıkların olmasa",
+      "repeats": 3,
+      "durationSec": 214.733,
+      "matched": "lrclib:5641620 Yeni Türkü – Olmasa Mektubun (215 s)"
+    },
+    "c-tu-vuo": {
+      "startSec": 26.9,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "Tu vuo' fa' l'americano",
+      "repeats": 5,
+      "durationSec": 209.48,
+      "matched": "lrclib:1659272 Renato Carosone – Tu Vuo Fà L'Americano (209 s)"
+    },
+    "c-volare": {
+      "startSec": 39.1,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.9,
+      "line": "Volare, oh, oh",
+      "repeats": 4,
+      "durationSec": 216.319,
+      "matched": "lrclib:30667694 Domenico Modugno – Nel blu dipinto di blu (Volare) (216 s)"
+    },
+    "c-walk-on": {
+      "startSec": 32.6,
+      "source": "lyrics",
+      "kind": "chorus",
+      "confidence": 0.7,
+      "line": "She says, \"Hey, babe",
+      "repeats": 2,
+      "durationSec": 255.875,
+      "matched": "lrclib:55075 Lou Reed – Walk on the Wild Side (254 s)"
+    }
+  }
+}

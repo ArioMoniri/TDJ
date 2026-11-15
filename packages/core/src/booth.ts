@@ -7,6 +7,7 @@
  * measurement when the booth hands one in) against the loudness target, clamped and peak-capped; the booth and every
  * DJ-app export read the same seconds from this plan.
  */
+import { cortinaDurationSec, validCortinaStart } from "./hooks";
 import type { Cortina, Playlist, PlaylistStats, Song } from "./types";
 
 export interface BoothSettings {
@@ -91,6 +92,8 @@ export interface BoothPlan {
   cortinaStopSec?: number;
   /** cortina id → the DJ's own fade in / fade out / stop second for that cortina (round 20) */
   cortinaEdits?: Record<string, CortinaEdit>;
+  /** 2026-11: the plan was made with the chorus start off (every cortina from 0) */
+  cortinaHookStart?: false;
   /** song id → the DJ's cue in / stop at (round 22) */
   songCues?: Record<string, SongCue>;
   /** wave 4: transition key (`fromId→toId`) → the DJ's edit of that transition */
@@ -101,11 +104,13 @@ export interface BoothPlan {
 }
 /** The DJ's per-cortina envelope (round 20): each field overrides the night's setting for that cortina only. */
 export interface CortinaEdit {
+  /** 2026-11: the DJ's own start, seconds into the recording (Booth → the cortina's sheet); wins over the chorus */
+  startSec?: number;
   /** 0–4 s */
   fadeInSec?: number;
   /** 0–10 s; it ends exactly at the stop second */
   fadeOutSec?: number;
-  /** absolute second in the clip where the cortina reaches silence (20–90) */
+  /** absolute second in the recording where the cortina reaches silence (20–90 s after its start) */
   stopSec?: number;
 }
 /**
@@ -139,6 +144,8 @@ export interface BoothInputs extends Partial<BoothSettings> {
   cortinaStopSec?: number;
   /** cortina id → the DJ's envelope for that cortina */
   cortinaEdits?: Record<string, CortinaEdit>;
+  /** 2026-11: false = every cortina plays from 0 (Settings → Cortinas → "Start cortinas at the chorus" off) */
+  cortinaHookStart?: boolean;
   /** round 22: song id → the DJ's cue in / stop at for that side (Player → Song info → waveform) */
   songCues?: Record<string, SongCue>;
   /** wave 4: transition key (`fromId→toId`) → the DJ's edit of that transition (Booth → transition editor) */
@@ -185,6 +192,35 @@ const round1 = (v: number) => Math.round(v * 10) / 10;
 const round3 = (v: number) => Math.round(v * 1000) / 1000;
 const num = (v: unknown): number | undefined => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
 
+/** a cortina that starts inside the song fades in over at least this (s) … */
+export const HOOK_FADE_IN_SEC = 0.5;
+/** … and never longer than this */
+export const HOOK_FADE_IN_MAX_SEC = 1;
+
+/**
+ * 2026-11: where a cortina starts and stops in its recording. The start is the DJ's own (`cortinaEdits[id].startSec`),
+ * else the cortina's `startSec` (its chorus, from compose) unless `cortinaHookStart` is false; the night's cortina
+ * length (`cortinaStopFor`, 20–90 s) plays from there, and start + length never runs past the recording's end. A
+ * per-cortina stop second (`cortinaEdits[id].stopSec`) is absolute, kept 20–90 s after the start.
+ */
+export function cortinaSpan(
+  c: Cortina,
+  s: Pick<BoothInputs, "cortinaStopSec" | "cortinaEdits" | "cortinaHookStart"> = {},
+): { trimIn: number; stopSec: number; hooked: boolean } {
+  const ed = s.cortinaEdits?.[c.id];
+  const len = cortinaStopFor({ cortinaStopSec: s.cortinaStopSec }, c.lengthSec);
+  const dur = cortinaDurationSec(c);
+  const own = num(ed?.startSec);
+  const want = own ?? (s.cortinaHookStart === false ? 0 : (num(c.startSec) ?? 0));
+  const trimIn = round3(validCortinaStart(want, len, dur));
+  const edStop = num(ed?.stopSec);
+  const R = CORTINA_EDIT_RANGES.stopSec;
+  let stopSec =
+    edStop === undefined ? trimIn + len : clamp(Math.round(edStop), trimIn + R.min, trimIn + R.max);
+  if (dur && stopSec > dur) stopSec = Math.max(trimIn + 1, Math.floor(dur));
+  return { trimIn, stopSec: round3(stopSec), hooked: trimIn > 0 };
+}
+
 /** Settings from a partial, every number clamped to its range; `startAt` only when given. */
 export function boothSettings(s: Partial<BoothSettings> = {}): BoothSettings {
   const out: BoothSettings = {
@@ -223,6 +259,7 @@ export function boothInputs(plan?: BoothPlan | null): BoothInputs {
   if (plan.trims) out.trims = plan.trims;
   if (plan.cortinaStopSec !== undefined) out.cortinaStopSec = plan.cortinaStopSec;
   if (plan.cortinaEdits) out.cortinaEdits = plan.cortinaEdits;
+  if (plan.cortinaHookStart === false) out.cortinaHookStart = false;
   if (plan.songCues) out.songCues = plan.songCues;
   if (plan.transitions) out.transitions = plan.transitions;
   return out;
@@ -328,20 +365,19 @@ export function planBooth(p: Playlist, s: BoothInputs = {}): BoothPlan {
   const pushCortina = (c: Cortina, tanda: number) => {
     const ed = s.cortinaEdits?.[c.id];
     const R = CORTINA_EDIT_RANGES;
-    const edStop = num(ed?.stopSec);
-    const stopSec =
-      edStop === undefined
-        ? cortinaStopFor({ cortinaStopSec: s.cortinaStopSec }, c.lengthSec)
-        : Math.round(clamp(edStop, R.stopSec.min, R.stopSec.max));
+    const { trimIn, stopSec, hooked } = cortinaSpan(c, s);
     const edOut = num(ed?.fadeOutSec);
     const edIn = num(ed?.fadeInSec);
     let fadeOutSec =
       edOut === undefined ? settings.cortinaFadeOutSec : clamp(edOut, R.fadeOutSec.min, R.fadeOutSec.max);
+    // 2026-11: a cortina that starts inside the song (its chorus) comes in with a short fade (≤ 1 s), so the switch
+    // from tango is clear but not a cut
     let fadeInSec =
-      edIn === undefined ? settings.cortinaFadeInSec : clamp(edIn, R.fadeInSec.min, R.fadeInSec.max);
-    // the cue-in must leave at least one second of cortina before the fade starts; otherwise it is dropped
-    const cue = Math.max(0, num(c.startSec) ?? 0);
-    const trimIn = stopSec - fadeOutSec >= cue + 1 ? round3(cue) : 0;
+      edIn === undefined
+        ? hooked
+          ? clamp(settings.cortinaFadeInSec || HOOK_FADE_IN_SEC, HOOK_FADE_IN_SEC, HOOK_FADE_IN_MAX_SEC)
+          : settings.cortinaFadeInSec
+        : clamp(edIn, R.fadeInSec.min, R.fadeInSec.max);
     // the DJ's fades never swallow the cortina: at least one second of it plays at full level
     const room = Math.max(0, stopSec - trimIn - 1);
     if (fadeOutSec > room) fadeOutSec = room;
@@ -458,6 +494,7 @@ export function planBooth(p: Playlist, s: BoothInputs = {}): BoothPlan {
   if (s.trims) plan.trims = { ...s.trims };
   if (s.cortinaStopSec !== undefined) plan.cortinaStopSec = s.cortinaStopSec;
   if (s.cortinaEdits && Object.keys(s.cortinaEdits).length) plan.cortinaEdits = { ...s.cortinaEdits };
+  if (s.cortinaHookStart === false) plan.cortinaHookStart = false;
   if (s.songCues && Object.keys(s.songCues).length) plan.songCues = { ...s.songCues };
   if (s.transitions && Object.keys(s.transitions).length) plan.transitions = { ...s.transitions };
   return plan;
@@ -475,9 +512,13 @@ export function planMatches(p: Playlist, plan: BoothPlan | null | undefined): pl
   });
   if (p.closing) keys.push(`closing:${p.tandas.length + 1}:${p.closing.id}`);
   if (plan.items.length !== keys.length) return false;
-  return plan.items.every(
-    (it, i) => keys[i] === `${it.kind}:${it.tanda}:${it.kind === "break" ? it.lengthSec / 60 : it.id}`,
-  );
+  const inputs = boothInputs(plan);
+  return plan.items.every((it, i) => {
+    if (keys[i] !== `${it.kind}:${it.tanda}:${it.kind === "break" ? it.lengthSec / 60 : it.id}`) return false;
+    // 2026-11: a cortina whose start moved (its chorus, the DJ's own start) makes the plan stale too
+    const c = it.kind === "cortina" ? p.tandas[it.tanda - 1]?.cortina : null;
+    return !c || cortinaSpan(c, inputs).trimIn === (it.trimInSec ?? 0);
+  });
 }
 
 /** Stats fields the plan adds: the real clock with gaps and planned cortina stops; `durationSec` is left alone. */

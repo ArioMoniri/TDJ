@@ -3,6 +3,7 @@ import type { ReferenceCorpus } from "./catalog";
 import { Catalog } from "./catalog";
 import { BUILTIN_CORTINAS } from "./cortinas";
 import type { DeezerCache } from "./enrich";
+import { type CortinaHookFile, cortinaDurationSec, validCortinaStart } from "./hooks";
 import { type CoverageRow, Heatmap } from "./knowledge";
 import { cortinaMatchProblem } from "./matchRules";
 import type {
@@ -36,6 +37,7 @@ export const DATA_FILES = {
   spotifyCortinas: "data/cache/spotify/cortinas.json",
   resolvedTracks: "data/cache/resolve/tracks.json",
   resolvedCortinas: "data/cache/resolve/cortinas.json",
+  cortinaHooks: "data/cache/cortina_hooks.json",
   audio: "data/cache/audio/features.json",
   deezer: "data/cache/deezer/tracks.json",
 } as const;
@@ -99,6 +101,17 @@ export function buildLoaded(f: DataFiles, overrides?: UserOverrides): Loaded {
   const cortinasRaw = (f.cortinas ?? []) as Cortina[];
   const cortinaResolved = (f.resolvedCortinas ?? {}) as Record<string, ResolvedTrack | null>;
   const cortinaSpotify = (f.spotifyCortinas ?? {}) as Record<string, Cortina["spotify"]>;
+  const cortinaHooks = ((f.cortinaHooks ?? {}) as Partial<CortinaHookFile>).hooks ?? {};
+  // 2026-11: each cue carries its hook (the chorus, else the first vocal line) and starts there, validated so the
+  // cue's own length fits the recording; compose re-validates with the night's length (withCortinaStarts)
+  const withHook = (c: Cortina): Cortina => {
+    const hook = cortinaHooks[c.id];
+    if (!hook) return c;
+    const out: Cortina = { ...c, hook };
+    if (hook.source !== "none")
+      out.startSec = validCortinaStart(hook.startSec, c.lengthSec ?? 45, cortinaDurationSec(out));
+    return out;
+  };
   // round 14 (discography R12): a cue the resolver tried and found nothing for is tagged "no-audio" (never in a pool)
   // round 16 (M7): a cue's Deezer and Spotify records pass the cortina match rules (title, artist by whole name, the
   // original record); the code-defined cortinas carry their cached records too (Cambaz c-tr-2)
@@ -147,7 +160,9 @@ export function buildLoaded(f: DataFiles, overrides?: UserOverrides): Loaded {
     ...BUILTIN_CORTINAS.filter(
       (c) => !knowledgeIds.has(c.id) && (c.id in cortinaResolved || c.id in cortinaSpotify),
     ),
-  ].map(withAudio);
+  ]
+    .map(withAudio)
+    .map(withHook);
   const cache = (f.spotifyTracks ?? {}) as Loaded["raw"]["cache"];
   const meta = f.meta as Record<string, unknown>;
   const contextModel = f.contextFactors as ContextModel | undefined;

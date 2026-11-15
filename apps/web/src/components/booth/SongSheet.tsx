@@ -1,8 +1,9 @@
 "use client";
-import type { Song } from "@tdj/core";
+import { type Cortina, cortinaDurationSec, type Song } from "@tdj/core";
 import { Headphones, Play, Square, Volume2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { spotifyLengthSec } from "@/lib/booth/clips";
+import { cortinaHookOf, cortinaStartOf } from "@/lib/booth/cortinaStart";
 import { durationLabel } from "@/lib/booth/plan";
 import { useBooth, type Waveform as WaveData } from "@/lib/booth/store";
 import { loadVersions, type Version } from "@/lib/booth/versions";
@@ -10,6 +11,7 @@ import { eraOf } from "@/lib/era";
 import { t } from "@/lib/i18n";
 import { gateEdit } from "@/lib/ruleCheck";
 import { parseClock } from "@/lib/seek";
+import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import { ActionRow, Group } from "../Form";
 import { Sheet } from "../Sheet";
@@ -201,6 +203,15 @@ export function SongSheet({
               />
             </Group>
           )}
+          {it.kind === "cortina" && it.id && (
+            <CortinaStart
+              id={it.id}
+              trimInSec={it.trimInSec ?? 0}
+              lengthSec={it.lengthSec}
+              entity={entity as Cortina}
+              readOnly={started && i <= planIndex}
+            />
+          )}
           {it.kind !== "cortina" && song && (
             <CueEditor
               i={i}
@@ -336,6 +347,58 @@ function CueEditor({
 }
 
 /**
+ * 2026-11 (the owner: "cortinas play 40 s from the start, so dancers don't recognise them"): where this cortina
+ * starts tonight — its chorus, or the DJ's own start, saved per cortina id with the night (`cortinaEdits`) — with
+ * the same "Start at" field as a song and a one-tap way back to the chorus.
+ */
+function CortinaStart({
+  id,
+  trimInSec,
+  lengthSec,
+  entity,
+  readOnly,
+}: {
+  id: string;
+  trimInSec: number;
+  lengthSec: number;
+  entity: Cortina | null;
+  readOnly: boolean;
+}) {
+  const edits = useBooth((s) => s.playlist?.booth?.cortinaEdits);
+  const hookOn = useStore((s) => s.settings.cortinaHookStart !== false);
+  const info = cortinaStartOf({ id, trimInSec }, edits);
+  const hook = cortinaHookOf(id);
+  const own = edits?.[id]?.startSec !== undefined;
+  const dur = entity ? cortinaDurationSec(entity) : undefined;
+  const set = (startSec: number | undefined) => useBooth.getState().setCortinaEdit(id, { startSec });
+  return (
+    <Group
+      header={t("booth.cortinaStart.header")}
+      footer={hookOn ? t("booth.cortinaStart.footer") : t("booth.cortinaStart.footer_off")}
+    >
+      <div className="cell" data-testid="booth-cortina-start-label">
+        {info.label}
+      </div>
+      <StartPoint
+        inSec={trimInSec}
+        max={Math.max(0, (dur ?? 600) - Math.min(lengthSec, dur ?? lengthSec))}
+        readOnly={readOnly}
+        label={t("booth.cortinaStart.label")}
+        resetLabel={t("booth.cortinaStart.from_zero")}
+        onChange={(v) => set(v)}
+      />
+      {own && hookOn && hook && hook.source !== "none" && !readOnly && (
+        <ActionRow
+          label={t("booth.cortinaStart.use_chorus", { p1: durationLabel(hook.startSec) })}
+          onClick={() => set(undefined)}
+          id="booth-cortina-use-chorus"
+        />
+      )}
+    </Group>
+  );
+}
+
+/**
  * 2026-11 ("can't change the start point"): where this song starts tonight, as a number — "Start at 0:12" — beside
  * the waveform's drag, with a one-tap reset. Saved with the night (the set's song cues); files, clips and Spotify
  * (position_ms) all start there.
@@ -345,11 +408,15 @@ function StartPoint({
   max,
   readOnly,
   onChange,
+  label,
+  resetLabel,
 }: {
   inSec: number;
   max: number;
   readOnly: boolean;
   onChange: (sec: number) => void;
+  label?: string;
+  resetLabel?: string;
 }) {
   const [text, setText] = useState(durationLabel(inSec));
   useEffect(() => setText(durationLabel(inSec)), [inSec]);
@@ -372,7 +439,7 @@ function StartPoint({
         id="booth-start-at"
         className="field min-h-11 w-20 text-center tabular-nums"
         inputMode="numeric"
-        aria-label={t("booth.songSheet.start_at_label")}
+        aria-label={label ?? t("booth.songSheet.start_at_label")}
         value={text}
         disabled={readOnly}
         onChange={(e) => setText(e.target.value)}
@@ -392,7 +459,7 @@ function StartPoint({
           onClick={() => onChange(0)}
           data-testid="booth-start-reset"
         >
-          {t("booth.songSheet.start_from_zero")}
+          {resetLabel ?? t("booth.songSheet.start_from_zero")}
         </button>
       )}
     </div>

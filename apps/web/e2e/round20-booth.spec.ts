@@ -205,7 +205,7 @@ test.describe("1440 × 900", () => {
     const r = await page.evaluate(() => {
       const w = window as unknown as {
         __tdjBoothPlan: {
-          items: Array<{ kind: string; id?: string; fadeOutSec?: number; stopSec?: number }>;
+          items: Array<{ kind: string; id?: string; fadeOutSec?: number; stopSec?: number; trimInSec?: number }>;
         };
         __tdjBooth: { getState(): { playlist: { booth?: { cortinaEdits?: Record<string, unknown> } } } };
       };
@@ -216,7 +216,8 @@ test.describe("1440 × 900", () => {
     });
     expect(Object.keys(r.edits)).toHaveLength(1);
     expect(r.c.fadeOutSec).toBe(4.5);
-    expect(r.c.stopSec).toBeLessThan(45);
+    // (2026-11: the stop is absolute in the recording, the cortina plays from its chorus: what plays got shorter)
+    expect(r.c.stopSec! - (r.c.trimInSec ?? 0)).toBeLessThan(45);
     // the night is shorter by the cortina's two seconds (the plan the time card and the exports read)
     await expect.poll(wall).toBeCloseTo(wall0 - 2, 3);
     // back to the night's settings
