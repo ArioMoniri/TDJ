@@ -23,6 +23,7 @@ import {
 import { createRequire } from "node:module";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { writeDeviceRoutes } from "../../web/scripts/device-routes.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const desktop = join(here, "..");
@@ -73,6 +74,10 @@ function main() {
   }
   // node_modules: link to apps/web's so the exact same dependency versions are used
   spawnSync("ln", ["-s", join(web, "node_modules"), join(scratch, "node_modules")]);
+  // the server routes the app runs unchanged on the device: copied with their server imports pointed at the device
+  // modules (src/lib/app/server/*), before the route folders go (apps/web/scripts/device-routes.mjs)
+  rmSync(join(scratch, "src", "lib", "app", "__device__"), { recursive: true, force: true });
+  writeDeviceRoutes(join(web, "src"), join(scratch, "src", "lib", "app"));
   rmSync(join(scratch, "src", "app", "api"), { recursive: true, force: true });
   // the owner's page manages a deployment's secrets: an app has none
   rmSync(join(scratch, "src", "app", "admin"), { recursive: true, force: true });

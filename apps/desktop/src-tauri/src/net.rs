@@ -1,12 +1,14 @@
 //! The app's own HTTP, so the standalone UI needs no TDJ server:
-//! - `net_fetch`: keyless lookups the page cannot make itself (api.deezer.com sends no CORS headers): Deezer previews
-//!   (re-signed per request, as apps/web/src/lib/api/net.ts does on the server) and MusicBrainz. Fixed hosts only.
-//! - `ai_complete`: one model completion with the DJ's own key from the Keychain, straight to the provider. There is
-//!   no shared key in the app.
+//! - `net_fetch`: lookups the page cannot make itself (api.deezer.com sends no CORS headers): Deezer previews
+//!   (re-signed per request, as apps/web/src/lib/api/net.ts does on the server), MusicBrainz, the Cover Art
+//!   Archive and Discogs (the fill flow, with the DJ's own Discogs token). Fixed hosts only.
+//! - `model_fetch`: the provider layer's own request (apps/web/src/lib/ai/providers.ts) to one of the four model
+//!   providers, with the DJ's key from the Keychain put in place of the page's mark. The key never reaches the page,
+//!   and goes to its own provider's host only. There is no shared key in the app.
 //! - Spotify (Authorization Code + PKCE, no client secret): the code exchange and refresh, tokens in the Keychain.
 
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::Value;
 use std::collections::BTreeMap;
 use std::time::Duration;
 use url::Url;
@@ -40,6 +42,8 @@ pub struct WireRequest {
     pub method: Option<String>,
     #[serde(default)]
     pub headers: BTreeMap<String, String>,
+    #[serde(default)]
+    pub body: Option<String>,
 }
 #[derive(Debug, Serialize)]
 pub struct WireResponse {
@@ -48,8 +52,21 @@ pub struct WireResponse {
     pub body: String,
 }
 
-/// Hosts the page may reach through the app: Deezer's API and MusicBrainz. Everything else is refused.
-pub const FETCH_HOSTS: [&str; 2] = ["api.deezer.com", "musicbrainz.org"];
+/// Hosts the page may reach through the app: Deezer's API, MusicBrainz, the Cover Art Archive and Discogs.
+/// Everything else is refused.
+pub const FETCH_HOSTS: [&str; 4] = [
+    "api.deezer.com",
+    "musicbrainz.org",
+    "coverartarchive.org",
+    "api.discogs.com",
+];
+
+/// Where a lookup may be redirected: its own hosts, and the Internet Archive that serves the Cover Art Archive.
+pub fn redirect_allowed(url: &Url) -> bool {
+    let host = url.host_str().unwrap_or_default();
+    url.scheme() == "https"
+        && (FETCH_HOSTS.contains(&host) || host == "archive.org" || host.ends_with(".archive.org"))
+}
 
 pub fn allowed_fetch(raw: &str, method: &str) -> Result<Url, NetError> {
     let url = Url::parse(raw).map_err(|_| NetError::new("Not a web address.", 400))?;
@@ -71,6 +88,7 @@ const KEEP_RESPONSE: [&str; 4] = ["content-type", "cache-control", "retry-after"
 pub async fn fetch(client: &reqwest::Client, req: WireRequest) -> Result<WireResponse, NetError> {
     let method = req.method.as_deref().unwrap_or("GET").to_ascii_uppercase();
     let url = allowed_fetch(&req.url, &method)?;
+    let discogs = url.host_str() == Some("api.discogs.com");
     let mut b = client
         .request(
             reqwest::Method::from_bytes(method.as_bytes()).unwrap_or(reqwest::Method::GET),
@@ -80,6 +98,16 @@ pub async fn fetch(client: &reqwest::Client, req: WireRequest) -> Result<WireRes
         .header("user-agent", UA);
     if let Some(a) = req.headers.get("accept") {
         b = b.header("accept", a);
+    }
+    // the DJ's own Discogs token (Settings → Data sources), for Discogs only
+    if discogs {
+        if let Some(a) = req
+            .headers
+            .get("authorization")
+            .filter(|a| a.starts_with("Discogs token="))
+        {
+            b = b.header("authorization", a);
+        }
     }
     let r = b
         .send()
@@ -100,235 +128,104 @@ pub async fn fetch(client: &reqwest::Client, req: WireRequest) -> Result<WireRes
     })
 }
 
-// ---------------------------------------------------------------- ai_complete
+// ---------------------------------------------------------------- model_fetch
 
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AiArgs {
-    pub provider: String,
-    #[serde(default)]
-    pub model: String,
-    #[serde(default)]
-    pub workspace: Option<String>,
-    pub system: String,
-    pub user: String,
-    #[serde(default)]
-    pub json: Option<bool>,
-    #[serde(default)]
-    pub max_tokens: Option<u32>,
-}
+/// The model providers' hosts, the provider each one is, and the request path the provider layer uses.
+pub const MODEL_HOSTS: [(&str, &str); 4] = [
+    ("api.anthropic.com", "anthropic"),
+    ("api.openai.com", "openai"),
+    ("openrouter.ai", "openrouter"),
+    ("generativelanguage.googleapis.com", "gemini"),
+];
+pub const MODEL_TIMEOUT: Duration = Duration::from_secs(60);
 
-/// The same defaults as the web (apps/web/src/lib/api/llm.ts → DEFAULT_MODEL).
-pub fn default_model(provider: &str) -> &'static str {
-    match provider {
-        "openai" => "gpt-5.2",
-        "gemini" => "gemini-4-argon",
-        "openrouter" => "openrouter/auto",
-        _ => "claude-sonnet-5-5",
-    }
-}
-const MIN_OUTPUT_TOKENS: u32 = 4000;
-pub const MODEL_TIMEOUT: Duration = Duration::from_secs(25);
-
-pub struct ProviderRequest {
-    pub url: String,
-    pub headers: Vec<(&'static str, String)>,
-    pub body: Value,
-}
-
-/// The provider request, as lib/server/llm.ts → `complete` builds it (keys in headers, never in the URL).
-pub fn provider_request(a: &AiArgs, key: &str) -> Result<ProviderRequest, NetError> {
-    let model = if a.model.trim().is_empty() {
-        default_model(&a.provider).to_string()
-    } else {
-        a.model.trim().to_string()
-    };
-    let max = a.max_tokens.unwrap_or(1200);
-    let json_mode = a.json.unwrap_or(false);
-    match a.provider.as_str() {
-        "anthropic" => {
-            let mut headers = vec![
-                ("x-api-key", key.to_string()),
-                ("anthropic-version", "2023-06-01".to_string()),
-                (
-                    "anthropic-beta",
-                    "server-side-fallback-2026-07-01".to_string(),
-                ),
-            ];
-            if let Some(w) = a
-                .workspace
-                .as_deref()
-                .map(str::trim)
-                .filter(|w| !w.is_empty())
-            {
-                headers.push(("anthropic-workspace-id", w.to_string()));
-            }
-            let system = if json_mode {
-                format!(
-                    "{}\nRespond with a single JSON object and nothing else.",
-                    a.system
-                )
-            } else {
-                a.system.clone()
-            };
-            Ok(ProviderRequest {
-                url: "https://api.anthropic.com/v1/messages".into(),
-                headers,
-                body: json!({
-                    "model": model,
-                    "max_tokens": max.max(16000),
-                    "output_config": { "effort": "low" },
-                    "fallbacks": "default",
-                    "system": system,
-                    "messages": [{ "role": "user", "content": a.user }],
-                }),
-            })
-        }
-        "openai" | "openrouter" => {
-            let openai = a.provider == "openai";
-            let mut body = json!({
-                "model": model,
-                "messages": [
-                    { "role": "system", "content": a.system },
-                    { "role": "user", "content": a.user },
-                ],
-            });
-            if openai {
-                body["max_completion_tokens"] = json!(max.max(MIN_OUTPUT_TOKENS));
-            } else {
-                body["max_tokens"] = json!(max);
-            }
-            if json_mode {
-                body["response_format"] = json!({ "type": "json_object" });
-            }
-            let mut headers = vec![("authorization", format!("Bearer {key}"))];
-            if !openai {
-                headers.push(("x-title", "TDJ".into()));
-            }
-            Ok(ProviderRequest {
-                url: if openai {
-                    "https://api.openai.com/v1/chat/completions".into()
-                } else {
-                    "https://openrouter.ai/api/v1/chat/completions".into()
-                },
-                headers,
-                body,
-            })
-        }
-        "gemini" => {
-            let mut config = json!({ "maxOutputTokens": max.max(MIN_OUTPUT_TOKENS) });
-            if json_mode {
-                config["responseMimeType"] = json!("application/json");
-            }
-            let mut url =
-                Url::parse("https://generativelanguage.googleapis.com/v1beta/models/").unwrap();
-            url.path_segments_mut()
-                .map_err(|_| NetError::new("Unknown model.", 400))?
-                .pop_if_empty()
-                .push(&format!("{model}:generateContent"));
-            Ok(ProviderRequest {
-                url: url.into(),
-                headers: vec![("x-goog-api-key", key.to_string())],
-                body: json!({
-                    "systemInstruction": { "parts": [{ "text": a.system }] },
-                    "contents": [{ "role": "user", "parts": [{ "text": a.user }] }],
-                    "generationConfig": config,
-                }),
-            })
-        }
-        _ => Err(NetError::new("Unknown provider.", 400)),
-    }
-}
-
-/// The assistant text out of a provider answer, or the provider's own message with its status.
-pub fn provider_text(provider: &str, status: u16, j: &Value) -> Result<String, NetError> {
-    let msg = j
-        .pointer("/error/message")
-        .and_then(Value::as_str)
-        .map(|m| m.chars().take(300).collect::<String>());
-    if !(200..300).contains(&status) {
-        let kind = j.pointer("/error/type").and_then(Value::as_str);
-        let m = msg.unwrap_or_else(|| format!("{provider} returned {status}"));
-        let m = if kind == Some("not_found_error") {
-            format!("Unknown model: {m}")
-        } else {
-            m
-        };
-        return Err(NetError::new(m, status));
-    }
-    match provider {
-        "anthropic" => {
-            let stop = j.get("stop_reason").and_then(Value::as_str);
-            if stop == Some("refusal") {
-                let why = j
-                    .pointer("/stop_details/explanation")
-                    .and_then(Value::as_str)
-                    .map(|e| format!(": {e}"))
-                    .unwrap_or_else(|| ".".into());
-                return Err(NetError::new(
-                    format!("The model declined this request{why}"),
-                    422,
-                ));
-            }
-            let text = j
-                .get("content")
-                .and_then(Value::as_array)
-                .map(|parts| {
-                    parts
-                        .iter()
-                        .filter(|p| p.get("type").and_then(Value::as_str) == Some("text"))
-                        .filter_map(|p| p.get("text").and_then(Value::as_str))
-                        .collect::<Vec<_>>()
-                        .join("\n")
-                })
-                .unwrap_or_default();
-            if text.is_empty() && stop == Some("max_tokens") {
-                return Err(NetError::new(
-                    "The model ran out of room before answering. Try again or pick a smaller model.",
-                    502,
-                ));
-            }
-            Ok(text)
-        }
-        "gemini" => Ok(j
-            .pointer("/candidates/0/content/parts")
-            .and_then(Value::as_array)
-            .map(|p| {
-                p.iter()
-                    .filter_map(|x| x.get("text").and_then(Value::as_str))
-                    .collect::<String>()
-            })
-            .unwrap_or_default()),
-        _ => Ok(j
-            .pointer("/choices/0/message/content")
-            .and_then(Value::as_str)
-            .unwrap_or_default()
-            .to_string()),
-    }
-}
-
-pub async fn complete(
-    client: &reqwest::Client,
-    a: &AiArgs,
-    key: Option<String>,
-) -> Result<String, NetError> {
-    let Some(key) = key.filter(|k| !k.is_empty()) else {
+/// The provider a model request goes to (from its host, never from the page), or why it may not go.
+pub fn model_target(raw: &str, method: &str) -> Result<(Url, &'static str), NetError> {
+    let url = Url::parse(raw).map_err(|_| NetError::new("Not a web address.", 400))?;
+    if url.scheme() != "https"
+        || !url.username().is_empty()
+        || url.password().is_some()
+        || url.port().is_some()
+    {
         return Err(NetError::new(
-            "No API key for this provider. Add one in Settings → Written reviews.",
-            401,
+            "Only https requests to a model provider.",
+            400,
         ));
+    }
+    let host = url.host_str().unwrap_or_default();
+    let Some(&(_, provider)) = MODEL_HOSTS.iter().find(|(h, _)| *h == host) else {
+        return Err(NetError::new("The app does not contact that site.", 403));
     };
-    let p = provider_request(a, &key)?;
+    let path = url.path();
+    let ok = match provider {
+        "anthropic" => path == "/v1/messages",
+        "openai" => path == "/v1/chat/completions",
+        "openrouter" => path == "/api/v1/chat/completions",
+        _ => path.starts_with("/v1beta/models/") && path.ends_with(":generateContent"),
+    };
+    if !ok || method != "POST" {
+        return Err(NetError::new("Only a model completion is allowed.", 405));
+    }
+    Ok((url, provider))
+}
+
+/// The Keychain entry of a provider's key (lib/app/boot.ts → saveAiKey).
+pub fn key_name(provider: &str) -> String {
+    format!("ai.{provider}")
+}
+
+/// Headers that never pass from the page: any key it holds, cookies and the browser's own.
+const DROP_HEADERS: [&str; 9] = [
+    "authorization",
+    "x-api-key",
+    "x-goog-api-key",
+    "cookie",
+    "host",
+    "content-length",
+    "origin",
+    "referer",
+    "user-agent",
+];
+
+/// The request's headers with the DJ's key where the provider reads it (and only there).
+pub fn model_headers(
+    provider: &str,
+    incoming: &BTreeMap<String, String>,
+    key: &str,
+) -> Vec<(String, String)> {
+    let mut out: Vec<(String, String)> = incoming
+        .iter()
+        .map(|(k, v)| (k.to_ascii_lowercase(), v.clone()))
+        .filter(|(k, _)| !DROP_HEADERS.contains(&k.as_str()))
+        .collect();
+    out.push(match provider {
+        "anthropic" => ("x-api-key".into(), key.to_string()),
+        "gemini" => ("x-goog-api-key".into(), key.to_string()),
+        _ => ("authorization".into(), format!("Bearer {key}")),
+    });
+    out
+}
+
+const KEEP_MODEL_RESPONSE: [&str; 4] =
+    ["content-type", "retry-after", "request-id", "x-request-id"];
+
+pub async fn model_fetch(
+    client: &reqwest::Client,
+    req: WireRequest,
+    provider: &str,
+    key: &str,
+) -> Result<WireResponse, NetError> {
+    let method = req.method.as_deref().unwrap_or("POST").to_ascii_uppercase();
+    let (url, _) = model_target(&req.url, &method)?;
     let mut b = client
-        .post(&p.url)
+        .post(url)
         .timeout(MODEL_TIMEOUT)
-        .header("content-type", "application/json")
         .header("user-agent", UA);
-    for (k, v) in &p.headers {
-        b = b.header(*k, v);
+    for (k, v) in model_headers(provider, &req.headers, key) {
+        b = b.header(k, v);
     }
     let r = b
-        .body(serde_json::to_vec(&p.body).unwrap_or_default())
+        .body(req.body.unwrap_or_default())
         .send()
         .await
         .map_err(|e| {
@@ -345,8 +242,18 @@ pub async fn complete(
             }
         })?;
     let status = r.status().as_u16();
-    let j: Value = serde_json::from_str(&r.text().await.unwrap_or_default()).unwrap_or(Value::Null);
-    provider_text(&a.provider, status, &j)
+    let mut headers = BTreeMap::new();
+    for k in KEEP_MODEL_RESPONSE {
+        if let Some(v) = r.headers().get(k).and_then(|v| v.to_str().ok()) {
+            headers.insert(k.to_string(), v.to_string());
+        }
+    }
+    let body = r.text().await.unwrap_or_default();
+    Ok(WireResponse {
+        status,
+        headers,
+        body,
+    })
 }
 
 // ---------------------------------------------------------------- Spotify (PKCE, public client)
@@ -461,6 +368,7 @@ pub fn now_ms() -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     #[test]
     fn fetch_reaches_deezer_and_musicbrainz_only() {
@@ -484,66 +392,93 @@ mod tests {
         );
     }
 
-    fn args(provider: &str) -> AiArgs {
-        AiArgs {
-            provider: provider.into(),
-            model: String::new(),
-            workspace: Some("wrkspc_1".into()),
-            system: "sys".into(),
-            user: "hi".into(),
-            json: Some(true),
-            max_tokens: Some(200),
-        }
+    #[test]
+    fn fill_lookups_reach_the_cover_art_archive_and_discogs() {
+        assert!(allowed_fetch("https://coverartarchive.org/release/abc", "GET").is_ok());
+        assert!(allowed_fetch("https://api.discogs.com/database/search?q=x", "GET").is_ok());
+        let ok = |u: &str| redirect_allowed(&Url::parse(u).unwrap());
+        assert!(ok("https://archive.org/download/mbid-abc/index.json"));
+        assert!(ok(
+            "https://ia800.us.archive.org/1/items/mbid-abc/index.json"
+        ));
+        assert!(!ok("https://evilarchive.org/x"));
+        assert!(!ok("http://archive.org/x"));
+        assert!(!ok("https://example.com/"));
     }
 
     #[test]
-    fn provider_requests_carry_the_key_in_a_header_only() {
-        let a = provider_request(&args("anthropic"), "sk-ant").unwrap();
-        assert_eq!(a.url, "https://api.anthropic.com/v1/messages");
-        assert!(a.headers.contains(&("x-api-key", "sk-ant".into())));
-        assert!(a
-            .headers
-            .contains(&("anthropic-workspace-id", "wrkspc_1".into())));
-        assert_eq!(a.body["model"], "claude-sonnet-5-5");
-        assert_eq!(a.body["max_tokens"], 16000);
-        assert!(a.body["system"]
-            .as_str()
-            .unwrap()
-            .ends_with("nothing else."));
-        let o = provider_request(&args("openai"), "sk-o").unwrap();
-        assert_eq!(o.body["max_completion_tokens"], 4000);
-        assert_eq!(o.body["response_format"]["type"], "json_object");
-        let g = provider_request(&args("gemini"), "g-key").unwrap();
+    fn model_requests_reach_the_four_providers_only() {
+        let t = |u: &str| model_target(u, "POST").map(|(_, p)| p);
+        assert_eq!(t("https://api.anthropic.com/v1/messages"), Ok("anthropic"));
         assert_eq!(
-            g.url,
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-4-argon:generateContent"
+            t("https://api.openai.com/v1/chat/completions"),
+            Ok("openai")
         );
-        assert!(!g.url.contains("g-key"));
-        assert!(provider_request(&args("other"), "k").is_err());
-    }
-
-    #[test]
-    fn provider_answers_and_errors() {
-        let ok = json!({ "content": [{ "type": "thinking" }, { "type": "text", "text": "OK" }], "stop_reason": "end_turn" });
-        assert_eq!(provider_text("anthropic", 200, &ok).unwrap(), "OK");
-        let refused = json!({ "content": [], "stop_reason": "refusal" });
         assert_eq!(
-            provider_text("anthropic", 200, &refused)
+            t("https://openrouter.ai/api/v1/chat/completions"),
+            Ok("openrouter")
+        );
+        assert_eq!(
+            t("https://generativelanguage.googleapis.com/v1beta/models/gemini-4-argon:generateContent"),
+            Ok("gemini")
+        );
+        assert_eq!(
+            t("https://api.anthropic.com/v1/files").unwrap_err().status,
+            405
+        );
+        assert_eq!(
+            t("https://api.deezer.com/v1/messages").unwrap_err().status,
+            403
+        );
+        assert_eq!(
+            t("https://api.anthropic.com.evil.org/v1/messages")
                 .unwrap_err()
                 .status,
-            422
+            403
         );
-        let missing = json!({ "error": { "type": "not_found_error", "message": "model: x" } });
+        assert!(t("http://api.anthropic.com/v1/messages").is_err());
+        assert!(t("https://api.anthropic.com:444/v1/messages").is_err());
+        assert!(t("https://u:p@api.anthropic.com/v1/messages").is_err());
         assert_eq!(
-            provider_text("anthropic", 404, &missing)
+            model_target("https://api.anthropic.com/v1/messages", "GET")
                 .unwrap_err()
-                .message,
-            "Unknown model: model: x"
+                .status,
+            405
         );
-        let chat = json!({ "choices": [{ "message": { "content": "{\"a\":1}" } }] });
-        assert_eq!(provider_text("openai", 200, &chat).unwrap(), "{\"a\":1}");
-        let gem = json!({ "candidates": [{ "content": { "parts": [{ "text": "a" }, { "text": "b" }] } }] });
-        assert_eq!(provider_text("gemini", 200, &gem).unwrap(), "ab");
+    }
+
+    #[test]
+    fn the_key_replaces_the_pages_mark_where_its_provider_reads_it() {
+        let page: BTreeMap<String, String> = [
+            ("X-Api-Key", "keychain:"),
+            ("authorization", "Bearer keychain:"),
+            ("x-goog-api-key", "keychain:"),
+            ("cookie", "a=b"),
+            ("anthropic-version", "2023-06-01"),
+            ("anthropic-workspace-id", "wrkspc_1"),
+            ("content-type", "application/json"),
+        ]
+        .into_iter()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect();
+        let get = |h: &[(String, String)], k: &str| {
+            h.iter()
+                .filter(|(n, _)| n == k)
+                .map(|(_, v)| v.clone())
+                .collect::<Vec<_>>()
+        };
+        let a = model_headers("anthropic", &page, "sk-ant");
+        assert_eq!(get(&a, "x-api-key"), vec!["sk-ant"]);
+        assert!(get(&a, "authorization").is_empty() && get(&a, "x-goog-api-key").is_empty());
+        assert!(get(&a, "cookie").is_empty());
+        assert_eq!(get(&a, "anthropic-workspace-id"), vec!["wrkspc_1"]);
+        let o = model_headers("openai", &page, "sk-o");
+        assert_eq!(get(&o, "authorization"), vec!["Bearer sk-o"]);
+        assert!(get(&o, "x-api-key").is_empty());
+        let g = model_headers("gemini", &page, "g-key");
+        assert_eq!(get(&g, "x-goog-api-key"), vec!["g-key"]);
+        assert!(!g.iter().any(|(_, v)| v.contains("keychain:")));
+        assert_eq!(key_name("openrouter"), "ai.openrouter");
     }
 
     #[test]

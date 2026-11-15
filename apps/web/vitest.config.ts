@@ -12,6 +12,8 @@ export default defineConfig({
   },
   test: {
     include: ["src/**/*.test.ts"],
+    // the app's device copies of the server routes it runs unchanged (scripts/device-routes.mjs)
+    globalSetup: ["./test/device-routes.setup.ts"],
     environment: "node",
     testTimeout: 60_000,
   },

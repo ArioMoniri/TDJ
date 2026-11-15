@@ -17,12 +17,15 @@ use the organiser contact shown on your server's Settings page).
 |---|---|---|
 | Your nights, history ("On this device"), database edits, what TDJ learned from your edits, settings, cached previews and artwork | the app's own database on your device | so they are there next time |
 | Model API keys (Anthropic, OpenAI, Gemini, OpenRouter) you enter | the Keychain on your device | the app sends each model request straight to the provider you chose, with your key; there is no shared key and no TDJ server in between |
+| AI agents you connect (ACP) | their address or start command in the app's settings | the app asks the agent you chose directly: over its address, or (Mac) as a program on your computer |
+| Your Discogs token, if you add one | the app's settings on your device | sent only to Discogs, when you ask TDJ to fill in missing data |
 | Your Spotify sign-in | the Keychain on your device | to create playlists and play music you ask for; the app talks to Spotify directly |
 | Music files in folders you link | your device only; the app reads them to play them | the Booth plays your own files |
 
 The apps send song titles and orchestra names (no personal data, no identifier) to Deezer and MusicBrainz for
-previews and recording facts, and talk to Spotify and the AI provider only when you connect them or ask for
-something. Nothing is sent to the developer.
+previews and recording facts (and to the Cover Art Archive and Discogs when you ask TDJ to fill in missing data),
+show cover artwork from those services' image servers, and talk to Spotify and the AI provider only when you
+connect them or ask for something. Nothing is sent to the developer.
 
 **Optional: a TDJ server you link.** Under Settings → Connections (off by default) you can link a TDJ server you
 or your organiser run, for rooms and to keep that server's database in sync with this device; Google Drive,

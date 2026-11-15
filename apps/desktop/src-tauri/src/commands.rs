@@ -1,7 +1,7 @@
 //! IPC commands the page may call (`window.__TAURI_INTERNALS__.invoke(name, args)`). Every one is listed in
 //! build.rs (app manifest) and granted per window in capabilities/*.json; nothing else is reachable from a page.
 
-use crate::{folders, links, net, secrets, settings, system, AppState};
+use crate::{agents, folders, links, net, secrets, settings, system, AppState};
 use serde::Serialize;
 use tauri::{AppHandle, Manager, State, WebviewWindow};
 use tauri_plugin_dialog::DialogExt;
@@ -96,18 +96,48 @@ pub async fn net_fetch(
     net::fetch(&state.http, req).await
 }
 
-/// One model completion with the DJ's own key from the Keychain, straight to the provider.
+/// One request of the provider layer (apps/web/src/lib/ai/providers.ts) to a model provider: the provider is the
+/// request's host, and the DJ's key for that provider comes from the Keychain in place of the page's mark.
 #[tauri::command]
-pub async fn ai_complete(
+pub async fn model_fetch(
     state: State<'_, AppState>,
-    args: net::AiArgs,
-) -> Result<String, net::NetError> {
-    let name = format!("ai.{}", args.provider);
-    if !secrets::page_may_write(&name) {
-        return Err(net::NetError::new("Unknown provider.", 400));
-    }
-    let key = state.secrets.get(&name);
-    net::complete(&state.http, &args, key).await
+    req: net::WireRequest,
+) -> Result<net::WireResponse, net::NetError> {
+    let method = req.method.as_deref().unwrap_or("POST").to_ascii_uppercase();
+    let (_, provider) = net::model_target(&req.url, &method)?;
+    let Some(key) = state
+        .secrets
+        .get(&net::key_name(provider))
+        .filter(|k| !k.is_empty())
+    else {
+        return Err(net::NetError::new(
+            "No API key for this provider. Add one in Settings → Models.",
+            401,
+        ));
+    };
+    net::model_fetch(&state.http, req, provider, &key).await
+}
+
+// ---------------------------------------------------------------- local ACP agents (the Mac app)
+
+/// Starts the agent command the DJ entered (Settings → Models → Keys and agents); returns its id.
+#[tauri::command]
+pub fn acp_spawn(state: State<'_, AppState>, command: String, args: Vec<String>) -> Res<u32> {
+    state.agents.spawn(&command, &args)
+}
+/// One protocol line to the agent.
+#[tauri::command]
+pub fn acp_write(state: State<'_, AppState>, id: u32, data: String) -> Res<()> {
+    state.agents.write(id, &data)
+}
+/// What the agent printed since the last read, and whether it stopped.
+#[tauri::command]
+pub fn acp_read(state: State<'_, AppState>, id: u32) -> Res<agents::Read> {
+    state.agents.read(id)
+}
+#[tauri::command]
+pub fn acp_kill(state: State<'_, AppState>, id: u32) {
+    state.agents.kill(id)
 }
 
 // ---------------------------------------------------------------- Spotify (PKCE, tokens in the Keychain)

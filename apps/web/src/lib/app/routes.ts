@@ -16,6 +16,8 @@ import { spotifyMatch, spotifyPlaylist } from "@/lib/api/spotify";
 import { profile } from "@/lib/spotifyWeb";
 import type { AgentMemory, AppOverrides, HistorySnapshot } from "@/lib/types";
 import type { AppDeps } from "./deps";
+// the server routes the app runs unchanged (the AI routes, song search, add a side, build by hand, fill)
+import { DEVICE_ROUTES } from "./deviceRoutes";
 import type { WireRequest } from "./host";
 import { KEYCHAIN_KEY } from "./target";
 
@@ -122,9 +124,13 @@ async function settingsGet(_req: Request, d: AppDeps): Promise<Response> {
 async function settingsPut(req: Request, d: AppDeps): Promise<Response> {
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body || typeof body !== "object") return jsonNoStore({ error: "Invalid JSON" }, { status: 400 });
-  const ai = body.ai as { key?: string } | undefined;
-  // the Keychain holds the key; the database only ever the mark that one is saved
-  if (ai && typeof ai === "object" && ai.key && ai.key !== KEYCHAIN_KEY) ai.key = KEYCHAIN_KEY;
+  // the Keychain holds the keys; the database only ever the mark that one is saved, for every provider
+  const marked = (k: unknown) => {
+    const o = k as { key?: string } | null;
+    if (o && typeof o === "object" && o.key && o.key !== KEYCHAIN_KEY) o.key = KEYCHAIN_KEY;
+  };
+  marked(body.ai);
+  if (body.aiKeys && typeof body.aiKeys === "object") for (const k of Object.values(body.aiKeys)) marked(k);
   await (await d.store()).putSetting("user", body);
   return jsonNoStore({ ok: true });
 }
@@ -195,7 +201,9 @@ export async function toWire(req: Request): Promise<WireRequest> {
 /** Every /api/* request of the app, answered on the device (or, for the linked-server services, by that server). */
 export async function dispatch(req: Request, d: AppDeps): Promise<Response> {
   const path = new URL(req.url).pathname.replace(/\/$/, "");
-  const h = LOCAL[path]?.[req.method as Method];
+  const device = DEVICE_ROUTES[path];
+  const h: Handler | undefined =
+    LOCAL[path]?.[req.method as Method] ?? device?.[req.method as "GET" | "POST"];
   if (h) {
     try {
       return await h(req, d);
@@ -203,7 +211,7 @@ export async function dispatch(req: Request, d: AppDeps): Promise<Response> {
       return json({ error: e instanceof Error ? e.message : "Something went wrong" }, { status: 500 });
     }
   }
-  if (LOCAL[path]) return json({ error: "Method not allowed" }, { status: 405 });
+  if (LOCAL[path] || device) return json({ error: "Method not allowed" }, { status: 405 });
   if (VIA_LINKED_SERVER.some((p) => path.startsWith(p))) {
     if (await d.host.linked().catch(() => false)) {
       const r = await d.host.remote(await toWire(req));

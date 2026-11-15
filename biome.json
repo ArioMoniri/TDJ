@@ -7,17 +7,18 @@
       "!**/.next",
       "!**/dist",
       "!**/out",
-      "!data/**",
+      "!data",
       "!**/.sst",
       "!**/.turbo",
-      "!media/**",
-      "!brand/**",
+      "!media",
+      "!brand",
       "!**/.open-next",
       "!**/test-results",
+      "!apps/web/src/lib/app/__device__",
       "!pnpm-lock.yaml",
       "!docs/specs/*-best-night.json",
       "!apps/web/public/featured/*.json",
-      "!.claude/**"
+      "!.claude"
     ]
   },
   "formatter": {

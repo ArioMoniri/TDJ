@@ -1,31 +1,44 @@
 /**
  * The app adapter answers every /api/* route on the device. Invariant: for the same request, the local answer
  * (lib/app/routes.ts → `dispatch`, with the index read the way the app bundle hands it over and the native side
- * faked) equals the server route's answer (apps/web/src/app/api/**), status, type and body.
+ * faked) equals the server route's answer (apps/web/src/app/api/**), status, type and body. The routes the app runs
+ * unchanged (lib/app/deviceRoutes.ts) are the device copies the app build ships (test/device-routes.setup.ts), and
+ * every model call on both sides goes through the provider layer (lib/ai/providers.ts), faked here.
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { DATA_FILES, type DataFiles } from "@tdj/core/data";
 import { findRoot } from "@tdj/core/load";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import * as AddSide from "@/app/api/add-side/route";
+import * as AiEdit from "@/app/api/ai/edit/route";
+import * as AiRefine from "@/app/api/ai/refine/route";
+import * as AiReview from "@/app/api/ai/review/route";
+import * as AiSwap from "@/app/api/ai/swap/route";
 import * as Benchmark from "@/app/api/benchmark/route";
+import * as Build from "@/app/api/build/route";
 import * as Compose from "@/app/api/compose/route";
 import * as Export from "@/app/api/export/route";
 import * as Feedback from "@/app/api/feedback/route";
+import * as Fill from "@/app/api/fill/route";
 import * as Improve from "@/app/api/improve/route";
 import * as Meta from "@/app/api/meta/route";
 import * as Preview from "@/app/api/preview/route";
 import * as Resolve from "@/app/api/resolve/route";
 import * as Search from "@/app/api/search/route";
+import * as SongSearch from "@/app/api/song-search/route";
 import * as SpotifyMatch from "@/app/api/spotify/match/route";
 import * as SpotifyPlaylist from "@/app/api/spotify/playlist/route";
 import * as Swap from "@/app/api/swap/route";
 import * as SwapOptions from "@/app/api/swap-options/route";
 import * as SwapTrack from "@/app/api/swap-track/route";
 import { clearPreviewCache } from "@/lib/api/net";
-import { appDeps } from "./deps";
+import { deviceAsk } from "./ai";
+import { appDeps, deviceRuntime } from "./deps";
 import type { HostCalls } from "./host";
 import { dispatch } from "./routes";
+import { setDeviceRuntime } from "./server/runtime";
+import { KEYCHAIN_KEY } from "./target";
 
 const fake = vi.hoisted(() => {
   const model = async (a: { system: string; user: string; json?: boolean }) => {
@@ -39,13 +52,30 @@ const fake = vi.hoisted(() => {
     return "1. Swap tanda 3 for a Di Sarli.";
   };
   const session = { access: "AT-test", refresh: "RT", expires: 4_102_444_800_000, authorizedAt: 1 };
-  return { model, session };
+  // the routes that read the global fetch when they load (/api/fill) see the same upstream on both sides
+  const upstream: { fn: typeof fetch } = { fn: () => Promise.reject(new Error("no upstream yet")) };
+  globalThis.fetch = ((...a: Parameters<typeof fetch>) => upstream.fn(...a)) as typeof fetch;
+  return { model, session, upstream };
 });
 
-vi.mock("@/lib/server/llm", async (orig) => ({
-  ...(await orig<typeof import("@/lib/server/llm")>()),
-  complete: (a: Parameters<typeof fake.model>[0]) => fake.model(a),
+// one fake model behind the provider layer: the server's routes reach it through lib/server/llm.ts, the app's
+// through lib/app/ai.ts (deviceAsk), with the same request
+vi.mock("@/lib/ai/providers", async (orig) => ({
+  ...(await orig<typeof import("@/lib/ai/providers")>()),
+  providerFor: () => ({
+    id: "anthropic",
+    model: "fake",
+    complete: async (r: { system: string; user: string; json?: boolean }) => ({
+      text: await fake.model(r),
+      toolCalls: [],
+    }),
+  }),
 }));
+// the device copies (generated for the run by test/device-routes.setup.ts, by file path: they exist only then)
+vi.mock(
+  "@/lib/app/deviceRoutes",
+  () => import(/* @vite-ignore */ new URL("./__device__/deviceRoutes.ts", import.meta.url).pathname),
+);
 vi.mock("@/lib/server/spotify", async (orig) => ({
   ...(await orig<typeof import("@/lib/server/spotify")>()),
   hostedEnabled: async () => true,
@@ -129,6 +159,7 @@ const host: HostCalls = {
     const res = await upstream(r.url, { method: r.method, headers: r.headers, body: r.body });
     return { status: res.status, headers: Object.fromEntries(res.headers), body: await res.text() };
   },
+  ask: (ai, r) => deviceAsk(ai, r),
   sql: async () => {
     throw new Error("no database in this test");
   },
@@ -154,6 +185,8 @@ beforeAll(() => {
     host,
   );
   vi.stubGlobal("fetch", upstream);
+  fake.upstream.fn = upstream as typeof fetch;
+  setDeviceRuntime(deviceRuntime(local));
 });
 afterAll(() => vi.unstubAllGlobals());
 afterEach(() => clearPreviewCache());
@@ -289,6 +322,93 @@ describe("network routes: Deezer and MusicBrainz from the device", () => {
     await same(Preview.GET, "/api/preview?provider=deezer&id=3135556");
     await same(Preview.GET, "/api/preview?provider=deezer&id=404&json=1");
     await same(Preview.GET, "/api/preview?provider=youtube&id=x&json=1");
+  });
+});
+
+describe("model routes, run unchanged on the device: the DJ's own key (web: BYOK header, app: Keychain)", () => {
+  const web = { "x-ai-provider": "anthropic", "x-ai-key": "sk-test", "x-ai-model": "" };
+  const app = { ...web, "x-ai-key": KEYCHAIN_KEY };
+  let night: { tandas: unknown[] };
+  beforeAll(async () => {
+    night = await (await Compose.POST(req("/api/compose", { body: { hours: 1, seed: 5 } }))).json();
+  });
+  it("review quota: no shared key", async () => {
+    await same(AiReview.GET, "/api/ai/review");
+  });
+  it("review: connection test and a written review", async () => {
+    await same(
+      AiReview.POST,
+      "/api/ai/review",
+      { body: { test: true }, headers: web },
+      { appInit: { body: { test: true }, headers: app } },
+    );
+    await same(
+      AiReview.POST,
+      "/api/ai/review",
+      { body: { playlist: night }, headers: web },
+      { appInit: { body: { playlist: night }, headers: app } },
+    );
+  });
+  it("review without any key: the same 401", async () => {
+    await same(AiReview.POST, "/api/ai/review", { body: { test: true } });
+  });
+  it("refine with a key, and by keywords without one", async () => {
+    const body = { instruction: "more vals, three hours", options: { hours: 4, seed: 9 } };
+    await same(AiRefine.POST, "/api/ai/refine", { body, headers: web }, { appInit: { body, headers: app } });
+    await same(AiRefine.POST, "/api/ai/refine", {
+      body: { instruction: "no Canaro, more vals", options: { seed: 3 } },
+    });
+    await same(AiRefine.POST, "/api/ai/refine", { body: { instruction: "" } });
+  });
+  it("AI pick in the Swap sheet", async () => {
+    const body = { playlist: night, tandaIndex: 1, trackIndex: 1 };
+    await same(AiSwap.POST, "/api/ai/swap", { body, headers: web }, { appInit: { body, headers: app } });
+    await same(AiSwap.POST, "/api/ai/swap", { body });
+  });
+  it("Edit with AI: with a model, by plain words without one, and the refusals", async () => {
+    const body = { playlist: night, instruction: "more vals" };
+    await same(AiEdit.POST, "/api/ai/edit", { body, headers: web }, { appInit: { body, headers: app } });
+    await same(AiEdit.POST, "/api/ai/edit", { body });
+    await same(AiEdit.POST, "/api/ai/edit", { body: { playlist: night, instruction: "" } });
+    await same(AiEdit.POST, "/api/ai/edit", { body: { instruction: "x" } });
+  });
+});
+
+describe("round 22 routes, run unchanged on the device", () => {
+  let night: { tandas: Array<{ songs: Array<{ id: string }> }> };
+  afterAll(() => vi.useRealTimers());
+  beforeAll(async () => {
+    // a pinned side carries the time it was pinned
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-14T21:00:00Z"));
+    night = await (await Compose.POST(req("/api/compose", { body: { hours: 1, seed: 7 } }))).json();
+  });
+  it("song search", async () => {
+    await same(SongSearch.POST, "/api/song-search", { body: { query: { text: "flete" } } });
+    await same(SongSearch.POST, "/api/song-search", {
+      body: { query: { orchestra: "Di Sarli", yearFrom: 1940, yearTo: 1945, rhythms: ["vals"], limit: 5 } },
+    });
+  });
+  it("add a side: accepted and refused", async () => {
+    const first = (
+      await (await SongSearch.POST(req("/api/song-search", { body: { query: { text: "a" } } }))).json()
+    ).results[0]?.id;
+    await same(AddSide.POST, "/api/add-side", { body: { playlist: night, tandaIndex: 0, songId: first } });
+    await same(AddSide.POST, "/api/add-side", { body: { playlist: night, tandaIndex: 0, songId: "nope" } });
+    await same(AddSide.POST, "/api/add-side", { body: {} });
+  });
+  it("build by hand: suggestions, lookup and the finished night", async () => {
+    const draft = [night.tandas[0]!.songs.map((s) => s.id)];
+    await same(Build.POST, "/api/build", { body: { draft, options: { hours: 2, seed: 1 } } });
+    await same(Build.POST, "/api/build", { body: { lookup: draft[0] } });
+    await same(Build.POST, "/api/build", { body: { draft, options: { hours: 2, seed: 1 }, finish: true } });
+  });
+  it("fill from Deezer and MusicBrainz (the app's native client), and bad input", async () => {
+    const song = { id: "s1", title: "El Flete", orchestra: "Juan D'Arienzo", year: 1936 };
+    await same(Fill.POST, "/api/fill", { body: { source: "deezer", song } });
+    await same(Fill.POST, "/api/fill", { body: { source: "musicbrainz", song } });
+    await same(Fill.POST, "/api/fill", { body: { source: "spotify", song } });
+    await same(Fill.POST, "/api/fill", { body: { source: "deezer", song: { title: "x" } } });
   });
 });
 

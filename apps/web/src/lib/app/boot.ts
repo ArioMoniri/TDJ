@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useStore } from "@/lib/store";
 import type { UserSettings } from "@/lib/types";
 import { installAppAdapter } from "./adapter";
+import { registerDeviceAgents } from "./ai";
 import "./login";
 import { invoke } from "./native";
 import { APP, KEYCHAIN_KEY } from "./target";
@@ -10,14 +11,24 @@ import { APP, KEYCHAIN_KEY } from "./target";
 // before any component mounts: the first /api/* call already goes to the device
 if (APP && typeof window !== "undefined") {
   installAppAdapter();
+  // the Mac app starts local ACP agents (Settings → Models → Keys and agents)
+  void registerDeviceAgents().catch(() => {});
   // the animation player's WebAssembly ships in the app (apps/desktop/scripts/build-ui.mjs), not from a CDN
   void import("@lottiefiles/dotlottie-react").then((m) => m.setWasmUrl("/dotlottie-player.wasm"));
 }
 
-/** settings as the device database keeps them: never a key (that is the Keychain's) */
+const mark = (key: string | undefined) => (key ? KEYCHAIN_KEY : "");
+/** settings as the device database keeps them: never a key (that is the Keychain's), for any provider */
 const storable = (s: UserSettings): UserSettings => ({
   ...s,
-  ai: { ...s.ai, key: s.ai.key ? KEYCHAIN_KEY : "" },
+  ai: { ...s.ai, key: mark(s.ai.key) },
+  ...(s.aiKeys
+    ? {
+        aiKeys: Object.fromEntries(
+          Object.entries(s.aiKeys).map(([p, k]) => [p, k ? { ...k, key: mark(k.key) } : k]),
+        ) as UserSettings["aiKeys"],
+      }
+    : {}),
 });
 
 /** A key typed in Settings goes to the Keychain; the page keeps only the mark that one is saved. */
@@ -25,9 +36,6 @@ export async function saveAiKey(provider: string, value: string): Promise<void> 
   const name = `ai.${provider}`;
   if (value) await invoke("secret_set", { name, value });
   else await invoke("secret_delete", { name });
-}
-export async function hasAiKey(provider: string): Promise<boolean> {
-  return invoke<boolean>("secret_has", { name: `ai.${provider}` }).catch(() => false);
 }
 
 /**
@@ -48,12 +56,18 @@ export function useAppBoot(): void {
     let timer: ReturnType<typeof setTimeout> | null = null;
     let unsub: (() => void) | null = null;
     void (async () => {
+      // keys from an older build (or typed before the Keychain answered) move to the Keychain, per provider
       const st = useStore.getState();
-      const key = st.settings.ai.key;
-      if (key && key !== KEYCHAIN_KEY) {
+      const { ai, aiKeys } = st.settings;
+      const loose: Array<[string, string]> = [];
+      if (ai.provider !== "acp" && ai.key && ai.key !== KEYCHAIN_KEY) loose.push([ai.provider, ai.key]);
+      for (const [p, k] of Object.entries(aiKeys ?? {}))
+        if (k?.key && k.key !== KEYCHAIN_KEY && !loose.some(([q]) => q === p)) loose.push([p, k.key]);
+      if (loose.length) {
         try {
-          await saveAiKey(st.settings.ai.provider, key);
-          st.setSettings({ ai: { ...st.settings.ai, key: KEYCHAIN_KEY } });
+          for (const [p, k] of loose) await saveAiKey(p, k);
+          const marked = storable(useStore.getState().settings);
+          st.setSettings({ ai: marked.ai, aiKeys: marked.aiKeys });
         } catch {}
       }
       if (!hadLocal) {

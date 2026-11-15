@@ -15,10 +15,12 @@ no account, no identifier, no analytics or advertising SDK. Nothing is sent to t
 Facts behind the answer:
 - Composing, improving, benchmarking and swaps run in the app (`@tdj/core` in a Web Worker) over the catalogue
   shipped inside it.
-- Song previews and recording facts come from Deezer and MusicBrainz, requested by the app with the song's title
-  and orchestra only (no personal data, no identifier).
+- Song previews and recording facts come from Deezer and MusicBrainz (and, when the DJ asks to fill in missing
+  data, the Cover Art Archive and Discogs), requested by the app with the song's title and orchestra only (no
+  personal data, no identifier). Cover artwork is shown from those services' image servers.
 - Model API keys (Anthropic, OpenAI, Gemini, OpenRouter) are the DJ's own, kept in the Keychain; the app sends
-  requests straight to the provider the DJ chose. There is no shared key and no TDJ server in between.
+  requests straight to the provider the DJ chose. There is no shared key and no TDJ server in between. An ACP
+  agent the DJ connects is asked directly (its address, or on the Mac a program the DJ entered).
 - Spotify: the DJ signs in to their own account (Authorization Code with PKCE, no client secret in the app); the
   tokens stay in the Keychain and the app talks to Spotify directly. Spotify receives what the DJ sends (a
   playlist, a search).

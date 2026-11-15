@@ -16,7 +16,17 @@ export interface Mock {
   calls: Array<{ cmd: string; args: Record<string, unknown> }>;
   db: DatabaseSync;
   secrets: Map<string, string>;
+  /** the model requests the page handed to `model_fetch`, as it sent them (before the key goes in) */
+  modelCalls: Array<{ url: string; headers: Record<string, string>; body: string }>;
 }
+
+/** src-tauri/src/net.rs → MODEL_HOSTS: the provider is the request's host */
+const MODEL_HOSTS: Record<string, string> = {
+  "api.anthropic.com": "anthropic",
+  "api.openai.com": "openai",
+  "openrouter.ai": "openrouter",
+  "generativelanguage.googleapis.com": "gemini",
+};
 
 const json = (status: number, body: unknown) => ({
   status,
@@ -41,6 +51,7 @@ export async function installTauriMock(ctx: BrowserContext, o: MockOptions): Pro
   const db = new DatabaseSync(o.dbPath ?? ":memory:");
   const secrets = new Map<string, string>();
   const calls: Mock["calls"] = [];
+  const modelCalls: Mock["modelCalls"] = [];
   const handle = (cmd: string, args: Record<string, unknown>): unknown => {
     calls.push({ cmd, args });
     switch (cmd) {
@@ -73,16 +84,32 @@ export async function installTauriMock(ctx: BrowserContext, o: MockOptions): Pro
         return null;
       case "net_fetch":
         return cannedFetch(String((args.req as { url: string }).url));
-      case "ai_complete": {
-        const a = args.args as { provider: string; system: string };
-        if (!secrets.has(`ai.${a.provider}`))
+      case "model_fetch": {
+        // the native side of the provider layer: the page's own request, the key from the "Keychain"
+        const r = args.req as { url: string; headers?: Record<string, string>; body?: string };
+        const provider = MODEL_HOSTS[new URL(r.url).host];
+        if (!provider) return { error: { message: "The app does not contact that site.", status: 403 } };
+        modelCalls.push({ url: r.url, headers: r.headers ?? {}, body: r.body ?? "" });
+        if (!secrets.has(`ai.${provider}`))
           return {
             error: {
-              message: "No API key for this provider. Add one in Settings → Written reviews.",
+              message: "No API key for this provider. Add one in Settings → Models.",
               status: 401,
             },
           };
-        return a.system.startsWith("You are a connection test") ? "OK" : "A calm, well-built night.";
+        const system = String((JSON.parse(r.body || "{}") as { system?: unknown }).system ?? "");
+        const text = system.startsWith("You are a connection test") ? "OK" : "A calm, well-built night.";
+        // an Anthropic Messages answer (the only provider the check uses)
+        return json(200, {
+          id: "msg_check",
+          type: "message",
+          role: "assistant",
+          model: "check",
+          content: [{ type: "text", text }],
+          stop_reason: "end_turn",
+          stop_sequence: null,
+          usage: { input_tokens: 1, output_tokens: 1 },
+        });
       }
       case "spotify_access":
         return null;
@@ -120,5 +147,5 @@ export async function installTauriMock(ctx: BrowserContext, o: MockOptions): Pro
       },
     };
   })();`);
-  return { calls, db, secrets };
+  return { calls, db, secrets, modelCalls };
 }

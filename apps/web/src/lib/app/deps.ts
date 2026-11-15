@@ -1,8 +1,10 @@
 import { buildLoaded, type DataFiles } from "@tdj/core/data";
+import { LlmError } from "@/lib/ai/provider";
 import { catalogStore } from "@/lib/api/catalog";
 import type { ApiDeps } from "@/lib/api/deps";
 import type { ReferencePlaylist } from "@/lib/types";
-import type { HostCalls } from "./host";
+import type { HostCalls, HostError } from "./host";
+import type { DeviceRuntime } from "./server/runtime";
 import { DeviceStore, migrate, type SqlDriver } from "./store";
 
 export type AppDeps = ApiDeps & {
@@ -12,8 +14,8 @@ export type AppDeps = ApiDeps & {
 };
 
 /**
- * The apps' runtime for the shared route handlers: the bundled index, the native HTTP client for Deezer and MusicBrainz, the Spotify session in the Keychain and
- * the on-device database. Runs inside the engine worker (src/workers/engine.worker.ts).
+ * The apps' runtime for the shared route handlers: the bundled index, the native HTTP client for Deezer and
+ * MusicBrainz, the Spotify session in the Keychain and the on-device database. Runs inside the engine worker (src/workers/engine.worker.ts).
  */
 export function appDeps(files: DataFiles, host: HostCalls): AppDeps {
   const catalog = catalogStore(() => ({
@@ -76,6 +78,22 @@ export function appDeps(files: DataFiles, host: HostCalls): AppDeps {
         const a = await host.spotify.access();
         return a ? { access: a.access, expires: a.expires, scopes: a.scopes } : null;
       },
+    },
+  };
+}
+
+/** The runtime of the server routes the app runs unchanged (lib/app/server/*): the same index, the page's model call. */
+export function deviceRuntime(d: AppDeps): DeviceRuntime {
+  return {
+    catalog: d.catalog,
+    catalogFor: d.catalogFor,
+    ask: async (ai, req) => {
+      try {
+        return await d.host.ask(ai, req);
+      } catch (e) {
+        const h = e as HostError;
+        throw new LlmError(h?.message || "The model request failed.", h?.status ?? 502);
+      }
     },
   };
 }

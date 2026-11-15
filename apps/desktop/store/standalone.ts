@@ -16,11 +16,18 @@ import { installTauriMock } from "./tauri-mock";
 const PORT = Number(process.env.PORT ?? 4174);
 const ORIGIN = `http://127.0.0.1:${PORT}`;
 
+/** The services' image CDNs the page may show artwork from (Deezer, Spotify, the Cover Art Archive). */
+const MEDIA_HOSTS =
+  /^(cdn-images\.dzcdn\.net|e-cdns-images\.dzcdn\.net|i\.scdn\.co|coverartarchive\.org|([a-z0-9-]+\.)*archive\.org)$/;
+
 async function main() {
   const server = await startPreview(PORT);
   const exe = process.env.CHROMIUM ?? "/opt/pw-browsers/chromium";
   const browser = await chromium.launch({ ...(exe ? { executablePath: exe } : {}), args: ["--no-sandbox"] });
   const outside: string[] = [];
+  // cover artwork the page shows straight from the services' image CDNs (round 22): no data about the DJ goes with
+  // it, as with the audio previews; counted, refused here like everything else, and only these hosts
+  const media: string[] = [];
   try {
     const dbPath = join(mkdtempSync(join(tmpdir(), "tdj-app-")), "tdj.db");
     const open = async () => {
@@ -30,7 +37,10 @@ async function main() {
       await ctx.route(
         (u) => !u.href.startsWith(ORIGIN) && !u.protocol.startsWith("data") && !u.protocol.startsWith("blob"),
         (route) => {
-          outside.push(route.request().url());
+          const url = route.request().url();
+          if (route.request().resourceType() === "image" && MEDIA_HOSTS.test(new URL(url).host))
+            media.push(url);
+          else outside.push(url);
           return route.abort();
         },
       );
@@ -76,6 +86,22 @@ async function main() {
     await page.locator("[id^=history-]").first().waitFor({ timeout: 30_000 });
     console.log("History after a fresh start: the night is there (from SQLite)");
 
+    // the server routes the app runs unchanged (apps/web/scripts/device-routes.mjs) answer from the bundle
+    // (a string, not a function: tsx would add its `__name` helper, which the page does not have)
+    const device = (await page.evaluate(`(async () => {
+      const post = async (path, body) =>
+        (await fetch(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })).json();
+      const found = await post("/api/song-search", { query: { text: "flete", limit: 3 } });
+      const night = await post("/api/compose", { hours: 1, seed: 2 });
+      const edit = await post("/api/ai/edit", { playlist: night, instruction: "more vals" });
+      return { found: found.results?.length ?? 0, edit: edit.source, tandas: edit.playlist?.tandas?.length ?? 0 };
+    })()`)) as { found: number; edit: string; tandas: number };
+    assert.ok(device.found > 0, "song search answered on the device");
+    assert.ok(device.tandas > 0 && typeof device.edit === "string", "Edit with AI answered on the device");
+    console.log(
+      `device routes: song search ${device.found} sides, Edit with AI (${device.edit}) on the device`,
+    );
+
     // Settings: standalone, no server linked; a model key goes to the Keychain mock, never to the page's storage
     await page.goto(`${ORIGIN}/settings`, { waitUntil: "load" });
     await page.locator("#app-connections").waitFor({ timeout: 30_000 });
@@ -87,7 +113,13 @@ async function main() {
     assert.ok(!stored.includes("sk-ant-test-key"), "the key is not in the page's storage");
     await page.locator("#ai-test").click();
     await page.getByText(/answered "OK"/).waitFor({ timeout: 30_000 });
-    console.log("model key in the Keychain; the connection test ran natively");
+    // the provider layer's own Anthropic request went out natively, carrying only the mark of a saved key
+    assert.ok(mock.modelCalls.length > 0, "the connection test went through model_fetch");
+    for (const c of mock.modelCalls) {
+      assert.equal(new URL(c.url).host, "api.anthropic.com");
+      assert.ok(!JSON.stringify(c).includes("sk-ant-test-key"), "the page never sends the key");
+    }
+    console.log("model key in the Keychain; the connection test ran on the provider layer, natively");
     const settingsRow = mock.db.prepare("SELECT value FROM settings WHERE key = 'user'").get() as
       | { value: string }
       | undefined;
@@ -101,7 +133,9 @@ async function main() {
     assert.deepEqual(errors, [], "no page errors");
     const cmds = [...new Set(mock.calls.map((c) => c.cmd))].sort();
     console.log(`native commands used: ${cmds.join(", ")}`);
-    console.log("standalone check passed: no TDJ server, no outside request");
+    console.log(
+      `standalone check passed: no TDJ server, no outside request (${media.length} artwork images from the services' CDNs)`,
+    );
   } finally {
     await browser.close();
     server.close();

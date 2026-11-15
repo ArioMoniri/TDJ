@@ -1,8 +1,9 @@
 /// <reference lib="webworker" />
 import type { DataFiles } from "@tdj/core/data";
-import { type AppDeps, appDeps } from "@/lib/app/deps";
+import { type AppDeps, appDeps, deviceRuntime } from "@/lib/app/deps";
 import type { HostCalls, HostError } from "@/lib/app/host";
 import { dispatch } from "@/lib/app/routes";
+import { setDeviceRuntime } from "@/lib/app/server/runtime";
 
 /**
  * The apps' engine (TDJ_TARGET=app): every /api/* request of the page is answered here, off the main thread, with
@@ -34,6 +35,7 @@ const call = <T>(op: string, args: unknown[]): Promise<T> =>
   });
 const host: HostCalls = {
   fetch: (r) => call("fetch", [r]),
+  ask: (ai, req) => call("ask", [ai, req]),
   sql: (op, sql, params) => call("sql", [op, sql, params]),
   spotify: {
     enabled: () => call("spotify.enabled", []),
@@ -63,6 +65,11 @@ self.onmessage = async (e: MessageEvent<In>) => {
         if (text) (files as Record<string, unknown>)[k] = JSON.parse(text);
       const d = appDeps(files, host);
       d.catalog(); // build the index now, before the first compose asks for it
+      // the server routes the app runs unchanged (lib/app/deviceRoutes.ts) read the index and the model from here,
+      // and their outbound lookups (/api/fill) use this worker's fetch: the app's native client
+      setDeviceRuntime(deviceRuntime(d));
+      globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) =>
+        d.fetch(input instanceof Request ? input.url : String(input), init)) as typeof fetch;
       markReady(d);
       post({ type: "ready" });
     } catch (err) {

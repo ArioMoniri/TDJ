@@ -9,6 +9,7 @@
 //! Native value on top: menu bar + shortcuts, Now Playing and media keys, keep-awake for the night, linked music
 //! folders (security-scoped bookmarks), a headphone cue device, native save/print, system-browser logins.
 
+mod agents;
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 mod apple;
 mod bridge;
@@ -52,8 +53,10 @@ pub struct AppState {
     pub bundled: bool,
     /// the DJ's model keys and the Spotify session (the Keychain on Apple platforms)
     pub secrets: Box<dyn secrets::SecretStore>,
-    /// the app's own HTTP client (no cookies): Deezer, MusicBrainz, model providers, Spotify accounts
+    /// the app's own HTTP client (no cookies): the lookups, model providers, Spotify accounts
     pub http: reqwest::Client,
+    /// local ACP agents the Mac app started (Settings → Models)
+    pub agents: agents::Agents,
     /// the Spotify access token in memory (the refresh token stays in the Keychain)
     pub spotify: Mutex<Option<net::SpotifyAccess>>,
     tickets: Mutex<Option<(String, bool)>>,
@@ -575,10 +578,18 @@ pub fn run() {
                 secrets: secrets::platform_store(),
                 http: reqwest::Client::builder()
                     .user_agent(net::UA)
-                    .redirect(reqwest::redirect::Policy::limited(3))
+                    // a lookup may only be redirected to its own hosts (the Cover Art Archive → archive.org)
+                    .redirect(reqwest::redirect::Policy::custom(|a| {
+                        if a.previous().len() >= 3 || !net::redirect_allowed(a.url()) {
+                            a.stop()
+                        } else {
+                            a.follow()
+                        }
+                    }))
                     .build()
                     .expect("http client"),
                 spotify: Mutex::new(None),
+                agents: agents::Agents::default(),
                 tickets: Mutex::new(None),
             });
             if let (false, Some(origin)) = (bundled, linked.as_deref()) {
@@ -628,7 +639,11 @@ pub fn run() {
             commands::secret_has,
             commands::secret_delete,
             commands::net_fetch,
-            commands::ai_complete,
+            commands::model_fetch,
+            commands::acp_spawn,
+            commands::acp_write,
+            commands::acp_read,
+            commands::acp_kill,
             commands::spotify_token,
             commands::spotify_access,
             commands::spotify_logout,
@@ -662,6 +677,7 @@ pub fn run() {
             if let tauri::RunEvent::Exit = event {
                 let state = app.state::<AppState>();
                 state.keep_awake.set(false);
+                state.agents.kill_all();
                 state.bridge.persist();
             }
         });
@@ -701,7 +717,8 @@ mod tests {
             "unlink-server",
             "secret-set",
             "net-fetch",
-            "ai-complete",
+            "model-fetch",
+            "acp-spawn",
             "spotify-token",
         ] {
             assert!(
@@ -718,7 +735,11 @@ mod tests {
             "secret_set",
             "secret_has",
             "secret_delete",
-            "ai_complete",
+            "model_fetch",
+            "acp_spawn",
+            "acp_write",
+            "acp_read",
+            "acp_kill",
             "net_fetch",
             "spotify_token",
             "spotify_access",

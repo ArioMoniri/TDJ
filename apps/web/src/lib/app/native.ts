@@ -62,6 +62,7 @@ export async function spotifyClientId(): Promise<string> {
 export function nativeHost(origFetch: typeof fetch): HostCalls {
   return {
     fetch: (r) => invoke<WireResponse>("net_fetch", { req: r }),
+    ask: async (ai, req) => (await import("./ai")).deviceAsk(ai, req),
     sql: async (op, query, values) => {
       await loadDb();
       if (op === "select") return invoke(`plugin:sql|select`, { db: DB, query, values });
