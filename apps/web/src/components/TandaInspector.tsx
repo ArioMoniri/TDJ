@@ -1,15 +1,20 @@
 "use client";
-import { Headphones, ListMusic } from "lucide-react";
-import { useEffect } from "react";
+import { ArrowDown, ArrowUp, GripVertical, Headphones, ListMusic } from "lucide-react";
+import { useCallback, useEffect, useMemo } from "react";
 import { haptic } from "@/lib/haptics";
 import { lazy, t as tx } from "@/lib/i18n";
+import { lengthOf, tandaTotal, totalText } from "@/lib/lengths";
 import { sourceFor, trackFor, usePlayer } from "@/lib/player";
 import { useStore } from "@/lib/store";
 import type { Playlist } from "@/lib/types";
 import { metaLine, yearText } from "@/lib/year";
 import { RhythmTile } from "./Form";
+import { Menu } from "./Menu";
 import { SELECT_TANDA_EVENT } from "./Sidebar";
+import { PlayRow } from "./ui/PlayRow";
+import { isMixedTanda, TandaTypeBadge } from "./ui/TandaTypeBadge";
 import { Tip } from "./ui/Tip";
+import { useDragReorder } from "./ui/useDragReorder";
 
 const PHASE: Record<string, string> = lazy(() => ({
   warmup: tx("phase.warmup"),
@@ -30,13 +35,15 @@ export function TandaInspector({
   playlist,
   selected,
   onSelect,
+  onMoveTrack,
 }: {
   playlist: Playlist;
   selected: number;
   onSelect: (i: number) => void;
+  /** 2026-11: reorder a song inside the tanda (tanda, from, to) */
+  onMoveTrack?: (i: number, from: number, to: number) => void;
 }) {
   const connected = useStore((s) => !!s.spotifyToken && s.spotifyToken.expires > Date.now());
-  const track = usePlayer((s) => s.track);
   useEffect(() => {
     const on = (e: Event) => onSelect((e as CustomEvent<number>).detail);
     window.addEventListener(SELECT_TANDA_EVENT, on);
@@ -47,7 +54,12 @@ export function TandaInspector({
   }, [onSelect]);
   const i = Math.min(Math.max(0, selected), playlist.tandas.length - 1);
   const t = playlist.tandas[i];
+  const move = useCallback((from: number, to: number) => onMoveTrack?.(i, from, to), [onMoveTrack, i]);
+  const drag = useDragReorder(move, !onMoveTrack || !!t?.locked);
+  const cues = playlist.booth?.songCues;
+  const total = useMemo(() => (t ? tandaTotal(t.songs, cues) : null), [t, cues]);
   if (!t) return null;
+  const where = tx("play.tanda", { n: i + 1 });
   const previews = t.songs.flatMap((s) => {
     const src = sourceFor(s, connected);
     return src?.kind === "preview" ? [trackFor(s, src)] : [];
@@ -64,6 +76,7 @@ export function TandaInspector({
             <h2 className="text-title3 truncate" data-testid="inspector-title">
               {t.orchestra}
             </h2>
+            <TandaTypeBadge rhythm={t.rhythm} singer={t.singer} vocal={t.vocal} mixed={isMixedTanda(t)} />
           </div>
         </div>
         <dl className="inspector-facts mt-3">
@@ -81,7 +94,11 @@ export function TandaInspector({
             </span>
           </dd>
           <dt>{tx("tandaInspector.length")}</dt>
-          <dd>{mmss(t.durationSec)}</dd>
+          <dd data-testid="inspector-total">
+            {total
+              ? tx("play.songs_total", { n: t.songs.length, total: totalText(total) })
+              : mmss(t.durationSec)}
+          </dd>
         </dl>
         <div className="mt-4 flex flex-wrap gap-2">
           <Tip text={tx("tandaInspector.hear_10_seconds_of_each_song")}>
@@ -113,19 +130,60 @@ export function TandaInspector({
         </div>
       </div>
       <h3 className="section-head">{tx("tandaInspector.tracks")}</h3>
-      <ol className="group-inset">
+      <ol className="group-inset" data-reorder-list>
         {t.songs.map((s, k) => (
-          <li key={s.id} className="cell" data-leading="num" data-now={track?.id === s.id || undefined}>
-            <span className="text-subhead w-5 shrink-0 tabular-nums text-[var(--label-2)]">{k + 1}</span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate">{s.title}</span>
-              <span className="text-footnote block truncate text-[var(--label-2)]">
-                {metaLine(yearText(s.year), s.singer)}
-              </span>
-            </span>
-            <span className="text-subhead shrink-0 tabular-nums text-[var(--label-2)]">
-              {Math.round(t.energyCurve[k] ?? t.energy)}
-            </span>
+          <li key={s.id} className="relative" data-reorder-row>
+            <PlayRow
+              song={s}
+              where={where}
+              leadingKind="num"
+              leading={
+                <span className="text-subhead inline-block w-5 tabular-nums text-[var(--label-2)]">
+                  {k + 1}
+                </span>
+              }
+              sub={metaLine(yearText(s.year), s.singer)}
+              lengthSec={lengthOf(s, cues)}
+              testId="inspector-row"
+              trailing={
+                <>
+                  <span className="text-subhead shrink-0 tabular-nums text-[var(--label-2)]">
+                    {Math.round(t.energyCurve[k] ?? t.energy)}
+                  </span>
+                  {onMoveTrack && !t.locked && (
+                    <>
+                      <button
+                        type="button"
+                        className="drag-handle icon-btn icon-btn-bare -my-2 h-11 w-9 shrink-0 text-[var(--label-3)]"
+                        aria-label={tx("play.drag_to_reorder", { title: s.title })}
+                        data-testid="drag-handle"
+                        {...drag(k)}
+                      >
+                        <GripVertical size={16} aria-hidden />
+                      </button>
+                      <Menu
+                        label={tx("play.song_actions", { title: s.title })}
+                        className="icon-btn-bare -my-2 -mr-3 h-11 w-10"
+                        items={[
+                          {
+                            label: tx("play.move_up"),
+                            icon: ArrowUp,
+                            onClick: () => move(k, k - 1),
+                            disabled: k === 0,
+                          },
+                          {
+                            label: tx("play.move_down"),
+                            icon: ArrowDown,
+                            onClick: () => move(k, k + 1),
+                            disabled: k === t.songs.length - 1,
+                          },
+                        ]}
+                      />
+                    </>
+                  )}
+                </>
+              }
+            />
           </li>
         ))}
         {t.cortina && (

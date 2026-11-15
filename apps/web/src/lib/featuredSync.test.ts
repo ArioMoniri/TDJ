@@ -28,6 +28,12 @@ describe("an older copy of the featured night follows the shipped version", () =
     c.tandas[0]!.songs[0]!.spotify = { ...c.tandas[0]!.songs[0]!.spotify!, uri: "spotify:track:old" };
     expect(isOlderCopy(c, shipped)).toBe(true);
   });
+  it("the DJ's own order inside a tanda is not an older copy", () => {
+    const a = clone(shipped);
+    a.tandas[1]!.songs.reverse();
+    a.tandas[1]!.djOrder = true;
+    expect(isOlderCopy(a, shipped)).toBe(false);
+  });
   it("a copy under another id that keeps most of the night's sides is older", () => {
     const a = clone(shipped);
     a.id = "my-own-copy";

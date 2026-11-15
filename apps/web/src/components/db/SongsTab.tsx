@@ -23,6 +23,8 @@ import { Sheet } from "../Sheet";
 import { SwipeRow } from "../SwipeRow";
 import { Artwork } from "../ui/Artwork";
 import { EraBadge } from "../ui/EraBadge";
+import { PlayRow } from "../ui/PlayRow";
+import { rhythmWord } from "../ui/TandaTypeBadge";
 import { Tip } from "../ui/Tip";
 import { Empty, patchMap, useDb, useDbEdit, ValueCell } from "./shared";
 import { VersionsRow } from "./Versions";
@@ -288,28 +290,35 @@ export function SongsTab() {
                 footer={edited ? tx("db.songsTab.edited_revert_in_edit_mode") : undefined}
                 className="min-w-0"
               >
-                <div className="cell" data-leading="art">
-                  <Artwork
-                    src={data.artwork?.value as string | undefined}
-                    orchestra={s.orchestra}
-                    orchestraId={s.orchestraId}
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="text-headline block truncate">{s.title}</span>
-                    <span className="text-subhead block truncate text-[var(--label-2)]">
+                {/* 2026-11: the side's header plays it (a tap on the cover or the title) */}
+                <PlayRow
+                  song={eff}
+                  where={tx("play.database")}
+                  testId="db-song-row"
+                  leading={
+                    <Artwork
+                      src={data.artwork?.value as string | undefined}
+                      orchestra={s.orchestra}
+                      orchestraId={s.orchestraId}
+                    />
+                  }
+                  title={<span className="text-headline">{s.title}</span>}
+                  sub={
+                    <>
                       {s.orchestra}
-                      {s.singer ? ` · ${s.singer}` : ""} · {labelOf(v.rhythm)}
-                    </span>
-                    <span className="mt-0.5 flex flex-wrap gap-1">
-                      <EraBadge song={eff} />
-                    </span>
-                  </span>
-                  {editing && edited && (
-                    <button type="button" className="btn-plain -mr-2" onClick={() => revert(s.id)}>
-                      {tx("db.songsTab.revert")}
-                    </button>
-                  )}
-                </div>
+                      {s.singer ? ` · ${s.singer}` : ""} · {labelOf(v.rhythm)} <EraBadge song={eff} />
+                    </>
+                  }
+                  lengthSec={eff.durationSec ?? null}
+                  onFind={() => setFinding(s)}
+                  trailing={
+                    editing && edited ? (
+                      <button type="button" className="btn-plain -mr-2" onClick={() => revert(s.id)}>
+                        {tx("db.songsTab.revert")}
+                      </button>
+                    ) : undefined
+                  }
+                />
                 <ValueCell
                   label={tx("db.songsTab.year")}
                   inputLabel={tx("db.songsTab.year_of", { title: s.title })}
@@ -648,8 +657,8 @@ export function SongsTab() {
                   { kind: "destructive", label: "Delete", icon: Trash2, onClick: () => removeOwn(s.id) },
                 ]}
               >
-                <div className="cell" data-leading="art">
-                  {editing ? (
+                {editing ? (
+                  <div className="cell" data-leading="art">
                     <button
                       type="button"
                       className="icon-btn icon-btn-bare -ml-3 text-[var(--destructive)]"
@@ -658,16 +667,23 @@ export function SongsTab() {
                     >
                       <CircleMinus size={22} strokeWidth={2} fill="currentColor" stroke="#fff" />
                     </button>
-                  ) : (
-                    <RhythmTile rhythm={s.rhythm} />
-                  )}
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate">{s.title}</span>
-                    <span className="text-footnote block truncate text-[var(--label-2)]">
-                      {metaLine(s.orchestra, s.singer, s.rhythm, yearText(s.year))}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate">{s.title}</span>
+                      <span className="text-footnote block truncate text-[var(--label-2)]">
+                        {metaLine(s.orchestra, s.singer, s.rhythm, yearText(s.year))}
+                      </span>
                     </span>
-                  </span>
-                </div>
+                  </div>
+                ) : (
+                  <PlayRow
+                    song={s as Song}
+                    where={tx("play.database")}
+                    leadingKind="tile"
+                    leading={<RhythmTile rhythm={s.rhythm} label={rhythmWord(s.rhythm)} />}
+                    sub={metaLine(s.orchestra, s.singer, s.rhythm, yearText(s.year))}
+                    lengthSec={(s as Song).durationSec ?? null}
+                  />
+                )}
               </SwipeRow>
             </motion.div>
           ))}

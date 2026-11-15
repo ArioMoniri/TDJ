@@ -288,6 +288,8 @@ export interface Tanda {
   };
   /** round 21: "skip tonight" — the player passes over it (its tracks and the cortina after it); exports keep it */
   bypass?: boolean;
+  /** 2026-11: the DJ reordered this tanda's songs by hand (Compose, the inspector, History) */
+  djOrder?: boolean;
 }
 
 export interface PlaylistStats {

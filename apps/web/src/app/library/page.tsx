@@ -5,16 +5,15 @@ import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import { FeaturedCard } from "@/components/FeaturedCard";
 import { Group, RhythmTile, Row } from "@/components/Form";
-import { I } from "@/components/Icons";
 import { SEARCH_FOCUS_EVENT } from "@/components/Nav";
 import { PageHeader } from "@/components/PageHeader";
 import { SearchField } from "@/components/SearchField";
 import { Sheet } from "@/components/Sheet";
-import { haptic } from "@/lib/haptics";
+import { PlayRow } from "@/components/ui/PlayRow";
+import { rhythmWord } from "@/components/ui/TandaTypeBadge";
 import { fmtNumber, t as tx } from "@/lib/i18n";
 import { fade, reduced as reducedV, rise, t } from "@/lib/motion";
-import { sourceFor, trackFor, usePlayer } from "@/lib/player";
-import { useStore } from "@/lib/store";
+import { PlayListContext } from "@/lib/playback";
 import type { Song } from "@/lib/types";
 import { yearText } from "@/lib/year";
 
@@ -23,48 +22,36 @@ const ResolveSheet = dynamic(() => import("@/components/ResolveSheet").then((m) 
 });
 
 /**
- * A 44 pt play / pause control in the row's leading slot (round8-qa.md B2): the 30 s preview in the one
- * mini-player, or "Find on services" when the recording has no preview yet.
+ * 2026-11: a result row whose body plays the side (one tap; a second tap pauses), the 30 s preview or the full
+ * track with Spotify Premium; nothing to play → a toast that says why, with "Find…" (the Find on services sheet).
  */
-const PlayCell = memo(function PlayCell({ song }: { song: Song }) {
-  const connected = useStore((s) => !!s.spotifyToken && s.spotifyToken.expires > Date.now());
-  const patch = useStore((s) => s.overrides.songs?.[song.id]);
-  const playing = usePlayer((s) => s.playing && s.track?.id === song.id);
+const LibraryRow = memo(function LibraryRow({ song, where }: { song: Song; where: string }) {
   const [find, setFind] = useState(false);
   const [findMounted, setFindMounted] = useState(false);
-  const source = sourceFor(song, connected, patch);
   return (
     <>
-      <button
-        type="button"
-        className={`icon-btn icon-btn-bare -my-2 -ml-2 h-11 w-11 shrink-0 ${playing ? "text-[var(--tint)]" : "text-[var(--tint)]"}`}
-        aria-label={
-          playing
-            ? tx("library.pause", { title: song.title })
-            : source
-              ? tx("library.play", { title: song.title })
-              : tx("library.find_on_services", { title: song.title })
-        }
-        aria-pressed={playing}
-        data-testid="play-button"
-        onClick={() => {
-          if (!source) {
-            setFindMounted(true);
-            setFind(true);
-            return;
-          }
-          haptic(4);
-          usePlayer.getState().toggle(trackFor({ ...song, ...(patch ?? {}) } as Song, source));
+      <PlayRow
+        song={song}
+        where={where}
+        leadingKind="tile"
+        leading={<RhythmTile rhythm={song.rhythm} label={rhythmWord(song.rhythm)} />}
+        sub={`${song.orchestra}${song.singer ? ` · ${song.singer}` : ""}`}
+        lengthSec={song.durationSec ?? null}
+        playTestId="play-button"
+        onFind={() => {
+          setFindMounted(true);
+          setFind(true);
         }}
-      >
-        {playing ? (
-          <I name="pause" size={18} fill="currentColor" strokeWidth={0} />
-        ) : source ? (
-          <I name="play" size={18} fill="currentColor" strokeWidth={0} />
-        ) : (
-          <I name="search" size={16} strokeWidth={2.25} />
-        )}
-      </button>
+        trailing={
+          <span className="cell-value text-body">
+            <span className="tabular-nums">{yearText(song.year)}</span>
+            <span className="text-footnote ml-2 tabular-nums text-[var(--label-2)]">
+              <span className="sr-only">{tx("library.energy")} </span>
+              {song.energy}
+            </span>
+          </span>
+        }
+      />
       {findMounted && <ResolveSheet song={find ? song : null} open={find} onClose={() => setFind(false)} />}
     </>
   );
@@ -120,6 +107,14 @@ export default function Library() {
   const shownRef = useRef(shown.q);
   shownRef.current = shown.q;
   const rowV = reduced ? reducedV.rise : rise;
+  // 2026-11: a tap plays from the results (the mini player steps through them)
+  const resultList = useMemo(
+    () => ({
+      label: tx("library.library"),
+      items: rows.map((song) => ({ kind: "song" as const, song, where: tx("library.library") })),
+    }),
+    [rows],
+  );
   const search = (cls = "") => (
     <SearchField
       id="library-search"
@@ -175,39 +170,25 @@ export default function Library() {
               animate={{ opacity: searching ? 0.6 : 1, transition: searching ? t.press : t.fade }}
               exit="exit"
             >
-              <Group header={tx("library.results", { length: rows.length })}>
-                <AnimatePresence initial={false}>
-                  {rows.map((s, i) => (
-                    <motion.div
-                      key={s.id}
-                      variants={rowV}
-                      custom={i}
-                      initial={shown.fresh ? "hidden" : false}
-                      animate="show"
-                      exit="exit"
-                      className="cell"
-                      data-leading="art"
-                    >
-                      <PlayCell song={s} />
-                      <RhythmTile rhythm={s.rhythm} />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate">{s.title}</span>
-                        <span className="text-footnote block truncate text-[var(--label-2)]">
-                          {s.orchestra}
-                          {s.singer ? ` · ${s.singer}` : ""}
-                        </span>
-                      </span>
-                      <span className="cell-value text-body">
-                        <span className="tabular-nums">{yearText(s.year)}</span>
-                        <span className="text-footnote ml-2 tabular-nums text-[var(--label-2)]">
-                          <span className="sr-only">{tx("library.energy")} </span>
-                          {s.energy}
-                        </span>
-                      </span>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </Group>
+              <PlayListContext.Provider value={resultList}>
+                <Group header={tx("library.results", { length: rows.length })}>
+                  <AnimatePresence initial={false}>
+                    {rows.map((s, i) => (
+                      <motion.div
+                        key={s.id}
+                        variants={rowV}
+                        custom={i}
+                        initial={shown.fresh ? "hidden" : false}
+                        animate="show"
+                        exit="exit"
+                        data-testid="library-row"
+                      >
+                        <LibraryRow song={s} where={tx("library.library")} />
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </Group>
+              </PlayListContext.Provider>
             </motion.div>
           )}
         </AnimatePresence>

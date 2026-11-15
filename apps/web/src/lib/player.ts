@@ -1,12 +1,33 @@
 "use client";
 import { create } from "zustand";
-import type { Song } from "./types";
+import type { Cortina, Song } from "./types";
 
-/** What the one global player can play for a song: a Spotify track (connected) or the 30 s Deezer preview. */
+/**
+ * What the one global player can play for a song: a Spotify embed (connected), the 30 s Deezer preview, the DJ's own
+ * file (a blob: URL), the full Spotify track on a Premium account (lib/playback.ts drives the device), or — while the
+ * Booth runs a night — the Booth's headphones output (`cue`, lib/playback.ts drives it too).
+ */
 export interface PlayerSource {
-  kind: "spotify" | "preview";
-  /** spotify track id or preview MP3 URL */
+  kind: "spotify" | "preview" | "file" | "spotify-full" | "cue";
+  /** spotify track id (embed), preview MP3 URL, blob: URL, spotify:track: URI, or the song id (cue) */
   ref: string;
+}
+/** the sources the app's own <audio> element plays */
+export const ownAudio = (s: PlayerSource | null | undefined) => s?.kind === "preview" || s?.kind === "file";
+/** the sources another player sounds (the Spotify device, the Booth's headphones) */
+export const externalAudio = (s: PlayerSource | null | undefined) =>
+  s?.kind === "spotify-full" || s?.kind === "cue";
+
+/** one row a tap can play: a side or a cortina */
+export type PlayItem =
+  | { kind: "song"; song: Song; where?: string }
+  | { kind: "cortina"; cortina: Cortina; where?: string };
+export const playKey = (it: PlayItem) => (it.kind === "song" ? it.song.id : `cortina:${it.cortina.id}`);
+/** the list a tap came from (a tanda, the night, a search): the mini player steps through it */
+export interface PlayerList {
+  label: string;
+  items: PlayItem[];
+  index: number;
 }
 
 export interface PlayerTrack {
@@ -20,6 +41,10 @@ export interface PlayerTrack {
   kind?: "song" | "cortina";
   /** stop here (seconds): the DJ's cortina play length; a chain hands over, a single play ends */
   stopSec?: number;
+  /** start here (seconds into the recording): a cortina's chorus */
+  startSec?: number;
+  /** where it sits ("Tanda 3", "Cortina after tanda 2"), for the mini player */
+  where?: string;
 }
 
 /** A chained preview: the tracks of one tanda back to back, `clipSec` of each (round4-ux.md §10.1 "Preview tanda"). */
@@ -40,7 +65,9 @@ interface PlayerState {
   error: string | null;
   /** set while a tanda preview chains its tracks; any manual play clears it */
   queue: PlayerQueue | null;
-  play: (t: PlayerTrack) => void;
+  /** the list the playing row belongs to (previous / next in the mini player) */
+  list: PlayerList | null;
+  play: (t: PlayerTrack, list?: PlayerList | null) => void;
   /** play `tracks` back to back, `clipSec` seconds each */
   playQueue: (label: string, tracks: PlayerTrack[], clipSec?: number) => void;
   /** advance the chain; stops at the end */
@@ -63,7 +90,9 @@ export const usePlayer = create<PlayerState>()((set, get) => ({
   duration: 0,
   error: null,
   queue: null,
-  play: (track) => set({ track, playing: true, position: 0, duration: 0, error: null, queue: null }),
+  list: null,
+  play: (track, list = null) =>
+    set({ track, playing: true, position: track.startSec ?? 0, duration: 0, error: null, queue: null, list }),
   playQueue: (label, tracks, clipSec = 10) => {
     const first = tracks[0];
     if (!first) return;
@@ -74,6 +103,7 @@ export const usePlayer = create<PlayerState>()((set, get) => ({
       duration: 0,
       error: null,
       queue: { label, tracks, index: 0, clipSec },
+      list: null,
     });
   },
   next: () => {
@@ -91,7 +121,8 @@ export const usePlayer = create<PlayerState>()((set, get) => ({
     set({ playing: !get().playing });
   },
   pause: () => set({ playing: false }),
-  close: () => set({ track: null, playing: false, position: 0, duration: 0, error: null, queue: null }),
+  close: () =>
+    set({ track: null, playing: false, position: 0, duration: 0, error: null, queue: null, list: null }),
   seek: (position) => set({ position }),
   _tick: (position, duration) => {
     const q = get().queue;

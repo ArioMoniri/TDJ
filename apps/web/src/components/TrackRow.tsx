@@ -1,15 +1,17 @@
 "use client";
-import { AudioWaveform, LoaderCircle, Repeat2, Search } from "lucide-react";
+import { ArrowDown, ArrowUp, AudioWaveform, GripVertical, LoaderCircle, Repeat2, Search } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import dynamic from "next/dynamic";
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { analyseSong, isAnalysing, keyLabel } from "@/lib/analyze";
 import { patchedSong } from "@/lib/audio";
 import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
 import { t } from "@/lib/i18n";
+import { fmtLen } from "@/lib/lengths";
 import { lineSwap } from "@/lib/motion";
-import { sourceFor, trackFor, usePlayer } from "@/lib/player";
+import { useTapPlay } from "@/lib/playback";
+import type { PlayItem } from "@/lib/player";
 import { bpmText, keyText, useSongData } from "@/lib/songView";
 import { useStore } from "@/lib/store";
 import type { Song } from "@/lib/types";
@@ -19,6 +21,7 @@ import { Menu } from "./Menu";
 import { SwipeRow } from "./SwipeRow";
 import { Artwork } from "./ui/Artwork";
 import { EraBadge } from "./ui/EraBadge";
+import { NoAudio, NowBars } from "./ui/NowPlaying";
 import { Tip, useTip } from "./ui/Tip";
 
 /* The two sheets are rare (one row at a time): their code arrives when the first one opens. */
@@ -44,6 +47,10 @@ export const TrackRow = memo(function TrackRow({
   swapLabel,
   animateLayout = false,
   lockedWhy,
+  lengthSec,
+  count,
+  onMove,
+  dragHandle,
 }: {
   n: number;
   song: Song;
@@ -58,6 +65,14 @@ export const TrackRow = memo(function TrackRow({
   animateLayout?: boolean;
   /** why Swap is off ("unlock the tanda first", "a night from History is read-only") */
   lockedWhy?: string;
+  /** 2026-11: the side's played length (its cue window, else its recording); null prints "–:–" */
+  lengthSec?: number | null;
+  /** the tanda's size (Move down stops at the last chair) */
+  count?: number;
+  /** 2026-11: reorder inside the tanda — called with (from, to) track indexes; absent on a read-only night */
+  onMove?: (from: number, to: number) => void;
+  /** the drag handle's pointer props (useDragReorder) */
+  dragHandle?: Record<string, unknown>;
 }) {
   const reduced = useReducedMotion();
   const isPhone = useMediaQuery("(max-width: 599.98px)");
@@ -73,8 +88,11 @@ export const TrackRow = memo(function TrackRow({
     .filter(Boolean)
     .join(" · ");
   const keyOnly = !eff.audio ? keyText(data) : null;
-  const source = sourceFor(eff, connected);
-  const playing = usePlayer((s) => s.playing && s.track?.id === song.id);
+  const item = useMemo<PlayItem>(() => ({ kind: "song", song }), [song]);
+  const play = useTapPlay(item);
+  const playing = play.playing;
+  const source = play.audible;
+  void connected;
   const [details, setDetails] = useState(false);
   const [detailsMounted, setDetailsMounted] = useState(false);
   const [find, setFind] = useState(false);
@@ -95,13 +113,10 @@ export const TrackRow = memo(function TrackRow({
     setDetailsMounted(true);
     setDetails(true);
   }, []);
+  // 2026-11: one tap plays (the playing row pauses); nothing to play → a toast that says why, with "Find…"
   const toggle = () => {
-    if (!source) {
-      openFind();
-      return;
-    }
     haptic(4);
-    usePlayer.getState().toggle(trackFor(eff, source));
+    void play.tap({ find: openFind });
   };
   const analyse = async () => {
     setBusy(true);
@@ -133,9 +148,11 @@ export const TrackRow = memo(function TrackRow({
       initial="hidden"
       animate="show"
       exit="exit"
-      className="group/row"
+      className="group/row relative"
       data-song={song.id}
       data-playing={playing || undefined}
+      data-now={play.state ?? undefined}
+      data-reorder-row
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key !== " " || e.target !== e.currentTarget) return;
@@ -155,7 +172,7 @@ export const TrackRow = memo(function TrackRow({
           },
         ]}
       >
-        <div className="cell" data-leading="num">
+        <div className={`cell ${play.state ? "row-now" : ""}`} data-leading="num">
           <button
             type="button"
             className={`icon-btn icon-btn-bare -my-2 -ml-3 h-11 w-11 shrink-0 ${playing ? "text-[var(--tint)]" : "text-[var(--label-2)]"}`}
@@ -167,8 +184,8 @@ export const TrackRow = memo(function TrackRow({
             onClick={toggle}
           >
             {playTip.tag}
-            {playing ? (
-              <I name="pause" size={18} fill="currentColor" strokeWidth={0} />
+            {play.state ? (
+              <NowBars on={playing} />
             ) : (
               <>
                 <span className="text-subhead tabular-nums group-focus-within/row:hidden group-hover/row:hidden">
@@ -193,35 +210,46 @@ export const TrackRow = memo(function TrackRow({
               </>
             )}
           </button>
-          {/* round 22: the cover with the era badge on its corner (one slot, so the title keeps its room) */}
-          <span className="relative -my-1 shrink-0">
-            <Artwork
-              src={data.artwork?.value as string | undefined}
-              orchestra={song.orchestra}
-              orchestraId={song.orchestraId}
-              size="s"
-            />
-            <EraBadge song={eff} compact overlay />
-          </span>
-          {/* the title truncates in its own block and the year never shrinks: an inline year inside a truncated
-              span could still overflow the viewport by a pixel on phones (round4 mobile-overflow flake) */}
-          <span
-            key={`${title}-${nudge}`}
-            className={`flex min-w-0 flex-1 items-baseline gap-1 ${nudge && !reduced ? "nudge-x" : ""}`}
-            style={{ opacity: inFlight ? 0.6 : 1, transition: "opacity var(--dur-xs) var(--ease-settle)" }}
+          {/* 2026-11: the cover and the title are one play target (a tap on the image plays too) */}
+          <button
+            type="button"
+            className="-my-1 flex min-h-11 min-w-0 flex-1 items-center gap-3 text-left"
+            aria-label={playLabel}
+            data-testid="row-play"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={toggle}
           >
-            <span className="min-w-[5rem] truncate">{title}</span>
-            {/* phones: the year is in the tanda header; here it took the title's room ("La Vida M…") */}
-            <span className={`shrink-0 text-[var(--label-2)] ${isPhone ? "sr-only" : ""}`}>
-              {song.transcription || approx ? (
-                <span className="text-caption1" data-testid="undated">
-                  {t("trackRow.undated_transcription", { p1: year ? ` · c. ${year}` : "" })}
-                </span>
-              ) : (
-                yearText(year)
-              )}
+            {/* round 22: the cover with the era badge on its corner (one slot, so the title keeps its room) */}
+            <span className="relative shrink-0" data-testid="row-art">
+              <Artwork
+                src={data.artwork?.value as string | undefined}
+                orchestra={song.orchestra}
+                orchestraId={song.orchestraId}
+                size="s"
+              />
+              <EraBadge song={eff} compact overlay />
             </span>
-          </span>
+            {/* the title truncates in its own block and the year never shrinks: an inline year inside a truncated
+              span could still overflow the viewport by a pixel on phones (round4 mobile-overflow flake) */}
+            <span
+              key={`${title}-${nudge}`}
+              className={`flex min-w-0 flex-1 items-baseline gap-1 ${nudge && !reduced ? "nudge-x" : ""}`}
+              style={{ opacity: inFlight ? 0.6 : 1, transition: "opacity var(--dur-xs) var(--ease-settle)" }}
+            >
+              <span className="min-w-[5rem] truncate">{title}</span>
+              {/* phones: the year is in the tanda header; here it took the title's room ("La Vida M…") */}
+              <span className={`shrink-0 text-[var(--label-2)] ${isPhone ? "sr-only" : ""}`}>
+                {song.transcription || approx ? (
+                  <span className="text-caption1" data-testid="undated">
+                    {t("trackRow.undated_transcription", { p1: year ? ` · c. ${year}` : "" })}
+                  </span>
+                ) : (
+                  yearText(year)
+                )}
+              </span>
+            </span>
+          </button>
+          {!source && <NoAudio />}
           {keyOnly && (
             <span className="data-chip font-mono" data-testid="key-chip">
               <span className="sr-only">{t("trackRow.key")} </span>
@@ -270,6 +298,10 @@ export const TrackRow = memo(function TrackRow({
               </span>
             </Tip>
           )}
+          <span className="len text-subhead" data-testid="row-len">
+            <span className="sr-only">{t("play.length")} </span>
+            {fmtLen(lengthSec)}
+          </span>
           <span className="text-subhead tabular-nums text-[var(--label-2)]">
             <span className="sr-only">{t("trackRow.energy")} </span>
             {energy}
@@ -304,6 +336,17 @@ export const TrackRow = memo(function TrackRow({
               </button>
             </Tip>
           )}
+          {onMove && (
+            <button
+              type="button"
+              className="drag-handle icon-btn icon-btn-bare -my-2 -mx-2 h-11 w-11 shrink-0 text-[var(--label-3)]"
+              aria-label={t("play.drag_to_reorder", { title })}
+              data-testid="drag-handle"
+              {...dragHandle}
+            >
+              <GripVertical size={16} strokeWidth={2} aria-hidden />
+            </button>
+          )}
           <Menu
             label={t("trackRow.track_actions", { n })}
             className="icon-btn-bare -my-2 -mr-3 h-11 w-10"
@@ -326,6 +369,18 @@ export const TrackRow = memo(function TrackRow({
                 icon: Repeat2,
                 onClick: swap,
                 disabled: disabled || inFlight,
+              },
+              onMove && {
+                label: t("play.move_up"),
+                icon: ArrowUp,
+                onClick: () => onMove(k, k - 1),
+                disabled: k === 0,
+              },
+              onMove && {
+                label: t("play.move_down"),
+                icon: ArrowDown,
+                onClick: () => onMove(k, k + 1),
+                disabled: k >= (count ?? 0) - 1,
               },
               { label: t("trackRow.find_on_services"), icon: Search, onClick: openFind },
               {

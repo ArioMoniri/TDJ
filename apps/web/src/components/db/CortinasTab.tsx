@@ -5,6 +5,7 @@ import { t } from "@/lib/i18n";
 import type { Cortina, MetaCortina } from "@/lib/types";
 import { ActionRow, Group, Row } from "../Form";
 import { Sheet } from "../Sheet";
+import { CortinaPlayButton } from "../ui/PlayRow";
 import { Empty, useDb } from "./shared";
 
 const TEMPLATE: Cortina = {
@@ -88,32 +89,37 @@ export function CortinasTab({ base }: { base: MetaCortina[] }) {
         })}
       >
         {merged.map(({ c, state }) => (
-          <Row
-            key={c.id}
-            tile={
-              <span
-                className="tile"
-                style={{ background: state === "deleted" ? "#8e8e93" : "#ff9500" }}
-                aria-hidden
-              >
-                <AudioLines size={16} strokeWidth={2} />
-              </span>
-            }
-            label={
-              <span className={state === "deleted" ? "line-through text-[var(--label-2)]" : ""}>
-                {c.artist} – {c.title}
-              </span>
-            }
-            sub={t("db.cortinasTab.energy", {
-              genre: c.genre,
-              culture: c.culture,
-              energy: c.energy,
-              p1: state !== "index" ? ` · ${state}` : "",
-            })}
-            value={`${c.lengthSec ?? 45} s`}
-            chevron
-            onClick={() => open(c)}
-          />
+          // 2026-11: the play button beside the row plays the cortina from its chorus (the row opens the editor)
+          <div key={c.id} className="relative flex items-center pr-2" data-testid="db-cortina-row">
+            <div className="min-w-0 flex-1">
+              <Row
+                tile={
+                  <span
+                    className="tile"
+                    style={{ background: state === "deleted" ? "#8e8e93" : "#ff9500" }}
+                    aria-hidden
+                  >
+                    <AudioLines size={16} strokeWidth={2} />
+                  </span>
+                }
+                label={
+                  <span className={state === "deleted" ? "line-through text-[var(--label-2)]" : ""}>
+                    {c.artist} – {c.title}
+                  </span>
+                }
+                sub={t("db.cortinasTab.energy", {
+                  genre: c.genre,
+                  culture: c.culture,
+                  energy: c.energy,
+                  p1: state !== "index" ? ` · ${state}` : "",
+                })}
+                value={`${c.lengthSec ?? 45} s`}
+                chevron
+                onClick={() => open(c)}
+              />
+            </div>
+            {state !== "deleted" && <CortinaPlayButton cortina={c} where={t("db.cortinasTab.cortinas")} />}
+          </div>
         ))}
         <ActionRow
           label={t("db.cortinasTab.add_a_cortina")}

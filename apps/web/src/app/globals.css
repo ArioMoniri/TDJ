@@ -1718,6 +1718,66 @@ input[type="range"]::-moz-range-thumb {
   background: linear-gradient(160deg, #8b7cf6, #6d28d9);
 }
 
+/* 2026-11: the tanda-type badge (components/ui/TandaTypeBadge.tsx): the rhythm in words on its colour, AA in both
+   themes (text ≥ 4.5:1 on the tinted fill) */
+/* (light-dark() follows the page's colour scheme: Auto, Light, Dark and the Booth's forced dark) */
+.tanda-type[data-rhythm] {
+  --tt-fg: light-dark(#a3173f, #ff9db6);
+  --tt-bg: light-dark(#fde3ea, #4a1626);
+}
+.tanda-type[data-rhythm="vals"] {
+  --tt-fg: light-dark(#0b5e57, #7ee8dc);
+  --tt-bg: light-dark(#d5f5f1, #0f3b37);
+}
+.tanda-type[data-rhythm="milonga"] {
+  --tt-fg: light-dark(#5b21b6, #c4b5fd);
+  --tt-bg: light-dark(#ece7fe, #2e1f5c);
+}
+.tanda-type-rhythm {
+  color: var(--tt-fg);
+  background: var(--tt-bg);
+}
+.tanda-type-mixed {
+  color: var(--label-2);
+  border: 1px solid var(--separator);
+}
+/* a row that is playing: a tint wash (the bars are in the row's leading slot) */
+.row-now {
+  background: color-mix(in srgb, var(--tint) 10%, transparent);
+}
+.no-audio {
+  color: var(--label-2);
+  background: var(--fill-4);
+}
+.len {
+  font-variant-numeric: tabular-nums;
+  color: var(--label-2);
+  white-space: nowrap;
+  flex: none;
+  text-align: right;
+}
+/* the drag handle of a song row (touch: long-press to drag) */
+.drag-handle {
+  touch-action: none;
+  cursor: grab;
+}
+.drag-handle:active {
+  cursor: grabbing;
+}
+[data-dragging] {
+  opacity: 0.55;
+}
+[data-drop-before]::after {
+  content: "";
+  position: absolute;
+  left: var(--cell-px);
+  right: 0;
+  top: -1px;
+  height: 2px;
+  background: var(--tint);
+  z-index: 2;
+}
+
 /* Sidebar (macOS source list) rows */
 .side-row {
   display: flex;

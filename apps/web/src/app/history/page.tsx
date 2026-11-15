@@ -27,6 +27,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Sheet } from "@/components/Sheet";
 import { SwipeRow } from "@/components/SwipeRow";
 import { TandaCard } from "@/components/TandaCard";
+import { NightLength } from "@/components/ui/PlayRow";
 import { Tip } from "@/components/ui/Tip";
 import { APP } from "@/lib/app/target";
 import { downloadBlob } from "@/lib/download";
@@ -36,6 +37,7 @@ import { useMediaQuery } from "@/lib/hooks";
 import { fmtTime, lazy, t as tx } from "@/lib/i18n";
 import { reduced as reducedV, rise } from "@/lib/motion";
 import { lengthText } from "@/lib/nightName";
+import { nightItems, PlayListContext } from "@/lib/playback";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import type { HistorySnapshot } from "@/lib/types";
@@ -435,7 +437,9 @@ export default function HistoryPage() {
                   <span className="score-stat tabular-nums text-[var(--tint)]">{open.score}</span>
                   <span className="text-title3 text-[var(--label-2)]">/100</span>
                 </div>
-                <p className="text-footnote text-[var(--label-2)]">{sub(open)}</p>
+                <p className="text-footnote text-[var(--label-2)]">
+                  {sub(open)} · <NightLength playlist={open.playlist} />
+                </p>
                 {isPhone ? <EnergyCurve compact p={open.playlist} /> : <EnergyCurve p={open.playlist} />}
               </div>
               <ActionRow label={tx("history.reopen_in_compose")} onClick={() => reopen(open)} />
@@ -470,20 +474,24 @@ export default function HistoryPage() {
               </Group>
             )}
             <h2 className="section-head">{tx("history.tandas")}</h2>
-            <div className="grid min-w-0 grid-cols-1 gap-3">
-              {open.playlist.tandas.map((t, i) => (
-                <TandaCard
-                  key={`${open.id}-${t.index}`}
-                  t={t}
-                  i={i}
-                  onSwap={noop}
-                  onSwapTrack={noop}
-                  onLock={noop}
-                  playlists={NO_PLAYLISTS}
-                  readOnly
-                />
-              ))}
-            </div>
+            {/* 2026-11: a tap on any row plays it; the mini player steps through this night */}
+            <PlayListContext.Provider value={{ label: open.title, items: nightItems(open.playlist) }}>
+              <div className="grid min-w-0 grid-cols-1 gap-3">
+                {open.playlist.tandas.map((t, i) => (
+                  <TandaCard
+                    cues={open.playlist.booth?.songCues}
+                    key={`${open.id}-${t.index}`}
+                    t={t}
+                    i={i}
+                    onSwap={noop}
+                    onSwapTrack={noop}
+                    onLock={noop}
+                    playlists={NO_PLAYLISTS}
+                    readOnly
+                  />
+                ))}
+              </div>
+            </PlayListContext.Provider>
           </>
         )}
       </Sheet>
