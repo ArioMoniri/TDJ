@@ -237,6 +237,15 @@ interface BoothStore {
   /** round 21: "Jump to La Cumparsita now" (`now`) or "Play the rest, then La Cumparsita" */
   jumpToClosing: (now: boolean) => Promise<void>;
   leave: () => void;
+  /* 2026-11 fix ("can't start on the song I want, can't go one ahead or back, can't slide the song") */
+  /** before the night (or stopped / paused): the playhead moves to row `i`, Start begins there; false if it cannot play */
+  select: (i: number) => boolean;
+  /** one back: restart past 3 s, else the previous playable item (now during the night, selected before) */
+  previous: () => Promise<void>;
+  /** one ahead now (the night's short fade), or the next playable row before the night */
+  nextNow: () => Promise<void>;
+  /** seek inside the current item to `sec` (files, clips and Spotify) */
+  seek: (sec: number) => Promise<void>;
 }
 
 /* module singletons: one context, one engine, one media helper for the life of the tab */
@@ -500,7 +509,11 @@ export const useBooth = create<BoothStore>()((set, get) => ({
         sourceMode === "preview" || (playable.length > 0 && playable.every((s) => s === "preview"));
       // before the night starts the playhead sits on the first item that can play
       const first = sources.findIndex((s, i) => s !== "missing" && rows[i]!.kind !== "break");
-      const planIndex = get().started ? get().planIndex : Math.max(0, first);
+      // (2026-11: a row the DJ selected stays selected while the sources resolve again)
+      const sel = get().planIndex;
+      const keep =
+        sel > 0 && sources[sel] !== undefined && sources[sel] !== "missing" && rows[sel]?.kind !== "break";
+      const planIndex = get().started || keep ? sel : Math.max(0, first);
       const clips = clipSummary(entities.map((e) => e ?? null));
       const notRehearsable = rehearsal
         ? clips.none.filter((x) => sources[x.i] === "missing" && rows[x.i]?.kind !== "break")
@@ -613,6 +626,10 @@ export const useBooth = create<BoothStore>()((set, get) => ({
       engine.setMaster(get().master);
       engine.setCortinaFader(get().cortinaFader);
       if (resumeOffer) engine.restore(resumeOffer);
+    } else if (!get().started && !resumeOffer && !engine.live) {
+      // 2026-11: the engine outlived an earlier night (or a test tone made it): start where the DJ put the playhead
+      engine.planIndex = get().planIndex;
+      engine.pausedAt = null;
     }
     if (sourceMode === "spotify" || sources.includes("spotify")) {
       try {
@@ -1096,7 +1113,82 @@ export const useBooth = create<BoothStore>()((set, get) => ({
   leave: () => {
     stopTicking();
   },
+  ...seekActions(set, get),
 }));
+
+/* ---------- 2026-11: start from any row, Previous / Next now, seek ---------- */
+function seekActions(set: (p: Partial<BoothStore>) => void, get: () => BoothStore) {
+  /** the store's mirror of the engine after a move: playhead, times, the night's record */
+  const sync = () => {
+    const s = get();
+    if (!s.plan) return;
+    const i = engine ? engine.planIndex : s.planIndex;
+    if (engine && s.started) {
+      const r = engine.remaining();
+      set({
+        planIndex: i,
+        position: engine.position(),
+        remaining: r.remainingSec,
+        timeToCumparsita: r.timeToCumparsita,
+      });
+    } else set({ planIndex: i, position: 0, ...derive(s.plan, i, 0, capFor(s.sources, s.rehearsal)) });
+    void persistNight();
+  };
+  /** a row the night can start from: a song or cortina with a source, not bypassed tonight */
+  const playable = (i: number) => {
+    const s = get();
+    const it = s.plan?.items[i];
+    return (
+      !!it && it.kind !== "break" && (s.sources[i] ?? "missing") !== "missing" && !s.bypassed.includes(i)
+    );
+  };
+  const live = () => {
+    const st = get().state;
+    return get().started && (st === "playing" || st === "cortina");
+  };
+  const step = (dir: 1 | -1) => {
+    const s = get();
+    const n = s.plan?.items.length ?? 0;
+    for (let i = s.planIndex + dir; i >= 0 && i < n; i += dir) if (playable(i)) return i;
+    return null;
+  };
+  return {
+    select: (i: number) => {
+      if (live() || !playable(i)) return false;
+      if (engine && get().started && !engine.select(i)) return false;
+      if (engine && !get().started && !engine.live) engine.planIndex = i;
+      set({ planIndex: i });
+      sync();
+      return true;
+    },
+    previous: async () => {
+      if (engine && get().started) {
+        if (ctx) unlockAudio(ctx);
+        await engine.previous();
+        startTicking();
+        return sync();
+      }
+      const p = step(-1);
+      if (p !== null) get().select(p);
+    },
+    nextNow: async () => {
+      if (engine && get().started) {
+        if (ctx) unlockAudio(ctx);
+        await engine.nextNow();
+        startTicking();
+        return sync();
+      }
+      const n = step(1);
+      if (n !== null) get().select(n);
+    },
+    seek: async (sec: number) => {
+      if (!engine || !get().started) return;
+      await engine.seek(sec);
+      sync();
+      media?.setPosition(engine.currentLength(), engine.position());
+    },
+  };
+}
 
 /** A Deezer clip through the instance's fresh-link redirect (signed links expire within minutes). */
 function clipUrl(r: { provider?: string; id?: string; previewUrl?: string | null }): string | null {
@@ -1250,10 +1342,8 @@ function applyMediaHandlers() {
     pause: () => s.pause(),
     next: () => s.next(),
     stop: () => s.stop(),
-    previous: () => {
-      engine?.stop("restart");
-      void s.play();
-    },
+    // 2026-11: the same Previous as the transport (restart past 3 s, else one back)
+    previous: () => void s.previous(),
   });
 }
 
