@@ -148,3 +148,71 @@ describe("mendDarienzoFamily", () => {
     m.tandas.forEach((t, k) => expect(t).toBe(p.tandas[k]));
   });
 });
+
+/**
+ * The owner's allowance (2026-11-15): the last summit keeps its fame-5 sides, so where the family split forces it the
+ * step INTO the early D'Arienzo chair may reach DA_SPLIT_STEP (22) instead of 20, only directly after a cortina, only
+ * on the chair the split rebuilt (`familySplit: "darienzo"`). Nowhere else, never above 22.
+ */
+describe("the D'Arienzo split's step allowance", () => {
+  const steps = (ts: Tanda[], p: ReturnType<typeof compose>, i: number) =>
+    strictChecks({ tandas: ts, closing: p.closing, options: p.options }).violations.filter(
+      (v) => v.rule === "energyStep" && v.tanda === i,
+    ).length;
+  /** a golden night with the step into its early D'Arienzo chair set to `d` (the plan flat, so no planned lift) */
+  const withStep = (d: number, chair: (t: Tanda) => Tanda, cue = true) => {
+    const p = compose({ hours: 4, seed: 1 }, deps);
+    const i = p.tandas.findIndex((t) => instr(t) && !t.peak);
+    const ts = p.tandas.map((t) => ({ ...t }));
+    const prev = ts[i - 1]!;
+    ts[i - 1] = {
+      ...prev,
+      energy: ts[i]!.energy - d,
+      targetEnergy: ts[i]!.targetEnergy,
+      ...(cue ? {} : { cortina: undefined }),
+    };
+    if (cue) expect(ts[i - 1]!.cortina).toBeTruthy();
+    ts[i] = chair(ts[i]!);
+    // (the step out of the previous-but-one tanda stays what it was: only the boundary into the chair is judged here)
+    return { p, ts, i };
+  };
+  const split = (t: Tanda): Tanda => ({ ...t, familySplit: "darienzo" });
+  it("a 21–22 step into the split's early chair behind a cortina is no cliff; the same step elsewhere is", () => {
+    for (const d of [21, 22]) {
+      const a = withStep(d, split);
+      expect(steps(a.ts, a.p, a.i), `split ${d}`).toBe(0);
+      const b = withStep(d, (t) => t);
+      expect(steps(b.ts, b.p, b.i), `unsplit ${d}`).toBe(1);
+    }
+  });
+  it("never above 22, never without the cortina, never on another chair", () => {
+    const a = withStep(23, split);
+    expect(steps(a.ts, a.p, a.i)).toBe(1);
+    const b = withStep(21, split, false);
+    expect(steps(b.ts, b.p, b.i)).toBe(1);
+    // the flag on a tanda that is not the early D'Arienzo instrumental grants nothing
+    const c = withStep(21, (t) => ({
+      ...split(t),
+      orchestraId: "carlos-di-sarli",
+      orchestra: "Carlos Di Sarli",
+    }));
+    expect(steps(c.ts, c.p, c.i)).toBe(1);
+  });
+  it("on the golden nights the last summit keeps its fame-5 side (lastSummit ≤ 2) and every allowed step is ≤ 22 behind a cue", () => {
+    let last = 0;
+    for (let seed = 1; seed <= 12; seed++) {
+      const p = compose({ hours: 4, seed }, deps);
+      last += strictChecks(p).violations.filter((v) => v.rule === "lastSummit").length;
+      p.tandas.forEach((t, i) => {
+        if (t.familySplit !== "darienzo") return;
+        expect(instr(t) && !t.peak).toBe(true);
+        const d = t.energy - p.tandas[i - 1]!.energy;
+        if (d > 20) {
+          expect(d).toBeLessThanOrEqual(22);
+          expect(p.tandas[i - 1]!.cortina).toBeTruthy();
+        }
+      });
+    }
+    expect(last).toBeLessThanOrEqual(2);
+  });
+});

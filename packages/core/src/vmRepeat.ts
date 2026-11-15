@@ -598,7 +598,8 @@ export function mendBenchVariety(
  * the summit's hooks (round 10 R10.5); the summit stays inside the darienzoPeak window (1937–40, from 1935 with a
  * fame-5 side) with two sides of fame ≥ 4. Neither chair crosses a line-up break or recording gap (round 13 R3), and
  * each has at most one side nobody streams. Of the splits that add no blocker and no −20/+20 sawtooth, the one the
- * strict panel judges best (its penalty) is taken. The round-8 rule is a hard one, so the
+ * strict panel judges best (its penalty) is taken. The rebuilt early chair carries `familySplit`, so the step into
+ * it may reach DA_SPLIT_STEP (22) behind a cortina (the owner's allowance: the last summit keeps its fame-5 sides). The round-8 rule is a hard one, so the
  * night parts the two chairs even when every split costs the panel a should-fix item.
  */
 const DA_SUMMIT_HOOKS = ["hotel victoria", "el flete", "el internado"].map(normTitle);
@@ -737,6 +738,8 @@ export function mendDarienzoFamily(
     const heat = heatOfSides(nt.songs);
     if (heat) nt.heat = heat;
     else delete nt.heat;
+    // (the early chair the split rebuilt: the step into it may reach DA_SPLIT_STEP behind a cortina, strict.ts)
+    if (t === early) nt.familySplit = "darienzo";
     return nt;
   };
   const titlesOf = (xs: Song[]) => new Set(xs.map((s) => normTitle(s.title)));
