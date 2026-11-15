@@ -667,9 +667,31 @@
   border-radius: var(--radius-l, 16px);
   display: flex;
   flex-direction: column;
-  max-height: calc(100dvh - var(--booth-strip-space, 88px) - var(--chrome-top, 56px) - 24px);
+  /* the top bar the open panel stays under (it outranks the panel: z 30–40): a phone's collapsed title bar (44 px),
+     the sm–lg nav pill band (78 px), the lg page toolbar (60 px), each below the safe area / title bar */
+  --booth-ctl-top: calc(var(--chrome-top) + 44px);
+  /* the panel never reaches under the top bar nor into the bottom chrome (the transport, the tab bar): its head —
+     the toggle and Previous / Play / Next — stays pinned and tappable, the groups below scroll inside the panel */
+  max-height: calc(
+    100dvh -
+    max(var(--booth-strip-space, 88px), var(--bottom-chrome)) -
+    6px -
+    var(--booth-ctl-top) -
+    8px
+  );
+}
+@media (min-width: 600px) {
+  .booth-ctl {
+    --booth-ctl-top: calc(var(--chrome-top) + 78px);
+  }
+}
+@media (min-width: 1024px) {
+  .booth-ctl {
+    --booth-ctl-top: calc(var(--chrome-top) + 60px);
+  }
 }
 .booth-ctl-head {
+  flex: none;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -689,6 +711,8 @@
   margin-right: auto;
 }
 .booth-ctl-body {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   display: grid;

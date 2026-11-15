@@ -363,6 +363,16 @@ for (const [name, opts] of DEVICES) {
           .filter((r) => r.width < 43.5 || r.height < 43.5).length,
     );
     expect(small).toBe(0);
+    // the open panel's transport stays pinned under the top bar, never covered by it (it reached under the page
+    // toolbar once the Floor group made the panel taller)
+    const hit = await page.evaluate(() => {
+      const b = document.querySelector<HTMLElement>(
+        '[data-testid="booth-controls"] [data-testid="ctl-play"]',
+      )!;
+      const r = b.getBoundingClientRect();
+      return document.elementFromPoint(r.x + r.width / 2, r.y + 2)?.closest('[data-testid="ctl-play"]') === b;
+    });
+    expect(hit).toBe(true);
     // Start from the panel, then Next
     await panel.getByTestId("ctl-play").click();
     await expect.poll(async () => (await snap(page)).state, { timeout: 20000 }).toBe("playing");
