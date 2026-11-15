@@ -201,8 +201,8 @@ export function AiEditBar({ playlist }: { playlist: Playlist }) {
           type="submit"
           className="icon-btn icon-btn-send -mr-2"
           disabled={busy || !text.trim()}
-          aria-label="Send the edit"
-          title="Send the edit"
+          aria-label="Make the change"
+          title="Make the change"
         >
           {busy ? (
             <LoaderCircle size={18} className="animate-spin" />

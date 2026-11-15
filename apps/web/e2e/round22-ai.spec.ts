@@ -101,7 +101,7 @@ test("Edit with AI: a request becomes a checked edit with a diff, and Undo puts 
   const bar = page.getByTestId("ai-edit");
   await expect(bar).toBeVisible();
   await page.locator("#ai-edit-input").fill("lock tanda 2");
-  await page.getByRole("button", { name: "Send the edit" }).click();
+  await page.getByRole("button", { name: "Make the change" }).click();
   const diff = page.getByTestId("ai-edit-diff");
   await expect(diff).toContainText("Tanda 2", { timeout: 30000 });
   await expect(diff).toContainText("locked");
@@ -110,7 +110,7 @@ test("Edit with AI: a request becomes a checked edit with a diff, and Undo puts 
   await expect(diff).toHaveCount(0);
   // a request that names an unknown tanda is refused with its reason, nothing changes
   await page.locator("#ai-edit-input").fill("make tanda 99 calmer");
-  await page.getByRole("button", { name: "Send the edit" }).click();
+  await page.getByRole("button", { name: "Make the change" }).click();
   await expect(page.getByTestId("ai-edit-diff")).toContainText("Nothing to change", { timeout: 30000 });
 });
 
@@ -146,7 +146,7 @@ test("an ACP agent works like a key: Settings → Models tests it, Edit with AI 
 
     await openFeatured(page);
     await page.locator("#ai-edit-input").fill("keep the third tanda");
-    await page.getByRole("button", { name: "Send the edit" }).click();
+    await page.getByRole("button", { name: "Make the change" }).click();
     const diff = page.getByTestId("ai-edit-diff");
     await expect(diff).toContainText("Tanda 3", { timeout: 30000 });
     await expect(diff).toContainText("Tanda 3 stays as it is.");
@@ -192,7 +192,7 @@ test("learned rules: a lock teaches, Database → Memory lists it, the DJ weight
 }) => {
   await openFeatured(page);
   await page.locator("#ai-edit-input").fill("lock tanda 4");
-  await page.getByRole("button", { name: "Send the edit" }).click();
+  await page.getByRole("button", { name: "Make the change" }).click();
   await expect(page.getByTestId("ai-edit-diff")).toContainText("Tanda 4", { timeout: 30000 });
   // the memory is written to this browser's database a moment after the edit
   await page.waitForTimeout(1000);
