@@ -116,8 +116,8 @@
   .booth .booth-col-set > .booth-set {
     overflow-y: auto;
     min-height: 0;
-    padding-bottom: calc(var(--booth-strip-space, 88px) + 8px);
-    scroll-padding-bottom: calc(var(--booth-strip-space, 88px) + 8px);
+    padding-bottom: calc(var(--booth-strip-space, 88px) + var(--booth-ctl-space, 0px) + 8px);
+    scroll-padding-bottom: calc(var(--booth-strip-space, 88px) + var(--booth-ctl-space, 0px) + 8px);
   }
   .booth-deck {
     grid-column: 1;
@@ -130,7 +130,7 @@
     display: block;
     overflow-y: auto;
     overscroll-behavior: contain;
-    scroll-padding-bottom: calc(var(--booth-strip-space, 88px) + 8px);
+    scroll-padding-bottom: calc(var(--booth-strip-space, 88px) + var(--booth-ctl-space, 0px) + 8px);
   }
   .booth .booth-col-set > .booth-night {
     margin-bottom: 12px;
@@ -576,4 +576,132 @@
 }
 .booth-gap[data-edited] .booth-gap-btn > span {
   background: color-mix(in srgb, var(--tint) 14%, transparent);
+}
+
+/* ---------- 2026-11: the Controls panel — a drawer docked over the transport (glass: it is control chrome) ---------- */
+.booth-ctl {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(var(--booth-strip-space, 88px) + 6px);
+  z-index: 29;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 4px 8px;
+  border-radius: var(--radius-l, 16px);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - var(--booth-strip-space, 88px) - var(--chrome-top, 56px) - 24px);
+}
+.booth-ctl-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+}
+.booth-ctl-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 10px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--tint);
+  margin-right: auto;
+}
+.booth-ctl-body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 8px 16px;
+  padding: 4px 4px 8px;
+}
+.booth-ctl-group {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.booth-ctl-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--label-2);
+  margin: 4px 0 0;
+}
+.booth-ctl-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.booth-ctl-btn {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 6px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--label);
+}
+.booth-ctl-btn:disabled {
+  opacity: 0.4;
+}
+.booth-ctl-btn[aria-pressed="true"] {
+  background: var(--fill-3);
+  color: var(--tint);
+}
+.booth-ctl-primary {
+  color: var(--tint);
+}
+.booth-ctl-btn-l {
+  display: none;
+}
+.booth-ctl[data-open] .booth-ctl-body .booth-ctl-btn-l {
+  display: block;
+}
+.booth-ctl-label {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--label-2);
+}
+.booth-ctl-why {
+  font-size: 12px;
+  color: var(--label-2);
+}
+.booth-ctl-keys {
+  grid-column: 1 / -1;
+  color: var(--label-2);
+  margin: 0;
+}
+.booth-ctl .booth-fader {
+  width: 100%;
+}
+@media (max-width: 599.98px) {
+  .booth-ctl {
+    left: 8px;
+    right: 8px;
+  }
+  .booth-ctl-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 2026-11: anything scrolled into view (focus, a jump) clears the transport and the Controls panel */
+html[data-booth] {
+  scroll-padding-bottom: calc(var(--booth-strip-space, 88px) + var(--booth-ctl-space, 0px) + 8px);
 }

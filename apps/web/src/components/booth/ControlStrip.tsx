@@ -8,9 +8,11 @@ import {
   Mic,
   Pause,
   Play,
+  SkipBack,
   SkipForward,
   SlidersHorizontal,
   Square,
+  StepForward,
   TrendingDown,
   VolumeX,
 } from "lucide-react";
@@ -222,16 +224,45 @@ export function ControlStrip({
           <span className="booth-strip-sep" aria-hidden />
         </>
       )}
+      {/* 2026-11: one back and one ahead, before and during the night (← / →) */}
+      <TBtn
+        label={tx("booth.controlStrip.previous")}
+        hint={tx("booth.controlStrip.previous_hint")}
+        onClick={() => {
+          haptic(8);
+          void act.previous();
+        }}
+        disabled={!ready}
+        testId="booth-prev"
+        className="booth-prestart-hide"
+      >
+        <SkipBack size={20} strokeWidth={2} aria-hidden />
+      </TBtn>
       {primary}
+      <TBtn
+        label={tx("booth.controlStrip.next_now")}
+        hint={
+          started ? tx("booth.controlStrip.next_now_hint") : tx("booth.controlStrip.next_now_hint_before")
+        }
+        onClick={() => {
+          haptic(8);
+          void act.nextNow();
+        }}
+        disabled={!ready}
+        testId="booth-next-now"
+        className="booth-prestart-hide"
+      >
+        <SkipForward size={20} strokeWidth={2} aria-hidden />
+      </TBtn>
       <TBtn
         label={tx("booth.controlStrip.next_at_gap")}
         hint={tx("booth.controlStrip.the_queued_item_is_skipped_at")}
         onClick={() => act.next()}
         disabled={!started}
         testId="booth-next-btn"
-        className="booth-prestart-hide"
+        className="booth-prestart-hide booth-wide-only"
       >
-        <SkipForward size={20} strokeWidth={2} aria-hidden />
+        <StepForward size={20} strokeWidth={2} aria-hidden />
       </TBtn>
       <button
         type="button"

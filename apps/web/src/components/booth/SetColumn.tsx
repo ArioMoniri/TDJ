@@ -367,8 +367,16 @@ const Row = memo(function Row({
   // one fixed action slot (44 px): Find… a file where the night needs one, else the checked Spotify recording
   const find = missing && !!it.id && (!rehearsal || !sp?.url);
   return (
+    // biome-ignore lint/a11y/useKeyWithClickEvents: the row's own button is the keyboard control; the row widens its target
     <li
       className={`booth-row ${current ? "booth-row-on" : ""} ${played ? "booth-played" : ""}`}
+      // 2026-11: the whole row takes the tap (the number, the artwork, the length), not only the title: on an iPhone
+      // the title column is a narrow strip and taps beside it did nothing
+      onClick={(e) => {
+        if (!onTap || it.kind === "break") return;
+        if ((e.target as HTMLElement).closest("button, a, input, select, [role='switch']")) return;
+        onTap(i);
+      }}
       data-plan-index={i}
       data-kind={it.kind}
       aria-current={current ? "true" : undefined}
@@ -395,6 +403,15 @@ const Row = memo(function Row({
         type="button"
         className="booth-row-tap min-h-11 min-w-0 flex-1 text-left"
         onClick={() => onTap?.(i)}
+        onKeyDown={(e) => {
+          // 2026-11: Enter on a focused row plays from it (before the night: it starts there)
+          if (e.key !== "Enter" || !onTap || it.kind === "break") return;
+          e.preventDefault();
+          const b = useBooth.getState();
+          if (!b.started) {
+            if (b.select(i)) void b.start();
+          } else void b.playNow(i);
+        }}
         disabled={!onTap || it.kind === "break"}
         aria-label={
           it.kind === "cortina"

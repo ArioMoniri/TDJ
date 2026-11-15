@@ -491,7 +491,9 @@ export function CortinaSheet({ planIndex, onClose }: { planIndex: number | null;
 
 const KEYS: Array<[string, string]> = lazy(() => [
   ["space", tx("booth.sheets.pause_resume_a_short_fade")],
-  ["→", tx("booth.sheets.next_at_gap_the_queued_item")],
+  ["←", tx("booth.sheets.previous_key")],
+  ["→", tx("booth.sheets.next_now_key")],
+  ["enter", tx("booth.sheets.enter_key")],
   ["f", tx("booth.sheets.fade_out_now_the_next_item")],
   ["x", tx("booth.sheets.next_with_crossfade")],
   ["h", tx("booth.sheets.hold_after_this_song_cancel_the")],

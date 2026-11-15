@@ -8,6 +8,7 @@ import { metaLine, yearText } from "@/lib/year";
 import { Artwork } from "../ui/Artwork";
 import { BpmKey, EnergyChip } from "../ui/BpmKey";
 import { EraBadge } from "../ui/EraBadge";
+import { SeekBar } from "../ui/SeekBar";
 import { Meter } from "./Meter";
 
 const RHYTHM: Record<string, string> = {
@@ -62,6 +63,7 @@ export function NowCard({ onInfo }: { onInfo?: (planIndex: number) => void }) {
   const playlist = useBooth((s) => s.playlist);
   const notRehearsable = useBooth((s) => s.notRehearsable);
   const entity = useBooth((s) => s.entities[s.planIndex] ?? null);
+  const started = useBooth((s) => s.started);
   const item = plan?.items[planIndex];
   if (!plan || !item) return null;
   const length = current
@@ -70,7 +72,6 @@ export function NowCard({ onInfo }: { onInfo?: (planIndex: number) => void }) {
       ? Math.min(30, item.lengthSec)
       : item.lengthSec;
   const remaining = Math.max(0, length - position);
-  const pct = length ? Math.min(1, position / length) : 0;
   const tandaItems = plan.items.filter((x) => x.tanda === item.tanda && x.kind === "track");
   const k = tandaItems.findIndex((x) => x.n === item.n);
   const live = state === "playing" || state === "cortina";
@@ -110,8 +111,21 @@ export function NowCard({ onInfo }: { onInfo?: (planIndex: number) => void }) {
           </div>
         </div>
       </div>
-      <div className="booth-progress" aria-hidden>
-        <div className="booth-progress-bar" style={{ transform: `scaleX(${pct})` }} />
+      {/* 2026-11: the progress bar is a seek bar — drag, tap or ← / → (±5 s) moves inside the song, on every source */}
+      <div className="booth-seek-row">
+        <span className="tabular-nums" data-testid="booth-elapsed">
+          {durationLabel(Math.min(position, length))}
+        </span>
+        <SeekBar
+          value={Math.min(position, length)}
+          max={length}
+          onSeek={(sec) => void useBooth.getState().seek(sec)}
+          disabled={!started || item.kind === "break" || !(live || state === "paused")}
+          label={t("booth.nowCard.seek_label")}
+          hint={t("booth.nowCard.seek_hint")}
+          testId="booth-seek"
+        />
+        <span className="tabular-nums text-right">-{durationLabel(remaining)}</span>
       </div>
       <div className="flex items-end justify-between gap-3">
         <div className="flex items-center gap-2">

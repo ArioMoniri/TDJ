@@ -9,6 +9,7 @@ import { t } from "@/lib/i18n";
 import { sheetUp } from "@/lib/motion";
 import { stopAt, usePlayer } from "@/lib/player";
 import { SpotifyEmbed } from "./Listen";
+import { SeekBar } from "./ui/SeekBar";
 
 const fmt = (s: number) => {
   const n = Math.max(0, Math.floor(s));
@@ -83,7 +84,10 @@ export function MiniPlayer() {
   useEffect(() => {
     const el = audio.current;
     if (!el || !preview) return;
-    if (Math.abs(el.currentTime - position) > 1.5 && position !== lastSeek.current) el.currentTime = position;
+    // (the element's own ticks set `position` to its currentTime: only a real move lands; 2026-11: a seek of under
+    // 1.5 s — a ← press on the bar — was dropped)
+    if (Math.abs(el.currentTime - position) > 0.25 && position !== lastSeek.current)
+      el.currentTime = position;
     lastSeek.current = position;
   }, [position, preview]);
 
@@ -199,16 +203,14 @@ export function MiniPlayer() {
             {track.source.kind === "preview" ? (
               <div className="flex items-center gap-2 px-2 pb-1">
                 <span className="text-caption1 w-8 tabular-nums text-[var(--label-2)]">{fmt(position)}</span>
-                <input
-                  type="range"
-                  aria-label={t("miniPlayer.position")}
-                  min={0}
-                  max={Math.max(1, Math.floor(total))}
-                  step={1}
+                {/* 2026-11: the shared seek bar (drag, tap, ← / → ±5 s; a 44 px target, the 32 px range was not) */}
+                <SeekBar
                   value={Math.min(position, total)}
-                  onChange={(e) => seek(Number(e.target.value))}
-                  className="!h-8 min-w-0 flex-1"
-                  style={{ ["--pct" as string]: `${(position / total) * 100}%` }}
+                  max={total}
+                  onSeek={seek}
+                  label={t("miniPlayer.position")}
+                  hint={t("miniPlayer.seek_hint")}
+                  testId="mini-seek"
                 />
                 <span className="text-caption1 w-8 text-right tabular-nums text-[var(--label-2)]">
                   {fmt(total)}
