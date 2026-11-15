@@ -702,15 +702,26 @@ export const en = {
   "booth.sources.preview.no_clip_of_the_spotify_recording": "No clip of the Spotify recording for this item",
   "booth.sources.preview.no_preview_available_right_now": "No preview available right now",
   "booth.sources.preview.preview_request_failed": "Preview request failed ({status})",
+  "booth.sources.spotify.change_device": "Change",
   "booth.sources.spotify.could_not_connect_to_spotify": "Could not connect to Spotify",
   "booth.sources.spotify.could_not_load_the_spotify_player": "Could not load the Spotify player",
+  "booth.sources.spotify.device_not_found_browser":
+    "Spotify couldn't find the TDJ Booth player in this browser. Tap Try again, or open Spotify on a phone or computer and pick it under Room.",
+  "booth.sources.spotify.device_not_found_phone":
+    "Spotify couldn't find this device. Open Spotify on this phone or pick a device under Room.",
+  "booth.sources.spotify.device_refuses":
+    "Spotify refuses to play on this device. Pick another device under Room.",
   "booth.sources.spotify.no_fades_on_ipad_with_spotify":
     "No fades on iPad with Spotify: cortinas stop at their planned second instead.",
   "booth.sources.spotify.no_spotify_track_for_this_item": "No Spotify track for this item",
   "booth.sources.spotify.not_logged_in_with_spotify": "Not logged in with Spotify.",
+  "booth.sources.spotify.open_spotify": "Open Spotify",
+  "booth.sources.spotify.plays_on_device":
+    "Spotify plays the night on {name}. Start, pause, next and timing work; fades don't.",
   "booth.sources.spotify.reconnect_spotify_to_play_full_songs":
     "Reconnect Spotify to play full songs (the login lacks the playback permission).",
   "booth.sources.spotify.spotify_answered": "Spotify answered {status}",
+  "booth.sources.spotify.spotify_answered_detail": "Spotify answered {status}{detail}",
   "booth.sources.spotify.spotify_moved_to_another_device": "Spotify moved to another device",
   "booth.sources.spotify.spotify_needs_a_tap_press_play": "Spotify needs a tap: press play again",
   "booth.sources.spotify.spotify_s_sdk_terms_restrict_commercial":
@@ -719,12 +730,26 @@ export const en = {
   "booth.sources.spotify.take_back": "Take back",
   "booth.sources.spotify.tdj_booth": "TDJ Booth",
   "booth.sources.spotify.this_browser_cannot_run_the_spotify": "This browser cannot run the Spotify player",
+  "booth.sources.spotify.track_unplayable": "Spotify can't play “{title}” here: skipping to the next item.",
+  "booth.sources.spotify.track_unplayable_untitled":
+    "Spotify can't play this track here: skipping to the next item.",
+  "booth.sources.spotify.try_again": "Try again",
   "booth.sources.spotify.your_spotify_account_is_not_premium":
     "Your Spotify account is not Premium: Spotify does not allow playback in the browser.",
   "booth.sources.types.30_s_rehearsal": "30 s rehearsal",
   "booth.sources.types.file": "file",
   "booth.sources.types.no_source": "no source",
   "booth.sources.types.spotify_0_5_s_gaps": "Spotify · ±0.5 s gaps",
+  "booth.spotifyRoom.active": "Playing",
+  "booth.spotifyRoom.footer":
+    "Open Spotify on your phone, computer or speaker and it appears here. On an iPhone the night plays through the Spotify app.",
+  "booth.spotifyRoom.header": "Spotify plays on",
+  "booth.spotifyRoom.last_error": "Last Spotify error: {detail}",
+  "booth.spotifyRoom.none": "No other Spotify device yet: open the Spotify app, then refresh.",
+  "booth.spotifyRoom.refresh": "Refresh devices",
+  "booth.spotifyRoom.this_browser": "This browser (TDJ Booth)",
+  "booth.spotifyRoom.this_browser_unusable": "This browser can't play Spotify itself",
+  "booth.spotifyRoom.waiting": "The night waits for a Spotify device.",
   "booth.store.allow": "Allow",
   "booth.store.audio_output_changed": "Audio output changed.",
   "booth.store.birthday_vals_the_next_vals_tanda":

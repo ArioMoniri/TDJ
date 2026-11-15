@@ -836,15 +836,26 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.sources.preview.no_clip_of_the_spotify_recording": "Bu parça için Spotify kaydının klibi yok",
   "booth.sources.preview.no_preview_available_right_now": "Şu anda önizleme yok",
   "booth.sources.preview.preview_request_failed": "Önizleme isteği başarısız oldu ({status})",
+  "booth.sources.spotify.change_device": "Değiştir",
   "booth.sources.spotify.could_not_connect_to_spotify": "Spotify'a bağlanılamadı",
   "booth.sources.spotify.could_not_load_the_spotify_player": "Spotify oynatıcısı yüklenemedi",
+  "booth.sources.spotify.device_not_found_browser":
+    "Spotify bu tarayıcıdaki TDJ Kabin oynatıcısını bulamadı. Tekrar dene'ye dokunun ya da bir telefonda veya bilgisayarda Spotify'ı açıp Salon altından seçin.",
+  "booth.sources.spotify.device_not_found_phone":
+    "Spotify bu cihazı bulamadı. Bu telefonda Spotify'ı açın ya da Salon altından bir cihaz seçin.",
+  "booth.sources.spotify.device_refuses":
+    "Spotify bu cihazda çalmayı reddediyor. Salon altından başka bir cihaz seçin.",
   "booth.sources.spotify.no_fades_on_ipad_with_spotify":
     "iPad'de Spotify ile kısma yok: kortinalar bunun yerine planlanan saniyede durur.",
   "booth.sources.spotify.no_spotify_track_for_this_item": "Bu parça için Spotify kaydı yok",
   "booth.sources.spotify.not_logged_in_with_spotify": "Spotify ile giriş yapılmadı.",
+  "booth.sources.spotify.open_spotify": "Spotify'ı aç",
+  "booth.sources.spotify.plays_on_device":
+    "Gece Spotify ile {name} üzerinde çalıyor. Başlatma, duraklatma, sonraki ve zamanlama çalışır; kısmalar çalışmaz.",
   "booth.sources.spotify.reconnect_spotify_to_play_full_songs":
     "Tam şarkıları çalmak için Spotify'ı yeniden bağlayın (girişte çalma izni yok).",
   "booth.sources.spotify.spotify_answered": "Spotify {status} yanıtını verdi",
+  "booth.sources.spotify.spotify_answered_detail": "Spotify {status} yanıtını verdi{detail}",
   "booth.sources.spotify.spotify_moved_to_another_device": "Spotify başka bir cihaza geçti",
   "booth.sources.spotify.spotify_needs_a_tap_press_play": "Spotify bir dokunuş bekliyor: Çal'a yeniden basın",
   "booth.sources.spotify.spotify_s_sdk_terms_restrict_commercial":
@@ -855,12 +866,27 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.sources.spotify.tdj_booth": "TDJ Kabin",
   "booth.sources.spotify.this_browser_cannot_run_the_spotify":
     "Bu tarayıcı Spotify oynatıcısını çalıştıramıyor",
+  "booth.sources.spotify.track_unplayable":
+    "Spotify “{title}” parçasını burada çalamıyor: sıradakine geçiliyor.",
+  "booth.sources.spotify.track_unplayable_untitled":
+    "Spotify bu parçayı burada çalamıyor: sıradakine geçiliyor.",
+  "booth.sources.spotify.try_again": "Tekrar dene",
   "booth.sources.spotify.your_spotify_account_is_not_premium":
     "Spotify hesabınız Premium değil: Spotify tarayıcıda çalmaya izin vermiyor.",
   "booth.sources.types.30_s_rehearsal": "30 sn'lik prova",
   "booth.sources.types.file": "dosya",
   "booth.sources.types.no_source": "kaynak yok",
   "booth.sources.types.spotify_0_5_s_gaps": "Spotify · ±0,5 sn aralar",
+  "booth.spotifyRoom.active": "Çalıyor",
+  "booth.spotifyRoom.footer":
+    "Telefonunuzda, bilgisayarınızda ya da hoparlörünüzde Spotify'ı açın, burada görünür. iPhone'da gece Spotify uygulaması üzerinden çalar.",
+  "booth.spotifyRoom.header": "Spotify şurada çalar",
+  "booth.spotifyRoom.last_error": "Son Spotify hatası: {detail}",
+  "booth.spotifyRoom.none": "Henüz başka Spotify cihazı yok: Spotify uygulamasını açın, sonra yenileyin.",
+  "booth.spotifyRoom.refresh": "Cihazları yenile",
+  "booth.spotifyRoom.this_browser": "Bu tarayıcı (TDJ Kabin)",
+  "booth.spotifyRoom.this_browser_unusable": "Bu tarayıcı Spotify'ı kendisi çalamaz",
+  "booth.spotifyRoom.waiting": "Gece bir Spotify cihazı bekliyor.",
   "booth.store.allow": "İzin ver",
   "booth.store.audio_output_changed": "Ses çıkışı değişti.",
   "booth.store.birthday_vals_the_next_vals_tanda":

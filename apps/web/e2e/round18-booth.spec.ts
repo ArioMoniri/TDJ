@@ -134,6 +134,11 @@ test("logged into Spotify Premium, the booth plays exactly the stored uri (one p
   );
   await page.route("https://api.spotify.com/**", (r) => {
     api.push({ url: r.request().url(), method: r.request().method(), body: r.request().postData() });
+    // round 23: the booth waits for its SDK device to be listed before the transfer and the play
+    if (r.request().url().endsWith("/me/player/devices"))
+      return r.fulfill({
+        json: { devices: [{ id: "e2e-device", name: "TDJ Booth", type: "Computer", is_active: false }] },
+      });
     return r.fulfill({ status: 204 });
   });
   const { night } = await openFeaturedBooth(page);
@@ -151,9 +156,11 @@ test("logged into Spotify Premium, the booth plays exactly the stored uri (one p
   expect(play.url).toBe("https://api.spotify.com/v1/me/player/play?device_id=e2e-device");
   const first = sides(night)[0]!;
   expect(JSON.parse(play.body!).uris).toEqual([first.spotify!.uri]);
-  // nothing else: no search, no track lookup, no re-match
+  // nothing else: no search, no track lookup, no re-match (the device list, the transfer, the play, the pause)
   for (const c of api)
-    expect(c.url).toMatch(/^https:\/\/api\.spotify\.com\/v1\/me\/player(\/play\?device_id=e2e-device)?$/);
+    expect(c.url).toMatch(
+      /^https:\/\/api\.spotify\.com\/v1\/me\/player(\/devices|\/play\?device_id=e2e-device)?$/,
+    );
   // (round 20) Stop opens the confirm (wave 2: esc no longer does); Stop now ends the Spotify item
   await page.getByTestId("booth-stop").click();
   await page.getByTestId("booth-stop-now").click();

@@ -1,13 +1,15 @@
 "use client";
 import { Check, ChevronDown, Eye, Headphones, Speaker } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SINK_UNSUPPORTED } from "@/lib/booth/cue";
+import { OPEN_ROOM_EVENT } from "@/lib/booth/sources/spotify";
 import { useBooth } from "@/lib/booth/store";
 import { t } from "@/lib/i18n";
 import { toast } from "@/lib/toast";
 import { ActionRow, Group } from "../Form";
 import { Sheet } from "../Sheet";
 import { IndicatorSwitches } from "./IndicatorSwitches";
+import { SpotifyRoomGroup, useSpotifyRoomName } from "./SpotifyRoom";
 
 /**
  * Round 22 — the player's toolbar under the title: where the sound comes from (Spotify full tracks, files or the
@@ -22,6 +24,14 @@ export function PlayerToolbar({ rehearsal }: { rehearsal: boolean }) {
   const [show, setShow] = useState(false);
   const label = (id: string | null) =>
     outputs.devices.find((d) => d.id === id)?.label ?? t("booth.playerToolbar.this_device");
+  // round 23: the night can play on a Spotify Connect device (the Spotify app): ROOM names it
+  const spotifyRoom = useSpotifyRoomName();
+  const roomLabel = spotifyRoom ?? label(outputs.room);
+  useEffect(() => {
+    const open = () => setPick("room");
+    window.addEventListener(OPEN_ROOM_EVENT, open);
+    return () => window.removeEventListener(OPEN_ROOM_EVENT, open);
+  }, []);
   const hearing = audition?.where === "headphones";
   return (
     <div className="booth-toolbar" data-testid="booth-toolbar">
@@ -32,12 +42,12 @@ export function PlayerToolbar({ rehearsal }: { rehearsal: boolean }) {
         data-out="room"
         data-testid="booth-out-room"
         data-hint={t("booth.playerToolbar.room_where_the_night_plays_for")}
-        aria-label={t("booth.playerToolbar.room_output_2", { p1: label(outputs.room) })}
+        aria-label={t("booth.playerToolbar.room_output_2", { p1: roomLabel })}
         onClick={() => setPick("room")}
       >
         <Speaker size={16} strokeWidth={2} aria-hidden />
         <span className="booth-out-word">{t("booth.playerToolbar.room")}</span>
-        <span className="booth-out-name">{label(outputs.room)}</span>
+        <span className="booth-out-name">{roomLabel}</span>
         <ChevronDown size={14} strokeWidth={2} aria-hidden />
       </button>
       {outputs.cueSupported ? (
@@ -171,6 +181,7 @@ function OutputSheet({ which, onClose }: { which: "room" | "headphones" | null; 
           />
         )}
       </Group>
+      {which === "room" && <SpotifyRoomGroup />}
       {!outputs.named && (
         <Group footer={t("booth.playerToolbar.your_browser_names_the_outputs_once")}>
           <ActionRow
