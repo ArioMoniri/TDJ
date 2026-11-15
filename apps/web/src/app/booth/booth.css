@@ -449,7 +449,7 @@
     pointer-events: none;
   }
   html[data-booth] .booth-strip {
-    bottom: max(0.75rem, env(safe-area-inset-bottom));
+    bottom: var(--tabbar-bottom);
   }
 }
 .booth-strip-now {

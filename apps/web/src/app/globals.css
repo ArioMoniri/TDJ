@@ -2235,7 +2235,7 @@ html.theming *::after {
   position: fixed;
   left: 12px;
   right: 12px;
-  bottom: calc(max(0.75rem, env(safe-area-inset-bottom)) + 68px);
+  bottom: calc(var(--chrome-stack) + 6px);
   z-index: 30;
   display: flex;
   flex-wrap: wrap;
@@ -2267,7 +2267,7 @@ html.theming *::after {
     pointer-events: none;
   }
   html[data-booth-live] .booth-strip {
-    bottom: max(0.75rem, env(safe-area-inset-bottom));
+    bottom: var(--tabbar-bottom);
   }
 }
 /* the primary button shrinks before the strip overflows (its label truncates; round 18: it ran off a 390 px phone) */
@@ -2608,8 +2608,15 @@ html.i18n-pending body {
   --tabbar-h: 62px;
   /* the capsule's distance from the bottom edge: the home indicator's inset, or 12 px without one */
   --tabbar-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
-  /* what the page reserves under its last row on a phone: the tab capsule, its offset and a 16 px breath */
-  --bottom-chrome: calc(var(--tabbar-bottom) + var(--tabbar-h) + 16px);
+  /* the docked mini player's height on a phone (MiniPlayer.tsx measures it into --mini-h while it is docked) */
+  --mini-reserve: 0px;
+  /* the top edge of the stacked bottom chrome, measured from the bottom: the home indicator's inset (or 12 px), the
+     tab capsule and, while it is docked on the capsule, the mini player. Floating things (the Compose button, the
+     compose progress, the booth strip) sit a few px above it. */
+  --chrome-stack: calc(var(--tabbar-bottom) + var(--tabbar-h) + var(--mini-reserve));
+  /* what the page reserves under its last row on a phone, and its scroll padding: the stack and a 16 px breath.
+     The one variable every bottom-of-page element clears (e2e/wave4-transitions.spec.ts: the guide box) */
+  --bottom-chrome: calc(var(--chrome-stack) + 16px);
   /* the one compact floating action (Compose on an empty page) sits 10 px above the tab capsule */
   --fab-h: 50px;
   /* fluid page gutter: 16 on a phone, up to 32 on wide windows */
@@ -2618,6 +2625,9 @@ html.i18n-pending body {
 @media (max-width: 599.98px) {
   html {
     scroll-padding-bottom: var(--bottom-chrome);
+  }
+  html:has([data-testid="mini-player"]) {
+    --mini-reserve: var(--mini-h, 0px);
   }
   html[data-primary-bar] {
     scroll-padding-bottom: calc(var(--bottom-chrome) + var(--fab-h) + 10px);
