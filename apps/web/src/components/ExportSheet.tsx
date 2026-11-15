@@ -6,6 +6,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { downloadBlob } from "@/lib/download";
+import { type CheckView, checkView } from "@/lib/exportCheckView";
 import { withoutCortinas } from "@/lib/exportPaths";
 import { haptic } from "@/lib/haptics";
 import { lazy, t as tx } from "@/lib/i18n";
@@ -13,9 +14,9 @@ import type { Match, MatchItem } from "@/lib/match";
 import { DUR, SPRING } from "@/lib/motion";
 import {
   beginAuth,
+  byoWritePlaylist,
   type ConnectApp,
   connectExport,
-  createPlaylist,
   directPost,
   dropboxLoginUrl,
   type FileResult,
@@ -24,15 +25,16 @@ import {
   hostedLoginUrl,
   hostedMatch,
   refresh,
-  replacePlaylist,
   resolveTrack,
   SpotifyRateLimit,
+  type SpotifyWriteResult,
   useConnectors,
   type YoutubeResult,
 } from "@/lib/spotify";
 import {
   batches,
-  orderedUris,
+  orderedRows,
+  type PlanRow,
   playlistIdFrom,
   type StandInCue,
   spotifyPlanFor,
@@ -44,9 +46,13 @@ import { TRANSFER_SERVICES, type TransferService, transferCsv, transferRows } fr
 import { CORTINA_STOP_RANGE, cortinaStopSec, DJ_APPS, type DjApp, type Playlist } from "@/lib/types";
 import { youtubeBatches, youtubeQueries } from "@/lib/youtubePlan";
 import { CountUp } from "./CountUp";
+import { ExportCheck } from "./ExportCheck";
 import { ActionRow, Group, PickerRow, Row, SegmentedRow, StepperRow, SwitchRow, Tile } from "./Form";
 import { ShareNightEntry } from "./ShareSheet";
 import { Sheet } from "./Sheet";
+
+/** one row of the playlist the Spotify export writes, with its URI */
+type SpotifyRow = PlanRow & { uri: string };
 
 const FORMAT_ITEMS = (Object.keys(EXPORT_META) as ExportFormat[]).map(
   (f) => [f, EXPORT_META[f].label] as [ExportFormat, string],
@@ -182,6 +188,10 @@ export function ExportSheet({
   };
   const check = useRef<{ play: () => void } | null>(null);
   const reduced = useReducedMotion();
+  /** what Spotify holds after the last write or check, read back (lib/spotifyWrite.ts) */
+  const [spCheck, setSpCheck] = useState<{ view: CheckView; rows: SpotifyRow[]; id: string } | null>(null);
+  /** "Check playlist" or "Fix in Spotify" running */
+  const [checking, setChecking] = useState(false);
 
   // a fresh open starts clean: no stale "Playlist created" state
   useEffect(() => {
@@ -191,6 +201,7 @@ export function ExportSheet({
       setLog([]);
       setPending(null);
       setProgress(null);
+      setSpCheck(null);
       try {
         setTarget((targetKey && localStorage.getItem(targetKey)) || "");
       } catch {
@@ -379,143 +390,206 @@ export function ExportSheet({
     ]);
   };
 
+  /** the listener's country of the last Spotify export (the key its replacements are remembered under) */
+  const rememberedMarket = () => {
+    try {
+      return localStorage.getItem("tdj-sp-market") || "from_token";
+    } catch {
+      return "from_token";
+    }
+  };
+  const spotifyPlan = () =>
+    spotifyPlanFor(includeCortinas ? playlist! : withoutCortinas(playlist!), overrides, { includeCortinas });
+  /**
+   * Writes the rows into Spotify — the hosted route or, BYO, straight from this browser — and reads the playlist
+   * back with the DJ's own token: the answer is what Spotify holds (lib/spotifyWrite.ts), never what was sent.
+   */
+  const spotifyWrite = async (
+    rows: SpotifyRow[],
+    w: { playlistId?: string; mode: "replace" | "check"; details?: { name: string; description: string } },
+    token = spotifyToken,
+  ): Promise<SpotifyWriteResult & { details?: boolean }> => {
+    const uris = rows.map((r) => r.uri);
+    const items = rows.map((r) => r.item);
+    if (hosted) {
+      const r = await hostedCreatePlaylist({
+        uris,
+        items,
+        includeCortinas,
+        ...(w.playlistId
+          ? {
+              playlistId: w.playlistId,
+              url: `https://open.spotify.com/playlist/${w.playlistId}`,
+              replace: w.mode === "replace",
+              check: w.mode === "check",
+            }
+          : {}),
+        ...(w.details ?? {}),
+      });
+      if (!r.check) throw new Error(tx("exportCheck.stopped", { error: "–" }));
+      return { id: r.id, url: r.url, check: r.check, market: r.market ?? "from_token", details: r.details };
+    }
+    const tok = token;
+    if (!tok) throw new Error(tx("exportSheet.connect_spotify_and_create_playlist"));
+    return byoWritePlaylist(
+      tok.access,
+      w.playlistId ? { playlistId: w.playlistId } : (w.details ?? { name: playlist!.name, description: "" }),
+      uris,
+      items,
+      w.mode,
+    );
+  };
+  /** Shows what Spotify holds and remembers each replacement for the listener's country (a later export reuses it). */
+  const showSpotifyCheck = (r: SpotifyWriteResult, rows: SpotifyRow[]) => {
+    const c = r.check;
+    const now = rows.map((row, i) => ({ ...row, uri: c.uris[i] ?? row.uri }));
+    if (c.replaced.length) {
+      updateOverrides((o) => {
+        const all = { ...(o.marketStreams ?? {}) };
+        const mine = { ...(all[r.market] ?? {}) };
+        for (const x of c.replaced) {
+          const row = rows[x.at];
+          if (row) mine[row.id] = { from: x.from, uri: x.to };
+        }
+        all[r.market] = mine;
+        return { ...o, marketStreams: all };
+      });
+    }
+    try {
+      localStorage.setItem("tdj-sp-market", r.market);
+    } catch {}
+    setSpCheck({
+      view: checkView(
+        tx("exportSheet.spotify"),
+        c,
+        now,
+        c.rows.map((x) => ({ title: x.name, artist: x.artist })),
+      ),
+      rows: now,
+      id: r.id,
+    });
+    return c.ok;
+  };
+  /** "Fix in Spotify": the night's rows written again in order, then read back. */
+  const fixSpotify = async () => {
+    if (!spCheck) return;
+    setChecking(true);
+    try {
+      const r = await spotifyWrite(spCheck.rows, { playlistId: spCheck.id, mode: "replace" });
+      if (showSpotifyCheck(r, spCheck.rows)) {
+        setDone(true);
+        haptic([10, 40, 10]);
+      }
+    } catch (e) {
+      setLog((l) => [...l, `Error: ${(e as Error).message}`]);
+    } finally {
+      setChecking(false);
+    }
+  };
+  /** "Check playlist": reads the linked playlist and compares it with the night, writing nothing. */
+  const checkSpotify = async () => {
+    if (!playlist || !targetId) return;
+    setChecking(true);
+    try {
+      const plan = spotifyPlan();
+      const rows = orderedRows(plan, found.current, overrides.marketStreams?.[rememberedMarket()]);
+      showSpotifyCheck(await spotifyWrite(rows, { playlistId: targetId, mode: "check" }), rows);
+    } catch (e) {
+      setLog((l) => [...l, `Error: ${(e as Error).message}`]);
+    } finally {
+      setChecking(false);
+    }
+  };
+
   const toSpotify = async () => {
     if (!playlist) return;
+    let tok = spotifyToken;
     if (hosted) {
       if (!hostedUser) return location.assign(hostedLoginUrl("/"));
-      setBusy(true);
-      setLog([]);
-      setResult(null);
-      setPending(null);
-      try {
-        const plan = spotifyPlanFor(includeCortinas ? playlist : withoutCortinas(playlist), overrides, {
-          includeCortinas,
-        });
-        const kinds = new Map(plan.tracks.map((t) => [t.id ?? "", t.kind] as const));
-        const labels = new Map(plan.tracks.map((t) => [t.id ?? "", `${t.title} (${t.artist})`] as const));
-        found.current = new Map();
-        setMadeNew(!targetId);
-        const m = await matchHosted(plan.items, kinds, labels);
-        const si = await standIns(m, kinds, labels);
-        // running order: matched rows go back into their own slot, so cortinas stay between the tandas
-        const uris = orderedUris(plan, found.current);
-        // the same title and description (with the set's current score) for a new playlist and an update
-        const details = {
-          name: tx("exportSheet.tdj", { name: playlist.name }),
-          description: tx(
-            includeCortinas ? "exportSheet.desc_with_cortinas" : "exportSheet.desc_without_cortinas",
-            {
-              n: playlist.tandas.length,
-              score: playlist.score?.total ?? "–",
-            },
-          ),
-        };
-        const r = targetId
-          ? await hostedCreatePlaylist({
-              uris,
-              playlistId: targetId,
-              url: `https://open.spotify.com/playlist/${targetId}`,
-              replace: true,
-              includeCortinas,
-              ...details,
-            })
-          : await hostedCreatePlaylist({ uris, includeCortinas, ...details });
-        rememberTarget(r.url);
-        setResult({ label: tx("exportSheet.open_in_spotify"), url: r.url });
-        if (targetId && r.details === false) toast(tx("exportSheet.tracks_updated_spotify_kept_the_old"));
-        finishLog(r.added, si.missing, m.paused, m.remaining.length, si.note);
-        if (m.paused && m.remaining.length) {
-          const pend = { playlistId: r.id, url: r.url, remaining: m.remaining };
-          setPending(pend);
-          toast(pauseMessage(m.paused), () => void tryAgain(pend), tx("exportSheet.try_again"));
-          haptic([20, 30, 20]);
-        } else {
-          setDone(true);
-          check.current?.play();
-          haptic([10, 40, 10]);
+    } else {
+      // bring-your-own Client ID: only when the deployment has no hosted login (a hosted token never refreshes here)
+      if (spotify === null || !settings.spotifyClientId) return;
+      if (!tok) return beginAuth(settings.spotifyClientId);
+      if (tok.expires < Date.now() + 60_000 && tok.refresh) {
+        try {
+          tok = await refresh(settings.spotifyClientId, tok.refresh);
+          setSpotifyToken(tok);
+        } catch {
+          setSpotifyToken(null);
+          return beginAuth(settings.spotifyClientId);
         }
-      } catch (e) {
-        setProgress(null);
-        setLog((l) => [...l, `Error: ${(e as Error).message}`]);
-        haptic([20, 30, 20]);
-      } finally {
-        setBusy(false);
-      }
-      return;
-    }
-    // bring-your-own Client ID: only when the deployment has no hosted login (a hosted token never refreshes here)
-    if (spotify === null || !settings.spotifyClientId) return;
-    let tok = spotifyToken;
-    if (!tok) return beginAuth(settings.spotifyClientId);
-    if (tok.expires < Date.now() + 60_000 && tok.refresh) {
-      try {
-        tok = await refresh(settings.spotifyClientId, tok.refresh);
-        setSpotifyToken(tok);
-      } catch {
-        setSpotifyToken(null);
-        return beginAuth(settings.spotifyClientId);
       }
     }
     setBusy(true);
     setLog([]);
     setResult(null);
     setPending(null);
+    setSpCheck(null);
     try {
-      const plan = spotifyPlanFor(includeCortinas ? playlist : withoutCortinas(playlist), overrides, {
-        includeCortinas,
-      });
-      const kinds = new Map(plan.tracks.map((t) => [t.id ?? "", t.kind] as const));
-      const labels = new Map(plan.tracks.map((t) => [t.id ?? "", `${t.title} (${t.artist})`] as const));
+      const plan = spotifyPlan();
+      // labels and kinds by the row's own id (the id the matcher and the slots use), never a blank key
+      const kinds = new Map(
+        plan.rows.map((r) => [r.id, r.kind === "cortina" ? "cortina" : "track"] as const),
+      );
+      const labels = new Map(plan.rows.map((r) => [r.id, `${r.title} (${r.artist})`] as const));
       found.current = new Map();
       setMadeNew(!targetId);
-      const m = await matchByo(tok.access, plan.items, labels);
+      const m = hosted
+        ? await matchHosted(plan.items, kinds, labels)
+        : await matchByo(tok!.access, plan.items, labels);
       const si = await standIns(m, kinds, labels);
-      const uris = orderedUris(plan, found.current);
-      const pl = targetId
-        ? await replacePlaylist(tok.access, targetId, uris).then(() => ({
-            id: targetId,
-            external_urls: { spotify: `https://open.spotify.com/playlist/${targetId}` },
-          }))
-        : await createPlaylist(
-            tok.access,
-            tx("exportSheet.tdj", { name: playlist.name }),
-            tx(includeCortinas ? "exportSheet.desc_with_cortinas" : "exportSheet.desc_without_cortinas", {
-              n: playlist.tandas.length,
-              score: playlist.score.total,
-            }),
-            uris,
-          );
-      rememberTarget(pl.external_urls.spotify);
-      setResult({ label: tx("exportSheet.open_in_spotify"), url: pl.external_urls.spotify });
-      finishLog(uris.length, si.missing, m.paused, m.remaining.length, si.note);
+      // running order: matched rows go back into their own slot, so cortinas stay between the tandas
+      const rows = orderedRows(plan, found.current, overrides.marketStreams?.[rememberedMarket()]);
+      // the same title and description (with the set's current score) for a new playlist and an update
+      const details = {
+        name: tx("exportSheet.tdj", { name: playlist.name }),
+        description: tx(
+          includeCortinas ? "exportSheet.desc_with_cortinas" : "exportSheet.desc_without_cortinas",
+          {
+            n: playlist.tandas.length,
+            score: playlist.score?.total ?? "–",
+          },
+        ),
+      };
+      const r = await spotifyWrite(
+        rows,
+        { playlistId: targetId ?? undefined, mode: "replace", details },
+        tok,
+      );
+      rememberTarget(r.url);
+      setResult({ label: tx("exportSheet.open_in_spotify"), url: r.url });
+      if (targetId && r.details === false) toast(tx("exportSheet.tracks_updated_spotify_kept_the_old"));
+      finishLog(r.check.inPlace, si.missing, m.paused, m.remaining.length, si.note);
+      const ok = showSpotifyCheck(r, rows);
       if (m.paused && m.remaining.length) {
-        const pend = { playlistId: pl.id, url: pl.external_urls.spotify, remaining: m.remaining };
+        const pend = { playlistId: r.id, url: r.url, remaining: m.remaining };
         setPending(pend);
         toast(pauseMessage(m.paused), () => void tryAgain(pend), tx("exportSheet.try_again"));
-      } else {
+        haptic([20, 30, 20]);
+      } else if (ok) {
         setDone(true);
         check.current?.play();
         haptic([10, 40, 10]);
-      }
+      } else haptic([20, 30, 20]);
     } catch (e) {
       setProgress(null);
       setLog((l) => [...l, `Error: ${(e as Error).message}`]);
       haptic([20, 30, 20]);
-      if (String(e).includes("401")) setSpotifyToken(null);
+      if (!hosted && String(e).includes("401")) setSpotifyToken(null);
     } finally {
       setBusy(false);
     }
   };
-  /** After a pause: match what is left and append it to the playlist made before. */
+  /** After a pause: match what is left and rewrite the playlist made before, every row in its own place. */
   const tryAgain = async (pend: { playlistId: string; url: string; remaining: MatchItem[] }) => {
     if (!playlist) return;
     setBusy(true);
     try {
-      const plan = spotifyPlanFor(includeCortinas ? playlist : withoutCortinas(playlist), overrides, {
-        includeCortinas,
-      });
-      const kinds = new Map(plan.tracks.map((t) => [t.id ?? "", t.kind] as const));
-      const labels = new Map(plan.tracks.map((t) => [t.id ?? "", `${t.title} (${t.artist})`] as const));
+      const plan = spotifyPlan();
+      const kinds = new Map(
+        plan.rows.map((r) => [r.id, r.kind === "cortina" ? "cortina" : "track"] as const),
+      );
+      const labels = new Map(plan.rows.map((r) => [r.id, `${r.title} (${r.artist})`] as const));
       let m: Awaited<ReturnType<typeof matchHosted>>;
       if (hosted) m = await matchHosted(pend.remaining, kinds, labels);
       else {
@@ -524,18 +598,14 @@ export function ExportSheet({
         m = await matchByo(tok.access, pend.remaining, labels);
       }
       const si = await standIns(m, kinds, labels);
+      let ok = true;
       if (m.uris.length || si.note) {
         // rewrite the whole playlist so the new matches land in their own rows, not at the end
-        const all = orderedUris(plan, found.current);
-        if (hosted)
-          await hostedCreatePlaylist({
-            uris: all,
-            playlistId: pend.playlistId,
-            url: pend.url,
-            replace: true,
-            includeCortinas,
-          });
-        else if (spotifyToken) await replacePlaylist(spotifyToken.access, pend.playlistId, all);
+        const rows = orderedRows(plan, found.current, overrides.marketStreams?.[rememberedMarket()]);
+        ok = showSpotifyCheck(
+          await spotifyWrite(rows, { playlistId: pend.playlistId, mode: "replace" }),
+          rows,
+        );
       }
       setLog((l) => [
         ...l,
@@ -557,9 +627,11 @@ export function ExportSheet({
         toast(pauseMessage(m.paused), () => void tryAgain(next), tx("exportSheet.try_again"));
       } else {
         setPending(null);
-        setDone(true);
-        check.current?.play();
-        haptic([10, 40, 10]);
+        if (ok) {
+          setDone(true);
+          check.current?.play();
+          haptic([10, 40, 10]);
+        }
       }
     } catch (e) {
       setProgress(null);
@@ -569,7 +641,6 @@ export function ExportSheet({
       setBusy(false);
     }
   };
-
   const toWebhook = async () => {
     if (!playlist || !webhookUrl) return;
     setHookBusy(true);
@@ -985,6 +1056,15 @@ export function ExportSheet({
             spellCheck={false}
           />
         </label>
+        {targetId && spotifyReady && (
+          <ActionRow
+            label={checking && !spCheck ? tx("exportCheck.checking") : tx("exportCheck.check_playlist")}
+            onClick={() => void checkSpotify()}
+            busy={checking}
+            disabled={busy}
+            id="spotify-check"
+          />
+        )}
         <Row
           tile={
             <Tile color="#1db954">
@@ -1326,6 +1406,14 @@ export function ExportSheet({
         </Group>
       )}
       <div role="status" aria-live="polite">
+        {spCheck && (
+          <ExportCheck
+            view={spCheck.view}
+            onFix={() => void fixSpotify()}
+            fixing={checking}
+            id="spotify-verified"
+          />
+        )}
         {log.length > 0 && (
           <Group header={tx("exportSheet.progress")}>
             <div className="cell text-footnote whitespace-pre-wrap text-[var(--label-2)]">

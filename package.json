@@ -21,6 +21,7 @@
     "e2e": "pnpm --filter @tdj/web e2e",
     "media": "pnpm --filter @tdj/web media",
     "readme:check": "node scripts/check-readme.mjs",
+    "spotify:check": "pnpm --filter @tdj/web spotify:check",
     "video": "pnpm --filter @tdj/video render",
     "deploy": "sst deploy --stage production",
     "tdj": "node packages/cli/bin/tdj.mjs"

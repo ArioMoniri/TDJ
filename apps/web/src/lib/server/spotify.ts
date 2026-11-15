@@ -22,14 +22,15 @@ export const withSession = (req: Request, origin: string) => withSessionFor(SPOT
 export const clearSessionCookie = () => clearFor(SPOTIFY);
 export { ApiError as SpotifyError, isRateLimited } from "@/lib/providerApi";
 export {
-  addTracks,
   createPlaylist,
+  findPlayable,
   MATCH_BUDGET_MS,
   type MatchResult,
+  marketOf,
   matchItems,
   matchOne,
   type Profile,
   profile,
-  replaceTracks,
   updatePlaylistDetails,
+  writePlaylist,
 } from "@/lib/spotifyWeb";

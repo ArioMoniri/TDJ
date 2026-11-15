@@ -38,6 +38,8 @@ test("a Spotify export writes only the right recordings, in order, and lists wha
       }),
     );
   const written: string[] = [];
+  /** what the mock playlist holds (PUT replaces, POST appends) */
+  const held: string[] = [];
   const searched: string[] = [];
   // round 17: a vocal side's credit names its singer (Spotify's does): the right candidate carries the side's singer
   const singerOf = new Map<string, string>();
@@ -95,9 +97,23 @@ test("a Spotify export writes only the right recordings, in order, and lists wha
     if (url.pathname.endsWith("/playlists") && route.request().method() === "POST")
       return json({ id: "pl1", external_urls: { spotify: "https://open.spotify.com/playlist/pl1" } });
     if (/\/playlists\/pl1\/(items|tracks)$/.test(url.pathname)) {
+      // the export reads the playlist back, as Spotify holds it, page by page
+      if (route.request().method() === "GET") {
+        const offset = Number(url.searchParams.get("offset") ?? 0);
+        const page = held.slice(offset, offset + 100);
+        return json({
+          items: page.map((uri) => ({
+            track: { uri, name: uri, artists: [{ name: "A" }], is_playable: true },
+          })),
+          total: held.length,
+          next: offset + 100 < held.length ? `${url.origin}${url.pathname}?offset=${offset + 100}` : null,
+        });
+      }
       const body = JSON.parse(route.request().postData() ?? "{}") as { uris?: string[] };
       written.push(...(body.uris ?? []));
-      return json({ snapshot_id: "s" });
+      if (route.request().method() === "PUT") held.length = 0;
+      held.push(...(body.uris ?? []));
+      return json({ snapshot_id: `s${written.length}` });
     }
     return json({});
   });

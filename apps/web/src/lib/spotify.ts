@@ -2,6 +2,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { t } from "@/lib/i18n";
 import { bestMatch, type Match, type MatchItem, rejectReason, searchQueries } from "@/lib/match";
+import { findPlayable, marketOf, createPlaylist as webCreatePlaylist, writePlaylist } from "@/lib/spotifyWeb";
+import type { PlaylistCheck } from "@/lib/spotifyWrite";
 import { useStore } from "@/lib/store";
 
 /**
@@ -180,61 +182,49 @@ export async function resolveTrack(token: string, item: MatchItem): Promise<Reso
   return v;
 }
 
-/** BYO path: replaces a playlist's contents in running order (PUT the first 100, append the rest). */
-export async function replacePlaylist(token: string, playlistId: string, uris: string[]) {
-  const first = uris.slice(0, 100);
-  await api(token, `/playlists/${playlistId}/items`, {
-    method: "PUT",
-    body: JSON.stringify({ uris: first }),
-  }).catch(() =>
-    api(token, `/playlists/${playlistId}/tracks`, { method: "PUT", body: JSON.stringify({ uris: first }) }),
-  );
-  if (uris.length > 100) await addToPlaylist(token, playlistId, uris.slice(100));
+/** What a write (or a check) of the playlist found, read back with the DJ's own token. */
+export interface SpotifyWriteResult {
+  id: string;
+  url: string;
+  check: PlaylistCheck;
+  /** the listener's country the replacements are remembered under (`from_token` when Spotify did not say) */
+  market: string;
 }
-
-/** BYO path: appends URIs (≤100 per call) to a playlist made earlier. */
-export async function addToPlaylist(token: string, playlistId: string, uris: string[]) {
-  for (let i = 0; i < uris.length; i += 100) {
-    const chunk = uris.slice(i, i + 100);
-    await api(token, `/playlists/${playlistId}/items`, {
-      method: "POST",
-      body: JSON.stringify({ uris: chunk }),
-    }).catch(() =>
-      api(token, `/playlists/${playlistId}/tracks`, {
-        method: "POST",
-        body: JSON.stringify({ uris: chunk }),
-      }),
-    );
-  }
-}
-
-export async function createPlaylist(
+/**
+ * BYO path: writes `uris` into the playlist (`replace` rewrites it, `new` makes one first, `check` only reads)
+ * and proves it with the shared writer (lib/spotifyWrite.ts): chunks in order, Retry-After honoured, the whole
+ * playlist read back with the listener's market, unplayable rows swapped for a playable version.
+ */
+export async function byoWritePlaylist(
   token: string,
-  name: string,
-  description: string,
+  target: { playlistId: string } | { name: string; description: string; isPublic?: boolean },
   uris: string[],
-  isPublic = false,
-) {
-  const me = await api<{ id: string }>(token, "/me");
-  const pl = await api<{ id: string; external_urls: { spotify: string } }>(token, "/me/playlists", {
-    method: "POST",
-    body: JSON.stringify({ name, description, public: isPublic }),
-  }).catch(() =>
-    api<{ id: string; external_urls: { spotify: string } }>(token, `/users/${me.id}/playlists`, {
-      method: "POST",
-      body: JSON.stringify({ name, description, public: isPublic }),
-    }),
-  );
-  for (let i = 0; i < uris.length; i += 100) {
-    const chunk = uris.slice(i, i + 100);
-    await api(token, `/playlists/${pl.id}/items`, {
-      method: "POST",
-      body: JSON.stringify({ uris: chunk }),
-    }).catch(() =>
-      api(token, `/playlists/${pl.id}/tracks`, { method: "POST", body: JSON.stringify({ uris: chunk }) }),
-    );
+  items: Array<MatchItem | null>,
+  mode: "replace" | "check" = "replace",
+): Promise<SpotifyWriteResult> {
+  const market = await marketOf(token);
+  let id: string;
+  let url: string;
+  let before: string | null | undefined;
+  if ("playlistId" in target) {
+    id = target.playlistId;
+    url = `https://open.spotify.com/playlist/${id}`;
+  } else {
+    const pl = await webCreatePlaylist(token, { ...target, isPublic: !!target.isPublic });
+    id = pl.id;
+    url = pl.url;
+    before = pl.snapshot;
   }
-  return pl;
+  const check = await writePlaylist(token, id, uris, {
+    mode: "playlistId" in target ? mode : "new",
+    before,
+    market: "from_token",
+    findPlayable: async (at, avoid) => {
+      const it = items[at];
+      return it ? ((await findPlayable(token, it, avoid))?.uri ?? null) : null;
+    },
+  });
+  return { id, url, check, market };
 }
 
 /* ---------- Hosted session + Pipedream Connect (server routes) ---------- */
@@ -275,6 +265,12 @@ export interface PlaylistResult {
   rateLimited?: number;
   /** an update: the title and description (with the score) were rewritten; false when Spotify refused it */
   details?: boolean;
+  /** Spotify: what the playlist holds, read back after the write (lib/spotifyWrite.ts) */
+  check?: PlaylistCheck;
+  /** Spotify: the listener's country the replacements are remembered under */
+  market?: string;
+  /** Spotify: rows sent that Spotify could never hold (not a track or episode URI) */
+  invalid?: string[];
 }
 /**
  * Creates the playlist from `uris` (matched first through `hostedMatch`), or appends them to `playlistId` (the
@@ -283,10 +279,14 @@ export interface PlaylistResult {
 export async function hostedCreatePlaylist(body: {
   playlist?: unknown;
   uris?: string[];
+  /** the matcher's view of each row of `uris`, so an unplayable row can be swapped for a playable version */
+  items?: Array<MatchItem | null>;
   playlistId?: string;
   url?: string;
   /** with `playlistId`: replace the playlist's contents instead of appending */
   replace?: boolean;
+  /** with `playlistId`: read the playlist and compare it with `uris`, writing nothing */
+  check?: boolean;
   includeCortinas: boolean;
   name?: string;
   description?: string;

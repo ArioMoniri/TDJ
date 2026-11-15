@@ -51,6 +51,13 @@ const singersOf = (title: string, artist: string) => [
 ];
 let searchSeq = 0;
 const searchLimit = { after: Number.POSITIVE_INFINITY, count: 0, retryAfter: 30, delayMs: 0 };
+/**
+ * Spotify playlists the mock holds, as Spotify would: PUT replaces, POST appends, GET reads back in pages of ≤ 100
+ * with `next`. `dropPosts` names POST calls (counted from `posts = 0`) that answer 201 and store nothing — the
+ * "chunk 2 never arrived" a DJ saw; `unplayable` are tracks the listener's market cannot play.
+ */
+const lists = new Map<string, { uris: string[]; snap: number }>();
+const spotifyWrites = { posts: 0, dropPosts: new Set<number>(), unplayable: new Set<string>() };
 /** YouTube search mock: this many searches (counted since the last `hits.length = 0`) answer, the next one is quotaExceeded. */
 const ytLimit = { searches: 2 };
 
@@ -91,6 +98,7 @@ function mockServer(): http.Server {
           ? json(200, {
               id: "dj1",
               display_name: "Test DJ",
+              country: "TR",
               email: "dj@example.test",
               product: "premium",
               external_urls: { spotify: "https://open.spotify.com/user/dj1" },
@@ -141,17 +149,64 @@ function mockServer(): http.Server {
           );
         return json(200, { tracks: { items } });
       }
-      if (url === "/v1/me/playlists" && req.method === "POST")
-        return json(201, { id: "pl1", external_urls: { spotify: "https://open.spotify.com/playlist/pl1" } });
-      if (/^\/v1\/playlists\/pl1\/items/.test(url) && req.method === "POST")
-        return json(201, { snapshot_id: "s1" });
-      if (/^\/v1\/playlists\/pl1\/items/.test(url) && req.method === "PUT")
-        return json(200, { snapshot_id: "s2" });
+      if (url === "/v1/me/playlists" && req.method === "POST") {
+        lists.set("pl1", { uris: [], snap: 0 });
+        return json(201, {
+          id: "pl1",
+          snapshot_id: "snap0",
+          external_urls: { spotify: "https://open.spotify.com/playlist/pl1" },
+        });
+      }
+      const rows = /^\/v1\/playlists\/(pl1|pl403)\/items(\?.*)?$/.exec(url);
+      if (rows) {
+        const pl = lists.get(rows[1]!) ?? { uris: [], snap: 0 };
+        lists.set(rows[1]!, pl);
+        if (req.method === "GET") {
+          const q = new URL(url, MOCK).searchParams;
+          const limit = Math.min(100, Number(q.get("limit") ?? 100));
+          const offset = Number(q.get("offset") ?? 0);
+          const market = !!q.get("market");
+          const page = pl.uris.slice(offset, offset + limit);
+          return json(200, {
+            items: page.map((uri) => ({
+              is_local: false,
+              track: {
+                uri,
+                name: `Song ${uri.split(":")[2]}`,
+                artists: [{ name: "Mock Artist" }],
+                ...(market ? { is_playable: !spotifyWrites.unplayable.has(uri) } : {}),
+              },
+            })),
+            total: pl.uris.length,
+            next:
+              offset + limit < pl.uris.length
+                ? `${MOCK}/v1/playlists/${rows[1]}/items?offset=${offset + limit}&limit=${limit}`
+                : null,
+          });
+        }
+        const uris = (JSON.parse(body || "{}").uris ?? []) as string[];
+        if (uris.length > 100) return json(400, { error: { status: 400, message: "Too many ids" } });
+        if (req.method === "PUT") pl.uris = [...uris];
+        else if (!spotifyWrites.dropPosts.has(++spotifyWrites.posts)) pl.uris.push(...uris);
+        pl.snap++;
+        return json(req.method === "PUT" ? 200 : 201, { snapshot_id: `snap${pl.snap}` });
+      }
+      if (/^\/v1\/playlists\/(pl1|pl403)\?fields=/.test(url) && req.method === "GET")
+        return json(200, { snapshot_id: `snap${lists.get(url.split("/")[3]!.split("?")[0]!)?.snap ?? 0}` });
+      if (url.startsWith("/v1/tracks?") && req.method === "GET") {
+        const q = new URL(url, MOCK).searchParams;
+        return json(200, {
+          tracks: (q.get("ids") ?? "").split(",").map((id) => ({
+            uri: `spotify:track:${id}`,
+            name: `Song ${id}`,
+            artists: [{ name: "Mock Artist" }],
+            is_playable: !spotifyWrites.unplayable.has(`spotify:track:${id}`),
+          })),
+        });
+      }
       if (url === "/v1/playlists/pl1" && req.method === "PUT") return json(200, {});
       if (url === "/v1/playlists/pl403" && req.method === "PUT")
         return json(403, { error: { status: 403, message: "You cannot change this playlist" } });
-      if (/^\/v1\/playlists\/pl403\/items/.test(url) && req.method === "PUT")
-        return json(200, { snapshot_id: "s3" });
       // Pipedream Connect (REST shape the SDK deserialises)
       if (url === "/v1/oauth/token")
         return json(200, { access_token: "pd-token", token_type: "bearer", expires_in: 3600 });
@@ -1056,7 +1111,7 @@ test("a 429 from Spotify ends the matching cleanly: the server reports the pause
     // the playlist exists with the one match
     const create = last(/POST \/v1\/me\/playlists/)!;
     expect(JSON.parse(create.body).name).toMatch(/^TDJ · /);
-    const adds = hits.filter((h) => /^\/v1\/playlists\/pl1\/items/.test(h.url));
+    const adds = hits.filter((h) => /^\/v1\/playlists\/pl1\/items/.test(h.url) && h.method !== "GET");
     expect(adds).toHaveLength(1);
     // the one search that answered plus whatever the server already remembered from earlier tests (memoised
     // per process: no search for those), never a cover
@@ -1086,7 +1141,7 @@ test("a 429 from Spotify ends the matching cleanly: the server reports the pause
     expect(last(/POST \/v1\/me\/playlists/)).toBeUndefined(); // no second playlist
     expect(matchCalls).toBe(Math.ceil(left / 10)); // batches of 10, sent one after the other
     let total = 0;
-    const rewrites = hits.filter((h) => /^\/v1\/playlists\/pl1\/items/.test(h.url));
+    const rewrites = hits.filter((h) => /^\/v1\/playlists\/pl1\/items/.test(h.url) && h.method !== "GET");
     expect(rewrites[0]?.method).toBe("PUT"); // replaced, not appended: the new matches sit in their own rows
     for (const a of rewrites) {
       const uris = JSON.parse(a.body).uris as string[];
@@ -1111,7 +1166,9 @@ test("a 429 from Spotify ends the matching cleanly: the server reports the pause
     await expect(page.getByRole("button", { name: "Playlist updated" })).toBeVisible({ timeout: 60000 });
     expect(hits.filter((h) => h.url.startsWith("/v1/search"))).toHaveLength(0);
     expect(last(/POST \/v1\/me\/playlists/)).toBeUndefined();
-    expect(hits.find((h) => /^\/v1\/playlists\/pl1\/items/.test(h.url))?.method).toBe("PUT");
+    expect(hits.find((h) => /^\/v1\/playlists\/pl1\/items/.test(h.url) && h.method !== "GET")?.method).toBe(
+      "PUT",
+    );
     // the update also rewrites the title and description: the score in it is the one on the page
     const det = hits.find((h) => h.url === "/v1/playlists/pl1" && h.method === "PUT");
     expect(det, "playlist details updated").toBeTruthy();
@@ -1133,6 +1190,110 @@ test("a 429 from Spotify ends the matching cleanly: the server reports the pause
   await ctx.close();
 });
 
+test("Spotify proves the playlist: a 118-row night whose chunk 2 Spotify drops once is read back, repaired and shows 118 of 118, in order", async ({
+  browser,
+  request,
+}) => {
+  const { session } = await login(request);
+  const ctx = await browser.newContext({ baseURL: APP });
+  const [name, value] = session.split("=");
+  await ctx.addCookies([{ name: name!, value: value!, url: APP }]);
+  const page: Page = await ctx.newPage();
+  // a night of exactly 118 rows (songs, cortinas, opening, closing), every row with its own Spotify id: no search
+  let n = 0;
+  await page.route("**/api/compose", async (route) => {
+    // a longer night than the default, cut down to 118 rows below
+    const sent = JSON.parse(route.request().postData() ?? "{}");
+    const r = await route.fetch({ postData: JSON.stringify({ ...sent, hours: 5 }) });
+    const j = await r.json();
+    type Row = { spotify?: unknown } | null | undefined;
+    const rows = (p: typeof j) =>
+      p.tandas.reduce(
+        (a: number, t: { songs: unknown[]; cortina?: unknown }) => a + t.songs.length + (t.cortina ? 1 : 0),
+        0,
+      ) +
+      (p.opening ? 1 : 0) +
+      (p.closing ? 1 : 0);
+    while (rows(j) > 118) {
+      const last = j.tandas.at(-1);
+      if (last.songs.length > 1) last.songs.pop();
+      else j.tandas.pop();
+    }
+    const id = (x: Row) => {
+      if (x) x.spotify = { uri: `spotify:track:verify${n++}` };
+    };
+    if (j.opening) id(j.opening);
+    for (const t of j.tandas) {
+      for (const s of t.songs) id(s);
+      if (t.cortina) id(t.cortina);
+    }
+    if (j.closing) id(j.closing);
+    n = rows(j);
+    await route.fulfill({ response: r, json: j });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: /Compose the night/ }).click();
+  await expect(page.locator("#result")).toBeVisible({ timeout: 60000 });
+  expect(n).toBe(118);
+  await page.getByRole("button", { name: "Export" }).first().click();
+  const sheet = page.getByTestId("export-sheet");
+  hits.length = 0;
+  spotifyWrites.posts = 0;
+  spotifyWrites.dropPosts = new Set([2]); // a new playlist gets two POSTs: the second (rows 101–118) is lost once
+  try {
+    await page.getByRole("button", { name: "Create playlist in Spotify" }).click();
+    await expect(page.getByRole("button", { name: "Playlist created" })).toBeVisible({ timeout: 60000 });
+    const verified = page.getByTestId("spotify-verified");
+    await expect(page.getByTestId("spotify-verified-summary")).toHaveText(
+      "118 of 118 in Spotify, in order ✓",
+    );
+    await expect(verified).toHaveAttribute("data-ok", "true");
+    await expect(page.getByTestId("spotify-verified-lines")).toContainText("written again");
+    // what happened at Spotify: two POSTs, the playlist read back (2 pages), the lost 18 appended, read again
+    const writes = hits.filter((h) => h.url === "/v1/playlists/pl1/items");
+    expect(writes.map((w) => [w.method, JSON.parse(w.body).uris.length])).toEqual([
+      ["POST", 100],
+      ["POST", 18],
+      ["POST", 18],
+    ]);
+    const reads = hits.filter((h) => /^\/v1\/playlists\/pl1\/items\?/.test(h.url) && h.method === "GET");
+    expect(reads.length).toBeGreaterThanOrEqual(3);
+    for (const r of reads) expect(r.headers.authorization).toBe("Bearer acc-1"); // the DJ's own account
+    expect(reads.every((r) => r.url.includes("market=from_token"))).toBe(true);
+    // (a side whose carried id the match rules cannot prove is searched again: its row holds the found recording)
+    const sent = writes.slice(0, 2).flatMap((w) => JSON.parse(w.body).uris as string[]);
+    expect(lists.get("pl1")!.uris).toEqual(sent);
+    expect(sent).toHaveLength(118);
+    // the playlist as it is in Spotify, every row with its slot and a ✓
+    const list = page.getByTestId("spotify-verified-list");
+    await list.locator("summary").click();
+    await expect(list.locator("li")).toHaveCount(118);
+    await expect(list.locator("li[data-mark=ok]")).toHaveCount(118);
+
+    // "Check playlist" on the linked playlist reads it and writes nothing; a row lost since is flagged
+    lists.get("pl1")!.uris.splice(104, 1);
+    hits.length = 0;
+    await page.keyboard.press("Escape");
+    await expect(sheet).toBeHidden();
+    await page.getByRole("button", { name: "Export" }).first().click();
+    await sheet.locator("#spotify-check").click();
+    await expect(page.getByTestId("spotify-verified-summary")).toHaveText("104 of 118 in Spotify, in order");
+    await expect(page.getByTestId("spotify-verified-lines")).toContainText("Missing: ");
+    expect(hits.filter((h) => h.method !== "GET" && /\/v1\/playlists\//.test(h.url))).toEqual([]);
+    // "Fix in Spotify" rewrites it in order
+    await page.locator("#spotify-verified-fix").click();
+    await expect(page.getByTestId("spotify-verified-summary")).toHaveText(
+      "118 of 118 in Spotify, in order ✓",
+      {
+        timeout: 30000,
+      },
+    );
+    expect(lists.get("pl1")!.uris).toHaveLength(118);
+  } finally {
+    spotifyWrites.dropPosts = new Set();
+  }
+  await ctx.close();
+});
 test("cortina play length: the Export sheet's stepper changes the M3U8 (VLC stop-time) and the setting persists in Settings → Playback", async ({
   browser,
   request,
