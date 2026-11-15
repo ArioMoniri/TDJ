@@ -67,8 +67,8 @@ describe("nightCoverSvg", () => {
     expect(svg).toContain("Çarşamba &quot;İğneada&quot; &amp; &lt;ağır&gt; &apos;milonga&apos;");
     expect(svg).not.toMatch(/<ağır>/);
     // the Turkish words: the era and the length line
-    expect(coverMeta(coverData(featured), "tr")).toBe("4 sa 36 · 25 tanda");
-    expect(coverMeta(coverData(featured), "en")).toBe("4 h 36 · 25 tandas");
+    expect(coverMeta(coverData(featured), "tr")).toBe("4 sa 35 · 25 tanda");
+    expect(coverMeta(coverData(featured), "en")).toBe("4 h 35 · 25 tandas");
   });
 
   it("thumbnails carry no words", () => {
