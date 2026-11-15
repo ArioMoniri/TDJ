@@ -2,6 +2,8 @@
 import { FileDown, FolderOpen, Link2, QrCode as QrIcon, Share2, Smartphone, Users } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { fileCheckLine } from "@/lib/exportCheckView";
+import { verifyFile } from "@/lib/fileVerify";
 import { haptic } from "@/lib/haptics";
 import { t as tx } from "@/lib/i18n";
 import { nightSub, nightTitle } from "@/lib/nightName";
@@ -168,7 +170,17 @@ export function ShareSheet({
           }
           label={tx("shareSheet.save_as_a_file")}
           sub={tx("shareSheet.tdjnight_open_it_in_t_dj")}
-          onClick={() => share && saveNightFile(share.night)}
+          onClick={() => {
+            if (!share) return;
+            // the file read back: the night's rows, in order, with their names and letters intact
+            const text = saveNightFile(share.night);
+            toast(
+              fileCheckLine(
+                tx("exportCheck.file_label", { label: "T-DJ" }),
+                verifyFile("tdjnight", text, playlist),
+              ),
+            );
+          }}
           disabled={!share}
           tip={tx("shareSheet.saves_the_night_as_a_tdjnight")}
           data-testid="share-save-file"

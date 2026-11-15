@@ -6,8 +6,9 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { downloadBlob } from "@/lib/download";
-import { type CheckView, checkView } from "@/lib/exportCheckView";
+import { type CheckView, checkView, fileCheckLine } from "@/lib/exportCheckView";
 import { withoutCortinas } from "@/lib/exportPaths";
+import { verifyFile } from "@/lib/fileVerify";
 import { haptic } from "@/lib/haptics";
 import { lazy, t as tx } from "@/lib/i18n";
 import type { Match, MatchItem } from "@/lib/match";
@@ -239,9 +240,17 @@ export function ExportSheet({
         }),
       });
       if (!r.ok) throw new Error(tx("exportSheet.export_failed", { status: r.status }));
-      downloadBlob(`${playlist.name.replace(/[^a-z0-9-]+/gi, "_")}.${m.ext}`, await r.text(), m.mime);
+      const text = await r.text();
+      downloadBlob(`${playlist.name.replace(/[^a-z0-9-]+/gi, "_")}.${m.ext}`, text, m.mime);
       haptic(6);
-      toast(tx("exportSheet.downloaded_2", { label: m.label, ext: m.ext }));
+      // the file read back as the DJ app will read it: count, order, names, letters, paths
+      const fc = verifyFile(f, text, includeCortinas ? playlist : withoutCortinas(playlist), {
+        includeCortinas,
+        folder: folderFor(f),
+      });
+      toast(
+        `${tx("exportSheet.downloaded_2", { label: m.label, ext: m.ext })} · ${fileCheckLine(tx("exportCheck.file_label", { label: m.label }), fc)}`,
+      );
       setJustDone(f);
       setTimeout(() => setJustDone((j) => (j === f ? null : j)), 1200);
       onClose();
@@ -833,14 +842,16 @@ export function ExportSheet({
     if (!playlist) return;
     const service = TRANSFER_SERVICES.find((t) => t.id === transfer) ?? TRANSFER_SERVICES[0]!;
     const rows = transferRows(playlist, includeCortinas).length;
-    downloadBlob(
-      `${playlist.name.replace(/[^a-z0-9-]+/gi, "_")}-${service.id}.csv`,
-      transferCsv(playlist, includeCortinas),
-      "text/csv",
-    );
+    const csv = transferCsv(playlist, includeCortinas);
+    downloadBlob(`${playlist.name.replace(/[^a-z0-9-]+/gi, "_")}-${service.id}.csv`, csv, "text/csv");
     window.open(service.importUrl, "_blank", "noreferrer");
     haptic(6);
-    toast(tx("exportSheet.downloaded_rows_for", { rows, label: service.label }));
+    const fc = verifyFile("transfer", csv, includeCortinas ? playlist : withoutCortinas(playlist), {
+      includeCortinas,
+    });
+    toast(
+      `${tx("exportSheet.downloaded_rows_for", { rows, label: service.label })} · ${fileCheckLine(tx("exportCheck.file_label", { label: service.label }), fc)}`,
+    );
   };
   const saveHook = () => {
     const v = hookDraft.trim();

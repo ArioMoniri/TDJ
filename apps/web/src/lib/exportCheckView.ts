@@ -1,4 +1,5 @@
 import type { VerifyResult } from "./exportVerify";
+import type { FileCheck } from "./fileVerify";
 import { plural, t } from "./i18n";
 import type { PlanRow } from "./spotifyPlan";
 
@@ -45,6 +46,28 @@ export function labelOf(r: NightRow): string {
   return t("exportCheck.in_tanda", { label, tanda: r.tanda });
 }
 const list = (xs: string[], n = 4) => `${xs.slice(0, n).join("; ")}${xs.length > n ? "…" : ""}`;
+
+/** One line for a file export read back (lib/fileVerify.ts): "Rekordbox file: 118 tracks, order checked ✓". */
+export function fileCheckLine(label: string, c: FileCheck): string {
+  if (c.allOk) return t("exportCheck.file_ok", { label, n: c.actual });
+  const problems: string[] = [];
+  if (c.unreadable) problems.push(t("exportCheck.file_unreadable"));
+  else {
+    if (c.missing.length)
+      problems.push(t("exportCheck.missing", { list: list(c.missing.map((m) => m.label ?? m.key)) }));
+    if (c.outOfOrder.length) problems.push(t("exportCheck.moved", { n: c.outOfOrder.length }));
+    if (c.extra.length) problems.push(t("exportCheck.extra", { n: c.extra.length }));
+    if (c.blank.length) problems.push(t("exportCheck.file_blank", { n: c.blank.length }));
+    if (c.noPath.length) problems.push(t("exportCheck.file_paths", { n: c.noPath.length }));
+    if (c.badEncoding) problems.push(t("exportCheck.file_encoding"));
+  }
+  return t("exportCheck.file_bad", {
+    label,
+    inPlace: c.inPlace,
+    expected: c.expected,
+    problems: problems.join(" · "),
+  });
+}
 
 export function checkView(
   target: string,
