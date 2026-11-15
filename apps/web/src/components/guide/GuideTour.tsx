@@ -71,7 +71,7 @@ export function GuideTour() {
       </p>
       <nav
         aria-label="Chapters"
-        className="guide-jump hide-scrollbar mt-3 flex gap-2 overflow-x-auto px-4 pb-1 sm:flex-wrap sm:overflow-visible"
+        className="guide-jump mt-3 flex flex-wrap gap-2 px-4 pb-1"
       >
         {GUIDE_CHAPTERS.map((c) => (
           <a
