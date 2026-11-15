@@ -4,7 +4,7 @@ import { heatOfSides, isPeakSlot, strictOrder } from "./order";
 import { nightFamilies } from "./repair";
 import { orderCtxOf, streamable } from "./strict";
 import { retimeTanda } from "./swap";
-import { isTandaEligible } from "./tanda";
+import { type FamilyOpts, isTandaEligible } from "./tanda";
 import type { ComposeOptions, DanceRhythm, Song, Tanda } from "./types";
 
 /**
@@ -596,9 +596,10 @@ export function mendBenchVariety(
  * years: one keeps its sides and the other moves outside them, or both split at a year (the early chair before it and
  * the summit after, or the other way round). The early chair stays inside 1935–39 (the round-4 window) and never takes
  * the summit's hooks (round 10 R10.5); the summit stays inside the darienzoPeak window (1937–40, from 1935 with a
- * fame-5 side) with two sides of fame ≥ 4. Each chair has at most one side nobody streams. Of the splits that add no
- * blocker and no −20/+20 sawtooth, the one the strict panel judges best is taken: the round-8 rule is a hard one, so
- * the night parts the two chairs even when every split costs the panel a should-fix item.
+ * fame-5 side) with two sides of fame ≥ 4. Neither chair crosses a line-up break or recording gap (round 13 R3), and
+ * each has at most one side nobody streams. Of the splits that add no blocker and no −20/+20 sawtooth, the one the
+ * strict panel judges best (its penalty) is taken. The round-8 rule is a hard one, so the
+ * night parts the two chairs even when every split costs the panel a should-fix item.
  */
 const DA_SUMMIT_HOOKS = ["hotel victoria", "el flete", "el internado"].map(normTitle);
 const DA_EARLY_WINDOW: [number, number] = [1935, 1939];
@@ -609,10 +610,23 @@ export function mendDarienzoFamily(
   o: ComposeOptions,
   cat: Catalog,
   judge: (ts: Tanda[]) => { blockers: number; penalty: number; violations?: Array<{ rule: string }> },
+  /** the family's period starts (compose.ts familyBreaks): a chair never crosses one (round 13 cohesion R3) */
+  breaks?: FamilyOpts["breaks"],
 ): VmMend {
   const tandas = tandas0.slice();
   const fallbacks: string[] = [];
   const DA = "juan-d-arienzo";
+  const bps = breaks?.(DA, null, false) ?? [];
+  const monthOf = (s: Song) => {
+    const m = /^(\d{4})(?:-(\d{2}))?/.exec(s.date ?? "");
+    return m ? Number(m[1]) * 12 + (m[2] ? Number(m[2]) - 1 : 6) : (s.year ?? 0) * 12 + 6;
+  };
+  const oneFamily = (xs: Song[]) => {
+    const ms = xs.map(monthOf);
+    const lo = Math.min(...ms),
+      hi = Math.max(...ms);
+    return !bps.some((b) => lo < b && b <= hi);
+  };
   const yr: [number, number] = o.yearRange ?? [1935, 1945];
   const fixed = (t: Tanda) => !!(t.pinned || t.locked || t.birthday);
   const instr = (t: Tanda) => t.orchestraId === DA && t.rhythm === "tango" && !t.vocal;
@@ -684,13 +698,13 @@ export function mendDarienzoFamily(
   ): Song[][] => {
     const n = t.songs.length;
     const free = (s: Song) => !!s.year && s.year >= lo && s.year <= hi && !avoid.has(normTitle(s.title));
-    const xs = pool.filter(free).slice(0, 12);
+    const xs = pool.filter(free).slice(0, 14);
     const extra = offPool(lo, hi).filter(free).slice(0, 2);
     const all = [...xs, ...extra];
     const out: Song[][] = [];
     const pick = (from: number, cur: Song[]) => {
       if (cur.length === n) {
-        if (keep(cur)) out.push(cur);
+        if (oneFamily(cur) && keep(cur)) out.push(cur);
         return;
       }
       for (let k = from; k < all.length; k++) {
@@ -703,7 +717,7 @@ export function mendDarienzoFamily(
     const e0 = t.energy;
     const worth = (ss: Song[]) =>
       ss.reduce((a, s) => a + fameOf(s), 0) -
-      Math.abs(meanE(ss) - e0) -
+      2 * Math.abs(meanE(ss) - e0) -
       ss.filter((s) => !streams(s)).length * 1.5;
     return out.sort((a, b) => worth(b) - worth(a)).slice(0, 16);
   };
@@ -788,10 +802,11 @@ export function mendDarienzoFamily(
     if (saws(trial) > saw0) continue;
     const after = judge(trial);
     if (after.blockers > before.blockers) continue;
-    if (best && after.penalty >= best.p - 1e-9) continue;
+    const cost = after.penalty;
+    if (best && cost >= best.p - 1e-9) continue;
     best = {
       ts: trial,
-      p: after.penalty,
+      p: cost,
       label: `darienzo: the early chair (tanda ${i + 1}) plays ${span(c.e).join("–")} and the summit (tanda ${j + 1}) ${span(c.s).join("–")}, never one family`,
     };
   }

@@ -7,6 +7,7 @@
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
   compose,
+  familyBreaks,
   mendDarienzoFamily,
   normTitle,
   retimeTanda,
@@ -87,7 +88,8 @@ describe("mendDarienzoFamily", () => {
       expect(overlap(draft[i]!, draft[j]!)).toBe(true);
       const judge = (ts: Tanda[]) => strictChecks({ tandas: ts, closing: p.closing, options: p.options });
       const before = judge(draft);
-      const m = mendDarienzoFamily(draft, p.options, deps.catalog, judge);
+      const breaks = familyBreaks(deps.catalog);
+      const m = mendDarienzoFamily(draft, p.options, deps.catalog, judge, breaks);
       const e = m.tandas[i]!,
         s = m.tandas[j]!;
       expect(overlap(e, s), `seed ${seed}: ${e.yearRange} / ${s.yearRange}`).toBe(false);
@@ -97,6 +99,20 @@ describe("mendDarienzoFamily", () => {
       expect(e.yearRange![0]).toBeGreaterThanOrEqual(1935);
       expect(e.yearRange![1]).toBeLessThanOrEqual(1939);
       for (const x of e.songs) expect(HOOKS.has(normTitle(x.title)), x.title).toBe(false);
+      // neither chair crosses a line-up break or recording gap (round 13 R3)
+      const month = (x: Song) => {
+        const d = /^(\d{4})(?:-(\d{2}))?/.exec(x.date ?? "");
+        return d ? Number(d[1]) * 12 + (d[2] ? Number(d[2]) - 1 : 6) : x.year! * 12 + 6;
+      };
+      for (const t of [e, s]) {
+        const ms = t.songs.map(month);
+        const lo = Math.min(...ms),
+          hi = Math.max(...ms);
+        expect(
+          breaks(DA, null, false).some((b) => lo < b && b <= hi),
+          `${t.yearRange}`,
+        ).toBe(false);
+      }
       // the summit holds the darienzoPeak window (1937–40, or from 1935 with a fame-5 side)
       expect(s.yearRange![1]).toBeLessThanOrEqual(1940);
       // no title twice in the night, at most one side without a checked stream per chair
@@ -126,7 +142,7 @@ describe("mendDarienzoFamily", () => {
   it("leaves a night alone when the two chairs do not overlap", () => {
     const p = compose({ hours: 4, seed: 4 }, deps);
     const judge = (ts: Tanda[]) => strictChecks({ tandas: ts, closing: p.closing, options: p.options });
-    const m = mendDarienzoFamily(p.tandas, p.options, deps.catalog, judge);
+    const m = mendDarienzoFamily(p.tandas, p.options, deps.catalog, judge, familyBreaks(deps.catalog));
     expect(m.fallbacks).toEqual([]);
     m.tandas.forEach((t, k) => expect(t).toBe(p.tandas[k]));
   });
