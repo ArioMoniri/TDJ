@@ -99,6 +99,8 @@ export function mendVmRepeats(tandas0: Tanda[], o: ComposeOptions, cat: Catalog)
         },
         strictOrder(sides, false),
       );
+      // (the night keeps its length: the length fit has already run)
+      if (Math.abs(nt.durationSec - t.durationSec) > 90) continue;
       best = { t: nt, v };
     }
     return best?.t ?? null;
@@ -268,6 +270,7 @@ export function mendInstrHours(
           },
           strictOrder(sides, false),
         );
+        if (Math.abs(nt.durationSec - t.durationSec) > 90) continue;
         const ts = tandas.map((x, k) => (k === i ? nt : x));
         const r1 = judge(ts);
         // (the cues are re-picked after the mend: a cue item the new tanda brings is the re-pick's, not the mend's)
