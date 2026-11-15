@@ -12,6 +12,7 @@ import { type NavItem, PHONE_MORE, PHONE_TABS, PILL_ITEMS } from "./navItems";
 import { useToolbar } from "./PageHeader";
 import { Sheet } from "./Sheet";
 import { Sidebar } from "./Sidebar";
+import { useTip } from "./ui/Tip";
 
 const SEARCH_ID: Record<string, string> = { "/library": "library-search", "/database": "db-search" };
 
@@ -39,6 +40,8 @@ function MobileTab({
   /** the More tab: a button that opens the sheet of the other pages */
   onOpen?: () => void;
 }) {
+  // the name on hover and long-press, the app's help tag (a title attribute is not used anywhere, wave 2)
+  const tip = useTip<HTMLElement>(it.label);
   const cls = `relative flex min-h-[52px] flex-col items-center justify-center gap-0.5 rounded-full ${
     hidden
       ? "w-0 min-w-0 overflow-hidden px-0 opacity-0"
@@ -84,7 +87,7 @@ function MobileTab({
         type="button"
         aria-haspopup="dialog"
         data-testid="tab-more"
-        title={it.label}
+        {...(tip.props as object)}
         aria-hidden={hidden || undefined}
         tabIndex={hidden ? -1 : undefined}
         onClick={() => {
@@ -95,13 +98,14 @@ function MobileTab({
         style={style}
       >
         {inner}
+        {tip.tag}
       </button>
     );
   return (
     <Link
       href={it.href}
       aria-current={on ? "page" : undefined}
-      title={it.label}
+      {...(tip.props as object)}
       aria-hidden={hidden || undefined}
       tabIndex={hidden ? -1 : undefined}
       onClick={() => !on && haptic(4)}
@@ -109,10 +113,41 @@ function MobileTab({
       style={style}
     >
       {inner}
+      {tip.tag}
     </Link>
   );
 }
 const MORE: NavItem = { href: "#more", label: "More", icon: Ellipsis };
+
+/** one link of the sm–lg pill: its name, or its icon with the name on hover and long-press */
+function PillLink({ it, on, icon, path }: { it: NavItem; on: boolean; icon: boolean; path: string }) {
+  const tip = useTip<HTMLElement>(it.label);
+  return (
+    <Link
+      href={it.href}
+      aria-current={on ? "page" : undefined}
+      aria-label={icon ? it.label : undefined}
+      {...(tip.props as object)}
+      onClick={() => !on && haptic(4)}
+      className={`text-subhead relative isolate inline-flex min-h-11 items-center rounded-full ${
+        icon ? "min-w-11 justify-center px-2.5" : "px-3"
+      } ${on ? "font-semibold text-[var(--label)]" : "text-[var(--label-2)]"}`}
+      style={{ transition: "color var(--dur-xs) var(--ease-settle) 60ms" }}
+    >
+      {on && (
+        <motion.span
+          layoutId="nav-pill"
+          layoutDependency={path}
+          transition={spring.thumb}
+          className="absolute inset-y-1 inset-x-0 -z-10 rounded-full bg-[var(--fill-3)]"
+          aria-hidden
+        />
+      )}
+      {icon ? <it.icon size={20} strokeWidth={on ? 2.25 : 1.75} aria-hidden /> : it.label}
+      {tip.tag}
+    </Link>
+  );
+}
 
 export function Nav() {
   const path = usePathname();
@@ -167,31 +202,7 @@ export function Nav() {
             <LayoutGroup id="desktop-nav">
               {PILL_ITEMS.map((it) => {
                 const on = path === it.href;
-                return (
-                  <Link
-                    key={it.href}
-                    href={it.href}
-                    aria-current={on ? "page" : undefined}
-                    aria-label={fit >= 3 ? it.label : undefined}
-                    title={it.label}
-                    onClick={() => !on && haptic(4)}
-                    className={`text-subhead relative isolate inline-flex min-h-11 items-center rounded-full ${
-                      fit >= 3 ? "min-w-11 justify-center px-2.5" : "px-3"
-                    } ${on ? "font-semibold text-[var(--label)]" : "text-[var(--label-2)]"}`}
-                    style={{ transition: "color var(--dur-xs) var(--ease-settle) 60ms" }}
-                  >
-                    {on && (
-                      <motion.span
-                        layoutId="nav-pill"
-                        layoutDependency={path}
-                        transition={spring.thumb}
-                        className="absolute inset-y-1 inset-x-0 -z-10 rounded-full bg-[var(--fill-3)]"
-                        aria-hidden
-                      />
-                    )}
-                    {fit >= 3 ? <it.icon size={20} strokeWidth={on ? 2.25 : 1.75} aria-hidden /> : it.label}
-                  </Link>
-                );
+                return <PillLink key={it.href} it={it} on={on} icon={fit >= 3} path={path} />;
               })}
             </LayoutGroup>
           </nav>
