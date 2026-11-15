@@ -159,13 +159,15 @@ describe("the era label follows the night, never Golden Age by default (owner: d
     expect(d.songYears).toEqual([1941, 1975]);
     // the hash reads what it always read: an existing night's cover key is the one it had
     expect(nightHash(d)).toBe(nightHash({ ...d, eras: ["golden"], yearRange: null, songYears: [] }));
+    // pinned to the shipped featured night: they move only when its songs do (round 25: Canaro valses, Gómez Llámale H)
     const f = featured();
-    expect(coverData(f).seed).toBe("496af53e");
-    expect(nightHash(f)).toBe("692a481c");
-    expect(nightHash({ ...f, options: { ...f.options, eras: ["nuevo", "golden"] } })).toBe("87b3cd4e");
+    expect(coverData(f).seed).toBe("a20b7433");
+    expect(nightHash(f)).toBe("949c32ee");
+    expect(nightHash({ ...f, options: { ...f.options, eras: ["nuevo", "golden"] } })).toBe("cb63d9ee");
   });
 
   it("the featured night keeps the DJ's title, and its era comes from the same helper", () => {
+    // pinned to the shipped featured night: they move only when its songs do (round 25: Canaro valses, Gómez Llámale H)
     const f = featured();
     expect(nightTitle(f)).toBe("Golden 1935–45");
     expect(coverTitle(coverData(f), "en")).toBe("Golden 1935–45");
