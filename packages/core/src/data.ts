@@ -52,6 +52,8 @@ export interface Loaded {
   trackEnergy: Record<string, number>;
   /** round 13: the user's orchestra heatmap (data/index/coverage.json, parsed from data/sources/All_orchestras.xls) */
   heatmap: Heatmap;
+  /** the heatmap's rows as shipped (round 22: the DJ's grade edits are applied over them, heatmapWith) */
+  coverage: CoverageRow[];
   raw: {
     songs: Song[];
     profiles: OrchestraProfile[];
@@ -154,7 +156,8 @@ export function buildLoaded(f: DataFiles, overrides?: UserOverrides): Loaded {
   const audio = (f.audio ?? {}) as Record<string, AudioFeatures | null>;
   const deezer = (f.deezer ?? {}) as DeezerCache;
   const learned = f.learned as LearnedPreferences | undefined;
-  const heatmap = new Heatmap((f.coverage ?? []) as CoverageRow[]);
+  const coverage = (f.coverage ?? []) as CoverageRow[];
+  const heatmap = new Heatmap(coverage);
   const corpus = (f.referenceSets ?? {}) as ReferenceCorpus;
   return {
     catalog: new Catalog(songs, profiles, cache, corpus, overrides, trackEnergy, {
@@ -170,6 +173,7 @@ export function buildLoaded(f: DataFiles, overrides?: UserOverrides): Loaded {
     corpus,
     trackEnergy,
     heatmap,
+    coverage,
     raw: { songs, profiles, cache, resolved, audio, deezer, learned },
   };
 }
