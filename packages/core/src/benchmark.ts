@@ -4,6 +4,7 @@ import { withPinsLocked } from "./coherence";
 import { type ComposeDeps, computeStats, swapTanda } from "./compose";
 import { cortinaTempo, familyOf } from "./cortinas";
 import { isDanceableSong, normTitle } from "./energy";
+import { withCortinaStarts } from "./hooks";
 import { DEFAULT_HEATMAP, goldenClassOf, isColour, isGoldenNight, staticProfile } from "./knowledge";
 import { bestEdit, recue } from "./repair";
 import { eraGrade, hardFailures, scorePlaylist } from "./score";
@@ -1421,6 +1422,9 @@ export function improveNight(p0: Playlist, deps: ComposeDeps, opts: ImproveOptio
     }
     if (!moved) break;
   }
+  // 2026-11: a cue drawn from the pool starts at its chorus with the night's length (or at 0, the setting off)
+  if (touched)
+    cur = withCortinaStarts(cur, cur.options.cortinaHookStart !== false, cur.options.cortinaLengthSec);
   const playlist = touched && cur.booth ? attachBooth(cur) : touched ? cur : original;
   return { playlist, changes, before, after: snapshot(playlist) };
 }

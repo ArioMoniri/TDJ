@@ -44,7 +44,11 @@ describe("cortina stop time", () => {
     const lines = text.split("\n");
     const stops = lines.filter((l) => l.startsWith("#EXTVLCOPT:stop-time="));
     expect(stops).toHaveLength(n);
-    for (const s of stops) expect(s).toBe("#EXTVLCOPT:stop-time=60");
+    // 2026-11: the play length (60 s) runs from the cortina's start (its chorus)
+    const starts60 = flatten(p, { cortinaStopSec: 60 })
+      .filter((r) => r.kind === "cortina")
+      .map((r) => r.trimInSec ?? 0);
+    expect(stops).toEqual(starts60.map((s) => `#EXTVLCOPT:stop-time=${s + 60}`));
     // every VLC option belongs to the cortina entry above it (the #TDJ comment line sits between)
     lines.forEach((l, i) => {
       if (!l.startsWith("#EXTVLCOPT")) return;
@@ -53,7 +57,12 @@ describe("cortina stop time", () => {
       expect(lines[j]).toMatch(/\[CORTINA\]$/);
     });
     // default: each cortina's own length (the compose option, trimmed by the engine to fit the night)
-    const own = p.tandas.filter((t) => t.cortina).map((t) => cortinaStopFor({}, t.cortina!.lengthSec));
+    const starts0 = flatten(p)
+      .filter((r) => r.kind === "cortina")
+      .map((r) => r.trimInSec ?? 0);
+    const own = p.tandas
+      .filter((t) => t.cortina)
+      .map((t, i) => cortinaStopFor({}, t.cortina!.lengthSec) + starts0[i]!);
     expect(
       toM3U8(p)
         .split("\n")
@@ -70,10 +79,14 @@ describe("cortina stop time", () => {
     const tracks = text.match(/<track>[\s\S]*?<\/track>/g) ?? [];
     const cort = tracks.filter((t) => t.includes("<annotation>cortina</annotation>"));
     expect(cort).toHaveLength(cortinas(p));
-    for (const t of cort) {
+    const starts = flatten(p, { cortinaStopSec: 50 })
+      .filter((r) => r.kind === "cortina")
+      .map((r) => r.trimInSec ?? 0);
+    cort.forEach((t, i) => {
+      // the duration is what plays (50 s); VLC starts at the chorus and stops 50 s later
       expect(t).toContain("<duration>50000</duration>");
-      expect(t).toContain("<vlc:option>stop-time=50</vlc:option>");
-    }
+      expect(t).toContain(`<vlc:option>stop-time=${starts[i]! + 50}</vlc:option>`);
+    });
     for (const t of tracks.filter((t) => !t.includes("<annotation>cortina</annotation>")))
       expect(t).not.toContain("vlc:option");
   });
@@ -81,16 +94,29 @@ describe("cortina stop time", () => {
   it("Rekordbox XML adds a hot cue at the stop second (and one at the fade start) on cortina tracks only", () => {
     const text = toRekordboxXML(p, { cortinaStopSec: 40 });
     const marks = text.match(/<POSITION_MARK [^>]*\/>/g) ?? [];
-    expect(marks).toHaveLength(cortinas(p) * 2);
-    for (const m of marks.filter((m) => m.includes("Cortina out"))) {
-      expect(m).toContain('Start="40.000"');
-      expect(m).toContain('Type="0"');
-      expect(m).toContain('Num="0"');
-    }
-    for (const m of marks.filter((m) => m.includes("Cortina fade"))) {
-      expect(m).toContain('Start="36.000"');
-      expect(m).toContain('Num="1"');
-    }
+    const starts = flatten(p, { cortinaStopSec: 40 })
+      .filter((r) => r.kind === "cortina")
+      .map((r) => r.trimInSec ?? 0);
+    // 2026-11: plus a memory cue at the start of each cortina that starts inside the song (its chorus)
+    expect(marks).toHaveLength(cortinas(p) * 2 + starts.filter((s) => s > 0).length);
+    marks
+      .filter((m) => m.includes("Cortina out"))
+      .forEach((m, i) => {
+        expect(m).toContain(`Start="${(starts[i]! + 40).toFixed(3)}"`);
+        expect(m).toContain('Type="0"');
+        expect(m).toContain('Num="0"');
+      });
+    marks
+      .filter((m) => m.includes("Cortina fade"))
+      .forEach((m, i) => {
+        expect(m).toContain(`Start="${(starts[i]! + 36).toFixed(3)}"`);
+        expect(m).toContain('Num="1"');
+      });
+    const ins = marks.filter((m) => m.includes("Cortina in"));
+    expect(ins.map((m) => m.match(/Start="([\d.]+)"/)![1])).toEqual(
+      starts.filter((s) => s > 0).map((s) => s.toFixed(3)),
+    );
+    for (const m of ins) expect(m).toContain('Num="-1"');
     // every mark sits inside a cortina TRACK element
     for (const block of text.match(/<TRACK [^>]*>\n\s*<POSITION_MARK[\s\S]*?<\/TRACK>/g) ?? [])
       expect(block).toMatch(/Genre="Cortina"/);

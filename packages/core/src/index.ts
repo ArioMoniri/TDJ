@@ -14,6 +14,7 @@ export * from "./energy";
 export * from "./enrich";
 export * from "./era";
 export * from "./export/index";
+export * from "./hooks";
 export * from "./knowledge";
 export * from "./learn";
 export * from "./learnedRules";

@@ -209,6 +209,8 @@ export interface Cortina {
   tags?: string[];
   /** resolved streaming/preview track (data/cache/resolve/cortinas.json) */
   resolved?: import("./audio/index").ResolvedTrack | null;
+  /** 2026-11: where the cortina is recognisable (data/cache/cortina_hooks.json): the chorus, else the first vocal line */
+  hook?: import("./hooks").CortinaHook | null;
 }
 
 export type Phase = "warmup" | "build" | "peak" | "cooldown" | "close";
@@ -385,6 +387,11 @@ export interface ComposeOptions {
    */
   spotifyCortinas?: boolean;
   cortinaLengthSec: number;
+  /**
+   * 2026-11 (Settings → Cortinas → "Start cortinas at the chorus (recognisable)", on unless false): each cortina's
+   * `startSec` is its hook (data/cache/cortina_hooks.json), validated so start + length fits the recording; false = 0.
+   */
+  cortinaHookStart?: boolean;
   closeWithCumparsita: boolean;
   /** round 21: the tanda coherence rules (voice, vocal style, tempo and level bands, the big four), all on by default */
   tandaRules?: TandaRules;

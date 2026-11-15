@@ -6,6 +6,7 @@ import { applyContextToOptions, BUILTIN_CONTEXT, resolveContext } from "./contex
 import { cortinaPool, pickCortina, planCortinas, spotifyCueFallbacks } from "./cortinas";
 import { closingFor, cumparsitaPlacement, openingCumparsita } from "./cumparsita";
 import { isDanceableSong, normTitle } from "./energy";
+import { withCortinaStarts } from "./hooks";
 import { familyBand, goldenClassOf, isColour, isGoldenNight } from "./knowledge";
 import { mergeLearned } from "./learn";
 import { isPeakSlot, meanFameOf } from "./order";
@@ -333,6 +334,13 @@ export function compose(
   deps: ComposeDeps,
   extras: ComposeExtras = {},
 ): Playlist {
+  // 2026-11: every cortina starts at its chorus (Settings → Cortinas, on unless false) or at 0
+  const p = composeDraws(partial, deps, extras);
+  const q = withCortinaStarts(p, p.options.cortinaHookStart !== false, p.options.cortinaLengthSec);
+  return q === p || !q.booth ? q : attachBooth(q);
+}
+
+function composeDraws(partial: Partial<ComposeOptions>, deps: ComposeDeps, extras: ComposeExtras): Playlist {
   const seed = partial.seed ?? Math.floor(Math.random() * 1e9);
   const first = composeOnce({ ...partial, seed }, deps, extras, seed);
   if (!isGoldenNight(first.options) || first.options.hours >= 5 || extras.locked?.some((t) => t.locked))

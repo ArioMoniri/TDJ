@@ -172,11 +172,14 @@ describe("cortinas", () => {
       expect(c.stopSec).toBeDefined();
       expect(c.trimInSec).toBeDefined();
       expect(c.fadeOutSec).toBe(BOOTH_DEFAULTS.cortinaFadeOutSec);
-      expect(c.fadeInSec).toBe(BOOTH_DEFAULTS.cortinaFadeInSec);
+      // 2026-11: a cortina that starts at its chorus comes in with a short fade (0.5–1 s)
+      if (c.trimInSec! > 0) expect(c.fadeInSec! >= 0.5 && c.fadeInSec! <= 1).toBe(true);
+      else expect(c.fadeInSec).toBe(BOOTH_DEFAULTS.cortinaFadeInSec);
       expect(c.lengthSec).toBe(c.stopSec! - c.trimInSec!);
       expect(c.trimInSec! + c.lengthSec).toBe(c.stopSec);
       expect(c.stopSec! - c.fadeOutSec!).toBeGreaterThanOrEqual(c.trimInSec! + 1);
-      expect(c.stopSec).toBe(cortinaStopFor({}, p.tandas[c.tanda - 1]!.cortina!.lengthSec));
+      // 2026-11: the cortina length is the play length, from the cortina's start (its chorus)
+      expect(c.lengthSec).toBe(cortinaStopFor({}, p.tandas[c.tanda - 1]!.cortina!.lengthSec));
     }
   });
 
@@ -185,9 +188,9 @@ describe("cortinas", () => {
     expect(b.settings.cortinaFadeOutSec).toBe(BOOTH_RANGES.cortinaFadeOutSec.max);
     expect(b.settings.cortinaFadeInSec).toBe(BOOTH_RANGES.cortinaFadeInSec.min);
     for (const c of b.items.filter((i) => i.kind === "cortina")) {
-      expect(c.stopSec).toBe(60);
+      expect(c.stopSec).toBe(c.trimInSec! + 60);
       expect(c.fadeOutSec).toBe(6);
-      expect(c.lengthSec + c.trimInSec!).toBe(60);
+      expect(c.lengthSec).toBe(60);
     }
     // a cue-in deep into the clip is dropped rather than leaving less than fade + 1 s of cortina
     const q: Playlist = {
@@ -539,7 +542,10 @@ describe("exports write the plan's seconds", () => {
     cueFade.forEach((m, i) =>
       expect(m).toContain(`START="${((cs[i]!.stopSec! - cs[i]!.fadeOutSec!) * 1000).toFixed(3)}"`),
     );
-    expect(nml.match(/<CUE_V2 /g)?.length).toBe(cs.length * 2);
+    // 2026-11: and a load marker where a cortina starts inside the song (its chorus)
+    const hooked = cs.filter((c) => (c.trimInSec ?? 0) > 0);
+    expect(nml.match(/<CUE_V2 NAME="Cortina in" [^>]*TYPE="3"[^>]*>/g)?.length ?? 0).toBe(hooked.length);
+    expect(nml.match(/<CUE_V2 /g)?.length).toBe(cs.length * 2 + hooked.length);
   });
 
   it("CSV and DJ CSV carry start_sec, stop_sec, gap_sec, fade_out_sec, gain_db; JSON carries booth", () => {
