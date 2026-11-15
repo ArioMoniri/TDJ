@@ -25,8 +25,12 @@ async function openFeatured(page: Page) {
 async function openSwap(page: Page) {
   const card = page.locator("#result [data-tanda]").first();
   const row = card.locator("li[data-song]").nth(1);
-  await row.locator("button[aria-haspopup]").first().click();
-  await page.locator('[role="menuitem"]').first().click();
+  // (right after a sheet closes, its focus hand-back can close a menu that just opened: open it until it stays)
+  await expect(page.getByTestId("swap-sheet")).toHaveCount(0);
+  await expect(async () => {
+    await row.locator('button[aria-haspopup="menu"]').first().click();
+    await page.locator('[role="menuitem"]').first().click({ timeout: 2000 });
+  }).toPass({ timeout: 20000 });
   const sheet = page.getByTestId("swap-sheet");
   await expect(sheet).toBeVisible();
   return { sheet, card };

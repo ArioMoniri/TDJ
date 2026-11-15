@@ -18,6 +18,7 @@ import * as AiReview from "@/app/api/ai/review/route";
 import * as AiSwap from "@/app/api/ai/swap/route";
 import * as Benchmark from "@/app/api/benchmark/route";
 import * as Build from "@/app/api/build/route";
+import * as CheckEdit from "@/app/api/check-edit/route";
 import * as Compose from "@/app/api/compose/route";
 import * as Export from "@/app/api/export/route";
 import * as Feedback from "@/app/api/feedback/route";
@@ -279,6 +280,18 @@ describe("engine routes: local result equals the server's", () => {
     await same(SwapTrack.POST, "/api/swap-track", {
       body: { playlist: night, tandaIndex: 0, trackIndex: 0, songId: tandas[3]!.songs[0]!.id, force: true },
     });
+  });
+  it("the rule check before an edit: violations with facts, and suggestions", async () => {
+    const tandas = night.tandas as Array<{ songs: Array<{ id: string }> }>;
+    // another tanda's side in tanda 1's first chair
+    const after = {
+      ...night,
+      tandas: tandas.map((t, i) =>
+        i === 0 ? { ...t, songs: t.songs.map((s, k) => (k === 0 ? tandas[3]!.songs[0]! : s)) } : t,
+      ),
+    };
+    await same(CheckEdit.POST, "/api/check-edit", { body: { before: night, after } });
+    await same(CheckEdit.POST, "/api/check-edit", { body: {} });
   });
   it("meta (only where the database lives differs: the device)", async () => {
     const server = await read(await Meta.GET(req("/api/meta")));
