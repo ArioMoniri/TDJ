@@ -25,13 +25,18 @@ export interface NightShare {
   linkError: string | null;
 }
 
+/** a web origin others can open: inside the apps the page lives at tauri://localhost, which nobody else can reach */
+function webOrigin(): string | null {
+  return /^https?:$/.test(location.protocol) ? location.origin : null;
+}
+
 export async function shareNight(p: Playlist): Promise<NightShare> {
   const night = exportNight(p);
   try {
     const payload = await encodeNightPayload(night);
     return {
       night,
-      link: nightLink(location.origin, payload),
+      link: webOrigin() ? nightLink(webOrigin() as string, payload) : null,
       appLink: appNightLink(payload),
       linkError: null,
     };
@@ -53,7 +58,8 @@ export async function shortNightLink(n: NightFile): Promise<string | null> {
   }).catch(() => null);
   if (!r?.ok) return null;
   const { id } = (await r.json()) as { id?: string };
-  return id ? `${location.origin}/night?s=${id}` : null;
+  const origin = webOrigin();
+  return id && origin ? `${origin}/night?s=${id}` : null;
 }
 
 export async function copyText(text: string): Promise<boolean> {
