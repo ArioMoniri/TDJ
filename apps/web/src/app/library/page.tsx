@@ -4,12 +4,13 @@ import dynamic from "next/dynamic";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import { FeaturedCard } from "@/components/FeaturedCard";
-import { Group, RhythmTile, Row } from "@/components/Form";
+import { Group, Row } from "@/components/Form";
 import { I } from "@/components/Icons";
 import { SEARCH_FOCUS_EVENT } from "@/components/Nav";
 import { PageHeader } from "@/components/PageHeader";
 import { SearchField } from "@/components/SearchField";
 import { Sheet } from "@/components/Sheet";
+import { Artwork } from "@/components/ui/Artwork";
 import { haptic } from "@/lib/haptics";
 import { fmtNumber, t as tx } from "@/lib/i18n";
 import { fade, reduced as reducedV, rise, t } from "@/lib/motion";
@@ -189,7 +190,7 @@ export default function Library() {
                       data-leading="art"
                     >
                       <PlayCell song={s} />
-                      <RhythmTile rhythm={s.rhythm} />
+                      <Artwork orchestra={s.orchestra} orchestraId={s.orchestraId} song={s} size="s" />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate">{s.title}</span>
                         <span className="text-footnote block truncate text-[var(--label-2)]">

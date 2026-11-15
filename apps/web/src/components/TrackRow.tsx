@@ -199,6 +199,7 @@ export const TrackRow = memo(function TrackRow({
               src={data.artwork?.value as string | undefined}
               orchestra={song.orchestra}
               orchestraId={song.orchestraId}
+              song={song}
               size="s"
             />
             <EraBadge song={eff} compact overlay />

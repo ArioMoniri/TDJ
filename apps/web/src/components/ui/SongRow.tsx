@@ -95,6 +95,7 @@ export const SongRow = memo(function SongRow({
         src={data.artwork?.value as string | undefined}
         orchestra={song.orchestra}
         orchestraId={song.orchestraId}
+        song={song}
       />
       <span className="min-w-0 flex-1">
         <span className="block truncate">{song.title}</span>

@@ -293,6 +293,7 @@ export function SongsTab() {
                     src={data.artwork?.value as string | undefined}
                     orchestra={s.orchestra}
                     orchestraId={s.orchestraId}
+                    song={s}
                   />
                   <span className="min-w-0 flex-1">
                     <span className="text-headline block truncate">{s.title}</span>
