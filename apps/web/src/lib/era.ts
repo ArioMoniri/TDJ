@@ -72,8 +72,18 @@ export type EraClass = EraMark;
 
 export const ERA_CLASSES: ReadonlyArray<{ cls: EraClass; label: string; bars: number; explain: string }> = [
   // the words are the app's one era vocabulary (core ERA_WORDS, wave 2); the bars are the Booth's glyph
-  { cls: "best", label: ERA_WORDS.best.label, bars: 4, explain: "The orchestra's best years in your heatmap." },
-  { cls: "good", label: ERA_WORDS.good.label, bars: 3, explain: "Good years: dependable sides for the floor." },
+  {
+    cls: "best",
+    label: ERA_WORDS.best.label,
+    bars: 4,
+    explain: "The orchestra's best years in your heatmap.",
+  },
+  {
+    cls: "good",
+    label: ERA_WORDS.good.label,
+    bars: 3,
+    explain: "Good years: dependable sides for the floor.",
+  },
   {
     cls: "weak",
     label: ERA_WORDS.weak.label,
