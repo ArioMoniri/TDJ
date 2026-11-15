@@ -57,6 +57,7 @@ import type {
   Song,
   Tanda,
 } from "./types";
+import { mendVmRepeats } from "./vmRepeat";
 
 export const DEFAULT_OPTIONS: ComposeOptions = {
   hours: 4,
@@ -2235,6 +2236,12 @@ function composeOnce(
     const r = strictRepair(draft, deps, { fams: byRhythm });
     tandas.splice(0, tandas.length, ...r.playlist.tandas);
     closing = r.playlist.closing;
+  }
+  // round 21c — never one orchestra's vals or milonga twice, never the gap broken for it (vmRepeat.ts, the ladder)
+  if (!lockedByIndex.size && o.hours < 5) {
+    const m = mendVmRepeats(tandas, o, cat);
+    tandas.splice(0, tandas.length, ...m.tandas);
+    fallbacks.push(...m.fallbacks);
   }
   // La Cumparsita: closing versions only (corpus/profile years), preferred orchestras, varied by seed, never the última's orchestra
   // round 21 — the big four: two big-four tandas back to back (or the same one too soon) trade places with a tanda of

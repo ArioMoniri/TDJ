@@ -29,3 +29,4 @@ export * from "./swap";
 export * from "./tanda";
 export * from "./transitions";
 export * from "./types";
+export * from "./vmRepeat";

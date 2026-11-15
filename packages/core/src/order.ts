@@ -97,6 +97,8 @@ function orderWithCost(songs0: Song[], peak: boolean, ctx: OrderCtx = {}): { son
       if (!(last.role === "closer" || hotEnough || cutter(last) || relax)) cost += 20;
       if (hasKnown && fame(last) === 0) cost += 20;
       // the one slowest side never closes (a vals / milonga not even as a corpus closer), unless it cuts a release cliff
+      // (round 21c: in a tango tanda a corpus closer — the DJs' evidence — closes even as the slowest side; a vals or
+      // milonga still never ends on its lowest side, corpus closer or not — the round-10 R10.5 invariant)
       if (uniqueMin(last) && (vm || last.role !== "closer") && !cutter(last)) cost += 20;
       // (round 17: a release cliff into the next tanda weighs as the cliff into this one, when a top-fame side cuts it)
       if (relCliff(last) && songs.some(cutter)) cost += 12;
@@ -245,7 +247,9 @@ export function orderVerdictOf(songs0: Song[], ctx: OrderCtx = {}): string[] {
   const lastS = ss[ss.length - 1]!;
   const mean = ss.reduce((a, s) => a + e(s), 0) / ss.length;
   const singleBest = fame(lastS) === maxF && bestAt.length === 1;
-  if (e(lastS) < mean - 8 - 1e-9 && !singleBest)
+  // (round 21c: a tango tanda's corpus closer is the DJs' evidence and may close below the tanda's mean)
+  const corpusCloser = lastS.role === "closer" && lastS.rhythm === "tango";
+  if (e(lastS) < mean - 8 - 1e-9 && !singleBest && !corpusCloser)
     why.push(`fades out on ${lastS.title} (e${e(lastS)}, the tanda's mean ${Math.round(mean)})`);
   if (fame(lastS) < maxF - 1) why.push(`ends on ${lastS.title} (fame ${fame(lastS)}, top ${maxF})`);
   // round 19 (review O4): of two corpus openers the cooler one opens (Zorzal e62 before La Mulateada e70)
@@ -266,7 +270,8 @@ export function orderVerdictOf(songs0: Song[], ctx: OrderCtx = {}): string[] {
   // itself (a fame within 1 of the top, no corpus opener) — D'Agostino / Vargas ending on Adiós, Arrabal e56 after
   // El Yacaré e62 (not in the round-17 boundary fixer's release cut: there the closer is chosen to cut the step into the
   // next tanda)
-  if (!ctx.releaseCut) {
+  // (round 21c: a corpus closer — real DJs close the tanda on it — is evidence; this fade reading is ours: it yields)
+  if (!ctx.releaseCut && !corpusCloser) {
     const hot = ss.slice(0, -1).reduce((a, b) => (e(b) > e(a) ? b : a));
     if (
       e(lastS) < e(hot) - 4 &&

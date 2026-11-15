@@ -28,7 +28,9 @@ import {
   learnFromEdit,
   type MatchCandidate,
   matchProblem,
+  mendVmRepeats,
   mergeEnrichment,
+  orderVerdictOf,
   type Playlist,
   pinTanda,
   planSlots,
@@ -37,11 +39,13 @@ import {
   scorePlaylist,
   sideProblem,
   strictChecks,
+  strictOrder,
   swapOptions,
   swapTrack,
   type Tanda,
   TONE_ENERGY_BAND,
   tandaProblems,
+  VM_WIDE,
 } from "../src/index";
 import { findRoot, loadCatalog } from "../src/load";
 
@@ -429,6 +433,80 @@ describe("round 21b — the round-21 preferences never override the round 9–17
             expect(p.tandas[j]!.orchestraId, `seed ${p.options.seed} ${i + 1}/${j + 1}`).not.toBe(
               p.tandas[i]!.orchestraId,
             );
+    }
+  });
+});
+
+describe("round 21c — the corpus closer closes; a night never repeats an orchestra's vals or milonga", () => {
+  it("a corpus closer closes its tanda even when it is the slowest side (evidence beats the fade heuristic)", () => {
+    const mk = (id: string, title: string, energy: number, role?: Song["role"]): Song =>
+      ({ id, title, energy, fame: 3, role, rhythm: "tango", orchestraId: "miguel-calo", year: 1942 }) as Song;
+    const songs = [
+      mk("a", "Marión", 55, "opener"),
+      mk("b", "Trenzas", 53, "closer"),
+      mk("c", "Cuando", 60),
+      mk("d", "Tabaco", 57),
+    ];
+    expect(strictOrder(songs, false).at(-1)!.title).toBe("Trenzas");
+    expect(orderVerdictOf([songs[0]!, songs[3]!, songs[2]!, songs[1]!])).toEqual([]);
+    // without corpus evidence the fade rule stands
+    const plain = songs.map((x) => ({ ...x, role: undefined }));
+    expect(
+      orderVerdictOf([plain[0]!, plain[3]!, plain[2]!, plain[1]!]).some((x) => /ends \d+ below/.test(x)),
+    ).toBe(true);
+  });
+});
+
+describe("round 21c — one vals / milonga tanda per orchestra, the gap kept: the ladder", () => {
+  const repeated = (p: Playlist) => {
+    const vs = p.tandas.map((t, i) => (t.rhythm === "vals" ? i : -1)).filter((i) => i >= 0);
+    const ts = p.tandas.map((t) => ({ ...t }));
+    ts[vs[2]!] = {
+      ...ts[vs[0]!]!,
+      index: vs[2]!,
+      targetEnergy: ts[vs[2]!]!.targetEnergy,
+      cortina: ts[vs[2]!]!.cortina,
+    };
+    return { ts, at: vs[2]! };
+  };
+  const clean = (ts: Tanda[], gap: number) => {
+    const seen = new Set<string>();
+    for (const t of ts) {
+      if (t.rhythm === "tango") continue;
+      const k = `${t.orchestraId}|${t.rhythm}`;
+      expect(seen.has(k), k).toBe(false);
+      seen.add(k);
+    }
+    ts.forEach((t, i) =>
+      ts.forEach((x, j) => {
+        if (j > i && j - i < gap && x.rhythm !== "tango")
+          expect(x.orchestraId, `${i + 1}/${j + 1}`).not.toBe(t.orchestraId);
+      }),
+    );
+  };
+  it("1. a repeated vals takes a family not yet played inside the night's years", () => {
+    const p = nights[0]!;
+    const { ts, at } = repeated(p);
+    const r = mendVmRepeats(ts, p.options, deps.catalog);
+    expect(r.fallbacks[0]).toMatch(/a family not yet played/);
+    clean(r.tandas, p.options.orchestraRepeatGap);
+    for (const s of r.tandas[at]!.songs) expect(s.spotify?.uri).toBeTruthy();
+  });
+  it("2. when the night's years hold none, the chair's window widens to 1932–1950", () => {
+    const p = nights[0]!;
+    const { ts, at } = repeated(p);
+    const r = mendVmRepeats(ts, { ...p.options, yearRange: [1939, 1939] }, deps.catalog);
+    expect(r.fallbacks[0]).toMatch(/widened to 1932–1950/);
+    for (const s of r.tandas[at]!.songs) expect(s.year! >= VM_WIDE[0] && s.year! <= VM_WIDE[1]).toBe(true);
+  });
+  it("3–4. a side without a stream is named for the DJ; a chair that moves says so; composed nights never repeat", () => {
+    for (const p of nights) {
+      clean(p.tandas, p.options.orchestraRepeatGap);
+      for (const t of p.tandas)
+        if (/no checked stream/.test(t.note ?? ""))
+          expect(t.songs.filter((s) => !s.spotify?.uri).length).toBe(1);
+      for (const f of p.stats.settingFallbacks ?? [])
+        if (/^(vals|milonga): /.test(f)) expect(f).toMatch(/plays \(|moved to|no family fits/);
     }
   });
 });
