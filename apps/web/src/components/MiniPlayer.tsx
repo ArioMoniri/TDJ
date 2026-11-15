@@ -90,6 +90,22 @@ export function MiniPlayer() {
   const total = stopAt(track, queue) ?? (duration || 30);
   // the phone tab capsule (wave 4: --tabbar-h over --tabbar-bottom): the player's bottom edge sits on its top edge
   const offset = "calc(var(--tabbar-bottom) + var(--tabbar-h))";
+  // the page reserves the docked player's height (globals.css: --mini-h → --mini-reserve → --bottom-chrome), so the
+  // last rows, the guide box and anything scrolled into view clear the player as well as the tab capsule
+  const docked = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = docked.current;
+    const root = document.documentElement;
+    if (!track || !el) return;
+    const put = () => root.style.setProperty("--mini-h", `${Math.ceil(el.offsetHeight)}px`);
+    put();
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(put) : null;
+    ro?.observe(el);
+    return () => {
+      ro?.disconnect();
+      root.style.removeProperty("--mini-h");
+    };
+  }, [track]);
   // the tab bar squares its top corners while the player is docked on it
   useEffect(() => {
     const nav = document.querySelector<HTMLElement>('[data-testid="tab-bar"]');
@@ -117,6 +133,7 @@ export function MiniPlayer() {
         {track && (
           <motion.div
             key="mini-player"
+            ref={docked}
             variants={reduced ? undefined : sheetUp}
             initial={reduced ? { opacity: 0 } : "hidden"}
             animate={reduced ? { opacity: 1 } : "show"}

@@ -1,0 +1,501 @@
+/* Wave 4 — the transition editor (TransitionSheet.tsx), laid out like a playlist "Mix" editor in T-DJ's own dark
+   tokens: a full-screen page on a phone, a full-height panel at most 760 px wide on an iPad or a desktop. The lanes
+   are full bleed; everything else sits on a 16 px gutter. Touch targets are 44 px or more. */
+
+.trx-root {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  display: flex;
+  justify-content: center;
+  background: rgb(0 0 0 / 0.6);
+}
+.trx {
+  /* T-DJ's dark tokens (globals.css .dark), fixed here: the editor is always dark, as a mixing view is */
+  --trx-bg: rgb(11 10 16);
+  --trx-cell: rgb(26 24 36);
+  --trx-fill: rgb(46 43 58);
+  --trx-fill-2: rgb(60 57 74);
+  --trx-label: rgb(246 241 232);
+  --trx-label-2: rgb(176 171 196);
+  --trx-label-3: rgb(176 171 196 / 0.5);
+  --trx-sep: rgb(255 255 255 / 0.14);
+  --trx-accent: #f47896;
+  --trx-box: #6db8ea;
+  --trx-volume: #f2c94c;
+  --trx-eq: #e38de9;
+  --trx-low: #2d48dc;
+  --trx-mid: #a5642d;
+  --trx-high: #f4ead4;
+  --trx-panel: rgb(46 43 58 / 0.78);
+  color-scheme: dark;
+  position: relative;
+  width: 100%;
+  max-width: 760px;
+  height: 100%;
+  background: var(--trx-bg);
+  color: var(--trx-label);
+  overflow: hidden;
+}
+@media (min-width: 600px) {
+  .trx {
+    box-shadow:
+      0 0 0 0.5px rgb(255 255 255 / 0.08),
+      0 24px 80px rgb(0 0 0 / 0.45);
+  }
+}
+.trx-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* the top bar: a round close button, then Beta, ••• and Save on the right */
+.trx-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: max(env(safe-area-inset-top, 0px), 12px) 16px 8px;
+  flex: none;
+}
+.trx-round {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  flex: none;
+  border-radius: 999px;
+  background: var(--trx-fill);
+  color: var(--trx-label);
+}
+.trx-round-s {
+  width: 44px;
+  height: 44px;
+}
+.trx-round:focus-visible,
+.trx-save:focus-visible,
+.trx-pill:focus-visible,
+.trx-play:focus-visible,
+.trx-row:focus-visible,
+.trx-presets > button:focus-visible,
+.trx-picker-list > button:focus-visible {
+  outline: 2px solid var(--trx-accent);
+  outline-offset: 2px;
+}
+.trx-beta {
+  padding: 4px 12px;
+  border-radius: 8px;
+  background: var(--trx-fill-2);
+  color: var(--trx-label);
+  font-size: 15px;
+  font-weight: 600;
+}
+.trx-save {
+  min-height: 48px;
+  min-width: 84px;
+  padding: 0 20px;
+  border-radius: 999px;
+  background: var(--trx-fill);
+  color: var(--trx-accent);
+  font-size: 17px;
+  font-weight: 600;
+}
+.trx-save:disabled {
+  color: color-mix(in srgb, var(--trx-accent) 45%, var(--trx-fill));
+}
+.trx-status {
+  flex: none;
+}
+
+.trx-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 16px);
+}
+
+/* a side: artwork, title and artist; BPM, then the Camelot key chip and the length */
+.trx-side {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+}
+.trx-side[data-side="out"] {
+  margin-top: clamp(8px, 4dvh, 40px);
+}
+.trx-side .booth-art {
+  border-radius: 6px;
+}
+.trx-side-title {
+  font-size: 17px;
+  line-height: 1.25;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.trx-side-sub {
+  margin-top: 2px;
+  font-size: 14px;
+  line-height: 1.3;
+  color: var(--trx-label-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.trx-facts {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  color: var(--trx-label);
+}
+.trx-facts-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.trx-key {
+  padding: 0 6px;
+  border-radius: 5px;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 22px;
+  color: rgb(17 16 22);
+}
+
+/* the lanes, full bleed, with the panel over the transition */
+.trx-stage-wrap {
+  margin: clamp(12px, 4dvh, 44px) 0 calc(24px + clamp(4px, 1.5dvh, 20px));
+}
+.trx-stage {
+  position: relative;
+  width: 100%;
+  height: clamp(250px, 40dvh, 430px);
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.trx-stage > svg {
+  position: absolute;
+  inset: 0;
+  display: block;
+  overflow: visible;
+}
+.trx-panel {
+  fill: var(--trx-panel);
+}
+.trx-grid {
+  stroke: rgb(255 255 255 / 0.07);
+  stroke-width: 1;
+}
+.trx-grid-bar {
+  stroke: rgb(255 255 255 / 0.16);
+}
+.trx-band-low {
+  fill: var(--trx-low);
+}
+.trx-band-mid {
+  fill: var(--trx-mid);
+}
+.trx-band-high {
+  fill: var(--trx-high);
+}
+.trx-wave-dim {
+  opacity: 0.34;
+}
+.trx-flat {
+  stroke: var(--trx-label-3);
+  stroke-width: 1.5;
+}
+.trx-box {
+  fill: none;
+  stroke: var(--trx-box);
+  stroke-width: 2.5;
+}
+.trx-vol,
+.trx-eq {
+  fill: none;
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.trx-vol {
+  stroke: var(--trx-volume);
+}
+.trx-eq {
+  stroke: var(--trx-eq);
+}
+.trx-panel-hit {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+/* a box edge: a 44 px strip to drag, a short grip on the line */
+.trx-edge {
+  position: absolute;
+  width: 44px;
+  margin-left: -22px;
+  display: grid;
+  place-items: center;
+  cursor: ew-resize;
+  touch-action: none;
+  z-index: 2;
+  min-height: 44px;
+}
+.trx-edge::before {
+  content: "";
+  width: 6px;
+  height: 28px;
+  border-radius: 3px;
+  background: var(--trx-box);
+  box-shadow: 0 0 0 2px var(--trx-bg);
+  opacity: 0.9;
+}
+.trx-edge[aria-disabled="true"] {
+  cursor: default;
+}
+.trx-edge[aria-disabled="true"]::before {
+  opacity: 0;
+}
+.trx-edge:focus-visible {
+  outline: none;
+}
+.trx-edge:focus-visible::before {
+  background: var(--trx-accent);
+  box-shadow:
+    0 0 0 2px var(--trx-bg),
+    0 0 0 4px var(--trx-accent);
+}
+.trx-play-at,
+.trx-pill-at {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+}
+.trx-play {
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 46px;
+  border-radius: 14px;
+  background: var(--trx-fill);
+  color: var(--trx-label);
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.06),
+    0 4px 14px rgb(0 0 0 / 0.35);
+}
+.trx-play[aria-pressed="true"] {
+  color: var(--cue, var(--trx-accent));
+}
+.trx-play:disabled {
+  opacity: 0.45;
+}
+.trx-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 46px;
+  padding: 0 18px;
+  border-radius: 14px;
+  background: var(--trx-fill);
+  color: var(--trx-label);
+  font-size: 17px;
+  white-space: nowrap;
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.06),
+    0 4px 14px rgb(0 0 0 / 0.35);
+}
+.trx-pill:disabled {
+  opacity: 0.55;
+}
+
+/* the presets: a divider with a centred label, then a row of tiles that scrolls sideways */
+.trx-presets-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 4px 16px 0;
+  font-size: 15px;
+  color: var(--trx-label-2);
+}
+.trx-presets-head::before,
+.trx-presets-head::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--trx-sep);
+}
+.trx-presets {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 12px 16px 6px;
+}
+.trx-presets > button {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 100px;
+  height: 52px;
+  padding: 0 20px;
+  border-radius: 12px;
+  background: var(--trx-fill);
+  color: var(--trx-label);
+  font-size: 16px;
+}
+.trx-presets > button[aria-checked="true"] {
+  background: var(--trx-label);
+  color: rgb(17 16 22);
+  font-weight: 600;
+}
+.trx-presets > button:disabled {
+  opacity: 0.35;
+}
+.trx-warn {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 6px 16px 0;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--trx-volume);
+}
+.trx-warn > svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+/* the settings rows: a coloured tick and a label, the value and a chevron */
+.trx-rows {
+  margin: 10px 16px 0;
+}
+.trx-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 60px;
+  padding: 0 8px 0 12px;
+  font-size: 17px;
+  color: var(--trx-label);
+  text-align: left;
+}
+.trx-tick {
+  flex: none;
+  width: 4px;
+  height: 24px;
+  border-radius: 2px;
+}
+.trx-row-label {
+  flex: 1;
+  min-width: 0;
+}
+.trx-row-value {
+  min-width: 0;
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--trx-label-2);
+}
+.trx-row > svg {
+  flex: none;
+  color: var(--trx-label-2);
+}
+.trx-row:disabled {
+  opacity: 0.4;
+}
+
+/* the option menus: a card rising from the editor's foot over a dimmed editor */
+.trx-picker-root {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.trx-picker-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 0.5);
+  cursor: default;
+}
+.trx-picker {
+  position: relative;
+  max-height: 78%;
+  overflow-y: auto;
+  padding: 8px 12px max(env(safe-area-inset-bottom, 0px), 16px);
+  border-radius: 22px 22px 0 0;
+  background: var(--trx-cell);
+  box-shadow: 0 -8px 30px rgb(0 0 0 / 0.4);
+}
+.trx-picker-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 8px 8px;
+}
+.trx-picker-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 17px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.trx-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.trx-picker-list > button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  text-align: left;
+  color: var(--trx-label);
+}
+.trx-picker-list > button[aria-checked="true"] {
+  background: var(--trx-fill);
+}
+.trx-picker-list > button:disabled {
+  opacity: 0.4;
+}
+.trx-opt-label {
+  display: block;
+  font-size: 17px;
+}
+.trx-opt-sub {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--trx-label-2);
+}
+.trx-picker-info {
+  margin: 10px 12px 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--trx-sep);
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--trx-label-2);
+}
+.trx-picker-info > p + p {
+  margin-top: 6px;
+}

@@ -770,6 +770,27 @@ export const en = {
   "booth.store.this_browser_cannot_mix_a_transition": "this browser cannot mix a transition offline",
   "booth.store.only_one_side_has_audio":
     "{title} has no file or clip here, so it is silent in the audition; the curves still apply.",
+  "booth.transition.close": "Close",
+  "booth.transition.close_discards": "Close without saving",
+  "booth.transition.curve_equal_power_sub": "Keeps the loudness steady through the overlap.",
+  "booth.transition.curve_linear_sub": "A plain straight line.",
+  "booth.transition.curve_mixed": "Preset curves",
+  "booth.transition.curve_s_curve_sub": "Starts and ends gently.",
+  "booth.transition.eq": "EQ",
+  "booth.transition.eq_bass_swap": "Centre bass swap",
+  "booth.transition.eq_none": "None",
+  "booth.transition.eq_none_sub": "Both sides keep their full sound through the overlap.",
+  "booth.transition.handle_gap": "Where the next side comes in",
+  "booth.transition.handle_gap_hint":
+    "Drag: the silence before the next side comes in. ← → move it by a beat.",
+  "booth.transition.more": "More",
+  "booth.transition.more_hint":
+    "Previous and next transition, lengths in bars or seconds, where the audition plays",
+  "booth.transition.save_hint": "Change the transition, then Save keeps it with the night",
+  "booth.transition.show_bars": "Lengths in bars",
+  "booth.transition.show_seconds": "Lengths in seconds",
+  "booth.transition.volume": "Volume",
+  "booth.transition.volume_needs_fade": "This transition has no fade to shape: pick Fade, Rise or Blend.",
   "booth.transition.advanced": "Advanced",
   "booth.transition.advanced_footer":
     "Equal power keeps the loudness steady through a blend; an S-curve starts and ends gently; linear is plain.",
@@ -812,10 +833,10 @@ export const en = {
   "booth.transition.gap_row_hint": "The silence the floor hears between the two.",
   "booth.transition.handle_end": "End of the transition",
   "booth.transition.handle_end_hint":
-    "Drag: where the transition ends (the silence, the incoming fade or the end of the blend). ← → move it by half a second.",
+    "Drag: where the transition ends (the silence, the incoming fade or the end of the blend). ← → move it by a beat (half a second without a BPM).",
   "booth.transition.handle_start": "Start of the transition",
   "booth.transition.handle_start_hint":
-    "Drag: where the transition starts (the fade out, or where the next side comes in). ← → move it by half a second.",
+    "Drag: where the transition starts (the fade out, or where the next side comes in). ← → move it by a beat (half a second without a BPM).",
   "booth.transition.handle_value": "{p1}{sec} s from the end of the outgoing side",
   "booth.transition.in_your_headphones": "in your headphones ({name})",
   "booth.transition.inside_tanda_default":
@@ -1008,8 +1029,6 @@ export const en = {
   "composer.compose_cancelled_the_night_on_screen": "Compose cancelled: the night on screen stays as it was",
   "composer.compose_the_night": "Compose the night",
   "composer.compose_the_night_2": "Compose the night (⌘↩)",
-  "composer.compose_the_night_is_in_the":
-    "Compose the night is in the bar below; everything under it is optional.",
   "composer.compose_the_night_with_these_settings": "Compose the night with these settings (⌘↩)",
   "composer.compose_with_these_settings": "Compose with these settings",
   "composer.composing_the_night": "Composing the night…",
