@@ -111,7 +111,7 @@
   --material-ultrathin: rgb(var(--surface) / 0.38);
   /* the top bars' scroll-edge material (round 23): the page colour lifted toward the surface, nearly opaque, so what
      scrolls under it reads as colour and never as text beside the title, in either theme */
-  --material-bar: color-mix(in srgb, rgb(var(--bg-grouped)) 55%, rgb(var(--surface)) 45%);
+  --material-bar: color-mix(in srgb, rgb(var(--bg-grouped)) 82%, rgb(var(--surface)) 18%);
   --material-bar-alpha: 97%;
   /* capped at 20 px: backdrop-filter cost grows with the radius, and the bars are small enough that 20 reads as 40 */
   --blur-thick: 20px;
