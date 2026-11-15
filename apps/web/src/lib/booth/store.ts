@@ -52,6 +52,7 @@ import { LocalAdapter } from "./sources/local";
 import { PreviewAdapter, REHEARSAL_SEC } from "./sources/preview";
 import { SpotifyAdapter } from "./sources/spotify";
 import type { ItemSource, PlanEntity, SourceAdapter, SourceKind } from "./sources/types";
+import { type Bands, renderBands } from "./spectral";
 import { transitionWindow } from "./transition";
 import { isSilentState, unlockAudio } from "./unlock";
 import { bufferPeaks } from "./waveform";
@@ -91,6 +92,8 @@ export interface Waveform {
   peaks: number[];
   durationSec: number;
   from: "file" | "clip";
+  /** wave 4: the low / mid / high envelopes the transition editor draws (absent where the split failed) */
+  bands?: Bands;
 }
 export interface FolderStatus {
   name: string | null;
@@ -1107,7 +1110,10 @@ function stopCueTimer() {
 /** Round 22: the waveform of a side — its file (the whole song) else its clip — decoded off the room's graph. */
 async function decodePeaks(id: string, e: NonNullable<PlanEntity>): Promise<Waveform | null> {
   const d = await decodeAudio(id, e);
-  return d ? { peaks: bufferPeaks(d.buffer, 240), durationSec: d.buffer.duration, from: d.from } : null;
+  if (!d) return null;
+  const Off = offlineCtor();
+  const bands = Off ? await renderBands(d.buffer, Off).catch(() => undefined) : undefined;
+  return { peaks: bufferPeaks(d.buffer, 240), durationSec: d.buffer.duration, from: d.from, bands };
 }
 
 /** The offline context constructor (Safari's prefixed one too); null where there is none. */

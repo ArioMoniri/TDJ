@@ -11,9 +11,13 @@ import {
   curve,
   curveAt,
   dragHandle,
+  gainInAt,
+  gainOutAt,
   incomingWhen,
+  laneBoxes,
   lengthLabel,
   secToBars,
+  snapToBeat,
   transitionWindow,
 } from "./transition";
 
@@ -239,5 +243,76 @@ describe("handles and length", () => {
     expect(lengthLabel(2, 120, "bars")).toBe("1 bar");
     expect(lengthLabel(4, null, "bars")).toBe("4 s");
     expect(lengthLabel(3.5, 120, "sec")).toBe("3.5 s");
+  });
+});
+
+describe("the editor's lanes (wave 4 round 2: the Mix editor layout)", () => {
+  const lens = { outLen: 180, inLen: 180, gapSec: 2.5, songFadeOutSec: 0 };
+  it("a blend: both lanes' boxes span the overlap, which is the panel", () => {
+    const w = transitionWindow(plan({ preset: "blend", overlapSec: 6 }), lens);
+    const b = laneBoxes(w);
+    expect(b.out).toEqual({ start: -6, end: 0 });
+    expect(b.in).toEqual({ start: -6, end: 0 });
+    expect(b.panel).toEqual({ start: -6, end: 0 });
+  });
+  it("a rise: the outgoing plays at full level under the overlap; its box is still the overlap", () => {
+    const w = transitionWindow(plan({ preset: "rise", overlapSec: 4 }), lens);
+    const b = laneBoxes(w);
+    expect(b.out).toEqual({ start: -4, end: 0 });
+    expect(b.in).toEqual({ start: -4, end: 0 });
+    expect(gainOutAt(w, -2)).toBe(1);
+    expect(gainInAt(w, -4)).toBe(0);
+    expect(gainInAt(w, 0)).toBe(1);
+  });
+  it("a fade: the outgoing's fade, then the silence, then the incoming's rise; the panel spans all three", () => {
+    const w = transitionWindow(plan({ preset: "fade", gapSec: 1, fadeOutSec: 3, fadeInSec: 2 }), lens);
+    const b = laneBoxes(w);
+    expect(b.out).toEqual({ start: -3, end: 0 });
+    expect(b.in).toEqual({ start: 1, end: 3 });
+    expect(b.panel).toEqual({ start: -3, end: 3 });
+    expect(gainOutAt(w, -3)).toBe(1);
+    expect(gainOutAt(w, 0.5)).toBe(0);
+    expect(gainInAt(w, 0.5)).toBe(0);
+    expect(gainInAt(w, 3)).toBe(1);
+  });
+  it("a plain gap: zero-width boxes at the outgoing's end and the incoming's start", () => {
+    const w = transitionWindow(plan({ preset: "gap", gapSec: 2 }), lens);
+    const b = laneBoxes(w);
+    expect(b.out).toEqual({ start: 0, end: 0 });
+    expect(b.in).toEqual({ start: 2, end: 2 });
+    expect(b.panel).toEqual({ start: 0, end: 2 });
+  });
+  it("the volume lines never leave 0…1 and never rise on the outgoing side", () => {
+    for (const e of [
+      { preset: "blend", overlapSec: 5 },
+      { preset: "fade" },
+      { preset: "gap" },
+      { preset: "rise" },
+    ] as TransitionEdit[]) {
+      const w = transitionWindow(plan(e), lens);
+      let last = 1;
+      for (let t = -12; t <= 12; t += 0.25) {
+        const o = gainOutAt(w, t);
+        const i = gainInAt(w, t);
+        expect(o).toBeGreaterThanOrEqual(0);
+        expect(o).toBeLessThanOrEqual(1);
+        expect(i).toBeGreaterThanOrEqual(0);
+        expect(i).toBeLessThanOrEqual(1);
+        expect(o).toBeLessThanOrEqual(last + 1e-9);
+        last = o;
+      }
+    }
+  });
+  it("the incoming box's left edge moves a fade's silence; on a blend it is the overlap", () => {
+    expect(dragHandle({ preset: "fade", gapSec: 1 }, "gap", 2.5)).toMatchObject({ gapSec: 2.5 });
+    expect(dragHandle({ preset: "fade", gapSec: 1 }, "gap", 9)).toMatchObject({ gapSec: 5 });
+    expect(dragHandle({ preset: "blend", overlapSec: 4 }, "gap", -6)).toMatchObject({ overlapSec: 6 });
+  });
+  it("edges snap to the beat when the BPM is known, and are left alone without it", () => {
+    // 120 BPM: a beat is half a second
+    expect(snapToBeat(-3.3, 120)).toBeCloseTo(-3.5, 6);
+    expect(snapToBeat(1.12, 120)).toBeCloseTo(1, 6);
+    expect(snapToBeat(1.12, null)).toBe(1.12);
+    expect(snapToBeat(1.12, 0)).toBe(1.12);
   });
 });

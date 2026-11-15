@@ -258,11 +258,17 @@ export function auditionSpan(
  * A handle dragged to `sec` (relative to the outgoing's end). Start: a blend / rise's overlap, a fade's or a cortina
  * cut's fade out. End: a blend's fades, a rise's rise, a fade's fade in, a gap's (and a cortina cut's) silence.
  */
-export function dragHandle(e: TransitionEdit, which: "start" | "end", sec: number): TransitionEdit {
+export function dragHandle(e: TransitionEdit, which: "start" | "end" | "gap", sec: number): TransitionEdit {
   const R = TRANSITION_RANGES;
   const v = r1(sec);
   const next: TransitionEdit = { ...e };
   const overlap = e.overlapSec ?? 4;
+  // the incoming box's left edge: where the next side comes in (a fade's silence; a blend's or rise's overlap)
+  if (which === "gap") {
+    if (e.preset === "blend" || e.preset === "rise") return dragHandle(e, "start", sec);
+    next.gapSec = r1(clamp(v, R.gapSec.min, R.gapSec.max));
+    return next;
+  }
   switch (e.preset) {
     case "blend":
     case "rise":
@@ -289,6 +295,52 @@ export function dragHandle(e: TransitionEdit, which: "start" | "end", sec: numbe
       if (which === "end") next.gapSec = r1(clamp(v, R.gapSec.min, R.gapSec.max));
       return next;
   }
+}
+
+/** A dragged edge lands on the nearest beat (relative to the outgoing's end) when the BPM is known. */
+export function snapToBeat(sec: number, bpm: number | null | undefined): number {
+  if (!bpm || bpm <= 0) return sec;
+  const beat = 60 / bpm;
+  return Math.round(sec / beat) * beat;
+}
+
+/** The outgoing side's gain at `t` (seconds relative to its end) under a transition window, 0…1. */
+export function gainOutAt(w: TransitionWindow, t: number): number {
+  const stop = Math.min(0, w.outStop);
+  if (t > stop) return 0;
+  if (w.outFade.len <= 0) return t >= 0 ? 0 : 1;
+  if (t < w.outFade.start) return 1;
+  return curveAt(w.curveOut, "out", (t - w.outFade.start) / w.outFade.len);
+}
+/** The incoming side's gain at `t`, 0…1. */
+export function gainInAt(w: TransitionWindow, t: number): number {
+  if (t < w.inStart) return 0;
+  if (w.inFade.len <= 0) return 1;
+  return curveAt(w.curveIn, "in", (t - w.inStart) / w.inFade.len);
+}
+
+export interface Span {
+  start: number;
+  end: number;
+}
+/**
+ * The editor's two lanes: the outgoing's box (from its fade or the overlap to where it stops), the incoming's box
+ * (from where it comes in to the end of its rise or the overlap) and the panel that spans both.
+ */
+export function laneBoxes(w: TransitionWindow): { out: Span; in: Span; panel: Span } {
+  const outEnd = w.outStop < 0 ? w.outStop : 0;
+  let outStart = outEnd;
+  if (w.outFade.len > 0) outStart = Math.min(outStart, w.outFade.start);
+  if (w.overlapSec > 0) outStart = Math.min(outStart, w.inStart);
+  const inStart = w.inStart;
+  const inEnd = Math.max(w.inStart + w.inFade.len, w.overlapSec > 0 ? Math.min(0, w.box.end) : w.inStart);
+  const out = { start: r1(outStart), end: r1(outEnd) };
+  const inn = { start: r1(inStart), end: r1(Math.max(inStart, inEnd)) };
+  return {
+    out,
+    in: inn,
+    panel: { start: Math.min(out.start, inn.start), end: Math.max(out.end, inn.end) },
+  };
 }
 
 /** Seconds → bars of 4 beats at `bpm` (to the half bar). */

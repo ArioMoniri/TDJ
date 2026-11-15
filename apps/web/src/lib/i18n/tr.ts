@@ -906,6 +906,27 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.store.this_browser_cannot_mix_a_transition": "bu tarayıcı bir geçişi çevrimdışı karıştıramıyor",
   "booth.store.only_one_side_has_audio":
     "{title} için burada dosya ya da klip yok, bu yüzden dinlemede sessiz; eğriler yine de uygulanır.",
+  "booth.transition.close": "Kapat",
+  "booth.transition.close_discards": "Kaydetmeden kapat",
+  "booth.transition.curve_equal_power_sub": "Örtüşme boyunca ses düzeyini sabit tutar.",
+  "booth.transition.curve_linear_sub": "Düz bir çizgi.",
+  "booth.transition.curve_mixed": "Hazır ayarın eğrileri",
+  "booth.transition.curve_s_curve_sub": "Yumuşak başlar, yumuşak biter.",
+  "booth.transition.eq": "Ekolayzer",
+  "booth.transition.eq_bass_swap": "Ortada bas takası",
+  "booth.transition.eq_none": "Yok",
+  "booth.transition.eq_none_sub": "İki taraf da örtüşme boyunca tam sesini korur.",
+  "booth.transition.handle_gap": "Sıradakinin girdiği yer",
+  "booth.transition.handle_gap_hint": "Sürükle: sıradaki girmeden önceki sessizlik. ← → bir vuruş kaydırır.",
+  "booth.transition.more": "Daha fazla",
+  "booth.transition.more_hint":
+    "Önceki ve sonraki geçiş, ölçü ya da saniye olarak uzunluklar, dinlemenin çaldığı yer",
+  "booth.transition.save_hint": "Geçişi değiştir, sonra Kaydet onu geceyle birlikte saklar",
+  "booth.transition.show_bars": "Uzunluklar ölçü olarak",
+  "booth.transition.show_seconds": "Uzunluklar saniye olarak",
+  "booth.transition.volume": "Ses",
+  "booth.transition.volume_needs_fade":
+    "Bu geçişte biçimlenecek bir kısma yok: Kısma, Yükseliş ya da Karışım seç.",
   "booth.transition.advanced": "Gelişmiş",
   "booth.transition.advanced_footer":
     "Eşit güç karışım boyunca ses yüksekliğini sabit tutar; S eğrisi yumuşak başlar ve biter; doğrusal düzdür.",
@@ -949,10 +970,10 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.transition.gap_row_hint": "Pistin ikisi arasında duyduğu sessizlik.",
   "booth.transition.handle_end": "Geçişin sonu",
   "booth.transition.handle_end_hint":
-    "Sürükle: geçişin bittiği yer (sessizlik, giriş kısması ya da karışımın sonu). ← → yarım saniye kaydırır.",
+    "Sürükle: geçişin bittiği yer (sessizlik, giriş kısması ya da karışımın sonu). ← → bir vuruş kaydırır (BPM yoksa yarım saniye).",
   "booth.transition.handle_start": "Geçişin başı",
   "booth.transition.handle_start_hint":
-    "Sürükle: geçişin başladığı yer (çıkış kısması ya da sıradakinin girdiği yer). ← → yarım saniye kaydırır.",
+    "Sürükle: geçişin başladığı yer (çıkış kısması ya da sıradakinin girdiği yer). ← → bir vuruş kaydırır (BPM yoksa yarım saniye).",
   "booth.transition.handle_value": "Çıkan parçanın sonundan {p1}{sec} sn",
   "booth.transition.in_your_headphones": "kulaklığında ({name})",
   "booth.transition.inside_tanda_default":
@@ -1147,8 +1168,6 @@ export const tr: Partial<Record<MsgKey, string>> = {
     "Oluşturma iptal edildi: ekrandaki gece olduğu gibi kalıyor",
   "composer.compose_the_night": "Geceyi oluştur",
   "composer.compose_the_night_2": "Geceyi oluştur (⌘↩)",
-  "composer.compose_the_night_is_in_the":
-    "Geceyi oluştur aşağıdaki çubukta; altındaki her şey isteğe bağlıdır.",
   "composer.compose_the_night_with_these_settings": "Geceyi bu ayarlarla oluştur (⌘↩)",
   "composer.compose_with_these_settings": "Bu ayarlarla oluştur",
   "composer.composing_the_night": "Gece oluşturuluyor…",
