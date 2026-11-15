@@ -660,7 +660,7 @@ export const ERA_SETTINGS: Record<
     },
     preferOrchestras: CONTEMPORARY_ORCHESTRAS,
     notes:
-      "Contemporary orchestras and electro: 3-track tandas, wide year windows, matched short cortinas. The catalogue has El Arranque, Fernández Fierro, Sexteto Mayor and two Color Tango sides; Sexteto Milonguero, Romántica Milonguera, Solo Tango, Sexteto Cristal, Tango Bardo and Misteriosa Buenos Aires are not indexed yet, so this preset cannot build a real contemporary night until they are added to data/sources.",
+      "Contemporary orchestras and electro: 3-track tandas, wide year windows, matched short cortinas. The catalogue has El Arranque, Fernández Fierro, Sexteto Mayor, two Color Tango sides and the imported Sexteto Cristal, Tango Bardo and Bandonegro sides (data/knowledge/added_songs.json); Sexteto Milonguero, Romántica Milonguera, Solo Tango and Misteriosa Buenos Aires are not indexed yet — add them with `pnpm orchestra:import`.",
   },
   all: {
     pattern: "classic",

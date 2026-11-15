@@ -1,0 +1,72 @@
+{
+ "about": "Seeds and results of scripts/import_orchestra.ts (pnpm orchestra:import): per contemporary orchestra, the Spotify artist and album ids (found with the Spotify connector search and the Web API), the connector's playback status per track, and the last import's summary.",
+ "orchestras": {
+  "sexteto-cristal": {
+   "name": "Sexteto Cristal",
+   "spotifyArtist": "7MmWgqMXOgk0kUITZSHVGZ",
+   "albums": [
+    "5GhIAk05w2r5BiZVPl0wdC",
+    "7FdyqlFnTJaqIdnQW0n5Sx"
+   ],
+   "connector": {
+    "checkedAt": "2026-11-15",
+    "market": "the account's market (TR)",
+    "queries": [
+     "Sexteto Cristal",
+     "Sexteto Cristal album",
+     "Sexteto Cristal vals",
+     "Sexteto Cristal milonga",
+     "Sexteto Cristal discografía álbumes y sencillos"
+    ],
+    "status": {
+     "spotify:track:0DeMIStxqVtLPSePGRwpex": "PLAYABLE",
+     "spotify:track:3d750iimandgf8fW3Xl6Lj": "PLAYABLE",
+     "spotify:track:1z8101gVAHnL1l1VYbKpXp": "PLAYABLE",
+     "spotify:track:0cRoLrH31rSUAxNfYtwfpW": "PLAYABLE",
+     "spotify:track:077C6PvXc1jQwMYYu3b4OP": "PLAYABLE",
+     "spotify:track:3CsWb0wlH800P7cpdGu255": "PLAYABLE",
+     "spotify:track:5cg80qE9rxUis2KAzYvFSL": "PLAYABLE",
+     "spotify:track:6B3OKQ86qeQNIIveiCjLxz": "PLAYABLE",
+     "spotify:track:67bHA7v4KzsOoV5qcha6lZ": "PLAYABLE",
+     "spotify:track:77qimeGuvEVW5sLzn8m6C3": "PLAYABLE",
+     "spotify:track:0V8gAmbdvORCeDnCApVffM": "PLAYABLE",
+     "spotify:track:4KKWeBjjRMoKWhXNsG6P1H": "PLAYABLE",
+     "spotify:track:7KMkAfCw40944NRDu4zHTX": "PLAYABLE",
+     "spotify:track:3nkPujc2auoIITclwnwP6J": "PLAYABLE",
+     "spotify:track:5qTjDCKUG8c05jUSb7qSsh": "PLAYABLE",
+     "spotify:track:3Wrj4AO2XvPR1uvbYYpGhg": "PLAYABLE",
+     "spotify:track:7cfO2Qc8gBmUHYi4YuVvPw": "PLAYABLE"
+    }
+   },
+   "lastImport": {
+    "at": "2026-11-15",
+    "via": "spotify-web-api",
+    "market": "TR",
+    "albums": [
+     "Viento Del Norte (2018-05-01)",
+     "Loca de amor (2019-12-01)"
+    ],
+    "added": 27,
+    "byRhythm": {
+     "milonga": 5,
+     "tango": 17,
+     "vals": 5
+    },
+    "bySinger": {
+     "Guillermo Rozenthuler": 17,
+     "instrumental": 10
+    },
+    "assumedRhythm": [
+     "Viento Norte (spotify:track:0DeMIStxqVtLPSePGRwpex)",
+     "Cuando Florescan los Rosales (spotify:track:5Y19ehL8EUoAc3KL0jIzhx)",
+     "Contando las Estrellas (spotify:track:63NHHFDjYVztsEP7ylpqM6)",
+     "La Tapera (spotify:track:0V8gAmbdvORCeDnCApVffM)",
+     "El Amanacer (spotify:track:4KKWeBjjRMoKWhXNsG6P1H)"
+    ],
+    "skippedNotPlayable": [],
+    "duplicates": [],
+    "rejectedByMatchRules": []
+   }
+  }
+ }
+}
