@@ -557,6 +557,7 @@ export function editsFor(
     (!yr || (!!s.year && s.year >= yr[0] && s.year <= yr[1])) &&
     isDanceableSong(s, cat.blacklist) &&
     !cat.nonDance(s.orchestraId, s.title, s.year);
+  const breaksOf = familyBreaks(cat);
   /** the best `need` sides of a family for a slot, under the panel's per-tanda rules, from its tightest window */
   const bestSides = (
     c: TandaCandidate,
@@ -1468,11 +1469,27 @@ export function editsFor(
           .sort(
             (x, y) => fame(y) - fame(x) || (y.energy ?? 50) - (x.energy ?? 50) || x.id.localeCompare(y.id),
           );
-        const pick: Song[] = [];
-        for (const x of pool)
-          if (pick.length < b.songs.length && !pick.some((q) => normTitle(q.title) === normTitle(x.title)))
-            pick.push(x);
-        if (pick.length === b.songs.length) bSongs = pick;
+        // (cohesion R3: the sides of one period — never across a line-up break or an 18-month recording gap)
+        const bps = breaksOf(b.orchestraId, null, false);
+        const monthOf = (x: Song) => {
+          const m = /^(\d{4})(?:-(\d{2}))?/.exec(x.date ?? "");
+          return m ? Number(m[1]) * 12 + (m[2] ? Number(m[2]) - 1 : 6) : (x.year ?? 0) * 12 + 6;
+        };
+        const periodOf = (x: Song) => bps.filter((q) => q <= monthOf(x)).length;
+        let best: Song[] | null = null;
+        for (const k of new Set(pool.map(periodOf))) {
+          const pick: Song[] = [];
+          for (const x of pool)
+            if (
+              periodOf(x) === k &&
+              pick.length < b.songs.length &&
+              !pick.some((q) => normTitle(q.title) === normTitle(x.title))
+            )
+              pick.push(x);
+          const f = (xs: Song[]) => xs.reduce((a2, x) => a2 + fame(x), 0);
+          if (pick.length === b.songs.length && (!best || f(pick) > f(best))) best = pick;
+        }
+        if (best) bSongs = best;
       }
       tandas[i] = retanda(
         { ...b, cortina: a.cortina },
