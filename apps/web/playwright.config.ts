@@ -21,7 +21,24 @@ export default defineConfig({
   },
   projects: [
     // every spec at the default (desktop) viewport, as before the tablet projects existed
-    { name: "default", testIgnore: /round6-tablet|round7-corners|round23|wave2-layout/ },
+    { name: "default", testIgnore: /round6-tablet|round7-corners|round23|wave2-layout|search\.spec/ },
+    // 2026-11: the shared search on the Library and the Database, on a desktop and an iPhone 15 Pro (Chromium with the
+    // phone's viewport, scale, touch and user agent)
+    {
+      name: "search-desktop",
+      testMatch: /search\.spec/,
+      use: { viewport: { width: 1440, height: 900 }, launchOptions },
+    },
+    {
+      name: "search-iphone",
+      testMatch: /search\.spec/,
+      use: {
+        ...devices["iPhone 15 Pro"],
+        browserName: "chromium" as const,
+        defaultBrowserType: undefined,
+        launchOptions,
+      },
+    },
     // round 6: the sm–lg nav pill and the one-column tanda grid on an iPad and on a 1024 × 768 desktop
     {
       name: "tablet-ipad",

@@ -81,8 +81,11 @@ const hasFilter = (q: SongQuery) =>
     q.inNight
   );
 
-/** the catalogue filtered and ranked: titles starting with the words first, then fame, then year */
-export function searchSongs(songs: Song[], q: SongQuery, p?: Playlist | null): SongHit[] {
+/**
+ * The catalogue filtered and ranked: titles starting with the words first, then fame, then year (round 22's panel;
+ * `searchSongs(songs, query, playlist)` in search.ts still calls this). The shared engine is search.ts.
+ */
+export function filterSongs(songs: Song[], q: SongQuery, p?: Playlist | null): SongHit[] {
   if (!hasFilter(q)) return [];
   const where = placements(p);
   const terms = norm(q.text ?? "")

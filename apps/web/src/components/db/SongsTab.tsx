@@ -1,9 +1,12 @@
 "use client";
-import { missingFields, normTitle, songData } from "@tdj/core";
+import { missingFields, type SongFilters, type SongSearchHit, songData } from "@tdj/core";
 import { AudioWaveform, CircleMinus, DatabaseZap, Link2, Trash2 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
+import { playSong } from "@/components/library/LibraryRow";
 import { SEARCH_FOCUS_EVENT } from "@/components/Nav";
+import { Highlight } from "@/components/search/Highlight";
+import { filtersActive, SearchChips } from "@/components/search/SearchChips";
 import { analyseSong, keyLabel } from "@/lib/analyze";
 import { djDataOf } from "@/lib/artwork";
 import { effectiveSong } from "@/lib/audio";
@@ -13,8 +16,10 @@ import { rise, spring } from "@/lib/motion";
 import { bpmChoice } from "@/lib/songData";
 import { SOURCE_LABEL } from "@/lib/songView";
 import { spotifyUri, spotifyUrl } from "@/lib/spotifyLink";
+import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import type { Song, SongPatch } from "@/lib/types";
+import { useSongSearch } from "@/lib/useSongSearch";
 import { metaLine, yearText } from "@/lib/year";
 import { ActionRow, FieldRow, Group, PickerRow, RhythmTile, Row, SwitchRow } from "../Form";
 import { ResolveSheet } from "../ResolveSheet";
@@ -101,8 +106,8 @@ export function SongsTab() {
   const editing = useDbEdit();
   const reduced = useReducedMotion();
   const [q, setQ] = useState("");
-  const [rows, setRows] = useState<Song[]>([]);
-  const [searching, setSearching] = useState(false);
+  const [filters, setFilters] = useState<SongFilters>({});
+  const [active, setActive] = useState(-1);
   const [adding, setAdding] = useState(false);
   const [finding, setFinding] = useState<Song | null>(null);
   const [analysing, setAnalysing] = useState<string | null>(null);
@@ -116,31 +121,39 @@ export function SongsTab() {
     energy: "",
     uri: "",
   });
+  // 2026-11: the shared search (POST /api/search → core searchSongs): words across fields, typos, inline filters,
+  // chips with counts; the cards below stay editable, keyed by song id, so a new answer never loses an edit
+  const search = useSongSearch(q, { filters, limit: 30 });
+  const active2 = filtersActive(filters) > 0;
+  const shown = q.trim().length >= 2 || active2;
+  const hits: SongSearchHit[] = shown ? (search.data?.items ?? []) : [];
+  const rows: Song[] = hits.map((h) => h.song);
+  const searching = search.loading;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new answer starts the keyboard selection over
+  useEffect(() => setActive(-1), [search.data]);
   useEffect(() => {
-    if (q.length < 2) {
-      setRows([]);
-      return;
+    if (active >= 0) document.getElementById(`db-song-${active}`)?.scrollIntoView({ block: "nearest" });
+  }, [active]);
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowDown" && rows.length) {
+      e.preventDefault();
+      setActive((a) => Math.min(rows.length - 1, a + 1));
+    } else if (e.key === "ArrowUp" && rows.length) {
+      e.preventDefault();
+      setActive((a) => Math.max(-1, a - 1));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const s = rows[active >= 0 ? active : 0];
+      if (s) {
+        setActive(active >= 0 ? active : 0);
+        const connected = !!useStore.getState().spotifyToken;
+        playSong(s, connected, overrides.songs?.[s.id]);
+      }
+    } else if (e.key === "Escape" && q) {
+      e.preventDefault();
+      setQ("");
     }
-    setSearching(true);
-    const t = setTimeout(() => {
-      fetch(`/api/search?q=${encodeURIComponent(q)}`)
-        .then((r) => r.json())
-        // the versions of one title sit together, oldest first (round 22)
-        .then((r: Song[]) =>
-          setRows(
-            r
-              .slice()
-              .sort(
-                (a, b) =>
-                  normTitle(a.title).localeCompare(normTitle(b.title)) || (a.year ?? 9999) - (b.year ?? 9999),
-              ),
-          ),
-        )
-        .catch(() => setRows([]))
-        .finally(() => setSearching(false));
-    }, 200);
-    return () => clearTimeout(t);
-  }, [q]);
+  };
 
   const songs = overrides.songs ?? {};
   /**
@@ -257,15 +270,52 @@ export function SongsTab() {
         label={tx("db.songsTab.search_the_index")}
         busy={searching}
         className="mt-3"
+        tip={tx("search.syntax_tip")}
         onFocusChange={(f) => window.dispatchEvent(new CustomEvent(SEARCH_FOCUS_EVENT, { detail: f }))}
+        inputProps={{
+          onKeyDown,
+          "aria-controls": "db-results",
+          "aria-activedescendant": active >= 0 ? `db-song-${active}` : undefined,
+        }}
       />
-      {q.length < 2 && <Empty crate>{tx("db.songsTab.search_the_index_to_edit_a")}</Empty>}
-      {q.length >= 2 && !searching && rows.length === 0 && (
-        <Empty>{tx("db.songsTab.nothing_matches", { q })}</Empty>
+      <SearchChips
+        facets={shown ? search.data?.facets : null}
+        filters={filters}
+        onChange={setFilters}
+        favourites={false}
+        more={shown}
+        idPrefix="db-chip"
+      />
+      {!shown && <Empty crate>{tx("db.songsTab.search_the_index_to_edit_a")}</Empty>}
+      {shown && search.data && !searching && rows.length === 0 && (
+        <Empty>
+          {tx("db.songsTab.nothing_matches", { q })}
+          {search.data.suggestion && (
+            <>
+              {" "}
+              {tx("search.did_you_mean")}{" "}
+              <button
+                type="button"
+                className="btn-plain min-h-11 font-semibold"
+                data-testid="db-did-you-mean"
+                onClick={() => setQ(search.data!.suggestion!)}
+              >
+                {search.data.suggestion}
+              </button>
+              ?
+            </>
+          )}
+        </Empty>
       )}
       {rows.length > 0 && (
-        <div className="min-w-0 lg:grid lg:grid-cols-2 lg:gap-x-4">
-          {rows.map((s) => {
+        <p className="section-head" data-testid="db-total">
+          {tx("library.results", { length: search.data?.total ?? rows.length })}
+        </p>
+      )}
+      {rows.length > 0 && (
+        <div className="min-w-0 lg:grid lg:grid-cols-2 lg:gap-x-4" id="db-results">
+          {rows.map((s, i) => {
+            const hl = hits[i]!.highlights;
             const p = (songs[s.id] ?? {}) as SongPatch & {
               hidden?: boolean;
               hiddenScope?: "title" | "copy";
@@ -284,9 +334,12 @@ export function SongsTab() {
             return (
               <Group
                 key={s.id}
+                id={`db-song-${i}`}
                 data-song={s.id}
+                data-active={i === active ? "" : undefined}
+                aria-current={i === active ? "true" : undefined}
                 footer={edited ? tx("db.songsTab.edited_revert_in_edit_mode") : undefined}
-                className="min-w-0"
+                className={`min-w-0 ${i === active ? "rounded-xl outline-2 outline-offset-2 outline-[var(--tint)]" : ""}`}
               >
                 <div className="cell" data-leading="art">
                   <Artwork
@@ -296,10 +349,20 @@ export function SongsTab() {
                     song={s}
                   />
                   <span className="min-w-0 flex-1">
-                    <span className="text-headline block truncate">{s.title}</span>
+                    <span className="text-headline block truncate">
+                      <Highlight text={s.title} spans={hl.title} />
+                    </span>
                     <span className="text-subhead block truncate text-[var(--label-2)]">
-                      {s.orchestra}
-                      {s.singer ? ` · ${s.singer}` : ""} · {labelOf(v.rhythm)}
+                      <Highlight text={s.orchestra} spans={hl.orchestra} />
+                      {s.singer ? (
+                        <>
+                          {" · "}
+                          <Highlight text={s.singer} spans={hl.singer} />
+                        </>
+                      ) : (
+                        ""
+                      )}
+                      {s.year ? ` · ${s.year}` : ""} · {labelOf(v.rhythm)}
                     </span>
                     <span className="mt-0.5 flex flex-wrap gap-1">
                       <EraBadge song={eff} />
@@ -621,6 +684,19 @@ export function SongsTab() {
               </Group>
             );
           })}
+        </div>
+      )}
+      {search.hasMore && rows.length > 0 && (
+        <div className="mt-3 flex justify-center">
+          <button
+            type="button"
+            className="btn-plain min-h-11 px-4"
+            onClick={search.loadMore}
+            disabled={searching}
+            data-testid="db-more"
+          >
+            {tx("search.show_more", { shown: rows.length, total: search.data?.total ?? rows.length })}
+          </button>
         </div>
       )}
 

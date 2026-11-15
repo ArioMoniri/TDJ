@@ -304,6 +304,8 @@ export async function meta(_req: Request, d: ApiDeps): Promise<Response> {
         phase: p?.phase,
         notBefore: p?.notBefore,
         singers: p?.singers,
+        // 2026-11: the other names the search knows it by ("OTV", "Pichuco")
+        ...(p?.aliases?.length ? { aliases: p.aliases } : {}),
         years: years.length ? [Math.min(...years), Math.max(...years)] : undefined,
         topSingers: [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8),
         instrumentals: songs.filter((s) => !s.singer).length,

@@ -1,6 +1,6 @@
 "use client";
 import { CircleX, LoaderCircle, Search } from "lucide-react";
-import { useState } from "react";
+import { type InputHTMLAttributes, useState } from "react";
 import { useMediaQuery } from "@/lib/hooks";
 import { lower, t as tx } from "@/lib/i18n";
 import { Tip, useTip } from "./ui/Tip";
@@ -16,6 +16,7 @@ export function SearchField({
   className = "",
   onFocusChange,
   tip,
+  inputProps,
 }: {
   id: string;
   value: string;
@@ -28,6 +29,8 @@ export function SearchField({
   onFocusChange?: (focused: boolean) => void;
   /** the field's help tag; defaults to its placeholder, which says what it searches */
   tip?: string;
+  /** more on the <input> (2026-11 search: keys, autofocus, the results list it drives) */
+  inputProps?: Omit<InputHTMLAttributes<HTMLInputElement>, "id" | "value" | "onChange" | "type">;
 }) {
   const [focused, setFocused] = useState(false);
   const t = useTip<HTMLLabelElement>(tip ?? tx("searchField.search_by", { placeholder: lower(placeholder) }));
@@ -52,13 +55,20 @@ export function SearchField({
           type="search"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          onFocus={() => focus(true)}
-          onBlur={() => focus(false)}
           placeholder={placeholder}
           enterKeyHint="search"
           autoCapitalize="none"
           autoComplete="off"
           spellCheck={false}
+          {...inputProps}
+          onFocus={(e) => {
+            focus(true);
+            inputProps?.onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            focus(false);
+            inputProps?.onBlur?.(e);
+          }}
         />
         {value && (
           <Tip text={tx("searchField.clear_the_search")}>

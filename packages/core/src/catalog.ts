@@ -6,6 +6,7 @@ import type { DeezerCache } from "./enrich";
 import { DEFAULT_HEATMAP, type Heatmap, monthIndex } from "./knowledge";
 import { judgeStreams, takesIndex } from "./matchRules";
 import { ERA_PRESETS, mergeProfiles } from "./profiles";
+import { buildSongIndex, type SongIndex, searchSongs } from "./search";
 import { creditNamesOther, dateMismatch, knownSingers } from "./streams";
 import type {
   DanceRhythm,
@@ -432,18 +433,18 @@ export class Catalog {
     });
   }
 
+  private _searchIndex?: SongIndex;
+  /** the shared search engine's index over this catalogue (built on first use; search.ts) */
+  searchIndex(): SongIndex {
+    if (!this._searchIndex)
+      this._searchIndex = buildSongIndex(this.songs, { aliases: (id) => this.profiles.get(id)?.aliases });
+    return this._searchIndex;
+  }
+
+  /** the catalogue search (2026-11: the shared engine, search.ts): accent-blind, typo-tolerant, ranked */
   search(q: string, limit = 50): Song[] {
-    const norm = (x: string) => x.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/['’.]/g, "");
-    const terms = norm(q).split(/\s+/).filter(Boolean);
-    const out: Song[] = [];
-    for (const s of this.songs) {
-      const hay = norm(`${s.title} ${s.orchestra} ${s.singer ?? ""} ${s.year ?? ""} ${s.rhythm}`);
-      if (terms.every((t) => hay.includes(t))) {
-        out.push(s);
-        if (out.length >= limit) break;
-      }
-    }
-    return out;
+    if (!String(q ?? "").trim()) return [];
+    return searchSongs(this.searchIndex(), q, { limit }).items.map((h) => h.song);
   }
 }
 
