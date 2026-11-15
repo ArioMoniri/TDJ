@@ -146,7 +146,7 @@ export default function HistoryPage() {
   } = useStore();
   const router = useRouter();
   const reduced = useReducedMotion();
-  const isPhone = useMediaQuery("(max-width: 639px)");
+  const isPhone = useMediaQuery("(max-width: 599.98px)");
   const [openId, setOpenId] = useState<string | null>(null);
   // the sidebar's Recent nights link here as #night=<id>: open that night
   useEffect(() => {
@@ -403,7 +403,7 @@ export default function HistoryPage() {
               <div className="cell flex-col items-stretch gap-2 py-4">
                 {/* the score on its own line, as the Compose header does; the metadata under it */}
                 <div className="flex items-baseline gap-1">
-                  <span className="text-large-title tabular-nums text-[var(--tint)]">{open.score}</span>
+                  <span className="score-stat tabular-nums text-[var(--tint)]">{open.score}</span>
                   <span className="text-title3 text-[var(--label-2)]">/100</span>
                 </div>
                 <p className="text-footnote text-[var(--label-2)]">{sub(open)}</p>

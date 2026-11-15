@@ -106,6 +106,13 @@ const TILE_COLOR: Record<ExportFormat, string> = {
   setlist: "#636366",
 };
 
+/** "https://open.spotify.com/pl…/37i9dQZF1DX" : the start and the end of a long value, the middle elided */
+export function middleTruncate(v: string, max: number): string {
+  if (v.length <= max) return v;
+  const tail = Math.floor((max - 1) * 0.4);
+  return `${v.slice(0, max - 1 - tail)}…${v.slice(v.length - tail)}`;
+}
+
 export function ExportSheet({
   open,
   onClose,
@@ -170,6 +177,7 @@ export function ExportSheet({
   const found = useRef(new Map<string, string>());
   /** a playlist made before (its Spotify link): the export rewrites it in place instead of making a new one */
   const [target, setTarget] = useState("");
+  const [targetFocused, setTargetFocused] = useState(false);
   /** what the last Spotify action did, for the button's done label */
   const [madeNew, setMadeNew] = useState(true);
   const targetKey = playlist ? `tdj-sp-target:${playlist.name}` : "";
@@ -974,12 +982,16 @@ export function ExportSheet({
               ? tx("exportSheet.updates_this_playlist_in_place_in")
               : tx("exportSheet.to_update_a_playlist_made_before")}
           </span>
+          {/* wave 4: the system font at 15 pt, middle-truncated while it is not being edited (a monospace 17 pt
+              address ran off the sheet's edge) */}
           <input
             id="spotify-target"
-            className="field font-mono"
+            className="field text-subhead min-h-[36px] truncate"
             inputMode="url"
             placeholder="https://open.spotify.com/playlist/…"
-            value={target}
+            value={targetFocused ? target : middleTruncate(target, 38)}
+            onFocus={() => setTargetFocused(true)}
+            onBlur={() => setTargetFocused(false)}
             onChange={(e) => setTarget(e.target.value)}
             autoComplete="off"
             spellCheck={false}
@@ -1264,7 +1276,7 @@ export function ExportSheet({
             <span className="sr-only">{tx("exportSheet.webhook_url")}</span>
             <input
               id="webhook-url"
-              className="field font-mono"
+              className="field text-subhead"
               data-autofocus
               inputMode="url"
               placeholder="https://eo…m.pipedream.net/…"

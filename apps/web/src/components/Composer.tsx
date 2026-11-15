@@ -4,6 +4,7 @@ import {
   ChevronRight,
   Copy,
   Disc3,
+  Ellipsis,
   Eraser,
   Hand,
   LoaderCircle,
@@ -38,7 +39,7 @@ import { FEATURED, type FeaturedId, featuredMeta, loadFeatured } from "@/lib/fea
 import { FEEDBACK_CHIPS } from "@/lib/feedback";
 import { haptic } from "@/lib/haptics";
 import { makeSnapshot } from "@/lib/history";
-import { testSlowdownMs, useMediaQuery, useScrollDirection, whenIdle } from "@/lib/hooks";
+import { testSlowdownMs, useMediaQuery, whenIdle } from "@/lib/hooks";
 import { lazy, lower, plural, t as tx } from "@/lib/i18n";
 import { describePreferences } from "@/lib/memory";
 import { DUR, EASE, rise, STAGGER } from "@/lib/motion";
@@ -947,9 +948,8 @@ export function Composer() {
     committedKey.current = setKey;
   }, [setKey]);
   const reduced = useReducedMotion();
-  const wide = useMediaQuery("(min-width: 640px)", true);
+  const wide = useMediaQuery("(min-width: 600px)", true);
   const lg = useMediaQuery("(min-width: 1024px)", true);
-  const minimised = useScrollDirection();
   const playerOpen = usePlayer((s) => !!s.track);
   useEffect(() => setHydrated(true), []);
   /**
@@ -973,12 +973,15 @@ export function Composer() {
     return () => io.disconnect();
   }, [hydrated, hasSet]);
   // the phone primary bar needs room under the form (round8-ux.md §2): `main` pads for it while this page is up
+  // wave 4: only the empty page floats a Compose button; with a set the actions live in the navigation bar
+  const floatingCompose = !hasSet;
   useEffect(() => {
+    if (!floatingCompose) return;
     document.documentElement.dataset.primaryBar = "1";
     return () => {
       delete document.documentElement.dataset.primaryBar;
     };
-  }, []);
+  }, [floatingCompose]);
   useEffect(() => {
     let alive = true;
     const cancel = whenIdle(() => {
@@ -1674,10 +1677,50 @@ export function Composer() {
         title={tx("composer.compose")}
         trailing={
           <>
-            {/* phones have Regenerate in the primary bar; the title bar keeps only ••• there */}
             {/* (the open set-up form has its own Compose in the dock: Regenerate steps aside, one at a time) */}
             {hasPlaylist && wide && !setupOpen && (lg ? composeButton : composeCompact)}
-            {hasPlaylist && playlist && (
+            {/* wave 4, phones: the page's actions are navigation-bar icon buttons, iOS 26 style (Regenerate, the
+                share glyph for Export, •••); nothing floats over the set */}
+            {hasPlaylist && !wide && playlist && (
+              <span className="-mr-1 flex items-center" data-testid="nav-actions">
+                <motion.button
+                  type="button"
+                  onClick={() => run()}
+                  disabled={busy}
+                  className="icon-btn nav-btn text-[var(--tint)]"
+                  aria-label={tx("composer.regenerate")}
+                  animate={errorNudge}
+                  transition={{ duration: 0.28, ease: EASE.inOut }}
+                  data-testid="bar-regenerate"
+                >
+                  {busy ? (
+                    <LoaderCircle size={20} strokeWidth={2} className="animate-spin" aria-hidden />
+                  ) : (
+                    <Repeat2 size={20} strokeWidth={2} aria-hidden />
+                  )}
+                </motion.button>
+                <button
+                  type="button"
+                  onClick={openExport}
+                  className="icon-btn nav-btn text-[var(--tint)]"
+                  aria-label={tx("composer.export")}
+                  data-testid="bar-export"
+                >
+                  <Share size={20} strokeWidth={2} aria-hidden />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActionsOpen(true)}
+                  className="icon-btn nav-btn text-[var(--tint)]"
+                  aria-label={tx("primaryBar.set_actions")}
+                  aria-haspopup="dialog"
+                  data-testid="bar-more"
+                >
+                  <Ellipsis size={20} strokeWidth={2} aria-hidden />
+                </button>
+              </span>
+            )}
+            {hasPlaylist && wide && playlist && (
               <Menu
                 label={tx("composer.more")}
                 items={[
@@ -1888,10 +1931,10 @@ export function Composer() {
                 </div>
                 {wide ? (
                   <div className="flex items-baseline gap-1">
-                    <span className="text-large-title tabular-nums text-[var(--tint)]">
+                    <span className="score-stat tabular-nums text-[var(--tint)]" data-testid="score-value">
                       <ScoreCounter key={setKey} value={playlist.score.total} from={scoreFrom} />
                     </span>
-                    <span className="text-title3 text-[var(--label-2)]">/100</span>
+                    <span className="text-subhead text-[var(--label-2)]">/100</span>
                   </div>
                 ) : (
                   <button
@@ -1901,10 +1944,10 @@ export function Composer() {
                     aria-label={tx("composer.score_of_100_adjust_the_set", { total: playlist.score.total })}
                     data-testid="score-button"
                   >
-                    <span className="text-large-title tabular-nums text-[var(--tint)]">
+                    <span className="score-stat tabular-nums text-[var(--tint)]" data-testid="score-value">
                       <ScoreCounter key={setKey} value={playlist.score.total} from={scoreFrom} />
                     </span>
-                    <span className="text-title3 text-[var(--label-2)]">/100</span>
+                    <span className="text-subhead text-[var(--label-2)]">/100</span>
                     <SlidersHorizontal
                       size={16}
                       strokeWidth={2}
@@ -2213,12 +2256,9 @@ export function Composer() {
       <PrimaryBar
         hasPlaylist={hasPlaylist}
         busy={busy}
-        minimised={minimised}
         hidden={sheetOpen || playerOpen}
         onCompose={() => run()}
-        onExport={openExport}
         errorNudge={errorNudge}
-        onMore={() => setActionsOpen(true)}
       />
       {!wide && playlist && (
         <Sheet

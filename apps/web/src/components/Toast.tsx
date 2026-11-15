@@ -1,8 +1,10 @@
 "use client";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { t } from "@/lib/i18n";
 import { toastIn } from "@/lib/motion";
+import { useSheetOpen } from "@/lib/sheets";
 
 export interface ToastItem {
   id: number;
@@ -26,13 +28,73 @@ export function useToast() {
   return { toast, show, dismiss };
 }
 
+/**
+ * The topmost open sheet's status slot (Sheet.tsx), or null with no sheet open. Read after the sheet has mounted
+ * (one frame later), and again whenever the sheet count changes or a new toast arrives.
+ */
+function useSheetSlot(toastId: number | undefined): HTMLElement | null {
+  const open = useSheetOpen();
+  // the sheet mounts its slot in the commit that opens it; a toast arrives later, so a lookup when the toast renders
+  // finds it (the topmost slot is the last one in the document: sheets portal to the end of <body>)
+  const [, rerun] = useState(0);
+  useEffect(() => {
+    // a sheet opened or closed under a toast that is already up: look again next frame
+    if (!open || toastId === undefined) return;
+    const raf = requestAnimationFrame(() => rerun((n) => n + 1));
+    return () => cancelAnimationFrame(raf);
+  }, [open, toastId]);
+  if (!open || toastId === undefined || typeof document === "undefined") return null;
+  const all = document.querySelectorAll<HTMLElement>("[data-sheet-status]");
+  return all[all.length - 1] ?? null;
+}
+
 export function Toast({ toast, onDismiss }: { toast: ToastItem | null; onDismiss: () => void }) {
   const [paused, setPaused] = useState(false);
+  const slot = useSheetSlot(toast?.id);
   useEffect(() => {
     if (!toast || paused) return;
     const id = setTimeout(onDismiss, toast.ttl ?? 3000);
     return () => clearTimeout(id);
   }, [toast, paused, onDismiss]);
+  const action = toast?.undo && (
+    <button
+      type="button"
+      className="btn-plain shrink-0 font-semibold"
+      onClick={() => {
+        toast.undo?.();
+        onDismiss();
+      }}
+    >
+      {toast.actionLabel ?? t("toast.undo")}
+    </button>
+  );
+  // wave 4: while a sheet is open the toast is an inline status row under the sheet's title (it floated over the
+  // grabber and the title, cut to one line); the text wraps there instead of truncating
+  if (slot)
+    return createPortal(
+      <AnimatePresence mode="wait">
+        {toast && (
+          <motion.div
+            key={toast.id}
+            role="status"
+            aria-live="polite"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+            onFocus={() => setPaused(true)}
+            onBlur={() => setPaused(false)}
+          >
+            <div className="sheet-status" data-testid="toast" data-inline="sheet">
+              <span className="min-w-0 flex-1">{toast.text}</span>
+              {action}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>,
+      slot,
+    );
   return (
     <AnimatePresence mode="wait">
       {toast && (
@@ -54,18 +116,7 @@ export function Toast({ toast, onDismiss }: { toast: ToastItem | null; onDismiss
           data-testid="toast"
         >
           <span className="min-w-0 flex-1 truncate">{toast.text}</span>
-          {toast.undo && (
-            <button
-              type="button"
-              className="btn-plain font-semibold"
-              onClick={() => {
-                toast.undo?.();
-                onDismiss();
-              }}
-            >
-              {toast.actionLabel ?? t("toast.undo")}
-            </button>
-          )}
+          {action}
         </motion.div>
       )}
     </AnimatePresence>

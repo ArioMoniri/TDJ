@@ -75,7 +75,7 @@ export const COHESION_HELP = () => t("cohesionBadge.how_smoothly_the_songs_of_th
 /** Tanda header badge with the label; tap for a popover (desktop) or sheet (phone) listing each pair's parts. */
 export function CohesionBadge({ info, tandaLabel }: { info: CohesionInfo; tandaLabel: string }) {
   const [open, setOpen] = useState(false);
-  const isPhone = useMediaQuery("(max-width: 639px)");
+  const isPhone = useMediaQuery("(max-width: 599.98px)");
   const reduced = useReducedMotion();
   const root = useRef<HTMLSpanElement>(null);
   const id = useId();

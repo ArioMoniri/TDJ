@@ -34,7 +34,7 @@ export function HintLayer() {
     let lastTouch = Number.NEGATIVE_INFINITY;
     const over = (ev: PointerEvent) => {
       if (ev.pointerType !== "mouse" || ev.timeStamp - lastTouch < 1000) return;
-      if (!canHover && window.innerWidth < 640) return;
+      if (!canHover && window.innerWidth < 600) return;
       const el = target(ev);
       clear();
       if (!el) return setHint(null);

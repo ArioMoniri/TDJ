@@ -116,7 +116,7 @@ test("compose narrative: one step label at a time", async ({ page }) => {
   await expect(page.locator("#result")).toBeVisible({ timeout: 60000 });
 });
 
-test("phone: an icon-only Booth button in the result header, one disclosure on the Listen row, the pill at the right edge, the mini-player docked on the tab bar", async ({
+test("phone: an icon-only Booth button in the result header, one disclosure on the Listen row, the actions in the navigation bar, the mini-player docked on the tab bar", async ({
   browser,
 }) => {
   const { ctx, page } = await phone(browser);
@@ -142,24 +142,23 @@ test("phone: an icon-only Booth button in the result header, one disclosure on t
   // the ••• sheet leads with the Booth
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.waitForTimeout(500);
-  await page.getByTestId("primary-bar").getByRole("button", { name: "Set actions" }).click();
+  // wave 4: ••• is a navigation-bar button (the floating Regenerate / Export bar is gone)
+  await page.getByTestId("page-toolbar").getByRole("button", { name: "Set actions" }).click();
   const actions = page.getByTestId("actions-sheet");
   await expect(actions).toBeVisible();
   await expect(actions.getByRole("menuitem").first()).toHaveText("Play the night");
   await page.waitForTimeout(400);
   await actions.getByRole("button", { name: "Close" }).click();
   await expect(actions).toHaveCount(0);
-  // scrolled down: the minimised pill sits at the right edge, clear of a tanda header's •••
+  // scrolled down: nothing floats over a tanda header's •••; the set's actions ride in the collapsed navigation bar
   const height = await page.evaluate(() => document.documentElement.scrollHeight);
   await page.evaluate(() => window.scrollTo(0, 300));
   await page.waitForTimeout(150);
   await page.evaluate((h) => window.scrollTo(0, h / 2), height);
   await page.waitForTimeout(700);
   await expect(page.getByTestId("tab-bar")).toHaveAttribute("data-min", "true");
-  const pill = (await page.getByTestId("primary-pill").boundingBox())!;
-  const vw = page.viewportSize()!.width;
-  expect(vw - (pill.x + pill.width)).toBeLessThanOrEqual(14);
-  expect(pill.x).toBeGreaterThan(vw / 2);
+  await expect(page.getByTestId("primary-bar")).toHaveCount(0);
+  await expect(page.getByTestId("collapsed-bar").getByTestId("bar-export")).toBeVisible();
   // the mini-player: one glass unit with the tab bar; the primary bar leaves meanwhile
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.waitForTimeout(500);
@@ -177,15 +176,13 @@ test("phone: an icon-only Booth button in the result header, one disclosure on t
       gap: tr.top - p.bottom,
       docked: t.hasAttribute("data-docked"),
       radius: getComputedStyle(document.querySelector('[data-testid="mini-player"]')!).borderBottomLeftRadius,
-      barHidden: document.querySelector('[data-testid="primary-bar"]')!.getAttribute("data-hidden"),
-      pillHidden: document.querySelector('[data-testid="primary-pill"]')!.getAttribute("aria-hidden"),
+      floating: document.querySelectorAll('[data-testid="primary-bar"]').length,
     };
   });
   expect(Math.abs(geo.gap)).toBeLessThanOrEqual(2);
   expect(geo.docked).toBe(true);
   expect(geo.radius).toBe("0px");
-  expect(geo.barHidden).toBe("true");
-  expect(geo.pillHidden).toBe("true");
+  expect(geo.floating).toBe(0);
   await page.getByRole("button", { name: "Close player" }).click();
   await expect(player).toBeHidden();
   await expect(page.getByTestId("tab-bar")).not.toHaveAttribute("data-docked", "1");

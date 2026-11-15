@@ -109,7 +109,7 @@ export function LevelsSheet({ open, onClose }: { open: boolean; onClose: () => v
   const kind = useBooth((s) => s.plan?.items[s.planIndex]?.kind);
   const composerCortina = useBooth((s) => s.playlist?.options.cortinaLengthSec);
   const userSettings = useStore((s) => s.settings);
-  const phone = useMediaQuery("(max-width: 639px)");
+  const phone = useMediaQuery("(max-width: 599.98px)");
   const act = useBooth.getState();
   const live = state === "playing" || state === "cortina";
   const set = act.setSettings;

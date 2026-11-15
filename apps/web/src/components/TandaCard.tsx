@@ -92,7 +92,7 @@ function TandaCardImpl({
 }: TandaCardProps) {
   const cortinaTip = useTip<HTMLButtonElement>(tx("tandaCard.the_cortina_after_this_tanda_open"));
   const reduced = useReducedMotion();
-  const isPhone = useMediaQuery("(max-width: 639px)");
+  const isPhone = useMediaQuery("(max-width: 599.98px)");
   const [listen, setListen] = useState(false);
   const [cortinaOpen, setCortinaOpen] = useState(false);
   const [analysing, setAnalysing] = useState(false);

@@ -75,7 +75,7 @@ function Booth() {
   const [song, setSong] = useState<number | null>(null);
   const [setOpen, setSetOpen] = useState(false);
   const [show, setShow] = useState(false);
-  const phone = useMediaQuery("(max-width: 639px)", false);
+  const phone = useMediaQuery("(max-width: 599.98px)", false);
   // a tanda tapped on the energy chart or the Next card: the set list scrolls to it (a phone opens the sheet first)
   const showInSet = (i: number) => {
     if (phone) setSetOpen(true);

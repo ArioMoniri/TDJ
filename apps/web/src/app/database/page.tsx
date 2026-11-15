@@ -127,7 +127,7 @@ export default function DatabasePage() {
     show(t("database.removed_changes", { prev: countChanges(prev) }), restore(prev));
   };
   // phones: Songs · Orchestras · Cortinas · More (the More segment names the open section when it is one of its three)
-  const isPhone = useMediaQuery("(max-width: 639px)");
+  const isPhone = useMediaQuery("(max-width: 599.98px)");
   const label = (k: Tab) => TABS.find(([t]) => t === k)?.[1] ?? k;
   const inMore = MORE_TABS.includes(tab);
   const phoneItems: Array<[Tab | "more", string]> = [

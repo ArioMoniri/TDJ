@@ -108,8 +108,8 @@ export function Row({
       {t.tag}
       {tile}
       <span className="min-w-0 flex-1">
-        <span className="block truncate">{label}</span>
-        {sub && <span className="text-footnote block truncate text-[var(--label-2)]">{sub}</span>}
+        <span className="cell-label">{label}</span>
+        {sub && <span className="text-footnote cell-sub text-[var(--label-2)]">{sub}</span>}
       </span>
       {value !== undefined && <span className="cell-value text-body">{value}</span>}
       {children}
@@ -203,8 +203,8 @@ export function PickerRow<K extends string>({
       {t.tag}
       {tile}
       <label htmlFor={id} className="min-w-0 flex-1">
-        <span className="block truncate">{label}</span>
-        {sub && <span className="text-footnote block truncate text-[var(--label-2)]">{sub}</span>}
+        <span className="cell-label">{label}</span>
+        {sub && <span className="text-footnote cell-sub text-[var(--label-2)]">{sub}</span>}
       </label>
       {trailingDot && (
         <span
@@ -301,15 +301,15 @@ export function StepperRow({
   tip?: string;
 }) {
   // phones show the bare number; the group footer names the units
-  const isPhone = useMediaQuery("(max-width: 639px)");
+  const isPhone = useMediaQuery("(max-width: 599.98px)");
   const t = useTip(tipOf(tip, sub));
   return (
     <div className="cell" {...on(t.props)}>
       {t.tag}
       {tile}
       <span className="min-w-0 flex-1">
-        <span className="block truncate">{label}</span>
-        {sub && <span className="text-footnote block truncate text-[var(--label-2)]">{sub}</span>}
+        <span className="cell-label">{label}</span>
+        {sub && <span className="text-footnote cell-sub text-[var(--label-2)]">{sub}</span>}
       </span>
       {children}
       <span className="cell-value tabular-nums">
@@ -554,8 +554,8 @@ export function CheckRow({
       {t.tag}
       {tile}
       <span className="min-w-0 flex-1">
-        <span className="block truncate">{label}</span>
-        {sub && <span className="text-footnote block truncate text-[var(--label-2)]">{sub}</span>}
+        <span className="cell-label">{label}</span>
+        {sub && <span className="text-footnote cell-sub text-[var(--label-2)]">{sub}</span>}
       </span>
       <span className="grid h-5 w-5 place-items-center">
         {checked && <Check size={18} strokeWidth={2.5} className="text-[var(--tint)]" aria-hidden />}
@@ -642,8 +642,8 @@ export function FieldRow({
       {t.tag}
       {tile}
       <span className="min-w-0 flex-[0_1_45%]">
-        <span className="block truncate">{label}</span>
-        {sub && <span className="text-footnote block truncate text-[var(--label-2)]">{sub}</span>}
+        <span className="cell-label">{label}</span>
+        {sub && <span className="text-footnote cell-sub text-[var(--label-2)]">{sub}</span>}
       </span>
       {children}
     </label>
