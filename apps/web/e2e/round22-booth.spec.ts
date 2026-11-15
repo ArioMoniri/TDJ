@@ -203,15 +203,18 @@ test("headphone pre-listen: the cue goes to the headphones output, the room keep
   await expect(page.getByTestId("booth-pause")).toBeVisible({ timeout: 20000 });
   const nowTitle = await page.getByTestId("booth-now-title").innerText();
   const target = page.locator('.booth-row[data-kind="track"]').nth(6);
-  await target.getByTestId("booth-row-play").click();
+  // the row's sheet offers the pre-listen in the headphones
+  await target.getByTestId("booth-row-open").click();
   const sheet = page.getByTestId("booth-play-sheet");
   await expect(sheet.getByTestId("booth-prelisten")).toHaveAttribute("data-where", "headphones");
   await expect(sheet.getByTestId("booth-prelisten")).toContainText("Pre-listen in headphones");
-  await sheet.getByTestId("booth-prelisten").click();
+  await page.keyboard.press("Escape");
+  await expect(sheet).toHaveCount(0);
+  // 2026-11: mid-night, with headphones chosen, one tap on the row pre-listens it at once (the room untouched)
+  await target.getByTestId("booth-row-play").click();
   await expect(target).toHaveAttribute("data-cue", "true", { timeout: 10000 });
   // the cue element was sent to the headphones; the room still plays the same song
   expect(await page.evaluate(() => (window as unknown as { __sinks: string[] }).__sinks)).toContain("hp");
-  await page.keyboard.press("Escape");
   const line = page.getByTestId("booth-cueline");
   await expect(line).toContainText("Headphones");
   await expect(page.getByTestId("booth-out-cue")).toHaveAttribute("data-live", "true");
@@ -232,9 +235,9 @@ test("Safari (no setSinkId): the headphones picker is hidden and explained; no p
   await expect(chip).toHaveAttribute("data-hint", /Safari/);
   await chip.hover();
   await expect(page.getByTestId("booth-hint")).toContainText(/second output/);
-  // before the night a tap tests the song on this device, said so
+  // before the night the row's sheet tests the song on this device, said so
   const row = page.locator('.booth-row[data-kind="track"]').nth(2);
-  await row.getByTestId("booth-row-play").click();
+  await row.getByTestId("booth-row-open").click();
   const sheet = page.getByTestId("booth-play-sheet");
   await expect(sheet.getByTestId("booth-prelisten")).toHaveAttribute("data-where", "device");
   await sheet.getByTestId("booth-prelisten").click();
@@ -244,8 +247,10 @@ test("Safari (no setSinkId): the headphones picker is hidden and explained; no p
   // during the night the room's output is never used for a pre-listen
   await page.getByTestId("booth-start").click();
   await expect(page.getByTestId("booth-pause")).toBeVisible({ timeout: 20000 });
+  // no headphones: a tap opens the sheet with Play now in the room armed (one more tap plays)
   await page.locator('.booth-row[data-kind="track"]').nth(6).getByTestId("booth-row-play").click();
   await expect(sheet.getByRole("button", { name: "Play next" })).toBeVisible();
+  await expect(sheet.getByTestId("booth-play-now")).toHaveAttribute("data-armed", "true");
   await expect(sheet.getByTestId("booth-prelisten")).toHaveCount(0);
   await expect(sheet).toContainText(/Safari/);
 });
@@ -257,7 +262,7 @@ test("song sheet: drag-free cue / stop with the keyboard re-times the plan; anot
   await openBooth(page, { versions: true });
   const row = page.locator('.booth-row[data-kind="track"]').nth(3);
   const idx = Number(await row.getAttribute("data-plan-index"));
-  await row.getByTestId("booth-row-play").click();
+  await row.getByTestId("booth-row-open").click();
   const sheet = page.getByTestId("booth-play-sheet");
   await expect(sheet.getByRole("button", { name: "Start the night here" })).toBeVisible();
   const cueIn = sheet.getByTestId("booth-cue-in");
@@ -326,7 +331,7 @@ test("phone: the set list is a sheet, the transport keeps one row, the night bar
   await page.getByTestId("booth-set-open").click();
   const sheet = page.getByTestId("booth-set-sheet");
   await expect(sheet.getByTestId("booth-set")).toBeVisible();
-  await sheet.locator('.booth-row[data-kind="track"]').nth(2).getByTestId("booth-row-play").click();
+  await sheet.locator('.booth-row[data-kind="track"]').nth(2).getByTestId("booth-row-open").click();
   await expect(page.getByTestId("booth-play-sheet")).toBeVisible();
   await ctx.close();
 });

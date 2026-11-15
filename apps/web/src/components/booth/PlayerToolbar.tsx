@@ -9,7 +9,7 @@ import { toast } from "@/lib/toast";
 import { ActionRow, Group } from "../Form";
 import { Sheet } from "../Sheet";
 import { IndicatorSwitches } from "./IndicatorSwitches";
-import { SpotifyRoomGroup, useSpotifyRoomName } from "./SpotifyRoom";
+import { SpotifyRoomGroup, useSpotifyNeedsDevice, useSpotifyRoomName } from "./SpotifyRoom";
 
 /**
  * Round 22 — the player's toolbar under the title: where the sound comes from (Spotify full tracks, files or the
@@ -33,6 +33,9 @@ export function PlayerToolbar({ rehearsal }: { rehearsal: boolean }) {
     return () => window.removeEventListener(OPEN_ROOM_EVENT, open);
   }, []);
   const hearing = audition?.where === "headphones";
+  // 2026-11: Spotify Premium on a browser that plays through the Spotify app (iPhone, iPad) with no device yet: ROOM
+  // asks to be picked (the status says "Spotify · pick a device"); never a silent fall to 30 s clips
+  const pickDevice = useSpotifyNeedsDevice();
   return (
     <div className="booth-toolbar" data-testid="booth-toolbar">
       <SourceLine rehearsal={rehearsal} />
@@ -40,6 +43,7 @@ export function PlayerToolbar({ rehearsal }: { rehearsal: boolean }) {
         type="button"
         className="booth-out"
         data-out="room"
+        data-attention={pickDevice || undefined}
         data-testid="booth-out-room"
         data-hint={t("booth.playerToolbar.room_where_the_night_plays_for")}
         aria-label={t("booth.playerToolbar.room_output_2", { p1: roomLabel })}
@@ -218,23 +222,55 @@ function SourceLine({ rehearsal }: { rehearsal: boolean }) {
   const sources = useBooth((s) => s.sources);
   const mode = useBooth((s) => s.sourceMode);
   const started = useBooth((s) => s.started);
+  const state = useBooth((s) => s.state);
   const onSpotify = !rehearsal && sources.includes("spotify");
-  if (!rehearsal && !onSpotify && !sp.reconnect) return null;
+  const pick = useSpotifyNeedsDevice();
+  // 2026-11: the state in words beside its colour — Playing / Paused, the source, or "Spotify · pick a device"
+  const playing = started && (state === "playing" || state === "cortina");
+  const paused = started && state === "paused";
+  const source = onSpotify
+    ? pick
+      ? t("booth.playerToolbar.spotify_pick_device")
+      : t("booth.playerToolbar.spotify_full_tracks")
+    : rehearsal
+      ? t("booth.playerToolbar.rehearsal_30_s_clips")
+      : sources.includes("file")
+        ? t("booth.playerToolbar.your_files")
+        : null;
+  if (!source && !sp.reconnect) return null;
   return (
     <>
       <span
         className="booth-chip"
         data-testid="booth-mode"
-        data-source={onSpotify ? "spotify" : "clips"}
+        role="status"
+        data-source={onSpotify ? "spotify" : rehearsal ? "clips" : "files"}
+        data-state={
+          pick && onSpotify
+            ? "pick-device"
+            : playing
+              ? "playing"
+              : paused
+                ? "paused"
+                : onSpotify
+                  ? "spotify"
+                  : rehearsal
+                    ? "rehearsal"
+                    : "files"
+        }
         data-hint={
           onSpotify
-            ? t("booth.playerToolbar.spotify_premium_plays_every_song_in")
+            ? pick
+              ? t("booth.playerToolbar.spotify_pick_device_hint")
+              : t("booth.playerToolbar.spotify_premium_plays_every_song_in")
             : t("booth.playerToolbar.a_rehearsal_plays_30_s_of")
         }
       >
-        {onSpotify
-          ? t("booth.playerToolbar.spotify_full_tracks")
-          : t("booth.playerToolbar.rehearsal_30_s_clips")}
+        {playing
+          ? t("booth.playerToolbar.status_playing", { source: source ?? "" })
+          : paused
+            ? t("booth.playerToolbar.status_paused", { source: source ?? "" })
+            : source}
       </span>
       {rehearsal && sp.ok && mode === "preview" && !started && (
         <button

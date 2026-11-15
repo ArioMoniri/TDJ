@@ -10,6 +10,8 @@ import { Artwork } from "../ui/Artwork";
 import { BpmKey, EnergyChip } from "../ui/BpmKey";
 import { EraBadge } from "../ui/EraBadge";
 import { SeekBar } from "../ui/SeekBar";
+import { TandaTypeBadge } from "../ui/TandaTypeBadge";
+import { ArmButton } from "./Confirm";
 import { FloorReaction } from "./FloorReaction";
 import { Meter } from "./Meter";
 
@@ -51,7 +53,14 @@ export function eyebrowFor(
  * bar, `k of n` dots, the remaining time at 44 pt, the level meter, the source and gain, "End the tanda after this
  * song" and the song's info sheet.
  */
-export function NowCard({ onInfo }: { onInfo?: (planIndex: number) => void }) {
+export function NowCard({
+  onInfo,
+  onPlay,
+}: {
+  onInfo?: (planIndex: number) => void;
+  /** 2026-11: the artwork plays like a row tap (from here before the night, the headphones during it) */
+  onPlay?: (planIndex: number) => void;
+}) {
   const plan = useBooth((s) => s.plan);
   const planIndex = useBooth((s) => s.planIndex);
   const state = useBooth((s) => s.state);
@@ -69,6 +78,7 @@ export function NowCard({ onInfo }: { onInfo?: (planIndex: number) => void }) {
   // 2026-11: the room's dancers' hearts on this song (counts only)
   const hearts = useRoomHearts((s) => (entity && "rhythm" in entity ? (s.counts[entity.id] ?? 0) : 0));
   const item = plan?.items[planIndex];
+  const tanda = item && item.tanda > 0 ? playlist?.tandas[item.tanda - 1] : undefined;
   if (!plan || !item) return null;
   const length = current
     ? Math.max(0, current.endsAt - current.startedAt)
@@ -98,7 +108,16 @@ export function NowCard({ onInfo }: { onInfo?: (planIndex: number) => void }) {
   return (
     <section className="booth-card" data-testid="booth-now" aria-label={t("booth.nowCard.now_playing")}>
       <div className="booth-now-head">
-        <Artwork entity={entity} orchestra={orchestra} size={96} />
+        <button
+          type="button"
+          className="booth-art-tap"
+          onClick={() => onPlay?.(planIndex)}
+          disabled={!onPlay || item.kind === "break"}
+          aria-label={t("booth.setColumn.play", { title: item.title })}
+          data-testid="booth-now-art"
+        >
+          <Artwork entity={entity} orchestra={orchestra} size={96} />
+        </button>
         <div className="min-w-0 flex-1">
           <p className="booth-eyebrow" data-hint={t("booth.nowCard.where_this_song_sits_in_the")}>
             <span className="text-[var(--room)]">{t("booth.nowCard.room")}</span> ·{" "}
@@ -109,6 +128,9 @@ export function NowCard({ onInfo }: { onInfo?: (planIndex: number) => void }) {
           </h2>
           <p className="booth-now-artist">{metaLine(item.artist, yearText(item.year))}</p>
           <div className="booth-meta">
+            {tanda && item.kind === "track" && (
+              <TandaTypeBadge rhythm={tanda.rhythm} vocal={tanda.vocal} singer={tanda.singer} />
+            )}
             <EraBadge entity={entity} />
             <BpmKey e={entity} />
             <EnergyChip e={entity} />
@@ -214,16 +236,16 @@ export function NowCard({ onInfo }: { onInfo?: (planIndex: number) => void }) {
       <div className="booth-now-actions">
         {/* wave 2: never offered on the opening or closing La Cumparsita (no tanda to end) */}
         {item.kind !== "closing" && (
-          <button
-            type="button"
+          <ArmButton
             className="booth-tool"
-            onClick={() => useBooth.getState().cueCortina()}
+            armKey="end-tanda"
+            onConfirm={() => useBooth.getState().cueCortina()}
             disabled={!live || item.kind !== "track"}
             data-testid="booth-end-tanda"
             data-hint={t("booth.nowCard.the_song_plays_to_its_end")}
           >
             <ListEnd size={16} strokeWidth={2} aria-hidden /> {t("booth.nowCard.end_tanda_after_this_song")}
-          </button>
+          </ArmButton>
         )}
         {onInfo && item.kind !== "break" && (
           <button

@@ -207,17 +207,18 @@ test("phone booth: a 64 pt strip with the faders behind Levels, Time above Next,
   const strip = page.getByTestId("booth-strip");
   expect((await strip.boundingBox())!.height).toBeLessThanOrEqual(72);
   await expect(strip.getByTestId("booth-cortina-fader")).toHaveCount(0);
-  await expect(strip.getByTestId("booth-levels")).toBeVisible();
+  // (2026-11: on a phone Mix is in •••, the Controls toggle is on the row)
+  await expect(strip.getByTestId("booth-controls-toggle")).toBeVisible();
   await expect(page.getByTestId("booth-start")).toHaveText(/^Start · 30 s clips$/);
   // the stop glyph is quiet until a night runs
   await expect(page.getByTestId("booth-stop")).not.toHaveClass(/booth-stop-armed/);
-  // Time above Next; the Now chips never repeat
+  // 2026-11 (the owner's hierarchy): Now, then Up Next, then the night clock; the Now chips never repeat
   const order = await page.evaluate(() => ({
     time: document.querySelector('[data-testid="booth-time"]')!.getBoundingClientRect().top,
     next: document.querySelector('[data-testid="booth-next"]')!.getBoundingClientRect().top,
     chips: [...document.querySelectorAll('[data-testid="booth-now"] .booth-chip')].map((c) => c.textContent),
   }));
-  expect(order.time).toBeLessThan(order.next);
+  expect(order.next).toBeLessThan(order.time);
   expect(order.chips.filter((c) => c === "30 s rehearsal").length).toBeLessThanOrEqual(1);
   // the set column numbers tracks inside their tanda (round 22: on a phone the set list is a sheet)
   await page.getByTestId("booth-set-open").click();
@@ -226,7 +227,8 @@ test("phone booth: a 64 pt strip with the faders behind Levels, Time above Next,
   await page.keyboard.press("Escape");
   await expect(page.getByTestId("booth-set-sheet")).toHaveCount(0);
   // Levels: the two faders in a sheet
-  await strip.getByTestId("booth-levels").click();
+  await strip.getByTestId("booth-more").click();
+  await page.getByRole("menuitem", { name: "Mix: transitions, fades and levels" }).click();
   const levels = page.getByTestId("booth-levels-sheet");
   await expect(levels).toBeVisible();
   await expect(levels.getByTestId("booth-cortina-fader")).toBeVisible();

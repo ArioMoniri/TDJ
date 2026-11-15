@@ -91,52 +91,70 @@
 }
 @media (min-width: 600px) {
   .booth-deck-row {
-    grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(180px, 240px);
   }
 }
-/* ≥ 900 (iPad landscape, desktops): the set list beside the deck, scrolling on its own */
+/* ≥ 900 (iPad landscape, desktops), 2026-11 ("separate columns should scroll separately"): the page holds still and
+   each column is its own scroller, from the grid's top (under the chips and any banner, --booth-grid-top measured by
+   the page) down to the bottom stack (the transport, and the Controls panel when open): nothing runs under them.
+   The deck keeps the Now card pinned at its top; the right column scrolls the night bar and the set list together.
+   A soft edge at each end says there is more. */
 @media (min-width: 900px) {
   .booth .booth-grid {
     grid-template-columns: minmax(0, 1fr) minmax(360px, min(520px, 44%));
-    align-items: start;
+    align-items: stretch;
+    grid-template-rows: minmax(0, 1fr);
+    height: calc(
+      100dvh -
+      var(--booth-grid-top, 200px) -
+      var(--booth-strip-space, 88px) -
+      var(--booth-ctl-space, 0px) -
+      8px
+    );
+    min-height: 320px;
   }
-  /* wave 2: the column reaches the viewport's foot from wherever it sits (--booth-set-top, measured by the page:
-     the old formula assumed the stuck top, so at the top of the page the list ran under the transport), and the
-     list's foot pads by the space the transport takes (its height + its offset + the safe area): every row scrolls
-     fully above it */
+  .booth {
+    padding-bottom: 0;
+  }
+  .booth .booth-col-set,
+  .booth .booth-deck {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 16px;
+    mask-image: linear-gradient(to bottom, transparent 0, #000 6px, #000 calc(100% - 16px), transparent 100%);
+  }
   .booth .booth-col-set {
     grid-column: 2;
     grid-row: 1;
-    position: sticky;
-    top: 68px;
-    max-height: calc(100dvh - var(--booth-set-top, 68px) - 8px);
-    grid-template-rows: auto minmax(0, 1fr);
-    overflow: hidden;
-  }
-  .booth .booth-col-set > .booth-set {
-    overflow-y: auto;
-    min-height: 0;
-    padding-bottom: calc(var(--booth-strip-space, 88px) + var(--booth-ctl-space, 0px) + 8px);
-    scroll-padding-bottom: calc(var(--booth-strip-space, 88px) + var(--booth-ctl-space, 0px) + 8px);
-  }
-  .booth-deck {
-    grid-column: 1;
-  }
-}
-/* a short landscape screen (iPad landscape, 834 px): the night bar took most of the column and left ~135 px of the
-   list; the whole column scrolls instead, so the list can fill it (the playhead follows in the column) */
-@media (min-width: 900px) and (max-height: 860px) {
-  .booth .booth-col-set {
     display: block;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    scroll-padding-bottom: calc(var(--booth-strip-space, 88px) + var(--booth-ctl-space, 0px) + 8px);
+    position: relative;
+    top: auto;
+    max-height: none;
   }
   .booth .booth-col-set > .booth-night {
     margin-bottom: 12px;
   }
   .booth .booth-col-set > .booth-set {
     overflow: visible;
+  }
+  .booth-deck {
+    grid-column: 1;
+    grid-row: 1;
+    align-content: start;
+  }
+  /* the Now card stays at the deck's top, Up Next and the energy chart scroll under it */
+  .booth-deck > [data-testid="booth-now"] {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+}
+/* the page itself never scrolls on two columns (tall enough for them) */
+@media (min-width: 900px) and (min-height: 560px) {
+  html[data-booth] {
+    overflow: hidden;
   }
 }
 @media (min-width: 1600px) {
@@ -804,4 +822,556 @@
 /* 2026-11: anything scrolled into view (focus, a jump) clears the transport and the Controls panel */
 html[data-booth] {
   scroll-padding-bottom: calc(var(--booth-strip-space, 88px) + var(--booth-ctl-space, 0px) + 8px);
+}
+
+/* =====================================================================================================================
+   2026-11 — the iPad pass (the owner's photos on an iPad in Safari, landscape, sidebar open):
+   one aligned bottom stack, a uniform transport, one chip family under the title, AA contrast in both themes,
+   the light confirmation's ring.
+   ===================================================================================================================== */
+
+/* the bottom stack's insets: the content column's (the main column's padding, beside the lg sidebar) */
+html[data-booth] {
+  --bx-l: 8px;
+  --bx-r: 8px;
+  /* text that must read on a booth fill: one step stronger than the page tokens */
+  --booth-danger: #b4232a;
+  --booth-fill: color-mix(in srgb, rgb(var(--text)) 9%, rgb(var(--bg-cell)));
+  --booth-fill-strong: color-mix(in srgb, rgb(var(--text)) 14%, rgb(var(--bg-cell)));
+}
+:root.dark[data-booth],
+:root[data-theme="dark"][data-booth] {
+  --booth-danger: #ff8a8a;
+}
+@media (min-width: 600px) {
+  html[data-booth] {
+    --bx-l: calc(max(0px, (100vw - 720px) / 2) + 24px);
+    --bx-r: calc(max(0px, (100vw - 720px) / 2) + 24px);
+  }
+}
+@media (min-width: 1024px) {
+  html[data-booth] {
+    --bx-l: calc(var(--sidebar-w) + 32px);
+    --bx-r: 32px;
+  }
+}
+
+/* ---------- the transport: one row, one cell size ---------- */
+.booth .booth-strip.glass {
+  left: var(--bx-l);
+  right: var(--bx-r);
+  width: auto;
+  max-width: none;
+  transform: none;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px;
+  container: strip / inline-size;
+}
+@media (min-width: 600px) {
+  .booth .booth-strip.glass {
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    height: 64px;
+    min-height: 64px;
+  }
+}
+/* solid: the set list never shows through the control layer (the solid fallback of the glass) */
+.booth .booth-strip.glass::after,
+.booth .booth-ctl.glass::after {
+  background: rgb(var(--surface));
+  backdrop-filter: none;
+}
+.booth .booth-strip .booth-tbtn {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 44px;
+  max-width: 76px;
+  height: 52px;
+  min-height: 52px;
+  padding: 0 2px;
+  gap: 3px;
+  border-radius: 12px;
+  color: var(--label);
+}
+.booth .booth-strip .booth-tbtn > .booth-tbtn-l {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  max-width: 100%;
+  overflow: hidden;
+  text-align: center;
+  line-height: 11px;
+  font-size: 10px;
+  letter-spacing: -0.02em;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+.booth .booth-strip .booth-tbtn:disabled {
+  color: var(--label-3);
+}
+.booth .booth-strip .booth-tbtn:not(:disabled):hover {
+  background: var(--fill-4);
+}
+.booth .booth-strip .booth-strip-sep {
+  width: 1px;
+  height: 32px;
+  align-self: center;
+  margin: 0 2px;
+  flex: none;
+}
+/* Stop: the same cell; red once a night runs (its ring), quiet before */
+.booth .booth-strip .booth-stop {
+  width: auto;
+  background: none;
+}
+.booth .booth-strip .booth-stop.booth-stop-armed:not(:disabled) {
+  color: var(--booth-danger);
+  box-shadow: inset 0 0 0 1.5px var(--booth-danger);
+}
+/* the primary: one fixed width in every state (Start · 30 s clips, Pause, Play, Resume, End break) */
+.booth .booth-strip .booth-primary {
+  flex: 0 0 var(--primary-w, 168px);
+  width: var(--primary-w, 168px);
+  min-width: 0;
+  height: 52px;
+  min-height: 52px;
+  padding: 0 12px;
+  gap: 6px;
+  justify-content: center;
+  border-radius: 12px;
+  font-size: 15px;
+}
+.booth .booth-strip .booth-primary[data-tone="pause"] {
+  background: var(--booth-fill-strong);
+  color: var(--label);
+}
+.booth .booth-strip .booth-primary > .booth-start-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* a narrower row (iPad portrait, a split view): Fade, Crossfade and Next at gap live in the Controls panel, so
+   every remaining cell keeps room for its word */
+@container strip (max-width: 900px) {
+  .booth-strip .booth-primary {
+    --primary-w: 152px;
+  }
+}
+@container strip (max-width: 780px) {
+  .booth-strip .booth-roomy-only {
+    display: none;
+  }
+}
+@container strip (max-width: 720px) {
+  .booth-strip .booth-primary {
+    --primary-w: 156px;
+    font-size: 13px;
+  }
+  .booth-strip .booth-gap-btn-only {
+    display: none;
+  }
+}
+@media (max-width: 599.98px) {
+  .booth .booth-strip .booth-tbtn > .booth-tbtn-l {
+    display: none;
+  }
+  .booth .booth-strip .booth-primary {
+    flex: 1 1 auto;
+    width: auto;
+    height: 48px;
+    min-height: 48px;
+  }
+  .booth .booth-strip .booth-tbtn {
+    flex: 0 0 44px;
+    height: 48px;
+    min-height: 48px;
+  }
+}
+/* the song in the strip (≥ 1500): a fixed slot, it never shifts the cells */
+.booth .booth-strip .booth-strip-now {
+  flex: 0 1 220px;
+}
+
+/* ---------- the Controls panel: docked above the transport, the same insets ---------- */
+.booth .booth-ctl {
+  left: var(--bx-l);
+  right: var(--bx-r);
+  max-width: none;
+  margin: 0;
+  bottom: calc(var(--booth-strip-space, 88px) + 8px);
+}
+.booth-ctl-body {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  align-items: start;
+}
+.booth-ctl-group {
+  background: var(--booth-fill);
+  border-radius: 12px;
+  padding: 6px 10px 10px;
+}
+.booth-ctl-title {
+  color: var(--label-2);
+  padding-top: 4px;
+}
+/* the panel's button rows: equal cells (a row of words keeps its flow) */
+.booth-ctl-row > .booth-ctl-btn {
+  flex: 1 1 0;
+  max-width: 88px;
+}
+.booth-ctl-row.flex-wrap > .booth-ctl-text {
+  flex: 1 1 auto;
+}
+.booth-ctl-text {
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  color: var(--label);
+  background: var(--booth-fill-strong);
+}
+.booth-ctl-text[data-tone="destructive"] {
+  color: var(--booth-danger);
+}
+.booth-ctl-text:disabled {
+  color: var(--label-3);
+}
+.booth-ctl-btn:disabled {
+  opacity: 1;
+  color: var(--label-3);
+}
+
+/* ---------- the chips under the title: one height, one radius, one family ---------- */
+.booth-head-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.booth-head-row > .booth-toolbar {
+  margin-top: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.booth-head-row > .mt-3 {
+  margin-top: 0;
+}
+.booth-toolbar > .booth-out,
+.booth-toolbar > .booth-chip,
+.booth-toolbar > .btn-plain,
+.booth-toolbar > a,
+.booth-head-row [data-testid="booth-find-songs"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+.booth-toolbar > .booth-out {
+  background: var(--booth-fill);
+}
+/* the status: the quieter one (an outline), the same height */
+.booth-toolbar > .booth-chip {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--separator);
+  color: var(--label);
+}
+.booth-toolbar > .booth-chip::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--label-3);
+  flex: none;
+}
+.booth-toolbar > .booth-chip[data-state="spotify"]::before,
+.booth-toolbar > .booth-chip[data-state="playing"]::before {
+  background: var(--system-green);
+}
+.booth-toolbar > .booth-chip[data-state="paused"]::before {
+  background: var(--system-gold);
+}
+.booth-toolbar > .booth-chip[data-state="pick-device"] {
+  box-shadow: inset 0 0 0 1.5px var(--room);
+}
+.booth-toolbar > .booth-chip[data-state="pick-device"]::before {
+  background: var(--room);
+}
+.booth-toolbar > .btn-plain,
+.booth-toolbar > a,
+.booth-head-row [data-testid="booth-find-songs"] {
+  background: var(--booth-fill);
+  color: var(--tint);
+}
+.booth-out[data-out="room"] {
+  background: color-mix(in srgb, var(--room) 16%, rgb(var(--bg-cell)));
+}
+/* ROOM asks to be picked (Spotify Premium, no device yet) */
+.booth-out[data-attention] {
+  box-shadow: 0 0 0 2px var(--room);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .booth-out[data-attention] {
+    animation: booth-room-ask 1.6s ease-in-out infinite;
+  }
+}
+@keyframes booth-room-ask {
+  50% {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--room) 45%, transparent);
+  }
+}
+
+/* ---------- contrast (WCAG AA in both themes): opaque fills from the surface tokens on the cards ---------- */
+.booth .booth-tool,
+.booth .booth-floor-btn,
+.booth .booth-ctl-btn[aria-pressed="true"] {
+  background: var(--booth-fill-strong);
+}
+.booth .booth-tool[data-tone="destructive"],
+.booth .booth-tool[data-tone="destructive"]:disabled {
+  color: var(--booth-danger);
+}
+.booth .booth-tool:disabled {
+  color: var(--label-3);
+}
+.booth .booth-tool[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--room) 20%, rgb(var(--bg-cell)));
+  color: var(--label);
+}
+.booth .booth-chip {
+  background: var(--booth-fill);
+  color: var(--label);
+}
+.booth .booth-bypass {
+  color: var(--tint-text);
+  background: var(--booth-fill);
+}
+.booth .booth-bypass[aria-pressed="true"] {
+  color: var(--label);
+}
+.booth .booth-row-on {
+  background: color-mix(in srgb, var(--tint) 16%, rgb(var(--bg-cell)));
+}
+
+/* ---------- the night bar's groups ---------- */
+.booth-night-group {
+  border: 0;
+  padding: 0;
+  margin: 10px 0 0;
+  min-width: 0;
+}
+.booth-night-group > legend {
+  float: left;
+  width: 100%;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--label-2);
+}
+.booth-night-group > .booth-night-actions {
+  clear: both;
+  margin-top: 0;
+}
+
+/* ---------- the set list ---------- */
+.booth .booth-row-n {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 10px;
+  flex: none;
+  margin: 0 -8px 0 -6px;
+  touch-action: none;
+  cursor: grab;
+}
+.booth .booth-row-n:hover {
+  background: var(--fill-4);
+}
+.booth .booth-row[data-dragging] {
+  z-index: 3;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.25);
+  background: rgb(var(--bg-cell));
+}
+.booth .booth-row[data-drop] {
+  box-shadow: inset 0 2px 0 var(--tint);
+}
+.booth .booth-row[data-auditioning] {
+  box-shadow: inset 0 0 0 2px var(--cue);
+}
+.booth-to-now {
+  position: sticky;
+  bottom: 8px;
+  z-index: 3;
+  display: block;
+  margin: 8px auto 0;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--on-tint);
+  background: var(--tint-fill);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.25);
+}
+.booth-next-play {
+  min-height: 52px;
+  border-radius: 12px;
+}
+.booth-next-play:disabled {
+  cursor: default;
+}
+.booth-next-tanda {
+  background: var(--booth-fill);
+}
+.booth-next-play[data-auditioning],
+.booth-next-tanda[data-auditioning] {
+  box-shadow: inset 0 0 0 2px var(--cue);
+}
+
+/* ---------- the light confirmation (Confirm.tsx): a 0.6 s fill while held, a 3 s countdown once armed ---------- */
+@property --confirm-p {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 0%;
+}
+.confirm-host {
+  position: relative;
+}
+.confirm-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  padding: 2px;
+  background: conic-gradient(var(--tint) var(--confirm-p), transparent 0);
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+}
+[data-holding] > .confirm-ring {
+  animation: confirm-fill 0.6s linear forwards;
+}
+[data-armed] > .confirm-ring {
+  --confirm-p: 100%;
+  animation: confirm-countdown 3s linear forwards;
+}
+@keyframes confirm-fill {
+  from {
+    --confirm-p: 0%;
+  }
+  to {
+    --confirm-p: 100%;
+  }
+}
+@keyframes confirm-countdown {
+  from {
+    --confirm-p: 100%;
+  }
+  to {
+    --confirm-p: 0%;
+  }
+}
+[data-armed].confirm-host {
+  color: var(--tint-text);
+}
+.confirm-tag {
+  margin-left: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tint-text);
+}
+
+/* the tanda header's second line: its type in words and its total */
+.booth-tanda-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  min-width: 0;
+}
+.booth-tanda-total {
+  flex: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--label-2);
+}
+/* the Now card's artwork plays like a row tap */
+.booth-art-tap {
+  flex: none;
+  border-radius: 12px;
+  min-width: 44px;
+  min-height: 44px;
+}
+.booth-art-tap:disabled {
+  cursor: default;
+}
+
+/* a phone: the chips under the title are one row that scrolls sideways (five 44 px chips stacked took half the
+   screen before the Now card) */
+@media (max-width: 599.98px) {
+  .booth-head-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    margin-inline: -16px;
+    padding-inline: 16px;
+  }
+  .booth-head-row::-webkit-scrollbar {
+    display: none;
+  }
+  .booth-head-row > *,
+  .booth-head-row > .booth-toolbar > * {
+    flex: none;
+  }
+  .booth-head-row > .booth-toolbar {
+    flex: none;
+    flex-wrap: nowrap;
+  }
+}
+/* two columns: Up Next takes the room, the energy chart a narrow strip beside it */
+@media (min-width: 900px) {
+  .booth-deck-row {
+    grid-template-columns: minmax(0, 1fr) minmax(150px, 190px);
+  }
+}
+
+/* two columns: the open Controls panel never takes the columns' room — it keeps them at least 200 px tall (its
+   groups scroll inside it), so the columns end above it and nothing runs under it */
+@media (min-width: 900px) {
+  .booth .booth-ctl {
+    max-height: calc(
+      100dvh -
+      var(--booth-grid-top, 200px) -
+      var(--booth-strip-space, 88px) -
+      8px -
+      6px -
+      200px
+    );
+  }
+  .booth .booth-grid {
+    min-height: 200px;
+  }
+}
+
+/* a phone mid-night: the primary is its glyph (Pause / Play; its name is its label), the row keeps every control */
+@media (max-width: 599.98px) {
+  .booth .booth-strip[data-started="true"] .booth-primary > .booth-start-label {
+    display: none;
+  }
 }

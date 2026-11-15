@@ -2,6 +2,7 @@
 import { Check, Laptop, Smartphone, Speaker } from "lucide-react";
 import { useEffect, useSyncExternalStore } from "react";
 import {
+  autoPick,
   onSpotifyRoom,
   type SpotifyDevice,
   type SpotifyRoomState,
@@ -35,6 +36,22 @@ export function useSpotifyRoomName(): string | null {
   const sp = useBooth((s) => s.availability.spotify.ok);
   const room = useSpotifyRoom();
   return sp && room.remote ? (room.remoteName ?? "Spotify") : null;
+}
+
+/**
+ * 2026-11: Spotify Premium plays tonight on a browser that can only play through the Spotify app (an iPhone, an iPad:
+ * Spotify Connect) and no device is chosen or active: the booth says "Spotify · pick a device" and ROOM asks to be
+ * picked, instead of falling silently to 30 s clips. The account's devices are listed once to know.
+ */
+export function useSpotifyNeedsDevice(): boolean {
+  const sp = useBooth((s) => s.availability.spotify.ok);
+  const onSpotify = useBooth((s) => !s.rehearsal && s.sources.includes("spotify"));
+  const room = useSpotifyRoom();
+  const ask = sp && onSpotify && room.browserUnusable && !room.remote;
+  useEffect(() => {
+    if (ask) void spotifyRoom()?.listDevices();
+  }, [ask]);
+  return ask && !autoPick(room.devices, true);
 }
 
 const icon = (d: SpotifyDevice) =>

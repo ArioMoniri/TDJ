@@ -10,6 +10,7 @@
  * - in clip mode the local-files banner never shows; controls ≥ 44 px; no overflow at 390 and 1440
  */
 import { expect, type Page, test } from "@playwright/test";
+import { hold } from "./confirm";
 
 /** 20 s mono 22.05 kHz WAV, a 220 Hz tone at 0.3 (what every clip serves: long enough to measure fades in). */
 function syntheticWav(sec = 20): Buffer {
@@ -142,7 +143,8 @@ test.describe("1440 × 900", () => {
     const strip = page.getByTestId("booth-strip");
     const startLevel = await rms(page);
     const atFade = await planIndex(page);
-    await strip.getByTestId("booth-strip-fade").click();
+    // (2026-11: mid-night Fade and Crossfade are press-and-hold)
+    await hold(page, strip.getByTestId("booth-strip-fade"));
     await page.waitForTimeout(1500);
     const mid = await rms(page, 150);
     expect(mid).toBeLessThan(startLevel - 10);
@@ -152,7 +154,7 @@ test.describe("1440 × 900", () => {
 
     // Next with crossfade (3 s): the next item starts at once, the output never drops to silence
     const atX = await planIndex(page);
-    await strip.getByTestId("booth-strip-crossfade").click();
+    await hold(page, strip.getByTestId("booth-strip-crossfade"));
     await expect.poll(() => planIndex(page), { timeout: 3000 }).toBeGreaterThan(atX);
     let quietest = 0;
     for (let k = 0; k < 6; k++) quietest = Math.min(quietest, await rms(page, 120));
@@ -307,16 +309,9 @@ test.describe("phone 390 × 844", () => {
         overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       };
     });
-    // 2026-11: Previous / Next (now) on the phone's transport; Next at gap moved to •••
-    expect(m.labels).toEqual([
-      "Previous",
-      "Pause",
-      "Next",
-      "Stop…",
-      "Set list",
-      "Mix: levels and fades",
-      "More",
-    ]);
+    // 2026-11: Previous / Next (now) on the phone's transport; Next at gap moved to •••; the Controls panel's
+    // toggle joined the row (the collapsed panel was a second bar), so Mix moved to ••• too
+    expect(m.labels).toEqual(["Previous", "Pause", "Next", "Stop…", "Set list", "Controls", "More"]);
     expect(m.small).toBe(0);
     expect(m.right).toBeLessThanOrEqual(390);
     expect(m.overflow).toBe(0);
@@ -326,7 +321,8 @@ test.describe("phone 390 × 844", () => {
     await page.getByTestId("booth-play").tap();
     await expect(page.getByTestId("booth")).toHaveAttribute("data-state", "playing");
     // the Mix sheet: the actions and the fade settings, every row ≥ 44 px, nothing wider than the screen
-    await page.getByTestId("booth-levels").tap();
+    await page.getByTestId("booth-more").tap();
+    await page.getByRole("menuitem", { name: "Mix: transitions, fades and levels" }).tap();
     const mix = page.getByTestId("booth-levels-sheet");
     await expect(mix.getByTestId("booth-fade-now")).toBeVisible();
     await expect(mix).toContainText("Song end fade");

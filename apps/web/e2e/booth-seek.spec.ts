@@ -6,6 +6,7 @@
  * touch and user agent).
  */
 import { type BrowserContextOptions, devices, expect, type Page, test } from "@playwright/test";
+import { armAndConfirm, hold } from "./confirm";
 
 function wav(sec = 30): Buffer {
   const rate = 22050;
@@ -175,15 +176,19 @@ for (const [name, opts] of DEVICES) {
       expect(r.width).toBeGreaterThanOrEqual(43.5);
       expect(r.height).toBeGreaterThanOrEqual(43.5);
     }
+    // 2026-11: mid-night a tap alone changes nothing (a mistaken tap never cuts the song); a press and hold does
     await nextBtn.click();
+    await page.waitForTimeout(400);
+    expect((await snap(page)).cur).toBe(third);
+    await hold(page, nextBtn);
     await expect.poll(async () => (await snap(page)).cur, { timeout: 15000 }).toBe(fourth);
     expect(["playing", "cortina"]).toContain((await snap(page)).state);
     // Previous (under 3 s in) → back to song 3
-    await prevBtn.click();
+    await hold(page, prevBtn);
     await expect.poll(async () => (await snap(page)).cur, { timeout: 15000 }).toBe(third);
     // Previous past 3 s restarts it
     await expect.poll(async () => (await snap(page)).position, { timeout: 15000 }).toBeGreaterThan(3.5);
-    await prevBtn.click();
+    await hold(page, prevBtn);
     await expect.poll(async () => (await snap(page)).position, { timeout: 10000 }).toBeLessThan(3);
     expect((await snap(page)).cur).toBe(third);
 
@@ -192,9 +197,15 @@ for (const [name, opts] of DEVICES) {
     await tapRow(page, later);
     const sheet = page.getByTestId("booth-play-sheet");
     await expect(sheet).toBeVisible();
-    // one tap did not cut the room
+    // one tap did not cut the room, nor does the first tap on Play now (it arms; the second plays)
     expect((await snap(page)).cur).toBe(third);
-    await sheet.getByRole("button", { name: "Play now (fade the current)" }).click();
+    const playNow = sheet.getByTestId("booth-play-now");
+    await expect(playNow).toContainText("Play now in the room");
+    await playNow.click();
+    await expect(playNow).toHaveAttribute("data-armed", "true");
+    await page.waitForTimeout(300);
+    expect((await snap(page)).cur).toBe(third);
+    await playNow.click();
     await expect.poll(async () => (await snap(page)).cur, { timeout: 15000 }).toBe(later);
     expect((await snap(page)).state).toBe("playing");
     // the phone's set list closed so the Now card shows it
@@ -337,10 +348,12 @@ for (const [name, opts] of DEVICES) {
     await openBooth(page);
     const panel = page.getByTestId("booth-controls");
     const toggle = page.getByTestId("booth-controls-toggle");
-    // collapsed: the handle and the essential transport only
+    // collapsed: only its toggle, in the transport row (Previous / Play / Next are the transport's own, never twice)
     await expect(toggle).toHaveAttribute("aria-expanded", "false");
-    await expect(panel.getByTestId("ctl-next")).toBeVisible();
-    await expect(panel.getByTestId("ctl-master")).toHaveCount(0);
+    await expect(page.getByTestId("booth-strip").getByTestId("booth-controls-toggle")).toBeVisible();
+    await expect(panel).toHaveCount(0);
+    await expect(page.getByTestId("ctl-next")).toHaveCount(0);
+    await expect(page.getByTestId("booth-strip").getByTestId("booth-next-now")).toHaveCount(1);
     await toggle.click();
     await expect(toggle).toHaveAttribute("aria-expanded", "true");
     await expect(panel.getByTestId("ctl-master")).toBeVisible();
@@ -378,7 +391,8 @@ for (const [name, opts] of DEVICES) {
     await expect.poll(async () => (await snap(page)).state, { timeout: 20000 }).toBe("playing");
     const first = (await snap(page)).cur!;
     const second = await nextPlayable(page, first);
-    await panel.getByTestId("ctl-next").click();
+    // mid-night the panel's Next arms on the first tap, plays on the second
+    await armAndConfirm(panel.getByTestId("ctl-next"));
     await expect.poll(async () => (await snap(page)).cur, { timeout: 15000 }).toBe(second);
     // the master volume
     await panel.getByTestId("ctl-master").locator("input").fill("-6");
@@ -395,7 +409,7 @@ for (const [name, opts] of DEVICES) {
     // Fade out now (once the song sounds: Next starts it after the short fade)
     await expect.poll(async () => (await snap(page)).position, { timeout: 15000 }).toBeGreaterThan(1);
     await panel.getByTestId("ctl-fade").scrollIntoViewIfNeeded();
-    await panel.getByTestId("ctl-fade").click();
+    await armAndConfirm(panel.getByTestId("ctl-fade"));
     await expect
       .poll(() =>
         page.evaluate(() =>

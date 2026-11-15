@@ -2,7 +2,6 @@
 import {
   Blend,
   ChevronDown,
-  ChevronUp,
   Headphones,
   Keyboard,
   Mic,
@@ -16,12 +15,14 @@ import {
   VolumeX,
 } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
+import { guard, useArmed } from "@/lib/booth/confirm";
 import { TRANSPORT_RANGES } from "@/lib/booth/engine";
 import { durationLabel } from "@/lib/booth/plan";
 import { boothEngine, useBooth } from "@/lib/booth/store";
 import { t } from "@/lib/i18n";
 import { toast } from "@/lib/toast";
 import { SeekBar } from "../ui/SeekBar";
+import { ArmButton, ConfirmRing } from "./Confirm";
 import { Fader } from "./Fader";
 import { FloorReaction } from "./FloorReaction";
 import { PraiseTanda } from "./PraiseTanda";
@@ -35,7 +36,7 @@ export function loadControlsOpen(): boolean {
     return false;
   }
 }
-function saveControlsOpen(open: boolean) {
+export function saveControlsOpen(open: boolean) {
   try {
     localStorage.setItem(OPEN_KEY, open ? "1" : "0");
   } catch {}
@@ -49,10 +50,15 @@ function saveControlsOpen(open: boolean) {
  * disabled, with the reason.
  */
 export function ControlsPanel({
+  open,
+  onClose,
   onStop,
   onKeys,
   onSong,
 }: {
+  /** open: it docks above the transport (its toggle is the transport's Controls button) */
+  open: boolean;
+  onClose: () => void;
   /** the Stop confirm (fade out and stop / stop now) */
   onStop: () => void;
   /** the keyboard shortcuts sheet */
@@ -60,14 +66,15 @@ export function ControlsPanel({
   /** the song sheet of the playing item (its start point, versions) */
   onSong: (planIndex: number) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  useEffect(() => setOpen(loadControlsOpen()), []);
   // the page's foot clears the panel as it clears the transport (--booth-ctl-space joins --booth-strip-space)
   const box = useRef<HTMLElement>(null);
   useEffect(() => {
     const el = box.current;
-    if (!el) return;
     const root = document.documentElement;
+    if (!el || !open) {
+      root.style.removeProperty("--booth-ctl-space");
+      return;
+    }
     const put = () => root.style.setProperty("--booth-ctl-space", `${Math.ceil(el.offsetHeight) + 6}px`);
     put();
     const ro = typeof ResizeObserver === "function" ? new ResizeObserver(put) : null;
@@ -76,13 +83,7 @@ export function ControlsPanel({
       ro?.disconnect();
       root.style.removeProperty("--booth-ctl-space");
     };
-  }, []);
-  const toggle = () => {
-    setOpen((o) => {
-      saveControlsOpen(!o);
-      return !o;
-    });
-  };
+  }, [open]);
   const ready = useBooth((s) => s.ready);
   const started = useBooth((s) => s.started);
   const state = useBooth((s) => s.state);
@@ -135,6 +136,7 @@ export function ControlsPanel({
         label={t("booth.controlStrip.previous")}
         onClick={() => void a.previous()}
         disabled={!ready}
+        armKey="prev"
         testId="ctl-prev"
       >
         <SkipBack size={20} strokeWidth={2} aria-hidden />
@@ -162,6 +164,7 @@ export function ControlsPanel({
         label={t("booth.controlStrip.next_now")}
         onClick={() => void a.nextNow()}
         disabled={!ready}
+        armKey="next"
         testId="ctl-next"
       >
         <SkipForward size={20} strokeWidth={2} aria-hidden />
@@ -169,6 +172,7 @@ export function ControlsPanel({
     </div>
   );
 
+  if (!open) return null;
   return (
     <section
       ref={box}
@@ -181,249 +185,247 @@ export function ControlsPanel({
         <button
           type="button"
           className="booth-ctl-toggle"
-          onClick={toggle}
-          aria-expanded={open}
-          aria-controls="booth-ctl-body"
-          data-testid="booth-controls-toggle"
+          onClick={onClose}
+          aria-label={t("booth.controls.close")}
+          data-testid="booth-controls-close"
         >
-          {open ? <ChevronDown size={18} aria-hidden /> : <ChevronUp size={18} aria-hidden />}
+          <ChevronDown size={18} aria-hidden />
           <span>{t("booth.controls.title")}</span>
         </button>
         {transport}
-        {open && (
-          <Btn label={t("booth.controls.shortcuts")} onClick={onKeys} testId="ctl-keys">
-            <Keyboard size={20} strokeWidth={2} aria-hidden />
-          </Btn>
-        )}
+        <Btn label={t("booth.controls.shortcuts")} onClick={onKeys} testId="ctl-keys">
+          <Keyboard size={20} strokeWidth={2} aria-hidden />
+        </Btn>
       </div>
-      {open && (
-        <div className="booth-ctl-body" id="booth-ctl-body">
-          <Group title={t("booth.controls.transport")}>
-            <div className="booth-ctl-row">
-              <Btn
-                label={t("booth.controlStrip.next_at_gap")}
-                onClick={() => a.next()}
-                disabled={!started}
-                testId="ctl-next-gap"
-              >
-                <StepForward size={20} strokeWidth={2} aria-hidden />
-              </Btn>
-              <Btn
-                label={t("booth.controlStrip.fade")}
-                onClick={() => a.fadeOutNow()}
-                disabled={!live}
-                testId="ctl-fade"
-              >
-                <TrendingDown size={20} strokeWidth={2} aria-hidden />
-              </Btn>
-              <Btn
-                label={t("booth.controlStrip.crossfade")}
-                onClick={() => void a.crossfadeNext()}
-                disabled={!live || noOverlap}
-                why={noOverlap ? t("booth.controls.why_spotify_overlap") : undefined}
-                testId="ctl-crossfade"
-              >
-                <Blend size={20} strokeWidth={2} aria-hidden />
-              </Btn>
-              <Btn
-                label={t("booth.controls.stop_fade")}
-                onClick={onStop}
-                disabled={!started || state === "stopped"}
-                testId="ctl-stop"
-              >
-                <Square size={18} fill="currentColor" strokeWidth={0} aria-hidden />
-              </Btn>
-            </div>
-            {noOverlap && <span className="booth-ctl-why">{t("booth.controls.why_spotify_overlap")}</span>}
-          </Group>
-          <Group title={t("booth.controls.song")}>
-            <div className="booth-seek-row">
-              <span className="tabular-nums">{durationLabel(Math.min(position, length))}</span>
-              <SeekBar
-                value={Math.min(position, length)}
-                max={length}
-                onSeek={(s) => void a.seek(s)}
-                disabled={!started || !(live || state === "paused") || item?.kind === "break"}
-                label={t("booth.nowCard.seek_label")}
-                testId="ctl-seek"
-              />
-              <span className="tabular-nums">{durationLabel(length)}</span>
-            </div>
-            <div className="booth-ctl-row">
-              <span className="booth-ctl-label">
-                {t("booth.controls.trim", { db: `${trim > 0 ? "+" : ""}${trim}` })}
-              </span>
-              <Btn
-                label={t("booth.controls.trim_down")}
-                onClick={() => setTrim(trim - 0.5)}
-                disabled={!itemId}
-                testId="ctl-trim-down"
-              >
-                <span aria-hidden>−</span>
-              </Btn>
-              <Btn
-                label={t("booth.controls.trim_up")}
-                onClick={() => setTrim(trim + 0.5)}
-                disabled={!itemId}
-                testId="ctl-trim-up"
-              >
-                <span aria-hidden>+</span>
-              </Btn>
+      <div className="booth-ctl-body" id="booth-ctl-body">
+        <Group title={t("booth.controls.transport")}>
+          <div className="booth-ctl-row">
+            <Btn
+              label={t("booth.controlStrip.next_at_gap")}
+              onClick={() => a.next()}
+              disabled={!started}
+              testId="ctl-next-gap"
+            >
+              <StepForward size={20} strokeWidth={2} aria-hidden />
+            </Btn>
+            <Btn
+              label={t("booth.controlStrip.fade")}
+              onClick={() => a.fadeOutNow()}
+              disabled={!live}
+              armKey="fade"
+              testId="ctl-fade"
+            >
+              <TrendingDown size={20} strokeWidth={2} aria-hidden />
+            </Btn>
+            <Btn
+              label={t("booth.controlStrip.crossfade")}
+              onClick={() => void a.crossfadeNext()}
+              disabled={!live || noOverlap}
+              why={noOverlap ? t("booth.controls.why_spotify_overlap") : undefined}
+              armKey="crossfade"
+              testId="ctl-crossfade"
+            >
+              <Blend size={20} strokeWidth={2} aria-hidden />
+            </Btn>
+            <Btn
+              label={t("booth.controls.stop_fade")}
+              onClick={onStop}
+              disabled={!started || state === "stopped"}
+              testId="ctl-stop"
+            >
+              <Square size={18} fill="currentColor" strokeWidth={0} aria-hidden />
+            </Btn>
+          </div>
+          {noOverlap && <span className="booth-ctl-why">{t("booth.controls.why_spotify_overlap")}</span>}
+        </Group>
+        <Group title={t("booth.controls.song")}>
+          <div className="booth-seek-row">
+            <span className="tabular-nums">{durationLabel(Math.min(position, length))}</span>
+            <SeekBar
+              value={Math.min(position, length)}
+              max={length}
+              onSeek={(s) => void a.seek(s)}
+              disabled={!started || !(live || state === "paused") || item?.kind === "break"}
+              label={t("booth.nowCard.seek_label")}
+              testId="ctl-seek"
+            />
+            <span className="tabular-nums">{durationLabel(length)}</span>
+          </div>
+          <div className="booth-ctl-row">
+            <span className="booth-ctl-label">
+              {t("booth.controls.trim", { db: `${trim > 0 ? "+" : ""}${trim}` })}
+            </span>
+            <Btn
+              label={t("booth.controls.trim_down")}
+              onClick={() => setTrim(trim - 0.5)}
+              disabled={!itemId}
+              testId="ctl-trim-down"
+            >
+              <span aria-hidden>−</span>
+            </Btn>
+            <Btn
+              label={t("booth.controls.trim_up")}
+              onClick={() => setTrim(trim + 0.5)}
+              disabled={!itemId}
+              testId="ctl-trim-up"
+            >
+              <span aria-hidden>+</span>
+            </Btn>
+            <button
+              type="button"
+              className="btn-plain min-h-11 px-2"
+              onClick={() => onSong(planIndex)}
+              disabled={!item || item.kind === "break"}
+              data-testid="ctl-start-point"
+            >
+              {t("booth.controls.start_point")}
+            </button>
+          </div>
+        </Group>
+        <Group title={t("booth.controls.cue")}>
+          <div className="booth-ctl-row">
+            {audition ? (
               <button
                 type="button"
                 className="btn-plain min-h-11 px-2"
-                onClick={() => onSong(planIndex)}
-                disabled={!item || item.kind === "break"}
-                data-testid="ctl-start-point"
+                onClick={() => a.stopAudition()}
+                data-testid="ctl-cue-stop"
               >
-                {t("booth.controls.start_point")}
+                <Square size={14} fill="currentColor" strokeWidth={0} aria-hidden />{" "}
+                {t("booth.songSheet.stop_pre_listen")}
               </button>
-            </div>
-          </Group>
-          <Group title={t("booth.controls.cue")}>
-            <div className="booth-ctl-row">
-              {audition ? (
-                <button
-                  type="button"
-                  className="btn-plain min-h-11 px-2"
-                  onClick={() => a.stopAudition()}
-                  data-testid="ctl-cue-stop"
-                >
-                  <Square size={14} fill="currentColor" strokeWidth={0} aria-hidden />{" "}
-                  {t("booth.songSheet.stop_pre_listen")}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="btn-plain min-h-11 px-2"
-                  disabled={next === null || (started && !!cueWhy)}
-                  onClick={async () => {
-                    if (next === null) return;
-                    const why = await a.prelisten({ i: next });
-                    if (why) toast(t("booth.songSheet.can_t_pre_listen", { why }));
-                  }}
-                  data-testid="ctl-cue-next"
-                >
-                  <Headphones size={16} strokeWidth={2} aria-hidden /> {t("booth.controls.cue_next")}
-                </button>
-              )}
-              {started && cueWhy && <span className="booth-ctl-why">{cueWhy}</span>}
-            </div>
-          </Group>
-          <Group title={t("booth.controls.mixer")}>
-            <Fader
-              label={t("booth.controlStrip.master_volume")}
-              value={master}
-              min={-30}
-              max={6}
-              step={1}
-              onChange={a.setMaster}
-              display={t("booth.controlStrip.db", { p1: master > 0 ? "+" : "", master })}
-              testId="ctl-master"
-            />
-            <Fader
-              label={t("booth.controls.cortina_fader")}
-              value={cortinaFader}
-              min={0}
-              max={1}
-              step={0.05}
-              onChange={a.setCortinaFader}
-              display={`${Math.round(cortinaFader * 100)} %`}
-              testId="ctl-cortina"
-            />
-            <div className="booth-ctl-row">
-              <Btn
-                label={muted ? t("booth.controlStrip.unmute") : t("booth.controlStrip.mute")}
-                pressed={muted}
-                onClick={() => a.toggleMute()}
-                testId="ctl-mute"
-              >
-                <VolumeX size={20} strokeWidth={2} aria-hidden />
-              </Btn>
-              <Btn
-                label={t("booth.controlStrip.talk")}
-                pressed={ducked}
-                onClick={() => a.setDucked(!ducked)}
-                testId="ctl-talk"
-              >
-                <Mic size={20} strokeWidth={2} aria-hidden />
-              </Btn>
-            </div>
-          </Group>
-          <Group title={t("booth.controls.timing")}>
-            <Fader
-              label={t("booth.controls.gap")}
-              value={settings.gapSec}
-              min={0}
-              max={8}
-              step={0.5}
-              onChange={(v) => a.setSettings({ gapSec: v })}
-              display={`${settings.gapSec} s`}
-              testId="ctl-gap"
-            />
-            <Fader
-              label={t("booth.controls.fade_len")}
-              value={settings.fadeNowSec}
-              {...TRANSPORT_RANGES.fadeNowSec}
-              onChange={(v) => a.setSettings({ fadeNowSec: v })}
-              display={`${settings.fadeNowSec} s`}
-              testId="ctl-fade-len"
-            />
-            <Fader
-              label={t("booth.controls.crossfade_len")}
-              value={settings.crossfadeSec}
-              {...TRANSPORT_RANGES.crossfadeSec}
-              onChange={(v) => a.setSettings({ crossfadeSec: v })}
-              display={`${settings.crossfadeSec} s`}
-              testId="ctl-crossfade-len"
-            />
-            {noOverlap && <span className="booth-ctl-why">{t("booth.controls.why_spotify_overlap")}</span>}
-          </Group>
-          <Group title={t("fav.floor_group")}>
-            {/* 2026-11, dancer favourites: the playing song and its tanda, one tap each */}
-            <FloorReaction scope="song" testPrefix="ctl-song" />
-            <FloorReaction scope="tanda" testPrefix="ctl-tanda" />
-            {/* 2026-11: praise the playing tanda (feedback, a ♥ for its songs): lib/praise.ts */}
-            <div className="booth-floor">
-              <PraiseTanda testPrefix="ctl-tanda" />
-            </div>
-          </Group>
-          <Group title={t("booth.controls.tanda")}>
-            <div className="booth-ctl-row flex-wrap">
+            ) : (
               <button
                 type="button"
                 className="btn-plain min-h-11 px-2"
-                disabled={!live || item?.kind !== "track"}
-                onClick={() => a.cueCortina()}
-                data-testid="ctl-skip-tanda"
+                disabled={next === null || (started && !!cueWhy)}
+                onClick={async () => {
+                  if (next === null) return;
+                  const why = await a.prelisten({ i: next });
+                  if (why) toast(t("booth.songSheet.can_t_pre_listen", { why }));
+                }}
+                data-testid="ctl-cue-next"
               >
-                {t("booth.controls.skip_tanda")}
+                <Headphones size={16} strokeWidth={2} aria-hidden /> {t("booth.controls.cue_next")}
               </button>
-              <button
-                type="button"
-                className="btn-plain min-h-11 px-2"
-                disabled={!started || !hasClosing}
-                onClick={() => void a.jumpToClosing(false)}
-                data-testid="ctl-rest-cumparsita"
-              >
-                {t("booth.controls.rest_then_cumparsita")}
-              </button>
-              <button
-                type="button"
-                className="btn-plain min-h-11 px-2"
-                disabled={!started || !hasClosing}
-                onClick={() => void a.jumpToClosing(true)}
-                data-testid="ctl-jump-cumparsita"
-              >
-                {t("booth.controls.jump_cumparsita")}
-              </button>
-            </div>
-          </Group>
-          <p className="booth-ctl-keys text-footnote" data-testid="ctl-keys-line">
-            {t("booth.controls.keys_line")}
-          </p>
-        </div>
-      )}
+            )}
+            {started && cueWhy && <span className="booth-ctl-why">{cueWhy}</span>}
+          </div>
+        </Group>
+        <Group title={t("booth.controls.mixer")}>
+          <Fader
+            label={t("booth.controlStrip.master_volume")}
+            value={master}
+            min={-30}
+            max={6}
+            step={1}
+            onChange={a.setMaster}
+            display={t("booth.controlStrip.db", { p1: master > 0 ? "+" : "", master })}
+            testId="ctl-master"
+          />
+          <Fader
+            label={t("booth.controls.cortina_fader")}
+            value={cortinaFader}
+            min={0}
+            max={1}
+            step={0.05}
+            onChange={a.setCortinaFader}
+            display={`${Math.round(cortinaFader * 100)} %`}
+            testId="ctl-cortina"
+          />
+          <div className="booth-ctl-row">
+            <Btn
+              label={muted ? t("booth.controlStrip.unmute") : t("booth.controlStrip.mute")}
+              pressed={muted}
+              onClick={() => a.toggleMute()}
+              testId="ctl-mute"
+            >
+              <VolumeX size={20} strokeWidth={2} aria-hidden />
+            </Btn>
+            <Btn
+              label={t("booth.controlStrip.talk")}
+              pressed={ducked}
+              onClick={() => a.setDucked(!ducked)}
+              testId="ctl-talk"
+            >
+              <Mic size={20} strokeWidth={2} aria-hidden />
+            </Btn>
+          </div>
+        </Group>
+        <Group title={t("booth.controls.timing")}>
+          <Fader
+            label={t("booth.controls.gap")}
+            value={settings.gapSec}
+            min={0}
+            max={8}
+            step={0.5}
+            onChange={(v) => a.setSettings({ gapSec: v })}
+            display={`${settings.gapSec} s`}
+            testId="ctl-gap"
+          />
+          <Fader
+            label={t("booth.controls.fade_len")}
+            value={settings.fadeNowSec}
+            {...TRANSPORT_RANGES.fadeNowSec}
+            onChange={(v) => a.setSettings({ fadeNowSec: v })}
+            display={`${settings.fadeNowSec} s`}
+            testId="ctl-fade-len"
+          />
+          <Fader
+            label={t("booth.controls.crossfade_len")}
+            value={settings.crossfadeSec}
+            {...TRANSPORT_RANGES.crossfadeSec}
+            onChange={(v) => a.setSettings({ crossfadeSec: v })}
+            display={`${settings.crossfadeSec} s`}
+            testId="ctl-crossfade-len"
+          />
+          {noOverlap && <span className="booth-ctl-why">{t("booth.controls.why_spotify_overlap")}</span>}
+        </Group>
+        <Group title={t("fav.floor_group")}>
+          {/* 2026-11, dancer favourites: the playing song and its tanda, one tap each */}
+          <FloorReaction scope="song" testPrefix="ctl-song" />
+          <FloorReaction scope="tanda" testPrefix="ctl-tanda" />
+          {/* 2026-11: praise the playing tanda (feedback, a ♥ for its songs): lib/praise.ts */}
+          <div className="booth-floor">
+            <PraiseTanda testPrefix="ctl-tanda" />
+          </div>
+        </Group>
+        <Group title={t("booth.controls.tanda")}>
+          <div className="booth-ctl-row flex-wrap">
+            <ArmButton
+              className="booth-ctl-text"
+              disabled={!live || item?.kind !== "track"}
+              armKey="skip-tanda"
+              onConfirm={() => a.cueCortina()}
+              data-testid="ctl-skip-tanda"
+            >
+              {t("booth.controls.skip_tanda")}
+            </ArmButton>
+            <button
+              type="button"
+              className="booth-ctl-text"
+              disabled={!started || !hasClosing}
+              onClick={() => void a.jumpToClosing(false)}
+              data-testid="ctl-rest-cumparsita"
+            >
+              {t("booth.controls.rest_then_cumparsita")}
+            </button>
+            <ArmButton
+              className="booth-ctl-text"
+              data-tone="destructive"
+              disabled={!started || !hasClosing}
+              armKey="jump-cumparsita"
+              onConfirm={() => void a.jumpToClosing(true)}
+              data-testid="ctl-jump-cumparsita"
+            >
+              {t("booth.controls.jump_cumparsita")}
+            </ArmButton>
+          </div>
+        </Group>
+        <p className="booth-ctl-keys text-footnote" data-testid="ctl-keys-line">
+          {t("booth.controls.keys_line")}
+        </p>
+      </div>
     </section>
   );
 }
@@ -444,9 +446,12 @@ function Btn({
   pressed,
   primary,
   why,
+  armKey,
   testId,
   children,
 }: {
+  /** mid-night the first tap arms, the second runs (lib/booth/confirm.ts) */
+  armKey?: string;
   label: string;
   onClick: () => void;
   disabled?: boolean;
@@ -457,20 +462,24 @@ function Btn({
   testId: string;
   children: ReactNode;
 }) {
+  const armed = useArmed(armKey ?? "");
+  const on = !!armKey && armed;
   return (
     <button
       type="button"
-      className={`booth-ctl-btn ${primary ? "booth-ctl-primary" : ""}`}
+      className={`booth-ctl-btn confirm-host ${primary ? "booth-ctl-primary" : ""}`}
+      data-armed={on || undefined}
       aria-label={label}
       aria-pressed={pressed === undefined ? undefined : pressed}
       aria-description={why}
       title={why ?? label}
-      onClick={onClick}
+      onClick={armKey ? () => guard(armKey, onClick) : onClick}
       disabled={disabled}
       data-testid={testId}
     >
       {children}
-      <span className="booth-ctl-btn-l">{label}</span>
+      <span className="booth-ctl-btn-l">{on ? t("booth.confirm.again") : label}</span>
+      {on && <ConfirmRing />}
     </button>
   );
 }

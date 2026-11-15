@@ -329,6 +329,19 @@ export default function Settings() {
         {/* round 22: the song indicators (energy, BPM, key, era, artwork), the same switches as the player's Show */}
         <IndicatorSwitches />
 
+        {/* 2026-11: the Booth's light confirmation (lib/booth/confirm.ts) */}
+        <Group
+          header={tx("settings.booth.header")}
+          footer={tx("settings.booth.confirm_footer")}
+          data-testid="settings-booth"
+        >
+          <SwitchRow
+            label={tx("settings.booth.confirm")}
+            checked={settings.boothConfirm !== false}
+            onChange={(v) => setSettings({ boothConfirm: v })}
+          />
+        </Group>
+
         <Group header={tx("settings.composing")} footer={tx("settings.after_every_compose_the_night_is")}>
           <SwitchRow
             label={tx("settings.auto_improve_against_published_sets")}

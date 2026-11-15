@@ -1,6 +1,8 @@
 "use client";
 import {
   Blend,
+  ChevronDown,
+  ChevronUp,
   Ellipsis,
   Hand,
   Headphones,
@@ -16,7 +18,7 @@ import {
   TrendingDown,
   VolumeX,
 } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { type PointerEvent, type ReactNode, useEffect, useRef } from "react";
 import { durationLabel } from "@/lib/booth/plan";
 import { useBooth } from "@/lib/booth/store";
 import { haptic } from "@/lib/haptics";
@@ -24,21 +26,25 @@ import { useMediaQuery } from "@/lib/hooks";
 import { t as tx } from "@/lib/i18n";
 import { Artwork } from "../ui/Artwork";
 import { useTip } from "../ui/Tip";
+import { ConfirmRing, useHoldConfirm } from "./Confirm";
 import { Fader } from "./Fader";
 
 /**
- * Transport (round 22, the DJ-app bottom bar): the only glass surface of the page, one fixed place for now playing
- * and every control on the playing song, in labelled zones — the song (artwork, title), the mix actions (Fade,
- * Crossfade), the transport (Play / Pause, Next at gap, Stop), the room (volume, mute), the modes (Hold, Talk),
- * then the pre-listen line in the headphones colour while one plays, and Mix / ••• for settings. Labels under the
- * glyphs from 1180 px; below that the same words are the tooltip and the accessible name. Phones: one 64 pt row
- * (Play, Next, Stop, Set list, Mix, •••).
+ * Transport (round 22, the DJ-app bottom bar; 2026-11 one uniform row): the only control bar at the foot of the page,
+ * aligned with the content column. Every secondary control is the same cell (glyph over its word, ≥ 44 px), the
+ * primary Start / Pause / Play keeps one fixed width in every state. Zones: the mix actions (Fade, Crossfade), the
+ * transport (Previous, Play / Pause, Next, Next at gap, Stop), the room (volume from 1400 px, Mute), the modes (Hold,
+ * Talk), then Controls (the panel's toggle: the panel opens above this row), Mix and •••. Mid-night, Previous, Next,
+ * Fade and Crossfade are press-and-hold (Confirm.tsx). Phones: one row (Previous, Play, Next, Stop, Set list,
+ * Controls, •••; Mix is in •••).
  */
 export function ControlStrip({
   onMore,
   onLevels,
   onStop,
   onSet,
+  controlsOpen,
+  onControls,
 }: {
   onMore: () => void;
   /** the Mix sheet (transitions, fades, cortinas, levels) */
@@ -47,6 +53,9 @@ export function ControlStrip({
   onStop: () => void;
   /** phones: the set list sheet */
   onSet?: () => void;
+  /** the Controls panel (it docks above this row) */
+  controlsOpen: boolean;
+  onControls: () => void;
 }) {
   const state = useBooth((s) => s.state);
   const started = useBooth((s) => s.started);
@@ -108,7 +117,7 @@ export function ControlStrip({
   const primary = !started ? (
     <button
       type="button"
-      className="btn btn-primary booth-primary min-h-11 px-4"
+      className="btn btn-primary booth-primary"
       onClick={() => {
         haptic(8);
         void act.start();
@@ -133,18 +142,20 @@ export function ControlStrip({
   ) : breakUntil !== null ? (
     <button
       type="button"
-      className="btn btn-primary min-h-11 px-4"
+      className="btn btn-primary booth-primary"
       onClick={() => void act.endBreak()}
       data-testid="booth-play"
       aria-label={tx("booth.controlStrip.end_break")}
       data-hint={tx("booth.controlStrip.end_the_break_now_space")}
     >
-      <Play size={18} fill="currentColor" strokeWidth={0} aria-hidden /> {tx("booth.controlStrip.end_break")}
+      <Play size={18} fill="currentColor" strokeWidth={0} aria-hidden />
+      <span className="booth-start-label">{tx("booth.controlStrip.end_break")}</span>
     </button>
   ) : live ? (
     <button
       type="button"
-      className="btn btn-ghost booth-primary min-h-11 px-4"
+      className="btn btn-ghost booth-primary"
+      data-tone="pause"
       onClick={() => {
         haptic(8);
         act.pause();
@@ -153,12 +164,13 @@ export function ControlStrip({
       aria-label={tx("booth.controlStrip.pause")}
       data-hint={tx("booth.controlStrip.pause_now_with_a_s_fade", { pauseFadeSec: settings.pauseFadeSec })}
     >
-      <Pause size={18} fill="currentColor" strokeWidth={0} aria-hidden /> {tx("booth.controlStrip.pause")}
+      <Pause size={18} fill="currentColor" strokeWidth={0} aria-hidden />
+      <span className="booth-start-label">{tx("booth.controlStrip.pause")}</span>
     </button>
   ) : (
     <button
       type="button"
-      className="btn btn-primary booth-primary min-h-11 px-4"
+      className="btn btn-primary booth-primary"
       onClick={() => {
         haptic(8);
         void act.play();
@@ -169,8 +181,10 @@ export function ControlStrip({
         paused ? tx("booth.controlStrip.resume_where_it_paused_space") : tx("booth.controlStrip.play_space")
       }
     >
-      <Play size={18} fill="currentColor" strokeWidth={0} aria-hidden />{" "}
-      {paused ? tx("booth.controlStrip.resume") : tx("booth.controlStrip.play")}
+      <Play size={18} fill="currentColor" strokeWidth={0} aria-hidden />
+      <span className="booth-start-label">
+        {paused ? tx("booth.controlStrip.resume") : tx("booth.controlStrip.play")}
+      </span>
     </button>
   );
 
@@ -183,7 +197,7 @@ export function ControlStrip({
       aria-label={tx("booth.controlStrip.transport")}
       data-started={started}
     >
-      {/* the song: always the same place (Spotify / Apple Music bottom bar) */}
+      {/* the song: always the same place (Spotify / Apple Music bottom bar), on wide screens */}
       {nowItem && (
         <div className="booth-strip-now" data-testid="booth-strip-now">
           <Artwork
@@ -204,8 +218,9 @@ export function ControlStrip({
             hint={tx("booth.controlStrip.fade_out_now_over_s_the", { fadeNowSec: settings.fadeNowSec })}
             disabled={!live}
             onClick={() => act.fadeOutNow()}
+            confirmKey="fade"
             testId="booth-strip-fade"
-            className="booth-wide-only"
+            className="booth-wide-only booth-roomy-only"
           >
             <TrendingDown size={20} strokeWidth={2} aria-hidden />
           </TBtn>
@@ -216,12 +231,13 @@ export function ControlStrip({
             })}
             disabled={!live}
             onClick={() => void act.crossfadeNext()}
+            confirmKey="crossfade"
             testId="booth-strip-crossfade"
-            className="booth-wide-only"
+            className="booth-wide-only booth-roomy-only"
           >
             <Blend size={20} strokeWidth={2} aria-hidden />
           </TBtn>
-          <span className="booth-strip-sep" aria-hidden />
+          <span className="booth-strip-sep booth-roomy-only" aria-hidden />
         </>
       )}
       {/* 2026-11: one back and one ahead, before and during the night (← / →) */}
@@ -233,6 +249,7 @@ export function ControlStrip({
           void act.previous();
         }}
         disabled={!ready}
+        confirmKey="prev"
         testId="booth-prev"
         className="booth-prestart-hide"
       >
@@ -249,6 +266,7 @@ export function ControlStrip({
           void act.nextNow();
         }}
         disabled={!ready}
+        confirmKey="next"
         testId="booth-next-now"
         className="booth-prestart-hide"
       >
@@ -260,26 +278,26 @@ export function ControlStrip({
         onClick={() => act.next()}
         disabled={!started}
         testId="booth-next-btn"
-        className="booth-prestart-hide booth-wide-only"
+        className="booth-prestart-hide booth-wide-only booth-gap-btn-only"
       >
         <StepForward size={20} strokeWidth={2} aria-hidden />
       </TBtn>
-      <button
-        type="button"
-        className={`icon-btn booth-stop booth-prestart-hide ${started && state !== "stopped" ? "booth-stop-armed" : ""}`}
-        aria-label={tx("booth.controlStrip.stop_2")}
-        aria-haspopup="dialog"
-        data-hint={tx("booth.controlStrip.stop_fade_out_and_stop_or")}
+      {/* Stop opens its own confirm (Fade out and stop / Stop now): one tap */}
+      <TBtn
+        label={tx("booth.controlStrip.stop")}
+        ariaLabel={tx("booth.controlStrip.stop_2")}
+        hint={tx("booth.controlStrip.stop_fade_out_and_stop_or")}
         disabled={!started || state === "stopped"}
         onClick={() => {
           haptic(10);
           onStop();
         }}
-        data-testid="booth-stop"
+        testId="booth-stop"
+        className={`booth-stop booth-prestart-hide ${started && state !== "stopped" ? "booth-stop-armed" : ""}`}
+        haspopup
       >
         <Square size={18} fill="currentColor" strokeWidth={0} aria-hidden />
-        <span className="booth-stop-label">{tx("booth.controlStrip.stop")}</span>
-      </button>
+      </TBtn>
       {wide && (
         <>
           <span className="booth-strip-sep" aria-hidden />
@@ -332,6 +350,7 @@ export function ControlStrip({
           >
             <Mic size={20} strokeWidth={2} aria-hidden />
           </TBtn>
+          <span className="booth-strip-sep" aria-hidden />
         </>
       )}
       {audition && (
@@ -367,16 +386,33 @@ export function ControlStrip({
           <ListMusic size={20} strokeWidth={2} aria-hidden />
         </TBtn>
       )}
-      {/* the Mix sheet: transitions, fades, cortinas, levels — every value with its explanation */}
+      {/* 2026-11: the Controls panel's toggle lives in this row (the collapsed panel was a second bar over it) */}
       <TBtn
-        label={tx("booth.controlStrip.mix")}
-        ariaLabel={tx("booth.controlStrip.mix_levels_and_fades")}
-        hint={tx("booth.controlStrip.transitions_fades_cortina_length_and_levels")}
-        onClick={onLevels}
-        testId={wide ? "booth-mix" : "booth-levels"}
+        label={tx("booth.controls.title")}
+        hint={tx("booth.controls.toggle_hint")}
+        onClick={onControls}
+        testId="booth-controls-toggle"
+        expanded={controlsOpen}
+        controls="booth-ctl-body"
       >
-        <SlidersHorizontal size={20} strokeWidth={2} aria-hidden />
+        {controlsOpen ? (
+          <ChevronDown size={20} strokeWidth={2} aria-hidden />
+        ) : (
+          <ChevronUp size={20} strokeWidth={2} aria-hidden />
+        )}
       </TBtn>
+      {/* the Mix sheet: transitions, fades, cortinas, levels — every value with its explanation (a phone: in •••) */}
+      {wide && (
+        <TBtn
+          label={tx("booth.controlStrip.mix")}
+          ariaLabel={tx("booth.controlStrip.mix_levels_and_fades")}
+          hint={tx("booth.controlStrip.transitions_fades_cortina_length_and_levels")}
+          onClick={onLevels}
+          testId="booth-mix"
+        >
+          <SlidersHorizontal size={20} strokeWidth={2} aria-hidden />
+        </TBtn>
+      )}
       <TBtn
         label={tx("booth.controlStrip.more")}
         ariaLabel={tx("booth.controlStrip.more")}
@@ -390,7 +426,19 @@ export function ControlStrip({
   );
 }
 
-/** A transport button: the glyph, the word under it where there is room, the explanation on hover / long-press. */
+type Handler = ((e: PointerEvent<HTMLElement>) => void) | undefined;
+/** both handlers, in order (the help tag's and the hold's) */
+const both =
+  (a: Handler, b: Handler) =>
+  (e: PointerEvent<HTMLElement>): void => {
+    a?.(e);
+    b?.(e);
+  };
+
+/**
+ * A transport button: the glyph, the word under it (from 820 px), the explanation on hover / long-press. Every one is
+ * the same cell (booth.css). With `confirmKey`, mid-night it is press-and-hold (Confirm.tsx): a ring fills in 0.6 s.
+ */
 function TBtn({
   label,
   ariaLabel,
@@ -398,6 +446,10 @@ function TBtn({
   onClick,
   disabled,
   pressed,
+  expanded,
+  controls,
+  haspopup,
+  confirmKey,
   testId,
   className = "",
   children,
@@ -408,29 +460,56 @@ function TBtn({
   onClick: () => void;
   disabled?: boolean;
   pressed?: boolean;
+  expanded?: boolean;
+  controls?: string;
+  haspopup?: boolean;
+  confirmKey?: string;
   testId: string;
   className?: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
-  // wave 2: the shared help tag (hover with a mouse or an iPad trackpad, long-press, keyboard focus) says what the
-  // control does; the word under the glyph shows from 820 px, and the accessible name never depends on either
   const tip = useTip<HTMLButtonElement>(hint);
+  const hold = useHoldConfirm(confirmKey ?? `plain:${testId}`, onClick);
+  const tp = tip.props as Partial<Record<string, Handler>> & typeof tip.props;
+  const h = confirmKey ? hold.handlers : null;
+  const word = hold.armed
+    ? tx("booth.confirm.again")
+    : hold.nudge || hold.holding
+      ? tx("booth.confirm.hold")
+      : label;
   return (
     <>
       <button
         type="button"
-        className={`booth-tbtn ${className}`}
+        className={`booth-tbtn confirm-host ${className}`}
         aria-label={ariaLabel ?? label}
         aria-pressed={pressed === undefined ? undefined : pressed}
-        onClick={onClick}
+        aria-expanded={expanded}
+        aria-controls={controls}
+        aria-haspopup={haspopup ? "dialog" : undefined}
+        aria-description={confirmKey ? tx("booth.confirm.hold_hint") : undefined}
         disabled={disabled}
         data-testid={testId}
+        data-holding={(h && hold.holding) || undefined}
+        data-armed={(h && hold.armed) || undefined}
+        data-nudge={(h && hold.nudge) || undefined}
         {...tip.props}
+        onPointerDown={h ? both(tp.onPointerDown, h.onPointerDown) : tp.onPointerDown}
+        onPointerUp={h ? both(tp.onPointerUp, h.onPointerUp) : tp.onPointerUp}
+        onPointerLeave={h ? both(tp.onPointerLeave, h.onPointerLeave) : tp.onPointerLeave}
+        onPointerCancel={h ? h.onPointerCancel : undefined}
+        onContextMenu={(e) => {
+          // a long press is the hold here, never the system menu
+          if (h) e.preventDefault();
+          else tp.onContextMenu?.(e as unknown as PointerEvent<HTMLElement>);
+        }}
+        onClick={h ? h.onClick : onClick}
       >
         {children}
         <span className="booth-tbtn-l" aria-hidden>
-          {label}
+          {h ? word : label}
         </span>
+        {h && (hold.holding || hold.armed) && <ConfirmRing />}
       </button>
       {tip.tag}
     </>
