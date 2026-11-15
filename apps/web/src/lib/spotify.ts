@@ -475,6 +475,8 @@ export interface YoutubeResult extends PlaylistResult {
   timeout?: boolean;
   /** this call created the playlist (the first batch); later batches append to `playlistId` */
   created?: boolean;
+  /** what went in, by the query's place in the batch */
+  videos?: Array<{ at: number; videoId: string }>;
 }
 
 interface ConnectorsSnapshot {

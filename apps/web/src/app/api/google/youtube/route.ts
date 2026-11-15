@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { requestOrigin } from "@/lib/server/cookies";
 import {
   addYoutubeItems,
+  checkYoutube,
   createYoutubePlaylist,
   featureLogin,
   hasScope,
@@ -37,6 +38,33 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
   if (!body || typeof body !== "object") return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   const playlist = body.playlist as Playlist | undefined;
+  // `{ verify: true, playlistId, expected: [{ videoId, query }], region? }`: the playlist read back with the DJ's
+  // token, every page, checked video by video for their country and put right (lib/youtubeVerify.ts)
+  if (body.verify === true) {
+    const playlistId =
+      typeof body.playlistId === "string" && /^[A-Za-z0-9_-]{1,120}$/.test(body.playlistId)
+        ? (body.playlistId as string)
+        : null;
+    const expected = Array.isArray(body.expected)
+      ? (body.expected as Array<{ videoId?: unknown; query?: unknown }>)
+          .slice(0, 400)
+          .filter((x) => typeof x?.videoId === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(x.videoId))
+          .map((x) => ({ videoId: x.videoId as string, query: String(x.query ?? "").slice(0, 200) }))
+      : null;
+    if (!playlistId || !expected)
+      return NextResponse.json({ error: "playlistId and expected required" }, { status: 400 });
+    if (!hasScope(s.session, "youtube"))
+      return NextResponse.json(
+        { error: "needs_scope", scope: "youtube", login: featureLogin("youtube", "/") },
+        { status: 403 },
+      );
+    const region =
+      typeof body.region === "string" && /^[A-Z]{2}$/.test(body.region) ? body.region : undefined;
+    const check = await checkYoutube(s.session.access, playlistId, expected, region);
+    const res = NextResponse.json({ app: "youtube", id: playlistId, url: youtubeUrl(playlistId), check });
+    if (s.setCookie) res.headers.append("set-cookie", s.setCookie);
+    return res;
+  }
   const queries = Array.isArray(body.queries)
     ? (body.queries as unknown[]).filter((q): q is string => typeof q === "string" && !!q.trim())
     : null;

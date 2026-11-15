@@ -46,6 +46,7 @@ import { toast } from "@/lib/toast";
 import { TRANSFER_SERVICES, type TransferService, transferCsv, transferRows } from "@/lib/transferCsv";
 import { CORTINA_STOP_RANGE, cortinaStopSec, DJ_APPS, type DjApp, type Playlist } from "@/lib/types";
 import { youtubeBatches, youtubeQueries } from "@/lib/youtubePlan";
+import type { YoutubeCheck } from "@/lib/youtubeVerify";
 import { CountUp } from "./CountUp";
 import { ExportCheck } from "./ExportCheck";
 import { ActionRow, Group, PickerRow, Row, SegmentedRow, StepperRow, SwitchRow, Tile } from "./Form";
@@ -54,6 +55,8 @@ import { Sheet } from "./Sheet";
 
 /** one row of the playlist the Spotify export writes, with its URI */
 type SpotifyRow = PlanRow & { uri: string };
+/** a video the YouTube export added: the search that found it and its row of the running order */
+type YtWant = { videoId: string; query: string; row: number };
 
 const FORMAT_ITEMS = (Object.keys(EXPORT_META) as ExportFormat[]).map(
   (f) => [f, EXPORT_META[f].label] as [ExportFormat, string],
@@ -193,6 +196,10 @@ export function ExportSheet({
   const [spCheck, setSpCheck] = useState<{ view: CheckView; rows: SpotifyRow[]; id: string } | null>(null);
   /** "Check playlist" or "Fix in Spotify" running */
   const [checking, setChecking] = useState(false);
+  /** what YouTube holds after the export, read back */
+  const [ytCheck, setYtCheck] = useState<{ view: CheckView; playlistId: string; want: YtWant[] } | null>(
+    null,
+  );
 
   // a fresh open starts clean: no stale "Playlist created" state
   useEffect(() => {
@@ -203,6 +210,7 @@ export function ExportSheet({
       setPending(null);
       setProgress(null);
       setSpCheck(null);
+      setYtCheck(null);
       try {
         setTarget((targetKey && localStorage.getItem(targetKey)) || "");
       } catch {
@@ -478,6 +486,41 @@ export function ExportSheet({
       id: r.id,
     });
     return c.ok;
+  };
+  /**
+   * YouTube: the playlist read back with the DJ's Google account (every page), each video checked for their
+   * country and replaced from the same search when it does not play, missing ones put in place (the route does
+   * it, lib/youtubeVerify.ts); the sheet shows the same verified result as Spotify.
+   */
+  const checkYoutube = async (playlistId: string, want: YtWant[]) => {
+    const region = (() => {
+      try {
+        return new Intl.Locale(navigator.language).maximize().region;
+      } catch {
+        return undefined;
+      }
+    })();
+    const r = await directPost<{ check?: YoutubeCheck }>("/api/google/youtube", {
+      verify: true,
+      playlistId,
+      expected: want.map(({ videoId, query }) => ({ videoId, query })),
+      ...(region ? { region } : {}),
+    });
+    if (!r.check || !playlist) return;
+    const rows = spotifyPlan().rows;
+    const night = want.map(
+      (w) => rows[w.row] ?? { kind: "track" as const, tanda: 0, title: w.query, artist: "" },
+    );
+    setYtCheck({
+      view: checkView(
+        tx("exportSheet.youtube"),
+        r.check,
+        night,
+        r.check.rows.map((x) => ({ title: x.title, artist: x.channel })),
+      ),
+      playlistId,
+      want: want.map((w, i) => ({ ...w, videoId: r.check!.videoIds[i] ?? w.videoId })),
+    });
   };
   /** "Fix in Spotify": the night's rows written again in order, then read back. */
   const fixSpotify = async () => {
@@ -767,6 +810,7 @@ export function ExportSheet({
           tandas: playlist.tandas.length,
         };
         let playlistId: string | null = null;
+        const ytExpected: YtWant[] = [];
         let url = "";
         let added = 0;
         let missing = 0;
@@ -792,10 +836,14 @@ export function ExportSheet({
           added += r.added;
           missing += r.missing.length;
           skipped += r.skipped?.length ?? 0;
+          for (const v of r.videos ?? [])
+            ytExpected.push({ videoId: v.videoId, query: b[v.at]!, row: done + v.at });
           if (r.quota) quota = true;
           done += b.length;
         }
         setYtProgress(null);
+        // what YouTube holds, read back with the DJ's account and put right (unavailable videos replaced)
+        if (playlistId && ytExpected.length) await checkYoutube(playlistId, ytExpected);
         setLog((l) => [
           ...l,
           tx("exportSheet.created_the_youtube_playlist_with_tracks", {
@@ -1430,6 +1478,19 @@ export function ExportSheet({
             onFix={() => void fixSpotify()}
             fixing={checking}
             id="spotify-verified"
+          />
+        )}
+        {ytCheck && (
+          <ExportCheck
+            view={ytCheck.view}
+            onFix={() => {
+              setChecking(true);
+              void checkYoutube(ytCheck.playlistId, ytCheck.want)
+                .catch((e) => setLog((l) => [...l, `Error: ${(e as Error).message}`]))
+                .finally(() => setChecking(false));
+            }}
+            fixing={checking}
+            id="youtube-verified"
           />
         )}
         {log.length > 0 && (
