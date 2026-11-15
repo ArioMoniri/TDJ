@@ -1,7 +1,7 @@
 import { swapOptions } from "@tdj/core";
 import { NextResponse } from "next/server";
 import { getCatalogFor } from "@/lib/server/catalog";
-import { complete, extractJson, resolveAi } from "@/lib/server/llm";
+import { complete, extractJson, RelayNeeded, relayResponse, resolveAi } from "@/lib/server/llm";
 export const dynamic = "force-dynamic";
 
 /**
@@ -25,7 +25,7 @@ export async function POST(req: Request) {
       source: "engine",
       why: `The engine's best fit (${why}).`,
     });
-  const resolved = await resolveAi(req);
+  const resolved = await resolveAi(req, { body });
   if (!resolved.ok)
     return engine(resolved.status === 429 ? "today's shared AI allowance is used up" : "no AI key set");
   const t = playlist.tandas[ti];
@@ -49,6 +49,7 @@ export async function POST(req: Request) {
     if (!pick) return engine("the model's answer named no valid side");
     return NextResponse.json({ songId: pick.song.id, source: "ai", why: String(j?.why ?? "").slice(0, 240) });
   } catch (e) {
+    if (e instanceof RelayNeeded) return relayResponse(e);
     return engine(e instanceof Error ? e.message : "the model request failed");
   }
 }

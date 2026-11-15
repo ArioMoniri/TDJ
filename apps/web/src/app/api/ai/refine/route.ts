@@ -13,7 +13,14 @@ import { NextResponse } from "next/server";
 import { FEEDBACK_LABEL, FEEDBACK_VALUES, feedbackFromText } from "@/lib/feedback";
 import { getCatalog, getCatalogFor } from "@/lib/server/catalog";
 import { crossOriginResponse } from "@/lib/server/guard";
-import { complete, extractJson, houseRulesBlock, resolveAi } from "@/lib/server/llm";
+import {
+  complete,
+  extractJson,
+  houseRulesBlock,
+  RelayNeeded,
+  relayResponse,
+  resolveAi,
+} from "@/lib/server/llm";
 export const dynamic = "force-dynamic";
 
 const OPTION_KEYS = [
@@ -228,7 +235,7 @@ export async function POST(req: Request) {
   };
 
   // the DJ's own key, else the organiser's shared key (counted per day); neither → keywords only
-  const resolved = await resolveAi(req);
+  const resolved = await resolveAi(req, { body });
   if (!resolved.ok)
     return keywordFallback(
       resolved.status === 429
@@ -291,6 +298,7 @@ ${body.memory && typeof body.memory === "object" ? summarizeMemory(body.memory) 
       source: "model",
     });
   } catch (e) {
+    if (e instanceof RelayNeeded) return relayResponse(e);
     return keywordFallback(
       `${e instanceof Error ? e.message : "model request failed"}; matched by keywords instead`,
     );

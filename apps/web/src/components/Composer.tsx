@@ -59,6 +59,7 @@ import type {
   NightRules,
   Playlist,
 } from "@/lib/types";
+import { AiEditBar } from "./AiEditBar";
 import { BenchmarkSheet, benchLabel, type ImproveResponse } from "./BenchmarkSheet";
 import { ComposeLabel, ComposeNarrative } from "./ComposeNarrative";
 import { ContextStrip } from "./ContextStrip";
@@ -1807,6 +1808,7 @@ export function Composer() {
               ];
             })}
           </div>
+          <AiEditBar playlist={playlist} />
           {playlist.closing && (
             <Group header="Closing">
               <div className="cell" data-leading="art">

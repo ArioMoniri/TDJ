@@ -26,10 +26,14 @@ import {
   SwitchRow,
   Tile,
 } from "@/components/Form";
+import { ModelConnections } from "@/components/ModelConnections";
 import { PageHeader } from "@/components/PageHeader";
 import { Sheet } from "@/components/Sheet";
 import { TandaRulesGroup } from "@/components/TandaRules";
 import { DataSources } from "@/components/ui/DataSources";
+import { activeAcp } from "@/lib/ai/client";
+import { KEY_PLACEHOLDER, MODEL_SUGGESTIONS } from "@/lib/ai/models";
+import { chooseKeyProvider, keyOf, withKey } from "@/lib/ai/settings";
 import { fade, t as tw } from "@/lib/motion";
 import { useStore } from "@/lib/store";
 import {
@@ -41,21 +45,10 @@ import {
   DEFAULT_NAMING,
   DJ_APPS,
   type DjApp,
+  type KeyProvider,
   type UserSettings,
 } from "@/lib/types";
 
-const MODEL_SUGGESTIONS: Record<AiProvider, string[]> = {
-  anthropic: ["claude-sonnet-5-5", "claude-opus-5-5", "claude-haiku-5-5"],
-  openai: ["gpt-5.2", "gpt-5.2-mini", "o4-mini"],
-  gemini: ["gemini-4-argon", "gemini-3.8-flash", "gemini-3.5-flash-lite"],
-  openrouter: ["openrouter/auto", "anthropic/claude-sonnet-5-5", "openai/gpt-5.2"],
-};
-const KEY_PLACEHOLDER: Record<AiProvider, string> = {
-  anthropic: "sk-ant-…",
-  openai: "sk-…",
-  gemini: "AIza…",
-  openrouter: "sk-or-…",
-};
 const REGIONS: Array<[UserSettings["region"], string]> = [
   ["buenos-aires", "Buenos Aires"],
   ["europe", "Europe"],
@@ -176,14 +169,22 @@ export default function Settings() {
     const id = setTimeout(() => setChecking(true), 300);
     return () => clearTimeout(id);
   }, [test.state]);
-  const ai = settings.ai;
-  const setAi = (patch: Partial<UserSettings["ai"]>) => setSettings({ ai: { ...ai, ...patch } });
+  // round 22: this group edits one provider's key; the one in use is chosen in Keys and agents below (or here,
+  // while a key provider is in use). An ACP agent in use leaves the keys to edit, untouched.
+  const agentInUse = activeAcp(settings);
+  const [editP, setEditP] = useState<KeyProvider | null>(null);
+  const editProvider: KeyProvider =
+    settings.ai.provider === "acp" ? (editP ?? "anthropic") : settings.ai.provider;
+  const ai = { provider: editProvider, ...keyOf(settings, editProvider) };
+  const setAi = (patch: Partial<{ key: string; model: string; workspace: string }>) =>
+    setSettings(withKey(useStore.getState().settings, editProvider, patch));
   const usingShared = !ai.key && !!shared?.shared;
   // the personal fields fold away under "Use my own key" while the organiser's key does the work
   const showOwn = ownKey || !!ai.key || shared?.shared === false;
   const switchProvider = (provider: AiProvider) => {
-    const keepModel = MODEL_SUGGESTIONS[provider].includes(ai.model);
-    setAi({ provider, model: keepModel ? ai.model : AI_DEFAULT_MODEL[provider] });
+    if (provider === "acp") return;
+    if (settings.ai.provider === "acp") setEditP(provider);
+    else setSettings(chooseKeyProvider(useStore.getState().settings, provider));
     setTest({ state: "idle" });
   };
   const testConnection = async () => {
@@ -400,7 +401,7 @@ export default function Settings() {
       <DataSources />
 
       <Group
-        header="Written reviews"
+        header="Models"
         footer={
           <span
             role="status"
@@ -442,7 +443,7 @@ export default function Settings() {
                   : (test.text ??
                     (usingShared
                       ? `The organiser's key writes your reviews and turns “Tell the DJ” into precise changes, up to ${shared?.limit ?? 20} requests a day per DJ. Add your own key under “Use my own key” for unlimited use; it stays in this browser.`
-                      : "A model key lets you ask for a written review of a set and turns “Tell the DJ” into precise changes. Without a key, free text still works by keyword. The key is sent with your own requests only and never stored on the server."))}
+                      : "A model key lets you ask for a written review of a set, edit the night in your own words and turn “Tell the DJ” into precise changes. Without one, simple requests still work by keyword. The key is sent with your own requests only and never stored on the server."))}
               </motion.span>
             </AnimatePresence>
           </span>
@@ -456,13 +457,15 @@ export default function Settings() {
           }
           label="Status"
           value={
-            ai.key
-              ? "Key saved"
-              : shared === null
-                ? "Checking…"
-                : shared.shared
-                  ? `Using the organiser's key · ${shared.used} of ${shared.limit} today`
-                  : "Off"
+            agentInUse
+              ? `Using ${agentInUse.name}`
+              : ai.key
+                ? "Key saved"
+                : shared === null
+                  ? "Checking…"
+                  : shared.shared
+                    ? `Using the organiser's key · ${shared.used} of ${shared.limit} today`
+                    : "Off"
           }
           id="ai-status"
         />
@@ -549,6 +552,8 @@ export default function Settings() {
           workspace at console.anthropic.com → API keys.
         </p>
       )}
+
+      <ModelConnections />
 
       <Group
         header="Storage"

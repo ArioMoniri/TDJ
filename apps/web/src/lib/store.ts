@@ -2,6 +2,7 @@
 import { emptyMemory } from "@tdj/core";
 import { create } from "zustand";
 import { type PersistStorage, persist } from "zustand/middleware";
+import { RETIRED_DEFAULTS } from "./ai/models";
 import { clearHistoryStore, isSnapshot, loadHistoryLocal, pushSnapshot, saveHistory } from "./history";
 import { whenIdle } from "./hooks";
 import { clearMemoryStore, saveMemory } from "./memory";
@@ -204,7 +205,7 @@ export const useStore = create<State>()(
     }),
     {
       name: "tdj-v1",
-      version: 3,
+      version: 4,
       storage: idleLocalStorage(),
       partialize: (s) => ({
         options: s.options,
@@ -233,6 +234,16 @@ export const useStore = create<State>()(
                 k !== "touched" &&
                 JSON.stringify(po[k]) !== JSON.stringify((DEFAULT_OPTS as Record<string, unknown>)[k]),
             );
+        }
+        if (version < 4 && p.settings) {
+          // round 22: a stored former default means "the default" (now the newest Claude model, lib/ai/models.ts);
+          // the active key is also kept per provider, so switching providers in Settings → Models keeps it
+          const ai = p.settings.ai as
+            | { provider?: string; key?: string; model?: string; workspace?: string }
+            | undefined;
+          if (ai?.model && RETIRED_DEFAULTS.includes(ai.model)) ai.model = "";
+          if (ai?.key && ai.provider && ai.provider !== "acp")
+            p.settings.aiKeys = { [ai.provider]: { key: ai.key, model: ai.model, workspace: ai.workspace } };
         }
         return p as unknown as State;
       },
