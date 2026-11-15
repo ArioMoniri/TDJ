@@ -38,9 +38,12 @@ export function RuleRow({
   return (
     <SwipeRow actions={[{ kind: "destructive", label: "Delete", icon: Trash2, onClick: onForget }]}>
       <div className="cell" data-testid="learned-rule" data-rule={r.id}>
-        <span className="min-w-0 flex-1">
-          <Tip text={r.label}>
-            <span className="block truncate">{r.label}</span>
+        {/* the text column never runs under the controls: it clips to its own width and the name wraps to two lines */}
+        <span className="min-w-0 flex-1 overflow-hidden">
+          <Tip text={r.label} className="w-full min-w-0">
+            <span className="line-clamp-2 block min-w-0 break-words" data-testid="learned-label">
+              {r.label}
+            </span>
           </Tip>
           <span className="text-footnote block truncate text-[var(--label-2)]" data-testid="learned-source">
             {detailOf(r)}
