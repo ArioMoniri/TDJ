@@ -338,7 +338,8 @@ test("compose sends only explicit keys plus the explicit list; the DJ CSV genre 
   expect(body.explicit).toContain("tangoTandaSize");
   expect(body.tangoTandaSize).toBe(3);
   expect(body.eras).toEqual(["nuevo"]);
-  expect(body.name).toMatch(/Milonga · 4 h · Nuevo/);
+  // wave 2: the name is the title alone (the day and the event); the length and era are its sub-line
+  expect(body.name).toMatch(/^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday) milonga$/);
   await expect(page.locator("#result")).toBeVisible({ timeout: 60000 });
   const p = await (await request.post("/api/compose", { data: { hours: 2, seed: 7 } })).json();
   const csv = await (await request.post("/api/export", { data: { playlist: p, format: "serato" } })).text();

@@ -54,10 +54,11 @@ test("compose narrative: a slow compose shows the staged narrative and the live 
   await page.getByRole("button", { name: /Compose the night/ }).click();
   await expect(status).toHaveText("Composing the night…");
   // the narrative mounts after 250 ms and walks the four steps (450 ms each) while the request is slowed by 1.5 s
-  const narrative = page.getByTestId("compose-narrative");
+  // wave 2: the progress panel names the engine's stages and can cancel
+  const narrative = page.getByTestId("compose-progress");
   await expect(narrative).toBeVisible({ timeout: 2000 });
-  await expect(narrative).toContainText(/Placing tandas|Matching cortinas/);
-  await expect(narrative).toContainText(/Shaping the arc|Scoring the night/, { timeout: 2500 });
+  await expect(narrative).toContainText(/Choosing tandas|Ordering/);
+  await expect(narrative.getByTestId("compose-cancel")).toBeVisible();
   // the button label cross-faded to "Composing…" while busy
   await expect(page.getByRole("button", { name: /Composing/ })).toBeDisabled();
   await expect(page.locator("#result")).toBeVisible({ timeout: 60000 });

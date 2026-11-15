@@ -107,6 +107,7 @@ test("every control on Compose, Settings, Database and History explains itself, 
   expect(titles).toEqual([]);
   // the tag itself: hover a Compose control and read what it does
   await page.goto("/");
-  await page.locator("#night").getByRole("switch", { name: "Close with La Cumparsita" }).hover();
+  // (wave 2: where La Cumparsita plays is one picker: Open / Close / Both / Off)
+  await page.locator("#night").getByLabel("La Cumparsita", { exact: true }).hover();
   await expect(page.getByTestId("tip")).toContainText("La Cumparsita");
 });
