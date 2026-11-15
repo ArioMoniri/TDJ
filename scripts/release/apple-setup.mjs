@@ -345,7 +345,8 @@ export async function ensureCert(api, store, kind, opts) {
   // makes from the CSR printed then still matches the key here (a fresh CSR per run would orphan it)
   const pendingKey = kind === "devid" ? await store.get(`${c.prefix}_PENDING_KEY`) : null;
   const pendingCsr = pendingKey ? await store.get(`${c.prefix}_CSR`) : null;
-  const { keyPem, csrPem } = pendingKey && pendingCsr ? { keyPem: pendingKey, csrPem: pendingCsr } : makeCsr(c.label, run);
+  const { keyPem, csrPem } =
+    pendingKey && pendingCsr ? { keyPem: pendingKey, csrPem: pendingCsr } : makeCsr(c.label, run);
   let lastErr = null;
   for (const certificateType of c.types) {
     for (let attempt = 0; attempt < 2; attempt++) {
