@@ -2525,10 +2525,7 @@ html.theming *::after {
   .chip-filter {
     min-height: 44px;
   }
-  .stepper,
-  .stepper button {
-    height: 44px;
-  }
+  /* (wave 4: the stepper keeps its 94 × 32 and reaches 44 px through its halves' transparent ::after) */
   /* the energy chart's dots: a 44 px round hit area (the chart draws at about 0.77 of its viewBox on iPad landscape) */
   .dot-hit {
     r: 30px;
