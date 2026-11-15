@@ -21,6 +21,7 @@ import { spring } from "@/lib/motion";
 import { usePlayer } from "@/lib/player";
 import { useStore } from "@/lib/store";
 import { Logo } from "./Logo";
+import { ROOMS_NAV } from "./RoomsNav";
 
 /** Fired with the tanda index when the sidebar's Tonight list picks a tanda: the Compose inspector follows it. */
 export const SELECT_TANDA_EVENT = "tdj:select-tanda";
@@ -37,6 +38,7 @@ const library = [
   { href: "/library", label: "Library", icon: Disc3 },
   { href: "/database", label: "Database", icon: Database },
   { href: "/history", label: "History", icon: Clock },
+  ROOMS_NAV,
 ];
 const pinned = [
   { href: "/guide", label: "Guide", icon: BookOpen },
