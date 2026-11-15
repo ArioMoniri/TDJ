@@ -25,6 +25,28 @@ export const swapWire = (x: SwapOption) => ({
     id: x.song.id,
     title: x.song.title,
     orchestra: x.song.orchestra,
+    // round 22: what the polished sheet shows per side (artwork, era badge, key, preview)
+    orchestraId: x.song.orchestraId,
+    vocal: x.song.vocal,
+    yearApprox: x.song.yearApprox,
+    resolved: x.song.resolved
+      ? {
+          provider: x.song.resolved.provider,
+          id: x.song.resolved.id,
+          title: x.song.resolved.title,
+          artist: x.song.resolved.artist,
+          previewUrl: x.song.resolved.previewUrl,
+          artwork: x.song.resolved.artwork,
+        }
+      : null,
+    audio: x.song.audio
+      ? {
+          key: x.song.audio.key,
+          mode: x.song.audio.mode,
+          camelot: x.song.audio.camelot,
+          bpm: x.song.audio.bpm,
+        }
+      : null,
     singer: x.song.singer,
     year: x.song.year,
     rhythm: x.song.rhythm,

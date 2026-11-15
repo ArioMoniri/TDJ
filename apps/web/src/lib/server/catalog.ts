@@ -2,7 +2,14 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { Catalog, type ContextModel, type UserOverrides } from "@tdj/core";
+import {
+  Catalog,
+  type ContextModel,
+  type CoverageRow,
+  heatmapWith,
+  scrapedCaches,
+  type UserOverrides,
+} from "@tdj/core";
 import { findRoot, loadCatalog } from "@tdj/core/load";
 import type { AppOverrides, ReferencePlaylist } from "@/lib/types";
 
@@ -38,8 +45,20 @@ export function overridesEmpty(o?: AppOverrides | null): boolean {
     !Object.keys(o.cortinas ?? {}).length &&
     !Object.keys(o.rules ?? {}).length &&
     !(o.addedSongs?.length ?? 0) &&
-    !Object.keys(o.contextFactors ?? {}).length
+    !Object.keys(o.contextFactors ?? {}).length &&
+    !Object.keys(o.heatmap ?? {}).length &&
+    !Object.keys(o.scraped ?? {}).length
   );
+}
+
+/** the shipped heatmap rows (data/index/coverage.json under the data root), read once */
+let coverage: CoverageRow[] | null = null;
+export function coverageRows(): CoverageRow[] {
+  if (!coverage) {
+    const f = join(getCatalog().root, "data/index/coverage.json");
+    coverage = existsSync(f) ? (JSON.parse(readFileSync(f, "utf8")) as CoverageRow[]) : [];
+  }
+  return coverage;
 }
 
 const LRU_MAX = 8;
@@ -58,7 +77,10 @@ export function getCatalogFor(overrides?: AppOverrides | null) {
     lru.set(key, hit);
     return { catalog: hit.catalog, cortinas: base.cortinas, contextModel: hit.contextModel };
   }
-  const { contextFactors: _cf, ...core } = o;
+  const { contextFactors: _cf, heatmap: heatEdits, scraped, connectors: _c, guide: _g, ...core } = o;
+  // round 22: what the DJ's own sources fetched (Deezer BPM and gain) is newer than the shipped cache and replaces its
+  // record; the DJ's edits (`songs`) still win over both; the DJ's grade edits sit over the shipped heatmap
+  const userDeezer = scrapedCaches(scraped).deezer;
   const catalog = new Catalog(
     base.raw.songs,
     base.raw.profiles,
@@ -71,8 +93,9 @@ export function getCatalogFor(overrides?: AppOverrides | null) {
     {
       resolved: base.raw.resolved,
       audio: base.raw.audio,
-      heatmap: base.heatmap,
-      deezer: base.raw.deezer,
+      heatmap:
+        heatEdits && Object.keys(heatEdits).length ? heatmapWith(coverageRows(), heatEdits) : base.heatmap,
+      deezer: Object.keys(userDeezer).length ? { ...base.raw.deezer, ...userDeezer } : base.raw.deezer,
       learned: base.raw.learned,
     },
   );

@@ -9,12 +9,16 @@ import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
 import { lineSwap } from "@/lib/motion";
 import { sourceFor, trackFor, usePlayer } from "@/lib/player";
+import { bpmText, keyText, useSongData } from "@/lib/songView";
 import { useStore } from "@/lib/store";
 import { tempoLevel } from "@/lib/tempo";
 import type { Song } from "@/lib/types";
 import { I } from "./Icons";
 import { Menu } from "./Menu";
 import { SwipeRow } from "./SwipeRow";
+import { Artwork } from "./ui/Artwork";
+import { EraBadge } from "./ui/EraBadge";
+import { Tip } from "./ui/Tip";
 
 /* The two sheets are rare (one row at a time): their code arrives when the first one opens. */
 const AudioDetails = dynamic(() => import("./AudioDetails").then((m) => m.AudioDetails), { ssr: false });
@@ -56,6 +60,10 @@ export const TrackRow = memo(function TrackRow({
   const patch = useStore((s) => s.overrides.songs?.[song.id]);
   const connected = useStore((s) => !!s.spotifyToken && s.spotifyToken.expires > Date.now());
   const eff = patchedSong(song, patch);
+  // round 22: artwork, BPM and key from the DJ's edits, their sources, then the index
+  const { data } = useSongData(song);
+  const bpm = bpmText(data);
+  const keyOnly = !eff.audio ? keyText(data) : null;
   const source = sourceFor(eff, connected);
   const playing = usePlayer((s) => s.playing && s.track?.id === song.id);
   const [details, setDetails] = useState(false);
@@ -157,6 +165,16 @@ export const TrackRow = memo(function TrackRow({
               </>
             )}
           </button>
+          {/* round 22: the cover with the era badge on its corner (one slot, so the title keeps its room) */}
+          <span className="relative -my-1 shrink-0">
+            <Artwork
+              src={data.artwork?.value as string | undefined}
+              orchestra={song.orchestra}
+              orchestraId={song.orchestraId}
+              size="s"
+            />
+            <EraBadge song={eff} compact overlay />
+          </span>
           {/* the title truncates in its own block and the year never shrinks: an inline year inside a truncated
               span could still overflow the viewport by a pixel on phones (round4 mobile-overflow flake) */}
           <span
@@ -176,6 +194,19 @@ export const TrackRow = memo(function TrackRow({
               )}
             </span>
           </span>
+          {keyOnly && (
+            <span className="data-chip font-mono" data-testid="key-chip">
+              <span className="sr-only">Key </span>
+              {keyOnly}
+            </span>
+          )}
+          {bpm && !isPhone && !tempoLevel(song) && (
+            <Tip text="Beats per minute: from your edit, your sources or the analysed preview">
+              <span className="data-chip" data-testid="row-bpm">
+                {bpm}
+              </span>
+            </Tip>
+          )}
           {audio && !isPhone && (
             <button
               type="button"

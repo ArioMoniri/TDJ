@@ -1,4 +1,5 @@
 "use client";
+import { tandaTone } from "@tdj/core";
 import { AudioWaveform, Headphones, ListMusic, Lock, LockOpen, Repeat2, SkipForward } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import dynamic from "next/dynamic";
@@ -18,6 +19,7 @@ import { I } from "./Icons";
 import { Menu } from "./Menu";
 import { SwipeRow } from "./SwipeRow";
 import { TrackRow } from "./TrackRow";
+import { Tip } from "./ui/Tip";
 
 /* Spotify embeds and the connected-account lookups load with the first "Listen" / cortina tap, not with the set. */
 const TandaListen = dynamic(() => import("./Listen").then((m) => m.TandaListen), { ssr: false });
@@ -94,6 +96,14 @@ function TandaCardImpl({
   // only this tanda's song patches: an analysis elsewhere in the set does not re-render this card
   const patches = useStore(useShallow((s) => t.songs.map((x) => s.overrides.songs?.[x.id])));
   const cohesion = useMemo(() => cohesionWith(t, patches), [t, patches]);
+  // round 22: the tanda's tone — its mode and keys, its feel and mean tempo (the DJ's own keys win)
+  const tone = useMemo(() => {
+    const keys = patches.map((p) => p?.key);
+    return tandaTone(
+      t.songs.map((s, k) => patchedSong(s, patches[k])),
+      keys.some(Boolean) ? keys : undefined,
+    );
+  }, [t, patches]);
   const connected = useStore((s) => !!s.spotifyToken && s.spotifyToken.expires > Date.now());
   /** "Preview tanda": the 30 s previews of this tanda back to back, 10 s each (round4-ux.md §10.1) */
   const previewTracks = useMemo(
@@ -264,6 +274,18 @@ function TandaCardImpl({
                   </span>
                 )}
                 {cohesion && <CohesionBadge info={cohesion} tandaLabel={`tanda ${i + 1}`} />}
+                {tone && (
+                  <Tip
+                    text={`The tanda's tone: ${tone.mode ? `${tone.mode === "mixed" ? "mixed major and minor keys" : `${tone.mode} keys`}${tone.keys.length ? ` (${tone.keys.join(", ")})` : ""}, ` : ""}${tone.feel} energy${tone.bpm ? `, about ${tone.bpm} BPM` : ""}`}
+                  >
+                    <span
+                      className="text-caption1 inline-flex whitespace-nowrap rounded-full bg-[var(--fill-4)] px-2 py-0.5 font-medium text-[var(--label-2)]"
+                      data-testid="tanda-tone"
+                    >
+                      {tone.label}
+                    </span>
+                  </Tip>
+                )}
               </span>
             </span>
             <span className="text-right">

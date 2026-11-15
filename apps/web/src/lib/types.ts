@@ -102,6 +102,13 @@ export interface UserSettings {
    * neither the engine score nor the benchmark falls.
    */
   autoImprove: boolean;
+  /**
+   * Round 22: the data sources that fill missing BPM, key, level, artwork and dates (Settings › Connections). Keyless
+   * sources are on unless turned off; a Discogs token stays in this browser and is never stored by the server.
+   */
+  dataSources?: { enabled?: Partial<Record<string, boolean>>; discogsToken?: string; autoFill?: boolean };
+  /** round 22: the era badge on every song (best / good / uneven / outside years); on by default */
+  eraBadges?: boolean;
 }
 export const DEFAULT_NAMING = "{artist} - {title}";
 export const DEFAULT_SETTINGS: UserSettings = {
@@ -141,6 +148,11 @@ export type SongPatch = Partial<Song> & {
   audio?: AudioFeatures | null;
   /** the streaming/preview track the user picked in "Find on services" */
   resolved?: ResolvedTrack | null;
+  /** round 22: the DJ's own key ("Am", "F♯m"), artwork, release date and Deezer track (they win over every source) */
+  key?: string;
+  artwork?: string;
+  release?: string;
+  deezerId?: string;
 };
 
 /** Guide section ids whose text the user may rewrite; `houseRules` is appended to the AI prompts. */
@@ -155,6 +167,10 @@ export interface AppOverrides extends UserOverrides {
   guide?: GuideOverrides;
   /** BYO automation: a webhook URL exports can be POSTed to (never stored server-side by TDJ) */
   connectors?: { webhookUrl?: string };
+  /** round 22: the DJ's era-indicator grades over the shipped heatmap (orchestra → mode → year → grade, null clears) */
+  heatmap?: import("@tdj/core").CoverageEdits;
+  /** round 22: what this DJ's data sources fetched per song (BPM, key, level, artwork, dates), each with its source */
+  scraped?: Record<string, import("@tdj/core").ScrapedRecord>;
 }
 
 /** One previous generation (History tab): the whole set plus what composed it. */
@@ -193,6 +209,13 @@ export interface MetaOrchestra {
   phase?: string[];
   notBefore?: number;
   singers?: Record<string, [number, number]>;
+  /** round 22: first and last recording year in the index */
+  years?: [number, number];
+  /** round 22: the most-recorded singers with their number of sides */
+  topSingers?: Array<[string, number]>;
+  instrumentals?: number;
+  /** round 22: a cover from its best-known side with artwork */
+  artwork?: string;
 }
 export interface MetaCortina {
   id: string;

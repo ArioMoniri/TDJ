@@ -3,10 +3,12 @@ import { rememberEdit } from "@tdj/core";
 import { useEffect, useState } from "react";
 import { useStore } from "@/lib/store";
 import { tempoLevel } from "@/lib/tempo";
-import type { Playlist } from "@/lib/types";
+import type { Playlist, Song } from "@/lib/types";
 import { ActionRow, Group, Row, SwitchRow } from "./Form";
 import { SearchField } from "./SearchField";
 import { Sheet } from "./Sheet";
+import { SongRow } from "./ui/SongRow";
+import { Tip } from "./ui/Tip";
 
 /** a side as /api/swap-options sends it */
 export interface SwapSide {
@@ -25,8 +27,27 @@ export interface SwapSide {
     tempo?: { bpm: number; source: string };
     level?: { gainDb: number; source: string };
     spotify?: { uri: string } | null;
+    orchestraId?: string;
+    vocal?: boolean;
+    rhythm?: string;
+    yearApprox?: boolean;
+    resolved?: Song["resolved"];
+    audio?: Partial<NonNullable<Song["audio"]>> | null;
   };
 }
+
+/** the wire side as a row's song (the row reads artwork, era, BPM and key from it) */
+const asSong = (s: SwapSide["song"]): Song =>
+  ({
+    ...s,
+    orchestraId: s.orchestraId ?? s.orchestra,
+    vocal: s.vocal ?? !!s.singer,
+    singerId: null,
+    rhythm: s.rhythm ?? "tango",
+    era: "unknown",
+  }) as unknown as Song;
+/** best fit first; the sides that cannot take the chair after them */
+const ranked = (xs: SwapSide[]) => xs.slice().sort((a, b) => Number(b.ok) - Number(a.ok) || b.fit - a.fit);
 
 const sub = (s: SwapSide["song"]) =>
   [
@@ -178,19 +199,25 @@ export function SwapSheet({
     await onApplied(np, on ? "Tanda kept as is (pinned)" : "Tanda unpinned");
   };
 
-  const row = (x: SwapSide, list: string) => (
-    <Row
-      key={`${list}-${x.song.id}`}
-      label={x.song.title}
-      sub={x.ok ? sub(x.song) : `${sub(x.song)} — ${x.reason}`}
-      value={x.ok ? `${Math.round(x.fit * 100)} %` : undefined}
-      onClick={x.ok && !lockedReason ? () => apply(x.song.id, `Swapped in ${x.song.title}`) : undefined}
-      busy={busy === x.song.id}
-      disabled={!x.ok || !!lockedReason}
-      data-testid={x.ok ? "swap-option" : "swap-excluded"}
-      aria-label={x.ok ? `Swap in ${x.song.title}` : `${x.song.title}: ${x.reason}`}
-    />
-  );
+  const row = (x: SwapSide, list: string) => {
+    const fit = Math.round(x.fit * 100);
+    return (
+      <SongRow
+        key={`${list}-${x.song.id}`}
+        song={asSong(x.song)}
+        testId={x.ok ? "swap-option" : "swap-excluded"}
+        dim={!x.ok}
+        busy={busy === x.song.id}
+        sub={x.ok ? sub(x.song) : `${sub(x.song)} — ${x.reason}`}
+        pill={x.ok ? `${fit} % fit` : undefined}
+        pillTip={
+          x.ok ? "How well it matches this chair: energy, tempo, level and how often DJs play it" : undefined
+        }
+        ariaLabel={x.ok ? `Swap in ${x.song.title}` : `${x.song.title}: ${x.reason}`}
+        onClick={x.ok && !lockedReason ? () => apply(x.song.id, `Swapped in ${x.song.title}`) : undefined}
+      />
+    );
+  };
 
   return (
     <Sheet
@@ -217,13 +244,25 @@ export function SwapSheet({
               {note}
             </p>
           )}
+          <Group header="Now in this chair">
+            <SongRow song={cur} testId="swap-current" />
+          </Group>
           <Group>
-            <ActionRow
-              label={settings.ai.key ? "AI pick" : "AI pick (engine's best fit: no AI key)"}
-              onClick={aiPick}
-              busy={busy === "ai"}
-              disabled={!!lockedReason || !lists.suggestions.length}
-            />
+            <Tip
+              text={
+                settings.ai.key
+                  ? "Your model reads the tanda and the night and picks the side that fits best"
+                  : "Without a model key, the best fit below is picked for you"
+              }
+              className="w-full"
+            >
+              <ActionRow
+                label={settings.ai.key ? "AI pick" : "AI pick (engine's best fit: no AI key)"}
+                onClick={aiPick}
+                busy={busy === "ai"}
+                disabled={!!lockedReason || !lists.suggestions.length}
+              />
+            </Tip>
             <SwitchRow
               label="Keep my tanda as is"
               sub="Pinned: no rule, fixer or regenerate changes it; its exceptions are shown, not fixed"
@@ -238,7 +277,7 @@ export function SwapSheet({
             data-testid="swap-suggestions"
           >
             {lists.suggestions.length ? (
-              lists.suggestions.map((x) => row(x, "s"))
+              ranked(lists.suggestions).map((x) => row(x, "s"))
             ) : (
               <Row label="No other side keeps this tanda valid" sub="Search below to see why" />
             )}
@@ -254,7 +293,7 @@ export function SwapSheet({
           {q.length >= 2 && (
             <Group header="Search" data-testid="swap-results">
               {lists.results.length ? (
-                lists.results.map((x) => row(x, "r"))
+                ranked(lists.results).map((x) => row(x, "r"))
               ) : (
                 <Row label={`Nothing matches “${q}”`} />
               )}

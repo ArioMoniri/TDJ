@@ -23,6 +23,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { type MenuItem, MenuList } from "@/components/Menu";
 import { PageHeader } from "@/components/PageHeader";
 import { Sheet } from "@/components/Sheet";
+import { BoothSongSearch } from "@/components/ui/BoothSongSearch";
 import { boothContextState, boothEngine, useBooth } from "@/lib/booth/store";
 import { usePlayer } from "@/lib/player";
 import { useStore } from "@/lib/store";
@@ -256,6 +257,7 @@ function Booth() {
       <PageHeader title="Booth" />
       <SourceLine rehearsal={rehearsal} />
       <Banners />
+      <BoothSongSearch />
       <div className="booth-grid">
         <div className="booth-col-now">
           <NowCard />

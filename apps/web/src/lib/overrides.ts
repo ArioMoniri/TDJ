@@ -23,6 +23,9 @@ export function countChanges(o: AppOverrides | null | undefined): number {
     for (const op of Object.values(f)) n += Object.keys(op).length;
   n += Object.values(o.guide ?? {}).filter((v) => typeof v === "string" && v.trim()).length;
   if (o.connectors?.webhookUrl) n += 1;
+  // round 22: the DJ's era grades (one change per cell); fetched data (`scraped`) is not an edit
+  for (const m of Object.values(o.heatmap ?? {}))
+    n += Object.keys(m.instrumental ?? {}).length + Object.keys(m.vocal ?? {}).length;
   return n;
 }
 export function isEmptyOverrides(o: AppOverrides | null | undefined): boolean {
