@@ -53,7 +53,7 @@ export function SongSheet({ i, onClose }: { i: number | null; onClose: () => voi
       onClose={onClose}
       title={it ? it.title : t("booth.songSheet.song")}
       detents={["large"]}
-      trailing="Done"
+      trailing={t("booth.songSheet.done")}
       testId="booth-play-sheet"
     >
       {it && entity && i !== null && (
@@ -342,7 +342,7 @@ function Versions({
               p1: v.song.year ?? "",
               p2: v.song.singer ?? t("booth.songSheet.instrumental_2"),
             })}
-            data-hint="Pre-listen this version in your headphones"
+            data-hint={t("booth.songSheet.pre_listen_this_version_in_your")}
             onClick={() => (hearing === v.song.id ? useBooth.getState().stopAudition() : onListen(v.song))}
           >
             {hearing === v.song.id ? (
@@ -367,7 +367,7 @@ function Versions({
               type="button"
               className="booth-tool"
               data-testid="booth-version-use"
-              data-hint="Play this version tonight instead (the tanda keeps its place)"
+              data-hint={t("booth.songSheet.play_this_version_tonight_instead_the")}
               onClick={async () => {
                 const ok = await useBooth.getState().playVersion(song.id, v.song);
                 toast(

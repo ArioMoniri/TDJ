@@ -1,5 +1,5 @@
 import type { Playlist } from "@tdj/core";
-import { t as tx } from "@/lib/i18n";
+import { lazy, t as tx } from "@/lib/i18n";
 
 /**
  * "Spotify via a transfer service": the zero-setup route to Spotify for DJs the deployment's 5-seat Spotify app
@@ -25,7 +25,7 @@ export interface TransferService {
   importUrl: string;
   steps: [string, string, string];
 }
-export const TRANSFER_SERVICES: TransferService[] = [
+export const TRANSFER_SERVICES: TransferService[] = lazy(() => [
   {
     id: "tunemymusic",
     get label() {
@@ -50,7 +50,7 @@ export const TRANSFER_SERVICES: TransferService[] = [
       tx("transferCsv.open_the_playlist_in_soundiiz_and"),
     ],
   },
-];
+]);
 
 const q = (s: unknown) => `"${String(s ?? "").replace(/"/g, '""')}"`;
 

@@ -1,6 +1,6 @@
 "use client";
 import { featuresSummary, keyLabel } from "@/lib/analyze";
-import { t } from "@/lib/i18n";
+import { lower, t } from "@/lib/i18n";
 import type { BpmChoice } from "@/lib/songData";
 import type { AudioFeatures, Song } from "@/lib/types";
 import { ActionRow, Group, Row } from "./Form";
@@ -27,7 +27,13 @@ export function AudioDetails({
   const edition =
     song.resolved?.provider === "deezer" ? t("audioDetails.deezer") : (song.resolved?.provider ?? "preview");
   return (
-    <Sheet open={open} onClose={onClose} title={song.title} trailing="Done" detents={["medium", "large"]}>
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title={song.title}
+      trailing={t("audioDetails.done")}
+      detents={["medium", "large"]}
+    >
       <Group
         header={featuresSummary(audio)}
         footer={t("audioDetails.analysed_from_a_30_s_preview", {
@@ -42,10 +48,10 @@ export function AudioDetails({
           label={t("audioDetails.tempo")}
           sub={
             bpm
-              ? t("audioDetails.from", { label: bpm.used.label.toLowerCase() })
+              ? t("audioDetails.from", { label: lower(bpm.used.label) })
               : t("audioDetails.analysed_preview")
           }
-          value={`${bpm?.value ?? Math.round(audio.bpm)} BPM`}
+          value={t("audioDetails.bpm", { p1: bpm?.value ?? Math.round(audio.bpm) })}
           data-testid="details-bpm"
         />
         {bpm?.all
@@ -61,14 +67,20 @@ export function AudioDetails({
                     : t("audioDetails.agrees")
                   : t("audioDetails.disagrees_not_used")
               }
-              value={`${Math.round(v.raw)} BPM`}
+              value={t("audioDetails.bpm", { p1: Math.round(v.raw) })}
             />
           ))}
         <Row
           label={t("audioDetails.loudness")}
-          value={`${audio.loudnessDb.toFixed(1)} dBFS · range ${audio.loudnessRange.toFixed(1)} dB`}
+          value={t("audioDetails.dbfs_range_db", {
+            loudnessDb: audio.loudnessDb.toFixed(1),
+            loudnessRange: audio.loudnessRange.toFixed(1),
+          })}
         />
-        <Row label={t("audioDetails.brightness")} value={`${Math.round(audio.brightnessHz)} Hz`} />
+        <Row
+          label={t("audioDetails.brightness")}
+          value={t("audioDetails.hz", { p1: Math.round(audio.brightnessHz) })}
+        />
         <Row label={t("audioDetails.onsets")} value={`${audio.onsetsPerSec.toFixed(1)} / s`} />
         <Row label={t("audioDetails.pulse_clarity")} value={`${Math.round(audio.pulseClarity * 100)} %`} />
         <Row label={t("audioDetails.energy_prior")} value={String(Math.round(audio.energy))} />

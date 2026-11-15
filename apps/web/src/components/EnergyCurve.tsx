@@ -1,7 +1,7 @@
 "use client";
 import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useId, useRef } from "react";
-import { t as tx } from "@/lib/i18n";
+import { lazy, lower, t as tx } from "@/lib/i18n";
 import { DUR, EASE, SPRING, STAGGER } from "@/lib/motion";
 import type { Playlist } from "@/lib/types";
 
@@ -11,12 +11,12 @@ export const RHYTHM_COLORS: Record<string, string> = {
   milonga: "#8b7cf6",
 };
 const PHASES = ["warmup", "build", "peak", "cooldown"] as const;
-const PHASE_LABEL: Record<string, string> = {
-  warmup: "warm-up",
-  build: "build",
-  peak: "peak",
-  cooldown: "cool-down",
-};
+const PHASE_LABEL: Record<string, string> = lazy(() => ({
+  warmup: lower(tx("phase.warmup")),
+  build: lower(tx("phase.build")),
+  peak: lower(tx("phase.peak")),
+  cooldown: lower(tx("phase.cooldown")),
+}));
 
 /**
  * Night arc (Health-style chart): target curve (dashed) vs actual tanda energy, two gridlines with the labels on the

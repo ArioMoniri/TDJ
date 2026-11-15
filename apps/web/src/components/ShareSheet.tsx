@@ -107,7 +107,7 @@ export function ShareSheet({
       title={tx("shareSheet.share_this_night")}
       detents={["large"]}
       testId="share-sheet"
-      trailing="Done"
+      trailing={tx("shareSheet.done")}
     >
       <p className="px-4 pb-3 text-footnote text-[var(--label-2)]">
         {tx("shareSheet.tandas_songs_score_anyone_you_send", {

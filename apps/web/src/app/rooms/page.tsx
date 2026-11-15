@@ -34,7 +34,7 @@ import { TipRow } from "@/components/TipRow";
 import { Segmented } from "@/components/ui";
 import { Tip } from "@/components/ui/Tip";
 import { haptic } from "@/lib/haptics";
-import { fmtDate, fmtTime, t as tx } from "@/lib/i18n";
+import { fmtDate, fmtTime, t as tx, upper } from "@/lib/i18n";
 import { type RoomRef, roomShareLink, useRooms } from "@/lib/rooms";
 import { copyText } from "@/lib/share";
 import { useStore } from "@/lib/store";
@@ -108,7 +108,7 @@ function LogList({ log, me }: { log: RoomLogEntry[]; me: string }) {
               className="mt-0.5 grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full bg-[var(--fill-3)] text-[10px] font-semibold"
               aria-hidden
             >
-              {e.by.slice(0, 1).toUpperCase()}
+              {upper(e.by.slice(0, 1))}
             </span>
           )}
           <span className="min-w-0 flex-1">
@@ -378,8 +378,8 @@ export default function RoomsPage() {
               label={tx("rooms.room_view")}
               value={tab}
               items={[
-                ["night", "Night"],
-                ["log", `Log${r.log.length ? ` · ${r.log.length}` : ""}`],
+                ["night", tx("rooms.tab_night")],
+                ["log", r.log.length ? tx("rooms.tab_log_n", { n: r.log.length }) : tx("rooms.tab_log")],
               ]}
               onChange={setTab}
             />
@@ -581,7 +581,7 @@ export default function RoomsPage() {
         open={qrOpen}
         onClose={() => setQrOpen(false)}
         title={tx("rooms.invite_djs")}
-        trailing="Done"
+        trailing={tx("rooms.done")}
         testId="room-invite"
       >
         {info && (
@@ -646,7 +646,7 @@ export default function RoomsPage() {
         open={renaming}
         onClose={() => setRenaming(false)}
         title={tx("rooms.rename_room")}
-        trailing="Save"
+        trailing={tx("rooms.save")}
         onTrailing={() => {
           if (renameDraft.trim()) void r.rename(renameDraft);
           setRenaming(false);

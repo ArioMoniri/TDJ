@@ -129,6 +129,9 @@ export const SAME_IN_TURKISH: string[] = [
   "test",
   "Mar",
   "May",
+  "Encuentro",
+  "Festival",
+  "Práctica",
 ];
 
 export const tr: Partial<Record<MsgKey, string>> = {
@@ -205,6 +208,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "appConnections.link": "Bağla",
   "appConnections.link_a_tdj_server": "Bir TDJ sunucusu bağla",
   "appConnections.linked_to": "{host} sunucusuna bağlı",
+  "appConnections.not_linked": "Bağlı değil",
   "appConnections.t_dj_works_fully_on_this":
     "T-DJ bu cihazda eksiksiz çalışır: gece oluşturma, katalog, veritabanınız ve geçmişiniz. Kendi TDJ sunucunuzu yalnızca oda paylaşmak ya da bu cihazla eşitlemek için bağlayın.",
   "appConnections.tdj_server": "TDJ sunucusu",
@@ -217,11 +221,15 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "audioDetails.analysed_from_a_30_s_preview":
     "30 sn'lik bir önizlemeden analiz edildi (baskı: {edition}{p1}). 78 devirlik aktarımlarda ton ve tempo orta güvenilirliktedir; sayılar bir tanda içindeki parçaları karşılaştırır, mastering verisi değildir.",
   "audioDetails.analysed_preview": "Analiz edilmiş önizleme",
+  "audioDetails.bpm": "{p1} BPM",
   "audioDetails.brightness": "Parlaklık",
+  "audioDetails.dbfs_range_db": "{loudnessDb} dBFS · aralık {loudnessRange} dB",
   "audioDetails.deezer": "Deezer",
   "audioDetails.disagrees_not_used": "Uyuşmuyor; kullanılmadı",
+  "audioDetails.done": "Bitti",
   "audioDetails.energy_prior": "Önceki enerji",
   "audioDetails.from": "{label} kaynağından",
+  "audioDetails.hz": "{p1} Hz",
   "audioDetails.key": "Ton",
   "audioDetails.key_confidence": "Ton güvenilirliği",
   "audioDetails.loudness": "Ses yüksekliği",
@@ -242,6 +250,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "benchmarkSheet.could_not_improve_this_set": "Bu set iyileştirilemedi.",
   "benchmarkSheet.could_not_reach_the_engine_check":
     "Motora ulaşılamadı. Bağlantıyı kontrol edip yeniden deneyin.",
+  "benchmarkSheet.done": "Bitti",
   "benchmarkSheet.eleven_published_nights_charlotte_missoula_london":
     "Yayımlanmış on bir gece (Charlotte, Missoula, Londra, Hamburg, İstanbul ve diğerleri) ile Victor Tran, Michael Lavocah ve Demirbaş'ın DJ önerileri. Hedef değil, aralık.",
   "benchmarkSheet.engine_benchmark": "Motor {score} → {score1} · Karşılaştırma{p1}{p2} →{p3}{p4}",
@@ -279,7 +288,9 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.compose_a_night_first": "Önce bir gece oluşturun",
   "booth.controlStrip.cancel_hold": "Beklemeyi iptal et",
   "booth.controlStrip.crossfade": "Geçişli bağla",
+  "booth.controlStrip.db": "{p1}{master} dB",
   "booth.controlStrip.end_break": "Arayı bitir",
+  "booth.controlStrip.end_the_break_now_space": "Arayı şimdi bitir (boşluk)",
   "booth.controlStrip.fade": "Kıs",
   "booth.controlStrip.fade_out_now_over_s_the":
     "Şimdi {fadeNowSec} sn içinde kıs; sıradaki, aradan sonra gelir (f)",
@@ -295,18 +306,24 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.controlStrip.mute": "Sessize al",
   "booth.controlStrip.next_at_gap": "Aradan sonra sıradaki",
   "booth.controlStrip.pause": "Duraklat",
+  "booth.controlStrip.pause_now_with_a_s_fade": "Şimdi duraklat, {pauseFadeSec} sn kısmayla (boşluk)",
   "booth.controlStrip.play": "Çal",
+  "booth.controlStrip.play_space": "Çal (boşluk)",
   "booth.controlStrip.resume": "Devam et",
+  "booth.controlStrip.resume_where_it_paused_space": "Duraklatıldığı yerden devam et (boşluk)",
   "booth.controlStrip.set_list": "Set listesi",
   "booth.controlStrip.set_up_rehearsal_keyboard_theme_leave": "Kurulum, prova, klavye, tema, çıkış",
   "booth.controlStrip.silence_the_room_at_once_tap":
     "Salonu hemen sustur; geri getirmek için yeniden dokunun (m)",
   "booth.controlStrip.start_30_s_clips": "Başlat · 30 sn'lik klipler",
   "booth.controlStrip.start_spotify": "Başlat · Spotify",
+  "booth.controlStrip.start_the_night_in_the_room": "Salonda geceyi başlat (boşluk)",
   "booth.controlStrip.start_your_files": "Başlat · kendi dosyalarınız",
   "booth.controlStrip.stop": "Durdur",
   "booth.controlStrip.stop_2": "Durdur…",
+  "booth.controlStrip.stop_fade_out_and_stop_or": "Durdur: kısarak durdur ya da hemen durdur",
   "booth.controlStrip.stop_the_pre_listen": "Ön dinlemeyi durdur",
+  "booth.controlStrip.stop_the_pre_listen_the_room": "Ön dinlemeyi durdur (salon çalmaya devam eder)",
   "booth.controlStrip.talk": "Konuş",
   "booth.controlStrip.talk_over": "Anons",
   "booth.controlStrip.talk_over_the_music_dips_12": "Anons: siz konuşurken müzik 12 dB alçalır (t)",
@@ -332,8 +349,12 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.end_the_night": "Geceyi bitir",
   "booth.energyRail.energy_of_tandas_we_are_in": "{length} tandanın enerjisi; şu an {hereTanda}. tandadayız",
   "booth.energyRail.energy_tonight": "Bu geceki enerji",
+  "booth.energyRail.how_lively_each_tanda_is_from":
+    "Gecenin başından (üstte) sonuna her tandanın ne kadar hareketli olduğu",
   "booth.energyRail.milonga": "milonga",
   "booth.energyRail.planned": "┄ planlanan",
+  "booth.energyRail.planned_2": "(planlanan {p1})",
+  "booth.energyRail.tanda_energy": "{tanda}. tanda · {rhythm} · {label} · enerji {energy}{p1}",
   "booth.energyRail.tango": "tango",
   "booth.energyRail.the_night_s_energy": "Gecenin enerjisi",
   "booth.energyRail.vals": "vals",
@@ -409,6 +430,9 @@ export const tr: Partial<Record<MsgKey, string>> = {
     "Provada bu şarkının 30 sn'lik klibi yok: atlanıyor (gece tam olarak çalar).",
   "booth.nextCard.then_the_cortina_which": "ardından kortina {artist} – {title}{p1}{p2}",
   "booth.nextCard.up_next": "Sırada",
+  "booth.nextCard.what_the_room_hears_after_this": "Bu şarkıdan sonra salonun duyacağı",
+  "booth.nightBar.a_timed_break_after_the_song": "Çalan şarkıdan sonra süreli bir ara; Çal onu erken bitirir",
+  "booth.nightBar.ahead_of_or_behind_the_planned": "Planlanan saatin önünde ya da gerisinde",
   "booth.nightBar.birthday_vals": "Doğum günü valsi",
   "booth.nightBar.break": "ara · {time}",
   "booth.nightBar.ends": ", {p1} biter",
@@ -417,7 +441,11 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.nightBar.la_cumparsita_follows_this_tanda": "Bu tandadan sonra La Cumparsita",
   "booth.nightBar.la_cumparsita_now": "Şimdi La Cumparsita mı?",
   "booth.nightBar.la_cumparsita_now_2": "Şimdi La Cumparsita…",
+  "booth.nightBar.la_cumparsita_now_the_song_playing":
+    "Şimdi La Cumparsita: çalan şarkı kısılır (önce sorar)",
   "booth.nightBar.last_4_tandas_tango_only": "Son 4 tanda yalnızca tango",
+  "booth.nightBar.marks_the_next_vals_tanda_for":
+    "Sıradaki vals tandasını doğum günü için işaretler: oynatıcı ondan önce bekler (b)",
   "booth.nightBar.night_tools": "Gece araçları",
   "booth.nightBar.not_started": "başlamadı",
   "booth.nightBar.play_la_cumparsita_now": "La Cumparsita'yı şimdi çal",
@@ -425,10 +453,18 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.nightBar.resolving_sources": "kaynaklar bulunuyor…",
   "booth.nightBar.rest_then_la_cumparsita": "Ara, ardından La Cumparsita",
   "booth.nightBar.the_night": "Gece",
+  "booth.nightBar.the_night_with_every_song_played":
+    "Her şarkı tam çalındığında gece (prova her birinin 30 sn'sini çalar)",
   "booth.nightBar.the_rehearsal_has_no_30_s":
     " Provada bu La Cumparsita'nın 30 sn'lik klibi yok: atlanıyor ve prova bitiyor (gece tam olarak çalar).",
   "booth.nightBar.the_song_playing_fades_out_and":
     "Çalan şarkı kısılır ve geceyi La Cumparsita kapatır. Aradaki her şey bu gece atlanır (sette kalır).{p1}",
+  "booth.nightBar.the_time_now": "Şu anki saat",
+  "booth.nightBar.the_vals_and_milonga_tandas_among":
+    "Son dört tanda içindeki vals ve milonga tandaları bu gece atlanıyor: gece tangolarla bitiyor",
+  "booth.nightBar.this_tanda_plays_to_its_end":
+    "Bu tanda sonuna kadar çalar, ardından geceyi La Cumparsita kapatır; aradaki tandalar atlanır",
+  "booth.nightBar.when_the_night_ends_at_this": "Bu hızla gecenin biteceği saat",
   "booth.nightView.ahead_of": "önünde",
   "booth.nightView.and": "{p1} ve {p2}",
   "booth.nightView.cortina_after_tanda_fades_and_stop":
@@ -471,8 +507,17 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.nowCard.stopped": "Durduruldu",
   "booth.nowCard.talk_over_12_db": "anons · −12 dB",
   "booth.nowCard.tanda_of": "tanda {tanda}/{tandas}",
+  "booth.nowCard.the_level_correction_that_keeps_every":
+    "Her şarkıyı bir öncekiyle aynı yükseklikte tutan seviye düzeltmesi",
+  "booth.nowCard.the_song_plays_to_its_end":
+    "Şarkı sonuna kadar çalar, ardından kortina: bu tandanın geri kalanı atlanır (c)",
   "booth.nowCard.they_are_left_out_of_the":
     "Bunlar provada atlanır; gece Spotify'dan ya da dosyalarınızdan tam çalar.",
+  "booth.nowCard.versions_cue_and_stop_bpm_and":
+    "Bu şarkının versiyonları, başlangıç ve bitişi, BPM'i ve tonu",
+  "booth.nowCard.where_this_song_plays_from_your":
+    "Bu şarkının çaldığı kaynak: dosyanız, Spotify ya da 30 sn'lik bir klip",
+  "booth.nowCard.where_this_song_sits_in_the": "Bu şarkının gecedeki yeri",
   "booth.onboardingSheet.30_s_rehearsal": "30 sn'lik prova",
   "booth.onboardingSheet.30_second_clips_so_you_can":
     "30 saniyelik klipler; böylece geceyi dosyalarınız olmadan prova edebilirsiniz",
@@ -511,6 +556,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.onboardingSheet.source": "Kaynak",
   "booth.onboardingSheet.spotify": "Spotify",
   "booth.onboardingSheet.start_the_night": "Geceyi başlat",
+  "booth.onboardingSheet.system_default": "Sistem varsayılanı",
   "booth.onboardingSheet.test_tone": "Test tonu",
   "booth.onboardingSheet.the_featured_night_could_not_be": "Öne çıkan gece yüklenemedi",
   "booth.onboardingSheet.this_session_only": " · yalnızca bu oturum",
@@ -523,11 +569,16 @@ export const tr: Partial<Record<MsgKey, string>> = {
     "Kendi dosyalarınız; ad, orkestra ve yıla göre eşleştirilir, bir kez bağlanır",
   "booth.plan.break": "Ara",
   "booth.plan.min": "{p1} dk",
+  "booth.playerToolbar.a_rehearsal_plays_30_s_of":
+    "Prova her şarkının 30 sn'sini çalar; böylece geceyi hızlıca duyabilirsiniz",
   "booth.playerToolbar.choose": "Seç…",
   "booth.playerToolbar.chosen": "Seçildi",
+  "booth.playerToolbar.done": "Bitti",
   "booth.playerToolbar.headphones": "Kulaklık",
   "booth.playerToolbar.headphones_output": "Kulaklık çıkışı",
   "booth.playerToolbar.headphones_output_2": "Kulaklık çıkışı: {p1}",
+  "booth.playerToolbar.headphones_pre_listen_here_the_room":
+    "KULAKLIK: ön dinleme burada; salon asla duymaz. Kulaklığınızı seçmek için dokunun.",
   "booth.playerToolbar.headphones_pre_listen_unavailable":
     "Kulaklıkta ön dinleme kullanılamıyor. {SINK_UNSUPPORTED}",
   "booth.playerToolbar.not_in_this_browser": "bu tarayıcıda yok",
@@ -541,11 +592,16 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.playerToolbar.room": "Salon",
   "booth.playerToolbar.room_output": "Salon çıkışı",
   "booth.playerToolbar.room_output_2": "Salon çıkışı: {p1}",
+  "booth.playerToolbar.room_where_the_night_plays_for":
+    "SALON: gecenin dansçılar için çaldığı yer. Çıkışı seçmek için dokunun.",
   "booth.playerToolbar.show": "Göster",
   "booth.playerToolbar.show_device_names": "Cihaz adlarını göster",
+  "booth.playerToolbar.show_or_hide_energy_bpm_key": "Enerji, BPM, ton, dönem ve kapağı göster ya da gizle",
   "booth.playerToolbar.spotify_free_the_browser_can_only":
     "Spotify Free: tarayıcı yalnızca 30 sn'lik klipler çalabilir.",
   "booth.playerToolbar.spotify_full_tracks": "Spotify · tam parçalar",
+  "booth.playerToolbar.spotify_premium_plays_every_song_in":
+    "Spotify Premium bu cihazda her şarkıyı tam çalar",
   "booth.playerToolbar.the_night_plays_here_changing_it":
     "Gece burada çalar. Değiştirmek müziği hemen taşır.",
   "booth.playerToolbar.the_room_plays_here": "Salon burada çalar",
@@ -563,6 +619,9 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.setColumn.closing": "Kapanış",
   "booth.setColumn.cortina": "kortina · {artist}",
   "booth.setColumn.energy": "· enerji {p1}",
+  "booth.setColumn.energy_of_100": "Enerji 100 üzerinden {energy}",
+  "booth.setColumn.fade_in_fade_out_stop_at": "Giriş, çıkış, durma noktası",
+  "booth.setColumn.find_a_file": "Dosya bul…",
   "booth.setColumn.find_a_file_for": "{title} için bir dosya bul",
   "booth.setColumn.in_your_headphones": "Kulaklığınızda",
   "booth.setColumn.locked": "Kilitli",
@@ -581,8 +640,14 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.setColumn.playing_or_played_this_tanda_is": "Çalıyor ya da çalındı: bu tanda salt okunur.",
   "booth.setColumn.set_list": "Set listesi",
   "booth.setColumn.skip": "Atla",
+  "booth.setColumn.skip_this_tanda_tonight_the_player":
+    "Bu tandayı bu gece atla: oynatıcı onu geçer; sette ve aktarımlarda kalır",
   "booth.setColumn.skip_tonight": "Bu gece atla",
+  "booth.setColumn.skipped_by_last_4_tandas_tango":
+    "Son 4 tanda yalnızca tango ile atlandı (gece çubuğundan kapatın)",
   "booth.setColumn.skipped_tonight": "Bu gece atlandı",
+  "booth.setColumn.skipped_tonight_the_player_passes_over":
+    "Bu gece atlandı: oynatıcı onu geçer (çalmak için dokunun). Sette ve aktarımlarda kalır.",
   "booth.setColumn.spotify": " · Spotify",
   "booth.setColumn.swap_failed": "Değiştirme başarısız oldu",
   "booth.setColumn.swap_failed_2": "değiştirme başarısız oldu ({status})",
@@ -591,6 +656,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.setColumn.tanda_swapped": "{tanda}. tanda değiştirildi",
   "booth.setColumn.tanda_tonight": "{p1} bu gece {tanda}. tanda",
   "booth.setColumn.testing_on_this_device": "Bu cihazda test ediliyor",
+  "booth.setColumn.the_spotify_recording_open_in_spotify": "Spotify kaydı · Spotify'da aç",
   "booth.setColumn.track_of_tanda_swapped": "{tanda}. tandanın {p1}. parçası değiştirildi",
   "booth.set_up_source_output_night": "Kurulum (kaynak, çıkış, gece)…",
   "booth.sheets.a_file_picked_by_hand_is":
@@ -617,6 +683,8 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.sheets.cue_the_cortina_end_the_tanda": "Kortinayı hazırla: tandayı bu şarkıdan sonra bitir",
   "booth.sheets.custom_your_own_gap_fades_and":
     "Özel: kendi ara, kısma ve geçişleriniz. Bu cihaza kaydedilir; gece, çalarken de yeniden zamanlanır.",
+  "booth.sheets.db": "{p1}{master} dB",
+  "booth.sheets.done": "Bitti",
   "booth.sheets.each_cortina_can_have_its_own":
     "Her kortinanın set listesinde kendi kısmaları ve durma noktası olabilir (satırındaki sürgüler). Setle birlikte kaydedilir; aktarımlar da buna uyar.",
   "booth.sheets.end_the_tanda_after_this_song": "Tandayı bu şarkıdan sonra bitir",
@@ -708,6 +776,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.songSheet.can_t_pre_listen": "Ön dinleme yapılamıyor: {why}",
   "booth.songSheet.cue": "Başlangıç {p1}",
   "booth.songSheet.cue_and_stop": "Başlangıç ve bitiş",
+  "booth.songSheet.done": "Bitti",
   "booth.songSheet.drag_cue_and_stop_on_the":
     "Uzun bir girişi atlamak ya da sonu kesmek için şarkı üzerinde Başlangıç ve Bitiş'i sürükleyin; gece yeniden zamanlanır. {p1} Setle birlikte kaydedilir, DJ uygulaması aktarımları da buna uyar.",
   "booth.songSheet.every_recording_of_this_title_by":
@@ -726,6 +795,8 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.songSheet.play_now_fade_the_current": "Şimdi çal (çalanı kıs)",
   "booth.songSheet.play_now_fades_the_room_s": "Şimdi çal, salondaki şarkıyı {fade} sn içinde kısar. {p1}",
   "booth.songSheet.play_the_whole_song": "Şarkının tamamını çal",
+  "booth.songSheet.play_this_version_tonight_instead_the":
+    "Bu gece yerine bu versiyonu çal (tanda yerini korur)",
   "booth.songSheet.plays": "Çalma süresi {p1}",
   "booth.songSheet.plays_next": "Sırada {title} çalacak",
   "booth.songSheet.pre_listen_2": "Ön dinleme {p1} {p2}",
@@ -733,6 +804,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.songSheet.pre_listen_plays_only_in_your": "Ön dinleme yalnızca kulaklığınızda çalar.",
   "booth.songSheet.pre_listen_plays_only_in_your_2":
     "Ön dinleme yalnızca kulaklığınızda çalar: salon duymaz.",
+  "booth.songSheet.pre_listen_this_version_in_your": "Bu versiyonu kulaklığınızda ön dinleyin",
   "booth.songSheet.song": "Şarkı",
   "booth.songSheet.start_the_night_here": "Geceyi buradan başlat",
   "booth.songSheet.stop": "Bitiş {p1}",
@@ -824,8 +896,12 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.the_night_s_log_is_in": "Gecenin kaydı Geçmiş'te",
   "booth.versions.the_catalogue_did_not_answer": "Katalog yanıt vermedi",
   "booth.waveform.cue": "BAŞLANGIÇ",
+  "booth.waveform.cue_drag_to_where_the_song":
+    "Başlangıç: şarkının başlaması gereken yere sürükleyin (uzun bir girişi ya da cızırtıyı atlar).",
   "booth.waveform.cue_where_the_song_starts": "Başlangıç: şarkının başladığı yer",
   "booth.waveform.stop": "BİTİŞ",
+  "booth.waveform.stop_drag_to_where_the_song":
+    "Bitiş: şarkının bitmesi gereken yere sürükleyin (uzun bir sonu ya da alkışı keser).",
   "booth.waveform.stop_where_the_song_ends": "Bitiş: şarkının bittiği yer",
   "boothSongSearch.find_songs": "Şarkı bul",
   "boothSongSearch.search_every_recording_swap_one_in":
@@ -902,6 +978,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "cohesionBadge.cohesion_by_transition": "Geçişe göre uyum",
   "cohesionBadge.cohesion_of_transitions_have_analysed_audio":
     "{p1} Uyum {score}. {length} geçişten {known} tanesinin iki tarafında da analiz edilmiş ses var. Kusursuz ≥ 85, iyi ≥ 70, duyulur geçiş ≥ 55; çubuklar tempo, ses yüksekliği, ton, parlaklık ve enerjidir.",
+  "cohesionBadge.done": "Bitti",
   "cohesionBadge.flow_between_songs_of_100":
     "Şarkılar arasında {p1} akış (100 üzerinden {score}). {COHESION_HELP}",
   "cohesionBadge.how_smoothly_the_songs_of_this":
@@ -998,6 +1075,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "composer.d_arienzo_rhythmic": "D'Arienzo ritmik",
   "composer.defaults_follow_the_era_these_travel":
     "Varsayılanlar döneme göre gelir. Bunlar her oluşturma, geri bildirim ve iyileştirmede kullanılır.",
+  "composer.done": "Bitti",
   "composer.double": "iki kat",
   "composer.each_bar_is_as_long_as":
     "Her çubuk, etkenin toplamdaki ağırlığı kadar uzundur; 85 ve üzeri, maratonlarda baş DJ düzeyidir.",
@@ -1011,6 +1089,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "composer.export": "Aktar",
   "composer.export_e": "Aktar (⌘E)",
   "composer.export_the_night_to_your_dj": "Geceyi DJ uygulamanıza aktarın (⌘E)",
+  "composer.factors": "{length} etken",
   "composer.family": "Aile",
   "composer.family_one_artist_or_genre_family":
     "Aile: bütün gece tek bir sanatçı ya da tür ailesi; her kortina ardından gelen tandanın yaklaşık 8 enerji puanı altında.",
@@ -1028,6 +1107,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "composer.guide_2_h_practica_4_h": "Kılavuz: 2 sa práctica · 4 sa milonga · 6 sa maraton bloğu.",
   "composer.h_min": "{h} sa {p1} dk",
   "composer.h_tandas": "{p1} · {hours} sa · ≈{tandasEst} tanda",
+  "composer.h_tandas_2": "{hours} sa · ≈{tandasEst} tanda",
   "composer.hammock_buenos_aires": "Hamak (Buenos Aires)",
   "composer.hours_of_tandas_with_cortinas_scored":
     "Kortinalarla {hours} saatlik {p1} tandalar, ev kurallarına göre puanlanır. Aşağıdan istediğinizi değiştirin ya da hemen oluşturun.",
@@ -1047,6 +1127,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "composer.improved_set_kept": "İyileştirilmiş set tutuldu",
   "composer.include_undated_recordings": "Tarihsiz kayıtları dahil et",
   "composer.italian": "İtalyan",
+  "composer.la_cumparsita": "La Cumparsita",
   "composer.la_cumparsita_before_the_first_tanda":
     "İlk tandadan önce La Cumparsita; bazı Buenos Aires ve festival gecelerinin açıldığı gibi.",
   "composer.la_cumparsita_by_the_last_tanda":
@@ -1085,7 +1166,10 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "composer.nothing_to_change_in_the_settings":
     "{chipLabel}: ayarlarda değişecek bir şey yok; yeni bir tohumla yeniden oluşturuluyor",
   "composer.nuevo": "Nuevo",
+  "composer.of_close": "{scored} ölçütten {inRange} tanesi yakın",
   "composer.off": "Kapalı",
+  "composer.off_needs_an_ai_key": "Kapalı · yapay zekâ anahtarı gerekiyor",
+  "composer.ok": "Tamam",
   "composer.older_songs_everyone_recognises": "Herkesin tanıdığı eski şarkılar",
   "composer.one_artist_or_genre_family_all": "Bütün gece tek sanatçı ya da tür ailesi",
   "composer.one_cortina_repeated_all_night_the": "Bütün gece tekrarlanan tek kortina, salón usulü",
@@ -1125,6 +1209,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "composer.put_the_tanda_sizes_gap_and":
     "Tanda boylarını, aralığı ve yıl farkını dönemin önerdiğine geri döndür",
   "composer.reading_the_set": "Set okunuyor…",
+  "composer.ready": "Hazır",
   "composer.recompose_with_same_seed": "Aynı tohumla yeniden oluştur",
   "composer.regenerate": "Yeniden oluştur",
   "composer.regenerate_2": "Yeniden oluştur (⌘↩)",
@@ -1229,6 +1314,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "connectors.allow_google_drive": "Google Drive'a izin ver",
   "connectors.allow_youtube": "YouTube'a izin ver",
   "connectors.also_used": "Ayrıca kullanılanlar",
+  "connectors.available": "Kullanılabilir",
   "connectors.bring_your_own_automation": "Kendi otomasyonunuzu getirin",
   "connectors.built_in": "Yerleşik",
   "connectors.check_again": "Yeniden kontrol et",
@@ -1241,6 +1327,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "connectors.connect_with_my_own_app": "Kendi uygulamamla bağlan",
   "connectors.connect_with_your_own_spotify_app":
     "Kendi Spotify uygulamanızla bağlanın: Client ID'sini Gelişmiş bölümüne yapıştırın. Bağlıyken Dinle tam olarak o kayıtları çalar, Aktar çalma listeleri oluşturur.",
+  "connectors.connected_as": "{name} olarak bağlı",
   "connectors.connected_min": "Bağlı · {minutesLeft} dk",
   "connectors.connected_to_dropbox": "Dropbox'a bağlandı",
   "connectors.connected_with_google": "Google ile bağlandı",
@@ -1261,12 +1348,14 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "connectors.disconnect": "Bağlantıyı kes",
   "connectors.disconnected_from_dropbox": "Dropbox bağlantısı kesildi",
   "connectors.disconnected_from_google": "Google bağlantısı kesildi",
+  "connectors.done": "Bitti",
   "connectors.drive_files_youtube_playlists": "Drive dosyaları · YouTube çalma listeleri",
   "connectors.dropbox": "Dropbox",
   "connectors.dropbox_would_receive_your_export_files":
     "Dropbox, aktarım dosyalarınızı Apps/TDJ klasöründe alırdı.",
   "connectors.each_permission_is_asked_once_on":
     "Her izin bir kez, Google'ın kendi sayfasında ve yalnızca adı geçen şey için istenir. YouTube eşleştirmesi, tüm T-DJ kullanıcılarının paylaştığı günlük bir arama kotası kullanır; bazı 78 devirlik kayıtlar dışarıda kalabilir, aktarım paneli bunları listeler.",
+  "connectors.export_files": "Dosyaları aktar",
   "connectors.export_files_in_a_tdj_folder": "Aktarım dosyaları bir TDJ klasöründe",
   "connectors.export_files_to_your_drive": "Dosyaları Drive'ınıza aktarın",
   "connectors.export_files_to_your_dropbox": "Dosyaları Dropbox'ınıza aktarın",
@@ -1285,6 +1374,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
     "Google, aktarım dosyalarını Drive'ınıza kaydeder ve YouTube çalma listeleri oluştururdu.",
   "connectors.hi_i_would_like_to_use":
     "Merhaba! T-DJ'i ({origin}) Spotify hesabımla kullanmak istiyorum. Spotify panelinde uygulamanın User Management listesine Spotify e-postamı ekleyebilir misiniz? Spotify e-postam: ______. Teşekkürler!",
+  "connectors.hide": "Gizle",
   "connectors.hide_other_ways": "Diğer yolları gizle",
   "connectors.how_to_turn_it_on": "Nasıl açılır",
   "connectors.keyless": "Anahtarsız",
@@ -1299,18 +1389,28 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "connectors.log_in_with_your_spotify_account_2":
     "Spotify hesabınızla giriş yapın; yapıştıracak bir şey yok. Bağlıyken Dinle tam olarak o kayıtları çalar, Aktar kitaplığınızda çalma listeleri oluşturur (varsayılan olarak gizli). Giriş bu cihazda Anahtar Zinciri'nizde tutulur.",
   "connectors.log_out": "Çıkış yap",
+  "connectors.logged_in_as": "{name} olarak giriş yapıldı",
   "connectors.logged_in_with_spotify": "Spotify ile giriş yapıldı",
   "connectors.logged_out_of_spotify": "Spotify'dan çıkış yapıldı",
   "connectors.musicbrainz": "MusicBrainz",
   "connectors.musicbrainz_recordings_give_the_first_release":
     "MusicBrainz kayıtları, 'Servislerde bul'un bir katalog kaydı için önerdiği ilk yayın yılını verir (dijital yeniden basım tarihleri asla kayıt yılı olarak kullanılmaz). T-DJ MusicBrainz'e sizin yerinize sorar; orada hesap gerekmez.",
+  "connectors.needs_attention": " · ilgilenilmesi gerekiyor",
+  "connectors.not_connected": "Bağlı değil",
+  "connectors.not_enabled": "Açık değil",
+  "connectors.not_logged_in": "Giriş yapılmadı",
+  "connectors.not_turned_on_for_this_site": "Bu site için açılmadı",
   "connectors.not_yet": "Henüz değil",
+  "connectors.of": "{used}/{max}",
   "connectors.of_seats_are_handed_out": "{max} yerden {used} tanesi dağıtıldı.",
+  "connectors.off": "Kapalı",
   "connectors.offline": "Çevrimdışı",
   "connectors.one_button_asks_for_your_permission":
     "{blurb} Tek düğme: {label} yeni bir sekmede izninizi ister ve bağlantıyı Pipedream tutar; T-DJ şifrenizi ya da jetonlarınızı asla görmez.",
   "connectors.one_google_account_for_two_things":
     "İki iş için tek Google hesabı: aktarım dosyaları Drive'ınızdaki bir TDJ klasörüne gider (T-DJ yalnızca kendi oluşturduğu dosyaları görür), çalma listeleri YouTube'a gider (YouTube Music'te de görünür). Google her izni ilk kullanışınızda ister. Giriş bu tarayıcıda mühürlü bir çerezde tutulur; myaccount.google.com → Güvenlik → Üçüncü taraf erişimi onu kaldırır.",
+  "connectors.open": "Açılış",
+  "connectors.open_compose": "Gece oluştur'u aç",
   "connectors.optional": "İsteğe bağlı",
   "connectors.organiser": "Organizatör",
   "connectors.organiser_2": "Organizatör: {ownerContact}.",
@@ -1323,16 +1423,20 @@ export const tr: Partial<Record<MsgKey, string>> = {
     " Burada bunun yerine Pipedream Connect açık; aşağıda Gelişmiş'e bakın.",
   "connectors.playlists": "Çalma listeleri",
   "connectors.playlists_full_tracks_in_listen": "Çalma listeleri · Dinle'de tam parçalar",
+  "connectors.playlists_listen": "Çalma listeleri · Dinle",
   "connectors.playlists_youtube_music_sees_them_too": "Çalma listeleri · YouTube Music'te de görünür",
+  "connectors.previews_metadata": "Önizlemeler · Üst veriler",
   "connectors.reachable": "Erişilebilir",
   "connectors.reconnect": "Yeniden bağlan",
   "connectors.reconnect_2": "{label} yeniden bağla",
   "connectors.recording_dates_and_singers": "Kayıt tarihleri ve şarkıcılar",
+  "connectors.recording_dates_singers": "Kayıt tarihleri · Şarkıcılar",
   "connectors.redirect_uri": "Yönlendirme adresi",
   "connectors.rekordbox_traktor_m3u8_csv": "Rekordbox, Traktor, M3U8, CSV…",
   "connectors.remove_webhook": "Webhook'u kaldır",
   "connectors.request_copied_paste_it_to_the": "İstek kopyalandı; organizatöre yapıştırın",
   "connectors.required": "Gerekli",
+  "connectors.save": "Kaydet",
   "connectors.saves_the_chosen_export_file_into":
     "Seçilen aktarım dosyasını Google Drive'ınıza kaydeder. T-DJ yalnızca kendi oluşturduğu dosyaları görür.",
   "connectors.saves_the_chosen_export_file_rekordbox":
@@ -1340,7 +1444,9 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "connectors.saves_the_chosen_export_file_rekordbox_2":
     "Seçilen aktarım dosyasını (Rekordbox XML, Traktor NML, M3U8, CSV…) Dropbox'ınızdaki TDJ uygulama klasörüne kaydeder.",
   "connectors.seats_handed_out": "Dağıtılan yerler",
+  "connectors.set": "Ayarlandı",
   "connectors.set_up": "Kur",
+  "connectors.show": "Göster",
   "connectors.spotify": "Spotify",
   "connectors.spotify_did_not_let_you_in": "Spotify girişinize izin vermedi",
   "connectors.spotify_limits_a_small_app_like":
@@ -1399,6 +1505,47 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "context.mood": "Hava",
   "context.new_year": "Yılbaşı",
   "context.no_holiday": "Tatil yok",
+  "context.opt_advanced": "Gelişmiş",
+  "context.opt_afternoon": "Öğleden sonra",
+  "context.opt_asia": "Asya",
+  "context.opt_autumn": "Sonbahar",
+  "context.opt_beginners": "Yeni başlayanlar",
+  "context.opt_carnival": "Karnaval",
+  "context.opt_christmas": "Noel",
+  "context.opt_clear": "Açık hava",
+  "context.opt_cold": "Soğuk",
+  "context.opt_comfortable": "Rahat",
+  "context.opt_dramatic": "Dramatik",
+  "context.opt_elegant": "Zarif",
+  "context.opt_encuentro": "Encuentro",
+  "context.opt_energetic": "Enerjik",
+  "context.opt_europe": "Avrupa",
+  "context.opt_festival": "Festival",
+  "context.opt_friday": "Cuma",
+  "context.opt_heatwave": "Sıcak dalgası",
+  "context.opt_humid": "Nemli",
+  "context.opt_istanbul": "İstanbul",
+  "context.opt_marathon": "Maraton",
+  "context.opt_milonga": "Milonga",
+  "context.opt_milongueros": "Milonguerolar",
+  "context.opt_nostalgic": "Nostaljik",
+  "context.opt_playful": "Oyunbaz",
+  "context.opt_pr_ctica": "Práctica",
+  "context.opt_rain": "Yağmur",
+  "context.opt_romantic": "Romantik",
+  "context.opt_saturday": "Cumartesi",
+  "context.opt_show": "Göster",
+  "context.opt_snow": "Kar",
+  "context.opt_spring": "İlkbahar",
+  "context.opt_storm": "Fırtına",
+  "context.opt_summer": "Yaz",
+  "context.opt_sunday": "Pazar",
+  "context.opt_sunrise": "Gün doğumu",
+  "context.opt_thursday": "Perşembe",
+  "context.opt_us": "ABD",
+  "context.opt_valentine_s": "Sevgililer Günü",
+  "context.opt_wedding": "Düğün",
+  "context.opt_winter": "Kış",
   "context.prime_night": "Asıl gece",
   "context.region": "Bölge",
   "context.room": "Salon",
@@ -1407,6 +1554,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "context.strong_evidence": "güçlü kanıt",
   "context.time": "Saat",
   "context.untested": "denenmemiş",
+  "context.us": "ABD",
   "context.warm_room": "Ilık salon",
   "context.weak_evidence": "zayıf kanıt",
   "context.weather": "Hava durumu",
@@ -1454,6 +1602,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "contextStrip.your_own_kept": "Kendi {skipped} ayarınız korundu.",
   "dataSources.a_source_fills_only_what_is":
     "Bir kaynak yalnızca eksik olanı doldurur; sizin girdiğiniz bir değeri asla değiştirmez.",
+  "dataSources.add": "Ekle",
   "dataSources.add_a_source": "Kaynak ekle",
   "dataSources.add_a_source_2": "Kaynak ekle…",
   "dataSources.another_place_to_fill_in_missing":
@@ -1463,6 +1612,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "dataSources.bpm_key_level_artwork_and_dates": "Kayıtları için BPM, ton, seviye, kapak ve tarihler",
   "dataSources.compose_a_night_first": "Önce bir gece oluşturun",
   "dataSources.data_sources": "Veri kaynakları",
+  "dataSources.done": "Bitti",
   "dataSources.done_new_data_for_of_sides":
     "Bitti: eksiği olan {length} kayıttan {filled} tanesi için yeni veri.",
   "dataSources.every_side_of_tonight_s_night": "Bu geceki her kaydın verisi zaten var.",
@@ -1570,6 +1720,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "db.cortinasTab.loading_cortinas": "Kortinalar yükleniyor…",
   "db.cortinasTab.new_cortina": "Yeni kortina",
   "db.cortinasTab.restore_from_the_index": "Dizinden geri yükle",
+  "db.cortinasTab.save": "Kaydet",
   "db.cortinasTab.title": "Ad",
   "db.learnedRules.delete_this_rule": "Bu kuralı sil",
   "db.learnedRules.families": "Aileler",
@@ -1605,6 +1756,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "db.memoryTab.cortina_style": "Kortina tarzı",
   "db.memoryTab.custom_cycle": "Özel döngü",
   "db.memoryTab.cycle": "Döngü",
+  "db.memoryTab.disliked": " · beğenilmedi",
   "db.memoryTab.edit_note": "Notu düzenle",
   "db.memoryTab.era": "Dönem",
   "db.memoryTab.feedback": "Geri bildirim",
@@ -1618,6 +1770,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "db.memoryTab.learned_preferences": "Öğrenilen tercihler",
   "db.memoryTab.learning_is_off_in_settings_memory":
     "Ayarlar → Hafıza'da öğrenme kapalı; buradakilerin hiçbiri uygulanmaz.",
+  "db.memoryTab.liked": " · beğenildi",
   "db.memoryTab.new_note": "Yeni not",
   "db.memoryTab.night_rules": "Gece kuralları",
   "db.memoryTab.no_feedback_yet": "Henüz geri bildirim yok.",
@@ -1635,6 +1788,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
     "Notları, geçmiş setleri, geri bildirimleri ve öğrenilen tercihleri sil (önce sorar)",
   "db.memoryTab.repeated_feedback_becomes_a_preference_three":
     "Tekrarlanan geri bildirim bir tercihe dönüşür: üç kez “daha enerjik”, iki kez “daha kısa kortinalar”.",
+  "db.memoryTab.save": "Kaydet",
   "db.memoryTab.sets": "Setler",
   "db.memoryTab.shape_inside_a_tanda": "Tanda içindeki şekil",
   "db.memoryTab.the_last_50_sets_you_composed":
@@ -1647,6 +1801,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "db.memoryTab.you": "Siz",
   "db.orchestrasTab.after_of_the_night": "Gecenin %{p1}'inden sonra",
   "db.orchestrasTab.after_the_golden_age_1950_69": "Altın çağdan sonra (1950–69)",
+  "db.orchestrasTab.any": "Herhangi",
   "db.orchestrasTab.balanced": "Dengeli",
   "db.orchestrasTab.best_instrumental": "En iyi enstrümantal",
   "db.orchestrasTab.best_with_a_singer": "En iyi şarkıcılı",
@@ -1654,6 +1809,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "db.orchestrasTab.contemporary": "Çağdaş",
   "db.orchestrasTab.core_every_night": "Çekirdek: her gece",
   "db.orchestrasTab.details": "{name}: ayrıntılar",
+  "db.orchestrasTab.done": "Bitti",
   "db.orchestrasTab.dramatic": "Dramatik",
   "db.orchestrasTab.earliest_in_the_night": "Gecede en erken",
   "db.orchestrasTab.earliest_in_the_night_2": "Gecede en erken, %",
@@ -1673,6 +1829,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "db.orchestrasTab.from_the_start": "Baştan itibaren",
   "db.orchestrasTab.golden_age_1935_49": "Altın çağ (1935–49)",
   "db.orchestrasTab.good_for_variety_a_tanda_or": "Çeşitlilik için iyi, gecede bir iki tanda",
+  "db.orchestrasTab.graded": "Notlandı",
   "db.orchestrasTab.grades_by_year": "Yıllara göre notlar",
   "db.orchestrasTab.group_by": "Gruplandır",
   "db.orchestrasTab.grouped_by_how_they_play_rhythmic":
@@ -1688,6 +1845,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "db.orchestrasTab.loading_orchestras": "Orkestralar yükleniyor…",
   "db.orchestrasTab.lyrical": "Lirik",
   "db.orchestrasTab.most_recorded_with": "En çok kayıt yaptığı",
+  "db.orchestrasTab.not_graded": "Notlanmadı",
   "db.orchestrasTab.not_graded_yet": "Henüz notlanmadı",
   "db.orchestrasTab.nuevo": "Nuevo",
   "db.orchestrasTab.nuevo_and_contemporary": "Nuevo ve çağdaş",
@@ -1695,14 +1853,20 @@ export const tr: Partial<Record<MsgKey, string>> = {
     "{name} aç: enerji, tarz, şarkıcılar ve en iyi yıllar",
   "db.orchestrasTab.other": "Diğer",
   "db.orchestrasTab.parts_of_the_night": "Gecenin bölümleri",
+  "db.orchestrasTab.rarely": "Nadiren",
   "db.orchestrasTab.rarely_special_nights": "Nadiren: özel geceler",
   "db.orchestrasTab.revert_to_the_shipped_values": "Hazır değerlere dön",
   "db.orchestrasTab.rhythmic": "Ritmik",
   "db.orchestrasTab.s_years_from_your_heatmap_green":
     "Isı haritanızdan {name} yılları: yeşil {word}, mavi {word1}, turuncu {word2}, gri {word3}",
+  "db.orchestrasTab.secondary": "İkincil",
   "db.orchestrasTab.secondary_a_tanda_or_two": "İkincil: bir iki tanda",
   "db.orchestrasTab.show_more_left": "Daha fazla göster ({p1} kaldı)",
   "db.orchestrasTab.show_the_next_orchestras": "Sonraki orkestraları göster",
+  "db.orchestrasTab.sides": "{instrumentals} kayıt",
+  "db.orchestrasTab.sides_2": "{c} kayıt",
+  "db.orchestrasTab.singer": "şarkıcı",
+  "db.orchestrasTab.singers": "şarkıcı",
   "db.orchestrasTab.singers_and_their_years": "Şarkıcılar ve yılları",
   "db.orchestrasTab.special_nights_and_single_tandas": "Özel geceler ve tekil tandalar",
   "db.orchestrasTab.style": "{name} tarzı",
@@ -1734,6 +1898,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
     "Değişiklikleriniz oluşturduğunuz her gecede uygulanır.",
   "db.orchestrasTab.your_grades_win_over_the_shipped":
     "Sizin notlarınız hazır notlardan önce gelir; değişikliği kaldırmak için birini eski hâline getirin.",
+  "db.rulesTab.add": "Ekle",
   "db.rulesTab.add_a_track_energy": "Parça enerjisi ekle…",
   "db.rulesTab.add_an_orchestra": "Orkestra ekle…",
   "db.rulesTab.cortina_length": "Kortina süresi",
@@ -1780,6 +1945,8 @@ export const tr: Partial<Record<MsgKey, string>> = {
     "Katalogda olmayan bir kayıt ekleyin; gece oluşturucu onu kullanabilsin",
   "db.songsTab.added_recordings_join_the_index_for":
     "Eklenen kayıtlar dizine yalnızca sizin setleriniz için katılır.",
+  "db.songsTab.analyse": "Analiz et",
+  "db.songsTab.analyse_again": "Yeniden analiz et",
   "db.songsTab.analyse_the_30_s_preview_in": "30 sn'lik önizlemeyi bu tarayıcıda analiz et",
   "db.songsTab.analysed_audio": "Analiz edilmiş ses",
   "db.songsTab.analysed_here": " · burada analiz edildi",
@@ -1800,6 +1967,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "db.songsTab.fetched": "Getirildi: {p1}",
   "db.songsTab.fill_missing_data": "Eksik verileri doldur",
   "db.songsTab.filled_for": "{title} için dolduruldu: {p1}",
+  "db.songsTab.find": "Bul…",
   "db.songsTab.find_on_services": "{title} parçasını servislerde bul",
   "db.songsTab.found": "Bulundu",
   "db.songsTab.guessed_from_the_era": "dönemden tahmin edildi",
@@ -1822,9 +1990,11 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "db.songsTab.no_preview_track_yet": "Henüz önizleme parçası yok",
   "db.songsTab.none_yet_added_recordings_join_the":
     "Henüz yok. Eklenen kayıtlar dizine yalnızca sizin setleriniz için katılır.",
+  "db.songsTab.not_matched_yet": "Henüz eşleşmedi",
   "db.songsTab.nothing_matches": "“{q}” ile eşleşen bir şey yok.",
   "db.songsTab.off_hides_every_copy_of_this": "Kapalı, bu orkestra + eserin tüm kopyalarını gizler",
   "db.songsTab.open_in_spotify": "{title} parçasını Spotify'da aç",
+  "db.songsTab.open_in_spotify_2": "Spotify'da aç",
   "db.songsTab.paste_a_spotify_link": "Bir Spotify bağlantısı yapıştırın",
   "db.songsTab.refresh_from_sources": "Kaynaklardan yenile",
   "db.songsTab.release_date_of": "{title} yayın tarihi",
@@ -1835,6 +2005,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "db.songsTab.rhythm_led_estribillista": "Ritim öncelikli (estribillista)",
   "db.songsTab.rhythm_of": "{title} ritmi",
   "db.songsTab.same_tempo_other_beat_level": " (aynı tempo, başka vuruş düzeyi)",
+  "db.songsTab.save": "Kaydet",
   "db.songsTab.search_the_index": "Dizinde ara",
   "db.songsTab.search_the_index_to_edit_a":
     "Bir kaydı düzenlemek için dizinde arayın ya da aşağıdan kendinizinkini ekleyin.",
@@ -1965,12 +2136,15 @@ export const tr: Partial<Record<MsgKey, string>> = {
     "Ad, sanatçı ve albüm sütunlarıyla bir CSV: set sırasıyla {p1} satır{p2}.",
   "exportSheet.added_more": "{length} parça daha eklendi{p1}{p2}{note}",
   "exportSheet.adding_of": "Ekleniyor {p1}/{length}…",
+  "exportSheet.allow": "İzin ver",
   "exportSheet.any_spotify_account_tunemymusic_or_soundiiz":
     "Her Spotify hesabı · TuneMyMusic ya da Soundiiz",
   "exportSheet.cloud_folders_receive_the_file_format":
     "Bulut klasörleri yukarıda seçilen dosya biçimini alır. ",
+  "exportSheet.connect": "Bağla",
   "exportSheet.connect_in_settings": "Ayarlar'dan bağlayın",
   "exportSheet.connect_spotify_and_create_playlist": "Spotify'ı bağla ve çalma listesi oluştur",
+  "exportSheet.connected": "Bağlı",
   "exportSheet.cortina": "kortina",
   "exportSheet.cortina_play_length": "Kortina çalma süresi",
   "exportSheet.cortinas": "kortinalar",
@@ -1980,14 +2154,17 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "exportSheet.cortinas_stop_at_s_in_files":
     "Kortinalar dosyalarda ve Kabin'de {cortinaStop} sn'de durur; Spotify onları tam çalar.",
   "exportSheet.cortinas_were": "{length} kortina",
+  "exportSheet.create_playlist": "Çalma listesi oluştur",
   "exportSheet.create_playlist_in_spotify": "Spotify'da çalma listesi oluştur",
   "exportSheet.created_the_playlist_with_tracks":
     "{added} parçalık {label} çalma listesi oluşturuldu{p1}{p2}.",
   "exportSheet.created_the_youtube_playlist_with_tracks":
     "{added} parçalık YouTube çalma listesi oluşturuldu{p1}{p2}.",
+  "exportSheet.csv": "CSV",
   "exportSheet.desc_with_cortinas": "TDJ ile oluşturulan {n} tanda, kortinalar dahil. Puan {score}/100.",
   "exportSheet.desc_without_cortinas": "TDJ ile oluşturulan {n} tanda, kortinalar hariç. Puan {score}/100.",
   "exportSheet.dj_software": "DJ yazılımı",
+  "exportSheet.done": "Bitti",
   "exportSheet.download_csv_and_open": "CSV'yi indir ve {label} aç",
   "exportSheet.downloaded": "İndirildi",
   "exportSheet.downloaded_2": "{label} indirildi (.{ext})",
@@ -2003,6 +2180,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "exportSheet.include_cortinas": "Kortinaları dahil et",
   "exportSheet.left_out_youtube_s_daily_search":
     ", {skipped} parça dışarıda kaldı (YouTube'un günlük arama kotası doldu; kalanını başka bir gün deneyin)",
+  "exportSheet.log_in": "Giriş yap",
   "exportSheet.log_in_with_spotify_and_create": "Spotify ile giriş yap ve çalma listesi oluştur",
   "exportSheet.matching_of": "Eşleştiriliyor {p1}/{length}…",
   "exportSheet.needs_a_spotify_client_id_add": "Bir Spotify Client ID gerekiyor. Şuradan ekleyin:{p1}",
@@ -2016,6 +2194,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "exportSheet.not_found_list": "({n} bulunamadı: {list})",
   "exportSheet.not_matched": "Eşleşmeyenler ({length})",
   "exportSheet.not_on_spotify": "{p1} Spotify'da yok: {p2}{p3}.",
+  "exportSheet.off": "Kapalı",
   "exportSheet.open_in": "{label} ile aç",
   "exportSheet.open_in_spotify": "Spotify'da aç",
   "exportSheet.open_in_youtube": "YouTube'da aç",
@@ -2028,6 +2207,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "exportSheet.playlist_files": "Çalma listesi dosyaları",
   "exportSheet.playlist_updated": "Çalma listesi güncellendi",
   "exportSheet.progress": "İlerleme",
+  "exportSheet.save": "Kaydet",
   "exportSheet.save_for_vlc_and_the_booth": "VLC ve Kabin için kaydet (M3U8)",
   "exportSheet.save_to_dropbox": "Dropbox'a kaydet",
   "exportSheet.save_to_google_drive": "Google Drive'a kaydet",
@@ -2041,6 +2221,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "exportSheet.sent_to_the_webhook": "Webhook'a gönderildi",
   "exportSheet.service": "Servis",
   "exportSheet.set_in_playback": "Çalma'da ayarlanır",
+  "exportSheet.set_up": "Kur",
   "exportSheet.set_up_in_settings": "Ayarlar'da kurun ›",
   "exportSheet.settings": "Ayarlar",
   "exportSheet.song": "şarkı",
@@ -2140,6 +2321,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "fill.sources.unknown_source": "bilinmeyen kaynak",
   "fill.sources.year_and_artwork_of_the_78": "78'liğin ya da LP'nin yılı ve kapağı",
   "form.chosen": "{length} seçildi",
+  "form.done": "Bitti",
   "form.none": "Hiçbiri",
   "form.working": "Çalışıyor",
   "guide.30_60_s_of_non_tango":
@@ -2153,6 +2335,8 @@ export const tr: Partial<Record<MsgKey, string>> = {
     "Aynı değişikliği tekrar tekrar isteyin (üç kez “daha enerjik”, iki kez “daha kısa kortinalar”), T-DJ bunu sonraki gece için zevkiniz olarak hatırlar; her zaman bu gece seçtiklerinizin altında. Her birini Veritabanı › Hafıza'da görüp silebilir, öğrenmeyi Ayarlar'dan kapatabilirsiniz.",
   "guide.ask_in_plain_words_the_way":
     "Kabindeki bir arkadaşınıza sorar gibi sade sözlerle isteyin: “gece yarısından sonra daha sakin”, “daha çok Di Sarli”, “ikinci zirveden önce Biagi olmasın”. Öneriler tek tek gelir, her biri iyi bir gecenin kurallarına göre denetlenir; her birini tutar ya da bırakırsınız. Bu cihazda kalan kendi model anahtarınızla çalışır.",
+  "guide.bit_cortinas": "kortinalar {list}",
+  "guide.bit_energy": "enerji {v}",
   "guide.build_by_hand": "Kendin oluştur",
   "guide.choose_your_headphones_as_the_second":
     "Kulaklığınızı ikinci çıkış olarak seçin. Ön dinleme şarkıyı yalnızca orada çalar: salon dans etmeye devam eder ve sıradaki tandayı kontrol ettiğinizi asla duymaz.",
@@ -2273,6 +2457,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
     " Rehberinizdeki yerleşik metnin yerini alır; motorun kuralları değişmez.",
   "guideSections.reset": '"{title}" sıfırlandı',
   "guideSections.reset_section": "Bölümü sıfırla",
+  "guideSections.save": "Kaydet",
   "guideSections.saved": '"{title}" kaydedildi',
   "guideSections.see_how_your_night_scored": "Gecenizin aldığı puanı görün",
   "guideSections.tap_a_section_to_rewrite_it":
@@ -2288,6 +2473,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "history.back_to": "“{label}” sürümüne dönüldü",
   "history.back_to_in_compose": "Gece oluştur'da “{label}” sürümüne dönüldü",
   "history.birthday_vals": "{birthdayVals} doğum günü valsi",
+  "history.cancel": "Vazgeç",
   "history.changed_a_song": "Bir şarkı değiştirildi",
   "history.clear_history": "Geçmişi temizle",
   "history.clear_history_2": "Geçmişi temizle…",
@@ -2301,7 +2487,9 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "history.composed_2": "Oluşturuldu",
   "history.composed_seed_under": "Oluşturuldu {p1} · {verdict} · tohum ••• altında",
   "history.copy_seed": "Tohumu kopyala",
+  "history.current": "Güncel",
   "history.dec": "Ara",
+  "history.done": "Bitti",
   "history.every_change_to_this_night_is":
     "Bu gecedeki her değişiklik, en yenisi önce olmak üzere burada saklanır. Geri yükle birini geri getirir; yerini aldığı sürüm listede kalır.",
   "history.every_set_you_compose_lands_here": "Oluşturduğunuz her set buraya gelir.",
@@ -2345,6 +2533,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "history.restore_2": "“{label}” geri yükle",
   "history.rooms": "Odalar…",
   "history.saturday": "Cumartesi",
+  "history.save": "Kaydet",
   "history.save_as_a_file": "Dosya olarak kaydet",
   "history.save_history_as_a_file": "Geçmişi dosya olarak kaydet",
   "history.score": "{p1} · puan {score}",
@@ -2377,6 +2566,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "i18n.test.songs.other": "{count} şarkı",
   "learnWatch.replaced_a_tanda": "bir tandayı değiştirdi",
   "library.all_orchestras": "Tüm orkestralar",
+  "library.done": "Bitti",
   "library.energy": "enerji",
   "library.find_on_services": "{title} parçasını servislerde bul",
   "library.library": "Kütüphane",
@@ -2384,6 +2574,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
     "“{q}” ile eşleşen bir şey yok. Daha kısa bir yazım deneyin.",
   "library.orchestra_singer_title_or_year": "Orkestra, şarkıcı, ad ya da yıl",
   "library.orchestras": "Orkestralar",
+  "library.orchestras_2": "{length} orkestra",
   "library.orchestras_by_recordings": "Kayıt sayısına göre orkestralar",
   "library.pause": "{title} duraklat",
   "library.play": "{title} çal",
@@ -2559,6 +2750,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "modelConnections.npx_zed_industries_claude_code_acp": "npx @zed-industries/claude-code-acp",
   "modelConnections.only_if_the_bridge_asks_for": "Yalnızca köprü isterse",
   "modelConnections.runs_in_the_mac_app": "{where} · Mac uygulamasında çalışır",
+  "modelConnections.save": "Kaydet",
   "modelConnections.save_and_use_for_every_generation": "Kaydet ve her üretimde kullan",
   "modelConnections.t_dj_only_asks_it_questions":
     "{acp}: T-DJ ona yalnızca soru sorar; dosya, terminal ya da izin almaz.",
@@ -2609,8 +2801,10 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "night.it_lands_in_history_and_opens":
     "Geçmiş'e eklenir ve Gece oluştur'da açılır; düzenlemeye, çalmaya ve Spotify'a aktarmaya hazır.",
   "night.keeps_this_night_in_history_and": "Bu geceyi Geçmiş'te saklar ve Gece oluştur'da açar",
+  "night.locked": "Kilitli",
   "night.min": "{m} dk",
   "night.night_link": "Gece bağlantısı",
+  "night.no_stream": "Yayın yok",
   "night.not_in_this_catalogue": "Bu katalogda yok ({length})",
   "night.open": "Açılış",
   "night.open_a_night": "Bir gece aç",
@@ -2619,6 +2813,8 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "night.or_drop_a_tdjnight_file_anywhere":
     "Ya da bir .tdjnight dosyasını bu sayfada herhangi bir yere bırakın.",
   "night.paste_a_t_dj_night_link": "Size gönderilen bir T-DJ gece bağlantısını yapıştırın.",
+  "night.skipped": "Atlandı",
+  "night.spotify": "Spotify",
   "night.tandas": "Tandalar",
   "night.tandas_songs_score": "{length} tanda · {p1} şarkı · {durationSec} · puan {total}",
   "night.tdjnight": ".tdjnight",
@@ -2677,6 +2873,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "resolveSheet.deezer": "Deezer",
   "resolveSheet.deezer_gives_the_30_s_preview":
     "Deezer 30 sn'lik önizlemeyi ve kapağı, MusicBrainz kaydın ilk yayın yılını verir. Dijital albüm tarihleri yeniden basımdır ve asla yıl olarak kullanılmaz.",
+  "resolveSheet.done": "Bitti",
   "resolveSheet.dz": "DZ",
   "resolveSheet.find_on_services": "Servislerde bul",
   "resolveSheet.forget_my_choice": "Seçimimi unut",
@@ -2719,6 +2916,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "rooms.copying_was_blocked": "Kopyalama engellendi",
   "rooms.create_room": "Oda aç",
   "rooms.dj_name": "DJ adı",
+  "rooms.done": "Bitti",
   "rooms.edit_one_night_with_other_djs": "Bir geceyi diğer DJ'lerle canlı düzenleyin.",
   "rooms.everyone_in_the_room_edits_this":
     "Odadaki herkes bu geceyi birlikte düzenler: değiştirmeler, kilitler, sıra ve ayarlar.",
@@ -2767,6 +2965,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "rooms.rooms_you_were_in_on_this": "Bu cihazda bulunduğunuz odalar. Kaydını okumak için birini açın.",
   "rooms.s_room": "{user} odası",
   "rooms.saturday_milonga": "Cumartesi milongası",
+  "rooms.save": "Kaydet",
   "rooms.share_with_the_room": "“{name}” gecesini odayla paylaş",
   "rooms.shared_by_another_dj_they_stay": "Başka bir DJ paylaştı; tandalarında kalırlar.",
   "rooms.show_the_room_s_code_and": "Odanın kodunu ve bağlantılarını göster",
@@ -2776,6 +2975,9 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "rooms.swap_songs_and_tandas_in_the": "Gece oluşturucuda şarkıları ve tandaları değiştirin",
   "rooms.swap_songs_in_compose_every_dj":
     "Gece oluştur'da şarkıları değiştirin: odadaki her DJ değişikliği görür ve kayıt kimin yaptığını söyler.",
+  "rooms.tab_log": "Kayıt",
+  "rooms.tab_log_n": "Kayıt · {n}",
+  "rooms.tab_night": "Gece",
   "rooms.tandas": "Tandalar · {length}",
   "rooms.that_code_is_six_letters_and": "Bu kod altı harf ve rakamdan oluşur.",
   "rooms.the_code_works_in_t_dj":
@@ -2842,6 +3044,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "settings.dj_apps": "DJ uygulamaları",
   "settings.does_not_know_this_model_leave":
     "{name} bu modeli tanımıyor ({status}). Varsayılan için modeli boş bırakın.",
+  "settings.done": "Bitti",
   "settings.europe": "Avrupa",
   "settings.every_swap_search_and_swap_ai":
     "Her değiştirme, arayıp değiştirme, yapay zekâ seçimi ya da sabitlenen tanda T-DJ'e neyi tercih ettiğinizi öğretir: seçtiğiniz kayıtlar ve aileler sonraki gecelerde daha ağır basar, yerine başkasını koyduklarınız biraz daha az; sabitlenen tandalar şablonunuz olur. Kurallar yine geçerlidir; bu gecenin ayarları önce gelir.",
@@ -2859,9 +3062,14 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "settings.hide_the_key": "Anahtarı gizle",
   "settings.how_your_music_files_are_named":
     "Müzik dosyalarınızın nasıl adlandırıldığı; aktarılan set her şarkıyı böylece bulur",
+  "settings.in_this_browser": "Bu tarayıcıda",
   "settings.is_rate_limiting_this_key_try":
     "{name} bu anahtarın isteklerini sınırlıyor ({status}). Bir dakika sonra yeniden deneyin.",
   "settings.istanbul": "İstanbul",
+  "settings.item": "öğe",
+  "settings.items": "öğe",
+  "settings.kept_by_this_site": "Bu sitede tutuluyor",
+  "settings.key_saved": "Anahtar kaydedildi",
   "settings.language.auto": "Otomatik",
   "settings.language.footer":
     "Otomatik, tarayıcınızın ya da sisteminizin dilini izler. Şarkı adları, orkestralar ve şarkıcılar her zaman kaydedildikleri gibi kalır.",
@@ -2880,6 +3088,8 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "settings.music_folder_path": "Müzik klasörü yolu",
   "settings.network": "ağ",
   "settings.nothing_yet": "Henüz bir şey yok",
+  "settings.off": "Kapalı",
+  "settings.on_this_device": "Bu cihazda",
   "settings.only_for_an_anthropic_key_made": "Yalnızca bir kuruluş için oluşturulmuş Anthropic anahtarı için",
   "settings.organisation_id": "Kuruluş kimliği",
   "settings.organisation_id_only_needed_when_the":
@@ -2897,6 +3107,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "settings.saved_in_your_keychain": "Anahtar Zinciri'nize kaydedildi",
   "settings.sends_one_short_request_to_check":
     "Anahtarın çalıştığını denetlemek için kısa bir istek gönderir",
+  "settings.set": "Ayarlandı",
   "settings.sets_the_region_in_tonight_for":
     "Her yeni gece için Bu gece'deki bölgeyi ayarlar: kortinalar ve karışım yerel zevki izler",
   "settings.settings": "Ayarlar",
@@ -2925,12 +3136,18 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "settings.the_organiser_s_key_writes_your":
     "Organizatörün anahtarı değerlendirmelerinizi yazar ve “DJ'e söyle”yi kesin değişikliklere dönüştürür; DJ başına günde en fazla {p1} istek. Sınırsız kullanım için “Kendi anahtarımı kullan” altına kendi anahtarınızı ekleyin; bu tarayıcıda kalır.",
   "settings.theme": "Tema",
+  "settings.this_browser": "Bu tarayıcı",
+  "settings.this_device": "Bu cihaz",
   "settings.this_key_belongs_to_an_organisation":
     "Bu anahtar bir kuruluşa ait: Anthropic hesabınızda yanında görünen kuruluş kimliğini aşağıya yapıştırın ya da orada kendinize ait bir anahtar oluşturun.",
+  "settings.this_site": "Bu site",
   "settings.unlimited_kept_in_this_browser": "Sınırsız, bu tarayıcıda saklanır",
   "settings.use_my_own_key": "Kendi anahtarımı kullan",
   "settings.use_the_cortina_length_you_set":
     "Kendi süreniz yerine Gece oluştur'da ayarladığınız kortina süresini kullanın",
+  "settings.using": "{name} kullanılıyor",
+  "settings.using_the_organiser_s_key_of":
+    "Organizatörün anahtarı kullanılıyor · bugün {limit} istekten {used}",
   "settings.what_t_dj_learned_from_your": "T-DJ'in düzenlemelerinizden öğrendikleri",
   "settings.where_a_cortina_stops_t_dj":
     "Bir kortinanın durduğu yer: T-DJ oynatıcısı onu orada kısar, VLC çalma listeleri orada durdurur, Rekordbox o saniyede bir cue alır. {p1}",
@@ -2955,6 +3172,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "shareSheet.copy_link": "Bağlantıyı kopyala",
   "shareSheet.copy_link_for_the_app": "Uygulama bağlantısını kopyala",
   "shareSheet.copying_was_blocked_by_the_browser": "Kopyalama tarayıcı tarafından engellendi",
+  "shareSheet.done": "Bitti",
   "shareSheet.edit_together_in_a_room": "Bir odada birlikte düzenleyin",
   "shareSheet.from_another_dj_or_another_device": "Başka bir DJ'den ya da başka bir cihazdan",
   "shareSheet.hold_it_up_to_a_phone": "Bir telefona ya da iPad'e tutun",
@@ -3084,6 +3302,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "spotify.spotify_token_exchange_failed": "Spotify jeton değişimi başarısız oldu: {status}",
   "spotify.youtube": "YouTube",
   "swapSheet.best_fit": "En uygun",
+  "swapSheet.fit": "%{fit} uyum",
   "swapSheet.fits_this_tanda": "Bu tandaya uyar",
   "swapSheet.how_well_it_fits_this_place":
     "Tandadaki bu yere ne kadar uyduğu: enerji, tempo, seviye ve DJ'lerin onu ne sıklıkla çaldığı",
@@ -3166,6 +3385,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "tandaCard.unlock_the_tanda_first": "önce tandanın kilidini açın",
   "tandaCard.your_tanda_kept_as_is": "Tandanız · olduğu gibi tutuluyor",
   "tandaChoices.calmer_than_the_plan": "plandan {p1} daha sakin",
+  "tandaChoices.cancel": "Vazgeç",
   "tandaChoices.choose_one": "Birini seçin",
   "tandaChoices.energy": "{p1} · enerji {p2}, {p3} · {p4}",
   "tandaChoices.every_choice_keeps_the_night_s":

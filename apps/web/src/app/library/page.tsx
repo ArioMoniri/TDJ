@@ -222,7 +222,7 @@ export default function Library() {
           ))}
           <Row
             label={tx("library.all_orchestras")}
-            value={`${fmtNumber(meta.orchestras.length)} orchestras`}
+            value={tx("library.orchestras_2", { length: fmtNumber(meta.orchestras.length) })}
             data-testid="library-all-orchestras"
             chevron
             onClick={() => setShowAll(true)}
@@ -233,7 +233,7 @@ export default function Library() {
         open={showAll}
         onClose={() => setShowAll(false)}
         title={tx("library.orchestras")}
-        trailing="Done"
+        trailing={tx("library.done")}
       >
         <Group footer={tx("library.sorted_by_how_many_recordings_the")}>
           {byCount.map((o) => (

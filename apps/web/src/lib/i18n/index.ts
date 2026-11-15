@@ -5,9 +5,9 @@
  *
  * The locale lives in one module variable that the LocaleRoot (components/LocaleRoot.tsx) sets from the Settings
  * choice (`settings.language`: Auto follows the browser or the system); a change re-renders the whole tree, so a
- * plain `t()` call works in components, in handlers and in the lib modules alike. `useT()` is the hook form.
+ * plain `t()` call works in components, in handlers and in the lib modules alike. `useT()` (./useT.ts) is the hook
+ * form. No React here: server routes import the dictionaries too.
  */
-import { useSyncExternalStore } from "react";
 import { en, type MsgKey } from "./en";
 import { tr } from "./tr";
 
@@ -75,6 +75,21 @@ export function t(key: MsgKey, vars?: Record<string, unknown>): string {
   return fill(lookup(key), vars);
 }
 
+let reverse: Map<string, MsgKey> | null = null;
+/**
+ * Words that arrive in English from data (the research model's labels, the core's notes): the dictionary's text for
+ * that English, else the words as they came.
+ */
+export function tSource(english: string, vars?: Record<string, unknown>): string {
+  if (current === "en") return fill(english, vars);
+  if (!reverse) {
+    reverse = new Map();
+    for (const [k, v] of Object.entries(en)) if (!reverse.has(v)) reverse.set(v, k as MsgKey);
+  }
+  const k = reverse.get(english);
+  return k ? t(k, vars) : fill(english, vars);
+}
+
 /** plural forms live under `<base>.one` / `<base>.other` (Intl.PluralRules categories); {count} is the number */
 export type PluralBase = MsgKey extends infer K ? (K extends `${infer B}.other` ? B : never) : never;
 export function plural(base: PluralBase, count: number, vars?: Record<string, unknown>): string {
@@ -82,15 +97,6 @@ export function plural(base: PluralBase, count: number, vars?: Record<string, un
   const key = `${base}.${cat}`;
   const has = DICTS[current][key as MsgKey] !== undefined || en[key as MsgKey] !== undefined;
   return t((has ? key : `${base}.other`) as MsgKey, { count: fmtNumber(count), ...vars });
-}
-
-/** the hook form: re-renders its component when the locale changes */
-export function useT(): typeof t {
-  useLocale();
-  return t;
-}
-export function useLocale(): Locale {
-  return useSyncExternalStore(onLocale, getLocale, () => "en");
 }
 
 /** the Intl tag for the current locale (undefined: the browser's own, for English) */

@@ -164,7 +164,10 @@ export function OnboardingSheet({
         header={t("booth.onboardingSheet.output")}
         footer={t("booth.onboardingSheet.a_20_dbfs_440_hz_tone")}
       >
-        <Row label={t("booth.onboardingSheet.device")} value={output ?? "System default"} />
+        <Row
+          label={t("booth.onboardingSheet.device")}
+          value={output ?? t("booth.onboardingSheet.system_default")}
+        />
         <ActionRow
           label={t("booth.onboardingSheet.test_tone")}
           onClick={() => b.testTone()}

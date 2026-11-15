@@ -2,7 +2,7 @@
 import { CircleX, LoaderCircle, Search } from "lucide-react";
 import { useState } from "react";
 import { useMediaQuery } from "@/lib/hooks";
-import { t as tx } from "@/lib/i18n";
+import { lower, t as tx } from "@/lib/i18n";
 import { Tip, useTip } from "./ui/Tip";
 
 /** UISearchBar: 36 pt field, magnifier, clear glyph, Cancel on focus (phone). 17 pt text so iOS never zooms. */
@@ -30,9 +30,7 @@ export function SearchField({
   tip?: string;
 }) {
   const [focused, setFocused] = useState(false);
-  const t = useTip<HTMLLabelElement>(
-    tip ?? tx("searchField.search_by", { placeholder: placeholder.toLowerCase() }),
-  );
+  const t = useTip<HTMLLabelElement>(tip ?? tx("searchField.search_by", { placeholder: lower(placeholder) }));
   const isPhone = useMediaQuery("(max-width: 639px)");
   const showCancel = isPhone && (focused || value.length > 0);
   const focus = (f: boolean) => {

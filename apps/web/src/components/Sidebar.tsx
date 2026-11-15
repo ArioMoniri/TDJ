@@ -242,7 +242,7 @@ export function Sidebar() {
             <LayoutGroup id="sidebar-nav">
               <div className="flex flex-col gap-0.5">
                 {library.map((it) => (
-                  <SideLink key={it.href} {...it} on={path === it.href} pill="side-pill" />
+                  <SideLink key={it.href} {...it} on={path === it.href} pill={"side-pill"} />
                 ))}
               </div>
             </LayoutGroup>
@@ -367,7 +367,7 @@ export function Sidebar() {
           <LayoutGroup id="sidebar-foot">
             <div className="flex flex-col gap-0.5">
               {pinned.map((it) => (
-                <SideLink key={it.href} {...it} on={path === it.href} pill="side-pill-foot" />
+                <SideLink key={it.href} {...it} on={path === it.href} pill={"side-pill-foot"} />
               ))}
             </div>
           </LayoutGroup>

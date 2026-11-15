@@ -39,7 +39,7 @@ import { FEEDBACK_CHIPS } from "@/lib/feedback";
 import { haptic } from "@/lib/haptics";
 import { makeSnapshot } from "@/lib/history";
 import { testSlowdownMs, useMediaQuery, useScrollDirection, whenIdle } from "@/lib/hooks";
-import { lazy, plural, t as tx } from "@/lib/i18n";
+import { lazy, lower, plural, t as tx } from "@/lib/i18n";
 import { describePreferences } from "@/lib/memory";
 import { DUR, EASE, rise, STAGGER } from "@/lib/motion";
 import { eraName, nightSub, nightTitle } from "@/lib/nightName";
@@ -273,7 +273,7 @@ function PinButton({ on, label, onToggle }: { on: boolean; label: string; onTogg
         type="button"
         className={`icon-btn icon-btn-bare -my-2 h-11 w-11 ${on ? "text-[var(--tint)]" : "pin-idle text-[var(--label-3)]"}`}
         aria-pressed={on}
-        aria-label={`${on ? tx("composer.unpin") : tx("composer.pin")} ${label.toLowerCase()}`}
+        aria-label={`${on ? tx("composer.unpin") : tx("composer.pin")} ${lower(label)}`}
         onClick={(e) => {
           e.preventDefault();
           haptic(4);
@@ -350,7 +350,7 @@ const SetupForm = memo(function SetupForm({
           id="hours"
           label={tx("composer.length")}
           tip={tx("composer.how_long_the_night_runs_the")}
-          display={`${hours} h · ≈${tandasEst} tandas`}
+          display={tx("composer.h_tandas_2", { hours, tandasEst })}
           min={1}
           max={8}
           step={0.5}
@@ -401,10 +401,10 @@ const SetupForm = memo(function SetupForm({
           />
         </SegmentedRow>
         <PickerRow
-          label={"La Cumparsita"}
+          label={tx("composer.la_cumparsita")}
           tip={tx("composer.where_la_cumparsita_the_traditional_last")}
           sub={tx("composer.open_before_the_first_tanda_by")}
-          ariaLabel={"La Cumparsita"}
+          ariaLabel={tx("composer.la_cumparsita")}
           value={cumparsitaKey(rules, options.closeWithCumparsita)}
           items={CUMPARSITA_AT}
           onChange={(k) => {
@@ -1602,7 +1602,7 @@ export function Composer() {
         <ComposeLabel
           busy={busy}
           steps={!!playlist}
-          idle={hasPlaylist ? "Regenerate" : tx("primaryBar.compose_the_night")}
+          idle={hasPlaylist ? tx("composer.regenerate") : tx("primaryBar.compose_the_night")}
           spin={false}
         />
       </motion.button>
@@ -1966,14 +1966,14 @@ export function Composer() {
               <Row
                 label={tx("composer.how_this_set_scored")}
                 tip={tx("composer.each_part_of_the_score_tandas")}
-                value={`${playlist.score.factors.length} factors`}
+                value={tx("composer.factors", { length: playlist.score.factors.length })}
                 chevron
                 onClick={() => setScoreOpen(true)}
               />
               {bench && (
                 <Row
                   label={tx("composer.compared_with_published_dj_sets_2")}
-                  value={`${bench.inRange} of ${bench.scored} close`}
+                  value={tx("composer.of_close", { inRange: bench.inRange, scored: bench.scored })}
                   aria-label={tx("composer.compared_with_published_dj_sets", { p1: benchLabel(bench) })}
                   tip={tx("composer.how_this_night_compares_with_sets")}
                   chevron
@@ -1995,11 +1995,11 @@ export function Composer() {
                 tip={tx("composer.a_few_paragraphs_on_the_night")}
                 value={
                   aiBusy
-                    ? "Reading the set…"
+                    ? tx("composer.reading_the_set")
                     : ai || settings.ai.key || aiShared
-                      ? "Ready"
+                      ? tx("composer.ready")
                       : aiShared === false
-                        ? "Off · needs an AI key"
+                        ? tx("composer.off_needs_an_ai_key")
                         : undefined
                 }
                 chevron
@@ -2020,7 +2020,7 @@ export function Composer() {
                     <Disc3 size={20} strokeWidth={1.75} />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="text-headline block truncate">{"La Cumparsita"}</span>
+                    <span className="text-headline block truncate">{tx("composer.la_cumparsita")}</span>
                     <span className="text-subhead block truncate text-[var(--label-2)]">
                       {metaLine(
                         playlist.opening.orchestra,
@@ -2100,7 +2100,7 @@ export function Composer() {
                     <Disc3 size={20} strokeWidth={1.75} />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="text-headline block truncate">{"La Cumparsita"}</span>
+                    <span className="text-headline block truncate">{tx("composer.la_cumparsita")}</span>
                     <span className="text-subhead block truncate text-[var(--label-2)]">
                       {metaLine(playlist.closing.orchestra, yearText(playlist.closing.year))}
                     </span>
@@ -2123,7 +2123,7 @@ export function Composer() {
               p2: (CORTINA_STYLES.find(([k]) => k === cortinaStyle)?.[1] ?? "").toLowerCase(),
               p3: chosenContext ? ` ${tx("composer.tonight", { chosenContext })}` : "",
             })}
-            value={wide ? undefined : "Edit"}
+            value={wide ? undefined : tx("composer.edit")}
             chevron={!wide}
             onClick={wide ? undefined : () => setSetupOpen(true)}
           >
@@ -2265,7 +2265,7 @@ export function Composer() {
           open={adjustOpen}
           onClose={() => setAdjustOpen(false)}
           title={tx("composer.adjust")}
-          trailing="Done"
+          trailing={tx("composer.done")}
           testId="adjust-sheet"
         >
           {feedbackBar}
@@ -2302,7 +2302,7 @@ export function Composer() {
           open={scoreOpen}
           onClose={() => setScoreOpen(false)}
           title={tx("composer.how_this_set_scored")}
-          trailing="Done"
+          trailing={tx("composer.done")}
         >
           <Group footer={tx("composer.each_bar_is_as_long_as")}>
             {playlist.score.reasons && playlist.score.reasons.length > 0 && (
@@ -2372,7 +2372,7 @@ export function Composer() {
         open={moodOpen}
         onClose={() => setMoodOpen(false)}
         title={tx("composer.mood_check")}
-        trailing="Done"
+        trailing={tx("composer.done")}
       >
         <MoodCheck playlists={playlists} playlist={playlist} />
       </Sheet>
@@ -2380,7 +2380,7 @@ export function Composer() {
         open={reviewOpen}
         onClose={() => setReviewOpen(false)}
         title={tx("composer.written_review")}
-        trailing={aiError ? "OK" : "Done"}
+        trailing={aiError ? tx("composer.ok") : tx("composer.done")}
         hideCancel={aiError}
       >
         <div role="status" aria-live="polite" className="mt-2">

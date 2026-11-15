@@ -31,7 +31,7 @@ export function PlayerToolbar({ rehearsal }: { rehearsal: boolean }) {
         className="booth-out"
         data-out="room"
         data-testid="booth-out-room"
-        data-hint="ROOM: where the night plays for the dancers. Tap to choose the output."
+        data-hint={t("booth.playerToolbar.room_where_the_night_plays_for")}
         aria-label={t("booth.playerToolbar.room_output_2", { p1: label(outputs.room) })}
         onClick={() => setPick("room")}
       >
@@ -48,7 +48,7 @@ export function PlayerToolbar({ rehearsal }: { rehearsal: boolean }) {
           data-live={hearing || undefined}
           data-off={outputs.cue ? undefined : true}
           data-testid="booth-out-cue"
-          data-hint="HEADPHONES: pre-listen here; the room never hears it. Tap to choose your headphones."
+          data-hint={t("booth.playerToolbar.headphones_pre_listen_here_the_room")}
           aria-label={t("booth.playerToolbar.headphones_output_2", {
             p1: outputs.cue ? label(outputs.cue) : t("booth.playerToolbar.not_set"),
           })}
@@ -82,7 +82,7 @@ export function PlayerToolbar({ rehearsal }: { rehearsal: boolean }) {
         type="button"
         className="booth-out"
         data-testid="booth-show"
-        data-hint="Show or hide energy, BPM, key, era and artwork"
+        data-hint={t("booth.playerToolbar.show_or_hide_energy_bpm_key")}
         onClick={() => setShow(true)}
       >
         <Eye size={16} strokeWidth={2} aria-hidden />
@@ -106,7 +106,7 @@ function OutputSheet({ which, onClose }: { which: "room" | "headphones" | null; 
       title={
         which === "room" ? t("booth.playerToolbar.room_output") : t("booth.playerToolbar.headphones_output")
       }
-      trailing="Done"
+      trailing={t("booth.playerToolbar.done")}
       testId="booth-output-sheet"
     >
       <Group
@@ -190,7 +190,7 @@ export function ShowSheet({ open, onClose }: { open: boolean; onClose: () => voi
       open={open}
       onClose={onClose}
       title={t("booth.playerToolbar.show")}
-      trailing="Done"
+      trailing={t("booth.playerToolbar.done")}
       testId="booth-show-sheet"
     >
       <IndicatorSwitches />
@@ -217,8 +217,8 @@ function SourceLine({ rehearsal }: { rehearsal: boolean }) {
         data-source={onSpotify ? "spotify" : "clips"}
         data-hint={
           onSpotify
-            ? "Spotify Premium plays every song in full on this device"
-            : "A rehearsal plays 30 s of every song so you can hear the night quickly"
+            ? t("booth.playerToolbar.spotify_premium_plays_every_song_in")
+            : t("booth.playerToolbar.a_rehearsal_plays_30_s_of")
         }
       >
         {onSpotify

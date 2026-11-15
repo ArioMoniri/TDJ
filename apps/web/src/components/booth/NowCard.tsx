@@ -95,7 +95,7 @@ export function NowCard({ onInfo }: { onInfo?: (planIndex: number) => void }) {
       <div className="booth-now-head">
         <Artwork entity={entity} orchestra={orchestra} size={96} />
         <div className="min-w-0 flex-1">
-          <p className="booth-eyebrow" data-hint="Where this song sits in the night">
+          <p className="booth-eyebrow" data-hint={t("booth.nowCard.where_this_song_sits_in_the")}>
             <span className="text-[var(--room)]">{t("booth.nowCard.room")}</span> ·{" "}
             {eyebrowFor(item, playlist?.tandas.length ?? 0, false)}
           </p>
@@ -150,7 +150,7 @@ export function NowCard({ onInfo }: { onInfo?: (planIndex: number) => void }) {
         <span
           className="booth-chip"
           data-testid="booth-source"
-          data-hint="Where this song plays from: your file, Spotify or a 30 s clip"
+          data-hint={t("booth.nowCard.where_this_song_plays_from_your")}
         >
           {src === "missing" && item.kind !== "break"
             ? rehearsal
@@ -162,7 +162,7 @@ export function NowCard({ onInfo }: { onInfo?: (planIndex: number) => void }) {
           <span
             className="booth-chip tabular-nums"
             data-testid="booth-gain"
-            data-hint="The level correction that keeps every song as loud as the last"
+            data-hint={t("booth.nowCard.the_level_correction_that_keeps_every")}
           >
             {t("booth.nowCard.db", {
               p1: current.gainDb > 0 ? "+" : "",
@@ -197,7 +197,7 @@ export function NowCard({ onInfo }: { onInfo?: (planIndex: number) => void }) {
             onClick={() => useBooth.getState().cueCortina()}
             disabled={!live || item.kind !== "track"}
             data-testid="booth-end-tanda"
-            data-hint="The song plays to its end, then the cortina: the rest of this tanda is left out (c)"
+            data-hint={t("booth.nowCard.the_song_plays_to_its_end")}
           >
             <ListEnd size={16} strokeWidth={2} aria-hidden /> {t("booth.nowCard.end_tanda_after_this_song")}
           </button>
@@ -208,7 +208,7 @@ export function NowCard({ onInfo }: { onInfo?: (planIndex: number) => void }) {
             className="booth-tool"
             onClick={() => onInfo(planIndex)}
             data-testid="booth-now-info"
-            data-hint="Versions, cue and stop, BPM and key of this song"
+            data-hint={t("booth.nowCard.versions_cue_and_stop_bpm_and")}
           >
             <Info size={16} strokeWidth={2} aria-hidden /> {t("booth.nowCard.song_info")}
           </button>

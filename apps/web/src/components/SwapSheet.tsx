@@ -223,7 +223,7 @@ export function SwapSheet({
         dim={!x.ok}
         busy={busy === x.song.id}
         sub={x.ok ? sub(x.song) : `${sub(x.song)} — ${x.reason}`}
-        pill={x.ok ? `${fit} % fit` : undefined}
+        pill={x.ok ? tx("swapSheet.fit", { fit }) : undefined}
         pillTip={x.ok ? tx("swapSheet.how_well_it_fits_this_place") : undefined}
         ariaLabel={x.ok ? tx("swapSheet.swap_in", { title: x.song.title }) : `${x.song.title}: ${x.reason}`}
         onClick={

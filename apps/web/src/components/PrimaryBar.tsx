@@ -66,7 +66,7 @@ export function PrimaryBar({
               transition={{ duration: 0.28, ease: EASE.inOut }}
               data-testid="bar-regenerate"
             >
-              <ComposeLabel busy={busy} steps idle="Regenerate" />
+              <ComposeLabel busy={busy} steps idle={t("primaryBar.regenerate")} />
             </motion.button>
             <button
               type="button"

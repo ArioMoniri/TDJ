@@ -143,7 +143,7 @@ export function BenchmarkSheet({
       open={open}
       onClose={onClose}
       title={t("benchmarkSheet.benchmark")}
-      trailing="Done"
+      trailing={t("benchmarkSheet.done")}
       testId="benchmark-sheet"
       detents={["large"]}
       footer={footer}

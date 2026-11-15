@@ -41,10 +41,7 @@ export function EnergyRail({ onJump }: { onJump?: (planIndex: number) => void })
       data-testid="booth-energy-rail"
       aria-label={t("booth.energyRail.the_night_s_energy")}
     >
-      <p
-        className="booth-eyebrow"
-        data-hint="How lively each tanda is, from the start of the night (top) to the end"
-      >
+      <p className="booth-eyebrow" data-hint={t("booth.energyRail.how_lively_each_tanda_is_from")}>
         {t("booth.energyRail.energy_tonight")}
       </p>
       <svg
@@ -101,7 +98,16 @@ export function EnergyRail({ onJump }: { onJump?: (planIndex: number) => void })
                 opacity={done ? 0.45 : 1}
                 stroke={p.tanda === c.hereTanda ? "var(--label)" : "none"}
                 strokeWidth={1.5}
-                data-hint={`Tanda ${p.tanda} · ${p.rhythm} · ${p.label} · energy ${p.energy}${p.target !== null ? ` (planned ${Math.round(p.target)})` : ""}`}
+                data-hint={t("booth.energyRail.tanda_energy", {
+                  tanda: p.tanda,
+                  rhythm: p.rhythm,
+                  label: p.label,
+                  energy: p.energy,
+                  p1:
+                    p.target !== null
+                      ? ` ${t("booth.energyRail.planned_2", { p1: Math.round(p.target) })}`
+                      : "",
+                })}
                 style={{ cursor: onJump ? "pointer" : undefined }}
                 onClick={() => first >= 0 && onJump?.(first)}
               />

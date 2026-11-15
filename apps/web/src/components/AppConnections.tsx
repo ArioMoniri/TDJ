@@ -73,7 +73,7 @@ export function AppConnections() {
           </Tile>
         }
         label={t("appConnections.tdj_server")}
-        value={linked ? host : "Not linked"}
+        value={linked ? host : t("appConnections.not_linked")}
         id="app-server-status"
       />
       {linked ? (

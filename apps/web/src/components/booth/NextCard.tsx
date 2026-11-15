@@ -42,7 +42,7 @@ export function NextCard({ onJump }: { onJump: (planIndex: number) => void }) {
   const ntCortina = up.nextTandaCortina >= 0 ? plan.items[up.nextTandaCortina] : null;
   return (
     <section className="booth-card" data-testid="booth-next" aria-label={t("booth.nextCard.next")}>
-      <p className="booth-eyebrow" data-hint="What the room hears after this song">
+      <p className="booth-eyebrow" data-hint={t("booth.nextCard.what_the_room_hears_after_this")}>
         {t("booth.nextCard.up_next")}
         {decoding === next ? t("booth.nextCard.decoding") : ""}
       </p>

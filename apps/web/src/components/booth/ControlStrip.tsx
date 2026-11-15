@@ -113,7 +113,7 @@ export function ControlStrip({
       }}
       disabled={!ready}
       data-testid="booth-start"
-      data-hint="Start the night in the room (space)"
+      data-hint={tx("booth.controlStrip.start_the_night_in_the_room")}
     >
       <Play size={18} fill="currentColor" strokeWidth={0} aria-hidden />
       {/* the label names the source (round8-ux.md §3) and fits a 390 px phone (round 18) */}
@@ -135,7 +135,7 @@ export function ControlStrip({
       onClick={() => void act.endBreak()}
       data-testid="booth-play"
       aria-label={tx("booth.controlStrip.end_break")}
-      data-hint="End the break now (space)"
+      data-hint={tx("booth.controlStrip.end_the_break_now_space")}
     >
       <Play size={18} fill="currentColor" strokeWidth={0} aria-hidden /> {tx("booth.controlStrip.end_break")}
     </button>
@@ -149,7 +149,7 @@ export function ControlStrip({
       }}
       data-testid="booth-pause"
       aria-label={tx("booth.controlStrip.pause")}
-      data-hint={`Pause now, with a ${settings.pauseFadeSec} s fade (space)`}
+      data-hint={tx("booth.controlStrip.pause_now_with_a_s_fade", { pauseFadeSec: settings.pauseFadeSec })}
     >
       <Pause size={18} fill="currentColor" strokeWidth={0} aria-hidden /> {tx("booth.controlStrip.pause")}
     </button>
@@ -163,7 +163,9 @@ export function ControlStrip({
       }}
       data-testid="booth-play"
       aria-label={paused ? tx("booth.controlStrip.resume") : tx("booth.controlStrip.play")}
-      data-hint={paused ? "Resume where it paused (space)" : "Play (space)"}
+      data-hint={
+        paused ? tx("booth.controlStrip.resume_where_it_paused_space") : tx("booth.controlStrip.play_space")
+      }
     >
       <Play size={18} fill="currentColor" strokeWidth={0} aria-hidden />{" "}
       {paused ? tx("booth.controlStrip.resume") : tx("booth.controlStrip.play")}
@@ -236,7 +238,7 @@ export function ControlStrip({
         className={`icon-btn booth-stop booth-prestart-hide ${started && state !== "stopped" ? "booth-stop-armed" : ""}`}
         aria-label={tx("booth.controlStrip.stop_2")}
         aria-haspopup="dialog"
-        data-hint="Stop: fade out and stop, or stop now"
+        data-hint={tx("booth.controlStrip.stop_fade_out_and_stop_or")}
         disabled={!started || state === "stopped"}
         onClick={() => {
           haptic(10);
@@ -258,7 +260,7 @@ export function ControlStrip({
             max={6}
             step={1}
             onChange={act.setMaster}
-            display={`${master > 0 ? "+" : ""}${master} dB`}
+            display={tx("booth.controlStrip.db", { p1: master > 0 ? "+" : "", master })}
             testId="booth-master"
           />
           <TBtn
@@ -315,7 +317,7 @@ export function ControlStrip({
             type="button"
             className="icon-btn icon-btn-bare h-11 w-11"
             aria-label={tx("booth.controlStrip.stop_the_pre_listen")}
-            data-hint="Stop the pre-listen (the room keeps playing)"
+            data-hint={tx("booth.controlStrip.stop_the_pre_listen_the_room")}
             onClick={() => act.stopAudition()}
             data-testid="booth-cueline-stop"
           >

@@ -277,7 +277,7 @@ export function ModelConnections() {
             ? t("modelConnections.agent_connection")
             : t("modelConnections.new_agent_connection")
         }
-        trailing="Save"
+        trailing={t("modelConnections.save")}
         onTrailing={save}
         testId="agent-sheet"
       >

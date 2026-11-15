@@ -955,12 +955,12 @@ export function ExportSheet({
             hosted
               ? hostedUser
                 ? hostedUser.name
-                : "Log in"
+                : tx("exportSheet.log_in")
               : spotifyToken
-                ? "Connected"
+                ? tx("exportSheet.connected")
                 : settings.spotifyClientId
-                  ? "Connect"
-                  : "Set up"
+                  ? tx("exportSheet.connect")
+                  : tx("exportSheet.set_up")
           }
           chevron
           onClick={!hosted && !settings.spotifyClientId ? () => location.assign("/settings") : toSpotify}
@@ -993,7 +993,7 @@ export function ExportSheet({
           }
           label={tx("exportSheet.spotify_via_a_transfer_service")}
           sub={tx("exportSheet.any_spotify_account_tunemymusic_or_soundiiz")}
-          value="CSV"
+          value={tx("exportSheet.csv")}
           chevron
           onClick={() => setTransferOpen(true)}
           id="send-transfer"
@@ -1007,7 +1007,7 @@ export function ExportSheet({
             }
             label={tx("exportSheet.youtube")}
             sub={tx("exportSheet.connect_in_settings")}
-            value="Off"
+            value={tx("exportSheet.off")}
             disabled
             className="text-[var(--label-2)]"
             id="send-youtube-off"
@@ -1026,10 +1026,10 @@ export function ExportSheet({
               ytProgress
                 ? ""
                 : !google?.user
-                  ? "Connect"
+                  ? tx("exportSheet.connect")
                   : google.scopes?.youtube
-                    ? "Create playlist"
-                    : "Allow"
+                    ? tx("exportSheet.create_playlist")
+                    : tx("exportSheet.allow")
             }
             chevron
             onClick={() => toDirect("youtube")}
@@ -1052,7 +1052,7 @@ export function ExportSheet({
             }
             label={tx("exportSheet.via_pipedream", { label: a.label })}
             sub={a.name}
-            value="Create playlist"
+            value={tx("exportSheet.create_playlist")}
             chevron
             onClick={() => toCloud(a)}
             busy={cloudBusy === a.id}
@@ -1083,7 +1083,7 @@ export function ExportSheet({
             }
             label={tx("exportSheet.save_to_dropbox")}
             sub={tx("exportSheet.connect_in_settings")}
-            value="Off"
+            value={tx("exportSheet.off")}
             disabled
             className="text-[var(--label-2)]"
             id="send-dropbox-off"
@@ -1098,7 +1098,7 @@ export function ExportSheet({
             }
             label={tx("exportSheet.save_to_dropbox")}
             sub={dropbox?.user?.email ?? dropbox?.user?.name}
-            value={dropbox?.user ? `.${EXPORT_META[hookFormat].ext}` : "Connect"}
+            value={dropbox?.user ? `.${EXPORT_META[hookFormat].ext}` : tx("exportSheet.connect")}
             chevron
             onClick={() => toDirect("dropbox")}
             busy={cloudBusy === "dropbox"}
@@ -1115,7 +1115,7 @@ export function ExportSheet({
             }
             label={tx("exportSheet.save_to_google_drive")}
             sub={tx("exportSheet.connect_in_settings")}
-            value="Off"
+            value={tx("exportSheet.off")}
             disabled
             className="text-[var(--label-2)]"
             id="send-google_drive-off"
@@ -1131,7 +1131,11 @@ export function ExportSheet({
             label={tx("exportSheet.save_to_google_drive")}
             sub={google?.user?.email ?? google?.user?.name}
             value={
-              !google?.user ? "Connect" : google.scopes?.drive ? `.${EXPORT_META[hookFormat].ext}` : "Allow"
+              !google?.user
+                ? tx("exportSheet.connect")
+                : google.scopes?.drive
+                  ? `.${EXPORT_META[hookFormat].ext}`
+                  : tx("exportSheet.allow")
             }
             chevron
             onClick={() => toDirect("google_drive")}
@@ -1184,7 +1188,7 @@ export function ExportSheet({
               </Tile>
             }
             label={tx("exportSheet.webhook")}
-            value="Set up"
+            value={tx("exportSheet.set_up")}
             chevron
             onClick={() => {
               setHookDraft(webhookUrl);
@@ -1248,7 +1252,7 @@ export function ExportSheet({
         open={hookOpen}
         onClose={() => setHookOpen(false)}
         title={tx("exportSheet.webhook")}
-        trailing="Save"
+        trailing={tx("exportSheet.save")}
         onTrailing={saveHook}
         detents={["medium"]}
       >
@@ -1276,7 +1280,7 @@ export function ExportSheet({
         open={transferOpen}
         onClose={() => setTransferOpen(false)}
         title={tx("exportSheet.spotify_via_a_transfer_service")}
-        trailing="Done"
+        trailing={tx("exportSheet.done")}
         detents={["large"]}
         testId="transfer-sheet"
       >

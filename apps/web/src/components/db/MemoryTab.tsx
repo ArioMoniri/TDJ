@@ -182,7 +182,7 @@ export function MemoryTab() {
             <Row
               label={s.name}
               sub={`${when(s.at)} · ${s.hours} h · ${s.eras.join(", ")}${s.context?.event ? ` · ${s.context.event}` : ""}`}
-              value={`${s.score}${s.liked === true ? " · liked" : s.liked === false ? " · disliked" : ""}`}
+              value={`${s.score}${s.liked === true ? t("db.memoryTab.liked") : s.liked === false ? t("db.memoryTab.disliked") : ""}`}
             >
               {forgetButton(t("db.memoryTab.forget_set", { name: s.name }), () => forgetSet(s.id))}
             </Row>
@@ -224,7 +224,7 @@ export function MemoryTab() {
         open={!!noteOpen}
         onClose={() => setNoteOpen(null)}
         title={noteOpen?.at ? t("db.memoryTab.edit_note") : t("db.memoryTab.new_note")}
-        trailing="Save"
+        trailing={t("db.memoryTab.save")}
         onTrailing={saveNote}
       >
         <Group footer={t("db.memoryTab.one_line_is_enough_thursday_crowd")}>

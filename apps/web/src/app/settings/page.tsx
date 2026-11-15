@@ -61,7 +61,7 @@ const REGIONS: Array<[UserSettings["region"], string]> = lazy(() => [
   ["europe", tx("settings.europe")],
   ["istanbul", tx("settings.istanbul")],
   ["asia", tx("settings.asia")],
-  ["us", "US"],
+  ["us", tx("context.us")],
 ]);
 const THEMES: Array<[UserSettings["theme"], string]> = lazy(() => [
   ["auto", tx("settings.auto")],
@@ -420,7 +420,7 @@ export default function Settings() {
               chevron
               onClick={() => setFolderFor(a.id)}
               tip={tx("settings.choose_the_folder_where_finds_your", { label: a.label })}
-              value={settings.djApps[a.id]?.folder ? "Set" : "Off"}
+              value={settings.djApps[a.id]?.folder ? tx("settings.set") : tx("settings.off")}
               id={`folder-row-${a.id}`}
             />
           ))}
@@ -460,7 +460,7 @@ export default function Settings() {
               </Tile>
             }
             label={tx("settings.stored")}
-            value={`${APP ? "On this device" : storageMode === "server" ? "Kept by this site" : "In this browser"} · ${remembered} ${remembered === 1 ? "item" : "items"}`}
+            value={`${APP ? tx("settings.on_this_device") : storageMode === "server" ? tx("settings.kept_by_this_site") : tx("settings.in_this_browser")} · ${remembered} ${remembered === 1 ? tx("settings.item") : tx("settings.items")}`}
           />
           <SwitchRow
             label={tx("settings.let_the_assistant_learn_from_my")}
@@ -535,14 +535,17 @@ export default function Settings() {
             label={tx("settings.status")}
             value={
               agentInUse
-                ? `Using ${agentInUse.name}`
+                ? tx("settings.using", { name: agentInUse.name })
                 : ai.key
-                  ? "Key saved"
+                  ? tx("settings.key_saved")
                   : shared === null
-                    ? "Checking…"
+                    ? tx("settings.checking")
                     : shared.shared
-                      ? `Using the organiser's key · ${shared.used} of ${shared.limit} today`
-                      : "Off"
+                      ? tx("settings.using_the_organiser_s_key_of", {
+                          used: shared.used,
+                          limit: shared.limit,
+                        })
+                      : tx("settings.off")
             }
             id="ai-status"
           />
@@ -551,7 +554,7 @@ export default function Settings() {
               label={tx("settings.use_my_own_key")}
               tip={tx("settings.paste_a_key_of_your_own")}
               sub={tx("settings.unlimited_kept_in_this_browser")}
-              value="Show"
+              value={tx("settings.show")}
               onClick={() => setOwnKey(true)}
               id="ai-own-key"
             />
@@ -674,12 +677,23 @@ export default function Settings() {
               </Tile>
             }
             label={tx("settings.database")}
-            value={APP ? "This device" : storageMode === "server" ? "This site" : "This browser"}
+            value={
+              APP
+                ? tx("settings.this_device")
+                : storageMode === "server"
+                  ? tx("settings.this_site")
+                  : tx("settings.this_browser")
+            }
           />
         </Group>
       </div>
 
-      <Sheet open={!!app} onClose={() => setFolderFor(null)} title={app?.label ?? ""} trailing="Done">
+      <Sheet
+        open={!!app}
+        onClose={() => setFolderFor(null)}
+        title={app?.label ?? ""}
+        trailing={tx("settings.done")}
+      >
         {app && (
           <Group header={tx("settings.music_folder")} footer={app.note}>
             <label htmlFor={`folder-${app.id}`} className="cell">

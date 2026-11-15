@@ -129,7 +129,7 @@ export function CortinasTab({ base }: { base: MetaCortina[] }) {
         open={!!editing}
         onClose={() => setEditing(null)}
         title={editing === "new" ? t("db.cortinasTab.new_cortina") : t("db.cortinasTab.edit_cortina")}
-        trailing="Save"
+        trailing={t("db.cortinasTab.save")}
         onTrailing={save}
         detents={["large"]}
       >

@@ -128,7 +128,7 @@ export function DataSources() {
         open={adding}
         onClose={() => setAdding(false)}
         title={tx("dataSources.add_a_source")}
-        trailing="Done"
+        trailing={tx("dataSources.done")}
         testId="add-source"
       >
         <Group footer={tx("dataSources.a_source_fills_only_what_is")}>
@@ -138,7 +138,7 @@ export function DataSources() {
               tile={tile(s)}
               label={s.name}
               sub={`${s.gives} · ${s.needs === "nothing" ? tx("dataSources.no_account_needed") : s.needs === "token" ? tx("dataSources.your_own_token") : tx("dataSources.your_spotify_login")}`}
-              value="Add"
+              value={tx("dataSources.add")}
               onClick={() => {
                 setOn(s.id, true);
                 setAdding(false);
@@ -158,7 +158,7 @@ export function DataSources() {
         open={!!open}
         onClose={() => setOpen(null)}
         title={open?.name ?? ""}
-        trailing="Done"
+        trailing={tx("dataSources.done")}
         onTrailing={() => {
           if (open?.needs === "token") setSettings({ dataSources: { ...ds, discogsToken: token.trim() } });
           setOpen(null);

@@ -3,7 +3,7 @@ import { Minus, Plus } from "lucide-react";
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "motion/react";
 import { type KeyboardEvent, useId, useRef } from "react";
 import { haptic } from "@/lib/haptics";
-import { t as tx } from "@/lib/i18n";
+import { lower, t as tx } from "@/lib/i18n";
 import { spring, t } from "@/lib/motion";
 import { useTip } from "./ui/Tip";
 
@@ -187,7 +187,7 @@ export function Stepper({
       <button
         type="button"
         {...less.props}
-        aria-label={tx("ui.decrease", { label: label.toLowerCase() })}
+        aria-label={tx("ui.decrease", { label: lower(label) })}
         disabled={disabled || value <= min}
         onClick={() => change(down)}
       >
@@ -197,7 +197,7 @@ export function Stepper({
       <button
         type="button"
         {...more.props}
-        aria-label={tx("ui.increase", { label: label.toLowerCase() })}
+        aria-label={tx("ui.increase", { label: lower(label) })}
         disabled={disabled || value >= max}
         onClick={() => change(up)}
       >

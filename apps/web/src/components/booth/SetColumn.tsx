@@ -200,10 +200,10 @@ export function SetColumn({
                   })}
                   data-hint={
                     t.bypass
-                      ? "Skipped tonight: the player passes over it (tap to play it). It stays in the set and the exports."
+                      ? tx("booth.setColumn.skipped_tonight_the_player_passes_over")
                       : bypassedT.has(g.tanda - 1)
-                        ? "Skipped by Last 4 tandas tango only (turn it off in the night bar)"
-                        : "Skip this tanda tonight: the player passes over it; it stays in the set and the exports"
+                        ? tx("booth.setColumn.skipped_by_last_4_tandas_tango")
+                        : tx("booth.setColumn.skip_this_tanda_tonight_the_player")
                   }
                   disabled={!t.bypass && bypassedT.has(g.tanda - 1)}
                   onClick={() => void useBooth.getState().toggleBypass(g.tanda)}
@@ -368,7 +368,7 @@ const Row = memo(function Row({
         <span
           className="booth-row-energy"
           style={{ ["--e" as string]: 0.2 + (energy / 100) * 0.8 }}
-          data-hint={`Energy ${energy} of 100`}
+          data-hint={tx("booth.setColumn.energy_of_100", { energy })}
           aria-hidden
         />
       )}
@@ -441,7 +441,7 @@ const Row = memo(function Row({
             className="icon-btn icon-btn-bare booth-find h-11 w-11"
             onClick={() => onFind(it.id!, it.title)}
             aria-label={tx("booth.setColumn.find_a_file_for", { title: it.title })}
-            data-hint="Find a file…"
+            data-hint={tx("booth.setColumn.find_a_file")}
             data-testid="booth-find"
           >
             <Search size={16} strokeWidth={2} aria-hidden />
@@ -453,7 +453,7 @@ const Row = memo(function Row({
             rel="noopener noreferrer"
             className="booth-spotify icon-btn icon-btn-bare h-11 w-11"
             aria-label={tx("booth.setColumn.open_in_spotify_the_recording_the", { title: it.title })}
-            data-hint="The Spotify recording · open in Spotify"
+            data-hint={tx("booth.setColumn.the_spotify_recording_open_in_spotify")}
             data-testid="booth-spotify-link"
           >
             <SpotifyMark />
@@ -473,7 +473,7 @@ const Row = memo(function Row({
           type="button"
           className="icon-btn icon-btn-bare h-11 w-11 shrink-0"
           aria-label={cortinaSwapLabel(it.tanda)}
-          data-hint="Fade in, fade out, stop at"
+          data-hint={tx("booth.setColumn.fade_in_fade_out_stop_at")}
           onClick={() => onCortina(i)}
           data-testid="booth-cortina-edit"
         >

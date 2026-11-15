@@ -10,7 +10,7 @@ import { cohesionWith, patchedSong } from "@/lib/audio";
 import { tandaNote } from "@/lib/djMessage";
 import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
-import { t as tx } from "@/lib/i18n";
+import { lazy, lower, t as tx } from "@/lib/i18n";
 import { CARD_STAGGER_CAP, DUR, EASE, STAGGER } from "@/lib/motion";
 import { sourceFor, trackFor, usePlayer } from "@/lib/player";
 import { useStore } from "@/lib/store";
@@ -27,13 +27,13 @@ import { Tip, useTip } from "./ui/Tip";
 const TandaListen = dynamic(() => import("./Listen").then((m) => m.TandaListen), { ssr: false });
 const CortinaPreview = dynamic(() => import("./Listen").then((m) => m.CortinaPreview), { ssr: false });
 
-const PHASE: Record<string, string> = {
-  warmup: "warm-up",
-  build: "build",
-  peak: "peak",
-  cooldown: "cool-down",
-  close: "close",
-};
+const PHASE: Record<string, string> = lazy(() => ({
+  warmup: lower(tx("phase.warmup")),
+  build: lower(tx("phase.build")),
+  peak: lower(tx("phase.peak")),
+  cooldown: lower(tx("phase.cooldown")),
+  close: lower(tx("phase.close")),
+}));
 
 export interface TandaCardProps {
   t: Tanda;

@@ -8,7 +8,7 @@ import { analyseSong, keyLabel } from "@/lib/analyze";
 import { djDataOf } from "@/lib/artwork";
 import { effectiveSong } from "@/lib/audio";
 import { fillMissing } from "@/lib/fill/client";
-import { lazy, t as tx } from "@/lib/i18n";
+import { lazy, lower, t as tx } from "@/lib/i18n";
 import { rise, spring } from "@/lib/motion";
 import { bpmChoice } from "@/lib/songData";
 import { SOURCE_LABEL } from "@/lib/songView";
@@ -352,7 +352,7 @@ export function SongsTab() {
                   onChange={(t) => setField(s, "energy", num(t))}
                 />
                 <ValueCell
-                  label={`BPM${bpm ? ` · ${p.bpm !== undefined ? tx("db.songsTab.yours") : bpm.used.label.toLowerCase()}` : ""}`}
+                  label={`BPM${bpm ? ` · ${p.bpm !== undefined ? tx("db.songsTab.yours") : lower(bpm.used.label)}` : ""}`}
                   inputLabel={tx("db.songsTab.bpm_of", { title: s.title })}
                   editing={editing}
                   value={p.bpm}
@@ -522,7 +522,13 @@ export function SongsTab() {
                       ? `${res.artist} – ${res.title}${res.previewUrl ? tx("db.songsTab.30_s_preview") : ""}${p.resolved ? tx("db.songsTab.your_choice") : ""}`
                       : tx("db.songsTab.no_preview_track_yet")
                   }
-                  value={res ? (res.provider === "deezer" ? "Deezer" : res.provider) : "Find…"}
+                  value={
+                    res
+                      ? res.provider === "deezer"
+                        ? tx("db.songsTab.deezer")
+                        : res.provider
+                      : tx("db.songsTab.find")
+                  }
                   chevron
                   onClick={() => setFinding(s)}
                   aria-label={tx("db.songsTab.find_on_services", { title: s.title })}
@@ -552,7 +558,7 @@ export function SongsTab() {
                         ? tx("db.songsTab.analyse_the_30_s_preview_in")
                         : tx("db.songsTab.needs_a_preview_first")
                   }
-                  value={eff.audio ? "Analyse again" : "Analyse"}
+                  value={eff.audio ? tx("db.songsTab.analyse_again") : tx("db.songsTab.analyse")}
                   chevron
                   onClick={() => analyse(s)}
                   busy={analysing === s.id}
@@ -574,14 +580,14 @@ export function SongsTab() {
                     return url ? (
                       <Row
                         label={tx("db.songsTab.spotify")}
-                        value="Open in Spotify"
+                        value={tx("db.songsTab.open_in_spotify_2")}
                         href={url}
                         chevron
                         aria-label={tx("db.songsTab.open_in_spotify", { title: s.title })}
                         data-testid="db-spotify-link"
                       />
                     ) : (
-                      <Row label={tx("db.songsTab.spotify")} value="Not matched yet" />
+                      <Row label={tx("db.songsTab.spotify")} value={tx("db.songsTab.not_matched_yet")} />
                     );
                   })()
                 )}
@@ -678,7 +684,7 @@ export function SongsTab() {
         open={adding}
         onClose={() => setAdding(false)}
         title={tx("db.songsTab.add_a_recording")}
-        trailing="Save"
+        trailing={tx("db.songsTab.save")}
         onTrailing={addSong}
       >
         <Group footer={tx("db.songsTab.title_and_orchestra_are_required_leave")}>

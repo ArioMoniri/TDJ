@@ -598,7 +598,7 @@ export function MultiPickerRow<K extends string>({
       <Row label={label} value={text} chevron onClick={() => setOpen(true)} tip={tip}>
         {children}
       </Row>
-      <Sheet open={open} onClose={() => setOpen(false)} title={label} trailing="Done">
+      <Sheet open={open} onClose={() => setOpen(false)} title={label} trailing={tx("form.done")}>
         <Group footer={footer}>
           {items.map(([k, l]) => {
             const on = values.includes(k);

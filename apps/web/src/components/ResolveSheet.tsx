@@ -109,7 +109,7 @@ export function ResolveSheet({
       open={open}
       onClose={onClose}
       title={t("resolveSheet.find_on_services")}
-      trailing="Done"
+      trailing={t("resolveSheet.done")}
       testId="resolve-sheet"
     >
       <p className="section-foot mt-2">

@@ -3,6 +3,8 @@ import { defineConfig, devices } from "@playwright/test";
 // CHROMIUM unset: the cloud session's pre-installed browser; CHROMIUM= (empty, as CI sets it): Playwright's own
 const chromium = process.env.CHROMIUM ?? "/opt/pw-browsers/chromium";
 const launchOptions = chromium ? { executablePath: chromium } : {};
+// wave 3: TDJ_LOCALE=tr runs the specs with a Turkish browser; the app's Auto language follows it (e2e/lang.ts)
+const locale = process.env.TDJ_LOCALE === "tr" ? "tr-TR" : undefined;
 export default defineConfig({
   testDir: "./e2e",
   timeout: 90_000,
@@ -15,6 +17,7 @@ export default defineConfig({
     baseURL: process.env.TDJ_URL ?? "http://localhost:3000",
     trace: "retain-on-failure",
     launchOptions,
+    ...(locale ? { locale } : {}),
   },
   projects: [
     // every spec at the default (desktop) viewport, as before the tablet projects existed

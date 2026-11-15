@@ -270,7 +270,7 @@ export function RulesTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
         open={teOpen}
         onClose={() => setTeOpen(false)}
         title={t("db.rulesTab.track_energy")}
-        trailing="Add"
+        trailing={t("db.rulesTab.add")}
         onTrailing={addTe}
       >
         <Group footer={t("db.rulesTab.the_energy_replaces_the_computed_one")}>
@@ -303,7 +303,7 @@ export function RulesTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
         open={nbOpen}
         onClose={() => setNbOpen(false)}
         title={t("db.rulesTab.not_before")}
-        trailing="Add"
+        trailing={t("db.rulesTab.add")}
         onTrailing={addNb}
       >
         <Group>

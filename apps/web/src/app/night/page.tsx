@@ -283,7 +283,7 @@ export default function NightPage() {
                   key={`${m.where}-${m.title}`}
                   label={m.title}
                   sub={`${m.where} · ${m.by}${m.year ? ` · ${m.year}` : ""}`}
-                  value={m.streamable ? "Spotify" : "No stream"}
+                  value={m.streamable ? tx("night.spotify") : tx("night.no_stream")}
                 />
               ))}
             </Group>
@@ -297,9 +297,9 @@ export default function NightPage() {
                 sub={t.songs.map((s) => s.title).join(" · ")}
                 value={
                   t.bypass
-                    ? "Skipped"
+                    ? tx("night.skipped")
                     : t.locked
-                      ? "Locked"
+                      ? tx("night.locked")
                       : t.yearRange
                         ? `${t.yearRange[0]}–${t.yearRange[1]}`
                         : undefined

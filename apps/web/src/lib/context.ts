@@ -1,5 +1,5 @@
 import type { ComposeContext, ContextFactorOption, ContextModel } from "@tdj/core";
-import { t } from "@/lib/i18n";
+import { lazy, t } from "@/lib/i18n";
 
 export type ContextKey = keyof Pick<
   ComposeContext,
@@ -35,151 +35,152 @@ export const VALUE_MAP: Record<string, Record<string, string>> = {
 };
 
 /** The "Tonight" strip: each factor with its app-level choices. */
-export const CONTEXT_FIELDS: Array<{ key: ContextKey; label: string; options: Array<[string, string]> }> = [
-  {
-    key: "season",
-    get label() {
-      return t("context.season");
+export const CONTEXT_FIELDS: Array<{ key: ContextKey; label: string; options: Array<[string, string]> }> =
+  lazy(() => [
+    {
+      key: "season",
+      get label() {
+        return t("context.season");
+      },
+      options: [
+        ["winter", t("context.opt_winter")],
+        ["spring", t("context.opt_spring")],
+        ["summer", t("context.opt_summer")],
+        ["autumn", t("context.opt_autumn")],
+      ],
     },
-    options: [
-      ["winter", "Winter"],
-      ["spring", "Spring"],
-      ["summer", "Summer"],
-      ["autumn", "Autumn"],
-    ],
-  },
-  {
-    key: "weather",
-    get label() {
-      return t("context.weather");
+    {
+      key: "weather",
+      get label() {
+        return t("context.weather");
+      },
+      options: [
+        ["clear", t("context.opt_clear")],
+        ["rain", t("context.opt_rain")],
+        ["heat", t("context.opt_heatwave")],
+        ["humid", t("context.opt_humid")],
+        ["cold", t("context.opt_cold")],
+        ["storm", t("context.opt_storm")],
+        ["snow", t("context.opt_snow")],
+      ],
     },
-    options: [
-      ["clear", "Clear"],
-      ["rain", "Rain"],
-      ["heat", "Heatwave"],
-      ["humid", "Humid"],
-      ["cold", "Cold"],
-      ["storm", "Storm"],
-      ["snow", "Snow"],
-    ],
-  },
-  {
-    key: "roomTemp",
-    get label() {
-      return t("context.room");
+    {
+      key: "roomTemp",
+      get label() {
+        return t("context.room");
+      },
+      options: [
+        ["cold", t("context.cold_room")],
+        ["comfortable", t("context.opt_comfortable")],
+        ["warm", t("context.warm_room")],
+        ["hot", t("context.hot_room")],
+      ],
     },
-    options: [
-      ["cold", t("context.cold_room")],
-      ["comfortable", "Comfortable"],
-      ["warm", t("context.warm_room")],
-      ["hot", t("context.hot_room")],
-    ],
-  },
-  {
-    key: "timeOfDay",
-    get label() {
-      return t("context.time");
+    {
+      key: "timeOfDay",
+      get label() {
+        return t("context.time");
+      },
+      options: [
+        ["afternoon", t("context.opt_afternoon")],
+        ["evening", t("context.early_evening")],
+        ["night", t("context.prime_night")],
+        ["late-night", t("context.after_midnight")],
+        ["sunrise", t("context.opt_sunrise")],
+      ],
     },
-    options: [
-      ["afternoon", "Afternoon"],
-      ["evening", t("context.early_evening")],
-      ["night", t("context.prime_night")],
-      ["late-night", t("context.after_midnight")],
-      ["sunrise", "Sunrise"],
-    ],
-  },
-  {
-    key: "event",
-    get label() {
-      return t("context.event");
+    {
+      key: "event",
+      get label() {
+        return t("context.event");
+      },
+      options: [
+        ["milonga", t("context.opt_milonga")],
+        ["marathon", t("context.opt_marathon")],
+        ["encuentro", t("context.opt_encuentro")],
+        ["festival", t("context.opt_festival")],
+        ["practica", t("context.opt_pr_ctica")],
+        ["wedding", t("context.opt_wedding")],
+        ["show", t("context.opt_show")],
+      ],
     },
-    options: [
-      ["milonga", "Milonga"],
-      ["marathon", "Marathon"],
-      ["encuentro", "Encuentro"],
-      ["festival", "Festival"],
-      ["practica", "Práctica"],
-      ["wedding", "Wedding"],
-      ["show", "Show"],
-    ],
-  },
-  {
-    key: "crowdLevel",
-    get label() {
-      return t("context.dancers");
+    {
+      key: "crowdLevel",
+      get label() {
+        return t("context.dancers");
+      },
+      options: [
+        ["beginner", t("context.opt_beginners")],
+        ["mixed", t("context.mixed_level")],
+        ["advanced", t("context.opt_advanced")],
+        ["milonguero", t("context.opt_milongueros")],
+      ],
     },
-    options: [
-      ["beginner", "Beginners"],
-      ["mixed", t("context.mixed_level")],
-      ["advanced", "Advanced"],
-      ["milonguero", "Milongueros"],
-    ],
-  },
-  {
-    key: "crowdSize",
-    get label() {
-      return t("context.crowd");
+    {
+      key: "crowdSize",
+      get label() {
+        return t("context.crowd");
+      },
+      options: [
+        ["small", t("context.small_crowd")],
+        ["medium", t("context.medium_crowd")],
+        ["large", t("context.large_crowd")],
+      ],
     },
-    options: [
-      ["small", t("context.small_crowd")],
-      ["medium", t("context.medium_crowd")],
-      ["large", t("context.large_crowd")],
-    ],
-  },
-  {
-    key: "region",
-    get label() {
-      return t("context.region");
+    {
+      key: "region",
+      get label() {
+        return t("context.region");
+      },
+      options: [
+        ["buenos-aires", t("context.buenos_aires")],
+        ["europe", t("context.opt_europe")],
+        ["istanbul", t("context.opt_istanbul")],
+        ["asia", t("context.opt_asia")],
+        ["us", t("context.opt_us")],
+      ],
     },
-    options: [
-      ["buenos-aires", t("context.buenos_aires")],
-      ["europe", "Europe"],
-      ["istanbul", "Istanbul"],
-      ["asia", "Asia"],
-      ["us", "US"],
-    ],
-  },
-  {
-    key: "holiday",
-    get label() {
-      return t("context.holiday");
+    {
+      key: "holiday",
+      get label() {
+        return t("context.holiday");
+      },
+      options: [
+        ["none", t("context.no_holiday")],
+        ["christmas", t("context.opt_christmas")],
+        ["new-year", t("context.new_year")],
+        ["valentines", t("context.opt_valentine_s")],
+        ["carnival", t("context.opt_carnival")],
+      ],
     },
-    options: [
-      ["none", t("context.no_holiday")],
-      ["christmas", "Christmas"],
-      ["new-year", t("context.new_year")],
-      ["valentines", "Valentine's"],
-      ["carnival", "Carnival"],
-    ],
-  },
-  {
-    key: "mood",
-    get label() {
-      return t("context.mood");
+    {
+      key: "mood",
+      get label() {
+        return t("context.mood");
+      },
+      options: [
+        ["romantic", t("context.opt_romantic")],
+        ["energetic", t("context.opt_energetic")],
+        ["nostalgic", t("context.opt_nostalgic")],
+        ["playful", t("context.opt_playful")],
+        ["dramatic", t("context.opt_dramatic")],
+        ["elegant", t("context.opt_elegant")],
+      ],
     },
-    options: [
-      ["romantic", "Romantic"],
-      ["energetic", "Energetic"],
-      ["nostalgic", "Nostalgic"],
-      ["playful", "Playful"],
-      ["dramatic", "Dramatic"],
-      ["elegant", "Elegant"],
-    ],
-  },
-  {
-    key: "dayOfWeek",
-    get label() {
-      return t("context.day");
+    {
+      key: "dayOfWeek",
+      get label() {
+        return t("context.day");
+      },
+      options: [
+        ["weekday", t("context.mon_wed")],
+        ["thursday", t("context.opt_thursday")],
+        ["friday", t("context.opt_friday")],
+        ["saturday", t("context.opt_saturday")],
+        ["sunday", t("context.opt_sunday")],
+      ],
     },
-    options: [
-      ["weekday", t("context.mon_wed")],
-      ["thursday", "Thursday"],
-      ["friday", "Friday"],
-      ["saturday", "Saturday"],
-      ["sunday", "Sunday"],
-    ],
-  },
-];
+  ]);
 
 /** Find the research option (label, shifts, evidence) behind an app-level choice. */
 export function researchOption(

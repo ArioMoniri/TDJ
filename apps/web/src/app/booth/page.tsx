@@ -315,7 +315,7 @@ function Booth() {
           open={setOpen}
           onClose={() => setSetOpen(false)}
           title={t("booth.controlStrip.set_list")}
-          trailing="Done"
+          trailing={t("booth.sheets.done")}
           detents={["large"]}
           testId="booth-set-sheet"
         >

@@ -41,7 +41,7 @@ export function TandaChoices({
       open={open}
       onClose={onClose}
       title={t ? tx("tandaChoices.swap_tanda_2", { p1: index! + 1 }) : tx("tandaChoices.swap_tanda")}
-      trailing="Cancel"
+      trailing={tx("tandaChoices.cancel")}
       detents={["medium", "large"]}
       testId="tanda-choices"
     >

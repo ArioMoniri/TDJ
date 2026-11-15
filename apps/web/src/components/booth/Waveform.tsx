@@ -111,8 +111,8 @@ export function Waveform({
             data-testid={which === "in" ? "booth-cue-in" : "booth-cue-out"}
             data-hint={
               which === "in"
-                ? "Cue: drag to where the song should start (skips a long intro or noise)."
-                : "Stop: drag to where the song should end (cuts a long ending or applause)."
+                ? t("booth.waveform.cue_drag_to_where_the_song")
+                : t("booth.waveform.stop_drag_to_where_the_song")
             }
             onPointerDown={drag(which)}
             onKeyDown={key(which)}

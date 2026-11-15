@@ -327,7 +327,7 @@ export default function HistoryPage() {
                     tile={<ScoreRing score={s.score} />}
                     label={s.title}
                     sub={`${sub(s)}${s.change || s.source !== "compose" ? ` · ${changeLabel(s)}` : ""}${s.versions?.length ? ` ${tx("history.versions_2", { p1: s.versions.length + 1 })}` : ""}`}
-                    value={currentId === s.id ? "Current" : undefined}
+                    value={currentId === s.id ? tx("history.current") : undefined}
                     chevron
                     onClick={() => setOpenId(s.id)}
                     id={`history-${s.id}`}
@@ -423,7 +423,7 @@ export default function HistoryPage() {
                     key={v.id}
                     label={v.label}
                     sub={tx("history.score", { p1: when(v.at), score: v.score })}
-                    value={v.current ? "Current" : undefined}
+                    value={v.current ? tx("history.current") : undefined}
                     data-testid="history-version"
                   >
                     {!v.current && (
@@ -463,7 +463,7 @@ export default function HistoryPage() {
         open={picking}
         onClose={() => setPicking(false)}
         title={tx("history.compare_with")}
-        trailing="Cancel"
+        trailing={tx("history.cancel")}
         testId="history-pick"
       >
         <Group footer={tx("history.pick_the_second_set_scores_side")}>
@@ -489,7 +489,7 @@ export default function HistoryPage() {
         open={!!compareWith && !!open}
         onClose={() => setCompareWith(null)}
         title={tx("history.compare")}
-        trailing="Done"
+        trailing={tx("history.done")}
         detents={["large"]}
         width={720}
         testId="history-compare"
@@ -501,7 +501,7 @@ export default function HistoryPage() {
         open={renaming}
         onClose={() => setRenaming(false)}
         title={tx("history.rename")}
-        trailing="Save"
+        trailing={tx("history.save")}
         onTrailing={() => {
           if (open && draft.trim()) updateSnapshot(open.id, { title: draft.trim().slice(0, 80) });
           setRenaming(false);

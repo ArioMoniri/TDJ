@@ -33,11 +33,11 @@ const TIERS: Array<[string, string]> = lazy(() => [
 ]);
 /** the grades a cell cycles through, in the app's one era vocabulary (ERA_WORDS / gradeWord) */
 const GRADE_LEGEND: Array<number | null> = [4, 3, 2, 1, 0, null];
-const TIER_GROUP: Record<number, [string, string]> = {
+const TIER_GROUP: Record<number, [string, string]> = lazy(() => ({
   1: [tx("db.orchestrasTab.the_core"), tx("db.orchestrasTab.the_orchestras_a_milonga_is_built")],
-  2: ["Secondary", tx("db.orchestrasTab.good_for_variety_a_tanda_or")],
-  3: ["Rarely", tx("db.orchestrasTab.special_nights_and_single_tandas")],
-};
+  2: [tx("db.orchestrasTab.secondary"), tx("db.orchestrasTab.good_for_variety_a_tanda_or")],
+  3: [tx("db.orchestrasTab.rarely"), tx("db.orchestrasTab.special_nights_and_single_tandas")],
+}));
 const PHASES = ["warmup", "build", "peak", "cooldown", "any"] as const;
 const PHASE_LABEL: Record<string, string> = lazy(() => ({
   warmup: tx("phase.warmup"),
@@ -379,9 +379,9 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
           value={by}
           onChange={setBy}
           items={[
-            ["tier", "Importance"],
-            ["style", "Style"],
-            ["era", "Era"],
+            ["tier", tx("db.orchestrasTab.importance")],
+            ["style", tx("booth.sheets.style")],
+            ["era", tx("changes.era")],
           ]}
         />
         <EraLegend />
@@ -421,7 +421,7 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
         open={!!detail}
         onClose={() => setDetail(null)}
         title={detail?.name ?? ""}
-        trailing="Done"
+        trailing={tx("db.orchestrasTab.done")}
         testId="orchestra-detail"
       >
         {detail &&
@@ -488,21 +488,27 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
                   />
                   <Row
                     label={tx("db.orchestrasTab.parts_of_the_night")}
-                    value={phases.length ? phases.map((ph) => PHASE_LABEL[ph] ?? ph).join(", ") : "Any"}
+                    value={
+                      phases.length
+                        ? phases.map((ph) => PHASE_LABEL[ph] ?? ph).join(", ")
+                        : tx("db.orchestrasTab.any")
+                    }
                     chevron
                     onClick={() => setPhasesFor(o)}
                   />
                   {Object.keys(singers).length > 0 && (
                     <Row
                       label={tx("db.orchestrasTab.singers_and_their_years")}
-                      value={`${Object.keys(singers).length} ${Object.keys(singers).length === 1 ? "singer" : "singers"}`}
+                      value={`${Object.keys(singers).length} ${Object.keys(singers).length === 1 ? tx("db.orchestrasTab.singer") : tx("db.orchestrasTab.singers")}`}
                       chevron
                       onClick={() => setSingersFor(o)}
                     />
                   )}
                   <Row
                     label={tx("db.orchestrasTab.era_grades_2")}
-                    value={coverage.has(o.id) ? "Graded" : "Not graded"}
+                    value={
+                      coverage.has(o.id) ? tx("db.orchestrasTab.graded") : tx("db.orchestrasTab.not_graded")
+                    }
                     chevron
                     onClick={() => setGradesFor(o)}
                   />
@@ -510,10 +516,13 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
                 {(o.topSingers?.length ?? 0) > 0 && (
                   <Group header={tx("db.orchestrasTab.most_recorded_with")}>
                     {o.topSingers!.map(([n, c]) => (
-                      <Row key={n} label={n} value={`${c} sides`} />
+                      <Row key={n} label={n} value={tx("db.orchestrasTab.sides_2", { c })} />
                     ))}
                     {o.instrumentals ? (
-                      <Row label={tx("db.orchestrasTab.instrumental_2")} value={`${o.instrumentals} sides`} />
+                      <Row
+                        label={tx("db.orchestrasTab.instrumental_2")}
+                        value={tx("db.orchestrasTab.sides", { instrumentals: o.instrumentals })}
+                      />
                     ) : null}
                   </Group>
                 )}
@@ -534,7 +543,7 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
         open={!!phasesFor}
         onClose={() => setPhasesFor(null)}
         title={phasesFor?.name ?? ""}
-        trailing="Done"
+        trailing={tx("db.orchestrasTab.done")}
       >
         {phasesFor && (
           <Group
@@ -562,7 +571,7 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
         open={!!singersFor}
         onClose={() => setSingersFor(null)}
         title={singersFor?.name ?? ""}
-        trailing="Done"
+        trailing={tx("db.orchestrasTab.done")}
       >
         {singersFor && (
           <Group
@@ -610,7 +619,7 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
         open={!!gradesFor}
         onClose={() => setGradesFor(null)}
         title={gradesFor ? tx("db.orchestrasTab.era_grades", { name: gradesFor.name }) : ""}
-        trailing="Done"
+        trailing={tx("db.orchestrasTab.done")}
         detents={["large"]}
         testId="grades-sheet"
       >

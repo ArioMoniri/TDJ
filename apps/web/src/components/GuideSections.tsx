@@ -114,7 +114,7 @@ export function GuideSections({
         open={!!open}
         onClose={() => setOpen(null)}
         title={open?.title ?? ""}
-        trailing="Save"
+        trailing={t("guideSections.save")}
         onTrailing={save}
         detents={["large"]}
         testId="guide-edit"

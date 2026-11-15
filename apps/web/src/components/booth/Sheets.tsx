@@ -120,7 +120,7 @@ export function LevelsSheet({ open, onClose }: { open: boolean; onClose: () => v
       open={open}
       onClose={onClose}
       title={tx("booth.sheets.mix")}
-      trailing="Done"
+      trailing={tx("booth.sheets.done")}
       detents={["medium", "large"]}
       testId="booth-levels-sheet"
     >
@@ -192,7 +192,10 @@ export function LevelsSheet({ open, onClose }: { open: boolean; onClose: () => v
         <SegmentedRow
           label={tx("booth.sheets.style")}
           value={preset}
-          items={[...MIX_PRESETS.map((p) => [p.id, p.label] as [MixPresetId, string]), ["custom", "Custom"]]}
+          items={[
+            ...MIX_PRESETS.map((p) => [p.id, p.label] as [MixPresetId, string]),
+            ["custom", tx("composer.custom")],
+          ]}
           onChange={(k) => {
             const p = MIX_PRESETS.find((x) => x.id === k);
             if (p) set({ ...p.values });
@@ -299,7 +302,7 @@ export function LevelsSheet({ open, onClose }: { open: boolean; onClose: () => v
             max={6}
             step={1}
             onChange={act.setMaster}
-            display={`${master > 0 ? "+" : ""}${master} dB`}
+            display={tx("booth.sheets.db", { p1: master > 0 ? "+" : "", master })}
             testId="booth-master"
             className="w-full"
           />
@@ -414,7 +417,7 @@ export function CortinaSheet({ planIndex, onClose }: { planIndex: number | null;
       open={open}
       onClose={onClose}
       title={tx("booth.sheets.cortina_2")}
-      trailing="Done"
+      trailing={tx("booth.sheets.done")}
       testId="booth-cortina-sheet"
     >
       {it && (
@@ -489,7 +492,7 @@ export function ShortcutsSheet({ open, onClose }: { open: boolean; onClose: () =
       open={open}
       onClose={onClose}
       title={tx("booth.sheets.keyboard")}
-      trailing="Done"
+      trailing={tx("booth.sheets.done")}
       testId="booth-shortcuts"
     >
       <Group footer={tx("booth.sheets.shortcuts_are_ignored_while_a_text")}>
@@ -547,7 +550,7 @@ export function FindFileSheet({
       open={!!item}
       onClose={onClose}
       title={tx("booth.sheets.pick_file_2")}
-      trailing="Done"
+      trailing={tx("booth.sheets.done")}
       testId="booth-find-sheet"
     >
       {item && (

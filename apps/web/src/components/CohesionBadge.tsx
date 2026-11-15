@@ -3,7 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useId, useRef, useState } from "react";
 import { COHESION_COLOR, type CohesionInfo, PART_LABEL, PART_ORDER } from "@/lib/audio";
 import { useMediaQuery } from "@/lib/hooks";
-import { t } from "@/lib/i18n";
+import { capFirst, t } from "@/lib/i18n";
 import { DUR, EASE } from "@/lib/motion";
 import { Group } from "./Form";
 import { Sheet } from "./Sheet";
@@ -68,7 +68,7 @@ function PairList({ info }: { info: CohesionInfo }) {
 }
 
 /** wave 2: the badge in sentence case ("Audible step", not "Audible Step") */
-export const cohesionText = (label: string) => (label ? label[0]!.toUpperCase() + label.slice(1) : label);
+export const cohesionText = (label: string) => capFirst(label);
 /** wave 2: what the badge means, on hover and to assistive tech */
 export const COHESION_HELP = () => t("cohesionBadge.how_smoothly_the_songs_of_this");
 
@@ -121,7 +121,12 @@ export function CohesionBadge({ info, tandaLabel }: { info: CohesionInfo; tandaL
     return (
       <>
         {trigger}
-        <Sheet open={open} onClose={() => setOpen(false)} title={t("cohesionBadge.cohesion")} trailing="Done">
+        <Sheet
+          open={open}
+          onClose={() => setOpen(false)}
+          title={t("cohesionBadge.cohesion")}
+          trailing={t("cohesionBadge.done")}
+        >
           <Group
             footer={t("cohesionBadge.cohesion_of_transitions_have_analysed_audio", {
               p1: COHESION_HELP().replace(" Tap for each transition.", ""),

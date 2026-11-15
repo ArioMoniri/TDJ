@@ -5,7 +5,7 @@ import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from "rea
 import { createPortal } from "react-dom";
 import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
-import { t as tx } from "@/lib/i18n";
+import { lower, t as tx } from "@/lib/i18n";
 import { DUR, EASE, SPRING } from "@/lib/motion";
 import { lockScroll } from "@/lib/scrollLock";
 import { useSheets } from "@/lib/sheets";
@@ -159,7 +159,7 @@ export function Sheet({
             animate={{ opacity: 1, transition: { duration: DUR.base } }}
             exit={{ opacity: 0, transition: { duration: DUR.fast } }}
             onClick={onClose}
-            aria-label={tx("sheet.close_2", { title: title.toLowerCase() })}
+            aria-label={tx("sheet.close_2", { title: lower(title) })}
             tabIndex={-1}
           />
           <motion.div

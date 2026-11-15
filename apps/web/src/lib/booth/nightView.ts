@@ -1,4 +1,4 @@
-import { t } from "@/lib/i18n";
+import { capFirst, t } from "@/lib/i18n";
 import { durationLabel } from "./plan";
 
 /**
@@ -83,7 +83,7 @@ export function lastFourChange(
   const name = (i: number) => `tanda ${i + 1} (${tandas[i]?.rhythm ?? "tanda"})`;
   const added = [...after].filter((i) => !before.has(i)).sort((a, b) => a - b);
   const removed = [...before].filter((i) => !after.has(i)).sort((a, b) => a - b);
-  const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+  const cap = capFirst;
   if (added.length)
     return t("booth.nightView.skipping_tonight_the_night_ends_on", { p1: listWords(added.map(name)) });
   if (removed.length)

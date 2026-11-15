@@ -347,7 +347,7 @@ export function Connectors() {
         p1: pdEnabled ? t("connectors.pipedream_connect_is_on_here_instead") : "",
       })}
     >
-      <Row label={t("connectors.status")} value="Not turned on for this site" />
+      <Row label={t("connectors.status")} value={t("connectors.not_turned_on_for_this_site")} />
       <Row
         label={t("connectors.how_to_turn_it_on")}
         sub={t("connectors.step_by_step_for_the_site")}
@@ -390,7 +390,7 @@ export function Connectors() {
         open={open === `pd:${app}`}
         onClose={() => setOpen(null)}
         title={t("connectors.via_pipedream", { label })}
-        trailing="Done"
+        trailing={t("connectors.done")}
       >
         <Group
           header={t("connectors.account")}
@@ -400,8 +400,8 @@ export function Connectors() {
             label={t("connectors.status")}
             value={
               a
-                ? `Connected${a.name ? ` · ${a.name}` : ""}${a.healthy ? "" : " · needs attention"}`
-                : "Not connected"
+                ? `Connected${a.name ? ` · ${a.name}` : ""}${a.healthy ? "" : t("connectors.needs_attention")}`
+                : t("connectors.not_connected")
             }
           />
           <Row label={t("connectors.used_for")} value={APP_META[app].sub.split(" · ")[0]} />
@@ -465,7 +465,7 @@ export function Connectors() {
             tile={tile("#636366", <KeyRound size={16} strokeWidth={2} />)}
             label={t("connectors.owner_setup")}
             sub={t("connectors.turn_on_one_tap_logins_for")}
-            value="Open"
+            value={t("connectors.open")}
             chevron
             onClick={() => location.assign("/admin")}
             id="connector-owner-setup"
@@ -513,7 +513,7 @@ export function Connectors() {
           tile={tile("#5856d6", <Webhook size={16} strokeWidth={2} />)}
           label={t("connectors.bring_your_own_automation")}
           sub={t("connectors.export_webhook_for_pipedream_make_zapier")}
-          value={webhookUrl ? "Set" : "Off"}
+          value={webhookUrl ? t("connectors.set") : t("connectors.off")}
           chevron
           onClick={() => {
             setDraft(webhookUrl);
@@ -529,7 +529,7 @@ export function Connectors() {
         open={open === "spotify"}
         onClose={() => setOpen(null)}
         title={t("connectors.spotify")}
-        trailing="Done"
+        trailing={t("connectors.done")}
       >
         <Group
           header={t("connectors.account")}
@@ -545,18 +545,18 @@ export function Connectors() {
             label={t("connectors.status")}
             value={
               spotify === null
-                ? "Checking…"
+                ? t("connectors.checking")
                 : hosted
                   ? hostedUser
-                    ? `Logged in as ${hostedUser.name}`
-                    : "Not logged in"
+                    ? t("connectors.logged_in_as", { name: hostedUser.name })
+                    : t("connectors.not_logged_in")
                   : byoConnected
-                    ? `Connected · ${minutesLeft} min`
-                    : "Not connected"
+                    ? t("connectors.connected_min", { minutesLeft })
+                    : t("connectors.not_connected")
             }
             busy={spotify === null}
           />
-          <Row label={t("connectors.used_for")} value="Playlists · Listen" />
+          <Row label={t("connectors.used_for")} value={t("connectors.playlists_listen")} />
           {hosted ? (
             hostedUser ? (
               <ActionRow
@@ -597,7 +597,7 @@ export function Connectors() {
             sub={
               hosted ? t("connectors.use_your_own_spotify_app_instead") : t("connectors.your_own_spotify_app")
             }
-            value={advanced ? "Hide" : "Show"}
+            value={advanced ? t("connectors.hide") : t("connectors.show")}
             onClick={() => setAdvanced((v) => !v)}
             id="spotify-advanced"
           />
@@ -645,7 +645,7 @@ export function Connectors() {
         open={open === "google"}
         onClose={() => setOpen(null)}
         title={t("connectors.google")}
-        trailing="Done"
+        trailing={t("connectors.done")}
       >
         {google === null || google.hosted ? (
           <>
@@ -657,15 +657,15 @@ export function Connectors() {
                 label={t("connectors.status")}
                 value={
                   google === null
-                    ? "Checking…"
+                    ? t("connectors.checking")
                     : googleUser
-                      ? `Connected as ${googleUser.name}`
-                      : "Not connected"
+                      ? t("connectors.connected_as", { name: googleUser.name })
+                      : t("connectors.not_connected")
                 }
                 sub={googleUser?.email}
                 busy={google === null}
               />
-              <Row label={t("connectors.used_for")} value="Drive files · YouTube playlists" />
+              <Row label={t("connectors.used_for")} value={t("connectors.drive_files_youtube_playlists")} />
               {googleUser ? (
                 <ActionRow
                   label={t("connectors.disconnect")}
@@ -731,7 +731,7 @@ export function Connectors() {
         open={open === "dropbox"}
         onClose={() => setOpen(null)}
         title={t("connectors.dropbox")}
-        trailing="Done"
+        trailing={t("connectors.done")}
       >
         {dropbox === null || dropbox.hosted ? (
           <Group
@@ -742,15 +742,15 @@ export function Connectors() {
               label={t("connectors.status")}
               value={
                 dropbox === null
-                  ? "Checking…"
+                  ? t("connectors.checking")
                   : dropbox.user
-                    ? `Connected as ${dropbox.user.name}`
-                    : "Not connected"
+                    ? t("connectors.connected_as", { name: dropbox.user.name })
+                    : t("connectors.not_connected")
               }
               sub={dropbox?.user?.email}
               busy={dropbox === null}
             />
-            <Row label={t("connectors.used_for")} value="Export files" />
+            <Row label={t("connectors.used_for")} value={t("connectors.export_files")} />
             {dropbox?.user ? (
               <ActionRow
                 label={t("connectors.disconnect")}
@@ -782,7 +782,7 @@ export function Connectors() {
           setOtherWays(false);
         }}
         title={t("connectors.spotify_did_not_let_you_in")}
-        trailing="Done"
+        trailing={t("connectors.done")}
         detents={["medium", "large"]}
         testId="spotify-not-listed"
       >
@@ -790,7 +790,12 @@ export function Connectors() {
           <div className="cell">
             <span className="whitespace-normal">{t("connectors.this_app_can_let_in_5")}</span>
           </div>
-          {seats && <Row label={t("connectors.seats_handed_out")} value={`${seats.used} of ${seats.max}`} />}
+          {seats && (
+            <Row
+              label={t("connectors.seats_handed_out")}
+              value={t("connectors.of", { used: seats.used, max: seats.max })}
+            />
+          )}
           {pub?.ownerContact && (
             <Row
               tile={
@@ -828,7 +833,7 @@ export function Connectors() {
               }
               label={t("connectors.spotify_via_a_transfer_service")}
               sub={t("connectors.export_send_to_a_csv_for")}
-              value="Open Compose"
+              value={t("connectors.open_compose")}
               chevron
               onClick={() => location.assign("/")}
               id="not-listed-transfer"
@@ -837,13 +842,15 @@ export function Connectors() {
               tile={tile("#ff0000", <ListVideo size={16} strokeWidth={2} />)}
               label={t("connectors.youtube_playlist")}
               sub={t("connectors.export_send_to_youtube")}
-              value={google?.hosted ? "Available" : "Not enabled"}
+              value={google?.hosted ? t("connectors.available") : t("connectors.not_enabled")}
             />
             <Row
               tile={tile(APP_META.dropbox.color, APP_META.dropbox.icon)}
               label={t("connectors.files_to_dropbox_or_drive")}
               sub={t("connectors.rekordbox_traktor_m3u8_csv")}
-              value={dropbox?.hosted || google?.hosted ? "Available" : "Not enabled"}
+              value={
+                dropbox?.hosted || google?.hosted ? t("connectors.available") : t("connectors.not_enabled")
+              }
             />
           </Group>
         )}
@@ -853,12 +860,12 @@ export function Connectors() {
         open={open === "deezer"}
         onClose={() => setOpen(null)}
         title={t("connectors.deezer")}
-        trailing="Done"
+        trailing={t("connectors.done")}
         detents={["medium"]}
       >
         <Group header={t("connectors.keyless")} footer={t("connectors.deezer_s_public_search_gives_t")}>
           <Row label={t("connectors.status")} value={statusText[deezer]} busy={deezer === "checking"} />
-          <Row label={t("connectors.used_for")} value="Previews · Metadata" />
+          <Row label={t("connectors.used_for")} value={t("connectors.previews_metadata")} />
           <ActionRow label={t("connectors.check_again")} onClick={checkDeezer} busy={deezer === "checking"} />
         </Group>
       </Sheet>
@@ -867,7 +874,7 @@ export function Connectors() {
         open={open === "musicbrainz"}
         onClose={() => setOpen(null)}
         title={t("connectors.musicbrainz")}
-        trailing="Done"
+        trailing={t("connectors.done")}
         detents={["medium"]}
       >
         <Group
@@ -875,7 +882,7 @@ export function Connectors() {
           footer={t("connectors.musicbrainz_recordings_give_the_first_release")}
         >
           <Row label={t("connectors.status")} value={statusText[mb]} busy={mb === "checking"} />
-          <Row label={t("connectors.used_for")} value="Recording dates · Singers" />
+          <Row label={t("connectors.used_for")} value={t("connectors.recording_dates_singers")} />
           <ActionRow label={t("connectors.check_again")} onClick={checkMb} busy={mb === "checking"} />
         </Group>
       </Sheet>
@@ -884,7 +891,7 @@ export function Connectors() {
         open={open === "webhook"}
         onClose={() => setOpen(null)}
         title={t("connectors.your_automation")}
-        trailing="Save"
+        trailing={t("connectors.save")}
         onTrailing={saveHook}
         detents={["medium", "large"]}
       >

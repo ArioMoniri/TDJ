@@ -74,10 +74,17 @@ export function NightBar({ onBreak }: { onBreak: () => void }) {
     >
       <div className="booth-night-row">
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0">
-          <span className="booth-clock" data-testid="booth-clock" data-hint="The time now">
+          <span
+            className="booth-clock"
+            data-testid="booth-clock"
+            data-hint={t("booth.nightBar.the_time_now")}
+          >
             {now ? clockLabel(now) : "--:--"}
           </span>
-          <span className="text-subhead text-[var(--label-2)]" data-hint="When the night ends at this pace">
+          <span
+            className="text-subhead text-[var(--label-2)]"
+            data-hint={t("booth.nightBar.when_the_night_ends_at_this")}
+          >
             {t("booth.nightBar.ends_2", { p1: now ? clockLabel(end) : "--:--" })}
             {rehearsal ? t("booth.nightBar.rehearsal") : ""}
           </span>
@@ -105,7 +112,7 @@ export function NightBar({ onBreak }: { onBreak: () => void }) {
         <span
           className={`booth-chip tabular-nums ${Math.abs(drift) >= 60 ? "text-[var(--system-gold)]" : ""}`}
           data-testid="booth-drift"
-          data-hint="Ahead of or behind the planned clock"
+          data-hint={t("booth.nightBar.ahead_of_or_behind_the_planned")}
         >
           {started ? driftWords(drift) : t("booth.nightBar.not_started")}
         </span>
@@ -115,7 +122,7 @@ export function NightBar({ onBreak }: { onBreak: () => void }) {
             className="booth-chip tabular-nums"
             data-testid="booth-full-night"
             data-remaining={Math.round(full.remainingSec)}
-            data-hint="The night with every song played in full (the rehearsal plays 30 s of each)"
+            data-hint={t("booth.nightBar.the_night_with_every_song_played")}
           >
             {t("booth.nightBar.every_song_in_full", { p1: durationLabel(full.remainingSec) })}
             {now ? t("booth.nightBar.ends", { p1: clockLabel(now + full.remainingSec * 1000) }) : ""}
@@ -139,7 +146,7 @@ export function NightBar({ onBreak }: { onBreak: () => void }) {
             className="booth-tool"
             disabled={!live}
             data-testid="booth-rest-cumparsita"
-            data-hint="This tanda plays to its end, then La Cumparsita closes the night; the tandas between are left out"
+            data-hint={t("booth.nightBar.this_tanda_plays_to_its_end")}
             onClick={() => {
               void b.jumpToClosing(false);
               toast(t("booth.nightBar.la_cumparsita_follows_this_tanda"));
@@ -155,7 +162,7 @@ export function NightBar({ onBreak }: { onBreak: () => void }) {
             data-tone="destructive"
             disabled={!started}
             data-testid="booth-jump-cumparsita"
-            data-hint="La Cumparsita now: the song playing fades out (asks first)"
+            data-hint={t("booth.nightBar.la_cumparsita_now_the_song_playing")}
             onClick={() => setJump(true)}
           >
             <FastForward size={16} strokeWidth={2} aria-hidden /> {t("booth.nightBar.la_cumparsita_now_2")}
@@ -166,7 +173,7 @@ export function NightBar({ onBreak }: { onBreak: () => void }) {
           className="booth-tool"
           aria-pressed={lastFour}
           data-testid="booth-last4"
-          data-hint="The vals and milonga tandas among the last four are skipped tonight: the night ends on tangos"
+          data-hint={t("booth.nightBar.the_vals_and_milonga_tandas_among")}
           onClick={() => void toggleLastFour()}
         >
           <ListChecks size={16} strokeWidth={2} aria-hidden /> {t("booth.nightBar.last_4_tandas_tango_only")}
@@ -176,7 +183,7 @@ export function NightBar({ onBreak }: { onBreak: () => void }) {
           className="booth-tool"
           disabled={!started}
           data-testid="booth-night-break"
-          data-hint="A timed break after the song playing; Play ends it early"
+          data-hint={t("booth.nightBar.a_timed_break_after_the_song")}
           onClick={onBreak}
         >
           <Coffee size={16} strokeWidth={2} aria-hidden /> {t("booth.nightBar.break")}
@@ -186,7 +193,7 @@ export function NightBar({ onBreak }: { onBreak: () => void }) {
           className="booth-tool"
           disabled={!started}
           data-testid="booth-night-birthday"
-          data-hint="Marks the next vals tanda for a birthday: the player holds before it (b)"
+          data-hint={t("booth.nightBar.marks_the_next_vals_tanda_for")}
           onClick={() => b.birthdayVals()}
         >
           <Cake size={16} strokeWidth={2} aria-hidden /> {t("booth.nightBar.birthday_vals")}
