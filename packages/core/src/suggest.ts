@@ -2,6 +2,14 @@ import { patternString, planSlots, sanitizeOptions } from "./arc";
 import { BIG_FOUR, sideProblem } from "./coherence";
 import { type ComposeDeps, DEFAULT_OPTIONS } from "./compose";
 import { isDanceableSong, normTitle } from "./energy";
+import {
+  asFavouriteTable,
+  type FavouriteTable,
+  favouriteFamilyFactor,
+  favouriteSideFactor,
+  isFavouriteSide,
+  type SlotRole,
+} from "./favourites";
 import { familyKey, learnedFamilyWeight, learnedSideFactor, mergeLearned } from "./learn";
 import { withEraSettings } from "./profiles";
 import { recue } from "./repair";
@@ -32,6 +40,8 @@ export interface NextSuggestion {
   score: number;
   /** why, best reason first, in DJ words */
   reasons: string[];
+  /** 2026-11: dancers filled the floor with it in this slot's role (♥) */
+  favourite?: boolean;
 }
 export interface SuggestResult {
   mode: "tanda" | "song";
@@ -144,6 +154,7 @@ function suggestSides(
   o: ComposeOptions,
   L: LearnedPreferences,
   limit: number,
+  fav?: { table: FavouriteTable; role: SlotRole },
 ) {
   const cur = draft.at(-1)!;
   const s0 = cur[0]!;
@@ -165,8 +176,14 @@ function suggestSides(
     if (sideProblem(cur, s, { rhythm, o }, { orchestraId: s0.orchestraId })) continue;
     const e = s.energy ?? 50;
     const lf = learnedSideFactor(L, s.id, s);
+    const ff = fav ? favouriteSideFactor(fav.table, s.id, fav.role) : 1;
     const score =
-      (s.fame ?? 0) * 4 - Math.abs((s.year ?? my) - my) * 3 - Math.abs(e - want) / 2 + (lf - 1) * 40 + 10;
+      (s.fame ?? 0) * 4 -
+      Math.abs((s.year ?? my) - my) * 3 -
+      Math.abs(e - want) / 2 +
+      (lf - 1) * 40 +
+      (ff - 1) * 30 +
+      10;
     const reasons: string[] = [];
     reasons.push(
       `${s0.vocal ? `same singer (${s0.singer})` : "instrumental, like the tanda"}, recorded ${s.year ?? "?"} beside ${ys.length ? (Math.min(...ys) === Math.max(...ys) ? Math.min(...ys) : `${Math.min(...ys)}–${Math.max(...ys)}`) : "?"}`,
@@ -177,6 +194,8 @@ function suggestSides(
       reasons.push(`settles the tanda to close it (energy ${Math.round(e)})`);
     if ((s.fame ?? 0) >= 3) reasons.push("a floor favourite with DJs");
     if (lf > 1) reasons.push("you chose this side before");
+    const heart = !!fav && isFavouriteSide(fav.table, s.id, fav.role);
+    if (heart) reasons.unshift("♥ dancers filled the floor with it here");
     out.push({
       key: `${familyKey(s)}|${s.id}`,
       kind: "song",
@@ -189,6 +208,7 @@ function suggestSides(
       years: s.year ? [s.year, s.year] : null,
       score: Math.round(score * 10) / 10,
       reasons,
+      ...(heart ? { favourite: true } : {}),
     });
   }
   return out.sort((a, b) => b.score - a.score || a.key.localeCompare(b.key)).slice(0, limit);
@@ -228,6 +248,10 @@ export function suggestNext(draft: Song[][], deps: ComposeDeps, opts: SuggestOpt
   const tandas = draft.filter((t) => t.length);
   const slots = planSlots(o);
   const cur = tandas.at(-1);
+  // 2026-11: dancer favourites, read in the slot's role
+  const table = asFavouriteTable(opts.favourites);
+  const favAt = (k: number) =>
+    table && !table.off ? { table, role: slots[Math.min(k, slots.length - 1)]?.phase ?? "build" } : undefined;
   if (cur && cur.length < sizeFor(o, rhythmOf(cur[0]!))) {
     const slot = tandas.length - 1;
     return {
@@ -235,7 +259,7 @@ export function suggestNext(draft: Song[][], deps: ComposeDeps, opts: SuggestOpt
       rhythm: rhythmOf(cur[0]!),
       slot,
       targetEnergy: slots[slot]?.targetEnergy ?? 60,
-      suggestions: suggestSides(tandas, deps, o, L, limit),
+      suggestions: suggestSides(tandas, deps, o, L, limit, favAt(slot)),
     };
   }
   const slot = tandas.length;
@@ -350,6 +374,13 @@ export function suggestNext(draft: Song[][], deps: ComposeDeps, opts: SuggestOpt
       else if (lv < 0)
         reasons.push([4, fromLikes ? "from nights you disliked" : "you replaced this family before"]);
     }
+    const fv = favAt(slot);
+    const ff = fv ? favouriteFamilyFactor(fv.table, key, fv.role, ys) : 1;
+    if (ff !== 1) {
+      score += (ff - 1) * 40;
+      if (ff > 1) reasons.push([40, "♥ dancers filled the floor with this family here"]);
+      else reasons.push([2, "the floor emptied for this family here before"]);
+    }
     if (fame >= 3) reasons.push([3, "a floor favourite with DJs"]);
     if (!reasons.length)
       reasons.push([1, `a ${tier === 1 ? "headline" : "strong"} ${rhythm} family for this slot`]);
@@ -365,6 +396,7 @@ export function suggestNext(draft: Song[][], deps: ComposeDeps, opts: SuggestOpt
       years: ys,
       score: Math.round(score * 10) / 10,
       reasons: reasons.sort((a, b) => b[0] - a[0]).map((r) => r[1]),
+      ...(ff > 1 ? { favourite: true } : {}),
     });
   }
   leadFitsThePlan(out, want);

@@ -125,6 +125,45 @@ export class RoomClient {
   rename(name: string, base: number): Promise<RoomView> {
     return this.send([{ type: "rename", name, base }], { since: base });
   }
+  /**
+   * 2026-11, dancer hearts: `GET/POST <server>/api/rooms/<code>/hearts`. The booth says what is playing; a dancer
+   * hearts it with their device's anonymous token; the DJ reads the night's counts.
+   */
+  static hearts(
+    server: string,
+    code: string,
+    nightId?: string,
+    f: Fetch = (i, n) => fetch(i, n),
+  ): Promise<RoomHearts> {
+    const q = nightId ? `?night=${encodeURIComponent(nightId)}` : "";
+    return call<RoomHearts>(f, `${trimServer(server)}/api/rooms/${code}/hearts${q}`);
+  }
+  static heart(
+    server: string,
+    code: string,
+    h: { nightId: string; songId: string; dancer: string },
+    f: Fetch = (i, n) => fetch(i, n),
+  ): Promise<{ counted: boolean; count: number }> {
+    return call(f, `${trimServer(server)}/api/rooms/${code}/hearts`, {
+      method: "POST",
+      body: JSON.stringify({ heart: h }),
+    });
+  }
+  hearts(nightId: string): Promise<RoomHearts> {
+    return RoomClient.hearts(this.server, this.code, nightId, this.f);
+  }
+  playing(p: { songId: string; nightId: string; title: string; artist: string } | null): Promise<RoomHearts> {
+    return call(this.f, `${this.server}/api/rooms/${this.code}/hearts`, {
+      method: "POST",
+      body: JSON.stringify({ user: this.user, playing: p }),
+    });
+  }
+}
+
+/** a room's playing song and the night's heart counts (no dancer is ever named) */
+export interface RoomHearts {
+  playing: { songId: string; nightId: string; title: string; artist: string } | null;
+  hearts: Record<string, number>;
 }
 
 export const isUnchanged = (v: RoomView | RoomUnchanged): v is RoomUnchanged =>

@@ -1,6 +1,13 @@
 import { BPM_DELTA_MAX, tandaCohesion } from "./audio/compat";
 import { sideProblem, tandaRulesOf, vocalStyleOf } from "./coherence";
 import { normTitle } from "./energy";
+import {
+  type FavouriteTable,
+  type FavouriteTrace,
+  favouriteFamilyFactor,
+  favouriteSideFactor,
+  traceFavourites,
+} from "./favourites";
 import type {
   ComposeOptions,
   DanceRhythm,
@@ -64,7 +71,11 @@ export const candidateYears = (c: Pick<TandaCandidate, "songs">): [number, numbe
  */
 export const rankProbe: {
   on:
-    | ((slot: number, rows: Array<{ key: string; years: [number, number] | null; w: number }>) => void)
+    | ((
+        slot: number,
+        rows: Array<{ key: string; years: [number, number] | null; w: number; fav: number }>,
+        phase: Slot["phase"],
+      ) => void)
     | null;
 } = { on: null };
 
@@ -544,6 +555,8 @@ export interface Scoring {
   hours?: number;
   /** round 21: preferences learned from the DJ's edits */
   learned?: import("./types").LearnedPreferences;
+  /** 2026-11: dancer favourites (favourites.ts), read in the slot's role; `trace` is the debug readout (stats) */
+  favourites?: { table: FavouriteTable; trace: FavouriteTrace[] };
   /** round 13: a preference layer (the hourly instrumental, …): return null rather than break more than this weight of rules */
   strict?: number;
 }
@@ -1332,6 +1345,16 @@ export function buildTanda(
   }
 
   const prevProfile = ctx.recentOrchestras[0] ? sc.profile?.(ctx.recentOrchestras[0]) : undefined;
+  // 2026-11: a family the floor filled (or emptied) in this slot's role: ×0.7 … ×1.8, nothing elsewhere
+  const favOf = (c: TandaCandidate) =>
+    sc.favourites
+      ? favouriteFamilyFactor(
+          sc.favourites.table,
+          familyKey({ ...c, rhythm: slot.rhythm as Song["rhythm"] }),
+          slot.phase,
+          candidateYears(c),
+        )
+      : 1;
   const weight = (c: TandaCandidate) => {
     const av = availOf(c);
     const prof = sc.profile?.(c.orchestraId);
@@ -1357,6 +1380,7 @@ export function buildTanda(
         familyKey({ ...c, rhythm: slot.rhythm as Song["rhythm"] }),
         sc.learned.likes ? candidateYears(c) : undefined,
       );
+    w *= favOf(c);
     const st = sc.style(c.orchestraId) ?? "balanced";
     w *= PHASE_STYLE[slot.phase]?.[st] ?? 1;
     if (sc.preferStyles?.includes(st)) w *= 1.4;
@@ -1506,14 +1530,22 @@ export function buildTanda(
     return w;
   };
   let scoredFams = pool.map((c) => ({ c, w: weight(c) }));
-  rankProbe.on?.(
-    slot.index,
-    scoredFams.map((r) => ({
+  if (rankProbe.on || sc.favourites) {
+    const rows = scoredFams.map((r) => ({
       key: familyKey({ ...r.c, rhythm: slot.rhythm as Song["rhythm"] }),
       years: candidateYears(r.c),
       w: r.w,
-    })),
-  );
+      fav: favOf(r.c),
+    }));
+    rankProbe.on?.(slot.index, rows, slot.phase);
+    if (sc.favourites)
+      traceFavourites(
+        sc.favourites.trace,
+        slot.index,
+        slot.phase,
+        rows.map((r) => ({ key: r.key, w: r.w, f: r.fav })),
+      );
+  }
   // the first D'Arienzo bonus must survive the energy term: floor it at 90 % of the best weight in the slot
   if (
     slot.rhythm === "tango" &&
@@ -1566,6 +1598,7 @@ export function buildTanda(
         (recentTitles.has(normTitle(s.title)) ? 0.55 : 1) *
         sideKnowledge(s, chosenProf, chosen.singer, sc.bandOverrides) *
         learnedSideFactor(sc.learned, s.id, s) *
+        (sc.favourites ? favouriteSideFactor(sc.favourites.table, s.id, slot.phase) : 1) *
         (0.6 + rng.next() * 0.8),
     }))
     .sort((a, b) => b.w - a.w);

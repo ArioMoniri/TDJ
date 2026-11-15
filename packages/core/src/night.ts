@@ -112,6 +112,7 @@ export interface NightFile {
 /** Option keys that come from the DJ's database or memory, never the night itself. */
 const PRIVATE_OPTION_KEYS = [
   "learned",
+  "favourites",
   "overrides",
   "recent",
   "explicit",

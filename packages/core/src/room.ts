@@ -103,6 +103,10 @@ export interface RoomState {
   log: RoomLogEntry[];
   /** username → last seen (ISO) */
   members: Record<string, string>;
+  /** 2026-11: the song the DJ's booth is playing (dancers heart it) */
+  playing?: RoomPlaying | null;
+  /** 2026-11: night id → song id → the hashed dancer tokens that hearted it (only counts leave the room) */
+  hearts?: Record<string, Record<string, string[]>>;
 }
 
 export type RoomOp =
@@ -565,4 +569,81 @@ export function cleanRoomOps(input: unknown, parse: (n: unknown) => NightFile): 
     }
   }
   return out.length ? out : null;
+}
+
+/* ---------- dancer hearts (2026-11) ---------- */
+
+/**
+ * Dancers in a room can heart the song that is playing (the DJ's booth says which, `setRoomPlaying`). Each heart is
+ * counted once per dancer per song per night; a dancer is an opaque random token their browser made (the server
+ * hashes it again before it is kept), never a name: only the counts ever leave the room (`roomHeartsView`). Hearts
+ * do not move the room's revision (they are not an edit of the night) and the last few nights are kept.
+ */
+export interface RoomPlaying {
+  songId: string;
+  nightId: string;
+  title: string;
+  artist: string;
+  at: string;
+}
+export const ROOM_HEART_NIGHTS = 3;
+export const ROOM_HEART_SONGS_MAX = 400;
+export const ROOM_HEART_DANCERS_MAX = 1000;
+
+/** a dancer token as a client sent it: 8–64 letters, digits, - and _ */
+export const cleanDancerToken = (x: unknown): string | null =>
+  typeof x === "string" && /^[A-Za-z0-9_-]{8,64}$/.test(x) ? x : null;
+/** a song or night id as a client sent it */
+export const cleanRoomId = (x: unknown): string | null =>
+  typeof x === "string" && /^[\w:.#@-]{1,120}$/.test(x) ? x : null;
+
+export function setRoomPlaying(room: RoomState, p: RoomPlaying | null): RoomState {
+  if (!p) return { ...room, playing: null };
+  return {
+    ...room,
+    playing: {
+      songId: p.songId,
+      nightId: p.nightId,
+      title: String(p.title ?? "").slice(0, 120),
+      artist: String(p.artist ?? "").slice(0, 120),
+      at: p.at,
+    },
+  };
+}
+
+/** a heart from `dancer` (already hashed by the server) on the playing song */
+export function heartRoom(
+  room: RoomState,
+  h: { nightId: string; songId: string; dancer: string },
+): { room: RoomState; counted: boolean; count: number } {
+  const p = room.playing;
+  const night = room.hearts?.[h.nightId] ?? {};
+  const list = night[h.songId] ?? [];
+  if (!p || p.songId !== h.songId || p.nightId !== h.nightId || list.includes(h.dancer))
+    return { room, counted: false, count: list.length };
+  if (list.length >= ROOM_HEART_DANCERS_MAX) return { room, counted: false, count: list.length };
+  if (!night[h.songId] && Object.keys(night).length >= ROOM_HEART_SONGS_MAX)
+    return { room, counted: false, count: 0 };
+  const hearts = { ...(room.hearts ?? {}), [h.nightId]: { ...night, [h.songId]: [...list, h.dancer] } };
+  // the last few nights only
+  const nights = Object.keys(hearts);
+  for (const n of nights.slice(0, Math.max(0, nights.length - ROOM_HEART_NIGHTS))) delete hearts[n];
+  return { room: { ...room, hearts }, counted: true, count: list.length + 1 };
+}
+
+/** the night's hearts as counts per song */
+export function roomHearts(room: Pick<RoomState, "hearts">, nightId: string): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const [id, list] of Object.entries(room.hearts?.[nightId] ?? {})) out[id] = list.length;
+  return out;
+}
+
+/** what a client reads: the playing song and the counts (never a token) */
+export function roomHeartsView(room: Pick<RoomState, "hearts" | "playing">, nightId?: string | null) {
+  const p = room.playing;
+  const night = nightId ?? p?.nightId ?? "";
+  return {
+    playing: p ? { songId: p.songId, nightId: p.nightId, title: p.title, artist: p.artist } : null,
+    hearts: night ? roomHearts(room, night) : {},
+  };
 }
