@@ -78,6 +78,8 @@ export function mendVmRepeats(tandas0: Tanda[], o: ComposeOptions, cat: Catalog)
         sides = [...st, ok.find((s) => !streams(s))!];
       else continue;
       const mf = sides.reduce((a, s) => a + (s.fame ?? 0), 0) / sides.length;
+      // (the panel's fame floor holds on every step: known sides, at most one of fame 0)
+      if (mf < 2.5 || sides.filter((s) => (s.fame ?? 0) === 0).length > 1) continue;
       const me = sides.reduce((a, s) => a + (s.energy ?? 50), 0) / sides.length;
       const v = mf - Math.abs(me - t.targetEnergy) / 10;
       if (best && v <= best.v) continue;
