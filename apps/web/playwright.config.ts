@@ -18,7 +18,7 @@ export default defineConfig({
   },
   projects: [
     // every spec at the default (desktop) viewport, as before the tablet projects existed
-    { name: "default", testIgnore: /round6-tablet|round7-corners|round23/ },
+    { name: "default", testIgnore: /round6-tablet|round7-corners|round23|wave2-layout/ },
     // round 6: the sm–lg nav pill and the one-column tanda grid on an iPad and on a 1024 × 768 desktop
     {
       name: "tablet-ipad",
@@ -85,6 +85,23 @@ export default defineConfig({
         },
       })),
     ),
+    // wave 2 (testers): layout, Database, Rooms, Share and Settings on iPad Pro 11 portrait and landscape, a phone and
+    // a desktop; each test skips the devices it does not concern
+    ...(
+      [
+        ["ipad-portrait", { ...devices["iPad Pro 11"] }],
+        ["ipad-landscape", { ...devices["iPad Pro 11 landscape"] }],
+        [
+          "phone",
+          { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true },
+        ],
+        ["desktop", { viewport: { width: 1440, height: 900 } }],
+      ] as const
+    ).map(([name, use]) => ({
+      name: `wave2-${name}`,
+      testMatch: /wave2-layout/,
+      use: { ...use, browserName: "chromium" as const, defaultBrowserType: undefined, launchOptions },
+    })),
   ],
   webServer: process.env.TDJ_URL
     ? undefined

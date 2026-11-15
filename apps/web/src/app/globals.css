@@ -2491,9 +2491,9 @@ html.theming *::after {
   .stepper button {
     height: 44px;
   }
-  /* the energy chart's dots: a 44 px round hit area (the chart draws at about 0.8 of its viewBox on an iPad) */
+  /* the energy chart's dots: a 44 px round hit area (the chart draws at about 0.77 of its viewBox on iPad landscape) */
   .dot-hit {
-    r: 27px;
+    r: 30px;
   }
 }
 /* a page's main switch (Night / Log in a room): 44 px with a mouse too */
