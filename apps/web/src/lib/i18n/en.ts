@@ -2008,6 +2008,10 @@ export const en = {
   "exportCheck.file_encoding": "some letters would not survive in the file",
   "exportCheck.file_unreadable": "the file could not be read back",
   "exportCheck.file_label": "{label} file",
+  "exportCheck.upload_ok": "{target}: the saved file matches the export, all {bytes} bytes ✓",
+  "exportCheck.upload_bad":
+    "{target}: the saved file is not the same as the export ({size} of {bytes} bytes)",
+  "exportCheck.upload_unknown": "{target}: saved, but the saved copy could not be checked",
   "exportCheck.fix": "Fix in {target}",
   "exportCheck.fixing": "Fixing…",
   "exportCheck.check_playlist": "Check playlist",

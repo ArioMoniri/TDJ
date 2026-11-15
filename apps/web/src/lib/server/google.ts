@@ -1,5 +1,6 @@
 import "server-only";
 import { ApiError, api, GOOGLE, GOOGLE_SCOPE, type GoogleFeature, type Session, safeName } from "./oauth";
+import { checkUpload, type UploadCheck } from "./uploadVerify";
 
 /**
  * Google with the deployment's own OAuth client: Drive uploads (`drive.file`: TDJ only ever sees files it created)
@@ -52,7 +53,7 @@ async function tdjFolder(access: string): Promise<string> {
 export async function uploadDrive(
   access: string,
   f: { filename: string; mime: string; text: string },
-): Promise<{ id: string; path: string; url: string }> {
+): Promise<{ id: string; path: string; url: string; verified: UploadCheck }> {
   const folder = await tdjFolder(access);
   const name = safeName(f.filename);
   const boundary = `tdj${Date.now().toString(36)}`;
@@ -73,10 +74,23 @@ export async function uploadDrive(
     "/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink",
     { method: "POST", headers: { "content-type": `multipart/related; boundary=${boundary}` }, body },
   );
+  // asked again: the size and MD5 Drive reports for the stored file against the bytes sent
+  const verified = await checkUpload(
+    f.text,
+    async () => {
+      const m = await google<{ size?: string; md5Checksum?: string }>(
+        access,
+        `/drive/v3/files/${encodeURIComponent(r.id)}?fields=size,md5Checksum`,
+      );
+      return { size: m.size, hash: m.md5Checksum };
+    },
+    "md5",
+  );
   return {
     id: r.id,
     path: `TDJ/${r.name ?? name}`,
     url: r.webViewLink ?? `https://drive.google.com/file/d/${r.id}/view`,
+    verified,
   };
 }
 

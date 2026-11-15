@@ -460,6 +460,14 @@ export async function directPost<T>(path: string, body: Record<string, unknown>)
 export interface FileResult {
   path: string;
   url?: string;
+  /** what the drive holds, asked again after the upload (lib/server/uploadVerify.ts) */
+  verified?: {
+    ok: boolean;
+    bytes: number;
+    size?: number;
+    hash: "match" | "differs" | "unknown";
+    error?: string;
+  };
 }
 export interface YoutubeResult extends PlaylistResult {
   /** left out because YouTube's daily search budget ran out (`quota`) or the request's time budget did (`timeout`) */

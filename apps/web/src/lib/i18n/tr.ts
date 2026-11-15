@@ -2160,6 +2160,10 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "exportCheck.file_encoding": "bazı harfler dosyada bozulurdu",
   "exportCheck.file_unreadable": "dosya geri okunamadı",
   "exportCheck.file_label": "{label} dosyası",
+  "exportCheck.upload_ok": "{target}: kaydedilen dosya dışa aktarılanla aynı, {bytes} baytın hepsi ✓",
+  "exportCheck.upload_bad":
+    "{target}: kaydedilen dosya dışa aktarılanla aynı değil ({bytes} baytın {size} tanesi)",
+  "exportCheck.upload_unknown": "{target}: kaydedildi, ama kaydedilen kopya kontrol edilemedi",
   "exportCheck.fix": "{target}'da düzelt",
   "exportCheck.fixing": "Düzeltiliyor…",
   "exportCheck.check_playlist": "Çalma listesini kontrol et",

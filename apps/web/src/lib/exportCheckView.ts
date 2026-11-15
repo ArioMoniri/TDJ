@@ -69,6 +69,17 @@ export function fileCheckLine(label: string, c: FileCheck): string {
   });
 }
 
+/** One line for an upload asked again after it was stored: "Dropbox: the saved file matches the export … ✓". */
+export function uploadCheckLine(
+  target: string,
+  v: { ok: boolean; bytes: number; size?: number; hash: string; error?: string } | undefined,
+): string {
+  if (!v || (v.hash === "unknown" && v.size === undefined))
+    return t("exportCheck.upload_unknown", { target });
+  if (v.ok) return t("exportCheck.upload_ok", { target, bytes: v.bytes });
+  return t("exportCheck.upload_bad", { target, size: v.size ?? "?", bytes: v.bytes });
+}
+
 export function checkView(
   target: string,
   r: VerifyResult & {

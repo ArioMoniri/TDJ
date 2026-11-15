@@ -6,7 +6,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { downloadBlob } from "@/lib/download";
-import { type CheckView, checkView, fileCheckLine } from "@/lib/exportCheckView";
+import { type CheckView, checkView, fileCheckLine, uploadCheckLine } from "@/lib/exportCheckView";
 import { withoutCortinas } from "@/lib/exportPaths";
 import { verifyFile } from "@/lib/fileVerify";
 import { haptic } from "@/lib/haptics";
@@ -817,6 +817,11 @@ export function ExportSheet({
           target === "dropbox" ? "/api/dropbox/upload" : "/api/google/drive",
           { format: hookFormat, filename, text, set: playlist.name },
         );
+        // the file itself read back before it went up, and what the drive holds asked again after
+        const fc = verifyFile(hookFormat, text, includeCortinas ? playlist : withoutCortinas(playlist), {
+          includeCortinas,
+          folder: folderFor(hookFormat),
+        });
         setLog((l) => [
           ...l,
           tx("exportSheet.saved_to_2", {
@@ -824,6 +829,8 @@ export function ExportSheet({
             label1: label,
             p1: r.path ? ` (${r.path})` : "",
           }),
+          fileCheckLine(tx("exportCheck.file_label", { label: EXPORT_META[hookFormat].label }), fc),
+          uploadCheckLine(label, r.verified),
         ]);
         if (r.url) setResult({ label: tx("exportSheet.open_in", { label }), url: r.url });
         toast(tx("exportSheet.saved_to", { label }));
