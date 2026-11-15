@@ -8,32 +8,51 @@ import type { Playlist, Tanda } from "./types";
  * the export's last four are tango too.
  */
 
-/** the vals / milonga tandas the last-four-tango setting passes over (0-based indices) */
+/**
+ * the vals / milonga tandas the last-four-tango setting passes over (0-based indices); `keep`: the tandas the DJ
+ * approved to play anyway tonight ("Do it as I said", a one-night exception) are never passed over
+ */
 export function lastFourTangoBypass(
   tandas: Pick<Tanda, "rhythm">[],
   skip: Set<number> = new Set(),
+  keep: ReadonlySet<number> = new Set(),
 ): Set<number> {
   const out = new Set<number>();
   for (;;) {
     const left = tandas.map((_t, i) => i).filter((i) => !skip.has(i) && !out.has(i));
     if (left.length < 4) return out;
-    const bad = left.slice(-4).filter((i) => tandas[i]!.rhythm !== "tango");
+    const bad = left.slice(-4).filter((i) => tandas[i]!.rhythm !== "tango" && !keep.has(i));
     if (!bad.length) return out;
     for (const i of bad) out.add(i);
   }
 }
 
+/** the tandas the DJ approved, for this night only, to play although the last-four-tango setting would skip them */
+export function lastFourKept(p: Pick<Playlist, "tandas"> & Partial<Pick<Playlist, "id">>): Set<number> {
+  return new Set(
+    p.tandas
+      .map((t, i) =>
+        p.id && t.pinned?.exception?.nightId === p.id && t.pinned.exception.rules.includes("lastFourTango")
+          ? i
+          : -1,
+      )
+      .filter((i) => i >= 0),
+  );
+}
+
 /** every tanda the player passes over tonight (0-based): the DJ's "skip tonight" and the last-four-tango setting */
-export function bypassedTandas(p: Pick<Playlist, "tandas" | "options">): Set<number> {
+export function bypassedTandas(
+  p: Pick<Playlist, "tandas" | "options"> & Partial<Pick<Playlist, "id">>,
+): Set<number> {
   const mine = new Set(p.tandas.map((t, i) => (t.bypass ? i : -1)).filter((i) => i >= 0));
   if (!p.options.rules?.lastFourTango) return mine;
-  return new Set([...mine, ...lastFourTangoBypass(p.tandas, mine)]);
+  return new Set([...mine, ...lastFourTangoBypass(p.tandas, mine, lastFourKept(p))]);
 }
 
 /** the booth plan items the player passes over: the tracks of a bypassed tanda and the cortina after it (the cortina
  * before it when it is the última, so the closing follows the tanda before) */
 export function bypassPlanItems(
-  p: Pick<Playlist, "tandas" | "options">,
+  p: Pick<Playlist, "tandas" | "options"> & Partial<Pick<Playlist, "id">>,
   items: ReadonlyArray<{ kind: string; tanda: number }>,
 ): number[] {
   const by = bypassedTandas(p);
@@ -53,12 +72,14 @@ export function bypassPlanItems(
 /** the tandas an export writes: all of them by default; without the DJ's bypassed ones on request; with the
  * last-four-tango setting the vals / milonga it passes over are left out so the export ends on four tangos */
 export function exportTandas(
-  p: Pick<Playlist, "tandas" | "options">,
+  p: Pick<Playlist, "tandas" | "options"> & Partial<Pick<Playlist, "id">>,
   opts: { dropBypassed?: boolean } = {},
 ): Tanda[] {
   const mine = new Set(
     p.tandas.map((t, i) => (opts.dropBypassed && t.bypass ? i : -1)).filter((i) => i >= 0),
   );
-  const tail = p.options.rules?.lastFourTango ? lastFourTangoBypass(p.tandas, mine) : new Set<number>();
+  const tail = p.options.rules?.lastFourTango
+    ? lastFourTangoBypass(p.tandas, mine, lastFourKept(p))
+    : new Set<number>();
   return p.tandas.filter((_t, i) => !mine.has(i) && !tail.has(i));
 }

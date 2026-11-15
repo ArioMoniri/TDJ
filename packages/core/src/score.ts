@@ -287,8 +287,7 @@ export function scorePlaylist(p: Pick<Playlist, "tandas" | "closing" | "options"
   const meanLen = lens.length ? lens.reduce((a, b) => a + b, 0) / lens.length : o.cortinaLengthSec;
   if (lens.length && Math.abs(meanLen - o.cortinaLengthSec) > 8) cbad++;
   t.forEach((x, i) => {
-    const lastOne = i === t.length - 1;
-    if (o.cortinaStyle !== "none" && !lastOne && !x.cortina) cbad++;
+    if (cortinaMissing(p, i)) cbad++;
     if (x.cortina) {
       cN++;
       const l = x.cortina.lengthSec ?? o.cortinaLengthSec;
@@ -441,6 +440,10 @@ export function scorePlaylist(p: Pick<Playlist, "tandas" | "closing" | "options"
           : "Spotify radio";
   return { total, factors: f, verdict, ...(reasons.length ? { reasons } : {}) };
 }
+
+/** a tanda that should end on a cortina and has none (every tanda but the última, unless the night has no cortinas) */
+export const cortinaMissing = (p: Pick<Playlist, "tandas" | "options">, i: number) =>
+  p.options.cortinaStyle !== "none" && i < p.tandas.length - 1 && !p.tandas[i]?.cortina;
 
 /** The hard failures a set can carry: each one is a sentence for the score sheet. */
 export function hardFailures(p: Pick<Playlist, "tandas" | "options" | "stats">): string[] {

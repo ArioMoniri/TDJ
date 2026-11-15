@@ -269,7 +269,16 @@ export interface Tanda {
    * round 21: the DJ kept this tanda as is ("Keep my tanda as is", or a hand-made tanda): no rule, fixer or repair
    * edits it, and the strict panel reports what it breaks as a DJ exception, never a fault. Implies `locked`.
    */
-  pinned?: { by: "dj"; reason?: string; at?: string };
+  pinned?: {
+    by: "dj";
+    reason?: string;
+    at?: string;
+    /**
+     * the DJ approved this tanda as it is for ONE night although it breaks these rules ("Do it as I said",
+     * editCheck.ts): honoured only in the night with this id, never a template and never a compose signal
+     */
+    exception?: { nightId: string; rules: string[] };
+  };
   /** round 21: "skip tonight" — the player passes over it (its tracks and the cortina after it); exports keep it */
   bypass?: boolean;
 }
@@ -565,6 +574,10 @@ export interface NightException {
   /** the tanda, for the list ("Orchestra · title, title …") */
   name?: string;
   at?: string;
+  /** the rule codes the DJ accepted ("Do it as I said": editCheck.ts EditRule); unset = the tanda as a whole */
+  rules?: string[];
+  /** who approved it: the featured night's edits (the repo store) or the DJ in the app (their memory) */
+  source?: "featured" | "dj";
 }
 
 /** the settings of a rated night: its "shape" (likes.ts) */

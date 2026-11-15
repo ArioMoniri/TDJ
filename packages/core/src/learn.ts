@@ -80,6 +80,8 @@ export function learnFromEdit(
   for (const k of famR)
     if (!famA.has(k)) bump(L.families, k, -1, LEARN_LIMITS.familyMin, LEARN_LIMITS.familyMax);
   for (const t of pinned) {
+    // a tanda the DJ approved for one night against a rule ("Do it as I said") is never a template
+    if (t.pinned?.exception) continue;
     const id = `${t.rhythm}:${t.songs.map((s) => s.id).join(",")}`;
     if (L.templates.some((x) => x.id === id)) continue;
     L.templates.push({
