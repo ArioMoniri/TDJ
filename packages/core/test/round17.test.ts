@@ -14,6 +14,7 @@ import {
   cliffOf,
   compose,
   cortinaMatchProblem,
+  DA_SPLIT_STEP,
   improveNight,
   isReleaseCut,
   judgeStreams,
@@ -177,7 +178,17 @@ describe("B — energyStep: the boundary cliff cut by reordering the two tandas'
   // night the round-17 panel reviewed; that night ships as docs/specs/round19-best-night.json — `featured` here — and the
   // fixer's output is checked on it. The composer's seed-199 night keeps the intent: no cliff left at a boundary.)
   it("seed 199 comes out with #20/#21 as the DJ wrote them (or a boundary step ≤ 16), and no in-tanda order rule breaks", () => {
-    expect(rule(night(199), "energyStep").length).toBeLessThanOrEqual(1);
+    // (the owner's allowance, 2026-11-15: the step behind a cortina into the early D'Arienzo chair the family split
+    // rebuilt may reach DA_SPLIT_STEP — the panel does not count it, and it never goes past it)
+    const n199 = night(199);
+    expect(rule(n199, "energyStep").length).toBeLessThanOrEqual(1);
+    n199.tandas.forEach((t, i) => {
+      const d = t.energy - (n199.tandas[i - 1]?.energy ?? t.energy);
+      if (t.familySplit === "darienzo" && d > 20) {
+        expect(d).toBeLessThanOrEqual(DA_SPLIT_STEP);
+        expect(n199.tandas[i - 1]!.cortina).toBeTruthy();
+      }
+    });
     const p = featured;
     const a = biagiVals(p),
       b = caloBeron(p);

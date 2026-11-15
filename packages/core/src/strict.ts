@@ -335,7 +335,7 @@ export const STRICT_RULES: StrictRuleDef[] = [
   {
     key: "energyStep",
     label:
-      "Adjacent tandas differ by at most 16 points of energy (20 for a planned lift into a summit or release; 22 for a lift into a vals or milonga behind an up-tempo cue, the vals ≤ its target + 6; a release from a vals or milonga into a lyrical tango up to 10 more when the boundary sides step ≤ 16 behind a slow cue)",
+      "Adjacent tandas differ by at most 16 points of energy (20 for a planned lift into a summit or release; 22 for a lift into a vals or milonga behind an up-tempo cue, the vals ≤ its target + 6; 22 behind a cortina into the early D'Arienzo instrumental the family split rebuilt, so the last summit keeps its fame-5 sides; a release from a vals or milonga into a lyrical tango up to 10 more when the boundary sides step ≤ 16 behind a slow cue)",
     severity: "should-fix",
     source: `${D15} N8 (R15-8); ${J15} N11; ${J16} §6, ${J17} §2 (retuned)`,
   },
@@ -676,6 +676,11 @@ const monthOf = (s: Song) => {
   const m = /^(\d{4})-(\d{2})/.exec(s.date ?? "");
   return m ? Number(m[1]) * 12 + Number(m[2]) - 1 : (s.year ?? 0) * 12 + 6;
 };
+/**
+ * The owner's allowance for the D'Arienzo family split (2026-11-15, "allow the jump"): the step into the early
+ * D'Arienzo instrumental the split rebuilt may reach this, directly behind a cortina (energyStep).
+ */
+export const DA_SPLIT_STEP = 22;
 /** the curated line-up period a set of sides falls in (D'Arienzo instrumentals: before 1938-07, to 1940-06, after) */
 export function lineupPeriod(orchestraId: string, vocal: boolean, songs: Song[]): number {
   return periodOf({ orchestraId, vocal, songs } as Tanda);
@@ -1468,7 +1473,18 @@ function round15(
         !!cue &&
         cortinaTempo(cue) === "up" &&
         t[i]!.energy <= t[i]!.targetEnergy + 6;
-      const lim = lift ? 22 : planned ? 20 : 16;
+      // the owner's allowance (2026-11-15): the early D'Arienzo chair the family split rebuilt (round 8: never the
+      // summit's family) may sit up to DA_SPLIT_STEP above the tanda before it, directly behind a cortina, so the last
+      // summit keeps its fame-5 sides (lastSummit); nowhere else
+      const daSplit =
+        d > 0 &&
+        t[i]!.familySplit === "darienzo" &&
+        t[i]!.orchestraId === "juan-d-arienzo" &&
+        t[i]!.rhythm === "tango" &&
+        !t[i]!.vocal &&
+        !t[i]!.peak &&
+        !!cue;
+      const lim = lift || daSplit ? (daSplit ? DA_SPLIT_STEP : 22) : planned ? 20 : 16;
       // round 17 (DJ §2, dancer §2): a release from a vals or milonga into a lyrical tango whose boundary sides step
       // ≤ 16 behind a slow cue is a release, not a cliff (Biagi / Ibáñez ending on Lejos de Ti e77 → Caló / Berón opening on Qué Te Importa e61)
       const la = dance(t[i - 1]!).at(-1),

@@ -31,9 +31,18 @@ export function dateMismatch(r: Pick<Row, "date">, streamTitle: string | undefin
     b = rowDate(r);
   return a !== null && b !== null && Math.abs(a - b) > 31 * 864e5;
 }
-/** years an album title names ("(1939-1940), Vol. 4", "Serie 78 RPM 1940-1947") as an inclusive span */
+/**
+ * years an album title names ("(1939-1940), Vol. 4", "Serie 78 RPM 1940-1947") as an inclusive span; a two-digit
+ * range end ("1940-42 Instrumental", "1938/39", "1940–42") is a year of the start's century after the start
+ */
 export function albumSpan(album: string | undefined | null): [number, number] | null {
-  const ys = [...(album ?? "").matchAll(/\b(19[2-9]\d)\b/g)].map((m) => Number(m[1]));
+  const a = album ?? "";
+  const ys = [...a.matchAll(/\b(19[2-9]\d)\b/g)].map((m) => Number(m[1]));
+  for (const m of a.matchAll(/\b(19[2-9]\d)[-/\u2013](\d\d)(?!\d)/g)) {
+    const start = Number(m[1]),
+      end = start - (start % 100) + Number(m[2]);
+    if (end > start) ys.push(end);
+  }
   if (!ys.length) return null;
   return [Math.min(...ys), Math.max(...ys)];
 }

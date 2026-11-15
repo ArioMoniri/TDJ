@@ -228,6 +228,11 @@ export interface Slot {
 export interface Tanda {
   index: number;
   rhythm: DanceRhythm;
+  /**
+   * the early D'Arienzo chair the family split rebuilt (vmRepeat.ts mendDarienzoFamily): the step into it may reach
+   * DA_SPLIT_STEP behind a cortina (strict.ts energyStep)
+   */
+  familySplit?: "darienzo";
   orchestra: string;
   orchestraId: string;
   singer: string | null;

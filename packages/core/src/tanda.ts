@@ -867,7 +867,8 @@ export function buildTanda(
   const playedFamily = (c: TandaCandidate) => {
     const yr = yearsOf(c);
     const daTango = c.orchestraId === "juan-d-arienzo" && slot.rhythm === "tango";
-    // the planned summit may bring back the instrumental family the early slot opened (El flete, El internado …)
+    // the planned summit may draw on the instrumental family the early slot opened (El flete, El internado …); the
+    // night's mend (vmRepeat.ts mendDarienzoFamily) then parts the two chairs' years, so the family plays once
     if (daTango && !c.vocal && slot.peak) return false;
     // round 14 (DJ review S5): on a golden night an orchestra may play two tango tandas in different modes or with
     // different singers (Di Sarli instrumental and Di Sarli–Rufino); vals and milonga stay one each

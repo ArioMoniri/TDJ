@@ -58,7 +58,14 @@ import type {
   Song,
   Tanda,
 } from "./types";
-import { mendBenchVariety, mendInstrHours, mendPreSummit, mendTangoChairs, mendVmRepeats } from "./vmRepeat";
+import {
+  mendBenchVariety,
+  mendDarienzoFamily,
+  mendInstrHours,
+  mendPreSummit,
+  mendTangoChairs,
+  mendVmRepeats,
+} from "./vmRepeat";
 
 export const DEFAULT_OPTIONS: ComposeOptions = {
   hours: 4,
@@ -2258,6 +2265,18 @@ function composeOnce(
     const m = mendVmRepeats(tandas, o, cat);
     tandas.splice(0, tandas.length, ...m.tandas);
     fallbacks.push(...m.fallbacks);
+    // round 8 — the early D'Arienzo instrumental and his instrumental summit are never one family (vmRepeat.ts),
+    // before the chair mends below, so a tango chair next to a moved D'Arienzo chair can still mend its boundary
+    const da = mendDarienzoFamily(
+      tandas,
+      o,
+      cat,
+      (ts) =>
+        strictChecks({ tandas: ts, closing, options: o, opening: place.open ? (closing ?? null) : null }),
+      familyBreaks(cat),
+    );
+    tandas.splice(0, tandas.length, ...da.tandas);
+    fallbacks.push(...da.fallbacks);
     // round 21c — every clock hour keeps an instrumental tango tanda (the panel's instrHour), no other rule worse
     if (isGoldenNight(o)) {
       const night = (ts: Tanda[]) => ({
@@ -2286,7 +2305,11 @@ function composeOnce(
       fallbacks.push(...bv.fallbacks);
     }
     // (a chair the mends changed is re-cued under the panel's cue rules, as after the length fit)
-    if (m.fallbacks.length || (isGoldenNight(o) && tandas.some((t, i) => t !== draftTandas[i]))) {
+    if (
+      m.fallbacks.length ||
+      da.fallbacks.length ||
+      (isGoldenNight(o) && tandas.some((t, i) => t !== draftTandas[i]))
+    ) {
       const rq = recue(tandas, deps, o);
       const cn = (ts: Tanda[]) => strictChecks({ tandas: ts, closing, options: o });
       if (rq && recueBetter(cn(rq), cn(tandas)) && cueFamilies({ tandas: rq }) <= cueFamilies({ tandas }))
