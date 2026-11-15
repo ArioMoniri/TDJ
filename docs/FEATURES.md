@@ -1,0 +1,64 @@
+# T-DJ in detail
+
+The README keeps to the short version. This page is the long one: every feature, how a set is built, every way to
+deploy, the stack and the index of the other docs.
+
+## Everything it does
+- **Composes a milonga** for 1–8 h: TTVTTM cycles, 4-3-3 tandas, one orchestra · one singer · ≤ 4 years per tanda, no repeats, orchestras spaced.
+- **Shapes the night**: warm-up → build → peak → cool-down → **La Cumparsita**, or a *double peak* with a real breather between (Arc shape, nights ≥ 3 h); marathons get a second rise and a lower vocal share. Inside each tanda: slow → up → strongest → settle (or *hammock*, *rising*, *flat*).
+- **Matches cortinas** to the energy of the *next* tanda; choose cultures (Turkish, Greek, Persian, Balkan, Brazilian, K-pop, Afrobeats…), trend vs classic, length, or one cortina all night; at least 8 distinct per 4 h, never the same one twice in a row, an era-matched family as a stated fallback (the Turkish family alone holds 36).
+- **Any era**: Golden Age 1935–55 (default), Guardia Vieja, post-golden, nuevo, contemporary, or everything.
+- **Index lives in the repo** (`data/`): 19,119 recordings merged from 21,932 spreadsheet rows (duplicates folded, transcriptions flagged and kept out of tandas), orchestra × year quality heatmap, musicology profiles, Spotify cache — rebuilt with `pnpm index:build`, enriched with `pnpm index:enrich`.
+- **Knows the canon**: a reference corpus of 31 published milonga sets (619 tandas), 218 canonical tandas, 1,078 floor-known recordings and 134 non-danceable titles drives openers, D'Arienzo-early, Pugliese-once-and-late, vals/milonga banks and the Cumparsita versions DJs actually close with ([docs/AGENT_GUIDE.md](AGENT_GUIDE.md)).
+- **Reads the room**: season, weather, room temperature, time of night, event type, crowd, region, holiday and mood shift the arc, shares and cortina pools, each factor graded by evidence ([docs/research/context-factors.md](research/context-factors.md)).
+- **Takes feedback**: "more energetic", "calmer start", "more vals", "fewer repeats" chips, or free text to the AI DJ (Anthropic, OpenAI, Gemini or OpenRouter, your own key), recomposing around the tandas you locked.
+- **Your own database**: every deployed copy has a Database tab where songs, years, orchestra profiles, cortinas, rules and context factors can be edited and exported; overrides merge over the repo-hosted index that GitHub keeps updated.
+- **Listen before you commit**: a play button on every song (30 s previews resolved from Deezer for 1,134 reference recordings, full tracks when Spotify is connected) with a mini-player, plus reference tanda playlists for a mood check.
+- **Hears the records**: a pure-TypeScript analyser (FFT, chroma, Krumhansl key, octave-folded tempo, loudness, brightness) measured key, BPM and loudness for 690 recordings and runs in your browser for any song with a preview; every tanda shows a cohesion badge (tempo · loudness · key · brightness · energy) built on the model in [docs/research/audio-features.md](research/audio-features.md).
+- **Finds and fixes metadata**: "Find on services…" looks a song up on Deezer and MusicBrainz, shows candidates with previews, and offers one-tap year/singer corrections into your database (recording dates only from MusicBrainz, never from reissues).
+- **Booth**: play the night from the app ([docs/specs/round7-booth.md](specs/round7-booth.md), [docs/research/booth.md](research/booth.md)). Your own files (a folder linked once on Chromium, matched by title, orchestra and year) through Web Audio with sample-accurate gaps, BS.1770 loudness normalisation with a −1 dBFS peak cap, cortinas from their cue-in with a −60 dB log fade that reaches silence at the planned stop, a cortina fader, master, level meter, hold / next-at-gap / emergency stop, birthday vals and breaks; Spotify Premium through the Web Playback SDK as a second source; 30 s previews as a rehearsal mode. Dark, readable at 2 m (what plays, what is next, the clock, the time to La Cumparsita), keyboard-driven, with Wake Lock, OS media controls and a resumable position; the plan the booth plays is the plan every export writes its cue points from, and the night's log lands in History.
+- **A featured night**: the engine's best 4 h golden-era (1935–45) set with 4-tango tandas, Turkish cortinas and a double peak ships with the app (seed 181 after four working-DJ review rounds and a comparison with 11 published DJ sets; engine 93, every side and cortina resolved on Spotify; listing in docs/specs/round11-best-night.md). Open it from the home hero, the Booth onboarding or `/?featured=golden-double-peak`, then play it in the Booth or send it to Spotify with the cortinas in running order (or paste a playlist link to update one made before).
+- **Benchmark against published DJ sets**: every composed night shows how it compares with 11 published milonga sets (D'Arienzo count, orchestra variety, vals/milonga share, Pugliese placement, La Cumparsita, core canon, instrumental share per hour, cortina length and culture; docs/reviews/benchmark-reference-sets.md). "Improve automatically" iterates fixes (instrumentals of the same orchestra and years, stream-suspect sides, cue fit, side order) and keeps a change only if neither the engine score nor the benchmark falls; Keep or Undo (docs/specs/round12-benchmark.md).
+- **Honest scores**: hard failures (an undated or transcription tanda, a milonga inside a tango tanda, a night more than 10 % off its length, a broken Pugliese cap) cap the score at 60 and print their reason under the number; "Tell the DJ" never shrinks a night by more than 10 % and reports what it applied and what it could not.
+- **History**: every composed, refined or swapped set is kept (50 in the browser, the newest on the server when enabled) with a score trend, compare sheet, rename, reopen and re-export.
+- **Editable guide**: the DJ guide and your house rules are yours to edit; house rules travel with every AI review and refine.
+- **Scores every set** honestly against what a professional-DJ audit measures: first D'Arienzo early and instrumental, Pugliese once and late, a strong última, a Cumparsita from a year DJs actually close with, role-ordered tandas, energy steps, cortina fit, context compliance, obscurity share and analysed cohesion; unscored factors drop out of the denominator. ≥ 85 = headline marathon DJ (the default 4 h set scores 87–91 across 12 seeds).
+- **Exports**: Spotify (PKCE, your own Client ID), M3U8, CSV, JSON, Rekordbox XML, Traktor NML, XSPF, DJ CSV, printable set list; with or without cortinas; DJ-app connectors map exports to your music folders.
+- **One-click connections**: "Log in with Spotify", "Connect with Google" (Drive files, YouTube playlists) and "Connect Dropbox" use the app's own OAuth registration, so DJs never paste a Client ID; tokens live in sealed cookies, never in a database. No paid broker: [docs/research/connectors.md](research/connectors.md) checks Pipedream, Nango, Activepieces and Composio and explains why direct OAuth is the free path. Per-user panel also holds the AI provider + key + model, DJ-app folders, region and appearance; keys stay in the browser.
+- **Reach**: on the phone a glass primary bar above the tab bar carries Compose, then Regenerate · Export · more; on desktop Compose sits in the sticky toolbar with ⌘↩ / ⌘E / ⌘K. A performance budget ([docs/design/performance-budget.md](design/performance-budget.md)) keeps a 4-hour set rendering without long tasks on a phone.
+- **Night rules per event**: open with La Cumparsita, one or two closing Cumparsitas (Europe / Buenos Aires), birthday vals, show break with energy re-ramp, opener and última rules, Pugliese once, mixed milonga/vals tandas. Each era preset (Golden Age, Guardia Vieja, post-golden, nuevo, contemporary) applies its own structure defaults; pin any control to keep your value.
+- **Agents with memory**: the assistant remembers your notes, every set, your feedback and the preferences it learned (per user, in your database tab), and composes and reviews with that memory.
+- **Native Apple feel**: inset grouped forms, large titles, a Liquid Glass tab bar on phone and a sidebar on desktop, sheets with detents, context menus and swipe actions, SF-scale typography, light and dark; a motion system (compose narrative, curve draw-on, card choreography, haptic twins) that honours reduced motion.
+
+
+## How a set is built
+`hours` → slots (TTVTTM) → target energy per slot (two-peak arc) → for each slot pick an orchestra family that fits energy, phase, tier, caps and spacing (first D'Arienzo early and instrumental, Pugliese once after 75 %, families from your last three nights step back) → order the tracks (corpus openers first, closers last, analysed tempo/key/loudness cohesion) → cortina from one or two families cycling without repeats, tuned to the next tanda → La Cumparsita from a corpus-attested version → score. Precedence: defaults → era preset → your database rules → what you set tonight → room context only for what you left untouched. Details: [docs/ARCHITECTURE.md](ARCHITECTURE.md), musical rules: [docs/research/musicology.md](research/musicology.md).
+
+
+## Deploy targets
+| Target | How |
+|---|---|
+| **AWS (CloudFront + Lambda, SST v4/OpenNext)** | Actions → **Deploy to AWS** → *Run workflow*. One-time: create the OIDC role with `infra/github-oidc-role.yaml` and set the repo variable `AWS_DEPLOY_ROLE_ARN` — see [docs/DEPLOY.md](DEPLOY.md). No long-lived keys. |
+| AWS from a terminal | `pnpm deploy` (needs AWS credentials in the environment) |
+| Container (App Runner, ECS, Fly…) | `docker build -t tdj . && docker run -p 3000:3000 tdj` |
+| Vercel | [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/ArioMoniri/TDJ&root-directory=apps/web) |
+
+
+## Commands
+```bash
+pnpm install
+pnpm dev                 # http://localhost:3000
+pnpm compose -- --hours=4 --eras=golden --cultures=turkish --seed=42   # CLI set list in the terminal
+pnpm test                # engine invariants (vitest)   ·  pnpm e2e (Playwright, desktop + iPhone)
+pnpm media               # README clips and stills from the real app  ·  pnpm video (Remotion launch video)
+```
+
+
+## Other docs
+[Goals](GOALS.md) · [Agent guide & rules](AGENT_GUIDE.md) · [Musicality model](MUSICALITY.md) · [Reference corpus](research/reference-corpus.md) · [Roadmap & phases](ROADMAP.md) · [Benchmark rubric](BENCHMARK.md) · [Enhancements from musician/DJ/UX/QA reviews](ENHANCEMENTS.md) · [TDD](TDD.md) · [Definition of Done](DOD.md) · [Worktrees](WORKTREES.md) · [Deploy](DEPLOY.md) · [Owner guide (non-technical)](OWNER_GUIDE.md) · [Design: motion system](design/motion-system.md) · [Design: Apple-native pass](design/apple-native-pass.md) · [Reviews rounds 4–8 (DJ audit, dancers, UX, QA, connectivity)](reviews/) · [Round 8 specs (engine, web)](specs/) · [Research (2026 integrations)](research/engineering-2026.md) · [Brand](../brand/)
+
+
+## Stack (October 2026)
+Next.js 16.4 · React 19.3 · Tailwind 4.3 · motion 14 · dotLottie · Zustand · Vitest · Playwright 1.64 · Biome 2 · Turborepo · SST 4.17 + OpenNext 4 · Remotion 4 · Anthropic SDK (BYOK, Claude 5.5 models) · Spotify Web API (2026 Dev-Mode rules, PKCE).
+
+Source data: *Listado Total de canciones* (2008) and *All orchestras* heatmap, both in `data/sources`. Built with Claude Code; expert passes by musician, DJ/dancer, UX and QA agents are in `docs/reviews`.

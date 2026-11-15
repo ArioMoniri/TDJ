@@ -136,6 +136,10 @@ Release:
 ```bash
 git tag v1.0.0 && git push origin v1.0.0     # or Actions → Release apps → Run workflow (channel, targets)
 ```
+When App Review approves the iPad and Mac App Store build, make the README's App Store badge live (it reads
+"coming soon" until then): `node scripts/release/readme-store-badge.mjs` removes the `app-store:coming-soon`
+marker and the note, and is safe to run again.
+
 Build number = UTC minutes since 2026-01-01 (monotonic, the same for the DMG, pkg and IPA of one run);
 marketing version = the tag (or `apps/desktop/package.json`).
 
