@@ -221,7 +221,7 @@ export default function RoomsPage() {
   );
 
   return (
-    <div className="mx-auto max-w-[720px] lg:max-w-[980px]">
+    <div className="mx-auto max-w-[720px] lg:max-w-[980px]" data-rooms-page>
       <PageHeader
         title={info ? info.name : "Rooms"}
         subtitle={

@@ -2502,8 +2502,9 @@ html.theming *::after {
   padding: 0 16px;
   font-size: var(--text-subhead);
 }
-/* the page column never moves sideways when a page grows a scroll bar (Rooms, once you are in a room) */
-html {
+/* the Rooms column never moves sideways when the page grows a scroll bar (once you are in a room); only there,
+   so the full-bleed top bars elsewhere still reach the window edge */
+html:has([data-rooms-page]) {
   scrollbar-gutter: stable;
 }
 
