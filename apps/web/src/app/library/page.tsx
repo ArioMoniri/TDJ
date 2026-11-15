@@ -1,7 +1,7 @@
 "use client";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import dynamic from "next/dynamic";
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import { FeaturedCard } from "@/components/FeaturedCard";
 import { Group, RhythmTile, Row } from "@/components/Form";
@@ -106,6 +106,11 @@ export default function Library() {
     }, 200);
     return () => clearTimeout(timer);
   }, [q]);
+  // most recorded first (wave 2: the shipped order read 801 … 72, then 228)
+  const byCount = useMemo(
+    () => [...(meta?.orchestras ?? [])].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name)),
+    [meta],
+  );
   const shownRef = useRef(shown.q);
   shownRef.current = shown.q;
   const rowV = reduced ? reducedV.rise : rise;
@@ -198,8 +203,11 @@ export default function Library() {
         </AnimatePresence>
       </div>
       {q.length < 2 && meta && (
-        <Group header="Orchestras" footer="Count is how many recordings the index holds.">
-          {meta.orchestras.slice(0, 30).map((o) => (
+        <Group
+          header="Orchestras by recordings"
+          footer="The number beside an orchestra is how many of its recordings the catalogue holds."
+        >
+          {byCount.slice(0, 30).map((o) => (
             <Row
               key={o.id}
               label={o.name}
@@ -210,15 +218,16 @@ export default function Library() {
           ))}
           <Row
             label="All orchestras"
-            value={`${meta.orchestras.length}`}
+            value={`${meta.orchestras.length.toLocaleString()} orchestras`}
+            data-testid="library-all-orchestras"
             chevron
             onClick={() => setShowAll(true)}
           />
         </Group>
       )}
       <Sheet open={showAll} onClose={() => setShowAll(false)} title="Orchestras" trailing="Done">
-        <Group>
-          {(meta?.orchestras ?? []).map((o) => (
+        <Group footer="Sorted by how many recordings the catalogue holds.">
+          {byCount.map((o) => (
             <Row
               key={o.id}
               label={o.name}

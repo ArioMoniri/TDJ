@@ -30,7 +30,7 @@ export const SOURCE_LABEL: Record<string, string> = {
   discogs: "Discogs",
   spotify: "Spotify",
   audio: "analysed preview",
-  index: "index",
-  knowledge: "knowledge table",
-  heuristic: "refrain-era rule",
+  index: "T-DJ catalogue",
+  knowledge: "tango reference",
+  heuristic: "guessed from the era",
 };

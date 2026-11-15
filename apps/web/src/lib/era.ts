@@ -3,6 +3,7 @@ import {
   type CoverageEdits,
   type CoverageRow,
   DEFAULT_HEATMAP,
+  ERA_WORDS,
   type EraMark,
   eraMark,
   type HeatGrade,
@@ -70,19 +71,20 @@ export function editGrade(
 export type EraClass = EraMark;
 
 export const ERA_CLASSES: ReadonlyArray<{ cls: EraClass; label: string; bars: number; explain: string }> = [
-  { cls: "best", label: "Best years", bars: 4, explain: "The orchestra's finest years in your heatmap." },
-  { cls: "good", label: "Good years", bars: 3, explain: "Good years: dependable sides for the floor." },
+  // the words are the app's one era vocabulary (core ERA_WORDS, wave 2); the bars are the Booth's glyph
+  { cls: "best", label: ERA_WORDS.best.label, bars: 4, explain: "The orchestra's best years in your heatmap." },
+  { cls: "good", label: ERA_WORDS.good.label, bars: 3, explain: "Good years: dependable sides for the floor." },
   {
     cls: "weak",
-    label: "Weaker years",
+    label: ERA_WORDS.weak.label,
     bars: 2,
-    explain: "Uneven years, or only single tracks worth playing.",
+    explain: "Uneven years: single tracks rather than whole tandas.",
   },
   {
     cls: "outside",
-    label: "Outside the best years",
+    label: ERA_WORDS.outside.label,
     bars: 0,
-    explain: "Years your heatmap marks to avoid for this orchestra.",
+    explain: "Years outside the orchestra's best in your heatmap.",
   },
 ];
 
