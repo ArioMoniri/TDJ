@@ -148,6 +148,17 @@ export function Menu({
     if (!r) return;
     setAt({ top: r.bottom + 4, left: r.left, right: window.innerWidth - r.right });
   }, [open, isPhone]);
+  // Round 23: a menu opened near the foot of the window opens upward instead of running off the screen (a tanda
+  // card's ••• at the bottom put "Preview tanda" below the viewport). Measured once it is in the DOM; offsetHeight
+  // ignores the entrance scale.
+  useLayoutEffect(() => {
+    if (!open || isPhone || !at || !pop.current) return;
+    const r = root.current?.getBoundingClientRect();
+    const h = pop.current.offsetHeight;
+    if (!r || at.top + h <= window.innerHeight - 8) return;
+    const above = Math.max(8, r.top - 4 - h);
+    if (above < at.top) setAt({ ...at, top: above });
+  }, [open, isPhone, at]);
 
   useEffect(() => {
     const el = contextRef?.current;
@@ -210,6 +221,8 @@ export function Menu({
           style={{
             transformOrigin: align === "right" ? "top right" : "top left",
             top: at.top,
+            maxHeight: "calc(100dvh - 16px)",
+            overflowY: "auto",
             ...(align === "right" ? { right: at.right } : { left: at.left }),
           }}
           className="menu fixed z-[60]"
