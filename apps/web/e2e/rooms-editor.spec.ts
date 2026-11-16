@@ -105,9 +105,12 @@ test("the room's night is the whole night with Compose's editing, synced: reorde
   );
   await ana.getByTestId("room-tanda-1").getByTestId("editor-tanda-bar").focus();
   await ana.keyboard.press("Alt+ArrowDown");
-  await expect(ben.getByTestId("room-tanda-1").getByTestId("editor-tanda-bar")).toContainText(t2.slice(0, 14), {
-    timeout: 20_000,
-  });
+  await expect(ben.getByTestId("room-tanda-1").getByTestId("editor-tanda-bar")).toContainText(
+    t2.slice(0, 14),
+    {
+      timeout: 20_000,
+    },
+  );
   await a.close();
   await b.close();
 });
@@ -158,8 +161,12 @@ test("choose a night from History for a new room; the owner switches the room's 
   await p2.locator("#night-picker-use").click();
   await expect(ana.getByTestId("room-switch-confirm")).toBeVisible();
   await ana.locator("#room-switch-yes").click();
-  await expect(ana.locator('[data-testid^="room-tanda-"][data-reorder-row]')).toHaveCount(n, { timeout: 20_000 });
-  await expect(ben.locator('[data-testid^="room-tanda-"][data-reorder-row]')).toHaveCount(n, { timeout: 30_000 });
+  await expect(ana.locator('[data-testid^="room-tanda-"][data-reorder-row]')).toHaveCount(n, {
+    timeout: 20_000,
+  });
+  await expect(ben.locator('[data-testid^="room-tanda-"][data-reorder-row]')).toHaveCount(n, {
+    timeout: 30_000,
+  });
   await ben.getByRole("radio", { name: /Log/ }).click();
   await expect(ben.getByTestId("room-log")).toContainText("Ana loaded the night", { timeout: 20_000 });
   await a.close();

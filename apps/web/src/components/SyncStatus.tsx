@@ -18,9 +18,11 @@ const NAME: Record<SyncService, string> = { spotify: "Spotify", youtube: "YouTub
 /** one line for a target's state: "Spotify playlist updated · 2 changes", "Syncing…", the error */
 export function syncLine(service: SyncService, s: SyncStatus): string {
   const name = NAME[service];
-  if (s.state === "pending") return t("sync.pending", { name, n: s.changes });
+  if (s.state === "pending")
+    return s.changes === 1 ? t("sync.pending_one", { name }) : t("sync.pending", { name, n: s.changes });
   if (s.state === "syncing") return t("sync.syncing", { name });
   if (s.state === "error") return t("sync.failed", { name, error: s.error ?? "" });
+  if (s.state === "ok" && s.changes === 1) return t("sync.updated_one", { name });
   if (s.state === "ok" && s.changes > 0) return t("sync.updated", { name, n: s.changes });
   return t("sync.in_step", { name });
 }

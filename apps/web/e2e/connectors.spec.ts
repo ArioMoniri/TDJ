@@ -1129,7 +1129,7 @@ test("2026-11: an exported Spotify playlist follows the night — a reorder and 
   expect(hits.some((h) => h.method === "GET" && /\/v1\/playlists\/pl1\/images/.test(h.url))).toBe(true);
   // the sheet says what happened
   await page.getByRole("button", { name: "Export" }).first().click();
-  await expect(sheet.getByTestId("sync-spotify")).toContainText("Spotify playlist updated · 1 changes", {
+  await expect(sheet.getByTestId("sync-spotify")).toContainText("Spotify playlist updated · 1 change", {
     timeout: 20000,
   });
   await page.keyboard.press("Escape");

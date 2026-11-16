@@ -192,8 +192,11 @@ export function installPlaylistSync() {
   if (installed || typeof window === "undefined") return;
   installed = true;
   let last = useStore.getState().playlist;
+  // one change is one night object: the store and the edit history both announce it
+  let noted: Playlist | null = null;
   const changed = async (p: Playlist | null) => {
-    if (!p) return;
+    if (!p || p === noted) return;
+    noted = p;
     // the cover key is known before the runner asks (it reads it synchronously)
     if (!coverKeys.has(p)) coverKeys.set(p, await coverKeyOf(p).catch(() => ""));
     playlistSyncer.noteChange(p);

@@ -4819,4 +4819,6 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "rooms.days": "{n} gün",
   "rooms.delete_old_n": "{n} odayı sil",
   "rooms.deleted_old": "{n} oda silindi",
+  "sync.pending_one": "{name}: 1 değişiklik 5 sn içinde gönderilecek",
+  "sync.updated_one": "{name} listesi güncellendi · 1 değişiklik",
 };

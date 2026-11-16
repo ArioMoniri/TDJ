@@ -45,7 +45,14 @@ async function playFirstSong(page: Page) {
       contentType: "application/json",
       body: JSON.stringify({
         candidates: [
-          { provider: "deezer", id: "dz-1", title: "x", artist: "", previewUrl: "https://preview.test/clip.wav", confidence: 0.9 },
+          {
+            provider: "deezer",
+            id: "dz-1",
+            title: "x",
+            artist: "",
+            previewUrl: "https://preview.test/clip.wav",
+            confidence: 0.9,
+          },
         ],
         suggestions: {},
       }),
@@ -108,7 +115,9 @@ for (const [width, locale] of [
 
 test.describe("Reduce Motion", () => {
   test.use({ viewport: { width: 320, height: 800 }, reducedMotion: "reduce" });
-  test("a long title never moves: it ends in an ellipsis and its whole text is the hover tag", async ({ page }) => {
+  test("a long title never moves: it ends in an ellipsis and its whole text is the hover tag", async ({
+    page,
+  }) => {
     await playFirstSong(page);
     const m = marquee(page);
     await m.evaluate((el) => {

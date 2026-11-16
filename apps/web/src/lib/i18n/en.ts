@@ -4629,6 +4629,8 @@ export const en = {
   "rooms.days": "{n} days",
   "rooms.delete_old_n": "Delete {n} rooms",
   "rooms.deleted_old": "{n} rooms deleted",
+  "sync.pending_one": "{name}: 1 change to send in 5 s",
+  "sync.updated_one": "{name} playlist updated · 1 change",
 } as const;
 
 export type MsgKey = keyof typeof en;
