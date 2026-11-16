@@ -37,6 +37,10 @@
     "allow-cue-devices",
     "allow-cue-play",
     "allow-cue-stop",
-    "allow-check-updates"
+    "allow-check-updates",
+    "allow-audio-route",
+    "allow-audio-route-picker",
+    "allow-audio-set-output",
+    "allow-audio-night"
   ]
 }

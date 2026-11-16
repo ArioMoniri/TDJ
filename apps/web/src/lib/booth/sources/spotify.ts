@@ -4,6 +4,7 @@ import { t as tx } from "@/lib/i18n";
 import { openExternal } from "@/lib/openLink";
 import { dbToGain, fadeOutCurve, VOLUME_STEP_SEC, volumeSteps } from "../envelope";
 import type { BoothRow } from "../plan";
+import { PauseWatch } from "./spotifyHold";
 import type {
   ExternalCapabilities,
   ExternalHandle,
@@ -1105,6 +1106,15 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
     this.shiftSec += ahead;
     for (const o of next) o.reschedule(Math.max(0, o.dueIn() - ahead));
   }
+  /**
+   * 2026-11 (the night never stops by accident): Spotify stopped mid-song on the night's device without the Booth
+   * asking (a call, Siri, another app) — the store holds the night there and offers Resume (lib/booth/continuity.ts)
+   */
+  onInterrupted: ((device: string | null) => void) | null = null;
+  _interrupted() {
+    this.record({ op: "interrupted", status: 0, uri: this.owner?.uri, note: "paused on the device" });
+    this.onInterrupted?.(this.snap.remoteName ?? null);
+  }
   _trackFailed(e: TrackUnplayable) {
     this.record({ op: "skip", status: 0, uri: e.uri, title: e.title, note: "passed over" });
     this.onBanner?.(e.message);
@@ -1216,6 +1226,8 @@ class Live implements ExternalHandle {
   /** 0…1 fade multiplier on top of the master */
   private level: number;
   private gain: number;
+  /** 2026-11: a mid-song pause the Booth did not ask for (lib/booth/sources/spotifyHold.ts) */
+  private hold = new PauseWatch();
 
   constructor(
     private a: SpotifyAdapter,
@@ -1353,6 +1365,15 @@ class Live implements ExternalHandle {
     if (s.paused && s.position === 0 && this.lastPos > this.duration - 1.5 && this.started)
       this.finish(false);
     this.lastPos = this.pos;
+    this.watchHold();
+  }
+  /** paused mid-song for a moment, not by the Booth (a pause it asks for ends the item first) */
+  private watchHold() {
+    if (this.done || !this.confirmed || !this.a._isOwner(this)) return;
+    if (
+      this.hold.observe({ playing: this.playing, positionSec: this.pos, durationSec: this.duration }, now())
+    )
+      this.a._interrupted();
   }
   private onRemote(s: RemoteState | null) {
     if (this.done) return;
@@ -1371,6 +1392,7 @@ class Live implements ExternalHandle {
     if (settled && !s.playing && (s.positionMs === 0 || s.positionMs >= s.durationMs - 2500))
       this.finish(false);
     this.lastPos = this.pos;
+    if (settled) this.watchHold();
   }
   private async tick() {
     if (this.done) return;

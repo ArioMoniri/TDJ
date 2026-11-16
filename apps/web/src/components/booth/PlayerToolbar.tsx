@@ -1,7 +1,7 @@
 "use client";
 import { Check, ChevronDown, Eye, Headphones, Speaker } from "lucide-react";
 import { useEffect, useState } from "react";
-import { SINK_UNSUPPORTED } from "@/lib/booth/cue";
+import { CUE_ON_ROOM, SINK_UNSUPPORTED } from "@/lib/booth/cue";
 import { isAppleMobile, OPEN_ROOM_EVENT } from "@/lib/booth/sources/spotify";
 import { useBooth } from "@/lib/booth/store";
 import { t } from "@/lib/i18n";
@@ -9,6 +9,7 @@ import { toast } from "@/lib/toast";
 import { ActionRow, Group } from "../Form";
 import { Sheet } from "../Sheet";
 import { IndicatorSwitches } from "./IndicatorSwitches";
+import { cuePairLabel, OutputChainGroup } from "./OutputsView";
 import { SpotifyRoomGroup, useSpotifyNeedsDevice, useSpotifyRoomName } from "./SpotifyRoom";
 
 /**
@@ -23,7 +24,9 @@ export function PlayerToolbar({ rehearsal }: { rehearsal: boolean }) {
   const [pick, setPick] = useState<"room" | "headphones" | null>(null);
   const [show, setShow] = useState(false);
   const label = (id: string | null) =>
-    outputs.devices.find((d) => d.id === id)?.label ?? t("booth.playerToolbar.this_device");
+    id === CUE_ON_ROOM
+      ? cuePairLabel()
+      : (outputs.devices.find((d) => d.id === id)?.label ?? t("booth.playerToolbar.this_device"));
   // round 23: the night can play on a Spotify Connect device (the Spotify app): ROOM names it
   const spotifyRoom = useSpotifyRoomName();
   const roomLabel = spotifyRoom ?? label(outputs.room);
@@ -56,7 +59,7 @@ export function PlayerToolbar({ rehearsal }: { rehearsal: boolean }) {
         <span className="booth-out-name">{roomLabel}</span>
         <ChevronDown size={14} strokeWidth={2} aria-hidden />
       </button>
-      {outputs.cueSupported && !apple ? (
+      {(outputs.cueSupported || outputs.cue === CUE_ON_ROOM) && !apple ? (
         <button
           type="button"
           className="booth-out"
@@ -153,6 +156,7 @@ function OutputSheet({ which, onClose }: { which: "room" | "headphones" | null; 
             <span className="min-w-0 flex-1">{t("booth.connect.headphones_second_device")}</span>
           </div>
         </Group>
+        <OutputChainGroup />
       </Sheet>
     );
   return (
@@ -230,6 +234,8 @@ function OutputSheet({ which, onClose }: { which: "room" | "headphones" | null; 
         </Group>
       )}
       {which === "room" && <SpotifyRoomGroup />}
+      {/* 2026-11: the connection and chain, a controller's pairs (components/booth/OutputsView.tsx) */}
+      {which !== null && <OutputChainGroup />}
       {askNames && (
         <Group footer={t("booth.playerToolbar.your_browser_names_the_outputs_once")}>
           <ActionRow

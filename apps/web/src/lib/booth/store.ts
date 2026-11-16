@@ -30,6 +30,7 @@ import { clipSummary, rehearsalClip, spotifyOf, withSpotifyLengths } from "./cli
 import { setConfirmNeeded } from "./confirm";
 import { cortinaHookOf } from "./cortinaStart";
 import {
+  CUE_ON_ROOM,
   CuePlayer,
   canPrelisten,
   listOutputs,
@@ -47,7 +48,8 @@ import {
   type EngineEvent,
 } from "./engine";
 import { dbToGain } from "./envelope";
-import { BoothMedia } from "./media";
+import { applyRouting, armGuard, nightEnded, onNightLive, useAudio } from "./guard";
+import { BoothMedia, nightSafeHandlers } from "./media";
 import {
   loadBoothSettings,
   loadNight,
@@ -835,10 +837,11 @@ export const useBooth = create<BoothStore>()((set, get) => ({
       pushBanner({ key: "wake", text: tx("booth.store.keep_the_laptop_awake_system_settings") });
     media.setPlaying(true);
     applyMediaHandlers();
+    // 2026-11: calls, plug-outs, other apps, Spotify stopping on its device — lib/booth/guard.ts decides (the generic
+    // "Audio output changed" banner is now said only when the room's output changed)
     unsubDevice?.();
-    unsubDevice = media.onDeviceChange(() =>
-      pushBanner({ key: "device", text: tx("booth.store.audio_output_changed") }),
-    );
+    unsubDevice = null;
+    armBoothGuard();
     media.outputLabel().then((l) => set({ outputLabel: l }));
     set({ started: true, resumeOffer: null, wakeLock: held });
     // `sources` can still be the previous night's (longer) list for a moment after the plan changes
@@ -1042,7 +1045,9 @@ export const useBooth = create<BoothStore>()((set, get) => ({
   refreshOutputs: async (askNames = false) => {
     const devices = await listOutputs(askNames);
     const prefs = loadOutputPrefs();
-    const has = (id?: string | null): id is string => !!id && devices.some((d) => d.id === id);
+    // (the headphones on the room device's other channel pair are no device of their own: kept)
+    const has = (id?: string | null): id is string =>
+      !!id && (id === CUE_ON_ROOM || devices.some((d) => d.id === id));
     set({
       outputs: {
         devices,
@@ -1059,6 +1064,11 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     set({ outputs: { ...o, room: id } });
     saveOutputPrefs({ room: id, cue: o.cue });
     if (ctx) await routeRoom(ctx, id);
+    // 2026-11: the new device's channels and latency (a controller's pairs, Bluetooth's delay)
+    void useAudio
+      .getState()
+      .refresh(id)
+      .then(() => applyRouting());
   },
   setCueOutput: (id) => {
     const o = get().outputs;
@@ -1330,6 +1340,7 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     await get().start();
   },
   endNight: async () => {
+    nightEnded();
     engine?.stop("end the night");
     logToHistory(true);
     await saveNight(null);
@@ -1552,6 +1563,7 @@ function onEngineEvent(e: EngineEvent) {
     });
     if (e.to === "stopped" || e.to === "paused") media?.setPlaying(false);
     else if (e.to === "playing" || e.to === "cortina") media?.setPlaying(true);
+    onNightLive(e.to === "playing" || e.to === "cortina");
     // a Mute that paused (no volume control) ends when the night plays again (Play, Next, a row)
     if ((e.to === "playing" || e.to === "cortina") && s.mutePaused && e.reason !== "skip")
       useBooth.setState({ muted: false, mutePaused: false });
@@ -1598,15 +1610,17 @@ function applyMediaHandlers() {
   const s = useBooth.getState();
   if (!media) return;
   if (!s.settings.mediaKeys) return media.setHandlers(null);
-  media.setHandlers({
-    play: () => void s.play(),
-    // round 20: a headset / lock-screen pause is a real pause (0.8 s fade); "Media keys" off keeps them out
-    pause: () => s.pause(),
-    next: () => s.next(),
-    stop: () => s.stop(),
-    // 2026-11: the same Previous as the transport (restart past 3 s, else one back)
-    previous: () => void s.previous(),
-  });
+  media.setHandlers(
+    // 2026-11: a system "stop" (the media hub's close, a headset's long press) pauses, never ends the night
+    nightSafeHandlers({
+      play: () => void s.play(),
+      // round 20: a headset / lock-screen pause is a real pause (0.8 s fade); "Media keys" off keeps them out
+      pause: () => s.pause(),
+      next: () => s.next(),
+      // 2026-11: the same Previous as the transport (restart past 3 s, else one back)
+      previous: () => void s.previous(),
+    }),
+  );
 }
 
 /** A new plan for the set (settings, a cortina edit): into the store, and into the engine without moving the playhead. */
@@ -1672,6 +1686,36 @@ function checkAudible() {
       });
     else s.dismissBanner("audio");
   }, 1500);
+}
+
+/** 2026-11: the guard (lib/booth/guard.ts) with the store's own actions; once per start, idempotent */
+function armBoothGuard() {
+  const b = () => useBooth.getState();
+  armGuard(
+    {
+      ctx: () => ctx,
+      engine: () => engine,
+      night: () => {
+        const s = b();
+        return {
+          started: s.started || !!engine?.live,
+          live: s.state === "playing" || s.state === "cortina" || s.state === "armed",
+          title: s.current ? (s.plan?.items[s.current.planIndex]?.title ?? null) : null,
+          position: engine?.position() ?? s.position,
+          room: s.outputs.room,
+          cue: s.outputs.cue,
+          devices: s.outputs.devices,
+        };
+      },
+      resume: () => b().play(),
+      banner: pushBanner,
+      dismiss: (key) => b().dismissBanner(key),
+      policy: () => useStore.getState().settings.boothOutputLoss ?? "pause",
+      refreshOutputs: () => b().refreshOutputs(),
+      setCue: (id) => b().setCueOutput(id),
+    },
+    { onDeviceChange: (cb) => media?.onDeviceChange(cb) ?? (() => {}), spotify: adapters().spotify },
+  );
 }
 
 let visibilityHooked = false;

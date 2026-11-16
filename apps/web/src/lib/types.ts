@@ -176,6 +176,11 @@ export interface UserSettings {
    * to end with a short silent tail (the per-era estimate). Unset = off.
    */
   boothSilenceEstimate?: boolean;
+  /**
+   * 2026-11 (Settings → Booth → Audio): the room's output disconnects mid-night (a cable, the interface, Bluetooth):
+   * "pause" (unset) holds where the night is and asks; "continue" plays on through the next output.
+   */
+  boothOutputLoss?: "pause" | "continue";
 }
 export const DEFAULT_NAMING = "{artist} - {title}";
 export const DEFAULT_SETTINGS: UserSettings = {

@@ -37,6 +37,18 @@ export function outputsFrom(devices: ReadonlyArray<MediaDeviceInfo>, keepDuplica
 
 export const SINK_UNSUPPORTED = () => tx("booth.cue.this_browser_cannot_send_sound_to");
 
+/**
+ * 2026-11 (Part B §5): the headphones are another channel pair of the room's own device (a DJ controller's ch 3–4),
+ * routed inside the booth's AudioContext (lib/booth/routing.ts) — no second output, no `setSinkId` needed.
+ */
+export const CUE_ON_ROOM = "tdj:room-pair";
+let cueRoute: ((el: HTMLMediaElement) => boolean) | null = null;
+/** set by lib/booth/guard.ts while the room device's channels carry the headphones (null otherwise) */
+export function setCueRoute(fn: ((el: HTMLMediaElement) => boolean) | null) {
+  cueRoute = fn;
+}
+export const cueRouted = () => !!cueRoute;
+
 /** Whether a pre-listen can go to the headphones without the room hearing it, and if not, why (in words). */
 export function canPrelisten(o: {
   supported: boolean;
@@ -44,6 +56,8 @@ export function canPrelisten(o: {
   cueId: string | null;
   devices?: ReadonlyArray<OutputDevice>;
 }): { ok: boolean; why?: string } {
+  if (o.cueId === CUE_ON_ROOM)
+    return cueRoute ? { ok: true } : { ok: false, why: tx("booth.outputs.cue_pair_not_open") };
   if (!o.supported) return { ok: false, why: SINK_UNSUPPORTED() };
   if (!o.cueId) return { ok: false, why: tx("booth.cue.pick_your_headphones_first_headphones_at") };
   const room = o.roomId ?? "default";
@@ -103,11 +117,13 @@ export class CuePlayer {
     const el = new Audio();
     const url = typeof src === "string" ? src : URL.createObjectURL(src);
     if (typeof src !== "string") this.url = url;
+    const sink = o.sinkId;
+    // the room device's other channel pair: into the booth's context, before the source is set (CORS mode)
+    if (sink === CUE_ON_ROOM && !cueRoute?.(el)) throw new Error(tx("booth.outputs.cue_pair_not_open"));
     el.src = url;
     el.volume = o.volume ?? 0.9;
-    const sink = o.sinkId;
     const withSink = el as HTMLAudioElement & { setSinkId?: (id: string) => Promise<void> };
-    if (sink && sink !== "default") {
+    if (sink && sink !== "default" && sink !== CUE_ON_ROOM) {
       if (!withSink.setSinkId) throw new Error(SINK_UNSUPPORTED());
       await withSink.setSinkId(sink);
     }

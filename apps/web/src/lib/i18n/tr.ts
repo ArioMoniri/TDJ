@@ -74,6 +74,14 @@ export const SAME_IN_TURKISH: string[] = [
   "MusicBrainz",
   "Cover Art Archive",
   "Discogs",
+  // 2026-11: audio connections (lib/booth/outputs.ts)
+  "USB-C",
+  "USB",
+  "Bluetooth",
+  "AirPlay",
+  "HDMI",
+  "DisplayPort",
+  "Thunderbolt",
   "Rekordbox",
   "Traktor",
   "Serato DJ",
@@ -593,6 +601,132 @@ export const tr: Partial<Record<MsgKey, string>> = {
     "Kendi dosyalarınız; ad, orkestra ve yıla göre eşleştirilir, bir kez bağlanır",
   "booth.plan.break": "Ara",
   "booth.plan.min": "{p1} dk",
+  // 2026-11: çıkışlar, zincir, koruma, Geceden önce
+  "booth.outputs.kind.built_in": "Dahili hoparlör",
+  "booth.outputs.kind.headphones": "Kulaklık girişi (3,5 mm)",
+  "booth.outputs.kind.line": "Hat çıkışı",
+  "booth.outputs.kind.usb": "USB / USB-C",
+  "booth.outputs.kind.interface": "Ses kartı",
+  "booth.outputs.kind.bluetooth": "Bluetooth",
+  "booth.outputs.kind.airplay": "AirPlay",
+  "booth.outputs.kind.hdmi": "HDMI",
+  "booth.outputs.kind.displayport": "DisplayPort",
+  "booth.outputs.kind.thunderbolt": "Thunderbolt",
+  "booth.outputs.kind.multi": "Çoklu Çıkış Aygıtı",
+  "booth.outputs.kind.aggregate": "Birleşik aygıt",
+  "booth.outputs.kind.virtual": "Sanal aygıt",
+  "booth.outputs.kind.unknown": "Çıkış",
+  "booth.outputs.channels": "{n} kanal",
+  "booth.outputs.pair": "kanal {a}–{b}",
+  "booth.outputs.room": "SALON",
+  "booth.outputs.headphones": "KULAKLIK",
+  "booth.outputs.warn.bt_room":
+    "Bluetooth yaklaşık {ms} ms gecikme ekler ve kopabilir: dinlemek için iyi, dansçılar için değil. Salon için kablo, USB ya da mikser kullanın.",
+  "booth.outputs.warn.airplay_room":
+    "AirPlay salonu yaklaşık 2 sn geciktirir: aralar korunur ama ölçer ve oynatma çizgisi dansçıların duyduğunun önünden gider.",
+  "booth.outputs.warn.phone_speaker":
+    "Gece bu cihazın kendi hoparlöründen çalıyor. İlk tandadan önce salonu bağlayın (kablo, USB-C ses kartı ya da mikser).",
+  "booth.outputs.warn.multi_drift":
+    "Çoklu Çıkış Aygıtı: Audio MIDI Ayarları'nda ilki dışındaki her aygıt için Kayma Düzeltme'yi işaretleyin, yoksa hoparlör grupları yavaş yavaş birbirinden kayar.",
+  "booth.outputs.warn.same_device_map":
+    "Salon ve kulaklık aynı çıkışta: kulaklığı aşağıdan başka bir kanal çiftine alın, yoksa dansçılar ön dinlemeyi duyar.",
+  "booth.outputs.warn.one_pair":
+    "Bu çıkışta tek kanal çifti var (2 kanal): ayrı bir ön dinlemeyi taşıyamaz. Kulaklık için ikinci bir çıkış seçin.",
+  "booth.outputs.warn.bt_cue":
+    "Bluetooth kulaklık salonun yaklaşık {ms} ms gerisinden gelir: ön dinleme için yeterli, geçiş zamanlamak için değil.",
+  "booth.outputs.warn.mirror_wireless":
+    "Kablosuz bir çıkış hiçbir zaman tam uyumlu kalmaz: gecikmesini aşağıdaki ayarla kulakla eşitleyin, yeniden bağlandığında tekrar kontrol edin.",
+  "booth.outputs.cue_pair_not_open":
+    "Kulaklığın kanal çifti gecenin sesiyle birlikte açılır: geceyi başlatın, sonra ön dinleyin.",
+  "booth.outputs.chain": "Sinyal zinciri",
+  "booth.outputs.chain_header": "Bağlantı ve zincir",
+  "booth.outputs.ios_routes":
+    "iPhone ve iPad çıkışı kendisi seçer (Denetim Merkezi ya da AirPlay ve Bluetooth için aşağıdaki düğme). USB-C ses kartı ya da kontrolcü salonu çalar; ön dinleme için ikinci bir cihaz kullanın.",
+  "booth.outputs.route_picker": "AirPlay ve Bluetooth…",
+  "booth.outputs.cue_separate": "Ayrı çıkış",
+  "booth.outputs.room_on": "Salon kanalı",
+  "booth.outputs.headphones_on": "Kulaklık kanalı",
+  "booth.outputs.header": "Ses çıkışları",
+  "booth.outputs.source_mac":
+    "macOS'tan (Core Audio): her çıkışın bağlantı türü, kanalları, örnekleme hızı ve gecikmesi. Salon yapmak (sistem çıkışı) için birine dokunun.",
+  "booth.outputs.source_ios":
+    "iOS'tan (ses oturumunun güzergâhı). Çıkışı sistem seçer: değiştirmek için bir şey takın ya da AirPlay veya Bluetooth seçin.",
+  "booth.outputs.source_web":
+    "Tarayıcıdan: tür her cihazın adından okunur; kanallar, örnekleme hızı ve gecikme salonun çıkışı için bilinir. Salon yapmak için birine dokunun.",
+  "booth.outputs.source_safari":
+    "Safari her sayfayı sistem çıkışında çalar ve çıkış listelemez: çıkışı sistemin ses ayarlarından seçin (Mac: Denetim Merkezi → Ses). Chrome ya da Edge burada SALON ve KULAKLIK seçebilir.",
+  "booth.outputs.pairs_footer":
+    "4 ya da daha çok çıkışlı bir DJ kontrolcüsü veya ses kartı: salon bir kanal çiftinde, kulaklık başka birinde. 2 kanallı bir çıkış tek çift taşır.",
+  "booth.outputs.channels_limited":
+    "Bu çıkış burada yalnızca 2 kanal açtı: kulaklık için ikinci bir çıkış gerekir.",
+  "booth.outputs.two_sets": "İki hoparlör grubu",
+  "booth.outputs.two_sets_web":
+    "Salon ikinci bir çıkışta da çalar. Her çıkış daha yavaş olanı bekler; aşağıdaki gecikme ikisini kulakla hizalar.",
+  "booth.outputs.two_sets_mac":
+    "Mac'te: Audio MIDI Ayarları → + → Çoklu Çıkış Aygıtı Yarat; iki çıkışı ve Kayma Düzeltme'yi işaretleyin, sonra onu salon olarak seçin.",
+  "booth.outputs.multi_found": "{name} bulundu: iki hoparlör grubunda birden çalmak için salon olarak seçin.",
+  "booth.outputs.two_sets_none":
+    "Bu tarayıcı aynı anda tek çıkışta çalar. Bilgisayardaki Chrome ya da Edge ikinci bir çıkış ekleyebilir; ya da mikserin ikinci çıkışını kullanın.",
+  "booth.outputs.second_output": "İkinci salon çıkışı",
+  "booth.outputs.none": "Yok",
+  "booth.outputs.one_output_here": "Burada aynı anda tek çıkış.",
+  "booth.outputs.trim": "Gecikme · {name}",
+  "booth.outputs.disconnect": "Çıkış koptuğunda",
+  "booth.outputs.disconnect_footer":
+    "Gecenin ortasında bir kablo, ses kartı ya da Bluetooth hoparlör giderse: Duraklat, şarkıyı olduğu yerde tutar ve sorar; salon hiçbir zaman beklenmedik şekilde telefonun hoparlörünü duymaz. Çalmaya devam, sonraki çıkıştan sürdürür ve bunu söyler.",
+  "booth.outputs.if_disconnects": "O zaman",
+  "booth.outputs.disconnect_pause": "Duraklat ve sor",
+  "booth.outputs.disconnect_continue": "Çalmaya devam",
+  "booth.guard.interrupted": "Gece kesildi (arama, Siri ya da alarm): {where} noktasında bekliyor.",
+  "booth.guard.context": "Ses {where} noktasında durdu (sistem ya da başka bir uygulama aldı).",
+  "booth.guard.output_lost_named": "{name} bağlantısı koptu: {where} noktasında duraklatıldı.",
+  "booth.guard.output_lost": "Çıkış bağlantısı koptu: {where} noktasında duraklatıldı.",
+  "booth.guard.output_moved": "Çıkış koptu: gece {now} üzerinden çalmaya devam ediyor.",
+  "booth.guard.the_next_output": "sonraki çıkış",
+  "booth.guard.output_new_named": "Ses çıkışı değişti: şimdi {now}.",
+  "booth.guard.output_new": "Ses çıkışı değişti.",
+  "booth.guard.spotify":
+    "Spotify {device} üzerinde durdu (arama ya da başka bir uygulama mı?): gece {where} noktasında bekliyor.",
+  "booth.guard.resume": "Devam et",
+  "booth.before.header": "Geceden önce",
+  "booth.before.footer":
+    "Gece sürerken T-DJ ekranı açık ve sesi kesintisiz tutar; bunları ise yalnızca kontrol edebilir ya da açıklayabilir.",
+  "booth.before.focus_ios":
+    "Denetim Merkezi'nden Rahatsız Etme'yi ya da bir Odak'ı açın: bunu hiçbir uygulama sizin yerinize yapamaz. Böylece aramalar ve bildirim sesleri sessiz kalır.",
+  "booth.before.focus_mac":
+    "Rahatsız Etme'yi ya da bir Odak'ı açın (Denetim Merkezi → Odak): uygulamalar bunu yapamaz. Yoksa bildirim sesleri salonun üstünde çalar.",
+  "booth.before.focus_other":
+    "Bu cihazda Rahatsız Etme'yi açın: bir web sayfası bunu yapamaz. Yoksa bildirim sesleri salonun üstünde çalar.",
+  "booth.before.how": "Nasıl",
+  "booth.before.power_ok": "Şarja takılı.",
+  "booth.before.power_battery": "Pille çalışıyor (%{pct}): uzun bir gece için şarja takın.",
+  "booth.before.power_ios":
+    "Şarj aletini takın ve Düşük Güç Modu'nu kapatın: uygulamayı arka planda yavaşlatabilir.",
+  "booth.before.power_unknown": "Uzun bir gece için şarj aletini takın.",
+  "booth.before.screen_mac_app":
+    "Gece sürerken Mac uyanık kalır (App Nap yok, boşta uyku yok). Kapağı kapatmak yine de uyutur.",
+  "booth.before.screen_ok": "Gece sürerken ekran açık kalır.",
+  "booth.before.screen_ios":
+    "Otomatik Kilit'i Asla yapın (Ayarlar → Ekran ve Parlaklık) ya da T-DJ'yi önde tutun.",
+  "booth.before.screen_no":
+    "Bu tarayıcı ekranı açık tutamıyor: gece için ekranı hiç uyumayacak şekilde ayarlayın.",
+  "booth.before.volume_ios":
+    "Ses sınırı: Ayarlar → Ses ve Dokunuş → Kulaklık Güvenliği → Yüksek Sesi Azalt seviyeyi kısıtlayabilir. Miksere bağlıyken cihazı sonuna kadar açın, seviyeyi mikserden ayarlayın.",
+  "booth.before.volume_mac":
+    "Miksere bağlıyken Mac'in çıkışını sonuna kadar açın, seviyeyi mikserden ayarlayın (düşük sistem sesi parazit ekler).",
+  "booth.before.volume_other":
+    "Miksere bağlıyken bu cihazın sesini sonuna kadar açın, seviyeyi mikserden ayarlayın.",
+  "booth.before.airplay":
+    "Salon AirPlay'de: yaklaşık 2 sn geriden gelir ve kalabalık bir Wi-Fi'da takılabilir. Kablo daha güvenli.",
+  "booth.before.bluetooth":
+    "Salon Bluetooth'ta: yaklaşık 200 ms geriden gelir ve kopabilir. Kablo ya da USB daha güvenli.",
+  "booth.before.wired": "Salon kablolu bir çıkışta.",
+  "booth.before.alerts_ios":
+    "T-DJ bir müzik uygulaması gibi çalar: diğer uygulamaların sesleri onu kısmaz. Sistem uyarıları, alarmlar ve aramalar yine de duyulabilir ya da onu duraklatabilir; Odak bunları susturur.",
+  "booth.before.alerts_mac":
+    "Diğer uygulamalar T-DJ'nin üstünde çalabilir: ses çıkaranları (Mail, Mesajlar) kapatın ya da bir Odak kullanın.",
+  "booth.before.alerts_web":
+    "Diğer sekmeler ve uygulamalar gecenin üstünde çalabilir: kapatın ya da sessize alın.",
   "booth.playerToolbar.a_rehearsal_plays_30_s_of":
     "Prova her şarkının 30 sn'sini çalar; böylece geceyi hızlıca duyabilirsiniz",
   "booth.playerToolbar.choose": "Seç",

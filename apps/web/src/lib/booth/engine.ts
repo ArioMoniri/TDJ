@@ -345,6 +345,20 @@ export class BoothEngine {
     ctx.addEventListener?.("statechange", () => this.ensureRunning());
   }
 
+  /**
+   * 2026-11 (Part B: outputs): where the room goes after the master and the meter — the context's destination, or a
+   * router's input (lib/booth/routing.ts: a DJ controller's channel pair, a second speaker set, a delay trim).
+   */
+  setOutput(node: unknown | null): void {
+    this.analyser.disconnect();
+    this.analyser.connect(node ?? this.ctx.destination);
+  }
+  /**
+   * 2026-11 (Bluetooth latency): the room output's delay (s) the playhead allows for when the context reports less
+   * (Safari reports none; a Bluetooth speaker adds ~200 ms) — the position, the waveform and the transition editor
+   * show what the dancers hear.
+   */
+  outputLatencySec = 0;
   /** a paused item (Pause, not a hold) */
   get paused(): boolean {
     return this.pausedAt !== null;
@@ -1212,7 +1226,8 @@ export class BoothEngine {
     if (!c) return this.pausedAt?.planIndex === this.planIndex ? this.pausedAt.at : 0;
     // Spotify reports the track position: the item's own clock starts at its cue (extStart)
     if (c.external) return c.started ? Math.max(0, c.external.position() - (c.extStart ?? 0)) : 0;
-    return Math.max(0, this.ctx.currentTime - c.startedAt - (this.ctx.outputLatency ?? 0));
+    const latency = Math.max(this.ctx.outputLatency ?? 0, this.outputLatencySec);
+    return Math.max(0, this.ctx.currentTime - c.startedAt - latency);
   }
   /**
    * 2026-11: the second in the current item's recording that is playing (its cue in and head cut plus the position):
