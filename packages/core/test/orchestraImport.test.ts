@@ -5,6 +5,7 @@
  * the loaded catalogue, the Library search, the Database's orchestra list and the composer's era filter.
  */
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
   ASSUMED_NOTE,
@@ -161,6 +162,23 @@ describe("Sexteto Cristal in the catalogue", () => {
     for (const r of ["tango", "vals", "milonga"]) expect(sides.some((s) => s.rhythm === r)).toBe(true);
     expect(sides.some((s) => s.singer === "Guillermo Rozenthuler" && s.vocal)).toBe(true);
     expect(sides.some((s) => !s.vocal && s.singer === null)).toBe(true);
+  });
+  it("every imported side (any orchestra) is contemporary, dated from its release, and outside the listado's 2008 check", () => {
+    const added = JSON.parse(
+      readFileSync(new URL("../../../data/knowledge/added_songs.json", import.meta.url), "utf8"),
+    ) as { songs: Array<{ id: string; source?: string; era: string; year: number | null; release?: string }> };
+    const imported = added.songs.filter((s) => s.source === "orchestra-import");
+    expect(imported.length).toBeGreaterThanOrEqual(mine().length);
+    const byId = new Map(deps.catalog.songs.map((s) => [s.id, s]));
+    for (const raw of imported) {
+      expect(raw.era).toBe("contemporary");
+      expect(raw.release).toMatch(/^\d{4}(-\d{2}(-\d{2})?)?$/);
+      expect(raw.year).toBe(Number(raw.release!.slice(0, 4)));
+      const loaded = byId.get(raw.id);
+      expect(loaded?.era).toBe("contemporary");
+      expect(loaded?.year).toBe(raw.year);
+      expect(loaded?.source).toBe("orchestra-import");
+    }
   });
   it("the Library search and the Database's orchestra list find it", () => {
     expect(deps.catalog.search("Sexteto Cristal", 100).length).toBe(mine().length);
