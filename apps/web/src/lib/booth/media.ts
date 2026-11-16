@@ -15,6 +15,15 @@ export interface MediaHandlers {
   previous: () => void;
 }
 
+/**
+ * 2026-11 (the night never stops by accident): the lock screen, a headset, Chrome's media hub and the keyboard's
+ * media keys reach the Booth through these; none of them may end the night. A system "stop" (closing the media
+ * notification, a headset's long press) is a pause — the place is kept and Play goes on from there.
+ */
+export function nightSafeHandlers(h: Omit<MediaHandlers, "stop">): MediaHandlers {
+  return { ...h, stop: h.pause };
+}
+
 /** 1 s of 8 kHz 8-bit mono silence as a WAV data URI (no binary asset to ship). */
 export function silentWav(): string {
   const rate = 8000;

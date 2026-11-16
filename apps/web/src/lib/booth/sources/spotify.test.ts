@@ -780,3 +780,38 @@ describe("2026-11: Spotify Connect — volume, confirmation, re-attach", () => {
     h.cancel(true);
   });
 });
+
+describe("2026-11: the Spotify app interrupted (a call, Siri, another app) — the Booth notices, never drifts", () => {
+  it("a Connect device paused mid-song for a moment reports an interruption once, and the item does not end", async () => {
+    vi.useFakeTimers();
+    let state: Record<string, unknown> = {
+      is_playing: true,
+      progress_ms: 4000,
+      item: { uri: URI_A, duration_ms: 170_000 },
+      device: { id: "phone", name: "iPhone" },
+    };
+    const sp = spotify({
+      devices: () => [dev("phone", { type: "Smartphone", name: "iPhone", is_active: true })],
+      handlers: { "GET /me/player": () => json(state) },
+    });
+    const a = new SpotifyAdapter({ fetchImpl: sp.fetchImpl, loadSdk: vi.fn(), phone: true });
+    const said: Array<string | null> = [];
+    a.onInterrupted = (d) => said.push(d);
+    quiet();
+    await a.connect();
+    const { r, ev } = req(URI_A);
+    const h = a.startItem(r);
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(said).toEqual([]);
+    // a call comes in: the Spotify app pauses at 1:00
+    state = { ...state, is_playing: false, progress_ms: 60_000 };
+    await vi.advanceTimersByTimeAsync(1500);
+    expect(said).toEqual([]);
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(said).toEqual(["iPhone"]);
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(said).toHaveLength(1);
+    expect(ev.ended).toBe(0);
+    h.cancel(true);
+  });
+});

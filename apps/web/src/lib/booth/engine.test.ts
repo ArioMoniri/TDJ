@@ -1850,3 +1850,86 @@ describe("2026-11: Spotify Connect transport (instant, coalesced skips)", () => 
     expect(q.r.delaySec).toBeCloseTo(plan.items[1]!.lengthSec - 42 + plan.items[1]!.gapAfterSec, 3);
   });
 });
+
+describe("2026-11: the night never stops by accident (engine)", () => {
+  it("a hidden tab (timers throttled or frozen): every gap is on the AudioContext clock, not on setTimeout", async () => {
+    const ctx = new FakeCtx();
+    const plan = build(set());
+    const e = engineFor(ctx, plan);
+    // a background tab: no timer ever fires (Chromium throttles them to once a minute after 5 minutes hidden)
+    const realSetTimeout = globalThis.setTimeout;
+    const frozen: unknown[] = [];
+    globalThis.setTimeout = ((fn: unknown) => {
+      frozen.push(fn);
+      return 0;
+    }) as unknown as typeof setTimeout;
+    try {
+      await e.start();
+      await e.play();
+      // the next side is already scheduled at its sample-exact time while the first plays
+      expect(ctx.sources[1]!.starts[0]![0]).toBeCloseTo(0.05 + 170 + 2.5, 9);
+      ctx.advance(0.05 + 170);
+      // promises still run in a hidden tab (only timers are throttled)
+      for (let i = 0; i < 50; i++) await Promise.resolve();
+      // the clock moved on with no timer: the side after it is queued at the next gap too
+      const third = ctx.sources[2]!;
+      expect(third.starts[0]![0]).toBeCloseTo(0.05 + 170 + 2.5 + 170 + 2.5, 9);
+    } finally {
+      globalThis.setTimeout = realSetTimeout;
+    }
+  });
+
+  it("an interruption hold (a call): pause at once keeps the place; play resumes the same item from there", async () => {
+    const ctx = new FakeCtx();
+    const plan = build(set());
+    const e = engineFor(ctx, plan);
+    await e.start();
+    await e.play();
+    ctx.advance(60);
+    e.pause(0);
+    expect(e.state).toBe("paused");
+    expect(e.pausedAt?.planIndex).toBe(0);
+    expect(e.pausedAt?.at).toBeCloseTo(60 - 0.05, 6);
+    // the queued side was dropped: nothing starts over the silence
+    ctx.advance(200);
+    expect(e.current).toBeNull();
+    await e.play();
+    expect(e.state).toBe("playing");
+    expect(e.current?.planIndex).toBe(0);
+    const last = ctx.sources.at(-2)!;
+    expect(last.starts[0]![1]).toBeCloseTo(60 - 0.05, 6);
+  });
+
+  it("the room's output: the meter feeds a router's input instead of the destination, and back", () => {
+    const ctx = new FakeCtx();
+    const links: unknown[] = [];
+    let cuts = 0;
+    ctx.createAnalyser = () => ({
+      fftSize: 256,
+      connect: (n: unknown) => links.push(n),
+      disconnect: () => cuts++,
+      getFloatTimeDomainData() {},
+    });
+    const e = engineFor(ctx, build(set()));
+    expect(links).toEqual([ctx.destination]);
+    const router = { id: "router" };
+    e.setOutput(router);
+    expect(cuts).toBe(1);
+    expect(links.at(-1)).toBe(router);
+    e.setOutput(null);
+    expect(links.at(-1)).toBe(ctx.destination);
+  });
+
+  it("Bluetooth latency: the playhead shows what the dancers hear (the larger of the context's and the output's)", async () => {
+    const ctx = new FakeCtx();
+    const e = engineFor(ctx, build(set()));
+    await e.start();
+    await e.play();
+    ctx.advance(10.05);
+    expect(e.position()).toBeCloseTo(10, 6);
+    e.outputLatencySec = 0.2;
+    expect(e.position()).toBeCloseTo(9.8, 6);
+    ctx.outputLatency = 0.25;
+    expect(e.position()).toBeCloseTo(9.75, 6);
+  });
+});

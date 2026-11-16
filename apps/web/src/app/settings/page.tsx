@@ -22,6 +22,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AppConnections } from "@/components/AppConnections";
 import { IndicatorSwitches } from "@/components/booth/IndicatorSwitches";
+import { BoothAudioSettings } from "@/components/booth/OutputsView";
 import { SilenceGroup } from "@/components/booth/SilenceSettings";
 import { Connectors } from "@/components/Connectors";
 import { PopularitySwitch } from "@/components/db/DatabaseFavourites";
@@ -344,6 +345,8 @@ export default function Settings() {
         </Group>
         {/* 2026-11: Booth → Gaps — a song's own silence and the gap (lib/booth/engine.ts, core silenceJoin) */}
         <SilenceGroup />
+        {/* 2026-11: Booth → Audio — outputs, the chain, a controller's pairs, two speaker sets, Before the night */}
+        <BoothAudioSettings />
 
         <Group header={tx("settings.composing")} footer={tx("settings.after_every_compose_the_night_is")}>
           <SwitchRow

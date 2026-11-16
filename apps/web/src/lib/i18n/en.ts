@@ -433,6 +433,131 @@ export const en = {
     "Your own files, matched by title, orchestra and year; linked once",
   "booth.plan.break": "Break",
   "booth.plan.min": "{p1} min",
+  // 2026-11: outputs, the chain, the guard, Before the night (lib/booth/outputs.ts, continuity.ts, beforeNight.ts)
+  "booth.outputs.kind.built_in": "Built-in speakers",
+  "booth.outputs.kind.headphones": "Headphone jack (3.5 mm)",
+  "booth.outputs.kind.line": "Line out",
+  "booth.outputs.kind.usb": "USB / USB-C",
+  "booth.outputs.kind.interface": "Audio interface",
+  "booth.outputs.kind.bluetooth": "Bluetooth",
+  "booth.outputs.kind.airplay": "AirPlay",
+  "booth.outputs.kind.hdmi": "HDMI",
+  "booth.outputs.kind.displayport": "DisplayPort",
+  "booth.outputs.kind.thunderbolt": "Thunderbolt",
+  "booth.outputs.kind.multi": "Multi-Output Device",
+  "booth.outputs.kind.aggregate": "Aggregate device",
+  "booth.outputs.kind.virtual": "Virtual device",
+  "booth.outputs.kind.unknown": "Output",
+  "booth.outputs.channels": "{n} ch",
+  "booth.outputs.pair": "ch {a}–{b}",
+  "booth.outputs.room": "ROOM",
+  "booth.outputs.headphones": "HEADPHONES",
+  "booth.outputs.warn.bt_room":
+    "Bluetooth adds about {ms} ms and can drop out: fine to listen, not for the dancers. Use a cable, USB or the mixer for the room.",
+  "booth.outputs.warn.airplay_room":
+    "AirPlay delays the room by about 2 s: the gaps hold, but the meter and the playhead run ahead of what the dancers hear.",
+  "booth.outputs.warn.phone_speaker":
+    "The night plays on this device's own speaker. Connect the room (a cable, a USB-C interface or the mixer) before the first tanda.",
+  "booth.outputs.warn.multi_drift":
+    "Multi-Output Device: in Audio MIDI Setup tick Drift Correction for every device but the first, or the speaker sets slowly drift apart.",
+  "booth.outputs.warn.same_device_map":
+    "Room and headphones are the same output: put the headphones on another channel pair below, or the dancers hear the pre-listen.",
+  "booth.outputs.warn.one_pair":
+    "This output has one channel pair (2 ch): it can't carry a separate pre-listen. Pick a second output for the headphones.",
+  "booth.outputs.warn.bt_cue":
+    "Bluetooth headphones lag about {ms} ms behind the room: fine to pre-listen, not to time a transition.",
+  "booth.outputs.warn.mirror_wireless":
+    "A wireless output never stays exactly in step: set its delay by ear with the trim below, and check it again after it reconnects.",
+  "booth.outputs.cue_pair_not_open":
+    "The headphones' channel pair opens with the night's sound: start the night, then pre-listen.",
+  "booth.outputs.chain": "Signal chain",
+  "booth.outputs.chain_header": "Connection and chain",
+  "booth.outputs.ios_routes":
+    "iPhone and iPad choose the output themselves (Control Center, or the button below for AirPlay and Bluetooth). A USB-C interface or controller plays the room; for a pre-listen use a second device.",
+  "booth.outputs.route_picker": "AirPlay and Bluetooth…",
+  "booth.outputs.cue_separate": "Separate output",
+  "booth.outputs.room_on": "Room on",
+  "booth.outputs.headphones_on": "Headphones on",
+  "booth.outputs.header": "Audio outputs",
+  "booth.outputs.source_mac":
+    "From macOS (Core Audio): the connection, channels, sample rate and latency of each output. Tap one to make it the room (the system output).",
+  "booth.outputs.source_ios":
+    "From iOS (the audio session's route). The system chooses the output: plug in, or pick AirPlay or Bluetooth, to change it.",
+  "booth.outputs.source_web":
+    "From the browser: the kind is read from each device's name; channels, sample rate and latency are known for the room's output. Tap one to make it the room.",
+  "booth.outputs.source_safari":
+    "Safari plays every page on the system output and lists no outputs: choose it in the system's sound settings (Mac: Control Center → Sound). Chrome or Edge can pick ROOM and HEADPHONES here.",
+  "booth.outputs.pairs_footer":
+    "A DJ controller or an interface with 4 or more outputs: the room on one channel pair, the headphones on another. A 2-channel output carries one pair.",
+  "booth.outputs.channels_limited":
+    "This output opened only 2 channels here: the headphones need a second output.",
+  "booth.outputs.two_sets": "Two speaker sets",
+  "booth.outputs.two_sets_web":
+    "The room also plays on a second output. Each output waits for the slower one; the delay below lines them up by ear.",
+  "booth.outputs.two_sets_mac":
+    "On a Mac: Audio MIDI Setup → + → Create Multi-Output Device, tick both outputs and Drift Correction, then choose it as the room.",
+  "booth.outputs.multi_found": "{name} found: choose it as the room to play on both speaker sets.",
+  "booth.outputs.two_sets_none":
+    "This browser plays on one output at a time. Chrome or Edge on a computer can add a second; or use the mixer's second output.",
+  "booth.outputs.second_output": "Second room output",
+  "booth.outputs.none": "None",
+  "booth.outputs.one_output_here": "One output at a time here.",
+  "booth.outputs.trim": "Delay · {name}",
+  "booth.outputs.disconnect": "When the output disconnects",
+  "booth.outputs.disconnect_footer":
+    "A cable, the interface or a Bluetooth speaker gone mid-night: Pause holds the song where it was and asks, so the room never hears the phone's speaker by surprise. Play on goes on through the next output and says so.",
+  "booth.outputs.if_disconnects": "Then",
+  "booth.outputs.disconnect_pause": "Pause and ask",
+  "booth.outputs.disconnect_continue": "Play on",
+  "booth.guard.interrupted": "The night was interrupted (a call, Siri or an alarm): held at {where}.",
+  "booth.guard.context": "The sound stopped (the system or another app took it) at {where}.",
+  "booth.guard.output_lost_named": "{name} disconnected: paused at {where}.",
+  "booth.guard.output_lost": "The output disconnected: paused at {where}.",
+  "booth.guard.output_moved": "The output disconnected: the night plays on through {now}.",
+  "booth.guard.the_next_output": "the next output",
+  "booth.guard.output_new_named": "Audio output changed: now {now}.",
+  "booth.guard.output_new": "Audio output changed.",
+  "booth.guard.spotify":
+    "Spotify stopped on {device} (a call or another app?): the night is held at {where}.",
+  "booth.guard.resume": "Resume",
+  "booth.before.header": "Before the night",
+  "booth.before.footer":
+    "While the night runs T-DJ keeps the screen on and the sound going by itself; these it can only check or explain.",
+  "booth.before.focus_ios":
+    "Turn on Do Not Disturb or a Focus in Control Center: no app can do it for you. Calls and notification sounds then stay quiet.",
+  "booth.before.focus_mac":
+    "Turn on Do Not Disturb or a Focus (Control Center → Focus): apps can't. Otherwise notification sounds play over the room.",
+  "booth.before.focus_other":
+    "Turn on Do Not Disturb on this device: a web page can't. Otherwise notification sounds play over the room.",
+  "booth.before.how": "How",
+  "booth.before.power_ok": "Plugged in.",
+  "booth.before.power_battery": "On battery ({pct} %): plug in for a long night.",
+  "booth.before.power_ios":
+    "Plug in the charger and turn Low Power Mode off: it can slow the app in the background.",
+  "booth.before.power_unknown": "Plug in the charger for a long night.",
+  "booth.before.screen_mac_app":
+    "The Mac stays awake while the night runs (no App Nap, no idle sleep). Closing the lid still puts it to sleep.",
+  "booth.before.screen_ok": "The screen stays on while the night runs.",
+  "booth.before.screen_ios":
+    "Set Auto-Lock to Never (Settings → Display & Brightness), or keep T-DJ in front.",
+  "booth.before.screen_no":
+    "This browser can't keep the screen on: set the display never to sleep for the night.",
+  "booth.before.volume_ios":
+    "Volume limits: Settings → Sounds & Haptics → Headphone Safety → Reduce Loud Audio can cap the level. Into a mixer, set the device to full and ride the mixer.",
+  "booth.before.volume_mac":
+    "Into a mixer: set the Mac's output to full and ride the level on the mixer (a low system volume adds noise).",
+  "booth.before.volume_other":
+    "Into a mixer: set this device's volume to full and ride the level on the mixer.",
+  "booth.before.airplay":
+    "The room is on AirPlay: about 2 s behind, and it can stall on a busy Wi-Fi. A cable is safer.",
+  "booth.before.bluetooth":
+    "The room is on Bluetooth: about 200 ms behind, and it can drop. A cable or USB is safer.",
+  "booth.before.wired": "The room is on a wired output.",
+  "booth.before.alerts_ios":
+    "T-DJ plays as a music app: other apps' sounds don't lower it. System alerts, alarms and calls can still sound or pause it; Focus keeps them quiet.",
+  "booth.before.alerts_mac":
+    "Other apps can play over T-DJ: quit the ones that make sounds (Mail, Messages) or use a Focus.",
+  "booth.before.alerts_web": "Other tabs and apps can play over the night: close or mute them.",
   "booth.playerToolbar.a_rehearsal_plays_30_s_of":
     "A rehearsal plays 30 s of every song so you can hear the night quickly",
   "booth.playerToolbar.choose": "Choose",
