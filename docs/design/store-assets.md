@@ -52,6 +52,12 @@ at 5 s). The previews show the captures full screen with a few words on a brand-
 Booth, Transition, Build, Song DNA, Rooms), between the lockup at the start and "For tango DJs" at the end; the sound
 is an original synthesised marcato in A minor (`audio.ts`), no recording.
 
+Examples at the upload size (draft render of 2026-11-16, before the last UI fixes; `pnpm store:creative` makes the
+full set): [iPhone 6.9"](store-creative/01_compose_iphone69.jpg), [iPad 13" (tr)](store-creative/03_transition_ipad13.jpg),
+[Mac](store-creative/06_rooms_mac.jpg), [iPhone Duo, inner](store-creative/08_library_duoInner.jpg),
+[Header 21:9](store-creative/header-21x9_en-US.jpg) (JPEG copy; the upload is a PNG), the
+[iPhone preview's poster frame](store-creative/preview-poster_IPHONE_67.jpg).
+
 ## v1 (2026-11-15): the first set
 
 ## What we looked at, and what we took
