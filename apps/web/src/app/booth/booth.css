@@ -2774,6 +2774,7 @@ html[data-booth] {
   min-width: 0;
   padding: 0 12px 0 10px;
   border-radius: 999px;
+  justify-content: center;
   font-size: var(--text-footnote);
   line-height: 1;
   white-space: nowrap;
