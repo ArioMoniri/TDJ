@@ -10,6 +10,7 @@ import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import { ActionRow, Group, Row, StepperRow, SwitchRow } from "../Form";
 import { Sheet } from "../Sheet";
+import { SilenceModeRows } from "./SilenceSettings";
 
 /**
  * Onboarding (round7-booth.md §1.2): one sheet, three rows. Source (folder / Spotify / 30 s rehearsal), Output
@@ -213,12 +214,8 @@ export function OnboardingSheet({
           {...BOOTH_RANGES.loudnessTargetLUFS}
           onChange={(v) => b.setSettings({ loudnessTargetLUFS: v })}
         />
-        <SwitchRow
-          label={t("booth.onboardingSheet.trim_leading_silence")}
-          sub={t("booth.onboardingSheet.up_to_3_s_from_the")}
-          checked={b.settings.trimLeadingSilence}
-          onChange={(v) => b.setSettings({ trimLeadingSilence: v })}
-        />
+        {/* 2026-11: the silence mode (Settings → Booth → Gaps) replaces "Trim leading silence" */}
+        <SilenceModeRows onChange={(p) => b.setSilence(p)} />
         <SwitchRow
           label={t("booth.onboardingSheet.media_keys")}
           sub={t("booth.onboardingSheet.headset_pause_holds_never_cuts_off")}

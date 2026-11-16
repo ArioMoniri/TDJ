@@ -14,6 +14,7 @@ import { ActionRow, Group, Row, SegmentedRow, StepperRow, SwitchRow } from "../F
 import { Sheet } from "../Sheet";
 import { Stepper } from "../ui";
 import { Fader } from "./Fader";
+import { SilenceGroup } from "./SilenceSettings";
 
 const Kbd = ({ k }: { k: string }) => (
   <kbd className="booth-kbd text-footnote rounded bg-[var(--fill-3)] px-1.5 py-0.5 text-[var(--label-2)]">
@@ -338,13 +339,9 @@ export function LevelsSheet({
           {...BOOTH_RANGES.loudnessTargetLUFS}
           onChange={(v) => set({ loudnessTargetLUFS: v })}
         />
-        <SwitchRow
-          label={tx("booth.sheets.trim_silence_at_the_start")}
-          sub={MIX_EXPLAIN.trimLeadingSilence}
-          checked={settings.trimLeadingSilence}
-          onChange={(v) => set({ trimLeadingSilence: v })}
-        />
       </Group>
+      {/* 2026-11: "Trim silence at the start" became the silence mode (Settings → Booth → Gaps, the same rows) */}
+      <SilenceGroup header={tx("booth.silence.mix_header")} onChange={(p) => act.setSilence(p)} />
       <Group
         header={tx("booth.sheets.source")}
         footer={

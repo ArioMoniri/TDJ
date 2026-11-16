@@ -2,13 +2,18 @@
 import {
   attachBooth,
   type BoothInputs,
+  type BoothMeasurement,
   boothInputs,
   bypassPlanItems,
   type CortinaEdit,
+  estimateSilence,
   type Playlist,
   resolveTransition,
+  SILENCE_CUT_FADE_SEC,
+  type SilenceMode,
   type Song,
   type SongCue,
+  type SongSilence,
   type TransitionEdit,
   transitionKey,
 } from "@tdj/core";
@@ -181,6 +186,13 @@ interface BoothStore {
   setSongCue: (id: string, cue: SongCue | null) => void;
   /** round 22: the cortina play length (null follows the composer) */
   setCortinaLength: (sec: number | null) => void;
+  /** 2026-11: Settings → Booth → Gaps — the silence mode and the per-era estimate for streamed sides */
+  setSilence: (s: { mode?: SilenceMode; estimate?: boolean }) => void;
+  /**
+   * 2026-11: "Song ends early" — the playing side's real end is now: it is stored as its stop (the round-22 stop
+   * cue) so every later play stops there, and the next item follows at the gap. The stored second, or null.
+   */
+  songEndsEarly: () => number | null;
   /** wave 4: the DJ's edit of the transition after plan item `i` (null = Auto, the night's Mix settings) */
   setTransition: (i: number, edit: TransitionEdit | null) => void;
   /**
@@ -305,6 +317,31 @@ const audioHook = (it: BoothRow) =>
   useBooth.getState().playlist?.booth?.cortinaEdits?.[it.id ?? ""]?.startSec === undefined &&
   (cortinaHookOf(it.id)?.source ?? "none") === "none";
 
+/** 2026-11: Settings → Booth → Gaps (unset = the silence counts as the gap). */
+export function boothSilenceMode(): SilenceMode {
+  const m = useStore.getState().settings.boothSilence;
+  return m === "after" || m === "off" ? m : "gap";
+}
+/**
+ * 2026-11: silence for the sides the browser cannot measure (streamed): with "Estimate silence for streaming
+ * tracks" on, the per-era estimate for every side without a local file or a measurement. There is no committed
+ * per-song silence table (no source publishes one: Deezer's track API has duration, BPM and gain only).
+ */
+function streamSilences(
+  p: Playlist,
+  measured: Record<string, BoothMeasurement>,
+): Record<string, SongSilence> {
+  if (!useStore.getState().settings.boothSilenceEstimate) return {};
+  const out: Record<string, SongSilence> = {};
+  const songs = [p.opening, ...p.tandas.flatMap((t) => t.songs), p.closing];
+  for (const s of songs) {
+    if (!s || measured[s.id]?.tailSilenceSec !== undefined || local?.hasFile(s.id)) continue;
+    const e = estimateSilence(s);
+    if (e) out[s.id] = e;
+  }
+  return out;
+}
+
 /**
  * The plan the booth plays is the plan the exports write: `attachBooth` on the set with the booth settings, the
  * cortina play length and the file measurements, written back into the app store so Export reads the same seconds.
@@ -315,6 +352,7 @@ function rePlan(
   extra: Partial<BoothInputs> = {},
 ): { playlist: Playlist; plan: BoothRows } {
   const user = useStore.getState().settings;
+  const measurements = local?.measurementsById() ?? {};
   const inputs: BoothInputs = {
     ...boothInputs(p.booth),
     gapSec: settings.gapSec,
@@ -322,11 +360,15 @@ function rePlan(
     cortinaFadeOutSec: settings.cortinaFadeOutSec,
     cortinaLevelDb: settings.cortinaLevelDb,
     loudnessTargetLUFS: settings.loudnessTargetLUFS,
-    trimLeadingSilence: settings.trimLeadingSilence,
+    // 2026-11: "Trim silence at the start" is now part of Settings → Booth → Gaps (the silence mode takes the head)
+    trimLeadingSilence: false,
+    silenceMode: boothSilenceMode(),
+    silences: streamSilences(p, measurements),
+    songFadeOutSec: settings.songFadeOutSec,
     cortinaStopSec: cortinaStopSec(user, p.options.cortinaLengthSec),
     // 2026-11: Settings → Cortinas → "Start cortinas at the chorus" (on unless false)
     cortinaHookStart: user.cortinaHookStart === false ? false : undefined,
-    measurements: local?.measurementsById() ?? {},
+    measurements,
     ...extra,
   };
   // round 18: a side with a checked Spotify match is timed at that recording's length (what the DJ plays)
@@ -410,7 +452,12 @@ export const useBooth = create<BoothStore>()((set, get) => ({
   boot: async (p, o = {}) => {
     const a = adapters();
     const saved = (await loadBoothSettings()) ?? {};
-    const settings: BoothSettings = { ...DEFAULT_BOOTH_SETTINGS, ...(saved as Partial<BoothSettings>) };
+    const settings: BoothSettings = {
+      ...DEFAULT_BOOTH_SETTINGS,
+      ...(saved as Partial<BoothSettings>),
+      // 2026-11: the old "Trim silence at the start" is Settings → Booth → Gaps now (the silence mode)
+      trimLeadingSilence: false,
+    };
     const sameSet = get().playlist?.id === p.id && engine;
     // round 22: a rehearsal is a choice for one session; with Premium connected the night plays full tracks
     const mode: SourceMode = resolveSourceMode({
@@ -881,6 +928,27 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     const p = get().playlist;
     if (p) applyPlan(rePlan(p, get().settings));
   },
+  setSilence: (s) => {
+    const patch: { boothSilence?: SilenceMode; boothSilenceEstimate?: boolean } = {};
+    if (s.mode !== undefined) patch.boothSilence = s.mode;
+    if (s.estimate !== undefined) patch.boothSilenceEstimate = s.estimate;
+    useStore.getState().setSettings(patch);
+    const p = get().playlist;
+    if (p) applyPlan(rePlan(p, get().settings));
+  },
+  songEndsEarly: () => {
+    const p = get().playlist;
+    const i = engine?.planIndex ?? -1;
+    const it = get().plan?.items[i];
+    const at = engine?.sourcePosition() ?? null;
+    if (!p || !engine?.live || !it?.id || it.kind === "cortina" || it.kind === "break" || at === null)
+      return null;
+    const own = p.booth?.songCues?.[it.id];
+    get().setSongCue(it.id, { ...(own?.inSec !== undefined ? { inSec: own.inSec } : {}), outSec: at });
+    // the music is over: the next item follows at the gap
+    engine?.fadeOutNow(SILENCE_CUT_FADE_SEC);
+    return at;
+  },
   setTransition: (i, edit) => {
     const p = get().playlist;
     const a = get().plan?.items[i];
@@ -1056,6 +1124,8 @@ export const useBooth = create<BoothStore>()((set, get) => ({
       "cortinaLevelDb",
       "loudnessTargetLUFS",
       "trimLeadingSilence",
+      // 2026-11: a faded song end runs to the last audible moment (the silence mode)
+      "songFadeOutSec",
     ];
     if (p && (!get().started || Object.keys(s).some((k) => planKeys.includes(k))))
       applyPlan(rePlan(p, settings));

@@ -165,6 +165,17 @@ export interface UserSettings {
    * Play now, Skip tonight on the playing tanda…) asks for a light confirmation. Unset = on.
    */
   boothConfirm?: boolean;
+  /**
+   * 2026-11 (Settings → Booth → Gaps): a side's own silent head / tail and the gap. "gap" (unset): the silence
+   * counts as part of the gap, so the room hears exactly the gap; "after": the gap starts after the music ends (the
+   * tail is trimmed, the head kept); "off": files play to their edges, then the gap.
+   */
+  boothSilence?: "gap" | "after" | "off";
+  /**
+   * 2026-11: streamed sides cannot be measured in the browser; on, a golden-era side without a measurement is taken
+   * to end with a short silent tail (the per-era estimate). Unset = off.
+   */
+  boothSilenceEstimate?: boolean;
 }
 export const DEFAULT_NAMING = "{artist} - {title}";
 export const DEFAULT_SETTINGS: UserSettings = {

@@ -21,8 +21,14 @@ export interface BoothSettings {
   cortinaLevelDb: number;
   /** normalisation target (−18…−12 LUFS) */
   loudnessTargetLUFS: number;
-  /** trim the measured leading silence (never more than 3 s) off every track */
+  /** trim the measured leading silence (never more than 3 s) off every track (legacy: `silenceMode` supersedes it) */
   trimLeadingSilence: boolean;
+  /**
+   * 2026-11: what a side's own silent head / tail does to the gap. "gap": it counts as part of the gap (the room
+   * hears exactly the gap); "after": the gap starts after the music ends (the tail is trimmed, the head kept);
+   * "off": files play to their edges, then the gap.
+   */
+  silenceMode: SilenceMode;
   /** wall-clock start of the night (ISO 8601, local); markers and the set list print real clock times with it */
   startAt?: string;
 }
@@ -58,6 +64,14 @@ export interface BoothPlanItem {
   overlapAfterSec?: number;
   /** wave 4: the DJ's edited transition into the next item, resolved against both sides (absent = the night's gap) */
   transitionAfter?: PlannedTransition;
+  /** 2026-11: detected (or estimated) silence at the side's start / end, seconds (absent = none known) */
+  headSilenceSec?: number;
+  tailSilenceSec?: number;
+  /** the silence values are the opt-in per-era estimate, not a measurement */
+  silenceEstimated?: boolean;
+  /** 2026-11: seconds of that silence the plan cuts off the start / end (`lengthSec` is already shorter by both) */
+  headCutSec?: number;
+  tailCutSec?: number;
 }
 export interface BoothMarker {
   kind: "opening" | "tanda" | "break" | "closing";
@@ -134,6 +148,9 @@ export interface BoothMeasurement {
   lufs?: number;
   peakDbFS?: number;
   introSec?: number;
+  /** 2026-11: seconds of silence before the music starts / after it ends (apps/web `silenceBounds`) */
+  headSilenceSec?: number;
+  tailSilenceSec?: number;
 }
 export interface BoothInputs extends Partial<BoothSettings> {
   gapOverrides?: Record<number, number>;
@@ -150,6 +167,10 @@ export interface BoothInputs extends Partial<BoothSettings> {
   songCues?: Record<string, SongCue>;
   /** wave 4: transition key (`fromId→toId`) → the DJ's edit of that transition (Booth → transition editor) */
   transitions?: Record<string, TransitionEdit>;
+  /** 2026-11: song id → silence from a table or the per-era estimate (a measurement wins) */
+  silences?: Record<string, SongSilence>;
+  /** 2026-11: the booth's song end fade (s): a faded end runs to the last audible moment */
+  songFadeOutSec?: number;
 }
 
 export const BOOTH_DEFAULTS: BoothSettings = {
@@ -159,6 +180,7 @@ export const BOOTH_DEFAULTS: BoothSettings = {
   cortinaLevelDb: -4,
   loudnessTargetLUFS: -16,
   trimLeadingSilence: false,
+  silenceMode: "gap",
 };
 export const BOOTH_RANGES = {
   gapSec: { min: 0.5, max: 6, step: 0.5 },
@@ -246,6 +268,9 @@ export function boothSettings(s: Partial<BoothSettings> = {}): BoothSettings {
       BOOTH_RANGES.loudnessTargetLUFS.max,
     ),
     trimLeadingSilence: s.trimLeadingSilence ?? BOOTH_DEFAULTS.trimLeadingSilence,
+    silenceMode: SILENCE_MODES.includes(s.silenceMode as SilenceMode)
+      ? (s.silenceMode as SilenceMode)
+      : BOOTH_DEFAULTS.silenceMode,
   };
   if (typeof s.startAt === "string" && s.startAt) out.startAt = s.startAt;
   return out;
@@ -302,6 +327,134 @@ const tandaLabel = (p: Playlist, i: number) => {
   return `${String(i + 1).padStart(2, "0")} ${t.rhythm.toUpperCase()} · ${t.orchestra}${t.singer ? ` / ${t.singer}` : ""}`;
 };
 
+/* ---------- 2026-11: a side's own silence and the gap ---------- */
+
+export type SilenceMode = "gap" | "after" | "off";
+export const SILENCE_MODES: ReadonlyArray<SilenceMode> = ["gap", "after", "off"];
+/** silence at either edge is never taken as more than this (a longer run is a hidden track or a bad rip) */
+export const SILENCE_MAX_SEC = 10;
+/** a cut inside a side's silent tail ends with a fade this long (no click from the surface noise) */
+export const SILENCE_CUT_FADE_SEC = 0.12;
+/** the opt-in estimate for a streamed golden-era transfer: the low end of the 1–2 s its 78 rpm tail often has */
+export const SILENCE_ESTIMATE_TAIL_SEC = 1;
+/** recordings up to this year count as 78 rpm transfers for the estimate */
+export const SILENCE_ESTIMATE_LAST_YEAR = 1959;
+/** A side's silent head / tail (a table entry or the estimate; `estimated` marks the per-era default). */
+export interface SongSilence {
+  headSec?: number;
+  tailSec?: number;
+  estimated?: boolean;
+}
+export interface SilenceJoin {
+  /** silence the booth inserts between the two */
+  gapSec: number;
+  /** seconds cut off the outgoing side's silent tail / the incoming side's silent head */
+  tailCutSec: number;
+  headCutSec: number;
+  /** the silence the room hears: kept tail + inserted gap + kept head */
+  heardSec: number;
+}
+const nn = (v: number | undefined) => Math.max(0, num(v) ?? 0);
+
+/**
+ * The join between two items given the outgoing tail and the incoming head (pure; the plan and the booth share it).
+ * - "gap": the room hears exactly `gapSec`. Natural silence under the gap is subtracted from the inserted gap;
+ *   over it, the outgoing tail is cut first (the incoming head is kept up to the gap) and the inserted gap is 0.
+ *   `faded` (a fade, blend or rise, or the song end fade): both silences are cut whole, so the transition runs from
+ *   the last audible moment to the first, with `gapSec` between them.
+ * - "after": the tail is cut whole, the head kept; the gap follows the music's end.
+ * - "off": nothing is cut; the room hears tail + gap + head.
+ */
+export function silenceJoin(
+  mode: SilenceMode,
+  o: { gapSec: number; tailSec?: number; headSec?: number; faded?: boolean },
+): SilenceJoin {
+  const gap = nn(o.gapSec);
+  const tail = nn(o.tailSec);
+  const head = nn(o.headSec);
+  const out = (gapSec: number, tailCutSec: number, headCutSec: number): SilenceJoin => ({
+    gapSec: round3(gapSec),
+    tailCutSec: round3(tailCutSec),
+    headCutSec: round3(headCutSec),
+    heardSec: round3(tail - tailCutSec + gapSec + head - headCutSec),
+  });
+  if (mode === "off") return out(gap, 0, 0);
+  if (mode === "after") return out(gap, tail, 0);
+  if (o.faded) return out(gap, tail, head);
+  if (tail + head <= gap) return out(gap - tail - head, 0, 0);
+  const keptHead = Math.min(head, gap);
+  const keptTail = gap - keptHead;
+  return out(0, Math.max(0, tail - keptTail), head - keptHead);
+}
+
+/**
+ * The incoming side's join once the outgoing tail is fixed (the booth schedules the outgoing side before it knows
+ * the next head for sure): `keptTailSec` is the silence the outgoing still plays. Same rules as `silenceJoin`.
+ */
+export function joinAfterTail(
+  mode: SilenceMode,
+  o: { gapSec: number; keptTailSec: number; headSec?: number; faded?: boolean },
+): { gapSec: number; headCutSec: number; heardSec: number } {
+  const gap = nn(o.gapSec);
+  const kept = nn(o.keptTailSec);
+  const head = nn(o.headSec);
+  const out = (gapSec: number, headCutSec: number) => ({
+    gapSec: round3(gapSec),
+    headCutSec: round3(headCutSec),
+    heardSec: round3(kept + gapSec + head - headCutSec),
+  });
+  if (mode !== "gap") return out(gap, 0);
+  if (o.faded) return out(gap, head);
+  const headCut = clamp(kept + head - gap, 0, head);
+  return out(Math.max(0, gap - kept - (head - headCut)), headCut);
+}
+
+/**
+ * The opt-in per-era estimate for a streamed side (Settings → Booth → Gaps → "Estimate silence for streaming
+ * tracks"): a golden-era 78 rpm transfer often ends with 1–2 s of tail, so it gets the conservative low end; a later
+ * recording or an unknown year gets nothing.
+ */
+export function estimateSilence(song: { year?: number | null }): SongSilence | null {
+  const y = num(song.year ?? undefined);
+  if (y === undefined || y > SILENCE_ESTIMATE_LAST_YEAR) return null;
+  return { tailSec: SILENCE_ESTIMATE_TAIL_SEC, estimated: true };
+}
+
+/** Whether the join after `a` runs from the audible moments (a fade, blend or rise, or the song end fade). */
+function fadedJoin(a: BoothPlanItem, songFadeOutSec: number): boolean {
+  const tr = a.transitionAfter;
+  if (tr) return tr.overlapSec > 0 || tr.fadeOutSec > 0 || tr.fadeInSec > 0;
+  return a.kind !== "cortina" && a.kind !== "break" && songFadeOutSec > 0;
+}
+/** Every join of the plan through `silenceJoin`: gaps shrink, silent edges are cut, lengths follow. */
+function applySilence(items: BoothPlanItem[], mode: SilenceMode, songFadeOutSec: number) {
+  const head = (it: BoothPlanItem | undefined) => it?.headSilenceSec ?? 0;
+  const tail = (it: BoothPlanItem | undefined) => it?.tailSilenceSec ?? 0;
+  const cut = (it: BoothPlanItem, k: "headCutSec" | "tailCutSec", v: number) => {
+    if (v <= 0) return;
+    it[k] = round3(v);
+    it.lengthSec = round3(Math.max(1, it.lengthSec - v));
+  };
+  // the first item has no gap before it: in gap mode its head goes
+  const first = items[0];
+  if (first && head(first))
+    cut(first, "headCutSec", silenceJoin(mode, { gapSec: 0, headSec: head(first) }).headCutSec);
+  for (let i = 0; i < items.length; i++) {
+    const a = items[i]!;
+    const b = items[i + 1];
+    if (!tail(a) && !head(b)) continue;
+    const j = silenceJoin(mode, {
+      gapSec: a.gapAfterSec,
+      tailSec: tail(a),
+      headSec: head(b),
+      faded: !!b && fadedJoin(a, songFadeOutSec),
+    });
+    a.gapAfterSec = j.gapSec;
+    cut(a, "tailCutSec", j.tailCutSec);
+    if (b) cut(b, "headCutSec", j.headCutSec);
+  }
+}
+
 /**
  * A side's cue clamped to its length: `inSec` in [0, dur − min], `outSec` in [in + min, dur]; `outSec` is dropped
  * when it is the side's end. Null when the cue changes nothing.
@@ -340,12 +493,21 @@ export function planBooth(p: Playlist, s: BoothInputs = {}): BoothPlan {
     const intro = num(m?.introSec) ?? (song.audio ? num(song.audio.introSec) : undefined) ?? 0;
     const dur = Math.max(1, num(song.durationSec) ?? (kind === "closing" ? 180 : 170));
     const cue = songCue(s.songCues?.[song.id], dur);
-    const trimIn = cue
-      ? cue.inSec
-      : settings.trimLeadingSilence
-        ? round3(clamp(intro, 0, TRIM_IN_MAX_SEC))
-        : 0;
     const end = cue?.outSec ?? dur;
+    // 2026-11: the side's own silence (a measurement wins over the table / estimate); a cue in drops the head, a
+    // stop drops the tail (the DJ placed them on the music), and silence never leaves under SONG_CUE_MIN_SEC
+    const tab = s.silences?.[song.id];
+    const mh = num(m?.headSilenceSec);
+    const mt = num(m?.tailSilenceSec);
+    const measured = mh !== undefined || mt !== undefined;
+    const sil = measured ? { headSec: mh, tailSec: mt } : tab;
+    let head = (cue?.inSec ?? 0) > 0 ? 0 : round3(clamp(num(sil?.headSec) ?? 0, 0, SILENCE_MAX_SEC));
+    let tail = cue?.outSec !== undefined ? 0 : round3(clamp(num(sil?.tailSec) ?? 0, 0, SILENCE_MAX_SEC));
+    if (end - (cue?.inSec ?? 0) - head - tail < SONG_CUE_MIN_SEC) head = tail = 0;
+    // the legacy intro trim only where the silence mode does not already take the head
+    const legacyTrim = !cue && settings.trimLeadingSilence && !(head > 0 && settings.silenceMode !== "off");
+    const trimIn = cue ? cue.inSec : legacyTrim ? round3(clamp(intro, 0, TRIM_IN_MAX_SEC)) : 0;
+    if (legacyTrim) head = round3(Math.max(0, head - trimIn));
     const it: BoothPlanItem = {
       n: n++,
       kind,
@@ -359,6 +521,9 @@ export function planBooth(p: Playlist, s: BoothInputs = {}): BoothPlan {
       ...(cue ? { cued: true } : {}),
       ...gainFor(num(m?.lufs) ?? prior, target, trimFor(song.id), num(m?.peakDbFS)),
     };
+    if (head > 0) it.headSilenceSec = head;
+    if (tail > 0) it.tailSilenceSec = tail;
+    if ((head > 0 || tail > 0) && !measured && tab?.estimated) it.silenceEstimated = true;
     if (birthday) it.birthday = true;
     items.push(it);
   };
@@ -438,6 +603,8 @@ export function planBooth(p: Playlist, s: BoothInputs = {}): BoothPlan {
       // a cortina cut: the cortina's own fade, ending at its stop second (its length is unchanged)
       if (tr.preset === "cortinaCut" && a.kind === "cortina") a.fadeOutSec = tr.fadeOutSec;
     }
+  // 2026-11: each join's silence (the side's own head / tail and the gap), from the first item's head to the last tail
+  applySilence(items, settings.silenceMode, nn(s.songFadeOutSec));
   let t = 0;
   for (const it of items) {
     it.startSec = round3(t);

@@ -1,4 +1,12 @@
-import { energyHook, type PlannedTransition } from "@tdj/core";
+import {
+  energyHook,
+  joinAfterTail,
+  type PlannedTransition,
+  SILENCE_CUT_FADE_SEC,
+  SILENCE_MAX_SEC,
+  type SilenceMode,
+  silenceJoin,
+} from "@tdj/core";
 import { t as tx } from "@/lib/i18n";
 import {
   DECLICK_IN,
@@ -145,6 +153,10 @@ export interface BoothItemRuntime {
   /** where the normalisation number came from */
   gainFrom: "measured" | "prior" | "none";
   started: boolean;
+  /** 2026-11: seconds of the side's silent head skipped (its clock starts at the music) */
+  headCut?: number;
+  /** 2026-11: the second in the recording the item's clock 0 is (its cue in plus the head cut) */
+  srcStart?: number;
 }
 export type EngineEvent =
   | { type: "state"; from: BoothState; to: BoothState; planIndex: number; reason?: string }
@@ -173,6 +185,8 @@ interface Scheduled extends BoothItemRuntime {
   tail?: { end: number };
   /** wave 4: the DJ acted on this item (fade now, pause, crossfade, cortina fader): no transition rewrites it */
   interrupted?: boolean;
+  /** 2026-11: seconds of its silent tail the item still plays before it ends (they count toward the next gap) */
+  keptTail?: number;
 }
 /** Where a Pause left the night: the item and the seconds into it. */
 export interface PausedAt {
@@ -302,6 +316,8 @@ export class BoothEngine {
   private onEvent: (e: EngineEvent) => void;
   private generation = 0;
   private prepared = new Map<number, Promise<PreparedItem>>();
+  /** 2026-11: the silent head / tail measured on the decoded audio of each item (file, clip) */
+  private silenceKnown = new Map<number, { head: number; tail: number }>();
   private rmsSq = 0;
   private peakHold = { v: 0, at: 0 };
   private meterBuf: Float32Array | null = null;
@@ -350,6 +366,7 @@ export class BoothEngine {
     this.skipped = new Set(sources.map((s, i) => (s === "missing" ? i : -1)).filter((i) => i >= 0));
     for (let i = 0; i < plan.items.length; i++) if (plan.items[i]!.kind === "break") this.skipped.delete(i);
     this.prepared.clear();
+    this.silenceKnown.clear();
   }
   /** A swap ahead of the playhead replaced items: keep the playhead, refresh the rest. */
   replacePlan(plan: BoothRows, entities: PlanEntity[], sources: ItemSource[]) {
@@ -569,7 +586,7 @@ export class BoothEngine {
     // Spotify: its pause of the old play goes out first, then the new play at the new position
     const delay = c.external ? SEEK_EXTERNAL_DELAY : SEEK_FADE;
     const gen = ++this.generation;
-    const s = await this.schedule(i, now + delay, { from: to, fadeIn: SEEK_FADE });
+    const s = await this.schedule(i, now + delay, { from: to, fadeIn: SEEK_FADE, headCut: c.headCut });
     // a Stop, Pause, Play now or another seek came in while the item was rebuilt
     if (gen !== this.generation || !this.live || this.current) {
       if (s) {
@@ -668,7 +685,9 @@ export class BoothEngine {
     const s = await this.schedule(
       i,
       this.ctx.currentTime + delaySec,
-      resume ? { from: resume.at, fadeIn: this.settings.pauseFadeSec } : undefined,
+      resume
+        ? { from: resume.at, fadeIn: this.settings.pauseFadeSec, headCut: resume.runtime.headCut }
+        : undefined,
     );
     if (!s) return;
     this.current = s;
@@ -793,6 +812,8 @@ export class BoothEngine {
       peakCapped: c.peakCapped,
       gainFrom: c.gainFrom,
       started: c.started,
+      headCut: c.headCut,
+      srcStart: c.srcStart,
     };
     this.pausedAt = { planIndex: c.planIndex, at: Math.min(at, Math.max(0, len - 0.5)), runtime };
     this.planIndex = c.planIndex;
@@ -1029,6 +1050,15 @@ export class BoothEngine {
     if (c.external) return c.started ? Math.max(0, c.external.position() - (c.extStart ?? 0)) : 0;
     return Math.max(0, this.ctx.currentTime - c.startedAt - (this.ctx.outputLatency ?? 0));
   }
+  /**
+   * 2026-11: the second in the current item's recording that is playing (its cue in and head cut plus the position):
+   * "Song ends early" stores it as the side's stop. Null when nothing plays.
+   */
+  sourcePosition(): number | null {
+    const c = this.current ?? (this.pausedAt?.planIndex === this.planIndex ? this.pausedAt.runtime : null);
+    if (!c) return null;
+    return Math.round(((c.srcStart ?? 0) + this.position()) * 1000) / 1000;
+  }
   /** the current item's length as it will actually play (rehearsal cap, early fader) */
   currentLength(): number {
     const c = this.current ?? (this.pausedAt?.planIndex === this.planIndex ? this.pausedAt.runtime : null);
@@ -1135,6 +1165,69 @@ export class BoothEngine {
     return this.plan?.gapOverrides?.[it.tanda] ?? this.settings.gapSec;
   }
 
+  /* ---------- 2026-11: a side's own silence and the gap ---------- */
+
+  /** Settings → Booth → Gaps: the plan's silence mode ("off" for a plan made before it existed). */
+  silenceMode(): SilenceMode {
+    return this.plan?.settings.silenceMode ?? "off";
+  }
+  /**
+   * A song's silent head / tail as it will play: what the decoded audio measured (a file, a clip), else the plan's
+   * (Spotify: a measurement of the same recording, a table, the opt-in estimate). A cue in drops the head and a stop
+   * drops the tail (the DJ placed them on the music); a cortina or a break has none.
+   */
+  silenceOf(i: number, prepared?: PreparedItem): { head: number; tail: number } {
+    const it = this.item(i);
+    if (!it || (it.kind !== "track" && it.kind !== "closing")) return { head: 0, tail: 0 };
+    const m = prepared?.kind !== "spotify" ? prepared?.measured : undefined;
+    const known =
+      m && (m.headSilenceSec !== undefined || m.tailSilenceSec !== undefined)
+        ? { head: m.headSilenceSec ?? 0, tail: m.tailSilenceSec ?? 0 }
+        : this.silenceKnown.get(i);
+    const s = known ?? { head: it.headSilenceSec ?? 0, tail: it.tailSilenceSec ?? 0 };
+    const cueIn = !!it.cued && (it.trimInSec ?? 0) > 0;
+    const cueOut = !!it.cued && it.stopSec !== undefined;
+    return {
+      head: cueIn ? 0 : clamp(s.head, 0, SILENCE_MAX_SEC),
+      tail: cueOut ? 0 : clamp(s.tail, 0, SILENCE_MAX_SEC),
+    };
+  }
+  /** The transition the engine will really run from `i` into `n` (Spotify cannot overlap: none there). */
+  private effectiveTransition(i: number, n: number, external = false): PlannedTransition | null {
+    const tr = this.transitionAfter(i, n);
+    if (
+      tr &&
+      tr.overlapSec > 0 &&
+      (external || this.sources[i] === "spotify" || this.sources[n] === "spotify")
+    )
+      return null;
+    return tr;
+  }
+  /** A join that runs from the audible moments: a fade, a blend or a rise, or the night's song end fade. */
+  private fadedJoin(i: number, tr: PlannedTransition | null): boolean {
+    if (tr) return tr.overlapSec > 0 || tr.fadeOutSec > 0 || tr.fadeInSec > 0;
+    const k = this.item(i)?.kind;
+    return k !== "cortina" && k !== "break" && this.settings.songFadeOutSec > 0;
+  }
+  /** Seconds of item `i`'s silent tail to cut, given what follows it (decided when `i` is scheduled). */
+  private tailCutFor(i: number, tail: number): number {
+    if (tail <= 0) return 0;
+    const mode = this.silenceMode();
+    const n = this.nextPlayable(i);
+    if (n === null) return silenceJoin(mode, { gapSec: 0, tailSec: tail }).tailCutSec;
+    const tr = this.effectiveTransition(i, n);
+    return silenceJoin(mode, {
+      gapSec: tr ? tr.gapSec : this.gapAfter(i),
+      tailSec: tail,
+      headSec: this.silenceOf(n).head,
+      faded: this.fadedJoin(i, tr),
+    }).tailCutSec;
+  }
+  /** Seconds of a side's silent head to skip when it starts with nothing before it (Play, Play now, a jump). */
+  private headCutAlone(head: number): number {
+    return silenceJoin(this.silenceMode(), { gapSec: 0, headSec: head }).headCutSec;
+  }
+
   private prepare(i: number): Promise<PreparedItem> {
     const hit = this.prepared.get(i);
     if (hit) return hit;
@@ -1148,7 +1241,14 @@ export class BoothEngine {
       .prepare(it, this.entities[i] ?? null)
       .finally(() => this.onEvent({ type: "decoding", planIndex: i, busy: false }));
     this.prepared.set(i, p);
-    p.catch(() => this.prepared.delete(i));
+    p.then(
+      (r) => {
+        const m = r.kind !== "spotify" ? r.measured : undefined;
+        if (m && (m.headSilenceSec !== undefined || m.tailSilenceSec !== undefined))
+          this.silenceKnown.set(i, { head: m.headSilenceSec ?? 0, tail: m.tailSilenceSec ?? 0 });
+      },
+      () => this.prepared.delete(i),
+    );
     return p;
   }
   private markMissing(i: number, e: unknown) {
@@ -1309,18 +1409,43 @@ export class BoothEngine {
     if (this.holdBefore === n) return;
     const gen = this.generation;
     // wave 4: the DJ's edited transition (Spotify plays one track at a time: an overlap is the night's gap there)
-    let tr = c.interrupted ? null : this.transitionAfter(c.planIndex, n);
-    if (tr && tr.overlapSec > 0 && (c.external || this.sources[n] === "spotify")) tr = null;
-    const w = tr ? this.windowFor(c, n, tr) : null;
+    const tr = c.interrupted ? null : this.effectiveTransition(c.planIndex, n, !!c.external);
+    // 2026-11: the silence the outgoing still plays and the incoming head share the gap (Settings → Booth → Gaps)
+    let failed: unknown = null;
+    const prep = await this.prepare(n).catch((e) => {
+      failed = e ?? new Error("No source");
+      return undefined;
+    });
+    if (gen !== this.generation || this.current !== c || this.holding || this.queued) return;
+    if (failed) {
+      // the next item failed to decode: try the one after it
+      this.markMissing(n, failed);
+      await this.scheduleNext();
+      return;
+    }
+    const join = joinAfterTail(this.silenceMode(), {
+      gapSec: tr ? tr.gapSec : this.gapAfter(c.planIndex),
+      keptTailSec: c.keptTail ?? 0,
+      headSec: this.silenceOf(n, prep).head,
+      faded: this.fadedJoin(c.planIndex, tr),
+    });
+    let w = tr ? this.windowFor(c, n, tr) : null;
+    if (w && w.overlapSec === 0 && join.gapSec !== w.inStart) {
+      const shift = join.gapSec - w.inStart;
+      w = {
+        ...w,
+        inStart: join.gapSec,
+        inFade: { ...w.inFade, start: w.inFade.start + shift },
+        box: { ...w.box, end: w.box.end + shift },
+        gapSec: join.gapSec,
+      };
+    }
     const end = c.tail?.end ?? c.endsAt;
-    const when = w
-      ? Math.max(this.ctx.currentTime + START_AHEAD, end + w.inStart)
-      : c.endsAt + this.gapAfter(c.planIndex);
-    const s = await this.schedule(
-      n,
-      when,
-      w ? { transitionIn: { window: w, outEnd: when - w.inStart } } : {},
-    );
+    const when = w ? Math.max(this.ctx.currentTime + START_AHEAD, end + w.inStart) : c.endsAt + join.gapSec;
+    const s = await this.schedule(n, when, {
+      headCut: join.headCutSec,
+      ...(w ? { transitionIn: { window: w, outEnd: when - w.inStart } } : {}),
+    });
     if (gen !== this.generation || this.current !== c || this.holding) {
       if (s) {
         s.cancelled = true;
@@ -1350,6 +1475,8 @@ export class BoothEngine {
       from?: number;
       fadeIn?: number;
       transitionIn?: { window: TransitionWindow; outEnd: number };
+      /** 2026-11: seconds of the side's silent head to skip (default: as when nothing plays before it) */
+      headCut?: number;
     } = {},
   ): Promise<Scheduled | null> {
     const it = this.item(i);
@@ -1444,12 +1571,37 @@ export class BoothEngine {
       if (!start && prepared.kind === "file" && this.audioHook(it)) start = fileHookSec(buffer) ?? 0;
       offset = Math.max(0, Math.min(start, buffer.duration - it.lengthSec, buffer.duration - 1));
     } else if (cued) offset = Math.min(it.trimInSec ?? 0, Math.max(0, buffer.duration - 1));
-    else if (this.settings.trimLeadingSilence)
+    else if (this.settings.trimLeadingSilence && this.silenceMode() === "off")
       offset = Math.min(prepared.measured?.introSec ?? 0, TRIM_MAX_SEC, buffer.duration / 2);
+    // 2026-11: the side's own silence (Settings → Booth → Gaps): skip into its head, cut inside its tail
+    const song = it.kind === "track" || it.kind === "closing";
+    const sil = song ? this.silenceOf(i, prepared) : { head: 0, tail: 0 };
+    const headCut = song
+      ? clamp(
+          o.headCut ?? this.headCutAlone(sil.head),
+          0,
+          Math.min(sil.head, Math.max(0, buffer.duration / 2 - offset)),
+        )
+      : 0;
+    offset += headCut;
+    // a cued side stops at its stop second (else at the file's end)
+    const spanEnd =
+      cued && it.stopSec !== undefined ? Math.min(it.stopSec, buffer.duration) : buffer.duration;
     let duration: number | undefined;
-    if (it.kind === "cortina" || cued) duration = Math.min(it.lengthSec, buffer.duration - offset);
+    if (it.kind === "cortina") duration = Math.min(it.lengthSec, buffer.duration - offset);
+    else if (cued) duration = Math.max(0.5, spanEnd - offset);
     const cap = this.capFor(i) ?? (prepared.kind === "preview" ? PREVIEW_CAP_SEC : null);
-    if (cap) duration = Math.min(duration ?? buffer.duration - offset, cap);
+    const natural = duration ?? buffer.duration - offset;
+    // a cap (a 30 s clip, a rehearsal) that ends the side before its tail leaves no tail to cut
+    const effTail = song
+      ? Math.max(0, sil.tail - Math.max(0, natural - (cap ?? Number.POSITIVE_INFINITY)))
+      : 0;
+    const tailCut = effTail > 0 ? Math.min(this.tailCutFor(i, effTail), Math.max(0, natural - 1)) : 0;
+    if (tailCut > 0) duration = natural - tailCut;
+    if (cap) duration = Math.min(duration ?? natural, cap);
+    base.headCut = headCut;
+    base.srcStart = offset;
+    base.keptTail = Math.max(0, effTail - tailCut);
     const full = duration ?? buffer.duration - offset;
     // a resume after Pause starts `from` seconds into the item
     const from = clamp(o.from ?? 0, 0, Math.max(0, full - 0.5));
@@ -1493,7 +1645,12 @@ export class BoothEngine {
     const fadeOut = Math.min(Math.max(0, wantOut), Math.max(0, length - lead - 0.1));
     if (fadeOut > 0) gain.gain.setValueCurveAtTime(fadeOutCurve(64, g.base), endsAt - fadeOut, fadeOut);
     else {
-      gain.gain.setValueAtTime(g.base, endsAt - DECLICK_OUT);
+      // a cut inside the silent tail ends with a short fade (≤ 150 ms): the surface noise never clicks
+      const out =
+        tailCut > 0
+          ? Math.max(DECLICK_OUT, Math.min(SILENCE_CUT_FADE_SEC, (length - lead) / 2))
+          : DECLICK_OUT;
+      gain.gain.setValueAtTime(g.base, endsAt - out);
       gain.gain.linearRampToValueAtTime(0, endsAt);
     }
     node.start(when, offset, duration);
@@ -1516,28 +1673,45 @@ export class BoothEngine {
     it: BoothRow,
     prepared: PreparedItem,
     gainDb: number,
-    o: { from?: number; fadeIn?: number } = {},
+    o: { from?: number; fadeIn?: number; headCut?: number } = {},
   ): Scheduled | null {
-    const a = this.adapterFor(base.planIndex)?.external;
+    const i = base.planIndex;
+    const a = this.adapterFor(i)?.external;
     if (!a || !prepared.spotifyUri) return null;
     const delay = Math.max(0, base.when - this.ctx.currentTime);
-    const full = this.itemLength(base.planIndex);
+    // 2026-11: Spotify cannot be heard by the browser: the silence is the plan's (a measurement of the same
+    // recording, a table, the opt-in estimate, or the DJ's "Song ends early" stop)
+    const song = it.kind === "track" || it.kind === "closing";
+    const sil = song ? this.silenceOf(i) : { head: 0, tail: 0 };
+    // the side from its cue in (or 0) to its stop (or end), before the plan's own silence cuts
+    const span = it.lengthSec + (it.headCutSec ?? 0) + (it.tailCutSec ?? 0);
+    const headCut = song
+      ? clamp(o.headCut ?? this.headCutAlone(sil.head), 0, Math.min(sil.head, span / 2))
+      : 0;
+    const natural = span - headCut;
+    const cap = this.capFor(i);
+    const effTail = song
+      ? Math.max(0, sil.tail - Math.max(0, natural - (cap ?? Number.POSITIVE_INFINITY)))
+      : 0;
+    const tailCut = effTail > 0 ? Math.min(this.tailCutFor(i, effTail), Math.max(0, natural - 1)) : 0;
+    const full = cap ? Math.min(cap, natural - tailCut) : natural - tailCut;
     const from = clamp(o.from ?? 0, 0, Math.max(0, full - 0.5));
     const length = full - from;
     base.startedAt = base.when - from;
     base.endsAt = base.when + length;
     const cued = it.kind !== "cortina" && isCued(it);
-    const start0 = it.kind === "cortina" || cued ? (it.trimInSec ?? 0) : 0;
+    const start0 = (it.kind === "cortina" || cued ? (it.trimInSec ?? 0) : 0) + headCut;
     base.extStart = start0;
+    base.srcStart = start0;
+    base.headCut = headCut;
+    base.keptTail = Math.max(0, effTail - tailCut);
     const songFade = it.kind === "cortina" ? 0 : this.settings.songFadeOutSec;
     base.external = a.startItem({
       uri: prepared.spotifyUri,
       delaySec: delay,
       positionSec: start0 + from,
       durationSec:
-        it.kind === "cortina" || cued || this.capFor(base.planIndex) || songFade > 0 || from > 0
-          ? length
-          : undefined,
+        it.kind === "cortina" || cued || cap || songFade > 0 || from > 0 || tailCut > 0 ? length : undefined,
       fadeInSec: o.fadeIn ?? (it.kind === "cortina" ? it.fadeInSec : 0),
       fadeOutSec: it.kind === "cortina" ? it.fadeOutSec : songFade,
       gainDb: Math.min(0, gainDb),

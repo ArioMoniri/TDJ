@@ -14,6 +14,9 @@ export interface Measurement {
   introSec: number;
   /** Pearson correlation of L and R over the first 30 s (1 for mono) */
   correlation: number;
+  /** 2026-11: seconds of silence before the music starts / after it ends (`silenceBounds`) */
+  headSilenceSec: number;
+  tailSilenceSec: number;
 }
 
 interface Biquad {
@@ -177,13 +180,71 @@ export function channelCorrelation(channels: Float32Array[], sampleRate: number)
   return slr / Math.sqrt(sll * srr);
 }
 
+/* ---------- 2026-11: the silent head and tail ---------- */
+
+/** the silence gate never sits above this (dBFS RMS) … */
+export const SILENCE_GATE_DBFS = -50;
+/** … and drops with a quiet side: this far under its integrated loudness */
+export const SILENCE_GATE_REL_DB = 40;
+/** sound shorter than this (a crackle) is not music; breaths shorter than this inside the music are not silence */
+export const SILENCE_HOLD_SEC = 0.2;
+const SILENCE_FRAME_SEC = 0.01;
+
+/** The gate in dBFS RMS for a side of loudness `lufs`: −50, or 40 dB under the side when that is lower. */
+export function silenceThresholdDb(lufs: number): number {
+  return Number.isFinite(lufs)
+    ? Math.min(SILENCE_GATE_DBFS, Math.round(lufs - SILENCE_GATE_REL_DB))
+    : SILENCE_GATE_DBFS;
+}
+
+/**
+ * Seconds of silence before the music starts and after it ends. 10 ms RMS frames (channels averaged) against
+ * `silenceThresholdDb`; runs of sound closer than the 200 ms hold merge (breaths between notes), and a merged run
+ * shorter than the hold is a click, not music. A buffer with no music at all is never trimmed (0 / 0).
+ */
+export function silenceBounds(
+  channels: Float32Array[],
+  sampleRate: number,
+  lufs: number = integratedLoudness(channels, sampleRate),
+): { headSec: number; tailSec: number } {
+  const n = channels[0]?.length ?? 0;
+  const hop = Math.max(1, Math.round(SILENCE_FRAME_SEC * sampleRate));
+  if (!n || !channels.length) return { headSec: 0, tailSec: 0 };
+  const thr = 10 ** (silenceThresholdDb(lufs) / 10);
+  const frames = Math.ceil(n / hop);
+  const hold = Math.round(SILENCE_HOLD_SEC / SILENCE_FRAME_SEC);
+  // runs of sound frames, merged across gaps under the hold
+  const runs: Array<[number, number]> = [];
+  for (let f = 0; f < frames; f++) {
+    const start = f * hop;
+    const end = Math.min(n, start + hop);
+    let sum = 0;
+    for (const c of channels) for (let i = start; i < end; i++) sum += c[i]! * c[i]!;
+    if (sum / ((end - start) * channels.length) <= thr) continue;
+    const last = runs[runs.length - 1];
+    if (last && f - last[1] < hold) last[1] = f + 1;
+    else runs.push([f, f + 1]);
+  }
+  const music = runs.filter(([a, b]) => b - a >= hold);
+  if (!music.length) return { headSec: 0, tailSec: 0 };
+  const r3 = (v: number) => Math.round(Math.max(0, v) * 1000) / 1000;
+  return {
+    headSec: r3((music[0]![0] * hop) / sampleRate),
+    tailSec: r3((n - Math.min(n, music[music.length - 1]![1] * hop)) / sampleRate),
+  };
+}
+
 /** Everything the engine needs from one decoded item. */
 export function measurePcm(channels: Float32Array[], sampleRate: number): Measurement {
+  const lufs = integratedLoudness(channels, sampleRate);
+  const s = silenceBounds(channels, sampleRate, lufs);
   return {
-    lufs: integratedLoudness(channels, sampleRate),
+    lufs,
     peakDbFS: samplePeakDb(channels),
     truePeakDbTP: truePeakDb(channels),
     introSec: introSeconds(channels, sampleRate),
     correlation: channelCorrelation(channels, sampleRate),
+    headSilenceSec: s.headSec,
+    tailSilenceSec: s.tailSec,
   };
 }

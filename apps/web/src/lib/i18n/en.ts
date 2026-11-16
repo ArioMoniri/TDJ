@@ -265,8 +265,6 @@ export const en = {
   "booth.mix.cortinas_fade_out_over_this_time":
     "Cortinas fade out over this time, ending at their stop second.",
   "booth.mix.cortinas_start_softly_over_this_time": "Cortinas start softly over this time.",
-  "booth.mix.cut_the_silence_at_the_start":
-    "Cut the silence at the start of each file (never more than 3 s).",
   "booth.mix.each_song_plays_to_its_last":
     "Each song plays to its last note, then a short silence: what dancers expect at a milonga.",
   "booth.mix.fade_at_the_end_of_every":
@@ -428,8 +426,6 @@ export const en = {
   "booth.onboardingSheet.test_tone": "Test tone",
   "booth.onboardingSheet.the_featured_night_could_not_be": "The featured night could not be loaded",
   "booth.onboardingSheet.this_session_only": " · this session only",
-  "booth.onboardingSheet.trim_leading_silence": "Trim leading silence",
-  "booth.onboardingSheet.up_to_3_s_from_the": "Up to 3 s, from the measured intro",
   "booth.onboardingSheet.your_browser_cannot_remember_the_folder":
     "Your browser cannot remember the folder: pick it again next time",
   "booth.onboardingSheet.your_music_folder": "Your music folder",
@@ -633,7 +629,6 @@ export const en = {
   "booth.sheets.this_sheet": "This sheet",
   "booth.sheets.track": "track {k}",
   "booth.sheets.transitions": "Transitions",
-  "booth.sheets.trim_silence_at_the_start": "Trim silence at the start",
   "booth.sheets.unmute": "Unmute",
   "booth.sheets.use_the_night_s_settings": "Use the night's settings",
   "booth.show_energy_bpm_key_era_artwork": "Show: energy, BPM, key, era, artwork…",
@@ -4112,6 +4107,35 @@ export const en = {
   "settings.booth.confirm_footer":
     "Once the night runs, Next, Previous, Play now, Fade, Crossfade, End tanda and La Cumparsita now need a second tap (or a press and hold on the transport), so a mistaken tap never cuts the song. Volume, the headphones and floor reactions never ask.",
   "settings.booth.header": "Booth",
+  "settings.gaps.header": "Booth · Gaps",
+  "settings.gaps.footer":
+    "Old transfers often have 1–6 s of silence at their start and end. T-DJ measures it on your files and 30 s clips (never on Spotify, which the browser cannot hear: there, “Song ends early” in the song's sheet teaches a track its real end, or turn on the estimate).",
+  "booth.silence.label": "Count a song's own silence as part of the gap",
+  "booth.silence.mix_header": "Silence between songs",
+  "booth.silence.gap": "Silence counts as the gap",
+  "booth.silence.gap_sub": "Recommended. The room hears exactly the gap you set.",
+  "booth.silence.gap_tip":
+    "A song's silent end and the next song's silent start are taken off the gap. When they are already longer than the gap, the silent end is cut with a short fade. Fades, blends and rises start at the last note.",
+  "booth.silence.after": "Gap after the music ends",
+  "booth.silence.after_sub": "The gap starts at the last note; the next song's silent start is kept.",
+  "booth.silence.after_tip":
+    "The silence at the end of a song is skipped, then the gap plays. The next song keeps its own silence at the start.",
+  "booth.silence.off": "Off (play files to their edges)",
+  "booth.silence.off_sub": "Every file plays to its last second, then the gap: the silences add up.",
+  "booth.silence.off_tip":
+    "As before: the silence at a song's end, the gap and the next song's silent start all play, one after the other.",
+  "booth.silence.estimate": "Estimate silence for streaming tracks",
+  "booth.silence.estimate_sub":
+    "Off by default. Spotify can't be measured: a golden-era side is taken to end with 1 s of silence.",
+  "booth.silence.estimate_tip":
+    "The browser cannot hear Spotify. With this on, a side recorded up to 1959 that has no file is taken to end with 1 s of silence (78 rpm transfers often end with 1–2 s). A file or a measured recording always wins.",
+  "booth.songSheet.ends_early": "Song ends early",
+  "booth.songSheet.ends_early_sub":
+    "The music is over: save now as this song's real end and play the next at the gap.",
+  "booth.songSheet.ends_early_saved": "{title} now ends at {at}",
+  "booth.transition.silence_heard": "Silence heard: {sec} s",
+  "booth.transition.silence_hint":
+    "The grey parts are the songs' own silence. With “Silence counts as the gap” it is part of the gap (Settings → Booth → Gaps).",
 } as const;
 
 export type MsgKey = keyof typeof en;
