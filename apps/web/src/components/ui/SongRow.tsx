@@ -7,6 +7,7 @@ import { haptic } from "@/lib/haptics";
 import { fmtLen } from "@/lib/lengths";
 import { useTapPlay } from "@/lib/playback";
 import type { PlayItem } from "@/lib/player";
+import { type SongMenuSpec, useSongMenuProps } from "@/lib/songMenu";
 import { bpmText, keyText, useSongData } from "@/lib/songView";
 import type { Song } from "@/lib/types";
 import { metaLine, yearText } from "@/lib/year";
@@ -73,6 +74,7 @@ export const SongRow = memo(function SongRow({
   showPlay = true,
   ariaLabel,
   busy = false,
+  menu,
 }: {
   song: Song;
   pill?: ReactNode;
@@ -86,12 +88,15 @@ export const SongRow = memo(function SongRow({
   /** the accessible name of the row's main button */
   ariaLabel?: string;
   busy?: boolean;
+  /** 2026-11: what the song menu adds here (Swap…, Insert…); the menu is on every row */
+  menu?: Omit<SongMenuSpec, "song">;
 }) {
   const { song: eff, data } = useSongData(song);
   const bpm = bpmText(data);
   const key = keyText(data);
   const item = useMemo<PlayItem>(() => ({ kind: "song", song }), [song]);
   const play = useTapPlay(item);
+  const menuProps = useSongMenuProps({ ...menu, song });
   const tapPlay = () => {
     haptic(4);
     void play.tap();
@@ -146,6 +151,7 @@ export const SongRow = memo(function SongRow({
       data-testid={testId}
       data-song-id={song.id}
       data-now={play.state ?? undefined}
+      {...menuProps}
     >
       {onClick ? (
         // a row whose body picks the side (Swap, search): the cover plays it, the body picks

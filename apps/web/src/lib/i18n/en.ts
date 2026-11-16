@@ -5886,6 +5886,26 @@ export const en = {
   "booth.load.empty_text": "Load one of your nights, a featured night or an import, or compose a new one.",
   // QA 2026-11: the Booth's fix pass
   "toast.dismiss": "Dismiss",
+  "songMenu.menu_of": "{title}: actions",
+  "songMenu.more_of": "More for {title}",
+  "songMenu.play": "Play",
+  "songMenu.prelisten": "Pre-listen",
+  "songMenu.insert": "Insert…",
+  "songMenu.add_to_tonight": "Add to tonight…",
+  "songMenu.copy_title": "Copy title",
+  "songMenu.copied": "Copied “{title}”",
+  "songMenu.copy_failed": "Could not copy the title",
+  "songMenu.measuring": "Measuring {title} from your file…",
+  "song.year_reissue": "album year (reissue)",
+  "song.year_album": "album year",
+  "song.version_play": "Play {orchestra}, {year}",
+  "song.measure_short": "Measure",
+  "song.dna_chart_summary":
+    "{n} dated recordings by {orchestras} orchestras, {from} to {to}. This recording: {orchestra}, {year}.",
+  "song.dna_chart_marker": "{orchestra}, {year}, {voice}",
+  "song.dna_chart_undated": "Not on the chart: {n} undated",
+  "song.dna_chart_tap": "Tap a mark to play it",
+  "song.dna_chart_hover": "Point at a mark to see it; click to play",
 } as const;
 
 export type MsgKey = keyof typeof en;

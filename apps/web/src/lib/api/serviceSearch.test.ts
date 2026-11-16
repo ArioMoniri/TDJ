@@ -37,7 +37,15 @@ describe("POST /api/services/search", () => {
                 name: "Bahía Blanca",
                 artists: [{ name: "Carlos Di Sarli" }],
                 duration_ms: 171000,
-                album: { name: "Bahía Blanca", release_date: "1995-01-01" },
+                album: {
+                  name: "Bahía Blanca",
+                  release_date: "1995-01-01",
+                  images: [
+                    { url: "https://i.scdn.co/image/640", width: 640, height: 640 },
+                    { url: "https://i.scdn.co/image/300", width: 300, height: 300 },
+                    { url: "https://i.scdn.co/image/64", width: 64, height: 64 },
+                  ],
+                },
                 external_ids: { isrc: "ARF000000001" },
               },
               {
@@ -70,6 +78,7 @@ describe("POST /api/services/search", () => {
         durationSec: 171,
         previewUrl: null,
         isrc: "ARF000000001",
+        image: "https://i.scdn.co/image/300",
       },
     ]);
     const u = new URL(calls[0]!);

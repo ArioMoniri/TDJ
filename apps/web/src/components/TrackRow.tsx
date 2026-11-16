@@ -26,6 +26,7 @@ import { fmtLen } from "@/lib/lengths";
 import { lineSwap } from "@/lib/motion";
 import { useTapPlay } from "@/lib/playback";
 import type { PlayItem } from "@/lib/player";
+import { useSongMenuProps } from "@/lib/songMenu";
 import { openSongDetails } from "@/lib/songOpen";
 import { bpmText, keyText, useSongData } from "@/lib/songView";
 import { useStore } from "@/lib/store";
@@ -149,6 +150,22 @@ export const TrackRow = memo(function TrackRow({
   };
   const swap = () => onSwap(k);
   const analysing = busy || isAnalysing(song.id);
+  // 2026-11: the shared song menu (right-click, long press, "i"), with this tanda's Swap… and Insert…
+  const menu = useSongMenuProps({
+    song: eff,
+    swap: {
+      run: swap,
+      disabled: disabled || inFlight,
+      subtitle: disabled ? (lockedWhy ?? t("trackRow.unlock_the_tanda_first")) : undefined,
+    },
+    insert: onInsert ? { run: () => onInsert(k + 1), disabled } : undefined,
+    find: openFind,
+    // (the row's own measure: tempo, key and level from the file or the clip; it says how it went)
+    measure: async () => {
+      await analyse();
+      return undefined;
+    },
+  });
   // QA fix 2026-11: "Measuring… 40 %" on the row while its audio is read and analysed
   const measuring = useMeasuring((m) => m.progress[song.id]);
   const playLabel = playing
@@ -177,7 +194,11 @@ export const TrackRow = memo(function TrackRow({
       data-now={play.state ?? undefined}
       data-reorder-row
       tabIndex={0}
+      {...menu}
       onKeyDown={(e) => {
+        // 2026-11: "i" opens the details, the menu key the song menu (from the row or any of its buttons)
+        menu.onKeyDown(e);
+        if (e.defaultPrevented) return;
         if (e.target !== e.currentTarget) return;
         // 2026-11: the row's keys — S opens its Swap sheet, Alt+↑ / Alt+↓ move it inside the tanda (EditKeys, ⌘Z undoes)
         if (isAction("edit.swap", e)) {

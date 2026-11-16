@@ -6,6 +6,7 @@ import { t } from "@/lib/i18n";
 import { fmtLen, nightLength, totalText } from "@/lib/lengths";
 import { useTapPlay } from "@/lib/playback";
 import type { PlayItem } from "@/lib/player";
+import { type SongMenuSpec, useSongMenuProps } from "@/lib/songMenu";
 import { useStore } from "@/lib/store";
 import type { Cortina, Playlist, Song } from "@/lib/types";
 import { NoAudio, NowBars } from "./NowPlaying";
@@ -28,6 +29,7 @@ export function PlayRow({
   leadingKind = "art",
   onFind,
   playTestId = "row-play",
+  menu,
 }: {
   song: Song;
   where?: string;
@@ -44,9 +46,13 @@ export function PlayRow({
   onFind?: () => void;
   /** the play button's test id */
   playTestId?: string;
+  /** 2026-11: what the song menu adds on this surface (Swap…, Insert…, its own details) */
+  menu?: Omit<SongMenuSpec, "song">;
 }) {
   const item = useMemo<PlayItem>(() => ({ kind: "song", song, where }), [song, where]);
   const play = useTapPlay(item);
+  // 2026-11: the song menu on every row (right-click, long press, "i"); the surface adds Swap…, Insert…
+  const menuProps = useSongMenuProps({ find: onFind, ...menu, song });
   return (
     <div
       className={`cell ${play.state ? "row-now" : ""} ${className}`}
@@ -54,6 +60,7 @@ export function PlayRow({
       data-testid={testId}
       data-song-id={song.id}
       data-now={play.state ?? undefined}
+      {...menuProps}
     >
       <button
         type="button"

@@ -2,9 +2,11 @@
 import { Info, ListEnd, Maximize2 } from "lucide-react";
 import { durationLabel } from "@/lib/booth/plan";
 import { useRoomHearts } from "@/lib/booth/roomHearts";
+import { boothMenuSpec } from "@/lib/booth/songMenu";
 import { SOURCE_LABEL } from "@/lib/booth/sources/types";
 import { useBooth, useRoomCaps } from "@/lib/booth/store";
 import { t } from "@/lib/i18n";
+import { useSongMenuProps } from "@/lib/songMenu";
 import { metaLine, yearText } from "@/lib/year";
 import { Artwork } from "../ui/Artwork";
 import { BpmKey, EnergyChip } from "../ui/BpmKey";
@@ -83,6 +85,10 @@ export function NowCard({
   const hearts = useRoomHearts((s) => (entity && "rhythm" in entity ? (s.counts[entity.id] ?? 0) : 0));
   const item = plan?.items[planIndex];
   const tanda = item && item.tanda > 0 ? playlist?.tandas[item.tanda - 1] : undefined;
+  // 2026-11: the shared song menu on the playing song (right-click, long press, "i"): its sheet, Song DNA…
+  const menu = useSongMenuProps(
+    boothMenuSpec(planIndex, { details: onInfo ? () => onInfo(planIndex) : undefined }),
+  );
   if (!plan || !item) return null;
   const length = current
     ? Math.max(0, current.endsAt - current.startedAt)
@@ -111,7 +117,7 @@ export function NowCard({
               : null;
   return (
     <section className="booth-card" data-testid="booth-now" aria-label={t("booth.nowCard.now_playing")}>
-      <div className="booth-now-head">
+      <div className="booth-now-head" {...menu}>
         <button
           type="button"
           className="booth-art-tap"

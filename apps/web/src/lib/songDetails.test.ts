@@ -12,7 +12,15 @@ import {
 import type { ServiceAnswer, ServiceTrack } from "./smartSearch";
 import { songHistory } from "./songHistory";
 import { withMeasurement } from "./songMarks";
-import { otherVersions, serviceWorkKey } from "./songVersions";
+import {
+  otherVersions,
+  serviceWorkKey,
+  thisRecording,
+  versionCover,
+  yearNoteOf,
+  youtubeThumb,
+} from "./songVersions";
+import { albumImage } from "./spotifyWeb";
 import { DRIFT_PLAYING_SEC, SEEK_SETTLE_MS, syncAction } from "./videoSync";
 
 /**
@@ -167,6 +175,198 @@ describe("other versions: the catalogue and the DJ's services", () => {
     expect(out.unsearched).toEqual(["spotify"]);
     expect(otherVersions(me, alone, [], ctx, { servicesSearched: false }).onlyThis).toBe(false);
     expect(otherVersions(me, alone, [{ id: "spotify", state: "off", tracks: [] }], ctx).onlyThis).toBe(true);
+  });
+});
+
+describe("versions: 'This recording', covers, album years and merged sources", () => {
+  const ctx = {
+    orchestras: [
+      { id: "anibal-troilo", name: "Aníbal Troilo" },
+      { id: "lucio-demare", name: "Lucio Demare" },
+      { id: "carlos-di-sarli", name: "Carlos Di Sarli" },
+    ],
+  };
+  const troilo = S({
+    id: "t42",
+    title: "Malena",
+    orchestra: "Aníbal Troilo",
+    orchestraId: "anibal-troilo",
+    singer: "Francisco Fiorentino",
+    year: 1942,
+    durationSec: 182,
+  });
+  const troiloLate = S({
+    id: "t57",
+    title: "Malena",
+    orchestra: "Aníbal Troilo",
+    orchestraId: "anibal-troilo",
+    singer: "Roberto Goyeneche",
+    year: 1957,
+    durationSec: 190,
+  });
+  const demare = S({
+    id: "d42",
+    title: "Malena",
+    orchestra: "Lucio Demare",
+    orchestraId: "lucio-demare",
+    singer: "Juan Carlos Miranda",
+    year: 1942,
+    durationSec: 171,
+    spotify: { uri: "spotify:track:dem" } as Song["spotify"],
+  });
+  const demareInstr = S({
+    id: "d50",
+    title: "Malena",
+    orchestra: "Lucio Demare",
+    orchestraId: "lucio-demare",
+    year: 1950,
+    durationSec: 171,
+  });
+  const cat = [troiloLate, demare, troilo, demareInstr];
+  const T = (o: Partial<ServiceTrack> & Pick<ServiceTrack, "id" | "artists">): ServiceTrack => ({
+    service: "spotify",
+    uri: `spotify:track:${o.id}`,
+    title: "Malena",
+    year: 2004,
+    durationSec: 170,
+    ...o,
+  });
+  const ok = (tracks: ServiceTrack[]): ServiceAnswer[] => [{ id: "spotify", state: "ok", tracks }];
+
+  it("'This recording' is the side's id, listed first and only once, even when the catalogue lists it later", () => {
+    const r = otherVersions(troilo, cat, [], ctx);
+    expect(r.versions[0]!.song.id).toBe("t42");
+    expect(r.versions.filter((v) => v.current).map((v) => v.song.id)).toEqual(["t42"]);
+    expect(r.versions.filter((v) => v.song.id === "t42")).toHaveLength(1);
+    expect(r.catalogue).toBe(4);
+  });
+  it("a side opened from Spotify is matched by its uri to the catalogue row, never by the title alone", () => {
+    const fromSpotify = S({
+      id: "ext:spotify:dem",
+      title: "Malena - Remastered 2004",
+      orchestra: "Lucio Demare",
+      orchestraId: "lucio-demare",
+      singer: "Juan Carlos Miranda",
+      year: 2004,
+      spotify: { uri: "spotify:track:dem" } as Song["spotify"],
+    });
+    const r = otherVersions(fromSpotify, cat, [], ctx);
+    expect(r.versions[0]!.song.id).toBe("d42");
+    expect(r.versions[0]!.current).toBe(true);
+    expect(r.versions.filter((v) => v.current)).toHaveLength(1);
+    // the same work by another orchestra is never "This recording"
+    const other = S({
+      id: "ext:spotify:zz",
+      title: "Malena",
+      orchestra: "Some Band",
+      orchestraId: "ext-some-band",
+      year: 1942,
+    });
+    const r2 = otherVersions(other, cat, [], ctx);
+    expect(r2.versions[0]!.song.id).toBe("ext:spotify:zz");
+    expect(r2.versions.filter((v) => v.current).map((v) => v.song.id)).toEqual(["ext:spotify:zz"]);
+  });
+  it("without an id or uri, the orchestra + voice + recording year match; another voice or year does not", () => {
+    const copy = { ...troilo, id: "elsewhere:1" } as Song;
+    expect(thisRecording(copy, { song: troilo, sources: ["catalogue"] })).toBe("people");
+    expect(thisRecording(copy, { song: troiloLate, sources: ["catalogue"] })).toBeNull();
+    expect(thisRecording(copy, { song: { ...troilo, singer: null }, sources: ["catalogue"] })).toBeNull();
+    // a service's album year is not a recording year
+    expect(thisRecording(copy, { song: troilo, sources: ["spotify"] })).toBeNull();
+    const r = otherVersions(copy, cat, [], ctx);
+    expect(r.versions[0]!.song.id).toBe("t42");
+    expect(r.versions.filter((v) => v.current)).toHaveLength(1);
+  });
+  it("a Spotify recording of the same orchestra + singer + length ±3 s merges into the catalogue row as a source", () => {
+    const r = otherVersions(
+      troilo,
+      cat,
+      ok([
+        T({
+          id: "fio",
+          artists: ["Aníbal Troilo", "Francisco Fiorentino"],
+          durationSec: 184,
+          image: "https://i.scdn.co/a.jpg",
+        }),
+        // the same orchestra and singer, 9 s longer: another recording
+        T({ id: "fio2", artists: ["Aníbal Troilo", "Francisco Fiorentino"], durationSec: 191 }),
+        // the instrumental side never takes a sung track
+        T({ id: "dm", artists: ["Lucio Demare", "Raúl Berón"], durationSec: 171 }),
+      ]),
+      ctx,
+    );
+    const mine = r.versions[0]!;
+    expect(mine.song.id).toBe("t42");
+    expect(mine.sources).toEqual(["catalogue", "spotify"]);
+    expect(mine.external?.uri).toBe("spotify:track:fio");
+    expect(r.versions.find((v) => v.song.id === "d50")!.sources).toEqual(["catalogue"]);
+    expect(r.versions.some((v) => v.song.id === "ext:spotify:fio2")).toBe(true);
+    expect(r.versions.some((v) => v.song.id === "ext:spotify:dm")).toBe(true);
+    expect(r.serviceMatched).toBe(1);
+  });
+  it("the nearest length wins when two sides of one voice could be the track", () => {
+    const twin = { ...troilo, id: "t42b", durationSec: 180 } as Song;
+    const r = otherVersions(
+      troilo,
+      [...cat, twin],
+      ok([T({ id: "fio", artists: ["Aníbal Troilo", "Francisco Fiorentino"], durationSec: 180 })]),
+      ctx,
+    );
+    expect(r.versions.find((v) => v.song.id === "t42b")!.sources).toContain("spotify");
+    expect(r.versions.find((v) => v.song.id === "t42")!.sources).toEqual(["catalogue"]);
+  });
+  it("covers: a service row shows its album image (else a YouTube thumbnail); a catalogue row resolves its own", () => {
+    const r = otherVersions(
+      troilo,
+      cat,
+      ok([
+        T({ id: "img", artists: ["Carlos Di Sarli"], durationSec: 150, image: "https://i.scdn.co/img.jpg" }),
+        T({ id: "noimg", artists: ["Julio Sosa"], durationSec: 200, year: 1964 }),
+      ]),
+      ctx,
+      { youtube: { "ext:spotify:noimg": "abcDEF12345" } },
+    );
+    expect(r.versions.find((v) => v.song.id === "ext:spotify:img")!.cover).toBe("https://i.scdn.co/img.jpg");
+    expect(r.versions.find((v) => v.song.id === "ext:spotify:noimg")!.cover).toBe(
+      youtubeThumb("abcDEF12345"),
+    );
+    expect(r.versions[0]!.cover).toBeNull();
+    expect(
+      versionCover({
+        song: troilo,
+        sources: ["youtube"],
+        external: { service: "youtube", id: "vid", uri: "yt:vid", title: "Malena", artists: [] },
+      }),
+    ).toBe(youtubeThumb("vid"));
+  });
+  it("a golden-age orchestra's Spotify album year is a reissue's; another artist's is an album year; the catalogue's is the recording's", () => {
+    const r = otherVersions(
+      troilo,
+      cat,
+      ok([
+        T({ id: "ds", artists: ["Carlos Di Sarli"], durationSec: 150, year: 2004 }),
+        T({ id: "js", artists: ["Julio Sosa"], durationSec: 200, year: 1964 }),
+      ]),
+      ctx,
+    );
+    expect(r.versions.find((v) => v.song.id === "ext:spotify:ds")!.yearNote).toBe("reissue");
+    expect(r.versions.find((v) => v.song.id === "ext:spotify:js")!.yearNote).toBe("album");
+    expect(r.versions.find((v) => v.song.id === "t42")!.yearNote).toBeNull();
+    expect(
+      yearNoteOf({ song: { ...troilo, orchestraId: "ext-x", year: 1990 }, sources: ["spotify"] }, 1957),
+    ).toBe("reissue");
+  });
+  it("Spotify's album image: the smallest at least 128 px wide, else the largest", () => {
+    expect(
+      albumImage([
+        { url: "https://i.scdn.co/640", width: 640 },
+        { url: "https://i.scdn.co/300", width: 300 },
+        { url: "https://i.scdn.co/64", width: 64 },
+      ]),
+    ).toBe("https://i.scdn.co/300");
+    expect(albumImage([{ url: "https://i.scdn.co/64", width: 64 }])).toBe("https://i.scdn.co/64");
+    expect(albumImage([])).toBeNull();
+    expect(albumImage([{ url: "http://insecure/x", width: 300 }])).toBeNull();
   });
 });
 
