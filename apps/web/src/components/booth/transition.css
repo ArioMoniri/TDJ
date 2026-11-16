@@ -20,7 +20,7 @@
   }
 }
 /* the lg sidebar stays where it is: the panel centres in the content beside it */
-@media (min-width: 1024px) {
+@media (min-width: 900px) {
   .trx-root {
     padding-left: calc(var(--sidebar-w, 0px) + 24px);
   }
@@ -1138,4 +1138,31 @@ html:not(.dark) .trx {
 .trx-toggle[aria-pressed="true"] {
   background: var(--trx-fill);
   color: var(--trx-label);
+}
+
+/* 2026-11 — short screens (the iPhone Duo folded, 466 × 678 pt; its landscape 466 tall; an iPhone SE): a compact
+   editor where the waveforms stay in view. The lanes are shorter and pinned at the top of the scrolling list, so
+   scrolling down to the presets and the Volume / EQ rows (or picking a preset) keeps the drawing on screen and its
+   change visible; the songs' rows are tighter. The pinned card is opaque (the editor's own background around it). */
+@media (max-height: 760px) {
+  .trx-side {
+    padding-block: 6px;
+  }
+  .trx-stage-wrap {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    margin-top: 4px;
+    background: var(--trx-bg);
+  }
+  .trx-stage {
+    height: clamp(150px, 32dvh, 240px);
+  }
+}
+@media (max-height: 760px) and (min-width: 600px) {
+  .trx-stage-wrap {
+    background: var(--trx-stage-bg);
+    /* the gutters beside the card and a band under it: the rows scroll under them, never beside the lanes */
+    box-shadow: 0 0 0 var(--trx-gut) var(--trx-bg);
+  }
 }

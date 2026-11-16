@@ -1004,7 +1004,7 @@ export function Composer() {
   }, [setKey]);
   const reduced = useReducedMotion();
   const wide = useMediaQuery("(min-width: 600px)", true);
-  const lg = useMediaQuery("(min-width: 1024px)", true);
+  const lg = useMediaQuery("(min-width: 900px)", true);
   const playerOpen = usePlayer((s) => !!s.track);
   useEffect(() => setHydrated(true), []);
   /**

@@ -238,7 +238,7 @@
   overflow-wrap: break-word;
   hyphens: auto;
 }
-@media (max-width: 1023.98px) {
+@media (max-width: 899.98px) {
   .vc-pad {
     padding: 2px;
     font-size: var(--text-caption2);

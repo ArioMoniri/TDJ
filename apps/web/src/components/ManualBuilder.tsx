@@ -253,6 +253,8 @@ function Sparkline({ values, targets }: { values: number[]; targets: number[] })
 export function ManualBuilder() {
   const router = useRouter();
   const reduced = useReducedMotion();
+  // the Add panel beside the night needs its 440 px plus a readable night column: from 1024 px, whatever the size
+  // class (the iPhone Duo open, 951 pt, has the sidebar but too little room: the night alone, Add in a sheet)
   const wide = useMediaQuery("(min-width: 1024px)");
   const { settings, setSettings, memory, setPlaylist, addSnapshot, updateMemory } = useStore();
   const [draft, setDraftState] = useState<Draft>([]);
@@ -1123,7 +1125,7 @@ export function ManualBuilder() {
         }
       />
 
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-x-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,440px)]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-x-6 min-[1024px]:grid-cols-[minmax(0,1fr)_minmax(0,440px)]">
         <section aria-label={tx("manualBuilder.your_night")} className="build-stack min-w-0">
           <h2 className="section-head">{tx("manualBuilder.your_night")}</h2>
           {/* the night at a glance: its length against the target, the energy, and the guidance lines */}
@@ -1286,7 +1288,7 @@ export function ManualBuilder() {
         {wide ? (
           <aside
             aria-label={tx("builder.add")}
-            className="min-w-0 lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6rem)] lg:self-start lg:overflow-y-auto lg:pb-6"
+            className="sticky top-20 max-h-[calc(100dvh-6rem)] min-w-0 self-start overflow-y-auto pb-6"
           >
             {addPanel}
           </aside>
@@ -1294,7 +1296,8 @@ export function ManualBuilder() {
           <>
             <button
               type="button"
-              className="btn btn-primary fixed right-4 z-20 min-h-[50px] px-5 shadow-lg"
+              // at the content column's trailing edge, never in the gutter beside it (globals.css)
+              className="build-add-fab btn btn-primary fixed z-20 min-h-[50px] px-5 shadow-lg"
               style={{ bottom: "calc(var(--chrome-stack) + 10px)" }}
               onClick={() => setAddOpen(true)}
               data-testid="build-add-open"

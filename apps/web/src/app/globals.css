@@ -12,9 +12,12 @@
   --color-teal: #4fd1c5; /* vals */
   --color-violet: #8b7cf6; /* milonga */
 
-  /* Wave 4: the HIG size classes. compact < 600 (iPhone, iPad split view): tab bar; regular 600–1023: the nav pill;
-     wide ≥ 1024: sidebar (+ inspector). */
+  /* Wave 4: the HIG size classes. compact < 600 (iPhone, iPad split view): tab bar; regular 600–899: the nav pill;
+     wide ≥ 900: sidebar (+ inspector). 2026-11: wide from 900, not 1024, so the iPhone Duo open (951 × 669 pt) gets
+     the sidebar instead of the pill over one narrow centred column; iPad Pro 11 portrait (834) keeps the pill. The
+     panes inside `main` (Compose's inspector and set-up columns, Build's Add panel) go by the room they get. */
   --breakpoint-sm: 37.5rem;
+  --breakpoint-lg: 56.25rem;
 
   /* Apple text styles, 17 pt body. Names are Apple's. All rem, so the user's text size (browser zoom, iOS text
      size) scales them; the large title is fluid between the HIG compact (28) and regular (34) sizes. */
@@ -415,7 +418,7 @@ a {
     padding-bottom: calc(var(--mini-h, 120px) + 3rem);
   }
 }
-@media (min-width: 1024px) {
+@media (min-width: 900px) {
   [data-testid="mini-player"].mini-docked {
     left: calc(var(--sidebar-w, 240px) + 2rem);
   }
@@ -887,7 +890,7 @@ li + li > .cell[data-leading="num"]:first-child::before,
   isolation: isolate; /* always a positioned element: fixed (phone bar), sticky (pill band, lg toolbar) */
 }
 /* the page toolbar is a bar only where it sticks (lg); below that it is the in-flow large-title row */
-@media (max-width: 1023.98px) {
+@media (max-width: 899.98px) {
   .toolbar-row.bar-edge::before,
   .toolbar-row.bar-edge::after {
     display: none;
@@ -932,9 +935,9 @@ li + li > .cell[data-leading="num"]:first-child::before,
 }
 /* lg: the page column sits in `main`, a size container, so the bar can bleed to its padding edges on both sides
    whatever the column's offset: -(2rem padding) - (spare width / 2). */
-@media (min-width: 1024px) {
+@media (min-width: 900px) {
   main {
-    container-type: inline-size;
+    container: main / inline-size;
   }
   .toolbar-row {
     --bleed: calc(2rem + max(0px, (100cqw - var(--col-max, 1320px)) / 2));
@@ -949,7 +952,7 @@ li + li > .cell[data-leading="num"]:first-child::before,
 .inspector {
   display: none;
 }
-@media (min-width: 1024px) {
+@media (min-width: 900px) {
   @container (min-width: 860px) {
     .result-layout {
       display: grid;
@@ -1444,14 +1447,18 @@ select.field {
     background: color-mix(in srgb, rgb(var(--bg-cell)) 92%, rgb(var(--text)));
   }
 }
-@media (min-width: 1024px) {
-  .setup-form > .fold:first-of-type > .fold-head {
-    margin-top: 28px;
+@media (min-width: 900px) {
+  @container main (min-width: 720px) {
+    .setup-form > .fold:first-of-type > .fold-head {
+      margin-top: 28px;
+    }
   }
 }
 
 /* Compose's set-up form (round 23): essentials, then folded sections; two columns from lg (iPad landscape, Mac):
-   essentials on the left, the folds stacked on the right, the Compose dock under both */
+   essentials on the left, the folds stacked on the right, the Compose dock under both. 2026-11: once `main` holds two
+   columns of at least ~350 px (720 px: a 1024 px window with the sidebar); the iPhone Duo open (647 px of `main`)
+   keeps one column across the whole width */
 .setup-form > .fold #tonight {
   display: block;
 }
@@ -1463,22 +1470,24 @@ select.field {
 .fold > div > #tonight > section:first-child > .group-inset {
   margin-top: 4px;
 }
-@media (min-width: 1024px) {
-  .setup-form {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    column-gap: 24px;
-    align-items: start;
-  }
-  .setup-form > .setup-essentials {
-    grid-column: 1;
-    grid-row: 1 / span 8;
-  }
-  .setup-form > .fold {
-    grid-column: 2;
-  }
-  .setup-form > .compose-dock {
-    grid-column: 1 / -1;
+@media (min-width: 900px) {
+  @container main (min-width: 720px) {
+    .setup-form {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      column-gap: 24px;
+      align-items: start;
+    }
+    .setup-form > .setup-essentials {
+      grid-column: 1;
+      grid-row: 1 / span 8;
+    }
+    .setup-form > .fold {
+      grid-column: 2;
+    }
+    .setup-form > .compose-dock {
+      grid-column: 1 / -1;
+    }
   }
 }
 .compose-dock {
@@ -1901,7 +1910,7 @@ html[data-sidebar="collapsed"]:not([data-sidebar-animating]) [data-testid="sideb
   left: calc(var(--traffic-left) + 4px);
   display: none;
 }
-@media (min-width: 1024px) {
+@media (min-width: 900px) {
   .side-show {
     display: inline-flex;
   }
@@ -2131,8 +2140,9 @@ html[data-sidebar="collapsed"]:not([data-sidebar-animating]) [data-testid="sideb
   margin-bottom: 6px;
   padding-right: 4px;
   border-radius: 12px;
-  background: color-mix(in srgb, rgb(var(--bg-cell)) 90%, transparent);
-  backdrop-filter: blur(16px) saturate(160%);
+  /* 2026-11: opaque, on the content `surface` (glass is only for the control layer): the row scrolling under it never
+     shows through (the iPhone Duo open's capture) */
+  background: rgb(var(--surface));
   box-shadow: 0 0 0 var(--separator-w, 0.5px) var(--separator);
 }
 .night-editor-bar > .min-w-0 {
@@ -2167,7 +2177,7 @@ html[data-sidebar="collapsed"]:not([data-sidebar-animating]) [data-testid="sideb
   background: var(--tint);
 }
 /* iPad and phones: the floating top bar covers the page's top: the bars stay under it */
-@media (max-width: 1023.98px) {
+@media (max-width: 899.98px) {
   .night-editor-bar {
     --editor-sticky: 76px;
   }
@@ -2501,7 +2511,7 @@ html.theming *::after {
   }
 }
 /* lg–1600: Now on top, Next + Time under it, the set at the right with room for whole titles (≥ 360 px) */
-@media (min-width: 1024px) {
+@media (min-width: 900px) {
   /* rows `auto 1fr`: the set column spans both rows, and its height goes to the second one, so Now keeps its own
      height and Time sits right under it (round 18: a 100 px gap opened between them at 1440) */
   .booth-grid {
@@ -2836,7 +2846,7 @@ html.theming *::after {
     transform: translateX(-50%);
   }
 }
-@media (min-width: 1024px) {
+@media (min-width: 900px) {
   .booth-strip {
     left: calc(220px + (100vw - 220px) / 2);
     max-width: calc(100vw - 220px - 24px);
@@ -3021,7 +3031,7 @@ html.theming *::after {
 }
 
 /* Settings on wide screens: two balanced columns of groups; a group never splits */
-@media (min-width: 1024px) {
+@media (min-width: 900px) {
   .settings-cols {
     column-count: 2;
     column-gap: 24px;
@@ -3445,7 +3455,7 @@ html.i18n-pending body {
 /* 2026-11 (DJ review: "Featured night loaded" sat on the result card's title row, iPad landscape and a 1440 px Mac):
    beside the sidebar the toast rises from the content column's foot (nothing is docked there at lg), centred on the
    column; in the Booth just above the transport and the Controls panel */
-@media (min-width: 1024px) {
+@media (min-width: 900px) {
   .app-toast {
     top: auto;
     bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
@@ -3503,4 +3513,21 @@ html[data-capture] [role="tooltip"] {
 }
 .app-toast {
   touch-action: none;
+}
+
+/* 2026-11: Build's floating Add button (components/ManualBuilder.tsx, below 1024 px where the Add panel is a sheet)
+   sits at the content column's trailing edge: a phone's 16 px margin; the centred 720 px column of the nav pill
+   layout (its 24 px padding); the sidebar layout's 32 px padding (the iPhone Duo open). Never in the empty gutter. */
+.build-add-fab {
+  right: max(1rem, env(safe-area-inset-right, 0px));
+}
+@media (min-width: 600px) {
+  .build-add-fab {
+    right: max(1.5rem, calc((100vw - 720px) / 2 + 1.5rem));
+  }
+}
+@media (min-width: 900px) {
+  .build-add-fab {
+    right: calc(2rem + max(0px, (100vw - var(--sidebar-w) - 4rem - var(--col-max, 1320px)) / 2));
+  }
 }

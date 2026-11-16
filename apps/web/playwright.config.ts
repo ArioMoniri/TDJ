@@ -31,7 +31,7 @@ export default defineConfig({
     // every spec at the default (desktop) viewport, as before the tablet projects existed
     {
       name: "default",
-      testIgnore: /round6-tablet|round7-corners|round23|wave2-layout|search\.spec|duo-fold/,
+      testIgnore: /round6-tablet|round7-corners|round23|wave2-layout|search\.spec|duo-fold|duo-layout/,
     },
     // 2026-11: the shared search on the Library and the Database, on a desktop and an iPhone 15 Pro (Chromium with the
     // phone's viewport, scale, touch and user agent)
@@ -138,7 +138,7 @@ export default defineConfig({
     // (wave4-mobile, booth-ui2, qa) run the folded and open rows in their own matrices (`--grep "iPhone Duo"`).
     ...(Object.keys(DUO) as DuoPosture[]).map((posture) => ({
       name: `iphone-duo-${posture}`,
-      testMatch: /duo-fold/,
+      testMatch: /duo-(fold|layout)/,
       use: { ...duo(posture), browserName: "chromium" as const, launchOptions },
       metadata: { posture },
     })),
