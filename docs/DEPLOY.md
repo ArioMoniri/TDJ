@@ -40,7 +40,69 @@ No server secrets are required to run: without them, users bring their own Spoti
 - **short night links** (`night#<id>`, 30 days);
 - each DJ's synced database rows, keyed by the signed anonymous `tdj_uid` cookie.
 
+- the **owner's contributions** (`owner#contrib#<id>` and `owner#contrib#index`, below), written only by the owner session.
+
 Nothing to set by hand: the first deploy after `999810a` creates the table, and the deploy role's `PowerUserAccess` already covers DynamoDB. Without `TDJ_DB_TABLE` (`pnpm dev`, `pnpm start`, a container) rooms and short links live in the server's memory and are lost on restart; on Lambda without a table, rooms are switched off (set `TDJ_ROOMS_MEMORY=1` only for a single-instance test). The production stage is protected and retains its resources, so the table outlives an `sst remove`; on any other stage removing it deletes the table and every room in it.
+
+## Owner contributions (the owner's edits reach the repo data)
+
+Every DJ's changes (Database corrections, filled values, added songs, artwork, matches, learning, favourites, history)
+stay **per user**: in the browser (IndexedDB / localStorage) or the app's on-device database, or — with the server
+database on — in that DJ's own row (`user#<signed tdj_uid>`), which no other DJ can read. Nothing a DJ does ever
+changes the shared catalogue.
+
+The deployment **owner** (whoever unlocked `/admin`, `lib/server/admin.ts`) is the exception: while the owner session
+is open on a device, that device also sends the owner's **catalogue facts** to the server as contributions, and a
+workflow merges them into the repo, so the owner's own deployment and apps ship them.
+
+```
+Settings → Owner (owner devices only)            POST /api/owner/contributions (owner cookie, same origin,
+  catalogue edits, a few s after each change  ─▶   ≤ 256 KB, ≤ 400 items, whitelisted fields, no secrets,
+  "Send my existing changes" (preview first)       rate-limited) ─▶ DynamoDB owner#contrib#<id> (pending)
+  "Export my changes as a contribution file"
+            │                                     Actions → "Merge owner contributions" (every 6 h + manual)
+            ▼                                       pull pending → pnpm data:apply-contributions
+  pnpm data:apply-contributions <file>  ─────────▶   → data/sources/owner-overrides.json (keyed, provenance)
+  (by hand, offline)                                 → pnpm index:build → data/index/owner.json
+                                                     → data tests + pnpm quality (golden ≥ 85)
+                                                     → merge commit as ArioMoniri to the deploy branch
+                                                     → mark merged → (optional) Deploy to AWS
+```
+
+- **What travels** (always, while the switch "Contribute my catalogue changes" is on): song corrections (year, date,
+  singer, rhythm, BPM, energy, album, hide…), added songs, cortinas, orchestra profile edits, filled values (BPM, key,
+  level, artwork, release, Deezer and Spotify ids), Spotify and YouTube matches and covers. **Never**: the Guide, house
+  rules, connector URLs, keys or tokens, notes or analysed audio. Values are rebuilt from a field whitelist
+  (`packages/core/src/owner.ts`) on the device and again on the server and in the workflow.
+- **Personal** categories — learning, favourites, history, orchestra grades — go only when the owner switches each on
+  under Settings → Owner → "Share to the catalogue". They are archived in `owner-overrides.json → personal` and never
+  change the catalogue.
+- **Applied where**: `data/index/owner.json` is a `DATA_FILES` role (`packages/core/src/data.ts`), applied over the
+  repo-level database and under each DJ's own edits, on the server and in the apps (the app bundle copies it). Owner
+  covers join the shipped artwork (`/api/artwork`).
+- **Apps**: linked to the owner's server (Settings → Connections), the Mac / iPhone / iPad apps send `/api/admin/*`
+  and `/api/owner/*` to that server through the bridge's cookie jar; unlinked, contributing is off (use Export).
+
+### One-time setup for the workflow
+1. The workflow uses the deploy role (`AWS_DEPLOY_ROLE_ARN`, `infra/github-oidc-role.yaml`); its `PowerUserAccess`
+   already covers `dynamodb:GetItem`, `BatchGetItem`, `UpdateItem` and `tag:GetResources`. A narrower role needs exactly
+   those on the table.
+2. Repository variable **`TDJ_DB_TABLE`** = the table name (the deploy run's summary prints `table` from
+   `.sst/outputs.json`). Without it the workflow looks the table up by its `sst:app=tdj` / `sst:stage` tags.
+3. Optional variables: `OWNER_CONTRIB_BRANCH` (default `claude/admiring-curie-npzd0m`), `OWNER_CONTRIB_DEPLOY=true`
+   to deploy after every merge, `OWNER_CONTRIB_ENABLED=false` to pause it.
+4. Scheduled runs only start from the **default branch**: keep `.github/workflows/merge-owner-contributions.yml` there
+   too (the job itself checks out and pushes to the deploy branch). The push uses the run's `GITHUB_TOKEN`
+   (`contents: write`); a branch protection that forbids it must allow GitHub Actions.
+
+Commits are authored as `ArioMoniri <92126657+ArioMoniri@users.noreply.github.com>`, carry no trailers, and land as
+a merge commit (never a force push). When a data test or the quality gate fails nothing is pushed or marked: the
+contributions stay pending and the run summary says why. A contribution that fails validation is marked `rejected`
+with the reason. Merged ones expire from the table after 30 days; pending ones after 180.
+
+Offline or without AWS: Settings → Owner → **Export my changes as a contribution file**, then
+`pnpm data:apply-contributions ~/Downloads/tdj-owner-contribution-<date>.json` and commit `data/` (running it twice
+changes nothing).
 
 ## Connectors
 

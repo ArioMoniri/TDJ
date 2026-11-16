@@ -39,6 +39,7 @@ same place.
 |---|---|---|
 | An anonymous random id (`tdj_uid` cookie, signed by the server) | your device; the server sees it with each request | to count the daily use of a shared AI key fairly, and, when the server's database is turned on, to keep *your* database edits and saved sets apart from other people's |
 | Your nights, history, database edits, notes and settings | your browser's storage and, when the server database is on, the server's database under the anonymous id | so they are there next time |
+| The deployment owner's catalogue corrections (only the person who unlocked the owner setup, and only catalogue facts such as years, singers, matches and covers; personal categories only when they switch them on) | the server's database, then the project's public data files | so the shared catalogue improves; no other DJ's data is ever included |
 | Feedback you send with the feedback form | the server's store | to improve TDJ |
 | Model API keys you enter | your browser only | each request that needs a model carries the key to the TDJ server, which passes it to the provider you chose and **does not store it** |
 | Spotify, Google, Dropbox sign-ins | an encrypted ("sealed") cookie in your browser; the server keeps no copy | to create playlists, save exports, play music you ask for |

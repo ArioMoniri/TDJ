@@ -7,6 +7,8 @@ data/                       ← the index lives in the repo
   knowledge/orchestra_profiles.json   musicology-curated energy/phase/singer-year priors (override built-ins)
   knowledge/cortinas.json             cortina extensions (cultures, trends)
   cache/spotify/tracks.json           Spotify URIs/durations cached by scripts/enrich_spotify.ts
+  sources/owner-overrides.json        the deployment owner's merged contributions (keyed, with provenance)
+  index/owner.json                    their projection, applied under each DJ's own edits (packages/core/src/owner.ts)
 packages/core               pure TypeScript engine (no I/O except load.ts)
   catalog.ts   filter/search + energy annotation      arc.ts      hours → slots (TTVTTM) → target energy curve
   tanda.ts     families → pick → shape inside tanda   cortinas.ts library + matcher (next-tanda energy − 8)
@@ -19,7 +21,17 @@ apps/web                    Next.js 16 (App Router, Turbopack) · Tailwind 4 · 
 apps/video                  Remotion launch video (media/video/launch.mp4)
 sst.config.ts               SST v4 → CloudFront + Lambda(arm64) + S3 via OpenNext;  Dockerfile for App Runner/ECS
 .github/workflows           ci.yml (lint, typecheck, vitest, build, Playwright) · deploy-aws.yml (OIDC, one click)
+                            merge-owner-contributions.yml (owner's catalogue edits → data/, every 6 h)
 ```
+
+## Whose data lives where
+- **Every DJ**: their database edits, filled values, added songs, matches, covers, learning, favourites and history
+  stay on their device (IndexedDB / localStorage, or the app's SQLite) or, with the server database on, in their own
+  row `user#<signed tdj_uid>` — never readable by another DJ, never written to shared data.
+- **The deployment owner** (the `/admin` session): catalogue facts also go to `POST /api/owner/contributions` (owner
+  cookie, same origin, whitelisted and size-capped, rate-limited) → `owner#contrib#*` in DynamoDB → the "Merge owner
+  contributions" workflow → `data/sources/owner-overrides.json` → `data/index/owner.json`. See docs/DEPLOY.md.
+- **Rooms** stay room-scoped (`room#<code>`), short links `night#<id>`.
 
 ## Request flow
 1. Client posts `ComposeOptions` → `/api/compose`.
