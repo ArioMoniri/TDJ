@@ -41,6 +41,7 @@ import {
   Tile,
 } from "@/components/Form";
 import { ModelConnections } from "@/components/ModelConnections";
+import { OwnerContributions } from "@/components/OwnerContributions";
 import { PageHeader } from "@/components/PageHeader";
 import { Sheet } from "@/components/Sheet";
 import { TandaRulesGroup } from "@/components/TandaRules";
@@ -574,6 +575,8 @@ export default function Settings() {
         <Connectors />
         {/* round 22: where missing BPM, key, level, artwork and dates come from, and "Add a source" */}
         <DataSources />
+        {/* 2026-11: the deployment owner only: catalogue edits to the shared repo data (lib/contrib/owner.ts) */}
+        <OwnerContributions />
 
         {/* Models and the note under its footer are one block: a column break never parts them (wide screens) */}
         <div data-testid="ai-models">

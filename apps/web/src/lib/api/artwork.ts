@@ -1,4 +1,5 @@
 import SHIPPED from "../../../../../data/cache/artwork.json";
+import OWNER from "../../../../../data/index/owner.json";
 import type { ApiDeps } from "./deps";
 import { bad, json } from "./http";
 
@@ -16,7 +17,11 @@ import { bad, json } from "./http";
  * with HTTP cache headers; an upstream failure is never cached (`retry: true`, no-store), a recording with no cover
  * is cached for an hour.
  */
-export const SHIPPED_COVERS: Readonly<Record<string, string>> = SHIPPED as Record<string, string>;
+// 2026-11: the deployment owner's merged covers (data/index/owner.json, packages/core/src/owner.ts) win over the cache
+export const SHIPPED_COVERS: Readonly<Record<string, string>> = {
+  ...(SHIPPED as Record<string, string>),
+  ...((OWNER as { artwork?: Record<string, string> }).artwork ?? {}),
+};
 
 const IMAGE = /^https:\/\/[^\s"'<>]+$/;
 const SPOTIFY_TRACK =

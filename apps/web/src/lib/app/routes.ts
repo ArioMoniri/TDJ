@@ -216,7 +216,17 @@ const LOCAL: Record<string, Partial<Record<Method, Handler>>> = {
  * what several DJs share (rooms, short share links): they work only through a TDJ server the DJ linked; without
  * one the app shows them as off.
  */
-const VIA_LINKED_SERVER = ["/api/google/", "/api/dropbox/", "/api/connect/", "/api/rooms", "/api/night"];
+// (2026-11) the owner session and owner contributions: the app sends the owner's catalogue edits to the server it is
+// linked to, whose /admin unlock it shares through the bridge's cookie jar; /api/admin/public stays on the device
+const VIA_LINKED_SERVER = [
+  "/api/google/",
+  "/api/dropbox/",
+  "/api/connect/",
+  "/api/rooms",
+  "/api/night",
+  "/api/admin/",
+  "/api/owner/",
+];
 function offline(path: string, method: string): Response {
   // what /api/rooms says on a server that keeps no rooms
   if (path === "/api/rooms" && method === "GET") return jsonNoStore({ available: false, shortLinks: false });
