@@ -14,18 +14,13 @@ One app for iPhone, iPad and Mac, plus the web. They all carry the same version 
 commit ([docs/RELEASING.md](docs/RELEASING.md)).
 
 <!-- app-store:coming-soon (scripts/release/readme-store-badge.mjs removes these marker lines and the notes once App Review approves) -->
-<p>
-  <a href="https://apps.apple.com/app/id6834924534"><picture><source media="(prefers-color-scheme: dark)" srcset="media/badges/download-on-the-app-store-white-en-us.svg"><img src="media/badges/download-on-the-app-store-black-en-us.svg" alt="Download on the App Store, for iPhone and iPad (coming soon)" height="40"></picture></a>
-  &nbsp;&nbsp;&nbsp;
-  <a href="https://apps.apple.com/app/id6834924534?platform=mac"><picture><source media="(prefers-color-scheme: dark)" srcset="media/badges/download-on-the-mac-app-store-white-en-us.svg"><img src="media/badges/download-on-the-mac-app-store-black-en-us.svg" alt="Download on the Mac App Store (coming soon)" height="40"></picture></a>
-</p>
-<p data-store-status="coming-soon"><sub><b>Coming to the App Store.</b> The iPhone, iPad and Mac apps are in TestFlight beta while App Review is pending; the store links open once the listing is approved.</sub></p>
-
-<p>
-  <a href="https://d3k5k2c1l0s5ri.cloudfront.net"><img alt="Open the web app" src="https://img.shields.io/badge/Open%20the-web%20app-C9426A?style=for-the-badge&logo=googlechrome&logoColor=white" height="40"></a>
-  &nbsp;
+<p align="center">
+  <a href="https://apps.apple.com/app/id6834924534"><picture><source media="(prefers-color-scheme: dark)" srcset="media/badges/download-on-the-app-store-white-en-us.svg"><img src="media/badges/download-on-the-app-store-black-en-us.svg" alt="Download on the App Store, for iPhone and iPad (coming soon)" height="40"></picture></a>&nbsp;&nbsp;
+  <a href="https://apps.apple.com/app/id6834924534?platform=mac"><picture><source media="(prefers-color-scheme: dark)" srcset="media/badges/download-on-the-mac-app-store-white-en-us.svg"><img src="media/badges/download-on-the-mac-app-store-black-en-us.svg" alt="Download on the Mac App Store (coming soon)" height="40"></picture></a>&nbsp;&nbsp;
+  <a href="https://d3k5k2c1l0s5ri.cloudfront.net"><img alt="Open the web app" src="https://img.shields.io/badge/Open%20the-web%20app-C9426A?style=for-the-badge&logo=googlechrome&logoColor=white" height="40"></a>&nbsp;&nbsp;
   <a href="https://github.com/ArioMoniri/TDJ/releases/latest/download/TDJ-macOS.dmg"><img alt="Download the Mac app (DMG)" src="https://img.shields.io/badge/Download%20for-macOS%20(DMG)-000000?style=for-the-badge&logo=apple&logoColor=white" height="40"></a>
 </p>
+<p align="center" data-store-status="coming-soon"><sub><b>Coming to the App Store.</b> The iPhone, iPad and Mac apps are in TestFlight beta while App Review is pending; the store links open once the listing is approved.</sub></p>
 
 - **iPhone and iPad**: iOS and iPadOS 16 or later. One universal app; the Booth keeps playing with the screen locked.
 - **Mac App Store**: the same purchase as iPhone and iPad (it is free), sandboxed, macOS 13 or later.
@@ -34,15 +29,7 @@ commit ([docs/RELEASING.md](docs/RELEASING.md)).
   `shasum -a 256 -c SHA256SUMS`.
 - **Web**: <https://d3k5k2c1l0s5ri.cloudfront.net>. Nothing to install, and any key you add stays in your browser.
   Settings → About says when a newer version is live; reload when the night is over.
-
-**Türkçe.** T-DJ iPhone, iPad, Mac ve web'de aynı sürümle çalışır; uygulama da mağaza sayfası da Türkçe.
-
-<p>
-  <a href="https://apps.apple.com/app/id6834924534"><picture><source media="(prefers-color-scheme: dark)" srcset="media/badges/download-on-the-app-store-white-tr-tr.svg"><img src="media/badges/download-on-the-app-store-black-tr-tr.svg" alt="App Store'dan indirin, iPhone ve iPad için (yakında)" height="40"></picture></a>
-  &nbsp;&nbsp;&nbsp;
-  <a href="https://apps.apple.com/app/id6834924534?platform=mac"><picture><source media="(prefers-color-scheme: dark)" srcset="media/badges/download-on-the-mac-app-store-white-tr-tr.svg"><img src="media/badges/download-on-the-mac-app-store-black-tr-tr.svg" alt="Mac App Store'dan indirin (yakında)" height="40"></picture></a>
-</p>
-<p data-store-status="coming-soon"><sub><b>Yakında App Store'da.</b> Uygulamalar App Review onayını beklerken TestFlight betasında.</sub></p>
+- **Languages**: English and Turkish, in the apps, on the web and on the store listing.
 
 ## What it does
 

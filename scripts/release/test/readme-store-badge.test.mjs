@@ -34,7 +34,8 @@ test("Apple's official badges, unmodified files, English and Turkish, black with
     // Apple's own artwork carries its file title; nothing scripted inside
     assert.match(svg, /<title>Download_on_the_(Mac_)?App_Store_Badge/);
     assert.doesNotMatch(svg, /<script|onload=/);
-    assert.ok(README.includes(`media/badges/${name}.svg`), `${name} is used in the README`);
+    // the README is in English: its English badges are used there; the Turkish ones ship for the Turkish store page
+    if (name.endsWith("en-us")) assert.ok(README.includes(`media/badges/${name}.svg`), `${name} is used in the README`);
   }
   // onscreen minimum: 40 px high
   for (const m of README.matchAll(/<img[^>]+media\/badges\/[^>]+>/g)) assert.match(m[0], /height="40"/);
