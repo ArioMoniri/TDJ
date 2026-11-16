@@ -193,7 +193,7 @@ export function SearchChips({
               <Chip
                 key={o.key}
                 on={!!filters.singers?.includes(o.key)}
-                label={o.key}
+                label={singerLabel(o.key)}
                 count={o.count}
                 onClick={() => set({ singers: toggle(filters.singers, o.key) })}
                 testId={`${idPrefix}-singer`}
@@ -204,4 +204,16 @@ export function SearchChips({
       )}
     </div>
   );
+}
+
+/**
+ * A singer facet's chip: a duo credit ("T. García - R. Cané") reads as one credit, "Duo · T. García & R. Cané", never
+ * as an odd third singer beside each of its two (2026-11, DJ review of the Database).
+ */
+export function singerLabel(key: string): string {
+  const parts = key
+    .split(/\s+[-–—&]\s+|\s+y\s+|\s*\/\s*/)
+    .map((x) => x.trim())
+    .filter(Boolean);
+  return parts.length > 1 ? `${t("search.duo")} · ${parts.join(" & ")}` : key;
 }

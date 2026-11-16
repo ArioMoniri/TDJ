@@ -1,4 +1,4 @@
-import { capFirst, fmtList, type MsgKey, t } from "@/lib/i18n";
+import { capFirst, fmtList, getLocale, type MsgKey, t } from "@/lib/i18n";
 
 /**
  * Wave 2 — the engine's notes in the DJ's words. The core records each setting it could not keep (stats
@@ -191,6 +191,11 @@ export function djMessage(raw: string): string {
   // the cortina plan's own note: "<request> cortinas: only 3 in the pool, fewer than the 21 … needs; era-matched …"
   const pool = raw.match(/cortinas: only (\d+) in the pool, fewer than the (\d+)/);
   if (pool) return t("djMessage.cortina_pool", { have: pool[1], need: pool[2] });
+  // 2026-11 (DJ review: "the DJ's Di Sarli tanda (…)" in English on a Turkish screen): a note about the DJ's own
+  // pinned tanda says so in the DJ's language; any other unknown note keeps its words in English only, elsewhere a
+  // plain sentence in the DJ's language (the core's raw English never reaches a translated screen)
+  if (/\bthe DJ's\b|\bDJ's choice\b|\bpinned\b/i.test(raw)) return t("djMessage.pinned_kept");
+  if (getLocale() !== "en") return t("djMessage.other_note");
   return `${cap(clean(raw))}.`;
 }
 

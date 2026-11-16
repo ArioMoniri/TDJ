@@ -2003,7 +2003,7 @@ export function Composer() {
                 >
                   <div className="flex items-center justify-between gap-3">
                     <span className="min-w-0">
-                      <h2 className="text-subhead min-w-0 truncate font-serif text-[var(--label-2)]">
+                      <h2 className="text-subhead min-w-0 line-clamp-2 font-serif text-[var(--label-2)]">
                         {nightTitle(playlist)} · {nightSub(playlist)}
                       </h2>
                       {/* 2026-11: the night as it plays (cues, cortinas from their start), ≈ when a length is unknown */}

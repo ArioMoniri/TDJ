@@ -2041,7 +2041,7 @@ export const en = {
   "db.songsTab.spotify_link_of": "Spotify link of {title}",
   "db.songsTab.streams": "Streams",
   "db.songsTab.t_dj_catalogue": "T-DJ catalogue",
-  "db.songsTab.tango_reference": "tango reference",
+  "db.songsTab.tango_reference": "T-DJ's tango notes",
   "db.songsTab.tango_vals_or_milonga_decides_which":
     "Tango, vals or milonga: decides which tandas this side can join",
   "db.songsTab.this_copy_stops_appearing_in_your":
@@ -3534,7 +3534,7 @@ export const en = {
   "songView.cover_art_archive": "Cover Art Archive",
   "songView.guessed_from_the_era": "guessed from the era",
   "songView.t_dj_catalogue": "T-DJ catalogue",
-  "songView.tango_reference": "tango reference",
+  "songView.tango_reference": "T-DJ's tango notes",
   "songView.yours": "yours",
   "spotify.answered": "{path} answered {status}",
   "spotify.could_not_start_the_connection": "Could not start the connection ({status})",
@@ -4085,6 +4085,9 @@ export const en = {
   "booth.confirm.tap_again": "Tap again to confirm",
   "booth.controlStrip.mix_menu": "Mix: transitions, fades and levels",
   "booth.controls.close": "Close the Controls panel",
+  "djMessage.pinned_kept": "Your pinned tanda stays as you made it; the rules work around it.",
+  "djMessage.other_note": "One setting could not be kept exactly tonight; the set shows what plays instead.",
+  "search.duo": "Duo",
   "booth.controls.short_next_gap": "At gap",
   "booth.controls.short_fade": "Fade",
   "booth.controls.short_crossfade": "Crossfade",

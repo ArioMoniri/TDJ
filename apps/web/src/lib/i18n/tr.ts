@@ -2193,7 +2193,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "db.songsTab.spotify_link_of": "{title} Spotify bağlantısı",
   "db.songsTab.streams": "Yayınlar",
   "db.songsTab.t_dj_catalogue": "T-DJ kataloğu",
-  "db.songsTab.tango_reference": "tango referansı",
+  "db.songsTab.tango_reference": "T-DJ'nin tango notları",
   "db.songsTab.tango_vals_or_milonga_decides_which":
     "Tango, vals ya da milonga: bu kaydın hangi tandalara girebileceğini belirler",
   "db.songsTab.this_copy_stops_appearing_in_your":
@@ -3708,7 +3708,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "songView.cover_art_archive": "Cover Art Archive",
   "songView.guessed_from_the_era": "dönemden tahmin edildi",
   "songView.t_dj_catalogue": "T-DJ kataloğu",
-  "songView.tango_reference": "tango referansı",
+  "songView.tango_reference": "T-DJ'nin tango notları",
   "songView.yours": "sizin",
   "spotify.answered": "{path} {status} yanıtını verdi",
   "spotify.could_not_start_the_connection": "Bağlantı başlatılamadı ({status})",
@@ -4261,6 +4261,9 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.confirm.tap_again": "Onaylamak için tekrar dokunun",
   "booth.controlStrip.mix_menu": "Miks: geçişler, kısmalar ve seviyeler",
   "booth.controls.close": "Kontroller panelini kapat",
+  "djMessage.pinned_kept": "Sabitlediğiniz tanda yaptığınız gibi kalıyor; kurallar ona göre ayarlanıyor.",
+  "djMessage.other_note": "Bu gece bir ayar tam olarak korunamadı; set yerine ne çalacağını gösteriyor.",
+  "search.duo": "Düet",
   "booth.controls.short_next_gap": "Arada",
   "booth.controls.short_fade": "Kıs",
   "booth.controls.short_crossfade": "Geçişli",

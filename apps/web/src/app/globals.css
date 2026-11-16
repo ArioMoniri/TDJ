@@ -3045,3 +3045,27 @@ html.i18n-pending body {
   font-size: 12px;
   color: var(--label-2);
 }
+
+/* 2026-11 (DJ review: "Featured night loaded" sat on the result card's title row, iPad landscape and a 1440 px Mac):
+   beside the sidebar the toast rises from the content column's foot (nothing is docked there at lg), centred on the
+   column; in the Booth just above the transport and the Controls panel */
+@media (min-width: 1024px) {
+  .app-toast {
+    top: auto;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
+    left: calc(var(--sidebar-w) + 1rem);
+    right: 1rem;
+  }
+  html[data-booth] .app-toast {
+    bottom: calc(var(--booth-strip-space, 88px) + var(--booth-ctl-space, 0px) + 12px);
+  }
+}
+/* the Compose inspector's tracks: a title may take two lines (they were cut to "Agu…" beside four columns) */
+.inspector-row [data-testid="row-play"] > .min-w-0 > :first-child {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  overflow: hidden;
+  overflow-wrap: break-word;
+}

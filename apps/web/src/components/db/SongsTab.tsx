@@ -70,6 +70,8 @@ const eraOf = (y?: number): Song["era"] =>
                   ? "nuevo"
                   : "contemporary";
 const num = (v: string) => (v === "" ? undefined : Number(v));
+/** a value's source in one case: a service keeps its name (Deezer, Spotify), a description is lower case ("yours") */
+const srcWord = (l: string) => (/^(Deezer|Spotify|MusicBrainz|Apple|T-DJ)/.test(l) ? l : lower(l));
 const FILL_LABEL: Record<string, string> = {
   bpm: "BPM",
   key: "key",
@@ -428,7 +430,7 @@ export function SongsTab() {
                   onChange={(t) => setField(s, "energy", num(t))}
                 />
                 <ValueCell
-                  label={`BPM${bpm ? ` · ${p.bpm !== undefined ? tx("db.songsTab.yours") : lower(bpm.used.label)}` : ""}`}
+                  label={`BPM${bpm ? ` · ${p.bpm !== undefined ? tx("db.songsTab.yours") : srcWord(bpm.used.label)}` : ""}`}
                   inputLabel={tx("db.songsTab.bpm_of", { title: s.title })}
                   editing={editing}
                   value={p.bpm}
