@@ -106,19 +106,22 @@ export function SongDnaView({ id }: { id: string }) {
           <h1 className="text-title1" lang="es" data-testid="dna-title">
             {d.work.title}
           </h1>
-          <p className="text-subhead text-[var(--label-2)]" lang="es" data-testid="dna-credit">
-            {c
-              ? [
-                  t("song.music_by", { names: c.composers.join(", ") }),
-                  c.lyricists.length
-                    ? t("song.lyrics_by", { names: c.lyricists.join(", ") })
-                    : t("song.instrumental_work"),
-                  c.year ? t("song.written", { year: c.year }) : null,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")
-              : t("song.credits_unknown")}
-          </p>
+          {/* (QA fix 2026-11: no "Not known yet" under the title — the line shows when the credits are known) */}
+          {c && (
+            <p className="text-subhead text-[var(--label-2)]" lang="es" data-testid="dna-credit">
+              {c
+                ? [
+                    t("song.music_by", { names: c.composers.join(", ") }),
+                    c.lyricists.length
+                      ? t("song.lyrics_by", { names: c.lyricists.join(", ") })
+                      : t("song.instrumental_work"),
+                    c.year ? t("song.written", { year: c.year }) : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")
+                : null}
+            </p>
+          )}
           <div className="mt-1">
             <TandaTypeBadge rhythm={d.song.rhythm} compact />
           </div>

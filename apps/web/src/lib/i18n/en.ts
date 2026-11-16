@@ -4859,6 +4859,7 @@ export const en = {
   "smartSearch.source_local": "Your file",
   "smartSearch.energy": "energy {n}",
   "smartSearch.showing_for": "Showing results for",
+  "smartSearch.breaks_rules": "Breaks a rule of this tanda",
   "smartSearch.kind_title": "Title",
   "smartSearch.kind_orchestra": "Orchestra",
   "smartSearch.kind_singer": "Singer",

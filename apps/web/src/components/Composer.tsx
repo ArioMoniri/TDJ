@@ -2148,7 +2148,7 @@ export function Composer() {
                   ) : (
                     <button
                       type="button"
-                      className="-mx-2 flex items-baseline gap-1 rounded-[var(--radius-xs)] px-2 text-left"
+                      className="-mx-2 flex min-h-11 items-baseline gap-1 self-start rounded-[var(--radius-xs)] px-2 text-left"
                       onClick={() => setAdjustOpen(true)}
                       aria-label={tx("composer.score_of_100_adjust_the_set", { total: playlist.score.total })}
                       data-testid="score-button"

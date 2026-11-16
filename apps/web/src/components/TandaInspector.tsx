@@ -136,7 +136,7 @@ export function TandaInspector({
         </dl>
         {flow && (
           <p
-            className={`text-footnote mt-2 truncate ${flow.tone === "warn" ? "text-[var(--destructive)]" : "text-[var(--label-2)]"}`}
+            className={`text-footnote mt-2 truncate ${flow.tone === "warn" ? "text-[var(--destructive-text)]" : "text-[var(--label-2)]"}`}
             title={flow.text}
             data-testid="inspector-flow"
             data-tone={flow.tone}
@@ -144,7 +144,8 @@ export function TandaInspector({
             {flow.text}
           </p>
         )}
-        <div className="mt-4 flex flex-wrap gap-2">
+        {/* (QA fix 2026-11: the actions one per line, all the column's width) */}
+        <div className="inspector-actions mt-4 grid grid-cols-1 gap-2">
           {/* 2026-11 (the owner: "Preview won't work"): it was greyed out unless a side had a cached Deezer link and
               no Spotify login — now it pre-listens each side's start in turn (20 s: Spotify in full with Premium,
               else the 30 s clips, looked up when missing); a side with no audio is passed, and when none plays the
@@ -152,7 +153,7 @@ export function TandaInspector({
           <Tip text={tx("tandaInspector.hear_10_seconds_of_each_song")}>
             <button
               type="button"
-              className="btn btn-ghost min-h-[44px]"
+              className="btn btn-ghost min-h-[44px] w-full justify-start"
               data-testid="inspector-preview"
               onClick={() => {
                 haptic(4);
@@ -165,7 +166,7 @@ export function TandaInspector({
           <Tip text={tx("tandaInspector.scroll_the_set_to_this_tanda")}>
             <button
               type="button"
-              className="btn btn-ghost min-h-[44px]"
+              className="btn btn-ghost min-h-[44px] w-full justify-start"
               onClick={() =>
                 document
                   .getElementById(`tanda-${i + 1}`)
@@ -178,7 +179,7 @@ export function TandaInspector({
           {onInsertSong && !t.locked && (
             <button
               type="button"
-              className="btn btn-ghost min-h-[44px]"
+              className="btn btn-ghost min-h-[44px] w-full justify-start"
               onClick={() => onInsertSong(i, t.songs.length)}
               data-testid="inspector-add-song"
             >
@@ -189,7 +190,7 @@ export function TandaInspector({
             <>
               <button
                 type="button"
-                className="btn btn-ghost min-h-[44px]"
+                className="btn btn-ghost min-h-[44px] w-full justify-start"
                 onClick={() => onInsertTanda(i)}
                 data-testid="inspector-insert-before"
               >
@@ -197,7 +198,7 @@ export function TandaInspector({
               </button>
               <button
                 type="button"
-                className="btn btn-ghost min-h-[44px]"
+                className="btn btn-ghost min-h-[44px] w-full justify-start"
                 onClick={() => onInsertTanda(i + 1)}
                 data-testid="inspector-insert-after"
               >
@@ -208,7 +209,7 @@ export function TandaInspector({
           {onRemoveTanda && !t.locked && (
             <button
               type="button"
-              className="btn btn-ghost min-h-[44px] text-[var(--destructive)]"
+              className="btn btn-ghost min-h-[44px] w-full justify-start text-[var(--destructive-text)]"
               onClick={() => onRemoveTanda(i)}
               data-testid="inspector-remove-tanda"
             >
@@ -236,14 +237,15 @@ export function TandaInspector({
               // 2026-11 (DJ review: titles cut to "Agu…" beside four columns): the energy and the length join the
               // sub-line (the singer only where it differs from the tanda's), the title may take two lines, the
               // drag handle and the menu are 44 px
+              // (QA fix 2026-11: at 1440 the length was cut to "2:…": it leads the line now, never truncated)
               sub={metaLine(
-                yearText(s.year),
-                s.singer && s.singer !== t.singer ? singerDisplay(s.singer) : null,
-                `${tx("tandaInspector.energy")} ${Math.round(t.energyCurve[k] ?? t.energy)}`,
                 (() => {
                   const len = lengthOf(s, cues);
                   return typeof len === "number" && len > 0 ? mmss(len) : null;
                 })(),
+                yearText(s.year),
+                s.singer && s.singer !== t.singer ? singerDisplay(s.singer) : null,
+                `${tx("tandaInspector.energy")} ${Math.round(t.energyCurve[k] ?? t.energy)}`,
               )}
               testId="inspector-row"
               className="inspector-row"

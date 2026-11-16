@@ -37,23 +37,26 @@ export function SidesList({
   return (
     <PlayListContext.Provider value={list}>
       <div className="group-inset" data-testid={testId}>
-        <button
-          type="button"
-          className="cell cell-tap w-full text-left text-[var(--tint)]"
-          data-testid={`${testId}-play-all`}
-          onClick={() => void tapPlay(items[0]!, list)}
-        >
-          {headphones ? (
-            <Headphones size={16} strokeWidth={2} aria-hidden />
-          ) : (
-            <Play size={16} fill="currentColor" strokeWidth={0} aria-hidden />
-          )}
-          <span className="min-w-0 flex-1">
-            {headphones
-              ? t("song.prelisten_all", { n: songs.length })
-              : t("song.play_all", { n: songs.length })}
-          </span>
-        </button>
+        {/* (QA fix 2026-11: "Play all 1" for one side: its row plays it) */}
+        {songs.length > 1 && (
+          <button
+            type="button"
+            className="cell cell-tap w-full text-left text-[var(--tint)]"
+            data-testid={`${testId}-play-all`}
+            onClick={() => void tapPlay(items[0]!, list)}
+          >
+            {headphones ? (
+              <Headphones size={16} strokeWidth={2} aria-hidden />
+            ) : (
+              <Play size={16} fill="currentColor" strokeWidth={0} aria-hidden />
+            )}
+            <span className="min-w-0 flex-1">
+              {headphones
+                ? t("song.prelisten_all", { n: songs.length })
+                : t("song.play_all", { n: songs.length })}
+            </span>
+          </button>
+        )}
         {shown.map((s, i) => (
           <LibraryRow key={s.id} hit={asHit(s)} id={`${testId}-${i}`} active={false} />
         ))}

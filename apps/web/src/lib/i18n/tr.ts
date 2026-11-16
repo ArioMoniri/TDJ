@@ -5064,6 +5064,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "smartSearch.source_local": "Kendi dosyanız",
   "smartSearch.energy": "enerji {n}",
   "smartSearch.showing_for": "Gösterilen sonuçlar:",
+  "smartSearch.breaks_rules": "Bu tandanın bir kuralını bozuyor",
   "smartSearch.kind_title": "Şarkı",
   "smartSearch.kind_orchestra": "Orkestra",
   "smartSearch.kind_singer": "Şarkıcı",

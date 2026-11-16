@@ -1772,7 +1772,7 @@ function TandaBlock({
                 <>
                   <button
                     type="button"
-                    className="drag-handle icon-btn icon-btn-bare -my-2 h-11 w-9 shrink-0 text-[var(--label-3)]"
+                    className="drag-handle icon-btn icon-btn-bare -my-2 h-11 w-11 shrink-0 text-[var(--label-3)]"
                     aria-label={tx("play.drag_to_reorder", { title: s.title })}
                     data-testid="drag-handle"
                     {...dragSide(si)}

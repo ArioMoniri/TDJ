@@ -343,7 +343,7 @@ export function TandaSwapSheet(p: TandaSwapProps) {
                   </button>
                   <button
                     type="button"
-                    className="drag-handle icon-btn icon-btn-bare -mr-2 h-11 w-9 shrink-0 text-[var(--label-3)] max-sm:!hidden"
+                    className="drag-handle icon-btn icon-btn-bare -mr-2 h-11 w-11 shrink-0 text-[var(--label-3)] max-sm:!hidden"
                     aria-label={tx("play.drag_to_reorder", { title: x.title })}
                     {...drag(k)}
                   >
@@ -405,7 +405,7 @@ export function TandaSwapSheet(p: TandaSwapProps) {
                           {`${x.yearRange?.join("–") ?? ""} · ${x.songs.map((y) => y.title).join(", ")}`}
                           {flow && (
                             <span
-                              className={`block truncate ${flow.tone === "warn" ? "text-[var(--destructive)]" : ""}`}
+                              className={`block truncate ${flow.tone === "warn" ? "text-[var(--destructive-text)]" : ""}`}
                               data-testid="tanda-swap-flow"
                               data-tone={flow.tone}
                             >
