@@ -1,1 +1,6 @@
-The first TDJ for Mac and iPad: compose a night, play it from your own music files, rehearse with 30-second previews, export to Spotify or your DJ app. Menu bar commands, media keys and a display that stays awake all night.
+T-DJ now runs on iPhone as well as iPad and Mac. It is one app, and the web app carries the same version number.
+
+- The Booth plays through Spotify Connect on iPhone and iPad, and tells you in plain words when Spotify needs a device or a new login.
+- The gap between two songs follows the real silence at the end of each track.
+- Build by hand keeps a checklist next to your night and suggests whole tandas for the next slot.
+- Settings has an About section with the version you are running and where updates come from.

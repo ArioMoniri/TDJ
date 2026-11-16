@@ -61,10 +61,28 @@ def deliver_common(platform, screenshots)
   }
 end
 
+# iOS screenshots (`pnpm store:shots`, apps/desktop/store): screenshots/<locale>/ holds the iPhone 6.9" and 6.5" sets
+# and the iPad 13" set; deliver picks each slot from the image size. The iPad 12.9" set (2048x2732) shares the 13" slot
+# in App Store Connect, so it lives in screenshots_ipad129/ and goes up instead of the 13" set only with ipad:129.
+def ios_screenshots(o)
+  base = File.expand_path("screenshots", __dir__)
+  return base unless o[:ipad].to_s == "129"
+  require "fileutils"
+  require "tmpdir"
+  dir = Dir.mktmpdir("tdj-shots")
+  Dir.glob(File.join(base, "*")).select { |d| File.directory?(d) }.each do |loc|
+    out = File.join(dir, File.basename(loc))
+    FileUtils.mkdir_p(out)
+    FileUtils.cp(Dir.glob(File.join(loc, "*_iphone*.jpg")), out)
+    FileUtils.cp(Dir.glob(File.join(File.expand_path("screenshots_ipad129", __dir__), File.basename(loc), "*.jpg")), out)
+  end
+  dir
+end
+
 platform :ios do
-  desc "Upload iPad metadata + screenshots (no binary)"
-  lane :metadata do
-    deliver(**deliver_common("ios", File.expand_path("screenshots", __dir__)), skip_binary_upload: true)
+  desc "Upload iPhone + iPad metadata and screenshots (no binary); ipad:129 sends the 12.9-inch iPad set"
+  lane :metadata do |o|
+    deliver(**deliver_common("ios", ios_screenshots(o)), skip_binary_upload: true)
   end
 
   desc "Upload an IPA to TestFlight: fastlane ios beta ipa:path/TDJ.ipa"
@@ -73,7 +91,7 @@ platform :ios do
           changelog: File.read(File.join(META, "en-US", "release_notes.txt")))
   end
 
-  desc "Submit the iPad version for App Review (build_number: as App Store Connect shows it, e.g. 1.0.0.457765; app_version:), phased release, manual release"
+  desc "Submit the iOS (iPhone + iPad) version for App Review (build_number: as App Store Connect shows it, e.g. 1.0.0.457765; app_version:), phased release, manual release"
   lane :submit do |o|
     deliver(**deliver_common("ios", File.expand_path("screenshots", __dir__)),
             skip_binary_upload: true, submit_for_review: true, build_number: o[:build_number], app_version: o[:app_version],

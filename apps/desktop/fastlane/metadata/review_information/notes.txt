@@ -1,9 +1,13 @@
-No login, account or server is required: the app composes and stores everything on the device.
+No login, account or server is required: the app composes and stores everything on the device. No demo account is needed.
+
+The same build runs on iPhone, iPad and Mac (universal purchase, one bundle ID).
 
 How to test without Spotify:
 1. On the Compose screen, open the featured night ("Golden-age double peak") or press Compose (Cmd+Return on Mac).
-2. Open the Booth and press Play: TDJ plays 30-second rehearsal previews of every song (from Deezer, fetched by the app itself), with the gaps and cortinas of a real night.
-3. File → Add Music Folder (Mac) links a folder of your own audio files; the Booth then plays full songs from it.
-4. Export (Cmd+E) writes M3U8, CSV, Rekordbox XML or Traktor NML through the system save panel.
+2. Press "Play the night" to open the Booth, then Start: T-DJ plays 30-second rehearsal previews of every song (from Deezer, fetched by the app itself), with the gaps and cortinas of a real night. On iPhone the transport sits at the bottom of the Booth; the set list opens from the list button next to it.
+3. Tap the marker between two songs in the set list to open the transition editor (Fade, Blend, Gap) and hear it.
+4. Build by hand (in the sidebar on iPad and Mac, under More on iPhone) shows the checklist; "Fill the rest" completes the night.
+5. File > Add Music Folder (Mac) links a folder of your own audio files; the Booth then plays full songs from it.
+6. Export (Cmd+E on Mac, the share button on iPhone and iPad) writes M3U8, CSV, Rekordbox XML or Traktor NML through the system save panel.
 
-Spotify features need a Spotify Premium account and are optional. The AI DJ needs the reviewer's own model API key and is optional; nothing else depends on it.
+Optional features that need the reviewer's own accounts or keys, and that nothing else depends on: Spotify playback (Spotify Premium), the language-model features (the reviewer's own API key), and Rooms (a self-hosted T-DJ server linked under Settings > Connections; off by default).

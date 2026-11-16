@@ -1,11 +1,32 @@
-TDJ composes a tango milonga the way working DJs build one: tandas of one orchestra, one singer and close years, cortinas between them, and an energy arc that warms up, peaks and closes with La Cumparsita.
+T-DJ builds a tango milonga the way a working DJ does. Tandas of one orchestra and one singer from close years, a cortina before each that suits the tanda after it, and an energy arc that warms up, peaks, rests and peaks again before La Cumparsita.
 
-• Compose a 1–8 hour night in seconds, golden age or any era, single or double peak.
-• Swap, lock and refine tandas; ask the AI DJ with your own model key.
-• Play the night in the Booth: your own music files with exact gaps, loudness matching and cortina fades; 30-second previews to rehearse; Spotify Premium as a second source.
-• Your own database of 19,000 recordings: years, singers, versions, edits that stay yours.
-• Export to Spotify, Rekordbox, Traktor, Serato, M3U8 or a printed set list.
-• Mac: menu bar commands and shortcuts, media keys and Now Playing, the display stays awake through the night.
-• Works entirely on your Mac or iPad: no account, no server. Link your own TDJ server only if you want to.
+I play milongas in Istanbul and made T-DJ for my own nights. It drafts the whole night from about 19,000 recordings. You change what you don't like, then you play it.
 
-No account needed. Spotify features need Spotify Premium.
+COMPOSE
+Pick the length and the era and press Compose. Every tanda says why it is there, and the night gets a score that shows what was checked. Swap a song, pin a tanda you want to keep, or type "make tanda 7 calmer" and see the change before you accept it.
+
+BUILD BY HAND
+If you would rather choose every tanda yourself, a checklist sits next to your night: length against the target, the big four orchestras, the arc, the TTVTTM cycle and the cortinas. Each line has a one-tap fix, and T-DJ suggests whole tandas for the next slot with the reason each one fits.
+
+THE BOOTH
+Play the night from your own music files, through Spotify Connect with Spotify Premium, or as 30-second previews to rehearse. The gap between two songs is measured from the real silence at the end of each track, so a tanda neither runs together nor stalls. Each transition can be set by hand: a fade, a blend or a clean gap, with a button to hear it first.
+
+Tap any song to hear it. Once the night has started, playing a song in the room asks you to confirm, and Next and Fade need a press and hold, so a stray tap never cuts a song. The clock shows how long until La Cumparsita.
+
+WHAT THE FLOOR TELLS YOU
+Mark a song Floor full, OK or Floor emptied and T-DJ remembers it for the next night. Your swaps and pinned tandas count too. Settings lists what it has learned as rules you can weigh up or down, delete or switch off.
+
+ROOMS AND DANCERS
+Two DJs can work on one night: one opens a room, the other joins with a code, and every edit shows up on both screens. Dancers can open the room on their phones and heart the song that is playing. Only counts are kept, never names. Rooms need a T-DJ server, which you link under Settings.
+
+YOUR OWN DATABASE
+Every recording, orchestra and cortina can be edited, and your edits travel with your nights. Search forgives typing: "ventaron" finds Ventarrón, and "di sarli 1941 instrumental" finds exactly that.
+
+EXPORT AND SHARE
+Send a night to Spotify, Rekordbox, Traktor or Serato, save it as M3U8, or print the set list. Share it as a link, a .tdjnight file or a QR code.
+
+ON IPHONE, IPAD AND MAC
+One app for all three. On iPhone and iPad the night keeps playing with the screen locked. On the Mac you get menu bar commands, media keys, and a display that stays awake until the last cortina. The app speaks English and Turkish.
+
+PRIVATE BY DESIGN
+Everything runs on your device. There is no account and nothing is sent to us. Features that use a language model take your own API key, which stays in the Keychain. Spotify playback needs Spotify Premium.

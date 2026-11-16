@@ -1,7 +1,7 @@
 name: Store assets
-# App Store screenshots (bundled app UI at 2880x1800 and 2752x2064, en-US + tr), metadata checks and a contact
-# sheet for review: Linux only, no macOS minutes. Uploading to App Store Connect (fastlane deliver with the API
-# key) runs only when the upload input is set (repository secrets).
+# App Store screenshots (bundled app UI: iPhone 6.9" + 6.5", iPad 13" + 12.9", Mac 2880x1800; en-US + tr), banners,
+# metadata checks and a contact sheet for review: Linux only, no macOS minutes. Same as `pnpm store:shots`. Uploading
+# to App Store Connect (fastlane deliver with the API key) runs only when the upload input is set (repository secrets).
 on:
   pull_request:
     paths: ["apps/desktop/fastlane/**", "apps/desktop/store/**", "apps/desktop/ui/**", "apps/web/src/**"]
@@ -47,6 +47,7 @@ jobs:
           path: |
             apps/desktop/fastlane/screenshots
             apps/desktop/fastlane/screenshots_mac
+            apps/desktop/fastlane/screenshots_ipad129
             apps/desktop/store/out/contact-sheet.html
           retention-days: 30
       - name: Summary
@@ -54,7 +55,7 @@ jobs:
           {
             echo "## Store assets"
             echo "Download the **store-assets** artifact and open \`store/out/contact-sheet.html\` (keep the folder layout)."
-            find apps/desktop/fastlane/screenshots apps/desktop/fastlane/screenshots_mac -name '*.jpg' | sort | sed 's/^/- /'
+            find apps/desktop/fastlane/screenshots apps/desktop/fastlane/screenshots_mac apps/desktop/fastlane/screenshots_ipad129 -name '*.jpg' | sort | sed 's/^/- /'
           } >> "$GITHUB_STEP_SUMMARY"
 
   upload:
@@ -68,7 +69,7 @@ jobs:
         with: { name: store-assets, path: apps/desktop }
       - uses: ruby/setup-ruby@v1
         with: { ruby-version: "3.3", bundler-cache: true, working-directory: apps/desktop }
-      - name: fastlane deliver (iPad, then Mac) — metadata and screenshots, no binary
+      - name: fastlane deliver (iPhone + iPad, then Mac) — metadata and screenshots, no binary
         working-directory: apps/desktop
         env:
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}

@@ -4,9 +4,8 @@ src-tauri/gen/schemas/
 store/out/
 fastlane/report.xml
 fastlane/README.md
-fastlane/screenshots/
 *.p8
 *.p12
 *.mobileprovision
 *.provisionprofile
-fastlane/screenshots_mac/
+# fastlane/screenshots*/ are committed: `pnpm store:shots` regenerates them (docs/RELEASING.md)

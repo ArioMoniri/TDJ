@@ -41,9 +41,27 @@ describe.each(LOCALES)("metadata %s", (locale) => {
     }
   });
 
-  it("description makes no claim the app cannot back (pre-listen ships with the Booth cue UI)", () => {
-    const d = read(`${locale}/description.txt`).toLowerCase();
-    expect(d).not.toMatch(/pre-listen|kulaklıkta dinleyin|iphone/);
+  it("description makes no claim the app cannot back (headphone pre-listen is not on iPhone/iPad yet)", () => {
+    const d = read(`${locale}/description.txt`).toLocaleLowerCase(locale === "tr" ? "tr" : "en");
+    expect(d).not.toMatch(/pre-listen|kulaklıkta dinleyin/);
+    // the features the store page is about, and the three devices
+    for (const word of locale === "tr"
+      ? ["iphone", "ipad", "mac", "spotify connect", "sessizlik", "kendin oluştur", "odalar", "dansçı"]
+      : ["iphone", "ipad", "mac", "spotify connect", "silence", "build by hand", "rooms", "dancers"])
+      expect(d, word).toContain(word);
+    // rooms need a server the DJ links: said, not implied to work out of the box
+    expect(d).toMatch(locale === "tr" ? /sunucu/ : /server/);
+  });
+
+  it("plain words: no hype, no exclamation marks, no em dashes", () => {
+    for (const f of ["description.txt", "promotional_text.txt", "subtitle.txt", "release_notes.txt"]) {
+      const t = read(`${locale}/${f}`);
+      expect(t, f).not.toMatch(/!/);
+      expect(t, f).not.toMatch(/\u2014/);
+      expect(t.toLowerCase(), f).not.toMatch(
+        /seamless|elevate|unleash|powerful|effortless|ai-powered|revolutionary|game.?changer|kusursuz|güçlü|zahmetsiz|devrim/,
+      );
+    }
   });
 });
 
@@ -53,6 +71,9 @@ describe("shared metadata", () => {
     expect(read("copyright.txt").trim()).toBe("© 2026 Ario Moniri");
     const notes = read("review_information/notes.txt");
     expect(notes).toMatch(/No login/);
+    expect(notes).toMatch(/No demo account/);
+    expect(notes).toMatch(/iPhone, iPad and Mac/);
+    expect(read("review_information/demo_required.txt").trim()).toBe("false");
     expect(notes.length).toBeLessThanOrEqual(4000);
   });
 
