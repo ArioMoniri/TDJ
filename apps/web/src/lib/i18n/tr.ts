@@ -3605,6 +3605,8 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "nightProfile.energy_of_each_of_the_sides": "{length} kaydın her birinin enerjisi, tanda tanda",
   "nightProfile.energy_of_every_side_hover_a":
     "Her kaydın enerjisi; havasını görmek için bir tandanın üzerine gelin",
+  "nightProfile.energy_of_every_side_tap_a":
+    "Her kaydın enerjisi; bir tandanın havası için dokunun ya da yana kaydırın",
   "nightProfile.song_by_song": "Şarkı şarkı",
   "nightProfile.tanda": "{p1}. tanda, {orchestra}: {p2}",
   "nightProfile.tanda_2": "{p1}. tanda · {orchestra} · {p2}",

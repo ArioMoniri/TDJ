@@ -1753,7 +1753,30 @@ export function Composer() {
   );
   const onPick = useCallback((i: number) => {
     setActive(i);
-    document.getElementById(`tanda-${i + 1}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    const el = document.getElementById(`tanda-${i + 1}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    // 2026-11 (wave 2, iPhone: tanda 25 from the night chart stopped ~2000 px short): the cards off screen are drawn
+    // at an estimated height (content-visibility), so a far card moves while the smooth scroll runs. Once it ends,
+    // settle on the card if it is still off screen, unless the DJ has scrolled or touched since.
+    const off = () => {
+      const r = el.getBoundingClientRect();
+      return r.bottom < 0 || r.top > window.innerHeight;
+    };
+    if (!off() || !("onscrollend" in window)) return;
+    const stop = () => {
+      window.removeEventListener("scrollend", settle);
+      for (const ev of ["wheel", "touchstart", "keydown"] as const) window.removeEventListener(ev, stop);
+      clearTimeout(timer);
+    };
+    const settle = () => {
+      stop();
+      if (off()) el.scrollIntoView({ block: "center" });
+    };
+    window.addEventListener("scrollend", settle);
+    for (const ev of ["wheel", "touchstart", "keydown"] as const)
+      window.addEventListener(ev, stop, { passive: true });
+    const timer = setTimeout(stop, 4000);
   }, []);
   const breakAfter = new Map((playlist?.breaks ?? []).map((b) => [b.afterTanda, b]));
   // 2026-11: a tap on any row plays from the night in order (the mini player steps through it)

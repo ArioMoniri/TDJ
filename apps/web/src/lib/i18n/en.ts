@@ -3417,6 +3417,7 @@ export const en = {
   "nightProfile.energy": "{title} · energy {p1}{p2}",
   "nightProfile.energy_of_each_of_the_sides": "Energy of each of the {length} sides, tanda by tanda",
   "nightProfile.energy_of_every_side_hover_a": "Energy of every side; hover a tanda for its tone",
+  "nightProfile.energy_of_every_side_tap_a": "Energy of every side; tap or slide across for a tanda's tone",
   "nightProfile.song_by_song": "Song by song",
   "nightProfile.tanda": "Tanda {p1}, {orchestra}: {p2}",
   "nightProfile.tanda_2": "Tanda {p1} · {orchestra} · {p2}",

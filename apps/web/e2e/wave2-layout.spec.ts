@@ -323,15 +323,82 @@ test("Settings: no check beside a provider with no key, Test says why it is off,
   expect(bad).toEqual([]);
 });
 
-test("iPad landscape: toolbar capsules and chart dots are 44 px touch targets", async ({ page }) => {
+test("iPad landscape: toolbar capsules are 44 px; the night chart is one 44 px control on touch", async ({
+  page,
+}) => {
   test.skip(!isIpadLandscape(), "iPad landscape");
   await featured(page);
   for (const id of ["toolbar-regenerate", "toolbar-export"]) {
     const el = page.getByTestId(id);
     if (await el.isVisible()) expect((await el.boundingBox())!.height).toBeGreaterThanOrEqual(44);
   }
-  const dot = page.locator('[role="button"][aria-label^="Tanda 1,"]').first();
-  const d = (await dot.boundingBox())!;
-  expect(Math.min(d.width, d.height)).toBeGreaterThanOrEqual(44);
+  // 25 tandas in ~550 px left each tanda a ~21 px target: on touch there are none, the whole chart is the control
+  const profile = page.getByTestId("night-profile");
+  const chart = profile.getByTestId("night-profile-chart");
+  await expect(chart).toHaveAttribute("role", "slider");
+  await expect(chart).toHaveAttribute("data-touch", "true");
+  await expect(profile.locator('[role="button"]')).toHaveCount(0);
+  await expect(profile.locator("[tabindex]")).toHaveCount(1);
+  const c = (await chart.boundingBox())!;
+  expect(c.height).toBeGreaterThanOrEqual(44);
+  expect(c.width).toBeGreaterThanOrEqual(44);
   expect(await sideways(page)).toBeLessThanOrEqual(0);
+});
+
+/** a tap at the top of tanda n's column (above its bars: the whole column counts), then its card is on screen */
+async function tapTanda(page: Page, n: number) {
+  const profile = page.getByTestId("night-profile");
+  const chart = profile.getByTestId("night-profile-chart");
+  await profile.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(300);
+  const c = (await chart.boundingBox())!;
+  const col = (await profile.locator(`g[data-column="${n}"]`).boundingBox())!;
+  await page.touchscreen.tap(col.x + col.width / 2, c.y + 3);
+  await expect(chart).toHaveAttribute("data-selected", String(n - 1));
+  await expect(chart).toHaveAttribute("aria-valuenow", String(n));
+  await expect(chart).toHaveAttribute("aria-valuetext", new RegExp(`^Tanda ${n}, `));
+  await expect(profile.getByTestId("night-profile-caption")).toContainText(`Tanda ${n} ·`);
+  // what a tap on the tanda did before: its card scrolls into view
+  await expect(page.locator(`#tanda-${n}`)).toBeInViewport({ timeout: 5_000 });
+}
+
+test("night chart: a tap anywhere in a tanda's column picks and opens it (iPad landscape, iPhone)", async ({
+  page,
+}) => {
+  test.skip(!isIpadLandscape() && !isPhone(page), "iPad landscape and phone");
+  await featured(page);
+  const chart = page.getByTestId("night-profile-chart");
+  await expect(chart).toHaveAttribute("data-touch", "true");
+  expect((await chart.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  await tapTanda(page, 3);
+  await tapTanda(page, 7);
+  await tapTanda(page, Number(await chart.getAttribute("aria-valuemax")));
+});
+
+test("night chart: the keyboard's slider steps a tanda, Home / End, Enter opens", async ({ page }) => {
+  test.skip(!isIpadLandscape() && !isDesktop(), "iPad landscape and desktop");
+  await featured(page);
+  const chart = page.getByTestId("night-profile-chart");
+  await chart.scrollIntoViewIfNeeded();
+  await chart.focus();
+  await expect(chart).toBeFocused();
+  const n = Number(await chart.getAttribute("aria-valuemax"));
+  expect(n).toBeGreaterThan(5);
+  await expect(chart).toHaveAttribute("aria-valuemin", "1");
+  await page.keyboard.press("Home");
+  await expect(chart).toHaveAttribute("aria-valuenow", "1");
+  await expect(chart).toHaveAttribute("aria-valuetext", /^Tanda 1, /);
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("ArrowRight");
+  await expect(chart).toHaveAttribute("aria-valuenow", "3");
+  await expect(chart).toHaveAttribute("aria-valuetext", /^Tanda 3, /);
+  await expect(page.getByTestId("night-profile-caption")).toContainText("Tanda 3 ·");
+  await page.keyboard.press("ArrowLeft");
+  await expect(chart).toHaveAttribute("aria-valuenow", "2");
+  await page.keyboard.press("End");
+  await expect(chart).toHaveAttribute("aria-valuenow", String(n));
+  await page.keyboard.press("ArrowRight");
+  await expect(chart).toHaveAttribute("aria-valuenow", String(n));
+  await page.keyboard.press("Enter");
+  await expect(page.locator(`#tanda-${n}`)).toBeInViewport({ timeout: 5_000 });
 });

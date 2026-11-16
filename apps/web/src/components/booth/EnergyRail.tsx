@@ -5,6 +5,7 @@ import { nightEnergy, scrubAt, scrubStep } from "@/lib/booth/energyChart";
 import { energyDomain, energyTicks, hereLabelSpot } from "@/lib/booth/energyLayout";
 import { useIndicators } from "@/lib/booth/indicatorPrefs";
 import { useBooth } from "@/lib/booth/store";
+import { useMediaQuery } from "@/lib/hooks";
 import { t } from "@/lib/i18n";
 import { toast } from "@/lib/toast";
 import { ArmButton } from "./Confirm";
@@ -45,6 +46,11 @@ function hereTextWidth(word: string): number {
  * move it tanda by tanda and say the tanda, the song at that point and its energy; "Play from tanda N" plays its
  * first song in the room (mid-night with the light confirmation), "Pre-listen" plays it in the headphones when they
  * are chosen. The "we are here" line stays.
+ *
+ * 2026-11 (wave 2: a tanda's ~9 px dot is far under the 44 px touch target): as on Compose's night chart, a touch
+ * screen (`pointer: coarse`) has no per-tanda tap targets: the dots are a mouse shortcut only, and on touch the chart
+ * is one control, through Scrub (a drag anywhere, the keys one tanda a step). With Scrub off a touch on the chart
+ * does nothing at all, so a stray touch still never changes the room.
  */
 export function EnergyRail({ onJump }: { onJump?: (planIndex: number) => void }) {
   const on = useIndicators().energy;
@@ -64,6 +70,7 @@ export function EnergyRail({ onJump }: { onJump?: (planIndex: number) => void })
   const [scrub, setScrub] = useState(false);
   const [at, setAt] = useState<number | null>(null);
   const drag = useRef(false);
+  const coarse = useMediaQuery("(pointer: coarse)");
   useEffect(() => {
     const el = svg.current;
     if (!el || typeof ResizeObserver !== "function") return;
@@ -294,8 +301,8 @@ export function EnergyRail({ onJump }: { onJump?: (planIndex: number) => void })
                       ? ` ${t("booth.energyRail.planned_2", { p1: Math.round(p.target) })}`
                       : "",
                 })}
-                style={{ cursor: onJump && !scrub ? "pointer" : undefined }}
-                onClick={() => !scrub && first >= 0 && onJump?.(first)}
+                style={{ cursor: onJump && !scrub && !coarse ? "pointer" : undefined }}
+                onClick={coarse ? undefined : () => !scrub && first >= 0 && onJump?.(first)}
               />
             </g>
           );
