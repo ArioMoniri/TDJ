@@ -16,7 +16,7 @@ import { useBooth } from "@/lib/booth/store";
 import { t } from "@/lib/i18n";
 import { ActionRow, Group, StepperRow, SwitchRow } from "../Form";
 import { Sheet } from "../Sheet";
-import { fmtDb, holdText, MeterBar, NoMeter, songLoudnessText } from "./Meter";
+import { fmtDb, holdText, KnownLevel, levelWhyText, MeterBar } from "./Meter";
 import "./level.css";
 
 /**
@@ -32,7 +32,7 @@ export function MixerMeter() {
   return (
     <span className="booth-levels-head" data-testid="ctl-levels">
       {external ? (
-        <NoMeter testId="ctl-meter-na" />
+        <KnownLevel testId="ctl-meter-est" compact />
       ) : (
         <>
           <MeterBar className="booth-levels-bar" testId="ctl-meter" />
@@ -94,18 +94,14 @@ function ClipLight() {
 /** How the per-song normalisation reaches the room for the side playing now (in plain words). */
 export function NormNote() {
   const norm = useLevels((s) => s.norm);
-  const song = useLevels((s) => s.song);
+  const live = useLevels((s) => s.live);
   const target = useBooth((s) => s.settings.loudnessTargetLUFS);
   const gain = useBooth((s) => s.current?.gainDb);
+  // the side's own level and its gain stand right above (KnownLevel); this says why and what the night does
   const txt =
     norm === "graph"
       ? t("booth.level.norm_graph", { target, gain: fmtDb(gain ?? 0) })
-      : norm === "sdk"
-        ? t("booth.level.norm_sdk", { target })
-        : norm === "spotify"
-          ? t("booth.level.norm_connect")
-          : t("booth.level.norm_none");
-  const s = songLoudnessText(song);
+      : levelWhyText(live, norm, target);
   return (
     <p
       className="booth-levels-note text-caption1 text-[var(--label-2)]"
@@ -113,7 +109,6 @@ export function NormNote() {
       data-norm={norm}
     >
       {txt}
-      {s && norm !== "graph" ? ` ${s}.` : ""}
     </p>
   );
 }
@@ -161,7 +156,7 @@ export function RoomControls({ withMeter = false }: { withMeter?: boolean }) {
         <Group header={t("booth.level.now_header")}>
           <div className="cell flex-col items-stretch">
             {live === "spotify" || live === "youtube" ? (
-              <NoMeter testId="mix-meter-na" />
+              <KnownLevel testId="mix-meter-est" explain={false} />
             ) : (
               <MeterBar className="h-3" testId="mix-meter" />
             )}

@@ -3,6 +3,7 @@ import { t as tx } from "@/lib/i18n";
 import { loadMatches, type YoutubeMatches } from "@/lib/youtubeMatches";
 import { dbToGain, VOLUME_STEP_SEC } from "../envelope";
 import type { BoothRow } from "../plan";
+import { ensureSideLevel, type LevelEntity, preparedLevel } from "../sideLevel";
 import { fadeVolumes, isAppleMobile, isPhone } from "./spotify";
 import type {
   ExternalCapabilities,
@@ -102,13 +103,21 @@ export class YoutubeAdapter implements SourceAdapter, ExternalPlayer {
   async resolve(item: BoothRow, entity: PlanEntity) {
     const v = this.videoFor(entity);
     if (v && item?.title) this.titles.set(youtubeUri(v), item.title);
+    if (v) void ensureSideLevel(entity as LevelEntity);
     return v ? ("ready" as const) : ("missing" as const);
   }
   async prepare(item: BoothRow, entity: PlanEntity): Promise<PreparedItem> {
     const v = this.videoFor(entity);
     if (!v) throw new Error(tx("booth.sources.youtube.no_video_for_this_item"));
     if (item?.title) this.titles.set(youtubeUri(v), item.title);
-    return { kind: "youtube", externalUri: youtubeUri(v), durationSec: item.lengthSec };
+    // 2026-11: the side's level known from data: the gain toward the night's target reads it (lib/booth/sideLevel.ts)
+    const measured = preparedLevel(entity as LevelEntity);
+    return {
+      kind: "youtube",
+      externalUri: youtubeUri(v),
+      durationSec: item.lengthSec,
+      ...(measured ? { measured } : {}),
+    };
   }
   release() {}
 

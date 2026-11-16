@@ -113,3 +113,99 @@
     opacity: 0.35;
   }
 }
+
+/* 2026-11 — a Spotify / YouTube side's level known from data (Meter.tsx KnownLevel): a static bar, never a live one.
+   Striped when it is an estimate, solid when measured; the part the night turns down is drawn as cut; a tick marks the
+   night's target. */
+.booth-meter-est {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.booth-est-bar {
+  position: relative;
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--fill-4, rgba(127, 127, 127, 0.12));
+}
+.booth-est-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--system-green, #34c759);
+}
+.booth-est-bar[data-estimate="1"] .booth-est-fill {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--system-green, #34c759) 0 4px,
+    color-mix(in srgb, var(--system-green, #34c759) 55%, transparent) 4px 8px
+  );
+}
+.booth-est-cut {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--label-3, rgba(127, 127, 127, 0.4)) 60%, transparent);
+}
+.booth-est-target {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--label, #fff);
+  opacity: 0.7;
+}
+.booth-est-text {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 2px;
+  min-width: 0;
+}
+.booth-est-why {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-left: 4px;
+  border-radius: 11px;
+  color: var(--label-2);
+}
+.booth-est-why[aria-expanded="true"] {
+  color: var(--tint-text, var(--tint));
+}
+/* a 44 px hit area around the small ⓘ */
+.booth-est-why::after {
+  content: "";
+  position: absolute;
+  inset: -11px;
+}
+.booth-est-note {
+  margin: 2px 0 0;
+}
+/* the Mixer's title line: the bar and the numbers on one line */
+.booth-meter-est-compact {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 auto;
+}
+.booth-meter-est-compact > .booth-est-bar {
+  flex: 1 1 auto;
+  min-width: 40px;
+  height: 6px;
+}
+.booth-meter-est-compact > .booth-est-text {
+  display: block;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 11px;
+  white-space: nowrap;
+}

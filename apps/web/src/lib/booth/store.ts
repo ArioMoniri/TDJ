@@ -71,6 +71,7 @@ import {
   saveNight,
 } from "./persist";
 import { type BoothRow, type BoothRows, decorate, planEntities, remainingFrom } from "./plan";
+import { provideFileLevels } from "./sideLevel";
 import { resolveSourceMode } from "./sourceMode";
 import { LocalAdapter } from "./sources/local";
 import { PreviewAdapter, REHEARSAL_SEC } from "./sources/preview";
@@ -2102,6 +2103,9 @@ useTemplates.subscribe((st, prev) => {
   const p = useBooth.getState().playlist;
   if (p) applyPlan(rePlan(p, useBooth.getState().settings));
 });
+
+// 2026-11: a Spotify / YouTube side's level reads the DJ's own linked file first (lib/booth/sideLevel.ts)
+provideFileLevels((id) => local?.measurementsById()[id] ?? null);
 
 /** For the e2e audibility check: the context's state. */
 export const boothContextState = () => ctx?.state ?? null;

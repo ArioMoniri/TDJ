@@ -6,6 +6,7 @@ import { forgetPoll, skipPoll } from "@/lib/power";
 import type { AuditionIO } from "../audition";
 import { dbToGain, fadeOutCurve, VOLUME_STEP_SEC, volumeSteps } from "../envelope";
 import type { BoothRow } from "../plan";
+import { ensureSideLevel, type LevelEntity, preparedLevel } from "../sideLevel";
 import { TrackClock } from "./clock";
 import { PauseWatch } from "./spotifyHold";
 import type {
@@ -391,13 +392,23 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
   async resolve(item: BoothRow, entity: PlanEntity) {
     const uri = uriOf(entity);
     if (uri && item?.title) this.titles.set(uri, item.title);
+    // 2026-11: a side with no level in data is looked up once, ahead of its turn (Deezer, then Spotify)
+    if (uri) void ensureSideLevel(entity as LevelEntity);
     return uri ? ("ready" as const) : ("missing" as const);
   }
   async prepare(item: BoothRow, entity: PlanEntity): Promise<PreparedItem> {
     const uri = uriOf(entity);
     if (!uri) throw new Error(tx("booth.sources.spotify.no_spotify_track_for_this_item"));
     if (item?.title) this.titles.set(uri, item.title);
-    return { kind: "spotify", spotifyUri: uri, durationSec: item.lengthSec };
+    // 2026-11: the side's level known from data (its file, the catalogue, Deezer, Spotify): the engine's gain toward
+    // the night's target reads it, so a louder side is turned down — the level the Booth shows (lib/booth/sideLevel.ts)
+    const measured = preparedLevel(entity as LevelEntity);
+    return {
+      kind: "spotify",
+      spotifyUri: uri,
+      durationSec: item.lengthSec,
+      ...(measured ? { measured } : {}),
+    };
   }
   release() {}
 

@@ -6,8 +6,11 @@
  * - the room meter with a fake microphone (the speakers' sound at −15 dB plus a "crowd" the test turns up): Auto
  *   master is off by default, rises slowly (≤ 0.5 dB/s) within its maximum when the crowd gets louder, shows a badge,
  *   and one tap stops it (the boost ramps back to 0);
- * - Spotify Connect: "Level not available from Spotify" instead of a dead meter, and the advice to turn on Spotify's
- *   own Normalize volume.
+ * - Spotify (the owner on "Level not available from Spotify": a useful level, in plain words): the side's level known
+ *   from data (the catalogue, Deezer's gain, Spotify's audio-features: GET /api/level, mocked here) as a static
+ *   "estimate" bar with the gain the night applies — in the page (the Web Playback SDK) a louder side is really turned
+ *   down (its player volume), on Spotify Connect the advice to turn on Spotify's own Normalize volume; never "not
+ *   available" when data exists.
  */
 import { type BrowserContextOptions, devices, expect, type Page, test } from "@playwright/test";
 
@@ -329,13 +332,139 @@ async function connect(page: Page) {
   });
 }
 
-test("Spotify Connect: 'Level not available from Spotify' instead of a dead meter, and Spotify's own normalisation", async ({
+/** GET /api/level answers one level for every side it is asked about (a Deezer gain of −11.8 dB) */
+async function levelApi(page: Page) {
+  const asked: string[] = [];
+  await page.route("**/api/level?**", (r) => {
+    asked.push(new URL(r.request().url()).searchParams.get("id") ?? "");
+    return r.fulfill({ json: { lufs: -11.8, from: "deezer" } });
+  });
+  return asked;
+}
+const boothNow = (page: Page) =>
+  page.evaluate(() => {
+    const s = (
+      window as unknown as {
+        __tdjBooth: {
+          getState: () => { planIndex: number; sources: string[]; plan: { items: Array<{ id?: string }> } };
+        };
+      }
+    ).__tdjBooth.getState();
+    return { i: s.planIndex, src: s.sources[s.planIndex], id: s.plan.items[s.planIndex]?.id };
+  });
+
+test("Spotify in the page (Web Playback SDK): the side's estimated level and the gain really applied, no 'not available'", async ({
+  browser,
+}) => {
+  test.setTimeout(240_000);
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await ctx.newPage();
+  await connect(page);
+  const asked = await levelApi(page);
+  // the SDK player of this page: every volume it is given, in order
+  await page.route("https://sdk.scdn.co/spotify-player.js", (r) =>
+    r.fulfill({
+      contentType: "application/javascript",
+      body: `window.__vols = [];
+      window.Spotify = { Player: class {
+        constructor() { this.l = {}; }
+        connect() { setTimeout(() => this.l.ready && this.l.ready({ device_id: "ipad" }), 10); return Promise.resolve(true); }
+        disconnect() {}
+        addListener(e, cb) { this.l[e] = cb; }
+        getCurrentState() { return Promise.resolve(null); }
+        setVolume(v) { window.__vols.push(v); return Promise.resolve(); }
+        pause() { return Promise.resolve(); }
+        resume() { return Promise.resolve(); }
+        seek() { return Promise.resolve(); }
+      } };
+      window.onSpotifyWebPlaybackSDKReady && window.onSpotifyWebPlaybackSDKReady();`,
+    }),
+  );
+  await quiet(page);
+  await page.route(/dzcdn\.net|p\.scdn\.co|preview\.test|\/api\/preview\?/, (r) =>
+    r.fulfill({ status: 404 }),
+  );
+  await page.route(/open\.spotify\.com\/oembed/, (r) => r.fulfill({ status: 404, body: "" }));
+  await page.goto("/?featured=golden-double-peak");
+  await expect(page.locator("#result")).toBeVisible({ timeout: 90000 });
+  await page.getByTestId("play-the-night").first().click();
+  await expect(page).toHaveURL(/\/booth/, { timeout: 60000 });
+  await expect(page.getByTestId("booth-ttc")).not.toHaveAttribute("data-resolving", "1", { timeout: 30000 });
+  await expect(page.getByTestId("booth-mode")).toContainText("Spotify", { timeout: 15000 });
+  // the sides with no level in data were looked up ahead of their turn
+  await expect.poll(() => asked.length, { timeout: 15000 }).toBeGreaterThan(0);
+  // before the night, one tap moves the playhead: on to a side whose level is Deezer's (−11.8 LUFS, the lookup)
+  const est = page.getByTestId("booth-meter-est");
+  for (let k = 0; k < 6; k++) {
+    await expect(est).toBeVisible({ timeout: 10000 });
+    if ((await est.getAttribute("data-from")) === "deezer") break;
+    const before = (await boothNow(page)).i;
+    await page.getByTestId("booth-next-now").click();
+    await expect.poll(async () => (await boothNow(page)).i, { timeout: 15000 }).toBeGreaterThan(before);
+  }
+  expect((await boothNow(page)).src).toBe("spotify");
+  await expect(est).toHaveAttribute("data-from", "deezer");
+  await page.getByTestId("booth-start").click();
+  await expect(page.getByTestId("booth")).toHaveAttribute("data-state", "playing", { timeout: 20000 });
+  await expect(est).toHaveAttribute("data-from", "deezer");
+  await expect(est).toHaveAttribute("data-estimate", "1");
+  const lufs = Number(await est.getAttribute("data-lufs"));
+  expect(lufs).toBeGreaterThan(-13);
+  expect(lufs).toBeLessThan(-11);
+  // the gain the night applies toward −16 LUFS: down by (target − level), shown in plain words
+  await expect
+    .poll(async () => Number(await est.getAttribute("data-applied")), { timeout: 10000 })
+    .toBeLessThan(-3);
+  const applied = Number(await est.getAttribute("data-applied"));
+  expect(applied).toBeCloseTo(-16 - lufs, 1);
+  await expect(page.getByTestId("booth-meter-est-text")).toHaveText(
+    `${lufs.toFixed(1)} LUFS · turned down ${Math.abs(applied).toFixed(1)} dB`,
+  );
+  await expect(est).toContainText("estimate from Deezer");
+  // a static bar (an estimate, striped), never a live one; nothing says "not available"
+  await expect(page.getByTestId("booth-meter")).toHaveCount(0);
+  await expect(page.locator("body")).not.toContainText("not available");
+  // ⓘ: the short reason, in plain words
+  const why = page.getByTestId("booth-meter-est-why");
+  const wb = await why.boundingBox();
+  expect(wb).not.toBeNull();
+  await why.click();
+  await expect(page.getByTestId("booth-meter-est-note")).toContainText("can't be measured in this page");
+  await expect(page.getByTestId("booth-meter-est-note")).toContainText("a player can't go above it");
+  // and the player's volume really is turned down by that gain (master × 10^(gain/20))
+  await expect
+    .poll(
+      async () => {
+        const { v, out } = await page.evaluate(() => {
+          const w = window as unknown as {
+            __vols: number[];
+            __tdjBoothEngine: () => { outputGain: () => number };
+          };
+          return { v: w.__vols, out: w.__tdjBoothEngine().outputGain() };
+        });
+        const last = v[v.length - 1] ?? 0;
+        return last > 0 && out > 0 ? Math.round(20 * Math.log10(last / out) * 10) / 10 : 0;
+      },
+      { timeout: 10000 },
+    )
+    .toBeCloseTo(applied, 0);
+  // the Mixer's title line: the same level and gain on one line
+  await page.getByTestId("booth-controls-toggle").click();
+  const panel = page.getByTestId("booth-controls");
+  await expect(panel.getByTestId("ctl-meter-est-text")).toHaveText(
+    `${lufs.toFixed(1)} LUFS · turned down ${Math.abs(applied).toFixed(1)} dB`,
+  );
+  await ctx.close();
+});
+
+test("Spotify Connect: the side's level from data instead of a dead meter, and Spotify's own normalisation", async ({
   browser,
 }) => {
   test.setTimeout(180_000);
   const ctx = await browser.newContext(IPAD_L);
   const page = await ctx.newPage();
   await connect(page);
+  await levelApi(page);
   await page.addInitScript(() => {
     Object.defineProperty(Navigator.prototype, "maxTouchPoints", { get: () => 5 });
   });
@@ -352,15 +481,18 @@ test("Spotify Connect: 'Level not available from Spotify' instead of a dead mete
   await expect(page.getByTestId("booth-mode")).toContainText("Spotify", { timeout: 15000 });
   await page.getByTestId("booth-start").click();
   await expect(page.getByTestId("booth-mode")).toContainText("Playing", { timeout: 20000 });
-  const na = page.getByTestId("booth-meter-na");
-  await expect(na).toContainText("Level not available from Spotify");
+  const est = page.getByTestId("booth-meter-est");
+  await expect(est).toHaveAttribute("data-from", /^(catalogue|deezer)$/);
+  // Connect has no per-item gain: the level, and that it is not changed here
+  await expect(page.getByTestId("booth-meter-est-text")).toHaveText(/^-\d+\.\d LUFS · not changed here$/);
   await expect(page.getByTestId("booth-meter")).toHaveCount(0);
+  await expect(page.locator("body")).not.toContainText("not available");
   await page.getByTestId("booth-controls-toggle").click();
   const panel = page.getByTestId("booth-controls");
-  await expect(panel.getByTestId("ctl-meter-na")).toContainText("Level not available from Spotify");
+  await expect(panel.getByTestId("ctl-meter-est-text")).toHaveText(/^-\d+\.\d LUFS · not changed here$/);
   await panel.getByTestId("ctl-room").click();
   const sheet = page.getByTestId("booth-room-sheet");
-  await expect(sheet.getByTestId("mix-meter-na")).toContainText("Level not available from Spotify");
+  await expect(sheet.getByTestId("mix-meter-est")).toHaveAttribute("data-from", /^(catalogue|deezer)$/);
   await expect(sheet.getByTestId("ctl-norm")).toHaveAttribute("data-norm", "spotify");
   await expect(sheet.getByTestId("ctl-norm")).toContainText("turn on Normalize volume in Spotify");
   await ctx.close();

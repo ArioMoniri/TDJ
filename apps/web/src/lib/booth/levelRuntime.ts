@@ -16,6 +16,7 @@ import {
 } from "./autoMaster";
 import type { BoothEngine } from "./engine";
 import {
+  externalGainDb,
   frameStats,
   K_HIGHPASS,
   K_SHELF,
@@ -25,8 +26,14 @@ import {
   normalisationPath,
   SILENT_READING,
   type SongLoudness,
-  songLoudness,
 } from "./level";
+import {
+  ensureSideLevel,
+  knownSideLevel,
+  type LevelEntity,
+  levelCacheVersion,
+  rememberLevel,
+} from "./sideLevel";
 import { boothEngine, roomCaps, useBooth } from "./store";
 
 /**
@@ -47,8 +54,13 @@ export type RoomStatus = "off" | "asking" | "on" | "denied" | "unsupported";
 interface LevelState {
   reading: MeterReading;
   live: LiveSource;
-  /** the playing side's loudness (measured, cached or the catalogue's) */
+  /** the playing side's level (measured, cached, the catalogue's, Deezer's or Spotify's: lib/booth/sideLevel.ts) */
   song: SongLoudness | null;
+  /**
+   * 2026-11: the gain the night applies to that side on an external player, dB (≤ 0 on the SDK path, 0 where the
+   * player has no per-item gain); the engine's own number once the item runs. Null when the level is unknown.
+   */
+  applied: number | null;
   norm: NormalisationPath;
   room: { status: RoomStatus; levelDb: number | null; noiseDb: number | null; calOffset: number | null };
   auto: { enabled: boolean; db: number; hold: AutoHold | null; path: AutoPath };
@@ -56,7 +68,6 @@ interface LevelState {
 }
 
 const PREFS_KEY = "tdj-booth-room";
-const CACHE_KEY = "tdj-booth-loudness";
 function loadPrefs(): { cfg: AutoConfig; calOffset: number | null } {
   try {
     const raw = JSON.parse(localStorage.getItem(PREFS_KEY) ?? "null") as {
@@ -77,35 +88,12 @@ function savePrefs() {
     localStorage.setItem(PREFS_KEY, JSON.stringify({ cfg: s.cfg, calOffset: s.room.calOffset }));
   } catch {}
 }
-/** per-side loudness measured from a file or a 30 s clip, kept for the nights that play the side from Spotify */
-let cache: Record<string, SongLoudness> | null = null;
-function loudnessCache(): Record<string, SongLoudness> {
-  if (cache) return cache;
-  try {
-    cache = (JSON.parse(localStorage.getItem(CACHE_KEY) ?? "{}") as Record<string, SongLoudness>) ?? {};
-  } catch {
-    cache = {};
-  }
-  return cache;
-}
-function remember(id: string, v: SongLoudness) {
-  const c = loudnessCache();
-  const old = c[id];
-  // a file's measurement outranks a clip's
-  if (old && old.from === "file" && v.from !== "file") return;
-  if (old && old.from === v.from && Math.abs(old.lufs - v.lufs) < 0.05) return;
-  c[id] = { lufs: Math.round(v.lufs * 10) / 10, from: v.from };
-  const keys = Object.keys(c);
-  if (keys.length > 3000) for (const k of keys.slice(0, keys.length - 3000)) delete c[k];
-  try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify(c));
-  } catch {}
-}
 
 export const useLevels = create<LevelState>()(() => ({
   reading: SILENT_READING,
   live: "idle",
   song: null,
+  applied: null,
   norm: "graph",
   room: { status: "off", levelDb: null, noiseDb: null, calOffset: null },
   auto: { enabled: false, db: 0, hold: null, path: "graph" },
@@ -324,6 +312,8 @@ function stopLoops() {
 }
 
 let lastFrame = 0;
+let songKey = "";
+let songNow: SongLoudness | null = null;
 function frame(now: number) {
   raf = powerFrame(frame); // Battery saver: 4 fps (lib/power.ts)
   const reduced = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -343,20 +333,39 @@ function sampleOutput(t: number) {
     live: external ? (src as LiveSource) : live ? "graph" : "idle",
     norm: normalisationPath(src, roomCaps(b)),
   };
-  // the side's loudness
+  // the side's level (from its measurement, else from data: lib/booth/sideLevel.ts), recomputed when it can change
   const it = b.plan?.items[b.planIndex];
-  const ent = b.entities[b.planIndex] as { audio?: { loudnessDb?: number } | null } | null | undefined;
+  const ent = b.entities[b.planIndex] as LevelEntity;
   const cur = eng?.current && eng.current.planIndex === b.planIndex ? eng.current : null;
   const from = cur?.source === "file" ? "file" : cur?.source === "preview" ? "clip" : null;
-  const song = songLoudness({
-    measured: cur?.measured ?? null,
-    measuredFrom: from,
-    cached: it?.id ? (loudnessCache()[it.id] ?? null) : null,
-    catalogueDb: ent?.audio?.loudnessDb ?? null,
-  });
-  if (song && it?.id && (song.from === "file" || song.from === "clip")) remember(it.id, song);
+  const key = `${b.planIndex}|${it?.id ?? ""}|${from ?? ""}|${cur?.measured?.lufs ?? ""}|${levelCacheVersion()}`;
+  if (key !== songKey) {
+    songKey = key;
+    songNow = knownSideLevel(ent, { measured: cur?.measured ?? null, measuredFrom: from });
+    if (songNow && it?.id && (songNow.from === "file" || songNow.from === "clip")) {
+      // kept for the nights that play the side from Spotify (the version bump recomputes once more: same answer)
+      rememberLevel(it.id, songNow);
+    }
+    // a Spotify / YouTube side with no level yet, and the next two: looked up once (Deezer, then Spotify)
+    if (external)
+      for (let k = b.planIndex; k <= b.planIndex + 2; k++)
+        if (b.sources[k] === "spotify" || b.sources[k] === "youtube")
+          void ensureSideLevel(b.entities[k] as LevelEntity);
+  }
+  const song = songNow;
   const old = useLevels.getState().song;
   if (old?.lufs !== song?.lufs || old?.from !== song?.from) next.song = song;
+  // the gain applied to it: the engine's own once the external item runs (a level found after its start applies from
+  // the next play), else what it will apply
+  const applied =
+    !external || !song
+      ? null
+      : cur && (cur.source === "spotify" || cur.source === "youtube")
+        ? next.norm === "sdk"
+          ? Math.round(Math.min(0, cur.gainDb) * 10) / 10
+          : 0
+        : externalGainDb(song, b.settings.loudnessTargetLUFS, next.norm ?? "none");
+  if (applied !== useLevels.getState().applied) next.applied = applied;
   // the meter (the graph: files, clips — and the silence of a paused night)
   const tp = eng ? tapsFor(eng) : null;
   if (tp && !external) {

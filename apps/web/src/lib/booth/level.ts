@@ -171,30 +171,95 @@ function windowMean(frames: MeterFrame[], from: number): number {
   return n ? s / n : 0;
 }
 
-/** Where a side's loudness number comes from (the static value the meter shows for Spotify). */
-export type SongLoudnessFrom = "file" | "clip" | "catalogue";
+/**
+ * Where a side's level comes from. `file` and `clip` are BS.1770 measurements made in this page; the rest are known
+ * from data about the recording and shown as estimates (Spotify and YouTube play outside the page's audio: the
+ * Web Playback SDK is DRM'd, so its samples can never be read for a live meter):
+ * - `catalogue`: the analysed 30 s preview in `data/` (mean RMS dBFS, read as LUFS like the plan's prior);
+ * - `deezer`: Deezer's per-track `gain` (`deezerGainToLufs`), from `data/` or looked up live (GET /api/level);
+ * - `spotify`: Spotify's audio-features `loudness` (deprecated for new apps: usually not there).
+ */
+export type SongLoudnessFrom = "file" | "clip" | "catalogue" | "deezer" | "spotify";
 export interface SongLoudness {
-  /** LUFS (file / clip: BS.1770 integrated) or the catalogue's mean RMS dBFS (comparable, not R128) */
+  /** LUFS (file / clip: BS.1770 integrated; otherwise an estimate on the same scale) */
   lufs: number;
   from: SongLoudnessFrom;
+  /** the sample peak, dBFS, when a measurement knows it */
+  peakDbFS?: number;
+}
+/** a level known from data, not measured in this page */
+export const isEstimate = (s: Pick<SongLoudness, "from">): boolean => s.from !== "file" && s.from !== "clip";
+
+/** a side's level outside this range is a broken record, not a loudness (Deezer's 0 means "not analysed") */
+export const LEVEL_MIN_LUFS = -40;
+export const LEVEL_MAX_LUFS = -3;
+/**
+ * Deezer's `gain` is the track's own level in dB below full scale (negative; more negative is quieter), not a
+ * correction toward a reference: across the 373 sides of `data/` with both, it rises with our own analysed preview
+ * level (r ≈ 0.53, slope ≈ 0.63) and sits ≈ 3 dB above that preview's mean-of-dB RMS (which reads low against an
+ * energy mean on dynamic 78 rpm transfers), so it is read as integrated loudness with no offset. An estimate: ±3 dB.
+ */
+export const DEEZER_GAIN_OFFSET_DB = 0;
+const r1 = (v: number) => Math.round(v * 10) / 10;
+const inRange = (v: number) => v >= LEVEL_MIN_LUFS && v <= LEVEL_MAX_LUFS;
+/** Deezer's per-track `gain` (dB) as an integrated-loudness estimate (LUFS); null when it carries none. */
+export function deezerGainToLufs(gain: unknown): number | null {
+  if (typeof gain !== "number" || !Number.isFinite(gain) || gain === 0) return null;
+  const l = r1(gain + DEEZER_GAIN_OFFSET_DB);
+  return inRange(l) ? l : null;
+}
+/** Spotify's audio-features `loudness` (dB, averaged over the track) as an estimate (LUFS); null when unusable. */
+export function spotifyLoudnessToLufs(loudness: unknown): number | null {
+  if (typeof loudness !== "number" || !Number.isFinite(loudness) || loudness === 0) return null;
+  const l = r1(loudness);
+  return inRange(l) ? l : null;
+}
+
+const finite = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
+/**
+ * The best level known for a side, in this order:
+ * 1. a measurement of the playing file or clip, or of the DJ's own linked file (`fileMeasured`);
+ * 2. one cached on this device from an earlier file or clip of the same side;
+ * 3. the catalogue's analysed level (`data/`);
+ * 4. Deezer's `gain` from `data/` (the side's judged Deezer match, or the DJ's own "Level");
+ * 5. a level looked up live and cached (`cached` with an estimate: Deezer's `gain`, else Spotify's `loudness`).
+ * Null when nothing is known.
+ */
+export function songLoudness(o: {
+  measured?: { lufs?: number; peakDbFS?: number } | null;
+  measuredFrom?: "file" | "clip" | null;
+  fileMeasured?: { lufs?: number; peakDbFS?: number } | null;
+  cached?: SongLoudness | null;
+  catalogueDb?: number | null;
+  deezerGain?: number | null;
+}): SongLoudness | null {
+  const m = o.measured;
+  if (m && finite(m.lufs) && o.measuredFrom)
+    return { lufs: m.lufs, from: o.measuredFrom, ...(finite(m.peakDbFS) ? { peakDbFS: m.peakDbFS } : {}) };
+  const f = o.fileMeasured;
+  if (f && finite(f.lufs))
+    return { lufs: f.lufs, from: "file", ...(finite(f.peakDbFS) ? { peakDbFS: f.peakDbFS } : {}) };
+  const c = o.cached && finite(o.cached.lufs) ? o.cached : null;
+  if (c && !isEstimate(c)) return c;
+  if (finite(o.catalogueDb)) return { lufs: o.catalogueDb, from: "catalogue" };
+  const dz = deezerGainToLufs(o.deezerGain);
+  if (dz !== null) return { lufs: dz, from: "deezer" };
+  return c;
 }
 
 /**
- * The best loudness known for a side: a measurement of the playing file or clip, else one cached from an earlier
- * file or clip of the same side, else the catalogue's analysed level. Null when nothing is known.
+ * The gain the night applies to a side on an external player, dB: the normalisation toward `targetLufs` (±12 dB, as
+ * the engine's `gainFor`) on the SDK path, only ever down (a player cannot go above full volume); 0 where the player
+ * has no per-item gain (Spotify Connect, YouTube on iOS). Null when the level is unknown.
  */
-export function songLoudness(o: {
-  measured?: { lufs?: number } | null;
-  measuredFrom?: "file" | "clip" | null;
-  cached?: SongLoudness | null;
-  catalogueDb?: number | null;
-}): SongLoudness | null {
-  const m = o.measured?.lufs;
-  if (m !== undefined && Number.isFinite(m) && o.measuredFrom) return { lufs: m, from: o.measuredFrom };
-  if (o.cached && Number.isFinite(o.cached.lufs)) return o.cached;
-  if (o.catalogueDb !== undefined && o.catalogueDb !== null && Number.isFinite(o.catalogueDb))
-    return { lufs: o.catalogueDb, from: "catalogue" };
-  return null;
+export function externalGainDb(
+  level: Pick<SongLoudness, "lufs"> | null,
+  targetLufs: number,
+  path: NormalisationPath,
+): number | null {
+  if (!level || !finite(level.lufs)) return null;
+  if (path !== "sdk") return 0;
+  return r1(Math.min(0, Math.max(-12, Math.min(12, targetLufs - level.lufs))));
 }
 
 /**
