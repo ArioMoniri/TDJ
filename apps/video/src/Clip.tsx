@@ -13,7 +13,7 @@ import {
   staticFile,
   useCurrentFrame,
 } from "remotion";
-import { chrome, frameOver, frameUnder, screenRadius, screenRect } from "./frames";
+import { chrome, frameFile, frameOver, frameUnder, screenRadius, screenRect } from "./frames";
 
 export const FPS = 60;
 export const W = 1600;
@@ -133,8 +133,13 @@ function Device({
           {children}
         </div>
       </div>
-      {/* biome-ignore lint/security/noDangerouslySetInnerHtml: our own frame markup (frames.ts), no input */}
-      <div style={layer} dangerouslySetInnerHTML={{ __html: frameOver(kind, c, { dark, statusBg }) }} />
+      <div
+        style={layer}
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: our own frame markup (frames.ts), no input
+        dangerouslySetInnerHTML={{
+          __html: frameOver(kind, c, { dark, statusBg, img: staticFile(frameFile(kind)) }),
+        }}
+      />
     </>
   );
 }

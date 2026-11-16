@@ -217,13 +217,19 @@ Upload (Linux, API key in env): `cd apps/desktop && bundle exec fastlane ios met
 
 All README media are real captures of the app, framed by apps/video (Remotion): one 16:10 column at 840 px
 (GIFs at 1680 px where they fit under 8 MB, else 840; `pnpm readme:check` enforces 8 MB, GitHub stops inlining at 10).
-The device frames are drawn in `apps/video/src/frames.ts` (laptop straight on, iPad, a phone at 393 × 852 pt with
-its status bar) and shared by the clips and the stills; no product images or logos.
+The devices are our own 3D models (three.js in Remotion, `apps/video/src/three/`; public dimensions only, no product
+images, renders or logos): a 14-inch-class laptop (31.26 × 22.12 × 1.55 cm, anodised aluminium, a real key layout,
+trackpad, grilles, notch, hinge, feet), an iPad-class tablet and a 393 × 852 pt phone with a titanium band and a
+camera cutout. `pnpm media:frames` renders each straight on with a transparent screen to
+`apps/video/public/frames/<kind>.png` (committed); `apps/video/src/frames.ts` lays them around the clips and stills
+and draws the phone's status bar. Lighting is three's generated studio room (no HDRI download), rendered in software
+GL (`--gl=swangle`).
 
 | Command | Makes | Takes (cloud machine, one Chromium, Remotion at concurrency 2) |
 |---|---|---|
 | `pnpm media` | the clips (`media/readme/<clip>.{mp4,gif}`) and stills (`.webp`) | see the header of `apps/web/scripts/capture-media.ts` |
-| `pnpm media:hero` | the hero under the tagline: a laptop opens and the app plays on it; `hero.{gif,mp4,webm}`, README line updated | capture ~2 min; compose 22–33 min on a shared machine at load 25–40 (less when idle); encode ~3 min; GIF 960 px / 24 fps ≈ 7 MB |
+| `pnpm media:frames` | the device pictures (phone, tablet, laptop) | ~25 s each |
+| `pnpm media:hero` | the hero under the tagline: the 3D laptop orbits, opens and wakes, the app plays on it square on, then it shuts for the loop; `hero.{gif,mp4,webm}` (1920 × 1200 master), README line updated | capture ~2 min; rest still ~25 s; WebGL intro/outro + 2D app part: see the latest draft's log; GIF 960 px / 24 fps |
 | `pnpm media:hero --draft` | the same as `hero-draft.*`, README untouched | |
 
 Both need a production server: `pnpm --filter @tdj/web build && pnpm --filter @tdj/web start -p 3975`, then
@@ -232,7 +238,10 @@ recorder): no help tag or hint bubble ever shows by the cursor; the cursor and c
 Song previews are answered with a synthesised tango (`apps/web/scripts/media/tango-audio.ts`: bass and piano
 marcato, bandoneón line, string pad, phrase stops), so waveforms look like music; no recorded audio is shipped.
 `--skip=capture` re-composes the last capture; `--keep-master` keeps the lossless composite so
-`--skip=capture,render` only re-encodes.
+`--skip=capture,render` only re-encodes; `--blur=4` adds camera motion blur on the lid (4 WebGL renders a frame
+there: only on an idle machine). While the app plays the laptop is a still rendered once (`hero-rest.png`) with the
+video on the screen's projected rectangle: the camera is square to the screen and holds still, which keeps the
+render cheap and the GIF small.
 
 ## Mac checks (need real hardware; first TestFlight build)
 

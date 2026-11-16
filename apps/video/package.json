@@ -6,17 +6,23 @@
   "scripts": {
     "dev": "remotion studio src/index.ts",
     "render": "node scripts/sync-clips.mjs && remotion render src/index.ts Launch ../../media/video/launch.mp4 --codec h264 --crf 18 && ffmpeg -y -loglevel error -i ../../media/video/launch.mp4 -c:v libx264 -preset slow -crf 28 -tune animation -pix_fmt yuv420p -movflags +faststart ../../media/video/.launch.mp4 && mv ../../media/video/.launch.mp4 ../../media/video/launch.mp4",
+    "frames": "node scripts/render-frames.mjs",
     "typecheck": "tsc --noEmit",
     "build": "echo skip"
   },
   "dependencies": {
+    "@react-three/fiber": "9.1.2",
     "@remotion/cli": "4.0.536",
+    "@remotion/motion-blur": "4.0.536",
+    "@remotion/three": "4.0.536",
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "remotion": "4.0.536"
+    "remotion": "4.0.536",
+    "three": "0.170.0"
   },
   "devDependencies": {
     "@types/react": "^19.2.0",
+    "@types/three": "0.170.0",
     "typescript": "^5.9.0"
   }
 }

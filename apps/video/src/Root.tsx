@@ -2,6 +2,7 @@ import { Composition } from "remotion";
 import { Clip, type ClipProps, calculateClipMetadata, FPS, H, W } from "./Clip";
 import { calculateHeroMetadata, HERO_FPS, HERO_H, HERO_W, Hero, type HeroProps } from "./Hero";
 import { LAUNCH_FPS, LAUNCH_FRAMES, Launch } from "./Launch";
+import { calculateDeviceFrameMetadata, DeviceFrame, type DeviceFrameProps } from "./three/DeviceFrame";
 
 export const Root = () => (
   <>
@@ -32,6 +33,16 @@ export const Root = () => (
       height={HERO_H}
       defaultProps={{ name: "hero" } as HeroProps}
       calculateMetadata={calculateHeroMetadata}
+    />
+    <Composition
+      id="DeviceFrame"
+      component={DeviceFrame}
+      durationInFrames={1}
+      fps={30}
+      width={1000}
+      height={1000}
+      defaultProps={{ kind: "phone" } as DeviceFrameProps}
+      calculateMetadata={calculateDeviceFrameMetadata}
     />
   </>
 );
