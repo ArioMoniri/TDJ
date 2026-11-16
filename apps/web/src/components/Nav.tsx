@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { haptic } from "@/lib/haptics";
 import { useFitLevel, useScrollDirection } from "@/lib/hooks";
-import { t } from "@/lib/i18n";
+import { getLocale, t } from "@/lib/i18n";
 import { spring } from "@/lib/motion";
 import { Logo } from "./Logo";
 import { type NavItem, PHONE_MORE, PHONE_TABS, PILL_ITEMS } from "./navItems";
@@ -43,6 +43,8 @@ function MobileTab({
 }) {
   // the name on hover and long-press, the app's help tag (a title attribute is not used anywhere, wave 2)
   const tip = useTip<HTMLElement>(it.label);
+  // the tab's shown name: its short one where it has one (the full name stays its accessible name)
+  const name = it.short ?? it.label;
   const cls = `tab-item ${hidden ? "!w-0 !flex-none overflow-hidden !px-0 opacity-0" : min ? "!flex-none w-[54px]" : "px-1"}`;
   const inner = (
     <>
@@ -72,9 +74,14 @@ function MobileTab({
           aria-hidden
         />
       </span>
-      <span className={`tab-label relative ${min || compact ? "sr-only" : ""}`} data-testid="tab-label">
-        {it.label}
+      <span
+        className={`tab-label relative ${min || compact ? "sr-only" : ""}`}
+        data-testid="tab-label"
+        aria-hidden={name !== it.label || undefined}
+      >
+        {name}
       </span>
+      {name !== it.label && <span className="sr-only">{it.label}</span>}
     </>
   );
   if (onOpen)
@@ -112,6 +119,39 @@ function MobileTab({
     </Link>
   );
 }
+/**
+ * 2026-11 (QA, Turkish on an iPhone SE: "Gece oluştur" ran into "Kabin" on the Library's narrowed bar): true while
+ * any tab's name is wider than its tab, and then the bar shows icons only (names stay their accessible names and
+ * help tags). Measured on the bar's width, the page (the search pages narrow it) and the language; never while
+ * the bar is minimised (one tab, no name).
+ */
+function useTabLabelsFit(ref: React.RefObject<HTMLElement | null>, key: string): boolean {
+  const [over, setOver] = useState(false);
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(([e]) => setWidth(Math.round(e?.contentRect.width ?? 0)));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [ref]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `key` (page, minimised, language) re-measures the names
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !width || el.dataset.min !== undefined) return;
+    // a label's scrollWidth is its text's width even while it is hidden (sr-only clips, it does not reflow)
+    let tooWide = false;
+    for (const label of el.querySelectorAll<HTMLElement>('[data-testid="tab-label"]')) {
+      const tab = label.parentElement;
+      if (!tab || tab.getAttribute("aria-hidden") === "true") continue;
+      // 4 px of padding each side: the name never reaches the tab's edge
+      if (label.scrollWidth > tab.clientWidth - 8) tooWide = true;
+    }
+    setOver(tooWide);
+  }, [ref, width, key]);
+  return over;
+}
+
 const MORE: NavItem = {
   href: "#more",
   get label() {
@@ -170,6 +210,8 @@ export function Nav() {
   const fit = useFitLevel(pill, 3, `${path}|${bar.collapsed}|${!!bar.trailing}|${!!bar.primary}`);
   const [moreOpen, setMoreOpen] = useState(false);
   const inMore = PHONE_MORE.some((i) => i.href === path);
+  const tabbar = useRef<HTMLElement>(null);
+  const iconsOnly = useTabLabelsFit(tabbar, `${path}|${minimised}|${getLocale()}`);
   return (
     <>
       {/* Tablet (sm–lg): glass pill as a toolbar. Left: logo (+ page title once the large title scrolled out),
@@ -227,8 +269,10 @@ export function Nav() {
             right for the search circle on the same row; minimised (scrolling down) it shrinks to the current tab at
             the leading edge, as iOS 26 does */}
         <nav
+          ref={tabbar}
           className="glass tabbar fixed z-40 flex items-center sm:hidden"
           data-min={minimised || undefined}
+          data-icons={iconsOnly || undefined}
           data-testid="tab-bar"
           aria-label={t("nav.primary_mobile")}
           style={{
@@ -237,7 +281,7 @@ export function Nav() {
             right: minimised
               ? "auto"
               : searchId
-                ? "calc(max(1rem, env(safe-area-inset-right, 0px)) + var(--tabbar-h) + 10px)"
+                ? "calc(max(1rem, env(safe-area-inset-right, 0px)) + var(--tab-search-w) + var(--tab-search-gap))"
                 : "max(1rem, env(safe-area-inset-right, 0px))",
             marginInline: minimised || searchId ? undefined : "auto",
             maxWidth: 440,

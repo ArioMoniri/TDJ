@@ -126,6 +126,12 @@ export const fmtNumber = (n: number, o?: Intl.NumberFormatOptions) => {
   }
   return f.format(n);
 };
+/**
+ * A length in seconds, the one formatter for every "2.5 s" on screen: "2.5 s" / "2,5 sn" (glossary: `30 sn`,
+ * decimal comma), at most `digits` decimals (one by default).
+ */
+export const fmtSec = (n: number, digits = 1) =>
+  t("unit.sec", { n: fmtNumber(n, { maximumFractionDigits: digits }) });
 export const fmtDate = (d: Date | string | number, o?: Intl.DateTimeFormatOptions) =>
   new Date(d).toLocaleDateString(INTL[current], o);
 export const fmtTime = (d: Date | string | number, o?: Intl.DateTimeFormatOptions) =>

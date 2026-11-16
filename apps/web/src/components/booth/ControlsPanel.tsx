@@ -21,7 +21,7 @@ import { TRANSPORT_RANGES } from "@/lib/booth/engine";
 import { durationLabel } from "@/lib/booth/plan";
 import { isAppleMobile } from "@/lib/booth/sources/spotify";
 import { boothEngine, useBooth, useRoomCaps } from "@/lib/booth/store";
-import { t } from "@/lib/i18n";
+import { fmtSec, t } from "@/lib/i18n";
 import { toast } from "@/lib/toast";
 import { SeekBar } from "../ui/SeekBar";
 import { ArmButton, ConfirmRing } from "./Confirm";
@@ -486,7 +486,7 @@ export function ControlsPanel({
             max={8}
             step={0.5}
             onChange={(v) => a.setSettings({ gapSec: v })}
-            display={`${settings.gapSec} s`}
+            display={fmtSec(settings.gapSec)}
             testId="ctl-gap"
           />
           <Fader
@@ -494,7 +494,7 @@ export function ControlsPanel({
             value={settings.fadeNowSec}
             {...TRANSPORT_RANGES.fadeNowSec}
             onChange={(v) => a.setSettings({ fadeNowSec: v })}
-            display={`${settings.fadeNowSec} s`}
+            display={fmtSec(settings.fadeNowSec)}
             testId="ctl-fade-len"
           />
           <Fader
@@ -502,7 +502,7 @@ export function ControlsPanel({
             value={settings.crossfadeSec}
             {...TRANSPORT_RANGES.crossfadeSec}
             onChange={(v) => a.setSettings({ crossfadeSec: v })}
-            display={`${settings.crossfadeSec} s`}
+            display={fmtSec(settings.crossfadeSec)}
             testId="ctl-crossfade-len"
           />
           {noOverlap && <span className="booth-ctl-why">{t("booth.controls.why_spotify_overlap")}</span>}

@@ -54,12 +54,13 @@ import {
 import { rememberComposeMs } from "@/lib/composeProgress";
 import { djMessages } from "@/lib/djMessage";
 import { recordSnapshot, redoEdit, undoEdit } from "@/lib/editHistory";
+import { verdictText } from "@/lib/engineText";
 import { FEATURED, type FeaturedId, featuredMeta, loadFeatured } from "@/lib/featured";
 import { FEEDBACK_CHIPS } from "@/lib/feedback";
 import { haptic } from "@/lib/haptics";
 import { makeSnapshot } from "@/lib/history";
 import { testSlowdownMs, useMediaQuery, whenIdle } from "@/lib/hooks";
-import { lazy, lower, plural, t as tx } from "@/lib/i18n";
+import { fmtSec, lazy, lower, plural, t as tx } from "@/lib/i18n";
 import { lengthOf, nightMusicSec } from "@/lib/lengths";
 import { rateTap, ratingOf, undoRate } from "@/lib/likes";
 import { describePreferences } from "@/lib/memory";
@@ -593,7 +594,7 @@ const SetupForm = memo(function SetupForm({
         <FoldGroup
           header={tx("composer.cortinas")}
           tip={tx("composer.what_the_cortinas_sound_like_and")}
-          summary={`${CORTINA_TRENDS.find(([k]) => k === (options.cortinaTrend ?? "mixed"))?.[1] ?? ""} · ${options.cortinaLengthSec ?? 45} s`}
+          summary={`${CORTINA_TRENDS.find(([k]) => k === (options.cortinaTrend ?? "mixed"))?.[1] ?? ""} · ${fmtSec(options.cortinaLengthSec ?? 45)}`}
           footer={
             cortinaStyle === "family"
               ? tx("composer.family_one_artist_or_genre_family")
@@ -2171,7 +2172,7 @@ export function Composer() {
                     transition={{ delay: reduced ? 0 : 0.7, duration: DUR.base }}
                     className="text-footnote text-[var(--label-2)]"
                   >
-                    {playlist.score.verdict}
+                    {verdictText(playlist.score.verdict)}
                     {playlist.options.arcShape && (
                       <span data-testid="arc-shape">
                         {" "}

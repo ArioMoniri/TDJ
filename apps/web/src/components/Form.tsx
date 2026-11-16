@@ -3,7 +3,11 @@ import { Check, ChevronRight, ChevronsUpDown, LoaderCircle, Music } from "lucide
 import { type HTMLAttributes, type ReactNode, useId, useState } from "react";
 import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
-import { t as tx } from "@/lib/i18n";
+import { fmtNumber, fmtSec, t as tx } from "@/lib/i18n";
+
+/** the seconds unit after a number, for a stepper's spoken label (" s" / " sn") */
+export const secUnit = () => ` ${tx("unit.sec", { n: "" }).trim()}`;
+
 import { Sheet } from "./Sheet";
 import { useTip } from "./ui/Tip";
 
@@ -165,7 +169,7 @@ export function PickerRow<K extends string>({
   value,
   items,
   onChange,
-  placeholder = "Choose",
+  placeholder = tx("form.choose"),
   trailingDot,
   trailingDotTitle,
   disabled,
@@ -301,6 +305,8 @@ export function StepperRow({
   tip?: string;
 }) {
   // phones show the bare number; the group footer names the units
+  // (" s": seconds, in the locale's unit and decimal mark: "2,5 sn")
+  const sec = unit === " s";
   const isPhone = useMediaQuery("(max-width: 599.98px)");
   const t = useTip(tipOf(tip, sub));
   return (
@@ -313,9 +319,21 @@ export function StepperRow({
       </span>
       {children}
       <span className="cell-value tabular-nums">
-        {display ?? <NudgeValue value={isPhone ? String(value) : `${value}${unit}`} />}
+        {display ?? (
+          <NudgeValue
+            value={
+              isPhone
+                ? sec
+                  ? fmtNumber(value, { maximumFractionDigits: 1 })
+                  : String(value)
+                : sec
+                  ? fmtSec(value)
+                  : `${value}${unit}`
+            }
+          />
+        )}
       </span>
-      <Stepper label={label} value={value} unit={unit} {...stepper} />
+      <Stepper label={label} value={value} unit={sec ? secUnit() : unit} {...stepper} />
     </div>
   );
 }

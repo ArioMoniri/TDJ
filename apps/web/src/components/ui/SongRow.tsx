@@ -117,7 +117,7 @@ export const SongRow = memo(function SongRow({
       <span className="min-w-0 flex-1">
         <span className="block truncate">{song.title}</span>
         <span className="text-footnote block truncate text-[var(--label-2)]">
-          {sub ?? metaLine(song.orchestra, song.singer ?? "instrumental", yearText(eff.year))}
+          {sub ?? metaLine(song.orchestra, song.singer ?? t("common.instrumental"), yearText(eff.year))}
         </span>
         <span className="mt-0.5 flex flex-wrap items-center gap-1">
           <EraBadge song={eff} />

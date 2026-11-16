@@ -21,6 +21,8 @@ import { ROOMS_NAV } from "./RoomsNav";
 export interface NavItem {
   href: string;
   label: string;
+  /** the phone tab's own shorter name, where the full one cannot fit a fifth of an iPhone SE ("Gece oluştur") */
+  short?: string;
   icon: LucideIcon;
 }
 const at = (href: string): NavItem => ALL.find((i) => i.href === href)!;
@@ -30,6 +32,9 @@ export const NAV_MAIN: NavItem[] = [
     href: "/",
     get label() {
       return t("navItems.compose");
+    },
+    get short() {
+      return t("navItems.compose_tab");
     },
     icon: ListMusic,
   },

@@ -43,6 +43,7 @@ the menus (`apps/desktop/src-tauri/src/menu.rs`) and any new string.
 | English | Turkish |
 |---|---|
 | Compose (tab, screen) | Gece oluştur |
+| Compose (iPhone tab label) | Oluştur (the full name stays its spoken name; at 320 px with the search button the tabs show icons only) |
 | Compose the night (button) | Geceyi oluştur |
 | Regenerate | Yeniden oluştur |
 | Booth | Kabin |
@@ -136,6 +137,7 @@ Serato, VirtualDJ, Engine DJ, M3U8, CSV, XML) are not translated.
 ## Units and form
 
 - `4 sa 36 dk` (hours, minutes); `30 sn` (seconds); `%60` (percent sign first); `0,5 sn` (decimal comma).
+  Every length in seconds goes through `fmtSec` (`2.5 s` / `2,5 sn`); a stepper with `unit=" s"` does it for you.
 - Numbers and dates use `Intl` in `tr-TR`: `19.118 kayıt`, `15 Kasım`.
 - Ordinals: `3. tanda`; "tanda 3 of 22" is `tanda 3/22`.
 - Polite plural "siz" for instructions ("Seçin", "Dokunun"); the infinitive or imperative for buttons ("Kaydet",
@@ -147,6 +149,10 @@ Serato, VirtualDJ, Engine DJ, M3U8, CSV, XML) are not translated.
 - Song titles, orchestras, singers, albums and cortina songs: music data.
 - The research notes of the context model (`data/knowledge/context_factors.json`), shown in the Guide marked
   `lang="en"`. They are knowledge data, not UI copy.
-- Notes the engine writes in `packages/core` (tanda notes, `describeLearned`, score verdicts) that `djMessage` does
-  not cover. The engine was being retuned in parallel, so it was not touched.
+- Notes the engine writes in `packages/core` that no screen shows. 2026-11: what does reach a screen is said at the
+  UI boundary, `lib/engineText.ts` (the score's verdict, a tanda's tone, the cohesion label, Build by hand's
+  reasons through core `suggest.ts` `why` codes) and `lib/djMessage.ts` (settings fallbacks, tanda notes). The
+  research notes of the context model are an English-only help tag.
+- `lib/i18n/englishWords.ts` lists English UI words a Turkish screen must never show; the dictionary vitest and
+  `e2e/tr-text.spec.ts` (Compose, Build by hand, Booth timing, Settings rendered in Turkish) fail on any of them.
 - The owner's console (`/admin`) and server error bodies from `/api`.

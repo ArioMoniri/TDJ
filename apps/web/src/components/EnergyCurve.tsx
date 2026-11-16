@@ -1,6 +1,7 @@
 "use client";
 import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useId, useRef } from "react";
+import { arcShapeWord } from "@/lib/engineText";
 import { lazy, lower, t as tx } from "@/lib/i18n";
 import { DUR, EASE, SPRING, STAGGER } from "@/lib/motion";
 import type { Playlist } from "@/lib/types";
@@ -350,7 +351,9 @@ export function EnergyCurve({
         className="sr-only"
       >
         {tx("energyCurve.line_energy_dashed_target_dots_tango")}
-        {p.options.arcShape ? ` ${tx("energyCurve.arc_shape_peak", { arcShape: p.options.arcShape })}` : ""}
+        {p.options.arcShape
+          ? ` ${tx("energyCurve.arc_shape_peak", { arcShape: arcShapeWord(p.options.arcShape) })}`
+          : ""}
       </motion.figcaption>
     </figure>
   );

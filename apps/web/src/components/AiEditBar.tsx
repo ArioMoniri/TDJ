@@ -14,7 +14,7 @@ import { useEffect, useState } from "react";
 import { aiFetch, hasOwnModel } from "@/lib/ai/client";
 import { EDIT_EXAMPLES } from "@/lib/ai/examples";
 import { installAiRelay } from "@/lib/ai/relayFetch";
-import { FEEDBACK_LABEL } from "@/lib/feedback";
+import { feedbackWord } from "@/lib/feedback";
 import { t } from "@/lib/i18n";
 import { installLearnWatch, skipNextLearn } from "@/lib/learnWatch";
 import { DUR, EASE } from "@/lib/motion";
@@ -390,7 +390,7 @@ export function AiEditBar({
               )}
               {r.chip && (
                 <li className="text-footnote text-[var(--label-2)]" data-testid="ai-edit-chip">
-                  {t("aiEditBar.that_is_a_change_to_the", { p1: FEEDBACK_LABEL[r.chip] })}
+                  {t("aiEditBar.that_is_a_change_to_the", { p1: feedbackWord(r.chip) })}
                 </li>
               )}
               {nothing && !r.rejected?.length && !r.chip && !r.asSaid && (

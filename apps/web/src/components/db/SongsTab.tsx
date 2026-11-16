@@ -688,7 +688,12 @@ export function SongsTab() {
               <SwipeRow
                 leading="art"
                 actions={[
-                  { kind: "destructive", label: "Delete", icon: Trash2, onClick: () => removeOwn(s.id) },
+                  {
+                    kind: "destructive",
+                    label: tx("common.delete"),
+                    icon: Trash2,
+                    onClick: () => removeOwn(s.id),
+                  },
                 ]}
               >
                 {editing ? (

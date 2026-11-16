@@ -6,6 +6,7 @@ import {
   type Playlist,
   rememberEdit,
   type Song,
+  type SuggestWhy,
   type Tanda,
 } from "@tdj/core";
 import {
@@ -46,6 +47,7 @@ import {
 } from "@/lib/build";
 import { BIG_FOUR_NAME, type GuideFix, type GuideLine, guideLines } from "@/lib/buildGuide";
 import { recordSnapshot, undoEdit } from "@/lib/editHistory";
+import { suggestReasons } from "@/lib/engineText";
 import { haptic } from "@/lib/haptics";
 import { makeSnapshot } from "@/lib/history";
 import { useMediaQuery } from "@/lib/hooks";
@@ -110,6 +112,8 @@ interface Suggestion {
   energy: number;
   years: [number, number] | null;
   reasons: string[];
+  /** the reasons as data (core suggest.ts), said in the DJ's language */
+  why?: SuggestWhy[];
 }
 interface Next {
   mode: "tanda" | "song";
@@ -1464,6 +1468,7 @@ function GuideRow({ line, onFix, busy }: { line: GuideLine; onFix: (f: GuideFix)
 
 /** a suggestion: a whole tanda (its sides play on a tap) or one side, its reasons, one-tap add */
 function SuggestionCard({ s, onPick }: { s: Suggestion; onPick: () => void }) {
+  const reasons = suggestReasons(s);
   const list = useMemo(
     () => ({
       label: family(s),
@@ -1475,7 +1480,7 @@ function SuggestionCard({ s, onPick }: { s: Suggestion; onPick: () => void }) {
     <div
       className="cell flex-col items-stretch gap-1 py-3"
       data-testid="build-suggestion"
-      aria-description={s.reasons.join(" · ")}
+      aria-description={reasons.join(" · ")}
     >
       <div className="flex items-start gap-3">
         {s.songs[0] ? (
@@ -1495,7 +1500,7 @@ function SuggestionCard({ s, onPick }: { s: Suggestion; onPick: () => void }) {
                 )}
           </span>
           <span className="mt-1.5 flex flex-wrap gap-1.5">
-            {s.reasons.slice(0, 3).map((r) => (
+            {reasons.slice(0, 3).map((r) => (
               <span
                 key={r}
                 className="text-caption1 rounded-full bg-[var(--fill-3)] px-2 py-0.5 text-[var(--label-2)]"

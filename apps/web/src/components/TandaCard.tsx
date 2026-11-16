@@ -21,6 +21,7 @@ import { useShallow } from "zustand/react/shallow";
 import { analyseTanda } from "@/lib/analyze";
 import { cohesionWith, patchedSong } from "@/lib/audio";
 import { tandaNote } from "@/lib/djMessage";
+import { toneFeel, toneMode, toneText } from "@/lib/engineText";
 import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
 import { lazy, lower, t as tx } from "@/lib/i18n";
@@ -202,10 +203,10 @@ function TandaCardImpl({
   const insertSong = useCallback((at: number) => onInsertSong?.(i, at), [onInsertSong, i]);
   const removeSong = useCallback((k: number) => onRemoveSong?.(i, k), [onRemoveSong, i]);
   const sub = [
-    t.singer ?? "Instrumental",
+    t.singer ?? tx("tandaType.instrumental"),
     t.yearRange ? yr(t.yearRange[0], t.yearRange[1]) : null,
     PHASE[t.phase] ?? t.phase,
-    t.locked ? "locked" : null,
+    t.locked ? lower(tx("tandaCard.locked")) : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -333,7 +334,7 @@ function TandaCardImpl({
                 </span>
                 {/* round 21: the DJ's tanda — the rules leave it alone, its exceptions are the DJ's */}
                 {t.pinned && (
-                  <Tip text={t.pinned.reason}>
+                  <Tip text={tandaNote(t.pinned.reason ?? "") || tx("tandaCard.your_tanda_kept_as_is")}>
                     <span
                       className="text-caption1 inline-flex rounded-full bg-[color-mix(in_srgb,var(--system-gold)_18%,transparent)] px-2 py-0.5 font-medium text-[var(--label)]"
                       data-testid="tanda-pinned"
@@ -350,7 +351,7 @@ function TandaCardImpl({
                     {tx("tandaCard.skipped_tonight_still_in_exports")}
                   </span>
                 )}
-                {t.note && (
+                {t.note && tandaNote(t.note) && (
                   <Tip text={tandaNote(t.note)}>
                     <span
                       className="tanda-note text-caption1 rounded-[10px] bg-[color-mix(in_srgb,var(--tint)_14%,transparent)] px-2 py-0.5 font-medium text-[var(--tint)]"
@@ -367,9 +368,9 @@ function TandaCardImpl({
                   <Tip
                     text={tx("tandaCard.the_tanda_s_tone_energy", {
                       p1: tone.mode
-                        ? `${tone.mode === "mixed" ? tx("tandaCard.mixed_major_and_minor_keys") : tx("tandaCard.keys", { mode: tone.mode })}${tone.keys.length ? ` (${tone.keys.join(", ")})` : ""}, `
+                        ? `${tone.mode === "mixed" ? tx("tandaCard.mixed_major_and_minor_keys") : tx("tandaCard.keys", { mode: toneMode(tone.mode) })}${tone.keys.length ? ` (${tone.keys.join(", ")})` : ""}, `
                         : "",
-                      feel: tone.feel,
+                      feel: toneFeel(tone.feel),
                       p2: tone.bpm ? tx("tandaCard.about_bpm", { bpm: tone.bpm }) : "",
                     })}
                   >
@@ -377,7 +378,7 @@ function TandaCardImpl({
                       className="text-caption1 inline-flex whitespace-nowrap rounded-full bg-[var(--fill-4)] px-2 py-0.5 font-medium text-[var(--label-2)]"
                       data-testid="tanda-tone"
                     >
-                      {tone.label}
+                      {toneText(tone)}
                     </span>
                   </Tip>
                 )}
