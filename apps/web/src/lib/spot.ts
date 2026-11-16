@@ -53,6 +53,11 @@ export interface GuideState {
   /** the page the edit was made on: the card shows there only */
   scope: string;
   busy: boolean;
+  /**
+   * QA fix 2026-11: a page shows the guide docked in its own column (Compose's inspector, wide screens): the floating
+   * card stays away, so it never covers the inspector or the tanda list
+   */
+  docked?: boolean;
 }
 export const useGuide = create<GuideState>(() => ({
   label: "",

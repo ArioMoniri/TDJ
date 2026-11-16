@@ -5467,6 +5467,8 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "guide.title": "Bu değişiklik neyi etkiledi",
   "guide.keep": "Rehberi kapat",
   "guide.keep_cumparsita": "Bu kalsın",
+  "guide.tanda_size_more": "{n}. tandada {k} şarkı var: {r} tandalarınız {s} şarkılık",
+  "guide.tanda_size_fewer": "{n}. tandada {k} şarkı var: {r} tandalarınız {s} şarkılık",
   "guide.longer": "Gece {m} dk uzadı: {total}",
   "guide.shorter": "Gece {m} dk kısaldı: {total}",
   "guide.energy_up": "{n}. tanda enerjiyi sıçratıyor: {a} → {e} → {b}",

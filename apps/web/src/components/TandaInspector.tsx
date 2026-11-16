@@ -20,6 +20,7 @@ import { useStore } from "@/lib/store";
 import { tandaSuccessionView } from "@/lib/succession";
 import type { Playlist } from "@/lib/types";
 import { metaLine, yearText } from "@/lib/year";
+import { EditGuide } from "./EditGuide";
 import { Menu } from "./Menu";
 import { SELECT_TANDA_EVENT } from "./Sidebar";
 import { Artwork } from "./ui/Artwork";
@@ -93,6 +94,8 @@ export function TandaInspector({
   const where = tx("play.tanda", { n: i + 1 });
   return (
     <aside className="inspector" aria-label={tx("tandaInspector.inspector")} data-testid="inspector">
+      {/* QA fix 2026-11: the edit guide docks here on wide screens (it covered this column as a floating card) */}
+      <EditGuide docked />
       <div className="group-inset p-4">
         <div className="flex items-center gap-3">
           {/* 2026-11 (the owner: "image not getting loaded here"): the tanda's cover, its rhythm on the corner */}

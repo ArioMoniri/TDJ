@@ -5262,6 +5262,8 @@ export const en = {
   "guide.title": "What this changed",
   "guide.keep": "Close the guide",
   "guide.keep_cumparsita": "Keep this one",
+  "guide.tanda_size_more": "Tanda {n} has {k} songs: your {r} tandas are {s}",
+  "guide.tanda_size_fewer": "Tanda {n} has {k} songs: your {r} tandas are {s}",
   "guide.longer": "The night is {m} min longer: {total}",
   "guide.shorter": "The night is {m} min shorter: {total}",
   "guide.energy_up": "Tanda {n} jumps the energy: {a} → {e} → {b}",
