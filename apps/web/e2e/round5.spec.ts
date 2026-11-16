@@ -288,16 +288,22 @@ test("preview tanda: the tanda menu chains the tanda's previews in the mini-play
   expect(n).not.toBe("");
   const card = page.locator(`#tanda-${n}`);
   await card.getByRole("button", { name: `Tanda ${n} actions`, exact: true }).click();
-  await page.getByRole("menuitem", { name: /^Preview tanda \(\d+ × 10 s\)/ }).click();
+  // 2026-11 (playback tanda scopes, lib/playback.ts playTanda): the menu item is "Pre-listen tanda (n × 20 s)" and
+  // the chain is the night's list scoped to the tanda, said in the mini player as "Pre-listen · tanda n" (the old
+  // "Tanda n · 1 of 4" queue badge is gone); the chain still moves on by itself, row by row
+  await page.getByRole("menuitem", { name: /^Pre-listen tanda \(\d+ × 20 s\)/ }).click();
   const mini = page.getByTestId("mini-player");
   await expect(mini).toBeVisible();
-  const badge = mini.getByTestId("player-badge");
-  await expect(badge).toContainText(new RegExp(`Tanda ${n} · 1 of \\d`));
+  await expect(mini.getByTestId("mini-scope")).toHaveText(`Pre-listen · tanda ${n}`);
+  const title = mini.getByTestId("mini-title");
+  await expect(title).not.toHaveText("");
+  const first = await title.innerText();
   // the clip ends and the chain moves on by itself (the element's own `ended`, fired here so the test does not
-  // depend on audio timing under load; the mocked silence may already have ended it, hence 2 or 3)
+  // depend on audio timing under load; the mocked silence may already have ended it)
   await page.evaluate(() => document.querySelector("audio")?.dispatchEvent(new Event("ended")));
-  await expect(badge).toContainText(new RegExp(`Tanda ${n} · [23] of \\d`), { timeout: 10000 });
+  await expect(title).not.toHaveText(first, { timeout: 10000 });
+  await expect(mini.getByTestId("mini-scope")).toHaveText(`Pre-listen · tanda ${n}`);
   // a manual play on any row leaves the chain
   await page.locator('[data-testid="play-button"][aria-label^="Play "]').first().click();
-  await expect(badge).toHaveText("30 s preview");
+  await expect(mini.getByTestId("mini-scope")).not.toHaveText(`Pre-listen · tanda ${n}`);
 });

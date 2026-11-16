@@ -3,6 +3,7 @@ import "./controller.css";
 import { ChevronLeft, ChevronRight, Download, Headphones, Plug, RotateCcw, Upload, Usb } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Sheet } from "@/components/Sheet";
+import { Tip } from "@/components/ui/Tip";
 import { useArm } from "@/lib/booth/confirm";
 import { useBooth, useRoomCaps } from "@/lib/booth/store";
 import {
@@ -135,16 +136,18 @@ export function ControllerStatus({ compact = false }: { compact?: boolean }) {
         ) : (
           support !== "none" &&
           status !== "unsupported" && (
-            <button
-              type="button"
-              className="vc-text-btn vc-primary"
-              onClick={() => void connectController()}
-              disabled={status === "asking"}
-              data-testid="controller-connect"
-            >
-              <Plug size={16} strokeWidth={2} aria-hidden />
-              {t("controller.connect")}
-            </button>
+            <Tip text={t("controller.connect_tip")}>
+              <button
+                type="button"
+                className="vc-text-btn vc-primary"
+                onClick={() => void connectController()}
+                disabled={status === "asking"}
+                data-testid="controller-connect"
+              >
+                <Plug size={16} strokeWidth={2} aria-hidden />
+                {t("controller.connect")}
+              </button>
+            </Tip>
           )
         )}
       </div>
@@ -904,16 +907,18 @@ export function LearnList({ open: openProp = false }: { open?: boolean }) {
                   {t("controller.learn.forget")}
                 </button>
               )}
-              <button
-                type="button"
-                className="vc-text-btn"
-                aria-pressed={learn === fn}
-                disabled={!active}
-                onClick={() => startLearn(learn === fn ? null : fn)}
-                data-testid="controller-learn-btn"
-              >
-                {t("controller.learn.button")}
-              </button>
+              <Tip text={t("controller.learn.tip")}>
+                <button
+                  type="button"
+                  className="vc-text-btn"
+                  aria-pressed={learn === fn}
+                  disabled={!active}
+                  onClick={() => startLearn(learn === fn ? null : fn)}
+                  data-testid="controller-learn-btn"
+                >
+                  {t("controller.learn.button")}
+                </button>
+              </Tip>
             </li>
           );
         })}
@@ -930,48 +935,56 @@ export function MappingFileRow({ file }: { file?: React.RefObject<HTMLInputEleme
   const mapping = useController((s) => s.mapping);
   return (
     <div className="vc-file-row">
-      <button
-        type="button"
-        className="vc-text-btn"
-        disabled={!active}
-        onClick={() => {
-          const blob = new Blob([exportActive()], { type: "application/json" });
-          const a = document.createElement("a");
-          a.href = URL.createObjectURL(blob);
-          a.download = `${(active ?? "controller").replace(/[^\w-]+/g, "-")}.tdj-mapping.json`;
-          a.click();
-          setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-        }}
-        data-testid="controller-export"
-      >
-        <Download size={16} aria-hidden />
-        {t("controller.export")}
-      </button>
-      <button
-        type="button"
-        className="vc-text-btn"
-        disabled={!active}
-        onClick={() => input.current?.click()}
-        data-testid="controller-import"
-      >
-        <Upload size={16} aria-hidden />
-        {t("controller.import")}
-      </button>
-      <button
-        type="button"
-        className="vc-text-btn"
-        disabled={!active || !mapping.id.endsWith("-custom")}
-        onClick={() => active && applyMapping(active, null)}
-        data-testid="controller-reset"
-      >
-        <RotateCcw size={16} aria-hidden />
-        {t("controller.reset")}
-      </button>
+      <Tip text={t("controller.export_tip")}>
+        <button
+          type="button"
+          className="vc-text-btn"
+          disabled={!active}
+          onClick={() => {
+            const blob = new Blob([exportActive()], { type: "application/json" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = `${(active ?? "controller").replace(/[^\w-]+/g, "-")}.tdj-mapping.json`;
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+          }}
+          data-testid="controller-export"
+        >
+          <Download size={16} aria-hidden />
+          {t("controller.export")}
+        </button>
+      </Tip>
+      <Tip text={t("controller.import_tip")}>
+        <button
+          type="button"
+          className="vc-text-btn"
+          disabled={!active}
+          onClick={() => input.current?.click()}
+          data-testid="controller-import"
+        >
+          <Upload size={16} aria-hidden />
+          {t("controller.import")}
+        </button>
+      </Tip>
+      <Tip text={t("controller.reset_tip")}>
+        <button
+          type="button"
+          className="vc-text-btn"
+          disabled={!active || !mapping.id.endsWith("-custom")}
+          onClick={() => active && applyMapping(active, null)}
+          data-testid="controller-reset"
+        >
+          <RotateCcw size={16} aria-hidden />
+          {t("controller.reset")}
+        </button>
+      </Tip>
       <input
         ref={input}
         type="file"
         accept="application/json,.json"
-        className="sr-only"
+        // (display: none, not sr-only: a script's click() still opens the file picker, and no 1 px control is left
+        // in the page without a help tag)
+        className="hidden"
         tabIndex={-1}
         aria-hidden
         data-testid="controller-import-file"

@@ -2,9 +2,17 @@ name: CI
 on:
   push: { branches: ["**"] }
   pull_request:
+
+# a newer push to the same branch supersedes the run in progress
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  test:
+  # the fast checks, beside the build
+  checks:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
@@ -16,12 +24,62 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm --filter @tdj/core test
       - run: pnpm quality
+
+  # one production build, reused by every e2e shard
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @tdj/web build
-      - name: Playwright e2e
-        run: |
-          cd apps/web
-          pnpm exec playwright install chromium
-          CHROMIUM= pnpm e2e
       - uses: actions/upload-artifact@v4
-        if: failure()
-        with: { name: playwright-report, path: apps/web/test-results }
+        with:
+          name: web-build
+          # .next is a hidden folder: upload-artifact skips those unless asked; the build cache is not needed to start
+          path: |
+            apps/web/.next
+            !apps/web/.next/cache
+          include-hidden-files: true
+          retention-days: 1
+
+  # the Playwright suite (1.9 h on one runner) in six shards of one worker each against `next start` on the build
+  # above; a failed test is retried once on CI (playwright.config.ts) and every shard uploads its report
+  e2e:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v4
+        with: { name: web-build, path: apps/web/.next }
+      - name: Playwright's Chromium (cached per lockfile)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ms-playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - run: pnpm exec playwright install chromium
+        working-directory: apps/web
+      - name: Playwright e2e (shard ${{ matrix.shard }} of 6)
+        working-directory: apps/web
+        run: CHROMIUM= pnpm exec playwright test --shard=${{ matrix.shard }}/6
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report-${{ matrix.shard }}
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+          retention-days: 7
+          if-no-files-found: ignore

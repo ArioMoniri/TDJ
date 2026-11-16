@@ -594,6 +594,20 @@ li + li > .cell:first-child::before {
   z-index: 1;
   pointer-events: none;
 }
+/* Compose's first run: the ways in are one grouped list, each row in its help tag's wrapper (components/Composer.tsx) */
+.first-run-ways > * + * > .cell {
+  position: relative;
+}
+.first-run-ways > * + * > .cell::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: calc(var(--cell-px) + var(--tile) + var(--space-3));
+  height: var(--separator-w);
+  background: var(--separator);
+  pointer-events: none;
+}
 .cell[data-leading="tile"] + .cell::before {
   left: calc(var(--cell-px) + var(--tile) + var(--space-3));
 }
@@ -970,11 +984,12 @@ li + li > .cell[data-leading="num"]:first-child::before,
   }
 }
 /* Round 23: a row's extras appear by the card's own width, not the window's (at xl two 560 px cards squeezed the
-   title to nothing and the key chip wrapped over the year): tempo / level from 720 px, the key chip from 480 px */
+   title to nothing and the key chip wrapped over the year): tempo / level from 800 px, the key chip from 480 px.
+   (2026-11: 800, not 720 — each row now leads with its 36 px cover, and a 720 px card at 1024 × 768 cut the titles) */
 .row-tempo {
   display: none;
 }
-@container (min-width: 720px) {
+@container (min-width: 800px) {
   .tanda-card .row-tempo {
     display: inline;
   }

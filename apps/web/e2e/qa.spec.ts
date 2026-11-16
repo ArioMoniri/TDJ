@@ -377,11 +377,17 @@ test("swap: the Swap action replaces one tanda, keeps the others and the cortina
       .getByText(/Cortina ·/)
       .innerText(),
   ).toBe(cortinaBefore);
-  // lock → swap disabled
+  // lock → swap disabled. 2026-11 (core swap.ts): the tanda the DJ swapped in arrives locked and pinned ("Your tanda ·
+  // kept as is"), so its menu offers Unlock and the swap is already greyed out; unlock and lock it again by hand and
+  // the swap stays disabled. (Exact names: "Lock tanda" is a substring of "Unlock tanda".)
+  const swapItem = () => page.getByRole("menuitem", { name: /^Swap tanda/ });
   await menu().click();
-  await page.getByRole("menuitem", { name: "Lock tanda" }).click();
-  await expect(cards.nth(target).getByText("locked")).toBeVisible();
+  await expect(swapItem()).toBeDisabled();
+  await page.getByRole("menuitem", { name: "Unlock tanda", exact: true }).click();
   await menu().click();
-  await expect(page.getByRole("menuitem", { name: "Swap tanda" })).toBeDisabled();
+  await page.getByRole("menuitem", { name: "Lock tanda", exact: true }).click();
+  await expect(cards.nth(target).getByText(/· locked$/)).toBeVisible();
+  await menu().click();
+  await expect(swapItem()).toBeDisabled();
   await page.keyboard.press("Escape");
 });

@@ -313,7 +313,16 @@ for (const [name, opts, o] of DEVICES) {
 
 /** every text on a Booth button or chip against its real (composited) background */
 const contrastFailures = (page: Page) =>
-  page.evaluate(() => {
+  page.evaluate(async () => {
+    // the colours at rest: a button that just became ready (Start, once the night's sources resolve) fades from its
+    // disabled 0.55 opacity, and mid-fade it read as an enabled button at 3.1:1 (CI, 2026-11). Wait for the running
+    // CSS transitions (never the endless animations: the level meter, the spinners) before reading a colour.
+    await Promise.all(
+      document
+        .getAnimations()
+        .filter((a) => a instanceof CSSTransition)
+        .map((a) => a.finished.catch(() => {})),
+    );
     type C = [number, number, number, number];
     const parse = (s: string): C | null => {
       const m = s.match(/rgba?\(([^)]+)\)/);

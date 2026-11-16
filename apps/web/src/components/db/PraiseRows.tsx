@@ -4,6 +4,7 @@ import { Trash2 } from "lucide-react";
 import { t } from "@/lib/i18n";
 import { Group } from "../Form";
 import { SwipeRow } from "../SwipeRow";
+import { Tip } from "../ui/Tip";
 
 /**
  * 2026-11 — Database → Memory → "Praised by you": the tandas the DJ praised (the featured night's store, or the DJ's
@@ -41,15 +42,17 @@ export function PraiseRows({
                   {t("praise.feedback")}
                 </span>
               </span>
-              <button
-                type="button"
-                className="icon-btn icon-btn-bare -mr-2 h-11 w-11 shrink-0 text-[var(--destructive)]"
-                onClick={() => onForget(p.id)}
-                aria-label={t("praise.delete", { label })}
-                data-testid="praise-delete"
-              >
-                <Trash2 size={15} aria-hidden />
-              </button>
+              <Tip text={t("praise.delete_tip")} className="-mr-2 shrink-0">
+                <button
+                  type="button"
+                  className="icon-btn icon-btn-bare h-11 w-11 shrink-0 text-[var(--destructive)]"
+                  onClick={() => onForget(p.id)}
+                  aria-label={t("praise.delete", { label })}
+                  data-testid="praise-delete"
+                >
+                  <Trash2 size={15} aria-hidden />
+                </button>
+              </Tip>
             </div>
           </SwipeRow>
         );

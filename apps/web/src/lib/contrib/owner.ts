@@ -176,7 +176,12 @@ export async function checkOwner(force = false): Promise<OwnerStatus> {
         status = "owner";
         serverPending = typeof j.pending === "number" ? j.pending : null;
       }
-    } else if (r.status === 401) status = "locked";
+    } else {
+      // read the answer's body even when it is not used: an unread body leaves the request open, and the page never
+      // goes network-idle (every DJ who is not the owner gets this 401 on Settings)
+      await r.text().catch(() => "");
+      if (r.status === 401) status = "locked";
+    }
   } catch {}
   if (status === "owner" && !loadPrefs().device) {
     // what is already on this device waits for "Send my existing changes" (with its preview); new edits flow

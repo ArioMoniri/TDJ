@@ -81,15 +81,18 @@ async function openBooth(page: Page, o: { outputs?: Outputs; versions?: boolean 
   );
   await page.route(/open\.spotify\.com\/oembed/, (r) => r.fulfill({ status: 404, body: "" }));
   if (o.versions)
-    // the catalogue answers with a second take of the searched side (same title, same orchestra, 1955)
-    await page.route(/\/api\/search\?/, async (route) => {
+    // the catalogue answers with a second take of the side (same title, same orchestra, 1955). 2026-11: the song
+    // sheet's versions are the shared Song details' "Other versions" (components/song/OtherVersions.tsx), whose
+    // catalogue is the work's recordings from GET /api/dna?kind=work (no longer /api/search)
+    await page.route(/\/api\/dna\?kind=work/, async (route) => {
       const res = await route.fetch();
-      const list = (await res.json()) as Array<Record<string, unknown>>;
+      const j = (await res.json()) as { songs?: Array<Record<string, unknown>> };
+      const list = j.songs ?? [];
       const first = list[0];
       const extra = first
         ? [{ ...first, id: "take-1955", year: 1955, singer: "Tino García", resolved: null }]
         : [];
-      await route.fulfill({ response: res, json: [...list, ...extra] });
+      await route.fulfill({ response: res, json: { ...j, songs: [...list, ...extra] } });
     });
   await page.goto("/?featured=golden-double-peak");
   await expect(page.locator("#result")).toBeVisible({ timeout: 90000 });
@@ -281,9 +284,10 @@ test("song sheet: drag-free cue / stop with the keyboard re-times the plan; anot
     .poll(async () => ((await planOf(page))[idx] as { stopSec?: number } | undefined)?.stopSec ?? 0)
     .toBeGreaterThan(15);
   // versions: the 1955 take is listed and plays tonight instead
-  const v = sheet.getByTestId("booth-version").filter({ hasText: "1955" });
+  // (2026-11: the shared Song details' version rows, components/song/OtherVersions.tsx)
+  const v = sheet.getByTestId("song-version").filter({ hasText: "1955" });
   await expect(v).toBeVisible({ timeout: 20000 });
-  await v.getByTestId("booth-version-use").click();
+  await v.getByTestId("song-version-use").click();
   // a 1955 take in a 1941 tanda breaks the close-years rule: the rule check asks first, the DJ keeps the choice
   const asSaid = page.getByTestId("rule-as-said");
   await expect(asSaid).toBeVisible({ timeout: 10000 });

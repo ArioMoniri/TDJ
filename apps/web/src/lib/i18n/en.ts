@@ -777,6 +777,8 @@ export const en = {
     "ROOM: where the night plays for the dancers. Tap to choose the output.",
   "booth.playerToolbar.show": "Show",
   "booth.playerToolbar.show_device_names": "Show device names",
+  "booth.outputs.show_names_tip":
+    "Ask the browser once so the list shows your speakers' and headphones' names",
   "booth.playerToolbar.show_or_hide_energy_bpm_key": "Show or hide energy, BPM, key, era and artwork",
   "booth.playerToolbar.spotify_free_the_browser_can_only":
     "Spotify Free: the browser can only play 30 s clips.",
@@ -3622,6 +3624,7 @@ export const en = {
   "search.cortinas_placeholder": "Title, artist, culture or genre",
   "search.cortinas_shown": "{shown} of {total} cortinas",
   "search.decade": "Decade",
+  "search.chip_tip": "Show only {label}; tap again to show everything",
   "search.decade_label": "{decade}s",
   "search.did_you_mean": "Did you mean",
   "search.favourite": "One of your dancer favourites",
@@ -4477,6 +4480,7 @@ export const en = {
   "praise.footer":
     "Tandas you praised. Each counts as one Floor full ♥ for its songs in its part of the night, like a tap in Dancer favourites.",
   "praise.delete": "Delete the praise {label}",
+  "praise.delete_tip": "Forget this praise: its songs stop counting its Floor full ♥",
   // 2026-11: the Booth's iPad pass (confirmation, order in the tanda, tanda types, status)
   "booth.confirm.again": "Tap again",
   "booth.confirm.hold": "Hold",
@@ -4597,6 +4601,11 @@ export const en = {
   "controller.export": "Export mapping",
   "controller.import": "Import mapping",
   "controller.reset": "Built-in mapping",
+  "controller.connect_tip": "Use the DJ controller plugged into this device (the browser asks first)",
+  "controller.learn.tip": "Press it, then press or move the control on the controller that should do this",
+  "controller.export_tip": "Save this controller's mapping as a file, to keep or to share",
+  "controller.import_tip": "Load a mapping file for this controller",
+  "controller.reset_tip": "Drop your changes and use T-DJ's own mapping for this controller",
   "controller.import_ok": "Mapping imported",
   "controller.import_bad": "That file is not a T-DJ controller mapping",
   "controller.audio.offer":
@@ -4996,6 +5005,7 @@ export const en = {
   "keys.none": "None",
   "keys.reset_all": "Reset all keys",
   "keys.reset_all_done": "Every shortcut is back to its default",
+  "keys.reset_all_tip": "Put every shortcut back to its default keys",
   "keys.save": "Save",
   "keys.now": "Now",
   "keys.keys_now": "Keys",
