@@ -2209,8 +2209,10 @@ html[data-booth] {
 .booth .booth-deck-row {
   align-items: stretch;
 }
+/* (the groups of one row share its height, so the gap under a short group is the gap, not a hole) */
 .booth .booth-ctl-body {
   gap: var(--booth-gap);
+  align-items: stretch;
 }
 /* the panel sits one gap above the transport; the page's foot (and the columns) one gap above the panel */
 .booth .booth-ctl {
@@ -2303,6 +2305,12 @@ html[data-booth] {
   align-items: center;
   justify-content: space-between;
   gap: 6px;
+}
+/* the narrow chart column: the eyebrow wraps beside Scrub instead of an ellipsis */
+.booth-energy-head > .booth-eyebrow {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .booth-scrub-toggle {
   min-height: 44px;
