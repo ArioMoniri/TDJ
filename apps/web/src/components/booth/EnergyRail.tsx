@@ -15,6 +15,26 @@ const RHYTHM_COLOR: Record<string, string> = {
   milonga: "var(--tone-milonga, #6d28d9)",
 };
 
+let measurer: CanvasRenderingContext2D | null | undefined;
+/**
+ * The "we are here" pill's text width as drawn (600 11 px in the page's font). 2026-11 (QA, 1440: the card's 154 px
+ * chart had a 78 px clear run beside the night's first dots, and the old 6.2 px-per-letter guess asked for 81, so the
+ * label went missing before the night): measured, the guess only where there is no canvas.
+ */
+function hereTextWidth(word: string): number {
+  const guess = Math.ceil(word.length * 6.2);
+  if (typeof document === "undefined") return guess;
+  try {
+    measurer ??= document.createElement("canvas").getContext("2d");
+    if (!measurer) return guess;
+    measurer.font = `600 11px ${getComputedStyle(document.body).fontFamily}`;
+    const w = measurer.measureText(word).width;
+    return w > 0 ? Math.ceil(w) : guess;
+  } catch {
+    return guess;
+  }
+}
+
 /**
  * Round 22 — the night's energy, vertical like the night's arc: time runs down, energy to the right, one dot per
  * tanda in its rhythm colour, the composed shape dashed, and "we are here" at the playhead. Hover or long-press a
@@ -78,7 +98,7 @@ export function EnergyRail({ onJump }: { onJump?: (planIndex: number) => void })
   // "we are here": a pill on the line's side and at the x where it covers no dot (never over the chart's dots)
   const hereWord = t("booth.energyRail.we_are_here");
   const HERE_H = 16;
-  const hereW = Math.ceil(hereWord.length * 6.2 + 12);
+  const hereW = hereTextWidth(hereWord) + 12;
   const here = hereLabelSpot(
     y(c.here),
     c.points.map((p) => ({ x: x(p.energy), y: y(mid(p)), r: 6 })),

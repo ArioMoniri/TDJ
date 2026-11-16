@@ -375,7 +375,8 @@ function Body({
                 )}
               </Panel>
               <Panel id="about" tab={tab}>
-                {song && <SongDetails song={song} header={false} />}
+                {/* the Lyrics and Rhythm tabs already show the lyrics and the lane: About never draws them twice */}
+                {song && <SongDetails song={song} header={false} shownLyrics={lyrics} />}
               </Panel>
             </section>
           </div>

@@ -1283,7 +1283,6 @@ class Live implements ExternalHandle {
   private confirmed = false;
   private playing = false;
   private pos = 0;
-  private posAt = 0;
   private lastPos = 0;
   private duration = 0;
   /** 0…1 fade multiplier on top of the master */
@@ -1353,7 +1352,6 @@ class Live implements ExternalHandle {
     this.started = true;
     this.playing = true;
     this.startedAt = now() - (attached ? 3500 : 0);
-    this.posAt = now();
     this.pos = this.req.positionSec;
     this.clock.set(this.req.positionSec, true);
     this.a._began(this);
@@ -1424,7 +1422,6 @@ class Live implements ExternalHandle {
     if (!s || this.done) return;
     if (this.stale(s.position / 1000)) return;
     this.pos = s.position / 1000;
-    this.posAt = now();
     this.playing = !s.paused;
     // the SDK stamps its position; a stamp far from this clock (another epoch) is not trusted
     const ts = typeof s.timestamp === "number" && Math.abs(s.timestamp - now()) < 5000 ? s.timestamp : now();
@@ -1454,7 +1451,6 @@ class Live implements ExternalHandle {
       return;
     }
     this.pos = s.positionMs / 1000;
-    this.posAt = now();
     this.playing = s.playing;
     this.clock.report(this.pos, this.playing, s.at ?? now());
     this.duration = s.durationMs / 1000;
@@ -1543,7 +1539,6 @@ class Live implements ExternalHandle {
     if (!this.started || this.done || !this.a._isOwner(this)) return false;
     const at = Math.max(0, positionSec);
     this.pos = at;
-    this.posAt = now();
     this.playing = true;
     this.clock.set(at, true);
     this.seekGuard = { until: now() + 2500, at, sentAt: now() };

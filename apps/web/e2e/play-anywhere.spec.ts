@@ -183,18 +183,24 @@ for (const [name, opts] of DEVICES) {
       await openCompose(page);
       const card = page.locator("#tanda-2");
       await expect(card.getByTestId("tanda-type")).toContainText("Tango");
-      await expect(card.getByTestId("tanda-mode")).toHaveText(/^Vocal · /);
-      const lens = await card.getByTestId("row-len").allInnerTexts();
+      // (2026-11, b3279c5: a vocal tanda with an instrumental side reads "Vocal & instrumental")
+      await expect(card.getByTestId("tanda-mode")).toHaveText(/^Vocal( · |$| & instrumental)/);
+      // (a card far below the fold is skipped by content-visibility: its innerText reads "" until it is near the
+      // viewport — on a phone tanda 2 is; read what the rows say)
+      await card.getByTestId("tanda-total").scrollIntoViewIfNeeded();
+      const lens = await card.getByTestId("row-len").allTextContents();
       expect(lens).toHaveLength(4);
-      const secs = lens.map((l) => {
-        const m = /(\d+):(\d\d)/.exec(l)!;
-        return Number(m[1]) * 60 + Number(m[2]);
-      });
+      // every side shows a length: m:ss, or the "–:–" placeholder when its length is unknown
+      for (const l of lens) expect(l).toMatch(/(\d+:\d\d|–:–)\s*$/);
+      const known = lens.map((l) => /(\d+):(\d\d)/.exec(l)).filter((m) => m !== null);
+      const secs = known.map((m) => Number(m[1]) * 60 + Number(m[2]));
       const sum = secs.reduce((a, b) => a + b, 0);
       const want = `${Math.floor(sum / 60)}:${String(sum % 60).padStart(2, "0")}`;
-      // (row lengths are rounded per side: the total is within a second of their sum)
+      // (row lengths are rounded per side: the total is within a second of their sum; an unknown side leaves the
+      // total partial, "≈")
+      const partial = known.length < lens.length ? "≈ " : "";
       await expect(card.getByTestId("tanda-total")).toHaveText(
-        new RegExp(`^4 songs · ${want.slice(0, -1)}\\d$`),
+        new RegExp(`^4 songs · ${partial}${want.slice(0, -1)}\\d$`),
       );
       await expect(page.getByTestId("night-total")).toContainText(/plays (≈ )?\d+:\d\d:\d\d/);
     });

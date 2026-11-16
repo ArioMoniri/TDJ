@@ -102,6 +102,12 @@ async function openBooth(page: Page, o: { outputs?: Outputs; versions?: boolean 
   await expect(page.getByTestId("booth-now-title")).toBeVisible({ timeout: 20000 });
   await expect(page.getByTestId("booth-ttc")).not.toHaveAttribute("data-resolving", "1", { timeout: 30000 });
 }
+// a /api/dna route's `route.fetch()` can still be in flight when a test ends (the song sheet asked for the work's
+// recordings just before): drop the handlers and let a late answer go, instead of failing the test on teardown
+test.afterEach(async ({ page }) => {
+  await page.unrouteAll({ behavior: "ignoreErrors" });
+});
+
 const planOf = (page: Page) =>
   page.evaluate(
     () =>

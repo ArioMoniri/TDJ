@@ -81,19 +81,24 @@ test("Compose: Ctrl+Y (and ⌘Y on a Mac) redoes after an undo; Settings lists i
     await p.keyboard.press("Meta+z");
     await expect(c).not.toHaveAttribute("data-locked", /.*/);
     // the browser's own ⌘Y (History) never gets it: the page took it
-    const prevented = p.evaluate(
-      () =>
-        new Promise<boolean>((res) => {
-          const on = (e: KeyboardEvent) => {
-            if (e.key !== "y") return;
-            window.removeEventListener("keydown", on);
-            setTimeout(() => res(e.defaultPrevented));
-          };
-          window.addEventListener("keydown", on);
-        }),
-    );
+    // (the listener is in place before the key: an un-awaited evaluate could install it after the press, and its
+    // promise then waited for a key that never came, or died with the page's next navigation)
+    await p.evaluate(() => {
+      const w = window as unknown as { __yPrevented?: boolean | null };
+      w.__yPrevented = null;
+      const on = (e: KeyboardEvent) => {
+        if (e.key !== "y") return;
+        window.removeEventListener("keydown", on);
+        setTimeout(() => {
+          w.__yPrevented = e.defaultPrevented;
+        });
+      };
+      window.addEventListener("keydown", on);
+    });
     await p.keyboard.press("Meta+y");
-    expect(await prevented).toBe(true);
+    await expect
+      .poll(() => p.evaluate(() => (window as unknown as { __yPrevented?: boolean | null }).__yPrevented))
+      .toBe(true);
     await expect(c).toHaveAttribute("data-locked", "true");
     await p.goto("/settings#settings-keyboard");
     await expect(p.getByTestId("key-row-edit.redo").locator("kbd")).toHaveText(["⇧⌘Z", "⌘Y", "⌃Y"]);

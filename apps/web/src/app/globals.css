@@ -433,7 +433,7 @@ a {
   [data-testid="tab-bar"][data-docked] {
     border-radius: 0 0 var(--radius-l) var(--radius-l);
     /* biome-ignore lint/complexity/noImportantStyles: the tab bar's position is an inline style (Nav.tsx) */
-    right: max(1rem, env(safe-area-inset-right, 0px)) !important;
+    right: max(16px, env(safe-area-inset-right, 0px)) !important;
     /* biome-ignore lint/complexity/noImportantStyles: as above */
     margin-inline: auto !important;
     justify-content: space-evenly;

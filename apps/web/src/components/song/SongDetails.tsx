@@ -25,6 +25,7 @@ export function SongDetails({
   header = true,
   versions = true,
   durationSec,
+  shownLyrics,
 }: {
   song: Song;
   /** the side's second while it plays (default: wherever it plays — the Booth, else the mini player) */
@@ -35,8 +36,16 @@ export function SongDetails({
   header?: boolean;
   versions?: boolean;
   durationSec?: number;
+  /**
+   * 2026-11 (QA: two lyric lines "current" at once in Now playing, its Lyrics tab and this About tab's copy): the
+   * lyrics the view around this already shows (null while they load). When given, no second lyrics group and no
+   * second rhythm lane are drawn here; the marks read these lyrics for their hint.
+   */
+  shownLyrics?: Lyrics | null;
 }) {
-  const [lyrics, setLyrics] = useState<Lyrics | null>(null);
+  const [own, setLyrics] = useState<Lyrics | null>(null);
+  const elsewhere = shownLyrics !== undefined;
+  const lyrics = elsewhere ? shownLyrics : own;
   const dur = durationSec ?? song.durationSec ?? 180;
   const anywhere = useMemo(() => playingPositionFn(song.id), [song.id]);
   const pos = position ?? anywhere;
@@ -51,8 +60,10 @@ export function SongDetails({
       data-playing-from={now?.source ?? undefined}
     >
       <SongFacts song={song} header={header} />
-      {now?.synced && <RhythmLane song={song} durationSec={dur} position={pos} lines={lyrics?.lines} />}
-      <LyricsGroup song={song} onLyrics={setLyrics} />
+      {now?.synced && !elsewhere && (
+        <RhythmLane song={song} durationSec={dur} position={pos} lines={lyrics?.lines} />
+      )}
+      {!elsewhere && <LyricsGroup song={song} onLyrics={setLyrics} />}
       <MarksGroup song={song} position={pos} onMeasure={measure} lyricsHint={firstSungSec(lyrics?.lines)} />
       {versions && <OtherVersions song={song} booth={booth} />}
     </div>

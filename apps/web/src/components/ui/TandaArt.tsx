@@ -1,5 +1,5 @@
 "use client";
-import type { ReactNode } from "react";
+import { type ReactNode, useMemo } from "react";
 import type { Entity } from "@/lib/artwork";
 import { usePlayer } from "@/lib/player";
 import { Artwork } from "./Artwork";
@@ -64,14 +64,17 @@ export function SongArt({
   );
 }
 
-/** the side or cortina behind the mini player's track (its list item), for its cover */
+/**
+ * the side or cortina behind the mini player's track (its list item), for its cover. (2026-11: a track with no list —
+ * the Preview cortina button — built a new `{ id }` in the selector on every read, so the store's snapshot never
+ * settled and React stopped the app with "Maximum update depth exceeded"; the selectors return stable values only.)
+ */
 export function usePlayingEntity(): Entity {
-  return usePlayer((s) => {
+  const listed = usePlayer((s) => {
     const it = s.list?.items[s.list.index];
-    if (it && s.track) {
-      const e = it.kind === "song" ? it.song : it.cortina;
-      return e;
-    }
-    return s.track ? { id: s.track.id.replace(/^(song|cortina):/, "") } : null;
+    if (!it || !s.track) return null;
+    return it.kind === "song" ? it.song : it.cortina;
   });
+  const id = usePlayer((s) => (s.track ? s.track.id.replace(/^(song|cortina):/, "") : null));
+  return useMemo(() => listed ?? (id ? { id } : null), [listed, id]);
 }

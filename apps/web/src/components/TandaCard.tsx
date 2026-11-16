@@ -716,12 +716,11 @@ function CortinaRow({
             <i />
           </span>
         )}
-        <span className="min-w-0 flex-1 truncate text-[var(--label-2)]">
-          {tx("tandaCard.cortina_s", {
-            artist: c.artist,
-            title: c.title,
-            p1: Math.round(w.stop - w.start),
-          })}
+        {/* 2026-11 (QA, a 1024 px window: "Cortina · Domenico Modugno – Nel blu dipinto di blu (Volare) · 46 s" cut
+            short): the name wraps onto a second line instead of losing its end, and the length is said once, by the
+            row's own m:ss on the right */}
+        <span className="min-w-0 flex-1 text-[var(--label-2)] [overflow-wrap:anywhere]">
+          {tx("tandaCard.cortina_s", { artist: c.artist, title: c.title })}
         </span>
         <span className="len text-subhead" data-testid="cortina-len">
           {fmtLen(w.stop - w.start)}

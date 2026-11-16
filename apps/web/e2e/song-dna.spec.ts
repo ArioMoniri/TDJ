@@ -310,12 +310,21 @@ test("the Booth: song info follows the room (synced lyrics, rhythm lane, Mark no
   await expect(view.locator('[data-testid="song-lyrics-text"] [data-current]')).toBeVisible({
     timeout: 15000,
   });
-  await expect(view.getByTestId("synced-video")).toBeVisible();
-  await expect
-    .poll(() => page.evaluate(() => (window as unknown as { __yt?: { made: number } }).__yt?.made ?? 0))
-    .toBe(1);
-  const vbox = await view.getByTestId("synced-video").locator("div").first().boundingBox();
-  expect(vbox!.height).toBeGreaterThanOrEqual(200);
+  // (2026-11, 95a1ebe: the view's Lyrics · Video · Rhythm · About tabs; the matched video is on the Video tab)
+  await view.getByTestId("now-tab-video").click();
+  if (playing.source === "youtube") {
+    // the matches made YouTube the room's source for this side (the room moved past the file's side): its player is
+    // the dock, already on screen, and the tab says so instead of a second player
+    await expect(view.getByTestId("now-panel-video")).toContainText("YouTube's player");
+    await expect(view.getByTestId("synced-video")).toHaveCount(0);
+  } else {
+    await expect(view.getByTestId("synced-video")).toBeVisible();
+    await expect
+      .poll(() => page.evaluate(() => (window as unknown as { __yt?: { made: number } }).__yt?.made ?? 0))
+      .toBe(1);
+    const vbox = await view.getByTestId("synced-video").locator("div").first().boundingBox();
+    expect(vbox!.height).toBeGreaterThanOrEqual(200);
+  }
   // the night keeps playing under the view
   expect(
     await page.evaluate(
