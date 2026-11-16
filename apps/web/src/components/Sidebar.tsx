@@ -12,8 +12,8 @@ import { lengthText } from "@/lib/nightName";
 import { usePlayer } from "@/lib/player";
 import { useStore } from "@/lib/store";
 import { Logo } from "./Logo";
-import { Artwork } from "./ui/Artwork";
 import { NAV_MAIN, NAV_MAIN_TITLE, NAV_PINNED } from "./navItems";
+import { Artwork } from "./ui/Artwork";
 import { tandaTypeWords } from "./ui/TandaTypeBadge";
 import { Tip } from "./ui/Tip";
 
@@ -339,9 +339,7 @@ export function Sidebar() {
                         {/* 2026-11 ("images are not added on the left side"): the tanda's cover, its rhythm letter
                             in the corner (the letter alone when artwork is off) */}
                         <span className="side-tanda-art" data-testid="side-tanda-art">
-                          {t.songs[0] && (
-                            <Artwork entity={t.songs[0]} orchestra={t.orchestra} size={32} />
-                          )}
+                          {t.songs[0] && <Artwork entity={t.songs[0]} orchestra={t.orchestra} size={32} />}
                           <span className="side-num" data-rhythm={t.rhythm} aria-hidden>
                             {RHYTHM[t.rhythm] ?? "·"}
                           </span>
