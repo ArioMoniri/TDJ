@@ -2001,6 +2001,80 @@ html[data-sidebar="collapsed"] [data-testid="sidebar"] {
 .side-tanda-art .tanda-art .booth-art + .tanda-art-letter {
   box-shadow: 0 0 0 2px var(--sidebar-bg, var(--bg));
 }
+/* 2026-11: the whole night with Compose's editing, for the room page (components/NightEditor.tsx): each tanda's bar
+   stays on screen as its songs scroll by (under the top bar), and wraps its buttons under the name on a phone */
+.night-editor-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 4px 14px;
+}
+.night-editor {
+  min-width: 0;
+}
+.night-editor-tandas {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  min-width: 0;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.night-editor-tanda {
+  min-width: 0;
+}
+/* phones: the bar keeps one line — moving a tanda is its drag handle or Alt+↑ / ↓ there */
+@media (max-width: 599.98px) {
+  .night-editor-bar .night-editor-step {
+    display: none;
+  }
+  .night-editor-bar > .min-w-0 {
+    flex-basis: 80px;
+    margin-left: 6px;
+  }
+}
+.night-editor-bar {
+  position: sticky;
+  top: calc(var(--chrome-top) + var(--editor-sticky, 8px));
+  z-index: 6;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 2px;
+  min-height: 44px;
+  margin-bottom: 6px;
+  padding-right: 4px;
+  border-radius: 12px;
+  background: color-mix(in srgb, rgb(var(--bg-cell)) 90%, transparent);
+  backdrop-filter: blur(16px) saturate(160%);
+  box-shadow: 0 0 0 var(--separator-w, 0.5px) var(--separator);
+}
+.night-editor-bar > .min-w-0 {
+  flex: 1 1 140px;
+  margin-left: 8px;
+}
+.night-editor-bar:focus-visible {
+  outline: 2px solid var(--tint);
+  outline-offset: 2px;
+}
+.night-editor-tanda[data-dragging] {
+  opacity: 0.5;
+}
+.night-editor-tanda[data-drop-before]::before {
+  content: "";
+  display: block;
+  height: 3px;
+  margin: -8px 12px 5px;
+  border-radius: 2px;
+  background: var(--tint);
+}
+/* iPad and phones: the floating top bar covers the page's top: the bars stay under it */
+@media (max-width: 1023.98px) {
+  .night-editor-bar {
+    --editor-sticky: 76px;
+  }
+}
 /* 2026-11: the exported playlists' sync chip in the Booth's night bar (components/SyncStatus.tsx) */
 .sync-chip {
   display: inline-flex;

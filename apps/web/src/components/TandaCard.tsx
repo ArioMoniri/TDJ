@@ -24,6 +24,7 @@ import { Menu } from "./Menu";
 import { SwipeRow } from "./SwipeRow";
 import { TrackRow } from "./TrackRow";
 import { NowBars } from "./ui/NowPlaying";
+import { TandaArt } from "./ui/TandaArt";
 import { isMixedTanda, TandaTypeBadge } from "./ui/TandaTypeBadge";
 import { Tip, useTip } from "./ui/Tip";
 import { useDragReorder } from "./ui/useDragReorder";
@@ -279,9 +280,10 @@ function TandaCardImpl({
           }
         >
           <div className="cell" data-leading="art">
-            <div className="tile-art" data-rhythm={t.rhythm} aria-hidden>
-              <span className="text-headline tabular-nums">{i + 1}</span>
-            </div>
+            {/* 2026-11: the tanda's cover, its number on the corner (the number tile alone with artwork off) */}
+            <span aria-hidden>
+              <TandaArt tanda={t} size={44} badge={i + 1} testId="tanda-card-art" />
+            </span>
             <span className="min-w-0 flex-1">
               <h3 className="text-headline truncate">{t.orchestra}</h3>
               <span className="text-subhead block truncate text-[var(--label-2)]">

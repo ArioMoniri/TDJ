@@ -22,6 +22,8 @@ abstract class Cmd {
 export class Get extends Cmd {}
 export class Put extends Cmd {}
 export class Update extends Cmd {}
+/** 2026-11: removes the whole item (its hearts, playing song and log with it) */
+export class Delete extends Cmd {}
 
 const fail = () =>
   Object.assign(new Error("The conditional request failed"), { name: "ConditionalCheckFailedException" });
@@ -136,6 +138,11 @@ export function fakeDynamo(o: { maxDelayMs?: number } = {}) {
       const it = table.get(input.Key!.pk);
       return it ? { Item: structuredClone(it) } : {};
     }
+    if (cmd instanceof Delete) {
+      if (!holds(table.get(input.Key!.pk), input.ConditionExpression, input)) throw fail();
+      table.delete(input.Key!.pk);
+      return {};
+    }
     if (cmd instanceof Put) {
       const pk = input.Item!.pk as string;
       if (!holds(table.get(pk), input.ConditionExpression, input)) throw fail();
@@ -158,6 +165,6 @@ export function fakeDynamo(o: { maxDelayMs?: number } = {}) {
     setBefore(f: typeof before) {
       before = f;
     },
-    doc: { send, Get, Put, Update },
+    doc: { send, Get, Put, Update, Delete },
   };
 }

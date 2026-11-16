@@ -11,7 +11,7 @@ import { presenceOf } from "./rooms";
  */
 export const CORS = {
   "access-control-allow-origin": "*",
-  "access-control-allow-methods": "GET, POST, OPTIONS",
+  "access-control-allow-methods": "GET, POST, DELETE, OPTIONS",
   "access-control-allow-headers": "content-type",
   "access-control-max-age": "600",
 };
