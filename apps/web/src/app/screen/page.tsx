@@ -26,5 +26,5 @@ function Inner() {
     const ok = !server || /^https?:\/\/[\w.-]+(:\d+)?\/?$/.test(server);
     return ok ? { code, server } : null;
   }, [code, server]);
-  return <FloorScreen room={room} />;
+  return <FloorScreen room={room} takeover />;
 }

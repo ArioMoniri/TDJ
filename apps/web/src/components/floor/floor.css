@@ -1,5 +1,10 @@
 /* 2026-11 — the dancers' Floor screen: read at 3–5 m (type in viewport units), dark always (a dim room, a projector),
    high contrast, no controls; a slow drift keeps a TV from burning in; Reduce motion and Battery saver keep it still. */
+/* the /screen page: the app's chrome (sidebar, tab bar, mini player, toasts) leaves the page */
+html[data-floor] body > :not(#tdj-floor) {
+  /* biome-ignore lint/complexity/noImportantStyles: the shell's own display rules must not bring it back */
+  display: none !important;
+}
 .floor {
   --floor-tone: #ff6b8e;
   --floor-bg: #07070a;

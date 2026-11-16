@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { type FloorStage, type FloorState, floorPosition, floorRemaining } from "@/lib/floor";
 import { watchFloor } from "@/lib/floorBus";
 import { t } from "@/lib/i18n";
@@ -42,7 +43,14 @@ const stagesOf = (n: number): FloorStage[] =>
  * synced lyrics or the matched video, muted. No controls, no buttons: it follows the Booth (lib/floorBus.ts) and never
  * controls it. The cursor hides after 2 s; the content drifts slowly (burn-in); Reduce motion keeps it still.
  */
-export function FloorScreen({ room }: { room?: { server: string; code: string } | null }) {
+export function FloorScreen({
+  room,
+  takeover = false,
+}: {
+  room?: { server: string; code: string } | null;
+  /** the page is the Floor screen (/screen): the app's own chrome leaves it */
+  takeover?: boolean;
+}) {
   const [s, setS] = useState<FloorState | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [idle, setIdle] = useState(false);
@@ -74,15 +82,24 @@ export function FloorScreen({ room }: { room?: { server: string; code: string } 
     window.addEventListener("click", fs);
     return () => window.removeEventListener("click", fs);
   }, []);
+  // the /screen page: the app's chrome leaves the page (no tab bar, no sidebar, no mini player — nothing to click)
+  useEffect(() => {
+    if (!takeover) return;
+    const root = document.documentElement;
+    root.dataset.floor = "1";
+    return () => {
+      delete root.dataset.floor;
+    };
+  }, [takeover]);
   const tone = s?.kind === "cortina" ? "cortina" : (s?.rhythm ?? "tango");
-  return (
+  const tree = (
     <div
+      id={takeover ? "tdj-floor" : undefined}
       className="floor"
       data-testid="floor-screen"
       data-kind={s?.kind ?? "waiting"}
       data-rhythm={tone}
       data-idle={idle || undefined}
-      lang={undefined}
     >
       <div className="floor-glow" aria-hidden />
       <main className="floor-drift">
@@ -105,6 +122,9 @@ export function FloorScreen({ room }: { room?: { server: string; code: string } 
       </main>
     </div>
   );
+  const [host, setHost] = useState<HTMLElement | null>(null);
+  useEffect(() => setHost(document.body), []);
+  return takeover ? (host ? createPortal(tree, host) : null) : tree;
 }
 
 const nextLine = (s: FloorState) =>
