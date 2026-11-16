@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { Banners } from "@/components/booth/Banners";
+import { ControllerHost } from "@/components/booth/ControllerView";
 import { ControlStrip } from "@/components/booth/ControlStrip";
 import { ControlsPanel, loadControlsOpen, saveControlsOpen } from "@/components/booth/ControlsPanel";
 import { EnergyRail } from "@/components/booth/EnergyRail";
@@ -11,6 +12,7 @@ import { HintLayer } from "@/components/booth/HintLayer";
 import { NextCard } from "@/components/booth/NextCard";
 import { NightBar } from "@/components/booth/NightBar";
 import { NowCard } from "@/components/booth/NowCard";
+import { NowPlayingView } from "@/components/booth/NowPlayingView";
 import { OnboardingSheet } from "@/components/booth/OnboardingSheet";
 import { PlayerToolbar, ShowSheet } from "@/components/booth/PlayerToolbar";
 import { SetColumn } from "@/components/booth/SetColumn";
@@ -32,16 +34,37 @@ import { PageHeader } from "@/components/PageHeader";
 import { Sheet } from "@/components/Sheet";
 import { BoothSongSearch } from "@/components/ui/BoothSongSearch";
 import { arm, confirmArmed, confirmNeeded, disarm, guard } from "@/lib/booth/confirm";
-import { boothKey } from "@/lib/booth/keys";
 import { startRoomHearts } from "@/lib/booth/roomHearts";
 import { boothContextState, boothEngine, useBooth } from "@/lib/booth/store";
 import { useMediaQuery } from "@/lib/hooks";
 import { t } from "@/lib/i18n";
+import { type ActionId, actionOf, isAction } from "@/lib/keymap";
 import { usePlayer } from "@/lib/player";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 
 const THEME_KEY = "tdj-booth-theme";
+/** the Booth's own keys (lib/keymap.ts); the edit keys are EditKeys' */
+const BOOTH_KEYS: ActionId[] = [
+  "booth.pause",
+  "booth.prev",
+  "booth.next",
+  "booth.skipNext",
+  "booth.fade",
+  "booth.crossfade",
+  "booth.hold",
+  "booth.talk",
+  "booth.faderUp",
+  "booth.faderDown",
+  "booth.cueCortina",
+  "booth.prelisten",
+  "booth.stopPrelisten",
+  "booth.birthday",
+  "booth.mute",
+  "booth.keys",
+  "booth.playNow",
+  "booth.playNext",
+];
 
 /**
  * /booth (round7-booth.md §1): the night, played from the app. Dark forced while mounted (per-device choice in
@@ -298,9 +321,9 @@ function Booth() {
     const down = (e: KeyboardEvent) => {
       // 2026-11: Esc cancels an armed control, Enter confirms it (a focused button confirms by its own click)
       if (e.key === "Escape") disarm();
-      // 2026-11: Enter (lib/booth/keys.ts) on a focused row, or in the open song sheet off its controls, is "Play now
+      // 2026-11: Play now (lib/keymap.ts, Enter by default) on a focused row, or in the open song sheet off its controls, is "Play now
       // in the room": mid-night it arms (the sheet opens on Play now, focused) and Enter again confirms
-      if (boothKey(e, "playNow") && !typing()) {
+      if (isAction("booth.playNow", e) && !e.repeat && !typing()) {
         const a = document.activeElement as HTMLElement | null;
         const row = a?.closest<HTMLElement>(".booth-row[data-plan-index]");
         const dialog = document.querySelector('[role="dialog"]');
@@ -332,36 +355,59 @@ function Booth() {
         }
       }
       if (typing() || document.querySelector('[role="dialog"]')) return;
+      if (document.activeElement?.closest?.("[data-key-recorder]")) return;
       const b = useBooth.getState();
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
-      if (e.key === " ") {
+      // 2026-11: the keys are the DJ's (Settings → Keyboard, lib/keymap.ts); the defaults are the old ones
+      const id = actionOf(e, BOOTH_KEYS);
+      if (!id) return;
+      // 2026-11: Enter / ⇧Enter (the DJ's keys) on the set-list row that has the focus: play it now in the room —
+      // mid-night the first press arms, Enter again confirms (above) — or next
+      if (id === "booth.playNow" || id === "booth.playNext") {
+        const row = (document.activeElement as HTMLElement | null)?.closest<HTMLElement>("[data-plan-index]");
+        const i = row ? Number(row.dataset.planIndex) : Number.NaN;
+        const it = Number.isFinite(i) ? b.plan?.items[i] : undefined;
+        if (!it || it.kind === "break" || e.repeat) return;
+        e.preventDefault();
+        if (id === "booth.playNext") {
+          b.playNext(i);
+          toast(t("booth.keys.plays_next", { title: it.title }));
+        } else if (!b.started) {
+          if (b.select(i)) void b.start();
+        } else guard(`play-now:${i}`, () => void useBooth.getState().playNow(i));
+        return;
+      }
+      const slider = (document.activeElement as HTMLElement | null)?.getAttribute("role") === "slider";
+      if (id === "booth.pause") {
         e.preventDefault();
         if (e.repeat) return;
         b.togglePause();
-      } else if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+      } else if (id === "booth.next" || id === "booth.prev") {
         // 2026-11: ← one back, → one ahead now (a focused seek bar or slider keeps its own arrows)
-        if ((document.activeElement as HTMLElement | null)?.getAttribute("role") === "slider") return;
+        if (slider) return;
         e.preventDefault();
         if (e.repeat) return;
         // mid-night the first press arms (the transport button shows it), the second (or Enter) runs
-        if (e.key === "ArrowRight") guard("next", () => void useBooth.getState().nextNow());
+        if (id === "booth.next") guard("next", () => void useBooth.getState().nextNow());
         else guard("prev", () => void useBooth.getState().previous());
-      } else if (e.key === "f") guard("fade", () => useBooth.getState().fadeOutNow());
-      else if (e.key === "x") guard("crossfade", () => void useBooth.getState().crossfadeNext());
-      else if (e.key === "h") {
+      } else if (id === "booth.skipNext") {
+        if (!e.repeat) b.next();
+      } else if (id === "booth.fade") guard("fade", () => useBooth.getState().fadeOutNow());
+      else if (id === "booth.crossfade") guard("crossfade", () => void useBooth.getState().crossfadeNext());
+      else if (id === "booth.hold") {
         if (b.state === "playing" || b.state === "cortina") b.toggleHold();
-      } else if (e.key === "t") b.setDucked(!b.ducked);
-      else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      } else if (id === "booth.talk") b.setDucked(!b.ducked);
+      else if (id === "booth.faderUp" || id === "booth.faderDown") {
+        if (slider) return;
         e.preventDefault();
-        b.setCortinaFader(Math.max(0, Math.min(1, b.cortinaFader + (e.key === "ArrowUp" ? 0.05 : -0.05))));
-      } else if (e.key === "c") b.cueCortina();
+        b.setCortinaFader(Math.max(0, Math.min(1, b.cortinaFader + (id === "booth.faderUp" ? 0.05 : -0.05))));
+      } else if (id === "booth.cueCortina") b.cueCortina();
       // round 22: p pre-listens the next item in the headphones, P stops the pre-listen (the room keeps playing)
-      else if (e.key === "p") {
+      else if (id === "booth.prelisten") {
         if (b.plan) void b.prelisten({ i: Math.min(b.plan.items.length - 1, b.planIndex + 1) });
-      } else if (e.key === "P") b.stopAudition();
-      else if (e.key === "b") b.birthdayVals();
-      else if (e.key === "m") b.toggleMute();
-      else if (e.key === "?") setKeys(true);
+      } else if (id === "booth.stopPrelisten") b.stopAudition();
+      else if (id === "booth.birthday") b.birthdayVals();
+      else if (id === "booth.mute") b.toggleMute();
+      else if (id === "booth.keys") setKeys(true);
     };
     window.addEventListener("keydown", down);
     return () => window.removeEventListener("keydown", down);
@@ -519,6 +565,7 @@ function Booth() {
         onTransition={(i) => setTransition(i)}
         onPlayed={() => setSetOpen(false)}
       />
+      <NowPlayingView onInfo={(i) => setSong(i)} />
       <ShowSheet open={show} onClose={() => setShow(false)} />
       <HintLayer />
       <LevelsSheet open={levels} onClose={() => setLevels(false)} onEditTransitions={editTransitions} />
@@ -588,6 +635,8 @@ function Booth() {
           />
         </Group>
       </Sheet>
+      {/* 2026-11: a DJ controller over MIDI and the on-screen controller (Controls → Controller) */}
+      <ControllerHost />
       <ShortcutsSheet open={keys} onClose={() => setKeys(false)} />
       <BreakSheet open={breakOpen} onClose={() => setBreakOpen(false)} />
       <FindFileSheet item={find} onClose={() => setFind(null)} />

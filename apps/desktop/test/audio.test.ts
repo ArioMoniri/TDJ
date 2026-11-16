@@ -25,6 +25,16 @@ describe("native audio (src-tauri/src/audio.rs)", () => {
     expect(plist).toMatch(/<key>UIBackgroundModes<\/key>\s*<array>\s*<string>audio<\/string>/);
   });
 
+  it("2026-11 room meter: the microphone has its usage text (iOS, macOS) and the Mac builds may ask for it", () => {
+    for (const p of ["../src-tauri/Info.ios.plist", "../src-tauri/Info.plist"])
+      expect(read(p), p).toMatch(/<key>NSMicrophoneUsageDescription<\/key>\s*<string>[^<]*never recorded/);
+    for (const p of [
+      "../src-tauri/entitlements/mac-appstore.plist",
+      "../src-tauri/entitlements/mac-dmg.plist",
+    ])
+      expect(read(p), p).toMatch(/<key>com\.apple\.security\.device\.audio-input<\/key><true\/>/);
+  });
+
   it("iOS: the session is .playback, mode default, without mixWithOthers (other apps never duck the night)", () => {
     const src = read("../src-tauri/src/apple_audio.rs");
     expect(src).toContain("AVAudioSessionCategoryPlayback");

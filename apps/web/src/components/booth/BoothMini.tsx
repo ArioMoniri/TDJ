@@ -6,6 +6,7 @@ import { guard, useArmed } from "@/lib/booth/confirm";
 import type { useBooth as UseBooth } from "@/lib/booth/store";
 import { t } from "@/lib/i18n";
 import { Artwork } from "../ui/Artwork";
+import { Marquee } from "../ui/Marquee";
 import { ConfirmRing, useHoldConfirm } from "./Confirm";
 import "./mini.css";
 
@@ -172,10 +173,15 @@ export function BoothMini() {
         <Artwork entity={entity} orchestra={orchestra} size={44} />
       </button>
       <button type="button" className="booth-mini-text" onClick={back} tabIndex={-1} aria-hidden>
+        {/* (the preview mini player's marquee: a title that does not fit slides) */}
         <span className="booth-mini-title" data-testid="booth-mini-title">
-          {it.title}
+          <Marquee text={it.title} testId="booth-mini-title-marquee">
+            {it.title}
+          </Marquee>
         </span>
-        <span className="booth-mini-sub">{orchestra}</span>
+        <span className="booth-mini-sub">
+          <Marquee text={orchestra}>{orchestra}</Marquee>
+        </span>
         <span className="booth-mini-when" data-testid="booth-mini-when">
           {when}
         </span>

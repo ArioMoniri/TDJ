@@ -191,6 +191,46 @@ export const youtubeCall =
   <T>(method: "GET" | "POST" | "PUT" | "DELETE", path: string, body?: unknown) =>
     google<T>(access, path, { method, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
 
+/**
+ * 2026-11 (the exported playlists' sync): the rows the playlist does not know a video for yet (a song swapped in)
+ * are searched (100 units each, stopping at the first quota error), then the playlist is put right in place by the
+ * verify (moves, inserts, removals: lib/youtubeVerify.ts). Rows still without a video are left out.
+ */
+export async function syncYoutube(
+  access: string,
+  playlistId: string,
+  rows: Array<{ videoId: string; query: string }>,
+  region?: string,
+  o: { deadline?: number } = {},
+): Promise<YoutubeCheck & { searched: number }> {
+  const deadline = o.deadline ?? Date.now() + YOUTUBE_BUDGET_MS;
+  const yt = ytRetry(youtubeCall(access), { maxRetries: 3, retryQuota: false });
+  let searched = 0;
+  let quota = false;
+  const resolved: Array<{ videoId: string; query: string }> = [];
+  for (const r of rows) {
+    if (r.videoId) {
+      resolved.push(r);
+      continue;
+    }
+    if (quota || Date.now() >= deadline || !r.query) continue;
+    try {
+      const s = await yt<{ items?: Array<{ id?: { videoId?: string } }> }>(
+        "GET",
+        `/youtube/v3/search?${new URLSearchParams({ part: "snippet", type: "video", maxResults: "1", q: r.query })}`,
+      );
+      searched++;
+      const videoId = s.items?.[0]?.id?.videoId;
+      if (videoId) resolved.push({ videoId, query: r.query });
+    } catch (e) {
+      if (isQuotaError(e)) quota = true;
+      else if (!(e instanceof ApiError) || e.status === 401) throw e;
+    }
+  }
+  const check = await checkYoutube(access, playlistId, resolved, region);
+  return { ...check, searched, ...(quota ? { quota: true } : {}) };
+}
+
 /** Reads the playlist back with the DJ's token and puts it right (lib/youtubeVerify.ts). */
 export function checkYoutube(
   access: string,

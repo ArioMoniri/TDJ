@@ -26,10 +26,12 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  addSongsAt,
   addSongsTo,
   addTanda,
   type Draft,
   type DraftSong,
+  draftFit,
   draftIds,
   draftMinutes,
   isDraft,
@@ -64,8 +66,10 @@ import { Group, RhythmTile, Row, SegmentedRow, SwitchRow } from "./Form";
 import { Menu } from "./Menu";
 import { PageHeader } from "./PageHeader";
 import { Sheet } from "./Sheet";
+import { Artwork } from "./ui/Artwork";
 import { CortinaPlayButton, PlayRow } from "./ui/PlayRow";
 import { SmartSearchField, SmartSearchResults } from "./ui/SmartSearch";
+import { SongArt } from "./ui/TandaArt";
 import { isMixedTanda, rhythmWord, TandaTypeBadge } from "./ui/TandaTypeBadge";
 import { Tip } from "./ui/Tip";
 import { useDragReorder } from "./ui/useDragReorder";
@@ -201,6 +205,7 @@ const NEW_TANDA_ORCHESTRAS: Array<[string, string]> = [
   ["francisco-canaro", "Francisco Canaro"],
   ["edgardo-donato", "Edgardo Donato"],
 ];
+const RHYTHM_LETTER: Record<string, string> = { tango: "T", vals: "V", milonga: "M" };
 const tandaEnergy = (t: DraftSong[]) => t.reduce((a, s) => a + (s.energy ?? 50), 0) / Math.max(1, t.length);
 
 /** the night's energy, tanda by tanda, against the plan's targets: a 44 px tall sparkline */
@@ -258,7 +263,7 @@ export function ManualBuilder() {
   const [rhythm, setRhythm] = useState<"auto" | "tango" | "vals" | "milonga">("auto");
   const [query, setQuery] = useState("");
   // 2026-11: the one smart search for the field (completions, the correction) and the versions of a complete title
-  const smart = useSmartSearch({ value: query, onChange: setQuery, services: false, limit: 20 });
+  const smart = useSmartSearch({ value: query, onChange: setQuery, services: false, limit: 20, works: true });
   const [filters, setFilters] = useState<Filters>({});
   const [hits, setHits] = useState<Hit[]>([]);
   const [facets, setFacets] = useState<{ orchestras: Facet[]; singers: Facet[] }>({
@@ -270,6 +275,15 @@ export function ManualBuilder() {
   const [filling, setFilling] = useState(false);
   /** the tanda "+" adds to: an index, or "new" (the next add starts a tanda) */
   const [sel, setSel] = useState<number | "new">(0);
+  /**
+   * 2026-11 ("insert / remove everywhere"): where the next add goes when the DJ chose a place — a new tanda at place
+   * `tanda` ("Insert tanda before / after"), or a side at place `at` of tanda `tanda` ("Add song before / after")
+   */
+  const [place, setPlace] = useState<
+    { kind: "tanda"; tanda: number } | { kind: "song"; tanda: number; at: number } | null
+  >(null);
+  /** Shift held with Enter: the highlighted version starts a new tanda */
+  const shiftRef = useRef(false);
   const [multi, setMulti] = useState(false);
   const [picked, setPicked] = useState<DraftSong[]>([]);
   const [addOpen, setAddOpen] = useState(false);
@@ -407,6 +421,7 @@ export function ManualBuilder() {
       apply: (p) => setDraft(draftOf(p), cortinas),
       learn: false,
       scope: "tandas",
+      guide: false,
     });
   const pick = (s: Suggestion) => {
     haptic(6);
@@ -421,6 +436,19 @@ export function ManualBuilder() {
     if (!songs.length) return;
     haptic(6);
     const label = songs.length === 1 ? songs[0]!.title : tx("builder.n_sides", { n: songs.length });
+    if (place && where !== "new") {
+      const pl = place;
+      setPlace(null);
+      if (pl.kind === "tanda") {
+        const c = padded(meta.cortinas, draft.length);
+        c.splice(pl.tanda, 0, null);
+        const res = await addChecked(newTanda(draft, songs, pl.tanda), label, c);
+        if (res !== "cancelled") setSel(pl.tanda);
+        return;
+      }
+      await addChecked(addSongsAt(draft, pl.tanda, pl.at, songs), label);
+      return;
+    }
     if (where === "new" || where < 0 || where >= draft.length) {
       const d = newTanda(draft, songs);
       const res = await addChecked(d, label, [...meta.cortinas.slice(0, draft.length), null]);
@@ -431,9 +459,42 @@ export function ManualBuilder() {
   };
   const addHit = (h: Hit) => void addTo([h.song], sel === "new" ? "new" : selIndex);
   /** a version from the smart search (the catalogue's: the builder's night is catalogue sides) */
-  const addVersion = (v: Version) => {
+  const addVersion = (v: Version, asNew = false) => {
     if (!v.hit) return;
-    void addTo([slimSong(v.song)], sel === "new" ? "new" : selIndex);
+    const shift = shiftRef.current;
+    shiftRef.current = false;
+    void addTo([slimSong(v.song)], asNew || shift || sel === "new" ? "new" : selIndex);
+  };
+  /** the tanda a version would join: the place chosen, the selected tanda, or none (a new one) */
+  const target: DraftSong[] =
+    place?.kind === "song"
+      ? (draft[place.tanda] ?? [])
+      : place?.kind === "tanda" || sel === "new"
+        ? []
+        : (draft[selIndex] ?? []);
+  /** one line under each version: what it does to that tanda (information, not a gate) */
+  const fitLine = (v: Version) => {
+    if (!v.hit) return null;
+    const f = draftFit(target, slimSong(v.song));
+    const bits: string[] = [];
+    if (f.inTanda) bits.push(tx("build.fit.in_tanda"));
+    if (f.orchestra === "same") bits.push(tx("build.fit.same_orchestra"));
+    else if (f.orchestra === "differs")
+      bits.push(tx("build.fit.other_orchestra", { a: v.song.orchestra, b: target[0]?.orchestra ?? "" }));
+    if (f.singer === "differs" && f.singers)
+      bits.push(tx("build.fit.singer_differs", { a: f.singers[0], b: f.singers[1] }));
+    else if (f.singer === "voice") bits.push(tx("build.fit.voice_differs"));
+    if (f.rhythm === "differs") bits.push(tx("build.fit.rhythm_differs", { r: rhythmWord(v.song.rhythm) }));
+    if (f.years)
+      bits.push(
+        tx("build.fit.years", { y: f.years[0] === f.years[1] ? `${f.years[0]}` : f.years.join("–") }),
+      );
+    bits.push(tx("build.fit.total", { t: fmtLen(f.totalSec) }));
+    return (
+      <span className="text-caption1 block text-[var(--label-2)]" data-testid="build-fit-line">
+        {target.length ? bits.join(" · ") : tx("build.fit.new_tanda", { t: fmtLen(f.totalSec) })}
+      </span>
+    );
   };
   const togglePick = (s: DraftSong) =>
     setPicked((p) => (p.some((x) => x.id === s.id) ? p.filter((x) => x.id !== s.id) : [...p, s]));
@@ -455,6 +516,17 @@ export function ManualBuilder() {
     setSel(to);
   };
   const dragTanda = useDragReorder(moveT);
+  /** "Insert tanda before / after", "Add song before / after": the next add goes there (the search opens) */
+  const choosePlace = (pl: NonNullable<typeof place>) => {
+    haptic(4);
+    setPlace(pl);
+    if (pl.kind === "song") {
+      setSel(pl.tanda);
+      const t = draft[pl.tanda];
+      if (t?.[0]) setFilters({ rhythm: t[0].rhythm as Filters["rhythm"], orchestraId: t[0].orchestraId });
+    } else setFilters({});
+    showAdd("search");
+  };
   const removeT = (ti: number) => {
     const c = padded(meta.cortinas, draft.length);
     c.splice(ti, 1);
@@ -644,6 +716,83 @@ export function ManualBuilder() {
 
   const addPanel = (
     <div className="min-w-0" data-testid="build-add-panel">
+      <div ref={searchRef} className="scroll-mt-24" data-testid="build-search-first">
+        <h2 className="section-head">{tx("manualBuilder.search")}</h2>
+        {place && (
+          <p
+            className="text-footnote mb-2 flex items-center gap-2 px-4 text-[var(--tint)]"
+            data-testid="build-place"
+          >
+            <span className="min-w-0 flex-1">
+              {place.kind === "tanda"
+                ? tx("build.place_tanda", { n: place.tanda + 1 })
+                : tx("build.place_song", { n: place.tanda + 1, at: place.at + 1 })}
+            </span>
+            <button type="button" className="btn-plain min-h-11" onClick={() => setPlace(null)}>
+              {tx("build.place_cancel")}
+            </button>
+          </p>
+        )}
+        {/* 2026-11 (the owner: "just search songs and add them, with the orchestra, singer, timing and the versions as a
+            guide"): the plain smart search leads — typing shows the versions by work; Add puts one in the tanda (Enter),
+            "New tanda" starts one with it (Shift+Enter); the line under each says what it does to that tanda */}
+        <div
+          onKeyDownCapture={(e) => {
+            if (e.key === "Enter") shiftRef.current = e.shiftKey;
+          }}
+        >
+          <SmartSearchField
+            s={smart}
+            id="build-search"
+            prefix="build"
+            placeholder={tx("manualBuilder.title_orchestra_singer_or_year")}
+            label={tx("manualBuilder.search_for_a_song_to_add")}
+            onEnter={(v) => addVersion(v)}
+          />
+        </div>
+        <p className="text-caption1 mt-1 px-4 text-[var(--label-2)]" data-testid="build-search-hint">
+          {tx("build.search_hint", {
+            where: place
+              ? place.kind === "tanda"
+                ? tx("build.place_short_tanda", { n: place.tanda + 1 })
+                : tx("build.place_short_song", { n: place.tanda + 1 })
+              : selLabel,
+          })}
+        </p>
+        {smart.works && (
+          <SmartSearchResults
+            s={smart}
+            id="build-search"
+            prefix="build"
+            chips={false}
+            onPick={(v) => addVersion(v)}
+            rowTestId="build-version"
+            note={fitLine}
+            actions={(v) => (
+              <span className="inline-flex shrink-0 items-center">
+                <button
+                  type="button"
+                  className="icon-btn icon-btn-bare -my-2 h-11 w-11 shrink-0 text-[var(--tint)]"
+                  aria-label={tx("search.add_to_night", { title: v.song.title })}
+                  onClick={() => addVersion(v)}
+                  data-testid="build-version-add"
+                >
+                  <Plus size={20} strokeWidth={2.25} aria-hidden />
+                </button>
+                <button
+                  type="button"
+                  className="icon-btn icon-btn-bare -my-2 h-11 w-11 shrink-0 text-[var(--label-2)]"
+                  aria-label={tx("build.add_as_new_tanda", { title: v.song.title })}
+                  onClick={() => addVersion(v, true)}
+                  data-testid="build-version-new"
+                >
+                  <ListPlus size={18} strokeWidth={2.25} aria-hidden />
+                </button>
+              </span>
+            )}
+          />
+        )}
+      </div>
       <div ref={suggestRef} className="scroll-mt-24">
         <h2 className="section-head">{tx("manualBuilder.what_comes_next")}</h2>
         <Group
@@ -687,39 +836,8 @@ export function ManualBuilder() {
         )}
       </div>
 
-      <div ref={searchRef} className="scroll-mt-24">
-        <h2 className="section-head">{tx("manualBuilder.search")}</h2>
-        {/* 2026-11: the one smart search's field (completions, "Did you mean", Tab takes it); the results below
-            stay the builder's own (each side judged for the tanda it would join), the versions by work above them */}
-        <SmartSearchField
-          s={smart}
-          id="build-search"
-          prefix="build"
-          placeholder={tx("manualBuilder.title_orchestra_singer_or_year")}
-          label={tx("manualBuilder.search_for_a_song_to_add")}
-          onEnter={addVersion}
-        />
-        {smart.works && (
-          <SmartSearchResults
-            s={smart}
-            id="build-search"
-            prefix="build"
-            chips={false}
-            onPick={addVersion}
-            rowTestId="build-version"
-            actions={(v) => (
-              <button
-                type="button"
-                className="icon-btn icon-btn-bare -my-2 h-11 w-11 shrink-0 text-[var(--tint)]"
-                aria-label={tx("search.add_to_night", { title: v.song.title })}
-                onClick={() => addVersion(v)}
-                data-testid="build-version-add"
-              >
-                <Plus size={20} strokeWidth={2.25} aria-hidden />
-              </button>
-            )}
-          />
-        )}
+      <div className="scroll-mt-24">
+        <h2 className="section-head">{tx("build.judged_search")}</h2>
         <fieldset className="mt-2 flex flex-wrap items-center gap-1.5 border-0 p-0" data-testid="build-chips">
           <legend className="sr-only">{tx("builder.filters")}</legend>
           {RHYTHMS3.map((r) => (
@@ -858,7 +976,7 @@ export function ManualBuilder() {
                       song={asSong(h.song)}
                       where={tx("manualBuilder.search")}
                       leadingKind="tile"
-                      leading={<RhythmTile rhythm={h.song.rhythm} label={rhythmWord(h.song.rhythm)} />}
+                      leading={<SongArt song={h.song} label={rhythmWord(h.song.rhythm)} />}
                       sub={
                         <>
                           {metaLine(family(h.song), yearText(h.song.year))}
@@ -1001,7 +1119,7 @@ export function ManualBuilder() {
       />
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-x-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,440px)]">
-        <section aria-label={tx("manualBuilder.your_night")} className="min-w-0">
+        <section aria-label={tx("manualBuilder.your_night")} className="build-stack min-w-0">
           <h2 className="section-head">{tx("manualBuilder.your_night")}</h2>
           {/* the night at a glance: its length against the target, the energy, and the guidance lines */}
           <Group data-testid="build-summary">
@@ -1058,7 +1176,7 @@ export function ManualBuilder() {
                 />
               </Group>
             )}
-            <div data-reorder-list>
+            <div data-reorder-list className="build-stack">
               <AnimatePresence initial={false}>
                 {draft.map((t, ti) => (
                   <motion.div
@@ -1091,6 +1209,7 @@ export function ManualBuilder() {
                       onMoveSide={(a, b) => moveSide(ti, a, b)}
                       onRemove={() => removeT(ti)}
                       onRemoveSide={(si) => setDraft(removeSong(draft, ti, si))}
+                      onPlace={choosePlace}
                     />
                     {ti < draft.length - 1 && (
                       <CortinaSlot
@@ -1114,7 +1233,7 @@ export function ManualBuilder() {
             </Group>
           </PlayListContext.Provider>
 
-          <div className="mb-4 flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" data-testid="build-actions">
             <button
               type="button"
               className="btn btn-ghost min-h-11"
@@ -1147,7 +1266,7 @@ export function ManualBuilder() {
           {draft.length > 0 && (
             <button
               type="button"
-              className="btn btn-primary mt-2 mb-4 min-h-[50px] w-full sm:hidden"
+              className="btn btn-primary min-h-[50px] w-full sm:hidden"
               onClick={finish}
               disabled={finishing}
               data-testid="build-finish-phone"
@@ -1331,7 +1450,7 @@ function GuideRow({ line, onFix, busy }: { line: GuideLine; onFix: (f: GuideFix)
       {f && fixLabel && (
         <button
           type="button"
-          className="btn-plain -my-1 min-h-11 shrink-0 max-sm:ml-8"
+          className="btn btn-ghost min-h-11 shrink-0 px-3 max-sm:ml-8"
           onClick={() => onFix(f)}
           disabled={busy}
           data-testid="build-fix"
@@ -1359,7 +1478,11 @@ function SuggestionCard({ s, onPick }: { s: Suggestion; onPick: () => void }) {
       aria-description={s.reasons.join(" · ")}
     >
       <div className="flex items-start gap-3">
-        <RhythmTile rhythm={s.rhythm} label={rhythmWord(s.rhythm)} />
+        {s.songs[0] ? (
+          <SongArt song={{ ...s.songs[0], rhythm: s.rhythm }} label={rhythmWord(s.rhythm)} />
+        ) : (
+          <RhythmTile rhythm={s.rhythm} label={rhythmWord(s.rhythm)} />
+        )}
         <span className="min-w-0 flex-1">
           <span className="block truncate">{s.kind === "song" ? s.songs[0]!.title : family(s)}</span>
           <span className="text-footnote block truncate text-[var(--label-2)]">
@@ -1444,7 +1567,7 @@ function CortinaSlot({
 }) {
   return (
     <div
-      className="-mt-3 mb-5 flex items-center gap-2 px-4 text-[var(--label-2)]"
+      className="mt-2 flex items-center gap-2 px-4 text-[var(--label-2)]"
       data-testid="build-cortina"
       data-picked={c ? c.id : undefined}
     >
@@ -1487,6 +1610,7 @@ function TandaBlock({
   onMoveSide,
   onRemove,
   onRemoveSide,
+  onPlace,
 }: {
   t: DraftSong[];
   ti: number;
@@ -1501,6 +1625,8 @@ function TandaBlock({
   onMoveSide: (from: number, to: number) => void;
   onRemove: () => void;
   onRemoveSide: (si: number) => void;
+  /** 2026-11: the next add goes to a place (a new tanda before / after, a side before / after) */
+  onPlace: (p: { kind: "tanda"; tanda: number } | { kind: "song"; tanda: number; at: number }) => void;
 }) {
   const s0 = t[0]!;
   const ys = t.map((s) => s.year ?? 0).filter(Boolean);
@@ -1515,7 +1641,7 @@ function TandaBlock({
       })}
       data-testid="build-tanda"
       data-selected={selected || undefined}
-      className={selected ? "[&>div]:ring-2 [&>div]:ring-[var(--tint)]" : ""}
+      className={selected ? "[&>div]:ring-2 [&>div]:ring-inset [&>div]:ring-[var(--tint)]" : ""}
     >
       <div className="cell" data-leading="tile">
         <button
@@ -1535,7 +1661,9 @@ function TandaBlock({
           aria-label={tx("builder.select_tanda", { n: ti + 1, family: family(s0) })}
           data-testid="build-tanda-select"
         >
-          <RhythmTile rhythm={s0.rhythm} label={rhythmWord(s0.rhythm)} />
+          <span data-testid="build-tanda-art">
+            <SongArt song={s0} label={rhythmWord(s0.rhythm)} />
+          </span>
           <span className="min-w-0 flex-1">
             <span className="block truncate">{family(s0)}</span>
             <span className="mt-0.5 flex flex-wrap items-center gap-1.5">
@@ -1594,6 +1722,16 @@ function TandaBlock({
               disabled: ti >= count - 1,
             },
             {
+              label: tx("spot.insert_tanda_before"),
+              icon: ListPlus,
+              onClick: () => onPlace({ kind: "tanda", tanda: ti }),
+            },
+            {
+              label: tx("spot.insert_tanda_after"),
+              icon: ListPlus,
+              onClick: () => onPlace({ kind: "tanda", tanda: ti + 1 }),
+            },
+            {
               label: tx("manualBuilder.remove_this_tanda"),
               icon: Trash2,
               onClick: onRemove,
@@ -1618,13 +1756,12 @@ function TandaBlock({
             <PlayRow
               song={asSong(s)}
               where={where}
-              leadingKind="num"
+              leadingKind="art"
               leading={
-                <span className="inline-block w-6 text-center tabular-nums text-[var(--label-2)]">
-                  {si + 1}
-                </span>
+                <Artwork orchestra={s.orchestra} orchestraId={s.orchestraId} song={asSong(s)} size="s" />
               }
               sub={metaLine(
+                `${si + 1}.`,
                 yearText(s.year),
                 s.energy !== undefined && tx("manualBuilder.energy", { energy: s.energy }),
               )}
@@ -1655,6 +1792,16 @@ function TandaBlock({
                         icon: ArrowDown,
                         onClick: () => onMoveSide(si, si + 1),
                         disabled: si >= t.length - 1,
+                      },
+                      {
+                        label: tx("spot.add_song_before"),
+                        icon: ListPlus,
+                        onClick: () => onPlace({ kind: "song", tanda: ti, at: si }),
+                      },
+                      {
+                        label: tx("spot.add_song_after"),
+                        icon: ListPlus,
+                        onClick: () => onPlace({ kind: "song", tanda: ti, at: si + 1 }),
                       },
                       {
                         label: tx("manualBuilder.remove_this_side"),

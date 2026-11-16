@@ -1,0 +1,161 @@
+name: Merge owner contributions
+# The deployment owner's catalogue edits (Settings → Owner; apps/web/src/lib/server/contributions.ts) wait in the
+# owner partition of the app's DynamoDB table. This job merges them into data/sources/owner-overrides.json
+# (`pnpm data:apply-contributions`), rebuilds the index, runs the data tests and the quality gate (golden set ≥ 85),
+# commits as the owner to the deploy branch (a merge commit, never a force push), marks them merged and, when asked,
+# deploys the web. Nothing is pushed or marked when a test fails: the contributions stay pending and the run summary
+# says why. Setup: docs/DEPLOY.md → "Owner contributions". Scheduled runs need this file on the default branch.
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      stage: { description: "SST stage whose table holds the contributions", default: "production", required: true }
+      deploy: { description: "Deploy the web after a merge", type: boolean, default: false }
+      dry_run: { description: "Merge and test only: no push, nothing marked", type: boolean, default: false }
+permissions:
+  id-token: write
+  contents: write
+  actions: write
+concurrency:
+  group: merge-owner-contributions
+  cancel-in-progress: false
+env:
+  DEPLOY_BRANCH: ${{ vars.OWNER_CONTRIB_BRANCH || 'claude/admiring-curie-npzd0m' }}
+  STAGE: ${{ inputs.stage || 'production' }}
+  GIT_NAME: ArioMoniri
+  GIT_EMAIL: 92126657+ArioMoniri@users.noreply.github.com
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.stage || 'production' }}
+    # off switch without editing the file: repository variable OWNER_CONTRIB_ENABLED=false
+    if: ${{ vars.OWNER_CONTRIB_ENABLED != 'false' }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.DEPLOY_BRANCH }}
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: python3 -m pip install --quiet xlrd
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      - name: Find the table
+        id: table
+        env:
+          TABLE_VAR: ${{ vars.TDJ_DB_TABLE }}
+        run: |
+          set -euo pipefail
+          TABLE="${TABLE_VAR}"
+          if [ -z "${TABLE}" ]; then
+            # the table SST created for this stage (sst.config.ts → Dynamo "Db"), found by its sst:app / sst:stage tags
+            TABLE=$(aws resourcegroupstaggingapi get-resources --resource-type-filters dynamodb:table \
+              --tag-filters "Key=sst:app,Values=tdj" "Key=sst:stage,Values=${STAGE}" \
+              --query 'ResourceTagMappingList[].ResourceARN' --output text | tr '\t' '\n' | sed 's#.*:table/##' | grep -i 'db' | head -n1 || true)
+          fi
+          if [ -z "${TABLE}" ]; then
+            echo "::error::No table found: set the repository variable TDJ_DB_TABLE (the deploy summary prints it)."
+            exit 1
+          fi
+          echo "name=${TABLE}" >> "$GITHUB_OUTPUT"
+
+      - name: Read pending contributions
+        id: pull
+        env:
+          TABLE: ${{ steps.table.outputs.name }}
+        run: |
+          set -euo pipefail
+          node scripts/owner_contributions_ci.mjs pull --table "$TABLE" --out "$RUNNER_TEMP/contributions.json" | tee "$RUNNER_TEMP/pull.json"
+          COUNT=$(node -e 'process.stdout.write(String(require(process.argv[1]).contributions))' "$RUNNER_TEMP/pull.json")
+          echo "count=${COUNT}" >> "$GITHUB_OUTPUT"
+          if [ "$COUNT" = "0" ]; then echo "## Owner contributions: nothing pending" >> "$GITHUB_STEP_SUMMARY"; fi
+
+      - name: Merge into data/sources/owner-overrides.json
+        id: apply
+        if: steps.pull.outputs.count != '0'
+        run: |
+          set -euo pipefail
+          pnpm data:apply-contributions "$RUNNER_TEMP/contributions.json" --summary "$RUNNER_TEMP/summary.json"
+          APPLIED=$(node -e 'process.stdout.write(String(require(process.argv[1]).applied.length))' "$RUNNER_TEMP/summary.json")
+          echo "applied=${APPLIED}" >> "$GITHUB_OUTPUT"
+
+      - name: Rebuild the index
+        if: steps.pull.outputs.count != '0' && steps.apply.outputs.applied != '0'
+        run: pnpm index:build
+
+      - name: Data tests
+        if: steps.pull.outputs.count != '0' && steps.apply.outputs.applied != '0'
+        run: pnpm --filter @tdj/core exec vitest run test/owner.test.ts test/data.test.ts test/orchestraImport.test.ts test/round21.test.ts
+
+      - name: Quality gate (golden set ≥ 85)
+        if: steps.pull.outputs.count != '0' && steps.apply.outputs.applied != '0'
+        run: pnpm quality
+
+      - name: Commit to the deploy branch
+        id: commit
+        if: steps.pull.outputs.count != '0' && inputs.dry_run != true
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          git config user.name "$GIT_NAME"
+          git config user.email "$GIT_EMAIL"
+          # the generated report and the build stamp are not part of the merge
+          git checkout -- docs/quality 2>/dev/null || true
+          git checkout -- data/index/meta.json 2>/dev/null || true
+          git add data/
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+            echo "Nothing changed in data/ (every contribution was already merged)." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          N=$(node -e 'process.stdout.write(String(require(process.argv[1]).applied.length))' "$RUNNER_TEMP/summary.json")
+          WORK="owner-contributions/${GITHUB_RUN_ID}"
+          git checkout -b "$WORK"
+          git commit -q -m "Owner contributions: ${N} merged" -m "Merged by the Merge owner contributions workflow (${RUN_URL})."
+          # a merge commit onto the branch as it is now; retried once if the branch moved while we tested
+          for attempt in 1 2; do
+            git fetch -q origin "$DEPLOY_BRANCH"
+            git checkout -q -B "$DEPLOY_BRANCH" "origin/$DEPLOY_BRANCH"
+            git merge -q --no-ff "$WORK" -m "Merge owner contributions (${N})"
+            if git push origin "HEAD:refs/heads/${DEPLOY_BRANCH}"; then break; fi
+            [ "$attempt" = 2 ] && { echo "::error::Could not push to ${DEPLOY_BRANCH}"; exit 1; }
+          done
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Mark merged
+        if: steps.pull.outputs.count != '0' && inputs.dry_run != true && steps.commit.outcome == 'success'
+        env:
+          TABLE: ${{ steps.table.outputs.name }}
+          SHA: ${{ steps.commit.outputs.sha }}
+        run: node scripts/owner_contributions_ci.mjs mark --table "$TABLE" --summary "$RUNNER_TEMP/summary.json" --commit "$SHA"
+
+      - name: Summary
+        if: always() && steps.pull.outputs.count != '0'
+        env:
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          {
+            echo "## Owner contributions"
+            if [ -f "$RUNNER_TEMP/summary.json" ]; then
+              node scripts/owner_contributions_ci.mjs report --summary "$RUNNER_TEMP/summary.json"
+            fi
+            if [ "$JOB_STATUS" != "success" ]; then
+              echo
+              echo "A test or the quality gate failed: nothing was pushed and the contributions stay pending."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Deploy the web
+        if: steps.commit.outputs.changed == 'true' && (inputs.deploy == true || vars.OWNER_CONTRIB_DEPLOY == 'true')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run deploy-aws.yml --ref "$DEPLOY_BRANCH" -f stage="$STAGE"

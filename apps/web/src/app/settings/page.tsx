@@ -9,9 +9,11 @@ import {
   ImageIcon,
   KeyRound,
   Languages,
+  ListPlus,
   LoaderCircle,
   Music2,
   Palette,
+  Play,
   ShieldCheck,
   Sparkles,
   Timer,
@@ -22,9 +24,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { About } from "@/components/About";
 import { AppConnections } from "@/components/AppConnections";
-import { DeviceSourcesGroup } from "@/components/booth/DeviceSources";
 import { IndicatorSwitches } from "@/components/booth/IndicatorSwitches";
-import { BoothAudioSettings } from "@/components/booth/OutputsView";
 import { SilenceGroup } from "@/components/booth/SilenceSettings";
 import { Connectors } from "@/components/Connectors";
 import { PopularitySwitch } from "@/components/db/DatabaseFavourites";
@@ -40,7 +40,10 @@ import {
   SwitchRow,
   Tile,
 } from "@/components/Form";
+import { KeyboardSettings } from "@/components/KeyboardSettings";
 import { ModelConnections } from "@/components/ModelConnections";
+import { NightClosingGroup } from "@/components/NightClosing";
+import { OwnerContributions } from "@/components/OwnerContributions";
 import { PageHeader } from "@/components/PageHeader";
 import { Sheet } from "@/components/Sheet";
 import { TandaRulesGroup } from "@/components/TandaRules";
@@ -51,6 +54,7 @@ import { KEY_PLACEHOLDER, MODEL_SUGGESTIONS } from "@/lib/ai/models";
 import { chooseKeyProvider, keyOf, withKey } from "@/lib/ai/settings";
 import { saveAiKey } from "@/lib/app/boot";
 import { APP, KEYCHAIN_KEY } from "@/lib/app/target";
+import { whenIdle } from "@/lib/hooks";
 import { LOCALE_NAME, lazy, t as tx } from "@/lib/i18n";
 import { fade, t as tw } from "@/lib/motion";
 import { useStore } from "@/lib/store";
@@ -79,6 +83,30 @@ const THEMES: Array<[UserSettings["theme"], string]> = lazy(() => [
   ["light", tx("settings.light")],
   ["dark", tx("settings.dark")],
 ]);
+
+/*
+ * 2026-11 (e2e "add a source" and "add an agent" timed out): the Booth's Audio and On this device groups pull in the
+ * whole Booth (its store, engine and sources) and probe the device (outputs, Widevine, Spotify, YouTube). They load
+ * on their own once the page is idle after hydration (they sit below the fold), never in the page's first bundle.
+ */
+const BoothAudioSettings = dynamic(
+  () => import("@/components/booth/OutputsView").then((m) => m.BoothAudioSettings),
+  { ssr: false },
+);
+const ControllerSettingsBody = dynamic(
+  () => import("@/components/booth/ControllerView").then((m) => m.ControllerSettingsBody),
+  { ssr: false },
+);
+const DeviceSourcesGroup = dynamic(
+  () => import("@/components/booth/DeviceSources").then((m) => m.DeviceSourcesGroup),
+  { ssr: false },
+);
+/** renders its children once the main thread has a gap after hydration */
+function WhenIdle({ children }: { children: React.ReactNode }) {
+  const [on, setOn] = useState(false);
+  useEffect(() => whenIdle(() => setOn(true), 1500), []);
+  return on ? children : null;
+}
 
 /* The dotLottie player loads with the first test result, not with the page. */
 const DotLottieReact = dynamic(() => import("@lottiefiles/dotlottie-react").then((m) => m.DotLottieReact), {
@@ -348,9 +376,24 @@ export default function Settings() {
         {/* 2026-11: Booth → Gaps — a song's own silence and the gap (lib/booth/engine.ts, core silenceJoin) */}
         <SilenceGroup />
         {/* 2026-11: what can play the night on this device, and which one plays on Automatic */}
-        <DeviceSourcesGroup />
-        {/* 2026-11: Booth → Audio — outputs, the chain, a controller's pairs, two speaker sets, Before the night */}
-        <BoothAudioSettings />
+        <WhenIdle>
+          <DeviceSourcesGroup />
+          {/* 2026-11: Booth → Audio — outputs, the chain, a controller's pairs, two speaker sets, Before the night */}
+          <BoothAudioSettings />
+          {/* 2026-11: Booth → Controller — a DJ controller over MIDI, its mapping and MIDI Learn (lib/controller) */}
+          <Group
+            header={tx("controller.settings.header")}
+            footer={tx("controller.settings.footer")}
+            data-testid="settings-booth-controller"
+          >
+            <ControllerSettingsBody />
+          </Group>
+        </WhenIdle>
+        {/* 2026-11: Settings → Keyboard — every shortcut, rebindable on this device (lib/keymap.ts) */}
+        <KeyboardSettings />
+
+        {/* 2026-11: the night's closing format and the opening La Cumparsita (components/NightClosing.tsx) */}
+        <NightClosingGroup />
 
         <Group header={tx("settings.composing")} footer={tx("settings.after_every_compose_the_night_is")}>
           <SwitchRow
@@ -380,6 +423,28 @@ export default function Settings() {
             tile={
               <Tile color="#ff9500">
                 <ShieldCheck size={16} strokeWidth={2} />
+              </Tile>
+            }
+          />
+        </Group>
+
+        {/* 2026-11: what follows a tap on a song or tanda (outside a running Booth night) */}
+        <Group
+          header={tx("settings.playback")}
+          footer={tx("settings.tap_play_footer")}
+          data-testid="settings-playback"
+        >
+          <SegmentedRow
+            label={tx("settings.tap_play")}
+            value={settings.tapPlay ?? "continue"}
+            items={[
+              ["only", tx("settings.tap_play_only")],
+              ["continue", tx("settings.tap_play_continue")],
+            ]}
+            onChange={(v) => setSettings({ tapPlay: v })}
+            tile={
+              <Tile color="#34c759">
+                <Play size={16} strokeWidth={2} fill="currentColor" />
               </Tile>
             }
           />
@@ -572,8 +637,25 @@ export default function Settings() {
 
         {APP && <AppConnections />}
         <Connectors />
+        {/* 2026-11: a connected service's playlist (or a file) as a night (app/import) */}
+        <Group>
+          <Row
+            tile={
+              <Tile color="#ff9500">
+                <ListPlus size={16} strokeWidth={2} />
+              </Tile>
+            }
+            label={tx("import.entry")}
+            sub={tx("import.entry_sub")}
+            chevron
+            onClick={() => router.push("/import")}
+            id="settings-import"
+          />
+        </Group>
         {/* round 22: where missing BPM, key, level, artwork and dates come from, and "Add a source" */}
         <DataSources />
+        {/* 2026-11: the deployment owner only: catalogue edits to the shared repo data (lib/contrib/owner.ts) */}
+        <OwnerContributions />
 
         {/* Models and the note under its footer are one block: a column break never parts them (wide screens) */}
         <div data-testid="ai-models">

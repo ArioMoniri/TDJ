@@ -10,6 +10,7 @@ export const DEVICE_ROUTES = {
   "/api/ai/review": "ai/review",
   "/api/ai/refine": "ai/refine",
   "/api/ai/swap": "ai/swap",
+  "/api/ai/insert": "ai/insert",
   "/api/ai/edit": "ai/edit",
   "/api/song-search": "song-search",
   "/api/add-side": "add-side",

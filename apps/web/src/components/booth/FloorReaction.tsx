@@ -3,6 +3,7 @@ import type { FloorReaction as Reaction, Song } from "@tdj/core";
 import { ChevronDown, Heart, Meh, TrendingDown } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { useBooth } from "@/lib/booth/store";
+import { recordMemoryEdit } from "@/lib/booth/undo";
 import { floorReactionOf, floorTap } from "@/lib/favourites";
 import { haptic } from "@/lib/haptics";
 import { t } from "@/lib/i18n";
@@ -54,8 +55,11 @@ export function FloorReaction({
     if (!playlist || disabled) return;
     haptic(8);
     const was = floorReactionOf(useStore.getState().memory, playlist, { scope, tanda, songId: song?.id });
-    useStore.getState().updateMemory((m) => floorTap(m, playlist, { scope, tanda, song, reaction: r }));
     const what = REACTIONS.find((x) => x.r === r)!;
+    // 2026-11: ⌘Z takes the reaction back (lib/booth/undo.ts)
+    recordMemoryEdit(t("boothUndo.floor", { reaction: t(what.key), tanda: Math.max(1, tanda) }), () =>
+      useStore.getState().updateMemory((m) => floorTap(m, playlist, { scope, tanda, song, reaction: r })),
+    );
     toast(was === r ? t("fav.cleared_toast") : t("fav.tapped_toast", { reaction: t(what.key) }));
     onPick?.();
   };

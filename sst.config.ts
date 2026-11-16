@@ -70,6 +70,8 @@ export default $config({
       server: { memory: "1536 MB", timeout: "60 seconds", architecture: "arm64" },
       domain: process.env.TDJ_DOMAIN ? { name: process.env.TDJ_DOMAIN } : undefined,
     });
-    return { url: web.url };
+    // the table's name is printed in the deploy summary: the "Merge owner contributions" workflow reads it from the
+    // repository variable TDJ_DB_TABLE (docs/DEPLOY.md → Owner contributions)
+    return { url: web.url, table: db.name };
   },
 });

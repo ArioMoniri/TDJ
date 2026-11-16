@@ -19,10 +19,13 @@ import {
 } from "@tdj/core";
 import { create } from "zustand";
 import { useShallow } from "zustand/react/shallow";
+import { recordEdit } from "@/lib/editHistory";
+import { runHistory } from "@/lib/editToast";
 import { playsIn } from "@/lib/favourites";
 import { makeNightLog, makeSnapshot } from "@/lib/history";
 import { t as tx } from "@/lib/i18n";
 import { boothCortinaStop, musicSec } from "@/lib/lengths";
+import { markSpotifyBurst } from "@/lib/spotifyBurst";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import { encodeWav, renderTransition } from "./audition";
@@ -73,6 +76,7 @@ import type {
 import { YoutubeAdapter } from "./sources/youtube";
 import { type Bands, renderBands } from "./spectral";
 import { transitionWindow } from "./transition";
+import { installBoothUndo } from "./undo";
 import { isSilentState, resumeBounded, unlockAudio } from "./unlock";
 import { bufferPeaks } from "./waveform";
 
@@ -138,7 +142,7 @@ export interface FolderStatus {
   canKeep: boolean;
 }
 
-interface BoothStore {
+export interface BoothStore {
   playlist: Playlist | null;
   /** round 21: the plan items the player passes over tonight (bypassed tandas) */
   bypassed: number[];
@@ -230,13 +234,23 @@ interface BoothStore {
    * cue) so every later play stops there, and the next item follows at the gap. The stored second, or null.
    */
   songEndsEarly: () => number | null;
+  /**
+   * 2026-11 (song details, the play view): the second in a side's recording that sounds now — the room's item
+   * (the engine's clock) or a pre-listen of the DJ's file — or null when that side is not playing
+   */
+  positionOf: (songId: string) => { sec: number; playing: boolean; where: "room" | "cue" } | null;
   /** wave 4: the DJ's edit of the transition after plan item `i` (null = Auto, the night's Mix settings) */
   setTransition: (i: number, edit: TransitionEdit | null) => void;
   /**
    * wave 4: hear the transition after plan item `i` as `edit` would play it (the last ~8 s into the first ~8 s), in
    * the headphones during the night (never the room); null when it plays, else why not
    */
-  auditionTransition: (i: number, edit: TransitionEdit | null) => Promise<string | null>;
+  /** `room`: the DJ confirmed playing it in the room mid-night (no headphones output): it goes to the room's device */
+  auditionTransition: (
+    i: number,
+    edit: TransitionEdit | null,
+    o?: { room?: boolean },
+  ) => Promise<string | null>;
   /** round 22: play another take of a side tonight (same title, same orchestra) */
   playVersion: (songId: string, version: Song) => Promise<boolean>;
   /** the night with `version` in place of `songId`, or null when that tanda is playing or played (read-only) */
@@ -263,6 +277,13 @@ interface BoothStore {
   togglePause: () => void;
   fadeOutNow: () => void;
   crossfadeNext: () => Promise<void>;
+  /**
+   * 2026-11 (the owner: "Fade and Crossfade give no feedback and can't be reversed"): the fade or crossfade running now
+   * (the button counts it down and becomes Cancel), `cancelFade` takes it back; once through, ⌘Z / Undo plays the
+   * song before it again from where it was.
+   */
+  fadeRun: { kind: "fade" | "crossfade"; endsAtMs: number; sec: number } | null;
+  cancelFade: () => boolean;
   setDucked: (on: boolean) => void;
   /** round 20: the DJ's fade in / fade out / stop second for one cortina, saved with the set (null resets it) */
   setCortinaEdit: (id: string, edit: CortinaEdit | null) => void;
@@ -515,6 +536,7 @@ export const useBooth = create<BoothStore>()((set, get) => ({
   planIndex: 0,
   current: null,
   position: 0,
+  fadeRun: null,
   remaining: 0,
   timeToCumparsita: 0,
   drift: 0,
@@ -910,10 +932,26 @@ export const useBooth = create<BoothStore>()((set, get) => ({
   },
   // 2026-11: a device that cannot fade (Spotify Connect) has no Fade or Crossfade (the keys f / x too)
   fadeOutNow: () => {
-    if (roomCaps(get()).fade) engine?.fadeOutNow();
+    if (!roomCaps(get()).fade || !engine) return;
+    const before = nowAt();
+    engine.fadeOutNow();
+    if (engine.fading) startFadeRun("fade", get().settings.fadeNowSec, before);
   },
   crossfadeNext: async () => {
-    if (roomCaps(get()).fade) await engine?.crossfadeNext();
+    if (!roomCaps(get()).fade || !engine) return;
+    const before = nowAt();
+    const sec = get().settings.crossfadeSec;
+    const run = engine.crossfadeNext();
+    // the button counts down from the press (the incoming is scheduled in the background)
+    if (engine.fading) startFadeRun("crossfade", sec, before);
+    await run;
+    if (engine?.fading && !get().fadeRun) startFadeRun("crossfade", sec, before);
+  },
+  cancelFade: () => {
+    const ok = !!engine?.cancelFade();
+    clearFadeRun();
+    if (ok && engine) set({ planIndex: engine.planIndex, position: engine.position() });
+    return ok;
   },
   setDucked: (on) => {
     // 2026-11: Talk needs volume control on the room's device ("Not available on this device")
@@ -943,7 +981,8 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     const n = engine.next();
     if (n === null || !live) return;
     const title = s.plan?.items[n]?.title ?? "";
-    toast(tx("booth.connect.will_be_skipped", { title }), () => get().unskip(n));
+    // 2026-11: the toast's Undo is the one history's (lib/booth/undo.ts records the skip): ⌘Z does the same
+    toast(tx("booth.connect.will_be_skipped", { title }), () => void runHistory("undo", { scope: "/booth" }));
   },
   unskip: (i) => {
     engine?.unskip(i);
@@ -1111,6 +1150,19 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     const p = get().playlist;
     if (p) applyPlan(rePlan(p, get().settings));
   },
+  positionOf: (songId) => {
+    const s = get();
+    const a = s.audition;
+    // a pre-listen of the side's file is the recording's own clock (a 30 s clip is not)
+    if (a?.songId === songId && a.via === "file" && cuePlayer?.el)
+      return { sec: cuePlayer.position(), playing: !cuePlayer.el.paused, where: "cue" };
+    const i = engine?.planIndex ?? -1;
+    if (!engine || (s.plan?.items[i]?.id !== songId && s.entities[i]?.id !== songId)) return null;
+    // a 30 s clip plays its own seconds, not the recording's: no position to mark or sync lyrics against
+    if (s.sources[i] === "preview") return null;
+    const at = engine.sourcePosition();
+    return at === null ? null : { sec: at, playing: s.state === "playing" && !engine.paused, where: "room" };
+  },
   songEndsEarly: () => {
     const p = get().playlist;
     const i = engine?.planIndex ?? -1;
@@ -1135,7 +1187,7 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     else all[key] = { ...edit };
     applyPlan(rePlan(p, get().settings, { transitions: all }));
   },
-  auditionTransition: async (i, edit) => {
+  auditionTransition: async (i, edit, opts = {}) => {
     const { plan, entities, started, settings } = get();
     const a = plan?.items[i];
     const b = plan?.items[i + 1];
@@ -1145,9 +1197,9 @@ export const useBooth = create<BoothStore>()((set, get) => ({
       return tx("booth.store.nothing_to_play");
     get().stopAudition();
     const blocked = get().cueBlocked();
-    // during the night an audition never goes to the room: headphones only
-    if (blocked && started) return blocked;
-    const where: CueWhere = blocked ? "device" : "headphones";
+    // during the night an audition goes to the room only once the DJ confirmed it (2026-11): else headphones only
+    if (blocked && started && !opts.room) return blocked;
+    const where: CueWhere = blocked || opts.room ? "device" : "headphones";
     const Off = offlineCtor();
     if (!Off) return tx("booth.store.this_browser_cannot_mix_a_transition");
     const [da, db] = await Promise.all([
@@ -1203,7 +1255,9 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     } catch {
       return tx("booth.store.this_browser_cannot_mix_a_transition");
     }
-    const sink = where === "headphones" ? get().outputs.cue : null;
+    const roomId = get().outputs.room;
+    const sink =
+      where === "headphones" ? get().outputs.cue : opts.room && roomId !== "default" ? roomId : null;
     cuePlayer ??= new CuePlayer();
     cuePlayer.onEnded = () => {
       stopCueTimer();
@@ -1465,6 +1519,10 @@ function seekActions(set: (p: Partial<BoothStore>) => void, get: () => BoothStor
     },
     seek: async (sec: number) => {
       if (!engine || !get().started) return;
+      // 2026-11 (the owner: "the slider goes to zero for a second"): the bar stays where the DJ let go at once —
+      // the engine's clock holds the same target until the audio is there
+      const len = engine.currentLength();
+      set({ position: Math.max(0, Math.min(sec, Math.max(0, len - 0.5))) });
       await engine.seek(sec);
       sync();
       media?.setPosition(engine.currentLength(), engine.position());
@@ -1506,7 +1564,7 @@ function offlineCtor(): typeof OfflineAudioContext | null {
 }
 
 /** A side's decodable audio: the DJ's file, else its 30 s clip; null when only Spotify has it. */
-async function decodeAudio(
+export async function decodeAudio(
   id: string,
   e: NonNullable<PlanEntity>,
 ): Promise<{ buffer: AudioBuffer; from: Waveform["from"] } | null> {
@@ -1562,6 +1620,8 @@ function whyMissing(i: number): string | null {
 
 function onEngineEvent(e: EngineEvent) {
   const s = useBooth.getState();
+  // 2026-11: a Spotify night's transport is a burst of Connect requests: the playlists' sync waits it out
+  if (s.sourceMode === "spotify" && (e.type === "state" || e.type === "item")) markSpotifyBurst();
   if (e.type === "state") {
     const eng = engine!;
     useBooth.setState({
@@ -1787,9 +1847,63 @@ function tick(now: number) {
   if (eng.current && media && Math.floor(now / 5000) !== Math.floor((now - 34) / 5000))
     media.setPosition(eng.currentLength(), eng.position());
 }
+/** where the night is now (the item and the seconds into it), for a fade's Undo */
+function nowAt(): { planIndex: number; at: number } | null {
+  if (!engine?.current) return null;
+  return { planIndex: engine.current.planIndex, at: engine.position() };
+}
+let fadeTimer: ReturnType<typeof setTimeout> | null = null;
+function clearFadeRun() {
+  if (fadeTimer) clearTimeout(fadeTimer);
+  fadeTimer = null;
+  if (useBooth.getState().fadeRun) useBooth.setState({ fadeRun: null });
+}
+/** a fade or crossfade went out: the buttons count it down; Undo (⌘Z, the toast) takes it back */
+function startFadeRun(
+  kind: "fade" | "crossfade",
+  sec: number,
+  before: { planIndex: number; at: number } | null,
+) {
+  if (fadeTimer) clearTimeout(fadeTimer);
+  useBooth.setState({ fadeRun: { kind, sec, endsAtMs: Date.now() + sec * 1000 } });
+  fadeTimer = setTimeout(() => {
+    fadeTimer = null;
+    useBooth.setState({ fadeRun: null });
+  }, sec * 1000);
+  if (!before) return;
+  recordEdit({
+    label: kind === "fade" ? tx("booth.fade.undo_fade") : tx("booth.fade.undo_crossfade"),
+    scope: "/booth",
+    undo: async () => {
+      const s = useBooth.getState();
+      // still running: take it back; through: the song before plays again from where it was
+      if (s.fadeRun && s.cancelFade()) return;
+      if (!engine) return;
+      await engine.returnTo(before.planIndex, before.at);
+      startTicking();
+      useBooth.setState({ planIndex: engine.planIndex, position: engine.position() });
+    },
+    redo: () => {
+      const s = useBooth.getState();
+      if (kind === "fade") s.fadeOutNow();
+      else void s.crossfadeNext();
+    },
+  });
+}
+
 function startTicking() {
   if (!raf && typeof requestAnimationFrame === "function") raf = requestAnimationFrame(tick);
 }
+/**
+ * 2026-11 (the slider drifted from what plays): every slider reads the store's `position`, which is always read from
+ * the engine's clocks (the AudioContext with the output latency; an external player's reconciled clock), never
+ * counted from ticks — back from a hidden tab (rAF paused) it shows the right second at once.
+ */
+if (typeof document !== "undefined")
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible" || !engine) return;
+    useBooth.setState({ position: engine.position() });
+  });
 function stopTicking() {
   if (raf) cancelAnimationFrame(raf);
   raf = 0;
@@ -1839,6 +1953,9 @@ function logToHistory(ended: boolean) {
 
 /** For tests and the Find sheet: the engine behind the store (null before the first start). */
 export const boothEngine = () => engine;
+// 2026-11: every reversible Booth action goes into the one undo history (lib/booth/undo.ts)
+installBoothUndo(useBooth.getState, useBooth.setState, () => engine);
+
 /** For the e2e audibility check: the context's state. */
 export const boothContextState = () => ctx?.state ?? null;
 

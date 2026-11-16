@@ -2,26 +2,40 @@
 import { CORTINA_EDIT_RANGES } from "@tdj/core";
 import { useRef, useState } from "react";
 import { STOP_NOW_SEC, TRANSPORT_RANGES } from "@/lib/booth/engine";
-import { keyLabel } from "@/lib/booth/keys";
 import { MIX_EXPLAIN, MIX_PRESETS, type MixPresetId, presetOf } from "@/lib/booth/mix";
 import { cortinaSpan } from "@/lib/booth/nightView";
 import { BOOTH_RANGES, durationLabel } from "@/lib/booth/plan";
 import { useBooth, useRoomCaps } from "@/lib/booth/store";
 import { useMediaQuery } from "@/lib/hooks";
 import { lazy, t as tx } from "@/lib/i18n";
+import { ACTIONS, type ActionId, bindingsOf, formatCombo, useBindings, useKeymap } from "@/lib/keymap";
 import { useStore } from "@/lib/store";
 import { CORTINA_STOP_RANGE, cortinaStopSec } from "@/lib/types";
 import { ActionRow, Group, Row, SegmentedRow, StepperRow, SwitchRow } from "../Form";
 import { Sheet } from "../Sheet";
 import { Stepper } from "../ui";
 import { Fader } from "./Fader";
+import { RoomControls } from "./LevelPanel";
 import { SilenceGroup } from "./SilenceSettings";
 
-const Kbd = ({ k }: { k: string }) => (
-  <kbd className="booth-kbd text-footnote rounded bg-[var(--fill-3)] px-1.5 py-0.5 text-[var(--label-2)]">
-    {k}
-  </kbd>
-);
+/** the Mix sheet's old key names → their actions: the row shows the key as the DJ bound it (lib/keymap.ts) */
+const KEY_ACTION: Record<string, ActionId> = {
+  space: "booth.pause",
+  f: "booth.fade",
+  x: "booth.crossfade",
+  h: "booth.hold",
+  c: "booth.cueCortina",
+};
+const Kbd = ({ k }: { k: string }) => {
+  const bound = useBindings(KEY_ACTION[k] ?? "booth.keys");
+  const shown = KEY_ACTION[k] ? (bound[0] ? formatCombo(bound[0]) : "") : k;
+  if (!shown) return null;
+  return (
+    <kbd className="booth-kbd text-footnote rounded bg-[var(--fill-3)] px-1.5 py-0.5 text-[var(--label-2)]">
+      {shown}
+    </kbd>
+  );
+};
 
 /** A tappable row with its keyboard shortcut on the right (the Mix sheet's transport actions). */
 function KeyAction({
@@ -361,6 +375,8 @@ export function LevelsSheet({
           onChange={(v) => set({ loudnessTargetLUFS: v })}
         />
       </Group>
+      {/* 2026-11: how the normalisation reaches the room now, the room meter and Auto master (LevelPanel.tsx) */}
+      <RoomControls withMeter />
       {/* 2026-11: "Trim silence at the start" became the silence mode (Settings → Booth → Gaps, the same rows) */}
       <SilenceGroup header={tx("booth.silence.mix_header")} onChange={(p) => act.setSilence(p)} />
       <Group
@@ -520,31 +536,41 @@ export function CortinaSheet({ planIndex, onClose }: { planIndex: number | null;
   );
 }
 
-const KEYS: Array<[string, string]> = lazy(() => [
-  ["space", tx("booth.sheets.pause_resume_a_short_fade")],
-  ["←", tx("booth.sheets.previous_key")],
-  ["→", tx("booth.sheets.next_now_key")],
-  [keyLabel("playNow"), tx("booth.sheets.enter_key")],
-  ["f", tx("booth.sheets.fade_out_now_the_next_item")],
-  ["x", tx("booth.sheets.next_with_crossfade")],
-  ["h", tx("booth.sheets.hold_after_this_song_cancel_the")],
-  ["t", tx("booth.sheets.talk_over_the_music_dips_12")],
-  ["↑ / ↓", tx("booth.sheets.cortina_fader_5")],
-  ["c", tx("booth.sheets.cue_the_cortina_end_the_tanda")],
-  ["p", tx("booth.sheets.pre_listen_the_next_item_in")],
-  ["⇧ P", tx("booth.sheets.stop_the_pre_listen_the_room")],
-  ["b", tx("booth.sheets.birthday_vals")],
-  ["m", tx("booth.sheets.master_mute")],
-  // 2026-11: the edit keys (components/EditKeys.tsx) and the smart search's
-  ["⌘Z / Ctrl+Z", tx("booth.sheets.undo_key")],
-  ["⇧⌘Z / Ctrl+Y", tx("booth.sheets.redo_key")],
-  ["s", tx("booth.sheets.swap_key")],
-  ["⌥↑ / ⌥↓", tx("booth.sheets.move_key")],
+/** the keys that are not the DJ's to change (a search field's, the armed confirm's) */
+const FIXED_KEYS: Array<[string, string]> = lazy(() => [
+  ["enter", tx("booth.sheets.enter_key")],
   ["↑ ↓ ↵ ⇥ esc", tx("booth.sheets.search_keys")],
-  ["?", tx("booth.sheets.this_sheet")],
 ]);
 
+/**
+ * The keyboard sheet (?): every shortcut as the DJ bound it on this device (lib/keymap.ts), the Booth's first, then
+ * the edit keys; "Change keys…" opens Settings → Keyboard.
+ */
 export function ShortcutsSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const custom = useKeymap((s) => s.custom);
+  const row = (a: (typeof ACTIONS)[number]) => {
+    const keys = bindingsOf(a.id, custom);
+    return (
+      <Row
+        key={a.id}
+        label={tx(a.label)}
+        data-testid={`shortcut-${a.id}`}
+        value={
+          keys.length ? (
+            <span className="inline-flex flex-wrap justify-end gap-1">
+              {keys.map((c) => (
+                <kbd key={c} className="text-footnote rounded bg-[var(--fill-3)] px-1.5 py-0.5">
+                  {formatCombo(c)}
+                </kbd>
+              ))}
+            </span>
+          ) : (
+            tx("keys.none")
+          )
+        }
+      />
+    );
+  };
   return (
     <Sheet
       open={open}
@@ -553,14 +579,26 @@ export function ShortcutsSheet({ open, onClose }: { open: boolean; onClose: () =
       trailing={tx("booth.sheets.done")}
       testId="booth-shortcuts"
     >
-      <Group footer={tx("booth.sheets.shortcuts_are_ignored_while_a_text")}>
-        {KEYS.map(([k, d]) => (
+      <Group header={tx("keys.group_booth")} footer={tx("booth.sheets.shortcuts_are_ignored_while_a_text")}>
+        {ACTIONS.filter((a) => a.group === "booth").map(row)}
+        {FIXED_KEYS.map(([k, d]) => (
           <Row
             key={k}
             label={d}
             value={<kbd className="text-footnote rounded bg-[var(--fill-3)] px-1.5 py-0.5">{k}</kbd>}
           />
         ))}
+      </Group>
+      <Group header={tx("keys.group_edit")} footer={tx("keys.sheet_footer")}>
+        {ACTIONS.filter((a) => a.group === "edit").map(row)}
+        <ActionRow
+          label={tx("keys.change")}
+          onClick={() => {
+            onClose();
+            location.assign("/settings#settings-keyboard");
+          }}
+          id="shortcuts-change"
+        />
       </Group>
     </Sheet>
   );

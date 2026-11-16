@@ -1,20 +1,25 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter } from "next/font/google";
+import { Suspense } from "react";
 import "./globals.css";
 import { UpdateWatch } from "@/components/About";
 import { Boot } from "@/components/Boot";
 import { BoothMini } from "@/components/booth/BoothMini";
+import { EditGuide } from "@/components/EditGuide";
 import { EditKeys } from "@/components/EditKeys";
 import { GlobalToast } from "@/components/GlobalToast";
 import { IconSprite } from "@/components/Icons";
+import { InsertSheet } from "@/components/InsertSheet";
 import { LocaleRoot } from "@/components/LocaleRoot";
 import { MiniPlayer } from "@/components/MiniPlayer";
 import { Motion } from "@/components/Motion";
 import { Nav } from "@/components/Nav";
 import { ToolbarProvider } from "@/components/PageHeader";
 import { PageTransition } from "@/components/PageTransition";
+import { PlaylistSync } from "@/components/PlaylistSync";
 import { RoomSync } from "@/components/RoomSync";
 import { RuleConfirmSheet } from "@/components/RuleConfirmSheet";
+import { SongHosts } from "@/components/song/SongHosts";
 import { ThemeSync } from "@/components/ThemeSync";
 
 const sans = Inter({ subsets: ["latin"], variable: "--font-sans-loaded", display: "swap" });
@@ -86,10 +91,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </main>
             <MiniPlayer />
             <BoothMini />
+            <PlaylistSync />
             <GlobalToast />
             <UpdateWatch />
             <EditKeys />
             <RuleConfirmSheet />
+            <Suspense>
+              <SongHosts />
+            </Suspense>
+            <EditGuide />
+            <InsertSheet />
           </ToolbarProvider>
         </LocaleRoot>
       </body>

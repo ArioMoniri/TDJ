@@ -6,12 +6,15 @@ import { ChevronRight, Grid3x3 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { coverageWith, DEFAULT_COVERAGE, editGrade, nextGrade } from "@/lib/era";
 import { eraWords, gradeWords as gradeWord } from "@/lib/eraWords";
+import { useSongOpen } from "@/lib/songOpen";
 import type { MetaOrchestra, OrchestraProfile } from "@/lib/types";
+import { useSharedQuery } from "@/lib/usePageQuery";
 import { useTextSearch } from "@/lib/useSongSearch";
 import { ActionRow, CheckRow, Group, PickerRow, Row } from "../Form";
 import { SearchField } from "../SearchField";
 import { Sheet } from "../Sheet";
 import { Highlight } from "../search/Highlight";
+import { DnaLink } from "../song/DnaLink";
 import { Segmented } from "../ui";
 import { Artwork } from "../ui/Artwork";
 import { EraLegend } from "../ui/EraBadge";
@@ -202,13 +205,16 @@ function Heatmap({
 export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
   const { overrides, update } = useDb();
   const editing = useDbEdit();
-  const [q, setQ] = useState("");
+  // 2026-11: the page's one search text (lib/usePageQuery.ts): it stays when the tab changes
+  const [q, setQ] = useSharedQuery();
   const [by, setBy] = useState<GroupBy>("tier");
   const [limit, setLimit] = useState(PAGE);
   const [detail, setDetail] = useState<MetaOrchestra | null>(null);
   const [phasesFor, setPhasesFor] = useState<MetaOrchestra | null>(null);
   const [singersFor, setSingersFor] = useState<MetaOrchestra | null>(null);
   const [gradesFor, setGradesFor] = useState<MetaOrchestra | null>(null);
+  // 2026-11 (the owner: "I can't click on these to see and play the list"): a singer's or the instrumental sides
+  const openSides = useSongOpen((s) => s.openSides);
   const profiles = overrides.profiles ?? {};
   const heatEdits = overrides.heatmap;
   const coverage = useMemo(() => {
@@ -453,6 +459,29 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
             const singers = singersOf(o);
             return (
               <>
+                <Group>
+                  <DnaLink
+                    to={{ kind: "orchestra", id: o.id }}
+                    className="cell cell-tap w-full text-left"
+                    testId="orchestra-open-page"
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="cell-label">
+                        {tx("song.open_orchestra_page", { orchestra: o.name })}
+                      </span>
+                      <span className="text-footnote cell-sub text-[var(--label-2)]">
+                        {tx("song.orchestra_page_sub")}
+                      </span>
+                    </span>
+                    <ChevronRight size={16} strokeWidth={2.5} className="cell-chevron" aria-hidden />
+                  </DnaLink>
+                  <Row
+                    label={tx("song.all_sides")}
+                    chevron
+                    onClick={() => openSides({ orchestraId: o.id, orchestra: o.name, singer: null })}
+                    data-testid="orchestra-all-sides"
+                  />
+                </Group>
                 <Group
                   header={tx("db.orchestrasTab.how_nights_use_it")}
                   footer={
@@ -537,12 +566,29 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
                 {(o.topSingers?.length ?? 0) > 0 && (
                   <Group header={tx("db.orchestrasTab.most_recorded_with")}>
                     {o.topSingers!.map(([n, c]) => (
-                      <Row key={n} label={n} value={tx("db.orchestrasTab.sides_2", { c })} />
+                      <Row
+                        key={n}
+                        label={n}
+                        value={tx("db.orchestrasTab.sides_2", { c })}
+                        chevron
+                        onClick={() => openSides({ orchestraId: o.id, orchestra: o.name, singer: n })}
+                        data-testid="orchestra-singer-row"
+                      />
                     ))}
                     {o.instrumentals ? (
                       <Row
                         label={tx("db.orchestrasTab.instrumental_2")}
                         value={tx("db.orchestrasTab.sides", { instrumentals: o.instrumentals })}
+                        chevron
+                        onClick={() =>
+                          openSides({
+                            orchestraId: o.id,
+                            orchestra: o.name,
+                            singer: null,
+                            instrumental: true,
+                          })
+                        }
+                        data-testid="orchestra-instrumental-row"
                       />
                     ) : null}
                   </Group>
@@ -603,7 +649,18 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
               const singers = singersOf(singersFor);
               return (
                 <div key={name} className="cell flex-col items-stretch gap-0 py-2">
-                  <span className="text-headline">{name}</span>
+                  <button
+                    type="button"
+                    className="-mx-4 flex min-h-11 items-center gap-2 px-4 text-left"
+                    onClick={() =>
+                      openSides({ orchestraId: singersFor.id, orchestra: singersFor.name, singer: name })
+                    }
+                    data-testid="orchestra-singer-years-row"
+                  >
+                    <span className="text-headline min-w-0 flex-1">{name}</span>
+                    <span className="text-footnote text-[var(--label-2)]">{tx("song.see_sides")}</span>
+                    <ChevronRight size={16} strokeWidth={2.5} className="cell-chevron" aria-hidden />
+                  </button>
                   <div className="-mx-4 flex">
                     <ValueCell
                       label={tx("db.orchestrasTab.from_2")}

@@ -108,6 +108,8 @@ export interface BoothPlan {
   cortinaEdits?: Record<string, CortinaEdit>;
   /** 2026-11: the plan was made with the chorus start off (every cortina from 0) */
   cortinaHookStart?: false;
+  /** 2026-11: the closing format the DJ chose (unset: the legacy keys; see cumparsita.ts closingFormatOf) */
+  closingFormat?: import("./types").NightRules["closingFormat"];
   /** song id → the DJ's cue in / stop at (round 22) */
   songCues?: Record<string, SongCue>;
   /** wave 4: transition key (`fromId→toId`) → the DJ's edit of that transition */
@@ -645,7 +647,7 @@ export function planBooth(p: Playlist, s: BoothInputs = {}): BoothPlan {
         tanda: it.tanda,
         planIndex,
         atSec: it.startSec,
-        label: "La Cumparsita",
+        label: closingLabel(p),
       });
   });
   const closing =
@@ -657,6 +659,9 @@ export function planBooth(p: Playlist, s: BoothInputs = {}): BoothPlan {
     markers,
   };
   if (closing) plan.cumparsitaAtSec = closing.startSec;
+  // 2026-11: the DJ's closing format (Settings → Night → "The last La Cumparsita"), when one was chosen
+  const fmt = p.options?.rules?.closingFormat;
+  if (fmt && closing) plan.closingFormat = fmt;
   if (s.gapOverrides) plan.gapOverrides = { ...s.gapOverrides };
   if (s.trims) plan.trims = { ...s.trims };
   if (s.cortinaStopSec !== undefined) plan.cortinaStopSec = s.cortinaStopSec;
@@ -665,6 +670,18 @@ export function planBooth(p: Playlist, s: BoothInputs = {}): BoothPlan {
   if (s.songCues && Object.keys(s.songCues).length) plan.songCues = { ...s.songCues };
   if (s.transitions && Object.keys(s.transitions).length) plan.transitions = { ...s.transitions };
   return plan;
+}
+
+/**
+ * 2026-11 — the closing marker's label by the closing format: 4 + 1 names it the última's fifth side, "its own tanda"
+ * the tanda after the última; every other format (and a night without one) "La Cumparsita".
+ */
+export function closingLabel(p: Pick<Playlist, "tandas" | "options">): string {
+  const fmt = p.options?.rules?.closingFormat;
+  const n = p.tandas.length;
+  if (fmt === "in-tanda") return `La Cumparsita (side 5 of tanda ${n})`;
+  if (fmt === "own-tanda") return `Tanda ${n + 1} · La Cumparsita`;
+  return "La Cumparsita";
 }
 
 /** The id sequence a plan of `p` must have; a plan whose items differ is stale (a tanda was swapped without re-planning). */
@@ -730,6 +747,12 @@ export function boothClock(plan: Pick<BoothPlan, "settings">, atSec: number): st
  */
 export type TransitionPreset = "gap" | "fade" | "blend" | "rise" | "cortinaCut";
 export type CurveShape = "linear" | "equalPower" | "sCurve";
+/**
+ * 2026-11 — a transition's EQ hand-over (overlaps only): `bassSwap` cuts the outgoing's lows and brings the incoming's
+ * in at the centre of the overlap; `threeBand` also hands the mids and highs over across the overlap.
+ */
+export type TransitionEq = "none" | "bassSwap" | "threeBand";
+export const TRANSITION_EQS: ReadonlyArray<TransitionEq> = ["none", "bassSwap", "threeBand"];
 /** The DJ's edit of one transition, as stored (every number optional: the preset's defaults fill in). */
 export interface TransitionEdit {
   preset: TransitionPreset;
@@ -743,6 +766,8 @@ export interface TransitionEdit {
   curveIn?: CurveShape;
   /** blend / rise: swap the bass at the centre of the overlap (EQ) */
   bassSwap?: boolean;
+  /** 2026-11: the EQ hand-over (wins over `bassSwap` when set) */
+  eq?: TransitionEq;
 }
 /** A transition resolved against its two sides: every number present and inside the rules. */
 export interface PlannedTransition {
@@ -753,14 +778,16 @@ export interface PlannedTransition {
   fadeInSec: number;
   curveOut: CurveShape;
   curveIn: CurveShape;
+  /** the lows are swapped (a bass swap or a three-band swap) */
   bassSwap: boolean;
+  eq: TransitionEq;
 }
 export const TRANSITION_RANGES = {
   gapSec: { min: 0.5, max: 5, step: 0.5 },
   overlapSec: { min: 1, max: 12, step: 0.5 },
   fadeSec: { min: 0, max: 10, step: 0.5 },
 } as const;
-const T_BASE = { overlapSec: 0, fadeOutSec: 0, fadeInSec: 0, bassSwap: false } as const;
+const T_BASE = { overlapSec: 0, fadeOutSec: 0, fadeInSec: 0, bassSwap: false, eq: "none" } as const;
 /** what each preset starts from */
 export const TRANSITION_DEFAULTS: Record<TransitionPreset, Omit<PlannedTransition, "preset">> = {
   gap: { ...T_BASE, gapSec: 2.5, curveOut: "linear", curveIn: "linear" },
@@ -825,6 +852,7 @@ export function resolveTransition(
     curveOut: curve(edit.curveOut, d.curveOut),
     curveIn: curve(edit.curveIn, d.curveIn),
     bassSwap: false,
+    eq: "none",
   };
   if (preset === "blend" || preset === "rise") {
     const max = Math.min(G.overlapSec.max, halfOut, halfIn);
@@ -834,7 +862,16 @@ export function resolveTransition(
     out.fadeInSec = round1(clamp(num(edit.fadeInSec) ?? out.overlapSec, 0, out.overlapSec));
     out.fadeOutSec =
       preset === "blend" ? round1(clamp(num(edit.fadeOutSec) ?? out.overlapSec, 0, out.overlapSec)) : 0;
-    out.bassSwap = !!edit.bassSwap && out.overlapSec > 0;
+    const asked: TransitionEq =
+      edit.eq !== undefined
+        ? TRANSITION_EQS.includes(edit.eq)
+          ? edit.eq
+          : "none"
+        : edit.bassSwap
+          ? "bassSwap"
+          : "none";
+    out.eq = out.overlapSec > 0 ? asked : "none";
+    out.bassSwap = out.eq !== "none";
     return out;
   }
   out.gapSec = round1(

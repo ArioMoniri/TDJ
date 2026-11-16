@@ -1,7 +1,7 @@
 "use client";
 import { Check, ChevronDown, Eye, Headphones, Speaker } from "lucide-react";
-import { useEffect, useState } from "react";
-import { CUE_ON_ROOM, SINK_UNSUPPORTED } from "@/lib/booth/cue";
+import { useEffect, useRef, useState } from "react";
+import { CUE_ON_ROOM, PICK_HEADPHONES_EVENT, SINK_UNSUPPORTED } from "@/lib/booth/cue";
 import { isAppleMobile, OPEN_ROOM_EVENT } from "@/lib/booth/sources/spotify";
 import { useBooth } from "@/lib/booth/store";
 import { t } from "@/lib/i18n";
@@ -35,6 +35,28 @@ export function PlayerToolbar({ rehearsal }: { rehearsal: boolean }) {
     window.addEventListener(OPEN_ROOM_EVENT, open);
     return () => window.removeEventListener(OPEN_ROOM_EVENT, open);
   }, []);
+  // 2026-11 (Cue with no headphones chosen): the picker opens; once a device is picked, the asked row plays there
+  const cueAfterPick = useRef<number | null>(null);
+  useEffect(() => {
+    const open = (e: Event) => {
+      cueAfterPick.current = (e as CustomEvent<{ then: number | null }>).detail?.then ?? null;
+      setPick("headphones");
+    };
+    window.addEventListener(PICK_HEADPHONES_EVENT, open);
+    return () => window.removeEventListener(PICK_HEADPHONES_EVENT, open);
+  }, []);
+  const cueId = outputs.cue;
+  useEffect(() => {
+    const then = cueAfterPick.current;
+    if (then === null || !cueId) return;
+    const b = useBooth.getState();
+    if (b.cueBlocked()) return;
+    cueAfterPick.current = null;
+    setPick(null);
+    void b.prelisten({ i: then }).then((why) => {
+      if (why) toast(t("booth.songSheet.can_t_pre_listen", { why }));
+    });
+  }, [cueId]);
   const hearing = audition?.where === "headphones";
   // 2026-11: Spotify Premium on a browser that plays through the Spotify app (iPhone, iPad) with no device yet: ROOM
   // asks to be picked (the status says "Spotify · pick a device"); never a silent fall to 30 s clips
@@ -111,7 +133,13 @@ export function PlayerToolbar({ rehearsal }: { rehearsal: boolean }) {
         <Eye size={16} strokeWidth={2} aria-hidden />
         <span>{t("booth.playerToolbar.show")}</span>
       </button>
-      <OutputSheet which={pick} onClose={() => setPick(null)} />
+      <OutputSheet
+        which={pick}
+        onClose={() => {
+          cueAfterPick.current = null;
+          setPick(null);
+        }}
+      />
       <ShowSheet open={show} onClose={() => setShow(false)} />
     </div>
   );

@@ -7,6 +7,7 @@ import {
   Mic,
   Minus,
   Plus,
+  SlidersVertical,
   Square,
   StepForward,
   TrendingDown,
@@ -15,15 +16,20 @@ import {
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { hideHints } from "@/components/ui/Tip";
 import { guard, useArmed } from "@/lib/booth/confirm";
+import { askForHeadphones, SINK_UNSUPPORTED } from "@/lib/booth/cue";
 import { TRANSPORT_RANGES } from "@/lib/booth/engine";
 import { durationLabel } from "@/lib/booth/plan";
+import { isAppleMobile } from "@/lib/booth/sources/spotify";
 import { boothEngine, useBooth, useRoomCaps } from "@/lib/booth/store";
 import { t } from "@/lib/i18n";
 import { toast } from "@/lib/toast";
 import { SeekBar } from "../ui/SeekBar";
 import { ArmButton, ConfirmRing } from "./Confirm";
+import { openController } from "./ControllerView";
+import { FadeButton } from "./FadeButton";
 import { Fader } from "./Fader";
 import { FloorReaction } from "./FloorReaction";
+import { MixerMeter, MixerRoomButton } from "./LevelPanel";
 import { PraiseTanda } from "./PraiseTanda";
 
 const OPEN_KEY = "tdj-booth-controls";
@@ -191,12 +197,29 @@ export function ControlsPanel({
   })();
   const spotifyNext = next !== null && sources[next] === "spotify";
   const noOverlap = started && (spotifyNow || spotifyNext);
-  const cueWhy =
-    next === null
-      ? null
-      : started && (spotifyNow || spotifyNext)
-        ? t("booth.controls.why_spotify_cue")
-        : a.cueBlocked();
+  // 2026-11 (the owner: "Cue won't work"): Cue is never a dead button. With headphones chosen it plays the next song
+  // there (its file, else its 30 s clip — also on a Spotify night: the clip is a second player); with none chosen a
+  // tap opens the HEADPHONES picker and cues once one is picked; where the browser has one output (iPad, iPhone,
+  // Safari) it says in one line that the headphones need a second device.
+  const [cueNote, setCueNote] = useState<string | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: another next song clears the note
+  useEffect(() => setCueNote(null), [next]);
+  const cueTap = async () => {
+    if (next === null) return;
+    setCueNote(null);
+    const blocked = a.cueBlocked();
+    if (blocked && started) {
+      const o = useBooth.getState().outputs;
+      if (o.cueSupported && !isAppleMobile()) return askForHeadphones(next);
+      setCueNote(isAppleMobile() ? t("booth.connect.headphones_ipad") : SINK_UNSUPPORTED());
+      return;
+    }
+    const why = await a.prelisten({ i: next });
+    if (why) {
+      setCueNote(why);
+      toast(t("booth.songSheet.can_t_pre_listen", { why }));
+    }
+  };
   const [trim, setTrimLocal] = useState(0);
   const itemId = item?.id ?? null;
   useEffect(() => {
@@ -243,6 +266,15 @@ export function ControlsPanel({
             <ChevronDown size={16} strokeWidth={2.25} aria-hidden />
           </button>
         )}
+        {/* 2026-11: a DJ controller (MIDI) and the on-screen controller (docs/design/controller.md) */}
+        <Btn
+          label={t("controller.open")}
+          why={t("controller.open_hint")}
+          onClick={openController}
+          testId="ctl-controller"
+        >
+          <SlidersVertical size={20} strokeWidth={2} aria-hidden />
+        </Btn>
         <Btn label={t("booth.controls.shortcuts")} onClick={onKeys} testId="ctl-keys">
           <Keyboard size={20} strokeWidth={2} aria-hidden />
         </Btn>
@@ -261,38 +293,41 @@ export function ControlsPanel({
             >
               <StepForward size={20} strokeWidth={2} aria-hidden />
             </Btn>
-            <Btn
+            <FadeButton
+              kind="fade"
               label={t("booth.controlStrip.fade")}
-              onClick={() => a.fadeOutNow()}
-              disabled={!live || !caps.fade}
-              why={caps.fade ? undefined : t("booth.connect.no_fade_why")}
-              armKey="fade"
-              testId="ctl-fade"
               short={t("booth.controls.short_fade")}
+              why={caps.fade ? undefined : t("booth.connect.no_fade_why")}
+              live={live}
+              onRun={() => a.fadeOutNow()}
+              testId="ctl-fade"
+              className="booth-ctl-btn"
+              wordClass="booth-ctl-btn-l"
             >
               <TrendingDown size={20} strokeWidth={2} aria-hidden />
-            </Btn>
-            <Btn
+            </FadeButton>
+            <FadeButton
+              kind="crossfade"
               label={t("booth.controlStrip.crossfade")}
-              onClick={() => void a.crossfadeNext()}
-              disabled={!live || noOverlap || !caps.fade}
-              why={
-                !caps.fade
-                  ? t("booth.connect.no_fade_why")
-                  : noOverlap
-                    ? t("booth.controls.why_spotify_overlap")
-                    : undefined
-              }
-              armKey="crossfade"
-              testId="ctl-crossfade"
               short={t("booth.controls.short_crossfade")}
+              why={caps.fade ? undefined : t("booth.connect.no_fade_why")}
+              hint={noOverlap ? t("booth.controls.why_spotify_overlap") : undefined}
+              live={live}
+              onRun={() => void a.crossfadeNext()}
+              testId="ctl-crossfade"
+              className="booth-ctl-btn"
+              wordClass="booth-ctl-btn-l"
             >
               <Blend size={20} strokeWidth={2} aria-hidden />
-            </Btn>
+            </FadeButton>
             <Btn
               label={caps.fade ? t("booth.controls.stop_fade") : t("booth.controlStrip.stop")}
-              onClick={onStop}
-              disabled={!started || state === "stopped"}
+              onClick={() => {
+                // 2026-11: a row played in the room before the night stops at once (Stop is never dead)
+                if (!started && audition?.where === "device") return a.stopAudition();
+                onStop();
+              }}
+              disabled={!(started && state !== "stopped") && audition?.where !== "device"}
               testId="ctl-stop"
               short={t("booth.controls.short_stop")}
             >
@@ -374,22 +409,23 @@ export function ControlsPanel({
               <button
                 type="button"
                 className="booth-ctl-text booth-ctl-wide"
-                disabled={next === null || (started && !!cueWhy)}
-                onClick={async () => {
-                  if (next === null) return;
-                  const why = await a.prelisten({ i: next });
-                  if (why) toast(t("booth.songSheet.can_t_pre_listen", { why }));
-                }}
+                disabled={next === null}
+                onClick={() => void cueTap()}
                 data-testid="ctl-cue-next"
               >
                 <Headphones size={16} strokeWidth={2} aria-hidden />
                 <span>{t("booth.controls.cue_next")}</span>
               </button>
             )}
-            {started && cueWhy && <span className="booth-ctl-why">{cueWhy}</span>}
+            {cueNote && (
+              <span className="booth-ctl-why" role="status" data-testid="ctl-cue-why">
+                {cueNote}
+              </span>
+            )}
           </div>
         </Group>
-        <Group title={t("booth.controls.mixer")} className="booth-ctl-g-mixer">
+        {/* 2026-11: the output meter on the Mixer's title line; the room meter and Auto master (LevelPanel.tsx) */}
+        <Group title={t("booth.controls.mixer")} className="booth-ctl-g-mixer" aside={<MixerMeter />}>
           <Fader
             label={t("booth.controlStrip.master_volume")}
             value={master}
@@ -439,6 +475,7 @@ export function ControlsPanel({
             >
               <Mic size={20} strokeWidth={2} aria-hidden />
             </Btn>
+            <MixerRoomButton />
           </div>
         </Group>
         <Group title={t("booth.controls.timing")} className="booth-ctl-g-timing">
@@ -527,15 +564,21 @@ function rowsOf(el: HTMLElement): HTMLElement[] {
 function Group({
   title,
   className = "",
+  aside,
   children,
 }: {
   title: string;
   className?: string;
+  /** 2026-11: shown on the title line after the title (the Mixer's meter) */
+  aside?: ReactNode;
   children: ReactNode;
 }) {
   return (
     <fieldset className={`booth-ctl-group ${className}`}>
-      <legend className="booth-ctl-title">{title}</legend>
+      <legend className="booth-ctl-title">
+        {aside ? <span>{title}</span> : title}
+        {aside}
+      </legend>
       {children}
     </fieldset>
   );

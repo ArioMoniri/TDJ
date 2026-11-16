@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { fmtLen, nightTotal, sidePlaySec, tandaTotal, totalText } from "./lengths";
-import { isSpotifyTrackUri, noAudioWhy, pickSource, playableStart, routeFor, stepIndex } from "./playSource";
+import {
+  isSpotifyTrackUri,
+  noAudioAction,
+  noAudioWhy,
+  pickSource,
+  playableStart,
+  routeFor,
+  STREAMING_SCOPES,
+  spotifyPlayOf,
+  stepIndex,
+} from "./playSource";
 import { moveItem } from "./reorder";
 
 const URI = "spotify:track:4uLU6hMCjMI75M1A2tKUQC";
@@ -34,7 +44,27 @@ describe("tap to play: the source order", () => {
     expect(pickSource({ premium: false })).toBeNull();
     expect(noAudioWhy({ connected: true, premium: false, spotifyUri: URI })).toBe("no_audio_premium");
     expect(noAudioWhy({ connected: false, premium: null, spotifyUri: URI })).toBe("no_audio_connect");
-    expect(noAudioWhy({ connected: false, premium: null, spotifyUri: null })).toBe("no_audio");
+    // 2026-11 (the owner has Premium): a side with no Spotify recording and no preview is "not matched yet",
+    // never "no Spotify Premium"
+    expect(noAudioWhy({ connected: false, premium: null, spotifyUri: null })).toBe("no_audio_unmatched");
+    expect(noAudioWhy({ connected: true, premium: true, spotifyUri: null })).toBe("no_audio_unmatched");
+    expect(noAudioWhy({ connected: true, premium: null, spotify: "reconnect", spotifyUri: URI })).toBe(
+      "no_audio_reconnect",
+    );
+    expect(noAudioAction("no_audio_connect")).toBe("connect");
+    expect(noAudioAction("no_audio_reconnect")).toBe("reconnect");
+    expect(noAudioAction("no_audio_unmatched")).toBe("find");
+  });
+  it("Premium is read like the Booth: product, then the playback scopes; no product is tried, not refused", () => {
+    expect(spotifyPlayOf(null)).toBe("signed-out");
+    expect(spotifyPlayOf({ user: null })).toBe("signed-out");
+    expect(spotifyPlayOf({ user: { product: "premium" }, scopes: [...STREAMING_SCOPES] })).toBe("premium");
+    expect(spotifyPlayOf({ user: { product: "free" } })).toBe("free");
+    expect(spotifyPlayOf({ user: { product: "open" } })).toBe("free");
+    // the profile came back without `product` (no user-read-private, a Dev Mode app): Premium is tried
+    expect(spotifyPlayOf({ user: {} })).toBe("premium");
+    // an older consent without the playback scopes: reconnect, whatever the product
+    expect(spotifyPlayOf({ user: { product: "premium" }, scopes: ["user-read-email"] })).toBe("reconnect");
   });
   it("a night running in the Booth sends a tap to the headphones, never the room", () => {
     expect(routeFor(null)).toBe("player");

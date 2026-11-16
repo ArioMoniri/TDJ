@@ -211,6 +211,10 @@ export function BoothSongSearch({ onGoTo }: { onGoTo?: (planIndex: number) => vo
                               size={40}
                             />
                           }
+                          // 2026-11: the cover is the row's play button (the room's confirmation included)
+                          onArt={() => (roomPlaying(useBooth.getState()) ? setAsk(h.i) : playNow(h.i))}
+                          artDisabled={!playable || playing}
+                          artLabel={`${started ? tx("boothSongSearch.play_now") : tx("boothSongSearch.start_here")}: ${it.title}`}
                           title={
                             <>
                               {!!it.id && hearts.has(it.id) && (

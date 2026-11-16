@@ -33,7 +33,14 @@ export interface RoomRef {
   server: string;
   name: string;
   lastSeen: string;
+  /** 2026-11: this DJ made the room (they may close it for everyone) */
+  owner?: boolean;
 }
+/** 2026-11: a room nobody uses expires on its own this long after its last use (lib/server/rooms.ts) */
+export const ROOM_IDLE_DAYS = 30;
+/** whole days until a room seen at `lastSeen` expires unless used (0: today) */
+export const expiresInDays = (lastSeen: string, now = Date.now()) =>
+  Math.max(0, Math.ceil((Date.parse(lastSeen) + ROOM_IDLE_DAYS * 864e5 - now) / 864e5));
 interface Saved {
   user: string;
   active: { code: string; server: string } | null;
@@ -91,6 +98,15 @@ interface RoomSession {
   moveHint: (slot: string) => void;
   /** a previous room's whole log (read-only) */
   fetchLog: (ref: RoomRef) => Promise<{ log: RoomLogEntry[]; name: string } | null>;
+  /**
+   * 2026-11: the owner closes a room for everyone (the active one, or one in the list): its night, log and hearts
+   * are deleted, the others see "closed by its owner"; true when it is gone
+   */
+  close: (ref?: { code: string; server: string }) => Promise<boolean>;
+  /** 2026-11: the owner puts another night in the room (the others get it, the log says so) */
+  switchNight: (p: Playlist) => Promise<boolean>;
+  /** 2026-11: rooms not used for `days`: the DJ's own are closed, the others leave the list; how many went */
+  forgetOld: (days: number) => Promise<number>;
 }
 
 /* the sync engine's own state (not rendered) */
@@ -164,7 +180,13 @@ function applyView(v: RoomView, o: { entries?: boolean } = {}) {
     ...(v.missing ? { missing: v.missing } : {}),
   });
   if (o.entries) announce(v.log, s.user);
-  remember({ code: v.code, server: s.active.server, name: v.name, lastSeen: new Date().toISOString() });
+  remember({
+    code: v.code,
+    server: s.active.server,
+    name: v.name,
+    lastSeen: new Date().toISOString(),
+    owner: v.createdBy === s.user,
+  });
 }
 
 /** brings the room's night into the composer (the DJ's own unsynced edits are never overwritten) */
@@ -230,7 +252,14 @@ async function tick() {
     failures = 0;
   } catch (e) {
     failures++;
-    if (e instanceof RoomError && e.status === 404) {
+    if (e instanceof RoomError && e.status === 410) {
+      // 2026-11: the owner closed it: said once, the room leaves this DJ's list
+      const a = useRooms.getState().active;
+      stop();
+      useRooms.setState({ status: "idle", active: null, info: null, error: t("rooms.closed_by_owner") });
+      if (a) useRooms.getState().forget(a.code);
+      toast(t("rooms.closed_by_owner"));
+    } else if (e instanceof RoomError && e.status === 404) {
       useRooms.setState({ status: "offline", error: t("rooms.this_room_no_longer_exists") });
       stop();
     } else useRooms.setState({ status: "offline", error: (e as Error).message });
@@ -398,6 +427,66 @@ export const useRooms = create<RoomSession>()((set, get) => ({
   },
   moveHint: (slot) => {
     moved = slot;
+  },
+  close: async (ref) => {
+    const user = get().user;
+    const a = ref ?? get().active;
+    if (!a || !user) return false;
+    const c =
+      client && client.code === a.code && (get().active?.server ?? "") === a.server
+        ? client
+        : new RoomClient({ server: a.server, code: a.code, user });
+    try {
+      await c.close();
+    } catch (e) {
+      // already gone: it only leaves the list
+      if (!(e instanceof RoomError && (e.status === 404 || e.status === 410))) {
+        toast((e as Error).message);
+        return false;
+      }
+    }
+    if (get().active?.code === a.code) {
+      stop();
+      synced = { night: null, slots: [], rev: 0 };
+      held = null;
+      set({
+        active: null,
+        info: null,
+        log: [],
+        status: "idle",
+        error: null,
+        waitingForNight: false,
+        missing: [],
+      });
+    }
+    get().forget(a.code);
+    return true;
+  },
+  switchNight: async (p) => {
+    if (!client) return false;
+    const night = exportNight(p);
+    try {
+      const v = await client.switchNight(night, synced.rev);
+      applyView(v);
+      synced = { night, slots: v.slots, rev: v.rev };
+      held = null;
+      set({ waitingForNight: false });
+      return true;
+    } catch (e) {
+      toast((e as Error).message);
+      return false;
+    }
+  },
+  forgetOld: async (days) => {
+    const cut = Date.now() - days * 864e5;
+    const old = get().rooms.filter(
+      (r) => Date.parse(r.lastSeen) < cut && !(get().active && get().active!.code === r.code),
+    );
+    for (const r of old) {
+      if (r.owner) await get().close({ code: r.code, server: r.server });
+      else get().forget(r.code);
+    }
+    return old.length;
   },
   fetchLog: async (ref) => {
     try {

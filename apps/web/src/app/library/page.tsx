@@ -1,6 +1,7 @@
 "use client";
 import { favouriteTable, isFavouriteSide, type SongFilters } from "@tdj/core";
-import { History } from "lucide-react";
+import { History, ListPlus } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import { FeaturedCard } from "@/components/FeaturedCard";
@@ -17,6 +18,7 @@ import { fmtNumber, t as tx } from "@/lib/i18n";
 import { PlayListContext, tapPlay } from "@/lib/playback";
 import type { Version } from "@/lib/smartSearch";
 import { useStore } from "@/lib/store";
+import { usePageQuery } from "@/lib/usePageQuery";
 import { shownOrder, useSmartSearch } from "@/lib/useSmartSearch";
 import { forgetSearches, recentSearches, rememberSearch } from "@/lib/useSongSearch";
 
@@ -41,7 +43,8 @@ const EXAMPLES = [
  * ↑ ↓ Enter Esc on the field, 50 results a page.
  */
 export default function Library() {
-  const [q, setQ] = useState("");
+  // 2026-11: the search text survives reload, back / forward and a visit elsewhere (`?q=`, lib/usePageQuery.ts)
+  const [q, setQ] = usePageQuery("library");
   const [filters, setFilters] = useState<SongFilters>({});
   const [meta, setMeta] = useState<Meta | null>(null);
   const [showAll, setShowAll] = useState(false);
@@ -76,7 +79,9 @@ export default function Library() {
   });
   const data = s.page;
   const searching = s.asking;
-  const order = useMemo(() => shownOrder(s), [s]);
+  // by the list, not by the state object (new each render): the play list's context, and so every row, stays put
+  // while a keystroke waits for its answer
+  const order = useMemo(() => shownOrder({ versions: s.versions, works: s.works }), [s.versions, s.works]);
   useEffect(() => {
     fetch("/api/meta")
       .then((r) => r.json())
@@ -96,6 +101,33 @@ export default function Library() {
   const byCount = useMemo(
     () => [...(meta?.orchestras ?? [])].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name)),
     [meta],
+  );
+  // 2026-11 ("the search is so slow"): the orchestra lists (~800 rows in the sheet, each number formatted) are built
+  // once per catalogue, not on every keystroke; React reuses the same elements while the DJ types
+  const topRows = useMemo(
+    () =>
+      byCount
+        .slice(0, 30)
+        .map((o) => (
+          <Row key={o.id} label={o.name} value={fmtNumber(o.count)} chevron onClick={() => setQ(o.name)} />
+        )),
+    [byCount, setQ],
+  );
+  const allRows = useMemo(
+    () =>
+      byCount.map((o) => (
+        <Row
+          key={o.id}
+          label={o.name}
+          value={fmtNumber(o.count)}
+          chevron
+          onClick={() => {
+            setQ(o.name);
+            setShowAll(false);
+          }}
+        />
+      )),
+    [byCount, setQ],
   );
   // 2026-11: a tap plays from the results (the mini player's Previous / Next step through them)
   const resultList = useMemo(
@@ -152,6 +184,18 @@ export default function Library() {
           })
         }
         inBar={search()}
+        trailing={
+          // 2026-11: Import a playlist (app/import)
+          <Link
+            href="/import"
+            className="icon-btn nav-btn text-[var(--tint)]"
+            aria-label={tx("import.entry")}
+            title={tx("import.entry")}
+            data-testid="library-import"
+          >
+            <ListPlus size={20} strokeWidth={2} aria-hidden />
+          </Link>
+        }
       >
         {search("mt-3", true)}
       </PageHeader>
@@ -250,9 +294,7 @@ export default function Library() {
           header={tx("library.orchestras_by_recordings")}
           footer={tx("library.the_number_beside_an_orchestra_is")}
         >
-          {byCount.slice(0, 30).map((o) => (
-            <Row key={o.id} label={o.name} value={fmtNumber(o.count)} chevron onClick={() => setQ(o.name)} />
-          ))}
+          {topRows}
           <Row
             label={tx("library.all_orchestras")}
             value={tx("library.orchestras_2", { length: fmtNumber(meta.orchestras.length) })}
@@ -268,20 +310,7 @@ export default function Library() {
         title={tx("library.orchestras")}
         trailing={tx("library.done")}
       >
-        <Group footer={tx("library.sorted_by_how_many_recordings_the")}>
-          {byCount.map((o) => (
-            <Row
-              key={o.id}
-              label={o.name}
-              value={fmtNumber(o.count)}
-              chevron
-              onClick={() => {
-                setQ(o.name);
-                setShowAll(false);
-              }}
-            />
-          ))}
-        </Group>
+        <Group footer={tx("library.sorted_by_how_many_recordings_the")}>{allRows}</Group>
       </Sheet>
     </div>
   );

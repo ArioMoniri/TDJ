@@ -1,17 +1,28 @@
 "use client";
 import { Pause, Play, SkipBack, SkipForward, X } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import dynamic from "next/dynamic";
 import { useEffect, useRef } from "react";
 import { mediaUrl } from "@/lib/app/media";
 import { APP } from "@/lib/app/target";
 import { haptic } from "@/lib/haptics";
 import { t } from "@/lib/i18n";
 import { sheetUp } from "@/lib/motion";
-import { externalSeek, loadPlayAccess, stepList } from "@/lib/playback";
+import { openSong } from "@/lib/openSong";
+import { externalSeek, loadPlayAccess, stepList, useFindSheet } from "@/lib/playback";
 import { externalAudio, ownAudio, stopAt, usePlayer } from "@/lib/player";
+import { scopeStep } from "@/lib/playScope";
 import { playableStart } from "@/lib/playSource";
+import { openSongDetails } from "@/lib/songOpen";
+import { toast } from "@/lib/toast";
+import type { Song } from "@/lib/types";
 import { SpotifyEmbed } from "./Listen";
+import { Artwork } from "./ui/Artwork";
+import { Marquee } from "./ui/Marquee";
 import { SeekBar } from "./ui/SeekBar";
+import { usePlayingEntity } from "./ui/TandaArt";
+
+const ResolveSheet = dynamic(() => import("./ResolveSheet").then((m) => m.ResolveSheet), { ssr: false });
 
 const fmt = (s: number) => {
   const n = Math.max(0, Math.floor(s));
@@ -133,7 +144,14 @@ export function MiniPlayer() {
     lastSeek.current = position;
   }, [position, preview]);
 
-  const total = stopAt(track, queue) ?? (duration || 30);
+  const total = stopAt(track, queue, list?.clipSec) ?? (duration || 30);
+  const artistLine = track
+    ? `${track.orchestra}${track.singer ? ` · ${track.singer}` : ""}${track.year ? ` · ${track.year}` : ""}`
+    : "";
+  // 2026-11: Previous / Next stay inside what the play covers (a tanda only, on to the end, this song only)
+  const canPrev = !!list && scopeStep(list.scope, list.items.length, list.index, -1) !== null;
+  const canNext = !!list && scopeStep(list.scope, list.items.length, list.index, 1) !== null;
+  const stepper = !!list && list.items.length > 1 && list.scope?.kind !== "one";
   const onSeek = (sec: number) => (external ? void externalSeek(sec) : seek(sec));
   // the phone tab capsule (wave 4: --tabbar-h over --tabbar-bottom): the player's bottom edge sits on its top edge
   // (--chrome-stack is the tab capsule plus this player's own reserve: the player sits on the capsule, under it)
@@ -192,17 +210,17 @@ export function MiniPlayer() {
             data-testid="mini-player"
             data-source={track.source.kind}
             data-kind={track.kind ?? "song"}
-            className="glass mini-docked fixed inset-x-4 z-30 mx-auto max-w-[440px] sm:max-w-none rounded-[var(--radius-m)] p-2 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:w-[360px] lg:bottom-6"
+            className="glass mini-docked fixed inset-x-4 z-30 mx-auto max-w-[440px] sm:max-w-none rounded-[var(--radius-m)] p-2 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:w-[400px] lg:bottom-6"
             style={{ bottom: `var(--mini-bottom, ${offset})` }}
           >
             <style>{'@media (min-width: 600px){[data-testid="mini-player"]{--mini-bottom:1.5rem}}'}</style>
             <div className="flex items-center gap-2">
-              {list && list.items.length > 1 && (
+              {stepper && (
                 <button
                   type="button"
                   className="icon-btn icon-btn-bare"
                   aria-label={t("play.previous")}
-                  disabled={list.index <= 0}
+                  disabled={!canPrev}
                   data-testid="mini-prev"
                   onClick={() => {
                     haptic(4);
@@ -231,12 +249,12 @@ export function MiniPlayer() {
                   )}
                 </button>
               ) : null}
-              {list && list.items.length > 1 && (
+              {stepper && (
                 <button
                   type="button"
                   className="icon-btn icon-btn-bare"
                   aria-label={t("play.next")}
-                  disabled={list.index >= list.items.length - 1}
+                  disabled={!canNext}
                   data-testid="mini-next"
                   onClick={() => {
                     haptic(4);
@@ -246,18 +264,38 @@ export function MiniPlayer() {
                   <SkipForward size={18} fill="currentColor" strokeWidth={0} />
                 </button>
               )}
+              {/* 2026-11: the side's cover; a tap opens its details (the song page listens for tdj:open-song) */}
+              <MiniCover id={track.id} title={track.title} orchestra={track.orchestra} />
+              {/* 2026-11 (the owner: "name won't slide to show all"): the title and artist have the row's room (the
+                  source badge moved under them) and slide when they still do not fit (components/ui/Marquee.tsx) */}
               <span className="min-w-0 flex-1 px-1">
-                <span className="text-subhead block truncate font-semibold" data-testid="mini-title">
-                  {track.title}
-                </span>
-                <span className="text-footnote block truncate text-[var(--label-2)]">
-                  {track.orchestra}
-                  {track.singer ? ` · ${track.singer}` : ""}
-                  {track.year ? ` · ${track.year}` : ""}
-                </span>
+                <Marquee
+                  text={track.title}
+                  className="text-subhead block font-semibold"
+                  testId="mini-title-marquee"
+                >
+                  <span data-testid="mini-title">{track.title}</span>
+                </Marquee>
+                <Marquee
+                  text={artistLine}
+                  className="text-footnote block text-[var(--label-2)]"
+                  testId="mini-artist-marquee"
+                >
+                  {artistLine}
+                </Marquee>
               </span>
+              <button
+                type="button"
+                className="icon-btn icon-btn-bare"
+                aria-label={t("miniPlayer.close_player")}
+                onClick={close}
+              >
+                <X size={18} strokeWidth={2} />
+              </button>
+            </div>
+            <div className="flex items-center gap-2 px-3">
               <span
-                className="text-caption2 rounded-full bg-[var(--fill-3)] px-2 py-0.5 font-medium text-[var(--label-2)]"
+                className="text-caption2 shrink-0 rounded-full bg-[var(--fill-3)] px-2 py-0.5 font-medium text-[var(--label-2)]"
                 data-testid="player-badge"
               >
                 {queue
@@ -280,20 +318,14 @@ export function MiniPlayer() {
                             ? t("play.full_track")
                             : t("miniPlayer.spotify")}
               </span>
-              <button
-                type="button"
-                className="icon-btn icon-btn-bare"
-                aria-label={t("miniPlayer.close_player")}
-                onClick={close}
-              >
-                <X size={18} strokeWidth={2} />
-              </button>
+              {(track.where || list?.scopeLabel) && (
+                <p className="text-caption1 min-w-0 truncate text-[var(--label-2)]">
+                  {track.where && <span data-testid="mini-where">{track.where}</span>}
+                  {track.where && list?.scopeLabel ? " · " : ""}
+                  {list?.scopeLabel && <span data-testid="mini-scope">{list.scopeLabel}</span>}
+                </p>
+              )}
             </div>
-            {track.where && (
-              <p className="text-caption1 truncate px-3 text-[var(--label-2)]" data-testid="mini-where">
-                {track.where}
-              </p>
-            )}
             {track.source.kind !== "spotify" ? (
               <div className="flex items-center gap-2 px-2 pb-1">
                 <span className="text-caption1 w-8 tabular-nums text-[var(--label-2)]">{fmt(position)}</span>
@@ -328,6 +360,40 @@ export function MiniPlayer() {
           </motion.div>
         )}
       </AnimatePresence>
+      <FindHost />
     </>
   );
+}
+
+/**
+ * 2026-11: the playing side's cover in the mini player; a tap opens the song's details (lib/songOpen.ts) — a
+ * cortina, which has none, finds its row on the page (lib/openSong.ts)
+ */
+function MiniCover({ id, title, orchestra }: { id: string; title: string; orchestra: string }) {
+  const entity = usePlayingEntity();
+  return (
+    <button
+      type="button"
+      className="mini-cover shrink-0"
+      aria-label={t("miniPlayer.song_details", { title })}
+      data-testid="mini-cover"
+      onClick={() => {
+        haptic(4);
+        if (entity && "rhythm" in entity) {
+          openSongDetails(entity as Song);
+          return;
+        }
+        if (openSong({ id, title }) === "none") toast(t("miniPlayer.details_not_here", { title }));
+      }}
+    >
+      <Artwork entity={entity} orchestra={orchestra} size={40} />
+    </button>
+  );
+}
+
+/** the "Find on services" sheet a no-audio toast opens from any row (lib/playback.ts → openFind) */
+function FindHost() {
+  const song = useFindSheet((s) => s.song);
+  if (!song) return null;
+  return <ResolveSheet song={song} open onClose={() => useFindSheet.setState({ song: null })} />;
 }

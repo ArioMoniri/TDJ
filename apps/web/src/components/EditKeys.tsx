@@ -1,37 +1,22 @@
 "use client";
 import { useEffect } from "react";
-import { type Edit, historyKey, isTextTarget, redoEdit, undoEdit } from "@/lib/editHistory";
-import { t } from "@/lib/i18n";
-import { toast } from "@/lib/toast";
+import { isTextTarget } from "@/lib/editHistory";
+import { runHistory } from "@/lib/editToast";
+import { isAction } from "@/lib/keymap";
 
 /**
  * 2026-11 — the edit keys on every page (mounted once in the layout):
- * - ⌘Z / Ctrl+Z undo, ⇧⌘Z / Ctrl+Shift+Z / Ctrl+Y redo, over the one edit history (lib/editHistory.ts) — never
- *   while a text field has the focus (it keeps its own undo of the words typed);
+ * - undo / redo (⌘Z / Ctrl+Z, ⇧⌘Z / Ctrl+Shift+Z / Ctrl+Y by default; the DJ's own in Settings → Keyboard,
+ *   lib/keymap.ts), over the one edit history (lib/editHistory.ts) — never while a text field has the focus (it
+ *   keeps its own undo of the words typed);
  * - the Mac app's Edit → Undo / Redo (the menu bar's `edit.undo` / `edit.redo` commands, `tdj:command`): the same,
  *   and in a text field the field's own undo;
- * - S on a focused song or tanda row opens its Swap sheet (the row's Swap button, marked `data-kb="swap"` or one of
- *   the Booth's swap buttons).
- * Each undo or redo says what it did in the toast, with the opposite one as its action.
+ * - Swap (S by default) on a focused song or tanda row opens its Swap sheet (the row's Swap button, marked
+ *   `data-kb="swap"` or one of the Booth's swap buttons).
+ * Each undo or redo says what it did in the toast, with the opposite one as its action (lib/editToast.ts).
  */
 const SWAP_BUTTONS =
   '[data-kb="swap"], [data-testid="booth-row-swap"], [data-testid="booth-swap"], [data-testid="booth-next-swap"], [data-testid="booth-tonight-swap"]';
-
-let last = 0;
-async function run(kind: "undo" | "redo") {
-  // the Mac app: a key press and its menu command can both arrive for one ⌘Z
-  const now = Date.now();
-  if (now - last < 250) return;
-  last = now;
-  const e: Edit | null = kind === "undo" ? await undoEdit() : await redoEdit();
-  if (!e) {
-    toast(kind === "undo" ? t("editKeys.nothing_to_undo") : t("editKeys.nothing_to_redo"));
-    return;
-  }
-  if (kind === "undo")
-    toast(t("editKeys.undone", { label: e.label }), () => void run("redo"), t("editKeys.redo"));
-  else toast(t("editKeys.redone", { label: e.label }), () => void run("undo"), t("editKeys.undo"));
-}
 
 /** the swap button of the row that has the focus (or holds it) */
 export function focusedSwap(active: Element | null): HTMLButtonElement | null {
@@ -45,22 +30,17 @@ export function EditKeys() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.defaultPrevented) return;
-      const kind = historyKey(e);
       const active = document.activeElement;
+      // (a key being recorded in Settings → Keyboard is the recorder's)
+      if (active?.closest?.("[data-key-recorder]")) return;
+      const kind = isAction("edit.undo", e) ? "undo" : isAction("edit.redo", e) ? "redo" : null;
       if (kind) {
         if (isTextTarget(active)) return;
         e.preventDefault();
-        void run(kind);
+        void runHistory(kind);
         return;
       }
-      if (
-        (e.key === "s" || e.key === "S") &&
-        !e.metaKey &&
-        !e.ctrlKey &&
-        !e.altKey &&
-        !isTextTarget(active) &&
-        !e.repeat
-      ) {
+      if (isAction("edit.swap", e) && !isTextTarget(active) && !e.repeat) {
         const b = focusedSwap(active);
         if (b && !b.disabled && b.getAttribute("aria-disabled") !== "true") {
           e.preventDefault();
@@ -76,7 +56,7 @@ export function EditKeys() {
         document.execCommand(id === "edit.undo" ? "undo" : "redo");
         return;
       }
-      void run(id === "edit.undo" ? "undo" : "redo");
+      void runHistory(id === "edit.undo" ? "undo" : "redo");
     };
     window.addEventListener("keydown", onKey);
     window.addEventListener("tdj:command", onCommand);

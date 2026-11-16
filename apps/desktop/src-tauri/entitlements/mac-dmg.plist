@@ -5,5 +5,7 @@
   <!-- Developer ID build (DMG from GitHub Releases): hardened runtime, not sandboxed (the local agent bridge,
        r22-acp-plan.md, starts the DJ's own tools later). WebKit's JIT runs in its own process, so no JIT or
        unsigned-memory exceptions are needed. -->
+  <!-- 2026-11: the Booth's room meter (microphone), hardened runtime: only after the DJ switches it on -->
+  <key>com.apple.security.device.audio-input</key><true/>
 </dict>
 </plist>

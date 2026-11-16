@@ -15,6 +15,7 @@ import { lazy, t as tx } from "@/lib/i18n";
 import type { Match, MatchItem } from "@/lib/match";
 import { DUR, SPRING } from "@/lib/motion";
 import { openExternal, youtubeMusicFor } from "@/lib/openLink";
+import { exportedSignature, rememberExport } from "@/lib/playlistSync";
 import {
   beginAuth,
   byoWritePlaylist,
@@ -55,6 +56,7 @@ import { ExportCheck } from "./ExportCheck";
 import { ActionRow, Group, PickerRow, Row, SegmentedRow, StepperRow, SwitchRow, Tile } from "./Form";
 import { ShareNightEntry } from "./ShareSheet";
 import { Sheet } from "./Sheet";
+import { SyncGroup } from "./SyncStatus";
 
 /** one row of the playlist the Spotify export writes, with its URI */
 type SpotifyRow = PlanRow & { uri: string };
@@ -625,6 +627,15 @@ export function ExportSheet({
         tok,
       );
       rememberTarget(r.url);
+      // 2026-11: this playlist follows the night from now on (lib/playlistSync.ts)
+      rememberExport(playlist, {
+        service: "spotify",
+        id: r.id,
+        url: r.url,
+        includeCortinas,
+        found: Object.fromEntries(found.current),
+        signature: exportedSignature(playlist, includeCortinas),
+      });
       setResult({ label: tx("exportSheet.open_in_spotify"), url: r.url });
       if (targetId && r.details === false) toast(tx("exportSheet.tracks_updated_spotify_kept_the_old"));
       finishLog(r.check.inPlace, si.missing, m.paused, m.remaining.length, si.note);
@@ -874,6 +885,23 @@ export function ExportSheet({
         rememberMatches(youtubeRows(playlist, includeCortinas), ytExpected);
         // what YouTube holds, read back with the DJ's account and put right (unavailable videos replaced)
         if (playlistId && ytExpected.length) await checkYoutube(playlistId, ytExpected);
+        // 2026-11: this playlist follows the night from now on (lib/playlistSync.ts)
+        if (playlistId) {
+          const ytRows = youtubeRows(playlist, includeCortinas);
+          const found: Record<string, string> = {};
+          for (const v of ytExpected) {
+            const id = ytRows[v.row]?.id;
+            if (id) found[id] = v.videoId;
+          }
+          rememberExport(playlist, {
+            service: "youtube",
+            id: playlistId,
+            url,
+            includeCortinas,
+            found,
+            signature: exportedSignature(playlist, includeCortinas),
+          });
+        }
         setLog((l) => [
           ...l,
           tx("exportSheet.created_the_youtube_playlist_with_tracks", {
@@ -1380,6 +1408,8 @@ export function ExportSheet({
           />
         )}
       </Group>
+      {/* 2026-11: the exported playlists follow the night (lib/playlistSync.ts) */}
+      <SyncGroup />
       {GROUPS.map(([g, keys]) => (
         <Group
           key={g}

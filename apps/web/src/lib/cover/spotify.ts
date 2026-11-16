@@ -26,8 +26,16 @@ export async function putPlaylistCover(
       headers: { authorization: `Bearer ${access}`, "content-type": "image/jpeg" },
       body: jpegBase64,
     });
-    if (r.ok) return "added";
-    return r.status === 401 || r.status === 403 ? "no-scope" : "failed";
+    if (!r.ok) return r.status === 401 || r.status === 403 ? "no-scope" : "failed";
+    // 2026-11: read back — the playlist now shows an image (an empty list is a cover that did not land)
+    const g = await fetchImpl(`${API}/playlists/${playlistId}/images`, {
+      headers: { authorization: `Bearer ${access}` },
+    }).catch(() => null);
+    if (g?.ok) {
+      const imgs = (await g.json().catch(() => null)) as unknown[] | null;
+      if (Array.isArray(imgs) && imgs.length === 0) return "failed";
+    }
+    return "added";
   } catch {
     return "failed";
   }

@@ -4,6 +4,8 @@ import {
   applyMemory,
   benchmarkNight,
   checkEdit,
+  closingFormatOf,
+  cortinaBeforeClosing,
   ERA_SETTINGS,
   hardViolations,
   learnedForRequest,
@@ -20,6 +22,7 @@ import {
   Ellipsis,
   Eraser,
   Hand,
+  ListPlus,
   LoaderCircle,
   Lock,
   MessageSquareText,
@@ -68,6 +71,7 @@ import { requestFavourites } from "@/lib/popularity";
 import { moveSongInNight } from "@/lib/reorder";
 import { approvedKeys, gateEdit } from "@/lib/ruleCheck";
 import { useSheetOpen } from "@/lib/sheets";
+import { openInsert, removeSongAt, removeTandaAt } from "@/lib/spot";
 import {
   changedKeys,
   DEFAULT_OPTS,
@@ -111,6 +115,7 @@ import {
 import { Gramophone } from "./Gramophone";
 import { LazyHydrate } from "./LazyHydrate";
 import { Menu, type MenuItem, MenuList } from "./Menu";
+import { NightCover } from "./NightCover";
 import { NightExceptions } from "./NightExceptions";
 import { PageHeader } from "./PageHeader";
 import { PrimaryBar } from "./PrimaryBar";
@@ -120,6 +125,8 @@ import { SwapSheet } from "./SwapSheet";
 import { TandaInspector } from "./TandaInspector";
 import { TandaRulesGroup } from "./TandaRules";
 import { TandaSwapSheet } from "./TandaSwapSheet";
+import { Artwork } from "./ui/Artwork";
+import { closingFormatLine, InsertGap } from "./ui/InsertGap";
 import { NightProfile } from "./ui/NightProfile";
 import { NightLength, PlayRow } from "./ui/PlayRow";
 import { Tip } from "./ui/Tip";
@@ -426,8 +433,12 @@ const SetupForm = memo(function SetupForm({
           items={CUMPARSITA_AT}
           onChange={(k) => {
             if (!k) return;
-            setRules({ cumparsita: k, openWithCumparsita: undefined });
-            setOptions({ closeWithCumparsita: k === "close" || k === "both" });
+            const closes = k === "close" || k === "both";
+            // 2026-11: a closing format the DJ chose (Settings → Night) follows: no closing → "none"
+            const f = rules.closingFormat;
+            const closingFormat = f ? (closes ? (f === "none" ? undefined : f) : "none") : undefined;
+            setRules({ cumparsita: k, openWithCumparsita: undefined, ...(f ? { closingFormat } : {}) });
+            setOptions({ closeWithCumparsita: closes });
           }}
         />
       </Group>
@@ -794,8 +805,26 @@ const SetupForm = memo(function SetupForm({
         <SwitchRow
           label={tx("composer.cortina_before_la_cumparsita")}
           tip={tx("composer.a_cortina_clears_the_floor_before")}
-          checked={!!rules.cortinaBeforeCumparsita}
-          onChange={(v) => setRules({ cortinaBeforeCumparsita: v })}
+          checked={cortinaBeforeClosing(
+            closingFormatOf({ rules, closeWithCumparsita: options.closeWithCumparsita }),
+          )}
+          onChange={(v) =>
+            // 2026-11: the switch is the closing format's cortina (Settings → Night → "The last La Cumparsita")
+            setRules({
+              cortinaBeforeCumparsita: v,
+              ...(rules.closingFormat
+                ? {
+                    closingFormat: v
+                      ? rules.closingFormat === "own-tanda"
+                        ? "own-tanda"
+                        : "after-cortina"
+                      : rules.closingFormat === "in-tanda"
+                        ? "in-tanda"
+                        : "straight",
+                  }
+                : {}),
+            })
+          }
         />
         {/* the engine reads this on the night rules (round-8 engine): undated, placeholder-year and transcription
             rows never build a tanda unless the DJ opts in */}
@@ -1352,6 +1381,39 @@ export function Composer() {
     },
     [setPlaylist, recordNightEdit, remember],
   );
+  /**
+   * 2026-11 (the owner: "songs and tandas insertable or removable in each tanda and before / after tandas"): a side
+   * at a place, a tanda before / after another (the Insert sheet: suggestions for the spot, the smart search, Ask my
+   * AI), a side or a tanda out — each through the rule check and the undo history, then the guide.
+   */
+  const insertSongAt = useCallback(
+    (i: number, at: number) => {
+      const p = useStore.getState().playlist;
+      if (p) openInsert({ spot: { kind: "song", tanda: i, at }, playlist: p, apply: applyTanda });
+    },
+    [applyTanda],
+  );
+  const insertTandaAt = useCallback(
+    (at: number) => {
+      const p = useStore.getState().playlist;
+      if (p) openInsert({ spot: { kind: "tanda", at }, playlist: p, apply: applyTanda });
+    },
+    [applyTanda],
+  );
+  const removeSongFrom = useCallback(
+    (i: number, k: number) => {
+      const p = useStore.getState().playlist;
+      if (p) void removeSongAt(p, i, k, applyTanda);
+    },
+    [applyTanda],
+  );
+  const removeTandaFrom = useCallback(
+    (i: number) => {
+      const p = useStore.getState().playlist;
+      if (p) void removeTandaAt(p, i, applyTanda);
+    },
+    [applyTanda],
+  );
   // round 21: a side's swap opens its Swap sheet (suggestions that keep the tanda valid, search, AI pick)
   const [swapAt, setSwapAt] = useState<{ i: number; k: number } | null>(null);
   // round 22: the song search side panel (a column on wide screens, a sheet on phones)
@@ -1827,6 +1889,8 @@ export function Composer() {
                   { label: tx("composer.copy_seed"), icon: Copy, onClick: copySeed },
                   { label: tx("composer.written_review"), icon: MessageSquareText, onClick: explain },
                   { label: tx("composer.play_the_night"), icon: Play, onClick: () => router.push("/booth") },
+                  // 2026-11: Import a playlist (app/import)
+                  { label: tx("import.entry"), icon: ListPlus, onClick: () => router.push("/import") },
                   {
                     label: tx("composer.tell_the_dj"),
                     icon: SlidersHorizontal,
@@ -1946,6 +2010,26 @@ export function Composer() {
               <ChevronRight size={16} strokeWidth={2.5} className="cell-chevron" aria-hidden />
             </Link>
           </Tip>
+          {/* 2026-11: a Spotify / YouTube playlist, a DJ app's file or a list, played or edited as a night */}
+          <Tip text={tx("import.subtitle")} className="mt-2 w-full">
+            <Link
+              href="/import"
+              className="cell cell-tap group-inset w-full text-left"
+              data-leading="tile"
+              data-testid="first-run-import"
+            >
+              <span className="tile" style={{ background: "#ff9500" }} aria-hidden>
+                <ListPlus size={16} strokeWidth={2} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate">{tx("import.entry")}</span>
+                <span className="text-footnote block truncate text-[var(--label-2)]">
+                  {tx("import.entry_sub")}
+                </span>
+              </span>
+              <ChevronRight size={16} strokeWidth={2.5} className="cell-chevron" aria-hidden />
+            </Link>
+          </Tip>
         </section>
       )}
 
@@ -1984,7 +2068,15 @@ export function Composer() {
                   className="cell flex-col items-stretch gap-2 py-4"
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <span className="min-w-0">
+                    {/* 2026-11 (the owner: "the image art should be dynamically changed too"): the night's cover,
+                        drawn from the night as it is now — every edit redraws it, and the exported playlists get it */}
+                    <NightCover
+                      night={playlist}
+                      size={56}
+                      className="rounded-[10px]"
+                      testId="compose-cover"
+                    />
+                    <span className="min-w-0 flex-1">
                       <h2 className="text-subhead min-w-0 line-clamp-2 font-serif text-[var(--label-2)]">
                         {nightTitle(playlist)} · {nightSub(playlist)}
                       </h2>
@@ -2181,9 +2273,7 @@ export function Composer() {
                     where={tx("play.opening")}
                     testId="opening"
                     leading={
-                      <span className="tile-art" data-rhythm="tango" aria-hidden>
-                        <Disc3 size={20} strokeWidth={1.75} />
-                      </span>
+                      <Artwork entity={playlist.opening} orchestra={playlist.opening.orchestra} size={44} />
                     }
                     title={<span className="text-headline">{tx("composer.la_cumparsita")}</span>}
                     sub={metaLine(
@@ -2215,6 +2305,11 @@ export function Composer() {
               <NightProfile playlist={playlist} onPick={onPick} />
               {/* no AnimatePresence here: exiting cards stayed mounted across recomposes (round8-qa.md B1); a new set
               mounts fresh cards with new keys and the old ones leave at once */}
+              <InsertGap
+                label={tx("spot.insert_before_first")}
+                onClick={() => insertTandaAt(0)}
+                testId="insert-tanda-first"
+              />
               <div className="tanda-grid">
                 {playlist.tandas.flatMap((t, i) => {
                   const b = breakAfter.get(i);
@@ -2239,6 +2334,10 @@ export function Composer() {
                       animateLayout={swapping === i || lockedCard === i}
                       onMoveTrack={moveTrack}
                       cues={playlist.booth?.songCues}
+                      onInsertSong={insertSongAt}
+                      onRemoveSong={removeSongFrom}
+                      onInsertTanda={insertTandaAt}
+                      onRemoveTanda={removeTandaFrom}
                     />
                   );
                   if (!b) return [card];
@@ -2257,19 +2356,22 @@ export function Composer() {
                   ];
                 })}
               </div>
+              <InsertGap
+                label={tx("spot.insert_after_last")}
+                onClick={() => insertTandaAt(playlist.tandas.length)}
+                testId="insert-tanda-last"
+              />
               <AiEditBar playlist={playlist} onChip={feedback} />
               {/* the tandas the DJ kept as they are against a rule: accepted for this night only */}
               <NightExceptions nightId={playlist.id} />
               {playlist.closing && (
-                <Group header={tx("composer.closing")}>
+                <Group header={tx("composer.closing")} footer={closingFormatLine(playlist)}>
                   <PlayRow
                     song={playlist.closing}
                     where={tx("play.closing")}
                     testId="closing"
                     leading={
-                      <span className="tile-art" data-rhythm="tango" aria-hidden>
-                        <Disc3 size={20} strokeWidth={1.75} />
-                      </span>
+                      <Artwork entity={playlist.closing} orchestra={playlist.closing.orchestra} size={44} />
                     }
                     title={<span className="text-headline">{tx("composer.la_cumparsita")}</span>}
                     sub={metaLine(playlist.closing.orchestra, yearText(playlist.closing.year))}
@@ -2283,6 +2385,10 @@ export function Composer() {
               selected={inspected}
               onSelect={setInspected}
               onMoveTrack={moveTrack}
+              onInsertSong={insertSongAt}
+              onRemoveSong={removeSongFrom}
+              onInsertTanda={insertTandaAt}
+              onRemoveTanda={removeTandaFrom}
             />
           </section>
         </PlayListContext.Provider>
@@ -2403,6 +2509,7 @@ export function Composer() {
           <MenuList
             items={[
               { label: tx("composer.play_the_night"), icon: Play, onClick: () => router.push("/booth") },
+              { label: tx("import.entry"), icon: ListPlus, onClick: () => router.push("/import") },
               {
                 label: tx("composer.tell_the_dj"),
                 icon: MessageSquareText,

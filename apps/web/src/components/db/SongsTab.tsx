@@ -16,14 +16,16 @@ import { youtubeVideoUrl } from "@/lib/openLink";
 import { tapPlay } from "@/lib/playback";
 import type { Version } from "@/lib/smartSearch";
 import { bpmChoice } from "@/lib/songData";
+import { openSongDetails } from "@/lib/songOpen";
 import { SOURCE_LABEL } from "@/lib/songView";
 import { spotifyUri, spotifyUrl } from "@/lib/spotifyLink";
 import { toast } from "@/lib/toast";
 import type { Song, SongPatch } from "@/lib/types";
+import { useSharedQuery } from "@/lib/usePageQuery";
 import { useSmartSearch } from "@/lib/useSmartSearch";
 import { metaLine, yearText } from "@/lib/year";
 import { loadMatches } from "@/lib/youtubeMatches";
-import { ActionRow, FieldRow, Group, PickerRow, RhythmTile, Row, SwitchRow } from "../Form";
+import { ActionRow, FieldRow, Group, PickerRow, Row, SwitchRow } from "../Form";
 import { ResolveSheet } from "../ResolveSheet";
 import { Sheet } from "../Sheet";
 import { SwipeRow } from "../SwipeRow";
@@ -31,6 +33,7 @@ import { Artwork } from "../ui/Artwork";
 import { EraBadge } from "../ui/EraBadge";
 import { PlayRow } from "../ui/PlayRow";
 import { SmartSearchField, SmartSearchResults } from "../ui/SmartSearch";
+import { SongArt } from "../ui/TandaArt";
 import { rhythmWord } from "../ui/TandaTypeBadge";
 import { Tip } from "../ui/Tip";
 import { Empty, patchMap, useDb, useDbEdit, ValueCell } from "./shared";
@@ -111,7 +114,8 @@ export function SongsTab() {
   const { overrides, update } = useDb();
   const editing = useDbEdit();
   const reduced = useReducedMotion();
-  const [q, setQ] = useState("");
+  // 2026-11: the page's one search text (lib/usePageQuery.ts): it stays when the tab changes
+  const [q, setQ] = useSharedQuery();
   const [filters, setFilters] = useState<SongFilters>({});
   const [adding, setAdding] = useState(false);
   const [finding, setFinding] = useState<Song | null>(null);
@@ -317,6 +321,13 @@ export function SongsTab() {
               </button>
             ) : undefined
           }
+        />
+        <Row
+          label={tx("song.details")}
+          sub={tx("song.details_sub")}
+          chevron
+          onClick={() => openSongDetails(eff)}
+          data-testid="db-song-details"
         />
         <ValueCell
           label={tx("db.songsTab.year")}
@@ -702,7 +713,7 @@ export function SongsTab() {
                     song={s as Song}
                     where={tx("play.database")}
                     leadingKind="tile"
-                    leading={<RhythmTile rhythm={s.rhythm} label={rhythmWord(s.rhythm)} />}
+                    leading={<SongArt song={s} label={rhythmWord(s.rhythm)} />}
                     sub={metaLine(s.orchestra, s.singer, s.rhythm, yearText(s.year))}
                     lengthSec={(s as Song).durationSec ?? null}
                   />

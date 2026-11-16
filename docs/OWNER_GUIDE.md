@@ -78,6 +78,25 @@ A DJ gets written reviews of a set and precise "Tell the DJ" changes from a mode
 - When Apple approves the app, ask the engineers to run `node scripts/release/readme-store-badge.mjs`: the README's
   "Coming to the App Store" note goes away and the badges and About link the store.
 
+## F3. Your own edits in the shared catalogue
+
+You use TDJ like every DJ, but your corrections also improve the catalogue everyone gets.
+
+1. Unlock `/admin` on the device you edit from (section A). **Settings → Owner** appears — only on your devices;
+   other DJs never see it, and nothing of theirs leaves their device.
+2. With **Contribute my catalogue changes** on, every Database correction (years, singers, rhythm, BPM…), filled value,
+   added song or cortina, Spotify / YouTube match and cover is sent a few seconds after you make it. "Waiting to send"
+   counts what has not gone yet (for example while the 12-hour owner session is locked; unlock and it goes).
+3. Changes you made **before** this existed: **Send my existing changes** shows how many of each kind first, then
+   sends them once.
+4. Learning, favourites, history and orchestra grades are yours: they stay on the device unless you switch them on
+   under **Share to the catalogue** (kept as an archive, never changing anyone's nights).
+5. Every 6 hours GitHub merges what arrived into the repository, checks the catalogue still composes nights scoring
+   85 or more, and commits it in your name. A failed check changes nothing; the run page says why.
+6. No connection to the server? **Export my changes as a contribution file** and give the file to the engineers (or
+   run `pnpm data:apply-contributions <file>`).
+7. The Mac, iPhone and iPad apps do the same once linked to your server (Settings → Connections) and unlocked there.
+
 ## G. When a DJ cannot log in to Spotify
 
 1. Check **People → Spotify seats** on `/admin`. Fewer than 5? Add the DJ's Spotify e-mail under User Management in the Spotify dashboard and to the list on `/admin`; they can log in a minute later.

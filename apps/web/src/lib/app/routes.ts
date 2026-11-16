@@ -1,5 +1,6 @@
 import { importNight, NightFormatError } from "@tdj/core";
 import { artwork } from "@/lib/api/artwork";
+import { dna } from "@/lib/api/dna";
 import {
   benchmark,
   checkEditRoute,
@@ -14,10 +15,12 @@ import {
   swapTrack,
 } from "@/lib/api/engine";
 import { json, jsonNoStore, noStore } from "@/lib/api/http";
+import { importMatch } from "@/lib/api/importMatch";
 import { preview, resolve, resolveStatus } from "@/lib/api/net";
 import { popularity } from "@/lib/api/popularity";
 import { searchQuery } from "@/lib/api/search";
 import { serviceSearch } from "@/lib/api/serviceSearch";
+import { spot } from "@/lib/api/spot";
 import { spotifyMatch, spotifyPlaylist } from "@/lib/api/spotify";
 import { spotifyCover } from "@/lib/api/spotifyCover";
 import { tandaSet } from "@/lib/api/tandaSet";
@@ -188,8 +191,10 @@ const LOCAL: Record<string, Partial<Record<Method, Handler>>> = {
   "/api/swap-options": { POST: swapOptions },
   "/api/swap-track": { POST: swapTrack },
   "/api/tanda-set": { POST: tandaSet },
+  "/api/spot": { POST: spot },
   "/api/services/search": { POST: serviceSearch },
   "/api/meta": { GET: meta },
+  "/api/dna": { GET: dna },
   "/api/popularity": { GET: popularity },
   // covers without a Spotify login (lib/api/artwork.ts): the shipped cache, else oEmbed through the native client
   "/api/artwork": { GET: (req, d) => artwork(req, d) },
@@ -209,6 +214,8 @@ const LOCAL: Record<string, Partial<Record<Method, Handler>>> = {
   "/api/admin/public": { GET: publicStatus },
   "/api/app/settings": { GET: settingsGet, PUT: settingsPut },
   "/api/night/resolve": { POST: nightResolve },
+  // 2026-11: "Import a playlist" matches on the device too (lib/api/importMatch.ts)
+  "/api/import/match": { POST: importMatch },
 };
 
 /**
@@ -216,7 +223,17 @@ const LOCAL: Record<string, Partial<Record<Method, Handler>>> = {
  * what several DJs share (rooms, short share links): they work only through a TDJ server the DJ linked; without
  * one the app shows them as off.
  */
-const VIA_LINKED_SERVER = ["/api/google/", "/api/dropbox/", "/api/connect/", "/api/rooms", "/api/night"];
+// (2026-11) the owner session and owner contributions: the app sends the owner's catalogue edits to the server it is
+// linked to, whose /admin unlock it shares through the bridge's cookie jar; /api/admin/public stays on the device
+const VIA_LINKED_SERVER = [
+  "/api/google/",
+  "/api/dropbox/",
+  "/api/connect/",
+  "/api/rooms",
+  "/api/night",
+  "/api/admin/",
+  "/api/owner/",
+];
 function offline(path: string, method: string): Response {
   // what /api/rooms says on a server that keeps no rooms
   if (path === "/api/rooms" && method === "GET") return jsonNoStore({ available: false, shortLinks: false });

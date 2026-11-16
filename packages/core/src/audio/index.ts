@@ -1,5 +1,6 @@
 export * from "./compat";
 export * from "./dsp";
+export * from "./onsets";
 export interface ResolvedTrack {
   provider: "deezer" | "spotify" | "itunes" | "musicbrainz";
   id: string;

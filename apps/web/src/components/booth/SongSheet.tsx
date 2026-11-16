@@ -1,20 +1,21 @@
 "use client";
 import { type Cortina, cortinaDurationSec, type Song } from "@tdj/core";
-import { Headphones, Play, Square, Volume2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Headphones, Square, Volume2 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { spotifyLengthSec } from "@/lib/booth/clips";
 import { cortinaHookOf, cortinaStartOf } from "@/lib/booth/cortinaStart";
 import { durationLabel } from "@/lib/booth/plan";
-import { useBooth, useRoomCaps, type Waveform as WaveData } from "@/lib/booth/store";
-import { loadVersions, type Version } from "@/lib/booth/versions";
+import { decodeAudio, useBooth, useRoomCaps, type Waveform as WaveData } from "@/lib/booth/store";
 import { eraOf } from "@/lib/era";
 import { t } from "@/lib/i18n";
 import { gateEdit } from "@/lib/ruleCheck";
 import { parseClock } from "@/lib/seek";
+import { measureBufferTiming, useMarks, withMeasurement } from "@/lib/songMarks";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import { ActionRow, Group } from "../Form";
 import { Sheet } from "../Sheet";
+import { SongDetails } from "../song/SongDetails";
 import { Artwork } from "../ui/Artwork";
 import { BpmKey, EnergyChip } from "../ui/BpmKey";
 import { EraBadge } from "../ui/EraBadge";
@@ -308,7 +309,13 @@ export function SongSheet({
             />
           )}
           {song && it.kind !== "cortina" && (
-            <Versions song={song} readOnly={readOnly} onListen={(v) => void prelisten({ song: v })} />
+            <BoothSongDetails
+              i={i}
+              song={song}
+              readOnly={readOnly}
+              durationSec={spotifyLengthSec(song) ?? song.durationSec}
+              onListen={(v) => void prelisten({ song: v })}
+            />
           )}
         </>
       )}
@@ -552,114 +559,84 @@ function StartPoint({
   );
 }
 
-function Versions({
+/**
+ * 2026-11 — the shared song details inside the Booth's sheet: the facts, the rhythm lane and synced lyrics while the
+ * side plays (the room, or a pre-listen of its file), "Mark now" for the singer's entry and the first downbeat,
+ * "Measure" from the DJ's file, and every other version of the work — pre-listened in the headphones, or used
+ * tonight instead (the rule check asks first: another orchestra or voice may break the tanda).
+ */
+function BoothSongDetails({
+  i,
   song,
   readOnly,
+  durationSec,
   onListen,
 }: {
+  i: number;
   song: Song;
   readOnly: boolean;
+  durationSec?: number;
   onListen: (v: Song) => void;
 }) {
-  const [list, setList] = useState<Version[] | null>(null);
-  const [err, setErr] = useState<string | null>(null);
-  const hearing = useBooth((s) => s.audition?.songId);
-  useEffect(() => {
-    let live = true;
-    setList(null);
-    setErr(null);
-    loadVersions(song)
-      .then((v) => live && setList(v))
-      .catch(() => live && setErr(t("booth.songSheet.the_catalogue_could_not_be_searched")));
-    return () => {
-      live = false;
-    };
-  }, [song]);
+  const hearing = useBooth((s) => s.audition?.songId ?? null);
+  const position = useCallback(() => useBooth.getState().positionOf(song.id), [song.id]);
+  const set = useMarks((s) => s.set);
+  const measure = async (): Promise<string | null> => {
+    const b = useBooth.getState();
+    const it = b.plan?.items[i];
+    const e = b.entities[i];
+    if (!it || !e) return t("song.measure_needs_file");
+    let d: Awaited<ReturnType<typeof decodeAudio>> = null;
+    try {
+      d = await decodeAudio(it.id ?? song.id, e);
+    } catch (x) {
+      return `${t("song.measure_nothing")} (${x instanceof Error ? x.message : String(x)})`;
+    }
+    if (d?.from !== "file") return t("song.measure_needs_file");
+    const m = measureBufferTiming(d.buffer, {
+      bpm: song.tempo?.bpm ?? song.audio?.bpm ?? song.deezer?.bpm ?? song.bpm ?? null,
+      rhythm: song.rhythm,
+    });
+    if (!m) return t("song.measure_nothing");
+    set(song.id, withMeasurement(useMarks.getState().marks[song.id], m));
+    return null;
+  };
+  const use = async (v: Song) => {
+    const b = useBooth.getState();
+    const before = b.playlist;
+    const after = b.versionNight(song.id, v);
+    if (!before || !after) {
+      toast(t("booth.songSheet.this_tanda_is_read_only_now"));
+      return;
+    }
+    // another version may be another singer's or another year's: the rule check asks first
+    const said = t("booth.songSheet.tonight_plays_the_version", { p1: v.year ?? "" });
+    const res = await gateEdit({
+      before,
+      after,
+      label: said,
+      apply: async (np) => {
+        useBooth.getState().stopAudition();
+        await useBooth.getState().applySwappedPlaylist(np);
+      },
+      learn: false,
+    });
+    if (res === "applied") toast(said);
+  };
   return (
-    <Group
-      header={t("booth.songSheet.versions")}
-      footer={
-        err ??
-        (readOnly
-          ? t("booth.songSheet.this_tanda_is_playing_or_has")
-          : t("booth.songSheet.every_recording_of_this_title_by"))
-      }
-      data-testid="booth-versions"
-    >
-      {list === null && !err && (
-        <div className="cell text-[var(--label-2)]">{t("booth.songSheet.looking_for_other_versions")}</div>
-      )}
-      {list?.length === 1 && (
-        <div className="cell text-[var(--label-2)]">{t("booth.songSheet.only_this_version_is_in_the")}</div>
-      )}
-      {list?.map((v) => (
-        <div
-          key={v.song.id}
-          className="cell"
-          data-testid="booth-version"
-          data-current={v.current || undefined}
-        >
-          <button
-            type="button"
-            className="icon-btn icon-btn-bare h-11 w-11 shrink-0 text-[var(--cue)]"
-            aria-label={t("booth.songSheet.pre_listen_2", {
-              p1: v.song.year ?? "",
-              p2: v.song.singer ?? t("booth.songSheet.instrumental_2"),
-            })}
-            data-hint={t("booth.songSheet.pre_listen_this_version_in_your")}
-            onClick={() => (hearing === v.song.id ? useBooth.getState().stopAudition() : onListen(v.song))}
-          >
-            {hearing === v.song.id ? (
-              <Square size={14} fill="currentColor" strokeWidth={0} aria-hidden />
-            ) : (
-              <Headphones size={16} strokeWidth={2} aria-hidden />
-            )}
-          </button>
-          <span className="min-w-0 flex-1">
-            <span className="block truncate">
-              {v.song.year ?? t("booth.songSheet.undated")} ·{" "}
-              {v.song.singer ?? t("booth.songSheet.instrumental")}
-            </span>
-            <span className="text-footnote block truncate text-[var(--label-2)]">
-              {v.current ? t("booth.songSheet.in_tonight_s_set") : (v.song.album ?? v.song.orchestra)}
-              {v.song.durationSec ? ` · ${durationLabel(v.song.durationSec)}` : ""}
-            </span>
-          </span>
-          <EraBadge entity={v.song} />
-          {!v.current && !readOnly && (
-            <button
-              type="button"
-              className="booth-tool"
-              data-testid="booth-version-use"
-              data-hint={t("booth.songSheet.play_this_version_tonight_instead_the")}
-              onClick={async () => {
-                const b = useBooth.getState();
-                const before = b.playlist;
-                const after = b.versionNight(song.id, v.song);
-                if (!before || !after) {
-                  toast(t("booth.songSheet.this_tanda_is_read_only_now"));
-                  return;
-                }
-                // another version may be another singer's or another year's: the rule check asks first
-                const said = t("booth.songSheet.tonight_plays_the_version", { p1: v.song.year ?? "" });
-                const res = await gateEdit({
-                  before,
-                  after,
-                  label: said,
-                  apply: async (np) => {
-                    useBooth.getState().stopAudition();
-                    await useBooth.getState().applySwappedPlaylist(np);
-                  },
-                  learn: false,
-                });
-                if (res === "applied") toast(said);
-              }}
-            >
-              <Play size={14} fill="currentColor" strokeWidth={0} aria-hidden /> {t("booth.songSheet.use")}
-            </button>
-          )}
-        </div>
-      ))}
-    </Group>
+    <SongDetails
+      song={song}
+      header={false}
+      position={position}
+      onMeasure={measure}
+      durationSec={durationSec}
+      booth={{
+        readOnly,
+        hearingId: hearing,
+        onListen,
+        onStop: () => useBooth.getState().stopAudition(),
+        onUse: (v) => void use(v),
+      }}
+    />
   );
 }

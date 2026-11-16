@@ -14,6 +14,8 @@ import { useStore } from "@/lib/store";
 import { Logo } from "./Logo";
 import { NAV_MAIN, NAV_MAIN_TITLE, NAV_PINNED } from "./navItems";
 import { Artwork } from "./ui/Artwork";
+import { Marquee } from "./ui/Marquee";
+import { TandaArt, usePlayingEntity } from "./ui/TandaArt";
 import { tandaTypeWords } from "./ui/TandaTypeBadge";
 import { Tip } from "./ui/Tip";
 
@@ -339,10 +341,7 @@ export function Sidebar() {
                         {/* 2026-11 ("images are not added on the left side"): the tanda's cover, its rhythm letter
                             in the corner (the letter alone when artwork is off) */}
                         <span className="side-tanda-art" data-testid="side-tanda-art">
-                          {t.songs[0] && <Artwork entity={t.songs[0]} orchestra={t.orchestra} size={32} />}
-                          <span className="side-num" data-rhythm={t.rhythm} aria-hidden>
-                            {RHYTHM[t.rhythm] ?? "·"}
-                          </span>
+                          <TandaArt tanda={t} size={32} badge={RHYTHM[t.rhythm] ?? "·"} />
                         </span>
                         <span className="min-w-0 flex-1">
                           <span className="block truncate">
@@ -426,13 +425,15 @@ export function Sidebar() {
                   )}
                 </button>
               ) : (
-                <span className="tile-art shrink-0" data-rhythm="tango" aria-hidden>
-                  <Disc3 size={18} strokeWidth={1.75} />
-                </span>
+                <SideNowArt orchestra={track.orchestra} />
               )}
               <span className="min-w-0 flex-1">
-                <span className="text-subhead block truncate font-semibold">{track.title}</span>
-                <span className="text-caption1 block truncate text-[var(--label-2)]">{track.orchestra}</span>
+                <Marquee text={track.title} className="text-subhead font-semibold" testId="side-now-title">
+                  {track.title}
+                </Marquee>
+                <Marquee text={track.orchestra} className="text-caption1 text-[var(--label-2)]">
+                  {track.orchestra}
+                </Marquee>
               </span>
             </section>
           )}
@@ -483,5 +484,18 @@ export function Sidebar() {
         </Tip>
       )}
     </>
+  );
+}
+
+/** 2026-11: the playing side's cover in the sidebar's now-playing card (the disc tile when artwork is off) */
+function SideNowArt({ orchestra }: { orchestra: string }) {
+  const entity = usePlayingEntity();
+  return (
+    <span className="side-now-art shrink-0" data-testid="side-now-art">
+      <Artwork entity={entity} orchestra={orchestra} size={36} />
+      <span className="tile-art side-now-ph" data-rhythm="tango" aria-hidden>
+        <Disc3 size={18} strokeWidth={1.75} />
+      </span>
+    </span>
   );
 }

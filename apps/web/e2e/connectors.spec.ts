@@ -60,6 +60,8 @@ const lists = new Map<string, { uris: string[]; snap: number }>();
 /** the last file Dropbox and Drive stored, for their metadata answers */
 const stored = { dropbox: Buffer.alloc(0), drive: Buffer.alloc(0) };
 const spotifyWrites = { posts: 0, dropPosts: new Set<number>(), unplayable: new Set<string>() };
+/** the cover JPEGs the mock received for pl1 (their base64 lengths) */
+const covers: number[] = [];
 /** YouTube search mock: this many searches (counted since the last `hits.length = 0`) answer, the next one is quotaExceeded. */
 const ytLimit = { searches: 2 };
 /** the YouTube playlist the mock holds */
@@ -213,6 +215,18 @@ function mockServer(): http.Server {
           })),
         });
       }
+      // 2026-11: the playlist's cover (the export, then the sync): PUT stores the JPEG, GET lists it
+      const img = /^\/v1\/playlists\/(pl1)\/images$/.exec(url);
+      if (img && req.method === "PUT") {
+        covers.push(body.length);
+        res.writeHead(202);
+        return res.end();
+      }
+      if (img && req.method === "GET")
+        return json(
+          200,
+          covers.length ? [{ url: `https://i.scdn.co/image/c${covers.length}`, width: 640 }] : [],
+        );
       if (url === "/v1/playlists/pl1" && req.method === "PUT") return json(200, {});
       if (url === "/v1/playlists/pl403" && req.method === "PUT")
         return json(403, { error: { status: 403, message: "You cannot change this playlist" } });
@@ -1059,6 +1073,84 @@ test("Export sheet (hosted): 'Create playlist in Spotify' uses the session, list
   await expect(page.getByRole("button", { name: "Playlist created" })).toBeVisible({ timeout: 30000 });
   await expect(sheet.getByRole("button", { name: "Open in Spotify" })).toBeVisible();
   expect(last(/POST \/v1\/me\/playlists/)).toBeTruthy();
+  await ctx.close();
+});
+
+test("2026-11: an exported Spotify playlist follows the night — a reorder and its undo are written 5 s later, read back, the cover redrawn; the sheet and the Booth say so", async ({
+  browser,
+  request,
+}) => {
+  test.setTimeout(180_000);
+  const { session } = await login(request);
+  const ctx = await browser.newContext({ baseURL: APP, viewport: { width: 1440, height: 900 } });
+  const [name, value] = session.split("=");
+  await ctx.addCookies([{ name: name!, value: value!, url: APP }]);
+  const page: Page = await ctx.newPage();
+  await page.goto("/");
+  await page.getByRole("button", { name: /Compose the night/ }).click();
+  await expect(page.locator("#result")).toBeVisible({ timeout: 60000 });
+  await page.getByRole("button", { name: "Export" }).first().click();
+  const sheet = page.getByTestId("export-sheet");
+  await page.getByRole("button", { name: "Create playlist in Spotify" }).click();
+  await expect(page.getByRole("button", { name: "Playlist created" })).toBeVisible({ timeout: 30000 });
+  // remembered for this night, the switch on, in step
+  const group = sheet.getByTestId("sync-group");
+  await group.scrollIntoViewIfNeeded();
+  await expect(group.getByRole("switch", { name: "Keep my exported playlists in sync" })).toBeChecked();
+  await expect(group.getByTestId("sync-spotify")).toContainText("Spotify playlist is in step");
+  const before = [...(lists.get("pl1")?.uris ?? [])];
+  expect(before.length).toBeGreaterThan(20);
+  const coversBefore = covers.length;
+  await page.keyboard.press("Escape");
+  await expect(sheet).toBeHidden();
+  // a reorder inside tanda 1 (Alt+↓ on its first song)
+  hits.length = 0;
+  const row = page.locator("#result [data-tanda]").first().locator("[data-reorder-row]").first();
+  await row.focus();
+  await page.keyboard.press("Alt+ArrowDown");
+  // nothing is written at once: 5 s after the last change
+  await page.waitForTimeout(2500);
+  expect(hits.some((h) => h.method === "PUT" && /\/v1\/playlists\/pl1\/items/.test(h.url))).toBe(false);
+  await expect
+    .poll(() => hits.some((h) => h.method === "PUT" && /\/v1\/playlists\/pl1\/items/.test(h.url)), {
+      timeout: 30000,
+    })
+    .toBe(true);
+  // the playlist holds the new order: tanda 1's first two songs swapped (after the opening, when there is one),
+  // every other row in place, read back (GET after the PUT)
+  const swapped = (uris: string[] | undefined) => {
+    if (!uris || uris.length !== before.length) return false;
+    const i = uris.findIndex((u, k) => u !== before[k]);
+    return (
+      i >= 0 &&
+      uris[i] === before[i + 1] &&
+      uris[i + 1] === before[i] &&
+      uris.every((u, k) => k === i || k === i + 1 || u === before[k])
+    );
+  };
+  await expect.poll(() => swapped(lists.get("pl1")?.uris), { timeout: 20000 }).toBe(true);
+  const put = hits.findIndex((h) => h.method === "PUT" && /\/v1\/playlists\/pl1\/items/.test(h.url));
+  expect(hits.slice(put).some((h) => h.method === "GET" && /\/v1\/playlists\/pl1\/items/.test(h.url))).toBe(
+    true,
+  );
+  // the cover was drawn again from the changed night and read back
+  await expect.poll(() => covers.length, { timeout: 20000 }).toBeGreaterThan(coversBefore);
+  expect(hits.some((h) => h.method === "GET" && /\/v1\/playlists\/pl1\/images/.test(h.url))).toBe(true);
+  // the sheet says what happened
+  await page.getByRole("button", { name: "Export" }).first().click();
+  await expect(sheet.getByTestId("sync-spotify")).toContainText("Spotify playlist updated · 1 change", {
+    timeout: 20000,
+  });
+  await page.keyboard.press("Escape");
+  // undo syncs too: the playlist goes back to the exported order
+  await page.locator("body").click({ position: { x: 5, y: 5 } });
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect.poll(() => lists.get("pl1")?.uris, { timeout: 30000 }).toEqual(before);
+  // the Booth shows the chip
+  await page.getByTestId("play-the-night").first().click();
+  await expect(page).toHaveURL(/\/booth/);
+  await expect(page.getByTestId("sync-chip")).toContainText("Playlists in sync (1)", { timeout: 20000 });
+  // the switch off: an edit writes nothing
   await ctx.close();
 });
 

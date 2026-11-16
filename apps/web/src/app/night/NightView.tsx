@@ -10,11 +10,13 @@ import {
 import { CircleAlert, FileUp, Link2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
-import { Group, RhythmTile, Tile } from "@/components/Form";
+import { Group, Tile } from "@/components/Form";
 import { NightCover } from "@/components/NightCover";
 import { PageHeader } from "@/components/PageHeader";
 import { TipRow } from "@/components/TipRow";
 import { NightLength, PlayRow } from "@/components/ui/PlayRow";
+import { TandaArt } from "@/components/ui/TandaArt";
+import { TandaPlayCover } from "@/components/ui/TandaPlay";
 import { isMixedTanda, rhythmWord, TandaTypeBadge } from "@/components/ui/TandaTypeBadge";
 import { Tip } from "@/components/ui/Tip";
 import { haptic } from "@/lib/haptics";
@@ -319,7 +321,13 @@ export default function NightPage() {
               {p.tandas.map((t, i) => (
                 <Fragment key={`${i}-${t.orchestraId}`}>
                   <TipRow
-                    tile={<RhythmTile rhythm={t.rhythm} label={rhythmWord(t.rhythm)} />}
+                    tile={
+                      <TandaPlayCover tanda={i}>
+                        <span role="img" aria-label={rhythmWord(t.rhythm)} className="inline-flex">
+                          <TandaArt tanda={t} size={44} />
+                        </span>
+                      </TandaPlayCover>
+                    }
                     label={`${i + 1}. ${t.orchestra}${t.singer ? ` · ${t.singer}` : ""}`}
                     sub={
                       <span className="inline-flex flex-wrap items-center gap-1.5">

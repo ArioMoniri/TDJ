@@ -1,0 +1,7 @@
+{
+ "about": "The deployment owner's catalogue edits (Database corrections, filled values, added sides and cortinas, matches, artwork), merged from contributions with provenance. Edit only through `pnpm data:apply-contributions`; `pnpm index:build` projects it into data/index/owner.json. `personal` is the owner's opt-in archive and never changes the catalogue.",
+ "version": 1,
+ "entries": {},
+ "personal": {},
+ "merged": []
+}

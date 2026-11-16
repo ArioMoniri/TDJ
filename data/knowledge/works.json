@@ -1,0 +1,721 @@
+{
+ "version": 1,
+ "about": "Curated credits of well-known works (composers = música, lyricists = letra; no lyricist = an instrumental work), the reference credits printed on scores and discographies. The index's spreadsheets carry no credits; a DJ's database edit wins. Every title must be in the index (packages/core/test/songDna.test.ts).",
+ "works": [
+  {
+   "title": "La cumparsita",
+   "composers": [
+    "Gerardo Matos Rodríguez"
+   ],
+   "lyricists": [
+    "Pascual Contursi",
+    "Enrique Maroni"
+   ],
+   "year": 1916
+  },
+  {
+   "title": "Malena",
+   "composers": [
+    "Lucio Demare"
+   ],
+   "lyricists": [
+    "Homero Manzi"
+   ],
+   "year": 1941
+  },
+  {
+   "title": "Sur",
+   "composers": [
+    "Aníbal Troilo"
+   ],
+   "lyricists": [
+    "Homero Manzi"
+   ],
+   "year": 1948
+  },
+  {
+   "title": "Barrio de tango",
+   "composers": [
+    "Aníbal Troilo"
+   ],
+   "lyricists": [
+    "Homero Manzi"
+   ],
+   "year": 1942
+  },
+  {
+   "title": "Che bandoneón",
+   "composers": [
+    "Aníbal Troilo"
+   ],
+   "lyricists": [
+    "Homero Manzi"
+   ],
+   "year": 1950
+  },
+  {
+   "title": "Romance de barrio",
+   "composers": [
+    "Aníbal Troilo"
+   ],
+   "lyricists": [
+    "Homero Manzi"
+   ],
+   "year": 1947
+  },
+  {
+   "title": "Toda mi vida",
+   "composers": [
+    "Aníbal Troilo"
+   ],
+   "lyricists": [
+    "José María Contursi"
+   ],
+   "year": 1941
+  },
+  {
+   "title": "Responso",
+   "composers": [
+    "Aníbal Troilo"
+   ],
+   "lyricists": [],
+   "year": 1951
+  },
+  {
+   "title": "Nostalgias",
+   "composers": [
+    "Juan Carlos Cobián"
+   ],
+   "lyricists": [
+    "Enrique Cadícamo"
+   ],
+   "year": 1936
+  },
+  {
+   "title": "Los mareados",
+   "composers": [
+    "Juan Carlos Cobián"
+   ],
+   "lyricists": [
+    "Enrique Cadícamo"
+   ],
+   "year": 1942
+  },
+  {
+   "title": "Garúa",
+   "composers": [
+    "Aníbal Troilo"
+   ],
+   "lyricists": [
+    "Enrique Cadícamo"
+   ],
+   "year": 1943
+  },
+  {
+   "title": "Mi Buenos Aires querido",
+   "composers": [
+    "Carlos Gardel"
+   ],
+   "lyricists": [
+    "Alfredo Le Pera"
+   ],
+   "year": 1934
+  },
+  {
+   "title": "Por una cabeza",
+   "composers": [
+    "Carlos Gardel"
+   ],
+   "lyricists": [
+    "Alfredo Le Pera"
+   ],
+   "year": 1935
+  },
+  {
+   "title": "Volver",
+   "composers": [
+    "Carlos Gardel"
+   ],
+   "lyricists": [
+    "Alfredo Le Pera"
+   ],
+   "year": 1934
+  },
+  {
+   "title": "El día que me quieras",
+   "composers": [
+    "Carlos Gardel"
+   ],
+   "lyricists": [
+    "Alfredo Le Pera"
+   ],
+   "year": 1935
+  },
+  {
+   "title": "Mano a mano",
+   "composers": [
+    "Carlos Gardel",
+    "José Razzano"
+   ],
+   "lyricists": [
+    "Celedonio Flores"
+   ],
+   "year": 1923
+  },
+  {
+   "title": "Cambalache",
+   "composers": [
+    "Enrique Santos Discépolo"
+   ],
+   "lyricists": [
+    "Enrique Santos Discépolo"
+   ],
+   "year": 1934
+  },
+  {
+   "title": "Yira, yira",
+   "composers": [
+    "Enrique Santos Discépolo"
+   ],
+   "lyricists": [
+    "Enrique Santos Discépolo"
+   ],
+   "year": 1930
+  },
+  {
+   "title": "Uno",
+   "composers": [
+    "Mariano Mores"
+   ],
+   "lyricists": [
+    "Enrique Santos Discépolo"
+   ],
+   "year": 1943
+  },
+  {
+   "title": "Gricel",
+   "composers": [
+    "Mariano Mores"
+   ],
+   "lyricists": [
+    "José María Contursi"
+   ],
+   "year": 1942
+  },
+  {
+   "title": "En esta tarde gris",
+   "composers": [
+    "Mariano Mores"
+   ],
+   "lyricists": [
+    "José María Contursi"
+   ],
+   "year": 1941
+  },
+  {
+   "title": "Cristal",
+   "composers": [
+    "Mariano Mores"
+   ],
+   "lyricists": [
+    "José María Contursi"
+   ],
+   "year": 1944
+  },
+  {
+   "title": "Adiós muchachos",
+   "composers": [
+    "Julio César Sanders"
+   ],
+   "lyricists": [
+    "César Vedani"
+   ],
+   "year": 1927
+  },
+  {
+   "title": "Caminito",
+   "composers": [
+    "Juan de Dios Filiberto"
+   ],
+   "lyricists": [
+    "Gabino Coria Peñaloza"
+   ],
+   "year": 1926
+  },
+  {
+   "title": "Quejas de bandoneón",
+   "composers": [
+    "Juan de Dios Filiberto"
+   ],
+   "lyricists": [],
+   "year": 1918
+  },
+  {
+   "title": "El choclo",
+   "composers": [
+    "Ángel Villoldo"
+   ],
+   "lyricists": [
+    "Juan Carlos Marambio Catán",
+    "Enrique Santos Discépolo"
+   ],
+   "year": 1903
+  },
+  {
+   "title": "La morocha",
+   "composers": [
+    "Enrique Saborido"
+   ],
+   "lyricists": [
+    "Ángel Villoldo"
+   ],
+   "year": 1905
+  },
+  {
+   "title": "Felicia",
+   "composers": [
+    "Enrique Saborido"
+   ],
+   "lyricists": [],
+   "year": 1907
+  },
+  {
+   "title": "El entrerriano",
+   "composers": [
+    "Rosendo Mendizábal"
+   ],
+   "lyricists": [],
+   "year": 1897
+  },
+  {
+   "title": "A media luz",
+   "composers": [
+    "Edgardo Donato"
+   ],
+   "lyricists": [
+    "Carlos César Lenzi"
+   ],
+   "year": 1924
+  },
+  {
+   "title": "Milonga sentimental",
+   "composers": [
+    "Sebastián Piana"
+   ],
+   "lyricists": [
+    "Homero Manzi"
+   ],
+   "year": 1931
+  },
+  {
+   "title": "Milonga triste",
+   "composers": [
+    "Sebastián Piana"
+   ],
+   "lyricists": [
+    "Homero Manzi"
+   ],
+   "year": 1936
+  },
+  {
+   "title": "Milonga del 900",
+   "composers": [
+    "Sebastián Piana"
+   ],
+   "lyricists": [
+    "Homero Manzi"
+   ],
+   "year": 1933
+  },
+  {
+   "title": "Tinta roja",
+   "composers": [
+    "Sebastián Piana"
+   ],
+   "lyricists": [
+    "Cátulo Castillo"
+   ],
+   "year": 1941
+  },
+  {
+   "title": "Silbando",
+   "composers": [
+    "Sebastián Piana",
+    "Cátulo Castillo"
+   ],
+   "lyricists": [
+    "José González Castillo"
+   ],
+   "year": 1923
+  },
+  {
+   "title": "Organito de la tarde",
+   "composers": [
+    "Cátulo Castillo"
+   ],
+   "lyricists": [
+    "José González Castillo"
+   ],
+   "year": 1924
+  },
+  {
+   "title": "Milonga de mis amores",
+   "composers": [
+    "Pedro Laurenz"
+   ],
+   "lyricists": [
+    "José María Contursi"
+   ],
+   "year": 1937
+  },
+  {
+   "title": "Naranjo en flor",
+   "composers": [
+    "Virgilio Expósito"
+   ],
+   "lyricists": [
+    "Homero Expósito"
+   ],
+   "year": 1944
+  },
+  {
+   "title": "Percal",
+   "composers": [
+    "Domingo Federico"
+   ],
+   "lyricists": [
+    "Homero Expósito"
+   ],
+   "year": 1943
+  },
+  {
+   "title": "Al compás del corazón",
+   "composers": [
+    "Domingo Federico"
+   ],
+   "lyricists": [
+    "Homero Expósito"
+   ],
+   "year": 1942
+  },
+  {
+   "title": "Tristezas de la calle Corrientes",
+   "composers": [
+    "Domingo Federico"
+   ],
+   "lyricists": [
+    "Homero Expósito"
+   ],
+   "year": 1942
+  },
+  {
+   "title": "Torrente",
+   "composers": [
+    "Hugo Gutiérrez"
+   ],
+   "lyricists": [
+    "Homero Expósito"
+   ],
+   "year": 1944
+  },
+  {
+   "title": "Pedacito de cielo",
+   "composers": [
+    "Enrique Francini",
+    "Héctor Stamponi"
+   ],
+   "lyricists": [
+    "Homero Expósito"
+   ],
+   "year": 1942
+  },
+  {
+   "title": "Flor de lino",
+   "composers": [
+    "Héctor Stamponi"
+   ],
+   "lyricists": [
+    "Homero Expósito"
+   ],
+   "year": 1947
+  },
+  {
+   "title": "Desde el alma",
+   "composers": [
+    "Rosita Melo"
+   ],
+   "lyricists": [
+    "Víctor Piuma Vélez",
+    "Homero Manzi"
+   ],
+   "year": 1911
+  },
+  {
+   "title": "Nada",
+   "composers": [
+    "José Dames"
+   ],
+   "lyricists": [
+    "Horacio Sanguinetti"
+   ],
+   "year": 1944
+  },
+  {
+   "title": "Fuimos",
+   "composers": [
+    "José Dames"
+   ],
+   "lyricists": [
+    "Homero Manzi"
+   ],
+   "year": 1945
+  },
+  {
+   "title": "Mañana zarpa un barco",
+   "composers": [
+    "Lucio Demare"
+   ],
+   "lyricists": [
+    "Homero Manzi"
+   ],
+   "year": 1942
+  },
+  {
+   "title": "Remembranza",
+   "composers": [
+    "Mario Melfi"
+   ],
+   "lyricists": [
+    "Mario Battistella"
+   ],
+   "year": 1934
+  },
+  {
+   "title": "Taconeando",
+   "composers": [
+    "Pedro Maffia"
+   ],
+   "lyricists": [
+    "Horacio Staffolani"
+   ],
+   "year": 1930
+  },
+  {
+   "title": "Ventarrón",
+   "composers": [
+    "Pedro Maffia"
+   ],
+   "lyricists": [
+    "Horacio Staffolani"
+   ],
+   "year": 1933
+  },
+  {
+   "title": "La mariposa",
+   "composers": [
+    "Pedro Maffia"
+   ],
+   "lyricists": [
+    "Celedonio Flores"
+   ],
+   "year": 1923
+  },
+  {
+   "title": "Vida mía",
+   "composers": [
+    "Osvaldo Fresedo"
+   ],
+   "lyricists": [
+    "Emilio Fresedo"
+   ],
+   "year": 1933
+  },
+  {
+   "title": "Bahía Blanca",
+   "composers": [
+    "Carlos Di Sarli"
+   ],
+   "lyricists": [],
+   "year": 1957
+  },
+  {
+   "title": "La yumba",
+   "composers": [
+    "Osvaldo Pugliese"
+   ],
+   "lyricists": [],
+   "year": 1946
+  },
+  {
+   "title": "Recuerdo",
+   "composers": [
+    "Osvaldo Pugliese"
+   ],
+   "lyricists": [
+    "Eduardo Moreno"
+   ],
+   "year": 1924
+  },
+  {
+   "title": "Gallo ciego",
+   "composers": [
+    "Agustín Bardi"
+   ],
+   "lyricists": [],
+   "year": 1927
+  },
+  {
+   "title": "Paciencia",
+   "composers": [
+    "Juan D'Arienzo"
+   ],
+   "lyricists": [
+    "Francisco Gorrindo"
+   ],
+   "year": 1937
+  },
+  {
+   "title": "Una emoción",
+   "composers": [
+    "Raúl Kaplún"
+   ],
+   "lyricists": [
+    "José María Suñé"
+   ],
+   "year": 1943
+  },
+  {
+   "title": "Inspiración",
+   "composers": [
+    "Peregrino Paulos"
+   ],
+   "lyricists": [
+    "Luis Rubistein"
+   ],
+   "year": 1918
+  },
+  {
+   "title": "La puñalada",
+   "composers": [
+    "Pintín Castellanos"
+   ],
+   "lyricists": [
+    "Celedonio Flores"
+   ],
+   "year": 1933
+  },
+  {
+   "title": "La tablada",
+   "composers": [
+    "Francisco Canaro"
+   ],
+   "lyricists": [],
+   "year": 1927
+  },
+  {
+   "title": "Canaro en París",
+   "composers": [
+    "Juan Caldarella",
+    "Alejandro Scarpino"
+   ],
+   "lyricists": [],
+   "year": 1925
+  },
+  {
+   "title": "Nueve de julio",
+   "composers": [
+    "José Luis Padula"
+   ],
+   "lyricists": [],
+   "year": 1927
+  },
+  {
+   "title": "Comme il faut",
+   "composers": [
+    "Eduardo Arolas"
+   ],
+   "lyricists": [],
+   "year": 1917
+  },
+  {
+   "title": "Derecho viejo",
+   "composers": [
+    "Eduardo Arolas"
+   ],
+   "lyricists": [],
+   "year": 1916
+  },
+  {
+   "title": "El amanecer",
+   "composers": [
+    "Roberto Firpo"
+   ],
+   "lyricists": [],
+   "year": 1913
+  },
+  {
+   "title": "Rodríguez Peña",
+   "composers": [
+    "Vicente Greco"
+   ],
+   "lyricists": [],
+   "year": 1911
+  },
+  {
+   "title": "Champagne tango",
+   "composers": [
+    "Manuel Aróztegui"
+   ],
+   "lyricists": [],
+   "year": 1914
+  },
+  {
+   "title": "Café Domínguez",
+   "composers": [
+    "Ángel D'Agostino"
+   ],
+   "lyricists": [],
+   "year": 1955
+  },
+  {
+   "title": "Danzarín",
+   "composers": [
+    "Julián Plaza"
+   ],
+   "lyricists": [],
+   "year": 1956
+  },
+  {
+   "title": "Nocturna",
+   "composers": [
+    "Julián Plaza"
+   ],
+   "lyricists": [],
+   "year": 1958
+  },
+  {
+   "title": "Adiós Nonino",
+   "composers": [
+    "Astor Piazzolla"
+   ],
+   "lyricists": [],
+   "year": 1959
+  },
+  {
+   "title": "Libertango",
+   "composers": [
+    "Astor Piazzolla"
+   ],
+   "lyricists": [],
+   "year": 1974
+  },
+  {
+   "title": "Verano porteño",
+   "composers": [
+    "Astor Piazzolla"
+   ],
+   "lyricists": [],
+   "year": 1965
+  }
+ ]
+}

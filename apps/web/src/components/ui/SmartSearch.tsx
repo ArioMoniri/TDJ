@@ -1,14 +1,24 @@
 "use client";
 import "../search/search.css";
 import "./smart-search.css";
-import { AudioLines, HardDrive, Library, MonitorPlay } from "lucide-react";
-import { Fragment, type ReactNode, useMemo } from "react";
+import { AudioLines, HardDrive, Info, Library, MonitorPlay } from "lucide-react";
+import {
+  Fragment,
+  type ReactNode,
+  startTransition,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { haptic } from "@/lib/haptics";
 import { fmtNumber, plural, t } from "@/lib/i18n";
 import { fmtLen } from "@/lib/lengths";
 import { useTapPlay } from "@/lib/playback";
 import type { PlayItem } from "@/lib/player";
 import { ERAS, type EraChip, eraOfFilters, type SourceId, type Version, withEra } from "@/lib/smartSearch";
+import { openSongDetails } from "@/lib/songOpen";
 import { bpmText, useSongData } from "@/lib/songView";
 import type { Song } from "@/lib/types";
 import {
@@ -122,6 +132,8 @@ export function SourceIcons({ sources }: { sources: SourceId[] }) {
 }
 
 const rowId = (id: string, i: number) => `${id}-opt-${i}`;
+/** the rows a new answer paints in its first frame (a phone's screen and more); the rest follow when idle */
+export const FIRST_ROWS = 16;
 
 /** the field's keys: ↑ ↓ walk the shown versions, Enter picks, Tab takes the correction or the first completion */
 export function useSmartKeys(
@@ -305,6 +317,17 @@ export function VersionRow({
         {fmtLen(s.durationSec)}
       </span>
       <SourceIcons sources={v.sources} />
+      {v.sources.includes("catalogue") && (
+        <button
+          type="button"
+          className="icon-btn icon-btn-bare -my-1 h-11 w-11 shrink-0 text-[var(--label-2)]"
+          aria-label={t("song.details_of", { title: s.title, orchestra: s.orchestra })}
+          data-testid="smart-info"
+          onClick={() => openSongDetails(s)}
+        >
+          <Info size={16} strokeWidth={2} aria-hidden />
+        </button>
+      )}
       {actions?.(v)}
     </div>
   );
@@ -453,39 +476,128 @@ export function SmartSearchResults({
   const era = eraOfFilters(s.filters);
   const spotify = s.services.find((a) => a.id === "spotify");
   const fromServices = order.filter((v) => v.external).length;
-  let k = -1;
-  const row = (v: Version, workRhythm?: string) => {
-    k++;
-    const index = k;
-    const ctx: RowContext = {
-      index,
-      active: index === s.active,
-      id: rowId(id, index),
-      onHover: () => s.setActive(index),
-      workRhythm,
-    };
-    // the host's own row, or (a service's recording, which the host has no row for) the version row
-    const own = renderVersion?.(v, ctx);
-    if (own !== undefined && own !== null) return <Fragment key={v.key}>{own}</Fragment>;
-    return (
-      <VersionRow
-        key={v.key}
-        v={v}
-        ctx={ctx}
-        onPick={onPick}
-        onPlay={onPlay}
-        playing={playing}
-        actions={actions}
-        note={note}
-        dim={dim?.(v)}
-        testId={rowTestIdOf?.(v) ?? rowTestId}
-        data={rowData?.(v)}
-        workRhythm={workRhythm}
-      />
-    );
+  // one hover callback per row index for the page's life, so a memoised row (the Library's) keeps its props
+  const hovers = useRef(new Map<number, () => void>());
+  const setActive = useRef(s.setActive);
+  setActive.current = s.setActive;
+  const hoverFor = (i: number) => {
+    let f = hovers.current.get(i);
+    if (!f) {
+      f = () => setActive.current(i);
+      hovers.current.set(i, f);
+    }
+    return f;
   };
+  // A new answer paints its first rows at once and the rest a moment later (after the frame, interruptibly), so the
+  // first screen of results never waits for fifty rows; ↓ past them, or a host asking for them, shows them all.
+  const [fullFor, setFullFor] = useState<unknown>(null);
+  const full = fullFor === s.versions || s.active >= FIRST_ROWS - 1 || order.length <= FIRST_ROWS;
+  useEffect(() => {
+    if (full) return;
+    const go = () => startTransition(() => setFullFor(s.versions));
+    const w = window as Window & {
+      requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
+      cancelIdleCallback?: (h: number) => void;
+    };
+    if (w.requestIdleCallback) {
+      const h = w.requestIdleCallback(go, { timeout: 250 });
+      return () => w.cancelIdleCallback?.(h);
+    }
+    const h = setTimeout(go, 60);
+    return () => clearTimeout(h);
+  }, [full, s.versions]);
+  // The rows render from a deferred copy of what they show: a keystroke's own render reuses the rows as they are
+  // (the field answers at once), and the new rows render after it, interruptibly: typing never waits for a list.
+  const listInput = {
+    cap: full ? Number.POSITIVE_INFINITY : FIRST_ROWS,
+    order,
+    works: s.works,
+    active: s.active,
+    id,
+    plain,
+    listClassName,
+    renderVersion,
+    onPick,
+    onPlay,
+    playing,
+    actions,
+    note,
+    dim,
+    rowTestId,
+    rowTestIdOf,
+    rowData,
+  };
+  const deferred = useDeferredValue(listInput);
+  // only while the DJ types in this search's field: anything else (Edit, a value typed into a row's own field, a
+  // tap) renders the rows at once, so a row's controlled input never shows a stale value
+  const typing = typeof document !== "undefined" && document.activeElement?.id === id;
+  const d = typing ? deferred : listInput;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `d` is the whole input (a new object per render)
+  const rows = useMemo(() => {
+    let k = -1;
+    const row = (v: Version, workRhythm?: string) => {
+      k++;
+      const index = k;
+      if (index >= d.cap) return null;
+      const ctx: RowContext = {
+        index,
+        active: index === d.active,
+        id: rowId(d.id, index),
+        onHover: hoverFor(index),
+        workRhythm,
+      };
+      // the host's own row, or (a service's recording, which the host has no row for) the version row
+      const own = d.renderVersion?.(v, ctx);
+      if (own !== undefined && own !== null) return <Fragment key={v.key}>{own}</Fragment>;
+      return (
+        <VersionRow
+          key={v.key}
+          v={v}
+          ctx={ctx}
+          onPick={d.onPick}
+          onPlay={d.onPlay}
+          playing={d.playing}
+          actions={d.actions}
+          note={d.note}
+          dim={d.dim?.(v)}
+          testId={d.rowTestIdOf?.(v) ?? d.rowTestId}
+          data={d.rowData?.(v)}
+          workRhythm={workRhythm}
+        />
+      );
+    };
+    return d.works ? (
+      d.works.map((w, wi) => {
+        const items = w.versions.map((v) => row(v, w.rhythm));
+        if (wi > 0 && !items.some(Boolean)) return null;
+        return (
+          // biome-ignore lint/a11y/useSemanticElements: a group of options inside the listbox (WAI-ARIA)
+          <div
+            key={w.key}
+            role="group"
+            aria-label={w.title}
+            className={d.plain ? "mb-3" : "group-inset mb-3"}
+            data-testid="smart-work"
+          >
+            <div className="smart-work-head" role="presentation">
+              <span className="text-headline min-w-0 flex-1 truncate">{w.title}</span>
+              <TandaTypeBadge rhythm={w.rhythm} compact />
+              <span className="text-caption1 text-[var(--label-2)]" data-testid="smart-work-count">
+                {plural("smartSearch.versions_n", w.versions.length)}
+              </span>
+            </div>
+            <div className={d.listClassName}>{items}</div>
+          </div>
+        );
+      })
+    ) : (
+      <div className={d.plain ? d.listClassName : `group-inset ${d.listClassName}`}>
+        {d.order.map((v) => row(v))}
+      </div>
+    );
+  }, [d]);
   return (
-    <div className="min-w-0" data-testid={`${prefix}-smart`}>
+    <div className="min-w-0" data-testid={`${prefix}-smart`} data-answered={s.answered ?? ""}>
       {chips && (
         <>
           <fieldset
@@ -571,31 +683,7 @@ export function SmartSearchResults({
             className={`transition-opacity ${s.loading ? "opacity-70" : ""}`}
             data-testid={testIds.results ?? `${prefix}-results`}
           >
-            {s.works ? (
-              s.works.map((w) => (
-                // biome-ignore lint/a11y/useSemanticElements: a group of options inside the listbox (WAI-ARIA)
-                <div
-                  key={w.key}
-                  role="group"
-                  aria-label={w.title}
-                  className={plain ? "mb-3" : "group-inset mb-3"}
-                  data-testid="smart-work"
-                >
-                  <div className="smart-work-head" role="presentation">
-                    <span className="text-headline min-w-0 flex-1 truncate">{w.title}</span>
-                    <TandaTypeBadge rhythm={w.rhythm} compact />
-                    <span className="text-caption1 text-[var(--label-2)]" data-testid="smart-work-count">
-                      {plural("smartSearch.versions_n", w.versions.length)}
-                    </span>
-                  </div>
-                  <div className={listClassName}>{w.versions.map((v) => row(v, w.rhythm))}</div>
-                </div>
-              ))
-            ) : (
-              <div className={plain ? listClassName : `group-inset ${listClassName}`}>
-                {order.map((v) => row(v))}
-              </div>
-            )}
+            {rows}
           </div>
           {s.hasMore && (
             <button
