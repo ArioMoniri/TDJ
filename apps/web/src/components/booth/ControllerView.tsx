@@ -807,7 +807,10 @@ function ActionLine() {
           <button
             type="button"
             className="vc-text-btn vc-primary"
-            onClick={() => virtualControl("browsePress", { on: true })}
+            onClick={() => {
+              virtualControl("browsePress", { on: true });
+              virtualControl("browsePress", { on: false });
+            }}
             data-testid="vc-seek-confirm"
           >
             {t("controller.confirm")}
