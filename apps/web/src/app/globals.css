@@ -1990,6 +1990,207 @@ html[data-sidebar="collapsed"] [data-testid="sidebar"] {
 .build-tanda-art .booth-art + .side-num {
   box-shadow: 0 0 0 2px rgb(var(--bg-cell));
 }
+/* 2026-11: the same tanda cover with its rhythm letter everywhere a list shows a tanda (components/ui/TandaArt.tsx) */
+.tanda-art {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: var(--tanda-art, 32px);
+  height: var(--tanda-art, 32px);
+}
+.tanda-art:not(:has(.booth-art)) .tanda-art-letter {
+  width: var(--tanda-art, 32px);
+  height: var(--tanda-art, 32px);
+  border-radius: calc(var(--tanda-art, 32px) * 0.22);
+  font-size: calc(var(--tanda-art, 32px) * 0.36);
+}
+.tanda-art .booth-art {
+  border-radius: calc(var(--tanda-art, 32px) * 0.2);
+}
+.tanda-art .booth-art + .tanda-art-letter {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  font-size: 9px;
+  box-shadow: 0 0 0 2px rgb(var(--bg-cell, 255 255 255));
+}
+.side-tanda-art .tanda-art .booth-art + .tanda-art-letter {
+  box-shadow: 0 0 0 2px var(--sidebar-bg, var(--bg));
+}
+/* 2026-11: the whole night with Compose's editing, for the room page (components/NightEditor.tsx): each tanda's bar
+   stays on screen as its songs scroll by (under the top bar), and wraps its buttons under the name on a phone */
+.night-editor-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 4px 14px;
+}
+.night-editor {
+  min-width: 0;
+}
+.night-editor-tandas {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  min-width: 0;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.night-editor-tanda {
+  min-width: 0;
+}
+/* phones: the bar keeps one line — moving a tanda is its drag handle or Alt+↑ / ↓ there */
+@media (max-width: 599.98px) {
+  .night-editor-bar .night-editor-step {
+    display: none;
+  }
+  .night-editor-bar > .min-w-0 {
+    flex-basis: 80px;
+    margin-left: 6px;
+  }
+}
+.night-editor-bar {
+  position: sticky;
+  top: calc(var(--chrome-top) + var(--editor-sticky, 8px));
+  z-index: 6;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 2px;
+  min-height: 44px;
+  margin-bottom: 6px;
+  padding-right: 4px;
+  border-radius: 12px;
+  background: color-mix(in srgb, rgb(var(--bg-cell)) 90%, transparent);
+  backdrop-filter: blur(16px) saturate(160%);
+  box-shadow: 0 0 0 var(--separator-w, 0.5px) var(--separator);
+}
+.night-editor-bar > .min-w-0 {
+  flex: 1 1 140px;
+  margin-left: 8px;
+}
+.night-editor-bar:focus-visible {
+  outline: 2px solid var(--tint);
+  outline-offset: 2px;
+}
+.night-editor-tanda[data-dragging] {
+  opacity: 0.5;
+}
+.night-editor-tanda[data-drop-before]::before {
+  content: "";
+  display: block;
+  height: 3px;
+  margin: -8px 12px 5px;
+  border-radius: 2px;
+  background: var(--tint);
+}
+/* iPad and phones: the floating top bar covers the page's top: the bars stay under it */
+@media (max-width: 1023.98px) {
+  .night-editor-bar {
+    --editor-sticky: 76px;
+  }
+}
+/* 2026-11: the exported playlists' sync chip in the Booth's night bar (components/SyncStatus.tsx) */
+.sync-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: var(--text-caption1, 12px);
+  color: var(--label-2);
+  background: var(--fill-3);
+}
+.sync-chip[data-state="error"] {
+  color: var(--destructive);
+}
+.sync-chip[data-state="ok"] svg {
+  color: var(--system-green, #34c759);
+}
+@media (pointer: coarse) {
+  .sync-chip {
+    min-height: 44px;
+  }
+}
+/* 2026-11: a title that slides when it does not fit (components/ui/Marquee.tsx) */
+.marquee {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.marquee-inner {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: top;
+}
+.marquee[data-moving="1"] .marquee-inner {
+  max-width: none;
+  overflow: visible;
+  will-change: transform;
+}
+/* a moving title fades at its edges instead of being cut */
+.marquee[data-moving="1"] {
+  mask-image: linear-gradient(to right, transparent 0, #000 6px, #000 calc(100% - 10px), transparent 100%);
+}
+.mini-cover {
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 8px;
+}
+.mini-cover .booth-art {
+  border-radius: 6px;
+}
+/* the inspector's track rows and the sidebar's now-playing card: the side's cover, its place on the corner */
+.inspector-track-art,
+.side-now-art {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.inspector-track-art .booth-art,
+.side-now-art .booth-art {
+  border-radius: 6px;
+}
+.inspector-track-n {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  text-align: center;
+  color: var(--label);
+  background: var(--fill-2, rgb(120 120 128 / 0.2));
+  backdrop-filter: blur(8px);
+  box-shadow: 0 0 0 2px rgb(var(--bg-cell));
+}
+.inspector-track-art:not(:has(.booth-art)) .inspector-track-n {
+  position: static;
+  box-shadow: none;
+  background: none;
+  color: var(--label-2);
+  font-size: var(--text-subhead, 15px);
+}
+/* the disc tile stands in for the cover only when artwork is off */
+.side-now-art .booth-art ~ .side-now-ph {
+  display: none;
+}
 .side-row.side-tanda {
   height: 44px;
   min-height: 44px;

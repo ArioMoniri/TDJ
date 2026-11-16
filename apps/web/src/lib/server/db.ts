@@ -55,6 +55,7 @@ let client: Promise<{
   Get: new (i: unknown) => unknown;
   Put: new (i: unknown) => unknown;
   Update: new (i: unknown) => unknown;
+  Delete: new (i: unknown) => unknown;
 }> | null = null;
 
 /** The AWS SDK is loaded lazily by name so the build works without it installed. */
@@ -62,10 +63,12 @@ async function dynamo() {
   if (!client)
     client = (async () => {
       const load = (name: string) => import(/* webpackIgnore: true */ /* turbopackIgnore: true */ name);
-      const [{ DynamoDBClient }, { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand }] =
-        await Promise.all([load("@aws-sdk/client-dynamodb"), load("@aws-sdk/lib-dynamodb")]);
+      const [
+        { DynamoDBClient },
+        { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand, DeleteCommand },
+      ] = await Promise.all([load("@aws-sdk/client-dynamodb"), load("@aws-sdk/lib-dynamodb")]);
       const doc = DynamoDBDocumentClient.from(new DynamoDBClient({})) as DocClient;
-      return { doc, Get: GetCommand, Put: PutCommand, Update: UpdateCommand };
+      return { doc, Get: GetCommand, Put: PutCommand, Update: UpdateCommand, Delete: DeleteCommand };
     })().catch((e) => {
       client = null;
       throw new Error(
@@ -84,14 +87,19 @@ export async function dynamoDoc(): Promise<{
   Get: new (i: unknown) => unknown;
   Put: new (i: unknown) => unknown;
   Update: new (i: unknown) => unknown;
+  /** 2026-11: a room its owner closed */
+  Delete: new (
+    i: unknown,
+  ) => unknown;
 }> {
-  const { doc, Get, Put, Update } = await dynamo();
+  const { doc, Get, Put, Update, Delete } = await dynamo();
   return {
     send: (cmd) =>
       doc.send(cmd) as Promise<{ Item?: Record<string, unknown>; Attributes?: Record<string, unknown> }>,
     Get,
     Put,
     Update,
+    Delete,
   };
 }
 

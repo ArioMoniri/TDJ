@@ -6,23 +6,20 @@ import {
   ROOM_NAME_MAX,
   ROOM_USER_MAX,
   type RoomLogEntry,
-  renight,
 } from "@tdj/core";
 import {
-  ArrowDown,
-  ArrowUp,
   Copy,
   DoorOpen,
   Heart,
   ListMusic,
-  Lock,
-  LockOpen,
   LogOut,
   Pencil,
+  Play,
   QrCode as QrIcon,
+  Replace,
   Server,
-  SkipForward,
   Smartphone,
+  Trash2,
   TriangleAlert,
   Users,
 } from "lucide-react";
@@ -30,20 +27,23 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { DancerHeart } from "@/components/DancerHeart";
-import { ActionRow, FieldRow, Group, RhythmTile, SwitchRow, Tile } from "@/components/Form";
+import { ActionRow, FieldRow, Group, PickerRow, Row, SwitchRow, Tile } from "@/components/Form";
+import { NightCover } from "@/components/NightCover";
+import { NightEditor } from "@/components/NightEditor";
+import { NightPicker } from "@/components/NightPicker";
 import { PageHeader } from "@/components/PageHeader";
 import { QrCode } from "@/components/QrCode";
 import { Sheet } from "@/components/Sheet";
+import { SwipeRow } from "@/components/SwipeRow";
 import { TipRow } from "@/components/TipRow";
 import { Segmented } from "@/components/ui";
-import { SpotMenu } from "@/components/ui/SpotMenu";
-import { TandaPlayCover } from "@/components/ui/TandaPlay";
 import { Tip } from "@/components/ui/Tip";
 import { nativeInfo } from "@/lib/app/native";
 import { APP } from "@/lib/app/target";
 import { haptic } from "@/lib/haptics";
+import { makeSnapshot } from "@/lib/history";
 import { fmtDate, fmtTime, t as tx, upper } from "@/lib/i18n";
-import { type RoomRef, roomShareLink, useRooms } from "@/lib/rooms";
+import { expiresInDays, type RoomRef, roomShareLink, useRooms } from "@/lib/rooms";
 import { copyText } from "@/lib/share";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
@@ -58,43 +58,6 @@ const host = (server: string) => {
     return server;
   }
 };
-
-/** a 44 pt icon button with its one-line explanation on hover */
-function IconButton({
-  label,
-  onClick,
-  disabled,
-  on,
-  children,
-  testId,
-}: {
-  label: string;
-  onClick: () => void;
-  disabled?: boolean;
-  on?: boolean;
-  children: React.ReactNode;
-  testId?: string;
-}) {
-  return (
-    <Tip text={label}>
-      <button
-        type="button"
-        className={`grid h-11 w-11 shrink-0 place-items-center rounded-full disabled:opacity-30 ${on ? "bg-[var(--fill-3)] text-[var(--tint)]" : "text-[var(--label-2)]"}`}
-        onClick={(e) => {
-          e.stopPropagation();
-          haptic(4);
-          onClick();
-        }}
-        disabled={disabled}
-        aria-label={label}
-        aria-pressed={on}
-        data-testid={testId}
-      >
-        {children}
-      </button>
-    </Tip>
-  );
-}
 
 function LogList({ log, me }: { log: RoomLogEntry[]; me: string }) {
   const items = [...log].reverse();
@@ -147,6 +110,16 @@ export default function RoomsPage() {
   const [renaming, setRenaming] = useState(false);
   const [renameDraft, setRenameDraft] = useState("");
   const [past, setPast] = useState<{ ref: RoomRef; log: RoomLogEntry[] | null; name: string } | null>(null);
+  // 2026-11: choose the night (a new room's, or the owner's switch), the confirmations, the list's edit mode
+  const [picking, setPicking] = useState<"create" | "switch" | null>(null);
+  const [chosen, setChosen] = useState<Playlist | null>(null);
+  const [switchTo, setSwitchTo] = useState<Playlist | null>(null);
+  const [closing, setClosing] = useState<RoomRef | { code: string; server: string; name: string } | null>(
+    null,
+  );
+  const [editing, setEditing] = useState(false);
+  const [oldOpen, setOldOpen] = useState(false);
+  const [oldDays, setOldDays] = useState(30);
   // 2026-11: `?dance=<code>` is a dancer's page: the playing song and one heart (no name, no joining)
   const [dance, setDance] = useState<{ code: string; server: string } | null>(null);
   const router = useRouter();
@@ -192,24 +165,16 @@ export default function RoomsPage() {
     const p = useStore.getState().playlist;
     if (p) setPlaylist(fn(p));
   };
-  const move = (i: number, d: -1 | 1) =>
-    edit((p) => {
-      const j = i + d;
-      if (j < 0 || j >= p.tandas.length) return p;
-      const slot = info?.slots[i];
-      if (slot) r.moveHint(slot);
-      const t = [...p.tandas];
-      [t[i], t[j]] = [t[j]!, t[i]!];
-      return renight(
-        p,
-        t.map((x, k) => ({ ...x, index: k })),
-      );
-    });
-  const toggle = (i: number, key: "locked" | "bypass") =>
-    edit((p) => ({
-      ...p,
-      tandas: p.tandas.map((t, k) => (k === i ? { ...t, [key]: t[key] ? undefined : true } : t)),
-    }));
+  const owner = !!info && info.createdBy === r.user;
+  /** a night becomes the one on screen (the composer's own is kept in History first) */
+  const adoptNight = (p: Playlist) => {
+    const st = useStore.getState();
+    const cur = st.playlist;
+    if (cur && cur.id !== p.id && !st.history.some((h) => h.playlist.id === cur.id))
+      st.addSnapshot(makeSnapshot(cur, cur.options, "compose"));
+    if (cur?.id !== p.id) setPlaylist(p);
+  };
+  const night = chosen ?? playlist;
 
   const saveUser = () => {
     if (nameDraft.trim() && nameDraft.trim() !== r.user) {
@@ -222,8 +187,11 @@ export default function RoomsPage() {
     saveUser();
     if (!useRooms.getState().user) return toast(tx("rooms.choose_your_name_first"));
     setBusy(true);
-    const ok = await r.create(roomName, withNight && !!playlist);
+    // 2026-11: the chosen night goes in (the current one unless the DJ picked another)
+    if (withNight && chosen) adoptNight(chosen);
+    const ok = await r.create(roomName, withNight && !!night);
     setBusy(false);
+    if (ok) setChosen(null);
     if (ok) {
       haptic(10);
       setRoomName("");
@@ -386,9 +354,7 @@ export default function RoomsPage() {
           <Group
             header={tx("rooms.new_room")}
             footer={
-              playlist
-                ? tx("rooms.everyone_in_the_room_edits_this")
-                : tx("rooms.compose_a_night_first_or_start")
+              night ? tx("rooms.everyone_in_the_room_edits_this") : tx("rooms.compose_a_night_first_or_start")
             }
           >
             <FieldRow label={tx("rooms.room_name")} id="room-name">
@@ -402,13 +368,30 @@ export default function RoomsPage() {
                 data-testid="room-name"
               />
             </FieldRow>
-            <SwitchRow
-              label={tx("rooms.start_with_my_current_night")}
-              sub={playlist ? playlist.name : tx("rooms.no_night_composed_yet")}
-              checked={withNight && !!playlist}
-              onChange={setWithNight}
-              disabled={!playlist}
-            />
+            <SwitchRow label={tx("rooms.start_with_a_night")} checked={withNight} onChange={setWithNight} />
+            {withNight && (
+              <Row
+                tile={
+                  night ? (
+                    <NightCover night={night} size={44} className="rounded-[8px]" />
+                  ) : (
+                    <Tile color="#8e8e93">
+                      <ListMusic size={16} strokeWidth={2} />
+                    </Tile>
+                  )
+                }
+                label={night ? night.name : tx("rooms.no_night_composed_yet")}
+                sub={
+                  night
+                    ? tx("rooms.night_facts", { n: night.tandas.length, date: day(night.createdAt) })
+                    : tx("rooms.choose_a_night_sub")
+                }
+                value={tx("rooms.choose")}
+                chevron
+                onClick={() => setPicking("create")}
+                data-testid="room-choose-night"
+              />
+            )}
             <ActionRow label={tx("rooms.create_room")} onClick={create} busy={busy} id="room-create" />
           </Group>
           {/* 2026-11: start a room from a Spotify / YouTube playlist or a file (app/import → "Start a room") */}
@@ -458,77 +441,16 @@ export default function RoomsPage() {
               )}
               {playlist && !r.waitingForNight && (
                 <>
-                  <Group
-                    header={tx("rooms.tandas", { length: playlist.tandas.length })}
-                    footer={tx("rooms.swap_songs_in_compose_every_dj")}
-                    data-testid="room-tandas"
-                  >
-                    {playlist.tandas.map((t, i) => (
-                      <div
-                        key={`${i}-${t.songs[0]?.id}`}
-                        className="cell gap-1 pr-1"
-                        data-leading="art"
-                        data-testid={`room-tanda-${i + 1}`}
-                      >
-                        <TandaPlayCover tanda={i} night={playlist}>
-                          <RhythmTile rhythm={t.rhythm} />
-                        </TandaPlayCover>
-                        <span className="min-w-0 flex-1">
-                          <span
-                            className={`block truncate ${t.bypass ? "text-[var(--label-3)] line-through" : ""}`}
-                          >
-                            {i + 1}. {t.orchestra}
-                            {t.singer ? ` · ${t.singer}` : ""}
-                          </span>
-                          <span className="text-footnote block truncate text-[var(--label-2)]">
-                            {t.songs.map((s) => s.title).join(" · ")}
-                          </span>
-                        </span>
-                        <IconButton
-                          label={
-                            t.locked
-                              ? tx("rooms.unlock_tanda", { p1: i + 1 })
-                              : tx("rooms.lock_tanda_keeps_it_when_the", { p1: i + 1 })
-                          }
-                          on={!!t.locked}
-                          onClick={() => toggle(i, "locked")}
-                          testId={`room-lock-${i + 1}`}
-                        >
-                          {t.locked ? <Lock size={18} aria-hidden /> : <LockOpen size={18} aria-hidden />}
-                        </IconButton>
-                        <IconButton
-                          label={
-                            t.bypass
-                              ? tx("rooms.play_tanda_tonight", { p1: i + 1 })
-                              : tx("rooms.skip_tanda_tonight_stays_in_exports", { p1: i + 1 })
-                          }
-                          on={!!t.bypass}
-                          onClick={() => toggle(i, "bypass")}
-                          testId={`room-skip-${i + 1}`}
-                        >
-                          <SkipForward size={18} aria-hidden />
-                        </IconButton>
-                        <IconButton
-                          label={tx("rooms.move_tanda_earlier", { p1: i + 1 })}
-                          onClick={() => move(i, -1)}
-                          disabled={i === 0}
-                          testId={`room-up-${i + 1}`}
-                        >
-                          <ArrowUp size={18} aria-hidden />
-                        </IconButton>
-                        <IconButton
-                          label={tx("rooms.move_tanda_later", { p1: i + 1 })}
-                          onClick={() => move(i, 1)}
-                          disabled={i === playlist.tandas.length - 1}
-                          testId={`room-down-${i + 1}`}
-                        >
-                          <ArrowDown size={18} aria-hidden />
-                        </IconButton>
-                        {/* 2026-11: insert / remove, as on Compose (the Insert sheet, the rule check, Undo, the guide) */}
-                        <SpotMenu playlist={playlist} i={i} apply={(x) => setPlaylist(x)} />
-                      </div>
-                    ))}
-                  </Group>
+                  {/* 2026-11 (the owner: "not all functions available in other editors are available in the
+                      rooms"): the whole night with Compose's editing — every change reaches the other DJs */}
+                  <NightEditor
+                    idPrefix="room"
+                    testId="room-tandas"
+                    onMovedTanda={(from) => {
+                      const slot = info?.slots[from];
+                      if (slot) r.moveHint(slot);
+                    }}
+                  />
                   <Group
                     header={tx("rooms.night_settings")}
                     footer={tx("rooms.a_change_here_reaches_every_dj")}
@@ -567,12 +489,39 @@ export default function RoomsPage() {
                       className="cell cell-tap"
                       data-leading="tile"
                       title={tx("rooms.swap_songs_and_tandas_in_the")}
+                      data-testid="room-open-compose"
                     >
                       <Tile color="#007aff">
                         <ListMusic size={16} strokeWidth={2} />
                       </Tile>
-                      <span className="min-w-0 flex-1">{tx("rooms.open_in_compose")}</span>
+                      <span className="min-w-0 flex-1">{tx("rooms.load_in_compose")}</span>
                     </Link>
+                    <Link
+                      href="/booth"
+                      className="cell cell-tap"
+                      data-leading="tile"
+                      title={tx("rooms.load_in_booth_tip")}
+                      data-testid="room-open-booth"
+                    >
+                      <Tile color="#af2c5a">
+                        <Play size={16} strokeWidth={2} />
+                      </Tile>
+                      <span className="min-w-0 flex-1">{tx("rooms.load_in_booth")}</span>
+                    </Link>
+                    {owner && (
+                      <TipRow
+                        tile={
+                          <Tile color="#5856d6">
+                            <Replace size={16} strokeWidth={2} />
+                          </Tile>
+                        }
+                        label={tx("rooms.switch_night")}
+                        chevron
+                        onClick={() => setPicking("switch")}
+                        tip={tx("rooms.switch_night_tip")}
+                        data-testid="room-switch-night"
+                      />
+                    )}
                   </Group>
                   {r.missing.length > 0 && (
                     <Group
@@ -609,28 +558,102 @@ export default function RoomsPage() {
               data-testid="room-rename"
             />
             <ActionRow label={tx("rooms.leave_room")} destructive onClick={r.leave} id="room-leave" />
+            {owner && (
+              <ActionRow
+                label={tx("rooms.close_room")}
+                destructive
+                onClick={() => setClosing({ code: info.code, server: info.server, name: info.name })}
+                id="room-close"
+              />
+            )}
           </Group>
         </>
       )}
 
       {previous.length > 0 && (
-        <Group header={tx("rooms.previous_rooms")} footer={tx("rooms.rooms_you_were_in_on_this")}>
-          {previous.map((p) => (
-            <TipRow
-              key={`${p.server}-${p.code}`}
-              tile={
-                <Tile color="#af52de">
-                  <DoorOpen size={16} strokeWidth={2} />
-                </Tile>
-              }
-              label={p.name}
-              sub={`${formatRoomCode(p.code)}${p.server ? ` · ${host(p.server)}` : ""} · ${day(p.lastSeen)}`}
-              chevron
-              onClick={() => void openPast(p)}
-              tip={tx("rooms.read_what_happened_in_this_room")}
-              data-testid={`room-past-${p.code}`}
-            />
-          ))}
+        <Group
+          header={
+            <span className="flex items-center justify-between gap-2">
+              <span>{tx("rooms.previous_rooms")}</span>
+              <button
+                type="button"
+                className="btn-plain min-h-11 text-[length:var(--text-subhead)] normal-case"
+                onClick={() => setEditing((v) => !v)}
+                aria-pressed={editing}
+                data-testid="rooms-edit"
+              >
+                {editing ? tx("rooms.done") : tx("rooms.edit")}
+              </button>
+            </span>
+          }
+          footer={tx("rooms.rooms_you_were_in_expire", { days: 30 })}
+          data-testid="rooms-previous"
+        >
+          {previous.map((p) => {
+            const left = expiresInDays(p.lastSeen);
+            const sub = `${formatRoomCode(p.code)}${p.server ? ` · ${host(p.server)}` : ""} · ${day(p.lastSeen)} · ${
+              left > 0 ? tx("rooms.expires_in", { n: left }) : tx("rooms.expired")
+            }`;
+            const remove = () => {
+              if (p.owner) return setClosing(p);
+              r.forget(p.code);
+              toast(tx("rooms.removed_from_list", { name: p.name }));
+            };
+            const row = (
+              <TipRow
+                tile={
+                  <Tile color="#af52de">
+                    <DoorOpen size={16} strokeWidth={2} />
+                  </Tile>
+                }
+                label={`${p.name}${p.owner ? ` · ${tx("rooms.yours")}` : ""}`}
+                sub={sub}
+                chevron={!editing}
+                onClick={() => void openPast(p)}
+                tip={tx("rooms.read_what_happened_in_this_room")}
+                data-testid={`room-past-${p.code}`}
+              />
+            );
+            return (
+              <div key={`${p.server}-${p.code}`} className="flex items-center" data-testid="room-past-row">
+                <div className="min-w-0 flex-1">
+                  <SwipeRow
+                    actions={[
+                      {
+                        kind: "destructive",
+                        label: p.owner ? tx("rooms.delete_room") : tx("rooms.remove"),
+                        icon: Trash2,
+                        onClick: remove,
+                      },
+                    ]}
+                  >
+                    {row}
+                  </SwipeRow>
+                </div>
+                {editing && (
+                  <button
+                    type="button"
+                    className="icon-btn icon-btn-bare h-11 w-11 shrink-0 text-[var(--destructive)]"
+                    aria-label={
+                      p.owner
+                        ? tx("rooms.delete_room_named", { name: p.name })
+                        : tx("rooms.remove_named", { name: p.name })
+                    }
+                    onClick={remove}
+                    data-testid={`room-delete-${p.code}`}
+                  >
+                    <Trash2 size={18} aria-hidden />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+          <ActionRow
+            label={tx("rooms.delete_old")}
+            destructive
+            onClick={() => setOldOpen(true)}
+            id="rooms-delete-old"
+          />
         </Group>
       )}
 
@@ -640,6 +663,7 @@ export default function RoomsPage() {
         title={tx("rooms.invite_djs")}
         trailing={tx("rooms.done")}
         testId="room-invite"
+        initialFocus="title"
       >
         {info && (
           <>
@@ -741,6 +765,99 @@ export default function RoomsPage() {
         </Group>
       </Sheet>
 
+      <NightPicker
+        open={picking !== null}
+        onClose={() => setPicking(null)}
+        title={picking === "switch" ? tx("rooms.switch_night") : tx("rooms.choose_a_night")}
+        action={picking === "switch" ? tx("rooms.switch_to_this_night") : tx("rooms.use_this_night")}
+        onUse={(p) => {
+          if (picking === "switch") setSwitchTo(p);
+          else setChosen(p);
+        }}
+      />
+      <Sheet
+        open={!!switchTo}
+        onClose={() => setSwitchTo(null)}
+        title={tx("rooms.switch_night")}
+        detents={["medium"]}
+        testId="room-switch-confirm"
+      >
+        {switchTo && (
+          <Group footer={tx("rooms.switch_night_footer")}>
+            <Row
+              tile={<NightCover night={switchTo} size={44} className="rounded-[8px]" />}
+              label={switchTo.name}
+              sub={tx("rooms.night_facts", { n: switchTo.tandas.length, date: day(switchTo.createdAt) })}
+            />
+            <ActionRow
+              label={tx("rooms.switch_for_everyone")}
+              onClick={async () => {
+                const p = switchTo;
+                setSwitchTo(null);
+                adoptNight(p);
+                if (await r.switchNight(p)) toast(tx("rooms.switched", { name: p.name }));
+              }}
+              id="room-switch-yes"
+            />
+          </Group>
+        )}
+      </Sheet>
+      <Sheet
+        open={!!closing}
+        onClose={() => setClosing(null)}
+        title={tx("rooms.close_room")}
+        detents={["medium"]}
+        testId="room-close-confirm"
+      >
+        {closing && (
+          <Group footer={tx("rooms.close_room_footer")}>
+            <Row label={closing.name} sub={formatRoomCode(closing.code)} />
+            <ActionRow
+              label={tx("rooms.close_for_everyone")}
+              destructive
+              onClick={async () => {
+                const c = closing;
+                setClosing(null);
+                if (await r.close({ code: c.code, server: c.server }))
+                  toast(tx("rooms.closed", { name: c.name }));
+              }}
+              id="room-close-yes"
+            />
+          </Group>
+        )}
+      </Sheet>
+      <Sheet
+        open={oldOpen}
+        onClose={() => setOldOpen(false)}
+        title={tx("rooms.delete_old")}
+        detents={["medium"]}
+        testId="rooms-delete-old-sheet"
+      >
+        <Group footer={tx("rooms.delete_old_footer")}>
+          <PickerRow
+            label={tx("rooms.idle_for")}
+            value={String(oldDays)}
+            items={[
+              ["7", tx("rooms.days", { n: 7 })],
+              ["14", tx("rooms.days", { n: 14 })],
+              ["30", tx("rooms.days", { n: 30 })],
+            ]}
+            onChange={(v) => v && setOldDays(Number(v))}
+          />
+          <ActionRow
+            label={tx("rooms.delete_old_n", {
+              n: previous.filter((p) => Date.parse(p.lastSeen) < Date.now() - oldDays * 864e5).length,
+            })}
+            destructive
+            onClick={async () => {
+              setOldOpen(false);
+              const n = await r.forgetOld(oldDays);
+              toast(tx("rooms.deleted_old", { n }));
+            }}
+            id="rooms-delete-old-yes"
+          />
+        </Group>
+      </Sheet>
       <Sheet
         open={!!past}
         onClose={() => setPast(null)}

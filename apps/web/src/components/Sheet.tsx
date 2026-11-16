@@ -27,6 +27,7 @@ export function Sheet({
   testId,
   footer,
   hideCancel = false,
+  initialFocus = "control",
 }: {
   open: boolean;
   onClose: () => void;
@@ -43,6 +44,11 @@ export function Sheet({
   footer?: ReactNode;
   /** an alert with one answer: no Cancel on desktop */
   hideCancel?: boolean;
+  /**
+   * 2026-11: where the focus goes when the sheet opens with no field to type in: the first control (default), or
+   * the title (a sheet of actions: no button looks pressed on open, the screen reader starts at the title)
+   */
+  initialFocus?: "control" | "title";
 }) {
   const panel = useRef<HTMLDivElement>(null);
   const body = useRef<HTMLDivElement>(null);
@@ -58,6 +64,31 @@ export function Sheet({
   // containing block for fixed descendants: the scrim and the sheet were confined to, and clipped by, the card.
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+  // 2026-11: the body has more below its fold (the fade at the foot shows only then)
+  const [more, setMore] = useState(false);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: measured again once the portal has mounted the body
+  useEffect(() => {
+    if (!open) return;
+    let el: HTMLDivElement | null = null;
+    const read = () => {
+      if (el) setMore(el.scrollHeight - el.clientHeight - el.scrollTop > 8);
+    };
+    const ro = typeof ResizeObserver === "function" ? new ResizeObserver(read) : null;
+    // (the body mounts with the sheet's first frame)
+    const id = requestAnimationFrame(() => {
+      el = body.current;
+      if (!el) return;
+      read();
+      el.addEventListener("scroll", read, { passive: true });
+      ro?.observe(el);
+      for (const c of el.children) ro?.observe(c);
+    });
+    return () => {
+      cancelAnimationFrame(id);
+      el?.removeEventListener("scroll", read);
+      ro?.disconnect();
+    };
+  }, [open, mounted]);
 
   // the open count lets the phone primary bar hide under any sheet (round5-design.md §1)
   useEffect(() => {
@@ -84,7 +115,10 @@ export function Sheet({
       if (!root || root.contains(document.activeElement)) return;
       (
         root.querySelector<HTMLElement>("[data-autofocus]") ??
-        root.querySelector<HTMLElement>("input:not([type=hidden]), button:not([disabled]), a[href]")
+        (initialFocus === "title"
+          ? (root.querySelector<HTMLElement>("input:not([type=hidden])") ??
+            root.querySelector<HTMLElement>(`[id="${titleId}"]`))
+          : root.querySelector<HTMLElement>("input:not([type=hidden]), button:not([disabled]), a[href]"))
       )?.focus({ preventScroll: true });
     }, 30);
     const onKey = (e: KeyboardEvent) => {
@@ -118,7 +152,7 @@ export function Sheet({
       unlock();
       prev?.focus?.({ preventScroll: true });
     };
-  }, [open, detentKey]);
+  }, [open, detentKey, initialFocus, titleId]);
 
   const panelMotion = useMemo(() => {
     if (reduced)
@@ -226,7 +260,7 @@ export function Sheet({
                   {tx("sheet.cancel")}
                 </button>
               )}
-              <h2 id={titleId} className="text-headline truncate px-16">
+              <h2 id={titleId} className="text-headline truncate px-16 outline-none" tabIndex={-1}>
                 {title}
               </h2>
               <div className="absolute right-2 flex items-center gap-1">
@@ -258,10 +292,13 @@ export function Sheet({
               }}
             >
               {children}
-              {/* a cut row at the medium detent reads as scrollable (round4-ux.md P2-7) */}
+              {/* a cut row at the medium detent reads as scrollable (round4-ux.md P2-7). 2026-11: only while there is
+                  more below — at the end it lay as a lighter band over the last footnote (the Invite sheet's) */}
               <div
-                className="pointer-events-none sticky bottom-0 -mb-4 h-6 bg-gradient-to-t from-[var(--material-thick)] to-transparent"
+                className={`pointer-events-none sticky bottom-0 -mb-4 h-6 bg-gradient-to-t from-[var(--material-thick)] to-transparent transition-opacity ${more ? "opacity-100" : "opacity-0"}`}
                 aria-hidden
+                data-testid="sheet-more-fade"
+                data-more={more ? "1" : "0"}
               />
             </div>
             {footer && (

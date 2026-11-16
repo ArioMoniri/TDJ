@@ -40,7 +40,14 @@ export async function spotifyCover(req: Request, d: ApiDeps): Promise<Response> 
       headers: { authorization: `Bearer ${s.access}`, "content-type": "image/jpeg" },
       body: jpeg,
     });
-    if (r.ok) return withCookie(json({ added: true }));
+    if (r.ok) {
+      // 2026-11: read back — the playlist now shows an image (Spotify processes it in a moment: null when unsure)
+      const verified = await d
+        .fetch(`${API()}/playlists/${id}/images`, { headers: { authorization: `Bearer ${s.access}` } })
+        .then(async (g) => (g.ok ? ((await g.json()) as unknown[] | null)?.length !== 0 : null))
+        .catch(() => null);
+      return withCookie(json({ added: verified !== false, verified }));
+    }
     return withCookie(
       json({ added: false, reason: r.status === 401 || r.status === 403 ? "scope" : "spotify" }),
     );

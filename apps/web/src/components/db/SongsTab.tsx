@@ -25,7 +25,7 @@ import { useSharedQuery } from "@/lib/usePageQuery";
 import { useSmartSearch } from "@/lib/useSmartSearch";
 import { metaLine, yearText } from "@/lib/year";
 import { loadMatches } from "@/lib/youtubeMatches";
-import { ActionRow, FieldRow, Group, PickerRow, RhythmTile, Row, SwitchRow } from "../Form";
+import { ActionRow, FieldRow, Group, PickerRow, Row, SwitchRow } from "../Form";
 import { ResolveSheet } from "../ResolveSheet";
 import { Sheet } from "../Sheet";
 import { SwipeRow } from "../SwipeRow";
@@ -33,6 +33,7 @@ import { Artwork } from "../ui/Artwork";
 import { EraBadge } from "../ui/EraBadge";
 import { PlayRow } from "../ui/PlayRow";
 import { SmartSearchField, SmartSearchResults } from "../ui/SmartSearch";
+import { SongArt } from "../ui/TandaArt";
 import { rhythmWord } from "../ui/TandaTypeBadge";
 import { Tip } from "../ui/Tip";
 import { Empty, patchMap, useDb, useDbEdit, ValueCell } from "./shared";
@@ -712,7 +713,7 @@ export function SongsTab() {
                     song={s as Song}
                     where={tx("play.database")}
                     leadingKind="tile"
-                    leading={<RhythmTile rhythm={s.rhythm} label={rhythmWord(s.rhythm)} />}
+                    leading={<SongArt song={s} label={rhythmWord(s.rhythm)} />}
                     sub={metaLine(s.orchestra, s.singer, s.rhythm, yearText(s.year))}
                     lengthSec={(s as Song).durationSec ?? null}
                   />

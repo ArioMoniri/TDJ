@@ -17,10 +17,11 @@ import { lengthOf, tandaTotal, totalText } from "@/lib/lengths";
 import { nightItems, PlayListContext, playTanda } from "@/lib/playback";
 import type { Playlist } from "@/lib/types";
 import { metaLine, yearText } from "@/lib/year";
-import { RhythmTile } from "./Form";
 import { Menu } from "./Menu";
 import { SELECT_TANDA_EVENT } from "./Sidebar";
+import { Artwork } from "./ui/Artwork";
 import { PlayRow } from "./ui/PlayRow";
+import { TandaArt } from "./ui/TandaArt";
 import { isMixedTanda, TandaTypeBadge } from "./ui/TandaTypeBadge";
 import { Tip } from "./ui/Tip";
 import { useDragReorder } from "./ui/useDragReorder";
@@ -87,7 +88,8 @@ export function TandaInspector({
     <aside className="inspector" aria-label={tx("tandaInspector.inspector")} data-testid="inspector">
       <div className="group-inset p-4">
         <div className="flex items-center gap-3">
-          <RhythmTile rhythm={t.rhythm} />
+          {/* 2026-11 (the owner: "image not getting loaded here"): the tanda's cover, its rhythm on the corner */}
+          <TandaArt tanda={t} size={56} testId="inspector-art" />
           <div className="min-w-0 flex-1">
             <p className="text-footnote text-[var(--label-2)]">
               {tx("tandaInspector.tanda_of", { p1: i + 1, length: playlist.tandas.length, rhythm: t.rhythm })}
@@ -199,10 +201,13 @@ export function TandaInspector({
             <PlayRow
               song={s}
               where={where}
-              leadingKind="num"
+              leadingKind="art"
               leading={
-                <span className="text-subhead inline-block w-5 tabular-nums text-[var(--label-2)]">
-                  {k + 1}
+                <span className="inspector-track-art">
+                  <Artwork entity={s} orchestra={s.orchestra} size={36} />
+                  <span className="inspector-track-n tabular-nums" aria-hidden>
+                    {k + 1}
+                  </span>
                 </span>
               }
               // 2026-11 (DJ review: titles cut to "Agu…" beside four columns): the energy and the length join the
@@ -273,7 +278,10 @@ export function TandaInspector({
           </li>
         ))}
         {t.cortina && (
-          <li className="cell">
+          <li className="cell" data-leading="art" data-testid="inspector-cortina">
+            <span className="inspector-track-art">
+              <Artwork entity={t.cortina} orchestra={t.cortina.artist} size={36} />
+            </span>
             <span className="text-footnote min-w-0 flex-1 truncate text-[var(--label-2)]">
               {tx("tandaInspector.cortina", { artist: t.cortina.artist, title: t.cortina.title })}
             </span>

@@ -33,6 +33,7 @@ import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
 import { t as tx } from "@/lib/i18n";
 import { Artwork } from "../ui/Artwork";
+import { Marquee } from "../ui/Marquee";
 import { useTip } from "../ui/Tip";
 import { ConfirmRing, useHoldConfirm } from "./Confirm";
 import { FadeButton } from "./FadeButton";
@@ -268,7 +269,10 @@ export function ControlStrip({
             size={40}
           />
           <span className="booth-strip-now-t">
-            <b>{nowItem.title}</b>
+            {/* 2026-11: a long title slides to show all of it (components/ui/Marquee.tsx) */}
+            <Marquee text={nowItem.title} testId="booth-strip-title">
+              <b>{nowItem.title}</b>
+            </Marquee>
             <span>{nowItem.artist}</span>
           </span>
         </div>

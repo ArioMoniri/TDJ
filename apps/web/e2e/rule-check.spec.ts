@@ -11,6 +11,7 @@ import http from "node:http";
 import type { Socket } from "node:net";
 import { join } from "node:path";
 import { type Browser, expect, type Page, test } from "@playwright/test";
+import { clickHydrated } from "./hydration";
 
 /** De Pura Cepa (D'Agostino, 1943): an instrumental side, offered for a chair of tanda 1 (D'Agostino / Vargas) */
 const INSTRUMENTAL = "De Pura Cepa";
@@ -181,6 +182,8 @@ test("an AI edit goes through the same check: the answer says what it breaks and
   const port = (agent.address() as { port: number }).port;
   try {
     await page.goto("/settings");
+    // (a click before the page hydrates is lost: wait until React owns the row)
+    await clickHydrated(page.locator("#model-add-agent"));
     const sheet = page.getByTestId("agent-sheet");
     // (the two Settings columns rebalance while the page loads: a click can land while the button moves)
     await expect(async () => {

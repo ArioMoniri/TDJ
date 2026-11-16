@@ -126,6 +126,17 @@ export class RoomClient {
     return this.send([{ type: "rename", name, base }], { since: base });
   }
   /**
+   * 2026-11: the room's owner closes it — the night, the log and the dancer hearts are deleted for everyone (a
+   * RoomError 403 for any other DJ; the room then answers 410 "closed by its owner" for a while).
+   */
+  close(): Promise<{ closed: true; code: string }> {
+    return call(this.f, this.url(), { method: "DELETE", body: JSON.stringify({ user: this.user }) });
+  }
+  /** 2026-11: the owner puts another night in the room (every DJ in it gets it, the log says so) */
+  switchNight(night: NightFile, base: number): Promise<RoomView> {
+    return this.send([{ type: "night", night, base }], { since: base, resolve: true });
+  }
+  /**
    * 2026-11, dancer hearts: `GET/POST <server>/api/rooms/<code>/hearts`. The booth says what is playing; a dancer
    * hearts it with their device's anonymous token; the DJ reads the night's counts.
    */

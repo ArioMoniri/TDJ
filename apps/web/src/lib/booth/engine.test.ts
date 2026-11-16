@@ -497,6 +497,54 @@ describe("state machine (§6.2)", () => {
     expect(e.planIndex).toBe(3);
   });
 
+  it("undo (2026-11): marks() / restoreMarks() put back a skip, a cued cortina and the birthday hold", async () => {
+    const plan = build(set({ thirdTanda: true }));
+    const e = engineFor(ctx, plan);
+    await e.start();
+    await e.play();
+    const before = e.marks();
+    e.next(); // a2 left out
+    await flush();
+    expect(ctx.sources.at(-1)!.starts[0]![2]).toBe(45); // the cortina is queued
+    expect(e.skipped.has(1)).toBe(true);
+    const afterSkip = e.marks();
+    e.restoreMarks(before);
+    await flush();
+    expect(e.skipped.has(1)).toBe(false);
+    // the queued item is a2 again (re-chosen, it had not started)
+    expect(ctx.sources.at(-1)!.starts[0]![2]).not.toBe(45);
+    // redo
+    e.restoreMarks(afterSkip);
+    expect(e.skipped.has(1)).toBe(true);
+    e.restoreMarks(before);
+    // birthday: marked and held, then undone
+    const b0 = e.marks();
+    e.birthdayVals();
+    expect(e.holdBefore).toBe(3);
+    e.restoreMarks(b0);
+    expect(e.holdBefore).toBeNull();
+    expect(plan.items[3]!.birthday).toBeUndefined();
+    // hold, then undo: not holding
+    const h0 = e.marks();
+    e.hold();
+    expect(e.holding).toBe(true);
+    e.restoreMarks(h0);
+    expect(e.holding).toBe(false);
+    expect(e.log.at(-1)?.reason).toBe("undo");
+  });
+
+  it("undo never reaches an item already reached: it stays as it played", async () => {
+    const e = engineFor(ctx, build(set({ thirdTanda: true })));
+    await e.start();
+    await e.play();
+    const before = e.marks();
+    e.next(); // a2 left out
+    ctx.advance(0.05 + 170);
+    await flush(); // the cortina plays now (index 2): a2 was passed
+    e.restoreMarks(before);
+    expect(e.skipped.has(1)).toBe(true);
+  });
+
   it("the cortina fader at 0 ends the cortina now and the next tanda starts gapSec after", async () => {
     const e = engineFor(ctx, build(set()));
     await e.start();

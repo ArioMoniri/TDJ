@@ -22,8 +22,11 @@ describe("/api/spotify/cover (fake Spotify)", () => {
   it("PUTs the JPEG with the session's token", async () => {
     const { d, calls } = deps({ access: "srv", expires: 0, scopes: ["ugc-image-upload"] });
     const r = await spotifyCover(post({ playlistId: "pl1", jpeg: "/9j/AA==" }), d);
-    expect(await r.json()).toEqual({ added: true });
-    expect(calls).toHaveLength(1);
+    // (2026-11: then read back: the fake answers no list, so the check cannot tell)
+    expect(await r.json()).toEqual({ added: true, verified: null });
+    expect(calls).toHaveLength(2);
+    expect(calls[1]!.url).toMatch(/\/playlists\/pl1\/images$/);
+    expect(calls[1]!.init?.method).toBeUndefined();
     expect(calls[0]!.url).toMatch(/\/playlists\/pl1\/images$/);
     expect(calls[0]!.init?.method).toBe("PUT");
     const headers = (calls[0]!.init?.headers ?? {}) as Record<string, string>;

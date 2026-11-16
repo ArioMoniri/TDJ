@@ -2,6 +2,7 @@
 import { Star } from "lucide-react";
 import { useState } from "react";
 import { useBooth } from "@/lib/booth/store";
+import { recordMemoryEdit } from "@/lib/booth/undo";
 import { haptic } from "@/lib/haptics";
 import { t } from "@/lib/i18n";
 import { isPraised, praiseTanda } from "@/lib/praise";
@@ -41,7 +42,9 @@ export function PraiseTanda({
     if (!playlist || disabled) return;
     haptic(8);
     if (praised) {
-      useStore.getState().updateMemory((m) => praiseTanda(m, playlist, tanda));
+      recordMemoryEdit(t("boothUndo.praise_off", { tanda: Math.max(1, tanda) }), () =>
+        useStore.getState().updateMemory((m) => praiseTanda(m, playlist, tanda)),
+      );
       toast(t("praise.cleared_toast"));
       return;
     }
@@ -50,7 +53,10 @@ export function PraiseTanda({
   };
   const save = () => {
     if (!playlist) return;
-    useStore.getState().updateMemory((m) => praiseTanda(m, playlist, tanda, note));
+    // 2026-11: ⌘Z takes the praise back (lib/booth/undo.ts)
+    recordMemoryEdit(t("boothUndo.praise", { tanda: Math.max(1, tanda) }), () =>
+      useStore.getState().updateMemory((m) => praiseTanda(m, playlist, tanda, note)),
+    );
     setOpen(false);
     toast(t("praise.saved_toast"));
   };

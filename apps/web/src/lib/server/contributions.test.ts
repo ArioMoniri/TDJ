@@ -18,6 +18,7 @@ vi.mock("@aws-sdk/lib-dynamodb", () => ({
   GetCommand: fake.doc.Get,
   PutCommand: fake.doc.Put,
   UpdateCommand: fake.doc.Update,
+  DeleteCommand: fake.doc.Delete,
 }));
 
 process.env.TDJ_CONFIG_BACKEND = "memory";

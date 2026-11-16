@@ -269,6 +269,16 @@ export function fileHookSec(buffer: AudioBuffer): number | null {
   return energyHook(env, 0.5)?.startSec ?? null;
 }
 
+/** 2026-11: the Booth's decisions about what comes next (BoothEngine.marks / restoreMarks) */
+export interface BoothMarks {
+  skipped: number[];
+  holdBefore: number | null;
+  holding: boolean;
+  breakUntil: number | null;
+  forcedNext: number | null;
+  birthday: number[];
+}
+
 export interface EngineOptions {
   adapters: SourceAdapter[];
   settings?: Partial<BoothSettings>;
@@ -932,6 +942,45 @@ export class BoothEngine {
       }
     }
     this.transition(this.state, "undo skip");
+  }
+
+  /**
+   * 2026-11 (the owner: "every Booth action should have a Cmd+Z"): what the DJ decided about what comes next — the
+   * left-out items, the hold, the hold before a tanda, the break, the forced next item, the birthday marks — so the
+   * Booth's undo history (lib/booth/undo.ts) can put them back. Additive: nothing else reads it.
+   */
+  marks(): BoothMarks {
+    return {
+      skipped: [...this.skipped].sort((a, b) => a - b),
+      holdBefore: this.holdBefore,
+      holding: this.holding,
+      breakUntil: this.breakUntil,
+      forcedNext: this.forcedNext,
+      birthday: (this.plan?.items ?? []).flatMap((it, i) => (it.birthday ? [i] : [])),
+    };
+  }
+  /**
+   * Puts `m` back for what has not played yet: an item already reached keeps what happened to it (it was heard, or
+   * left out, in the room). The queued next item is re-chosen when it has not started.
+   */
+  restoreMarks(m: BoothMarks): void {
+    const here = this.current?.planIndex ?? this.planIndex;
+    const ahead = (i: number) => i > here;
+    for (const i of [...this.skipped]) if (ahead(i)) this.skipped.delete(i);
+    for (const i of m.skipped) if (ahead(i)) this.skipped.add(i);
+    this.holdBefore = m.holdBefore !== null && ahead(m.holdBefore) ? m.holdBefore : null;
+    this.holding = m.holding;
+    this.breakUntil = m.breakUntil;
+    this.forcedNext = m.forcedNext !== null && ahead(m.forcedNext) ? m.forcedNext : null;
+    this.plan?.items.forEach((it, i) => {
+      if (!ahead(i)) return;
+      if (m.birthday.includes(i)) it.birthday = true;
+      else delete it.birthday;
+    });
+    if (this.live && this.queued && (!this.queued.started || this.queued.when > this.ctx.currentTime + 0.05))
+      this.cancelQueued();
+    if (this.live) void this.scheduleNext();
+    this.transition(this.state, "undo");
   }
 
   /**

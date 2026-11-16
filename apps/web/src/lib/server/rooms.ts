@@ -38,8 +38,15 @@ export function roomStoreKind(): RoomStoreKind | null {
   return "memory";
 }
 
-/** rooms and short links are forgotten this long after their last change */
-const TTL_DAYS = 90;
+/**
+ * rooms and short links are forgotten this long after their last use: every write of a room (an edit, a DJ coming
+ * in — presence is written at most every 20 s —, the playing song, a heart) moves its `ttl` on, so a room in use
+ * stays and an idle one expires on its own (DynamoDB's TTL on `ttl`; 2026-11: 30 days, was 90)
+ */
+export const ROOM_TTL_DAYS = 30;
+const TTL_DAYS = ROOM_TTL_DAYS;
+/** a closed room's code answers "closed by its owner" this long (then: no such room) */
+const CLOSED_TTL_DAYS = 7;
 const SHORT_TTL_DAYS = 30;
 const ttl = (days: number) => Math.floor(Date.now() / 1000) + days * 86400;
 
@@ -101,6 +108,7 @@ const storedRoom = (room: RoomState): RoomState => {
 interface Mem {
   rooms: Map<string, RoomItem>;
   nights: Map<string, { night: NightFile; expires: number }>;
+  closed?: Map<string, { by: string; expires: number }>;
 }
 // (items, not bare rooms: a dev server reloaded over the older layout starts from an empty store)
 const g = globalThis as unknown as { __tdjRoomStore?: Mem };
@@ -187,6 +195,53 @@ async function write(room: RoomState, expect: number | null): Promise<void> {
 
 export function getRoom(code: string): Promise<RoomState | null> {
   return read(code);
+}
+
+/**
+ * 2026-11 (the owner: "rooms can be deletable"): the room's owner (the DJ who made it) closes it. The whole item
+ * goes — the night, the log, the playing song and every dancer heart (they are its attributes) — and the code keeps
+ * a small tombstone for a week, so the other DJs in it read "closed by its owner" instead of "no such room".
+ * "forbidden": `user` did not make the room; null: no such room.
+ */
+export async function closeRoom(code: string, user: string): Promise<"closed" | "forbidden" | null> {
+  const kind = roomStoreKind();
+  const cur = await read(code);
+  if (!cur) return null;
+  if (cur.createdBy !== user) return "forbidden";
+  if (kind === "memory") {
+    mem().rooms.delete(code);
+    const m = mem();
+    if (!m.closed) m.closed = new Map();
+    const closed = m.closed;
+    closed.set(code, { by: user, expires: Date.now() + CLOSED_TTL_DAYS * 864e5 });
+    return "closed";
+  }
+  if (kind !== "dynamo") return null;
+  const { send, Delete, Put } = await dynamoDoc();
+  const TableName = process.env.TDJ_DB_TABLE;
+  await send(new Delete({ TableName, Key: { pk: `room#${code}` } }));
+  await send(
+    new Put({
+      TableName,
+      Item: { pk: `closed#${code}`, by: user, at: new Date().toISOString(), ttl: ttl(CLOSED_TTL_DAYS) },
+    }),
+  );
+  return "closed";
+}
+
+/** 2026-11: who closed the room with this code (within a week), or null */
+export async function closedBy(code: string): Promise<string | null> {
+  const kind = roomStoreKind();
+  if (kind === "memory") {
+    const hit = mem().closed?.get(code);
+    return hit && hit.expires > Date.now() ? hit.by : null;
+  }
+  if (kind !== "dynamo") return null;
+  const { send, Get } = await dynamoDoc();
+  const r = await send(new Get({ TableName: process.env.TDJ_DB_TABLE, Key: { pk: `closed#${code}` } }));
+  const t = Number(r.Item?.ttl ?? 0);
+  if (!r.Item || (t && t * 1000 < Date.now())) return null;
+  return typeof r.Item.by === "string" ? r.Item.by : "";
 }
 
 /** A new room under a free code (a taken code is retried with another). */
