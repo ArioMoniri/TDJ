@@ -234,7 +234,7 @@ button.heat-cell {
 .side-panel-handle[data-dragging]::after {
   opacity: 1;
 }
-@media (min-width: 1024px) {
+@media (min-width: 900px) {
   html[data-side-panel] main {
     margin-right: var(--side-panel-w, 380px);
     transition: margin-right var(--dur-s, 200ms) ease-out;

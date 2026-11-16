@@ -10,7 +10,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { useMediaQuery } from "@/lib/hooks";
+import { useMediaQuery, WIDE_PX } from "@/lib/hooks";
 
 interface ToolbarState {
   title: string;
@@ -112,7 +112,7 @@ export function PageHeader({
       const over =
         w < 600
           ? bar.current
-          : w < 1024
+          : w < WIDE_PX
             ? document.querySelector<HTMLElement>('[data-testid="nav-pill-band"]')
             : header.current;
       const edge = over ? over.getBoundingClientRect().bottom : 56;
