@@ -39,8 +39,10 @@
   background: var(--fill-4);
   white-space: nowrap;
 }
+/* 2026-11 (QA: a faded Learn read 1.9:1): disabled keeps a readable secondary label (≥ 3:1), not a 40 % ghost */
 .vc-text-btn:disabled {
-  opacity: 0.4;
+  color: var(--label-2);
+  cursor: not-allowed;
 }
 .vc-text-btn[aria-pressed="true"],
 .vc-text-btn[data-armed] {

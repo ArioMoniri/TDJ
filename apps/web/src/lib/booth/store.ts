@@ -24,6 +24,7 @@ import { playsIn } from "@/lib/favourites";
 import { makeNightLog, makeSnapshot } from "@/lib/history";
 import { t as tx } from "@/lib/i18n";
 import { boothCortinaStop, musicSec } from "@/lib/lengths";
+import { cancelPowerFrame, frameBudget, isSaving, powerFrame } from "@/lib/power";
 import { markSpotifyBurst } from "@/lib/spotifyBurst";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
@@ -1954,7 +1955,7 @@ function derive(plan: BoothRows, planIndex: number, position: number, cap: (i: n
 
 /** 30 fps while the night runs (10 fps with reduced motion): position, remaining, drift, the meter. */
 function tick(now: number) {
-  raf = requestAnimationFrame(tick);
+  raf = powerFrame(tick); // Battery saver: 4 fps (lib/power.ts)
   const reduced = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (now - lastTick < (reduced ? 100 : 33)) return;
   lastTick = now;
@@ -1972,7 +1973,11 @@ function tick(now: number) {
     meter: eng.state === "playing" || eng.state === "cortina" ? eng.meter() : { rms: -100, peak: -100 },
   });
   if (breakOver) void s.endBreak();
-  if (eng.current && media && Math.floor(now / 5000) !== Math.floor((now - 34) / 5000))
+  if (
+    eng.current &&
+    media &&
+    Math.floor(now / 5000) !== Math.floor((now - frameBudget(34, isSaving())) / 5000)
+  )
     media.setPosition(eng.currentLength(), eng.position());
 }
 /** where the night is now (the item and the seconds into it), for a fade's Undo */
@@ -2020,7 +2025,7 @@ function startFadeRun(
 }
 
 function startTicking() {
-  if (!raf && typeof requestAnimationFrame === "function") raf = requestAnimationFrame(tick);
+  if (!raf && typeof requestAnimationFrame === "function") raf = powerFrame(tick);
 }
 /**
  * 2026-11 (the slider drifted from what plays): every slider reads the store's `position`, which is always read from
@@ -2033,7 +2038,7 @@ if (typeof document !== "undefined")
     useBooth.setState({ position: engine.position() });
   });
 function stopTicking() {
-  if (raf) cancelAnimationFrame(raf);
+  if (raf) cancelPowerFrame(raf);
   raf = 0;
 }
 
@@ -2101,3 +2106,13 @@ setConfirmNeeded(() => {
   const s = useBooth.getState();
   return s.started && (s.state === "playing" || s.state === "cortina");
 });
+
+/**
+ * Battery saver (lib/power.ts, components/PowerSaver.tsx): the screen is kept awake only while the night plays — let
+ * go while it is paused, taken again when it plays. Not saving, the night holds it from Start to the end, as before.
+ */
+export function boothKeepAwake(on: boolean): void {
+  if (!media || !useBooth.getState().started) return;
+  if (on) void media.acquire();
+  else void media.release();
+}

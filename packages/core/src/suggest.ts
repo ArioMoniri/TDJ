@@ -14,6 +14,7 @@ import {
 import { familyKey, learnedFamilyWeight, learnedSideFactor, mergeLearned } from "./learn";
 import { withEraSettings } from "./profiles";
 import { recue } from "./repair";
+import type { Succession } from "./succession";
 import { composePoints, succession, successionLine, successionSideOfSongs } from "./succession";
 import { renight, retimeTanda } from "./swap";
 import { isTandaEligible, shapeTanda } from "./tanda";
@@ -32,6 +33,42 @@ export const SUGGEST_SUCCESSION = 0.5;
 /** …at most this much either way (the energy rules — a lift after two calm tandas — keep the lead) */
 export const SUGGEST_SUCCESSION_MAX = 5;
 
+/**
+ * 2026-11 — one reason as data, beside its English words (`reasons`, for the CLI and the AI prompts): the app says
+ * it in the DJ's language (`suggest.why.<code>` in apps/web lib/i18n, the succession one through its own words).
+ */
+export type SuggestWhyCode =
+  | "lift_after_calm"
+  | "breather"
+  | "fits_arc"
+  | "big_four_due"
+  | "not_played"
+  | "last_played"
+  | "same_decade"
+  | "succession"
+  | "liked_nights"
+  | "often_chosen"
+  | "disliked_nights"
+  | "replaced_before"
+  | "floor_filled_family"
+  | "floor_emptied_family"
+  | "floor_favourite"
+  | "family_for_slot"
+  | "same_singer_side"
+  | "instrumental_side"
+  | "lifts_tanda"
+  | "settles_tanda"
+  | "side_chosen_before"
+  | "floor_filled_side";
+export interface SuggestWhy {
+  code: SuggestWhyCode;
+  /** the numbers and names the sentence carries (energies, years, a count, an orchestra, a rhythm) */
+  vars?: Record<string, string | number>;
+  /** `succession`: how it follows the last tanda, and that tanda's orchestra */
+  succession?: Succession;
+  prev?: string;
+}
+
 export interface NextSuggestion {
   /** the family key (orchestraId|singer|rhythm), plus the side id for a single-side suggestion */
   key: string;
@@ -45,8 +82,10 @@ export interface NextSuggestion {
   energy: number;
   years: [number, number] | null;
   score: number;
-  /** why, best reason first, in DJ words */
+  /** why, best reason first, in DJ words (English) */
   reasons: string[];
+  /** the same reasons as data, in the same order (the app's words in the DJ's language) */
+  why: SuggestWhy[];
   /** 2026-11: dancers filled the floor with it in this slot's role (♥) */
   favourite?: boolean;
 }
@@ -192,17 +231,39 @@ function suggestSides(
       (ff - 1) * 30 +
       10;
     const reasons: string[] = [];
-    reasons.push(
-      `${s0.vocal ? `same singer (${s0.singer})` : "instrumental, like the tanda"}, recorded ${s.year ?? "?"} beside ${ys.length ? (Math.min(...ys) === Math.max(...ys) ? Math.min(...ys) : `${Math.min(...ys)}–${Math.max(...ys)}`) : "?"}`,
+    const why: SuggestWhy[] = [];
+    const add = (text: string, w: SuggestWhy) => {
+      reasons.push(text);
+      why.push(w);
+    };
+    const beside = ys.length
+      ? Math.min(...ys) === Math.max(...ys)
+        ? `${Math.min(...ys)}`
+        : `${Math.min(...ys)}–${Math.max(...ys)}`
+      : "?";
+    add(
+      `${s0.vocal ? `same singer (${s0.singer})` : "instrumental, like the tanda"}, recorded ${s.year ?? "?"} beside ${beside}`,
+      s0.vocal
+        ? { code: "same_singer_side", vars: { singer: s0.singer ?? "", year: s.year ?? "?", beside } }
+        : { code: "instrumental_side", vars: { year: s.year ?? "?", beside } },
     );
     if (chair < size - 1 && e > (last.energy ?? 50))
-      reasons.push(`lifts the tanda (energy ${Math.round(e)} after ${Math.round(last.energy ?? 50)})`);
+      add(`lifts the tanda (energy ${Math.round(e)} after ${Math.round(last.energy ?? 50)})`, {
+        code: "lifts_tanda",
+        vars: { e: Math.round(e), after: Math.round(last.energy ?? 50) },
+      });
     else if (chair === size - 1 && e <= (last.energy ?? 50) + 2)
-      reasons.push(`settles the tanda to close it (energy ${Math.round(e)})`);
-    if ((s.fame ?? 0) >= 3) reasons.push("a floor favourite with DJs");
-    if (lf > 1) reasons.push("you chose this side before");
+      add(`settles the tanda to close it (energy ${Math.round(e)})`, {
+        code: "settles_tanda",
+        vars: { e: Math.round(e) },
+      });
+    if ((s.fame ?? 0) >= 3) add("a floor favourite with DJs", { code: "floor_favourite" });
+    if (lf > 1) add("you chose this side before", { code: "side_chosen_before" });
     const heart = !!fav && isFavouriteSide(fav.table, s.id, fav.role);
-    if (heart) reasons.unshift("♥ dancers filled the floor with it here");
+    if (heart) {
+      reasons.unshift("♥ dancers filled the floor with it here");
+      why.unshift({ code: "floor_filled_side" });
+    }
     out.push({
       key: `${familyKey(s)}|${s.id}`,
       kind: "song",
@@ -215,6 +276,7 @@ function suggestSides(
       years: s.year ? [s.year, s.year] : null,
       score: Math.round(score * 10) / 10,
       reasons,
+      why,
       ...(heart ? { favourite: true } : {}),
     });
   }
@@ -354,37 +416,60 @@ export function suggestNext(draft: Song[][], deps: ComposeDeps, opts: SuggestOpt
     const ys = yearsOf(rep);
     const tier = deps.catalog.profile(orch)?.tier ?? 3;
     const fame = mean(rep.map((s) => s.fame ?? 0));
-    const reasons: Array<[number, string]> = [];
+    const reasons: Array<[number, string, SuggestWhy]> = [];
     // wave 2: fit to the plan's energy weighs most (2 a point: a headline family 25 points over a warm-up slot
     // planned at 51 no longer leads the list; the lift after two calm tandas still counts through `want`)
     let score = (tier === 1 ? 10 : tier === 2 ? 5 : 0) + fame * 3 - Math.abs(e - want) * 2;
     if (calm) {
       if (e > lastMean + 3)
-        reasons.push([30, `lifts the energy after two calm tandas (${e} after ${Math.round(lastMean)})`]);
+        reasons.push([
+          30,
+          `lifts the energy after two calm tandas (${e} after ${Math.round(lastMean)})`,
+          { code: "lift_after_calm", vars: { e, after: Math.round(lastMean) } },
+        ]);
       else score -= 15;
     } else if (strong) {
       if (e < lastMean - 3)
         reasons.push([
           30,
           `gives the floor a breather after two strong tandas (${e} after ${Math.round(lastMean)})`,
+          { code: "breather", vars: { e, after: Math.round(lastMean) } },
         ]);
       else score -= 15;
     } else if (Math.abs(e - target) <= 6)
-      reasons.push([12, `fits the arc here (energy ${e}, plan ${Math.round(target)})`]);
+      reasons.push([
+        12,
+        `fits the arc here (energy ${e}, plan ${Math.round(target)})`,
+        { code: "fits_arc", vars: { e, plan: Math.round(target) } },
+      ]);
     if (isBig(orch) && sinceBig >= 2 && tandas.length >= 2) {
       // (wave 2: scaled with the energy weight, so a due big-four tanda still rises to the top three)
       score += 12 * Math.min(sinceBig, 4);
-      reasons.push([25, `a big four tanda is due (none in the last ${sinceBig})`]);
+      reasons.push([
+        25,
+        `a big four tanda is due (none in the last ${sinceBig})`,
+        { code: "big_four_due", vars: { n: sinceBig } },
+      ]);
     }
     if (seen === undefined) {
       score += 4;
-      if (tandas.length) reasons.push([6, "not played yet tonight"]);
-    } else reasons.push([5, `${s0.orchestra} last played ${tandas.length - seen} tandas ago`]);
+      if (tandas.length) reasons.push([6, "not played yet tonight", { code: "not_played" }]);
+    } else
+      reasons.push([
+        5,
+        `${s0.orchestra} last played ${tandas.length - seen} tandas ago`,
+        { code: "last_played", vars: { orchestra: s0.orchestra, n: tandas.length - seen } },
+      ]);
     if (prevYear !== null && ys) {
       const y = (ys[0] + ys[1]) / 2;
       const d = Math.abs(y - prevYear);
       score -= Math.min(d, 15) * 1.2;
-      if (d <= 3) reasons.push([10, `stays in the ${Math.floor(y / 10) * 10}s, the years of the last tanda`]);
+      if (d <= 3)
+        reasons.push([
+          10,
+          `stays in the ${Math.floor(y / 10) * 10}s, the years of the last tanda`,
+          { code: "same_decade", vars: { decade: Math.floor(y / 10) * 10 } },
+        ]);
     }
     // 2026-11 — succession (succession.ts): how it follows the last tanda (the parts the energy fit above does not
     // already weigh), and the one-line why
@@ -404,27 +489,47 @@ export function suggestNext(draft: Song[][], deps: ComposeDeps, opts: SuggestOpt
         -SUGGEST_SUCCESSION_MAX,
         Math.min(SUGGEST_SUCCESSION_MAX, composePoints(su) * SUGGEST_SUCCESSION),
       );
-      if (su.verdict === "good") reasons.push([15, successionLine(su, prev[0]!.orchestra)]);
-      else if (su.warning) reasons.push([2, successionLine(su, prev[0]!.orchestra)]);
+      const sw: SuggestWhy = { code: "succession", succession: su, prev: prev[0]!.orchestra };
+      if (su.verdict === "good") reasons.push([15, successionLine(su, prev[0]!.orchestra), sw]);
+      else if (su.warning) reasons.push([2, successionLine(su, prev[0]!.orchestra), sw]);
     }
     const lv = learnedFamilyWeight(L, key, ys);
     if (lv !== undefined) {
       score += lv * 6;
       const fromLikes = L.families?.[key] === undefined;
-      if (lv > 0) reasons.push([20, fromLikes ? "from nights you liked" : "you often choose this family"]);
+      if (lv > 0)
+        reasons.push([
+          20,
+          fromLikes ? "from nights you liked" : "you often choose this family",
+          { code: fromLikes ? "liked_nights" : "often_chosen" },
+        ]);
       else if (lv < 0)
-        reasons.push([4, fromLikes ? "from nights you disliked" : "you replaced this family before"]);
+        reasons.push([
+          4,
+          fromLikes ? "from nights you disliked" : "you replaced this family before",
+          { code: fromLikes ? "disliked_nights" : "replaced_before" },
+        ]);
     }
     const fv = favAt(slot);
     const ff = fv ? favouriteFamilyFactor(fv.table, key, fv.role, ys) : 1;
     if (ff !== 1) {
       score += (ff - 1) * 40;
-      if (ff > 1) reasons.push([40, "♥ dancers filled the floor with this family here"]);
-      else reasons.push([2, "the floor emptied for this family here before"]);
+      if (ff > 1)
+        reasons.push([
+          40,
+          "♥ dancers filled the floor with this family here",
+          { code: "floor_filled_family" },
+        ]);
+      else
+        reasons.push([2, "the floor emptied for this family here before", { code: "floor_emptied_family" }]);
     }
-    if (fame >= 3) reasons.push([3, "a floor favourite with DJs"]);
+    if (fame >= 3) reasons.push([3, "a floor favourite with DJs", { code: "floor_favourite" }]);
     if (!reasons.length)
-      reasons.push([1, `a ${tier === 1 ? "headline" : "strong"} ${rhythm} family for this slot`]);
+      reasons.push([
+        1,
+        `a ${tier === 1 ? "headline" : "strong"} ${rhythm} family for this slot`,
+        { code: "family_for_slot", vars: { tier: tier === 1 ? "headline" : "strong", rhythm } },
+      ]);
     out.push({
       key,
       kind: "tanda",
@@ -436,7 +541,10 @@ export function suggestNext(draft: Song[][], deps: ComposeDeps, opts: SuggestOpt
       energy: e,
       years: ys,
       score: Math.round(score * 10) / 10,
-      reasons: reasons.sort((a, b) => b[0] - a[0]).map((r) => r[1]),
+      ...(() => {
+        const sorted = reasons.sort((a, b) => b[0] - a[0]);
+        return { reasons: sorted.map((r) => r[1]), why: sorted.map((r) => r[2]) };
+      })(),
       ...(ff > 1 ? { favourite: true } : {}),
     });
   }

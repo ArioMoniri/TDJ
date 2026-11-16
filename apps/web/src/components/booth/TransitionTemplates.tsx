@@ -21,7 +21,7 @@ import {
   type TransitionTemplate,
   useTemplates,
 } from "@/lib/booth/transitionTemplates";
-import { type MsgKey, t } from "@/lib/i18n";
+import { fmtSec, type MsgKey, t } from "@/lib/i18n";
 import { toast } from "@/lib/toast";
 import { Group, PickerRow, Row, Tile } from "../Form";
 import { Sheet } from "../Sheet";
@@ -217,7 +217,7 @@ export function TransitionTemplatesGroup() {
 const SEC = (lo: number, hi: number, step = 0.5) => {
   const out: Array<[string, string]> = [];
   for (let v = lo; v <= hi + 1e-9; v += step)
-    out.push([String(Math.round(v * 10) / 10), `${Math.round(v * 10) / 10} s`]);
+    out.push([String(Math.round(v * 10) / 10), fmtSec(Math.round(v * 10) / 10)]);
   return out;
 };
 

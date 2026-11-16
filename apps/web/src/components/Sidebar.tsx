@@ -58,6 +58,92 @@ function apply(s: Saved) {
   else delete r.dataset.sidebar;
 }
 
+/*
+ * 2026-11 (the owner: "the parts resizing when the sidebar opens and closes is so laggy"; a trace of a long night on
+ * Compose: ~100 ms of layout and a whole-document restyle per frame). The page used to follow the sidebar through
+ * the root's `--sidebar-w`, a transitioned custom property every element inherits: each frame of a collapse or a
+ * drag restyled all ~9,500 elements and laid `main` out at a new width (tanda grid, energy charts, the Booth deck and
+ * every ResizeObserver behind them). Now, while the sidebar moves:
+ * - the sidebar slides on the compositor (its own `data-collapsed`, set by React in the click);
+ * - `main` keeps one width (the wider of before and after: clipped on the right, never a gap) and glides by its own
+ *   margin; the Booth's docked bars and the toast glide by `translate` at their final width;
+ * - the root's variables (`data-sidebar`, `--sidebar-open-w`) change once, when the motion ends (a collapse or
+ *   expand) or on release (a drag), so the one whole-document restyle never lands in a moving frame.
+ * Reduce Motion and screens below lg change at once, as before.
+ */
+/** the elements outside `main` placed from `--sidebar-w` (booth.css `--bx-l`, the toast) */
+const FOLLOWERS = ".booth .booth-strip, .booth .booth-ctl, .app-toast";
+const EASE = "cubic-bezier(0.2, 0.8, 0.2, 1)"; // --ease-settle
+/**
+ * the page's offset for a sidebar state, from the state itself: no style read (a getComputedStyle of the root's
+ * variable or of a docked bar's `left` forced a style and layout pass of the whole night, ~40–150 ms, in the click)
+ */
+const offsetOf = (s: Saved) => {
+  const r = document.documentElement;
+  const traffic = r.classList.contains("titlebar-overlay") && r.dataset.fullscreen === undefined ? 78 : 0;
+  return s.collapsed ? traffic + 52 : s.w;
+};
+const moving = () =>
+  matchMedia("(min-width: 1024px)").matches && !matchMedia("(prefers-reduced-motion: reduce)").matches;
+let running: { anims: Animation[]; finish: () => void } | null = null;
+
+/**
+ * one collapse or expand: the motion first, the root's state when it ends (see above). `begin` sets the sidebar's
+ * own state (its compositor slide). A collapse first lays the page out at its wider width while nothing moves yet
+ * (one frame), so no frame of the slide ever holds that layout; an expand keeps the wide width until it ends.
+ */
+function animateSidebar(prev: Saved, next: Saved, begin: () => void) {
+  running?.finish();
+  const main = document.querySelector("main");
+  if (!main || !moving()) {
+    apply(next);
+    return begin();
+  }
+  const r = document.documentElement;
+  const vw = r.clientWidth;
+  const from = offsetOf(prev);
+  const to = offsetOf(next);
+  if (Math.abs(to - from) < 1) {
+    apply(next);
+    return begin();
+  }
+  const fol = [...document.querySelectorAll<HTMLElement>(FOLLOWERS)];
+  main.style.width = `${vw - Math.min(from, to)}px`;
+  main.style.marginLeft = `${from}px`;
+  r.dataset.sidebarAnimating = "1";
+  const anims: Animation[] = [];
+  const run = {
+    anims,
+    finish: () => {
+      if (running !== run) return;
+      running = null;
+      // the root takes the new state, and in the same task every element hands its motion back to it
+      apply(next);
+      for (const a of anims) a.cancel();
+      main.style.width = "";
+      main.style.marginLeft = "";
+      delete r.dataset.sidebarAnimating;
+    },
+  };
+  running = run;
+  const go = () => {
+    if (running !== run) return;
+    begin();
+    const opts: KeyframeAnimationOptions = { duration: 260, easing: EASE, fill: "forwards" };
+    anims.push(main.animate([{ marginLeft: `${from}px` }, { marginLeft: `${to}px` }], opts));
+    // (the docked bars are placed from `--sidebar-w` + a constant: they move by the same amount, at their width)
+    for (const el of fol)
+      anims.push(el.animate([{ translate: "0 0" }, { translate: `${to - from}px 0` }], opts));
+    void Promise.all(anims.map((a) => a.finished))
+      .catch(() => {})
+      .then(run.finish);
+  };
+  // a collapse: the wider layout in the next frame, the slide from the one after (a requestAnimationFrame callback
+  // runs before its own frame's layout); an expand: at once
+  if (to < from) requestAnimationFrame(() => requestAnimationFrame(go));
+  else go();
+}
+
 const RHYTHM: Record<string, string> = { tango: "T", vals: "V", milonga: "M" };
 const ago = (iso: string) => {
   const d = Math.round((Date.now() - new Date(iso).getTime()) / 86_400_000);
@@ -147,13 +233,14 @@ export function Sidebar() {
     apply(next);
     if (persist) save(next);
   }, []);
-  const setCollapsed = useCallback(
-    (collapsed: boolean) => {
-      haptic(4);
-      update({ ...load(), collapsed });
-    },
-    [update],
-  );
+  const setCollapsed = useCallback((collapsed: boolean) => {
+    haptic(4);
+    const prev = load();
+    const next = { ...prev, collapsed };
+    // the motion, then the root's state when it ends (animateSidebar); the React state when it starts
+    save(next);
+    animateSidebar(prev, next, () => setState(next));
+  }, []);
   useEffect(() => {
     const onKey = (e: globalThis.KeyboardEvent) => {
       // ⌃⌘S: the macOS "Show / Hide Sidebar" shortcut
@@ -175,13 +262,21 @@ export function Sidebar() {
   // 2026-11 (design review: "a 40 px empty strip mid-drag"): while the edge is dragged the page follows it live —
   // the width goes to the root's `--sidebar-open-w` once per frame (rAF, no React render per move), so the sidebar,
   // `main`, the toolbar and the Booth's bottom stack move together; the transitions are off meanwhile
+  // (2026-11, the owner: "laggy"): per frame only the sidebar's own width, `main`'s margin at a frozen width and the
+  // followers' `left` change (see animateSidebar); the root's `--sidebar-open-w` once, on release
   const frame = useRef(0);
+  const followers = useRef<HTMLElement[]>([]);
   const onResizeDown = (e: PointerEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
     drag.current = { x: e.clientX, w: state.w, now: state.w };
     aside.current?.setAttribute("data-resizing", "");
-    document.documentElement.dataset.sidebarResizing = "1";
+    const r = document.documentElement;
+    r.dataset.sidebarResizing = "1";
+    followers.current = [...document.querySelectorAll<HTMLElement>(FOLLOWERS)];
+    const main = document.querySelector("main");
+    // the widest the page can be while the edge moves: clipped on the right, never a gap
+    if (main && matchMedia("(min-width: 1024px)").matches) main.style.width = `${r.clientWidth - MIN_W}px`;
   };
   const onResizeMove = (e: PointerEvent<HTMLDivElement>) => {
     const d = drag.current;
@@ -193,7 +288,12 @@ export function Sidebar() {
       frame.current = requestAnimationFrame(() => {
         frame.current = 0;
         const now = drag.current?.now;
-        if (now !== undefined) document.documentElement.style.setProperty("--sidebar-open-w", `${now}px`);
+        if (now === undefined) return;
+        if (aside.current) aside.current.style.width = `${now}px`;
+        const main = document.querySelector("main");
+        if (main?.style.width) main.style.marginLeft = `${now}px`;
+        // the docked bars glide by `translate` at their width (no resize per frame)
+        for (const el of followers.current) el.style.translate = `${now - d.w}px 0`;
       });
   };
   const onResizeUp = () => {
@@ -205,6 +305,15 @@ export function Sidebar() {
     aside.current?.removeAttribute("data-resizing");
     delete document.documentElement.dataset.sidebarResizing;
     update({ ...state, w: d.now });
+    // the root holds the width now: hand every element back to it (one layout)
+    if (aside.current) aside.current.style.width = "var(--sidebar-open-w, 240px)";
+    const main = document.querySelector("main");
+    if (main) {
+      main.style.width = "";
+      main.style.marginLeft = "";
+    }
+    for (const el of followers.current) el.style.translate = "";
+    followers.current = [];
   };
   const onResizeKey = (e: KeyboardEvent<HTMLDivElement>) => {
     const step = e.shiftKey ? 40 : 10;

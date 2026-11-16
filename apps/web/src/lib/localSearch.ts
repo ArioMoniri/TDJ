@@ -1,5 +1,6 @@
 "use client";
 import type { SongSearchHit, SongSearchOptions } from "@tdj/core";
+import { idleAfter } from "./power";
 import type { WorkerIn, WorkerOut } from "./search.worker";
 import type { Song } from "./types";
 import type { SongSearchPage } from "./useSongSearch";
@@ -52,6 +53,7 @@ export function warmLocalSearch(): void {
     return;
   }
   set("loading");
+  idleAfter("search", SUSPEND_AFTER_MS, suspendLocalSearch);
   const fail = () => {
     set("off");
     worker?.terminate();
@@ -84,6 +86,20 @@ export function warmLocalSearch(): void {
   };
 }
 
+/**
+ * Battery saver: the worker (and the catalogue index it holds) is let go after two minutes without a search; the next
+ * search box warms it again and asks the server meanwhile.
+ */
+export function suspendLocalSearch(): void {
+  if (!worker || state === "off") return;
+  worker.terminate();
+  worker = null;
+  for (const p of pending.values()) p.no(new Error("search worker suspended"));
+  pending.clear();
+  set("idle");
+}
+const SUSPEND_AFTER_MS = 120_000;
+
 export const localSearchState = (): State => state;
 export const localSearchReady = (): boolean => state === "ready";
 export function subscribeLocalSearch(cb: () => void): () => void {
@@ -94,6 +110,7 @@ export function subscribeLocalSearch(cb: () => void): () => void {
 /** one query, answered by the worker (reject when it is not ready: the caller asks the server instead) */
 export function localSearch(q: string, opts: Omit<SongSearchOptions, "tandaOf">): Promise<SongSearchPage> {
   if (!worker || state !== "ready") return Promise.reject(new Error("search worker not ready"));
+  idleAfter("search", SUSPEND_AFTER_MS, suspendLocalSearch);
   const id = ++seq;
   const f = opts.filters?.favourites;
   const msg: WorkerIn = {

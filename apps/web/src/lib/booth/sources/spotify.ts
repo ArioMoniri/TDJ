@@ -2,6 +2,7 @@
 import type { Cortina, Song } from "@tdj/core";
 import { t as tx } from "@/lib/i18n";
 import { openExternal } from "@/lib/openLink";
+import { forgetPoll, skipPoll } from "@/lib/power";
 import type { AuditionIO } from "../audition";
 import { dbToGain, fadeOutCurve, VOLUME_STEP_SEC, volumeSteps } from "../envelope";
 import type { BoothRow } from "../plan";
@@ -1465,6 +1466,9 @@ class Live implements ExternalHandle {
   }
   private async tick() {
     if (this.done) return;
+    // Battery saver: Connect's /me/player every 10 s (the SDK's state every 1 s) mid-song; every tick at the start, a
+    // seek and the last 15 s, and at once on focus (lib/power.ts). Commands keep their own timers: never delayed.
+    if (skipPoll(this, this.a._remote() ? 10_000 : 1_000, this.pollUrgent(), now())) return;
     if (this.a._remote()) {
       const s = await this.a.remoteState();
       this.onRemote(s);
@@ -1480,8 +1484,15 @@ class Live implements ExternalHandle {
     if (!this.started) return 0;
     return this.clock.read();
   }
+  /** the moments a poll must not wait: the start until confirmed and settled, a seek, the end */
+  private pollUrgent(): boolean {
+    const end = this.req.durationSec ?? this.duration;
+    const p = this.position();
+    return !this.confirmed || now() - this.startedAt < 8000 || !!this.seekGuard || !end || end - p < 15;
+  }
   /** ask the device now (back in a hidden tab, the app in front again) */
   poke() {
+    forgetPoll(this);
     if (this.started && !this.done) void this.tick();
   }
 

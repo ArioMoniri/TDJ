@@ -3,7 +3,7 @@ import { resolveContext } from "@tdj/core";
 import { AnimatePresence, motion } from "motion/react";
 import { useMemo } from "react";
 import { CONTEXT_FIELDS, EVIDENCE_COLOR, EVIDENCE_LABEL, fmtShift, researchOption } from "@/lib/context";
-import { t } from "@/lib/i18n";
+import { getLocale, t } from "@/lib/i18n";
 import { fade } from "@/lib/motion";
 import type { ComposeContext, ComposeOptions, ContextModel } from "@/lib/types";
 import { CountUp } from "./CountUp";
@@ -127,12 +127,14 @@ export function ContextStrip({
     summary ??
     (onlyRegion
       ? t("contextStrip.region_from_settings_set_season_room", {
+          // the region in the words its row shows ("Avrupa", not "Europe": QA 2026-11)
           p1:
-            value.region === "buenos-aires"
+            CONTEXT_FIELDS.find((f) => f.key === "region")?.options.find(([k]) => k === value.region)?.[1] ??
+            (value.region === "buenos-aires"
               ? t("contextStrip.buenos_aires")
               : value.region === "us"
                 ? t("contextStrip.us")
-                : (value.region ?? "")[0]!.toUpperCase() + (value.region ?? "").slice(1),
+                : (value.region ?? "")[0]!.toUpperCase() + (value.region ?? "").slice(1)),
         })
       : t("contextStrip.nothing_set_era_arc_and_cortinas"));
 
@@ -145,7 +147,8 @@ export function ContextStrip({
         key={f.key}
         label={f.label}
         tip={
-          r?.option?.notes ??
+          // the research notes are English knowledge data (glossary): only an English tip quotes them
+          (getLocale() === "en" ? r?.option?.notes : undefined) ??
           t("contextStrip.tonight_it_moves_the_energy_the", { p1: f.label.split(" (")[0] })
         }
         ariaLabel={r?.factorLabel ?? f.label}

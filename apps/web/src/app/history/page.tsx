@@ -32,6 +32,7 @@ import { NightLength } from "@/components/ui/PlayRow";
 import { Tip } from "@/components/ui/Tip";
 import { APP } from "@/lib/app/target";
 import { downloadBlob } from "@/lib/download";
+import { verdictText } from "@/lib/engineText";
 import { haptic } from "@/lib/haptics";
 import { changeLabel, eraLabel, groupByDay, nightLogSummary, versionsOf } from "@/lib/history";
 import { useMediaQuery } from "@/lib/hooks";
@@ -336,7 +337,12 @@ export default function HistoryPage() {
                           setPicking(true);
                         },
                       },
-                      { kind: "destructive", label: "Delete", icon: Trash2, onClick: () => remove(s) },
+                      {
+                        kind: "destructive",
+                        label: tx("common.delete"),
+                        icon: Trash2,
+                        onClick: () => remove(s),
+                      },
                     ]}
                   >
                     <Row
@@ -417,7 +423,7 @@ export default function HistoryPage() {
                       "application/json",
                     ),
                 },
-                { label: "Delete", icon: Trash2, destructive: true, onClick: () => remove(open) },
+                { label: tx("common.delete"), icon: Trash2, destructive: true, onClick: () => remove(open) },
               ]}
             />
           ) : undefined
@@ -431,7 +437,7 @@ export default function HistoryPage() {
             <Group
               footer={tx("history.composed_seed_under", {
                 p1: when(open.createdAt),
-                verdict: open.playlist.score.verdict,
+                verdict: verdictText(open.playlist.score.verdict),
               })}
             >
               <div className="cell flex-col items-stretch gap-2 py-4">
@@ -572,7 +578,9 @@ export default function HistoryPage() {
       >
         <Group footer={tx("history.removes_every_kept_set_from_this")}>
           <ActionRow
-            label={`Delete ${history.length} ${history.length === 1 ? tx("history.set") : tx("history.sets")}`}
+            label={tx("common.delete_named", {
+              name: `${history.length} ${history.length === 1 ? tx("history.set") : tx("history.sets")}`,
+            })}
             destructive
             onClick={async () => {
               setConfirmClear(false);

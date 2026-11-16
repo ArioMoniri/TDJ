@@ -75,6 +75,7 @@ pnpm dev                 # http://localhost:3000
 pnpm compose -- --hours=4 --eras=golden --cultures=turkish --seed=42   # CLI set list in the terminal
 pnpm test                # engine invariants (vitest)   ·  pnpm e2e (Playwright, desktop + iPhone)
 pnpm media               # README clips and stills from the real app  ·  pnpm video (Remotion launch video)
+pnpm media:hero          # the README hero: a laptop opens and the app plays on it (docs/RELEASING.md)
 ```
 
 

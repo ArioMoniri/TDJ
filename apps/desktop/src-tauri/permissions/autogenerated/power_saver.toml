@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-power-saver"
+description = "Enables the power_saver command without any pre-configured scope."
+commands.allow = ["power_saver"]
+
+[[permission]]
+identifier = "deny-power-saver"
+description = "Denies the power_saver command without any pre-configured scope."
+commands.deny = ["power_saver"]

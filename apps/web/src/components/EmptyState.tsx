@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useInViewport } from "@/lib/hooks";
 import { rise } from "@/lib/motion";
+import { useSaving } from "@/lib/power";
 
 /** The crate animation, fetched once per session; a navigation away before it lands is simply ignored. */
 let crate: Promise<unknown> | null = null;
@@ -27,7 +28,8 @@ export function EmptyState({
   action?: ReactNode;
   grace?: number;
 }) {
-  const reduced = useReducedMotion();
+  const saving = useSaving(); // Battery saver: still
+  const reduced = useReducedMotion() || saving;
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInViewport(ref, 0.4);
   const [ready, setReady] = useState(grace === 0);

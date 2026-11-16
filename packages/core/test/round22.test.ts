@@ -317,6 +317,8 @@ describe("suggestNext: live guidance for the hand-built night", () => {
     expect(r.suggestions.length).toBeGreaterThanOrEqual(4);
     for (const s of r.suggestions) {
       expect(s.reasons.length).toBeGreaterThan(0);
+      // 2026-11: every reason also as data, in the same order (the app says it in the DJ's language)
+      expect(s.why.length).toBe(s.reasons.length);
       expect(s.songs.length).toBe(4);
       expect(s.songs.every((x) => x.rhythm === "tango")).toBe(true);
     }
@@ -377,6 +379,7 @@ describe("suggestNext: live guidance for the hand-built night", () => {
       expect(Math.max(x.year!, ...ys) - Math.min(x.year!, ...ys)).toBeLessThanOrEqual(2);
       expect(t.songs.slice(0, 2).some((y) => y.id === x.id)).toBe(false);
       expect(s.reasons.length).toBeGreaterThan(0);
+      expect(s.why.map((w) => w.code).length).toBe(s.reasons.length);
     }
   });
   it("never suggests a side already in the night and matches the era of what came before", () => {
@@ -385,6 +388,11 @@ describe("suggestNext: live guidance for the hand-built night", () => {
     const r = suggestNext(draft, deps, { hours: 4 });
     for (const s of r.suggestions) for (const x of s.songs) expect(used.has(x.id)).toBe(false);
     expect(r.suggestions.some((s) => s.reasons.some((x) => /years|era|19\d0s/i.test(x)))).toBe(true);
+    // …said as data too: one suggestion carries the reason of the years, or how it follows the last tanda
+    for (const s of r.suggestions) expect(s.why.length).toBe(s.reasons.length);
+    expect(
+      r.suggestions.some((s) => s.why.some((w) => w.code === "same_decade" || w.code === "succession")),
+    ).toBe(true);
   });
   it("a learned family ranks higher (what the DJ chose before)", () => {
     const r0 = suggestNext([], deps, { hours: 4 });

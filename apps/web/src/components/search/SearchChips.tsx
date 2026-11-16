@@ -3,6 +3,7 @@ import "./search.css";
 import type { SongFacets, SongFilters } from "@tdj/core";
 import { Heart } from "lucide-react";
 import { fmtNumber, t } from "@/lib/i18n";
+import { useTip } from "../ui/Tip";
 
 /**
  * The search's filter chips (2026-11, Library and Database): rhythm, vocal / instrumental, ♥ favourites and Spotify
@@ -30,7 +31,7 @@ export function filtersActive(f: SongFilters): number {
   );
 }
 
-function Chip({
+export function Chip({
   on,
   label,
   count,
@@ -45,6 +46,8 @@ function Chip({
   testId?: string;
   icon?: React.ReactNode;
 }) {
+  // what the chip does, on hover and long-press (plain-words.spec: every control explains itself)
+  const tip = useTip<HTMLButtonElement>(t("search.chip_tip", { label }));
   return (
     <button
       type="button"
@@ -53,7 +56,9 @@ function Chip({
       onClick={onClick}
       data-testid={testId}
       disabled={!on && count === 0}
+      {...tip.props}
     >
+      {tip.tag}
       {icon}
       <span>{label}</span>
       {count !== undefined && (

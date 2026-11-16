@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { autoImproveLine } from "./changes";
 import { djMessage, djMessages, tandaNote } from "./djMessage";
+import { setLocale } from "./i18n";
 
 /** what no line the DJ reads may carry (wave 2, item 2) */
 const ENGINE_WORDS =
@@ -113,5 +114,20 @@ describe("tandaNote and the improve line", () => {
     });
     expect(line).toBe("Polished against published DJ sets: 2 changes (one recording period, heatmap years)");
     expect(line).not.toMatch(ENGINE_WORDS);
+  });
+});
+
+describe("tandaNote in Turkish (QA 2026-11)", () => {
+  afterEach(() => setLocale("en"));
+  it("the DJ's own tanda and the composer's short notes are said in Turkish; English bookkeeping is left out", () => {
+    setLocale("tr");
+    expect(tandaNote("the DJ's Canaro valses, instrumental (Desde el Alma 1940, Francia)")).toBe(
+      "DJ'in kendi tandası, seçildiği gibi",
+    );
+    expect(tandaNote("colour tanda · ends with its own La Cumparsita")).toBe(
+      "renk tandası · kendi La Cumparsita'sıyla biter",
+    );
+    expect(tandaNote("Vals de cumpleaños")).toBe("Vals de cumpleaños");
+    expect(tandaNote("something the engine wrote")).toBe("");
   });
 });

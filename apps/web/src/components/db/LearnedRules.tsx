@@ -31,7 +31,18 @@ const detailOf = (r: LearnedRule) =>
                 ? `db.learnedRules.${r.kind}_less`
                 : "db.learnedRules.neutral",
           )
-        : r.detail;
+        : r.kind === "template"
+          ? t("learned.template_detail", { rhythm: r.detail.match(/^A (\w+) tanda/)?.[1] ?? "" })
+          : r.detail;
+
+/**
+ * a rule's name in the DJ's language: the core writes a family without a singer as "Di Sarli instrumental · tango"
+ * (QA 2026-11: "instrumental" on a Turkish Settings page); names and rhythms stay as they are
+ */
+const labelOf = (r: LearnedRule) =>
+  r.kind === "family" || r.kind === "liked"
+    ? r.label.replace(/ instrumental · /, ` ${t("common.instrumental")} · `)
+    : r.label;
 
 /** one rule: what it is, what it does, its weight with − / + (44 pt), and delete (swipe or the bin) */
 export function RuleRow({
@@ -44,14 +55,15 @@ export function RuleRow({
   onForget: () => void;
 }) {
   const step = r.kind === "family" ? 0.5 : 0.5;
+  const label = labelOf(r);
   return (
-    <SwipeRow actions={[{ kind: "destructive", label: "Delete", icon: Trash2, onClick: onForget }]}>
+    <SwipeRow actions={[{ kind: "destructive", label: t("common.delete"), icon: Trash2, onClick: onForget }]}>
       <div className="cell" data-testid="learned-rule" data-rule={r.id}>
         {/* the text column never runs under the controls: it clips to its own width and the name wraps to two lines */}
         <span className="min-w-0 flex-1 overflow-hidden">
-          <Tip text={r.label} className="w-full min-w-0">
+          <Tip text={label} className="w-full min-w-0">
             <span className="line-clamp-2 block min-w-0 break-words" data-testid="learned-label">
-              {r.label}
+              {label}
             </span>
           </Tip>
           <span className="text-footnote block truncate text-[var(--label-2)]" data-testid="learned-source">
@@ -66,7 +78,7 @@ export function RuleRow({
                 className="icon-btn icon-btn-bare h-11 w-11"
                 onClick={() => onWeight(r.weight - step)}
                 disabled={r.weight <= r.min}
-                aria-label={t("db.learnedRules.weigh_less", { label: r.label })}
+                aria-label={t("db.learnedRules.weigh_less", { label: label })}
               >
                 <Minus size={16} aria-hidden />
               </button>
@@ -78,7 +90,7 @@ export function RuleRow({
                 className="icon-btn icon-btn-bare h-11 w-11"
                 onClick={() => onWeight(r.weight + step)}
                 disabled={r.weight >= r.max}
-                aria-label={t("db.learnedRules.weigh_more", { label: r.label })}
+                aria-label={t("db.learnedRules.weigh_more", { label: label })}
               >
                 <Plus size={16} aria-hidden />
               </button>
@@ -90,7 +102,7 @@ export function RuleRow({
             type="button"
             className="icon-btn icon-btn-bare -mr-2 h-11 w-11 text-[var(--destructive)]"
             onClick={onForget}
-            aria-label={`Delete ${r.label}`}
+            aria-label={t("common.delete_named", { name: label })}
           >
             <Trash2 size={15} aria-hidden />
           </button>

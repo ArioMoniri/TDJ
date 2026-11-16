@@ -47,6 +47,7 @@ import { ModelConnections } from "@/components/ModelConnections";
 import { NightClosingGroup } from "@/components/NightClosing";
 import { OwnerContributions } from "@/components/OwnerContributions";
 import { PageHeader } from "@/components/PageHeader";
+import { PowerSaverGroup } from "@/components/PowerSaver";
 import { Sheet } from "@/components/Sheet";
 import { TandaRulesGroup } from "@/components/TandaRules";
 import { DataSources } from "@/components/ui/DataSources";
@@ -345,6 +346,9 @@ export default function Settings() {
           />
         </Group>
 
+        {/* 2026-11: Settings → General → Battery saver (lib/power.ts) */}
+        <PowerSaverGroup />
+
         <Group header={tx("settings.region")} footer={tx("settings.default_for_tonight_s_region_on")}>
           <PickerRow
             label={tx("settings.where_you_usually_play")}
@@ -371,6 +375,7 @@ export default function Settings() {
         >
           <SwitchRow
             label={tx("settings.booth.confirm")}
+            tip={tx("settings.booth.confirm_footer")}
             checked={settings.boothConfirm !== false}
             onChange={(v) => setSettings({ boothConfirm: v })}
           />
@@ -440,6 +445,7 @@ export default function Settings() {
         >
           <SegmentedRow
             label={tx("settings.tap_play")}
+            tip={tx("settings.tap_play_footer")}
             value={settings.tapPlay ?? "continue"}
             items={[
               ["only", tx("settings.tap_play_only")],

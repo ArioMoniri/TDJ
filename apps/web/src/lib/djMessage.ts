@@ -193,11 +193,32 @@ export function djMessages(raw: string[] | undefined | null): string[] {
   return uniq((raw ?? []).filter(Boolean).map(djMessage));
 }
 
+/** the composer's short tanda notes (core compose.ts, tanda.ts) */
+const NOTE_PART: Record<string, MsgKey> = {
+  "colour tanda": "djMessage.note.colour",
+  "a known family inside the repeat gap (fame floor)": "djMessage.note.fame_floor",
+  "ends with its own La Cumparsita": "djMessage.note.own_cumparsita",
+  "pool-small": "djMessage.note.pool_small",
+};
+
 /**
  * A tanda's note as shown on its card: the engine writes some for itself ("now play in T16, so … take their chairs");
  * the card keeps the first clause in plain words and drops the bookkeeping.
  */
 export function tandaNote(note: string): string {
+  // 2026-11 (QA: "the DJ's Canaro valses, instrumental (…)" on a Turkish card): the note a DJ's own tanda carries
+  // is English data; another language says what it is
+  if (getLocale() !== "en" && /^the DJ's\b/i.test(note)) return t("djMessage.djs_tanda");
+  // the composer's own short notes, joined by " · ": each known one in the DJ's language, a Spanish name as it is
+  // (a birthday vals), any other English bookkeeping left out of a translated card
+  if (getLocale() !== "en")
+    return note
+      .split(" · ")
+      .map((p) =>
+        NOTE_PART[p] ? t(NOTE_PART[p]!) : /\b(de|del|la|el)\b/.test(p) && !/\bthe\b/.test(p) ? p : "",
+      )
+      .filter(Boolean)
+      .join(" · ");
   const moved = note.match(/^(.*?):\s+[^;]*\bnow play in T\d+[^;]*(?:;\s*it still ends on (.+))?$/);
   if (moved)
     return cap(moved[2] ? t("djMessage.ending_on", { note: moved[1], song: moved[2] }) : (moved[1] ?? ""));

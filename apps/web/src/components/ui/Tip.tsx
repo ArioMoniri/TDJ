@@ -19,6 +19,28 @@ export function hideHints() {
   if (typeof window !== "undefined") window.dispatchEvent(new Event(HIDE_HINTS_EVENT));
 }
 
+/**
+ * Media capture (`pnpm media`, `pnpm media:hero`): no help tag or hint ever shows, so a filmed click never leaves a
+ * tag beside the cursor. On with `?capture=1` (kept for the tab in sessionStorage), `window.__tdjCapture = true` or
+ * `<html data-capture>`; the recorder sets these before the page loads. Invisible to users: nothing links to it.
+ * globals.css hides any `role="tooltip"` under `html[data-capture]` too (the Booth's hint bubble included).
+ */
+export function capturing(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    if ((window as unknown as { __tdjCapture?: boolean }).__tdjCapture) return true;
+    if (document.documentElement.hasAttribute("data-capture")) return true;
+    if (new URLSearchParams(location.search).get("capture") === "1") {
+      sessionStorage.setItem("tdj-capture", "1");
+      return true;
+    }
+    return sessionStorage.getItem("tdj-capture") === "1";
+  } catch {
+    return false;
+  }
+}
+if (typeof window !== "undefined" && capturing()) document.documentElement.setAttribute("data-capture", "");
+
 /** the last touch or pen press: a focus that follows it is the tap's, never the keyboard's (no tag on a tap) */
 let lastPress = Number.NEGATIVE_INFINITY;
 if (typeof document !== "undefined")
@@ -77,7 +99,7 @@ export function useTip<T extends HTMLElement = HTMLElement>(text: ReactNode | un
   const show = useCallback((touch = false) => {
     const el = ref.current;
     const r = el?.getBoundingClientRect();
-    if (!el || !r) return;
+    if (!el || !r || capturing()) return;
     const above = r.bottom + 64 > window.innerHeight;
     if (above ? coversShield(el, r.top - 64, r.top) : coversShield(el, r.bottom, r.bottom + 64)) return;
     setAt({

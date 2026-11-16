@@ -34,6 +34,7 @@
     "quality": "pnpm --filter @tdj/core exec tsx src/quality.ts",
     "e2e": "pnpm --filter @tdj/web e2e",
     "media": "pnpm --filter @tdj/web media",
+    "media:hero": "pnpm --filter @tdj/web media:hero",
     "readme:check": "node scripts/check-readme.mjs",
     "spotify:check": "pnpm --filter @tdj/web spotify:check",
     "video": "pnpm --filter @tdj/video render",

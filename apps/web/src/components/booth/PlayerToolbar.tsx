@@ -7,6 +7,7 @@ import { useBooth } from "@/lib/booth/store";
 import { t } from "@/lib/i18n";
 import { toast } from "@/lib/toast";
 import { ActionRow, Group } from "../Form";
+import { PowerLeaf } from "../PowerSaver";
 import { Sheet } from "../Sheet";
 import { IndicatorSwitches } from "./IndicatorSwitches";
 import { cuePairLabel, OutputChainGroup } from "./OutputsView";
@@ -355,6 +356,7 @@ function SourceLine({ rehearsal }: { rehearsal: boolean }) {
             : paused
               ? t("booth.playerToolbar.status_paused", { source: source ?? "" })
               : source}
+        <PowerLeaf />
       </span>
       {rehearsal && sp.ok && mode === "preview" && !started && (
         <button

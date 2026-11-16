@@ -342,6 +342,7 @@ export function BoothAudioSettings() {
         {env === "web" && !outputs.named && caps.sink && (
           <ActionRow
             label={t("booth.playerToolbar.show_device_names")}
+            tip={t("booth.outputs.show_names_tip")}
             onClick={() => void useBooth.getState().refreshOutputs(true)}
           />
         )}
@@ -376,6 +377,7 @@ export function BoothAudioSettings() {
         {mirrorSupported ? (
           <PickerRow
             label={t("booth.outputs.second_output")}
+            tip={t("booth.outputs.two_sets_web")}
             value={routing.mirror ?? "none"}
             items={[
               ["none", t("booth.outputs.none")],
@@ -412,6 +414,7 @@ export function BoothAudioSettings() {
       <Group header={t("booth.outputs.disconnect")} footer={t("booth.outputs.disconnect_footer")}>
         <SegmentedRow
           label={t("booth.outputs.if_disconnects")}
+          tip={t("booth.outputs.disconnect_footer")}
           value={policy}
           items={[
             ["pause", t("booth.outputs.disconnect_pause")],

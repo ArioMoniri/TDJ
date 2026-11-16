@@ -1,5 +1,5 @@
 import type { Feedback } from "@tdj/core";
-import { lazy, t } from "@/lib/i18n";
+import { lazy, type MsgKey, t } from "@/lib/i18n";
 
 export const FEEDBACK_VALUES: Feedback[] = [
   "more-energetic",
@@ -42,6 +42,14 @@ export const FEEDBACK_LABEL: Record<Feedback, string> = {
   "more-romantic": "more romance",
   "more-playful": "more playful",
   "more-dramatic": "more drama",
+};
+
+/** a value's plain words in the DJ's language, for the UI ("more energy" / "daha çok enerji"); the server's AI
+ * routes keep `FEEDBACK_LABEL` (English) */
+export const feedbackWord = (f: Feedback): string => {
+  const k = `feedback.word.${f.replace(/-/g, "_")}` as MsgKey;
+  const v = t(k);
+  return v === k ? (FEEDBACK_LABEL[f] ?? f) : v;
 };
 
 /** The chips shown under a finished set, in display order. */

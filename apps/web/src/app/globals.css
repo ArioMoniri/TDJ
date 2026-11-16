@@ -268,9 +268,9 @@ body {
 }
 /* the macOS window draws the page under its title bar: reserve it, unless the window is full screen */
 /* 2026-11 (design review): collapsed, the sidebar leaves a rail for its Show button (52 px, past the traffic lights on
-   the Mac app), so the page title and the content keep one edge. `--sidebar-w` is a registered length: it animates
-   between the open width and the rail in step with the sidebar's slide (≤ 260 ms, none with Reduce Motion) and
-   follows a resize drag live (no transition while `data-sidebar-resizing`) */
+   the Mac app), so the page title and the content keep one edge. `--sidebar-w` is a registered length; it changes
+   at once and `main` glides to it in step with the sidebar's slide (Sidebar.tsx animateSidebar, ≤ 260 ms, none
+   with Reduce Motion), and follows a resize drag live by its own margin */
 @property --sidebar-w {
   syntax: "<length>";
   inherits: true;
@@ -279,13 +279,18 @@ body {
 html[data-sidebar="collapsed"] {
   --sidebar-w: calc(var(--traffic-left) + 52px);
 }
-@media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
-  html {
-    transition: --sidebar-w 260ms var(--ease-settle);
-  }
-  html[data-sidebar-resizing] {
-    transition: none;
-  }
+/* (2026-11: no transition on the root's variable any more — animating it restyled the whole document and laid
+   `main` out again on every frame; Sidebar.tsx moves `main` by its margin at a frozen width instead.) While the
+   sidebar moves, the frozen page is clipped on the right, never a horizontal scroll bar. */
+html[data-sidebar-animating] body,
+html[data-sidebar-resizing] body {
+  overflow-x: clip;
+}
+/* …and the page is its own compositor layer meanwhile, so a frame moves it instead of painting the night again
+   (`opacity`, not `transform`: a transform would become the containing block of the Booth's fixed bars) */
+html[data-sidebar-animating] main,
+html[data-sidebar-resizing] main {
+  will-change: opacity;
 }
 html[data-scroll-lock] {
   overflow: hidden;
@@ -592,6 +597,20 @@ li + li > .cell:first-child::before {
   height: var(--separator-w);
   background: var(--separator);
   z-index: 1;
+  pointer-events: none;
+}
+/* Compose's first run: the ways in are one grouped list, each row in its help tag's wrapper (components/Composer.tsx) */
+.first-run-ways > * + * > .cell {
+  position: relative;
+}
+.first-run-ways > * + * > .cell::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: calc(var(--cell-px) + var(--tile) + var(--space-3));
+  height: var(--separator-w);
+  background: var(--separator);
   pointer-events: none;
 }
 .cell[data-leading="tile"] + .cell::before {
@@ -970,11 +989,12 @@ li + li > .cell[data-leading="num"]:first-child::before,
   }
 }
 /* Round 23: a row's extras appear by the card's own width, not the window's (at xl two 560 px cards squeezed the
-   title to nothing and the key chip wrapped over the year): tempo / level from 720 px, the key chip from 480 px */
+   title to nothing and the key chip wrapped over the year): tempo / level from 800 px, the key chip from 480 px.
+   (2026-11: 800, not 720 — each row now leads with its 36 px cover, and a 720 px card at 1024 × 768 cut the titles) */
 .row-tempo {
   display: none;
 }
-@container (min-width: 720px) {
+@container (min-width: 800px) {
   .tanda-card .row-tempo {
     display: inline;
   }
@@ -1770,12 +1790,14 @@ input[type="range"]::-moz-range-thumb {
 }
 
 /* Sidebar (macOS source list) rows */
+/* 2026-11 (QA: 215 × 36 rows; CLAUDE.md: touch targets ≥ 44 px): every row is 44 px with a mouse too, the dense
+   look kept by the subhead type and no extra padding (the rows sit 2 px apart) */
 .side-row {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 36px;
-  padding: 3px 12px;
+  min-height: 44px;
+  padding: 0 12px;
   border-radius: 8px;
   font-size: var(--text-subhead);
   line-height: var(--text-subhead--line-height);
@@ -1796,13 +1818,16 @@ input[type="range"]::-moz-range-thumb {
   color: var(--tint-text);
 }
 /* round 23: the sidebar's sections, Tonight's rhythm tiles, the now-playing card and the resize edge */
-/* collapsed: the sidebar slides out (its width stays; `main` follows `--sidebar-w`, the same 260 ms), then leaves the
-   accessibility tree and the tab order (aria-hidden / inert on the element, visibility once the slide ends) */
+/* collapsed: the sidebar slides out (its width stays; `main` glides in step, the same 260 ms), then leaves the
+   accessibility tree and the tab order (aria-hidden / inert on the element, visibility once the slide ends). 2026-11:
+   the slide follows the sidebar's own `data-collapsed` (React sets it in the click), the root's `data-sidebar` (the
+   first paint, before hydration) only when nothing moves: the root changes once the motion ends (Sidebar.tsx) */
 [data-testid="sidebar"] {
   transform: translateX(0);
   visibility: visible;
 }
-html[data-sidebar="collapsed"] [data-testid="sidebar"] {
+[data-testid="sidebar"][data-collapsed],
+html[data-sidebar="collapsed"]:not([data-sidebar-animating]) [data-testid="sidebar"] {
   transform: translateX(calc(-100% - 1px));
   visibility: hidden;
 }
@@ -1812,7 +1837,8 @@ html[data-sidebar="collapsed"] [data-testid="sidebar"] {
       transform 260ms var(--ease-settle),
       visibility 0s linear 0s;
   }
-  html[data-sidebar="collapsed"] [data-testid="sidebar"] {
+  [data-testid="sidebar"][data-collapsed],
+  html[data-sidebar="collapsed"]:not([data-sidebar-animating]) [data-testid="sidebar"] {
     transition:
       transform 260ms var(--ease-settle),
       visibility 0s linear 260ms;
@@ -1894,9 +1920,6 @@ html[data-sidebar="collapsed"] [data-testid="sidebar"] {
   outline-offset: -3px;
 }
 @media (pointer: coarse) {
-  .side-row {
-    min-height: 44px;
-  }
   .side-resize {
     right: -11px;
     width: 22px;
@@ -2987,6 +3010,15 @@ html.theming *::after {
   padding: 0 16px;
   font-size: var(--text-subhead);
 }
+/* 2026-11 (QA: Settings' Auto / English / Türkçe were 28 px with a mouse): a segmented row's segments are 44 px
+   high everywhere (CLAUDE.md touch targets), in the regular 13 pt type */
+.seg-row-control .seg {
+  min-height: 44px;
+  border-radius: 9px;
+}
+.seg-row-control.segmented {
+  border-radius: 11px;
+}
 /* the Rooms column never moves sideways when the page grows a scroll bar (once you are in a room); only there,
    so the full-bleed top bars elsewhere still reach the window edge */
 html:has([data-rooms-page]) {
@@ -3056,6 +3088,10 @@ html.i18n-pending body {
    switch 51 × 31) with their 44 px hit areas drawn as transparent pseudo-elements, so the rows are 44 pt again. */
 :root {
   --tabbar-h: 62px;
+  /* the detached search circle on Library / Database and its gap to the capsule (narrower on an iPhone SE, so each
+     of the capsule's five tabs keeps 44 px) */
+  --tab-search-w: var(--tabbar-h);
+  --tab-search-gap: 10px;
   /* the capsule's distance from the bottom edge: the home indicator's inset, or 12 px without one */
   --tabbar-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
   /* the docked mini player's height on a phone (MiniPlayer.tsx measures it into --mini-h while it is docked) */
@@ -3150,8 +3186,30 @@ html.i18n-pending body {
 }
 /* the detached search circle on Library / Database: the tab capsule's height, on the same row */
 .tab-search {
-  width: var(--tabbar-h);
-  height: var(--tabbar-h);
+  width: var(--tab-search-w);
+  height: var(--tab-search-w);
+  /* centred on the capsule's row when it is smaller than the capsule */
+  margin-bottom: calc((var(--tabbar-h) - var(--tab-search-w)) / 2);
+}
+/* 2026-11 (QA, iPhone SE 320 px: five 41 px tabs on the Library): a smaller search circle, a tighter gap and a 2 px
+   capsule inset give every tab 44 px; names that do not fit their tab give way to icons only (Nav.tsx), never
+   drawn over each other */
+@media (max-width: 359.98px) {
+  :root {
+    --tab-search-w: 54px;
+    --tab-search-gap: 8px;
+  }
+  .tabbar {
+    padding: 2px;
+  }
+}
+.tabbar[data-icons] .tab-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 /* Navigation-bar icon buttons (Regenerate, Export): 36 px glass circles inside a 44 px hit area */
@@ -3347,4 +3405,9 @@ html.i18n-pending body {
   white-space: normal;
   overflow: hidden;
   overflow-wrap: break-word;
+}
+
+/* media capture (`?capture=1`, see components/ui/Tip.tsx → capturing): no help tag or hint bubble in a recording */
+html[data-capture] [role="tooltip"] {
+  display: none;
 }

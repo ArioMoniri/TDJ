@@ -30,7 +30,7 @@ import {
 import { yearText } from "@/lib/year";
 import { SearchField } from "../SearchField";
 import { Highlight } from "../search/Highlight";
-import { SearchChips } from "../search/SearchChips";
+import { Chip, SearchChips } from "../search/SearchChips";
 import { Artwork } from "./Artwork";
 import { NowBars } from "./NowPlaying";
 import { rhythmWord, TandaTypeBadge } from "./TandaTypeBadge";
@@ -624,16 +624,13 @@ export function SmartSearchResults({
           >
             <legend className="sr-only">{t("smartSearch.era")}</legend>
             {(Object.keys(ERAS) as EraChip[]).map((e) => (
-              <button
+              <Chip
                 key={e}
-                type="button"
-                className="search-chip"
-                aria-pressed={era === e}
+                on={era === e}
+                label={t(`smartSearch.era_${e}` as "smartSearch.era_golden")}
                 onClick={() => s.setFilters(withEra(s.filters, era === e ? null : e))}
-                data-testid={`${prefix}-chip-era-${e}`}
-              >
-                {t(`smartSearch.era_${e}` as "smartSearch.era_golden")}
-              </button>
+                testId={`${prefix}-chip-era-${e}`}
+              />
             ))}
           </fieldset>
           <SearchChips

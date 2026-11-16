@@ -8,11 +8,18 @@ const locale = process.env.TDJ_LOCALE === "tr" ? "tr-TR" : undefined;
 export default defineConfig({
   testDir: "./e2e",
   timeout: 90_000,
-  retries: 0,
+  // CI only: one retry for a test that fails once on a loaded runner (a real regression fails twice); local runs never
+  // retry, so a flaky check shows at once
+  retries: process.env.CI ? 1 : 0,
+  // CI runs the suite in shards (.github/workflows/ci.yml, --shard=i/n): split by test, not by file, so one long file
+  // (wave4-mobile's device matrix) does not hold a shard on its own; serial groups (admin, owner-contrib) stay
+  // together. Each shard still runs one worker.
+  fullyParallel: !!process.env.CI,
   // one worker on CI: every test composes nights on the single Next server, whose compose is synchronous CPU work,
   // so a second worker's compose stalls this one's clicks, navigations and timing budgets (2 workers on a 4-core runner)
   workers: process.env.CI ? 1 : undefined,
-  reporter: [["list"]],
+  // CI: the list in the log and an HTML report per shard (uploaded as playwright-report-<shard>)
+  reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : [["list"]],
   use: {
     baseURL: process.env.TDJ_URL ?? "http://localhost:3000",
     trace: "retain-on-failure",

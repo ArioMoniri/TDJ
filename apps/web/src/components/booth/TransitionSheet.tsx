@@ -89,7 +89,7 @@ import {
   ZOOM_MIN,
 } from "@/lib/booth/transitionView";
 import { runHistory } from "@/lib/editToast";
-import { t } from "@/lib/i18n";
+import { fmtSec, t } from "@/lib/i18n";
 import { DUR, EASE } from "@/lib/motion";
 import { lockScroll } from "@/lib/scrollLock";
 import { useSheets } from "@/lib/sheets";
@@ -113,11 +113,11 @@ export function hasTransition(items: ReadonlyArray<BoothRow> | undefined, i: num
 /** "Fade 3 s" / "2.5 s" / "Blend 6 s": what the set list's gap marker prints. */
 export function transitionSummary(it: BoothRow): string {
   const tr = it.transitionAfter;
-  if (!tr) return `${it.gapAfterSec} s`;
+  if (!tr) return fmtSec(it.gapAfterSec);
   const name = presetLabel(tr.preset);
-  if (tr.overlapSec > 0) return `${name} ${tr.overlapSec} s`;
-  if (tr.preset === "gap") return `${it.gapAfterSec} s`;
-  return `${name} ${tr.preset === "cortinaCut" ? tr.fadeOutSec : tr.fadeOutSec || tr.fadeInSec} s`;
+  if (tr.overlapSec > 0) return `${name} ${fmtSec(tr.overlapSec)}`;
+  if (tr.preset === "gap") return fmtSec(it.gapAfterSec);
+  return `${name} ${fmtSec(tr.preset === "cortinaCut" ? tr.fadeOutSec : tr.fadeOutSec || tr.fadeInSec)}`;
 }
 
 function presetLabel(p: PresetId): string {
@@ -798,7 +798,7 @@ function Editor({
               disabled={!lengthEditable}
               aria-haspopup="menu"
               aria-expanded={picker === "gap"}
-              aria-label={`${t("booth.transition.gap_pill_label")}: ${effTr.gapSec} s`}
+              aria-label={`${t("booth.transition.gap_pill_label")}: ${fmtSec(effTr.gapSec)}`}
               data-hint={t("booth.transition.gap_footer")}
               data-testid="booth-tr-gap"
               data-value={effTr.gapSec}
@@ -1023,7 +1023,7 @@ function Editor({
         options={choices.map((s) => ({
           id: String(s),
           label: lengthLabel(s, bpm, unit),
-          sub: unit === "bars" && bpm ? `${s} s` : undefined,
+          sub: unit === "bars" && bpm ? fmtSec(s) : undefined,
           checked: s === len,
           onPick: () => setDraft(withLength(asEdit(), s)),
         }))}
@@ -1035,7 +1035,7 @@ function Editor({
         testId="booth-tr-picker-gap"
         options={GAP_CHOICES.map((s) => ({
           id: String(s),
-          label: `${s} s`,
+          label: fmtSec(s),
           checked: s === effTr.gapSec,
           onPick: () => setDraft({ ...asEdit(), gapSec: s }),
         }))}
@@ -2080,7 +2080,7 @@ function Stage({
                   y={22}
                   className={k.t === 0 ? "trx-tick-label trx-zero" : "trx-tick-label"}
                 >
-                  {k.label === "0" ? "0" : `${k.label} s`}
+                  {k.label === "0" ? "0" : t("unit.sec", { n: k.label })}
                 </text>
               )}
             </g>

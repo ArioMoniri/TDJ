@@ -4,6 +4,7 @@ import { Heart } from "lucide-react";
 import { useEffect, useState } from "react";
 import { haptic } from "@/lib/haptics";
 import { t } from "@/lib/i18n";
+import { skipPoll } from "@/lib/power";
 import { Group } from "./Form";
 import { PageHeader } from "./PageHeader";
 
@@ -43,7 +44,9 @@ export function DancerHeart({ code, server }: { code: string; server: string }) 
         })
         .catch(() => live && setError(t("fav.dancer_off")));
     void load();
-    const h = setInterval(load, 5000);
+    const key = {};
+    // Battery saver: every 20 s (lib/power.ts)
+    const h = setInterval(() => skipPoll(key, 20_000) || void load(), 5000);
     return () => {
       live = false;
       clearInterval(h);

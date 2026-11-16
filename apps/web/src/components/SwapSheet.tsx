@@ -64,9 +64,13 @@ const ranked = (xs: SwapSide[]) => xs.slice().sort((a, b) => Number(b.ok) - Numb
 const sub = (s: SwapSide["song"]) =>
   [
     yearText(s.year),
-    s.singer ?? "instrumental",
-    s.vocalStyle === "cantor" ? "singer-led" : s.vocalStyle === "estribillo" ? "rhythm-led" : null,
-    s.energy !== undefined ? `energy ${s.energy}` : null,
+    s.singer ?? tx("common.instrumental"),
+    s.vocalStyle === "cantor"
+      ? tx("common.singer_led")
+      : s.vocalStyle === "estribillo"
+        ? tx("common.rhythm_led")
+        : null,
+    s.energy !== undefined ? tx("manualBuilder.energy", { energy: s.energy }) : null,
     tempoLevel(s) || null,
   ]
     .filter(Boolean)
