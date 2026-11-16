@@ -353,7 +353,41 @@ describe("big four — Di Sarli, D'Arienzo, Troilo, Pugliese spread over the nig
     // (the round-20 composer: 3.1 pairs a night over 42 seeds; the canon, the summit and the Pugliese chair win the rest)
     // (round 21b: the big four is a soft preference — only the after-repair swaps that leave every other rule as it
     // was; 2.5 pairs a night on these four seeds, each one recorded as a fallback)
-    expect(adjacent / nights.length).toBeLessThanOrEqual(3);
+    // (2026-11: "never back to back" — the repair also rebuilds a chair of the pair with another orchestra and may
+    // cost the other rules a little for it: 1.75 pairs a night on these seeds, 1.8 over twelve. Zero is not reached
+    // without trading the canon chairs — the early D'Arienzo, the summits, the Pugliese chair — for it)
+    expect(adjacent / nights.length).toBeLessThanOrEqual(2);
+  });
+  // 2026-11 (function review): 3 h golden nights left a quartile empty on 10 of 12 seeds (usually the second) and
+  // had no Pugliese on seeds 8, 10 and 11. A quartile is a quarter of the night's tandas, whatever the hours.
+  describe("3 h and 5 h nights", () => {
+    const longer: Array<{ hours: number; seed: number; p: Playlist }> = [];
+    beforeAll(() => {
+      for (const seed of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+        longer.push({ hours: 3, seed, p: compose({ hours: 3, seed, eras: ["golden"] }, deps) });
+      for (const seed of [1, 2, 6, 12])
+        longer.push({ hours: 5, seed, p: compose({ hours: 5, seed, eras: ["golden"] }, deps) });
+    }, 600000);
+    it("every quartile has a big-four tanda and Pugliese plays", () => {
+      for (const { hours, seed, p } of longer) {
+        const f = bigFourProblems(p.tandas, p.options);
+        expect(
+          f.filter((x) => x.kind === "quartile" || x.kind === "missing").map((x) => x.detail),
+          `${hours} h seed ${seed}`,
+        ).toEqual([]);
+        expect(
+          p.tandas.some((t) => t.orchestraId === "osvaldo-pugliese"),
+          `${hours} h seed ${seed}`,
+        ).toBe(true);
+      }
+    });
+    it("3 h: at most one back-to-back big-four pair a night on average (2.1 before)", () => {
+      const three = longer.filter((x) => x.hours === 3);
+      const pairs = three.map(
+        ({ p }) => bigFourProblems(p.tandas, p.options).filter((x) => x.kind === "adjacent").length,
+      );
+      expect(pairs.reduce((a, b) => a + b, 0) / three.length).toBeLessThanOrEqual(1);
+    });
   });
 });
 
@@ -397,8 +431,14 @@ describe("pinned tandas — the DJ's exception", () => {
   it("what a pinned tanda breaks is a DJ exception, never a fault; improveNight leaves it alone", () => {
     const p = nights[2]!;
     const t = p.tandas[3]!;
+    // (a dated side of the other voice, never La Cumparsita: an undated row is judged by nothing but its title)
     const other = deps.catalog.songs.find(
-      (s) => s.orchestraId === t.orchestraId && s.vocal !== t.vocal && s.rhythm === t.rhythm,
+      (s) =>
+        s.orchestraId === t.orchestraId &&
+        s.vocal !== t.vocal &&
+        s.rhythm === t.rhythm &&
+        !!s.year &&
+        normTitle(s.title) !== "la cumparsita",
     )!;
     const mixed: Tanda = { ...t, songs: [other, ...t.songs.slice(1)] };
     const q = pinTanda({ ...p, tandas: p.tandas.map((x, i) => (i === 3 ? mixed : x)) }, 3, "the DJ's tanda");
