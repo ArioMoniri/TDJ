@@ -98,7 +98,11 @@ test("the room's night is the whole night with Compose's editing, synced: reorde
   });
   expect(before).not.toContain(title.slice(0, 12));
   // a tanda moves by its bar (Alt+↓): both see the new order
-  const t2 = (await ana.getByTestId("room-tanda-2").getByTestId("editor-tanda-bar").innerText()).replace(/^2\.\s*/, "");
+  // (the bar reads "T2. Orchestra · Tango · 11:41": the cover's rhythm letter, the place, the tanda)
+  const t2 = (await ana.getByTestId("room-tanda-2").getByTestId("editor-tanda-bar").innerText()).replace(
+    /^[TVM]?\s*2\.\s*/,
+    "",
+  );
   await ana.getByTestId("room-tanda-1").getByTestId("editor-tanda-bar").focus();
   await ana.keyboard.press("Alt+ArrowDown");
   await expect(ben.getByTestId("room-tanda-1").getByTestId("editor-tanda-bar")).toContainText(t2.slice(0, 14), {
@@ -115,10 +119,13 @@ test("choose a night from History for a new room; the owner switches the room's 
   const { a, b, ana, ben } = await twoDjs(browser);
   // two nights in History: the featured one, then a fresh compose
   await composeFeatured(ana);
-  const featuredName = (await ana.locator("#result").getAttribute("data-name")) ?? "";
-  await ana.goto("/");
-  await ana.getByRole("button", { name: /Regenerate|Compose the night/ }).first().click();
-  await expect(ana.locator("#result")).toBeVisible({ timeout: 150_000 });
+  const firstTanda = await ana.locator("#result [data-tanda]").first().innerText();
+  // a fresh compose (the featured night goes to History): once React owns the toolbar's Regenerate
+  await ready(ana, '[data-testid="toolbar-regenerate"]');
+  await ana.getByTestId("toolbar-regenerate").click();
+  await expect
+    .poll(() => ana.locator("#result [data-tanda]").first().innerText(), { timeout: 150_000 })
+    .not.toBe(firstTanda);
   await ana.goto("/rooms");
   await ready(ana, "#room-create");
   await ana.getByTestId("room-user").fill("Ana");
@@ -155,7 +162,6 @@ test("choose a night from History for a new room; the owner switches the room's 
   await expect(ben.locator('[data-testid^="room-tanda-"][data-reorder-row]')).toHaveCount(n, { timeout: 30_000 });
   await ben.getByRole("radio", { name: /Log/ }).click();
   await expect(ben.getByTestId("room-log")).toContainText("Ana loaded the night", { timeout: 20_000 });
-  expect(featuredName).toBeTruthy();
   await a.close();
   await b.close();
 });
