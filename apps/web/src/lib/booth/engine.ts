@@ -412,11 +412,26 @@ export class BoothEngine {
   /** A swap ahead of the playhead replaced items: keep the playhead, refresh the rest. */
   replacePlan(plan: BoothRows, entities: PlanEntity[], sources: ItemSource[]) {
     const keepSkipped = new Set([...this.skipped].filter((i) => i <= this.planIndex));
+    const was = { plan: this.plan, sources: this.sources };
+    // 2026-11 (the owner: back on the Booth, the music paused): a row the new plan left as it was, from the same
+    // source, keeps what was prepared for it (a decode of a whole side takes seconds: the next song came late)
+    const same = (i: number) =>
+      was.sources[i] === sources[i] && JSON.stringify(was.plan?.items[i]) === JSON.stringify(plan.items[i]);
+    const kept = [...this.prepared].filter(([i]) => same(i));
+    const keptSilence = [...this.silenceKnown].filter(([i]) => same(i));
     this.load(plan, entities, sources);
     for (const i of keepSkipped) this.skipped.add(i);
+    for (const [i, p] of kept) this.prepared.set(i, p);
+    for (const [i, s] of keptSilence) this.silenceKnown.set(i, s);
     // the queued item has not sounded yet (its start is ahead): rebuild it from the new plan (a swap, a cortina's
-    // new fades or stop second, round 20)
-    if (this.queued && (!this.queued.started || this.queued.when > this.ctx.currentTime + 0.05)) {
+    // new fades or stop second, round 20) — unless the plan left the running item, the queued one and the order
+    // between them as they were: then it stays as scheduled (nothing is stopped, re-prepared or moved)
+    const q = this.queued;
+    if (q && (!q.started || q.when > this.ctx.currentTime + 0.05)) {
+      const c = this.current;
+      const unchanged =
+        !!c && same(c.planIndex) && same(q.planIndex) && this.nextPlayable(c.planIndex) === q.planIndex;
+      if (unchanged) return;
       this.cancelQueued();
       if (this.state === "playing" || this.state === "cortina") void this.scheduleNext();
     }

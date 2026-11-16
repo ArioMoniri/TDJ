@@ -72,6 +72,7 @@ import {
 } from "./persist";
 import { type BoothRow, type BoothRows, decorate, planEntities, remainingFrom } from "./plan";
 import { speakerFor } from "./prelistenRoute";
+import { sameSetEdits } from "./remount";
 import { provideFileLevels } from "./sideLevel";
 import { resolveSourceMode } from "./sourceMode";
 import { LocalAdapter } from "./sources/local";
@@ -628,6 +629,17 @@ export const useBooth = create<BoothStore>()((set, get) => ({
   cuePos: { at: 0, of: 0 },
 
   boot: async (p, o = {}) => {
+    // 2026-11 (the owner, live at a milonga: "when coming from other tabs to booth while booth is playing, booth
+    // becomes paused music"): the page boots on every mount. For the night running on this set a mount is the DJ
+    // coming back: nothing is re-planned, re-resolved or handed to the engine (that re-boot cancelled the scheduled
+    // next song and threw its decoded buffer away, so it came late or not at all, and could switch the source mid-
+    // night). Only an edit made elsewhere meanwhile (a swap in Compose) comes in, as the Booth's own edits do.
+    const live = get();
+    if (engine && live.started && live.playlist?.id === p.id) {
+      if (!sameSetEdits(live.playlist, p)) await get().applySwappedPlaylist(p);
+      if (!get().ready) set({ ready: true });
+      return;
+    }
     const a = adapters();
     const saved = (await loadBoothSettings()) ?? {};
     const settings: BoothSettings = {

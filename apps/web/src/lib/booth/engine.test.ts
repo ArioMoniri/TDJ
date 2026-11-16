@@ -983,6 +983,74 @@ describe("round 20: transport and fades (round20-booth.md)", () => {
     const curve = ctx.gains.at(-2)!.gain.of("setValueCurveAtTime").at(-1)!;
     expect(curve.args[2]).toBe(6);
   });
+
+  // 2026-11 (the owner, live: "when coming from other tabs to booth while booth is playing, booth becomes paused
+  // music"): the Booth page coming back hands the engine the plan it already plays; the room must not hear it
+  it("the same plan again (the Booth page mounted again) keeps the running and the scheduled song: nothing stopped, re-prepared or moved", async () => {
+    const p = set({ thirdTanda: true });
+    const plan = build(p);
+    let prepares = 0;
+    const base = fakeAdapter();
+    const adapter: SourceAdapter = {
+      ...base,
+      prepare: (item, entity) => {
+        prepares++;
+        return base.prepare(item, entity);
+      },
+    };
+    const events: EngineEvent[] = [];
+    const e = engineFor(ctx, plan, adapter, events);
+    await e.start();
+    await e.play();
+    await flush();
+    ctx.advance(30);
+    const running = ctx.sources[0]!;
+    const queued = ctx.sources.at(-1)!;
+    const scheduledAt = queued.starts[0]![0];
+    const before = { sources: ctx.sources.length, prepares, events: events.length };
+    for (let k = 0; k < 3; k++) {
+      const again = build(p);
+      e.replacePlan(
+        again,
+        again.items.map(() => null),
+        again.items.map(() => "file"),
+      );
+      await flush();
+    }
+    expect(running.stops).toEqual([]);
+    expect(queued.stops).toEqual([]);
+    expect(ctx.sources.length).toBe(before.sources);
+    expect(prepares).toBe(before.prepares);
+    expect(events.length).toBe(before.events);
+    expect(e.state).toBe("playing");
+    // the next song still starts where it was scheduled, and takes over at the end
+    expect(queued.starts).toHaveLength(1);
+    expect(queued.starts[0]![0]).toBe(scheduledAt);
+    ctx.advance(171);
+    await flush();
+    expect(e.planIndex).toBe(1);
+    expect(e.state).toBe("playing");
+  });
+
+  it("an edit further on (another tanda's cortina) keeps the scheduled song; the edited row is rebuilt when it comes", async () => {
+    const p = set({ thirdTanda: true });
+    const plan = build(p);
+    const e = engineFor(ctx, plan);
+    await e.start();
+    await e.play();
+    await flush();
+    const queued = ctx.sources.at(-1)!;
+    const n = ctx.sources.length;
+    const edited = build(p, { cortinaEdits: { c1: { stopSec: 30, fadeOutSec: 6 } } });
+    e.replacePlan(
+      edited,
+      edited.items.map(() => null),
+      edited.items.map(() => "file"),
+    );
+    await flush();
+    expect(queued.stops).toEqual([]);
+    expect(ctx.sources.length).toBe(n);
+  });
 });
 
 describe("round 21: a tapped row plays — Play now (with a fade) and Play next", () => {
