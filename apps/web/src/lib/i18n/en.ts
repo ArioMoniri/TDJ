@@ -4112,6 +4112,37 @@ export const en = {
   "settings.booth.confirm_footer":
     "Once the night runs, Next, Previous, Play now, Fade, Crossfade, End tanda and La Cumparsita now need a second tap (or a press and hold on the transport), so a mistaken tap never cuts the song. Volume, the headphones and floor reactions never ask.",
   "settings.booth.header": "Booth",
+  // 2026-11 — Booth behaviour on Spotify Connect (the iPad review)
+  "booth.connect.will_be_skipped": "{title} will be skipped",
+  "booth.connect.skip_next_song": "Skip next song",
+  "booth.connect.skip_next_hint":
+    "The song playing now plays to its end; the next one is left out and the night goes on after it (Undo in the message)",
+  "booth.connect.skip_next_menu": "Skip the next song",
+  "booth.connect.mute_pauses": "Mute (pauses — this device has no volume control)",
+  "booth.connect.mute_pauses_short": "Mute (pauses)",
+  "booth.connect.unmute_resumes": "Unmute (resumes)",
+  "booth.connect.talk_unavailable": "Not available on this device",
+  "booth.connect.no_volume_why": "This device has no volume control: change the volume on the device itself",
+  "booth.connect.no_fade_why": "This device can't fade",
+  "booth.connect.stops_at_once": "Stop now — stops at once (this device can't fade)",
+  "booth.connect.stops_at_once_footer":
+    "Spotify plays the night on this device and can't fade: Stop is immediate. Cancel keeps the music playing.",
+  "booth.connect.jump_cumparsita_now": "Jump to La Cumparsita now (at once: this device can't fade)",
+  "booth.connect.next_now_hint": "One ahead now: the next song starts at once (→)",
+  "booth.connect.pause_hint": "Pause now (space)",
+  "booth.connect.starting": "Starting…",
+  "booth.connect.tap_again_to_jump": "Tap again to jump to {time}",
+  "booth.connect.seek_hint_live":
+    "Drag to move inside the song; a tap shows the time and a second tap jumps there",
+  "booth.connect.continue_playing": "Continue: {title} is playing on {device}",
+  "booth.connect.still_playing_footer":
+    "Spotify kept playing through the reload: the Booth takes the night back where it is, without stopping the room.",
+  "booth.connect.still_playing_title": "Spotify is still playing",
+  "booth.connect.headphones_ipad":
+    "On iPad, headphone pre-listen needs a second device: open T-DJ on your phone with headphones",
+  "booth.connect.headphones_second_device": "Second device",
+  "booth.connect.music_gaps": "{music} music + {gaps} gaps",
+  "booth.connect.gain_none": "Spotify plays this at its own level (no gain on this device)",
 } as const;
 
 export type MsgKey = keyof typeof en;

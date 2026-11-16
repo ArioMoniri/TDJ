@@ -13,11 +13,13 @@ import {
   transitionKey,
 } from "@tdj/core";
 import { create } from "zustand";
+import { useShallow } from "zustand/react/shallow";
 import { playsIn } from "@/lib/favourites";
 import { makeNightLog, makeSnapshot } from "@/lib/history";
 import { t as tx } from "@/lib/i18n";
+import { boothCortinaStop, musicSec } from "@/lib/lengths";
 import { useStore } from "@/lib/store";
-import { cortinaStopSec } from "@/lib/types";
+import { toast } from "@/lib/toast";
 import { encodeWav, renderTransition } from "./audition";
 import { clipSummary, rehearsalClip, spotifyOf, withSpotifyLengths } from "./clips";
 import { setConfirmNeeded } from "./confirm";
@@ -53,8 +55,14 @@ import { type BoothRow, type BoothRows, decorate, planEntities, remainingFrom } 
 import { resolveSourceMode } from "./sourceMode";
 import { LocalAdapter } from "./sources/local";
 import { PreviewAdapter, REHEARSAL_SEC } from "./sources/preview";
-import { SpotifyAdapter } from "./sources/spotify";
-import type { ItemSource, PlanEntity, SourceAdapter, SourceKind } from "./sources/types";
+import { onSpotifyRoom, SpotifyAdapter } from "./sources/spotify";
+import type {
+  ExternalCapabilities,
+  ItemSource,
+  PlanEntity,
+  SourceAdapter,
+  SourceKind,
+} from "./sources/types";
 import { type Bands, renderBands } from "./spectral";
 import { transitionWindow } from "./transition";
 import { isSilentState, unlockAudio } from "./unlock";
@@ -97,6 +105,20 @@ export interface Waveform {
   from: "file" | "clip";
   /** wave 4: the low / mid / high envelopes the transition editor draws (absent where the split failed) */
   bands?: Bands;
+}
+/** 2026-11: what the room's player can do now (Spotify Connect on an iPad: no fades, maybe no volume, no gain) */
+export type RoomCaps = Required<ExternalCapabilities>;
+const ALL_CAPS: RoomCaps = { fade: true, volume: true, gain: true };
+/**
+ * 2026-11 (a reload while Spotify kept playing on Connect): the saved night's item that plays on the device now.
+ */
+export interface Reattach {
+  planIndex: number;
+  /** seconds into the recording, when read */
+  trackSec: number;
+  readAtMs: number;
+  deviceId: string;
+  deviceName: string;
 }
 export interface FolderStatus {
   name: string | null;
@@ -151,7 +173,13 @@ interface BoothStore {
   decoding: number | null;
   started: boolean;
   startedWall: number;
-  resumeOffer: NightRecord | null;
+  resumeOffer: (NightRecord & { reattach?: Reattach }) | null;
+  /** 2026-11: the Spotify player's capabilities (see `roomCaps` for the item at the playhead) */
+  spotifyCaps: RoomCaps;
+  /** 2026-11: an item was asked to start and Spotify has not confirmed it yet ("Starting…") */
+  starting: boolean;
+  /** 2026-11: Mute on a device without volume control paused the night (unmute resumes it) */
+  mutePaused: boolean;
   outputLabel: string | null;
   wakeLock: boolean;
   spotifyNoFades: boolean;
@@ -215,7 +243,10 @@ interface BoothStore {
   setDucked: (on: boolean) => void;
   /** round 20: the DJ's fade in / fade out / stop second for one cortina, saved with the set (null resets it) */
   setCortinaEdit: (id: string, edit: CortinaEdit | null) => void;
+  /** "Skip the next song": the running song plays on, the queued one is left out (a toast offers Undo) */
   next: () => void;
+  /** Undo of "Skip the next song" */
+  unskip: (i: number) => void;
   skipNow: () => Promise<void>;
   /** `fadeSec`: 1 s by default; the confirm offers "Fade out and stop" and "Stop now" */
   stop: (fadeSec?: number) => void;
@@ -287,10 +318,21 @@ function adapters(): { local: LocalAdapter; spotify: SpotifyAdapter; preview: Pr
     local = new LocalAdapter(getCtx);
     local.onChange = () => useBooth.getState().refreshSources();
   }
-  if (!spotify)
-    spotify = new SpotifyAdapter({
+  if (!spotify) {
+    const sp = new SpotifyAdapter({
       onBanner: (text, action) => pushBanner({ key: "spotify", text, action }),
     });
+    spotify = sp;
+    // 2026-11: the room's capabilities follow the device (a Connect pick, `supports_volume`)
+    const syncCaps = () => {
+      const c = useBooth.getState().spotifyCaps;
+      const n = { fade: sp.capabilities.fade, volume: sp.capabilities.volume, gain: sp.capabilities.gain };
+      if (c.fade !== n.fade || c.volume !== n.volume || c.gain !== n.gain)
+        useBooth.setState({ spotifyCaps: n, spotifyNoFades: !n.fade });
+    };
+    onSpotifyRoom(syncCaps);
+    queueMicrotask(syncCaps);
+  }
   if (!preview) preview = new PreviewAdapter(getCtx, () => useStore.getState().overrides);
   return { local, spotify, preview };
 }
@@ -323,7 +365,9 @@ function rePlan(
     cortinaLevelDb: settings.cortinaLevelDb,
     loudnessTargetLUFS: settings.loudnessTargetLUFS,
     trimLeadingSilence: settings.trimLeadingSilence,
-    cortinaStopSec: cortinaStopSec(user, p.options.cortinaLengthSec),
+    // 2026-11: the DJ's cortina length when set, else each cortina's own composed length (48 s, 41 s…) from its start
+    // — what Compose, the mini player and History print (no longer the set's 45 s for every cortina)
+    cortinaStopSec: boothCortinaStop(user),
     // 2026-11: Settings → Cortinas → "Start cortinas at the chorus" (on unless false)
     cortinaHookStart: user.cortinaHookStart === false ? false : undefined,
     measurements: local?.measurementsById() ?? {},
@@ -331,7 +375,9 @@ function rePlan(
   };
   // round 18: a side with a checked Spotify match is timed at that recording's length (what the DJ plays)
   const timed = attachBooth(withSpotifyLengths(p), inputs);
-  const playlist: Playlist = { ...p, booth: timed.booth, stats: timed.stats };
+  // 2026-11: the night's music as it plays (the same seconds Compose and History print; the gaps are apart)
+  const stats = { ...timed.stats, durationSec: musicSec(timed.booth!.items) };
+  const playlist: Playlist = { ...p, booth: timed.booth, stats };
   // write back only when the plan changed: the page re-boots on the store's playlist, so an identical plan must
   // not produce a new object (that was an update loop)
   const app = useStore.getState();
@@ -353,6 +399,22 @@ function chain(mode: SourceMode, avail: BoothStore["availability"]): SourceAdapt
   out.push(a.preview);
   return out;
 }
+
+/**
+ * 2026-11 — what the room's player can do for the item at the playhead: Spotify's (fades, volume, gain on the SDK;
+ * none of the first and maybe no volume on a Connect device) when Spotify plays it, everything for files and clips.
+ */
+export function roomCaps(s: Pick<BoothStore, "sources" | "planIndex" | "plan" | "spotifyCaps">): RoomCaps {
+  const here = s.sources[s.planIndex];
+  const allSpotify =
+    s.sources.includes("spotify") &&
+    !s.sources.some((x, i) => (x === "file" || x === "preview") && s.plan?.items[i]?.kind !== "break");
+  return here === "spotify" || (here !== "file" && here !== "preview" && allSpotify)
+    ? s.spotifyCaps
+    : ALL_CAPS;
+}
+/** the room's capabilities as a hook (re-renders only when one changes) */
+export const useRoomCaps = (): RoomCaps => useBooth(useShallow((s) => roomCaps(s)));
 const capFor = (sources: ItemSource[], rehearsal: boolean) => (i: number) =>
   rehearsal || sources[i] === "preview" ? REHEARSAL_SEC : null;
 
@@ -391,6 +453,9 @@ export const useBooth = create<BoothStore>()((set, get) => ({
   started: false,
   startedWall: 0,
   resumeOffer: null,
+  spotifyCaps: ALL_CAPS,
+  starting: false,
+  mutePaused: false,
   outputLabel: null,
   wakeLock: false,
   spotifyNoFades: false,
@@ -454,14 +519,13 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     void get().refreshOutputs();
     // a night younger than 12 h for this set: offer to resume at its playhead
     const night = await loadNight();
-    if (
-      !sameSet &&
-      night &&
-      night.playlistId === p.id &&
-      Date.now() - night.updatedAt < NIGHT_MAX_AGE_MS &&
-      night.planIndex > 0
-    )
-      set({ resumeOffer: night });
+    const fresh =
+      !sameSet && night && night.playlistId === p.id && Date.now() - night.updatedAt < NIGHT_MAX_AGE_MS;
+    // 2026-11: Spotify kept playing on Connect through the reload: offer to continue with it (no restart)
+    const reattach = fresh ? await findReattach() : null;
+    if (fresh && night && reattach)
+      set({ resumeOffer: { ...night, planIndex: reattach.planIndex, reattach } });
+    else if (fresh && night && night.planIndex > 0) set({ resumeOffer: night });
     else if (night && night.playlistId !== p.id) await saveNight(null);
     set({ ready: true, ...derive(get().plan!, get().planIndex, 0, capFor(get().sources, get().rehearsal)) });
   },
@@ -603,6 +667,7 @@ export const useBooth = create<BoothStore>()((set, get) => ({
 
   start: async () => {
     const { plan, entities, sources, settings, sourceMode, resumeOffer } = get();
+    const reattach = resumeOffer?.reattach ?? null;
     if (!plan) return;
     const Ctor =
       window.AudioContext ??
@@ -644,6 +709,8 @@ export const useBooth = create<BoothStore>()((set, get) => ({
       engine.pausedAt = null;
     }
     if (sourceMode === "spotify" || sources.includes("spotify")) {
+      // (a re-attach: the night is on the device that plays it now)
+      if (reattach) adapters().spotify.adopt(reattach.deviceId, reattach.deviceName);
       try {
         await adapters().spotify.connect();
       } catch (e) {
@@ -688,7 +755,13 @@ export const useBooth = create<BoothStore>()((set, get) => ({
         },
       });
     await engine.start();
-    await engine.play();
+    const attached =
+      !!reattach &&
+      (await engine.attach(
+        reattach.planIndex,
+        reattach.trackSec + Math.max(0, Date.now() - reattach.readAtMs) / 1000,
+      ));
+    if (!attached) await engine.play();
     startTicking();
     if (!persistTimer) persistTimer = setInterval(persistNight, 5000);
     checkAudible();
@@ -721,9 +794,16 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     if (s.state === "playing" || s.state === "cortina") s.pause();
     else void s.play();
   },
-  fadeOutNow: () => engine?.fadeOutNow(),
-  crossfadeNext: async () => engine?.crossfadeNext(),
+  // 2026-11: a device that cannot fade (Spotify Connect) has no Fade or Crossfade (the keys f / x too)
+  fadeOutNow: () => {
+    if (roomCaps(get()).fade) engine?.fadeOutNow();
+  },
+  crossfadeNext: async () => {
+    if (roomCaps(get()).fade) await engine?.crossfadeNext();
+  },
   setDucked: (on) => {
+    // 2026-11: Talk needs volume control on the room's device ("Not available on this device")
+    if (on && !roomCaps(get()).volume) return;
     set({ ducked: on });
     engine?.setDucked(on);
   },
@@ -742,7 +822,19 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     }
     applyPlan(rePlan(p, get().settings, { cortinaEdits: edits }));
   },
-  next: () => engine?.next(),
+  next: () => {
+    if (!engine) return;
+    const s = get();
+    const live = s.started && (s.state === "playing" || s.state === "cortina");
+    const n = engine.next();
+    if (n === null || !live) return;
+    const title = s.plan?.items[n]?.title ?? "";
+    toast(tx("booth.connect.will_be_skipped", { title }), () => get().unskip(n));
+  },
+  unskip: (i) => {
+    engine?.unskip(i);
+    if (engine) useBooth.setState({ skipped: [...engine.skipped] });
+  },
   playNow: async (i) => {
     get().stopAudition();
     if (!engine || !get().started) {
@@ -1032,12 +1124,28 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     engine?.setCortinaFader(v);
   },
   setMaster: (db) => {
+    // 2026-11: a device without volume control (the iOS Spotify app): the slider is disabled, nothing pretends
+    if (!roomCaps(get()).volume) return;
     set({ master: db });
     engine?.setMaster(db);
   },
   toggleMute: () => {
-    const m = !get().muted;
-    set({ muted: m });
+    const s = get();
+    const m = !s.muted;
+    // 2026-11: no volume control on the room's device: Mute pauses the night, unmute resumes it (labelled so)
+    if (!roomCaps(s).volume) {
+      const live = s.state === "playing" || s.state === "cortina";
+      if (m) {
+        if (!live) return;
+        set({ muted: true, mutePaused: true });
+        engine?.pause(0);
+      } else {
+        set({ muted: false, mutePaused: false });
+        if (s.mutePaused && s.started) void s.play();
+      }
+      return;
+    }
+    set({ muted: m, mutePaused: false });
     engine?.setMuted(m);
   },
   setTrim: (id, db) => engine?.setTrim(id, db),
@@ -1315,6 +1423,10 @@ function onEngineEvent(e: EngineEvent) {
     });
     if (e.to === "stopped" || e.to === "paused") media?.setPlaying(false);
     else if (e.to === "playing" || e.to === "cortina") media?.setPlaying(true);
+    // a Mute that paused (no volume control) ends when the night plays again (Play, Next, a row)
+    if ((e.to === "playing" || e.to === "cortina") && s.mutePaused && e.reason !== "skip")
+      useBooth.setState({ muted: false, mutePaused: false });
+    if (e.to === "stopped") useBooth.setState({ starting: eng.starting });
     void persistNight();
   } else if (e.type === "item") {
     const it = s.plan?.items[e.planIndex];
@@ -1348,6 +1460,8 @@ function onEngineEvent(e: EngineEvent) {
     });
   } else if (e.type === "decoding") {
     useBooth.setState({ decoding: e.busy ? e.planIndex : null });
+  } else if (e.type === "starting") {
+    useBooth.setState({ starting: e.on });
   }
 }
 
@@ -1379,6 +1493,34 @@ function applyPlan(r: { playlist: Playlist; plan: BoothRows }) {
   if (!engine) return;
   if (s.started) engine.replacePlan(r.plan, entities, s.sources);
   else engine.load(r.plan, entities, s.sources);
+}
+
+/**
+ * 2026-11 — after a reload: Spotify Premium plays this set and `GET /me/player` says a Connect device plays one of the
+ * plan's recordings now. The plan index (the saved playhead's or the nearest one with that uri) and where it is.
+ */
+async function findReattach(): Promise<Reattach | null> {
+  const s = useBooth.getState();
+  if (!s.availability.spotify.ok || !s.plan || !s.sources.includes("spotify") || s.rehearsal) return null;
+  const now = await adapters()
+    .spotify.nowPlaying()
+    .catch(() => null);
+  if (!now?.playing || !now.uri || !now.deviceId) return null;
+  const night = await loadNight();
+  const at = night?.planIndex ?? 0;
+  const hits = s.entities
+    .map((e, i) => (e && spotifyOf(e)?.uri === now.uri && s.sources[i] === "spotify" ? i : -1))
+    .filter((i) => i >= 0)
+    .sort((a, b) => Math.abs(a - at) - Math.abs(b - at));
+  const i = hits[0];
+  if (i === undefined) return null;
+  return {
+    planIndex: i,
+    trackSec: now.positionMs / 1000,
+    readAtMs: Date.now(),
+    deviceId: now.deviceId,
+    deviceName: now.deviceName ?? "Spotify",
+  };
 }
 
 /** The context must be running and the night moving: otherwise the DJ hears nothing, so say it and offer the fix. */
