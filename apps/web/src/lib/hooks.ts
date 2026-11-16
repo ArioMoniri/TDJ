@@ -1,6 +1,13 @@
 "use client";
 import { useEffect, useLayoutEffect, useState, useSyncExternalStore } from "react";
 
+/**
+ * The wide size class (sidebar, sticky toolbar, inspector): from 900 px, so the iPhone Duo open (951 pt) gets it,
+ * iPad Pro 11 portrait (834) keeps the nav pill. Tailwind's `lg` (globals.css `--breakpoint-lg`) and the CSS
+ * `(min-width: 900px)` queries are the same line.
+ */
+export const WIDE_PX = 900;
+
 /* ---- useMediaQuery: one MediaQueryList per query string, shared by every subscriber ---- */
 interface MqEntry {
   mq: MediaQueryList;

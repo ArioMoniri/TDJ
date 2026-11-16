@@ -87,7 +87,7 @@ const offsetOf = (s: Saved) => {
   return s.collapsed ? traffic + 52 : s.w;
 };
 const moving = () =>
-  matchMedia("(min-width: 1024px)").matches && !matchMedia("(prefers-reduced-motion: reduce)").matches;
+  matchMedia("(min-width: 900px)").matches && !matchMedia("(prefers-reduced-motion: reduce)").matches;
 let running: { anims: Animation[]; finish: () => void } | null = null;
 
 /**
@@ -279,7 +279,7 @@ export function Sidebar() {
     followers.current = [...document.querySelectorAll<HTMLElement>(FOLLOWERS)];
     const main = document.querySelector("main");
     // the widest the page can be while the edge moves: clipped on the right, never a gap
-    if (main && matchMedia("(min-width: 1024px)").matches) main.style.width = `${r.clientWidth - MIN_W}px`;
+    if (main && matchMedia("(min-width: 900px)").matches) main.style.width = `${r.clientWidth - MIN_W}px`;
   };
   const onResizeMove = (e: PointerEvent<HTMLDivElement>) => {
     const d = drag.current;
