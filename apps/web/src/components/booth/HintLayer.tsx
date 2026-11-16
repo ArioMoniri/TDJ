@@ -60,8 +60,21 @@ export function HintLayer() {
     // pointer at rest — any move restarts the wait, and a move of a few px once it shows takes it away, so it never
     // covers the control the DJ is heading for
     let shownAt: { x: number; y: number } | null = null;
+    // 2026-11: a finger that moves is a drag (a transition edge, a fader), not a long press: no hint, and the next
+    // tap is never swallowed (a slow drag on a phone used to eat the following tap on Save)
+    let touchAt: { x: number; y: number } | null = null;
     const move = (ev: PointerEvent) => {
-      if (ev.pointerType !== "mouse") return;
+      if (ev.pointerType !== "mouse") {
+        if (touchAt && Math.hypot(ev.clientX - touchAt.x, ev.clientY - touchAt.y) > 8) {
+          touchAt = null;
+          clear();
+          if (swallow.current) {
+            swallow.current = false;
+            setHint(null);
+          }
+        }
+        return;
+      }
       if (shownAt && Math.hypot(ev.clientX - shownAt.x, ev.clientY - shownAt.y) > 6) {
         shownAt = null;
         clear();
@@ -83,6 +96,7 @@ export function HintLayer() {
       // a click takes a hover hint away (it explained what is now being done)
       if (ev.pointerType === "mouse") return hide();
       lastTouch = ev.timeStamp;
+      touchAt = { x: ev.clientX, y: ev.clientY };
       const el = target(ev);
       clear();
       setHint(null);

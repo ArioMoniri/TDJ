@@ -50,10 +50,46 @@ This note records what we took from those apps, and how each idea maps to `compo
 
 ## Audition
 
-The audition plays the last ~8 s of the outgoing side, the transition itself, and ~8 s of the incoming side. It is
-rendered offline with the same curves and EQ the engine uses. It goes to the headphones output when one is chosen.
-Before the night it plays on this device. During the night, with no headphones chosen, it asks first ("Play the
-audition in the room?") and only plays in the room after you confirm.
+The owner (2026-11): "the transition guide doesn't really play the part of the transition between those songs". The
+old audition took each side's plan length from second 0 of its audio (so a head cut ended the outgoing early), ignored
+the join's silence (the gap fell back to the night's setting whenever the plan's gap was 0, and no cut was applied),
+always ran 8 s, and on a Spotify night it mixed two 30 s clips from the middle of the songs (or a side of silence)
+without saying so. Now `planAudition` (`lib/booth/audition.ts`) lays out the last N seconds of the outgoing side
+(5–15 s, ••• → Audition length) into the first seconds of the incoming one exactly as the night will play it: the
+start points (a cue in, a cortina's start, the silent head the join cuts), the end (a stop cue, the cut tail), the
+gap, fades, overlap and EQ, and the transition's own silence mode.
+
+| Source | What plays |
+| --- | --- |
+| Your files | The real files, rendered offline with the engine's curves and EQ (`renderTransition`) |
+| 30 s clips | The clips, said plainly: "Clip: not the real ending" (a clip is the middle of the song) |
+| Spotify in this browser (SDK) | The real recordings on the player: seek the outgoing to (its end − N), play, fade in volume steps, then play the incoming from its start at the gap (`spotifyAuditionSteps`, `runAuditionSteps`) |
+| Spotify Connect | The same on the device, without fades (said so); an overlap plays as the night's gap, as it will tonight |
+
+A playhead runs across both lanes in step with what is heard (the cue player's clock, or the wall clock from when
+Spotify started); Space starts and stops it inside the editor; Stop (the same button) stops it, and closing the editor
+does too. It goes to the headphones output when one is chosen. Before the night it plays on this device (Spotify on
+its own player). During the night, with no headphones chosen, it asks first ("Play the audition in the room?"); a
+Spotify night plays the clips then, since the player is the room's.
+
+## Templates
+
+"Save as template…" (the presets' head, or •••) keeps the transition as it is now — preset, lengths, curves, EQ and
+silence — under a name, on this device (`lib/booth/transitionTemplates.ts`). Templates sit after the presets (Auto,
+Fade, Rise, Blend, Gap + the DJ's own). Settings → Booth → Transitions renames, edits, reorders and deletes them and sets
+the defaults per kind of join (song → song inside a tanda, last song → cortina, cortina → next tanda, into La
+Cumparsita) and, inside a tanda, per rhythm; Auto then means that template (the plan's `defaultTransitions`; an edit of
+the DJ's own always wins). ••• → Apply to the whole tanda / night previews the joins of the same kind it changes and
+records one entry in the shared edit history (⌘Z). The owner's personal export carries the templates (Settings →
+Owner → Transition templates).
+
+## Spotify lanes
+
+A side Spotify plays is drawn from the DJ's own file of the same recording when the linked folder has one ("From your
+file"). Otherwise the estimate is informed, still hatched and labelled Estimated: its level and swing from the 30 s
+clip's envelope (or the analysed loudness), nudged by the catalogue energy, an 8-bar phrase swell at its BPM, the
+ending of its rhythm (a tango's final chord, a vals' held note), and its measured silence and length. A line says what
+shaped it, and, without a file, "Link your music folder" links one.
 
 ## Layout
 
