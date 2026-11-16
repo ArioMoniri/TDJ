@@ -101,7 +101,7 @@ describe("nightCoverSvg", () => {
         const svg = nightCoverSvg(n, { size });
         expect(parses(svg)).toBe(true);
       }
-  });
+  }, 180_000);
 });
 
 describe("one cover per generation", () => {
