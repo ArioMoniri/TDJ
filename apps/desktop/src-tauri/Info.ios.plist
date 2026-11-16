@@ -11,6 +11,17 @@
   <!-- open the Spotify app for Spotify playback (App Remote) -->
   <key>LSApplicationQueriesSchemes</key><array><string>spotify</string></array>
   <key>NSLocalNetworkUsageDescription</key><string>TDJ connects to a TDJ server or DJ agent on your local network when you choose one.</string>
+  <!-- one universal app (TARGETED_DEVICE_FAMILY 1,2, scripts/release/mac-build.sh). iPhone: portrait, the layout the
+       phone UI is built and tested for (tab bar, Booth transport above the home indicator); the un-suffixed key is the
+       iPhone's because the iPad has its own below -->
+  <key>UISupportedInterfaceOrientations</key>
+  <array>
+    <string>UIInterfaceOrientationPortrait</string>
+  </array>
+  <key>UISupportedInterfaceOrientations~iphone</key>
+  <array>
+    <string>UIInterfaceOrientationPortrait</string>
+  </array>
   <!-- iPad: every orientation, Split View, Slide Over and Stage Manager -->
   <key>UIRequiresFullScreen</key><false/>
   <key>UISupportedInterfaceOrientations~ipad</key>

@@ -1,6 +1,7 @@
 "use client";
 import type { Cortina, Song } from "@tdj/core";
 import { t as tx } from "@/lib/i18n";
+import { openExternal } from "@/lib/openLink";
 import { dbToGain, fadeOutCurve, VOLUME_STEP_SEC, volumeSteps } from "../envelope";
 import type { BoothRow } from "../plan";
 import type {
@@ -58,6 +59,30 @@ export const isAppleMobile = (ua = typeof navigator !== "undefined" ? navigator.
  */
 export const isPhone = (ua = typeof navigator !== "undefined" ? navigator.userAgent : "") =>
   /iPhone|iPod|Android.*Mobile|Mobile.*Android/.test(ua);
+
+/** T-DJ's own app (Tauri: the Mac, iPhone and iPad apps), not a browser */
+export const inNativeApp = () => typeof window !== "undefined" && !!window.__TAURI_INTERNALS__;
+
+/**
+ * Can this web view run the Web Playback SDK at all? It needs Widevine (EME `com.widevine.alpha`): Chrome, Edge and
+ * Firefox have it; the Mac app's WebKit view does not (nor does any iOS / iPadOS web view), so there the night plays
+ * through Spotify Connect from the start, with no 10 s wait for an SDK that cannot come up.
+ */
+export async function sdkPlayable(
+  nav: Pick<Navigator, "requestMediaKeySystemAccess"> | undefined = typeof navigator !== "undefined"
+    ? navigator
+    : undefined,
+): Promise<boolean> {
+  if (!nav?.requestMediaKeySystemAccess) return false;
+  try {
+    await nav.requestMediaKeySystemAccess("com.widevine.alpha", [
+      { initDataTypes: ["cenc"], audioCapabilities: [{ contentType: 'audio/mp4; codecs="mp4a.40.2"' }] },
+    ]);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /** a Spotify track uri the Web API accepts: `spotify:track:` and a 22-character base62 id */
 export const isTrackUri = (uri: unknown): uri is string =>
@@ -188,6 +213,10 @@ interface Options {
   deviceWaitMs?: number;
   /** how often to look for a device while an item waits for one (ms) */
   waitPollMs?: number;
+  /** T-DJ's own app (Tauri): the SDK is probed before it is tried, and the local Spotify app is preferred */
+  app?: boolean;
+  /** the Widevine probe (`sdkPlayable`), for the tests */
+  probeSdk?: () => Promise<boolean>;
 }
 
 function defaultLoadSdk(): Promise<SdkPlayerCtor> {
@@ -280,6 +309,10 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
   private waitTimer: ReturnType<typeof setInterval> | null = null;
   private loading = false;
   private snap: SpotifyRoomState;
+  /** 2026-11: the Mac / iPad / iPhone app (see `Options.app`) */
+  private app: boolean;
+  private probeSdk: () => Promise<boolean>;
+  private probed: Promise<boolean> | null = null;
 
   constructor(o: Options = {}) {
     this.fetchImpl = o.fetchImpl ?? ((...a) => fetch(...a));
@@ -289,6 +322,8 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
     // iPadOS has no Web Playback SDK (no Widevine), so the night plays through the Spotify app from the start
     this.phone = o.phone ?? (isPhone() || isAppleMobile());
     this.sdkUnusable = this.phone;
+    this.app = o.app ?? inNativeApp();
+    this.probeSdk = o.probeSdk ?? (() => sdkPlayable());
     this.syncCaps();
     this.onBanner = o.onBanner;
     this.onLog = o.onLog;
@@ -301,6 +336,8 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
       document.addEventListener?.("visibilitychange", () => {
         if (document.visibilityState === "visible") this.onVisible();
       });
+    // the Mac app stays visible while the DJ opens Spotify beside it: coming back is a focus, not a visibility change
+    if (this.app && typeof window !== "undefined") window.addEventListener?.("focus", () => this.onVisible());
   }
 
   /**
@@ -628,6 +665,14 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
       if (this.baseVolume === null) await this.readVolume();
       return;
     }
+    // 2026-11: the app's WebKit view has no Widevine: Connect at once, the Spotify app on this Mac first
+    if (!this.sdkUnusable && this.app && !this.player) {
+      this.probed ??= this.probeSdk().catch(() => false);
+      if (!(await this.probed)) {
+        this.record({ op: "connect", status: 0, note: "no Widevine in this view: Spotify Connect" });
+        this.fallBackToConnect();
+      }
+    }
     if (!this.sdkUnusable) {
       try {
         if (this.player && this.sdkReady && this.deviceId) return;
@@ -650,7 +695,7 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
     }
     // Spotify Connect: the Spotify app on this phone (or another device of the account)
     const list = await this.listDevices();
-    const pick = this.remote ? null : autoPick(list, this.phone);
+    const pick = this.remote ? null : this.pick(list);
     if (pick) this.selectRemote(pick);
     else if (!this.remote) this.bannerNoDevice();
     // 2026-11: the device's own level, read when the night starts (the master and Mute work relative to it)
@@ -669,9 +714,7 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
     this.capabilities.gain = !connect;
     if (!connect) this.capabilities.volume = true;
     else {
-      const d = this.remote
-        ? this.devices.find((x) => x.id === this.remote)
-        : autoPick(this.devices, this.phone);
+      const d = this.remote ? this.devices.find((x) => x.id === this.remote) : this.pick(this.devices);
       this.capabilities.volume = this.remote
         ? (this.remoteVolumeOk ?? d?.supportsVolume ?? true)
         : (d?.supportsVolume ?? false);
@@ -759,8 +802,18 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
   private onPhone() {
     return this.phone || isAppleMobile();
   }
-  private bannerNoDevice(text = noDeviceText(this.onPhone())) {
-    const phone = this.onPhone();
+  /** the device to play on when this view can't (the Mac app: the Spotify app on this computer first) */
+  private pick(list: SpotifyDevice[]): SpotifyDevice | null {
+    return autoPick(list, this.phone, this.app && !this.phone ? "computer" : undefined);
+  }
+  /** why no device plays, in this device's words (the Mac app: open the Spotify app on this Mac) */
+  private noDevice(): string {
+    if (this.app && !this.onPhone()) return tx("booth.sources.spotify.device_not_found_mac_app");
+    return noDeviceText(this.onPhone());
+  }
+  private bannerNoDevice(text = this.noDevice()) {
+    // the apps can wake the Spotify app themselves (the Mac's, or the one on this iPhone / iPad)
+    const phone = this.onPhone() || (this.app && this.sdkUnusable);
     this.onBanner?.(text, {
       label: phone ? tx("booth.sources.spotify.open_spotify") : tx("booth.sources.spotify.try_again"),
       run: phone ? openSpotifyApp : () => void this.retryNow(),
@@ -771,7 +824,7 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
     if (!this.remote && !this.sdkUnusable) await this.reconnect();
     else await this.listDevices();
     if (!this.remote && this.sdkUnusable) {
-      const pick = autoPick(this.devices, this.phone);
+      const pick = this.pick(this.devices);
       if (pick) this.selectRemote(pick);
     }
     this.retryWaiting();
@@ -789,7 +842,7 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
   private async target(): Promise<string | null> {
     if (this.remote) return this.remote;
     if (this.sdkUnusable) {
-      const pick = autoPick(await this.listDevices(), this.phone);
+      const pick = this.pick(await this.listDevices());
       if (pick) {
         this.selectRemote(pick);
         return pick.id;
@@ -823,7 +876,7 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
     }
     // this browser's player never came back: play through Spotify Connect
     this.fallBackToConnect();
-    const pick = autoPick(await this.listDevices(), this.phone);
+    const pick = this.pick(await this.listDevices());
     if (!pick) return null;
     this.selectRemote(pick);
     return pick.id;
@@ -840,7 +893,7 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
       throw new TrackUnplayable(uri, title);
     }
     let dev = await this.target();
-    if (!dev) throw new NoDevice(noDeviceText(this.onPhone()));
+    if (!dev) throw new NoDevice(this.noDevice());
     let deviceVerified = false;
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
@@ -866,12 +919,12 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
         // the device is listed and Spotify still says 404 without naming the device: it is the track
         if (deviceVerified && !e.namesDevice) throw new TrackUnplayable(uri, title);
         const next = await this.recover(dev);
-        if (!next) throw new NoDevice(noDeviceText(this.onPhone()));
+        if (!next) throw new NoDevice(this.noDevice());
         deviceVerified = true;
         dev = next;
       }
     }
-    throw new NoDevice(noDeviceText(this.onPhone()));
+    throw new NoDevice(this.noDevice());
   }
 
   /**
@@ -1081,7 +1134,7 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
           const there = this.remote
             ? list.some((d) => d.id === this.remote)
             : this.sdkUnusable
-              ? !!autoPick(list, this.phone)
+              ? !!this.pick(list)
               : list.some((d) => d.id === this.deviceId);
           if (there) void this.retryNow();
         });
@@ -1395,19 +1448,27 @@ class Live implements ExternalHandle {
 }
 
 /** The device to play on when the browser can't: the active one, else on a phone the phone itself, else the only one. */
-export function autoPick(list: SpotifyDevice[], phone: boolean): SpotifyDevice | null {
+export function autoPick(list: SpotifyDevice[], phone: boolean, prefer?: "computer"): SpotifyDevice | null {
   const usable = list.filter((d) => !d.restricted && !d.isThis);
+  const computers = usable.filter((d) => d.type === "Computer");
   return (
     usable.find((d) => d.isActive) ??
     (phone ? usable.find((d) => d.type === "Smartphone" || d.type === "Tablet") : undefined) ??
+    // 2026-11: the Mac app plays through the Spotify app on the same Mac: the one computer of the account
+    (prefer === "computer" && computers.length === 1 ? computers[0]! : undefined) ??
     (usable.length === 1 ? usable[0]! : null)
   );
 }
 
-function openSpotifyApp() {
+/**
+ * "Open Spotify": the Spotify app on this device (its own `spotify:` scheme; in T-DJ's apps through the native
+ * opener, never by navigating the app's view away), else open.spotify.com — a universal link iOS gives the app.
+ * Back in the booth (focus / visibility) the devices are looked up again and the app is picked.
+ */
+export function openSpotifyApp() {
   if (typeof window === "undefined") return;
-  // the app's own scheme opens Spotify on iOS / Android; back in the booth, the device is looked up again
-  window.location.href = "spotify:";
+  if (inNativeApp()) void openExternal("spotify:", { fallback: "https://open.spotify.com" });
+  else window.location.href = "spotify:";
 }
 function openRoom() {
   if (typeof window !== "undefined") window.dispatchEvent(new Event(OPEN_ROOM_EVENT));

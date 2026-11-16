@@ -3,6 +3,13 @@
   "private": true,
   "version": "0.1.0",
   "description": "TDJ — Tango DJ playlist composer: tandas, cortinas, energy arcs, exports to Spotify and DJ apps.",
+  "release": {
+    "repo": "ArioMoniri/TDJ",
+    "appStoreId": "6834924534",
+    "appStoreLive": false,
+    "testflightUrl": "",
+    "webUrl": "https://d3k5k2c1l0s5ri.cloudfront.net"
+  },
   "packageManager": "pnpm@10.18.0",
   "engines": {
     "node": ">=22"
@@ -27,7 +34,11 @@
     "spotify:check": "pnpm --filter @tdj/web spotify:check",
     "video": "pnpm --filter @tdj/video render",
     "deploy": "sst deploy --stage production",
-    "tdj": "node packages/cli/bin/tdj.mjs"
+    "tdj": "node packages/cli/bin/tdj.mjs",
+    "version:check": "node scripts/release/version.mjs --check",
+    "release:version": "node scripts/release/version.mjs --set",
+    "store:shots": "pnpm --filter @tdj/desktop store:shots",
+    "store:banner": "pnpm --filter @tdj/desktop store:banner"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.0",

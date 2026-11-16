@@ -63,6 +63,21 @@ A DJ gets written reviews of a set and precise "Tell the DJ" changes from a mode
 - **Playing the night** (the Booth, `/booth`, from "Play the night" on a composed set, on a History entry, or the sidebar): the DJ links their music folder once (Chrome and Edge remember it; Firefox, Safari and iPad ask for the folder again each night), TDJ matches the set's recordings to files by title, orchestra and year and offers "Find… → Pick file" for the rest, then **Start the night** plays the whole set unattended: 2.5 s gaps between songs (0.5–6 s), every file normalised to −16 LUFS by measurement with a −1 dBFS peak cap, cortinas at −4 dB from their cue-in with a 4 s fade that reaches silence at the planned stop second, a cortina fader to end one early, a master fader, an emergency stop (press and hold), hold (never cuts a song), "next at gap", birthday vals and breaks. The page is dark and readable from two metres: what plays, what is next, the clock and the time to La Cumparsita. A **Premium** Spotify account logged in through section B can play full tracks through Spotify's own player in the browser (gaps within half a second, fades as volume steps; no fades on iPad; Spotify's SDK terms restrict commercial use, so check them for paid events); a free account sees "Spotify does not allow playback in the browser". Without files or Premium, **Rehearsal (30 s)** runs the night on the 30 s previews. The Booth needs the extra Spotify scopes `user-modify-playback-state` and `user-read-playback-state`: DJs who logged in before this version are asked to log in again once. Nothing about the DJ's files leaves the browser; "End the night" writes the night's log (holds, stops, birthday vals, timings) into History.
 - A DJ who logs in to Spotify without being on your list sees a plain sheet: "This app can let in 5 Spotify accounts. Ask the organiser to add your Spotify email, or send your set to Spotify another way", with your contact (section A's **Organiser contact** field), a **Copy my request** button that drafts the e-mail to you, and **Other ways**.
 
+## F2. The apps: iPhone, iPad and Mac
+
+- One app on the App Store covers **iPhone and iPad** (the same download), and the **Mac App Store** listing is the
+  same purchase. A signed Mac download (DMG) is on the GitHub Releases page for DJs who prefer it.
+- Until App Review approves, DJs install through **TestFlight**: App Store Connect → T-DJ → TestFlight → External
+  Testing → the `DJs` group's public link. Send them that link. Once you have it, paste it into the root
+  `package.json` → `release.testflightUrl` (or ask the engineers), and Settings → About points DJs at it.
+- The apps work without your server. **Rooms** and **dancer hearts** need one: a DJ links your web address under
+  Settings → Connections.
+- Every platform has the same version number. In Settings → About a DJ sees which version they run and where updates
+  come from; the web shows "Update available" when a newer version is live and never reloads by itself during a
+  night.
+- When Apple approves the app, ask the engineers to run `node scripts/release/readme-store-badge.mjs`: the README's
+  "Coming to the App Store" note goes away and the badges and About link the store.
+
 ## G. When a DJ cannot log in to Spotify
 
 1. Check **People → Spotify seats** on `/admin`. Fewer than 5? Add the DJ's Spotify e-mail under User Management in the Spotify dashboard and to the list on `/admin`; they can log in a minute later.

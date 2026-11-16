@@ -8,6 +8,12 @@ on:
       commit: { description: "Commit SHA to deploy (default: branch head)", default: "", required: false }
   push:
     branches: [main]
+  # release-apps.yml deploys the web from the release commit, so web and apps share one version
+  workflow_call:
+    inputs:
+      stage: { type: string, default: production }
+      commit: { type: string, default: "" }
+      expect_version: { type: string, default: "" }
 permissions:
   id-token: write
   contents: read
@@ -30,6 +36,8 @@ jobs:
       - name: Deploy with SST
         run: npx sst deploy --stage ${{ inputs.stage || 'production' }}
         env:
+          # Settings -> About and /api/version report this commit (the root package.json has the version)
+          TDJ_COMMIT: ${{ inputs.commit || github.sha }}
           TDJ_DOMAIN: ${{ vars.TDJ_DOMAIN }}
           ANTHROPIC_MODEL: ${{ vars.ANTHROPIC_MODEL }}
           NEXT_PUBLIC_APP_URL: ${{ vars.NEXT_PUBLIC_APP_URL }}
@@ -49,6 +57,16 @@ jobs:
           PIPEDREAM_ENVIRONMENT: ${{ vars.PIPEDREAM_ENVIRONMENT }}
       - name: Print URL
         run: cat .sst/outputs.json 2>/dev/null || true
+      - name: Version check (/api/version)
+        env:
+          EXPECT: ${{ inputs.expect_version }}
+        run: |
+          URL=$(node -e 'try{process.stdout.write(require("./.sst/outputs.json").url||"")}catch(e){}')
+          [ -n "$URL" ] || { echo "no URL in .sst/outputs.json"; exit 0; }
+          WANT="${EXPECT:-$(node scripts/release/version.mjs)}"
+          GOT=$(curl -fsS --retry 5 --retry-delay 10 "$URL/api/version" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>process.stdout.write(JSON.parse(s).version||""))') || GOT=""
+          echo "web reports version ${GOT:-?} (expected $WANT)" >> "$GITHUB_STEP_SUMMARY"
+          [ "$GOT" = "$WANT" ] || echo "::warning::the web reports ${GOT:-nothing}, expected $WANT"
       # Owner setup (docs/DEPLOY.md → Connectors → Owner setup): a one-time code the owner pastes at /admin to
       # unlock the in-app configuration. It lives in SSM as a SecureString, expires after a day, and is deleted the
       # moment a passphrase is chosen. Once a passphrase exists no new code is issued (the summary says so).

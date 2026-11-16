@@ -793,6 +793,51 @@ describe("round 20: transport and fades (round20-booth.md)", () => {
     expect(r.fadeInSec).toBe(DEFAULT_BOOTH_SETTINGS.pauseFadeSec);
   });
 
+  it("2026-11: YouTube plays through the same external-player path: its id, the plan's gap, a failure moves on", async () => {
+    const starts: ExternalStart[] = [];
+    const yt: SourceAdapter = {
+      kind: "youtube",
+      async available() {
+        return { ok: true };
+      },
+      async resolve() {
+        return "ready";
+      },
+      async prepare(item) {
+        return {
+          kind: "youtube",
+          externalUri: `youtube:video:${item.id}xxxxxx`,
+          durationSec: item.lengthSec,
+        };
+      },
+      release() {},
+      external: {
+        capabilities: { fade: false, volume: false, gain: false },
+        startItem(r) {
+          starts.push(r);
+          return { cancel() {}, stop: () => r.onEnded(), position: () => 0 };
+        },
+        setMaster() {},
+      },
+    };
+    const plan = build(set());
+    const e = new BoothEngine(ctx, { adapters: [yt], now: () => 1_000_000 + ctx.currentTime * 1000 });
+    e.load(
+      plan,
+      plan.items.map(() => null),
+      plan.items.map(() => "youtube"),
+    );
+    await e.start();
+    await e.play();
+    expect(starts[0]!.uri).toBe("youtube:video:a1xxxxxx");
+    // the next item is queued after the first one's length plus the night's gap
+    const first = plan.items[0]!.lengthSec;
+    expect(starts[1]!.delaySec).toBeGreaterThanOrEqual(first);
+    // a video YouTube refuses: the banner says YouTube and the night moves on to the queued item
+    starts[0]!.onError("removed");
+    expect(e.planIndex).toBe(1);
+  });
+
   it("a cortina edited while it is queued is rebuilt with its new stop second and fades (replacePlan)", async () => {
     const p = set();
     const plan = build(p);

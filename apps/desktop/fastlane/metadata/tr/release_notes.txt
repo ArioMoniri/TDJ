@@ -1,1 +1,6 @@
-Mac ve iPad için ilk TDJ: geceyi oluşturun, kendi müzik dosyalarınızdan çalın, 30 saniyelik önizlemelerle prova yapın, Spotify'a ya da DJ uygulamanıza aktarın. Menü çubuğu komutları, medya tuşları ve gece boyu açık kalan ekran.
+T-DJ artık iPad ve Mac'in yanında iPhone'da da çalışıyor. Hepsi tek uygulama; web uygulaması da aynı sürüm numarasını taşıyor.
+
+- Kabin iPhone ve iPad'de Spotify Connect üzerinden çalar. Spotify bir cihaz ya da yeniden giriş istediğinde bunu açıkça söyler.
+- İki şarkı arasındaki boşluk, her kaydın sonundaki gerçek sessizliğe göre ayarlanır.
+- Kendin oluştur, gecenizin yanında bir kontrol listesi tutar ve sıradaki yer için bütün tandalar önerir.
+- Ayarlar'da yeni bir Hakkında bölümü var: hangi sürümü kullandığınızı ve güncellemelerin nereden geldiğini gösterir.

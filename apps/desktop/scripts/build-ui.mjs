@@ -23,6 +23,7 @@ import {
 import { createRequire } from "node:module";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { releaseEnv } from "../../../scripts/release/version.mjs";
 import { writeDeviceRoutes } from "../../web/scripts/device-routes.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -97,7 +98,7 @@ function main() {
   images: { unoptimized: true },
   agentRules: false,
   typescript: { ignoreBuildErrors: true },
-  env: { NEXT_PUBLIC_TDJ_TARGET: "app" },
+  env: ${JSON.stringify({ ...releaseEnv(), NEXT_PUBLIC_TDJ_TARGET: "app" })},
 };
 `,
   );
@@ -133,7 +134,7 @@ function main() {
     spawnSync("git", ["rev-parse", "--short", "HEAD"], { encoding: "utf8" }).stdout?.trim() || null;
   writeFileSync(
     join(out, "tdj-bundle.json"),
-    `${JSON.stringify({ commit, builtAt: new Date().toISOString(), standalone: true }, null, 2)}\n`,
+    `${JSON.stringify({ version: releaseEnv().NEXT_PUBLIC_TDJ_VERSION, commit, builtAt: new Date().toISOString(), standalone: true }, null, 2)}\n`,
   );
   let pages = 0;
   walk(out, (p) => {

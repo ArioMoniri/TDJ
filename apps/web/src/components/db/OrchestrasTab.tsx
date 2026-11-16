@@ -33,7 +33,8 @@ const STYLES: Array<[OrchestraProfile["style"], string]> = lazy(() => [
   ["contemporary", tx("db.orchestrasTab.contemporary")],
   ["balanced", tx("db.orchestrasTab.balanced")],
 ]);
-const STYLE_LABEL = Object.fromEntries(STYLES) as Record<string, string>;
+// per locale (a module-level Object.fromEntries froze the first language: English in the Turkish UI)
+const STYLE_LABEL = lazy(() => Object.fromEntries(STYLES) as Record<string, string>);
 const TIERS: Array<[string, string]> = lazy(() => [
   ["1", tx("db.orchestrasTab.core_every_night")],
   ["2", tx("db.orchestrasTab.secondary_a_tanda_or_two")],
@@ -298,7 +299,11 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
               <Highlight text={o.name} spans={q.trim() ? marks.get(o.id) : undefined} />
             </span>
             <span className="text-subhead block truncate text-[var(--label-2)]">
-              {[STYLE_LABEL[styleOf(o)] ?? styleOf(o), active ?? yr(o.years), `${o.count} recordings`]
+              {[
+                STYLE_LABEL[styleOf(o)] ?? styleOf(o),
+                active ?? yr(o.years),
+                tx("database.recordings", { p1: o.count }),
+              ]
                 .filter(Boolean)
                 .join(" · ")}
             </span>

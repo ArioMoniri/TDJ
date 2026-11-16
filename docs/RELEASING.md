@@ -1,4 +1,4 @@
-# Releasing TDJ for Mac and iPad
+# Releasing T-DJ: web, iPhone, iPad and Mac
 
 How the apps are built, signed and shipped, what runs where, what it costs, and the few steps only the
 owner can do. Design: [specs/r22-apps-plan.md](specs/r22-apps-plan.md). Owner checklist (manual path):
@@ -10,10 +10,49 @@ owner can do. Design: [specs/r22-apps-plan.md](specs/r22-apps-plan.md). Owner ch
 |---|---|---|---|
 | `TDJ-macOS.dmg` — universal (Apple silicon + Intel), macOS 13+ | Developer ID Application, hardened runtime; app **and** DMG notarised + stapled | GitHub Release (README "Download for macOS") | in-app: `latest.json` on the newest release, the dialog shows the release notes, installs and relaunches |
 | `TDJ-MacAppStore.pkg` — universal, App Sandbox | Apple Distribution + Mac Installer Distribution, Mac App Store profile | TestFlight → Mac App Store | App Store |
-| `TDJ-iPad.ipa` — iPadOS 16+, every orientation, Split View | Apple Distribution, iOS App Store profile | TestFlight → App Store | App Store |
+| `TDJ-iOS.ipa` — one universal app for iPhone and iPad, iOS/iPadOS 16+; iPhone portrait, iPad every orientation and Split View | Apple Distribution, iOS App Store profile | TestFlight → App Store | App Store |
+| the web app (`apps/web`) | — | AWS (deploy-aws.yml), same commit | reload; Settings → About says when a newer version is live |
 
-All three are the same Tauri 2 app (`apps/desktop`). Bundle ID `com.ariomoniri.tdj` on both platforms (one
-App Store record, universal purchase), Team `FF68N39FU5`.
+All three apps are the same Tauri 2 app (`apps/desktop`). Bundle ID `com.ariomoniri.tdj` on every platform (one
+App Store record, universal purchase: iPhone, iPad and Mac), Team `FF68N39FU5`. Until 2026-11 the IPA was iPad-only
+(`TARGETED_DEVICE_FAMILY "2"`); it is now `"1,2"` and the `ipad` target name still works as an alias of `ios`.
+
+## One version, one commit (linked releases)
+
+The **root `package.json` `version`** is the only version. Everything reads it through
+`scripts/release/version.mjs`:
+
+| Where | How |
+|---|---|
+| web app (Settings → About, `GET /api/version`) | `apps/web/next.config.ts` → `NEXT_PUBLIC_TDJ_VERSION` + `NEXT_PUBLIC_TDJ_COMMIT` (CI's SHA, else git) |
+| bundled app UI (iPhone, iPad, Mac) | `apps/desktop/scripts/build-ui.mjs`, same variables, and `tdj-bundle.json` |
+| Tauri (`CFBundleShortVersionString`) | `tauri.conf.json` → `"version": "../../../package.json"`; `Cargo.toml` / `Cargo.lock` kept equal |
+| build number (`CFBundleVersion`, same for DMG, pkg and IPA) | UTC minutes since 2026-01-01, computed once per run |
+| GitHub Release text | `scripts/release/release-notes.mjs`: the store's "what's new" + version, build, commit and every link |
+| store links (App Store ID, public TestFlight link, web URL) | root `package.json` → `release` |
+
+```bash
+pnpm version:check            # every copy in sync (CI runs it; a v* tag must equal the version)
+pnpm release:version 1.0.0    # bumps root, apps/desktop, apps/web, Cargo.toml, Cargo.lock
+git commit -am "Release 1.0.0" && git tag v1.0.0 && git push origin HEAD v1.0.0
+```
+
+The tag starts **Release apps** (`release-apps.yml`) on that one commit: the `version` job fails if the tag and
+`package.json` disagree, `apple` builds the DMG, the Mac App Store pkg and the iOS IPA with one build number,
+`publish` publishes the GitHub Release, and `web` deploys the web app from the same commit through
+`deploy-aws.yml` (called as a reusable workflow), whose last step reads `/api/version` and warns if it reports
+another version. A manual run deploys the web only with `web: true`. Pushes to `main` still deploy the web on their
+own (same version number, a newer commit: an open tab sees "A newer build of this version is live").
+
+**Update notices, never automatic updates.** The web tab asks `/api/version` on load, every 30 minutes and when it
+comes back to the front; if the server runs a newer version or another commit it shows a quiet toast outside the
+Booth and an "Update available" row in Settings → About, and reloads only when the DJ taps it. The apps never call
+home (standalone, "Data Not Collected"): About shows their version and where updates come from (App Store or
+TestFlight; the DMG's own updater, which asks before installing). Store builds never link the DMG.
+
+When App Review approves, run `node scripts/release/readme-store-badge.mjs`: it removes the README's "coming soon"
+notes and sets `release.appStoreLive` to `true`, so About and the release notes link the App Store listing. A
+public TestFlight link goes into `release.testflightUrl` (`https://testflight.apple.com/join/…`).
 
 ### Why App Review accepts it (guideline 4.2 / 2.5.2)
 
@@ -35,15 +74,15 @@ database sync, Google and Dropbox (`src-tauri/src/bridge.rs`). No server address
 any request leaves the machine (only cover artwork from the services' image servers is allowed). Native
 features on top:
 menu bar with every command and shortcut, media keys / Now Playing, keep-awake during a night (IOKit on Mac,
-idle timer on iPad), linked music folders with security-scoped bookmarks, headphone cue output device
-(Mac), native save panel and print, background audio on iPad, an optional link to a self-hosted server,
+idle timer on iPhone and iPad), linked music folders with security-scoped bookmarks, headphone cue output device
+(Mac), native save panel and print, background audio on iPhone and iPad, an optional link to a self-hosted server,
 offline playback of the composed night from local files. Nothing executable is downloaded.
 
 Store compliance files: `src-tauri/PrivacyInfo.xcprivacy`, `Info.plist` / `Info.ios.plist`
 (`ITSAppUsesNonExemptEncryption=false`, background audio, orientations, launch screen colour),
 `entitlements/mac-appstore.plist` (sandbox: network client, user-selected files, app-scoped bookmarks,
 print), `entitlements/mac-dmg.plist` (hardened runtime, no exceptions), icons for every size
-(`pnpm --filter @tdj/desktop icons`, iPad icons without alpha), metadata in `apps/desktop/fastlane/metadata`
+(`pnpm --filter @tdj/desktop icons`, iPhone and iPad icons without alpha), metadata in `apps/desktop/fastlane/metadata`
 (en-US + tr, limits tested), App Privacy + age rating answers in `apps/desktop/fastlane/app_privacy.md`,
 privacy policy [PRIVACY.md](PRIVACY.md).
 
@@ -81,9 +120,9 @@ mkdir -p ~/drive/src && cd ~/drive/src
 [ -d TDJ ] || git clone https://github.com/ArioMoniri/TDJ.git
 cd TDJ && git fetch origin && git checkout <release-branch-or-tag> && git pull --ff-only || true
 
-# 2. everything in one pass (toolchains, signing, DMG + notarisation, MAS pkg, iPad IPA, TestFlight uploads)
+# 2. everything in one pass (toolchains, signing, DMG + notarisation, MAS pkg, iOS IPA, TestFlight uploads)
 mkdir -p ~/drive/tdj-out
-scripts/release/mac-build.sh --targets dmg,mas,ipad 2>&1 | tee ~/drive/tdj-out/last.log
+scripts/release/mac-build.sh --targets dmg,mas,ios 2>&1 | tee ~/drive/tdj-out/last.log
 
 # 3. optional, same session: draft GitHub Release with the DMG (needs `gh auth login` on the Mac)
 scripts/release/mac-build.sh --targets dmg --github-release   # reuses the build cache: ~3 min + notarisation
@@ -105,7 +144,7 @@ Expected Mac time (Apple-silicon cloud Mac):
 | DMG: universal release build (2 architectures, LTO) | 10–14 min | 3–5 min |
 | Notarisation (app by Tauri, then DMG) | 4–10 min | 4–10 min |
 | Mac App Store build (app crate relinks only) + pkg | 3–5 min | 3–5 min |
-| iPad: `tauri ios init` (once), arm64 build, archive + export | 8–12 min | 4–6 min |
+| iOS (iPhone + iPad): `tauri ios init` (once), arm64 build, archive + export | 8–12 min | 4–6 min |
 | Uploads (pkg + ipa) | 2–4 min | 2–4 min |
 | **Total** | **35–55 min** | **18–30 min** |
 
@@ -114,7 +153,7 @@ session for the first release (headroom for a retry). After the first run, commi
 `apps/desktop/src-tauri/gen/apple` (created by `tauri ios init`) from the Mac or copy it back, so later
 builds skip that step.
 
-If a step fails, rerun with only the remaining targets (`--targets mas,ipad`); signing and caches are
+If a step fails, rerun with only the remaining targets (`--targets mas,ios`); signing and caches are
 reused. `--no-upload` builds without TestFlight, `--metadata` also uploads store texts and screenshots from
 the Mac (they are normally uploaded from Linux, below).
 
@@ -123,9 +162,9 @@ the Mac (they are normally uploaded from Linux, below).
 | Workflow | Runner | When | What |
 |---|---|---|---|
 | **Native check** (`native-check.yml`) | Linux | PRs touching the apps, CLI, release scripts or workflows | `cargo fmt/clippy/test`, macOS + iPadOS type-check from Linux, release-script tests (mocked API), CLI tests, metadata limits, shellcheck, actionlint |
-| **Store assets** (`store-assets.yml`) | Linux | PRs touching metadata, store pipeline or `apps/web/src`; manual | screenshots of the bundled UI at 2880×1800 (Mac) and 2752×2064 (iPad 13"), en-US + tr; contact sheet artifact; with `upload`: `fastlane deliver` metadata + screenshots |
+| **Store assets** (`store-assets.yml`) | Linux | PRs touching metadata, store pipeline or `apps/web/src`; manual | `pnpm store:shots` on a runner: iPhone 6.9"/6.5", iPad 13"/12.9", Mac, en-US + tr, banners, contact sheet artifact; with `upload`: `fastlane deliver` metadata + screenshots |
 | **Apple setup** (`apple-setup.yml`) | Linux | manual | the same idempotent signing setup through the API; stores `.p12` + passwords + profiles in AWS SSM `/tdj/apple/*` with the deploy OIDC role |
-| **Release apps** (`release-apps.yml`) | **one macOS job** | `v*` tag or manual | runs `scripts/release/mac-build.sh` (signing from SSM, else the repository secrets), publishes the release, then uploads metadata and submits for App Review |
+| **Release apps** (`release-apps.yml`) | **one macOS job** | `v*` tag or manual | checks the tag against `package.json`, runs `scripts/release/mac-build.sh` (signing from SSM, else the repository secrets), publishes the release, deploys the web from the same commit, then uploads metadata and submits for App Review |
 | **Check secrets** (`check-secrets.yml`) | Linux | manual, or when that file changes | prints only `true/false` per expected secret/variable name |
 
 Cost: GitHub-hosted macOS minutes are free for public repositories; for a private repository they count
@@ -134,27 +173,45 @@ secrets are repository secrets (the owner's choice); GitHub never passes secrets
 
 Release:
 ```bash
-git tag v1.0.0 && git push origin v1.0.0     # or Actions → Release apps → Run workflow (channel, targets)
+pnpm release:version 1.0.0 && git commit -am "Release 1.0.0"
+git tag v1.0.0 && git push origin HEAD v1.0.0   # or Actions → Release apps → Run workflow (channel, targets, web)
 ```
-When App Review approves the iPad and Mac App Store build, make the README's App Store badge live (it reads
-"coming soon" until then): `node scripts/release/readme-store-badge.mjs` removes the `app-store:coming-soon`
-marker and the note, and is safe to run again.
+When App Review approves the iOS and Mac App Store build, `node scripts/release/readme-store-badge.mjs` (above).
 
 Build number = UTC minutes since 2026-01-01 (monotonic, the same for the DMG, pkg and IPA of one run);
-marketing version = the tag (or `apps/desktop/package.json`).
+marketing version = the root `package.json` (a tag must match it).
 
 ## Store texts and screenshots
 
 `apps/desktop/fastlane/metadata/<locale>/*.txt` (en-US, tr) — edit in a PR; `pnpm --filter @tdj/desktop test`
-checks every App Store limit (keywords ≤ 100 bytes, name/subtitle ≤ 30, promo ≤ 170, …). Screenshots:
+checks every App Store limit (keywords ≤ 100 bytes, name/subtitle ≤ 30, promo ≤ 170, description ≤ 4000), that the
+description names what the app does on each device, and that the copy stays plain (no exclamation marks, em dashes
+or hype words). Review notes: `metadata/review_information/notes.txt` (no demo account; iPhone steps included).
+
+Screenshots and banners, **one command** (Linux or Mac, Chromium; ~25 min):
 
 ```bash
-pnpm --filter @tdj/desktop ui            # bundled UI (static export)
-pnpm --filter @tdj/desktop screenshots   # capture + compose + contact sheet (Linux, Chromium)
+pnpm store:shots                     # = pnpm --filter @tdj/desktop store:shots
 open apps/desktop/store/out/contact-sheet.html
 ```
-Scenes and captions: `apps/desktop/store/scenes.ts`. Upload (Linux, API key in env):
-`cd apps/desktop && bundle exec fastlane ios metadata && bundle exec fastlane mac metadata`.
+
+It builds the bundled UI, captures each scene with the native side mocked (safe areas emulated: status bar,
+Dynamic Island, home indicator), frames it (`store/compose.ts`), renders the banners (`store/banner.ts`) and writes
+a contact sheet. Re-run only part of it: `pnpm --filter @tdj/desktop exec tsx store/capture.ts --devices=iphone69
+--scenes=02_booth --locales=tr`, then the same flags on `store/compose.ts`. Scenes and captions:
+`apps/desktop/store/scenes.ts`; design notes: [design/store-assets.md](design/store-assets.md).
+
+| Folder (`apps/desktop/fastlane/`) | Devices | Uploaded by |
+|---|---|---|
+| `screenshots/<locale>/` | iPhone 6.9" 1320×2868, iPhone 6.5" 1284×2778, iPad 13" 2064×2752 | `fastlane ios metadata` (deliver picks the slot from the size) |
+| `screenshots_ipad129/<locale>/` | iPad 12.9" 2048×2732 | `fastlane ios metadata ipad:129` instead of the 13" set (same App Store Connect slot) |
+| `screenshots_mac/<locale>/` | Mac 2880×1800 | `fastlane mac metadata` |
+
+Banners: `media/social-preview.png` (1280×640, GitHub → Settings → Social preview, under 1 MB) and
+`media/store-banner.webp` (2560×1280, the README hero). Badges: Apple's official artwork, unmodified, in
+`media/badges/` (black, plus white for dark mode; en-US and tr), from Apple's marketing tools.
+
+Upload (Linux, API key in env): `cd apps/desktop && bundle exec fastlane ios metadata && bundle exec fastlane mac metadata`.
 
 ## Mac checks (need real hardware; first TestFlight build)
 
@@ -164,16 +221,19 @@ Scenes and captions: `apps/desktop/store/scenes.ts`. Upload (Linux, API key in e
 - Headphone cue: plug a second output device, `cue_devices` lists it, a cue plays on it while the room plays.
 - Media keys / Control Center show the song and toggle the Booth; the display stays awake while playing.
 - iPad: audio continues with the screen locked; rotation and Split View; the ringer switch does not mute.
+- iPhone: portrait only; the Booth's transport sits above the home indicator, the set list opens from it; audio
+  continues with the screen locked; the status bar never covers a page title (the page pads by the safe area).
 - DMG: double-click on a clean Mac opens without a Gatekeeper warning; Check for Updates shows the notes.
 
 ## Server follow-ups (apps/web, not required for the first TestFlight)
 
-1. Login hand-off in the system browser: `?client=app` on `/api/{spotify,google,dropbox}/login`, a
-   60-second sealed single-use ticket, redirect to `tdj://auth/<provider>?ticket=…&next=…`, and
-   `GET /api/app/redeem?provider&ticket&next` that sets the normal cookie. The app already handles both
-   ends (`links.rs`, `lib.rs::login`) and probes `/api/app/redeem` to choose it; until then it uses an
-   in-app sign-in window (Spotify, Dropbox) and asks Google users to connect on the website.
-2. `tdj://spotify-callback` in the Spotify dashboard (owner step 5) for the iPad Spotify SDK / BYO PKCE.
+1. ✅ (2026-11) Login hand-off in the system browser: `?client=app` on `/api/{spotify,google,dropbox}/login`
+   marks the OAuth state; the callback seals a 60-second single-use ticket and redirects to
+   `tdj://auth/<provider>?ticket=…&next=…` (failures to `tdj://open?path=/settings?error=…`), and
+   `GET /api/app/redeem?provider&ticket&next` sets the normal cookie in the app's jar (400 without a ticket, so the
+   app's probe picks this path). `apps/web/src/lib/server/appTicket.ts`, e2e `connectors.spec.ts`. No new redirect
+   URI at any provider: the browser comes back to the server's existing https callback.
+2. `tdj://spotify-callback` in the Spotify dashboard (owner step 5) for the iPhone and iPad Spotify SDK / BYO PKCE.
 3. The web's command registry (`lib/commands.ts`) should listen for `tdj:command` events (ids in
    `src-tauri/src/menu.rs`); until then the bundle's shim maps navigation and replays the existing keys.
 
@@ -185,7 +245,9 @@ Scenes and captions: `apps/desktop/store/scenes.ts`. Upload (Linux, API key in e
 | No Developer ID identity | the key could not create it: owner step 6 |
 | `openssl pkcs12 failed: No certificate matches private key` on `--devid-cer` | the `.cer` was made from an older CSR. Since 2026-11-14 the pending key + CSR are kept until a `.cer` is imported; make the certificate from `DEVELOPER_ID_APPLICATION_CERT_CSR` in the store |
 | Developer ID identity listed as `CSSMERR_TP_NOT_TRUSTED` | the Developer ID G2 intermediate CA is missing; `mac-build.sh` now imports it (and WWDR G3) into the signing keychain |
-| App Store Connect asks for iPhone screenshots | the IPA declared iPhone support (`UIDeviceFamily` 1,2); `mac-build.sh` now sets `TARGETED_DEVICE_FAMILY: "2"` in `gen/apple/project.yml`, rebuild and upload |
+| App Store Connect asks for iPhone screenshots | expected since the app is universal: `pnpm store:shots` makes them (6.9" and 6.5"), `fastlane ios metadata` uploads them |
+| A committed `gen/apple/project.yml` still says `TARGETED_DEVICE_FAMILY: "2"` | `mac-build.sh` rewrites it to `"1,2"` on every run (`TDJ_IOS_DEVICE_FAMILY=2` for an iPad-only build) |
+| `version.mjs --check` fails | a copy drifted or the tag differs: `pnpm release:version <x.y.z>`, commit, tag again |
 | `tauri ios build` cannot sign | rerun: every run re-checks the profile against the current certificate and replaces a stale one |
 | altool upload: "No suitable application records" | owner step 2 (app record) missing or bundle ID differs |
 | Notarisation "Invalid" | `xcrun notarytool log <id> --key … --key-id … --issuer …` prints the reason |

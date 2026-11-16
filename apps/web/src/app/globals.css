@@ -1948,6 +1948,28 @@ html[data-sidebar="collapsed"] [data-testid="sidebar"] {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* 2026-11: the tanda's cover in the sidebar; the rhythm letter sits on its corner (alone when artwork is off) */
+.side-tanda-art {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+}
+.side-tanda-art .booth-art {
+  border-radius: 6px;
+}
+.side-tanda-art .booth-art + .side-num {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  font-size: 9px;
+  box-shadow: 0 0 0 2px var(--sidebar-bg, var(--bg));
+}
 .side-row.side-tanda {
   height: 44px;
   min-height: 44px;
@@ -2456,7 +2478,11 @@ html.theming *::after {
   }
   /* the nav sets its transform/opacity inline: the attribute selector wins through `visibility` + `pointer-events`,
      and the strip's bottom offset moves down over it */
-  html[data-booth-live] nav[aria-label="Primary mobile"] {
+  /* by its test id, not its aria-label: the label is translated ("Ana menü (mobil)"), so in Turkish the tab bar
+     stayed over the Booth's transport (2026-11, the iPhone store screenshots). booth.css repeats the rule for
+     html[data-booth]; this one covers it in every language until that selector follows */
+  html[data-booth-live] nav[data-testid="tab-bar"],
+  html[data-booth] nav[data-testid="tab-bar"] {
     visibility: hidden;
     pointer-events: none;
   }

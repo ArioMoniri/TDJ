@@ -3,6 +3,29 @@
  * here first, then into tr.ts (the vitest dictionary test fails until it does).
  */
 export const en = {
+  "about.about": "About",
+  "about.app_store": "App Store",
+  "about.channel_dmg": "Mac download",
+  "about.channel_ios": "App Store (iPhone and iPad)",
+  "about.channel_mac_app_store": "Mac App Store",
+  "about.channel_web": "Web",
+  "about.footer":
+    "The web, iPhone, iPad and Mac apps share one version number. Nothing updates during a night.",
+  "about.get_updates": "Get updates",
+  "about.installed_from": "Installed from",
+  "about.iphone_ipad": "T-DJ for iPhone and iPad",
+  "about.mac_download": "T-DJ for Mac",
+  "about.mac_download_sub": "Signed download, Apple silicon and Intel",
+  "about.newer_deploy": "A newer build of this version is live. Reload when the night is over.",
+  "about.newer_version": "Version {version} is out (you have {current}). Reload when the night is over.",
+  "about.reload": "Reload",
+  "about.reload_when_over": "Reloads the page. Do it between nights.",
+  "about.update_available": "Update available",
+  "about.update_toast": "A newer T-DJ is out. Reload when the night is over.",
+  "about.updates_dmg": "The app asks before it installs an update",
+  "about.updates_store": "Updates come from the App Store or TestFlight",
+  "about.version": "Version",
+  "about.web_app": "T-DJ on the web",
   "adapter.t_dj_could_not_load_its": "T-DJ could not load its catalogue.",
   "adapter.the_app_could_not_do_that": "The app could not do that.",
   "ai.choose_agent": "Choose an agent connection in Settings → Models.",
@@ -702,6 +725,8 @@ export const en = {
   "booth.sources.spotify.could_not_load_the_spotify_player": "Could not load the Spotify player",
   "booth.sources.spotify.device_not_found_browser":
     "Spotify couldn't find the TDJ Booth player in this browser. Tap Try again, or open Spotify on a phone or computer and pick it under Room.",
+  "booth.sources.spotify.device_not_found_mac_app":
+    "No Spotify app is open on this Mac. Tap Open Spotify: the night plays there as soon as it appears.",
   "booth.sources.spotify.device_not_found_phone":
     "Spotify couldn't find this device. Open Spotify on this phone or pick a device under Room.",
   "booth.sources.spotify.device_refuses":
@@ -2252,6 +2277,7 @@ export const en = {
   "exportSheet.open_in": "Open in {label}",
   "exportSheet.open_in_spotify": "Open in Spotify",
   "exportSheet.open_in_youtube": "Open in YouTube",
+  "exportSheet.open_in_youtube_music": "Open in YouTube Music",
   "exportSheet.other": "Other",
   "exportSheet.paste_the_address_of_a_pipedream":
     "Paste the address of a Pipedream, Make, Zapier or n8n webhook: T-DJ sends it the file, with the format and the set's name. The address stays in this browser only.",
@@ -4184,6 +4210,58 @@ export const en = {
   "booth.connect.gain_none": "Spotify plays this at its own level (no gain on this device)",
   "booth.connect.play_now_at_once":
     "Play now switches the room's song at once (this device can't fade). {p1}",
+  "booth.sources.types.youtube": "YouTube · the video plays on screen",
+  "booth.sources.youtube.this_video": "this video",
+  "booth.sources.youtube.not_embeddable":
+    "YouTube won't play {what} outside youtube.com: skipping to the next item.",
+  "booth.sources.youtube.needs_a_referrer":
+    "YouTube refused to play {what} in this app: skipping to the next item.",
+  "booth.sources.youtube.removed":
+    "{what} was removed from YouTube or is private: skipping to the next item.",
+  "booth.sources.youtube.cannot_play": "YouTube can't play {what} here: skipping to the next item.",
+  "booth.sources.youtube.no_matches_yet":
+    "No YouTube videos yet: send a night to YouTube once (Export → YouTube) and the Booth can play them.",
+  "booth.sources.youtube.no_video_for_this_item": "No YouTube video for this item",
+  "booth.sources.youtube.could_not_load_the_player": "Could not load the YouTube player",
+  "booth.sources.youtube.tap_the_player":
+    "YouTube is waiting for a tap: press play on the YouTube player once.",
+  "booth.sources.youtube.play": "Play",
+  "booth.sources.youtube.player": "YouTube player",
+  "booth.onboardingSheet.youtube": "YouTube",
+  "booth.onboardingSheet.youtube_sub":
+    "Full songs from the videos your YouTube export matched, in a small player on screen",
+  "deviceSources.header": "On this device",
+  "deviceSources.footer":
+    "On Automatic (Your music folder) each side plays from the first source that has it; most of tonight: {best}.",
+  "deviceSources.files": "Your files",
+  "deviceSources.spotify": "Spotify",
+  "deviceSources.youtube": "YouTube",
+  "deviceSources.clips": "30 s clips",
+  "deviceSources.ready": "Ready",
+  "deviceSources.not_here": "Not yet",
+  "deviceSources.checking": "Checking…",
+  "deviceSources.spotify_log_in": "Log in with Spotify Premium under Settings for full tracks.",
+  "deviceSources.spotify_sdk": "Full tracks, played in this window by Spotify (Premium).",
+  "deviceSources.spotify_connect_mac":
+    "Full tracks through the Spotify app on this Mac (Spotify Connect); no fades.",
+  "deviceSources.spotify_connect_ios":
+    "Full tracks through the Spotify app on this iPhone or iPad (Spotify Connect); no fades.",
+  "deviceSources.spotify_connect_other":
+    "Full tracks through a Spotify app you open (Spotify Connect); no fades.",
+  "deviceSources.youtube_ok": "{n} sides matched to YouTube videos; they play in a small player on screen.",
+  "deviceSources.youtube_ok_ios":
+    "{n} sides matched to YouTube videos; on iPhone and iPad the volume is the device's (no fades).",
+  "deviceSources.youtube_none":
+    "Send a night to YouTube once (Export → YouTube) and the Booth can play those videos.",
+  "deviceSources.file_ok": "{n} sides matched in {name}: sample-accurate gaps and fades.",
+  "deviceSources.file_none_matched": "{name} is linked but no side of this night matched yet.",
+  "deviceSources.file_link": "Link your music folder for sample-accurate gaps and fades.",
+  "deviceSources.preview": "Always here: 30 s of each side, for a rehearsal.",
+  "db.learnedRules.family_more": "Comes up more often in your nights",
+  "db.learnedRules.family_less": "Comes up less often",
+  "db.learnedRules.side_more": "Chosen first inside its family",
+  "db.learnedRules.side_less": "Played less inside its family",
+  "db.learnedRules.neutral": "Neutral",
 } as const;
 
 export type MsgKey = keyof typeof en;

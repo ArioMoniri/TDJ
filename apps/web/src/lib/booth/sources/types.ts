@@ -2,7 +2,10 @@ import { t } from "@/lib/i18n";
 import type { Measurement } from "../loudness";
 import type { BoothRow, PlanEntity } from "../plan";
 
-export type SourceKind = "file" | "spotify" | "preview";
+export type SourceKind = "file" | "spotify" | "preview" | "youtube";
+/** sources the engine cannot route through its audio graph: the adapter's own player owns their timeline */
+export const EXTERNAL_KINDS: readonly SourceKind[] = ["spotify", "youtube"];
+export const isExternalKind = (k: unknown): boolean => EXTERNAL_KINDS.includes(k as SourceKind);
 export type ItemSource = SourceKind | "missing";
 
 /** What an adapter hands the engine for one item: a decoded buffer (file / preview) or a Spotify URI. */
@@ -11,6 +14,8 @@ export interface PreparedItem {
   buffer?: AudioBuffer;
   measured?: Pick<Measurement, "lufs" | "peakDbFS" | "introSec"> & Partial<Measurement>;
   spotifyUri?: string;
+  /** 2026-11: another external player's item (YouTube: `youtube:video:<id>`) */
+  externalUri?: string;
   durationSec: number;
   /** a short note for the Now card ("estimated from a preview", "peak-capped" is the engine's) */
   note?: string;
@@ -91,6 +96,9 @@ export const SOURCE_LABEL: Record<ItemSource, string> = {
   },
   get preview() {
     return t("booth.sources.types.30_s_rehearsal");
+  },
+  get youtube() {
+    return t("booth.sources.types.youtube");
   },
   get missing() {
     return t("booth.sources.types.no_source");

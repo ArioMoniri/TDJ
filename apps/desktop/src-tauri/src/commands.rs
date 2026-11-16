@@ -5,7 +5,6 @@ use crate::{agents, folders, links, net, secrets, settings, system, AppState};
 use serde::Serialize;
 use tauri::{AppHandle, Manager, State, WebviewWindow};
 use tauri_plugin_dialog::DialogExt;
-use tauri_plugin_opener::OpenerExt;
 
 type Res<T> = Result<T, String>;
 
@@ -224,12 +223,10 @@ pub fn forget_sessions(state: State<'_, AppState>) {
 #[tauri::command]
 pub fn open_external(app: AppHandle, url: String) -> Res<()> {
     let u = url::Url::parse(&url).map_err(|_| "Not a link.")?;
-    if !matches!(u.scheme(), "https" | "mailto") {
+    if !links::external_ok(&u) {
         return Err("Only https links open outside the app.".into());
     }
-    app.opener()
-        .open_url(u.as_str(), None::<&str>)
-        .map_err(|e| e.to_string())
+    crate::open_outside(&app, &u)
 }
 
 /// Exports: a native save panel (macOS) / the Files app picker (iPadOS) instead of WebKit's silent no-op.
@@ -267,7 +264,7 @@ pub fn print_page(window: WebviewWindow) -> Res<()> {
     #[cfg(mobile)]
     {
         let _ = window;
-        Err("Printing from iPad arrives with the next build. Use Export → Share.".into())
+        Err("Printing from iPhone and iPad arrives with the next build. Use Export → Share.".into())
     }
 }
 
@@ -302,7 +299,7 @@ pub async fn folder_add(app: AppHandle) -> Res<Option<folders::Folder>> {
     {
         let _ = app;
         // TODO(mac): Swift document-picker plugin (folders.rs); the page keeps its file-input fallback.
-        Err("Folder access on iPad arrives with the next build; use “Choose files” for now.".into())
+        Err("Folder access on iPhone and iPad comes next; use “Choose files” for now.".into())
     }
     #[cfg(not(target_os = "ios"))]
     {
@@ -402,7 +399,7 @@ pub fn cue_play(
     #[cfg(not(any(target_os = "macos", target_os = "ios")))]
     {
         let _ = (src, device, volume);
-        Err("Headphone cue needs the Mac or iPad app.".into())
+        Err("Headphone cue needs the Mac, iPhone or iPad app.".into())
     }
 }
 

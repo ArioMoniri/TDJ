@@ -10,6 +10,7 @@ import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import { ActionRow, Group, Row, StepperRow, SwitchRow } from "../Form";
 import { Sheet } from "../Sheet";
+import { DeviceSourcesGroup } from "./DeviceSources";
 import { SilenceModeRows } from "./SilenceSettings";
 
 /**
@@ -60,6 +61,7 @@ export function OnboardingSheet({
       ? t("booth.onboardingSheet.your_own_files_matched_by_title")
       : t("booth.onboardingSheet.your_browser_cannot_remember_the_folder");
   const sp = b.availability.spotify;
+  const yt = b.availability.youtube;
   const [featuredBusy, setFeaturedBusy] = useState(false);
   const current = useStore((s) => s.playlist);
   const playFeatured = async () => {
@@ -138,6 +140,21 @@ export function OnboardingSheet({
         >
           {tick("spotify")}
         </Row>
+        {/* 2026-11: YouTube's embedded player with the videos the YouTube export matched (sources/youtube.ts) */}
+        <Row
+          label={t("booth.onboardingSheet.youtube")}
+          sub={
+            yt?.ok
+              ? t("booth.onboardingSheet.youtube_sub")
+              : (yt?.reason ?? t("booth.onboardingSheet.checking"))
+          }
+          onClick={() => yt?.ok && pick("youtube")}
+          className={yt?.ok ? "" : "text-[var(--label-2)]"}
+          data-testid="booth-source-youtube"
+          aria-disabled={!yt?.ok || undefined}
+        >
+          {tick("youtube")}
+        </Row>
         <Row
           label={t("booth.onboardingSheet.30_s_rehearsal")}
           sub={t("booth.onboardingSheet.30_second_clips_so_you_can")}
@@ -147,6 +164,7 @@ export function OnboardingSheet({
           {tick("preview")}
         </Row>
       </Group>
+      <DeviceSourcesGroup />
       {!b.started && (
         <Group header={t("booth.onboardingSheet.featured")} footer={FEATURED[0].sub}>
           <ActionRow

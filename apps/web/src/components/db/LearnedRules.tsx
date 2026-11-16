@@ -23,7 +23,15 @@ const detailOf = (r: LearnedRule) =>
       )
     : r.kind === "shape"
       ? t(r.source === "liked" ? "db.learnedRules.liked_shape" : "db.learnedRules.disliked_shape")
-      : r.detail;
+      : r.kind === "family" || r.kind === "side"
+        ? t(
+            r.weight > 0
+              ? `db.learnedRules.${r.kind}_more`
+              : r.weight < 0
+                ? `db.learnedRules.${r.kind}_less`
+                : "db.learnedRules.neutral",
+          )
+        : r.detail;
 
 /** one rule: what it is, what it does, its weight with − / + (44 pt), and delete (swipe or the bin) */
 export function RuleRow({

@@ -92,6 +92,12 @@ Settings → Connectors shows one row per service with a single button. What eac
 | Google | `https://d3k5k2c1l0s5ri.cloudfront.net/api/google/callback` | `http://127.0.0.1:3000/api/google/callback` |
 | Dropbox | `https://d3k5k2c1l0s5ri.cloudfront.net/api/dropbox/callback` | `http://127.0.0.1:3000/api/dropbox/callback` |
 
+**The Mac and iPhone / iPad apps** add exactly one redirect URI, at Spotify only: `tdj://spotify-callback` (PKCE from
+the device with the app's Client ID, `TDJ_SPOTIFY_CLIENT_ID`; tick *iOS* and add the bundle ID `com.ariomoniri.tdj`).
+Google and Dropbox sign in from the apps through a linked TDJ server in the system browser and come back to the
+rows above; the server hands the session to the app through `tdj://auth/<provider>?ticket=…` (docs/RELEASING.md,
+server follow-up 1). Nothing else is registered: no loopback port, no custom Google client.
+
 Add a custom domain (`TDJ_DOMAIN`) → add the same four paths under `https://<domain>/` too. Spotify rejects `localhost`; use `127.0.0.1` everywhere so the three consoles agree.
 
 ### Spotify dashboard (developer.spotify.com → your app → Settings → Redirect URIs)
