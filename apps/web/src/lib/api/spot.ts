@@ -73,7 +73,11 @@ export async function spot(req: Request, d: ApiDeps): Promise<Response> {
       const rhythm = ["tango", "vals", "milonga"].includes(String(b!.rhythm))
         ? (b!.rhythm as "tango")
         : undefined;
-      const r = insertTandaOptions(playlist, int(b!.at), deps, { n: 4, rhythm, seed: Date.now() % 1e9 });
+      const r = insertTandaOptions(playlist, int(b!.at), deps, {
+        n: 4,
+        rhythm,
+        seed: Number(b!.seed) || Date.now() % 1e9,
+      });
       return json({ options: r.map((o) => ({ playlist: forWire(o.playlist), why: o.why })) });
     }
     case "insertSong": {

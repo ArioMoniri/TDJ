@@ -16,9 +16,10 @@ import type { ComposeOptions, NightRules, Song, Tanda } from "./types";
  * from the year nearest the tanda (inside the night's years) — each step recorded in stats.settingFallbacks
  * ("opening: …").
  */
-export function cumparsitaPlacement(
-  o: Pick<ComposeOptions, "closeWithCumparsita"> & { rules?: NightRules },
-): { open: boolean; close: boolean } {
+export function cumparsitaPlacement(o: { closeWithCumparsita?: boolean; rules?: NightRules }): {
+  open: boolean;
+  close: boolean;
+} {
   const r = o.rules ?? {};
   const base = r.cumparsita
     ? {
@@ -46,9 +47,7 @@ export const CLOSING_FORMATS: readonly ClosingFormat[] = [
  * cortina before it → "after-cortina"; else "straight", today's golden default). A stored night without the key reads
  * as the format it was composed with.
  */
-export function closingFormatOf(
-  o: Pick<ComposeOptions, "closeWithCumparsita"> & { rules?: NightRules },
-): ClosingFormat {
+export function closingFormatOf(o: { closeWithCumparsita?: boolean; rules?: NightRules }): ClosingFormat {
   const r = o.rules ?? {};
   if (r.closingFormat && CLOSING_FORMATS.includes(r.closingFormat)) return r.closingFormat;
   const legacy = { ...o, rules: { ...r, closingFormat: undefined } };

@@ -123,6 +123,61 @@ export const draftIds = (d: Draft) => d.map((t) => t.map((s) => s.id));
 export const draftMinutes = (d: Draft) =>
   Math.round(d.reduce((a, t) => a + t.length * (t[0]?.rhythm === "tango" ? 2.8 : 2.5) + 0.75, 0));
 
+/** 2026-11: sides into tanda `ti` at place `at` (the "Add song before / after" of a side); skips sides already in */
+export function addSongsAt(d: Draft, ti: number, at: number, songs: DraftSong[]): Draft {
+  const t = d[ti];
+  if (!t) return addSongsTo(d, ti, songs);
+  const used = new Set(d.flat().map((s) => s.id));
+  const fresh = songs.filter((s, i) => !used.has(s.id) && songs.findIndex((x) => x.id === s.id) === i);
+  if (!fresh.length) return d;
+  const out = t.slice();
+  out.splice(Math.max(0, Math.min(at, out.length)), 0, ...fresh);
+  return d.map((x, i) => (i === ti ? out : x));
+}
+
+export interface DraftFit {
+  /** the version's orchestra against the tanda's (none: the tanda is empty) */
+  orchestra: "same" | "differs" | "none";
+  /** the voice: the same singer, another singer, instrumental beside sung sides, or nothing to compare */
+  singer: "same" | "differs" | "voice" | "none";
+  /** the singers compared (the version's, the tanda's) */
+  singers: [string, string] | null;
+  rhythm: "same" | "differs" | "none";
+  /** the tanda's years with the version in */
+  years: [number, number] | null;
+  /** the tanda's length with the version in (seconds) */
+  totalSec: number;
+  /** already in the tanda */
+  inTanda: boolean;
+}
+/**
+ * 2026-11 (the owner: "search songs and add them, with the orchestra, singer, timing and the versions as a guide while
+ * searching"): what a version would do to the tanda it would join — information, never a gate.
+ */
+export function draftFit(t: readonly DraftSong[], v: DraftSong): DraftFit {
+  const first = t[0];
+  const sung = t.filter((s) => s.vocal && s.singer);
+  const singer: DraftFit["singer"] = !t.length
+    ? "none"
+    : v.vocal && sung.length
+      ? sung.every((s) => s.singer === v.singer)
+        ? "same"
+        : "differs"
+      : !!v.vocal !== sung.length > 0
+        ? "voice"
+        : "same";
+  const ys = [...t, v].map((s) => s.year ?? 0).filter(Boolean);
+  return {
+    orchestra: !first ? "none" : first.orchestraId === v.orchestraId ? "same" : "differs",
+    singer,
+    singers: singer === "differs" ? [v.singer ?? "", sung[0]?.singer ?? ""] : null,
+    rhythm: !first ? "none" : first.rhythm === v.rhythm ? "same" : "differs",
+    years: ys.length ? [Math.min(...ys), Math.max(...ys)] : null,
+    totalSec: [...t, v].reduce((a, s) => a + (s.durationSec ?? 170), 0),
+    inTanda: t.some((s) => s.id === v.id),
+  };
+}
+
 export function isDraft(x: unknown): x is Draft {
   return (
     Array.isArray(x) &&

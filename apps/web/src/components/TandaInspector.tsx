@@ -1,5 +1,15 @@
 "use client";
-import { ArrowDown, ArrowUp, GripVertical, Headphones, ListMusic } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  BetweenHorizontalEnd,
+  BetweenHorizontalStart,
+  GripVertical,
+  Headphones,
+  ListMusic,
+  ListPlus,
+  Trash2,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo } from "react";
 import { haptic } from "@/lib/haptics";
 import { lazy, t as tx } from "@/lib/i18n";
@@ -36,12 +46,21 @@ export function TandaInspector({
   selected,
   onSelect,
   onMoveTrack,
+  onInsertSong,
+  onRemoveSong,
+  onInsertTanda,
+  onRemoveTanda,
 }: {
   playlist: Playlist;
   selected: number;
   onSelect: (i: number) => void;
   /** 2026-11: reorder a song inside the tanda (tanda, from, to) */
   onMoveTrack?: (i: number, from: number, to: number) => void;
+  /** 2026-11: insert / remove (the same as the cards: the Insert sheet, the rule check, Undo, the guide) */
+  onInsertSong?: (i: number, at: number) => void;
+  onRemoveSong?: (i: number, k: number) => void;
+  onInsertTanda?: (at: number) => void;
+  onRemoveTanda?: (i: number) => void;
 }) {
   const connected = useStore((s) => !!s.spotifyToken && s.spotifyToken.expires > Date.now());
   useEffect(() => {
@@ -127,6 +146,46 @@ export function TandaInspector({
               <ListMusic size={16} aria-hidden /> {tx("tandaInspector.show_in_set")}
             </button>
           </Tip>
+          {onInsertSong && !t.locked && (
+            <button
+              type="button"
+              className="btn btn-ghost min-h-[44px]"
+              onClick={() => onInsertSong(i, t.songs.length)}
+              data-testid="inspector-add-song"
+            >
+              <ListPlus size={16} aria-hidden /> {tx("spot.add_song_here")}
+            </button>
+          )}
+          {onInsertTanda && (
+            <>
+              <button
+                type="button"
+                className="btn btn-ghost min-h-[44px]"
+                onClick={() => onInsertTanda(i)}
+                data-testid="inspector-insert-before"
+              >
+                <BetweenHorizontalStart size={16} aria-hidden /> {tx("spot.insert_tanda_before")}
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost min-h-[44px]"
+                onClick={() => onInsertTanda(i + 1)}
+                data-testid="inspector-insert-after"
+              >
+                <BetweenHorizontalEnd size={16} aria-hidden /> {tx("spot.insert_tanda_after")}
+              </button>
+            </>
+          )}
+          {onRemoveTanda && !t.locked && (
+            <button
+              type="button"
+              className="btn btn-ghost min-h-[44px] text-[var(--destructive)]"
+              onClick={() => onRemoveTanda(i)}
+              data-testid="inspector-remove-tanda"
+            >
+              <Trash2 size={16} aria-hidden /> {tx("spot.remove_tanda")}
+            </button>
+          )}
         </div>
       </div>
       <h3 className="section-head">{tx("tandaInspector.tracks")}</h3>
@@ -184,6 +243,22 @@ export function TandaInspector({
                           icon: ArrowDown,
                           onClick: () => move(k, k + 1),
                           disabled: k === t.songs.length - 1,
+                        },
+                        onInsertSong && {
+                          label: tx("spot.add_song_before"),
+                          icon: ListPlus,
+                          onClick: () => onInsertSong(i, k),
+                        },
+                        onInsertSong && {
+                          label: tx("spot.add_song_after"),
+                          icon: ListPlus,
+                          onClick: () => onInsertSong(i, k + 1),
+                        },
+                        onRemoveSong && {
+                          label: tx("spot.remove_song"),
+                          icon: Trash2,
+                          onClick: () => onRemoveSong(i, k),
+                          destructive: true,
                         },
                       ]}
                     />

@@ -110,7 +110,8 @@ function mendCortinas(
     if (i === n - 1) continue;
     const cur = t.cortina;
     const clash = !!cur && (cur.id === out[i - 1]?.cortina?.id || cur.id === out[i + 1]?.cortina?.id);
-    if (!cur || clash) out[i] = { ...t, cortina: cortinaForGap({ ...p, tandas: out }, i, deps) };
+    if (!cur || (clash && !t.locked))
+      out[i] = { ...t, cortina: cortinaForGap({ ...p, tandas: out }, i, deps) };
   }
   return out;
 }

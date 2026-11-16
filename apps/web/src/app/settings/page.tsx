@@ -41,6 +41,7 @@ import {
   Tile,
 } from "@/components/Form";
 import { ModelConnections } from "@/components/ModelConnections";
+import { NightClosingGroup } from "@/components/NightClosing";
 import { PageHeader } from "@/components/PageHeader";
 import { Sheet } from "@/components/Sheet";
 import { TandaRulesGroup } from "@/components/TandaRules";
@@ -351,6 +352,9 @@ export default function Settings() {
         <DeviceSourcesGroup />
         {/* 2026-11: Booth → Audio — outputs, the chain, a controller's pairs, two speaker sets, Before the night */}
         <BoothAudioSettings />
+
+        {/* 2026-11: the night's closing format and the opening La Cumparsita (components/NightClosing.tsx) */}
+        <NightClosingGroup />
 
         <Group header={tx("settings.composing")} footer={tx("settings.after_every_compose_the_night_is")}>
           <SwitchRow

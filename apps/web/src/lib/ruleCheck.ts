@@ -149,6 +149,8 @@ export interface GateOptions {
    * the caller records the edit itself
    */
   history?: boolean;
+  /** 2026-11: false when the caller shows the edit guide itself (lib/spot.ts) */
+  guide?: boolean;
 }
 
 /**
@@ -156,6 +158,21 @@ export interface GateOptions {
  * touched (the caller's own toast stands), every other outcome has said so itself.
  */
 export async function gateEdit(o: GateOptions): Promise<GateResult> {
+  const res = await gateEditOnce(o);
+  // 2026-11: an edit that changed the night's shape (a tanda in or out, the first or the last tanda) shows the guide —
+  // what it did to the night and the La Cumparsita it may now want (lib/spot.ts, components/EditGuide.tsx)
+  if (o.guide !== false && res !== "cancelled" && res !== "suggestion" && reshaped(o.before, o.after))
+    void import("./spot").then((m) => m.showGuide(o.before, o.after, o.apply, o.label));
+  return res;
+}
+const tandaIds = (x?: { songs: Array<{ id: string }> }) => x?.songs.map((s) => s.id).join(",") ?? "";
+/** the number of tandas, the first or the last one changed */
+export const reshaped = (a: Playlist, b: Playlist) =>
+  a.tandas.length !== b.tandas.length ||
+  tandaIds(a.tandas[0]) !== tandaIds(b.tandas[0]) ||
+  tandaIds(a.tandas.at(-1)) !== tandaIds(b.tandas.at(-1));
+
+async function gateEditOnce(o: GateOptions): Promise<GateResult> {
   const st = useStore.getState();
   const exceptions = nightExceptionsOf(st.memory.learned, o.after.id);
   const local = checkEdit(o.before, o.after, { exceptions, scope: o.scope }).violations;
