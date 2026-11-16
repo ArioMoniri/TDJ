@@ -8,7 +8,6 @@ import {
   type CortinaEdit,
   estimateSilence,
   type Playlist,
-  resolveTransition,
   SILENCE_CUT_FADE_SEC,
   type SilenceMode,
   type Song,
@@ -28,7 +27,16 @@ import { boothCortinaStop, musicSec } from "@/lib/lengths";
 import { markSpotifyBurst } from "@/lib/spotifyBurst";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
-import { encodeWav, renderTransition } from "./audition";
+import {
+  type AuditionMedia,
+  type AuditionSchedule,
+  encodeWav,
+  loadLead,
+  planAudition,
+  renderTransition,
+  runAuditionSteps,
+  spotifyAuditionSteps,
+} from "./audition";
 import { clipSummary, rehearsalClip, spotifyOf, withSpotifyLengths } from "./clips";
 import { setConfirmNeeded } from "./confirm";
 import { cortinaHookOf } from "./cortinaStart";
@@ -75,7 +83,7 @@ import type {
 } from "./sources/types";
 import { YoutubeAdapter } from "./sources/youtube";
 import { type Bands, renderBands } from "./spectral";
-import { transitionWindow } from "./transition";
+import { defaultTransitionMap, templatesNow, useTemplates, withEditAt } from "./transitionTemplates";
 import { installBoothUndo } from "./undo";
 import { isSilentState, resumeBounded, unlockAudio } from "./unlock";
 import { bufferPeaks } from "./waveform";
@@ -98,6 +106,16 @@ export interface Audition {
   where: CueWhere;
   /** wave 4: what the audition could not play (a side with no audio here is silence) */
   note?: string;
+  /**
+   * 2026-11: a transition audition's schedule and clock (the editor's playhead): what plays (the files, the clips,
+   * Spotify on this browser's player or on a Connect device), the cue player's clock or the wall clock from `t0`
+   */
+  transition?: {
+    schedule: AuditionSchedule;
+    plays: "file" | "clip" | "mixed" | "sdk" | "connect";
+    clock: "cue" | "wall";
+    t0?: number;
+  };
 }
 /** Round 22: the room and headphones outputs. */
 export interface Outputs {
@@ -249,8 +267,15 @@ export interface BoothStore {
   auditionTransition: (
     i: number,
     edit: TransitionEdit | null,
-    o?: { room?: boolean },
+    o?: { room?: boolean; leadSec?: number },
   ) => Promise<string | null>;
+  /** 2026-11: seconds into the transition audition that sound now (the editor's playhead), null when none plays */
+  auditionAt: () => number | null;
+  /**
+   * 2026-11 (templates): put `edit` on the joins after the plan items `targets` ("Apply to the whole tanda / night");
+   * one undoable edit (the shared history) labelled `label`
+   */
+  applyTransitions: (targets: number[], edit: TransitionEdit | null, label: string) => void;
   /** round 22: play another take of a side tonight (same title, same orchestra) */
   playVersion: (songId: string, version: Song) => Promise<boolean>;
   /** the night with `version` in place of `songId`, or null when that tanda is playing or played (read-only) */
@@ -341,6 +366,8 @@ let unsubDevice: (() => void) | null = null;
 let restoredLocal = false;
 /** round 22: the pre-listen player (headphones output, or this device before the night) */
 let cuePlayer: CuePlayer | null = null;
+/** 2026-11: the Spotify transition audition that runs (its steps stop on abort) */
+let spotifyAudition: AbortController | null = null;
 let cueTimer: ReturnType<typeof setInterval> | null = null;
 const waveforms = new Map<string, Promise<Waveform | null>>();
 const OUTPUTS_KEY = "tdj-booth-outputs";
@@ -460,7 +487,14 @@ function rePlan(
     ...extra,
   };
   // round 18: a side with a checked Spotify match is timed at that recording's length (what the DJ plays)
-  const timed = attachBooth(withSpotifyLengths(p), inputs);
+  const src = withSpotifyLengths(p);
+  let timed = attachBooth(src, inputs);
+  // 2026-11: the DJ's default templates (Settings → Booth → Transitions) fill the joins without an edit of their own
+  const tpl = templatesNow();
+  if (tpl.templates.length && timed.booth) {
+    const defaults = defaultTransitionMap(timed.booth.items, (t) => p.tandas[t - 1]?.rhythm, tpl);
+    if (Object.keys(defaults).length) timed = attachBooth(src, { ...inputs, defaultTransitions: defaults });
+  }
   // 2026-11: the night's music as it plays (the same seconds Compose and History print; the gaps are apart)
   const stats = { ...timed.stats, durationSec: musicSec(timed.booth!.items) };
   const playlist: Playlist = { ...p, booth: timed.booth, stats };
@@ -1092,6 +1126,11 @@ export const useBooth = create<BoothStore>()((set, get) => ({
   stopAudition: () => {
     cuePlayer?.stop();
     stopCueTimer();
+    // 2026-11: a Spotify transition audition pauses the player and puts its volume back (runAuditionSteps)
+    if (spotifyAudition) {
+      spotifyAudition.abort();
+      spotifyAudition = null;
+    }
     if (get().audition?.via === "spotify") void adapters().spotify.pauseAudition();
     if (get().audition) set({ audition: null, cuePos: { at: 0, of: 0 } });
   },
@@ -1188,18 +1227,92 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     applyPlan(rePlan(p, get().settings, { transitions: all }));
   },
   auditionTransition: async (i, edit, opts = {}) => {
-    const { plan, entities, started, settings } = get();
+    const { plan, entities, started, settings, sources, availability } = get();
     const a = plan?.items[i];
     const b = plan?.items[i + 1];
     const ea = entities[i];
     const eb = entities[i + 1];
-    if (!a || !b || a.kind === "break" || b.kind === "break" || !ea || !eb)
+    if (!plan || !a || !b || a.kind === "break" || b.kind === "break" || !ea || !eb)
       return tx("booth.store.nothing_to_play");
     get().stopAudition();
     const blocked = get().cueBlocked();
     // during the night an audition goes to the room only once the DJ confirmed it (2026-11): else headphones only
     if (blocked && started && !opts.room) return blocked;
     const where: CueWhere = blocked || opts.room ? "device" : "headphones";
+    const common = {
+      a,
+      b,
+      edit,
+      nightGapSec: plan.gapOverrides?.[a.tanda] ?? settings.gapSec,
+      songFadeOutSec: settings.songFadeOutSec,
+      cortinaFadeOutSec: settings.cortinaFadeOutSec,
+      silenceMode: plan.settings.silenceMode,
+      leadSec: opts.leadSec ?? loadLead(),
+    };
+    const title = `${a.title} → ${b.title}`;
+    // Spotify plays a side tonight: it plays one track at a time (an overlap is the night's Auto there)
+    const external = sources[i] === "spotify" || sources[i + 1] === "spotify";
+    const uriA = spotifyOf(ea)?.uri;
+    const uriB = spotifyOf(eb)?.uri;
+    // 1. Spotify, before the night: the real recordings on the player (mid-night the player is the room's)
+    if (external && !started && uriA && uriB && availability.spotify.ok) {
+      const sp = adapters().spotify;
+      let player: Awaited<ReturnType<SpotifyAdapter["auditionPlayer"]>>;
+      try {
+        player = await sp.auditionPlayer();
+      } catch (err) {
+        return err instanceof Error && err.message
+          ? err.message
+          : tx("booth.store.spotify_could_not_play_it");
+      }
+      const schedule = planAudition({
+        ...common,
+        media: { out: { kind: "recording" }, in: { kind: "recording" } },
+        external: true,
+      });
+      const steps = spotifyAuditionSteps(schedule, { uriOut: uriA, uriIn: uriB, fades: player.fades });
+      const ac = new AbortController();
+      spotifyAudition = ac;
+      const notes = [
+        player.connect ? tx("booth.transition.audition_connect_note") : null,
+        schedule.overlapDropped ? tx("booth.transition.audition_no_overlap") : null,
+      ].filter(Boolean);
+      const plays = player.connect ? ("connect" as const) : ("sdk" as const);
+      set({
+        audition: {
+          i,
+          songId: a.id ?? "",
+          via: "transition",
+          title,
+          where: "device",
+          ...(notes.length ? { note: notes.join(" ") } : {}),
+          transition: { schedule, plays, clock: "wall" },
+        },
+      });
+      const mine = () => spotifyAudition === ac;
+      void runAuditionSteps(steps, player.io, {
+        signal: ac.signal,
+        onStart: (t0) => {
+          const au = get().audition;
+          if (mine() && au?.transition) set({ audition: { ...au, transition: { ...au.transition, t0 } } });
+        },
+      })
+        .catch((err) => {
+          if (mine())
+            toast(
+              tx("booth.transition.can_t_audition", {
+                why: err instanceof Error ? err.message : tx("booth.store.spotify_could_not_play_it"),
+              }),
+            );
+        })
+        .finally(() => {
+          if (!mine()) return;
+          spotifyAudition = null;
+          if (get().audition?.via === "transition") set({ audition: null });
+        });
+      return null;
+    }
+    // 2. files and clips: the audio rendered with the engine's curves and EQ, on the pre-listen player
     const Off = offlineCtor();
     if (!Off) return tx("booth.store.this_browser_cannot_mix_a_transition");
     const [da, db] = await Promise.all([
@@ -1215,43 +1328,32 @@ export const useBooth = create<BoothStore>()((set, get) => ({
         from: "clip" as const,
       };
     };
-    const note = !da
-      ? tx("booth.store.only_one_side_has_audio", { title: a.title })
-      : !db
-        ? tx("booth.store.only_one_side_has_audio", { title: b.title })
-        : undefined;
-    const side = (it: typeof a, d: { buffer: AudioBuffer; from: Waveform["from"] }) => {
-      const offset = d.from === "file" ? Math.min(it.trimInSec ?? 0, Math.max(0, d.buffer.duration - 1)) : 0;
-      return {
-        buffer: d.buffer,
-        offset,
-        length: Math.max(0.5, Math.min(it.lengthSec, d.buffer.duration - offset)),
-        gain: Math.min(
-          1,
-          dbToGain(Math.min(0, it.gainDb ?? (it.kind === "cortina" ? settings.cortinaLevelDb : 0))),
-        ),
-      };
-    };
-    const out = side(a, da ?? silent(a));
-    const inn = side(b, db ?? silent(b));
-    const tr = edit
-      ? resolveTransition(edit, {
-          from: { kind: a.kind, lengthSec: a.lengthSec, tanda: a.tanda },
-          to: { kind: b.kind, lengthSec: b.lengthSec, tanda: b.tanda },
-          cortinaFadeOutSec: a.fadeOutSec,
-        })
-      : null;
-    const window = transitionWindow(tr, {
-      outLen: out.length,
-      inLen: inn.length,
-      gapSec: a.gapAfterSec || settings.gapSec,
-      songFadeOutSec: settings.songFadeOutSec,
-      outKind: a.kind,
-      cortinaFadeOutSec: a.fadeOutSec ?? settings.cortinaFadeOutSec,
-    });
+    const sa = da ?? silent(a);
+    const sb = db ?? silent(b);
+    const media = (d: { buffer: AudioBuffer; from: Waveform["from"] }): AuditionMedia =>
+      d.from === "file"
+        ? { kind: "recording", durationSec: d.buffer.duration }
+        : { kind: "clip", durationSec: d.buffer.duration };
+    const schedule = planAudition({ ...common, media: { out: media(sa), in: media(sb) }, external });
+    const gain = (it: typeof a) =>
+      Math.min(1, dbToGain(Math.min(0, it.gainDb ?? (it.kind === "cortina" ? settings.cortinaLevelDb : 0))));
+    const notes = [
+      !da ? tx("booth.store.only_one_side_has_audio", { title: a.title }) : null,
+      !db ? tx("booth.store.only_one_side_has_audio", { title: b.title }) : null,
+      da && da.from === "clip" ? tx("booth.transition.audition_clip_out", { title: a.title }) : null,
+      db && db.from === "clip" ? tx("booth.transition.audition_clip_in", { title: b.title }) : null,
+      external && started ? tx("booth.transition.audition_spotify_live") : null,
+      schedule.overlapDropped ? tx("booth.transition.audition_no_overlap") : null,
+    ].filter(Boolean);
     let blob: Blob;
     try {
-      blob = encodeWav(await renderTransition(Off, { out, in: inn, window }));
+      blob = encodeWav(
+        await renderTransition(Off, {
+          out: { buffer: sa.buffer, gain: gain(a) },
+          in: { buffer: sb.buffer, gain: gain(b) },
+          schedule,
+        }),
+      );
     } catch {
       return tx("booth.store.this_browser_cannot_mix_a_transition");
     }
@@ -1270,18 +1372,44 @@ export const useBooth = create<BoothStore>()((set, get) => ({
         ? err.message
         : tx("booth.store.the_browser_blocked_playback_tap_again");
     }
+    const plays =
+      da?.from === "file" && db?.from === "file"
+        ? ("file" as const)
+        : da?.from === "file" || db?.from === "file"
+          ? ("mixed" as const)
+          : ("clip" as const);
     set({
       audition: {
         i,
         songId: a.id ?? "",
         via: "transition",
-        title: `${a.title} → ${b.title}`,
+        title,
         where,
-        ...(note ? { note } : {}),
+        ...(notes.length ? { note: notes.join(" ") } : {}),
+        transition: { schedule, plays, clock: "cue" },
       },
     });
     startCueTimer();
     return null;
+  },
+  auditionAt: () => {
+    const tr = get().audition?.transition;
+    if (!tr) return null;
+    if (tr.clock === "cue") return cuePlayer?.el ? cuePlayer.position() : null;
+    return tr.t0 ? Math.max(0, (Date.now() - tr.t0) / 1000) : null;
+  },
+  applyTransitions: (targets, edit, label) => {
+    const p = get().playlist;
+    const items = get().plan?.items;
+    if (!p || !items || !targets.length) return;
+    const before: Record<string, TransitionEdit> = { ...(p.booth?.transitions ?? {}) };
+    const after = withEditAt(before, items, targets, edit);
+    const put = (m: Record<string, TransitionEdit>) => {
+      const cur = get().playlist;
+      if (cur) applyPlan(rePlan(cur, get().settings, { transitions: { ...m } }));
+    };
+    put(after);
+    recordEdit({ label, scope: "/booth", undo: () => put(before), redo: () => put(after) });
   },
   versionNight: (songId, version) => {
     const p = get().playlist;
@@ -1955,6 +2083,13 @@ function logToHistory(ended: boolean) {
 export const boothEngine = () => engine;
 // 2026-11: every reversible Booth action goes into the one undo history (lib/booth/undo.ts)
 installBoothUndo(useBooth.getState, useBooth.setState, () => engine);
+
+// 2026-11: a template or a default changed (Settings → Booth → Transitions, the editor): the night re-plans
+useTemplates.subscribe((st, prev) => {
+  if (st.templates === prev.templates && st.defaults === prev.defaults) return;
+  const p = useBooth.getState().playlist;
+  if (p) applyPlan(rePlan(p, useBooth.getState().settings));
+});
 
 /** For the e2e audibility check: the context's state. */
 export const boothContextState = () => ctx?.state ?? null;

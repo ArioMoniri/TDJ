@@ -3,6 +3,8 @@ import "./transition.css";
 import {
   type CurveShape,
   resolveTransition,
+  SILENCE_MODES,
+  type SilenceMode,
   silenceJoin,
   TRANSITION_DEFAULTS,
   TRANSITION_RANGES,
@@ -12,11 +14,15 @@ import {
   transitionKey,
 } from "@tdj/core";
 import {
+  BookmarkPlus,
   Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   Ellipsis,
+  FolderOpen,
+  Layers,
+  ListChecks,
   Magnet,
   Maximize2,
   Play,
@@ -33,6 +39,14 @@ import {
 import { AnimatePresence, motion, useIsPresent, useReducedMotion } from "motion/react";
 import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import {
+  AUDITION_LEAD_CHOICES,
+  type AuditionSchedule,
+  hearingAt,
+  loadLead,
+  saveLead,
+  sideSpan,
+} from "@/lib/booth/audition";
 import { useIndicators } from "@/lib/booth/indicatorPrefs";
 import { type BoothRow, durationLabel } from "@/lib/booth/plan";
 import { bpmOf, energyOf, keyOf } from "@/lib/booth/songInfo";
@@ -54,23 +68,34 @@ import {
   transitionWindow,
 } from "@/lib/booth/transition";
 import {
+  applyTargets,
+  boundaryOf,
+  defaultFor,
+  templateOf,
+  useTemplates,
+} from "@/lib/booth/transitionTemplates";
+import {
   CURVE_ORDER,
   curveFromLevel,
   type EdgeId,
+  type EstimateProfile,
   editorEdges,
-  estimatedLevel,
+  estimateProfile,
   firstBeatSec,
+  informedLevel,
   rulerTicks,
   viewSpan,
   ZOOM_MAX,
   ZOOM_MIN,
 } from "@/lib/booth/transitionView";
+import { runHistory } from "@/lib/editToast";
 import { t } from "@/lib/i18n";
 import { DUR, EASE } from "@/lib/motion";
 import { lockScroll } from "@/lib/scrollLock";
 import { useSheets } from "@/lib/sheets";
 import { toast } from "@/lib/toast";
 import { Artwork } from "../ui/Artwork";
+import { useSilenceMode } from "./SilenceSettings";
 import { useSpotifyRoomName } from "./SpotifyRoom";
 
 type PresetId = "auto" | TransitionPreset;
@@ -258,7 +283,26 @@ export function TransitionSheet({ at, onClose }: { at: number | null; onClose: (
   return mounted ? createPortal(tree, document.body) : null;
 }
 
-type PickerId = "length" | "gap" | "volume" | "eq" | "more" | "room";
+type PickerId =
+  | "length"
+  | "gap"
+  | "volume"
+  | "eq"
+  | "silence"
+  | "more"
+  | "room"
+  | "lead"
+  | "saveTemplate"
+  | "applyTanda"
+  | "applyNight";
+const silenceLabel = (m: SilenceMode) =>
+  m === "gap" ? t("booth.silence.gap") : m === "after" ? t("booth.silence.after") : t("booth.silence.off");
+const silenceSub = (m: SilenceMode) =>
+  m === "gap"
+    ? t("booth.silence.gap_sub")
+    : m === "after"
+      ? t("booth.silence.after_sub")
+      : t("booth.silence.off_sub");
 const GAP_CHOICES = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5];
 const EQS: ReadonlyArray<TransitionEq> = ["none", "bassSwap", "threeBand"];
 const eqLabel = (e: TransitionEq) =>
@@ -313,6 +357,15 @@ function Editor({
   const bpm = bpmOf(ea)?.value ?? bpmOf(eb)?.value ?? null;
   const [snap, setSnap] = useState(true);
   const [unit, setUnit] = useState<"bars" | "sec">(bpm ? "bars" : "sec");
+  // 2026-11: the audition's length (the last N s of the outgoing), this device's choice
+  const [lead, setLead] = useState(AUDITION_LEAD_CHOICES[2] as number);
+  useEffect(() => setLead(loadLead()), []);
+  // 2026-11: the DJ's templates (this device) and the default for this kind of join
+  const tpl = useTemplates();
+  useEffect(() => useTemplates.getState().hydrate(), []);
+  const boundary = boundaryOf(a, b);
+  const defaultTpl = defaultFor(tpl, boundary, a.rhythm);
+  const folder = useBooth((s) => s.folder);
   const dirty = JSON.stringify(draft) !== JSON.stringify(stored ?? null);
   const root = useRef<HTMLDivElement>(null);
   // the list's foot fades while more of it is below (`data-more`)
@@ -347,6 +400,17 @@ function Editor({
   useEffect(() => {
     const t0 = setTimeout(() => root.current?.querySelector<HTMLElement>("[data-autofocus]")?.focus(), 30);
     const onKey = (e: KeyboardEvent) => {
+      // 2026-11: Space starts / stops the audition inside the editor (not while typing a name or in a menu)
+      if (e.key === " " && !e.metaKey && !e.ctrlKey && !e.altKey && !pickerRef.current) {
+        const el = e.target as HTMLElement | null;
+        const typing = !!el?.closest?.("input, textarea, select, [contenteditable='true']");
+        if (!typing) {
+          e.preventDefault();
+          e.stopPropagation();
+          void auditRef.current?.();
+          return;
+        }
+      }
       if (e.key === "Escape") {
         e.preventDefault();
         e.stopPropagation();
@@ -397,12 +461,17 @@ function Editor({
     outKind: a.kind,
     cortinaFadeOutSec: a.fadeOutSec ?? settings.cortinaFadeOutSec,
   };
-  const tr = draft ? resolveTransition(draft, ctx) : null;
+  // Auto: the DJ's default template for this kind of join (Settings → Booth → Transitions), else the night's Mix
+  const autoEdit = defaultTpl?.edit ?? null;
+  const tr = draft ? resolveTransition(draft, ctx) : autoEdit ? resolveTransition(autoEdit, ctx) : null;
   const w = transitionWindow(tr, winOpts);
-  // the sides' own silence (Settings → Booth → Gaps) on the lanes and in the time the room hears
-  const silenceMode = useBooth((s) => s.plan?.settings.silenceMode ?? "gap");
-  const sil = stageSilence(silenceMode, w, a, b);
-  const preset: PresetId = tr?.preset ?? "auto";
+  // the sides' own silence (Settings → Booth → Gaps, or this transition's own) on the lanes and in the time heard
+  const nightSilence = useSilenceMode();
+  const silenceMode = useBooth((s) => s.plan?.settings.silenceMode ?? nightSilence);
+  const joinSilence: SilenceMode = tr?.silence ?? silenceMode;
+  const sil = stageSilence(joinSilence, w, a, b);
+  const preset: PresetId = draft && tr ? tr.preset : "auto";
+  const matched = draft ? templateOf(tpl, draft) : null;
   const cumparsita = a.kind === "closing" || b.kind === "closing";
   const insideTanda = a.kind === "track" && b.kind === "track" && a.tanda === b.tanda;
   const presets: PresetId[] = [
@@ -424,9 +493,10 @@ function Editor({
       ...(p === "cortinaCut" ? { fadeOutSec: ctx.cortinaFadeOutSec ?? d.fadeOutSec } : {}),
     });
   };
-  // Auto, dragged or lengthened: the plain preset it stands for
+  // Auto, dragged or lengthened: the plain preset it stands for (the default template's, when one is set)
   const asEdit = (): TransitionEdit =>
     draft ??
+    (autoEdit ? { ...autoEdit } : null) ??
     (a.kind === "cortina"
       ? { preset: "cortinaCut", gapSec: nightGap, fadeOutSec: ctx.cortinaFadeOutSec }
       : settings.songFadeOutSec > 0
@@ -439,21 +509,42 @@ function Editor({
   const hearing = audition?.via === "transition" && audition.i === i;
   const blocked = b0.cueBlocked();
   const askRoom = started && !!blocked;
-  const where = blocked
-    ? started
-      ? t("booth.transition.in_the_room")
-      : t("booth.transition.on_this_device")
-    : t("booth.transition.in_your_headphones", {
-        name: outputs.devices.find((d) => d.id === outputs.cue)?.label ?? t("booth.songSheet.headphones"),
-      });
+  // 2026-11: before the night a Spotify side's audition plays on Spotify itself (this browser or the Connect device)
+  const onSpotify =
+    !started && (srcA === "spotify" || srcB === "spotify") && useBooth.getState().availability.spotify.ok;
+  const where = onSpotify
+    ? t("booth.transition.on_spotify", {
+        device: caps.fade ? t("booth.transition.this_browser") : (spotifyDevice ?? "Spotify Connect"),
+      })
+    : blocked
+      ? started
+        ? t("booth.transition.in_the_room")
+        : t("booth.transition.on_this_device")
+      : t("booth.transition.in_your_headphones", {
+          name: outputs.devices.find((d) => d.id === outputs.cue)?.label ?? t("booth.songSheet.headphones"),
+        });
   const audit = async (room = false) => {
     if (hearing) return b0.stopAudition();
+    if (busy) return;
     if (askRoom && !room) return setPicker("room");
     setBusy(true);
-    const why = await b0.auditionTransition(i, draft, room ? { room: true } : undefined);
+    const why = await b0.auditionTransition(i, draft ?? autoEdit, {
+      leadSec: lead,
+      ...(room ? { room: true } : {}),
+    });
     setBusy(false);
     if (why) toast(t("booth.transition.can_t_audition", { why }));
   };
+  const auditRef = useRef(audit);
+  auditRef.current = audit;
+  // closing the editor stops its audition
+  useEffect(
+    () => () => {
+      if (useBooth.getState().audition?.via === "transition") useBooth.getState().stopAudition();
+    },
+    [],
+  );
+  const schedule: AuditionSchedule | null = hearing ? (audition?.transition?.schedule ?? null) : null;
 
   // the length pill: the overlap of a blend or rise, the fades of a fade, the silence of a gap
   const len = lengthOf({ ...effective, ...effTr });
@@ -509,6 +600,84 @@ function Editor({
     laneSource(waves?.[0] ?? null, srcA, waves === null),
     laneSource(waves?.[1] ?? null, srcB, waves === null),
   ];
+  // 2026-11: an estimated side is shaped by what is measured about it (its clip, loudness, energy, BPM, silence)
+  const profile = (which: "out" | "in"): EstimateProfile => {
+    const row = which === "out" ? a : b;
+    const e = which === "out" ? ea : eb;
+    const d = waves?.[which === "out" ? 0 : 1] ?? null;
+    const au = e && "audio" in e ? e.audio : null;
+    return estimateProfile({
+      lengthSec: which === "out" ? row.lengthSec + sil.tailCut : row.lengthSec + sil.headCut,
+      headSilenceSec: which === "in" ? sil.keptHead + sil.headCut : 0,
+      tailSilenceSec: which === "out" ? sil.keptTail + sil.tailCut : 0,
+      energy: energyOf(e),
+      loudnessDb: au?.loudnessDb ?? null,
+      loudnessRange: au?.loudnessRange ?? null,
+      bpm: bpmOf(e)?.value ?? null,
+      rhythm: row.kind === "cortina" ? null : row.rhythm,
+      clipPeaks: d?.from === "clip" ? d.peaks : null,
+    });
+  };
+  const profiles: [EstimateProfile, EstimateProfile] = [profile("out"), profile("in")];
+  const estimated = laneOut === "estimated" || laneIn === "estimated";
+  const basis = (() => {
+    if (!estimated) return null;
+    const ps = [laneOut === "estimated" ? profiles[0] : null, laneIn === "estimated" ? profiles[1] : null];
+    const parts = new Set<string>();
+    for (const pr of ps) {
+      if (!pr) continue;
+      for (const k of pr.basis)
+        parts.add(
+          k === "clip"
+            ? t("booth.transition.est_clip")
+            : k === "loudness"
+              ? t("booth.transition.est_loudness")
+              : k === "energy"
+                ? t("booth.transition.est_energy")
+                : k === "bpm"
+                  ? t("booth.transition.est_bpm")
+                  : t("booth.transition.est_silence"),
+        );
+    }
+    parts.add(t("booth.transition.est_length"));
+    return [...parts].join(", ");
+  })();
+  const fileOnSpotify = (src: string, d: WaveData | null | undefined) =>
+    (src === "spotify" || src === "youtube") && d?.from === "file";
+  const fromFile: [boolean, boolean] = [fileOnSpotify(srcA, waves?.[0]), fileOnSpotify(srcB, waves?.[1])];
+  const folderLinked = !!folder.name && folder.permission !== "none";
+  // ••• → Apply to the whole tanda / night: the joins of the same kind
+  const rows = useBooth((s) => s.plan?.items) ?? [];
+  const applyTo = (scope: "tanda" | "night") => applyTargets(rows, i, scope);
+  const apply = (scope: "tanda" | "night") => {
+    const targets = applyTo(scope);
+    if (!targets.length) return;
+    const edit = draft ? { ...draft } : null;
+    const name = matched?.name ?? presetLabel(preset);
+    b0.applyTransitions(
+      targets,
+      edit,
+      t(scope === "tanda" ? "booth.transition.applied_tanda_label" : "booth.transition.applied_night_label", {
+        name,
+      }),
+    );
+    toast(
+      t("booth.transition.applied", { n: targets.length, name }),
+      () => void runHistory("undo", { scope: "/booth" }),
+      t("editKeys.undo"),
+    );
+    onClose();
+  };
+  const [tplName, setTplName] = useState("");
+  const saveTemplate = () => {
+    const edit = asEdit();
+    const id = useTemplates.getState().add(tplName, edit);
+    const saved = useTemplates.getState().templates.find((x) => x.id === id);
+    setDraft({ ...(saved?.edit ?? edit) });
+    setTplName("");
+    setPicker(null);
+    toast(t("booth.transition.template_saved", { name: saved?.name ?? tplName }));
+  };
 
   return (
     <div className="trx-inner" ref={root} data-preset={preset} data-dirty={dirty || undefined}>
@@ -569,7 +738,9 @@ function Editor({
           sil={sil}
           waves={waves}
           lanes={[laneOut, laneIn]}
-          energy={[energyOf(ea), energyOf(eb)]}
+          profiles={profiles}
+          fromFile={fromFile}
+          schedule={schedule}
           bpm={bpm}
           snap={snap && !!bpm}
           zoom={zoom}
@@ -592,7 +763,9 @@ function Editor({
             aria-pressed={hearing}
             data-hint={t("booth.transition.audition_hint", { where })}
             data-testid="booth-tr-audition"
-            data-where={blocked ? (askRoom ? "room" : "device") : "headphones"}
+            data-where={onSpotify ? "spotify" : blocked ? (askRoom ? "room" : "device") : "headphones"}
+            data-lead={lead}
+            aria-keyshortcuts="Space"
           >
             {hearing ? (
               <Square size={16} fill="currentColor" strokeWidth={0} aria-hidden />
@@ -681,11 +854,41 @@ function Editor({
             <span>{t("booth.transition.snap")}</span>
           </button>
         </div>
-        {(laneOut === "estimated" || laneIn === "estimated") && (
+        {hearing && audition?.note && (
+          <p className="trx-where trx-hear-note text-footnote" data-testid="booth-tr-audition-note">
+            {audition.note}
+          </p>
+        )}
+        {estimated && (
           <p className="trx-est-note text-footnote" data-testid="booth-tr-estimated">
             <span className="trx-est-swatch" aria-hidden />
             {t("booth.transition.lane_estimated")}
           </p>
+        )}
+        {estimated && basis && (
+          <p className="trx-where text-footnote" data-testid="booth-tr-est-basis">
+            {t("booth.transition.est_basis", { what: basis })}
+          </p>
+        )}
+        {estimated && (
+          <div className="trx-link-hint text-footnote" data-testid="booth-tr-file-hint">
+            <span>
+              {folderLinked
+                ? t("booth.transition.no_file_in_folder", { folder: folder.name ?? "" })
+                : t("booth.transition.link_folder_hint")}
+            </span>
+            {!folderLinked && (
+              <button
+                type="button"
+                className="trx-link-btn"
+                onClick={() => void b0.linkFolder()}
+                data-testid="booth-tr-link-folder"
+              >
+                <FolderOpen size={16} strokeWidth={2} aria-hidden />
+                {t("booth.transition.link_folder")}
+              </button>
+            )}
+          </div>
         )}
         <p className="trx-where text-footnote" data-testid="booth-tr-plays">
           {plays}
@@ -704,6 +907,18 @@ function Editor({
 
         <div className="trx-presets-head">
           <span>{t("booth.transition.presets")}</span>
+          <button
+            type="button"
+            className="trx-head-btn"
+            onClick={() => setPicker("saveTemplate")}
+            disabled={!lengthEditable}
+            aria-haspopup="dialog"
+            data-hint={t("booth.transition.save_template_hint")}
+            data-testid="booth-tr-save-template"
+          >
+            <BookmarkPlus size={16} strokeWidth={2} aria-hidden />
+            {t("booth.transition.save_template")}
+          </button>
         </div>
         <div
           className="trx-presets hide-scrollbar"
@@ -718,7 +933,7 @@ function Editor({
                 key={p}
                 type="button"
                 role="radio"
-                aria-checked={preset === p}
+                aria-checked={preset === p && !matched}
                 disabled={off}
                 onClick={() => pick(p)}
                 data-testid={`booth-tr-preset-${p}`}
@@ -729,7 +944,32 @@ function Editor({
               </button>
             );
           })}
+          {/* 2026-11: the DJ's own templates, after the presets */}
+          {tpl.templates.length > 0 && <span className="trx-presets-sep" aria-hidden />}
+          {tpl.templates.map((x) => (
+            // biome-ignore lint/a11y/useSemanticElements: one choice with the presets (WAI-ARIA radio group pattern)
+            <button
+              key={x.id}
+              type="button"
+              role="radio"
+              className="trx-template"
+              aria-checked={matched?.id === x.id}
+              disabled={!lengthEditable}
+              onClick={() => setDraft({ ...x.edit })}
+              data-testid={`booth-tr-template-${x.id}`}
+              data-template={x.name}
+              data-hint={t("booth.transition.template_hint", { name: x.name })}
+            >
+              <Layers size={16} strokeWidth={2} aria-hidden />
+              {x.name}
+            </button>
+          ))}
         </div>
+        {!draft && defaultTpl && (
+          <p className="trx-where text-footnote" data-testid="booth-tr-default">
+            {t("booth.transition.default_is", { name: defaultTpl.name })}
+          </p>
+        )}
         {warning && (
           <p className="trx-warn" data-testid="booth-tr-note">
             <TriangleAlert size={14} strokeWidth={2} aria-hidden />
@@ -757,6 +997,20 @@ function Editor({
             open={picker === "eq"}
             onOpen={() => setPicker("eq")}
             testId="booth-tr-eq"
+          />
+          <SettingRow
+            tick="var(--trx-silence-tick)"
+            label={t("booth.transition.silence")}
+            value={
+              tr?.silence
+                ? silenceLabel(tr.silence)
+                : t("booth.transition.silence_night", { mode: silenceLabel(silenceMode) })
+            }
+            disabled={!lengthEditable}
+            hint={t("booth.transition.silence_row_hint")}
+            open={picker === "silence"}
+            onOpen={() => setPicker("silence")}
+            testId="booth-tr-silence-row"
           />
         </div>
       </div>
@@ -832,6 +1086,94 @@ function Editor({
         info={spotifySide ? <p>{t("booth.transition.eq_not_on_spotify")}</p> : undefined}
       />
       <Picker
+        open={picker === "silence"}
+        title={t("booth.transition.silence")}
+        onClose={() => setPicker(null)}
+        testId="booth-tr-picker-silence"
+        options={[
+          {
+            id: "night",
+            label: t("booth.transition.silence_night", { mode: silenceLabel(silenceMode) }),
+            sub: t("booth.transition.silence_night_sub"),
+            checked: !tr?.silence,
+            onPick: () => {
+              const { silence: _drop, ...rest } = asEdit();
+              setDraft(rest);
+            },
+          },
+          ...SILENCE_MODES.map((m) => ({
+            id: m,
+            label: silenceLabel(m),
+            sub: silenceSub(m),
+            checked: tr?.silence === m,
+            onPick: () => setDraft({ ...asEdit(), silence: m }),
+          })),
+        ]}
+      />
+      <Picker
+        open={picker === "lead"}
+        title={t("booth.transition.audition_length")}
+        onClose={() => setPicker(null)}
+        testId="booth-tr-picker-lead"
+        options={AUDITION_LEAD_CHOICES.map((sec) => ({
+          id: String(sec),
+          label: t("booth.transition.audition_last", { sec }),
+          checked: lead === sec,
+          onPick: () => {
+            setLead(sec);
+            saveLead(sec);
+          },
+        }))}
+        info={<p>{t("booth.transition.audition_length_hint")}</p>}
+      />
+      <NamePrompt
+        open={picker === "saveTemplate"}
+        value={tplName}
+        onChange={setTplName}
+        onSave={saveTemplate}
+        onClose={() => setPicker(null)}
+        summary={`${presetLabel(effTr.preset)} · ${lengthLabel(len, bpm, unit)}${eqNow !== "none" ? ` · ${eqLabel(eqNow)}` : ""}${tr?.silence ? ` · ${silenceLabel(tr.silence)}` : ""}`}
+      />
+      {(["applyTanda", "applyNight"] as const).map((id) => {
+        const scope = id === "applyTanda" ? "tanda" : "night";
+        const targets = picker === id ? applyTo(scope) : [];
+        const names = targets.map((k) => `${sideName(rows[k]!)} → ${sideName(rows[k + 1]!)}`);
+        return (
+          <Picker
+            key={id}
+            open={picker === id}
+            title={t(scope === "tanda" ? "booth.transition.apply_tanda" : "booth.transition.apply_night")}
+            onClose={() => setPicker(null)}
+            testId={`booth-tr-picker-${id}`}
+            options={[
+              {
+                id: "go",
+                label: t("booth.transition.apply_go", {
+                  n: targets.length,
+                  name: matched?.name ?? presetLabel(preset),
+                }),
+                sub: t("booth.transition.apply_undo_sub"),
+                icon: <ListChecks size={18} aria-hidden />,
+                disabled: !targets.length,
+                onPick: () => apply(scope),
+              },
+            ]}
+            info={
+              <ul
+                className="trx-apply-list"
+                data-testid={`booth-tr-${id}-preview`}
+                data-count={targets.length}
+              >
+                {names.slice(0, 8).map((n, k) => (
+                  <li key={`${targets[k]}`}>{n}</li>
+                ))}
+                {names.length > 8 && <li>{t("booth.transition.apply_more", { n: names.length - 8 })}</li>}
+              </ul>
+            }
+          />
+        );
+      })}
+      <Picker
         open={picker === "room"}
         title={t("booth.transition.room_confirm_title")}
         onClose={() => setPicker(null)}
@@ -869,6 +1211,38 @@ function Editor({
             sub: dirty ? t("booth.transition.save_or_cancel_first") : undefined,
             onPick: () => next !== null && onStep(next),
           },
+          {
+            id: "lead",
+            label: t("booth.transition.audition_length"),
+            sub: t("booth.transition.audition_last", { sec: lead }),
+            icon: <Play size={18} aria-hidden />,
+            onPick: () => setTimeout(() => setPicker("lead"), 0),
+          },
+          {
+            id: "save-template",
+            label: t("booth.transition.save_template"),
+            icon: <BookmarkPlus size={18} aria-hidden />,
+            disabled: !lengthEditable,
+            onPick: () => setTimeout(() => setPicker("saveTemplate"), 0),
+          },
+          ...(boundary
+            ? [
+                {
+                  id: "apply-tanda",
+                  label: t("booth.transition.apply_tanda"),
+                  sub: t("booth.transition.apply_sub", { n: applyTo("tanda").length }),
+                  icon: <ListChecks size={18} aria-hidden />,
+                  onPick: () => setTimeout(() => setPicker("applyTanda"), 0),
+                },
+                {
+                  id: "apply-night",
+                  label: t("booth.transition.apply_night"),
+                  sub: t("booth.transition.apply_sub", { n: applyTo("night").length }),
+                  icon: <ListChecks size={18} aria-hidden />,
+                  onPick: () => setTimeout(() => setPicker("applyNight"), 0),
+                },
+              ]
+            : []),
           ...(bpm
             ? [
                 {
@@ -1069,6 +1443,96 @@ function Picker({
 }
 
 /**
+ * 2026-11 — "Save as template…": a name for the transition as it is now (its preset, lengths, curves, EQ and silence),
+ * kept on this device and shown next to the presets.
+ */
+function NamePrompt({
+  open,
+  value,
+  onChange,
+  onSave,
+  onClose,
+  summary,
+}: {
+  open: boolean;
+  value: string;
+  onChange: (v: string) => void;
+  onSave: () => void;
+  onClose: () => void;
+  summary: string;
+}) {
+  const reduced = useReducedMotion();
+  const input = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const t0 = setTimeout(() => input.current?.focus(), 30);
+    return () => clearTimeout(t0);
+  }, [open]);
+  return (
+    <AnimatePresence>
+      {open && (
+        <PickerLayer key="name">
+          <button
+            type="button"
+            className="trx-picker-scrim"
+            aria-label={t("booth.transition.close")}
+            tabIndex={-1}
+            onClick={onClose}
+          />
+          <motion.form
+            className="trx-picker"
+            role="dialog"
+            aria-label={t("booth.transition.save_template")}
+            data-testid="booth-tr-picker-saveTemplate"
+            initial={reduced ? false : { y: 40 }}
+            animate={{ y: 0, transition: { duration: DUR.base, ease: EASE.out } }}
+            onSubmit={(e) => {
+              e.preventDefault();
+              onSave();
+            }}
+          >
+            <div className="trx-picker-head">
+              <p className="trx-picker-title">{t("booth.transition.save_template")}</p>
+              <button
+                type="button"
+                className="trx-round trx-round-s"
+                onClick={onClose}
+                aria-label={t("booth.transition.close")}
+              >
+                <X size={18} strokeWidth={2.25} aria-hidden />
+              </button>
+            </div>
+            <div className="trx-name">
+              <label className="trx-name-label" htmlFor="trx-template-name">
+                {t("booth.transition.template_name")}
+              </label>
+              <input
+                ref={input}
+                id="trx-template-name"
+                className="trx-name-input"
+                value={value}
+                maxLength={40}
+                placeholder={t("booth.transition.template_name_placeholder")}
+                onChange={(e) => onChange(e.target.value)}
+                autoComplete="off"
+                data-testid="booth-tr-template-name"
+              />
+              <p className="trx-opt-sub">{summary}</p>
+              <button type="submit" className="trx-save trx-name-save" data-testid="booth-tr-template-save">
+                {t("booth.transition.save_template_go")}
+              </button>
+            </div>
+            <div className="trx-picker-info">
+              <p>{t("booth.transition.save_template_info")}</p>
+            </div>
+          </motion.form>
+        </PickerLayer>
+      )}
+    </AnimatePresence>
+  );
+}
+
+/**
  * The menu's layer over the whole editor. While it fades out it lets every pointer through: a finger that lands on a
  * box edge right after picking a length drags that edge, not the leaving menu's scrim or rows (owner's iPhone).
  */
@@ -1199,7 +1663,9 @@ function Stage({
   sil,
   waves,
   lanes,
-  energy,
+  profiles,
+  fromFile,
+  schedule,
   bpm,
   snap,
   zoom,
@@ -1215,7 +1681,12 @@ function Stage({
   sil: StageSilence;
   waves: [WaveData | null, WaveData | null] | null;
   lanes: [LaneSource, LaneSource];
-  energy: [number | null, number | null];
+  /** 2026-11: what shapes an estimated side (its clip, loudness, energy, BPM, silence) */
+  profiles: [EstimateProfile, EstimateProfile];
+  /** 2026-11: a Spotify side drawn from the DJ's own file of that recording */
+  fromFile: [boolean, boolean];
+  /** 2026-11: the audition that plays now (the playhead follows it), or null */
+  schedule: AuditionSchedule | null;
   bpm: number | null;
   snap: boolean;
   zoom: number;
@@ -1240,7 +1711,32 @@ function Stage({
   const boxes = laneBoxes(w);
   // while an edge is dragged the view holds still (it re-centres when the finger lifts)
   const [frozen, setFrozen] = useState<Span | null>(null);
-  const view = frozen ?? viewSpan(boxes.panel, zoom);
+  const fitted = viewSpan(boxes.panel, zoom);
+  // while an audition plays the view takes in all of it (the playhead never leaves the lanes)
+  const view =
+    frozen ??
+    (schedule
+      ? {
+          start: Math.min(fitted.start, schedule.axisFrom - 0.5),
+          end: Math.max(fitted.end, schedule.axisTo + 0.5),
+        }
+      : fitted);
+  // the playhead: seconds into the audition (the cue player's clock, or Spotify's from when it started)
+  const [ph, setPh] = useState<number | null>(null);
+  useEffect(() => {
+    if (!schedule) {
+      setPh(null);
+      return;
+    }
+    let raf = 0;
+    const tick = () => {
+      setPh(useBooth.getState().auditionAt());
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [schedule]);
+  const playAxis = schedule && ph !== null ? schedule.axisFrom + Math.min(ph, schedule.totalSec) : null;
   const secPerPx = (view.end - view.start) / W;
   const X = (tm: number) => (tm - view.start) / secPerPx;
   const T = (x: number) => view.start + x * secPerPx;
@@ -1257,11 +1753,15 @@ function Stage({
   const amp = laneH * 0.44;
   const [wa, wb] = waves ?? [null, null];
   // where each side's audio is at the axis' 0 / at the incoming's start (past a head cut, before a tail cut)
+  // (2026-11: the same spans the audition plays — lib/booth/audition.ts sideSpan — so the playhead lines up)
   const outEnd = (d: WaveData) =>
     d.from === "file"
-      ? Math.min(d.durationSec, (a.trimInSec ?? 0) + (a.headCutSec ?? 0) + a.lengthSec)
+      ? sideSpan(a, { kind: "recording", durationSec: d.durationSec }, { tailCutSec: sil.tailCut }).srcEnd
       : d.durationSec;
-  const inStart0 = (d: WaveData) => (d.from === "file" ? (b.trimInSec ?? 0) + sil.headCut : 0);
+  const inStart0 = (d: WaveData) =>
+    d.from === "file"
+      ? sideSpan(b, { kind: "recording", durationSec: d.durationSec }, { headCutSec: sil.headCut }).srcStart
+      : 0;
   const inAt = sil.inStart;
   const levels = (d: WaveData, sec: number) => {
     if (d.bands) return bandAt(d.bands, sec);
@@ -1304,24 +1804,17 @@ function Stage({
   const estimatePath = (which: "out" | "in"): string | null => {
     const src = which === "out" ? lanes[0] : lanes[1];
     if (src !== "estimated") return null;
-    const r = which === "out" ? a : b;
-    const e = which === "out" ? energy[0] : energy[1];
+    const pr = which === "out" ? profiles[0] : profiles[1];
     const c = cy(lane[which]);
     const step = 4;
     const xs: number[] = [];
     const h: number[] = [];
     for (let x = 0; x <= W + step; x += step) {
       const tm = T(Math.min(W, x));
-      const sec = which === "out" ? r.lengthSec + tm : tm - inAt;
-      const v = estimatedLevel(
-        {
-          lengthSec: r.lengthSec,
-          headSilenceSec: which === "in" ? sil.keptHead + sil.headCut : 0,
-          tailSilenceSec: which === "out" ? sil.keptTail + sil.tailCut : 0,
-          energy: e,
-        },
-        sec,
-      );
+      // the axis' 0 is where the outgoing stops (its cut tail after it); the incoming's audio starts before inAt
+      // by the head the join cuts
+      const sec = which === "out" ? a.lengthSec + tm : tm - inAt + sil.headCut;
+      const v = informedLevel(pr, sec);
       xs.push(Math.min(W, x));
       h.push((v ?? 0) * amp);
     }
@@ -1507,7 +2000,9 @@ function Stage({
     const src = which === "out" ? lanes[0] : lanes[1];
     const word =
       src === "file"
-        ? t("booth.transition.lane_file")
+        ? (which === "out" ? fromFile[0] : fromFile[1])
+          ? t("booth.transition.lane_from_file")
+          : t("booth.transition.lane_file")
         : src === "clip"
           ? t("booth.transition.lane_clip")
           : src === "loading"
@@ -1537,6 +2032,8 @@ function Stage({
         data-has-bands={(wa?.bands && wb?.bands && true) || undefined}
         data-estimated={lanes.includes("estimated") || undefined}
         data-view={`${Math.round(view.start * 10) / 10}…${Math.round(view.end * 10) / 10}`}
+        data-playhead={playAxis === null ? undefined : Math.round(playAxis * 10) / 10}
+        data-hearing={schedule && ph !== null ? hearingAt(schedule, ph) : undefined}
         onWheel={(e) => {
           if (!e.ctrlKey && !e.metaKey) return;
           e.preventDefault();
@@ -1682,6 +2179,16 @@ function Stage({
               <path d={`M${X(m.t)},${lane.in.bottom - 1} l-5,0 l5,-7 l5,7 z`} className="trx-marker-flag" />
             </g>
           ))}
+          {playAxis !== null && (
+            <line
+              x1={X(playAxis)}
+              x2={X(playAxis)}
+              y1={RULER_H - 6}
+              y2={P - 2}
+              className="trx-playhead"
+              data-testid="booth-tr-playhead"
+            />
+          )}
         </svg>
         {laneLabel("out")}
         {laneLabel("in")}

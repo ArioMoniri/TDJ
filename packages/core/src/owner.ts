@@ -12,7 +12,7 @@ import type { Cortina, OrchestraProfile, Song } from "./types";
  *
  * Everything here is pure: the server route, the importer script and the workflow validate with the same code. A
  * contribution never carries a secret: values are rebuilt from a field whitelist and any string that looks like a key
- * or token refuses the whole batch. Personal categories (learning, favourites, history, grades) are archived in the
+ * or token refuses the whole batch. Personal categories (learning, favourites, history, grades, transition templates) are archived in the
  * sources file when the owner opts in, and never change the catalogue.
  */
 
@@ -26,7 +26,8 @@ export const CATALOGUE_KINDS = [
   "youtube",
   "artwork",
 ] as const;
-export const PERSONAL_KINDS = ["learning", "favourites", "history", "grades"] as const;
+// (2026-11: "transitions" — the Booth's transition templates and their defaults, Settings → Booth → Transitions)
+export const PERSONAL_KINDS = ["learning", "favourites", "history", "grades", "transitions"] as const;
 export type CatalogueKind = (typeof CATALOGUE_KINDS)[number];
 export type PersonalKind = (typeof PERSONAL_KINDS)[number];
 export type ContributionKind = CatalogueKind | PersonalKind;

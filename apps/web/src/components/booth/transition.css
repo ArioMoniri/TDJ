@@ -1010,3 +1010,110 @@ html:not(.dark) .trx {
     padding: 0 14px 0 12px;
   }
 }
+
+/* =====================================================================================================================
+   2026-11 — the audition plays the real transition (a playhead across both lanes), the DJ's templates next to the
+   presets ("Save as template…", a name prompt, Apply to the tanda / night with its preview), the Silence row, and the
+   informed estimate's "shaped from" line with a Link your music folder button.
+   ===================================================================================================================== */
+.trx {
+  --trx-silence-tick: rgb(176 171 196);
+  --trx-playhead: #ffffff;
+}
+html:not(.dark) .trx {
+  --trx-silence-tick: rgb(84 80 96);
+  --trx-playhead: rgb(24 22 30);
+}
+.trx-playhead {
+  stroke: var(--trx-playhead);
+  stroke-width: 2;
+  filter: drop-shadow(0 0 2px rgb(0 0 0 / 0.5));
+}
+.trx-hear-note {
+  color: var(--trx-label);
+}
+.trx-head-btn {
+  order: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 999px;
+  color: var(--trx-label);
+  font-size: 14px;
+  white-space: nowrap;
+}
+.trx-head-btn:disabled {
+  color: var(--trx-disabled);
+}
+.trx-head-btn:focus-visible,
+.trx-link-btn:focus-visible,
+.trx-name-input:focus-visible {
+  outline: 2px solid var(--trx-accent);
+  outline-offset: 2px;
+}
+.trx-presets-sep {
+  flex: 0 0 1px;
+  align-self: stretch;
+  margin: 8px 2px;
+  background: var(--trx-sep);
+}
+.trx-presets > button.trx-template {
+  flex: 0 0 auto;
+  min-width: 112px;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: inset 0 0 0 1px var(--trx-sep);
+}
+.trx-link-hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin: 6px var(--trx-gut) 0;
+  color: var(--trx-label-2);
+  line-height: 1.35;
+}
+.trx-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--trx-fill);
+  color: var(--trx-label);
+  font-size: 14px;
+}
+.trx-name {
+  display: grid;
+  gap: 8px;
+  padding: 4px 16px 12px;
+}
+.trx-name-label {
+  font-size: 13px;
+  color: var(--trx-label-2);
+}
+.trx-name-input {
+  height: 44px;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: var(--trx-fill);
+  color: var(--trx-label);
+  font-size: 17px;
+}
+.trx-name-input::placeholder {
+  color: var(--trx-label-3);
+}
+.trx-name-save {
+  justify-self: end;
+}
+.trx-apply-list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}

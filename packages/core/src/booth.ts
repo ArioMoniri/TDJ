@@ -169,6 +169,11 @@ export interface BoothInputs extends Partial<BoothSettings> {
   songCues?: Record<string, SongCue>;
   /** wave 4: transition key (`fromId→toId`) → the DJ's edit of that transition (Booth → transition editor) */
   transitions?: Record<string, TransitionEdit>;
+  /**
+   * 2026-11: the DJ's default transitions (templates set per boundary and rhythm on this device), by transition key:
+   * they apply where `transitions` has no edit and are never stored in the plan
+   */
+  defaultTransitions?: Record<string, TransitionEdit>;
   /** 2026-11: song id → silence from a table or the per-era estimate (a measurement wins) */
   silences?: Record<string, SongSilence>;
   /** 2026-11: the booth's song end fade (s): a faded end runs to the last audible moment */
@@ -445,7 +450,8 @@ function applySilence(items: BoothPlanItem[], mode: SilenceMode, songFadeOutSec:
     const a = items[i]!;
     const b = items[i + 1];
     if (!tail(a) && !head(b)) continue;
-    const j = silenceJoin(mode, {
+    // 2026-11: a transition (a template) may name its own silence mode for this join
+    const j = silenceJoin(a.transitionAfter?.silence ?? mode, {
       gapSec: a.gapAfterSec,
       tailSec: tail(a),
       headSec: head(b),
@@ -587,12 +593,17 @@ export function planBooth(p: Playlist, s: BoothInputs = {}): BoothPlan {
   const last = items[items.length - 1];
   if (last) last.gapAfterSec = 0;
   // wave 4: the DJ's edited transitions, between two neighbours (never across a break, never after the last item)
-  if (s.transitions && Object.keys(s.transitions).length)
+  // (2026-11: the DJ's default templates fill the joins without an edit of their own)
+  if (
+    (s.transitions && Object.keys(s.transitions).length) ||
+    (s.defaultTransitions && Object.keys(s.defaultTransitions).length)
+  )
     for (let i = 0; i + 1 < items.length; i++) {
       const a = items[i]!;
       const b = items[i + 1]!;
       if (a.kind === "break" || b.kind === "break" || !a.id || !b.id) continue;
-      const edit = s.transitions[transitionKey(a.id, b.id)];
+      const key = transitionKey(a.id, b.id);
+      const edit = s.transitions?.[key] ?? s.defaultTransitions?.[key];
       if (!edit) continue;
       const tr = resolveTransition(edit, {
         from: { kind: a.kind, lengthSec: a.lengthSec, tanda: a.tanda },
@@ -768,6 +779,8 @@ export interface TransitionEdit {
   bassSwap?: boolean;
   /** 2026-11: the EQ hand-over (wins over `bassSwap` when set) */
   eq?: TransitionEq;
+  /** 2026-11 (templates): this join's own silence mode (unset: the night's, Settings → Booth → Gaps) */
+  silence?: SilenceMode;
 }
 /** A transition resolved against its two sides: every number present and inside the rules. */
 export interface PlannedTransition {
@@ -781,6 +794,8 @@ export interface PlannedTransition {
   /** the lows are swapped (a bass swap or a three-band swap) */
   bassSwap: boolean;
   eq: TransitionEq;
+  /** 2026-11: the join's own silence mode, when the edit names one */
+  silence?: SilenceMode;
 }
 export const TRANSITION_RANGES = {
   gapSec: { min: 0.5, max: 5, step: 0.5 },
@@ -854,6 +869,7 @@ export function resolveTransition(
     bassSwap: false,
     eq: "none",
   };
+  if (edit.silence && SILENCE_MODES.includes(edit.silence)) out.silence = edit.silence;
   if (preset === "blend" || preset === "rise") {
     const max = Math.min(G.overlapSec.max, halfOut, halfIn);
     out.overlapSec = round1(

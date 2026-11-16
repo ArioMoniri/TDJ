@@ -3,6 +3,7 @@ import type { ContributionItem } from "@tdj/core";
 import { create } from "zustand";
 import { APP } from "@/lib/app/target";
 import { artworkCache } from "@/lib/artwork";
+import { templatesNow } from "@/lib/booth/transitionTemplates";
 import { downloadBlob } from "@/lib/download";
 import { useStore } from "@/lib/store";
 import { loadMatches } from "@/lib/youtubeMatches";
@@ -126,6 +127,10 @@ export function deviceState(): DeviceState | null {
     youtube: loadMatches(),
     artwork: { ...artworkCache() },
     spotify: spotifyMatches(),
+    transitions: (() => {
+      const t = templatesNow();
+      return { templates: t.templates, defaults: t.defaults };
+    })(),
   };
 }
 const nowIso = () => new Date().toISOString();

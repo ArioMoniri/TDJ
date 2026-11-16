@@ -27,6 +27,8 @@ export interface DeviceState {
   artwork: Record<string, string>;
   /** lib/spotify.ts remembered BYO matches: song id → track */
   spotify: Record<string, { uri: string; matched?: string; durationMs?: number }>;
+  /** 2026-11: the Booth's transition templates and their defaults (lib/booth/transitionTemplates.ts) */
+  transitions?: { templates: unknown[]; defaults: unknown };
 }
 
 /** the groups Settings → Owner shows, each a set of contribution kinds */
@@ -40,13 +42,20 @@ export const CATALOGUE_GROUPS = {
   artwork: ["artwork"],
 } as const satisfies Record<string, readonly ContributionKind[]>;
 export type CatalogueGroup = keyof typeof CATALOGUE_GROUPS;
-export const PERSONAL: readonly PersonalKind[] = ["learning", "favourites", "history", "grades"];
+export const PERSONAL: readonly PersonalKind[] = [
+  "learning",
+  "favourites",
+  "history",
+  "grades",
+  "transitions",
+];
 export type PersonalChoice = Record<PersonalKind, boolean>;
 export const NO_PERSONAL: PersonalChoice = {
   learning: false,
   favourites: false,
   history: false,
   grades: false,
+  transitions: false,
 };
 export type Group = CatalogueGroup | PersonalKind;
 
@@ -99,6 +108,8 @@ export function collectItems(s: DeviceState, personal: PersonalChoice, at: strin
   if (personal.favourites && m?.favourites) add("favourites", "favourites", m.favourites);
   if (personal.history && s.history?.length) add("history", "history", compactHistory(s.history));
   if (personal.grades && o.heatmap && Object.keys(o.heatmap).length) add("grades", "grades", o.heatmap);
+  if (personal.transitions && s.transitions?.templates.length)
+    add("transitions", "transitions", s.transitions);
   return out;
 }
 

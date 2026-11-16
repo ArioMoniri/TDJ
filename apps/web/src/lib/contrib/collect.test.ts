@@ -72,6 +72,25 @@ describe("collectItems", () => {
     expect(g.history).toBeUndefined();
     expect(validateContributionBatch({ v: 1, source: "web", items }).ok).toBe(true);
   });
+
+  it("2026-11: the Booth's transition templates travel in the owner's export when opted in", () => {
+    const transitions = {
+      templates: [{ id: "tpl-1", name: "Soft fade", edit: { preset: "fade", fadeOutSec: 3, gapSec: 1 } }],
+      defaults: { boundary: { inTanda: "tpl-1" }, rhythm: {} },
+    };
+    expect(countByGroup(collectItems(state({ transitions }), NO_PERSONAL, AT)).transitions).toBeUndefined();
+    const items = collectItems(state({ transitions }), { ...NO_PERSONAL, transitions: true }, AT);
+    const it = items.find((x) => x.kind === "transitions");
+    expect(it?.value).toEqual(transitions);
+    expect(validateContributionBatch({ v: 1, source: "web", items }).ok).toBe(true);
+    // none saved: nothing to send
+    const none = collectItems(
+      state({ transitions: { templates: [], defaults: {} } }),
+      { ...NO_PERSONAL, transitions: true },
+      AT,
+    );
+    expect(none.some((x) => x.kind === "transitions")).toBe(false);
+  });
 });
 
 describe("diffItems", () => {
