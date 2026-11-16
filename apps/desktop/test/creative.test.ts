@@ -8,8 +8,10 @@ import { describe, expect, it } from "vitest";
 import { info, jpegSize } from "../scripts/png.mjs";
 import { headlineHtml } from "../store/creative/art";
 import { tangoBed, wav } from "../store/creative/audio";
-import { headerHtml, layoutFor, stripHtml } from "../store/creative/compose";
+import { LYRICS_CSS } from "../store/creative/capture";
+import { headerHtml, layoutFor, macStripHtml, stripHtml } from "../store/creative/compose";
 import { previewProblems } from "../store/creative/preview";
+import { appRect, MAC_TEXT, oneLine, PLACE } from "../store/creative/showcase";
 import {
   CAPTURE,
   HEADER_COPY,
@@ -261,5 +263,43 @@ describe("store creative: the rendered files (when there)", () => {
         const buf = readFileSync(join(FASTLANE, rel));
         expect(info(buf), rel).toMatchObject({ width: h.width, height: h.height, alpha: false });
       }
+  });
+});
+
+describe("store creative: the Mac pictures (the README hero's black stage)", () => {
+  it("the screen fills most of the panel, under the words, with the deck below it", () => {
+    for (const id of ["mac", "mac2560"] as const) {
+      const { width: W, height: H } = SETS[id].out;
+      const r = appRect(W, H, PLACE.storeMac);
+      expect(r.w / W, id).toBeGreaterThanOrEqual(0.6);
+      // the capture is 16:10 like the app area: nothing is cropped or stretched
+      expect(r.w / r.h).toBeCloseTo(CAPTURE.mac.width / CAPTURE.mac.height, 5);
+      // the lid's top edge (the strip and the bezel above the app area, ≈ 4.5 % of its width) clears the headline
+      const lidTop = r.y - 0.045 * r.w;
+      expect(H * (MAC_TEXT.top + MAC_TEXT.size * 1.05), id).toBeLessThan(lidTop);
+      // some of the deck shows below the screen
+      expect(r.y + r.h, id).toBeLessThan(H * 0.9);
+    }
+  });
+
+  it("each panel: its capture on the screen's rectangle, one plain line in the display face, no serif", () => {
+    const html = macStripHtml("mac", "tr", { light: "/tmp/light.png", dark: "/tmp/dark.png" });
+    const r = appRect(2880, 1800, PLACE.storeMac);
+    expect(html.match(/<section class="mac"/g)).toHaveLength(PANELS.length);
+    expect(html).toContain(`left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px`);
+    expect(html).toContain("file:///tmp/dark.png");
+    expect(html).not.toContain("Fraunces");
+    expect(html).not.toContain("<b>");
+    expect(oneLine("Two DJs,\none *room*")).toBe("Two DJs, one room");
+  });
+
+  it("the README hero at rest keeps the app readable at 840 px (the screen ≥ 3/4 of the frame's width)", () => {
+    expect(PLACE.heroRest.w).toBeGreaterThanOrEqual(0.75);
+    expect(PLACE.heroWide.w).toBeLessThan(PLACE.heroRest.w);
+  });
+
+  it("no full lyrics in a store picture: lyrics blocks are blurred, the Floor keeps two lines", () => {
+    expect(LYRICS_CSS).toMatch(/\[data-testid=song-lyrics-text\][^{]*\{filter:blur\(\d+px\)/);
+    expect(LYRICS_CSS).toContain(".floor-lyrics p:nth-of-type(n+3){display:none");
   });
 });

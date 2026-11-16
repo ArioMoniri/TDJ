@@ -4,7 +4,8 @@
  * Each set is drawn once as a panorama, eight panels wide (art.ts: one ground, a dance floor that runs through every
  * panel, records turning on the panel edges), with one device per panel at a slight angle and, on some edges, a second
  * device that crosses into the next panel (the Agenda set's overlap). The page is then cut into panels by moving the
- * panorama under a viewport of the exact upload size and taking an opaque JPEG of each.
+ * panorama under a viewport of the exact upload size and taking an opaque JPEG of each. The Mac sets stand on the
+ * README hero's black stage instead (showcase.ts): the 3D laptop, one capture on its screen, one headline above.
  * Output: <out>/<set dir>/<locale>/<panel>_<set>.jpg and <out>/product_page/<locale>/<header>.png
  */
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -14,6 +15,7 @@ import { type Browser, chromium } from "playwright";
 import { flattenAlpha, info, jpegSize } from "../../scripts/png.mjs";
 import { bandoneon, bodySize, C, device, fonts, ground, headlineHtml } from "./art";
 import { RAW } from "./capture";
+import { macCss, macPanelHtml, PLACE, renderShowcase, type Tone } from "./showcase";
 import {
   CAPTURE,
   type CaptureId,
@@ -38,7 +40,10 @@ const REPO = fileURLToPath(new URL("../../../../", import.meta.url));
 export const rawPath = (cap: CaptureId, locale: Locale, shot: string, full = false) =>
   `${RAW}${cap}/${locale}/${shot}${full ? "-full" : ""}.png`;
 
-const darkShot = (id: string) => !!SHOTS.find((s) => s.id === id)?.dark;
+export const darkShot = (id: string) => !!SHOTS.find((s) => s.id === id)?.dark;
+
+/** the size the Mac laptop is rendered at (the larger Mac set) */
+const MAC_STILL = { width: SETS.mac.out.width, height: SETS.mac.out.height };
 
 /** per-panel tilt and nudge (Agenda: alternate angles, devices leaning into each other) */
 const TILT = [-4, 3.5, -3, 4, -3.5, 3, -4, 3.5];
@@ -96,6 +101,30 @@ export function layoutFor(set: ShotSet): Layout {
         landscape: true,
       };
   }
+}
+
+/**
+ * The Mac sets: one picture per panel side by side (no panorama), each the black stage with the 3D laptop
+ * (showcase.ts; `frames`: the rendered laptop for light and dark captures) and the capture on its screen.
+ */
+export function macStripHtml(setId: SetId, locale: Locale, frames: Record<Tone, string>): string {
+  const set = SETS[setId];
+  const { width: W, height: H } = set.out;
+  const panels = PANELS.map((panel, i) =>
+    macPanelHtml({
+      W,
+      H,
+      x0: W * i,
+      capture: rawPath(set.capture, locale, panel.shot),
+      frame: frames[darkShot(panel.shot) ? "dark" : "light"],
+      headline: panel.headline[locale],
+    }),
+  );
+  return `<!doctype html><html lang="${locale === "tr" ? "tr" : "en"}"><head><meta charset="utf-8"><style>
+${macCss()}
+html,body{margin:0;width:${W}px;height:${H}px;overflow:hidden;background:#000}
+#strip{position:absolute;left:0;top:0;width:${W * PANELS.length}px;height:${H}px;transform:translateX(calc(var(--panel,0) * -${W}px))}
+</style></head><body><div id="strip">${panels.join("\n")}</div></body></html>`;
 }
 
 /** The panorama of one set and locale: n panels side by side. */
@@ -250,6 +279,15 @@ export async function compose(o: {
   const fontCss = fonts();
   const written: string[] = [];
   mkdirSync(WORK, { recursive: true });
+  // the 3D laptop, rendered once for both Mac sets (2560 × 1600 is the 2880 × 1800 picture scaled: both 16:10)
+  let frames: Record<Tone, string> | null = null;
+  const macFrames = () => {
+    frames ??= {
+      light: renderShowcase({ ...MAC_STILL, place: PLACE.storeMac, tone: "light", dir: WORK }),
+      dark: renderShowcase({ ...MAC_STILL, place: PLACE.storeMac, tone: "dark", dir: WORK }),
+    };
+    return frames;
+  };
   const browser = await launch();
   try {
     for (const setId of o.sets) {
@@ -266,7 +304,12 @@ export async function compose(o: {
           continue;
         }
         const html = `${WORK}${setId}-${locale}.html`;
-        writeFileSync(html, stripHtml(setId, locale, fontCss));
+        writeFileSync(
+          html,
+          set.frame === "laptop"
+            ? macStripHtml(setId, locale, macFrames())
+            : stripHtml(setId, locale, fontCss),
+        );
         await page.goto(pathToFileURL(html).href, { waitUntil: "load" });
         await page.evaluate(() => document.fonts.ready);
         // every headline fits its panel (no line wider than its box)

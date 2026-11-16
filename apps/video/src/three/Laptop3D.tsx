@@ -1,15 +1,17 @@
 /**
- * The laptop in three.js (geometry in laptop.ts): silver anodised aluminium (metal, fine anisotropic brushing),
- * a studio environment for soft reflections (three's RoomEnvironment, generated: no HDRI download), the black-glass
- * bezel with the notch and its camera, a real keyboard, a large trackpad with a bevelled edge, perforated speaker
- * grilles, the hinge barrel, rubber feet and a soft contact shadow. The screen is unlit (`toneMapped: false`), so
- * the app's colours come out as captured.
+ * The laptop in three.js (geometry in laptop.ts), lit like a product film on a black stage: space-black anodised
+ * aluminium (a dark metal under a thin clear oxide layer, a fine brushed grain in its roughness), reflecting a dark
+ * studio (studioEnvironment: one soft box overhead and behind, two tall strips at the sides, nothing in front), so
+ * the only bright lines are the lid's top edge, its rounded corners and the base's edges. The screen is unlit
+ * (`toneMapped: false`: the app's colours as captured) and is also a light: a rectangular area light the size of the
+ * panel, in the average colour of what it shows, washes the keyboard and the deck, which fall off into the dark.
+ * Black glass bezel, an even 0.5 cm border, rounded display corners at the top, the camera notch, the hinge.
  */
 import { useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useState } from "react";
 import { continueRender, delayRender } from "remotion";
 import * as THREE from "three";
-import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
+import { RectAreaLightUniformsLib } from "three/examples/jsm/lights/RectAreaLightUniformsLib.js";
 import {
   APP_H,
   appCentreLocal,
@@ -48,6 +50,48 @@ function flatRR(w: number, d: number, r: number) {
   return g;
 }
 
+/** a rectangle w × h with only its top corners rounded (the display's), in XY, centred */
+function topRounded(w: number, h: number, r: number) {
+  const s = new THREE.Shape();
+  s.moveTo(-w / 2, -h / 2);
+  s.lineTo(w / 2, -h / 2);
+  s.lineTo(w / 2, h / 2 - r);
+  s.quadraticCurveTo(w / 2, h / 2, w / 2 - r, h / 2);
+  s.lineTo(-w / 2 + r, h / 2);
+  s.quadraticCurveTo(-w / 2, h / 2, -w / 2, h / 2 - r);
+  s.closePath();
+  return s;
+}
+
+/**
+ * The studio the metal reflects, as an environment map: black, with a long narrow soft box overhead (the lid's top
+ * edge and its rounded corners catch it as a fine line), two tall strips behind at the sides (the corners and the
+ * base's sides), a dim wall far behind (a soft sheen on the shut lid) and a soft box high in front (the lid's back as
+ * it rises). The deck, the keys and the bezel glass take little of the room: they live in the screen's light.
+ */
+export function studioEnvironment(): THREE.Scene {
+  const s = new THREE.Scene();
+  s.background = new THREE.Color(0x000000);
+  const box = (w: number, h: number, v: number, at: [number, number, number]) => {
+    const m = new THREE.Mesh(
+      new THREE.PlaneGeometry(w, h),
+      new THREE.MeshBasicMaterial({ color: new THREE.Color(v, v, v), side: THREE.DoubleSide }),
+    );
+    m.position.set(...at);
+    m.lookAt(0, 0, 0);
+    s.add(m);
+  };
+  box(30, 2.2, 10, [0, 14, -2]); // overhead, a little behind: a long narrow soft box
+  box(2.2, 10, 5, [-13, 3, -9]); // left strip, behind
+  box(2.2, 10, 5, [13, 3, -9]); // right strip
+  box(44, 10, 0.9, [0, 5, -16]); // a dim wide wall far behind: a soft sheen across the broad surfaces
+  // high in front, over the camera: the lid's back shows as it rises (the bezel glass takes little of it)
+  box(30, 8, 3, [0, 10, 14]);
+  return s;
+}
+
+let areaLightsReady = false;
+
 /**
  * The panel's pictures, loaded before the canvas mounts (the canvas draws once per frame: a texture that arrived
  * later would miss the frame). Renders nothing until they are in.
@@ -85,6 +129,28 @@ export function useTextures(srcs: string[]): Record<string, THREE.Texture> | nul
   return tex;
 }
 
+/** a picture's average colour (what its light looks like from a metre away) */
+function averageColour(t: THREE.Texture | null): THREE.Color | null {
+  const img = t?.image as CanvasImageSource | undefined;
+  if (!img) return null;
+  const cv = document.createElement("canvas");
+  cv.width = 8;
+  cv.height = 8;
+  const c = cv.getContext("2d", { willReadFrequently: true })!;
+  c.drawImage(img, 0, 0, 8, 8);
+  const d = c.getImageData(0, 0, 8, 8).data;
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  for (let i = 0; i < d.length; i += 4) {
+    r += d[i]!;
+    g += d[i + 1]!;
+    b += d[i + 2]!;
+  }
+  const n = (d.length / 4) * 255;
+  return new THREE.Color().setRGB(r / n, g / n, b / n, THREE.SRGBColorSpace);
+}
+
 export type LaptopProps = {
   /** degrees, 0 shut, OPEN_DEG open */
   lid: number;
@@ -94,31 +160,52 @@ export type LaptopProps = {
   screen: THREE.Texture | null;
   /** the menu-bar strip around the notch (the app's top colour) */
   strip: string;
-  /** the app area is a transparent hole (DeviceFrame: the clips' pixels show through it) */
+  /** the app area is a transparent hole (the captures' pixels show through it, laid on in 2D) */
   hole?: boolean;
+  /**
+   * the screen's light on the deck: a picture (its average colour) or a colour; by default the screen's own
+   * picture, else a warm white
+   */
+  spill?: THREE.Texture | string | null;
+  /** the screen's light, × (1: a bright app in a dark room) */
+  spillIntensity?: number;
+  /** the environment's strength (the highlights on the metal) */
+  envIntensity?: number;
 };
 
-export function Laptop3D({ lid, glow, screen, strip, hole = false }: LaptopProps) {
+export function Laptop3D({
+  lid,
+  glow,
+  screen,
+  strip,
+  hole = false,
+  spill,
+  spillIntensity = 1,
+  envIntensity = 1,
+}: LaptopProps) {
   const gl = useThree((s) => s.gl);
   const scene = useThree((s) => s.scene);
-  // the studio: soft boxes in a room, prefiltered for PBR
   useMemo(() => {
+    if (!areaLightsReady) {
+      RectAreaLightUniformsLib.init();
+      areaLightsReady = true;
+    }
     const pm = new THREE.PMREMGenerator(gl);
-    scene.environment = pm.fromScene(new RoomEnvironment(), 0.03).texture;
-    scene.environmentIntensity = 0.95;
+    scene.environment = pm.fromScene(studioEnvironment(), 0.02).texture;
     pm.dispose();
   }, [gl, scene]);
+  scene.environmentIntensity = envIntensity;
 
   const m = useMemo(() => {
-    // the brushing: a fine horizontal grain in the roughness, so highlights stretch like real anodised metal
+    // the brushing: a fine horizontal grain in the roughness, so highlights stretch a little, like real anodising
     const grain = canvasTex(
       512,
       512,
       (c) => {
-        c.fillStyle = "rgb(150,150,150)";
+        c.fillStyle = "rgb(118,118,118)";
         c.fillRect(0, 0, 512, 512);
         for (let i = 0; i < 2400; i++) {
-          const v = 130 + Math.random() * 50;
+          const v = 100 + Math.random() * 40;
           c.fillStyle = `rgba(${v},${v},${v},0.5)`;
           c.fillRect(Math.random() * 512, Math.random() * 512, 30 + Math.random() * 160, 1);
         }
@@ -127,59 +214,60 @@ export function Laptop3D({ lid, glow, screen, strip, hole = false }: LaptopProps
     );
     grain.wrapS = grain.wrapT = THREE.RepeatWrapping;
     grain.repeat.set(3, 3);
+    // space black: a dark, slightly cool metal under a clear oxide layer that gives the white edge highlights
     const alu = new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color("#bfc1c5"),
+      color: new THREE.Color("#2e3034"),
       metalness: 1,
-      roughness: 0.21,
+      roughness: 0.7, // × the grain (≈ 0.46): ≈ 0.32
       roughnessMap: grain,
-      anisotropy: 0.35,
-      clearcoat: 0.12,
-      clearcoatRoughness: 0.4,
+      clearcoat: 0.35,
+      clearcoatRoughness: 0.18,
     });
-    const aluDark = alu.clone();
-    aluDark.color = new THREE.Color("#a9abb0");
-    aluDark.roughness = 0.5;
+    const deck = alu.clone();
+    deck.roughness = 0.9;
+    deck.envMapIntensity = 0.3; // the deck lives in the screen's light; the studio barely reaches it
     const glass = new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color("#050506"),
+      color: new THREE.Color("#000000"),
       metalness: 0,
-      roughness: 0.06,
+      roughness: 0.08,
       clearcoat: 1,
-      clearcoatRoughness: 0.04,
-      reflectivity: 0.5,
+      clearcoatRoughness: 0.05,
+      envMapIntensity: 0.2, // black glass: the room shows in it only faintly
     });
     const key = new THREE.MeshStandardMaterial({
-      color: new THREE.Color("#060607"),
-      roughness: 0.9,
+      color: new THREE.Color("#09090a"),
+      roughness: 0.55,
       metalness: 0,
-      envMapIntensity: 0.12,
+      envMapIntensity: 0.3,
     });
     const well = new THREE.MeshStandardMaterial({
-      color: new THREE.Color("#2a2b2f"),
-      roughness: 0.7,
-      metalness: 0.4,
+      color: new THREE.Color("#050506"),
+      roughness: 0.8,
+      metalness: 0,
     });
     const pad = new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color("#b9bbbf"),
+      color: new THREE.Color("#222326"),
       metalness: 0.9,
-      roughness: 0.42,
-      clearcoat: 0,
+      roughness: 0.3,
+      clearcoat: 0.6,
+      clearcoatRoughness: 0.15,
+      envMapIntensity: 0.25,
     });
     const hinge = new THREE.MeshStandardMaterial({
-      color: new THREE.Color("#2b2c30"),
-      metalness: 0.8,
-      roughness: 0.35,
+      color: new THREE.Color("#0a0a0b"),
+      metalness: 0.6,
+      roughness: 0.45,
     });
-    const rubber = new THREE.MeshStandardMaterial({ color: new THREE.Color("#1b1b1d"), roughness: 0.9 });
     const black = new THREE.MeshBasicMaterial({ color: new THREE.Color("#000000") });
     const lens = new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color("#141a2c"),
+      color: new THREE.Color("#0b0f1c"),
       roughness: 0.05,
       clearcoat: 1,
       metalness: 0.2,
     });
     const grille = canvasTex(256, 1024, (c) => {
       c.clearRect(0, 0, 256, 1024);
-      c.fillStyle = "rgba(20,20,24,0.92)";
+      c.fillStyle = "rgba(0,0,0,0.9)";
       for (let y = 6; y < 1024; y += 11)
         for (let x = 6 + ((y / 11) % 2) * 5.5; x < 256; x += 11) {
           c.beginPath();
@@ -187,20 +275,12 @@ export function Laptop3D({ lid, glow, screen, strip, hole = false }: LaptopProps
           c.fill();
         }
     });
-    const shadow = canvasTex(512, 512, (c) => {
-      const g = c.createRadialGradient(256, 256, 30, 256, 256, 256);
-      g.addColorStop(0, "rgba(20,4,16,0.75)");
-      g.addColorStop(0.55, "rgba(20,4,16,0.35)");
-      g.addColorStop(1, "rgba(20,4,16,0)");
-      c.fillStyle = g;
-      c.fillRect(0, 0, 512, 512);
-    });
-    return { alu, aluDark, glass, key, well, pad, hinge, rubber, black, lens, grille, shadow };
+    return { alu, deck, glass, key, well, pad, hinge, black, lens, grille };
   }, []);
 
   const geo = useMemo(() => {
-    const base = slab(BASE_W, BASE_D, BASE_H, 1.05, 0.16, 4);
-    const lidG = slab(BASE_W, LID_D, LID_T, 1.05, 0.14, 4);
+    const base = slab(BASE_W, BASE_D, BASE_H, 1.05, 0.16, 5);
+    const lidG = slab(BASE_W, LID_D, LID_T, 1.05, 0.16, 6);
     const unit = 1.88; // key pitch, cm
     const gap = 0.17;
     const kbW = KEY_COLS_U * unit;
@@ -225,31 +305,27 @@ export function Laptop3D({ lid, glow, screen, strip, hole = false }: LaptopProps
     const padG = slab(padW, padD, 0.03, 0.55, 0.012, 2);
     const grilleW = (BASE_W - kbW) / 2 - 0.9;
     const grilleG = flatRR(grilleW, kbD - 0.2, 0.2);
-    const bezelG = (() => {
-      const g = new THREE.ShapeGeometry(rrShape(BASE_W - 0.34, LID_D - 0.3, 0.9), 16);
-      g.rotateX(Math.PI / 2); // facing −y
-      return g;
-    })();
-    const plane = (w: number, h: number) => {
-      const g = new THREE.PlaneGeometry(w, h);
-      g.rotateX(Math.PI / 2); // facing −y, the texture's top toward +z (the screen's top)
-      return g;
-    };
+    const facingDown = (g: THREE.BufferGeometry) => g.rotateX(Math.PI / 2); // facing −y, shape +y → +z (up the screen)
+    const bezelG = facingDown(new THREE.ShapeGeometry(rrShape(BASE_W - 0.3, LID_D - 0.3, 0.86), 24));
+    const plane = (w: number, h: number) => facingDown(new THREE.PlaneGeometry(w, h));
+    // the strip over the app (the menu bar's band): the display's rounded top corners
+    const stripG = facingDown(new THREE.ShapeGeometry(topRounded(PANEL_W, STRIP_H, 0.55), 12));
     const notch = (() => {
       const s = new THREE.Shape();
-      const w = 3.1;
-      const h = STRIP_H;
-      const r = 0.32;
-      s.moveTo(-w / 2, h / 2);
-      s.lineTo(w / 2, h / 2);
+      const w = 2.5;
+      const h = STRIP_H + 0.02;
+      const r = 0.3;
+      s.moveTo(-w / 2 - 0.12, h / 2);
+      s.lineTo(w / 2 + 0.12, h / 2);
+      s.quadraticCurveTo(w / 2, h / 2, w / 2, h / 2 - 0.12);
       s.lineTo(w / 2, -h / 2 + r);
       s.quadraticCurveTo(w / 2, -h / 2, w / 2 - r, -h / 2);
       s.lineTo(-w / 2 + r, -h / 2);
       s.quadraticCurveTo(-w / 2, -h / 2, -w / 2, -h / 2 + r);
+      s.lineTo(-w / 2, h / 2 - 0.12);
+      s.quadraticCurveTo(-w / 2, h / 2, -w / 2 - 0.12, h / 2);
       s.closePath();
-      const g = new THREE.ShapeGeometry(s, 8);
-      g.rotateX(Math.PI / 2);
-      return g;
+      return facingDown(new THREE.ShapeGeometry(s, 8));
     })();
     return {
       base,
@@ -263,17 +339,15 @@ export function Laptop3D({ lid, glow, screen, strip, hole = false }: LaptopProps
       grilleX: kbW / 2 + 0.45 + grilleW / 2,
       bezelG,
       app: plane(PANEL_W, APP_H),
-      strip: plane(PANEL_W, STRIP_H),
+      strip: stripG,
       cover: plane(PANEL_W, PANEL_H),
       notch,
-      lens: new THREE.CircleGeometry(0.11, 24).rotateX(Math.PI / 2),
-      hingeG: new THREE.CylinderGeometry(0.42, 0.42, BASE_W - 6.4, 32).rotateZ(Math.PI / 2),
-      foot: new THREE.CylinderGeometry(0.75, 0.8, 0.12, 32),
-      shadowG: new THREE.PlaneGeometry(BASE_W * 1.7, BASE_D * 1.9).rotateX(-Math.PI / 2),
+      lens: new THREE.CircleGeometry(0.09, 24).rotateX(Math.PI / 2),
+      // the hinge: a barrel across most of the width, the lid's chin turning round it
+      hingeG: new THREE.CylinderGeometry(0.5, 0.5, BASE_W - 5.2, 40).rotateZ(Math.PI / 2),
     };
   }, []);
 
-  const tex = screen;
   const appMat = useMemo(
     () => new THREE.MeshBasicMaterial({ color: new THREE.Color(0, 0, 0), toneMapped: false }),
     [],
@@ -284,11 +358,29 @@ export function Laptop3D({ lid, glow, screen, strip, hole = false }: LaptopProps
     appMat.opacity = 0;
     appMat.blending = THREE.NoBlending;
   }
-  appMat.map = tex;
-  appMat.color.setScalar(tex ? glow : 0);
+  appMat.map = screen;
+  appMat.color.setScalar(screen ? glow : 0);
   appMat.needsUpdate = true;
   const stripMat = useMemo(() => new THREE.MeshBasicMaterial({ toneMapped: false }), []);
   stripMat.color.set(strip).multiplyScalar(Math.min(1, glow));
+
+  // the screen's light
+  const spillSrc = spill === undefined ? screen : spill;
+  const spillColour = useMemo(() => {
+    if (typeof spillSrc === "string") return new THREE.Color(spillSrc);
+    return averageColour(spillSrc ?? null) ?? new THREE.Color("#e9e4dc");
+  }, [spillSrc]);
+  const light = useMemo(() => {
+    const l = new THREE.RectAreaLight(0xffffff, 1, PANEL_W, PANEL_H);
+    // in the lid's space: on the panel, facing out of it (−y)
+    l.position.copy(panelCentreLocal).add(new THREE.Vector3(0, -0.05, 0));
+    l.lookAt(new THREE.Vector3(panelCentreLocal.x, -10, panelCentreLocal.z));
+    return l;
+  }, []);
+  light.color.copy(spillColour);
+  // a dark app lights the room less; a shut lid puts the light out
+  const lum = 0.2126 * spillColour.r + 0.7152 * spillColour.g + 0.0722 * spillColour.b;
+  light.intensity = 1.3 * spillIntensity * Math.max(0, glow) * (0.35 + 0.65 * Math.min(1, lum * 1.4));
 
   const lidM = lidMatrix(lid);
   const panelZ = panelCentreLocal.z;
@@ -296,59 +388,46 @@ export function Laptop3D({ lid, glow, screen, strip, hole = false }: LaptopProps
 
   return (
     <group>
-      {/* the contact shadow and the feet */}
-      <mesh geometry={geo.shadowG} position={[0, -0.13, 0.4]} renderOrder={-1}>
-        <meshBasicMaterial map={m.shadow} transparent depthWrite={false} toneMapped={false} />
-      </mesh>
-      {[
-        [-BASE_W / 2 + 2.2, -BASE_D / 2 + 2.2],
-        [BASE_W / 2 - 2.2, -BASE_D / 2 + 2.2],
-        [-BASE_W / 2 + 2.2, BASE_D / 2 - 2.2],
-        [BASE_W / 2 - 2.2, BASE_D / 2 - 2.2],
-      ].map(([x, z]) => (
-        <mesh key={`${x},${z}`} geometry={geo.foot} material={m.rubber} position={[x!, -0.06, z!]} />
-      ))}
       {/* the base */}
-      <mesh geometry={geo.base} material={m.alu} castShadow receiveShadow />
-      <mesh geometry={geo.wellG} material={m.well} position={[0, BASE_H + 0.002, geo.kbZ]} receiveShadow />
+      <mesh geometry={geo.base} material={m.deck} />
+      <mesh geometry={geo.wellG} material={m.well} position={[0, BASE_H + 0.002, geo.kbZ]} />
       {geo.keys.map((k) => (
         <mesh
           key={`${k.x.toFixed(2)},${k.z.toFixed(2)}`}
           geometry={k.g}
           material={m.key}
           position={[k.x, BASE_H - 0.065, k.z]}
-          castShadow
-          receiveShadow
         />
       ))}
       {[-1, 1].map((s) => (
         <mesh key={s} geometry={geo.grilleG} position={[s * geo.grilleX, BASE_H + 0.003, geo.kbZ]}>
-          <meshBasicMaterial map={m.grille} transparent toneMapped={false} depthWrite={false} />
+          <meshBasicMaterial map={m.grille} transparent depthWrite={false} />
         </mesh>
       ))}
-      <mesh geometry={geo.padG} material={m.pad} position={[0, BASE_H - 0.012, geo.padZ]} receiveShadow />
+      <mesh geometry={geo.padG} material={m.pad} position={[0, BASE_H - 0.012, geo.padZ]} />
       {/* the hinge barrel at the back */}
-      <mesh geometry={geo.hingeG} material={m.hinge} position={[0, BASE_H - 0.12, -BASE_D / 2 + 0.3]} />
+      <mesh geometry={geo.hingeG} material={m.hinge} position={[0, BASE_H - 0.05, -BASE_D / 2 + 0.36]} />
       {/* the lid */}
       <group matrixAutoUpdate={false} matrix={lidM}>
-        <mesh geometry={geo.lidG} material={m.alu} castShadow receiveShadow position={[0, 0, LID_D / 2]} />
+        <mesh geometry={geo.lidG} material={m.alu} position={[0, 0, LID_D / 2]} />
         <mesh geometry={geo.bezelG} material={m.glass} position={[0, -0.004, LID_D / 2]} />
         <mesh geometry={geo.app} material={appMat} position={[0, appCentreLocal.y, appCentreLocal.z]} />
         <mesh geometry={geo.strip} material={stripMat} position={[0, appCentreLocal.y, stripZ]} />
         <mesh geometry={geo.notch} material={m.black} position={[0, appCentreLocal.y - 0.002, stripZ]} />
-        <mesh geometry={geo.lens} material={m.lens} position={[0, appCentreLocal.y - 0.004, stripZ + 0.05]} />
-        {/* a faint second surface over the panel: the cover glass catching the room */}
+        <mesh geometry={geo.lens} material={m.lens} position={[0, appCentreLocal.y - 0.004, stripZ + 0.04]} />
+        {/* a faint second surface over the panel: the cover glass */}
         <mesh geometry={geo.cover} position={[0, -0.02, panelZ]}>
           <meshPhysicalMaterial
             color="#000000"
             roughness={0.04}
             metalness={0}
             transparent
-            opacity={0.07}
+            opacity={0.05}
             clearcoat={1}
             depthWrite={false}
           />
         </mesh>
+        <primitive object={light} />
       </group>
     </group>
   );
