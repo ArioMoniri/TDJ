@@ -148,6 +148,7 @@ interface SwapBody {
   songId?: unknown;
   force?: unknown;
   pin?: unknown;
+  seed?: unknown;
   /** 2026-11: the DJ's dancer favourites now (null: switched off; absent: the night's own) */
   favourites?: unknown;
   /** 2026-11: the smart search's catalogue results, judged for this chair (`judged`) */
@@ -176,7 +177,16 @@ export async function swap(req: Request, d: ApiDeps): Promise<Response> {
   const { catalog, cortinas, contextModel } = d.catalogFor(playlist.options?.overrides as AppOverrides);
   const deps = { catalog, cortinas, contextModel };
   if (body.options === true)
-    return json({ options: swapTandaOptions(playlist, Number(index), deps, Date.now() % 1e9).map(forWire) });
+    // (QA fix 2026-11: the same night and slot give the same choices every time — a seeded tie-break, not the clock;
+    // a caller asking for others passes its own seed)
+    return json({
+      options: swapTandaOptions(
+        playlist,
+        Number(index),
+        deps,
+        stableSeed(playlist, Number(index), body.seed),
+      ).map(forWire),
+    });
   return json(forWire(swapTanda(playlist, Number(index), deps)));
 }
 
@@ -512,4 +522,11 @@ export async function exportFile(req: Request, _d: ApiDeps): Promise<Response> {
       "content-disposition": `attachment; filename="${(playlist.name ?? "tdj").replace(/[^a-z0-9-]+/gi, "_")}.${m.ext}"`,
     },
   });
+}
+
+/** the swap / insert choices' seed: the caller's, else the night's own seed and the slot (never the clock) */
+export function stableSeed(p: Playlist, slot: number, given?: unknown): number {
+  const g = Number(given);
+  if (Number.isFinite(g) && g > 0) return g;
+  return ((((p.options?.seed ?? 1) >>> 0) * 31 + (slot + 1) * 7919) >>> 0) % 1e9;
 }

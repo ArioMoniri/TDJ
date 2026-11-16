@@ -149,7 +149,19 @@ async function climb<T extends FoundRec & { key: string }>(
 }
 /** how many candidates each service shows */
 const PER_SERVICE = 3;
-const failed = (e: unknown, who: string) => (e instanceof Error && e.message ? e.message : `${who} failed`);
+/**
+ * a service's failure in the DJ's words (QA fix 2026-11: "MusicBrainz 503"): busy (429 / 503) or down (5xx, no
+ * answer) — "MusicBrainz is busy — try again"
+ */
+export function failed(e: unknown, who: string): string {
+  const m = e instanceof Error ? e.message : "";
+  const status = Number(/\b(\d{3})\b/.exec(m)?.[1]);
+  if (status === 429 || status === 503) return `${who} is busy — try again`;
+  if (status >= 500) return `${who} is not answering — try again later`;
+  if (/abort|timeout/i.test(m)) return `${who} took too long — try again`;
+  if (status === 401 || status === 403) return `${who} refused the request`;
+  return m && !/^\w+ \d{3}$/.test(m) ? m : `${who} could not be reached — try again`;
+}
 
 /**
  * POST { id | title, orchestra, singer?, year?, vocal?, durationSec? } → the candidates of every connected service:

@@ -6,9 +6,14 @@
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { orchestraLabel, singerLabel } from "@/components/search/SearchChips";
 import { modeWords, otherRhythms, tandaTypeWords } from "@/components/ui/TandaTypeBadge";
+import { stableSeed } from "./api/engine";
+import { failed } from "./api/net";
+import { fmtNumber } from "./i18n";
 import { nightMusicSec } from "./lengths";
 import { lengthText, nightEraLabel, nightSub } from "./nightName";
+import { energyWords } from "./succession";
 import type { Playlist } from "./types";
 
 const featured = JSON.parse(
@@ -57,5 +62,35 @@ describe("a tanda's type says what its sides are", () => {
   it("a duet in full (De Angelis / Dante–Martel)", () => {
     const t9 = featured.tandas[8]!;
     expect(modeWords({ vocal: t9.vocal, singer: t9.singer })).toBe("Vocal · Carlos Dante & Julio Martel");
+  });
+});
+
+describe("item 10: chips, numbers and choices", () => {
+  it("facet chips read as names: a glued credit as two names, the unspecified orchestra as “Other orchestras”", () => {
+    expect(orchestraLabel("J.ricardo-G.barbieri")).toBe("J. Ricardo & G. Barbieri");
+    expect(orchestraLabel("Orquesta (unspecified)")).toBe("Other orchestras");
+    expect(orchestraLabel("Carlos Di Sarli")).toBe("Carlos Di Sarli");
+    expect(singerLabel("C. Dante - J. Martel")).toBe("Duo · Carlos Dante & Julio Martel");
+  });
+  it("a count reads with the locale's grouping (“1,068 singers”)", () => {
+    expect(fmtNumber(1068)).toBe("1,068");
+  });
+  it("a service's failure in words (item 12: “MusicBrainz 503”)", () => {
+    expect(failed(new Error("MusicBrainz 503"), "MusicBrainz")).toBe("MusicBrainz is busy — try again");
+    expect(failed(new Error("Deezer 502"), "Deezer")).toBe("Deezer is not answering — try again later");
+    expect(failed(new Error("The operation was aborted"), "Spotify")).toBe(
+      "Spotify took too long — try again",
+    );
+  });
+  it("energy steps in plain words (item 12: “energy 0 (plan +2)”)", () => {
+    expect(energyWords(0, 2)).toBe("energy level (the plan lifts 2)");
+    expect(energyWords(4, 0)).toBe("energy up 4");
+    expect(energyWords(-3, -1)).toBe("energy down 3 (the plan eases 1)");
+  });
+  it("the swap / insert choices are seeded by the night and the slot, never the clock", () => {
+    const p = { options: { seed: 42 } } as unknown as Playlist;
+    expect(stableSeed(p, 3)).toBe(stableSeed(p, 3));
+    expect(stableSeed(p, 3)).not.toBe(stableSeed(p, 4));
+    expect(stableSeed(p, 3, 77)).toBe(77);
   });
 });

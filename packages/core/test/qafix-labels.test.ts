@@ -57,3 +57,14 @@ describe("a tanda's tempo and its sides agree", () => {
     expect(t!.bpm).toBe(121);
   });
 });
+
+describe("the catalogue's rhythm of La Cumparsita's sung versions", () => {
+  it("“Porque Canto Así (La Cumparsita)” is a tango, not “other”", async () => {
+    const { loadCatalog } = await import("../src/load");
+    const { catalog } = loadCatalog();
+    for (const id of ["ca6d15e09d", "565b73e90b"])
+      expect(catalog.songs.find((s) => s.id === id)?.rhythm).toBe("tango");
+    const left = catalog.songs.filter((s) => /cumparsita/i.test(s.title) && s.rhythm !== "tango");
+    expect(left.map((s) => s.orchestra)).toEqual(["Fondo Musical"]);
+  }, 600000);
+});

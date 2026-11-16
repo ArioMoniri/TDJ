@@ -1,4 +1,5 @@
 "use client";
+import { singerDisplay } from "@tdj/core";
 import "../search/search.css";
 import "./smart-search.css";
 import { AudioLines, HardDrive, Info, Library, MonitorPlay } from "lucide-react";
@@ -441,7 +442,7 @@ export function SmartSearchField({
               <span className="smart-assist-kind">
                 {t(`smartSearch.kind_${c.kind}` as "smartSearch.kind_title")}
               </span>
-              <span className="truncate">{c.label}</span>
+              <span className="truncate">{c.kind === "singer" ? singerDisplay(c.label) : c.label}</span>
               {i === 0 && !s.correction && (
                 <kbd className="smart-kbd" aria-hidden>
                   Tab
