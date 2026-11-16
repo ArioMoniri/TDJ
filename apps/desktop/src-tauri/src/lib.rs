@@ -22,6 +22,7 @@ mod folders;
 mod links;
 #[cfg_attr(mobile, allow(dead_code))] // the menu bar is macOS-only
 mod menu;
+mod midi;
 mod net;
 mod secrets;
 mod settings;
@@ -622,6 +623,8 @@ pub fn run() {
             }
             // the audio session (iOS: .playback, interruptions, route changes) and the Mac's device listeners
             audio::install(app.handle());
+            // 2026-11: DJ controllers over CoreMIDI (the page's side: apps/web/src/lib/controller/access.ts)
+            midi::install(app.handle());
             #[cfg(any(target_os = "macos", target_os = "ios"))]
             {
                 let h = app.handle().clone();
@@ -685,6 +688,10 @@ pub fn run() {
             audio::audio_route_picker,
             audio::audio_set_output,
             audio::audio_night,
+            midi::midi_ports,
+            midi::midi_open,
+            midi::midi_close,
+            midi::midi_send,
         ])
         .build(tauri::generate_context!())
         .expect("error while building TDJ")

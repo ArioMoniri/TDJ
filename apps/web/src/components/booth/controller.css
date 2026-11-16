@@ -1,0 +1,522 @@
+/* 2026-11: the controller sheet and the on-screen controller (components/booth/ControllerView.tsx). Content layer:
+   surfaces, no glass. Every control is at least 44 px. */
+.vc-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 0 16px;
+}
+.vc-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 16px;
+}
+.vc-status {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--bg-cell);
+}
+.vc-status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.vc-text-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--tint);
+  background: var(--fill-4);
+  white-space: nowrap;
+}
+.vc-text-btn:disabled {
+  opacity: 0.4;
+}
+.vc-text-btn[aria-pressed="true"],
+.vc-text-btn[data-armed] {
+  background: var(--tint);
+  color: var(--on-tint, #fff);
+}
+.vc-primary {
+  background: var(--tint);
+  color: var(--on-tint, #fff);
+}
+.vc-ports {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.vc-port {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-height: 44px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--separator);
+  text-align: left;
+}
+.vc-port[aria-pressed="true"] {
+  border-color: var(--tint);
+  box-shadow: inset 0 0 0 1px var(--tint);
+}
+.vc-port-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--label);
+}
+.vc-port-sub {
+  font-size: 12px;
+  color: var(--label-2);
+}
+.vc-offer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--room-fill, var(--fill-4));
+  color: var(--label);
+}
+
+/* ---- the surface ---- */
+.vc {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(250px, 1.15fr) minmax(0, 1fr);
+  gap: 10px;
+  padding: 12px;
+  border-radius: 18px;
+  background: var(--surface);
+  border: 1px solid var(--separator);
+}
+@media (max-width: 719.98px) {
+  .vc {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.vc-deck,
+.vc-mixer {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px;
+  border-radius: 14px;
+  background: var(--bg-cell);
+}
+.vc-deck-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.vc-deck-tag {
+  align-self: flex-start;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  border: 1px solid currentColor;
+}
+.vc-deck-tag[data-role="room"] {
+  color: var(--room);
+}
+.vc-deck-tag[data-role="cue"] {
+  color: var(--cue);
+}
+.vc-deck-title {
+  font-size: 13px;
+  color: var(--label);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vc-browse-tag {
+  margin-left: 6px;
+  font-size: 11px;
+  color: var(--cue);
+}
+.vc-jog {
+  position: relative;
+  align-self: center;
+  width: min(100%, 168px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 50% 50%,
+    var(--fill-4) 0 30%,
+    var(--fill-3) 31% 62%,
+    var(--fill-4) 63% 100%
+  );
+  border: 2px solid var(--separator);
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+}
+.vc-jog[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: default;
+}
+.vc-jog[data-touched] {
+  border-color: var(--tint);
+}
+.vc-jog:focus-visible {
+  outline: 3px solid var(--tint);
+  outline-offset: 2px;
+}
+.vc-jog-mark {
+  position: absolute;
+  inset: 0;
+  transform: rotate(var(--rot, 0deg));
+}
+.vc-jog-mark::after {
+  content: "";
+  position: absolute;
+  left: calc(50% - 2px);
+  top: 6px;
+  width: 4px;
+  height: 18%;
+  border-radius: 2px;
+  background: var(--label);
+}
+.vc-jog-label {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 30%;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.15;
+  color: var(--label-2);
+  pointer-events: none;
+}
+.vc-deck-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+.vc-pads {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+.vc-pad {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 2px 4px;
+  border-radius: 10px;
+  background: var(--fill-3);
+  color: var(--label);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.1;
+  text-align: center;
+  border: 1px solid transparent;
+}
+.vc-pad-sm {
+  font-size: 10px;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+@media (max-width: 1023.98px) {
+  .vc-pad {
+    padding: 2px;
+    font-size: 10px;
+  }
+  .vc-pad-sm {
+    font-size: 9.5px;
+    letter-spacing: -0.01em;
+  }
+}
+.vc-round {
+  border-radius: 999px;
+}
+.vc-pad[data-lit] {
+  background: var(--tint);
+  color: var(--on-tint, #fff);
+}
+.vc-pad[data-fn="cueNext"][data-lit] {
+  background: var(--cue);
+}
+.vc-pad[data-armed] {
+  border-color: var(--booth-danger, var(--destructive));
+  color: var(--label);
+  background: var(--fill-4);
+}
+.vc-pad:disabled {
+  opacity: 0.4;
+}
+.vc-pad-l {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.vc-mixer-top {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.vc-browse {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.vc-round-sm {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--fill-3);
+  color: var(--label);
+}
+.vc-browse-press {
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--fill-3);
+  color: var(--label);
+  font-size: 12px;
+  font-weight: 700;
+}
+.vc-browse-press[data-pressed] {
+  background: var(--tint);
+  color: var(--on-tint, #fff);
+}
+.vc-strips {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.vc-strip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.vc-strip-cortina {
+  justify-content: flex-end;
+}
+
+/* knobs: a range input over a dial (keyboard arrows and a drag both turn it) */
+.vc-knob {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 44px;
+  min-height: 44px;
+}
+.vc-knob input {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  transform: translateX(-50%);
+  opacity: 0;
+  cursor: ew-resize;
+}
+.vc-knob[data-disabled] {
+  opacity: 0.5;
+}
+.vc-knob-dial {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  margin: 2px;
+  border-radius: 50%;
+  background: var(--fill-3);
+  border: 1px solid var(--separator);
+}
+.vc-knob-dial::after,
+.vc-knob-ghost {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: rotate(var(--rot, 0deg));
+}
+.vc-knob-dial::after {
+  background: linear-gradient(var(--label) 0 0) 50% 3px / 3px 35% no-repeat;
+}
+.vc-knob-ghost {
+  background: linear-gradient(var(--cue) 0 0) 50% 3px / 2px 30% no-repeat;
+  opacity: 0.8;
+}
+.vc-knob input:focus-visible + .vc-knob-dial {
+  outline: 3px solid var(--tint);
+  outline-offset: 2px;
+}
+.vc-knob-l,
+.vc-slider-l {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--label-2);
+  text-align: center;
+  line-height: 1.1;
+}
+.vc-knob-v,
+.vc-slider-v {
+  font-size: 11px;
+  color: var(--label-2);
+  text-align: center;
+}
+
+/* faders */
+.vc-slider {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 44px;
+  width: 100%;
+}
+.vc-slider-track {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+.vc-slider-h .vc-slider-track input {
+  width: 100%;
+  height: 44px;
+}
+.vc-slider-v .vc-slider-track {
+  width: 44px;
+  height: 150px;
+}
+.vc-slider-v .vc-slider-track input {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 150px;
+  height: 44px;
+  margin: 0;
+  transform: translate(-50%, -50%) rotate(-90deg);
+}
+.vc-slider[data-disabled] .vc-slider-track {
+  opacity: 0.5;
+}
+.vc-slider-ghost,
+.vc-slider-mark {
+  position: absolute;
+  pointer-events: none;
+}
+.vc-slider-h .vc-slider-mark {
+  left: calc(var(--at) * 100%);
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: var(--label-3);
+}
+.vc-slider-v .vc-slider-ghost {
+  left: 4px;
+  right: 4px;
+  bottom: calc(var(--at) * 100% - 1px);
+  height: 3px;
+  border-radius: 2px;
+  background: var(--cue);
+}
+.vc-xf {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.vc-xf[data-state="across"] .vc-slider-l {
+  color: var(--booth-danger, var(--destructive));
+}
+
+/* lines under the surface */
+.vc-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.vc-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--bg-cell);
+  color: var(--label);
+  font-size: 14px;
+}
+.vc-learn {
+  padding: 4px 12px 12px;
+  border-radius: 14px;
+  background: var(--bg-cell);
+}
+.vc-learn-sum {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--label);
+  cursor: pointer;
+  list-style: none;
+}
+.vc-learn-sum::-webkit-details-marker {
+  display: none;
+}
+/* the disclosure chevron (a flex summary has no marker of its own) */
+.vc-learn-sum::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  margin-left: 10px;
+  border-right: 2px solid var(--label-2);
+  border-bottom: 2px solid var(--label-2);
+  transform: rotate(-45deg);
+}
+.vc-learn[open] > .vc-learn-sum::after {
+  transform: rotate(45deg);
+}
+/* Settings: the controller sits in its group's own cell (no card inside a card) */
+.vc-settings .vc-status,
+.vc-settings .vc-learn {
+  padding: 0;
+  background: transparent;
+}
+.vc-learn-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 6px 12px;
+  margin: 8px 0;
+}
+.vc-learn-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font-size: 14px;
+  border-bottom: 1px solid var(--separator);
+}
+.vc-file-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

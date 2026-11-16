@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-midi-open"
+description = "Enables the midi_open command without any pre-configured scope."
+commands.allow = ["midi_open"]
+
+[[permission]]
+identifier = "deny-midi-open"
+description = "Denies the midi_open command without any pre-configured scope."
+commands.deny = ["midi_open"]

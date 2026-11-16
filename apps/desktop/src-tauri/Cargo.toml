@@ -44,6 +44,9 @@ objc2 = "0.6"
 objc2-foundation = { version = "0.3", features = ["NSString", "NSData", "NSURL", "NSError", "NSArray"] }
 # the DJ's model keys and the Spotify session: macOS and iPadOS Keychain
 keyring = { version = "3", features = ["apple-native"] }
+# 2026-11: DJ controllers over CoreMIDI (src/midi.rs); MIT. Apple only: WebKit has no Web MIDI, and Linux checks
+# would need ALSA headers for nothing
+midir = "0.10"
 
 [target.'cfg(not(any(target_os = "macos", target_os = "ios")))'.dependencies]
 # Linux checks and tests: the crate's own in-memory store (secrets.rs uses `Memory` there)

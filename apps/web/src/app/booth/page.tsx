@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { Banners } from "@/components/booth/Banners";
+import { ControllerHost } from "@/components/booth/ControllerView";
 import { ControlStrip } from "@/components/booth/ControlStrip";
 import { ControlsPanel, loadControlsOpen, saveControlsOpen } from "@/components/booth/ControlsPanel";
 import { EnergyRail } from "@/components/booth/EnergyRail";
@@ -482,6 +483,8 @@ function Booth() {
           }}
         />
       </Sheet>
+      {/* 2026-11: a DJ controller over MIDI and the on-screen controller (Controls → Controller) */}
+      <ControllerHost />
       <ShortcutsSheet open={keys} onClose={() => setKeys(false)} />
       <BreakSheet open={breakOpen} onClose={() => setBreakOpen(false)} />
       <FindFileSheet item={find} onClose={() => setFind(null)} />
