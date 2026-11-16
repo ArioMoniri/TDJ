@@ -257,7 +257,11 @@ export function eqLanes(w: TransitionWindow): EqLanes | null {
   const b = bassSwapPoints(w);
   if (!b) return null;
   if (w.eq !== "threeBand")
-    return { center: b.center, out: { low: b.outLow, mid: [], high: b.outHigh }, in: { low: b.inLow, mid: [], high: [] } };
+    return {
+      center: b.center,
+      out: { low: b.outLow, mid: [], high: b.outHigh },
+      in: { low: b.inLow, mid: [], high: [] },
+    };
   const start = w.inStart;
   const end = w.outStop < 0 ? w.outStop : 0;
   const c = b.center;

@@ -91,7 +91,9 @@ describe("a side the browser cannot hear (Spotify): its estimated shape", () => 
     expect(Math.abs(estimatedLevel(row, 90)! - estimatedLevel(row, 90.25)!)).toBeLessThan(0.01);
   });
   it("a louder side (higher energy) draws taller", () => {
-    expect(estimatedLevel({ ...row, energy: 90 }, 90)!).toBeGreaterThan(estimatedLevel({ ...row, energy: 20 }, 90)!);
+    expect(estimatedLevel({ ...row, energy: 90 }, 90)!).toBeGreaterThan(
+      estimatedLevel({ ...row, energy: 20 }, 90)!,
+    );
   });
 });
 

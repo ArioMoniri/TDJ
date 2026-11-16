@@ -1128,8 +1128,6 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.transition.bass_swap_needs_overlap":
     "Bas takası için iki parçanın örtüşmesi gerekir: Karışım ya da Yükseliş seç.",
   "booth.transition.bass_swap_sub": "EQ: ortada bas takası",
-  "booth.transition.beta": "Deneme",
-  "booth.transition.beta_hint": "Yeni: bir geçişin henüz yapamadığı neyi yapması gerektiğini bize yaz.",
   "booth.transition.blend": "Karışım",
   "booth.transition.blend_hint": "İkisi örtüşür; biri kısılırken öteki yükselir (eşit güç).",
   "booth.transition.bpm": "{bpm} BPM",
@@ -4492,6 +4490,53 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.transition.silence_heard": "Duyulan sessizlik: {sec} sn",
   "booth.transition.silence_hint":
     "Gri kısımlar şarkıların kendi sessizliğidir. “Sessizlik aradan sayılır” açıkken aranın parçasıdır (Ayarlar → Kabin → Aralar).",
+  // 2026-11 — the finished transition editor (ruler, zoom, snap, per-lane handles, estimated shape, EQ)
+  "booth.transition.toolbar": "Geçiş araçları",
+  "booth.transition.audition_short": "Dinle",
+  "booth.transition.stop_short": "Durdur",
+  "booth.transition.in_the_room": "salonda",
+  "booth.transition.room_asks": "Dinleme salonda çalmadan önce sorar.",
+  "booth.transition.room_confirm_title": "Dinleme salonda çalsın mı?",
+  "booth.transition.room_confirm_go": "Salonda çal",
+  "booth.transition.room_confirm_body": "Kulaklık seçilmedi: dansçılar bunu gecenin üstünde duyar.",
+  "booth.transition.zoom": "Yakınlaştırma",
+  "booth.transition.zoom_in": "Yakınlaştır",
+  "booth.transition.zoom_out": "Uzaklaştır",
+  "booth.transition.zoom_fit": "Geçişi sığdır",
+  "booth.transition.snap": "Hizala",
+  "booth.transition.snap_hint": "Vuruşa hizala: sürüklenen kenarlar bir vuruşa oturur ({bpm} BPM)",
+  "booth.transition.snap_needs_bpm": "Vuruşa hizalamak için bir tarafın BPM'i gerekir",
+  "booth.transition.gap_pill": "Boşluk {sec} sn",
+  "booth.transition.gap_pill_label": "Şarkılar arasındaki boşluk",
+  "booth.transition.side_out": "Çıkan",
+  "booth.transition.side_in": "Giren",
+  "booth.transition.lane_file": "Kendi dosyanız",
+  "booth.transition.lane_clip": "30 sn önizleme klibi",
+  "booth.transition.lane_loading": "Ses okunuyor…",
+  "booth.transition.lane_estimated": "Tahmini şekil (Spotify sesi tarayıcıya açık değil)",
+  "booth.transition.lane_estimated_short": "Tahmini şekil",
+  "booth.transition.marker_music_in": "Müzik başlar",
+  "booth.transition.marker_first_beat": "İlk vuruş",
+  "booth.transition.handle_out_end": "Çıkan şarkının solmasının sonu",
+  "booth.transition.handle_out_end_hint": "Sürükleyin: çıkan tarafın tamamen sustuğu yer (← → taşır)",
+  "booth.transition.curve_bend": "{side} ses eğrisi",
+  "booth.transition.curve_bend_hint":
+    "Daha dolgun bir solma için eğrinin düğmesini yukarı, S-eğrisi için aşağı sürükleyin (↑ ↓)",
+  "booth.transition.volume_none": "Kesme (solma yok)",
+  "booth.transition.volume_none_sub": "Her taraf sonuna kadar kendi seviyesinde çalar, ardından boşluk.",
+  "booth.transition.volume_adds_fade": "Bir solma ekler.",
+  "booth.transition.eq_three_band": "Üç bant geçişi",
+  "booth.transition.eq_three_band_sub":
+    "Baslar ortada yer değiştirir; ortalar ve tizler örtüşme boyunca devredilir.",
+  "booth.transition.eq_makes_blend": "Örtüşme gerekir: Karışım'a geçer.",
+  "booth.transition.eq_not_on_spotify":
+    "Spotify aynı anda tek parça çalar: EQ yalnızca kendi dosyalarınızda ve 30 sn kliplerde çalar.",
+  "booth.transition.where_files":
+    "Dosyalarınız ve 30 sn klipler: ses, EQ ve örtüşme tam çizildiği gibi çalar.",
+  "booth.transition.where_sdk":
+    "Bu tarayıcıda Spotify: solmalar (ses adımlarıyla) ve boşluk çalar; aynı anda tek parça, yani örtüşme ya da EQ yok.",
+  "booth.transition.where_connect":
+    "{device} üzerinde Spotify: cihaz sesi kısamaz, yalnızca boşluk çalar (solma, örtüşme ya da EQ yok).",
   // 2026-11 — Spotify Connect'te Kabin davranışı (iPad incelemesi)
   "booth.connect.will_be_skipped": "{title} atlanacak",
   "booth.connect.skip_next_song": "Sonrakini atla",

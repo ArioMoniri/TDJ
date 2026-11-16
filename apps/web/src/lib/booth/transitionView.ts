@@ -20,7 +20,11 @@ const STEPS = [0.25, 0.5, 1, 2, 5, 10, 15, 30];
 const MIN_LABEL_PX = 44;
 
 /** "−4 s" … "0" … "+2 s": the ruler's ticks over `start…end` at `widthPx` (labelled majors, minor ticks between). */
-export function rulerTicks(start: number, end: number, widthPx: number): Array<{ t: number; label?: string }> {
+export function rulerTicks(
+  start: number,
+  end: number,
+  widthPx: number,
+): Array<{ t: number; label?: string }> {
   const span = Math.max(1e-3, end - start);
   const pxPerSec = widthPx / span;
   const step = STEPS.find((s) => s * pxPerSec >= MIN_LABEL_PX) ?? STEPS[STEPS.length - 1]!;

@@ -1,6 +1,6 @@
 /**
  * Wave 4 — the Booth's transition editor, laid out like a playlist "Mix" editor in T-DJ's own dark look: a full-screen
- * page (X, Beta, •••, Save) with the outgoing side's row, two full-bleed coloured waveform lanes on one time axis under
+ * page (X, •••, Save) with the outgoing side's row, two full-bleed coloured waveform lanes on one time axis under
  * a panel over the transition (each lane's box with edges to drag, the volume and bass lines, the audition button,
  * the length pill), the incoming side's row, the presets and the Volume and EQ rows. It opens from the gap marker
  * between two items, the song sheet's "Transition…" and Mix → "Edit transitions…"; an edit is saved per transition
@@ -191,23 +191,29 @@ test("song 4 → cortina: pick Fade, set 3 s from the length pill, Save; it re-t
   await expect(ed.getByTestId("booth-tr-in")).toContainText("Cortina");
   await expect(ed.getByTestId("booth-tr-preset-auto")).toHaveAttribute("aria-checked", "true");
   await expect(ed.getByTestId("booth-tr-preset-cortinaCut")).toHaveCount(0);
-  await expect(ed).toContainText("Beta");
+  // 2026-11: a finished editor — no "Beta" label
+  await expect(ed).not.toContainText("Beta");
   // Save is dim until something changes
   await expect(ed.getByTestId("booth-tr-save")).toBeDisabled();
   // no explanatory paragraphs on the canvas: they live in the ••• menu
   await expect(ed.getByText(/No waveform for|The audition plays/)).toHaveCount(0);
   await expect(ed.locator(".booth-tr-line-out")).toHaveCount(1);
   await expect(ed.locator(".booth-tr-line-in")).toHaveCount(1);
-  // a side with no clip is a flat placeholder lane, not text
-  if ((await page.locator(`.booth-row[data-plan-index="${i}"]`).getAttribute("data-source")) === "missing")
-    await expect(ed.getByTestId("booth-tr-flat-out")).toHaveCount(1);
+  // 2026-11: a side with no audio the browser can read draws a hatched estimated shape, labelled as such
+  if ((await page.locator(`.booth-row[data-plan-index="${i}"]`).getAttribute("data-source")) === "missing") {
+    await expect(ed.getByTestId("booth-tr-est-out")).toHaveCount(1);
+    await expect(ed.getByTestId("booth-tr-estimated")).toContainText(
+      "Estimated shape (Spotify audio isn't available to the browser)",
+    );
+  }
   expect(await smallTargets(page)).toEqual([]);
   for (const id of [
     "booth-tr-preset-fade",
     "booth-tr-audition",
-    "booth-tr-start",
-    "booth-tr-end",
+    "booth-tr-gap-edge",
     "booth-tr-length",
+    "booth-tr-zoom-in",
+    "booth-tr-snap",
   ])
     await expect(ed.getByTestId(id)).toHaveAttribute("data-hint", /\w/);
 
@@ -397,9 +403,9 @@ async function phoneEditorChecks(page: Page) {
   expect([...order].sort((a, b) => a - b)).toEqual(order);
   // the lanes take the larger part of the screen
   expect(stage.height).toBeGreaterThan(vp.height * 0.28);
-  // the play button sits between the two lanes, on the panel's middle edge
+  // 2026-11: the audition sits in the toolbar under the lanes, never over the waveforms
   const play = (await ed.getByTestId("booth-tr-audition").boundingBox())!;
-  expect(Math.abs(play.y + play.height / 2 - (stage.y + stage.height / 2))).toBeLessThan(4);
+  expect(play.y).toBeGreaterThanOrEqual(stage.y + stage.height - 0.5);
   // nothing sideways
   expect(
     await page.evaluate(() => {

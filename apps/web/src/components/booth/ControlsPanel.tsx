@@ -16,9 +16,9 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { hideHints } from "@/components/ui/Tip";
 import { guard, useArmed } from "@/lib/booth/confirm";
 import { askForHeadphones, SINK_UNSUPPORTED } from "@/lib/booth/cue";
-import { isAppleMobile } from "@/lib/booth/sources/spotify";
 import { TRANSPORT_RANGES } from "@/lib/booth/engine";
 import { durationLabel } from "@/lib/booth/plan";
+import { isAppleMobile } from "@/lib/booth/sources/spotify";
 import { boothEngine, useBooth, useRoomCaps } from "@/lib/booth/store";
 import { t } from "@/lib/i18n";
 import { toast } from "@/lib/toast";
@@ -194,6 +194,7 @@ export function ControlsPanel({
   // tap opens the HEADPHONES picker and cues once one is picked; where the browser has one output (iPad, iPhone,
   // Safari) it says in one line that the headphones need a second device.
   const [cueNote, setCueNote] = useState<string | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: another next song clears the note
   useEffect(() => setCueNote(null), [next]);
   const cueTap = async () => {
     if (next === null) return;

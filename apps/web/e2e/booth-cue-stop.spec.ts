@@ -61,7 +61,7 @@ async function fakeOutputs(page: Page) {
 }
 
 /** a Connect account (the iPad's Spotify app) or the browser's own SDK player; records every Web API request */
-function spotifyMock(o: { sdk?: boolean } = {}) {
+function spotifyMock(_o: { sdk?: boolean } = {}) {
   const st = { uri: null as string | null, playing: false, posMs: 0, startedAt: 0 };
   const log: Array<{ method: string; path: string; query: URLSearchParams }> = [];
   const progress = () => (st.playing ? st.posMs + (Date.now() - st.startedAt) : st.posMs);
@@ -72,7 +72,12 @@ function spotifyMock(o: { sdk?: boolean } = {}) {
           hosted: true,
           user: { id: "e2e", display_name: "E2E", product: "premium" },
           token: { access: "e2e-token", expires: Date.now() + 3_600_000 },
-          scopes: ["streaming", "user-modify-playback-state", "user-read-playback-state", "user-read-private"],
+          scopes: [
+            "streaming",
+            "user-modify-playback-state",
+            "user-read-playback-state",
+            "user-read-private",
+          ],
         },
       }),
     );
@@ -113,7 +118,12 @@ function spotifyMock(o: { sdk?: boolean } = {}) {
       return r.fulfill({ status: 204, body: "" });
     });
   }
-  return { st, log, install, pauses: () => log.filter((x) => x.method === "PUT" && x.path === "/me/player/pause") };
+  return {
+    st,
+    log,
+    install,
+    pauses: () => log.filter((x) => x.method === "PUT" && x.path === "/me/player/pause"),
+  };
 }
 
 async function openBooth(page: Page, o: { spotify?: boolean } = {}) {
@@ -254,12 +264,16 @@ test.describe("Stop", () => {
     await ctx.close();
   });
 
-  test("Spotify Connect (iPad): Stop stops at once — one pause request on the device", async ({ browser }) => {
+  test("Spotify Connect (iPad): Stop stops at once — one pause request on the device", async ({
+    browser,
+  }) => {
     const ctx = await browser.newContext({ ...IPAD });
     const page = await ctx.newPage();
     const sp = spotifyMock();
     await sp.install(page);
-    await page.addInitScript(() => Object.defineProperty(Navigator.prototype, "maxTouchPoints", { get: () => 5 }));
+    await page.addInitScript(() =>
+      Object.defineProperty(Navigator.prototype, "maxTouchPoints", { get: () => 5 }),
+    );
     await openBooth(page, { spotify: true });
     await start(page);
     await controls(page);
@@ -298,7 +312,9 @@ test.describe("Cue", () => {
     await ctx.close();
   });
 
-  test("no headphones chosen mid-night: Cue opens the output picker (never a dead button)", async ({ browser }) => {
+  test("no headphones chosen mid-night: Cue opens the output picker (never a dead button)", async ({
+    browser,
+  }) => {
     const ctx = await browser.newContext(DESKTOP);
     const page = await ctx.newPage();
     await fakeOutputs(page);
@@ -323,7 +339,9 @@ test.describe("Cue", () => {
     const page = await ctx.newPage();
     const sp = spotifyMock();
     await sp.install(page);
-    await page.addInitScript(() => Object.defineProperty(Navigator.prototype, "maxTouchPoints", { get: () => 5 }));
+    await page.addInitScript(() =>
+      Object.defineProperty(Navigator.prototype, "maxTouchPoints", { get: () => 5 }),
+    );
     await openBooth(page, { spotify: true });
     await start(page);
     await controls(page);
