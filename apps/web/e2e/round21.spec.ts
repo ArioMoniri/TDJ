@@ -77,13 +77,22 @@ test("the Swap sheet: valid suggestions, search with reasons, AI pick falls back
   await expect(sheet.getByTestId("swap-option").first()).toBeVisible({ timeout: 20000 });
   // search: another orchestra's side is shown with why it cannot take the chair
   await sheet.getByLabel("Search the catalogue").fill("Biagi");
-  await expect(sheet.getByTestId("swap-excluded").first()).toContainText(/another orchestra/, {
+  await expect(
+    sheet
+      .getByTestId("swap-excluded")
+      .filter({ hasText: /another orchestra/ })
+      .first(),
+  ).toBeVisible({
     timeout: 20000,
   });
-  // AI pick without a key: the engine's best fit, labelled
-  const ai = sheet.getByRole("button", { name: /Pick the best fit for me/ });
+  // AI pick without a key: the engine's best fit, labelled; 2026-11: shown as the suggestion, applied when chosen
+  const ai = sheet.getByTestId("swap-ai-pick");
+  await expect(ai).toContainText(/Suggested:/, { timeout: 20000 });
+  await expect(ai).toContainText(/best fit/i);
   await expect(ai).not.toContainText(/engine/);
+  await expect(card.locator("li[data-song]").nth(1)).toHaveAttribute("data-song", before ?? "");
   await ai.click();
+
   await expect(sheet).toBeHidden({ timeout: 20000 });
   await expect(card.locator("li[data-song]").nth(1)).not.toHaveAttribute("data-song", before ?? "", {
     timeout: 20000,

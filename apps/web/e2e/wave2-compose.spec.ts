@@ -77,8 +77,9 @@ test("Swap tanda offers choices nearest the plan; the energy chart has one path 
   const card = page.locator("article[id^=tanda-]").nth(1);
   await card.getByRole("button", { name: "Tanda 2 actions" }).click();
   await page.getByRole("menuitem", { name: /Swap tanda/ }).click();
-  const sheet = page.getByTestId("tanda-choices");
-  const rows = sheet.getByTestId("tanda-choice");
+  // 2026-11: the choices are suggested whole tandas in the tanda Swap sheet: one loads, Apply puts it in
+  const sheet = page.getByTestId("tanda-swap-sheet");
+  const rows = sheet.getByTestId("tanda-swap-option");
   await expect(rows.first()).toBeVisible({ timeout: 60000 });
   const n = await rows.count();
   expect(n).toBeGreaterThan(0);
@@ -86,7 +87,10 @@ test("Swap tanda offers choices nearest the plan; the energy chart has one path 
   const before = await card.locator("h3").innerText();
   const label = await rows.first().innerText();
   await rows.first().click();
+  await expect(card.locator("h3")).toHaveText(before);
+  await sheet.getByTestId("tanda-swap-apply").click();
   await expect(card.locator("h3")).not.toHaveText(before, { timeout: 15000 });
+
   expect(label).toContain((await card.locator("h3").innerText()).trim());
   // Undo from the toast puts it back
   await page.getByTestId("toast").getByRole("button", { name: /Undo/ }).click();

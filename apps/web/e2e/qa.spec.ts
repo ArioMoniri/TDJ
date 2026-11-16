@@ -353,11 +353,20 @@ test("swap: the Swap action replaces one tanda, keeps the others and the cortina
     .innerText();
   await menu().click();
   await page.getByRole("menuitem", { name: "Swap tanda" }).click();
-  // wave 2: up to three choices, nearest the slot's planned energy first; the DJ picks one
-  const choices = page.getByTestId("tanda-choices");
-  await expect(choices.getByTestId("tanda-choice").first()).toBeVisible({ timeout: 30000 });
-  await choices.getByTestId("tanda-choice").first().click();
+  // wave 2: up to three choices, nearest the slot's planned energy first; the DJ picks one. 2026-11: a choice loads
+  // into the tanda Swap sheet; Apply puts it in (a swap is a choice, never at once)
+  const choices = page.getByTestId("tanda-swap-sheet");
+  await expect(choices.getByTestId("tanda-swap-option").first()).toBeVisible({ timeout: 30000 });
+  await choices.getByTestId("tanda-swap-option").first().click();
+  await choices.getByTestId("tanda-swap-apply").click();
+  const rule = page.getByTestId("rule-sheet");
+  await expect(async () => {
+    if (await rule.isVisible()) await rule.getByTestId("rule-as-said").click();
+    await expect(choices).toBeHidden({ timeout: 1000 });
+  }).toPass({ timeout: 30000 });
   await expect(cards.nth(target).locator("h3")).not.toHaveText(orchestraBefore, { timeout: 15000 });
+  // (the pointer that pressed Apply rests over a row: its number would read as a play button)
+  await page.mouse.move(0, 0);
   const after = await cards.allInnerTexts();
   expect(after.length).toBe(before.length);
   for (let i = 0; i < before.length; i++)

@@ -193,6 +193,7 @@ export default function Library() {
                   id={ctx.id}
                   active={ctx.active}
                   sources={v.sources}
+                  badge={v.song.rhythm !== ctx.workRhythm}
                   onHover={desktop ? ctx.onHover : undefined}
                   findSignal={findAt.i === ctx.index ? findAt.n : undefined}
                 />

@@ -46,12 +46,15 @@ export const LibraryRow = memo(function LibraryRow({
   onHover,
   findSignal,
   sources,
+  badge = true,
 }: {
   hit: SongSearchHit;
   id: string;
   active: boolean;
   /** 2026-11: where it comes from (the catalogue, Spotify, a connected service) */
   sources?: SourceId[];
+  /** the rhythm badge (inside a work whose head shows it, only a row of another rhythm repeats it) */
+  badge?: boolean;
   onHover?: () => void;
   /** bumped by the page when Enter should open "Find on services" for this row */
   findSignal?: number;
@@ -128,7 +131,7 @@ export const LibraryRow = memo(function LibraryRow({
           <span className="truncate" data-testid="library-row-title">
             <Highlight text={s.title} spans={hit.highlights.title} />
           </span>
-          <TandaTypeBadge rhythm={s.rhythm} compact />
+          {badge && <TandaTypeBadge rhythm={s.rhythm} compact />}
         </span>
         <span className="text-footnote block truncate text-[var(--label-2)]">
           <Highlight text={s.orchestra} spans={hit.highlights.orchestra} />

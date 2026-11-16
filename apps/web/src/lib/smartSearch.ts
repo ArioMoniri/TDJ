@@ -208,23 +208,26 @@ export interface MergeContext {
   rhythmOf?: (work: string) => string | undefined;
 }
 
+const GENERIC =
+  /^(orquesta|orchestra|orquestra|tipica|sexteto|cuarteto|quinteto|conjunto|trio|tango|tangos|los|las|del|de|la|el|y|su|sus|band|ensemble|quartet|quintet|sextet)$/;
 /** an orchestra's name as an artist line names it: the whole name, or its leader's surname ("Di Sarli", "D'Arienzo") */
+
 function orchestraIn(artists: string[], orchestras: MergeContext["orchestras"]) {
   const lines = artists.map(fold);
   let best: { id: string; name: string; at: number; len: number } | null = null;
   for (const o of orchestras) {
     const n = fold(o.name);
-    const words = n
-      .split(" ")
-      .filter((w) => w.length >= 4 && !/^(orquesta|tipica|sexteto|cuarteto|quinteto)$/.test(w));
-    const surname = words.length > 1 ? words.slice(-1)[0]! : (words[0] ?? n);
-    const tail = n.split(" ").slice(-2).join(" ");
+    // the leader's surname, or the ensemble's own word: never a word every band name has ("tango", "orquesta")
+    const words = n.split(" ").filter((w) => w.length >= 4 && !GENERIC.test(w));
+    const surname = words.at(-1) ?? null;
+    const last2 = n.split(" ").slice(-2);
+    const tail = last2.length === 2 && last2.every((w) => !GENERIC.test(w)) ? last2.join(" ") : null;
     lines.forEach((l, at) => {
       const hit = ` ${l} `.includes(` ${n} `)
         ? n.length + 100
-        : ` ${l} `.includes(` ${tail} `)
+        : tail && ` ${l} `.includes(` ${tail} `)
           ? tail.length + 50
-          : ` ${l} `.includes(` ${surname} `)
+          : surname && ` ${l} `.includes(` ${surname} `)
             ? surname.length
             : 0;
       if (hit && (!best || at < best.at || (at === best.at && hit > best.len)))

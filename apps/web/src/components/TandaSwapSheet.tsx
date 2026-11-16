@@ -18,7 +18,7 @@ import { Group, RhythmTile, Row } from "./Form";
 import { Sheet } from "./Sheet";
 import { ConfirmBar } from "./ui/BoothSearchBits";
 import { SmartSearchField, SmartSearchResults } from "./ui/SmartSearch";
-import { TandaTypeBadge } from "./ui/TandaTypeBadge";
+import { rhythmWord, TandaTypeBadge } from "./ui/TandaTypeBadge";
 import { useDragReorder } from "./ui/useDragReorder";
 
 /**
@@ -288,16 +288,16 @@ export function TandaSwapSheet(p: TandaSwapProps) {
                     {k + 1}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="flex min-w-0 items-center gap-1.5">
-                      <span className="truncate">{x.title}</span>
-                      <TandaTypeBadge rhythm={x.rhythm} compact />
-                    </span>
-                    <span className="text-footnote block truncate text-[var(--label-2)]">
-                      {sideFacts(x)}
-                      {x.durationSec ? ` · ${fmtLen(x.durationSec)}` : ""}
-                      {x.id.startsWith("ext:")
-                        ? ` · ${x.source === "spotify" ? "Spotify" : tx("tandaSwap.service")}`
-                        : ""}
+                    <span className="block truncate">{x.title}</span>
+                    <span className="text-footnote flex min-w-0 items-center gap-1.5 text-[var(--label-2)]">
+                      <TandaTypeBadge rhythm={x.rhythm} compact className="shrink-0" />
+                      <span className="truncate">
+                        {sideFacts(x)}
+                        {x.durationSec ? ` · ${fmtLen(x.durationSec)}` : ""}
+                        {x.id.startsWith("ext:")
+                          ? ` · ${x.source === "spotify" ? "Spotify" : tx("tandaSwap.service")}`
+                          : ""}
+                      </span>
                     </span>
                   </span>
                   <button
@@ -332,7 +332,7 @@ export function TandaSwapSheet(p: TandaSwapProps) {
                   </button>
                   <button
                     type="button"
-                    className="drag-handle icon-btn icon-btn-bare -mr-2 h-11 w-9 shrink-0 text-[var(--label-3)]"
+                    className="drag-handle icon-btn icon-btn-bare -mr-2 h-11 w-9 shrink-0 text-[var(--label-3)] max-sm:!hidden"
                     aria-label={tx("play.drag_to_reorder", { title: x.title })}
                     {...drag(k)}
                   >
@@ -357,7 +357,10 @@ export function TandaSwapSheet(p: TandaSwapProps) {
                   {c.ok ? <Check size={14} aria-hidden /> : <X size={14} aria-hidden />}
                   <span>
                     <span className="sr-only">{c.ok ? tx("tandaSwap.kept") : tx("tandaSwap.broken")} </span>
-                    {tx(c.msg as MsgKey, c.values as Record<string, string>)}
+                    {tx(c.msg as MsgKey, {
+                      ...(c.values as Record<string, string>),
+                      ...(c.values?.rhythm ? { rhythm: rhythmWord(String(c.values.rhythm)) } : {}),
+                    })}
                   </span>
                 </li>
               ))}

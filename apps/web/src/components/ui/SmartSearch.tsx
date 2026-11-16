@@ -4,7 +4,7 @@ import "./smart-search.css";
 import { AudioLines, HardDrive, Library, MonitorPlay } from "lucide-react";
 import { Fragment, type ReactNode, useMemo } from "react";
 import { haptic } from "@/lib/haptics";
-import { fmtNumber, t } from "@/lib/i18n";
+import { fmtNumber, plural, t } from "@/lib/i18n";
 import { fmtLen } from "@/lib/lengths";
 import { useTapPlay } from "@/lib/playback";
 import type { PlayItem } from "@/lib/player";
@@ -83,6 +83,8 @@ export interface SmartSearchProps extends SmartSearchOptions {
 
 export interface RowContext {
   index: number;
+  /** inside a work: its rhythm (the head shows it; a row repeats it only when it differs) */
+  workRhythm?: string;
   active: boolean;
   id: string;
   onHover: () => void;
@@ -182,6 +184,7 @@ export function VersionRow({
   dim,
   testId = "smart-version",
   data,
+  workRhythm,
 }: {
   v: Version;
   ctx: RowContext;
@@ -193,6 +196,8 @@ export function VersionRow({
   dim?: boolean;
   testId?: string;
   data?: Record<string, string>;
+  /** shown inside a work whose head already says its rhythm: the badge only when this version differs */
+  workRhythm?: string;
 }) {
   const s = v.song;
   const { song: eff, data: sd } = useSongData(s);
@@ -217,7 +222,9 @@ export function VersionRow({
           <span className="truncate" data-testid="smart-version-title">
             <Highlight text={s.title} spans={hl.title} />
           </span>
-          <TandaTypeBadge rhythm={s.rhythm} compact className={v.rhythmKnown ? "" : "smart-guess"} />
+          {s.rhythm !== workRhythm && (
+            <TandaTypeBadge rhythm={s.rhythm} compact className={v.rhythmKnown ? "" : "smart-guess"} />
+          )}
         </span>
         <span
           className="text-footnote block truncate text-[var(--label-2)]"
@@ -447,7 +454,7 @@ export function SmartSearchResults({
   const spotify = s.services.find((a) => a.id === "spotify");
   const fromServices = order.filter((v) => v.external).length;
   let k = -1;
-  const row = (v: Version) => {
+  const row = (v: Version, workRhythm?: string) => {
     k++;
     const index = k;
     const ctx: RowContext = {
@@ -455,6 +462,7 @@ export function SmartSearchResults({
       active: index === s.active,
       id: rowId(id, index),
       onHover: () => s.setActive(index),
+      workRhythm,
     };
     // the host's own row, or (a service's recording, which the host has no row for) the version row
     const own = renderVersion?.(v, ctx);
@@ -472,6 +480,7 @@ export function SmartSearchResults({
         dim={dim?.(v)}
         testId={rowTestIdOf?.(v) ?? rowTestId}
         data={rowData?.(v)}
+        workRhythm={workRhythm}
       />
     );
   };
@@ -479,7 +488,10 @@ export function SmartSearchResults({
     <div className="min-w-0" data-testid={`${prefix}-smart`}>
       {chips && (
         <>
-          <fieldset className="search-chips m-0 border-0 p-0" data-testid={`${prefix}-era`}>
+          <fieldset
+            className="search-chips search-chips-scroll m-0 border-0 p-0"
+            data-testid={`${prefix}-era`}
+          >
             <legend className="sr-only">{t("smartSearch.era")}</legend>
             {(Object.keys(ERAS) as EraChip[]).map((e) => (
               <button
@@ -540,7 +552,8 @@ export function SmartSearchResults({
             </span>
             {s.works && (
               <span className="text-caption1 font-normal normal-case" data-testid={`${prefix}-works`}>
-                {t("smartSearch.works", { n: fmtNumber(s.works.length), v: fmtNumber(order.length) })}
+                {plural("smartSearch.titles", s.works.length)} ·{" "}
+                {plural("smartSearch.versions_n", order.length)}
               </span>
             )}
             <span className="flex-1" />
@@ -572,14 +585,16 @@ export function SmartSearchResults({
                     <span className="text-headline min-w-0 flex-1 truncate">{w.title}</span>
                     <TandaTypeBadge rhythm={w.rhythm} compact />
                     <span className="text-caption1 text-[var(--label-2)]" data-testid="smart-work-count">
-                      {t("smartSearch.versions", { n: w.versions.length })}
+                      {plural("smartSearch.versions_n", w.versions.length)}
                     </span>
                   </div>
-                  <div className={listClassName}>{w.versions.map(row)}</div>
+                  <div className={listClassName}>{w.versions.map((v) => row(v, w.rhythm))}</div>
                 </div>
               ))
             ) : (
-              <div className={plain ? listClassName : `group-inset ${listClassName}`}>{order.map(row)}</div>
+              <div className={plain ? listClassName : `group-inset ${listClassName}`}>
+                {order.map((v) => row(v))}
+              </div>
             )}
           </div>
           {s.hasMore && (

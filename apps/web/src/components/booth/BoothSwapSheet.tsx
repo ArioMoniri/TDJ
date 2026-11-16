@@ -627,7 +627,10 @@ export function BoothSwapSheet() {
                   }}
                   rowData={(v) => {
                     const x = judged.get(v.song.id);
-                    return { ok: x ? (x.ok ? "1" : x.asks ? "asks" : "0") : v.hit ? "pending" : "service" };
+                    return {
+                      id: v.song.id,
+                      ok: x ? (x.ok ? "1" : x.asks ? "asks" : "0") : v.hit ? "pending" : "service",
+                    };
                   }}
                   note={(v) => {
                     const x = judged.get(v.song.id);

@@ -308,7 +308,7 @@ export function SwapSheet({
       setPick({
         id: best.song.id,
         title: best.song.title,
-        why: `${tx("swapSheet.suggested_engine_why")} · ${tx("swapSheet.fit", { fit: Math.round(best.fit * 100) })}`,
+        why: tx("swapSheet.fit", { fit: Math.round(best.fit * 100) }),
         source: "engine",
       });
     }
@@ -431,20 +431,6 @@ export function SwapSheet({
               disabled={!!lockedReason}
             />
           </Group>
-          <Group
-            header={tx("swapSheet.fits_this_tanda")}
-            footer={tx("swapSheet.same_orchestra_and_singer_the_same")}
-            data-testid="swap-suggestions"
-          >
-            {lists.suggestions.length ? (
-              ranked(lists.suggestions).map((x) => row(x, "s"))
-            ) : (
-              <Row
-                label={tx("swapSheet.no_other_side_keeps_this_tanda")}
-                sub={tx("swapSheet.search_below_to_see_why")}
-              />
-            )}
-          </Group>
           <div className="mt-2 px-4" data-testid="swap-results">
             <SmartSearchField
               s={s}
@@ -501,6 +487,20 @@ export function SwapSheet({
               }}
             />
           </div>
+          <Group
+            header={tx("swapSheet.fits_this_tanda")}
+            footer={tx("swapSheet.same_orchestra_and_singer_the_same")}
+            data-testid="swap-suggestions"
+          >
+            {lists.suggestions.length ? (
+              ranked(lists.suggestions).map((x) => row(x, "s"))
+            ) : (
+              <Row
+                label={tx("swapSheet.no_other_side_keeps_this_tanda")}
+                sub={tx("swapSheet.search_below_to_see_why")}
+              />
+            )}
+          </Group>
         </>
       )}
     </Sheet>

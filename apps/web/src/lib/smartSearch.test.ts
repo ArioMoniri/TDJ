@@ -175,6 +175,20 @@ describe("services merged with the catalogue", () => {
     );
     expect(v.some((x) => x.song.id === "ext:spotify:pu9")).toBe(false);
   });
+  it('a band named with a common word is never read as an orchestra sharing it ("Color Tango" is not Los Caballeros del Tango)', () => {
+    const withBand = {
+      orchestras: [...ctx.orchestras, { id: "los-caballeros", name: "Los Caballeros del Tango" }],
+    };
+    const s = serviceSong(track({ artists: ["Color Tango"] }), withBand).song;
+    expect(s.orchestra).toBe("Color Tango");
+    expect(s.orchestraId).toBe("ext-color-tango");
+    expect(serviceSong(track({ artists: ["Los Caballeros del Tango"] }), withBand).song.orchestraId).toBe(
+      "los-caballeros",
+    );
+    expect(
+      serviceSong(track({ artists: ["Juan D'Arienzo y su Orquesta Típica"] }), withBand).song.orchestraId,
+    ).toBe("juan-d-arienzo");
+  });
   it("another singer's recording of the same work is not the catalogue's", () => {
     const s = songs.find((x) => x.id === "ds-3")!;
     expect(
