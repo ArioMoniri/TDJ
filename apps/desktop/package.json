@@ -20,7 +20,8 @@
     "rust:check": "cargo check --manifest-path src-tauri/Cargo.toml --all-features",
     "rust:test": "cargo test --manifest-path src-tauri/Cargo.toml",
     "store:banner": "tsx store/banner.ts",
-    "store:shots": "node scripts/build-ui.mjs && pnpm run screenshots"
+    "store:shots": "node scripts/build-ui.mjs && pnpm run screenshots",
+    "store:creative": "tsx store/creative/index.ts"
   },
   "devDependencies": {
     "@tauri-apps/cli": "2.12.4",

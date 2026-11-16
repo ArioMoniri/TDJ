@@ -29,3 +29,7 @@ apps/video/public/clips
 # device copies of server routes the app tests generate (apps/web/scripts/device-routes.mjs)
 apps/web/src/lib/app/__device__/
 .release/
+
+# store creative v2: the captures the app previews read, copied for one render (apps/desktop/store/creative/preview.ts)
+apps/video/public/store-creative
+apps/desktop/fastlane/store-creative.html

@@ -11,6 +11,9 @@ export interface MockOptions {
   platform: "macos" | "ipados";
   /** SQLite file (kept across page loads, as the app's data folder is); ":memory:" for one load */
   dbPath?: string;
+  /** a TDJ server the DJ linked under Settings → Connections (store captures of Rooms): its name, and where the
+   * page sends the linked-server requests (a URL the capture answers with ctx.route) */
+  linked?: { server: string; apiBase: string };
 }
 export interface Mock {
   calls: Array<{ cmd: string; args: Record<string, unknown> }>;
@@ -60,8 +63,8 @@ export async function installTauriMock(ctx: BrowserContext, o: MockOptions): Pro
           platform: o.platform,
           version: "0.1.0",
           bundled: true,
-          linkedServer: null,
-          apiBase: "tdjapi://localhost",
+          linkedServer: o.linked?.server ?? null,
+          apiBase: o.linked?.apiBase ?? "tdjapi://localhost",
           appStore: false,
           updater: false,
         };
@@ -135,8 +138,8 @@ export async function installTauriMock(ctx: BrowserContext, o: MockOptions): Pro
     window.__TDJ_NATIVE__ = Object.freeze({
       platform: ${JSON.stringify(o.platform)},
       bundled: true,
-      linkedServer: null,
-      apiBase: "tdjapi://localhost",
+      linkedServer: ${JSON.stringify(o.linked?.server ?? null)},
+      apiBase: ${JSON.stringify(o.linked?.apiBase ?? "tdjapi://localhost")},
       vibrancy: false,
     });
     window.__TAURI_INTERNALS__ = {
