@@ -64,7 +64,14 @@ class FakeSource implements SourceNodeLike {
   }
   stop(when?: number) {
     this.stops.push(when);
-    if (when !== undefined) this.endsAt = this.endsAt === null ? when : Math.min(this.endsAt, when);
+    // the Web Audio spec: a later stop() replaces an earlier one (only before the source stopped)
+    if (when !== undefined)
+      this.endsAt =
+        this.endsAt === null || this.fired
+          ? when
+          : this.stops.length > 1
+            ? when
+            : Math.min(this.endsAt, when);
   }
 }
 class FakeCtx implements AudioContextLike {
@@ -697,6 +704,72 @@ describe("round 20: transport and fades (round20-booth.md)", () => {
     expect(e.state).toBe("playing");
     // the item after the incoming one is queued at its gap
     expect(ctx.sources.at(-1)!.starts[0]![0]).toBeCloseTo(40.05 + 170 + 2.5, 6);
+  });
+
+  it("2026-11: a fade can be cancelled mid-way: the gain comes back, the song keeps its own end, the next at its gap", async () => {
+    const e = engineFor(ctx, build(set()));
+    await e.start();
+    await e.play();
+    ctx.advance(30);
+    e.fadeOutNow(4);
+    expect(e.fading?.kind).toBe("fade");
+    ctx.advance(31.5);
+    expect(e.cancelFade()).toBe(true);
+    expect(e.fading).toBeNull();
+    const g = ctx.gains[1]!.gain;
+    const back = g.of("setTargetAtTime").at(-1)!;
+    expect(back.args[0]).toBeCloseTo(1, 6);
+    expect(back.args[1]).toBeCloseTo(31.5, 6);
+    // the source plays to its own end again (the last stop wins), the night is still on a1
+    const end = 0.05 + 170;
+    expect(ctx.sources[0]!.stops.at(-1)).toBeCloseTo(end, 6);
+    expect(e.current?.endsAt).toBeCloseTo(end, 6);
+    await flush();
+    const q = (e as unknown as { queued: { planIndex: number; when: number } | null }).queued;
+    expect(q?.planIndex).toBe(1);
+    expect(q!.when).toBeCloseTo(end + 2.5, 6);
+    ctx.advance(40);
+    expect(e.planIndex).toBe(0);
+    expect(e.state).toBe("playing");
+  });
+
+  it("2026-11: a crossfade can be cancelled: the outgoing is current again to its end, the incoming leaves", async () => {
+    const e = engineFor(ctx, build(set()));
+    await e.start();
+    await e.play();
+    ctx.advance(40);
+    await e.crossfadeNext(3);
+    expect(e.planIndex).toBe(1);
+    expect(e.fading?.kind).toBe("crossfade");
+    ctx.advance(41);
+    expect(e.cancelFade()).toBe(true);
+    expect(e.planIndex).toBe(0);
+    expect(e.current?.planIndex).toBe(0);
+    const end = 0.05 + 170;
+    expect(ctx.sources[0]!.stops.at(-1)).toBeCloseTo(end, 6);
+    const inc = ctx.sources.find((x, k) => k > 0 && Math.abs((x.starts[0]?.[0] ?? -1) - 40.05) < 1e-9)!;
+    expect(inc.stops.at(-1)!).toBeLessThan(41.5);
+    ctx.advance(43);
+    await flush();
+    expect(e.planIndex).toBe(0);
+    expect(e.state).toBe("playing");
+    // nothing to cancel any more
+    expect(e.cancelFade()).toBe(false);
+  });
+
+  it("2026-11: undo after a crossfade: the previous song plays again from where it was", async () => {
+    const e = engineFor(ctx, build(set()));
+    await e.start();
+    await e.play();
+    ctx.advance(40);
+    await e.crossfadeNext(3);
+    ctx.advance(50);
+    await e.returnTo(0, 40);
+    await flush();
+    expect(e.planIndex).toBe(0);
+    expect(e.current?.planIndex).toBe(0);
+    const src = ctx.sources.at(-2)!;
+    expect(src.starts[0]![1]).toBeCloseTo(40, 6);
   });
 
   it("Stop now right after a crossfade silences the outgoing item too (it is no longer current)", async () => {

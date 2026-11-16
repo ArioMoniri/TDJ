@@ -69,6 +69,8 @@ export interface ExternalHandle {
    * `fadeOutSec` fade (volume steps). A player that cannot fade ignores the fade.
    */
   retime?(o: { endsInSec: number; fadeOutSec: number }): void;
+  /** 2026-11: call off a fade out in progress (back to its level); false when there is none to call off */
+  unfade?(): boolean;
 }
 /** A player the engine cannot route through the graph (Spotify): the adapter owns the timeline for its items. */
 export interface ExternalPlayer {

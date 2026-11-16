@@ -4491,6 +4491,17 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.transition.silence_hint":
     "Gri kısımlar şarkıların kendi sessizliğidir. “Sessizlik aradan sayılır” açıkken aranın parçasıdır (Ayarlar → Kabin → Aralar).",
   // 2026-11 — the finished transition editor (ruler, zoom, snap, per-lane handles, estimated shape, EQ)
+  // 2026-11 — Fade / Crossfade: hold, countdown, cancel, undo
+  "booth.fade.undo_fade": "Solmayı geri al",
+  "booth.fade.undo_crossfade": "Geçişli geçişi geri al",
+  "booth.fade.hold_fade": "Solmak için basılı tutun",
+  "booth.fade.hold_crossfade": "Geçiş için basılı tutun",
+  "booth.fade.cancel_fade": "Solmayı iptal et · {sec} sn",
+  "booth.fade.cancel_crossfade": "Geçişi iptal et · {sec} sn",
+  "booth.fade.cancel_fade_label": "Solmayı iptal et: şarkı geri gelir",
+  "booth.fade.cancel_crossfade_label": "Geçişi iptal et: çalan şarkıya geri dön",
+  "booth.fade.fading": "Soluyor… {sec} sn",
+  "booth.fade.crossfading": "Geçiyor… {sec} sn",
   "booth.transition.toolbar": "Geçiş araçları",
   "booth.transition.audition_short": "Dinle",
   "booth.transition.stop_short": "Durdur",

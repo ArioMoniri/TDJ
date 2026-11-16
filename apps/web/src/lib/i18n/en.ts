@@ -4301,6 +4301,17 @@ export const en = {
   "booth.transition.silence_hint":
     "The grey parts are the songs' own silence. With “Silence counts as the gap” it is part of the gap (Settings → Booth → Gaps).",
   // 2026-11 — the finished transition editor (ruler, zoom, snap, per-lane handles, estimated shape, EQ)
+  // 2026-11 — Fade / Crossfade: hold, countdown, cancel, undo
+  "booth.fade.undo_fade": "Undo the fade",
+  "booth.fade.undo_crossfade": "Undo the crossfade",
+  "booth.fade.hold_fade": "Hold to fade",
+  "booth.fade.hold_crossfade": "Hold to crossfade",
+  "booth.fade.cancel_fade": "Cancel fade · {sec} s",
+  "booth.fade.cancel_crossfade": "Cancel crossfade · {sec} s",
+  "booth.fade.cancel_fade_label": "Cancel the fade: the song comes back",
+  "booth.fade.cancel_crossfade_label": "Cancel the crossfade: back to the song that was playing",
+  "booth.fade.fading": "Fading… {sec} s",
+  "booth.fade.crossfading": "Crossfading… {sec} s",
   "booth.transition.toolbar": "Transition tools",
   "booth.transition.audition_short": "Audition",
   "booth.transition.stop_short": "Stop",
