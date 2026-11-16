@@ -1370,6 +1370,26 @@ test("Spotify proves the playlist: a 118-row night whose chunk 2 Spotify drops o
   }
   await ctx.close();
 });
+/** each cortina's played length from VLC/rekordbox marks: stop − start (cortinas start at their chorus since 2026-11) */
+function playedLengths(text: string, start: RegExp, stop: RegExp): number[] {
+  const starts = [...text.matchAll(start)].map((m) => Number(m[1]));
+  const stops = [...text.matchAll(stop)].map((m) => Number(m[1]));
+  // a cortina without a start point has no start mark: pair each stop with the start right before it
+  const out: number[] = [];
+  let si = 0;
+  const pos = (re: RegExp) => [...text.matchAll(re)].map((m) => m.index ?? 0);
+  const sp = pos(start);
+  const tp = pos(stop);
+  tp.forEach((at, i) => {
+    let st = 0;
+    while (si < sp.length && sp[si]! < at) {
+      st = starts[si]!;
+      si++;
+    }
+    out.push(Math.round((stops[i]! - st) * 10) / 10);
+  });
+  return out;
+}
 test("cortina play length: the Export sheet's stepper changes the M3U8 (VLC stop-time) and the setting persists in Settings → Playback", async ({
   browser,
   request,
@@ -1381,17 +1401,30 @@ test("cortina play length: the Export sheet's stepper changes the M3U8 (VLC stop
   ).text();
   const cortinas = p.tandas.filter((t: { cortina: unknown }) => t.cortina).length;
   expect(cortinas).toBeGreaterThan(0);
-  expect(at60.match(/^#EXTVLCOPT:stop-time=60$/gm)).toHaveLength(cortinas);
+  const m3u = playedLengths(at60, /^#EXTVLCOPT:start-time=([\d.]+)$/gm, /^#EXTVLCOPT:stop-time=([\d.]+)$/gm);
+  expect(m3u).toEqual(Array(cortinas).fill(60));
   const xspf = await (
     await request.post(`${APP}/api/export`, { data: { playlist: p, format: "xspf", cortinaStopSec: 60 } })
   ).text();
-  expect(xspf.match(/<vlc:option>stop-time=60<\/vlc:option>/g)).toHaveLength(cortinas);
+  expect(
+    playedLengths(
+      xspf,
+      /<vlc:option>start-time=([\d.]+)<\/vlc:option>/g,
+      /<vlc:option>stop-time=([\d.]+)<\/vlc:option>/g,
+    ),
+  ).toEqual(Array(cortinas).fill(60));
   const rb = await (
     await request.post(`${APP}/api/export`, {
       data: { playlist: p, format: "rekordbox", cortinaStopSec: 60 },
     })
   ).text();
-  expect(rb.match(/<POSITION_MARK [^>]*Start="60\.000"/g)).toHaveLength(cortinas);
+  expect(
+    playedLengths(
+      rb,
+      /<POSITION_MARK Name="Cortina in [^"]*" Type="0" Start="([\d.]+)"/g,
+      /<POSITION_MARK Name="Cortina out [^"]*" Type="0" Start="([\d.]+)"/g,
+    ),
+  ).toEqual(Array(cortinas).fill(60));
   // the sheet
   const ctx = await browser.newContext({ baseURL: APP });
   const page: Page = await ctx.newPage();
@@ -1409,8 +1442,9 @@ test("cortina play length: the Export sheet's stepper changes the M3U8 (VLC stop
     sheet.getByRole("button", { name: /M3U8 playlist/ }).click(),
   ]);
   const text = (await import("node:fs")).readFileSync((await download.path())!, "utf8");
-  expect(text).toContain("#EXTVLCOPT:stop-time=50");
-  expect(text).not.toContain("#EXTVLCOPT:stop-time=45");
+  const lens = playedLengths(text, /^#EXTVLCOPT:start-time=([\d.]+)$/gm, /^#EXTVLCOPT:stop-time=([\d.]+)$/gm);
+  expect(lens.length).toBeGreaterThan(0);
+  expect(new Set(lens)).toEqual(new Set([50]));
   // Settings → Playback shows the same value and can hand it back to the composer
   await page.goto("/settings");
   const playback = page.getByRole("group", { name: "Cortina play length" });
