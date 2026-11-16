@@ -27,7 +27,7 @@ export function releaseNotes({ version, build, commit, notes, release = readRele
 |---|---|
 | Version | **${version}** (build ${build}) |
 | Commit | \`${commit}\` |
-| Web | ${release.webUrl} (deployed from the same commit; \`/api/version\` reports it) |
+| Web | ${release.webUrl || "self-hosted: deploy your own (docs/SELF_DEPLOY.md)"} |
 | iPhone, iPad, Mac App Store | ${store} |
 | Mac download | [TDJ-macOS.dmg](https://github.com/${release.repo}/releases/download/v${version}/TDJ-macOS.dmg), signed and notarised, updates itself; \`SHA256SUMS\` attached |
 `;

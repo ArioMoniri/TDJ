@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="120" height="40" viewBox="0 0 120 40" role="img" aria-label="Open the Web App">
-<title>Open the Web App</title>
-<rect x="0.5" y="0.5" width="119" height="39" rx="6.5" fill="#fff" stroke="#a6a6a6"/>
-<g fill="none" stroke="#000" stroke-width="1.6"><circle cx="21" cy="20" r="9"/><ellipse cx="21" cy="20" rx="4" ry="9"/><path d="M12 20h18M13.5 15h15M13.5 25h15"/></g>
-<text x="38" y="15.5" fill="#000" font-family="-apple-system, 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="8.5" letter-spacing="0.2">Open the</text>
-<text x="37.5" y="31" fill="#000" font-family="-apple-system, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16.5" font-weight="500" letter-spacing="-0.3">Web App</text>
-</svg>

@@ -1,6 +1,6 @@
 # Round 4 — three dancers use the live product
 
-Target: https://d3k5k2c1l0s5ri.cloudfront.net, tested 19 Oct 2026 with Playwright (Chromium; desktop 1280×900 and iPhone 15 Pro emulation). Every screenshot named below lives in `/tmp/claude-0/-home-user-TDJ/73d2c9cf-6bc0-5f5f-b08c-fd038ddd8f72/scratchpad/userreview/`; every set below was captured from the real `/api/compose` response the page received. No repo code was changed.
+Target: https://your-app (the author's private deployment), tested 19 Oct 2026 with Playwright (Chromium; desktop 1280×900 and iPhone 15 Pro emulation). Every screenshot named below lives in `/tmp/claude-0/-home-user-TDJ/73d2c9cf-6bc0-5f5f-b08c-fd038ddd8f72/scratchpad/userreview/`; every set below was captured from the real `/api/compose` response the page received. No repo code was changed.
 
 Personas:
 

@@ -1,6 +1,6 @@
 # TDJ round 4: UX review of the Apple-native pass (live build)
 
-Reviewed: https://d3k5k2c1l0s5ri.cloudfront.net on 2026-10-19, Chromium via Playwright. Desktop 1440×900 light and dark, tablet 820×1000, iPhone 15 Pro (393×659 CSS px, 3×, touch). 140 captures live in `/tmp/claude-0/-home-user-TDJ/73d2c9cf-6bc0-5f5f-b08c-fd038ddd8f72/scratchpad/uxreview/` and are cited by file name (`d-` desktop, `t-` tablet, `m-` phone; `-dark`/`-light`). Intent documents: `docs/design/apple-native-pass.md`, `docs/design/motion-system.md`. Code read: every file in `apps/web/src/components/`, `apps/web/src/app/**/page.tsx`, `globals.css`, `lib/motion.ts`, `lib/hooks.ts`.
+Reviewed: https://your-app (the author's private deployment) on 2026-10-19, Chromium via Playwright. Desktop 1440×900 light and dark, tablet 820×1000, iPhone 15 Pro (393×659 CSS px, 3×, touch). 140 captures live in `/tmp/claude-0/-home-user-TDJ/73d2c9cf-6bc0-5f5f-b08c-fd038ddd8f72/scratchpad/uxreview/` and are cited by file name (`d-` desktop, `t-` tablet, `m-` phone; `-dark`/`-light`). Intent documents: `docs/design/apple-native-pass.md`, `docs/design/motion-system.md`. Code read: every file in `apps/web/src/components/`, `apps/web/src/app/**/page.tsx`, `globals.css`, `lib/motion.ts`, `lib/hooks.ts`.
 
 Note on `/?slow=1`: `testSlowdownMs()` only fires on `localhost`, so on the live host the compose round-trip is ~0.7 s and the four-step narrative is rarely on screen for more than one step. Loading captures were taken at 350 ms intervals instead; see §5.
 

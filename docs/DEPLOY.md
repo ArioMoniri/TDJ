@@ -1,6 +1,6 @@
 # Deploy
 
-Current production: https://d3k5k2c1l0s5ri.cloudfront.net (stack `tdj-production`, us-east-1, deployed by run #5 of "Deploy to AWS" on 2026-10-19).
+The author's own deployment is private (stack `tdj-production`, us-east-1). Everyone else deploys their own: see docs/SELF_DEPLOY.md.
 
 Lessons from the first deploys: pass a full 40-character SHA to the `commit` input; do not pin a pnpm version in `pnpm/action-setup` when `packageManager` is set; GitHub OIDC `sub` claims now carry `org@id/repo@id`, so the trust policy lists both forms; do not override `buildCommand` in `sst.config.ts` or OpenNext will not run.
 
@@ -143,16 +143,16 @@ Settings → Connectors shows one row per service with a single button. What eac
 | `ANTHROPIC_API_KEY` | Optional deployment-wide model key. It is a *shared* key exactly like the one saved on `/admin` (counted per DJ, per client address and per deployment, `AI_DAILY_LIMIT` / `AI_DAILY_TOTAL`); the `/admin` key wins when both exist. |
 | `PIPEDREAM_PROJECT_ID`, `PIPEDREAM_CLIENT_ID`, `PIPEDREAM_CLIENT_SECRET` | Optional **Pipedream Connect** alternative (Settings → Advanced) for YouTube, Dropbox, Google Drive and Spotify: `/api/connect/token` mints a Connect Link, `/api/connect/export` sends files/playlists through the Pipedream proxy. Paid beyond 100 users; the direct logins above are the free path. |
 | `PIPEDREAM_ENVIRONMENT` (variable) | `development` (default; the free plan, no production end users) or `production`. |
-| `NEXT_PUBLIC_APP_URL` (variable) | Public origin used for redirect URIs (e.g. `https://d3k5k2c1l0s5ri.cloudfront.net`). Absent → the "Public URL" saved on `/admin`, else derived from the request's `Host`/`X-Forwarded-Proto`. |
+| `NEXT_PUBLIC_APP_URL` (variable) | Public origin used for redirect URIs (e.g. `https://your-app`). Absent → the "Public URL" saved on `/admin`, else derived from the request's `Host`/`X-Forwarded-Proto`. |
 
 ### Redirect URIs (one list, every provider)
 
 | Provider | Production | Local `pnpm dev` |
 |---|---|---|
-| Spotify (hosted) | `https://d3k5k2c1l0s5ri.cloudfront.net/api/spotify/callback` | `http://127.0.0.1:3000/api/spotify/callback` |
-| Spotify (BYO PKCE, keep) | `https://d3k5k2c1l0s5ri.cloudfront.net/callback` | `http://127.0.0.1:3000/callback` |
-| Google | `https://d3k5k2c1l0s5ri.cloudfront.net/api/google/callback` | `http://127.0.0.1:3000/api/google/callback` |
-| Dropbox | `https://d3k5k2c1l0s5ri.cloudfront.net/api/dropbox/callback` | `http://127.0.0.1:3000/api/dropbox/callback` |
+| Spotify (hosted) | `https://your-app/api/spotify/callback` | `http://127.0.0.1:3000/api/spotify/callback` |
+| Spotify (BYO PKCE, keep) | `https://your-app/callback` | `http://127.0.0.1:3000/callback` |
+| Google | `https://your-app/api/google/callback` | `http://127.0.0.1:3000/api/google/callback` |
+| Dropbox | `https://your-app/api/dropbox/callback` | `http://127.0.0.1:3000/api/dropbox/callback` |
 
 **The Mac and iPhone / iPad apps** add exactly one redirect URI, at Spotify only: `tdj://spotify-callback` (PKCE from
 the device with the app's Client ID, `TDJ_SPOTIFY_CLIENT_ID`; tick *iOS* and add the bundle ID `com.ariomoniri.tdj`).

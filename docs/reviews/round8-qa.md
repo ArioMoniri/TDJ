@@ -1,6 +1,6 @@
 # Round 8 QA — live app, every control (2026-10-20)
 
-Target: https://d3k5k2c1l0s5ri.cloudfront.net (plus a local production build of HEAD `1e22989` for the e2e suite and for confirming the P0).
+Target: https://your-app (the author's private deployment) (plus a local production build of HEAD `1e22989` for the e2e suite and for confirming the P0).
 Tooling: Playwright 1.64 / Chromium `/opt/pw-browsers/chromium`, desktop 1440×900 (dark + light) and iPhone 15 Pro emulation (light), `page.on('console'|'pageerror'|'requestfailed'|'response ≥ 400')` captured for every run. Scripts walked each page control by control; screenshots on every failure are in `docs/reviews/round8-qa/` (82 captures). The harness itself lives outside the repo (scratchpad), nothing in `apps/` was changed by this review.
 
 Caveat: while this review ran, another session was editing ~70 source files in this checkout. The build and the e2e suite below were taken from a clean HEAD before those edits; the live site was tested as deployed.

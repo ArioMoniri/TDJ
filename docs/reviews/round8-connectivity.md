@@ -1,7 +1,7 @@
 # Round 8: connectivity audit
 
 Every external connection of the app, read end to end in the code and probed on the live deployment
-(`https://d3k5k2c1l0s5ri.cloudfront.net`, 2026-10-20, curl + node from a cloud session). Scope: Spotify hosted login and
+(`https://your-app (the author's private deployment)`, 2026-10-20, curl + node from a cloud session). Scope: Spotify hosted login and
 the BYO PKCE fallback, server-side matching and playlist creation, Google (Drive, YouTube), Dropbox, Deezer previews,
 MusicBrainz, the four model providers and the shared key, the webhook export, `/api/admin/*`, `/api/db`, caching,
 Lambda timeouts, CORS/CSRF, cookies and the words a DJ reads when something fails.

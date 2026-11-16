@@ -172,7 +172,7 @@ export function About() {
           chevron
         />
       )}
-      {channel !== "web" && (
+      {channel !== "web" && LINKS.web && (
         <Row
           tile={
             <Tile color="#ff9500">

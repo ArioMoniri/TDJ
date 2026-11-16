@@ -17,7 +17,7 @@ commit ([docs/RELEASING.md](docs/RELEASING.md)).
 <p align="center">
   <a href="https://apps.apple.com/app/id6834924534"><picture><source media="(prefers-color-scheme: dark)" srcset="media/badges/download-on-the-app-store-white-en-us.svg"><img src="media/badges/download-on-the-app-store-black-en-us.svg" alt="Download on the App Store, for iPhone and iPad (coming soon)" height="40"></picture></a>&nbsp;&nbsp;
   <a href="https://apps.apple.com/app/id6834924534?platform=mac"><picture><source media="(prefers-color-scheme: dark)" srcset="media/badges/download-on-the-mac-app-store-white-en-us.svg"><img src="media/badges/download-on-the-mac-app-store-black-en-us.svg" alt="Download on the Mac App Store (coming soon)" height="40"></picture></a>&nbsp;&nbsp;
-  <a href="https://d3k5k2c1l0s5ri.cloudfront.net"><picture><source media="(prefers-color-scheme: dark)" srcset="media/badges/open-the-web-app-white.svg"><img src="media/badges/open-the-web-app-black.svg" alt="Open the web app" height="40"></picture></a>&nbsp;&nbsp;
+  <a href="docs/SELF_DEPLOY.md"><picture><source media="(prefers-color-scheme: dark)" srcset="media/badges/deploy-your-own-web-app-white.svg"><img src="media/badges/deploy-your-own-web-app-black.svg" alt="Deploy your own web app" height="40"></picture></a>&nbsp;&nbsp;
   <a href="https://github.com/ArioMoniri/TDJ/releases/latest/download/TDJ-macOS.dmg"><picture><source media="(prefers-color-scheme: dark)" srcset="media/badges/download-the-mac-dmg-white.svg"><img src="media/badges/download-the-mac-dmg-black.svg" alt="Download the Mac app (DMG)" height="40"></picture></a>
 </p>
 <p align="center" data-store-status="coming-soon"><sub><b>Coming to the App Store.</b> The iPhone, iPad and Mac apps are in TestFlight beta while App Review is pending; the store links open once the listing is approved.</sub></p>
@@ -27,7 +27,8 @@ commit ([docs/RELEASING.md](docs/RELEASING.md)).
 - **Mac download**: one DMG for Apple silicon and Intel, signed and notarised, and it updates itself (it asks
   first). Each [release](https://github.com/ArioMoniri/TDJ/releases) carries a `SHA256SUMS` file:
   `shasum -a 256 -c SHA256SUMS`.
-- **Web**: <https://d3k5k2c1l0s5ri.cloudfront.net>. Nothing to install, and any key you add stays in your browser.
+- **Web**: there is no public web instance. Deploy your own in one click to your AWS account, or run it on your own
+  computer ([docs/SELF_DEPLOY.md](docs/SELF_DEPLOY.md)); any key you add stays in your browser or on your server.
   Settings → About says when a newer version is live; reload when the night is over.
 - **Languages**: English and Turkish, in the apps, on the web and on the store listing.
 

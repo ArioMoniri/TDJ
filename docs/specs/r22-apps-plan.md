@@ -172,7 +172,7 @@ Manual signing with certificates + profiles as base64 secrets (predictable in CI
 | `MAC_APPSTORE_PROFILE` | secret | base64 of the macOS "Mac App Store Connect" `.provisionprofile` | Mac App Store |
 | `TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | secret (optional) | Tauri updater key (`tauri signer generate`) | DMG auto-update |
 | `TDJ_APP_BUNDLE_ID` | variable | e.g. `com.ariomoniri.tdj` | all |
-| `TDJ_APP_BACKEND_URL` | variable | default server, e.g. `https://d3k5k2c1l0s5ri.cloudfront.net` | all |
+| `TDJ_APP_BACKEND_URL` | variable | default server, e.g. `https://your-app (the author's private deployment)` | all |
 | `APPLE_APP_ID` | variable | numeric Apple ID of the app record (App Information) | deliver |
 
 The keychain password is generated per job (`openssl rand -base64 24`), not a secret. Nothing here is ever echoed; `p8`/`p12` files are written to `$RUNNER_TEMP` and the keychain is deleted in an `always()` step.

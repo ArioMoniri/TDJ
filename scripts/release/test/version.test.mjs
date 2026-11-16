@@ -50,7 +50,8 @@ test("release links: App Store ID from the root package.json, nothing claims the
   assert.equal(r.appStoreUrl, `https://apps.apple.com/app/id${r.appStoreId}`);
   assert.match(r.macAppStoreUrl, /platform=mac$/);
   assert.equal(r.dmgUrl, "https://github.com/ArioMoniri/TDJ/releases/latest/download/TDJ-macOS.dmg");
-  assert.match(r.webUrl, /^https:\/\//);
+  // no public web instance: empty, or a deployment's own https address
+  assert.ok(r.webUrl === "" || r.webUrl.startsWith("https://"));
   assert.ok(r.testflightUrl === "" || r.testflightUrl.startsWith("https://testflight.apple.com/join/"));
   assert.equal(typeof r.appStoreLive, "boolean");
 });

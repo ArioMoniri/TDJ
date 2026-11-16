@@ -14,7 +14,8 @@ const APP_STORE_ID = process.env.NEXT_PUBLIC_TDJ_APP_STORE_ID || "";
 
 /** Where to get T-DJ. The App Store links work once App Review approves (`release.appStoreLive`). */
 export const LINKS = {
-  web: process.env.NEXT_PUBLIC_TDJ_WEB_URL || "https://d3k5k2c1l0s5ri.cloudfront.net",
+  // no public instance: a deployment sets its own address (NEXT_PUBLIC_TDJ_WEB_URL); empty hides the link
+  web: process.env.NEXT_PUBLIC_TDJ_WEB_URL || "",
   appStore: APP_STORE_ID ? `https://apps.apple.com/app/id${APP_STORE_ID}` : "",
   macAppStore: APP_STORE_ID ? `https://apps.apple.com/app/id${APP_STORE_ID}?platform=mac` : "",
   appStoreLive: process.env.NEXT_PUBLIC_TDJ_APP_STORE_LIVE === "1",

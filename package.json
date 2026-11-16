@@ -8,7 +8,7 @@
     "appStoreId": "6834924534",
     "appStoreLive": false,
     "testflightUrl": "",
-    "webUrl": "https://d3k5k2c1l0s5ri.cloudfront.net"
+    "webUrl": ""
   },
   "packageManager": "pnpm@10.18.0",
   "engines": {
