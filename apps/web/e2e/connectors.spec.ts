@@ -1116,10 +1116,19 @@ test("2026-11: an exported Spotify playlist follows the night — a reorder and 
       timeout: 30000,
     })
     .toBe(true);
-  // the playlist holds the new order: the first two rows swapped, read back (GET after the PUT)
-  await expect
-    .poll(() => lists.get("pl1")?.uris.slice(0, 2), { timeout: 20000 })
-    .toEqual([before[1], before[0]]);
+  // the playlist holds the new order: tanda 1's first two songs swapped (after the opening, when there is one),
+  // every other row in place, read back (GET after the PUT)
+  const swapped = (uris: string[] | undefined) => {
+    if (!uris || uris.length !== before.length) return false;
+    const i = uris.findIndex((u, k) => u !== before[k]);
+    return (
+      i >= 0 &&
+      uris[i] === before[i + 1] &&
+      uris[i + 1] === before[i] &&
+      uris.every((u, k) => k === i || k === i + 1 || u === before[k])
+    );
+  };
+  await expect.poll(() => swapped(lists.get("pl1")?.uris), { timeout: 20000 }).toBe(true);
   const put = hits.findIndex((h) => h.method === "PUT" && /\/v1\/playlists\/pl1\/items/.test(h.url));
   expect(hits.slice(put).some((h) => h.method === "GET" && /\/v1\/playlists\/pl1\/items/.test(h.url))).toBe(
     true,
@@ -1136,7 +1145,7 @@ test("2026-11: an exported Spotify playlist follows the night — a reorder and 
   // undo syncs too: the playlist goes back to the exported order
   await page.locator("body").click({ position: { x: 5, y: 5 } });
   await page.keyboard.press("ControlOrMeta+z");
-  await expect.poll(() => lists.get("pl1")?.uris.slice(0, 2), { timeout: 30000 }).toEqual(before.slice(0, 2));
+  await expect.poll(() => lists.get("pl1")?.uris, { timeout: 30000 }).toEqual(before);
   // the Booth shows the chip
   await page.getByTestId("play-the-night").first().click();
   await expect(page).toHaveURL(/\/booth/);
