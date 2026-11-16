@@ -21,6 +21,7 @@ import { SOURCE_LABEL } from "@/lib/songView";
 import { spotifyUri, spotifyUrl } from "@/lib/spotifyLink";
 import { toast } from "@/lib/toast";
 import type { Song, SongPatch } from "@/lib/types";
+import { useSharedQuery } from "@/lib/usePageQuery";
 import { useSmartSearch } from "@/lib/useSmartSearch";
 import { metaLine, yearText } from "@/lib/year";
 import { loadMatches } from "@/lib/youtubeMatches";
@@ -112,7 +113,8 @@ export function SongsTab() {
   const { overrides, update } = useDb();
   const editing = useDbEdit();
   const reduced = useReducedMotion();
-  const [q, setQ] = useState("");
+  // 2026-11: the page's one search text (lib/usePageQuery.ts): it stays when the tab changes
+  const [q, setQ] = useSharedQuery();
   const [filters, setFilters] = useState<SongFilters>({});
   const [adding, setAdding] = useState(false);
   const [finding, setFinding] = useState<Song | null>(null);

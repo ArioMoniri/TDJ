@@ -25,6 +25,7 @@ import { fade } from "@/lib/motion";
 import { countChanges, parseImport } from "@/lib/overrides";
 import { useStore } from "@/lib/store";
 import type { AppOverrides, Meta } from "@/lib/types";
+import { replaceParam } from "@/lib/usePageQuery";
 
 type Tab = "songs" | "orchestras" | "cortinas" | "rules" | "context" | "memory";
 const MONTH = lazy(() => [
@@ -76,7 +77,12 @@ const TAB_TIPS: Record<Tab, string> = {
 
 export default function DatabasePage() {
   const { overrides, overridesReady, updateOverrides, resetOverrides } = useStore();
-  const [tab, setTab] = useState<Tab>("songs");
+  const [tab, setTabState] = useState<Tab>("songs");
+  // 2026-11: the tab in the address too (`?tab=`), beside the one search text its tabs share (layout.tsx)
+  const setTab = (k: Tab) => {
+    setTabState(k);
+    replaceParam("tab", k === "songs" ? null : k);
+  };
   const [editing, setEditing] = useState(false);
   const [meta, setMeta] = useState<Meta | null>(null);
   const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null);
@@ -89,7 +95,7 @@ export default function DatabasePage() {
   useEffect(() => {
     const want = new URLSearchParams(location.search).get("tab") as Tab | null;
     if (want && (["songs", "orchestras", "cortinas", "rules", "context", "memory"] as Tab[]).includes(want)) {
-      setTab(want);
+      setTabState(want);
       const id = location.hash.slice(1);
       if (id) setTimeout(() => document.getElementById(id)?.scrollIntoView({ block: "start" }), 120);
     }

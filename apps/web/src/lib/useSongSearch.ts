@@ -8,7 +8,16 @@ import {
   type TextField,
   type TextResult,
 } from "@tdj/core";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  startTransition,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import { localSearch, localSearchReady, subscribeLocalSearch, warmLocalSearch } from "./localSearch";
 
 /**
  * The shared song search on the client (2026-11). `useSongSearch(query, { filters })` asks POST /api/search (core
@@ -100,6 +109,11 @@ export function useSongSearch(query: string, o: SongSearchRequest = {}): UseSong
   const q = query;
   const browse = o.browse ?? hasFilters(o.filters);
   const asks = q.trim().length >= (o.minLength ?? 2) || (browse && !q.trim());
+  // 2026-11: the catalogue in the browser (lib/localSearch.ts) once its worker is ready; the server until then
+  const local = useSyncExternalStore(subscribeLocalSearch, localSearchReady, () => false) && !o.endpoint;
+  useEffect(() => {
+    if (!o.endpoint) warmLocalSearch();
+  }, [o.endpoint]);
   // biome-ignore lint/correctness/useExhaustiveDependencies: `key` stands for the query and its options
   useEffect(() => {
     ctl.current?.abort();
@@ -110,10 +124,19 @@ export function useSongSearch(query: string, o: SongSearchRequest = {}): UseSong
       setError(false);
       return;
     }
-    setLoading(true);
     const c = new AbortController();
     ctl.current = c;
-    const h = setTimeout(() => {
+    const take = (r: SongSearchPage) => {
+      if (c.signal.aborted) return;
+      // the results render as a transition: the next keystroke interrupts them, the field never waits
+      startTransition(() => {
+        setData(r);
+        setAnswered(q);
+        setError(false);
+        setLoading(false);
+      });
+    };
+    const ask = () =>
       fetchSongSearch(q, {
         filters: o.filters,
         limit: o.limit,
@@ -121,48 +144,63 @@ export function useSongSearch(query: string, o: SongSearchRequest = {}): UseSong
         signal: c.signal,
         endpoint: o.endpoint,
       })
-        .then((r) => {
-          if (c.signal.aborted) return;
-          setData(r);
-          setAnswered(q);
-          setError(false);
-        })
+        .then(take)
         .catch((e) => {
           if (c.signal.aborted || (e as Error).name === "AbortError") return;
           setError(true);
-        })
-        .finally(() => {
-          if (!c.signal.aborted) setLoading(false);
+          setLoading(false);
         });
-    }, o.debounce ?? 160);
+    if (local) {
+      // no pause and no request: a few milliseconds in the worker (the server if it fails)
+      localSearch(q, { filters: o.filters, limit: o.limit ?? 50, group: o.group })
+        .then(take)
+        .catch(() => {
+          if (!c.signal.aborted) void ask();
+        });
+      return () => c.abort();
+    }
+    setLoading(true);
+    const h = setTimeout(ask, o.debounce ?? 160);
     return () => {
       clearTimeout(h);
       c.abort();
     };
-  }, [key, asks]);
+  }, [key, asks, local]);
   const hasMore = !!data && data.items.length < data.total;
   const loadMore = useCallback(() => {
     if (!data || loading || data.items.length >= data.total) return;
     const c = new AbortController();
     ctl.current = c;
     setLoading(true);
-    fetchSongSearch(q, {
-      filters: o.filters,
-      limit: o.limit,
-      offset: data.items.length,
-      group: o.group,
-      signal: c.signal,
-      endpoint: o.endpoint,
-    })
-      .then((r) => {
-        if (c.signal.aborted) return;
-        setData((d) => (d ? { ...d, items: [...d.items, ...r.items] } : r));
-      })
+    const more = (r: SongSearchPage) => {
+      if (c.signal.aborted) return;
+      setData((d) => (d ? { ...d, items: [...d.items, ...r.items] } : r));
+    };
+    const server = () =>
+      fetchSongSearch(q, {
+        filters: o.filters,
+        limit: o.limit,
+        offset: data.items.length,
+        group: o.group,
+        signal: c.signal,
+        endpoint: o.endpoint,
+      }).then(more);
+    (local
+      ? localSearch(q, {
+          filters: o.filters,
+          limit: o.limit ?? 50,
+          offset: data.items.length,
+          group: o.group,
+        })
+          .then(more)
+          .catch(server)
+      : server()
+    )
       .catch(() => {})
       .finally(() => {
         if (!c.signal.aborted) setLoading(false);
       });
-  }, [data, loading, q, o.filters, o.limit, o.group, o.endpoint]);
+  }, [data, loading, q, o.filters, o.limit, o.group, o.endpoint, local]);
   return { data, answered, loading, error, hasMore, loadMore };
 }
 

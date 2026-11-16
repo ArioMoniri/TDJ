@@ -8,6 +8,7 @@ import { coverageWith, DEFAULT_COVERAGE, editGrade, nextGrade } from "@/lib/era"
 import { eraWords, gradeWords as gradeWord } from "@/lib/eraWords";
 import { useSongOpen } from "@/lib/songOpen";
 import type { MetaOrchestra, OrchestraProfile } from "@/lib/types";
+import { useSharedQuery } from "@/lib/usePageQuery";
 import { useTextSearch } from "@/lib/useSongSearch";
 import { ActionRow, CheckRow, Group, PickerRow, Row } from "../Form";
 import { SearchField } from "../SearchField";
@@ -204,7 +205,8 @@ function Heatmap({
 export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
   const { overrides, update } = useDb();
   const editing = useDbEdit();
-  const [q, setQ] = useState("");
+  // 2026-11: the page's one search text (lib/usePageQuery.ts): it stays when the tab changes
+  const [q, setQ] = useSharedQuery();
   const [by, setBy] = useState<GroupBy>("tier");
   const [limit, setLimit] = useState(PAGE);
   const [detail, setDetail] = useState<MetaOrchestra | null>(null);
