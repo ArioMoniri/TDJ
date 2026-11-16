@@ -13,6 +13,7 @@
  *   --skip=capture   reuse the last capture (re-compose / re-encode only)
  *   --keep-master    keep the lossless composite (media/readme/.hero.master.mp4); then --skip=capture,render re-encodes only
  *   --concurrency=N  Remotion's render threads (default 2: the machine is shared)
+ *   --blur=N         camera motion blur on the lid with N sub-frames (N× the WebGL cost of those frames; default off)
  */
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
@@ -50,8 +51,8 @@ const LADDER: Array<[fps: number, width: number, colors: number, dither: string]
   [12, 840, 128, "none"],
 ];
 /** Hero.tsx: INTRO and OUTRO, in seconds */
-const INTRO_S = 2.9;
-const OUTRO_S = 2.1;
+const INTRO_S = 4.2;
+const OUTRO_S = 2.8;
 
 function gif(src: string, dst: string) {
   const dur = Number(
@@ -129,6 +130,31 @@ async function main() {
   const master = `${OUT}/.${NAME}.master.mp4`;
   if (!skip.has("render")) {
     const t = clock();
+    // the panel's pictures while the lid opens and shuts: the capture's first and last frames
+    const raw = `${RAW}/hero.mp4`;
+    ffmpeg(["-i", raw, "-frames:v", "1", "-q:v", "2", `${RAW}/hero-first.jpg`]);
+    ffmpeg(["-sseof", "-0.2", "-i", raw, "-frames:v", "1", "-q:v", "2", `${RAW}/hero-last.jpg`]);
+    // the laptop at rest, rendered once in WebGL: the app part of the film is this still with the video on it
+    execFileSync(
+      "pnpm",
+      [
+        "--filter",
+        "@tdj/video",
+        "exec",
+        "remotion",
+        "still",
+        "src/index.ts",
+        "Hero",
+        `${RAW}/hero-rest.png`,
+      ].concat([
+        `--props=${JSON.stringify({ name: "hero", mode: "rest" })}`,
+        "--frame=0",
+        "--gl=swangle",
+        "--log=error",
+      ]),
+      { stdio: "inherit", cwd: ROOT },
+    );
+    console.log(`  rest still: ${t()}`);
     execFileSync(
       "pnpm",
       [
@@ -140,7 +166,9 @@ async function main() {
         "src/index.ts",
         "Hero",
         master,
-        `--props=${JSON.stringify({ name: "hero" })}`,
+        `--props=${JSON.stringify({ name: "hero", rest: true, blur: Number(arg("blur") ?? 0) })}`,
+        "--timeout=180000",
+        "--gl=swangle",
         "--codec=h264",
         "--crf=14",
         `--concurrency=${concurrency}`,

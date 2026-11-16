@@ -1,12 +1,13 @@
 /**
- * README stills: a real screenshot at 2× pixels, framed like the clips (the brand background, a rounded window or
- * an iPad / iPhone body, a soft shadow), saved as WebP. The frame is drawn by the same browser from a small HTML
- * page, so no image library is needed.
+ * README stills: a real screenshot (2×, a phone 3×), framed like the clips (the brand background, the 3D-rendered
+ * laptop, tablet or phone from apps/video/public/frames, a soft shadow), saved as WebP. The frame is put together
+ * by the same browser from a small HTML page, so no image library is needed.
  */
-import { mkdirSync, rmSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync } from "node:fs";
 import type { Browser, Page } from "playwright";
 import {
   fitDevice,
+  frameFile,
   frameOver,
   frameUnder,
   type Kind,
@@ -14,6 +15,11 @@ import {
   screenRect,
 } from "../../../video/src/frames";
 import { newCtx, offlineAudio, openBooth, openFeatured } from "./clips";
+
+/** the device picture as a data URL (`pnpm media:frames` renders them; they are committed) */
+const frameData = (kind: Kind) =>
+  `data:image/png;base64,${readFileSync(new URL(`../../../video/public/${frameFile(kind)}`, import.meta.url)).toString("base64")}`;
+
 import { ffmpeg } from "./ffmpeg";
 
 export type StillCtx = { browser: Browser; base: string; out: string };
@@ -65,7 +71,7 @@ async function frame(
     frameUnder(kind, c, { dark: look.dark }),
     `<div style="position:absolute;left:${sc.x}px;top:${sc.y}px;width:${sc.w}px;height:${sc.h}px;border-radius:${screenRadius(kind, c)};overflow:hidden;background:#000">`,
     `<img src="${src}" style="position:absolute;left:${c.x - sc.x}px;top:${c.y - sc.y}px;width:${c.w}px;height:${c.h}px"></div>`,
-    frameOver(kind, c, { dark: look.dark, statusBg: look.bg }),
+    frameOver(kind, c, { dark: look.dark, statusBg: look.bg, img: frameData(kind) }),
   ].join("");
   const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 2 });
   await page.setContent(
