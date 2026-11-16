@@ -1,6 +1,6 @@
 # Round 22 — test-user panel on the live site
 
-Date: 2026-11-14 · Site: https://d3k5k2c1l0s5ri.cloudfront.net · Method: Playwright (Chromium /opt/pw-browsers/chromium, deviceScaleFactor 1), axe-core 4.10.2 for WCAG 2.1 AA, Playwright aria snapshots.
+Date: 2026-11-14 · Site: https://your-app (the author's private deployment) · Method: Playwright (Chromium /opt/pw-browsers/chromium, deviceScaleFactor 1), axe-core 4.10.2 for WCAG 2.1 AA, Playwright aria snapshots.
 Screenshots: `/tmp/claude-0/-home-user-TDJ/73d2c9cf-6bc0-5f5f-b08c-fd038ddd8f72/scratchpad/r22-test/` (written `S/` below). Scripts that reproduce every step are in `S/scripts/` (`p1*` DJ, `p2*` organiser, `p3*` newcomer, `p4*` accessibility).
 
 > **Read this first.** The live site was last deployed on **12 Nov 02:19 UTC** (`last-modified` of `/featured/golden-double-peak.json`). Nothing from round 21 is live: the Swap sheet, booth row play, Skip tonight, Last 4 tandas tango only, Jump to La Cumparsita, and the 25-tanda featured night (live has 23, the repo has 25). Every finding below is from the live build. Items marked *(re-test after deploy)* may already be fixed on `main`. Items marked *(still in HEAD)* were checked against the current source.

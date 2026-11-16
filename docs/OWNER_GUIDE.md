@@ -2,7 +2,7 @@
 
 You are the organiser: the person who put TDJ online for the DJs of your milonga, marathon or school. This page lists everything you must give or do, once, so a DJ can open the app, log in to Spotify and get written reviews without any setup of their own. Every step is a click, a paste or an e-mail; nothing runs in a terminal.
 
-The app address below is written as `https://your-app` (for the current deployment it is `https://d3k5k2c1l0s5ri.cloudfront.net`). Wherever a redirect URI is needed, `/admin` shows the exact text with a Copy button.
+The app address below is written as `https://your-app`. Wherever a redirect URI is needed, `/admin` shows the exact text with a Copy button.
 
 ## A. First time: open the owner page
 

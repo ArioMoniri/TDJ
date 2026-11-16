@@ -11,7 +11,7 @@ It builds on and does not repeat:
 
 Where this document disagrees with them, this document wins for round 22. Every deviation is marked **Δ**.
 
-Evidence: live captures from https://d3k5k2c1l0s5ri.cloudfront.net, recorded on 2026-11-14 with Playwright (Chromium 1194) at 1440×900 dark ("mac") and 1180×820 light with touch ("ipad"). Videos and frame sequences: `/tmp/claude-0/-home-user-TDJ/73d2c9cf-6bc0-5f5f-b08c-fd038ddd8f72/scratchpad/r22-motion/` (`video-mac/`, `video-ipad/`, `video-booth/`, `mac-*.png`, `ipad-*.png`, `b-*.png`, script `rec.js`/`rec2.js`).
+Evidence: live captures from https://your-app (the author's private deployment), recorded on 2026-11-14 with Playwright (Chromium 1194) at 1440×900 dark ("mac") and 1180×820 light with touch ("ipad"). Videos and frame sequences: `/tmp/claude-0/-home-user-TDJ/73d2c9cf-6bc0-5f5f-b08c-fd038ddd8f72/scratchpad/r22-motion/` (`video-mac/`, `video-ipad/`, `video-booth/`, `mac-*.png`, `ipad-*.png`, `b-*.png`, script `rec.js`/`rec2.js`).
 
 ---
 

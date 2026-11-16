@@ -48,7 +48,7 @@ deploy, the stack and the index of the other docs.
 | **iPhone** (App Store, TestFlight until review) | the universal iOS app, portrait; the tab bar for Compose, Booth, Library, History and More; the Booth's transport takes the tab bar's place during a night, above the home indicator, and the set list opens from it; audio keeps playing with the screen locked | App Store / TestFlight |
 | **iPad** (the same app) | every orientation, Split View and Stage Manager; the Booth on one screen in landscape | App Store / TestFlight |
 | **Mac** (Mac App Store, or the DMG from GitHub Releases) | menu bar commands and shortcuts, media keys and Now Playing, a display that stays awake, music folders, headphone cue on a second output | App Store, or the DMG's own updater (asks first) |
-| **Web** (<https://d3k5k2c1l0s5ri.cloudfront.net>, any browser) | everything above that a browser allows; rooms and short links on the deployment's server | reload; Settings → About says when a newer version is live |
+| **Web** (your own deployment, see docs/SELF_DEPLOY.md; any browser) | everything above that a browser allows; rooms and short links on the deployment's server | reload; Settings → About says when a newer version is live |
 
 The apps are standalone: the catalogue and the composer ship inside them, the DJ's database lives on the device,
 and no request goes to a T-DJ server unless the DJ links one (needed for Rooms and dancer hearts). All four carry
