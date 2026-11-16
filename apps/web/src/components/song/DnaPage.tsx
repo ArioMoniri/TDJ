@@ -21,7 +21,11 @@ function Inner({ kind }: { kind: DnaTarget["kind"] }) {
     return <p className="text-body mt-8 text-center text-[var(--label-2)]">{t("song.dna_not_found")}</p>;
   return (
     <>
-      <DnaBack />
+      {/* 2026-11 (iPhone: the page ran under the status bar and the Dynamic Island, Back scrolled away): the back
+          button sits in a glass bar pinned under the top safe area (`--chrome-top`), the page starts below it */}
+      <div className="dna-page-bar" data-testid="dna-page-bar">
+        <DnaBack />
+      </div>
       <DnaView target={{ kind, id }} />
     </>
   );

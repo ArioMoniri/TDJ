@@ -11,6 +11,20 @@
     user-select: none;
   }
 }
+/* the Song DNA page's top bar: pinned under the status bar / Dynamic Island / title bar, Back always in view */
+.dna-page-bar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  min-height: calc(var(--chrome-top) + 48px);
+  padding-top: var(--chrome-top);
+  background: color-mix(in srgb, var(--material-bar) var(--material-bar-alpha, 97%), transparent);
+  backdrop-filter: blur(24px) saturate(1.6);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  border-bottom: 0.5px solid var(--separator);
+}
 /* a version row: "This recording" first and highlighted; the cover plays (a play glyph on hover / focus) */
 .song-version[data-current] {
   background: color-mix(in srgb, var(--tint) 9%, transparent);

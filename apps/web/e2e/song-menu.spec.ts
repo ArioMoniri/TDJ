@@ -278,6 +278,50 @@ test("Song DNA at 393 px: the recordings chart scrolls inside its frame, never t
   });
 });
 
+test("Song DNA on an iPhone: the page starts under the status bar / Dynamic Island and Back stays in view", async ({
+  page,
+}) => {
+  const SAFE = 59; // an iPhone 15 Pro's top inset (Chromium has none: the token the bars read is overridden)
+  await page.setViewportSize({ width: 393, height: 852 });
+  await page.addInitScript((top) => {
+    document.addEventListener("DOMContentLoaded", () => {
+      const s = document.createElement("style");
+      s.textContent = `:root{--safe-top:${top}px !important}`;
+      document.head.append(s);
+    });
+  }, SAFE);
+  await mocks(page);
+  await page.goto("/library");
+  await page.locator("#library-search").first().fill("malena troilo");
+  const row = page.getByTestId("library-row").filter({ hasText: "Malena" }).first();
+  await expect(row).toBeVisible({ timeout: 30000 });
+  await row.getByTestId("song-info").click();
+  await page.getByTestId("song-details-sheet").getByTestId("song-dna-link").click();
+  await expect(page).toHaveURL(/\/song\?id=/, { timeout: 30000 });
+  const title = page.getByTestId("dna-title");
+  await expect(title).toBeVisible({ timeout: 30000 });
+  const back = page.getByTestId("dna-back");
+  const bar = page.getByTestId("dna-page-bar");
+  const b0 = (await back.boundingBox())!;
+  const barBox = (await bar.boundingBox())!;
+  expect(b0.y).toBeGreaterThanOrEqual(SAFE);
+  expect(b0.height).toBeGreaterThanOrEqual(43.5);
+  // the page's content (the cover, the title) starts below the bar, never under the inset
+  expect((await title.boundingBox())!.y).toBeGreaterThanOrEqual(barBox.y + barBox.height - 1);
+  const art = page.getByTestId("song-dna").locator("header").first();
+  expect((await art.boundingBox())!.y).toBeGreaterThanOrEqual(SAFE);
+  // scrolled far down, Back is still at the top, below the inset
+  await page.mouse.wheel(0, 3000);
+  await page.waitForTimeout(400);
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(500);
+  const b1 = (await back.boundingBox())!;
+  expect(b1.y).toBeGreaterThanOrEqual(SAFE);
+  expect(b1.y + b1.height).toBeLessThanOrEqual(SAFE + 60);
+  await expect(back).toBeInViewport();
+  await back.click();
+  await expect(page).toHaveURL(/\/library/, { timeout: 30000 });
+});
+
 test("the Booth: the menu on a set-list row; Song info → Song DNA → Back keeps the night playing", async ({
   page,
 }) => {
