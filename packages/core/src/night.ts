@@ -84,6 +84,8 @@ export interface NightCortina {
   streams?: NightStreams;
   /** the cortina's recordings and hook as the shared night plays them (rooms; see `NightSide.play`) */
   play?: NightCortinaPlay;
+  /** 2026-11 (rooms): the DJ chose it for this gap (kept when the cortinas are re-picked) */
+  picked?: boolean;
 }
 export interface NightTanda {
   rhythm: DanceRhythm;
@@ -202,6 +204,7 @@ export function nightCortina(c: Cortina, o: NightExportOptions = {}): NightCorti
   if (c.year) out.year = c.year;
   if (c.lengthSec) out.lengthSec = c.lengthSec;
   if (c.startSec) out.startSec = c.startSec;
+  if (c.picked) out.picked = true;
   const st = streamsOf(c);
   if (st) out.streams = st;
   if (o.exact) {
@@ -517,6 +520,8 @@ export function importNight(input: NightFile | unknown, deps: ImportDeps): Impor
           });
         }
       }
+      // 2026-11 (rooms): the DJ's own choice stays theirs
+      if (cortina && t.cortina.picked) cortina = { ...cortina, picked: true };
     }
     const base: Tanda = {
       index: i,
