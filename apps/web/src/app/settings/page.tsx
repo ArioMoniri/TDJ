@@ -46,6 +46,7 @@ import { ModelConnections } from "@/components/ModelConnections";
 import { NightClosingGroup } from "@/components/NightClosing";
 import { OwnerContributions } from "@/components/OwnerContributions";
 import { PageHeader } from "@/components/PageHeader";
+import { PowerSaverGroup } from "@/components/PowerSaver";
 import { Sheet } from "@/components/Sheet";
 import { TandaRulesGroup } from "@/components/TandaRules";
 import { DataSources } from "@/components/ui/DataSources";
@@ -343,6 +344,9 @@ export default function Settings() {
             onChange={(v) => setSettings({ sounds: v })}
           />
         </Group>
+
+        {/* 2026-11: Settings → General → Battery saver (lib/power.ts) */}
+        <PowerSaverGroup />
 
         <Group header={tx("settings.region")} footer={tx("settings.default_for_tonight_s_region_on")}>
           <PickerRow

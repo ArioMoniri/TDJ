@@ -43,6 +43,7 @@ import {
   type SpotifyPlay,
   spotifyPlayOf,
 } from "./playSource";
+import { skipPoll } from "./power";
 import { markSpotifyBurst } from "./spotifyBurst";
 import { useStore } from "./store";
 import { toast } from "./toast";
@@ -354,6 +355,8 @@ function pollSpotify(id: string) {
     const p = usePlayer.getState();
     if (p.track?.id !== id || p.track.source.kind !== "spotify-full") return stopPoll();
     if (!p.playing) return;
+    // Battery saver: every 3 s mid-song, every second in the last 15 s (lib/power.ts)
+    if (skipPoll(stopPoll, 3000, p.duration > 0 && p.duration - p.position < 15)) return;
     const sp = await spotifyAdapter();
     const st = await sp.remoteState().catch(() => null);
     const now = usePlayer.getState();

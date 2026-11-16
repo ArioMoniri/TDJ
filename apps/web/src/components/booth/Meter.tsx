@@ -5,6 +5,7 @@ import type { AutoHold } from "@/lib/booth/autoMaster";
 import type { SongLoudness } from "@/lib/booth/level";
 import { attachLevels, clearClip, stopAuto, useLevels } from "@/lib/booth/levelRuntime";
 import { t } from "@/lib/i18n";
+import { cancelPowerFrame, powerFrame, useSaving } from "@/lib/power";
 import "./level.css";
 
 /**
@@ -42,10 +43,12 @@ export function MeterBar({
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const reduced = useReducedMotion();
-  useEffect(() => attachLevels(), []);
+  // Battery saver: the Now card's always-on meter rests; the Controls panel's and Mix's (open panels) draw at 4 fps
+  const rest = useSaving() && testId === "booth-meter";
+  useEffect(() => (rest ? undefined : attachLevels()), [rest]);
   useEffect(() => {
     const el = canvas.current;
-    if (!el) return;
+    if (!el || rest) return;
     let raf = 0;
     let last = 0;
     // 2026-11 (the sidebar's lag): the size from a ResizeObserver and the colours read once a second, never a
@@ -65,7 +68,7 @@ export function MeterBar({
       null;
     let coloursAt = 0;
     const draw = (now: number) => {
-      raf = requestAnimationFrame(draw);
+      raf = powerFrame(draw);
       if (now - last < (reduced ? 100 : 33)) return;
       last = now;
       const { peakDb, holdDb, clip } = useLevels.getState().reading;
@@ -118,12 +121,12 @@ export function MeterBar({
         g.fillRect(w - 4, 0, 4, h);
       }
     };
-    raf = requestAnimationFrame(draw);
+    raf = powerFrame(draw);
     return () => {
-      cancelAnimationFrame(raf);
+      cancelPowerFrame(raf);
       ro?.disconnect();
     };
-  }, [reduced]);
+  }, [reduced, rest]);
   return (
     <canvas
       ref={canvas}
@@ -131,6 +134,7 @@ export function MeterBar({
       role="img"
       aria-label={t("booth.meter.output_level")}
       data-testid={testId}
+      data-rest={rest || undefined}
     />
   );
 }

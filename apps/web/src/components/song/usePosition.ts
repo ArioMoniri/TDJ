@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { cancelPowerFrame, powerFrame } from "@/lib/power";
 import type { PositionFn } from "./MarksGroup";
 
 /**
@@ -33,10 +34,10 @@ export function usePosition(
         last = now;
         setP(now);
       }
-      raf = requestAnimationFrame(tick);
+      raf = powerFrame(tick); // Battery saver: 4 fps (lib/power.ts)
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    raf = powerFrame(tick);
+    return () => cancelPowerFrame(raf);
   }, [position, step]);
   return p;
 }

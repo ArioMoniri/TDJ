@@ -1,5 +1,6 @@
 "use client";
 import { type ReactNode, useEffect, useRef, useState } from "react";
+import { useSaving } from "@/lib/power";
 
 /** px per second of the scroll (Apple Music's now-playing title moves about this slowly) */
 const SPEED = 28;
@@ -49,7 +50,9 @@ export function Marquee({
     ro?.observe(i);
     return () => ro?.disconnect();
   }, [text]);
-  const moving = over > 2 && !reduced;
+  // Battery saver: still, like Reduce Motion (lib/power.ts)
+  const saving = useSaving();
+  const moving = over > 2 && !reduced && !saving;
   useEffect(() => {
     const i = inner.current;
     if (!i || !moving || typeof i.animate !== "function") return;

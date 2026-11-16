@@ -1,0 +1,56 @@
+/* biome-ignore-all lint/complexity/noImportantStyles: the saver overrides the materials and animations set elsewhere */
+/* 2026-11 — Battery saver (lib/power.ts, components/PowerSaver.tsx): <html class="power-saver">.
+
+   Glass: every backdrop blur is a full-screen read of what is under it, redrawn on each frame anything under it
+   moves (the slider, the meter, a scrolling list). While saving the control layer is solid: the materials are the
+   surface at 98 % (the Reduce Transparency fallback) and no element blurs its backdrop. */
+:root.power-saver {
+  --material-thick: rgb(var(--surface) / 0.98) !important;
+  --material-regular: rgb(var(--surface) / 0.98) !important;
+  --material-thin: rgb(var(--surface) / 0.98) !important;
+  --material-ultrathin: rgb(var(--surface) / 0.98) !important;
+  --material-bar-alpha: 100% !important;
+}
+:root.power-saver *,
+:root.power-saver *::before,
+:root.power-saver *::after {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+:root.power-saver .glass::before {
+  display: none;
+}
+:root.power-saver .now-view-bar {
+  background: rgb(var(--surface));
+}
+
+/* Decorations that loop: still (the equaliser bars of the playing row, the skeleton's breathing, the Guide's
+   illustrations). Signals that ask for the DJ (the cue output, the room's attention ring) keep moving. */
+:root.power-saver .wave > i,
+:root.power-saver .skeleton,
+:root.power-saver [class^="gi-"],
+:root.power-saver [class*=" gi-"],
+:root.power-saver .booth-auto-dot {
+  animation: none !important;
+}
+:root.power-saver .marquee-inner {
+  transform: none !important;
+}
+
+/* Off-screen cards: the browser skips their layout and paint until they scroll near (desktops too, while saving) */
+:root.power-saver .tanda-card {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 420px;
+}
+:root.power-saver .booth-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 56px;
+}
+
+/* the leaf in the Booth's status chip */
+.power-leaf {
+  display: inline-block;
+  margin-inline-start: 4px;
+  vertical-align: -1px;
+  color: var(--system-green, #34c759);
+}

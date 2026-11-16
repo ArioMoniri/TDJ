@@ -5561,6 +5561,38 @@ export const en = {
   "common.rhythm_led": "rhythm-led",
   "eraBadge.year_why": "{year} is {why} ({kind}).",
   "learned.template_detail": "A {rhythm} tanda you kept as is",
+  // 2026-11: Battery saver (lib/power.ts, components/PowerSaver.tsx)
+  "power.header": "General",
+  "power.label": "Battery saver",
+  "power.off": "Off",
+  "power.auto": "Auto",
+  "power.on": "On",
+  "power.tip":
+    "Less work for the screen and the network, so a long night lasts longer on battery. Playback never changes.",
+  "power.tip_off": "Never save: every animation and update as usual",
+  "power.tip_auto":
+    "Save when the battery is low, unplugged under 30 %, in Low Power Mode or when the device runs hot",
+  "power.tip_on": "Always save on this device",
+  "power.footer":
+    "While saving, the clock, the slider and the meter update four times a second, decorations stand still, the bars and sheets are solid, off-screen cards are skipped, Spotify is asked where it is every 10 s mid-song (at once when you come back, after a seek and near each end), rooms are read every 30 s and there is no update check. The room microphone and Auto master turn off: they listen to the room ten times a second all night. Sound, gaps, fades and Spotify commands keep their exact timing.",
+  "power.saving_now": "Saving now: {why}",
+  "power.not_saving": "Not saving now",
+  "power.not_saving_off": "Off",
+  "power.reason_manual": "turned on",
+  "power.reason_low_power_mode": "Low Power Mode is on",
+  "power.reason_thermal": "the device is hot",
+  "power.reason_battery_low": "battery at {pct} %",
+  "power.reason_battery_unplugged": "on battery at {pct} %",
+  "power.battery_level": "battery {pct} %",
+  "power.battery_charging": "battery {pct} %, charging",
+  "power.no_battery_reading": "this browser does not report the battery; Auto follows the system's hints",
+  "power.leaf": "Battery saver is on",
+  "power.menu_on": "On: the screen updates less often; playback stays exact",
+  "power.menu_off": "Off",
+  "power.menu_auto_on": "Auto, saving now: {why}",
+  "power.menu_auto_off": "Auto, not saving now",
+  "power.room_off":
+    "Battery saver turned the room microphone and Auto master off: they listen to the room ten times a second. They can come back once the saver is off.",
 } as const;
 
 export type MsgKey = keyof typeof en;
