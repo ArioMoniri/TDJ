@@ -43,6 +43,7 @@ import {
   slimSong,
 } from "@/lib/build";
 import { BIG_FOUR_NAME, type GuideFix, type GuideLine, guideLines } from "@/lib/buildGuide";
+import { recordSnapshot, undoEdit } from "@/lib/editHistory";
 import { haptic } from "@/lib/haptics";
 import { makeSnapshot } from "@/lib/history";
 import { useMediaQuery } from "@/lib/hooks";
@@ -53,16 +54,18 @@ import { PlayListContext } from "@/lib/playback";
 import type { PlayItem } from "@/lib/player";
 import { requestFavourites } from "@/lib/popularity";
 import { adoptDraftExceptions, DRAFT_NIGHT, gateEdit } from "@/lib/ruleCheck";
+import type { Version } from "@/lib/smartSearch";
 import { fullOptions, useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import type { Cortina } from "@/lib/types";
+import { useSmartSearch } from "@/lib/useSmartSearch";
 import { metaLine, yearText } from "@/lib/year";
 import { Group, RhythmTile, Row, SegmentedRow, SwitchRow } from "./Form";
 import { Menu } from "./Menu";
 import { PageHeader } from "./PageHeader";
-import { SearchField } from "./SearchField";
 import { Sheet } from "./Sheet";
 import { CortinaPlayButton, PlayRow } from "./ui/PlayRow";
+import { SmartSearchField, SmartSearchResults } from "./ui/SmartSearch";
 import { isMixedTanda, rhythmWord, TandaTypeBadge } from "./ui/TandaTypeBadge";
 import { Tip } from "./ui/Tip";
 import { useDragReorder } from "./ui/useDragReorder";
@@ -244,19 +247,25 @@ export function ManualBuilder() {
   const { settings, setSettings, memory, setPlaylist, addSnapshot, updateMemory } = useStore();
   const [draft, setDraftState] = useState<Draft>([]);
   const [meta, setMetaState] = useState<Meta>(EMPTY_META);
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
+  const metaRef = useRef(meta);
+  metaRef.current = meta;
   const [ready, setReady] = useState(false);
   const [next, setNext] = useState<Next | null>(null);
   const [plan, setPlan] = useState<Plan | null>(null);
   const [loading, setLoading] = useState(false);
   const [rhythm, setRhythm] = useState<"auto" | "tango" | "vals" | "milonga">("auto");
   const [query, setQuery] = useState("");
+  // 2026-11: the one smart search for the field (completions, the correction) and the versions of a complete title
+  const smart = useSmartSearch({ value: query, onChange: setQuery, services: false, limit: 20 });
   const [filters, setFilters] = useState<Filters>({});
   const [hits, setHits] = useState<Hit[]>([]);
   const [facets, setFacets] = useState<{ orchestras: Facet[]; singers: Facet[] }>({
     orchestras: [],
     singers: [],
   });
-  const [searching, setSearching] = useState(false);
+  const [, setSearching] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [filling, setFilling] = useState(false);
   /** the tanda "+" adds to: an index, or "new" (the next add starts a tanda) */
@@ -294,7 +303,16 @@ export function ManualBuilder() {
       return n;
     });
   }, []);
+  // 2026-11: every change to the draft is one entry of the undo history (⌘Z, the toast's Undo)
   const setDraft = (d: Draft, cortinas?: Array<Cortina | null>) => {
+    const before = { d: draftRef.current, c: metaRef.current.cortinas };
+    if (before.d !== d)
+      recordSnapshot(tx("editKeys.build_edit"), before, { d, c: cortinas ?? before.c }, (x) =>
+        putDraft(x.d, x.c),
+      );
+    putDraft(d, cortinas);
+  };
+  const putDraft = (d: Draft, cortinas?: Array<Cortina | null>) => {
     setDraftState(d);
     saveDraft(d);
     if (cortinas) setMeta((m) => ({ ...m, cortinas }));
@@ -412,6 +430,11 @@ export function ManualBuilder() {
     await addChecked(addSongsTo(draft, where, songs), label);
   };
   const addHit = (h: Hit) => void addTo([h.song], sel === "new" ? "new" : selIndex);
+  /** a version from the smart search (the catalogue's: the builder's night is catalogue sides) */
+  const addVersion = (v: Version) => {
+    if (!v.hit) return;
+    void addTo([slimSong(v.song)], sel === "new" ? "new" : selIndex);
+  };
   const togglePick = (s: DraftSong) =>
     setPicked((p) => (p.some((x) => x.id === s.id) ? p.filter((x) => x.id !== s.id) : [...p, s]));
   const addPicked = async (where: number | "new") => {
@@ -456,11 +479,10 @@ export function ManualBuilder() {
       });
       const j = (await r.json()) as { draft?: Draft };
       if (!j.draft || !isDraft(j.draft)) return;
-      const before = draft;
-      const beforeMeta = meta.cortinas;
       setDraft(j.draft, padded(meta.cortinas, j.draft.length));
-      toast(tx("builder.filled", { n: j.draft.length - draft.length, total: j.draft.length }), () =>
-        setDraft(before, beforeMeta),
+      toast(
+        tx("builder.filled", { n: j.draft.length - draft.length, total: j.draft.length }),
+        () => void undoEdit(),
       );
     } finally {
       setFilling(false);
@@ -667,14 +689,37 @@ export function ManualBuilder() {
 
       <div ref={searchRef} className="scroll-mt-24">
         <h2 className="section-head">{tx("manualBuilder.search")}</h2>
-        <SearchField
+        {/* 2026-11: the one smart search's field (completions, "Did you mean", Tab takes it); the results below
+            stay the builder's own (each side judged for the tanda it would join), the versions by work above them */}
+        <SmartSearchField
+          s={smart}
           id="build-search"
-          value={query}
-          onChange={setQuery}
+          prefix="build"
           placeholder={tx("manualBuilder.title_orchestra_singer_or_year")}
           label={tx("manualBuilder.search_for_a_song_to_add")}
-          busy={searching}
+          onEnter={addVersion}
         />
+        {smart.works && (
+          <SmartSearchResults
+            s={smart}
+            id="build-search"
+            prefix="build"
+            chips={false}
+            onPick={addVersion}
+            rowTestId="build-version"
+            actions={(v) => (
+              <button
+                type="button"
+                className="icon-btn icon-btn-bare -my-2 h-11 w-11 shrink-0 text-[var(--tint)]"
+                aria-label={tx("search.add_to_night", { title: v.song.title })}
+                onClick={() => addVersion(v)}
+                data-testid="build-version-add"
+              >
+                <Plus size={20} strokeWidth={2.25} aria-hidden />
+              </button>
+            )}
+          />
+        )}
         <fieldset className="mt-2 flex flex-wrap items-center gap-1.5 border-0 p-0" data-testid="build-chips">
           <legend className="sr-only">{tx("builder.filters")}</legend>
           {RHYTHMS3.map((r) => (

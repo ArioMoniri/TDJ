@@ -155,10 +155,24 @@ export const TrackRow = memo(function TrackRow({
       data-reorder-row
       tabIndex={0}
       onKeyDown={(e) => {
-        if (e.key !== " " || e.target !== e.currentTarget) return;
+        if (e.target !== e.currentTarget) return;
+        // 2026-11: the row's keys — S opens its Swap sheet, Alt+↑ / Alt+↓ move it inside the tanda (EditKeys, ⌘Z undoes)
+        if ((e.key === "s" || e.key === "S") && !e.metaKey && !e.ctrlKey && !e.altKey) {
+          e.preventDefault();
+          if (!disabled && !inFlight) swap();
+          return;
+        }
+        if (e.altKey && (e.key === "ArrowUp" || e.key === "ArrowDown") && onMove) {
+          e.preventDefault();
+          const to = e.key === "ArrowUp" ? k - 1 : k + 1;
+          if (to >= 0 && to < (count ?? 0)) onMove(k, to);
+          return;
+        }
+        if (e.key !== " ") return;
         e.preventDefault();
         toggle();
       }}
+
     >
       <SwipeRow
         leading="num"

@@ -1,6 +1,7 @@
 "use client";
 import type React from "react";
 import { useBooth } from "@/lib/booth/store";
+import { undoEdit } from "@/lib/editHistory";
 import { t } from "@/lib/i18n";
 import { gateEdit } from "@/lib/ruleCheck";
 import { toast } from "@/lib/toast";
@@ -63,7 +64,8 @@ export async function moveSong(from: number, to: number): Promise<boolean> {
   const label = t("booth.reorder.moved", { title });
   const apply = (p: Playlist) => useBooth.getState().applySwappedPlaylist(p);
   const res = await gateEdit({ before: r.before, after: r.after, label, apply, learn: false });
-  if (res === "applied") toast(label, () => void apply(r.before));
+  // 2026-11: the toast's Undo is the one undo history (⌘Z walks the same)
+  if (res === "applied") toast(label, () => void undoEdit());
   return res !== "cancelled";
 }
 

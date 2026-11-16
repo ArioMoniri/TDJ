@@ -534,6 +534,12 @@ const KEYS: Array<[string, string]> = lazy(() => [
   ["⇧ P", tx("booth.sheets.stop_the_pre_listen_the_room")],
   ["b", tx("booth.sheets.birthday_vals")],
   ["m", tx("booth.sheets.master_mute")],
+  // 2026-11: the edit keys (components/EditKeys.tsx) and the smart search's
+  ["⌘Z / Ctrl+Z", tx("booth.sheets.undo_key")],
+  ["⇧⌘Z / Ctrl+Y", tx("booth.sheets.redo_key")],
+  ["s", tx("booth.sheets.swap_key")],
+  ["⌥↑ / ⌥↓", tx("booth.sheets.move_key")],
+  ["↑ ↓ ↵ ⇥ esc", tx("booth.sheets.search_keys")],
   ["?", tx("booth.sheets.this_sheet")],
 ]);
 

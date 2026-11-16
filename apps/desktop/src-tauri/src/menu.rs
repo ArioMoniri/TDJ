@@ -308,9 +308,18 @@ pub fn build<R: Runtime>(app: &AppHandle<R>, with_updates: bool) -> tauri::Resul
     }
     let file = file.separator().close_window_with_text(close).build()?;
 
+    // 2026-11: Undo / Redo walk the page's one edit history (a night's swaps, moves, adds, pins) through
+    // `tdj:command` edit.undo / edit.redo (web components/EditKeys.tsx); in a text field the page hands them to the
+    // field, so typing keeps its own undo
+    let undo_item = MenuItemBuilder::with_id("edit.undo", undo)
+        .accelerator("CmdOrCtrl+Z")
+        .build(app)?;
+    let redo_item = MenuItemBuilder::with_id("edit.redo", redo)
+        .accelerator("CmdOrCtrl+Shift+Z")
+        .build(app)?;
     let mut edit = SubmenuBuilder::new(app, edit_t)
-        .undo_with_text(undo)
-        .redo_with_text(redo)
+        .item(&undo_item)
+        .item(&redo_item)
         .separator()
         .cut_with_text(cut)
         .copy_with_text(copy)

@@ -410,6 +410,7 @@ function TandaCardImpl({
                     aria-disabled={t.locked || busy || undefined}
                     disabled={t.locked || busy}
                     data-testid="tanda-swap"
+                    data-kb="swap"
                     onClick={swap}
                   >
                     <I name="swap" size={17} strokeWidth={1.75} className={busy ? "animate-spin" : ""} />

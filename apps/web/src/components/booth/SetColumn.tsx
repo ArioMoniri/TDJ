@@ -15,6 +15,7 @@ import { tempoLevel } from "@/lib/tempo";
 import { toast } from "@/lib/toast";
 import type { Playlist } from "@/lib/types";
 import { metaLine, yearSpan, yearText } from "@/lib/year";
+import { useTandaSwap } from "../TandaSwapSheet";
 import { Artwork } from "../ui/Artwork";
 import { BpmKey } from "../ui/BpmKey";
 import { EraBadge } from "../ui/EraBadge";
@@ -171,6 +172,8 @@ export function SetColumn({
   );
   const swap = async (tanda: number, track?: number) => {
     if (!playlist || (started && tanda <= runningTanda)) return;
+    // 2026-11: a tanda's Swap is a choice, not an instant swap: the tanda Swap sheet (booth/BoothTandaSwap.tsx)
+    if (track === undefined) return useTandaSwap.getState().open(tanda - 1);
     const key = `${tanda}-${track ?? "t"}`;
     setBusy(key);
     try {

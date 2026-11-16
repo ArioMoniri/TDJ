@@ -1,37 +1,29 @@
 "use client";
-import { lazy, t as tx } from "@/lib/i18n";
+import { t as tx } from "@/lib/i18n";
 import "./compose-db.css";
-import { type Playlist, placements, type SongQuery, searchSongs } from "@tdj/core";
-import { ListPlus, Repeat2, SlidersHorizontal, X } from "lucide-react";
+import { type Playlist, placements } from "@tdj/core";
+import { ListPlus, Repeat2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMediaQuery } from "@/lib/hooks";
 import { gateEdit } from "@/lib/ruleCheck";
 import { clampPanel, PANEL_DEFAULT, PANEL_MAX, PANEL_MIN, type Target, targetsFor } from "@/lib/searchPanel";
-import { useStore } from "@/lib/store";
+import type { Version } from "@/lib/smartSearch";
 import type { Song } from "@/lib/types";
+import { useSmartSearch } from "@/lib/useSmartSearch";
 import { Group, Row } from "../Form";
 import { Menu } from "../Menu";
-import { SearchField } from "../SearchField";
 import { Sheet } from "../Sheet";
-import { SongRow } from "./SongRow";
+import { playVersion, SmartSearchField, SmartSearchResults } from "./SmartSearch";
 import { Tip } from "./Tip";
 
 const WIDTH_KEY = "tdj-search-panel-w";
-const RHYTHMS: Array<[string, string]> = lazy(() => [
-  ["", tx("songSearchPanel.all")],
-  ["tango", tx("songSearchPanel.tango")],
-  ["vals", tx("songSearchPanel.vals")],
-  ["milonga", tx("songSearchPanel.milonga")],
-]);
-const yearNum = (v: string) => {
-  const n = Number(v);
-  return v.length === 4 && n >= 1900 && n <= 2030 ? n : undefined;
-};
 
 /**
- * Round 22 — the song search side panel, shared by Compose and the Booth. Search the catalogue by title, orchestra,
- * singer, a year range and rhythm; every result says which tanda and part of tonight's night it is in; swap it in,
- * add it to a tanda or play its preview. A resizable column beside the page on wide screens, a sheet on phones.
+ * Round 22 — the song search side panel, shared by Compose and the Booth. 2026-11: the one smart search
+ * (components/ui/SmartSearch.tsx: completions, "Did you mean", chips for rhythm, voice, era, orchestra and singer, the
+ * versions by work, the connected services' recordings), or tonight's night only; every result says which tanda and
+ * part of tonight's night it is in; swap it in, add it to a tanda or play it. A resizable column beside the page on
+ * wide screens, a sheet on phones.
  */
 export function SongSearchPanel({
   open,
@@ -52,77 +44,20 @@ export function SongSearchPanel({
   target?: { tanda: number; track: number } | null;
 }) {
   const wide = useMediaQuery("(min-width: 1024px)");
-  const overrides = useStore((s) => s.overrides);
-  const [text, setText] = useState("");
-  const [rhythm, setRhythm] = useState("");
-  const [orchestra, setOrchestra] = useState("");
-  const [singer, setSinger] = useState("");
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
   const [inNight, setInNight] = useState(false);
-  const [more, setMore] = useState(false);
-  const [results, setResults] = useState<Song[]>([]);
-  const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ text: string; error?: boolean } | null>(null);
   const [pick, setPick] = useState<{ song: Song; mode: "swap" | "add" } | null>(null);
   const [width, setWidth] = useState(PANEL_DEFAULT);
   const [dragging, setDragging] = useState(false);
   const panel = useRef<HTMLElement>(null);
 
-  const query: SongQuery = useMemo(
-    () => ({
-      text: text.trim() || undefined,
-      orchestra: orchestra.trim() || undefined,
-      singer: singer.trim() || undefined,
-      yearFrom: yearNum(from),
-      yearTo: yearNum(to),
-      rhythms: rhythm ? [rhythm] : undefined,
-      inNight: inNight || undefined,
-    }),
-    [text, orchestra, singer, from, to, rhythm, inNight],
-  );
   const where = useMemo(() => placements(playlist), [playlist]);
-  const ready = !!(
-    (query.text && query.text.length >= 2) ||
-    query.orchestra ||
-    query.singer ||
-    query.yearFrom ||
-    query.yearTo ||
-    query.inNight ||
-    (query.rhythms && (query.text || query.yearFrom || query.yearTo))
+  // the catalogue on the server (the index is large) with the connected services; "Tonight" over the night here
+  const tonight = useMemo(
+    () => (inNight ? (playlist?.tandas.flatMap((t) => t.songs) ?? []) : null),
+    [inNight, playlist],
   );
-
-  // the catalogue search runs on the server (the index is large); "only tonight" runs over the night in the browser
-  useEffect(() => {
-    if (!open) return;
-    if (!ready) {
-      setResults([]);
-      return;
-    }
-    if (query.inNight) {
-      const songs = playlist?.tandas.flatMap((t) => t.songs) ?? [];
-      setResults(searchSongs(songs, query, playlist).map((h) => h.song));
-      return;
-    }
-    const ctl = new AbortController();
-    setBusy(true);
-    const h = setTimeout(() => {
-      fetch("/api/song-search", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ query, overrides }),
-        signal: ctl.signal,
-      })
-        .then((r) => r.json())
-        .then((j: { results?: Song[] }) => setResults(j.results ?? []))
-        .catch(() => {})
-        .finally(() => setBusy(false));
-    }, 220);
-    return () => {
-      clearTimeout(h);
-      ctl.abort();
-    };
-  }, [open, ready, query, overrides, playlist]);
+  const s = useSmartSearch({ local: tonight, services: !inNight, limit: 50 });
 
   // wide screens: the page makes room beside the panel; the width is remembered in this browser
   useEffect(() => {
@@ -195,18 +130,36 @@ export function SongSearchPanel({
     if (res === "cancelled") return;
     setNote({ text: res === "applied" ? msg : `${ok}.` });
   };
+  // a connected service's recording is not in the catalogue: it goes in whole (POST /api/tanda-set)
+  const external = (s: Song) => s.id.startsWith("ext:");
   const swapIn = (s: Song, tanda: number, track: number) =>
-    post(
-      "/api/swap-track",
-      { tandaIndex: tanda, trackIndex: track, songId: s.id, force: true, pin: true },
-      tx("songSearchPanel.swapped_into_tanda", { title: s.title, p1: tanda + 1 }),
-    );
+    external(s)
+      ? post(
+          "/api/tanda-set",
+          {
+            tandaIndex: tanda,
+            sides: (playlist?.tandas[tanda]?.songs ?? []).map((x, k) => (k === track ? s : x.id)),
+          },
+          tx("songSearchPanel.swapped_into_tanda", { title: s.title, p1: tanda + 1 }),
+        )
+      : post(
+          "/api/swap-track",
+          { tandaIndex: tanda, trackIndex: track, songId: s.id, force: true, pin: true },
+          tx("songSearchPanel.swapped_into_tanda", { title: s.title, p1: tanda + 1 }),
+        );
   const addTo = (s: Song, tanda: number) =>
-    post(
-      "/api/add-side",
-      { tandaIndex: tanda, songId: s.id },
-      tx("songSearchPanel.added_to_tanda", { title: s.title, p1: tanda + 1 }),
-    );
+    external(s)
+      ? post(
+          "/api/tanda-set",
+          { tandaIndex: tanda, sides: [...(playlist?.tandas[tanda]?.songs ?? []).map((x) => x.id), s] },
+          tx("songSearchPanel.added_to_tanda", { title: s.title, p1: tanda + 1 }),
+        )
+      : post(
+          "/api/add-side",
+          { tandaIndex: tanda, songId: s.id },
+          tx("songSearchPanel.added_to_tanda", { title: s.title, p1: tanda + 1 }),
+        );
+
   const startSwap = (s: Song) => {
     const t = target && playlist?.tandas[target.tanda];
     if (t && t.rhythm === s.rhythm && !(closedBefore !== undefined && target!.tanda <= closedBefore))
@@ -214,99 +167,57 @@ export function SongSearchPanel({
     else setPick({ song: s, mode: "swap" });
   };
 
+  const actions = (v: Version) => {
+    const pl = where.get(v.song.id);
+    if (!playlist || !onChange) return null;
+    return (
+      <Menu
+        label={tx("songSearchPanel.actions_for", { title: v.song.title })}
+        className="icon-btn-bare -my-2 -mr-3 h-11 w-10"
+        items={[
+          {
+            label: target
+              ? tx("songSearchPanel.swap_in_for_tanda_song", { p1: target.tanda + 1, p2: target.track + 1 })
+              : tx("songSearchPanel.swap_in_2"),
+            icon: Repeat2,
+            onClick: () => startSwap(v.song),
+            disabled: !!pl,
+          },
+          {
+            label: tx("songSearchPanel.add_to_a_tanda"),
+            icon: ListPlus,
+            onClick: () => setPick({ song: v.song, mode: "add" }),
+            disabled: !!pl,
+          },
+        ]}
+      />
+    );
+  };
   const body = (
     <div className="flex min-h-0 flex-1 flex-col" data-testid="song-search">
       <div className="px-4 pt-3">
-        <SearchField
+        <SmartSearchField
+          s={s}
           id="song-search-text"
-          value={text}
-          onChange={setText}
+          prefix="song-search"
           placeholder={tx("songSearchPanel.title_orchestra_or_singer")}
           label={tx("songSearchPanel.search_songs")}
-          busy={busy}
+          onEnter={(v) => void playVersion(v)}
         />
-        <fieldset className="mt-2 flex flex-wrap items-center gap-1.5 border-0 p-0">
-          <legend className="sr-only">{tx("songSearchPanel.rhythm_and_filters")}</legend>
-          {RHYTHMS.map(([k, l]) => (
-            <button
-              key={k || "all"}
-              type="button"
-              className="chip-filter min-h-11 sm:min-h-8"
-              aria-pressed={rhythm === k}
-              onClick={() => setRhythm(k)}
-            >
-              {l}
-            </button>
-          ))}
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
           <Tip text={tx("songSearchPanel.only_the_sides_already_in_tonight")}>
             <button
               type="button"
-              className="chip-filter min-h-11 sm:min-h-8"
+              className="search-chip"
               aria-pressed={inNight}
               onClick={() => setInNight((v) => !v)}
               disabled={!playlist}
+              data-testid="song-search-tonight"
             >
               {tx("songSearchPanel.tonight")}
             </button>
           </Tip>
-          <Tip text={tx("songSearchPanel.orchestra_singer_and_a_year_range")}>
-            <button
-              type="button"
-              className="icon-btn icon-btn-bare h-11 w-11"
-              aria-expanded={more}
-              aria-label={tx("songSearchPanel.more_filters")}
-              onClick={() => setMore((v) => !v)}
-            >
-              <SlidersHorizontal size={18} strokeWidth={2} />
-            </button>
-          </Tip>
-        </fieldset>
-        {more && (
-          <div className="group-inset mt-2" data-testid="song-search-filters">
-            <label className="cell" htmlFor="ss-orchestra">
-              <span className="w-24 shrink-0">{tx("songSearchPanel.orchestra")}</span>
-              <input
-                id="ss-orchestra"
-                className="field field-value min-w-0 flex-1"
-                value={orchestra}
-                onChange={(e) => setOrchestra(e.target.value)}
-                placeholder={tx("songSearchPanel.any")}
-                autoComplete="off"
-              />
-            </label>
-            <label className="cell" htmlFor="ss-singer">
-              <span className="w-24 shrink-0">{tx("songSearchPanel.singer")}</span>
-              <input
-                id="ss-singer"
-                className="field field-value min-w-0 flex-1"
-                value={singer}
-                onChange={(e) => setSinger(e.target.value)}
-                placeholder={tx("songSearchPanel.any_or_instrumental")}
-                autoComplete="off"
-              />
-            </label>
-            <div className="cell">
-              <span className="w-24 shrink-0">{tx("songSearchPanel.years")}</span>
-              <input
-                aria-label={tx("songSearchPanel.from_year")}
-                className="field field-value min-w-0 flex-1"
-                inputMode="numeric"
-                value={from}
-                onChange={(e) => setFrom(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                placeholder="1935"
-              />
-              <span className="text-[var(--label-2)]">–</span>
-              <input
-                aria-label={tx("songSearchPanel.to_year")}
-                className="field field-value min-w-0 flex-1"
-                inputMode="numeric"
-                value={to}
-                onChange={(e) => setTo(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                placeholder="1945"
-              />
-            </div>
-          </div>
-        )}
+        </div>
         {note && (
           <p
             className={`text-footnote mt-2 ${note.error ? "text-[var(--destructive)]" : "text-[var(--label-2)]"}`}
@@ -318,57 +229,28 @@ export function SongSearchPanel({
         )}
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-6" data-testid="song-search-results">
-        {!ready ? (
-          <p className="text-subhead py-8 text-center text-[var(--label-2)]">
-            {tx("songSearchPanel.type_a_title_an_orchestra_or")}
-          </p>
-        ) : !busy && !results.length ? (
-          <p className="text-subhead py-8 text-center text-[var(--label-2)]">
-            {tx("songSearchPanel.nothing_matches")}
-          </p>
-        ) : (
-          <div className="group-inset mt-3">
-            {results.map((s) => {
-              const pl = where.get(s.id);
-              return (
-                <SongRow
-                  key={s.id}
-                  song={s}
-                  testId="song-result"
-                  pill={pl ? pl.label : undefined}
-                  pillTip={pl ? tx("songSearchPanel.where_this_side_plays_tonight") : undefined}
-                  trailing={
-                    playlist && onChange ? (
-                      <Menu
-                        label={tx("songSearchPanel.actions_for", { title: s.title })}
-                        className="icon-btn-bare -my-2 -mr-3 h-11 w-10"
-                        items={[
-                          {
-                            label: target
-                              ? tx("songSearchPanel.swap_in_for_tanda_song", {
-                                  p1: target.tanda + 1,
-                                  p2: target.track + 1,
-                                })
-                              : tx("songSearchPanel.swap_in_2"),
-                            icon: Repeat2,
-                            onClick: () => startSwap(s),
-                            disabled: !!pl,
-                          },
-                          {
-                            label: tx("songSearchPanel.add_to_a_tanda"),
-                            icon: ListPlus,
-                            onClick: () => setPick({ song: s, mode: "add" }),
-                            disabled: !!pl,
-                          },
-                        ]}
-                      />
-                    ) : undefined
-                  }
-                />
-              );
-            })}
-          </div>
-        )}
+        <SmartSearchResults
+          s={s}
+          id="song-search-text"
+          prefix="song-search"
+          rowTestId="song-result"
+          empty={
+            <p className="text-subhead py-8 text-center text-[var(--label-2)]">
+              {tx("songSearchPanel.type_a_title_an_orchestra_or")}
+            </p>
+          }
+          note={(v) => {
+            const pl = where.get(v.song.id);
+            return pl ? (
+              <Tip text={tx("songSearchPanel.where_this_side_plays_tonight")}>
+                <span className="place-pill mt-0.5 inline-block" data-testid="song-pill">
+                  {pl.label}
+                </span>
+              </Tip>
+            ) : null;
+          }}
+          actions={actions}
+        />
       </div>
     </div>
   );

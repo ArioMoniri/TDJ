@@ -9,6 +9,8 @@ import { Sheet } from "@/components/Sheet";
 import { Highlight } from "@/components/search/Highlight";
 import { Artwork } from "@/components/ui/Artwork";
 import { NowBars } from "@/components/ui/NowPlaying";
+import { SourceIcons } from "@/components/ui/SmartSearch";
+import { TandaTypeBadge } from "@/components/ui/TandaTypeBadge";
 import { coverFor } from "@/lib/artwork";
 import { haptic } from "@/lib/haptics";
 import { t } from "@/lib/i18n";
@@ -16,9 +18,11 @@ import { useTapPlay } from "@/lib/playback";
 import type { PlayItem } from "@/lib/player";
 import { gateEdit } from "@/lib/ruleCheck";
 import { targetsFor } from "@/lib/searchPanel";
+import type { SourceId } from "@/lib/smartSearch";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import type { Song } from "@/lib/types";
+
 import { yearText } from "@/lib/year";
 
 const ResolveSheet = dynamic(() => import("@/components/ResolveSheet").then((m) => m.ResolveSheet), {
@@ -41,10 +45,13 @@ export const LibraryRow = memo(function LibraryRow({
   active,
   onHover,
   findSignal,
+  sources,
 }: {
   hit: SongSearchHit;
   id: string;
   active: boolean;
+  /** 2026-11: where it comes from (the catalogue, Spotify, a connected service) */
+  sources?: SourceId[];
   onHover?: () => void;
   /** bumped by the page when Enter should open "Find on services" for this row */
   findSignal?: number;
@@ -117,8 +124,11 @@ export const LibraryRow = memo(function LibraryRow({
         )}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate" data-testid="library-row-title">
-          <Highlight text={s.title} spans={hit.highlights.title} />
+        <span className="flex min-w-0 items-center gap-1.5">
+          <span className="truncate" data-testid="library-row-title">
+            <Highlight text={s.title} spans={hit.highlights.title} />
+          </span>
+          <TandaTypeBadge rhythm={s.rhythm} compact />
         </span>
         <span className="text-footnote block truncate text-[var(--label-2)]">
           <Highlight text={s.orchestra} spans={hit.highlights.orchestra} />
@@ -131,11 +141,11 @@ export const LibraryRow = memo(function LibraryRow({
             ` / ${t("search.instrumental")}`
           )}
           {s.year ? ` · ${yearText(s.year)}` : ""}
-          {s.rhythm !== "tango" ? ` · ${s.rhythm}` : ""}
         </span>
       </span>
       <span className="flex shrink-0 flex-col items-end gap-0.5">
         {len && <span className="text-footnote tabular-nums text-[var(--label-2)]">{len}</span>}
+        {sources && sources.length > 1 && <SourceIcons sources={sources} />}
         {hit.favourite ? (
           <span className="search-badge" title={t("search.favourite")}>
             <Heart

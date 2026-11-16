@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter } from "next/font/google";
 import "./globals.css";
 import { Boot } from "@/components/Boot";
+import { EditKeys } from "@/components/EditKeys";
 import { GlobalToast } from "@/components/GlobalToast";
 import { IconSprite } from "@/components/Icons";
 import { LocaleRoot } from "@/components/LocaleRoot";
@@ -83,6 +84,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </main>
             <MiniPlayer />
             <GlobalToast />
+            <EditKeys />
             <RuleConfirmSheet />
           </ToolbarProvider>
         </LocaleRoot>

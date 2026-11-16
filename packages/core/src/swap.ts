@@ -118,11 +118,17 @@ export function swapOptions(
   ti: number,
   si: number,
   deps: ComposeDeps,
-  opts: { query?: string; limit?: number; favourites?: FavouriteTable | DancerFavourites | null } = {},
-): { suggestions: SwapOption[]; results: SwapOption[] } {
+  opts: {
+    query?: string;
+    limit?: number;
+    favourites?: FavouriteTable | DancerFavourites | null;
+    /** 2026-11: judge exactly these sides (the smart search's results), in this order; unknown ids are left out */
+    ids?: readonly string[];
+  } = {},
+): { suggestions: SwapOption[]; results: SwapOption[]; judged: SwapOption[] } {
   const t = p.tandas[ti];
   const cur = t?.songs[si];
-  if (!t || !cur) return { suggestions: [], results: [] };
+  if (!t || !cur) return { suggestions: [], results: [], judged: [] };
   const limit = opts.limit ?? 12;
   // 2026-11: the dancer favourites of this tanda's role (the request's, else the night's own; null = none)
   const fav =
@@ -161,7 +167,59 @@ export function swapOptions(
       .sort(rank)
       .slice(0, Math.max(limit, 30));
   }
-  return { suggestions, results };
+  const byId = (id: string) => deps.catalog.songs.find((x) => x.id === id || x.altIds?.includes(id));
+  const judged = (opts.ids ?? [])
+    .slice(0, 200)
+    .map(byId)
+    .filter((s): s is Song => !!s)
+    .map(judge);
+  return { suggestions, results, judged };
+}
+
+/**
+ * 2026-11 (the owner: "I can't swap a tanda by searching, selecting and reordering songs"): the DJ's own tanda in
+ * place `ti` — the sides in the DJ's order, each a catalogue id or a recording given whole (one a connected service
+ * found), re-timed, named after its sides (orchestra, singer, rhythm), pinned as the DJ's and the night re-scored. The
+ * rule check (editCheck) judges it before it applies; this only refuses what cannot be a tanda at all.
+ */
+export function setTandaSides(
+  p: Playlist,
+  ti: number,
+  sides: ReadonlyArray<string | Song>,
+  deps: ComposeDeps,
+): { playlist: Playlist; reason?: string } {
+  const t = p.tandas[ti];
+  if (!t) return { playlist: p, reason: "no such tanda" };
+  if (!sides.length) return { playlist: p, reason: "a tanda needs at least one side" };
+  if (sides.length > 8) return { playlist: p, reason: "a tanda holds at most eight sides" };
+  const songs: Song[] = [];
+  for (const x of sides) {
+    const s = typeof x === "string" ? deps.catalog.songs.find((y) => y.id === x || y.altIds?.includes(x)) : x;
+    if (!s) return { playlist: p, reason: `no such side (${String(x)})` };
+    songs.push(s);
+  }
+  const first = songs[0]!;
+  const rhythms = new Set(songs.map((s) => s.rhythm));
+  const voices = songs.filter((s) => s.vocal && s.singer);
+  const singer =
+    voices.length && voices.every((s) => s.singer === voices[0]!.singer) ? voices[0]!.singer : null;
+  const nt: Tanda = {
+    ...retimeTanda(t, songs),
+    rhythm: (rhythms.size === 1 ? first.rhythm : t.rhythm) as Tanda["rhythm"],
+    orchestra: first.orchestra,
+    orchestraId: first.orchestraId,
+    singer,
+    vocal: songs.some((s) => s.vocal),
+    locked: true,
+    pinned: { by: "dj", reason: "DJ's tanda", at: new Date().toISOString() },
+  };
+  const tandas = p.tandas.map((x, i) => (i === ti ? nt : x));
+  try {
+    return { playlist: renight(p, tandas) };
+  } catch {
+    // a partial night (an imported file without its booth plan): the tandas are what matters
+    return { playlist: { ...p, tandas } };
+  }
 }
 
 /** put `songId` in chair `si` of tanda `ti` (a valid side only, unless `force` — the DJ's own choice, then pinned) */

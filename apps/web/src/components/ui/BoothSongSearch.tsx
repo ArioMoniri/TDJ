@@ -12,6 +12,7 @@ import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import { yearText } from "@/lib/year";
 import { BoothSwapSheet } from "../booth/BoothSwapSheet";
+import { BoothTandaSwap } from "../booth/BoothTandaSwap";
 import { Sheet } from "../Sheet";
 import { Artwork } from "./Artwork";
 import { ConfirmBar, HitRow, roomPlaying, ScopeSwitch, SearchBar } from "./BoothSearchBits";
@@ -320,6 +321,7 @@ export function BoothSongSearch({ onGoTo }: { onGoTo?: (planIndex: number) => vo
         }}
       />
       <BoothSwapSheet />
+      <BoothTandaSwap />
     </>
   );
 }

@@ -79,6 +79,45 @@ async function search(access: string, q: string, deadline?: number): Promise<Can
 }
 
 /**
+ * 2026-11, the smart search: the tracks Spotify finds for what the DJ typed (a plain query, `market=from_token` so
+ * only what the DJ can play), as the search's service recordings (lib/smartSearch.ts `ServiceTrack`).
+ */
+export async function searchTracks(access: string, q: string, limit = 10, deadline?: number) {
+  const j = await spotify<{
+    tracks?: {
+      items?: Array<
+        SearchHit & {
+          id?: string;
+          preview_url?: string | null;
+          external_ids?: { isrc?: string };
+          is_playable?: boolean;
+        }
+      >;
+    };
+  }>(
+    access,
+    `/search?${new URLSearchParams({ q, type: "track", limit: String(Math.min(10, limit)), market: "from_token" })}`,
+    {},
+    deadline,
+  );
+  return (j.tracks?.items ?? [])
+    .filter((h) => h.uri && h.is_playable !== false)
+    .map((h) => ({
+      service: "spotify" as const,
+      id: h.id ?? h.uri.split(":").pop() ?? h.uri,
+      uri: h.uri,
+      url: h.external_urls?.spotify,
+      title: h.name,
+      artists: h.artists.map((a) => a.name),
+      album: h.album?.name,
+      year: h.album?.release_date ? Number(h.album.release_date.slice(0, 4)) || null : null,
+      durationSec: h.duration_ms ? Math.round(h.duration_ms / 1000) : null,
+      previewUrl: h.preview_url ?? null,
+      isrc: h.external_ids?.isrc ?? null,
+    }));
+}
+
+/**
  * Per-process memo (warm Lambda): a recording is searched once per instance ever; the browser stores the answer in
  * the DJ's database too, so a re-export never searches again. `null` is "not found", remembered for an hour only.
  */
