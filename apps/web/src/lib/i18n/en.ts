@@ -4143,6 +4143,8 @@ export const en = {
   "booth.connect.headphones_second_device": "Second device",
   "booth.connect.music_gaps": "{music} music + {gaps} gaps",
   "booth.connect.gain_none": "Spotify plays this at its own level (no gain on this device)",
+  "booth.connect.play_now_at_once":
+    "Play now switches the room's song at once (this device can't fade). {p1}",
 } as const;
 
 export type MsgKey = keyof typeof en;

@@ -4320,4 +4320,6 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.connect.headphones_second_device": "İkinci cihaz",
   "booth.connect.music_gaps": "{music} müzik + {gaps} ara",
   "booth.connect.gain_none": "Spotify bunu kendi seviyesinde çalar (bu cihazda kazanç yok)",
+  "booth.connect.play_now_at_once":
+    "Şimdi çal, salondaki şarkıyı hemen değiştirir (bu cihaz sesi yavaşça kısamaz). {p1}",
 };

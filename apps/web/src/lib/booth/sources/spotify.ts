@@ -624,6 +624,8 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
   private async doConnect(): Promise<void> {
     if (this.remote) {
       await this.listDevices();
+      // the device's own level, when the night starts (a re-attach, a device picked before the night)
+      if (this.baseVolume === null) await this.readVolume();
       return;
     }
     if (!this.sdkUnusable) {

@@ -1714,8 +1714,7 @@ export class BoothEngine {
       gainDb: Math.min(0, gainDb),
       attached,
       onStarted: () => {
-        if (!base.cancelled && (this.current === base || this.current === null || userStart))
-          this.setStarting(false);
+        if (userStart && !base.cancelled) this.setStarting(false);
       },
       onEnded: () => {
         if (!base.cancelled) this.onEnded(base);
