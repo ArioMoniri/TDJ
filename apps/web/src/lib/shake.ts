@@ -11,8 +11,10 @@ import { create } from "zustand";
  *   alert. Never an undo without the alert (components/ShakeUndo.tsx).
  * - the switch (Settings → Keyboard & gestures): on by default on a touch device; on iOS the motion needs
  *   DeviceMotionEvent.requestPermission() from a tap, so the switch reads on only once the permission is granted, and
- *   turning it on asks. The Tauri iOS app's WKWebView has the same web API (WebKit asks with its own prompt when the
- *   app does not answer itself), so no native bridge is needed. Kept in this browser only.
+ *   turning it on asks. Kept in this browser only.
+ * - the T-DJ iPhone / iPad app (nativeShake): UIKit's own shake (motionEnded, what the Simulator's Device → Shake and
+ *   a real shake both send) arrives as a `tdj:shake` window event from the app (src-tauri/src/apple.rs
+ *   install_shake), so the app needs no motion permission and no detector; the switch is on by default there.
  */
 
 export interface MotionSample {
@@ -154,8 +156,19 @@ const motionCtor = (): MotionCtor | null =>
 
 /** the device reports motion at all */
 export const hasMotion = () => motionCtor() !== null;
-/** iOS 13+: motion only after DeviceMotionEvent.requestPermission() from a tap */
-export const needsMotionPermission = () => typeof motionCtor()?.requestPermission === "function";
+/**
+ * the T-DJ app on an iPhone or an iPad: its shakes come from UIKit as `tdj:shake` (no devicemotion, no permission)
+ */
+export function nativeShake(): boolean {
+  if (typeof window === "undefined" || !(window as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__)
+    return false;
+  const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
+  // iPadOS reports a Mac's user agent: a Mac with touch points is an iPad
+  return /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && (navigator.maxTouchPoints ?? 0) > 1);
+}
+/** iOS 13+ in a browser: motion only after DeviceMotionEvent.requestPermission() from a tap (never in the app) */
+export const needsMotionPermission = () =>
+  !nativeShake() && typeof motionCtor()?.requestPermission === "function";
 /** a phone or a tablet (the switch's default) */
 export function isTouchDevice(): boolean {
   if (typeof window === "undefined") return false;
@@ -196,10 +209,10 @@ export const useShakePref = create<ShakePrefState>(() => {
 
 /** the DJ wants shake to undo here (their choice, else on for a touch device with motion) */
 export const shakeWanted = (s: ShakePrefState = useShakePref.getState()) =>
-  s.pref ?? (isTouchDevice() && hasMotion());
-/** shake to undo listens now: wanted, and (on iOS) motion granted */
+  s.pref ?? (nativeShake() || (isTouchDevice() && hasMotion()));
+/** shake to undo listens now: wanted, and (iOS in a browser) motion granted; the app's shakes need no grant */
 export const shakeOn = (s: ShakePrefState = useShakePref.getState()) =>
-  shakeWanted(s) && hasMotion() && (!needsMotionPermission() || s.granted);
+  shakeWanted(s) && (nativeShake() || (hasMotion() && (!needsMotionPermission() || s.granted)));
 
 /** iOS: ask for motion (from a tap); true when granted */
 export async function requestMotion(): Promise<boolean> {
