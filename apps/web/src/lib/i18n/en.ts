@@ -4014,7 +4014,7 @@ export const en = {
   "tandaCard.about_bpm": ", about {bpm} BPM",
   "tandaCard.analyse_all_tracks": "Analyse all tracks",
   "tandaCard.analysing": "Analysing…",
-  "tandaCard.cortina_s": "Cortina · {artist} – {title} · {p1} s",
+  "tandaCard.cortina_s": "Cortina · {artist} – {title}",
   "tandaCard.hide_player": "Hide player",
   "tandaCard.keys": "{mode} keys",
   "tandaCard.listen": "Listen",
@@ -4854,6 +4854,14 @@ export const en = {
   "settings.transitions.to_cortina": "Last song → cortina",
   "settings.transitions.from_cortina": "Cortina → next tanda",
   "settings.transitions.cumparsita": "Into La Cumparsita",
+  "settings.transitions.in_tanda_tip":
+    "How one song hands over to the next inside a tanda, where Auto would choose",
+  "settings.transitions.to_cortina_tip":
+    "How the last song of a tanda gives way to the cortina, where Auto would choose",
+  "settings.transitions.from_cortina_tip":
+    "How the cortina gives way to the first song of the next tanda, where Auto would choose",
+  "settings.transitions.cumparsita_tip":
+    "How the night moves into La Cumparsita at the end, where Auto would choose",
   "settings.transitions.rhythm_tango": "Tango tandas",
   "settings.transitions.rhythm_vals": "Vals tandas",
   "settings.transitions.rhythm_milonga": "Milonga tandas",
@@ -5133,6 +5141,7 @@ export const en = {
   "keys.chip_aria": "Change shortcut for {action}, currently {key}",
   "keys.none_aria": "Add a shortcut for {action}, currently none",
   "keys.add_aria": "Add another shortcut for {action}",
+  "keys.chips_tip": "Tap a key to change it, + to add another; the arrow puts the default keys back",
   "keys.reset_row": "Reset to default",
   "keys.reset_row_aria": "Reset {action} to default ({keys})",
   "keys.recording_aria":

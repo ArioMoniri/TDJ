@@ -1136,6 +1136,30 @@ describe("wave 2: a skipped tanda leaves the plan; a missing item is explained",
     );
     expect(b?.text).not.toMatch(/\(skipped\)|No source/);
   });
+  it("2026-11: two sides in a row that cannot play (one undecodable file matched to both): the night moves on, never stays armed", async () => {
+    const plan = build(set());
+    const base = fakeAdapter();
+    const bad = new Set([plan.items[0]!.id, plan.items[1]!.id]);
+    const adapter: SourceAdapter = {
+      ...base,
+      async prepare(item, ent) {
+        if (bad.has(item.id)) throw new Error("Cannot decode x.mp3");
+        return base.prepare(item, ent);
+      },
+    };
+    const e = new BoothEngine(ctx, { adapters: [adapter], onEvent: () => {}, now: () => 1_000_000 });
+    e.load(
+      plan,
+      plan.items.map(() => null),
+      plan.items.map(() => "file"),
+    );
+    await e.start();
+    await e.play();
+    // (item 2 of this plan is the tanda's cortina)
+    expect(["playing", "cortina"]).toContain(e.state);
+    expect(e.planIndex).toBe(2);
+    expect(e.current?.planIndex).toBe(2);
+  });
 });
 
 /* ---------- wave 4: the DJ's edited transitions ---------- */

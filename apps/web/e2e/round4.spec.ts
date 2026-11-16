@@ -167,7 +167,9 @@ test("analyse in browser: the worker turns a synthetic preview into key + BPM an
   await expect(card).toBeVisible({ timeout: 15000 });
   await expect(card.locator('[data-resolved="true"]')).toBeVisible();
   await card.getByRole("button", { name: /^Analyse/ }).click();
-  await expect(page.getByTestId("toast")).toContainText(/Analysed: [A-G][♯]? (major|minor) · \d+ BPM/, {
+  // (2026-11, 215a2ad: "Analyse in browser" became "Measure from your file"; the toast reads "Measured <title>: 118 BPM
+  // · A major · energy 43 · −14.2 dB")
+  await expect(page.getByTestId("toast")).toContainText(/Measured .+: \d+ BPM · [A-G][♯]? (major|minor)/, {
     timeout: 30000,
   });
   await expect(card.getByText(/· \d+ BPM ·/)).toBeVisible();
@@ -175,7 +177,9 @@ test("analyse in browser: the worker turns a synthetic preview into key + BPM an
   // the analysed features survive a reload (IndexedDB)
   await page.waitForTimeout(600);
   await page.reload();
-  await page.getByLabel("Search the index").fill("Milonga Compadre");
+  // (2026-11: the page brings its search back from the address after mount, lib/usePageQuery.ts; filling the field
+  // again raced that restore and typed after it, "Milonga CompadreMilonga Compadre": wait for the restored words)
+  await expect(page.getByLabel("Search the index")).toHaveValue("Milonga Compadre");
   await expect(card.getByText(/analysed here/)).toBeVisible({ timeout: 15000 });
 });
 

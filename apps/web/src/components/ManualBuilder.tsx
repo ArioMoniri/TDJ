@@ -242,7 +242,6 @@ const NEW_TANDA_ORCHESTRAS: Array<[string, string]> = [
   ["francisco-canaro", "Francisco Canaro"],
   ["edgardo-donato", "Edgardo Donato"],
 ];
-const RHYTHM_LETTER: Record<string, string> = { tango: "T", vals: "V", milonga: "M" };
 const tandaEnergy = (t: DraftSong[]) => t.reduce((a, s) => a + (s.energy ?? 50), 0) / Math.max(1, t.length);
 
 /** the night's energy, tanda by tanda, against the plan's targets: a 44 px tall sparkline */

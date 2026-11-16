@@ -4,7 +4,7 @@ import "./compose-db.css";
 import { Pause, Play } from "lucide-react";
 import { memo, type ReactNode, useMemo } from "react";
 import { haptic } from "@/lib/haptics";
-import { fmtLen } from "@/lib/lengths";
+import { fmtLen, sideSec } from "@/lib/lengths";
 import { useTapPlay } from "@/lib/playback";
 import type { PlayItem } from "@/lib/player";
 import { type SongMenuSpec, useSongMenuProps } from "@/lib/songMenu";
@@ -201,7 +201,8 @@ export const SongRow = memo(function SongRow({
       {!play.audible && <NoAudio />}
       <span className="len text-caption1" data-testid="row-len">
         <span className="sr-only">{t("play.length")} </span>
-        {fmtLen(song.durationSec)}
+        {/* one length per side everywhere: its checked recording's, else the index's; unknown → "–:–" */}
+        {fmtLen(sideSec(song))}
       </span>
       {showPlay && <PlayButton song={song} className="-my-2" />}
       {trailing}

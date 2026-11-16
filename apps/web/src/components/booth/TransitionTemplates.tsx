@@ -64,6 +64,12 @@ const BOUNDARY_KEY: Record<Boundary, MsgKey> = {
   fromCortina: "settings.transitions.from_cortina",
   cumparsita: "settings.transitions.cumparsita",
 };
+const BOUNDARY_TIP: Record<Boundary, MsgKey> = {
+  inTanda: "settings.transitions.in_tanda_tip",
+  toCortina: "settings.transitions.to_cortina_tip",
+  fromCortina: "settings.transitions.from_cortina_tip",
+  cumparsita: "settings.transitions.cumparsita_tip",
+};
 const RHYTHM_KEY: Record<TemplateRhythm, MsgKey> = {
   tango: "settings.transitions.rhythm_tango",
   vals: "settings.transitions.rhythm_vals",
@@ -194,6 +200,7 @@ export function TransitionTemplatesGroup() {
             placeholder={t("booth.transition.auto")}
             onChange={(id) => st.setDefault({ boundary: bd }, id ?? null)}
             ariaLabel={t(BOUNDARY_KEY[bd])}
+            tip={t(BOUNDARY_TIP[bd])}
           />
         ))}
         {TEMPLATE_RHYTHMS.map((r) => (

@@ -183,28 +183,37 @@ for (const [name, opts] of DEVICES) {
       await openCompose(page);
       const card = page.locator("#tanda-2");
       await expect(card.getByTestId("tanda-type")).toContainText("Tango");
-      await expect(card.getByTestId("tanda-mode")).toHaveText(/^Vocal · /);
-      const lens = await card.getByTestId("row-len").allInnerTexts();
+      // (2026-11, b3279c5: a vocal tanda with an instrumental side reads "Vocal & instrumental")
+      await expect(card.getByTestId("tanda-mode")).toHaveText(/^Vocal( · |$| & instrumental)/);
+      // (a card far below the fold is skipped by content-visibility: its innerText reads "" until it is near the
+      // viewport — on a phone tanda 2 is; read what the rows say)
+      await card.getByTestId("tanda-total").scrollIntoViewIfNeeded();
+      const lens = await card.getByTestId("row-len").allTextContents();
       expect(lens).toHaveLength(4);
-      const secs = lens.map((l) => {
-        const m = /(\d+):(\d\d)/.exec(l)!;
-        return Number(m[1]) * 60 + Number(m[2]);
-      });
+      // every side shows a length: m:ss, or the "–:–" placeholder when its length is unknown
+      for (const l of lens) expect(l).toMatch(/(\d+:\d\d|–:–)\s*$/);
+      const known = lens.map((l) => /(\d+):(\d\d)/.exec(l)).filter((m) => m !== null);
+      const secs = known.map((m) => Number(m[1]) * 60 + Number(m[2]));
       const sum = secs.reduce((a, b) => a + b, 0);
       const want = `${Math.floor(sum / 60)}:${String(sum % 60).padStart(2, "0")}`;
-      // (row lengths are rounded per side: the total is within a second of their sum)
+      // (row lengths are rounded per side: the total is within a second of their sum; an unknown side leaves the
+      // total partial, "≈")
+      const partial = known.length < lens.length ? "≈ " : "";
       await expect(card.getByTestId("tanda-total")).toHaveText(
-        new RegExp(`^4 songs · ${want.slice(0, -1)}\\d$`),
+        new RegExp(`^4 songs · ${partial}${want.slice(0, -1)}\\d$`),
       );
       await expect(page.getByTestId("night-total")).toContainText(/plays (≈ )?\d+:\d\d:\d\d/);
     });
 
-    test(`${name}: drag song 4 of tanda 2 to the top, Move up, Undo; the order survives a reload`, async ({
+    test(`${name}: drag song 4 of tanda 1 to the top, Move up, Undo; the order survives a reload`, async ({
       page,
     }) => {
       await openCompose(page);
-      const before = await rowTitles(page, 2);
-      const rows = page.locator("#tanda-2 li[data-song]");
+      // (215a2ad: a locked tanda's sides never move — no drag handle — and this night's tanda 2 is the DJ's locked
+      // Di Sarli tanda; tanda 1 is a free tango tanda of four)
+      await expect(page.locator("#tanda-1")).not.toHaveAttribute("data-locked", /.*/);
+      const before = await rowTitles(page, 1);
+      const rows = page.locator("#tanda-1 li[data-song]");
       const handle = rows.nth(3).getByTestId("drag-handle");
       await handle.scrollIntoViewIfNeeded();
       const h = (await handle.boundingBox())!;
@@ -245,7 +254,7 @@ for (const [name, opts] of DEVICES) {
           [h.x + h.width / 2, top.y + 4],
         );
       }
-      await expect.poll(() => rowTitles(page, 2)).toEqual([before[3], before[0], before[1], before[2]]);
+      await expect.poll(() => rowTitles(page, 1)).toEqual([before[3], before[0], before[1], before[2]]);
       await expect(page.getByTestId("toast")).toContainText("Undo");
       // Move up (the ••• menu): the 3rd goes to the 2nd place
       await rows
@@ -253,15 +262,15 @@ for (const [name, opts] of DEVICES) {
         .getByRole("button", { name: /^Track \d+ actions$/ })
         .click();
       await page.getByRole("menuitem", { name: "Move up" }).click();
-      await expect.poll(() => rowTitles(page, 2)).toEqual([before[3], before[1], before[0], before[2]]);
+      await expect.poll(() => rowTitles(page, 1)).toEqual([before[3], before[1], before[0], before[2]]);
       // Undo puts it back
       await page.getByTestId("toast").getByRole("button", { name: "Undo" }).click();
-      await expect.poll(() => rowTitles(page, 2)).toEqual([before[3], before[0], before[1], before[2]]);
+      await expect.poll(() => rowTitles(page, 1)).toEqual([before[3], before[0], before[1], before[2]]);
       // the order is the night's: it survives a reload
       await page.waitForTimeout(1200);
       await page.goto("/");
       await expect(page.locator("#result")).toBeVisible({ timeout: 60000 });
-      await expect.poll(() => rowTitles(page, 2)).toEqual([before[3], before[0], before[1], before[2]]);
+      await expect.poll(() => rowTitles(page, 1)).toEqual([before[3], before[0], before[1], before[2]]);
     });
 
     test(`${name}: Library and Build by hand rows play on a tap`, async ({ page }) => {

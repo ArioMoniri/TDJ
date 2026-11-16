@@ -31,6 +31,7 @@ function MobileTab({
   min,
   compact = false,
   hidden = false,
+  minWidth,
   onOpen,
 }: {
   it: NavItem;
@@ -38,6 +39,8 @@ function MobileTab({
   min: boolean;
   compact?: boolean;
   hidden?: boolean;
+  /** the width its name needs, when the shared fifth is too narrow for it (`useTabLabelsFit`) */
+  minWidth?: number;
   /** the More tab: a button that opens the sheet of the other pages */
   onOpen?: () => void;
 }) {
@@ -46,6 +49,7 @@ function MobileTab({
   // the tab's shown name: its short one where it has one (the full name stays its accessible name)
   const name = it.short ?? it.label;
   const cls = `tab-item ${hidden ? "!w-0 !flex-none overflow-hidden !px-0 opacity-0" : min ? "!flex-none w-[54px]" : "px-1"}`;
+  const style = minWidth && !hidden && !min ? { minWidth } : undefined;
   const inner = (
     <>
       {on && (
@@ -99,6 +103,7 @@ function MobileTab({
           onOpen();
         }}
         className={cls}
+        style={style}
       >
         {inner}
         {tip.tag}
@@ -113,6 +118,7 @@ function MobileTab({
       tabIndex={hidden ? -1 : undefined}
       onClick={() => !on && haptic(4)}
       className={cls}
+      style={style}
     >
       {inner}
       {tip.tag}
@@ -120,13 +126,22 @@ function MobileTab({
   );
 }
 /**
- * 2026-11 (QA, Turkish on an iPhone SE: "Gece oluştur" ran into "Kabin" on the Library's narrowed bar): true while
- * any tab's name is wider than its tab, and then the bar shows icons only (names stay their accessible names and
- * help tags). Measured on the bar's width, the page (the search pages narrow it) and the language; never while
- * the bar is minimised (one tab, no name).
+ * 2026-11 (QA, Turkish on an iPhone SE: "Gece oluştur" ran into "Kabin" on the Library's narrowed bar): the tabs share
+ * the capsule's width; a tab whose name does not fit its fifth (4 px clear each side) gets the width it needs, at
+ * least 44 px, and the others share the rest (2026-11, QA: a 375 px iPhone SE on the Library hid every name for
+ * "Compose" at 46 px in a 52 px tab, and "Kütüphane" / "Daha fazla" in Turkish). Only when the names cannot all fit
+ * that way (a 320 px iPhone SE with the search circle) does the bar show icons only (names stay their accessible
+ * names and help tags). Measured on the bar's width, the page (the search pages narrow it) and the language; never
+ * while the bar is minimised (one tab, no name).
  */
-function useTabLabelsFit(ref: React.RefObject<HTMLElement | null>, key: string): boolean {
-  const [over, setOver] = useState(false);
+function useTabLabelsFit(
+  ref: React.RefObject<HTMLElement | null>,
+  key: string,
+): { iconsOnly: boolean; minWidths: number[] | null } {
+  const [fit, setFit] = useState<{ iconsOnly: boolean; minWidths: number[] | null }>({
+    iconsOnly: false,
+    minWidths: null,
+  });
   const [width, setWidth] = useState(0);
   useEffect(() => {
     const el = ref.current;
@@ -139,17 +154,30 @@ function useTabLabelsFit(ref: React.RefObject<HTMLElement | null>, key: string):
   useEffect(() => {
     const el = ref.current;
     if (!el || !width || el.dataset.min !== undefined) return;
-    // a label's scrollWidth is its text's width even while it is hidden (sr-only clips, it does not reflow)
-    let tooWide = false;
+    // a label's scrollWidth is its text's width even while it is hidden (sr-only clips, it does not reflow); the
+    // bar's own width is set by its edges, never by its tabs, so the measure does not feed back on itself
+    const cs = getComputedStyle(el);
+    const inner = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    const need: number[] = [];
     for (const label of el.querySelectorAll<HTMLElement>('[data-testid="tab-label"]')) {
       const tab = label.parentElement;
       if (!tab || tab.getAttribute("aria-hidden") === "true") continue;
       // 4 px of padding each side: the name never reaches the tab's edge
-      if (label.scrollWidth > tab.clientWidth - 8) tooWide = true;
+      need.push(Math.max(44, Math.ceil(label.scrollWidth) + 8));
     }
-    setOver(tooWide);
+    const total = need.reduce((a, b) => a + b, 0);
+    const share = need.length ? inner / need.length : 0;
+    const next =
+      !need.length || need.every((n) => n <= share)
+        ? { iconsOnly: false, minWidths: null }
+        : total <= inner
+          ? { iconsOnly: false, minWidths: need }
+          : { iconsOnly: true, minWidths: null };
+    setFit((f) =>
+      f.iconsOnly === next.iconsOnly && String(f.minWidths) === String(next.minWidths) ? f : next,
+    );
   }, [ref, width, key]);
-  return over;
+  return fit;
 }
 
 const MORE: NavItem = {
@@ -211,7 +239,7 @@ export function Nav() {
   const [moreOpen, setMoreOpen] = useState(false);
   const inMore = PHONE_MORE.some((i) => i.href === path);
   const tabbar = useRef<HTMLElement>(null);
-  const iconsOnly = useTabLabelsFit(tabbar, `${path}|${minimised}|${getLocale()}`);
+  const { iconsOnly, minWidths } = useTabLabelsFit(tabbar, `${path}|${minimised}|${getLocale()}`);
   return (
     <>
       {/* Tablet (sm–lg): glass pill as a toolbar. Left: logo (+ page title once the large title scrolled out),
@@ -277,12 +305,14 @@ export function Nav() {
           aria-label={t("nav.primary_mobile")}
           style={{
             bottom: "var(--tabbar-bottom)",
-            left: "max(1rem, env(safe-area-inset-left, 0px))",
+            // 16 px, not 1rem: the control layer keeps its insets at a larger text size, as its height does (QA, 200 %
+            // text: 32 px edges left the Library's five names no room)
+            left: "max(16px, env(safe-area-inset-left, 0px))",
             right: minimised
               ? "auto"
               : searchId
-                ? "calc(max(1rem, env(safe-area-inset-right, 0px)) + var(--tab-search-w) + var(--tab-search-gap))"
-                : "max(1rem, env(safe-area-inset-right, 0px))",
+                ? "calc(max(16px, env(safe-area-inset-right, 0px)) + var(--tab-search-w) + var(--tab-search-gap))"
+                : "max(16px, env(safe-area-inset-right, 0px))",
             marginInline: minimised || searchId ? undefined : "auto",
             maxWidth: 440,
             transition: "transform var(--dur-s) var(--ease-settle), opacity var(--dur-s) var(--ease-settle)",
@@ -290,7 +320,7 @@ export function Nav() {
             opacity: hidden ? 0 : 1,
           }}
         >
-          {PHONE_TABS.map((it) => (
+          {PHONE_TABS.map((it, i) => (
             <MobileTab
               key={it.href}
               it={it}
@@ -298,6 +328,7 @@ export function Nav() {
               min={minimised}
               compact={false}
               hidden={minimised && path !== it.href}
+              minWidth={minWidths?.[i]}
             />
           ))}
           <MobileTab
@@ -306,6 +337,7 @@ export function Nav() {
             min={minimised}
             compact={false}
             hidden={minimised && !inMore}
+            minWidth={minWidths?.[PHONE_TABS.length]}
             onOpen={() => setMoreOpen(true)}
           />
         </nav>
@@ -334,7 +366,7 @@ export function Nav() {
         {searchId && (
           <button
             type="button"
-            className="glass tab-search fixed bottom-[var(--tabbar-bottom)] right-[max(1rem,env(safe-area-inset-right,0px))] z-40 grid place-items-center rounded-full text-[var(--label)] sm:hidden"
+            className="glass tab-search fixed bottom-[var(--tabbar-bottom)] right-[max(16px,env(safe-area-inset-right,0px))] z-40 grid place-items-center rounded-full text-[var(--label)] sm:hidden"
             aria-label={t("nav.search")}
             style={{
               transition:

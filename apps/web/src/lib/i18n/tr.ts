@@ -4215,7 +4215,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "tandaCard.about_bpm": ", yaklaşık {bpm} BPM",
   "tandaCard.analyse_all_tracks": "Tüm parçaları analiz et",
   "tandaCard.analysing": "Analiz ediliyor…",
-  "tandaCard.cortina_s": "Kortina · {artist} – {title} · {p1} sn",
+  "tandaCard.cortina_s": "Kortina · {artist} – {title}",
   "tandaCard.hide_player": "Oynatıcıyı gizle",
   "tandaCard.keys": "{mode} tonlar",
   "tandaCard.listen": "Dinle",
@@ -5063,6 +5063,14 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "settings.transitions.to_cortina": "Son şarkı → cortina",
   "settings.transitions.from_cortina": "Cortina → sonraki tanda",
   "settings.transitions.cumparsita": "La Cumparsita'ya geçiş",
+  "settings.transitions.in_tanda_tip":
+    "Bir tanda içinde bir şarkının bir sonrakine nasıl geçeceği; Otomatik'in seçeceği yerde",
+  "settings.transitions.to_cortina_tip":
+    "Tandanın son şarkısının cortinaya nasıl yer açacağı; Otomatik'in seçeceği yerde",
+  "settings.transitions.from_cortina_tip":
+    "Cortinanın bir sonraki tandanın ilk şarkısına nasıl yer açacağı; Otomatik'in seçeceği yerde",
+  "settings.transitions.cumparsita_tip":
+    "Gecenin sonunda La Cumparsita'ya nasıl geçileceği; Otomatik'in seçeceği yerde",
   "settings.transitions.rhythm_tango": "Tango tandaları",
   "settings.transitions.rhythm_vals": "Vals tandaları",
   "settings.transitions.rhythm_milonga": "Milonga tandaları",
@@ -5341,6 +5349,8 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "keys.chip_aria": "{action} kısayolunu değiştir, şu an {key}",
   "keys.none_aria": "{action} için kısayol ekle, şu an yok",
   "keys.add_aria": "{action} için bir kısayol daha ekle",
+  "keys.chips_tip":
+    "Değiştirmek için bir tuşa, bir tane daha eklemek için +'ya dokunun; ok varsayılan tuşları geri getirir",
   "keys.reset_row": "Varsayılana dön",
   "keys.reset_row_aria": "{action} varsayılana dönsün ({keys})",
   "keys.recording_aria":

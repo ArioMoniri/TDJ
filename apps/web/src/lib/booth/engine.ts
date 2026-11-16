@@ -909,16 +909,24 @@ export class BoothEngine {
     this.holding = false;
     this.breakUntil = null;
     if (this.holdBefore === this.planIndex) this.holdBefore = null;
-    const i = this.planIndex;
+    let i = this.planIndex;
     const resume = this.pausedAt?.planIndex === i ? this.pausedAt : null;
     this.pausedAt = null;
-    const s = await this.schedule(
+    let s = await this.schedule(
       i,
       this.ctx.currentTime + delaySec,
       resume
         ? { from: resume.at, fadeIn: this.settings.pauseFadeSec, headCut: resume.runtime.headCut }
         : undefined,
     );
+    // 2026-11 (QA: one undecodable file matched to two sides in a row — the banner said "the night moves on", the
+    // Booth stayed armed in silence): an item passed over (`markMissing`) hands the start to the next playable one
+    while (!s && this.skipped.has(i) && this.state === "armed") {
+      const n = this.nextPlayable(i);
+      if (n === null) return this.finish();
+      this.planIndex = i = n;
+      s = await this.schedule(i, this.ctx.currentTime + delaySec);
+    }
     if (!s) return;
     this.current = s;
     if (!resume) this.anchors.push({ planIndex: i, at: new Date(this.wall()).toISOString() });
