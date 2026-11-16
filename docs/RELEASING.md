@@ -229,7 +229,7 @@ GL (`--gl=swangle`).
 |---|---|---|
 | `pnpm media` | the clips (`media/readme/<clip>.{mp4,gif}`) and stills (`.webp`) | see the header of `apps/web/scripts/capture-media.ts` |
 | `pnpm media:frames` | the device pictures (phone, tablet, laptop) | ~25 s each |
-| `pnpm media:hero` | the hero under the tagline: the 3D laptop orbits, opens and wakes, the app plays on it square on, then it shuts for the loop; `hero.{gif,mp4,webm}` (1920 × 1200 master), README line updated | capture ~2 min; rest still ~25 s; WebGL intro/outro + 2D app part: see the latest draft's log; GIF 960 px / 24 fps |
+| `pnpm media:hero` | the hero under the tagline: the 3D laptop orbits, opens and wakes, the app plays on it square on, then it shuts for the loop; `hero.{gif,mp4,webm}` (1920 × 1200 master), README line updated | capture ~2 min; rest still ~25 s; render ~20 min at load 20–27 (software GL, concurrency 2); MP4 + WebM ~2 min; GIF 960 px / 24 fps ≈ 7 MB |
 | `pnpm media:hero --draft` | the same as `hero-draft.*`, README untouched | |
 
 Both need a production server: `pnpm --filter @tdj/web build && pnpm --filter @tdj/web start -p 3975`, then
