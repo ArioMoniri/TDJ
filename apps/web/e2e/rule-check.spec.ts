@@ -186,8 +186,10 @@ test("an AI edit goes through the same check: the answer says what it breaks and
     await clickHydrated(page.locator("#model-add-agent"));
     const sheet = page.getByTestId("agent-sheet");
     // (the two Settings columns rebalance while the page loads: a click can land while the button moves)
+    // (2026-11: the hydrated click above usually opened it already — clicking the row again then waited forever on
+    // the sheet's backdrop; click only while the sheet is not up, with a bounded click)
     await expect(async () => {
-      await page.locator("#model-add-agent").click();
+      if (!(await sheet.isVisible())) await page.locator("#model-add-agent").click({ timeout: 2000 });
       await expect(sheet).toBeVisible({ timeout: 2000 });
     }).toPass({ timeout: 20000 });
     await sheet.locator("#agent-name").fill("Mock Agent");

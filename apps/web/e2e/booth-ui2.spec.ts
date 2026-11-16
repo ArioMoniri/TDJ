@@ -475,8 +475,10 @@ test("4. Enter on a focused row is Play now in the room: before the night it sta
   await page.keyboard.press("Escape");
   await page.keyboard.press("?");
   const keys = page.getByTestId("booth-shortcuts");
-  await expect(keys).toContainText("Play now in the room");
-  await expect(keys.locator("kbd", { hasText: /^enter$/ })).toHaveCount(1);
+  // (the binding is the keymap's — lib/keymap.ts booth.playNow — editable in Settings → Keyboard)
+  const keyRow = keys.getByTestId("shortcut-booth.playNow");
+  await expect(keyRow).toContainText("now in the room");
+  await expect(keyRow.locator("kbd")).toHaveText("↵");
 });
 
 test("5. the transition editor opens only from the gap pill (44 px, Edit the transition); the row and its title play or open the song", async ({

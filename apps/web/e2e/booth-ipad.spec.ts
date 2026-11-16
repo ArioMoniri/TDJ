@@ -387,7 +387,8 @@ const contrastFailures = (page: Page) =>
         const cs = getComputedStyle(e);
         if (cs.visibility === "hidden" || e.getBoundingClientRect().width === 0) continue;
         // (an artwork placeholder's initials sit on a picture-like gradient: artwork, not text to read)
-        if (e.closest(".booth-art, [data-testid='artwork']")) continue;
+        // (and the tanda's number tile on its rhythm gradient, the tap-to-play cover: artwork too)
+        if (e.closest(".booth-art, .tile-art, [data-testid='artwork']")) continue;
         // opacity on the way up (a dimmed group) scales the text
         let op = 1;
         // (up to the first opaque background: above it the text and its background fade together)
