@@ -1526,3 +1526,50 @@ for (const [w, h] of [
     await ctx.close();
   });
 }
+
+/**
+ * 2026-11 — the iPhone store screenshots in Turkish: the tab bar (its label translated) stayed over the Booth's
+ * transport, the chip row was cut at the edge, the transition editor's presets ran off the screen.
+ */
+test("iPhone 15 Pro in Turkish: no tab bar over the transport, a chip row that says it scrolls, every preset in view", async ({
+  browser,
+}) => {
+  const ctx = await browser.newContext({ ...dev("iPhone 15 Pro"), locale: "tr-TR" });
+  const page = await ctx.newPage();
+  await openBooth(page);
+  const tab = await page.evaluate(() => {
+    const n = document.querySelector('nav[data-testid="tab-bar"]');
+    return n ? getComputedStyle(n).visibility : "none";
+  });
+  expect(tab).not.toBe("visible");
+  const start = (await page.getByTestId("booth-start").boundingBox())!;
+  const hit = await page.evaluate(
+    ([x, y]) => !!document.elementFromPoint(x!, y!)?.closest('[data-testid="booth-start"]'),
+    [start.x + start.width / 2, start.y + start.height / 2],
+  );
+  expect(hit, "Başlat is tappable").toBe(true);
+  const row = await page.evaluate(() => {
+    const r = document.querySelector<HTMLElement>(".booth-head-row")!;
+    return { mask: getComputedStyle(r).maskImage, scrolls: r.scrollWidth > r.clientWidth };
+  });
+  if (row.scrolls) expect(row.mask, "an edge fade where the row scrolls").toContain("gradient");
+  // the transition editor: the presets in rows, every tile on the screen
+  await page.getByTestId("booth-set-open").click();
+  await page.locator('[data-testid="booth-set-sheet"] [data-testid="booth-gap"]').first().click();
+  await expect(page.getByTestId("booth-tr-preset-auto")).toBeVisible();
+  const vw = page.viewportSize()!.width;
+  const tiles = await page.locator(".trx-presets > button").evaluateAll((bs) =>
+    bs.map((b) => {
+      const r = b.getBoundingClientRect();
+      return { l: r.left, r: r.right, h: r.height, cut: b.scrollWidth > b.clientWidth + 1 };
+    }),
+  );
+  expect(tiles.length).toBeGreaterThanOrEqual(5);
+  for (const t of tiles) {
+    expect(t.l).toBeGreaterThanOrEqual(0);
+    expect(t.r).toBeLessThanOrEqual(vw);
+    expect(t.h).toBeGreaterThanOrEqual(43.5);
+    expect(t.cut).toBe(false);
+  }
+  await ctx.close();
+});

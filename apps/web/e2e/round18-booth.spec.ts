@@ -206,7 +206,7 @@ test.describe("phone 390 × 844", () => {
       const cards = document.querySelectorAll(".booth-deck .booth-card");
       const last = cards[cards.length - 1]!.getBoundingClientRect();
       const strip = document.querySelector('[data-testid="booth-strip"]')!.getBoundingClientRect();
-      const nav = document.querySelector('nav[aria-label="Primary mobile"]')!;
+      const nav = document.querySelector('nav[data-testid="tab-bar"]')!;
       return { lastBottom: last.bottom, stripTop: strip.top, navMin: nav.hasAttribute("data-min") };
     });
     expect(foot.lastBottom).toBeLessThanOrEqual(foot.stripTop);

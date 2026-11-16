@@ -242,7 +242,7 @@ test("phone booth: a 64 pt strip with the faders behind Levels, Time above Next,
   await expect
     .poll(() =>
       page.evaluate(() => {
-        const nav = document.querySelector<HTMLElement>('nav[aria-label="Primary mobile"]')!;
+        const nav = document.querySelector<HTMLElement>('nav[data-testid="tab-bar"]')!;
         const strip = document.querySelector('[data-testid="booth-strip"]')!.getBoundingClientRect();
         return {
           navHidden: getComputedStyle(nav).visibility === "hidden",

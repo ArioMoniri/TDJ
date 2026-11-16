@@ -538,7 +538,7 @@
 /* wave 2 (iPhone): no tab bar under the booth's transport — the two stacked over the deck; the transport takes the
    tab bar's place from the start, and ••• holds "Leave the booth" */
 @media (max-width: 599.98px) {
-  html[data-booth] nav[aria-label="Primary mobile"] {
+  html[data-booth] nav[data-testid="tab-bar"] {
     visibility: hidden;
     pointer-events: none;
   }
@@ -1436,6 +1436,12 @@ html[data-booth] {
   }
   .booth-head-row::-webkit-scrollbar {
     display: none;
+  }
+  /* 2026-11 (the iPhone store screenshots: "HE…" cut at the edge): the row says it scrolls — a soft edge on the side
+     with more, and room after the last chip so it ends clear of the fade */
+  .booth-head-row {
+    padding-inline-end: 32px;
+    mask-image: linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 28px), transparent 100%);
   }
   .booth-head-row > *,
   .booth-head-row > .booth-toolbar > * {

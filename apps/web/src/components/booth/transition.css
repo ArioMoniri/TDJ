@@ -687,9 +687,24 @@ html:not(.dark) .trx {
   }
 }
 
-/* the presets share the content width evenly (a phone keeps its sideways row) */
+/* the presets share the content width evenly */
 .trx-presets > button {
   flex: 1 0 112px;
+}
+/* 2026-11 (the iPhone store screenshots: Blend and Gap ran off the screen): a phone lays the presets out in rows of
+   three equal tiles, every one in view — no sideways row to discover */
+@media (max-width: 599px) {
+  .trx-presets {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    overflow-x: visible;
+    margin-inline: calc(var(--trx-gut) - 4px);
+    padding-inline: 4px;
+  }
+  .trx-presets > button {
+    min-width: 0;
+    padding: 0 8px;
+  }
 }
 
 /* disabled: a clear disabled look (no fill, a hairline) at ≥ 3:1 */
