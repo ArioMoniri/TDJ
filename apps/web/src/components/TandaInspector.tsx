@@ -1,4 +1,5 @@
 "use client";
+import { singerDisplay } from "@tdj/core";
 import {
   ArrowDown,
   ArrowUp,
@@ -102,12 +103,18 @@ export function TandaInspector({
             <h2 className="text-title3 truncate" data-testid="inspector-title">
               {t.orchestra}
             </h2>
-            <TandaTypeBadge rhythm={t.rhythm} singer={t.singer} vocal={t.vocal} mixed={isMixedTanda(t)} />
+            <TandaTypeBadge
+              rhythm={t.rhythm}
+              singer={t.singer}
+              vocal={t.vocal}
+              mixed={isMixedTanda(t)}
+              songs={t.songs}
+            />
           </div>
         </div>
         <dl className="inspector-facts mt-3">
           <dt>{tx("tandaInspector.voice")}</dt>
-          <dd>{t.singer ?? tx("tandaInspector.instrumental")}</dd>
+          <dd>{singerDisplay(t.singer) ?? tx("tandaInspector.instrumental")}</dd>
           <dt>{tx("tandaInspector.years")}</dt>
           <dd>{years(t.yearRange)}</dd>
           <dt>{tx("tandaInspector.moment")}</dt>
@@ -230,7 +237,7 @@ export function TandaInspector({
               // drag handle and the menu are 44 px
               sub={metaLine(
                 yearText(s.year),
-                s.singer && s.singer !== t.singer ? s.singer : null,
+                s.singer && s.singer !== t.singer ? singerDisplay(s.singer) : null,
                 `${tx("tandaInspector.energy")} ${Math.round(t.energyCurve[k] ?? t.energy)}`,
                 (() => {
                   const len = lengthOf(s, cues);

@@ -5,6 +5,7 @@ import {
   type LearnedRule,
   nightExceptions,
   type RepoLearnedOverrides,
+  singerOfKey,
 } from "@tdj/core";
 import { useEffect, useMemo, useState } from "react";
 import type { DraftSong } from "@/lib/build";
@@ -48,7 +49,7 @@ export function FeaturedLearned() {
       })
       .catch(() => {});
   }, []);
-  const nameOf = (id: string) => names[id] ?? id.replace(/-/g, " ");
+  const nameOf = (id: string) => names[id] ?? singerOfKey(id.replace(/-/g, " "));
   const all = featuredRuleList(store, repo, nameOf, (id) => songs[id]);
   const sideIds = useMemo(
     () =>

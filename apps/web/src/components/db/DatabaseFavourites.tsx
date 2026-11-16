@@ -1,5 +1,6 @@
 "use client";
 import type { PopularitySource, SlotRole } from "@tdj/core";
+import { singerDisplay } from "@tdj/core";
 import { Database } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { PopularityApi, PopularityApiRow } from "@/lib/api/popularity";
@@ -99,7 +100,7 @@ export function DatabaseFavourites({ role }: { role?: SlotRole }) {
             sub={
               <>
                 <span lang="es">
-                  {[r.song?.orchestra, r.song?.singer].filter(Boolean).join(" / ")}
+                  {[r.song?.orchestra, singerDisplay(r.song?.singer)].filter(Boolean).join(" / ")}
                   {r.song?.year ? ` · ${r.song.year}` : ""}
                 </span>
                 {" · "}

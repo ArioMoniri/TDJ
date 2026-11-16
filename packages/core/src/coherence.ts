@@ -85,6 +85,38 @@ export function foldBpm(b: number | null | undefined, rhythm: string): number | 
   for (let i = 0; i < 3 && x >= hi; i++) x /= 2;
   return x >= lo && x < hi ? x : null;
 }
+/** a tempo in the rhythm's range; outside it, the octave whose distance to the range is smallest (never null) */
+export function normaliseBpm(b: number, rhythm: string): number {
+  const f = foldBpm(b, rhythm);
+  if (f !== null) return f;
+  const [lo, hi] = BPM_RANGE[rhythm as DanceRhythm] ?? [60, 240];
+  const dist = (x: number) => (x < lo ? Math.log2(lo / x) : x >= hi ? Math.log2(x / hi) : 0);
+  let best = b;
+  for (const x of [b / 4, b / 2, b, b * 2, b * 4]) if (dist(x) < dist(best)) best = x;
+  return best;
+}
+/**
+ * QA fix 2026-11 (a milonga tanda said "185 BPM" beside sides of 92; one 89 BPM side pulled a 129 BPM tango tanda
+ * down): the tanda's tempo from its sides as they are printed — each in the rhythm's convention, brought to the
+ * tanda's beat level (half / double), the sides more than TEMPO_AGREE off the median left out — so the tanda and
+ * its sides say the same number. null with no measured side.
+ */
+export const TEMPO_AGREE = 0.1;
+export function tandaBpm(bpms: number[], rhythm: string): number | null {
+  const xs = bpms.filter((b) => b > 0).map((b) => normaliseBpm(b, rhythm));
+  if (!xs.length) return null;
+  const sorted = [...xs].sort((a, b) => a - b);
+  const mid =
+    sorted.length % 2
+      ? sorted[(sorted.length - 1) / 2]!
+      : (sorted[sorted.length / 2 - 1]! + sorted[sorted.length / 2]!) / 2;
+  const at = xs.map((b) =>
+    [b / 2, b, b * 2].reduce((a, x) => (Math.abs(Math.log2(x / mid)) < Math.abs(Math.log2(a / mid)) ? x : a)),
+  );
+  const ok = at.filter((b) => Math.abs(b - mid) / mid <= TEMPO_AGREE);
+  const use = ok.length ? ok : at;
+  return use.reduce((a, b) => a + b, 0) / use.length;
+}
 /** a side's measured tempo, folded into the rhythm's range (the DJ's, Deezer's, else the analysed preview's) */
 export const sideBpm = (s: Pick<Song, "tempo">, rhythm: string) => foldBpm(s.tempo?.bpm, rhythm);
 /** a side's loudness (dB, Deezer's replay gain or the DJ's) */

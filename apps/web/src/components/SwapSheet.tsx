@@ -1,5 +1,5 @@
 "use client";
-import { rememberEdit } from "@tdj/core";
+import { rememberEdit, singerDisplay } from "@tdj/core";
 import { useEffect, useMemo, useState } from "react";
 import { undoEdit } from "@/lib/editHistory";
 import { t as tx } from "@/lib/i18n";
@@ -64,7 +64,7 @@ const ranked = (xs: SwapSide[]) => xs.slice().sort((a, b) => Number(b.ok) - Numb
 const sub = (s: SwapSide["song"]) =>
   [
     yearText(s.year),
-    s.singer ?? "instrumental",
+    singerDisplay(s.singer) ?? "instrumental",
     s.vocalStyle === "cantor" ? "singer-led" : s.vocalStyle === "estribillo" ? "rhythm-led" : null,
     s.energy !== undefined ? `energy ${s.energy}` : null,
     tempoLevel(s) || null,
@@ -377,7 +377,7 @@ export function SwapSheet({
         <>
           <p className="text-footnote px-4 pt-2 text-[var(--label-2)]">
             {tx("swapSheet.tanda", { p1: tandaIndex! + 1, rhythm: t.rhythm, orchestra: t.orchestra })}
-            {t.singer ? ` / ${t.singer}` : t.vocal ? "" : tx("swapSheet.instrumental")} ·{" "}
+            {t.singer ? ` / ${singerDisplay(t.singer)}` : t.vocal ? "" : tx("swapSheet.instrumental")} ·{" "}
             {t.yearRange?.join("–")}
             {tempoLevel(cur) ? ` ${tx("swapSheet.this_side", { p1: tempoLevel(cur) })}` : ""}
           </p>

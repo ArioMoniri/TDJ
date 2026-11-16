@@ -1,5 +1,5 @@
 "use client";
-import { forgetLearned, type LearnedRule, learnedRules, setLearnedWeight } from "@tdj/core";
+import { forgetLearned, type LearnedRule, learnedRules, setLearnedWeight, singerOfKey } from "@tdj/core";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { DraftSong } from "@/lib/build";
@@ -142,7 +142,7 @@ export function LearnedRules() {
   }, [want]);
   const all = learnedRules(
     L,
-    (id) => names[id] ?? id.replace(/-/g, " "),
+    (id) => names[id] ?? singerOfKey(id.replace(/-/g, " ")),
     (id) => songs[id],
   );
   const fams = all.filter((r) => r.kind === "family");

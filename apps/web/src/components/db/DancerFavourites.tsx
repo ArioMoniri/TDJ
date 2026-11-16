@@ -1,5 +1,5 @@
 "use client";
-import { type FavouriteRow, favouriteRows, favouritesCsv, type SlotRole } from "@tdj/core";
+import { type FavouriteRow, favouriteRows, favouritesCsv, type SlotRole, singerDisplay } from "@tdj/core";
 import { Download, Heart } from "lucide-react";
 import { useMemo, useState } from "react";
 import { downloadBlob } from "@/lib/download";
@@ -30,7 +30,9 @@ export const evidenceText = (r: Pick<FavouriteRow, "hearts" | "full" | "emptied"
 function familyLabel(r: FavouriteRow): string {
   const [, singer, rhythm, band] = (r.family ?? "").split("|");
   const orch = r.song?.orchestra ?? (r.family ?? "").split("|")[0] ?? "";
-  const who = singer ? `${orch} / ${r.song?.singer ?? singer}` : `${orch} ${t("fav.instrumental")}`;
+  const who = singer
+    ? `${orch} / ${singerDisplay(r.song?.singer ?? singer)}`
+    : `${orch} ${t("fav.instrumental")}`;
   return [who, rhythm, band ? `${band}–${Number(band) + 4}` : null].filter(Boolean).join(" · ");
 }
 
@@ -141,7 +143,7 @@ export function DancerFavourites() {
                 sub={
                   <>
                     <span lang="es">
-                      {[r.song?.orchestra, r.song?.singer].filter(Boolean).join(" / ")}
+                      {[r.song?.orchestra, singerDisplay(r.song?.singer)].filter(Boolean).join(" / ")}
                       {r.song?.year ? ` · ${r.song.year}` : ""}
                     </span>
                     {" · "}

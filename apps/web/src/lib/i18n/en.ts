@@ -2646,7 +2646,7 @@ export const en = {
   "exportSheet.youtube_playlist_created_part_left_out": "YouTube playlist created, part left out",
   "exportSheet.youtube_s_daily_search_budget_ran":
     " (YouTube's daily search budget ran out; the rest fills in another day)",
-  "featured.golden_sub": "4 h 35 min · {era} · double peak, Turkish cortinas",
+  "featured.golden_sub": "4 h 37 min · {era} · double peak, Turkish cortinas",
   "featured.golden_title": "Featured night",
   "featuredSync.available_after_night":
     "A newer version of this night is ready. It waits while the booth has this night going.",
@@ -3257,6 +3257,8 @@ export const en = {
   "tandaType.milonga": "Milonga",
   "tandaType.vocal": "Vocal",
   "tandaType.vocal_singer": "Vocal · {singer}",
+  "tandaType.vocal_and_instrumental": "Vocal & instrumental",
+  "tandaType.plus_rhythm": "+ {rhythm}",
   "tandaType.instrumental": "Instrumental",
   "tandaType.mixed": "mixed",
   "tandaType.mixed_exception": "Your exception: this tanda breaks a rule tonight, as you asked",
@@ -3374,6 +3376,7 @@ export const en = {
   "nightName.guardia_vieja": "Guardia Vieja",
   "nightName.h": "{h} h",
   "nightName.h_min": "{h} h {r} min",
+  "nightName.mostly": "mostly {label}",
   "nightName.min": "{r} min",
   "nightName.mixed_eras": "Mixed eras",
   "nightName.nuevo": "Nuevo",
@@ -4029,6 +4032,7 @@ export const en = {
   "tandaCard.unlock_tanda_2": "Unlock tanda",
   "tandaCard.unlock_the_next_compose_may_change": "Unlock: the next compose may change this tanda",
   "tandaCard.unlock_the_tanda_first": "unlock the tanda first",
+  "tandaCard.tdj_pick_kept": "T-DJ's pick · kept tonight",
   "tandaCard.your_tanda_kept_as_is": "Your tanda · kept as is",
   "tandaChoices.calmer_than_the_plan": "{p1} calmer than the plan",
   "tandaChoices.cancel": "Cancel",

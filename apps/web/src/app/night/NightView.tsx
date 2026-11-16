@@ -6,6 +6,7 @@ import {
   type NightFile,
   parseNightFile,
   payloadFromLink,
+  singerDisplay,
 } from "@tdj/core";
 import { CircleAlert, FileUp, Link2 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -328,7 +329,7 @@ export default function NightPage() {
                         </span>
                       </TandaPlayCover>
                     }
-                    label={`${i + 1}. ${t.orchestra}${t.singer ? ` · ${t.singer}` : ""}`}
+                    label={`${i + 1}. ${t.orchestra}${t.singer ? ` · ${singerDisplay(t.singer)}` : ""}`}
                     sub={
                       <span className="inline-flex flex-wrap items-center gap-1.5">
                         <TandaTypeBadge
@@ -336,6 +337,7 @@ export default function NightPage() {
                           singer={t.singer}
                           vocal={t.vocal}
                           mixed={isMixedTanda(t)}
+                          songs={t.songs}
                         />
                         <span className="tabular-nums" data-testid="tanda-total">
                           {tx("play.songs_total", {

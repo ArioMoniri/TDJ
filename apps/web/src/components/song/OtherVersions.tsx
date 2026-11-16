@@ -1,5 +1,6 @@
 "use client";
 import type { Song } from "@tdj/core";
+import { singerDisplay } from "@tdj/core";
 import { Headphones, Info, Play, Square } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { I } from "@/components/Icons";
@@ -202,7 +203,7 @@ function VersionLine({
   const tp = useTapPlay(booth ? null : item);
   const hearing = booth?.hearingId === song.id;
   const year = song.year ? `${approxYear || song.yearApprox ? "≈ " : ""}${song.year}` : t("song.undated");
-  const voice = song.singer ?? t("song.instrumental");
+  const voice = singerDisplay(song.singer) ?? t("song.instrumental");
   const label = t("song.play_version", { orchestra: song.orchestra, year, voice });
   return (
     <div

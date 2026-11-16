@@ -1,3 +1,4 @@
+import { singerOfKey } from "./display";
 import { normTitle } from "./energy";
 import { emptyLearned, familyKey, LEARN_LIMITS, LIKE_WEIGHTS, praiseList } from "./learn";
 import { spreadCap } from "./tanda";
@@ -75,8 +76,8 @@ export const nightExceptions = (
   nightId?: string,
 ): NightException[] => (L?.night?.exceptions ?? []).filter((x) => !nightId || x.nightId === nightId);
 
-const titleCase = (s: string) =>
-  s.replace(/(^|\s)(\p{L})/gu, (_m, a: string, c: string) => a + c.toUpperCase());
+/** a stored singer key as printed, accents and duets in full (QA fix 2026-11: "Lita Morales H Lagos") */
+const titleCase = (s: string) => singerOfKey(s);
 
 export function learnedRules(
   L: LearnedPreferences | undefined,

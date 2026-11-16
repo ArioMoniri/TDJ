@@ -6,6 +6,7 @@ import {
   type Playlist,
   rememberEdit,
   type Song,
+  singerDisplay,
   type Tanda,
 } from "@tdj/core";
 import {
@@ -183,7 +184,7 @@ const saveMeta = (m: Meta) => {
 };
 const yearsText = (y: [number, number] | null) => (y ? (y[0] === y[1] ? `${y[0]}` : `${y[0]}–${y[1]}`) : "");
 const family = (s: { orchestra: string; singer: string | null }) =>
-  `${s.orchestra}${s.singer ? ` / ${s.singer}` : tx("manualBuilder.instrumental")}`;
+  `${s.orchestra}${s.singer ? ` / ${singerDisplay(s.singer)}` : tx("manualBuilder.instrumental")}`;
 const RHYTHM_ITEMS: Array<["auto" | "tango" | "vals" | "milonga", string]> = lazy(() => [
   ["auto", tx("manualBuilder.next_in_cycle")],
   ["tango", tx("manualBuilder.tango")],
@@ -1672,6 +1673,7 @@ function TandaBlock({
                 singer={t.find((s) => s.vocal)?.singer ?? null}
                 vocal={t.some((s) => s.vocal)}
                 mixed={isMixedTanda({ songs: t })}
+                songs={t}
               />
               <span className="text-caption1 tabular-nums text-[var(--label-2)]" data-testid="tanda-total">
                 {tx("play.songs_total", { n: t.length, total: totalText(total) })}

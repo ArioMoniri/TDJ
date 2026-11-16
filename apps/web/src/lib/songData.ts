@@ -1,4 +1,4 @@
-import { BPM_RANGE, type DjSongData, foldBpm, type ScrapedRecord, type Song } from "@tdj/core";
+import { BPM_RANGE, type DjSongData, normaliseBpm, type ScrapedRecord, type Song } from "@tdj/core";
 import { lower, t } from "@/lib/i18n";
 
 /**
@@ -55,16 +55,9 @@ const RANGE_TEXT = (rhythm: string) => {
   return r ? `${r[0]}–${r[1]}` : "60–240";
 };
 
-/** a tempo in the rhythm's range; outside it, the octave whose distance to the range is smallest */
-export function normaliseBpm(b: number, rhythm: string): number {
-  const f = foldBpm(b, rhythm);
-  if (f !== null) return f;
-  const [lo, hi] = BPM_RANGE[rhythm as keyof typeof BPM_RANGE] ?? [60, 240];
-  const dist = (x: number) => (x < lo ? Math.log2(lo / x) : x >= hi ? Math.log2(x / hi) : 0);
-  let best = b;
-  for (const x of [b / 4, b / 2, b, b * 2, b * 4]) if (dist(x) < dist(best)) best = x;
-  return best;
-}
+/** a tempo in the rhythm's range (core `normaliseBpm`: the tanda's tempo reads the same one) */
+export { normaliseBpm };
+
 /** `b` at the beat level nearest `ref` (half, same or double) */
 const toward = (b: number, ref: number) =>
   [b / 2, b, b * 2].reduce((a, x) => (Math.abs(Math.log2(x / ref)) < Math.abs(Math.log2(a / ref)) ? x : a));

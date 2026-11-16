@@ -1,5 +1,5 @@
 "use client";
-import { tandaTone } from "@tdj/core";
+import { singerDisplay, tandaTone } from "@tdj/core";
 import {
   AudioWaveform,
   BetweenHorizontalEnd,
@@ -202,7 +202,7 @@ function TandaCardImpl({
   const insertSong = useCallback((at: number) => onInsertSong?.(i, at), [onInsertSong, i]);
   const removeSong = useCallback((k: number) => onRemoveSong?.(i, k), [onRemoveSong, i]);
   const sub = [
-    t.singer ?? "Instrumental",
+    singerDisplay(t.singer) ?? tx("tandaType.instrumental"),
     t.yearRange ? yr(t.yearRange[0], t.yearRange[1]) : null,
     PHASE[t.phase] ?? t.phase,
     t.locked ? "locked" : null,
@@ -324,6 +324,7 @@ function TandaCardImpl({
                   singer={t.singer}
                   vocal={t.vocal}
                   mixed={isMixedTanda(t)}
+                  songs={t.songs}
                   mixedWhy={
                     t.pinned?.exception ? tx("tandaType.mixed_exception") : tx("tandaType.mixed_sides")
                   }
@@ -338,7 +339,13 @@ function TandaCardImpl({
                       className="text-caption1 inline-flex rounded-full bg-[color-mix(in_srgb,var(--system-gold)_18%,transparent)] px-2 py-0.5 font-medium text-[var(--label)]"
                       data-testid="tanda-pinned"
                     >
-                      {tx("tandaCard.your_tanda_kept_as_is")}
+                      {/* QA fix 2026-11: a slot T-DJ filled and the DJ kept ("(TDJ's pick)") is not "Your tanda" —
+                          its note says "Inserted between…" */}
+                      {tx(
+                        /TDJ's pick/i.test(t.pinned.reason ?? "")
+                          ? "tandaCard.tdj_pick_kept"
+                          : "tandaCard.your_tanda_kept_as_is",
+                      )}
                     </span>
                   </Tip>
                 )}

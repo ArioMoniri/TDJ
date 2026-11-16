@@ -10,6 +10,7 @@ export * from "./compose";
 export * from "./context";
 export * from "./cortinas";
 export * from "./cumparsita";
+export * from "./display";
 export * from "./editCheck";
 export * from "./energy";
 export * from "./enrich";

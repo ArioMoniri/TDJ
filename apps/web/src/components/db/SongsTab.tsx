@@ -1,5 +1,5 @@
 "use client";
-import { missingFields, type SongFilters, type SongSearchHit, songData } from "@tdj/core";
+import { missingFields, type SongFilters, type SongSearchHit, singerDisplay, songData } from "@tdj/core";
 import { AudioWaveform, CircleMinus, DatabaseZap, Link2, Trash2 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
@@ -704,7 +704,7 @@ export function SongsTab() {
                     <span className="min-w-0 flex-1">
                       <span className="block truncate">{s.title}</span>
                       <span className="text-footnote block truncate text-[var(--label-2)]">
-                        {metaLine(s.orchestra, s.singer, s.rhythm, yearText(s.year))}
+                        {metaLine(s.orchestra, singerDisplay(s.singer), s.rhythm, yearText(s.year))}
                       </span>
                     </span>
                   </div>
@@ -714,7 +714,7 @@ export function SongsTab() {
                     where={tx("play.database")}
                     leadingKind="tile"
                     leading={<SongArt song={s} label={rhythmWord(s.rhythm)} />}
-                    sub={metaLine(s.orchestra, s.singer, s.rhythm, yearText(s.year))}
+                    sub={metaLine(s.orchestra, singerDisplay(s.singer), s.rhythm, yearText(s.year))}
                     lengthSec={(s as Song).durationSec ?? null}
                   />
                 )}

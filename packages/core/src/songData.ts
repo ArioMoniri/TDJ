@@ -1,3 +1,4 @@
+import { tandaBpm } from "./coherence";
 import { normTitle } from "./energy";
 import type { DeezerCache } from "./enrich";
 import type { Song } from "./types";
@@ -214,7 +215,10 @@ export function tandaTone(songs: Song[], keys?: Array<string | undefined>): Tand
   const modes = new Set(ks.map((k) => (k.endsWith("m") ? "minor" : "major")));
   const mode = !modes.size ? null : modes.size > 1 ? "mixed" : ([...modes][0] as "minor" | "major");
   const bpms = songs.map((s) => s.tempo?.bpm || s.audio?.bpm || 0).filter((b) => b > 0);
-  const bpm = bpms.length ? Math.round(bpms.reduce((a, b) => a + b, 0) / bpms.length) : null;
+  // (QA fix 2026-11: in the tanda's rhythm convention, the sides that agree — as the rows print them)
+  const rhythm = songs[0]!.rhythm ?? "tango";
+  const tb = tandaBpm(bpms, rhythm);
+  const bpm = tb === null ? null : Math.round(tb);
   const e = songs.reduce((a, s) => a + (s.energy ?? 50), 0) / songs.length;
   const feel = e < 45 ? "calm" : e < 65 ? "steady" : "lively";
   const label = [

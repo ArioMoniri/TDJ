@@ -2078,7 +2078,7 @@ export function Composer() {
                     />
                     <span className="min-w-0 flex-1">
                       <h2 className="text-subhead min-w-0 line-clamp-2 font-serif text-[var(--label-2)]">
-                        {nightTitle(playlist)} · {nightSub(playlist)}
+                        {nightTitle(playlist)} · {nightSub(playlist, nightMusicSec(playlist, settings))}
                       </h2>
                       {/* 2026-11: the night as it plays (cues, cortinas from their start), ≈ when a length is unknown */}
                       <NightLength playlist={playlist} className="block truncate" />

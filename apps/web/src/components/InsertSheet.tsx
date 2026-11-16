@@ -1,4 +1,5 @@
 "use client";
+import { singerDisplay } from "@tdj/core";
 import { ArrowDown, ArrowUp, Check, LoaderCircle, Plus, Sparkles, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { haptic } from "@/lib/haptics";
@@ -46,7 +47,7 @@ interface TandaOption {
 
 const asDraft = (s: Song): DraftSide => s as DraftSide;
 const who = (t?: Tanda) =>
-  t ? `${t.orchestra}${t.singer ? ` / ${t.singer}` : ""} · ${rhythmWord(t.rhythm)}` : "";
+  t ? `${t.orchestra}${t.singer ? ` / ${singerDisplay(t.singer)}` : ""} · ${rhythmWord(t.rhythm)}` : "";
 
 export function InsertSheet() {
   const ask = useInsert((s) => s.ask);
@@ -423,7 +424,7 @@ export function InsertSheet() {
                             <span className="truncate">
                               {[
                                 x.orchestra,
-                                x.singer ?? tx("tandaType.instrumental"),
+                                singerDisplay(x.singer) ?? tx("tandaType.instrumental"),
                                 yearText(x.year ?? null),
                               ]
                                 .filter(Boolean)

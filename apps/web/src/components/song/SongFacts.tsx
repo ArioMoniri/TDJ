@@ -1,5 +1,5 @@
 "use client";
-import { type Song, workCredit } from "@tdj/core";
+import { type Song, singerDisplay, workCredit } from "@tdj/core";
 import { ChevronRight, Dna } from "lucide-react";
 import { t } from "@/lib/i18n";
 import { fmtLen } from "@/lib/lengths";
@@ -64,10 +64,10 @@ export function SongFacts({ song, header = true }: { song: Song; header?: boolea
           value={
             song.singer && song.singerId ? (
               <DnaLink to={{ kind: "singer", id: song.singerId }} className="text-[var(--tint)]">
-                <span lang="es">{song.singer}</span>
+                <span lang="es">{singerDisplay(song.singer)}</span>
               </DnaLink>
             ) : song.singer ? (
-              <span lang="es">{song.singer}</span>
+              <span lang="es">{singerDisplay(song.singer)}</span>
             ) : (
               t("song.instrumental")
             )

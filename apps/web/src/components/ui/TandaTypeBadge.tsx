@@ -1,4 +1,5 @@
 "use client";
+import { singerDisplay } from "@tdj/core";
 import { Footprints, Music2, RotateCw } from "lucide-react";
 import { t } from "@/lib/i18n";
 import { Tip } from "./Tip";
@@ -18,6 +19,11 @@ export interface TandaTypeProps {
   singer?: string | null;
   /** a DJ exception, or sides of different orchestras / voices (`isMixedTanda`) */
   mixed?: boolean;
+  /**
+   * QA fix 2026-11: the tanda's sides, when known — a vocal tanda with an instrumental side reads "Vocal &
+   * instrumental", a tango tanda with a vals in it carries the "+ vals" chip (the header never says less than the sides)
+   */
+  songs?: ReadonlyArray<{ vocal?: boolean; singer?: string | null; rhythm?: string }>;
 }
 
 const ICON = { tango: Music2, vals: RotateCw, milonga: Footprints } as const;
@@ -32,16 +38,29 @@ export function rhythmWord(rhythm: string): string {
         : rhythm;
 }
 
-/** "Vocal · Angel Vargas", "Vocal" or "Instrumental" */
-export function modeWords({ vocal, singer }: Omit<TandaTypeProps, "rhythm">): string {
+/** "Vocal · Angel Vargas", "Vocal", "Vocal & instrumental" (sides of both) or "Instrumental" */
+export function modeWords({ vocal, singer, songs }: Omit<TandaTypeProps, "rhythm">): string {
+  if (songs?.length) {
+    const sung = songs.filter((s) => s.vocal ?? !!s.singer).length;
+    if (sung && sung < songs.length) return t("tandaType.vocal_and_instrumental");
+    if (!sung) return t("tandaType.instrumental");
+  }
   const isVocal = vocal ?? !!singer;
   if (!isVocal) return t("tandaType.instrumental");
-  return singer ? t("tandaType.vocal_singer", { singer }) : t("tandaType.vocal");
+  return singer ? t("tandaType.vocal_singer", { singer: singerDisplay(singer) }) : t("tandaType.vocal");
 }
 
-/** "Tango · Vocal · Angel Vargas" (· mixed) — the sidebar, a hint */
+/** the other rhythms among the sides ("vals" in a tango tanda), in order of appearance */
+export function otherRhythms(rhythm: string, songs?: TandaTypeProps["songs"]): string[] {
+  return [...new Set((songs ?? []).map((s) => s.rhythm).filter((r): r is string => !!r && r !== rhythm))];
+}
+
+/** "Tango · Vocal · Angel Vargas" (· + vals · mixed) — the sidebar, a hint */
 export function tandaTypeWords(p: TandaTypeProps): string {
-  return `${rhythmWord(p.rhythm)} · ${modeWords(p)}${p.mixed ? ` · ${t("tandaType.mixed")}` : ""}`;
+  const others = otherRhythms(p.rhythm, p.songs).map(
+    (r) => ` · ${t("tandaType.plus_rhythm", { rhythm: rhythmWord(r) })}`,
+  );
+  return `${rhythmWord(p.rhythm)} · ${modeWords(p)}${others.join("")}${p.mixed ? ` · ${t("tandaType.mixed")}` : ""}`;
 }
 
 export function TandaTypeBadge({
@@ -49,6 +68,7 @@ export function TandaTypeBadge({
   vocal,
   singer,
   mixed = false,
+  songs,
   mixedWhy,
   compact = false,
   className = "",
@@ -70,7 +90,7 @@ export function TandaTypeBadge({
       className={`tanda-type ${className}`}
       data-rhythm={rhythm}
       data-testid="tanda-type"
-      title={tandaTypeWords({ rhythm, vocal, singer, mixed })}
+      title={tandaTypeWords({ rhythm, vocal, singer, mixed, songs })}
     >
       <span className="tanda-type-rhythm">
         <Icon size={12} strokeWidth={2.25} aria-hidden />
@@ -78,9 +98,14 @@ export function TandaTypeBadge({
       </span>
       {!compact && (
         <span className="tanda-type-mode" data-testid="tanda-mode">
-          {modeWords({ vocal, singer })}
+          {modeWords({ vocal, singer, songs })}
         </span>
       )}
+      {otherRhythms(rhythm, songs).map((r) => (
+        <span key={r} className="tanda-type-mixed" data-testid="tanda-mixed-rhythm">
+          {t("tandaType.plus_rhythm", { rhythm: rhythmWord(r) })}
+        </span>
+      ))}
       {tag && (mixedWhy ? <Tip text={mixedWhy}>{tag}</Tip> : tag)}
     </span>
   );

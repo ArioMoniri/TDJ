@@ -1,5 +1,6 @@
 "use client";
 import type { DnaRecording, PeopleDna, Song, SongDna } from "@tdj/core";
+import { singerDisplay } from "@tdj/core";
 import { ChevronRight, Heart, Info } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { fmtDate, plural, t } from "@/lib/i18n";
@@ -140,7 +141,7 @@ export function SongDnaView({ id }: { id: string }) {
             <Info size={18} strokeWidth={2} className="text-[var(--tint)]" aria-hidden />
             <span className="min-w-0 flex-1">
               <span className="block" lang="es">
-                {me.orchestra} · {me.singer ?? t("song.instrumental")}
+                {me.orchestra} · {singerDisplay(me.singer) ?? t("song.instrumental")}
               </span>
               <span className="text-footnote block text-[var(--label-2)]">
                 {me.year ?? t("song.undated")} · {lengthText(me)} · {t("song.dna_details_sub")}
@@ -223,7 +224,10 @@ export function SongDnaView({ id }: { id: string }) {
         {d.singerAround.length > 0 && d.song.singerId && (
           <section>
             <h2 className="section-head">
-              {t("song.dna_singer_around", { singer: d.song.singer ?? "", year: d.song.year ?? "" })}
+              {t("song.dna_singer_around", {
+                singer: singerDisplay(d.song.singer) ?? "",
+                year: d.song.year ?? "",
+              })}
             </h2>
             <SidesList
               songs={sidesFor(d.singerAround, d.sides)}
@@ -243,7 +247,7 @@ export function SongDnaView({ id }: { id: string }) {
             ? t("song.dna_family_sub", {
                 n: d.family.sides.length,
                 years: yearsText(d.family.years),
-                voice: d.song.singer ?? t("song.instrumental"),
+                voice: singerDisplay(d.song.singer) ?? t("song.instrumental"),
               })
             : t("song.dna_family_none")}
         </p>
@@ -262,7 +266,9 @@ export function SongDnaView({ id }: { id: string }) {
                     {c0.titles.join(" · ")}
                   </span>
                   <span className="text-footnote block text-[var(--label-2)]">
-                    {[yearsText(c0.years), c0.singer ?? t("song.instrumental")].filter(Boolean).join(" · ")}
+                    {[yearsText(c0.years), singerDisplay(c0.singer) ?? t("song.instrumental")]
+                      .filter(Boolean)
+                      .join(" · ")}
                   </span>
                 </span>
               </div>
