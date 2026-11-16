@@ -115,7 +115,13 @@ describe("exported playlists follow the night (lib/playlistSync.ts)", () => {
   it("a change that leaves the rows as they were (a lock) writes nothing", async () => {
     const c = clock();
     let n = 0;
-    const s = createSyncer({ ...c, write: async () => ((n += 1), { ok: true }) });
+    const s = createSyncer({
+      ...c,
+      write: async () => {
+        n += 1;
+        return { ok: true };
+      },
+    });
     rememberExport(night, { service: "spotify", id: "pl1", url: "u", includeCortinas: true });
     s.noteChange({ ...night, tandas: night.tandas.map((t) => ({ ...t, locked: true })) });
     await c.advance(SYNC_DELAY_MS);
@@ -126,7 +132,14 @@ describe("exported playlists follow the night (lib/playlistSync.ts)", () => {
     const c = clock();
     let busy = true;
     let n = 0;
-    const s = createSyncer({ ...c, busy: () => busy, write: async () => ((n += 1), { ok: true }) });
+    const s = createSyncer({
+      ...c,
+      busy: () => busy,
+      write: async () => {
+        n += 1;
+        return { ok: true };
+      },
+    });
     rememberExport(night, { service: "spotify", id: "pl1", url: "u", includeCortinas: true });
     s.noteChange(swapFirstTwo(night));
     await c.advance(SYNC_DELAY_MS);
