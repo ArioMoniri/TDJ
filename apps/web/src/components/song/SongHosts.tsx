@@ -10,6 +10,7 @@ import { Sheet } from "../Sheet";
 import { DnaLink } from "./DnaLink";
 import { DnaView } from "./DnaViews";
 import { SidesList } from "./SidesList";
+import { SongContextMenu } from "./SongContextMenu";
 import { SongDetails } from "./SongDetails";
 import "./song.css";
 
@@ -49,6 +50,7 @@ export function SongHosts() {
         {sides && <SidesBody q={sides} />}
       </Sheet>
       {dna && <DnaOverlay />}
+      <SongContextMenu />
     </>
   );
 }
@@ -111,7 +113,7 @@ function SidesBody({ q }: { q: SidesQuery }) {
 function DnaOverlay() {
   const dna = useSongOpen((s) => s.dna)!;
   const close = () => useSongOpen.getState().close("dna");
-  const back = useSongOpen((s) => s.dnaStack.length > 0);
+  // 2026-11: Back is always there: the page before, or the sheet the overlay opened from (the Booth's song info)
   useEffect(() => {
     // (QA fix 2026-11: Esc / ⌘[ step back through the DNA pages the overlay showed, then close it)
     const k = (e: KeyboardEvent) => {
@@ -132,17 +134,15 @@ function DnaOverlay() {
       data-testid="dna-overlay"
     >
       <div className="dna-overlay-bar">
-        {back && (
-          <button
-            type="button"
-            className="btn-plain inline-flex min-h-11 items-center gap-0.5 px-2"
-            onClick={() => useSongOpen.getState().backDna()}
-            data-testid="dna-overlay-back"
-          >
-            <ChevronLeft size={20} strokeWidth={2.25} aria-hidden />
-            {t("song.back")}
-          </button>
-        )}
+        <button
+          type="button"
+          className="btn-plain inline-flex min-h-11 items-center gap-0.5 px-2"
+          onClick={() => useSongOpen.getState().backDna()}
+          data-testid="dna-overlay-back"
+        >
+          <ChevronLeft size={20} strokeWidth={2.25} aria-hidden />
+          {t("song.back")}
+        </button>
         <button
           type="button"
           className="icon-btn h-11 w-11"

@@ -19,6 +19,7 @@ import { fmtLen } from "@/lib/lengths";
 import { useTapPlay } from "@/lib/playback";
 import type { PlayItem } from "@/lib/player";
 import { ERAS, type EraChip, eraOfFilters, type SourceId, type Version, withEra } from "@/lib/smartSearch";
+import { type SongMenuSpec, useSongMenuProps } from "@/lib/songMenu";
 import { openSongDetails } from "@/lib/songOpen";
 import { bpmText, useSongData } from "@/lib/songView";
 import type { Song } from "@/lib/types";
@@ -216,6 +217,7 @@ export function VersionRow({
   testId = "smart-version",
   data,
   workRhythm,
+  menu,
 }: {
   v: Version;
   ctx: RowContext;
@@ -229,10 +231,14 @@ export function VersionRow({
   data?: Record<string, string>;
   /** shown inside a work whose head already says its rhythm: the badge only when this version differs */
   workRhythm?: string;
+  /** 2026-11: what the song menu adds on this surface */
+  menu?: Omit<SongMenuSpec, "song">;
 }) {
   const s = v.song;
   const { song: eff, data: sd } = useSongData(s);
   const play = usePlay(v, onPlay, playing);
+  // 2026-11: the song menu on every result (right-click, long press, "i"); the host adds its own (Swap…, Insert…)
+  const menuProps = useSongMenuProps({ ...menu, song: s });
   const bpm = bpmText(sd);
   const hl = v.hit?.highlights ?? {};
   const facts = [
@@ -294,6 +300,7 @@ export function VersionRow({
       data-testid={testId}
       data-song-id={s.id}
       onPointerEnter={ctx.onHover}
+      {...menuProps}
       {...Object.fromEntries(Object.entries(data ?? {}).map(([k, x]) => [`data-${k}`, x]))}
     >
       {/* the pick comes first in the DOM (the row's first button is its action), the cover first on screen */}

@@ -1,4 +1,39 @@
 /* 2026-11 — the song details, the DNA pages and the play view. Content sits on the surface; glass only on the bars. */
+/* the song menu (lib/songMenu.ts): over the sheets and the Song DNA overlay; a long press never selects text or opens
+   the system's callout on a touch screen */
+.song-menu {
+  z-index: 80;
+}
+@media (pointer: coarse) {
+  [data-song-menu] {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
+/* a version row: "This recording" first and highlighted; the cover plays (a play glyph on hover / focus) */
+.song-version[data-current] {
+  background: color-mix(in srgb, var(--tint) 9%, transparent);
+}
+.song-version-this {
+  color: var(--tint-text, var(--tint));
+  font-weight: 600;
+}
+.song-version-hint {
+  opacity: 0;
+  color: #fff;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.5));
+  transition: opacity var(--dur-xs, 0.12s) ease;
+}
+.song-version button:hover .song-version-hint,
+.song-version button:focus-visible .song-version-hint {
+  opacity: 1;
+}
+body:has(.dna-overlay) .z-50:has(> [data-testid="song-menu-sheet"]),
+body:has(.dna-overlay) .z-50:has(> [data-testid="song-details-sheet"]),
+body:has(.dna-overlay) .z-50:has(> [data-testid="sides-sheet"]) {
+  z-index: 75;
+}
 /* the lyrics' empty state: designed, with the ways on (find, add, the web) */
 .lyrics-empty {
   text-align: center;
@@ -77,41 +112,234 @@
 .lyric-line[data-current] {
   color: var(--label);
 }
-.dna-timeline {
+/* Song DNA's "Recordings over the years" (components/song/DnaChart.tsx): one lane per orchestra, decade lines and year
+   ticks, filled = sung, outlined = instrumental, this recording ringed; the frame scrolls, never the page */
+.dna-chart {
+  margin: 0;
+  --label-w: 9rem;
+  --chart-surface: rgb(var(--bg-cell));
+}
+@media (max-width: 599.98px) {
+  .dna-chart {
+    --label-w: 6.5rem;
+  }
+}
+.dna-chart-frame {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.dna-chart-grid {
   position: relative;
-  height: 64px;
-  margin: 8px 16px 4px;
+  min-width: calc(var(--label-w) + var(--plot-min, 360px) + 28px);
+  padding-top: 10px;
 }
-.dna-timeline-dot {
+.dna-chart-img {
   position: absolute;
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  transform: translate(-50%, 50%);
+  inset: 0;
+  pointer-events: none;
+}
+.dna-chart-lane {
+  display: flex;
+  align-items: stretch;
+}
+.dna-chart-label {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  flex: none;
+  width: var(--label-w);
+  display: flex;
+  align-items: center;
+  padding: 0 8px 0 16px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 0.8125rem;
+  line-height: 1.2;
+  color: var(--label-2);
+  background: var(--chart-surface);
+  border-right: 1px solid var(--separator);
+}
+.dna-chart-label:empty {
+  display: block;
+}
+.dna-chart-plot {
+  position: relative;
+  flex: 1;
+  min-width: var(--plot-min, 360px);
+  margin: 0 16px 0 12px;
+}
+/* the lane's own baseline: recessive, one step off the surface */
+.dna-chart-plot::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: var(--fill-4);
+}
+.dna-chart-axis-row {
+  height: 30px;
+}
+.dna-chart-axis::before {
+  top: 0;
+  background: var(--separator);
+}
+.dna-chart-lines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.dna-chart-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  transform: translateX(-0.5px);
+  background: var(--separator);
+}
+.dna-chart-tick {
+  position: absolute;
+  top: 0;
+  width: 1px;
+  height: 4px;
+  transform: translateX(-0.5px);
+  background: var(--separator);
+}
+.dna-chart-tick[data-decade] {
+  height: 7px;
   background: var(--label-3);
 }
-.dna-key {
+.dna-chart-decade {
+  position: absolute;
+  top: 9px;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--label-2);
+  white-space: nowrap;
+}
+/* a mark: a 12 px dot in a 44 px target, ringed in the surface so neighbours stay apart */
+.dna-chart-mark {
+  position: absolute;
+  z-index: 1;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: transparent;
+  -webkit-tap-highlight-color: transparent;
+}
+.dna-chart-mark:focus-visible {
+  outline: 2px solid var(--tint);
+  outline-offset: -8px;
+}
+.dna-chart-dot,
+.dna-chart-key {
   display: inline-block;
-  width: 8px;
-  height: 8px;
+  width: 12px;
+  height: 12px;
   border-radius: 999px;
-  background: var(--label-3);
+  border: 2px solid var(--tint);
+  background: var(--chart-surface);
+  box-shadow: 0 0 0 2px var(--chart-surface);
+  transition: transform var(--dur-xs, 0.12s) ease;
 }
-.dna-key[data-vocal] {
+.dna-chart-key {
+  width: 10px;
+  height: 10px;
+  box-shadow: none;
+}
+.dna-chart-mark[data-vocal] .dna-chart-dot,
+.dna-chart-key[data-vocal] {
   background: var(--tint);
 }
-.dna-key[data-current] {
-  background: var(--destructive);
+.dna-chart-mark[data-current] {
+  z-index: 2;
 }
-.dna-timeline-dot[data-vocal] {
-  background: var(--tint);
-}
-.dna-timeline-dot[data-current] {
+.dna-chart-mark[data-current] .dna-chart-dot,
+.dna-chart-key[data-this] {
   width: 14px;
   height: 14px;
-  background: var(--destructive);
-  box-shadow: 0 0 0 3px rgb(var(--surface));
-  z-index: 1;
+  box-shadow:
+    0 0 0 2px var(--chart-surface),
+    0 0 0 4px var(--label);
+}
+.dna-chart-key[data-this] {
+  width: 10px;
+  height: 10px;
+}
+.dna-chart-mark[data-active] .dna-chart-dot,
+.dna-chart-mark[data-now] .dna-chart-dot {
+  transform: scale(1.3);
+}
+@media (hover: hover) {
+  .dna-chart-mark:hover .dna-chart-dot {
+    transform: scale(1.3);
+  }
+}
+.dna-chart-this {
+  position: absolute;
+  left: calc(50% + 12px);
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0 4px;
+  border-radius: 4px;
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--label);
+  background: color-mix(in srgb, var(--chart-surface) 88%, transparent);
+  pointer-events: none;
+}
+.dna-chart-this[data-flip] {
+  left: auto;
+  right: calc(50% + 12px);
+}
+.dna-chart-tip {
+  position: absolute;
+  z-index: 5;
+  transform: translate(16px, -50%);
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  line-height: 1.3;
+  white-space: nowrap;
+  pointer-events: none;
+  color: var(--label);
+  background: var(--chart-surface);
+  box-shadow:
+    0 0 0 0.5px var(--separator),
+    0 6px 20px rgb(0 0 0 / 0.18);
+}
+.dna-chart-tip[data-flip] {
+  transform: translate(calc(-100% - 16px), -50%);
+}
+.dna-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  padding: 8px 16px 10px;
+  color: var(--label-2);
+}
+.dna-chart-hint {
+  color: var(--label-2);
+}
+@media (forced-colors: active) {
+  .dna-chart-dot,
+  .dna-chart-key {
+    border-color: CanvasText;
+  }
+  .dna-chart-mark[data-vocal] .dna-chart-dot,
+  .dna-chart-key[data-vocal] {
+    background: CanvasText;
+  }
 }
 .dna-bars {
   display: flex;

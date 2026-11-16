@@ -249,6 +249,7 @@ export function TandaInspector({
               )}
               testId="inspector-row"
               className="inspector-row"
+              menu={onInsertSong && !t.locked ? { insert: { run: () => onInsertSong(i, k + 1) } } : undefined}
               trailing={
                 onMoveTrack &&
                 !t.locked && (

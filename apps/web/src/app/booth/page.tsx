@@ -521,7 +521,7 @@ function Booth() {
           {/* 2026-11: a suggestion for the next tandas after a floor reaction (never applied by itself) */}
           <AdaptCard />
           <div className="booth-deck-row">
-            <NextCard onJump={showInSet} onPlay={tapRow} />
+            <NextCard onJump={showInSet} onPlay={tapRow} onInfo={(i) => setSong(i)} />
             <EnergyRail onJump={showInSet} />
           </div>
           {phone && <NightBar onBreak={() => setBreakOpen(true)} />}

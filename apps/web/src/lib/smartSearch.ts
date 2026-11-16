@@ -34,6 +34,8 @@ export interface ServiceTrack {
   durationSec?: number | null;
   previewUrl?: string | null;
   isrc?: string | null;
+  /** 2026-11: the album's cover (Spotify's `album.images`, the one nearest a row's 2× tile) */
+  image?: string | null;
 }
 
 export interface ServiceAnswer {
@@ -281,21 +283,41 @@ export function serviceSong(t: ServiceTrack, ctx: MergeContext): { song: Song; r
   return { song, rhythmKnown: !!known };
 }
 
-/** the same recording: the same service id, or the same work by the same orchestra, its year and length agreeing */
+/** 2026-11: a service's length agrees with the catalogue side's within this many seconds (the same pressing) */
+export const SAME_LENGTH_SEC = 3;
+
+/**
+ * the same recording: the same service id, or the same work by the same orchestra with the same voice (the singer, or
+ * none: an instrumental is never a sung recording), its length within ±3 s and the album not older than the side
+ */
 export function sameRecording(s: Song, t: ServiceTrack, ctx: MergeContext): boolean {
   if (s.spotify?.uri && s.spotify.uri === t.uri) return true;
-  if (workKey(s.title) !== workKey(t.title)) return false;
+  if (workKey(s.title) !== workKey(t.title) && workKey(s.title) !== serviceTitleKey(t.title)) return false;
   const o = orchestraIn(t.artists, ctx.orchestras);
   if (!o || o.id !== s.orchestraId) return false;
-  if (s.durationSec && t.durationSec && Math.abs(s.durationSec - t.durationSec) > 4) return false;
+  if (s.durationSec && t.durationSec && Math.abs(s.durationSec - t.durationSec) > SAME_LENGTH_SEC)
+    return false;
   if (s.year && t.year && t.year < s.year) return false;
   if (s.singer && !t.artists.some((a) => fold(a).includes(fold(s.singer!).split(" ").slice(-1)[0]!))) {
     // the artists name another singer: another recording
     const other = t.artists.filter((_, i) => i !== o.at);
     if (other.length) return false;
   }
+  // an instrumental side: a track that names a singer is another recording
+  if (!s.singer && serviceSong(t, ctx).song.singer) return false;
   return true;
 }
+
+/** a service title without its edition tail ("Malena - Remastered 2004", "Malena [Live]") as a work key */
+const serviceTitleKey = (title: string) =>
+  workKey(title.replace(/\s+[-–—]\s+.*$/, "").replace(/\s*\[.*?\]\s*/g, " "));
+
+const lengthGap = (s: Song, t: ServiceTrack) =>
+  s.spotify?.uri === t.uri
+    ? -1
+    : s.durationSec && t.durationSec
+      ? Math.abs(s.durationSec - t.durationSec)
+      : SAME_LENGTH_SEC + 1;
 
 /** a service's recording passes the chips the catalogue applied (what it cannot tell, it lets through) */
 function passes(s: Song, f: SongFilters | undefined, rhythmKnown: boolean): boolean {
@@ -337,9 +359,10 @@ export function mergeVersions(
   for (const t of tracks) {
     if (seen.has(t.uri)) continue;
     seen.add(t.uri);
-    const same = out.find(
-      (v) => !v.external && v.sources.includes("catalogue") && sameRecording(v.song, t, full),
-    );
+    // (2026-11: the catalogue side whose length is nearest, when two sides of the voice could be it)
+    const same = out
+      .filter((v) => !v.external && v.sources.includes("catalogue") && sameRecording(v.song, t, full))
+      .sort((a, b) => lengthGap(a.song, t) - lengthGap(b.song, t))[0];
     if (same) {
       same.external = t;
       if (!same.sources.includes(t.service)) same.sources.push(t.service);

@@ -20,6 +20,7 @@ import type { PlayItem } from "@/lib/player";
 import { gateEdit } from "@/lib/ruleCheck";
 import { targetsFor } from "@/lib/searchPanel";
 import type { SourceId } from "@/lib/smartSearch";
+import { useSongMenuProps } from "@/lib/songMenu";
 import { openSongDetails } from "@/lib/songOpen";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
@@ -84,6 +85,8 @@ export const LibraryRow = memo(function LibraryRow({
   };
   const len = s.durationSec ? `${s.durationEstimated ? "≈" : ""}${mmss(s.durationSec)}` : null;
   const popular = !hit.favourite && hit.popularity >= 0.6;
+  // 2026-11: the song menu (right-click, long press, "i"): details, Song DNA, Add to tonight, Find, Measure, Copy
+  const menu = useSongMenuProps({ song: s, find: () => setFind(true) });
   return (
     // biome-ignore lint/a11y/useKeyWithClickEvents: the list's keys live on the search field (↑ ↓ Enter), the row's play button is the control
     <div
@@ -98,6 +101,7 @@ export const LibraryRow = memo(function LibraryRow({
       data-song={s.id}
       onClick={play}
       onMouseEnter={onHover}
+      {...menu}
     >
       <button
         type="button"
@@ -208,7 +212,7 @@ export const LibraryRow = memo(function LibraryRow({
 });
 
 /** "+ Add to tonight": the tandas of the side's rhythm; the side joins the one picked (core addSide, rule-checked) */
-function AddToNight({
+export function AddToNight({
   song,
   playlist,
   open,
