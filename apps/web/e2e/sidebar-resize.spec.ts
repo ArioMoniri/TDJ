@@ -150,9 +150,29 @@ for (const [name, opts] of CASES) {
         };
       });
     const open0 = await frame();
-    await page.getByTestId("sidebar-hide").click();
-    await page.waitForTimeout(90);
-    const mid = await frame();
+    // a frame mid-way: the click and the readings in the page, every frame for up to a second on its own clock, the first
+    // one with the sidebar between its two ends (2026-11: on a loaded test machine the round trips of a click, a
+    // wait and a reading alone could outlast the 260 ms slide, or read it before its first frame)
+    const midway = (id: string, open: number) =>
+      page.evaluate(
+        async ([x, w]) => {
+          (document.querySelector(`[data-testid="${x}"]`) as HTMLElement).click();
+          const t0 = performance.now();
+          const read = () => ({
+            side: document.querySelector('[data-testid="sidebar"]')!.getBoundingClientRect().right,
+            main: document.querySelector("main")!.getBoundingClientRect().left,
+          });
+          let last = read();
+          while (performance.now() - t0 < 1000) {
+            await new Promise((r) => requestAnimationFrame(r));
+            last = read();
+            if (last.side > 5 && last.side < (w as number) - 5) return last;
+          }
+          return last;
+        },
+        [id, open] as const,
+      );
+    const mid = await midway("sidebar-hide", open0.side);
     expect(mid.side, "mid-collapse: the sidebar is sliding").toBeGreaterThan(5);
     expect(mid.side).toBeLessThan(open0.side - 5);
     expect(mid.main, "the page follows").toBeLessThan(open0.main - 5);
@@ -170,9 +190,7 @@ for (const [name, opts] of CASES) {
       Math.abs(show.y + show.height / 2 - shut.h1M),
       "the Show button on the title's line",
     ).toBeLessThanOrEqual(3);
-    await page.getByTestId("sidebar-show").click();
-    await page.waitForTimeout(90);
-    const mid2 = await frame();
+    const mid2 = await midway("sidebar-show", 360);
     expect(mid2.side).toBeGreaterThan(5);
     expect(mid2.side).toBeLessThan(359);
     await expect(page.getByTestId("sidebar")).toBeVisible();

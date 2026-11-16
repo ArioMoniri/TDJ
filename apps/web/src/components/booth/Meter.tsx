@@ -48,6 +48,22 @@ export function MeterBar({
     if (!el) return;
     let raf = 0;
     let last = 0;
+    // 2026-11 (the sidebar's lag): the size from a ResizeObserver and the colours read once a second, never a
+    // style or layout read per frame (one forced a style and layout pass of the whole Booth on every frame while the
+    // page moved)
+    let w = el.clientWidth;
+    let h = el.clientHeight;
+    const ro =
+      typeof ResizeObserver === "function"
+        ? new ResizeObserver(([e]) => {
+            w = Math.round(e?.contentRect.width ?? w);
+            h = Math.round(e?.contentRect.height ?? h);
+          })
+        : null;
+    ro?.observe(el);
+    let colours: { track: string; ok: string; warn: string; red: string; label: string; fg: string } | null =
+      null;
+    let coloursAt = 0;
     const draw = (now: number) => {
       raf = requestAnimationFrame(draw);
       if (now - last < (reduced ? 100 : 33)) return;
@@ -56,8 +72,6 @@ export function MeterBar({
       el.dataset.peak = Number.isFinite(peakDb) ? peakDb.toFixed(1) : "";
       el.dataset.clip = clip ? "1" : "0";
       const dpr = window.devicePixelRatio || 1;
-      const w = el.clientWidth;
-      const h = el.clientHeight;
       if (!w || !h) return;
       if (el.width !== w * dpr || el.height !== h * dpr) {
         el.width = w * dpr;
@@ -67,12 +81,19 @@ export function MeterBar({
       if (!g) return;
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
       g.clearRect(0, 0, w, h);
-      const cs = getComputedStyle(el);
-      const track = cs.getPropertyValue("--fill-4") || "rgba(255,255,255,.08)";
-      const ok = cs.getPropertyValue("--system-green") || "#34c759";
-      const warn = cs.getPropertyValue("--system-gold") || "#e8b85a";
-      const red = cs.getPropertyValue("--destructive") || "#ff6b6b";
-      const label = cs.getPropertyValue("--label-3") || "rgba(255,255,255,.3)";
+      if (!colours || now - coloursAt > 1000) {
+        coloursAt = now;
+        const cs = getComputedStyle(el);
+        colours = {
+          track: cs.getPropertyValue("--fill-4") || "rgba(255,255,255,.08)",
+          ok: cs.getPropertyValue("--system-green") || "#34c759",
+          warn: cs.getPropertyValue("--system-gold") || "#e8b85a",
+          red: cs.getPropertyValue("--destructive") || "#ff6b6b",
+          label: cs.getPropertyValue("--label-3") || "rgba(255,255,255,.3)",
+          fg: cs.color || "#fff",
+        };
+      }
+      const { track, ok, warn, red, label } = colours;
       g.fillStyle = track;
       g.fillRect(0, 0, w, h);
       const x = Number.isFinite(peakDb) ? pos(peakDb, w) : 0;
@@ -89,7 +110,7 @@ export function MeterBar({
       g.fillStyle = label;
       for (const m of [-18, -6, -1]) g.fillRect(Math.round(pos(m, w)) - 0.5, 0, 1, h);
       if (Number.isFinite(holdDb) && holdDb > MIN) {
-        g.fillStyle = holdDb > -1 ? red : cs.color || "#fff";
+        g.fillStyle = holdDb > -1 ? red : colours.fg;
         g.fillRect(Math.round(pos(holdDb, w)) - 1, 0, 2, h);
       }
       if (clip) {
@@ -98,7 +119,10 @@ export function MeterBar({
       }
     };
     raf = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelAnimationFrame(raf);
+      ro?.disconnect();
+    };
   }, [reduced]);
   return (
     <canvas
