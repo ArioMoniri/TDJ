@@ -3,6 +3,7 @@ import "./transition.css";
 import {
   type CurveShape,
   resolveTransition,
+  silenceJoin,
   TRANSITION_DEFAULTS,
   TRANSITION_RANGES,
   type TransitionEdit,
@@ -342,6 +343,9 @@ function Editor({
   };
   const tr = draft ? resolveTransition(draft, ctx) : null;
   const w = transitionWindow(tr, winOpts);
+  // 2026-11: the sides' own silence (Settings → Booth → Gaps) on the lanes and in the time the room hears
+  const silenceMode = useBooth((s) => s.plan?.settings.silenceMode ?? "gap");
+  const sil = stageSilence(silenceMode, w, a, b);
   const preset: PresetId = tr?.preset ?? "auto";
   const cumparsita = a.kind === "closing" || b.kind === "closing";
   const insideTanda = a.kind === "track" && b.kind === "track" && a.tanda === b.tanda;
@@ -470,6 +474,7 @@ function Editor({
           a={a}
           b={b}
           w={w}
+          sil={sil}
           waves={waves}
           bpm={bpm}
           editable={lengthEditable}
@@ -512,6 +517,16 @@ function Editor({
             </button>
           }
         />
+        {sil.heard !== null && sil.keptTail + sil.tailCut + sil.keptHead + sil.headCut > 0 && (
+          <p
+            className="trx-silence-note text-footnote"
+            data-testid="booth-tr-silence"
+            data-value={sil.heard}
+            data-hint={t("booth.transition.silence_hint")}
+          >
+            {t("booth.transition.silence_heard", { sec: sil.heard })}
+          </p>
+        )}
         <Side row={b} entity={eb} which="in" bpmOn={ind.bpm} keyOn={ind.key} />
 
         <div className="trx-presets-head">
@@ -917,10 +932,49 @@ interface Axis {
  * snap to the beat when the BPM is known), its yellow volume line, the pink bass line of a bass swap and the beat
  * grid; the audition button on the panel's middle edge and the length pill on its foot.
  */
+/** 2026-11: the two sides' silence around a transition, on the editor's axis (0 = where the outgoing stops). */
+export interface StageSilence {
+  /** the outgoing's silent tail it still plays before it stops (grey, before 0) and the part the booth cuts */
+  keptTail: number;
+  tailCut: number;
+  /** the incoming's silent head it plays (grey, from its start) and the part skipped */
+  keptHead: number;
+  headCut: number;
+  /** where the incoming starts playing (after the inserted gap, or before 0 for an overlap) */
+  inStart: number;
+  /** the silence the room hears between the last note and the next first note (no overlap) */
+  heard: number | null;
+}
+export function stageSilence(
+  mode: "gap" | "after" | "off",
+  w: TransitionWindow,
+  a: Pick<BoothRow, "kind" | "tailSilenceSec">,
+  b: Pick<BoothRow, "headSilenceSec">,
+): StageSilence {
+  const tail = a.kind === "cortina" ? 0 : (a.tailSilenceSec ?? 0);
+  const head = b.headSilenceSec ?? 0;
+  const overlap = w.overlapSec > 0;
+  const j = silenceJoin(mode, {
+    gapSec: overlap ? 0 : w.gapSec,
+    tailSec: tail,
+    headSec: head,
+    faded: overlap || w.outFade.len > 0 || w.inFade.len > 0,
+  });
+  return {
+    keptTail: tail - j.tailCutSec,
+    tailCut: j.tailCutSec,
+    keptHead: head - j.headCutSec,
+    headCut: j.headCutSec,
+    inStart: overlap ? w.inStart : j.gapSec,
+    heard: overlap ? null : j.heardSec,
+  };
+}
+
 function Stage({
   a,
   b,
   w,
+  sil,
   waves,
   bpm,
   editable,
@@ -932,6 +986,7 @@ function Stage({
   a: BoothRow;
   b: BoothRow;
   w: TransitionWindow;
+  sil: StageSilence;
   waves: [WaveData | null, WaveData | null] | null;
   bpm: number | null;
   editable: boolean;
@@ -975,9 +1030,13 @@ function Stage({
   };
   const amp = 0.19 * P;
   const [wa, wb] = waves ?? [null, null];
+  // where each side's file is at the axis' 0 / at the incoming's start (2026-11: past a head cut, before a tail cut)
   const outEnd = (d: WaveData) =>
-    d.from === "file" ? Math.min(d.durationSec, (a.trimInSec ?? 0) + a.lengthSec) : d.durationSec;
-  const inStart0 = (d: WaveData) => (d.from === "file" ? (b.trimInSec ?? 0) : 0);
+    d.from === "file"
+      ? Math.min(d.durationSec, (a.trimInSec ?? 0) + (a.headCutSec ?? 0) + a.lengthSec)
+      : d.durationSec;
+  const inStart0 = (d: WaveData) => (d.from === "file" ? (b.trimInSec ?? 0) + sil.headCut : 0);
+  const inAt = sil.inStart;
   const levels = (d: WaveData, sec: number) => {
     if (d.bands) return bandAt(d.bands, sec);
     if (sec < 0 || sec > d.durationSec) return null;
@@ -996,7 +1055,7 @@ function Stage({
     for (let c = 0; c < n; c++) {
       const x = Math.min(W, c * step);
       const tm = T0 + x * secPerPx;
-      const sec = which === "out" ? outEnd(d) + tm : inStart0(d) + (tm - w.inStart);
+      const sec = which === "out" ? outEnd(d) + tm : inStart0(d) + (tm - inAt);
       const v = levels(d, sec);
       const hi = (v?.high ?? 0) * 0.42;
       const md = Math.max((v?.mid ?? 0) * 0.74, hi);
@@ -1018,7 +1077,12 @@ function Stage({
   const px1 = X(axis.end);
   // where each side is heard (the rest of its lane is dimmed)
   const outHeardTo = X(Math.min(0, w.outStop));
-  const inHeardFrom = X(w.inStart);
+  const inHeardFrom = X(inAt);
+  // 2026-11: the sides' own silence, greyed: the outgoing's tail (what it plays and what is cut), the incoming's head
+  const silence: Array<{ which: "out" | "in"; from: number; to: number }> = [];
+  if (sil.keptTail + sil.tailCut > 0) silence.push({ which: "out", from: -sil.keptTail, to: sil.tailCut });
+  if (sil.keptHead + sil.headCut > 0)
+    silence.push({ which: "in", from: inAt - sil.headCut, to: inAt + sil.keptHead });
 
   const volLine = (which: "out" | "in") => {
     const L = lane[which];
@@ -1161,6 +1225,22 @@ function Stage({
           ))}
           {lanesSvg("out", waveOut)}
           {lanesSvg("in", waveIn)}
+          {silence.map((s) => {
+            const L = lane[s.which];
+            return (
+              <rect
+                key={s.which}
+                x={X(s.from)}
+                y={L.top}
+                width={Math.max(0, X(s.to) - X(s.from))}
+                height={L.bottom - L.top}
+                className="trx-silence"
+                data-testid={`booth-tr-silence-${s.which}`}
+                data-from={Math.round(s.from * 100) / 100}
+                data-to={Math.round(s.to * 100) / 100}
+              />
+            );
+          })}
           {boxRect("out")}
           {boxRect("in")}
           <polyline points={volLine("out")} className="trx-vol booth-tr-line-out" />

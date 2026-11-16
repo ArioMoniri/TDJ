@@ -260,6 +260,17 @@
 .trx-wave-dim {
   opacity: 0.34;
 }
+/* 2026-11: a side's own silence (its silent tail / head), greyed on its lane */
+.trx-silence {
+  fill: var(--trx-label-3);
+  opacity: 0.45;
+}
+.trx-silence-note {
+  margin: 4px 16px 0;
+  text-align: center;
+  color: var(--trx-label-3);
+  font-variant-numeric: tabular-nums;
+}
 .trx-flat {
   stroke: var(--trx-label-3);
   stroke-width: 1.5;

@@ -1430,3 +1430,204 @@ describe("2026-11: the booth plays a cortina from its start point (its chorus)",
     expect(r.fadeInSec).toBeGreaterThan(0);
   });
 });
+
+/* ---------- 2026-11: a side's own silence counts as the gap (the owner: "some songs play a lot of silent moments") ---------- */
+describe("2026-11: silence modes in the engine (silence counts as the gap / gap after the music / off)", () => {
+  let ctx: FakeCtx;
+  beforeEach(() => {
+    ctx = new FakeCtx();
+  });
+  type Spec = Record<string, { dur?: number; head?: number; tail?: number }>;
+  /** files of `dur` (170 s by default, 180 the closing) with a measured silent head / tail per id */
+  const silentFiles = (spec: Spec): SourceAdapter => ({
+    kind: "file",
+    async available() {
+      return { ok: true };
+    },
+    async resolve() {
+      return "ready";
+    },
+    async prepare(item): Promise<PreparedItem> {
+      if (item.kind === "cortina") {
+        const d = (item.stopSec ?? 45) + 30;
+        return { kind: "file", buffer: buffer(d), durationSec: d };
+      }
+      const s = spec[item.id ?? ""] ?? {};
+      const dur = s.dur ?? (item.kind === "closing" ? 180 : 170);
+      return {
+        kind: "file",
+        buffer: buffer(dur),
+        durationSec: dur,
+        measured: {
+          lufs: -16,
+          peakDbFS: -3,
+          introSec: 0,
+          headSilenceSec: s.head ?? 0,
+          tailSilenceSec: s.tail ?? 0,
+        },
+      };
+    },
+    release() {},
+  });
+  const measurementsOf = (spec: Spec) =>
+    Object.fromEntries(
+      Object.entries(spec).map(([id, s]) => [
+        id,
+        { lufs: -16, headSilenceSec: s.head ?? 0, tailSilenceSec: s.tail ?? 0 },
+      ]),
+    );
+  const run = async (spec: Spec, mode: "gap" | "after" | "off", extra: Parameters<typeof build>[1] = {}) => {
+    const plan = build(set(), { silenceMode: mode, measurements: measurementsOf(spec), ...extra });
+    const e = engineFor(ctx, plan, silentFiles(spec));
+    await e.start();
+    await e.play();
+    await flush();
+    return { e, plan };
+  };
+  /** what the room hears between a1's last audible moment and a2's first */
+  const heard = (spec: Spec) => {
+    const a1 = ctx.sources[0]!;
+    const a2 = ctx.sources[1]!;
+    const [w1, o1] = a1.starts[0]!;
+    const [w2, o2] = a2.starts[0]!;
+    const audibleEnd = (w1 ?? 0) + ((spec.a1?.dur ?? 170) - (spec.a1?.tail ?? 0) - (o1 ?? 0));
+    const audibleStart = (w2 ?? 0) + Math.max(0, (spec.a2?.head ?? 0) - (o2 ?? 0));
+    return audibleStart - audibleEnd;
+  };
+
+  it("silence counts: a 1.5 s tail and a 0.6 s head leave 0.4 s of inserted gap — the room hears 2.5 s", async () => {
+    const spec = { a1: { tail: 1.5 }, a2: { head: 0.6 } };
+    await run(spec, "gap");
+    expect(ctx.sources[0]!.starts[0]).toEqual([0.05, 0, undefined]);
+    expect(ctx.sources[1]!.starts[0]![0]).toBeCloseTo(0.05 + 170 + 0.4, 9);
+    expect(ctx.sources[1]!.starts[0]![1]).toBe(0);
+    expect(heard(spec)).toBeCloseTo(2.5, 9);
+  });
+
+  it("silence counts: a 4 s tail is cut 1.5 s early with a short fade (≤ 150 ms); the gap is never below 0", async () => {
+    const spec = { a1: { tail: 4 } };
+    await run(spec, "gap");
+    const a1 = ctx.sources[0]!;
+    expect(a1.starts[0]![2]).toBeCloseTo(168.5, 9);
+    expect(ctx.sources[1]!.starts[0]![0]).toBeCloseTo(0.05 + 168.5, 9);
+    expect(heard(spec)).toBeCloseTo(2.5, 9);
+    // the cut's fade: the level held until the cut − 0.12 s, a ramp to 0 at the cut
+    const g = ctx.gains[1]!.gain;
+    expect(g.of("setValueAtTime").at(-1)!.args[1]).toBeCloseTo(0.05 + 168.5 - 0.12, 9);
+    const ramp = g.of("linearRampToValueAtTime").at(-1)!.args;
+    expect(ramp[0]).toBe(0);
+    expect(ramp[1]).toBeCloseTo(0.05 + 168.5, 9);
+  });
+
+  it("silence counts: a head longer than the gap starts the next side inside its silence", async () => {
+    const spec = { a2: { head: 4 } };
+    await run(spec, "gap");
+    expect(ctx.sources[1]!.starts[0]![0]).toBeCloseTo(0.05 + 170, 9);
+    expect(ctx.sources[1]!.starts[0]![1]).toBeCloseTo(1.5, 9);
+    expect(heard(spec)).toBeCloseTo(2.5, 9);
+  });
+
+  it("the night's first side starts at its music in 'silence counts'; 'gap after the music' keeps its head", async () => {
+    await run({ a1: { head: 2 } }, "gap");
+    expect(ctx.sources[0]!.starts[0]![1]).toBeCloseTo(2, 9);
+    ctx = new FakeCtx();
+    await run({ a1: { head: 2 } }, "after");
+    expect(ctx.sources[0]!.starts[0]![1]).toBe(0);
+  });
+
+  it("gap after the music: the tail goes, the head stays — the gap plus the head is heard", async () => {
+    const spec = { a1: { tail: 2 }, a2: { head: 1 } };
+    await run(spec, "after");
+    expect(ctx.sources[0]!.starts[0]![2]).toBeCloseTo(168, 9);
+    expect(ctx.sources[1]!.starts[0]![0]).toBeCloseTo(0.05 + 168 + 2.5, 9);
+    expect(ctx.sources[1]!.starts[0]![1]).toBe(0);
+    expect(heard(spec)).toBeCloseTo(3.5, 9);
+  });
+
+  it("off: files play to their edges, then the gap — the room hears tail + gap + head", async () => {
+    const spec = { a1: { tail: 2 }, a2: { head: 1 } };
+    await run(spec, "off");
+    expect(ctx.sources[0]!.starts[0]).toEqual([0.05, 0, undefined]);
+    expect(ctx.sources[1]!.starts[0]![0]).toBeCloseTo(0.05 + 170 + 2.5, 9);
+    expect(ctx.sources[1]!.starts[0]![1]).toBe(0);
+    expect(heard(spec)).toBeCloseTo(5.5, 9);
+  });
+
+  it("a blend measures its overlap from the audible moments (the tail and the head are not part of it)", async () => {
+    const spec = { a1: { tail: 2 }, a2: { head: 1 } };
+    const transitions = { [tKey("a1", "a2")]: { preset: "blend" as const, overlapSec: 4 } };
+    await run(spec, "gap", { transitions });
+    const a1 = ctx.sources[0]!;
+    const a2 = ctx.sources[1]!;
+    expect(a1.endsAt).toBeCloseTo(0.05 + 168, 9);
+    expect(a2.starts[0]![0]).toBeCloseTo(0.05 + 168 - 4, 9);
+    expect(a2.starts[0]![1]).toBeCloseTo(1, 9);
+  });
+
+  it("Pause and Resume keep the head cut: the position counts from the music's start", async () => {
+    const { e } = await run({ a1: { head: 2 } }, "gap");
+    ctx.currentTime = 10.05;
+    e.pause();
+    await e.play();
+    const resumed = ctx.sources.find((s, k) => k > 0 && (s.starts[0]?.[1] ?? 0) > 5)!;
+    expect(resumed.starts[0]![1]).toBeCloseTo(12, 2);
+  });
+
+  it("Spotify: the plan's silence (a measurement of the same recording) trims the play; the next follows at the gap", async () => {
+    const starts: ExternalStart[] = [];
+    const sp: SourceAdapter = {
+      kind: "spotify",
+      async available() {
+        return { ok: true };
+      },
+      async resolve() {
+        return "ready";
+      },
+      async prepare(item) {
+        return { kind: "spotify", spotifyUri: `spotify:track:${item.id}`, durationSec: item.lengthSec };
+      },
+      release() {},
+      external: {
+        capabilities: { fade: true },
+        startItem(r) {
+          starts.push(r);
+          return { cancel() {}, stop() {}, position: () => r.positionSec };
+        },
+        setMaster() {},
+      },
+    };
+    const plan = build(set(), { measurements: measurementsOf({ a1: { tail: 4 }, a2: { head: 1 } }) });
+    const e = new BoothEngine(ctx, { adapters: [sp], now: () => 1_000_000 });
+    e.load(
+      plan,
+      plan.items.map(() => null),
+      plan.items.map(() => "spotify"),
+    );
+    await e.start();
+    await e.play();
+    const r1 = starts.find((s) => s.uri === "spotify:track:a1")!;
+    const r2 = starts.find((s) => s.uri === "spotify:track:a2")!;
+    // 4 s tail + 1 s head > 2.5: a1 stops 2.5 s before its end (1.5 s of tail kept), a2 keeps its 1 s head
+    expect(r1.positionSec).toBe(0);
+    expect(r1.durationSec).toBeCloseTo(167.5, 6);
+    expect(r2.positionSec).toBe(0);
+    expect(r2.delaySec).toBeCloseTo(0.05 + 167.5, 6);
+    expect(e.sourcePosition()).toBe(0);
+  });
+
+  it("the clock: remaining and time to La Cumparsita count the silence once (the plan's cuts and gaps)", () => {
+    const spec = { a1: { tail: 1.5 }, a2: { head: 0.6 }, cump: { tail: 3 } };
+    const off = build(set(), { silenceMode: "off", measurements: measurementsOf(spec) });
+    const on = build(set(), { silenceMode: "gap", measurements: measurementsOf(spec) });
+    const rOff = remainingFrom(off, 0, 0);
+    const rOn = remainingFrom(on, 0, 0);
+    expect(rOn.remainingSec).toBeCloseTo(on.wallClockSec, 6);
+    // 2.1 s that no longer doubles up between a1 and a2, and the closing's 3 s tail
+    expect(rOff.remainingSec - rOn.remainingSec).toBeCloseTo(2.1 + 3, 6);
+    expect(rOff.timeToCumparsita - rOn.timeToCumparsita).toBeCloseTo(2.1, 6);
+    // mid-song: the rest of the side is its played length (the cut tail is not waited for)
+    const cut = build(set(), { silenceMode: "gap", measurements: measurementsOf({ a1: { tail: 4 } }) });
+    expect(cut.items[0]!.lengthSec).toBeCloseTo(168.5, 6);
+    expect(remainingFrom(cut, 0, 100).remainingSec).toBeCloseTo(cut.wallClockSec - 100, 6);
+  });
+});

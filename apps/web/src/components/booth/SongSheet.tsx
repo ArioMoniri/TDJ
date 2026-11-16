@@ -46,6 +46,7 @@ export function SongSheet({
   const entity = useBooth((s) => (i === null ? null : (s.entities[i] ?? null)));
   const started = useBooth((s) => s.started);
   const planIndex = useBooth((s) => s.planIndex);
+  const live = useBooth((s) => s.state === "playing");
   const audition = useBooth((s) => s.audition);
   const fade = useBooth((s) => s.settings.fadeNowSec);
   const cues = useBooth((s) => s.playlist?.booth?.songCues);
@@ -203,6 +204,22 @@ export function SongSheet({
               )
             )}
           </Group>
+          {/* 2026-11: Spotify cannot be heard by the browser: the DJ teaches a side its real end (its stop cue) */}
+          {started && i === planIndex && live && it.kind !== "cortina" && (
+            <Group footer={t("booth.songSheet.ends_early_sub")}>
+              <ActionRow
+                label={t("booth.songSheet.ends_early")}
+                tip={t("booth.songSheet.ends_early_sub")}
+                onClick={() => {
+                  const at = useBooth.getState().songEndsEarly();
+                  if (at !== null)
+                    toast(t("booth.songSheet.ends_early_saved", { title: it.title, at: durationLabel(at) }));
+                  onClose();
+                }}
+                id="booth-ends-early"
+              />
+            </Group>
+          )}
           {/* 2026-11: the order inside the tanda (only songs not played nor playing; no confirmation, Undo) */}
           {canMove && (
             <Group header={t("booth.reorder.header")} footer={t("booth.reorder.footer")}>

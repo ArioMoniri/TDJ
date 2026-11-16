@@ -93,7 +93,4 @@ export const MIX_EXPLAIN = {
   get loudnessTargetLUFS() {
     return t("booth.mix.the_level_every_song_is_evened");
   },
-  get trimLeadingSilence() {
-    return t("booth.mix.cut_the_silence_at_the_start");
-  },
 } as const;

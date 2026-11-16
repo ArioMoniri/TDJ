@@ -397,8 +397,6 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.mix.cortinas_fade_out_over_this_time":
     "Kortinalar bu süre içinde kısılır ve durma saniyelerinde biter.",
   "booth.mix.cortinas_start_softly_over_this_time": "Kortinalar bu süre içinde yumuşakça başlar.",
-  "booth.mix.cut_the_silence_at_the_start":
-    "Her dosyanın başındaki sessizliği kes (hiçbir zaman 3 sn'den fazla değil).",
   "booth.mix.each_song_plays_to_its_last":
     "Her şarkı son notasına kadar çalar, ardından kısa bir sessizlik: milongada dansçıların beklediği budur.",
   "booth.mix.fade_at_the_end_of_every":
@@ -561,8 +559,6 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.onboardingSheet.test_tone": "Test tonu",
   "booth.onboardingSheet.the_featured_night_could_not_be": "Öne çıkan gece yüklenemedi",
   "booth.onboardingSheet.this_session_only": " · yalnızca bu oturum",
-  "booth.onboardingSheet.trim_leading_silence": "Baştaki sessizliği kes",
-  "booth.onboardingSheet.up_to_3_s_from_the": "Ölçülen girişten en fazla 3 sn",
   "booth.onboardingSheet.your_browser_cannot_remember_the_folder":
     "Tarayıcınız klasörü hatırlayamıyor: bir dahaki sefere yeniden seçin",
   "booth.onboardingSheet.your_music_folder": "Müzik klasörünüz",
@@ -767,7 +763,6 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.sheets.this_sheet": "Bu panel",
   "booth.sheets.track": "{k}. parça",
   "booth.sheets.transitions": "Geçişler",
-  "booth.sheets.trim_silence_at_the_start": "Baştaki sessizliği kes",
   "booth.sheets.unmute": "Sesi aç",
   "booth.sheets.use_the_night_s_settings": "Gecenin ayarlarını kullan",
   "booth.show_energy_bpm_key_era_artwork": "Göster: enerji, BPM, ton, dönem, kapak…",
@@ -4289,4 +4284,33 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "settings.booth.confirm_footer":
     "Gece başladıktan sonra Sonraki, Önceki, Şimdi çal, Kıs, Geçiş, Tandayı bitir ve Şimdi La Cumparsita ikinci bir dokunuş (ya da çalma çubuğunda basılı tutma) ister; yanlış bir dokunuş şarkıyı asla kesmez. Ses düzeyi, kulaklık ve pist tepkileri hiç sormaz.",
   "settings.booth.header": "Kabin",
+  "settings.gaps.header": "Kabin · Aralar",
+  "settings.gaps.footer":
+    "Eski aktarımların başında ve sonunda çoğu zaman 1–6 sn sessizlik olur. T-DJ bunu dosyalarınızda ve 30 sn kliplerde ölçer (tarayıcı duyamadığı için Spotify'da asla: orada şarkının sayfasındaki “Şarkı erken bitiyor” bir parçaya gerçek sonunu öğretir, ya da tahmini açın).",
+  "booth.silence.label": "Şarkının kendi sessizliğini aranın parçası say",
+  "booth.silence.mix_header": "Şarkılar arası sessizlik",
+  "booth.silence.gap": "Sessizlik aradan sayılır",
+  "booth.silence.gap_sub": "Önerilen. Salon tam olarak ayarladığınız arayı duyar.",
+  "booth.silence.gap_tip":
+    "Bir şarkının sessiz sonu ve sonraki şarkının sessiz başı aradan düşülür. Bunlar zaten aradan uzunsa sessiz son kısa bir kısmayla kesilir. Kısma, karışım ve yükselişler son notada başlar.",
+  "booth.silence.after": "Ara müzik bitince başlar",
+  "booth.silence.after_sub": "Ara son notada başlar; sonraki şarkının sessiz başı korunur.",
+  "booth.silence.after_tip":
+    "Şarkının sonundaki sessizlik atlanır, sonra ara çalar. Sonraki şarkı baştaki kendi sessizliğini korur.",
+  "booth.silence.off": "Kapalı (dosyaları sonuna kadar çal)",
+  "booth.silence.off_sub": "Her dosya son saniyesine kadar çalar, sonra ara: sessizlikler toplanır.",
+  "booth.silence.off_tip":
+    "Eskisi gibi: şarkının sonundaki sessizlik, ara ve sonraki şarkının sessiz başı art arda çalar.",
+  "booth.silence.estimate": "Akış parçalarında sessizliği tahmin et",
+  "booth.silence.estimate_sub":
+    "Varsayılan olarak kapalı. Spotify ölçülemez: altın çağ kayıtlarının 1 sn sessizlikle bittiği varsayılır.",
+  "booth.silence.estimate_tip":
+    "Tarayıcı Spotify'ı duyamaz. Bu açıkken 1959'a kadar kaydedilmiş ve dosyası olmayan bir kaydın 1 sn sessizlikle bittiği varsayılır (78 devirlik aktarımlar çoğu zaman 1–2 sn ile biter). Bir dosya ya da ölçülmüş bir kayıt her zaman önce gelir.",
+  "booth.songSheet.ends_early": "Şarkı erken bitiyor",
+  "booth.songSheet.ends_early_sub":
+    "Müzik bitti: şimdiyi bu şarkının gerçek sonu olarak kaydet ve sonrakini arayla çal.",
+  "booth.songSheet.ends_early_saved": "{title} artık {at} anında bitiyor",
+  "booth.transition.silence_heard": "Duyulan sessizlik: {sec} sn",
+  "booth.transition.silence_hint":
+    "Gri kısımlar şarkıların kendi sessizliğidir. “Sessizlik aradan sayılır” açıkken aranın parçasıdır (Ayarlar → Kabin → Aralar).",
 };

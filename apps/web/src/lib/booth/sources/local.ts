@@ -1,4 +1,5 @@
 "use client";
+import type { BoothMeasurement } from "@tdj/core";
 import { t } from "@/lib/i18n";
 import { measureBuffer } from "../measure";
 import {
@@ -300,7 +301,8 @@ export class LocalAdapter implements SourceAdapter {
     }
     const key = measurementKey(e.path, e.size, e.lastModified);
     let measured = this.measurements[key];
-    if (!measured) {
+    // (2026-11: a measurement cached before the silent head / tail existed is made again, once)
+    if (!measured || measured.tailSilenceSec === undefined) {
       measured = await measureBuffer(buffer);
       this.measurements = { ...this.measurements, [key]: measured };
       void saveMeasurements(this.measurements);
@@ -323,14 +325,27 @@ export class LocalAdapter implements SourceAdapter {
   }
 
   /** Measurements by song / cortina id (for `planBooth`'s `measurements`): only matched files that were measured. */
-  measurementsById(): Record<string, { lufs?: number; peakDbFS?: number; introSec?: number }> {
-    const out: Record<string, { lufs?: number; peakDbFS?: number; introSec?: number }> = {};
+  measurementsById(): Record<string, BoothMeasurement> {
+    const out: Record<string, BoothMeasurement> = {};
     for (const [id, m] of Object.entries(this.matches)) {
       const x = this.measurements[measurementKey(m.path, m.size, m.lastModified)];
       if (x && Number.isFinite(x.lufs))
-        out[id] = { lufs: x.lufs, peakDbFS: x.peakDbFS, introSec: x.introSec };
+        out[id] = {
+          lufs: x.lufs,
+          peakDbFS: x.peakDbFS,
+          introSec: x.introSec,
+          // 2026-11: the silent head / tail feed the plan's gaps and the night clock (absent until re-measured)
+          ...(x.tailSilenceSec !== undefined
+            ? { headSilenceSec: x.headSilenceSec, tailSilenceSec: x.tailSilenceSec }
+            : {}),
+        };
     }
     return out;
+  }
+
+  /** 2026-11: whether a side has a matched file (its silence is measured when it decodes, never estimated) */
+  hasFile(itemId: string): boolean {
+    return !!this.matches[itemId];
   }
 
   /** "118 of 121 matched" for the onboarding row. */
