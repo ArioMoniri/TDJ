@@ -1985,6 +1985,7 @@ html[data-sidebar="collapsed"] [data-testid="sidebar"] {
 /* Theme cross-fade: added to <html> for one --dur-s by ThemeSync, then removed. Never on backdrop-filter.
    These unlayered rules outrank every @utility transition (Tailwind utilities live in @layer), so no !important. */
 html.theming,
+/* biome-ignore lint/style/noDescendingSpecificity: the cross-fade reaches every element; this list stays together */
 html.theming *,
 html.theming *::before,
 html.theming *::after {

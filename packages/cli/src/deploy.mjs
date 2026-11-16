@@ -267,7 +267,7 @@ export async function deployFromFork(ctx, { region, stage, spotify, flags }) {
   if (latest && !ctx.dryRun)
     await ctx.live("gh", ["run", "watch", String(latest.databaseId), "--repo", repo, "--exit-status"]);
   log();
-  log(c.bold(c.green("Deployed.")) + ` Open the run summary for your app URL and the one-time setup code:`);
+  log(`${c.bold(c.green("Deployed."))} Open the run summary for your app URL and the one-time setup code:`);
   log(`  ${latest?.url || `https://github.com/${repo}/actions/workflows/deploy-aws.yml`}`);
   finish(ctx, "", null, stage);
   return 0;

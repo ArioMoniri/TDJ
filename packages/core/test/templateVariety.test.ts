@@ -5,7 +5,7 @@
  * selection of its sides; a template heard in the recent nights rests. Written before the engine change.
  *
  * What it cannot change (measured over 24 seeds, 2026-11-16): the three side sets that recur — the Di Sarli / Rufino
- * milonga (22 of 24 nights), the Donato / Lagos milonga (23) and the Biagi / Falgás valses (8) — are families with
+ * milonga (21 of 24 nights, 22 without the cap), the Donato / Lagos milonga (23) and the Biagi / Falgás valses (8) — are families with
  * exactly three sides on Spotify, and the late vals / milonga chairs of a golden night ask for a known family that
  * streams (the panel's fame floor, a blocker): there is no other selection to draw, and resting the family trades the
  * blocker for it. The cap moves them only when the catalogue holds a fourth side that streams.

@@ -166,7 +166,9 @@ describe("Sexteto Cristal in the catalogue", () => {
   it("every imported side (any orchestra) is contemporary, dated from its release, and outside the listado's 2008 check", () => {
     const added = JSON.parse(
       readFileSync(new URL("../../../data/knowledge/added_songs.json", import.meta.url), "utf8"),
-    ) as { songs: Array<{ id: string; source?: string; era: string; year: number | null; release?: string }> };
+    ) as {
+      songs: Array<{ id: string; source?: string; era: string; year: number | null; release?: string }>;
+    };
     const imported = added.songs.filter((s) => s.source === "orchestra-import");
     expect(imported.length).toBeGreaterThanOrEqual(mine().length);
     const byId = new Map(deps.catalog.songs.map((s) => [s.id, s]));

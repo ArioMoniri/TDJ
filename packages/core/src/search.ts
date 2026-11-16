@@ -103,8 +103,8 @@ export function orchestraAliases(
   const singerWords = new Map<string, Set<string>>();
   for (const s of songs) {
     if (!s.singer) continue;
-    let set = singerWords.get(s.orchestraId);
-    if (!set) singerWords.set(s.orchestraId, (set = new Set()));
+    const set = singerWords.get(s.orchestraId) ?? new Set<string>();
+    singerWords.set(s.orchestraId, set);
     for (const w of words(s.singer)) if (w.norm.length > 2) set.add(w.norm);
   }
   const memo = new Map<string, string[] | undefined>();
