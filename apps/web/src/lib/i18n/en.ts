@@ -95,6 +95,7 @@ export const en = {
   "import.why_not-tango": "not a tango orchestra",
   "import.why_repeated": "repeats between tandas",
   "import.warn_external": "{count} not in the catalogue: they play from their own source",
+  "import.warn_size_one": "Only 1 song in this tanda",
   "import.warn_size": "{count} songs in one tanda",
   "import.err_empty": "The playlist is empty.",
   "import.err_match": "The songs could not be matched. Try again.",

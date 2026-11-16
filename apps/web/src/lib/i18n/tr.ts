@@ -250,6 +250,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "import.why_not-tango": "tango orkestrası değil",
   "import.why_repeated": "tandalar arasında tekrar ediyor",
   "import.warn_external": "{count} şarkı katalogda yok: kendi kaynağından çalar",
+  "import.warn_size_one": "Bu tandada yalnızca 1 şarkı var",
   "import.warn_size": "Bir tandada {count} şarkı",
   "import.err_empty": "Çalma listesi boş.",
   "import.err_match": "Şarkılar eşlenemedi. Yeniden dene.",
