@@ -267,8 +267,25 @@ body {
   max-width: 100vw;
 }
 /* the macOS window draws the page under its title bar: reserve it, unless the window is full screen */
+/* 2026-11 (design review): collapsed, the sidebar leaves a rail for its Show button (52 px, past the traffic lights on
+   the Mac app), so the page title and the content keep one edge. `--sidebar-w` is a registered length: it animates
+   between the open width and the rail in step with the sidebar's slide (≤ 260 ms, none with Reduce Motion) and
+   follows a resize drag live (no transition while `data-sidebar-resizing`) */
+@property --sidebar-w {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
 html[data-sidebar="collapsed"] {
-  --sidebar-w: 0px;
+  --sidebar-w: calc(var(--traffic-left) + 52px);
+}
+@media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
+  html {
+    transition: --sidebar-w 260ms var(--ease-settle);
+  }
+  html[data-sidebar-resizing] {
+    transition: none;
+  }
 }
 html[data-scroll-lock] {
   overflow: hidden;
@@ -874,10 +891,7 @@ li + li > .cell[data-leading="num"]:first-child::before,
     margin-inline: calc(-1 * var(--bleed));
     padding-inline: var(--bleed);
   }
-  /* the sidebar is collapsed: the traffic lights sit over the toolbar's leading edge */
-  html[data-sidebar="collapsed"] .toolbar-row {
-    padding-left: max(var(--bleed), calc(var(--traffic-left) + 4.5rem));
-  }
+  /* (collapsed, the Show button sits in the rail `--sidebar-w` leaves: the toolbar keeps the content's edge) */
 }
 
 /* Compose result on wide screens (round 23): the set and an inspector side by side once `main` holds both (iPad
@@ -1782,8 +1796,43 @@ input[type="range"]::-moz-range-thumb {
   color: var(--tint-text);
 }
 /* round 23: the sidebar's sections, Tonight's rhythm tiles, the now-playing card and the resize edge */
+/* collapsed: the sidebar slides out (its width stays; `main` follows `--sidebar-w`, the same 260 ms), then leaves the
+   accessibility tree and the tab order (aria-hidden / inert on the element, visibility once the slide ends) */
+[data-testid="sidebar"] {
+  transform: translateX(0);
+  visibility: visible;
+}
 html[data-sidebar="collapsed"] [data-testid="sidebar"] {
+  transform: translateX(calc(-100% - 1px));
+  visibility: hidden;
+}
+@media (prefers-reduced-motion: no-preference) {
+  [data-testid="sidebar"] {
+    transition:
+      transform 260ms var(--ease-settle),
+      visibility 0s linear 0s;
+  }
+  html[data-sidebar="collapsed"] [data-testid="sidebar"] {
+    transition:
+      transform 260ms var(--ease-settle),
+      visibility 0s linear 260ms;
+  }
+  html[data-sidebar-resizing] [data-testid="sidebar"] {
+    transition: none;
+  }
+}
+/* the Show button: in the rail, centred on the page toolbar's title line (the toolbar is 60 px under the chrome) */
+.side-show {
+  position: fixed;
+  z-index: 41;
+  top: calc(var(--chrome-top) + 10px);
+  left: calc(var(--traffic-left) + 4px);
   display: none;
+}
+@media (min-width: 1024px) {
+  .side-show {
+    display: inline-flex;
+  }
 }
 .side-head {
   display: flex;
@@ -1883,6 +1932,16 @@ html[data-sidebar="collapsed"] [data-testid="sidebar"] {
   min-width: 0;
   white-space: nowrap;
 }
+/* "Tonight" over its count and length: two lines in the 44 px header, the meta never cut nor hidden */
+.side-head-label {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.2;
+}
+.side-head-label > .side-head-meta {
+  margin-top: 1px;
+}
 .side-head-meta {
   min-width: 0;
   overflow: hidden;
@@ -1900,7 +1959,6 @@ html[data-sidebar="collapsed"] [data-testid="sidebar"] {
   color: var(--label-2);
 }
 @container side (max-width: 229px) {
-  .side-head-meta,
   .side-tanda-type {
     display: none;
   }
