@@ -205,12 +205,15 @@ for (const [name, opts] of DEVICES) {
       await expect(page.getByTestId("night-total")).toContainText(/plays (≈ )?\d+:\d\d:\d\d/);
     });
 
-    test(`${name}: drag song 4 of tanda 2 to the top, Move up, Undo; the order survives a reload`, async ({
+    test(`${name}: drag song 4 of tanda 1 to the top, Move up, Undo; the order survives a reload`, async ({
       page,
     }) => {
       await openCompose(page);
-      const before = await rowTitles(page, 2);
-      const rows = page.locator("#tanda-2 li[data-song]");
+      // (215a2ad: a locked tanda's sides never move — no drag handle — and this night's tanda 2 is the DJ's locked
+      // Di Sarli tanda; tanda 1 is a free tango tanda of four)
+      await expect(page.locator("#tanda-1")).not.toHaveAttribute("data-locked", /.*/);
+      const before = await rowTitles(page, 1);
+      const rows = page.locator("#tanda-1 li[data-song]");
       const handle = rows.nth(3).getByTestId("drag-handle");
       await handle.scrollIntoViewIfNeeded();
       const h = (await handle.boundingBox())!;
@@ -251,7 +254,7 @@ for (const [name, opts] of DEVICES) {
           [h.x + h.width / 2, top.y + 4],
         );
       }
-      await expect.poll(() => rowTitles(page, 2)).toEqual([before[3], before[0], before[1], before[2]]);
+      await expect.poll(() => rowTitles(page, 1)).toEqual([before[3], before[0], before[1], before[2]]);
       await expect(page.getByTestId("toast")).toContainText("Undo");
       // Move up (the ••• menu): the 3rd goes to the 2nd place
       await rows
@@ -259,15 +262,15 @@ for (const [name, opts] of DEVICES) {
         .getByRole("button", { name: /^Track \d+ actions$/ })
         .click();
       await page.getByRole("menuitem", { name: "Move up" }).click();
-      await expect.poll(() => rowTitles(page, 2)).toEqual([before[3], before[1], before[0], before[2]]);
+      await expect.poll(() => rowTitles(page, 1)).toEqual([before[3], before[1], before[0], before[2]]);
       // Undo puts it back
       await page.getByTestId("toast").getByRole("button", { name: "Undo" }).click();
-      await expect.poll(() => rowTitles(page, 2)).toEqual([before[3], before[0], before[1], before[2]]);
+      await expect.poll(() => rowTitles(page, 1)).toEqual([before[3], before[0], before[1], before[2]]);
       // the order is the night's: it survives a reload
       await page.waitForTimeout(1200);
       await page.goto("/");
       await expect(page.locator("#result")).toBeVisible({ timeout: 60000 });
-      await expect.poll(() => rowTitles(page, 2)).toEqual([before[3], before[0], before[1], before[2]]);
+      await expect.poll(() => rowTitles(page, 1)).toEqual([before[3], before[0], before[1], before[2]]);
     });
 
     test(`${name}: Library and Build by hand rows play on a tap`, async ({ page }) => {

@@ -22,6 +22,7 @@ import {
   useKeymap,
 } from "@/lib/keymap";
 import { toast } from "@/lib/toast";
+import { useTip } from "./ui/Tip";
 
 /**
  * 2026-11 (the owner: "change keys everywhere should work as clicking on the key that is shown … and then pressing
@@ -97,6 +98,9 @@ export function KeyChips({ action, compact = false }: { action: ActionDef; compa
   const mine = s?.id === action.id ? s : null;
   const mounted = useMounted();
   const name = t(action.label);
+  // 2026-11 (plain words: every control says what it does, never a title attribute): one help tag for the row's
+  // chips — tap a key to change it, + to add another, the arrow puts the defaults back
+  const tip = useTip<HTMLSpanElement>(t("keys.chips_tip"));
   const keys = mounted ? shownBindings(bindingsOf(action.id, custom)) : shownBindings(action.defaults);
   const changed = mounted && !isDefaultBinding(action.id, custom);
 
@@ -175,7 +179,9 @@ export function KeyChips({ action, compact = false }: { action: ActionDef; compa
       className={`key-chips ${compact ? "booth-kbd" : ""}`}
       data-testid="key-binding"
       data-key-session={action.id}
+      {...(tip.props as object)}
     >
+      {tip.tag}
       {keys.map(chip)}
       {recording(null) ? (
         <Recorder action={action} />
@@ -208,7 +214,6 @@ export function KeyChips({ action, compact = false }: { action: ActionDef; compa
           type="button"
           className="key-chip key-reset"
           data-testid="key-reset"
-          title={t("keys.reset_row")}
           aria-label={t("keys.reset_row_aria", {
             action: name,
             keys: shownBindings(action.defaults)

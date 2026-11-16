@@ -5349,6 +5349,8 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "keys.chip_aria": "{action} kısayolunu değiştir, şu an {key}",
   "keys.none_aria": "{action} için kısayol ekle, şu an yok",
   "keys.add_aria": "{action} için bir kısayol daha ekle",
+  "keys.chips_tip":
+    "Değiştirmek için bir tuşa, bir tane daha eklemek için +'ya dokunun; ok varsayılan tuşları geri getirir",
   "keys.reset_row": "Varsayılana dön",
   "keys.reset_row_aria": "{action} varsayılana dönsün ({keys})",
   "keys.recording_aria":

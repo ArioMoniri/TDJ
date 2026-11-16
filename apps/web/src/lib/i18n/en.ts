@@ -5141,6 +5141,7 @@ export const en = {
   "keys.chip_aria": "Change shortcut for {action}, currently {key}",
   "keys.none_aria": "Add a shortcut for {action}, currently none",
   "keys.add_aria": "Add another shortcut for {action}",
+  "keys.chips_tip": "Tap a key to change it, + to add another; the arrow puts the default keys back",
   "keys.reset_row": "Reset to default",
   "keys.reset_row_aria": "Reset {action} to default ({keys})",
   "keys.recording_aria":

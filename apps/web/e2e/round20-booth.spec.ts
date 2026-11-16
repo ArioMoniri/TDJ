@@ -131,7 +131,11 @@ test.describe("1440 × 900", () => {
     await expect(page.getByTestId("booth")).toHaveAttribute("data-state", "playing");
     expect(await planIndex(page)).toBe(before);
     await expect.poll(() => rms(page), { timeout: 4000 }).toBeGreaterThan(AUDIBLE);
-    // space pauses and resumes too
+    // space pauses and resumes too. (e9ef85c, one-touch room cuts: mid-night Space asks first — the first press arms,
+    // the second within 3 s pauses; Resume never waits)
+    await page.keyboard.press("Space");
+    await expect(page.getByTestId("booth-pause")).toHaveAttribute("data-armed", "true");
+    await expect(page.getByTestId("booth")).toHaveAttribute("data-state", "playing");
     await page.keyboard.press("Space");
     await expect(page.getByTestId("booth")).toHaveAttribute("data-state", "paused");
     await page.keyboard.press("Space");
@@ -323,7 +327,9 @@ test.describe("phone 390 × 844", () => {
     });
     // 2026-11: Previous / Next (now) on the phone's transport; Next at gap moved to •••; the Controls panel's
     // toggle joined the row (the collapsed panel was a second bar), so Mix moved to ••• too
-    expect(m.labels).toEqual(["Previous", "Pause", "Next", "Stop…", "Set list", "Controls", "More"]);
+    // (e9ef85c, the phone bar: the cover and title lead and open Now playing; Set list and Controls moved to •••)
+    expect(m.labels[0]).toMatch(/^Now playing: .+/);
+    expect(m.labels.slice(1)).toEqual(["Previous", "Pause", "Next", "Stop…", "More"]);
     expect(m.small).toBe(0);
     expect(m.right).toBeLessThanOrEqual(390);
     expect(m.overflow).toBe(0);

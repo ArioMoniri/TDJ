@@ -135,9 +135,9 @@ describe("playlist sync: the BYO-key Spotify writer (byoWritePlaylist)", () => {
 describe("playlist sync: the YouTube writer (sync: true)", () => {
   it("asks /api/google/youtube to put the playlist right with the night's rows and the videos already matched", async () => {
     const rows = syncRows(night, false);
-    const first = rows.find((r) => r.id)!;
+    const firstId = rows.find((r) => r.id)!.id as string;
     // the Booth / the export matched one side already
-    mem.set("tdj-youtube-matches", JSON.stringify({ [first.id]: "matched0001" }));
+    mem.set("tdj-youtube-matches", JSON.stringify({ [firstId]: "matched0001" }));
     let sent: Record<string, unknown> | null = null;
     mockFetch({
       "/api/google/youtube": (body) => {
@@ -185,7 +185,7 @@ describe("playlist sync: the YouTube writer (sync: true)", () => {
     // what the check found is kept for the next sync and remembered as the sides' matches
     const kept = recordOf(night.id)!.targets[0]!.found!;
     expect(Object.keys(kept).length).toBe(rows.filter((r) => r.id).length);
-    expect(kept[first.id]).toBe("matched0001");
+    expect(kept[firstId]).toBe("matched0001");
     expect(Object.keys(JSON.parse(mem.get("tdj-youtube-matches") ?? "{}")).length).toBeGreaterThan(1);
   });
 
