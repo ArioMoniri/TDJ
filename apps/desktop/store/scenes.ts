@@ -86,6 +86,8 @@ export const SIZES: Record<Device, Size> = {
 
 export type Step =
   | { click: string; optional?: boolean }
+  /** a DOM click (el.click()), for a control in a sheet that is still settling */
+  | { tap: string }
   | { press: string }
   | { scroll: string; block?: "start" | "center" }
   | { scrollTop: true }

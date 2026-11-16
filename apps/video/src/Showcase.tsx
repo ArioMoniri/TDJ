@@ -23,6 +23,8 @@ export type ShowcaseProps = {
   spill: string;
   /** the menu-bar strip around the notch (the captures' top colour) */
   strip: string;
+  /** a transparent ground instead of the black stage (the header images lay several devices on one stage) */
+  transparent?: boolean;
 };
 
 export const SHOWCASE_DEFAULTS: ShowcaseProps = {
@@ -42,10 +44,11 @@ export const calculateShowcase: CalculateMetadataFunction<ShowcaseProps> = ({ pr
 function Rig({ p }: { p: ShowcaseProps }) {
   const cam = useThree((s) => s.camera) as THREE.PerspectiveCamera;
   const scene = useThree((s) => s.scene);
-  const pose = useMemo(() => squarePose(p.width, p.height, p.place, SHOWCASE_FOV), [p]);
-  // an opaque black stage: the only transparent pixels are the app area's hole
-  scene.background = new THREE.Color(0x000000);
-  cam.fov = SHOWCASE_FOV;
+  const fov = p.place.fov ?? SHOWCASE_FOV;
+  const pose = useMemo(() => squarePose(p.width, p.height, p.place, fov, p.place.deg ?? OPEN_DEG), [p, fov]);
+  // an opaque black stage: the only transparent pixels are the app area's hole (or a transparent ground)
+  scene.background = p.transparent ? null : new THREE.Color(0x000000);
+  cam.fov = fov;
   cam.near = 1;
   cam.far = 1000;
   cam.up.copy(pose.up);
@@ -62,13 +65,22 @@ export const Showcase = (p: ShowcaseProps) => (
       height={p.height}
       gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true, premultipliedAlpha: false }}
       onCreated={({ gl }) => {
+        gl.setClearColor(0x000000, 0);
         gl.toneMapping = THREE.ACESFilmicToneMapping;
         gl.toneMappingExposure = 1;
         gl.outputColorSpace = THREE.SRGBColorSpace;
       }}
     >
       <Rig p={p} />
-      <Laptop3D lid={OPEN_DEG} glow={1} screen={null} spill={p.spill} strip={p.strip} hole />
+      <Laptop3D
+        lid={p.place.deg ?? OPEN_DEG}
+        glow={1}
+        screen={null}
+        spill={p.spill}
+        strip={p.strip}
+        hole
+        deckSheen={(p.place.deg ?? OPEN_DEG) < 100 ? 0.3 : 1}
+      />
     </ThreeCanvas>
   </AbsoluteFill>
 );

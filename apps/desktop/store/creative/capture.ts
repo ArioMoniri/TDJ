@@ -24,6 +24,23 @@ export const LYRICS_CSS =
   "[data-testid=song-lyrics-text],[data-testid=lyrics-candidate-text]{filter:blur(7px)!important;user-select:none}" +
   ".floor-lyrics p:nth-of-type(n+3){display:none!important}";
 
+/**
+ * What a store picture never shows: tips, tooltips and toasts (a passing "Rehearsal: the opening plays on the night"
+ * note is not a feature), and the Next.js dev overlay.
+ */
+export const HIDE_CSS =
+  "[role=tooltip],.tip-bubble,[data-testid=tip-bubble],[data-testid=toast],[data-testid=toast-close]," +
+  "[data-testid=booth-opening-note],[data-testid=now-floor-exit],nextjs-portal{display:none!important}";
+
+/**
+ * Album covers are the labels' artwork: in a store picture every cover is the app's own generated art (the
+ * orchestra's hue and initials, components/ui/Artwork.tsx's placeholder). An image from anywhere but the bundle
+ * fails, so each tile falls through its sources to the placeholder.
+ */
+export const isCoverRequest = (url: string, type: string) =>
+  (type === "image" && !/^https?:\/\/127\.0\.0\.1(:\d+)?\//.test(url) && !url.startsWith("data:")) ||
+  /open\.spotify\.com\/oembed/.test(url);
+
 export const RAW = fileURLToPath(new URL("../out/creative/raw/", import.meta.url));
 export const PORT = Number(process.env.PORT ?? 3986);
 
@@ -44,7 +61,7 @@ const arg = (k: string) =>
     ?.split("=")[1]
     ?.split(",");
 
-async function newContext(
+export async function newContext(
   browser: Browser,
   id: CaptureId,
   locale: Locale,
@@ -76,9 +93,13 @@ async function newContext(
     state.settings = Object.assign({}, state.settings || {}, { sounds: false });
     localStorage.setItem("tdj-v1", JSON.stringify(Object.assign({ version: 4 }, cur, { state })));
   } catch (_) {} })();`);
+  await ctx.route(
+    (u) => !/^(https?:\/\/127\.0\.0\.1|data:|blob:)/.test(u.href),
+    (r) => (isCoverRequest(r.request().url(), r.request().resourceType()) ? r.abort() : r.continue()),
+  );
   await ctx.addInitScript(`document.addEventListener("DOMContentLoaded", () => {
     const s = document.createElement("style");
-    s.textContent = "[role=tooltip],.tip-bubble,[data-testid=tip-bubble],nextjs-portal{display:none!important}" + ${JSON.stringify(LYRICS_CSS)};
+    s.textContent = ${JSON.stringify(HIDE_CSS + LYRICS_CSS)};
     document.head.appendChild(s);
   });`);
   const page = await ctx.newPage();

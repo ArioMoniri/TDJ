@@ -1,10 +1,11 @@
 /**
- * App Store app previews (store creative v2, `pnpm store:creative`): 15–30 s of the app's own screens, captured
- * from the bundled app UI (apps/desktop/store/creative/capture.ts), one chapter per feature with a few words on a
- * brand-coloured card, an original synthesised bed under it (audio.ts; no copyrighted music). One composition, sized
- * by its props: iPhone 886 × 1920, iPad 1200 × 1600, Mac 1920 × 1080. The Mac one stands on the README hero's black
- * stage: the 3D laptop (Showcase stills) with each capture on its screen and the words above it as a headline. The files it reads are copied into
- * public/store-creative/ by apps/desktop/store/creative/preview.ts before the render.
+ * App Store app previews (store creative v3, `pnpm store:creative`): 15–30 s of the app's own screens, captured
+ * from the bundled app UI (apps/desktop/store/creative/capture.ts), one chapter per feature, an original synthesised
+ * bed under it (audio.ts; no copyrighted music). One composition, sized by its props: iPhone 886 × 1920, iPad
+ * 1200 × 1600, Mac 1920 × 1080. With `stage` (every store preview) it stands on the README hero's black stage: the
+ * 3D device (the Showcase or HandheldStill still) with each capture on its screen and the words above it as a
+ * headline; without it, the older full-screen chapters with a brand-coloured card. The files it reads are copied
+ * into public/store-creative/ by apps/desktop/store/creative/preview.ts before the render.
  */
 import type { CalculateMetadataFunction } from "remotion";
 import {
@@ -19,7 +20,6 @@ import {
   useVideoConfig,
 } from "remotion";
 import { Headline, STAGE, Vignette } from "./three/Stage";
-import { appRect, PLACE } from "./three/showcase";
 
 export type StorePreviewProps = {
   width: number;
@@ -36,10 +36,20 @@ export type StorePreviewProps = {
   chapters: Array<{ src: string; full?: string; words: string; frames: number; dark: boolean }>;
   audio?: string;
   /**
-   * Mac: the 3D laptop on the black stage (Showcase stills, the app area a hole, placed at PLACE.previewMac), one
-   * for light screens and one for dark; each chapter's capture sits on its screen under a headline
+   * The black stage: the 3D device (a still with its screen a hole: the laptop has one for light screens and one
+   * for dark), where its picture goes, the screen's rectangle (each chapter's capture sits there, a long page pans
+   * inside it), the status bar's height on the screen (0: none) and the headline's top and size
    */
-  laptop?: { light: string; dark: string };
+  stage?: StageProps;
+};
+
+export type Box = { x: number; y: number; w: number; h: number };
+export type StageProps = {
+  frame: { light: string; dark: string };
+  still: Box;
+  screen: Box & { r: number };
+  statusTop: number;
+  text: { top: number; size: number };
 };
 
 export const STORE_PREVIEW_DEFAULTS: StorePreviewProps = {
@@ -87,8 +97,19 @@ const Words = ({ text }: { text: string }) => (
   </>
 );
 
-const Status = ({ kind, top, dark }: { kind: StorePreviewProps["kind"]; top: number; dark: boolean }) => {
-  const { width } = useVideoConfig();
+const Status = ({
+  kind,
+  top,
+  dark,
+  width: w,
+}: {
+  kind: StorePreviewProps["kind"];
+  top: number;
+  dark: boolean;
+  width?: number;
+}) => {
+  const config = useVideoConfig();
+  const width = w ?? config.width;
   if (kind === "mac" || !top) return null;
   const c = dark ? "#fff" : "#000";
   const fs = top * (kind === "phone" ? 0.3 : 0.55);
@@ -219,37 +240,101 @@ const Chapter = ({
   );
 };
 
-/** a Mac chapter: the capture on the laptop's screen, the words above as a headline */
-const MacChapter = ({
+/** a chapter on the black stage: the capture on the device's screen (a long page pans in it), the words above */
+const StageChapter = ({
   c,
-  laptop,
+  kind,
+  stage,
 }: {
   c: StorePreviewProps["chapters"][number];
-  laptop: NonNullable<StorePreviewProps["laptop"]>;
+  kind: StorePreviewProps["kind"];
+  stage: StageProps;
 }) => {
   const frame = useCurrentFrame();
-  const { fps, width, height } = useVideoConfig();
+  const { fps, width } = useVideoConfig();
   const enter = spring({ frame, fps, config: { damping: 200 }, durationInFrames: 12 });
   const words = spring({ frame: frame - 5, fps, config: { damping: 200 }, durationInFrames: 16 });
-  const r = appRect(width, height, PLACE.previewMac);
+  const pan = c.full
+    ? interpolate(frame, [fps * 0.6, c.frames - fps * 0.3], [0, 1], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp",
+      })
+    : 0;
+  const s = stage.screen;
+  const glow = Math.max(s.w, s.h) * 0.06;
   return (
     <AbsoluteFill style={{ background: STAGE, opacity: enter }}>
+      {kind !== "mac" ? (
+        // the screen's light on the stage round the device
+        <Img
+          src={staticFile(c.src)}
+          style={{
+            position: "absolute",
+            left: s.x + s.w * 0.06,
+            top: s.y + s.h * 0.06,
+            width: s.w * 0.88,
+            height: s.h * 0.88,
+            objectFit: "cover",
+            borderRadius: s.r,
+            filter: `blur(${glow}px) saturate(1.3)`,
+            opacity: c.dark ? 0.55 : 0.3,
+          }}
+        />
+      ) : null}
+      <div
+        style={{
+          position: "absolute",
+          left: s.x,
+          top: s.y,
+          width: s.w,
+          height: s.h,
+          borderRadius: s.r,
+          overflow: "hidden",
+          background: c.dark ? "#000" : "#f2f0ec",
+        }}
+      >
+        <Img
+          src={staticFile(c.full ?? c.src)}
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 0,
+            width: "100%",
+            height: c.full ? undefined : "100%",
+            transform: c.full ? `translateY(calc(${-pan} * (100% - ${s.h}px)))` : undefined,
+          }}
+        />
+        {c.full && stage.statusTop ? (
+          // a page panning under the status bar gets the bar's own band, as iOS draws it over a scrolled page
+          <div
+            style={{
+              position: "absolute",
+              inset: "0 0 auto 0",
+              height: stage.statusTop,
+              background: c.dark ? "rgba(0,0,0,.92)" : "rgba(242,240,236,.94)",
+            }}
+          />
+        ) : null}
+        <Status kind={kind} top={stage.statusTop} dark={c.dark} width={s.w} />
+      </div>
       <Img
-        src={staticFile(c.src)}
-        style={{ position: "absolute", left: r.x, top: r.y, width: r.w, height: r.h }}
-      />
-      <Img
-        src={staticFile(c.dark ? laptop.dark : laptop.light)}
-        style={{ position: "absolute", left: 0, top: 0, width, height }}
+        src={staticFile(c.dark ? stage.frame.dark : stage.frame.light)}
+        style={{
+          position: "absolute",
+          left: stage.still.x,
+          top: stage.still.y,
+          width: stage.still.w,
+          height: stage.still.h,
+        }}
       />
       <Vignette />
       <Headline
         kicker="T-DJ"
         text={c.words.replace(/\*/g, "")}
         width={width}
-        top={height * 0.035}
-        size={height * 0.066}
-        style={{ opacity: words, transform: `translateY(${(1 - words) * height * 0.015}px)` }}
+        top={stage.text.top}
+        size={stage.text.size}
+        style={{ opacity: words, transform: `translateY(${(1 - words) * stage.text.size * 0.25}px)` }}
       />
     </AbsoluteFill>
   );
@@ -299,7 +384,7 @@ const Brand = ({ words, lockup, stage }: { words?: string; lockup: string; stage
 
 export const StorePreview = (p: StorePreviewProps) => {
   let at = p.intro;
-  const stage = p.kind === "mac" && !!p.laptop;
+  const stage = !!p.stage;
   return (
     <AbsoluteFill style={{ background: C.ink }} lang={p.lang}>
       <style>{FONTS}</style>
@@ -316,8 +401,8 @@ export const StorePreview = (p: StorePreviewProps) => {
             from={from}
             durationInFrames={c.frames + (i < p.chapters.length - 1 ? 10 : 0)}
           >
-            {stage && p.laptop ? (
-              <MacChapter c={c} laptop={p.laptop} />
+            {p.stage ? (
+              <StageChapter c={c} kind={p.kind} stage={p.stage} />
             ) : (
               <Chapter c={c} kind={p.kind} statusTop={p.statusTop} />
             )}

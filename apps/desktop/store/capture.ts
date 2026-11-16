@@ -70,6 +70,11 @@ export async function run(page: Page, steps: Step[], label: string) {
     const timeout = optional ? 2500 : 15000;
     try {
       if ("click" in step) await page.locator(step.click).first().click({ timeout });
+      else if ("tap" in step)
+        await page
+          .locator(step.tap)
+          .first()
+          .evaluate((el) => (el as HTMLElement).click(), undefined, { timeout });
       else if ("press" in step) await page.keyboard.press(step.press);
       else if ("scroll" in step)
         await page
