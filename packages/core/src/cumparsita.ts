@@ -20,12 +20,60 @@ export function cumparsitaPlacement(
   o: Pick<ComposeOptions, "closeWithCumparsita"> & { rules?: NightRules },
 ): { open: boolean; close: boolean } {
   const r = o.rules ?? {};
-  if (r.cumparsita)
-    return {
-      open: r.cumparsita === "open" || r.cumparsita === "both",
-      close: r.cumparsita === "close" || r.cumparsita === "both",
-    };
-  return { open: r.openWithCumparsita ?? true, close: o.closeWithCumparsita !== false };
+  const base = r.cumparsita
+    ? {
+        open: r.cumparsita === "open" || r.cumparsita === "both",
+        close: r.cumparsita === "close" || r.cumparsita === "both",
+      }
+    : { open: r.openWithCumparsita ?? true, close: o.closeWithCumparsita !== false };
+  // 2026-11: the closing format, when the DJ chose one, decides the closing (the opening stays the `cumparsita` key's)
+  if (r.closingFormat) base.close = r.closingFormat !== "none";
+  return base;
+}
+
+/** 2026-11 — the closing formats (Settings → Night → "The last La Cumparsita"), in the order the picker lists them */
+export type ClosingFormat = NonNullable<NightRules["closingFormat"]>;
+export const CLOSING_FORMATS: readonly ClosingFormat[] = [
+  "after-cortina",
+  "straight",
+  "in-tanda",
+  "own-tanda",
+  "none",
+] as const;
+
+/**
+ * The night's closing format: the DJ's `rules.closingFormat`, else what the legacy keys say (no closing → "none"; a
+ * cortina before it → "after-cortina"; else "straight", today's golden default). A stored night without the key reads
+ * as the format it was composed with.
+ */
+export function closingFormatOf(
+  o: Pick<ComposeOptions, "closeWithCumparsita"> & { rules?: NightRules },
+): ClosingFormat {
+  const r = o.rules ?? {};
+  if (r.closingFormat && CLOSING_FORMATS.includes(r.closingFormat)) return r.closingFormat;
+  const legacy = { ...o, rules: { ...r, closingFormat: undefined } };
+  if (!cumparsitaPlacement(legacy).close || r.closer === "none") return "none";
+  return r.cortinaBeforeCumparsita ? "after-cortina" : "straight";
+}
+
+/** the format plays a cortina between the última and La Cumparsita */
+export const cortinaBeforeClosing = (f: ClosingFormat) => f === "after-cortina" || f === "own-tanda";
+
+/**
+ * The night rules with the closing format's consequences written into the keys the composer reads: the cortina
+ * before La Cumparsita, one closing version, and for 4 + 1 the version by the última's own orchestra (harmony). Rules
+ * without a format come back as they are (the default and every stored night unchanged).
+ */
+export function closingRules(r: NightRules): NightRules {
+  const f = r.closingFormat;
+  if (!f || !CLOSING_FORMATS.includes(f)) return r;
+  const out: NightRules = { ...r, cortinaBeforeCumparsita: cortinaBeforeClosing(f) };
+  if (f === "in-tanda") {
+    out.cumparsitaHarmony = true;
+    out.cumparsitaCount = 1;
+  }
+  if (f === "own-tanda") out.cumparsitaCount = 1;
+  return out;
 }
 
 export const isCumparsita = (s: Pick<Song, "title"> | null | undefined) =>

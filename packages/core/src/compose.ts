@@ -11,7 +11,7 @@ import {
 } from "./coherence";
 import { applyContextToOptions, BUILTIN_CONTEXT, resolveContext } from "./context";
 import { cortinaPool, pickCortina, planCortinas, spotifyCueFallbacks } from "./cortinas";
-import { closingFor, cumparsitaPlacement, openingCumparsita } from "./cumparsita";
+import { closingFor, closingRules, cumparsitaPlacement, openingCumparsita } from "./cumparsita";
 import { isDanceableSong, normTitle } from "./energy";
 import { asFavouriteTable, favouritesActive, withPraise } from "./favourites";
 import { withCortinaStarts } from "./hooks";
@@ -146,7 +146,7 @@ export function cumparsitaYears(cat: Catalog, orchestraId: string): Set<number> 
 }
 
 /** La Cumparsita rows a DJ closes with: a corpus/profile year when the orchestra has them, never a placeholder, instrumental unless the corpus says otherwise */
-function cumparsitaCandidates(cat: Catalog, o: ComposeOptions): Song[] {
+export function cumparsitaCandidates(cat: Catalog, o: ComposeOptions): Song[] {
   // a standalone closing Cumparsita is a dated studio instrumental (round 8: never Canaro/Alonso 1951 singing it)
   const all = cat.songs.filter(
     (s) =>
@@ -399,7 +399,8 @@ function composeOnce(
     ...eraDefaults,
     ...(req.overrides?.rules ?? {}),
     ...req,
-    rules: { ...eraRules, ...(req.rules ?? {}) },
+    // 2026-11: the closing format (rules.closingFormat) writes the cortina / harmony keys the composer reads
+    rules: closingRules({ ...eraRules, ...(req.rules ?? {}) }),
   });
   const rules = o.rules ?? {};
   // round 21: where La Cumparsita plays (rules.cumparsita; legacy openWithCumparsita / closeWithCumparsita)

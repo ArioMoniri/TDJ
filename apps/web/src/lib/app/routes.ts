@@ -20,6 +20,7 @@ import { searchQuery } from "@/lib/api/search";
 import { serviceSearch } from "@/lib/api/serviceSearch";
 import { spotifyMatch, spotifyPlaylist } from "@/lib/api/spotify";
 import { spotifyCover } from "@/lib/api/spotifyCover";
+import { spot } from "@/lib/api/spot";
 import { tandaSet } from "@/lib/api/tandaSet";
 import { t } from "@/lib/i18n";
 import { profile } from "@/lib/spotifyWeb";
@@ -188,6 +189,7 @@ const LOCAL: Record<string, Partial<Record<Method, Handler>>> = {
   "/api/swap-options": { POST: swapOptions },
   "/api/swap-track": { POST: swapTrack },
   "/api/tanda-set": { POST: tandaSet },
+  "/api/spot": { POST: spot },
   "/api/services/search": { POST: serviceSearch },
   "/api/meta": { GET: meta },
   "/api/popularity": { GET: popularity },
