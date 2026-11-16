@@ -36,6 +36,9 @@ import {
   mendTangoChairs,
   mendVmRepeats,
   mergeEnrichment,
+  normTitle,
+  OPENING_YEAR_WINDOW,
+  openingCumparsita,
   orderVerdictOf,
   type Playlist,
   pinTanda,
@@ -111,6 +114,57 @@ describe("A — La Cumparsita: where it plays and the opening version", () => {
       options: { ...old.options, rules: { ...old.options.rules, cumparsita: "both" } },
     });
     expect(asked.violations.some((v) => v.rule === "nightShape" || v.rule === "cumparsitaOpener")).toBe(true);
+  });
+  // 2026-11 (function review): D'Agostino 1952 opened for a 1941 tanda (11 years: "any golden year") while Caló was
+  // "said to have no La Cumparsita" for a 1942 tanda although the index holds his 1964 and 1966 versions (22 years)
+  it("the opening's year window is one constant for every orchestra, and the note says what lies outside it", () => {
+    expect(OPENING_YEAR_WINDOW).toBe(12);
+    const tandaOf = (orchestraId: string, year: number) => {
+      const s = deps.catalog.songs.find(
+        (x) => x.orchestraId === orchestraId && x.year === year && x.rhythm === "tango",
+      )!;
+      return {
+        orchestraId,
+        orchestra: s.orchestra,
+        yearRange: [year, year] as [number, number],
+        singer: null,
+        vocal: false,
+        songs: [s],
+      };
+    };
+    const cumparsitaYears = (id: string) =>
+      deps.catalog.songs
+        .filter((s) => s.orchestraId === id && normTitle(s.title) === "la cumparsita" && s.rhythm === "tango")
+        .map((s) => s.year);
+    expect(cumparsitaYears("miguel-calo")).toEqual(expect.arrayContaining([1964, 1966]));
+    // D'Agostino 1952 for a 1941 tanda: 11 years, inside the window — his own version, noted
+    const dag = openingCumparsita(deps.catalog, {}, tandaOf("angel-d-agostino", 1941), null);
+    expect(dag.song?.orchestraId).toBe("angel-d-agostino");
+    expect(dag.fallback).toMatch(/^opening: no Ángel D'Agostino La Cumparsita near 1941; its 1952 version/);
+    // Caló 1964 for a 1942 tanda: 22 years, outside it — another orchestra, and the note does not say he has none
+    const calo = openingCumparsita(deps.catalog, {}, tandaOf("miguel-calo", 1942), null);
+    expect(calo.song?.orchestraId).not.toBe("miguel-calo");
+    expect(calo.fallback).toContain(
+      `Miguel Caló has no La Cumparsita near its years (±${OPENING_YEAR_WINDOW})`,
+    );
+    expect(calo.fallback).toContain("its nearest is 1964");
+    expect(calo.fallback).not.toMatch(/has no La Cumparsita;/);
+    // the same window for the same orchestra: a 1953 Caló tanda is 11 years from his 1964 version — his own opens
+    const caloLate = openingCumparsita(deps.catalog, {}, tandaOf("miguel-calo", 1953), null);
+    if (
+      deps.catalog.songs.some(
+        (s) => s.orchestraId === "miguel-calo" && s.year === 1953 && s.rhythm === "tango",
+      )
+    )
+      expect(caloLate.song?.orchestraId).toBe("miguel-calo");
+    // and an orchestra with no version at all says so the same way, without a nearest year
+    const none = openingCumparsita(deps.catalog, {}, tandaOf("lucio-demare", 1943), null);
+    if (!cumparsitaYears("lucio-demare").length) {
+      expect(none.fallback).toContain(
+        `Lucio Demare has no La Cumparsita near its years (±${OPENING_YEAR_WINDOW})`,
+      );
+      expect(none.fallback).not.toContain("its nearest");
+    }
   });
   it("the strict panel flags an opening by another orchestra without a recorded fallback", () => {
     const p = nights[0]!;

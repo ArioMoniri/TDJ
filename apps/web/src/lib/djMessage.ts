@@ -103,15 +103,17 @@ function cumparsita(where: "opening" | "closer", body: string): string {
       singer: near[4] ?? "",
       verb,
     });
+  // (2026-11: "… has no La Cumparsita near its years (±12) — its nearest is 1964; …"; older notes said only "has no")
   const none = body.match(
-    /^(.+?) has no La Cumparsita; (.+?) (\d{4}) \((?:the same (\w+) style|the nearest year)\) (?:opens|closes)/,
+    /^(.+?) has no La Cumparsita(?: near its years \(±(\d+)\))?(?: — its nearest is \d{4})?; (.+?) (\d{4}) \((?:the same (\w+) style|the nearest year)\) (?:opens|closes)/,
   );
   if (none)
-    return t(none[4] ? "djMessage.cumparsita_never_style" : "djMessage.cumparsita_never", {
+    return t(none[5] ? "djMessage.cumparsita_never_style" : "djMessage.cumparsita_never", {
       orchestra: shortName(none[1]!),
-      other: shortName(none[2]!),
-      year: none[3],
-      style: none[4] ? styleWord(none[4]) : "",
+      window: none[2] ?? "12",
+      other: shortName(none[3]!),
+      year: none[4],
+      style: none[5] ? styleWord(none[5]) : "",
       verb,
     });
   if (/^no La Cumparsita to (?:open|close) with/.test(body))
