@@ -17,6 +17,7 @@ import {
 } from "@/lib/api/engine";
 import { json, jsonNoStore, noStore } from "@/lib/api/http";
 import { importMatch } from "@/lib/api/importMatch";
+import { level } from "@/lib/api/level";
 import { lyricsSource } from "@/lib/api/lyrics";
 import { preview, resolve, resolveStatus } from "@/lib/api/net";
 import { popularity } from "@/lib/api/popularity";
@@ -202,6 +203,8 @@ const LOCAL: Record<string, Partial<Record<Method, Handler>>> = {
   "/api/popularity": { GET: popularity },
   // covers without a Spotify login (lib/api/artwork.ts): the shipped cache, else oEmbed through the native client
   "/api/artwork": { GET: (req, d) => artwork(req, d) },
+  // 2026-11: a Spotify / YouTube side's level from data (lib/api/level.ts): the catalogue, Deezer, Spotify
+  "/api/level": { GET: (req, d) => level(req, d) },
   "/api/search": { GET: search, POST: searchQuery },
   "/api/feedback": { POST: feedback },
   "/api/export": { POST: exportFile },

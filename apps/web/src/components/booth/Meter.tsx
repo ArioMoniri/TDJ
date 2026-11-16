@@ -1,9 +1,11 @@
 "use client";
+import { Info } from "lucide-react";
 import { useReducedMotion } from "motion/react";
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { AutoHold } from "@/lib/booth/autoMaster";
-import type { SongLoudness } from "@/lib/booth/level";
+import { isEstimate, type NormalisationPath, type SongLoudness } from "@/lib/booth/level";
 import { attachLevels, clearClip, stopAuto, useLevels } from "@/lib/booth/levelRuntime";
+import { useBooth } from "@/lib/booth/store";
 import { t } from "@/lib/i18n";
 import { cancelPowerFrame, powerFrame, useSaving } from "@/lib/power";
 import "./level.css";
@@ -12,8 +14,8 @@ import "./level.css";
  * Level meter (round7-booth.md §4; 2026-11 "the decibel shower doesn't work"): the room's output after the master,
  * −60…0 dBFS — the bar is the sample peak with PPM ballistics, a tick holds the peak, marks at −18 (the loudness
  * target's region), −6 and −1 (the peak cap), red above −1 dBFS, and the clip light. Files and clips only: Spotify and
- * YouTube play outside the page's audio, so the meter says so and shows the side's known loudness instead of a dead
- * bar. With Auto master on, its boost shows here with a one-tap Stop.
+ * YouTube play outside the page's audio, so there the side's level known from data and the gain applied to it show
+ * instead (`KnownLevel`). With Auto master on, its boost shows here with a one-tap Stop.
  */
 const MIN = -60;
 const pos = (db: number, w: number) => ((Math.max(MIN, Math.min(0, db)) - MIN) / -MIN) * w;
@@ -21,16 +23,33 @@ const pos = (db: number, w: number) => ((Math.max(MIN, Math.min(0, db)) - MIN) /
 export const fmtDb = (v: number | null | undefined, digits = 1): string =>
   v === null || v === undefined || !Number.isFinite(v) ? "–" : `${v > 0 ? "+" : ""}${v.toFixed(digits)}`;
 
+/** where a side's level comes from, in words ("estimate from Deezer", "measured from your file") */
+export const levelFromText = (s: Pick<SongLoudness, "from">): string =>
+  t(
+    s.from === "file"
+      ? "booth.level.from_file"
+      : s.from === "clip"
+        ? "booth.level.from_clip"
+        : s.from === "deezer"
+          ? "booth.level.from_deezer"
+          : s.from === "spotify"
+            ? "booth.level.from_spotify"
+            : "booth.level.from_catalogue",
+  );
+
+/** "-11.8 LUFS (estimate from Deezer)" for the notes; null when unknown */
 export function songLoudnessText(s: SongLoudness | null): string | null {
   if (!s) return null;
-  return t(
-    s.from === "file"
-      ? "booth.level.song_file"
-      : s.from === "clip"
-        ? "booth.level.song_clip"
-        : "booth.level.song_catalogue",
-    { db: fmtDb(s.lufs) },
-  );
+  return `${t("booth.level.lufs_value", { db: fmtDb(s.lufs) })} (${levelFromText(s)})`;
+}
+
+/** what the night does to the side: "turned down 4.2 dB", "at full volume", "not changed here"; null when unknown */
+export function appliedText(applied: number | null, norm: NormalisationPath): string | null {
+  if (applied === null) return null;
+  if (norm !== "sdk" && norm !== "graph") return t("booth.level.not_changed");
+  return applied < -0.05
+    ? t("booth.level.turned_down", { db: Math.abs(applied).toFixed(1) })
+    : t("booth.level.full_volume");
 }
 
 /** The bar on a canvas (shared by the Now card and the Mixer). */
@@ -139,20 +158,121 @@ export function MeterBar({
   );
 }
 
-/** "Level not available from Spotify" and the side's known loudness (no dead bar). */
-export function NoMeter({ testId = "booth-meter-na" }: { testId?: string }) {
+/* the static bar's scale, LUFS (a quiet 78 rpm transfer to a loud remaster) */
+const EST_MIN = -36;
+const EST_MAX = -6;
+const estPct = (lufs: number) =>
+  `${(((Math.max(EST_MIN, Math.min(EST_MAX, lufs)) - EST_MIN) / (EST_MAX - EST_MIN)) * 100).toFixed(1)}%`;
+
+/** the full explanation behind ⓘ: why the level comes from data, and what the night does with it */
+export function levelWhyText(live: string, norm: NormalisationPath, target: number): string {
+  const how =
+    norm === "sdk"
+      ? t("booth.level.norm_sdk", { target })
+      : norm === "spotify"
+        ? t("booth.level.norm_connect")
+        : t("booth.level.norm_none");
+  return `${live === "youtube" ? t("booth.level.live_youtube") : t("booth.level.live_spotify")} ${how}`;
+}
+
+/**
+ * 2026-11 (the owner on "Level not available from Spotify") — Spotify and YouTube play outside the page's audio, so
+ * there is no live meter there: the side's level known from data instead (lib/booth/sideLevel.ts), with the gain the
+ * night applies to it. A static bar, never bouncing: striped for an estimate, solid for a measurement; the part the
+ * night turns down is shown as cut, a tick marks the night's target. Unknown: one plain sentence saying what to do.
+ * `compact` (the Mixer's title line): the bar and the numbers only, the source in the tooltip.
+ */
+export function KnownLevel({
+  testId = "booth-meter-est",
+  compact = false,
+  explain = true,
+}: {
+  testId?: string;
+  compact?: boolean;
+  /** the ⓘ explanation (off where the same words already stand below: the room sheet's note) */
+  explain?: boolean;
+}) {
   const live = useLevels((s) => s.live);
   const song = useLevels((s) => s.song);
-  const txt = songLoudnessText(song);
+  const applied = useLevels((s) => s.applied);
+  const norm = useLevels((s) => s.norm);
+  const target = useBooth((s) => s.settings.loudnessTargetLUFS);
+  const [why, setWhy] = useState(false);
+  const whyId = useId();
+  // keep the level loop running while this stands in for the meter (it follows the next side)
+  useEffect(() => attachLevels(), []);
+  if (!song)
+    return (
+      <span
+        className="booth-meter-na block text-caption1 text-[var(--label-2)]"
+        data-testid={testId}
+        data-unknown="1"
+        role="status"
+      >
+        {t("booth.level.unknown")}
+      </span>
+    );
+  const est = isEstimate(song);
+  const level = t("booth.level.lufs_value", { db: fmtDb(song.lufs) });
+  const gain = appliedText(applied, norm);
+  const from = levelFromText(song);
+  const heard = song.lufs + Math.min(0, applied ?? 0);
   return (
-    <span
-      className="booth-meter-na block text-caption1 text-[var(--label-2)]"
+    <div
+      className={`booth-meter-est ${compact ? "booth-meter-est-compact" : ""}`}
       data-testid={testId}
-      role="status"
+      data-from={song.from}
+      data-estimate={est ? "1" : "0"}
+      data-lufs={song.lufs.toFixed(1)}
+      data-applied={applied === null ? "" : applied.toFixed(1)}
+      title={compact ? `${level} · ${from}${gain ? ` · ${gain}` : ""}` : undefined}
     >
-      {live === "youtube" ? t("booth.level.na_youtube") : t("booth.level.na_spotify")}
-      {txt ? ` · ${txt}` : ""}
-    </span>
+      <span
+        className="booth-est-bar"
+        role="img"
+        aria-label={t("booth.level.estimate_aria", { db: fmtDb(song.lufs), from })}
+        data-estimate={est ? "1" : "0"}
+      >
+        <span className="booth-est-fill" style={{ width: estPct(heard) }} />
+        {heard < song.lufs - 0.05 && (
+          <span
+            className="booth-est-cut"
+            style={{ left: estPct(heard), width: `calc(${estPct(song.lufs)} - ${estPct(heard)})` }}
+          />
+        )}
+        <span className="booth-est-target" style={{ left: estPct(target) }} />
+      </span>
+      <span className="booth-est-text text-caption1 tabular-nums" role="status">
+        <span className="text-[var(--label)]" data-testid={`${testId}-text`}>
+          {level}
+          {gain ? ` · ${gain}` : ""}
+        </span>
+        {!compact && <span className="booth-est-from text-[var(--label-2)]"> · {from}</span>}
+        {!compact && explain && (
+          <button
+            type="button"
+            className="booth-est-why"
+            aria-expanded={why}
+            aria-controls={whyId}
+            aria-label={t("booth.level.why")}
+            title={t("booth.level.why")}
+            data-testid={`${testId}-why`}
+            onClick={() => setWhy((v) => !v)}
+          >
+            <Info size={14} strokeWidth={2} aria-hidden />
+          </button>
+        )}
+      </span>
+      {!compact && explain && why && (
+        <p
+          id={whyId}
+          className="booth-est-note text-caption1 text-[var(--label-2)]"
+          data-testid={`${testId}-note`}
+        >
+          {levelWhyText(live, norm, target)}
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -200,7 +320,7 @@ export function Meter({ className = "" }: { className?: string }) {
   return (
     <div className={`booth-meter ${className}`} data-live={live}>
       {external ? (
-        <NoMeter />
+        <KnownLevel />
       ) : (
         <div className="flex items-center gap-2">
           <MeterBar className="h-2 min-w-0 flex-1" />
