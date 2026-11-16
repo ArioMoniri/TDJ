@@ -115,7 +115,7 @@ describe("the keys", () => {
     altKey: false,
     ...m,
   });
-  it("⌘Z / Ctrl+Z undo; ⇧⌘Z, Ctrl+Shift+Z and Ctrl+Y redo; nothing else", () => {
+  it("⌘Z / Ctrl+Z undo; ⇧⌘Z, Ctrl+Shift+Z, ⌘Y and Ctrl+Y redo; nothing else", () => {
     expect(historyKey(k("z", { metaKey: true }))).toBe("undo");
     expect(historyKey(k("z", { ctrlKey: true }))).toBe("undo");
     expect(historyKey(k("Z", { metaKey: true, shiftKey: true }))).toBe("redo");
@@ -123,7 +123,9 @@ describe("the keys", () => {
     expect(historyKey(k("y", { ctrlKey: true }))).toBe("redo");
     expect(historyKey(k("z"))).toBeNull();
     expect(historyKey(k("z", { metaKey: true, altKey: true }))).toBeNull();
-    expect(historyKey(k("y", { metaKey: true }))).toBeNull();
+    expect(historyKey(k("y", { metaKey: true }))).toBe("redo");
+    expect(historyKey(k("y", { metaKey: true, shiftKey: true }))).toBeNull();
+    expect(historyKey(k("y"))).toBeNull();
   });
   it("a text field keeps its own undo; a button or a checkbox does not", () => {
     const el = (tagName: string, extra: Record<string, unknown> = {}) =>

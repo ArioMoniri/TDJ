@@ -43,7 +43,14 @@ export interface ActionDef {
 
 export const ACTIONS: ActionDef[] = [
   { id: "edit.undo", group: "edit", label: "booth.sheets.undo_key", defaults: ["mod+z"] },
-  { id: "edit.redo", group: "edit", label: "booth.sheets.redo_key", defaults: ["mod+shift+z", "ctrl+y"] },
+  // 2026-11 (the owner: "Ctrl or Cmd+Y to redo"): ⌘Y on a Mac, Ctrl+Y elsewhere, beside ⇧⌘Z and the old Ctrl+Y (⌃Y on
+  // a Mac); a device that kept the old defaults gets it too (LEGACY_DEFAULTS)
+  {
+    id: "edit.redo",
+    group: "edit",
+    label: "booth.sheets.redo_key",
+    defaults: ["mod+shift+z", "mod+y", "ctrl+y"],
+  },
   { id: "edit.swap", group: "edit", label: "booth.sheets.swap_key", defaults: ["s"] },
   { id: "edit.moveUp", group: "edit", label: "keys.edit_move_up", defaults: ["alt+arrowup"] },
   { id: "edit.moveDown", group: "edit", label: "keys.edit_move_down", defaults: ["alt+arrowdown"] },
@@ -138,6 +145,14 @@ export function normalizeCombo(c: string): string {
   return [...mods, NAMED[key] ?? key].join("+");
 }
 
+/**
+ * the physical key a combo is on this platform: off a Mac Control is the command key, so "ctrl+y" and "mod+y" are one
+ * key there (a conflict, one binding to take), two on a Mac (⌃Y and ⌘Y)
+ */
+export function keyOf(c: string, mac = isMac()): string {
+  return normalizeCombo(mac ? c : c.replace(/\bctrl\b/g, "mod"));
+}
+
 /** does the press match the combo? `mod` matches ⌘ or Ctrl (one of them), `ctrl` the other one */
 export function matchesCombo(e: KeyLike, combo: string, mac = isMac()): boolean {
   const got = comboOf(e, mac);
@@ -184,21 +199,48 @@ export function formatCombo(c: string, mac = isMac()): string {
   return mac ? `${order.map(glyph).join("")}${k}` : [...order.map(glyph), k].join("+");
 }
 
+/**
+ * the combos as they work on this platform, once each: off a Mac "mod+y" and "ctrl+y" are both Ctrl+Y (one key, shown
+ * once as Ctrl+Y, as matchesCombo answers it); the bindings themselves stay as they are
+ */
+export function shownBindings(combos: string[], mac = isMac()): string[] {
+  return [...new Set(combos.map((c) => keyOf(c, mac)))];
+}
+
 /* ---------- the DJ's bindings on this device ---------- */
 
 const KEY = "tdj-keymap";
 type Custom = Partial<Record<ActionId, string[]>>;
+
+/**
+ * Defaults an action had before: a device that saved exactly one of them never chose those keys itself (an older
+ * build's copy), so it follows today's defaults (⌘Y for redo, 2026-11).
+ */
+export const LEGACY_DEFAULTS: Partial<Record<ActionId, string[][]>> = {
+  "edit.redo": [["mod+shift+z", "ctrl+y"]],
+};
+const sameList = (a: string[], b: string[]) => a.length === b.length && a.every((c, i) => c === b[i]);
+
+/** the saved bindings read back: unknown actions dropped, combos normalized, an old default list following the new */
+export function migrateKeymap(j: unknown): Custom {
+  if (!j || typeof j !== "object") return {};
+  const out: Custom = {};
+  for (const a of ACTIONS) {
+    const v = (j as Record<string, unknown>)[a.id];
+    if (!Array.isArray(v)) continue;
+    const list = v.filter((x): x is string => typeof x === "string").map(normalizeCombo);
+    if (LEGACY_DEFAULTS[a.id]?.some((old) => sameList(list, old.map(normalizeCombo)))) continue;
+    out[a.id] = list;
+  }
+  return out;
+}
+
 function load(): Custom {
   try {
     const raw = typeof localStorage !== "undefined" ? localStorage.getItem(KEY) : null;
     const j = raw ? (JSON.parse(raw) as unknown) : null;
-    if (!j || typeof j !== "object") return {};
-    const out: Custom = {};
-    for (const a of ACTIONS) {
-      const v = (j as Record<string, unknown>)[a.id];
-      if (Array.isArray(v))
-        out[a.id] = v.filter((x): x is string => typeof x === "string").map(normalizeCombo);
-    }
+    const out = migrateKeymap(j);
+    if (j && typeof j === "object" && Object.keys(out).length !== Object.keys(j).length) save(out);
     return out;
   } catch {
     return {};
@@ -216,9 +258,20 @@ export const useKeymap = create<{ custom: Custom }>(() => ({
   custom: typeof window !== "undefined" ? load() : {},
 }));
 
-/** the combos bound to an action now (the DJ's, else the defaults) */
+/**
+ * the combos bound to an action now (the DJ's, else the defaults). A default the DJ gave another action stays that
+ * action's: a default added later (⌘Y) never takes back a key the DJ already chose for something else.
+ */
 export function bindingsOf(id: ActionId, custom: Custom = useKeymap.getState().custom): string[] {
-  return custom[id] ?? ACTIONS.find((a) => a.id === id)?.defaults ?? [];
+  const own = custom[id];
+  if (own) return own;
+  const def = ACTIONS.find((a) => a.id === id)?.defaults ?? [];
+  const taken = new Set(
+    Object.entries(custom)
+      .filter(([other]) => other !== id)
+      .flatMap(([, v]) => (v ?? []).map((c) => keyOf(c))),
+  );
+  return taken.size ? def.filter((c) => !taken.has(keyOf(c))) : def;
 }
 
 /** does this press run `id`? */
@@ -234,10 +287,10 @@ export function actionOf(e: KeyLike, ids: readonly ActionId[] = ACTIONS.map((a) 
 
 /** the other actions a combo is already bound to (Settings warns before taking it) */
 export function conflictsOf(combo: string, except: ActionId, custom?: Custom): ActionId[] {
-  const c = normalizeCombo(combo);
-  return ACTIONS.filter(
-    (a) => a.id !== except && bindingsOf(a.id, custom).some((b) => normalizeCombo(b) === c),
-  ).map((a) => a.id);
+  const c = keyOf(combo);
+  return ACTIONS.filter((a) => a.id !== except && bindingsOf(a.id, custom).some((b) => keyOf(b) === c)).map(
+    (a) => a.id,
+  );
 }
 
 /** binds `combos` to `id`; `takeFrom` removes the combo from the actions it conflicted with */
@@ -247,7 +300,7 @@ export function setBinding(id: ActionId, combos: string[], o: { takeFrom?: boole
   if (o.takeFrom)
     for (const c of list)
       for (const other of conflictsOf(c, id, custom))
-        custom[other] = bindingsOf(other, custom).filter((b) => normalizeCombo(b) !== c);
+        custom[other] = bindingsOf(other, custom).filter((b) => keyOf(b) !== keyOf(c));
   const def = ACTIONS.find((a) => a.id === id)?.defaults ?? [];
   if (list.length === def.length && list.every((c, i) => c === normalizeCombo(def[i]!))) delete custom[id];
   else custom[id] = list;

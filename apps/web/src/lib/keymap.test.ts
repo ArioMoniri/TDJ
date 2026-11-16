@@ -18,11 +18,14 @@ const {
   conflictsOf,
   formatCombo,
   isAction,
+  keyOf,
   matchesCombo,
+  migrateKeymap,
   normalizeCombo,
   resetAllBindings,
   resetBinding,
   setBinding,
+  shownBindings,
 } = await import("./keymap");
 
 const press = (
@@ -105,5 +108,83 @@ describe("keymap: every shortcut in one list, rebindable per device", () => {
     expect(formatCombo("arrowright", false)).toBe("→");
     expect(formatCombo("f", false)).toBe("f");
     expect(formatCombo("shift+p", true)).toBe("⇧P");
+  });
+});
+
+describe('redo on ⌘Y / Ctrl+Y (2026-11, the owner: "Ctrl or Cmd+Y to redo, editable")', () => {
+  it("mod+y is a default of redo beside ⇧⌘Z and Ctrl+Y: ⌘Y on a Mac, Ctrl+Y elsewhere", () => {
+    expect(ACTIONS.find((a) => a.id === "edit.redo")!.defaults).toEqual(["mod+shift+z", "mod+y", "ctrl+y"]);
+    // a Mac: ⌘Y is mod+y (and ⌃Y still answers, as before)
+    expect(comboOf(press("y", { meta: true }), true)).toBe("mod+y");
+    expect(matchesCombo(press("y", { meta: true }), "mod+y", true)).toBe(true);
+    expect(matchesCombo(press("y", { ctrl: true }), "ctrl+y", true)).toBe(true);
+    expect(matchesCombo(press("y", { meta: true, alt: true }), "mod+y", true)).toBe(false);
+    // Windows / Linux: Ctrl+Y is mod+y
+    expect(comboOf(press("y", { ctrl: true }), false)).toBe("mod+y");
+    expect(matchesCombo(press("y", { ctrl: true }), "mod+y", false)).toBe(true);
+    expect(matchesCombo(press("y", { ctrl: true, shift: true }), "mod+y", false)).toBe(false);
+    expect(matchesCombo(press("y"), "mod+y", false)).toBe(false);
+    // the actions: Ctrl+Y redoes, never undoes; Y alone is nothing
+    expect(isAction("edit.redo", press("y", { ctrl: true }))).toBe(true);
+    expect(isAction("edit.undo", press("y", { ctrl: true }))).toBe(false);
+    expect(actionOf(press("y"))).toBeNull();
+  });
+
+  it("shown once per platform: ⇧⌘Z ⌘Y ⌃Y on a Mac, Ctrl+Shift+Z Ctrl+Y elsewhere", () => {
+    const redo = bindingsOf("edit.redo");
+    expect(shownBindings(redo, true).map((c) => formatCombo(c, true))).toEqual(["⇧⌘Z", "⌘Y", "⌃Y"]);
+    expect(shownBindings(redo, false).map((c) => formatCombo(c, false))).toEqual(["Ctrl+Shift+Z", "Ctrl+Y"]);
+  });
+
+  it("editable: replaced, cleared, reset (one action or all) brings ⌘Y back", () => {
+    setBinding("edit.redo", ["mod+r"]);
+    expect(matchesCombo(press("y", { meta: true }), bindingsOf("edit.redo")[0]!, true)).toBe(false);
+    resetBinding("edit.redo");
+    expect(bindingsOf("edit.redo")).toContain("mod+y");
+    setBinding("edit.redo", []);
+    expect(bindingsOf("edit.redo")).toEqual([]);
+    resetAllBindings();
+    expect(bindingsOf("edit.redo")).toEqual(["mod+shift+z", "mod+y", "ctrl+y"]);
+    // saving the defaults again keeps nothing of the DJ's (it follows later defaults)
+    setBinding("edit.redo", ["mod+shift+z", "mod+y", "ctrl+y"]);
+    expect(localStorage.getItem("tdj-keymap")).toBeNull();
+  });
+
+  it("one key per platform: Ctrl+Y and mod+y are one key off a Mac, ⌃Y and ⌘Y two on a Mac", () => {
+    expect(keyOf("ctrl+y", false)).toBe("mod+y");
+    expect(keyOf("mod+y", false)).toBe("mod+y");
+    expect(keyOf("ctrl+y", true)).toBe("ctrl+y");
+    expect(keyOf("mod+y", true)).toBe("mod+y");
+  });
+
+  it("conflicts: Ctrl+Y given to another action is named first, then taken from redo (both its spellings)", () => {
+    // (vitest runs as Windows / Linux: Ctrl+Y records as mod+y)
+    expect(conflictsOf("mod+y", "edit.swap")).toEqual(["edit.redo"]);
+    expect(conflictsOf("ctrl+y", "edit.swap")).toEqual(["edit.redo"]);
+    setBinding("edit.swap", ["mod+y"], { takeFrom: true });
+    expect(bindingsOf("edit.redo")).toEqual(["mod+shift+z"]);
+    expect(actionOf(press("y", { ctrl: true }), ["edit.redo", "edit.swap"])).toBe("edit.swap");
+    // ⇧⌘Z / Ctrl+Shift+Z still redoes
+    expect(isAction("edit.redo", press("z", { ctrl: true, shift: true }))).toBe(true);
+  });
+
+  it("a key the DJ chose before ⌘Y was a default stays theirs: the new default never takes it back", () => {
+    const custom = migrateKeymap({ "booth.fade": ["mod+y"] });
+    expect(bindingsOf("edit.redo", custom)).toEqual(["mod+shift+z"]);
+    expect(bindingsOf("booth.fade", custom)).toEqual(["mod+y"]);
+    expect(conflictsOf("mod+y", "edit.undo", custom)).toEqual(["booth.fade"]);
+    // a key elsewhere leaves redo's defaults whole
+    expect(bindingsOf("edit.redo", migrateKeymap({ "booth.fade": ["mod+g"] }))).toHaveLength(3);
+  });
+
+  it("saved keymaps: redo never changed (or saved as the old defaults) gets ⌘Y; a redo of their own stays", () => {
+    expect(bindingsOf("edit.redo", migrateKeymap({ "booth.fade": ["g"] }))).toContain("mod+y");
+    const old = migrateKeymap({ "edit.redo": ["Mod+Shift+Z", "ctrl+y"], "booth.fade": ["g"] });
+    expect(old["edit.redo"]).toBeUndefined();
+    expect(bindingsOf("edit.redo", old)).toEqual(["mod+shift+z", "mod+y", "ctrl+y"]);
+    const own = migrateKeymap({ "edit.redo": ["ctrl+y"] });
+    expect(bindingsOf("edit.redo", own)).toEqual(["ctrl+y"]);
+    expect(migrateKeymap(null)).toEqual({});
+    expect(migrateKeymap({ "edit.redo": "mod+y", nope: ["x"] })).toEqual({});
   });
 });

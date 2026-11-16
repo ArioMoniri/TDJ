@@ -8,7 +8,15 @@ import { BOOTH_RANGES, durationLabel } from "@/lib/booth/plan";
 import { useBooth, useRoomCaps } from "@/lib/booth/store";
 import { useMediaQuery } from "@/lib/hooks";
 import { lazy, t as tx } from "@/lib/i18n";
-import { ACTIONS, type ActionId, bindingsOf, formatCombo, useBindings, useKeymap } from "@/lib/keymap";
+import {
+  ACTIONS,
+  type ActionId,
+  bindingsOf,
+  formatCombo,
+  shownBindings,
+  useBindings,
+  useKeymap,
+} from "@/lib/keymap";
 import { useStore } from "@/lib/store";
 import { CORTINA_STOP_RANGE, cortinaStopSec } from "@/lib/types";
 import { ActionRow, Group, Row, SegmentedRow, StepperRow, SwitchRow } from "../Form";
@@ -549,7 +557,7 @@ const FIXED_KEYS: Array<[string, string]> = lazy(() => [
 export function ShortcutsSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const custom = useKeymap((s) => s.custom);
   const row = (a: (typeof ACTIONS)[number]) => {
-    const keys = bindingsOf(a.id, custom);
+    const keys = shownBindings(bindingsOf(a.id, custom));
     return (
       <Row
         key={a.id}
