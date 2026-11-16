@@ -16,9 +16,12 @@ export function Fader({
   testId,
   className = "",
   hint,
+  disabled,
 }: {
   /** round 21: one line under the label saying what the fader does */
   hint?: string;
+  /** 2026-11: the room's device has no such control (say why in `hint`) */
+  disabled?: boolean;
   label: string;
   value: number;
   min: number;
@@ -32,7 +35,11 @@ export function Fader({
 }) {
   const pct = ((value - min) / (max - min)) * 100;
   return (
-    <label className={`booth-fader ${vertical ? "booth-fader-v" : ""} ${className}`} data-testid={testId}>
+    <label
+      className={`booth-fader ${vertical ? "booth-fader-v" : ""} ${className}`}
+      data-testid={testId}
+      data-disabled={disabled || undefined}
+    >
       <span className="booth-fader-label">
         <span className="text-caption2 font-medium text-[var(--label-2)]">{label}</span>
         {hint && (
@@ -53,6 +60,7 @@ export function Fader({
         aria-label={label}
         aria-description={hint}
         aria-valuetext={display}
+        disabled={disabled}
         onChange={(e) => onChange(Number(e.target.value))}
         style={{ ["--pct" as string]: `${pct}%` }}
       />

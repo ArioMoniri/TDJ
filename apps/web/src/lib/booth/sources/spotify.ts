@@ -4,6 +4,7 @@ import { t as tx } from "@/lib/i18n";
 import { dbToGain, fadeOutCurve, VOLUME_STEP_SEC, volumeSteps } from "../envelope";
 import type { BoothRow } from "../plan";
 import type {
+  ExternalCapabilities,
   ExternalHandle,
   ExternalPlayer,
   ExternalStart,
@@ -222,7 +223,11 @@ const now = () => Date.now();
  */
 export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
   readonly kind = "spotify" as const;
-  capabilities = { fade: true };
+  /**
+   * 2026-11: what the night's device can do — fades (the SDK's volume steps), the volume at all (a Connect device's
+   * `supports_volume`: the iOS Spotify app has none) and the per-item gain (only the SDK applies it).
+   */
+  capabilities: Required<ExternalCapabilities> = { fade: true, volume: true, gain: true };
   external: ExternalPlayer = this;
   /** the latest Spotify errors (newest last), for diagnosis */
   readonly log: SpotifyLogEntry[] = [];
@@ -240,8 +245,18 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
   private remote: string | null = null;
   private devices: SpotifyDevice[] = [];
   private master = 1;
-  private remoteVolumeArmed = false;
-  private volumeTimer: ReturnType<typeof setTimeout> | null = null;
+  /** the engine's output gain (mute, master, talk) as asked; > 1 above 0 dB */
+  private outGain = 1;
+  /* 2026-11 — the Connect device's volume, relative to its own level (never 100 % out of nowhere) */
+  /** the device's level (%) that the master's 0 dB stands for; null until read from `GET /me/player` */
+  private baseVolume: number | null = null;
+  /** the gain the device's level reflects now, and the level (%) last set or read */
+  private appliedGain = 1;
+  private appliedPct: number | null = null;
+  /** what `supports_volume` said for the night's device on its last read (null: not read yet) */
+  private remoteVolumeOk: boolean | null = null;
+  private wantResync = false;
+  private volumeRun: Promise<void> | null = null;
   private premium: boolean | null = null;
   private onBanner: Options["onBanner"];
   private onLog: Options["onLog"];
@@ -253,6 +268,9 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
   private titles = new Map<string, string>();
   /** every item handed to `startItem` that has not ended */
   private lives = new Set<Live>();
+  /** how long a Connect start waits for Spotify to confirm the new track (ms), and how often it asks */
+  confirmMs = 3000;
+  confirmPollMs = 300;
   /** the item that last started playing (it owns the volume and the SDK's state events) */
   private owner: Live | null = null;
   /** seconds the night runs ahead of the engine's plan after a passed-over track (see `pullForward`) */
@@ -271,7 +289,7 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
     // iPadOS has no Web Playback SDK (no Widevine), so the night plays through the Spotify app from the start
     this.phone = o.phone ?? (isPhone() || isAppleMobile());
     this.sdkUnusable = this.phone;
-    this.capabilities.fade = this.sdkFades && !this.sdkUnusable;
+    this.syncCaps();
     this.onBanner = o.onBanner;
     this.onLog = o.onLog;
     this.deviceWaitMs = o.deviceWaitMs ?? 5000;
@@ -445,6 +463,7 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
       // the list stays as it was; the error is in the log
     } finally {
       this.loading = false;
+      this.syncCaps();
       this.emit();
     }
     return this.devices;
@@ -605,6 +624,8 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
   private async doConnect(): Promise<void> {
     if (this.remote) {
       await this.listDevices();
+      // the device's own level, when the night starts (a re-attach, a device picked before the night)
+      if (this.baseVolume === null) await this.readVolume();
       return;
     }
     if (!this.sdkUnusable) {
@@ -629,20 +650,42 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
     }
     // Spotify Connect: the Spotify app on this phone (or another device of the account)
     const list = await this.listDevices();
-    const pick = autoPick(list, this.phone);
+    const pick = this.remote ? null : autoPick(list, this.phone);
     if (pick) this.selectRemote(pick);
-    else this.bannerNoDevice();
+    else if (!this.remote) this.bannerNoDevice();
+    // 2026-11: the device's own level, read when the night starts (the master and Mute work relative to it)
+    if (this.remote) await this.readVolume();
   }
   /** this browser can't play Spotify: fades off, the night plays on a Connect device */
   private fallBackToConnect() {
     this.sdkUnusable = true;
-    this.capabilities.fade = false;
+    this.syncCaps();
     this.emit();
   }
+  /** the night's device decides what the booth may promise (fades, volume, gain) */
+  private syncCaps() {
+    const connect = !!this.remote || this.sdkUnusable;
+    this.capabilities.fade = this.sdkFades && !connect;
+    this.capabilities.gain = !connect;
+    if (!connect) this.capabilities.volume = true;
+    else {
+      const d = this.remote
+        ? this.devices.find((x) => x.id === this.remote)
+        : autoPick(this.devices, this.phone);
+      this.capabilities.volume = this.remote
+        ? (this.remoteVolumeOk ?? d?.supportsVolume ?? true)
+        : (d?.supportsVolume ?? false);
+    }
+  }
   private selectRemote(d: SpotifyDevice) {
+    if (this.remote !== d.id) {
+      this.baseVolume = null;
+      this.appliedPct = null;
+      this.appliedGain = 1;
+      this.remoteVolumeOk = null;
+    }
     this.remote = d.id;
-    this.remoteVolumeArmed = false;
-    this.capabilities.fade = false;
+    this.syncCaps();
     this.emit();
     this.onBanner?.(tx("booth.sources.spotify.plays_on_device", { name: d.name }), {
       label: tx("booth.sources.spotify.change_device"),
@@ -659,7 +702,7 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
     if (id === null || id === this.deviceId) {
       this.remote = null;
       this.sdkUnusable = this.phone && !this.deviceId;
-      this.capabilities.fade = this.sdkFades && !this.sdkUnusable;
+      this.syncCaps();
       this.emit();
       if (this.sdkUnusable) return this.bannerNoDevice();
       try {
@@ -683,7 +726,34 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
     if (playing && !this.remote) void this.player?.pause().catch(() => {});
     this.selectRemote(d);
     if (playing) await this.transferTo(id, true);
+    await this.readVolume();
     this.retryWaiting();
+  }
+
+  /**
+   * 2026-11 (a reload while Spotify kept playing on the iPad): the night plays on this Connect device — no transfer,
+   * no play; the booth takes its timeline back.
+   */
+  adopt(id: string, name?: string | null) {
+    if (!this.devices.some((d) => d.id === id))
+      this.devices = [
+        ...this.devices,
+        {
+          id,
+          name: name ?? "Spotify",
+          type: "Unknown",
+          isActive: true,
+          restricted: false,
+          supportsVolume: true,
+          isThis: id === this.deviceId,
+        },
+      ];
+    this.sdkUnusable = this.sdkUnusable || this.phone;
+    this.selectRemote(this.devices.find((d) => d.id === id)!);
+  }
+  /** what plays on the account now (`GET /me/player`): the reload check */
+  nowPlaying(): Promise<RemoteState | null> {
+    return this.remoteState();
   }
 
   private onPhone() {
@@ -832,41 +902,102 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
     if (!r || r.status === 204) return null;
     const j = await r.json().catch(() => null);
     if (!j) return null;
+    const d = j.device as Record<string, unknown> | undefined;
     return {
       playing: j.is_playing === true,
       positionMs: typeof j.progress_ms === "number" ? j.progress_ms : 0,
       durationMs: typeof j.item?.duration_ms === "number" ? j.item.duration_ms : 0,
-      deviceId: typeof j.device?.id === "string" ? j.device.id : null,
+      deviceId: typeof d?.id === "string" ? d.id : null,
+      deviceName: typeof d?.name === "string" ? d.name : null,
+      volume: typeof d?.volume_percent === "number" ? d.volume_percent : null,
+      supportsVolume: d ? d.supports_volume !== false : null,
+      uri: typeof j.item?.uri === "string" ? j.item.uri : null,
       hasItem: !!j.item,
     };
   }
 
-  setMaster(gain: number) {
+  setMaster(gain: number, o: { resync?: boolean } = {}) {
+    this.outGain = Math.max(0, gain);
     this.master = Math.max(0, Math.min(1, gain));
-    if (this.remote) return this.remoteVolume();
+    if (this.remote) {
+      if (o.resync) this.wantResync = true;
+      void this.flushVolume();
+      return;
+    }
     if (this.owner) this.owner.applyVolume();
     else void this.player?.setVolume(this.master).catch(() => {});
   }
-  /** the master on a Connect device: only once the DJ moves it (never 100 % at the start), debounced */
-  private remoteVolume() {
-    if (!this.remoteVolumeArmed) {
-      this.remoteVolumeArmed = true;
-      return;
+  /**
+   * 2026-11 — read the Connect device's own level (`GET /me/player`). The device reflects `appliedGain`: a level
+   * other than the one last set means the DJ moved it on the device, and the master's 0 dB follows it.
+   */
+  private async readVolume(): Promise<number | null> {
+    const s = await this.remoteState();
+    const dev = this.remote;
+    if (!s || !dev || (s.deviceId && s.deviceId !== dev)) return null;
+    if (s.supportsVolume !== null && s.supportsVolume !== this.remoteVolumeOk) {
+      this.remoteVolumeOk = s.supportsVolume;
+      this.syncCaps();
+      this.emit();
     }
-    const d = this.devices.find((x) => x.id === this.remote);
-    if (d && !d.supportsVolume) return;
-    if (this.volumeTimer) clearTimeout(this.volumeTimer);
-    this.volumeTimer = setTimeout(() => {
-      this.volumeTimer = null;
-      const dev = this.remote;
-      if (!dev) return;
-      void this.api(
-        "PUT",
-        `/me/player/volume?volume_percent=${Math.round(this.master * 100)}&device_id=${encodeURIComponent(dev)}`,
-        undefined,
-        { op: "volume", quiet: true },
-      ).catch(() => {});
-    }, 400);
+    if (s.supportsVolume === false || s.volume === null) return null;
+    const v = s.volume;
+    if (this.appliedPct === null || Math.abs(v - this.appliedPct) > 1) {
+      this.baseVolume =
+        this.appliedGain > 0.001 ? Math.min(100, v / this.appliedGain) : (this.baseVolume ?? v);
+      this.appliedPct = v;
+    }
+    return v;
+  }
+  /**
+   * The master on a Connect device: its level × the output gain (mute 0, talk −12 dB ≈ 25 %), never above 100 % and
+   * never above the device's own level unless the DJ raises the master. One request at a time, the latest value
+   * wins; the first change is never dropped; nothing is sent before the device's level is known.
+   */
+  private flushVolume(): Promise<void> {
+    if (this.volumeRun) return this.volumeRun;
+    this.volumeRun = (async () => {
+      try {
+        for (let i = 0; i < 50; i++) {
+          const dev = this.remote;
+          if (!dev || !this.capabilities.volume) return;
+          const g = this.outGain;
+          if (this.baseVolume === null || this.wantResync) {
+            this.wantResync = false;
+            await this.readVolume();
+            if (!this.capabilities.volume) return;
+          }
+          if (this.baseVolume === null) return;
+          const pct = Math.max(0, Math.min(100, Math.round(this.baseVolume * g)));
+          if (pct !== this.appliedPct) {
+            const ok = await this.api(
+              "PUT",
+              `/me/player/volume?volume_percent=${pct}&device_id=${encodeURIComponent(dev)}`,
+              undefined,
+              { op: "volume", quiet: true },
+            ).then(
+              () => true,
+              () => false,
+            );
+            if (!ok) return;
+            this.appliedPct = pct;
+          }
+          this.appliedGain = g;
+          if (this.outGain === g && !this.wantResync) return;
+        }
+      } finally {
+        this.volumeRun = null;
+      }
+    })();
+    return this.volumeRun;
+  }
+  /** the device's level the master's 0 dB stands for (null until read) */
+  deviceBaseVolume(): number | null {
+    return this.baseVolume;
+  }
+  /** the volume work in flight (tests, and Mute's state follows the request) */
+  volumeSettled(): Promise<void> {
+    return this.volumeRun ?? Promise.resolve();
   }
 
   startItem(req: ExternalStart): ExternalHandle {
@@ -988,11 +1119,18 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
   }
 }
 
-interface RemoteState {
+export interface RemoteState {
   playing: boolean;
   positionMs: number;
   durationMs: number;
   deviceId: string | null;
+  deviceName: string | null;
+  /** the device's `volume_percent` (null: not reported) */
+  volume: number | null;
+  /** the device's `supports_volume` (null: no device in the answer) */
+  supportsVolume: boolean | null;
+  /** the playing item's uri */
+  uri: string | null;
   hasItem: boolean;
 }
 
@@ -1015,6 +1153,8 @@ class Live implements ExternalHandle {
   /** waiting for a Spotify device */
   waiting = false;
   private busy = false;
+  /** Spotify reported this track playing (or the confirmation gave up) */
+  private confirmed = false;
   private playing = false;
   private pos = 0;
   private posAt = 0;
@@ -1033,6 +1173,12 @@ class Live implements ExternalHandle {
     this.gain = dbToGain(Math.min(0, req.gainDb));
     this.level = req.fadeInSec && a.capabilities.fade ? 0 : 1;
     this.dueAt = now() + delaySec * 1000;
+    if (req.attached) {
+      // 2026-11: it already plays on the device (a reload): take the timeline back, no play request
+      this.due = true;
+      this.begin(true);
+      return;
+    }
     this.timer = setTimeout(() => void this.start(), Math.max(0, delaySec * 1000));
   }
 
@@ -1061,25 +1207,7 @@ class Live implements ExternalHandle {
       if (!this.a._remote()) this.applyVolume();
       await this.a.playUri(this.req.uri, this.req.positionSec * 1000);
       if (this.done) return;
-      this.waiting = false;
-      this.started = true;
-      this.playing = true;
-      this.startedAt = now();
-      this.posAt = now();
-      this.pos = this.req.positionSec;
-      this.a._began(this);
-      if (!this.a._remote()) this.applyVolume();
-      if (this.req.fadeInSec && this.a.capabilities.fade) this.fade(this.req.fadeInSec, true);
-      const remote = !!this.a._remote();
-      this.poll = setInterval(() => void this.tick(), remote ? 1000 : 250);
-      if (this.req.durationSec !== undefined) {
-        const fade = this.a.capabilities.fade ? (this.req.fadeOutSec ?? 0) : 0;
-        const at = Math.max(0, this.req.durationSec - fade) * 1000;
-        this.stopTimer = setTimeout(() => {
-          if (this.done) return;
-          this.stop(fade);
-        }, at);
-      }
+      this.begin(false);
     } catch (e) {
       if (this.done) return;
       if (e instanceof TrackUnplayable) return this.trackFailed(e);
@@ -1089,6 +1217,53 @@ class Live implements ExternalHandle {
       this.a._waiting(e instanceof Error ? e.message : String(e));
     } finally {
       this.busy = false;
+    }
+  }
+  /** the play went out (or, `attached`, it already plays): the item's timeline runs from here */
+  private begin(attached: boolean) {
+    this.waiting = false;
+    this.started = true;
+    this.playing = true;
+    this.startedAt = now() - (attached ? 3500 : 0);
+    this.posAt = now();
+    this.pos = this.req.positionSec;
+    this.a._began(this);
+    if (!this.a._remote()) this.applyVolume();
+    if (!attached && this.req.fadeInSec && this.a.capabilities.fade) this.fade(this.req.fadeInSec, true);
+    const remote = !!this.a._remote();
+    this.poll = setInterval(() => void this.tick(), remote ? 1000 : 250);
+    if (this.req.durationSec !== undefined) {
+      const fade = this.a.capabilities.fade ? (this.req.fadeOutSec ?? 0) : 0;
+      const at = Math.max(0, this.req.durationSec - fade) * 1000;
+      this.stopTimer = setTimeout(() => {
+        if (this.done) return;
+        this.stop(fade);
+      }, at);
+    }
+    // 2026-11: on Connect the booth says "Starting…" until Spotify reports the new track (≤ 3 s)
+    if (remote && !attached) void this.confirm();
+    else this.confirmed = true;
+    if (this.confirmed) this.req.onStarted?.(true);
+  }
+  /** Spotify Connect: poll `/me/player` until it plays this uri, or give up after `confirmMs` */
+  private async confirm() {
+    const until = now() + this.a.confirmMs;
+    for (;;) {
+      if (this.done) return;
+      const s = await this.a.remoteState();
+      if (this.done) return;
+      if (s?.uri === this.uri && s.playing) {
+        this.confirmed = true;
+        this.onRemote(s);
+        this.req.onStarted?.(true);
+        return;
+      }
+      if (now() >= until) {
+        this.confirmed = true;
+        this.req.onStarted?.(false);
+        return;
+      }
+      await sleep(this.a.confirmPollMs);
     }
   }
   /** a device appeared (or the DJ picked one): try again */
@@ -1128,6 +1303,8 @@ class Live implements ExternalHandle {
   }
   private onRemote(s: RemoteState | null) {
     if (this.done) return;
+    // (until Spotify switched, `/me/player` still reports the track before: not this item's clock)
+    if (!this.confirmed && s?.uri && s.uri !== this.uri) return;
     const settled = now() - this.startedAt > 3000;
     if (!s?.hasItem) {
       if (settled) this.finish(false);
@@ -1177,11 +1354,11 @@ class Live implements ExternalHandle {
     }, VOLUME_STEP_SEC * 1000);
   }
 
-  cancel() {
+  cancel(keepPlaying = false) {
     if (this.timer) clearTimeout(this.timer);
     this.timer = null;
     const wasPlaying = this.started && this.a._isOwner(this);
-    this.end(wasPlaying);
+    this.end(wasPlaying && !keepPlaying);
   }
   stop(fadeSec: number) {
     if (this.done) return;

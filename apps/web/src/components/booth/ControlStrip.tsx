@@ -28,7 +28,7 @@ import {
   useState,
 } from "react";
 import { durationLabel } from "@/lib/booth/plan";
-import { useBooth } from "@/lib/booth/store";
+import { useBooth, useRoomCaps } from "@/lib/booth/store";
 import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
 import { t as tx } from "@/lib/i18n";
@@ -82,6 +82,9 @@ export function ControlStrip({
   const cuePos = useBooth((s) => s.cuePos);
   const nowItem = useBooth((s) => s.plan?.items[s.planIndex]);
   const nowEntity = useBooth((s) => s.entities[s.planIndex] ?? null);
+  const mutePaused = useBooth((s) => s.mutePaused);
+  // 2026-11: what the room's device can do (Spotify Connect: no fades; the iOS Spotify app: no volume either)
+  const caps = useRoomCaps();
   const act = useBooth.getState();
   const wide = useMediaQuery("(min-width: 600px)", true);
   const sourceMode = useBooth((s) => s.sourceMode);
@@ -215,7 +218,11 @@ export function ControlStrip({
       }}
       data-testid="booth-pause"
       aria-label={tx("booth.controlStrip.pause")}
-      data-hint={tx("booth.controlStrip.pause_now_with_a_s_fade", { pauseFadeSec: settings.pauseFadeSec })}
+      data-hint={
+        caps.fade
+          ? tx("booth.controlStrip.pause_now_with_a_s_fade", { pauseFadeSec: settings.pauseFadeSec })
+          : tx("booth.connect.pause_hint")
+      }
     >
       <Pause size={18} fill="currentColor" strokeWidth={0} aria-hidden />
       <span className="booth-start-label">{tx("booth.controlStrip.pause")}</span>
@@ -269,8 +276,13 @@ export function ControlStrip({
         <>
           <TBtn
             label={tx("booth.controlStrip.fade")}
-            hint={tx("booth.controlStrip.fade_out_now_over_s_the", { fadeNowSec: settings.fadeNowSec })}
-            disabled={!live}
+            hint={
+              caps.fade
+                ? tx("booth.controlStrip.fade_out_now_over_s_the", { fadeNowSec: settings.fadeNowSec })
+                : tx("booth.connect.no_fade_why")
+            }
+            why={caps.fade ? undefined : tx("booth.connect.no_fade_why")}
+            disabled={!live || !caps.fade}
             onClick={() => act.fadeOutNow()}
             confirmKey="fade"
             testId="booth-strip-fade"
@@ -281,10 +293,15 @@ export function ControlStrip({
           <TBtn
             label={tx("booth.controls.short_crossfade")}
             ariaLabel={tx("booth.controlStrip.crossfade")}
-            hint={tx("booth.controlStrip.the_next_item_starts_now_while", {
-              crossfadeSec: settings.crossfadeSec,
-            })}
-            disabled={!live}
+            hint={
+              caps.fade
+                ? tx("booth.controlStrip.the_next_item_starts_now_while", {
+                    crossfadeSec: settings.crossfadeSec,
+                  })
+                : tx("booth.connect.no_fade_why")
+            }
+            why={caps.fade ? undefined : tx("booth.connect.no_fade_why")}
+            disabled={!live || !caps.fade}
             onClick={() => void act.crossfadeNext()}
             confirmKey="crossfade"
             testId="booth-strip-crossfade"
@@ -321,7 +338,11 @@ export function ControlStrip({
       <TBtn
         label={tx("booth.controlStrip.next_now")}
         hint={
-          started ? tx("booth.controlStrip.next_now_hint") : tx("booth.controlStrip.next_now_hint_before")
+          !started
+            ? tx("booth.controlStrip.next_now_hint_before")
+            : caps.fade
+              ? tx("booth.controlStrip.next_now_hint")
+              : tx("booth.connect.next_now_hint")
         }
         onClick={() => {
           haptic(8);
@@ -334,12 +355,15 @@ export function ControlStrip({
       >
         <SkipForward size={20} strokeWidth={2} aria-hidden />
       </TBtn>
+      {/* 2026-11: what it does, said plainly ("Next at gap" left out the queued song with one tap): the room's
+          song plays to its end and the next one is skipped — it changes what the room hears, so it asks too */}
       <TBtn
         label={tx("booth.controls.short_next_gap")}
-        ariaLabel={tx("booth.controlStrip.next_at_gap")}
-        hint={tx("booth.controlStrip.the_queued_item_is_skipped_at")}
+        ariaLabel={tx("booth.connect.skip_next_song")}
+        hint={tx("booth.connect.skip_next_hint")}
         onClick={() => act.next()}
         disabled={!started}
+        confirmKey="skip-next"
         testId="booth-next-btn"
         className="booth-prestart-hide booth-wide-only booth-gap-btn-only"
       >
@@ -374,10 +398,30 @@ export function ControlStrip({
             onChange={act.setMaster}
             display={tx("booth.controlStrip.db", { p1: master > 0 ? "+" : "", master })}
             testId="booth-master"
+            disabled={!caps.volume}
           />
           <TBtn
-            label={muted ? tx("booth.controlStrip.unmute") : tx("booth.controlStrip.mute")}
-            hint={tx("booth.controlStrip.silence_the_room_at_once_tap")}
+            label={
+              caps.volume
+                ? muted
+                  ? tx("booth.controlStrip.unmute")
+                  : tx("booth.controlStrip.mute")
+                : muted && mutePaused
+                  ? tx("booth.connect.unmute_resumes")
+                  : tx("booth.connect.mute_pauses_short")
+            }
+            ariaLabel={
+              caps.volume
+                ? undefined
+                : muted && mutePaused
+                  ? tx("booth.connect.unmute_resumes")
+                  : tx("booth.connect.mute_pauses")
+            }
+            hint={
+              caps.volume
+                ? tx("booth.controlStrip.silence_the_room_at_once_tap")
+                : tx("booth.connect.mute_pauses")
+            }
             pressed={muted}
             onClick={() => act.toggleMute()}
             testId="booth-mute"
@@ -406,9 +450,15 @@ export function ControlStrip({
           <TBtn
             label={tx("booth.controlStrip.talk")}
             ariaLabel={tx("booth.controlStrip.talk_over")}
-            hint={tx("booth.controlStrip.talk_over_the_music_dips_12")}
-            pressed={ducked}
+            hint={
+              caps.volume
+                ? tx("booth.controlStrip.talk_over_the_music_dips_12")
+                : tx("booth.connect.talk_unavailable")
+            }
+            why={caps.volume ? undefined : tx("booth.connect.talk_unavailable")}
+            pressed={caps.volume ? ducked : false}
             onClick={() => act.setDucked(!ducked)}
+            disabled={!caps.volume}
             testId="booth-talk"
           >
             <Mic size={20} strokeWidth={2} aria-hidden />
@@ -515,11 +565,14 @@ function TBtn({
   confirmKey,
   testId,
   className = "",
+  why,
   children,
 }: {
   label: string;
   ariaLabel?: string;
   hint: string;
+  /** 2026-11: why it is disabled (read out and shown on hover / long-press) */
+  why?: string;
   onClick: () => void;
   disabled?: boolean;
   pressed?: boolean;
@@ -548,8 +601,9 @@ function TBtn({
         aria-expanded={expanded}
         aria-controls={controls}
         aria-haspopup={haspopup ? "dialog" : undefined}
-        aria-description={confirmKey ? tx("booth.confirm.hold_hint") : undefined}
+        aria-description={why ?? (confirmKey ? tx("booth.confirm.hold_hint") : undefined)}
         disabled={disabled}
+        data-why={why}
         data-testid={testId}
         data-holding={(h && hold.holding) || undefined}
         data-armed={(h && hold.armed) || undefined}

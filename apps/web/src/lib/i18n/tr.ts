@@ -4259,7 +4259,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "djMessage.pinned_kept": "Sabitlediğiniz tanda yaptığınız gibi kalıyor; kurallar ona göre ayarlanıyor.",
   "djMessage.other_note": "Bu gece bir ayar tam olarak korunamadı; set yerine ne çalacağını gösteriyor.",
   "search.duo": "Düet",
-  "booth.controls.short_next_gap": "Arada",
+  "booth.controls.short_next_gap": "Atla",
   "booth.controls.short_fade": "Kıs",
   "booth.controls.short_crossfade": "Geçişli",
   "booth.controls.short_stop": "Durdur",
@@ -4328,4 +4328,37 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.transition.silence_heard": "Duyulan sessizlik: {sec} sn",
   "booth.transition.silence_hint":
     "Gri kısımlar şarkıların kendi sessizliğidir. “Sessizlik aradan sayılır” açıkken aranın parçasıdır (Ayarlar → Kabin → Aralar).",
+  // 2026-11 — Spotify Connect'te Kabin davranışı (iPad incelemesi)
+  "booth.connect.will_be_skipped": "{title} atlanacak",
+  "booth.connect.skip_next_song": "Sonrakini atla",
+  "booth.connect.skip_next_hint":
+    "Şimdi çalan şarkı sonuna kadar çalar; sıradaki atlanır ve gece ondan sonrakiyle sürer (mesajda Geri al)",
+  "booth.connect.skip_next_menu": "Sıradaki şarkıyı atla",
+  "booth.connect.mute_pauses": "Sustur (duraklatır — bu cihazda ses denetimi yok)",
+  "booth.connect.mute_pauses_short": "Sustur (duraklatır)",
+  "booth.connect.unmute_resumes": "Sesi aç (sürdürür)",
+  "booth.connect.talk_unavailable": "Bu cihazda kullanılamaz",
+  "booth.connect.no_volume_why": "Bu cihazda ses denetimi yok: sesi cihazın kendisinden ayarlayın",
+  "booth.connect.no_fade_why": "Bu cihaz sesi yavaşça kısamaz",
+  "booth.connect.stops_at_once": "Şimdi durdur — hemen durur (bu cihaz sesi yavaşça kısamaz)",
+  "booth.connect.stops_at_once_footer":
+    "Spotify geceyi bu cihazda çalıyor ve sesi yavaşça kısamıyor: Durdur hemen olur. Vazgeç müziği çalmaya devam ettirir.",
+  "booth.connect.jump_cumparsita_now": "Şimdi La Cumparsita'ya geç (hemen: bu cihaz sesi yavaşça kısamaz)",
+  "booth.connect.next_now_hint": "Şimdi bir ileri: sonraki şarkı hemen başlar (→)",
+  "booth.connect.pause_hint": "Şimdi duraklat (boşluk)",
+  "booth.connect.starting": "Başlıyor…",
+  "booth.connect.tap_again_to_jump": "{time} konumuna geçmek için tekrar dokunun",
+  "booth.connect.seek_hint_live":
+    "Şarkının içinde ilerlemek için sürükleyin; bir dokunuş zamanı gösterir, ikinci dokunuş oraya geçer",
+  "booth.connect.continue_playing": "Devam: {title} {device} üzerinde çalıyor",
+  "booth.connect.still_playing_footer":
+    "Spotify yeniden yüklemede çalmaya devam etti: Kabin geceyi pisti durdurmadan olduğu yerden geri alır.",
+  "booth.connect.still_playing_title": "Spotify hâlâ çalıyor",
+  "booth.connect.headphones_ipad":
+    "iPad'de kulaklıkla ön dinleme için ikinci bir cihaz gerekir: T-DJ'yi telefonunuzda kulaklıkla açın",
+  "booth.connect.headphones_second_device": "İkinci cihaz",
+  "booth.connect.music_gaps": "{music} müzik + {gaps} ara",
+  "booth.connect.gain_none": "Spotify bunu kendi seviyesinde çalar (bu cihazda kazanç yok)",
+  "booth.connect.play_now_at_once":
+    "Şimdi çal, salondaki şarkıyı hemen değiştirir (bu cihaz sesi yavaşça kısamaz). {p1}",
 };

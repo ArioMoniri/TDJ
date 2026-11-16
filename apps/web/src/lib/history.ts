@@ -2,6 +2,7 @@
 import { del, delMany, get, getMany, keys, setMany } from "idb-keyval";
 import { coverSeedOf } from "@/lib/cover/seed";
 import { fmtDate, lazy, plural, t as tx } from "@/lib/i18n";
+import { nightMusicSec } from "./lengths";
 import { hoursText, lengthText, nightEraLabel, nightTitle } from "./nightName";
 import type { StorageMode } from "./overrides";
 import {
@@ -60,7 +61,7 @@ export function snapshotTitle(p: Playlist, at = new Date()): string {
 /** "4 h · 22 tandas · Golden age": what the title used to carry. */
 export function snapshotMeta(p: Playlist): string {
   return tx("history.tandas_3", {
-    p1: p.stats?.durationSec ? lengthText(p.stats.durationSec) : hoursText(p.options.hours),
+    p1: nightMusicSec(p) ? lengthText(nightMusicSec(p)) : hoursText(p.options.hours),
     length: p.tandas.length,
     p2: eraLabel(p),
   });

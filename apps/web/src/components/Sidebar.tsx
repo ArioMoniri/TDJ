@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { type KeyboardEvent, type PointerEvent, useCallback, useEffect, useRef, useState } from "react";
 import { haptic } from "@/lib/haptics";
 import { fmtDate, t as tx } from "@/lib/i18n";
+import { nightMusicSec } from "@/lib/lengths";
 import { spring } from "@/lib/motion";
 import { lengthText } from "@/lib/nightName";
 import { usePlayer } from "@/lib/player";
@@ -310,7 +311,9 @@ export function Sidebar() {
                     <span className="side-head-meta" data-testid="sidebar-tonight-meta">
                       {tx("sidebar.tandas", {
                         length: playlist.tandas.length,
-                        durationSec: lengthText(playlist.stats.durationSec),
+                        durationSec: lengthText(
+                          nightMusicSec(playlist, useStore.getState().settings) ?? playlist.stats.durationSec,
+                        ),
                       })}
                     </span>
                   </span>

@@ -31,10 +31,23 @@ export interface ExternalStart {
   gainDb: number;
   onEnded: () => void;
   onError: (msg: string) => void;
+  /**
+   * 2026-11 (Connect): the device confirmed it plays this item (`true`), or the confirmation did not come within ~3 s
+   * (`false`). The booth says "Starting…" until then.
+   */
+  onStarted?: (confirmed: boolean) => void;
+  /**
+   * 2026-11 (a reload while Spotify kept playing): the item already plays on the device at `positionSec` — no play
+   * request, only the timeline is taken back.
+   */
+  attached?: boolean;
 }
 export interface ExternalHandle {
-  /** before it started: forget it; after: stop at once */
-  cancel(): void;
+  /**
+   * before it started: forget it; after: stop at once. `keepPlaying`: the device is about to play another track
+   * (a skip on Spotify Connect): send no pause, the next play replaces it.
+   */
+  cancel(keepPlaying?: boolean): void;
   /** fade to silence over `fadeSec` then stop */
   stop(fadeSec: number): void;
   /** seconds into the item (best effort) */
@@ -42,9 +55,19 @@ export interface ExternalHandle {
 }
 /** A player the engine cannot route through the graph (Spotify): the adapter owns the timeline for its items. */
 export interface ExternalPlayer {
-  capabilities: { fade: boolean };
+  capabilities: ExternalCapabilities;
   startItem(req: ExternalStart): ExternalHandle;
-  setMaster(gain: number): void;
+  /** `resync`: read the device's own level first (before Mute / Talk: the DJ may have moved it on the device) */
+  setMaster(gain: number, o?: { resync?: boolean }): void;
+}
+/**
+ * What an external player can do to the room (2026-11, Spotify Connect on an iPad): fade (volume steps), change the
+ * volume at all (the iOS Spotify app reports `supports_volume: false`), and apply the night's per-item gain.
+ */
+export interface ExternalCapabilities {
+  fade: boolean;
+  volume?: boolean;
+  gain?: boolean;
 }
 
 export interface SourceAdapter {

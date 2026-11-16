@@ -164,7 +164,9 @@ export type EngineEvent =
   | { type: "banner"; text: string; key?: string; action?: { label: string; run: () => void } }
   | { type: "ended" }
   | { type: "birthday"; result: "marked" | "needs-swap" }
-  | { type: "decoding"; planIndex: number; busy: boolean };
+  | { type: "decoding"; planIndex: number; busy: boolean }
+  /** 2026-11: an external item was asked to start and its device has not confirmed it yet ("Starting…") */
+  | { type: "starting"; on: boolean };
 
 interface Scheduled extends BoothItemRuntime {
   kind: BoothRow["kind"];
@@ -427,6 +429,7 @@ export class BoothEngine {
     const c = this.closingIndex();
     if (c === null) return;
     if (now) return this.playNow(c);
+    this.clearSkip();
     const cur = this.item();
     const tanda = cur?.kind === "track" ? cur.tanda : -1;
     for (let i = this.planIndex + 1; i < c; i++) {
@@ -446,6 +449,9 @@ export class BoothEngine {
    */
   async playNow(i: number, fadeSec = this.settings.fadeNowSec): Promise<void> {
     if (!this.plan?.items[i] || this.item(i)?.kind === "break") return;
+    // 2026-11: Spotify Connect switches tracks itself and cannot fade: no pause, no wait, one play (coalesced)
+    if (this.live && this.instantSwitch(i)) return this.queueSwitch(i);
+    this.clearSkip();
     this.forcedNext = null;
     this.skipped.delete(i);
     if (this.state === "playing" || this.state === "cortina") {
@@ -520,7 +526,7 @@ export class BoothEngine {
   /** Next now: the next playable item starts at once (the night's short fade); before the night it is selected. */
   async nextNow(): Promise<void> {
     if (!this.plan) return;
-    const from = this.live && this.current ? this.current.planIndex : this.planIndex;
+    const from = this.skipTarget ?? (this.live && this.current ? this.current.planIndex : this.planIndex);
     const n = this.nextPlayable(from);
     if (n === null) return;
     if (this.live) return this.playNow(n);
@@ -534,8 +540,14 @@ export class BoothEngine {
    */
   async previous(): Promise<void> {
     if (!this.plan) return;
+    if (this.skipTarget !== null && this.live) {
+      // a skip is on its way (Connect): one back from where it goes
+      const p = this.prevPlayable(this.skipTarget);
+      return this.playNow(p ?? this.skipTarget);
+    }
     const cur = this.live && this.current ? this.current.planIndex : this.planIndex;
     if ((this.live || this.paused) && this.position() > BoothEngine.RESTART_SEC) {
+      if (this.live && this.instantSwitch(cur)) return this.queueSwitch(cur, true);
       if (this.live) return this.playNow(cur);
       if (this.pausedAt) this.pausedAt = { ...this.pausedAt, at: 0 };
       this.transition(this.state, "restart");
@@ -556,6 +568,7 @@ export class BoothEngine {
    */
   async seek(sec: number): Promise<void> {
     if (!this.plan) return;
+    if (this.skipTarget !== null) return;
     if (!this.live) {
       if (this.pausedAt) {
         const len = Math.max(0, this.pausedAt.runtime.endsAt - this.pausedAt.runtime.startedAt);
@@ -569,11 +582,13 @@ export class BoothEngine {
     const len = Math.max(0, c.endsAt - c.startedAt);
     const to = clamp(sec, 0, Math.max(0, len - 0.5));
     const now = this.ctx.currentTime;
+    // 2026-11: Connect plays the new position with one play (no pause first: it would be a gap)
+    const instant = !!c.external && !this.externalFor(c.planIndex)?.capabilities.fade;
     this.cancelQueued();
     c.cancelled = true;
     c.interrupted = true;
     this.silenceTails(now, DECLICK_OUT);
-    if (c.external) c.external.cancel();
+    if (c.external) c.external.cancel(instant);
     else if (c.when > now) {
       c.node?.stop(now);
       c.node?.disconnect();
@@ -584,7 +599,8 @@ export class BoothEngine {
     this.current = null;
     const i = c.planIndex;
     // Spotify: its pause of the old play goes out first, then the new play at the new position
-    const delay = c.external ? SEEK_EXTERNAL_DELAY : SEEK_FADE;
+    const delay = instant ? 0 : c.external ? SEEK_EXTERNAL_DELAY : SEEK_FADE;
+    if (c.external) this.setStarting(true);
     const gen = ++this.generation;
     const s = await this.schedule(i, now + delay, { from: to, fadeIn: SEEK_FADE, headCut: c.headCut });
     // a Stop, Pause, Play now or another seek came in while the item was rebuilt
@@ -598,6 +614,7 @@ export class BoothEngine {
       return;
     }
     if (!s) {
+      this.setStarting(false);
       this.transition("paused", "seek failed");
       return;
     }
@@ -606,6 +623,125 @@ export class BoothEngine {
     this.planIndex = i;
     this.transition(this.state, "seek");
     await this.scheduleNext();
+  }
+
+  /* ---------- 2026-11: Spotify Connect — instant, coalesced skips ---------- */
+
+  /** presses closer than this make one skip (the latest target wins, one play request) */
+  static SKIP_COALESCE_MS = 250;
+  /** where a coalesced skip goes (null: none pending) */
+  skipTarget: number | null = null;
+  private skipTimer: ReturnType<typeof setTimeout> | null = null;
+  /** the pending skip restarts the running song (Previous past 3 s); otherwise landing on it is "never mind" */
+  private skipRestart = false;
+  /** an external item was asked to start and its device has not confirmed it ("Starting…") */
+  starting = false;
+
+  private externalFor(i: number) {
+    return this.adapterFor(i)?.external ?? null;
+  }
+  /**
+   * The running item plays on a device that switches tracks itself and cannot fade (Spotify Connect), and so does
+   * the target: a skip is one play request — no pause, no fade, no wait.
+   */
+  private instantSwitch(target: number): boolean {
+    const c = this.current;
+    if (!c?.external || c.kind === "break") return false;
+    const a = this.externalFor(c.planIndex);
+    return !!a && !a.capabilities.fade && this.sources[target] === "spotify";
+  }
+  setStarting(on: boolean) {
+    if (this.starting === on) return;
+    this.starting = on;
+    this.onEvent({ type: "starting", on });
+  }
+  private clearSkip() {
+    if (this.skipTimer) clearTimeout(this.skipTimer);
+    this.skipTimer = null;
+    this.skipTarget = null;
+  }
+  /** the playhead shows the target at once; the play goes out once the presses stop (~250 ms) */
+  private queueSwitch(i: number, restart = false) {
+    this.skipTarget = i;
+    this.skipRestart = restart;
+    this.planIndex = i;
+    this.forcedNext = null;
+    this.pausedAt = null;
+    this.skipped.delete(i);
+    this.cancelQueued();
+    this.setStarting(true);
+    this.transition(this.state, "skip");
+    if (this.skipTimer) clearTimeout(this.skipTimer);
+    this.skipTimer = setTimeout(() => void this.switchNow(), BoothEngine.SKIP_COALESCE_MS);
+  }
+  /** the coalesced skip: the running item hands the device over (no pause) and the target plays now */
+  private async switchNow(): Promise<void> {
+    this.skipTimer = null;
+    const i = this.skipTarget;
+    this.skipTarget = null;
+    if (i === null || !this.live) return;
+    const c = this.current;
+    if (c && i === c.planIndex && !this.skipRestart && !c.cancelled) {
+      // Next then Previous: back where the room is — nothing to send, the song plays on
+      this.planIndex = i;
+      this.setStarting(false);
+      this.transition(this.state, "skip cancelled");
+      await this.scheduleNext();
+      return;
+    }
+    const gen = ++this.generation;
+    this.cancelQueued();
+    if (c) {
+      c.cancelled = true;
+      c.interrupted = true;
+      if (c.external) c.external.cancel(true);
+      else {
+        const now = this.ctx.currentTime;
+        this.fadeNodes(c, now, SEEK_FADE);
+        c.node?.stop(now + SEEK_FADE);
+      }
+    }
+    this.current = null;
+    this.planIndex = i;
+    const s = await this.schedule(i, this.ctx.currentTime);
+    if (gen !== this.generation || !this.live || this.current) {
+      if (s) {
+        s.cancelled = true;
+        s.external?.cancel();
+      }
+      return;
+    }
+    if (!s) {
+      this.setStarting(false);
+      this.transition("paused", "skip failed");
+      return;
+    }
+    s.interrupted = true;
+    this.current = s;
+    this.anchors.push({ planIndex: i, at: new Date(this.wall()).toISOString() });
+    this.transition(s.kind === "cortina" ? "cortina" : "playing", "skip");
+    this.onEvent({ type: "item", planIndex: i });
+    await this.scheduleNext();
+  }
+
+  /**
+   * 2026-11 (a reload while Spotify kept playing on Connect): the item at `i` already plays on the device at
+   * `trackSec` seconds into the recording — the night takes its timeline back without a play request.
+   */
+  async attach(i: number, trackSec: number): Promise<boolean> {
+    if (!this.plan?.items[i] || this.sources[i] !== "spotify") return false;
+    this.clearSkip();
+    this.pausedAt = null;
+    this.planIndex = i;
+    this.skipped.delete(i);
+    const s = await this.schedule(i, this.ctx.currentTime, { attachAt: trackSec });
+    if (!s) return false;
+    this.current = s;
+    this.anchors.push({ planIndex: i, at: new Date(this.wall()).toISOString() });
+    this.transition(s.kind === "cortina" ? "cortina" : "playing", "re-attached");
+    this.onEvent({ type: "item", planIndex: i });
+    await this.scheduleNext();
+    return true;
   }
 
   /* ---------- transitions ---------- */
@@ -710,24 +846,42 @@ export class BoothEngine {
     this.transition(this.state, "hold");
   }
 
-  /** The queued item is left out; what follows it plays at the next gap. From `stopped`: arm the next item. */
-  next(): void {
-    if (!this.plan) return;
+  /**
+   * "Skip the next song" (the transport's old "Next at gap"): the running song plays to its end, the queued item is
+   * left out and what follows it plays at the gap; the left-out index (for Undo), null when nothing changed. From
+   * `stopped` / `paused` / `armed`: the playhead moves to the next item (null: the room is not affected).
+   */
+  next(): number | null {
+    if (!this.plan) return null;
     if (this.state === "stopped" || this.state === "paused" || this.state === "armed") {
       const n = this.nextPlayable(this.planIndex);
-      if (n === null) return;
+      if (n === null) return null;
       this.pausedAt = null;
       this.planIndex = n;
       this.transition("armed", "next");
       void this.prepare(n).catch((e) => this.markMissing(n, e));
-      return;
+      return null;
     }
-    const n = this.nextPlayable(this.planIndex);
-    if (n === null) return;
+    const n = this.nextPlayable(this.current?.planIndex ?? this.planIndex);
+    if (n === null) return null;
     this.skipped.add(n);
+    if (this.forcedNext === n) this.forcedNext = null;
     this.cancelQueued();
     this.transition(this.state, "next at gap");
     void this.scheduleNext();
+    return n;
+  }
+  /** Undo of "Skip the next song": item `i` plays again where it was (if it has not been passed yet). */
+  unskip(i: number): void {
+    if (!this.skipped.has(i) || i <= (this.current?.planIndex ?? this.planIndex)) return;
+    this.skipped.delete(i);
+    if (this.live && this.queued && this.queued.planIndex > i) {
+      if (!this.queued.started || this.queued.when > this.ctx.currentTime + 0.05) {
+        this.cancelQueued();
+        void this.scheduleNext();
+      }
+    }
+    this.transition(this.state, "undo skip");
   }
 
   /**
@@ -736,6 +890,8 @@ export class BoothEngine {
    */
   stop(reason = "stop", fadeSec = EMERGENCY_FADE): void {
     if (this.state === "idle") return;
+    this.clearSkip();
+    this.setStarting(false);
     const now = this.ctx.currentTime;
     const fade = Math.max(STOP_NOW_SEC / 2, fadeSec);
     for (const s of [this.current, this.queued]) {
@@ -777,6 +933,8 @@ export class BoothEngine {
     if (this.state !== "playing" && this.state !== "cortina") return;
     const c = this.current;
     if (!c || c.kind === "break") return;
+    this.clearSkip();
+    this.setStarting(false);
     const now = this.ctx.currentTime;
     const len = Math.max(0, c.endsAt - c.startedAt);
     const at = c.external
@@ -892,6 +1050,8 @@ export class BoothEngine {
   /** Stop now, then play the next item once the fade is through. */
   async skipNow(): Promise<void> {
     if (this.state !== "playing" && this.state !== "cortina") return;
+    const n = this.nextPlayable(this.skipTarget ?? this.current?.planIndex ?? this.planIndex);
+    if (n !== null && this.instantSwitch(n)) return this.queueSwitch(n);
     this.stop("skip now");
     this.next();
     if ((this.state as BoothState) === "armed")
@@ -983,17 +1143,18 @@ export class BoothEngine {
   }
   setMuted(m: boolean): void {
     this.muted = m;
-    this.applyMaster();
+    // (an external device's own level is read again first: the DJ may have moved it there)
+    this.applyMaster(PAUSE_RAMP, m);
   }
   /** Talk-over (round 20): the master dips 12 dB over 0.5 s while the DJ speaks, and comes back the same way. */
   setDucked(on: boolean): void {
     this.ducked = on;
-    this.applyMaster(DUCK_SEC / 3);
+    this.applyMaster(DUCK_SEC / 3, on);
   }
-  private applyMaster(tc = PAUSE_RAMP) {
+  private applyMaster(tc = PAUSE_RAMP, resync = false) {
     const g = this.outputGain();
     this.master.gain.setTargetAtTime(g, this.ctx.currentTime, tc);
-    for (const a of this.adapters) a.external?.setMaster(g);
+    for (const a of this.adapters) a.external?.setMaster(g, resync ? { resync: true } : undefined);
   }
   /** The DJ's per-item trim: applied to the running item at once (20 ms), to the queued one at its start. */
   setTrim(id: string, db: number): void {
@@ -1044,6 +1205,8 @@ export class BoothEngine {
 
   /** seconds into the current item, latency-compensated; 0 before it starts */
   position(): number {
+    // a Connect skip on its way: the new song starts from its beginning
+    if (this.skipTarget !== null) return 0;
     const c = this.current;
     if (!c) return this.pausedAt?.planIndex === this.planIndex ? this.pausedAt.at : 0;
     // Spotify reports the track position: the item's own clock starts at its cue (extStart)
@@ -1061,6 +1224,7 @@ export class BoothEngine {
   }
   /** the current item's length as it will actually play (rehearsal cap, early fader) */
   currentLength(): number {
+    if (this.skipTarget !== null) return this.itemLength(this.skipTarget);
     const c = this.current ?? (this.pausedAt?.planIndex === this.planIndex ? this.pausedAt.runtime : null);
     return c ? Math.max(0, c.endsAt - c.startedAt) : this.itemLength(this.planIndex);
   }
@@ -1147,6 +1311,7 @@ export class BoothEngine {
 
   dispose(): void {
     this.generation++;
+    this.clearSkip();
     for (const s of [this.current, this.queued]) {
       s?.external?.cancel();
       s?.node?.stop();
@@ -1403,7 +1568,7 @@ export class BoothEngine {
   /** Item n is running: decode n+1 and schedule it at its absolute time; prefetch n+2. */
   private async scheduleNext(): Promise<void> {
     const c = this.current;
-    if (!c || this.holding || this.queued) return;
+    if (!c || this.holding || this.queued || this.skipTarget !== null) return;
     const n = this.nextPlayable(c.planIndex);
     if (n === null) return;
     if (this.holdBefore === n) return;
@@ -1477,6 +1642,8 @@ export class BoothEngine {
       transitionIn?: { window: TransitionWindow; outEnd: number };
       /** 2026-11: seconds of the side's silent head to skip (default: as when nothing plays before it) */
       headCut?: number;
+      /** an external item that already plays, this many seconds into its recording (a reload) */
+      attachAt?: number;
     } = {},
   ): Promise<Scheduled | null> {
     const it = this.item(i);
@@ -1673,7 +1840,7 @@ export class BoothEngine {
     it: BoothRow,
     prepared: PreparedItem,
     gainDb: number,
-    o: { from?: number; fadeIn?: number; headCut?: number } = {},
+    o: { from?: number; fadeIn?: number; headCut?: number; attachAt?: number } = {},
   ): Scheduled | null {
     const i = base.planIndex;
     const a = this.adapterFor(i)?.external;
@@ -1695,16 +1862,20 @@ export class BoothEngine {
       : 0;
     const tailCut = effTail > 0 ? Math.min(this.tailCutFor(i, effTail), Math.max(0, natural - 1)) : 0;
     const full = cap ? Math.min(cap, natural - tailCut) : natural - tailCut;
-    const from = clamp(o.from ?? 0, 0, Math.max(0, full - 0.5));
-    const length = full - from;
-    base.startedAt = base.when - from;
-    base.endsAt = base.when + length;
     const cued = it.kind !== "cortina" && isCued(it);
     const start0 = (it.kind === "cortina" || cued ? (it.trimInSec ?? 0) : 0) + headCut;
     base.extStart = start0;
     base.srcStart = start0;
     base.headCut = headCut;
     base.keptTail = Math.max(0, effTail - tailCut);
+    const attached = o.attachAt !== undefined;
+    const from = clamp(attached ? o.attachAt! - start0 : (o.from ?? 0), 0, Math.max(0, full - 0.5));
+    const length = full - from;
+    base.startedAt = base.when - from;
+    base.endsAt = base.when + length;
+    // "Starting…" until the device confirms an item started now (a natural change at the gap says nothing)
+    const userStart = !attached && delay < 1;
+    if (userStart) this.setStarting(true);
     const songFade = it.kind === "cortina" ? 0 : this.settings.songFadeOutSec;
     base.external = a.startItem({
       uri: prepared.spotifyUri,
@@ -1715,6 +1886,10 @@ export class BoothEngine {
       fadeInSec: o.fadeIn ?? (it.kind === "cortina" ? it.fadeInSec : 0),
       fadeOutSec: it.kind === "cortina" ? it.fadeOutSec : songFade,
       gainDb: Math.min(0, gainDb),
+      attached,
+      onStarted: () => {
+        if (userStart && !base.cancelled) this.setStarting(false);
+      },
       onEnded: () => {
         if (!base.cancelled) this.onEnded(base);
       },
@@ -1731,6 +1906,8 @@ export class BoothEngine {
   private onEnded(s: Scheduled) {
     if (this.current !== s) return;
     if (this.state === "stopped") return;
+    // a Connect skip is on its way: it plays next
+    if (this.skipTarget !== null) return;
     const q = this.queued;
     this.queued = null;
     this.release(s.planIndex - 1);

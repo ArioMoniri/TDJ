@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { spotifyLengthSec } from "@/lib/booth/clips";
 import { cortinaHookOf, cortinaStartOf } from "@/lib/booth/cortinaStart";
 import { durationLabel } from "@/lib/booth/plan";
-import { useBooth, type Waveform as WaveData } from "@/lib/booth/store";
+import { useBooth, useRoomCaps, type Waveform as WaveData } from "@/lib/booth/store";
 import { loadVersions, type Version } from "@/lib/booth/versions";
 import { eraOf } from "@/lib/era";
 import { t } from "@/lib/i18n";
@@ -49,6 +49,8 @@ export function SongSheet({
   const live = useBooth((s) => s.state === "playing");
   const audition = useBooth((s) => s.audition);
   const fade = useBooth((s) => s.settings.fadeNowSec);
+  // 2026-11: Spotify Connect switches at once (it can't fade): the footer never promises a fade
+  const canFade = useRoomCaps().fade;
   const cues = useBooth((s) => s.playlist?.booth?.songCues);
   const outputs = useBooth((s) => s.outputs);
   const b = useBooth.getState();
@@ -107,12 +109,15 @@ export function SongSheet({
             header={t("booth.songSheet.play")}
             footer={
               started
-                ? t("booth.songSheet.play_now_fades_the_room_s", {
-                    fade,
-                    p1: blocked
-                      ? `Pre-listen: ${blocked}`
-                      : t("booth.songSheet.pre_listen_plays_only_in_your_2"),
-                  })
+                ? t(
+                    canFade ? "booth.songSheet.play_now_fades_the_room_s" : "booth.connect.play_now_at_once",
+                    {
+                      fade,
+                      p1: blocked
+                        ? `Pre-listen: ${blocked}`
+                        : t("booth.songSheet.pre_listen_plays_only_in_your_2"),
+                    },
+                  )
                 : blocked
                   ? t("booth.songSheet.the_night_has_not_started_so", { blocked })
                   : t("booth.songSheet.pre_listen_plays_only_in_your")

@@ -605,3 +605,178 @@ describe("2026-11: an iPad in Safari plays through the Spotify app (Spotify Conn
     expect(a.roomState().browserUnusable).toBe(true);
   });
 });
+
+/**
+ * 2026-11 — the DJ-user review on an iPad (the Booth plays through the Spotify app via Connect): Mute / Talk / the
+ * master change the device's own level relative to where it was, the first change is never dropped, a device without
+ * volume control is said so; a skip is one play; Spotify confirms the new track before "Playing".
+ */
+describe("2026-11: Spotify Connect — volume, confirmation, re-attach", () => {
+  const ipad = (o: Record<string, unknown> = {}) =>
+    dev("ipad", { type: "Tablet", name: "iPad", is_active: true, ...o });
+  /** a Connect account whose iPad reports `volume_percent` (it follows what the booth sets) */
+  function connect(o: { supports?: boolean; volume?: number } = {}) {
+    let volume = o.volume ?? 80;
+    let uri = URI_A;
+    const sp = spotify({
+      devices: () => [ipad({ supports_volume: o.supports !== false })],
+      handlers: {
+        "GET /me/player": () =>
+          json({
+            is_playing: true,
+            progress_ms: 4000,
+            item: { uri, duration_ms: 170_000 },
+            device: {
+              id: "ipad",
+              name: "iPad",
+              volume_percent: o.supports === false ? null : volume,
+              supports_volume: o.supports !== false,
+            },
+          }),
+        "PUT /me/player/volume": (c) => {
+          volume = Number(/volume_percent=(\d+)/.exec(c.url)![1]);
+          return undefined;
+        },
+      },
+    });
+    const a = new SpotifyAdapter({ fetchImpl: sp.fetchImpl, loadSdk: vi.fn(), phone: true });
+    const vols = () =>
+      sp.calls
+        .filter((c) => c.url.includes("/me/player/volume"))
+        .map((c) => Number(/volume_percent=(\d+)/.exec(c.url)![1]));
+    return {
+      sp,
+      a,
+      vols,
+      setDeviceVolume: (v: number) => {
+        volume = v;
+      },
+      setUri: (u: string) => {
+        uri = u;
+      },
+    };
+  }
+
+  it("the device's level is read when the night starts; Mute sends 0 and unmute restores 80 (never 100)", async () => {
+    const { a, vols } = connect();
+    await a.connect();
+    expect(a.capabilities).toEqual({ fade: false, volume: true, gain: false });
+    expect(a.deviceBaseVolume()).toBe(80);
+    a.setMaster(0, { resync: true });
+    await a.volumeSettled();
+    expect(vols()).toEqual([0]);
+    a.setMaster(1);
+    await a.volumeSettled();
+    expect(vols()).toEqual([0, 80]);
+  });
+
+  it("Talk dips to ≈ 25 % of the current level and restores it; a level changed on the iPad is honoured", async () => {
+    const { a, vols, setDeviceVolume } = connect();
+    await a.connect();
+    a.setMaster(10 ** (-12 / 20), { resync: true });
+    await a.volumeSettled();
+    expect(vols()).toEqual([20]);
+    a.setMaster(1);
+    await a.volumeSettled();
+    expect(vols()).toEqual([20, 80]);
+    // the DJ turns the iPad down to 60 by hand: Talk dips from there and comes back to 60
+    setDeviceVolume(60);
+    a.setMaster(10 ** (-12 / 20), { resync: true });
+    await a.volumeSettled();
+    a.setMaster(1);
+    await a.volumeSettled();
+    expect(vols().slice(2)).toEqual([15, 60]);
+  });
+
+  it("the master maps relative to the device's level; the first change is never dropped; +6 dB caps at 100", async () => {
+    const { a, vols } = connect({ volume: 50 });
+    await a.connect();
+    a.setMaster(10 ** (-6 / 20));
+    await a.volumeSettled();
+    expect(vols()).toEqual([25]);
+    a.setMaster(10 ** (6 / 20));
+    await a.volumeSettled();
+    expect(vols()).toEqual([25, 100]);
+  });
+
+  it("a slider dragged fast sends the latest value, one request at a time", async () => {
+    const { a, vols } = connect();
+    await a.connect();
+    for (const db of [-1, -2, -3, -4, -5, -6]) a.setMaster(10 ** (db / 20));
+    await a.volumeSettled();
+    expect(vols().at(-1)).toBe(40);
+    expect(vols().length).toBeLessThanOrEqual(2);
+  });
+
+  it("no volume control (the iOS Spotify app): capabilities say so and no volume request is ever sent", async () => {
+    const { a, vols } = connect({ supports: false });
+    await a.connect();
+    expect(a.capabilities.volume).toBe(false);
+    a.setMaster(0, { resync: true });
+    await a.volumeSettled();
+    a.setMaster(1);
+    await a.volumeSettled();
+    expect(vols()).toEqual([]);
+  });
+
+  it("a start on Connect is confirmed once /me/player reports the new uri (Starting… until then)", async () => {
+    vi.useFakeTimers();
+    const { a, sp, setUri } = connect();
+    await a.connect();
+    const started: boolean[] = [];
+    const { r } = req(URI_B, { onStarted: (c) => started.push(c) });
+    // the device keeps answering the old uri for a moment
+    const h = a.startItem(r);
+    await vi.advanceTimersByTimeAsync(50);
+    expect(sp.plays()).toHaveLength(1);
+    await vi.advanceTimersByTimeAsync(700);
+    expect(started).toEqual([]);
+    setUri(URI_B);
+    await vi.advanceTimersByTimeAsync(400);
+    expect(started).toEqual([true]);
+    h.cancel(true);
+  });
+
+  it("an unconfirmed start gives up after ~3 s (the status leaves Starting…)", async () => {
+    vi.useFakeTimers();
+    const { a } = connect();
+    await a.connect();
+    const started: boolean[] = [];
+    const h = a.startItem(req(URI_B, { onStarted: (c) => started.push(c) }).r);
+    await vi.advanceTimersByTimeAsync(2500);
+    expect(started).toEqual([]);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(started).toEqual([false]);
+    h.cancel(true);
+  });
+
+  it("a skip hands the device over without a pause (cancel(true)); a plain cancel still pauses", async () => {
+    vi.useFakeTimers();
+    const { a, sp } = connect();
+    await a.connect();
+    const one = a.startItem(req(URI_A).r);
+    await vi.advanceTimersByTimeAsync(500);
+    one.cancel(true);
+    expect(sp.calls.some((c) => c.url.includes("/me/player/pause"))).toBe(false);
+    const two = a.startItem(req(URI_B).r);
+    await vi.advanceTimersByTimeAsync(500);
+    two.cancel();
+    await vi.advanceTimersByTimeAsync(10);
+    expect(sp.calls.some((c) => c.url.includes("/me/player/pause"))).toBe(true);
+  });
+
+  it("re-attach after a reload: no play request, the clock runs from Spotify's position", async () => {
+    vi.useFakeTimers();
+    const { a, sp } = connect();
+    const now = await a.nowPlaying();
+    expect(now).toMatchObject({ playing: true, uri: URI_A, deviceId: "ipad", deviceName: "iPad" });
+    a.adopt("ipad", "iPad");
+    expect(a.roomState().remote).toBe("ipad");
+    const h = a.startItem(req(URI_A, { attached: true, positionSec: 4 }).r);
+    expect(h.position()).toBeCloseTo(4, 1);
+    await vi.advanceTimersByTimeAsync(1500);
+    expect(sp.plays()).toHaveLength(0);
+    expect(h.position()).toBeGreaterThan(4);
+    h.cancel(true);
+  });
+});

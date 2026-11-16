@@ -52,7 +52,7 @@ import { haptic } from "@/lib/haptics";
 import { makeSnapshot } from "@/lib/history";
 import { testSlowdownMs, useMediaQuery, whenIdle } from "@/lib/hooks";
 import { lazy, lower, plural, t as tx } from "@/lib/i18n";
-import { lengthOf } from "@/lib/lengths";
+import { lengthOf, nightMusicSec } from "@/lib/lengths";
 import { rateTap, ratingOf, undoRate } from "@/lib/likes";
 import { describePreferences } from "@/lib/memory";
 import { DUR, EASE, rise, STAGGER } from "@/lib/motion";
@@ -1682,7 +1682,7 @@ export function Composer() {
   );
   const resultFooter = playlist
     ? [
-        fmtDuration(playlist.stats.durationSec),
+        fmtDuration(nightMusicSec(playlist, useStore.getState().settings) ?? playlist.stats.durationSec),
         tx("composer.footer_tandas", { n: playlist.tandas.length }),
         tx("composer.footer_orchestras", { n: Object.keys(playlist.stats.orchestras).length }),
         tx("composer.footer_cortinas", {

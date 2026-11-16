@@ -1631,3 +1631,222 @@ describe("2026-11: silence modes in the engine (silence counts as the gap / gap 
     expect(remainingFrom(cut, 0, 100).remainingSec).toBeCloseTo(cut.wallClockSec - 100, 6);
   });
 });
+
+/**
+ * 2026-11 — the DJ-user review on an iPad (Spotify Connect: the device switches tracks itself and cannot fade).
+ * Next / Previous are one play request each, at once, with no pause and no wait; rapid presses make one request for
+ * the latest target; the status says Starting… until the device confirms; Mute / Talk read the device's level first;
+ * "Skip the next song" has an Undo; a reload re-attaches to the playing track.
+ */
+describe("2026-11: Spotify Connect transport (instant, coalesced skips)", () => {
+  type Ext = { r: ExternalStart; cancels: boolean[]; stops: number[] };
+  function connectAdapter(fade = false) {
+    const starts: Ext[] = [];
+    const masters: Array<{ g: number; resync: boolean }> = [];
+    const sp: SourceAdapter = {
+      kind: "spotify",
+      async available() {
+        return { ok: true };
+      },
+      async resolve() {
+        return "ready";
+      },
+      async prepare(item) {
+        return { kind: "spotify", spotifyUri: `spotify:track:${item.id}`, durationSec: item.lengthSec };
+      },
+      release() {},
+      external: {
+        capabilities: { fade, volume: true, gain: false },
+        startItem(r) {
+          const x: Ext = { r, cancels: [], stops: [] };
+          starts.push(x);
+          if (r.delaySec < 1) setTimeout(() => r.onStarted?.(true), 0);
+          return {
+            cancel: (keep) => x.cancels.push(!!keep),
+            stop: (f) => {
+              x.stops.push(f);
+              r.onEnded();
+            },
+            position: () => r.positionSec + 5,
+          };
+        },
+        setMaster(g, o) {
+          masters.push({ g, resync: !!o?.resync });
+        },
+      },
+    };
+    return { sp, starts, masters };
+  }
+  let ctx: FakeCtx;
+  beforeEach(() => {
+    ctx = new FakeCtx();
+  });
+  async function night(fade = false) {
+    const { sp, starts, masters } = connectAdapter(fade);
+    const plan = build(set({ thirdTanda: true }));
+    const events: EngineEvent[] = [];
+    const e = new BoothEngine(ctx, {
+      adapters: [sp],
+      onEvent: (ev) => events.push(ev),
+      now: () => 1_000_000 + ctx.currentTime * 1000,
+    });
+    e.load(
+      plan,
+      plan.items.map(() => null),
+      plan.items.map(() => "spotify"),
+    );
+    await e.start();
+    await e.play();
+    await new Promise((r) => setTimeout(r, 5));
+    return { e, plan, starts, masters, events };
+  }
+  const nowStarts = (s: Ext[]) => s.filter((x) => x.r.delaySec < 1);
+
+  it("Next: one play of the next song at once — no pause, no fade, no gap — after ~250 ms of no presses", async () => {
+    const { e, starts } = await night();
+    const first = starts[0]!;
+    const before = nowStarts(starts).length;
+    await e.nextNow();
+    expect(e.planIndex).toBe(1);
+    expect(e.starting).toBe(true);
+    expect(nowStarts(starts).length).toBe(before); // nothing sent yet
+    await new Promise((r) => setTimeout(r, BoothEngine.SKIP_COALESCE_MS + 30));
+    const plays = nowStarts(starts).slice(before);
+    expect(plays).toHaveLength(1);
+    expect(plays[0]!.r.uri).toBe("spotify:track:a2");
+    expect(plays[0]!.r.delaySec).toBeLessThan(0.05);
+    expect(plays[0]!.r.positionSec).toBe(0);
+    // the running item handed the device over: no pause, no fade
+    expect(first.cancels).toEqual([true]);
+    expect(first.stops).toEqual([]);
+    expect(e.current?.planIndex).toBe(1);
+    expect(e.state).toBe("playing");
+    await new Promise((r) => setTimeout(r, 5));
+    expect(e.starting).toBe(false);
+  });
+
+  it("Next → Previous → Next within the window sends exactly one play, for the final target", async () => {
+    const { e, starts } = await night();
+    const before = nowStarts(starts).length;
+    await e.nextNow();
+    await e.previous();
+    await e.nextNow();
+    await new Promise((r) => setTimeout(r, BoothEngine.SKIP_COALESCE_MS + 30));
+    const plays = nowStarts(starts).slice(before);
+    expect(plays.map((x) => x.r.uri)).toEqual(["spotify:track:a2"]);
+  });
+
+  it("Next → Previous lands back on the room's song: nothing is sent, it plays on", async () => {
+    const { e, starts } = await night();
+    const first = starts[0]!;
+    const before = nowStarts(starts).length;
+    await e.nextNow();
+    await e.previous();
+    await new Promise((r) => setTimeout(r, BoothEngine.SKIP_COALESCE_MS + 30));
+    expect(nowStarts(starts).length).toBe(before);
+    expect(first.cancels).toEqual([]); // the room's song was never touched
+    expect(e.current?.planIndex).toBe(0);
+    expect(e.starting).toBe(false);
+  });
+
+  it("Previous past 3 s restarts the song with one play from 0", async () => {
+    const { e, starts } = await night();
+    const before = nowStarts(starts).length;
+    await e.previous();
+    await new Promise((r) => setTimeout(r, BoothEngine.SKIP_COALESCE_MS + 30));
+    const plays = nowStarts(starts).slice(before);
+    expect(plays.map((x) => [x.r.uri, x.r.positionSec])).toEqual([["spotify:track:a1", 0]]);
+  });
+
+  it("Next, Next: two ahead with one play; the position reads 0 while the skip is on its way", async () => {
+    const { e, starts } = await night();
+    const before = nowStarts(starts).length;
+    await e.nextNow();
+    await e.nextNow();
+    expect(e.position()).toBe(0);
+    await new Promise((r) => setTimeout(r, BoothEngine.SKIP_COALESCE_MS + 30));
+    const plays = nowStarts(starts).slice(before);
+    expect(plays.map((x) => x.r.uri)).toEqual(["spotify:track:c0"]);
+  });
+
+  it("Stop during the window cancels the skip (no play goes out)", async () => {
+    const { e, starts } = await night();
+    const before = nowStarts(starts).length;
+    await e.nextNow();
+    e.stop("stop", 0.1);
+    await new Promise((r) => setTimeout(r, BoothEngine.SKIP_COALESCE_MS + 30));
+    expect(nowStarts(starts).length).toBe(before);
+    expect(e.state).toBe("stopped");
+  });
+
+  it("a device that fades (the SDK) keeps the faded Next", async () => {
+    const { e, starts } = await night(true);
+    const first = starts[0]!;
+    await e.nextNow();
+    expect(first.stops).toEqual([DEFAULT_BOOTH_SETTINGS.fadeNowSec]);
+  });
+
+  it("the gap is kept only between natural song ends (the queued item starts at end + gap)", async () => {
+    const { starts, plan } = await night();
+    const queued = starts.find((x) => x.r.uri === "spotify:track:a2")!;
+    expect(queued.r.delaySec).toBeCloseTo(plan.items[0]!.lengthSec + plan.items[0]!.gapAfterSec + 0.05, 3);
+  });
+
+  it("a seek on Connect is one play at the new position (no pause first)", async () => {
+    const { e, starts } = await night();
+    const first = starts[0]!;
+    await e.seek(60);
+    expect(first.cancels).toEqual([true]);
+    const s = nowStarts(starts).at(-1)!;
+    expect(s.r.uri).toBe("spotify:track:a1");
+    expect(s.r.positionSec).toBeCloseTo(60, 6);
+  });
+
+  it("Mute and Talk ask the device's level first (resync); unmute does not", async () => {
+    const { e, masters } = await night();
+    e.setMuted(true);
+    e.setMuted(false);
+    e.setDucked(true);
+    e.setDucked(false);
+    expect(masters.slice(-4)).toEqual([
+      { g: 0, resync: true },
+      { g: 1, resync: false },
+      { g: dbToGain(-12), resync: true },
+      { g: 1, resync: false },
+    ]);
+  });
+
+  it("Skip the next song: the queued song is left out (the index for Undo); Undo puts it back", async () => {
+    const { e, starts } = await night();
+    const n = e.next();
+    expect(n).toBe(1);
+    expect(e.skipped.has(1)).toBe(true);
+    await new Promise((r) => setTimeout(r, 5));
+    expect(starts.at(-1)!.r.uri).toBe("spotify:track:c0");
+    e.unskip(1);
+    await new Promise((r) => setTimeout(r, 5));
+    expect(e.skipped.has(1)).toBe(false);
+    expect(starts.at(-1)!.r.uri).toBe("spotify:track:a2");
+  });
+
+  it("re-attach: the playing item is taken back at Spotify's position without a play request", async () => {
+    const { sp, starts } = connectAdapter();
+    const plan = build(set({ thirdTanda: true }));
+    const e = new BoothEngine(ctx, { adapters: [sp], now: () => 1_000_000 });
+    e.load(
+      plan,
+      plan.items.map(() => null),
+      plan.items.map(() => "spotify"),
+    );
+    await e.start();
+    expect(await e.attach(1, 42)).toBe(true);
+    expect(e.state).toBe("playing");
+    expect(e.current?.planIndex).toBe(1);
+    expect(starts[0]!.r.attached).toBe(true);
+    expect(starts[0]!.r.uri).toBe("spotify:track:a2");
+    expect(starts[0]!.r.positionSec).toBeCloseTo(42, 6);
+    // its end and the gap: the next item is queued from the attached clock
+    const q = starts.find((x) => x.r.uri === "spotify:track:c0")!;
+    expect(q.r.delaySec).toBeCloseTo(plan.items[1]!.lengthSec - 42 + plan.items[1]!.gapAfterSec, 3);
+  });
+});
