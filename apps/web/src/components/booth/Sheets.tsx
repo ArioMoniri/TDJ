@@ -14,6 +14,7 @@ import { ActionRow, Group, Row, SegmentedRow, StepperRow, SwitchRow } from "../F
 import { Sheet } from "../Sheet";
 import { Stepper } from "../ui";
 import { Fader } from "./Fader";
+import { RoomControls } from "./LevelPanel";
 import { SilenceGroup } from "./SilenceSettings";
 
 const Kbd = ({ k }: { k: string }) => (
@@ -360,6 +361,8 @@ export function LevelsSheet({
           onChange={(v) => set({ loudnessTargetLUFS: v })}
         />
       </Group>
+      {/* 2026-11: how the normalisation reaches the room now, the room meter and Auto master (LevelPanel.tsx) */}
+      <RoomControls withMeter />
       {/* 2026-11: "Trim silence at the start" became the silence mode (Settings → Booth → Gaps, the same rows) */}
       <SilenceGroup header={tx("booth.silence.mix_header")} onChange={(p) => act.setSilence(p)} />
       <Group

@@ -321,6 +321,8 @@ export class BoothEngine {
   pausedAt: PausedAt | null = null;
   /** round 20: talk-over, the master dipped by DUCK_DB */
   ducked = false;
+  /** 2026-11: Auto master's boost on top of the DJ's master (lib/booth/autoMaster.ts), dB ≥ 0 */
+  autoDb = 0;
   current: Scheduled | null = null;
   rehearsalSec: number | null;
   private queued: Scheduled | null = null;
@@ -382,7 +384,8 @@ export class BoothEngine {
   }
   /** what the master multiplies everything by (mute, master fader, talk-over) */
   outputGain(): number {
-    return this.muted ? 0 : dbToGain(this.masterDb + (this.ducked ? DUCK_DB : 0));
+    const lvl = Math.min(6, this.masterDb + this.autoDb);
+    return this.muted ? 0 : dbToGain(lvl + (this.ducked ? DUCK_DB : 0));
   }
 
   /* ---------- plan ---------- */
@@ -1187,6 +1190,16 @@ export class BoothEngine {
   setMaster(db: number): void {
     this.masterDb = clamp(db, -30, 6);
     this.applyMaster();
+  }
+  /**
+   * 2026-11 (Auto master): the boost the room meter asks for, on top of the master (never past +6 dB in all). The
+   * caller limits the rate (≤ 0.5 dB/s); `tc` smooths each step on the graph. External players follow `setMaster`.
+   */
+  setAutoDb(db: number, tc = 0.3): void {
+    const v = clamp(Number.isFinite(db) ? db : 0, 0, 6);
+    if (v === this.autoDb) return;
+    this.autoDb = v;
+    this.applyMaster(tc);
   }
   setMuted(m: boolean): void {
     this.muted = m;

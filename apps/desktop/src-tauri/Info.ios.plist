@@ -10,6 +10,8 @@
   <key>UIBackgroundModes</key><array><string>audio</string></array>
   <!-- open the Spotify app for Spotify playback (App Remote) -->
   <key>LSApplicationQueriesSchemes</key><array><string>spotify</string></array>
+  <!-- 2026-11: the Booth's room meter (Auto master), only after the DJ switches it on -->
+  <key>NSMicrophoneUsageDescription</key><string>The Booth's room meter listens to how loud the room is, only when you turn it on, to keep the music's level steady over the crowd. Audio is never recorded or sent anywhere.</string>
   <key>NSLocalNetworkUsageDescription</key><string>TDJ connects to a TDJ server or DJ agent on your local network when you choose one.</string>
   <!-- one universal app (TARGETED_DEVICE_FAMILY 1,2, scripts/release/mac-build.sh). iPhone: portrait, the layout the
        phone UI is built and tested for (tab bar, Booth transport above the home indicator); the un-suffixed key is the

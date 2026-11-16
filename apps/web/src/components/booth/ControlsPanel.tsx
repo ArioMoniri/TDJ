@@ -26,6 +26,7 @@ import { SeekBar } from "../ui/SeekBar";
 import { ArmButton, ConfirmRing } from "./Confirm";
 import { Fader } from "./Fader";
 import { FloorReaction } from "./FloorReaction";
+import { MixerLevels } from "./LevelPanel";
 import { PraiseTanda } from "./PraiseTanda";
 
 const OPEN_KEY = "tdj-booth-controls";
@@ -409,6 +410,8 @@ export function ControlsPanel({
           </div>
         </Group>
         <Group title={t("booth.controls.mixer")} className="booth-ctl-g-mixer">
+          {/* 2026-11: the output meter, the normalisation in use, the room meter and Auto master (LevelPanel.tsx) */}
+          <MixerLevels />
           <Fader
             label={t("booth.controlStrip.master_volume")}
             value={master}
