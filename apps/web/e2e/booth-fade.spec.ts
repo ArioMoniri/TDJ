@@ -129,7 +129,10 @@ test("Crossfade: hold → the next song starts; ⌘Z after it plays the song bef
   await expect.poll(async () => (await snap(page)).planIndex).not.toBe(before.planIndex);
   // through
   await expect.poll(async () => (await snap(page)).fadeRun, { timeout: 8000 }).toBeNull();
-  await page.locator("body").click({ position: { x: 5, y: 5 } }).catch(() => {});
+  await page
+    .locator("body")
+    .click({ position: { x: 5, y: 5 } })
+    .catch(() => {});
   await page.keyboard.press(process.platform === "darwin" ? "Meta+z" : "Control+z");
   await expect.poll(async () => (await snap(page)).planIndex, { timeout: 8000 }).toBe(before.planIndex);
   await expect.poll(async () => (await snap(page)).state).toBe("playing");
