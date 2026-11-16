@@ -138,7 +138,11 @@ export function SetColumn({
       if (end !== null) {
         const t = end - span;
         const rel = at(mid) - t - (head - b.top);
-        if (rel >= h / 3 && rel <= (2 * h) / 3) target = t;
+        // (2026-11, pass 2: a short list — the Controls panel open — has no middle third to speak of: there the
+        // playing row only has to stay whole in view)
+        const rh = r.bottom - r.top;
+        const short = h < rh * 4;
+        if (short ? rel - rh / 2 >= 0 && rel + rh / 2 <= h : rel >= h / 3 && rel <= (2 * h) / 3) target = t;
       }
       target = Math.max(0, Math.min(box.scrollHeight - box.clientHeight, target));
       if (Math.abs(target - box.scrollTop) > 0.5) box.scrollTop = target;

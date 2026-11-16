@@ -586,7 +586,6 @@ function Booth() {
               if (to) void useBooth.getState().setSourceMode(to);
             }}
           />
-          <ActionRow label={t("booth.ui2.cancel")} onClick={() => setRehearsalAsk(null)} />
         </Group>
       </Sheet>
       <ShortcutsSheet open={keys} onClose={() => setKeys(false)} />

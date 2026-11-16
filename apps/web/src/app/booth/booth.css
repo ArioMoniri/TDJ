@@ -2228,11 +2228,12 @@ html[data-booth] {
       var(--booth-gap)
     );
   }
-  /* each column scrolls as one: its cards stack with the gap, none is pinned over the others */
-  .booth .booth-deck > [data-testid="booth-now"],
-  .booth[data-controls="open"] .booth-col-set > .booth-night {
+  /* the deck scrolls as one column: its cards stack with the gap, none is pinned over the others (the Now card was,
+     and Up Next and the energy chart slid under its rounded foot). (With the Controls panel open the set column's
+     compact night card stays at its top — as a fixed head over the set list's own scroller, not a sticky card the
+     rows slide under — so the clock and the time to La Cumparsita stay in view in the short column.) */
+  .booth .booth-deck > [data-testid="booth-now"] {
     position: static;
-    box-shadow: none;
   }
   .booth[data-state] .booth-col-set > .booth-night {
     margin-bottom: var(--booth-gap);
@@ -2249,6 +2250,27 @@ html[data-booth] {
       #000 calc(100% - var(--booth-gap)),
       transparent 100%
     );
+  }
+  .booth[data-controls="open"] .booth-col-set {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    mask-image: none;
+    padding-bottom: 0;
+  }
+  .booth[data-controls="open"][data-state] .booth-col-set > .booth-night {
+    position: static;
+    flex: none;
+    margin-bottom: 0;
+    box-shadow: none;
+  }
+  .booth[data-controls="open"] .booth-col-set > .booth-set {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-padding-bottom: var(--booth-gap);
+    mask-image: linear-gradient(to bottom, #000 calc(100% - var(--booth-gap)), transparent 100%);
   }
 }
 

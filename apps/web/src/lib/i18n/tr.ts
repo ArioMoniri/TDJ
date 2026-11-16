@@ -4685,7 +4685,6 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.ui2.rehearsal_ask_footer": "Şu an çalan şarkı olduğu gibi biter.",
   "booth.ui2.switch_clips": "30 sn kliplere geç",
   "booth.ui2.switch_full": "Tam parçalara geç",
-  "booth.ui2.cancel": "Vazgeç",
   "booth.ui2.mini_label": "Kabinde çalan gece",
   "booth.ui2.mini_back": "Kabine dön",
   "booth.ui2.mini_tanda": "Tanda {tanda}/{count}",

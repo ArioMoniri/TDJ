@@ -4496,7 +4496,6 @@ export const en = {
   "booth.ui2.rehearsal_ask_footer": "The song playing now finishes as it is.",
   "booth.ui2.switch_clips": "Switch to 30 s clips",
   "booth.ui2.switch_full": "Switch to full tracks",
-  "booth.ui2.cancel": "Cancel",
   "booth.ui2.mini_label": "The night playing in the Booth",
   "booth.ui2.mini_back": "Back to the Booth",
   "booth.ui2.mini_tanda": "Tanda {tanda} of {count}",

@@ -209,7 +209,7 @@ export function BoothMini() {
           data-hint={t("booth.ui2.mini_hold_next")}
           data-testid="booth-mini-next"
         >
-          <SkipForward size={20} fill="currentColor" strokeWidth={0} aria-hidden />
+          <SkipForward size={20} strokeWidth={2} aria-hidden />
           {(next.armed || next.holding) && <ConfirmRing />}
         </button>
         <button

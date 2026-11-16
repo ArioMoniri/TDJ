@@ -523,7 +523,7 @@ test.describe("iPad + Spotify Connect (the DJ-user review)", () => {
     await expect(page.getByTestId("booth-rehearsal-ask")).toContainText(
       "Switch the room back to full tracks from the next song?",
     );
-    await page.getByTestId("booth-rehearsal-ask").getByRole("button", { name: "Cancel" }).click();
+    await page.getByTestId("booth-rehearsal-ask").getByRole("button", { name: "Cancel" }).first().click();
     expect((await snap(page)).state).toBe("playing");
     await ctx.close();
   });

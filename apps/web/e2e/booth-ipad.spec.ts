@@ -1286,7 +1286,13 @@ function overlap(page: Page) {
     ].filter(vis);
     const deckEl = document.querySelector(".booth-deck")!;
     const panel = document.querySelector<HTMLElement>('[data-testid="booth-controls"]');
-    const col = document.querySelector<HTMLElement>(".booth-col-set");
+    const col0 = document.querySelector<HTMLElement>(".booth-col-set");
+    // (2026-11, pass 2: with the Controls panel open the night card is the column's fixed head and the set list is
+    // the scroller under it)
+    const col =
+      col0 && getComputedStyle(col0).overflowY !== "auto"
+        ? (col0.querySelector<HTMLElement>(":scope > .booth-set") ?? col0)
+        : col0;
     const twoCols = !!col && vis(col) && getComputedStyle(col).overflowY === "auto";
     const set = (() => {
       if (!col || !twoCols) return null;
