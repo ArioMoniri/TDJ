@@ -121,6 +121,110 @@ export function estimatedLevel(
 }
 
 /**
+ * 2026-11 (the owner: on Spotify the editor showed only "an Estimated shape", not the music) — an informed estimate:
+ * still a smooth, hatched shape labelled "Estimated", but shaped by what is measured about that side. The level and
+ * how much it moves come from its 30 s clip's envelope (the same recording, from its middle) or the analysed loudness,
+ * else the catalogue energy; the phrase swell follows its BPM (8 bars); the ending follows the rhythm (a tango's or a
+ * milonga's final chord, a vals' held last note); the silence head and tail and the length are the measured ones.
+ */
+export interface EstimateProfile {
+  lengthSec: number;
+  headSilenceSec: number;
+  tailSilenceSec: number;
+  /** the music's typical level, 0…1 */
+  level: number;
+  /** how much the level swells across a phrase, 0…0.4 */
+  swing: number;
+  /** one phrase (8 bars at the BPM), null without a BPM */
+  phraseSec: number | null;
+  ending: "accent" | "held" | "plain";
+  /** what shaped it, in the order the caption names it */
+  basis: Array<"clip" | "loudness" | "energy" | "bpm" | "silence">;
+}
+const quantile = (xs: number[], q: number) => {
+  const s = xs.filter((v) => Number.isFinite(v)).sort((a, b) => a - b);
+  if (!s.length) return 0;
+  return s[Math.min(s.length - 1, Math.max(0, Math.round(q * (s.length - 1))))]!;
+};
+export function estimateProfile(o: {
+  lengthSec: number;
+  headSilenceSec?: number;
+  tailSilenceSec?: number;
+  energy?: number | null;
+  /** the analysed preview's mean RMS (dBFS) and its loudness range (dB) */
+  loudnessDb?: number | null;
+  loudnessRange?: number | null;
+  bpm?: number | null;
+  rhythm?: string | null;
+  /** the side's 30 s clip envelope (peaks 0…1), when decoded */
+  clipPeaks?: ReadonlyArray<number> | null;
+}): EstimateProfile {
+  const basis: EstimateProfile["basis"] = [];
+  let level: number;
+  let swing: number;
+  const peaks = (o.clipPeaks ?? []).filter((v) => v > 0.02);
+  if (peaks.length >= 20) {
+    const p10 = quantile(peaks, 0.1);
+    const p50 = quantile(peaks, 0.5);
+    const p90 = quantile(peaks, 0.9);
+    level = clamp(0.2 + 0.75 * p50, 0.25, 0.92);
+    swing = clamp(((p90 - p10) / Math.max(p90, 0.05)) * 0.5, 0.04, 0.4);
+    basis.push("clip");
+  } else if (typeof o.loudnessDb === "number" && Number.isFinite(o.loudnessDb)) {
+    level = clamp(0.35 + ((o.loudnessDb + 30) / 20) * 0.5, 0.25, 0.9);
+    swing = clamp((o.loudnessRange ?? 8) / 40, 0.04, 0.4);
+    basis.push("loudness");
+  } else {
+    level = 0.45 + 0.4 * clamp((o.energy ?? 50) / 100, 0, 1);
+    swing = 0.12;
+  }
+  if (typeof o.energy === "number") {
+    // the catalogue's energy nudges a measured level (a quarter of the way), and is the level without one
+    if (basis.length)
+      level = clamp(level * 0.75 + (0.45 + 0.4 * clamp(o.energy / 100, 0, 1)) * 0.25, 0.25, 0.92);
+    basis.push("energy");
+  }
+  const beatsPerBar = o.rhythm === "vals" ? 3 : 4;
+  const phraseSec = o.bpm && o.bpm > 0 ? (8 * beatsPerBar * 60) / o.bpm : null;
+  if (phraseSec) basis.push("bpm");
+  const head = Math.max(0, o.headSilenceSec ?? 0);
+  const tail = Math.max(0, o.tailSilenceSec ?? 0);
+  if (head + tail > 0) basis.push("silence");
+  return {
+    lengthSec: Math.max(0, o.lengthSec),
+    headSilenceSec: head,
+    tailSilenceSec: tail,
+    level,
+    swing,
+    phraseSec,
+    ending:
+      o.rhythm === "vals" ? "held" : o.rhythm === "tango" || o.rhythm === "milonga" ? "accent" : "plain",
+    basis,
+  };
+}
+/** The informed estimate's level at `sec` into the side: smooth (no beat detail), 0 in its silence, null outside. */
+export function informedLevel(p: EstimateProfile, sec: number): number | null {
+  const len = p.lengthSec;
+  if (sec < 0 || sec > len) return null;
+  const musicEnd = len - p.tailSilenceSec;
+  if (sec < p.headSilenceSec || sec > musicEnd) return 0;
+  const inMusic = sec - p.headSilenceSec;
+  const toEnd = musicEnd - sec;
+  const attack = clamp(inMusic / 1.5, 0, 1);
+  // a phrase's swell: up at its first bar, a breath before the next (smooth: one cycle per 8 bars)
+  const swell = p.phraseSec
+    ? 1 - p.swing / 2 + (p.swing / 2) * Math.cos((2 * Math.PI * inMusic) / p.phraseSec)
+    : 1;
+  let end = 1;
+  if (p.ending === "accent") {
+    // the final chord: a lift over the last 1.5 s, then it stops on the beat (a 0.25 s release)
+    end = toEnd < 0.25 ? toEnd / 0.25 : toEnd < 1.5 ? 1 + 0.15 * (1 - (toEnd - 0.25) / 1.25) : 1;
+  } else if (p.ending === "held") end = 0.55 + 0.45 * clamp(toEnd / 3, 0, 1);
+  else end = 0.75 + 0.25 * clamp(toEnd / 6, 0, 1);
+  return clamp(p.level * (0.15 + 0.85 * attack) * swell * end, 0, 1);
+}
+
+/**
  * The first strong low-band onset after the side's silent head (a decoded side): where the music's first downbeat
  * is, to the band envelope's resolution. Null when there is none in the first 12 s.
  */

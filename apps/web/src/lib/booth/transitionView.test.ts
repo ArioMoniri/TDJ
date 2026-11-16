@@ -6,7 +6,9 @@ import {
   curveFromLevel,
   editorEdges,
   estimatedLevel,
+  estimateProfile,
   firstBeatSec,
+  informedLevel,
   rulerTicks,
   viewSpan,
 } from "./transitionView";
@@ -130,5 +132,53 @@ describe("EQ lanes", () => {
       expect(t.in[band].at(-1)![1]).toBe(0);
     }
     expect(eqLanes(win({ preset: "fade" }))).toBeNull();
+  });
+});
+
+describe("Spotify: an informed estimate (still hatched, still labelled Estimated)", () => {
+  const steady = Array.from({ length: 120 }, () => 0.5);
+  const dynamic = Array.from({ length: 120 }, (_, k) => (k % 20 < 10 ? 0.2 : 0.9));
+  it("the clip's envelope sets the level and the swing; the catalogue energy nudges it", () => {
+    const quiet = estimateProfile({ lengthSec: 180, clipPeaks: steady.map((v) => v * 0.5) });
+    const loud = estimateProfile({ lengthSec: 180, clipPeaks: steady });
+    expect(loud.level).toBeGreaterThan(quiet.level);
+    expect(estimateProfile({ lengthSec: 180, clipPeaks: dynamic }).swing).toBeGreaterThan(loud.swing);
+    expect(loud.basis).toEqual(["clip"]);
+    const nudged = estimateProfile({ lengthSec: 180, clipPeaks: steady, energy: 95 });
+    expect(nudged.level).toBeGreaterThan(loud.level);
+    expect(nudged.basis).toEqual(["clip", "energy"]);
+  });
+  it("without a clip: the analysed loudness, else the energy; the BPM gives an 8-bar phrase", () => {
+    const p = estimateProfile({
+      lengthSec: 180,
+      loudnessDb: -14,
+      loudnessRange: 12,
+      bpm: 120,
+      rhythm: "tango",
+    });
+    expect(p.basis).toEqual(["loudness", "bpm"]);
+    expect(p.phraseSec).toBe(16);
+    expect(estimateProfile({ lengthSec: 180, bpm: 180, rhythm: "vals" }).phraseSec).toBe(8);
+    expect(estimateProfile({ lengthSec: 180, energy: 40 }).basis).toEqual(["energy"]);
+  });
+  it("silence is silence, the ending follows the rhythm, and there is no beat-shaped detail", () => {
+    const p = estimateProfile({
+      lengthSec: 180,
+      headSilenceSec: 0.8,
+      tailSilenceSec: 1.2,
+      clipPeaks: steady,
+      bpm: 120,
+      rhythm: "tango",
+    });
+    expect(p.basis).toContain("silence");
+    expect(informedLevel(p, 0.4)).toBe(0);
+    expect(informedLevel(p, 179.5)).toBe(0);
+    expect(informedLevel(p, -1)).toBeNull();
+    // a tango's final chord lifts just before the music stops
+    expect(informedLevel(p, 178.8 - 0.5)!).toBeGreaterThan(informedLevel(p, 178.8 - 3)! * 1.02);
+    const vals = estimateProfile({ lengthSec: 180, clipPeaks: steady, rhythm: "vals" });
+    expect(informedLevel(vals, 179.5)!).toBeLessThan(informedLevel(vals, 170)!);
+    for (let s = 20; s < 170; s += 7.3)
+      expect(Math.abs(informedLevel(p, s)! - informedLevel(p, s + 0.25)!)).toBeLessThan(0.02);
   });
 });

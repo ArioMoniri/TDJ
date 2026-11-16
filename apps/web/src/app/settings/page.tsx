@@ -26,6 +26,7 @@ import { About } from "@/components/About";
 import { AppConnections } from "@/components/AppConnections";
 import { IndicatorSwitches } from "@/components/booth/IndicatorSwitches";
 import { SilenceGroup } from "@/components/booth/SilenceSettings";
+import { TransitionTemplatesGroup } from "@/components/booth/TransitionTemplates";
 import { Connectors } from "@/components/Connectors";
 import { PopularitySwitch } from "@/components/db/DatabaseFavourites";
 import { FeaturedLearned } from "@/components/db/FeaturedLearned";
@@ -381,6 +382,8 @@ export default function Settings() {
         </Group>
         {/* 2026-11: Booth → Gaps — a song's own silence and the gap (lib/booth/engine.ts, core silenceJoin) */}
         <SilenceGroup />
+        {/* 2026-11: Booth → Transitions — the DJ's transition templates and the defaults per join and rhythm */}
+        <TransitionTemplatesGroup />
         {/* 2026-11: what can play the night on this device, and which one plays on Automatic */}
         <WhenIdle>
           <DeviceSourcesGroup />

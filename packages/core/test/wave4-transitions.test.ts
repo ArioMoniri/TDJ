@@ -244,3 +244,67 @@ describe("EQ: none, centre bass swap, three-band swap", () => {
     expect(r.eq).toBe("none");
   });
 });
+
+/**
+ * 2026-11 — transition templates (the owner: "there should be an option to add custom templates for transitions"):
+ * a template carries the silence setting too, so an edit may name its own silence mode for that one join; and the
+ * DJ's defaults per boundary arrive as `defaultTransitions`, which an explicit edit beats and which are never stored
+ * as the DJ's own edits.
+ */
+describe("templates: a join's own silence mode and default transitions", () => {
+  const pair = () => {
+    const t0 = p.tandas[0]!;
+    return { a: t0.songs[0]!, b: t0.songs[1]! };
+  };
+  it("resolveTransition keeps a valid silence mode and drops an unknown one", () => {
+    const ctx = {
+      from: { kind: "track" as const, lengthSec: 180, tanda: 1 },
+      to: { kind: "track" as const, lengthSec: 180, tanda: 1 },
+    };
+    expect(resolveTransition({ preset: "gap", silence: "off" }, ctx).silence).toBe("off");
+    expect(resolveTransition({ preset: "fade", silence: "after" }, ctx).silence).toBe("after");
+    expect(resolveTransition({ preset: "gap", silence: "loud" as never }, ctx).silence).toBeUndefined();
+    expect(resolveTransition({ preset: "gap" }, ctx).silence).toBeUndefined();
+  });
+  it("an edit's silence mode replaces the night's for that join only", () => {
+    const { a, b } = pair();
+    const measurements = {
+      [a.id]: { lufs: -16, tailSilenceSec: 1.5 },
+      [b.id]: { lufs: -16, headSilenceSec: 0.6 },
+    };
+    const base = planBooth(p, { silenceMode: "gap", measurements });
+    const ia = base.items.findIndex((i) => i.id === a.id);
+    expect(base.items[ia]!.gapAfterSec).toBe(0.4);
+    const kept = planBooth(p, {
+      silenceMode: "gap",
+      measurements,
+      transitions: { [transitionKey(a.id, b.id)]: { preset: "gap", gapSec: 2.5, silence: "off" } },
+    });
+    // "off" for this join: nothing subtracted, the full gap is inserted after the silent tail
+    expect(kept.items[ia]!.gapAfterSec).toBe(2.5);
+    expect(kept.items[ia]!.tailCutSec ?? 0).toBe(0);
+    // the other joins follow the night's mode as before
+    expect(kept.items.filter((_, k) => k !== ia).map((x) => x.gapAfterSec)).toEqual(
+      base.items.filter((_, k) => k !== ia).map((x) => x.gapAfterSec),
+    );
+    // and the clock still adds up
+    expect(kept.wallClockSec).toBe(clockOf(kept));
+  });
+  it("defaultTransitions apply where the DJ has no edit, lose to an explicit edit, and are never stored", () => {
+    const i = pairAt(plan, (a, b) => a.kind === "track" && b.kind === "track" && a.tanda === b.tanda);
+    const j = pairAt(plan, (a, b) => a.kind === "track" && b.kind === "cortina");
+    const defaults = {
+      [keyAt(plan, i)]: { preset: "fade", fadeOutSec: 2, fadeInSec: 0, gapSec: 1 } as TransitionEdit,
+      [keyAt(plan, j)]: { preset: "fade", fadeOutSec: 4, gapSec: 2 } as TransitionEdit,
+    };
+    const own = { [keyAt(plan, j)]: { preset: "gap", gapSec: 3 } as TransitionEdit };
+    const q = planBooth(p, { transitions: own, defaultTransitions: defaults });
+    expect(q.items[i]!.transitionAfter?.preset).toBe("fade");
+    expect(q.items[i]!.transitionAfter?.fadeOutSec).toBe(2);
+    expect(q.items[j]!.transitionAfter?.preset).toBe("gap");
+    expect(q.items[j]!.gapAfterSec).toBe(3);
+    expect(q.transitions).toEqual(own);
+    expect(boothInputs(q).transitions).toEqual(own);
+    expect(q.wallClockSec).toBe(clockOf(q));
+  });
+});

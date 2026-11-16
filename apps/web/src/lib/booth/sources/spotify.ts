@@ -3,6 +3,7 @@ import type { Cortina, Song } from "@tdj/core";
 import { t as tx } from "@/lib/i18n";
 import { openExternal } from "@/lib/openLink";
 import { forgetPoll, skipPoll } from "@/lib/power";
+import type { AuditionIO } from "../audition";
 import { dbToGain, fadeOutCurve, VOLUME_STEP_SEC, volumeSteps } from "../envelope";
 import type { BoothRow } from "../plan";
 import { TrackClock } from "./clock";
@@ -953,6 +954,27 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
   }
   async pauseAudition(): Promise<void> {
     await this.pauseDevice();
+  }
+  /**
+   * 2026-11 — the transition audition's player (lib/booth/audition.ts runs its steps): this browser's SDK player, or
+   * the night's Connect device. `fades`: volume steps work here (the SDK; a Connect device cannot fade).
+   */
+  async auditionPlayer(): Promise<{ io: AuditionIO; fades: boolean; connect: boolean }> {
+    await this.connect();
+    const connect = !!this.remote;
+    return {
+      connect,
+      fades: !connect && this.capabilities.fade,
+      io: {
+        play: (uri, ms) => this.playUri(uri, ms),
+        seek: (ms) => this.seekDevice(ms),
+        volume: (v) => {
+          if (!this.remote)
+            void this.player?.setVolume(Math.max(0, Math.min(1, v)) * this.master).catch(() => {});
+        },
+        pause: () => this.pauseDevice(),
+      },
+    };
   }
 
   /**

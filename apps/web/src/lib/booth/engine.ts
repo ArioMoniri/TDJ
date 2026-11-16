@@ -1655,14 +1655,18 @@ export class BoothEngine {
     const k = this.item(i)?.kind;
     return k !== "cortina" && k !== "break" && this.settings.songFadeOutSec > 0;
   }
+  /** The silence mode of the join from `i` into `n`: the transition's own (a template's), else the night's. */
+  private joinMode(i: number, n: number): SilenceMode {
+    return this.transitionAfter(i, n)?.silence ?? this.silenceMode();
+  }
   /** Seconds of item `i`'s silent tail to cut, given what follows it (decided when `i` is scheduled). */
   private tailCutFor(i: number, tail: number): number {
     if (tail <= 0) return 0;
-    const mode = this.silenceMode();
     const n = this.nextPlayable(i);
-    if (n === null) return silenceJoin(mode, { gapSec: 0, tailSec: tail }).tailCutSec;
+    if (n === null) return silenceJoin(this.silenceMode(), { gapSec: 0, tailSec: tail }).tailCutSec;
     const tr = this.effectiveTransition(i, n);
-    return silenceJoin(mode, {
+    // 2026-11 (templates): the transition's own silence mode for this join
+    return silenceJoin(this.joinMode(i, n), {
       gapSec: tr ? tr.gapSec : this.gapAfter(i),
       tailSec: tail,
       headSec: this.silenceOf(n).head,
@@ -1891,7 +1895,7 @@ export class BoothEngine {
       await this.scheduleNext();
       return;
     }
-    const join = joinAfterTail(this.silenceMode(), {
+    const join = joinAfterTail(this.joinMode(c.planIndex, n), {
       gapSec: tr ? tr.gapSec : this.gapAfter(c.planIndex),
       keptTailSec: c.keptTail ?? 0,
       headSec: this.silenceOf(n, prep).head,

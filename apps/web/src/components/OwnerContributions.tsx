@@ -1,5 +1,5 @@
 "use client";
-import { Brain, CloudUpload, Heart, History, Palette, ShieldCheck } from "lucide-react";
+import { Brain, CloudUpload, Heart, History, Layers, Palette, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { CATALOGUE_GROUPS, type Group as ContribGroup, PERSONAL } from "@/lib/contrib/collect";
 import {
@@ -29,8 +29,15 @@ const GROUP_LABEL: Record<ContribGroup, MsgKey> = {
   favourites: "owner.group_favourites",
   history: "owner.group_history",
   grades: "owner.group_grades",
+  transitions: "owner.group_transitions",
 };
-const PERSONAL_ICON = { learning: Brain, favourites: Heart, history: History, grades: Palette } as const;
+const PERSONAL_ICON = {
+  learning: Brain,
+  favourites: Heart,
+  history: History,
+  grades: Palette,
+  transitions: Layers,
+} as const;
 const ORDER: ContribGroup[] = [...(Object.keys(CATALOGUE_GROUPS) as ContribGroup[]), ...PERSONAL];
 
 /**
