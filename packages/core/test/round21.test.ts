@@ -354,8 +354,9 @@ describe("big four — Di Sarli, D'Arienzo, Troilo, Pugliese spread over the nig
     // (round 21b: the big four is a soft preference — only the after-repair swaps that leave every other rule as it
     // was; 2.5 pairs a night on these four seeds, each one recorded as a fallback)
     // (2026-11: "never back to back" — the swaps may now cost the other rules a little for it, never an orchestra's
-    // repeat gap: 2.25 pairs a night on these seeds (2.75 before), 2.25 over twelve (2.58). Zero is not reached without
-    // trading the canon chairs — the early D'Arienzo, the summits, the Pugliese chair — or the repeat gaps for it)
+    // repeat gap, a phase or the arc: 2.5 pairs a night on these seeds (2.75 before), 2.42 over twelve (2.58). Zero is
+    // not reached without trading the canon chairs — the early D'Arienzo, the summits, the Pugliese chair — or the
+    // repeat gaps for it)
     expect(adjacent / nights.length).toBeLessThanOrEqual(2.5);
   });
   // 2026-11 (function review): 3 h golden nights left a quartile empty on 10 of 12 seeds (usually the second) and
@@ -394,7 +395,8 @@ describe("big four — Di Sarli, D'Arienzo, Troilo, Pugliese spread over the nig
       // (10 of the 12 3 h nights before)
       expect(empty).toBeLessThanOrEqual(1);
     });
-    // (the owner asked for at most one; 1.42 is what the swaps reach without trading a repeat gap or a canon chair)
+    // (the owner asked for at most one; 1.5 is what the swaps reach without trading a repeat gap, a phase or a canon
+    // chair)
     it("3 h: at most 1.5 back-to-back big-four pairs a night on average (2.08 before)", () => {
       const three = longer.filter((x) => x.hours === 3);
       const pairs = three.map(

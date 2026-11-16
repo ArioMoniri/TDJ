@@ -52,7 +52,9 @@ const templateOf = (t: Tanda): LearnedPreferences => ({
 /** a tanda of the night whose family has another side on Spotify it could play (the cap has a selection to offer) */
 function variableTanda(p: Playlist): Tanda {
   const t = p.tandas.find((x, i) => {
+    // (never the first D'Arienzo: its seeded draw is the night's variety already, and the cap leaves it alone)
     if (i === 0 || i === p.tandas.length - 1 || x.peak || x.rhythm !== "tango") return false;
+    if (x.orchestraId === "juan-d-arienzo") return false;
     const fam = deps.catalog.songs.filter(
       (s) =>
         s.orchestraId === x.orchestraId &&

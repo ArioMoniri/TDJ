@@ -51,6 +51,7 @@ import {
   isSuspectSide,
   isTandaEligible,
   peakOk,
+  phasesFor,
   type Scoring,
   type TandaCandidate,
 } from "./tanda";
@@ -2413,8 +2414,27 @@ function composeOnce(
       return k;
     };
     const close0 = closePairs();
-    const fine = (r0: StrictResult, r1: StrictResult, s0: number, mended: number) => {
-      if (closePairs() > close0) return false;
+    // (nor a family's phases: a tanda moved into a phase its profile does not program it for — Di Sarli's 1950s
+    // valses in the warm-up — may not be added)
+    // (Pugliese's chair is planned whatever the phase says, as the composer's own Pugliese slot is)
+    const misfits = () =>
+      tandas.filter((t) => {
+        if (t.orchestraId === "osvaldo-pugliese") return false;
+        const ph = phasesFor(sc, { orchestraId: t.orchestraId, songs: t.songs } as TandaCandidate);
+        return !!ph && !ph.includes("any") && !ph.includes(t.phase);
+      }).length;
+    const misfit0 = misfits();
+    // (nor the arc, for a swap: the energy jumps of more than 18 between neighbours — a sawtooth around the early
+    // D'Arienzo — may not grow; a rebuilt chair is built for its slot's own energy)
+    const jumps = () => {
+      let k = 0;
+      for (let i = 1; i < tandas.length; i++)
+        if (Math.abs(tandas[i]!.energy - tandas[i - 1]!.energy) > 18) k++;
+      return k;
+    };
+    const jump0 = jumps();
+    const fine = (r0: StrictResult, r1: StrictResult, s0: number, mended: number, swap = false) => {
+      if (closePairs() > close0 || misfits() > misfit0 || (swap && jumps() > jump0)) return false;
       const tol = (BIG_FOUR_TOLERANCE * mended) / BIG_FOUR_COST.adjacent;
       if (r1.blockers > r0.blockers || rest(r1) > rest(r0) + tol) return false;
       const s1 = scoreNow();
@@ -2470,7 +2490,7 @@ function composeOnce(
           tandas[b] = put(A, B);
           const c1 = cost();
           const r1 = c1 < c0 ? strictChecks(night()) : null;
-          const ok = !!r1 && fine(r0, r1, s0, c0 - c1);
+          const ok = !!r1 && fine(r0, r1, s0, c0 - c1, true);
           tandas[a] = A;
           tandas[b] = B;
           // (round 21b: a soft preference — a swap that costs more than that, or a blocker, is not taken; the fault
@@ -2514,6 +2534,16 @@ function composeOnce(
           // (the night's cap holds: three tandas an orchestra, four from 5 h)
           const others = tandas.filter((x, j) => j !== i && x.orchestraId === nt.orchestraId);
           if (others.length + 1 > (o.hours >= 5 ? 4 : 3)) continue;
+          // (and the profile's phases: a sub-period programmed for no phase — Troilo's 1950s — never plays, and the
+          // family plays in a phase it is programmed for)
+          const ph = phasesFor(sc, { orchestraId: nt.orchestraId, songs: nt.songs } as TandaCandidate);
+          if (
+            nt.orchestraId !== "osvaldo-pugliese" &&
+            ph &&
+            !ph.includes("any") &&
+            !ph.includes(tandas[i]!.phase)
+          )
+            continue;
           const old = tandas[i]!;
           tandas[i] = put(nt, old);
           const c1 = costAll();
