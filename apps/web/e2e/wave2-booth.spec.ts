@@ -260,7 +260,7 @@ test("iPhone 14: the booth's transport alone at the foot — no tab bar stacked 
   await openBooth(page);
   const m = await page.evaluate(() => {
     const strip = document.querySelector('[data-testid="booth-strip"]')!.getBoundingClientRect();
-    const nav = document.querySelector<HTMLElement>('nav[aria-label="Primary mobile"]');
+    const nav = document.querySelector<HTMLElement>('nav[data-testid="tab-bar"]');
     const navShown =
       !!nav && getComputedStyle(nav).visibility !== "hidden" && nav.getBoundingClientRect().height > 0;
     const navTop = navShown ? nav!.getBoundingClientRect().top : window.innerHeight;

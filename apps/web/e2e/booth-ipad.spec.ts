@@ -1159,10 +1159,11 @@ for (const light of [false, true]) {
     // Cue inside its card
     expect(ctl.cue.l).toBeGreaterThanOrEqual(ctl.cue.cl - 0.5);
     expect(ctl.cue.r).toBeLessThanOrEqual(ctl.cue.cr + 0.5);
-    // the countdown whole, in the deck above the panel; the panel at most ~40 % of the viewport
+    // the countdown whole, in the deck above the panel; the panel at most ~46 % of the viewport
     expect(ctl.countdown.t).toBeGreaterThanOrEqual(ctl.countdown.dt - 0.5);
     expect(ctl.countdown.b).toBeLessThanOrEqual(Math.min(ctl.countdown.db, ctl.countdown.pt) + 0.5);
-    expect(ctl.panelH).toBeLessThanOrEqual(820 * 0.4 + 1);
+    // (2026-11, the overlap pass: ≤ 46 % — the Now card turns compact while the panel is open)
+    expect(ctl.panelH).toBeLessThanOrEqual(820 * 0.46 + 1);
     // no second Previous / Play / Next; "More" while groups are below the fold
     expect(ctl.head).toEqual([]);
     expect(ctl.more).toBe(ctl.scrolls);
@@ -1242,5 +1243,333 @@ test("design review, iPad portrait: the chips under the title take at most two r
   });
   expect(rows.rows).toBeLessThanOrEqual(2);
   expect(rows.findFirst).toBe(true);
+  // 2026-11 (the overlap pass): one row, before the night and while it plays (the words step aside, Show keeps its
+  // glyph, the device names whole)
+  expect(rows.rows).toBe(1);
+  await start(page);
+  await page.waitForTimeout(400);
+  const playing = await overlap(page);
+  expect(playing.chipTops).toBe(1);
+  expect(playing.namesCut).toEqual([]);
+  await expect(page.getByTestId("booth-show")).toHaveAccessibleName(/Show/);
+  await ctx.close();
+});
+
+/**
+ * 2026-11 — the overlap pass (the owner's iPad Pro 11 landscape, sidebar open, Rehearsal, Controls panel open: "Solve
+ * ui and overlap issues"):
+ * - the chips under the title and Find songs are one row in English and Turkish (the device names whole);
+ * - the Now card names the playing song's tanda type (the badge Up Next and the set list use), panel open or not;
+ * - with the panel open the Now card is compact and whole in the deck: the countdown and the dots row inside it,
+ *   above its fade and the panel;
+ * - the panel's "More" is in its head and covers no control; its fold falls between rows of groups (none cut);
+ * - the set list ends on a whole row above its fade;
+ * - a tanda header's actions sit on the rows' right edge, centred on the type / total line (not a line of their own);
+ * - the gap pills start on the rows' content edge.
+ */
+function overlap(page: Page) {
+  return page.evaluate(() => {
+    const R = (el: Element | null) => {
+      const r = el?.getBoundingClientRect();
+      return r ? { top: r.top, bottom: r.bottom, left: r.left, right: r.right, height: r.height } : null;
+    };
+    const vis = (el: Element) => {
+      const r = el.getBoundingClientRect();
+      return r.width > 0 && r.height > 0;
+    };
+    const chips = [
+      ...document.querySelectorAll<HTMLElement>(".booth-head-row .booth-toolbar > *"),
+      document.querySelector<HTMLElement>('[data-testid="booth-find-songs"]')!,
+    ].filter(vis);
+    const deckEl = document.querySelector(".booth-deck")!;
+    const panel = document.querySelector<HTMLElement>('[data-testid="booth-controls"]');
+    const col = document.querySelector<HTMLElement>(".booth-col-set");
+    const twoCols = !!col && vis(col) && getComputedStyle(col).overflowY === "auto";
+    const set = (() => {
+      if (!col || !twoCols) return null;
+      const c = col.getBoundingClientRect();
+      const foot = c.bottom - (Number.parseFloat(getComputedStyle(col).scrollPaddingBottom) || 0);
+      const cut = [...col.querySelectorAll(".booth-row")]
+        .map((r) => r.getBoundingClientRect())
+        .filter((r) => r.top < foot - 4 && r.bottom > foot + 1).length;
+      const firstRow = col.querySelector<HTMLElement>(".booth-row")!;
+      const head = col.querySelector('.booth-tanda[data-tanda="1"] [data-testid="booth-tanda-head"]')!;
+      return {
+        cut,
+        contentEdge:
+          firstRow.getBoundingClientRect().left + Number.parseFloat(getComputedStyle(firstRow).paddingLeft),
+        head: {
+          meta: R(head.querySelector('[data-testid="booth-tanda-meta"]'))!,
+          title: R(head.querySelector('[data-testid="booth-tanda-title"]'))!,
+          acts: R(head.querySelector('[data-testid="booth-tanda-acts"]'))!,
+          rowsRight: R(col.querySelector('[data-testid="booth-row-swap"]'))!.right,
+        },
+        gaps: [...col.querySelectorAll(".booth-gap-btn > span")]
+          .slice(0, 4)
+          .map((g) => g.getBoundingClientRect().left),
+      };
+    })();
+    const body = panel?.querySelector<HTMLElement>(".booth-ctl-body") ?? null;
+    const more = panel?.querySelector('[data-testid="ctl-more"]') ?? null;
+    const b = body?.getBoundingClientRect();
+    const type = document.querySelector('[data-testid="booth-now"] [data-testid="tanda-type"]');
+    return {
+      chipTops: new Set(chips.map((e) => Math.round(e.getBoundingClientRect().top))).size,
+      namesCut: [...document.querySelectorAll<HTMLElement>(".booth-out-name")]
+        .filter(vis)
+        .filter((n) => n.scrollWidth > n.clientWidth + 1)
+        .map((n) => n.textContent),
+      deck: R(deckEl)!,
+      fade: Number.parseFloat(getComputedStyle(deckEl).paddingBottom) || 0,
+      panelTop: panel ? panel.getBoundingClientRect().top : null,
+      now: R(document.querySelector('[data-testid="booth-now"]'))!,
+      countdown: R(document.querySelector('[data-testid="booth-remaining"]'))!,
+      dots: R(document.querySelector('[data-testid="booth-now"] .booth-now-dots'))!,
+      type:
+        type && vis(type) ? { text: type.textContent ?? "", h: type.getBoundingClientRect().height } : null,
+      moreHits:
+        more && panel
+          ? [...panel.querySelectorAll<HTMLElement>(".booth-ctl-body button, .booth-ctl-body input")]
+              .filter(vis)
+              .filter((x) => {
+                const r = x.getBoundingClientRect();
+                const m = more.getBoundingClientRect();
+                return r.left < m.right && m.left < r.right && r.top < m.bottom && m.top < r.bottom;
+              })
+              .map((x) => x.dataset.testid ?? x.getAttribute("aria-label"))
+          : [],
+      moreInHead: !!more?.closest(".booth-ctl-head"),
+      groupsCut:
+        b && body
+          ? [...body.querySelectorAll<HTMLElement>(":scope > .booth-ctl-group")]
+              .filter((g) => {
+                const r = g.getBoundingClientRect();
+                return r.top < b.bottom - 1 && r.bottom > b.bottom + 1;
+              })
+              .map((g) => g.querySelector("legend")?.textContent)
+          : [],
+      set,
+    };
+  });
+}
+
+for (const locale of ["en-US", "tr-TR"] as const) {
+  test(`overlap pass, iPad landscape (${locale}): one chip row, the Now card's tanda type, a compact whole Now card, More in the head, whole rows, the tanda header's actions and the gap pills aligned`, async ({
+    browser,
+  }) => {
+    const ctx = await browser.newContext({ ...IPAD_L, locale, colorScheme: "light" });
+    const page = await ctx.newPage();
+    await openBooth(page, { light: true, ipad: true });
+    // the Now card says the tanda type before the night (the badge Up Next and the set list use)
+    await expect(page.getByTestId("booth-now").getByTestId("tanda-type")).toBeVisible();
+    await start(page);
+    await page.waitForTimeout(2600);
+    const a = await overlap(page);
+    if (SHOTS) await page.screenshot({ path: `${SHOTS}/overlap-${locale}-closed.png` });
+    expect(a.chipTops, "the chips and Find songs on one row").toBe(1);
+    expect(a.namesCut, "the device names whole").toEqual([]);
+    expect(a.type?.text).toMatch(/Tango|Vals|Milonga/);
+    const s = a.set!;
+    expect(s.cut, "the set list ends on a whole row").toBe(0);
+    // the tanda header: the actions at the rows' right edge, centred on the type / total line, under the title
+    expect(Math.abs(s.head.acts.right - s.head.rowsRight)).toBeLessThanOrEqual(1);
+    expect(s.head.acts.top).toBeGreaterThanOrEqual(s.head.title.bottom - 1);
+    expect(s.head.acts.top).toBeLessThan(s.head.meta.bottom);
+    expect(
+      Math.abs((s.head.acts.top + s.head.acts.bottom) / 2 - (s.head.meta.top + s.head.meta.bottom) / 2),
+    ).toBeLessThanOrEqual(4);
+    // the gap pills start on the rows' content edge
+    expect(s.gaps.length).toBeGreaterThan(0);
+    for (const g of s.gaps)
+      expect(Math.abs(g - s.contentEdge), `pill at ${g} vs ${s.contentEdge}`).toBeLessThanOrEqual(1);
+
+    // the Controls panel open
+    await page.getByTestId("booth-controls-toggle").click();
+    await expect(page.getByTestId("booth-controls")).toBeVisible();
+    await page.waitForTimeout(2600);
+    const p = await overlap(page);
+    if (SHOTS) await page.screenshot({ path: `${SHOTS}/overlap-${locale}-open.png` });
+    expect(p.chipTops).toBe(1);
+    // the compact Now card: whole in the deck, above its fade and the panel; the countdown and the dots inside it
+    const floor = Math.min(p.deck.bottom - p.fade, p.panelTop!) + 1;
+    expect(p.now.top).toBeGreaterThanOrEqual(p.deck.top - 1);
+    expect(p.now.bottom, "the Now card whole").toBeLessThanOrEqual(floor);
+    for (const [k, r] of [
+      ["countdown", p.countdown],
+      ["dots", p.dots],
+    ] as const) {
+      expect(r.height, k).toBeGreaterThan(0);
+      expect(r.top, k).toBeGreaterThanOrEqual(p.now.top);
+      expect(r.bottom, k).toBeLessThanOrEqual(Math.min(p.now.bottom, floor));
+    }
+    // the tanda type stays, on one line
+    expect(p.type?.text).toMatch(/Tango|Vals|Milonga/);
+    expect(p.type!.h).toBeLessThanOrEqual(30);
+    // "More" lives in the panel's head and covers nothing; the fold cuts no group
+    expect(p.moreInHead).toBe(true);
+    expect(p.moreHits).toEqual([]);
+    expect(p.groupsCut, "groups cut by the panel's fold").toEqual([]);
+    expect(p.set!.cut, "the set list ends on a whole row (panel open)").toBe(0);
+    // "More" brings the next row of groups (below the fold) into view, whole
+    const below = () =>
+      page.evaluate(() => {
+        const body = document.querySelector<HTMLElement>(".booth-ctl-body")!;
+        const b = body.getBoundingClientRect();
+        return [...body.querySelectorAll<HTMLElement>(":scope > .booth-ctl-group")].map((g) => {
+          const r = g.getBoundingClientRect();
+          return {
+            g: g.querySelector("legend")?.textContent,
+            hidden: r.top >= b.bottom - 1,
+            whole: r.top >= b.top - 1 && r.bottom <= b.bottom + 1,
+          };
+        });
+      });
+    const before = (await below()).filter((x) => x.hidden).map((x) => x.g);
+    expect(before.length, "groups below the fold").toBeGreaterThan(0);
+    await page.getByTestId("ctl-more").click();
+    await page.waitForTimeout(900);
+    const after = await below();
+    const next = after.filter((x) => before.includes(x.g) && x.whole).map((x) => x.g);
+    expect(next.length, `a row of ${before.join(", ")} whole after More`).toBeGreaterThan(0);
+    await ctx.close();
+  });
+}
+
+/**
+ * 2026-11 — the owner's desktop capture ("ui issues on controls boxes", ~1500 × 900, the panel open): no text leaves
+ * its group box, a group's button cells share one height, the groups of one row share a top and a height, the
+ * countdown and the night's clock stay in view, no hint is left over the panel after a click on Controls.
+ */
+for (const [w, h] of [
+  [1440, 900],
+  [1920, 1080],
+] as const) {
+  test(`overlap pass, desktop ${w}×${h}: the Controls panel's boxes hold their contents, rows align, the countdown and the clock stay, no hint`, async ({
+    browser,
+  }) => {
+    const ctx = await browser.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 2 });
+    const page = await ctx.newPage();
+    await openBooth(page);
+    await start(page);
+    // a mouse click on Controls, the pointer left on it
+    const tg = (await page.getByTestId("booth-controls-toggle").boundingBox())!;
+    await page.mouse.move(tg.x + tg.width / 2, tg.y + tg.height / 2);
+    await page.mouse.down();
+    await page.mouse.up();
+    await expect(page.getByTestId("booth-controls")).toBeVisible();
+    await page.waitForTimeout(2600);
+    if (SHOTS) await page.screenshot({ path: `${SHOTS}/overlap-desktop-${w}x${h}.png` });
+    const m = await page.evaluate(() => {
+      const vis = (e: Element) => {
+        const r = e.getBoundingClientRect();
+        return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== "hidden";
+      };
+      const panel = document.querySelector<HTMLElement>('[data-testid="booth-controls"]')!;
+      const groups = [...panel.querySelectorAll<HTMLElement>(".booth-ctl-group")].filter(vis);
+      const out: string[] = [];
+      const cells: Record<string, number[]> = {};
+      for (const g of groups) {
+        const name = g.querySelector("legend")?.textContent ?? "?";
+        const gr = g.getBoundingClientRect();
+        for (const e of g.querySelectorAll<HTMLElement>("*")) {
+          if (!vis(e)) continue;
+          const r = e.getBoundingClientRect();
+          if (r.left < gr.left - 1 || r.right > gr.right + 1 || r.bottom > gr.bottom + 1)
+            out.push(`${name}: ${e.dataset.testid ?? e.className} leaves the box`);
+          if (
+            (e.tagName === "BUTTON" || e.tagName === "SPAN") &&
+            e.scrollWidth > e.clientWidth + 1 &&
+            getComputedStyle(e).textOverflow !== "ellipsis" &&
+            getComputedStyle(e).overflowX !== "visible"
+          )
+            out.push(`${name}: ${e.dataset.testid ?? e.className} cut`);
+        }
+        cells[name] = [...g.querySelectorAll<HTMLElement>(".booth-ctl-row > .booth-ctl-btn")]
+          .filter(vis)
+          .map((b) => b.getBoundingClientRect().height);
+      }
+      const rows: Record<number, number[]> = {};
+      for (const g of groups) {
+        const r = g.getBoundingClientRect();
+        const k = Math.round(r.top);
+        rows[k] = [...(rows[k] ?? []), r.height];
+      }
+      const deck = document.querySelector(".booth-deck")!.getBoundingClientRect();
+      const col = document.querySelector(".booth-col-set")!.getBoundingClientRect();
+      const ttc = document.querySelector('[data-testid="booth-ttc"]')!.getBoundingClientRect();
+      const clock = document.querySelector('[data-testid="booth-clock"]')!.getBoundingClientRect();
+      const cd = document.querySelector('[data-testid="booth-remaining"]')!.getBoundingClientRect();
+      const p = panel.getBoundingClientRect();
+      return {
+        out,
+        cells,
+        rows: Object.values(rows).map((hs) => Math.max(...hs) - Math.min(...hs)),
+        countdown: cd.top >= deck.top - 1 && cd.bottom <= Math.min(deck.bottom, p.top) + 1 && cd.height > 0,
+        clock:
+          [ttc, clock].every((r) => r.height > 0 && r.top >= col.top - 1 && r.bottom <= col.bottom + 1) &&
+          ttc.bottom <= p.top,
+        tips: [...document.querySelectorAll('[role="tooltip"]')].filter(vis).length,
+        head: [...panel.querySelectorAll<HTMLElement>(".booth-ctl-head [data-testid]")].map(
+          (e) => e.dataset.testid,
+        ),
+      };
+    });
+    expect(m.out, m.out.join("\n")).toEqual([]);
+    for (const [g, hs] of Object.entries(m.cells))
+      for (const x of hs) expect(Math.abs(x - hs[0]!), `${g} cells`).toBeLessThanOrEqual(0.5);
+    for (const d of m.rows) expect(d, "the groups of one row share a height").toBeLessThanOrEqual(1);
+    expect(m.countdown, "the countdown whole above the panel").toBe(true);
+    expect(m.clock, "the night's clock and the time to La Cumparsita in view").toBe(true);
+    expect(m.tips, "no hint after clicking Controls").toBe(0);
+    // the head: Controls, More, the keys — never Previous / Play / Next again
+    expect(m.head.filter((id) => /ctl-(prev|play|next)$/.test(id ?? ""))).toEqual([]);
+    await ctx.close();
+  });
+}
+
+/**
+ * 2026-11 — the iPhone store screenshots in Turkish: the tab bar (its label translated) stayed over the Booth's
+ * transport, the chip row was cut at the edge, the transition editor's presets ran off the screen.
+ */
+test("iPhone 15 Pro in Turkish: no tab bar over the transport, a chip row that says it scrolls, every preset in view", async ({
+  browser,
+}) => {
+  const ctx = await browser.newContext({ ...dev("iPhone 15 Pro"), locale: "tr-TR" });
+  const page = await ctx.newPage();
+  await openBooth(page);
+  const tab = await page.evaluate(() => {
+    const n = document.querySelector('nav[data-testid="tab-bar"]');
+    return n ? getComputedStyle(n).visibility : "none";
+  });
+  expect(tab).not.toBe("visible");
+  const start = (await page.getByTestId("booth-start").boundingBox())!;
+  const hit = await page.evaluate(
+    ([x, y]) => !!document.elementFromPoint(x!, y!)?.closest('[data-testid="booth-start"]'),
+    [start.x + start.width / 2, start.y + start.height / 2],
+  );
+  expect(hit, "Başlat is tappable").toBe(true);
+  const row = await page.evaluate(() => {
+    const r = document.querySelector<HTMLElement>(".booth-head-row")!;
+    return { mask: getComputedStyle(r).maskImage, scrolls: r.scrollWidth > r.clientWidth };
+  });
+  if (row.scrolls) expect(row.mask, "an edge fade where the row scrolls").toContain("gradient");
+  // the transition editor: the presets in rows, every tile on the screen
+  await page.getByTestId("booth-set-open").click();
+  await page.locator('[data-testid="booth-set-sheet"] [data-testid="booth-gap"]').first().click();
+  await expect(page.getByTestId("booth-tr-preset-auto")).toBeVisible();
+  const vw = page.viewportSize()!.width;
+  const tiles = await page.locator(".trx-presets > button").evaluateAll((bs) =>
+    bs.map((b) => {
+      const r = b.getBoundingClientRect();
+      return { l: r.left, r: r.right, h: r.height, cut: b.scrollWidth > b.clientWidth + 1 };
+    }),
+  );
+  expect(tiles.length).toBeGreaterThanOrEqual(5);
+  for (const t of tiles) {
+    expect(t.l).toBeGreaterThanOrEqual(0);
+    expect(t.r).toBeLessThanOrEqual(vw);
+    expect(t.h).toBeGreaterThanOrEqual(43.5);
+    expect(t.cut).toBe(false);
+  }
   await ctx.close();
 });

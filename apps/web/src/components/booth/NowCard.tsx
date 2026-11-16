@@ -131,9 +131,18 @@ export function NowCard({
           </h2>
           <p className="booth-now-artist">{metaLine(item.artist, yearText(item.year))}</p>
           <div className="booth-meta">
-            {tanda && item.kind === "track" && (
-              <TandaTypeBadge rhythm={tanda.rhythm} vocal={tanda.vocal} singer={tanda.singer} />
-            )}
+            {/* the playing song's tanda type, as Up Next and the set list's tanda header say it (2026-11: also while
+                the Controls panel is open); the opening / closing La Cumparsita says its own */}
+            {tanda && item.kind === "track" ? (
+              <TandaTypeBadge
+                rhythm={tanda.rhythm}
+                vocal={tanda.vocal}
+                singer={tanda.singer}
+                className="booth-now-type"
+              />
+            ) : item.kind === "closing" && item.rhythm && item.rhythm !== "cortina" ? (
+              <TandaTypeBadge rhythm={item.rhythm} singer={item.singer} className="booth-now-type" />
+            ) : null}
             <EraBadge entity={entity} />
             <BpmKey e={entity} />
             <EnergyChip e={entity} />
@@ -157,8 +166,8 @@ export function NowCard({
         />
         <span className="tabular-nums text-right">-{durationLabel(remaining)}</span>
       </div>
-      <div className="flex items-end justify-between gap-3">
-        <div className="flex items-center gap-2">
+      <div className="booth-now-status flex items-end justify-between gap-3">
+        <div className="booth-now-dots flex items-center gap-2">
           {item.kind === "track" && (
             <span
               className="flex items-center gap-1"
@@ -192,8 +201,8 @@ export function NowCard({
           {live || state === "paused" ? durationLabel(remaining) : durationLabel(length)}
         </span>
       </div>
-      <Meter className="mt-3" />
-      <div className="mt-3 flex flex-wrap items-center gap-2">
+      <Meter className="booth-now-meter mt-3" />
+      <div className="booth-now-chips mt-3 flex flex-wrap items-center gap-2">
         <span
           className="booth-chip"
           data-testid="booth-source"

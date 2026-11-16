@@ -352,7 +352,13 @@ function Booth() {
   ];
 
   return (
-    <div className="booth" data-state={state} data-testid="booth" data-rehearsal={rehearsal || undefined}>
+    <div
+      className="booth"
+      data-state={state}
+      data-testid="booth"
+      data-rehearsal={rehearsal || undefined}
+      data-controls={ctlOpen ? "open" : undefined}
+    >
       {/* the title keeps one width; the mode is a chip under it (round8-ux.md §2 Booth) */}
       <PageHeader title={t("booth.booth")} />
       {/* the chips under the title and "Find songs" share one row */}
