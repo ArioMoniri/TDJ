@@ -34,29 +34,25 @@ test("search panel: filters, where a side sits tonight, add a side to a tanda", 
   await expect(panel).toBeVisible();
   // the page makes room beside the panel
   expect(await page.evaluate(() => document.documentElement.hasAttribute("data-side-panel"))).toBe(true);
-  // only tonight's sides: every result says where it plays
-  await panel.getByRole("button", { name: "Tonight" }).click();
-  await panel.getByRole("button", { name: "Tango", exact: true }).click();
-  await panel.getByLabel("Search songs").fill("a");
-  await panel.getByRole("button", { name: "More filters" }).click();
-  await panel.getByLabel("From year").fill("1935");
+  // only tonight's sides: every result says where it plays (2026-11: the smart search's chips and inline years)
+  await panel.getByTestId("song-search-tonight").click();
+  await panel.getByLabel("Search songs").fill("1935-1955");
+  await panel.getByTestId("song-search-chip-rhythm-tango").click();
   await expect(panel.getByTestId("song-result").first()).toBeVisible({ timeout: 20000 });
   const pills = await panel.getByTestId("song-pill").allInnerTexts();
   expect(pills.length).toBeGreaterThan(0);
   for (const p of pills) expect(p).toMatch(/^Tanda \d+ · song \d+/);
-  // the whole catalogue, one year
-  await panel.getByRole("button", { name: "Tonight" }).click();
-  await panel.getByLabel("From year").fill("1941");
-  await panel.getByLabel("To year").fill("1941");
-  await panel.getByLabel("Search songs").fill("milonga");
-  await panel.getByRole("button", { name: "All", exact: true }).click();
+  // the whole catalogue, one year, every rhythm
+  await panel.getByTestId("song-search-tonight").click();
+  await panel.getByTestId("song-search-chip-rhythm-tango").click();
+  await panel.getByLabel("Search songs").fill("milonga year:1941");
   await expect(panel.getByTestId("song-result").first()).toContainText("1941", { timeout: 20000 });
   // (the debounced search lands after the last keystroke: wait until every row is the new answer)
   await expect
     .poll(
       async () =>
-        (await panel.getByTestId("song-result").locator(".text-footnote").allInnerTexts()).every((t) =>
-          t.includes("1941"),
+        (await panel.getByTestId("song-result").getByTestId("smart-version-facts").allInnerTexts()).every(
+          (t) => t.includes("1941"),
         ),
       { timeout: 20000 },
     )
@@ -66,7 +62,8 @@ test("search panel: filters, where a side sits tonight, add a side to a tanda", 
     .getByTestId("song-result")
     .filter({ hasNot: page.getByTestId("song-pill") })
     .first();
-  const title = (await free.locator("span.block.truncate").first().innerText()).trim();
+  const title = (await free.getByTestId("smart-version-title").innerText()).trim();
+
   await free.getByRole("button", { name: /^Actions for/ }).click();
   await page.getByRole("menuitem", { name: "Add to a tanda…" }).click();
   const target = page.getByTestId("song-target");

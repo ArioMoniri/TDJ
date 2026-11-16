@@ -92,7 +92,7 @@ test.describe("Library search", () => {
     await vals.click();
     await expect(vals).toHaveAttribute("aria-pressed", "true");
     await expect.poll(() => total(page), { timeout: 15_000 }).toBe(n);
-    for (const l of (await rows(page).allInnerTexts()).slice(0, 20)) expect(l).toMatch(/vals/);
+    for (const l of (await rows(page).allInnerTexts()).slice(0, 20)) expect(l).toMatch(/vals/i);
     // the Vals chip keeps the Tango count beside it (each kind counts with the others on)
     expect(
       Number((await page.getByTestId("library-chip-rhythm-tango-count").innerText()).replace(/\D/g, "")),

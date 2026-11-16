@@ -13,17 +13,21 @@ import {
   withCortina,
 } from "@/lib/booth/swap";
 import { findTonight } from "@/lib/booth/tonightSearch";
+import { undoEdit } from "@/lib/editHistory";
 import { useMediaQuery } from "@/lib/hooks";
 import { t as tx } from "@/lib/i18n";
 import { requestFavourites } from "@/lib/popularity";
 import { gateEdit } from "@/lib/ruleCheck";
+import type { SourceId, Version } from "@/lib/smartSearch";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
+import { useSmartSearch } from "@/lib/useSmartSearch";
 import { yearText } from "@/lib/year";
 import { Sheet } from "../Sheet";
 import type { SwapSide } from "../SwapSheet";
 import { Artwork } from "../ui/Artwork";
 import { ConfirmBar, HitRow, PreviewButton, ScopeSwitch, SearchBar } from "../ui/BoothSearchBits";
+import { SmartSearchField, SmartSearchResults } from "../ui/SmartSearch";
 
 type Scope = "catalogue" | "tonight";
 
@@ -104,7 +108,68 @@ export function BoothSwapSheet() {
   const ti = chair?.ti ?? -1;
   const si = chair?.kind === "track" ? chair.si : -1;
   const kind = chair?.kind;
-  const query = scope === "catalogue" ? q.trim() : "";
+  // a cortina searches the cortina pool here; a song asks the smart search (catalogue + connected services)
+  const query = scope === "catalogue" && kind !== "track" ? q.trim() : "";
+  const rhythm = ti >= 0 ? playlist?.tandas[ti]?.rhythm : undefined;
+  /** 2026-11: tonight's sides with a linked file show it as a source */
+  const files = useMemo(() => {
+    const out = new Set<string>();
+    plan?.items.forEach((x, k) => {
+      if (x.kind === "track" && x.id && useBooth.getState().sources[k] === "file") out.add(x.id);
+    });
+    return out;
+  }, [plan]);
+  const extraSources = useMemo(
+    () =>
+      (s: Song): SourceId[] =>
+        files.has(s.id) ? ["local"] : [],
+    [files],
+  );
+  const ss = useSmartSearch({
+    value: kind === "track" && scope === "catalogue" ? q : "",
+    onChange: setQ,
+    defaultFilters: rhythm ? { rhythms: [rhythm] } : {},
+    limit: 30,
+    extraSources,
+  });
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the chair's rhythm chip on, each time the sheet opens
+  useEffect(() => {
+    ss.setFilters(rhythm ? { rhythms: [rhythm] } : {});
+  }, [i, rhythm]);
+  /** the smart search's catalogue sides judged for this chair (ok, why not, or the rule check asks) */
+  const [judged, setJudged] = useState<Map<string, SwapSide>>(new Map());
+  const ids = useMemo(
+    () =>
+      ss.versions
+        .filter((v) => v.hit)
+        .slice(0, 60)
+        .map((v) => v.song.id),
+    [ss.versions],
+  );
+  const idKey = ids.join("|");
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `idKey` stands for the ids
+  useEffect(() => {
+    if (!open || kind !== "track" || !ids.length) return;
+    const ctl = new AbortController();
+    fetch("/api/swap-options", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ playlist: useBooth.getState().playlist, tandaIndex: ti, trackIndex: si, ids }),
+      signal: ctl.signal,
+    })
+      .then((r) => r.json())
+      .then((j: { judged?: SwapSide[] }) =>
+        setJudged((m) => {
+          const next = new Map(m);
+          for (const x of j.judged ?? []) next.set(x.song.id, x);
+          return next;
+        }),
+      )
+      .catch(() => {});
+    return () => ctl.abort();
+  }, [open, kind, idKey, ti, si]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new place judges afresh
+  useEffect(() => setJudged(new Map()), [i]);
   // the song's lists: Suggested at once, the catalogue search after a short pause
   useEffect(() => {
     if (!open || kind !== "track") return;
@@ -199,9 +264,9 @@ export function BoothSwapSheet() {
     if (when === "playing") void b.playNow(i);
     // (a rule outcome said so itself, with its own Undo)
     if (res === "applied")
+      // the toast's Undo is the one undo history (⌘Z walks the same)
       toast(tx("boothSwap.swapped", { title }), () => {
-        void useBooth.getState().applySwappedPlaylist(before);
-        toast(tx("boothSwap.undone"));
+        void undoEdit().then((e) => e && toast(tx("boothSwap.undone")));
       });
   };
   /** the playing place asks first (inside this sheet); a place ahead swaps at once */
@@ -241,6 +306,51 @@ export function BoothSwapSheet() {
         setBusy(null);
       }
     });
+  /** a connected service's recording takes the chair: the tanda with it in that place (POST /api/tanda-set) */
+  const pickExternal = (v: Version) =>
+    choose(v.song.title, async () => {
+      if (chair.kind !== "track") return;
+      setBusy(v.song.id);
+      setNote(null);
+      try {
+        const before = useBooth.getState().playlist ?? playlist;
+        const t = before.tandas[ti];
+        if (!t) return;
+        const r = await fetch("/api/tanda-set", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            playlist: before,
+            tandaIndex: ti,
+            sides: t.songs.map((x, k) => (k === si ? v.song : x.id)),
+          }),
+        });
+        const j = (await r.json().catch(() => ({}))) as Playlist & { changed?: boolean; reason?: string };
+        if (!r.ok || !j.changed) {
+          setNote(j.reason ? tx("boothSwap.failed", { reason: j.reason }) : tx("boothSwap.failed_plain"));
+          return;
+        }
+        const { changed: _c, reason: _r, ...after } = j;
+        await commit(after as Playlist, v.song.title, tx("swapSheet.swapped_in", { title: v.song.title }));
+      } finally {
+        setBusy(null);
+      }
+    });
+  /** a version of the smart search: a catalogue side as judged for this chair, or a service's recording */
+  const pickVersion = (v: Version) => {
+    if (!v.hit) return pickExternal(v);
+    const x: SwapSide = judged.get(v.song.id) ?? {
+      ok: false,
+      asks: true,
+      fit: 0,
+      song: v.song as unknown as SwapSide["song"],
+    };
+    if (!x.ok && !x.asks) {
+      setNote(tx("boothSwap.failed", { reason: x.reason ?? "" }));
+      return;
+    }
+    pickSide(x);
+  };
   const pickCortina = (c: Cortina) =>
     choose(c.title, async () => {
       if (chair.kind !== "cortina") return;
@@ -389,16 +499,29 @@ export function BoothSwapSheet() {
               ? tx("boothSwap.playing_note")
               : tx("boothSwap.played_note")}
         </p>
-        <SearchBar
-          value={q}
-          onChange={setQ}
-          placeholder={
-            kind === "cortina" ? tx("boothSwap.cortina_placeholder") : tx("boothSwap.search_placeholder")
-          }
-          testId="booth-swap-q"
-          busy={loading && !!query}
-          autoFocus={!isPhone}
-        />
+        {kind === "track" && scope === "catalogue" ? (
+          <SmartSearchField
+            s={ss}
+            id="booth-swap-search"
+            prefix="booth-swap"
+            placeholder={tx("boothSwap.search_placeholder")}
+            label={tx("boothSwap.search_placeholder")}
+            autoFocus={!isPhone}
+            onEnter={pickVersion}
+            inputTestId="booth-swap-q"
+          />
+        ) : (
+          <SearchBar
+            value={q}
+            onChange={setQ}
+            placeholder={
+              kind === "cortina" ? tx("boothSwap.cortina_placeholder") : tx("boothSwap.search_placeholder")
+            }
+            testId="booth-swap-q"
+            busy={loading && !!query}
+            autoFocus={!isPhone}
+          />
+        )}
         <ScopeSwitch<Scope>
           value={scope}
           items={[
@@ -488,16 +611,61 @@ export function BoothSwapSheet() {
           </section>
         ) : (
           <>
-            {searching && (
+            {kind === "track" && (
+              <section data-testid="booth-swap-results">
+                <SmartSearchResults
+                  s={ss}
+                  id="booth-swap-search"
+                  prefix="booth-swap"
+                  onPick={pickVersion}
+                  onPlay={(v) => (hearing === v.song.id ? stop() : void listen({ song: v.song }))}
+                  playing={(v) => hearing === v.song.id}
+                  rowTestId="booth-swap-result"
+                  dim={(v) => {
+                    const x = judged.get(v.song.id);
+                    return !!x && !x.ok;
+                  }}
+                  rowData={(v) => {
+                    const x = judged.get(v.song.id);
+                    return {
+                      id: v.song.id,
+                      ok: x ? (x.ok ? "1" : x.asks ? "asks" : "0") : v.hit ? "pending" : "service",
+                    };
+                  }}
+                  note={(v) => {
+                    const x = judged.get(v.song.id);
+                    if (!x || x.ok) return null;
+                    return (
+                      <span className="text-caption1 block truncate text-[var(--destructive)]">
+                        {x.asks ? tx("boothSwap.asks", { reason: x.reason ?? "" }) : x.reason}
+                      </span>
+                    );
+                  }}
+                  actions={(v) => {
+                    const x = judged.get(v.song.id);
+                    const can = when !== "played" && (!x || x.ok || !!x.asks);
+                    return (
+                      <button
+                        type="button"
+                        className="btn-plain min-h-11 min-w-11 px-2 font-semibold"
+                        disabled={!can || !!busy}
+                        aria-label={tx("boothSwap.use_label", { title: v.song.title })}
+                        onClick={() => pickVersion(v)}
+                        data-testid="booth-swap-pick"
+                      >
+                        {busy === v.song.id ? "…" : tx("boothSwap.use")}
+                      </button>
+                    );
+                  }}
+                />
+              </section>
+            )}
+            {searching && kind !== "track" && (
               <section data-testid="booth-swap-results">
                 <h3 className="text-caption1 px-2 pt-3 pb-1 font-semibold uppercase tracking-wide text-[var(--label-2)]">
                   {tx("boothSwap.results")}
                 </h3>
-                <ol>
-                  {kind === "track"
-                    ? (results as SwapSide[]).map((x) => sideRow(x, "r"))
-                    : (results as Cortina[]).map((c) => cortinaRow(c, "r"))}
-                </ol>
+                <ol>{(results as Cortina[]).map((c) => cortinaRow(c, "r"))}</ol>
                 {!results.length && !loading && (
                   <p className="text-subhead px-2 py-4 text-[var(--label-2)]">
                     {tx("boothSwap.nothing", { q: q.trim() })}

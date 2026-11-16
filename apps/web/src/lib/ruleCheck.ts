@@ -16,7 +16,9 @@ import {
   withoutExceptionMarker,
 } from "@tdj/core";
 import { create } from "zustand";
+import { recordEdit, recordSnapshot, undoEdit } from "./editHistory";
 import { t } from "./i18n";
+
 import { en, type MsgKey } from "./i18n/en";
 import { requestFavourites } from "./popularity";
 import { useStore } from "./store";
@@ -142,6 +144,11 @@ export interface GateOptions {
   learn?: boolean;
   /** a hand-built draft: the tanda rules only */
   scope?: "all" | "tandas";
+  /**
+   * 2026-11: what it applies goes into the one undo history (lib/editHistory.ts: ⌘Z, the toast's Undo); false when
+   * the caller records the edit itself
+   */
+  history?: boolean;
 }
 
 /**
@@ -157,12 +164,30 @@ export async function gateEdit(o: GateOptions): Promise<GateResult> {
     if (o.learn === false || !useStore.getState().settings.learn) return;
     useStore.getState().updateMemory((m) => rememberEdit(m, o.before, p, note));
   };
+  // 2026-11: every night the gate applies is one entry of the undo history; the toast's Undo walks the same history
+  let entry = -1;
+  const record = (p: Playlist) => {
+    if (o.history === false) return;
+    entry = recordEdit({
+      label: o.label,
+      undo: async () => {
+        await o.apply(o.before, t("ruleCheck.undone"));
+        useStore.getState().updateMemory((m) => ({ ...m, learned: learnedBefore }));
+      },
+      redo: () => o.apply(p, o.label),
+    });
+  };
   const undo = (what: string) => () => {
+    if (entry >= 0) {
+      void undoEdit({ id: entry });
+      return;
+    }
     void o.apply(o.before, what);
     useStore.getState().updateMemory((m) => ({ ...m, learned: learnedBefore }));
   };
   if (!local.length) {
     await o.apply(o.after, o.label);
+    record(o.after);
     teach(o.after, o.label);
     return "applied";
   }
@@ -171,6 +196,7 @@ export async function gateEdit(o: GateOptions): Promise<GateResult> {
   const asSaid = async (withToast: boolean) => {
     const { playlist, exceptions: exs } = approveEdit(o.after, hard, t("ruleCheck.reason_as_said"));
     await o.apply(playlist, o.label);
+    record(playlist);
     useStore.getState().updateMemory((m) => ({ ...m, learned: recordExceptions(m.learned, exs) }));
     teach(playlist, o.label);
     if (withToast)
@@ -181,6 +207,7 @@ export async function gateEdit(o: GateOptions): Promise<GateResult> {
   if (!hard.length) {
     // soft: the edit applies; the toast offers Undo and the suggestion
     await o.apply(o.after, o.label);
+    record(o.after);
     teach(o.after, o.label);
     const applied = useStore.getState().playlist ?? o.after;
     toast(
@@ -206,6 +233,7 @@ export async function gateEdit(o: GateOptions): Promise<GateResult> {
   if (choice.kind === "cancel") return "cancelled";
   if (choice.kind === "asSaid") return asSaid(false);
   await o.apply(choice.playlist, o.label);
+  record(choice.playlist);
   teach(choice.playlist, o.label);
   toast(t("ruleCheck.suggestion_used"), undo(t("ruleCheck.undone")));
   return "suggestion";
@@ -221,9 +249,10 @@ async function seeSuggestion(o: GateOptions, violations: RuleViolation[], applie
   // only when the night on screen is still the one the edit made
   if (useStore.getState().playlist && useStore.getState().playlist !== applied) return;
   await o.apply(choice.playlist, o.label);
+  if (o.history !== false) recordSnapshot(o.label, applied, choice.playlist, (p) => o.apply(p, o.label));
   if (o.learn !== false && useStore.getState().settings.learn)
     useStore.getState().updateMemory((m) => rememberEdit(m, o.before, choice.playlist, o.label));
-  toast(t("ruleCheck.suggestion_used"));
+  toast(t("ruleCheck.suggestion_used"), () => void undoEdit());
 }
 
 /** remove one exception (the night's panel, Database → Memory): its record, and its marker on the night on screen */

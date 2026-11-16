@@ -149,6 +149,8 @@ interface SwapBody {
   pin?: unknown;
   /** 2026-11: the DJ's dancer favourites now (null: switched off; absent: the night's own) */
   favourites?: unknown;
+  /** 2026-11: the smart search's catalogue results, judged for this chair (`judged`) */
+  ids?: unknown;
 }
 
 /** the request's dancer favourites: a table (or a tracker, decayed now), null (none), or undefined (the night's own) */
@@ -191,6 +193,9 @@ export async function swapOptions(req: Request, d: ApiDeps): Promise<Response> {
   const r = swapOptionsFor(playlist, ti, si, deps, {
     query: typeof query === "string" ? query.slice(0, 80) : undefined,
     favourites: favouritesOf(body.favourites),
+    ids: Array.isArray(body.ids)
+      ? body.ids.filter((x): x is string => typeof x === "string").map((x) => x.slice(0, 120))
+      : undefined,
   });
   // a side excluded only by a tanda rule (another singer, an instrumental, the years, a title already tonight) may
   // still be chosen: the rule check asks the DJ first (core editCheck, the tanda rules only: cheap per row)
@@ -206,7 +211,11 @@ export async function swapOptions(req: Request, d: ApiDeps): Promise<Response> {
     return checkEdit(playlist, after, { scope: "tandas" }).violations.some((v) => v.severity === "hard");
   };
   const wire = (x: SwapOption) => ({ ...swapWire(x), ...(asks(x) ? { asks: true } : {}) });
-  return json({ suggestions: r.suggestions.map(swapWire), results: r.results.map(wire) });
+  return json({
+    suggestions: r.suggestions.map(swapWire),
+    results: r.results.map(wire),
+    ...(r.judged.length ? { judged: r.judged.map(wire) } : {}),
+  });
 }
 
 /**

@@ -1,0 +1,93 @@
+/* 2026-11 the smart search (components/ui/SmartSearch.tsx): completions under the field, the versions, the sources.
+   Content on `surface` (the rows sit in .group-inset), no glass: only the control layer is glass. */
+.smart-assist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  min-width: 0;
+}
+.smart-assist-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  max-width: 100%;
+  padding: 0 12px;
+  border-radius: 12px;
+  background: var(--fill-4);
+  color: var(--label);
+  font-size: 0.9375rem;
+  text-align: left;
+  min-width: 0;
+}
+.smart-assist-item[data-kind="correction"] {
+  background: color-mix(in srgb, var(--tint) 14%, transparent);
+}
+.smart-assist-item:focus-visible {
+  outline: 2px solid var(--tint);
+  outline-offset: 2px;
+}
+.smart-assist-kind {
+  font-size: var(--text-caption1);
+  color: var(--label-2);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+.smart-kbd {
+  font-size: 0.6875rem;
+  line-height: 1;
+  padding: 3px 5px;
+  border-radius: 5px;
+  background: var(--fill-3);
+  color: var(--label-2);
+  flex-shrink: 0;
+}
+@media (hover: none) {
+  .smart-kbd {
+    display: none;
+  }
+}
+.smart-version[data-active] {
+  background: color-mix(in srgb, var(--tint) 10%, transparent);
+}
+.smart-sources {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  color: var(--label-2);
+}
+.smart-source {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: var(--fill-4);
+}
+.smart-source[data-source="spotify"] {
+  color: light-dark(#0f7a37, #4ade80);
+}
+.smart-source[data-source="local"] {
+  color: var(--tint);
+}
+.smart-work-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 16px 4px;
+  min-width: 0;
+}
+/* a rhythm read from a service's title, not the catalogue: shown, but quieter */
+.tanda-type.smart-guess {
+  opacity: 0.7;
+}
+/* a phone: the length and the sources would crowd the title; the facts line still has the year */
+@media (max-width: 399.98px) {
+  .smart-version .len {
+    display: none;
+  }
+}

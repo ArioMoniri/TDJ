@@ -24,6 +24,7 @@ import {
   Pin,
   PinOff,
   Play,
+  Redo2,
   Repeat2,
   Search,
   Share,
@@ -31,6 +32,7 @@ import {
   Star,
   ThumbsDown,
   ThumbsUp,
+  Undo2,
 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import dynamic from "next/dynamic";
@@ -46,6 +48,7 @@ import {
 } from "@/lib/changes";
 import { rememberComposeMs } from "@/lib/composeProgress";
 import { djMessages } from "@/lib/djMessage";
+import { recordSnapshot, redoEdit, undoEdit } from "@/lib/editHistory";
 import { FEATURED, type FeaturedId, featuredMeta, loadFeatured } from "@/lib/featured";
 import { FEEDBACK_CHIPS } from "@/lib/feedback";
 import { haptic } from "@/lib/haptics";
@@ -112,9 +115,9 @@ import { PrimaryBar } from "./PrimaryBar";
 import { ScoreCounter } from "./ScoreCounter";
 import { Sheet } from "./Sheet";
 import { SwapSheet } from "./SwapSheet";
-import { TandaChoices } from "./TandaChoices";
 import { TandaInspector } from "./TandaInspector";
 import { TandaRulesGroup } from "./TandaRules";
+import { TandaSwapSheet } from "./TandaSwapSheet";
 import { NightProfile } from "./ui/NightProfile";
 import { NightLength, PlayRow } from "./ui/PlayRow";
 import { Tip } from "./ui/Tip";
@@ -911,7 +914,7 @@ export function Composer() {
   const [active, setActive] = useState<number | null>(null);
   /** the tanda the wide-screen inspector shows */
   const [inspected, setInspected] = useState(0);
-  const [swapping, setSwapping] = useState<number | null>(null);
+  const [swapping] = useState<number | null>(null);
   const [swappingTrack] = useState<[number, number] | null>(null);
   /** the card whose lock just flipped: the only one (with the swapping one) that gets layout animations */
   const [lockedCard, setLockedCard] = useState<number | null>(null);
@@ -1337,58 +1340,23 @@ export function Composer() {
   const composeNow = useCallback(() => {
     runRef.current();
   }, []);
-  /** wave 2: Swap tanda offers up to three families, nearest the slot's planned energy first; the DJ chooses */
-  const [choices, setChoices] = useState<{ i: number; options: Playlist[] | null } | null>(null);
-  const swap = useCallback(async (i: number) => {
-    const playlist = useStore.getState().playlist;
-    if (!playlist) return;
-    setChoices({ i, options: null });
-    setSwapping(i);
-    try {
-      const r = await fetch("/api/swap", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ playlist, index: i, options: true }),
-      });
-      const j = r.ok ? ((await r.json()) as { options?: Playlist[] }) : null;
-      setChoices((c) => (c?.i === i ? { i, options: j?.options ?? [] } : c));
-    } catch {
-      setChoices((c) => (c?.i === i ? { i, options: [] } : c));
-    } finally {
-      setSwapping(null);
-    }
+  /**
+   * 2026-11 (the owner: "the swap button on a tanda directly swaps"): Swap tanda opens the tanda Swap sheet
+   * (components/TandaSwapSheet.tsx) — the engine's whole tandas, or the DJ's own built from the smart search and
+   * reordered — and nothing changes until Apply, through the rule check and the undo history.
+   */
+  const [tandaAt, setTandaAt] = useState<number | null>(null);
+  const swap = useCallback((i: number) => {
+    if (!useStore.getState().playlist) return;
+    setTandaAt(i);
   }, []);
-  const pickChoice = useCallback(
-    async (p: Playlist) => {
-      const prev = useStore.getState().playlist;
-      const i = choices?.i ?? 0;
-      setChoices(null);
-      if (!prev) return;
-      // the rule check: a new tanda that breaks the night's flow says so (Undo, See suggestion)
-      const res = await gateEdit({
-        before: prev,
-        after: p,
-        label: tx("composer.changed_tanda", { p1: i + 1 }),
-        apply: (x, label) => {
-          remember(prev);
-          setPlaylist(x);
-          recordNightEdit(x, label, "swap");
-        },
-        learn: false,
-      });
-      if (res !== "applied") return;
-      toast(
-        tx("composer.tanda_is_now", {
-          p1: i + 1,
-          p2: p.tandas[i]?.orchestra ?? tx("composer.another_tanda"),
-        }),
-        () => {
-          setPlaylist(prev);
-          recordNightEdit(prev, tx("composer.swap_undone"), "swap");
-        },
-      );
+  const applyTanda = useCallback(
+    (x: Playlist, label: string) => {
+      remember(useStore.getState().playlist);
+      setPlaylist(x);
+      recordNightEdit(x, label, "swap");
     },
-    [choices, setPlaylist, recordNightEdit, remember],
+    [setPlaylist, recordNightEdit, remember],
   );
   // round 21: a side's swap opens its Swap sheet (suggestions that keep the tanda valid, search, AI pick)
   const [swapAt, setSwapAt] = useState<{ i: number; k: number } | null>(null);
@@ -1435,10 +1403,8 @@ export function Composer() {
         },
       });
       if (res !== "applied") return;
-      toast(label, () => {
-        setPlaylist(prev);
-        recordNightEdit(prev, tx("play.move_undone"), "swap");
-      });
+      // the toast's Undo is the one undo history (⌘Z walks the same)
+      toast(label, () => void undoEdit());
     },
     [setPlaylist, recordNightEdit, remember],
   );
@@ -1450,10 +1416,19 @@ export function Composer() {
       setLockedCard(i);
       if (lockTimer.current) clearTimeout(lockTimer.current);
       lockTimer.current = setTimeout(() => setLockedCard(null), 700);
-      setPlaylist({
+      const next = {
         ...playlist,
         tandas: playlist.tandas.map((t, k) => (k === i ? { ...t, locked: !t.locked } : t)),
-      });
+      };
+      setPlaylist(next);
+      recordSnapshot(
+        next.tandas[i]?.locked
+          ? tx("editKeys.locked", { p1: i + 1 })
+          : tx("editKeys.unlocked", { p1: i + 1 }),
+        playlist,
+        next,
+        setPlaylist,
+      );
     },
     [setPlaylist],
   );
@@ -1463,10 +1438,12 @@ export function Composer() {
       const playlist = useStore.getState().playlist;
       if (!playlist) return;
       const on = !playlist.tandas[i]?.bypass;
-      setPlaylist({
+      const next = {
         ...playlist,
         tandas: playlist.tandas.map((t, k) => (k === i ? { ...t, bypass: on || undefined } : t)),
-      });
+      };
+      setPlaylist(next);
+      recordSnapshot(tx("editKeys.skip_toggled", { p1: i + 1 }), playlist, next, setPlaylist);
       toast(
         on
           ? tx("composer.tanda_is_skipped_tonight_it_stays", { p1: i + 1 })
@@ -1479,7 +1456,9 @@ export function Composer() {
     const playlist = useStore.getState().playlist;
     if (!playlist) return;
     const all = playlist.tandas.every((t) => t.locked);
-    setPlaylist({ ...playlist, tandas: playlist.tandas.map((t) => ({ ...t, locked: !all })) });
+    const next = { ...playlist, tandas: playlist.tandas.map((t) => ({ ...t, locked: !all })) };
+    setPlaylist(next);
+    recordSnapshot(tx("editKeys.lock_all"), playlist, next, setPlaylist);
     toast(all ? tx("composer.all_tandas_unlocked") : tx("composer.all_tandas_locked_regenerate_keeps_every"));
   }, [setPlaylist]);
   /** Clear the set (undo for a few seconds via the toast); the form unfolds again. */
@@ -1489,7 +1468,8 @@ export function Composer() {
     setPlaylist(null);
     setChangeSummary(null);
     setChangedSet(new Set());
-    toast(tx("composer.set_cleared"), () => setPlaylist(prev));
+    recordSnapshot(tx("composer.set_cleared"), prev as Playlist | null, null, setPlaylist);
+    toast(tx("composer.set_cleared"), () => void undoEdit());
   }, [setPlaylist]);
   /** A chip never leaves a custom cycle empty, and every structural change it makes is said out loud. */
   const settleOptions = (prev: Partial<ComposeOptions>, next: Partial<ComposeOptions>) => {
@@ -1862,6 +1842,14 @@ export function Composer() {
                       el?.scrollIntoView({ behavior: "smooth", block: "center" });
                       el?.focus({ preventScroll: true });
                     },
+                  },
+                  // 2026-11: the one undo history (⌘Z / ⇧⌘Z anywhere outside a text field)
+                  { label: tx("editKeys.undo"), icon: Undo2, shortcut: "⌘Z", onClick: () => void undoEdit() },
+                  {
+                    label: tx("editKeys.redo"),
+                    icon: Redo2,
+                    shortcut: "⇧⌘Z",
+                    onClick: () => void redoEdit(),
                   },
                   { label: tx("composer.clear_set"), icon: Eraser, onClick: clearSet, destructive: true },
                 ]}
@@ -2469,14 +2457,13 @@ export function Composer() {
         playlist={playlist}
         onChange={(p) => swapApplied(p)}
       />
-      <TandaChoices
-        index={choices?.i ?? null}
-        current={choices ? playlist : null}
-        options={choices?.options ?? null}
-        busy={!!choices && !choices.options}
-        onPick={pickChoice}
-        onClose={() => setChoices(null)}
+      <TandaSwapSheet
+        playlist={tandaAt !== null ? playlist : null}
+        index={tandaAt}
+        onClose={() => setTandaAt(null)}
+        apply={applyTanda}
       />
+
       <SwapSheet
         playlist={swapAt ? playlist : null}
         tandaIndex={swapAt?.i ?? null}
