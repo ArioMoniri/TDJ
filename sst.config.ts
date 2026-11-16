@@ -8,7 +8,8 @@ export default $config({
     return {
       name: "tdj",
       removal: input?.stage === "production" ? "retain" : "remove",
-      protect: ["production"].includes(input?.stage ?? ""),
+      // `tdj destroy` lifts the guard for one run (TDJ_ALLOW_REMOVE=1) after the person types the stage name
+      protect: ["production"].includes(input?.stage ?? "") && process.env.TDJ_ALLOW_REMOVE !== "1",
       home: "aws",
       providers: {
         aws: {

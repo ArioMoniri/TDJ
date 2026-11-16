@@ -20,26 +20,57 @@ export function palette({ color = true } = {}) {
 /** @param {NodeJS.ProcessEnv} env @param {boolean} isTTY @param {boolean} flag */
 export const useColor = (env, isTTY, flag) => flag !== false && !env.NO_COLOR && env.TERM !== "dumb" && isTTY;
 
+export const CREDIT = "Developed by Ariorad Moniri";
+
+/** Pure-ASCII stand-ins for the banner's box and block characters (TERM=dumb, non-UTF-8 terminals). */
+const ASCII = /** @type {Record<string, string>} */ ({
+  "█": "#",
+  "╱": "/",
+  "╲": "\\",
+  "│": "|",
+  "─": "-",
+  "┌": "+",
+  "┐": "+",
+  "└": "+",
+  "┘": "+",
+  "●": "o",
+  "·": "-",
+});
+
+/** True when the terminal may not draw Unicode box characters. @param {NodeJS.ProcessEnv} env */
+export function asciiOnly(env) {
+  if (env.TERM === "dumb" || env.TDJ_ASCII === "1") return true;
+  const locale = env.LC_ALL || env.LC_CTYPE || env.LANG || "";
+  return locale !== "" && locale !== "C.UTF-8" && !/utf-?8/i.test(locale);
+}
+
 /**
- * A bandoneon (bellows, two button boards) over the TDJ wordmark.
- * @param {ReturnType<typeof palette>} c
+ * A bandoneon (two button boards, the bellows between them) over the T-DJ wordmark, under 50 columns so it fits
+ * any terminal. Plain when colour is off; pure ASCII with `ascii`.
+ * @param {ReturnType<typeof palette>} c @param {{ ascii?: boolean }} [o]
  */
-export function banner(c) {
+export function banner(c, { ascii = false } = {}) {
   const b = c.cream;
   const f = c.rose;
+  const w = (/** @type {string} */ s) => c.bold(c.violet(s));
   const lines = [
-    `   ${b("┌──────┐")}${f("╱╲╱╲╱╲╱╲╱╲╱╲")}${b("┌──────┐")}`,
-    `   ${b("│ ● ● ●│")}${f("│││││││││││")}${f("│")}${b("│● ● ● │")}`,
-    `   ${b("│● ● ● │")}${f("│││││││││││")}${f("│")}${b("│ ● ● ●│")}`,
-    `   ${b("│ ● ● ●│")}${f("│││││││││││")}${f("│")}${b("│● ● ● │")}`,
-    `   ${b("└──────┘")}${f("╲╱╲╱╲╱╲╱╲╱╲╱")}${b("└──────┘")}`,
+    `   ${b("┌───────┐")}${f("╱╲╱╲╱╲╱╲╱╲╱╲╱")}${b("┌───────┐")}`,
+    `   ${b("│ ● ● ● │")}${f(" │ │ │ │ │ │ ")}${b("│ ● ● ● │")}`,
+    `   ${b("│● ● ● ●│")}${f(" │ │ │ │ │ │ ")}${b("│● ● ● ●│")}`,
+    `   ${b("│ ● ● ● │")}${f(" │ │ │ │ │ │ ")}${b("│ ● ● ● │")}`,
+    `   ${b("└───────┘")}${f("╲╱╲╱╲╱╲╱╲╱╲╱╲")}${b("└───────┘")}`,
     "",
-    `   ${c.bold(c.violet("████████ ██████        ██"))}`,
-    `   ${c.bold(c.violet("   ██    ██   ██       ██"))}`,
-    `   ${c.bold(c.violet("   ██    ██   ██ ██    ██"))}`,
-    `   ${c.bold(c.violet("   ██    ██████   ██████ "))}   ${c.dim("tandas · cortinas · one night")}`,
+    `   ${w("████████         ██████         ██")}`,
+    `   ${w("   ██            ██   ██        ██")}`,
+    `   ${w("   ██   ██████   ██   ██        ██")}`,
+    `   ${w("   ██            ██   ██  ██    ██")}`,
+    `   ${w("   ██            ██████    █████")}`,
+    "",
+    `   ${c.dim("tandas · cortinas · one night")}`,
+    `   ${c.dim(CREDIT)}`,
   ];
-  return lines.join("\n");
+  const out = lines.join("\n");
+  return ascii ? [...out].map((ch) => ASCII[ch] ?? ch).join("") : out;
 }
 
 /**
