@@ -5,7 +5,8 @@
  * unfolded to the other display, and back.
  *   - nothing reloads (a marker on window survives, one navigation entry),
  *   - the Booth keeps playing the same song, its clock keeps moving,
- *   - the layout follows the width: the phone's tab bar folded, the wider navigation open; no sideways overflow.
+ *   - the layout follows the width: the phone layout folded (the Booth's transport, no navigation pill), the
+ *     navigation pill or the sidebar open; no sideways overflow.
  * Screenshots go to $DUO_SHOTS when set.
  */
 import { expect, type Page, test } from "@playwright/test";
@@ -75,6 +76,8 @@ const navs = (page: Page) =>
       tabBar: vis('[data-testid="tab-bar"]'),
       pill: vis('[data-testid="nav-pill"]'),
       sidebar: vis('[data-testid="sidebar"]'),
+      // on a phone the Booth's transport takes the tab bar's place
+      transport: vis('[data-testid="booth-pause"]'),
     };
   });
 
@@ -140,7 +143,9 @@ test("fold and unfold mid-night: no reload, the Booth keeps playing, the layout 
     // the layout follows the width, with nothing wider than the display
     expect(await overflow(page), `${step}: sideways overflow at ${to}`).toBeLessThanOrEqual(1);
     const L = await navs(page);
-    if (DUO[to].viewport.width < 640) expect(L.tabBar || L.pill, `${step}: a navigation at ${to}`).toBe(true);
+    expect(L.transport, `${step}: the Booth's transport at ${to}`).toBe(true);
+    if (DUO[to].viewport.width < 640)
+      expect(L.sidebar || L.pill, `${step}: the phone layout at ${to} (${JSON.stringify(L)})`).toBe(false);
     else
       expect(L.pill || L.sidebar, `${step}: the wide navigation at ${to} (${JSON.stringify(L)})`).toBe(true);
     if (SHOTS) await page.screenshot({ path: `${SHOTS}/${posture}-${step.replace("/", "-")}-${to}.png` });
