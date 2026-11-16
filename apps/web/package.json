@@ -11,6 +11,7 @@
     "test": "vitest run",
     "e2e": "playwright test",
     "media": "tsx scripts/capture-media.ts",
+    "media:hero": "tsx scripts/media-hero.ts",
     "perf": "tsx scripts/perf-probe.ts",
     "spotify:check": "tsx scripts/spotify-check.ts"
   },

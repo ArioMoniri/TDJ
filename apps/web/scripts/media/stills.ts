@@ -5,6 +5,14 @@
  */
 import { mkdirSync, rmSync } from "node:fs";
 import type { Browser, Page } from "playwright";
+import {
+  fitDevice,
+  frameOver,
+  frameUnder,
+  type Kind,
+  screenRadius,
+  screenRect,
+} from "../../../video/src/frames";
 import { newCtx, offlineAudio, openBooth, openFeatured } from "./clips";
 import { ffmpeg } from "./ffmpeg";
 
@@ -20,8 +28,9 @@ const IPAD = {
     "Mozilla/5.0 (iPad; CPU OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1",
 };
 const PHONE = {
-  viewport: { width: 393, height: 852 },
-  deviceScaleFactor: 2,
+  // an iPhone 15 Pro class screen (393 × 852 pt, 3×) less its 54 pt status bar, which the frame draws
+  viewport: { width: 393, height: 798 },
+  deviceScaleFactor: 3,
   hasTouch: true,
   isMobile: true,
   userAgent:
@@ -31,32 +40,34 @@ const PHONE = {
 const BG =
   "radial-gradient(1100px 700px at 12% 8%, #f07aa0 0%, transparent 60%), radial-gradient(900px 800px at 92% 96%, #5b2a86 0%, transparent 62%), linear-gradient(135deg, #b0305e 0%, #7a2350 52%, #3b1840 100%)";
 
-/** the screenshot inside its frame on the brand background → <out>/<name>.webp */
+/**
+ * The screenshot inside its frame on the brand background → <out>/<name>.webp. The frames are the clips' own
+ * (apps/video/src/frames.ts): the laptop seen straight on, the iPad, the phone with its status bar. Every still is
+ * 16:10 like the clips, so a README column of GIFs and stills lines up; drawn at 2× for a sharp 840 px display.
+ */
 async function frame(
   browser: Browser,
   png: Buffer,
   out: string,
   name: string,
-  kind: "desktop" | "tablet" | "phone",
-  dark: boolean,
+  kind: Kind,
+  look: { dark: boolean; bg?: string; w: number; h: number },
 ) {
   const src = `data:image/png;base64,${png.toString("base64")}`;
-  const W = kind === "phone" ? 900 : 1600;
+  const W = 1600;
   const H = 1000;
-  const device =
-    kind === "desktop"
-      ? `<div style="position:absolute;left:96px;top:50px;width:1408px;height:916px;border-radius:14px;overflow:hidden;background:${dark ? "#1c1c1e" : "#ecebe8"};box-shadow:0 50px 100px -20px rgba(30,6,24,.55),0 30px 60px -30px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.18)">
-          <div style="height:36px;display:flex;align-items:center;gap:8px;padding-left:16px"><i style="width:12px;height:12px;border-radius:6px;background:#ff5f57"></i><i style="width:12px;height:12px;border-radius:6px;background:#febc2e"></i><i style="width:12px;height:12px;border-radius:6px;background:#28c840"></i></div>
-          <img src="${src}" style="display:block;width:1408px;height:880px">
-        </div>`
-      : kind === "tablet"
-        ? `<div style="position:absolute;left:174px;top:58px;width:1253px;height:884px;border-radius:62px;background:#0d0d10;box-shadow:0 50px 100px -20px rgba(30,6,24,.6),0 0 0 2px #3a3a40">
-            <img src="${src}" style="position:absolute;left:22px;top:22px;width:1209px;height:840px;border-radius:36px">
-          </div>`
-        : `<div style="position:absolute;left:230px;top:40px;width:440px;height:920px;border-radius:66px;background:#0d0d10;box-shadow:0 50px 100px -20px rgba(30,6,24,.6),0 0 0 2px #3a3a40">
-            <img src="${src}" style="position:absolute;left:14px;top:14px;width:412px;height:892px;border-radius:52px">
-          </div>`;
-  const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
+  const c =
+    kind === "phone"
+      ? fitDevice(kind, look.w, look.h, W / 2, H / 2, 520, 950)
+      : fitDevice(kind, look.w, look.h, W / 2, H / 2, 1460, 930);
+  const sc = screenRect(kind, c);
+  const device = [
+    frameUnder(kind, c, { dark: look.dark }),
+    `<div style="position:absolute;left:${sc.x}px;top:${sc.y}px;width:${sc.w}px;height:${sc.h}px;border-radius:${screenRadius(kind, c)};overflow:hidden;background:#000">`,
+    `<img src="${src}" style="position:absolute;left:${c.x - sc.x}px;top:${c.y - sc.y}px;width:${c.w}px;height:${c.h}px"></div>`,
+    frameOver(kind, c, { dark: look.dark, statusBg: look.bg }),
+  ].join("");
+  const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 2 });
   await page.setContent(
     `<html><body style="margin:0;width:${W}px;height:${H}px;background:${BG};position:relative;overflow:hidden">${device}</body></html>`,
   );
@@ -68,6 +79,18 @@ async function frame(
   ffmpeg(["-i", tmp, "-c:v", "libwebp", "-quality", "88", "-compression_level", "6", `${out}/${name}.webp`]);
   rmSync(tmp, { force: true });
 }
+
+/** the page's top colour (a phone's status bar takes it) */
+const topColour = (page: Page) =>
+  page.evaluate(() => {
+    let el: Element | null = document.elementFromPoint(window.innerWidth / 2, 2) ?? document.body;
+    let bg = "rgba(0, 0, 0, 0)";
+    while (el && /rgba\(0, 0, 0, 0\)|transparent/.test(bg)) {
+      bg = getComputedStyle(el).backgroundColor;
+      el = el.parentElement;
+    }
+    return bg;
+  });
 
 type Shot = (page: Page, base: string) => Promise<void>;
 function still(
@@ -85,8 +108,14 @@ function still(
     await shoot(page, base);
     await page.waitForTimeout(700);
     const png = await page.screenshot();
+    const bg = await topColour(page).catch(() => undefined);
     await ctx.close();
-    await frame(browser, png, out, name, kind, theme === "dark");
+    await frame(browser, png, out, name, kind, {
+      dark: theme === "dark",
+      bg,
+      w: device.viewport.width,
+      h: device.viewport.height,
+    });
   };
 }
 

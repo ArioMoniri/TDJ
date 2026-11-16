@@ -13,12 +13,13 @@ import {
   staticFile,
   useCurrentFrame,
 } from "remotion";
+import { chrome, frameOver, frameUnder, screenRadius, screenRect } from "./frames";
 
 export const FPS = 60;
 export const W = 1600;
 export const H = 1000;
 
-type Track = {
+export type Track = {
   name: string;
   kind: "desktop" | "tablet" | "phone";
   pointer: "mouse" | "touch";
@@ -30,12 +31,15 @@ type Track = {
   focus: Array<{ t: number; x: number; y: number; zoom: number }>;
   cuts: Array<{ from: number; to: number; keep: number }>;
   pair?: string;
+  /** the page's background at the start (a phone's status bar takes it) and its colour scheme */
+  bg?: string;
+  dark?: boolean;
 };
 export type ClipProps = { name: string; tracks?: Track[] };
 
 /** source ms ↔ clip ms through the compressed waits */
-type Piece = { src0: number; src1: number; out0: number; out1: number };
-function pieces(t: Track): Piece[] {
+export type Piece = { src0: number; src1: number; out0: number; out1: number };
+export function pieces(t: Track): Piece[] {
   const out: Piece[] = [];
   let src = 0;
   let o = 0;
@@ -51,11 +55,11 @@ function pieces(t: Track): Piece[] {
   out.push({ src0: src, src1: t.durationMs, out0: o, out1: o + (t.durationMs - src) });
   return out.filter((p) => p.out1 > p.out0);
 }
-const toSrc = (ps: Piece[], ms: number) => {
+export const toSrc = (ps: Piece[], ms: number) => {
   const p = ps.find((q) => ms < q.out1) ?? ps[ps.length - 1]!;
   return p.src0 + ((Math.min(ms, p.out1) - p.out0) / (p.out1 - p.out0)) * (p.src1 - p.src0);
 };
-const outLength = (t: Track) => {
+export const outLength = (t: Track) => {
   const ps = pieces(t);
   return ps[ps.length - 1]!.out1;
 };
@@ -70,86 +74,73 @@ export const calculateClipMetadata: CalculateMetadataFunction<ClipProps> = async
   };
 };
 
-/** where a device's screen sits on the 1600 × 1000 stage */
-type Place = { x: number; y: number; s: number; w: number; h: number; kind: Track["kind"] };
+/** where a device's content (the app's pixels) sits on the 1600 × 1000 stage */
+export type Place = { x: number; y: number; s: number; w: number; h: number; kind: Track["kind"] };
 function places(tracks: Track[]): Place[] {
   const at = (t: Track, cx: number, cy: number, maxW: number, maxH: number): Place => {
-    const chrome = t.kind === "desktop" ? 40 : t.kind === "tablet" ? 52 : 40;
-    const s = Math.min((maxW - chrome) / t.width, (maxH - chrome) / t.height);
+    // the frame's size depends on the content's: settle the scale in a few passes
+    let s = Math.min(maxW / t.width, maxH / t.height);
+    let c = chrome(t.kind, t.width * s);
+    for (let i = 0; i < 3; i++) {
+      s = Math.min((maxW - 2 * c.side) / t.width, (maxH - c.top - c.bottom) / t.height);
+      c = chrome(t.kind, t.width * s);
+    }
     const w = t.width * s;
     const h = t.height * s;
-    const top = t.kind === "desktop" ? 18 : 0; // the title bar sits above the content
-    return { x: cx - w / 2, y: cy - h / 2 + top, s, w, h, kind: t.kind };
+    return { x: cx - w / 2, y: cy - (h + c.top + c.bottom) / 2 + c.top, s, w, h, kind: t.kind };
   };
-  if (tracks.length === 2) return [at(tracks[0]!, 600, 500, 1060, 820), at(tracks[1]!, 1335, 500, 420, 900)];
+  if (tracks.length === 2) return [at(tracks[0]!, 610, 500, 1080, 860), at(tracks[1]!, 1340, 500, 420, 900)];
   const t = tracks[0]!;
-  return [at(t, W / 2, H / 2, t.kind === "phone" ? 520 : 1440, t.kind === "phone" ? 940 : 920)];
+  return [at(t, W / 2, H / 2, t.kind === "phone" ? 520 : 1460, t.kind === "phone" ? 950 : 930)];
 }
 
-const BG =
+export const BG =
   "radial-gradient(1100px 700px at 12% 8%, #f07aa0 0%, transparent 60%), radial-gradient(900px 800px at 92% 96%, #5b2a86 0%, transparent 62%), linear-gradient(135deg, #b0305e 0%, #7a2350 52%, #3b1840 100%)";
 
-function Device({ place, children, dark }: { place: Place; children: React.ReactNode; dark?: boolean }) {
+/** the device around the content: the shared frames (frames.ts), the same ones the README stills use */
+function Device({
+  place,
+  children,
+  dark,
+  statusBg,
+}: {
+  place: Place;
+  children: React.ReactNode;
+  dark?: boolean;
+  statusBg?: string;
+}) {
   const { x, y, w, h, kind } = place;
-  if (kind === "desktop")
-    return (
-      <div
-        style={{
-          position: "absolute",
-          left: x,
-          top: y - 36,
-          width: w,
-          height: h + 36,
-          borderRadius: 14,
-          overflow: "hidden",
-          background: dark ? "#1c1c1e" : "#ecebe8",
-          boxShadow:
-            "0 50px 100px -20px rgba(30,6,24,.55), 0 30px 60px -30px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.18)",
-        }}
-      >
-        <div style={{ height: 36, display: "flex", alignItems: "center", gap: 8, paddingLeft: 16 }}>
-          {["#ff5f57", "#febc2e", "#28c840"].map((c) => (
-            <div key={c} style={{ width: 12, height: 12, borderRadius: 6, background: c }} />
-          ))}
-        </div>
-        <div style={{ position: "absolute", left: 0, top: 36, width: w, height: h }}>{children}</div>
-      </div>
-    );
-  const bezel = kind === "tablet" ? 22 : 14;
-  const r = kind === "tablet" ? 40 : 56;
+  const c = { x, y, w, h };
+  const sc = screenRect(kind, c);
+  const layer = { position: "absolute", inset: 0 } as const;
   return (
-    <div
-      style={{
-        position: "absolute",
-        left: x - bezel,
-        top: y - bezel,
-        width: w + bezel * 2,
-        height: h + bezel * 2,
-        borderRadius: r + bezel,
-        background: "#0d0d10",
-        boxShadow:
-          "0 50px 100px -20px rgba(30,6,24,.6), 0 0 0 2px #3a3a40, inset 0 0 0 1px rgba(255,255,255,.08)",
-      }}
-    >
+    <>
+      {/* biome-ignore lint/security/noDangerouslySetInnerHtml: our own frame markup (frames.ts), no input */}
+      <div style={layer} dangerouslySetInnerHTML={{ __html: frameUnder(kind, c, { dark }) }} />
       <div
         style={{
           position: "absolute",
-          left: bezel,
-          top: bezel,
-          width: w,
-          height: h,
-          borderRadius: r - 6,
+          left: sc.x,
+          top: sc.y,
+          width: sc.w,
+          height: sc.h,
+          borderRadius: screenRadius(kind, c),
           overflow: "hidden",
+          background: "#000",
         }}
       >
-        {children}
+        <div style={{ position: "absolute", left: x - sc.x, top: y - sc.y, width: w, height: h }}>
+          {children}
+        </div>
       </div>
-    </div>
+      {/* biome-ignore lint/security/noDangerouslySetInnerHtml: our own frame markup (frames.ts), no input */}
+      <div style={layer} dangerouslySetInnerHTML={{ __html: frameOver(kind, c, { dark, statusBg }) }} />
+    </>
   );
 }
 
 /** the eased path between cursor samples */
-function cursorAt(t: Track, ms: number) {
+export function cursorAt(t: Track, ms: number) {
   const c = t.cursor;
   if (!c.length) return { x: t.width / 2, y: t.height / 2 };
   const i = c.findIndex((p) => p.t > ms);
@@ -224,7 +215,7 @@ function camera(t: Track, place: Place, ps: Piece[], frames: number) {
   return out;
 }
 
-function Pointer({ t, place, src }: { t: Track; place: Place; src: number }) {
+export function Pointer({ t, place, src }: { t: Track; place: Place; src: number }) {
   const p = cursorAt(t, src);
   const x = place.x + p.x * place.s;
   const y = place.y + p.y * place.s;
@@ -311,7 +302,7 @@ export const Clip = ({ name, tracks }: ClipProps) => {
         }}
       >
         {ts.map((t, i) => (
-          <Device key={t.name} place={pl[i]!} dark={dark}>
+          <Device key={t.name} place={pl[i]!} dark={t.dark ?? dark} statusBg={t.bg}>
             {pss[i]!.map((p) => {
               const from = Math.round((p.out0 / 1000) * FPS);
               const dur = Math.max(1, Math.round((p.out1 / 1000) * FPS) - from);

@@ -4,7 +4,7 @@
  *   1. clips  (scripts/media/clips.ts): each clip filmed with CDP screencast at 2× pixels, with a planned, eased
  *      cursor path → apps/video/public/raw/<clip>.{mp4,json}
  *   2. render (apps/video, composition "Clip"): cursor, click ripples, gentle zoom, rounded window on the brand
- *      background, 60 fps H.264 → media/readme/<clip>.mp4, then a looping GIF for the README → <clip>.gif
+ *      background, 60 fps H.264 → media/readme/<clip>.mp4, then a looping GIF for the README (840 or 1680 px wide) → <clip>.gif
  *   3. stills (scripts/media/stills.ts): framed screenshots → media/readme/<still>.webp
  *
  * Run against a production build (`pnpm --filter @tdj/web build && pnpm --filter @tdj/web start -p 3417`) and
@@ -83,18 +83,18 @@ function render(name: string) {
 }
 
 /**
- * The README GIF from the 60 fps MP4: the largest of these that stays under 4 MB (the camera moves, so every frame
- * changes and a GIF grows fast; the README links each GIF to its MP4 for the full 60 fps).
+ * The README GIF from the 60 fps MP4. The README shows every clip at 840 px wide in one 16:10 column (2026-11,
+ * owner): 1680 px (retina) where it fits under 8 MB (GitHub stops inlining at 10 MB), else 840 px, never narrower;
+ * the frame rate gives way first. The README links each GIF to its MP4 for the full 60 fps.
  */
+const GIF_MAX = 8 * 1024 * 1024;
 const GIF_LADDER: Array<[fps: number, width: number, dither: string]> = [
-  [25, 800, "bayer:bayer_scale=3"],
-  [25, 720, "bayer:bayer_scale=3"],
-  [20, 720, "bayer:bayer_scale=3"],
-  [20, 640, "bayer:bayer_scale=3"],
-  [18, 640, "none"],
-  [15, 560, "none"],
-  [12, 560, "none"],
-  [12, 480, "none"],
+  [25, 1680, "sierra2_4a"],
+  [20, 1680, "sierra2_4a"],
+  [25, 840, "sierra2_4a"],
+  [20, 840, "bayer:bayer_scale=3"],
+  [15, 840, "bayer:bayer_scale=3"],
+  [12, 840, "none"],
 ];
 function gif(name: string) {
   const mp4 = `${OUT}/${name}.mp4`;
@@ -104,12 +104,14 @@ function gif(name: string) {
       "-i",
       mp4,
       "-vf",
-      `fps=${fps},scale=${w}:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128:stats_mode=diff[p];[b][p]paletteuse=dither=${dither}:diff_mode=rectangle`,
+      `fps=${fps},scale=${w}:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=160:stats_mode=diff[p];[b][p]paletteuse=dither=${dither}:diff_mode=rectangle`,
       "-loop",
       "0",
+      "-threads",
+      "2",
       gif,
     ]);
-    if (statSync(gif).size < 4 * 1024 * 1024) break;
+    if (statSync(gif).size < GIF_MAX) break;
   }
   console.log(`  ${name}.mp4 ${kb(mp4)} · ${name}.gif ${kb(gif)}`);
 }

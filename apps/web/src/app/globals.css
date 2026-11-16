@@ -3406,3 +3406,8 @@ html.i18n-pending body {
   overflow: hidden;
   overflow-wrap: break-word;
 }
+
+/* media capture (`?capture=1`, see components/ui/Tip.tsx → capturing): no help tag or hint bubble in a recording */
+html[data-capture] [role="tooltip"] {
+  display: none;
+}

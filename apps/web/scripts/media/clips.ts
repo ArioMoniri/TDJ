@@ -4,11 +4,12 @@
  */
 import type { Browser, BrowserContext, Page } from "playwright";
 import { installWarp, Recorder } from "./recorder";
+import { seedOf, tangoWav } from "./tango-audio";
 
 export type ClipCtx = { browser: Browser; base: string; raw: string };
 type Clip = (c: ClipCtx) => Promise<void>;
 
-const DESKTOP = { viewport: { width: 1280, height: 800 }, deviceScaleFactor: 2 } as const;
+export const DESKTOP = { viewport: { width: 1280, height: 800 }, deviceScaleFactor: 2 } as const;
 const IPAD_LANDSCAPE = {
   viewport: { width: 1180, height: 820 },
   deviceScaleFactor: 2,
@@ -18,8 +19,9 @@ const IPAD_LANDSCAPE = {
     "Mozilla/5.0 (iPad; CPU OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1",
 } as const;
 const PHONE = {
-  viewport: { width: 393, height: 852 },
-  deviceScaleFactor: 2,
+  // an iPhone 15 Pro class screen (393 × 852 pt, 3×) less its 54 pt status bar, which the frame draws
+  viewport: { width: 393, height: 798 },
+  deviceScaleFactor: 3,
   hasTouch: true,
   isMobile: true,
   userAgent:
@@ -41,6 +43,18 @@ async function prime(ctx: BrowserContext, theme: "light" | "dark") {
   }, theme);
 }
 
+/**
+ * The app's capture flag (components/ui/Tip.tsx → capturing): no help tag or hint bubble ever shows in a capture,
+ * so a click never leaves one beside the cursor. Set before any app code runs.
+ */
+const CAPTURE = `(() => {
+  window.__tdjCapture = true;
+  try { sessionStorage.setItem("tdj-capture", "1"); } catch {}
+  const mark = () => document.documentElement && document.documentElement.setAttribute("data-capture", "");
+  mark();
+  document.addEventListener("DOMContentLoaded", mark);
+})();`;
+
 export async function newCtx(
   browser: Browser,
   device: Record<string, unknown>,
@@ -49,36 +63,23 @@ export async function newCtx(
   const ctx = await browser.newContext({ ...device, colorScheme: theme });
   await prime(ctx, theme);
   await installWarp(ctx);
+  await ctx.addInitScript(CAPTURE);
   return ctx;
 }
 
-/** a short sine WAV so the Booth can play without the network (previews are answered locally) */
-function wav(sec = 20): Buffer {
-  const rate = 22050;
-  const n = rate * sec;
-  const data = Buffer.alloc(n * 2);
-  for (let i = 0; i < n; i++) {
-    const t = i / rate;
-    const v = Math.sin(2 * Math.PI * 220 * t) * 0.18 + Math.sin(2 * Math.PI * 330 * t) * 0.12;
-    data.writeInt16LE(Math.round(v * (0.6 + 0.4 * Math.sin(t * 3)) * 32767), i * 2);
+/**
+ * Stand-in previews: a synthesised tango per song (scripts/media/tango-audio.ts), so the Booth and the transition
+ * editor draw a waveform with beats, phrases and stops instead of flat stripes. Cached per seed.
+ */
+const WAVS = new Map<number, Buffer>();
+const wavFor = (seed: number) => {
+  let w = WAVS.get(seed);
+  if (!w) {
+    w = tangoWav(seed);
+    WAVS.set(seed, w);
   }
-  const h = Buffer.alloc(44);
-  h.write("RIFF", 0);
-  h.writeUInt32LE(36 + data.length, 4);
-  h.write("WAVE", 8);
-  h.write("fmt ", 12);
-  h.writeUInt32LE(16, 16);
-  h.writeUInt16LE(1, 20);
-  h.writeUInt16LE(1, 22);
-  h.writeUInt32LE(rate, 24);
-  h.writeUInt32LE(rate * 2, 28);
-  h.writeUInt16LE(2, 32);
-  h.writeUInt16LE(16, 34);
-  h.write("data", 36);
-  h.writeUInt32LE(data.length, 40);
-  return Buffer.concat([h, data]);
-}
-const WAV = wav();
+  return w;
+};
 
 /** previews answered locally, and a second output ("AirPods Pro") for the headphones */
 export async function offlineAudio(page: Page, outputs = false) {
@@ -90,7 +91,7 @@ export async function offlineAudio(page: Page, outputs = false) {
         value: () => Promise.resolve(),
       });
       const devs = [
-        { kind: "audiooutput", deviceId: "default", label: "MacBook Pro Speakers", groupId: "g1" },
+        { kind: "audiooutput", deviceId: "default", label: "Built-in Speakers", groupId: "g1" },
         { kind: "audiooutput", deviceId: "hp", label: "AirPods Pro", groupId: "g2" },
       ];
       Object.defineProperty(navigator, "mediaDevices", {
@@ -108,12 +109,12 @@ export async function offlineAudio(page: Page, outputs = false) {
       ? route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify({ url: "https://preview.test/clip.wav" }),
+          body: JSON.stringify({ url: `https://preview.test/clip.wav?s=${seedOf(route.request().url())}` }),
         })
       : route.fulfill({
           status: 200,
           contentType: "audio/wav",
-          body: WAV,
+          body: wavFor(seedOf(new URL(route.request().url()).searchParams.get("s") ?? route.request().url())),
           headers: { "access-control-allow-origin": "*" },
         }),
   );
@@ -138,7 +139,7 @@ export async function openBooth(page: Page, base: string) {
   await settle(page, 1200);
 }
 
-async function settle(page: Page, ms = 600) {
+export async function settle(page: Page, ms = 600) {
   await page.waitForLoadState("networkidle").catch(() => {});
   await page.waitForTimeout(ms);
 }
