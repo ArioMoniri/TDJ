@@ -21,6 +21,15 @@ export function toastStale(item: Pick<ToastItem, "sheets"> | null, openNow: numb
   return !!item && openNow > (item.sheets ?? 0);
 }
 
+/**
+ * 2026-11 (the owner could not read a long toast before it went): how long a toast stays with nothing holding it —
+ * its own time, or enough to read it (about 15 characters a second after a 2 s glance), at most 12 s. Hover, focus
+ * or an open toast hold it anyway (Toast.tsx).
+ */
+export function readingTtl(text: string, ttl: number): number {
+  return Math.max(ttl, Math.min(12_000, 2_000 + Math.round((text.length / 15) * 1000)));
+}
+
 /** App-wide toast (mounted once in the layout) for actions that happen inside cards and sheets. */
 export const useGlobalToast = create<ToastState>()((set) => ({
   toast: null,

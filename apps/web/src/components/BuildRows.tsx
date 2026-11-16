@@ -4,7 +4,7 @@ import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from "rea
 import { haptic } from "@/lib/haptics";
 import { t } from "@/lib/i18n";
 import { fmtLen } from "@/lib/lengths";
-import { orchestraName } from "@/lib/orchestraName";
+import { isGuitarsLabel, orchestraName } from "@/lib/orchestraName";
 import { useTapPlay } from "@/lib/playback";
 import type { PlayItem } from "@/lib/player";
 import type { Version } from "@/lib/smartSearch";
@@ -104,11 +104,7 @@ export function BuildVersionRow({
   const s = v.song;
   const item = useMemo<PlayItem>(() => ({ kind: "song", song: s, where: t("manualBuilder.search") }), [s]);
   const play = useTapPlay(item);
-  const facts = [
-    orchestraName(s),
-    s.singer && orchestraName(s) === s.orchestra ? s.singer : null,
-    yearText(s.year),
-  ]
+  const facts = [orchestraName(s), s.singer && !isGuitarsLabel(s) ? s.singer : null, yearText(s.year)]
     .filter(Boolean)
     .join(" · ");
   const line: ReactNode = fit ? (

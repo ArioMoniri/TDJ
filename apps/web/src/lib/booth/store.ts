@@ -71,6 +71,7 @@ import {
   saveNight,
 } from "./persist";
 import { type BoothRow, type BoothRows, decorate, planEntities, remainingFrom } from "./plan";
+import { speakerFor } from "./prelistenRoute";
 import { resolveSourceMode } from "./sourceMode";
 import { LocalAdapter } from "./sources/local";
 import { PreviewAdapter, REHEARSAL_SEC } from "./sources/preview";
@@ -235,7 +236,15 @@ export interface BoothStore {
   undoPlayNext: () => void;
   auditionItem: (i: number) => Promise<string | null>;
   /** round 22: pre-listen a plan row or any catalogue side; null when it plays, else why not */
-  prelisten: (t: { i?: number; song?: Song }, o?: { startSec?: number }) => Promise<string | null>;
+  /**
+   * 2026-11: `sink` — the DJ chose "this device's speaker anyway" mid-night (lib/booth/prelistenRoute.ts speakerFor):
+   * the pre-listen goes to that output, refused when it is the room's. `url`: a clip the caller found for a side
+   * with none of its own (another page's tap: lib/playback.ts looks the preview up as its own player does)
+   */
+  prelisten: (
+    t: { i?: number; song?: Song },
+    o?: { startSec?: number; sink?: string; url?: string },
+  ) => Promise<string | null>;
   /** round 22: why a pre-listen cannot go to the headphones now (null = it can) */
   cueBlocked: () => string | null;
   stopAudition: () => void;
@@ -1066,10 +1075,13 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     const title = it?.title ?? e.title;
     get().stopAudition();
     const blocked = get().cueBlocked();
-    // during the night a pre-listen never goes to the room: headphones only
-    if (blocked && started) return blocked;
+    // 2026-11: an explicit speaker (never the room's output: checked again here, the outputs may have changed)
+    const speaker = o.sink && blocked ? speakerFor(get().outputs) : null;
+    if (o.sink && blocked && speaker?.id !== o.sink) return tx("prelisten.speaker_is_room");
+    // during the night a pre-listen never goes to the room: headphones (or the DJ's chosen speaker) only
+    if (blocked && started && !speaker) return blocked;
     const where: CueWhere = blocked ? "device" : "headphones";
-    const sink = where === "headphones" ? get().outputs.cue : null;
+    const sink = where === "headphones" ? get().outputs.cue : (speaker?.id ?? null);
     const base = { i: t.i ?? null, songId: e.id, title, where };
     const play = async (src: string | Blob, via: Audition["via"]) => {
       cuePlayer ??= new CuePlayer();
@@ -1095,6 +1107,7 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     const sp = spotifyOf(e);
     if (
       where === "device" &&
+      !speaker &&
       sp?.uri &&
       availability.spotify.ok &&
       (t.i === undefined || sources[t.i] === "spotify" || !started)
@@ -1112,7 +1125,11 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     }
     // 3. the 30 s clip of that recording
     const v = rehearsalClip(e);
-    const url = v.clip ? (v.clip.from === "spotify" ? v.clip.url : clipUrl(v.clip.resolved)) : null;
+    const url = v.clip
+      ? v.clip.from === "spotify"
+        ? v.clip.url
+        : clipUrl(v.clip.resolved)
+      : (o.url ?? null);
     if (!url)
       return where === "headphones" && sp
         ? tx("booth.store.spotify_plays_only_to_the_room")

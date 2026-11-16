@@ -3584,6 +3584,56 @@ html[data-capture] [role="tooltip"] {
 .app-toast {
   touch-action: none;
 }
+/* 2026-11 (the owner: "the text in the banner won't slide to see what is written"): a toast's words are never cut
+   to one line — up to three lines, then the whole text while the pointer is on the toast, while it holds the focus,
+   or once tapped (Toast.tsx ToastText); a very long one scrolls inside the toast. The capsule becomes a rounded
+   card when it wraps (the same 22 px radius reads as the pill at one line). */
+.toast-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  font: inherit;
+  padding-block: 6px;
+  line-height: 1.3;
+  text-align: start;
+  color: inherit;
+}
+.toast-text[data-more] {
+  cursor: pointer;
+}
+.toast-text[data-open],
+[data-testid="toast"]:hover .toast-text,
+[data-testid="toast"]:focus-within .toast-text {
+  display: block;
+  -webkit-line-clamp: unset;
+  line-clamp: none;
+  max-height: min(40vh, 16rem);
+  overflow-y: auto;
+  touch-action: pan-y;
+}
+.toast-text:focus-visible {
+  outline: 2px solid var(--tint);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+.app-toast.glass-pill,
+.app-toast.glass-pill::before,
+.app-toast.glass-pill::after {
+  border-radius: 22px;
+}
+/* the toast never covers a mini player's controls: beside the sidebar it rises above the docked player (the
+   preview player at the right, the Booth's night bar across the column) */
+@media (min-width: 900px) {
+  html[data-booth-mini] .app-toast {
+    bottom: calc(var(--booth-mini-h, 84px) + 16px + 12px);
+  }
+  html:has([data-testid="mini-player"]):not([data-booth]):not([data-booth-mini]) .app-toast {
+    bottom: calc(var(--mini-h, 120px) + 1.5rem + 12px);
+  }
+}
 
 /* 2026-11: Build's floating Add button (components/ManualBuilder.tsx, below 1024 px where the Add panel is a sheet)
    sits at the content column's trailing edge: a phone's 16 px margin; the centred 720 px column of the nav pill

@@ -236,3 +236,44 @@ html[data-booth-mini] [data-testid="mini-player"] {
   line-height: 1.3;
   padding-block: 1px;
 }
+
+/* 2026-11 (pre-listen while the night plays): a line above the room's controls says where the pre-listen sounds —
+   "In your headphones" or "On this device's speaker", never the room — with what plays and Stop. It wears the
+   HEADPHONES output's blue, not the room's rose, and carries a glyph and words, never colour alone. */
+.booth-mini[data-cue] {
+  grid-template-areas:
+    "cue cue cue"
+    "cover text btns"
+    "seek seek seek";
+}
+.booth-mini-cue {
+  grid-area: cue;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin: -2px -4px 4px;
+  padding: 0 0 0 10px;
+  border-radius: 14px;
+  color: var(--cue, var(--tint));
+  background: var(--cue-fill, var(--fill-4));
+  font-size: 13px;
+}
+.booth-mini-cue-text {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--label);
+}
+.booth-mini-cue-text > b {
+  font-weight: 700;
+  color: var(--cue, var(--tint));
+}
+.booth-mini-cue-note {
+  color: var(--label-2);
+}
+.booth-mini-cue > .booth-mini-btn {
+  color: var(--cue, var(--tint));
+}

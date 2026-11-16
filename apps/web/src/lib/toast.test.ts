@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { useSheets } from "./sheets";
-import { toast, toastStale, useGlobalToast } from "./toast";
+import { readingTtl, toast, toastStale, useGlobalToast } from "./toast";
 
 /**
  * QA 2026-11: "Undid: crossfade · Redo" showed inside the Stop the music? sheet, "Lo Pasado, Pasó plays next · Undo"
@@ -43,5 +43,19 @@ describe("a toast and the sheets", () => {
     expect(toastStale({ sheets: 1 }, 1)).toBe(false);
     expect(toastStale({ sheets: 0 }, 1)).toBe(true);
     expect(toastStale({}, 1)).toBe(true);
+  });
+});
+
+/** 2026-11 (the owner could not read a long toast before it went): a long toast stays long enough to be read */
+describe("readingTtl", () => {
+  it("a short toast keeps its own time; a long one gets reading time, at most 12 s", () => {
+    expect(readingTtl("Saved", 3000)).toBe(3000);
+    expect(readingTtl("Undid: Crossfade", 6000)).toBe(6000);
+    const long =
+      "The Booth is playing a night, so this stays out of the room: Pick your headphones first (HEADPHONES at the top of the Booth).";
+    expect(readingTtl(long, 3500)).toBeGreaterThan(8000);
+    expect(readingTtl(long.repeat(5), 3500)).toBe(12000);
+    // longer text never gets less time
+    expect(readingTtl(`${long} more`, 3500)).toBeGreaterThanOrEqual(readingTtl(long, 3500));
   });
 });

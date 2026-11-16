@@ -1,11 +1,12 @@
 "use client";
-import { Pause, Play, SkipForward, Volume2, VolumeX } from "lucide-react";
+import { Headphones, Laptop, Pause, Play, SkipForward, Square, Volume2, VolumeX } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { type CSSProperties, type PointerEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { guard, useArmed } from "@/lib/booth/confirm";
 import { placeSeekBubble } from "@/lib/booth/seekBubble";
 import type { useBooth as UseBooth } from "@/lib/booth/store";
 import { t } from "@/lib/i18n";
+import { usePlayer } from "@/lib/player";
 import { Artwork } from "../ui/Artwork";
 import { Marquee } from "../ui/Marquee";
 import { ConfirmHint, ConfirmRing, useHoldConfirm } from "./Confirm";
@@ -174,6 +175,14 @@ export function BoothMini() {
       void st.getState().seek(sec);
     });
   };
+  // 2026-11: a pre-listen while the night plays — where it sounds (never the room), what, and Stop
+  const cue = s.audition && s.audition.via !== "transition" ? s.audition : null;
+  const cueWord = cue?.where === "headphones" ? t("prelisten.mini_headphones") : t("prelisten.mini_speaker");
+  const stopCue = () => {
+    const p = usePlayer.getState();
+    if (p.track?.source.kind === "cue") p.close();
+    st.getState().stopAudition();
+  };
   return (
     <section
       ref={box}
@@ -181,7 +190,35 @@ export function BoothMini() {
       aria-label={t("booth.ui2.mini_label")}
       data-testid="booth-mini"
       data-state={s.state}
+      data-cue={cue ? cue.where : undefined}
     >
+      {cue && (
+        <div className="booth-mini-cue" data-testid="booth-mini-cue" data-where={cue.where}>
+          {cue.where === "headphones" ? (
+            <Headphones size={16} strokeWidth={2.25} aria-hidden />
+          ) : (
+            <Laptop size={16} strokeWidth={2.25} aria-hidden />
+          )}
+          <span className="booth-mini-cue-text" role="status">
+            {/* (the line slides when it does not fit, as the titles do) */}
+            <Marquee text={`${cueWord} · ${cue.title} · ${t("prelisten.mini_not_room")}`}>
+              <b>{cueWord}</b>
+              {" · "}
+              <span data-testid="booth-mini-cue-title">{cue.title}</span>
+              <span className="booth-mini-cue-note">{` · ${t("prelisten.mini_not_room")}`}</span>
+            </Marquee>
+          </span>
+          <button
+            type="button"
+            className="booth-mini-btn"
+            onClick={stopCue}
+            aria-label={t("booth.controlStrip.stop_the_pre_listen_the_room")}
+            data-testid="booth-mini-cue-stop"
+          >
+            <Square size={16} fill="currentColor" strokeWidth={0} aria-hidden />
+          </button>
+        </div>
+      )}
       <button
         type="button"
         className="booth-mini-cover"

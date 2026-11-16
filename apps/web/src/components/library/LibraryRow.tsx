@@ -15,6 +15,7 @@ import { coverFor } from "@/lib/artwork";
 import { haptic } from "@/lib/haptics";
 import { t } from "@/lib/i18n";
 import { fmtLen } from "@/lib/lengths";
+import { creditName, creditSpans } from "@/lib/orchestraName";
 import { useTapPlay } from "@/lib/playback";
 import type { PlayItem } from "@/lib/player";
 import { gateEdit } from "@/lib/ruleCheck";
@@ -83,6 +84,8 @@ export const LibraryRow = memo(function LibraryRow({
     haptic(4);
     void tp.tap({ find: () => setFind(true) });
   };
+  const orch = creditName(s.orchestra);
+  const orchSpans = creditSpans(s.orchestra, orch, hit.highlights.orchestra);
   const len = s.durationSec ? `${s.durationEstimated ? "≈" : ""}${mmss(s.durationSec)}` : null;
   const popular = !hit.favourite && hit.popularity >= 0.6;
   // 2026-11: the song menu (right-click, long press, "i"): details, Song DNA, Add to tonight, Find, Measure, Copy
@@ -144,7 +147,9 @@ export const LibraryRow = memo(function LibraryRow({
         <span className="text-footnote flex min-w-0 items-center gap-1.5 text-[var(--label-2)]">
           {badge && <TandaTypeBadge rhythm={s.rhythm} compact className="shrink-0" />}
           <span className="min-w-0 truncate">
-            <Highlight text={s.orchestra} spans={hit.highlights.orchestra} />
+            {/* 2026-11: a raw accompanists' credit reads as names ("José Ricardo, Guillermo Barbieri, …
+                (guitars)"), the search's marks carried over (lib/orchestraName.ts) */}
+            <Highlight text={orch} spans={orchSpans} />
             {s.singer ? (
               <>
                 {" / "}
@@ -179,7 +184,7 @@ export const LibraryRow = memo(function LibraryRow({
         <button
           type="button"
           className="icon-btn icon-btn-bare -my-2 h-11 w-11 shrink-0 text-[var(--label-2)]"
-          aria-label={t("song.details_of", { title: s.title, orchestra: s.orchestra })}
+          aria-label={t("song.details_of", { title: s.title, orchestra: orch })}
           data-testid="song-info"
           onClick={(e) => {
             e.stopPropagation();

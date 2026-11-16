@@ -65,7 +65,7 @@ import { lazy, t as tx } from "@/lib/i18n";
 import { bindingsOf, formatCombo } from "@/lib/keymap";
 import { fmtLen, tandaTotal, totalText } from "@/lib/lengths";
 import { DUR, EASE } from "@/lib/motion";
-import { orchestraName } from "@/lib/orchestraName";
+import { isGuitarsLabel, orchestraName } from "@/lib/orchestraName";
 import { PlayListContext } from "@/lib/playback";
 import type { PlayItem } from "@/lib/player";
 import { requestFavourites } from "@/lib/popularity";
@@ -203,8 +203,8 @@ const yearsText = (y: [number, number] | null) => (y ? (y[0] === y[1] ? `${y[0]}
 /** "Di Sarli / Rufino", "Héctor Mauré with guitars" (a solo singer's side names no orchestra: lib/orchestraName.ts) */
 const family = (s: { orchestra: string; orchestraId?: string; singer: string | null }) => {
   const o = orchestraName(s);
-  if (o !== s.orchestra) return o;
-  return `${s.orchestra}${s.singer ? ` / ${singerDisplay(s.singer)}` : tx("manualBuilder.instrumental")}`;
+  if (isGuitarsLabel(s)) return o;
+  return `${o}${s.singer ? ` / ${singerDisplay(s.singer)}` : tx("manualBuilder.instrumental")}`;
 };
 const FILL_ITEMS = ["tanda", "cycle", "target", "all"] as const;
 type FillScope = (typeof FILL_ITEMS)[number];

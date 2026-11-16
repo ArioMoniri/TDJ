@@ -12,6 +12,8 @@ import { createContext, useCallback, useContext } from "react";
 import { create } from "zustand";
 import { APP } from "./app/target";
 import { effectiveSong } from "./audio";
+import { cueRouted } from "./booth/cue";
+import { type PrelistenRoute, prelistenRoute } from "./booth/prelistenRoute";
 import type { useBooth as UseBooth } from "./booth/store";
 import { t } from "./i18n";
 import {
@@ -44,6 +46,7 @@ import {
   spotifyPlayOf,
 } from "./playSource";
 import { skipPoll } from "./power";
+import { appleMobile, askPrelisten, closePrelistenAsk, speakerChosen, usePrelistenAsk } from "./prelisten";
 import { markSpotifyBurst } from "./spotifyBurst";
 import { useStore } from "./store";
 import { toast } from "./toast";
@@ -166,6 +169,23 @@ const booth = (): BoothStore | null =>
     : ((window as unknown as { __tdjBooth?: BoothStore }).__tdjBooth ?? null);
 /** a night is running in the Booth (it keeps playing while the DJ is on another page) */
 export const boothNightRunning = () => routeFor(booth()?.getState() ?? null) === "headphones";
+/**
+ * 2026-11: where a tap goes while the night runs (lib/booth/prelistenRoute.ts): the headphones, this device's
+ * speaker (the DJ chose it this session), or a question — never the room
+ */
+export function boothPrelistenRoute(): PrelistenRoute {
+  const st = booth()?.getState();
+  if (!st || !boothNightRunning()) return { kind: "player" };
+  return prelistenRoute({
+    started: true,
+    outputs: st.outputs,
+    pairOpen: cueRouted(),
+    apple: appleMobile(),
+    speakerOk: speakerChosen(),
+  });
+}
+/** a question is up (the loops of a tanda or a list stop at it: one question, for the row the DJ tapped) */
+const asking = () => usePrelistenAsk.getState().ask !== null;
 
 /* ---------------- sources ---------------- */
 
@@ -407,7 +427,11 @@ async function cueTo(tr: PlayerTrack, startSec: number): Promise<string | null> 
   const it = items.get(tr.id);
   if (!b || !it) return t("play.headphones_ended");
   const entity = it.kind === "song" ? songOf(it.song) : it.cortina;
-  const why = await b.getState().prelisten({ song: entity as Song }, { startSec });
+  const sink = sinks.get(tr.id);
+  const url = cueUrls.get(tr.id);
+  const why = await b
+    .getState()
+    .prelisten({ song: entity as Song }, { startSec, ...(sink ? { sink } : {}), ...(url ? { url } : {}) });
   if (why) {
     usePlayer.setState({ playing: false });
     return why;
@@ -453,6 +477,21 @@ if (typeof window !== "undefined")
 const sounding = new Map<string, "spotify-full" | "cue">();
 /** the items behind the tracks we started (a cue resume needs the song back) */
 const items = new Map<string, PlayItem>();
+/** 2026-11: a pre-listen on this device's speaker (the DJ's choice mid-night): its output, kept for a resume */
+const sinks = new Map<string, string>();
+/** 2026-11: the clip a pre-listen plays when the Booth has none of its own (the preview lookup's), per track */
+const cueUrls = new Map<string, string>();
+/** the side's preview as this page's player finds it (cached, or the lookup), a link a media element can open */
+async function cueClipOf(it: PlayItem): Promise<string | null> {
+  const ref =
+    previewOf(it) ?? usePlayAccess.getState().found[playKey(it)] ?? (await lookupPreview(it)).preview;
+  if (!ref) return null;
+  if (APP && ref.startsWith("/api/")) {
+    const { mediaUrl } = await import("./app/media");
+    return mediaUrl(ref).catch(() => null);
+  }
+  return ref;
+}
 
 /* ---------------- scopes: one row, a tanda, on to the end ---------------- */
 
@@ -551,8 +590,10 @@ export async function playTanda(
     ...(o.clipSec ? { clipSec: o.clipSec } : {}),
   };
   // the first side that plays (one with no audio is passed, and the toast says why only when none plays)
-  for (let i: number | null = scope.from; i !== null; i = scopeStep(scope, list.items.length, i, 1))
+  for (let i: number | null = scope.from; i !== null; i = scopeStep(scope, list.items.length, i, 1)) {
     if (await playFrom({ ...l, index: i }, { quiet: i !== scope.to })) return true;
+    if (asking()) return false;
+  }
   return false;
 }
 
@@ -567,6 +608,7 @@ export async function stepList(delta: number, o: { auto?: boolean } = {}) {
     i = scopeStep(l.scope, l.items.length, i, delta)
   ) {
     if (await playFrom({ ...l, index: i }, { quiet: true, auto: o.auto })) return true;
+    if (asking()) return false;
   }
   return false;
 }
@@ -596,7 +638,7 @@ function sayNoAudio(it: PlayItem, title: string, find?: () => void) {
 
 async function playFrom(
   list: PlayerList,
-  o: { find?: () => void; quiet?: boolean; auto?: boolean; startSec?: number },
+  o: { find?: () => void; quiet?: boolean; auto?: boolean; startSec?: number; speaker?: boolean },
 ): Promise<boolean> {
   const it = list.items[list.index];
   if (!it) return false;
@@ -604,11 +646,35 @@ async function playFrom(
   const base = baseTrack(it);
   if (o.startSec !== undefined && o.startSec > 0 && it.kind === "song") base.startSec = o.startSec;
   items.set(base.id, it);
-  // a night in the Booth: the headphones only, never the room
+  // a night in the Booth: the pre-listen output only (the headphones, or this device's speaker when the DJ chose
+  // it and it is not the room's), never the room; with neither, the one question with the fixes
   if (boothNightRunning()) {
+    const route = boothPrelistenRoute();
+    // the DJ just answered "this device's speaker": once, even before the session remembers it
+    const speakerNow = o.speaker && route.kind === "ask" && route.speaker ? route.speaker.id : null;
+    if (route.kind === "ask" && !speakerNow) {
+      // a list stepping on by itself never asks; a tap does
+      if (o.auto) return false;
+      askPrelisten({
+        title: base.title,
+        why: route.why,
+        retry: (r = {}) => playFrom(list, { ...o, quiet: false, speaker: r.speaker }),
+      });
+      return false;
+    }
+    closePrelistenAsk();
+    const sink = speakerNow ?? (route.kind === "speaker" ? route.sink : null);
+    if (sink) sinks.set(base.id, sink);
+    else sinks.delete(base.id);
     const track: PlayerTrack = { ...base, source: { kind: "cue", ref: base.id } };
     usePlayer.getState().play(track, list);
     sounding.set(base.id, "cue");
+    // a side the Booth has no clip of (a Library or search row): the preview this page's player would play
+    if (!cueUrls.has(base.id)) {
+      const url = await cueClipOf(it);
+      if (n !== seq) return true;
+      if (url) cueUrls.set(base.id, url);
+    }
     const why = await cueTo(track, base.startSec ?? 0);
     if (n !== seq) return true;
     if (why) {
@@ -616,7 +682,8 @@ async function playFrom(
       toast(t("play.booth_running", { why }));
       return false;
     }
-    if (!o.quiet) toast(t("play.in_headphones"));
+    if (!o.quiet)
+      toast(sink ? t("prelisten.on_speaker_toast", { title: base.title }) : t("play.in_headphones"));
     return true;
   }
   const src = await sourceOf(it);

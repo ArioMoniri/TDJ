@@ -6242,4 +6242,33 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "roomSettings.on": "açık",
   "roomSettings.off": "kapalı",
   "roomSettings.changed": "{what}: {value}",
+  // 2026-11: pre-listen while the Booth plays a night (components/PrelistenSheet.tsx, BoothMini)
+  "orchestra.guitars_credit": "{names} (gitarlar)",
+  "prelisten.title": "Gece çalarken ön dinleme",
+  "prelisten.lead":
+    "Salon çalmaya devam eder. “{title}” yalnızca burada seçtiğiniz yerde çalar, salonda asla.",
+  "prelisten.why_none": "Henüz bir kulaklık çıkışı seçilmedi.",
+  "prelisten.why_same": "Kulaklık ve salon aynı çıkışa ayarlı.",
+  "prelisten.why_pair": "Kontrolcünün kulaklık kanalları şu an açık değil.",
+  "prelisten.why_unsupported":
+    "Bu tarayıcı tüm sesini tek bir çıkışa, salonunkine gönderir: burada ön dinleme dansçılara ulaşır.",
+  "prelisten.why_apple":
+    "iPhone ve iPad'de bir web sayfasının tek çıkışı vardır, o da salonun: burada ön dinleme dansçılara ulaşır.",
+  "prelisten.choose_headphones": "Kulaklık seç",
+  "prelisten.choose_headphones_footer":
+    "Kulaklığınıza ya da ses kartının ikinci çıkışına dokunun: şarkı hemen orada çalar. Salon onu asla duymaz.",
+  "prelisten.speaker_anyway": "Yine de bu cihazın hoparlöründe çal",
+  "prelisten.speaker_not_room": "{name}, salonun çıkışı değil",
+  "prelisten.speaker_footer":
+    "Yalnızca bu cihaz çalar; salon kendi çıkışında kalır. Bu oturum boyunca geçerli.",
+  "prelisten.speaker_is_room_footer": "Bu cihazın hoparlörü sunulmuyor: salonun çıkışı, ya da olabilir.",
+  "prelisten.speaker_is_room": "Bu cihazın hoparlörü artık salonun çıkışı: bir kulaklık seçin.",
+  "prelisten.second_device": "Ya da ikinci bir cihaz kullanın",
+  "prelisten.second_device_footer":
+    "T-DJ'yi telefonunuzda kulaklıkla açın ve bu geceyi orada açın (Odalar paylaşır): orada bir dokunuş yalnızca o telefonda çalar.",
+  "prelisten.open_rooms": "Geceyi Odalar'da paylaş",
+  "prelisten.on_speaker_toast": "Bu cihazın hoparlöründe, salonda değil: {title}",
+  "prelisten.mini_headphones": "Kulaklığınızda",
+  "prelisten.mini_speaker": "Bu cihazın hoparlöründe",
+  "prelisten.mini_not_room": "salon duymaz",
 };
