@@ -7,6 +7,7 @@ import { runHistory } from "@/lib/editToast";
 import { haptic } from "@/lib/haptics";
 import { t } from "@/lib/i18n";
 import {
+  nativeShake,
   needsMotionPermission,
   requestMotion,
   type ShakeAlertModel,
@@ -46,8 +47,30 @@ export function ShakeUndo() {
     return () => window.removeEventListener("pointerup", once);
   }, [pref]);
 
+  // a shake: ask what it offers (never while the alert is up, the page is hidden or a field is being typed in)
+  const offer = useCallback(() => {
+    if (open.current || document.hidden) return;
+    if (isTextTarget(document.activeElement)) return;
+    const scope = location.pathname || "/";
+    const m = shakeAlert({
+      undo: nextUndo(scope)?.label ?? null,
+      redo: nextRedo(scope)?.label ?? null,
+      lastWasUndo: lastKind.current.get(scope) === "undo",
+    });
+    if (!m) return;
+    haptic(12);
+    setModel(m);
+  }, []);
+
+  // the iPhone / iPad app: UIKit already decided it was a shake (src-tauri apple.rs → `tdj:shake`)
   useEffect(() => {
-    if (!shakeOn(pref)) return;
+    if (!nativeShake() || !shakeOn(pref)) return;
+    window.addEventListener("tdj:shake", offer);
+    return () => window.removeEventListener("tdj:shake", offer);
+  }, [pref, offer]);
+
+  useEffect(() => {
+    if (nativeShake() || !shakeOn(pref)) return;
     const detector = new ShakeDetector();
     let scrolled = Number.NEGATIVE_INFINITY;
     const onScroll = () => {
@@ -57,18 +80,8 @@ export function ShakeUndo() {
     const onMotion = (e: DeviceMotionEvent) => {
       const now = performance.now();
       if (!detector.pushMotion(e, e.timeStamp || now)) return;
-      if (open.current || document.hidden) return;
       if (now - scrolled < SCROLL_QUIET_MS) return;
-      if (isTextTarget(document.activeElement)) return;
-      const scope = location.pathname || "/";
-      const m = shakeAlert({
-        undo: nextUndo(scope)?.label ?? null,
-        redo: nextRedo(scope)?.label ?? null,
-        lastWasUndo: lastKind.current.get(scope) === "undo",
-      });
-      if (!m) return;
-      haptic(12);
-      setModel(m);
+      offer();
     };
     window.addEventListener("devicemotion", onMotion);
     window.addEventListener("scroll", onScroll, { capture: true, passive: true });
@@ -78,7 +91,7 @@ export function ShakeUndo() {
       window.removeEventListener("scroll", onScroll, { capture: true });
       window.removeEventListener("touchmove", onScroll);
     };
-  }, [pref]);
+  }, [pref, offer]);
 
   const choose = useCallback((c: ShakeChoice | null) => {
     setModel(null);
