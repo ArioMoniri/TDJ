@@ -4438,4 +4438,9 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "deviceSources.file_none_matched": "{name} bağlı ama bu gecenin hiçbir parçası henüz eşleşmedi.",
   "deviceSources.file_link": "Örnek düzeyinde kesin aralar ve geçişler için müzik klasörünüzü bağlayın.",
   "deviceSources.preview": "Her zaman burada: provada her parçanın 30 sn'si.",
+  "db.learnedRules.family_more": "Gecelerinde daha sık çıkıyor",
+  "db.learnedRules.family_less": "Daha seyrek çıkıyor",
+  "db.learnedRules.side_more": "Ailesi içinde önce seçiliyor",
+  "db.learnedRules.side_less": "Ailesi içinde daha az çalınıyor",
+  "db.learnedRules.neutral": "Nötr",
 };

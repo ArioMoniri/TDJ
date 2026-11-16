@@ -4257,6 +4257,11 @@ export const en = {
   "deviceSources.file_none_matched": "{name} is linked but no side of this night matched yet.",
   "deviceSources.file_link": "Link your music folder for sample-accurate gaps and fades.",
   "deviceSources.preview": "Always here: 30 s of each side, for a rehearsal.",
+  "db.learnedRules.family_more": "Comes up more often in your nights",
+  "db.learnedRules.family_less": "Comes up less often",
+  "db.learnedRules.side_more": "Chosen first inside its family",
+  "db.learnedRules.side_less": "Played less inside its family",
+  "db.learnedRules.neutral": "Neutral",
 } as const;
 
 export type MsgKey = keyof typeof en;
