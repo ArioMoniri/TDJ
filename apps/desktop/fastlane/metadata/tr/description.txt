@@ -30,3 +30,5 @@ IPHONE, IPAD VE MAC'TE
 
 GİZLİLİK
 Her şey cihazınızda çalışır. Hesap yoktur, bize hiçbir şey gönderilmez. Dil modeli kullanan özellikler kendi API anahtarınızla çalışır ve anahtar Anahtar Zinciri'nde kalır. Spotify ile çalmak için Spotify Premium gerekir.
+
+Geliştiren: Ariorad Moniri

@@ -31,7 +31,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - uses: aws-actions/configure-aws-credentials@v6
         with:
-          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          # a repository variable (tdj init --github sets it); a fork may keep it as a secret instead
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN || secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
       - name: Deploy with SST
         run: npx sst deploy --stage ${{ inputs.stage || 'production' }}

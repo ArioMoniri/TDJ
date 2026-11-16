@@ -3,7 +3,9 @@
 //! the same ids as the web's command registry (`lib/commands.ts`). A few ids are handled natively first.
 
 #[cfg(desktop)]
-use tauri::menu::{Menu, MenuBuilder, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder};
+use tauri::menu::{
+    AboutMetadata, Menu, MenuBuilder, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder,
+};
 #[cfg(desktop)]
 use tauri::{AppHandle, Runtime};
 
@@ -170,6 +172,18 @@ pub fn title_tr(id: &str) -> Option<&'static str> {
     })
 }
 
+/// The About panel's copyright line (the same as Info.plist's NSHumanReadableCopyright).
+pub const COPYRIGHT: &str = "© 2026 Ariorad Moniri";
+
+/// The About panel's credit, in small type under the copyright (en + tr, like the web's `about.developed_by`).
+pub fn about_credit(turkish: bool) -> &'static str {
+    if turkish {
+        "Geliştiren: Ariorad Moniri"
+    } else {
+        "Developed by Ariorad Moniri"
+    }
+}
+
 /// The menu's own words (submenus and the system items) in English or Turkish.
 pub fn chrome(turkish: bool) -> [&'static str; 18] {
     if turkish {
@@ -286,8 +300,17 @@ pub fn build<R: Runtime>(app: &AppHandle<R>, with_updates: bool) -> tauri::Resul
     };
     let group = |g: Group| COMMANDS.iter().filter(move |c| c.group == g);
 
-    let mut app_menu =
-        SubmenuBuilder::new(app, "T-DJ").item(&PredefinedMenuItem::about(app, Some(about), None)?);
+    // name, version and icon still come from the bundle; only these two lines are set here
+    let about_meta = AboutMetadata {
+        copyright: Some(COPYRIGHT.into()),
+        credits: Some(about_credit(turkish).into()),
+        ..Default::default()
+    };
+    let mut app_menu = SubmenuBuilder::new(app, "T-DJ").item(&PredefinedMenuItem::about(
+        app,
+        Some(about),
+        Some(about_meta),
+    )?);
     for cmd in group(Group::App).filter(|c| with_updates || c.id != "app.updates") {
         app_menu = app_menu.item(&item(cmd)?);
     }
@@ -371,6 +394,16 @@ pub fn build<R: Runtime>(app: &AppHandle<R>, with_updates: bool) -> tauri::Resul
 mod tests {
     use super::*;
     use std::collections::HashSet;
+
+    #[test]
+    fn about_panel_credits_the_author_in_both_languages() {
+        assert_eq!(COPYRIGHT, "© 2026 Ariorad Moniri");
+        assert_eq!(about_credit(false), "Developed by Ariorad Moniri");
+        assert_eq!(about_credit(true), "Geliştiren: Ariorad Moniri");
+        // the bundle's copyright says the same (macOS shows Info.plist's when no metadata is passed)
+        let plist = include_str!("../Info.plist");
+        assert!(plist.contains(&format!("<string>{COPYRIGHT}</string>")));
+    }
 
     #[test]
     fn ids_and_accelerators_are_unique() {

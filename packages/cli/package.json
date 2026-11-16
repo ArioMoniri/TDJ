@@ -2,8 +2,8 @@
   "name": "tdj-deploy",
   "version": "0.1.0",
   "description": "Deploy your own TDJ (tango DJ composer) to AWS in one command, and set up the Apple release secrets.",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "type": "module",
-  "license": "MIT",
   "bin": {
     "tdj-deploy": "bin/tdj.mjs",
     "tdj": "bin/tdj.mjs"
