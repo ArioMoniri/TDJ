@@ -2404,7 +2404,17 @@ function composeOnce(
     // a mend is taken when it adds no blocker, costs every other rule at most BIG_FOUR_TOLERANCE per back-to-back pair
     // it mends (an empty quartile counts two), and keeps the night's score within BIG_FOUR_SCORE_SLACK (never under
     // the golden 85 it held)
+    // (an orchestra's repeat gap is never traded: the pairs of one orchestra closer than the gap may not grow)
+    const closePairs = () => {
+      let k = 0;
+      for (let i = 0; i < tandas.length; i++)
+        for (let j = i + 1; j < Math.min(tandas.length, i + o.orchestraRepeatGap); j++)
+          if (tandas[i]!.orchestraId === tandas[j]!.orchestraId) k++;
+      return k;
+    };
+    const close0 = closePairs();
     const fine = (r0: StrictResult, r1: StrictResult, s0: number, mended: number) => {
+      if (closePairs() > close0) return false;
       const tol = (BIG_FOUR_TOLERANCE * mended) / BIG_FOUR_COST.adjacent;
       if (r1.blockers > r0.blockers || rest(r1) > rest(r0) + tol) return false;
       const s1 = scoreNow();
@@ -2478,9 +2488,9 @@ function composeOnce(
     }
     // 2026-11 — what no swap mends, a chair rebuilt for it (the composer's own builder, swapTanda, with the families
     // the fault asks for): no Pugliese → a late tango chair takes his tanda; an empty quartile → one of its chairs
-    // takes a Di Sarli, D'Arienzo or Troilo tanda; two big-four tandas back to back → one of them gives its chair to
-    // another orchestra. Taken only when the night has fewer big-four faults, no new blocker, and every other rule
-    // costs at most BIG_FOUR_TOLERANCE more (a should-fix item) and the score holds.
+    // takes a Di Sarli, D'Arienzo or Troilo tanda. Taken by the same measure as a swap (`fine`): fewer big-four faults,
+    // no new blocker, the other rules and the score within their tolerances. (A back-to-back pair is not mended by a
+    // rebuilt chair: tried, it moved the D'Arienzo chairs, the vals / milonga order and the dancer-popularity lean.)
     {
       const allF = () => bigFourProblems(tandas, o);
       const costAll = () => allF().reduce((a, x) => a + BIG_FOUR_COST[x.kind], 0);
@@ -2501,6 +2511,9 @@ function composeOnce(
           const q = swapTanda(tmp as unknown as Playlist, i, deps, seedI, only);
           const nt = q.tandas[i];
           if (q === (tmp as unknown) || !nt || nt === tandas[i]) continue;
+          // (the night's cap holds: three tandas an orchestra, four from 5 h)
+          const others = tandas.filter((x, j) => j !== i && x.orchestraId === nt.orchestraId);
+          if (others.length + 1 > (o.hours >= 5 ? 4 : 3)) continue;
           const old = tandas[i]!;
           tandas[i] = put(nt, old);
           const c1 = costAll();
@@ -2549,18 +2562,6 @@ function composeOnce(
           )
           .slice(0, 4);
         rebuild(chairs, (c) => big(c.orchestraId) && c.orchestraId !== "osvaldo-pugliese");
-      }
-      for (let k = 0; k < BIG_FOUR_REPAIR_ROUNDS; k++) {
-        const pairs = allF().filter((x) => x.kind === "adjacent");
-        if (!pairs.length) break;
-        const chairs = [
-          ...new Set(
-            pairs
-              .flatMap((x) => [x.tanda, x.with!])
-              .filter((i) => chairOk(i) && tandas[i]!.orchestraId !== "osvaldo-pugliese"),
-          ),
-        ];
-        if (!rebuild(chairs, (c) => !big(c.orchestraId))) break;
       }
     }
     const left = all().filter((x) => x.kind === "adjacent" || x.kind === "gap" || x.kind === "quartile");
