@@ -9,6 +9,7 @@ import {
   suggest,
   type TextIndex,
   type TextMatch,
+  words,
 } from "./textIndex";
 import type { Playlist, Song } from "./types";
 
@@ -88,12 +89,50 @@ export interface SongIndexOptions {
 /** something the app's player can play: a Spotify track, or a resolved preview (the player's `sourceFor`) */
 const streamOf = (s: Song) => !!(s.spotify?.uri || s.resolved?.previewUrl);
 
+/**
+ * 2026-11: an alias that pairs the leader with a singer ("Troilo-Fiorentino", "Donato-Lagos", "Dante y Martel") counts
+ * for the orchestra's own words only: the singer's words are the singer field's, so "fiorentino troilo" ranks
+ * Fiorentino's sides first instead of every Troilo side (an alias outweighs a singer). Per orchestra, the words of the
+ * singers it recorded with are dropped from its aliases; an alias left with no word is dropped.
+ */
+export function orchestraAliases(
+  songs: Song[],
+  aliases: SongIndexOptions["aliases"],
+): (orchestraId: string) => string[] | undefined {
+  if (!aliases) return () => undefined;
+  const singerWords = new Map<string, Set<string>>();
+  for (const s of songs) {
+    if (!s.singer) continue;
+    let set = singerWords.get(s.orchestraId);
+    if (!set) singerWords.set(s.orchestraId, (set = new Set()));
+    for (const w of words(s.singer)) if (w.norm.length > 2) set.add(w.norm);
+  }
+  const memo = new Map<string, string[] | undefined>();
+  return (id) => {
+    if (memo.has(id)) return memo.get(id);
+    const own = singerWords.get(id);
+    const out = aliases(id)
+      ?.map((a) =>
+        own
+          ? words(a)
+              .filter((w) => !own.has(w.norm))
+              .map((w) => a.slice(w.start, w.end))
+              .join(" ")
+          : a,
+      )
+      .filter((a) => a.trim().length > 0);
+    memo.set(id, out);
+    return out;
+  };
+}
+
 export function buildSongIndex(songs: Song[], o: SongIndexOptions = {}): SongIndex {
+  const aliasOf = orchestraAliases(songs, o.aliases);
   const text = buildTextIndex<Song>(songs, [
     { name: "title", weight: 10, get: (s) => s.title },
     { name: "alt", weight: 7, get: (s) => s.altTitles },
     { name: "orchestra", weight: 6, get: (s) => s.orchestra },
-    { name: "alias", weight: 5, get: (s) => o.aliases?.(s.orchestraId) },
+    { name: "alias", weight: 5, get: (s) => aliasOf(s.orchestraId) },
     { name: "singer", weight: 4, get: (s) => s.singer },
     { name: "year", weight: 3, get: (s) => (s.year ? String(s.year) : null) },
     { name: "rhythm", weight: 3, get: (s) => RHYTHM_WORDS[s.rhythm] ?? [s.rhythm] },
