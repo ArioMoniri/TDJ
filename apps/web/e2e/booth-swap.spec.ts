@@ -8,6 +8,7 @@
  * their viewport, scale, touch and user agent).
  */
 import { type BrowserContextOptions, devices, expect, type Locator, type Page, test } from "@playwright/test";
+import { boothAction } from "./confirm";
 
 const SHOTS = process.env.TDJ_SHOTS;
 
@@ -128,8 +129,7 @@ for (const [name, opts] of DEVICES) {
   /** the set list: the column on an iPad, a sheet on a phone */
   const setList = async (page: Page) => {
     if (!phone) return page.getByTestId("booth-set").first();
-    if (!(await page.getByTestId("booth-set-sheet").isVisible()))
-      await page.getByTestId("booth-set-open").click();
+    if (!(await page.getByTestId("booth-set-sheet").isVisible())) await boothAction(page, "booth-set-open");
     const sheet = page.getByTestId("booth-set-sheet");
     await expect(sheet).toBeVisible();
     return sheet;

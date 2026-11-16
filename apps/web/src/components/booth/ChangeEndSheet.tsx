@@ -2,7 +2,9 @@
 import { LoaderCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { confirmNeeded } from "@/lib/booth/confirm";
+import { type Basis, realDelta, shownDelta } from "@/lib/booth/endBasis";
 import { clockLabel } from "@/lib/booth/plan";
+import { REHEARSAL_SEC } from "@/lib/booth/sources/preview";
 import { useBooth } from "@/lib/booth/store";
 import { undoEdit } from "@/lib/editHistory";
 import { haptic } from "@/lib/haptics";
@@ -35,7 +37,8 @@ interface EndAnswer {
   changed: boolean;
 }
 const keyOf = (x: Pick<Tanda, "songs">) => x.songs.map((s) => s.id).join(",");
-const DELTAS = [10, 20, 30, -10, -20];
+// QA 2026-11: one row each way — +10 +20 +30 / −10 −20 −30
+const DELTAS = [10, 20, 30, -10, -20, -30];
 
 function EnergyBars({
   tandas,
@@ -91,9 +94,16 @@ export function ChangeEndSheet({
   const plan = useBooth((s) => s.plan);
   const planIndex = useBooth((s) => s.planIndex);
   const started = useBooth((s) => s.started);
+  const rehearsal = useBooth((s) => s.rehearsal);
+  const gapSec = useBooth((s) => s.settings.gapSec);
   const [answer, setAnswer] = useState<EndAnswer | null>(null);
   const [busy, setBusy] = useState(false);
   const [at, setAt] = useState("");
+  // the field starts on the night's end as shown (never an empty "--:--" with an unexplained button beside it)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the end when the sheet opens, not every tick
+  useEffect(() => {
+    if (open) setAt(clockLabel(endMs));
+  }, [open]);
   const [ask, setAsk] = useState(false);
   const [target, setTarget] = useState<number | null>(null);
   useEffect(() => {
@@ -112,14 +122,18 @@ export function ChangeEndSheet({
     ...playlist,
     tandas: playlist.tandas.map((x, i) => (started && i + 1 <= running ? { ...x, locked: true } : x)),
   };
+  // QA 2026-11: the sheet's clock is the one on screen — Rehearsal counts clips (30 s), the real night real lengths
+  const basis: Basis = { clipSec: rehearsal ? REHEARSAL_SEC : null, gapSec };
   const ask0 = async (targetWall: number) => {
     setBusy(true);
     setAnswer(null);
     setAsk(false);
     setTarget(targetWall);
     try {
+      const wish = (targetWall - endMs) / 1000;
       const targetSec =
-        (lockedPlaylist.booth?.wallClockSec ?? plan.wallClockSec) + (targetWall - endMs) / 1000;
+        (lockedPlaylist.booth?.wallClockSec ?? plan.wallClockSec) +
+        realDelta(wish, playlist.tandas.slice(from), basis);
       const r = await spotCall<EndAnswer>("end", { playlist: lockedPlaylist, from, targetSec });
       if (!r.ok) {
         toast(t("booth.end.failed"));
@@ -130,8 +144,19 @@ export function ChangeEndSheet({
       setBusy(false);
     }
   };
-  const newEnd = answer ? endMs + (answer.endSec - answer.endBeforeSec) * 1000 : 0;
-  const diffMin = answer ? Math.round(answer.diffSec / 60) : 0;
+  // the new end on the shown clock: Rehearsal measures the change in clips, the real night takes the engine's own
+  const newEnd = answer
+    ? endMs +
+      (basis.clipSec
+        ? shownDelta(playlist.tandas, answer.playlist.tandas, basis)
+        : answer.endSec - answer.endBeforeSec) *
+        1000
+    : 0;
+  const diffMin = answer
+    ? basis.clipSec && target !== null
+      ? Math.round((newEnd - target) / 60_000)
+      : Math.round(answer.diffSec / 60)
+    : 0;
   const run = async () => {
     if (!answer?.changed) return;
     const before = playlist;
@@ -195,13 +220,18 @@ export function ChangeEndSheet({
       }
     >
       <Group header={t("booth.end.now_ends", { time: clockLabel(endMs) })} footer={t("booth.end.footer")}>
-        <fieldset className="cell m-0 flex-wrap gap-2 border-0">
+        {rehearsal && (
+          <p className="cell text-footnote text-[var(--label-2)]" data-testid="booth-end-basis">
+            {t("booth.qa.end_rehearsal_times")}
+          </p>
+        )}
+        <fieldset className="cell booth-end-deltas m-0 grid grid-cols-3 gap-2 border-0">
           <legend className="sr-only">{t("booth.end.by")}</legend>
           {DELTAS.map((d) => (
             <button
               key={d}
               type="button"
-              className="btn btn-ghost min-h-11 min-w-16 px-3 tabular-nums"
+              className="btn btn-ghost min-h-11 min-w-0 px-2 tabular-nums"
               disabled={busy}
               onClick={() => void ask0(endMs + d * 60_000)}
               data-testid={`booth-end-${d > 0 ? "plus" : "minus"}-${Math.abs(d)}`}
@@ -210,18 +240,22 @@ export function ChangeEndSheet({
             </button>
           ))}
         </fieldset>
-        <label className="cell gap-3">
-          <span className="min-w-0 flex-1">{t("booth.end.end_at")}</span>
+        <div className="cell flex-wrap gap-3">
+          <label htmlFor="booth-end-at" className="min-w-0 flex-1">
+            {t("booth.end.end_at")}
+          </label>
           <input
+            id="booth-end-at"
             type="time"
-            className="field min-h-11 w-32"
+            step={60}
+            className="field min-h-11 w-32 tabular-nums"
             value={at}
             onChange={(e) => setAt(e.target.value)}
             data-testid="booth-end-at"
           />
           <button
             type="button"
-            className="btn btn-ghost min-h-11 px-3"
+            className="btn btn-primary min-h-11 px-4"
             disabled={!at || busy}
             onClick={() => {
               const [h, m] = at.split(":").map(Number);
@@ -235,9 +269,9 @@ export function ChangeEndSheet({
             }}
             data-testid="booth-end-at-go"
           >
-            {t("booth.end.show")}
+            {t("booth.qa.end_at_preview")}
           </button>
-        </label>
+        </div>
       </Group>
       {busy && (
         <p className="text-footnote flex items-center gap-2 px-4 text-[var(--label-2)]" role="status">

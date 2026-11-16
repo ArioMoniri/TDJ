@@ -8,7 +8,7 @@ import { metaLine, yearSpan, yearText } from "@/lib/year";
 import { Artwork } from "../ui/Artwork";
 import { EraBadge } from "../ui/EraBadge";
 import { TandaTypeBadge } from "../ui/TandaTypeBadge";
-import { eyebrowFor } from "./NowCard";
+import { eyebrowFor, rhythmOf } from "./NowCard";
 
 /**
  * Next (round7-booth.md §1.1): the next item (a track inside the running tanda, the cortina, or the next tanda's
@@ -144,7 +144,7 @@ export function NextCard({
           data-auditioning={hearing === nextTandaFirst || undefined}
         >
           <span className="text-caption1 block text-[var(--label-2)]">
-            {t("booth.nextCard.next_tanda_of", { tanda: nt.tanda, tandas, rhythm: ntTanda.rhythm })}
+            {t("booth.nextCard.next_tanda_of", { tanda: nt.tanda, tandas, rhythm: rhythmOf(ntTanda.rhythm) })}
           </span>
           <span className="my-1 flex">
             <TandaTypeBadge rhythm={ntTanda.rhythm} vocal={ntTanda.vocal} singer={ntTanda.singer} />

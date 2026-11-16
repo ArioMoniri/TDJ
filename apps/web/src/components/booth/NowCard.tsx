@@ -17,7 +17,7 @@ import { Meter } from "./Meter";
 import { useNowView } from "./NowPlayingView";
 
 /** the item's rhythm in the reader's language (2026-11, DJ review: the Turkish eyebrow read "OPENİNG · TANGO") */
-function rhythmOf(r: string): string {
+export function rhythmOf(r: string): string {
   return r === "cortina"
     ? t("booth.transition.cortina")
     : r === "break"

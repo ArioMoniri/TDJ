@@ -33,7 +33,7 @@
   min-height: 44px;
   padding: 0 12px;
   border-radius: 10px;
-  font-size: 14px;
+  font-size: var(--text-subhead);
   font-weight: 600;
   color: var(--tint);
   background: var(--fill-4);
@@ -126,7 +126,7 @@
   align-self: flex-start;
   padding: 1px 8px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: var(--text-caption2);
   font-weight: 700;
   letter-spacing: 0.04em;
   border: 1px solid currentColor;
@@ -146,7 +146,7 @@
 }
 .vc-browse-tag {
   margin-left: 6px;
-  font-size: 11px;
+  font-size: var(--text-caption2);
   color: var(--cue);
 }
 .vc-jog {
@@ -199,7 +199,7 @@
   place-items: center;
   padding: 30%;
   text-align: center;
-  font-size: 11px;
+  font-size: var(--text-caption2);
   line-height: 1.15;
   color: var(--label-2);
   pointer-events: none;
@@ -225,24 +225,24 @@
   border-radius: 10px;
   background: var(--fill-3);
   color: var(--label);
-  font-size: 11px;
+  font-size: var(--text-caption2);
   font-weight: 600;
   line-height: 1.1;
   text-align: center;
   border: 1px solid transparent;
 }
 .vc-pad-sm {
-  font-size: 10px;
+  font-size: var(--text-caption2);
   overflow-wrap: break-word;
   hyphens: auto;
 }
 @media (max-width: 1023.98px) {
   .vc-pad {
     padding: 2px;
-    font-size: 10px;
+    font-size: var(--text-caption2);
   }
   .vc-pad-sm {
-    font-size: 9.5px;
+    font-size: var(--text-caption2);
     letter-spacing: -0.01em;
   }
 }
@@ -372,7 +372,7 @@
 }
 .vc-knob-l,
 .vc-slider-l {
-  font-size: 11px;
+  font-size: var(--text-caption2);
   font-weight: 600;
   color: var(--label-2);
   text-align: center;
@@ -380,7 +380,7 @@
 }
 .vc-knob-v,
 .vc-slider-v {
-  font-size: 11px;
+  font-size: var(--text-caption2);
   color: var(--label-2);
   text-align: center;
 }
@@ -462,7 +462,7 @@
   border-radius: 12px;
   background: var(--bg-cell);
   color: var(--label);
-  font-size: 14px;
+  font-size: var(--text-subhead);
 }
 .vc-learn {
   padding: 4px 12px 12px;
@@ -512,11 +512,40 @@
   align-items: center;
   gap: 8px;
   min-height: 44px;
-  font-size: 14px;
+  font-size: var(--text-subhead);
   border-bottom: 1px solid var(--separator);
 }
 .vc-file-row {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+/* QA 2026-11: every label ≥ 11 px (the caption2 token) and readable when its control rests — a resting control keeps
+   its words at the secondary label colour (≥ 4.5:1) and only its glyph dims (≥ 3:1), never the whole cell at 40 % */
+.vc-text-btn:disabled,
+.vc-pad:disabled {
+  opacity: 1;
+  color: var(--label-2);
+}
+.vc-pad:disabled {
+  border-style: dashed;
+}
+.vc-knob[data-disabled] {
+  opacity: 1;
+}
+.vc-knob[data-disabled] .vc-knob-dial {
+  opacity: 0.6;
+}
+.vc-jog[aria-disabled="true"] {
+  opacity: 1;
+  border-style: dashed;
+}
+.vc-jog[aria-disabled="true"] .vc-jog-mark {
+  opacity: 0.6;
+}
+/* "Connect a controller": the dark theme's rose is light — its words are dark on it (white was 2.6:1) */
+:root.dark .vc-primary,
+:root[data-theme="dark"] .vc-primary {
+  color: #1d0b12;
 }

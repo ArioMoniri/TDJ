@@ -1,10 +1,12 @@
 "use client";
+import { X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { t } from "@/lib/i18n";
 import { toastIn } from "@/lib/motion";
-import { useSheetOpen } from "@/lib/sheets";
+import { useSheetOpen, useSheets } from "@/lib/sheets";
+import { toastStale } from "@/lib/toast";
 
 export interface ToastItem {
   id: number;
@@ -16,6 +18,8 @@ export interface ToastItem {
   ttl?: number;
   /** a second action before the first (the rule check's "See suggestion") */
   secondary?: { label: string; run: () => void };
+  /** how many sheets were open when it appeared: a sheet opened over it since makes it stale (lib/toast.ts) */
+  sheets?: number;
 }
 
 /** One toast at a time; the newest replaces the older with a cross-fade. Hover/focus pauses dismissal. */
@@ -24,7 +28,7 @@ export function useToast() {
   const seq = useRef(0);
   const show = useCallback((text: string, undo?: () => void) => {
     seq.current += 1;
-    setToast({ id: seq.current, text, undo, ttl: undo ? 6000 : 3000 });
+    setToast({ id: seq.current, text, undo, ttl: undo ? 6000 : 3000, sheets: useSheets.getState().open });
   }, []);
   const dismiss = useCallback(() => setToast(null), []);
   return { toast, show, dismiss };
@@ -50,9 +54,27 @@ function useSheetSlot(toastId: number | undefined): HTMLElement | null {
   return all[all.length - 1] ?? null;
 }
 
-export function Toast({ toast, onDismiss }: { toast: ToastItem | null; onDismiss: () => void }) {
+export function Toast({ toast: item, onDismiss }: { toast: ToastItem | null; onDismiss: () => void }) {
   const [paused, setPaused] = useState(false);
+  // QA 2026-11: a toast never shows over a sheet opened after it (its Undo / Redo live under a modal) — it goes
+  const openNow = useSheets((s) => s.open);
+  const stale = toastStale(item, openNow);
+  const toast = stale ? null : item;
+  useEffect(() => {
+    if (stale) onDismiss();
+  }, [stale, onDismiss]);
   const slot = useSheetSlot(toast?.id);
+  // 2026-11 (the owner: "these notifications should also have a close icon on hover"): Esc dismisses the toast when no
+  // sheet is up (a sheet's Esc is its own)
+  useEffect(() => {
+    if (!toast) return;
+    const key = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented || document.querySelector('[role="dialog"]')) return;
+      onDismiss();
+    };
+    window.addEventListener("keydown", key);
+    return () => window.removeEventListener("keydown", key);
+  }, [toast, onDismiss]);
   useEffect(() => {
     if (!toast || paused) return;
     const id = setTimeout(onDismiss, toast.ttl ?? 3000);
@@ -87,6 +109,17 @@ export function Toast({ toast, onDismiss }: { toast: ToastItem | null; onDismiss
       )}
     </>
   );
+  const close = (
+    <button
+      type="button"
+      className="toast-close"
+      aria-label={t("toast.dismiss")}
+      onClick={onDismiss}
+      data-testid="toast-close"
+    >
+      <X size={16} strokeWidth={2.25} aria-hidden />
+    </button>
+  );
   // wave 4: while a sheet is open the toast is an inline status row under the sheet's title (it floated over the
   // grabber and the title, cut to one line); the text wraps there instead of truncating
   if (slot)
@@ -108,6 +141,7 @@ export function Toast({ toast, onDismiss }: { toast: ToastItem | null; onDismiss
             <div className="sheet-status" data-testid="toast" data-inline="sheet">
               <span className="min-w-0 flex-1">{toast.text}</span>
               {action}
+              {close}
             </div>
           </motion.div>
         )}
@@ -127,6 +161,14 @@ export function Toast({ toast, onDismiss }: { toast: ToastItem | null; onDismiss
           exit="exit"
           onHoverStart={() => setPaused(true)}
           onHoverEnd={() => setPaused(false)}
+          // a swipe up or down dismisses it (touch)
+          drag="y"
+          dragConstraints={{ top: 0, bottom: 0 }}
+          dragElastic={0.6}
+          dragSnapToOrigin
+          onDragEnd={(_e, info) => {
+            if (Math.abs(info.offset.y) > 28 || Math.abs(info.velocity.y) > 400) onDismiss();
+          }}
           onFocus={() => setPaused(true)}
           onBlur={() => setPaused(false)}
           // top centre, under the top chrome (wave 2): at the bottom it squeezed between the tab bar and the floating
@@ -136,6 +178,7 @@ export function Toast({ toast, onDismiss }: { toast: ToastItem | null; onDismiss
         >
           <span className="min-w-0 flex-1 truncate">{toast.text}</span>
           {action}
+          {close}
         </motion.div>
       )}
     </AnimatePresence>

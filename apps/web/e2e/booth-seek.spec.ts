@@ -6,7 +6,7 @@
  * touch and user agent).
  */
 import { type BrowserContextOptions, devices, expect, type Page, test } from "@playwright/test";
-import { armAndConfirm, hold } from "./confirm";
+import { armAndConfirm, boothAction, hold } from "./confirm";
 
 function wav(sec = 30): Buffer {
   const rate = 22050;
@@ -115,8 +115,7 @@ for (const [name, opts] of DEVICES) {
   /** the set list: the column on a desktop, a sheet on a phone */
   const setList = async (page: Page) => {
     if (!phone) return page.getByTestId("booth-set").first();
-    if (!(await page.getByTestId("booth-set-sheet").isVisible()))
-      await page.getByTestId("booth-set-open").click();
+    if (!(await page.getByTestId("booth-set-sheet").isVisible())) await boothAction(page, "booth-set-open");
     const sheet = page.getByTestId("booth-set-sheet");
     await expect(sheet).toBeVisible();
     return sheet;

@@ -16,7 +16,7 @@
  * Screenshots (scale 2) go to $BOOTH_SHOTS when it is set.
  */
 import { type BrowserContextOptions, devices, expect, type Page, test } from "@playwright/test";
-import { hold } from "./confirm";
+import { boothAction, hold } from "./confirm";
 
 const SHOTS = process.env.BOOTH_SHOTS;
 
@@ -262,7 +262,10 @@ for (const [name, opts, o] of DEVICES) {
     // the collapsed Controls panel is only its toggle, in the transport row: no second Previous / Play / Next
     expect(m.panel).toBeNull();
     await expect(page.getByTestId("ctl-prev")).toHaveCount(0);
-    await expect(page.getByTestId("booth-strip").getByTestId("booth-controls-toggle")).toBeVisible();
+    // (a phone's bar keeps the transport: Controls is a row of its •••)
+    if (m.vw >= 600)
+      await expect(page.getByTestId("booth-strip").getByTestId("booth-controls-toggle")).toBeVisible();
+    else await expect(page.getByTestId("booth-strip").getByTestId("booth-controls-toggle")).toHaveCount(0);
     // the columns (two on iPad landscape and a desktop) end above the transport, the page holds still
     if (m.twoCols) {
       expect(m.col!.bottom).toBeLessThanOrEqual(m.strip!.top + 1);
@@ -291,8 +294,8 @@ for (const [name, opts, o] of DEVICES) {
       expect(foot).toBeLessThanOrEqual(strip.y + 1);
     }
 
-    // the Controls panel open: the same insets, docked above the transport, the columns end above it
-    await page.getByTestId("booth-controls-toggle").click();
+    // the Controls panel open: the same insets, docked above the transport, the columns end above it (a phone: •••)
+    await boothAction(page, "booth-controls-toggle");
     await expect(page.getByTestId("booth-controls")).toBeVisible();
     await page.waitForTimeout(400);
     const p = await measure(page);
@@ -306,7 +309,7 @@ for (const [name, opts, o] of DEVICES) {
     }
     for (const h of p.hit) expect(h.ok, `elementFromPoint on ${h.id} (panel open)`).toBe(true);
     if (SHOTS) await page.screenshot({ path: `${SHOTS}/${name}-controls-open.png` });
-    await page.getByTestId("booth-controls-toggle").click();
+    await boothAction(page, "booth-controls-toggle");
     await ctx.close();
   });
 }
@@ -531,9 +534,9 @@ test("the light confirmation: before the night none; mid-night a tap on Next doe
   await expect.poll(async () => (await snap(page)).planIndex).not.toBe(p0);
   await start(page);
   const a = (await snap(page)).cur;
-  // one tap: nothing changes, a bubble asks to hold (the label stays "Next": a second "Hold" beside the real one confused)
+  // one tap: nothing changes, it arms — one bubble says "Tap again or hold to confirm" (the label stays "Next")
   await next.click();
-  await expect(page.getByTestId("booth-next-now-nudge")).toContainText("Hold");
+  await expect(page.getByTestId("booth-next-now-nudge")).toHaveText("Tap again or hold to confirm");
   await expect(next.locator(".booth-tbtn-l")).toHaveText("Next");
   await page.waitForTimeout(600);
   expect((await snap(page)).cur).toBe(a);
@@ -557,7 +560,7 @@ test("the light confirmation: before the night none; mid-night a tap on Next doe
   if (await end.isEnabled()) {
     await end.click();
     await expect(end).toHaveAttribute("data-armed", "true");
-    await expect(end).toContainText("Tap again to confirm");
+    await expect(end).toContainText("Tap again or hold to confirm");
   }
   // Settings → Booth → off: a single tap advances
   await page.goto("/settings");
@@ -843,7 +846,7 @@ for (const [name, opts, o] of DEVICES) {
     await start(page);
     const phone = name === "iphone-15-pro";
     if (phone) {
-      await page.getByTestId("booth-set-open").click();
+      await boothAction(page, "booth-set-open");
       await expect(page.getByTestId("booth-set-sheet")).toBeVisible();
     }
     const set = page.locator(phone ? ".booth-set-sheet .booth-set" : ".booth-col-set .booth-set");
@@ -1111,11 +1114,14 @@ for (const light of [false, true]) {
       const cueR = cue.getBoundingClientRect();
       const deck = document.querySelector(".booth-deck")!.getBoundingClientRect();
       const ttc = document.querySelector('[data-testid="booth-remaining"]')!.getBoundingClientRect();
-      const labels = [...p.querySelectorAll<HTMLElement>(".booth-ctl-body .booth-ctl-btn-l")].map((l) => ({
-        lines: Math.round(
-          l.getBoundingClientRect().height / Number.parseFloat(getComputedStyle(l).lineHeight),
-        ),
-      }));
+      const labels = [...p.querySelectorAll<HTMLElement>(".booth-ctl-body .booth-ctl-btn-l")]
+        // (a control the bottom bar shows at this width is hidden in the panel)
+        .filter((l) => l.getBoundingClientRect().height > 0)
+        .map((l) => ({
+          lines: Math.round(
+            l.getBoundingClientRect().height / Number.parseFloat(getComputedStyle(l).lineHeight),
+          ),
+        }));
       return {
         transport: ["ctl-next-gap", "ctl-fade", "ctl-crossfade", "ctl-stop"].map((id) => ({
           h: b(id).height,
@@ -1148,12 +1154,15 @@ for (const light of [false, true]) {
         })(),
       };
     });
-    // Transport: one height, one glyph line; Mixer: the same scale; Song: one row of 44 px controls
-    for (const x of ctl.transport) {
-      expect(Math.abs(x.h - ctl.transport[0]!.h)).toBeLessThanOrEqual(0.5);
-      expect(Math.abs(x.g - ctl.transport[0]!.g)).toBeLessThanOrEqual(0.5);
+    // Transport: one height, one glyph line; Mixer: the same scale; Song: one row of 44 px controls (QA 2026-11:
+    // what the bottom bar shows at this width is not repeated in the panel — those are hidden, height 0)
+    const shown = ctl.transport.filter((x) => x.h > 0);
+    for (const x of shown) {
+      expect(Math.abs(x.h - shown[0]!.h)).toBeLessThanOrEqual(0.5);
+      expect(Math.abs(x.g - shown[0]!.g)).toBeLessThanOrEqual(0.5);
     }
-    for (const h of ctl.mixer) expect(Math.abs(h - ctl.transport[0]!.h)).toBeLessThanOrEqual(0.5);
+    for (const h of ctl.mixer.filter((h) => h > 0))
+      expect(Math.abs(h - shown[0]!.h)).toBeLessThanOrEqual(0.5);
     for (const l of ctl.labels) expect(l.lines, "each word on one line").toBe(1);
     for (const x of ctl.song) {
       expect(x.h).toBeCloseTo(44, 0);
@@ -1564,7 +1573,7 @@ test("iPhone 15 Pro in Turkish: no tab bar over the transport, a chip row that s
   });
   if (row.scrolls) expect(row.mask, "an edge fade where the row scrolls").toContain("gradient");
   // the transition editor: the presets in rows, every tile on the screen
-  await page.getByTestId("booth-set-open").click();
+  await boothAction(page, "booth-set-open");
   await page.locator('[data-testid="booth-set-sheet"] [data-testid="booth-gap"]').first().click();
   await expect(page.getByTestId("booth-tr-preset-auto")).toBeVisible();
   const vw = page.viewportSize()!.width;

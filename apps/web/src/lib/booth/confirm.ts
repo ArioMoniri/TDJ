@@ -70,3 +70,20 @@ export function confirmArmed(now = Date.now()): boolean {
 }
 
 export const useArmed = (key: string) => useArm((s) => s.armed?.key === key);
+
+/**
+ * QA 2026-11 ("one-touch room cuts"): Space (pause), m (mute) and the mini player's Pause cut the room in one press —
+ * mid-night a cut asks like every other room action (a second press within 3 s, or a hold on a button); the way back
+ * (resume, unmute) never waits. `cuts`: this press would silence the room.
+ */
+export function roomCut(
+  key: "pause" | "mute",
+  cuts: boolean,
+  run: () => void,
+  now = Date.now(),
+): "ran" | "armed" {
+  if (cuts) return guard(key, run, now);
+  if (useArm.getState().armed?.key === key) disarm();
+  run();
+  return "ran";
+}

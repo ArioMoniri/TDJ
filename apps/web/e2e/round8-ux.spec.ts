@@ -5,6 +5,7 @@
  * History naming, the admin title on a phone, the compose narrative painting one label at a time.
  */
 import { type Browser, devices, expect, type Page, test } from "@playwright/test";
+import { boothAction } from "./confirm";
 
 const BASE = process.env.TDJ_URL ?? "http://localhost:3000";
 
@@ -221,7 +222,7 @@ test("phone booth: a 64 pt strip with the faders behind Levels, Time above Next,
   expect(order.next).toBeLessThan(order.time);
   expect(order.chips.filter((c) => c === "30 s rehearsal").length).toBeLessThanOrEqual(1);
   // the set column numbers tracks inside their tanda (round 22: on a phone the set list is a sheet)
-  await page.getByTestId("booth-set-open").click();
+  await boothAction(page, "booth-set-open");
   const firstOfTanda2 = page.locator('[data-tanda="2"] [data-kind="track"] .booth-row-n').first();
   await expect(firstOfTanda2).toHaveText("1");
   await page.keyboard.press("Escape");

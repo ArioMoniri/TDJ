@@ -20,3 +20,14 @@ export async function armAndConfirm(loc: Locator) {
   await expect(loc).toHaveAttribute("data-armed", "true");
   await loc.click();
 }
+
+/**
+ * 2026-11 (the phone's bar redesign): a phone keeps Set list and Controls in ••• — tap the control where it shows,
+ * else open ••• and tap its row (the row has the control's test id)
+ */
+export async function boothAction(page: Page, id: "booth-set-open" | "booth-controls-toggle") {
+  const direct = page.getByTestId("booth-strip").getByTestId(id);
+  if (await direct.isVisible().catch(() => false)) return direct.click();
+  await page.getByTestId("booth-more").click();
+  await page.getByTestId("booth-menu").getByTestId(id).click();
+}

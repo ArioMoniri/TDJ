@@ -15,7 +15,7 @@ import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { spotifyOf } from "@/lib/booth/clips";
 import { cortinaStartOf } from "@/lib/booth/cortinaStart";
 import { useIndicators } from "@/lib/booth/indicatorPrefs";
-import { cortinaSpan, cortinaSwapLabel, swapLabel } from "@/lib/booth/nightView";
+import { cortinaSpan, cortinaSwapLabel, openingWithoutClip, swapLabel } from "@/lib/booth/nightView";
 import { durationLabel } from "@/lib/booth/plan";
 import { energyOf } from "@/lib/booth/songInfo";
 import { useBooth } from "@/lib/booth/store";
@@ -279,216 +279,233 @@ export function SetColumn({
     else groups.push({ tanda: it.tanda, items: [{ i }] });
   });
   return (
-    <section
-      ref={list}
-      className="booth-set"
-      data-testid="booth-set"
-      aria-label={tx("booth.setColumn.set_list")}
-    >
-      {groups.map((g) => {
-        const t = playlist.tandas[g.tanda - 1];
-        const locked = started && g.tanda <= runningTanda && g.tanda > 0;
-        const played = started && g.tanda < runningTanda;
-        return (
-          <section
-            key={g.tanda}
-            className={`booth-tanda ${played ? "booth-played" : ""}`}
-            data-tanda={g.tanda}
-            data-bypassed={bypassedT.has(g.tanda - 1) || undefined}
-            data-locked={locked || undefined}
-          >
-            {/* 2026-11: two clusters that never overlap — the text (title, type, total) takes the room left and
+    <>
+      <section
+        ref={list}
+        className="booth-set"
+        data-testid="booth-set"
+        aria-label={tx("booth.setColumn.set_list")}
+      >
+        {groups.map((g) => {
+          const t = playlist.tandas[g.tanda - 1];
+          const locked = started && g.tanda <= runningTanda && g.tanda > 0;
+          const played = started && g.tanda < runningTanda;
+          return (
+            <section
+              key={g.tanda}
+              className={`booth-tanda ${played ? "booth-played" : ""}`}
+              data-tanda={g.tanda}
+              data-bypassed={bypassedT.has(g.tanda - 1) || undefined}
+              data-locked={locked || undefined}
+            >
+              {/* 2026-11: two clusters that never overlap — the text (title, type, total) takes the room left and
                 truncates or wraps; the actions keep their 44 px targets on the right, and move under the text when
                 the column is too narrow for both (booth.css, .booth-tanda-head) */}
-            <header
-              className="booth-tanda-head"
-              data-hint={t ? tandaHint(t) : undefined}
-              data-testid="booth-tanda-head"
-            >
-              <span className="booth-tanda-text">
-                <span
-                  className="booth-tanda-title text-caption1 block truncate font-semibold uppercase tracking-wide text-[var(--label-2)]"
-                  data-testid="booth-tanda-title"
-                >
-                  {g.tanda === 0 ? (
-                    tx("booth.setColumn.opening")
-                  ) : t ? (
-                    <>
-                      {`${g.tanda} · ${t.rhythm} · `}
-                      {/* wave 3: names keep their Spanish capitals (no Turkish dotted İ) */}
-                      <span lang="es">{`${t.orchestra}${t.singer ? ` / ${t.singer}` : ""}`}</span>
-                    </>
-                  ) : (
-                    tx("booth.setColumn.closing")
+              <header
+                className="booth-tanda-head"
+                data-hint={t ? tandaHint(t) : undefined}
+                data-testid="booth-tanda-head"
+              >
+                <span className="booth-tanda-text">
+                  <span
+                    className="booth-tanda-title text-caption1 block truncate font-semibold uppercase tracking-wide text-[var(--label-2)]"
+                    data-testid="booth-tanda-title"
+                  >
+                    {g.tanda === 0 ? (
+                      tx("booth.setColumn.opening")
+                    ) : t ? (
+                      <>
+                        {`${g.tanda} · ${t.rhythm} · `}
+                        {/* wave 3: names keep their Spanish capitals (no Turkish dotted İ) */}
+                        <span lang="es">{`${t.orchestra}${t.singer ? ` / ${t.singer}` : ""}`}</span>
+                      </>
+                    ) : (
+                      tx("booth.setColumn.closing")
+                    )}
+                  </span>
+                  {/* 2026-11: the tanda's type in words and its total (songs and length, cues and trims counted) */}
+                  {t && (
+                    <span className="booth-tanda-meta" data-testid="booth-tanda-meta">
+                      <TandaTypeBadge rhythm={t.rhythm} vocal={t.vocal} singer={t.singer} />
+                      <span className="booth-tanda-total tabular-nums" data-testid="booth-tanda-total">
+                        {tandaTotal(g.items.map(({ i }) => plan.items[i]!))}
+                      </span>
+                    </span>
                   )}
                 </span>
-                {/* 2026-11: the tanda's type in words and its total (songs and length, cues and trims counted) */}
-                {t && (
-                  <span className="booth-tanda-meta" data-testid="booth-tanda-meta">
-                    <TandaTypeBadge rhythm={t.rhythm} vocal={t.vocal} singer={t.singer} />
-                    <span className="booth-tanda-total tabular-nums" data-testid="booth-tanda-total">
-                      {tandaTotal(g.items.map(({ i }) => plan.items[i]!))}
-                    </span>
-                  </span>
-                )}
-              </span>
-              <span className="booth-tanda-acts" data-testid="booth-tanda-acts">
-                {/* 2026-11: before the night, the tanda plays from its cover (this tanda, or on to the end) in the
+                <span className="booth-tanda-acts" data-testid="booth-tanda-acts">
+                  {/* 2026-11: before the night, the tanda plays from its cover (this tanda, or on to the end) in the
                     app's player; during the night the rows keep the Booth's own pre-listen and confirmation */}
-                {t && !started && (
-                  <TandaPlayCover tanda={g.tanda - 1} night={playlist}>
-                    <span className="tile-art" data-rhythm={t.rhythm} aria-hidden>
-                      <span className="text-subhead tabular-nums">{g.tanda}</span>
+                  {t && !started && (
+                    <TandaPlayCover tanda={g.tanda - 1} night={playlist}>
+                      <span className="tile-art" data-rhythm={t.rhythm} aria-hidden>
+                        <span className="text-subhead tabular-nums">{g.tanda}</span>
+                      </span>
+                    </TandaPlayCover>
+                  )}
+                  {bypassedT.has(g.tanda - 1) && (
+                    <span className="booth-skipped-chip" data-testid="booth-skipped-tonight">
+                      {tx("booth.setColumn.skipped_tonight")}
                     </span>
-                  </TandaPlayCover>
-                )}
-                {bypassedT.has(g.tanda - 1) && (
-                  <span className="booth-skipped-chip" data-testid="booth-skipped-tonight">
-                    {tx("booth.setColumn.skipped_tonight")}
-                  </span>
-                )}
-                {/* the running tanda: a filled lock in tint ("Playing now"); the DJ's own lock stays gold */}
-                {locked ? (
-                  <Lock
-                    size={14}
-                    strokeWidth={2}
-                    fill="currentColor"
-                    className="text-[var(--tint)]"
-                    aria-label={tx("booth.setColumn.playing_now_read_only")}
-                  >
-                    <title>{tx("booth.setColumn.playing_now")}</title>
-                  </Lock>
-                ) : (
-                  t?.locked && (
+                  )}
+                  {/* the running tanda: a filled lock in tint ("Playing now"); the DJ's own lock stays gold */}
+                  {locked ? (
                     <Lock
                       size={14}
                       strokeWidth={2}
-                      className="text-[var(--system-gold)]"
-                      aria-label={tx("booth.setColumn.locked")}
-                    />
-                  )
-                )}
-                {/* round 21: skip tonight — the player passes over it; it stays in the exports */}
-                {t && !locked && (
-                  <button
-                    type="button"
-                    className="booth-bypass"
-                    data-testid="booth-bypass"
-                    aria-pressed={!!bypassedT.has(g.tanda - 1)}
-                    aria-label={tx("booth.setColumn.tanda_tonight", {
-                      p1: bypassedT.has(g.tanda - 1)
-                        ? tx("booth.setColumn.play_2")
-                        : tx("booth.setColumn.skip"),
-                      tanda: g.tanda,
-                    })}
-                    data-hint={
-                      t.bypass
-                        ? tx("booth.setColumn.skipped_tonight_the_player_passes_over")
-                        : bypassedT.has(g.tanda - 1)
-                          ? tx("booth.setColumn.skipped_by_last_4_tandas_tango")
-                          : tx("booth.setColumn.skip_this_tanda_tonight_the_player")
-                    }
-                    disabled={!t.bypass && bypassedT.has(g.tanda - 1)}
-                    onClick={() => void useBooth.getState().toggleBypass(g.tanda)}
-                  >
-                    {bypassedT.has(g.tanda - 1)
-                      ? tx("booth.setColumn.play_it")
-                      : tx("booth.setColumn.skip_tonight")}
-                  </button>
-                )}
-                {/* 2026-11: how the floor took the tanda, once it plays (dancer favourites): three icons in a wide
+                      fill="currentColor"
+                      className="text-[var(--tint)]"
+                      aria-label={tx("booth.setColumn.playing_now_read_only")}
+                    >
+                      <title>{tx("booth.setColumn.playing_now")}</title>
+                    </Lock>
+                  ) : (
+                    t?.locked && (
+                      <Lock
+                        size={14}
+                        strokeWidth={2}
+                        className="text-[var(--system-gold)]"
+                        aria-label={tx("booth.setColumn.locked")}
+                      />
+                    )
+                  )}
+                  {/* round 21: skip tonight — the player passes over it; it stays in the exports */}
+                  {t && !locked && (
+                    <button
+                      type="button"
+                      className="booth-bypass"
+                      data-testid="booth-bypass"
+                      aria-pressed={!!bypassedT.has(g.tanda - 1)}
+                      aria-label={tx("booth.setColumn.tanda_tonight", {
+                        p1: bypassedT.has(g.tanda - 1)
+                          ? tx("booth.setColumn.play_2")
+                          : tx("booth.setColumn.skip"),
+                        tanda: g.tanda,
+                      })}
+                      data-hint={
+                        t.bypass
+                          ? tx("booth.setColumn.skipped_tonight_the_player_passes_over")
+                          : bypassedT.has(g.tanda - 1)
+                            ? tx("booth.setColumn.skipped_by_last_4_tandas_tango")
+                            : tx("booth.setColumn.skip_this_tanda_tonight_the_player")
+                      }
+                      disabled={!t.bypass && bypassedT.has(g.tanda - 1)}
+                      onClick={() => void useBooth.getState().toggleBypass(g.tanda)}
+                    >
+                      {bypassedT.has(g.tanda - 1)
+                        ? tx("booth.setColumn.play_it")
+                        : tx("booth.setColumn.skip_tonight")}
+                    </button>
+                  )}
+                  {/* 2026-11: how the floor took the tanda, once it plays (dancer favourites): three icons in a wide
                   column, one "Floor…" menu in a narrow one (the container query shows one of the two) */}
-                {t && started && g.tanda <= runningTanda && (
-                  <>
-                    <span className="booth-floor-inline">
-                      <FloorReaction scope="tanda" tanda={g.tanda} compact testPrefix={`set-${g.tanda}`} />
-                    </span>
-                    <FloorMenu tanda={g.tanda} testPrefix={`set-${g.tanda}`} />
-                  </>
-                )}
-                {t && started && g.tanda <= runningTanda && (
-                  <PraiseTanda tanda={g.tanda} compact testPrefix={`set-${g.tanda}`} />
-                )}
-                {t && !locked && (
-                  <Menu
-                    label={tx("booth.setColumn.edit_tanda", { tanda: g.tanda })}
-                    className="booth-edit-menu icon-btn-bare h-11 w-11"
-                    icon={<I name="more" size={18} strokeWidth={2} />}
-                    items={[
-                      {
-                        label: tx("spot.add_song_here"),
-                        icon: ListPlus,
-                        onClick: () => insertAt({ kind: "song", tanda: g.tanda - 1, at: t.songs.length }),
-                      },
-                      {
-                        label: tx("spot.insert_tanda_before"),
-                        icon: BetweenHorizontalStart,
-                        onClick: () => insertAt({ kind: "tanda", at: g.tanda - 1 }),
-                      },
-                      {
-                        label: tx("spot.insert_tanda_after"),
-                        icon: BetweenHorizontalEnd,
-                        onClick: () => insertAt({ kind: "tanda", at: g.tanda }),
-                      },
-                      ...t.songs.map((x, k) => ({
-                        label: tx("booth.setColumn.remove_song", { title: x.title }),
-                        icon: Trash2,
-                        destructive: true,
-                        onClick: () => void removeSongAt(lockedPlaylist(playlist), g.tanda - 1, k, applyEdit),
-                      })),
-                      {
-                        label: tx("spot.remove_tanda"),
-                        icon: Trash2,
-                        destructive: true,
-                        onClick: () => void removeTandaAt(lockedPlaylist(playlist), g.tanda - 1, applyEdit),
-                      },
-                    ]}
-                  />
-                )}
-                {t && (
-                  <SwapButton
-                    label={tx("booth.setColumn.swap_tanda", { tanda: g.tanda })}
-                    disabled={locked}
-                    busy={busy === `${g.tanda}-t`}
-                    onClick={() => swap(g.tanda)}
-                    title={locked ? tx("booth.setColumn.playing_locked") : undefined}
-                  />
-                )}
-              </span>
-            </header>
-            <ol>
-              {g.items.map(({ i }, k) => [
-                <Row
-                  key={i}
-                  i={i}
-                  k={g.items.slice(0, k).filter((x) => plan.items[x.i]!.kind === "track").length + 1}
-                  current={i === planIndex}
-                  played={started && i < planIndex}
-                  locked={locked}
-                  source={sources[i] ?? "missing"}
-                  rehearsal={rehearsal}
-                  busy={
-                    busy ===
-                    `${g.tanda}-${plan.items[i]!.kind === "track" ? g.items.findIndex((x) => x.i === i) : "t"}`
-                  }
-                  onSwap={
-                    (plan.items[i]!.kind === "track" || plan.items[i]!.kind === "cortina") && t
-                      ? openSwap
-                      : undefined
-                  }
-                  onTap={tap}
-                  onOpen={open}
-                  onFind={onFind}
-                  onCortina={onCortina}
-                />,
-                onTransition && hasTransition(plan.items, i) ? (
-                  <GapMarker key={`gap-${i}`} i={i} played={started && i < planIndex} onOpen={onTransition} />
-                ) : null,
-              ])}
-            </ol>
-          </section>
-        );
-      })}
+                  {t && started && g.tanda <= runningTanda && (
+                    <>
+                      <span className="booth-floor-inline">
+                        <FloorReaction scope="tanda" tanda={g.tanda} compact testPrefix={`set-${g.tanda}`} />
+                      </span>
+                      <FloorMenu tanda={g.tanda} testPrefix={`set-${g.tanda}`} />
+                    </>
+                  )}
+                  {t && started && g.tanda <= runningTanda && (
+                    <PraiseTanda tanda={g.tanda} compact testPrefix={`set-${g.tanda}`} />
+                  )}
+                  {t && !locked && (
+                    <Menu
+                      label={tx("booth.setColumn.edit_tanda", { tanda: g.tanda })}
+                      className="booth-edit-menu icon-btn-bare h-11 w-11"
+                      icon={<I name="more" size={18} strokeWidth={2} />}
+                      items={[
+                        {
+                          label: tx("spot.add_song_here"),
+                          icon: ListPlus,
+                          onClick: () => insertAt({ kind: "song", tanda: g.tanda - 1, at: t.songs.length }),
+                        },
+                        {
+                          label: tx("spot.insert_tanda_before"),
+                          icon: BetweenHorizontalStart,
+                          onClick: () => insertAt({ kind: "tanda", at: g.tanda - 1 }),
+                        },
+                        {
+                          label: tx("spot.insert_tanda_after"),
+                          icon: BetweenHorizontalEnd,
+                          onClick: () => insertAt({ kind: "tanda", at: g.tanda }),
+                        },
+                        ...t.songs.map((x, k) => ({
+                          label: tx("booth.setColumn.remove_song", { title: x.title }),
+                          icon: Trash2,
+                          destructive: true,
+                          onClick: () =>
+                            void removeSongAt(lockedPlaylist(playlist), g.tanda - 1, k, applyEdit),
+                        })),
+                        {
+                          label: tx("spot.remove_tanda"),
+                          icon: Trash2,
+                          destructive: true,
+                          onClick: () => void removeTandaAt(lockedPlaylist(playlist), g.tanda - 1, applyEdit),
+                        },
+                      ]}
+                    />
+                  )}
+                  {t && (
+                    <SwapButton
+                      label={tx("booth.setColumn.swap_tanda", { tanda: g.tanda })}
+                      disabled={locked}
+                      busy={busy === `${g.tanda}-t`}
+                      onClick={() => swap(g.tanda)}
+                      title={locked ? tx("booth.setColumn.playing_locked") : undefined}
+                    />
+                  )}
+                </span>
+              </header>
+              {/* QA 2026-11: in Rehearsal the opening with no clip is passed over — said here, never silently */}
+              {g.tanda === 0 && openingWithoutClip(plan.items, sources, rehearsal) && (
+                <p className="booth-opening-note text-footnote" data-testid="booth-opening-note">
+                  {tx("booth.qa.opening_rehearsal")}
+                </p>
+              )}
+              <ol>
+                {g.items.map(({ i }, k) => [
+                  <Row
+                    key={i}
+                    i={i}
+                    k={g.items.slice(0, k).filter((x) => plan.items[x.i]!.kind === "track").length + 1}
+                    current={i === planIndex}
+                    played={started && i < planIndex}
+                    locked={locked}
+                    source={sources[i] ?? "missing"}
+                    rehearsal={rehearsal}
+                    busy={
+                      busy ===
+                      `${g.tanda}-${plan.items[i]!.kind === "track" ? g.items.findIndex((x) => x.i === i) : "t"}`
+                    }
+                    onSwap={
+                      (plan.items[i]!.kind === "track" || plan.items[i]!.kind === "cortina") && t
+                        ? openSwap
+                        : undefined
+                    }
+                    onTap={tap}
+                    onOpen={open}
+                    onFind={onFind}
+                    onCortina={onCortina}
+                  />,
+                  onTransition && hasTransition(plan.items, i) ? (
+                    <GapMarker
+                      key={`gap-${i}`}
+                      i={i}
+                      played={started && i < planIndex}
+                      onOpen={onTransition}
+                    />
+                  ) : null,
+                ])}
+              </ol>
+            </section>
+          );
+        })}
+        {!onTapRow && <SongSheet i={tapped} onClose={() => setTapped(null)} />}
+      </section>
+      {/* QA 2026-11 ("Back to now" floated over Play La Cumparsita / Skip tonight): a bar after the list, never over it —
+        with the Controls panel open it takes its own room under the list's scroller (booth.css) */}
       {follow && away && (
         <button
           type="button"
@@ -500,11 +517,10 @@ export function SetColumn({
           }}
           data-testid="booth-back-to-now"
         >
-          {tx("booth.setColumn.back_to_now")}
+          <span>{tx("booth.setColumn.back_to_now")}</span>
         </button>
       )}
-      {!onTapRow && <SongSheet i={tapped} onClose={() => setTapped(null)} />}
-    </section>
+    </>
   );
 }
 

@@ -313,8 +313,14 @@ test("2. Energy tonight: Scrub is off by default; on, a drag and the arrow keys 
   const toggle = rail.getByTestId("booth-scrub-toggle");
   await expect(toggle).toHaveAttribute("aria-pressed", "false");
   await expect(rail.getByTestId("booth-scrub-line")).toHaveCount(0);
+  // (2026-11, the owner: a compact pill beside the title — 32 px drawn, its target 44 px through a 6 px margin)
   const box = (await toggle.boundingBox())!;
-  expect(box.height).toBeGreaterThanOrEqual(44);
+  expect(box.height).toBeGreaterThanOrEqual(32);
+  const hit = await toggle.evaluate((e) => {
+    const a = getComputedStyle(e, "::after");
+    return e.getBoundingClientRect().height - Number.parseFloat(a.top) - Number.parseFloat(a.bottom);
+  });
+  expect(hit).toBeGreaterThanOrEqual(44);
   // a stray drag on the chart with Scrub off changes nothing
   const svg = rail.getByTestId("booth-energy-svg");
   await svg.scrollIntoViewIfNeeded();
@@ -569,7 +575,9 @@ test("7. the night on other pages: the mini controller on Compose, Library, Data
     if (SHOTS) await page.screenshot({ path: `${SHOTS}/mini${href.replace(/\//g, "-") || "-compose"}.png` });
   }
   const mini = page.getByTestId("booth-mini");
-  // Pause and Resume
+  // Pause (mid-night it asks: a second tap) and Resume (at once)
+  await mini.getByTestId("booth-mini-toggle").click();
+  await expect(mini.getByTestId("booth-mini-toggle")).toHaveAttribute("data-armed", "true");
   await mini.getByTestId("booth-mini-toggle").click();
   await expect.poll(async () => (await snap(page)).state).toBe("paused");
   await expect(mini.getByTestId("booth-mini-status")).toHaveText("Paused");

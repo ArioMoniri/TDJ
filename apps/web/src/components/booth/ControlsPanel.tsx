@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { hideHints } from "@/components/ui/Tip";
-import { guard, useArmed } from "@/lib/booth/confirm";
 import { askForHeadphones, SINK_UNSUPPORTED } from "@/lib/booth/cue";
 import { TRANSPORT_RANGES } from "@/lib/booth/engine";
 import { durationLabel } from "@/lib/booth/plan";
@@ -24,7 +23,7 @@ import { boothEngine, useBooth, useRoomCaps } from "@/lib/booth/store";
 import { t } from "@/lib/i18n";
 import { toast } from "@/lib/toast";
 import { SeekBar } from "../ui/SeekBar";
-import { ArmButton, ConfirmRing } from "./Confirm";
+import { ArmButton, ConfirmHint, ConfirmRing, useHoldConfirm } from "./Confirm";
 import { openController } from "./ControllerView";
 import { FadeButton } from "./FadeButton";
 import { Fader } from "./Fader";
@@ -56,6 +55,7 @@ export function saveControlsOpen(open: boolean) {
  */
 export function ControlsPanel({
   open,
+  deckFolded,
   onClose,
   onStop,
   onKeys,
@@ -63,6 +63,8 @@ export function ControlsPanel({
 }: {
   /** open: it docks above the transport (its toggle is the transport's Controls button) */
   open: boolean;
+  /** QA 2026-11: deck cards stepped aside for the panel (never cut in half): the head offers them back */
+  deckFolded?: boolean;
   onClose: () => void;
   /** the Stop confirm (fade out and stop / stop now) */
   onStop: () => void;
@@ -150,11 +152,46 @@ export function ControlsPanel({
     window.addEventListener("resize", fitRows);
     const ro = typeof ResizeObserver === "function" ? new ResizeObserver(fitRows) : null;
     for (const g of el.children) ro?.observe(g);
+    // (the cap follows the page: the Now card's height the deck keeps, booth.css; the page says when it changes)
+    window.addEventListener("tdj:booth-now-h", fitRows);
     return () => {
       el.removeEventListener("scroll", read);
       window.removeEventListener("resize", fitRows);
       ro?.disconnect();
+      window.removeEventListener("tdj:booth-now-h", fitRows);
       el.style.maxHeight = "";
+    };
+  }, [open]);
+  // QA 2026-11 (1440 × 900: Fade, Crossfade, Skip next, Stop, Master, Mute and Talk twice on screen): a control the
+  // transport shows at this width steps out of the panel (the transport hides some as it narrows: they stay here)
+  useEffect(() => {
+    const el = body.current;
+    if (!el || !open) return;
+    const strip = document.querySelector<HTMLElement>('[data-testid="booth-strip"]');
+    const mark = () => {
+      for (const [bar, here] of DUPS) {
+        const b = document.querySelector<HTMLElement>(`[data-testid="${bar}"]`);
+        const shown = !!b && strip?.contains(b) === true && b.getClientRects().length > 0;
+        const h = el.querySelector<HTMLElement>(`[data-testid="${here}"]`);
+        if (h) h.toggleAttribute("data-dup", shown);
+      }
+      for (const g of el.querySelectorAll<HTMLElement>(".booth-ctl-g-transport")) {
+        const any = [...g.querySelectorAll<HTMLElement>("button")].some((x) => !x.hasAttribute("data-dup"));
+        g.toggleAttribute("data-empty", !any);
+      }
+    };
+    mark();
+    const ro = typeof ResizeObserver === "function" ? new ResizeObserver(mark) : null;
+    if (strip) ro?.observe(strip);
+    // the transport's buttons come and go with the night (Stop, Skip next before / after Start)
+    const mo = typeof MutationObserver === "function" ? new MutationObserver(mark) : null;
+    if (strip)
+      mo?.observe(strip, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
+    window.addEventListener("resize", mark);
+    return () => {
+      ro?.disconnect();
+      mo?.disconnect();
+      window.removeEventListener("resize", mark);
     };
   }, [open]);
   /** "More": the first row of groups the fold cuts or hides comes up to the panel's top */
@@ -254,6 +291,17 @@ export function ControlsPanel({
           <ChevronDown size={18} aria-hidden />
           <span>{t("booth.controls.title")}</span>
         </button>
+        {deckFolded && (
+          <button
+            type="button"
+            className="booth-ctl-more"
+            onClick={onClose}
+            aria-description={t("booth.qa.deck_more_hint")}
+            data-testid="booth-deck-more"
+          >
+            {t("booth.qa.deck_more")}
+          </button>
+        )}
         {more && (
           <button
             type="button"
@@ -556,6 +604,17 @@ export function ControlsPanel({
   );
 }
 
+/** the transport's button → the panel's copy of it (hidden here while the transport shows it) */
+const DUPS: Array<[string, string]> = [
+  ["booth-strip-fade", "ctl-fade"],
+  ["booth-strip-crossfade", "ctl-crossfade"],
+  ["booth-next-btn", "ctl-next-gap"],
+  ["booth-stop", "ctl-stop"],
+  ["booth-master", "ctl-master"],
+  ["booth-mute", "ctl-mute"],
+  ["booth-talk", "ctl-talk"],
+];
+
 /** the panel's groups as laid out (its rows: the grid stretches the groups of one row to one height) */
 function rowsOf(el: HTMLElement): HTMLElement[] {
   return [...el.children].filter((g): g is HTMLElement => g instanceof HTMLElement && g.offsetHeight > 0);
@@ -613,24 +672,28 @@ function Btn({
   testId: string;
   children: ReactNode;
 }) {
-  const armed = useArmed(armKey ?? "");
-  const on = !!armKey && armed;
+  // QA 2026-11: an armKey control confirms as the transport does — a second tap within 3 s or a hold
+  const hold = useHoldConfirm(armKey ?? `plain:${testId}`, onClick);
+  const on = !!armKey && hold.armed;
   return (
     <button
       type="button"
       className={`booth-ctl-btn confirm-host ${primary ? "booth-ctl-primary" : ""} ${icon ? "booth-ctl-icon" : ""}`}
       data-armed={on || undefined}
+      data-holding={(!!armKey && hold.holding) || undefined}
       aria-label={label}
       aria-pressed={pressed === undefined ? undefined : pressed}
       aria-description={why}
       title={why ?? label}
-      onClick={armKey ? () => guard(armKey, onClick) : onClick}
+      {...(armKey ? hold.handlers : { onClick })}
+      onContextMenu={armKey ? (e) => e.preventDefault() : undefined}
       disabled={disabled}
       data-testid={testId}
     >
       {children}
-      {!icon && <span className="booth-ctl-btn-l">{on ? t("booth.confirm.again") : (short ?? label)}</span>}
-      {on && <ConfirmRing />}
+      {!icon && <span className="booth-ctl-btn-l">{short ?? label}</span>}
+      {(on || (!!armKey && hold.holding)) && <ConfirmRing />}
+      {on && !hold.holding && <ConfirmHint testId={`${testId}-nudge`} />}
     </button>
   );
 }

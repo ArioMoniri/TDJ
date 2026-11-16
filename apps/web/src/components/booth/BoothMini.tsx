@@ -1,13 +1,14 @@
 "use client";
 import { Pause, Play, SkipForward, Volume2, VolumeX } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { type PointerEvent, useEffect, useRef, useState } from "react";
+import { type CSSProperties, type PointerEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { guard, useArmed } from "@/lib/booth/confirm";
+import { placeSeekBubble } from "@/lib/booth/seekBubble";
 import type { useBooth as UseBooth } from "@/lib/booth/store";
 import { t } from "@/lib/i18n";
 import { Artwork } from "../ui/Artwork";
 import { Marquee } from "../ui/Marquee";
-import { ConfirmRing, useHoldConfirm } from "./Confirm";
+import { ConfirmHint, ConfirmRing, useHoldConfirm } from "./Confirm";
 import "./mini.css";
 
 type BoothStore = typeof UseBooth;
@@ -113,8 +114,26 @@ export function BoothMini() {
     };
   }, [show]);
   const next = useHoldConfirm("next", () => void boothStore()?.getState().nextNow());
+  // QA 2026-11: Pause cut the room in one tap, 2 px from Next — mid-night it asks like Next (a second tap or a hold);
+  // Resume never waits (no confirmation is needed while paused)
+  const pause = useHoldConfirm("pause", () => void boothStore()?.getState().togglePause());
   const seekArmed = useArmed("mini-seek");
   const [seekTo, setSeekTo] = useState<number | null>(null);
+  // 2026-11 (the owner: "UI issue for the jump guide" — the bubble sat at the bar's far right over Pause / Next / Mute):
+  // the bubble stands over its marker, inside the bar and clear of the buttons, its pointer on the marker
+  const seekRef = useRef<HTMLDivElement>(null);
+  const bubbleRef = useRef<HTMLSpanElement>(null);
+  const btnsRef = useRef<HTMLDivElement>(null);
+  const [bubble, setBubble] = useState<{ left: number; tip: number } | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: placed again whenever the marked spot moves
+  useLayoutEffect(() => {
+    const bar = seekRef.current?.getBoundingClientRect();
+    const b = bubbleRef.current?.getBoundingClientRect();
+    if (!bar || !b || seekTo === null || !seekArmed) return setBubble(null);
+    const len0 = Number(seekRef.current?.dataset.len) || 1;
+    const btns = btnsRef.current?.getBoundingClientRect();
+    setBubble(placeSeekBubble(bar, b.width, seekTo / len0, btns));
+  }, [seekTo, seekArmed]);
   if (!show || !s?.plan) return null;
   const st = boothStore()!;
   const items = s.plan.items;
@@ -191,12 +210,15 @@ export function BoothMini() {
           {status}
         </span>
       )}
-      <div className="booth-mini-btns">
+      <div className="booth-mini-btns" ref={btnsRef}>
         <button
           type="button"
-          className="booth-mini-btn"
-          onClick={() => st.getState().togglePause()}
+          className="booth-mini-btn booth-mini-toggle confirm-host"
+          {...pause.handlers}
+          data-armed={pause.armed || undefined}
+          data-holding={pause.holding || undefined}
           aria-label={live ? t("booth.ui2.mini_pause") : t("booth.ui2.mini_resume")}
+          aria-description={live ? t("booth.confirm.hold_hint") : undefined}
           data-testid="booth-mini-toggle"
         >
           {live ? (
@@ -204,6 +226,7 @@ export function BoothMini() {
           ) : (
             <Play size={20} fill="currentColor" strokeWidth={0} aria-hidden />
           )}
+          {(pause.armed || pause.holding) && <ConfirmRing />}
         </button>
         <button
           type="button"
@@ -218,6 +241,10 @@ export function BoothMini() {
           <SkipForward size={20} strokeWidth={2} aria-hidden />
           {(next.armed || next.holding) && <ConfirmRing />}
         </button>
+        {/* the one hint of an armed control, over the buttons (the first tap on Next said nothing) */}
+        {(next.armed || pause.armed) && (
+          <ConfirmHint className="booth-mini-arm booth-mini-hint" testId="booth-mini-hint" />
+        )}
         <button
           type="button"
           className="booth-mini-btn"
@@ -235,6 +262,7 @@ export function BoothMini() {
       </div>
       {/* (a pointer shortcut; the Booth's seek bar is the keyboard's) */}
       <div
+        ref={seekRef}
         className="booth-mini-seek"
         title={t("booth.ui2.mini_seek")}
         aria-disabled={!live || undefined}
@@ -250,7 +278,17 @@ export function BoothMini() {
           )}
         </span>
         {seekArmed && seekTo !== null && (
-          <span className="booth-mini-arm" role="status" data-testid="booth-mini-seek-arm">
+          <span
+            ref={bubbleRef}
+            className="booth-mini-arm booth-mini-seek-arm"
+            role="status"
+            data-testid="booth-mini-seek-arm"
+            style={
+              bubble
+                ? ({ left: `${bubble.left}px`, "--tip": `${bubble.tip}px` } as CSSProperties)
+                : { visibility: "hidden" }
+            }
+          >
             {t("booth.ui2.mini_seek_arm", { at: clock(seekTo) })}
           </span>
         )}

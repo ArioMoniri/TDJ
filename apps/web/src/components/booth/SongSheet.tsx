@@ -162,6 +162,8 @@ export function SongSheet({
                   }}
                   id="booth-play-now"
                   data-testid="booth-play-now"
+                  // the sheet opens with the focus here (never on Cancel): Enter plays it in the room
+                  data-autofocus={i !== planIndex || undefined}
                 >
                   {t("booth.songSheet.play_now_in_the_room")}
                 </ArmButton>

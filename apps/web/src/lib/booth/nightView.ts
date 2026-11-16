@@ -9,6 +9,36 @@ import { durationLabel } from "./plan";
 type Item = { kind: string; tanda: number };
 
 /**
+ * QA 2026-11 ("Rehearsal skips the opening La Cumparsita silently"): in Rehearsal an opening La Cumparsita with no
+ * 30 s clip is passed over — the plan notes it ("plays on the night") and Start says so once.
+ */
+export function openingWithoutClip(
+  items: ReadonlyArray<Item>,
+  sources: ReadonlyArray<string>,
+  rehearsal: boolean,
+): boolean {
+  const first = items[0];
+  return rehearsal && !!first && first.kind === "closing" && first.tanda === 0 && sources[0] === "missing";
+}
+
+let openingSaid = false;
+/** Start in Rehearsal from the top, past an opening with no clip: true the first time (the toast says it once) */
+export function sayOpeningSkipped(
+  items: ReadonlyArray<Item>,
+  sources: ReadonlyArray<string>,
+  rehearsal: boolean,
+  startAt: number,
+): boolean {
+  if (openingSaid || startAt > 1 || !openingWithoutClip(items, sources, rehearsal)) return false;
+  openingSaid = true;
+  return true;
+}
+/** for tests */
+export const _resetOpeningSaid = () => {
+  openingSaid = false;
+};
+
+/**
  * Up next from the playhead. `passed`: the items the night leaves out (skipped tonight, cued past, the tanda the DJ
  * skips and its cortina) — never shown as next. `missing`: the items with nothing to play them from — passed over,
  * but shown (and said) when nothing else is left.

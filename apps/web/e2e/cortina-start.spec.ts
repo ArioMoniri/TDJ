@@ -5,6 +5,7 @@
  * chorus in one tap. Desktop and iPhone 15 Pro (Chromium with its viewport, touch and user agent), 30 s clips.
  */
 import { type BrowserContextOptions, devices, expect, type Page, test } from "@playwright/test";
+import { boothAction } from "./confirm";
 
 function wav(sec = 30): Buffer {
   const rate = 22050;
@@ -103,8 +104,7 @@ for (const [name, opts] of DEVICES) {
   const phone = name !== "desktop";
   const setList = async (page: Page) => {
     if (!phone) return page.getByTestId("booth-set").first();
-    if (!(await page.getByTestId("booth-set-sheet").isVisible()))
-      await page.getByTestId("booth-set-open").click();
+    if (!(await page.getByTestId("booth-set-sheet").isVisible())) await boothAction(page, "booth-set-open");
     const sheet = page.getByTestId("booth-set-sheet");
     await expect(sheet).toBeVisible();
     return sheet;

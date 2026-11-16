@@ -3,6 +3,7 @@
  * dark; 30 s clips (real waveforms) and Spotify Connect (no audio: the estimated shape). Skipped without TDJ_SHOTS.
  */
 import { type BrowserContextOptions, devices, expect, type Page, test } from "@playwright/test";
+import { boothAction } from "./confirm";
 
 const SHOTS = process.env.TDJ_SHOTS;
 const PRESET = process.env.TDJ_SHOT_PRESET ?? "blend";
@@ -138,7 +139,7 @@ for (const [dev, use, phone] of CASES)
         const ctx = await browser.newContext({ ...use, colorScheme: theme });
         const page = await ctx.newPage();
         await open(page, { spotify: src === "spotify", theme });
-        if (phone) await page.getByTestId("booth-set-open").click();
+        if (phone) await boothAction(page, "booth-set-open");
         const scope = phone ? page.getByTestId("booth-set-sheet") : page;
         // the first track followed by a track (tanda 1, songs 1 → 2)
         const i = Number(

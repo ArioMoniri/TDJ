@@ -12,24 +12,24 @@ import { haptic } from "@/lib/haptics";
 import { t } from "@/lib/i18n";
 
 /**
- * Press-and-hold for a transport button (lib/booth/confirm.ts): while a confirmation is needed a press arms a ring
- * that fills in 0.6 s and then runs the action; a shorter tap runs nothing and says "Hold to confirm". The keyboard
- * (a click with no pointer) arms the control instead: Enter again confirms, Esc cancels. When no confirmation is
- * needed (before the night, the setting off) a tap runs at once.
+ * The one mid-night confirmation for a control that changes what the room hears (lib/booth/confirm.ts; QA 2026-11:
+ * Next was hold-only, Play now tap-twice-only, the mini player's Next silent on a tap): BOTH a second tap within 3 s
+ * and a press-and-hold (a ring fills in 0.6 s) confirm. The first tap arms it — the same armed state everywhere
+ * (`data-armed`, the countdown ring, the hint "Tap again or hold to confirm"). The keyboard (a click with no pointer)
+ * arms too: Enter again confirms, Esc cancels. When no confirmation is needed (before the night, the setting off) a
+ * tap runs at once.
  */
 export function useHoldConfirm(key: string, run: () => void) {
   const armed = useArmed(key);
   const [holding, setHolding] = useState(false);
-  const [nudge, setNudge] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const nudgeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const fired = useRef(false);
+  // the pointer already answered this press (a hold that ran, or a tap that armed / confirmed): its click is spent
+  const handled = useRef(false);
   const runRef = useRef(run);
   runRef.current = run;
   useEffect(
     () => () => {
       if (timer.current) clearTimeout(timer.current);
-      if (nudgeTimer.current) clearTimeout(nudgeTimer.current);
     },
     [],
   );
@@ -41,16 +41,14 @@ export function useHoldConfirm(key: string, run: () => void) {
   return {
     armed,
     holding,
-    nudge,
     handlers: {
       onPointerDown: (e: PointerEvent<HTMLElement>) => {
+        handled.current = false;
         if (e.button !== 0 || !confirmNeeded()) return;
-        fired.current = false;
-        setNudge(false);
         setHolding(true);
         timer.current = setTimeout(() => {
           timer.current = null;
-          fired.current = true;
+          handled.current = true;
           setHolding(false);
           haptic(12);
           disarm();
@@ -59,16 +57,16 @@ export function useHoldConfirm(key: string, run: () => void) {
       },
       onPointerUp: () => {
         if (!timer.current) return;
+        // a short tap: the first arms, a second within 3 s confirms
         stop();
-        setNudge(true);
-        if (nudgeTimer.current) clearTimeout(nudgeTimer.current);
-        nudgeTimer.current = setTimeout(() => setNudge(false), 1600);
+        handled.current = true;
+        if (guard(key, () => runRef.current()) === "armed") haptic(6);
       },
       onPointerLeave: stop,
       onPointerCancel: stop,
-      onClick: (e: { detail: number }) => {
-        if (fired.current) {
-          fired.current = false;
+      onClick: () => {
+        if (handled.current) {
+          handled.current = false;
           return;
         }
         if (!confirmNeeded()) {
@@ -76,11 +74,26 @@ export function useHoldConfirm(key: string, run: () => void) {
           runRef.current();
           return;
         }
-        // a click without a pointer: the keyboard (Enter / Space) arms, a second one confirms
-        if (e.detail === 0) guard(key, () => runRef.current());
+        // a click without a pointer press (the keyboard: Enter / Space) arms, a second one confirms
+        guard(key, () => runRef.current());
       },
     },
   };
+}
+
+/** The words an armed control shows (one hint everywhere): "Tap again or hold to confirm". */
+export function ConfirmHint({
+  className = "booth-tbtn-nudge",
+  testId,
+}: {
+  className?: string;
+  testId?: string;
+}) {
+  return (
+    <span className={className} role="status" data-testid={testId}>
+      {t("booth.confirm.tap_again")}
+    </span>
+  );
 }
 
 /** The ring a confirm control draws while armed (3 s countdown) or held (0.6 s fill). */
@@ -89,9 +102,9 @@ export function ConfirmRing() {
 }
 
 /**
- * Tap-to-arm (sheets, menus, rows, cards): the first tap arms ("Tap again to confirm", a 3 s countdown ring), the
- * second runs; with no confirmation needed the first tap runs. The words are added to the button, so its name keeps
- * its own words.
+ * A sheet, menu, row or card action that changes the room (Play now, End tanda…): the same confirmation as the
+ * transport (a second tap or a hold); with no confirmation needed the first tap runs. The words are added to the
+ * button, so its name keeps its own words.
  */
 export function ArmButton({
   armKey,
@@ -105,26 +118,20 @@ export function ArmButton({
   children: ReactNode;
   className?: string;
 } & Omit<ButtonHTMLAttributes<HTMLButtonElement>, "onClick">) {
-  const armed = useArmed(armKey);
+  const hold = useHoldConfirm(armKey, onConfirm);
   return (
     <button
       type="button"
       {...rest}
       className={`${className} confirm-host`}
-      data-armed={armed || undefined}
-      onClick={() => {
-        if (guard(armKey, onConfirm) === "armed") haptic(6);
-      }}
+      data-armed={hold.armed || undefined}
+      data-holding={hold.holding || undefined}
+      {...hold.handlers}
+      onContextMenu={(e) => e.preventDefault()}
     >
       {children}
-      {armed && (
-        <>
-          <span className="confirm-tag" role="status" data-testid="confirm-tag">
-            {t("booth.confirm.tap_again")}
-          </span>
-          <ConfirmRing />
-        </>
-      )}
+      {hold.armed && <ConfirmHint className="confirm-tag" testId="confirm-tag" />}
+      {(hold.armed || hold.holding) && <ConfirmRing />}
     </button>
   );
 }

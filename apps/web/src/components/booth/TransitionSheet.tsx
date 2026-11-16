@@ -516,16 +516,16 @@ function Editor({
         {t("booth.transition.title")}: {sideName(a)} → {sideName(b)}
       </h2>
       <div className="trx-top">
+        {/* QA 2026-11: the sheets' header pattern — Cancel · the title · Done (it was X · … · Save) */}
         <button
           type="button"
-          className="trx-round"
+          className="trx-cancel"
           onClick={onClose}
-          aria-label={t("booth.transition.close")}
           data-hint={dirty ? t("booth.transition.close_discards") : t("booth.transition.close")}
           data-testid="booth-tr-close"
           data-autofocus
         >
-          <X size={22} strokeWidth={2.25} aria-hidden />
+          {t("booth.sheets.cancel")}
         </button>
         {/* the editor's visible title, centred between Close and the actions (the dialog's name is the h2 above) */}
         <span className="trx-head" aria-hidden data-testid="booth-tr-heading">
@@ -554,7 +554,7 @@ function Editor({
           data-hint={dirty ? t("booth.transition.unsaved") : t("booth.transition.save_hint")}
           data-testid="booth-tr-save"
         >
-          {t("booth.transition.save")}
+          {t("booth.sheets.done")}
         </button>
       </div>
       {/* a toast raised while the editor is open lands here (Toast.tsx portals into the topmost slot) */}
