@@ -415,3 +415,49 @@ pub fn cue_stop(app: AppHandle) {
 pub fn check_updates(app: AppHandle) {
     crate::updates::check(app, true);
 }
+
+/// 2026-11: the dancers' Floor screen in its own window (`path`: the page's own `/screen…`), full screen on a
+/// monitor other than the Booth's when there is one; the Booth's window stays where it is and keeps the focus.
+/// "placed" (on another monitor), "window" (one monitor: a window to drag), "focused" (already open).
+#[tauri::command]
+pub fn floor_window(app: AppHandle, path: String) -> Res<String> {
+    #[cfg(desktop)]
+    {
+        use tauri::{WebviewUrl, WebviewWindowBuilder};
+        const FLOOR: &str = "floor";
+        if let Some(w) = app.get_webview_window(FLOOR) {
+            let _ = w.show();
+            return Ok("focused".into());
+        }
+        if !path.starts_with("/screen") {
+            return Err("not the floor screen".into());
+        }
+        let main = app
+            .get_webview_window(crate::MAIN)
+            .ok_or_else(|| "no main window".to_string())?;
+        let url = main.url().map_err(|e| e.to_string())?.join(&path).map_err(|e| e.to_string())?;
+        let here = main.current_monitor().ok().flatten().map(|m| m.name().cloned());
+        let target = main
+            .available_monitors()
+            .unwrap_or_default()
+            .into_iter()
+            .find(|m| Some(m.name().cloned()) != here);
+        let mut b = WebviewWindowBuilder::new(&app, FLOOR, WebviewUrl::External(url))
+            .title("T-DJ · Floor screen")
+            .inner_size(1280.0, 720.0)
+            .focused(false);
+        if let Some(m) = &target {
+            let s = m.scale_factor();
+            let p = m.position();
+            b = b.position(p.x as f64 / s, p.y as f64 / s).fullscreen(true);
+        }
+        b.build().map_err(|e| e.to_string())?;
+        let _ = main.set_focus();
+        return Ok(if target.is_some() { "placed" } else { "window" }.into());
+    }
+    #[cfg(mobile)]
+    {
+        let _ = (app, path);
+        Err("On iPhone and iPad, show the Floor screen with AirPlay screen mirroring, or open the room's screen link on another device.".into())
+    }
+}

@@ -585,6 +585,22 @@ export interface RoomPlaying {
   title: string;
   artist: string;
   at: string;
+  /**
+   * 2026-11: the dancers' Floor screen state the booth says with it (the web app's lib/floor.ts FloorState): kept as
+   * the booth sent it when it is a plain object of at most ROOM_SCREEN_MAX characters, cleaned again by the viewer
+   */
+  screen?: Record<string, unknown> | null;
+}
+export const ROOM_SCREEN_MAX = 2000;
+/** the Floor screen state as the room keeps it: a plain object within the bound, else none */
+export function cleanRoomScreen(x: unknown): Record<string, unknown> | null {
+  if (!x || typeof x !== "object" || Array.isArray(x)) return null;
+  try {
+    const s = JSON.stringify(x);
+    return s.length <= ROOM_SCREEN_MAX ? (JSON.parse(s) as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
 }
 export const ROOM_HEART_NIGHTS = 3;
 export const ROOM_HEART_SONGS_MAX = 400;
@@ -607,6 +623,7 @@ export function setRoomPlaying(room: RoomState, p: RoomPlaying | null): RoomStat
       title: String(p.title ?? "").slice(0, 120),
       artist: String(p.artist ?? "").slice(0, 120),
       at: p.at,
+      ...(cleanRoomScreen(p.screen) ? { screen: cleanRoomScreen(p.screen) } : {}),
     },
   };
 }
@@ -645,5 +662,7 @@ export function roomHeartsView(room: Pick<RoomState, "hearts" | "playing">, nigh
   return {
     playing: p ? { songId: p.songId, nightId: p.nightId, title: p.title, artist: p.artist } : null,
     hearts: night ? roomHearts(room, night) : {},
+    // 2026-11: the dancers' Floor screen (a TV or phone with the room's code follows the booth)
+    ...(p?.screen ? { screen: p.screen } : {}),
   };
 }

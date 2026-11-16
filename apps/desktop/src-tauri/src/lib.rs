@@ -419,6 +419,7 @@ const REMOTE_COMMANDS: &[&str] = &[
     "cue_devices",
     "cue_play",
     "cue_stop",
+    "floor_window",
     "check_updates",
 ];
 
@@ -683,6 +684,7 @@ pub fn run() {
             commands::cue_devices,
             commands::cue_play,
             commands::cue_stop,
+            commands::floor_window,
             commands::check_updates,
             audio::audio_route,
             audio::audio_route_picker,

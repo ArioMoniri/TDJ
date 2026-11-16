@@ -1,5 +1,5 @@
 "use client";
-import { Eye, Keyboard, LogOut } from "lucide-react";
+import { Eye, Keyboard, LogOut, MonitorUp } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
@@ -37,6 +37,7 @@ import { BoothSongSearch } from "@/components/ui/BoothSongSearch";
 import { arm, confirmArmed, confirmNeeded, disarm, guard } from "@/lib/booth/confirm";
 import { startRoomHearts } from "@/lib/booth/roomHearts";
 import { boothContextState, boothEngine, useBooth } from "@/lib/booth/store";
+import { showFloorScreen, startBoothFloor } from "@/lib/floorBooth";
 import { useMediaQuery } from "@/lib/hooks";
 import { t } from "@/lib/i18n";
 import { type ActionId, actionOf, isAction } from "@/lib/keymap";
@@ -166,6 +167,8 @@ function Booth() {
 
   // 2026-11: in a room, the playing song goes to the room and its dancers' hearts come back (dancer favourites)
   useEffect(() => startRoomHearts(), []);
+  // 2026-11: the dancers' Floor screen follows the Booth (a window it opened; a room's devices)
+  useEffect(() => startBoothFloor(), []);
 
   // while a night runs the phone tab bar leaves (round8-ux.md §1.5); "Leave the booth" in ••• is the way out
   useEffect(() => {
@@ -467,6 +470,14 @@ function Booth() {
     },
     { label: t("booth.show_energy_bpm_key_era_artwork"), icon: Eye, onClick: () => setShow(true) },
     { label: t("booth.keyboard_shortcuts"), icon: Keyboard, onClick: () => setKeys(true) },
+    // 2026-11: the dancers' Floor screen on the projector / TV, the Booth staying on this screen
+    {
+      label: t("floor.menu"),
+      subtitle: t("floor.menu_sub"),
+      icon: MonitorUp,
+      testId: "booth-menu-floor",
+      onClick: () => void showFloorScreen(),
+    },
     { label: light ? t("booth.dark_theme") : t("booth.light_theme"), onClick: () => setLight((v) => !v) },
     // (a phone has no tab bar on the booth: this is its way out, before the night too)
     (started || phone) && {

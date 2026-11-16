@@ -7,8 +7,10 @@ import {
   createYoutubePlaylist,
   featureLogin,
   hasScope,
+  isQuotaError,
   syncYoutube,
   YOUTUBE_BUDGET_MS,
+  youtubeCall,
   youtubePlaylist,
   youtubeUrl,
 } from "@/lib/server/google";
@@ -76,6 +78,44 @@ export async function POST(req: Request) {
     const res = NextResponse.json({ app: "youtube", id: playlistId, url: youtubeUrl(playlistId), check });
     if (s.setCookie) res.headers.append("set-cookie", s.setCookie);
     return res;
+  }
+  // 2026-11 `{ search: "<title> <orchestra> tango" }` (the Now playing view's "Find a video"): five embeddable videos
+  // for the DJ to pick one from (one search, 100 units of the shared quota)
+  if (typeof body.search === "string") {
+    const q = body.search.trim().slice(0, 200);
+    if (!q) return NextResponse.json({ error: "search required" }, { status: 400 });
+    if (!hasScope(s.session, "youtube"))
+      return NextResponse.json(
+        { error: "needs_scope", scope: "youtube", login: featureLogin("youtube", "/") },
+        { status: 403 },
+      );
+    try {
+      const r = await youtubeCall(s.session.access)<{
+        items?: Array<{
+          id?: { videoId?: string };
+          snippet?: { title?: string; channelTitle?: string; thumbnails?: { medium?: { url?: string } } };
+        }>;
+      }>(
+        "GET",
+        `/youtube/v3/search?${new URLSearchParams({ part: "snippet", type: "video", maxResults: "5", videoEmbeddable: "true", q })}`,
+      );
+      const videos = (r.items ?? [])
+        .filter((x) => typeof x.id?.videoId === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(x.id.videoId))
+        .map((x) => ({
+          videoId: x.id!.videoId!,
+          title: x.snippet?.title ?? "",
+          channel: x.snippet?.channelTitle ?? "",
+          thumb: x.snippet?.thumbnails?.medium?.url ?? null,
+        }));
+      const res = NextResponse.json({ videos });
+      if (s.setCookie) res.headers.append("set-cookie", s.setCookie);
+      return res;
+    } catch (e) {
+      return NextResponse.json(
+        { error: isQuotaError(e) ? "quota" : "search failed" },
+        { status: isQuotaError(e) ? 429 : 502 },
+      );
+    }
   }
   const queries = Array.isArray(body.queries)
     ? (body.queries as unknown[]).filter((q): q is string => typeof q === "string" && !!q.trim())

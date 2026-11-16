@@ -23,6 +23,10 @@
   background: rgb(var(--bg-grouped));
   color: var(--label);
 }
+/* 2026-11: sheets (z-50), menus and toasts open over Now playing — Song info stacks above it, the view stays */
+.now-view {
+  z-index: 49;
+}
 .dna-overlay-bar,
 .now-view-bar {
   display: flex;
@@ -158,11 +162,216 @@ html:has(.dna-overlay) #tdj-youtube-dock {
   /* biome-ignore lint/complexity/noImportantStyles: the dock sets its z-index inline (lib/booth/sources/youtube.ts) */
   z-index: 80 !important;
 }
+/* 2026-11 — Now playing, v2: the artwork blurred and darkened behind everything, a cover that pulses on the beat, the
+   transport and progress on the Booth's clock, and Lyrics · Video · Rhythm · About. iPhone: stacked; iPad landscape
+   and desktops: a split; wide desktops: centred at 1280 px. Light and dark follow the Booth's theme tokens. */
+.now-view-v2 {
+  isolation: isolate;
+  overflow: hidden;
+}
+.now-view-v2 .now-view-bar {
+  background: color-mix(in srgb, var(--material-bar) 70%, transparent);
+  border-bottom-color: transparent;
+}
+.now-view-v2 .now-view-body {
+  background: transparent;
+}
+.now-bg {
+  position: absolute;
+  inset: -12%;
+  z-index: -1;
+  overflow: hidden;
+}
+.now-bg > * {
+  width: 100% !important;
+  height: 100% !important;
+  filter: blur(64px) saturate(1.5);
+  opacity: 0.6;
+  transform: scale(1.2);
+}
+.now-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, rgb(var(--bg-grouped)) 45%, transparent) 0%,
+    color-mix(in srgb, rgb(var(--bg-grouped)) 70%, transparent) 55%,
+    rgb(var(--bg-grouped)) 100%
+  );
+}
+.now-split {
+  display: grid;
+  gap: 20px;
+  max-width: 1280px !important;
+}
+.now-left {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  text-align: center;
+  min-width: 0;
+}
+.now-cover {
+  --pulse: 0;
+  width: min(78vw, 420px);
+  aspect-ratio: 1;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow:
+    0 24px 60px rgb(0 0 0 / 0.35),
+    0 0 calc(var(--pulse) * 48px) color-mix(in srgb, var(--tint) 55%, transparent);
+  transform: scale(calc(1 + var(--pulse) * 0.025));
+  will-change: transform;
+}
+.now-cover > * {
+  width: 100% !important;
+  height: 100% !important;
+}
+.now-meta {
+  width: 100%;
+  min-width: 0;
+}
+.now-meta > div {
+  justify-content: center;
+}
+.now-title {
+  font-size: clamp(24px, 3.2vw, 34px);
+  font-weight: 700;
+  line-height: 1.15;
+}
+.now-artist {
+  font-size: 17px;
+  color: var(--label-2);
+}
+.now-progress {
+  width: min(100%, 520px);
+}
+.now-times {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--label-2);
+}
+.now-transport {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+}
+.now-tbtn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  color: var(--label);
+}
+.now-tbtn:hover {
+  background: var(--fill-4);
+}
+.now-tbtn:disabled,
+.now-play:disabled {
+  opacity: 0.4;
+}
+.now-play {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 999px;
+  background: var(--label);
+  color: rgb(var(--bg-grouped));
+}
+.now-play:active:not(:disabled),
+.now-tbtn:active:not(:disabled) {
+  opacity: 0.72;
+}
+.now-place {
+  font-size: 15px;
+  color: var(--label-2);
+}
+.now-upnext {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(100%, 520px);
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: color-mix(in srgb, rgb(var(--bg-elevated, var(--bg-grouped))) 70%, transparent);
+  text-align: left;
+}
+.now-upnext-art {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex: none;
+}
+.now-right {
+  min-width: 0;
+}
+.now-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 8px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--fill-3) 80%, transparent);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+.now-tab {
+  flex: 1;
+  min-height: 44px;
+  border-radius: 9px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--label-2);
+}
+.now-tab[aria-selected="true"] {
+  background: rgb(var(--bg-grouped));
+  color: var(--label);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.18);
+}
+.now-panel[hidden] {
+  display: none;
+}
+.now-floor-exit {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  right: 12px;
+  z-index: 210;
+  color: #fff;
+  opacity: 0.5;
+}
+@media (max-width: 599.98px) {
+  .now-hide-narrow {
+    display: none;
+  }
+}
 @media (min-width: 900px) {
-  .now-view-grid {
-    display: grid;
-    grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
-    gap: 24px;
+  .now-split {
+    grid-template-columns: minmax(320px, 440px) minmax(0, 1fr);
+    gap: 40px;
     align-items: start;
+    padding-top: 12px;
+  }
+  .now-left {
+    position: sticky;
+    top: 0;
+  }
+  .now-cover {
+    width: min(100%, 420px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .now-cover {
+    transform: none;
   }
 }
