@@ -267,7 +267,7 @@ pub fn print_page(window: WebviewWindow) -> Res<()> {
     #[cfg(mobile)]
     {
         let _ = window;
-        Err("Printing from iPad arrives with the next build. Use Export → Share.".into())
+        Err("Printing from iPhone and iPad arrives with the next build. Use Export → Share.".into())
     }
 }
 
@@ -302,7 +302,7 @@ pub async fn folder_add(app: AppHandle) -> Res<Option<folders::Folder>> {
     {
         let _ = app;
         // TODO(mac): Swift document-picker plugin (folders.rs); the page keeps its file-input fallback.
-        Err("Folder access on iPad arrives with the next build; use “Choose files” for now.".into())
+        Err("Folder access on iPhone and iPad comes next; use “Choose files” for now.".into())
     }
     #[cfg(not(target_os = "ios"))]
     {
@@ -402,7 +402,7 @@ pub fn cue_play(
     #[cfg(not(any(target_os = "macos", target_os = "ios")))]
     {
         let _ = (src, device, volume);
-        Err("Headphone cue needs the Mac or iPad app.".into())
+        Err("Headphone cue needs the Mac, iPhone or iPad app.".into())
     }
 }
 

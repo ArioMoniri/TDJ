@@ -31,6 +31,20 @@ deploy, the stack and the index of the other docs.
 - **Native Apple feel**: inset grouped forms, large titles, a Liquid Glass tab bar on phone and a sidebar on desktop, sheets with detents, context menus and swipe actions, SF-scale typography, light and dark; a motion system (compose narrative, curve draw-on, card choreography, haptic twins) that honours reduced motion.
 
 
+## Where it runs
+
+| | What you get | Updates |
+|---|---|---|
+| **iPhone** (App Store, TestFlight until review) | the universal iOS app, portrait; the tab bar for Compose, Booth, Library, History and More; the Booth's transport takes the tab bar's place during a night, above the home indicator, and the set list opens from it; audio keeps playing with the screen locked | App Store / TestFlight |
+| **iPad** (the same app) | every orientation, Split View and Stage Manager; the Booth on one screen in landscape | App Store / TestFlight |
+| **Mac** (Mac App Store, or the DMG from GitHub Releases) | menu bar commands and shortcuts, media keys and Now Playing, a display that stays awake, music folders, headphone cue on a second output | App Store, or the DMG's own updater (asks first) |
+| **Web** (<https://d3k5k2c1l0s5ri.cloudfront.net>, any browser) | everything above that a browser allows; rooms and short links on the deployment's server | reload; Settings → About says when a newer version is live |
+
+The apps are standalone: the catalogue and the composer ship inside them, the DJ's database lives on the device,
+and no request goes to a T-DJ server unless the DJ links one (needed for Rooms and dancer hearts). All four carry
+**one version number** (the root `package.json`) and ship from one commit; Settings → About shows it with the
+commit ([RELEASING.md](RELEASING.md) → One version).
+
 ## How a set is built
 `hours` → slots (TTVTTM) → target energy per slot (two-peak arc) → for each slot pick an orchestra family that fits energy, phase, tier, caps and spacing (first D'Arienzo early and instrumental, Pugliese once after 75 %, families from your last three nights step back) → order the tracks (corpus openers first, closers last, analysed tempo/key/loudness cohesion) → cortina from one or two families cycling without repeats, tuned to the next tanda → La Cumparsita from a corpus-attested version → score. Precedence: defaults → era preset → your database rules → what you set tonight → room context only for what you left untouched. Details: [docs/ARCHITECTURE.md](ARCHITECTURE.md), musical rules: [docs/research/musicology.md](research/musicology.md).
 

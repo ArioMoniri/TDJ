@@ -2,7 +2,7 @@
 // Full-colour icon set from the vector sources, rendered by headless Chromium (Playwright):
 //   macos.svg → icon.icns (PNG-based: 16…1024), icon.png (512), 32x32, 128x128, 128x128@2x
 //   ios.svg   → ios/AppIcon-*.png, opaque RGB (App Store Connect rejects alpha), incl. the 1024 store icon
-//   social-preview.svg → media/social-preview.png (1200 × 630, GitHub social preview)
+//   (media/social-preview.png and the store banner come from apps/desktop/store/banner.ts: `pnpm store:banner`)
 // Replaces the `tauri icon` output, whose PNGs came out palette-quantised (≈400 colours: banded tile gradient,
 // purple-shifted ink). icon.ico (Windows) is left alone.
 //   node apps/desktop/src-tauri/icons/src/render.mjs
@@ -88,9 +88,7 @@ try {
     writeFileSync(join(icons, "ios", name), png);
   }
 
-  // GitHub social preview
-  writeFileSync(join(repo, "media", "social-preview.png"), await render("social-preview.svg", 1200, 630));
-  console.log("icons and media/social-preview.png written");
+  console.log("icons written");
 } finally {
   await browser.close();
 }

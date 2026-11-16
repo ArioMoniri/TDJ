@@ -1,6 +1,6 @@
 # Apple setup — the owner's checklist
 
-What to create at Apple, and which **GitHub secret or variable** each value goes into, so CI can build, sign, notarise and upload the TDJ macOS and iPadOS apps (design: [docs/specs/r22-apps-plan.md](specs/r22-apps-plan.md)). About an hour, once. **You do not need a Mac**: every step works in a browser plus a terminal with `openssl` and `gh` (Linux, Windows WSL or macOS).
+What to create at Apple, and which **GitHub secret or variable** each value goes into, so CI can build, sign, notarise and upload the T-DJ macOS app and the universal iOS app (iPhone + iPad) (design: [docs/specs/r22-apps-plan.md](specs/r22-apps-plan.md)). About an hour, once. **You do not need a Mac**: every step works in a browser plus a terminal with `openssl` and `gh` (Linux, Windows WSL or macOS).
 
 Rules: never paste any of these values into a chat, an issue or a commit. Put them only into GitHub → **Settings → Secrets and variables → Actions** (or with `gh secret set`, which reads from a file or stdin, so nothing lands in your shell history). If something leaks, revoke it at Apple (API key: *Revoke*; certificate: *Revoke*) and create a new one.
 
@@ -53,7 +53,7 @@ developer.apple.com → **Account** → **Certificates, IDs & Profiles** → **I
 2. Description: `TDJ`. Bundle ID: **Explicit**, `com.ariomoniri.tdj` (or your own reverse-domain; it can never be changed later).
 3. Capabilities: tick nothing for now (no iCloud, no push). → Continue → **Register**.
 
-The same App ID is used by the iPad app and the Mac app (one App Store record, one purchase for both).
+The same App ID is used by the iOS app (iPhone and iPad, one universal build) and the Mac app (one App Store record, one purchase for all three).
 ```bash
 gh variable set TDJ_APP_BUNDLE_ID --repo ArioMoniri/TDJ --body com.ariomoniri.tdj
 # optional: the apps' own Spotify app (without it, DJs paste their own Client ID under Settings → Spotify)
@@ -166,7 +166,7 @@ Store the `.p8`, the `.p12` files and their passwords in your password manager (
 
 App Store Connect → your app → **TestFlight**:
 - **Internal Testing** → **+** → group `TDJ team` → add yourself and anyone already in *Users and Access* (up to 100, no review). Every CI build appears here automatically.
-- **External Testing** (later, for DJs outside the team) → **+** → group `DJs` → fill *Test Information* (feedback e-mail, what to test). The first build for external testers goes through Beta App Review (usually a day). Testers get a public link or an e-mail invite.
+- **External Testing** (later, for DJs outside the team) → **+** → group `DJs` → fill *Test Information* (feedback e-mail, what to test). The first build for external testers goes through Beta App Review (usually a day). Testers get a public link or an e-mail invite. Put the public link (`https://testflight.apple.com/join/…`) into the root `package.json` → `release.testflightUrl`: Settings → About and the release notes then point iPhone, iPad and Mac App Store users at it.
 
 ## 12. Renewal calendar
 
@@ -182,6 +182,6 @@ The release workflow prints a warning in its summary 30 days before any certific
 
 ## 13. What happens after this
 
-- Push a tag `v1.0.0` (or Actions → **Release apps** → Run workflow): CI builds the notarised **`TDJ-macOS.dmg`** on a GitHub Release (the README "Download for macOS" button points at it), and uploads the iPad and Mac builds to **TestFlight**.
+- Push a tag `v1.0.0` (or Actions → **Release apps** → Run workflow): CI builds the notarised **`TDJ-macOS.dmg`** on a GitHub Release (the README "Download for macOS" button points at it), and uploads the iOS (iPhone + iPad) and Mac builds to **TestFlight**. The tag must equal the root `package.json` version (`pnpm release:version`); the web is deployed from the same commit (RELEASING.md → One version).
 - Store texts and screenshots arrive as a pull request with a contact sheet for the designers; after merge, **Store assets** uploads them.
 - **Release apps** with `channel = appstore-review` submits the version for review (again after your approval). Release is manual and phased once Apple approves.

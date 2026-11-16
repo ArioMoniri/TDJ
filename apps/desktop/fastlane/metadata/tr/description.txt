@@ -1,11 +1,32 @@
-TDJ, bir tango milongasını çalışan DJ'lerin kurduğu gibi oluşturur: aynı orkestra, aynı şarkıcı ve yakın yıllardan tandalar, aralarında kortinalar ve ısınan, zirveye çıkan ve La Cumparsita ile kapanan bir enerji eğrisi.
+T-DJ bir tango milongasını, sahada çalan bir DJ nasıl kurarsa öyle kurar. Her tanda tek orkestradan, tek şarkıcıdan ve birbirine yakın yıllardan gelir. Her tandanın önünde, ardından gelene yakışan bir kortina çalar. Gece ısınır, zirveye çıkar, biraz dinlenir, bir kez daha yükselir ve La Cumparsita ile kapanır.
 
-• 1–8 saatlik bir geceyi saniyeler içinde oluşturun: altın çağ ya da her dönem, tek ya da çift zirve.
-• Tandaları değiştirin, sabitleyin ve iyileştirin; kendi model anahtarınızla yapay zekâ DJ'ye sorun.
-• Geceyi Booth'ta çalın: kendi müzik dosyalarınız, kesin aralar, ses seviyesi eşitleme ve kortina geçişleriyle; prova için 30 saniyelik önizlemeler; ikinci kaynak olarak Spotify Premium.
-• 19.000 kayıtlık kendi veritabanınız: yıllar, şarkıcılar, versiyonlar ve size ait kalan düzenlemeler.
-• Spotify, Rekordbox, Traktor, Serato, M3U8 ya da basılı set listesine aktarın.
-• Mac: menü çubuğu komutları ve kısayollar, medya tuşları ve Şimdi Çalıyor, ekran gece boyu açık kalır.
-• Tamamen Mac'inizde ya da iPad'inizde çalışır: hesap yok, sunucu yok. İsterseniz kendi TDJ sunucunuzu bağlayabilirsiniz.
+İstanbul'da milonga çalıyorum ve T-DJ'yi kendi gecelerim için yaptım. Yaklaşık 19.000 kayıttan bütün geceyi taslak olarak hazırlar. Beğenmediğiniz yeri değiştirir, sonra çalarsınız.
 
-Hesap gerekmez. Spotify özellikleri için Spotify Premium gerekir.
+GECE OLUŞTUR
+Süreyi ve dönemi seçip Gece oluştur düğmesine basın. Her tanda neden orada olduğunu söyler, gecenin puanı da neyin kontrol edildiğini gösterir. Bir şarkıyı değiştirin, tutmak istediğiniz tandayı sabitleyin ya da "7. tandayı biraz sakinleştir" yazın; değişikliği onaylamadan önce görürsünüz.
+
+KENDİN OLUŞTUR
+Her tandayı kendiniz seçmeyi seviyorsanız gecenizin yanında bir kontrol listesi durur: hedef süre, dört büyük orkestra, enerji eğrisi, TTVTTM döngüsü ve kortinalar. Her satırın tek dokunuşluk bir düzeltmesi vardır. T-DJ sıradaki yer için bütün tandalar önerir ve her birinin neden uyduğunu yazar.
+
+KABİN
+Geceyi kendi müzik dosyalarınızdan, Spotify Premium ile Spotify Connect üzerinden ya da prova için 30 saniyelik önizlemelerle çalın. İki şarkı arasındaki boşluk, her kaydın sonundaki gerçek sessizlikten ölçülür; tanda ne birbirine yapışır ne de duraksar. Her geçişi elle ayarlayabilirsiniz: fade, blend ya da temiz bir boşluk. Önce dinleyip sonra karar verirsiniz.
+
+Bir şarkıyı dinlemek için üzerine dokunmanız yeter. Gece başladıktan sonra salonda bir şarkı çalmak onay ister; Sonraki ve Fade için basılı tutmanız gerekir. Yanlışlıkla yapılan bir dokunuş şarkıyı kesmez. Saat, La Cumparsita'ya ne kadar kaldığını gösterir.
+
+PİST NE DİYOR
+Bir şarkıyı Pist dolu, İdare eder ya da Pist boşaldı diye işaretleyin; T-DJ bunu bir sonraki gece için hatırlar. Yaptığınız değişiklikler ve sabitlediğiniz tandalar da sayılır. Ayarlar'da öğrendiklerini kurallar halinde görürsünüz; ağırlığını artırıp azaltabilir, silebilir ya da kapatabilirsiniz.
+
+ODALAR VE DANSÇILAR
+İki DJ aynı gece üzerinde çalışabilir: biri oda açar, diğeri kodla katılır ve her düzenleme iki ekranda da görünür. Dansçılar odayı telefonlarında açıp çalan şarkıyı beğenebilir. Yalnızca sayılar tutulur, isimler asla. Odalar için Ayarlar'dan bağladığınız bir T-DJ sunucusu gerekir.
+
+SİZE AİT VERİTABANI
+Her kayıt, orkestra ve kortina düzenlenebilir; düzenlemeleriniz gecelerinizle birlikte gelir. Arama yazım hatalarını affeder: "ventaron" yazınca Ventarrón çıkar, "di sarli 1941 instrumental" tam olarak bunu bulur.
+
+AKTAR VE PAYLAŞ
+Geceyi Spotify, Rekordbox, Traktor ya da Serato'ya gönderin, M3U8 olarak kaydedin ya da set listesini yazdırın. Bağlantı, .tdjnight dosyası ya da QR kod olarak paylaşın.
+
+IPHONE, IPAD VE MAC'TE
+Üçü için tek uygulama. iPhone ve iPad'de ekran kilitliyken de gece çalmaya devam eder. Mac'te menü çubuğu komutları, medya tuşları ve son kortinaya kadar kapanmayan bir ekran vardır. Uygulama Türkçe ve İngilizce konuşur.
+
+GİZLİLİK
+Her şey cihazınızda çalışır. Hesap yoktur, bize hiçbir şey gönderilmez. Dil modeli kullanan özellikler kendi API anahtarınızla çalışır ve anahtar Anahtar Zinciri'nde kalır. Spotify ile çalmak için Spotify Premium gerekir.

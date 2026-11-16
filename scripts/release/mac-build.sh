@@ -2,11 +2,13 @@
 # TDJ Mac release in one pass, on any Mac with Xcode (a rented cloud Mac or a GitHub macOS runner):
 #   signing (App Store Connect API: bundle ID, certificates from local CSRs, profiles; idempotent)
 #   → bundled UI → macOS universal app: Developer ID + notarised + stapled DMG (+ updater tarball, latest.json)
-#   → Mac App Store .pkg → iPadOS .ipa → both uploaded to TestFlight → (optional) GitHub Release, store metadata.
+#   → Mac App Store .pkg → iOS .ipa (one universal app for iPhone and iPad) → both uploaded to TestFlight
+#   → (optional) GitHub Release, store metadata. One version for all of it: the root package.json
+#   (scripts/release/version.mjs), checked against the tag.
 # Everything reusable stays under $TDJ_DRIVE (default ~/drive): toolchains, caches, signing store, outputs,
 # so the second session skips the slow parts. docs/RELEASING.md has the walkthrough and timings.
 #
-# Usage: scripts/release/mac-build.sh [--targets dmg,mas,ipad] [--version 1.0.0] [--build 123]
+# Usage: scripts/release/mac-build.sh [--targets dmg,mas,ios] [--version 1.0.0] [--build 123]
 #                                     [--no-upload] [--github-release] [--metadata] [--signing store|env|ssm]
 # Needs: APP_STORE_CONNECT_KEY_ID, APP_STORE_CONNECT_ISSUER_ID and the key at
 #        ~/.appstoreconnect/private_keys/AuthKey_TDJ.p8 (or APP_STORE_CONNECT_PRIVATE_KEY / _KEY_PATH).
@@ -19,7 +21,7 @@ DRIVE="${TDJ_DRIVE:-$HOME/drive}"
 TEAM_ID="${APPLE_TEAM_ID:-FF68N39FU5}"
 BUNDLE_ID="${TDJ_APP_BUNDLE_ID:-com.ariomoniri.tdj}"
 REPO="${GITHUB_REPOSITORY:-ArioMoniri/TDJ}"
-TARGETS="dmg,mas,ipad"
+TARGETS="dmg,mas,ios"
 VERSION=""
 BUILD=""
 UPLOAD=1
@@ -42,6 +44,12 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
+# `ipad` is the old name of the iOS target (one universal IPA for iPhone and iPad since 2026-11): still accepted
+norm_target() { case "$1" in ipad) echo ios ;; *) echo "$1" ;; esac; }
+_T=""; IFS=',' read -r -a _TL <<< "$TARGETS"
+for t in "${_TL[@]}"; do t="$(norm_target "$(echo "$t" | tr -d ' ')")"; [ -n "$t" ] && _T="${_T:+$_T,}$t"; done
+TARGETS="$_T"
+for t in "${_TL[@]}"; do case "$(norm_target "$(echo "$t" | tr -d ' ')")" in dmg|mas|ios|"") ;; *) echo "unknown target $t (dmg, mas, ios)" >&2; exit 2 ;; esac; done
 want() { [[ ",$TARGETS," == *",$1,"* ]]; }
 
 T0=$(date +%s)
@@ -66,7 +74,7 @@ if ! command -v rustup >/dev/null; then
   curl -fsSL https://sh.rustup.rs | sh -s -- -y --no-modify-path --profile minimal
 fi
 rustup default stable >/dev/null 2>&1 || rustup default stable
-# Xcode's "Build Rust Code" phase (iPad) runs with Xcode's own environment, not this shell's: it finds rustup and
+# Xcode's "Build Rust Code" phase (iOS) runs with Xcode's own environment, not this shell's: it finds rustup and
 # cargo only at their default homes, so point those at the copies cached on the drive
 for pair in "$RUSTUP_HOME:$HOME/.rustup" "$CARGO_HOME:$HOME/.cargo"; do
   src="${pair%%:*}"; dst="${pair#*:}"
@@ -76,9 +84,9 @@ for pair in "$RUSTUP_HOME:$HOME/.rustup" "$CARGO_HOME:$HOME/.cargo"; do
 done
 RUST_TARGETS=()
 { want dmg || want mas; } && RUST_TARGETS+=(aarch64-apple-darwin x86_64-apple-darwin)
-want ipad && RUST_TARGETS+=(aarch64-apple-ios)
+want ios && RUST_TARGETS+=(aarch64-apple-ios)
 [ ${#RUST_TARGETS[@]} -gt 0 ] && rustup target add "${RUST_TARGETS[@]}" >/dev/null
-if want ipad && ! command -v xcodegen >/dev/null; then brew install xcodegen >/dev/null; fi
+if want ios && ! command -v xcodegen >/dev/null; then brew install xcodegen >/dev/null; fi
 
 step "Dependencies"
 cd "$ROOT"
@@ -86,16 +94,20 @@ pnpm config set store-dir "$DRIVE/pnpm-store" >/dev/null
 pnpm install --frozen-lockfile --prefer-offline >/dev/null
 
 # ------------------------------------------------------------------ version + build number
-PKG_VERSION=$(node -p 'require("./apps/desktop/package.json").version')
+# one version for web + Mac + iOS: the root package.json (scripts/release/version.mjs); a tag must match it
+PKG_VERSION=$(node -p 'require("./package.json").version')
 TAG=$(git describe --tags --exact-match 2>/dev/null || true)
 VERSION="${VERSION:-${TAG#v}}"; VERSION="${VERSION:-$PKG_VERSION}"
+node scripts/release/version.mjs --check ${TAG:+--tag "$TAG"} || die "versions out of sync (pnpm release:version $VERSION)"
+[ "$VERSION" = "$PKG_VERSION" ] || echo "! --version $VERSION differs from package.json ($PKG_VERSION): the web app will report $PKG_VERSION"
+COMMIT=$(git rev-parse --short=12 HEAD)
 if [ -z "$BUILD" ]; then
   # one number for every platform of this commit; monotonic (UTC minutes since 2026-01-01)
   BUILD=$(( ($(date -u +%s) - 1767225600) / 60 ))
 fi
 OUT="${TDJ_OUT:-$DRIVE/tdj-out/$VERSION-$BUILD}"
 mkdir -p "$OUT"
-echo "version $VERSION build $BUILD → $OUT"
+echo "version $VERSION build $BUILD commit $COMMIT → $OUT"
 
 # ------------------------------------------------------------------ App Store Connect key
 KEY_FILE=""
@@ -188,7 +200,7 @@ tauri() { (cd "$DESKTOP" && pnpm exec tauri "$@"); }
 # ------------------------------------------------------------------ 1. Developer ID DMG
 if want dmg; then
   step "macOS DMG (universal, Developer ID, notarised)"
-  [ -n "$DEVID" ] || die "no Developer ID Application identity (apple-setup printed the manual step), or run with --targets mas,ipad"
+  [ -n "$DEVID" ] || die "no Developer ID Application identity (apple-setup printed the manual step), or run with --targets mas,ios"
   UPDATER_KEY="$KC_DIR/updater.key"
   if [ -z "${TAURI_SIGNING_PRIVATE_KEY:-}" ]; then
     if [ ! -f "$UPDATER_KEY" ]; then
@@ -259,24 +271,26 @@ if want mas; then
   if [ "$UPLOAD" = 1 ]; then altool_upload "$OUT/TDJ-MacAppStore.pkg" macos && UPLOADED+=("Mac App Store pkg → TestFlight"); fi
 fi
 
-# ------------------------------------------------------------------ 3. iPadOS IPA
-if want ipad; then
-  step "iPadOS app (App Store Connect export)"
-  [ -f "$SIGN/APPLE_DISTRIBUTION_CERT.p12" ] && [ -f "$SIGN/IOS_APPSTORE_PROFILE.mobileprovision" ] || die "iPad signing material missing"
+# ------------------------------------------------------------------ 3. iOS IPA (iPhone + iPad)
+if want ios; then
+  step "iOS app for iPhone and iPad (App Store Connect export)"
+  [ -f "$SIGN/APPLE_DISTRIBUTION_CERT.p12" ] && [ -f "$SIGN/IOS_APPSTORE_PROFILE.mobileprovision" ] || die "iOS signing material missing"
   GEN="$TAURI_DIR/gen/apple"
   if [ ! -f "$GEN/project.yml" ]; then
     (cd "$DESKTOP" && APPLE_DEVELOPMENT_TEAM="$TEAM_ID" pnpm exec tauri ios init --ci)
     echo "!! gen/apple was generated: commit apps/desktop/src-tauri/gen/apple so later builds reuse it"
   fi
-  # iPad only (TARGETED_DEVICE_FAMILY 2), every orientation, privacy manifest, launch colour, icons without alpha
-  # (tauri's project.yml has no TARGETED_DEVICE_FAMILY key, so xcodegen's default "1,2" shipped iPhone support and
-  # App Store Connect then asked for iPhone screenshots: set it in the iOS target's base settings)
+  # universal: iPhone and iPad (TARGETED_DEVICE_FAMILY "1,2"; until 2026-11 it was "2", iPad only). Orientations per
+  # device come from Info.ios.plist (iPhone portrait, iPad every orientation), plus the privacy manifest, launch colour
+  # and icons without alpha. Tauri's project.yml has no TARGETED_DEVICE_FAMILY key: set it in the iOS target's base
+  # settings, replacing an older "2" left in a committed gen/apple
+  FAMILY="${TDJ_IOS_DEVICE_FAMILY:-1,2}"
   if grep -q 'TARGETED_DEVICE_FAMILY:' "$GEN/project.yml"; then
-    sed -i '' -E 's/TARGETED_DEVICE_FAMILY: .*/TARGETED_DEVICE_FAMILY: "2"/' "$GEN/project.yml"
+    sed -i '' -E "s/TARGETED_DEVICE_FAMILY: .*/TARGETED_DEVICE_FAMILY: \"$FAMILY\"/" "$GEN/project.yml"
   else
-    perl -0pi -e 's/(\n    settings:\n      base:\n)/$1        TARGETED_DEVICE_FAMILY: "2"\n/' "$GEN/project.yml"
+    perl -0pi -e "s/(\n    settings:\n      base:\n)/\$1        TARGETED_DEVICE_FAMILY: \"$FAMILY\"\n/" "$GEN/project.yml"
   fi
-  grep -q 'TARGETED_DEVICE_FAMILY: "2"' "$GEN/project.yml" || die "could not make the iOS target iPad-only (project.yml)"
+  grep -q "TARGETED_DEVICE_FAMILY: \"$FAMILY\"" "$GEN/project.yml" || die "could not set the iOS device family (project.yml)"
   IOS_SRC=$(find "$GEN" -maxdepth 1 -type d -name '*_iOS' | head -1)
   [ -n "$IOS_SRC" ] && cp "$TAURI_DIR/PrivacyInfo.xcprivacy" "$IOS_SRC/PrivacyInfo.xcprivacy"
   mkdir -p "$GEN/Assets.xcassets/LaunchBackground.colorset"
@@ -295,15 +309,18 @@ JSON
   unset IOS_CERTIFICATE IOS_CERTIFICATE_PASSWORD IOS_MOBILE_PROVISION
   IPA=$(find "$GEN/build" -name '*.ipa' -newer "$WORK" | head -1)
   [ -n "$IPA" ] || die "no .ipa produced (fallback: xcodebuild archive + -exportArchive, docs/RELEASING.md)"
-  cp "$IPA" "$OUT/TDJ-iPad.ipa"
-  if [ "$UPLOAD" = 1 ]; then altool_upload "$OUT/TDJ-iPad.ipa" ios && UPLOADED+=("iPad ipa → TestFlight"); fi
+  cp "$IPA" "$OUT/TDJ-iOS.ipa"
+  if [ "$UPLOAD" = 1 ]; then altool_upload "$OUT/TDJ-iOS.ipa" ios && UPLOADED+=("iOS ipa (iPhone + iPad) → TestFlight"); fi
 fi
 
 # ------------------------------------------------------------------ 4. optional: GitHub Release, store metadata
 if [ "$GH_RELEASE" = 1 ] && want dmg; then
   step "GitHub Release v$VERSION"
   command -v gh >/dev/null && gh auth status >/dev/null 2>&1 || die "gh is not logged in (gh auth login)"
-  gh release view "v$VERSION" -R "$REPO" >/dev/null 2>&1 || gh release create "v$VERSION" -R "$REPO" --draft --generate-notes --title "TDJ $VERSION"
+  node scripts/release/release-notes.mjs --version "$VERSION" --build "$BUILD" --commit "$COMMIT" > "$OUT/release-notes.md"
+  gh release view "v$VERSION" -R "$REPO" >/dev/null 2>&1 \
+    || gh release create "v$VERSION" -R "$REPO" --draft --target "$(git rev-parse HEAD)" --title "T-DJ $VERSION" \
+         --notes-file "$OUT/release-notes.md"
   gh release upload "v$VERSION" -R "$REPO" --clobber "$OUT/TDJ-macOS.dmg" "$OUT/TDJ-$VERSION-macOS.dmg" \
     "$OUT/TDJ-macOS.app.tar.gz" "$OUT/TDJ-macOS.app.tar.gz.sig" "$OUT/latest.json" "$OUT/SHA256SUMS"
   echo "draft release ready: publish it at https://github.com/$REPO/releases (the README button serves the newest published one)"
@@ -317,4 +334,4 @@ fi
 step "Done in $(( ($(date +%s) - T0) / 60 )) min"
 ls -lh "$OUT"
 for u in "${UPLOADED[@]:-}"; do [ -n "$u" ] && echo "✓ $u (processing takes 5–30 min; then it appears in TestFlight)"; done
-echo "Build number $BUILD, version $VERSION. Outputs: $OUT"
+echo "Build number $BUILD, version $VERSION, commit $COMMIT. Outputs: $OUT"

@@ -9,6 +9,7 @@ on:
       - "packages/cli/**"
       - "scripts/release/**"
       - ".github/workflows/**"
+      - "package.json"
   push:
     branches: [main]
     paths:
@@ -16,6 +17,7 @@ on:
       - "packages/cli/**"
       - "scripts/release/**"
       - ".github/workflows/**"
+      - "package.json"
   workflow_dispatch:
 permissions:
   contents: read
@@ -29,6 +31,8 @@ jobs:
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: npx biome check apps/desktop packages/cli scripts/release
+      - name: One version for web, Mac and iOS (root package.json)
+        run: node scripts/release/version.mjs --check
       - name: Release scripts (mocked App Store Connect API, real openssl)
         run: node --test scripts/release/test/*.test.mjs
       - run: pnpm --filter @tdj/desktop typecheck

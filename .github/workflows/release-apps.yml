@@ -1,6 +1,8 @@
 name: Release apps
-# macOS DMG (Developer ID, notarised) on a GitHub Release as TDJ-macOS.dmg + updater latest.json, the Mac App
-# Store pkg and the iPad IPA to TestFlight; App Review submission runs in the same
+# One linked release: one commit, one tag, one version (root package.json, scripts/release/version.mjs) for
+# the macOS DMG (Developer ID, notarised) on a GitHub Release as TDJ-macOS.dmg + updater latest.json, the Mac App
+# Store pkg and the iOS IPA (iPhone + iPad) to TestFlight, and the web app deployed from the same commit
+# (deploy-aws.yml, `web` input; on by default for tags); App Review submission runs in the same
 # run (secrets: repository secrets). macOS minutes are spent only here, only on v* tags or a manual run, in ONE job that runs the same
 # script as a rented Mac (scripts/release/mac-build.sh). docs/RELEASING.md explains every step and the cost.
 on:
@@ -9,8 +11,8 @@ on:
   workflow_dispatch:
     inputs:
       targets:
-        description: "dmg, mas, ipad (comma list)"
-        default: "dmg,mas,ipad"
+        description: "dmg, mas, ios (comma list; ipad = ios)"
+        default: "dmg,mas,ios"
       channel:
         description: "testflight = upload only · appstore-review = also submit for review (after approval)"
         type: choice
@@ -18,6 +20,10 @@ on:
         default: testflight
       metadata:
         description: "Also upload store metadata + screenshots (after approval)"
+        type: boolean
+        default: false
+      web:
+        description: "Also deploy the web app from this commit (same version)"
         type: boolean
         default: false
 permissions:
@@ -30,15 +36,25 @@ jobs:
     outputs:
       version: ${{ steps.v.outputs.version }}
       build: ${{ steps.v.outputs.build }}
+      commit: ${{ steps.v.outputs.commit }}
     steps:
       - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 22 }
       - id: v
         run: |
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then v="${GITHUB_REF#refs/tags/v}"; else v=$(node -p 'require("./apps/desktop/package.json").version'); fi
+          # one version for web + Mac + iOS: the root package.json; a v* tag must match it (fails otherwise)
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            node scripts/release/version.mjs --check --tag "$GITHUB_REF"
+          else
+            node scripts/release/version.mjs --check
+          fi
+          v=$(node scripts/release/version.mjs)
           # same formula as mac-build.sh: UTC minutes since 2026-01-01, monotonic, one number for every platform
           b=$(( ($(date -u +%s) - 1767225600) / 60 ))
-          echo "version=$v" >> "$GITHUB_OUTPUT"; echo "build=$b" >> "$GITHUB_OUTPUT"
-          echo "TDJ $v (build $b)" >> "$GITHUB_STEP_SUMMARY"
+          c="${GITHUB_SHA::12}"
+          { echo "version=$v"; echo "build=$b"; echo "commit=$c"; } >> "$GITHUB_OUTPUT"
+          echo "T-DJ $v (build $b, commit $c): web, iPhone, iPad and Mac" >> "$GITHUB_STEP_SUMMARY"
 
   apple:
     needs: version
@@ -90,7 +106,7 @@ jobs:
           IOS_APPSTORE_PROFILE: ${{ secrets.IOS_APPSTORE_PROFILE }}
           MAC_APPSTORE_PROFILE: ${{ secrets.MAC_APPSTORE_PROFILE }}
           SIGNING: ${{ vars.AWS_DEPLOY_ROLE_ARN != '' && 'ssm' || 'env' }}
-          TARGETS: ${{ inputs.targets || 'dmg,mas,ipad' }}
+          TARGETS: ${{ inputs.targets || 'dmg,mas,ios' }}
         run: |
           scripts/release/mac-build.sh --signing "$SIGNING" --targets "$TARGETS" \
             --version "${{ needs.version.outputs.version }}" --build "${{ needs.version.outputs.build }}" --github-release
@@ -123,10 +139,21 @@ jobs:
         run: |
           gh release edit "v$V" -R "$GITHUB_REPOSITORY" --draft=false --latest
           {
-            echo "## Released TDJ $V"
+            echo "## Released T-DJ $V (commit ${{ needs.version.outputs.commit }})"
             echo "- Download: https://github.com/$GITHUB_REPOSITORY/releases/latest/download/TDJ-macOS.dmg"
-            echo "- TestFlight: build ${{ needs.version.outputs.build }} (iPad + Mac), processing takes 5–30 min"
+            echo "- TestFlight: build ${{ needs.version.outputs.build }} (iPhone, iPad and Mac), processing takes 5–30 min"
+            echo "- Web: deployed from the same commit when the web job ran; /api/version reports $V"
           } >> "$GITHUB_STEP_SUMMARY"
+
+  web:
+    # the web app from the same commit, so web and apps report one version (deploy-aws.yml checks /api/version)
+    needs: [version, apple]
+    if: inputs.web || startsWith(github.ref, 'refs/tags/v')
+    uses: ./.github/workflows/deploy-aws.yml
+    with:
+      commit: ${{ github.sha }}
+      expect_version: ${{ needs.version.outputs.version }}
+    secrets: inherit
 
   metadata:
     needs: apple
@@ -143,7 +170,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: ruby/setup-ruby@v1
         with: { ruby-version: "3.3", bundler-cache: true, working-directory: apps/desktop }
-      - name: Submit iPad and Mac for App Review (phased, manual release)
+      - name: Submit iOS (iPhone + iPad) and Mac for App Review (phased, manual release)
         working-directory: apps/desktop
         env:
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
