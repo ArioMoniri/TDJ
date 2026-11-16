@@ -177,6 +177,10 @@ async function controls(page: Page) {
   await expect(page.getByTestId("booth-controls")).toBeVisible();
 }
 
+/** Stop where it shows: the panel hides its copy while the transport carries Stop (ControlsPanel DUPS) */
+const stopButton = (page: Page) =>
+  page.getByTestId("ctl-stop").or(page.getByTestId("booth-stop")).filter({ visible: true }).first();
+
 const DESKTOP: BrowserContextOptions = { viewport: { width: 1440, height: 900 } };
 const IPAD_SAFARI =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15";
@@ -204,7 +208,7 @@ test.describe("Stop", () => {
     await openBooth(page);
     await start(page);
     await controls(page);
-    await page.getByTestId("ctl-stop").click();
+    await stopButton(page).click();
     await expect(page.getByTestId("booth-stop-sheet")).toBeVisible();
     await page.getByTestId("booth-stop-now").click();
     await expect.poll(() => state(page), { timeout: 5000 }).toBe("stopped");
@@ -252,7 +256,7 @@ test.describe("Stop", () => {
     await openBooth(page, { spotify: true });
     await start(page);
     await controls(page);
-    await page.getByTestId("ctl-stop").click();
+    await stopButton(page).click();
     await expect(page.getByTestId("booth-stop-fade")).toBeVisible();
     await page.getByTestId("booth-stop-fade").click();
     await expect.poll(() => state(page), { timeout: 5000 }).toBe("stopped");
@@ -277,7 +281,7 @@ test.describe("Stop", () => {
     await openBooth(page, { spotify: true });
     await start(page);
     await controls(page);
-    await page.getByTestId("ctl-stop").click();
+    await stopButton(page).click();
     await expect(page.getByTestId("booth-stop-sheet")).toBeVisible();
     await expect(page.getByTestId("booth-stop-fade")).toHaveCount(0);
     await page.getByTestId("booth-stop-now").click();
