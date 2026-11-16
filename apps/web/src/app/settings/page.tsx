@@ -370,6 +370,7 @@ export default function Settings() {
         >
           <SwitchRow
             label={tx("settings.booth.confirm")}
+            tip={tx("settings.booth.confirm_footer")}
             checked={settings.boothConfirm !== false}
             onChange={(v) => setSettings({ boothConfirm: v })}
           />
@@ -437,6 +438,7 @@ export default function Settings() {
         >
           <SegmentedRow
             label={tx("settings.tap_play")}
+            tip={tx("settings.tap_play_footer")}
             value={settings.tapPlay ?? "continue"}
             items={[
               ["only", tx("settings.tap_play_only")],

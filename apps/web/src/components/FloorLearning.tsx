@@ -37,6 +37,7 @@ export function FloorLearning() {
     <Group header={tx("floorLearn.header")} footer={tx("floorLearn.footer")} data-testid="floor-learning">
       <SwitchRow
         label={tx("floorLearn.switch")}
+        tip={tx("floorLearn.footer")}
         checked={on}
         onChange={(v) => updateMemory((m) => ({ ...m, learned: setFloorLearning(m.learned, v) }))}
       />

@@ -937,6 +937,8 @@ export const tr: Partial<Record<MsgKey, string>> = {
     "SALON: gecenin dansçılar için çaldığı yer. Çıkışı seçmek için dokunun.",
   "booth.playerToolbar.show": "Göster",
   "booth.playerToolbar.show_device_names": "Cihaz adlarını göster",
+  "booth.outputs.show_names_tip":
+    "Listede hoparlör ve kulaklık adlarının görünmesi için tarayıcıya bir kez sor",
   "booth.playerToolbar.show_or_hide_energy_bpm_key": "Enerji, BPM, ton, dönem ve kapağı göster ya da gizle",
   "booth.playerToolbar.spotify_free_the_browser_can_only":
     "Spotify Free: tarayıcı yalnızca 30 sn'lik klipler çalabilir.",
@@ -3812,6 +3814,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "search.cortinas_placeholder": "Ad, sanatçı, kültür ya da tür",
   "search.cortinas_shown": "{shown} / {total} cortina",
   "search.decade": "On yıl",
+  "search.chip_tip": "Yalnızca {label} göster; hepsini görmek için yeniden dokunun",
   "search.decade_label": "{decade}'ler",
   "search.did_you_mean": "Bunu mu demek istediniz:",
   "search.favourite": "Dansçı favorilerinizden biri",
@@ -4678,6 +4681,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "praise.footer":
     "Övdüğünüz tandalar. Her biri, Dansçı favorilerindeki bir dokunuş gibi, gecenin kendi bölümünde kayıtları için bir Pist dolu ♥ sayılır.",
   "praise.delete": "Övgüyü sil: {label}",
+  "praise.delete_tip": "Bu övgüyü unut: şarkıları onun Pist dolu ♥ işaretini artık saymaz",
   // 2026-11: the Booth's iPad pass (confirmation, order in the tanda, tanda types, status)
   "booth.confirm.again": "Tekrar dokun",
   "booth.confirm.hold": "Basılı tut",
@@ -4798,6 +4802,12 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "controller.export": "Eşlemeyi dışa aktar",
   "controller.import": "Eşleme içe aktar",
   "controller.reset": "Yerleşik eşleme",
+  "controller.connect_tip": "Bu cihaza takılı DJ kontrolcüsünü kullan (tarayıcı önce izin ister)",
+  "controller.learn.tip":
+    "Buna basın, sonra kontrolcüde bu işi yapacak düğmeye basın ya da onu hareket ettirin",
+  "controller.export_tip": "Bu kontrolcünün eşlemesini saklamak ya da paylaşmak için dosya olarak kaydet",
+  "controller.import_tip": "Bu kontrolcü için bir eşleme dosyası yükle",
+  "controller.reset_tip": "Değişikliklerinizi bırakıp bu kontrolcü için T-DJ'nin kendi eşlemesini kullan",
   "controller.import_ok": "Eşleme içe aktarıldı",
   "controller.import_bad": "Bu dosya bir T-DJ kontrolcü eşlemesi değil",
   "controller.audio.offer":
@@ -5199,6 +5209,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "keys.none": "Yok",
   "keys.reset_all": "Tüm tuşları sıfırla",
   "keys.reset_all_done": "Tüm kısayollar varsayılana döndü",
+  "keys.reset_all_tip": "Tüm kısayolları varsayılan tuşlarına döndür",
   "keys.save": "Kaydet",
   "keys.now": "Şu an",
   "keys.keys_now": "Tuşlar",

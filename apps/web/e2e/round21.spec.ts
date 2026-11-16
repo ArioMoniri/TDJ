@@ -151,7 +151,8 @@ test("booth: during the night a tapped row offers Play now, Play next and its ve
   // round 22: no headphones output chosen: no pre-listen during the night (it would reach the room), said why
   await expect(sheet.getByTestId("booth-prelisten")).toHaveCount(0);
   await expect(sheet).toContainText(/headphones/i);
-  await expect(sheet.getByTestId("booth-versions")).toBeVisible();
+  // (2026-11: its versions are the shared Song details' "Other versions", components/song/OtherVersions.tsx)
+  await expect(sheet.getByTestId("song-versions")).toBeVisible();
   // mid-night it cuts the room's song: the first tap arms it (the room keeps its song), the second plays
   if ((await playNow.getAttribute("data-armed")) !== "true") await playNow.click();
   await expect(playNow).toHaveAttribute("data-armed", "true");

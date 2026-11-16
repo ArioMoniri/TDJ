@@ -51,6 +51,7 @@ export function KeyboardSettings() {
         <Row
           key={a.id}
           label={t(a.label)}
+          tip={t("keys.intro_sub")}
           value={ready ? <Keys combos={bindingsOf(a.id, custom)} /> : undefined}
           chevron
           onClick={() => setEditing(a)}
@@ -77,6 +78,7 @@ export function KeyboardSettings() {
       <Group>
         <ActionRow
           label={t("keys.reset_all")}
+          tip={t("keys.reset_all_tip")}
           destructive
           disabled={!ready || !changed}
           onClick={() => {

@@ -1970,66 +1970,72 @@ export function Composer() {
               {tx("composer.or_set_up_the_night_below")}
             </span>
           </div>
-          {/* a built-in night to read before composing one */}
-          <Tip text={tx("composer.open_a_night_a_dj_built")} className="mt-4 w-full">
-            <button
-              type="button"
-              className="cell cell-tap group-inset w-full text-left"
-              data-leading="tile"
-              onClick={() => openFeatured(FEATURED[0].id)}
-              disabled={busy}
-              data-testid="featured-card"
-            >
-              <span className="tile" style={{ background: "var(--system-gold)" }} aria-hidden>
-                <Star size={16} strokeWidth={2} fill="currentColor" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate">{FEATURED[0].title}</span>
-                <span className="text-footnote block truncate text-[var(--label-2)]">{FEATURED[0].sub}</span>
-              </span>
-              <span className="cell-value text-body">{tx("featuredCard.open")}</span>
-            </button>
-          </Tip>
-          {/* round 22 AI / round 23: picking every tanda yourself, with suggestions, is one tap from the first run */}
-          <Tip text={tx("composer.start_from_an_empty_night_and")} className="mt-2 w-full">
-            <Link
-              href="/build"
-              className="cell cell-tap group-inset w-full text-left"
-              data-leading="tile"
-              data-testid="first-run-build"
-            >
-              <span className="tile" style={{ background: "var(--tint)" }} aria-hidden>
-                <Hand size={16} strokeWidth={2} />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate">{tx("composer.build_by_hand")}</span>
-                <span className="text-footnote block truncate text-[var(--label-2)]">
-                  {tx("composer.pick_every_tanda_yourself_with_suggestions")}
+          {/* the three ways in, one grouped list (2026-11: with Import as the third, three separate cards ran under
+              the tab capsule on an iPhone as the page opened; the list keeps the box above it) */}
+          <div className="first-run-ways group-inset mt-4 flex flex-col overflow-hidden">
+            {/* a built-in night to read before composing one */}
+            <Tip text={tx("composer.open_a_night_a_dj_built")} className="w-full">
+              <button
+                type="button"
+                className="cell cell-tap w-full text-left"
+                data-leading="tile"
+                onClick={() => openFeatured(FEATURED[0].id)}
+                disabled={busy}
+                data-testid="featured-card"
+              >
+                <span className="tile" style={{ background: "var(--system-gold)" }} aria-hidden>
+                  <Star size={16} strokeWidth={2} fill="currentColor" />
                 </span>
-              </span>
-              <ChevronRight size={16} strokeWidth={2.5} className="cell-chevron" aria-hidden />
-            </Link>
-          </Tip>
-          {/* 2026-11: a Spotify / YouTube playlist, a DJ app's file or a list, played or edited as a night */}
-          <Tip text={tx("import.subtitle")} className="mt-2 w-full">
-            <Link
-              href="/import"
-              className="cell cell-tap group-inset w-full text-left"
-              data-leading="tile"
-              data-testid="first-run-import"
-            >
-              <span className="tile" style={{ background: "#ff9500" }} aria-hidden>
-                <ListPlus size={16} strokeWidth={2} />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate">{tx("import.entry")}</span>
-                <span className="text-footnote block truncate text-[var(--label-2)]">
-                  {tx("import.entry_sub")}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate">{FEATURED[0].title}</span>
+                  <span className="text-footnote block truncate text-[var(--label-2)]">
+                    {FEATURED[0].sub}
+                  </span>
                 </span>
-              </span>
-              <ChevronRight size={16} strokeWidth={2.5} className="cell-chevron" aria-hidden />
-            </Link>
-          </Tip>
+                <span className="cell-value text-body">{tx("featuredCard.open")}</span>
+              </button>
+            </Tip>
+            {/* round 22 AI / round 23: picking every tanda yourself, with suggestions, is one tap from the first run */}
+            <Tip text={tx("composer.start_from_an_empty_night_and")} className="w-full">
+              <Link
+                href="/build"
+                className="cell cell-tap w-full text-left"
+                data-leading="tile"
+                data-testid="first-run-build"
+              >
+                <span className="tile" style={{ background: "var(--tint)" }} aria-hidden>
+                  <Hand size={16} strokeWidth={2} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate">{tx("composer.build_by_hand")}</span>
+                  <span className="text-footnote block truncate text-[var(--label-2)]">
+                    {tx("composer.pick_every_tanda_yourself_with_suggestions")}
+                  </span>
+                </span>
+                <ChevronRight size={16} strokeWidth={2.5} className="cell-chevron" aria-hidden />
+              </Link>
+            </Tip>
+            {/* 2026-11: a Spotify / YouTube playlist, a DJ app's file or a list, played or edited as a night */}
+            <Tip text={tx("import.subtitle")} className="w-full">
+              <Link
+                href="/import"
+                className="cell cell-tap w-full text-left"
+                data-leading="tile"
+                data-testid="first-run-import"
+              >
+                <span className="tile" style={{ background: "#ff9500" }} aria-hidden>
+                  <ListPlus size={16} strokeWidth={2} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate">{tx("import.entry")}</span>
+                  <span className="text-footnote block truncate text-[var(--label-2)]">
+                    {tx("import.entry_sub")}
+                  </span>
+                </span>
+                <ChevronRight size={16} strokeWidth={2.5} className="cell-chevron" aria-hidden />
+              </Link>
+            </Tip>
+          </div>
         </section>
       )}
 

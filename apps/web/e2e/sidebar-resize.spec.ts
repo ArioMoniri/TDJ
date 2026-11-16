@@ -149,10 +149,36 @@ for (const [name, opts] of CASES) {
           col: col.left,
         };
       });
+    // a frame mid-way, held still: the button is pressed and, in the same task, the slide's two CSS transitions (the
+    // sidebar's transform and the root's --sidebar-w that `main` follows) are paused 90 ms in. (It sampled after a
+    // 90 ms wait: under a loaded runner the click and the sample took longer than the 260 ms slide, so it read the end
+    // frame — CI 2026-11. Pausing keeps the check, "it animates and the page follows in step", deterministic.)
+    const midSlide = async (id: string) => {
+      const props = await page.evaluate((testId) => {
+        document.querySelector<HTMLElement>(`[data-testid="${testId}"]`)!.click();
+        const side = document.querySelector('[data-testid="sidebar"]')!;
+        // flush the style change so the transitions start now
+        void getComputedStyle(side).transform;
+        void getComputedStyle(document.documentElement).getPropertyValue("--sidebar-w");
+        const running = [...side.getAnimations(), ...document.documentElement.getAnimations()].filter(
+          (a): a is CSSTransition =>
+            a instanceof CSSTransition && ["transform", "--sidebar-w"].includes(a.transitionProperty),
+        );
+        for (const a of running) {
+          a.pause();
+          a.currentTime = 90;
+        }
+        return running.map((a) => a.transitionProperty).sort();
+      }, id);
+      expect(props, `${id}: the sidebar slides and the page follows`).toEqual(["--sidebar-w", "transform"]);
+      const f = await frame();
+      await page.evaluate(() => {
+        for (const a of document.getAnimations()) if (a.playState === "paused") a.play();
+      });
+      return f;
+    };
     const open0 = await frame();
-    await page.getByTestId("sidebar-hide").click();
-    await page.waitForTimeout(90);
-    const mid = await frame();
+    const mid = await midSlide("sidebar-hide");
     expect(mid.side, "mid-collapse: the sidebar is sliding").toBeGreaterThan(5);
     expect(mid.side).toBeLessThan(open0.side - 5);
     expect(mid.main, "the page follows").toBeLessThan(open0.main - 5);
@@ -170,9 +196,7 @@ for (const [name, opts] of CASES) {
       Math.abs(show.y + show.height / 2 - shut.h1M),
       "the Show button on the title's line",
     ).toBeLessThanOrEqual(3);
-    await page.getByTestId("sidebar-show").click();
-    await page.waitForTimeout(90);
-    const mid2 = await frame();
+    const mid2 = await midSlide("sidebar-show");
     expect(mid2.side).toBeGreaterThan(5);
     expect(mid2.side).toBeLessThan(359);
     await expect(page.getByTestId("sidebar")).toBeVisible();
