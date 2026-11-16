@@ -5,7 +5,7 @@ import { STOP_NOW_SEC, TRANSPORT_RANGES } from "@/lib/booth/engine";
 import { MIX_EXPLAIN, MIX_PRESETS, type MixPresetId, presetOf } from "@/lib/booth/mix";
 import { cortinaSpan } from "@/lib/booth/nightView";
 import { BOOTH_RANGES, durationLabel } from "@/lib/booth/plan";
-import { useBooth } from "@/lib/booth/store";
+import { useBooth, useRoomCaps } from "@/lib/booth/store";
 import { useMediaQuery } from "@/lib/hooks";
 import { lazy, t as tx } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
@@ -119,6 +119,9 @@ export function LevelsSheet({
   const composerCortina = useBooth((s) => s.playlist?.options.cortinaLengthSec);
   const userSettings = useStore((s) => s.settings);
   const phone = useMediaQuery("(max-width: 599.98px)");
+  // 2026-11: Spotify Connect cannot fade; the iOS Spotify app has no volume control either
+  const caps = useRoomCaps();
+  const mutePaused = useBooth((s) => s.mutePaused);
   const act = useBooth.getState();
   const live = state === "playing" || state === "cortina";
   const set = act.setSettings;
@@ -147,18 +150,20 @@ export function LevelsSheet({
           />
           <KeyAction
             label={tx("booth.sheets.fade_out_now_s", { fadeNowSec: settings.fadeNowSec })}
-            sub={tx("booth.sheets.the_song_fades_out_the_next")}
+            sub={caps.fade ? tx("booth.sheets.the_song_fades_out_the_next") : tx("booth.connect.no_fade_why")}
             k="f"
             onClick={() => act.fadeOutNow()}
-            disabled={!live}
+            disabled={!live || !caps.fade}
             testId="booth-fade-now"
           />
           <KeyAction
             label={tx("booth.sheets.next_with_crossfade_s", { crossfadeSec: settings.crossfadeSec })}
-            sub={tx("booth.sheets.the_next_item_starts_now_while")}
+            sub={
+              caps.fade ? tx("booth.sheets.the_next_item_starts_now_while") : tx("booth.connect.no_fade_why")
+            }
             k="x"
             onClick={() => void act.crossfadeNext()}
-            disabled={!live}
+            disabled={!live || !caps.fade}
             testId="booth-crossfade"
           />
           <KeyAction
@@ -181,8 +186,13 @@ export function LevelsSheet({
           )}
           <SwitchRow
             label={tx("booth.sheets.talk_over")}
-            sub={tx("booth.sheets.the_music_dips_12_db_while")}
-            checked={ducked}
+            sub={
+              caps.volume
+                ? tx("booth.sheets.the_music_dips_12_db_while")
+                : tx("booth.connect.talk_unavailable")
+            }
+            checked={caps.volume && ducked}
+            disabled={!caps.volume}
             onChange={(v) => act.setDucked(v)}
           />
         </Group>
@@ -324,10 +334,20 @@ export function LevelsSheet({
             display={tx("booth.sheets.db", { p1: master > 0 ? "+" : "", master })}
             testId="booth-master"
             className="w-full"
+            disabled={!caps.volume}
+            {...(caps.volume ? {} : { hint: tx("booth.connect.no_volume_why") })}
           />
         </div>
         <ActionRow
-          label={muted ? tx("booth.sheets.unmute") : tx("booth.sheets.mute")}
+          label={
+            caps.volume
+              ? muted
+                ? tx("booth.sheets.unmute")
+                : tx("booth.sheets.mute")
+              : muted && mutePaused
+                ? tx("booth.connect.unmute_resumes")
+                : tx("booth.connect.mute_pauses")
+          }
           onClick={() => act.toggleMute()}
         />
         <MixStepper
@@ -373,6 +393,8 @@ export function LevelsSheet({
 export function StopSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const stop = useBooth((s) => s.stop);
   const fade = useBooth((s) => s.settings.stopFadeSec);
+  // 2026-11: a device that cannot fade (Spotify Connect) stops at once: the sheet never promises a fade
+  const canFade = useRoomCaps().fade;
   return (
     <Sheet
       open={open}
@@ -382,7 +404,13 @@ export function StopSheet({ open, onClose }: { open: boolean; onClose: () => voi
       testId="booth-stop-sheet"
       hideCancel
     >
-      <Group footer={tx("booth.sheets.cancel_keeps_the_music_playing_enter")}>
+      <Group
+        footer={
+          canFade
+            ? tx("booth.sheets.cancel_keeps_the_music_playing_enter")
+            : tx("booth.connect.stops_at_once_footer")
+        }
+      >
         <button
           type="button"
           className="cell cell-tap w-full justify-center font-semibold"
@@ -392,17 +420,19 @@ export function StopSheet({ open, onClose }: { open: boolean; onClose: () => voi
         >
           {tx("booth.sheets.cancel")}
         </button>
-        <button
-          type="button"
-          className="cell cell-tap w-full justify-center font-semibold text-[var(--tint)]"
-          data-testid="booth-stop-fade"
-          onClick={() => {
-            stop(fade);
-            onClose();
-          }}
-        >
-          {tx("booth.sheets.fade_out_and_stop_s", { fade })}
-        </button>
+        {canFade && (
+          <button
+            type="button"
+            className="cell cell-tap w-full justify-center font-semibold text-[var(--tint)]"
+            data-testid="booth-stop-fade"
+            onClick={() => {
+              stop(fade);
+              onClose();
+            }}
+          >
+            {tx("booth.sheets.fade_out_and_stop_s", { fade })}
+          </button>
+        )}
         <button
           type="button"
           className="cell cell-tap w-full justify-center font-semibold text-[var(--destructive)]"
@@ -412,7 +442,7 @@ export function StopSheet({ open, onClose }: { open: boolean; onClose: () => voi
             onClose();
           }}
         >
-          {tx("booth.sheets.stop_now")}
+          {canFade ? tx("booth.sheets.stop_now") : tx("booth.connect.stops_at_once")}
         </button>
       </Group>
     </Sheet>
@@ -626,6 +656,32 @@ export function ResumeSheet() {
   const resume = useBooth((s) => s.resume);
   const plan = useBooth((s) => s.plan);
   const it = offer && plan ? plan.items[offer.planIndex] : null;
+  // 2026-11: Spotify kept playing on Connect through the reload: continue with it (the default), no restart
+  const re = offer?.reattach ?? null;
+  if (offer && re && it)
+    return (
+      <Sheet
+        open
+        onClose={() => void resume(false)}
+        title={tx("booth.connect.still_playing_title")}
+        hideCancel
+        detents={["medium"]}
+        testId="booth-resume"
+      >
+        <Group footer={tx("booth.connect.still_playing_footer")}>
+          <ActionRow
+            label={tx("booth.connect.continue_playing", { title: it.title, device: re.deviceName })}
+            onClick={() => void resume(true)}
+            id="booth-resume-yes"
+          />
+          <ActionRow
+            label={tx("booth.sheets.start_from_the_beginning")}
+            destructive
+            onClick={() => void resume(false)}
+          />
+        </Group>
+      </Sheet>
+    );
   const k =
     it && plan
       ? plan.items.filter((x) => x.tanda === it.tanda && x.kind === "track").findIndex((x) => x.n === it.n) +

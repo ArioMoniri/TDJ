@@ -3,7 +3,7 @@ import { Info, ListEnd } from "lucide-react";
 import { durationLabel } from "@/lib/booth/plan";
 import { useRoomHearts } from "@/lib/booth/roomHearts";
 import { SOURCE_LABEL } from "@/lib/booth/sources/types";
-import { useBooth } from "@/lib/booth/store";
+import { useBooth, useRoomCaps } from "@/lib/booth/store";
 import { t } from "@/lib/i18n";
 import { metaLine, yearText } from "@/lib/year";
 import { Artwork } from "../ui/Artwork";
@@ -66,6 +66,8 @@ export function NowCard({
   const state = useBooth((s) => s.state);
   const position = useBooth((s) => s.position);
   const current = useBooth((s) => s.current);
+  // 2026-11: Spotify Connect applies no per-item gain: the chip would show a level the room does not have
+  const caps = useRoomCaps();
   const sources = useBooth((s) => s.sources);
   const holding = useBooth((s) => s.holding);
   const paused = useBooth((s) => s.paused);
@@ -147,8 +149,9 @@ export function NowCard({
           max={length}
           onSeek={(sec) => void useBooth.getState().seek(sec)}
           disabled={!started || item.kind === "break" || !(live || state === "paused")}
+          confirmTap={live}
           label={t("booth.nowCard.seek_label")}
-          hint={t("booth.nowCard.seek_hint")}
+          hint={live ? t("booth.connect.seek_hint_live") : t("booth.nowCard.seek_hint")}
           testId="booth-seek"
         />
         <span className="tabular-nums text-right">-{durationLabel(remaining)}</span>
@@ -198,7 +201,7 @@ export function NowCard({
               : t("booth.nowCard.nothing_to_play_this_song_from")
             : SOURCE_LABEL[src]}
         </span>
-        {current && (
+        {current && caps.gain && (
           <span
             className="booth-chip tabular-nums"
             data-testid="booth-gain"

@@ -320,7 +320,7 @@ function Booth() {
   const menu: Array<MenuItem | false> = [
     { label: t("booth.set_up_source_output_night"), onClick: () => setOnboarding(true) },
     // (a phone's transport has Previous / Next now; Next at gap and Mix live here)
-    started && phone && { label: t("booth.setColumn.next_at_gap_menu"), onClick: () => b.next() },
+    started && phone && { label: t("booth.connect.skip_next_menu"), onClick: () => b.next() },
     phone && { label: t("booth.controlStrip.mix_menu"), onClick: () => setLevels(true) },
     {
       label: rehearsal ? t("booth.rehearsal_30_s_on") : t("booth.rehearsal_30_s"),

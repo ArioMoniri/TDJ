@@ -195,6 +195,18 @@ test.describe("1440 × 900", () => {
         () => (window as unknown as { __tdjBoothPlan: { wallClockSec: number } }).__tdjBoothPlan.wallClockSec,
       );
     const wall0 = await wall();
+    // (2026-11: each cortina plays its own composed length — 48 s, 41 s… — unless the DJ set one)
+    const len0 = await page.evaluate(() =>
+      Object.fromEntries(
+        (
+          window as unknown as {
+            __tdjBoothPlan: { items: Array<{ kind: string; id?: string; lengthSec: number }> };
+          }
+        ).__tdjBoothPlan.items
+          .filter((i) => i.kind === "cortina")
+          .map((i) => [i.id, i.lengthSec]),
+      ),
+    );
     const sheet = page.getByTestId("booth-cortina-sheet");
     // (the set re-renders once while its sources settle: tap again until the sheet is up)
     await expect(async () => {
@@ -220,12 +232,12 @@ test.describe("1440 × 900", () => {
       const edits = w.__tdjBooth.getState().playlist.booth?.cortinaEdits ?? {};
       const id = Object.keys(edits)[0]!;
       const c = w.__tdjBoothPlan.items.find((i) => i.kind === "cortina" && i.id === id)!;
-      return { edits, c };
+      return { edits, c, id };
     });
     expect(Object.keys(r.edits)).toHaveLength(1);
     expect(r.c.fadeOutSec).toBe(4.5);
     // (2026-11: the stop is absolute in the recording, the cortina plays from its chorus: what plays got shorter)
-    expect(r.c.stopSec! - (r.c.trimInSec ?? 0)).toBeLessThan(45);
+    expect(r.c.stopSec! - (r.c.trimInSec ?? 0)).toBeLessThan(len0[r.id]!);
     // the night is shorter by the cortina's two seconds (the plan the time card and the exports read)
     await expect.poll(wall).toBeCloseTo(wall0 - 2, 3);
     // back to the night's settings

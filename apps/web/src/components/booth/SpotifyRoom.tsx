@@ -91,32 +91,35 @@ export function SpotifyRoomGroup() {
         </>
       }
     >
-      <button
-        type="button"
-        className="cell cell-tap w-full text-left"
-        data-testid="booth-spotify-device"
-        data-device="this"
-        disabled={room.browserUnusable && !a.thisDeviceId()}
-        onClick={() => void a.selectDevice(null)}
-      >
-        <Laptop size={16} strokeWidth={2} className="text-[var(--room)]" aria-hidden />
-        <span className="min-w-0 flex-1">
-          <span className="block truncate">{t("booth.spotifyRoom.this_browser")}</span>
-          {room.browserUnusable && (
-            <span className="text-footnote block text-[var(--label-2)]">
-              {t("booth.spotifyRoom.this_browser_unusable")}
-            </span>
+      {/* 2026-11 (the iPad review): a browser that can't play Spotify (iOS / iPadOS Safari, a phone) is not offered
+          as a room at all — exactly one room is ticked, the device that plays */}
+      {!(room.browserUnusable && !a.thisDeviceId()) && (
+        <button
+          type="button"
+          className="cell cell-tap w-full text-left"
+          data-testid="booth-spotify-device"
+          data-device="this"
+          onClick={() => void a.selectDevice(null)}
+        >
+          <Laptop size={16} strokeWidth={2} className="text-[var(--room)]" aria-hidden />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate">{t("booth.spotifyRoom.this_browser")}</span>
+            {room.browserUnusable && (
+              <span className="text-footnote block text-[var(--label-2)]">
+                {t("booth.spotifyRoom.this_browser_unusable")}
+              </span>
+            )}
+          </span>
+          {room.remote === null && !room.browserUnusable && (
+            <Check
+              size={18}
+              strokeWidth={2.5}
+              className="text-[var(--tint)]"
+              aria-label={t("booth.playerToolbar.chosen")}
+            />
           )}
-        </span>
-        {room.remote === null && !room.browserUnusable && (
-          <Check
-            size={18}
-            strokeWidth={2.5}
-            className="text-[var(--tint)]"
-            aria-label={t("booth.playerToolbar.chosen")}
-          />
-        )}
-      </button>
+        </button>
+      )}
       {others.map((d) => {
         const Icon = icon(d);
         return (

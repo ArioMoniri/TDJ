@@ -2,7 +2,7 @@
 import { Check, ChevronDown, Eye, Headphones, Speaker } from "lucide-react";
 import { useEffect, useState } from "react";
 import { SINK_UNSUPPORTED } from "@/lib/booth/cue";
-import { OPEN_ROOM_EVENT } from "@/lib/booth/sources/spotify";
+import { isAppleMobile, OPEN_ROOM_EVENT } from "@/lib/booth/sources/spotify";
 import { useBooth } from "@/lib/booth/store";
 import { t } from "@/lib/i18n";
 import { toast } from "@/lib/toast";
@@ -36,6 +36,8 @@ export function PlayerToolbar({ rehearsal }: { rehearsal: boolean }) {
   // 2026-11: Spotify Premium on a browser that plays through the Spotify app (iPhone, iPad) with no device yet: ROOM
   // asks to be picked (the status says "Spotify · pick a device"); never a silent fall to 30 s clips
   const pickDevice = useSpotifyNeedsDevice();
+  // 2026-11: iPad / iPhone Safari has one audio output for a web page: a headphone pre-listen needs a second device
+  const apple = useApple();
   return (
     <div className="booth-toolbar" data-testid="booth-toolbar">
       <SourceLine rehearsal={rehearsal} />
@@ -54,7 +56,7 @@ export function PlayerToolbar({ rehearsal }: { rehearsal: boolean }) {
         <span className="booth-out-name">{roomLabel}</span>
         <ChevronDown size={14} strokeWidth={2} aria-hidden />
       </button>
-      {outputs.cueSupported ? (
+      {outputs.cueSupported && !apple ? (
         <button
           type="button"
           className="booth-out"
@@ -81,15 +83,19 @@ export function PlayerToolbar({ rehearsal }: { rehearsal: boolean }) {
           className="booth-out"
           data-off
           data-testid="booth-out-cue-unsupported"
-          data-hint={SINK_UNSUPPORTED()}
+          data-hint={apple ? t("booth.connect.headphones_ipad") : SINK_UNSUPPORTED()}
           aria-label={t("booth.playerToolbar.headphones_pre_listen_unavailable", {
-            SINK_UNSUPPORTED: SINK_UNSUPPORTED(),
+            SINK_UNSUPPORTED: apple ? t("booth.connect.headphones_ipad") : SINK_UNSUPPORTED(),
           })}
-          onClick={() => toast(SINK_UNSUPPORTED())}
+          onClick={() => toast(apple ? t("booth.connect.headphones_ipad") : SINK_UNSUPPORTED())}
         >
           <Headphones size={16} strokeWidth={2} aria-hidden />
           <span className="booth-out-word">{t("booth.playerToolbar.headphones")}</span>
-          <span className="booth-out-name">{t("booth.playerToolbar.not_in_this_browser")}</span>
+          <span className="booth-out-name">
+            {apple
+              ? t("booth.connect.headphones_second_device")
+              : t("booth.playerToolbar.not_in_this_browser")}
+          </span>
         </button>
       )}
       <button
@@ -108,11 +114,47 @@ export function PlayerToolbar({ rehearsal }: { rehearsal: boolean }) {
   );
 }
 
+/** iOS / iPadOS (after mount: the server render knows no user agent) */
+function useApple(): boolean {
+  const [apple, setApple] = useState(false);
+  useEffect(() => setApple(isAppleMobile()), []);
+  return apple;
+}
+
 function OutputSheet({ which, onClose }: { which: "room" | "headphones" | null; onClose: () => void }) {
   const outputs = useBooth((s) => s.outputs);
   const b = useBooth.getState();
   const cur = which === "room" ? outputs.room : outputs.cue;
   const blocked = which === "headphones" ? b.cueBlocked() : null;
+  const apple = useApple();
+  // 2026-11 (the iPad review: ROOM ticked "This device" and "iPad"): when Spotify plays the whole night on a
+  // Connect device, that device is the room — this browser's outputs are not offered, nothing else is ticked
+  const connectName = useSpotifyRoomName();
+  const onlySpotify = useBooth(
+    (s) =>
+      s.sources.includes("spotify") &&
+      !s.sources.some((x, i) => (x === "file" || x === "preview") && s.plan?.items[i]?.kind !== "break"),
+  );
+  const browserRoom = which !== "room" || !(connectName && onlySpotify);
+  // iPad / iPhone: one output for a web page, no device names (the microphone permission would change nothing)
+  const askNames = !outputs.named && !apple && browserRoom;
+  if (which === "headphones" && apple)
+    return (
+      <Sheet
+        open
+        onClose={onClose}
+        title={t("booth.playerToolbar.headphones_output")}
+        trailing={t("booth.playerToolbar.done")}
+        testId="booth-output-sheet"
+      >
+        <Group footer={t("booth.connect.headphones_ipad")}>
+          <div className="cell text-[var(--label-2)]" data-testid="booth-cue-second-device">
+            <Headphones size={16} strokeWidth={2} className="text-[var(--label-2)]" aria-hidden />
+            <span className="min-w-0 flex-1">{t("booth.connect.headphones_second_device")}</span>
+          </div>
+        </Group>
+      </Sheet>
+    );
   return (
     <Sheet
       open={which !== null}
@@ -123,70 +165,72 @@ function OutputSheet({ which, onClose }: { which: "room" | "headphones" | null; 
       trailing={t("booth.playerToolbar.done")}
       testId="booth-output-sheet"
     >
-      <Group
-        header={
-          which === "room"
-            ? t("booth.playerToolbar.where_the_dancers_hear_the_night")
-            : t("booth.playerToolbar.where_you_pre_listen")
-        }
-        footer={
-          which === "room"
-            ? outputs.roomSupported
-              ? t("booth.playerToolbar.the_night_plays_here_changing_it")
-              : t("booth.playerToolbar.this_browser_plays_the_night_on")
-            : t("booth.playerToolbar.pick_the_headphones_or_the_interface", {
-                p1: blocked && outputs.cue ? ` ${blocked}` : "",
-              })
-        }
-      >
-        {outputs.devices.map((d) => {
-          const isRoomDevice = which === "headphones" && d.id === outputs.room;
-          return (
-            <button
-              key={d.id}
-              type="button"
-              className="cell cell-tap w-full text-left"
-              disabled={(which === "room" && !outputs.roomSupported && d.id !== "default") || isRoomDevice}
-              data-testid="booth-output"
-              data-device={d.id}
-              onClick={() => {
-                if (which === "room") void b.setRoomOutput(d.id);
-                else b.setCueOutput(d.id);
-              }}
-            >
-              {which === "room" ? (
-                <Speaker size={16} strokeWidth={2} className="text-[var(--room)]" aria-hidden />
-              ) : (
-                <Headphones size={16} strokeWidth={2} className="text-[var(--cue)]" aria-hidden />
-              )}
-              <span className="min-w-0 flex-1">
-                <span className="block truncate">{d.label}</span>
-                {isRoomDevice && (
-                  <span className="text-footnote block text-[var(--label-2)]">
-                    {t("booth.playerToolbar.the_room_plays_here")}
-                  </span>
+      {browserRoom && (
+        <Group
+          header={
+            which === "room"
+              ? t("booth.playerToolbar.where_the_dancers_hear_the_night")
+              : t("booth.playerToolbar.where_you_pre_listen")
+          }
+          footer={
+            which === "room"
+              ? outputs.roomSupported
+                ? t("booth.playerToolbar.the_night_plays_here_changing_it")
+                : t("booth.playerToolbar.this_browser_plays_the_night_on")
+              : t("booth.playerToolbar.pick_the_headphones_or_the_interface", {
+                  p1: blocked && outputs.cue ? ` ${blocked}` : "",
+                })
+          }
+        >
+          {outputs.devices.map((d) => {
+            const isRoomDevice = which === "headphones" && d.id === outputs.room;
+            return (
+              <button
+                key={d.id}
+                type="button"
+                className="cell cell-tap w-full text-left"
+                disabled={(which === "room" && !outputs.roomSupported && d.id !== "default") || isRoomDevice}
+                data-testid="booth-output"
+                data-device={d.id}
+                onClick={() => {
+                  if (which === "room") void b.setRoomOutput(d.id);
+                  else b.setCueOutput(d.id);
+                }}
+              >
+                {which === "room" ? (
+                  <Speaker size={16} strokeWidth={2} className="text-[var(--room)]" aria-hidden />
+                ) : (
+                  <Headphones size={16} strokeWidth={2} className="text-[var(--label-2)]" aria-hidden />
                 )}
-              </span>
-              {cur === d.id && (
-                <Check
-                  size={18}
-                  strokeWidth={2.5}
-                  className="text-[var(--tint)]"
-                  aria-label={t("booth.playerToolbar.chosen")}
-                />
-              )}
-            </button>
-          );
-        })}
-        {which === "headphones" && outputs.cue && (
-          <ActionRow
-            label={t("booth.playerToolbar.turn_pre_listen_off")}
-            onClick={() => b.setCueOutput(null)}
-          />
-        )}
-      </Group>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate">{d.label}</span>
+                  {isRoomDevice && (
+                    <span className="text-footnote block text-[var(--label-2)]">
+                      {t("booth.playerToolbar.the_room_plays_here")}
+                    </span>
+                  )}
+                </span>
+                {cur === d.id && !(which === "room" && connectName && onlySpotify) && (
+                  <Check
+                    size={18}
+                    strokeWidth={2.5}
+                    className="text-[var(--tint)]"
+                    aria-label={t("booth.playerToolbar.chosen")}
+                  />
+                )}
+              </button>
+            );
+          })}
+          {which === "headphones" && outputs.cue && (
+            <ActionRow
+              label={t("booth.playerToolbar.turn_pre_listen_off")}
+              onClick={() => b.setCueOutput(null)}
+            />
+          )}
+        </Group>
+      )}
       {which === "room" && <SpotifyRoomGroup />}
-      {!outputs.named && (
+      {askNames && (
         <Group footer={t("booth.playerToolbar.your_browser_names_the_outputs_once")}>
           <ActionRow
             label={t("booth.playerToolbar.show_device_names")}
@@ -225,6 +269,8 @@ function SourceLine({ rehearsal }: { rehearsal: boolean }) {
   const state = useBooth((s) => s.state);
   const onSpotify = !rehearsal && sources.includes("spotify");
   const pick = useSpotifyNeedsDevice();
+  // 2026-11 (Connect): "Starting…" until Spotify confirms the new track, never "Playing" over silence
+  const starting = useBooth((s) => s.starting);
   // 2026-11: the state in words beside its colour — Playing / Paused, the source, or "Spotify · pick a device"
   const playing = started && (state === "playing" || state === "cortina");
   const paused = started && state === "paused";
@@ -248,15 +294,17 @@ function SourceLine({ rehearsal }: { rehearsal: boolean }) {
         data-state={
           pick && onSpotify
             ? "pick-device"
-            : playing
-              ? "playing"
-              : paused
-                ? "paused"
-                : onSpotify
-                  ? "spotify"
-                  : rehearsal
-                    ? "rehearsal"
-                    : "files"
+            : playing && starting
+              ? "starting"
+              : playing
+                ? "playing"
+                : paused
+                  ? "paused"
+                  : onSpotify
+                    ? "spotify"
+                    : rehearsal
+                      ? "rehearsal"
+                      : "files"
         }
         data-hint={
           onSpotify
@@ -266,11 +314,13 @@ function SourceLine({ rehearsal }: { rehearsal: boolean }) {
             : t("booth.playerToolbar.a_rehearsal_plays_30_s_of")
         }
       >
-        {playing
-          ? t("booth.playerToolbar.status_playing", { source: source ?? "" })
-          : paused
-            ? t("booth.playerToolbar.status_paused", { source: source ?? "" })
-            : source}
+        {playing && starting
+          ? t("booth.connect.starting")
+          : playing
+            ? t("booth.playerToolbar.status_playing", { source: source ?? "" })
+            : paused
+              ? t("booth.playerToolbar.status_paused", { source: source ?? "" })
+              : source}
       </span>
       {rehearsal && sp.ok && mode === "preview" && !started && (
         <button

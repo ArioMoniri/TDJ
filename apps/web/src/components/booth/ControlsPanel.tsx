@@ -18,7 +18,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { guard, useArmed } from "@/lib/booth/confirm";
 import { TRANSPORT_RANGES } from "@/lib/booth/engine";
 import { durationLabel } from "@/lib/booth/plan";
-import { boothEngine, useBooth } from "@/lib/booth/store";
+import { boothEngine, useBooth, useRoomCaps } from "@/lib/booth/store";
 import { t } from "@/lib/i18n";
 import { toast } from "@/lib/toast";
 import { SeekBar } from "../ui/SeekBar";
@@ -98,6 +98,9 @@ export function ControlsPanel({
   const position = useBooth((s) => s.position);
   const current = useBooth((s) => s.current);
   const audition = useBooth((s) => s.audition);
+  const mutePaused = useBooth((s) => s.mutePaused);
+  // 2026-11: what the room's device can do (Spotify Connect: no fades; the iOS Spotify app: no volume either)
+  const caps = useRoomCaps();
   const a = useBooth.getState();
   const live = state === "playing" || state === "cortina";
   const item = plan?.items[planIndex];
@@ -201,9 +204,11 @@ export function ControlsPanel({
         <Group title={t("booth.controls.transport")}>
           <div className="booth-ctl-row">
             <Btn
-              label={t("booth.controlStrip.next_at_gap")}
+              label={t("booth.connect.skip_next_song")}
               onClick={() => a.next()}
               disabled={!started}
+              why={t("booth.connect.skip_next_hint")}
+              armKey="skip-next"
               testId="ctl-next-gap"
             >
               <StepForward size={20} strokeWidth={2} aria-hidden />
@@ -211,7 +216,8 @@ export function ControlsPanel({
             <Btn
               label={t("booth.controlStrip.fade")}
               onClick={() => a.fadeOutNow()}
-              disabled={!live}
+              disabled={!live || !caps.fade}
+              why={caps.fade ? undefined : t("booth.connect.no_fade_why")}
               armKey="fade"
               testId="ctl-fade"
             >
@@ -220,15 +226,21 @@ export function ControlsPanel({
             <Btn
               label={t("booth.controlStrip.crossfade")}
               onClick={() => void a.crossfadeNext()}
-              disabled={!live || noOverlap}
-              why={noOverlap ? t("booth.controls.why_spotify_overlap") : undefined}
+              disabled={!live || noOverlap || !caps.fade}
+              why={
+                !caps.fade
+                  ? t("booth.connect.no_fade_why")
+                  : noOverlap
+                    ? t("booth.controls.why_spotify_overlap")
+                    : undefined
+              }
               armKey="crossfade"
               testId="ctl-crossfade"
             >
               <Blend size={20} strokeWidth={2} aria-hidden />
             </Btn>
             <Btn
-              label={t("booth.controls.stop_fade")}
+              label={caps.fade ? t("booth.controls.stop_fade") : t("booth.controlStrip.stop")}
               onClick={onStop}
               disabled={!started || state === "stopped"}
               testId="ctl-stop"
@@ -246,6 +258,7 @@ export function ControlsPanel({
               max={length}
               onSeek={(s) => void a.seek(s)}
               disabled={!started || !(live || state === "paused") || item?.kind === "break"}
+              confirmTap={live}
               label={t("booth.nowCard.seek_label")}
               testId="ctl-seek"
             />
@@ -258,7 +271,8 @@ export function ControlsPanel({
             <Btn
               label={t("booth.controls.trim_down")}
               onClick={() => setTrim(trim - 0.5)}
-              disabled={!itemId}
+              disabled={!itemId || !caps.gain}
+              why={caps.gain ? undefined : t("booth.connect.gain_none")}
               testId="ctl-trim-down"
             >
               <span aria-hidden>−</span>
@@ -266,7 +280,8 @@ export function ControlsPanel({
             <Btn
               label={t("booth.controls.trim_up")}
               onClick={() => setTrim(trim + 0.5)}
-              disabled={!itemId}
+              disabled={!itemId || !caps.gain}
+              why={caps.gain ? undefined : t("booth.connect.gain_none")}
               testId="ctl-trim-up"
             >
               <span aria-hidden>+</span>
@@ -322,6 +337,8 @@ export function ControlsPanel({
             onChange={a.setMaster}
             display={t("booth.controlStrip.db", { p1: master > 0 ? "+" : "", master })}
             testId="ctl-master"
+            disabled={!caps.volume}
+            hint={caps.volume ? undefined : t("booth.connect.no_volume_why")}
           />
           <Fader
             label={t("booth.controls.cortina_fader")}
@@ -335,7 +352,15 @@ export function ControlsPanel({
           />
           <div className="booth-ctl-row">
             <Btn
-              label={muted ? t("booth.controlStrip.unmute") : t("booth.controlStrip.mute")}
+              label={
+                caps.volume
+                  ? muted
+                    ? t("booth.controlStrip.unmute")
+                    : t("booth.controlStrip.mute")
+                  : muted && mutePaused
+                    ? t("booth.connect.unmute_resumes")
+                    : t("booth.connect.mute_pauses")
+              }
               pressed={muted}
               onClick={() => a.toggleMute()}
               testId="ctl-mute"
@@ -344,8 +369,10 @@ export function ControlsPanel({
             </Btn>
             <Btn
               label={t("booth.controlStrip.talk")}
-              pressed={ducked}
+              pressed={caps.volume ? ducked : false}
               onClick={() => a.setDucked(!ducked)}
+              disabled={!caps.volume}
+              why={caps.volume ? undefined : t("booth.connect.talk_unavailable")}
               testId="ctl-talk"
             >
               <Mic size={20} strokeWidth={2} aria-hidden />
@@ -418,7 +445,7 @@ export function ControlsPanel({
               onConfirm={() => void a.jumpToClosing(true)}
               data-testid="ctl-jump-cumparsita"
             >
-              {t("booth.controls.jump_cumparsita")}
+              {caps.fade ? t("booth.controls.jump_cumparsita") : t("booth.connect.jump_cumparsita_now")}
             </ArmButton>
           </div>
         </Group>

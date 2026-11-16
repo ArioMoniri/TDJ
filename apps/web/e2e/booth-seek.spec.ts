@@ -245,7 +245,11 @@ for (const [name, opts] of DEVICES) {
     // drag the thumb from the start to 60 %
     const y = box.y + box.height / 2;
     if (phone) {
-      // touch: a tap at 60 %
+      // touch: a tap at 60 % only marks the time mid-night (2026-11); the second tap jumps there
+      await page.touchscreen.tap(box.x + box.width * 0.6, y);
+      await expect(page.getByTestId("booth-seek-arm")).toContainText("Tap again to jump to");
+      await page.waitForTimeout(400);
+      expect((await snap(page)).position).toBeLessThan(len * 0.3);
       await page.touchscreen.tap(box.x + box.width * 0.6, y);
     } else {
       await page.mouse.move(box.x + 2, y);
@@ -261,9 +265,11 @@ for (const [name, opts] of DEVICES) {
     expect((await snap(page)).state).toBe("playing");
     // time to La Cumparsita moved with it
     await expect(page.getByTestId("booth-ttc")).not.toHaveText(ttc0);
-    // a tap near the start goes back
-    if (phone) await page.touchscreen.tap(box.x + box.width * 0.1, y);
-    else await page.mouse.click(box.x + box.width * 0.1, y);
+    // a tap near the start goes back once confirmed (a second tap)
+    for (let k = 0; k < 2; k++) {
+      if (phone) await page.touchscreen.tap(box.x + box.width * 0.1, y);
+      else await page.mouse.click(box.x + box.width * 0.1, y);
+    }
     await expect
       .poll(async () => (await snap(page)).position, { timeout: 10000 })
       .toBeLessThan(len * 0.1 + 2.5);

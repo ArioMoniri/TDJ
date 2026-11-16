@@ -15,6 +15,22 @@ import { Sheet } from "../Sheet";
  * tandas left (was the Time card), and the night's own tools where a DJ looks for them: Play the rest then La
  * Cumparsita, Jump to La Cumparsita now (confirmed), Last 4 tandas tango only, Break, Birthday vals.
  */
+/** the night's music (songs and cortinas as they play) and the Booth's gaps between them (breaks apart) */
+export function nightTotals(
+  plan: Parameters<typeof remainingFrom>[0],
+  skipped: ReadonlySet<number>,
+): { music: number; gaps: number } {
+  const all = remainingFrom(plan, 0, 0, { skipped }).remainingSec;
+  let music = 0;
+  let breaks = 0;
+  plan.items.forEach((it, i) => {
+    if (skipped.has(i)) return;
+    if (it.kind === "break") breaks += it.lengthSec;
+    else music += it.lengthSec;
+  });
+  return { music, gaps: Math.max(0, all - music - breaks) };
+}
+
 export function NightBar({ onBreak }: { onBreak: () => void }) {
   const plan = useBooth((s) => s.plan);
   const planIndex = useBooth((s) => s.planIndex);
@@ -53,6 +69,7 @@ export function NightBar({ onBreak }: { onBreak: () => void }) {
   const hasClosing = !!playlist?.closing;
   const closingNoClip = rehearsal && sources[plan.items.length - 1] === "missing";
   const ttc0 = ttcCaption({ rehearsal, started });
+  const totals = nightTotals(plan, new Set(bypassed));
   // wave 2: the switch says what it changed, with Undo
   const toggleLastFour = async () => {
     const p = useBooth.getState().playlist;
@@ -117,10 +134,19 @@ export function NightBar({ onBreak }: { onBreak: () => void }) {
           {started ? driftWords(drift) : t("booth.nightBar.not_started")}
         </span>
         <span className="booth-chip">{plural("plural.tandas_left", left)}</span>
-        {/* 2026-11: the night's total and what is left of it */}
-        <span className="booth-chip tabular-nums" data-testid="booth-night-total">
+        {/* 2026-11: the night's total and what is left of it; the music is Compose's number, the gaps are the
+            Booth's own (so the two never seem to disagree) */}
+        <span
+          className="booth-chip tabular-nums"
+          data-testid="booth-night-total"
+          data-music-sec={Math.round(totals.music)}
+          data-gaps-sec={Math.round(totals.gaps)}
+        >
           {t("booth.nightBar.total_left", {
-            total: durationLabel(remainingFrom(plan, 0, 0, { skipped: new Set(bypassed) }).remainingSec),
+            total: t("booth.connect.music_gaps", {
+              music: durationLabel(totals.music),
+              gaps: durationLabel(totals.gaps),
+            }),
             left: durationLabel(remaining),
           })}
         </span>

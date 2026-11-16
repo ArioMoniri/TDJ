@@ -2980,6 +2980,37 @@ html.i18n-pending body {
   outline: 2px solid var(--tint);
   outline-offset: 4px;
 }
+/* 2026-11: a fader the room's device cannot follow (the iOS Spotify app has no volume control): dimmed, its hint says why */
+.booth-fader[data-disabled] input {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+/* 2026-11: mid-night a tap only marks the time ("Tap again to jump to 1:56"); a second tap or a drag seeks */
+.seekbar-mark {
+  position: absolute;
+  top: 50%;
+  width: 3px;
+  height: 14px;
+  margin-left: -1.5px;
+  margin-top: -7px;
+  border-radius: 2px;
+  background: var(--label);
+}
+.seekbar-arm {
+  position: absolute;
+  bottom: calc(100% - 4px);
+  transform: translateX(-50%);
+  padding: 4px 10px;
+  border-radius: 10px;
+  background: var(--material-thick);
+  color: var(--label);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.3);
+  pointer-events: none;
+  z-index: 2;
+}
 .booth-seek-row {
   display: flex;
   align-items: center;
