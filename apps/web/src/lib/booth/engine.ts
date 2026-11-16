@@ -27,6 +27,7 @@ import type {
   SourceAdapter,
   SourceKind,
 } from "./sources/types";
+import { isExternalKind } from "./sources/types";
 import {
   applyEqPoints,
   applyIncoming,
@@ -457,7 +458,7 @@ export class BoothEngine {
     if (this.state === "playing" || this.state === "cortina") {
       // Spotify plays one track at a time: the outgoing play's pause (at the end of its fade) goes out before the
       // new play, or it would pause the jump (2026-11)
-      const ext = !!this.current?.external || this.sources[i] === "spotify";
+      const ext = !!this.current?.external || isExternalKind(this.sources[i]);
       this.stop("play now", fadeSec);
       this.pausedAt = null;
       this.planIndex = i;
@@ -648,7 +649,7 @@ export class BoothEngine {
     const c = this.current;
     if (!c?.external || c.kind === "break") return false;
     const a = this.externalFor(c.planIndex);
-    return !!a && !a.capabilities.fade && this.sources[target] === "spotify";
+    return !!a && !a.capabilities.fade && this.sources[target] === this.sources[c.planIndex];
   }
   setStarting(on: boolean) {
     if (this.starting === on) return;
@@ -1008,7 +1009,7 @@ export class BoothEngine {
     const c = this.current;
     if (!c || c.cancelled) return;
     const n = this.nextPlayable(c.planIndex);
-    if (n === null || this.item(n)?.kind === "break" || c.external || this.sources[n] === "spotify")
+    if (n === null || this.item(n)?.kind === "break" || c.external || isExternalKind(this.sources[n]))
       return this.fadeOutNow(sec);
     const now = this.ctx.currentTime;
     const fade = Math.max(DECLICK_OUT, sec);
@@ -1344,7 +1345,7 @@ export class BoothEngine {
   silenceOf(i: number, prepared?: PreparedItem): { head: number; tail: number } {
     const it = this.item(i);
     if (!it || (it.kind !== "track" && it.kind !== "closing")) return { head: 0, tail: 0 };
-    const m = prepared?.kind !== "spotify" ? prepared?.measured : undefined;
+    const m = prepared && !isExternalKind(prepared.kind) ? prepared.measured : undefined;
     const known =
       m && (m.headSilenceSec !== undefined || m.tailSilenceSec !== undefined)
         ? { head: m.headSilenceSec ?? 0, tail: m.tailSilenceSec ?? 0 }
@@ -1363,7 +1364,7 @@ export class BoothEngine {
     if (
       tr &&
       tr.overlapSec > 0 &&
-      (external || this.sources[i] === "spotify" || this.sources[n] === "spotify")
+      (external || isExternalKind(this.sources[i]) || isExternalKind(this.sources[n]))
     )
       return null;
     return tr;
@@ -1408,7 +1409,7 @@ export class BoothEngine {
     this.prepared.set(i, p);
     p.then(
       (r) => {
-        const m = r.kind !== "spotify" ? r.measured : undefined;
+        const m = !isExternalKind(r.kind) ? r.measured : undefined;
         if (m && (m.headSilenceSec !== undefined || m.tailSilenceSec !== undefined))
           this.silenceKnown.set(i, { head: m.headSilenceSec ?? 0, tail: m.tailSilenceSec ?? 0 });
       },
@@ -1688,7 +1689,7 @@ export class BoothEngine {
       base: g.base,
       measured: prepared.measured,
     };
-    if (prepared.kind === "spotify") return this.scheduleExternal(base, it, prepared, g.gainDb, o);
+    if (isExternalKind(prepared.kind)) return this.scheduleExternal(base, it, prepared, g.gainDb, o);
     const buffer = prepared.buffer;
     if (!buffer) return null;
     const ctx = this.ctx;
@@ -1844,7 +1845,9 @@ export class BoothEngine {
   ): Scheduled | null {
     const i = base.planIndex;
     const a = this.adapterFor(i)?.external;
-    if (!a || !prepared.spotifyUri) return null;
+    // Spotify's track uri, or another external player's id (YouTube: `youtube:video:<id>`)
+    const uri = prepared.spotifyUri ?? prepared.externalUri;
+    if (!a || !uri) return null;
     const delay = Math.max(0, base.when - this.ctx.currentTime);
     // 2026-11: Spotify cannot be heard by the browser: the silence is the plan's (a measurement of the same
     // recording, a table, the opt-in estimate, or the DJ's "Song ends early" stop)
@@ -1878,7 +1881,7 @@ export class BoothEngine {
     if (userStart) this.setStarting(true);
     const songFade = it.kind === "cortina" ? 0 : this.settings.songFadeOutSec;
     base.external = a.startItem({
-      uri: prepared.spotifyUri,
+      uri,
       delaySec: delay,
       positionSec: start0 + from,
       durationSec:
@@ -1894,7 +1897,8 @@ export class BoothEngine {
         if (!base.cancelled) this.onEnded(base);
       },
       onError: (msg) => {
-        this.banner(`Spotify: ${msg}`, "spotify");
+        const who = prepared.kind === "youtube" ? "YouTube" : "Spotify";
+        this.banner(`${who}: ${msg}`, prepared.kind);
         if (!base.cancelled) this.onEnded(base);
       },
     });

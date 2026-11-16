@@ -1444,6 +1444,61 @@ async function googleLogin(
   return { session: cookieOf(set, "tdj_gg")!, location: cb.headers().location!, setCookie: set, to };
 }
 
+test("2026-11: a sign-in the Mac / iPhone app opened in the system browser ends in the app (tdj://auth ticket → /api/app/redeem)", async ({
+  request,
+  playwright,
+}) => {
+  // the same https callback as the web (no new redirect URI at Google), marked as the app's by `client=app`
+  const r = await request.get(`${APP}/api/google/login?client=app&scope=youtube&next=/booth`, {
+    maxRedirects: 0,
+  });
+  const to = new URL(r.headers().location!);
+  expect(to.searchParams.get("redirect_uri")).toBe(`${APP}/api/google/callback`);
+  const state = to.searchParams.get("state")!;
+  const cb = await request.get(
+    `${APP}/api/google/callback?code=code-gg-youtube&state=${encodeURIComponent(state)}`,
+    { maxRedirects: 0, headers: { cookie: cookieOf(setCookies(r), "tdj_gg_state")! } },
+  );
+  expect(cb.status()).toBe(302);
+  // the browser never gets the session: it is handed to the app's deep link as a short-lived ticket
+  expect(cookieOf(setCookies(cb), "tdj_gg")).toBeFalsy();
+  const deep = new URL(cb.headers().location!);
+  expect(`${deep.protocol}//${deep.host}${deep.pathname}`).toBe("tdj://auth/google");
+  expect(deep.searchParams.get("next")).toBe("/booth");
+  const ticket = deep.searchParams.get("ticket")!;
+  expect(ticket).toMatch(/^[A-Za-z0-9\-_.~]{16,4096}$/);
+  // the app's own cookie jar redeems it once: the usual sealed cookie, then the page it started from
+  const jar = await playwright.request.newContext();
+  const red = await jar.get(
+    `${APP}/api/app/redeem?provider=google&ticket=${encodeURIComponent(ticket)}&next=/booth`,
+    { maxRedirects: 0 },
+  );
+  expect(red.status()).toBe(303);
+  expect(red.headers().location).toBe(`${APP}/booth?connected=google`);
+  const session = cookieOf(setCookies(red), "tdj_gg")!;
+  expect(session).toBeTruthy();
+  const me = await jar.get(`${APP}/api/google/me`, { headers: { cookie: session } });
+  expect((await me.json()).scopes).toMatchObject({ youtube: true });
+  // single use, and never for another provider
+  const again = await jar.get(
+    `${APP}/api/app/redeem?provider=google&ticket=${encodeURIComponent(ticket)}&next=/booth`,
+    { maxRedirects: 0 },
+  );
+  expect(again.headers().location).toContain("error=google_ticket_used");
+  // the app asks this path to know the server can do it: 400 without a ticket, never 404
+  expect((await jar.get(`${APP}/api/app/redeem`)).status()).toBe(400);
+  // a refused consent comes back to the app's Settings, not to this browser's
+  const r2 = await request.get(`${APP}/api/google/login?client=app`, { maxRedirects: 0 });
+  const s2 = new URL(r2.headers().location!).searchParams.get("state")!;
+  const denied = await request.get(
+    `${APP}/api/google/callback?error=access_denied&state=${encodeURIComponent(s2)}`,
+    { maxRedirects: 0, headers: { cookie: cookieOf(setCookies(r2), "tdj_gg_state")! } },
+  );
+  expect(denied.headers().location).toBe(
+    `tdj://open?${new URLSearchParams({ path: "/settings?error=google_denied" })}`,
+  );
+});
+
 test("Google login asks for the feature scope incrementally: offline access, consent, include_granted_scopes, state cookie", async ({
   request,
 }) => {
@@ -2189,7 +2244,16 @@ test("Export sheet: 'Create playlist' on YouTube sends the set in batches with a
     expect(hits.filter((h) => h.url.startsWith("/google/youtube/v3/playlists?"))).toHaveLength(1);
     expect(hits.filter((h) => h.url.startsWith("/google/youtube/v3/search?"))).toHaveLength(26);
     await expect(sheet).toContainText(`Created the YouTube playlist with 25 tracks, ${files - 25} left out`);
-    await expect(sheet.getByRole("button", { name: "Open in YouTube" })).toBeVisible();
+    await expect(sheet.getByRole("button", { name: "Open in YouTube", exact: true })).toBeVisible();
+    // 2026-11: the same playlist on YouTube Music, and the matched videos remembered for the Booth's YouTube source
+    await expect(sheet.getByRole("button", { name: "Open in YouTube Music" })).toBeVisible();
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => Object.keys(JSON.parse(localStorage.getItem("tdj-youtube-matches") ?? "{}")).length,
+        ),
+      )
+      .toBeGreaterThanOrEqual(20);
     await expect(sheet.locator("#send-youtube")).not.toContainText("Adding");
     // the playlist read back with the DJ's account (every page), the lost 5th video put back in its own place
     await expect(page.getByTestId("youtube-verified-summary")).toHaveText("25 of 25 in YouTube, in order ✓", {

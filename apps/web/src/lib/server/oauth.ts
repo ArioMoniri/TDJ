@@ -1,6 +1,7 @@
 import "server-only";
 import { createHash, randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
+import { appErrorUrl, appReturnUrl, appState, isAppState, makeTicket, redeemTicket } from "./appTicket";
 import { type ConfigKey, ConfigUnavailableError, getConfig } from "./config";
 import { clearCookieHeader, cookieHeader, readCookie, requestOrigin, seal, unseal } from "./cookies";
 import { crossOriginResponse } from "./guard";
@@ -272,8 +273,11 @@ export async function loginRedirect(
       { status: 404 },
     );
   const origin = await requestOrigin(req);
-  const next = safeNext(new URL(req.url).searchParams.get("next"));
-  const state = `${newState()}.${Buffer.from(next).toString("base64url")}`;
+  const q = new URL(req.url).searchParams;
+  const next = safeNext(q.get("next"));
+  // `?client=app`: a sign-in the Mac / iPhone / iPad app opened in the system browser (lib/server/appTicket.ts)
+  const base = `${newState()}.${Buffer.from(next).toString("base64url")}`;
+  const state = q.get("client") === "app" ? appState(base) : base;
   const secure = origin.startsWith("https://");
   const path = cookiePath(p);
   let codeChallenge: string | undefined;
@@ -307,11 +311,18 @@ export async function callbackRedirect(p: Provider, req: Request): Promise<Respo
     if (p.pkce) res.headers.append("set-cookie", clearCookieHeader(pkceCookie(p), path));
     return res;
   };
-  const fail = (reason: string) =>
-    clear(NextResponse.redirect(`${origin}/settings?error=${p.id}_${reason}`, 302));
-  if (!(await enabled(p))) return fail("disabled");
   const q = new URL(req.url).searchParams;
   const state = q.get("state") ?? "";
+  // a sign-in the apps started ends in the app, not in this browser (its deep link, lib/server/appTicket.ts)
+  const forApp = isAppState(state);
+  const fail = (reason: string) =>
+    clear(
+      NextResponse.redirect(
+        forApp ? appErrorUrl(`${p.id}_${reason}`) : `${origin}/settings?error=${p.id}_${reason}`,
+        302,
+      ),
+    );
+  if (!(await enabled(p))) return fail("disabled");
   const expected = readCookie(req, stateCookie(p));
   if (!state || !expected || state !== expected) return fail("state");
   const err = q.get("error");
@@ -335,6 +346,15 @@ export async function callbackRedirect(p: Provider, req: Request): Promise<Respo
     if (session.scopes || old?.scopes)
       session.scopes = [...new Set([...(old?.scopes ?? []), ...(session.scopes ?? [])])];
     const next = safeNext(Buffer.from(state.split(".")[1] ?? "", "base64url").toString("utf8"));
+    if (forApp) {
+      const ticket = await makeTicket(seal, {
+        provider: p.id,
+        session,
+        next,
+        nonce: randomBytes(12).toString("base64url"),
+      });
+      return clear(NextResponse.redirect(appReturnUrl(p.id, ticket, next), 302));
+    }
     const to = new URL(next, origin);
     to.searchParams.set("connected", p.id);
     const res = NextResponse.redirect(to.toString(), 302);
@@ -376,3 +396,30 @@ export {
   RETRY_AFTER_MAX,
   safeName,
 } from "@/lib/providerApi";
+
+/**
+ * GET /api/app/redeem?provider=…&ticket=…&next=…: the app's own cookie jar (src-tauri/src/bridge.rs) trades the
+ * callback's ticket for the usual sealed session cookie, merged with a session it already holds (Google scopes
+ * accumulate), and lands on `next?connected=<provider>`. Without a ticket it answers 400, never 404: the app asks
+ * this path once to learn that the server can finish a sign-in in the system browser (lib.rs `server_has_tickets`).
+ */
+export async function redeemResponse(req: Request): Promise<Response> {
+  const origin = await requestOrigin(req);
+  const q = new URL(req.url).searchParams;
+  const provider = q.get("provider") ?? "";
+  if (!q.get("ticket")) return NextResponse.json({ error: "ticket required" }, { status: 400 });
+  const r = await redeemTicket<Session>(unseal, provider, q.get("ticket"));
+  if (!r.ok)
+    return NextResponse.redirect(`${origin}/settings?error=${provider || "app"}_ticket_${r.reason}`, 303);
+  const p = PROVIDERS[provider as keyof typeof PROVIDERS];
+  const old = await readSession(p, req);
+  const session: Session = { ...r.session, refresh: r.session.refresh || old?.refresh || "" };
+  if (session.scopes || old?.scopes)
+    session.scopes = [...new Set([...(old?.scopes ?? []), ...(session.scopes ?? [])])];
+  const to = new URL(r.next, origin);
+  to.searchParams.set("connected", p.id);
+  const res = NextResponse.redirect(to.toString(), 303);
+  res.headers.append("set-cookie", await sessionCookie(p, session, origin));
+  res.headers.set("cache-control", "no-store");
+  return res;
+}

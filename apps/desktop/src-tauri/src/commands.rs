@@ -5,7 +5,6 @@ use crate::{agents, folders, links, net, secrets, settings, system, AppState};
 use serde::Serialize;
 use tauri::{AppHandle, Manager, State, WebviewWindow};
 use tauri_plugin_dialog::DialogExt;
-use tauri_plugin_opener::OpenerExt;
 
 type Res<T> = Result<T, String>;
 
@@ -224,12 +223,10 @@ pub fn forget_sessions(state: State<'_, AppState>) {
 #[tauri::command]
 pub fn open_external(app: AppHandle, url: String) -> Res<()> {
     let u = url::Url::parse(&url).map_err(|_| "Not a link.")?;
-    if !matches!(u.scheme(), "https" | "mailto") {
+    if !links::external_ok(&u) {
         return Err("Only https links open outside the app.".into());
     }
-    app.opener()
-        .open_url(u.as_str(), None::<&str>)
-        .map_err(|e| e.to_string())
+    crate::open_outside(&app, &u)
 }
 
 /// Exports: a native save panel (macOS) / the Files app picker (iPadOS) instead of WebKit's silent no-op.

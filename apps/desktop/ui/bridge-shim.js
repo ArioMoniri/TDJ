@@ -38,14 +38,39 @@
           .catch((err) => console.error("save failed", err));
         return;
       }
-      // links to other sites open in the system browser
-      if (!same(u) && /^https?:$/.test(u.protocol)) {
+      // links to other sites open in the system browser (or the service's app); music apps' schemes too
+      if (!same(u) && (/^https?:$/.test(u.protocol) || OUT.test(u.protocol))) {
         e.preventDefault();
-        invoke("open_external", { url: u.href });
+        invoke("open_external", { url: u.href }).catch(() => {});
       }
     },
     true,
   );
+
+  // window.open(url) of another site (an export's "Open in YouTube", a transfer service's import page): the web
+  // view opens no second window, so it goes out like a link. `window.open("")` followed by `tab.location = url`
+  // (a sign-in page known only later) gets a stand-in whose location sends the URL out the same way.
+  const OUT = /^(spotify|music|musics|youtube|youtubemusic|mailto):$/;
+  const origOpen = window.open ? window.open.bind(window) : null;
+  const goOut = (href) => {
+    try {
+      const u = new URL(String(href), location.href);
+      if (!same(u) && (u.protocol === "https:" || OUT.test(u.protocol))) {
+        invoke("open_external", { url: u.href }).catch(() => {});
+        return true;
+      }
+    } catch {}
+    return false;
+  };
+  window.open = (url, target, features) => {
+    if (url === undefined || url === null || url === "" || url === "about:blank") {
+      const loc = {};
+      Object.defineProperty(loc, "href", { set: goOut, get: () => "about:blank" });
+      return { location: loc, close() {}, closed: false, focus() {} };
+    }
+    if (goOut(url)) return null;
+    return origOpen ? origOpen(url, target, features) : null;
+  };
 
   window.print = () => invoke("print_page");
 

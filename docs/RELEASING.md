@@ -168,11 +168,12 @@ Scenes and captions: `apps/desktop/store/scenes.ts`. Upload (Linux, API key in e
 
 ## Server follow-ups (apps/web, not required for the first TestFlight)
 
-1. Login hand-off in the system browser: `?client=app` on `/api/{spotify,google,dropbox}/login`, a
-   60-second sealed single-use ticket, redirect to `tdj://auth/<provider>?ticket=…&next=…`, and
-   `GET /api/app/redeem?provider&ticket&next` that sets the normal cookie. The app already handles both
-   ends (`links.rs`, `lib.rs::login`) and probes `/api/app/redeem` to choose it; until then it uses an
-   in-app sign-in window (Spotify, Dropbox) and asks Google users to connect on the website.
+1. ✅ (2026-11) Login hand-off in the system browser: `?client=app` on `/api/{spotify,google,dropbox}/login`
+   marks the OAuth state; the callback seals a 60-second single-use ticket and redirects to
+   `tdj://auth/<provider>?ticket=…&next=…` (failures to `tdj://open?path=/settings?error=…`), and
+   `GET /api/app/redeem?provider&ticket&next` sets the normal cookie in the app's jar (400 without a ticket, so the
+   app's probe picks this path). `apps/web/src/lib/server/appTicket.ts`, e2e `connectors.spec.ts`. No new redirect
+   URI at any provider: the browser comes back to the server's existing https callback.
 2. `tdj://spotify-callback` in the Spotify dashboard (owner step 5) for the iPad Spotify SDK / BYO PKCE.
 3. The web's command registry (`lib/commands.ts`) should listen for `tdj:command` events (ids in
    `src-tauri/src/menu.rs`); until then the bundle's shim maps navigation and replays the existing keys.

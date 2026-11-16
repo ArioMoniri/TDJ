@@ -4,7 +4,15 @@ import { type Playlist, planBooth, type Song } from "@tdj/core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { BoothRow } from "../plan";
 import { decorate, planEntities } from "../plan";
-import { isAppleMobile, isTrackUri, type SdkPlayer, type SdkPlayerCtor, SpotifyAdapter } from "./spotify";
+import {
+  autoPick,
+  isAppleMobile,
+  isTrackUri,
+  type SdkPlayer,
+  type SdkPlayerCtor,
+  SpotifyAdapter,
+  sdkPlayable,
+} from "./spotify";
 import type { ExternalStart } from "./types";
 
 const featured = JSON.parse(
@@ -778,5 +786,91 @@ describe("2026-11: Spotify Connect — volume, confirmation, re-attach", () => {
     expect(sp.plays()).toHaveLength(0);
     expect(h.position()).toBeGreaterThan(4);
     h.cancel(true);
+  });
+});
+
+describe("2026-11: the Mac app (no Widevine in its WebKit view) plays through the Spotify app on the Mac", () => {
+  it("probes the SDK first: without Widevine no SDK is loaded and the one computer of the account is picked", async () => {
+    vi.useFakeTimers();
+    const sp = spotify({
+      devices: () => [
+        dev("speaker", { type: "Speaker" }),
+        dev("mac", { type: "Computer", name: "Ario's Mac" }),
+      ],
+    });
+    const loadSdk = vi.fn();
+    const a = new SpotifyAdapter({
+      fetchImpl: sp.fetchImpl,
+      loadSdk,
+      app: true,
+      probeSdk: async () => false,
+    });
+    await a.connect();
+    expect(loadSdk).not.toHaveBeenCalled();
+    expect(a.roomState().browserUnusable).toBe(true);
+    expect(a.roomState().remote).toBe("mac");
+    expect(a.capabilities.fade).toBe(false);
+    expect(a.capabilities.gain).toBe(false);
+  });
+
+  it("no Spotify app open on the Mac: the banner offers Open Spotify (the app wakes it), then picks it", async () => {
+    vi.useFakeTimers();
+    let open = false;
+    const sp = spotify({ devices: () => (open ? [dev("mac", { type: "Computer" })] : []) });
+    const banners: Array<{ text: string; label?: string }> = [];
+    const a = new SpotifyAdapter({
+      fetchImpl: sp.fetchImpl,
+      loadSdk: vi.fn(),
+      app: true,
+      probeSdk: async () => false,
+      onBanner: (text, action) => banners.push({ text, label: action?.label }),
+    });
+    await a.connect();
+    expect(banners.at(-1)?.label).toBe("Open Spotify");
+    expect(banners.at(-1)?.text).toMatch(/Mac/);
+    open = true;
+    await a.retryNow();
+    expect(a.roomState().remote).toBe("mac");
+  });
+
+  it("a view with Widevine still uses the SDK", async () => {
+    vi.useFakeTimers();
+    const { Ctor } = fakeSdk(["dev-1"]);
+    const sp = spotify();
+    const a = new SpotifyAdapter({
+      fetchImpl: sp.fetchImpl,
+      loadSdk: async () => Ctor,
+      app: true,
+      probeSdk: async () => true,
+    });
+    const done = a.connect();
+    await vi.advanceTimersByTimeAsync(100);
+    await done;
+    expect(a.roomState().browserUnusable).toBe(false);
+  });
+
+  it("autoPick: the active device wins; the Mac app prefers the single computer; two computers ask", () => {
+    const d = (id: string, type: string, isActive = false) => ({
+      id,
+      name: id,
+      type,
+      isActive,
+      restricted: false,
+      supportsVolume: true,
+      isThis: false,
+    });
+    expect(autoPick([d("tv", "TV"), d("mac", "Computer")], false, "computer")?.id).toBe("mac");
+    expect(autoPick([d("tv", "TV"), d("mac", "Computer")], false)).toBeNull();
+    expect(autoPick([d("tv", "TV", true), d("mac", "Computer")], false, "computer")?.id).toBe("tv");
+    expect(autoPick([d("a", "Computer"), d("b", "Computer")], false, "computer")).toBeNull();
+  });
+
+  it("sdkPlayable: false without EME or when Widevine is refused", async () => {
+    expect(await sdkPlayable(undefined)).toBe(false);
+    expect(await sdkPlayable({} as Navigator)).toBe(false);
+    const refuse = { requestMediaKeySystemAccess: () => Promise.reject(new Error("no")) };
+    expect(await sdkPlayable(refuse as unknown as Navigator)).toBe(false);
+    const ok = { requestMediaKeySystemAccess: async () => ({}) };
+    expect(await sdkPlayable(ok as unknown as Navigator)).toBe(true);
   });
 });
