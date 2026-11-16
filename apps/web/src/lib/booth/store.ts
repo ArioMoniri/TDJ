@@ -232,7 +232,12 @@ interface BoothStore {
    * wave 4: hear the transition after plan item `i` as `edit` would play it (the last ~8 s into the first ~8 s), in
    * the headphones during the night (never the room); null when it plays, else why not
    */
-  auditionTransition: (i: number, edit: TransitionEdit | null) => Promise<string | null>;
+  /** `room`: the DJ confirmed playing it in the room mid-night (no headphones output): it goes to the room's device */
+  auditionTransition: (
+    i: number,
+    edit: TransitionEdit | null,
+    o?: { room?: boolean },
+  ) => Promise<string | null>;
   /** round 22: play another take of a side tonight (same title, same orchestra) */
   playVersion: (songId: string, version: Song) => Promise<boolean>;
   /** the night with `version` in place of `songId`, or null when that tanda is playing or played (read-only) */
@@ -1121,7 +1126,7 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     else all[key] = { ...edit };
     applyPlan(rePlan(p, get().settings, { transitions: all }));
   },
-  auditionTransition: async (i, edit) => {
+  auditionTransition: async (i, edit, opts = {}) => {
     const { plan, entities, started, settings } = get();
     const a = plan?.items[i];
     const b = plan?.items[i + 1];
@@ -1131,9 +1136,9 @@ export const useBooth = create<BoothStore>()((set, get) => ({
       return tx("booth.store.nothing_to_play");
     get().stopAudition();
     const blocked = get().cueBlocked();
-    // during the night an audition never goes to the room: headphones only
-    if (blocked && started) return blocked;
-    const where: CueWhere = blocked ? "device" : "headphones";
+    // during the night an audition goes to the room only once the DJ confirmed it (2026-11): else headphones only
+    if (blocked && started && !opts.room) return blocked;
+    const where: CueWhere = blocked || opts.room ? "device" : "headphones";
     const Off = offlineCtor();
     if (!Off) return tx("booth.store.this_browser_cannot_mix_a_transition");
     const [da, db] = await Promise.all([
@@ -1189,7 +1194,9 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     } catch {
       return tx("booth.store.this_browser_cannot_mix_a_transition");
     }
-    const sink = where === "headphones" ? get().outputs.cue : null;
+    const roomId = get().outputs.room;
+    const sink =
+      where === "headphones" ? get().outputs.cue : opts.room && roomId !== "default" ? roomId : null;
     cuePlayer ??= new CuePlayer();
     cuePlayer.onEnded = () => {
       stopCueTimer();
@@ -1450,6 +1457,10 @@ function seekActions(set: (p: Partial<BoothStore>) => void, get: () => BoothStor
     },
     seek: async (sec: number) => {
       if (!engine || !get().started) return;
+      // 2026-11 (the owner: "the slider goes to zero for a second"): the bar stays where the DJ let go at once —
+      // the engine's clock holds the same target until the audio is there
+      const len = engine.currentLength();
+      set({ position: Math.max(0, Math.min(sec, Math.max(0, len - 0.5))) });
       await engine.seek(sec);
       sync();
       media?.setPosition(engine.currentLength(), engine.position());
@@ -1770,6 +1781,16 @@ function tick(now: number) {
 function startTicking() {
   if (!raf && typeof requestAnimationFrame === "function") raf = requestAnimationFrame(tick);
 }
+/**
+ * 2026-11 (the slider drifted from what plays): every slider reads the store's `position`, which is always read from
+ * the engine's clocks (the AudioContext with the output latency; an external player's reconciled clock), never
+ * counted from ticks — back from a hidden tab (rAF paused) it shows the right second at once.
+ */
+if (typeof document !== "undefined")
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible" || !engine) return;
+    useBooth.setState({ position: engine.position() });
+  });
 function stopTicking() {
   if (raf) cancelAnimationFrame(raf);
   raf = 0;

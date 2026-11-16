@@ -213,3 +213,34 @@ describe("exports", () => {
     expect(toRekordboxXML(g)).not.toMatch(/Mix out/);
   });
 });
+
+/* 2026-11 — the finished editor: the EQ row offers a three-band hand-over besides the bass swap */
+describe("EQ: none, centre bass swap, three-band swap", () => {
+  const side = (kind: "track" | "closing" | "cortina" = "track") => ({ kind, lengthSec: 180, tanda: 1 });
+  const ctx = { from: side(), to: { ...side(), tanda: 2 } };
+  it("a three-band swap needs an overlap: it is the bass swap plus the mids and highs handed over", () => {
+    const r = resolveTransition({ preset: "blend", overlapSec: 6, eq: "threeBand" }, ctx);
+    expect(r.eq).toBe("threeBand");
+    expect(r.bassSwap).toBe(true);
+    const b = resolveTransition({ preset: "blend", overlapSec: 6, bassSwap: true }, ctx);
+    expect(b.eq).toBe("bassSwap");
+    expect(resolveTransition({ preset: "blend", overlapSec: 6, eq: "bassSwap" }, ctx).bassSwap).toBe(true);
+    expect(resolveTransition({ preset: "blend", overlapSec: 6 }, ctx).eq).toBe("none");
+  });
+  it("no overlap, no EQ hand-over (a fade, a gap, La Cumparsita)", () => {
+    for (const edit of [
+      { preset: "fade", eq: "threeBand" },
+      { preset: "gap", eq: "bassSwap" },
+    ] as TransitionEdit[]) {
+      const r = resolveTransition(edit, ctx);
+      expect(r.eq).toBe("none");
+      expect(r.bassSwap).toBe(false);
+    }
+    const c = resolveTransition({ preset: "blend", eq: "threeBand" }, { from: side(), to: side("closing") });
+    expect(c.eq).toBe("none");
+  });
+  it("an unknown EQ value is none", () => {
+    const r = resolveTransition({ preset: "blend", eq: "wobble" as never }, ctx);
+    expect(r.eq).toBe("none");
+  });
+});

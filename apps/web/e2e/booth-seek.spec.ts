@@ -285,6 +285,59 @@ for (const [name, opts] of DEVICES) {
     await ctx.close();
   });
 
+  test(`${name}: after a seek is released the bar and the clock never drop below the target (never 0)`, async ({
+    browser,
+  }) => {
+    // 2026-11 (the owner: "the slider goes to zero for a second, then continues from where dragged")
+    const ctx = await browser.newContext(opts);
+    const page = await ctx.newPage();
+    await openBooth(page);
+    await page.getByTestId("booth-start").click();
+    await expect.poll(async () => (await snap(page)).state, { timeout: 20000 }).toBe("playing");
+    const bar = page.getByTestId("booth-seek");
+    const box = (await bar.boundingBox())!;
+    const y = box.y + box.height / 2;
+    const len = Number(await bar.getAttribute("aria-valuemax"));
+    // every position the store and the bar show from the release on
+    await page.evaluate(() => {
+      const w = window as unknown as {
+        __arm?: boolean;
+        __seen: number[];
+        __tdjBooth: { getState: () => { position: number }; subscribe: (f: () => void) => void };
+      };
+      w.__seen = [];
+      w.__tdjBooth.subscribe(() => {
+        if (w.__arm) w.__seen.push(w.__tdjBooth.getState().position);
+      });
+      const el = document.querySelector('[data-testid="booth-seek"]')!;
+      new MutationObserver(() => {
+        if (w.__arm) w.__seen.push(Number(el.getAttribute("aria-valuenow")));
+      }).observe(el, { attributes: true, attributeFilter: ["aria-valuenow"] });
+    });
+    const arm = () =>
+      page.evaluate(() => {
+        (window as unknown as { __arm: boolean }).__arm = true;
+      });
+    if (phone) {
+      await page.touchscreen.tap(box.x + box.width * 0.7, y);
+      await page.touchscreen.tap(box.x + box.width * 0.7, y);
+    } else {
+      await page.mouse.move(box.x + 2, y);
+      await page.mouse.down();
+      await page.mouse.move(box.x + box.width * 0.7, y, { steps: 6 });
+      await page.mouse.up();
+    }
+    await arm();
+    await page.waitForTimeout(1200);
+    const seen = await page.evaluate(() => (window as unknown as { __seen: number[] }).__seen);
+    expect(seen.length).toBeGreaterThan(3);
+    const target = len * 0.7;
+    // (the bar's aria value is rounded to whole seconds)
+    expect(Math.min(...seen)).toBeGreaterThanOrEqual(Math.floor(target - 1.5));
+    expect((await snap(page)).state).toBe("playing");
+    await ctx.close();
+  });
+
   test(`${name}: a start point per song — set as a number, saved with the night, reset in one tap`, async ({
     browser,
   }) => {

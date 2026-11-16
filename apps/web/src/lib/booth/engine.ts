@@ -33,8 +33,9 @@ import {
   applyIncoming,
   applyOutgoing,
   BASS_SHELF_HZ,
-  bassSwapPoints,
+  eqLanes,
   HIGH_SHELF_HZ,
+  MID_PEAK_HZ,
   type TransitionWindow,
   transitionWindow,
 } from "./transition";
@@ -184,12 +185,22 @@ interface Scheduled extends BoothItemRuntime {
   /** wave 4: the item's EQ (flat until a transition's bass swap automates it) */
   eqLow?: BiquadLike;
   eqHigh?: BiquadLike;
+  /** 2026-11: the mids (a peaking band) a three-band swap hands over */
+  eqMid?: BiquadLike;
   /** wave 4: an edited transition rewrote this item's tail; `end` is where it would have ended on its own */
   tail?: { end: number };
   /** wave 4: the DJ acted on this item (fade now, pause, crossfade, cortina fader): no transition rewrites it */
   interrupted?: boolean;
   /** 2026-11: seconds of its silent tail the item still plays before it ends (they count toward the next gap) */
   keptTail?: number;
+  /** 2026-11 (seek): an external item was started with a stop time (`durationSec`), not "to the track's end" */
+  extTimed?: boolean;
+  /** 2026-11 (seek): the clock holds here until the rebuilt item's own clock reaches it (never back, never 0) */
+  seekFloor?: number;
+  /** 2026-11: an external item's own end fade (restored when an edited transition into the next is called off) */
+  extFadeOut?: number;
+  /** 2026-11: an edited transition retimed this external item's end */
+  extRetimed?: boolean;
 }
 /** Where a Pause left the night: the item and the seconds into it. */
 export interface PausedAt {
@@ -597,6 +608,23 @@ export class BoothEngine {
     const len = Math.max(0, c.endsAt - c.startedAt);
     const to = clamp(sec, 0, Math.max(0, len - 0.5));
     const now = this.ctx.currentTime;
+    // 2026-11 (the owner: "the slider goes to zero for a second, then the song plays late"): an external player that
+    // can seek in place (the SDK's seek, Connect's PUT /me/player/seek) jumps there — no new play, no Starting…
+    if (c.external?.seek && c.started) {
+      const pos = (c.extStart ?? 0) + to;
+      const rest = len - to;
+      if (c.external.seek(pos, { durationSec: c.extTimed ? rest : undefined })) {
+        this.cancelQueued();
+        c.startedAt = now - to;
+        c.endsAt = now + rest;
+        c.interrupted = true;
+        this.transition(this.state, "seek");
+        await this.scheduleNext();
+        return;
+      }
+    }
+    // the clock reads the target from here on: while the item is rebuilt and until its new clock gets there
+    this.seekHold = { planIndex: c.planIndex, at: to };
     // 2026-11: Connect plays the new position with one play (no pause first: it would be a gap)
     const instant = !!c.external && !this.externalFor(c.planIndex)?.capabilities.fade;
     this.cancelQueued();
@@ -618,6 +646,7 @@ export class BoothEngine {
     if (c.external) this.setStarting(true);
     const gen = ++this.generation;
     const s = await this.schedule(i, now + delay, { from: to, fadeIn: SEEK_FADE, headCut: c.headCut });
+    if (this.seekHold?.at === to) this.seekHold = null;
     // a Stop, Pause, Play now or another seek came in while the item was rebuilt
     if (gen !== this.generation || !this.live || this.current) {
       if (s) {
@@ -634,6 +663,7 @@ export class BoothEngine {
       return;
     }
     s.interrupted = true;
+    s.seekFloor = to;
     this.current = s;
     this.planIndex = i;
     this.transition(this.state, "seek");
@@ -651,6 +681,8 @@ export class BoothEngine {
   private skipRestart = false;
   /** an external item was asked to start and its device has not confirmed it ("Starting…") */
   starting = false;
+  /** 2026-11: a seek in flight: the item and the seconds the clock reads until the rebuilt item runs */
+  private seekHold: { planIndex: number; at: number } | null = null;
 
   private externalFor(i: number) {
     return this.adapterFor(i)?.external ?? null;
@@ -1223,11 +1255,24 @@ export class BoothEngine {
     // a Connect skip on its way: the new song starts from its beginning
     if (this.skipTarget !== null) return 0;
     const c = this.current;
-    if (!c) return this.pausedAt?.planIndex === this.planIndex ? this.pausedAt.at : 0;
+    if (!c) {
+      // 2026-11: a seek is rebuilding the item: the clock already reads where the DJ let go
+      if (this.live && this.seekHold?.planIndex === this.planIndex) return this.seekHold.at;
+      return this.pausedAt?.planIndex === this.planIndex ? this.pausedAt.at : 0;
+    }
+    let p: number;
     // Spotify reports the track position: the item's own clock starts at its cue (extStart)
-    if (c.external) return c.started ? Math.max(0, c.external.position() - (c.extStart ?? 0)) : 0;
-    const latency = Math.max(this.ctx.outputLatency ?? 0, this.outputLatencySec);
-    return Math.max(0, this.ctx.currentTime - c.startedAt - latency);
+    if (c.external) p = c.started ? Math.max(0, c.external.position() - (c.extStart ?? 0)) : 0;
+    else {
+      const latency = Math.max(this.ctx.outputLatency ?? 0, this.outputLatencySec);
+      p = Math.max(0, this.ctx.currentTime - c.startedAt - latency);
+    }
+    // 2026-11: after a seek the clock never goes back (the new play's report, the fade-in's few ms, the latency)
+    if (c.seekFloor !== undefined) {
+      if (p >= c.seekFloor) c.seekFloor = undefined;
+      else return c.seekFloor;
+    }
+    return p;
   }
   /**
    * 2026-11: the second in the current item's recording that is playing (its cue in and head cut plus the position):
@@ -1530,6 +1575,17 @@ export class BoothEngine {
   }
   /** Rewrite the running item's tail for the transition into the queued one (its fade, an early stop, its EQ). */
   private applyTail(c: Scheduled, w: TransitionWindow) {
+    if (c.external && !c.interrupted && !c.cancelled) {
+      // 2026-11: Spotify in this browser fades with volume steps: the transition's fade out ends the item (a device
+      // that cannot fade — Connect — keeps its plain end; the editor says so)
+      const a = this.externalFor(c.planIndex);
+      if (!a?.capabilities.fade || !c.external.retime || w.outFade.len <= 0) return;
+      const end = c.tail?.end ?? c.endsAt;
+      c.tail = { end };
+      c.extRetimed = true;
+      c.external.retime({ endsInSec: Math.max(0, end - this.ctx.currentTime), fadeOutSec: w.outFade.len });
+      return;
+    }
     if (!c.gain || c.external || c.interrupted || c.cancelled) return;
     const end = c.tail?.end ?? c.endsAt;
     const now = this.ctx.currentTime;
@@ -1548,14 +1604,25 @@ export class BoothEngine {
       c.endsAt = end + w.outStop;
       c.node?.stop(c.endsAt);
     }
-    const eq = bassSwapPoints(w);
+    const eq = eqLanes(w);
     if (eq && c.eqLow && c.eqHigh) {
-      applyEqPoints(c.eqLow.gain, eq.outLow, end, now);
-      applyEqPoints(c.eqHigh.gain, eq.outHigh, end, now);
+      applyEqPoints(c.eqLow.gain, eq.out.low, end, now);
+      applyEqPoints(c.eqHigh.gain, eq.out.high, end, now);
+      if (c.eqMid) applyEqPoints(c.eqMid.gain, eq.out.mid, end, now);
     }
   }
   /** Give an item whose transition was cancelled its own end back (the night's fade, its natural stop, a flat EQ). */
   private restoreTail(c: Scheduled) {
+    if (c.external && c.extRetimed && c.tail && !c.cancelled) {
+      const end = c.tail.end;
+      c.tail = undefined;
+      c.extRetimed = false;
+      c.external.retime?.({
+        endsInSec: Math.max(0, end - this.ctx.currentTime),
+        fadeOutSec: c.extFadeOut ?? 0,
+      });
+      return;
+    }
     const end = c.tail?.end;
     if (end === undefined || c.interrupted || c.cancelled || !c.gain) return;
     c.tail = undefined;
@@ -1574,7 +1641,7 @@ export class BoothEngine {
       c.endsAt = end;
       c.node?.stop(end);
     }
-    for (const f of [c.eqLow, c.eqHigh]) {
+    for (const f of [c.eqLow, c.eqMid, c.eqHigh]) {
       if (!f) continue;
       this.cancelAutomation(f.gain, now);
       f.gain.setValueAtTime(0, now);
@@ -1713,18 +1780,25 @@ export class BoothEngine {
     const gain = ctx.createGain();
     // wave 4: a lowshelf and a highshelf per item, flat (0 dB) unless a transition's bass swap automates them
     const low = ctx.createBiquadFilter?.();
+    const mid = low ? ctx.createBiquadFilter?.() : undefined;
     const high = low ? ctx.createBiquadFilter?.() : undefined;
-    if (low && high) {
+    if (low && mid && high) {
       low.type = "lowshelf";
       low.frequency.value = BASS_SHELF_HZ;
       low.gain.value = 0;
+      // 2026-11: the three-band swap's mids, flat (0 dB) unless a transition automates them
+      mid.type = "peaking";
+      mid.frequency.value = MID_PEAK_HZ;
+      mid.gain.value = 0;
       high.type = "highshelf";
       high.frequency.value = HIGH_SHELF_HZ;
       high.gain.value = 0;
       node.connect(low);
-      low.connect(high);
+      low.connect(mid);
+      mid.connect(high);
       high.connect(gain);
       base.eqLow = low;
+      base.eqMid = mid;
       base.eqHigh = high;
     } else node.connect(gain);
     let last: GainNodeLike = gain;
@@ -1818,8 +1892,10 @@ export class BoothEngine {
       gain.gain.setValueAtTime(0, when);
       gain.gain.linearRampToValueAtTime(g.base, when + Math.max(DECLICK_IN, resumeFade ?? 0));
     }
-    const eq = trIn ? bassSwapPoints(trIn.window) : null;
-    if (trIn && eq && low) applyEqPoints(low.gain, eq.inLow, trIn.outEnd, ctx.currentTime);
+    const eq = trIn ? eqLanes(trIn.window) : null;
+    if (trIn && eq && low) applyEqPoints(low.gain, eq.in.low, trIn.outEnd, ctx.currentTime);
+    if (trIn && eq && mid) applyEqPoints(mid.gain, eq.in.mid, trIn.outEnd, ctx.currentTime);
+    if (trIn && eq && high) applyEqPoints(high.gain, eq.in.high, trIn.outEnd, ctx.currentTime);
     const lead = Math.max(fadeIn, resumeFade ?? 0, rise);
     const wantOut =
       it.kind === "cortina"
@@ -1844,6 +1920,7 @@ export class BoothEngine {
         gain.disconnect();
         base.fader?.disconnect();
         low?.disconnect();
+        mid?.disconnect();
         high?.disconnect();
       }, 1000);
       if (!base.cancelled) this.onEnded(base);
@@ -1856,7 +1933,13 @@ export class BoothEngine {
     it: BoothRow,
     prepared: PreparedItem,
     gainDb: number,
-    o: { from?: number; fadeIn?: number; headCut?: number; attachAt?: number } = {},
+    o: {
+      from?: number;
+      fadeIn?: number;
+      headCut?: number;
+      attachAt?: number;
+      transitionIn?: { window: TransitionWindow; outEnd: number };
+    } = {},
   ): Scheduled | null {
     const i = base.planIndex;
     const a = this.adapterFor(i)?.external;
@@ -1895,13 +1978,17 @@ export class BoothEngine {
     const userStart = !attached && delay < 1;
     if (userStart) this.setStarting(true);
     const songFade = it.kind === "cortina" ? 0 : this.settings.songFadeOutSec;
+    base.extFadeOut = it.kind === "cortina" ? (it.fadeOutSec ?? 0) : songFade;
+    // 2026-11: an edited transition's rise (a player that fades: the SDK; Connect starts at its level)
+    const rise = o.transitionIn && from === 0 && a.capabilities.fade ? o.transitionIn.window.inFade.len : 0;
+    const timed = it.kind === "cortina" || cued || !!cap || songFade > 0 || from > 0 || tailCut > 0;
+    base.extTimed = timed;
     base.external = a.startItem({
       uri,
       delaySec: delay,
       positionSec: start0 + from,
-      durationSec:
-        it.kind === "cortina" || cued || cap || songFade > 0 || from > 0 || tailCut > 0 ? length : undefined,
-      fadeInSec: o.fadeIn ?? (it.kind === "cortina" ? it.fadeInSec : 0),
+      durationSec: timed ? length : undefined,
+      fadeInSec: o.fadeIn ?? (rise > 0 ? rise : it.kind === "cortina" ? it.fadeInSec : 0),
       fadeOutSec: it.kind === "cortina" ? it.fadeOutSec : songFade,
       gainDb: Math.min(0, gainDb),
       attached,

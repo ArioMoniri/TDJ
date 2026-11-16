@@ -1,4 +1,10 @@
-import { type CurveShape, type PlannedTransition, TRANSITION_RANGES, type TransitionEdit } from "@tdj/core";
+import {
+  type CurveShape,
+  type PlannedTransition,
+  TRANSITION_RANGES,
+  type TransitionEdit,
+  type TransitionEq,
+} from "@tdj/core";
 import { t as tx } from "@/lib/i18n";
 import type { AudioParamLike } from "./engine";
 import { DECLICK_IN, DECLICK_OUT } from "./envelope";
@@ -22,6 +28,10 @@ export const BASS_SHELF_HZ = 220;
 export const HIGH_SHELF_HZ = 3500;
 /** The outgoing's highs ease off by this much after the swap (the hand-off). */
 export const HIGH_EASE_DB = -6;
+/** 2026-11 — a three-band swap: the mids (a peaking band) and the highs handed over across the overlap */
+export const MID_PEAK_HZ = 1000;
+export const MID_CUT_DB = -9;
+export const HIGH_CUT_DB = -12;
 /** Anything heard during a transition is never left hanging longer than this before the outgoing's end. */
 const TAIL_MAX_SEC = 12;
 
@@ -62,6 +72,8 @@ export interface TransitionWindow {
   overlapSec: number;
   gapSec: number;
   bassSwap: boolean;
+  /** 2026-11: the EQ hand-over (none, the centre bass swap, the three-band swap) */
+  eq: TransitionEq;
   curveOut: CurveShape;
   curveIn: CurveShape;
 }
@@ -97,11 +109,12 @@ export function transitionWindow(
       overlapSec: 0,
       gapSec: gap,
       bassSwap: false,
+      eq: "none",
       curveOut: "equalPower",
       curveIn: "linear",
     };
   }
-  const base = { bassSwap: false, curveOut: tr.curveOut, curveIn: tr.curveIn };
+  const base = { bassSwap: false, eq: "none" as TransitionEq, curveOut: tr.curveOut, curveIn: tr.curveIn };
   if (tr.overlapSec > 0) {
     const ov = r1(Math.min(tr.overlapSec, halfOut, halfIn));
     const fi = r1(Math.min(tr.fadeInSec, ov));
@@ -117,6 +130,7 @@ export function transitionWindow(
       overlapSec: ov,
       gapSec: 0,
       bassSwap: tr.bassSwap && ov > 0,
+      eq: ov > 0 ? (tr.eq ?? (tr.bassSwap ? "bassSwap" : "none")) : "none",
     };
   }
   const gap = tr.gapSec;
@@ -228,6 +242,57 @@ export function bassSwapPoints(w: TransitionWindow): {
   };
 }
 
+export type EqPoints = Array<[number, number]>;
+export interface EqLanes {
+  center: number;
+  out: { low: EqPoints; mid: EqPoints; high: EqPoints };
+  in: { low: EqPoints; mid: EqPoints; high: EqPoints };
+}
+/**
+ * 2026-11 — every band's automation for both sides ([seconds relative to the outgoing's end, dB]; an empty list is
+ * a flat band). A bass swap is `bassSwapPoints`; a three-band swap also hands the mids and highs over: the outgoing's
+ * ease down across the overlap, the incoming's come up to flat by its centre. Null without an overlap or an EQ.
+ */
+export function eqLanes(w: TransitionWindow): EqLanes | null {
+  const b = bassSwapPoints(w);
+  if (!b) return null;
+  if (w.eq !== "threeBand")
+    return {
+      center: b.center,
+      out: { low: b.outLow, mid: [], high: b.outHigh },
+      in: { low: b.inLow, mid: [], high: [] },
+    };
+  const start = w.inStart;
+  const end = w.outStop < 0 ? w.outStop : 0;
+  const c = b.center;
+  return {
+    center: c,
+    out: {
+      low: b.outLow,
+      mid: [
+        [start, 0],
+        [end, MID_CUT_DB],
+      ],
+      high: [
+        [start, 0],
+        [c, HIGH_EASE_DB],
+        [Math.max(c + 0.05, end), HIGH_CUT_DB],
+      ],
+    },
+    in: {
+      low: b.inLow,
+      mid: [
+        [start, MID_CUT_DB],
+        [c, 0],
+      ],
+      high: [
+        [start, HIGH_CUT_DB],
+        [c, 0],
+      ],
+    },
+  };
+}
+
 /** Schedule EQ points on a filter's gain param, `t0` = the outgoing's end in context time. */
 export function applyEqPoints(p: AudioParamLike, points: Array<[number, number]>, t0: number, now = 0): void {
   const first = points[0];
@@ -258,7 +323,11 @@ export function auditionSpan(
  * A handle dragged to `sec` (relative to the outgoing's end). Start: a blend / rise's overlap, a fade's or a cortina
  * cut's fade out. End: a blend's fades, a rise's rise, a fade's fade in, a gap's (and a cortina cut's) silence.
  */
-export function dragHandle(e: TransitionEdit, which: "start" | "end" | "gap", sec: number): TransitionEdit {
+export function dragHandle(
+  e: TransitionEdit,
+  which: "start" | "end" | "gap" | "outEnd" | "inEnd",
+  sec: number,
+): TransitionEdit {
   const R = TRANSITION_RANGES;
   const v = r1(sec);
   const next: TransitionEdit = { ...e };
@@ -269,6 +338,15 @@ export function dragHandle(e: TransitionEdit, which: "start" | "end" | "gap", se
     next.gapSec = r1(clamp(v, R.gapSec.min, R.gapSec.max));
     return next;
   }
+  // 2026-11: a blend's / rise's fade ends move on their own (the outgoing's lane, the incoming's lane)
+  if ((which === "outEnd" || which === "inEnd") && (e.preset === "blend" || e.preset === "rise")) {
+    const f = r1(clamp(v + overlap, 0, overlap));
+    if (which === "outEnd") next.fadeOutSec = e.preset === "blend" ? f : 0;
+    else next.fadeInSec = f;
+    return next;
+  }
+  if (which === "inEnd") return dragHandle(e, "end", sec);
+  if (which === "outEnd") return next;
   switch (e.preset) {
     case "blend":
     case "rise":

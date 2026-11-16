@@ -374,9 +374,12 @@ export function ControlStrip({
         label={tx("booth.controlStrip.stop")}
         ariaLabel={tx("booth.controlStrip.stop_2")}
         hint={tx("booth.controlStrip.stop_fade_out_and_stop_or")}
-        disabled={!started || state === "stopped"}
+        // 2026-11 (the owner: "Stop won't work"): before the night a row played in the room (a tap on a row, Spotify
+        // on this device) is stopped at once too — Stop is never dead while the room sounds
+        disabled={!(started && state !== "stopped") && audition?.where !== "device"}
         onClick={() => {
           haptic(10);
+          if (!started && audition?.where === "device") return useBooth.getState().stopAudition();
           onStop();
         }}
         testId="booth-stop"

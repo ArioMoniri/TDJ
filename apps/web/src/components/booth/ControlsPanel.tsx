@@ -15,8 +15,10 @@ import {
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { hideHints } from "@/components/ui/Tip";
 import { guard, useArmed } from "@/lib/booth/confirm";
+import { askForHeadphones, SINK_UNSUPPORTED } from "@/lib/booth/cue";
 import { TRANSPORT_RANGES } from "@/lib/booth/engine";
 import { durationLabel } from "@/lib/booth/plan";
+import { isAppleMobile } from "@/lib/booth/sources/spotify";
 import { boothEngine, useBooth, useRoomCaps } from "@/lib/booth/store";
 import { t } from "@/lib/i18n";
 import { toast } from "@/lib/toast";
@@ -187,12 +189,29 @@ export function ControlsPanel({
   })();
   const spotifyNext = next !== null && sources[next] === "spotify";
   const noOverlap = started && (spotifyNow || spotifyNext);
-  const cueWhy =
-    next === null
-      ? null
-      : started && (spotifyNow || spotifyNext)
-        ? t("booth.controls.why_spotify_cue")
-        : a.cueBlocked();
+  // 2026-11 (the owner: "Cue won't work"): Cue is never a dead button. With headphones chosen it plays the next song
+  // there (its file, else its 30 s clip — also on a Spotify night: the clip is a second player); with none chosen a
+  // tap opens the HEADPHONES picker and cues once one is picked; where the browser has one output (iPad, iPhone,
+  // Safari) it says in one line that the headphones need a second device.
+  const [cueNote, setCueNote] = useState<string | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: another next song clears the note
+  useEffect(() => setCueNote(null), [next]);
+  const cueTap = async () => {
+    if (next === null) return;
+    setCueNote(null);
+    const blocked = a.cueBlocked();
+    if (blocked && started) {
+      const o = useBooth.getState().outputs;
+      if (o.cueSupported && !isAppleMobile()) return askForHeadphones(next);
+      setCueNote(isAppleMobile() ? t("booth.connect.headphones_ipad") : SINK_UNSUPPORTED());
+      return;
+    }
+    const why = await a.prelisten({ i: next });
+    if (why) {
+      setCueNote(why);
+      toast(t("booth.songSheet.can_t_pre_listen", { why }));
+    }
+  };
   const [trim, setTrimLocal] = useState(0);
   const itemId = item?.id ?? null;
   useEffect(() => {
@@ -287,8 +306,12 @@ export function ControlsPanel({
             </Btn>
             <Btn
               label={caps.fade ? t("booth.controls.stop_fade") : t("booth.controlStrip.stop")}
-              onClick={onStop}
-              disabled={!started || state === "stopped"}
+              onClick={() => {
+                // 2026-11: a row played in the room before the night stops at once (Stop is never dead)
+                if (!started && audition?.where === "device") return a.stopAudition();
+                onStop();
+              }}
+              disabled={!(started && state !== "stopped") && audition?.where !== "device"}
               testId="ctl-stop"
               short={t("booth.controls.short_stop")}
             >
@@ -370,19 +393,19 @@ export function ControlsPanel({
               <button
                 type="button"
                 className="booth-ctl-text booth-ctl-wide"
-                disabled={next === null || (started && !!cueWhy)}
-                onClick={async () => {
-                  if (next === null) return;
-                  const why = await a.prelisten({ i: next });
-                  if (why) toast(t("booth.songSheet.can_t_pre_listen", { why }));
-                }}
+                disabled={next === null}
+                onClick={() => void cueTap()}
                 data-testid="ctl-cue-next"
               >
                 <Headphones size={16} strokeWidth={2} aria-hidden />
                 <span>{t("booth.controls.cue_next")}</span>
               </button>
             )}
-            {started && cueWhy && <span className="booth-ctl-why">{cueWhy}</span>}
+            {cueNote && (
+              <span className="booth-ctl-why" role="status" data-testid="ctl-cue-why">
+                {cueNote}
+              </span>
+            )}
           </div>
         </Group>
         <Group title={t("booth.controls.mixer")} className="booth-ctl-g-mixer">
