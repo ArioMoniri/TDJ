@@ -793,7 +793,6 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.songSheet.only_this_version_is_in_the": "Katalogda yalnızca bu versiyon var.",
   "booth.songSheet.play": "Çal",
   "booth.songSheet.play_next": "Sıradaki olarak çal",
-  "booth.songSheet.play_now_fade_the_current": "Şimdi çal (çalanı kıs)",
   "booth.songSheet.play_now_fades_the_room_s": "Şimdi çal, salondaki şarkıyı {fade} sn içinde kısar. {p1}",
   "booth.songSheet.play_the_whole_song": "Şarkının tamamını çal",
   "booth.songSheet.play_this_version_tonight_instead_the":
