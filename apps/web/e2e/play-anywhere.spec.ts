@@ -174,7 +174,8 @@ for (const [name, opts] of DEVICES) {
       // no preview cached, the lookup finds none, no Premium, no file: a toast and the hint
       const silent = page.locator("#tanda-1 li[data-song]").filter({ hasText: SILENT });
       await silent.getByTestId("row-play").click();
-      await expect(page.getByTestId("toast")).toContainText("No audio");
+      // (2026-11: the real reason — not matched yet, or Spotify not connected here — never "no Spotify Premium")
+      await expect(page.getByTestId("toast")).toContainText(/No audio|isn't connected on this device/);
       await expect(silent.getByTestId("no-audio")).toBeVisible();
     });
 

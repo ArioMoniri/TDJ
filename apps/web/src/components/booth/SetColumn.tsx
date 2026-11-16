@@ -19,6 +19,7 @@ import { useTandaSwap } from "../TandaSwapSheet";
 import { Artwork } from "../ui/Artwork";
 import { BpmKey } from "../ui/BpmKey";
 import { EraBadge } from "../ui/EraBadge";
+import { TandaPlayCover } from "../ui/TandaPlay";
 import { TandaTypeBadge } from "../ui/TandaTypeBadge";
 import { FloorMenu, FloorReaction } from "./FloorReaction";
 import { PraiseTanda } from "./PraiseTanda";
@@ -290,6 +291,15 @@ export function SetColumn({
                 )}
               </span>
               <span className="booth-tanda-acts" data-testid="booth-tanda-acts">
+                {/* 2026-11: before the night, the tanda plays from its cover (this tanda, or on to the end) in the
+                    app's player; during the night the rows keep the Booth's own pre-listen and confirmation */}
+                {t && !started && (
+                  <TandaPlayCover tanda={g.tanda - 1} night={playlist}>
+                    <span className="tile-art" data-rhythm={t.rhythm} aria-hidden>
+                      <span className="text-subhead tabular-nums">{g.tanda}</span>
+                    </span>
+                  </TandaPlayCover>
+                )}
                 {bypassedT.has(g.tanda - 1) && (
                   <span className="booth-skipped-chip" data-testid="booth-skipped-tonight">
                     {tx("booth.setColumn.skipped_tonight")}

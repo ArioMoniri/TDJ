@@ -10,10 +10,12 @@
 import { cortinaSpan } from "@tdj/core";
 import { createContext, useCallback, useContext } from "react";
 import { create } from "zustand";
+import { APP } from "./app/target";
 import { effectiveSong } from "./audio";
 import type { useBooth as UseBooth } from "./booth/store";
 import { t } from "./i18n";
 import {
+  onListEnd,
   type PlayerList,
   type PlayerTrack,
   type PlayItem,
@@ -22,12 +24,24 @@ import {
   usePlayer,
 } from "./player";
 import {
+  continues,
+  DEFAULT_TAP_MODE,
+  type PlayScope,
+  type ScopeRow,
+  scopeStep,
+  songScope,
+  tandaScope,
+  tapScope,
+} from "./playScope";
+import {
   isSpotifyTrackUri,
+  noAudioAction,
   noAudioWhy,
   pickSource,
   routeFor,
   type SourcePick,
-  stepIndex,
+  type SpotifyPlay,
+  spotifyPlayOf,
 } from "./playSource";
 import { useStore } from "./store";
 import { toast } from "./toast";
@@ -40,44 +54,86 @@ interface Access {
   premium: boolean | null;
   /** a Spotify session exists (hosted login or the DJ's own app) */
   connected: boolean;
+  /** what this device's Spotify can do (playSource.ts → SpotifyPlay) */
+  spotify: SpotifyPlay;
+  /** this deployment offers "Log in with Spotify" (the apps always sign in on the device) */
+  hosted: boolean;
   /** song / cortina ids the linked music folder matched (a granted folder only) */
   files: Record<string, true>;
   /** rows (play keys) a lookup found nothing for: they show "No audio" */
   missing: Record<string, true>;
   /** rows a live lookup found a preview for (play key → our preview endpoint) */
   found: Record<string, string>;
+  /** rows a live lookup found the Spotify recording for (play key → spotify:track: uri) */
+  foundUri: Record<string, string>;
 }
 export const usePlayAccess = create<Access>()(() => ({
   premium: null,
   connected: false,
+  spotify: "unknown",
+  hosted: false,
   files: {},
   missing: {},
   found: {},
+  foundUri: {},
 }));
 
-let accessOnce: Promise<void> | null = null;
-/** ask once per tab whether the Spotify session can stream full tracks (the Booth's own rule: product + scopes) */
-export function loadPlayAccess(): Promise<void> {
-  accessOnce ??= (async () => {
-    const tok = useStore.getState().spotifyToken;
-    const own = !!tok && tok.expires > Date.now();
-    const j = (await fetch("/api/spotify/me")
+/**
+ * Whether this device's Spotify session can stream full tracks (the Booth's own rule, round 21: an explicit
+ * non-Premium product says so, missing playback scopes ask to reconnect, a profile without `product` is tried).
+ * 2026-11 (the owner: "no Spotify Premium" — he has it): the answer used to be asked once per tab and kept, so a
+ * DJ who connected Spotify after the page loaded (the apps sign in through the system browser and come back to the
+ * same page) stayed "not connected" until a reload, and a profile without `product` read as no Premium. Now it is
+ * asked again when it is stale (a minute; ten seconds while signed out) and whenever the window comes back.
+ */
+let access: { at: number; p: Promise<void> } | null = null;
+export function loadPlayAccess(force = false): Promise<void> {
+  const a = usePlayAccess.getState();
+  const ttl = a.spotify === "premium" || a.spotify === "free" ? 60_000 : 10_000;
+  if (!force && access && Date.now() - access.at < ttl) return access.p;
+  const p = (async () => {
+    const j = (await fetch("/api/spotify/me", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
-      .catch(() => null)) as { user?: { product?: string } | null; scopes?: string[] } | null;
-    const user = j?.user ?? null;
-    const scopes = Array.isArray(j?.scopes) ? j.scopes : null;
-    const streaming =
-      !scopes ||
-      ["streaming", "user-modify-playback-state", "user-read-playback-state"].every((x) =>
-        scopes.includes(x),
-      );
+      .catch(() => null)) as {
+      hosted?: boolean;
+      user?: { product?: string } | null;
+      scopes?: string[];
+    } | null;
+    const spotify = spotifyPlayOf(j);
     usePlayAccess.setState({
-      connected: !!user || own,
-      premium: user ? (user.product === "premium" && streaming ? true : user.product ? false : null) : null,
+      spotify,
+      hosted: APP || !!j?.hosted,
+      connected: spotify !== "signed-out",
+      premium: spotify === "premium" ? true : spotify === "free" ? false : null,
     });
   })();
-  return accessOnce;
+  access = { at: Date.now(), p };
+  return p;
 }
+if (typeof window !== "undefined") {
+  const again = () => {
+    if (document.visibilityState !== "hidden") access = null;
+  };
+  window.addEventListener("focus", again);
+  document.addEventListener("visibilitychange", again);
+}
+
+/** "Connect": the system browser in the apps, the deployment's own login on the web (else Settings → Connections) */
+export async function connectSpotify(next?: string): Promise<void> {
+  const here = next ?? `${location.pathname}${location.search}`;
+  access = null;
+  if (APP) {
+    const { appLogin } = await import("./app/login");
+    return appLogin("spotify", here);
+  }
+  await loadPlayAccess(true);
+  if (usePlayAccess.getState().hosted) location.assign(`/api/spotify/login?next=${encodeURIComponent(here)}`);
+  else location.assign("/settings#connections");
+}
+
+/* "Find on services" from anywhere: the one sheet the mini player hosts (components/MiniPlayer.tsx) */
+export const useFindSheet = create<{ song: Song | null }>()(() => ({ song: null }));
+export const openFind = (song: Song) => useFindSheet.setState({ song });
 
 /* the linked music folder: the Booth's LocalAdapter class, our own instance (the Booth's file is not touched) */
 type Local = {
@@ -123,11 +179,16 @@ const previewOf = (it: PlayItem): string | null => {
 };
 
 /**
- * A side or cortina without a cached preview: the keyless lookup the "Find on services" sheet and CortinaPreview use
- * (Deezer through /api/resolve), once per row; what it finds (or not) is remembered for the tab.
+ * A side or cortina without a cached preview: the lookup the "Find on services" sheet uses (/api/resolve: Deezer's
+ * preview, and — with the DJ's Spotify connected — the Spotify recording), once per row; what it finds (or not) is
+ * remembered for the tab. A Spotify recording the match rules accept with confidence plays in full with Premium.
  */
-const lookups = new Map<string, Promise<string | null>>();
-function lookupPreview(it: PlayItem): Promise<string | null> {
+interface Looked {
+  preview: string | null;
+  uri: string | null;
+}
+const lookups = new Map<string, Promise<Looked>>();
+function lookupPreview(it: PlayItem): Promise<Looked> {
   const key = playKey(it);
   let p = lookups.get(key);
   if (!p) {
@@ -151,24 +212,32 @@ function lookupPreview(it: PlayItem): Promise<string | null> {
           candidates?: Array<{
             provider: string;
             id: string;
+            uri?: string;
             previewUrl: string | null;
             confidence?: number;
           }>;
-        }) => {
-          const hit = (j.candidates ?? []).find(
-            (x) => x.provider === "deezer" && x.previewUrl && (x.confidence ?? 1) >= 0.5,
+        }): Looked => {
+          const c = j.candidates ?? [];
+          const dz = c.find((x) => x.provider === "deezer" && x.previewUrl && (x.confidence ?? 1) >= 0.6);
+          const sp = c.find(
+            (x) => x.provider === "spotify" && isSpotifyTrackUri(x.uri) && (x.confidence ?? 0) >= 0.8,
           );
-          return hit
-            ? previewEndpoint({ provider: "deezer", id: hit.id } as NonNullable<Song["resolved"]>)
-            : null;
+          return {
+            preview: dz
+              ? previewEndpoint({ provider: "deezer", id: dz.id } as NonNullable<Song["resolved"]>)
+              : null,
+            uri: sp?.uri ?? null,
+          };
         },
       )
-      .catch(() => null)
-      .then((ref) => {
-        usePlayAccess.setState((a) =>
-          ref ? { found: { ...a.found, [key]: ref } } : { missing: { ...a.missing, [key]: true } },
-        );
-        return ref;
+      .catch((): Looked => ({ preview: null, uri: null }))
+      .then((r) => {
+        usePlayAccess.setState((a) => ({
+          ...(r.preview ? { found: { ...a.found, [key]: r.preview } } : {}),
+          ...(r.uri ? { foundUri: { ...a.foundUri, [key]: r.uri } } : {}),
+          ...(!r.preview && !r.uri ? { missing: { ...a.missing, [key]: true as const } } : {}),
+        }));
+        return r;
       });
     lookups.set(key, p);
   }
@@ -184,7 +253,7 @@ export function audibleNow(it: PlayItem, a: Access = usePlayAccess.getState()): 
   if (!a.missing[key]) return true;
   return !!pickSource({
     premium: a.premium,
-    spotifyUri: spotifyUriOf(it),
+    spotifyUri: spotifyUriOf(it) ?? a.foundUri[key] ?? null,
     previewRef: previewOf(it) ?? a.found[key] ?? null,
     file: !!a.files[it.kind === "song" ? it.song.id : it.cortina.id],
   });
@@ -235,21 +304,27 @@ function baseTrack(it: PlayItem): Omit<PlayerTrack, "source"> {
   };
 }
 
-/** the source this tap plays, in the order of `pickSource`; async steps (a cortina lookup, the folder) last */
+/** the Spotify recording a tap may play: the side's own, the DJ's pick, or the one a lookup found */
+const uriFor = (it: PlayItem) => spotifyUriOf(it) ?? usePlayAccess.getState().foundUri[playKey(it)] ?? null;
+
+/** the source this tap plays, in the order of `pickSource`; async steps (a lookup, the folder) last */
 async function sourceOf(it: PlayItem): Promise<SourcePick | { kind: "file-url"; ref: string }> {
-  const a = usePlayAccess.getState();
-  const uri = spotifyUriOf(it);
-  if (isSpotifyTrackUri(uri) && a.premium === null && a.connected) await loadPlayAccess();
-  let previewRef = previewOf(it);
-  previewRef ??= usePlayAccess.getState().found[playKey(it)] ?? null;
-  if (!previewRef) previewRef = await lookupPreview(it);
-  const first = pickSource({ premium: usePlayAccess.getState().premium, spotifyUri: uri, previewRef });
+  await loadPlayAccess();
+  const premium = () => usePlayAccess.getState().premium;
+  let uri = uriFor(it);
+  let previewRef = previewOf(it) ?? usePlayAccess.getState().found[playKey(it)] ?? null;
+  // a Premium account with the side's Spotify recording plays it in full: nothing to look up
+  if (!(premium() === true && isSpotifyTrackUri(uri)) && !previewRef) {
+    const r = await lookupPreview(it);
+    previewRef = r.preview;
+    uri ??= r.uri;
+  }
+  const first = pickSource({ premium: premium(), spotifyUri: uri, previewRef });
   if (first) return first;
   const folder = await localFiles();
   const file = await folder?.fileFor(it.kind === "song" ? it.song.id : it.cortina.id).catch(() => null);
   return file ? { kind: "file-url", ref: URL.createObjectURL(file) } : null;
 }
-
 /* ---------------- the external players: the Spotify device and the Booth's headphones ---------------- */
 
 type Sp = {
@@ -280,8 +355,17 @@ function pollSpotify(id: string) {
     if (!p.playing) return;
     const sp = await spotifyAdapter();
     const st = await sp.remoteState().catch(() => null);
-    if (st && usePlayer.getState().track?.id === id)
-      usePlayer.getState()._tick(st.positionMs / 1000, st.durationMs / 1000);
+    const now = usePlayer.getState();
+    if (!st || now.track?.id !== id || !now.playing) return;
+    // the full track ended on the device (it stopped at its end, or went back to 0 after we heard most of it): the
+    // list hands over to its next row like a preview's `ended`
+    const was = now.position;
+    const atEnd = st.durationMs > 0 && st.positionMs >= st.durationMs - 1500;
+    if ((!st.playing && (atEnd || (st.positionMs < 1000 && was > 20))) || (st.playing && atEnd)) {
+      stopPoll();
+      return usePlayer.getState()._ended();
+    }
+    usePlayer.getState()._tick(st.positionMs / 1000, st.durationMs / 1000);
   }, 1000);
 }
 
@@ -337,9 +421,11 @@ if (typeof window !== "undefined")
     const was = lastPlaying;
     lastPlaying = { id, playing: s.playing };
     if (was.id !== id) {
-      // the previous external track stops when another (or nothing) takes over
+      // the previous external track stops when another (or nothing) takes over — not when the next one is a
+      // Spotify track too: its `playUri` already replaced it on the device (a pause now would stop the new one)
       const prev = was.id ? sounding.get(was.id) : undefined;
-      if (prev === "spotify-full") void spotifyAdapter().then((sp) => sp.pauseDevice());
+      if (prev === "spotify-full" && s.track?.source.kind !== "spotify-full")
+        void spotifyAdapter().then((sp) => sp.pauseDevice());
       if (prev === "cue") booth()?.getState().stopAudition();
       if (was.id) sounding.delete(was.id);
       return;
@@ -347,6 +433,8 @@ if (typeof window !== "undefined")
     if (!s.track || was.playing === s.playing) return;
     const kind = s.track.source.kind;
     if (kind === "spotify-full") {
+      // (a list hand-over pauses the ended track for a moment: the next row's play replaces it)
+      if (!s.playing && handingOver) return;
       const uri = s.track.source.ref;
       void spotifyAdapter().then((sp) =>
         s.playing ? sp.playUri(uri, s.position * 1000).catch(() => {}) : sp.pauseDevice(),
@@ -362,46 +450,149 @@ const sounding = new Map<string, "spotify-full" | "cue">();
 /** the items behind the tracks we started (a cue resume needs the song back) */
 const items = new Map<string, PlayItem>();
 
+/* ---------------- scopes: one row, a tanda, on to the end ---------------- */
+
+type ListIn = { label: string; items: PlayItem[] } | null | undefined;
+const rowsOf = (list: PlayItem[]): ScopeRow[] => list.map((x) => ({ kind: x.kind, tanda: x.tanda }));
+/** "When I tap a song or tanda" (Settings → Playback): only it, or on to the end of the night */
+export const tapMode = () => useStore.getState().settings.tapPlay ?? DEFAULT_TAP_MODE;
+/** what the mini player says the scope is */
+export function scopeLabel(scope: PlayScope | null | undefined, list: PlayItem[]): string | undefined {
+  if (!scope) return undefined;
+  const tanda = scope.tanda ?? list[scope.from]?.tanda;
+  if (scope.kind === "one") return t("play.scope_one");
+  if (scope.kind === "tanda" && tanda !== undefined) return t("play.scope_tanda", { n: tanda + 1 });
+  return tanda !== undefined ? t("play.scope_from_tanda", { n: tanda + 1 }) : t("play.scope_to_end");
+}
+
+/** a list's track ended on its own: the next row inside its scope, or a clean stop at the scope's end */
+let handingOver = false;
+onListEnd(() => {
+  if (handingOver) return;
+  const l = usePlayer.getState().list;
+  if (!l || !continues(l.scope) || boothNightRunning()) {
+    usePlayer.setState({ playing: false, position: usePlayer.getState().track?.startSec ?? 0 });
+    return;
+  }
+  handingOver = true;
+  // the ended track goes quiet at once (a clip keeps sounding past its stop otherwise); a Spotify track is replaced
+  // by the next one's playUri, not paused
+  usePlayer.setState({ playing: false });
+  void stepList(1, { auto: true }).then((ok) => {
+    handingOver = false;
+    if (!ok) {
+      // the end of the scope: stop the device too, and rewind the last track
+      const tr = usePlayer.getState().track;
+      if (tr?.source.kind === "spotify-full") void spotifyAdapter().then((sp) => sp.pauseDevice());
+      usePlayer.setState({ playing: false, position: tr?.startSec ?? 0 });
+    }
+  });
+});
+
 /* ---------------- the tap ---------------- */
 
 let seq = 0;
 /**
- * A tap on a row: the playing row pauses (and a paused one resumes); any other row plays from the list it is in,
- * so the mini player's previous / next step through that tanda or night. Resolves to false when nothing played (the
- * toast said why).
+ * A tap on a row: the playing row pauses (and a paused one resumes); any other row plays from the list it is in.
+ * What follows it is the DJ's choice (Settings → Playback): only it, or on to the end of the list (the night on
+ * Compose, History and shared nights; the results of a search). `o.scope` asks for one explicitly ("Play this song",
+ * "Play from here"); while the Booth runs a night a tap pre-listens that row only, on the headphones. Resolves to
+ * false when nothing played (the toast said why and offers the fix).
  */
 export async function tapPlay(
   it: PlayItem,
-  list?: { label: string; items: PlayItem[] } | null,
-  o: { find?: () => void } = {},
+  list?: ListIn,
+  o: { find?: () => void; scope?: "one" | "from" } = {},
 ) {
   const key = playKey(it);
   const p = usePlayer.getState();
-  if (p.track?.id === key) {
+  if (p.track?.id === key && !o.scope) {
     p.toggle();
     return true;
   }
   const items0 = list?.items.some((x) => playKey(x) === key) ? list.items : [it];
   const index = items0.findIndex((x) => playKey(x) === key);
-  return playFrom({ label: list?.label ?? "", items: items0, index }, o);
+  const rows = rowsOf(items0);
+  const scope = boothNightRunning()
+    ? tapScope(rows, index, "only")
+    : o.scope
+      ? songScope(rows, index, o.scope)
+      : tapScope(rows, index, tapMode());
+  return playFrom(
+    { label: list?.label ?? "", items: items0, index, scope, scopeLabel: scopeLabel(scope, items0) },
+    o,
+  );
 }
 
-/** previous / next in the list the playing row came from */
-export async function stepList(delta: number) {
+/**
+ * "Play this tanda" / "Play from here to the end" on a tanda's cover (Compose, History, Rooms, shared nights): tanda
+ * `tanda` (0-based) of the night's items. `clipSec`: a pre-listen, each side's first seconds in turn (the inspector's
+ * Preview). Resolves to false when nothing played.
+ */
+export async function playTanda(
+  list: { label: string; items: PlayItem[] },
+  tanda: number,
+  kind: "tanda" | "from",
+  o: { clipSec?: number } = {},
+): Promise<boolean> {
+  const scope = tandaScope(rowsOf(list.items), tanda, kind);
+  if (!scope) return false;
+  const l: PlayerList = {
+    label: list.label,
+    items: list.items,
+    index: scope.from,
+    scope,
+    scopeLabel: o.clipSec ? t("play.scope_preview", { n: tanda + 1 }) : scopeLabel(scope, list.items),
+    ...(o.clipSec ? { clipSec: o.clipSec } : {}),
+  };
+  // the first side that plays (one with no audio is passed, and the toast says why only when none plays)
+  for (let i: number | null = scope.from; i !== null; i = scopeStep(scope, list.items.length, i, 1))
+    if (await playFrom({ ...l, index: i }, { quiet: i !== scope.to })) return true;
+  return false;
+}
+
+/** previous / next in the list the playing row came from, inside its scope */
+export async function stepList(delta: number, o: { auto?: boolean } = {}) {
   const l = usePlayer.getState().list;
   if (!l) return false;
   // past a row with no audio, to the next one that plays
   for (
-    let i = stepIndex(l.items.length, l.index, delta);
+    let i = scopeStep(l.scope, l.items.length, l.index, delta);
     i !== null;
-    i = stepIndex(l.items.length, i, delta)
+    i = scopeStep(l.scope, l.items.length, i, delta)
   ) {
-    if (await playFrom({ ...l, index: i }, { quiet: true })) return true;
+    if (await playFrom({ ...l, index: i }, { quiet: true, auto: o.auto })) return true;
   }
   return false;
 }
 
-async function playFrom(list: PlayerList, o: { find?: () => void; quiet?: boolean }): Promise<boolean> {
+/** the no-audio toast: the real reason, and the action that fixes it (Connect, Reconnect or Find…) */
+function sayNoAudio(it: PlayItem, title: string, find?: () => void) {
+  const a = usePlayAccess.getState();
+  const why = noAudioWhy({
+    connected: a.connected,
+    premium: a.premium,
+    spotify: a.spotify,
+    spotifyUri: uriFor(it),
+  });
+  const text = t(`play.${why}`, { title });
+  const findIt = find ?? (it.kind === "song" ? () => openFind(it.song) : undefined);
+  const action = noAudioAction(why);
+  if (action === "connect") return toast(text, () => void connectSpotify(), t("play.connect_spotify"));
+  if (action === "reconnect") return toast(text, () => void connectSpotify(), t("play.reconnect_spotify"));
+  // not matched yet: Find…; with Spotify not connected here, Connect beside it (the find then searches it too)
+  const secondary =
+    a.spotify === "signed-out"
+      ? { label: t("play.connect_spotify"), run: () => void connectSpotify() }
+      : undefined;
+  if (findIt) return toast(text, findIt, t("play.find"), secondary);
+  return toast(text);
+}
+
+async function playFrom(
+  list: PlayerList,
+  o: { find?: () => void; quiet?: boolean; auto?: boolean },
+): Promise<boolean> {
   const it = list.items[list.index];
   if (!it) return false;
   const n = ++seq;
@@ -425,13 +616,7 @@ async function playFrom(list: PlayerList, o: { find?: () => void; quiet?: boolea
   const src = await sourceOf(it);
   if (n !== seq) return true;
   if (!src) {
-    if (!o.quiet) {
-      const a = usePlayAccess.getState();
-      const why = noAudioWhy({ connected: a.connected, premium: a.premium, spotifyUri: spotifyUriOf(it) });
-      const text = t(`play.${why}`, { title: base.title });
-      if (o.find) toast(text, o.find, t("play.find"));
-      else toast(text);
-    }
+    if (!o.quiet) sayNoAudio(it, base.title, o.find);
     return false;
   }
   if (src.kind === "spotify-full") {
@@ -442,13 +627,14 @@ async function playFrom(list: PlayerList, o: { find?: () => void; quiet?: boolea
     } catch (e) {
       // the device refused: the 30 s preview (or the file) instead, and say so
       if (n !== seq) return true;
-      const fallback = pickSource({ premium: false, previewRef: previewOf(it) });
+      const ref = previewOf(it) ?? usePlayAccess.getState().found[playKey(it)] ?? null;
+      const fallback = pickSource({ premium: false, previewRef: ref });
       if (fallback?.kind === "preview") {
-        toast(t("play.spotify_failed_preview", { why: e instanceof Error ? e.message : "" }));
+        if (!o.auto) toast(t("play.spotify_failed_preview", { why: e instanceof Error ? e.message : "" }));
         usePlayer.getState().play({ ...base, source: { kind: "preview", ref: fallback.ref } }, list);
         return true;
       }
-      toast(e instanceof Error ? e.message : t("play.no_audio", { title: base.title }));
+      if (!o.quiet) toast(e instanceof Error ? e.message : t("play.no_audio", { title: base.title }));
       return false;
     }
     if (n !== seq) return true;
@@ -483,10 +669,11 @@ export function useTapPlay(it: PlayItem | null, list?: { label: string; items: P
   useStore((s) => (it?.kind === "song" ? s.overrides.songs?.[it.song.id] : null));
   const use = list ?? ctx;
   const tap = useCallback(
-    (o?: { find?: () => void }) => (it ? tapPlay(it, use, o) : Promise.resolve(false)),
+    (o?: { find?: () => void; scope?: "one" | "from" }) =>
+      it ? tapPlay(it, use, o) : Promise.resolve(false),
     [it, use],
   );
-  return { state, playing: state === "playing", audible, tap };
+  return { state, playing: state === "playing", audible, tap, list: use };
 }
 
 /** the items of a night in play order: opening, each tanda's songs and its cortina, closing */
@@ -499,9 +686,14 @@ export function nightItems(p: {
   if (p.opening) out.push({ kind: "song", song: p.opening, where: t("play.opening") });
   p.tandas.forEach((tn, i) => {
     const where = t("play.tanda", { n: i + 1 });
-    for (const s of tn.songs) out.push({ kind: "song", song: s, where });
+    for (const s of tn.songs) out.push({ kind: "song", song: s, where, tanda: i });
     if (tn.cortina)
-      out.push({ kind: "cortina", cortina: tn.cortina, where: t("play.cortina_after", { n: i + 1 }) });
+      out.push({
+        kind: "cortina",
+        cortina: tn.cortina,
+        where: t("play.cortina_after", { n: i + 1 }),
+        tanda: i,
+      });
   });
   if (p.closing) out.push({ kind: "song", song: p.closing, where: t("play.closing") });
   return out;
