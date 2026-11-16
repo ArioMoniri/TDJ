@@ -226,6 +226,11 @@ interface BoothStore {
    * cue) so every later play stops there, and the next item follows at the gap. The stored second, or null.
    */
   songEndsEarly: () => number | null;
+  /**
+   * 2026-11 (song details, the play view): the second in a side's recording that sounds now — the room's item
+   * (the engine's clock) or a pre-listen of the DJ's file — or null when that side is not playing
+   */
+  positionOf: (songId: string) => { sec: number; playing: boolean; where: "room" | "cue" } | null;
   /** wave 4: the DJ's edit of the transition after plan item `i` (null = Auto, the night's Mix settings) */
   setTransition: (i: number, edit: TransitionEdit | null) => void;
   /**
@@ -1102,6 +1107,19 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     const p = get().playlist;
     if (p) applyPlan(rePlan(p, get().settings));
   },
+  positionOf: (songId) => {
+    const s = get();
+    const a = s.audition;
+    // a pre-listen of the side's file is the recording's own clock (a 30 s clip is not)
+    if (a?.songId === songId && a.via === "file" && cuePlayer?.el)
+      return { sec: cuePlayer.position(), playing: !cuePlayer.el.paused, where: "cue" };
+    const i = engine?.planIndex ?? -1;
+    if (!engine || (s.plan?.items[i]?.id !== songId && s.entities[i]?.id !== songId)) return null;
+    // a 30 s clip plays its own seconds, not the recording's: no position to mark or sync lyrics against
+    if (s.sources[i] === "preview") return null;
+    const at = engine.sourcePosition();
+    return at === null ? null : { sec: at, playing: s.state === "playing" && !engine.paused, where: "room" };
+  },
   songEndsEarly: () => {
     const p = get().playlist;
     const i = engine?.planIndex ?? -1;
@@ -1502,7 +1520,7 @@ function offlineCtor(): typeof OfflineAudioContext | null {
 }
 
 /** A side's decodable audio: the DJ's file, else its 30 s clip; null when only Spotify has it. */
-async function decodeAudio(
+export async function decodeAudio(
   id: string,
   e: NonNullable<PlanEntity>,
 ): Promise<{ buffer: AudioBuffer; from: Waveform["from"] } | null> {

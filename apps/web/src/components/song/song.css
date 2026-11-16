@@ -1,0 +1,134 @@
+/* 2026-11 — the song details, the DNA pages and the play view. Content sits on the surface; glass only on the bars. */
+.dna-overlay,
+.now-view {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  background: rgb(var(--bg-grouped));
+  color: var(--label);
+}
+.dna-overlay-bar,
+.now-view-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: calc(env(safe-area-inset-top, 0px) + 6px) 12px 6px;
+  border-bottom: 0.5px solid var(--separator, rgb(0 0 0 / 0.12));
+  backdrop-filter: blur(24px) saturate(1.6);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  background: var(--material-bar);
+}
+.dna-overlay-body,
+.now-view-body {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px 16px calc(env(safe-area-inset-bottom, 0px) + 24px);
+}
+.dna-overlay-body > *,
+.now-view-body > * {
+  max-width: 960px;
+  margin-inline: auto;
+}
+.lyric-line {
+  padding: 4px 0;
+  transition: color 160ms ease;
+}
+.lyric-line[data-current] {
+  color: var(--label);
+}
+.dna-timeline {
+  position: relative;
+  height: 64px;
+  margin: 8px 16px 4px;
+}
+.dna-timeline-dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  transform: translate(-50%, 50%);
+  background: var(--label-3);
+}
+.dna-key {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--label-3);
+}
+.dna-key[data-vocal] {
+  background: var(--tint);
+}
+.dna-key[data-current] {
+  background: var(--destructive);
+}
+.dna-timeline-dot[data-vocal] {
+  background: var(--tint);
+}
+.dna-timeline-dot[data-current] {
+  width: 14px;
+  height: 14px;
+  background: var(--destructive);
+  box-shadow: 0 0 0 3px rgb(var(--surface));
+  z-index: 1;
+}
+.dna-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 72px;
+  padding: 8px 16px 0;
+}
+.dna-bars > span {
+  flex: 1;
+  min-width: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--tint);
+  opacity: 0.85;
+}
+.dna-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+}
+.dna-stat {
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: rgb(var(--surface));
+}
+.dna-two {
+  display: grid;
+  gap: 4px;
+}
+@media (min-width: 900px) {
+  .dna-two {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0 24px;
+  }
+}
+.now-view-art {
+  width: min(72vw, 320px);
+  aspect-ratio: 1;
+  margin: 8px auto 12px;
+}
+.now-view-art > * {
+  width: 100%;
+  height: 100%;
+}
+/* YouTube's player stays on screen above these views (its terms) when it is the night's source */
+html:has(.now-view) #tdj-youtube-dock,
+html:has(.dna-overlay) #tdj-youtube-dock {
+  /* biome-ignore lint/complexity/noImportantStyles: the dock sets its z-index inline (lib/booth/sources/youtube.ts) */
+  z-index: 80 !important;
+}
+@media (min-width: 900px) {
+  .now-view-grid {
+    display: grid;
+    grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+  }
+}

@@ -41,6 +41,7 @@ export * from "./rules";
 export * from "./score";
 export * from "./search";
 export * from "./songData";
+export * from "./songDna";
 export * from "./songSearch";
 export * from "./streams";
 export * from "./strict";

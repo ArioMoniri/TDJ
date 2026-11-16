@@ -4,6 +4,7 @@ import {
   ArrowUp,
   AudioWaveform,
   GripVertical,
+  Info,
   ListMusic,
   LoaderCircle,
   Play,
@@ -22,6 +23,7 @@ import { fmtLen } from "@/lib/lengths";
 import { lineSwap } from "@/lib/motion";
 import { useTapPlay } from "@/lib/playback";
 import type { PlayItem } from "@/lib/player";
+import { openSongDetails } from "@/lib/songOpen";
 import { bpmText, keyText, useSongData } from "@/lib/songView";
 import { useStore } from "@/lib/store";
 import type { Song } from "@/lib/types";
@@ -417,6 +419,7 @@ export const TrackRow = memo(function TrackRow({
                 icon: ListMusic,
                 onClick: () => void play.tap({ find: openFind, scope: "from" }),
               },
+              { label: t("song.details"), icon: Info, onClick: () => openSongDetails(eff) },
               { label: t("trackRow.find_on_services"), icon: Search, onClick: openFind },
               {
                 label: audio ? t("trackRow.analyse_again_in_browser") : t("trackRow.analyse_in_browser"),

@@ -11,6 +11,7 @@ import { HintLayer } from "@/components/booth/HintLayer";
 import { NextCard } from "@/components/booth/NextCard";
 import { NightBar } from "@/components/booth/NightBar";
 import { NowCard } from "@/components/booth/NowCard";
+import { NowPlayingView } from "@/components/booth/NowPlayingView";
 import { OnboardingSheet } from "@/components/booth/OnboardingSheet";
 import { PlayerToolbar, ShowSheet } from "@/components/booth/PlayerToolbar";
 import { SetColumn } from "@/components/booth/SetColumn";
@@ -433,6 +434,7 @@ function Booth() {
         onTransition={(i) => setTransition(i)}
         onPlayed={() => setSetOpen(false)}
       />
+      <NowPlayingView onInfo={(i) => setSong(i)} />
       <ShowSheet open={show} onClose={() => setShow(false)} />
       <HintLayer />
       <LevelsSheet open={levels} onClose={() => setLevels(false)} onEditTransitions={editTransitions} />
