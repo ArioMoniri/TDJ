@@ -612,3 +612,82 @@ export function buildManualNight(
   } as unknown as Playlist;
   return renight(shell, cued ?? tandas);
 }
+
+/* ---------- 2026-11: "Fill the rest" as a menu (the owner: "fill should be a menu, previewed before it applies") ---------- */
+
+/**
+ * How far "Fill" goes on a hand-built night: `tanda` — finish the open tanda, else one new tanda; `cycle` — one whole
+ * rhythm cycle of new tandas (T T V T T M on the classic pattern: the pattern's length); `target` — new tandas until
+ * the night reaches its target length (its hours, a cortina in every gap counted); `all` — every slot of the plan.
+ * The DJ's own tandas are never changed: only the open (unfinished) one is completed.
+ */
+export type FillScope = "tanda" | "cycle" | "target" | "all";
+export const FILL_SCOPES: readonly FillScope[] = ["tanda", "cycle", "target", "all"];
+export interface FillResult {
+  draft: Song[][];
+  /** new tandas (the open one completed is not counted) */
+  added: number;
+  /** sides added in all (the open tanda's included) */
+  sides: number;
+  /** the night's length after the fill, minutes (sides and cortinas) */
+  minutes: number;
+  /** the rhythms of the new tandas, in order ("T", "V", "M") */
+  rhythms: string[];
+}
+/** the length of a draft in minutes: its sides and a cortina in every gap */
+export function draftMinutesOf(draft: Song[][], o: Pick<ComposeOptions, "cortinaLengthSec">): number {
+  const sides = draft.flat().reduce((a, s) => a + (s.durationSec ?? 180), 0);
+  const gaps = Math.max(0, draft.length - 1) * (o.cortinaLengthSec ?? 45);
+  return Math.round((sides + gaps) / 60);
+}
+export function fillDraft(
+  draft0: Song[][],
+  deps: ComposeDeps,
+  opts: SuggestOptions = {},
+  scope: FillScope = "all",
+): FillResult {
+  const { rhythm: _r, limit: _l, ...rest } = opts;
+  const o = nightOptions(rest);
+  const slots = planSlots(o).length;
+  const out = draft0.filter((t) => t.length).map((t) => t.slice());
+  const start = out.length;
+  const full = (t: Song[] | undefined) => !!t && t.length >= sizeFor(o, rhythmOf(t[0]!));
+  const openAtStart = start > 0 && !full(out[start - 1]);
+  const targetMin = Math.round((o.hours ?? 4) * 60);
+  const cycle = patternString(o).length || 6;
+  /** the number of tandas the fill stops at (Infinity: the length decides) */
+  const want =
+    scope === "tanda"
+      ? openAtStart
+        ? start
+        : start + 1
+      : scope === "cycle"
+        ? start + cycle
+        : scope === "all"
+          ? Math.max(start, slots)
+          : Number.POSITIVE_INFINITY;
+  const cap = Math.min(60, scope === "all" || scope === "target" ? Math.max(slots, start) : 60);
+  let sides = 0;
+  for (let guard = 0; guard < 240; guard++) {
+    const last = out.at(-1);
+    const open = !!last && !full(last);
+    if (!open) {
+      if (out.length >= want || out.length >= cap) break;
+      if (scope === "target" && draftMinutesOf(out, o) >= targetMin) break;
+    }
+    const next = suggestNext(out, deps, { ...rest, limit: 3 });
+    const pick = next.suggestions[0];
+    if (!pick) break;
+    if (next.mode === "song") out[out.length - 1]!.push(...pick.songs);
+    else out.push(pick.songs.slice());
+    sides += pick.songs.length;
+  }
+  const added = out.slice(start);
+  return {
+    draft: out,
+    added: added.length,
+    sides,
+    minutes: draftMinutesOf(out, o),
+    rhythms: added.map((t) => (t[0]?.rhythm === "vals" ? "V" : t[0]?.rhythm === "milonga" ? "M" : "T")),
+  };
+}

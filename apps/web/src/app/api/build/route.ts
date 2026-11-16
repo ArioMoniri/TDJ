@@ -4,6 +4,9 @@ import {
   buildManualNight,
   type ComposeOptions,
   type DanceRhythm,
+  FILL_SCOPES,
+  type FillScope,
+  fillDraft,
   isDanceableSong,
   isFavouriteSide,
   type LearnedPreferences,
@@ -75,23 +78,29 @@ export async function POST(req: Request) {
       .slice(0, 60);
     return noStore(NextResponse.json({ cortinas: pool }));
   }
-  // "Fill the rest": the engine's suggestions fill the open tanda and every slot left, the DJ's tandas kept as they are
+  // "Fill": the engine's suggestions fill the open tanda, then as far as the scope says (2026-11: the next tanda, one
+  // rhythm cycle, the target length or every slot — core suggest.ts fillDraft); the DJ's tandas kept as they are.
+  // `fill: true` is the old "Fill the rest" (everything).
   if (body.fill) {
-    const o = nightOptions(options);
-    const slots = planSlots(o).length;
+    const scope: FillScope = FILL_SCOPES.includes(body.fill) ? (body.fill as FillScope) : "all";
     const learned0 =
       body.learned && typeof body.learned === "object" ? (body.learned as LearnedPreferences) : undefined;
-    const fav = asFavouriteTable(body.favourites);
-    const out = draft.map((t) => t.slice());
-    for (let guard = 0; guard < 80 && out.length <= slots; guard++) {
-      const next = suggestNext(out, deps, { ...options, learned: learned0, favourites: fav, limit: 3 });
-      const pick = next.suggestions[0];
-      if (!pick) break;
-      if (next.mode === "song") out[out.length - 1]!.push(...pick.songs);
-      else if (out.length < slots) out.push(pick.songs.slice());
-      else break;
-    }
-    return noStore(NextResponse.json({ draft: out.map((t) => t.map(slimSong)) }));
+    const r = fillDraft(
+      draft,
+      deps,
+      { ...options, learned: learned0, favourites: asFavouriteTable(body.favourites) },
+      scope,
+    );
+    return noStore(
+      NextResponse.json({
+        draft: r.draft.map((t) => t.map(slimSong)),
+        scope,
+        added: r.added,
+        sides: r.sides,
+        minutes: r.minutes,
+        rhythms: r.rhythms,
+      }),
+    );
   }
   if (body.finish) {
     const playlist = buildManualNight(draft, deps, {
