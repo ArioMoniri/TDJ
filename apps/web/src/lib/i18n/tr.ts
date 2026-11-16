@@ -2237,9 +2237,9 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "djMessage.cumparsita_near_with":
     "{orchestra} için {years} civarından La Cumparsita yok; yerine {singer} ile {year} kaydı {verb}.",
   "djMessage.cumparsita_never":
-    "{orchestra} hiç La Cumparsita kaydetmedi; yerine {other} orkestrasının {year} versiyonu {verb}.",
+    "{orchestra} orkestrasının kendi yıllarına yakın (±{window}) bir La Cumparsita kaydı yok; yerine {other} orkestrasının {year} versiyonu {verb}.",
   "djMessage.cumparsita_never_style":
-    "{orchestra} hiç La Cumparsita kaydetmedi; yerine aynı {style} tarzda {other} orkestrasının {year} versiyonu {verb}.",
+    "{orchestra} orkestrasının kendi yıllarına yakın (±{window}) bir La Cumparsita kaydı yok; yerine aynı {style} tarzda {other} orkestrasının {year} versiyonu {verb}.",
   "djMessage.cumparsita_range":
     "{from}–{to} arasında La Cumparsita kaydedilmedi; geceyi {orchestra} orkestrasının {year} versiyonu kapatıyor.",
   "djMessage.ending_on": "{note}, {song} ile bitiyor",

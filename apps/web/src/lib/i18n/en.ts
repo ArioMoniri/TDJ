@@ -2083,9 +2083,9 @@ export const en = {
   "djMessage.cumparsita_near_with":
     "{orchestra} has no La Cumparsita from around {years}; the {year} recording with {singer} {verb} instead.",
   "djMessage.cumparsita_never":
-    "{orchestra} never recorded La Cumparsita; {other}'s {year} version {verb} instead.",
+    "{orchestra} has no La Cumparsita near its years (±{window}); {other}'s {year} version {verb} instead.",
   "djMessage.cumparsita_never_style":
-    "{orchestra} never recorded La Cumparsita; {other}'s {year} version {verb} instead, in the same {style} style.",
+    "{orchestra} has no La Cumparsita near its years (±{window}); {other}'s {year} version {verb} instead, in the same {style} style.",
   "djMessage.cumparsita_range":
     "No La Cumparsita was recorded in {from}–{to}; {orchestra}'s {year} version closes.",
   "djMessage.ending_on": "{note}, ending on {song}",
