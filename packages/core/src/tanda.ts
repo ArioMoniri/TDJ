@@ -1531,7 +1531,8 @@ export function buildTanda(
     if (fw) w *= Math.exp((fw.score - 100) / 15);
     // 2026-11 — succession (succession.ts): how the family follows the tanda before and leads into the planned next
     // one, on the parts pairScore does not carry (style alternation, voices, sound family, what DJs do, the DJ's pairs)
-    w *= successionFactor(succOf(c)) * successionFactor(succFwdOf(c));
+    // (a planned summit's material is the summit rules' — energy, hits, tier — so its chair is left to them)
+    if (!slot.peak) w *= successionFactor(succOf(c)) * successionFactor(succFwdOf(c));
     if (prof?.singerShift && c.singer && prof.singerShift[c.singer] !== undefined)
       w *= Math.max(0.2, 1 + prof.singerShift[c.singer]! * 0.08);
     if (slot.phase === "warmup" && prof?.warmupOnly) {

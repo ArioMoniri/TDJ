@@ -394,7 +394,7 @@ describe("big four — Di Sarli, D'Arienzo, Troilo, Pugliese spread over the nig
       }
       // (10 of the 12 3 h nights before)
       // (2026-11, the succession model: the seeded draws move, and a second 3 h seed — of twelve — keeps an empty
-      // quartile for the same reason, recorded; the back-to-back pairs fell 1.50 → 1.42 a night)
+      // quartile for the same reason, recorded; the back-to-back pairs stay at 1.50 a night)
       expect(empty).toBeLessThanOrEqual(2);
     });
     // (the owner asked for at most one; 1.5 is what the swaps reach without trading a repeat gap, a phase or a canon

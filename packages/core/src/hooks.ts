@@ -183,6 +183,9 @@ export function validCortinaStart(
   if (Number.isFinite(d) && d > 0) {
     if (d <= lengthSec) return 0;
     v = Math.min(v, d - lengthSec);
+    // (rounded down when it sits at the end: a start rounded up would play past the recording)
+    const r = round1(Math.max(0, v));
+    return r > d - lengthSec ? Math.max(0, Math.floor((d - lengthSec) * 10) / 10) : r;
   }
   return round1(Math.max(0, v));
 }

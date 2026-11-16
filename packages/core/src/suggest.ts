@@ -28,7 +28,9 @@ import type { ComposeOptions, DanceRhythm, LearnedPreferences, Playlist, Song, T
  * same family, within the tanda rules (voice, singer, year band, tempo, level, tone).
  */
 /** the succession's share of a suggestion's score: points of succession.ts COMPOSE_KINDS × this */
-export const SUGGEST_SUCCESSION = 0.8;
+export const SUGGEST_SUCCESSION = 0.5;
+/** …at most this much either way (the energy rules — a lift after two calm tandas — keep the lead) */
+export const SUGGEST_SUCCESSION_MAX = 5;
 
 export interface NextSuggestion {
   /** the family key (orchestraId|singer|rhythm), plus the side id for a single-side suggestion */
@@ -398,7 +400,10 @@ export function suggestNext(draft: Song[][], deps: ComposeDeps, opts: SuggestOpt
         }),
         { learned: L, profileOf: (id) => deps.catalog.profile(id) },
       );
-      score += composePoints(su) * SUGGEST_SUCCESSION;
+      score += Math.max(
+        -SUGGEST_SUCCESSION_MAX,
+        Math.min(SUGGEST_SUCCESSION_MAX, composePoints(su) * SUGGEST_SUCCESSION),
+      );
       if (su.verdict === "good") reasons.push([15, successionLine(su, prev[0]!.orchestra)]);
       else if (su.warning) reasons.push([2, successionLine(su, prev[0]!.orchestra)]);
     }

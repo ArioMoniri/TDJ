@@ -148,7 +148,7 @@ const C = SUCCESSION.curated;
 const P = C.points;
 
 /** the share of the compose weight the succession takes: w × exp(SUCCESSION_WEIGHT × points of COMPOSE_KINDS) */
-export const SUCCESSION_WEIGHT = 0.03;
+export const SUCCESSION_WEIGHT = 0.025;
 /**
  * the parts compose weighs: the ones the round-13 pairScore (transitions.ts) does not already carry — it scores the
  * energy step, the era and the tempo, and penalises same-class runs — so the night's arc is not counted twice

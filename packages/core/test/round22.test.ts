@@ -336,10 +336,13 @@ describe("suggestNext: live guidance for the hand-built night", () => {
     expect(r.suggestions.some((s) => isBig(s.orchestraId))).toBe(false);
   });
   it("lifts the energy after two calm tandas, and says so", () => {
-    const calm = night.tandas
+    // (2026-11: from both composed nights — the succession model moved seed 1's calmest pair to 60.5, no longer
+    // "two calm tandas"; the rule under test is the lift after two tandas under 60)
+    const calm = [...night.tandas, ...night2.tandas]
       .filter((t) => t.rhythm === "tango" && !isBig(t.orchestraId))
       .sort((a, b) => a.energy - b.energy)
       .slice(0, 2);
+    expect(calm.every((t) => t.energy < 60)).toBe(true);
     const mean = (calm[0]!.energy + calm[1]!.energy) / 2;
     const r = suggestNext(
       calm.map((t) => t.songs),
