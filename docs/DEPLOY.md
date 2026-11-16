@@ -34,6 +34,14 @@ docker build -t tdj . && docker run -p 3000:3000 tdj
 ## Runtime configuration
 No server secrets are required to run: without them, users bring their own Spotify Client ID and Anthropic key in **Settings**. Optional server defaults: `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`. The connector secrets below turn the BYO fields into one-tap logins.
 
+## Server database (DynamoDB)
+`sst.config.ts` creates one DynamoDB table, `Db` (on-demand, key `pk` as a string, items expire on `ttl`), links it to the Next.js function and passes its name as `TDJ_DB_TABLE`. It holds:
+- **Rooms** (`room#<code>`, forgotten 90 days after the last change), written with an optimistic revision check so two DJs editing at once never overwrite each other;
+- **short night links** (`night#<id>`, 30 days);
+- each DJ's synced database rows, keyed by the signed anonymous `tdj_uid` cookie.
+
+Nothing to set by hand: the first deploy after `999810a` creates the table, and the deploy role's `PowerUserAccess` already covers DynamoDB. Without `TDJ_DB_TABLE` (`pnpm dev`, `pnpm start`, a container) rooms and short links live in the server's memory and are lost on restart; on Lambda without a table, rooms are switched off (set `TDJ_ROOMS_MEMORY=1` only for a single-instance test). The production stage is protected and retains its resources, so the table outlives an `sst remove`; on any other stage removing it deletes the table and every room in it.
+
 ## Connectors
 
 ### Owner setup (no GitHub secrets needed)

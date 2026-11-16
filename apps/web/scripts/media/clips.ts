@@ -126,6 +126,18 @@ export async function openFeatured(page: Page, base: string) {
   await page.waitForTimeout(1500);
 }
 
+/** the featured night in the Booth, its sources resolved */
+export async function openBooth(page: Page, base: string) {
+  await openFeatured(page, base);
+  await page.getByTestId("play-the-night").first().click();
+  await page.getByTestId("booth-now-title").waitFor({ timeout: 30_000 });
+  await page
+    .locator('[data-testid="booth-ttc"]:not([data-resolving="1"])')
+    .waitFor({ timeout: 60_000 })
+    .catch(() => {});
+  await settle(page, 1200);
+}
+
 async function settle(page: Page, ms = 600) {
   await page.waitForLoadState("networkidle").catch(() => {});
   await page.waitForTimeout(ms);
@@ -156,48 +168,102 @@ export const CLIPS: Record<string, Clip> = {
     await ctx.close();
   },
 
-  /** 2. the Booth: AirPods as the headphones, start the night, pre-listen to a song while the room plays */
+  /**
+   * 2. the Booth on an iPad in landscape, by touch: start the night, Floor full on the song, Find songs across
+   * tonight's tandas, then a transition opened from its marker in the set list and set to Fade
+   */
   async booth({ browser, base, raw }) {
-    const ctx = await newCtx(browser, DESKTOP, "dark");
+    const ctx = await newCtx(browser, IPAD_LANDSCAPE, "dark");
     const page = await ctx.newPage();
     await offlineAudio(page, true);
-    await openFeatured(page, base);
-    await page.getByTestId("play-the-night").first().click();
-    await page.getByTestId("booth-now-title").waitFor({ timeout: 30_000 });
-    await page
-      .locator('[data-testid="booth-ttc"]:not([data-resolving="1"])')
-      .waitFor({ timeout: 60_000 })
-      .catch(() => {});
-    await settle(page, 1200);
-    // one steady zoom on the top of the deck (the outputs and the transport), then out for the pre-listen line:
-    // the Booth is dark and busy, so a calm camera keeps the clip readable and its GIF small
-    const r = new Recorder(page, "booth", raw, { zoom: 1.25 });
+    await openBooth(page, base);
+    // the sidebar folded away: the Booth gets the whole width, as a DJ sets it up for the night
+    await page.getByTestId("sidebar-hide").click();
+    await settle(page, 800);
+    const r = new Recorder(page, "booth", raw, { kind: "tablet", pointer: "touch", zoom: 1.25 });
     await r.start();
-    await r.wait(400);
-    r.focus({ x: 700, y: 260 }, 1.2);
-    await r.click(page.getByTestId("booth-out-cue"), { zoom: false });
-    const out = page.getByTestId("booth-output-sheet");
-    await r.click(out.locator('[data-device="hp"]'), { zoom: false, settle: 500 });
-    await page.keyboard.press("Escape");
-    await r.wait(300);
+    await r.wait(500);
+    await r.click(page.getByTestId("booth-start"), { zoom: false, settle: 1200 });
+    await r.click(page.getByTestId("now-floor-full"), { zoom: 1.3, settle: 1400 });
     r.focus(null);
-    await r.click(page.getByTestId("booth-start"), { zoom: false, settle: 800 });
-    const row = page.locator('.booth-row[data-kind="track"]').nth(6);
-    await r.click(row.getByTestId("booth-row-play"), { zoom: false, settle: 500 });
-    const pre = page.getByTestId("booth-play-sheet").getByTestId("booth-prelisten");
-    await r.click(pre, { zoom: false, settle: 600 });
-    await page.keyboard.press("Escape");
-    await r.wait(300);
-    const line = page.getByTestId("booth-cueline");
-    await line.waitFor({ timeout: 10_000 }).catch(() => {});
-    r.focus(await r.centre(line), 1.25);
-    await r.glide({ x: 820, y: 560 });
-    await r.wait(1800);
+    // the sheet slides up first: a tap while it moves would land on whatever passes under it
+    await r.click(page.getByTestId("booth-find-songs"), { zoom: false, settle: 1500 });
+    await r.type(page.getByTestId("booth-tonight-q"), "troilo", { zoom: false });
+    await r.wait(1600);
+    const find = page.getByTestId("booth-tonight-search");
+    await r.click(find.getByRole("button", { name: "Done" }).first(), { zoom: false, settle: 900 });
+    const gap = page.getByTestId("booth-gap").nth(3);
+    await r.click(gap, { zoom: false, settle: 0 });
+    const ed = page.getByTestId("booth-transition-sheet");
+    await r.fast(() => ed.waitFor({ timeout: 15_000 }), 400);
+    await r.wait(700);
+    await r.click(ed.getByTestId("booth-tr-preset-fade"), { zoom: false, settle: 1600 });
+    await r.click(ed.getByTestId("booth-tr-close"), { zoom: false, settle: 900 });
     await r.stop();
     await ctx.close();
   },
 
-  /** 3. Edit with AI without a key: "make tanda 7 calmer" → a checked change with a diff and Undo */
+  /** 3. Build by hand: take the suggested tanda, then the next one the guide suggests for the slot after it */
+  async build({ browser, base, raw }) {
+    const ctx = await newCtx(browser, DESKTOP);
+    const page = await ctx.newPage();
+    await page.goto(`${base}/build`, { waitUntil: "networkidle" });
+    await page.evaluate(() => {
+      localStorage.removeItem("tdj-build-draft");
+      localStorage.removeItem("tdj-build-meta");
+    });
+    await page.reload({ waitUntil: "networkidle" });
+    await page.getByTestId("build-guide").waitFor({ timeout: 30_000 });
+    await page.getByTestId("build-suggestion").first().waitFor({ timeout: 30_000 });
+    await settle(page, 800);
+    const r = new Recorder(page, "build", raw, { zoom: 1.3 });
+    await r.start();
+    await r.wait(600);
+    const add = () => page.getByTestId("build-suggestion").first().getByRole("button", { name: /^Add/ });
+    for (let k = 0; k < 2; k++) {
+      await r.click(add(), { settle: 900 });
+      const sheet = page.getByTestId("rule-sheet");
+      if (await sheet.isVisible().catch(() => false))
+        await r.click(sheet.getByTestId("rule-as-said"), { zoom: false, settle: 600 });
+      r.focus(null);
+      await r.wait(900);
+    }
+    await r.glide({ x: 520, y: 520 });
+    await r.scroll(420, 1300);
+    await r.wait(1600);
+    await r.stop();
+    await ctx.close();
+  },
+
+  /** 4. Library search: a misspelt title finds the right one, then words in any order narrow to one year */
+  async search({ browser, base, raw }) {
+    const ctx = await newCtx(browser, DESKTOP);
+    const page = await ctx.newPage();
+    await offlineAudio(page);
+    await page.goto(`${base}/library`, { waitUntil: "networkidle" });
+    const field = page.locator("#library-search").first();
+    await field.waitFor({ timeout: 30_000 });
+    await settle(page, 800);
+    const r = new Recorder(page, "search", raw, { zoom: 1.3 });
+    await r.start();
+    await r.wait(500);
+    await r.type(field, "ventaron");
+    await page.getByTestId("library-row").first().waitFor({ timeout: 20_000 });
+    await r.wait(400);
+    r.focus(await r.centre(page.getByTestId("library-row").first()), 1.3);
+    await r.wait(1800);
+    await r.click(page.getByRole("button", { name: "Clear search" }).first(), { settle: 300 });
+    await r.type(field, "di sarli 1941 instrumental");
+    await r.wait(900);
+    r.focus(null);
+    await r.click(page.getByTestId("library-row").nth(1).getByTestId("play-button"), {
+      zoom: false,
+      settle: 1800,
+    });
+    await r.stop();
+    await ctx.close();
+  },
+  /** 5. Edit with AI without a key: "make tanda 7 calmer" → a checked change with a diff and Undo */
   async "ai-edit"({ browser, base, raw }) {
     const ctx = await newCtx(browser, DESKTOP);
     const page = await ctx.newPage();
@@ -235,7 +301,7 @@ export const CLIPS: Record<string, Clip> = {
     await ctx.close();
   },
 
-  /** 4. Rooms: a laptop makes a room, a phone joins by its code, a skip and a move reach the other side */
+  /** 6. Rooms: a laptop makes a room, a phone joins by its code, a skip and a move reach the other side */
   async rooms({ browser, base, raw }) {
     const a = await newCtx(browser, DESKTOP);
     const b = await newCtx(browser, PHONE);
@@ -285,7 +351,7 @@ export const CLIPS: Record<string, Clip> = {
     await b.close();
   },
 
-  /** 5. share a night: Export → Share → a QR code another device can open */
+  /** 7. share a night: Export → Share → a QR code another device can open */
   async share({ browser, base, raw }) {
     const ctx = await newCtx(browser, DESKTOP);
     const page = await ctx.newPage();
@@ -312,53 +378,6 @@ export const CLIPS: Record<string, Clip> = {
     await r.wait(2200);
     r.focus(null);
     await r.wait(900);
-    await r.stop();
-    await ctx.close();
-  },
-
-  /** 6. the iPad in landscape: the sidebar, the night, then the Booth, by touch */
-  async ipad({ browser, base, raw }) {
-    const ctx = await newCtx(browser, IPAD_LANDSCAPE);
-    const page = await ctx.newPage();
-    await offlineAudio(page);
-    await openFeatured(page, base);
-    await page.evaluate(() => window.scrollTo(0, 0));
-    await settle(page, 600);
-    const r = new Recorder(page, "ipad", raw, { kind: "tablet", pointer: "touch", zoom: 1.25 });
-    await r.start();
-    await r.wait(700);
-    await r.glide({ x: 760, y: 560 });
-    await r.scroll(620, 1500);
-    await r.wait(700);
-    await r.scroll(520, 1300);
-    await r.wait(600);
-    const booth = page.getByRole("link", { name: "Booth" }).first();
-    await r.click(booth, { settle: 0 });
-    await r.fast(() => page.getByTestId("booth-now-title").waitFor({ timeout: 30_000 }), 500);
-    r.focus(null);
-    await r.wait(2200);
-    await r.stop();
-    await ctx.close();
-  },
-
-  /** 7. dark mode: Settings → Theme → Dark, then the night in the dark */
-  async dark({ browser, base, raw }) {
-    const ctx = await newCtx(browser, DESKTOP);
-    const page = await ctx.newPage();
-    await openFeatured(page, base);
-    await page.goto(`${base}/settings`, { waitUntil: "networkidle" });
-    await settle(page, 800);
-    const r = new Recorder(page, "dark", raw, { zoom: 1.4 });
-    await r.start();
-    await r.wait(500);
-    await r.click(page.getByRole("radio", { name: "Dark" }).first(), { settle: 1100 });
-    r.focus(null);
-    await r.click(page.getByRole("link", { name: "Compose" }).first(), { zoom: false, settle: 0 });
-    await r.fast(() => page.locator("#result").waitFor({ timeout: 30_000 }), 500);
-    await r.wait(900);
-    await r.glide({ x: 780, y: 520 });
-    await r.scroll(700, 1600);
-    await r.wait(1500);
     await r.stop();
     await ctx.close();
   },

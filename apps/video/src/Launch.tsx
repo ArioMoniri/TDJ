@@ -22,12 +22,12 @@ const OUTRO = 105;
 /** clip, caption, seconds of the clip to show (from its start) */
 export const SCENES: Array<[string, string, number]> = [
   ["compose", "One tap composes the night: tandas, cortinas, the arc.", 7],
-  ["booth", "The Booth plays it. Pre-listen in your headphones.", 7],
+  ["booth", "The Booth plays it, on an iPad by touch.", 8],
+  ["build", "Or build it by hand, with a guide beside you.", 6],
+  ["search", "Search that forgives a typo.", 6],
   ["ai-edit", "“Make tanda 7 calmer.” A checked change, with Undo.", 6],
   ["rooms", "Two DJs, one night, every edit on both sides.", 7],
   ["share", "Share a night with a QR code.", 5],
-  ["ipad", "On the iPad,", 5],
-  ["dark", "and in the dark booth.", 5],
 ];
 export const LAUNCH_FRAMES = INTRO + OUTRO + SCENES.reduce((n, s) => n + s[2] * LAUNCH_FPS, 0);
 

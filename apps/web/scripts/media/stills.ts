@@ -5,7 +5,7 @@
  */
 import { mkdirSync, rmSync } from "node:fs";
 import type { Browser, Page } from "playwright";
-import { newCtx, offlineAudio, openFeatured } from "./clips";
+import { newCtx, offlineAudio, openBooth, openFeatured } from "./clips";
 import { ffmpeg } from "./ffmpeg";
 
 export type StillCtx = { browser: Browser; base: string; out: string };
@@ -101,17 +101,84 @@ const resultArc: Shot = async (page, base) => {
 const DEFS: Record<string, [kind: "desktop" | "tablet" | "phone", theme: "light" | "dark", shoot: Shot]> = {
   "compose-light": ["desktop", "light", resultArc],
   "compose-dark": ["desktop", "dark", resultArc],
+  /** the Booth on an iPad in landscape, the sidebar folded, a song playing and the floor's reaction kept */
   booth: [
-    "desktop",
+    "tablet",
     "dark",
     async (page, base) => {
-      await openFeatured(page, base);
-      await page.getByTestId("play-the-night").first().click();
-      await page.getByTestId("booth-now-title").waitFor({ timeout: 30_000 });
-      await page
-        .locator('[data-testid="booth-ttc"]:not([data-resolving="1"])')
-        .waitFor({ timeout: 60_000 })
-        .catch(() => {});
+      await openBooth(page, base);
+      await page.getByTestId("sidebar-hide").click();
+      await page.getByTestId("booth-start").click();
+      await page.getByTestId("booth-pause").waitFor({ timeout: 20_000 });
+      await page.getByTestId("now-floor-full").click();
+      // the "Saved: Floor full" toast leaves first
+      await page.waitForTimeout(3500);
+    },
+  ],
+  "booth-phone": [
+    "phone",
+    "dark",
+    async (page, base) => {
+      await openBooth(page, base);
+      await page.getByTestId("booth-start").click();
+      await page.getByTestId("booth-pause").waitFor({ timeout: 20_000 });
+      await page.waitForTimeout(1500);
+    },
+  ],
+  /** the transition editor, opened from the marker between two songs, with Fade picked */
+  transitions: [
+    "tablet",
+    "dark",
+    async (page, base) => {
+      await openBooth(page, base);
+      await page.getByTestId("sidebar-hide").click();
+      await page.getByTestId("booth-gap").nth(3).click();
+      const ed = page.getByTestId("booth-transition-sheet");
+      await ed.waitFor({ timeout: 15_000 });
+      await ed.getByTestId("booth-tr-preset-fade").click();
+      await page.waitForTimeout(1200);
+    },
+  ],
+  build: [
+    "desktop",
+    "light",
+    async (page, base) => {
+      await page.goto(`${base}/build`, { waitUntil: "networkidle" });
+      await page.evaluate(() => {
+        localStorage.removeItem("tdj-build-draft");
+        localStorage.removeItem("tdj-build-meta");
+      });
+      await page.reload({ waitUntil: "networkidle" });
+      for (let k = 0; k < 2; k++) {
+        const add = page.getByTestId("build-suggestion").first().getByRole("button", { name: /^Add/ });
+        await add.waitFor({ timeout: 30_000 });
+        await add.click();
+        await page.waitForTimeout(1200);
+        const sheet = page.getByTestId("rule-sheet");
+        if (await sheet.isVisible().catch(() => false)) await sheet.getByTestId("rule-as-said").click();
+      }
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await page.mouse.move(1270, 790);
+      await page.waitForTimeout(900);
+    },
+  ],
+  search: [
+    "desktop",
+    "light",
+    async (page, base) => {
+      await page.goto(`${base}/library`, { waitUntil: "networkidle" });
+      await page.locator("#library-search").first().fill("ventaron");
+      await page.getByTestId("library-corrected").waitFor({ timeout: 20_000 });
+      await page.waitForTimeout(1200);
+    },
+  ],
+  memory: [
+    "desktop",
+    "light",
+    async (page, base) => {
+      await page.goto(`${base}/database?tab=memory`, { waitUntil: "networkidle" });
+      await page.getByRole("radio", { name: "From databases" }).click();
+      await page.waitForTimeout(1200);
     },
   ],
   "database-orchestras": [
@@ -135,7 +202,11 @@ const DEFS: Record<string, [kind: "desktop" | "tablet" | "phone", theme: "light"
     "desktop",
     "light",
     async (page, base) => {
+      // the learning section: what the featured night's edits taught, as rules a DJ can weigh or delete
       await page.goto(`${base}/settings`, { waitUntil: "networkidle" });
+      await page.getByTestId("learned-edits").evaluate((el) => el.scrollIntoView({ block: "start" }));
+      await page.evaluate(() => window.scrollBy(0, -110));
+      await page.waitForTimeout(800);
     },
   ],
   ipad: [
