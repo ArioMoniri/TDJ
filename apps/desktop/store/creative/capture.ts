@@ -15,6 +15,15 @@ import { tangoBed, wav } from "./audio";
 import { LINKED, RoomServer } from "./rooms";
 import { CAPTURE, type CaptureId, LOCALES, type Locale, SHOTS, type Shot } from "./spec";
 
+/**
+ * Lyrics are someone else's words: a store picture never shows a song's full lyrics. The Floor screen shows two lines
+ * (the line now and the next one), which stays; every other lyrics block (Now playing, song details) is blurred past
+ * reading, so the layout still shows where the lyrics are.
+ */
+export const LYRICS_CSS =
+  "[data-testid=song-lyrics-text],[data-testid=lyrics-candidate-text]{filter:blur(7px)!important;user-select:none}" +
+  ".floor-lyrics p:nth-of-type(n+3){display:none!important}";
+
 export const RAW = fileURLToPath(new URL("../out/creative/raw/", import.meta.url));
 export const PORT = Number(process.env.PORT ?? 3986);
 
@@ -69,7 +78,7 @@ async function newContext(
   } catch (_) {} })();`);
   await ctx.addInitScript(`document.addEventListener("DOMContentLoaded", () => {
     const s = document.createElement("style");
-    s.textContent = "[role=tooltip],.tip-bubble,[data-testid=tip-bubble],nextjs-portal{display:none!important}";
+    s.textContent = "[role=tooltip],.tip-bubble,[data-testid=tip-bubble],nextjs-portal{display:none!important}" + ${JSON.stringify(LYRICS_CSS)};
     document.head.appendChild(s);
   });`);
   const page = await ctx.newPage();

@@ -2,7 +2,8 @@
  * App Store app previews (store creative v2, `pnpm store:creative`): 15–30 s of the app's own screens, captured
  * from the bundled app UI (apps/desktop/store/creative/capture.ts), one chapter per feature with a few words on a
  * brand-coloured card, an original synthesised bed under it (audio.ts; no copyrighted music). One composition, sized
- * by its props: iPhone 886 × 1920, iPad 1200 × 1600, Mac 1920 × 1080. The files it reads are copied into
+ * by its props: iPhone 886 × 1920, iPad 1200 × 1600, Mac 1920 × 1080. The Mac one stands on the README hero's black
+ * stage: the 3D laptop (Showcase stills) with each capture on its screen and the words above it as a headline. The files it reads are copied into
  * public/store-creative/ by apps/desktop/store/creative/preview.ts before the render.
  */
 import type { CalculateMetadataFunction } from "remotion";
@@ -17,6 +18,8 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
+import { Headline, STAGE, Vignette } from "./three/Stage";
+import { appRect, PLACE } from "./three/showcase";
 
 export type StorePreviewProps = {
   width: number;
@@ -32,6 +35,11 @@ export type StorePreviewProps = {
   outroWords: string;
   chapters: Array<{ src: string; full?: string; words: string; frames: number; dark: boolean }>;
   audio?: string;
+  /**
+   * Mac: the 3D laptop on the black stage (Showcase stills, the app area a hole, placed at PLACE.previewMac), one
+   * for light screens and one for dark; each chapter's capture sits on its screen under a headline
+   */
+  laptop?: { light: string; dark: string };
 };
 
 export const STORE_PREVIEW_DEFAULTS: StorePreviewProps = {
@@ -211,19 +219,77 @@ const Chapter = ({
   );
 };
 
-const Brand = ({ words, lockup }: { words?: string; lockup: string }) => {
+/** a Mac chapter: the capture on the laptop's screen, the words above as a headline */
+const MacChapter = ({
+  c,
+  laptop,
+}: {
+  c: StorePreviewProps["chapters"][number];
+  laptop: NonNullable<StorePreviewProps["laptop"]>;
+}) => {
+  const frame = useCurrentFrame();
+  const { fps, width, height } = useVideoConfig();
+  const enter = spring({ frame, fps, config: { damping: 200 }, durationInFrames: 12 });
+  const words = spring({ frame: frame - 5, fps, config: { damping: 200 }, durationInFrames: 16 });
+  const r = appRect(width, height, PLACE.previewMac);
+  return (
+    <AbsoluteFill style={{ background: STAGE, opacity: enter }}>
+      <Img
+        src={staticFile(c.src)}
+        style={{ position: "absolute", left: r.x, top: r.y, width: r.w, height: r.h }}
+      />
+      <Img
+        src={staticFile(c.dark ? laptop.dark : laptop.light)}
+        style={{ position: "absolute", left: 0, top: 0, width, height }}
+      />
+      <Vignette />
+      <Headline
+        kicker="T-DJ"
+        text={c.words.replace(/\*/g, "")}
+        width={width}
+        top={height * 0.035}
+        size={height * 0.066}
+        style={{ opacity: words, transform: `translateY(${(1 - words) * height * 0.015}px)` }}
+      />
+    </AbsoluteFill>
+  );
+};
+
+const Brand = ({ words, lockup, stage }: { words?: string; lockup: string; stage?: boolean }) => {
   const frame = useCurrentFrame();
   const { fps, width, height } = useVideoConfig();
   const s = spring({ frame, fps, config: { damping: 200 }, durationInFrames: 14 });
   const m = Math.min(width, height);
   return (
-    <AbsoluteFill style={{ background: SKY, alignItems: "center", justifyContent: "center", gap: m * 0.05 }}>
+    <AbsoluteFill
+      style={{
+        background: stage ? STAGE : SKY,
+        alignItems: "center",
+        justifyContent: "center",
+        gap: m * 0.05,
+      }}
+    >
       <Img
         src={staticFile(lockup)}
-        style={{ width: m * 0.5, opacity: s, transform: `translateY(${(1 - s) * 20}px)` }}
+        style={{
+          width: m * 0.5,
+          opacity: s,
+          transform: `translateY(${(1 - s) * 20}px)`,
+          // the mono lockup is ink: white on the black stage
+          filter: stage ? "invert(1)" : undefined,
+        }}
       />
       {words ? (
-        <div style={{ font: `400 ${m * 0.06}px/1.1 Fraunces, Georgia, serif`, color: C.ink, opacity: s }}>
+        <div
+          style={{
+            font: stage
+              ? `600 ${m * 0.06}px/1.1 "SF Pro Display", -apple-system, "Inter Display", Inter, sans-serif`
+              : `400 ${m * 0.06}px/1.1 Fraunces, Georgia, serif`,
+            letterSpacing: stage ? "-0.03em" : undefined,
+            color: stage ? "#f5f5f7" : C.ink,
+            opacity: s,
+          }}
+        >
           <Words text={words} />
         </div>
       ) : null}
@@ -233,12 +299,13 @@ const Brand = ({ words, lockup }: { words?: string; lockup: string }) => {
 
 export const StorePreview = (p: StorePreviewProps) => {
   let at = p.intro;
+  const stage = p.kind === "mac" && !!p.laptop;
   return (
     <AbsoluteFill style={{ background: C.ink }} lang={p.lang}>
       <style>{FONTS}</style>
       {p.audio ? <Audio src={staticFile(p.audio)} /> : null}
       <Sequence durationInFrames={p.intro + 8}>
-        <Brand lockup="store-creative/lockup.svg" />
+        <Brand lockup="store-creative/lockup.svg" stage={stage} />
       </Sequence>
       {p.chapters.map((c, i) => {
         const from = at;
@@ -249,12 +316,16 @@ export const StorePreview = (p: StorePreviewProps) => {
             from={from}
             durationInFrames={c.frames + (i < p.chapters.length - 1 ? 10 : 0)}
           >
-            <Chapter c={c} kind={p.kind} statusTop={p.statusTop} />
+            {stage && p.laptop ? (
+              <MacChapter c={c} laptop={p.laptop} />
+            ) : (
+              <Chapter c={c} kind={p.kind} statusTop={p.statusTop} />
+            )}
           </Sequence>
         );
       })}
       <Sequence from={at} durationInFrames={p.outro}>
-        <Brand lockup="store-creative/lockup.svg" words={p.outroWords} />
+        <Brand lockup="store-creative/lockup.svg" words={p.outroWords} stage={stage} />
       </Sequence>
     </AbsoluteFill>
   );

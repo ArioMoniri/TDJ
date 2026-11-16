@@ -14,7 +14,7 @@
  * `FRAMES` gives each image's size and the screen's rectangle in image pixels; frames.ts uses it to lay out a frame
  * around any content rectangle.
  */
-import { APP_H, BASE_H, BASE_W, LID_D, PANEL_W, PIVOT, STRIP_H } from "./laptop";
+import { APP_H, BASE_H, BASE_W, LID_D, PANEL_TOP, PANEL_W, PIVOT, STRIP_H } from "./laptop";
 
 export type FrameKind = "phone" | "tablet" | "desktop";
 export type FrameMeta = {
@@ -69,7 +69,7 @@ function laptop(scale: number): FrameMeta {
   const half = BASE_W / 2 + 0.3;
   const w = Math.round(2 * half * scale);
   const h = Math.round((top - bottom) * scale);
-  const appTop = PIVOT.y + LID_D - 0.42 - STRIP_H; // laptop.ts: PANEL_TOP 0.42, then the strip
+  const appTop = PIVOT.y + LID_D - PANEL_TOP - STRIP_H; // the bezel, then the strip
   return {
     scale,
     w,

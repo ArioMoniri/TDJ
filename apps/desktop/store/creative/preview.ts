@@ -8,10 +8,11 @@
 import { spawnSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tangoBed, wav } from "./audio";
 import { rawPath } from "./compose";
+import { PLACE, renderShowcase, type Tone } from "./showcase";
 import {
   CAPTURE,
   type Locale,
@@ -110,6 +111,28 @@ function fontFiles() {
   };
 }
 
+/**
+ * The Mac preview's laptop (the README hero's, on its black stage): rendered once per run into the video's public
+ * folder, for light and dark screens; the composition lays each capture on its screen.
+ */
+let laptops: { light: string; dark: string } | null = null;
+function macLaptop(spec: PreviewSpec) {
+  laptops ??= (() => {
+    const at = (tone: Tone) => {
+      const png = renderShowcase({
+        width: spec.width,
+        height: spec.height,
+        place: PLACE.previewMac,
+        tone,
+        dir: PUB,
+      });
+      return `store-creative/${basename(png)}`;
+    };
+    return { light: at("light"), dark: at("dark") };
+  })();
+  return laptops;
+}
+
 const run = (cmd: string, args: string[], cwd?: string) => {
   const r = spawnSync(cmd, args, { cwd, stdio: ["ignore", "inherit", "inherit"] });
   if (r.status !== 0) throw new Error(`${cmd} ${args.slice(0, 3).join(" ")} … failed (${r.status})`);
@@ -153,6 +176,7 @@ export async function previews(o: {
         const seconds = frames / PREVIEW_FPS;
         writeFileSync(join(PUB, "bed.wav"), wav(tangoBed(seconds + 0.2), 48000));
         const props = {
+          ...(spec.id === "mac" ? { laptop: macLaptop(spec) } : {}),
           width: spec.width,
           height: spec.height,
           fps: PREVIEW_FPS,
