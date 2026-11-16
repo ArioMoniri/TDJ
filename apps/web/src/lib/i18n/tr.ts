@@ -5350,6 +5350,8 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "song.clear": "Sil",
   "song.clip_not_synced":
     "30 sn'lik klip kendi saniyelerini çalar: şerit ve sözler yalnızca tam kayıtla eşleşir.",
+  "song.back": "Geri",
+  "song.back_to": "{page} sayfasına dön",
   "song.close": "Kapat",
   "song.credits": "Künye",
   "song.credits_unknown": "Henüz bilinmiyor",

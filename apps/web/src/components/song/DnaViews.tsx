@@ -4,6 +4,7 @@ import { singerDisplay } from "@tdj/core";
 import { ChevronRight, Heart, Info } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { fmtDate, plural, t } from "@/lib/i18n";
+import { nameVisit } from "@/lib/navTrail";
 import { songHistory } from "@/lib/songHistory";
 import { type DnaTarget, openSongDetails, useSongOpen } from "@/lib/songOpen";
 import { useStore } from "@/lib/store";
@@ -77,6 +78,8 @@ export function SongDnaView({ id }: { id: string }) {
     () => (d ? songHistory({ id: d.song.id, title: d.song.title }, history, favourites) : null),
     [d, history, favourites],
   );
+  // (QA fix 2026-11: the page names itself for the next page's Back, "‹ Ansiedad")
+  useNameVisit(d?.work.title);
   if (!d) return <Loading error={error} />;
   const me = d.sides[d.song.id];
   const c = d.work.credit;
@@ -365,6 +368,7 @@ function PeopleLink({ to, name }: { to: DnaTarget; name: string }) {
 
 function PeopleView({ target }: { target: DnaTarget }) {
   const { data: d, error } = useDna<WithSides<PeopleDna>>(target);
+  useNameVisit(d?.name);
   if (!d) return <Loading error={error} />;
   const orch = target.kind === "orchestra";
   const years = Object.keys(d.byYear)
@@ -491,4 +495,11 @@ function PeopleView({ target }: { target: DnaTarget }) {
       </Group>
     </article>
   );
+}
+
+/** names this page in the tab's trail once its data is in (the Back button of the next DNA page reads it) */
+function useNameVisit(label: string | undefined) {
+  useEffect(() => {
+    if (label && typeof location !== "undefined") nameVisit(`${location.pathname}${location.search}`, label);
+  }, [label]);
 }

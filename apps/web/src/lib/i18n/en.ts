@@ -5146,6 +5146,8 @@ export const en = {
   "song.clear": "Clear",
   "song.clip_not_synced":
     "A 30 s clip plays its own seconds: the lane and the lyrics follow the full recording only.",
+  "song.back": "Back",
+  "song.back_to": "Back to {page}",
   "song.close": "Close",
   "song.credits": "Credits",
   "song.credits_unknown": "Not known yet",
