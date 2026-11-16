@@ -2,6 +2,7 @@
 import type { FloorReaction as Reaction, Song } from "@tdj/core";
 import { ChevronDown, Heart, Meh, TrendingDown } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
+import { onFloorReaction } from "@/lib/booth/adapt";
 import { useBooth } from "@/lib/booth/store";
 import { floorReactionOf, floorTap } from "@/lib/favourites";
 import { haptic } from "@/lib/haptics";
@@ -55,6 +56,8 @@ export function FloorReaction({
     haptic(8);
     const was = floorReactionOf(useStore.getState().memory, playlist, { scope, tanda, songId: song?.id });
     useStore.getState().updateMemory((m) => floorTap(m, playlist, { scope, tanda, song, reaction: r }));
+    // 2026-11: the floor's lesson (floor learning) and a suggestion for the next tandas (lib/booth/adapt.ts)
+    onFloorReaction(playlist, tanda - 1, was === r ? null : r);
     const what = REACTIONS.find((x) => x.r === r)!;
     toast(was === r ? t("fav.cleared_toast") : t("fav.tapped_toast", { reaction: t(what.key) }));
     onPick?.();

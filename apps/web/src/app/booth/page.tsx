@@ -3,6 +3,7 @@ import { Eye, Keyboard, LogOut } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
+import { AdaptCard } from "@/components/booth/AdaptCard";
 import { Banners } from "@/components/booth/Banners";
 import { ControlStrip } from "@/components/booth/ControlStrip";
 import { ControlsPanel, loadControlsOpen, saveControlsOpen } from "@/components/booth/ControlsPanel";
@@ -370,6 +371,8 @@ function Booth() {
       <div className="booth-grid">
         <div className="booth-deck" data-testid="booth-deck-col">
           <NowCard onInfo={(i) => setSong(i)} onPlay={tapRow} />
+          {/* 2026-11: a suggestion for the next tandas after a floor reaction (never applied by itself) */}
+          <AdaptCard />
           <div className="booth-deck-row">
             <NextCard onJump={showInSet} onPlay={tapRow} />
             <EnergyRail onJump={showInSet} />

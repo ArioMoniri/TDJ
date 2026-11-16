@@ -43,6 +43,14 @@ import {
   VALS_BANK,
   WARMUP_VALS_BANK,
 } from "./rules";
+import {
+  type Succession,
+  type SuccessionSide,
+  succession,
+  successionFactor,
+  successionSide,
+  successionSideOfSongs,
+} from "./succession";
 import { pairScore, sideOf, styleClass, type TransitionSide } from "./transitions";
 
 export interface TandaCandidate {
@@ -1077,6 +1085,45 @@ export function buildTanda(
       );
     return pairMemo.get(c)!;
   };
+  // 2026-11 — the succession model's side of a candidate family (its sides as the slot would hear them)
+  const succSideOf = (c: TandaCandidate): SuccessionSide =>
+    successionSideOfSongs(availOf(c).slice(0, need), {
+      orchestraId: c.orchestraId,
+      singer: c.singer,
+      rhythm: slot.rhythm,
+      vocal: c.vocal,
+      ...(sc.style(c.orchestraId) ? { style: sc.style(c.orchestraId) } : {}),
+      targetEnergy: slot.targetEnergy,
+      phase: slot.phase,
+      energy: estE(c),
+    });
+  const succCtx = { learned: sc.learned, profileOf: (id: string) => sc.profile?.(id) };
+  const prevSucc = prevT ? successionSide(prevT) : null;
+  const succMemo = new Map<TandaCandidate, Succession | null>();
+  const succOf = (c: TandaCandidate) => {
+    if (!prevSucc) return null;
+    if (!succMemo.has(c)) succMemo.set(c, succession(prevSucc, succSideOf(c), succCtx));
+    return succMemo.get(c)!;
+  };
+  const nextSucc: SuccessionSide | null = ctx.next
+    ? {
+        orchestraId: ctx.next.orchestraId,
+        singer: null,
+        rhythm: ctx.next.rhythm,
+        vocal: ctx.next.vocal,
+        ...(ctx.next.style ? { style: ctx.next.style } : {}),
+        energy: ctx.next.energy,
+        targetEnergy: ctx.next.targetEnergy,
+        ...(ctx.next.phase ? { phase: ctx.next.phase } : {}),
+        meanYear: ctx.next.meanYear,
+      }
+    : null;
+  const succFwdMemo = new Map<TandaCandidate, Succession | null>();
+  const succFwdOf = (c: TandaCandidate) => {
+    if (!nextSucc) return null;
+    if (!succFwdMemo.has(c)) succFwdMemo.set(c, succession(succSideOf(c), nextSucc, succCtx));
+    return succFwdMemo.get(c)!;
+  };
   const tripleTonight = hist.some((t, i) => {
     if (i < 2) return false;
     const pf = (id: string) => sc.profile?.(id);
@@ -1482,6 +1529,9 @@ export function buildTanda(
     if (ps) w *= Math.exp((ps.score - 100) / 15);
     const fw = fwdOf(c);
     if (fw) w *= Math.exp((fw.score - 100) / 15);
+    // 2026-11 — succession (succession.ts): how the family follows the tanda before and leads into the planned next
+    // one, on the parts pairScore does not carry (style alternation, voices, sound family, what DJs do, the DJ's pairs)
+    w *= successionFactor(succOf(c)) * successionFactor(succFwdOf(c));
     if (prof?.singerShift && c.singer && prof.singerShift[c.singer] !== undefined)
       w *= Math.max(0.2, 1 + prof.singerShift[c.singer]! * 0.08);
     if (slot.phase === "warmup" && prof?.warmupOnly) {

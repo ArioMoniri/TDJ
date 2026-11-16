@@ -1,6 +1,7 @@
 import { importNight, NightFormatError } from "@tdj/core";
 import { artwork } from "@/lib/api/artwork";
 import {
+  adapt,
   benchmark,
   checkEditRoute,
   compose,
@@ -185,6 +186,7 @@ const LOCAL: Record<string, Partial<Record<Method, Handler>>> = {
   "/api/benchmark": { POST: benchmark },
   "/api/check-edit": { POST: checkEditRoute },
   "/api/swap": { POST: swap },
+  "/api/adapt": { POST: adapt },
   "/api/swap-options": { POST: swapOptions },
   "/api/swap-track": { POST: swapTrack },
   "/api/tanda-set": { POST: tandaSet },

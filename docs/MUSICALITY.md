@@ -656,6 +656,57 @@ Rows with `yearApprox:true` ("1940" for an undated 1940s transfer) never anchor 
 
 `compose()` layers, lowest first: `DEFAULT_OPTIONS` → `ERA_SETTINGS[eras[0]]` → `overrides.rules` (the DJ's standing database rules) → the request (`partial`) → context shifts, which never touch a key the request set explicitly. `partial.explicit` names the explicit keys; without it every key present in the request is explicit. `playlist.options.contextApplied` lists what the context changed and what it skipped. `pattern:"TTVTTM-strict"` is never rewritten by context (`"classic"` may become a custom cycle under heat or an afternoon).
 
+## Succession: which tanda follows which (2026-11)
+
+The owner: "keep in mind in the creation pipeline which orchestra or singer comes after which singer/orchestra, in terms of energy etc."
+
+### Audit: how compose chose tanda i + 1 before this
+
+- **Plan** (`arc.ts`): `planSlots` gives every slot a rhythm from the cycle (TTVTTM by default, the rhythm counters), a phase (warm-up, build, peak, cool-down, close) and a target energy from the arc preset; planned summits (`peak`), the early D'Arienzo slot and the Pugliese slot are drawn per seed.
+- **The draw** (`tanda.ts buildTanda`): the families that fit the slot are filtered (repeat gaps per orchestra and singer, caps per night, phases, `followWith` after Pugliese, never two dramatic in a row, the colour / edge / golden-core caps, the fame floor) and the strict panel's per-slot rules are weighed together (fewest broken rules stay). The survivors are drawn by weight: energy fit to the target, phase, tier, fame, canon families, banks for vals and milonga, the gradual-step rule (more than 14 points from the previous tanda beyond the plan costs), the learned families, dancer favourites.
+- **Pairwise succession already existed** as the round-13 transition model (`transitions.ts pairScore`): 100 minus style (an R+ / R / L / B / D matrix), energy step against the plan, era, tempo, vocal alternation, style runs and cortina terms, plus hard rules H1–H6. It weighs both the step into a candidate and the step into the planned next tanda (`exp((S − 100) / 15)`), filters hard-rule breaks, and the night's `transitions` check scores it. **Bridge cues** (`isBridge`: a medium or slow cortina whose energy sits between the two tandas) halve the era penalty and let a > 6-year tango step pass.
+- **Big four** (`coherence.ts bigFourProblems`, `night_shape.json`): after the draw a repair spreads Di Sarli, D'Arienzo, Troilo and Pugliese over the quartiles and away from each other.
+- **What was missing**: what real DJs play after what (the 31 reference sets and the 168 cached set-blog sets were read for fame, roles and popularity only, never for order); the singers' voices; sound families (an orchestra after its own school); key and brightness; pairs the DJ made by hand; and any explanation of a pair in the UI.
+
+### The model (`packages/core/src/succession.ts`)
+
+S(A → B) is a sum of signed points, each with what it read, mapped to −1 … +1 by tanh(points / 12); ≥ 6 points is "follows well", ≤ −6 a warning (and any part at −3 or worse names one: two rhythmic / dramatic / lyrical in a row, an energy jump, a big jump in recording sound, two similar voices, the same singer, one sound family, rare in DJ sets).
+
+| Part | Reads | Points |
+|---|---|---|
+| energy | A's last side vs B's first side against the arc's planned step (B's target − A's) | +4 within 4 of the plan, −0.5 a point beyond, ≥ −10 |
+| style | tango → tango classes (transitions.ts `styleClass`): `succession_curated.json styleMatrix` (R+ → L +5, L → R +4, R → R −3, R+ → R+ −8, D → D −10 …) plus 3 × log2 of the corpus lift of that class pair (±3) | |
+| era | the mean years: +2 within 3 years, −1 a year beyond (≥ −10); ≤ 1935 ↔ ≥ 1950 another −4; halved around a vals / milonga | |
+| voice | both vocal: same singer −6; same class (high tenor −5, tenor −2, baritone −2, female −1); a contrast +2 (`voices`, 60 singers, estimates) | |
+| tempo | same rhythm, measured tempo else the profile's band: +1 within 6 BPM, −0.4 a BPM beyond (≥ −6) | |
+| key | analysed sides only: Camelot distance ≤ 1 +1, ≥ 3 −1; a brightness jump > 800 Hz −1 | |
+| lineage | two orchestras of one sound family (`lineages`: the D'Arienzo, Di Sarli, Pugliese, Caló and Troilo schools) −3 | |
+| corpus | the smoothed lift of A → B among the mined transitions: P = (c + 4·p_B) / (n_A + 4), lift = P / p_B, 2.5 × log2(lift) in −3 … +6 (n_A ≥ 3), + 0.5 a family-pair count (≤ +2); never positive on a same-kind style run (some set lists play the D'Arienzo school back to back; the strict panel does not) | |
+| learned | the DJ's pairs (edits, praise, floor reactions) | 1.5 a point, −1.5 … +4.5 |
+
+**Data** (`pnpm knowledge:succession` → `data/knowledge/succession.json`, committed, deterministic): 31 reference sets (504 transitions, weight 1) and 168 set-blog sets from the popularity cache (2,704 transitions, weight 0.5, so one DJ's habits never outvote the panel) — 3,208 transitions (1,856 weighted), 1,245 tango → tango; 502 orchestra pairs, 680 family pairs seen twice or more, 24 style-class pairs, each `[raw, weighted]`. D'Arienzo → Di Sarli 34×, Di Sarli → D'Arienzo 38×, Biagi → D'Arienzo 45×. The curated inputs live in `data/knowledge/succession_curated.json`; no orchestra is named in engine code.
+
+**Compose** (`tanda.ts` weight): w × exp(0.03 × points) for the step from the previous tanda and into the planned next one, over the parts pairScore does not already carry (style alternation, voice, lineage, corpus, learned, key — not energy, era or tempo, so the arc is not counted twice). Two big-four orchestras back to back: compose leaves their style and corpus bonus to the big-four spread rule and takes 4 points off (the explanation still shows "common in DJ sets"). **Swap choices** (`swapTandaOptions`): nearest the plan in bands of 4 energy points, inside a band the best flow (into it + out of it). **Build by hand** (`suggestNext`): + 0.8 × the same points and the one-line why.
+
+**Learning** (`learn.ts pairEdits`): a replaced tanda's new pairs +1, the broken ones −0.5 (−1 … 3); a praised tanda is one ♥ for the pair into and out of it (+0.25, ≤ +0.5 a pair — the Troilo T14 praise is one ♥, not a rule); floor reactions below. The repo store's overrides accept `pair:<a>><b>`.
+
+**UI**: Compose's tanda inspector and the swap sheet's suggested tandas show one line — "Follows Juan D'Arienzo well: lyrical after driving, common in DJ sets (34×), energy +2" or "Two rhythmic tandas in a row: …" (en + tr, `lib/succession.ts`).
+
+### Floor reactions: live adaptation and learning (`adapt.ts`, `floor.ts`)
+
+After a tanda's Floor full ♥ / OK / Floor emptied in the Booth (the room's hearts stand in for a tap: ≥ 2 a song is "full"), the next three unplayed tandas — never a played, pinned, locked, summit or última chair — are weighed against the engine's own alternatives for each chair: the succession into and out of it, the plan, and the reaction (emptied: the plan read 6 higher, energy over the plan, dancer favourites, known sides, fewer fame-0 sides, never cooler than it was; full: keep the line; ok: small corrections). An alternative must gain 4 (emptied), 8 (ok) or 14 (full), + 1.5 per tanda further away; at most one suggestion comes back as the Booth's card ("The floor emptied after Pedro Láurenz. Tanda 8: swap Edgardo Donato for Rodolfo Biagi 1941–1942 (energy +12, flows better) · Apply · Keep"). Apply goes through the rule check and the undo history; nothing changes the room by itself; compose never runs it (the golden set is unaffected).
+
+The reaction also teaches (`learnFromFloor`, unless Settings → learning → Floor reactions is off): the pair into the tanda ±0.25 (−0.5 … +0.75) and the energy step into its role (`build|up`, ±0.2 within ±0.6), read by the succession's learned part. A changed tap replaces its lesson, a tap taken back removes it. The family itself stays the dancer-favourites tracker's (it reads the same taps), so nothing counts twice.
+
+### Quality (`pnpm quality`, default 4 h golden set, engine score)
+
+| Seed | S1 | S2 | S3 | S4 | S5 | S6 | S7 | S8 | S9 | S10 | S11 | S12 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| before | 90 | 89 | 90 | 89 | 90 | 90 | 88 | 89 | 90 | 89 | 91 | 90 |
+| after | 90 | 89 | 88 | 89 | 90 | 90 | 88 | 89 | 90 | 89 | 91 | 91 |
+
+Mean 89.6 before and after (S3 −2, S12 +1); every seed ≥ 88. The benchmark totals rise 1,020 → 1,032 (S3 75 → 82, S12 82 → 87, S1 88 → 88). Over the golden set and the five round-14 panel nights the strict panel's rhythmic runs fall 7 → 4, opener 11 → 7, lastSide 12 → 7, preSummit 6 → 2; energyStep 11 → 12 and tandaTone 79 → 84 rise; 3 h nights' back-to-back big-four pairs 1.50 → 1.42, and a second 3 h seed of twelve keeps an empty quartile (recorded as a fallback; round21.test.ts allows two). The featured night's shipped JSON, its pinned tandas and its one-night exceptions are untouched (succession.test.ts).
+
 ## Booth timing
 
 `planBooth()` (`packages/core/src/booth.ts`, spec `docs/specs/round7-booth.md` §7) gives every set a clock the booth and the DJ-app exports share. The rule is the one DJs apply by hand: **silence of `gapSec` (2.5 s, 0.5–6) after every song and after every cortina**, none after a show break or the closing Cumparsita. A cortina plays from its cue-in to its stop second (20–90 s, the play length), its fade-out (3–6 s, default 4) ends exactly there, and the next tanda starts one gap after that silence. Gains are priors, not processing: `target − loudness` (−16 LUFS, −18…−12) clamped to ±12 dB plus the DJ's trim, reduced when a measured peak would pass −1 dBFS (never limited), cortinas 4 dB under the tandas (−8…−2). Leading silence is trimmed only on request and never beyond 3 s. `stats.wallClockSec` is this real clock; `stats.durationSec` remains the sum of recordings, so the benchmark is untouched.

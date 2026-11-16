@@ -14,6 +14,7 @@ import {
 import { familyKey, learnedFamilyWeight, learnedSideFactor, mergeLearned } from "./learn";
 import { withEraSettings } from "./profiles";
 import { recue } from "./repair";
+import { composePoints, succession, successionLine, successionSideOfSongs } from "./succession";
 import { renight, retimeTanda } from "./swap";
 import { isTandaEligible, shapeTanda } from "./tanda";
 import type { ComposeOptions, DanceRhythm, LearnedPreferences, Playlist, Song, Tanda } from "./types";
@@ -26,6 +27,9 @@ import type { ComposeOptions, DanceRhythm, LearnedPreferences, Playlist, Song, T
  * DJ's own edits taught (learned families and sides). Inside an unfinished tanda it suggests the next side of the
  * same family, within the tanda rules (voice, singer, year band, tempo, level, tone).
  */
+/** the succession's share of a suggestion's score: points of succession.ts COMPOSE_KINDS × this */
+export const SUGGEST_SUCCESSION = 0.8;
+
 export interface NextSuggestion {
   /** the family key (orchestraId|singer|rhythm), plus the side id for a single-side suggestion */
   key: string;
@@ -302,6 +306,15 @@ export function suggestNext(draft: Song[][], deps: ComposeDeps, opts: SuggestOpt
       break;
     }
   const prevBig = !!prev && isBig(prev[0]!.orchestraId);
+  const prevSide = prev
+    ? successionSideOfSongs(prev, {
+        orchestraId: prev[0]!.orchestraId,
+        singer: prev.find((x) => x.singer)?.singer ?? null,
+        rhythm: rhythmOf(prev[0]!),
+        vocal: prev.some((x) => x.vocal),
+        targetEnergy: slots[Math.max(0, slot - 1)]?.targetEnergy ?? target,
+      })
+    : null;
   const pool = deps.catalog
     .filter({
       eras: o.eras,
@@ -370,6 +383,24 @@ export function suggestNext(draft: Song[][], deps: ComposeDeps, opts: SuggestOpt
       const d = Math.abs(y - prevYear);
       score -= Math.min(d, 15) * 1.2;
       if (d <= 3) reasons.push([10, `stays in the ${Math.floor(y / 10) * 10}s, the years of the last tanda`]);
+    }
+    // 2026-11 — succession (succession.ts): how it follows the last tanda (the parts the energy fit above does not
+    // already weigh), and the one-line why
+    if (prev && prevSide) {
+      const su = succession(
+        prevSide,
+        successionSideOfSongs(rep, {
+          orchestraId: orch,
+          singer: s0.singer,
+          rhythm,
+          vocal: rep.some((x) => x.vocal),
+          targetEnergy: target,
+        }),
+        { learned: L, profileOf: (id) => deps.catalog.profile(id) },
+      );
+      score += composePoints(su) * SUGGEST_SUCCESSION;
+      if (su.verdict === "good") reasons.push([15, successionLine(su, prev[0]!.orchestra)]);
+      else if (su.warning) reasons.push([2, successionLine(su, prev[0]!.orchestra)]);
     }
     const lv = learnedFamilyWeight(L, key, ys);
     if (lv !== undefined) {

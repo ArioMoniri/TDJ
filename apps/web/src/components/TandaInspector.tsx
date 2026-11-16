@@ -6,6 +6,7 @@ import { lazy, t as tx } from "@/lib/i18n";
 import { lengthOf, tandaTotal, totalText } from "@/lib/lengths";
 import { sourceFor, trackFor, usePlayer } from "@/lib/player";
 import { useStore } from "@/lib/store";
+import { tandaSuccessionView } from "@/lib/succession";
 import type { Playlist } from "@/lib/types";
 import { metaLine, yearText } from "@/lib/year";
 import { RhythmTile } from "./Form";
@@ -58,6 +59,9 @@ export function TandaInspector({
   const drag = useDragReorder(move, !onMoveTrack || !!t?.locked);
   const cues = playlist.booth?.songCues;
   const total = useMemo(() => (t ? tandaTotal(t.songs, cues) : null), [t, cues]);
+  // 2026-11: how this tanda follows the one before (succession.ts), one line
+  const learned = useStore((s) => s.memory.learned);
+  const flow = useMemo(() => tandaSuccessionView(playlist, i, learned), [playlist, i, learned]);
   if (!t) return null;
   const where = tx("play.tanda", { n: i + 1 });
   const previews = t.songs.flatMap((s) => {
@@ -100,6 +104,16 @@ export function TandaInspector({
               : mmss(t.durationSec)}
           </dd>
         </dl>
+        {flow && (
+          <p
+            className={`text-footnote mt-2 truncate ${flow.tone === "warn" ? "text-[var(--destructive)]" : "text-[var(--label-2)]"}`}
+            title={flow.text}
+            data-testid="inspector-flow"
+            data-tone={flow.tone}
+          >
+            {flow.text}
+          </p>
+        )}
         <div className="mt-4 flex flex-wrap gap-2">
           <Tip text={tx("tandaInspector.hear_10_seconds_of_each_song")}>
             <button
