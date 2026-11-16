@@ -515,7 +515,11 @@ export function SmartSearchResults({
     rowTestIdOf,
     rowData,
   };
-  const d = useDeferredValue(listInput);
+  const deferred = useDeferredValue(listInput);
+  // only while the DJ types in this search's field: anything else (Edit, a value typed into a row's own field, a
+  // tap) renders the rows at once, so a row's controlled input never shows a stale value
+  const typing = typeof document !== "undefined" && document.activeElement?.id === id;
+  const d = typing ? deferred : listInput;
   // biome-ignore lint/correctness/useExhaustiveDependencies: `d` is the whole input (a new object per render)
   const rows = useMemo(() => {
     let k = -1;
