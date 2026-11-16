@@ -24,6 +24,7 @@ import { t } from "@/lib/i18n";
 import { toast } from "@/lib/toast";
 import { SeekBar } from "../ui/SeekBar";
 import { ArmButton, ConfirmRing } from "./Confirm";
+import { FadeButton } from "./FadeButton";
 import { Fader } from "./Fader";
 import { FloorReaction } from "./FloorReaction";
 import { PraiseTanda } from "./PraiseTanda";
@@ -276,34 +277,33 @@ export function ControlsPanel({
             >
               <StepForward size={20} strokeWidth={2} aria-hidden />
             </Btn>
-            <Btn
+            <FadeButton
+              kind="fade"
               label={t("booth.controlStrip.fade")}
-              onClick={() => a.fadeOutNow()}
-              disabled={!live || !caps.fade}
-              why={caps.fade ? undefined : t("booth.connect.no_fade_why")}
-              armKey="fade"
-              testId="ctl-fade"
               short={t("booth.controls.short_fade")}
+              why={caps.fade ? undefined : t("booth.connect.no_fade_why")}
+              live={live}
+              onRun={() => a.fadeOutNow()}
+              testId="ctl-fade"
+              className="booth-ctl-btn"
+              wordClass="booth-ctl-btn-l"
             >
               <TrendingDown size={20} strokeWidth={2} aria-hidden />
-            </Btn>
-            <Btn
+            </FadeButton>
+            <FadeButton
+              kind="crossfade"
               label={t("booth.controlStrip.crossfade")}
-              onClick={() => void a.crossfadeNext()}
-              disabled={!live || noOverlap || !caps.fade}
-              why={
-                !caps.fade
-                  ? t("booth.connect.no_fade_why")
-                  : noOverlap
-                    ? t("booth.controls.why_spotify_overlap")
-                    : undefined
-              }
-              armKey="crossfade"
-              testId="ctl-crossfade"
               short={t("booth.controls.short_crossfade")}
+              why={caps.fade ? undefined : t("booth.connect.no_fade_why")}
+              hint={noOverlap ? t("booth.controls.why_spotify_overlap") : undefined}
+              live={live}
+              onRun={() => void a.crossfadeNext()}
+              testId="ctl-crossfade"
+              className="booth-ctl-btn"
+              wordClass="booth-ctl-btn-l"
             >
               <Blend size={20} strokeWidth={2} aria-hidden />
-            </Btn>
+            </FadeButton>
             <Btn
               label={caps.fade ? t("booth.controls.stop_fade") : t("booth.controlStrip.stop")}
               onClick={() => {

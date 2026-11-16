@@ -1478,6 +1478,16 @@ class Live implements ExternalHandle {
     this.seekGuard = null;
     return false;
   }
+  /** 2026-11: a Fade the DJ took back while it ran: the volume steps stop and the level comes back */
+  unfade(): boolean {
+    if (this.done || !this.fadeTimer || this.fadingUp) return false;
+    clearInterval(this.fadeTimer);
+    this.fadeTimer = null;
+    this.level = 1;
+    this.applyVolume();
+    return true;
+  }
+  private fadingUp = false;
   /** 2026-11: an edited transition's end: stop `endsInSec` from now with its fade (volume steps where it can fade) */
   retime(o: { endsInSec: number; fadeOutSec: number }) {
     if (this.done) return;
@@ -1529,6 +1539,7 @@ class Live implements ExternalHandle {
 
   private fade(sec: number, up: boolean) {
     if (this.fadeTimer) clearInterval(this.fadeTimer);
+    this.fadingUp = up;
     const vols = fadeVolumes(sec);
     let i = 0;
     this.fadeTimer = setInterval(() => {

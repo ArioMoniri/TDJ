@@ -35,6 +35,7 @@ import { t as tx } from "@/lib/i18n";
 import { Artwork } from "../ui/Artwork";
 import { useTip } from "../ui/Tip";
 import { ConfirmRing, useHoldConfirm } from "./Confirm";
+import { FadeButton } from "./FadeButton";
 import { Fader } from "./Fader";
 
 /**
@@ -274,41 +275,37 @@ export function ControlStrip({
       )}
       {wide && (
         <>
-          <TBtn
+          {/* 2026-11: hold (or tap twice) to run, a countdown and Cancel while it runs, ⌘Z after (FadeButton.tsx) */}
+          <FadeButton
+            kind="fade"
             label={tx("booth.controlStrip.fade")}
-            hint={
-              caps.fade
-                ? tx("booth.controlStrip.fade_out_now_over_s_the", { fadeNowSec: settings.fadeNowSec })
-                : tx("booth.connect.no_fade_why")
-            }
+            short={tx("booth.controlStrip.fade")}
+            hint={tx("booth.controlStrip.fade_out_now_over_s_the", { fadeNowSec: settings.fadeNowSec })}
             why={caps.fade ? undefined : tx("booth.connect.no_fade_why")}
-            disabled={!live || !caps.fade}
-            onClick={() => act.fadeOutNow()}
-            confirmKey="fade"
+            live={live}
+            onRun={() => act.fadeOutNow()}
             testId="booth-strip-fade"
-            className="booth-wide-only booth-roomy-only"
+            className="booth-tbtn booth-wide-only booth-roomy-only"
+            wordClass="booth-tbtn-l"
           >
             <TrendingDown size={20} strokeWidth={2} aria-hidden />
-          </TBtn>
-          <TBtn
-            label={tx("booth.controls.short_crossfade")}
-            ariaLabel={tx("booth.controlStrip.crossfade")}
-            hint={
-              caps.fade
-                ? tx("booth.controlStrip.the_next_item_starts_now_while", {
-                    crossfadeSec: settings.crossfadeSec,
-                  })
-                : tx("booth.connect.no_fade_why")
-            }
+          </FadeButton>
+          <FadeButton
+            kind="crossfade"
+            label={tx("booth.controlStrip.crossfade")}
+            short={tx("booth.controls.short_crossfade")}
+            hint={tx("booth.controlStrip.the_next_item_starts_now_while", {
+              crossfadeSec: settings.crossfadeSec,
+            })}
             why={caps.fade ? undefined : tx("booth.connect.no_fade_why")}
-            disabled={!live || !caps.fade}
-            onClick={() => void act.crossfadeNext()}
-            confirmKey="crossfade"
+            live={live}
+            onRun={() => void act.crossfadeNext()}
             testId="booth-strip-crossfade"
-            className="booth-wide-only booth-roomy-only"
+            className="booth-tbtn booth-wide-only booth-roomy-only"
+            wordClass="booth-tbtn-l"
           >
             <Blend size={20} strokeWidth={2} aria-hidden />
-          </TBtn>
+          </FadeButton>
           <span className="booth-strip-sep booth-roomy-only" aria-hidden />
         </>
       )}

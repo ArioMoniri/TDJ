@@ -1025,8 +1025,23 @@ export class BoothEngine {
     this.transition("paused", "pause");
   }
 
+  /**
+   * 2026-11 (the owner: "Fade and Crossfade can't be reversed"): the fade or crossfade running now — the button
+   * says "Cancel fade · 3 s" and `cancelFade` takes it back while it runs.
+   */
+  fading: {
+    kind: "fade" | "crossfade";
+    /** ctx time the fade is through */
+    until: number;
+    out: Scheduled;
+    /** where the outgoing would have ended on its own */
+    origEnd: number;
+    wasInterrupted: boolean;
+    incoming?: Scheduled;
+  } | null = null;
+
   /** Fade out now (round 20): the running item fades over `sec` and ends; the next item follows at the gap. */
-  fadeOutNow(sec = this.settings.fadeNowSec): void {
+  fadeOutNow(sec = this.settings.fadeNowSec, kind: "fade" | "crossfade" = "fade"): void {
     if (this.state !== "playing" && this.state !== "cortina") return;
     const c = this.current;
     if (!c || c.kind === "break" || c.cancelled) return;
@@ -1034,6 +1049,7 @@ export class BoothEngine {
     if (c.when > now) return;
     const fade = Math.max(DECLICK_OUT, sec);
     if (now + fade >= c.endsAt) return; // it ends sooner on its own
+    this.fading = { kind, until: now + fade, out: c, origEnd: c.endsAt, wasInterrupted: !!c.interrupted };
     c.interrupted = true;
     c.endsAt = now + fade;
     if (c.external) c.external.stop(fade);
@@ -1056,9 +1072,17 @@ export class BoothEngine {
     if (!c || c.cancelled) return;
     const n = this.nextPlayable(c.planIndex);
     if (n === null || this.item(n)?.kind === "break" || c.external || isExternalKind(this.sources[n]))
-      return this.fadeOutNow(sec);
+      return this.fadeOutNow(sec, "crossfade");
     const now = this.ctx.currentTime;
     const fade = Math.max(DECLICK_OUT, sec);
+    const run = {
+      kind: "crossfade" as const,
+      until: now + fade,
+      out: c,
+      origEnd: c.endsAt,
+      wasInterrupted: !!c.interrupted,
+    };
+    this.fading = run;
     c.interrupted = true;
     this.cancelQueued();
     this.holding = false;
@@ -1084,14 +1108,114 @@ export class BoothEngine {
     const s = await this.schedule(n, this.ctx.currentTime + START_AHEAD);
     if (!s) {
       this.current = null;
+      this.fading = null;
       this.transition("paused", "crossfade failed");
       return;
     }
+    if (this.fading === run) this.fading = { ...run, incoming: s };
     this.current = s;
     this.anchors.push({ planIndex: n, at: new Date(this.wall()).toISOString() });
     this.transition(s.kind === "cortina" ? "cortina" : "playing", "crossfade");
     this.onEvent({ type: "item", planIndex: n });
     await this.scheduleNext();
+  }
+
+  /**
+   * 2026-11: take back the fade or crossfade running now (true when it did). A fade: the gain comes back and the song
+   * keeps its own end (the next item at its gap again). A crossfade: the outgoing is the current item again to its own
+   * end and the incoming leaves with a short fade. On Spotify in the browser a fade's volume steps are called off.
+   */
+  cancelFade(): boolean {
+    const f = this.fading;
+    this.fading = null;
+    if (!f) return false;
+    const now = this.ctx.currentTime;
+    if (now >= f.until || (this.state !== "playing" && this.state !== "cortina")) return false;
+    const c = f.out;
+    const restore = () => {
+      if (c.external) return c.external.unfade?.() ?? false;
+      if (!c.gain) return false;
+      this.cancelAutomation(c.gain.gain, now);
+      c.gain.gain.setTargetAtTime(c.base, now, 0.05);
+      c.node?.stop(f.origEnd);
+      return true;
+    };
+    if (f.kind === "fade" || !f.incoming) {
+      if (this.current !== c || !restore()) return false;
+      c.endsAt = f.origEnd;
+      c.interrupted = f.wasInterrupted;
+      this.cancelQueued();
+      if (c.gain && !c.external) this.endEnvelope(c, now);
+      this.transition(this.state, "fade cancelled");
+      void this.scheduleNext();
+      return true;
+    }
+    const s = f.incoming;
+    if (this.current !== s || !restore()) return false;
+    c.cancelled = false;
+    c.interrupted = f.wasInterrupted;
+    c.endsAt = f.origEnd;
+    this.tails.delete(c);
+    this.cancelQueued();
+    s.cancelled = true;
+    this.fadeNodes(s, now, 0.15);
+    s.node?.stop(now + 0.15);
+    s.external?.stop(0.15);
+    this.current = c;
+    this.planIndex = c.planIndex;
+    if (c.gain && !c.external) this.endEnvelope(c, now);
+    this.transition(c.kind === "cortina" ? "cortina" : "playing", "crossfade cancelled");
+    this.onEvent({ type: "item", planIndex: c.planIndex });
+    void this.scheduleNext();
+    return true;
+  }
+  /** an item's own end again (the night's song end fade, or the declick), after its fade was taken back */
+  private endEnvelope(c: Scheduled, now: number) {
+    const it = this.item(c.planIndex);
+    const w = transitionWindow(null, {
+      outLen: c.endsAt - c.startedAt,
+      inLen: 0,
+      gapSec: 0,
+      songFadeOutSec: this.settings.songFadeOutSec,
+      outKind: it?.kind,
+      cortinaFadeOutSec: it?.fadeOutSec ?? this.settings.cortinaFadeOutSec,
+    });
+    applyOutgoing(c.gain!.gain, {
+      endsAt: c.endsAt,
+      base: c.base,
+      window: w,
+      curve: "equalPower",
+      now,
+      notBefore: now + 0.3,
+    });
+  }
+  /**
+   * 2026-11 (Undo after a fade or crossfade went through): item `i` plays again from `at` seconds in (a short fade
+   * out of what plays now).
+   */
+  async returnTo(i: number, at: number): Promise<void> {
+    if (!this.plan?.items[i] || this.item(i)?.kind === "break") return;
+    this.fading = null;
+    const live = this.live;
+    const ext = !!this.current?.external || isExternalKind(this.sources[i]);
+    if (live) this.stop("undo", 0.3);
+    this.planIndex = i;
+    this.pausedAt = {
+      planIndex: i,
+      at: Math.max(0, at),
+      runtime: {
+        planIndex: i,
+        startedAt: 0,
+        endsAt: this.itemLength(i),
+        source: (this.sources[i] === "missing" ? "file" : this.sources[i]) as SourceKind,
+        gainDb: 0,
+        peakCapped: false,
+        gainFrom: "none",
+        started: false,
+      },
+    };
+    this.transition("armed", "undo");
+    await this.play(live ? 0.35 + (ext ? SEEK_EXTERNAL_DELAY : 0) : undefined);
   }
 
   /** Stop now, then play the next item once the fade is through. */

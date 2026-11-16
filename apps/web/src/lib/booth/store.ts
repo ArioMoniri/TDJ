@@ -19,6 +19,7 @@ import {
 } from "@tdj/core";
 import { create } from "zustand";
 import { useShallow } from "zustand/react/shallow";
+import { recordEdit } from "@/lib/editHistory";
 import { playsIn } from "@/lib/favourites";
 import { makeNightLog, makeSnapshot } from "@/lib/history";
 import { t as tx } from "@/lib/i18n";
@@ -269,6 +270,13 @@ interface BoothStore {
   togglePause: () => void;
   fadeOutNow: () => void;
   crossfadeNext: () => Promise<void>;
+  /**
+   * 2026-11 (the owner: "Fade and Crossfade give no feedback and can't be reversed"): the fade or crossfade running now
+   * (the button counts it down and becomes Cancel), `cancelFade` takes it back; once through, ⌘Z / Undo plays the
+   * song before it again from where it was.
+   */
+  fadeRun: { kind: "fade" | "crossfade"; endsAtMs: number; sec: number } | null;
+  cancelFade: () => boolean;
   setDucked: (on: boolean) => void;
   /** round 20: the DJ's fade in / fade out / stop second for one cortina, saved with the set (null resets it) */
   setCortinaEdit: (id: string, edit: CortinaEdit | null) => void;
@@ -521,6 +529,7 @@ export const useBooth = create<BoothStore>()((set, get) => ({
   planIndex: 0,
   current: null,
   position: 0,
+  fadeRun: null,
   remaining: 0,
   timeToCumparsita: 0,
   drift: 0,
@@ -915,10 +924,26 @@ export const useBooth = create<BoothStore>()((set, get) => ({
   },
   // 2026-11: a device that cannot fade (Spotify Connect) has no Fade or Crossfade (the keys f / x too)
   fadeOutNow: () => {
-    if (roomCaps(get()).fade) engine?.fadeOutNow();
+    if (!roomCaps(get()).fade || !engine) return;
+    const before = nowAt();
+    engine.fadeOutNow();
+    if (engine.fading) startFadeRun("fade", get().settings.fadeNowSec, before);
   },
   crossfadeNext: async () => {
-    if (roomCaps(get()).fade) await engine?.crossfadeNext();
+    if (!roomCaps(get()).fade || !engine) return;
+    const before = nowAt();
+    const sec = get().settings.crossfadeSec;
+    const run = engine.crossfadeNext();
+    // the button counts down from the press (the incoming is scheduled in the background)
+    if (engine.fading) startFadeRun("crossfade", sec, before);
+    await run;
+    if (engine?.fading && !get().fadeRun) startFadeRun("crossfade", sec, before);
+  },
+  cancelFade: () => {
+    const ok = !!engine?.cancelFade();
+    clearFadeRun();
+    if (ok && engine) set({ planIndex: engine.planIndex, position: engine.position() });
+    return ok;
   },
   setDucked: (on) => {
     // 2026-11: Talk needs volume control on the room's device ("Not available on this device")
@@ -1796,6 +1821,50 @@ function tick(now: number) {
   if (eng.current && media && Math.floor(now / 5000) !== Math.floor((now - 34) / 5000))
     media.setPosition(eng.currentLength(), eng.position());
 }
+/** where the night is now (the item and the seconds into it), for a fade's Undo */
+function nowAt(): { planIndex: number; at: number } | null {
+  if (!engine?.current) return null;
+  return { planIndex: engine.current.planIndex, at: engine.position() };
+}
+let fadeTimer: ReturnType<typeof setTimeout> | null = null;
+function clearFadeRun() {
+  if (fadeTimer) clearTimeout(fadeTimer);
+  fadeTimer = null;
+  if (useBooth.getState().fadeRun) useBooth.setState({ fadeRun: null });
+}
+/** a fade or crossfade went out: the buttons count it down; Undo (⌘Z, the toast) takes it back */
+function startFadeRun(
+  kind: "fade" | "crossfade",
+  sec: number,
+  before: { planIndex: number; at: number } | null,
+) {
+  if (fadeTimer) clearTimeout(fadeTimer);
+  useBooth.setState({ fadeRun: { kind, sec, endsAtMs: Date.now() + sec * 1000 } });
+  fadeTimer = setTimeout(() => {
+    fadeTimer = null;
+    useBooth.setState({ fadeRun: null });
+  }, sec * 1000);
+  if (!before) return;
+  recordEdit({
+    label: kind === "fade" ? tx("booth.fade.undo_fade") : tx("booth.fade.undo_crossfade"),
+    scope: "/booth",
+    undo: async () => {
+      const s = useBooth.getState();
+      // still running: take it back; through: the song before plays again from where it was
+      if (s.fadeRun && s.cancelFade()) return;
+      if (!engine) return;
+      await engine.returnTo(before.planIndex, before.at);
+      startTicking();
+      useBooth.setState({ planIndex: engine.planIndex, position: engine.position() });
+    },
+    redo: () => {
+      const s = useBooth.getState();
+      if (kind === "fade") s.fadeOutNow();
+      else void s.crossfadeNext();
+    },
+  });
+}
+
 function startTicking() {
   if (!raf && typeof requestAnimationFrame === "function") raf = requestAnimationFrame(tick);
 }
