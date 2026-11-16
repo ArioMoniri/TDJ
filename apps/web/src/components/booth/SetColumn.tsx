@@ -101,19 +101,46 @@ export function SetColumn({
     const r = row.getBoundingClientRect();
     // the column's foot is padded by the transport's space: the visible part ends above it
     const pad = Number.parseFloat(getComputedStyle(box).scrollPaddingBottom) || 0;
-    return { box, b, r, foot: b.bottom - pad };
+    // (2026-11: with the Controls panel open the night bar's clock stays pinned at the column's top: what the column
+    // shows of the list starts under it)
+    const night = box.querySelector<HTMLElement>(":scope > .booth-night");
+    const head =
+      night && getComputedStyle(night).position === "sticky"
+        ? Math.max(b.top, night.getBoundingClientRect().bottom)
+        : b.top;
+    return { box, b, r, head, foot: b.bottom - pad };
   }, [scroller]);
   const toNow = useCallback(
     (force = false) => {
       const m = rowBox();
       if (!m) return;
       if (!force && Date.now() - userAt.current < 10_000) return;
-      const { box, b, r, foot } = m;
+      const { box, b, r, head, foot } = m;
       // 2026-11 (DJ review: the playing row sat on the bottom edge, under the fade and the toasts): the playing row
       // stays in the middle third of what the column shows; out of it, it comes back to the middle
-      const h = foot - b.top;
+      const h = foot - head;
       const mid = (r.top + r.bottom) / 2;
-      if (mid < b.top + h / 3 || mid > b.top + (2 * h) / 3) box.scrollTop += mid - (b.top + h / 2);
+      let target = box.scrollTop;
+      if (mid < head + h / 3 || mid > head + (2 * h) / 3) target += mid - (head + h / 2);
+      // 2026-11 (the overlap pass: a half row "Lo Pasado Pasó" under the fade): the list ends on a whole row — the
+      // nearest row foot comes to the column's foot, as long as the playing row stays in the middle third
+      const at = (y: number) => y - b.top + box.scrollTop; // a viewport y in the scroller's content
+      const ends = [...(list.current?.querySelectorAll<HTMLElement>(".booth-row") ?? [])].map((x) =>
+        at(x.getBoundingClientRect().bottom),
+      );
+      const span = foot - b.top; // from the scroller's top to the visible foot
+      const want = target + span;
+      const end = ends.reduce<number | null>(
+        (best, e) => (best === null || Math.abs(e - want) < Math.abs(best - want) ? e : best),
+        null,
+      );
+      if (end !== null) {
+        const t = end - span;
+        const rel = at(mid) - t - (head - b.top);
+        if (rel >= h / 3 && rel <= (2 * h) / 3) target = t;
+      }
+      target = Math.max(0, Math.min(box.scrollHeight - box.clientHeight, target));
+      if (Math.abs(target - box.scrollTop) > 0.5) box.scrollTop = target;
     },
     [rowBox],
   );
@@ -136,7 +163,7 @@ export function SetColumn({
     };
     const check = () => {
       const m = rowBox();
-      setAway(useBooth.getState().started && !!m && (m.r.bottom < m.b.top || m.r.top > m.foot));
+      setAway(useBooth.getState().started && !!m && (m.r.bottom < m.head || m.r.top > m.foot));
     };
     box.addEventListener("wheel", mark, { passive: true });
     box.addEventListener("touchmove", mark, { passive: true });

@@ -1598,23 +1598,24 @@ html[data-booth] {
    that the Now card's countdown leaves the deck (the columns keep ≥ 250 px, the countdown sits ~225 px into the card);
    its groups scroll inside it, the foot fades and "More" says what is below. (Option A of the review: a capped panel,
    not an overlay of the set column — the Now card and its countdown stay whole, the set list keeps its place.) */
+/* (2026-11, the overlap pass: the open panel's Now card is compact — ~200 px, booth.css's end — so the columns keep
+   ≥ 220 px and the panel may take up to 46 %: its first two rows of groups, Transport / Song and Cue / Mixer / Timing,
+   show whole on an iPad Pro 11 in landscape) */
 @media (min-width: 900px) {
   .booth .booth-ctl {
     max-height: min(
-      40dvh,
-      calc(100dvh - var(--booth-grid-top, 200px) - var(--booth-strip-space, 88px) - 14px - 250px)
+      46dvh,
+      calc(100dvh - var(--booth-grid-top, 200px) - var(--booth-strip-space, 88px) - 14px - 220px)
     );
   }
 }
+/* (the overlap pass: the fold falls between rows — ControlsPanel fits the body to whole rows — so the foot's fade only
+   covers the cards' own bottom padding; "More" is a head button, never over a control) */
 .booth-ctl-body[data-more] {
-  mask-image: linear-gradient(to bottom, #000 calc(100% - 44px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 12px), transparent);
 }
 .booth-ctl-more {
-  position: absolute;
-  left: 50%;
-  bottom: 6px;
-  z-index: 2;
-  transform: translateX(-50%);
+  flex: none;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -1625,7 +1626,6 @@ html[data-booth] {
   color: var(--label);
   font-size: 13px;
   font-weight: 600;
-  box-shadow: 0 2px 10px rgb(0 0 0 / 0.22);
 }
 
 /* ---------- the transport: the primary fits its longest word; a tap asks to hold without relabelling ---------- */
@@ -1799,24 +1799,69 @@ html[data-booth] {
   }
 }
 
-/* ---------- the chips under the title: iPad portrait keeps them in two rows, Find songs on the first ---------- */
-@media (min-width: 600px) and (max-width: 1023.98px) {
+/* ---------- the chips under the title: one row from 600 px (iPad portrait and landscape, en and tr), Find songs at
+   its end. 2026-11 (the overlap pass: Find songs fell alone onto a second line): the row never wraps; it makes room
+   step by step as the toolbar narrows (a container query on its width, whatever the language) — the ROOM /
+   HEADPHONES words step aside (the glyph says them), then Show keeps its glyph only, and last the device names
+   shrink with an ellipsis. The full text stays each chip's accessible name and hint. ---------- */
+@media (min-width: 600px) {
   .booth-head-row {
     flex-wrap: nowrap;
     align-items: flex-start;
   }
   .booth-head-row > .booth-toolbar {
     flex: 1 1 0;
+    min-width: 0;
+    flex-wrap: nowrap;
+    container: booth-toolbar / inline-size;
+  }
+  /* (before the night: a "Play full tracks" / reconnect offer joins the chips; that row may wrap) */
+  .booth-head-row > .booth-toolbar:has(> .btn-plain, > a, > .text-footnote) {
+    flex-wrap: wrap;
   }
   .booth-head-row > :not(.booth-toolbar) {
     flex: none;
   }
-  /* the compact chip: the glyph says ROOM / HEADPHONES (both stay the accessible name and the hint) */
+  .booth-toolbar > .booth-out {
+    flex: 0 1 auto;
+    min-width: 44px;
+    overflow: hidden;
+  }
+  .booth-toolbar > .booth-out > svg,
+  .booth-toolbar > .booth-out > .booth-out-word,
+  .booth-toolbar > .booth-chip,
+  .booth-toolbar > [data-testid="booth-show"] {
+    flex: none;
+  }
+}
+/* the compact chip: the glyph says ROOM / HEADPHONES (both stay the accessible name and the hint) */
+@container booth-toolbar (max-width: 719.98px) {
   .booth-toolbar > .booth-out > .booth-out-word {
     display: none;
   }
   .booth-toolbar > .booth-out,
-  .booth-toolbar > .booth-chip,
+  .booth-toolbar > .booth-chip {
+    padding: 0 12px;
+  }
+}
+/* Show: its glyph only, a 44 px chip (its name stays "Show") */
+@container booth-toolbar (max-width: 579.98px) {
+  .booth-toolbar > [data-testid="booth-show"] {
+    position: relative;
+    width: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+  .booth-toolbar > [data-testid="booth-show"] > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+@media (min-width: 600px) and (max-width: 1023.98px) {
   .booth-head-row [data-testid="booth-find-songs"] {
     padding: 0 12px;
   }
@@ -1833,4 +1878,294 @@ html[data-booth] .sheet-material::after {
 }
 html[data-booth] .sheet-material {
   box-shadow: 0 24px 80px rgb(0 0 0 / 0.4);
+}
+
+/* =====================================================================================================================
+   2026-11 — the overlap pass (the owner's iPad Pro 11 landscape, sidebar open, Rehearsal, Controls panel open)
+   ===================================================================================================================== */
+
+/* ---------- the Now card while the Controls panel is open (two columns): a compact card that fits the deck whole —
+   a smaller artwork, the title, artist and tanda type on one line each, the countdown beside the seek bar and the
+   tanda's dots. Era, BPM / key and energy, the source / level chips, End tanda, Song info and the floor step aside while the panel is open:
+   the panel has each (Tanda › Skip tanda, Song › Start point… opens the same song sheet, Floor); the set list's
+   tanda header says the type and the singer ---------- */
+@media (min-width: 900px) {
+  .booth[data-controls="open"] .booth-deck > [data-testid="booth-now"] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 16px;
+    row-gap: 2px;
+    padding: 10px 16px 12px;
+  }
+  .booth[data-controls="open"] [data-testid="booth-now"] > * {
+    grid-column: 1 / -1;
+  }
+  .booth[data-controls="open"] [data-testid="booth-now"] .booth-now-head {
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 2px;
+  }
+  .booth[data-controls="open"] [data-testid="booth-now"] .booth-now-head .booth-art {
+    /* (the size, not --art: the component sets --art inline) */
+    width: 60px;
+    height: 60px;
+    border-radius: 8px;
+  }
+  .booth[data-controls="open"] [data-testid="booth-now"] .booth-title {
+    font-size: 22px;
+    margin-top: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow-wrap: normal;
+  }
+  .booth[data-controls="open"] [data-testid="booth-now"] .booth-now-artist {
+    font-size: 15px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow-wrap: normal;
+  }
+  /* the tanda's type stays, on one line (the mode ellipsised, its full words in the title) */
+  .booth[data-controls="open"] [data-testid="booth-now"] .booth-meta {
+    flex-wrap: nowrap;
+    min-width: 0;
+    margin-top: 3px;
+  }
+  .booth[data-controls="open"] [data-testid="booth-now"] .booth-meta > :not(.booth-now-type) {
+    display: none;
+  }
+  .booth[data-controls="open"] [data-testid="booth-now"] .booth-now-type,
+  .booth[data-controls="open"] [data-testid="booth-now"] .booth-now-type .tanda-type-mode {
+    white-space: nowrap;
+  }
+  .booth[data-controls="open"] [data-testid="booth-now"] > .booth-now-chips,
+  .booth[data-controls="open"] [data-testid="booth-now"] > .booth-now-actions,
+  .booth[data-controls="open"] [data-testid="booth-now"] > .booth-floor,
+  .booth[data-controls="open"] [data-testid="booth-now"] > .booth-norehearse {
+    display: none;
+  }
+  .booth[data-controls="open"] [data-testid="booth-now"] > .booth-seek-row {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .booth[data-controls="open"] [data-testid="booth-now"] > .booth-now-status {
+    display: contents;
+  }
+  .booth[data-controls="open"] [data-testid="booth-now"] .booth-now-dots {
+    grid-column: 1;
+    grid-row: 3;
+    min-height: 20px;
+  }
+  .booth[data-controls="open"] [data-testid="booth-now"] .booth-big {
+    grid-column: 2;
+    grid-row: 2 / span 2;
+    align-self: center;
+    font-size: 40px;
+  }
+  .booth[data-controls="open"] [data-testid="booth-now"] > .booth-now-meter {
+    grid-row: 4;
+    margin-top: 8px;
+  }
+}
+
+/* ---------- the night's clock while the Controls panel is open (two columns): the night bar stays pinned at the
+   set column's top, one compact card — the clock, the time to La Cumparsita and its tools (the chips under them step
+   aside); the set list scrolls under it and SetColumn keeps the playing row in what is left ---------- */
+@media (min-width: 900px) {
+  .booth[data-controls="open"] .booth-col-set > .booth-night {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    padding: 8px 12px;
+    box-shadow: 0 8px 12px -10px rgb(0 0 0 / 0.35);
+  }
+  .booth[data-controls="open"] .booth-col-set > .booth-night > .mt-2 {
+    display: none;
+  }
+  /* one line: the clock, then "to La Cumparsita" and its time (the end time and the eyebrow's size step down) */
+  .booth[data-controls="open"] .booth-col-set > .booth-night > .booth-night-row {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+  }
+  .booth[data-controls="open"] .booth-col-set > .booth-night > .booth-night-row > :first-child {
+    flex: none;
+  }
+  .booth[data-controls="open"]
+    .booth-col-set
+    > .booth-night
+    > .booth-night-row
+    > :first-child
+    > :not(.booth-clock) {
+    display: none;
+  }
+  .booth[data-controls="open"] .booth-col-set > .booth-night > .booth-night-row > .text-right {
+    display: flex;
+    align-items: baseline;
+    justify-content: flex-end;
+    gap: 6px;
+    min-width: 0;
+  }
+  .booth[data-controls="open"] .booth-col-set > .booth-night [data-testid="booth-ttc-label"] {
+    min-width: 0;
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .booth[data-controls="open"] .booth-col-set > .booth-night .booth-clock {
+    font-size: 22px;
+  }
+  .booth[data-controls="open"] .booth-col-set > .booth-night .booth-big {
+    flex: none;
+    font-size: 24px;
+  }
+  .booth[data-controls="open"] .booth-col-set > .booth-night > .booth-night-group {
+    margin-top: 4px;
+  }
+}
+
+/* ---------- the Controls panel's grid: rows of cards of one height (no hole under Transport), Song on one line ---------- */
+.booth-ctl-body {
+  position: relative; /* (the groups' offsetTop: ControlsPanel fits the fold between rows) */
+  scroll-snap-type: y proximity;
+  scroll-padding-top: 4px;
+}
+.booth-ctl-group {
+  scroll-snap-align: start;
+}
+/* Song: the seek bar and the trim / Start point row side by side when the card is wide, stacked when not */
+.booth-ctl-song-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  min-width: 0;
+}
+.booth-ctl-song-line > .booth-seek-row {
+  flex: 1 1 200px;
+  min-width: 0;
+  margin: 0;
+  min-height: 44px;
+}
+.booth-ctl-song-line > .booth-ctl-song {
+  flex: 1 1 auto;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+.booth-ctl-text.booth-ctl-start {
+  min-width: 0;
+}
+/* three columns (the iPad landscape panel and wider): Transport | Song (two columns); Cue | Mixer | Timing;
+   Tanda | Floor (two columns, its reactions one line each); the keys line last */
+.booth .booth-ctl {
+  container: ctl / inline-size;
+}
+@container ctl (min-width: 780px) {
+  .booth-ctl-body {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: stretch;
+    grid-template-areas:
+      "transport song song"
+      "cue mixer timing"
+      "tanda floor floor"
+      "keys keys keys";
+  }
+}
+@container ctl (min-width: 780px) {
+  .booth-ctl-g-transport {
+    grid-area: transport;
+  }
+  .booth-ctl-g-song {
+    grid-area: song;
+  }
+  .booth-ctl-g-cue {
+    grid-area: cue;
+  }
+  .booth-ctl-g-mixer {
+    grid-area: mixer;
+  }
+  .booth-ctl-g-timing {
+    grid-area: timing;
+  }
+  .booth-ctl-g-tanda {
+    grid-area: tanda;
+  }
+  .booth-ctl-g-floor {
+    grid-area: floor;
+  }
+  .booth-ctl-keys {
+    grid-area: keys;
+  }
+  .booth-ctl-g-tanda .booth-ctl-row.flex-wrap {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+/* ---------- the tanda header on a grid: the title across the top (it truncates), the type and total under it, the
+   actions at the header's right edge (the rows' action column: both inset 8 px), centred on that second line — no
+   longer a third line of their own. A wide column puts them beside both lines. ---------- */
+.booth-tanda-head {
+  display: grid;
+  grid-template-columns: minmax(8rem, 1fr) auto;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 0;
+}
+.booth-tanda-head > .booth-tanda-text {
+  display: contents;
+}
+.booth-set .booth-tanda .booth-tanda-head .booth-tanda-title {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  min-width: 0;
+}
+.booth-tanda-head .booth-tanda-meta {
+  grid-column: 1;
+  grid-row: 2;
+  align-self: center;
+}
+.booth-tanda-head .booth-tanda-meta .tanda-type-mode {
+  white-space: nowrap;
+}
+.booth-tanda-head > .booth-tanda-acts {
+  grid-column: 2;
+  grid-row: 2;
+  margin-left: 0;
+  justify-self: end;
+}
+@container booth-set (min-width: 520px) {
+  .booth-set .booth-tanda .booth-tanda-head .booth-tanda-title {
+    grid-column: 1;
+  }
+  .booth-tanda-head > .booth-tanda-acts {
+    grid-row: 1 / span 2;
+  }
+}
+
+/* ---------- the set list ends on a whole row: following the playhead, SetColumn brings a row's foot to the column's
+   foot, above its 16 px fade (the column's scroll padding says where that is) ---------- */
+@media (min-width: 900px) {
+  .booth .booth-col-set {
+    scroll-padding-bottom: 16px;
+  }
+}
+
+/* ---------- the gap pills between rows start on the rows' content edge (the row's 8 px inset), not left of it ---------- */
+.booth .booth-gap .booth-gap-btn {
+  left: 4px;
+}
+
+/* a fader's value never wraps ("2.5 s" broke under "2.5" in Turkish) */
+.booth-ctl .booth-fader > span:last-child {
+  flex: none;
+  white-space: nowrap;
+}
+/* Floor: the song's and the tanda's reactions and Praise, stacked without the Now card's top margin */
+.booth-ctl-g-floor > .booth-floor {
+  margin: 0;
 }

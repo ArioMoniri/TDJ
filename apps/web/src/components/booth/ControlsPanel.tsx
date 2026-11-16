@@ -97,22 +97,67 @@ export function ControlsPanel({
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
   }, [open]);
-  // the groups scroll inside the capped panel: a fade and a "More" cue while some are below the fold
+  // the groups scroll inside the capped panel. 2026-11 (the overlap pass): the panel's fold falls between two rows of
+  // groups, never through one (the body is as tall as the whole rows that fit), and "More" sits in the panel's head
+  // (it covered the Mixer's Cortina fader as a floating pill), scrolling the next row up
   const body = useRef<HTMLDivElement>(null);
   const [more, setMore] = useState(false);
   useEffect(() => {
     const el = body.current;
-    if (!el || !open) return;
+    const panel = box.current;
+    if (!el || !panel || !open) return;
     const read = () => setMore(el.scrollHeight - el.clientHeight - el.scrollTop > 4);
-    read();
+    const fitRows = () => {
+      el.style.maxHeight = "";
+      const cs = getComputedStyle(panel);
+      const cap = Number.parseFloat(cs.maxHeight);
+      const head = panel.querySelector<HTMLElement>(".booth-ctl-head");
+      if (!Number.isFinite(cap) || !head) return read();
+      const avail =
+        cap -
+        head.offsetHeight -
+        Number.parseFloat(cs.paddingTop) -
+        Number.parseFloat(cs.paddingBottom) -
+        Number.parseFloat(cs.borderTopWidth) -
+        Number.parseFloat(cs.borderBottomWidth);
+      const padB = Number.parseFloat(getComputedStyle(el).paddingBottom) || 0;
+      if (el.scrollHeight <= avail + 1) return read();
+      const groups = rowsOf(el);
+      // the lowest row end that fits, where no group runs across it
+      let best = 0;
+      for (const g of groups) {
+        const end = g.offsetTop + g.offsetHeight;
+        if (end + padB > avail) continue;
+        if (groups.some((o) => o.offsetTop < end - 1 && o.offsetTop + o.offsetHeight > end + 1)) continue;
+        best = Math.max(best, end);
+      }
+      // (not when it would leave most of the panel's room unused: the fold then cuts, the body scrolls as before)
+      if (best > 0 && best >= avail * 0.6) el.style.maxHeight = `${Math.ceil(best + padB)}px`;
+      read();
+    };
+    fitRows();
     el.addEventListener("scroll", read, { passive: true });
-    const ro = typeof ResizeObserver === "function" ? new ResizeObserver(read) : null;
-    ro?.observe(el);
+    window.addEventListener("resize", fitRows);
+    const ro = typeof ResizeObserver === "function" ? new ResizeObserver(fitRows) : null;
+    for (const g of el.children) ro?.observe(g);
     return () => {
       el.removeEventListener("scroll", read);
+      window.removeEventListener("resize", fitRows);
       ro?.disconnect();
+      el.style.maxHeight = "";
     };
   }, [open]);
+  /** "More": the first row of groups the fold cuts or hides comes up to the panel's top */
+  const scrollMore = () => {
+    const el = body.current;
+    if (!el) return;
+    const bottom = el.scrollTop + el.clientHeight;
+    const next = rowsOf(el)
+      .filter((g) => g.offsetTop + g.offsetHeight > bottom + 1)
+      .sort((a, b) => a.offsetTop - b.offsetTop)[0];
+    const pad = Number.parseFloat(getComputedStyle(el).paddingTop) || 0;
+    el.scrollTo({ top: next ? next.offsetTop - pad : el.scrollHeight, behavior: "smooth" });
+  };
   const started = useBooth((s) => s.started);
   const state = useBooth((s) => s.state);
   const plan = useBooth((s) => s.plan);
@@ -182,12 +227,24 @@ export function ControlsPanel({
           <ChevronDown size={18} aria-hidden />
           <span>{t("booth.controls.title")}</span>
         </button>
+        {more && (
+          <button
+            type="button"
+            className="booth-ctl-more"
+            onClick={scrollMore}
+            aria-controls="booth-ctl-body"
+            data-testid="ctl-more"
+          >
+            {t("booth.controls.more_below")}
+            <ChevronDown size={16} strokeWidth={2.25} aria-hidden />
+          </button>
+        )}
         <Btn label={t("booth.controls.shortcuts")} onClick={onKeys} testId="ctl-keys">
           <Keyboard size={20} strokeWidth={2} aria-hidden />
         </Btn>
       </div>
       <div className="booth-ctl-body" id="booth-ctl-body" ref={body} data-more={more || undefined}>
-        <Group title={t("booth.controls.transport")}>
+        <Group title={t("booth.controls.transport")} className="booth-ctl-g-transport">
           <div className="booth-ctl-row">
             <Btn
               label={t("booth.connect.skip_next_song")}
@@ -238,64 +295,66 @@ export function ControlsPanel({
               <Square size={20} fill="currentColor" strokeWidth={0} aria-hidden />
             </Btn>
           </div>
-          {noOverlap && <span className="booth-ctl-why">{t("booth.controls.why_spotify_overlap")}</span>}
+          {/* (Spotify's "one track at a time" is said once, under Timing; Fade and Crossfade carry it as their reason) */}
         </Group>
-        <Group title={t("booth.controls.song")} className="booth-ctl-song-group">
-          <div className="booth-seek-row">
-            <span className="tabular-nums">{durationLabel(Math.min(position, length))}</span>
-            <SeekBar
-              value={Math.min(position, length)}
-              max={length}
-              onSeek={(s) => void a.seek(s)}
-              disabled={!started || !(live || state === "paused") || item?.kind === "break"}
-              confirmTap={live}
-              label={t("booth.nowCard.seek_label")}
-              testId="ctl-seek"
-            />
-            <span className="tabular-nums">{durationLabel(length)}</span>
-          </div>
-          {/* one row of 44 px controls: − Trim 0 dB + and Start point… (the stepper's value between its buttons) */}
-          <div className="booth-ctl-row booth-ctl-song">
-            <fieldset
-              className="booth-ctl-stepper"
-              aria-label={t("booth.controls.trim", { db: `${trim > 0 ? "+" : ""}${trim}` })}
-            >
-              <Btn
-                label={t("booth.controls.trim_down")}
-                onClick={() => setTrim(trim - 0.5)}
-                disabled={!itemId || !caps.gain}
-                why={caps.gain ? undefined : t("booth.connect.gain_none")}
-                testId="ctl-trim-down"
-                icon
+        <Group title={t("booth.controls.song")} className="booth-ctl-song-group booth-ctl-g-song">
+          <div className="booth-ctl-song-line">
+            <div className="booth-seek-row">
+              <span className="tabular-nums">{durationLabel(Math.min(position, length))}</span>
+              <SeekBar
+                value={Math.min(position, length)}
+                max={length}
+                onSeek={(s) => void a.seek(s)}
+                disabled={!started || !(live || state === "paused") || item?.kind === "break"}
+                confirmTap={live}
+                label={t("booth.nowCard.seek_label")}
+                testId="ctl-seek"
+              />
+              <span className="tabular-nums">{durationLabel(length)}</span>
+            </div>
+            {/* one row of 44 px controls: − Trim 0 dB + and Start point… (the stepper's value between its buttons) */}
+            <div className="booth-ctl-row booth-ctl-song">
+              <fieldset
+                className="booth-ctl-stepper"
+                aria-label={t("booth.controls.trim", { db: `${trim > 0 ? "+" : ""}${trim}` })}
               >
-                <Minus size={18} strokeWidth={2.25} aria-hidden />
-              </Btn>
-              <span className="booth-ctl-trim-v tabular-nums" data-testid="ctl-trim-value">
-                {t("booth.controls.trim_value", { db: `${trim > 0 ? "+" : ""}${trim}` })}
-              </span>
-              <Btn
-                label={t("booth.controls.trim_up")}
-                onClick={() => setTrim(trim + 0.5)}
-                disabled={!itemId || !caps.gain}
-                why={caps.gain ? undefined : t("booth.connect.gain_none")}
-                testId="ctl-trim-up"
-                icon
+                <Btn
+                  label={t("booth.controls.trim_down")}
+                  onClick={() => setTrim(trim - 0.5)}
+                  disabled={!itemId || !caps.gain}
+                  why={caps.gain ? undefined : t("booth.connect.gain_none")}
+                  testId="ctl-trim-down"
+                  icon
+                >
+                  <Minus size={18} strokeWidth={2.25} aria-hidden />
+                </Btn>
+                <span className="booth-ctl-trim-v tabular-nums" data-testid="ctl-trim-value">
+                  {t("booth.controls.trim_value", { db: `${trim > 0 ? "+" : ""}${trim}` })}
+                </span>
+                <Btn
+                  label={t("booth.controls.trim_up")}
+                  onClick={() => setTrim(trim + 0.5)}
+                  disabled={!itemId || !caps.gain}
+                  why={caps.gain ? undefined : t("booth.connect.gain_none")}
+                  testId="ctl-trim-up"
+                  icon
+                >
+                  <Plus size={18} strokeWidth={2.25} aria-hidden />
+                </Btn>
+              </fieldset>
+              <button
+                type="button"
+                className="booth-ctl-text booth-ctl-start"
+                onClick={() => onSong(planIndex)}
+                disabled={!item || item.kind === "break"}
+                data-testid="ctl-start-point"
               >
-                <Plus size={18} strokeWidth={2.25} aria-hidden />
-              </Btn>
-            </fieldset>
-            <button
-              type="button"
-              className="booth-ctl-text booth-ctl-start"
-              onClick={() => onSong(planIndex)}
-              disabled={!item || item.kind === "break"}
-              data-testid="ctl-start-point"
-            >
-              {t("booth.controls.start_point")}
-            </button>
+                {t("booth.controls.start_point")}
+              </button>
+            </div>
           </div>
         </Group>
-        <Group title={t("booth.controls.cue")}>
+        <Group title={t("booth.controls.cue")} className="booth-ctl-g-cue">
           <div className="booth-ctl-row booth-ctl-cue">
             {audition ? (
               <button
@@ -326,7 +385,7 @@ export function ControlsPanel({
             {started && cueWhy && <span className="booth-ctl-why">{cueWhy}</span>}
           </div>
         </Group>
-        <Group title={t("booth.controls.mixer")}>
+        <Group title={t("booth.controls.mixer")} className="booth-ctl-g-mixer">
           <Fader
             label={t("booth.controlStrip.master_volume")}
             value={master}
@@ -378,7 +437,7 @@ export function ControlsPanel({
             </Btn>
           </div>
         </Group>
-        <Group title={t("booth.controls.timing")}>
+        <Group title={t("booth.controls.timing")} className="booth-ctl-g-timing">
           <Fader
             label={t("booth.controls.gap")}
             value={settings.gapSec}
@@ -407,7 +466,7 @@ export function ControlsPanel({
           />
           {noOverlap && <span className="booth-ctl-why">{t("booth.controls.why_spotify_overlap")}</span>}
         </Group>
-        <Group title={t("fav.floor_group")}>
+        <Group title={t("fav.floor_group")} className="booth-ctl-g-floor">
           {/* 2026-11, dancer favourites: the playing song and its tanda, one tap each */}
           <FloorReaction scope="song" testPrefix="ctl-song" />
           <FloorReaction scope="tanda" testPrefix="ctl-tanda" />
@@ -416,7 +475,7 @@ export function ControlsPanel({
             <PraiseTanda testPrefix="ctl-tanda" />
           </div>
         </Group>
-        <Group title={t("booth.controls.tanda")}>
+        <Group title={t("booth.controls.tanda")} className="booth-ctl-g-tanda">
           <div className="booth-ctl-row flex-wrap">
             <ArmButton
               className="booth-ctl-text"
@@ -452,19 +511,13 @@ export function ControlsPanel({
           {t("booth.controls.keys_line")}
         </p>
       </div>
-      {more && (
-        <button
-          type="button"
-          className="booth-ctl-more"
-          onClick={() => body.current?.scrollBy({ top: body.current.clientHeight * 0.8, behavior: "smooth" })}
-          data-testid="ctl-more"
-        >
-          {t("booth.controls.more_below")}
-          <ChevronDown size={16} strokeWidth={2.25} aria-hidden />
-        </button>
-      )}
     </section>
   );
+}
+
+/** the panel's groups as laid out (its rows: the grid stretches the groups of one row to one height) */
+function rowsOf(el: HTMLElement): HTMLElement[] {
+  return [...el.children].filter((g): g is HTMLElement => g instanceof HTMLElement && g.offsetHeight > 0);
 }
 
 function Group({
