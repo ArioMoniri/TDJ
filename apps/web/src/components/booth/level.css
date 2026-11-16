@@ -1,0 +1,115 @@
+/* 2026-11 — the level meter, the Mixer's levels and the Auto master badge (Meter.tsx, LevelPanel.tsx). Content on
+   the card's surface (no glass); every control is a 44 px target. */
+.booth-meter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.booth-meter-lufs {
+  flex: none;
+  min-width: 52px;
+  text-align: right;
+}
+.booth-clip {
+  position: relative;
+  flex: none;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--label-3);
+  background: var(--fill-4, rgba(127, 127, 127, 0.12));
+}
+/* a 44 px hit area around the small light */
+.booth-clip::after {
+  content: "";
+  position: absolute;
+  inset: -10px -6px;
+}
+.booth-meter .booth-clip,
+.booth-clip[data-on="1"] {
+  color: #fff;
+  background: var(--destructive, #ff453a);
+}
+/* the Mixer's title line: MIXER, then the meter (no extra height in the panel) */
+.booth-ctl-title:has(> .booth-levels-head) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.booth-levels-head {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 500;
+}
+.booth-levels-bar {
+  flex: 1 1 auto;
+  min-width: 40px;
+  height: 6px;
+}
+.booth-levels-head > .booth-meter-na {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0;
+}
+.booth-levels-nums {
+  flex: none;
+  font-size: 11px;
+  color: var(--label-2);
+}
+.booth-levels-head > .booth-clip {
+  min-height: 18px;
+  padding: 0 6px;
+  font-size: 10px;
+}
+.booth-levels-head > .booth-clip[data-on="0"] {
+  display: none;
+}
+.booth-auto-badge {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 22px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--label);
+  background: var(--booth-fill-strong, var(--fill-3));
+  box-shadow: inset 0 0 0 1px var(--tint, #e85a8a);
+}
+.booth-auto-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tint, #e85a8a);
+}
+.booth-auto-badge[data-on="0"] {
+  box-shadow: inset 0 0 0 1px var(--separator);
+}
+.booth-auto-badge[data-on="0"] .booth-auto-dot {
+  background: var(--label-3);
+}
+.booth-auto-stop {
+  color: var(--tint-text, var(--tint));
+}
+@media (prefers-reduced-motion: no-preference) {
+  .booth-auto-badge[data-on="1"] .booth-auto-dot {
+    animation: booth-auto-pulse 2s ease-in-out infinite;
+  }
+}
+@keyframes booth-auto-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}

@@ -10,6 +10,8 @@
   <key>com.apple.security.files.user-selected.read-write</key><true/>
   <!-- linked music folders stay readable across launches (security-scoped bookmarks) -->
   <key>com.apple.security.files.bookmarks.app-scope</key><true/>
+  <!-- 2026-11: the Booth's room meter (microphone), only after the DJ switches it on -->
+  <key>com.apple.security.device.audio-input</key><true/>
   <!-- File → Print Set List -->
   <key>com.apple.security.print</key><true/>
   <key>com.apple.application-identifier</key><string>FF68N39FU5.com.ariomoniri.tdj</string>
