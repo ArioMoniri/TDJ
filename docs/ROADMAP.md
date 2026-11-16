@@ -126,3 +126,59 @@ Every item has an on/off switch in Settings where it is an indicator, a rule or 
 - ☑ Spotify Connect: a 404 never stops the night, plain banners (`aa1df94`).
 - ☑ Artwork everywhere (`c238adf`); a cover per night (`8651fe8`); era labels in titles and covers (`20b4ef6`).
 - ☑ Contemporary-orchestra importer, first Sexteto Cristal (`742cf89`, `pnpm orchestra:import`).
+
+## 15. The DJ's requests of 2026-11-16 (open; in progress unless marked)
+
+Release rule: when a new change is asked for, the README, store images, launch video, app builds and the release
+wait until it is done, so the media always show the current UI.
+
+**QA fixes (DJ, design and function reviews of 71956fe)** — Booth, Compose/Rooms/Import/data, Turkish and targets;
+CI green and sharded (e2e under ~40 min).
+
+**Booth**
+- Phone: compact nav bar (large title collapses, scrollable chip row) and a floating transport like Apple Music
+  (cover + marquee, round Play/Pause, Stop with confirm, "…" for set list, Controls, Mix).
+- One player in the sidebar (desktop/iPad), merging the sidebar now-playing card and the floating mini player;
+  gramophone mode (round cover, ring for time left) when narrow; draggable/resizable on phone.
+- Pre-listen on a second output or device while the tanda plays to the room (jack vs speaker/headphones/phone),
+  always showing where each sound goes; nothing reaches the room without confirmation.
+- Enter confirms Play now in the pop-up; toasts with a close button, Esc, swipe, hover-pause.
+- Energy card: Scrub as a compact pill, one-line title, labels clear of the dots.
+- BoothMini's "tap again to jump" bubble anchored to the marker.
+- Load a night… (Compose, History, featured, Import from Spotify/YouTube/files/text) and Clear the Booth.
+- Transition editor: Audition plays the real transition per source; custom transition templates with defaults per
+  boundary and rhythm; an informed Spotify shape and real waveforms from a matching local file.
+- Now playing redesign (artwork backdrop, progress, transport, tabs Lyrics · Video · Rhythm · About), an
+  always-working beat animation (estimated grid from BPM, tap to lock), Find a video, Song info over Now playing.
+- Floor screen for dancers (song N of 4, a join-the-floor strip, cortina countdown, next tanda, lyrics or video),
+  mirrored to a second display, a Mac external monitor, or any device via the room's dancer link.
+
+**Songs, lyrics and Song DNA**
+- Song details and Song DNA from every song (right-click / long-press menu, ⓘ, "i"), including the Booth's
+  Song info; Back between DNA pages; a redesigned recordings-over-the-years chart; covers on every version;
+  correct "This recording"; reissue years marked.
+- Lyrics follow the playing song in real time; tap a line to play from there (Booth rules apply); lyrics found
+  automatically (query ladder, by work) with optional Musixmatch/Genius (own key) and paste.
+- "Measure from your file" works or says why; covers for solo-singer-with-guitars sides.
+
+**Compose, Build by hand, Rooms, History**
+- Edit guide as an opaque card that never covers the inspector or the player.
+- Build by hand: Undo/Redo/Reset in the header, Fill menu (next tanda / one TTVTTM cycle / to length / all),
+  two-line suggestion rows, equal chip heights.
+- Delete nights from Recent nights and History (with Undo; never the playing night).
+- Rooms: start empty; full night editor.
+
+**Everywhere**
+- Redo also on ⌘Y / Ctrl+Y (editable); shake to undo on phones and tablets (asks first).
+- Battery saver (Off / Auto / On) for web and apps, never touching playback timing.
+- Sidebar open/close and drag at 60 fps.
+
+**Repository and release**
+- No public web instance: "Deploy your own" (one-line install, `tdj` CLI with guide, one-click AWS via a fork).
+- CONTRIBUTING, issue forms, PR template, Code of Conduct, Security, Support.
+- License: PolyForm Noncommercial 1.0.0 (Ariorad Moniri); "Developed by Ariorad Moniri" in About, Guide,
+  sidebar, CLI, store text and the app's About panel.
+- README: one 840 px media column, App Store-style buttons, laptop lid-open hero animation, better phone frames,
+  real music in waveform captures, no tooltips in captures.
+- Then: README and store screenshots (iPhone, iPad, Mac; en + tr), banner, launch video, v1.0.0 release from one
+  commit (web + DMG + Mac App Store + iOS), DMG auto-update checked, TestFlight, App Store submission.
