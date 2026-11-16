@@ -1,5 +1,5 @@
 "use client";
-import { Keyboard } from "lucide-react";
+import { Keyboard, Smartphone } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { t } from "@/lib/i18n";
 import {
@@ -14,16 +14,18 @@ import {
   resetAllBindings,
   resetBinding,
   setBinding,
+  shownBindings,
   useKeymap,
 } from "@/lib/keymap";
+import { isTouchDevice, needsMotionPermission, setShakeUndo, shakeOn, useShakePref } from "@/lib/shake";
 import { toast } from "@/lib/toast";
-import { ActionRow, Group, Row, Tile } from "./Form";
+import { ActionRow, Group, Row, SwitchRow, Tile } from "./Form";
 import { Sheet } from "./Sheet";
 
 const Keys = ({ combos }: { combos: string[] }) =>
   combos.length ? (
     <span className="inline-flex flex-wrap justify-end gap-1" data-testid="key-binding">
-      {combos.map((c) => (
+      {shownBindings(combos).map((c) => (
         <kbd key={c} className="text-footnote rounded bg-[var(--fill-3)] px-1.5 py-0.5">
           {formatCombo(c)}
         </kbd>
@@ -73,6 +75,7 @@ export function KeyboardSettings() {
         />
       </Group>
       {group("edit", t("keys.group_edit"))}
+      {ready && <ShakeGroup />}
       {group("booth", t("keys.group_booth"))}
       <Group>
         <ActionRow
@@ -88,6 +91,34 @@ export function KeyboardSettings() {
       </Group>
       <KeySheet action={editing} onClose={() => setEditing(null)} />
     </section>
+  );
+}
+
+/**
+ * 2026-11 — Shake to Undo (lib/shake.ts): on a phone or a tablet only, on by default; on iOS turning it on asks for
+ * motion (this tap is the gesture iOS needs), and the switch reads on only once it is granted
+ */
+function ShakeGroup() {
+  const pref = useShakePref();
+  if (!isTouchDevice() && !needsMotionPermission()) return null;
+  return (
+    <Group header={t("shake.header")} footer={t("shake.footer")} data-testid="settings-shake">
+      <SwitchRow
+        tile={
+          <Tile color="#ff9500">
+            <Smartphone size={16} strokeWidth={2} />
+          </Tile>
+        }
+        label={t("shake.switch")}
+        sub={t("shake.switch_sub")}
+        checked={shakeOn(pref)}
+        onChange={(on) =>
+          void setShakeUndo(on).then((r) => {
+            if (r === "denied") toast(t("shake.denied"));
+          })
+        }
+      />
+    </Group>
   );
 }
 
@@ -189,7 +220,11 @@ function KeySheet({ action, onClose }: { action: ActionDef | null; onClose: () =
           />
         )}
         <ActionRow
-          label={t("keys.reset_one", { keys: action.defaults.map((c) => formatCombo(c)).join(", ") })}
+          label={t("keys.reset_one", {
+            keys: shownBindings(action.defaults)
+              .map((c) => formatCombo(c))
+              .join(", "),
+          })}
           onClick={() => {
             resetBinding(action.id);
             toast(t("keys.reset_done", { action: t(action.label) }));

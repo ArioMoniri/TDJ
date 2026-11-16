@@ -113,6 +113,7 @@ export const en = {
   "about.channel_ios": "App Store (iPhone and iPad)",
   "about.channel_mac_app_store": "Mac App Store",
   "about.channel_web": "Web",
+  "about.developed_by": "Developed by Ariorad Moniri",
   "about.footer":
     "The web, iPhone, iPad and Mac apps share one version number. Nothing updates during a night.",
   "about.get_updates": "Get updates",
@@ -5072,7 +5073,7 @@ export const en = {
   "boothUndo.praise_off": "Praise taken back (tanda {tanda})",
   "boothUndo.already_heard":
     "Can't undo {action}: “{title}” already played in the room. Previous goes back to it.",
-  "keys.header": "Keyboard",
+  "keys.header": "Keyboard & gestures",
   "keys.footer": "Kept in this browser on this device only. Shortcuts never fire while you type in a field.",
   "keys.intro": "Shortcuts",
   "keys.intro_sub": "Tap a shortcut and press the keys you want instead.",
@@ -5105,6 +5106,17 @@ export const en = {
   "keys.booth_play_next": "Play the chosen row next",
   "keys.booth_fader_up": "Cortina fader up 5 %",
   "keys.booth_fader_down": "Cortina fader down 5 %",
+  "shake.header": "Gestures",
+  "shake.footer":
+    "Shake the phone or tablet to undo the last edit on the page: it always asks first. On iPhone and iPad, turning it on asks for motion access.",
+  "shake.switch": "Shake to undo",
+  "shake.switch_sub": "Asks “Undo …?” before anything changes",
+  "shake.denied":
+    "Motion access wasn't allowed, so shaking can't undo. Allow motion access for this site or app, then turn it on again.",
+  "shake.undo_title": "Undo “{label}”?",
+  "shake.redo_title": "Redo “{label}”?",
+  "shake.undo_named": "Undo “{label}”",
+  "shake.redo_named": "Redo “{label}”",
   "miniPlayer.song_details": "Details of {title}",
   "miniPlayer.details_not_here": "{title}: its details open from its row in the night",
   "sync.header": "Exported playlists",

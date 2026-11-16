@@ -3,7 +3,7 @@ import { create } from "zustand";
 /**
  * 2026-11 (the owner: "swap should have Cmd+Z"): one undo / redo history for every edit of a night — swaps, reorders,
  * adds, removes, pins — on Compose, Build by hand and the Booth. An entry is what the edit did (`undo`) and how to do
- * it again (`redo`); the toast's Undo and ⌘Z / Ctrl+Z (⇧⌘Z, Ctrl+Y redo; components/EditKeys.tsx; the Mac app's
+ * it again (`redo`); the toast's Undo and ⌘Z / Ctrl+Z (⇧⌘Z, ⌘Y / Ctrl+Y redo; components/EditKeys.tsx; the Mac app's
  * Edit menu) all walk this one stack. Each entry remembers the page it was made on (`scope`): ⌘Z on the Booth never
  * reaches back into Compose's night, and a new edit drops what could be redone.
  */
@@ -156,6 +156,17 @@ export async function redoEdit(o: { scope?: string } = {}): Promise<Edit | null>
   }
 }
 
+/** the edit an undo of this page would reach, without running it (the shake alert names it, lib/shake.ts) */
+export function nextUndo(scope = here()): Edit | null {
+  const past = useEditHistory.getState().past;
+  return past[lastIndex(past, (e) => e.scope === scope)] ?? null;
+}
+/** the edit a redo of this page would reach */
+export function nextRedo(scope = here()): Edit | null {
+  const future = useEditHistory.getState().future;
+  return future[lastIndex(future, (e) => e.scope === scope)] ?? null;
+}
+
 export const canUndo = (scope = here()) => useEditHistory.getState().past.some((e) => e.scope === scope);
 export const canRedo = (scope = here()) => useEditHistory.getState().future.some((e) => e.scope === scope);
 
@@ -169,7 +180,7 @@ export function clearEdits(scope?: string) {
 }
 
 /**
- * The key is undo / redo, outside a text field: ⌘Z / Ctrl+Z undoes, ⇧⌘Z / Ctrl+Shift+Z / Ctrl+Y redoes. A text field
+ * The key is undo / redo, outside a text field: ⌘Z / Ctrl+Z undoes, ⇧⌘Z / Ctrl+Shift+Z / ⌘Y / Ctrl+Y redoes. A text field
  * keeps its own undo (the words typed).
  */
 export function historyKey(e: {
@@ -183,7 +194,8 @@ export function historyKey(e: {
   if (!mod || e.altKey) return null;
   const k = e.key.toLowerCase();
   if (k === "z") return e.shiftKey ? "redo" : "undo";
-  if (k === "y" && e.ctrlKey && !e.metaKey && !e.shiftKey) return "redo";
+  // (⌘Y or Ctrl+Y: the default keys since 2026-11, lib/keymap.ts)
+  if (k === "y" && !e.shiftKey) return "redo";
   return null;
 }
 

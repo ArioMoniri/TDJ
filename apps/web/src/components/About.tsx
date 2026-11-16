@@ -95,7 +95,19 @@ export function About() {
   // a Mac App Store or iPhone/iPad build links to the App Store only (no outside download from a store app)
   const store = channel === "ios" || channel === "mac-app-store";
   return (
-    <Group header={tx("about.about")} footer={tx("about.footer")} id="settings-about">
+    <Group
+      header={tx("about.about")}
+      footer={
+        <>
+          {tx("about.footer")}
+          {/* the author's credit, in small type under the version (en + tr) */}
+          <span className="text-caption2 mt-1 block text-[var(--label-3)]" data-testid="about-credit">
+            {tx("about.developed_by")} · {versionLabel()}
+          </span>
+        </>
+      }
+      id="settings-about"
+    >
       <Row
         tile={
           <Tile color="#8e8e93">

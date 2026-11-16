@@ -444,6 +444,9 @@ export function Sidebar() {
               ))}
             </div>
           </LayoutGroup>
+          <p className="text-caption2 truncate px-3 pt-2 text-[var(--label-3)]" data-testid="sidebar-credit">
+            {tx("about.developed_by")}
+          </p>
         </div>
 
         {/* trailing edge: drag (or arrow keys) to resize, double-click to reset */}

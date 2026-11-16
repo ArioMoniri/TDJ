@@ -7,7 +7,7 @@
   <!-- merged into the macOS Info.plist by the Tauri bundler -->
   <key>LSApplicationCategoryType</key><string>public.app-category.music</string>
   <key>ITSAppUsesNonExemptEncryption</key><false/>
-  <key>NSHumanReadableCopyright</key><string>© 2026 Ario Moniri</string>
+  <key>NSHumanReadableCopyright</key><string>© 2026 Ariorad Moniri</string>
   <!-- 2026-11: the Booth's room meter (Auto master), only after the DJ switches it on -->
   <key>NSMicrophoneUsageDescription</key><string>The Booth's room meter listens to how loud the room is, only when you turn it on, to keep the music's level steady over the crowd. Audio is never recorded or sent anywhere.</string>
   <key>NSLocalNetworkUsageDescription</key><string>TDJ connects to a TDJ server or DJ agent on your local network when you choose one.</string>

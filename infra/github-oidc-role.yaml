@@ -1,8 +1,8 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: IAM role that GitHub Actions (ArioMoniri/TDJ) assumes via OIDC to deploy TDJ with SST. Deploy once per AWS account.
+Description: IAM role that GitHub Actions in one repository (GitHubOrg/GitHubRepo, e.g. your fork of TDJ) assumes via OIDC to deploy TDJ with SST. No stored AWS keys. Deploy once per AWS account; `tdj init --github` does it for you.
 Parameters:
-  GitHubOrg: { Type: String, Default: ArioMoniri }
-  GitHubRepo: { Type: String, Default: TDJ }
+  GitHubOrg: { Type: String, Default: ArioMoniri, Description: "The GitHub user or organisation that owns the repository (your fork)" }
+  GitHubRepo: { Type: String, Default: TDJ, Description: "The repository name; only this repository may assume the role" }
   RoleName: { Type: String, Default: tdj-github-deploy }
   CreateProvider:
     Type: String

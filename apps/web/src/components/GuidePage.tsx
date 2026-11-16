@@ -131,6 +131,12 @@ export function GuidePage({ contextModel }: { contextModel: ContextModelLike | n
           </p>
         </>
       )}
+      <footer
+        className="text-caption2 mt-10 mb-4 px-4 text-center text-[var(--label-3)]"
+        data-testid="guide-credit"
+      >
+        {t("about.developed_by")}
+      </footer>
     </article>
   );
 }

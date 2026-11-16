@@ -3,14 +3,17 @@ import { useEffect } from "react";
 import { isTextTarget } from "@/lib/editHistory";
 import { runHistory } from "@/lib/editToast";
 import { isAction } from "@/lib/keymap";
+import { ShakeUndo } from "./ShakeUndo";
 
 /**
  * 2026-11 — the edit keys on every page (mounted once in the layout):
- * - undo / redo (⌘Z / Ctrl+Z, ⇧⌘Z / Ctrl+Shift+Z / Ctrl+Y by default; the DJ's own in Settings → Keyboard,
+ * - undo / redo (⌘Z / Ctrl+Z, ⇧⌘Z / Ctrl+Shift+Z / ⌘Y / Ctrl+Y by default; the DJ's own in Settings → Keyboard,
  *   lib/keymap.ts), over the one edit history (lib/editHistory.ts) — never while a text field has the focus (it
- *   keeps its own undo of the words typed);
+ *   keeps its own undo of the words typed; ⌘Y there is the field's redo, never the browser's History);
  * - the Mac app's Edit → Undo / Redo (the menu bar's `edit.undo` / `edit.redo` commands, `tdj:command`): the same,
- *   and in a text field the field's own undo;
+ *   and in a text field the field's own undo; the menu shows ⇧⌘Z and ⌘Y reaches the page as a key (no menu item
+ *   claims it, apps/desktop/src-tauri/src/menu.rs);
+ * - Shake to Undo on a phone or a tablet (components/ShakeUndo.tsx, rendered here);
  * - Swap (S by default) on a focused song or tanda row opens its Swap sheet (the row's Swap button, marked
  *   `data-kb="swap"` or one of the Booth's swap buttons).
  * Each undo or redo says what it did in the toast, with the opposite one as its action (lib/editToast.ts).
@@ -35,7 +38,14 @@ export function EditKeys() {
       if (active?.closest?.("[data-key-recorder]")) return;
       const kind = isAction("edit.undo", e) ? "undo" : isAction("edit.redo", e) ? "redo" : null;
       if (kind) {
-        if (isTextTarget(active)) return;
+        if (isTextTarget(active)) {
+          // ⌘Y is no text field's redo on a Mac (Safari and Chrome would open History): the field's own redo
+          if (kind === "redo" && e.metaKey && !e.shiftKey && e.key.toLowerCase() === "y") {
+            e.preventDefault();
+            document.execCommand("redo");
+          }
+          return;
+        }
         e.preventDefault();
         void runHistory(kind);
         return;
@@ -65,5 +75,5 @@ export function EditKeys() {
       window.removeEventListener("tdj:command", onCommand);
     };
   }, []);
-  return null;
+  return <ShakeUndo />;
 }
