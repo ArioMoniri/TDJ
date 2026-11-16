@@ -181,8 +181,12 @@ test("an AI edit goes through the same check: the answer says what it breaks and
   const port = (agent.address() as { port: number }).port;
   try {
     await page.goto("/settings");
-    await page.locator("#model-add-agent").click();
     const sheet = page.getByTestId("agent-sheet");
+    // (the two Settings columns rebalance while the page loads: a click can land while the button moves)
+    await expect(async () => {
+      await page.locator("#model-add-agent").click();
+      await expect(sheet).toBeVisible({ timeout: 2000 });
+    }).toPass({ timeout: 20000 });
     await sheet.locator("#agent-name").fill("Mock Agent");
     await sheet.locator("#agent-url").fill(`ws://127.0.0.1:${port}`);
     await sheet.locator("#agent-test").click();

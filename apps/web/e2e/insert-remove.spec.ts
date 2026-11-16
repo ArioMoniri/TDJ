@@ -41,13 +41,17 @@ test("Compose: add a song at a place, insert a tanda before the first, remove a 
   await page.setViewportSize({ width: 1440, height: 900 });
   await openFeatured(page);
   const n0 = await tandaCount(page);
-  // a side in tanda 2: the Insert sheet with suggestions for that place
-  const card = page.locator("#result article[data-tanda='2']");
+  // a side in the first unlocked tanda: the Insert sheet with suggestions for that place
+  const card = page
+    .locator("#result article[data-tanda]")
+    .filter({ has: page.getByTestId("tanda-add-song") })
+    .first();
+  const n = await card.getAttribute("data-tanda");
   const sides0 = await card.locator("li[data-song]").count();
   await card.getByTestId("tanda-add-song").click();
   const sheet = page.getByTestId("insert-sheet");
   await expect(sheet).toBeVisible();
-  await expect(sheet.getByTestId("insert-where")).toContainText("Tanda 2");
+  await expect(sheet.getByTestId("insert-where")).toContainText(`Tanda ${n}`);
   await expect(sheet.getByTestId("insert-search")).toBeVisible();
   await expect(sheet.getByTestId("insert-ask-ai")).toBeVisible();
   const first = sheet.getByTestId("insert-suggestion").first();
@@ -90,7 +94,11 @@ test("Compose: add a song at a place, insert a tanda before the first, remove a 
 
   // remove tanda 3 from its menu: one tanda fewer, the guide says a cortina went with it
   const n1 = await tandaCount(page);
-  const t3 = page.locator("#result article[data-tanda='3']");
+  // an unlocked tanda past the first (the featured night keeps some of its tandas as they are)
+  const t3 = page
+    .locator("#result article[data-tanda]")
+    .filter({ has: page.getByTestId("tanda-add-song") })
+    .nth(1);
   await t3.locator('button[aria-haspopup="menu"]').first().click();
   await page.getByRole("menuitem", { name: "Remove tanda" }).click();
   if (await asked.isVisible().catch(() => false)) await page.getByTestId("rule-as-said").click();
@@ -99,7 +107,9 @@ test("Compose: add a song at a place, insert a tanda before the first, remove a 
   await expect(guide).toContainText(/shorter/);
 });
 
-test("Settings → Night: the last La Cumparsita as 4 + 1 composes it as the última's fifth song", async ({ page }) => {
+test("Settings → Night: the last La Cumparsita as 4 + 1 composes it as the última's fifth song", async ({
+  page,
+}) => {
   test.setTimeout(240_000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await quiet(page);
@@ -107,9 +117,14 @@ test("Settings → Night: the last La Cumparsita as 4 + 1 composes it as the úl
   const night = page.getByTestId("settings-night");
   await expect(night).toBeVisible({ timeout: 30000 });
   await expect(night.getByRole("combobox", { name: "The last La Cumparsita" })).toHaveValue("straight");
-  await night.getByRole("combobox", { name: "The last La Cumparsita" }).selectOption("in-tanda");
-  await expect(night).toContainText("A four-song última");
-  await page.waitForFunction(() => (localStorage.getItem("tdj-v1") ?? "").includes('"closingFormat":"in-tanda"'));
+  // (the store hydrates after the first paint: the choice is made again until it holds)
+  await expect(async () => {
+    await night.getByRole("combobox", { name: "The last La Cumparsita" }).selectOption("in-tanda");
+    await expect(night).toContainText("A four-song última", { timeout: 2000 });
+  }).toPass({ timeout: 30000 });
+  await page.waitForFunction(() =>
+    (localStorage.getItem("tdj-v1") ?? "").includes('"closingFormat":"in-tanda"'),
+  );
   await page.goto("/");
   await page.getByRole("button", { name: /Compose the night/ }).click();
   await expect(page.locator("#result")).toBeVisible({ timeout: 120000 });
@@ -118,7 +133,9 @@ test("Settings → Night: the last La Cumparsita as 4 + 1 composes it as the úl
   await expect(last).toHaveAttribute("data-rhythm", "tango");
 });
 
-test("Booth: Change the end… +20 min previews the added tandas and the new end, Apply, Undo", async ({ page }) => {
+test("Booth: Change the end… +20 min previews the added tandas and the new end, Apply, Undo", async ({
+  page,
+}) => {
   test.setTimeout(240_000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await openFeatured(page);
@@ -192,7 +209,7 @@ test("Build by hand: search and add (Enter, Shift+Enter) with the guide line; th
   await expect(tandas.first().getByTestId("build-side").first().getByTestId("row-art")).toBeVisible();
   // one vertical rhythm: every top-level card ≥ 16 px from the next, none intersecting
   const gaps = await page.evaluate(() => {
-    const col = document.querySelector('section.build-stack[aria-label]') as HTMLElement;
+    const col = document.querySelector("section.build-stack[aria-label]") as HTMLElement;
     const blocks: DOMRect[] = [];
     const take = (el: Element) => {
       const r = el.getBoundingClientRect();
