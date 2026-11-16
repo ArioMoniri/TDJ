@@ -116,7 +116,7 @@ test("a song's Swap: a suggestion, not a swap; Tab completes the title; versions
   await blur(page);
   await page.keyboard.press("ControlOrMeta+z");
   await expect(chair).toHaveAttribute("data-song", before ?? "", { timeout: 20000 });
-  await expect(page.getByTestId("toast")).toContainText("Undone");
+  await expect(page.getByTestId("toast")).toContainText("Undid");
   await page.keyboard.press("ControlOrMeta+Shift+z");
   await expect(chair).toHaveAttribute("data-song", "ext:spotify:ctBB", { timeout: 20000 });
   // Ctrl+Y redoes too: undo, then Ctrl+Y

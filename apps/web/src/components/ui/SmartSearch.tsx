@@ -141,6 +141,18 @@ export function useSmartKeys(
   o: { onEnter: (v: Version) => void; onEscape?: () => void },
 ) {
   const order = shownOrder(s);
+  // 2026-11: Enter pressed before the results answer the words typed would pick the previous query's song: hold it
+  // until the answer for these words is painted, then pick its first (or highlighted) version
+  const pending = useRef(false);
+  const stale = !!s.q.trim() && s.answered !== null && s.answered.trim() !== s.q.trim();
+  const onEnterRef = useRef(o.onEnter);
+  onEnterRef.current = o.onEnter;
+  useEffect(() => {
+    if (!pending.current || stale || s.answered === null) return;
+    pending.current = false;
+    const v = order[s.active >= 0 ? s.active : 0];
+    if (v) onEnterRef.current(v);
+  });
   return (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "ArrowDown" && order.length) {
       e.preventDefault();
@@ -149,6 +161,12 @@ export function useSmartKeys(
       e.preventDefault();
       s.setActive((a) => Math.max(-1, a - 1));
     } else if (e.key === "Enter") {
+      if (stale || (s.loading && !order.length)) {
+        e.preventDefault();
+        pending.current = true;
+        return;
+      }
+      pending.current = false;
       const v = order[s.active >= 0 ? s.active : 0];
       if (!v) return;
       e.preventDefault();
