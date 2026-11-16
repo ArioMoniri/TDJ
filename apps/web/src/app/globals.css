@@ -2424,12 +2424,7 @@ html.theming *::after {
 .booth-bypass:disabled {
   opacity: 0.7;
 }
-.booth-played {
-  opacity: 0.45;
-}
-.booth-played .booth-row-on {
-  opacity: 1;
-}
+/* a played row: the quieter label tokens on its words (≥ 4.5:1), its pictures faded (booth.css, design review) */
 .booth-strip {
   position: fixed;
   left: 12px;

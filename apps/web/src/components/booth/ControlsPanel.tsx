@@ -5,16 +5,15 @@ import {
   Headphones,
   Keyboard,
   Mic,
-  Pause,
-  Play,
-  SkipBack,
-  SkipForward,
+  Minus,
+  Plus,
   Square,
   StepForward,
   TrendingDown,
   VolumeX,
 } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
+import { hideHints } from "@/components/ui/Tip";
 import { guard, useArmed } from "@/lib/booth/confirm";
 import { TRANSPORT_RANGES } from "@/lib/booth/engine";
 import { durationLabel } from "@/lib/booth/plan";
@@ -84,7 +83,36 @@ export function ControlsPanel({
       root.style.removeProperty("--booth-ctl-space");
     };
   }, [open]);
-  const ready = useBooth((s) => s.ready);
+  // 2026-11 (design review): no hint is left over the panel's controls when it opens (a mouse click on the toggle
+  // left its tooltip over the Floor buttons), and Escape closes it (unless a sheet is up: Escape is the sheet's)
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  useEffect(() => {
+    if (!open) return;
+    hideHints();
+    const key = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented || document.querySelector('[role="dialog"]')) return;
+      closeRef.current();
+    };
+    window.addEventListener("keydown", key);
+    return () => window.removeEventListener("keydown", key);
+  }, [open]);
+  // the groups scroll inside the capped panel: a fade and a "More" cue while some are below the fold
+  const body = useRef<HTMLDivElement>(null);
+  const [more, setMore] = useState(false);
+  useEffect(() => {
+    const el = body.current;
+    if (!el || !open) return;
+    const read = () => setMore(el.scrollHeight - el.clientHeight - el.scrollTop > 4);
+    read();
+    el.addEventListener("scroll", read, { passive: true });
+    const ro = typeof ResizeObserver === "function" ? new ResizeObserver(read) : null;
+    ro?.observe(el);
+    return () => {
+      el.removeEventListener("scroll", read);
+      ro?.disconnect();
+    };
+  }, [open]);
   const started = useBooth((s) => s.started);
   const state = useBooth((s) => s.state);
   const plan = useBooth((s) => s.plan);
@@ -130,48 +158,6 @@ export function ControlsPanel({
   };
   const hasClosing = !!plan && plan.items.at(-1)?.kind === "closing" && (plan.items.at(-1)?.tanda ?? 0) > 0;
 
-  const transport = (
-    <div className="booth-ctl-row">
-      <Btn
-        label={t("booth.controlStrip.previous")}
-        onClick={() => void a.previous()}
-        disabled={!ready}
-        armKey="prev"
-        testId="ctl-prev"
-      >
-        <SkipBack size={20} strokeWidth={2} aria-hidden />
-      </Btn>
-      <Btn
-        label={
-          !started
-            ? t("booth.controls.start")
-            : live
-              ? t("booth.controlStrip.pause")
-              : t("booth.controlStrip.play")
-        }
-        onClick={() => a.togglePause()}
-        disabled={!ready}
-        testId="ctl-play"
-        primary
-      >
-        {live ? (
-          <Pause size={20} fill="currentColor" strokeWidth={0} aria-hidden />
-        ) : (
-          <Play size={20} fill="currentColor" strokeWidth={0} aria-hidden />
-        )}
-      </Btn>
-      <Btn
-        label={t("booth.controlStrip.next_now")}
-        onClick={() => void a.nextNow()}
-        disabled={!ready}
-        armKey="next"
-        testId="ctl-next"
-      >
-        <SkipForward size={20} strokeWidth={2} aria-hidden />
-      </Btn>
-    </div>
-  );
-
   if (!open) return null;
   return (
     <section
@@ -179,6 +165,7 @@ export function ControlsPanel({
       className="booth-ctl glass"
       data-open={open || undefined}
       data-testid="booth-controls"
+      data-hint-shield
       aria-label={t("booth.controls.title")}
     >
       <div className="booth-ctl-head">
@@ -192,12 +179,11 @@ export function ControlsPanel({
           <ChevronDown size={18} aria-hidden />
           <span>{t("booth.controls.title")}</span>
         </button>
-        {transport}
         <Btn label={t("booth.controls.shortcuts")} onClick={onKeys} testId="ctl-keys">
           <Keyboard size={20} strokeWidth={2} aria-hidden />
         </Btn>
       </div>
-      <div className="booth-ctl-body" id="booth-ctl-body">
+      <div className="booth-ctl-body" id="booth-ctl-body" ref={body} data-more={more || undefined}>
         <Group title={t("booth.controls.transport")}>
           <div className="booth-ctl-row">
             <Btn
@@ -205,6 +191,7 @@ export function ControlsPanel({
               onClick={() => a.next()}
               disabled={!started}
               testId="ctl-next-gap"
+              short={t("booth.controls.short_next_gap")}
             >
               <StepForward size={20} strokeWidth={2} aria-hidden />
             </Btn>
@@ -214,6 +201,7 @@ export function ControlsPanel({
               disabled={!live}
               armKey="fade"
               testId="ctl-fade"
+              short={t("booth.controls.short_fade")}
             >
               <TrendingDown size={20} strokeWidth={2} aria-hidden />
             </Btn>
@@ -224,6 +212,7 @@ export function ControlsPanel({
               why={noOverlap ? t("booth.controls.why_spotify_overlap") : undefined}
               armKey="crossfade"
               testId="ctl-crossfade"
+              short={t("booth.controls.short_crossfade")}
             >
               <Blend size={20} strokeWidth={2} aria-hidden />
             </Btn>
@@ -232,13 +221,14 @@ export function ControlsPanel({
               onClick={onStop}
               disabled={!started || state === "stopped"}
               testId="ctl-stop"
+              short={t("booth.controls.short_stop")}
             >
-              <Square size={18} fill="currentColor" strokeWidth={0} aria-hidden />
+              <Square size={20} fill="currentColor" strokeWidth={0} aria-hidden />
             </Btn>
           </div>
           {noOverlap && <span className="booth-ctl-why">{t("booth.controls.why_spotify_overlap")}</span>}
         </Group>
-        <Group title={t("booth.controls.song")}>
+        <Group title={t("booth.controls.song")} className="booth-ctl-song-group">
           <div className="booth-seek-row">
             <span className="tabular-nums">{durationLabel(Math.min(position, length))}</span>
             <SeekBar
@@ -251,29 +241,37 @@ export function ControlsPanel({
             />
             <span className="tabular-nums">{durationLabel(length)}</span>
           </div>
-          <div className="booth-ctl-row">
-            <span className="booth-ctl-label">
-              {t("booth.controls.trim", { db: `${trim > 0 ? "+" : ""}${trim}` })}
-            </span>
-            <Btn
-              label={t("booth.controls.trim_down")}
-              onClick={() => setTrim(trim - 0.5)}
-              disabled={!itemId}
-              testId="ctl-trim-down"
+          {/* one row of 44 px controls: − Trim 0 dB + and Start point… (the stepper's value between its buttons) */}
+          <div className="booth-ctl-row booth-ctl-song">
+            <fieldset
+              className="booth-ctl-stepper"
+              aria-label={t("booth.controls.trim", { db: `${trim > 0 ? "+" : ""}${trim}` })}
             >
-              <span aria-hidden>−</span>
-            </Btn>
-            <Btn
-              label={t("booth.controls.trim_up")}
-              onClick={() => setTrim(trim + 0.5)}
-              disabled={!itemId}
-              testId="ctl-trim-up"
-            >
-              <span aria-hidden>+</span>
-            </Btn>
+              <Btn
+                label={t("booth.controls.trim_down")}
+                onClick={() => setTrim(trim - 0.5)}
+                disabled={!itemId}
+                testId="ctl-trim-down"
+                icon
+              >
+                <Minus size={18} strokeWidth={2.25} aria-hidden />
+              </Btn>
+              <span className="booth-ctl-trim-v tabular-nums" data-testid="ctl-trim-value">
+                {t("booth.controls.trim_value", { db: `${trim > 0 ? "+" : ""}${trim}` })}
+              </span>
+              <Btn
+                label={t("booth.controls.trim_up")}
+                onClick={() => setTrim(trim + 0.5)}
+                disabled={!itemId}
+                testId="ctl-trim-up"
+                icon
+              >
+                <Plus size={18} strokeWidth={2.25} aria-hidden />
+              </Btn>
+            </fieldset>
             <button
               type="button"
-              className="btn-plain min-h-11 px-2"
+              className="booth-ctl-text booth-ctl-start"
               onClick={() => onSong(planIndex)}
               disabled={!item || item.kind === "break"}
               data-testid="ctl-start-point"
@@ -283,21 +281,21 @@ export function ControlsPanel({
           </div>
         </Group>
         <Group title={t("booth.controls.cue")}>
-          <div className="booth-ctl-row">
+          <div className="booth-ctl-row booth-ctl-cue">
             {audition ? (
               <button
                 type="button"
-                className="btn-plain min-h-11 px-2"
+                className="booth-ctl-text booth-ctl-wide"
                 onClick={() => a.stopAudition()}
                 data-testid="ctl-cue-stop"
               >
-                <Square size={14} fill="currentColor" strokeWidth={0} aria-hidden />{" "}
-                {t("booth.songSheet.stop_pre_listen")}
+                <Square size={14} fill="currentColor" strokeWidth={0} aria-hidden />
+                <span>{t("booth.songSheet.stop_pre_listen")}</span>
               </button>
             ) : (
               <button
                 type="button"
-                className="btn-plain min-h-11 px-2"
+                className="booth-ctl-text booth-ctl-wide"
                 disabled={next === null || (started && !!cueWhy)}
                 onClick={async () => {
                   if (next === null) return;
@@ -306,7 +304,8 @@ export function ControlsPanel({
                 }}
                 data-testid="ctl-cue-next"
               >
-                <Headphones size={16} strokeWidth={2} aria-hidden /> {t("booth.controls.cue_next")}
+                <Headphones size={16} strokeWidth={2} aria-hidden />
+                <span>{t("booth.controls.cue_next")}</span>
               </button>
             )}
             {started && cueWhy && <span className="booth-ctl-why">{cueWhy}</span>}
@@ -426,13 +425,32 @@ export function ControlsPanel({
           {t("booth.controls.keys_line")}
         </p>
       </div>
+      {more && (
+        <button
+          type="button"
+          className="booth-ctl-more"
+          onClick={() => body.current?.scrollBy({ top: body.current.clientHeight * 0.8, behavior: "smooth" })}
+          data-testid="ctl-more"
+        >
+          {t("booth.controls.more_below")}
+          <ChevronDown size={16} strokeWidth={2.25} aria-hidden />
+        </button>
+      )}
     </section>
   );
 }
 
-function Group({ title, children }: { title: string; children: ReactNode }) {
+function Group({
+  title,
+  className = "",
+  children,
+}: {
+  title: string;
+  className?: string;
+  children: ReactNode;
+}) {
   return (
-    <fieldset className="booth-ctl-group">
+    <fieldset className={`booth-ctl-group ${className}`}>
       <legend className="booth-ctl-title">{title}</legend>
       {children}
     </fieldset>
@@ -448,8 +466,14 @@ function Btn({
   why,
   armKey,
   testId,
+  short,
+  icon,
   children,
 }: {
+  /** the visible word when the name is long (the full name stays the accessible name and the tooltip) */
+  short?: string;
+  /** an icon-only button (the trim stepper): no word under the glyph */
+  icon?: boolean;
   /** mid-night the first tap arms, the second runs (lib/booth/confirm.ts) */
   armKey?: string;
   label: string;
@@ -467,7 +491,7 @@ function Btn({
   return (
     <button
       type="button"
-      className={`booth-ctl-btn confirm-host ${primary ? "booth-ctl-primary" : ""}`}
+      className={`booth-ctl-btn confirm-host ${primary ? "booth-ctl-primary" : ""} ${icon ? "booth-ctl-icon" : ""}`}
       data-armed={on || undefined}
       aria-label={label}
       aria-pressed={pressed === undefined ? undefined : pressed}
@@ -478,7 +502,7 @@ function Btn({
       data-testid={testId}
     >
       {children}
-      <span className="booth-ctl-btn-l">{on ? t("booth.confirm.again") : label}</span>
+      {!icon && <span className="booth-ctl-btn-l">{on ? t("booth.confirm.again") : (short ?? label)}</span>}
       {on && <ConfirmRing />}
     </button>
   );

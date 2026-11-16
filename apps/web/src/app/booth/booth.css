@@ -649,11 +649,15 @@
   padding: 0 4px;
   display: grid;
   place-items: center start;
-  color: var(--label-3);
+  color: var(--label-2);
   touch-action: manipulation;
 }
+/* 2026-11 (design review): a played gap's pill is the quieter token, never opacity (it was 11 px at 2.4:1) */
+.booth-gap[data-played] .booth-gap-btn {
+  color: var(--label-3);
+}
 .booth-gap-btn > span {
-  font-size: 11px;
+  font-size: 12px;
   line-height: 14px;
   padding: 0 7px;
   border-radius: 999px;
@@ -954,14 +958,14 @@ html[data-booth] {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* a narrower row (iPad portrait, a split view): Fade, Crossfade and Next at gap live in the Controls panel, so
-   every remaining cell keeps room for its word */
+/* a narrower row (an iPad landscape beside its sidebar, iPad portrait, a split view): Fade, Crossfade and Next at gap
+   live in the Controls panel, so every remaining cell keeps room for its word on one line (2026-11: from 900 px) */
 @container strip (max-width: 900px) {
   .booth-strip .booth-primary {
     --primary-w: 152px;
   }
 }
-@container strip (max-width: 780px) {
+@container strip (max-width: 900px) {
   .booth-strip .booth-roomy-only {
     display: none;
   }
@@ -1350,13 +1354,15 @@ html[data-booth] {
   font-weight: 600;
   color: var(--label-2);
 }
-/* a played tanda dims its words and songs; its actions (the floor, praise) stay readable for the DJ's verdict */
+/* a played tanda dims its words and songs with the quieter label tokens, never opacity (2026-11, design review: the
+   stacked opacities left played titles at 1.8:1); its actions (the floor, praise) stay as they are for the DJ's verdict.
+   The rows' own colours: below, "the set list" in the design-review block */
 .booth-tanda.booth-played {
   opacity: 1;
 }
-.booth-set .booth-tanda.booth-played > ol,
-.booth-set .booth-tanda.booth-played .booth-tanda-text {
-  opacity: 0.45;
+.booth-set .booth-tanda.booth-played .booth-tanda-title,
+.booth-set .booth-tanda.booth-played .booth-tanda-total {
+  color: var(--label-3);
 }
 /* the floor: three icons in a wide column, one "Floor…" menu in a narrow one */
 .booth-floor-inline {
@@ -1470,4 +1476,361 @@ html[data-booth] {
   .booth .booth-strip[data-started="true"] .booth-primary > .booth-start-label {
     display: none;
   }
+}
+
+/* =====================================================================================================================
+   2026-11 — the design review (iPad Pro 11 landscape, Safari, touch) and the DJ review that followed it
+   ===================================================================================================================== */
+
+/* ---------- the Controls panel: one sizing scale, a Cue button inside its card, one Song row ---------- */
+/* every icon + word button in the panel is the transport's cell: 52 px, the glyph on one line (20 px box), its word on
+   one line under it (an ellipsis and the full name as the tooltip and the accessible name) */
+.booth-ctl-body .booth-ctl-row > .booth-ctl-btn {
+  flex: 1 1 0;
+  min-width: 44px;
+  max-width: none;
+  height: 52px;
+  min-height: 52px;
+  justify-content: flex-start;
+  padding: 9px 4px 0;
+  gap: 3px;
+  border-radius: 12px;
+}
+.booth-ctl-body .booth-ctl-btn > svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
+.booth-ctl[data-open] .booth-ctl-body .booth-ctl-btn-l {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+  line-height: 11px;
+}
+.booth-ctl-body .booth-ctl-btn:not(:disabled):hover {
+  background: var(--fill-4);
+}
+/* the trim stepper: "−" and "+" 44 px icon buttons around "Trim 0 dB", Start point… the same height beside it */
+.booth-ctl-row.booth-ctl-song {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.booth-ctl-stepper {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+}
+.booth-ctl-body .booth-ctl-stepper > .booth-ctl-btn {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  justify-content: center;
+  background: var(--booth-fill-strong);
+}
+.booth-ctl-trim-v {
+  min-width: 5.5em;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--label);
+  white-space: nowrap;
+}
+.booth-ctl-text.booth-ctl-start {
+  flex: 1 1 auto;
+  height: 44px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* the Song group takes two columns when the panel has three (its seek bar and its one row of controls fit) */
+.booth-ctl-body {
+  container: ctl-body / inline-size;
+}
+@container ctl-body (min-width: 760px) {
+  .booth-ctl-song-group {
+    grid-column: span 2;
+  }
+}
+/* Cue: the card's width, its words wrapping inside it (it ran 338 px out of a 273 px card) */
+.booth-ctl-row.booth-ctl-cue {
+  flex-wrap: wrap;
+}
+.booth-ctl-text.booth-ctl-wide {
+  flex: 1 1 100%;
+  min-width: 0;
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 12px;
+  white-space: normal;
+  text-align: start;
+  line-height: 1.25;
+}
+.booth-ctl-text.booth-ctl-wide > svg {
+  flex: none;
+}
+/* the keyboard's own help: only where there is a keyboard or a pointer */
+@media not (any-hover: hover) {
+  .booth-ctl-keys,
+  .booth-ctl-head [data-testid="ctl-keys"] {
+    display: none;
+  }
+}
+/* the head keeps its toggle (and the keys): Previous / Play / Next live in the transport only */
+.booth-ctl-head {
+  justify-content: space-between;
+}
+
+/* height (iPad landscape and wider, two columns): the open panel takes at most ~40 % of the viewport and never so much
+   that the Now card's countdown leaves the deck (the columns keep ≥ 250 px, the countdown sits ~225 px into the card);
+   its groups scroll inside it, the foot fades and "More" says what is below. (Option A of the review: a capped panel,
+   not an overlay of the set column — the Now card and its countdown stay whole, the set list keeps its place.) */
+@media (min-width: 900px) {
+  .booth .booth-ctl {
+    max-height: min(
+      40dvh,
+      calc(100dvh - var(--booth-grid-top, 200px) - var(--booth-strip-space, 88px) - 14px - 250px)
+    );
+  }
+}
+.booth-ctl-body[data-more] {
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 44px), transparent);
+}
+.booth-ctl-more {
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  z-index: 2;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--booth-fill-strong);
+  color: var(--label);
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.22);
+}
+
+/* ---------- the transport: the primary fits its longest word; a tap asks to hold without relabelling ---------- */
+.booth-primary-measure {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+@container strip (max-width: 720px) {
+  .booth-strip .booth-primary-measure {
+    font-size: 13px;
+  }
+}
+.booth-tbtn-nudge {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  z-index: 3;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgb(var(--text));
+  color: rgb(var(--bg-cell));
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  pointer-events: none;
+}
+/* one row of words: every label on one line (Turkish wrapped some and not others) */
+@media (min-width: 820px) {
+  .booth .booth-strip .booth-tbtn > .booth-tbtn-l {
+    display: block;
+    -webkit-line-clamp: none;
+    line-height: 13px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+}
+
+/* ---------- the set list ---------- */
+/* played rows: the quieter label tokens on the words (≥ 4.5:1 on the cell), the pictures faded */
+.booth-row.booth-played .booth-row-title {
+  color: var(--label-2);
+}
+.booth-row.booth-played .booth-row-sub,
+.booth-row.booth-played .booth-row-n,
+.booth-row.booth-played .booth-row-len {
+  color: var(--label-3);
+}
+.booth-row.booth-played .booth-art,
+.booth-row.booth-played .booth-row-energy,
+.booth-row.booth-played .booth-era-slot,
+.booth-row.booth-played .booth-spotify {
+  opacity: 0.5;
+}
+/* (the gap pill: 12 px on its fill at ≥ 4.5:1, played or not — "wave 4: the gap marker" above) */
+/* one row height: one-line titles with an ellipsis (the full title is the row's sheet and its accessible name) */
+.booth .booth-set .booth-row {
+  height: 52px;
+  min-height: 52px;
+  gap: 8px;
+}
+.booth .booth-set .booth-row-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+/* a narrow column gives the artist line the room: the era glyph steps aside (BPM / key already did below 420) */
+@container booth-set (max-width: 460px) {
+  .booth-row .booth-era-slot {
+    display: none;
+  }
+}
+/* the tanda header's buttons: one family — 44 px tall, a 12 px radius, the same quiet fill */
+.booth .booth-tanda-acts > button,
+.booth .booth-tanda-acts > .booth-floor-menu > button,
+.booth .booth-tanda-acts > .booth-floor-inline .booth-floor-btn {
+  height: 44px;
+  min-height: 44px;
+  min-width: 44px;
+  border-radius: 12px;
+  background: var(--booth-fill);
+}
+.booth .booth-tanda-acts > button::before {
+  display: none;
+}
+.booth .booth-tanda-acts > [data-testid="booth-swap"],
+.booth .booth-tanda-acts > .booth-praise-btn,
+.booth .booth-tanda-acts > .booth-floor-inline .booth-floor-btn {
+  width: 44px;
+  padding: 0;
+}
+.booth .booth-tanda-acts > .booth-praise-btn[aria-pressed="true"],
+.booth .booth-tanda-acts > .booth-floor-inline .booth-floor-btn[aria-pressed="true"] {
+  background: var(--room-fill);
+}
+.booth .booth-tanda-acts > .booth-floor-menu > .booth-floor-menu-btn {
+  gap: 4px;
+  padding: 0 10px 0 12px;
+  white-space: nowrap;
+}
+.booth-floor-menu-chev {
+  flex: none;
+  color: var(--label-2);
+}
+
+/* ---------- the night bar: once the night runs, one compact row of tools (the set list gets the column) ---------- */
+@media (min-width: 900px) {
+  .booth-col-set .booth-night[data-compact] {
+    padding: 10px 14px;
+  }
+  .booth-col-set .booth-night[data-compact] .booth-clock {
+    font-size: 28px;
+  }
+  .booth-col-set .booth-night[data-compact] .booth-big {
+    font-size: 30px;
+  }
+  .booth-col-set .booth-night[data-compact] > .mt-2 {
+    margin-top: 6px;
+  }
+  .booth-col-set .booth-night[data-compact] {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 4px;
+  }
+  .booth-col-set .booth-night[data-compact] > .booth-night-row,
+  .booth-col-set .booth-night[data-compact] > .mt-2 {
+    flex: 1 1 100%;
+  }
+  .booth-col-set .booth-night[data-compact] > .booth-night-group {
+    margin: 6px 0 0;
+    flex: none;
+  }
+  .booth-col-set .booth-night[data-compact] > .booth-night-group > legend {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .booth-col-set .booth-night[data-compact] .booth-night-actions {
+    flex-wrap: nowrap;
+    gap: 4px;
+  }
+  .booth-col-set .booth-night[data-compact] .booth-tool {
+    width: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+  .booth-col-set .booth-night[data-compact] .booth-tool-l {
+    display: none;
+  }
+  .booth-col-set .booth-night[data-compact] > .booth-night-group + .booth-night-group {
+    margin-left: 8px;
+    padding-left: 8px;
+    border-left: 1px solid var(--separator);
+  }
+}
+
+/* ---------- the chips under the title: iPad portrait keeps them in two rows, Find songs on the first ---------- */
+@media (min-width: 600px) and (max-width: 1023.98px) {
+  .booth-head-row {
+    flex-wrap: nowrap;
+    align-items: flex-start;
+  }
+  .booth-head-row > .booth-toolbar {
+    flex: 1 1 0;
+  }
+  .booth-head-row > :not(.booth-toolbar) {
+    flex: none;
+  }
+  /* the compact chip: the glyph says ROOM / HEADPHONES (both stay the accessible name and the hint) */
+  .booth-toolbar > .booth-out > .booth-out-word {
+    display: none;
+  }
+  .booth-toolbar > .booth-out,
+  .booth-toolbar > .booth-chip,
+  .booth-head-row [data-testid="booth-find-songs"] {
+    padding: 0 12px;
+  }
+}
+/* a chip's name never ends in a cut word: the headphones say "Choose" whole */
+.booth-out > .booth-out-name {
+  max-width: 26ch;
+}
+
+/* ---------- the Booth's sheets: near-opaque (DJ review: the set list's words read through Stop, La Cumparsita now
+   and •••) — the surface at 97 % over a darker scrim, whatever the blur does ---------- */
+html[data-booth] .sheet-material::after {
+  background: rgb(var(--surface) / 0.97);
+}
+html[data-booth] .sheet-material {
+  box-shadow: 0 24px 80px rgb(0 0 0 / 0.4);
 }

@@ -18,7 +18,15 @@ import {
   TrendingDown,
   VolumeX,
 } from "lucide-react";
-import { type PointerEvent, type ReactNode, useEffect, useRef } from "react";
+import {
+  type CSSProperties,
+  type PointerEvent,
+  type ReactNode,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { durationLabel } from "@/lib/booth/plan";
 import { useBooth } from "@/lib/booth/store";
 import { haptic } from "@/lib/haptics";
@@ -114,6 +122,54 @@ export function ControlStrip({
     (sources.includes("spotify") &&
       !sources.some((s, i) => s === "file" && plan?.items[i]?.kind !== "break"));
 
+  // 2026-11 (design review): the primary keeps one width in every state, wide enough for its longest word in this
+  // language — Start · 30 s clips / Başlat · 30 sn'lik klipler, Pause, Resume, End break — measured, never cut. The
+  // "· n without source" tail joins it only when the whole label still fits in 40 % of the row.
+  const startLabel = rehearsal
+    ? tx("booth.controlStrip.start_30_s_clips")
+    : allSpotify
+      ? tx("booth.controlStrip.start_spotify")
+      : tx("booth.controlStrip.start_your_files");
+  const extra =
+    !rehearsal && !allSpotify && missing > 0
+      ? ` ${tx("booth.controlStrip.without_source", { missing })}`
+      : "";
+  const words = [
+    startLabel,
+    tx("booth.controlStrip.end_break"),
+    tx("booth.controlStrip.pause"),
+    tx("booth.controlStrip.play"),
+    tx("booth.controlStrip.resume"),
+  ];
+  const measure = useRef<HTMLSpanElement>(null);
+  const [fit, setFit] = useState<{ w: number; extra: boolean } | null>(null);
+  const wordsKey = `${words.join("|")}|${extra}`;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-measured when any of the words changes (wordsKey)
+  useLayoutEffect(() => {
+    const m = measure.current;
+    const strip = stripRef.current;
+    if (!m || !strip) return;
+    const read = () => {
+      const spans = [...m.children] as HTMLElement[];
+      if (!spans.length) return;
+      const ws = spans.map((x) => x.getBoundingClientRect().width);
+      const withExtra = ws[ws.length - 1]!;
+      const longest = Math.max(...ws.slice(0, -1));
+      // the glyph (18), its gap (6), the padding (2 × 12) and a pixel of rounding
+      const chrome = 18 + 6 + 24 + 2;
+      const cap = strip.getBoundingClientRect().width * 0.4;
+      const useExtra = !!extra && withExtra + chrome <= cap;
+      const w = Math.ceil(Math.max(longest, useExtra ? withExtra : 0) + chrome);
+      setFit((f) => (f && f.w === w && f.extra === useExtra ? f : { w, extra: useExtra }));
+    };
+    read();
+    const ro = typeof ResizeObserver === "function" ? new ResizeObserver(read) : null;
+    ro?.observe(m);
+    ro?.observe(strip);
+    void document.fonts?.ready.then(read);
+    return () => ro?.disconnect();
+  }, [wordsKey]);
+  const primaryStyle = wide && fit ? ({ "--primary-w": `${fit.w}px` } as CSSProperties) : undefined;
   const primary = !started ? (
     <button
       type="button"
@@ -123,20 +179,15 @@ export function ControlStrip({
         void act.start();
       }}
       disabled={!ready}
+      style={primaryStyle}
       data-testid="booth-start"
       data-hint={tx("booth.controlStrip.start_the_night_in_the_room")}
     >
       <Play size={18} fill="currentColor" strokeWidth={0} aria-hidden />
       {/* the label names the source (round8-ux.md §3) and fits a 390 px phone (round 18) */}
       <span className="booth-start-label">
-        {rehearsal
-          ? tx("booth.controlStrip.start_30_s_clips")
-          : allSpotify
-            ? tx("booth.controlStrip.start_spotify")
-            : tx("booth.controlStrip.start_your_files")}
-        {!rehearsal && !allSpotify && missing > 0 && (
-          <span className="booth-start-extra"> {tx("booth.controlStrip.without_source", { missing })}</span>
-        )}
+        {startLabel}
+        {extra && (!wide || fit?.extra) && <span className="booth-start-extra">{extra}</span>}
       </span>
     </button>
   ) : breakUntil !== null ? (
@@ -145,6 +196,7 @@ export function ControlStrip({
       className="btn btn-primary booth-primary"
       onClick={() => void act.endBreak()}
       data-testid="booth-play"
+      style={primaryStyle}
       aria-label={tx("booth.controlStrip.end_break")}
       data-hint={tx("booth.controlStrip.end_the_break_now_space")}
     >
@@ -156,6 +208,7 @@ export function ControlStrip({
       type="button"
       className="btn btn-ghost booth-primary"
       data-tone="pause"
+      style={primaryStyle}
       onClick={() => {
         haptic(8);
         act.pause();
@@ -176,6 +229,7 @@ export function ControlStrip({
         void act.play();
       }}
       data-testid="booth-play"
+      style={primaryStyle}
       aria-label={paused ? tx("booth.controlStrip.resume") : tx("booth.controlStrip.play")}
       data-hint={
         paused ? tx("booth.controlStrip.resume_where_it_paused_space") : tx("booth.controlStrip.play_space")
@@ -225,7 +279,8 @@ export function ControlStrip({
             <TrendingDown size={20} strokeWidth={2} aria-hidden />
           </TBtn>
           <TBtn
-            label={tx("booth.controlStrip.crossfade")}
+            label={tx("booth.controls.short_crossfade")}
+            ariaLabel={tx("booth.controlStrip.crossfade")}
             hint={tx("booth.controlStrip.the_next_item_starts_now_while", {
               crossfadeSec: settings.crossfadeSec,
             })}
@@ -256,6 +311,13 @@ export function ControlStrip({
         <SkipBack size={20} strokeWidth={2} aria-hidden />
       </TBtn>
       {primary}
+      {/* the primary's words, measured off-screen in its own font (its width: the longest of them) */}
+      <span ref={measure} className="booth-primary-measure" aria-hidden>
+        {words.map((w) => (
+          <span key={w}>{w}</span>
+        ))}
+        <span>{`${startLabel}${extra}`}</span>
+      </span>
       <TBtn
         label={tx("booth.controlStrip.next_now")}
         hint={
@@ -273,7 +335,8 @@ export function ControlStrip({
         <SkipForward size={20} strokeWidth={2} aria-hidden />
       </TBtn>
       <TBtn
-        label={tx("booth.controlStrip.next_at_gap")}
+        label={tx("booth.controls.short_next_gap")}
+        ariaLabel={tx("booth.controlStrip.next_at_gap")}
         hint={tx("booth.controlStrip.the_queued_item_is_skipped_at")}
         onClick={() => act.next()}
         disabled={!started}
@@ -414,7 +477,7 @@ export function ControlStrip({
         </TBtn>
       )}
       <TBtn
-        label={tx("booth.controlStrip.more")}
+        label={tx("booth.controls.short_more")}
         ariaLabel={tx("booth.controlStrip.more")}
         hint={tx("booth.controlStrip.set_up_rehearsal_keyboard_theme_leave")}
         onClick={onMore}
@@ -472,11 +535,9 @@ function TBtn({
   const hold = useHoldConfirm(confirmKey ?? `plain:${testId}`, onClick);
   const tp = tip.props as Partial<Record<string, Handler>> & typeof tip.props;
   const h = confirmKey ? hold.handlers : null;
-  const word = hold.armed
-    ? tx("booth.confirm.again")
-    : hold.nudge || hold.holding
-      ? tx("booth.confirm.hold")
-      : label;
+  // 2026-11: a tap mid-night never relabels the button "Hold" (the real Hold sat beside it, two "Hold"s): the label
+  // stays, the ring fills while held, and a bubble over it says "Hold to confirm"; armed (the keyboard) it says so
+  const word = hold.armed ? tx("booth.confirm.again") : label;
   return (
     <>
       <button
@@ -510,6 +571,11 @@ function TBtn({
           {h ? word : label}
         </span>
         {h && (hold.holding || hold.armed) && <ConfirmRing />}
+        {h && hold.nudge && !hold.holding && (
+          <span className="booth-tbtn-nudge" role="status" data-testid={`${testId}-nudge`}>
+            {tx("booth.confirm.hold_to_confirm")}
+          </span>
+        )}
       </button>
       {tip.tag}
     </>

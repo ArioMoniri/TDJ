@@ -10,18 +10,19 @@ import { Artwork } from "../ui/Artwork";
 import { BpmKey, EnergyChip } from "../ui/BpmKey";
 import { EraBadge } from "../ui/EraBadge";
 import { SeekBar } from "../ui/SeekBar";
-import { TandaTypeBadge } from "../ui/TandaTypeBadge";
+import { rhythmWord, TandaTypeBadge } from "../ui/TandaTypeBadge";
 import { ArmButton } from "./Confirm";
 import { FloorReaction } from "./FloorReaction";
 import { Meter } from "./Meter";
 
-const RHYTHM: Record<string, string> = {
-  tango: "Tango",
-  vals: "Vals",
-  milonga: "Milonga",
-  cortina: "Cortina",
-  break: "Break",
-};
+/** the item's rhythm in the reader's language (2026-11, DJ review: the Turkish eyebrow read "OPENİNG · TANGO") */
+function rhythmOf(r: string): string {
+  return r === "cortina"
+    ? t("booth.transition.cortina")
+    : r === "break"
+      ? t("booth.nowCard.where_break")
+      : rhythmWord(r);
+}
 
 /** The eyebrow a card prints over an item: "tanda 7 · Vals · D'Arienzo / Echagüe · 1940". */
 export function eyebrowFor(
@@ -32,14 +33,14 @@ export function eyebrowFor(
   const where =
     item.kind === "closing"
       ? item.tanda === 0
-        ? "opening"
-        : "closing"
+        ? t("booth.setColumn.opening")
+        : t("booth.setColumn.closing")
       : item.kind === "break"
-        ? "break"
+        ? t("booth.nowCard.where_break")
         : t("booth.nowCard.tanda_of", { tanda: item.tanda, tandas });
   return [
     where,
-    RHYTHM[item.rhythm] ?? item.rhythm,
+    item.kind === "break" ? null : rhythmOf(item.rhythm),
     withArtist ? item.artist : null,
     withArtist ? yearText(item.year) : null,
   ]
@@ -173,7 +174,10 @@ export function NowCard({
             {statusText ??
               (item.kind === "cortina"
                 ? t("booth.nowCard.cortina")
-                : t("booth.nowCard.of", { p1: k + 1, length: tandaItems.length }))}
+                : // (the opening and closing La Cumparsita belong to no tanda: no "0 of 0")
+                  tandaItems.length > 0 && k >= 0
+                  ? t("booth.nowCard.of", { p1: k + 1, length: tandaItems.length })
+                  : null)}
           </span>
         </div>
         <span
@@ -198,7 +202,8 @@ export function NowCard({
               : t("booth.nowCard.nothing_to_play_this_song_from")
             : SOURCE_LABEL[src]}
         </span>
-        {current && (
+        {/* (Spotify plays at its own level: no gain applies there, so no gain chip) */}
+        {current && src !== "spotify" && (
           <span
             className="booth-chip tabular-nums"
             data-testid="booth-gain"

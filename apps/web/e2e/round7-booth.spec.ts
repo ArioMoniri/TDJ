@@ -367,7 +367,14 @@ test("1440 × 900: the set column keeps whole titles (≥ 360 px), the transport
   const m = await page.evaluate(() => {
     const set = document.querySelector('[data-testid="booth-set"]')!.getBoundingClientRect();
     const titles = [...document.querySelectorAll<HTMLElement>(".booth-row-title")];
-    const cut = titles.filter((t) => t.scrollWidth > t.clientWidth + 1).length;
+    // 2026-11 (design review: one row height): a title longer than the row ends in an ellipsis, its whole text in
+    // the row's accessible name and its sheet; never a hard cut
+    const cut = titles.filter(
+      (t) =>
+        t.scrollWidth > t.clientWidth + 1 &&
+        (getComputedStyle(t).textOverflow !== "ellipsis" ||
+          !t.closest("button")?.getAttribute("aria-label")?.includes(t.textContent!.trim())),
+    ).length;
     const subs = document.querySelectorAll(".booth-row-sub").length;
     const subVisible = [...document.querySelectorAll<HTMLElement>(".booth-row-sub")].filter(
       (s) => s.offsetParent !== null,

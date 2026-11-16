@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useRef, useState } from "react";
 import { nightEnergy } from "@/lib/booth/energyChart";
 import { useIndicators } from "@/lib/booth/indicatorPrefs";
 import { useBooth } from "@/lib/booth/store";
@@ -22,6 +23,20 @@ export function EnergyRail({ onJump }: { onJump?: (planIndex: number) => void })
   const planIndex = useBooth((s) => s.planIndex);
   // the marker moves per tanda item, not per frame: position is read once per item change
   const position = useBooth((s) => Math.floor(s.position / 15) * 15);
+  // 2026-11 (DJ review: the chart's labels were 7 px once the 200-unit chart shrank into its column): the labels keep
+  // 11 px on screen whatever the chart's drawn width (`k`: chart units per screen pixel)
+  const svg = useRef<SVGSVGElement>(null);
+  const [k, setK] = useState(1);
+  useEffect(() => {
+    const el = svg.current;
+    if (!el || typeof ResizeObserver !== "function") return;
+    const ro = new ResizeObserver(() => {
+      const w = el.getBoundingClientRect().width;
+      if (w > 0) setK(200 / w);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  });
   if (!on || !plan || !playlist?.tandas.length) return null;
   const c = nightEnergy(playlist, plan, planIndex, position);
   const W = 200;
@@ -45,6 +60,7 @@ export function EnergyRail({ onJump }: { onJump?: (planIndex: number) => void })
         {t("booth.energyRail.energy_tonight")}
       </p>
       <svg
+        ref={svg}
         viewBox={`0 0 ${W} ${H}`}
         role="img"
         aria-label={t("booth.energyRail.energy_of_tandas_we_are_in", {
@@ -85,7 +101,7 @@ export function EnergyRail({ onJump }: { onJump?: (planIndex: number) => void })
           return (
             <g key={p.tanda}>
               {(p.tanda === 1 || p.tanda % 5 === 0) && (
-                <text x={2} y={y(mid(p)) + 3} fontSize={9} fill="var(--label-3)">
+                <text x={2} y={y(mid(p)) + 3} fontSize={11 * k} fill="var(--label-2)">
                   {p.tanda}
                 </text>
               )}
@@ -130,7 +146,7 @@ export function EnergyRail({ onJump }: { onJump?: (planIndex: number) => void })
           <text
             x={W - padR}
             y={y(c.here) - 4}
-            fontSize={10}
+            fontSize={11 * k}
             fontWeight={600}
             textAnchor="end"
             fill="var(--room)"
