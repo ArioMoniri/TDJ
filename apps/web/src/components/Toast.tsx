@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import { t } from "@/lib/i18n";
 import { toastIn } from "@/lib/motion";
 import { useSheetOpen, useSheets } from "@/lib/sheets";
-import { toastStale } from "@/lib/toast";
+import { readingTtl, toastStale } from "@/lib/toast";
 
 export interface ToastItem {
   id: number;
@@ -55,7 +55,12 @@ function useSheetSlot(toastId: number | undefined): HTMLElement | null {
 }
 
 export function Toast({ toast: item, onDismiss }: { toast: ToastItem | null; onDismiss: () => void }) {
-  const [paused, setPaused] = useState(false);
+  // 2026-11 (the owner: "the text in the banner won't slide to see what is written"): hover, focus or an open (a
+  // tap on the words) each hold the toast; it goes on its own only once none of them does
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [open, setOpen] = useState(false);
+  const paused = hovered || focused || open;
   // QA 2026-11: a toast never shows over a sheet opened after it (its Undo / Redo live under a modal) — it goes
   const openNow = useSheets((s) => s.open);
   const stale = toastStale(item, openNow);
@@ -75,11 +80,19 @@ export function Toast({ toast: item, onDismiss }: { toast: ToastItem | null; onD
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
   }, [toast, onDismiss]);
+  // a new toast starts closed (and unhovered: the pointer may have left with the old one)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset per toast
+  useEffect(() => {
+    setOpen(false);
+  }, [toast?.id]);
   useEffect(() => {
     if (!toast || paused) return;
-    const id = setTimeout(onDismiss, toast.ttl ?? 3000);
+    // a long text stays long enough to be read (lib/toast.ts readingTtl)
+    const id = setTimeout(onDismiss, readingTtl(toast.text, toast.ttl ?? 3000));
     return () => clearTimeout(id);
   }, [toast, paused, onDismiss]);
+  // the words: up to three lines, all of them on hover, focus or a tap (the screen reader always reads them whole)
+  const words = toast && <ToastText text={toast.text} open={open} onToggle={() => setOpen((v) => !v)} />;
   const action = (toast?.undo || toast?.secondary) && (
     <>
       {toast.secondary && (
@@ -135,11 +148,13 @@ export function Toast({ toast: item, onDismiss }: { toast: ToastItem | null; onD
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
-            onFocus={() => setPaused(true)}
-            onBlur={() => setPaused(false)}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
           >
             <div className="sheet-status" data-testid="toast" data-inline="sheet">
-              <span className="min-w-0 flex-1">{toast.text}</span>
+              {words}
               {action}
               {close}
             </div>
@@ -159,8 +174,10 @@ export function Toast({ toast: item, onDismiss }: { toast: ToastItem | null; onD
           initial="hidden"
           animate="show"
           exit="exit"
-          onHoverStart={() => setPaused(true)}
-          onHoverEnd={() => setPaused(false)}
+          aria-atomic="true"
+          data-open={open || undefined}
+          onHoverStart={() => setHovered(true)}
+          onHoverEnd={() => setHovered(false)}
           // a swipe up or down dismisses it (touch)
           drag="y"
           dragConstraints={{ top: 0, bottom: 0 }}
@@ -169,18 +186,73 @@ export function Toast({ toast: item, onDismiss }: { toast: ToastItem | null; onD
           onDragEnd={(_e, info) => {
             if (Math.abs(info.offset.y) > 28 || Math.abs(info.velocity.y) > 400) onDismiss();
           }}
-          onFocus={() => setPaused(true)}
-          onBlur={() => setPaused(false)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
           // top centre, under the top chrome (wave 2): at the bottom it squeezed between the tab bar and the floating
           // Compose / Export bar on iPhone, and covered the Rooms row buttons and the Compose dock on iPad
           className="app-toast glass glass-pill text-subhead fixed inset-x-4 top-[calc(var(--chrome-top)+0.75rem)] z-50 mx-auto flex min-h-11 max-w-md items-center gap-3 py-1 pl-4 pr-1 sm:top-[calc(var(--chrome-top)+5.25rem)] sm:w-max sm:min-w-[16rem]"
           data-testid="toast"
         >
-          <span className="min-w-0 flex-1 truncate">{toast.text}</span>
+          {words}
           {action}
           {close}
         </motion.div>
       )}
     </AnimatePresence>
+  );
+}
+
+/**
+ * 2026-11: a toast's words — never cut to one line. Up to three lines; a longer text shows whole while the pointer
+ * is over the toast, while it holds the focus, or once tapped (a second tap folds it again). The span is a button
+ * only when there is more to show (a focus stop and a tap target); the whole text is always in the DOM for the
+ * screen reader (the live region reads it, never the clamp).
+ */
+function ToastText({ text, open, onToggle }: { text: string; open: boolean; onToggle: () => void }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  // (once cut, it stays a toggle for this text: hovering or focusing it shows it whole, which would read as "fits")
+  const [more, setMore] = useState(false);
+  const [forText, setForText] = useState(text);
+  if (forText !== text) {
+    setForText(text);
+    setMore(false);
+  }
+  // biome-ignore lint/correctness/useExhaustiveDependencies: measured again for each new text
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const read = () => {
+      if (el.scrollHeight - el.clientHeight > 1) setMore(true);
+    };
+    read();
+    const ro = typeof ResizeObserver === "function" ? new ResizeObserver(read) : null;
+    ro?.observe(el);
+    return () => ro?.disconnect();
+  }, [text]);
+  const common = {
+    className: "toast-text min-w-0 flex-1",
+    "data-testid": "toast-text",
+    "data-open": open || undefined,
+    "data-more": more || undefined,
+  };
+  if (!more)
+    return (
+      <span ref={ref} {...common}>
+        {text}
+      </span>
+    );
+  return (
+    <button
+      ref={ref as unknown as React.RefObject<HTMLButtonElement>}
+      type="button"
+      {...common}
+      aria-expanded={open}
+      onClick={(e) => {
+        e.stopPropagation();
+        onToggle();
+      }}
+    >
+      {text}
+    </button>
   );
 }

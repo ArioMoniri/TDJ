@@ -20,6 +20,7 @@ import { ToolbarProvider } from "@/components/PageHeader";
 import { PageTransition } from "@/components/PageTransition";
 import { PlaylistSync } from "@/components/PlaylistSync";
 import { PowerSync } from "@/components/PowerSaver";
+import { PrelistenSheet } from "@/components/PrelistenSheet";
 import { RoomSync } from "@/components/RoomSync";
 import { RuleConfirmSheet } from "@/components/RuleConfirmSheet";
 import { SongHosts } from "@/components/song/SongHosts";
@@ -97,6 +98,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <BoothMini />
             <PlaylistSync />
             <GlobalToast />
+            <PrelistenSheet />
             <UpdateWatch />
             <EditKeys />
             <RuleConfirmSheet />

@@ -6046,6 +6046,35 @@ export const en = {
   "roomSettings.on": "on",
   "roomSettings.off": "off",
   "roomSettings.changed": "{what}: {value}",
+  // 2026-11: pre-listen while the Booth plays a night (components/PrelistenSheet.tsx, BoothMini)
+  "orchestra.guitars_credit": "{names} (guitars)",
+  "prelisten.title": "Pre-listen while the night plays",
+  "prelisten.lead": "The room keeps playing. “{title}” plays only where you choose here, never in the room.",
+  "prelisten.why_none": "No headphones output is chosen yet.",
+  "prelisten.why_same": "The headphones and the room are set to the same output.",
+  "prelisten.why_pair": "The controller's headphone channels are not open right now.",
+  "prelisten.why_unsupported":
+    "This browser sends all its sound to one output, the room's: a pre-listen here would reach the dancers.",
+  "prelisten.why_apple":
+    "On iPhone and iPad a web page has one output, the room's: a pre-listen here would reach the dancers.",
+  "prelisten.choose_headphones": "Choose headphones",
+  "prelisten.choose_headphones_footer":
+    "Tap your headphones or the interface's second output: the song plays there at once. The room never hears it.",
+  "prelisten.speaker_anyway": "Play on this device's speaker anyway",
+  "prelisten.speaker_not_room": "{name}, not the room's output",
+  "prelisten.speaker_footer":
+    "Only this device sounds it; the room stays on its own output. Kept for this session.",
+  "prelisten.speaker_is_room_footer":
+    "This device's speaker is not offered: it is, or may be, the room's output.",
+  "prelisten.speaker_is_room": "This device's speaker is the room's output now: choose headphones.",
+  "prelisten.second_device": "Or use a second device",
+  "prelisten.second_device_footer":
+    "Open T-DJ on your phone with headphones and open this night there (Rooms shares it): a tap there plays on that phone only.",
+  "prelisten.open_rooms": "Share the night in Rooms",
+  "prelisten.on_speaker_toast": "On this device's speaker, not the room: {title}",
+  "prelisten.mini_headphones": "In your headphones",
+  "prelisten.mini_speaker": "On this device's speaker",
+  "prelisten.mini_not_room": "the room doesn't hear it",
 } as const;
 
 export type MsgKey = keyof typeof en;
