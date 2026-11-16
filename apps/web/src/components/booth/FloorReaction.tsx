@@ -1,6 +1,7 @@
 "use client";
 import type { FloorReaction as Reaction, Song } from "@tdj/core";
 import { Heart, Meh, TrendingDown } from "lucide-react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useBooth } from "@/lib/booth/store";
 import { floorReactionOf, floorTap } from "@/lib/favourites";
 import { haptic } from "@/lib/haptics";
@@ -26,12 +27,15 @@ export function FloorReaction({
   tanda: tandaProp,
   compact,
   testPrefix,
+  onPick,
 }: {
   scope: "song" | "tanda";
   /** the plan's tanda (1-based); default: the playing item's */
   tanda?: number;
   compact?: boolean;
   testPrefix: string;
+  /** after a reaction is saved or taken back (the "Floor…" menu closes) */
+  onPick?: () => void;
 }) {
   const playlist = useBooth((s) => s.playlist);
   const item = useBooth((s) => s.plan?.items[s.planIndex]);
@@ -53,6 +57,7 @@ export function FloorReaction({
     useStore.getState().updateMemory((m) => floorTap(m, playlist, { scope, tanda, song, reaction: r }));
     const what = REACTIONS.find((x) => x.r === r)!;
     toast(was === r ? t("fav.cleared_toast") : t("fav.tapped_toast", { reaction: t(what.key) }));
+    onPick?.();
   };
   return (
     <fieldset
@@ -85,5 +90,79 @@ export function FloorReaction({
         );
       })}
     </fieldset>
+  );
+}
+
+/**
+ * 2026-11 — a narrow set-list column (iPhone, iPad landscape with the sidebar open): the tanda header's three
+ * reactions collapse into one "Floor…" button (44 pt) that opens a small menu with the labelled reactions, so the
+ * header's title, type and total keep their room. The button shows the chosen reaction's glyph once there is one.
+ * A choice, Escape or a tap outside closes the menu.
+ */
+export function FloorMenu({ tanda, testPrefix }: { tanda: number; testPrefix: string }) {
+  const playlist = useBooth((s) => s.playlist);
+  const memory = useStore((s) => s.memory);
+  const [open, setOpen] = useState(false);
+  const root = useRef<HTMLSpanElement>(null);
+  const id = useId();
+  const disabled = !playlist?.tandas[tanda - 1];
+  const pressed =
+    playlist && !disabled ? floorReactionOf(memory, playlist, { scope: "tanda", tanda }) : undefined;
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: PointerEvent) => {
+      if (!root.current?.contains(e.target as Node)) setOpen(false);
+    };
+    // Escape closes the menu only, not the set-list sheet around it (window capture runs before the sheet's own)
+    const key = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.preventDefault();
+      e.stopPropagation();
+      setOpen(false);
+      root.current?.querySelector<HTMLButtonElement>("button")?.focus();
+    };
+    document.addEventListener("pointerdown", away, true);
+    window.addEventListener("keydown", key, true);
+    return () => {
+      document.removeEventListener("pointerdown", away, true);
+      window.removeEventListener("keydown", key, true);
+    };
+  }, [open]);
+  const Icon = pressed ? ICON[pressed] : null;
+  const label = t("fav.floor_menu_label", { tanda: Math.max(1, tanda) });
+  return (
+    <span ref={root} className="booth-floor-menu" data-testid={`${testPrefix}-floor-menu`}>
+      <button
+        type="button"
+        className="booth-floor-btn booth-floor-menu-btn"
+        data-reaction={pressed}
+        aria-haspopup="true"
+        aria-expanded={open}
+        aria-controls={open ? id : undefined}
+        aria-label={pressed ? `${label} · ${t(REACTIONS.find((x) => x.r === pressed)!.key)}` : label}
+        title={t("fav.floor_tanda_label", { tanda: Math.max(1, tanda) })}
+        disabled={disabled}
+        onClick={() => setOpen((o) => !o)}
+        data-testid={`${testPrefix}-floor-menu-btn`}
+      >
+        {Icon && (
+          <Icon size={16} strokeWidth={2} aria-hidden fill={pressed === "full" ? "currentColor" : "none"} />
+        )}
+        <span>{t("fav.floor_menu")}</span>
+      </button>
+      {open && (
+        <span id={id} className="booth-floor-pop" data-testid={`${testPrefix}-floor-pop`}>
+          <FloorReaction
+            scope="tanda"
+            tanda={tanda}
+            testPrefix={`${testPrefix}-menu`}
+            onPick={() => {
+              setOpen(false);
+              root.current?.querySelector<HTMLButtonElement>("button")?.focus();
+            }}
+          />
+        </span>
+      )}
+    </span>
   );
 }

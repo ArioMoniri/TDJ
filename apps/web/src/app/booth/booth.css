@@ -1296,19 +1296,115 @@ html[data-booth] {
   color: var(--tint-text);
 }
 
-/* the tanda header's second line: its type in words and its total */
+/* ---------- the tanda header (2026-11): two clusters that never overlap ----------
+   The text (title, type, total) takes the room left, truncates the title and wraps the total under the type; the
+   actions (skip tonight, the floor, praise, swap) keep their 44 px targets on the right. When the column cannot hold
+   both side by side (the text keeps at least 13rem), the actions wrap under the text, right-aligned. */
+.booth-tanda-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 0;
+  padding: 12px 8px 4px;
+  min-width: 0;
+}
+.booth-tanda-text {
+  flex: 1 1 13rem;
+  min-width: 0;
+}
+.booth-tanda-acts {
+  flex: 0 1 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px 4px;
+  margin-left: auto;
+  max-width: 100%;
+  min-width: 0;
+}
+.booth-tanda-acts > * {
+  flex: none;
+}
+.booth-tanda-acts .booth-skipped-chip {
+  white-space: nowrap;
+  line-height: 20px;
+}
+/* the header's second line: its type in words and its total (the total wraps under a long type) */
 .booth-tanda-meta {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 4px 8px;
   margin-top: 4px;
   min-width: 0;
 }
+.booth-tanda-meta > .tanda-type {
+  flex: 0 1 auto;
+}
 .booth-tanda-total {
   flex: none;
+  white-space: nowrap;
   font-size: 12px;
   font-weight: 600;
   color: var(--label-2);
+}
+/* a played tanda dims its words and songs; its actions (the floor, praise) stay readable for the DJ's verdict */
+.booth-tanda.booth-played {
+  opacity: 1;
+}
+.booth-set .booth-tanda.booth-played > ol,
+.booth-set .booth-tanda.booth-played .booth-tanda-text {
+  opacity: 0.45;
+}
+/* the floor: three icons in a wide column, one "Floor…" menu in a narrow one */
+.booth-floor-inline {
+  display: inline-flex;
+}
+.booth-floor-menu {
+  display: none;
+  position: relative;
+}
+@container booth-set (max-width: 459.98px) {
+  .booth-floor-inline {
+    display: none;
+  }
+  .booth-floor-menu {
+    display: inline-flex;
+  }
+}
+.booth .booth-floor-menu-btn {
+  padding: 0 10px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.booth-floor-menu-btn[data-reaction="full"] svg {
+  color: var(--energy);
+}
+.booth-floor-menu-btn[data-reaction="emptied"] svg {
+  color: var(--booth-danger, var(--destructive));
+}
+.booth-floor-pop {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  padding: 8px;
+  border-radius: 14px;
+  background: rgb(var(--bg-cell));
+  border: var(--separator-w, 1px) solid var(--separator);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.28);
+}
+.booth-floor-pop .booth-floor {
+  margin: 0;
+  flex-direction: column;
+  align-items: stretch;
+  width: max-content;
+  min-width: 11rem;
+}
+.booth-floor-pop .booth-floor .booth-floor-btn {
+  justify-content: flex-start;
 }
 /* the Now card's artwork plays like a row tap */
 .booth-art-tap {

@@ -4015,6 +4015,8 @@ export const en = {
   "fav.floor_label": "How the floor took this song",
   "fav.floor_tanda_label": "How the floor took tanda {tanda}",
   "fav.floor_group": "Floor",
+  "fav.floor_menu": "Floor…",
+  "fav.floor_menu_label": "Floor reaction for tanda {tanda}",
   "fav.tapped_toast": "Saved: {reaction}",
   "fav.cleared_toast": "Floor reaction taken back",
   "fav.crowd_favourite": "Crowd favourite",

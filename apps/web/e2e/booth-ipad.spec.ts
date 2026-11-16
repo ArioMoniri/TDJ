@@ -752,3 +752,157 @@ test("iPad Safari with Spotify Premium and no device: 'Spotify · pick a device'
   await expect(page.getByTestId("booth-out-room")).not.toHaveAttribute("data-attention", "true");
   await ctx.close();
 });
+
+/**
+ * 2026-11 (the owner's iPad, landscape, sidebar open): the floor reactions were drawn over the first tanda header's
+ * "4 songs · 11:41". Every tanda header is two clusters: no button's box meets the title, the type badge or the
+ * total; nothing leaves the header; every button keeps 44 px. A narrow column shows one "Floor…" menu, a wide one
+ * the three icons.
+ */
+const tandaHeads = (page: Page) =>
+  page.evaluate(() => {
+    const vis = (el: Element) => {
+      const r = el.getBoundingClientRect();
+      const cs = getComputedStyle(el);
+      // (an sr-only legend is a 1 px clipped box: not drawn)
+      return r.width > 1 && r.height > 1 && cs.visibility !== "hidden";
+    };
+    const meet = (a: DOMRect, b: DOMRect) =>
+      a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5;
+    const out: string[] = [];
+    let heads = 0;
+    let buttons = 0;
+    let texts = 0;
+    for (const h of document.querySelectorAll<HTMLElement>('[data-testid="booth-tanda-head"]')) {
+      if (!vis(h)) continue;
+      heads++;
+      const n = h.closest<HTMLElement>(".booth-tanda")?.dataset.tanda;
+      const hr = h.getBoundingClientRect();
+      const words = [
+        ...h.querySelectorAll<HTMLElement>(
+          '[data-testid="booth-tanda-title"], [data-testid="tanda-type"], [data-testid="booth-tanda-total"]',
+        ),
+      ].filter(vis);
+      texts += words.length;
+      for (const b of [...h.querySelectorAll<HTMLElement>("button")].filter(vis)) {
+        buttons++;
+        const br = b.getBoundingClientRect();
+        if (br.width < 43.5 || br.height < 43.5)
+          out.push(`tanda ${n}: ${b.dataset.testid} ${br.width.toFixed(0)}×${br.height.toFixed(0)} < 44`);
+        for (const w of words)
+          if (meet(br, w.getBoundingClientRect()))
+            out.push(`tanda ${n}: ${b.dataset.testid ?? b.className} over ${w.dataset.testid}`);
+      }
+      // the total is never cut (the title may end in an ellipsis)
+      const total = h.querySelector<HTMLElement>('[data-testid="booth-tanda-total"]');
+      if (total && total.scrollWidth > total.clientWidth + 1) out.push(`tanda ${n}: the total is cut`);
+      if (h.scrollWidth > h.clientWidth + 1) out.push(`tanda ${n}: the header scrolls sideways`);
+      for (const e of h.querySelectorAll("*")) {
+        if (!vis(e)) continue;
+        // what is drawn: the box cut by any clipping ancestor inside the header (a truncated title's long name)
+        const r = e.getBoundingClientRect();
+        let [l, t, rt, bt] = [r.left, r.top, r.right, r.bottom];
+        for (let x = e.parentElement; x && x !== h; x = x.parentElement) {
+          const cs = getComputedStyle(x);
+          if (cs.overflowX === "visible" && cs.overflowY === "visible") continue;
+          const c = x.getBoundingClientRect();
+          [l, t, rt, bt] = [
+            Math.max(l, c.left),
+            Math.max(t, c.top),
+            Math.min(rt, c.right),
+            Math.min(bt, c.bottom),
+          ];
+        }
+        if (rt - l <= 0 || bt - t <= 0) continue;
+        if (l < hr.left - 1 || rt > hr.right + 1 || t < hr.top - 1 || bt > hr.bottom + 1)
+          out.push(
+            `tanda ${n}: ${(e as HTMLElement).dataset.testid ?? e.getAttribute("class") ?? e.tagName} “${(e.textContent ?? "").slice(0, 30)}” leaves the header`,
+          );
+      }
+    }
+    const set = document.querySelector<HTMLElement>(".booth-set-sheet .booth-set, .booth-col-set .booth-set");
+    return { heads, buttons, texts, out, setW: set?.clientWidth ?? 0 };
+  });
+
+for (const [name, opts, o] of DEVICES) {
+  test(`${name}: every tanda header keeps its buttons off the title, type and total; nothing leaves it`, async ({
+    browser,
+  }) => {
+    const ctx = await browser.newContext(opts);
+    const page = await ctx.newPage();
+    await openBooth(page, { ipad: name.startsWith("ipad") });
+    if (o.collapse) {
+      await page.getByTestId("sidebar-hide").click();
+      await expect(page.getByTestId("sidebar")).toBeHidden();
+    }
+    await start(page);
+    const phone = name === "iphone-15-pro";
+    if (phone) {
+      await page.getByTestId("booth-set-open").click();
+      await expect(page.getByTestId("booth-set-sheet")).toBeVisible();
+    }
+    const set = page.locator(phone ? ".booth-set-sheet .booth-set" : ".booth-col-set .booth-set");
+    // the longest action clusters: the playing tanda (the floor, praise, swap) and a tanda skipped tonight
+    await set.locator('.booth-tanda[data-tanda="2"] [data-testid="booth-bypass"]').click();
+    await expect(set.locator('.booth-tanda[data-tanda="2"]')).toHaveAttribute("data-bypassed", "true");
+    await page.waitForTimeout(400);
+    const head1 = set.locator('.booth-tanda[data-tanda="1"] [data-testid="booth-tanda-head"]');
+    await expect(head1.getByTestId("booth-tanda-total")).toHaveText(/\d songs · \d+:\d\d/);
+    const a = await tandaHeads(page);
+    expect(a.heads).toBeGreaterThanOrEqual(10);
+    expect(a.texts).toBeGreaterThanOrEqual(a.heads * 2);
+    expect(a.out, a.out.join("\n")).toEqual([]);
+    // a narrow column shows one "Floor…" menu, a wide one the three icons (the iPad's landscape with the sidebar
+    // open and the iPhone are narrow)
+    const narrow = a.setW < 460;
+    if (name === "ipad-landscape" || phone) expect(narrow).toBe(true);
+    const menuBtn = head1.getByTestId("set-1-floor-menu-btn");
+    if (SHOTS) {
+      await page.screenshot({ path: `${SHOTS}/tanda-head-${name}.png` });
+      await head1.screenshot({ path: `${SHOTS}/tanda-head-${name}-tanda1.png` });
+    }
+    if (narrow) {
+      await expect(menuBtn).toBeVisible();
+      await expect(menuBtn).toHaveText("Floor…");
+      await expect(head1.getByTestId("set-1-floor")).toBeHidden();
+      await menuBtn.click();
+      await expect(menuBtn).toHaveAttribute("aria-expanded", "true");
+      const pop = head1.getByTestId("set-1-floor-pop");
+      await expect(pop).toBeVisible();
+      const pb = (await pop.boundingBox())!;
+      expect(pb.x).toBeGreaterThanOrEqual(0);
+      expect(pb.x + pb.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+      for (const r of ["full", "ok", "emptied"]) {
+        const bb = (await pop.getByTestId(`set-1-menu-floor-${r}`).boundingBox())!;
+        expect(bb.height).toBeGreaterThanOrEqual(43.5);
+      }
+      await expect(pop.getByTestId("set-1-menu-floor-full")).toHaveText("Floor full ♥");
+      if (SHOTS) await page.screenshot({ path: `${SHOTS}/tanda-head-${name}-floor-menu.png` });
+      await pop.getByTestId("set-1-menu-floor-full").click();
+      await expect(pop).toHaveCount(0);
+      await expect(menuBtn).toHaveAttribute("data-reaction", "full");
+      await expect(menuBtn).toHaveAttribute("aria-expanded", "false");
+      // Escape and a tap outside close it too
+      await menuBtn.click();
+      await expect(pop).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(pop).toHaveCount(0);
+      // (the menu only: the phone's set-list sheet stays open)
+      if (phone) await expect(page.getByTestId("booth-set-sheet")).toBeVisible();
+      await menuBtn.click();
+      await expect(pop).toBeVisible();
+      await head1.getByTestId("booth-tanda-title").click();
+      await expect(pop).toHaveCount(0);
+    } else {
+      await expect(menuBtn).toBeHidden();
+      await head1.getByTestId("set-1-floor-full").click();
+      await expect(head1.getByTestId("set-1-floor-full")).toHaveAttribute("aria-pressed", "true");
+    }
+    // with a reaction chosen (the menu button shows its glyph) the header still holds
+    await page.waitForTimeout(200);
+    const b = await tandaHeads(page);
+    expect(b.out, b.out.join("\n")).toEqual([]);
+    if (SHOTS) await head1.screenshot({ path: `${SHOTS}/tanda-head-${name}-tanda1-reacted.png` });
+    await ctx.close();
+  });
+}

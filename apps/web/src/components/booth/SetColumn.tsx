@@ -19,7 +19,7 @@ import { Artwork } from "../ui/Artwork";
 import { BpmKey } from "../ui/BpmKey";
 import { EraBadge } from "../ui/EraBadge";
 import { TandaTypeBadge } from "../ui/TandaTypeBadge";
-import { FloorReaction } from "./FloorReaction";
+import { FloorMenu, FloorReaction } from "./FloorReaction";
 import { PraiseTanda } from "./PraiseTanda";
 import { dragHandle } from "./reorder";
 import { SongSheet } from "./SongSheet";
@@ -221,12 +221,19 @@ export function SetColumn({
             data-bypassed={bypassedT.has(g.tanda - 1) || undefined}
             data-locked={locked || undefined}
           >
+            {/* 2026-11: two clusters that never overlap — the text (title, type, total) takes the room left and
+                truncates or wraps; the actions keep their 44 px targets on the right, and move under the text when
+                the column is too narrow for both (booth.css, .booth-tanda-head) */}
             <header
-              className="flex items-center gap-2 px-2 pt-3 pb-1"
+              className="booth-tanda-head"
               data-hint={t ? tandaHint(t) : undefined}
+              data-testid="booth-tanda-head"
             >
-              <span className="min-w-0 flex-1">
-                <span className="text-caption1 block truncate font-semibold uppercase tracking-wide text-[var(--label-2)]">
+              <span className="booth-tanda-text">
+                <span
+                  className="booth-tanda-title text-caption1 block truncate font-semibold uppercase tracking-wide text-[var(--label-2)]"
+                  data-testid="booth-tanda-title"
+                >
                   {g.tanda === 0 ? (
                     tx("booth.setColumn.opening")
                   ) : t ? (
@@ -249,76 +256,84 @@ export function SetColumn({
                   </span>
                 )}
               </span>
-              {bypassedT.has(g.tanda - 1) && (
-                <span className="booth-skipped-chip" data-testid="booth-skipped-tonight">
-                  {tx("booth.setColumn.skipped_tonight")}
-                </span>
-              )}
-              {/* the running tanda: a filled lock in tint ("Playing now"); the DJ's own lock stays gold */}
-              {locked ? (
-                <Lock
-                  size={14}
-                  strokeWidth={2}
-                  fill="currentColor"
-                  className="text-[var(--tint)]"
-                  aria-label={tx("booth.setColumn.playing_now_read_only")}
-                >
-                  <title>{tx("booth.setColumn.playing_now")}</title>
-                </Lock>
-              ) : (
-                t?.locked && (
+              <span className="booth-tanda-acts" data-testid="booth-tanda-acts">
+                {bypassedT.has(g.tanda - 1) && (
+                  <span className="booth-skipped-chip" data-testid="booth-skipped-tonight">
+                    {tx("booth.setColumn.skipped_tonight")}
+                  </span>
+                )}
+                {/* the running tanda: a filled lock in tint ("Playing now"); the DJ's own lock stays gold */}
+                {locked ? (
                   <Lock
                     size={14}
                     strokeWidth={2}
-                    className="text-[var(--system-gold)]"
-                    aria-label={tx("booth.setColumn.locked")}
+                    fill="currentColor"
+                    className="text-[var(--tint)]"
+                    aria-label={tx("booth.setColumn.playing_now_read_only")}
+                  >
+                    <title>{tx("booth.setColumn.playing_now")}</title>
+                  </Lock>
+                ) : (
+                  t?.locked && (
+                    <Lock
+                      size={14}
+                      strokeWidth={2}
+                      className="text-[var(--system-gold)]"
+                      aria-label={tx("booth.setColumn.locked")}
+                    />
+                  )
+                )}
+                {/* round 21: skip tonight — the player passes over it; it stays in the exports */}
+                {t && !locked && (
+                  <button
+                    type="button"
+                    className="booth-bypass"
+                    data-testid="booth-bypass"
+                    aria-pressed={!!bypassedT.has(g.tanda - 1)}
+                    aria-label={tx("booth.setColumn.tanda_tonight", {
+                      p1: bypassedT.has(g.tanda - 1)
+                        ? tx("booth.setColumn.play_2")
+                        : tx("booth.setColumn.skip"),
+                      tanda: g.tanda,
+                    })}
+                    data-hint={
+                      t.bypass
+                        ? tx("booth.setColumn.skipped_tonight_the_player_passes_over")
+                        : bypassedT.has(g.tanda - 1)
+                          ? tx("booth.setColumn.skipped_by_last_4_tandas_tango")
+                          : tx("booth.setColumn.skip_this_tanda_tonight_the_player")
+                    }
+                    disabled={!t.bypass && bypassedT.has(g.tanda - 1)}
+                    onClick={() => void useBooth.getState().toggleBypass(g.tanda)}
+                  >
+                    {bypassedT.has(g.tanda - 1)
+                      ? tx("booth.setColumn.play_it")
+                      : tx("booth.setColumn.skip_tonight")}
+                  </button>
+                )}
+                {/* 2026-11: how the floor took the tanda, once it plays (dancer favourites): three icons in a wide
+                  column, one "Floor…" menu in a narrow one (the container query shows one of the two) */}
+                {t && started && g.tanda <= runningTanda && (
+                  <>
+                    <span className="booth-floor-inline">
+                      <FloorReaction scope="tanda" tanda={g.tanda} compact testPrefix={`set-${g.tanda}`} />
+                    </span>
+                    <FloorMenu tanda={g.tanda} testPrefix={`set-${g.tanda}`} />
+                  </>
+                )}
+                {t && started && g.tanda <= runningTanda && (
+                  <PraiseTanda tanda={g.tanda} compact testPrefix={`set-${g.tanda}`} />
+                )}
+                {t && (
+                  <SwapButton
+                    label={tx("booth.setColumn.swap_tanda", { tanda: g.tanda })}
+                    disabled={locked}
+                    busy={busy === `${g.tanda}-t`}
+                    onClick={() => swap(g.tanda)}
+                    title={locked ? tx("booth.setColumn.playing_locked") : undefined}
                   />
-                )
-              )}
-              {/* round 21: skip tonight — the player passes over it; it stays in the exports */}
-              {t && !locked && (
-                <button
-                  type="button"
-                  className="booth-bypass"
-                  data-testid="booth-bypass"
-                  aria-pressed={!!bypassedT.has(g.tanda - 1)}
-                  aria-label={tx("booth.setColumn.tanda_tonight", {
-                    p1: bypassedT.has(g.tanda - 1)
-                      ? tx("booth.setColumn.play_2")
-                      : tx("booth.setColumn.skip"),
-                    tanda: g.tanda,
-                  })}
-                  data-hint={
-                    t.bypass
-                      ? tx("booth.setColumn.skipped_tonight_the_player_passes_over")
-                      : bypassedT.has(g.tanda - 1)
-                        ? tx("booth.setColumn.skipped_by_last_4_tandas_tango")
-                        : tx("booth.setColumn.skip_this_tanda_tonight_the_player")
-                  }
-                  disabled={!t.bypass && bypassedT.has(g.tanda - 1)}
-                  onClick={() => void useBooth.getState().toggleBypass(g.tanda)}
-                >
-                  {bypassedT.has(g.tanda - 1)
-                    ? tx("booth.setColumn.play_it")
-                    : tx("booth.setColumn.skip_tonight")}
-                </button>
-              )}
-              {/* 2026-11: how the floor took the tanda, once it plays (dancer favourites) */}
-              {t && started && g.tanda <= runningTanda && (
-                <FloorReaction scope="tanda" tanda={g.tanda} compact testPrefix={`set-${g.tanda}`} />
-              )}
-              {t && started && g.tanda <= runningTanda && (
-                <PraiseTanda tanda={g.tanda} compact testPrefix={`set-${g.tanda}`} />
-              )}
-              {t && (
-                <SwapButton
-                  label={tx("booth.setColumn.swap_tanda", { tanda: g.tanda })}
-                  disabled={locked}
-                  busy={busy === `${g.tanda}-t`}
-                  onClick={() => swap(g.tanda)}
-                  title={locked ? tx("booth.setColumn.playing_locked") : undefined}
-                />
-              )}
+                )}
+              </span>
             </header>
             <ol>
               {g.items.map(({ i }, k) => [

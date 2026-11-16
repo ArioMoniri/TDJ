@@ -4191,6 +4191,8 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "fav.floor_label": "Pist bu şarkıyı nasıl karşıladı",
   "fav.floor_tanda_label": "Pist {tanda}. tandayı nasıl karşıladı",
   "fav.floor_group": "Pist",
+  "fav.floor_menu": "Pist…",
+  "fav.floor_menu_label": "{tanda}. tanda için pist tepkisi",
   "fav.tapped_toast": "Kaydedildi: {reaction}",
   "fav.cleared_toast": "Pist tepkisi geri alındı",
   "fav.crowd_favourite": "Kalabalığın favorisi",
