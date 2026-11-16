@@ -1,5 +1,7 @@
 import {
   applyGuideFix,
+  applyNightSettings,
+  CLOSING_FORMATS,
   changeNightEnd,
   editGuide,
   type GuideFix,
@@ -7,6 +9,8 @@ import {
   insertSongOptions,
   insertTanda,
   insertTandaOptions,
+  mendNightCortinas,
+  type NightSettingsPatch,
   type Playlist,
   removeSong,
   removeTanda,
@@ -30,6 +34,8 @@ import { externalSide } from "./tandaSet";
  * - `insertTanda` { playlist, at, sides } · `removeTanda` { playlist, tandaIndex }
  * - `guide` { before, after } → { lines } · `fix` { playlist, fix } → the night with a guide line's fix
  * - `end` { playlist, from, targetSec } → the Booth's "Change the end…" (the night, the new end, what changed)
+ * - `mend` { playlist, cumparsitas? } → the night's cortinas set right after any edit (rooms, lib/roomCortinas.ts)
+ * - `settings` { playlist, patch } → a room's Night settings applied, the cortinas re-mended (RoomNightSettings)
  *
  * An edit comes back re-timed and re-scored with `changed`, or `reason` (409); the browser's rule check (gateEdit)
  * judges it before it applies, and the guide (`guide`) says what it did to the night.
@@ -55,6 +61,34 @@ const FIXES = new Set([
   "opening",
   "closing",
 ]);
+
+const PATTERNS = ["classic", "TTVTTM", "TTVTTM-strict", "TVTM", "TMTV", "tango-only"];
+const strs = (x: unknown) =>
+  Array.isArray(x)
+    ? x.filter((v): v is string => typeof v === "string" && /^[\w:-]{1,40}$/.test(v)).slice(0, 12)
+    : undefined;
+/** the room's Night settings as the route takes them (unknown keys and values dropped) */
+export function settingsPatch(x: unknown): NightSettingsPatch | null {
+  if (!x || typeof x !== "object") return null;
+  const v = x as Record<string, unknown>;
+  const out: NightSettingsPatch = {};
+  const cultures = strs(v.cortinaCultures);
+  if (cultures?.length) out.cortinaCultures = cultures;
+  const genres = strs(v.cortinaGenres);
+  if (genres) out.cortinaGenres = genres;
+  if (typeof v.cortinaLengthSec === "number" && Number.isFinite(v.cortinaLengthSec))
+    out.cortinaLengthSec = v.cortinaLengthSec;
+  if (typeof v.cortinaFadeOutSec === "number" && Number.isFinite(v.cortinaFadeOutSec))
+    out.cortinaFadeOutSec = v.cortinaFadeOutSec;
+  if (v.cortinaChoice === "auto" || v.cortinaChoice === "pick") out.cortinaChoice = v.cortinaChoice;
+  if (typeof v.pattern === "string" && PATTERNS.includes(v.pattern))
+    out.pattern = v.pattern as NightSettingsPatch["pattern"];
+  if (typeof v.lastFourTango === "boolean") out.lastFourTango = v.lastFourTango;
+  if (typeof v.closingFormat === "string" && (CLOSING_FORMATS as readonly string[]).includes(v.closingFormat))
+    out.closingFormat = v.closingFormat as NightSettingsPatch["closingFormat"];
+  if (typeof v.opening === "boolean") out.opening = v.opening;
+  return Object.keys(out).length ? out : null;
+}
 
 export async function spot(req: Request, d: ApiDeps): Promise<Response> {
   const b = await bodyJson<Record<string, unknown>>(req);
@@ -109,6 +143,18 @@ export async function spot(req: Request, d: ApiDeps): Promise<Response> {
       const fix = b!.fix as GuideFix | undefined;
       if (!fix || !FIXES.has(String(fix.kind))) return bad("fix required");
       return edit(playlist, applyGuideFix(playlist, fix, deps));
+    }
+    // 2026-11 (rooms): the night's cortinas mended after any edit (and its Cumparsitas when it grew from empty), and
+    // the room's Night settings (core insert.ts mendNightCortinas / applyNightSettings)
+    case "mend": {
+      const r = mendNightCortinas(playlist, deps, { cumparsitas: b!.cumparsitas === true });
+      return json({ ...forWire(r), changed: r !== playlist });
+    }
+    case "settings": {
+      const patch = settingsPatch(b!.patch);
+      if (!patch) return bad("patch required");
+      const r = applyNightSettings(playlist, patch, deps);
+      return json({ ...forWire(r), changed: true });
     }
     case "end": {
       const targetSec = Number(b!.targetSec);

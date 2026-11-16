@@ -1030,6 +1030,42 @@ export function Composer() {
   // the phone primary bar needs room under the form (round8-ux.md §2): `main` pads for it while this page is up
   // wave 4: only the empty page floats a Compose button; with a set the actions live in the navigation bar
   const floatingCompose = !hasSet;
+  /**
+   * 2026-11 (the owner: "Compose the night must not cover Import a playlist"): the floating Compose steps aside while
+   * the first-run list's last row (Import a playlist) passes under it — at a large text size, or a short screen —
+   * and comes back once the row has scrolled on. Measured from the bar's layout box (a hidden bar is only
+   * translated), on scroll and resize.
+   */
+  const [fabClash, setFabClash] = useState(false);
+  useEffect(() => {
+    if (!hydrated || hasSet) {
+      setFabClash(false);
+      return;
+    }
+    let raf = 0;
+    const check = () => {
+      raf = 0;
+      const bar = document.querySelector<HTMLElement>('[data-testid="primary-bar"]');
+      const row = document.querySelector<HTMLElement>('[data-testid="first-run-import"]');
+      // (no bar, or none on this width: sm and up keep the Compose in the page)
+      if (!bar || !row || !bar.offsetHeight) return setFabClash(false);
+      const r = row.getBoundingClientRect();
+      const top = bar.offsetTop;
+      const left = bar.offsetLeft;
+      setFabClash(r.bottom > top + 2 && r.top < top + bar.offsetHeight - 2 && r.right > left + 2);
+    };
+    const ask = () => {
+      if (!raf) raf = requestAnimationFrame(check);
+    };
+    check();
+    window.addEventListener("scroll", ask, { passive: true });
+    window.addEventListener("resize", ask);
+    return () => {
+      window.removeEventListener("scroll", ask);
+      window.removeEventListener("resize", ask);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [hydrated, hasSet]);
   useEffect(() => {
     if (!floatingCompose) return;
     document.documentElement.dataset.primaryBar = "1";
@@ -1935,7 +1971,10 @@ export function Composer() {
           <p className="text-subhead mt-1 text-[var(--label-2)]">
             {tx("composer.hours_of_tandas_with_cortinas_scored", { hours, p1: nightEraLabel({ options }) })}
           </p>
-          <ol className="mt-4 grid gap-2 sm:grid-cols-3">
+          {/* 2026-11 (the owner: "Compose the night must not cover Import a playlist"): on a phone the three steps
+              are one row (their words under each number, the details from sm up), so the three ways below sit
+              clear of the floating Compose as the page opens */}
+          <ol className="mt-4 grid grid-cols-3 gap-2" data-testid="first-run-steps">
             {(
               [
                 [tx("composer.step_compose"), tx("composer.step_compose_sub")],
@@ -1943,13 +1982,16 @@ export function Composer() {
                 [tx("composer.play_or_send"), tx("composer.step_play_sub")],
               ] as const
             ).map(([h, d], i) => (
-              <li key={h} className="flex items-start gap-3">
+              <li
+                key={h}
+                className="flex items-start gap-3 max-sm:flex-col max-sm:items-center max-sm:gap-1 max-sm:text-center"
+              >
                 <span className="tile-art shrink-0" data-rhythm="tango" aria-hidden>
                   <span className="text-headline tabular-nums">{i + 1}</span>
                 </span>
                 <span className="min-w-0">
-                  <span className="text-headline block">{h}</span>
-                  <span className="text-footnote block text-[var(--label-2)]">{d}</span>
+                  <span className="text-headline block max-sm:text-[length:var(--text-subhead)]">{h}</span>
+                  <span className="text-footnote block text-[var(--label-2)] max-sm:sr-only">{d}</span>
                 </span>
               </li>
             ))}
@@ -2504,7 +2546,7 @@ export function Composer() {
       <PrimaryBar
         hasPlaylist={hasPlaylist}
         busy={busy}
-        hidden={sheetOpen || playerOpen}
+        hidden={sheetOpen || playerOpen || fabClash}
         onCompose={() => run()}
         errorNudge={errorNudge}
       />

@@ -108,11 +108,16 @@ describe("artwork resolver", () => {
 });
 
 describe("live lookups", () => {
-  it("asks the route by Spotify recording and Deezer match; nothing without either", () => {
+  it("asks the route by Spotify recording and Deezer match; else searches by the side; nothing without a side", () => {
     const q = liveQuery(side({ resolved: { provider: "deezer", id: "85217988" } }) as never);
     expect(q?.qs).toBe(`uri=spotify%3Atrack%3A${TRACK}&deezer=85217988`);
     expect(liveQuery({ id: "x" })).toBeNull();
-    expect(liveQuery(side({ spotify: { uri: "spotify:track:short" } }) as never)).toBeNull();
+    // 2026-11: no recording to ask about → a search for the side (the route climbs the "Find on services" ladder)
+    const s = liveQuery(side({ spotify: { uri: "spotify:track:short" } }) as never);
+    expect(s?.search).toBe(true);
+    expect(new URLSearchParams(s!.qs).get("search")).toBe("1");
+    // a cortina is never searched for: its artist is no orchestra
+    expect(liveQuery({ id: "c1", title: "Şımarık", artist: "Tarkan" } as never)).toBeNull();
   });
   it("keeps a found cover on the device, and asks once per recording", async () => {
     let calls = 0;

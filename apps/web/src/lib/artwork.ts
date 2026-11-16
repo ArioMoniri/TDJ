@@ -285,15 +285,22 @@ export function createLimiter(max: number) {
 export const LIVE_CONCURRENCY = 6;
 const limiter = createLimiter(LIVE_CONCURRENCY);
 
-/** what the route needs to look a side up: its Spotify recording and/or its Deezer match; null when it has neither */
-export function liveQuery(e: Entity): { key: string; qs: string; spotifyUrl?: string } | null {
+/**
+ * what the route needs to look a side up: its Spotify recording and/or its Deezer match; else (2026-11) the side
+ * itself for a search climbed like "Find on services" — the singer first for a solo singer's side with guitars, the
+ * leader's surname, the aliases, the folded title (lib/findMatch.ts queryLadder, on the route); null when it has
+ * nothing to look up by
+ */
+export function liveQuery(
+  e: Entity,
+): { key: string; qs: string; spotifyUrl?: string; search?: boolean } | null {
   const x = loose(e);
   const track =
     x.spotify?.uri?.match(/^spotify:track:([A-Za-z0-9]{22})$/)?.[1] ??
     x.spotify?.url?.match(/^https:\/\/open\.spotify\.com\/track\/([A-Za-z0-9]{22})/)?.[1];
   const dz =
     x.resolved?.provider === "deezer" && /^\d{1,15}$/.test(x.resolved.id ?? "") ? x.resolved.id : undefined;
-  if (!track && !dz) return null;
+  if (!track && !dz) return searchQuery(e);
   const p = new URLSearchParams();
   if (track) p.set("uri", `spotify:track:${track}`);
   if (dz) p.set("deezer", dz);
@@ -302,6 +309,31 @@ export function liveQuery(e: Entity): { key: string; qs: string; spotifyUrl?: st
     qs: p.toString(),
     ...(track ? { spotifyUrl: `https://open.spotify.com/track/${track}` } : {}),
   };
+}
+
+type Side = {
+  id?: string;
+  title?: string;
+  orchestra?: string;
+  singer?: string | null;
+  vocal?: boolean;
+  year?: number | null;
+  durationSec?: number | null;
+  altTitles?: string[];
+  /** a cortina is never searched for (its artist is no orchestra) */
+  artist?: string;
+};
+/** a side with no recording to ask about: the search's parameters (the catalogue id lets the route use its record) */
+export function searchQuery(e: Entity): { key: string; qs: string; search: true } | null {
+  const s = (e ?? {}) as Side;
+  if (!s.id || !s.title || !s.orchestra || s.artist !== undefined) return null;
+  const p = new URLSearchParams({ search: "1", id: s.id, title: s.title, orchestra: s.orchestra });
+  if (s.singer) p.set("singer", s.singer);
+  if (typeof s.vocal === "boolean") p.set("vocal", s.vocal ? "1" : "0");
+  if (s.year) p.set("year", String(s.year));
+  if (s.durationSec) p.set("dur", String(Math.round(s.durationSec)));
+  for (const a of (s.altTitles ?? []).slice(0, 3)) p.append("alt", a);
+  return { key: `s:${s.id}`, qs: p.toString(), search: true };
 }
 
 /** Spotify's public oEmbed straight from the page (CORS-open): the fallback when the route cannot be reached */
@@ -317,7 +349,7 @@ export const spotifyOEmbed: CoverLookup = async (url) => {
 
 /** the route's answer: a cover, or none (`final`: the provider has none; else try again on a later visit) */
 export async function fetchLiveCover(
-  q: NonNullable<ReturnType<typeof liveQuery>>,
+  q: { qs: string; spotifyUrl?: string },
   f: typeof fetch = (...a) => fetch(...a),
   direct: CoverLookup = spotifyOEmbed,
 ): Promise<{ url: string | null; final: boolean }> {
@@ -352,7 +384,8 @@ export function lookupCover(
       .run(() => fetchLiveCover(q, o.fetch, o.direct))
       .then(({ url, final }) => {
         if (url) rememberCover(id, url);
-        else if (final) none.add(q.key);
+        // (a search that could not be answered is not asked again this session: no page-side fallback exists)
+        else if (final || q.search) none.add(q.key);
         return url;
       })
       .catch(() => null)

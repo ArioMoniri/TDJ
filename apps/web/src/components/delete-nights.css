@@ -1,0 +1,59 @@
+/* 2026-11 — deleting nights (components/DeleteNights.tsx, the sidebar's Recent nights, History's Edit mode) */
+
+/* Recent nights: the ✕ shows on hover and on keyboard focus, over the row's trailing edge */
+.side-recent {
+  position: relative;
+}
+.side-recent-x {
+  position: absolute;
+  top: 50%;
+  right: 2px;
+  width: 28px;
+  height: 28px;
+  min-height: 28px;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  color: var(--label-2);
+  opacity: 0;
+  transition: opacity var(--dur-s, 160ms) ease-out;
+}
+/* (a 44 px hit area around the 28 px glyph) */
+.side-recent-x::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+}
+.side-recent:hover .side-recent-x,
+.side-recent:focus-within .side-recent-x,
+.side-recent-x:focus-visible {
+  opacity: 1;
+}
+.side-recent-x:hover {
+  background: var(--fill-3);
+  color: var(--label);
+}
+.side-recent-x[data-protected] {
+  color: var(--label-3);
+  cursor: not-allowed;
+}
+.side-recent:hover .side-row {
+  padding-right: 34px;
+}
+@media (hover: none) {
+  .side-recent-x {
+    display: none;
+  }
+}
+
+/* History's Edit mode: a check per row */
+.history-pick {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  color: var(--tint);
+}
+.history-pick[aria-disabled="true"] {
+  color: var(--label-3);
+}

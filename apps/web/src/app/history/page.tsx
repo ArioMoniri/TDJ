@@ -1,5 +1,6 @@
 "use client";
 import {
+  CheckSquare,
   Copy,
   Download,
   FileDown,
@@ -10,6 +11,7 @@ import {
   Play,
   RotateCcw,
   Share,
+  Square,
   Trash2,
   Users,
 } from "lucide-react";
@@ -39,6 +41,7 @@ import { useMediaQuery } from "@/lib/hooks";
 import { fmtTime, lazy, t as tx } from "@/lib/i18n";
 import { nightMusicSec } from "@/lib/lengths";
 import { reduced as reducedV, rise } from "@/lib/motion";
+import { askDeleteNights, boothNight, deleteLabel, protectedReason } from "@/lib/nightDelete";
 import { lengthText } from "@/lib/nightName";
 import { nightItems, PlayListContext } from "@/lib/playback";
 import { useStore } from "@/lib/store";
@@ -141,9 +144,7 @@ export default function HistoryPage() {
   const {
     history,
     overridesReady,
-    removeSnapshot,
     updateSnapshot,
-    clearHistory,
     setPlaylist,
     replaceOptions,
     playlist,
@@ -173,24 +174,39 @@ export default function HistoryPage() {
   const [renaming, setRenaming] = useState(false);
   const [draft, setDraft] = useState("");
   const [exporting, setExporting] = useState(false);
-  const [confirmClear, setConfirmClear] = useState(false);
   const open = history.find((h) => h.id === openId) ?? null;
+  /** the night the Booth holds (read each render: it never deletes) */
+  const booth = boothNight();
   const groups = useMemo(() => groupByDay(history), [history]);
   const trend = useMemo(() => [...history.slice(0, 20)].reverse().map((h) => h.score), [history]);
   const avg = trend.length ? Math.round(trend.reduce((a, b) => a + b, 0) / trend.length) : null;
 
+  // 2026-11 (the owner: "delete nights"): every delete asks once (components/DeleteNights.tsx) and has an Undo; the
+  // night the Booth has open is never deleted (its action disabled with the reason); Edit selects several
+  const [editing, setEditing] = useState(false);
+  const [picked, setPicked] = useState<Set<string>>(() => new Set());
   const remove = (s: HistorySnapshot) => {
+    const why = protectedReason(s);
+    if (why) return toast(why);
     haptic(8);
-    removeSnapshot(s.id);
     if (openId === s.id) setOpenId(null);
-    toast(`Deleted "${s.title}"`, () => {
-      // Undo puts the entry back where it was; it does not become tonight's night
-      const st = useStore.getState();
-      const cur = st.currentEntry;
-      st.addSnapshot(s);
-      st.setCurrentEntry(cur);
-    });
+    askDeleteNights([s.id]);
   };
+  const togglePick = (id: string) =>
+    setPicked((p) => {
+      const n = new Set(p);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  // the picked ones that are gone (deleted, or another tab) leave the selection
+  useEffect(() => {
+    setPicked((p) => {
+      const ids = new Set(history.map((h) => h.id));
+      const n = new Set([...p].filter((id) => ids.has(id)));
+      return n.size === p.size ? p : n;
+    });
+  }, [history]);
   /** wave 2: one entry is Current — the night on screen in Compose (older browsers: the one holding that night) */
   const currentId =
     currentEntry && history.some((h) => h.id === currentEntry)
@@ -276,14 +292,32 @@ export default function HistoryPage() {
                   disabled: !history.length,
                 },
                 {
-                  label: tx("history.clear_history_2"),
+                  label: tx("nightDelete.clear_all"),
                   icon: Trash2,
                   destructive: true,
-                  onClick: () => setConfirmClear(true),
+                  onClick: () =>
+                    askDeleteNights(
+                      history.map((h) => h.id),
+                      { all: true },
+                    ),
                   disabled: !history.length,
                 },
               ]}
             />
+            {history.length > 0 && (
+              <button
+                type="button"
+                className="btn btn-plain min-h-11"
+                aria-pressed={editing}
+                onClick={() => {
+                  setEditing((v) => !v);
+                  setPicked(new Set());
+                }}
+                data-testid="history-edit"
+              >
+                {editing ? tx("rooms.done") : tx("rooms.edit")}
+              </button>
+            )}
           </>
         }
       />
@@ -316,69 +350,139 @@ export default function HistoryPage() {
         {groups.map((g) => (
           <Group key={g.label} header={g.label}>
             <AnimatePresence initial={false}>
-              {g.items.map((s, i) => (
-                <motion.div
-                  key={s.id}
-                  layout={reduced ? false : "position"}
-                  variants={rowV}
-                  custom={i}
-                  initial="hidden"
-                  animate="show"
-                  exit="exit"
-                >
-                  <SwipeRow
-                    leading="art"
-                    actions={[
-                      {
-                        kind: "lock",
-                        label: tx("history.compare"),
-                        icon: GitCompare,
-                        onClick: () => {
-                          setOpenId(s.id);
-                          setPicking(true);
-                        },
-                      },
-                      {
-                        kind: "destructive",
-                        label: tx("common.delete"),
-                        icon: Trash2,
-                        onClick: () => remove(s),
-                      },
-                    ]}
+              {g.items.map((s, i) => {
+                const why = protectedReason(s, booth);
+                const on = picked.has(s.id);
+                return (
+                  <motion.div
+                    key={s.id}
+                    layout={reduced ? false : "position"}
+                    variants={rowV}
+                    custom={i}
+                    initial="hidden"
+                    animate="show"
+                    exit="exit"
+                    className={editing ? "flex items-center" : undefined}
+                    data-testid="history-row"
+                    data-protected={why ? "" : undefined}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      remove(s);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key !== "Delete" && e.key !== "Backspace") return;
+                      if ((e.target as HTMLElement).closest("input, textarea")) return;
+                      e.preventDefault();
+                      remove(s);
+                    }}
                   >
-                    <Row
-                      tile={
-                        // wave 4: the night's own cover (56 px, light or dark with the app), its score in the corner
-                        <NightCover
-                          night={s.playlist}
-                          coverSeed={s.coverSeed}
-                          size={56}
-                          testId="history-cover"
-                          badge={
-                            <span
-                              className="night-cover-score"
-                              role="img"
-                              aria-label={tx("history.score_2", { score: s.score })}
-                            >
-                              {s.score}
-                            </span>
+                    {editing && (
+                      <button
+                        type="button"
+                        className="history-pick"
+                        aria-pressed={on}
+                        aria-disabled={why ? true : undefined}
+                        aria-label={why ? `${s.title}: ${why}` : tx("nightDelete.select", { title: s.title })}
+                        title={why ?? undefined}
+                        onClick={() => (why ? toast(why) : togglePick(s.id))}
+                        data-testid="history-pick"
+                      >
+                        {on ? <CheckSquare size={22} aria-hidden /> : <Square size={22} aria-hidden />}
+                      </button>
+                    )}
+                    <div className={editing ? "min-w-0 flex-1" : undefined}>
+                      <SwipeRow
+                        leading="art"
+                        actions={[
+                          {
+                            kind: "lock",
+                            label: tx("history.compare"),
+                            icon: GitCompare,
+                            onClick: () => {
+                              setOpenId(s.id);
+                              setPicking(true);
+                            },
+                          },
+                          {
+                            kind: "destructive",
+                            label: deleteLabel(s),
+                            icon: Trash2,
+                            onClick: () => remove(s),
+                            disabled: !!why,
+                          },
+                        ]}
+                      >
+                        <Row
+                          tile={
+                            // wave 4: the night's own cover (56 px, light or dark with the app), its score in the corner
+                            <NightCover
+                              night={s.playlist}
+                              coverSeed={s.coverSeed}
+                              size={56}
+                              testId="history-cover"
+                              badge={
+                                <span
+                                  className="night-cover-score"
+                                  role="img"
+                                  aria-label={tx("history.score_2", { score: s.score })}
+                                >
+                                  {s.score}
+                                </span>
+                              }
+                            />
                           }
+                          label={s.title}
+                          sub={`${sub(s)}${s.change || s.source !== "compose" ? ` · ${changeLabel(s)}` : ""}${s.versions?.length ? ` ${tx("history.versions_2", { p1: s.versions.length + 1 })}` : ""}`}
+                          value={
+                            why
+                              ? tx("nightDelete.in_booth")
+                              : currentId === s.id
+                                ? tx("history.current")
+                                : undefined
+                          }
+                          chevron={!editing}
+                          onClick={() => (editing ? (why ? toast(why) : togglePick(s.id)) : setOpenId(s.id))}
+                          id={`history-${s.id}`}
                         />
-                      }
-                      label={s.title}
-                      sub={`${sub(s)}${s.change || s.source !== "compose" ? ` · ${changeLabel(s)}` : ""}${s.versions?.length ? ` ${tx("history.versions_2", { p1: s.versions.length + 1 })}` : ""}`}
-                      value={currentId === s.id ? tx("history.current") : undefined}
-                      chevron
-                      onClick={() => setOpenId(s.id)}
-                      id={`history-${s.id}`}
-                    />
-                  </SwipeRow>
-                </motion.div>
-              ))}
+                      </SwipeRow>
+                    </div>
+                  </motion.div>
+                );
+              })}
             </AnimatePresence>
           </Group>
         ))}
       </div>
+      {editing && (
+        <div
+          className="glass sticky z-10 mt-2 flex flex-wrap items-center gap-2 rounded-[var(--radius-m)] p-2"
+          style={{ bottom: isPhone ? "calc(var(--chrome-stack) + 8px)" : "1rem" }}
+          data-testid="history-edit-bar"
+        >
+          <span className="text-subhead min-w-0 flex-1 px-2">
+            {tx("nightDelete.n_selected", { n: picked.size })}
+          </span>
+          <button
+            type="button"
+            className="btn btn-ghost min-h-11"
+            onClick={() =>
+              setPicked(new Set(history.filter((h) => !protectedReason(h, booth)).map((h) => h.id)))
+            }
+            data-testid="history-select-all"
+          >
+            {tx("nightDelete.select_all")}
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary min-h-11 bg-[var(--destructive)]"
+            disabled={!picked.size}
+            onClick={() => askDeleteNights([...picked])}
+            data-testid="history-delete-picked"
+          >
+            <Trash2 size={16} aria-hidden /> {tx("nightDelete.delete_n", { n: picked.size })}
+          </button>
+        </div>
+      )}
 
       <Sheet
         open={!!open && !picking && !compareWith}
@@ -424,7 +528,14 @@ export default function HistoryPage() {
                       "application/json",
                     ),
                 },
-                { label: tx("common.delete"), icon: Trash2, destructive: true, onClick: () => remove(open) },
+                {
+                  label: deleteLabel(open),
+                  icon: Trash2,
+                  destructive: true,
+                  onClick: () => remove(open),
+                  disabled: !!protectedReason(open, booth),
+                  subtitle: protectedReason(open, booth) ?? undefined,
+                },
               ]}
             />
           ) : undefined
@@ -568,27 +679,6 @@ export default function HistoryPage() {
               autoComplete="off"
             />
           </label>
-        </Group>
-      </Sheet>
-
-      <Sheet
-        open={confirmClear}
-        onClose={() => setConfirmClear(false)}
-        title={tx("history.clear_history")}
-        detents={["medium"]}
-      >
-        <Group footer={tx("history.removes_every_kept_set_from_this")}>
-          <ActionRow
-            label={tx("common.delete_named", {
-              name: `${history.length} ${history.length === 1 ? tx("history.set") : tx("history.sets")}`,
-            })}
-            destructive
-            onClick={async () => {
-              setConfirmClear(false);
-              await clearHistory();
-              toast(tx("history.history_cleared"));
-            }}
-          />
         </Group>
       </Sheet>
 

@@ -59,6 +59,15 @@ async function closePanel(page: Page, phone: boolean) {
   if (await sheet.isVisible()) await sheet.getByRole("button", { name: "Done" }).first().click();
   await expect(sheet).toBeHidden();
 }
+/** Fill → Fill everything → the guide's preview → Apply (2026-11: Fill is a menu, previewed before it applies) */
+async function fillAll(page: Page) {
+  await page.getByTestId("build-fill").getByRole("button").click();
+  await page.getByRole("menuitem", { name: "Fill everything" }).click();
+  const preview = page.getByTestId("build-fill-preview");
+  await expect(preview).toBeVisible({ timeout: 60000 });
+  await preview.getByTestId("build-fill-apply").click();
+  await expect(page.getByTestId("toast")).toContainText("Fill everything", { timeout: 20000 });
+}
 /** a soft rule toast or the hard-rule sheet: keep going ("Do it as I said") */
 async function acceptRules(page: Page) {
   const sheet = page.getByTestId("rule-sheet");
@@ -186,7 +195,7 @@ for (const [name, opts] of DEVICES) {
       const bad = panel.locator('[data-testid="build-hit"][data-fits="false"]').first();
       await expect(bad).toBeVisible({ timeout: 20000 });
       await expect(bad.getByTestId("build-fit")).toHaveText("⚠");
-      await expect(bad.getByTestId("build-why")).toContainText("another orchestra");
+      await expect(bad.getByTestId("build-why")).toContainText(/another orchestra/i);
       await bad.getByTestId("build-add").click();
       const rules = page.getByTestId("rule-sheet");
       await expect(rules).toBeVisible({ timeout: 15000 });
@@ -196,9 +205,8 @@ for (const [name, opts] of DEVICES) {
       await closePanel(page, phone);
       await expect(page.getByTestId("build-tanda").first().getByTestId("build-side")).toHaveCount(4);
 
-      // 6. Fill the rest: the night reaches the planned number of tandas
-      await page.getByTestId("build-fill").click();
-      await expect(page.getByTestId("toast")).toContainText("Filled", { timeout: 60000 });
+      // 6. Fill everything (2026-11: a menu, previewed in the guide): the night reaches the planned number of tandas
+      await fillAll(page);
       const counts = await page.getByTestId("build-summary").innerText();
       const m = /(\d+) of (\d+) tandas/.exec(counts)!;
       expect(Number(m[1])).toBe(Number(m[2]));
@@ -233,8 +241,7 @@ test.describe("iPad landscape", () => {
     const a = (await page.getByTestId("build-guide").boundingBox())!;
     const b = (await page.getByTestId("build-add-panel").boundingBox())!;
     expect(b.x).toBeGreaterThan(a.x + a.width - 2);
-    await page.getByTestId("build-fill").click();
-    await expect(page.getByTestId("toast")).toContainText("Filled", { timeout: 60000 });
+    await fillAll(page);
     if (SHOTS) await page.screenshot({ path: `${SHOTS}/ipad-landscape.png` });
   });
 });

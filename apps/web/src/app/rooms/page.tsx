@@ -1,6 +1,7 @@
 "use client";
 import {
   appRoomLink,
+  emptyNight,
   formatRoomCode,
   normalizeRoomCode,
   ROOM_NAME_MAX,
@@ -18,6 +19,7 @@ import {
   QrCode as QrIcon,
   Replace,
   Server,
+  SlidersHorizontal,
   Smartphone,
   Trash2,
   TriangleAlert,
@@ -33,6 +35,7 @@ import { NightEditor } from "@/components/NightEditor";
 import { NightPicker } from "@/components/NightPicker";
 import { PageHeader } from "@/components/PageHeader";
 import { QrCode } from "@/components/QrCode";
+import { RoomNightSettings } from "@/components/RoomNightSettings";
 import { Sheet } from "@/components/Sheet";
 import { SwipeRow } from "@/components/SwipeRow";
 import { TipRow } from "@/components/TipRow";
@@ -45,7 +48,7 @@ import { makeSnapshot } from "@/lib/history";
 import { fmtDate, fmtTime, t as tx, upper } from "@/lib/i18n";
 import { expiresInDays, type RoomRef, roomShareLink, useRooms } from "@/lib/rooms";
 import { copyText } from "@/lib/share";
-import { useStore } from "@/lib/store";
+import { fullOptions, useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import type { Playlist } from "@/lib/types";
 
@@ -118,6 +121,7 @@ export default function RoomsPage() {
     null,
   );
   const [editing, setEditing] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [oldOpen, setOldOpen] = useState(false);
   const [oldDays, setOldDays] = useState(30);
   // 2026-11: `?dance=<code>` is a dancer's page: the playing song and one heart (no name, no joining)
@@ -187,9 +191,15 @@ export default function RoomsPage() {
     saveUser();
     if (!useRooms.getState().user) return toast(tx("rooms.choose_your_name_first"));
     setBusy(true);
-    // 2026-11: the chosen night goes in (the current one unless the DJ picked another)
-    if (withNight && chosen) adoptNight(chosen);
-    const ok = await r.create(roomName, withNight && !!night);
+    // 2026-11: the chosen night goes in (the current one unless the DJ picked another); with no night composed the
+    // room starts empty ("Empty night — build it together")
+    const start = withNight
+      ? (chosen ??
+        playlist ??
+        emptyNight(fullOptions(useStore.getState().options), { name: tx("nightPicker.empty_name") }))
+      : null;
+    if (start && start !== playlist) adoptNight(start);
+    const ok = await r.create(roomName, !!start);
     setBusy(false);
     if (ok) setChosen(null);
     if (ok) {
@@ -372,7 +382,7 @@ export default function RoomsPage() {
             {withNight && (
               <Row
                 tile={
-                  night ? (
+                  night?.tandas.length ? (
                     <NightCover night={night} size={44} className="rounded-[8px]" />
                   ) : (
                     <Tile color="#8e8e93">
@@ -380,11 +390,11 @@ export default function RoomsPage() {
                     </Tile>
                   )
                 }
-                label={night ? night.name : tx("rooms.no_night_composed_yet")}
+                label={night?.tandas.length ? night.name : tx("rooms.start_empty")}
                 sub={
-                  night
+                  night?.tandas.length
                     ? tx("rooms.night_facts", { n: night.tandas.length, date: day(night.createdAt) })
-                    : tx("rooms.choose_a_night_sub")
+                    : tx("rooms.start_empty_sub")
                 }
                 value={tx("rooms.choose")}
                 chevron
@@ -483,6 +493,20 @@ export default function RoomsPage() {
                           },
                         }))
                       }
+                    />
+                    {/* 2026-11: the room's night settings (cortinas, cycle, closing): the owner edits, guests read */}
+                    <TipRow
+                      tile={
+                        <Tile color="#ff9500">
+                          <SlidersHorizontal size={16} strokeWidth={2} />
+                        </Tile>
+                      }
+                      label={tx("roomSettings.open")}
+                      sub={owner ? tx("roomSettings.open_sub_owner") : tx("roomSettings.open_sub_guest")}
+                      chevron
+                      onClick={() => setSettingsOpen(true)}
+                      tip={tx("roomSettings.open_tip")}
+                      data-testid="room-open-settings"
                     />
                     <Link
                       href="/#result"
@@ -765,8 +789,10 @@ export default function RoomsPage() {
         </Group>
       </Sheet>
 
+      <RoomNightSettings open={settingsOpen} onClose={() => setSettingsOpen(false)} canEdit={owner} />
       <NightPicker
         open={picking !== null}
+        allowEmpty={picking === "create"}
         onClose={() => setPicking(null)}
         title={picking === "switch" ? tx("rooms.switch_night") : tx("rooms.choose_a_night")}
         action={picking === "switch" ? tx("rooms.switch_to_this_night") : tx("rooms.use_this_night")}

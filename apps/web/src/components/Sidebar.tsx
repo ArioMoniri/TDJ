@@ -1,5 +1,5 @@
 "use client";
-import { ChevronRight, Clock, Disc3, PanelLeft, Pause, Play, Volume2 } from "lucide-react";
+import { ChevronRight, Clock, Disc3, PanelLeft, Pause, Play, Trash2, Volume2, X } from "lucide-react";
 import { LayoutGroup, motion } from "motion/react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -8,11 +8,14 @@ import { haptic } from "@/lib/haptics";
 import { fmtDate, t as tx } from "@/lib/i18n";
 import { nightMusicSec } from "@/lib/lengths";
 import { spring } from "@/lib/motion";
+import { askDeleteNights, deleteLabel, protectedReason } from "@/lib/nightDelete";
 import { lengthText } from "@/lib/nightName";
 import { usePlayer } from "@/lib/player";
 import { useStore } from "@/lib/store";
+import { toast } from "@/lib/toast";
 import { Logo } from "./Logo";
 import { NAV_MAIN, NAV_MAIN_TITLE, NAV_PINNED } from "./navItems";
+import { SwipeRow } from "./SwipeRow";
 import { Artwork } from "./ui/Artwork";
 import { Marquee } from "./ui/Marquee";
 import { TandaArt, usePlayingEntity } from "./ui/TandaArt";
@@ -494,25 +497,76 @@ export function Sidebar() {
               <h2 className="side-head" id="side-recent">
                 {tx("sidebar.recent_nights")}
               </h2>
+              {/* 2026-11 (the owner: "delete nights from Recent nights"): ✕ on hover, right-click, a swipe, or
+                  Delete / Backspace on the focused row ask once (components/DeleteNights.tsx); the night the Booth
+                  has open stays (its ✕ says why), the featured night only leaves the recents */}
               <ul className="flex flex-col gap-0.5">
-                {recent.map((s) => (
-                  <li key={s.id}>
-                    <Link href={`/history#night=${s.id}`} className="side-row">
-                      <Clock
-                        size={16}
-                        strokeWidth={1.75}
-                        className="shrink-0 text-[var(--label-2)]"
-                        aria-hidden
-                      />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate">{s.title}</span>
-                        <span className="text-caption1 block truncate text-[var(--label-2)]">
-                          {ago(s.createdAt)} · {s.score}
-                        </span>
-                      </span>
-                    </Link>
-                  </li>
-                ))}
+                {recent.map((s) => {
+                  const why = protectedReason(s);
+                  const label = deleteLabel(s);
+                  const del = () => !why && askDeleteNights([s.id]);
+                  return (
+                    <li
+                      key={s.id}
+                      className="side-recent"
+                      data-testid="sidebar-recent-row"
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        if (why) toast(why);
+                        else del();
+                      }}
+                    >
+                      <SwipeRow
+                        actions={[
+                          {
+                            kind: "destructive",
+                            label,
+                            icon: Trash2,
+                            onClick: del,
+                            disabled: !!why,
+                          },
+                        ]}
+                      >
+                        <Link
+                          href={`/history#night=${s.id}`}
+                          className="side-row"
+                          onKeyDown={(e) => {
+                            if (e.key !== "Delete" && e.key !== "Backspace") return;
+                            e.preventDefault();
+                            if (why) toast(why);
+                            else del();
+                          }}
+                        >
+                          <Clock
+                            size={16}
+                            strokeWidth={1.75}
+                            className="shrink-0 text-[var(--label-2)]"
+                            aria-hidden
+                          />
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate">{s.title}</span>
+                            <span className="text-caption1 block truncate text-[var(--label-2)]">
+                              {ago(s.createdAt)} · {s.score}
+                            </span>
+                          </span>
+                        </Link>
+                      </SwipeRow>
+                      <Tip text={why ?? tx("nightDelete.delete_named", { label, title: s.title })}>
+                        <button
+                          type="button"
+                          className="side-recent-x icon-btn icon-btn-bare"
+                          aria-label={tx("nightDelete.delete_named", { label, title: s.title })}
+                          aria-disabled={why ? true : undefined}
+                          data-protected={why ? "" : undefined}
+                          onClick={() => (why ? toast(why) : del())}
+                          data-testid="sidebar-recent-delete"
+                        >
+                          <X size={14} strokeWidth={2.25} aria-hidden />
+                        </button>
+                      </Tip>
+                    </li>
+                  );
+                })}
               </ul>
             </section>
           )}

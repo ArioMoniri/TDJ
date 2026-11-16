@@ -211,6 +211,11 @@ export interface Cortina {
   resolved?: import("./audio/index").ResolvedTrack | null;
   /** 2026-11: where the cortina is recognisable (data/cache/cortina_hooks.json): the chorus, else the first vocal line */
   hook?: import("./hooks").CortinaHook | null;
+  /**
+   * 2026-11 (rooms): the DJ chose this cortina for its gap; the night's mending (insert.ts mendNightCortinas) and a
+   * change of the cortina settings keep it where an automatic one is re-picked
+   */
+  picked?: boolean;
 }
 
 export type Phase = "warmup" | "build" | "peak" | "cooldown" | "close";
@@ -389,6 +394,11 @@ export interface ComposeOptions {
   cortinaCultures: string[]; // ["global"] or ["turkish","greek"...]
   cortinaGenres?: string[];
   cortinaTrend?: "trend" | "classic" | "mixed";
+  /**
+   * 2026-11 (rooms → Night settings): "auto" — the engine picks every cortina (a change of the settings re-picks
+   * them all); "pick" — the DJ chooses per tanda and the engine fills only the gaps left open. Unset: "auto".
+   */
+  cortinaChoice?: "auto" | "pick";
   /**
    * Round 19: the night is meant for Spotify (the default): the cortina planner draws only cues with a checked Spotify
    * record, a family with none falls back to a compatible family (said in stats.settingFallbacks), and the strict

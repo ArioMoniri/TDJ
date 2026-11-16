@@ -16,6 +16,18 @@ const load = () => {
 /** the drawn covers by night hash, size, theme and language: a History list draws each night once */
 const cache = new Map<string, string>();
 
+/** 2026-11: a deleted night's drawn covers leave the cache (every size, theme and language: lib/nightDelete.ts) */
+export function forgetCovers(items: Array<{ night: unknown; coverSeed?: string }>): void {
+  if (!cache.size) return;
+  void load().then((m) => {
+    for (const { night, coverSeed } of items) {
+      if (!night || typeof night !== "object") continue;
+      const h = m.nightHash({ ...night, coverSeed: coverSeed ?? coverSeedFor(night) });
+      for (const k of [...cache.keys()]) if (k.startsWith(`${h}:`)) cache.delete(k);
+    }
+  });
+}
+
 /** the app's theme as it shows: the Settings choice, Auto following the system */
 export function useCoverTheme(): CoverTheme {
   const setting = useStore((s) => s.settings.theme);

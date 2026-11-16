@@ -1,9 +1,11 @@
 "use client";
+import { emptyNight } from "@tdj/core";
+import { Users } from "lucide-react";
 import { useMemo, useState } from "react";
 import { FEATURED, type FeaturedId, loadFeatured } from "@/lib/featured";
 import { fmtDate, t } from "@/lib/i18n";
 import { nightLength, totalText } from "@/lib/lengths";
-import { useStore } from "@/lib/store";
+import { fullOptions, useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import type { Playlist } from "@/lib/types";
 import { ActionRow, Group, Row } from "./Form";
@@ -13,7 +15,8 @@ import { Sheet } from "./Sheet";
 /** one night the DJ can pick: where it is from, and the night (a featured one loads when chosen) */
 export interface NightChoice {
   key: string;
-  from: "current" | "history" | "featured";
+  /** 2026-11: "empty" — an empty night the room builds together */
+  from: "empty" | "current" | "history" | "featured";
   title: string;
   /** when it was made or saved (ISO) */
   at?: string;
@@ -77,6 +80,7 @@ export function NightPicker({
   onUse,
   title,
   action,
+  allowEmpty = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -85,8 +89,21 @@ export function NightPicker({
   title?: string;
   /** the button's words ("Use this night") */
   action?: string;
+  /** 2026-11 (rooms): "Empty night — build it together" comes first */
+  allowEmpty?: boolean;
 }) {
-  const choices = useNightChoices();
+  const all = useNightChoices();
+  const options = useStore((s) => s.options);
+  const choices = useMemo<NightChoice[]>(
+    () =>
+      allowEmpty
+        ? [
+            { key: "empty", from: "empty", title: t("nightPicker.empty"), sub: t("nightPicker.empty_sub") },
+            ...all,
+          ]
+        : all,
+    [allowEmpty, all],
+  );
   const [q, setQ] = useState("");
   const [picked, setPicked] = useState<NightChoice | null>(null);
   const [busy, setBusy] = useState(false);
@@ -100,6 +117,7 @@ export function NightPicker({
     });
   }, [choices, q]);
   const groups: Array<[NightChoice["from"], string]> = [
+    ["empty", t("nightPicker.start")],
     ["current", t("nightPicker.now")],
     ["history", t("nightPicker.history")],
     ["featured", t("nightPicker.featured")],
@@ -108,7 +126,10 @@ export function NightPicker({
     if (!picked) return;
     setBusy(true);
     try {
-      const p = picked.playlist ?? (picked.featured ? await loadFeatured(picked.featured) : null);
+      const p =
+        picked.from === "empty"
+          ? emptyNight(fullOptions(options), { name: t("nightPicker.empty_name") })
+          : (picked.playlist ?? (picked.featured ? await loadFeatured(picked.featured) : null));
       if (!p) return;
       await onUse(p);
       setPicked(null);
@@ -180,7 +201,11 @@ export function NightPicker({
               <Row
                 key={c.key}
                 tile={
-                  c.playlist ? (
+                  c.from === "empty" ? (
+                    <span className="tile bg-[var(--tint)]" aria-hidden>
+                      <Users size={16} className="text-white" />
+                    </span>
+                  ) : c.playlist ? (
                     <NightCover night={c.playlist} size={44} className="rounded-[8px]" />
                   ) : (
                     <span className="tile-art" data-rhythm="tango" aria-hidden />
@@ -197,7 +222,7 @@ export function NightPicker({
                       .then((p) => setPicked((cur) => (cur?.key === c.key ? { ...c, playlist: p } : cur)))
                       .catch(() => {});
                 }}
-                data-testid="night-choice"
+                data-testid={c.from === "empty" ? "night-choice-empty" : "night-choice"}
               />
             ))}
           </Group>
