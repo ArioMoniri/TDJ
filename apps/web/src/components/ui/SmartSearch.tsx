@@ -1,7 +1,7 @@
 "use client";
 import "../search/search.css";
 import "./smart-search.css";
-import { AudioLines, HardDrive, Library, MonitorPlay } from "lucide-react";
+import { AudioLines, HardDrive, Info, Library, MonitorPlay } from "lucide-react";
 import { Fragment, type ReactNode, useMemo } from "react";
 import { haptic } from "@/lib/haptics";
 import { fmtNumber, plural, t } from "@/lib/i18n";
@@ -9,6 +9,7 @@ import { fmtLen } from "@/lib/lengths";
 import { useTapPlay } from "@/lib/playback";
 import type { PlayItem } from "@/lib/player";
 import { ERAS, type EraChip, eraOfFilters, type SourceId, type Version, withEra } from "@/lib/smartSearch";
+import { openSongDetails } from "@/lib/songOpen";
 import { bpmText, useSongData } from "@/lib/songView";
 import type { Song } from "@/lib/types";
 import {
@@ -305,6 +306,17 @@ export function VersionRow({
         {fmtLen(s.durationSec)}
       </span>
       <SourceIcons sources={v.sources} />
+      {v.sources.includes("catalogue") && (
+        <button
+          type="button"
+          className="icon-btn icon-btn-bare -my-1 h-11 w-11 shrink-0 text-[var(--label-2)]"
+          aria-label={t("song.details_of", { title: s.title, orchestra: s.orchestra })}
+          data-testid="smart-info"
+          onClick={() => openSongDetails(s)}
+        >
+          <Info size={16} strokeWidth={2} aria-hidden />
+        </button>
+      )}
       {actions?.(v)}
     </div>
   );

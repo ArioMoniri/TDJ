@@ -16,6 +16,7 @@ import { youtubeVideoUrl } from "@/lib/openLink";
 import { tapPlay } from "@/lib/playback";
 import type { Version } from "@/lib/smartSearch";
 import { bpmChoice } from "@/lib/songData";
+import { openSongDetails } from "@/lib/songOpen";
 import { SOURCE_LABEL } from "@/lib/songView";
 import { spotifyUri, spotifyUrl } from "@/lib/spotifyLink";
 import { toast } from "@/lib/toast";
@@ -317,6 +318,13 @@ export function SongsTab() {
               </button>
             ) : undefined
           }
+        />
+        <Row
+          label={tx("song.details")}
+          sub={tx("song.details_sub")}
+          chevron
+          onClick={() => openSongDetails(eff)}
+          data-testid="db-song-details"
         />
         <ValueCell
           label={tx("db.songsTab.year")}

@@ -1,5 +1,14 @@
 "use client";
-import { ArrowDown, ArrowUp, AudioWaveform, GripVertical, LoaderCircle, Repeat2, Search } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  AudioWaveform,
+  GripVertical,
+  Info,
+  LoaderCircle,
+  Repeat2,
+  Search,
+} from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import dynamic from "next/dynamic";
 import { memo, useCallback, useMemo, useState } from "react";
@@ -12,6 +21,7 @@ import { fmtLen } from "@/lib/lengths";
 import { lineSwap } from "@/lib/motion";
 import { useTapPlay } from "@/lib/playback";
 import type { PlayItem } from "@/lib/player";
+import { openSongDetails } from "@/lib/songOpen";
 import { bpmText, keyText, useSongData } from "@/lib/songView";
 import { useStore } from "@/lib/store";
 import type { Song } from "@/lib/types";
@@ -396,6 +406,7 @@ export const TrackRow = memo(function TrackRow({
                 onClick: () => onMove(k, k + 1),
                 disabled: k >= (count ?? 0) - 1,
               },
+              { label: t("song.details"), icon: Info, onClick: () => openSongDetails(eff) },
               { label: t("trackRow.find_on_services"), icon: Search, onClick: openFind },
               {
                 label: audio ? t("trackRow.analyse_again_in_browser") : t("trackRow.analyse_in_browser"),

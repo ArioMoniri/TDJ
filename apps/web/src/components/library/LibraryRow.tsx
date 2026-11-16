@@ -1,6 +1,6 @@
 "use client";
 import type { Playlist, SongSearchHit } from "@tdj/core";
-import { Heart, Plus } from "lucide-react";
+import { Heart, Info, Plus } from "lucide-react";
 import dynamic from "next/dynamic";
 import { memo, useMemo, useState } from "react";
 import { Group, Row } from "@/components/Form";
@@ -19,6 +19,7 @@ import type { PlayItem } from "@/lib/player";
 import { gateEdit } from "@/lib/ruleCheck";
 import { targetsFor } from "@/lib/searchPanel";
 import type { SourceId } from "@/lib/smartSearch";
+import { openSongDetails } from "@/lib/songOpen";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import type { Song } from "@/lib/types";
@@ -47,6 +48,7 @@ export const LibraryRow = memo(function LibraryRow({
   findSignal,
   sources,
   badge = true,
+  info = true,
 }: {
   hit: SongSearchHit;
   id: string;
@@ -58,6 +60,8 @@ export const LibraryRow = memo(function LibraryRow({
   onHover?: () => void;
   /** bumped by the page when Enter should open "Find on services" for this row */
   findSignal?: number;
+  /** 2026-11: the ⓘ that opens the song details (length, voice, lyrics, versions, Song DNA) */
+  info?: boolean;
 }) {
   const s = hit.song;
   const playlist = useStore((st) => st.playlist);
@@ -127,23 +131,24 @@ export const LibraryRow = memo(function LibraryRow({
         )}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="flex min-w-0 items-center gap-1.5">
-          <span className="truncate" data-testid="library-row-title">
-            <Highlight text={s.title} spans={hit.highlights.title} />
-          </span>
-          {badge && <TandaTypeBadge rhythm={s.rhythm} compact />}
+        <span className="block truncate" data-testid="library-row-title">
+          <Highlight text={s.title} spans={hit.highlights.title} />
         </span>
-        <span className="text-footnote block truncate text-[var(--label-2)]">
-          <Highlight text={s.orchestra} spans={hit.highlights.orchestra} />
-          {s.singer ? (
-            <>
-              {" / "}
-              <Highlight text={s.singer} spans={hit.highlights.singer} />
-            </>
-          ) : (
-            ` / ${t("search.instrumental")}`
-          )}
-          {s.year ? ` · ${yearText(s.year)}` : ""}
+        {/* 2026-11: the rhythm badge leads the second line, so a narrow row (a sheet on a phone) keeps the length */}
+        <span className="text-footnote flex min-w-0 items-center gap-1.5 text-[var(--label-2)]">
+          {badge && <TandaTypeBadge rhythm={s.rhythm} compact className="shrink-0" />}
+          <span className="min-w-0 truncate">
+            <Highlight text={s.orchestra} spans={hit.highlights.orchestra} />
+            {s.singer ? (
+              <>
+                {" / "}
+                <Highlight text={s.singer} spans={hit.highlights.singer} />
+              </>
+            ) : (
+              ` / ${t("search.instrumental")}`
+            )}
+            {s.year ? ` · ${yearText(s.year)}` : ""}
+          </span>
         </span>
       </span>
       <span className="flex shrink-0 flex-col items-end gap-0.5">
@@ -164,6 +169,20 @@ export const LibraryRow = memo(function LibraryRow({
           <span className="search-badge">{t("search.popular")}</span>
         ) : null}
       </span>
+      {info && (
+        <button
+          type="button"
+          className="icon-btn icon-btn-bare -my-2 h-11 w-11 shrink-0 text-[var(--label-2)]"
+          aria-label={t("song.details_of", { title: s.title, orchestra: s.orchestra })}
+          data-testid="song-info"
+          onClick={(e) => {
+            e.stopPropagation();
+            openSongDetails(s);
+          }}
+        >
+          <Info size={18} strokeWidth={2} aria-hidden />
+        </button>
+      )}
       {playlist && (
         <button
           type="button"

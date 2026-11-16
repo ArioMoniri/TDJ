@@ -1,5 +1,6 @@
 import { importNight, NightFormatError } from "@tdj/core";
 import { artwork } from "@/lib/api/artwork";
+import { dna } from "@/lib/api/dna";
 import {
   benchmark,
   checkEditRoute,
@@ -190,6 +191,7 @@ const LOCAL: Record<string, Partial<Record<Method, Handler>>> = {
   "/api/tanda-set": { POST: tandaSet },
   "/api/services/search": { POST: serviceSearch },
   "/api/meta": { GET: meta },
+  "/api/dna": { GET: dna },
   "/api/popularity": { GET: popularity },
   // covers without a Spotify login (lib/api/artwork.ts): the shipped cache, else oEmbed through the native client
   "/api/artwork": { GET: (req, d) => artwork(req, d) },
