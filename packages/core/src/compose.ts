@@ -2,8 +2,8 @@ import { arcShapeFor, capPeakRuns, planSlots, sanitizeOptions } from "./arc";
 import { attachBooth } from "./booth";
 import type { Catalog } from "./catalog";
 import {
-  BIG_FOUR,
   bigFourProblems,
+  isBigFourId,
   quartileOf,
   STYLE_MIN_FAMILIES,
   styleFilter,
@@ -332,6 +332,11 @@ export function compose(
   return q === p || !q.booth ? q : attachBooth(q);
 }
 
+/** 2026-11: the big four back to back (coherence.ts bigFourProblems "adjacent") in a composed night */
+const pairsOf = (q: Playlist) =>
+  bigFourProblems(q.tandas, q.options).filter((x) => x.kind === "adjacent").length;
+/** what a back-to-back big-four pair weighs when the composer picks among its draws (a should-fix item is 1) */
+const BIG_FOUR_PAIR_DRAW_WEIGHT = 2;
 function composeDraws(partial: Partial<ComposeOptions>, deps: ComposeDeps, extras: ComposeExtras): Playlist {
   const seed = partial.seed ?? Math.floor(Math.random() * 1e9);
   const first = composeOnce({ ...partial, seed }, deps, extras, seed);
@@ -344,7 +349,13 @@ function composeDraws(partial: Partial<ComposeOptions>, deps: ComposeDeps, extra
   // (round 16: and a hard transition rule that never breaks — H1, H6: dramatic into dramatic or lyrical — weighs 20)
   const pen = (q: Playlist, x: StrictResult) => {
     const h = nightTransitions(q.tandas).hard;
-    return x.penalty + Math.max(0, h.H3 - 3) * 2 + (h.H1 + h.H6) * 20 + (q.score.total < 85 ? 40 : 0);
+    return (
+      x.penalty +
+      Math.max(0, h.H3 - 3) * 2 +
+      (h.H1 + h.H6) * 20 +
+      (q.score.total < 85 ? 40 : 0) +
+      BIG_FOUR_PAIR_DRAW_WEIGHT * pairsOf(q)
+    );
   };
   // (a blocker earns every extra draw; should-fix items only the first)
   const h16 = (q: Playlist) => {
@@ -356,10 +367,13 @@ function composeDraws(partial: Partial<ComposeOptions>, deps: ComposeDeps, extra
     const r = strictChecks(p);
     const pr = pen(p, r),
       pb = pen(best, bestR);
-    if (
+    const wins = (a: number, b: number) =>
       r.blockers < bestR.blockers ||
-      (r.blockers === bestR.blockers && (pr < pb || (pr === pb && p.score.total > best.score.total)))
-    ) {
+      (r.blockers === bestR.blockers && (a < b || (a === b && p.score.total > best.score.total)));
+    // (2026-11: the pairs' weight may choose between two draws only when the draw it picks breaks none of the panel's
+    // held rules more often — a pair is never parted by a whole night that trades the other rules for it)
+    const w = BIG_FOUR_PAIR_DRAW_WEIGHT;
+    if (wins(pr - w * pairsOf(p), pb - w * pairsOf(best)) || (wins(pr, pb) && !heldWorse(r, bestR))) {
       best = p;
       bestR = r;
     }
@@ -381,6 +395,47 @@ const BIG_FOUR_REPAIR_ROUNDS = 6;
  */
 const BIG_FOUR_TOLERANCE = 2;
 const BIG_FOUR_SCORE_SLACK = 2;
+/**
+ * 2026-11: a back-to-back pair the swaps leave: what a rebuilt chair may cost the other soft rules, and how many of the
+ * night's families are tried for it
+ */
+const BIG_FOUR_PAIR_TOLERANCE = 4;
+const BIG_FOUR_PAIR_FAMILIES = 12;
+/**
+ * the panel rules a pair mend, or a draw chosen for its fewer pairs, never breaks more often (the night-level rules
+ * the composer and the repair hold: the repeat gap, the canon, the colour budget and peaks, the rhythmic runs, one tango
+ * tanda a singer, the hot slots; and the round-15 rules the first version of the mend traded on the golden set: the
+ * hot-to-cold drop and two rhythmic instrumentals in a row beside the early D'Arienzo, the última's fame)
+ */
+const BIG_FOUR_PAIR_HELD = [
+  "gap",
+  "canon",
+  "nightShape",
+  "cycle",
+  "darienzoPeak",
+  "colourPeak",
+  "colourBudget",
+  "rhythmicRun",
+  "singerOnce",
+  "hotSlot",
+  "peakHits",
+  "lastFour",
+  "stream",
+  "cueVals",
+  "instrHour",
+  "vocalBand",
+  "opener",
+  "hotCold",
+  "ultima",
+  "instrCharacter",
+  "cuePlace",
+  "valley",
+  "orchestraCount",
+];
+const countOf = (r: StrictResult, key: string) => r.violations.filter((v) => v.rule === key).length;
+/** `r1` breaks one of the held rules more often than `r0` */
+const heldWorse = (r1: StrictResult, r0: StrictResult) =>
+  BIG_FOUR_PAIR_HELD.some((k) => countOf(r1, k) > countOf(r0, k));
 
 function composeOnce(
   partial: Partial<ComposeOptions>,
@@ -603,6 +658,10 @@ function composeOnce(
   // (D, a vals / milonga / balanced tango, …, the R+ summit), never after it
   const lastSummit = slots.filter((s) => s.peak).at(-1)?.index ?? -1;
   const afterSummit = new Set(slots.filter((s) => s.peak).map((s) => s.index + 1));
+  // (2026-11: the first big-four pair engine also narrowed this draw — never the chair before a summit nor the one
+  // after its release — and it moved every night it touched: the slot's draw left Pugliese only the última, so he was
+  // drawn into the warm-up of 4 h seed 34 and lost from 2.5 h seed 5, and the golden set's tone band fell 78 % → 75 %.
+  // The pair mend parts the pairs after the night is built instead.)
   const pugSlots0 = slots.filter(
     (s) => s.rhythm === "tango" && s.position >= 0.62 && !s.peak && !afterSummit.has(s.index),
   );
@@ -2419,9 +2478,9 @@ function composeOnce(
     // (nor a family's phases: a tanda moved into a phase its profile does not program it for — Di Sarli's 1950s
     // valses in the warm-up — may not be added)
     // (Pugliese's chair is planned whatever the phase says, as the composer's own Pugliese slot is)
-    const misfits = () =>
-      tandas.filter((t) => {
-        if (t.orchestraId === "osvaldo-pugliese") return false;
+    const misfits = (skip = -1) =>
+      tandas.filter((t, i) => {
+        if (i === skip || t.orchestraId === "osvaldo-pugliese") return false;
         const ph = phasesFor(sc, { orchestraId: t.orchestraId, songs: t.songs } as TandaCandidate);
         return !!ph && !ph.includes("any") && !ph.includes(t.phase);
       }).length;
@@ -2435,10 +2494,22 @@ function composeOnce(
       return k;
     };
     const jump0 = jumps();
-    const fine = (r0: StrictResult, r1: StrictResult, s0: number, mended: number, swap = false) => {
-      if (closePairs() > close0 || misfits() > misfit0 || (swap && jumps() > jump0)) return false;
-      const tol = (BIG_FOUR_TOLERANCE * mended) / BIG_FOUR_COST.adjacent;
+    // (a pair parted by a rebuilt vals or milonga chair may take a family of another phase, as the composer's own
+    // vals / milonga fallback does: `free` names that chair)
+    const fine = (
+      r0: StrictResult,
+      r1: StrictResult,
+      s0: number,
+      mended: number,
+      swap = false,
+      perPair = BIG_FOUR_TOLERANCE,
+      free = -1,
+      held = false,
+    ) => {
+      if (closePairs() > close0 || misfits(free) > misfit0 || (swap && jumps() > jump0)) return false;
+      const tol = (perPair * mended) / BIG_FOUR_COST.adjacent;
       if (r1.blockers > r0.blockers || rest(r1) > rest(r0) + tol) return false;
+      if (held && heldWorse(r1, r0)) return false;
       const s1 = scoreNow();
       return s1 >= s0 - BIG_FOUR_SCORE_SLACK && (s0 < 85 || s1 >= 85);
     };
@@ -2516,46 +2587,88 @@ function composeOnce(
     {
       const allF = () => bigFourProblems(tandas, o);
       const costAll = () => allF().reduce((a, x) => a + BIG_FOUR_COST[x.kind], 0);
-      const big = (id: string) => (BIG_FOUR as readonly string[]).includes(id);
+      const big = isBigFourId;
       const n = tandas.length;
       const chairOk = (i: number) => {
         const x = tandas[i];
         return !!x && i > 0 && i < n - 1 && !x.peak && !x.birthday && !x.locked && !x.pinned;
       };
-      const rebuild = (chairs: number[], only: (c: TandaCandidate) => boolean): boolean => {
+      const rebuild = (
+        chairs: number[],
+        only: (c: TandaCandidate, i: number) => boolean,
+        opts: { families?: boolean; perPair?: number; vmFree?: boolean } = {},
+      ): boolean => {
         const c0 = costAll();
         const r0 = strictChecks(night());
         const s0 = scoreNow();
         let best: { i: number; t: Tanda; v: number } | null = null;
         for (const i of chairs) {
-          const tmp = { ...night(), id: "", name: "", createdAt: "", opening: null, stats: {}, score: {} };
-          const seedI = ((o.seed ?? 1) ^ Math.imul(i + 1, 0x9e3779b1)) >>> 0;
-          const q = swapTanda(tmp as unknown as Playlist, i, deps, seedI, only);
-          const nt = q.tandas[i];
-          if (q === (tmp as unknown) || !nt || nt === tandas[i]) continue;
-          // (the night's cap holds: three tandas an orchestra, four from 5 h)
-          const others = tandas.filter((x, j) => j !== i && x.orchestraId === nt.orchestraId);
-          if (others.length + 1 > (o.hours >= 5 ? 4 : 3)) continue;
-          // (and the profile's phases: a sub-period programmed for no phase — Troilo's 1950s — never plays, and the
-          // family plays in a phase it is programmed for)
-          const ph = phasesFor(sc, { orchestraId: nt.orchestraId, songs: nt.songs } as TandaCandidate);
-          if (
-            nt.orchestraId !== "osvaldo-pugliese" &&
-            ph &&
-            !ph.includes("any") &&
-            !ph.includes(tandas[i]!.phase)
-          )
-            continue;
-          const old = tandas[i]!;
-          tandas[i] = put(nt, old);
-          const c1 = costAll();
-          const r1 = c1 < c0 ? strictChecks(night()) : null;
-          const ok = !!r1 && fine(r0, r1, s0, c0 - c1);
-          const cand = tandas[i]!;
-          tandas[i] = old;
-          if (!r1 || !ok) continue;
-          const v = c1 * 10 + rest(r1);
-          if (!best || v < best.v) best = { i, t: cand, v };
+          const seen = new Set<string>();
+          // (a vals or milonga chair past the warm-up, when the caller asks: any phase, as the composer's fallback)
+          const free = opts.vmFree && tandas[i]!.rhythm !== "tango" && tandas[i]!.phase !== "warmup" ? i : -1;
+          // (one draw of the builder over every family the rule allows; or, `families`, one draw per family of the
+          // night's pool that fits, so a likelier family never hides the one that keeps the other rules)
+          const og = o.orchestraRepeatGap;
+          const keys = opts.families
+            ? [
+                ...new Set(
+                  byRhythm[tandas[i]!.rhythm]
+                    .filter(
+                      (c) =>
+                        only(c, i) &&
+                        !tandas.some(
+                          (x, j) => j !== i && Math.abs(j - i) < og && x.orchestraId === c.orchestraId,
+                        ),
+                    )
+                    .sort(
+                      (a, b) => Number(a.vocal !== tandas[i]!.vocal) - Number(b.vocal !== tandas[i]!.vocal),
+                    )
+                    .map(famKey),
+                ),
+              ].slice(0, BIG_FOUR_PAIR_FAMILIES)
+            : [null];
+          for (const key of keys) {
+            const tmp = { ...night(), id: "", name: "", createdAt: "", opening: null, stats: {}, score: {} };
+            const seedI = ((o.seed ?? 1) ^ Math.imul(i + 1, 0x9e3779b1)) >>> 0;
+            const q = swapTanda(
+              tmp as unknown as Playlist,
+              i,
+              deps,
+              seedI,
+              (c) => only(c, i) && (key === null || famKey(c) === key),
+            );
+            const nt = q.tandas[i];
+            if (q === (tmp as unknown) || !nt || nt === tandas[i]) continue;
+            const nk = nt.songs.map((x) => x.id).join();
+            if (seen.has(nk)) continue;
+            seen.add(nk);
+            // (the night's cap holds: three tandas an orchestra, four from 5 h)
+            const others = tandas.filter((x, j) => j !== i && x.orchestraId === nt.orchestraId);
+            if (others.length + 1 > (o.hours >= 5 ? 4 : 3)) continue;
+            // (and the profile's phases: a sub-period programmed for no phase — Troilo's 1950s — never plays, and the
+            // family plays in a phase it is programmed for)
+            const ph = phasesFor(sc, { orchestraId: nt.orchestraId, songs: nt.songs } as TandaCandidate);
+            if (ph?.length === 0) continue;
+            if (
+              free < 0 &&
+              nt.orchestraId !== "osvaldo-pugliese" &&
+              ph &&
+              !ph.includes("any") &&
+              !ph.includes(tandas[i]!.phase)
+            )
+              continue;
+            const old = tandas[i]!;
+            tandas[i] = put(nt, old);
+            const c1 = costAll();
+            const r1 = c1 < c0 ? strictChecks(night()) : null;
+            const ok =
+              !!r1 && fine(r0, r1, s0, c0 - c1, false, opts.perPair, free, opts.perPair !== undefined);
+            const cand = tandas[i]!;
+            tandas[i] = old;
+            if (!r1 || !ok) continue;
+            const v = c1 * 10 + rest(r1);
+            if (!best || v < best.v) best = { i, t: cand, v };
+          }
         }
         if (!best) return false;
         tandas[best.i] = best.t;
@@ -2577,7 +2690,13 @@ function composeOnce(
               tandas[i]!.rhythm === "tango" &&
               !big(tandas[i]!.orchestraId),
           )
-          .sort((a, b) => Math.abs(a / (n - 1) - 0.87) - Math.abs(b / (n - 1) - 0.87))
+          // (2026-11: a chair between two tandas that are not big four first — Pugliese is one of them)
+          .sort(
+            (a, b) =>
+              Number(big(tandas[a - 1]?.orchestraId ?? "") || big(tandas[a + 1]?.orchestraId ?? "")) -
+                Number(big(tandas[b - 1]?.orchestraId ?? "") || big(tandas[b + 1]?.orchestraId ?? "")) ||
+              Math.abs(a / (n - 1) - 0.87) - Math.abs(b / (n - 1) - 0.87),
+          )
           .slice(0, 4);
         rebuild(late, (c) => c.orchestraId === "osvaldo-pugliese");
       }
@@ -2594,6 +2713,90 @@ function composeOnce(
           )
           .slice(0, 4);
         rebuild(chairs, (c) => big(c.orchestraId) && c.orchestraId !== "osvaldo-pugliese");
+      }
+      // 2026-11 — "never back to back": a pair the swaps left is parted by rebuilding one of its chairs (never the
+      // opener, the última, a summit, the early D'Arienzo or the Pugliese chair) with a family that is not big four (the
+      // chair's voice first), the floor knows (the panel's fame floor for the chair) and that has not played there
+      // tonight (the builder's family rule). A summit or the Pugliese chair in the pair may first step one chair away
+      // from it, past a tango that is not big four. It may cost the other soft rules a little more than a swap (BIG_FOUR_PAIR_TOLERANCE), never a
+      // blocker, an orchestra's repeat gap, a cap or the night's 85
+      const sizeAt = (i: number) => tandas[i]!.songs.length;
+      const knownFor = (c: TandaCandidate, i: number) => {
+        if (!isGoldenNight(o)) return true;
+        const t = tandas[i]!;
+        const need = t.rhythm === "tango" ? 2.5 : t.peak || i / Math.max(1, n - 1) >= 0.76 ? 3 : 2.5;
+        const used = new Set(
+          tandas.flatMap((x, j) => (j === i ? [] : x.songs.map((s) => normTitle(s.title)))),
+        );
+        const fs = c.songs
+          .filter((x) => !!(x.spotify || x.resolved) && !used.has(normTitle(x.title)))
+          .map((x) => x.fame ?? 0)
+          .sort((a, b) => b - a)
+          .slice(0, sizeAt(i));
+        return (
+          fs.length >= sizeAt(i) &&
+          fs.filter((f) => f === 0).length <= 1 &&
+          fs.reduce((a, b) => a + b, 0) / sizeAt(i) >= need
+        );
+      };
+      // (the builder's family rule: one vals / milonga per orchestra under 5 h, never one tango family twice)
+      const playedHere = (c: TandaCandidate, i: number) =>
+        tandas.some(
+          (x, j) =>
+            j !== i &&
+            x.rhythm === tandas[i]!.rhythm &&
+            (x.rhythm === "tango" || o.hours >= 5
+              ? famKey(x) === famKey(c)
+              : x.orchestraId === c.orchestraId),
+        );
+      const anchorStep = (a: number, b: number): boolean => {
+        const c0 = costAll();
+        const r0 = strictChecks(night());
+        const s0 = scoreNow();
+        let best: { s: number; t: number; v: number } | null = null;
+        for (const [sI, tI] of [
+          [a, a - 1],
+          [b, b + 1],
+        ] as Array<[number, number]>) {
+          const S = tandas[sI],
+            T = tandas[tI];
+          if (!S || !T || !(S.peak || S.orchestraId === "osvaldo-pugliese")) continue;
+          if (!chairOk(tI) || tI === earlyDASlot || T.rhythm !== S.rhythm) continue;
+          if (big(T.orchestraId) || S.locked || S.pinned || S.birthday) continue;
+          tandas[sI] = put(T, S);
+          tandas[tI] = put(S, T);
+          const c1 = costAll();
+          const r1 = c1 < c0 ? strictChecks(night()) : null;
+          const ok = !!r1 && fine(r0, r1, s0, c0 - c1, true, BIG_FOUR_PAIR_TOLERANCE, -1, true);
+          tandas[sI] = S;
+          tandas[tI] = T;
+          if (!r1 || !ok) continue;
+          const v = c1 * 10 + rest(r1);
+          if (!best || v < best.v) best = { s: sI, t: tI, v };
+        }
+        if (!best) return false;
+        const S = tandas[best.s]!,
+          T = tandas[best.t]!;
+        tandas[best.s] = put(T, S);
+        tandas[best.t] = put(S, T);
+        return true;
+      };
+      const triedPairs = new Set<string>();
+      for (let k = 0; k < n; k++) {
+        const pair = allF().find((x) => x.kind === "adjacent" && !triedPairs.has(`${x.with}-${x.tanda}`));
+        if (!pair) break;
+        triedPairs.add(`${pair.with}-${pair.tanda}`);
+        // (a summit or the Pugliese chair moves one chair away from the pair, when the tango there is not big four: it
+        // lands a tanda earlier or later, and that tango sits between the two)
+        if (anchorStep(pair.with!, pair.tanda)) continue;
+        const chairs = [pair.tanda, pair.with!].filter(
+          (i) => chairOk(i) && i !== earlyDASlot && tandas[i]!.orchestraId !== "osvaldo-pugliese",
+        );
+        rebuild(chairs, (c, i) => !big(c.orchestraId) && !playedHere(c, i) && knownFor(c, i), {
+          families: true,
+          perPair: BIG_FOUR_PAIR_TOLERANCE,
+          vmFree: true,
+        });
       }
     }
     const left = all().filter((x) => x.kind === "adjacent" || x.kind === "gap" || x.kind === "quartile");

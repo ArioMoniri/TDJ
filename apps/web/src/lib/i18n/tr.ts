@@ -2586,7 +2586,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "db.versions.this_side": "Bu kayıt",
   "db.versions.versions": "Versiyonlar",
   "djMessage.big_four_apart":
-    "Bu gece büyük dörtlerin hepsi birbirinden ayrı tutulamadı: {pairs} art arda çalıyor.",
+    "{pairs} bu gece art arda çalıyor, işaretli bir istisna: onları ayırmak başka bir kuralı bozuyordu. Ayırmak için ikisinden birini değiştirin.",
   "djMessage.big_four_missing": "{names} bu geceye sığmadı.",
   "djMessage.big_four_quarter": "Gecenin {quarters} çeyreğinde büyük dörtlerden tanda yok.",
   "djMessage.big_four_rules": "Bu gece büyük dörtlerin hepsi kuralların istediği gibi yerleştirilemedi.",
@@ -5786,6 +5786,8 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "guide.closing_cortina_extra": "{n}. tandanın kortinası var, oysa La Cumparsita doğrudan ardından geliyor",
   "guide.big4_adjacent": "Büyük dörtlüden iki tanda arka arkaya: önce {a}, sonra {b} ({x}–{y}. tandalar)",
   "guide.big4_gap": "{b} çok erken geri dönüyor ({x}. ve {y}. tandalar)",
+  "guide.big4_stated":
+    "Önce {a}, sonra {b} arka arkaya kalıyor ({x}–{y}. tandalar): bu gecenin büyük dörtlü kuralındaki istisnası, çünkü onları ayırmak başka bir kuralı bozuyordu",
   "guide.orchestra_repeat": "{o} hem {a}. hem {b}. tandada çalıyor ({gap} tandalık ara kuralı)",
   "guide.four_plus_one": "4 + 1 kapanış dört şarkılık bir tango última ister; {n}. tanda {r}, {k} şarkı",
   "guide.opening_switch": "1. tanda artık {o} {y}: açılıştaki La Cumparsita {o2} {y2} olsun mu?",

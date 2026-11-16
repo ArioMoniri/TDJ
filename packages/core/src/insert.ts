@@ -936,6 +936,36 @@ export function editGuide(before: Playlist, after: Playlist, deps: ComposeDeps):
       ),
     );
   }
+  // 2026-11 (the owner: "rarely, not never"): a back-to-back pair the composer recorded as the night's stated exception
+  // (stats.settingFallbacks "bigFour: …") is explained where the edit touches it: kept on purpose, and how to part it
+  const stated = (before.stats?.settingFallbacks ?? []).filter((f) => f.startsWith("bigFour:"));
+  if (stated.length)
+    for (const f of bigFourProblems(after.tandas, o)) {
+      if (f.kind !== "adjacent" || f.with === undefined) continue;
+      if (!b0.has(bk(f, after.tandas)) || !stated.some((s) => s.includes(f.detail))) continue;
+      if (!at.includes(f.tanda) && !at.includes(f.with)) continue;
+      const tg = [f.tanda, f.with].find((k) => k > 0 && k < n - 1 && !after.tandas[k]!.peak) ?? f.tanda;
+      out.push(
+        line(
+          "bigFour",
+          "info",
+          "big4_stated",
+          "{a} then {b} stay back to back (tandas {x}–{y}): tonight's exception to the big-four rule, because parting them broke another rule",
+          {
+            a: after.tandas[f.with]?.orchestra ?? "",
+            b: after.tandas[f.tanda]?.orchestra ?? "",
+            x: f.with + 1,
+            y: f.tanda + 1,
+          },
+          {
+            msg: "swap_tanda",
+            english: "Swap tanda {n} for another orchestra",
+            params: { n: tg + 1 },
+            fix: { kind: "swapTanda", tanda: tg },
+          },
+        ),
+      );
+    }
   const gap = o.orchestraRepeatGap ?? 6;
   for (const i of at) {
     const t = after.tandas[i];

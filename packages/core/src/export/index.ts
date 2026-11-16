@@ -395,12 +395,15 @@ ${pl}
 `;
 }
 
-/** XSPF — open standard understood by VLC, Mixxx, Clementine. */
+/**
+ * XSPF — open standard understood by VLC, Mixxx, Clementine. The <duration> is whole milliseconds (the spec's
+ * nonNegativeInteger): a cortina cued at 16.9 s and stopped at 66.9 s plays 50000, never 50000.00000000001.
+ */
 export function toXSPF(p: Playlist, eo: ExportOpts = {}): string {
   const tracks = flatten(p, eo)
     .map(
       (t) =>
-        `    <track><title>${esc(t.title)}</title><creator>${esc(t.artist)}</creator><album>${esc(t.album ?? "")}</album><duration>${(t.kind === "cortina" && t.stopSec ? t.stopSec - (t.trimInSec ?? 0) : t.durationSec) * 1000}</duration><annotation>${esc(t.kind === "cortina" ? "cortina" : `tanda ${t.tanda}`)}</annotation>${t.id ? `<identifier>tdj:${esc(t.id)}</identifier>` : ""}${t.spotifyUri ? `<location>${esc(t.spotifyUri)}</location>` : ""}${
+        `    <track><title>${esc(t.title)}</title><creator>${esc(t.artist)}</creator><album>${esc(t.album ?? "")}</album><duration>${Math.round((t.kind === "cortina" && t.stopSec ? t.stopSec - (t.trimInSec ?? 0) : t.durationSec) * 1000)}</duration><annotation>${esc(t.kind === "cortina" ? "cortina" : `tanda ${t.tanda}`)}</annotation>${t.id ? `<identifier>tdj:${esc(t.id)}</identifier>` : ""}${t.spotifyUri ? `<location>${esc(t.spotifyUri)}</location>` : ""}${
           t.kind === "cortina" && t.stopSec
             ? `<extension application="http://www.videolan.org/vlc/playlist/0">${t.trimInSec ? `<vlc:option>start-time=${t.trimInSec}</vlc:option>` : ""}<vlc:option>stop-time=${t.stopSec}</vlc:option></extension>`
             : ""

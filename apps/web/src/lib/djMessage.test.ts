@@ -11,7 +11,8 @@ describe("djMessage: every core fallback in the DJ's words", () => {
   const cases: Array<[string, RegExp]> = [
     [
       "bigFour: Juan D'Arienzo then Aníbal Troilo; Juan D'Arienzo then Carlos Di Sarli (no swap keeps the other rules)",
-      /^The big four could not all be kept apart tonight: D'Arienzo and Troilo, D'Arienzo and Di Sarli play back to back\.$/,
+      // (2026-11, "rarely, not never": the pair is a marked exception, with why and how to part it)
+      /^D'Arienzo and Troilo, D'Arienzo and Di Sarli play back to back tonight, a marked exception: parting them broke another rule\. Swap one of the two to part them\.$/,
     ],
     [
       "bigFour: Juan D'Arienzo again 3 tandas after tanda 4 (≥ 5) (no swap keeps the other rules)",
