@@ -1,4 +1,4 @@
-<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="brand/logo-reversed.svg"/><img src="brand/logo.svg" width="96" alt="T-DJ logo"/></picture></p>
+<p align="center"><img src="media/store-banner.webp" width="840" alt="T-DJ on a Mac, an iPad and an iPhone: a composed night, the transition editor and the Booth playing"/></p>
 <h1 align="center">T-DJ</h1>
 <p align="center">Build a milonga the way a tango DJ does: tandas, cortinas and the shape of the night.</p>
 
@@ -8,22 +8,41 @@ I play milongas in Istanbul. For years I built every night by hand, checking tha
 soon and that each cortina fit the tanda after it. T-DJ is the tool I wanted for that job. It drafts a whole night
 from an index of about 19,000 recordings, then lets me change what I don't like before I play it, and plays it.
 
-## Get it
+## Get T-DJ
+
+One app for iPhone, iPad and Mac, plus the web. They all carry the same version number and ship from the same
+commit ([docs/RELEASING.md](docs/RELEASING.md)).
+
+<!-- app-store:coming-soon (scripts/release/readme-store-badge.mjs removes these marker lines and the notes once App Review approves) -->
+<p>
+  <a href="https://apps.apple.com/app/id6834924534"><picture><source media="(prefers-color-scheme: dark)" srcset="media/badges/download-on-the-app-store-white-en-us.svg"><img src="media/badges/download-on-the-app-store-black-en-us.svg" alt="Download on the App Store, for iPhone and iPad (coming soon)" height="40"></picture></a>
+  &nbsp;&nbsp;&nbsp;
+  <a href="https://apps.apple.com/app/id6834924534?platform=mac"><picture><source media="(prefers-color-scheme: dark)" srcset="media/badges/download-on-the-mac-app-store-white-en-us.svg"><img src="media/badges/download-on-the-mac-app-store-black-en-us.svg" alt="Download on the Mac App Store (coming soon)" height="40"></picture></a>
+</p>
+<p data-store-status="coming-soon"><sub><b>Coming to the App Store.</b> The iPhone, iPad and Mac apps are in TestFlight beta while App Review is pending; the store links open once the listing is approved.</sub></p>
 
 <p>
-  <a href="https://github.com/ArioMoniri/TDJ/releases"><img alt="Download for macOS" src="https://img.shields.io/badge/Download%20for-macOS-000000?style=for-the-badge&logo=apple&logoColor=white" height="40"></a>
-  <!-- app-store:coming-soon (scripts/release/readme-store-badge.mjs removes this line and the "coming soon" note once App Review approves) -->
-  <a href="https://apps.apple.com/app/id6834924534"><img alt="Download on the App Store (Mac and iPad), coming soon" src="https://img.shields.io/badge/Download%20on%20the-App%20Store-0d96f6?style=for-the-badge&logo=appstore&logoColor=white" height="40"></a>
-  <sub data-store-status="coming-soon"><b>App Store: coming soon</b></sub>
+  <a href="https://d3k5k2c1l0s5ri.cloudfront.net"><img alt="Open the web app" src="https://img.shields.io/badge/Open%20the-web%20app-C9426A?style=for-the-badge&logo=googlechrome&logoColor=white" height="40"></a>
+  &nbsp;
+  <a href="https://github.com/ArioMoniri/TDJ/releases/latest/download/TDJ-macOS.dmg"><img alt="Download the Mac app (DMG)" src="https://img.shields.io/badge/Download%20for-macOS%20(DMG)-000000?style=for-the-badge&logo=apple&logoColor=white" height="40"></a>
 </p>
 
-The Mac app comes as one DMG for Apple silicon and Intel, macOS 13 or later, signed and notarised. It is attached
-to each published release on the [Releases page](https://github.com/ArioMoniri/TDJ/releases), together with a
-`SHA256SUMS` file, so you can check your download with `shasum -a 256 -c SHA256SUMS`. The App Store build runs on
-the Mac and on the iPad.
+- **iPhone and iPad**: iOS and iPadOS 16 or later. One universal app; the Booth keeps playing with the screen locked.
+- **Mac App Store**: the same purchase as iPhone and iPad (it is free), sandboxed, macOS 13 or later.
+- **Mac download**: one DMG for Apple silicon and Intel, signed and notarised, and it updates itself (it asks
+  first). Each [release](https://github.com/ArioMoniri/TDJ/releases) carries a `SHA256SUMS` file:
+  `shasum -a 256 -c SHA256SUMS`.
+- **Web**: <https://d3k5k2c1l0s5ri.cloudfront.net>. Nothing to install, and any key you add stays in your browser.
+  Settings → About says when a newer version is live; reload when the night is over.
 
-**Try it on the web:** <https://d3k5k2c1l0s5ri.cloudfront.net>. Nothing to install, and any key you add stays in
-your browser.
+**Türkçe.** T-DJ iPhone, iPad, Mac ve web'de aynı sürümle çalışır; uygulama da mağaza sayfası da Türkçe.
+
+<p>
+  <a href="https://apps.apple.com/app/id6834924534"><picture><source media="(prefers-color-scheme: dark)" srcset="media/badges/download-on-the-app-store-white-tr-tr.svg"><img src="media/badges/download-on-the-app-store-black-tr-tr.svg" alt="App Store'dan indirin, iPhone ve iPad için (yakında)" height="40"></picture></a>
+  &nbsp;&nbsp;&nbsp;
+  <a href="https://apps.apple.com/app/id6834924534?platform=mac"><picture><source media="(prefers-color-scheme: dark)" srcset="media/badges/download-on-the-mac-app-store-white-tr-tr.svg"><img src="media/badges/download-on-the-mac-app-store-black-tr-tr.svg" alt="Mac App Store'dan indirin (yakında)" height="40"></picture></a>
+</p>
+<p data-store-status="coming-soon"><sub><b>Yakında App Store'da.</b> Uygulamalar App Review onayını beklerken TestFlight betasında.</sub></p>
 
 ## What it does
 
@@ -58,8 +77,8 @@ own column, and one row of transport buttons at the bottom. What I use during a 
 <img src="media/readme/booth-phone.webp" width="34%" alt="The Booth on an iPhone, playing"/>
 </p>
 
-**Spotify on the iPad and the phone.** Safari on an iPad or an iPhone can't play Spotify in the page, so the Booth
-plays through the Spotify app instead (Spotify Connect, Premium needed). The ROOM menu lists your Spotify devices;
+**Spotify on the iPad and the iPhone.** Safari and the iPhone and iPad apps can't play Spotify inside the page, so
+the Booth plays through the Spotify app instead (Spotify Connect, Premium needed). The ROOM menu lists your Spotify devices;
 pick one and start, pause, stop and seek all work from T-DJ. When something goes wrong the Booth says so in plain
 words, such as "Spotify · pick a device" or a session that needs a new login, with one button to fix it. It never
 skips the rest of the night because one start failed.
@@ -101,7 +120,7 @@ which covers most of what I ask for in the middle of a night.
 
 **Rooms.** Two DJs can work on one night. I make a room and show the code, the other DJ joins from a phone, and
 each edit shows up on both sides, with who made it in the log. On the web, rooms are kept in the deployment's
-database for 90 days after the last change; the Mac and iPad apps use rooms through a linked T-DJ server.
+database for 90 days after the last change; the iPhone, iPad and Mac apps use rooms through a linked T-DJ server.
 
 <a href="media/readme/rooms.mp4"><img src="media/readme/rooms.gif" alt="Two DJs in one room: a laptop and a phone showing the same night, edits arriving on both"/></a>
 
@@ -126,7 +145,9 @@ system or lets you choose.
 
 <img src="media/readme/turkish.webp" width="640" alt="T-DJ in Turkish"/>
 
-It runs on the iPad and the phone as well, and there is a dark mode for a dim room.
+It runs on the iPhone and the iPad as well, as the same app from the App Store or in the browser, and there is a
+dark mode for a dim room. On the iPhone the Booth's transport sits where the tab bar was, above the home indicator,
+and the set list opens from it.
 
 <p>
 <img src="media/readme/ipad.webp" width="64%" alt="T-DJ on an iPad in landscape"/>
