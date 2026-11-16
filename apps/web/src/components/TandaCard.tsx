@@ -13,8 +13,8 @@ import { useMediaQuery } from "@/lib/hooks";
 import { lazy, lower, t as tx } from "@/lib/i18n";
 import { type Cue, fmtLen, lengthOf, tandaTotal, totalText } from "@/lib/lengths";
 import { CARD_STAGGER_CAP, DUR, EASE, STAGGER } from "@/lib/motion";
-import { cortinaWindow, PlayListContext, useTapPlay } from "@/lib/playback";
-import { type PlayItem, sourceFor, trackFor, usePlayer } from "@/lib/player";
+import { cortinaWindow, PlayListContext, playTanda, useTapPlay } from "@/lib/playback";
+import type { PlayItem } from "@/lib/player";
 import { useStore } from "@/lib/store";
 import type { ReferencePlaylist, Tanda } from "@/lib/types";
 import { CohesionBadge } from "./CohesionBadge";
@@ -25,6 +25,7 @@ import { SwipeRow } from "./SwipeRow";
 import { TrackRow } from "./TrackRow";
 import { NowBars } from "./ui/NowPlaying";
 import { TandaArt } from "./ui/TandaArt";
+import { TandaPlayCover } from "./ui/TandaPlay";
 import { isMixedTanda, TandaTypeBadge } from "./ui/TandaTypeBadge";
 import { Tip, useTip } from "./ui/Tip";
 import { useDragReorder } from "./ui/useDragReorder";
@@ -119,32 +120,31 @@ function TandaCardImpl({
       keys.some(Boolean) ? keys : undefined,
     );
   }, [t, patches]);
-  const connected = useStore((s) => !!s.spotifyToken && s.spotifyToken.expires > Date.now());
-  /** "Preview tanda": the 30 s previews of this tanda back to back, 10 s each (round4-ux.md §10.1) */
-  const previewTracks = useMemo(
-    () =>
-      t.songs.flatMap((song, k) => {
-        const eff = patchedSong(song, patches[k]);
-        const src = sourceFor(eff, connected);
-        return src?.kind === "preview" ? [trackFor(eff, src)] : [];
-      }),
-    [t.songs, patches, connected],
-  );
-  const previewTanda = useCallback(() => {
-    haptic(4);
-    usePlayer.getState().playQueue(tx("tandaCard.tanda_2", { p1: i + 1 }), previewTracks, 10);
-  }, [i, previewTracks]);
   const ref = useRef<HTMLElement>(null);
   // 2026-11: a tap plays from the night's list (Compose provides it), else from this tanda and its cortina
   const parentList = useContext(PlayListContext);
   const ownList = useMemo(() => {
     const where = tx("play.tanda", { n: i + 1 });
-    const items: PlayItem[] = t.songs.map((song) => ({ kind: "song", song, where }));
+    const items: PlayItem[] = t.songs.map((song) => ({ kind: "song", song, where, tanda: i }));
     if (t.cortina)
-      items.push({ kind: "cortina", cortina: t.cortina, where: tx("play.cortina_after", { n: i + 1 }) });
+      items.push({
+        kind: "cortina",
+        cortina: t.cortina,
+        where: tx("play.cortina_after", { n: i + 1 }),
+        tanda: i,
+      });
     return { label: where, items };
   }, [t.songs, t.cortina, i]);
   const playList = parentList ?? ownList;
+  /**
+   * "Preview tanda" (round4-ux.md §10.1; 2026-11: it was greyed out unless a side had a cached Deezer link and no
+   * Spotify login): each side's start in turn, 20 s each — Spotify in full with Premium, else the 30 s clips (looked up
+   * when missing); a side with no audio is passed
+   */
+  const previewTanda = useCallback(() => {
+    haptic(4);
+    void playTanda(playList, i, "tanda", { clipSec: 20 });
+  }, [playList, i]);
   const total = useMemo(() => tandaTotal(t.songs, cues), [t.songs, cues]);
   const canMove = !readOnly && !!onMoveTrack;
   const moveTrack = useCallback((from: number, to: number) => onMoveTrack?.(i, from, to), [onMoveTrack, i]);
@@ -213,12 +213,9 @@ function TandaCardImpl({
     disabled: analysing,
   };
   const previewItem = {
-    label: previewTracks.length
-      ? tx("tandaCard.preview_tanda_10_s", { length: previewTracks.length })
-      : tx("tandaCard.preview_tanda_no_previews_yet"),
+    label: tx("tandaCard.preview_tanda_10_s", { length: t.songs.length }),
     icon: ListMusic,
     onClick: previewTanda,
-    disabled: previewTracks.length === 0,
   };
 
   return (
@@ -280,10 +277,13 @@ function TandaCardImpl({
           }
         >
           <div className="cell" data-leading="art">
-            {/* 2026-11: the tanda's cover, its number on the corner (the number tile alone with artwork off) */}
-            <span aria-hidden>
-              <TandaArt tanda={t} size={44} badge={i + 1} testId="tanda-card-art" />
-            </span>
+            {/* 2026-11: the tanda's cover (its number on the corner; the number tile alone with artwork off) plays
+                it — this tanda only, or from here to the end */}
+            <TandaPlayCover list={playList} tanda={i}>
+              <span aria-hidden>
+                <TandaArt tanda={t} size={44} badge={i + 1} testId="tanda-card-art" />
+              </span>
+            </TandaPlayCover>
             <span className="min-w-0 flex-1">
               <h3 className="text-headline truncate">{t.orchestra}</h3>
               <span className="text-subhead block truncate text-[var(--label-2)]">

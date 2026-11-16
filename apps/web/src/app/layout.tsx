@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter } from "next/font/google";
+import { Suspense } from "react";
 import "./globals.css";
 import { UpdateWatch } from "@/components/About";
 import { Boot } from "@/components/Boot";
@@ -15,6 +16,7 @@ import { PageTransition } from "@/components/PageTransition";
 import { PlaylistSync } from "@/components/PlaylistSync";
 import { RoomSync } from "@/components/RoomSync";
 import { RuleConfirmSheet } from "@/components/RuleConfirmSheet";
+import { SongHosts } from "@/components/song/SongHosts";
 import { ThemeSync } from "@/components/ThemeSync";
 
 const sans = Inter({ subsets: ["latin"], variable: "--font-sans-loaded", display: "swap" });
@@ -90,6 +92,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <UpdateWatch />
             <EditKeys />
             <RuleConfirmSheet />
+            <Suspense>
+              <SongHosts />
+            </Suspense>
           </ToolbarProvider>
         </LocaleRoot>
       </body>

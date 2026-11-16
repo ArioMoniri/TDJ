@@ -5,8 +5,9 @@ import {
   applyOutgoing,
   auditionSpan,
   BASS_SHELF_HZ,
-  bassSwapPoints,
+  eqLanes,
   HIGH_SHELF_HZ,
+  MID_PEAK_HZ,
   type TransitionWindow,
 } from "./transition";
 
@@ -42,16 +43,21 @@ export async function renderTransition(
     low.type = "lowshelf";
     low.frequency.value = BASS_SHELF_HZ;
     low.gain.value = 0;
+    const mid = ctx.createBiquadFilter();
+    mid.type = "peaking";
+    mid.frequency.value = MID_PEAK_HZ;
+    mid.gain.value = 0;
     const high = ctx.createBiquadFilter();
     high.type = "highshelf";
     high.frequency.value = HIGH_SHELF_HZ;
     high.gain.value = 0;
     const g = ctx.createGain();
     src.connect(low);
-    low.connect(high);
+    low.connect(mid);
+    mid.connect(high);
     high.connect(g);
     g.connect(ctx.destination);
-    return { src, low, high, g };
+    return { src, low, mid, high, g };
   };
   // the outgoing: from `outFrom` to its end, its end at `outEnd` on the audition's clock
   const a = lane(o.out);
@@ -78,11 +84,16 @@ export async function renderTransition(
   b.g.gain.setValueAtTime(o.in.gain, Math.max(span.inAt + w.inFade.len, tailAt - 0.4));
   b.g.gain.linearRampToValueAtTime(0, tailAt);
   b.src.start(span.inAt, o.in.offset, span.inUntil);
-  const eq = bassSwapPoints(w);
+  // the same EQ the engine schedules: the bass swap, or the three-band swap
+  const eq = eqLanes(w);
   if (eq) {
-    applyEqPoints(a.low.gain as unknown as AudioParamLike, eq.outLow, outEnd);
-    applyEqPoints(a.high.gain as unknown as AudioParamLike, eq.outHigh, outEnd);
-    applyEqPoints(b.low.gain as unknown as AudioParamLike, eq.inLow, outEnd);
+    const P = (f: BiquadFilterNode) => f.gain as unknown as AudioParamLike;
+    applyEqPoints(P(a.low), eq.out.low, outEnd);
+    applyEqPoints(P(a.mid), eq.out.mid, outEnd);
+    applyEqPoints(P(a.high), eq.out.high, outEnd);
+    applyEqPoints(P(b.low), eq.in.low, outEnd);
+    applyEqPoints(P(b.mid), eq.in.mid, outEnd);
+    applyEqPoints(P(b.high), eq.in.high, outEnd);
   }
   return ctx.startRendering();
 }

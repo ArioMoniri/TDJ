@@ -10,6 +10,12 @@ export function Boot() {
   useAppBoot();
   useEffect(() => {
     boot();
+    // the owner's devices only (lib/contrib/owner.ts): catalogue edits go to the shared repo data as contributions;
+    // every other device never loads the module
+    try {
+      if (localStorage.getItem("tdj-owner-v1"))
+        void import("@/lib/contrib/owner").then((m) => m.startOwnerSync());
+    } catch {}
   }, [boot]);
   // an older copy of the featured night in this browser follows the shipped version (after the store hydrates)
   useEffect(() => {

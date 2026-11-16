@@ -1025,6 +1025,12 @@ html[data-booth] {
 .booth-ctl-title {
   color: var(--label-2);
   padding-top: 4px;
+  /* 2026-11 (owner: "box issues where CUE MIXER TIMING TANDA FLOOR are written"): a fieldset draws its legend ON
+     its top border; a floated legend is no longer the "rendered legend", so it sits inside the card like any
+     other flex item, with the same inset in every group */
+  float: left;
+  width: 100%;
+  padding-inline: 0;
 }
 /* the panel's button rows: equal cells (a row of words keeps its flow) */
 .booth-ctl-row > .booth-ctl-btn {

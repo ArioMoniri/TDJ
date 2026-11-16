@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { type PlayerTrack, stopAt, usePlayer } from "./player";
+import { onListEnd, type PlayerTrack, stopAt, usePlayer } from "./player";
 
 const song = (id: string): PlayerTrack => ({
   id,
@@ -47,5 +47,27 @@ describe("cortina play length in the player", () => {
     p._tick(8, 30);
     expect(usePlayer.getState().track?.id).toBe("b");
     expect(usePlayer.getState().queue?.index).toBe(2);
+  });
+});
+
+describe("a list play hands over at its end (2026-11 scopes)", () => {
+  beforeEach(() => usePlayer.getState().close());
+  it("a pre-listen stops each row at its clip, and the end hands over once", () => {
+    let ends = 0;
+    onListEnd(() => {
+      ends++;
+      usePlayer.setState({ playing: false });
+    });
+    const p = usePlayer.getState();
+    expect(stopAt(song("a"), null, 20)).toBe(20);
+    expect(stopAt({ ...song("a"), startSec: 30 }, null, 20)).toBe(50);
+    expect(stopAt(cortina(8), null, 20)).toBe(8);
+    p.play(song("a"), { label: "T", items: [], index: 0, clipSec: 20 });
+    p._tick(19, 30);
+    expect(ends).toBe(0);
+    p._tick(20, 30);
+    p._tick(20.3, 30);
+    expect(ends).toBe(1);
+    onListEnd(null);
   });
 });

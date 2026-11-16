@@ -57,6 +57,20 @@ export interface ExternalHandle {
   stop(fadeSec: number): void;
   /** seconds into the item (best effort) */
   position(): number;
+  /**
+   * 2026-11 (seek: "the slider goes to zero for a second, then the song starts late"): jump inside the playing item to
+   * `positionSec` (seconds into the recording) in place — the Web Playback SDK's `seek`, Connect's
+   * `PUT /me/player/seek` — never a new play. `durationSec`: it stops (with its fade) that long from now; undefined
+   * plays to the track's end. False when it cannot (not started yet): the engine restarts the item instead.
+   */
+  seek?(positionSec: number, o: { durationSec?: number }): boolean;
+  /**
+   * 2026-11 (an edited transition on a player that can fade — the Web Playback SDK): end `endsInSec` from now with a
+   * `fadeOutSec` fade (volume steps). A player that cannot fade ignores the fade.
+   */
+  retime?(o: { endsInSec: number; fadeOutSec: number }): void;
+  /** 2026-11: call off a fade out in progress (back to its level); false when there is none to call off */
+  unfade?(): boolean;
 }
 /** A player the engine cannot route through the graph (Spotify): the adapter owns the timeline for its items. */
 export interface ExternalPlayer {

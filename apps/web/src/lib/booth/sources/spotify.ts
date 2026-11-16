@@ -4,6 +4,7 @@ import { t as tx } from "@/lib/i18n";
 import { openExternal } from "@/lib/openLink";
 import { dbToGain, fadeOutCurve, VOLUME_STEP_SEC, volumeSteps } from "../envelope";
 import type { BoothRow } from "../plan";
+import { TrackClock } from "./clock";
 import { PauseWatch } from "./spotifyHold";
 import type {
   ExternalCapabilities,
@@ -20,6 +21,8 @@ export interface SdkState {
   paused: boolean;
   position: number;
   duration: number;
+  /** when `position` was true (ms since the epoch), as the SDK reports it */
+  timestamp?: number;
   track_window?: { current_track?: { uri?: string } };
 }
 export interface SdkPlayer {
@@ -30,6 +33,8 @@ export interface SdkPlayer {
   setVolume(v: number): Promise<void>;
   pause(): Promise<void>;
   resume(): Promise<void>;
+  /** the SDK's in-place seek (ms); optional: a player without it seeks through the Web API */
+  seek?(ms: number): Promise<void>;
 }
 export interface SdkPlayerCtor {
   new (o: { name: string; getOAuthToken: (cb: (t: string) => void) => void; volume?: number }): SdkPlayer;
@@ -326,6 +331,14 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
     this.app = o.app ?? inNativeApp();
     this.probeSdk = o.probeSdk ?? (() => sdkPlayable());
     this.syncCaps();
+    // 2026-11 (the slider drifted from what plays): back in the tab or the app, ask the device where it is at once
+    if (typeof document !== "undefined" && typeof window !== "undefined") {
+      const poke = () => {
+        if (document.visibilityState === "visible") this.owner?.poke();
+      };
+      document.addEventListener("visibilitychange", poke);
+      window.addEventListener("focus", poke);
+    }
     this.onBanner = o.onBanner;
     this.onLog = o.onLog;
     this.deviceWaitMs = o.deviceWaitMs ?? 5000;
@@ -941,6 +954,27 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
     await this.pauseDevice();
   }
 
+  /**
+   * 2026-11 (seek): jump inside what plays now — this browser's player with the SDK's `seek`, a Connect device (or a
+   * player without `seek`) with `PUT /me/player/seek`. Never a new play: the track keeps its buffer, the jump is
+   * immediate.
+   */
+  async seekDevice(ms: number): Promise<void> {
+    const at = Math.max(0, Math.round(ms));
+    const p = this.remote ? null : this.player;
+    if (p?.seek) {
+      await p.seek(at).catch(() => {});
+      return;
+    }
+    const dev = this.remote ?? this.deviceId;
+    await this.api(
+      "PUT",
+      `/me/player/seek?position_ms=${at}${dev ? `&device_id=${encodeURIComponent(dev)}` : ""}`,
+      undefined,
+      { op: "seek" },
+    ).catch(() => {});
+  }
+
   /** pause whatever plays on the night's device */
   async pauseDevice(): Promise<void> {
     if (this.remote)
@@ -952,7 +986,10 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
   }
   /** the Connect device's playback state (`GET /me/player`), null when nothing plays */
   async remoteState(): Promise<RemoteState | null> {
+    const sentAt = now();
     const r = await this.api("GET", "/me/player", undefined, { op: "state", quiet: true }).catch(() => null);
+    // the position was true about half a round trip before the answer arrived
+    const at = (sentAt + now()) / 2;
     if (!r || r.status === 204) return null;
     const j = await r.json().catch(() => null);
     if (!j) return null;
@@ -967,6 +1004,7 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
       supportsVolume: d ? d.supports_volume !== false : null,
       uri: typeof j.item?.uri === "string" ? j.item.uri : null,
       hasItem: !!j.item,
+      at,
     };
   }
 
@@ -1195,6 +1233,8 @@ export interface RemoteState {
   /** the playing item's uri */
   uri: string | null;
   hasItem: boolean;
+  /** 2026-11: when `positionMs` was true (this adapter's clock, ms): the middle of the request's round trip */
+  at?: number;
 }
 
 let liveSeq = 0;
@@ -1292,6 +1332,7 @@ class Live implements ExternalHandle {
     this.startedAt = now() - (attached ? 3500 : 0);
     this.posAt = now();
     this.pos = this.req.positionSec;
+    this.clock.set(this.req.positionSec, true);
     this.a._began(this);
     if (!this.a._remote()) this.applyVolume();
     if (!attached && this.req.fadeInSec && this.a.capabilities.fade) this.fade(this.req.fadeInSec, true);
@@ -1358,9 +1399,13 @@ class Live implements ExternalHandle {
 
   onState(s: SdkState | null) {
     if (!s || this.done) return;
+    if (this.stale(s.position / 1000)) return;
     this.pos = s.position / 1000;
     this.posAt = now();
     this.playing = !s.paused;
+    // the SDK stamps its position; a stamp far from this clock (another epoch) is not trusted
+    const ts = typeof s.timestamp === "number" && Math.abs(s.timestamp - now()) < 5000 ? s.timestamp : now();
+    this.clock.report(this.pos, this.playing, ts);
     this.duration = s.duration / 1000;
     if (s.paused && s.position === 0 && this.lastPos > this.duration - 1.5 && this.started)
       this.finish(false);
@@ -1380,6 +1425,7 @@ class Live implements ExternalHandle {
     // (until Spotify switched, `/me/player` still reports the track before: not this item's clock)
     if (!this.confirmed && s?.uri && s.uri !== this.uri) return;
     const settled = now() - this.startedAt > 3000;
+    if (s?.hasItem && this.stale(s.positionMs / 1000)) return;
     if (!s?.hasItem) {
       if (settled) this.finish(false);
       return;
@@ -1387,6 +1433,7 @@ class Live implements ExternalHandle {
     this.pos = s.positionMs / 1000;
     this.posAt = now();
     this.playing = s.playing;
+    this.clock.report(this.pos, this.playing, s.at ?? now());
     this.duration = s.durationMs / 1000;
     // the track played to its end: Spotify stops (the request held one uri) at 0 or at the end
     if (settled && !s.playing && (s.positionMs === 0 || s.positionMs >= s.durationMs - 2500))
@@ -1405,13 +1452,94 @@ class Live implements ExternalHandle {
     if (s) this.onState(s);
   }
 
+  /** 2026-11: the one position model (lib/booth/sources/clock.ts): a local clock reconciled with each report */
+  private clock = new TrackClock(now);
   position() {
     if (!this.started) return 0;
-    return this.pos + (this.playing ? (now() - this.posAt) / 1000 : 0);
+    return this.clock.read();
+  }
+  /** ask the device now (back in a hidden tab, the app in front again) */
+  poke() {
+    if (this.started && !this.done) void this.tick();
+  }
+
+  /** a seek went out at this time to this position: reports that disagree for a moment are the old position */
+  private seekGuard: { until: number; at: number; sentAt: number } | null = null;
+  /** a state report from before the seek took effect (Spotify applies it ~0.3–1 s later): ignore it */
+  private stale(posSec: number): boolean {
+    const g = this.seekGuard;
+    if (!g) return false;
+    if (now() > g.until) {
+      this.seekGuard = null;
+      return false;
+    }
+    const expected = g.at + (now() - g.sentAt) / 1000;
+    if (Math.abs(posSec - expected) > 1.5) return true;
+    this.seekGuard = null;
+    return false;
+  }
+  /** 2026-11: a Fade the DJ took back while it ran: the volume steps stop and the level comes back */
+  unfade(): boolean {
+    if (this.done || !this.fadeTimer || this.fadingUp) return false;
+    clearInterval(this.fadeTimer);
+    this.fadeTimer = null;
+    this.level = 1;
+    this.applyVolume();
+    return true;
+  }
+  private fadingUp = false;
+  /** 2026-11: an edited transition's end: stop `endsInSec` from now with its fade (volume steps where it can fade) */
+  retime(o: { endsInSec: number; fadeOutSec: number }) {
+    if (this.done) return;
+    if (!this.started) {
+      // not playing yet: its request carries the new end
+      this.req = { ...this.req, durationSec: o.endsInSec, fadeOutSec: o.fadeOutSec };
+      return;
+    }
+    if (this.stopTimer) clearTimeout(this.stopTimer);
+    const fade = this.a.capabilities.fade ? Math.max(0, o.fadeOutSec) : 0;
+    this.stopTimer = setTimeout(
+      () => {
+        if (!this.done) this.stop(fade);
+      },
+      Math.max(0, o.endsInSec - fade) * 1000,
+    );
+  }
+  /** 2026-11: jump inside the playing track in place (no new play); false before the play went out */
+  seek(positionSec: number, o: { durationSec?: number }): boolean {
+    if (!this.started || this.done || !this.a._isOwner(this)) return false;
+    const at = Math.max(0, positionSec);
+    this.pos = at;
+    this.posAt = now();
+    this.playing = true;
+    this.clock.set(at, true);
+    this.seekGuard = { until: now() + 2500, at, sentAt: now() };
+    this.hold.reset();
+    // a fade out in progress (the item was about to end) is called off: it plays at its level from the new point
+    if (this.fadeTimer) {
+      clearInterval(this.fadeTimer);
+      this.fadeTimer = null;
+      this.level = 1;
+      this.applyVolume();
+    }
+    if (this.stopTimer) clearTimeout(this.stopTimer);
+    this.stopTimer = null;
+    if (o.durationSec !== undefined) {
+      const fade = this.a.capabilities.fade ? (this.req.fadeOutSec ?? 0) : 0;
+      this.stopTimer = setTimeout(
+        () => {
+          if (!this.done) this.stop(fade);
+        },
+        Math.max(0, o.durationSec - fade) * 1000,
+      );
+    }
+    void this.a.seekDevice(at * 1000);
+    return true;
   }
 
   private fade(sec: number, up: boolean) {
     if (this.fadeTimer) clearInterval(this.fadeTimer);
+    this.fadingUp = up;
     const vols = fadeVolumes(sec);
     let i = 0;
     this.fadeTimer = setInterval(() => {

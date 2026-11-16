@@ -159,3 +159,26 @@ test("Settings → Keyboard: rebind Skip next, a conflict is named, the Booth an
   await clickHydrated(page.locator("#keys-reset-all"));
   await expect(page.getByTestId("key-row-booth.skipNext").getByTestId("key-binding")).toHaveText("n");
 });
+
+test("Booth: Enter on a focused set-list row plays it now (mid-night: Enter again confirms); ⇧Enter plays it next", async ({
+  page,
+}) => {
+  test.setTimeout(150_000);
+  await openBooth(page);
+  await page.getByTestId("booth-start").click();
+  await expect(page.getByTestId("booth")).toHaveAttribute("data-state", "playing", { timeout: 20000 });
+  const at = (await booth(page)).planIndex;
+  const target = page.locator(`[data-plan-index="${at + 3}"]`).first();
+  await target.locator("button").first().focus();
+  await page.keyboard.press("Enter");
+  // armed, not yet played
+  await page.waitForTimeout(300);
+  expect((await booth(page)).planIndex).toBe(at);
+  await page.keyboard.press("Enter");
+  await expect.poll(async () => (await booth(page)).planIndex, { timeout: 15000 }).toBe(at + 3);
+  // ⇧Enter on another row: it plays next
+  const later = page.locator(`[data-plan-index="${at + 8}"]`).first();
+  await later.locator("button").first().focus();
+  await page.keyboard.press("Shift+Enter");
+  await expect(page.getByRole("status").filter({ hasText: "plays next" }).last()).toBeVisible();
+});

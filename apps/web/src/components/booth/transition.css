@@ -70,7 +70,7 @@
   height: 100%;
 }
 
-/* the top bar, one 44 px row: the round close button on the left; Beta, ••• and Save on the right, all centred on
+/* the top bar, one 44 px row: the round close button on the left; ••• and Save on the right, all centred on
    one line. On a phone it starts below the status bar (`--chrome-top`); the panel already sits below it. */
 .trx-top {
   display: flex;
@@ -115,17 +115,6 @@
 .trx-picker-list > button:focus-visible {
   outline: 2px solid var(--trx-accent);
   outline-offset: 2px;
-}
-.trx-beta {
-  display: inline-flex;
-  align-items: center;
-  height: 28px;
-  padding: 0 12px;
-  border-radius: 8px;
-  background: var(--trx-fill-2);
-  color: var(--trx-label);
-  font-size: 15px;
-  font-weight: 600;
 }
 .trx-save {
   display: inline-flex;
@@ -220,14 +209,13 @@
 /* the lanes, full bleed inside the editor and clipped to it, with the panel over the transition; the length pill
    hangs 23 px below the stage, inside the wrap's bottom margin */
 .trx-stage-wrap {
-  margin: clamp(12px, 3dvh, 36px) 0 clamp(4px, 1.5dvh, 20px);
-  padding-bottom: 24px;
+  margin: 8px 0 0;
   overflow: hidden;
 }
 .trx-stage {
   position: relative;
   width: 100%;
-  height: clamp(240px, 38dvh, 430px);
+  height: clamp(250px, 40dvh, 440px);
   touch-action: pan-y;
   user-select: none;
   -webkit-user-select: none;
@@ -335,18 +323,17 @@
     0 0 0 2px var(--trx-bg),
     0 0 0 4px var(--trx-accent);
 }
-.trx-play-at,
-.trx-pill-at {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  z-index: 3;
-}
 .trx-play {
-  display: grid;
-  place-items: center;
-  width: 60px;
-  height: 46px;
-  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 16px 0 14px;
+  border-radius: 999px;
+  font-size: 16px;
+  font-weight: 600;
   background: var(--trx-fill);
   color: var(--trx-label);
   box-shadow:
@@ -363,9 +350,9 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 46px;
-  padding: 0 18px;
-  border-radius: 14px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
   background: var(--trx-fill);
   color: var(--trx-label);
   font-size: 17px;
@@ -640,7 +627,7 @@ html:not(.dark) .trx {
     0 4px 14px rgb(0 0 0 / 0.25);
 }
 
-/* the header: Close · the title (centred, truncated) · Beta, •••, Save */
+/* the header: Close · the title (centred, truncated) · •••, Save */
 .trx-top > .trx-head {
   flex: 1 1 0;
   min-width: 0;
@@ -734,4 +721,292 @@ html:not(.dark) .trx {
 }
 .trx-scroll > .trx-rows {
   padding-bottom: 8px;
+}
+
+/* =====================================================================================================================
+   2026-11 — the finished editor (docs/design/transition-editor.md): a time ruler, two lanes on their own cards, the
+   overlap shaded, per-lane handles, a bend knob on each fade, the EQ bands' colours, cue markers, an honest hatched
+   "estimated" shape for a Spotify side, and a toolbar under the lanes (audition, length, gap, zoom, snap).
+   ===================================================================================================================== */
+.trx {
+  --trx-eq-low: #e86fa8;
+  --trx-eq-mid: #e8a24a;
+  --trx-eq-high: #57c6e0;
+  --trx-lane-bg: rgb(255 255 255 / 0.04);
+  --trx-ruler-bg: rgb(255 255 255 / 0.03);
+  --trx-overlap: rgb(244 120 150 / 0.16);
+  --trx-est-fill: rgb(176 171 196 / 0.22);
+  --trx-est-line: rgb(176 171 196 / 0.55);
+  --trx-marker: #7ee0a8;
+}
+html:not(.dark) .trx {
+  --trx-eq-low: #b0306e;
+  --trx-eq-mid: #a35a00;
+  --trx-eq-high: #0e7b96;
+  --trx-lane-bg: rgb(0 0 0 / 0.035);
+  --trx-ruler-bg: rgb(0 0 0 / 0.025);
+  --trx-overlap: rgb(179 38 79 / 0.1);
+  --trx-est-fill: rgb(84 80 96 / 0.16);
+  --trx-est-line: rgb(84 80 96 / 0.5);
+  --trx-marker: #1c7a4a;
+}
+.trx-panel {
+  fill: rgb(127 127 127 / 0.06);
+}
+.trx-lane {
+  fill: var(--trx-lane-bg);
+}
+.trx-ruler {
+  fill: var(--trx-ruler-bg);
+}
+.trx-tick {
+  stroke: var(--trx-label-3);
+  stroke-width: 1;
+}
+.trx-tick-major {
+  stroke: var(--trx-label-2);
+}
+.trx-tick-label {
+  fill: var(--trx-label-2);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.trx-zero {
+  fill: var(--trx-label);
+  font-weight: 600;
+}
+.trx-beat {
+  stroke: var(--trx-label-3);
+  stroke-width: 1;
+}
+.trx-beat-bar {
+  stroke: var(--trx-label-2);
+  stroke-width: 1.5;
+}
+.trx-zero-line {
+  stroke: var(--trx-label-2);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+.trx-overlap {
+  fill: var(--trx-overlap);
+}
+.trx-box {
+  stroke-width: 2;
+}
+.trx-est {
+  fill: url(#trx-hatch);
+  stroke: var(--trx-est-line);
+  stroke-width: 1.25;
+  stroke-dasharray: 5 4;
+}
+.trx-hatch-bg {
+  fill: var(--trx-est-fill);
+}
+.trx-hatch-line {
+  stroke: var(--trx-est-line);
+  stroke-width: 1;
+}
+.trx-eq {
+  stroke-width: 2;
+  stroke-dasharray: 1 0;
+  opacity: 0.95;
+}
+.trx-marker {
+  stroke: var(--trx-marker);
+  stroke-width: 1.5;
+  stroke-dasharray: 2 3;
+}
+.trx-marker-flag {
+  fill: var(--trx-marker);
+}
+.trx-marker-label {
+  position: absolute;
+  transform: translateX(6px);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  padding: 0 5px;
+  border-radius: 4px;
+  color: var(--trx-marker);
+  background: color-mix(in srgb, var(--trx-bg) 80%, transparent);
+  white-space: nowrap;
+  pointer-events: none;
+}
+/* each lane says what it draws: Outgoing · Your file / 30 s preview clip / Estimated shape (…) */
+.trx-lane-label {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: max-content;
+  max-width: calc(100% - 16px);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--trx-label);
+  background: color-mix(in srgb, var(--trx-bg) 82%, transparent);
+  pointer-events: none;
+  z-index: 4;
+}
+.trx-lane-label > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--trx-label-2);
+}
+.trx-lane-label[data-source="estimated"] > span:last-child {
+  color: var(--trx-label);
+}
+/* the estimated shape's caption under the lanes, with its hatch as the swatch */
+.trx-est-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px var(--trx-gut) 0;
+  color: var(--trx-label);
+  line-height: 1.35;
+}
+.trx-est-swatch {
+  flex: none;
+  width: 22px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px dashed var(--trx-est-line);
+  background: repeating-linear-gradient(45deg, var(--trx-est-fill) 0 3px, var(--trx-est-line) 3px 4px);
+}
+.trx-lane-side {
+  flex: none;
+  font-weight: 600;
+}
+@media (max-width: 599px) {
+  .trx-lane-label {
+    left: var(--trx-gut);
+  }
+}
+/* the handles: a 44 px strip, a grip on the line; one that spans both lanes is drawn across them */
+.trx-edge::before {
+  height: 34px;
+}
+.trx-edge[data-lane="both"]::before {
+  height: 60px;
+}
+/* a fade's bend knob on its volume curve */
+.trx-knob {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  display: grid;
+  place-items: center;
+  cursor: ns-resize;
+  touch-action: none;
+  /* under the edges: a handle always wins where the two meet */
+  z-index: 1;
+}
+.trx-knob::before {
+  content: "";
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--trx-volume);
+  box-shadow: 0 0 0 2px var(--trx-bg);
+}
+.trx-knob[aria-disabled="true"] {
+  cursor: default;
+}
+.trx-knob[aria-disabled="true"]::before {
+  opacity: 0.4;
+}
+.trx-knob:focus-visible {
+  outline: none;
+}
+.trx-knob:focus-visible::before {
+  box-shadow:
+    0 0 0 2px var(--trx-bg),
+    0 0 0 4px var(--trx-accent);
+}
+/* the toolbar under the lanes (never over the waveforms) */
+.trx-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 10px var(--trx-gut) 0;
+}
+.trx-toolbar-gap {
+  flex: 1;
+}
+.trx-play {
+  background: var(--trx-label);
+  color: var(--trx-bg);
+  box-shadow: none;
+}
+.trx-play[aria-pressed="true"] {
+  background: var(--trx-accent);
+  color: var(--trx-on-label);
+}
+.trx-seg {
+  display: inline-flex;
+  border-radius: 999px;
+  background: var(--trx-fill);
+  box-shadow: 0 0 0 1px var(--trx-chip-ring);
+}
+.trx-seg > button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  color: var(--trx-label);
+}
+.trx-seg > button:disabled {
+  color: var(--trx-disabled);
+}
+.trx-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--trx-fill);
+  color: var(--trx-label-2);
+  font-size: 15px;
+  box-shadow: 0 0 0 1px var(--trx-chip-ring);
+}
+.trx-toggle[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--trx-box) 22%, var(--trx-fill));
+  color: var(--trx-label);
+  box-shadow: inset 0 0 0 1.5px var(--trx-box);
+}
+.trx-toggle:disabled {
+  color: var(--trx-disabled);
+}
+.trx-seg > button:focus-visible,
+.trx-toggle:focus-visible {
+  outline: 2px solid var(--trx-accent);
+  outline-offset: 2px;
+}
+/* what the room's player will do of it (files, Spotify in the browser, Spotify Connect) */
+.trx-where {
+  margin: 8px var(--trx-gut) 0;
+  color: var(--trx-label-2);
+  line-height: 1.35;
+}
+.trx-silence-note {
+  margin: 4px var(--trx-gut) 0;
+  text-align: start;
+}
+@media (max-width: 599px) {
+  .trx-toolbar {
+    gap: 6px;
+  }
+  .trx-play {
+    padding: 0 14px 0 12px;
+  }
 }

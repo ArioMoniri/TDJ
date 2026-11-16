@@ -6,6 +6,7 @@ import type { DeezerCache } from "./enrich";
 import { type CortinaHookFile, cortinaDurationSec, validCortinaStart } from "./hooks";
 import { type CoverageRow, Heatmap } from "./knowledge";
 import { cortinaMatchProblem } from "./matchRules";
+import { applyOwnerLayer, normalizeOwnerLayer } from "./owner";
 import { setDancerPopularity } from "./popularity";
 import type {
   ContextModel,
@@ -36,6 +37,8 @@ export const DATA_FILES = {
   referencePlaylists: "data/knowledge/reference_playlists.json",
   songPatches: "data/knowledge/song_patches.json",
   addedSongs: "data/knowledge/added_songs.json",
+  /** 2026-11: the deployment owner's merged contributions (src/owner.ts; projected by `pnpm index:build`) */
+  owner: "data/index/owner.json",
   spotifyTracks: "data/cache/spotify/tracks.json",
   spotifyCortinas: "data/cache/spotify/cortinas.json",
   resolvedTracks: "data/cache/resolve/tracks.json",
@@ -101,9 +104,20 @@ export function buildLoaded(f: DataFiles, overrides?: UserOverrides): Loaded {
   if (f.meta === undefined) throw new Error("data/index/meta.json is required");
   // 2026-11: the dancer-popularity prior the favourites tracker reads (popularity.ts; absent: nothing changes)
   setDancerPopularity(f.popularity);
-  const songs = indexSongs((f.songs ?? []) as Song[], f.songPatches as PatchFile, f.addedSongs as AddedFile);
-  const profiles = (f.profiles ?? []) as OrchestraProfile[];
-  const cortinasRaw = (f.cortinas ?? []) as Cortina[];
+  // 2026-11: the owner's merged contributions (data/index/owner.json) sit over the repo-level database and under the
+  // DJ's own: applied to the raw rows, so the per-DJ catalogues built from `raw` carry them too
+  const owned = applyOwnerLayer(
+    {
+      songs: indexSongs((f.songs ?? []) as Song[], f.songPatches as PatchFile, f.addedSongs as AddedFile),
+      profiles: (f.profiles ?? []) as OrchestraProfile[],
+      cortinas: (f.cortinas ?? []) as Cortina[],
+      deezer: (f.deezer ?? {}) as DeezerCache,
+    },
+    f.owner === undefined ? undefined : normalizeOwnerLayer(f.owner),
+  );
+  const songs = owned.songs;
+  const profiles = owned.profiles;
+  const cortinasRaw = owned.cortinas;
   const cortinaResolved = (f.resolvedCortinas ?? {}) as Record<string, ResolvedTrack | null>;
   const cortinaSpotify = (f.spotifyCortinas ?? {}) as Record<string, Cortina["spotify"]>;
   const cortinaHooks = ((f.cortinaHooks ?? {}) as Partial<CortinaHookFile>).hooks ?? {};
@@ -174,7 +188,7 @@ export function buildLoaded(f: DataFiles, overrides?: UserOverrides): Loaded {
   const trackEnergy = (f.trackEnergy ?? {}) as Record<string, number>;
   const resolved = (f.resolvedTracks ?? {}) as Record<string, ResolvedTrack | null>;
   const audio = (f.audio ?? {}) as Record<string, AudioFeatures | null>;
-  const deezer = (f.deezer ?? {}) as DeezerCache;
+  const deezer = owned.deezer;
   const learned = f.learned as LearnedPreferences | undefined;
   const coverage = (f.coverage ?? []) as CoverageRow[];
   const heatmap = new Heatmap(coverage);

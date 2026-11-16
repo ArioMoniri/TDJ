@@ -4,9 +4,7 @@ import { useCallback, useContext, useEffect, useMemo } from "react";
 import { haptic } from "@/lib/haptics";
 import { lazy, t as tx } from "@/lib/i18n";
 import { lengthOf, tandaTotal, totalText } from "@/lib/lengths";
-import { nightItems, PlayListContext, tapPlay } from "@/lib/playback";
-import { sourceFor, trackFor, usePlayer } from "@/lib/player";
-import { useStore } from "@/lib/store";
+import { nightItems, PlayListContext, playTanda } from "@/lib/playback";
 import type { Playlist } from "@/lib/types";
 import { metaLine, yearText } from "@/lib/year";
 import { Menu } from "./Menu";
@@ -45,7 +43,12 @@ export function TandaInspector({
   /** 2026-11: reorder a song inside the tanda (tanda, from, to) */
   onMoveTrack?: (i: number, from: number, to: number) => void;
 }) {
-  const connected = useStore((s) => !!s.spotifyToken && s.spotifyToken.expires > Date.now());
+  // 2026-11: the night's play list (Compose provides it): the tracks and Preview play from it
+  const ctx = useContext(PlayListContext);
+  const nightList = useMemo(
+    () => ctx ?? { label: playlist.name ?? "", items: nightItems(playlist) },
+    [ctx, playlist],
+  );
   useEffect(() => {
     const on = (e: Event) => onSelect((e as CustomEvent<number>).detail);
     window.addEventListener(SELECT_TANDA_EVENT, on);
@@ -59,14 +62,9 @@ export function TandaInspector({
   const move = useCallback((from: number, to: number) => onMoveTrack?.(i, from, to), [onMoveTrack, i]);
   const drag = useDragReorder(move, !onMoveTrack || !!t?.locked);
   const cues = playlist.booth?.songCues;
-  const nightList = useContext(PlayListContext);
   const total = useMemo(() => (t ? tandaTotal(t.songs, cues) : null), [t, cues]);
   if (!t) return null;
   const where = tx("play.tanda", { n: i + 1 });
-  const previews = t.songs.flatMap((s) => {
-    const src = sourceFor(s, connected);
-    return src?.kind === "preview" ? [trackFor(s, src)] : [];
-  });
   return (
     <aside className="inspector" aria-label={tx("tandaInspector.inspector")} data-testid="inspector">
       <div className="group-inset p-4">
@@ -105,6 +103,10 @@ export function TandaInspector({
           </dd>
         </dl>
         <div className="mt-4 flex flex-wrap gap-2">
+          {/* 2026-11 (the owner: "Preview won't work"): it was greyed out unless a side had a cached Deezer link and
+              no Spotify login — now it pre-listens each side's start in turn (20 s: Spotify in full with Premium,
+              else the 30 s clips, looked up when missing); a side with no audio is passed, and when none plays the
+              toast says why with the fix */}
           <Tip text={tx("tandaInspector.hear_10_seconds_of_each_song")}>
             <button
               type="button"
@@ -112,16 +114,7 @@ export function TandaInspector({
               data-testid="inspector-preview"
               onClick={() => {
                 haptic(4);
-                // 30 s clips: 10 s of each, back to back. 2026-11: without clips (no Deezer match yet, or Spotify
-                // connected) the tanda plays from its first song the way a row's tap does — Spotify, the file, a
-                // clip found now — and the toast says why when nothing can play
-                if (previews.length) {
-                  usePlayer.getState().playQueue(tx("tandaInspector.tanda", { p1: i + 1 }), previews, 10);
-                  return;
-                }
-                const items = nightList?.items ?? nightItems(playlist);
-                const first = items.find((x) => x.kind === "song" && x.song.id === t.songs[0]?.id);
-                if (first) void tapPlay(first, nightList ?? { label: where, items });
+                void playTanda(nightList, i, "tanda", { clipSec: 20 });
               }}
             >
               <Headphones size={16} aria-hidden /> {tx("tandaInspector.preview")}

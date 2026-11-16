@@ -14,7 +14,8 @@ import type { BoothStore } from "./store";
  * - The night's plan (Skip tonight, Last 4 tandas tango only, start points, cortina edits, trims, the Booth's
  *   settings, the gaps, the cortina length): the value before and after; a slider dragged or a stepper tapped in a
  *   row merges into one entry (Edit.key).
- * - What the room already heard (Next now, Previous, Play now, Skip now, a fade, La Cumparsita now): while the night
+ * - What the room already heard (Next now, Previous, Play now, Skip now, La Cumparsita now; a fade and a crossfade
+ * record their own undo in lib/booth/store.ts, which plays the song back from where it was): while the night
  *   plays it cannot be un-heard — the entry says so when ⌘Z reaches it and leaves the history (Edit.blocked); before
  *   the night (nothing sounds yet) its undo puts the playhead back.
  *
@@ -64,8 +65,6 @@ export function installBoothUndo(get: Get, set: Set, engine: () => EngineMarks |
     previous: s0.previous,
     playNow: s0.playNow,
     skipNow: s0.skipNow,
-    fadeOutNow: s0.fadeOutNow,
-    crossfadeNext: s0.crossfadeNext,
   };
   const titleAt = (i: number | null | undefined) =>
     i === null || i === undefined ? "" : (get().plan?.items[i]?.title ?? "");
@@ -288,8 +287,6 @@ export function installBoothUndo(get: Get, set: Set, engine: () => EngineMarks |
     previous: audible(() => t("boothUndo.previous"), orig.previous),
     playNow: audible(() => t("boothUndo.play_now"), orig.playNow),
     skipNow: audible(() => t("boothUndo.skip_now"), orig.skipNow),
-    fadeOutNow: audible(() => t("boothUndo.fade_out"), orig.fadeOutNow),
-    crossfadeNext: audible(() => t("boothUndo.crossfade"), orig.crossfadeNext),
   });
 }
 

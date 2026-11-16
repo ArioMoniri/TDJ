@@ -394,6 +394,15 @@ export default function RoomsPage() {
             )}
             <ActionRow label={tx("rooms.create_room")} onClick={create} busy={busy} id="room-create" />
           </Group>
+          {/* 2026-11: start a room from a Spotify / YouTube playlist or a file (app/import → "Start a room") */}
+          <Group>
+            <TipRow
+              label={tx("import.entry")}
+              sub={tx("import.entry_sub")}
+              chevron
+              onClick={() => router.push("/import")}
+            />
+          </Group>
         </>
       )}
 

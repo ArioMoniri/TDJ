@@ -142,6 +142,11 @@ export interface UserSettings {
    */
   cortinaHookStart?: boolean;
   /**
+   * 2026-11 (Settings → Playback): what follows a tap on a song or tanda outside a running Booth night — only it, or
+   * on to the end of the night (cortinas between tandas included). Unset = continue.
+   */
+  tapPlay?: "only" | "continue";
+  /**
    * Round 13: run the benchmark's improveNight after every compose (heatmap years, tighter tandas, golden core,
    * bridge cues, the round-12 fixers) and say what changed in the change summary line. A change is kept only when
    * neither the engine score nor the benchmark falls.

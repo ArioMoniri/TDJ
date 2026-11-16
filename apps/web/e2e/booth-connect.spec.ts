@@ -6,7 +6,8 @@
  * - a device without volume control: Mute pauses (and says so), Talk and the master are disabled with the reason;
  * - Next sends exactly one play (no pause, no wait), "Starting…" until Spotify reports the track, then "Playing";
  * - Next → Previous → Next sends one play, for the final target;
- * - mid-night a single tap on the seek bar does not seek, a confirmed one does;
+ * - mid-night a single tap on the seek bar does not seek, a confirmed one does — with one `PUT /me/player/seek`
+ *   (never a new play), the bar staying where it was released (never back to 0 or the old second);
  * - a reload while Spotify plays re-attaches ("Continue: … is playing on iPad"), no new play;
  * - Fade / Crossfade are disabled on Connect with the reason; ROOM ticks one device, no browser output;
  * - Compose's and the Booth's totals match.
@@ -103,6 +104,13 @@ function connectMock(o: { supportsVolume?: boolean; volume?: number; confirmDela
       } else if (method === "PUT" && path === "/me/player/pause") {
         st.posMs = progress();
         st.playing = false;
+      } else if (method === "PUT" && path === "/me/player/seek") {
+        // a real device applies a seek a moment later: /me/player reports the old position until then
+        const to = Number(u.searchParams.get("position_ms"));
+        setTimeout(() => {
+          st.posMs = to;
+          st.startedAt = Date.now();
+        }, 400);
       } else if (method === "PUT" && path === "/me/player/volume") {
         if (!st.supportsVolume)
           return r.fulfill({ status: 403, json: { error: { status: 403, message: "x" } } });
@@ -112,12 +120,13 @@ function connectMock(o: { supportsVolume?: boolean; volume?: number; confirmDela
     });
   }
   const plays = () => log.filter((x) => x.method === "PUT" && x.path === "/me/player/play");
+  const seeks = () => log.filter((x) => x.method === "PUT" && x.path === "/me/player/seek");
   const pauses = () => log.filter((x) => x.method === "PUT" && x.path === "/me/player/pause");
   const volumes = () =>
     log
       .filter((x) => x.method === "PUT" && x.path === "/me/player/volume")
       .map((x) => Number(x.query.get("volume_percent")));
-  return { st, log, install, plays, pauses, volumes };
+  return { st, log, install, plays, seeks, pauses, volumes };
 }
 
 async function openBooth(page: Page) {
@@ -312,15 +321,40 @@ test.describe("iPad + Spotify Connect (the DJ-user review)", () => {
     await expect(page.getByTestId("booth-seek-arm")).toContainText(/Tap again to jump to \d+:\d\d/);
     await page.waitForTimeout(800);
     expect(sp.plays().length).toBe(plays);
+    // 2026-11 (the owner: "the slider goes to zero for a second, then the song plays late"): the second tap jumps
+    // with one seek request on the device — no new play — and the bar never drops below where it was released
+    await page.evaluate(() => {
+      const w = window as unknown as {
+        __minPos: number;
+        __tdjBooth: { getState: () => { position: number }; subscribe: (f: () => void) => void };
+      };
+      w.__minPos = Number.POSITIVE_INFINITY;
+      w.__tdjBooth.subscribe(() => {
+        if ((w as unknown as { __arm?: boolean }).__arm)
+          w.__minPos = Math.min(w.__minPos, w.__tdjBooth.getState().position);
+      });
+    });
     await page.touchscreen.tap(box.x + box.width * 0.6, y);
-    await expect.poll(() => sp.plays().length).toBe(plays + 1);
+    // from the release on, every position the store reads
+    await page.evaluate(() => {
+      (window as unknown as { __arm: boolean }).__arm = true;
+    });
+    await expect.poll(() => sp.seeks().length).toBe(1);
+    expect(sp.plays().length).toBe(plays);
     const len = Number(await bar.getAttribute("aria-valuemax"));
-    expect(Number(sp.plays().at(-1)!.body?.position_ms) / 1000).toBeGreaterThan(len * 0.5);
+    const at = Number(sp.seeks()[0]!.query.get("position_ms")) / 1000;
+    expect(at).toBeGreaterThan(len * 0.5);
+    expect(sp.seeks()[0]!.query.get("device_id")).toBe("ipad");
+    await page.waitForTimeout(1500);
+    const min = await page.evaluate(() => (window as unknown as { __minPos: number }).__minPos);
+    expect(min).toBeGreaterThanOrEqual(at - 1.5);
+    expect(Number(await bar.getAttribute("aria-valuenow"))).toBeGreaterThanOrEqual(Math.floor(at - 1.5));
     // a lone tap lapses after 3 s
     await page.touchscreen.tap(box.x + box.width * 0.2, y);
     await expect(page.getByTestId("booth-seek-arm")).toBeVisible();
     await expect(page.getByTestId("booth-seek-arm")).toHaveCount(0, { timeout: 4000 });
-    expect(sp.plays().length).toBe(plays + 1);
+    expect(sp.plays().length).toBe(plays);
+    expect(sp.seeks().length).toBe(1);
     await ctx.close();
   });
 

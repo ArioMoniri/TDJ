@@ -1,5 +1,5 @@
 "use client";
-import { Info, ListEnd } from "lucide-react";
+import { Info, ListEnd, Maximize2 } from "lucide-react";
 import { durationLabel } from "@/lib/booth/plan";
 import { useRoomHearts } from "@/lib/booth/roomHearts";
 import { SOURCE_LABEL } from "@/lib/booth/sources/types";
@@ -14,6 +14,7 @@ import { rhythmWord, TandaTypeBadge } from "../ui/TandaTypeBadge";
 import { ArmButton } from "./Confirm";
 import { FloorReaction } from "./FloorReaction";
 import { Meter } from "./Meter";
+import { useNowView } from "./NowPlayingView";
 
 /** the item's rhythm in the reader's language (2026-11, DJ review: the Turkish eyebrow read "OPENİNG · TANGO") */
 function rhythmOf(r: string): string {
@@ -273,6 +274,17 @@ export function NowCard({
             data-hint={t("booth.nowCard.versions_cue_and_stop_bpm_and")}
           >
             <Info size={16} strokeWidth={2} aria-hidden /> {t("booth.nowCard.song_info")}
+          </button>
+        )}
+        {item.kind !== "break" && (
+          <button
+            type="button"
+            className="booth-tool"
+            onClick={() => useNowView.getState().set(true)}
+            data-testid="booth-now-full"
+            data-hint={t("song.now_playing_hint")}
+          >
+            <Maximize2 size={16} strokeWidth={2} aria-hidden /> {t("song.now_playing")}
           </button>
         )}
       </div>

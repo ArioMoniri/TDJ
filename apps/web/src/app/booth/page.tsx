@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { Banners } from "@/components/booth/Banners";
+import { ControllerHost } from "@/components/booth/ControllerView";
 import { ControlStrip } from "@/components/booth/ControlStrip";
 import { ControlsPanel, loadControlsOpen, saveControlsOpen } from "@/components/booth/ControlsPanel";
 import { EnergyRail } from "@/components/booth/EnergyRail";
@@ -11,6 +12,7 @@ import { HintLayer } from "@/components/booth/HintLayer";
 import { NextCard } from "@/components/booth/NextCard";
 import { NightBar } from "@/components/booth/NightBar";
 import { NowCard } from "@/components/booth/NowCard";
+import { NowPlayingView } from "@/components/booth/NowPlayingView";
 import { OnboardingSheet } from "@/components/booth/OnboardingSheet";
 import { PlayerToolbar, ShowSheet } from "@/components/booth/PlayerToolbar";
 import { SetColumn } from "@/components/booth/SetColumn";
@@ -59,6 +61,8 @@ const BOOTH_KEYS: ActionId[] = [
   "booth.birthday",
   "booth.mute",
   "booth.keys",
+  "booth.playNow",
+  "booth.playNext",
 ];
 
 /**
@@ -287,6 +291,22 @@ function Booth() {
       // 2026-11: the keys are the DJ's (Settings → Keyboard, lib/keymap.ts); the defaults are the old ones
       const id = actionOf(e, BOOTH_KEYS);
       if (!id) return;
+      // 2026-11: Enter / ⇧Enter (the DJ's keys) on the set-list row that has the focus: play it now in the room —
+      // mid-night the first press arms, Enter again confirms (above) — or next
+      if (id === "booth.playNow" || id === "booth.playNext") {
+        const row = (document.activeElement as HTMLElement | null)?.closest<HTMLElement>("[data-plan-index]");
+        const i = row ? Number(row.dataset.planIndex) : Number.NaN;
+        const it = Number.isFinite(i) ? b.plan?.items[i] : undefined;
+        if (!it || it.kind === "break" || e.repeat) return;
+        e.preventDefault();
+        if (id === "booth.playNext") {
+          b.playNext(i);
+          toast(t("booth.keys.plays_next", { title: it.title }));
+        } else if (!b.started) {
+          if (b.select(i)) void b.start();
+        } else guard(`play-now:${i}`, () => void useBooth.getState().playNow(i));
+        return;
+      }
       const slider = (document.activeElement as HTMLElement | null)?.getAttribute("role") === "slider";
       if (id === "booth.pause") {
         e.preventDefault();
@@ -460,6 +480,7 @@ function Booth() {
         onTransition={(i) => setTransition(i)}
         onPlayed={() => setSetOpen(false)}
       />
+      <NowPlayingView onInfo={(i) => setSong(i)} />
       <ShowSheet open={show} onClose={() => setShow(false)} />
       <HintLayer />
       <LevelsSheet open={levels} onClose={() => setLevels(false)} onEditTransitions={editTransitions} />
@@ -509,6 +530,8 @@ function Booth() {
           }}
         />
       </Sheet>
+      {/* 2026-11: a DJ controller over MIDI and the on-screen controller (Controls → Controller) */}
+      <ControllerHost />
       <ShortcutsSheet open={keys} onClose={() => setKeys(false)} />
       <BreakSheet open={breakOpen} onClose={() => setBreakOpen(false)} />
       <FindFileSheet item={find} onClose={() => setFind(null)} />

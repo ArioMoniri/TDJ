@@ -16,6 +16,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { TipRow } from "@/components/TipRow";
 import { NightLength, PlayRow } from "@/components/ui/PlayRow";
 import { TandaArt } from "@/components/ui/TandaArt";
+import { TandaPlayCover } from "@/components/ui/TandaPlay";
 import { isMixedTanda, rhythmWord, TandaTypeBadge } from "@/components/ui/TandaTypeBadge";
 import { Tip } from "@/components/ui/Tip";
 import { haptic } from "@/lib/haptics";
@@ -321,9 +322,11 @@ export default function NightPage() {
                 <Fragment key={`${i}-${t.orchestraId}`}>
                   <TipRow
                     tile={
-                      <span role="img" aria-label={rhythmWord(t.rhythm)} className="inline-flex">
-                        <TandaArt tanda={t} size={44} />
-                      </span>
+                      <TandaPlayCover tanda={i}>
+                        <span role="img" aria-label={rhythmWord(t.rhythm)} className="inline-flex">
+                          <TandaArt tanda={t} size={44} />
+                        </span>
+                      </TandaPlayCover>
                     }
                     label={`${i + 1}. ${t.orchestra}${t.singer ? ` · ${t.singer}` : ""}`}
                     sub={

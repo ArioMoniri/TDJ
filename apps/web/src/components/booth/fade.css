@@ -1,0 +1,27 @@
+/* 2026-11 — Fade / Crossfade (FadeButton.tsx): pressed and counting down while the fade runs (a ring that empties over
+   the fade's length); dim but tappable (it says why) where the room's player cannot fade. */
+.booth-fadebtn[aria-disabled="true"] {
+  opacity: 0.4;
+}
+.booth-fadebtn[data-running] {
+  background: color-mix(in srgb, var(--tint) 16%, transparent);
+  color: var(--tint-text, var(--tint));
+}
+.booth-fadebtn-run {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  padding: 2px;
+  background: conic-gradient(var(--tint) var(--confirm-p), transparent 0);
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  animation: confirm-countdown var(--fade-sec, 4s) linear forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .booth-fadebtn-run {
+    animation: none;
+    --confirm-p: 100%;
+  }
+}

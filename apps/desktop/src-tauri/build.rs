@@ -38,6 +38,11 @@ const COMMANDS: &[&str] = &[
     "audio_route_picker",
     "audio_set_output",
     "audio_night",
+    // 2026-11: DJ controllers over CoreMIDI (src/midi.rs)
+    "midi_ports",
+    "midi_open",
+    "midi_close",
+    "midi_send",
 ];
 
 fn main() {

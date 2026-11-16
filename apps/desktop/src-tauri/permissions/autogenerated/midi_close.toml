@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-midi-close"
+description = "Enables the midi_close command without any pre-configured scope."
+commands.allow = ["midi_close"]
+
+[[permission]]
+identifier = "deny-midi-close"
+description = "Denies the midi_close command without any pre-configured scope."
+commands.deny = ["midi_close"]

@@ -212,6 +212,15 @@ const GENERIC =
   /^(orquesta|orchestra|orquestra|tipica|sexteto|cuarteto|quinteto|conjunto|trio|tango|tangos|los|las|del|de|la|el|y|su|sus|band|ensemble|quartet|quintet|sextet)$/;
 /** an orchestra's name as an artist line names it: the whole name, or its leader's surname ("Di Sarli", "D'Arienzo") */
 
+/**
+ * 2026-11: an artist line that is just another person of the same surname ("Julio Sosa" is not Rubén Sosa's
+ * orchestra): two words, the surname last, a first name the orchestra's name does not have
+ */
+function otherPerson(line: string, orchestra: string, surname: string): boolean {
+  const w = line.split(" ");
+  return w.length === 2 && w[1] === surname && !orchestra.split(" ").includes(w[0]!);
+}
+
 function orchestraIn(artists: string[], orchestras: MergeContext["orchestras"]) {
   const lines = artists.map(fold);
   let best: { id: string; name: string; at: number; len: number } | null = null;
@@ -227,7 +236,7 @@ function orchestraIn(artists: string[], orchestras: MergeContext["orchestras"]) 
         ? n.length + 100
         : tail && ` ${l} `.includes(` ${tail} `)
           ? tail.length + 50
-          : surname && ` ${l} `.includes(` ${surname} `)
+          : surname && ` ${l} `.includes(` ${surname} `) && !otherPerson(l, n, surname)
             ? surname.length
             : 0;
       if (hit && (!best || at < best.at || (at === best.at && hit > best.len)))
