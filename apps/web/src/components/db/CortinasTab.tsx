@@ -3,6 +3,7 @@ import { AudioLines } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { t } from "@/lib/i18n";
 import type { Cortina, MetaCortina } from "@/lib/types";
+import { useSharedQuery } from "@/lib/usePageQuery";
 import { useTextSearch } from "@/lib/useSongSearch";
 import { ActionRow, Group, Row } from "../Form";
 import { SearchField } from "../SearchField";
@@ -62,7 +63,8 @@ export function CortinasTab({ base }: { base: MetaCortina[] }) {
       if (c && !base.some((b) => b.id === id)) out.push({ c, state: "added" });
     return out;
   }, [base, ov]);
-  const [q, setQ] = useState("");
+  // 2026-11: the page's one search text (lib/usePageQuery.ts): it stays when the tab changes
+  const [q, setQ] = useSharedQuery();
   const [active, setActive] = useState(-1);
   const found = useTextSearch(merged, CORTINA_FIELDS, q, { highlight: HL });
   const searching = !!q.trim();

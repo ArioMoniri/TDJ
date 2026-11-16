@@ -97,8 +97,18 @@ export function tSource(english: string, vars?: Record<string, unknown>): string
 
 /** plural forms live under `<base>.one` / `<base>.other` (Intl.PluralRules categories); {count} is the number */
 export type PluralBase = MsgKey extends infer K ? (K extends `${infer B}.other` ? B : never) : never;
+/** one formatter per locale and options (2026-11: a new Intl object per number cost a search's chips ~0.2 ms each) */
+const formats = new Map<string, Intl.NumberFormat>();
+const pluralRules = new Map<string, Intl.PluralRules>();
+
 export function plural(base: PluralBase, count: number, vars?: Record<string, unknown>): string {
-  const cat = new Intl.PluralRules(INTL[current] ?? "en").select(count);
+  const tag = INTL[current] ?? "en";
+  let rules = pluralRules.get(tag);
+  if (!rules) {
+    rules = new Intl.PluralRules(tag);
+    pluralRules.set(tag, rules);
+  }
+  const cat = rules.select(count);
   const key = `${base}.${cat}`;
   const has = DICTS[current][key as MsgKey] !== undefined || en[key as MsgKey] !== undefined;
   return t((has ? key : `${base}.other`) as MsgKey, { count: fmtNumber(count), ...vars });
@@ -107,8 +117,15 @@ export function plural(base: PluralBase, count: number, vars?: Record<string, un
 /** the Intl tag for the current locale (undefined: the browser's own, for English) */
 export const intlTag = () => INTL[current];
 
-export const fmtNumber = (n: number, o?: Intl.NumberFormatOptions) =>
-  new Intl.NumberFormat(INTL[current] ?? (current === "en" ? "en-US" : undefined), o).format(n);
+export const fmtNumber = (n: number, o?: Intl.NumberFormatOptions) => {
+  const key = `${current}|${o ? JSON.stringify(o) : ""}`;
+  let f = formats.get(key);
+  if (!f) {
+    f = new Intl.NumberFormat(INTL[current] ?? (current === "en" ? "en-US" : undefined), o);
+    formats.set(key, f);
+  }
+  return f.format(n);
+};
 export const fmtDate = (d: Date | string | number, o?: Intl.DateTimeFormatOptions) =>
   new Date(d).toLocaleDateString(INTL[current], o);
 export const fmtTime = (d: Date | string | number, o?: Intl.DateTimeFormatOptions) =>

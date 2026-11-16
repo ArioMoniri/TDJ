@@ -25,6 +25,7 @@ import { fade } from "@/lib/motion";
 import { countChanges, parseImport } from "@/lib/overrides";
 import { useStore } from "@/lib/store";
 import type { AppOverrides, Meta } from "@/lib/types";
+import { PageQueryProvider, replaceParam } from "@/lib/usePageQuery";
 
 type Tab = "songs" | "orchestras" | "cortinas" | "rules" | "context" | "memory";
 const MONTH = lazy(() => [
@@ -76,7 +77,13 @@ const TAB_TIPS: Record<Tab, string> = {
 
 export default function DatabasePage() {
   const { overrides, overridesReady, updateOverrides, resetOverrides } = useStore();
-  const [tab, setTab] = useState<Tab>("songs");
+  const [tab, setTabState] = useState<Tab>("songs");
+  // 2026-11: one search text for every tab (Songs, Orchestras, Cortinas: PageQueryProvider below), kept in the
+  // address with the tab
+  const setTab = (k: Tab) => {
+    setTabState(k);
+    replaceParam("tab", k === "songs" ? null : k);
+  };
   const [editing, setEditing] = useState(false);
   const [meta, setMeta] = useState<Meta | null>(null);
   const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null);
@@ -89,7 +96,7 @@ export default function DatabasePage() {
   useEffect(() => {
     const want = new URLSearchParams(location.search).get("tab") as Tab | null;
     if (want && (["songs", "orchestras", "cortinas", "rules", "context", "memory"] as Tab[]).includes(want)) {
-      setTab(want);
+      setTabState(want);
       const id = location.hash.slice(1);
       if (id) setTimeout(() => document.getElementById(id)?.scrollIntoView({ block: "start" }), 120);
     }
@@ -239,26 +246,28 @@ export default function DatabasePage() {
           e.target.value = "";
         }}
       />
-      <DbEditContext.Provider value={editing}>
-        {/* tab content cross-fades; height snaps (lists are large) */}
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={tab}
-            variants={fade}
-            initial="hidden"
-            animate="show"
-            exit="exit"
-            className="min-w-0"
-          >
-            {tab === "songs" && <SongsTab />}
-            {tab === "orchestras" && <OrchestrasTab orchestras={meta?.orchestras ?? []} />}
-            {tab === "cortinas" && <CortinasTab base={meta?.cortinaList ?? []} />}
-            {tab === "rules" && <RulesTab orchestras={meta?.orchestras ?? []} />}
-            {tab === "context" && <ContextTab model={meta?.contextModel ?? null} />}
-            {tab === "memory" && <MemoryTab />}
-          </motion.div>
-        </AnimatePresence>
-      </DbEditContext.Provider>
+      <PageQueryProvider page="database">
+        <DbEditContext.Provider value={editing}>
+          {/* tab content cross-fades; height snaps (lists are large) */}
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={tab}
+              variants={fade}
+              initial="hidden"
+              animate="show"
+              exit="exit"
+              className="min-w-0"
+            >
+              {tab === "songs" && <SongsTab />}
+              {tab === "orchestras" && <OrchestrasTab orchestras={meta?.orchestras ?? []} />}
+              {tab === "cortinas" && <CortinasTab base={meta?.cortinaList ?? []} />}
+              {tab === "rules" && <RulesTab orchestras={meta?.orchestras ?? []} />}
+              {tab === "context" && <ContextTab model={meta?.contextModel ?? null} />}
+              {tab === "memory" && <MemoryTab />}
+            </motion.div>
+          </AnimatePresence>
+        </DbEditContext.Provider>
+      </PageQueryProvider>
       <p
         className={`section-foot mt-4 ${msg?.error ? "text-[var(--destructive)]" : ""}`}
         role="status"
