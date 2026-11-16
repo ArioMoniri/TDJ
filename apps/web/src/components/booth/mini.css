@@ -1,0 +1,175 @@
+/* 2026-11 — the Booth's night on every other page (BoothMini.tsx): control-layer glass, solid fallback, 44 px targets.
+   Phone: above the tab capsule (its safe area included); iPad / desktop: the content column's foot, beside the
+   sidebar, never over it. The pages reserve its height (--booth-mini-h) so it never covers their last actions. */
+.booth-mini {
+  position: fixed;
+  z-index: 31;
+  left: 12px;
+  right: 12px;
+  bottom: calc(var(--tabbar-bottom, 12px) + var(--tabbar-h, 62px) + 8px);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "cover text btns"
+    "seek seek seek";
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 2px;
+  padding: 8px 10px 6px;
+  border-radius: var(--radius-m, 14px);
+}
+.booth-mini.glass::after {
+  background: rgb(var(--surface));
+}
+@media (min-width: 600px) {
+  .booth-mini {
+    left: calc(max(0px, (100vw - 720px) / 2) + 24px);
+    right: calc(max(0px, (100vw - 720px) / 2) + 24px);
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+}
+@media (min-width: 1024px) {
+  .booth-mini {
+    left: calc(
+      var(--sidebar-w, 240px) +
+      32px +
+      max(0px, (100vw - var(--sidebar-w, 240px) - 64px - var(--col-max, 1320px)) / 2)
+    );
+    right: calc(32px + max(0px, (100vw - var(--sidebar-w, 240px) - 64px - var(--col-max, 1320px)) / 2));
+  }
+}
+.booth-mini-cover {
+  grid-area: cover;
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 10px;
+}
+.booth-mini-text {
+  grid-area: text;
+  min-width: 0;
+  display: grid;
+  text-align: left;
+  line-height: 1.2;
+}
+.booth-mini-text > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.booth-mini-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--label);
+}
+.booth-mini-sub,
+.booth-mini-when {
+  font-size: 12px;
+  color: var(--label-2);
+}
+.booth-mini-when {
+  font-variant-numeric: tabular-nums;
+}
+.booth-mini-chip {
+  position: absolute;
+  top: -12px;
+  left: 64px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--room, var(--tint));
+  background: rgb(var(--surface));
+  box-shadow: inset 0 0 0 1px var(--separator);
+}
+.booth-mini-btns {
+  grid-area: btns;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.booth-mini-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  color: var(--label);
+  touch-action: manipulation;
+}
+.booth-mini-btn:hover {
+  background: var(--fill-4);
+}
+.booth-mini-btn[aria-pressed="true"] {
+  color: var(--destructive);
+}
+.booth-mini-seek {
+  grid-area: seek;
+  position: relative;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  touch-action: none;
+}
+.booth-mini-seek[aria-disabled="true"] {
+  cursor: default;
+}
+.booth-mini-track {
+  position: relative;
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--fill-3);
+  overflow: visible;
+}
+.booth-mini-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 2px;
+  background: var(--room, var(--tint));
+}
+.booth-mini-target {
+  position: absolute;
+  top: -4px;
+  width: 2px;
+  height: 12px;
+  background: var(--label);
+}
+.booth-mini-arm {
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--label);
+  background: rgb(var(--surface));
+  box-shadow: inset 0 0 0 1px var(--separator);
+}
+/* while it shows: the preview mini player steps aside; the pages reserve the bar's height */
+html[data-booth-mini] [data-testid="mini-player"] {
+  display: none;
+}
+@media (max-width: 599.98px) {
+  html[data-booth-mini] {
+    --mini-reserve: calc(var(--booth-mini-h, 0px) + 8px);
+  }
+}
+@media (min-width: 600px) {
+  html[data-booth-mini] main {
+    padding-bottom: calc(var(--booth-mini-h, 0px) + 32px);
+  }
+}
+/* the hold ring (booth.css draws the filling one when the Booth was opened in this tab; this is its plain fallback) */
+.booth-mini .confirm-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 2px var(--tint);
+}

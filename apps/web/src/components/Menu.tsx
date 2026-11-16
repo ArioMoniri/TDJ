@@ -1,5 +1,5 @@
 "use client";
-import { Ellipsis, type LucideIcon } from "lucide-react";
+import { Check, Ellipsis, type LucideIcon } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { type ReactNode, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -18,6 +18,11 @@ export interface MenuItem {
   destructive?: boolean;
   /** macOS-style trailing shortcut hint */
   shortcut?: string;
+  /** 2026-11: a second line under the label (the state, or why the row cannot act now) */
+  subtitle?: string;
+  /** 2026-11: a trailing checkmark (a mode that is on) */
+  checked?: boolean;
+  testId?: string;
 }
 
 /** The safe-area insets, read from `env()` through a probe (0 where the platform has none). */
@@ -57,8 +62,27 @@ export function MenuList({
           data-destructive={it.destructive || undefined}
           onClick={() => onPick(it)}
           className={`cell cell-tap w-full text-left ${it.destructive ? "text-[var(--destructive)]" : ""} disabled:text-[var(--label-3)]`}
+          data-testid={it.testId}
         >
-          <span className="min-w-0 flex-1 truncate">{it.label}</span>
+          {it.subtitle ? (
+            <span className="min-w-0 flex-1">
+              <span className="block truncate">{it.label}</span>
+              <span className="text-footnote block text-[var(--label-2)]" data-testid="menu-subtitle">
+                {it.subtitle}
+              </span>
+            </span>
+          ) : (
+            <span className="min-w-0 flex-1 truncate">{it.label}</span>
+          )}
+          {it.checked && (
+            <Check
+              size={18}
+              strokeWidth={2.25}
+              className="text-[var(--tint)]"
+              aria-label="✓"
+              data-testid="menu-check"
+            />
+          )}
           {it.icon && <it.icon size={20} strokeWidth={1.75} aria-hidden />}
         </button>
       ))}

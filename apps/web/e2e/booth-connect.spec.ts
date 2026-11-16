@@ -430,4 +430,101 @@ test.describe("iPad + Spotify Connect (the DJ-user review)", () => {
     expect(Math.abs(music - composeSec)).toBeLessThanOrEqual(1);
     await ctx.close();
   });
+
+  /**
+   * 2026-11 (the owner: "Play now in the room / Play next don't work"): the Spotify app on the same iPad takes the
+   * audio session and WebKit marks the booth's AudioContext "interrupted" — its resume() never settles. Play now
+   * awaited it and never asked Spotify. Here resume() hangs after the start, as on the iPad.
+   */
+  test("song sheet on Connect with an interrupted context: Play now sends one play after the confirm tap; Play next shows in Up Next and the set list with Undo", async ({
+    browser,
+  }) => {
+    const ctx = await browser.newContext(IPAD_L);
+    const page = await ctx.newPage();
+    const sp = connectMock();
+    await sp.install(page);
+    await openBooth(page);
+    await start(page);
+    await page.evaluate(() => {
+      // the WebKit interruption: from now on resume() never settles
+      AudioContext.prototype.resume = () => new Promise<void>(() => {});
+    });
+    const a = (await snap(page)).cur!;
+    const later = a + 3;
+    const row = page.locator(`.booth-row[data-plan-index="${later}"]`);
+    await row.scrollIntoViewIfNeeded();
+    await row.getByTestId("booth-row-open").tap();
+    const sheet = page.getByTestId("booth-play-sheet");
+    await expect(sheet).toContainText("this device can't fade");
+    const pn = sheet.getByTestId("booth-play-now");
+    const plays = sp.plays().length;
+    await pn.tap();
+    await expect(pn).toHaveAttribute("data-armed", "true");
+    await page.waitForTimeout(500);
+    expect(sp.plays().length).toBe(plays);
+    await pn.tap();
+    await expect.poll(() => sp.plays().length, { timeout: 5000 }).toBe(plays + 1);
+    await expect.poll(async () => (await snap(page)).cur, { timeout: 5000 }).toBe(later);
+    expect(sp.pauses().length).toBe(0);
+    // Play next: Up Next names it, its row says Next; Undo puts the plan's next back
+    const pick = later + 4;
+    const pickRow = page.locator(`.booth-row[data-plan-index="${pick}"]`);
+    await pickRow.scrollIntoViewIfNeeded();
+    await pickRow.getByTestId("booth-row-open").tap();
+    await sheet.getByRole("button", { name: "Play next" }).tap();
+    await expect(page.getByTestId("booth-next")).toHaveAttribute("data-next", String(pick));
+    await expect(pickRow.getByTestId("booth-row-next")).toBeVisible();
+    await page.getByRole("button", { name: "Undo" }).last().tap();
+    await expect(page.getByTestId("booth-next")).toHaveAttribute("data-next", String(later + 1));
+    await expect(pickRow.getByTestId("booth-row-next")).toHaveCount(0);
+    expect(sp.plays().length).toBe(plays + 1);
+    await ctx.close();
+  });
+
+  test("More → Rehearsal (Premium): before the night it switches at once; mid-night it asks first, then shows ✓", async ({
+    browser,
+  }) => {
+    const ctx = await browser.newContext(IPAD_L);
+    const page = await ctx.newPage();
+    const sp = connectMock();
+    await sp.install(page);
+    await openBooth(page);
+    const more = async () => {
+      await page.getByTestId("booth-more").click();
+      return page.getByTestId("booth-menu").getByTestId("booth-menu-rehearsal");
+    };
+    let row = await more();
+    await expect(row).toBeEnabled();
+    await expect(row).toContainText("Plays 30 s clips instead of full tracks");
+    await expect(row.getByTestId("menu-check")).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await start(page);
+    row = await more();
+    // mid-night: enabled (it was greyed for the whole night), and it asks first
+    await expect(row).toBeEnabled();
+    await row.click();
+    const ask = page.getByTestId("booth-rehearsal-ask");
+    await expect(ask).toContainText("Switch the room to 30 s clips from the next song?");
+    await ask.getByRole("button", { name: "Switch to 30 s clips" }).click();
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            (
+              window as unknown as { __tdjBooth: { getState: () => { sourceMode: string } } }
+            ).__tdjBooth.getState().sourceMode,
+        ),
+      )
+      .toBe("preview");
+    row = await more();
+    await expect(row.getByTestId("menu-check")).toHaveCount(1);
+    await expect(row).toContainText("On · tap to play full tracks");
+    await row.click();
+    await expect(page.getByTestId("booth-rehearsal-ask")).toContainText(
+      "Switch the room back to full tracks from the next song?",
+    );
+    await page.getByTestId("booth-rehearsal-ask").getByRole("button", { name: "Cancel" }).click();
+    expect((await snap(page)).state).toBe("playing");
+    await ctx.close();
+  });
 });

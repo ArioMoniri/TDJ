@@ -74,7 +74,11 @@ export function ControlsPanel({
       root.style.removeProperty("--booth-ctl-space");
       return;
     }
-    const put = () => root.style.setProperty("--booth-ctl-space", `${Math.ceil(el.offsetHeight) + 6}px`);
+    // (2026-11: the panel sits one --booth-gap above the transport, booth.css; the columns end one gap above it)
+    const put = () => {
+      const gap = Number.parseFloat(getComputedStyle(root).getPropertyValue("--booth-gap")) || 12;
+      root.style.setProperty("--booth-ctl-space", `${Math.ceil(el.offsetHeight) + gap}px`);
+    };
     put();
     const ro = typeof ResizeObserver === "function" ? new ResizeObserver(put) : null;
     ro?.observe(el);

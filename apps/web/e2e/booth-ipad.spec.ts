@@ -460,9 +460,12 @@ test("iPad landscape: the columns scroll on their own, end above the transport, 
   await expect.poll(() => top(".booth-deck")).toBeGreaterThan(0);
   expect(await top(".booth-col-set")).toBeGreaterThan(100);
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
-  // the Now card stays at the deck's top
+  // 2026-11 ("on scroll the upper and lower bars mix"): the deck scrolls as one column — the Now card moves with it
+  // and never overlaps Up Next (it was pinned, and the cards slid under it)
   const now = (await page.getByTestId("booth-now").boundingBox())!;
-  expect(Math.abs(now.y - d.y)).toBeLessThanOrEqual(2);
+  const nextCard = (await page.getByTestId("booth-next").boundingBox())!;
+  expect(now.y).toBeLessThan(d.y);
+  expect(nextCard.y - (now.y + now.height)).toBeGreaterThanOrEqual(11);
   await deck.evaluate((el) => {
     el.scrollTop = 0;
   });

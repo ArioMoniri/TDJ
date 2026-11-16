@@ -492,6 +492,7 @@ export class BoothEngine {
     this.skipped.delete(i);
     if (this.state === "playing" || this.state === "cortina") {
       this.forcedNext = i;
+      this.picked = i;
       this.cancelQueued();
       this.transition(this.state, "play next");
       void this.scheduleNext();
@@ -502,6 +503,38 @@ export class BoothEngine {
     this.planIndex = i;
     this.transition(this.state === "idle" ? "idle" : "armed", "play next");
     void this.prepare(i).catch((e) => this.markMissing(i, e));
+  }
+
+  /** 2026-11: the item "Play next" picked, while it still waits after the running one */
+  private picked: number | null = null;
+  /**
+   * The item "Play next" put after the running one, while it is still to come (the forced pointer, or the queued
+   * item that has not started); null once it plays or another jump replaced it. The Up Next card and the set list
+   * show it (the owner: "Play next doesn't work" — nothing on screen changed).
+   */
+  pickedNext(): number | null {
+    const p = this.picked;
+    if (p === null) return null;
+    const q = this.queued;
+    const waiting =
+      this.live &&
+      (this.forcedNext === p ||
+        (!!q && q.planIndex === p && !(q.started && q.when <= this.ctx.currentTime + 0.05)));
+    if (!waiting || this.current?.planIndex === p) {
+      this.picked = null;
+      return null;
+    }
+    return p;
+  }
+  /** Undo of "Play next": the planned next item follows the running one again. */
+  undoPlayNext(): void {
+    const p = this.pickedNext();
+    if (p === null) return;
+    this.picked = null;
+    this.forcedNext = null;
+    if (this.queued && this.queued.planIndex === p) this.cancelQueued();
+    this.transition(this.state, "play next undone");
+    void this.scheduleNext();
   }
 
   /* ---------- seek: start from any row, one ahead / one back, a point inside the song ---------- */
@@ -542,7 +575,8 @@ export class BoothEngine {
   async nextNow(): Promise<void> {
     if (!this.plan) return;
     const from = this.skipTarget ?? (this.live && this.current ? this.current.planIndex : this.planIndex);
-    const n = this.nextPlayable(from);
+    // 2026-11: after "Play next" the picked song is the next one (once queued, the forced pointer is spent)
+    const n = (this.skipTarget === null ? this.pickedNext() : null) ?? this.nextPlayable(from);
     if (n === null) return;
     if (this.live) return this.playNow(n);
     this.select(n);

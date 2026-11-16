@@ -26,11 +26,13 @@ import {
 import { SongSheet } from "@/components/booth/SongSheet";
 import { hasTransition, TransitionSheet } from "@/components/booth/TransitionSheet";
 import { EmptyState } from "@/components/EmptyState";
+import { ActionRow, Group } from "@/components/Form";
 import { type MenuItem, MenuList } from "@/components/Menu";
 import { PageHeader } from "@/components/PageHeader";
 import { Sheet } from "@/components/Sheet";
 import { BoothSongSearch } from "@/components/ui/BoothSongSearch";
 import { arm, confirmArmed, confirmNeeded, disarm, guard } from "@/lib/booth/confirm";
+import { boothKey } from "@/lib/booth/keys";
 import { startRoomHearts } from "@/lib/booth/roomHearts";
 import { boothContextState, boothEngine, useBooth } from "@/lib/booth/store";
 import { useMediaQuery } from "@/lib/hooks";
@@ -65,6 +67,9 @@ function Booth() {
   const started = useBooth((s) => s.started);
   const rehearsal = useBooth((s) => s.rehearsal);
   const plan = useBooth((s) => s.plan);
+  const sourceMode = useBooth((s) => s.sourceMode);
+  // 2026-11: mid-night, Rehearsal asks first (the switch takes the room from the next song)
+  const [rehearsalAsk, setRehearsalAsk] = useState<"preview" | "file" | null>(null);
   const [onboarding, setOnboarding] = useState(false);
   const [more, setMore] = useState(false);
   const [keys, setKeys] = useState(false);
@@ -85,6 +90,8 @@ function Booth() {
   };
   // round 22: the song sheet (tap any row, or Song info on Now), the phone's set-list sheet, the Show sheet
   const [song, setSong] = useState<number | null>(null);
+  const songRef = useRef<number | null>(null);
+  songRef.current = song;
   const [setOpen, setSetOpen] = useState(false);
   const [show, setShow] = useState(false);
   // 2026-11 ("can't start on the song I want"): before the night a tap also puts the playhead on the row — the Now
@@ -163,6 +170,14 @@ function Booth() {
           "--booth-grid-top",
           `${Math.max(0, Math.round(grid.getBoundingClientRect().top + window.scrollY))}px`,
         );
+      // 2026-11 ("UI issues between boxes"; at 1920 px the transport and the Controls panel were wider than the
+      // page): the bottom stack takes the content column's own edges, whatever the sidebar and the column's cap
+      const page = document.querySelector<HTMLElement>(".booth");
+      if (page) {
+        const r = page.getBoundingClientRect();
+        root.style.setProperty("--bx-l", `${Math.round(r.left)}px`);
+        root.style.setProperty("--bx-r", `${Math.max(0, Math.round(window.innerWidth - r.right))}px`);
+      }
     };
     const soon = () => {
       if (!frame) frame = requestAnimationFrame(measure);
@@ -179,6 +194,8 @@ function Booth() {
       window.removeEventListener("resize", soon);
       ro?.disconnect();
       root.style.removeProperty("--booth-grid-top");
+      root.style.removeProperty("--bx-l");
+      root.style.removeProperty("--bx-r");
     };
   }, [phone, ready]);
 
@@ -251,9 +268,62 @@ function Booth() {
         (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.tagName === "SELECT" || a.isContentEditable)
       );
     };
+    /** Play now in the room from the keyboard: before the night it starts there; mid-night the first press arms */
+    const keyPlayNow = (i: number) => {
+      const b = useBooth.getState();
+      const it = b.plan?.items[i];
+      if (!it || it.kind === "break") return;
+      if (!b.started) {
+        if (b.select(i)) void b.start();
+        return;
+      }
+      if (i === b.planIndex) {
+        setSong(i);
+        return;
+      }
+      const r = guard(`play-now:${i}`, () => {
+        setSong(null);
+        void useBooth.getState().playNow(i);
+      });
+      if (r !== "armed") return;
+      setSong(i);
+      // the sheet opens on Play now, armed and focused: Enter again confirms, Esc cancels
+      const focus = (n: number) => {
+        const el = document.getElementById("booth-play-now");
+        if (el) el.focus({ preventScroll: true });
+        else if (n > 0) setTimeout(() => focus(n - 1), 50);
+      };
+      setTimeout(() => focus(10), 60);
+    };
     const down = (e: KeyboardEvent) => {
       // 2026-11: Esc cancels an armed control, Enter confirms it (a focused button confirms by its own click)
       if (e.key === "Escape") disarm();
+      // 2026-11: Enter (lib/booth/keys.ts) on a focused row, or in the open song sheet off its controls, is "Play now
+      // in the room": mid-night it arms (the sheet opens on Play now, focused) and Enter again confirms
+      if (boothKey(e, "playNow") && !typing()) {
+        const a = document.activeElement as HTMLElement | null;
+        const row = a?.closest<HTMLElement>(".booth-row[data-plan-index]");
+        const dialog = document.querySelector('[role="dialog"]');
+        if (row && !dialog?.contains(row)) {
+          e.preventDefault();
+          keyPlayNow(Number(row.dataset.planIndex));
+          return;
+        }
+        const sheet = document.querySelector('[data-testid="booth-play-sheet"]');
+        const i = songRef.current;
+        if (
+          sheet &&
+          i !== null &&
+          (!a ||
+            a === document.body ||
+            (sheet.contains(a) &&
+              !a.closest("button, a, input, textarea, select, [role='slider'], [role='switch']")))
+        ) {
+          e.preventDefault();
+          keyPlayNow(i);
+          return;
+        }
+      }
       if (e.key === "Enter" && !typing()) {
         const a = document.activeElement as HTMLElement | null;
         if (!a?.closest("button, a, [role='button'], [role='slider']") && confirmArmed()) {
@@ -315,6 +385,8 @@ function Booth() {
     );
 
   const b = useBooth.getState();
+  // a rehearsal because nothing but 30 s clips can play here (no Premium, no folder): there is nothing to switch to
+  const onlyClips = rehearsal && sourceMode !== "preview";
   // round 22: every night and song tool has its own home (the night bar, the transport, Mix, the song sheet); the
   // overflow keeps set-up and the app
   const menu: Array<MenuItem | false> = [
@@ -322,10 +394,24 @@ function Booth() {
     // (a phone's transport has Previous / Next now; Next at gap and Mix live here)
     started && phone && { label: t("booth.connect.skip_next_menu"), onClick: () => b.next() },
     phone && { label: t("booth.controlStrip.mix_menu"), onClick: () => setLevels(true) },
+    // 2026-11 (the owner: "the Rehearsal button is always deactivated" — it was disabled for the whole night, with
+    // no reason shown): before the night it switches at once; mid-night it asks first (from the next song); when
+    // only clips can play here it says so instead of a silent grey row
     {
-      label: rehearsal ? t("booth.rehearsal_30_s_on") : t("booth.rehearsal_30_s"),
-      onClick: () => void b.setSourceMode(rehearsal ? "file" : "preview"),
-      disabled: started,
+      label: t("booth.rehearsal_30_s"),
+      checked: rehearsal,
+      testId: "booth-menu-rehearsal",
+      subtitle: onlyClips
+        ? t("booth.ui2.rehearsal_only_clips")
+        : rehearsal
+          ? t("booth.ui2.rehearsal_sub_on")
+          : t("booth.ui2.rehearsal_sub_off"),
+      disabled: onlyClips,
+      onClick: () => {
+        const to = rehearsal ? "file" : "preview";
+        if (started) setRehearsalAsk(to);
+        else void b.setSourceMode(to);
+      },
     },
     {
       label: t("booth.link_music_folder"),
@@ -481,6 +567,27 @@ function Booth() {
             it.onClick?.();
           }}
         />
+      </Sheet>
+      <Sheet
+        open={rehearsalAsk !== null}
+        onClose={() => setRehearsalAsk(null)}
+        title={
+          rehearsalAsk === "preview" ? t("booth.ui2.rehearsal_ask_clips") : t("booth.ui2.rehearsal_ask_full")
+        }
+        testId="booth-rehearsal-ask"
+      >
+        <Group footer={t("booth.ui2.rehearsal_ask_footer")}>
+          <ActionRow
+            label={rehearsalAsk === "preview" ? t("booth.ui2.switch_clips") : t("booth.ui2.switch_full")}
+            id="booth-rehearsal-switch"
+            onClick={() => {
+              const to = rehearsalAsk;
+              setRehearsalAsk(null);
+              if (to) void useBooth.getState().setSourceMode(to);
+            }}
+          />
+          <ActionRow label={t("booth.ui2.cancel")} onClick={() => setRehearsalAsk(null)} />
+        </Group>
       </Sheet>
       <ShortcutsSheet open={keys} onClose={() => setKeys(false)} />
       <BreakSheet open={breakOpen} onClose={() => setBreakOpen(false)} />

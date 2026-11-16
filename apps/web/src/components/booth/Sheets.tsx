@@ -2,6 +2,7 @@
 import { CORTINA_EDIT_RANGES } from "@tdj/core";
 import { useRef, useState } from "react";
 import { STOP_NOW_SEC, TRANSPORT_RANGES } from "@/lib/booth/engine";
+import { keyLabel } from "@/lib/booth/keys";
 import { MIX_EXPLAIN, MIX_PRESETS, type MixPresetId, presetOf } from "@/lib/booth/mix";
 import { cortinaSpan } from "@/lib/booth/nightView";
 import { BOOTH_RANGES, durationLabel } from "@/lib/booth/plan";
@@ -523,7 +524,7 @@ const KEYS: Array<[string, string]> = lazy(() => [
   ["space", tx("booth.sheets.pause_resume_a_short_fade")],
   ["←", tx("booth.sheets.previous_key")],
   ["→", tx("booth.sheets.next_now_key")],
-  ["enter", tx("booth.sheets.enter_key")],
+  [keyLabel("playNow"), tx("booth.sheets.enter_key")],
   ["f", tx("booth.sheets.fade_out_now_the_next_item")],
   ["x", tx("booth.sheets.next_with_crossfade")],
   ["h", tx("booth.sheets.hold_after_this_song_cancel_the")],

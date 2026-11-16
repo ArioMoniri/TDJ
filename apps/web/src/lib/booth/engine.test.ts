@@ -898,6 +898,42 @@ describe("round 21: a tapped row plays — Play now (with a fade) and Play next"
     expect(e.planIndex).toBe(target);
     expect(e.forcedNext).toBeNull();
   });
+  it("2026-11: Play next is said (pickedNext) until it plays; Undo puts the planned next item back", async () => {
+    const plan = build(set({ thirdTanda: true }));
+    const e = engineFor(ctx, plan);
+    await e.start();
+    await e.play();
+    expect(e.pickedNext()).toBeNull();
+    const target = plan.items.findIndex((it) => it.id === "d2");
+    e.playNext(target);
+    await flush();
+    expect(e.pickedNext()).toBe(target);
+    e.undoPlayNext();
+    await flush();
+    expect(e.pickedNext()).toBeNull();
+    expect((e as unknown as { queued: { planIndex: number } | null }).queued?.planIndex).toBe(1);
+    // picked again, it plays at the gap and is no longer "picked"
+    e.playNext(target);
+    await flush();
+    ctx.advance(0.05 + 170);
+    await flush();
+    expect(e.planIndex).toBe(target);
+    expect(e.pickedNext()).toBeNull();
+  });
+  it("2026-11: Next now after Play next plays the picked item (not the plan's next)", async () => {
+    const plan = build(set({ thirdTanda: true }));
+    const e = engineFor(ctx, plan);
+    await e.start();
+    await e.play();
+    const target = plan.items.findIndex((it) => it.id === "d2");
+    e.playNext(target);
+    await flush();
+    await e.nextNow();
+    await flush();
+    ctx.advance(5);
+    await flush();
+    expect(e.current?.planIndex).toBe(target);
+  });
   it("a bypassed tanda is passed over (its tracks and the cortina after it); the export plan keeps it", async () => {
     const p = set({ thirdTanda: true });
     const plan = build(p);

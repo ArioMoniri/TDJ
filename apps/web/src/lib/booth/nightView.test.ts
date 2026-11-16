@@ -97,3 +97,19 @@ describe("swap labels (wave 2: counted per tanda, cortinas named)", () => {
     expect(cortinaSwapLabel(7)).toBe("Cortina after tanda 7: fades and stop");
   });
 });
+
+describe("Up next follows Play next (2026-11: the card kept the plan's order, so Play next looked broken)", () => {
+  it("the picked item is next; the next tanda is still read from the playhead", () => {
+    const u = upNext(items, 0, { passed: none, missing: none, picked: 6 });
+    expect(u.next).toBe(6);
+    expect(u.picked).toBe(true);
+    expect(u.nextTanda).toBe(3);
+  });
+  it("a pick that is passed, missing, the playhead itself or out of range is ignored", () => {
+    expect(upNext(items, 0, { passed: new Set([6]), missing: none, picked: 6 }).next).toBe(1);
+    expect(upNext(items, 0, { passed: none, missing: new Set([6]), picked: 6 }).next).toBe(1);
+    expect(upNext(items, 0, { passed: none, missing: none, picked: 0 }).next).toBe(1);
+    expect(upNext(items, 0, { passed: none, missing: none, picked: 99 }).picked).toBe(false);
+    expect(upNext(items, 0, { passed: none, missing: none, picked: null }).next).toBe(1);
+  });
+});

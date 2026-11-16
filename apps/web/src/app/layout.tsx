@@ -3,6 +3,7 @@ import { Fraunces, Inter } from "next/font/google";
 import "./globals.css";
 import { UpdateWatch } from "@/components/About";
 import { Boot } from "@/components/Boot";
+import { BoothMini } from "@/components/booth/BoothMini";
 import { EditKeys } from "@/components/EditKeys";
 import { GlobalToast } from "@/components/GlobalToast";
 import { IconSprite } from "@/components/Icons";
@@ -84,6 +85,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </div>
             </main>
             <MiniPlayer />
+            <BoothMini />
             <GlobalToast />
             <UpdateWatch />
             <EditKeys />
