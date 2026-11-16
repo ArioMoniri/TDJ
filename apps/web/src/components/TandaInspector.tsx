@@ -1,17 +1,19 @@
 "use client";
 import { ArrowDown, ArrowUp, GripVertical, Headphones, ListMusic } from "lucide-react";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useContext, useEffect, useMemo } from "react";
 import { haptic } from "@/lib/haptics";
 import { lazy, t as tx } from "@/lib/i18n";
 import { lengthOf, tandaTotal, totalText } from "@/lib/lengths";
+import { nightItems, PlayListContext, tapPlay } from "@/lib/playback";
 import { sourceFor, trackFor, usePlayer } from "@/lib/player";
 import { useStore } from "@/lib/store";
 import type { Playlist } from "@/lib/types";
 import { metaLine, yearText } from "@/lib/year";
-import { RhythmTile } from "./Form";
 import { Menu } from "./Menu";
 import { SELECT_TANDA_EVENT } from "./Sidebar";
+import { Artwork } from "./ui/Artwork";
 import { PlayRow } from "./ui/PlayRow";
+import { TandaArt } from "./ui/TandaArt";
 import { isMixedTanda, TandaTypeBadge } from "./ui/TandaTypeBadge";
 import { Tip } from "./ui/Tip";
 import { useDragReorder } from "./ui/useDragReorder";
@@ -57,6 +59,7 @@ export function TandaInspector({
   const move = useCallback((from: number, to: number) => onMoveTrack?.(i, from, to), [onMoveTrack, i]);
   const drag = useDragReorder(move, !onMoveTrack || !!t?.locked);
   const cues = playlist.booth?.songCues;
+  const nightList = useContext(PlayListContext);
   const total = useMemo(() => (t ? tandaTotal(t.songs, cues) : null), [t, cues]);
   if (!t) return null;
   const where = tx("play.tanda", { n: i + 1 });
@@ -68,7 +71,8 @@ export function TandaInspector({
     <aside className="inspector" aria-label={tx("tandaInspector.inspector")} data-testid="inspector">
       <div className="group-inset p-4">
         <div className="flex items-center gap-3">
-          <RhythmTile rhythm={t.rhythm} />
+          {/* 2026-11 (the owner: "image not getting loaded here"): the tanda's cover, its rhythm on the corner */}
+          <TandaArt tanda={t} size={56} testId="inspector-art" />
           <div className="min-w-0 flex-1">
             <p className="text-footnote text-[var(--label-2)]">
               {tx("tandaInspector.tanda_of", { p1: i + 1, length: playlist.tandas.length, rhythm: t.rhythm })}
@@ -105,10 +109,19 @@ export function TandaInspector({
             <button
               type="button"
               className="btn btn-ghost min-h-[44px]"
-              disabled={!previews.length}
+              data-testid="inspector-preview"
               onClick={() => {
                 haptic(4);
-                usePlayer.getState().playQueue(tx("tandaInspector.tanda", { p1: i + 1 }), previews, 10);
+                // 30 s clips: 10 s of each, back to back. 2026-11: without clips (no Deezer match yet, or Spotify
+                // connected) the tanda plays from its first song the way a row's tap does — Spotify, the file, a
+                // clip found now — and the toast says why when nothing can play
+                if (previews.length) {
+                  usePlayer.getState().playQueue(tx("tandaInspector.tanda", { p1: i + 1 }), previews, 10);
+                  return;
+                }
+                const items = nightList?.items ?? nightItems(playlist);
+                const first = items.find((x) => x.kind === "song" && x.song.id === t.songs[0]?.id);
+                if (first) void tapPlay(first, nightList ?? { label: where, items });
               }}
             >
               <Headphones size={16} aria-hidden /> {tx("tandaInspector.preview")}
@@ -136,10 +149,13 @@ export function TandaInspector({
             <PlayRow
               song={s}
               where={where}
-              leadingKind="num"
+              leadingKind="art"
               leading={
-                <span className="text-subhead inline-block w-5 tabular-nums text-[var(--label-2)]">
-                  {k + 1}
+                <span className="inspector-track-art">
+                  <Artwork entity={s} orchestra={s.orchestra} size={36} />
+                  <span className="inspector-track-n tabular-nums" aria-hidden>
+                    {k + 1}
+                  </span>
                 </span>
               }
               // 2026-11 (DJ review: titles cut to "Agu…" beside four columns): the energy and the length join the
@@ -194,7 +210,10 @@ export function TandaInspector({
           </li>
         ))}
         {t.cortina && (
-          <li className="cell">
+          <li className="cell" data-leading="art" data-testid="inspector-cortina">
+            <span className="inspector-track-art">
+              <Artwork entity={t.cortina} orchestra={t.cortina.artist} size={36} />
+            </span>
             <span className="text-footnote min-w-0 flex-1 truncate text-[var(--label-2)]">
               {tx("tandaInspector.cortina", { artist: t.cortina.artist, title: t.cortina.title })}
             </span>

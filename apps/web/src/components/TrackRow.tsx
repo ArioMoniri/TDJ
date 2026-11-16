@@ -8,6 +8,7 @@ import { patchedSong } from "@/lib/audio";
 import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
 import { t } from "@/lib/i18n";
+import { isAction } from "@/lib/keymap";
 import { fmtLen } from "@/lib/lengths";
 import { lineSwap } from "@/lib/motion";
 import { useTapPlay } from "@/lib/playback";
@@ -157,14 +158,15 @@ export const TrackRow = memo(function TrackRow({
       onKeyDown={(e) => {
         if (e.target !== e.currentTarget) return;
         // 2026-11: the row's keys — S opens its Swap sheet, Alt+↑ / Alt+↓ move it inside the tanda (EditKeys, ⌘Z undoes)
-        if ((e.key === "s" || e.key === "S") && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        if (isAction("edit.swap", e)) {
           e.preventDefault();
           if (!disabled && !inFlight) swap();
           return;
         }
-        if (e.altKey && (e.key === "ArrowUp" || e.key === "ArrowDown") && onMove) {
+        const up = isAction("edit.moveUp", e);
+        if ((up || isAction("edit.moveDown", e)) && onMove) {
           e.preventDefault();
-          const to = e.key === "ArrowUp" ? k - 1 : k + 1;
+          const to = up ? k - 1 : k + 1;
           if (to >= 0 && to < (count ?? 0)) onMove(k, to);
           return;
         }

@@ -4,6 +4,7 @@
  * the DJ's own data and the fill from sources, the Orchestras tab with editable era grades, and Add a source.
  */
 import { devices, expect, type Page, test } from "@playwright/test";
+import { clickHydrated } from "./hydration";
 
 async function openFeatured(page: Page) {
   await page.goto("/?featured=golden-double-peak");
@@ -173,7 +174,8 @@ test("settings: add a source; Discogs takes the DJ's token and stays in this bro
   await page.goto("/settings");
   const group = page.locator("#data-sources");
   await expect(group.getByTestId("source-deezer")).toContainText("On");
-  await group.getByRole("button", { name: "Add a source…" }).click();
+  // (a click before the page hydrates is lost: wait until React owns the button)
+  await clickHydrated(group.getByRole("button", { name: "Add a source…" }));
   await page.getByTestId("add-source").getByTestId("add-discogs").click();
   const sheet = page.getByTestId("source-sheet");
   await expect(sheet).toBeVisible();

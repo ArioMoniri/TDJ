@@ -3,6 +3,7 @@ import type React from "react";
 import { useBooth } from "@/lib/booth/store";
 import { undoEdit } from "@/lib/editHistory";
 import { t } from "@/lib/i18n";
+import { isAction } from "@/lib/keymap";
 import { gateEdit } from "@/lib/ruleCheck";
 import { toast } from "@/lib/toast";
 import type { Playlist } from "@/lib/types";
@@ -162,9 +163,10 @@ export function dragHandle(i: number, onOpen: () => void) {
       onOpen();
     },
     onKeyDown: (e: React.KeyboardEvent<HTMLElement>) => {
-      // the keyboard: Alt + ↑ / ↓ moves the song one place
-      if (!e.altKey || (e.key !== "ArrowUp" && e.key !== "ArrowDown")) return;
-      const j = stepTarget(i, e.key === "ArrowUp" ? -1 : 1);
+      // the keyboard: Alt + ↑ / ↓ (the DJ's keys, lib/keymap.ts) moves the song one place
+      const up = isAction("edit.moveUp", e);
+      if (!up && !isAction("edit.moveDown", e)) return;
+      const j = stepTarget(i, up ? -1 : 1);
       if (j === null) return;
       e.preventDefault();
       void moveSong(i, j);

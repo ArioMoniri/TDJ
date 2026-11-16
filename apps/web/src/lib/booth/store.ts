@@ -19,6 +19,7 @@ import {
 } from "@tdj/core";
 import { create } from "zustand";
 import { useShallow } from "zustand/react/shallow";
+import { runHistory } from "@/lib/editToast";
 import { playsIn } from "@/lib/favourites";
 import { makeNightLog, makeSnapshot } from "@/lib/history";
 import { t as tx } from "@/lib/i18n";
@@ -73,6 +74,7 @@ import type {
 import { YoutubeAdapter } from "./sources/youtube";
 import { type Bands, renderBands } from "./spectral";
 import { transitionWindow } from "./transition";
+import { installBoothUndo } from "./undo";
 import { isSilentState, unlockAudio } from "./unlock";
 import { bufferPeaks } from "./waveform";
 
@@ -138,7 +140,7 @@ export interface FolderStatus {
   canKeep: boolean;
 }
 
-interface BoothStore {
+export interface BoothStore {
   playlist: Playlist | null;
   /** round 21: the plan items the player passes over tonight (bypassed tandas) */
   bypassed: number[];
@@ -938,7 +940,8 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     const n = engine.next();
     if (n === null || !live) return;
     const title = s.plan?.items[n]?.title ?? "";
-    toast(tx("booth.connect.will_be_skipped", { title }), () => get().unskip(n));
+    // 2026-11: the toast's Undo is the one history's (lib/booth/undo.ts records the skip): ⌘Z does the same
+    toast(tx("booth.connect.will_be_skipped", { title }), () => void runHistory("undo", { scope: "/booth" }));
   },
   unskip: (i) => {
     engine?.unskip(i);
@@ -1819,6 +1822,9 @@ function logToHistory(ended: boolean) {
 
 /** For tests and the Find sheet: the engine behind the store (null before the first start). */
 export const boothEngine = () => engine;
+// 2026-11: every reversible Booth action goes into the one undo history (lib/booth/undo.ts)
+installBoothUndo(useBooth.getState, useBooth.setState, () => engine);
+
 /** For the e2e audibility check: the context's state. */
 export const boothContextState = () => ctx?.state ?? null;
 

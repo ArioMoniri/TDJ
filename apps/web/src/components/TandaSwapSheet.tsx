@@ -6,6 +6,7 @@ import { undoEdit } from "@/lib/editHistory";
 import { haptic } from "@/lib/haptics";
 import { t as tx } from "@/lib/i18n";
 import type { MsgKey } from "@/lib/i18n/en";
+import { isAction } from "@/lib/keymap";
 import { fmtLen } from "@/lib/lengths";
 import { gateEdit } from "@/lib/ruleCheck";
 import type { SourceId, Version } from "@/lib/smartSearch";
@@ -266,9 +267,10 @@ export function TandaSwapSheet(p: TandaSwapProps) {
                   aria-label={tx("tandaSwap.side_label", { n: k + 1, title: x.title })}
                   onKeyDown={(e) => {
                     if (e.target !== e.currentTarget || p.lockedReason) return;
-                    if (e.altKey && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+                    const up = isAction("edit.moveUp", e);
+                    if (up || isAction("edit.moveDown", e)) {
                       e.preventDefault();
-                      const to = e.key === "ArrowUp" ? k - 1 : k + 1;
+                      const to = up ? k - 1 : k + 1;
                       move(k, to);
                       // the side keeps the focus where it went
                       requestAnimationFrame(() =>

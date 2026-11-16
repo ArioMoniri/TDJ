@@ -572,6 +572,11 @@
 .booth-strip-now-t > span {
   color: var(--label-2);
 }
+/* 2026-11: the title slides when long (components/ui/Marquee.tsx); the artist under it stays as it was */
+.booth-strip-now-t > .marquee {
+  color: inherit;
+  text-overflow: clip;
+}
 @media (max-width: 1499px) {
   .booth-strip-now {
     display: none;

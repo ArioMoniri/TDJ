@@ -14,7 +14,23 @@ export interface Edit {
   scope: string;
   undo: () => void | Promise<void>;
   redo: () => void | Promise<void>;
+  /**
+   * 2026-11 (the Booth): edits of one control in a row (a slider dragged, a stepper tapped) merge into one entry when
+   * they share a `key` and come within COALESCE_MS: the first one's undo, the last one's redo
+   */
+  key?: string;
+  /** when it was made (ms), for the merge */
+  at?: number;
+  /**
+   * 2026-11: what already happened in the room cannot be un-heard. Says why this entry cannot be undone now (a jump
+   * that already played audio), or null; a blocked entry leaves the history and the toast says why.
+   */
+  blocked?: () => string | null;
 }
+/** what an undo did: the entry, and `why` when it could not be undone (Edit.blocked) */
+export type UndoResult = Edit & { why?: string };
+
+export const COALESCE_MS = 1500;
 
 export const HISTORY_LIMIT = 100;
 let seq = 0;
@@ -31,8 +47,21 @@ const here = () => (typeof location === "undefined" ? "/" : location.pathname ||
 
 /** remember an edit that was just applied; returns its id (the toast's Undo names it) */
 export function recordEdit(e: Omit<Edit, "id" | "scope"> & { scope?: string }): number {
+  const scope = e.scope ?? here();
+  const at = Date.now();
+  const last = useEditHistory.getState().past.at(-1);
+  if (e.key && last && last.key === e.key && last.scope === scope && at - (last.at ?? 0) < COALESCE_MS) {
+    const merged: Edit = { ...last, label: e.label, redo: e.redo, at };
+    useEditHistory.setState((s) => ({
+      past: [...s.past.slice(0, -1), merged],
+      future: s.future.filter((f) => f.scope !== scope),
+    }));
+    notify(merged, "record");
+    return merged.id;
+  }
   const id = ++seq;
-  const entry: Edit = { ...e, id, scope: e.scope ?? here() };
+  const entry: Edit = { ...e, id, scope, at };
+  notify(entry, "record");
   useEditHistory.setState((s) => ({
     past: [...s.past, entry].slice(-HISTORY_LIMIT),
     // a new edit on this page drops this page's redo; another page's stays as it was
@@ -65,18 +94,42 @@ const lastIndex = <T>(xs: T[], ok: (x: T) => boolean) => {
   return -1;
 };
 
+/**
+ * 2026-11: every recorded, undone or redone edit, for what follows the night (the exported playlists' sync,
+ * lib/playlistSync.ts). Returns the unsubscribe.
+ */
+type Listener = (e: Edit, kind: "record" | "undo" | "redo") => void;
+const listeners = new Set<Listener>();
+export function onEdit(l: Listener): () => void {
+  listeners.add(l);
+  return () => listeners.delete(l);
+}
+function notify(e: Edit, kind: "record" | "undo" | "redo") {
+  for (const l of listeners)
+    try {
+      l(e, kind);
+    } catch {}
+}
+
 /** undo the newest edit of this page (or the one named, the toast's): what was undone, or null */
-export async function undoEdit(o: { scope?: string; id?: number } = {}): Promise<Edit | null> {
+export async function undoEdit(o: { scope?: string; id?: number } = {}): Promise<UndoResult | null> {
   const s = useEditHistory.getState();
   if (s.busy) return null;
   const scope = o.scope ?? here();
   const i = lastIndex(s.past, (e) => (o.id !== undefined ? e.id === o.id : e.scope === scope));
   if (i < 0) return null;
   const e = s.past[i]!;
+  const why = e.blocked?.() ?? null;
+  if (why) {
+    // (it leaves the history: the next press reaches the edit before it)
+    useEditHistory.setState({ past: s.past.filter((_, k) => k !== i) });
+    return { ...e, why };
+  }
   useEditHistory.setState({ busy: true, past: s.past.filter((_, k) => k !== i) });
   try {
     await e.undo();
     useEditHistory.setState((st) => ({ future: [...st.future, e] }));
+    notify(e, "undo");
     return e;
   } finally {
     useEditHistory.setState({ busy: false });
@@ -94,7 +147,9 @@ export async function redoEdit(o: { scope?: string } = {}): Promise<Edit | null>
   useEditHistory.setState({ busy: true, future: s.future.filter((_, k) => k !== i) });
   try {
     await e.redo();
-    useEditHistory.setState((st) => ({ past: [...st.past, e].slice(-HISTORY_LIMIT) }));
+    // (a redone entry never merges with the next edit)
+    useEditHistory.setState((st) => ({ past: [...st.past, { ...e, at: 0 }].slice(-HISTORY_LIMIT) }));
+    notify(e, "redo");
     return e;
   } finally {
     useEditHistory.setState({ busy: false });
