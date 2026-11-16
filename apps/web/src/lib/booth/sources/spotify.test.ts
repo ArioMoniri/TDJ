@@ -829,7 +829,12 @@ describe("2026-11: seek inside the playing song (the owner: the slider went to 0
     vi.useFakeTimers();
     const sp = spotify();
     const { Ctor, players } = fakeSdk();
-    const a = new SpotifyAdapter({ fetchImpl: sp.fetchImpl, loadSdk: async () => Ctor, noFades: false, phone: false });
+    const a = new SpotifyAdapter({
+      fetchImpl: sp.fetchImpl,
+      loadSdk: async () => Ctor,
+      noFades: false,
+      phone: false,
+    });
     const connecting = a.connect();
     await vi.advanceTimersByTimeAsync(10);
     await connecting;
@@ -850,6 +855,35 @@ describe("2026-11: seek inside the playing song (the owner: the slider went to 0
     expect(ev.ended).toBe(0);
     await vi.advanceTimersByTimeAsync(1_500);
     expect(ev.ended).toBe(1);
+  });
+
+  it("Connect: the slider follows the device, not the plan — 0.8 s off at the start, < 0.3 s after its reports", async () => {
+    vi.useFakeTimers();
+    let t0 = 0;
+    const sp = spotify({
+      devices: () => [ipad()],
+      handlers: {
+        // the device started 0.8 s further in than the play asked (buffering, its own latency)
+        "GET /me/player": () =>
+          json({
+            is_playing: true,
+            progress_ms: t0 ? Date.now() - t0 + 800 : 0,
+            item: { uri: URI_A, duration_ms: 170_000 },
+            device: { id: "ipad", name: "iPad", volume_percent: 80, supports_volume: true },
+          }),
+        "PUT /me/player/play": () => {
+          t0 = Date.now();
+          return undefined;
+        },
+      },
+    });
+    const a = new SpotifyAdapter({ fetchImpl: sp.fetchImpl, loadSdk: vi.fn(), phone: true });
+    await a.connect();
+    const h = a.startItem(req(URI_A).r);
+    await vi.advanceTimersByTimeAsync(5000);
+    const device = (Date.now() - t0 + 800) / 1000;
+    expect(Math.abs(h.position() - device)).toBeLessThan(0.3);
+    h.cancel(true);
   });
 
   it("before the play went out there is nothing to seek: false (the engine restarts it)", async () => {

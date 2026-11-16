@@ -1929,7 +1929,9 @@ describe("2026-11: Spotify Connect transport (instant, coalesced skips)", () => 
   });
 
   it("2026-11: an edited fade on Spotify in this browser (it fades): the outgoing ends with the transition's fade, the incoming rises", async () => {
-    const tr = { [tKey("a1", "a2")]: { preset: "fade", fadeOutSec: 3, fadeInSec: 2, gapSec: 1 } as TransitionEdit };
+    const tr = {
+      [tKey("a1", "a2")]: { preset: "fade", fadeOutSec: 3, fadeInSec: 2, gapSec: 1 } as TransitionEdit,
+    };
     const { starts, plan } = await night(true, tr);
     const first = starts[0]!;
     const len = plan.items[0]!.lengthSec;
@@ -1941,7 +1943,9 @@ describe("2026-11: Spotify Connect transport (instant, coalesced skips)", () => 
   });
 
   it("2026-11: on Spotify Connect (no fades) an edited fade is not applied — only its gap", async () => {
-    const tr = { [tKey("a1", "a2")]: { preset: "fade", fadeOutSec: 3, fadeInSec: 2, gapSec: 1 } as TransitionEdit };
+    const tr = {
+      [tKey("a1", "a2")]: { preset: "fade", fadeOutSec: 3, fadeInSec: 2, gapSec: 1 } as TransitionEdit,
+    };
     const { starts, plan } = await night(false, tr);
     expect(starts[0]!.retimes).toEqual([]);
     const next = starts.find((x) => x.r.uri === "spotify:track:a2")!;

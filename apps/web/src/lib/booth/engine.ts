@@ -34,8 +34,8 @@ import {
   applyOutgoing,
   BASS_SHELF_HZ,
   eqLanes,
-  MID_PEAK_HZ,
   HIGH_SHELF_HZ,
+  MID_PEAK_HZ,
   type TransitionWindow,
   transitionWindow,
 } from "./transition";

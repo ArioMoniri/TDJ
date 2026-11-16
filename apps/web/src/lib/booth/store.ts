@@ -1781,6 +1781,16 @@ function tick(now: number) {
 function startTicking() {
   if (!raf && typeof requestAnimationFrame === "function") raf = requestAnimationFrame(tick);
 }
+/**
+ * 2026-11 (the slider drifted from what plays): every slider reads the store's `position`, which is always read from
+ * the engine's clocks (the AudioContext with the output latency; an external player's reconciled clock), never
+ * counted from ticks — back from a hidden tab (rAF paused) it shows the right second at once.
+ */
+if (typeof document !== "undefined")
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible" || !engine) return;
+    useBooth.setState({ position: engine.position() });
+  });
 function stopTicking() {
   if (raf) cancelAnimationFrame(raf);
   raf = 0;

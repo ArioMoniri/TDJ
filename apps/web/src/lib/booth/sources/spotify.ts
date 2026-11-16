@@ -4,6 +4,7 @@ import { t as tx } from "@/lib/i18n";
 import { openExternal } from "@/lib/openLink";
 import { dbToGain, fadeOutCurve, VOLUME_STEP_SEC, volumeSteps } from "../envelope";
 import type { BoothRow } from "../plan";
+import { TrackClock } from "./clock";
 import { PauseWatch } from "./spotifyHold";
 import type {
   ExternalCapabilities,
@@ -20,6 +21,8 @@ export interface SdkState {
   paused: boolean;
   position: number;
   duration: number;
+  /** when `position` was true (ms since the epoch), as the SDK reports it */
+  timestamp?: number;
   track_window?: { current_track?: { uri?: string } };
 }
 export interface SdkPlayer {
@@ -328,6 +331,14 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
     this.app = o.app ?? inNativeApp();
     this.probeSdk = o.probeSdk ?? (() => sdkPlayable());
     this.syncCaps();
+    // 2026-11 (the slider drifted from what plays): back in the tab or the app, ask the device where it is at once
+    if (typeof document !== "undefined" && typeof window !== "undefined") {
+      const poke = () => {
+        if (document.visibilityState === "visible") this.owner?.poke();
+      };
+      document.addEventListener("visibilitychange", poke);
+      window.addEventListener("focus", poke);
+    }
     this.onBanner = o.onBanner;
     this.onLog = o.onLog;
     this.deviceWaitMs = o.deviceWaitMs ?? 5000;
@@ -975,7 +986,10 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
   }
   /** the Connect device's playback state (`GET /me/player`), null when nothing plays */
   async remoteState(): Promise<RemoteState | null> {
+    const sentAt = now();
     const r = await this.api("GET", "/me/player", undefined, { op: "state", quiet: true }).catch(() => null);
+    // the position was true about half a round trip before the answer arrived
+    const at = (sentAt + now()) / 2;
     if (!r || r.status === 204) return null;
     const j = await r.json().catch(() => null);
     if (!j) return null;
@@ -990,6 +1004,7 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
       supportsVolume: d ? d.supports_volume !== false : null,
       uri: typeof j.item?.uri === "string" ? j.item.uri : null,
       hasItem: !!j.item,
+      at,
     };
   }
 
@@ -1218,6 +1233,8 @@ export interface RemoteState {
   /** the playing item's uri */
   uri: string | null;
   hasItem: boolean;
+  /** 2026-11: when `positionMs` was true (this adapter's clock, ms): the middle of the request's round trip */
+  at?: number;
 }
 
 let liveSeq = 0;
@@ -1315,6 +1332,7 @@ class Live implements ExternalHandle {
     this.startedAt = now() - (attached ? 3500 : 0);
     this.posAt = now();
     this.pos = this.req.positionSec;
+    this.clock.set(this.req.positionSec, true);
     this.a._began(this);
     if (!this.a._remote()) this.applyVolume();
     if (!attached && this.req.fadeInSec && this.a.capabilities.fade) this.fade(this.req.fadeInSec, true);
@@ -1385,6 +1403,9 @@ class Live implements ExternalHandle {
     this.pos = s.position / 1000;
     this.posAt = now();
     this.playing = !s.paused;
+    // the SDK stamps its position; a stamp far from this clock (another epoch) is not trusted
+    const ts = typeof s.timestamp === "number" && Math.abs(s.timestamp - now()) < 5000 ? s.timestamp : now();
+    this.clock.report(this.pos, this.playing, ts);
     this.duration = s.duration / 1000;
     if (s.paused && s.position === 0 && this.lastPos > this.duration - 1.5 && this.started)
       this.finish(false);
@@ -1412,6 +1433,7 @@ class Live implements ExternalHandle {
     this.pos = s.positionMs / 1000;
     this.posAt = now();
     this.playing = s.playing;
+    this.clock.report(this.pos, this.playing, s.at ?? now());
     this.duration = s.durationMs / 1000;
     // the track played to its end: Spotify stops (the request held one uri) at 0 or at the end
     if (settled && !s.playing && (s.positionMs === 0 || s.positionMs >= s.durationMs - 2500))
@@ -1430,9 +1452,15 @@ class Live implements ExternalHandle {
     if (s) this.onState(s);
   }
 
+  /** 2026-11: the one position model (lib/booth/sources/clock.ts): a local clock reconciled with each report */
+  private clock = new TrackClock(now);
   position() {
     if (!this.started) return 0;
-    return this.pos + (this.playing ? (now() - this.posAt) / 1000 : 0);
+    return this.clock.read();
+  }
+  /** ask the device now (back in a hidden tab, the app in front again) */
+  poke() {
+    if (this.started && !this.done) void this.tick();
   }
 
   /** a seek went out at this time to this position: reports that disagree for a moment are the old position */
@@ -1474,6 +1502,7 @@ class Live implements ExternalHandle {
     this.pos = at;
     this.posAt = now();
     this.playing = true;
+    this.clock.set(at, true);
     this.seekGuard = { until: now() + 2500, at, sentAt: now() };
     this.hold.reset();
     // a fade out in progress (the item was about to end) is called off: it plays at its level from the new point
