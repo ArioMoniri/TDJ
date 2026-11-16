@@ -20,7 +20,17 @@ import type {
   Tanda,
 } from "./index";
 import { familyBand, goldenClassOf, isColour } from "./knowledge";
-import { familyKey, learnedFamilyFactor, learnedSideFactor } from "./learn";
+import {
+  familyKey,
+  learnedFamilyFactor,
+  learnedSideFactor,
+  learnedSideSets,
+  sideSetKey,
+  TEMPLATE_RECENT_DECAY,
+  TEMPLATE_REST,
+  TEMPLATE_SHARE,
+  templateNight,
+} from "./learn";
 import { heatOfSides, orderCost, orderVerdictOf, strictOrder } from "./order";
 import {
   CORPUS_CAPS,
@@ -1290,6 +1300,33 @@ export function buildTanda(
     topFame(c) >= (famBest.get(`${c.orchestraId}|${c.singer ?? ""}`) ?? 0) - 0.75 - 1e-9;
   // the rules are weighed together: the families breaking the fewest of them stay (one broken rule never wins over
   // another by the order they are checked in)
+  // 2026-11 (the variety cap, learn.ts): the learned templates' side sets, and those heard in the recent nights
+  const templateSets = learnedSideSets(sc.learned);
+  const recentSets = new Set(o.recent?.sideSets ?? []);
+  const recentTemplates = [...templateSets.keys()].filter((k) => recentSets.has(k)).map((k) => k.split(","));
+  const recentTemplateIn = (c: TandaCandidate) => {
+    if (!recentTemplates.length) return false;
+    const ids = new Set(c.songs.map((s) => s.id));
+    return recentTemplates.some((t) => t.every((id) => ids.has(id)));
+  };
+  /**
+   * a family that can only play a learned template as it is (no other side it may play tonight) on a night that is
+   * not the template's, or after the DJ heard it lately: it rests (TEMPLATE_REST), so another family takes the slot
+   */
+  const templateOnly = (c: TandaCandidate) => {
+    if (!templateSets.size) return false;
+    // (on a golden night the sides it may play are the ones with a stream: the panel mends a side without one back)
+    const av = availOf(c).filter((s) => !sc.golden || !!s.spotify?.uri);
+    if (av.length > need) return false;
+    const ids = new Set(av.map((s) => s.id));
+    for (const [k, id] of templateSets) {
+      const t = k.split(",");
+      if (t.length !== av.length || !t.every((x) => ids.has(x))) continue;
+      if (recentSets.has(k) || !templateNight(o.seed, id, o.rules?.templateShare ?? TEMPLATE_SHARE))
+        return true;
+    }
+    return false;
+  };
   const preds: Array<[(c: TandaCandidate) => boolean, number]> = [
     [heatOk, 3],
     [
@@ -1374,12 +1411,17 @@ export function buildTanda(
     if (sc.weightOf) w *= sc.weightOf(c);
     // round 21: the families the DJ chose by hand weigh more, the ones they replaced a little less
     // (and the nights the DJ liked or disliked, in their year band: likes.ts)
-    if (sc.learned)
-      w *= learnedFamilyFactor(
+    if (sc.learned) {
+      const f = learnedFamilyFactor(
         sc.learned,
         familyKey({ ...c, rhythm: slot.rhythm as Song["rhythm"] }),
         sc.learned.likes ? candidateYears(c) : undefined,
       );
+      // 2026-11 (the variety cap, learn.ts): a family whose learned template the DJ heard in the recent nights keeps
+      // only part of its learned gain tonight
+      w *= f > 1 && recentTemplateIn(c) ? 1 + (f - 1) * TEMPLATE_RECENT_DECAY : f;
+      if (templateOnly(c)) w *= TEMPLATE_REST;
+    }
     w *= favOf(c);
     const st = sc.style(c.orchestraId) ?? "balanced";
     w *= PHASE_STYLE[slot.phase]?.[st] ?? 1;
@@ -1729,6 +1771,30 @@ export function buildTanda(
       const weakest = picked.slice().sort((a, b) => (a.fame ?? 0) - (b.fame ?? 0))[0]!;
       seen.add(normTitle(other.title));
       picked[picked.indexOf(weakest)] = other;
+    }
+  }
+  // 2026-11 — the variety cap (learn.ts): a learned template drawn word for word on a night that is not one of its
+  // nights (about one in three, or heard in the recent nights) gives its least weighted side's chair to the family's
+  // best other side that keeps the tanda's rules (a known one first); a family with no such side plays the template
+  const tplId = templateSets.get(sideSetKey(picked.map((s) => s.id)));
+  if (tplId && !firstDA) {
+    const key = sideSetKey(picked.map((s) => s.id));
+    const share = o.rules?.templateShare ?? TEMPLATE_SHARE;
+    if (recentSets.has(key) || !templateNight(o.seed, tplId, share)) {
+      const wOf = new Map(scored.map((r) => [r.s, r.w]));
+      const out = picked.slice().sort((a, b) => (wOf.get(a) ?? 0) - (wOf.get(b) ?? 0))[0]!;
+      const keep = picked.filter((s) => s !== out);
+      const titles = new Set(keep.map((s) => normTitle(s.title)));
+      const alt = scored
+        .filter(
+          (r) =>
+            !picked.includes(r.s) &&
+            (!sc.golden || !!r.s.spotify?.uri) &&
+            !titles.has(normTitle(r.s.title)) &&
+            !sideProblem(keep, r.s, { rhythm: slot.rhythm, o: softBands }),
+        )
+        .sort((a, b) => Number((b.s.fame ?? 0) >= 2) - Number((a.s.fame ?? 0) >= 2) || b.w - a.w)[0]?.s;
+      if (alt) picked[picked.indexOf(out)] = alt;
     }
   }
   const shaped = shapeTanda(picked, o.tandaShape, slot.rhythm);

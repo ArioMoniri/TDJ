@@ -26,6 +26,40 @@ export const familyKey = (s: Pick<Song, "orchestraId" | "singer" | "rhythm">) =>
 
 export const emptyLearned = (): LearnedPreferences => ({ sides: {}, families: {}, templates: [], edits: [] });
 
+/**
+ * 2026-11 — the variety cap on the DJ's learned tandas (the function review: the Di Sarli / Rufino milonga the DJ
+ * pinned played word for word in 41 of 48 new nights). A learned template — a tanda the DJ pinned, or one they
+ * praised — plays as it is in about TEMPLATE_SHARE of the nights (a stable draw of the night's seed and the
+ * template); on the other nights its family still plays, with another selection of its sides when it has one. A
+ * template heard in the DJ's recent nights (memory: the last sets' side sets) rests tonight, and its family's
+ * learned weight keeps only TEMPLATE_RECENT_DECAY of its gain.
+ */
+export const TEMPLATE_SHARE = 1 / 3;
+export const TEMPLATE_RECENT_DECAY = 0.25;
+/** a family that could only play the template as it is, on a night that is not the template's: its weight at the draw */
+export const TEMPLATE_REST = 0.05;
+/** a tanda's side set as one key: its song ids sorted, comma-joined */
+export const sideSetKey = (ids: readonly string[]) => [...ids].sort().join(",");
+/** the learned templates' side sets (templates and praised tandas): side-set key → template id */
+export function learnedSideSets(L: LearnedPreferences | undefined): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const t of L?.templates ?? [])
+    if (t.songIds?.length) out.set(sideSetKey(t.songIds), `template:${t.id}`);
+  for (const p of L?.praise ?? [])
+    if (Array.isArray(p.songIds) && p.songIds.length && !out.has(sideSetKey(p.songIds)))
+      out.set(sideSetKey(p.songIds), `praise:${p.id}`);
+  return out;
+}
+/** tonight (seed) is one of the nights template `id` plays as it is: a stable hash of both, under `share` */
+export function templateNight(seed: number | undefined, id: string, share = TEMPLATE_SHARE): boolean {
+  let h = 0x811c9dc5;
+  for (const c of `${seed ?? 0}|${id}`) {
+    h ^= c.charCodeAt(0);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h / 0x100000000 < share;
+}
+
 const clamp = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, x));
 const sidesOf = (t?: Pick<Tanda, "songs"> | null) =>
   (t?.songs ?? []).filter((s) => normTitle(s.title) !== "la cumparsita");
