@@ -301,7 +301,20 @@ function Booth() {
     const ro = typeof ResizeObserver === "function" ? new ResizeObserver(soon) : null;
     const grid = document.querySelector(".booth");
     if (grid) ro?.observe(grid);
+    // 2026-11 (QA, iPad landscape with the sidebar hidden: the transport stayed 188 px right of the column): a collapse
+    // keeps the page's width (Sidebar.tsx lays it out at the wider width before the slide) and only moves it, which a
+    // ResizeObserver never reports; the sidebar's state on the root, set when its motion ends, re-measures (never
+    // mid-motion: a measure in a moving frame would lay the night out again, the cost the slide avoids)
+    const settled = () => {
+      if (root.dataset.sidebarAnimating === undefined && root.dataset.sidebarResizing === undefined) soon();
+    };
+    const mo = typeof MutationObserver === "function" ? new MutationObserver(settled) : null;
+    mo?.observe(root, {
+      attributes: true,
+      attributeFilter: ["data-sidebar", "data-sidebar-animating", "data-sidebar-resizing"],
+    });
     return () => {
+      mo?.disconnect();
       if (frame) cancelAnimationFrame(frame);
       window.removeEventListener("scroll", soon);
       window.removeEventListener("resize", soon);
