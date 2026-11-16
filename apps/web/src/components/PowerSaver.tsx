@@ -50,6 +50,9 @@ export function PowerSync() {
   useEffect(() => watchPowerSignals(), []);
   useEffect(() => {
     document.documentElement.classList.toggle("power-saver", active);
+    // the lyrics rhythm lane, Now playing and the Floor screen read data-power (bar ticks only, no glow or drift)
+    if (active) document.documentElement.dataset.power = "saver";
+    else delete document.documentElement.dataset.power;
     tellNative(active);
     if (!active) {
       // back to the night's own rule: the screen stays awake from Start to the end

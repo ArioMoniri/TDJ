@@ -32,6 +32,8 @@ const COMMANDS: &[&str] = &[
     "cue_devices",
     "cue_play",
     "cue_stop",
+    // 2026-11: the dancers' Floor screen window (commands.rs floor_window)
+    "floor_window",
     "check_updates",
     // 2026-11: outputs and the night's continuity (src/audio.rs)
     "audio_route",

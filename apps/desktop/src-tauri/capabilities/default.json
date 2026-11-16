@@ -27,6 +27,7 @@
     "allow-open-external",
     "allow-save-file",
     "allow-print-page",
+    "allow-floor-window",
     "allow-keep-awake",
     "allow-now-playing",
     "allow-folder-add",

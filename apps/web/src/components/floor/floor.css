@@ -1,0 +1,248 @@
+/* 2026-11 — the dancers' Floor screen: read at 3–5 m (type in viewport units), dark always (a dim room, a projector),
+   high contrast, no controls; a slow drift keeps a TV from burning in; Reduce motion and Battery saver keep it still. */
+/* the /screen page: the app's chrome (sidebar, tab bar, mini player, toasts) leaves the page */
+html[data-floor] body > :not(#tdj-floor) {
+  /* biome-ignore lint/complexity/noImportantStyles: the shell's own display rules must not bring it back */
+  display: none !important;
+}
+.floor {
+  --floor-tone: #ff6b8e;
+  --floor-bg: #07070a;
+  --floor-text: #fbfbfd;
+  --floor-dim: rgb(251 251 253 / 0.72);
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  overflow: hidden;
+  background: var(--floor-bg);
+  color: var(--floor-text);
+  font-feature-settings: "tnum";
+  display: grid;
+  place-items: center;
+}
+.floor[data-rhythm="vals"] {
+  --floor-tone: #4fd1c5;
+}
+.floor[data-rhythm="milonga"] {
+  --floor-tone: #a78bfa;
+}
+.floor[data-rhythm="cortina"] {
+  --floor-tone: #f5a524;
+}
+.floor[data-idle] {
+  cursor: none;
+}
+.floor-glow {
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(
+      40% 50% at 30% 30%,
+      color-mix(in srgb, var(--floor-tone) 38%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      50% 50% at 75% 80%,
+      color-mix(in srgb, var(--floor-tone) 22%, transparent),
+      transparent 70%
+    );
+  filter: blur(40px);
+  transition: background 1.2s ease;
+  animation: floor-glow 60s ease-in-out infinite alternate;
+}
+@keyframes floor-glow {
+  to {
+    transform: translate3d(4%, -3%, 0) scale(1.05);
+  }
+}
+.floor-drift {
+  position: relative;
+  width: min(92vw, 1600px);
+  animation: floor-drift 180s ease-in-out infinite alternate;
+}
+@keyframes floor-drift {
+  0% {
+    transform: translate3d(-0.6vw, -0.4vh, 0);
+  }
+  100% {
+    transform: translate3d(0.6vw, 0.5vh, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .floor-glow,
+  .floor-drift {
+    animation: none;
+  }
+}
+:root[data-power="saver"] .floor-glow,
+:root[data-power="saver"] .floor-drift {
+  animation: none;
+}
+.floor-center {
+  text-align: center;
+}
+.floor-eyebrow {
+  font-size: clamp(18px, 2.6vw, 44px);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--floor-tone);
+}
+.floor-title {
+  font-size: clamp(36px, 7vw, 132px);
+  font-weight: 800;
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  margin-top: 0.15em;
+}
+.floor-sub,
+.floor-next {
+  font-size: clamp(20px, 3.2vw, 60px);
+  color: var(--floor-dim);
+  margin-top: 0.5em;
+}
+.floor-next {
+  color: var(--floor-text);
+  font-weight: 600;
+}
+.floor-count {
+  font-size: clamp(22px, 3.6vw, 68px);
+  margin-top: 0.6em;
+  color: var(--floor-tone);
+  font-weight: 700;
+}
+.floor-song {
+  display: grid;
+  gap: 0.6vh;
+}
+.floor-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6em;
+  font-size: clamp(16px, 2.2vw, 40px);
+  color: var(--floor-dim);
+}
+.floor-rhythm {
+  padding: 0.15em 0.7em;
+  border-radius: 999px;
+  background: var(--floor-tone);
+  color: #0b0b10;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.floor-orchestra {
+  font-size: clamp(40px, 8.4vw, 168px);
+  font-weight: 800;
+  line-height: 0.98;
+  letter-spacing: -0.03em;
+}
+.floor-singer {
+  font-size: clamp(26px, 4.6vw, 92px);
+  font-weight: 600;
+  color: var(--floor-text);
+}
+.floor-songtitle {
+  font-size: clamp(18px, 2.6vw, 48px);
+  color: var(--floor-dim);
+  font-style: italic;
+}
+.floor-place {
+  margin-top: 2.2vh;
+}
+.floor-count-line {
+  display: flex;
+  align-items: center;
+  gap: 0.7em;
+  font-size: clamp(22px, 3.4vw, 64px);
+  font-weight: 700;
+}
+.floor-dots {
+  display: inline-flex;
+  gap: 0.35em;
+}
+.floor-dots i {
+  width: 0.7em;
+  height: 0.7em;
+  border-radius: 999px;
+  border: 0.09em solid var(--floor-dim);
+}
+.floor-dots i[data-done] {
+  background: var(--floor-dim);
+}
+.floor-dots i[data-on] {
+  background: var(--floor-tone);
+  border-color: var(--floor-tone);
+  box-shadow: 0 0 0.6em var(--floor-tone);
+}
+/* the join-the-floor strip: green (come in) → amber (the last song) */
+.floor-strip {
+  display: flex;
+  gap: 0.6vw;
+  margin-top: 1.2vh;
+}
+.floor-seg {
+  flex: 1;
+  min-height: clamp(36px, 6vh, 96px);
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  font-size: clamp(14px, 1.8vw, 34px);
+  font-weight: 700;
+  color: #0b0b10;
+  opacity: 0.38;
+  transition:
+    opacity 0.6s ease,
+    transform 0.6s ease;
+}
+.floor-seg[data-stage="invite"] {
+  background: #5ee08a;
+}
+.floor-seg[data-stage="start"] {
+  background: #9be35c;
+}
+.floor-seg[data-stage="fine"] {
+  background: #e3d65c;
+}
+.floor-seg[data-stage="last"] {
+  background: #f5a524;
+}
+.floor-seg[data-past] {
+  opacity: 0.18;
+}
+.floor-seg[data-on] {
+  opacity: 1;
+  transform: scaleY(1.12);
+  box-shadow: 0 0 2vw rgb(255 255 255 / 0.18);
+}
+.floor-advice {
+  margin-top: 1.4vh;
+  font-size: clamp(22px, 3.4vw, 64px);
+  font-weight: 700;
+}
+.floor-lyrics {
+  margin-top: 3vh;
+  text-align: left;
+}
+.floor-lyric-now {
+  font-size: clamp(26px, 4.2vw, 84px);
+  font-weight: 700;
+  line-height: 1.1;
+}
+.floor-lyric-next {
+  font-size: clamp(18px, 2.8vw, 56px);
+  color: var(--floor-dim);
+  margin-top: 0.3em;
+}
+.floor-video {
+  margin-top: 2vh;
+  width: min(60vw, 960px);
+  aspect-ratio: 16 / 9;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.floor-video > * {
+  width: 100%;
+  height: 100%;
+}

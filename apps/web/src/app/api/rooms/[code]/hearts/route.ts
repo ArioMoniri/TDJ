@@ -1,5 +1,12 @@
 import { createHash } from "node:crypto";
-import { cleanDancerToken, cleanRoomId, cleanRoomUser, normalizeRoomCode, roomHeartsView } from "@tdj/core";
+import {
+  cleanDancerToken,
+  cleanRoomId,
+  cleanRoomScreen,
+  cleanRoomUser,
+  normalizeRoomCode,
+  roomHeartsView,
+} from "@tdj/core";
 import { clientKey } from "@/lib/server/guard";
 import { json, preflight, readBody } from "@/lib/server/roomHttp";
 import { getRoom, heartSong, rateLimited, roomStoreKind, setPlaying } from "@/lib/server/rooms";
@@ -64,6 +71,8 @@ export async function POST(req: Request, ctx: Ctx) {
             title: String(p.title ?? ""),
             artist: String(p.artist ?? ""),
             at: new Date().toISOString(),
+            // 2026-11: the dancers' Floor screen state (bounded by core's cleanRoomScreen)
+            screen: cleanRoomScreen(p.screen),
           }
         : null,
     );

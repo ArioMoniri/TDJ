@@ -10,6 +10,9 @@ import { DUR, EASE, SPRING } from "@/lib/motion";
 import { lockScroll } from "@/lib/scrollLock";
 import { useSheets } from "@/lib/sheets";
 
+/** the open sheets, oldest first: Escape and the focus trap belong to the top one only (2026-11: stacked sheets) */
+const stack: symbol[] = [];
+
 /**
  * Native sheet. Phone: bottom sheet with a grabber, medium/large detents, drag to dismiss, thick material.
  * Desktop: centred 540 px panel with Cancel on the left and the title centred. Focus trap, Escape, scroll lock.
@@ -121,7 +124,10 @@ export function Sheet({
           : root.querySelector<HTMLElement>("input:not([type=hidden]), button:not([disabled]), a[href]"))
       )?.focus({ preventScroll: true });
     }, 30);
+    const me = Symbol("sheet");
+    stack.push(me);
     const onKey = (e: KeyboardEvent) => {
+      if (stack[stack.length - 1] !== me) return;
       if (e.key === "Escape") {
         e.preventDefault();
         e.stopPropagation();
@@ -149,6 +155,8 @@ export function Sheet({
     return () => {
       clearTimeout(t);
       document.removeEventListener("keydown", onKey, true);
+      const at = stack.indexOf(me);
+      if (at >= 0) stack.splice(at, 1);
       unlock();
       prev?.focus?.({ preventScroll: true });
     };

@@ -506,11 +506,12 @@ let seq = 0;
 export async function tapPlay(
   it: PlayItem,
   list?: ListIn,
-  o: { find?: () => void; scope?: "one" | "from" } = {},
+  /** `startSec`: start at this second of the recording (a tapped lyric line; a 30 s clip shorter than it plays from 0) */
+  o: { find?: () => void; scope?: "one" | "from"; startSec?: number } = {},
 ) {
   const key = playKey(it);
   const p = usePlayer.getState();
-  if (p.track?.id === key && !o.scope) {
+  if (p.track?.id === key && !o.scope && o.startSec === undefined) {
     p.toggle();
     return true;
   }
@@ -595,12 +596,13 @@ function sayNoAudio(it: PlayItem, title: string, find?: () => void) {
 
 async function playFrom(
   list: PlayerList,
-  o: { find?: () => void; quiet?: boolean; auto?: boolean },
+  o: { find?: () => void; quiet?: boolean; auto?: boolean; startSec?: number },
 ): Promise<boolean> {
   const it = list.items[list.index];
   if (!it) return false;
   const n = ++seq;
   const base = baseTrack(it);
+  if (o.startSec !== undefined && o.startSec > 0 && it.kind === "song") base.startSec = o.startSec;
   items.set(base.id, it);
   // a night in the Booth: the headphones only, never the room
   if (boothNightRunning()) {

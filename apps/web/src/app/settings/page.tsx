@@ -49,6 +49,7 @@ import { OwnerContributions } from "@/components/OwnerContributions";
 import { PageHeader } from "@/components/PageHeader";
 import { PowerSaverGroup } from "@/components/PowerSaver";
 import { Sheet } from "@/components/Sheet";
+import { LyricsConnections } from "@/components/song/LyricsConnections";
 import { TandaRulesGroup } from "@/components/TandaRules";
 import { DataSources } from "@/components/ui/DataSources";
 import { Tip } from "@/components/ui/Tip";
@@ -649,6 +650,8 @@ export default function Settings() {
 
         {APP && <AppConnections />}
         <Connectors />
+        {/* 2026-11: where song details look for lyrics (LRCLIB; opt-in Musixmatch and Genius with your key) */}
+        <LyricsConnections />
         {/* 2026-11: a connected service's playlist (or a file) as a night (app/import) */}
         <Group>
           <Row

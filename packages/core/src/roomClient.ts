@@ -163,7 +163,16 @@ export class RoomClient {
   hearts(nightId: string): Promise<RoomHearts> {
     return RoomClient.hearts(this.server, this.code, nightId, this.f);
   }
-  playing(p: { songId: string; nightId: string; title: string; artist: string } | null): Promise<RoomHearts> {
+  playing(
+    p: {
+      songId: string;
+      nightId: string;
+      title: string;
+      artist: string;
+      /** 2026-11: the dancers' Floor screen state (a plain object, bounded by the room) */
+      screen?: Record<string, unknown> | null;
+    } | null,
+  ): Promise<RoomHearts> {
     return call(this.f, `${this.server}/api/rooms/${this.code}/hearts`, {
       method: "POST",
       body: JSON.stringify({ user: this.user, playing: p }),
@@ -175,6 +184,8 @@ export class RoomClient {
 export interface RoomHearts {
   playing: { songId: string; nightId: string; title: string; artist: string } | null;
   hearts: Record<string, number>;
+  /** 2026-11: the dancers' Floor screen state, when the booth says one */
+  screen?: Record<string, unknown> | null;
 }
 
 export const isUnchanged = (v: RoomView | RoomUnchanged): v is RoomUnchanged =>
