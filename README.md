@@ -2,7 +2,7 @@
 <h1 align="center">T-DJ</h1>
 <p align="center">Build a milonga the way a tango DJ does: tandas, cortinas and the shape of the night.</p>
 
-<p align="center"><a href="media/readme/compose.mp4"><img src="media/readme/compose.gif" alt="Composing a four-hour night in T-DJ: one tap, then the energy arc and the tandas"/></a></p>
+<p align="center"><a href="media/readme/compose.mp4"><img src="media/readme/compose.gif" width="840" alt="Composing a four-hour night in T-DJ: one tap, then the energy arc and the tandas"/></a></p>
 
 I play milongas in Istanbul. For years I built every night by hand, checking that no orchestra came back too
 soon and that each cortina fit the tanda after it. T-DJ is the tool I wanted for that job. It drafts a whole night
@@ -17,8 +17,8 @@ commit ([docs/RELEASING.md](docs/RELEASING.md)).
 <p align="center">
   <a href="https://apps.apple.com/app/id6834924534"><picture><source media="(prefers-color-scheme: dark)" srcset="media/badges/download-on-the-app-store-white-en-us.svg"><img src="media/badges/download-on-the-app-store-black-en-us.svg" alt="Download on the App Store, for iPhone and iPad (coming soon)" height="40"></picture></a>&nbsp;&nbsp;
   <a href="https://apps.apple.com/app/id6834924534?platform=mac"><picture><source media="(prefers-color-scheme: dark)" srcset="media/badges/download-on-the-mac-app-store-white-en-us.svg"><img src="media/badges/download-on-the-mac-app-store-black-en-us.svg" alt="Download on the Mac App Store (coming soon)" height="40"></picture></a>&nbsp;&nbsp;
-  <a href="https://d3k5k2c1l0s5ri.cloudfront.net"><img alt="Open the web app" src="https://img.shields.io/badge/Open%20the-web%20app-C9426A?style=for-the-badge&logo=googlechrome&logoColor=white" height="40"></a>&nbsp;&nbsp;
-  <a href="https://github.com/ArioMoniri/TDJ/releases/latest/download/TDJ-macOS.dmg"><img alt="Download the Mac app (DMG)" src="https://img.shields.io/badge/Download%20for-macOS%20(DMG)-000000?style=for-the-badge&logo=apple&logoColor=white" height="40"></a>
+  <a href="https://d3k5k2c1l0s5ri.cloudfront.net"><picture><source media="(prefers-color-scheme: dark)" srcset="media/badges/open-the-web-app-white.svg"><img src="media/badges/open-the-web-app-black.svg" alt="Open the web app" height="40"></picture></a>&nbsp;&nbsp;
+  <a href="https://github.com/ArioMoniri/TDJ/releases/latest/download/TDJ-macOS.dmg"><picture><source media="(prefers-color-scheme: dark)" srcset="media/badges/download-the-mac-dmg-white.svg"><img src="media/badges/download-the-mac-dmg-black.svg" alt="Download the Mac app (DMG)" height="40"></picture></a>
 </p>
 <p align="center" data-store-status="coming-soon"><sub><b>Coming to the App Store.</b> The iPhone, iPad and Mac apps are in TestFlight beta while App Review is pending; the store links open once the listing is approved.</sub></p>
 
@@ -38,13 +38,13 @@ picked for the tanda that follows it, an energy arc with a breather between two 
 what it checked. Each night gets its own cover, drawn from its arc, with an era label that follows what is
 actually in it. The featured night is mine: 25 tandas, 4 h 35 min of the golden age with Turkish cortinas.
 
-<img src="media/readme/compose-light.webp" width="640" alt="A composed night: the energy arc, the score and the first tandas"/>
+<p align="center"><img src="media/readme/compose-light.webp" width="840" alt="A composed night: the energy arc, the score and the first tandas"/></p>
 
 **Plays it in the Booth.** The Booth plays the night from your own files, from Spotify, or as 30-second
 rehearsal clips, with real gaps, level matching and a fade at the end of each cortina. Cortinas start at their
 chorus, so the room knows a cortina when it hears one; you can move the start per cortina.
 
-<a href="media/readme/booth.mp4"><img src="media/readme/booth.gif" alt="The Booth on an iPad: starting the night, Floor full on a song, finding Troilo in tonight's tandas and setting a transition to Fade"/></a>
+<p align="center"><a href="media/readme/booth.mp4"><img src="media/readme/booth.gif" width="840" alt="The Booth on an iPad: starting the night, Floor full on a song, finding Troilo in tonight's tandas and setting a transition to Fade"/></a></p>
 
 On an iPad in landscape the Booth is one screen: what plays now, the clock to La Cumparsita, the set list in its
 own column, and one row of transport buttons at the bottom. What I use during a night:
@@ -59,9 +59,9 @@ own column, and one row of transport buttons at the bottom. What I use during a 
   curves and EQ, and a play button to hear it.
 - Pick your headphones as a second output to pre-listen without the room hearing it.
 
-<p>
-<img src="media/readme/transitions.webp" width="64%" alt="The transition editor between two songs, with Fade picked"/>
-<img src="media/readme/booth-phone.webp" width="34%" alt="The Booth on an iPhone, playing"/>
+<p align="center">
+<img src="media/readme/transitions.webp" height="330" alt="The transition editor between two songs, with Fade picked"/>
+<img src="media/readme/booth-phone.webp" height="330" alt="The Booth on an iPhone, playing"/>
 </p>
 
 **Spotify on the iPad and the iPhone.** Safari and the iPhone and iPad apps can't play Spotify inside the page, so
@@ -74,13 +74,13 @@ skips the rest of the night because one start failed.
 the length against the target, the big four, the energy arc, the rhythm cycle and the cortinas, each with a
 one-tap fix. On the right it suggests whole tandas for the next slot and says why each one fits.
 
-<a href="media/readme/build.mp4"><img src="media/readme/build.gif" alt="Build by hand: adding the suggested tango tanda, then the next one"/></a>
+<p align="center"><a href="media/readme/build.mp4"><img src="media/readme/build.gif" width="840" alt="Build by hand: adding the suggested tango tanda, then the next one"/></a></p>
 
 **Search that forgives typing.** The Library and the Database share one search. It ignores accents and copes
 with typos ("ventaron" finds Ventarrón), and you can type words in any order: "di sarli 1941 instrumental",
 "pugliese 40s", "otv vals". Tap a row to hear it.
 
-<a href="media/readme/search.mp4"><img src="media/readme/search.gif" alt="Library search: a misspelt title, then Di Sarli 1941 instrumentals, one of them playing"/></a>
+<p align="center"><a href="media/readme/search.mp4"><img src="media/readme/search.gif" width="840" alt="Library search: a misspelt title, then Di Sarli 1941 instrumentals, one of them playing"/></a></p>
 
 **Learns what works on the floor.** In the Booth I mark a song Floor full, OK or Floor emptied. Dancers can open
 the room's link on their phones and heart the song that is playing; nobody's name is kept, only counts. Popularity
@@ -88,12 +88,12 @@ from published DJ sets, set lists and Deezer gives a starting point before you h
 favourite weighs more in the part of the night where it worked, and never overrides a tanda rule. Praise a tanda
 and it counts as one Floor full for its songs.
 
-<img src="media/readme/memory.webp" width="640" alt="Database, Memory: dancer favourites switched on and the songs most popular with DJs"/>
+<p align="center"><img src="media/readme/memory.webp" width="840" alt="Database, Memory: dancer favourites switched on and the songs most popular with DJs"/></p>
 
 Your edits teach it too: swaps, pinned tandas, thumbs up and down on a night. Settings shows what it learned as a
 list you can weigh up or down, delete, or switch off.
 
-<img src="media/readme/settings.webp" width="640" alt="Settings: what T-DJ learned from the edits to the featured night, each rule with its weight"/>
+<p align="center"><img src="media/readme/settings.webp" width="840" alt="Settings: what T-DJ learned from the edits to the featured night, each rule with its weight"/></p>
 
 **Asks before breaking a rule.** If an edit would break a tanda rule (two orchestras in one tanda, years too far
 apart), T-DJ tells you what is wrong, offers up to three alternatives, and lets you do it your way for this night
@@ -103,25 +103,25 @@ only.
 (Anthropic, OpenAI, Gemini or OpenRouter) a model reads the request. Without a key, T-DJ reads it by keyword,
 which covers most of what I ask for in the middle of a night.
 
-<a href="media/readme/ai-edit.mp4"><img src="media/readme/ai-edit.gif" alt="Edit with AI: typing make tanda 7 calmer and getting a checked change with Undo"/></a>
+<p align="center"><a href="media/readme/ai-edit.mp4"><img src="media/readme/ai-edit.gif" width="840" alt="Edit with AI: typing make tanda 7 calmer and getting a checked change with Undo"/></a></p>
 
 **Rooms.** Two DJs can work on one night. I make a room and show the code, the other DJ joins from a phone, and
 each edit shows up on both sides, with who made it in the log. On the web, rooms are kept in the deployment's
 database for 90 days after the last change; the iPhone, iPad and Mac apps use rooms through a linked T-DJ server.
 
-<a href="media/readme/rooms.mp4"><img src="media/readme/rooms.gif" alt="Two DJs in one room: a laptop and a phone showing the same night, edits arriving on both"/></a>
+<p align="center"><a href="media/readme/rooms.mp4"><img src="media/readme/rooms.gif" width="840" alt="Two DJs in one room: a laptop and a phone showing the same night, edits arriving on both"/></a></p>
 
 **Share a night.** Export, then Share: a link, a `.tdjnight` file or a QR code. It opens on any phone, iPad or Mac
 and lands in History.
 
-<a href="media/readme/share.mp4"><img src="media/readme/share.gif" alt="Sharing the featured night as a QR code"/></a>
+<p align="center"><a href="media/readme/share.mp4"><img src="media/readme/share.gif" width="840" alt="Sharing the featured night as a QR code"/></a></p>
 
 **Your own database.** Every recording, orchestra, cortina and rule can be edited, and your edits travel with your
 nights. The era badges come from the orchestra heatmap, so you can see at a glance whether a side is from an
 orchestra's best years. Artwork shows on every row, with the orchestra's initials when there is
 none.
 
-<img src="media/readme/database-orchestras.webp" width="640" alt="Database, Orchestras: each orchestra's years graded on the heatmap"/>
+<p align="center"><img src="media/readme/database-orchestras.webp" width="840" alt="Database, Orchestras: each orchestra's years graded on the heatmap"/></p>
 
 The index is mostly the golden age, but contemporary orchestras can be added from their Spotify releases with
 `pnpm orchestra:import`. Sexteto Cristal is the first: 27 sides from *Viento del Norte* (2018) and *Loca de amor*
@@ -130,15 +130,15 @@ The index is mostly the golden age, but contemporary orchestras can be added fro
 **In Turkish, too.** The app and its store pages speak Turkish as well as English. Settings → Language follows your
 system or lets you choose.
 
-<img src="media/readme/turkish.webp" width="640" alt="T-DJ in Turkish"/>
+<p align="center"><img src="media/readme/turkish.webp" width="840" alt="T-DJ in Turkish"/></p>
 
 It runs on the iPhone and the iPad as well, as the same app from the App Store or in the browser, and there is a
 dark mode for a dim room. On the iPhone the Booth's transport sits where the tab bar was, above the home indicator,
 and the set list opens from it.
 
-<p>
-<img src="media/readme/ipad.webp" width="64%" alt="T-DJ on an iPad in landscape"/>
-<img src="media/readme/phone.webp" width="34%" alt="T-DJ on an iPhone in dark mode"/>
+<p align="center">
+<img src="media/readme/ipad.webp" height="330" alt="T-DJ on an iPad in landscape"/>
+<img src="media/readme/phone.webp" height="330" alt="T-DJ on an iPhone in dark mode"/>
 </p>
 
 More screens: [Booth on iPad](media/readme/booth.webp) · [Build by hand](media/readme/build.webp) ·

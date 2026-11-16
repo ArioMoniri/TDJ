@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="40" viewBox="0 0 128 40" role="img" aria-label="Download the Mac DMG">
+<title>Download the Mac DMG</title>
+<rect x="0.5" y="0.5" width="127" height="39" rx="6.5" fill="#fff" stroke="#a6a6a6"/>
+<g fill="none" stroke="#000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11v12M16.5 18.5 21 23l4.5-4.5"/><path d="M13 25.5v2.5h16v-2.5"/></g>
+<text x="38" y="15.5" fill="#000" font-family="-apple-system, 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="8.5" letter-spacing="0.2">Download the</text>
+<text x="37.5" y="31" fill="#000" font-family="-apple-system, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16.5" font-weight="500" letter-spacing="-0.3">Mac DMG</text>
+</svg>
