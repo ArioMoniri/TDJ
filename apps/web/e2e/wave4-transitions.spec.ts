@@ -586,9 +586,35 @@ async function frameChecks(page: Page, o: { panel: boolean }) {
         out.push(`${name} y ${r.top}…${r.bottom}`);
     }
     const svg = panelEl.querySelector(".trx-stage > svg")!;
-    const sidebar = document.querySelector<HTMLElement>('[data-testid="sidebar"]');
-    const sideR =
-      sidebar && getComputedStyle(sidebar).display !== "none" ? sidebar.getBoundingClientRect() : null;
+    // the content area: right of the lg sidebar, or of the rail it leaves when collapsed (2026-11): `main`'s edge
+    const contentLeft = innerWidth >= 1024 ? document.querySelector("main")!.getBoundingClientRect().left : 0;
+    // 2026-11 (design review): one content edge for every block, the lanes in a clipped stage card, a visible title
+    const inset = (sel: string) => {
+      const e = panelEl.querySelector(sel);
+      if (!e) return null;
+      const r = e.getBoundingClientRect();
+      return [Math.round(r.left - panel.left), Math.round(panel.right - r.right)];
+    };
+    const edges = {
+      close: inset('[data-testid="booth-tr-close"]'),
+      save: inset('[data-testid="booth-tr-save"]'),
+      out: inset('[data-testid="booth-tr-out"]'),
+      in: inset('[data-testid="booth-tr-in"]'),
+      stage: inset(".trx-stage-wrap"),
+      presetsHead: inset(".trx-presets-head"),
+      rows: inset(".trx-rows"),
+    };
+    const tiles = [...panelEl.querySelectorAll(".trx-presets > button")].map((b) =>
+      b.getBoundingClientRect(),
+    );
+    const titleEl = panelEl.querySelector<HTMLElement>('[data-testid="booth-tr-title"]');
+    const title = titleEl
+      ? { w: titleEl.getBoundingClientRect().width, cut: titleEl.scrollWidth > titleEl.clientWidth + 1 }
+      : null;
+    const wrap = panelEl.querySelector<HTMLElement>(".trx-stage-wrap")!;
+    const firstBlock = panelEl.querySelector(".trx-scroll > *")!.getBoundingClientRect();
+    const band = firstBlock.top - panelEl.querySelector(".trx-top")!.getBoundingClientRect().bottom;
+    const scroll = panelEl.querySelector<HTMLElement>(".trx-scroll")!;
     // the track rows: no lone dash where an unknown BPM or key would be
     const dashes = [...panelEl.querySelectorAll(".trx-facts *")].filter(
       (e) => e.textContent?.trim() === "–",
@@ -601,7 +627,13 @@ async function frameChecks(page: Page, o: { panel: boolean }) {
       tops: top.map((r) => r.top),
       out,
       svgClip: getComputedStyle(svg).overflow,
-      contentLeft: sideR ? sideR.right : 0,
+      contentLeft,
+      edges,
+      tiles: tiles.length ? [tiles[0]!.left - panel.left, panel.right - tiles.at(-1)!.right] : [],
+      title,
+      wrapClip: getComputedStyle(wrap).overflow,
+      band,
+      fade: scroll.scrollHeight > scroll.clientHeight + 4 ? scroll.hasAttribute("data-more") : true,
       vw: innerWidth,
       vh: innerHeight,
       dashes,
@@ -616,6 +648,21 @@ async function frameChecks(page: Page, o: { panel: boolean }) {
   expect(m.svgClip).toBe("hidden");
   expect(m.dashes).toBe(0);
   if (o.panel) {
+    // one 24 px content edge: the header, the songs, the stage card, the presets and the rows; the tiles fill it
+    const L = m.edges.close![0]!;
+    for (const [k, v] of Object.entries(m.edges)) {
+      if (!v) continue;
+      if (k !== "save") expect(Math.abs(v[0]! - L), `${k} left ${v[0]} vs ${L}`).toBeLessThanOrEqual(1);
+      if (k !== "close") expect(Math.abs(v[1]! - L), `${k} right ${v[1]} vs ${L}`).toBeLessThanOrEqual(1);
+    }
+    expect(Math.abs(m.tiles[0]! - L)).toBeLessThanOrEqual(1);
+    expect(Math.abs(m.tiles[1]! - L)).toBeLessThanOrEqual(1);
+    expect(m.wrapClip).toBe("hidden");
+    // a visible title; no empty band under the header; the list's foot fades while more is below
+    expect(m.title?.w ?? 0).toBeGreaterThan(20);
+    expect(m.title?.cut).toBe(false);
+    expect(m.band).toBeLessThanOrEqual(12);
+    expect(m.fade).toBe(true);
     // a panel at most 760 px wide, centred in the content area, with a margin to the viewport's edges
     expect(m.panel.w).toBeLessThanOrEqual(760);
     expect(Math.abs(m.panel.x + m.panel.w / 2 - (m.contentLeft + m.vw) / 2)).toBeLessThanOrEqual(2);
@@ -693,6 +740,51 @@ for (const [name, use, o] of FRAMES)
     if (SHOTS) await shot(page, `frame-${name}`);
     await ctx.close();
   });
+
+test("design review: the editor follows the light theme; disabled Save and None at ≥ 3:1", async ({
+  browser,
+}) => {
+  const ctx = await browser.newContext({ ...touch(1180, 820), colorScheme: "light" });
+  await ctx.addInitScript(() => localStorage.setItem("tdj-booth-theme", "light"));
+  const page = await ctx.newPage();
+  await openBooth(page);
+  const i = await song4(page);
+  const marker = page.locator(`[data-testid="booth-gap"][data-from="${i}"]`);
+  await marker.scrollIntoViewIfNeeded();
+  await marker.click();
+  const ed = page.getByTestId("booth-transition-sheet");
+  await expect(ed.getByTestId("booth-tr-stage")).toBeVisible();
+  await page.waitForTimeout(400);
+  const m = await ed.evaluate((el) => {
+    const rgb = (v: string) => (v.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number) as [number, number, number];
+    const lum = (c: number[]) =>
+      c
+        .map((v) => {
+          const s = v / 255;
+          return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+        })
+        .reduce((a, v, k) => a + v * [0.2126, 0.7152, 0.0722][k]!, 0);
+    const ratio = (a: number[], b: number[]) => {
+      const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
+      return (x! + 0.05) / (y! + 0.05);
+    };
+    const bg = rgb(getComputedStyle(el).backgroundColor);
+    const save = el.querySelector<HTMLButtonElement>('[data-testid="booth-tr-save"]')!;
+    const none = [...el.querySelectorAll<HTMLElement>(".trx-row:disabled .trx-row-value")];
+    return {
+      bgLum: lum(bg),
+      label: ratio(rgb(getComputedStyle(el).color), bg),
+      save: save.disabled ? ratio(rgb(getComputedStyle(save).color), bg) : 99,
+      none: none.map((n) => ratio(rgb(getComputedStyle(n).color), bg)),
+    };
+  });
+  expect(m.bgLum, "a light editor in the light theme").toBeGreaterThan(0.8);
+  expect(m.label).toBeGreaterThanOrEqual(7);
+  expect(m.save).toBeGreaterThanOrEqual(3);
+  for (const r of m.none) expect(r).toBeGreaterThanOrEqual(3);
+  if (SHOTS) await shot(page, "design-light-editor");
+  await ctx.close();
+});
 
 /* ---------- the owner's iPhone feedback: the tab capsule over the guide box ---------- */
 

@@ -275,6 +275,23 @@ function Editor({
   const [unit, setUnit] = useState<"bars" | "sec">(bpm ? "bars" : "sec");
   const dirty = JSON.stringify(draft) !== JSON.stringify(stored ?? null);
   const root = useRef<HTMLDivElement>(null);
+  // layout only (2026-11 design review): the list's foot fades while more of it is below (`data-more`)
+  const scrollBox = useRef<HTMLDivElement>(null);
+  const [moreBelow, setMoreBelow] = useState(false);
+  useEffect(() => {
+    const el = scrollBox.current;
+    if (!el) return;
+    const read = () => setMoreBelow(el.scrollHeight - el.clientHeight - el.scrollTop > 4);
+    read();
+    el.addEventListener("scroll", read, { passive: true });
+    const ro = typeof ResizeObserver === "function" ? new ResizeObserver(read) : null;
+    ro?.observe(el);
+    if (el.firstElementChild) ro?.observe(el.firstElementChild);
+    return () => {
+      el.removeEventListener("scroll", read);
+      ro?.disconnect();
+    };
+  }, []);
 
   useEffect(() => {
     let live = true;
@@ -434,7 +451,13 @@ function Editor({
         >
           <X size={22} strokeWidth={2.25} aria-hidden />
         </button>
-        <span className="flex-1" />
+        {/* the editor's visible title, centred between Close and the actions (the dialog's name is the h2 above) */}
+        <span className="trx-head" aria-hidden data-testid="booth-tr-heading">
+          <span className="trx-head-title" data-testid="booth-tr-title">
+            {t("booth.transition.title")}
+          </span>
+          <span className="trx-head-sub">{`${sideName(a)} → ${sideName(b)}`}</span>
+        </span>
         <span className="trx-beta" data-hint={t("booth.transition.beta_hint")}>
           {t("booth.transition.beta")}
         </span>
@@ -464,7 +487,7 @@ function Editor({
       {/* a toast raised while the editor is open lands here (Toast.tsx portals into the topmost slot) */}
       <div className="sheet-status-slot trx-status" data-sheet-status />
 
-      <div className="trx-scroll hide-scrollbar">
+      <div className="trx-scroll hide-scrollbar" ref={scrollBox} data-more={moreBelow || undefined}>
         <Side row={a} entity={ea} which="out" bpmOn={ind.bpm} keyOn={ind.key} />
         <Stage
           a={a}
