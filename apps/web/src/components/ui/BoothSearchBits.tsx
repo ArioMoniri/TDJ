@@ -145,9 +145,16 @@ export function HitRow({
   testId,
   whereTestId,
   data,
+  onArt,
+  artLabel,
+  artDisabled,
 }: {
   where?: ReactNode;
   art: ReactNode;
+  /** a tap on the cover: the same action as the row's play / pre-listen button */
+  onArt?: () => void;
+  artLabel?: string;
+  artDisabled?: boolean;
   title: ReactNode;
   sub: ReactNode;
   length?: string;
@@ -173,7 +180,21 @@ export function HitRow({
           {where}
         </span>
       )}
-      <span className="flex-none">{art}</span>
+      {/* 2026-11: the cover does what the row's play button does (pre-listen, or Play now with its confirmation) */}
+      {onArt ? (
+        <button
+          type="button"
+          className="grid min-h-11 min-w-11 flex-none place-items-center disabled:opacity-60"
+          aria-label={artLabel}
+          disabled={artDisabled}
+          onClick={onArt}
+          data-testid="hit-art-play"
+        >
+          {art}
+        </button>
+      ) : (
+        <span className="flex-none">{art}</span>
+      )}
       <span className={`min-w-0 flex-1 ${dim ? "opacity-60" : ""}`}>
         <span className="text-subhead block truncate font-semibold">{title}</span>
         <span className="text-footnote block truncate text-[var(--label-2)]">

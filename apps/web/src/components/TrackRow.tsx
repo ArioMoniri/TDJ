@@ -1,5 +1,15 @@
 "use client";
-import { ArrowDown, ArrowUp, AudioWaveform, GripVertical, LoaderCircle, Repeat2, Search } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  AudioWaveform,
+  GripVertical,
+  ListMusic,
+  LoaderCircle,
+  Play,
+  Repeat2,
+  Search,
+} from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import dynamic from "next/dynamic";
 import { memo, useCallback, useMemo, useState } from "react";
@@ -395,6 +405,17 @@ export const TrackRow = memo(function TrackRow({
                 icon: ArrowDown,
                 onClick: () => onMove(k, k + 1),
                 disabled: k >= (count ?? 0) - 1,
+              },
+              // 2026-11: this song only, or on from it to the end of the night (whatever the tap setting says)
+              {
+                label: t("play.play_this_song"),
+                icon: Play,
+                onClick: () => void play.tap({ find: openFind, scope: "one" }),
+              },
+              {
+                label: t("play.play_from_here"),
+                icon: ListMusic,
+                onClick: () => void play.tap({ find: openFind, scope: "from" }),
               },
               { label: t("trackRow.find_on_services"), icon: Search, onClick: openFind },
               {

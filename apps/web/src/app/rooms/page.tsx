@@ -36,6 +36,7 @@ import { QrCode } from "@/components/QrCode";
 import { Sheet } from "@/components/Sheet";
 import { TipRow } from "@/components/TipRow";
 import { Segmented } from "@/components/ui";
+import { TandaPlayCover } from "@/components/ui/TandaPlay";
 import { Tip } from "@/components/ui/Tip";
 import { nativeInfo } from "@/lib/app/native";
 import { APP } from "@/lib/app/target";
@@ -459,7 +460,9 @@ export default function RoomsPage() {
                         data-leading="art"
                         data-testid={`room-tanda-${i + 1}`}
                       >
-                        <RhythmTile rhythm={t.rhythm} />
+                        <TandaPlayCover tanda={i} night={playlist}>
+                          <RhythmTile rhythm={t.rhythm} />
+                        </TandaPlayCover>
                         <span className="min-w-0 flex-1">
                           <span
                             className={`block truncate ${t.bypass ? "text-[var(--label-3)] line-through" : ""}`}

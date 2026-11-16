@@ -40,17 +40,56 @@ export function pickSource(i: SourceInputs): SourcePick {
   return null;
 }
 
+/**
+ * What this device's Spotify can do for a tap (2026-11, the owner: "it says no Spotify Premium — I have Premium"):
+ * - `signed-out`: no Spotify session on this device (the hosted login, or the app's own) — the DJ may well have
+ *   Premium, it is just not connected here;
+ * - `reconnect`: a session without the playback scopes (an older consent);
+ * - `free`: Spotify says the account is not Premium (`product` from /v1/me);
+ * - `premium`: Premium, or a session whose profile leaves `product` out (no `user-read-private`, some app modes):
+ *   tried, like the Booth (round 21) — the player itself reports a non-Premium account;
+ * - `unknown`: not asked yet.
+ */
+export type SpotifyPlay = "unknown" | "signed-out" | "reconnect" | "free" | "premium";
+export const STREAMING_SCOPES = ["streaming", "user-modify-playback-state", "user-read-playback-state"];
+/** the state from /api/spotify/me's answer (`user` with `product`, the granted `scopes`) */
+export function spotifyPlayOf(
+  me: { user?: { product?: string | null } | null; scopes?: string[] | null } | null,
+): SpotifyPlay {
+  if (!me?.user) return "signed-out";
+  const scopes = Array.isArray(me.scopes) ? me.scopes : null;
+  if (scopes && !STREAMING_SCOPES.every((x) => scopes.includes(x))) return "reconnect";
+  const product = typeof me.user.product === "string" ? me.user.product : null;
+  if (product !== null && product !== "premium") return "free";
+  return "premium";
+}
+
 /** why nothing plays, as a key of the play.* strings */
-export type NoAudioWhy = "no_audio_premium" | "no_audio_connect" | "no_audio";
+export type NoAudioWhy =
+  | "no_audio_premium"
+  | "no_audio_connect"
+  | "no_audio_reconnect"
+  | "no_audio_unmatched"
+  | "no_audio";
 export function noAudioWhy(i: {
   connected: boolean;
   premium: boolean | null;
+  spotify?: SpotifyPlay;
   spotifyUri?: string | null;
 }): NoAudioWhy {
-  // a Spotify track exists but the account cannot stream it here
-  if (i.spotifyUri && i.connected && i.premium === false) return "no_audio_premium";
-  if (i.spotifyUri && !i.connected) return "no_audio_connect";
+  const sp: SpotifyPlay =
+    i.spotify ??
+    (i.premium === true ? "premium" : i.premium === false ? "free" : i.connected ? "unknown" : "signed-out");
+  // no Spotify recording and no preview: the side is not matched yet — whatever the account (never "no Premium")
+  if (!isSpotifyTrackUri(i.spotifyUri)) return "no_audio_unmatched";
+  if (sp === "signed-out" || sp === "unknown") return "no_audio_connect";
+  if (sp === "reconnect") return "no_audio_reconnect";
+  if (sp === "free") return "no_audio_premium";
   return "no_audio";
+}
+/** the action a "no audio" toast offers: connect Spotify here, reconnect it, or find the side on a service */
+export function noAudioAction(why: NoAudioWhy): "connect" | "reconnect" | "find" {
+  return why === "no_audio_connect" ? "connect" : why === "no_audio_reconnect" ? "reconnect" : "find";
 }
 
 /** where a tap sounds: the app's player, or (a night is running in the Booth) the headphones only */

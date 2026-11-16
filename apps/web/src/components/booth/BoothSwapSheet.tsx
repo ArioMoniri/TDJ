@@ -388,6 +388,8 @@ export function BoothSwapSheet() {
         data={{ id: x.song.id, ok: x.ok ? "1" : x.asks ? "asks" : "0" }}
         dim={!x.ok}
         art={<Artwork entity={s} orchestra={x.song.orchestra} size={40} />}
+        onArt={() => (hearing === x.song.id ? stop() : void listen({ song: s }))}
+        artLabel={tx("boothSwap.preview", { title: x.song.title })}
         title={
           <>
             {x.favourite && (
@@ -438,6 +440,8 @@ export function BoothSwapSheet() {
       testId={list === "s" ? "booth-swap-suggestion" : "booth-swap-result"}
       data={{ id: c.id, ok: "1" }}
       art={<Artwork entity={c} orchestra={c.artist} size={40} />}
+      onArt={() => (hearing === c.id ? stop() : void listen({ song: c as unknown as Song }))}
+      artLabel={tx("boothSwap.preview", { title: c.title })}
       title={c.title}
       sub={[c.artist, c.genre, c.year ? String(c.year) : null].filter(Boolean).join(" · ")}
     >
@@ -579,6 +583,8 @@ export function BoothSwapSheet() {
                         size={40}
                       />
                     }
+                    onArt={() => (hearing !== null && hearing === o.id ? stop() : void listen({ i: h.i }))}
+                    artLabel={tx("boothSwap.preview", { title: o.title })}
                     title={o.title}
                     sub={[o.artist, yearText(o.year)].filter(Boolean).join(" · ")}
                     length={durationLabel(o.lengthSec)}

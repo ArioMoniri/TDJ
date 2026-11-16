@@ -1,5 +1,6 @@
 "use client";
 import { create } from "zustand";
+import type { PlayScope } from "./playScope";
 import type { Cortina, Song } from "./types";
 
 /**
@@ -20,14 +21,20 @@ export const externalAudio = (s: PlayerSource | null | undefined) =>
 
 /** one row a tap can play: a side or a cortina */
 export type PlayItem =
-  | { kind: "song"; song: Song; where?: string }
-  | { kind: "cortina"; cortina: Cortina; where?: string };
+  | { kind: "song"; song: Song; where?: string; tanda?: number }
+  | { kind: "cortina"; cortina: Cortina; where?: string; tanda?: number };
 export const playKey = (it: PlayItem) => (it.kind === "song" ? it.song.id : `cortina:${it.cortina.id}`);
 /** the list a tap came from (a tanda, the night, a search): the mini player steps through it */
 export interface PlayerList {
   label: string;
   items: PlayItem[];
   index: number;
+  /** 2026-11: the rows this play covers (lib/playScope.ts); a track that ends hands over inside it */
+  scope?: PlayScope | null;
+  /** what the mini player says the scope is ("Tanda 4 only", "From tanda 4 to the end") */
+  scopeLabel?: string;
+  /** a pre-listen: each row plays this many seconds from its start */
+  clipSec?: number;
 }
 
 export interface PlayerTrack {
@@ -126,12 +133,20 @@ export const usePlayer = create<PlayerState>()((set, get) => ({
   seek: (position) => set({ position }),
   _tick: (position, duration) => {
     const q = get().queue;
-    const stop = stopAt(get().track, q);
+    const stop = stopAt(get().track, q, get().list?.clipSec);
     // a chained preview hands over to the next track after its clip; a cortina at its play length
-    if (stop !== null && position >= stop) return get().next();
+    // (once: the element may tick again after the hand-over paused it)
+    if (stop !== null && position >= stop) return get().playing ? get()._ended() : undefined;
     set({ position, duration });
   },
-  _ended: () => get().next(),
+  _ended: () => {
+    const l = get().list;
+    // 2026-11: a list play hands over inside its scope (lib/playback.ts registers the step); else it stops
+    if (!get().queue && l && listEnd) {
+      return listEnd();
+    }
+    get().next();
+  },
   _error: (error) => {
     // a chain skips a preview that fails instead of stopping the tanda
     if (get().queue) return get().next();
@@ -139,12 +154,29 @@ export const usePlayer = create<PlayerState>()((set, get) => ({
   },
 }));
 
-/** Where this track stops on its own: the chain's clip, the track's own stop (cortinas), the shorter of the two. */
-export function stopAt(t: PlayerTrack | null, q: PlayerQueue | null): number | null {
+/**
+ * Where this track stops on its own: the chain's clip, the track's own stop (cortinas), the shorter of the two; a list
+ * pre-listen (`listClip`) stops `listClip` seconds after the track's start.
+ */
+export function stopAt(
+  t: PlayerTrack | null,
+  q: PlayerQueue | null,
+  listClip?: number | null,
+): number | null {
   const own = t?.stopSec && t.stopSec > 0 ? t.stopSec : null;
   if (q && own) return Math.min(q.clipSec, own);
   if (q) return q.clipSec;
+  if (listClip && listClip > 0) {
+    const clip = (t?.startSec ?? 0) + listClip;
+    return own ? Math.min(own, clip) : clip;
+  }
   return own;
+}
+
+/** what happens when a list's track ends (lib/playback.ts: the next row inside the scope, or a clean stop) */
+let listEnd: (() => void) | null = null;
+export function onListEnd(fn: (() => void) | null) {
+  listEnd = fn;
 }
 
 const spotifyId = (uri: string) => uri.replace(/^spotify:track:/, "");

@@ -12,6 +12,7 @@ import {
   LoaderCircle,
   Music2,
   Palette,
+  Play,
   ShieldCheck,
   Sparkles,
   Timer,
@@ -380,6 +381,28 @@ export default function Settings() {
             tile={
               <Tile color="#ff9500">
                 <ShieldCheck size={16} strokeWidth={2} />
+              </Tile>
+            }
+          />
+        </Group>
+
+        {/* 2026-11: what follows a tap on a song or tanda (outside a running Booth night) */}
+        <Group
+          header={tx("settings.playback")}
+          footer={tx("settings.tap_play_footer")}
+          data-testid="settings-playback"
+        >
+          <SegmentedRow
+            label={tx("settings.tap_play")}
+            value={settings.tapPlay ?? "continue"}
+            items={[
+              ["only", tx("settings.tap_play_only")],
+              ["continue", tx("settings.tap_play_continue")],
+            ]}
+            onChange={(v) => setSettings({ tapPlay: v })}
+            tile={
+              <Tile color="#34c759">
+                <Play size={16} strokeWidth={2} fill="currentColor" />
               </Tile>
             }
           />
