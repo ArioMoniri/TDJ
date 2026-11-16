@@ -11,7 +11,7 @@ import { tandaNote } from "@/lib/djMessage";
 import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
 import { lazy, lower, t as tx } from "@/lib/i18n";
-import { type Cue, fmtLen, sidePlaySec, tandaTotal, totalText } from "@/lib/lengths";
+import { type Cue, fmtLen, lengthOf, tandaTotal, totalText } from "@/lib/lengths";
 import { CARD_STAGGER_CAP, DUR, EASE, STAGGER } from "@/lib/motion";
 import { cortinaWindow, PlayListContext, useTapPlay } from "@/lib/playback";
 import { type PlayItem, sourceFor, trackFor, usePlayer } from "@/lib/player";
@@ -457,7 +457,7 @@ function TandaCardImpl({
             <AnimatePresence mode="popLayout" initial={false}>
               {t.songs.map((s, k) => (
                 <TrackRow
-                  lengthSec={sidePlaySec(s.durationSec, cues?.[s.id])}
+                  lengthSec={lengthOf(s, cues)}
                   count={t.songs.length}
                   onMove={canMove ? moveTrack : undefined}
                   dragHandle={canMove ? drag : undefined}

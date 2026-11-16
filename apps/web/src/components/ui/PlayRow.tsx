@@ -3,8 +3,8 @@ import { Play } from "lucide-react";
 import { type ReactNode, useMemo } from "react";
 import { haptic } from "@/lib/haptics";
 import { t } from "@/lib/i18n";
-import { fmtLen, nightTotal, totalText } from "@/lib/lengths";
-import { cortinaWindow, useTapPlay } from "@/lib/playback";
+import { fmtLen, nightLength, totalText } from "@/lib/lengths";
+import { useTapPlay } from "@/lib/playback";
 import type { PlayItem } from "@/lib/player";
 import { useStore } from "@/lib/store";
 import type { Cortina, Playlist, Song } from "@/lib/types";
@@ -127,16 +127,8 @@ export function CortinaPlayButton({ cortina, where }: { cortina: Cortina; where?
 /** the night's played length (cues, cortinas from their start for their length), "≈" when a length is unknown */
 export function useNightLength(p: Playlist | null | undefined) {
   const settings = useStore((s) => s.settings);
-  return useMemo(() => {
-    if (!p) return null;
-    const edits = p.booth?.cortinaEdits;
-    return nightTotal(p, p.booth?.songCues, (c) => {
-      const cort = p.tandas.find((x) => x.cortina?.id === c.id)?.cortina;
-      if (!cort) return null;
-      const w = cortinaWindow(cort, { settings, edits });
-      return w.stop - w.start;
-    });
-  }, [p, settings]);
+  // 2026-11: the same seconds as the Booth plan (lib/lengths `nightLength`)
+  return useMemo(() => (p ? nightLength(p, settings) : null), [p, settings]);
 }
 
 export function NightLength({

@@ -35,6 +35,7 @@ import { haptic } from "@/lib/haptics";
 import { changeLabel, eraLabel, groupByDay, nightLogSummary, versionsOf } from "@/lib/history";
 import { useMediaQuery } from "@/lib/hooks";
 import { fmtTime, lazy, t as tx } from "@/lib/i18n";
+import { nightMusicSec } from "@/lib/lengths";
 import { reduced as reducedV, rise } from "@/lib/motion";
 import { lengthText } from "@/lib/nightName";
 import { nightItems, PlayListContext } from "@/lib/playback";
@@ -213,9 +214,8 @@ export default function HistoryPage() {
   /** "4 h · 22 tandas · Golden age · Two peaks · rehearsed 06:36" (no ISO dates, no repeat of the title) */
   const sub = (s: HistorySnapshot) =>
     tx("history.tandas_2", {
-      p1: s.playlist.stats?.durationSec
-        ? lengthText(s.playlist.stats.durationSec)
-        : fmtH(s.playlist.options.hours),
+      // 2026-11: the night's music as Compose and the Booth print it (lib/lengths)
+      p1: nightMusicSec(s.playlist) ? lengthText(nightMusicSec(s.playlist)!) : fmtH(s.playlist.options.hours),
       length: s.playlist.tandas.length,
       p2: eraLabel(s.playlist),
       p3: ARC[s.playlist.options.arc] ?? s.playlist.options.arc,
