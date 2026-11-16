@@ -284,7 +284,7 @@
   padding: 0 12px;
   border-radius: 12px;
   background: var(--fill-4);
-  font-size: 14px;
+  font-size: var(--text-subhead);
   font-weight: 600;
   color: var(--label);
 }
@@ -333,7 +333,7 @@
   padding: 0 12px;
   border-radius: 12px;
   background: var(--fill-4);
-  font-size: 14px;
+  font-size: var(--text-subhead);
   font-weight: 600;
   color: var(--label);
 }
@@ -1237,7 +1237,7 @@ html[data-booth] {
   min-height: 44px;
   padding: 0 16px;
   border-radius: 999px;
-  font-size: 14px;
+  font-size: var(--text-subhead);
   font-weight: 600;
   color: var(--on-tint);
   background: var(--tint-fill);
@@ -1767,10 +1767,10 @@ html[data-booth] {
     padding: 10px 14px;
   }
   .booth-col-set .booth-night[data-compact] .booth-clock {
-    font-size: 28px;
+    font-size: var(--booth-timer-s);
   }
   .booth-col-set .booth-night[data-compact] .booth-big {
-    font-size: 30px;
+    font-size: var(--booth-timer-m);
   }
   .booth-col-set .booth-night[data-compact] > .mt-2 {
     margin-top: 6px;
@@ -1978,7 +1978,7 @@ html[data-booth] .sheet-material {
     grid-column: 2;
     grid-row: 2 / span 2;
     align-self: center;
-    font-size: 40px;
+    font-size: var(--booth-timer-l);
   }
   .booth[data-controls="open"] [data-testid="booth-now"] > .booth-now-meter {
     grid-row: 4;
@@ -2035,11 +2035,11 @@ html[data-booth] .sheet-material {
     text-overflow: ellipsis;
   }
   .booth[data-controls="open"] .booth-col-set > .booth-night .booth-clock {
-    font-size: 22px;
+    font-size: var(--booth-timer-xs);
   }
   .booth[data-controls="open"] .booth-col-set > .booth-night .booth-big {
     flex: none;
-    font-size: 24px;
+    font-size: var(--booth-timer-xs-big);
   }
   .booth[data-controls="open"] .booth-col-set > .booth-night > .booth-night-group {
     margin-top: 4px;
@@ -2399,4 +2399,429 @@ html[data-booth] {
   border-radius: 999px;
   color: var(--tint);
   background: color-mix(in srgb, var(--tint) 14%, transparent);
+}
+
+/* =====================================================================================================================
+   QA 2026-11 — the Booth's fix pass (docs: the QA report's items, numbered as there)
+   ===================================================================================================================== */
+
+/* 13: the timers keep their display sizes, through tokens (the type scale: title1 28, title2 22) */
+html[data-booth] {
+  --booth-timer-xl: 44px;
+  --booth-timer-l: 40px;
+  --booth-timer-m: 30px;
+  --booth-timer-s: var(--text-title1);
+  --booth-timer-xs: var(--text-title2);
+  --booth-timer-xs-big: 24px;
+}
+.booth .booth-big {
+  font-size: var(--booth-timer-xl);
+}
+.booth .booth-clock {
+  font-size: var(--booth-timer-s);
+}
+
+/* 14: the bottom capsules on a phone share one 16 px inset (the transport, the tab bar, the Booth's mini bar) */
+@media (max-width: 599.98px) {
+  html[data-booth] {
+    --bx-l: 16px;
+    --bx-r: 16px;
+  }
+  .booth-ctl {
+    left: 16px;
+    right: 16px;
+  }
+}
+
+/* 7: Scrub's keyboard slider is visually hidden INSIDE its card (it was positioned against the page: every Booth page
+   scrolled sideways, 2164 px wide at 1440) — the card is its containing block and clips it */
+.booth .booth-energy {
+  position: relative;
+  overflow: clip;
+}
+.booth .booth-energy > .booth-scrub-input {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  pointer-events: none;
+}
+.booth-scrub-out,
+.booth-scrub-out > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* 8: an iPhone SE (320): the glyph never collapses and the primary keeps 48 × 48 (the phone bar below fits 320) */
+.booth .booth-strip .booth-primary > svg {
+  flex: none;
+}
+@media (max-width: 599.98px) {
+  .booth .booth-strip .booth-primary {
+    min-width: 48px;
+  }
+}
+/* 5: with Controls open, the panel never repeats what the transport shows at this width (ControlsPanel marks them) */
+.booth .booth-ctl [data-dup] {
+  display: none;
+}
+.booth-ctl .booth-ctl-group[data-empty] {
+  display: none;
+}
+/* 5 / 9: a deck card that does not fit whole above the open panel steps aside (never cut in half); the panel's head
+   says what is hidden and brings it back (it closes the panel) */
+.booth .booth-deck > [data-fold] {
+  display: none;
+}
+
+/* 9: "Back to now" never covers a set-list control: an opaque bar at the column's foot (what scrolls under it is
+   hidden, never half-visible under a floating pill), and at the list's end it takes its own room */
+.booth .booth-to-now {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 52px;
+  margin: 8px 0 0;
+  padding: 4px 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: rgb(var(--bg-cell));
+  border-top: 1px solid var(--separator);
+  color: inherit;
+}
+.booth .booth-to-now > span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  font-size: var(--text-subhead);
+  font-weight: 600;
+  color: var(--on-tint);
+  background: var(--tint-fill);
+}
+/* with the Controls panel open the set list is its own scroller: the bar sits under it, in its own room */
+@media (min-width: 900px) {
+  .booth[data-controls="open"] .booth-col-set > .booth-to-now {
+    position: static;
+    flex: none;
+    margin: 0;
+  }
+}
+
+/* 10: the night card has the Now card's inset in every state (16 × 18, .booth-card; with the Controls panel open both
+   are the compact cards, 10 / 16 / 12); the countdown sits on its label's baseline */
+.booth .booth-night,
+.booth .booth-col-set .booth-night[data-compact] {
+  padding: 16px 18px;
+}
+@media (min-width: 900px) {
+  .booth[data-controls="open"] .booth-col-set > .booth-night {
+    padding: 10px 16px 12px;
+  }
+  /* 9: the open panel never squeezes the deck under its Now card (iPad landscape: a 229 px sliver cut it) — the
+     panel's cap leaves the deck the Now card's height (--booth-now-h, measured by the page); its rows fold under
+     "More" instead */
+  .booth[data-controls="open"] .booth-ctl {
+    max-height: min(
+      calc(
+        100dvh -
+        max(var(--booth-strip-space, 88px), var(--bottom-chrome)) -
+        6px -
+        var(--booth-ctl-top) -
+        8px
+      ),
+      calc(
+        100dvh -
+        var(--booth-grid-top, 200px) -
+        var(--booth-strip-space, 88px) -
+        var(--booth-now-h, 0px) -
+        var(--booth-gap, 12px) *
+        3 -
+        8px
+      )
+    );
+  }
+}
+.booth .booth-night-row > .text-right {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: flex-end;
+  column-gap: 8px;
+}
+.booth .booth-night-row > .text-right > .booth-eyebrow {
+  line-height: 1;
+}
+
+/* 12: the song sheet's CUE / STOP flags: 11 px (caption2) and ≥ 4.5:1 — dark words on the dark theme's light rose
+   (white was 2.63:1); the light theme's deep rose keeps white */
+.booth-wave-handle > span {
+  font-size: var(--text-caption2);
+  line-height: var(--text-caption2--line-height);
+}
+:root.dark .booth-wave-handle > span,
+:root[data-theme="dark"] .booth-wave-handle > span {
+  color: #1d0b12;
+}
+
+/* 6: the opening's note in Rehearsal (it has no clip: it plays on the night) */
+.booth-opening-note {
+  margin: 2px 12px 6px;
+  color: var(--label-2);
+}
+
+/* 15: Now playing full screen — the LRCLIB credit is a 44 px target like every link there (it was 45 × 16) */
+.now-view a[href^="https://lrclib.net"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  vertical-align: middle;
+}
+
+/* 5: the transport group gone (every button is on the bar at this width): Song takes the whole first row */
+@container ctl (min-width: 780px) {
+  .booth-ctl-body:has(> .booth-ctl-g-transport[data-empty]) {
+    grid-template-areas:
+      "song song song"
+      "cue mixer timing"
+      "tanda floor floor"
+      "keys keys keys";
+  }
+}
+
+/* =====================================================================================================================
+   2026-11 — the phone's Booth, to iOS 26 quality (the owner: "better navbar and design for the lower bar on the
+   phone"):
+   - top: the chips under the large title are one compact row — ROOM / HEADPHONES say themselves by their glyph (the
+     words stay the accessible names), Show is its glyph; the row scrolls with a soft edge where there is more;
+   - bottom: a music app's mini control bar — the cover and the sliding title (a tap opens Now playing), Previous, a
+     round Play / Pause, Next, Stop (its confirm), ••• (Set list, Controls, Mix); 16 px insets like the tab bar, above
+     the home indicator, opaque, and a scrim under it so nothing reads through or below it.
+   ===================================================================================================================== */
+@media (max-width: 599.98px) {
+  .booth-toolbar > .booth-out > .booth-out-word {
+    display: none;
+  }
+  .booth-toolbar > .booth-out,
+  .booth-toolbar > .booth-chip {
+    padding: 0 12px;
+  }
+  .booth-toolbar > [data-testid="booth-show"] {
+    position: relative;
+    width: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+  .booth-toolbar > [data-testid="booth-show"] > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .booth-out > .booth-out-name {
+    max-width: 14ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* the bar */
+  .booth .booth-strip.glass {
+    left: 16px;
+    right: 16px;
+    bottom: max(12px, env(safe-area-inset-bottom, 0px));
+    height: 64px;
+    min-height: 64px;
+    padding: 0 6px 0 8px;
+    gap: 4px;
+    justify-content: flex-start;
+    border-radius: 22px;
+    box-shadow:
+      0 0 0 0.5px var(--separator),
+      0 10px 30px rgb(0 0 0 / 0.28);
+  }
+  .booth .booth-strip.glass[data-started="false"] {
+    justify-content: center;
+  }
+  /* the cover and the title lead and take the room left */
+  .booth .booth-strip > .booth-strip-now-phone {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 44px;
+    min-height: 48px;
+    max-width: none;
+    align-items: center;
+    gap: 10px;
+    padding: 0 4px 0 0;
+    text-align: left;
+    border-radius: 12px;
+  }
+  .booth .booth-strip > .booth-strip-now-phone .booth-art {
+    --art: 40px;
+    flex: none;
+    border-radius: 8px;
+  }
+  .booth .booth-strip > .booth-strip-now-phone .booth-strip-now-t {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: var(--text-footnote);
+  }
+  .booth .booth-strip > .booth-strip-now-phone .booth-strip-now-t > span {
+    font-size: var(--text-caption1);
+  }
+  /* Play / Pause: round and prominent, glyph only (its word is its accessible name) */
+  .booth .booth-strip[data-started="true"] .booth-primary {
+    flex: 0 0 48px;
+    width: 48px;
+    min-width: 48px;
+    height: 48px;
+    min-height: 48px;
+    padding: 0;
+    border-radius: 999px;
+  }
+  .booth .booth-strip[data-started="true"] .booth-primary > .booth-start-label {
+    display: none;
+  }
+  .booth .booth-strip[data-started="true"] .booth-primary > svg {
+    width: 22px;
+    height: 22px;
+  }
+  .booth .booth-strip[data-started="true"] .booth-primary[data-tone="pause"] {
+    background: rgb(var(--text));
+    color: rgb(var(--bg-cell));
+  }
+  .booth .booth-strip .booth-tbtn {
+    flex: 0 0 44px;
+    width: 44px;
+    height: 48px;
+    min-height: 48px;
+    padding: 0;
+  }
+  /* Stop: a clear red glyph, no box (its confirm sheet asks) */
+  .booth .booth-strip .booth-tbtn.booth-stop.booth-stop-armed {
+    box-shadow: none;
+    color: var(--booth-danger);
+  }
+  /* a scrim under the bar: the set never reads below or through it, down to the screen's edge */
+  html[data-booth] .booth::after {
+    content: "";
+    position: fixed;
+    inset: auto 0 0 0;
+    height: calc(var(--booth-strip-space, 96px) + 12px);
+    z-index: 29;
+    pointer-events: none;
+    background: linear-gradient(to bottom, rgb(var(--bg-grouped) / 0), rgb(var(--bg-grouped)) 28px);
+  }
+}
+/* the iPhone SE (≤ 359 px): the title steps aside, the cover stays */
+@media (max-width: 359.98px) {
+  .booth .booth-strip > .booth-strip-now-phone {
+    flex: 0 0 44px;
+    min-width: 44px;
+    justify-content: center;
+    padding: 0;
+  }
+  .booth .booth-strip > .booth-strip-now-phone .booth-strip-now-t {
+    display: none;
+  }
+  .booth .booth-strip.glass {
+    gap: 2px;
+    padding: 0 4px;
+  }
+}
+
+/* =====================================================================================================================
+   2026-11 — the Energy tonight card (the owner: "UI button sizing, text justifying issue"): the title on one line with
+   Scrub as a compact pill at its centre line (a 44 px target around a 32 px pill), the chart drawn at the card's own
+   shape and the night's own range (EnergyRail.tsx, lib/booth/energyLayout.ts), the legend one grid whose columns line
+   up, left on the card's padding
+   ===================================================================================================================== */
+.booth .booth-energy-head {
+  flex-wrap: nowrap;
+  align-items: center;
+  min-height: 44px;
+}
+.booth .booth-energy-head > .booth-eyebrow {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  overflow-wrap: normal;
+}
+.booth .booth-scrub-toggle {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  min-height: 32px;
+  min-width: 0;
+  padding: 0 12px 0 10px;
+  border-radius: 999px;
+  font-size: var(--text-footnote);
+  line-height: 1;
+  white-space: nowrap;
+}
+/* the 44 px target around the 32 px pill */
+.booth .booth-scrub-toggle::after {
+  content: "";
+  position: absolute;
+  inset: -6px -2px;
+}
+.booth .booth-energy > svg {
+  height: 280px;
+  max-height: none;
+}
+/* (the chart's svg rules are for the chart: Scrub's glyph keeps its 14 px) */
+.booth .booth-energy .booth-scrub-toggle > svg {
+  display: inline-block;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  max-height: none;
+}
+.booth .booth-energy-legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 4px 12px;
+  justify-items: start;
+}
+.booth .booth-energy-legend > span {
+  white-space: nowrap;
+}
+
+/* 2026-11: the song sheet opens mid-night with the focus on "Play now in the room" — a ring that shows it (a mouse
+   click opened the sheet, so :focus-visible alone would not) */
+#booth-play-now:focus {
+  outline: 2px solid var(--tint);
+  outline-offset: -3px;
+}
+
+/* 5: a running fade's countdown is never cut: its cell takes the word's width while it runs ("Cancel · 4 s") */
+.booth .booth-strip .booth-fadebtn[data-running] {
+  flex: 0 0 auto;
+  max-width: none;
+  padding: 0 6px;
+}
+.booth .booth-strip .booth-fadebtn[data-running] > .booth-tbtn-l {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+  max-width: none;
 }

@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  _resetOpeningSaid,
   cortinaSpan,
   cortinaSwapLabel,
   driftWords,
   lastFourChange,
+  openingWithoutClip,
+  sayOpeningSkipped,
   swapLabel,
   ttcCaption,
   upNext,
@@ -111,5 +114,26 @@ describe("Up next follows Play next (2026-11: the card kept the plan's order, so
     expect(upNext(items, 0, { passed: none, missing: none, picked: 0 }).next).toBe(1);
     expect(upNext(items, 0, { passed: none, missing: none, picked: 99 }).picked).toBe(false);
     expect(upNext(items, 0, { passed: none, missing: none, picked: null }).next).toBe(1);
+  });
+});
+
+describe("QA 2026-11: the opening La Cumparsita without a clip in Rehearsal", () => {
+  const night = [
+    { kind: "closing", tanda: 0 },
+    { kind: "track", tanda: 1 },
+    { kind: "closing", tanda: 2 },
+  ];
+  it("noted only in Rehearsal, for an opening with no source", () => {
+    expect(openingWithoutClip(night, ["missing", "preview", "preview"], true)).toBe(true);
+    expect(openingWithoutClip(night, ["missing", "preview", "preview"], false)).toBe(false);
+    expect(openingWithoutClip(night, ["preview", "preview", "preview"], true)).toBe(false);
+    expect(openingWithoutClip(night.slice(1), ["preview", "missing"], true)).toBe(false);
+  });
+  it("Start from the top says it once", () => {
+    _resetOpeningSaid();
+    const src = ["missing", "preview", "preview"];
+    expect(sayOpeningSkipped(night, src, true, 5)).toBe(false);
+    expect(sayOpeningSkipped(night, src, true, 1)).toBe(true);
+    expect(sayOpeningSkipped(night, src, true, 1)).toBe(false);
   });
 });

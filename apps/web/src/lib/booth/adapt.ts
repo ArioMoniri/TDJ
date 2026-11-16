@@ -8,7 +8,9 @@ import {
 } from "@tdj/core";
 import { create } from "zustand";
 import { favouritesForRequest, nightIdOf } from "@/lib/favourites";
+import { t } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
+import { toast } from "@/lib/toast";
 import type { Playlist } from "@/lib/types";
 import { useRoomHearts } from "./roomHearts";
 import { useBooth } from "./store";
@@ -95,6 +97,8 @@ export async function requestAdapt(
     // the night must still be the one the answer was made for
     if (useBooth.getState().playlist !== p) return void useAdapt.setState({ busy: false });
     useAdapt.setState({ suggestion: j.suggestion, busy: false });
+    // QA 2026-11: the check ran and found nothing better — say so once (a silent nothing read as "it never ran")
+    if (r.ok && !j.suggestion) toast(t("adapt.none"));
   } catch {
     if (useAdapt.getState().token === token) useAdapt.setState({ busy: false });
   }

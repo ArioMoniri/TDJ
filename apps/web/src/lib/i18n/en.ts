@@ -4510,8 +4510,8 @@ export const en = {
   "booth.confirm.again": "Tap again",
   "booth.confirm.hold": "Hold",
   "booth.confirm.hold_hint":
-    "During the night: press and hold to confirm (a tap alone changes nothing). Keyboard: Enter twice; Esc cancels.",
-  "booth.confirm.tap_again": "Tap again to confirm",
+    "During the night: tap twice or press and hold to confirm. Keyboard: press twice, or Enter; Esc cancels.",
+  "booth.confirm.tap_again": "Tap again or hold to confirm",
   "booth.controlStrip.mix_menu": "Mix: transitions, fades and levels",
   "booth.controls.close": "Close the Controls panel",
   "djMessage.pinned_kept": "Your pinned tanda stays as you made it; the rules work around it.",
@@ -4732,8 +4732,8 @@ export const en = {
     "The grey parts are the songs' own silence. With “Silence counts as the gap” it is part of the gap (Settings → Booth → Gaps).",
   // 2026-11 — the finished transition editor (ruler, zoom, snap, per-lane handles, estimated shape, EQ)
   // 2026-11 — Fade / Crossfade: hold, countdown, cancel, undo
-  "booth.fade.undo_fade": "Undo the fade",
-  "booth.fade.undo_crossfade": "Undo the crossfade",
+  "booth.fade.undo_fade": "Fade out",
+  "booth.fade.undo_crossfade": "Crossfade",
   "booth.fade.hold_fade": "Hold to fade",
   "booth.fade.hold_crossfade": "Hold to crossfade",
   "booth.fade.cancel_fade": "Cancel fade · {sec} s",
@@ -5082,7 +5082,7 @@ export const en = {
   "booth.ui2.mini_unmute": "Unmute",
   "booth.ui2.mini_seek": "Position in the song",
   "booth.ui2.mini_seek_arm": "Tap again to jump to {at}",
-  "booth.ui2.mini_hold_next": "Hold to play the next song",
+  "booth.ui2.mini_hold_next": "Tap twice or hold to play the next song",
   "boothUndo.skip_next": "Skip next ({title})",
   "boothUndo.cortina_early": "Cortina early",
   "boothUndo.birthday": "Birthday vals",
@@ -5842,6 +5842,50 @@ export const en = {
   "power.menu_auto_off": "Auto, not saving now",
   "power.room_off":
     "Battery saver turned the room microphone and Auto master off: they listen to the room ten times a second. They can come back once the saver is off.",
+  // QA 2026-11: the Booth's fix pass
+  "booth.qa.deck_more": "Show Up next and Energy",
+  "booth.qa.deck_more_hint": "Hidden while the Controls panel is open; this closes it",
+  "booth.qa.end_rehearsal_times":
+    "Rehearsal times: every song counts as its 30 s clip. On the real night the change uses the songs' full lengths.",
+  "booth.qa.end_at_preview": "Preview",
+  "booth.qa.opening_rehearsal": "Rehearsal: the opening plays on the night (no clip)",
+  "booth.fade.cancel_short": "Cancel · {sec} s",
+  "adapt.none": "No better tanda for the next slots — keeping the plan",
+  // QA 2026-11: the Booth's fix pass
+  "booth.load.menu": "Load a night…",
+  "booth.load.title": "Load a night",
+  "booth.load.tonight": "Tonight's night (Compose)",
+  "booth.load.recent": "Recent nights",
+  "booth.load.featured": "Featured nights",
+  "booth.load.bring_in": "Bring in a night",
+  "booth.load.bring_in_footer":
+    'Import takes a Spotify or YouTube playlist, a DJ app\'s file or a pasted list; its "Play in the Booth" brings the night straight here.',
+  "booth.load.import": "Import a list…",
+  "booth.load.import_sub": "Spotify, YouTube, a file or pasted text",
+  "booth.load.build": "Build by hand",
+  "booth.load.compose": "Compose a new night",
+  "booth.load.clear": "Clear the Booth",
+  "booth.load.clear_title": "Clear the Booth?",
+  "booth.load.clear_footer": "The Booth unloads its night; Compose keeps it. Undo brings it back.",
+  "booth.load.clear_fade": "Fade out and clear",
+  "booth.load.clear_now": "Stop now and clear",
+  "booth.load.replace_title": "Replace the night that is playing?",
+  "booth.load.replace_footer":
+    "The night that is playing ends and its log goes to History; the new night loads ready to start.",
+  "booth.load.after_this_song": "After the current song",
+  "booth.load.now": "Now",
+  "booth.load.loaded": "Loaded: {name}",
+  "booth.load.after_song": "{name} loads after this song",
+  "booth.load.untitled": "Untitled night",
+  "booth.load.tandas": "{n} tandas",
+  "booth.load.loading": "Loading…",
+  "booth.load.failed": "Could not load that night",
+  "booth.load.cleared": "Booth cleared",
+  "booth.load.cleared_label": "Booth cleared",
+  "booth.load.empty_title": "No night in the Booth",
+  "booth.load.empty_text": "Load one of your nights, a featured night or an import, or compose a new one.",
+  // QA 2026-11: the Booth's fix pass
+  "toast.dismiss": "Dismiss",
 } as const;
 
 export type MsgKey = keyof typeof en;

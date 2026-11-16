@@ -9,6 +9,7 @@
  * `TDJ_SHOTS=<dir>` saves iPhone and iPad screenshots there.
  */
 import { type Browser, type BrowserContextOptions, devices, expect, type Page, test } from "@playwright/test";
+import { boothAction } from "./confirm";
 
 const SHOTS = process.env.TDJ_SHOTS;
 
@@ -422,7 +423,7 @@ test("iPhone: open from the gap marker, Fade, a length from the bars pill, drag 
   const ctx = await browser.newContext(IPHONE);
   const page = await ctx.newPage();
   await openBooth(page);
-  await page.getByTestId("booth-set-open").click();
+  await boothAction(page, "booth-set-open");
   const set = page.getByTestId("booth-set-sheet");
   const k = await clipPair(page);
   const i = k >= 0 ? k : await song4(page);
@@ -478,7 +479,7 @@ test("iPhone: open from the gap marker, Fade, a length from the bars pill, drag 
   await expect
     .poll(async () => (await planOf(page)).items[i]?.transitionAfter?.fadeOutSec, { timeout: 20000 })
     .toBe(-dragged);
-  await page.getByTestId("booth-set-open").click();
+  await boothAction(page, "booth-set-open");
   await set.locator(`[data-testid="booth-gap"][data-from="${i}"]`).scrollIntoViewIfNeeded();
   await set.locator(`[data-testid="booth-gap"][data-from="${i}"]`).click();
   await expect(ed.getByTestId("booth-tr-preset-fade")).toHaveAttribute("aria-checked", "true");
@@ -729,7 +730,7 @@ for (const [name, use, o] of FRAMES)
     const page = await ctx.newPage();
     await openBooth(page);
     // on a phone the set list is a sheet
-    if (!o.panel) await page.getByTestId("booth-set-open").click();
+    if (!o.panel) await boothAction(page, "booth-set-open");
     const k = await clipPair(page);
     const i = k >= 0 ? k : await song4(page);
     const scope = o.panel ? page : page.getByTestId("booth-set-sheet");

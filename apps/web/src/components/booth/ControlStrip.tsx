@@ -27,17 +27,21 @@ import {
   useRef,
   useState,
 } from "react";
+import { disarm, useArmed } from "@/lib/booth/confirm";
+import { sayOpeningSkipped } from "@/lib/booth/nightView";
 import { durationLabel } from "@/lib/booth/plan";
 import { useBooth, useRoomCaps } from "@/lib/booth/store";
 import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
 import { fmtNumber, t as tx } from "@/lib/i18n";
+import { toast } from "@/lib/toast";
 import { Artwork } from "../ui/Artwork";
 import { Marquee } from "../ui/Marquee";
 import { useTip } from "../ui/Tip";
-import { ConfirmRing, useHoldConfirm } from "./Confirm";
+import { ConfirmHint, ConfirmRing, useHoldConfirm } from "./Confirm";
 import { FadeButton } from "./FadeButton";
 import { Fader } from "./Fader";
+import { useNowView } from "./NowPlayingView";
 
 /**
  * Transport (round 22, the DJ-app bottom bar; 2026-11 one uniform row): the only control bar at the foot of the page,
@@ -89,6 +93,8 @@ export function ControlStrip({
   const caps = useRoomCaps();
   const act = useBooth.getState();
   const wide = useMediaQuery("(min-width: 600px)", true);
+  // QA 2026-11: Space armed mid-night (lib/booth/confirm.ts roomCut): the Pause button shows it, as Next does
+  const pauseArmed = useArmed("pause");
   const sourceMode = useBooth((s) => s.sourceMode);
   const stripRef = useRef<HTMLDivElement>(null);
   // the page's bottom padding follows the strip (round 18): the space it takes from the viewport's foot (its height,
@@ -181,6 +187,10 @@ export function ControlStrip({
       className="btn btn-primary booth-primary"
       onClick={() => {
         haptic(8);
+        // QA 2026-11: Rehearsal passes over an opening La Cumparsita with no clip — said once, never silently
+        const b = useBooth.getState();
+        if (b.plan && sayOpeningSkipped(b.plan.items, b.sources, b.rehearsal, b.planIndex))
+          toast(tx("booth.qa.opening_rehearsal"));
         void act.start();
       }}
       disabled={!ready}
@@ -211,11 +221,13 @@ export function ControlStrip({
   ) : live ? (
     <button
       type="button"
-      className="btn btn-ghost booth-primary"
+      className="btn btn-ghost booth-primary confirm-host"
       data-tone="pause"
+      data-armed={pauseArmed || undefined}
       style={primaryStyle}
       onClick={() => {
         haptic(8);
+        disarm();
         act.pause();
       }}
       data-testid="booth-pause"
@@ -230,6 +242,12 @@ export function ControlStrip({
     >
       <Pause size={18} fill="currentColor" strokeWidth={0} aria-hidden />
       <span className="booth-start-label">{tx("booth.controlStrip.pause")}</span>
+      {pauseArmed && (
+        <>
+          <ConfirmRing />
+          <ConfirmHint testId="booth-pause-nudge" />
+        </>
+      )}
     </button>
   ) : (
     <button
@@ -263,22 +281,45 @@ export function ControlStrip({
       data-started={started}
     >
       {/* the song: always the same place (Spotify / Apple Music bottom bar), on wide screens */}
-      {nowItem && (
-        <div className="booth-strip-now" data-testid="booth-strip-now">
-          <Artwork
-            entity={nowEntity}
-            orchestra={(nowEntity as { orchestra?: string } | null)?.orchestra ?? nowItem.artist}
-            size={40}
-          />
-          <span className="booth-strip-now-t">
-            {/* 2026-11: a long title slides to show all of it (components/ui/Marquee.tsx) */}
-            <Marquee text={nowItem.title} testId="booth-strip-title">
-              <b>{nowItem.title}</b>
-            </Marquee>
-            <span>{nowItem.artist}</span>
-          </span>
-        </div>
-      )}
+      {nowItem &&
+        (wide ? (
+          <div className="booth-strip-now" data-testid="booth-strip-now">
+            <Artwork
+              entity={nowEntity}
+              orchestra={(nowEntity as { orchestra?: string } | null)?.orchestra ?? nowItem.artist}
+              size={40}
+            />
+            <span className="booth-strip-now-t">
+              {/* 2026-11: a long title slides to show all of it (components/ui/Marquee.tsx) */}
+              <Marquee text={nowItem.title} testId="booth-strip-title">
+                <b>{nowItem.title}</b>
+              </Marquee>
+              <span>{nowItem.artist}</span>
+            </span>
+          </div>
+        ) : (
+          // 2026-11 (the owner: "better design for the lower bar on the phone"): the mini control bar of a music app —
+          // the cover and the title (sliding when long) lead; a tap opens Now playing full screen
+          <button
+            type="button"
+            className="booth-strip-now booth-strip-now-phone booth-prestart-hide"
+            data-testid="booth-strip-now"
+            onClick={() => useNowView.getState().set(true)}
+            aria-label={`${tx("song.now_playing")}: ${nowItem.title}`}
+          >
+            <Artwork
+              entity={nowEntity}
+              orchestra={(nowEntity as { orchestra?: string } | null)?.orchestra ?? nowItem.artist}
+              size={40}
+            />
+            <span className="booth-strip-now-t" aria-hidden>
+              <Marquee text={nowItem.title} testId="booth-strip-title">
+                <b>{nowItem.title}</b>
+              </Marquee>
+              <span>{nowItem.artist}</span>
+            </span>
+          </button>
+        ))}
       {wide && (
         <>
           {/* 2026-11: hold (or tap twice) to run, a countdown and Cancel while it runs, ⌘Z after (FadeButton.tsx) */}
@@ -432,6 +473,7 @@ export function ControlStrip({
             }
             pressed={muted}
             onClick={() => act.toggleMute()}
+            armedBy="mute"
             testId="booth-mute"
           >
             <VolumeX
@@ -496,7 +538,8 @@ export function ControlStrip({
           </button>
         </div>
       )}
-      {onSet && (
+      {/* (a phone: Set list, Controls and Mix are in •••, the bar keeps the transport) */}
+      {onSet && wide && (
         <TBtn
           label={tx("booth.controlStrip.set_list")}
           hint={tx("booth.controlStrip.the_night_s_set_list")}
@@ -508,20 +551,22 @@ export function ControlStrip({
         </TBtn>
       )}
       {/* 2026-11: the Controls panel's toggle lives in this row (the collapsed panel was a second bar over it) */}
-      <TBtn
-        label={tx("booth.controls.title")}
-        hint={tx("booth.controls.toggle_hint")}
-        onClick={onControls}
-        testId="booth-controls-toggle"
-        expanded={controlsOpen}
-        controls="booth-ctl-body"
-      >
-        {controlsOpen ? (
-          <ChevronDown size={20} strokeWidth={2} aria-hidden />
-        ) : (
-          <ChevronUp size={20} strokeWidth={2} aria-hidden />
-        )}
-      </TBtn>
+      {wide && (
+        <TBtn
+          label={tx("booth.controls.title")}
+          hint={tx("booth.controls.toggle_hint")}
+          onClick={onControls}
+          testId="booth-controls-toggle"
+          expanded={controlsOpen}
+          controls="booth-ctl-body"
+        >
+          {controlsOpen ? (
+            <ChevronDown size={20} strokeWidth={2} aria-hidden />
+          ) : (
+            <ChevronUp size={20} strokeWidth={2} aria-hidden />
+          )}
+        </TBtn>
+      )}
       {/* the Mix sheet: transitions, fades, cortinas, levels — every value with its explanation (a phone: in •••) */}
       {wide && (
         <TBtn
@@ -571,11 +616,14 @@ function TBtn({
   controls,
   haspopup,
   confirmKey,
+  armedBy,
   testId,
   className = "",
   why,
   children,
 }: {
+  /** QA 2026-11: a key that arms this control from the keyboard (m → Mute): shown armed; a tap runs at once */
+  armedBy?: string;
   label: string;
   ariaLabel?: string;
   hint: string;
@@ -594,11 +642,12 @@ function TBtn({
 }) {
   const tip = useTip<HTMLButtonElement>(hint);
   const hold = useHoldConfirm(confirmKey ?? `plain:${testId}`, onClick);
+  const keyArmed = useArmed(armedBy ?? "");
+  const armedShown = (!!confirmKey && hold.armed) || (!!armedBy && keyArmed);
   const tp = tip.props as Partial<Record<string, Handler>> & typeof tip.props;
   const h = confirmKey ? hold.handlers : null;
-  // 2026-11: a tap mid-night never relabels the button "Hold" (the real Hold sat beside it, two "Hold"s): the label
-  // stays, the ring fills while held, and a bubble over it says "Hold to confirm"; armed (the keyboard) it says so
-  const word = hold.armed ? tx("booth.confirm.again") : label;
+  // 2026-11: the label never changes (a relabelled "Hold" sat beside the real Hold): armed by a tap or the keyboard,
+  // the countdown ring runs and one bubble says "Tap again or hold to confirm"; held, the ring fills
   return (
     <>
       <button
@@ -614,8 +663,7 @@ function TBtn({
         data-why={why}
         data-testid={testId}
         data-holding={(h && hold.holding) || undefined}
-        data-armed={(h && hold.armed) || undefined}
-        data-nudge={(h && hold.nudge) || undefined}
+        data-armed={armedShown || undefined}
         {...tip.props}
         onPointerDown={h ? both(tp.onPointerDown, h.onPointerDown) : tp.onPointerDown}
         onPointerUp={h ? both(tp.onPointerUp, h.onPointerUp) : tp.onPointerUp}
@@ -626,18 +674,21 @@ function TBtn({
           if (h) e.preventDefault();
           else tp.onContextMenu?.(e as unknown as PointerEvent<HTMLElement>);
         }}
-        onClick={h ? h.onClick : onClick}
+        onClick={
+          h
+            ? h.onClick
+            : () => {
+                if (keyArmed) disarm();
+                onClick();
+              }
+        }
       >
         {children}
         <span className="booth-tbtn-l" aria-hidden>
-          {h ? word : label}
+          {label}
         </span>
-        {h && (hold.holding || hold.armed) && <ConfirmRing />}
-        {h && hold.nudge && !hold.holding && (
-          <span className="booth-tbtn-nudge" role="status" data-testid={`${testId}-nudge`}>
-            {tx("booth.confirm.hold_to_confirm")}
-          </span>
-        )}
+        {((h && hold.holding) || armedShown) && <ConfirmRing />}
+        {armedShown && !hold.holding && <ConfirmHint testId={`${testId}-nudge`} />}
       </button>
       {tip.tag}
     </>

@@ -6,7 +6,7 @@ import { useBooth } from "@/lib/booth/store";
 import { haptic } from "@/lib/haptics";
 import { t } from "@/lib/i18n";
 import { toast } from "@/lib/toast";
-import { ConfirmRing } from "./Confirm";
+import { ConfirmHint, ConfirmRing } from "./Confirm";
 
 /**
  * 2026-11 (the owner: "Crossfade and Fade don't change on long click, there's no UI change, and they can't be
@@ -80,13 +80,13 @@ export function FadeButton({
     timer.current = null;
     setHolding(false);
   };
+  // QA 2026-11: "Cancel fade · 4 s" was cut in a 70 px cell — the visible word is "Cancel · 4 s" (the accessible name
+  // keeps the whole sentence); armed, the label stays and the one hint bubble says "Tap again or hold to confirm"
   const word = run
-    ? t(kind === "fade" ? "booth.fade.cancel_fade" : "booth.fade.cancel_crossfade", { sec: left })
+    ? t("booth.fade.cancel_short", { sec: left })
     : holding
       ? t(kind === "fade" ? "booth.fade.hold_fade" : "booth.fade.hold_crossfade")
-      : armed
-        ? t("booth.confirm.again")
-        : short;
+      : short;
   return (
     <button
       type="button"
@@ -150,6 +150,7 @@ export function FadeButton({
         {word}
       </span>
       {(holding || armed) && !run && <ConfirmRing />}
+      {armed && !holding && !run && <ConfirmHint testId={`${testId}-nudge`} />}
       {run && <span className="booth-fadebtn-run" aria-hidden />}
       {run && (
         <span className="sr-only" role="status">

@@ -1,6 +1,8 @@
 "use client";
+import { MoveVertical } from "lucide-react";
 import { type KeyboardEvent, type PointerEvent, useEffect, useRef, useState } from "react";
 import { nightEnergy, scrubAt, scrubStep } from "@/lib/booth/energyChart";
+import { energyDomain, energyTicks, hereLabelSpot } from "@/lib/booth/energyLayout";
 import { useIndicators } from "@/lib/booth/indicatorPrefs";
 import { useBooth } from "@/lib/booth/store";
 import { t } from "@/lib/i18n";
@@ -36,7 +38,9 @@ export function EnergyRail({ onJump }: { onJump?: (planIndex: number) => void })
   // 2026-11 (DJ review: the chart's labels were 7 px once the 200-unit chart shrank into its column): the labels keep
   // 11 px on screen whatever the chart's drawn width (`k`: chart units per screen pixel)
   const svg = useRef<SVGSVGElement>(null);
-  const [k, setK] = useState(1);
+  // 2026-11 (the owner: the dots squeezed into the middle third): the drawing takes the box's own shape (no letterbox)
+  const [boxW, setBoxW] = useState(200);
+  const [boxH, setBoxH] = useState(300);
   const [scrub, setScrub] = useState(false);
   const [at, setAt] = useState<number | null>(null);
   const drag = useRef(false);
@@ -44,23 +48,46 @@ export function EnergyRail({ onJump }: { onJump?: (planIndex: number) => void })
     const el = svg.current;
     if (!el || typeof ResizeObserver !== "function") return;
     const ro = new ResizeObserver(() => {
-      const w = el.getBoundingClientRect().width;
-      if (w > 0) setK(200 / w);
+      const r = el.getBoundingClientRect();
+      if (r.width > 0 && r.height > 0) {
+        setBoxW(Math.round(r.width));
+        setBoxH(Math.round(r.height));
+      }
     });
     ro.observe(el);
     return () => ro.disconnect();
   });
   if (!on || !plan || !playlist?.tandas.length) return null;
   const c = nightEnergy(playlist, plan, planIndex, position);
-  const W = 200;
-  const H = 300;
+  // one chart unit is one screen pixel: the labels keep 11 px, the plot spans the card's width
+  const W = boxW;
+  const H = boxH;
+  const k = 1;
   const padT = 10;
   const padB = 14;
   const padL = 26;
   const padR = 10;
-  const x = (e: number) => padL + (e / 100) * (W - padL - padR);
+  // the night's own energy range (QA: its 48–66 sat in the middle third of a 0–100 axis)
+  const dom = energyDomain([
+    ...c.points.map((p) => p.energy),
+    ...c.points.flatMap((p) => (p.target === null ? [] : [p.target])),
+  ]);
+  const x = (e: number) => padL + ((e - dom[0]) / (dom[1] - dom[0])) * (W - padL - padR);
   const y = (f: number) => padT + f * (H - padT - padB);
   const mid = (p: { at: number; end: number }) => (p.at + p.end) / 2;
+  // "we are here": a pill on the line's side and at the x where it covers no dot (never over the chart's dots)
+  const hereWord = t("booth.energyRail.we_are_here");
+  const HERE_H = 16;
+  const hereW = Math.ceil(hereWord.length * 6.2 + 12);
+  const here = hereLabelSpot(
+    y(c.here),
+    c.points.map((p) => ({ x: x(p.energy), y: y(mid(p)), r: 6 })),
+    hereW,
+    HERE_H,
+    [padL, W - padR],
+    3,
+    [0, H],
+  );
   const line = c.points.map((p) => `${x(p.energy)},${y(mid(p))}`).join(" ");
   const target = c.points.filter((p) => p.target !== null);
   const s = scrub && at !== null ? scrubAt(c, plan, at) : null;
@@ -146,14 +173,15 @@ export function EnergyRail({ onJump }: { onJump?: (planIndex: number) => void })
           data-hint={t("booth.ui2.scrub_hint")}
           data-testid="booth-scrub-toggle"
         >
-          {t("booth.ui2.scrub")}
+          <MoveVertical size={14} strokeWidth={2.25} aria-hidden />
+          <span>{t("booth.ui2.scrub")}</span>
         </button>
       </div>
       {/* with Scrub on, the keyboard's slider (one step a tanda); the pointer drags on the chart itself */}
       {scrub && s && (
         <input
           type="range"
-          className="sr-only"
+          className="sr-only booth-scrub-input"
           min={1}
           max={Math.max(1, c.points.length)}
           step={1}
@@ -183,7 +211,7 @@ export function EnergyRail({ onJump }: { onJump?: (planIndex: number) => void })
         onPointerUp={onUp}
         onPointerCancel={onUp}
       >
-        {[25, 50, 75].map((g) => (
+        {energyTicks(dom).map((g) => (
           <line
             key={g}
             x1={x(g)}
@@ -216,7 +244,14 @@ export function EnergyRail({ onJump }: { onJump?: (planIndex: number) => void })
           return (
             <g key={p.tanda}>
               {(p.tanda === 1 || p.tanda % 5 === 0) && (
-                <text x={2} y={y(mid(p)) + 3} fontSize={11 * k} fill="var(--label-2)">
+                <text
+                  x={padL - 12}
+                  y={y(mid(p))}
+                  fontSize={11 * k}
+                  textAnchor="end"
+                  dominantBaseline="central"
+                  fill="var(--label-2)"
+                >
                   {p.tanda}
                 </text>
               )}
@@ -258,16 +293,31 @@ export function EnergyRail({ onJump }: { onJump?: (planIndex: number) => void })
             d={`M ${padL - 8} ${y(c.here) - 5} L ${padL - 1} ${y(c.here)} L ${padL - 8} ${y(c.here) + 5} Z`}
             fill="var(--room)"
           />
-          <text
-            x={W - padR}
-            y={y(c.here) - 4}
-            fontSize={11 * k}
-            fontWeight={600}
-            textAnchor="end"
-            fill="var(--room)"
-          >
-            {t("booth.energyRail.we_are_here")}
-          </text>
+          {here && (
+            <g data-testid="booth-here-label">
+              <rect
+                x={here.x}
+                y={here.y}
+                width={hereW}
+                height={HERE_H}
+                rx={HERE_H / 2}
+                fill="rgb(var(--bg-cell))"
+                stroke="var(--room)"
+                strokeWidth={1}
+              />
+              <text
+                x={here.x + hereW / 2}
+                y={here.y + HERE_H / 2}
+                fontSize={11 * k}
+                fontWeight={600}
+                textAnchor="middle"
+                dominantBaseline="central"
+                fill="var(--room)"
+              >
+                {hereWord}
+              </text>
+            </g>
+          )}
         </g>
         {s && (
           <g data-testid="booth-scrub-line" data-tanda={s.tanda} data-at={s.at.toFixed(3)}>

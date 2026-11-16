@@ -210,7 +210,7 @@ export function MiniPlayer() {
             data-testid="mini-player"
             data-source={track.source.kind}
             data-kind={track.kind ?? "song"}
-            className="glass mini-docked fixed inset-x-4 z-30 mx-auto max-w-[440px] sm:max-w-none rounded-[var(--radius-m)] p-2 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:w-[400px] lg:bottom-6"
+            className="glass mini-docked fixed inset-x-4 z-30 mx-auto max-w-[440px] sm:max-w-none rounded-[var(--radius-m)] p-2 sm:inset-x-auto sm:bottom-6 sm:w-[400px] lg:bottom-6"
             style={{ bottom: `var(--mini-bottom, ${offset})` }}
           >
             <style>{'@media (min-width: 600px){[data-testid="mini-player"]{--mini-bottom:1.5rem}}'}</style>

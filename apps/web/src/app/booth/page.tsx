@@ -1,8 +1,8 @@
 "use client";
-import { Eye, Keyboard, LogOut, MonitorUp } from "lucide-react";
+import { Eye, Keyboard, ListMusic, LogOut, MonitorUp, SlidersVertical } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { type RefObject, Suspense, useEffect, useRef, useState } from "react";
 import { AdaptCard } from "@/components/booth/AdaptCard";
 import { Banners } from "@/components/booth/Banners";
 import { ControllerHost } from "@/components/booth/ControllerView";
@@ -10,6 +10,7 @@ import { ControlStrip } from "@/components/booth/ControlStrip";
 import { ControlsPanel, loadControlsOpen, saveControlsOpen } from "@/components/booth/ControlsPanel";
 import { EnergyRail } from "@/components/booth/EnergyRail";
 import { HintLayer } from "@/components/booth/HintLayer";
+import { LoadNightSheet } from "@/components/booth/LoadNightSheet";
 import { NextCard } from "@/components/booth/NextCard";
 import { NightBar } from "@/components/booth/NightBar";
 import { NowCard } from "@/components/booth/NowCard";
@@ -35,7 +36,8 @@ import { PageHeader } from "@/components/PageHeader";
 import { usePowerMenuItem } from "@/components/PowerSaver";
 import { Sheet } from "@/components/Sheet";
 import { BoothSongSearch } from "@/components/ui/BoothSongSearch";
-import { arm, confirmArmed, confirmNeeded, disarm, guard } from "@/lib/booth/confirm";
+import { arm, confirmArmed, confirmNeeded, disarm, guard, roomCut } from "@/lib/booth/confirm";
+import { useBoothLoad } from "@/lib/booth/loadNight";
 import { startRoomHearts } from "@/lib/booth/roomHearts";
 import { boothContextState, boothEngine, useBooth } from "@/lib/booth/store";
 import { showFloorScreen, startBoothFloor } from "@/lib/floorBooth";
@@ -74,6 +76,77 @@ const BOOTH_KEYS: ActionId[] = [
  * localStorage), nothing on the content layer is glass, no layout animation; the page is interactive before the
  * DJ's first tap (no LazyHydrate). Opens on the current set; without one, "Compose a night first".
  */
+/**
+ * The deck's cards under an open Controls panel (two columns): every card shows whole or not at all. The Now card
+ * always shows; from the first card that would run past the deck's foot, it and the cards after it are folded
+ * (`data-fold`, booth.css) and `onFolded` gets how many — the page shows a pill that brings them back.
+ */
+function useDeckFold(ref: RefObject<HTMLDivElement | null>, on: boolean, onFolded: (n: number) => void) {
+  useEffect(() => {
+    const deck = ref.current;
+    if (!deck) return;
+    const cards = () =>
+      [...deck.children].filter(
+        (c): c is HTMLElement =>
+          c instanceof HTMLElement && !c.hasAttribute("data-deck-pill") && c.dataset.testid !== "booth-now",
+      );
+    if (!on) {
+      for (const c of cards()) c.removeAttribute("data-fold");
+      onFolded(0);
+      return;
+    }
+    let frame = 0;
+    const root = document.documentElement;
+    const measure = () => {
+      frame = 0;
+      // the Now card's height: the open panel's cap keeps the deck at least this tall (booth.css, item 9)
+      const nowCard = deck.querySelector<HTMLElement>('[data-testid="booth-now"]');
+      const h = nowCard ? `${Math.ceil(nowCard.offsetHeight)}px` : "";
+      if (h && root.style.getPropertyValue("--booth-now-h") !== h) {
+        root.style.setProperty("--booth-now-h", h);
+        window.dispatchEvent(new Event("tdj:booth-now-h"));
+      }
+      const list = cards();
+      for (const c of list) c.removeAttribute("data-fold");
+      const cs = getComputedStyle(deck);
+      // two columns only: the deck is its own scroller there (a phone's page scrolls instead)
+      if (cs.overflowY !== "auto" && cs.overflowY !== "scroll") return onFolded(0);
+      const top = deck.getBoundingClientRect().top - deck.scrollTop;
+      const foot = deck.clientHeight - (Number.parseFloat(cs.paddingBottom) || 0);
+      const shown = list.filter((c) => c.getBoundingClientRect().height > 0);
+      let n = 0;
+      for (const c of shown) {
+        if (n > 0 || c.getBoundingClientRect().bottom - top > foot + 0.5) {
+          c.setAttribute("data-fold", "");
+          n++;
+        }
+      }
+      deck.scrollTop = 0;
+      onFolded(n);
+    };
+    const soon = () => {
+      if (!frame) frame = requestAnimationFrame(measure);
+    };
+    measure();
+    const ro = typeof ResizeObserver === "function" ? new ResizeObserver(soon) : null;
+    ro?.observe(deck);
+    const now = deck.querySelector<HTMLElement>('[data-testid="booth-now"]');
+    if (now) ro?.observe(now);
+    window.addEventListener("resize", soon);
+    // a card that comes or goes (the Adapt suggestion) is measured too
+    const mo = typeof MutationObserver === "function" ? new MutationObserver(soon) : null;
+    mo?.observe(deck, { childList: true });
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      ro?.disconnect();
+      mo?.disconnect();
+      window.removeEventListener("resize", soon);
+      for (const c of cards()) c.removeAttribute("data-fold");
+      root.style.removeProperty("--booth-now-h");
+    };
+  }, [ref, on, onFolded]);
+}
+
 export default function BoothPage() {
   return (
     <Suspense>
@@ -83,7 +156,12 @@ export default function BoothPage() {
 }
 
 function Booth() {
-  const playlist = useStore((s) => s.playlist);
+  const composed = useStore((s) => s.playlist);
+  // 2026-11: the Booth can be cleared (Compose keeps its night) and loads another night (LoadNightSheet)
+  const cleared = useBoothLoad((s) => s.cleared);
+  const loadSeq = useBoothLoad((s) => s.seq);
+  const playlist = cleared ? null : composed;
+  const [loadOpen, setLoadOpen] = useState(false);
   const router = useRouter();
   const params = useSearchParams();
   const rehearsalParam = params.get("rehearsal") === "1";
@@ -158,6 +236,11 @@ function Booth() {
       return !o;
     });
   const phone = useMediaQuery("(max-width: 599.98px)", false);
+  // QA 2026-11 (1440 × 900 and iPad landscape with Controls open: Up Next and Energy cut in half above the panel):
+  // a deck card that does not fit whole steps aside; a pill names what is hidden and brings it back
+  const deckRef = useRef<HTMLDivElement>(null);
+  const [folded, setFolded] = useState(0);
+  useDeckFold(deckRef, ctlOpen && !phone, setFolded);
   // a tanda tapped on the energy chart or the Next card: the set list scrolls to it (a phone opens the sheet first)
   const showInSet = (i: number) => {
     if (phone) setSetOpen(true);
@@ -268,10 +351,13 @@ function Booth() {
 
   // boot per set (by id): the booth writes its plan back into the set, which must not re-boot it
   const playlistId = playlist?.id ?? null;
+  // (a night loaded back after a clear boots again: `cleared` is part of the key; a load (loadSeq) boots again, even
+  // the same night)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: loadSeq is the trigger, not read
   useEffect(() => {
     const p = useStore.getState().playlist;
-    if (p && p.id === playlistId) void boot(p, { rehearsal: rehearsalParam });
-  }, [playlistId, boot, rehearsalParam]);
+    if (p && p.id === playlistId && !cleared) void boot(p, { rehearsal: rehearsalParam });
+  }, [playlistId, boot, rehearsalParam, cleared, loadSeq]);
 
   // the plan for tests and the console (nothing secret: the set the DJ composed)
   useEffect(() => {
@@ -346,6 +432,9 @@ function Booth() {
           i !== null &&
           (!a ||
             a === document.body ||
+            // 2026-11 (the owner: Enter after the pop-up opened did nothing): the sheet opens with the focus on Play
+            // now; the DJ's Play-now key there (Enter by default, or the key they bound) arms it or, armed, plays
+            a.id === "booth-play-now" ||
             (sheet.contains(a) &&
               !a.closest("button, a, input, textarea, select, [role='slider'], [role='switch']")))
         ) {
@@ -387,7 +476,11 @@ function Booth() {
       if (id === "booth.pause") {
         e.preventDefault();
         if (e.repeat) return;
-        b.togglePause();
+        // QA 2026-11: mid-night Space cuts the room only on a second press (the Pause button shows it armed);
+        // resuming never waits
+        roomCut("pause", b.state === "playing" || b.state === "cortina", () =>
+          useBooth.getState().togglePause(),
+        );
       } else if (id === "booth.next" || id === "booth.prev") {
         // 2026-11: ← one back, → one ahead now (a focused seek bar or slider keeps its own arrows)
         if (slider) return;
@@ -413,8 +506,10 @@ function Booth() {
         if (b.plan) void b.prelisten({ i: Math.min(b.plan.items.length - 1, b.planIndex + 1) });
       } else if (id === "booth.stopPrelisten") b.stopAudition();
       else if (id === "booth.birthday") b.birthdayVals();
-      else if (id === "booth.mute") b.toggleMute();
-      else if (id === "booth.keys") setKeys(true);
+      else if (id === "booth.mute") {
+        // QA 2026-11: m mutes the room on a second press mid-night (Mute shows it armed); unmuting never waits
+        if (!e.repeat) roomCut("mute", !b.muted, () => useBooth.getState().toggleMute());
+      } else if (id === "booth.keys") setKeys(true);
     };
     window.addEventListener("keydown", down);
     return () => window.removeEventListener("keydown", down);
@@ -422,18 +517,33 @@ function Booth() {
 
   if (!playlist)
     return (
-      <div>
+      <div data-testid="booth-empty">
         <PageHeader title={t("booth.booth")} />
         <EmptyState
           action={
-            <Link href="/" className="btn btn-primary">
-              {t("booth.compose")}
-            </Link>
+            <span className="flex flex-wrap justify-center gap-2">
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => setLoadOpen(true)}
+                data-testid="booth-empty-load"
+              >
+                {t("booth.load.menu")}
+              </button>
+              <Link href="/" className="btn btn-ghost">
+                {t("booth.compose")}
+              </Link>
+            </span>
           }
         >
-          <span className="text-headline block text-[var(--label)]">{t("booth.compose_a_night_first")}</span>
-          <span className="block">{t("booth.the_booth_plays_the_set_on")}</span>
+          <span className="text-headline block text-[var(--label)]">
+            {cleared ? t("booth.load.empty_title") : t("booth.compose_a_night_first")}
+          </span>
+          <span className="block">
+            {cleared ? t("booth.load.empty_text") : t("booth.the_booth_plays_the_set_on")}
+          </span>
         </EmptyState>
+        <LoadNightSheet open={loadOpen} onClose={() => setLoadOpen(false)} />
       </div>
     );
 
@@ -443,6 +553,22 @@ function Booth() {
   // round 22: every night and song tool has its own home (the night bar, the transport, Mix, the song sheet); the
   // overflow keeps set-up and the app
   const menu: Array<MenuItem | false> = [
+    // 2026-11 (the owner: "better design for the lower bar on the phone"): the phone's bar keeps the transport; the
+    // set list, the Controls panel and Mix live here
+    phone && {
+      label: t("booth.controlStrip.set_list"),
+      icon: ListMusic,
+      testId: "booth-set-open",
+      onClick: () => setSetOpen(true),
+    },
+    phone && {
+      label: t("booth.controls.title"),
+      icon: SlidersVertical,
+      checked: ctlOpen,
+      testId: "booth-controls-toggle",
+      onClick: toggleControls,
+    },
+    { label: t("booth.load.menu"), testId: "booth-menu-load", onClick: () => setLoadOpen(true) },
     { label: t("booth.set_up_source_output_night"), onClick: () => setOnboarding(true) },
     // (a phone's transport has Previous / Next now; Next at gap and Mix live here)
     started && phone && { label: t("booth.connect.skip_next_menu"), onClick: () => b.next() },
@@ -516,7 +642,7 @@ function Booth() {
       </div>
       <Banners />
       <div className="booth-grid">
-        <div className="booth-deck" data-testid="booth-deck-col">
+        <div className="booth-deck" data-testid="booth-deck-col" ref={deckRef}>
           <NowCard onInfo={(i) => setSong(i)} onPlay={tapRow} />
           {/* 2026-11: a suggestion for the next tandas after a floor reaction (never applied by itself) */}
           <AdaptCard />
@@ -572,6 +698,7 @@ function Booth() {
       />
       <ControlsPanel
         open={ctlOpen}
+        deckFolded={folded > 0}
         onClose={toggleControls}
         onStop={() => setStopOpen(true)}
         onKeys={() => setKeys(true)}
@@ -659,6 +786,7 @@ function Booth() {
       <BreakSheet open={breakOpen} onClose={() => setBreakOpen(false)} />
       <FindFileSheet item={find} onClose={() => setFind(null)} />
       <ResumeSheet />
+      <LoadNightSheet open={loadOpen} onClose={() => setLoadOpen(false)} />
     </div>
   );
 }

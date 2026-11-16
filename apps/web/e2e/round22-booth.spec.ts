@@ -5,6 +5,7 @@
  * version, the vertical energy chart with "we are here", and every indicator switchable with an explanation.
  */
 import { expect, type Page, test } from "@playwright/test";
+import { boothAction } from "./confirm";
 
 function wav(sec = 12): Buffer {
   const rate = 22050;
@@ -332,7 +333,7 @@ test("phone: the set list is a sheet, the transport keeps one row, the night bar
   await expect(page.getByTestId("booth-set")).toHaveCount(0);
   await expect(page.getByTestId("booth-time")).toBeVisible();
   expect((await page.getByTestId("booth-strip").boundingBox())!.height).toBeLessThanOrEqual(72);
-  await page.getByTestId("booth-set-open").click();
+  await boothAction(page, "booth-set-open");
   const sheet = page.getByTestId("booth-set-sheet");
   await expect(sheet.getByTestId("booth-set")).toBeVisible();
   await sheet.locator('.booth-row[data-kind="track"]').nth(2).getByTestId("booth-row-open").click();

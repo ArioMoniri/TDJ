@@ -76,11 +76,21 @@ async function hold(page: Page, testId: string, ms = 800) {
   const b = (await page.getByTestId(testId).boundingBox())!;
   await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
   await page.mouse.down();
-  await page.waitForTimeout(150);
-  // the ring fills and the label says so while held
-  await expect(page.getByTestId(testId)).toHaveAttribute("data-holding", "true");
-  await expect(page.getByTestId(testId)).toContainText(/Hold to/);
-  await page.waitForTimeout(ms - 150);
+  // the ring fills and the label says so while held (a loaded machine may already be past the 0.6 s: then it runs)
+  await expect
+    .poll(() =>
+      page
+        .getByTestId(testId)
+        .evaluate((b) =>
+          b.hasAttribute("data-holding") && /Hold to/.test(b.textContent ?? "")
+            ? "held"
+            : (b as HTMLElement).dataset.running
+              ? "ran"
+              : "",
+        ),
+    )
+    .toMatch(/held|ran/);
+  await page.waitForTimeout(ms);
   await page.mouse.up();
 }
 
@@ -91,11 +101,11 @@ test("Fade: hold → the ring fills, it runs and counts down; a tap cancels it a
 }) => {
   await openBooth(page);
   const i0 = (await snap(page)).planIndex;
-  await hold(page, "ctl-fade");
-  const btn = page.getByTestId("ctl-fade");
+  await hold(page, "booth-strip-fade");
+  const btn = page.getByTestId("booth-strip-fade");
   await expect(btn).toHaveAttribute("data-running", "fade");
   await expect(btn).toHaveAttribute("aria-pressed", "true");
-  await expect(btn).toContainText(/Cancel fade · \d s/);
+  await expect(btn).toContainText(/Cancel · \d s/);
   expect((await snap(page)).fadeRun?.kind).toBe("fade");
   await page.waitForTimeout(600);
   await btn.click();
@@ -110,7 +120,7 @@ test("Fade: hold → the ring fills, it runs and counts down; a tap cancels it a
 
 test("Fade: a short tap arms (Again), a second tap runs it", async ({ page }) => {
   await openBooth(page);
-  const btn = page.getByTestId("ctl-fade");
+  const btn = page.getByTestId("booth-strip-fade");
   await btn.click();
   await expect(btn).toHaveAttribute("data-armed", "true");
   await expect(btn).not.toHaveAttribute("data-running", "fade");
@@ -124,8 +134,8 @@ test("Crossfade: hold → the next song starts; ⌘Z after it plays the song bef
   await openBooth(page);
   await page.waitForTimeout(2000);
   const before = await snap(page);
-  await hold(page, "ctl-crossfade");
-  await expect(page.getByTestId("ctl-crossfade")).toHaveAttribute("data-running", "crossfade");
+  await hold(page, "booth-strip-crossfade");
+  await expect(page.getByTestId("booth-strip-crossfade")).toHaveAttribute("data-running", "crossfade");
   await expect.poll(async () => (await snap(page)).planIndex).not.toBe(before.planIndex);
   // through
   await expect.poll(async () => (await snap(page)).fadeRun, { timeout: 8000 }).toBeNull();

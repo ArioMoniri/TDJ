@@ -23,7 +23,7 @@ import { Artwork } from "../ui/Artwork";
 import { BpmKey } from "../ui/BpmKey";
 import { SeekBar } from "../ui/SeekBar";
 import { rhythmWord, TandaTypeBadge } from "../ui/TandaTypeBadge";
-import { ConfirmRing, useHoldConfirm } from "./Confirm";
+import { ConfirmHint, ConfirmRing, useHoldConfirm } from "./Confirm";
 import "../song/song.css";
 
 /** the full-screen play view's open flag (NowCard's "Now playing" opens it) */
@@ -435,11 +435,7 @@ function HoldBtn({
     >
       {children}
       {(hold.holding || hold.armed) && <ConfirmRing />}
-      {hold.nudge && !hold.holding && (
-        <span className="booth-tbtn-nudge" role="status" data-testid={`${testId}-nudge`}>
-          {t("booth.confirm.hold_to_confirm")}
-        </span>
-      )}
+      {hold.armed && !hold.holding && <ConfirmHint testId={`${testId}-nudge`} />}
     </button>
   );
 }

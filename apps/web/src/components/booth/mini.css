@@ -4,8 +4,9 @@
 .booth-mini {
   position: fixed;
   z-index: 31;
-  left: 12px;
-  right: 12px;
+  /* QA 2026-11: the bottom capsules on a phone share one 16 px inset (the transport, the tab bar, this bar) */
+  left: 16px;
+  right: 16px;
   bottom: calc(var(--tabbar-bottom, 12px) + var(--tabbar-h, 62px) + 8px);
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
@@ -16,7 +17,8 @@
   column-gap: 10px;
   row-gap: 2px;
   padding: 8px 10px 6px;
-  border-radius: var(--radius-m, 14px);
+  /* one capsule with the Booth's phone bar (22 px) */
+  border-radius: 22px;
 }
 .booth-mini.glass::after {
   background: rgb(var(--surface));
@@ -86,9 +88,19 @@
 }
 .booth-mini-btns {
   grid-area: btns;
+  position: relative;
   display: flex;
   align-items: center;
   gap: 2px;
+}
+/* QA 2026-11: Pause stands 12 px clear of Next (a slip from one to the other cut the room) */
+.booth-mini-btns > .booth-mini-toggle {
+  margin-right: 12px;
+}
+.booth-mini-btns > .booth-mini-hint {
+  right: 0;
+  bottom: calc(100% + 6px);
+  white-space: nowrap;
 }
 .booth-mini-btn {
   position: relative;
@@ -182,4 +194,45 @@ html[data-booth-mini] [data-testid="mini-player"] {
   html[data-booth-mini] {
     --mini-stack: calc(var(--booth-mini-h, 0px) + 0.75rem);
   }
+}
+
+/* 2026-11 (the owner: "UI issue for the jump guide"): the jump bubble stands over its marker (BoothMini places it:
+   inside the bar, clear of the buttons), solid, with a pointer down to the marker; the marker sits on the bar,
+   centred; and the bar's own height holds its cover and title whole (they were cut at its top) */
+.booth-mini-seek > .booth-mini-seek-arm {
+  right: auto;
+  bottom: calc(100% + 6px);
+  white-space: nowrap;
+  background: rgb(var(--surface));
+  box-shadow:
+    inset 0 0 0 1px var(--separator),
+    0 4px 12px rgb(0 0 0 / 0.18);
+  z-index: 2;
+}
+.booth-mini-seek > .booth-mini-seek-arm::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: var(--tip, 50%);
+  width: 8px;
+  height: 8px;
+  margin-top: -4px;
+  transform: translateX(-50%) rotate(45deg);
+  background: rgb(var(--surface));
+  box-shadow: 1px 1px 0 0 var(--separator);
+}
+.booth-mini-target {
+  top: 50%;
+  width: 2px;
+  height: 12px;
+  border-radius: 1px;
+  transform: translate(-50%, -50%);
+}
+.booth-mini {
+  padding-top: 10px;
+  min-height: 84px;
+}
+.booth-mini-text {
+  line-height: 1.3;
+  padding-block: 1px;
 }

@@ -4713,8 +4713,8 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.confirm.again": "Tekrar dokun",
   "booth.confirm.hold": "Basılı tut",
   "booth.confirm.hold_hint":
-    "Gece boyunca: onaylamak için basılı tutun (tek dokunuş hiçbir şeyi değiştirmez). Klavye: iki kez Enter; Esc iptal eder.",
-  "booth.confirm.tap_again": "Onaylamak için tekrar dokunun",
+    "Gece boyunca: onaylamak için iki kez dokunun ya da basılı tutun. Klavye: iki kez basın ya da Enter; Esc iptal eder.",
+  "booth.confirm.tap_again": "Onaylamak için tekrar dokunun ya da basılı tutun",
   "booth.controlStrip.mix_menu": "Miks: geçişler, kısmalar ve seviyeler",
   "booth.controls.close": "Kontroller panelini kapat",
   "djMessage.pinned_kept": "Sabitlediğiniz tanda yaptığınız gibi kalıyor; kurallar ona göre ayarlanıyor.",
@@ -4937,8 +4937,8 @@ export const tr: Partial<Record<MsgKey, string>> = {
     "Gri kısımlar şarkıların kendi sessizliğidir. “Sessizlik aradan sayılır” açıkken aranın parçasıdır (Ayarlar → Kabin → Aralar).",
   // 2026-11 — the finished transition editor (ruler, zoom, snap, per-lane handles, estimated shape, EQ)
   // 2026-11 — Fade / Crossfade: hold, countdown, cancel, undo
-  "booth.fade.undo_fade": "Solmayı geri al",
-  "booth.fade.undo_crossfade": "Geçişli geçişi geri al",
+  "booth.fade.undo_fade": "Kısma",
+  "booth.fade.undo_crossfade": "Geçişli bağlama",
   "booth.fade.hold_fade": "Solmak için basılı tutun",
   "booth.fade.hold_crossfade": "Geçiş için basılı tutun",
   "booth.fade.cancel_fade": "Solmayı iptal et · {sec} sn",
@@ -5290,7 +5290,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.ui2.mini_unmute": "Sesi aç",
   "booth.ui2.mini_seek": "Şarkıdaki konum",
   "booth.ui2.mini_seek_arm": "{at} konumuna atlamak için yeniden dokun",
-  "booth.ui2.mini_hold_next": "Sonraki şarkıyı çalmak için basılı tut",
+  "booth.ui2.mini_hold_next": "Sonraki şarkı için iki kez dokunun ya da basılı tutun",
   "boothUndo.skip_next": "Sonrakini atla ({title})",
   "boothUndo.cortina_early": "Kortina erken",
   "boothUndo.birthday": "Doğum günü valsi",
@@ -6050,4 +6050,49 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "power.menu_auto_off": "Otomatik, şu an tasarruf edilmiyor",
   "power.room_off":
     "Pil tasarrufu salon mikrofonunu ve Otomatik ana seviyeyi kapattı: salonu saniyede on kez dinlerler. Tasarruf kapanınca yeniden açılabilirler.",
+  // QA 2026-11: the Booth's fix pass
+  "booth.qa.deck_more": "Sıradakini ve enerjiyi göster",
+  "booth.qa.deck_more_hint": "Kontroller paneli açıkken gizli; bu, paneli kapatır",
+  "booth.qa.end_rehearsal_times":
+    "Prova süreleri: her şarkı 30 sn'lik klibiyle sayılır. Asıl gecede değişiklik şarkıların tam uzunluklarıyla yapılır.",
+  "booth.qa.end_at_preview": "Önizle",
+  "booth.qa.opening_rehearsal": "Prova: açılış gecede çalar (klip yok)",
+  "booth.fade.cancel_short": "İptal · {sec} sn",
+  "adapt.none": "Sıradaki yerler için daha iyi bir tanda yok — plan aynen kalıyor",
+  // QA 2026-11: the Booth's fix pass
+  "booth.load.menu": "Bir gece yükle…",
+  "booth.load.title": "Bir gece yükle",
+  "booth.load.tonight": "Bu gecenin gecesi (Oluştur)",
+  "booth.load.recent": "Son geceler",
+  "booth.load.featured": "Öne çıkan geceler",
+  "booth.load.bring_in": "Bir gece getir",
+  "booth.load.bring_in_footer":
+    'İçe aktarma bir Spotify ya da YouTube listesini, bir DJ uygulamasının dosyasını ya da yapıştırılmış bir listeyi alır; oradaki "Booth\'ta çal" geceyi doğrudan buraya getirir.',
+  "booth.load.import": "Bir liste içe aktar…",
+  "booth.load.import_sub": "Spotify, YouTube, bir dosya ya da yapıştırılmış metin",
+  "booth.load.build": "Elle kur",
+  "booth.load.compose": "Yeni bir gece oluştur",
+  "booth.load.clear": "Booth'u boşalt",
+  "booth.load.clear_title": "Booth boşaltılsın mı?",
+  "booth.load.clear_footer": "Booth gecesini bırakır; Oluştur onu saklar. Geri al onu geri getirir.",
+  "booth.load.clear_fade": "Kısarak boşalt",
+  "booth.load.clear_now": "Hemen durdur ve boşalt",
+  "booth.load.replace_title": "Çalan gece değiştirilsin mi?",
+  "booth.load.replace_footer":
+    "Çalan gece biter ve kaydı Geçmiş'e gider; yeni gece başlamaya hazır yüklenir.",
+  "booth.load.after_this_song": "Çalan şarkıdan sonra",
+  "booth.load.now": "Şimdi",
+  "booth.load.loaded": "Yüklendi: {name}",
+  "booth.load.after_song": "{name} bu şarkıdan sonra yüklenecek",
+  "booth.load.untitled": "Adsız gece",
+  "booth.load.tandas": "{n} tanda",
+  "booth.load.loading": "Yükleniyor…",
+  "booth.load.failed": "Bu gece yüklenemedi",
+  "booth.load.cleared": "Booth boşaltıldı",
+  "booth.load.cleared_label": "Booth boşaltıldı",
+  "booth.load.empty_title": "Booth'ta gece yok",
+  "booth.load.empty_text":
+    "Gecelerinden birini, öne çıkan bir geceyi ya da içe aktarılmış bir listeyi yükle; ya da yeni bir gece oluştur.",
+  // QA 2026-11: the Booth's fix pass
+  "toast.dismiss": "Kapat",
 };

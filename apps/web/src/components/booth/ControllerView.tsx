@@ -5,6 +5,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Sheet } from "@/components/Sheet";
 import { Tip } from "@/components/ui/Tip";
 import { useArm } from "@/lib/booth/confirm";
+import { wideSheetWidth } from "@/lib/booth/sheetWidth";
 import { useBooth, useRoomCaps } from "@/lib/booth/store";
 import {
   ASSIGN,
@@ -59,6 +60,19 @@ export function ControllerHost() {
 }
 
 export function ControllerSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  // QA 2026-11: never over the sidebar (lib/booth/sheetWidth.ts)
+  const [width, setWidth] = useState(980);
+  useEffect(() => {
+    if (!open) return;
+    const measure = () => {
+      const side = document.querySelector<HTMLElement>('[data-testid="sidebar"]');
+      const right = side?.getClientRects().length ? side.getBoundingClientRect().right : 0;
+      setWidth(wideSheetWidth(window.innerWidth, right));
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [open]);
   return (
     <Sheet
       open={open}
@@ -69,7 +83,7 @@ export function ControllerSheet({ open, onClose }: { open: boolean; onClose: () 
       title={t("controller.title")}
       trailing={t("booth.sheets.done")}
       detents={["large"]}
-      width={980}
+      width={width}
       testId="controller-sheet"
     >
       <div className="vc-sheet">
