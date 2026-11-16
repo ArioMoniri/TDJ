@@ -31,7 +31,7 @@ import { durationLabel } from "@/lib/booth/plan";
 import { useBooth, useRoomCaps } from "@/lib/booth/store";
 import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
-import { t as tx } from "@/lib/i18n";
+import { fmtNumber, t as tx } from "@/lib/i18n";
 import { Artwork } from "../ui/Artwork";
 import { Marquee } from "../ui/Marquee";
 import { useTip } from "../ui/Tip";
@@ -222,7 +222,9 @@ export function ControlStrip({
       aria-label={tx("booth.controlStrip.pause")}
       data-hint={
         caps.fade
-          ? tx("booth.controlStrip.pause_now_with_a_s_fade", { pauseFadeSec: settings.pauseFadeSec })
+          ? tx("booth.controlStrip.pause_now_with_a_s_fade", {
+              pauseFadeSec: fmtNumber(settings.pauseFadeSec, { maximumFractionDigits: 1 }),
+            })
           : tx("booth.connect.pause_hint")
       }
     >
@@ -284,7 +286,9 @@ export function ControlStrip({
             kind="fade"
             label={tx("booth.controlStrip.fade")}
             short={tx("booth.controlStrip.fade")}
-            hint={tx("booth.controlStrip.fade_out_now_over_s_the", { fadeNowSec: settings.fadeNowSec })}
+            hint={tx("booth.controlStrip.fade_out_now_over_s_the", {
+              fadeNowSec: fmtNumber(settings.fadeNowSec, { maximumFractionDigits: 1 }),
+            })}
             why={caps.fade ? undefined : tx("booth.connect.no_fade_why")}
             live={live}
             onRun={() => act.fadeOutNow()}

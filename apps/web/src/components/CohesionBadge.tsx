@@ -2,8 +2,9 @@
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useId, useRef, useState } from "react";
 import { COHESION_COLOR, type CohesionInfo, PART_LABEL, PART_ORDER } from "@/lib/audio";
+import { cohesionWord } from "@/lib/engineText";
 import { useMediaQuery } from "@/lib/hooks";
-import { capFirst, t } from "@/lib/i18n";
+import { t } from "@/lib/i18n";
 import { DUR, EASE } from "@/lib/motion";
 import { Group } from "./Form";
 import { Sheet } from "./Sheet";
@@ -68,7 +69,7 @@ function PairList({ info }: { info: CohesionInfo }) {
 }
 
 /** wave 2: the badge in sentence case ("Audible step", not "Audible Step") */
-export const cohesionText = (label: string) => capFirst(label);
+export const cohesionText = (label: string) => cohesionWord(label);
 /** wave 2: what the badge means, on hover and to assistive tech */
 export const COHESION_HELP = () => t("cohesionBadge.how_smoothly_the_songs_of_this");
 
@@ -105,7 +106,11 @@ export function CohesionBadge({ info, tandaLabel }: { info: CohesionInfo; tandaL
         type="button"
         className="text-caption1 -my-1 inline-flex min-h-[28px] items-center gap-1 rounded-full px-2 font-medium"
         style={{ color, background: `color-mix(in srgb, ${color} 14%, transparent)` }}
-        aria-label={t("cohesionBadge.cohesion_2", { score: info.score, label: info.label, tandaLabel })}
+        aria-label={t("cohesionBadge.cohesion_2", {
+          score: info.score,
+          label: cohesionWord(info.label),
+          tandaLabel,
+        })}
         aria-expanded={open}
         aria-controls={open && !isPhone ? id : undefined}
         data-testid="cohesion-badge"

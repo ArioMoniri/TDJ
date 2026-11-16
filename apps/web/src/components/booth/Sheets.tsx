@@ -7,7 +7,7 @@ import { cortinaSpan } from "@/lib/booth/nightView";
 import { BOOTH_RANGES, durationLabel } from "@/lib/booth/plan";
 import { useBooth, useRoomCaps } from "@/lib/booth/store";
 import { useMediaQuery } from "@/lib/hooks";
-import { lazy, t as tx } from "@/lib/i18n";
+import { fmtNumber, fmtSec, lazy, t as tx } from "@/lib/i18n";
 import {
   ACTIONS,
   type ActionId,
@@ -19,7 +19,7 @@ import {
 } from "@/lib/keymap";
 import { useStore } from "@/lib/store";
 import { CORTINA_STOP_RANGE, cortinaStopSec } from "@/lib/types";
-import { ActionRow, Group, Row, SegmentedRow, StepperRow, SwitchRow } from "../Form";
+import { ActionRow, Group, Row, SegmentedRow, StepperRow, SwitchRow, secUnit } from "../Form";
 import { Sheet } from "../Sheet";
 import { Stepper } from "../ui";
 import { Fader } from "./Fader";
@@ -106,8 +106,10 @@ function MixStepper({
         <span className="block">{label}</span>
         <span className="text-footnote block text-[var(--label-2)]">{explain}</span>
       </span>
-      <span className="cell-value tabular-nums">{display ?? `${value}${unit}`}</span>
-      <Stepper label={label} value={value} unit={unit} {...stepper} />
+      <span className="cell-value tabular-nums">
+        {display ?? (unit === " s" ? fmtSec(value) : `${value}${unit}`)}
+      </span>
+      <Stepper label={label} value={value} unit={unit === " s" ? secUnit() : unit} {...stepper} />
     </div>
   );
 }
@@ -166,14 +168,18 @@ export function LevelsSheet({
             label={
               live ? tx("booth.sheets.pause") : paused ? tx("booth.sheets.resume") : tx("booth.sheets.play")
             }
-            sub={tx("booth.sheets.s_fade", { pauseFadeSec: settings.pauseFadeSec })}
+            sub={tx("booth.sheets.s_fade", {
+              pauseFadeSec: fmtNumber(settings.pauseFadeSec, { maximumFractionDigits: 1 }),
+            })}
             k="space"
             onClick={() => act.togglePause()}
             disabled={!started}
             testId="booth-mix-pause"
           />
           <KeyAction
-            label={tx("booth.sheets.fade_out_now_s", { fadeNowSec: settings.fadeNowSec })}
+            label={tx("booth.sheets.fade_out_now_s", {
+              fadeNowSec: fmtNumber(settings.fadeNowSec, { maximumFractionDigits: 1 }),
+            })}
             sub={caps.fade ? tx("booth.sheets.the_song_fades_out_the_next") : tx("booth.connect.no_fade_why")}
             k="f"
             onClick={() => act.fadeOutNow()}
@@ -181,7 +187,9 @@ export function LevelsSheet({
             testId="booth-fade-now"
           />
           <KeyAction
-            label={tx("booth.sheets.next_with_crossfade_s", { crossfadeSec: settings.crossfadeSec })}
+            label={tx("booth.sheets.next_with_crossfade_s", {
+              crossfadeSec: fmtNumber(settings.crossfadeSec, { maximumFractionDigits: 1 }),
+            })}
             sub={
               caps.fade ? tx("booth.sheets.the_next_item_starts_now_while") : tx("booth.connect.no_fade_why")
             }

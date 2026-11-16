@@ -67,6 +67,10 @@ export function partText(p: SuccessionPart): string {
     case "learned":
       if (d.floor !== undefined && Math.abs(Number(d.floor)) >= Math.abs(Number(d.weight) - Number(d.floor)))
         return Number(d.floor) > 0 ? tx("succession.part.floor_up") : tx("succession.part.floor_down");
+      if (!Number(d.weight) && d.step !== undefined)
+        return Number(d.step) > 0
+          ? tx("succession.part.floor_step_up")
+          : tx("succession.part.floor_step_down");
       return Number(d.weight) > 0 ? tx("succession.part.learned_up") : tx("succession.part.learned_down");
   }
 }

@@ -189,7 +189,7 @@ export function RulesTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
             actions={[
               {
                 kind: "destructive",
-                label: "Delete",
+                label: t("common.delete"),
                 icon: Trash2,
                 onClick: () => {
                   const n = { ...te };
@@ -231,7 +231,7 @@ export function RulesTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
             actions={[
               {
                 kind: "destructive",
-                label: "Delete",
+                label: t("common.delete"),
                 icon: Trash2,
                 onClick: () => {
                   const n = { ...nb };

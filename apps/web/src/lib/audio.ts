@@ -1,5 +1,6 @@
 "use client";
 import { cohesionLabel, compatibility, tandaCohesion } from "@tdj/core";
+import { lazy, t } from "./i18n";
 import type { AppOverrides, AudioFeatures, ResolvedTrack, Song, Tanda } from "./types";
 
 export type SongPatch = NonNullable<AppOverrides["songs"]>[string];
@@ -97,11 +98,12 @@ export const COHESION_COLOR: Record<CohesionLabel, string> = {
   "audible step": "var(--label-2)", // a note, not a warning (round8-ux.md §1.11)
   jarring: "#e5484d",
 };
-export const PART_LABEL: Record<string, string> = {
-  tempo: "tempo",
-  loudness: "loudness",
-  key: "key",
-  brightness: "brightness",
-  energy: "energy",
-};
+/** a cohesion part's name in the DJ's language (2026-11: "loudness" stayed English on a Turkish sheet) */
+export const PART_LABEL: Record<string, string> = lazy(() => ({
+  tempo: t("engine.part.tempo"),
+  loudness: t("engine.part.loudness"),
+  key: t("engine.part.key"),
+  brightness: t("engine.part.brightness"),
+  energy: t("engine.part.energy"),
+}));
 export const PART_ORDER = ["tempo", "loudness", "key", "brightness", "energy"];

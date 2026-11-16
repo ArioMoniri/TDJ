@@ -1,4 +1,4 @@
-import { lazy, plural, t as tx } from "@/lib/i18n";
+import { fmtSec, lazy, plural, t as tx } from "@/lib/i18n";
 import type { ComposeContext, ComposeOptions, Playlist } from "./types";
 
 const LABEL: Record<string, string> = {
@@ -125,7 +125,7 @@ const fmt = (k: string, v: unknown): string => {
         .join(", ") || "none"
     );
   const s = String(v);
-  if (k === "cortinaLengthSec") return `${s} s`;
+  if (k === "cortinaLengthSec") return fmtSec(Number(v));
   if (k === "orchestraRepeatGap" || k === "singerRepeatGap") return tx("changes.tandas", { s });
   if (k === "maxYearSpread") return `${s} y`;
   return VALUE[k]?.[s] ?? s;

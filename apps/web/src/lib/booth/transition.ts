@@ -5,7 +5,7 @@ import {
   type TransitionEdit,
   type TransitionEq,
 } from "@tdj/core";
-import { t as tx } from "@/lib/i18n";
+import { fmtSec, t as tx } from "@/lib/i18n";
 import type { AudioParamLike } from "./engine";
 import { DECLICK_IN, DECLICK_OUT } from "./envelope";
 
@@ -434,5 +434,5 @@ export function lengthLabel(sec: number, bpm: number | null | undefined, unit: "
     const b = secToBars(sec, bpm);
     return b === 1 ? tx("booth.transition.one_bar", { n: b }) : tx("booth.transition.n_bars", { n: b });
   }
-  return `${r1(sec)} s`;
+  return fmtSec(r1(sec));
 }

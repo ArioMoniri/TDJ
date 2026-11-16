@@ -25,7 +25,9 @@ export function targetsFor(
           {
             tanda: i,
             label: tx("searchPanel.tanda", { p1: i + 1, orchestra: t.orchestra }),
-            sub: [t.singer ?? "Instrumental", t.yearRange?.join("–")].filter(Boolean).join(" · "),
+            sub: [t.singer ?? tx("tandaType.instrumental"), t.yearRange?.join("–")]
+              .filter(Boolean)
+              .join(" · "),
             chairs: t.songs.map((s, k) => ({ track: k, title: s.title, year: s.year ?? null })),
             ...(opts.closedBefore !== undefined && i <= opts.closedBefore
               ? { closed: tx("searchPanel.playing_or_played_it_can_no") }

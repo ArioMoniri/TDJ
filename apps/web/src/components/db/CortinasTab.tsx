@@ -1,7 +1,7 @@
 "use client";
 import { AudioLines } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { t } from "@/lib/i18n";
+import { fmtSec, t } from "@/lib/i18n";
 import type { Cortina, MetaCortina } from "@/lib/types";
 import { useSharedQuery } from "@/lib/usePageQuery";
 import { useTextSearch } from "@/lib/useSongSearch";
@@ -210,7 +210,7 @@ export function CortinasTab({ base }: { base: MetaCortina[] }) {
                   energy: c.energy,
                   p1: state !== "index" ? ` · ${state}` : "",
                 })}
-                value={`${c.lengthSec ?? 45} s`}
+                value={fmtSec(c.lengthSec ?? 45)}
                 chevron
                 onClick={() => open(c)}
               />

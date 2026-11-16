@@ -5,6 +5,7 @@ import { tandaTone } from "@tdj/core";
 import { memo, useMemo, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { patchedSong } from "@/lib/audio";
+import { toneText } from "@/lib/engineText";
 import { useStore } from "@/lib/store";
 import type { Playlist } from "@/lib/types";
 import { EraLegend } from "./EraBadge";
@@ -66,7 +67,7 @@ export const NightProfile = memo(function NightProfile({
             ? tx("nightProfile.tanda_2", {
                 p1: cur.t.index + 1,
                 orchestra: cur.t.orchestra,
-                p2: cur.tone?.label ?? "",
+                p2: cur.tone ? toneText(cur.tone) : "",
               })
             : tx("nightProfile.energy_of_every_side_hover_a")}
         </span>
@@ -87,7 +88,7 @@ export const NightProfile = memo(function NightProfile({
             aria-label={tx("nightProfile.tanda", {
               p1: i + 1,
               orchestra: t.orchestra,
-              p2: tandas[i]?.tone?.label ?? "",
+              p2: tandas[i]?.tone ? toneText(tandas[i]!.tone!) : "",
             })}
             onPointerEnter={() => setHover(i)}
             onPointerLeave={() => setHover(null)}

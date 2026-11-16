@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { en } from "./en";
+import { ENGLISH_UI_WORDS } from "./englishWords";
 import { fmtDate, fmtNumber, plural, resolveLocale, setLocale, t, upper } from "./index";
 import { SAME_IN_TURKISH, tr } from "./tr";
 
@@ -55,6 +56,21 @@ describe("dictionaries", () => {
       return got.some((h) => !e.includes(h)) || must.some((h) => !got.includes(h));
     });
     expect(bad).toEqual([]);
+  });
+
+  it("the untranslated whitelist names the brands and units that stay (BPM, DJ, Spotify)", () => {
+    for (const w of ["BPM", "DJ", "Spotify", "LUFS"]) expect(SAME_IN_TURKISH).toContain(w);
+  });
+
+  it("no Turkish value carries an English UI word (QA 2026-11: Instrumental, Choose, steady, Booth…)", () => {
+    // another app's own (English) menu path, quoted as it reads there
+    const QUOTED = new Set(["types.preferences_advanced_database_imported_library_pick"]);
+    const bad = trKeys.filter((k) => {
+      if (QUOTED.has(k)) return false;
+      const v = (tr[k as keyof typeof tr] ?? "").replace(/\{\w+\}/g, " ");
+      return ENGLISH_UI_WORDS.test(v);
+    });
+    expect(bad.map((k) => `${k}: ${tr[k as keyof typeof tr]}`)).toEqual([]);
   });
 
   it("no value is empty", () => {

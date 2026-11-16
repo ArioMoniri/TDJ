@@ -149,36 +149,30 @@ for (const [name, opts] of CASES) {
           col: col.left,
         };
       });
-    // a frame mid-way, held still: the button is pressed and, in the same task, the slide's two CSS transitions (the
-    // sidebar's transform and the root's --sidebar-w that `main` follows) are paused 90 ms in. (It sampled after a
-    // 90 ms wait: under a loaded runner the click and the sample took longer than the 260 ms slide, so it read the end
-    // frame — CI 2026-11. Pausing keeps the check, "it animates and the page follows in step", deterministic.)
-    const midSlide = async (id: string) => {
-      const props = await page.evaluate((testId) => {
-        document.querySelector<HTMLElement>(`[data-testid="${testId}"]`)!.click();
-        const side = document.querySelector('[data-testid="sidebar"]')!;
-        // flush the style change so the transitions start now
-        void getComputedStyle(side).transform;
-        void getComputedStyle(document.documentElement).getPropertyValue("--sidebar-w");
-        const running = [...side.getAnimations(), ...document.documentElement.getAnimations()].filter(
-          (a): a is CSSTransition =>
-            a instanceof CSSTransition && ["transform", "--sidebar-w"].includes(a.transitionProperty),
-        );
-        for (const a of running) {
-          a.pause();
-          a.currentTime = 90;
-        }
-        return running.map((a) => a.transitionProperty).sort();
-      }, id);
-      expect(props, `${id}: the sidebar slides and the page follows`).toEqual(["--sidebar-w", "transform"]);
-      const f = await frame();
-      await page.evaluate(() => {
-        for (const a of document.getAnimations()) if (a.playState === "paused") a.play();
-      });
-      return f;
-    };
     const open0 = await frame();
-    const mid = await midSlide("sidebar-hide");
+    // a frame mid-way: the click and the readings in the page, every frame for up to a second on its own clock, the first
+    // one with the sidebar between its two ends (2026-11: on a loaded test machine the round trips of a click, a
+    // wait and a reading alone could outlast the 260 ms slide, or read it before its first frame)
+    const midway = (id: string, open: number) =>
+      page.evaluate(
+        async ([x, w]) => {
+          (document.querySelector(`[data-testid="${x}"]`) as HTMLElement).click();
+          const t0 = performance.now();
+          const read = () => ({
+            side: document.querySelector('[data-testid="sidebar"]')!.getBoundingClientRect().right,
+            main: document.querySelector("main")!.getBoundingClientRect().left,
+          });
+          let last = read();
+          while (performance.now() - t0 < 1000) {
+            await new Promise((r) => requestAnimationFrame(r));
+            last = read();
+            if (last.side > 5 && last.side < (w as number) - 5) return last;
+          }
+          return last;
+        },
+        [id, open] as const,
+      );
+    const mid = await midway("sidebar-hide", open0.side);
     expect(mid.side, "mid-collapse: the sidebar is sliding").toBeGreaterThan(5);
     expect(mid.side).toBeLessThan(open0.side - 5);
     expect(mid.main, "the page follows").toBeLessThan(open0.main - 5);
@@ -196,7 +190,7 @@ for (const [name, opts] of CASES) {
       Math.abs(show.y + show.height / 2 - shut.h1M),
       "the Show button on the title's line",
     ).toBeLessThanOrEqual(3);
-    const mid2 = await midSlide("sidebar-show");
+    const mid2 = await midway("sidebar-show", 360);
     expect(mid2.side).toBeGreaterThan(5);
     expect(mid2.side).toBeLessThan(359);
     await expect(page.getByTestId("sidebar")).toBeVisible();

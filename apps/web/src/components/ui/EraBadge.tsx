@@ -74,7 +74,11 @@ export const EraBadge = memo(function EraBadge(
   const { song, compact = false, overlay = false, className = "" } = props;
   const e = chipOn ? eraOfSong(song, edits) : undefined;
   if (!e) return null;
-  const text = `${e.year} is ${WHY(e.mark)} (${song.vocal ? t("eraBadge.with_a_singer") : "instrumental"}).`;
+  const text = t("eraBadge.year_why", {
+    year: e.year,
+    why: WHY(e.mark),
+    kind: song.vocal ? t("eraBadge.with_a_singer") : t("common.instrumental"),
+  });
   return (
     <Tip text={text} className={`${overlay ? "era-overlay" : ""} ${className}`}>
       <span

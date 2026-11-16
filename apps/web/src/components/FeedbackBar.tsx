@@ -2,7 +2,7 @@
 import { ArrowUp, LoaderCircle } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
-import { FEEDBACK_CHIPS, FEEDBACK_LABEL } from "@/lib/feedback";
+import { FEEDBACK_CHIPS, feedbackWord } from "@/lib/feedback";
 import { t } from "@/lib/i18n";
 import type { Feedback } from "@/lib/types";
 import { Group } from "./Form";
@@ -62,10 +62,7 @@ export function FeedbackBar({
     >
       <div className="cell flex-wrap gap-2 py-3">
         {FEEDBACK_CHIPS.map(([k, l]) => (
-          <Tip
-            key={k}
-            text={t("feedbackBar.compose_again_with_locked_tandas_stay", { p1: FEEDBACK_LABEL[k] })}
-          >
+          <Tip key={k} text={t("feedbackBar.compose_again_with_locked_tandas_stay", { p1: feedbackWord(k) })}>
             <motion.button
               type="button"
               className={`chip ${pending === k ? "chip-on" : ""}`}

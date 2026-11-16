@@ -28,7 +28,9 @@ export function PraiseRows({
         return (
           <SwipeRow
             key={p.id}
-            actions={[{ kind: "destructive", label: "Delete", icon: Trash2, onClick: () => onForget(p.id) }]}
+            actions={[
+              { kind: "destructive", label: t("common.delete"), icon: Trash2, onClick: () => onForget(p.id) },
+            ]}
           >
             <div className="cell" data-testid="praise-row" data-praise={p.id}>
               <span className="min-w-0 flex-1 overflow-hidden py-1">

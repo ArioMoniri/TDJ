@@ -7,7 +7,7 @@ import { t } from "@/lib/i18n";
 import { metaLine, yearSpan, yearText } from "@/lib/year";
 import { Artwork } from "../ui/Artwork";
 import { EraBadge } from "../ui/EraBadge";
-import { TandaTypeBadge } from "../ui/TandaTypeBadge";
+import { rhythmWord, TandaTypeBadge } from "../ui/TandaTypeBadge";
 import { eyebrowFor } from "./NowCard";
 
 /**
@@ -144,7 +144,11 @@ export function NextCard({
           data-auditioning={hearing === nextTandaFirst || undefined}
         >
           <span className="text-caption1 block text-[var(--label-2)]">
-            {t("booth.nextCard.next_tanda_of", { tanda: nt.tanda, tandas, rhythm: ntTanda.rhythm })}
+            {t("booth.nextCard.next_tanda_of", {
+              tanda: nt.tanda,
+              tandas,
+              rhythm: rhythmWord(ntTanda.rhythm),
+            })}
           </span>
           <span className="my-1 flex">
             <TandaTypeBadge rhythm={ntTanda.rhythm} vocal={ntTanda.vocal} singer={ntTanda.singer} />
