@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "description": "TDJ — Tango DJ playlist composer: tandas, cortinas, energy arcs, exports to Spotify and DJ apps.",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "release": {
     "repo": "ArioMoniri/TDJ",
     "appStoreId": "6834924534",

@@ -145,19 +145,24 @@ and the set list opens from it.
 More screens: [Booth on iPad](media/readme/booth.webp) · [Build by hand](media/readme/build.webp) ·
 [search](media/readme/search.webp) · [Guide](media/readme/guide.webp) · [dark Compose](media/readme/compose-dark.webp)
 
-## Run it yourself
+## Self-host
 
-You can run your own copy on your own AWS account, with your own Spotify app and settings. It costs about nothing
-when idle. The deploy also creates the small DynamoDB table that rooms and short links need.
+There is no public T-DJ server: the author's own deployment is private. Run your own copy on your own AWS account,
+with your own Spotify app and settings (about $0–1 a month when idle), run it on your own computer with `pnpm dev`,
+or use the iPhone, iPad and Mac apps, which work on their own. One line on macOS, Linux or WSL:
 
 ```bash
-git clone https://github.com/ArioMoniri/TDJ.git && cd TDJ
-pnpm install
-node packages/cli/bin/tdj.mjs   # asks at most three questions, then deploys
+curl -fsSL https://raw.githubusercontent.com/ArioMoniri/TDJ/claude/admiring-curie-npzd0m/scripts/install.sh | bash
 ```
 
-The details, including the GitHub-fork route that updates itself, are in [docs/SELF_DEPLOY.md](docs/SELF_DEPLOY.md)
-and [docs/DEPLOY.md](docs/DEPLOY.md).
+It prints its plan and asks first, then clones T-DJ, installs it and runs the `tdj` CLI (`pnpm tdj init`,
+`pnpm tdj deploy`; `pnpm tdj doctor` when something is off).
+
+Or deploy in one click from GitHub, with nothing running on your computer afterwards:
+**[1. Fork T-DJ](https://github.com/ArioMoniri/TDJ/fork)** → 2. add the AWS deploy role (`pnpm tdj init --github`
+once, or [by hand](docs/SELF_DEPLOY.md#c-one-click-on-github)) →
+**[3. Run "Deploy to AWS"](https://github.com/ArioMoniri/TDJ/actions/workflows/deploy-aws.yml)** on your fork. Every
+way, costs on the AWS free tier, updating and removing: [docs/SELF_DEPLOY.md](docs/SELF_DEPLOY.md).
 
 ## Develop
 
@@ -181,4 +186,19 @@ The index starts from *Listado Total de canciones* (2008) and the *All orchestra
 LRCLIB's synced lyrics. The published sets I benchmark against are listed in [docs/reviews](docs/reviews). Built
 with Claude Code.
 
-MIT licence, see [LICENSE](LICENSE). © 2026 Ario Moniri.
+## Contributing
+
+Bug reports, ideas and corrections to the musical data (a wrong year or singer) are welcome: see
+[CONTRIBUTING.md](CONTRIBUTING.md) and open an [issue](https://github.com/ArioMoniri/TDJ/issues/new/choose).
+Questions go to [SUPPORT.md](SUPPORT.md), security problems privately through [SECURITY.md](SECURITY.md), and
+everyone follows the [Code of Conduct](CODE_OF_CONDUCT.md).
+
+## License
+
+[PolyForm Noncommercial 1.0.0](LICENSE). T-DJ is free for personal, educational and non-profit use: play your own
+milongas with it, teach with it, change it, run it for your community. Commercial use (running it for a business,
+selling it, or a paid service built on it) needs written permission from the author; open an issue to ask.
+Third-party libraries keep their own licences, and the data sources' terms still apply. The author's own App Store
+and Mac releases are unaffected.
+
+Copyright (c) 2026 Ariorad Moniri.

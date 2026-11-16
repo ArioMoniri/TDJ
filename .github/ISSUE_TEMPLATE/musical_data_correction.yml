@@ -1,0 +1,56 @@
+name: Musical data correction
+description: A recording with the wrong year, singer, orchestra, genre or title.
+title: "Data: "
+labels: ["data"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you: the index is only as good as these corrections. One issue may list several recordings by the same
+        orchestra. A source makes it quick to fix.
+  - type: input
+    id: recording
+    attributes:
+      label: Recording
+      description: Title and orchestra as T-DJ shows them.
+      placeholder: "Bahía Blanca · Carlos Di Sarli"
+    validations:
+      required: true
+  - type: dropdown
+    id: field
+    attributes:
+      label: What is wrong
+      multiple: true
+      options:
+        - Year / recording date
+        - Singer
+        - Orchestra
+        - Genre (tango / vals / milonga)
+        - Title spelling
+        - Instrumental marked as vocal (or the reverse)
+        - Duplicate recording
+        - Wrong Spotify / YouTube match
+        - Something else
+    validations:
+      required: true
+  - type: textarea
+    id: values
+    attributes:
+      label: What T-DJ shows, and what it should be
+      placeholder: |
+        Shows: 1957, instrumental
+        Should be: 1957-11-05, instrumental (the 1958 version with Durán is a different recording)
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: Source
+      description: A discography, tango.info, a label scan, the record sleeve, a reliable DJ list. Links welcome.
+    validations:
+      required: true
+  - type: input
+    id: link
+    attributes:
+      label: Link to the recording (optional)
+      description: A Spotify or YouTube link to the exact version, if the match is the problem.

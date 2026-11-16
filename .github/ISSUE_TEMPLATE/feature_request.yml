@@ -1,0 +1,46 @@
+name: Feature request
+description: An idea that would make a night easier to build or to play.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Start from the night, not the button: when does this come up, and what do you do today instead?
+  - type: textarea
+    id: moment
+    attributes:
+      label: The moment it is for
+      description: The situation at the milonga or while preparing, and what is hard about it now.
+      placeholder: "Two hours in, the floor is tired and I want a tanda that lifts it without jumping eras…"
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you would like T-DJ to do
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you do today, or other ideas you considered
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Compose (drafting a night)
+        - Build by hand
+        - Booth (playing)
+        - Rooms (dancers' requests)
+        - Library / Database
+        - Import / Export
+        - Settings / Connections
+        - Self-hosting / the tdj CLI
+        - Something else
+  - type: checkboxes
+    id: musical
+    attributes:
+      label: Musical rules
+      options:
+        - label: This changes how tandas, cortinas or the energy arc are chosen (it will need a test and the ≥ 85 benchmark, see CONTRIBUTING.md).

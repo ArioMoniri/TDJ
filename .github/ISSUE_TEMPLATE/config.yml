@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Question or help with self-hosting
+    url: https://github.com/ArioMoniri/TDJ/blob/HEAD/SUPPORT.md
+    about: Where to ask, and what to try first (pnpm tdj doctor, docs/SELF_DEPLOY.md).
+  - name: Report a security vulnerability (privately)
+    url: https://github.com/ArioMoniri/TDJ/security/advisories/new
+    about: Please do not open a public issue for security problems.
+  - name: Commercial use permission
+    url: https://github.com/ArioMoniri/TDJ/blob/HEAD/LICENSE
+    about: T-DJ is noncommercial (PolyForm Noncommercial 1.0.0). To ask for written permission, open a blank issue titled "Commercial use".

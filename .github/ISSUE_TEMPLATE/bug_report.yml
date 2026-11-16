@@ -1,0 +1,65 @@
+name: Bug report
+description: Something in T-DJ does not work as it should.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you. Please check the [open issues](https://github.com/ArioMoniri/TDJ/issues) first.
+        A security problem goes privately through [SECURITY.md](https://github.com/ArioMoniri/TDJ/blob/HEAD/SECURITY.md), not here.
+        Never paste an API key, a Spotify secret or a setup code into an issue.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, step by step, and what you saw.
+      placeholder: |
+        1. Compose → 4 h, Golden age
+        2. Swap the third tanda
+        3. The cortina after it disappears
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where
+      multiple: true
+      options:
+        - Web (my own deployment)
+        - Web (local, pnpm dev)
+        - iPhone
+        - iPad
+        - Mac (App Store)
+        - Mac (DMG download)
+        - The tdj CLI / self-deploy
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Settings → About → Version (or `pnpm tdj --version` for the CLI).
+      placeholder: "0.1.0 (abc1234)"
+    validations:
+      required: true
+  - type: dropdown
+    id: playback
+    attributes:
+      label: Playback source, if it matters
+      options:
+        - Not about playback
+        - Spotify
+        - YouTube
+        - Local files
+        - Previews
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots, logs or anything else
+      description: For the CLI, the output of `pnpm tdj doctor` helps (it prints no secrets).
