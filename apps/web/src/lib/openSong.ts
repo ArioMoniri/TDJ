@@ -16,7 +16,8 @@ export function openSong(d: OpenSongDetail): "handled" | "row" | "none" {
   const ev = new CustomEvent<OpenSongDetail>(OPEN_SONG_EVENT, { detail: d, cancelable: true });
   if (!window.dispatchEvent(ev)) return "handled";
   const id = d.id.replace(/^(song|cortina):/, "");
-  const row = document.querySelector<HTMLElement>(`[data-song-id="${CSS.escape(id)}"]`);
+  const q = CSS.escape(id);
+  const row = document.querySelector<HTMLElement>(`[data-song-id="${q}"], [data-song="${q}"]`);
   if (!row) return "none";
   row.scrollIntoView({ behavior: "smooth", block: "center" });
   const focusable = row.matches("[tabindex], button, a")

@@ -189,7 +189,14 @@ export function NightPicker({
                 label={c.title}
                 sub={facts(c)}
                 value={picked?.key === c.key ? "✓" : undefined}
-                onClick={() => setPicked(c)}
+                onClick={() => {
+                  setPicked(c);
+                  // a featured night loads for its preview (its tandas, length and date)
+                  if (!c.playlist && c.featured)
+                    void loadFeatured(c.featured)
+                      .then((p) => setPicked((cur) => (cur?.key === c.key ? { ...c, playlist: p } : cur)))
+                      .catch(() => {});
+                }}
                 data-testid="night-choice"
               />
             ))}
