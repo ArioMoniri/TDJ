@@ -119,9 +119,14 @@ let busy = false;
 let timer: ReturnType<typeof setTimeout> | null = null;
 let failures = 0;
 
+/**
+ * QA fix 2026-11: a room carries the night exactly (each side's recording, length, tempo and level, each cortina's
+ * cue): a second DJ joining no longer turned 4:37:07 into the catalogue's 4:35:53 on both screens.
+ */
+const EXACT = { exact: true } as const;
 const local = (): NightFile | null => {
   const p = useStore.getState().playlist;
-  return p ? exportNight(p) : null;
+  return p ? exportNight(p, EXACT) : null;
 };
 
 function remember(ref: RoomRef) {
@@ -202,7 +207,7 @@ function adopt(v: RoomView, before: Playlist | null) {
   const p = v.playlist ?? null;
   if (!p) return;
   // compare like with like: the night as this catalogue resolves it
-  synced = { night: exportNight(p), slots: v.slots, rev: v.rev };
+  synced = { night: exportNight(p, EXACT), slots: v.slots, rev: v.rev };
   const st = useStore.getState();
   if (st.playlist !== before) return; // the DJ edited meanwhile: the next tick sends that edit first
   if (!sameJson(local(), synced.night)) st.setPlaylist(p);
@@ -464,7 +469,7 @@ export const useRooms = create<RoomSession>()((set, get) => ({
   },
   switchNight: async (p) => {
     if (!client) return false;
-    const night = exportNight(p);
+    const night = exportNight(p, EXACT);
     try {
       const v = await client.switchNight(night, synced.rev);
       applyView(v);

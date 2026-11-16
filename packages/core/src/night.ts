@@ -46,7 +46,31 @@ export interface NightSide {
   rhythm: Rhythm;
   durationSec?: number;
   streams?: NightStreams;
+  /**
+   * QA fix 2026-11 (a room's night changed length when a second DJ joined): the side exactly as it plays in the
+   * night that was shared — its recording length, its checked Spotify and preview recordings, its tempo, level and
+   * analysis. A room carries it (`exportNight(p, { exact: true })`), so the night a DJ joins is the night that went
+   * in, not the catalogue's own take of the same side; a key with `null` means the night has none.
+   */
+  play?: NightPlay;
 }
+export interface NightPlay {
+  durationSec?: number | null;
+  spotify?: Song["spotify"] | null;
+  resolved?: Song["resolved"] | null;
+  tempo?: Song["tempo"] | null;
+  level?: Song["level"] | null;
+  audio?: Song["audio"] | null;
+}
+const PLAY_KEYS = ["durationSec", "spotify", "resolved", "tempo", "level", "audio"] as const;
+export interface NightCortinaPlay {
+  spotify?: Cortina["spotify"] | null;
+  resolved?: Cortina["resolved"] | null;
+  hook?: Cortina["hook"] | null;
+  startSec?: number | null;
+  lengthSec?: number | null;
+}
+const CORTINA_PLAY_KEYS = ["spotify", "resolved", "hook", "startSec", "lengthSec"] as const;
 export interface NightCortina {
   id: string;
   title: string;
@@ -58,6 +82,8 @@ export interface NightCortina {
   lengthSec?: number;
   startSec?: number;
   streams?: NightStreams;
+  /** the cortina's recordings and hook as the shared night plays them (rooms; see `NightSide.play`) */
+  play?: NightCortinaPlay;
 }
 export interface NightTanda {
   rhythm: DanceRhythm;
@@ -141,7 +167,13 @@ function streamsOf(x: {
   return Object.keys(s).length ? s : undefined;
 }
 
-export function nightSide(s: Song): NightSide {
+/** What a night export keeps: `exact` adds each side's and cortina's playback data (a room carries the night exactly). */
+export interface NightExportOptions {
+  exact?: boolean;
+}
+const copy = <T>(x: T): T => (x == null ? x : (JSON.parse(JSON.stringify(x)) as T));
+
+export function nightSide(s: Song, o: NightExportOptions = {}): NightSide {
   const out: NightSide = {
     id: s.id,
     title: s.title,
@@ -154,10 +186,15 @@ export function nightSide(s: Song): NightSide {
   if (s.durationSec) out.durationSec = Math.round(s.durationSec);
   const st = streamsOf(s);
   if (st) out.streams = st;
+  if (o.exact) {
+    const play: NightPlay = {};
+    for (const k of PLAY_KEYS) (play as Record<string, unknown>)[k] = copy(s[k]) ?? null;
+    out.play = play;
+  }
   return out;
 }
 
-export function nightCortina(c: Cortina): NightCortina {
+export function nightCortina(c: Cortina, o: NightExportOptions = {}): NightCortina {
   const out: NightCortina = { id: c.id, title: c.title, artist: c.artist };
   if (c.genre) out.genre = c.genre;
   if (c.culture) out.culture = c.culture;
@@ -167,10 +204,15 @@ export function nightCortina(c: Cortina): NightCortina {
   if (c.startSec) out.startSec = c.startSec;
   const st = streamsOf(c);
   if (st) out.streams = st;
+  if (o.exact) {
+    const play: NightCortinaPlay = {};
+    for (const k of CORTINA_PLAY_KEYS) (play as Record<string, unknown>)[k] = copy(c[k]) ?? null;
+    out.play = play;
+  }
   return out;
 }
 
-export function nightTanda(t: Tanda): NightTanda {
+export function nightTanda(t: Tanda, o: NightExportOptions = {}): NightTanda {
   const out: NightTanda = {
     rhythm: t.rhythm,
     orchestra: t.orchestra,
@@ -180,8 +222,8 @@ export function nightTanda(t: Tanda): NightTanda {
     era: t.era,
     phase: t.phase,
     targetEnergy: t.targetEnergy,
-    sides: t.songs.map(nightSide),
-    cortina: t.cortina ? nightCortina(t.cortina) : null,
+    sides: t.songs.map((s) => nightSide(s, o)),
+    cortina: t.cortina ? nightCortina(t.cortina, o) : null,
   };
   if (t.locked) out.locked = true;
   if (t.bypass) out.bypass = true;
@@ -204,7 +246,7 @@ function boothOf(p: Playlist): BoothInputs | undefined {
 }
 
 /** The night as a `.tdjnight` document (deterministic: the same night gives the same JSON). */
-export function exportNight(p: Playlist): NightFile {
+export function exportNight(p: Playlist, o: NightExportOptions = {}): NightFile {
   const out: NightFile = {
     format: NIGHT_FORMAT,
     version: NIGHT_VERSION,
@@ -212,9 +254,9 @@ export function exportNight(p: Playlist): NightFile {
     createdAt: p.createdAt,
     options: cleanNightOptions(p.options),
     score: { total: p.score?.total ?? 0, verdict: p.score?.verdict ?? "" },
-    tandas: p.tandas.map(nightTanda),
-    opening: p.opening ? nightSide(p.opening) : null,
-    closing: p.closing ? nightSide(p.closing) : null,
+    tandas: p.tandas.map((t) => nightTanda(t, o)),
+    opening: p.opening ? nightSide(p.opening, o) : null,
+    closing: p.closing ? nightSide(p.closing, o) : null,
   };
   const booth = boothOf(p);
   if (booth) out.booth = booth;
@@ -387,8 +429,35 @@ function placeholderCortina(x: NightCortina): Cortina {
   };
 }
 
+/** The night's own playback data over the catalogue's side (`NightSide.play`): the shared night decides. */
+function withPlay(song: Song, x: NightSide): Song {
+  const play = x.play;
+  if (!play || typeof play !== "object") return song;
+  const out = { ...song } as Record<string, unknown>;
+  for (const k of PLAY_KEYS) {
+    if (!(k in play)) continue;
+    const v = play[k];
+    if (v == null) delete out[k];
+    else out[k] = copy(v);
+  }
+  return out as unknown as Song;
+}
+function withCortinaPlay(c: Cortina, x: NightCortina): Cortina {
+  const play = x.play;
+  if (!play || typeof play !== "object") return c;
+  const out = { ...c } as Record<string, unknown>;
+  for (const k of CORTINA_PLAY_KEYS) {
+    if (!(k in play)) continue;
+    const v = play[k];
+    if (v == null) delete out[k];
+    else out[k] = copy(v);
+  }
+  return out as unknown as Cortina;
+}
+
 /** A side from another catalogue keeps the stream ids it was shared with. */
 function withStreams(song: Song, x: NightSide): Song {
+  if (x.play) return withPlay(song, x);
   const uri = x.streams?.spotify;
   if (song.spotify?.uri || !uri || !SPOTIFY_URI.test(uri)) return song;
   return { ...song, spotify: { uri, url: `https://open.spotify.com/track/${uri.slice(14)}` } };
@@ -419,7 +488,7 @@ export function importNight(input: NightFile | unknown, deps: ImportDeps): Impor
       year: x.year ?? null,
       streamable: !!x.streams?.spotify,
     });
-    return placeholderSide(x, era);
+    return withPlay(placeholderSide(x, era), x);
   };
   const tandas: Tanda[] = n.tandas.map((t, i) => {
     const songs = t.sides.map((s, k) => side(s, t.era, `Tanda ${i + 1}, side ${k + 1}`));
@@ -428,13 +497,16 @@ export function importNight(input: NightFile | unknown, deps: ImportDeps): Impor
       const c = ix.cortinas.get(t.cortina.id);
       // the night's own cue: where it starts and how long it plays (the composer sets them per night)
       if (c)
-        cortina = {
-          ...c,
-          lengthSec: t.cortina.lengthSec ?? c.lengthSec,
-          startSec: t.cortina.startSec ?? c.startSec,
-        };
+        cortina = withCortinaPlay(
+          {
+            ...c,
+            lengthSec: t.cortina.lengthSec ?? c.lengthSec,
+            startSec: t.cortina.startSec ?? c.startSec,
+          },
+          t.cortina,
+        );
       else {
-        cortina = placeholderCortina(t.cortina);
+        cortina = withCortinaPlay(placeholderCortina(t.cortina), t.cortina);
         if (ix.cortinas.size) {
           missing.push({
             where: `Cortina after tanda ${i + 1}`,
