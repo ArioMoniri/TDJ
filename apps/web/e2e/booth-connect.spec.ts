@@ -196,7 +196,7 @@ test.describe("iPad + Spotify Connect (the DJ-user review)", () => {
     await expect(sheet).not.toContainText("This browser");
     await page.keyboard.press("Escape");
     // HEADPHONES: a second device, said plainly
-    await expect(page.getByTestId("booth-out-cue-unsupported")).toContainText("Second device");
+    await expect(page.getByTestId("booth-out-cue-unsupported")).toContainText("2nd device");
     await expect(page.getByTestId("booth-out-cue-unsupported")).toHaveAttribute(
       "data-hint",
       /needs a second device: open T-DJ on your phone with headphones/,

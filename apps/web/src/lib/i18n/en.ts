@@ -4179,7 +4179,7 @@ export const en = {
   "booth.connect.still_playing_title": "Spotify is still playing",
   "booth.connect.headphones_ipad":
     "On iPad, headphone pre-listen needs a second device: open T-DJ on your phone with headphones",
-  "booth.connect.headphones_second_device": "Second device",
+  "booth.connect.headphones_second_device": "2nd device",
   "booth.connect.music_gaps": "{music} music + {gaps} gaps",
   "booth.connect.gain_none": "Spotify plays this at its own level (no gain on this device)",
   "booth.connect.play_now_at_once":

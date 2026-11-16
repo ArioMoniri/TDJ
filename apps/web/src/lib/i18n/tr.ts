@@ -4356,7 +4356,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.connect.still_playing_title": "Spotify hâlâ çalıyor",
   "booth.connect.headphones_ipad":
     "iPad'de kulaklıkla ön dinleme için ikinci bir cihaz gerekir: T-DJ'yi telefonunuzda kulaklıkla açın",
-  "booth.connect.headphones_second_device": "İkinci cihaz",
+  "booth.connect.headphones_second_device": "2. cihaz",
   "booth.connect.music_gaps": "{music} müzik + {gaps} ara",
   "booth.connect.gain_none": "Spotify bunu kendi seviyesinde çalar (bu cihazda kazanç yok)",
   "booth.connect.play_now_at_once":
