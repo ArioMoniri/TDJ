@@ -66,7 +66,7 @@ Every item has an on/off switch in Settings where it is an indicator, a rule or 
 - ☑ Colour badge on every song in the player, compose and database (round 22: the booth branch for the player; the compose/database branch for compose, database and search): where the side sits in its orchestra's best years (grade from the user's heatmap: best / good / weak / outside), with a legend.
 
 ## 5. Learning per instance (toggle)
-- ☐ Every deployed instance learns from its DJ's swaps, pins and edits (like an autocorrect), applies it to future generations, and shows the learned preferences and rules as a list the DJ can edit, weight or delete.
+- ☑ Every deployed instance learns from its DJ's swaps, pins and edits (like an autocorrect), applies it to future generations, and shows the learned preferences and rules as a list the DJ can edit, weight or delete. (`653e2f5`: likes teach, the featured night's edits shown in Settings; `bbf1c55`: DJ praise; `6f81be1`: dancer favourites from floor reactions and room hearts)
 
 ## 6. Settings, connections and accounts
 - ☐ One clear Settings layout; every indicator/rule/automation toggleable with a one-line explanation.
@@ -74,7 +74,7 @@ Every item has an on/off switch in Settings where it is an indicator, a rule or 
 - ☐ Models: API keys (BYOK) and ACP (Agent Client Protocol) connections to local/remote agents.
 
 ## 7. Language
-- ☐ Turkish across every screen (and the language switch in Settings).
+- ☑ Turkish across every screen (and the language switch in Settings). (`337a3cc`)
 
 ## 8. Design and motion
 - ☐ Native macOS feel (sidebar, toolbar, sheets, keyboard, hover, focus rings, springs), iPadOS feel on tablets.
@@ -93,14 +93,14 @@ Every item has an on/off switch in Settings where it is an indicator, a rule or 
 
 ## 11. Quality loop
 - ☐ Test-user agents (DJ, organiser, newcomer, iPad DJ) on web and apps → issues → engineers/designers fix → re-test.
-- ☐ CI green, README images and videos regenerated (`pnpm media`, `pnpm video`), deploy.
+- ◐ CI green, README images and videos regenerated (`pnpm media`, `pnpm video`), deploy. (README media re-captured after the Booth on iPad, Build by hand, search, favourites and Rooms work; deploy pending)
 
 ## 12. The DJ's requests of 2026-11-14 (second batch)
 - ☐ Compose UI: tanda cards one shape whatever the count (3 valses vs 4 tangos), correct bar spacing, the song data menu never cropped (portal/flip), no overlaps anywhere, header on scroll uses a material that never mixes with content (the large-title → inline-title transition).
 - ☑ Artwork on every song (player, compose, database; round 22) from Spotify/Deezer album art, cached; a placeholder per orchestra when none.
 - ☐ Hover/long-press explanations on every feature (tooltips with the one-line "what it does"), no engineer-facing text in the UI (e.g. "Set TDJ_DB_TABLE on the server…", workspace-ID notes) — those settings are handled by the deploy and the app itself.
 - ◐ Missing data (BPM, key, gain, artwork, dates; round 22: Deezer, MusicBrainz, Cover Art Archive, Discogs with a token, Spotify login, Settings › Data sources): fill from every source the DJ connects (Spotify, Deezer, MusicBrainz/Discogs and others found by the council), with an "add a source" flow in Settings → Connections.
-- ☐ Rooms: create a room (named, renamable), share a code, several DJs edit the same night live; a log tab of who did what; a list of previous rooms with their logs. Apps: username + room code. Web self-deploys: the same.
+- ☑ Rooms: create a room (named, renamable), share a code, several DJs edit the same night live; a log tab of who did what; a list of previous rooms with their logs. Apps: username + room code. Web self-deploys: the same. (the web keeps rooms in the deployment's DynamoDB table since `999810a`; the apps through a linked server, `69f27fc`)
 - ☑ Prompt the model in Compose to edit and swap songs ("make tanda 7 calmer", "swap the 2nd song for a Fiorentino"), fast and accurate, besides the manual controls; ACP agents usable exactly like API keys for every generation.
 - ☑ Manual playlist creation: pick songs yourself with live suggestions/guidance for what comes next that update after each added song (switchable).
 - ☑ Database → Orchestras tab redesigned (clear grouping, eras, singers, best years; round 22).
@@ -114,3 +114,15 @@ Every item has an on/off switch in Settings where it is an indicator, a rule or 
 - ☐ Universal link / `tdj://night?...` opens the link straight in the installed Mac or iPad app (the apps already route `tdj://open`); QR code in the share sheet for phone → iPad.
 - ☐ On import: sides resolved against the local catalogue by stable id, then title/orchestra/year; anything missing listed, never silently dropped; the imported night lands in History ("On this device") and can be edited, played and exported to Spotify like a composed one.
 - ☐ Tests: export → import round-trip is identical (core vitest); a link made on one deploy opens on another (e2e); a file from the web opens in the app.
+
+## 14. Shipped in the November rounds (the Booth on iPad and after)
+- ☑ iOS 26 phone chrome (one tab capsule, actions in the navigation bar) and the Booth laid out for an iPad in landscape (`4d4e8fa`, `42deacd`).
+- ☑ One tap plays any song or cortina; reorder songs inside a tanda; tanda type badges and lengths (`03d63e3`).
+- ☑ Build by hand as a guided builder (`b40a5e7`).
+- ☑ One search for the Library and the Database, accent-blind and typo-tolerant (`93d8627`); Booth search across tonight's night with one-tap Swap (`37f6f73`).
+- ☑ Booth: start from any row, Previous / Next, seek and start point, the Controls panel (`ae22f4e`, `de94a0e`); light confirmation mid-night (`42deacd`).
+- ☑ Per-transition editor laid out like a Mix editor (`c9d737e`); cortinas start at their chorus (`0216d61`).
+- ☑ Dancer favourites (`6f81be1`), database popularity (`89a5877`), DJ praise as feedback (`65357a8`); the rule check before an edit (`6c29836`).
+- ☑ Spotify Connect: a 404 never stops the night, plain banners (`aa1df94`).
+- ☑ Artwork everywhere (`c238adf`); a cover per night (`8651fe8`); era labels in titles and covers (`20b4ef6`).
+- ☑ Contemporary-orchestra importer, first Sexteto Cristal (`742cf89`, `pnpm orchestra:import`).
