@@ -41,7 +41,7 @@ function expand(part: string, orchestras: string[]): string {
     if (fold(w.slice(initials.length).join(" ")) !== surname) return false;
     return initials.every((c, k) => fold(w[k] ?? "").startsWith(fold(c)));
   });
-  const withOrch = fits.filter((r) => orchestras.some((o) => (r.orchestras ?? {})[o]));
+  const withOrch = fits.filter((r) => orchestras.some((o) => r.orchestras?.[o]));
   const pick = withOrch.length === 1 ? withOrch[0] : fits.length === 1 ? fits[0] : undefined;
   return pick ? pick.name : part.trim();
 }

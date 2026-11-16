@@ -2068,7 +2068,9 @@ export function Composer() {
                   transition={{ duration: DUR.base, ease: EASE.out, delay: 0.04 }}
                   className="cell flex-col items-stretch gap-2 py-4"
                 >
-                  <div className="flex items-center justify-between gap-3">
+                  {/* (QA fix 2026-11: at 200 % text the buttons pushed the row 89–134 px past an iPhone's edge: the row wraps,
+                      the title keeps a readable minimum) */}
+                  <div className="flex flex-wrap items-center justify-between gap-3">
                     {/* 2026-11 (the owner: "the image art should be dynamically changed too"): the night's cover,
                         drawn from the night as it is now — every edit redraws it, and the exported playlists get it */}
                     <NightCover
@@ -2077,14 +2079,14 @@ export function Composer() {
                       className="rounded-[10px]"
                       testId="compose-cover"
                     />
-                    <span className="min-w-0 flex-1">
+                    <span className="min-w-[8rem] flex-1">
                       <h2 className="text-subhead min-w-0 line-clamp-2 font-serif text-[var(--label-2)]">
                         {nightTitle(playlist)} · {nightSub(playlist, nightMusicSec(playlist, settings))}
                       </h2>
                       {/* 2026-11: the night as it plays (cues, cortinas from their start), ≈ when a length is unknown */}
                       <NightLength playlist={playlist} className="block truncate" />
                     </span>
-                    <span className="flex items-center gap-1">
+                    <span className="flex shrink-0 items-center gap-1">
                       {/* phones: icon-only, 44 pt (the label wrapped to three lines, round8-ux.md §1.4) */}
                       <Tip text={tx("composer.open_the_booth_and_play_this")}>
                         <button

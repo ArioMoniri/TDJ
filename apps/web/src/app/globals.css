@@ -240,7 +240,7 @@
     --tint-fill: #c9426a;
     --accent: #f47896;
     --destructive: #ff6b6b;
-  --destructive-text: #ff8f8f;
+    --destructive-text: #ff8f8f;
     --system-green: #30d158;
   }
 }
@@ -1037,8 +1037,9 @@ li + li > .cell[data-leading="num"]:first-child::before,
   box-shadow: none;
   /* QA fix 2026-11 (Import, Join, Use this night, Apply read 1.9:1 disabled at 55 % opacity): a solid grey capsule
      whose label keeps ≥ 3:1 */
-  &:disabled {
-    opacity: 1 !important;
+  /* (doubled to outweigh the btn utility's 0.55 opacity whatever their order) */
+  &:disabled:disabled {
+    opacity: 1;
     background: var(--fill-3);
     color: var(--label-2);
   }
@@ -2067,10 +2068,6 @@ html[data-sidebar="collapsed"] [data-testid="sidebar"] {
   .night-editor-bar .night-editor-step {
     display: none;
   }
-  .night-editor-bar > .min-w-0 {
-    flex-basis: 80px;
-    margin-left: 6px;
-  }
 }
 .night-editor-bar {
   position: sticky;
@@ -2095,6 +2092,18 @@ html[data-sidebar="collapsed"] [data-testid="sidebar"] {
 .night-editor-bar:focus-visible {
   outline: 2px solid var(--tint);
   outline-offset: 2px;
+}
+/* (QA fix 2026-11: on a phone the swap icon wrapped to a second line on its own — the phone rule above lost to the
+   base rule after it: one line, the name gives way) */
+@media (max-width: 599.98px) {
+  .night-editor-bar {
+    flex-wrap: nowrap;
+  }
+  .night-editor-bar > .min-w-0 {
+    flex: 1 1 0;
+    min-width: 0;
+    margin-left: 6px;
+  }
 }
 .night-editor-tanda[data-dragging] {
   opacity: 0.5;

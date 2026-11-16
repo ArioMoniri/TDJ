@@ -20,7 +20,6 @@ export interface SuccessionView {
   tone: "good" | "ok" | "warn";
 }
 
-const sg = (x: number) => `${x > 0 ? "+" : ""}${x}`;
 const CLASS: Record<string, MsgKey> = {
   "R+": "succession.class.driving",
   R: "succession.class.rhythmic",

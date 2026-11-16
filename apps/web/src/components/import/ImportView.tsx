@@ -342,7 +342,8 @@ export default function ImportView() {
 
       {(view.kind === "pick" || view.kind === "error") && (
         <>
-          <div className="mb-3 px-1">
+          {/* (QA fix 2026-11: the control sat 20 px in where every card starts at 16) */}
+          <div className="mb-3">
             <Segmented
               size="large"
               label={tx("import.source")}

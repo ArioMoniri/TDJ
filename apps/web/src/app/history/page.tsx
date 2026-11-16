@@ -287,7 +287,8 @@ export default function HistoryPage() {
         }
       />
       {overridesReady && onDevice && (
-        <p className="text-footnote px-4 pb-2 text-[var(--label-2)]" data-testid="history-on-device">
+        // (QA fix 2026-11: it sat 16 px in from the subtitle above it: one edge)
+        <p className="text-footnote pb-2 text-[var(--label-2)]" data-testid="history-on-device">
           {tx("history.on_this_device")}
         </p>
       )}

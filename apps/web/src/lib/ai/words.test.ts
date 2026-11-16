@@ -60,7 +60,7 @@ describe("the plain-words fallback (wave 2)", () => {
       for (let from = 1; from <= 8; from++) {
         const r = editByWords(p, deps, `move tanda ${from} after tanda ${from + 2}`);
         const no = r.rejected.find((x) => x.op.op === "move");
-        if (!no || no.op.op !== "move") continue;
+        if (no?.op.op !== "move") continue;
         seen++;
         expect(r.asSaid, `move ${from}`).toBeTruthy();
         const moved = p.tandas[from - 1]!;

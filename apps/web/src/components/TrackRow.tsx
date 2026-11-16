@@ -411,7 +411,7 @@ export const TrackRow = memo(function TrackRow({
           )}
           <Menu
             label={t("trackRow.track_actions", { n })}
-            className="icon-btn-bare -my-2 -mr-3 h-11 w-10"
+            className="icon-btn-bare -my-2 -mr-3 h-11 w-11"
             icon={
               analysing ? (
                 <LoaderCircle size={18} className="animate-spin" aria-hidden />

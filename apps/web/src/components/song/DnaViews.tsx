@@ -198,7 +198,7 @@ export function SongDnaView({ id }: { id: string }) {
 
       <section data-testid="dna-recordings">
         <h2 className="section-head">{t("song.dna_every_recording", { n: d.work.count })}</h2>
-        <div className="grid gap-3">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-3">
           {[...byDecade.entries()].map(([dec, rows]) => (
             <div key={dec}>
               <p className="text-footnote mb-1 px-4 text-[var(--label-2)]">{dec}</p>

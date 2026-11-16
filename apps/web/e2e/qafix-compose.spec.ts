@@ -80,8 +80,11 @@ test("a locked tanda's sides never move (Move up / down greyed with the reason)"
   test.setTimeout(180_000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await openFeatured(page);
-  // the featured night keeps its first tanda locked
+  // lock the first tanda (the QA's case), then its sides never move
   const card = page.locator("#result article[data-tanda]").first();
+  const lock = card.getByTestId("tanda-lock");
+  if ((await lock.getAttribute("aria-pressed")) !== "true") await lock.click();
+  await expect(lock).toHaveAttribute("aria-pressed", "true");
   await expect(card.getByTestId("drag-handle")).toHaveCount(0);
   await card
     .locator("li[data-song]")
@@ -149,7 +152,7 @@ test("one night length: the header, “plays” and the sidebar agree", async ({
   test.setTimeout(180_000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await openFeatured(page);
-  const header = await page.locator("#result h2").first().textContent();
+  const header = await page.locator("#result h2.font-serif").first().textContent();
   expect(header).toMatch(/4 h 37 min/);
   expect(header).toMatch(/mostly Golden Age 1935–1945/);
 });
