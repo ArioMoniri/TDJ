@@ -374,6 +374,7 @@ function TandaCardImpl({
                 )}
                 {tone && (
                   <Tip
+                    className="min-w-0 max-w-full"
                     text={tx("tandaCard.the_tanda_s_tone_energy", {
                       p1: tone.mode
                         ? `${tone.mode === "mixed" ? tx("tandaCard.mixed_major_and_minor_keys") : tx("tandaCard.keys", { mode: tone.mode })}${tone.keys.length ? ` (${tone.keys.join(", ")})` : ""}, `
@@ -383,7 +384,7 @@ function TandaCardImpl({
                     })}
                   >
                     <span
-                      className="text-caption1 inline-flex whitespace-nowrap rounded-full bg-[var(--fill-4)] px-2 py-0.5 font-medium text-[var(--label-2)]"
+                      className="text-caption1 block max-w-full truncate rounded-full bg-[var(--fill-4)] px-2 py-0.5 font-medium text-[var(--label-2)]"
                       data-testid="tanda-tone"
                     >
                       {tone.label}
