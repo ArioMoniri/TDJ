@@ -2,7 +2,7 @@ import type { Catalog } from "./catalog";
 import { isDanceableSong, normTitle } from "./energy";
 import { heatOfSides, isPeakSlot, strictOrder } from "./order";
 import { nightFamilies } from "./repair";
-import { orderCtxOf, streamable } from "./strict";
+import { DA_SPLIT_STEP, orderCtxOf, streamable } from "./strict";
 import { retimeTanda } from "./swap";
 import { type FamilyOpts, isTandaEligible } from "./tanda";
 import type { ComposeOptions, DanceRhythm, Song, Tanda } from "./types";
@@ -715,7 +715,9 @@ export function mendDarienzoFamily(
       }
     };
     pick(0, []);
-    const e0 = t.energy;
+    // (the early chair aims at most DA_SPLIT_STEP above the tanda before it, the step the panel allows it)
+    const prevE = t === early && i > 0 ? tandas[i - 1]!.energy : undefined;
+    const e0 = prevE === undefined ? t.energy : Math.min(t.energy, prevE + DA_SPLIT_STEP);
     const worth = (ss: Song[]) =>
       ss.reduce((a, s) => a + fameOf(s), 0) -
       2 * Math.abs(meanE(ss) - e0) -
@@ -739,7 +741,10 @@ export function mendDarienzoFamily(
     if (heat) nt.heat = heat;
     else delete nt.heat;
     // (the early chair the split rebuilt: the step into it may reach DA_SPLIT_STEP behind a cortina, strict.ts)
-    if (t === early) nt.familySplit = "darienzo";
+    // (2026-11: only within DA_SPLIT_STEP of the tanda before it — beyond, the step is the composer's own and the panel
+    // judges it as any other)
+    if (t === early && (k < 1 || nt.energy - tandas[k - 1]!.energy <= DA_SPLIT_STEP))
+      nt.familySplit = "darienzo";
     return nt;
   };
   const titlesOf = (xs: Song[]) => new Set(xs.map((s) => normTitle(s.title)));
@@ -803,6 +808,13 @@ export function mendDarienzoFamily(
       continue;
     const trial = tandas.map((x, k) => (k === i ? c.e : k === j ? c.s : x));
     if (saws(trial) > saw0) continue;
+    // (a rebuilt early chair never steps further above the tanda before it than the composer's own chair did)
+    if (
+      c.e !== early &&
+      i > 0 &&
+      c.e.energy - trial[i - 1]!.energy > Math.max(DA_SPLIT_STEP, early.energy - trial[i - 1]!.energy)
+    )
+      continue;
     const after = judge(trial);
     if (after.blockers > before.blockers) continue;
     const cost = after.penalty;

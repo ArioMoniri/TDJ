@@ -578,6 +578,13 @@ export interface LearnedPreferences {
   night?: FeaturedNightChoices;
   /** 2026-11: tandas the DJ praised (praise.ts): feedback, each read as one "Floor full ♥" on the tanda */
   praise?: TandaPraise[];
+  /**
+   * 2026-11 (succession.ts): `${orchestraA}>${orchestraB}` → −1 … 3, the tanda pairs the DJ made by hand (a replaced
+   * tanda: the pairs into and out of the new one +1, the old ones −0.5); a nudge inside PAIR_LIMITS, never a rule
+   */
+  pairs?: Record<string, number>;
+  /** 2026-11 (floor.ts): what the floor reactions taught — tanda pairs and energy steps, small capped nudges */
+  floor?: FloorLearned;
   updatedAt?: string;
 }
 
@@ -621,6 +628,23 @@ export interface TandaPraise {
   at: string;
   /** the featured night's store, or the DJ in the app (their memory) */
   source?: "featured" | "dj";
+}
+
+/**
+ * 2026-11 — floor learning (floor.ts): each tanda's floor reaction (Floor full ♥ / OK / Floor emptied) nudges the pair
+ * into that tanda and the energy step it took, inside FLOOR_LEARN's caps. One reaction is a nudge, never a rule; the
+ * family itself is the dancer-favourites tracker's (favourites.ts). `off`: the DJ switched floor learning off (kept,
+ * not read).
+ */
+export interface FloorLearned {
+  off?: boolean;
+  /** `${orchestraA}>${orchestraB}` → FLOOR_LEARN.pairMin … pairMax */
+  pairs: Record<string, number>;
+  /** `${role}|${down|flat|up}` (the step into a tanda of that role) → stepMin … stepMax */
+  steps: Record<string, number>;
+  /** the reaction each tanda holds (`${nightId}#${index}`), so a changed or taken-back tap moves the weights back */
+  taps: Record<string, { reaction: "full" | "ok" | "emptied"; pair?: string; step?: string; at: string }>;
+  updatedAt?: string;
 }
 
 export interface RepoLearnedOverrides {

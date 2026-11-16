@@ -10,6 +10,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import {
   compose,
   type Playlist,
+  SWAP_ENERGY_BAND,
   strictChecks,
   suggestNext,
   surnameKey,
@@ -34,7 +35,10 @@ describe("Swap tanda: up to three choices, nearest the slot's planned energy fir
       const opts = swapTandaOptions(night, i, deps, 99);
       expect(opts.length).toBeGreaterThan(0);
       expect(opts.length).toBeLessThanOrEqual(3);
-      const d = opts.map((p) => Math.abs(p.tandas[i]!.energy - t.targetEnergy));
+      // (2026-11: in bands of SWAP_ENERGY_BAND points; inside a band the succession decides — succession.test.ts)
+      const d = opts.map((p) =>
+        Math.round(Math.abs(p.tandas[i]!.energy - t.targetEnergy) / SWAP_ENERGY_BAND),
+      );
       expect(d).toEqual([...d].sort((a, b) => a - b));
       expect(new Set(opts.map((p) => fam(p, i))).size).toBe(opts.length);
       for (const p of opts) {
@@ -53,8 +57,9 @@ describe("Swap tanda: up to three choices, nearest the slot's planned energy fir
       const one = swapTanda(night, i, deps, 99);
       const first = swapTandaOptions(night, i, deps, 99)[0];
       if (!first || one === night) continue;
+      // (2026-11: within one energy band — inside it the better succession may lead)
       expect(Math.abs(first.tandas[i]!.energy - target)).toBeLessThanOrEqual(
-        Math.abs(one.tandas[i]!.energy - target),
+        Math.abs(one.tandas[i]!.energy - target) + SWAP_ENERGY_BAND,
       );
     }
   });

@@ -2,6 +2,7 @@
 import type { FloorReaction as Reaction, Song } from "@tdj/core";
 import { ChevronDown, Heart, Meh, TrendingDown } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
+import { onFloorReaction } from "@/lib/booth/adapt";
 import { useBooth } from "@/lib/booth/store";
 import { recordMemoryEdit } from "@/lib/booth/undo";
 import { floorReactionOf, floorTap } from "@/lib/favourites";
@@ -55,6 +56,8 @@ export function FloorReaction({
     if (!playlist || disabled) return;
     haptic(8);
     const was = floorReactionOf(useStore.getState().memory, playlist, { scope, tanda, songId: song?.id });
+    // 2026-11: the floor's lesson (floor learning) and a suggestion for the next tandas (lib/booth/adapt.ts)
+    onFloorReaction(playlist, tanda - 1, was === r ? null : r);
     const what = REACTIONS.find((x) => x.r === r)!;
     // 2026-11: ⌘Z takes the reaction back (lib/booth/undo.ts)
     recordMemoryEdit(t("boothUndo.floor", { reaction: t(what.key), tanda: Math.max(1, tanda) }), () =>

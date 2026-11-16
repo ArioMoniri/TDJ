@@ -29,6 +29,7 @@ import { SilenceGroup } from "@/components/booth/SilenceSettings";
 import { Connectors } from "@/components/Connectors";
 import { PopularitySwitch } from "@/components/db/DatabaseFavourites";
 import { FeaturedLearned } from "@/components/db/FeaturedLearned";
+import { FloorLearning } from "@/components/FloorLearning";
 import {
   ActionRow,
   FieldRow,
@@ -599,6 +600,8 @@ export default function Settings() {
             />
           )}
         </Group>
+        {/* 2026-11: what the Booth's floor reactions taught (core floor.ts), with its switch */}
+        <FloorLearning />
         {/* the featured night's edits: the repo-level store every night composes with (weigh, delete, switch off) */}
         <FeaturedLearned />
 

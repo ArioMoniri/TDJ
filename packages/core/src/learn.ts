@@ -1,4 +1,5 @@
 import { normTitle } from "./energy";
+import { PAIR_LIMITS } from "./succession";
 import type {
   AgentMemory,
   LearnedPreferences,
@@ -95,6 +96,33 @@ export function editDiff(
   };
 }
 
+/**
+ * 2026-11 — the orchestra pairs an edit made and broke: where tanda i changed orchestra, the pairs into it and out of it
+ * after the edit +1, the ones before it −0.5 (a pair both made and broken nets out; the same orchestra twice is no pair)
+ */
+export function pairEdits(
+  before: Pick<Playlist, "tandas">,
+  after: Pick<Playlist, "tandas">,
+): Array<[string, number]> {
+  const m = new Map<string, number>();
+  const add = (x?: Pick<Tanda, "orchestraId">, y?: Pick<Tanda, "orchestraId">, d = 0) => {
+    if (!x || !y || x.orchestraId === y.orchestraId) return;
+    const k = `${x.orchestraId}>${y.orchestraId}`;
+    m.set(k, (m.get(k) ?? 0) + d);
+  };
+  const n = Math.min(before.tandas.length, after.tandas.length);
+  for (let i = 0; i < n; i++) {
+    const b = before.tandas[i]!;
+    const a = after.tandas[i]!;
+    if (a.orchestraId === b.orchestraId) continue;
+    add(after.tandas[i - 1], a, 1);
+    add(a, after.tandas[i + 1], 1);
+    add(before.tandas[i - 1], b, -0.5);
+    add(b, before.tandas[i + 1], -0.5);
+  }
+  return [...m.entries()].filter(([, d]) => d !== 0).sort(([x], [y]) => x.localeCompare(y));
+}
+
 /** fold one edit into the learned preferences (chosen +1, replaced −0.5; bounded) */
 export function learnFromEdit(
   learned: LearnedPreferences | undefined,
@@ -121,6 +149,13 @@ export function learnFromEdit(
   // (a family the DJ took out steps back a full point: ×0.6 in its slot — one evening is a clear statement)
   for (const k of famR)
     if (!famA.has(k)) bump(L.families, k, -1, LEARN_LIMITS.familyMin, LEARN_LIMITS.familyMax);
+  // 2026-11 (succession.ts): a tanda the DJ replaced teaches its pairs — the new tanda after its neighbour and before
+  // the next +1, the pairs it broke −0.5 (inside PAIR_LIMITS; a nudge of the succession score, never a rule)
+  const pairs = pairEdits(before, after);
+  if (pairs.length) {
+    L.pairs ??= {};
+    for (const [k, d] of pairs) bump(L.pairs, k, d, PAIR_LIMITS.min, PAIR_LIMITS.max);
+  }
   for (const t of pinned) {
     // a tanda the DJ approved for one night against a rule ("Do it as I said") is never a template
     if (t.pinned?.exception) continue;
@@ -161,6 +196,9 @@ export function mergeLearned(
       ...(base?.templates ?? []).filter((t) => !mine?.templates?.some((m) => m.id === t.id)),
     ],
     edits: [...(mine?.edits ?? []), ...(base?.edits ?? [])].slice(0, 100),
+    ...(base?.pairs || mine?.pairs ? { pairs: { ...(base?.pairs ?? {}), ...(mine?.pairs ?? {}) } } : {}),
+    // (the floor's lessons are the DJ's own: theirs, whole)
+    ...(mine?.floor ? { floor: mine.floor } : base?.floor ? { floor: base.floor } : {}),
     ...(base?.likes || mine?.likes ? { likes: { ...(base?.likes ?? {}), ...(mine?.likes ?? {}) } } : {}),
     ...(base?.praise?.length || mine?.praise?.length
       ? {
@@ -200,6 +238,7 @@ export function applyRepoOverrides(
     ...base,
     sides: keep("side", base.sides, LEARN_LIMITS.sideMin, LEARN_LIMITS.sideMax),
     families: keep("family", base.families, LEARN_LIMITS.familyMin, LEARN_LIMITS.familyMax),
+    ...(base.pairs ? { pairs: keep("pair", base.pairs, PAIR_LIMITS.min, PAIR_LIMITS.max) } : {}),
     templates: (base.templates ?? []).filter((t) => !del.has(`template:${t.id}`)),
     ...(base.praise ? { praise: base.praise.filter((p) => !del.has(`praise:${p.id}`)) } : {}),
   };
@@ -348,6 +387,9 @@ export function describeLearned(
   const down = sides.filter(([, v]) => v < 0).length;
   if (sides.length) out.push(`${up} sides you chose, ${down} you replaced`);
   if (L.templates?.length) out.push(`${L.templates.length} tandas kept as your templates`);
+  const pairs = Object.entries(L.pairs ?? {}).filter(([, v]) => v > 0);
+  if (pairs.length)
+    out.push(`${pairs.length} tanda pairs you made by hand (they follow each other a little more often)`);
   for (const p of praiseList(L).slice(0, 5))
     out.push(
       `feedback, a tanda was great (a ♥ for its songs): ${p.name ?? p.family} (${p.role}): "${p.reason}"${p.note ? ` (${p.note})` : ""}`,

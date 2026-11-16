@@ -40,6 +40,7 @@ import {
   streamable,
   strictChecks,
 } from "./strict";
+import { tandaSuccession } from "./succession";
 import { renight, replaceSide, swapOptions } from "./swap";
 import {
   type BuildContext,
@@ -2838,10 +2839,15 @@ export function swapTanda(
   return renight(p, tandas);
 }
 
+/** the swap choices' energy bands (points from the slot's plan): inside one, how the tanda follows and leads decides */
+export const SWAP_ENERGY_BAND = 4;
+
 /**
  * Wave 2 — Swap tanda as a choice: the composer's own builder runs for the slot a few times (other seeds) and the
  * distinct families it offers are ranked by distance to the slot's planned energy, nearest first (then by the night's
  * score). A warm-up slot planned at 51 is offered its calm families first instead of whatever one draw returned.
+ * 2026-11: the distance is read in bands of SWAP_ENERGY_BAND points; inside a band the choice that follows the previous
+ * tanda and leads into the next best (succession.ts) comes first.
  * `swapTanda` itself is unchanged (the fixers and the AI edits still call it).
  */
 export function swapTandaOptions(
@@ -2873,8 +2879,20 @@ export function swapTandaOptions(
     seen.add(kk);
     out.push(q);
   }
-  const dist = (q: Playlist) => Math.abs(q.tandas[index]!.energy - t.targetEnergy);
-  return out.sort((a, b) => dist(a) - dist(b) || b.score.total - a.score.total).slice(0, n);
+  // 2026-11 (succession.ts): nearest the plan first, in bands of SWAP_ENERGY_BAND points; inside a band, the one that
+  // follows the previous tanda and leads into the next best (then the night's score)
+  const band = (q: Playlist) =>
+    Math.round(Math.abs(q.tandas[index]!.energy - t.targetEnergy) / SWAP_ENERGY_BAND);
+  const L = mergeLearned(deps.catalog.learned, p.options.learned);
+  const flow = new Map(
+    out.map((q) => {
+      const s = tandaSuccession(q, index, { learned: L, profileOf: (id) => deps.catalog.profile(id) });
+      return [q, (s.fromPrev?.points ?? 0) + (s.intoNext?.points ?? 0)] as const;
+    }),
+  );
+  return out
+    .sort((a, b) => band(a) - band(b) || flow.get(b)! - flow.get(a)! || b.score.total - a.score.total)
+    .slice(0, n);
 }
 
 /**

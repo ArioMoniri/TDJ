@@ -1,4 +1,5 @@
 import {
+  adaptNext,
   applyFeedback,
   BUILTIN_CORTINAS,
   benchmarkNight,
@@ -177,6 +178,49 @@ export async function swap(req: Request, d: ApiDeps): Promise<Response> {
   if (body.options === true)
     return json({ options: swapTandaOptions(playlist, Number(index), deps, Date.now() % 1e9).map(forWire) });
   return json(forWire(swapTanda(playlist, Number(index), deps)));
+}
+
+/**
+ * 2026-11 — live adaptation (core adapt.ts): after a tanda's floor reaction in the Booth. Body: { playlist, after (0-based
+ * tanda the floor reacted to), reaction ("full" | "ok" | "emptied" | null), hearts? (the room's hearts on its songs),
+ * frozen? (0-based tandas that cannot change: played, playing), favourites?, learned? }. The answer is
+ * { suggestion: null } or one suggestion with the night it would make (on the wire); nothing is applied here.
+ */
+export async function adapt(req: Request, d: ApiDeps): Promise<Response> {
+  const body = await bodyJson<{
+    playlist?: Playlist;
+    after?: unknown;
+    reaction?: unknown;
+    hearts?: unknown;
+    frozen?: unknown;
+    favourites?: unknown;
+    learned?: unknown;
+    seed?: unknown;
+  }>(req);
+  if (!body?.playlist?.tandas) return bad("playlist required");
+  const after = Number(body.after);
+  if (!Number.isInteger(after) || after < 0 || after >= body.playlist.tandas.length)
+    return bad("after out of range");
+  const reaction =
+    body.reaction === "full" || body.reaction === "ok" || body.reaction === "emptied" ? body.reaction : null;
+  const hearts = Number.isFinite(Number(body.hearts)) ? Number(body.hearts) : undefined;
+  const frozen = Array.isArray(body.frozen) ? body.frozen.map(Number).filter(Number.isInteger) : [];
+  const { catalog, cortinas, contextModel } = d.catalogFor(body.playlist.options?.overrides as AppOverrides);
+  const favourites = favouritesOf(body.favourites) ?? undefined;
+  const learned = objectOrUndefined<Playlist["options"]["learned"]>(body.learned);
+  const s = adaptNext(
+    body.playlist,
+    after,
+    { reaction, ...(hearts !== undefined ? { hearts } : {}) },
+    { catalog, cortinas, contextModel },
+    {
+      frozen,
+      ...(favourites ? { favourites } : {}),
+      ...(learned ? { learned } : {}),
+      seed: Number.isFinite(Number(body.seed)) ? Number(body.seed) : 1,
+    },
+  );
+  return json({ suggestion: s ? { ...s, playlist: forWire(s.playlist) } : null });
 }
 
 /**

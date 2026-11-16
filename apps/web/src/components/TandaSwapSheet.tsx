@@ -10,6 +10,8 @@ import { isAction } from "@/lib/keymap";
 import { fmtLen } from "@/lib/lengths";
 import { gateEdit } from "@/lib/ruleCheck";
 import type { SourceId, Version } from "@/lib/smartSearch";
+import { useStore } from "@/lib/store";
+import { tandaSuccessionView } from "@/lib/succession";
 import { addSide, checkDraft, type DraftSide, draftOk, moveSide, removeSide } from "@/lib/tandaDraft";
 import { toast } from "@/lib/toast";
 import type { Playlist, Song } from "@/lib/types";
@@ -77,6 +79,7 @@ export function TandaSwapSheet(p: TandaSwapProps) {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [ask, setAsk] = useState(false);
+  const learned = useStore((s) => s.memory.learned);
   const size = t?.songs.length ?? 4;
   const rhythm = t?.rhythm ?? "tango";
   // a fresh sheet for each tanda
@@ -385,12 +388,27 @@ export function TandaSwapSheet(p: TandaSwapProps) {
               >
                 {(options ?? []).map((o) => {
                   const x = o.tandas[index!]!;
+                  // 2026-11: how it follows the tanda before and leads into the next (succession.ts), one line
+                  const flow = tandaSuccessionView(o, index!, learned);
                   return (
                     <Row
                       key={x.songs.map((y) => y.id).join(",")}
                       tile={<TandaArt tanda={x} size={44} />}
                       label={`${x.orchestra}${x.singer ? ` / ${x.singer}` : ` · ${tx("tandaType.instrumental")}`}`}
-                      sub={`${x.yearRange?.join("–") ?? ""} · ${x.songs.map((y) => y.title).join(", ")}`}
+                      sub={
+                        <>
+                          {`${x.yearRange?.join("–") ?? ""} · ${x.songs.map((y) => y.title).join(", ")}`}
+                          {flow && (
+                            <span
+                              className={`block truncate ${flow.tone === "warn" ? "text-[var(--destructive)]" : ""}`}
+                              data-testid="tanda-swap-flow"
+                              data-tone={flow.tone}
+                            >
+                              {flow.text}
+                            </span>
+                          )}
+                        </>
+                      }
                       chevron
                       onClick={() => {
                         haptic(6);

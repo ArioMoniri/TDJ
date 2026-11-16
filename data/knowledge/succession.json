@@ -1,0 +1,5482 @@
+{
+ "version": 1,
+ "about": "Succession model data (packages/core/src/succession.ts), written by `pnpm knowledge:succession` (scripts/build_succession.ts): transition counts between adjacent dance tandas of public DJ sets, each [raw count, weighted count] (reference sets weigh 1, the cached set-blog sets 0.5), plus the hand-curated parts from succession_curated.json. Do not edit by hand.",
+ "sources": {
+  "referenceSets": {
+   "sets": 31,
+   "transitions": 504
+  },
+  "setlists": {
+   "sets": 168,
+   "transitions": 2704
+  }
+ },
+ "totals": {
+  "transitions": [
+   3208,
+   1856
+  ],
+  "tango": [
+   1245,
+   725.5
+  ]
+ },
+ "orchestras": {
+  "adolfo-carabelli": {
+   "out": [
+    42,
+    23
+   ],
+   "in": [
+    35,
+    19.5
+   ]
+  },
+  "alfredo-de-angelis": {
+   "out": [
+    162,
+    91
+   ],
+   "in": [
+    177,
+    99
+   ]
+  },
+  "alfredo-gobbi": {
+   "out": [
+    15,
+    8
+   ],
+   "in": [
+    17,
+    9.5
+   ]
+  },
+  "angel-d-agostino": {
+   "out": [
+    107,
+    63.5
+   ],
+   "in": [
+    117,
+    68
+   ]
+  },
+  "anibal-troilo": {
+   "out": [
+    177,
+    103.5
+   ],
+   "in": [
+    195,
+    115.5
+   ]
+  },
+  "carlos-di-sarli": {
+   "out": [
+    224,
+    133.5
+   ],
+   "in": [
+    218,
+    129.5
+   ]
+  },
+  "domingo-federico": {
+   "out": [
+    5,
+    3
+   ],
+   "in": [
+    5,
+    3
+   ]
+  },
+  "domingo-rulio": {
+   "out": [
+    5,
+    2.5
+   ],
+   "in": [
+    5,
+    2.5
+   ]
+  },
+  "donato-racciatti": {
+   "out": [
+    4,
+    4
+   ],
+   "in": [
+    4,
+    4
+   ]
+  },
+  "edgardo-donato": {
+   "out": [
+    269,
+    156
+   ],
+   "in": [
+    267,
+    154.5
+   ]
+  },
+  "emilio-balcarce": {
+   "out": [
+    1,
+    1
+   ],
+   "in": [
+    1,
+    1
+   ]
+  },
+  "enrique-rodriguez": {
+   "out": [
+    191,
+    110.5
+   ],
+   "in": [
+    180,
+    104.5
+   ]
+  },
+  "florindo-sassone": {
+   "out": [
+    2,
+    2
+   ],
+   "in": [
+    3,
+    3
+   ]
+  },
+  "francisco-canaro": {
+   "out": [
+    240,
+    137.5
+   ],
+   "in": [
+    199,
+    113.5
+   ]
+  },
+  "francisco-lomuto": {
+   "out": [
+    124,
+    68
+   ],
+   "in": [
+    121,
+    66
+   ]
+  },
+  "fulvio-salamanca": {
+   "out": [
+    1,
+    1
+   ],
+   "in": [
+    2,
+    2
+   ]
+  },
+  "hector-varela": {
+   "out": [
+    2,
+    2
+   ],
+   "in": [
+    2,
+    2
+   ]
+  },
+  "hugo-diaz": {
+   "out": [
+    4,
+    4
+   ],
+   "in": [
+    4,
+    4
+   ]
+  },
+  "jose-garcia": {
+   "out": [
+    23,
+    12
+   ],
+   "in": [
+    25,
+    13
+   ]
+  },
+  "juan-d-arienzo": {
+   "out": [
+    374,
+    217.5
+   ],
+   "in": [
+    390,
+    227
+   ]
+  },
+  "juan-de-dios-filiberto": {
+   "out": [
+    2,
+    1.5
+   ],
+   "in": [
+    2,
+    1.5
+   ]
+  },
+  "julio-de-caro": {
+   "out": [
+    4,
+    2.5
+   ],
+   "in": [
+    3,
+    1.5
+   ]
+  },
+  "lucio-demare": {
+   "out": [
+    67,
+    40.5
+   ],
+   "in": [
+    53,
+    31.5
+   ]
+  },
+  "miguel-calo": {
+   "out": [
+    211,
+    120.5
+   ],
+   "in": [
+    218,
+    123.5
+   ]
+  },
+  "miguel-villasboas": {
+   "out": [
+    8,
+    4.5
+   ],
+   "in": [
+    9,
+    5
+   ]
+  },
+  "orq-tip-los-provincianos": {
+   "out": [
+    1,
+    1
+   ],
+   "in": [
+    1,
+    1
+   ]
+  },
+  "orquesta-tipica-victor": {
+   "out": [
+    98,
+    56
+   ],
+   "in": [
+    97,
+    56.5
+   ]
+  },
+  "osvaldo-fresedo": {
+   "out": [
+    128,
+    73
+   ],
+   "in": [
+    133,
+    75
+   ]
+  },
+  "osvaldo-pugliese": {
+   "out": [
+    60,
+    36
+   ],
+   "in": [
+    72,
+    45
+   ]
+  },
+  "pedro-laurenz": {
+   "out": [
+    155,
+    88.5
+   ],
+   "in": [
+    157,
+    89
+   ]
+  },
+  "quinteto-don-pancho": {
+   "out": [
+    33,
+    19
+   ],
+   "in": [
+    24,
+    13
+   ]
+  },
+  "quinteto-pirincho": {
+   "out": [
+    68,
+    37.5
+   ],
+   "in": [
+    71,
+    39
+   ]
+  },
+  "ricardo-malerba": {
+   "out": [
+    35,
+    20
+   ],
+   "in": [
+    37,
+    21
+   ]
+  },
+  "ricardo-pedevilla": {
+   "out": [
+    1,
+    0.5
+   ],
+   "in": [
+    1,
+    0.5
+   ]
+  },
+  "ricardo-tanturi": {
+   "out": [
+    112,
+    66
+   ],
+   "in": [
+    103,
+    61
+   ]
+  },
+  "roberto-firpo": {
+   "out": [
+    2,
+    2
+   ],
+   "in": [
+    2,
+    2
+   ]
+  },
+  "rodolfo-biagi": {
+   "out": [
+    251,
+    143.5
+   ],
+   "in": [
+    258,
+    149
+   ]
+  }
+ },
+ "pairs": {
+  "adolfo-carabelli>alfredo-de-angelis": [
+   4,
+   2
+  ],
+  "adolfo-carabelli>alfredo-gobbi": [
+   1,
+   0.5
+  ],
+  "adolfo-carabelli>angel-d-agostino": [
+   1,
+   0.5
+  ],
+  "adolfo-carabelli>anibal-troilo": [
+   1,
+   1
+  ],
+  "adolfo-carabelli>carlos-di-sarli": [
+   2,
+   1
+  ],
+  "adolfo-carabelli>edgardo-donato": [
+   4,
+   2.5
+  ],
+  "adolfo-carabelli>enrique-rodriguez": [
+   2,
+   1
+  ],
+  "adolfo-carabelli>francisco-canaro": [
+   4,
+   2
+  ],
+  "adolfo-carabelli>francisco-lomuto": [
+   1,
+   0.5
+  ],
+  "adolfo-carabelli>juan-d-arienzo": [
+   3,
+   1.5
+  ],
+  "adolfo-carabelli>miguel-calo": [
+   2,
+   1
+  ],
+  "adolfo-carabelli>osvaldo-fresedo": [
+   3,
+   1.5
+  ],
+  "adolfo-carabelli>pedro-laurenz": [
+   2,
+   1.5
+  ],
+  "adolfo-carabelli>quinteto-pirincho": [
+   2,
+   1
+  ],
+  "adolfo-carabelli>ricardo-malerba": [
+   1,
+   0.5
+  ],
+  "adolfo-carabelli>ricardo-tanturi": [
+   2,
+   1
+  ],
+  "adolfo-carabelli>rodolfo-biagi": [
+   7,
+   4
+  ],
+  "alfredo-de-angelis>adolfo-carabelli": [
+   5,
+   2.5
+  ],
+  "alfredo-de-angelis>alfredo-gobbi": [
+   2,
+   1
+  ],
+  "alfredo-de-angelis>angel-d-agostino": [
+   6,
+   3.5
+  ],
+  "alfredo-de-angelis>anibal-troilo": [
+   15,
+   8
+  ],
+  "alfredo-de-angelis>carlos-di-sarli": [
+   9,
+   5.5
+  ],
+  "alfredo-de-angelis>edgardo-donato": [
+   21,
+   12
+  ],
+  "alfredo-de-angelis>enrique-rodriguez": [
+   7,
+   4
+  ],
+  "alfredo-de-angelis>francisco-canaro": [
+   9,
+   5
+  ],
+  "alfredo-de-angelis>francisco-lomuto": [
+   5,
+   2.5
+  ],
+  "alfredo-de-angelis>jose-garcia": [
+   3,
+   1.5
+  ],
+  "alfredo-de-angelis>juan-d-arienzo": [
+   25,
+   13.5
+  ],
+  "alfredo-de-angelis>julio-de-caro": [
+   2,
+   1
+  ],
+  "alfredo-de-angelis>lucio-demare": [
+   3,
+   1.5
+  ],
+  "alfredo-de-angelis>miguel-calo": [
+   9,
+   5.5
+  ],
+  "alfredo-de-angelis>orquesta-tipica-victor": [
+   4,
+   2.5
+  ],
+  "alfredo-de-angelis>osvaldo-fresedo": [
+   4,
+   2
+  ],
+  "alfredo-de-angelis>osvaldo-pugliese": [
+   10,
+   7
+  ],
+  "alfredo-de-angelis>pedro-laurenz": [
+   1,
+   0.5
+  ],
+  "alfredo-de-angelis>quinteto-don-pancho": [
+   1,
+   0.5
+  ],
+  "alfredo-de-angelis>quinteto-pirincho": [
+   3,
+   2
+  ],
+  "alfredo-de-angelis>ricardo-malerba": [
+   2,
+   1
+  ],
+  "alfredo-de-angelis>ricardo-tanturi": [
+   5,
+   3
+  ],
+  "alfredo-de-angelis>rodolfo-biagi": [
+   11,
+   5.5
+  ],
+  "alfredo-gobbi>adolfo-carabelli": [
+   2,
+   1
+  ],
+  "alfredo-gobbi>angel-d-agostino": [
+   2,
+   1
+  ],
+  "alfredo-gobbi>anibal-troilo": [
+   1,
+   0.5
+  ],
+  "alfredo-gobbi>enrique-rodriguez": [
+   1,
+   0.5
+  ],
+  "alfredo-gobbi>francisco-canaro": [
+   2,
+   1
+  ],
+  "alfredo-gobbi>francisco-lomuto": [
+   3,
+   1.5
+  ],
+  "alfredo-gobbi>juan-d-arienzo": [
+   1,
+   0.5
+  ],
+  "alfredo-gobbi>orquesta-tipica-victor": [
+   1,
+   0.5
+  ],
+  "alfredo-gobbi>rodolfo-biagi": [
+   2,
+   1.5
+  ],
+  "angel-d-agostino>adolfo-carabelli": [
+   3,
+   1.5
+  ],
+  "angel-d-agostino>alfredo-de-angelis": [
+   2,
+   1
+  ],
+  "angel-d-agostino>anibal-troilo": [
+   6,
+   3.5
+  ],
+  "angel-d-agostino>carlos-di-sarli": [
+   13,
+   9
+  ],
+  "angel-d-agostino>domingo-federico": [
+   1,
+   0.5
+  ],
+  "angel-d-agostino>edgardo-donato": [
+   10,
+   6
+  ],
+  "angel-d-agostino>enrique-rodriguez": [
+   5,
+   2.5
+  ],
+  "angel-d-agostino>francisco-canaro": [
+   7,
+   4
+  ],
+  "angel-d-agostino>francisco-lomuto": [
+   6,
+   3
+  ],
+  "angel-d-agostino>jose-garcia": [
+   1,
+   0.5
+  ],
+  "angel-d-agostino>juan-d-arienzo": [
+   15,
+   8.5
+  ],
+  "angel-d-agostino>lucio-demare": [
+   1,
+   0.5
+  ],
+  "angel-d-agostino>miguel-calo": [
+   8,
+   5
+  ],
+  "angel-d-agostino>orquesta-tipica-victor": [
+   2,
+   1.5
+  ],
+  "angel-d-agostino>osvaldo-fresedo": [
+   4,
+   2.5
+  ],
+  "angel-d-agostino>osvaldo-pugliese": [
+   3,
+   2
+  ],
+  "angel-d-agostino>pedro-laurenz": [
+   2,
+   1
+  ],
+  "angel-d-agostino>quinteto-don-pancho": [
+   3,
+   1.5
+  ],
+  "angel-d-agostino>ricardo-malerba": [
+   4,
+   2.5
+  ],
+  "angel-d-agostino>ricardo-tanturi": [
+   3,
+   2.5
+  ],
+  "angel-d-agostino>rodolfo-biagi": [
+   8,
+   4.5
+  ],
+  "anibal-troilo>adolfo-carabelli": [
+   5,
+   3
+  ],
+  "anibal-troilo>alfredo-de-angelis": [
+   13,
+   6.5
+  ],
+  "anibal-troilo>alfredo-gobbi": [
+   2,
+   1.5
+  ],
+  "anibal-troilo>angel-d-agostino": [
+   10,
+   5.5
+  ],
+  "anibal-troilo>anibal-troilo": [
+   1,
+   0.5
+  ],
+  "anibal-troilo>carlos-di-sarli": [
+   11,
+   7.5
+  ],
+  "anibal-troilo>domingo-federico": [
+   1,
+   0.5
+  ],
+  "anibal-troilo>domingo-rulio": [
+   1,
+   0.5
+  ],
+  "anibal-troilo>edgardo-donato": [
+   18,
+   9.5
+  ],
+  "anibal-troilo>enrique-rodriguez": [
+   12,
+   7.5
+  ],
+  "anibal-troilo>francisco-canaro": [
+   13,
+   8
+  ],
+  "anibal-troilo>francisco-lomuto": [
+   8,
+   4
+  ],
+  "anibal-troilo>jose-garcia": [
+   1,
+   0.5
+  ],
+  "anibal-troilo>juan-d-arienzo": [
+   15,
+   9.5
+  ],
+  "anibal-troilo>juan-de-dios-filiberto": [
+   1,
+   1
+  ],
+  "anibal-troilo>lucio-demare": [
+   7,
+   4
+  ],
+  "anibal-troilo>miguel-calo": [
+   14,
+   7.5
+  ],
+  "anibal-troilo>miguel-villasboas": [
+   1,
+   0.5
+  ],
+  "anibal-troilo>orquesta-tipica-victor": [
+   2,
+   1
+  ],
+  "anibal-troilo>osvaldo-fresedo": [
+   8,
+   4.5
+  ],
+  "anibal-troilo>osvaldo-pugliese": [
+   7,
+   5
+  ],
+  "anibal-troilo>pedro-laurenz": [
+   8,
+   4.5
+  ],
+  "anibal-troilo>quinteto-don-pancho": [
+   2,
+   1
+  ],
+  "anibal-troilo>quinteto-pirincho": [
+   4,
+   2.5
+  ],
+  "anibal-troilo>ricardo-malerba": [
+   1,
+   0.5
+  ],
+  "anibal-troilo>ricardo-tanturi": [
+   1,
+   0.5
+  ],
+  "anibal-troilo>rodolfo-biagi": [
+   10,
+   6.5
+  ],
+  "carlos-di-sarli>adolfo-carabelli": [
+   1,
+   0.5
+  ],
+  "carlos-di-sarli>alfredo-de-angelis": [
+   9,
+   4.5
+  ],
+  "carlos-di-sarli>alfredo-gobbi": [
+   1,
+   0.5
+  ],
+  "carlos-di-sarli>angel-d-agostino": [
+   8,
+   5.5
+  ],
+  "carlos-di-sarli>anibal-troilo": [
+   14,
+   9.5
+  ],
+  "carlos-di-sarli>donato-racciatti": [
+   1,
+   1
+  ],
+  "carlos-di-sarli>edgardo-donato": [
+   28,
+   17
+  ],
+  "carlos-di-sarli>enrique-rodriguez": [
+   15,
+   8.5
+  ],
+  "carlos-di-sarli>francisco-canaro": [
+   15,
+   8.5
+  ],
+  "carlos-di-sarli>francisco-lomuto": [
+   8,
+   4.5
+  ],
+  "carlos-di-sarli>hugo-diaz": [
+   2,
+   2
+  ],
+  "carlos-di-sarli>jose-garcia": [
+   1,
+   0.5
+  ],
+  "carlos-di-sarli>juan-d-arienzo": [
+   38,
+   23
+  ],
+  "carlos-di-sarli>miguel-calo": [
+   13,
+   8.5
+  ],
+  "carlos-di-sarli>orquesta-tipica-victor": [
+   4,
+   2
+  ],
+  "carlos-di-sarli>osvaldo-fresedo": [
+   12,
+   7
+  ],
+  "carlos-di-sarli>osvaldo-pugliese": [
+   8,
+   4.5
+  ],
+  "carlos-di-sarli>pedro-laurenz": [
+   9,
+   4.5
+  ],
+  "carlos-di-sarli>quinteto-don-pancho": [
+   1,
+   0.5
+  ],
+  "carlos-di-sarli>quinteto-pirincho": [
+   7,
+   3.5
+  ],
+  "carlos-di-sarli>ricardo-tanturi": [
+   11,
+   6.5
+  ],
+  "carlos-di-sarli>rodolfo-biagi": [
+   18,
+   11
+  ],
+  "domingo-federico>edgardo-donato": [
+   1,
+   0.5
+  ],
+  "domingo-federico>enrique-rodriguez": [
+   1,
+   0.5
+  ],
+  "domingo-federico>francisco-lomuto": [
+   1,
+   0.5
+  ],
+  "domingo-federico>jose-garcia": [
+   1,
+   1
+  ],
+  "domingo-federico>quinteto-pirincho": [
+   1,
+   0.5
+  ],
+  "domingo-rulio>alfredo-de-angelis": [
+   1,
+   0.5
+  ],
+  "domingo-rulio>edgardo-donato": [
+   1,
+   0.5
+  ],
+  "domingo-rulio>osvaldo-fresedo": [
+   1,
+   0.5
+  ],
+  "domingo-rulio>pedro-laurenz": [
+   1,
+   0.5
+  ],
+  "domingo-rulio>rodolfo-biagi": [
+   1,
+   0.5
+  ],
+  "donato-racciatti>alfredo-de-angelis": [
+   1,
+   1
+  ],
+  "donato-racciatti>enrique-rodriguez": [
+   1,
+   1
+  ],
+  "donato-racciatti>osvaldo-pugliese": [
+   1,
+   1
+  ],
+  "donato-racciatti>rodolfo-biagi": [
+   1,
+   1
+  ],
+  "edgardo-donato>adolfo-carabelli": [
+   3,
+   2
+  ],
+  "edgardo-donato>alfredo-de-angelis": [
+   15,
+   8.5
+  ],
+  "edgardo-donato>alfredo-gobbi": [
+   1,
+   0.5
+  ],
+  "edgardo-donato>angel-d-agostino": [
+   6,
+   3.5
+  ],
+  "edgardo-donato>anibal-troilo": [
+   20,
+   13
+  ],
+  "edgardo-donato>carlos-di-sarli": [
+   17,
+   9
+  ],
+  "edgardo-donato>domingo-federico": [
+   1,
+   1
+  ],
+  "edgardo-donato>domingo-rulio": [
+   1,
+   0.5
+  ],
+  "edgardo-donato>edgardo-donato": [
+   1,
+   1
+  ],
+  "edgardo-donato>enrique-rodriguez": [
+   11,
+   6
+  ],
+  "edgardo-donato>francisco-canaro": [
+   21,
+   11.5
+  ],
+  "edgardo-donato>francisco-lomuto": [
+   12,
+   7
+  ],
+  "edgardo-donato>jose-garcia": [
+   2,
+   1
+  ],
+  "edgardo-donato>juan-d-arienzo": [
+   29,
+   17.5
+  ],
+  "edgardo-donato>lucio-demare": [
+   4,
+   2.5
+  ],
+  "edgardo-donato>miguel-calo": [
+   30,
+   17.5
+  ],
+  "edgardo-donato>miguel-villasboas": [
+   1,
+   0.5
+  ],
+  "edgardo-donato>orq-tip-los-provincianos": [
+   1,
+   1
+  ],
+  "edgardo-donato>orquesta-tipica-victor": [
+   9,
+   5
+  ],
+  "edgardo-donato>osvaldo-fresedo": [
+   15,
+   8
+  ],
+  "edgardo-donato>osvaldo-pugliese": [
+   3,
+   2.5
+  ],
+  "edgardo-donato>pedro-laurenz": [
+   23,
+   12
+  ],
+  "edgardo-donato>quinteto-pirincho": [
+   5,
+   3
+  ],
+  "edgardo-donato>ricardo-malerba": [
+   3,
+   2
+  ],
+  "edgardo-donato>ricardo-pedevilla": [
+   1,
+   0.5
+  ],
+  "edgardo-donato>ricardo-tanturi": [
+   9,
+   5.5
+  ],
+  "edgardo-donato>rodolfo-biagi": [
+   25,
+   14
+  ],
+  "emilio-balcarce>rodolfo-biagi": [
+   1,
+   1
+  ],
+  "enrique-rodriguez>adolfo-carabelli": [
+   3,
+   1.5
+  ],
+  "enrique-rodriguez>alfredo-de-angelis": [
+   7,
+   5.5
+  ],
+  "enrique-rodriguez>angel-d-agostino": [
+   7,
+   3.5
+  ],
+  "enrique-rodriguez>anibal-troilo": [
+   8,
+   4.5
+  ],
+  "enrique-rodriguez>carlos-di-sarli": [
+   4,
+   2.5
+  ],
+  "enrique-rodriguez>domingo-rulio": [
+   1,
+   0.5
+  ],
+  "enrique-rodriguez>edgardo-donato": [
+   23,
+   13
+  ],
+  "enrique-rodriguez>francisco-canaro": [
+   21,
+   11.5
+  ],
+  "enrique-rodriguez>francisco-lomuto": [
+   7,
+   4
+  ],
+  "enrique-rodriguez>juan-d-arienzo": [
+   24,
+   13.5
+  ],
+  "enrique-rodriguez>lucio-demare": [
+   6,
+   3
+  ],
+  "enrique-rodriguez>miguel-calo": [
+   6,
+   3.5
+  ],
+  "enrique-rodriguez>miguel-villasboas": [
+   1,
+   1
+  ],
+  "enrique-rodriguez>orquesta-tipica-victor": [
+   14,
+   8.5
+  ],
+  "enrique-rodriguez>osvaldo-fresedo": [
+   7,
+   4.5
+  ],
+  "enrique-rodriguez>osvaldo-pugliese": [
+   3,
+   2
+  ],
+  "enrique-rodriguez>pedro-laurenz": [
+   10,
+   5.5
+  ],
+  "enrique-rodriguez>quinteto-don-pancho": [
+   4,
+   2.5
+  ],
+  "enrique-rodriguez>quinteto-pirincho": [
+   11,
+   6.5
+  ],
+  "enrique-rodriguez>ricardo-malerba": [
+   1,
+   0.5
+  ],
+  "enrique-rodriguez>ricardo-tanturi": [
+   7,
+   4
+  ],
+  "enrique-rodriguez>rodolfo-biagi": [
+   16,
+   9
+  ],
+  "florindo-sassone>donato-racciatti": [
+   1,
+   1
+  ],
+  "florindo-sassone>miguel-calo": [
+   1,
+   1
+  ],
+  "francisco-canaro>adolfo-carabelli": [
+   2,
+   1.5
+  ],
+  "francisco-canaro>alfredo-de-angelis": [
+   16,
+   8
+  ],
+  "francisco-canaro>alfredo-gobbi": [
+   2,
+   1.5
+  ],
+  "francisco-canaro>angel-d-agostino": [
+   9,
+   4.5
+  ],
+  "francisco-canaro>anibal-troilo": [
+   10,
+   5.5
+  ],
+  "francisco-canaro>carlos-di-sarli": [
+   21,
+   12.5
+  ],
+  "francisco-canaro>edgardo-donato": [
+   19,
+   12.5
+  ],
+  "francisco-canaro>enrique-rodriguez": [
+   18,
+   10
+  ],
+  "francisco-canaro>florindo-sassone": [
+   1,
+   1
+  ],
+  "francisco-canaro>francisco-lomuto": [
+   6,
+   3.5
+  ],
+  "francisco-canaro>hugo-diaz": [
+   1,
+   1
+  ],
+  "francisco-canaro>jose-garcia": [
+   3,
+   1.5
+  ],
+  "francisco-canaro>juan-d-arienzo": [
+   34,
+   19.5
+  ],
+  "francisco-canaro>lucio-demare": [
+   1,
+   0.5
+  ],
+  "francisco-canaro>miguel-calo": [
+   17,
+   9
+  ],
+  "francisco-canaro>orquesta-tipica-victor": [
+   5,
+   2.5
+  ],
+  "francisco-canaro>osvaldo-fresedo": [
+   12,
+   7
+  ],
+  "francisco-canaro>osvaldo-pugliese": [
+   3,
+   2
+  ],
+  "francisco-canaro>pedro-laurenz": [
+   27,
+   15
+  ],
+  "francisco-canaro>ricardo-malerba": [
+   3,
+   2
+  ],
+  "francisco-canaro>ricardo-tanturi": [
+   7,
+   3.5
+  ],
+  "francisco-canaro>roberto-firpo": [
+   1,
+   1
+  ],
+  "francisco-canaro>rodolfo-biagi": [
+   22,
+   12.5
+  ],
+  "francisco-lomuto>adolfo-carabelli": [
+   1,
+   0.5
+  ],
+  "francisco-lomuto>alfredo-de-angelis": [
+   5,
+   2.5
+  ],
+  "francisco-lomuto>angel-d-agostino": [
+   5,
+   3
+  ],
+  "francisco-lomuto>anibal-troilo": [
+   7,
+   4
+  ],
+  "francisco-lomuto>carlos-di-sarli": [
+   13,
+   7
+  ],
+  "francisco-lomuto>edgardo-donato": [
+   11,
+   5.5
+  ],
+  "francisco-lomuto>enrique-rodriguez": [
+   11,
+   6
+  ],
+  "francisco-lomuto>francisco-canaro": [
+   6,
+   3
+  ],
+  "francisco-lomuto>juan-d-arienzo": [
+   20,
+   12.5
+  ],
+  "francisco-lomuto>lucio-demare": [
+   2,
+   1
+  ],
+  "francisco-lomuto>miguel-calo": [
+   7,
+   3.5
+  ],
+  "francisco-lomuto>orquesta-tipica-victor": [
+   3,
+   2
+  ],
+  "francisco-lomuto>osvaldo-fresedo": [
+   5,
+   3
+  ],
+  "francisco-lomuto>osvaldo-pugliese": [
+   1,
+   0.5
+  ],
+  "francisco-lomuto>pedro-laurenz": [
+   8,
+   4.5
+  ],
+  "francisco-lomuto>ricardo-malerba": [
+   3,
+   1.5
+  ],
+  "francisco-lomuto>ricardo-tanturi": [
+   4,
+   2
+  ],
+  "francisco-lomuto>rodolfo-biagi": [
+   12,
+   6
+  ],
+  "fulvio-salamanca>juan-d-arienzo": [
+   1,
+   1
+  ],
+  "hector-varela>angel-d-agostino": [
+   1,
+   1
+  ],
+  "hector-varela>edgardo-donato": [
+   1,
+   1
+  ],
+  "hugo-diaz>carlos-di-sarli": [
+   1,
+   1
+  ],
+  "hugo-diaz>edgardo-donato": [
+   1,
+   1
+  ],
+  "hugo-diaz>enrique-rodriguez": [
+   1,
+   1
+  ],
+  "hugo-diaz>lucio-demare": [
+   1,
+   1
+  ],
+  "jose-garcia>anibal-troilo": [
+   1,
+   0.5
+  ],
+  "jose-garcia>carlos-di-sarli": [
+   1,
+   0.5
+  ],
+  "jose-garcia>edgardo-donato": [
+   2,
+   1
+  ],
+  "jose-garcia>francisco-canaro": [
+   3,
+   2
+  ],
+  "jose-garcia>juan-d-arienzo": [
+   7,
+   3.5
+  ],
+  "jose-garcia>lucio-demare": [
+   1,
+   0.5
+  ],
+  "jose-garcia>miguel-villasboas": [
+   2,
+   1
+  ],
+  "jose-garcia>orquesta-tipica-victor": [
+   1,
+   0.5
+  ],
+  "jose-garcia>osvaldo-fresedo": [
+   1,
+   0.5
+  ],
+  "jose-garcia>pedro-laurenz": [
+   1,
+   0.5
+  ],
+  "jose-garcia>quinteto-pirincho": [
+   1,
+   0.5
+  ],
+  "jose-garcia>ricardo-tanturi": [
+   1,
+   0.5
+  ],
+  "jose-garcia>rodolfo-biagi": [
+   1,
+   0.5
+  ],
+  "juan-d-arienzo>adolfo-carabelli": [
+   1,
+   0.5
+  ],
+  "juan-d-arienzo>alfredo-de-angelis": [
+   30,
+   17.5
+  ],
+  "juan-d-arienzo>alfredo-gobbi": [
+   2,
+   1
+  ],
+  "juan-d-arienzo>angel-d-agostino": [
+   21,
+   13.5
+  ],
+  "juan-d-arienzo>anibal-troilo": [
+   25,
+   14
+  ],
+  "juan-d-arienzo>carlos-di-sarli": [
+   34,
+   21
+  ],
+  "juan-d-arienzo>edgardo-donato": [
+   25,
+   13.5
+  ],
+  "juan-d-arienzo>enrique-rodriguez": [
+   19,
+   10.5
+  ],
+  "juan-d-arienzo>florindo-sassone": [
+   1,
+   1
+  ],
+  "juan-d-arienzo>francisco-canaro": [
+   22,
+   14.5
+  ],
+  "juan-d-arienzo>francisco-lomuto": [
+   12,
+   6.5
+  ],
+  "juan-d-arienzo>hugo-diaz": [
+   1,
+   1
+  ],
+  "juan-d-arienzo>jose-garcia": [
+   2,
+   1
+  ],
+  "juan-d-arienzo>juan-d-arienzo": [
+   1,
+   1
+  ],
+  "juan-d-arienzo>lucio-demare": [
+   12,
+   8
+  ],
+  "juan-d-arienzo>miguel-calo": [
+   38,
+   21
+  ],
+  "juan-d-arienzo>miguel-villasboas": [
+   2,
+   1
+  ],
+  "juan-d-arienzo>orquesta-tipica-victor": [
+   8,
+   4
+  ],
+  "juan-d-arienzo>osvaldo-fresedo": [
+   26,
+   15
+  ],
+  "juan-d-arienzo>osvaldo-pugliese": [
+   9,
+   5
+  ],
+  "juan-d-arienzo>pedro-laurenz": [
+   28,
+   17
+  ],
+  "juan-d-arienzo>quinteto-don-pancho": [
+   3,
+   1.5
+  ],
+  "juan-d-arienzo>quinteto-pirincho": [
+   7,
+   4
+  ],
+  "juan-d-arienzo>ricardo-malerba": [
+   5,
+   2.5
+  ],
+  "juan-d-arienzo>ricardo-tanturi": [
+   9,
+   5.5
+  ],
+  "juan-d-arienzo>rodolfo-biagi": [
+   31,
+   16.5
+  ],
+  "juan-de-dios-filiberto>alfredo-gobbi": [
+   1,
+   0.5
+  ],
+  "juan-de-dios-filiberto>lucio-demare": [
+   1,
+   1
+  ],
+  "julio-de-caro>edgardo-donato": [
+   1,
+   1
+  ],
+  "julio-de-caro>juan-d-arienzo": [
+   1,
+   0.5
+  ],
+  "julio-de-caro>osvaldo-fresedo": [
+   1,
+   0.5
+  ],
+  "julio-de-caro>quinteto-don-pancho": [
+   1,
+   0.5
+  ],
+  "lucio-demare>alfredo-de-angelis": [
+   1,
+   0.5
+  ],
+  "lucio-demare>alfredo-gobbi": [
+   1,
+   0.5
+  ],
+  "lucio-demare>angel-d-agostino": [
+   2,
+   1
+  ],
+  "lucio-demare>anibal-troilo": [
+   3,
+   2
+  ],
+  "lucio-demare>carlos-di-sarli": [
+   4,
+   2.5
+  ],
+  "lucio-demare>edgardo-donato": [
+   7,
+   4.5
+  ],
+  "lucio-demare>enrique-rodriguez": [
+   4,
+   2.5
+  ],
+  "lucio-demare>francisco-canaro": [
+   6,
+   4
+  ],
+  "lucio-demare>francisco-lomuto": [
+   4,
+   2
+  ],
+  "lucio-demare>hector-varela": [
+   1,
+   1
+  ],
+  "lucio-demare>juan-d-arienzo": [
+   11,
+   6.5
+  ],
+  "lucio-demare>miguel-calo": [
+   4,
+   2.5
+  ],
+  "lucio-demare>orquesta-tipica-victor": [
+   1,
+   0.5
+  ],
+  "lucio-demare>osvaldo-fresedo": [
+   1,
+   0.5
+  ],
+  "lucio-demare>pedro-laurenz": [
+   1,
+   0.5
+  ],
+  "lucio-demare>quinteto-don-pancho": [
+   3,
+   1.5
+  ],
+  "lucio-demare>quinteto-pirincho": [
+   2,
+   1
+  ],
+  "lucio-demare>ricardo-tanturi": [
+   1,
+   0.5
+  ],
+  "lucio-demare>rodolfo-biagi": [
+   10,
+   6.5
+  ],
+  "miguel-calo>adolfo-carabelli": [
+   4,
+   2.5
+  ],
+  "miguel-calo>alfredo-de-angelis": [
+   3,
+   2
+  ],
+  "miguel-calo>alfredo-gobbi": [
+   1,
+   0.5
+  ],
+  "miguel-calo>angel-d-agostino": [
+   9,
+   4.5
+  ],
+  "miguel-calo>anibal-troilo": [
+   14,
+   8.5
+  ],
+  "miguel-calo>carlos-di-sarli": [
+   17,
+   9.5
+  ],
+  "miguel-calo>domingo-rulio": [
+   1,
+   0.5
+  ],
+  "miguel-calo>edgardo-donato": [
+   26,
+   14
+  ],
+  "miguel-calo>enrique-rodriguez": [
+   9,
+   5.5
+  ],
+  "miguel-calo>francisco-canaro": [
+   15,
+   8.5
+  ],
+  "miguel-calo>francisco-lomuto": [
+   12,
+   7.5
+  ],
+  "miguel-calo>jose-garcia": [
+   3,
+   1.5
+  ],
+  "miguel-calo>juan-d-arienzo": [
+   34,
+   20
+  ],
+  "miguel-calo>lucio-demare": [
+   1,
+   0.5
+  ],
+  "miguel-calo>orquesta-tipica-victor": [
+   8,
+   4
+  ],
+  "miguel-calo>osvaldo-fresedo": [
+   2,
+   1
+  ],
+  "miguel-calo>osvaldo-pugliese": [
+   4,
+   2
+  ],
+  "miguel-calo>pedro-laurenz": [
+   10,
+   7.5
+  ],
+  "miguel-calo>quinteto-don-pancho": [
+   1,
+   0.5
+  ],
+  "miguel-calo>quinteto-pirincho": [
+   6,
+   3
+  ],
+  "miguel-calo>ricardo-malerba": [
+   3,
+   1.5
+  ],
+  "miguel-calo>ricardo-tanturi": [
+   11,
+   6.5
+  ],
+  "miguel-calo>rodolfo-biagi": [
+   17,
+   9
+  ],
+  "miguel-villasboas>angel-d-agostino": [
+   1,
+   0.5
+  ],
+  "miguel-villasboas>enrique-rodriguez": [
+   1,
+   0.5
+  ],
+  "miguel-villasboas>juan-d-arienzo": [
+   1,
+   0.5
+  ],
+  "miguel-villasboas>lucio-demare": [
+   1,
+   0.5
+  ],
+  "miguel-villasboas>ricardo-malerba": [
+   2,
+   1.5
+  ],
+  "miguel-villasboas>ricardo-tanturi": [
+   1,
+   0.5
+  ],
+  "miguel-villasboas>rodolfo-biagi": [
+   1,
+   0.5
+  ],
+  "orq-tip-los-provincianos>miguel-calo": [
+   1,
+   1
+  ],
+  "orquesta-tipica-victor>alfredo-de-angelis": [
+   8,
+   4.5
+  ],
+  "orquesta-tipica-victor>angel-d-agostino": [
+   2,
+   1.5
+  ],
+  "orquesta-tipica-victor>anibal-troilo": [
+   10,
+   5.5
+  ],
+  "orquesta-tipica-victor>carlos-di-sarli": [
+   6,
+   3.5
+  ],
+  "orquesta-tipica-victor>edgardo-donato": [
+   9,
+   5.5
+  ],
+  "orquesta-tipica-victor>enrique-rodriguez": [
+   12,
+   6.5
+  ],
+  "orquesta-tipica-victor>francisco-canaro": [
+   4,
+   2
+  ],
+  "orquesta-tipica-victor>francisco-lomuto": [
+   1,
+   0.5
+  ],
+  "orquesta-tipica-victor>jose-garcia": [
+   3,
+   1.5
+  ],
+  "orquesta-tipica-victor>juan-d-arienzo": [
+   11,
+   6
+  ],
+  "orquesta-tipica-victor>miguel-calo": [
+   9,
+   4.5
+  ],
+  "orquesta-tipica-victor>orquesta-tipica-victor": [
+   2,
+   1.5
+  ],
+  "orquesta-tipica-victor>osvaldo-fresedo": [
+   2,
+   1
+  ],
+  "orquesta-tipica-victor>osvaldo-pugliese": [
+   2,
+   1
+  ],
+  "orquesta-tipica-victor>pedro-laurenz": [
+   2,
+   1
+  ],
+  "orquesta-tipica-victor>quinteto-pirincho": [
+   1,
+   0.5
+  ],
+  "orquesta-tipica-victor>ricardo-tanturi": [
+   3,
+   2.5
+  ],
+  "orquesta-tipica-victor>rodolfo-biagi": [
+   11,
+   7
+  ],
+  "osvaldo-fresedo>adolfo-carabelli": [
+   1,
+   0.5
+  ],
+  "osvaldo-fresedo>alfredo-de-angelis": [
+   7,
+   4.5
+  ],
+  "osvaldo-fresedo>alfredo-gobbi": [
+   3,
+   1.5
+  ],
+  "osvaldo-fresedo>angel-d-agostino": [
+   4,
+   2.5
+  ],
+  "osvaldo-fresedo>anibal-troilo": [
+   13,
+   6.5
+  ],
+  "osvaldo-fresedo>carlos-di-sarli": [
+   6,
+   3.5
+  ],
+  "osvaldo-fresedo>donato-racciatti": [
+   1,
+   1
+  ],
+  "osvaldo-fresedo>edgardo-donato": [
+   6,
+   3
+  ],
+  "osvaldo-fresedo>emilio-balcarce": [
+   1,
+   1
+  ],
+  "osvaldo-fresedo>enrique-rodriguez": [
+   5,
+   3
+  ],
+  "osvaldo-fresedo>francisco-canaro": [
+   9,
+   4.5
+  ],
+  "osvaldo-fresedo>francisco-lomuto": [
+   9,
+   5
+  ],
+  "osvaldo-fresedo>juan-d-arienzo": [
+   24,
+   14.5
+  ],
+  "osvaldo-fresedo>miguel-calo": [
+   2,
+   1
+  ],
+  "osvaldo-fresedo>miguel-villasboas": [
+   1,
+   0.5
+  ],
+  "osvaldo-fresedo>orquesta-tipica-victor": [
+   2,
+   1
+  ],
+  "osvaldo-fresedo>osvaldo-pugliese": [
+   3,
+   2
+  ],
+  "osvaldo-fresedo>pedro-laurenz": [
+   2,
+   1
+  ],
+  "osvaldo-fresedo>quinteto-don-pancho": [
+   1,
+   0.5
+  ],
+  "osvaldo-fresedo>quinteto-pirincho": [
+   3,
+   1.5
+  ],
+  "osvaldo-fresedo>ricardo-tanturi": [
+   8,
+   5
+  ],
+  "osvaldo-fresedo>rodolfo-biagi": [
+   17,
+   9.5
+  ],
+  "osvaldo-pugliese>alfredo-de-angelis": [
+   8,
+   4.5
+  ],
+  "osvaldo-pugliese>angel-d-agostino": [
+   3,
+   1.5
+  ],
+  "osvaldo-pugliese>anibal-troilo": [
+   3,
+   2
+  ],
+  "osvaldo-pugliese>carlos-di-sarli": [
+   3,
+   2
+  ],
+  "osvaldo-pugliese>edgardo-donato": [
+   8,
+   5
+  ],
+  "osvaldo-pugliese>enrique-rodriguez": [
+   1,
+   0.5
+  ],
+  "osvaldo-pugliese>francisco-canaro": [
+   7,
+   3.5
+  ],
+  "osvaldo-pugliese>francisco-lomuto": [
+   2,
+   1
+  ],
+  "osvaldo-pugliese>fulvio-salamanca": [
+   2,
+   2
+  ],
+  "osvaldo-pugliese>juan-d-arienzo": [
+   9,
+   5.5
+  ],
+  "osvaldo-pugliese>miguel-calo": [
+   2,
+   2
+  ],
+  "osvaldo-pugliese>orquesta-tipica-victor": [
+   2,
+   1
+  ],
+  "osvaldo-pugliese>osvaldo-fresedo": [
+   1,
+   0.5
+  ],
+  "osvaldo-pugliese>pedro-laurenz": [
+   1,
+   0.5
+  ],
+  "osvaldo-pugliese>quinteto-pirincho": [
+   3,
+   1.5
+  ],
+  "osvaldo-pugliese>ricardo-tanturi": [
+   1,
+   0.5
+  ],
+  "osvaldo-pugliese>rodolfo-biagi": [
+   4,
+   2.5
+  ],
+  "pedro-laurenz>adolfo-carabelli": [
+   2,
+   1
+  ],
+  "pedro-laurenz>alfredo-de-angelis": [
+   11,
+   6
+  ],
+  "pedro-laurenz>angel-d-agostino": [
+   4,
+   2
+  ],
+  "pedro-laurenz>anibal-troilo": [
+   11,
+   7.5
+  ],
+  "pedro-laurenz>carlos-di-sarli": [
+   14,
+   7.5
+  ],
+  "pedro-laurenz>donato-racciatti": [
+   1,
+   1
+  ],
+  "pedro-laurenz>edgardo-donato": [
+   9,
+   6.5
+  ],
+  "pedro-laurenz>enrique-rodriguez": [
+   13,
+   8
+  ],
+  "pedro-laurenz>florindo-sassone": [
+   1,
+   1
+  ],
+  "pedro-laurenz>francisco-canaro": [
+   10,
+   5
+  ],
+  "pedro-laurenz>francisco-lomuto": [
+   8,
+   4
+  ],
+  "pedro-laurenz>jose-garcia": [
+   1,
+   0.5
+  ],
+  "pedro-laurenz>juan-d-arienzo": [
+   19,
+   10.5
+  ],
+  "pedro-laurenz>miguel-calo": [
+   11,
+   5.5
+  ],
+  "pedro-laurenz>orquesta-tipica-victor": [
+   8,
+   4.5
+  ],
+  "pedro-laurenz>osvaldo-fresedo": [
+   2,
+   1
+  ],
+  "pedro-laurenz>osvaldo-pugliese": [
+   2,
+   1
+  ],
+  "pedro-laurenz>quinteto-don-pancho": [
+   1,
+   0.5
+  ],
+  "pedro-laurenz>quinteto-pirincho": [
+   5,
+   2.5
+  ],
+  "pedro-laurenz>ricardo-malerba": [
+   2,
+   1
+  ],
+  "pedro-laurenz>ricardo-tanturi": [
+   4,
+   2.5
+  ],
+  "pedro-laurenz>rodolfo-biagi": [
+   16,
+   9.5
+  ],
+  "quinteto-don-pancho>alfredo-de-angelis": [
+   2,
+   1
+  ],
+  "quinteto-don-pancho>angel-d-agostino": [
+   1,
+   1
+  ],
+  "quinteto-don-pancho>carlos-di-sarli": [
+   3,
+   2
+  ],
+  "quinteto-don-pancho>domingo-federico": [
+   1,
+   0.5
+  ],
+  "quinteto-don-pancho>edgardo-donato": [
+   7,
+   3.5
+  ],
+  "quinteto-don-pancho>enrique-rodriguez": [
+   7,
+   4
+  ],
+  "quinteto-don-pancho>francisco-lomuto": [
+   1,
+   0.5
+  ],
+  "quinteto-don-pancho>juan-d-arienzo": [
+   3,
+   2
+  ],
+  "quinteto-don-pancho>lucio-demare": [
+   1,
+   0.5
+  ],
+  "quinteto-don-pancho>miguel-calo": [
+   1,
+   0.5
+  ],
+  "quinteto-don-pancho>orquesta-tipica-victor": [
+   3,
+   2
+  ],
+  "quinteto-don-pancho>osvaldo-pugliese": [
+   1,
+   0.5
+  ],
+  "quinteto-don-pancho>ricardo-tanturi": [
+   1,
+   0.5
+  ],
+  "quinteto-don-pancho>rodolfo-biagi": [
+   1,
+   0.5
+  ],
+  "quinteto-pirincho>alfredo-de-angelis": [
+   4,
+   2.5
+  ],
+  "quinteto-pirincho>angel-d-agostino": [
+   2,
+   1.5
+  ],
+  "quinteto-pirincho>anibal-troilo": [
+   2,
+   1
+  ],
+  "quinteto-pirincho>carlos-di-sarli": [
+   11,
+   6.5
+  ],
+  "quinteto-pirincho>edgardo-donato": [
+   5,
+   2.5
+  ],
+  "quinteto-pirincho>enrique-rodriguez": [
+   1,
+   0.5
+  ],
+  "quinteto-pirincho>francisco-lomuto": [
+   2,
+   1
+  ],
+  "quinteto-pirincho>jose-garcia": [
+   2,
+   1
+  ],
+  "quinteto-pirincho>juan-d-arienzo": [
+   7,
+   4
+  ],
+  "quinteto-pirincho>lucio-demare": [
+   3,
+   2
+  ],
+  "quinteto-pirincho>miguel-calo": [
+   13,
+   6.5
+  ],
+  "quinteto-pirincho>orquesta-tipica-victor": [
+   1,
+   0.5
+  ],
+  "quinteto-pirincho>osvaldo-fresedo": [
+   5,
+   2.5
+  ],
+  "quinteto-pirincho>osvaldo-pugliese": [
+   3,
+   1.5
+  ],
+  "quinteto-pirincho>pedro-laurenz": [
+   2,
+   1
+  ],
+  "quinteto-pirincho>ricardo-malerba": [
+   1,
+   0.5
+  ],
+  "quinteto-pirincho>ricardo-tanturi": [
+   2,
+   1
+  ],
+  "quinteto-pirincho>rodolfo-biagi": [
+   2,
+   1.5
+  ],
+  "ricardo-malerba>alfredo-de-angelis": [
+   3,
+   1.5
+  ],
+  "ricardo-malerba>anibal-troilo": [
+   4,
+   2
+  ],
+  "ricardo-malerba>carlos-di-sarli": [
+   2,
+   1
+  ],
+  "ricardo-malerba>edgardo-donato": [
+   2,
+   1.5
+  ],
+  "ricardo-malerba>enrique-rodriguez": [
+   1,
+   1
+  ],
+  "ricardo-malerba>francisco-canaro": [
+   4,
+   2.5
+  ],
+  "ricardo-malerba>hector-varela": [
+   1,
+   1
+  ],
+  "ricardo-malerba>juan-d-arienzo": [
+   5,
+   3
+  ],
+  "ricardo-malerba>orquesta-tipica-victor": [
+   3,
+   1.5
+  ],
+  "ricardo-malerba>osvaldo-fresedo": [
+   2,
+   1
+  ],
+  "ricardo-malerba>pedro-laurenz": [
+   2,
+   1
+  ],
+  "ricardo-malerba>quinteto-pirincho": [
+   2,
+   1
+  ],
+  "ricardo-malerba>ricardo-tanturi": [
+   1,
+   0.5
+  ],
+  "ricardo-malerba>rodolfo-biagi": [
+   3,
+   1.5
+  ],
+  "ricardo-pedevilla>alfredo-de-angelis": [
+   1,
+   0.5
+  ],
+  "ricardo-tanturi>adolfo-carabelli": [
+   2,
+   1
+  ],
+  "ricardo-tanturi>alfredo-de-angelis": [
+   9,
+   5.5
+  ],
+  "ricardo-tanturi>angel-d-agostino": [
+   6,
+   3.5
+  ],
+  "ricardo-tanturi>anibal-troilo": [
+   6,
+   4
+  ],
+  "ricardo-tanturi>carlos-di-sarli": [
+   10,
+   5.5
+  ],
+  "ricardo-tanturi>domingo-rulio": [
+   1,
+   0.5
+  ],
+  "ricardo-tanturi>edgardo-donato": [
+   6,
+   3
+  ],
+  "ricardo-tanturi>enrique-rodriguez": [
+   5,
+   3.5
+  ],
+  "ricardo-tanturi>francisco-canaro": [
+   5,
+   2.5
+  ],
+  "ricardo-tanturi>francisco-lomuto": [
+   6,
+   3
+  ],
+  "ricardo-tanturi>juan-d-arienzo": [
+   7,
+   4.5
+  ],
+  "ricardo-tanturi>lucio-demare": [
+   5,
+   3
+  ],
+  "ricardo-tanturi>miguel-calo": [
+   10,
+   5
+  ],
+  "ricardo-tanturi>orquesta-tipica-victor": [
+   3,
+   2
+  ],
+  "ricardo-tanturi>osvaldo-fresedo": [
+   6,
+   3.5
+  ],
+  "ricardo-tanturi>osvaldo-pugliese": [
+   5,
+   3
+  ],
+  "ricardo-tanturi>pedro-laurenz": [
+   2,
+   1
+  ],
+  "ricardo-tanturi>quinteto-don-pancho": [
+   1,
+   0.5
+  ],
+  "ricardo-tanturi>quinteto-pirincho": [
+   2,
+   1
+  ],
+  "ricardo-tanturi>ricardo-malerba": [
+   4,
+   2.5
+  ],
+  "ricardo-tanturi>roberto-firpo": [
+   1,
+   1
+  ],
+  "ricardo-tanturi>rodolfo-biagi": [
+   10,
+   7
+  ],
+  "roberto-firpo>edgardo-donato": [
+   1,
+   1
+  ],
+  "roberto-firpo>francisco-canaro": [
+   1,
+   1
+  ],
+  "rodolfo-biagi>alfredo-de-angelis": [
+   17,
+   8.5
+  ],
+  "rodolfo-biagi>angel-d-agostino": [
+   7,
+   3.5
+  ],
+  "rodolfo-biagi>anibal-troilo": [
+   20,
+   12
+  ],
+  "rodolfo-biagi>carlos-di-sarli": [
+   16,
+   9.5
+  ],
+  "rodolfo-biagi>domingo-federico": [
+   1,
+   0.5
+  ],
+  "rodolfo-biagi>edgardo-donato": [
+   14,
+   7
+  ],
+  "rodolfo-biagi>enrique-rodriguez": [
+   17,
+   10
+  ],
+  "rodolfo-biagi>francisco-canaro": [
+   15,
+   9
+  ],
+  "rodolfo-biagi>francisco-lomuto": [
+   7,
+   4
+  ],
+  "rodolfo-biagi>jose-garcia": [
+   2,
+   1
+  ],
+  "rodolfo-biagi>juan-d-arienzo": [
+   45,
+   24.5
+  ],
+  "rodolfo-biagi>juan-de-dios-filiberto": [
+   1,
+   0.5
+  ],
+  "rodolfo-biagi>julio-de-caro": [
+   1,
+   0.5
+  ],
+  "rodolfo-biagi>lucio-demare": [
+   3,
+   1.5
+  ],
+  "rodolfo-biagi>miguel-calo": [
+   20,
+   12
+  ],
+  "rodolfo-biagi>miguel-villasboas": [
+   1,
+   0.5
+  ],
+  "rodolfo-biagi>orquesta-tipica-victor": [
+   11,
+   8
+  ],
+  "rodolfo-biagi>osvaldo-fresedo": [
+   13,
+   7.5
+  ],
+  "rodolfo-biagi>osvaldo-pugliese": [
+   4,
+   2.5
+  ],
+  "rodolfo-biagi>pedro-laurenz": [
+   15,
+   8.5
+  ],
+  "rodolfo-biagi>quinteto-don-pancho": [
+   2,
+   1.5
+  ],
+  "rodolfo-biagi>quinteto-pirincho": [
+   6,
+   3.5
+  ],
+  "rodolfo-biagi>ricardo-malerba": [
+   2,
+   1
+  ],
+  "rodolfo-biagi>ricardo-tanturi": [
+   11,
+   6.5
+  ]
+ },
+ "families": {
+  "adolfo-carabelli|>alfredo-de-angelis|carlos dante": [
+   2,
+   1
+  ],
+  "adolfo-carabelli|>edgardo-donato|horacio lagos": [
+   3,
+   2
+  ],
+  "adolfo-carabelli|>francisco-canaro|ernesto fama": [
+   2,
+   1
+  ],
+  "adolfo-carabelli|alberto gomez>rodolfo-biagi|": [
+   2,
+   1
+  ],
+  "adolfo-carabelli|alberto gomez>rodolfo-biagi|alberto amor": [
+   2,
+   1
+  ],
+  "alfredo-de-angelis|>edgardo-donato|horacio lagos": [
+   2,
+   1
+  ],
+  "alfredo-de-angelis|>juan-d-arienzo|": [
+   3,
+   1.5
+  ],
+  "alfredo-de-angelis|>juan-d-arienzo|hector maure": [
+   2,
+   1.5
+  ],
+  "alfredo-de-angelis|>miguel-calo|raul beron": [
+   2,
+   1
+  ],
+  "alfredo-de-angelis|>miguel-calo|raul iriarte": [
+   3,
+   2
+  ],
+  "alfredo-de-angelis|>rodolfo-biagi|alberto amor": [
+   2,
+   1
+  ],
+  "alfredo-de-angelis|>rodolfo-biagi|andres falgas": [
+   2,
+   1
+  ],
+  "alfredo-de-angelis|carlos dante>adolfo-carabelli|alberto gomez": [
+   3,
+   1.5
+  ],
+  "alfredo-de-angelis|carlos dante>alfredo-gobbi|": [
+   2,
+   1
+  ],
+  "alfredo-de-angelis|carlos dante>angel-d-agostino|angel vargas": [
+   4,
+   2.5
+  ],
+  "alfredo-de-angelis|carlos dante>anibal-troilo|": [
+   6,
+   3.5
+  ],
+  "alfredo-de-angelis|carlos dante>carlos-di-sarli|": [
+   6,
+   3.5
+  ],
+  "alfredo-de-angelis|carlos dante>edgardo-donato|": [
+   5,
+   3
+  ],
+  "alfredo-de-angelis|carlos dante>edgardo-donato|horacio lagos": [
+   6,
+   3.5
+  ],
+  "alfredo-de-angelis|carlos dante>enrique-rodriguez|armando moreno": [
+   2,
+   1.5
+  ],
+  "alfredo-de-angelis|carlos dante>francisco-canaro|": [
+   2,
+   1
+  ],
+  "alfredo-de-angelis|carlos dante>juan-d-arienzo|": [
+   4,
+   2
+  ],
+  "alfredo-de-angelis|carlos dante>juan-d-arienzo|alberto echague": [
+   4,
+   2
+  ],
+  "alfredo-de-angelis|carlos dante>juan-d-arienzo|hector maure": [
+   2,
+   1
+  ],
+  "alfredo-de-angelis|carlos dante>lucio-demare|juan carlos miranda": [
+   2,
+   1
+  ],
+  "alfredo-de-angelis|carlos dante>miguel-calo|raul beron": [
+   3,
+   1.5
+  ],
+  "alfredo-de-angelis|carlos dante>orquesta-tipica-victor|alberto gomez": [
+   2,
+   1.5
+  ],
+  "alfredo-de-angelis|carlos dante>osvaldo-fresedo|": [
+   3,
+   1.5
+  ],
+  "alfredo-de-angelis|carlos dante>osvaldo-pugliese|": [
+   6,
+   3.5
+  ],
+  "alfredo-de-angelis|carlos dante>ricardo-tanturi|": [
+   2,
+   1
+  ],
+  "alfredo-de-angelis|carlos dante>rodolfo-biagi|andres falgas": [
+   3,
+   1.5
+  ],
+  "alfredo-de-angelis|floreal ruiz>anibal-troilo|francisco fiorentino": [
+   2,
+   1
+  ],
+  "alfredo-de-angelis|floreal ruiz>edgardo-donato|horacio lagos": [
+   2,
+   1
+  ],
+  "alfredo-de-angelis|floreal ruiz>enrique-rodriguez|armando moreno": [
+   2,
+   1
+  ],
+  "alfredo-de-angelis|floreal ruiz>francisco-lomuto|fernando diaz": [
+   2,
+   1
+  ],
+  "alfredo-de-angelis|floreal ruiz>francisco-lomuto|jorge omar": [
+   2,
+   1
+  ],
+  "alfredo-de-angelis|floreal ruiz>rodolfo-biagi|": [
+   2,
+   1
+  ],
+  "alfredo-de-angelis|julio martel>edgardo-donato|": [
+   2,
+   1
+  ],
+  "alfredo-de-angelis|julio martel>edgardo-donato|horacio lagos": [
+   3,
+   2
+  ],
+  "alfredo-de-angelis|julio martel>juan-d-arienzo|": [
+   4,
+   2
+  ],
+  "alfredo-de-angelis|julio martel>julio-de-caro|luis diaz": [
+   2,
+   1
+  ],
+  "alfredo-de-angelis|julio martel>quinteto-pirincho|": [
+   2,
+   1.5
+  ],
+  "alfredo-gobbi|>adolfo-carabelli|alberto gomez": [
+   2,
+   1
+  ],
+  "alfredo-gobbi|>angel-d-agostino|angel vargas": [
+   2,
+   1
+  ],
+  "alfredo-gobbi|>francisco-lomuto|jorge omar": [
+   2,
+   1
+  ],
+  "angel-d-agostino|angel vargas>adolfo-carabelli|": [
+   2,
+   1
+  ],
+  "angel-d-agostino|angel vargas>alfredo-de-angelis|carlos dante": [
+   2,
+   1
+  ],
+  "angel-d-agostino|angel vargas>anibal-troilo|": [
+   3,
+   1.5
+  ],
+  "angel-d-agostino|angel vargas>anibal-troilo|francisco fiorentino": [
+   2,
+   1
+  ],
+  "angel-d-agostino|angel vargas>carlos-di-sarli|": [
+   7,
+   4
+  ],
+  "angel-d-agostino|angel vargas>carlos-di-sarli|alberto podesta": [
+   2,
+   1
+  ],
+  "angel-d-agostino|angel vargas>carlos-di-sarli|roberto rufino": [
+   3,
+   3
+  ],
+  "angel-d-agostino|angel vargas>edgardo-donato|": [
+   3,
+   1.5
+  ],
+  "angel-d-agostino|angel vargas>edgardo-donato|horacio lagos": [
+   6,
+   4
+  ],
+  "angel-d-agostino|angel vargas>enrique-rodriguez|armando moreno": [
+   2,
+   1
+  ],
+  "angel-d-agostino|angel vargas>enrique-rodriguez|roberto flores": [
+   2,
+   1
+  ],
+  "angel-d-agostino|angel vargas>francisco-canaro|ernesto fama": [
+   2,
+   1
+  ],
+  "angel-d-agostino|angel vargas>francisco-canaro|roberto maida": [
+   4,
+   2.5
+  ],
+  "angel-d-agostino|angel vargas>francisco-lomuto|": [
+   4,
+   2
+  ],
+  "angel-d-agostino|angel vargas>juan-d-arienzo|": [
+   11,
+   6.5
+  ],
+  "angel-d-agostino|angel vargas>juan-d-arienzo|alberto echague": [
+   2,
+   1
+  ],
+  "angel-d-agostino|angel vargas>juan-d-arienzo|hector maure": [
+   2,
+   1
+  ],
+  "angel-d-agostino|angel vargas>miguel-calo|": [
+   2,
+   1.5
+  ],
+  "angel-d-agostino|angel vargas>miguel-calo|jorge ortiz": [
+   2,
+   1
+  ],
+  "angel-d-agostino|angel vargas>miguel-calo|raul beron": [
+   3,
+   2
+  ],
+  "angel-d-agostino|angel vargas>orquesta-tipica-victor|alberto gomez": [
+   2,
+   1.5
+  ],
+  "angel-d-agostino|angel vargas>osvaldo-fresedo|ricardo ruiz": [
+   2,
+   1
+  ],
+  "angel-d-agostino|angel vargas>osvaldo-fresedo|roberto ray": [
+   2,
+   1.5
+  ],
+  "angel-d-agostino|angel vargas>osvaldo-pugliese|": [
+   2,
+   1
+  ],
+  "angel-d-agostino|angel vargas>quinteto-don-pancho|": [
+   3,
+   1.5
+  ],
+  "angel-d-agostino|angel vargas>ricardo-malerba|orlando medina": [
+   4,
+   2.5
+  ],
+  "angel-d-agostino|angel vargas>ricardo-tanturi|": [
+   2,
+   1.5
+  ],
+  "angel-d-agostino|angel vargas>rodolfo-biagi|": [
+   4,
+   2.5
+  ],
+  "angel-d-agostino|angel vargas>rodolfo-biagi|alberto amor": [
+   3,
+   1.5
+  ],
+  "anibal-troilo|>alfredo-de-angelis|carlos dante": [
+   6,
+   3
+  ],
+  "anibal-troilo|>angel-d-agostino|angel vargas": [
+   4,
+   2.5
+  ],
+  "anibal-troilo|>edgardo-donato|horacio lagos": [
+   3,
+   2
+  ],
+  "anibal-troilo|>enrique-rodriguez|armando moreno": [
+   4,
+   3
+  ],
+  "anibal-troilo|>francisco-canaro|carlos galan": [
+   2,
+   1
+  ],
+  "anibal-troilo|>francisco-canaro|roberto maida": [
+   2,
+   1
+  ],
+  "anibal-troilo|>francisco-lomuto|": [
+   2,
+   1
+  ],
+  "anibal-troilo|>pedro-laurenz|alberto podesta": [
+   2,
+   1
+  ],
+  "anibal-troilo|floreal ruiz>carlos-di-sarli|": [
+   2,
+   1
+  ],
+  "anibal-troilo|floreal ruiz>carlos-di-sarli|roberto rufino": [
+   3,
+   2
+  ],
+  "anibal-troilo|floreal ruiz>edgardo-donato|": [
+   2,
+   1
+  ],
+  "anibal-troilo|floreal ruiz>juan-d-arienzo|hector maure": [
+   2,
+   2
+  ],
+  "anibal-troilo|francisco fiorentino>adolfo-carabelli|": [
+   2,
+   1.5
+  ],
+  "anibal-troilo|francisco fiorentino>adolfo-carabelli|alberto gomez": [
+   2,
+   1
+  ],
+  "anibal-troilo|francisco fiorentino>alfredo-de-angelis|carlos dante": [
+   3,
+   1.5
+  ],
+  "anibal-troilo|francisco fiorentino>alfredo-gobbi|": [
+   2,
+   1.5
+  ],
+  "anibal-troilo|francisco fiorentino>angel-d-agostino|angel vargas": [
+   5,
+   2.5
+  ],
+  "anibal-troilo|francisco fiorentino>carlos-di-sarli|roberto rufino": [
+   2,
+   1.5
+  ],
+  "anibal-troilo|francisco fiorentino>edgardo-donato|": [
+   3,
+   1.5
+  ],
+  "anibal-troilo|francisco fiorentino>edgardo-donato|horacio lagos": [
+   7,
+   3.5
+  ],
+  "anibal-troilo|francisco fiorentino>enrique-rodriguez|armando moreno": [
+   3,
+   1.5
+  ],
+  "anibal-troilo|francisco fiorentino>enrique-rodriguez|roberto flores": [
+   2,
+   1
+  ],
+  "anibal-troilo|francisco fiorentino>francisco-canaro|": [
+   2,
+   1.5
+  ],
+  "anibal-troilo|francisco fiorentino>francisco-lomuto|": [
+   2,
+   1
+  ],
+  "anibal-troilo|francisco fiorentino>francisco-lomuto|jorge omar": [
+   2,
+   1
+  ],
+  "anibal-troilo|francisco fiorentino>juan-d-arienzo|": [
+   5,
+   2.5
+  ],
+  "anibal-troilo|francisco fiorentino>juan-d-arienzo|hector maure": [
+   2,
+   1.5
+  ],
+  "anibal-troilo|francisco fiorentino>lucio-demare|juan carlos miranda": [
+   2,
+   1
+  ],
+  "anibal-troilo|francisco fiorentino>miguel-calo|": [
+   4,
+   2
+  ],
+  "anibal-troilo|francisco fiorentino>miguel-calo|raul beron": [
+   4,
+   2.5
+  ],
+  "anibal-troilo|francisco fiorentino>miguel-calo|raul iriarte": [
+   3,
+   1.5
+  ],
+  "anibal-troilo|francisco fiorentino>osvaldo-fresedo|roberto ray": [
+   5,
+   2.5
+  ],
+  "anibal-troilo|francisco fiorentino>osvaldo-pugliese|": [
+   5,
+   4
+  ],
+  "anibal-troilo|francisco fiorentino>pedro-laurenz|alberto podesta": [
+   3,
+   2
+  ],
+  "anibal-troilo|francisco fiorentino>quinteto-pirincho|": [
+   3,
+   2
+  ],
+  "anibal-troilo|francisco fiorentino>rodolfo-biagi|": [
+   4,
+   2.5
+  ],
+  "carlos-di-sarli|>alfredo-de-angelis|carlos dante": [
+   3,
+   1.5
+  ],
+  "carlos-di-sarli|>angel-d-agostino|angel vargas": [
+   4,
+   3
+  ],
+  "carlos-di-sarli|>anibal-troilo|": [
+   2,
+   1
+  ],
+  "carlos-di-sarli|>anibal-troilo|francisco fiorentino": [
+   4,
+   3
+  ],
+  "carlos-di-sarli|>edgardo-donato|": [
+   3,
+   2
+  ],
+  "carlos-di-sarli|>edgardo-donato|horacio lagos": [
+   9,
+   5.5
+  ],
+  "carlos-di-sarli|>enrique-rodriguez|armando moreno": [
+   7,
+   4
+  ],
+  "carlos-di-sarli|>francisco-canaro|carlos galan": [
+   2,
+   1
+  ],
+  "carlos-di-sarli|>francisco-lomuto|jorge omar": [
+   2,
+   1.5
+  ],
+  "carlos-di-sarli|>juan-d-arienzo|": [
+   16,
+   9.5
+  ],
+  "carlos-di-sarli|>juan-d-arienzo|alberto echague": [
+   2,
+   1.5
+  ],
+  "carlos-di-sarli|>juan-d-arienzo|hector maure": [
+   2,
+   1
+  ],
+  "carlos-di-sarli|>miguel-calo|alberto podesta": [
+   2,
+   1
+  ],
+  "carlos-di-sarli|>miguel-calo|raul beron": [
+   4,
+   2
+  ],
+  "carlos-di-sarli|>orquesta-tipica-victor|alberto gomez": [
+   2,
+   1
+  ],
+  "carlos-di-sarli|>osvaldo-fresedo|ricardo ruiz": [
+   4,
+   2
+  ],
+  "carlos-di-sarli|>osvaldo-fresedo|roberto ray": [
+   2,
+   1
+  ],
+  "carlos-di-sarli|>osvaldo-pugliese|": [
+   4,
+   2
+  ],
+  "carlos-di-sarli|>pedro-laurenz|": [
+   2,
+   1
+  ],
+  "carlos-di-sarli|>pedro-laurenz|alberto podesta": [
+   2,
+   1
+  ],
+  "carlos-di-sarli|>pedro-laurenz|juan carlos casas": [
+   3,
+   1.5
+  ],
+  "carlos-di-sarli|>quinteto-pirincho|": [
+   4,
+   2
+  ],
+  "carlos-di-sarli|>ricardo-tanturi|": [
+   3,
+   1.5
+  ],
+  "carlos-di-sarli|>ricardo-tanturi|alberto castillo": [
+   2,
+   1
+  ],
+  "carlos-di-sarli|>rodolfo-biagi|alberto amor": [
+   3,
+   2
+  ],
+  "carlos-di-sarli|alberto podesta>anibal-troilo|": [
+   2,
+   1.5
+  ],
+  "carlos-di-sarli|alberto podesta>anibal-troilo|francisco fiorentino": [
+   2,
+   1.5
+  ],
+  "carlos-di-sarli|alberto podesta>edgardo-donato|horacio lagos": [
+   3,
+   1.5
+  ],
+  "carlos-di-sarli|alberto podesta>enrique-rodriguez|armando moreno": [
+   3,
+   1.5
+  ],
+  "carlos-di-sarli|alberto podesta>francisco-canaro|eduardo adrian": [
+   3,
+   1.5
+  ],
+  "carlos-di-sarli|alberto podesta>hugo-diaz|": [
+   2,
+   2
+  ],
+  "carlos-di-sarli|alberto podesta>juan-d-arienzo|": [
+   2,
+   1
+  ],
+  "carlos-di-sarli|alberto podesta>juan-d-arienzo|alberto echague": [
+   4,
+   2
+  ],
+  "carlos-di-sarli|alberto podesta>osvaldo-fresedo|roberto ray": [
+   2,
+   1.5
+  ],
+  "carlos-di-sarli|alberto podesta>rodolfo-biagi|": [
+   3,
+   2
+  ],
+  "carlos-di-sarli|jorge duran>edgardo-donato|horacio lagos": [
+   2,
+   1.5
+  ],
+  "carlos-di-sarli|roberto rufino>alfredo-de-angelis|carlos dante": [
+   3,
+   1.5
+  ],
+  "carlos-di-sarli|roberto rufino>angel-d-agostino|angel vargas": [
+   3,
+   2
+  ],
+  "carlos-di-sarli|roberto rufino>anibal-troilo|francisco fiorentino": [
+   4,
+   2.5
+  ],
+  "carlos-di-sarli|roberto rufino>edgardo-donato|horacio lagos": [
+   6,
+   4
+  ],
+  "carlos-di-sarli|roberto rufino>enrique-rodriguez|armando moreno": [
+   2,
+   1.5
+  ],
+  "carlos-di-sarli|roberto rufino>juan-d-arienzo|": [
+   8,
+   5.5
+  ],
+  "carlos-di-sarli|roberto rufino>osvaldo-fresedo|roberto ray": [
+   2,
+   1
+  ],
+  "carlos-di-sarli|roberto rufino>osvaldo-pugliese|": [
+   3,
+   1.5
+  ],
+  "carlos-di-sarli|roberto rufino>quinteto-pirincho|": [
+   2,
+   1
+  ],
+  "carlos-di-sarli|roberto rufino>ricardo-tanturi|": [
+   2,
+   1
+  ],
+  "carlos-di-sarli|roberto rufino>rodolfo-biagi|andres falgas": [
+   2,
+   1
+  ],
+  "carlos-di-sarli|roberto rufino>rodolfo-biagi|jorge ortiz": [
+   2,
+   1
+  ],
+  "edgardo-donato|>alfredo-de-angelis|": [
+   2,
+   1
+  ],
+  "edgardo-donato|>anibal-troilo|": [
+   2,
+   1
+  ],
+  "edgardo-donato|>anibal-troilo|francisco fiorentino": [
+   2,
+   1
+  ],
+  "edgardo-donato|>carlos-di-sarli|": [
+   3,
+   1.5
+  ],
+  "edgardo-donato|>carlos-di-sarli|roberto rufino": [
+   3,
+   1.5
+  ],
+  "edgardo-donato|>enrique-rodriguez|armando moreno": [
+   4,
+   2.5
+  ],
+  "edgardo-donato|>francisco-canaro|": [
+   2,
+   1
+  ],
+  "edgardo-donato|>francisco-canaro|roberto maida": [
+   3,
+   1.5
+  ],
+  "edgardo-donato|>miguel-calo|jorge ortiz": [
+   4,
+   2.5
+  ],
+  "edgardo-donato|>miguel-calo|raul beron": [
+   3,
+   1.5
+  ],
+  "edgardo-donato|>orquesta-tipica-victor|alberto gomez": [
+   2,
+   1
+  ],
+  "edgardo-donato|>osvaldo-fresedo|roberto ray": [
+   3,
+   1.5
+  ],
+  "edgardo-donato|>pedro-laurenz|": [
+   3,
+   1.5
+  ],
+  "edgardo-donato|>pedro-laurenz|alberto podesta": [
+   3,
+   1.5
+  ],
+  "edgardo-donato|>rodolfo-biagi|": [
+   2,
+   1
+  ],
+  "edgardo-donato|>rodolfo-biagi|alberto amor": [
+   3,
+   1.5
+  ],
+  "edgardo-donato|>rodolfo-biagi|andres falgas": [
+   2,
+   1
+  ],
+  "edgardo-donato|>rodolfo-biagi|jorge ortiz": [
+   3,
+   1.5
+  ],
+  "edgardo-donato|felix gutierrez>juan-d-arienzo|": [
+   2,
+   1
+  ],
+  "edgardo-donato|felix gutierrez>miguel-calo|raul beron": [
+   2,
+   1
+  ],
+  "edgardo-donato|horacio lagos>adolfo-carabelli|": [
+   2,
+   1
+  ],
+  "edgardo-donato|horacio lagos>alfredo-de-angelis|": [
+   2,
+   2
+  ],
+  "edgardo-donato|horacio lagos>alfredo-de-angelis|carlos dante": [
+   3,
+   1.5
+  ],
+  "edgardo-donato|horacio lagos>alfredo-de-angelis|julio martel": [
+   5,
+   2.5
+  ],
+  "edgardo-donato|horacio lagos>angel-d-agostino|angel vargas": [
+   4,
+   2.5
+  ],
+  "edgardo-donato|horacio lagos>anibal-troilo|": [
+   3,
+   1.5
+  ],
+  "edgardo-donato|horacio lagos>anibal-troilo|floreal ruiz": [
+   3,
+   3
+  ],
+  "edgardo-donato|horacio lagos>anibal-troilo|francisco fiorentino": [
+   6,
+   4.5
+  ],
+  "edgardo-donato|horacio lagos>carlos-di-sarli|": [
+   5,
+   3
+  ],
+  "edgardo-donato|horacio lagos>carlos-di-sarli|alberto podesta": [
+   3,
+   1.5
+  ],
+  "edgardo-donato|horacio lagos>enrique-rodriguez|armando moreno": [
+   5,
+   2.5
+  ],
+  "edgardo-donato|horacio lagos>francisco-canaro|eduardo adrian": [
+   2,
+   1
+  ],
+  "edgardo-donato|horacio lagos>francisco-canaro|ernesto fama": [
+   5,
+   3
+  ],
+  "edgardo-donato|horacio lagos>francisco-canaro|roberto maida": [
+   4,
+   2
+  ],
+  "edgardo-donato|horacio lagos>francisco-lomuto|": [
+   3,
+   1.5
+  ],
+  "edgardo-donato|horacio lagos>francisco-lomuto|fernando diaz": [
+   3,
+   1.5
+  ],
+  "edgardo-donato|horacio lagos>francisco-lomuto|jorge omar": [
+   4,
+   2.5
+  ],
+  "edgardo-donato|horacio lagos>jose-garcia|alfredo rojas": [
+   2,
+   1
+  ],
+  "edgardo-donato|horacio lagos>juan-d-arienzo|": [
+   10,
+   6
+  ],
+  "edgardo-donato|horacio lagos>juan-d-arienzo|alberto echague": [
+   4,
+   3
+  ],
+  "edgardo-donato|horacio lagos>juan-d-arienzo|hector maure": [
+   6,
+   4
+  ],
+  "edgardo-donato|horacio lagos>lucio-demare|juan carlos miranda": [
+   2,
+   1.5
+  ],
+  "edgardo-donato|horacio lagos>miguel-calo|alberto podesta": [
+   4,
+   2
+  ],
+  "edgardo-donato|horacio lagos>miguel-calo|jorge ortiz": [
+   2,
+   1
+  ],
+  "edgardo-donato|horacio lagos>miguel-calo|raul beron": [
+   9,
+   6.5
+  ],
+  "edgardo-donato|horacio lagos>miguel-calo|raul iriarte": [
+   2,
+   1
+  ],
+  "edgardo-donato|horacio lagos>orquesta-tipica-victor|alberto gomez": [
+   2,
+   1
+  ],
+  "edgardo-donato|horacio lagos>orquesta-tipica-victor|carlos lafuente": [
+   2,
+   1.5
+  ],
+  "edgardo-donato|horacio lagos>osvaldo-fresedo|ricardo ruiz": [
+   2,
+   1
+  ],
+  "edgardo-donato|horacio lagos>osvaldo-fresedo|roberto ray": [
+   7,
+   4
+  ],
+  "edgardo-donato|horacio lagos>osvaldo-pugliese|": [
+   3,
+   2.5
+  ],
+  "edgardo-donato|horacio lagos>pedro-laurenz|": [
+   6,
+   3
+  ],
+  "edgardo-donato|horacio lagos>pedro-laurenz|alberto podesta": [
+   4,
+   2
+  ],
+  "edgardo-donato|horacio lagos>pedro-laurenz|juan carlos casas": [
+   5,
+   3
+  ],
+  "edgardo-donato|horacio lagos>quinteto-pirincho|": [
+   4,
+   2.5
+  ],
+  "edgardo-donato|horacio lagos>ricardo-malerba|orlando medina": [
+   2,
+   1.5
+  ],
+  "edgardo-donato|horacio lagos>ricardo-tanturi|alberto castillo": [
+   7,
+   4.5
+  ],
+  "edgardo-donato|horacio lagos>rodolfo-biagi|": [
+   5,
+   2.5
+  ],
+  "edgardo-donato|horacio lagos>rodolfo-biagi|alberto amor": [
+   2,
+   1
+  ],
+  "edgardo-donato|horacio lagos>rodolfo-biagi|andres falgas": [
+   2,
+   1
+  ],
+  "edgardo-donato|horacio lagos>rodolfo-biagi|jorge ortiz": [
+   3,
+   2
+  ],
+  "edgardo-donato|horacio lagos>rodolfo-biagi|teofilo ibanez": [
+   2,
+   2
+  ],
+  "edgardo-donato|romeo gavioli>anibal-troilo|francisco fiorentino": [
+   3,
+   1.5
+  ],
+  "edgardo-donato|romeo gavioli>juan-d-arienzo|": [
+   3,
+   1.5
+  ],
+  "enrique-rodriguez|>francisco-canaro|ernesto fama": [
+   2,
+   1
+  ],
+  "enrique-rodriguez|>juan-d-arienzo|": [
+   2,
+   1
+  ],
+  "enrique-rodriguez|>juan-d-arienzo|hector maure": [
+   2,
+   1
+  ],
+  "enrique-rodriguez|>quinteto-pirincho|": [
+   2,
+   1.5
+  ],
+  "enrique-rodriguez|>rodolfo-biagi|alberto amor": [
+   2,
+   1
+  ],
+  "enrique-rodriguez|armando moreno>alfredo-de-angelis|carlos dante": [
+   4,
+   3.5
+  ],
+  "enrique-rodriguez|armando moreno>alfredo-de-angelis|julio martel": [
+   2,
+   1.5
+  ],
+  "enrique-rodriguez|armando moreno>angel-d-agostino|angel vargas": [
+   5,
+   2.5
+  ],
+  "enrique-rodriguez|armando moreno>anibal-troilo|francisco fiorentino": [
+   5,
+   3
+  ],
+  "enrique-rodriguez|armando moreno>carlos-di-sarli|roberto rufino": [
+   2,
+   1.5
+  ],
+  "enrique-rodriguez|armando moreno>edgardo-donato|": [
+   3,
+   1.5
+  ],
+  "enrique-rodriguez|armando moreno>edgardo-donato|horacio lagos": [
+   14,
+   8
+  ],
+  "enrique-rodriguez|armando moreno>francisco-canaro|": [
+   2,
+   1
+  ],
+  "enrique-rodriguez|armando moreno>francisco-canaro|carlos galan": [
+   2,
+   1
+  ],
+  "enrique-rodriguez|armando moreno>francisco-canaro|ernesto fama": [
+   4,
+   2.5
+  ],
+  "enrique-rodriguez|armando moreno>francisco-canaro|roberto maida": [
+   3,
+   1.5
+  ],
+  "enrique-rodriguez|armando moreno>francisco-lomuto|": [
+   4,
+   2
+  ],
+  "enrique-rodriguez|armando moreno>juan-d-arienzo|": [
+   13,
+   7.5
+  ],
+  "enrique-rodriguez|armando moreno>juan-d-arienzo|alberto echague": [
+   4,
+   2.5
+  ],
+  "enrique-rodriguez|armando moreno>lucio-demare|juan carlos miranda": [
+   2,
+   1
+  ],
+  "enrique-rodriguez|armando moreno>lucio-demare|raul beron": [
+   2,
+   1
+  ],
+  "enrique-rodriguez|armando moreno>miguel-calo|alberto podesta": [
+   2,
+   1
+  ],
+  "enrique-rodriguez|armando moreno>miguel-calo|raul beron": [
+   2,
+   1.5
+  ],
+  "enrique-rodriguez|armando moreno>orquesta-tipica-victor|alberto gomez": [
+   4,
+   2.5
+  ],
+  "enrique-rodriguez|armando moreno>orquesta-tipica-victor|carlos lafuente": [
+   3,
+   2
+  ],
+  "enrique-rodriguez|armando moreno>osvaldo-fresedo|ricardo ruiz": [
+   2,
+   2
+  ],
+  "enrique-rodriguez|armando moreno>osvaldo-fresedo|roberto ray": [
+   2,
+   1
+  ],
+  "enrique-rodriguez|armando moreno>pedro-laurenz|": [
+   2,
+   1
+  ],
+  "enrique-rodriguez|armando moreno>pedro-laurenz|alberto podesta": [
+   3,
+   1.5
+  ],
+  "enrique-rodriguez|armando moreno>pedro-laurenz|juan carlos casas": [
+   4,
+   2.5
+  ],
+  "enrique-rodriguez|armando moreno>quinteto-don-pancho|": [
+   4,
+   2.5
+  ],
+  "enrique-rodriguez|armando moreno>quinteto-pirincho|": [
+   9,
+   5
+  ],
+  "enrique-rodriguez|armando moreno>ricardo-tanturi|": [
+   3,
+   2
+  ],
+  "enrique-rodriguez|armando moreno>ricardo-tanturi|alberto castillo": [
+   4,
+   2
+  ],
+  "enrique-rodriguez|armando moreno>rodolfo-biagi|": [
+   3,
+   1.5
+  ],
+  "enrique-rodriguez|armando moreno>rodolfo-biagi|alberto amor": [
+   3,
+   1.5
+  ],
+  "enrique-rodriguez|armando moreno>rodolfo-biagi|andres falgas": [
+   3,
+   1.5
+  ],
+  "enrique-rodriguez|armando moreno>rodolfo-biagi|jorge ortiz": [
+   2,
+   1
+  ],
+  "enrique-rodriguez|roberto flores>edgardo-donato|horacio lagos": [
+   2,
+   1.5
+  ],
+  "enrique-rodriguez|roberto flores>juan-d-arienzo|": [
+   2,
+   1
+  ],
+  "enrique-rodriguez|roberto flores>orquesta-tipica-victor|carlos lafuente": [
+   2,
+   1
+  ],
+  "francisco-canaro|>angel-d-agostino|angel vargas": [
+   3,
+   1.5
+  ],
+  "francisco-canaro|>carlos-di-sarli|": [
+   3,
+   1.5
+  ],
+  "francisco-canaro|>enrique-rodriguez|armando moreno": [
+   2,
+   1.5
+  ],
+  "francisco-canaro|>francisco-lomuto|jorge omar": [
+   3,
+   1.5
+  ],
+  "francisco-canaro|>juan-d-arienzo|": [
+   3,
+   1.5
+  ],
+  "francisco-canaro|>juan-d-arienzo|alberto echague": [
+   2,
+   1
+  ],
+  "francisco-canaro|>miguel-calo|raul beron": [
+   2,
+   1
+  ],
+  "francisco-canaro|>orquesta-tipica-victor|alberto gomez": [
+   2,
+   1
+  ],
+  "francisco-canaro|>pedro-laurenz|": [
+   2,
+   1
+  ],
+  "francisco-canaro|>pedro-laurenz|alberto podesta": [
+   2,
+   1
+  ],
+  "francisco-canaro|>ricardo-tanturi|": [
+   3,
+   1.5
+  ],
+  "francisco-canaro|>rodolfo-biagi|alberto amor": [
+   2,
+   1
+  ],
+  "francisco-canaro|carlos galan>enrique-rodriguez|armando moreno": [
+   2,
+   1
+  ],
+  "francisco-canaro|carlos roldan>alfredo-de-angelis|julio martel": [
+   2,
+   1
+  ],
+  "francisco-canaro|carlos roldan>juan-d-arienzo|": [
+   2,
+   1.5
+  ],
+  "francisco-canaro|carlos roldan>osvaldo-fresedo|roberto ray": [
+   2,
+   1.5
+  ],
+  "francisco-canaro|eduardo adrian>alfredo-de-angelis|carlos dante": [
+   3,
+   1.5
+  ],
+  "francisco-canaro|eduardo adrian>juan-d-arienzo|": [
+   5,
+   2.5
+  ],
+  "francisco-canaro|eduardo adrian>pedro-laurenz|alberto podesta": [
+   2,
+   1
+  ],
+  "francisco-canaro|ernesto fama>alfredo-de-angelis|carlos dante": [
+   2,
+   1
+  ],
+  "francisco-canaro|ernesto fama>angel-d-agostino|angel vargas": [
+   4,
+   2
+  ],
+  "francisco-canaro|ernesto fama>carlos-di-sarli|": [
+   4,
+   2.5
+  ],
+  "francisco-canaro|ernesto fama>edgardo-donato|horacio lagos": [
+   8,
+   5.5
+  ],
+  "francisco-canaro|ernesto fama>enrique-rodriguez|armando moreno": [
+   2,
+   1
+  ],
+  "francisco-canaro|ernesto fama>juan-d-arienzo|": [
+   6,
+   3.5
+  ],
+  "francisco-canaro|ernesto fama>osvaldo-fresedo|roberto ray": [
+   2,
+   1
+  ],
+  "francisco-canaro|ernesto fama>pedro-laurenz|alberto podesta": [
+   3,
+   1.5
+  ],
+  "francisco-canaro|roberto maida>alfredo-de-angelis|": [
+   3,
+   1.5
+  ],
+  "francisco-canaro|roberto maida>alfredo-de-angelis|carlos dante": [
+   2,
+   1
+  ],
+  "francisco-canaro|roberto maida>alfredo-gobbi|": [
+   2,
+   1.5
+  ],
+  "francisco-canaro|roberto maida>anibal-troilo|francisco fiorentino": [
+   3,
+   1.5
+  ],
+  "francisco-canaro|roberto maida>carlos-di-sarli|": [
+   2,
+   1
+  ],
+  "francisco-canaro|roberto maida>carlos-di-sarli|alberto podesta": [
+   2,
+   1
+  ],
+  "francisco-canaro|roberto maida>carlos-di-sarli|roberto rufino": [
+   3,
+   2
+  ],
+  "francisco-canaro|roberto maida>edgardo-donato|": [
+   2,
+   1
+  ],
+  "francisco-canaro|roberto maida>edgardo-donato|horacio lagos": [
+   3,
+   3
+  ],
+  "francisco-canaro|roberto maida>enrique-rodriguez|": [
+   4,
+   2
+  ],
+  "francisco-canaro|roberto maida>enrique-rodriguez|armando moreno": [
+   4,
+   2.5
+  ],
+  "francisco-canaro|roberto maida>jose-garcia|alfredo rojas": [
+   2,
+   1
+  ],
+  "francisco-canaro|roberto maida>juan-d-arienzo|": [
+   6,
+   3.5
+  ],
+  "francisco-canaro|roberto maida>juan-d-arienzo|alberto echague": [
+   2,
+   1
+  ],
+  "francisco-canaro|roberto maida>juan-d-arienzo|hector maure": [
+   2,
+   1.5
+  ],
+  "francisco-canaro|roberto maida>miguel-calo|alberto podesta": [
+   2,
+   1
+  ],
+  "francisco-canaro|roberto maida>miguel-calo|raul beron": [
+   2,
+   1
+  ],
+  "francisco-canaro|roberto maida>osvaldo-fresedo|roberto ray": [
+   2,
+   1.5
+  ],
+  "francisco-canaro|roberto maida>pedro-laurenz|": [
+   2,
+   1
+  ],
+  "francisco-canaro|roberto maida>pedro-laurenz|alberto podesta": [
+   4,
+   2.5
+  ],
+  "francisco-canaro|roberto maida>pedro-laurenz|juan carlos casas": [
+   5,
+   3
+  ],
+  "francisco-canaro|roberto maida>rodolfo-biagi|alberto amor": [
+   3,
+   2
+  ],
+  "francisco-canaro|roberto maida>rodolfo-biagi|jorge ortiz": [
+   3,
+   2
+  ],
+  "francisco-lomuto|>carlos-di-sarli|alberto podesta": [
+   3,
+   1.5
+  ],
+  "francisco-lomuto|>enrique-rodriguez|armando moreno": [
+   2,
+   1
+  ],
+  "francisco-lomuto|>juan-d-arienzo|": [
+   2,
+   1
+  ],
+  "francisco-lomuto|>juan-d-arienzo|hector maure": [
+   4,
+   2.5
+  ],
+  "francisco-lomuto|>ricardo-malerba|orlando medina": [
+   2,
+   1
+  ],
+  "francisco-lomuto|>rodolfo-biagi|": [
+   4,
+   2
+  ],
+  "francisco-lomuto|>rodolfo-biagi|alberto amor": [
+   3,
+   1.5
+  ],
+  "francisco-lomuto|fernando diaz>rodolfo-biagi|alberto amor": [
+   2,
+   1
+  ],
+  "francisco-lomuto|jorge omar>alfredo-de-angelis|carlos dante": [
+   2,
+   1
+  ],
+  "francisco-lomuto|jorge omar>angel-d-agostino|angel vargas": [
+   5,
+   3
+  ],
+  "francisco-lomuto|jorge omar>anibal-troilo|francisco fiorentino": [
+   4,
+   2.5
+  ],
+  "francisco-lomuto|jorge omar>carlos-di-sarli|": [
+   2,
+   1
+  ],
+  "francisco-lomuto|jorge omar>carlos-di-sarli|alberto podesta": [
+   3,
+   1.5
+  ],
+  "francisco-lomuto|jorge omar>edgardo-donato|horacio lagos": [
+   5,
+   2.5
+  ],
+  "francisco-lomuto|jorge omar>enrique-rodriguez|armando moreno": [
+   5,
+   3
+  ],
+  "francisco-lomuto|jorge omar>juan-d-arienzo|": [
+   4,
+   2.5
+  ],
+  "francisco-lomuto|jorge omar>juan-d-arienzo|alberto echague": [
+   4,
+   3
+  ],
+  "francisco-lomuto|jorge omar>miguel-calo|": [
+   2,
+   1
+  ],
+  "francisco-lomuto|jorge omar>osvaldo-fresedo|roberto ray": [
+   2,
+   1.5
+  ],
+  "francisco-lomuto|jorge omar>pedro-laurenz|": [
+   3,
+   1.5
+  ],
+  "jose-garcia|alfredo rojas>francisco-canaro|roberto maida": [
+   2,
+   1.5
+  ],
+  "jose-garcia|alfredo rojas>juan-d-arienzo|": [
+   5,
+   2.5
+  ],
+  "jose-garcia|alfredo rojas>juan-d-arienzo|alberto echague": [
+   2,
+   1
+  ],
+  "jose-garcia|alfredo rojas>miguel-villasboas|": [
+   2,
+   1
+  ],
+  "juan-d-arienzo|>alfredo-de-angelis|": [
+   2,
+   1.5
+  ],
+  "juan-d-arienzo|>alfredo-de-angelis|carlos dante": [
+   7,
+   4
+  ],
+  "juan-d-arienzo|>alfredo-de-angelis|floreal ruiz": [
+   5,
+   2.5
+  ],
+  "juan-d-arienzo|>alfredo-de-angelis|julio martel": [
+   5,
+   3
+  ],
+  "juan-d-arienzo|>angel-d-agostino|angel vargas": [
+   10,
+   6.5
+  ],
+  "juan-d-arienzo|>anibal-troilo|floreal ruiz": [
+   5,
+   2.5
+  ],
+  "juan-d-arienzo|>anibal-troilo|francisco fiorentino": [
+   11,
+   6
+  ],
+  "juan-d-arienzo|>carlos-di-sarli|": [
+   10,
+   6
+  ],
+  "juan-d-arienzo|>carlos-di-sarli|alberto podesta": [
+   5,
+   2.5
+  ],
+  "juan-d-arienzo|>carlos-di-sarli|roberto rufino": [
+   7,
+   4.5
+  ],
+  "juan-d-arienzo|>edgardo-donato|": [
+   4,
+   2
+  ],
+  "juan-d-arienzo|>edgardo-donato|felix gutierrez": [
+   2,
+   1
+  ],
+  "juan-d-arienzo|>edgardo-donato|horacio lagos": [
+   6,
+   3.5
+  ],
+  "juan-d-arienzo|>edgardo-donato|romeo gavioli": [
+   4,
+   2
+  ],
+  "juan-d-arienzo|>enrique-rodriguez|armando moreno": [
+   14,
+   7.5
+  ],
+  "juan-d-arienzo|>enrique-rodriguez|roberto flores": [
+   2,
+   1
+  ],
+  "juan-d-arienzo|>francisco-canaro|": [
+   2,
+   1
+  ],
+  "juan-d-arienzo|>francisco-canaro|ernesto fama": [
+   4,
+   3
+  ],
+  "juan-d-arienzo|>francisco-canaro|roberto maida": [
+   3,
+   3
+  ],
+  "juan-d-arienzo|>francisco-lomuto|": [
+   2,
+   1
+  ],
+  "juan-d-arienzo|>francisco-lomuto|jorge omar": [
+   5,
+   3
+  ],
+  "juan-d-arienzo|>lucio-demare|juan carlos miranda": [
+   7,
+   4.5
+  ],
+  "juan-d-arienzo|>miguel-calo|alberto podesta": [
+   2,
+   1.5
+  ],
+  "juan-d-arienzo|>miguel-calo|jorge ortiz": [
+   3,
+   1.5
+  ],
+  "juan-d-arienzo|>miguel-calo|raul beron": [
+   12,
+   6
+  ],
+  "juan-d-arienzo|>miguel-calo|raul iriarte": [
+   13,
+   7
+  ],
+  "juan-d-arienzo|>orquesta-tipica-victor|alberto gomez": [
+   2,
+   1
+  ],
+  "juan-d-arienzo|>osvaldo-fresedo|": [
+   4,
+   2
+  ],
+  "juan-d-arienzo|>osvaldo-fresedo|ricardo ruiz": [
+   5,
+   2.5
+  ],
+  "juan-d-arienzo|>osvaldo-fresedo|roberto ray": [
+   8,
+   5
+  ],
+  "juan-d-arienzo|>osvaldo-pugliese|": [
+   5,
+   2.5
+  ],
+  "juan-d-arienzo|>pedro-laurenz|": [
+   2,
+   1
+  ],
+  "juan-d-arienzo|>pedro-laurenz|alberto podesta": [
+   10,
+   5.5
+  ],
+  "juan-d-arienzo|>pedro-laurenz|juan carlos casas": [
+   6,
+   3
+  ],
+  "juan-d-arienzo|>quinteto-don-pancho|": [
+   3,
+   1.5
+  ],
+  "juan-d-arienzo|>quinteto-pirincho|": [
+   5,
+   2.5
+  ],
+  "juan-d-arienzo|>ricardo-malerba|orlando medina": [
+   5,
+   2.5
+  ],
+  "juan-d-arienzo|>ricardo-tanturi|": [
+   3,
+   2
+  ],
+  "juan-d-arienzo|>ricardo-tanturi|alberto castillo": [
+   2,
+   1.5
+  ],
+  "juan-d-arienzo|>rodolfo-biagi|": [
+   3,
+   2
+  ],
+  "juan-d-arienzo|>rodolfo-biagi|alberto amor": [
+   8,
+   4
+  ],
+  "juan-d-arienzo|>rodolfo-biagi|andres falgas": [
+   5,
+   2.5
+  ],
+  "juan-d-arienzo|>rodolfo-biagi|jorge ortiz": [
+   5,
+   2.5
+  ],
+  "juan-d-arienzo|alberto echague>alfredo-de-angelis|carlos dante": [
+   4,
+   3
+  ],
+  "juan-d-arienzo|alberto echague>alfredo-de-angelis|floreal ruiz": [
+   2,
+   1
+  ],
+  "juan-d-arienzo|alberto echague>alfredo-gobbi|": [
+   2,
+   1
+  ],
+  "juan-d-arienzo|alberto echague>angel-d-agostino|angel vargas": [
+   5,
+   2.5
+  ],
+  "juan-d-arienzo|alberto echague>anibal-troilo|francisco fiorentino": [
+   5,
+   2.5
+  ],
+  "juan-d-arienzo|alberto echague>carlos-di-sarli|alberto podesta": [
+   2,
+   1
+  ],
+  "juan-d-arienzo|alberto echague>carlos-di-sarli|roberto rufino": [
+   2,
+   1.5
+  ],
+  "juan-d-arienzo|alberto echague>edgardo-donato|horacio lagos": [
+   3,
+   1.5
+  ],
+  "juan-d-arienzo|alberto echague>francisco-canaro|": [
+   3,
+   1.5
+  ],
+  "juan-d-arienzo|alberto echague>francisco-canaro|roberto maida": [
+   4,
+   2
+  ],
+  "juan-d-arienzo|alberto echague>miguel-calo|raul beron": [
+   2,
+   1
+  ],
+  "juan-d-arienzo|alberto echague>miguel-calo|raul iriarte": [
+   2,
+   1
+  ],
+  "juan-d-arienzo|alberto echague>orquesta-tipica-victor|alberto gomez": [
+   2,
+   1
+  ],
+  "juan-d-arienzo|alberto echague>orquesta-tipica-victor|carlos galan": [
+   2,
+   1
+  ],
+  "juan-d-arienzo|alberto echague>osvaldo-fresedo|roberto ray": [
+   2,
+   2
+  ],
+  "juan-d-arienzo|alberto echague>pedro-laurenz|alberto podesta": [
+   6,
+   4.5
+  ],
+  "juan-d-arienzo|alberto echague>ricardo-tanturi|alberto castillo": [
+   2,
+   1
+  ],
+  "juan-d-arienzo|alberto echague>rodolfo-biagi|andres falgas": [
+   2,
+   1.5
+  ],
+  "juan-d-arienzo|alberto echague>rodolfo-biagi|jorge ortiz": [
+   2,
+   1
+  ],
+  "juan-d-arienzo|alberto echague>rodolfo-biagi|teofilo ibanez": [
+   2,
+   1
+  ],
+  "juan-d-arienzo|hector maure>alfredo-de-angelis|carlos dante": [
+   2,
+   1
+  ],
+  "juan-d-arienzo|hector maure>angel-d-agostino|angel vargas": [
+   5,
+   3.5
+  ],
+  "juan-d-arienzo|hector maure>carlos-di-sarli|roberto rufino": [
+   4,
+   3
+  ],
+  "juan-d-arienzo|hector maure>edgardo-donato|": [
+   2,
+   1
+  ],
+  "juan-d-arienzo|hector maure>enrique-rodriguez|armando moreno": [
+   2,
+   1
+  ],
+  "juan-d-arienzo|hector maure>francisco-canaro|ernesto fama": [
+   3,
+   2.5
+  ],
+  "juan-d-arienzo|hector maure>osvaldo-fresedo|ricardo ruiz": [
+   2,
+   1
+  ],
+  "juan-d-arienzo|hector maure>osvaldo-pugliese|": [
+   3,
+   2
+  ],
+  "juan-d-arienzo|hector maure>pedro-laurenz|alberto podesta": [
+   2,
+   1.5
+  ],
+  "lucio-demare|horacio quintana>juan-d-arienzo|": [
+   2,
+   1
+  ],
+  "lucio-demare|juan carlos miranda>angel-d-agostino|angel vargas": [
+   2,
+   1
+  ],
+  "lucio-demare|juan carlos miranda>anibal-troilo|francisco fiorentino": [
+   3,
+   2
+  ],
+  "lucio-demare|juan carlos miranda>carlos-di-sarli|roberto rufino": [
+   2,
+   1.5
+  ],
+  "lucio-demare|juan carlos miranda>edgardo-donato|horacio lagos": [
+   2,
+   1
+  ],
+  "lucio-demare|juan carlos miranda>francisco-canaro|ernesto fama": [
+   2,
+   1.5
+  ],
+  "lucio-demare|juan carlos miranda>francisco-lomuto|": [
+   2,
+   1
+  ],
+  "lucio-demare|juan carlos miranda>juan-d-arienzo|": [
+   4,
+   2
+  ],
+  "lucio-demare|juan carlos miranda>miguel-calo|raul iriarte": [
+   2,
+   1.5
+  ],
+  "lucio-demare|juan carlos miranda>quinteto-pirincho|": [
+   2,
+   1
+  ],
+  "lucio-demare|juan carlos miranda>rodolfo-biagi|": [
+   2,
+   1.5
+  ],
+  "lucio-demare|juan carlos miranda>rodolfo-biagi|andres falgas": [
+   3,
+   1.5
+  ],
+  "lucio-demare|raul beron>edgardo-donato|horacio lagos": [
+   2,
+   2
+  ],
+  "lucio-demare|raul beron>juan-d-arienzo|": [
+   2,
+   1
+  ],
+  "miguel-calo|>angel-d-agostino|angel vargas": [
+   2,
+   1
+  ],
+  "miguel-calo|>carlos-di-sarli|roberto rufino": [
+   3,
+   1.5
+  ],
+  "miguel-calo|>francisco-canaro|": [
+   2,
+   1
+  ],
+  "miguel-calo|>juan-d-arienzo|": [
+   5,
+   2.5
+  ],
+  "miguel-calo|alberto podesta>enrique-rodriguez|armando moreno": [
+   2,
+   1
+  ],
+  "miguel-calo|alberto podesta>francisco-lomuto|fernando diaz": [
+   3,
+   1.5
+  ],
+  "miguel-calo|alberto podesta>juan-d-arienzo|": [
+   3,
+   1.5
+  ],
+  "miguel-calo|alberto podesta>juan-d-arienzo|alberto echague": [
+   2,
+   1.5
+  ],
+  "miguel-calo|alberto podesta>quinteto-pirincho|": [
+   2,
+   1
+  ],
+  "miguel-calo|alberto podesta>ricardo-tanturi|alberto castillo": [
+   2,
+   1
+  ],
+  "miguel-calo|alberto podesta>rodolfo-biagi|alberto amor": [
+   2,
+   1
+  ],
+  "miguel-calo|jorge ortiz>juan-d-arienzo|": [
+   3,
+   2
+  ],
+  "miguel-calo|jorge ortiz>quinteto-pirincho|": [
+   3,
+   1.5
+  ],
+  "miguel-calo|raul beron>adolfo-carabelli|": [
+   2,
+   1
+  ],
+  "miguel-calo|raul beron>angel-d-agostino|angel vargas": [
+   5,
+   2.5
+  ],
+  "miguel-calo|raul beron>carlos-di-sarli|": [
+   2,
+   1.5
+  ],
+  "miguel-calo|raul beron>edgardo-donato|": [
+   3,
+   1.5
+  ],
+  "miguel-calo|raul beron>edgardo-donato|felix gutierrez": [
+   2,
+   1
+  ],
+  "miguel-calo|raul beron>edgardo-donato|horacio lagos": [
+   11,
+   6.5
+  ],
+  "miguel-calo|raul beron>enrique-rodriguez|armando moreno": [
+   6,
+   3.5
+  ],
+  "miguel-calo|raul beron>francisco-canaro|ernesto fama": [
+   2,
+   1
+  ],
+  "miguel-calo|raul beron>francisco-canaro|roberto maida": [
+   3,
+   1.5
+  ],
+  "miguel-calo|raul beron>francisco-lomuto|jorge omar": [
+   3,
+   2
+  ],
+  "miguel-calo|raul beron>juan-d-arienzo|": [
+   9,
+   5
+  ],
+  "miguel-calo|raul beron>juan-d-arienzo|alberto echague": [
+   4,
+   3
+  ],
+  "miguel-calo|raul beron>juan-d-arienzo|hector maure": [
+   2,
+   1.5
+  ],
+  "miguel-calo|raul beron>orquesta-tipica-victor|carlos lafuente": [
+   2,
+   1
+  ],
+  "miguel-calo|raul beron>osvaldo-pugliese|": [
+   3,
+   1.5
+  ],
+  "miguel-calo|raul beron>pedro-laurenz|juan carlos casas": [
+   3,
+   2.5
+  ],
+  "miguel-calo|raul beron>ricardo-malerba|orlando medina": [
+   3,
+   1.5
+  ],
+  "miguel-calo|raul beron>ricardo-tanturi|alberto castillo": [
+   3,
+   2
+  ],
+  "miguel-calo|raul beron>rodolfo-biagi|alberto amor": [
+   2,
+   1
+  ],
+  "miguel-calo|raul iriarte>anibal-troilo|": [
+   2,
+   1.5
+  ],
+  "miguel-calo|raul iriarte>anibal-troilo|francisco fiorentino": [
+   5,
+   3
+  ],
+  "miguel-calo|raul iriarte>carlos-di-sarli|": [
+   3,
+   1.5
+  ],
+  "miguel-calo|raul iriarte>carlos-di-sarli|alberto podesta": [
+   2,
+   1.5
+  ],
+  "miguel-calo|raul iriarte>carlos-di-sarli|roberto rufino": [
+   4,
+   2
+  ],
+  "miguel-calo|raul iriarte>edgardo-donato|": [
+   2,
+   1
+  ],
+  "miguel-calo|raul iriarte>edgardo-donato|horacio lagos": [
+   3,
+   1.5
+  ],
+  "miguel-calo|raul iriarte>juan-d-arienzo|": [
+   5,
+   2.5
+  ],
+  "miguel-calo|raul iriarte>orquesta-tipica-victor|": [
+   2,
+   1
+  ],
+  "miguel-calo|raul iriarte>ricardo-tanturi|alberto castillo": [
+   2,
+   1.5
+  ],
+  "miguel-calo|raul iriarte>rodolfo-biagi|andres falgas": [
+   4,
+   2
+  ],
+  "miguel-calo|raul iriarte>rodolfo-biagi|jorge ortiz": [
+   2,
+   1
+  ],
+  "miguel-villasboas|>ricardo-malerba|orlando medina": [
+   2,
+   1.5
+  ],
+  "orquesta-tipica-victor|>alfredo-de-angelis|carlos dante": [
+   2,
+   1
+  ],
+  "orquesta-tipica-victor|>anibal-troilo|francisco fiorentino": [
+   2,
+   1.5
+  ],
+  "orquesta-tipica-victor|>juan-d-arienzo|": [
+   2,
+   1.5
+  ],
+  "orquesta-tipica-victor|alberto gomez>anibal-troilo|francisco fiorentino": [
+   5,
+   2.5
+  ],
+  "orquesta-tipica-victor|alberto gomez>carlos-di-sarli|": [
+   2,
+   1
+  ],
+  "orquesta-tipica-victor|alberto gomez>edgardo-donato|horacio lagos": [
+   2,
+   1
+  ],
+  "orquesta-tipica-victor|alberto gomez>enrique-rodriguez|armando moreno": [
+   8,
+   4.5
+  ],
+  "orquesta-tipica-victor|alberto gomez>francisco-canaro|roberto maida": [
+   2,
+   1
+  ],
+  "orquesta-tipica-victor|alberto gomez>jose-garcia|alfredo rojas": [
+   2,
+   1
+  ],
+  "orquesta-tipica-victor|alberto gomez>juan-d-arienzo|": [
+   6,
+   3
+  ],
+  "orquesta-tipica-victor|alberto gomez>miguel-calo|raul beron": [
+   2,
+   1
+  ],
+  "orquesta-tipica-victor|alberto gomez>rodolfo-biagi|alberto amor": [
+   3,
+   1.5
+  ],
+  "orquesta-tipica-victor|carlos galan>carlos-di-sarli|": [
+   2,
+   1
+  ],
+  "orquesta-tipica-victor|carlos galan>osvaldo-pugliese|": [
+   2,
+   1
+  ],
+  "orquesta-tipica-victor|carlos lafuente>edgardo-donato|horacio lagos": [
+   2,
+   1.5
+  ],
+  "orquesta-tipica-victor|carlos lafuente>enrique-rodriguez|armando moreno": [
+   3,
+   1.5
+  ],
+  "orquesta-tipica-victor|carlos lafuente>juan-d-arienzo|": [
+   2,
+   1
+  ],
+  "osvaldo-fresedo|>edgardo-donato|": [
+   2,
+   1
+  ],
+  "osvaldo-fresedo|>enrique-rodriguez|armando moreno": [
+   2,
+   1
+  ],
+  "osvaldo-fresedo|>francisco-lomuto|": [
+   2,
+   1
+  ],
+  "osvaldo-fresedo|>juan-d-arienzo|": [
+   4,
+   2
+  ],
+  "osvaldo-fresedo|>rodolfo-biagi|andres falgas": [
+   2,
+   1
+  ],
+  "osvaldo-fresedo|ricardo ruiz>alfredo-de-angelis|floreal ruiz": [
+   2,
+   1
+  ],
+  "osvaldo-fresedo|ricardo ruiz>angel-d-agostino|angel vargas": [
+   3,
+   1.5
+  ],
+  "osvaldo-fresedo|ricardo ruiz>anibal-troilo|": [
+   2,
+   1
+  ],
+  "osvaldo-fresedo|ricardo ruiz>juan-d-arienzo|": [
+   3,
+   2
+  ],
+  "osvaldo-fresedo|ricardo ruiz>osvaldo-pugliese|": [
+   2,
+   1.5
+  ],
+  "osvaldo-fresedo|ricardo ruiz>ricardo-tanturi|": [
+   2,
+   1
+  ],
+  "osvaldo-fresedo|ricardo ruiz>rodolfo-biagi|andres falgas": [
+   2,
+   1
+  ],
+  "osvaldo-fresedo|roberto ray>alfredo-de-angelis|carlos dante": [
+   2,
+   1.5
+  ],
+  "osvaldo-fresedo|roberto ray>alfredo-gobbi|": [
+   2,
+   1
+  ],
+  "osvaldo-fresedo|roberto ray>anibal-troilo|": [
+   5,
+   2.5
+  ],
+  "osvaldo-fresedo|roberto ray>anibal-troilo|francisco fiorentino": [
+   4,
+   2
+  ],
+  "osvaldo-fresedo|roberto ray>carlos-di-sarli|roberto rufino": [
+   2,
+   1.5
+  ],
+  "osvaldo-fresedo|roberto ray>edgardo-donato|horacio lagos": [
+   3,
+   1.5
+  ],
+  "osvaldo-fresedo|roberto ray>francisco-canaro|roberto maida": [
+   2,
+   1
+  ],
+  "osvaldo-fresedo|roberto ray>francisco-lomuto|jorge omar": [
+   3,
+   2
+  ],
+  "osvaldo-fresedo|roberto ray>juan-d-arienzo|": [
+   9,
+   5.5
+  ],
+  "osvaldo-fresedo|roberto ray>juan-d-arienzo|hector maure": [
+   3,
+   2.5
+  ],
+  "osvaldo-fresedo|roberto ray>quinteto-pirincho|": [
+   2,
+   1
+  ],
+  "osvaldo-fresedo|roberto ray>ricardo-tanturi|": [
+   2,
+   1.5
+  ],
+  "osvaldo-fresedo|roberto ray>ricardo-tanturi|alberto castillo": [
+   2,
+   1.5
+  ],
+  "osvaldo-fresedo|roberto ray>rodolfo-biagi|": [
+   4,
+   2
+  ],
+  "osvaldo-fresedo|roberto ray>rodolfo-biagi|andres falgas": [
+   2,
+   1
+  ],
+  "osvaldo-fresedo|roberto ray>rodolfo-biagi|hugo duval": [
+   2,
+   2
+  ],
+  "osvaldo-fresedo|roberto ray>rodolfo-biagi|jorge ortiz": [
+   3,
+   1.5
+  ],
+  "osvaldo-pugliese|>alfredo-de-angelis|carlos dante": [
+   5,
+   3
+  ],
+  "osvaldo-pugliese|>alfredo-de-angelis|floreal ruiz": [
+   3,
+   1.5
+  ],
+  "osvaldo-pugliese|>angel-d-agostino|angel vargas": [
+   3,
+   1.5
+  ],
+  "osvaldo-pugliese|>anibal-troilo|francisco fiorentino": [
+   3,
+   2
+  ],
+  "osvaldo-pugliese|>carlos-di-sarli|": [
+   2,
+   1.5
+  ],
+  "osvaldo-pugliese|>edgardo-donato|horacio lagos": [
+   6,
+   4
+  ],
+  "osvaldo-pugliese|>francisco-canaro|": [
+   3,
+   1.5
+  ],
+  "osvaldo-pugliese|>francisco-canaro|eduardo adrian": [
+   2,
+   1
+  ],
+  "osvaldo-pugliese|>francisco-lomuto|jorge omar": [
+   2,
+   1
+  ],
+  "osvaldo-pugliese|>juan-d-arienzo|": [
+   6,
+   3.5
+  ],
+  "osvaldo-pugliese|>juan-d-arienzo|alberto echague": [
+   2,
+   1
+  ],
+  "osvaldo-pugliese|>quinteto-pirincho|": [
+   3,
+   1.5
+  ],
+  "osvaldo-pugliese|>rodolfo-biagi|jorge ortiz": [
+   3,
+   2
+  ],
+  "pedro-laurenz|>carlos-di-sarli|": [
+   3,
+   1.5
+  ],
+  "pedro-laurenz|>enrique-rodriguez|": [
+   2,
+   1
+  ],
+  "pedro-laurenz|>enrique-rodriguez|armando moreno": [
+   3,
+   1.5
+  ],
+  "pedro-laurenz|>francisco-canaro|": [
+   2,
+   1
+  ],
+  "pedro-laurenz|>juan-d-arienzo|": [
+   3,
+   1.5
+  ],
+  "pedro-laurenz|>miguel-calo|jorge ortiz": [
+   2,
+   1
+  ],
+  "pedro-laurenz|>miguel-calo|raul beron": [
+   4,
+   2
+  ],
+  "pedro-laurenz|>quinteto-pirincho|": [
+   3,
+   1.5
+  ],
+  "pedro-laurenz|>rodolfo-biagi|jorge ortiz": [
+   2,
+   1
+  ],
+  "pedro-laurenz|alberto podesta>alfredo-de-angelis|": [
+   2,
+   1
+  ],
+  "pedro-laurenz|alberto podesta>alfredo-de-angelis|carlos dante": [
+   3,
+   1.5
+  ],
+  "pedro-laurenz|alberto podesta>angel-d-agostino|angel vargas": [
+   3,
+   1.5
+  ],
+  "pedro-laurenz|alberto podesta>anibal-troilo|": [
+   2,
+   1
+  ],
+  "pedro-laurenz|alberto podesta>anibal-troilo|floreal ruiz": [
+   2,
+   2
+  ],
+  "pedro-laurenz|alberto podesta>carlos-di-sarli|": [
+   6,
+   3.5
+  ],
+  "pedro-laurenz|alberto podesta>edgardo-donato|": [
+   2,
+   1
+  ],
+  "pedro-laurenz|alberto podesta>edgardo-donato|horacio lagos": [
+   2,
+   1.5
+  ],
+  "pedro-laurenz|alberto podesta>enrique-rodriguez|armando moreno": [
+   4,
+   3
+  ],
+  "pedro-laurenz|alberto podesta>francisco-canaro|": [
+   2,
+   1
+  ],
+  "pedro-laurenz|alberto podesta>francisco-lomuto|": [
+   3,
+   1.5
+  ],
+  "pedro-laurenz|alberto podesta>francisco-lomuto|jorge omar": [
+   2,
+   1
+  ],
+  "pedro-laurenz|alberto podesta>juan-d-arienzo|": [
+   6,
+   3.5
+  ],
+  "pedro-laurenz|alberto podesta>miguel-calo|raul beron": [
+   3,
+   1.5
+  ],
+  "pedro-laurenz|alberto podesta>orquesta-tipica-victor|alberto gomez": [
+   2,
+   1
+  ],
+  "pedro-laurenz|alberto podesta>osvaldo-fresedo|": [
+   2,
+   1
+  ],
+  "pedro-laurenz|alberto podesta>quinteto-pirincho|": [
+   2,
+   1
+  ],
+  "pedro-laurenz|alberto podesta>rodolfo-biagi|": [
+   4,
+   2
+  ],
+  "pedro-laurenz|juan carlos casas>alfredo-de-angelis|carlos dante": [
+   2,
+   1
+  ],
+  "pedro-laurenz|juan carlos casas>anibal-troilo|": [
+   3,
+   2.5
+  ],
+  "pedro-laurenz|juan carlos casas>anibal-troilo|francisco fiorentino": [
+   2,
+   1
+  ],
+  "pedro-laurenz|juan carlos casas>edgardo-donato|horacio lagos": [
+   3,
+   3
+  ],
+  "pedro-laurenz|juan carlos casas>enrique-rodriguez|armando moreno": [
+   3,
+   2
+  ],
+  "pedro-laurenz|juan carlos casas>francisco-canaro|roberto maida": [
+   3,
+   1.5
+  ],
+  "pedro-laurenz|juan carlos casas>juan-d-arienzo|": [
+   5,
+   3
+  ],
+  "pedro-laurenz|juan carlos casas>ricardo-malerba|orlando medina": [
+   2,
+   1
+  ],
+  "pedro-laurenz|juan carlos casas>rodolfo-biagi|": [
+   3,
+   2
+  ],
+  "pedro-laurenz|juan carlos casas>rodolfo-biagi|andres falgas": [
+   3,
+   2
+  ],
+  "quinteto-don-pancho|>alfredo-de-angelis|": [
+   2,
+   1
+  ],
+  "quinteto-don-pancho|>carlos-di-sarli|roberto rufino": [
+   2,
+   1
+  ],
+  "quinteto-don-pancho|>edgardo-donato|horacio lagos": [
+   6,
+   3
+  ],
+  "quinteto-don-pancho|>enrique-rodriguez|armando moreno": [
+   7,
+   4
+  ],
+  "quinteto-don-pancho|>juan-d-arienzo|": [
+   2,
+   1.5
+  ],
+  "quinteto-pirincho|>alfredo-de-angelis|": [
+   2,
+   1
+  ],
+  "quinteto-pirincho|>alfredo-de-angelis|carlos dante": [
+   2,
+   1.5
+  ],
+  "quinteto-pirincho|>angel-d-agostino|angel vargas": [
+   2,
+   1.5
+  ],
+  "quinteto-pirincho|>carlos-di-sarli|": [
+   4,
+   2.5
+  ],
+  "quinteto-pirincho|>carlos-di-sarli|alberto podesta": [
+   2,
+   1.5
+  ],
+  "quinteto-pirincho|>carlos-di-sarli|roberto rufino": [
+   5,
+   2.5
+  ],
+  "quinteto-pirincho|>edgardo-donato|": [
+   2,
+   1
+  ],
+  "quinteto-pirincho|>francisco-lomuto|fernando diaz": [
+   2,
+   1
+  ],
+  "quinteto-pirincho|>jose-garcia|alfredo rojas": [
+   2,
+   1
+  ],
+  "quinteto-pirincho|>juan-d-arienzo|": [
+   3,
+   2
+  ],
+  "quinteto-pirincho|>juan-d-arienzo|hector maure": [
+   2,
+   1
+  ],
+  "quinteto-pirincho|>lucio-demare|juan carlos miranda": [
+   3,
+   2
+  ],
+  "quinteto-pirincho|>miguel-calo|raul beron": [
+   5,
+   2.5
+  ],
+  "quinteto-pirincho|>miguel-calo|raul iriarte": [
+   6,
+   3
+  ],
+  "quinteto-pirincho|>osvaldo-fresedo|ricardo ruiz": [
+   2,
+   1
+  ],
+  "quinteto-pirincho|>osvaldo-fresedo|roberto ray": [
+   2,
+   1
+  ],
+  "quinteto-pirincho|>osvaldo-pugliese|": [
+   3,
+   1.5
+  ],
+  "quinteto-pirincho|>ricardo-tanturi|": [
+   2,
+   1
+  ],
+  "ricardo-malerba|orlando medina>alfredo-de-angelis|": [
+   2,
+   1
+  ],
+  "ricardo-malerba|orlando medina>anibal-troilo|": [
+   2,
+   1
+  ],
+  "ricardo-malerba|orlando medina>anibal-troilo|francisco fiorentino": [
+   2,
+   1
+  ],
+  "ricardo-malerba|orlando medina>carlos-di-sarli|": [
+   2,
+   1
+  ],
+  "ricardo-malerba|orlando medina>francisco-canaro|": [
+   2,
+   1
+  ],
+  "ricardo-malerba|orlando medina>juan-d-arienzo|": [
+   3,
+   2
+  ],
+  "ricardo-malerba|orlando medina>quinteto-pirincho|": [
+   2,
+   1
+  ],
+  "ricardo-malerba|orlando medina>rodolfo-biagi|": [
+   2,
+   1
+  ],
+  "ricardo-tanturi|>alfredo-de-angelis|julio martel": [
+   2,
+   1.5
+  ],
+  "ricardo-tanturi|>angel-d-agostino|angel vargas": [
+   2,
+   1
+  ],
+  "ricardo-tanturi|>anibal-troilo|francisco fiorentino": [
+   2,
+   1
+  ],
+  "ricardo-tanturi|>carlos-di-sarli|alberto podesta": [
+   2,
+   1
+  ],
+  "ricardo-tanturi|>carlos-di-sarli|roberto rufino": [
+   2,
+   1.5
+  ],
+  "ricardo-tanturi|>juan-d-arienzo|": [
+   2,
+   1
+  ],
+  "ricardo-tanturi|>juan-d-arienzo|alberto echague": [
+   2,
+   1
+  ],
+  "ricardo-tanturi|>lucio-demare|horacio quintana": [
+   2,
+   1
+  ],
+  "ricardo-tanturi|>lucio-demare|juan carlos miranda": [
+   2,
+   1.5
+  ],
+  "ricardo-tanturi|>miguel-calo|raul beron": [
+   2,
+   1
+  ],
+  "ricardo-tanturi|>miguel-calo|raul iriarte": [
+   3,
+   1.5
+  ],
+  "ricardo-tanturi|>osvaldo-fresedo|roberto ray": [
+   2,
+   1
+  ],
+  "ricardo-tanturi|>osvaldo-pugliese|": [
+   2,
+   1.5
+  ],
+  "ricardo-tanturi|>rodolfo-biagi|alberto amor": [
+   4,
+   2
+  ],
+  "ricardo-tanturi|alberto castillo>alfredo-de-angelis|": [
+   2,
+   1
+  ],
+  "ricardo-tanturi|alberto castillo>alfredo-de-angelis|carlos dante": [
+   3,
+   2
+  ],
+  "ricardo-tanturi|alberto castillo>angel-d-agostino|angel vargas": [
+   3,
+   2
+  ],
+  "ricardo-tanturi|alberto castillo>anibal-troilo|francisco fiorentino": [
+   2,
+   1.5
+  ],
+  "ricardo-tanturi|alberto castillo>carlos-di-sarli|": [
+   2,
+   1
+  ],
+  "ricardo-tanturi|alberto castillo>carlos-di-sarli|alberto podesta": [
+   3,
+   1.5
+  ],
+  "ricardo-tanturi|alberto castillo>edgardo-donato|horacio lagos": [
+   3,
+   1.5
+  ],
+  "ricardo-tanturi|alberto castillo>enrique-rodriguez|armando moreno": [
+   3,
+   2
+  ],
+  "ricardo-tanturi|alberto castillo>francisco-lomuto|": [
+   2,
+   1
+  ],
+  "ricardo-tanturi|alberto castillo>miguel-calo|raul iriarte": [
+   2,
+   1
+  ],
+  "ricardo-tanturi|alberto castillo>osvaldo-fresedo|roberto ray": [
+   2,
+   1
+  ],
+  "ricardo-tanturi|alberto castillo>osvaldo-pugliese|": [
+   3,
+   1.5
+  ],
+  "ricardo-tanturi|alberto castillo>ricardo-malerba|orlando medina": [
+   3,
+   2
+  ],
+  "ricardo-tanturi|alberto castillo>rodolfo-biagi|": [
+   2,
+   1.5
+  ],
+  "rodolfo-biagi|>alfredo-de-angelis|carlos dante": [
+   3,
+   1.5
+  ],
+  "rodolfo-biagi|>alfredo-de-angelis|floreal ruiz": [
+   2,
+   1
+  ],
+  "rodolfo-biagi|>angel-d-agostino|angel vargas": [
+   2,
+   1
+  ],
+  "rodolfo-biagi|>carlos-di-sarli|": [
+   4,
+   2.5
+  ],
+  "rodolfo-biagi|>carlos-di-sarli|alberto podesta": [
+   2,
+   1
+  ],
+  "rodolfo-biagi|>carlos-di-sarli|roberto rufino": [
+   2,
+   1.5
+  ],
+  "rodolfo-biagi|>edgardo-donato|horacio lagos": [
+   4,
+   2
+  ],
+  "rodolfo-biagi|>enrique-rodriguez|armando moreno": [
+   3,
+   1.5
+  ],
+  "rodolfo-biagi|>francisco-lomuto|fernando diaz": [
+   2,
+   1.5
+  ],
+  "rodolfo-biagi|>juan-d-arienzo|": [
+   8,
+   4
+  ],
+  "rodolfo-biagi|>juan-d-arienzo|alberto echague": [
+   3,
+   2
+  ],
+  "rodolfo-biagi|>miguel-calo|raul beron": [
+   2,
+   1
+  ],
+  "rodolfo-biagi|>miguel-calo|raul iriarte": [
+   2,
+   1.5
+  ],
+  "rodolfo-biagi|>osvaldo-fresedo|roberto ray": [
+   5,
+   3.5
+  ],
+  "rodolfo-biagi|>osvaldo-pugliese|": [
+   2,
+   1
+  ],
+  "rodolfo-biagi|>pedro-laurenz|alberto podesta": [
+   4,
+   2.5
+  ],
+  "rodolfo-biagi|alberto amor>alfredo-de-angelis|carlos dante": [
+   2,
+   1
+  ],
+  "rodolfo-biagi|alberto amor>angel-d-agostino|angel vargas": [
+   2,
+   1
+  ],
+  "rodolfo-biagi|alberto amor>anibal-troilo|": [
+   4,
+   2
+  ],
+  "rodolfo-biagi|alberto amor>anibal-troilo|francisco fiorentino": [
+   3,
+   1.5
+  ],
+  "rodolfo-biagi|alberto amor>carlos-di-sarli|": [
+   2,
+   1
+  ],
+  "rodolfo-biagi|alberto amor>edgardo-donato|": [
+   2,
+   1
+  ],
+  "rodolfo-biagi|alberto amor>edgardo-donato|horacio lagos": [
+   3,
+   1.5
+  ],
+  "rodolfo-biagi|alberto amor>enrique-rodriguez|armando moreno": [
+   6,
+   4
+  ],
+  "rodolfo-biagi|alberto amor>enrique-rodriguez|roberto flores": [
+   2,
+   1.5
+  ],
+  "rodolfo-biagi|alberto amor>francisco-canaro|ernesto fama": [
+   2,
+   1
+  ],
+  "rodolfo-biagi|alberto amor>francisco-canaro|roberto maida": [
+   2,
+   1
+  ],
+  "rodolfo-biagi|alberto amor>juan-d-arienzo|": [
+   10,
+   5
+  ],
+  "rodolfo-biagi|alberto amor>juan-d-arienzo|alberto echague": [
+   3,
+   1.5
+  ],
+  "rodolfo-biagi|alberto amor>juan-d-arienzo|hector maure": [
+   3,
+   1.5
+  ],
+  "rodolfo-biagi|alberto amor>miguel-calo|": [
+   2,
+   1
+  ],
+  "rodolfo-biagi|alberto amor>miguel-calo|raul beron": [
+   2,
+   1.5
+  ],
+  "rodolfo-biagi|alberto amor>pedro-laurenz|": [
+   2,
+   1
+  ],
+  "rodolfo-biagi|alberto amor>ricardo-tanturi|alberto castillo": [
+   5,
+   2.5
+  ],
+  "rodolfo-biagi|andres falgas>alfredo-de-angelis|carlos dante": [
+   2,
+   1
+  ],
+  "rodolfo-biagi|andres falgas>alfredo-de-angelis|julio martel": [
+   2,
+   1
+  ],
+  "rodolfo-biagi|andres falgas>anibal-troilo|francisco fiorentino": [
+   2,
+   1
+  ],
+  "rodolfo-biagi|andres falgas>enrique-rodriguez|armando moreno": [
+   3,
+   1.5
+  ],
+  "rodolfo-biagi|andres falgas>juan-d-arienzo|": [
+   6,
+   3
+  ],
+  "rodolfo-biagi|andres falgas>miguel-calo|raul iriarte": [
+   2,
+   1
+  ],
+  "rodolfo-biagi|andres falgas>orquesta-tipica-victor|alberto gomez": [
+   2,
+   1.5
+  ],
+  "rodolfo-biagi|andres falgas>osvaldo-fresedo|ricardo ruiz": [
+   2,
+   1
+  ],
+  "rodolfo-biagi|andres falgas>osvaldo-fresedo|roberto ray": [
+   3,
+   1.5
+  ],
+  "rodolfo-biagi|andres falgas>pedro-laurenz|juan carlos casas": [
+   2,
+   1
+  ],
+  "rodolfo-biagi|andres falgas>quinteto-pirincho|": [
+   3,
+   2
+  ],
+  "rodolfo-biagi|jorge ortiz>alfredo-de-angelis|carlos dante": [
+   3,
+   1.5
+  ],
+  "rodolfo-biagi|jorge ortiz>angel-d-agostino|angel vargas": [
+   2,
+   1
+  ],
+  "rodolfo-biagi|jorge ortiz>anibal-troilo|francisco fiorentino": [
+   2,
+   1
+  ],
+  "rodolfo-biagi|jorge ortiz>edgardo-donato|horacio lagos": [
+   2,
+   1
+  ],
+  "rodolfo-biagi|jorge ortiz>francisco-canaro|carlos roldan": [
+   2,
+   1
+  ],
+  "rodolfo-biagi|jorge ortiz>juan-d-arienzo|": [
+   7,
+   4.5
+  ],
+  "rodolfo-biagi|jorge ortiz>miguel-calo|alberto podesta": [
+   2,
+   1
+  ],
+  "rodolfo-biagi|jorge ortiz>osvaldo-fresedo|": [
+   2,
+   1
+  ],
+  "rodolfo-biagi|jorge ortiz>pedro-laurenz|alberto podesta": [
+   3,
+   1.5
+  ],
+  "rodolfo-biagi|jorge ortiz>ricardo-tanturi|alberto castillo": [
+   3,
+   2
+  ],
+  "rodolfo-biagi|teofilo ibanez>anibal-troilo|francisco fiorentino": [
+   2,
+   2
+  ],
+  "rodolfo-biagi|teofilo ibanez>carlos-di-sarli|": [
+   2,
+   1
+  ]
+ },
+ "styles": {
+  "B>B": [
+   9,
+   5.5
+  ],
+  "B>D": [
+   6,
+   4.5
+  ],
+  "B>L": [
+   40,
+   21.5
+  ],
+  "B>R": [
+   53,
+   30.5
+  ],
+  "B>R+": [
+   20,
+   12.5
+  ],
+  "D>B": [
+   3,
+   2
+  ],
+  "D>L": [
+   10,
+   5.5
+  ],
+  "D>R": [
+   23,
+   12.5
+  ],
+  "D>R+": [
+   12,
+   8
+  ],
+  "L>B": [
+   56,
+   34
+  ],
+  "L>D": [
+   23,
+   13.5
+  ],
+  "L>L": [
+   57,
+   32.5
+  ],
+  "L>R": [
+   131,
+   78.5
+  ],
+  "L>R+": [
+   138,
+   80
+  ],
+  "R+>B": [
+   44,
+   24.5
+  ],
+  "R+>D": [
+   11,
+   6.5
+  ],
+  "R+>L": [
+   109,
+   63
+  ],
+  "R+>R": [
+   76,
+   44
+  ],
+  "R+>R+": [
+   25,
+   15
+  ],
+  "R>B": [
+   63,
+   34.5
+  ],
+  "R>D": [
+   10,
+   7.5
+  ],
+  "R>L": [
+   106,
+   59
+  ],
+  "R>R": [
+   105,
+   62
+  ],
+  "R>R+": [
+   115,
+   68.5
+  ]
+ },
+ "styleTotals": {
+  "B": {
+   "out": [
+    128,
+    74.5
+   ],
+   "in": [
+    175,
+    100.5
+   ]
+  },
+  "D": {
+   "out": [
+    48,
+    28
+   ],
+   "in": [
+    50,
+    32
+   ]
+  },
+  "L": {
+   "out": [
+    405,
+    238.5
+   ],
+   "in": [
+    322,
+    181.5
+   ]
+  },
+  "R": {
+   "out": [
+    399,
+    231.5
+   ],
+   "in": [
+    388,
+    227.5
+   ]
+  },
+  "R+": {
+   "out": [
+    265,
+    153
+   ],
+   "in": [
+    310,
+    184
+   ]
+  }
+ },
+ "curated": {
+  "version": 1,
+  "about": "Hand-curated inputs of the succession model (packages/core/src/succession.ts): which tanda follows which well. `pnpm knowledge:succession` (scripts/build_succession.ts) copies this file into data/knowledge/succession.json beside the transition counts it mines from the DJ sets. Voice classes are estimates from the recordings (a timbre class, not a range test): high-tenor = light, bright, high-placed voices; tenor = the middle lyric voices; baritone = dark, low voices; female. A singer missing here is simply not compared. Lineages are sound families: orchestras whose leader or arrangers came out of another's band and kept its sound, so back to back they read as the same orchestra again.",
+  "points": {
+   "about": "the parts of the score, in points (positive = follows well); score = tanh(sum / scale)",
+   "scale": 12,
+   "energy": {
+    "fit": 4,
+    "slack": 4,
+    "perPoint": 0.5,
+    "min": -10
+   },
+   "era": {
+    "near": 2,
+    "slack": 3,
+    "perYear": 1,
+    "min": -10,
+    "bigJump": -4,
+    "guardiaUntil": 1935,
+    "lateFrom": 1950,
+    "vmFactor": 0.5
+   },
+   "voice": {
+    "same": {
+     "high-tenor": -5,
+     "tenor": -2,
+     "baritone": -2,
+     "female": -1
+    },
+    "contrast": 2,
+    "sameSinger": -6
+   },
+   "tempo": {
+    "near": 1,
+    "slack": 6,
+    "perBpm": 0.4,
+    "min": -6
+   },
+   "key": {
+    "near": 1,
+    "far": -1,
+    "brightJumpHz": 800,
+    "bright": -1
+   },
+   "lineage": -3,
+   "corpus": {
+    "alpha": 4,
+    "minOut": 3,
+    "perLog2": 2.5,
+    "min": -3,
+    "max": 6,
+    "familyPerCount": 0.5,
+    "familyMax": 2,
+    "common": 3
+   },
+   "styleLift": {
+    "perLog2": 3,
+    "max": 3
+   },
+   "learned": {
+    "perPoint": 1.5,
+    "min": -1.5,
+    "max": 4.5
+   },
+   "good": 6,
+   "warn": -6
+  },
+  "styleMatrix": {
+   "about": "tango → tango, row = the tanda before, column = the next one; classes as transitions.ts styleClass (R+ hard-driving rhythmic, R rhythmic, L lyrical, B balanced, D dramatic). Alternation is rewarded (D'Arienzo → Di Sarli), two rhythmic in a row tire the floor, two dramatic never.",
+   "R+": {
+    "R+": -8,
+    "R": -4,
+    "L": 5,
+    "B": 2,
+    "D": 3
+   },
+   "R": {
+    "R+": -4,
+    "R": -3,
+    "L": 4,
+    "B": 1,
+    "D": 3
+   },
+   "L": {
+    "R+": 5,
+    "R": 4,
+    "L": -3,
+    "B": 1,
+    "D": 1
+   },
+   "B": {
+    "R+": 2,
+    "R": 1,
+    "L": 1,
+    "B": -2,
+    "D": 1
+   },
+   "D": {
+    "R+": 3,
+    "R": 4,
+    "L": -3,
+    "B": 1,
+    "D": -10
+   }
+  },
+  "voices": {
+   "high-tenor": [
+    "Roberto Ray",
+    "Ángel Vargas",
+    "Alberto Podestá",
+    "Raúl Berón",
+    "Enrique Campos",
+    "Alberto Gómez",
+    "Roberto Chanel",
+    "Carlos Roldán",
+    "Fernando Díaz",
+    "Alberto Echagüe",
+    "Armando Moreno",
+    "Alberto Castillo",
+    "Mario Bustos",
+    "Hugo Duval"
+   ],
+   "tenor": [
+    "Francisco Fiorentino",
+    "Horacio Lagos",
+    "Ernesto Famá",
+    "Juan Carlos Casas",
+    "Julio Martel",
+    "Raúl Iriarte",
+    "Charlo",
+    "Alberto Amor",
+    "Orlando Medina",
+    "Ricardo Ruiz",
+    "Carlos Lafuente",
+    "Andrés Falgás",
+    "Alberto Marino",
+    "Walter Cabral",
+    "Enrique Carbel",
+    "Juan Carlos Lamas",
+    "Alberto Reynal",
+    "Horacio Palma",
+    "Santiago Devin",
+    "Roberto Flores",
+    "Antonio Rodríguez Lesende",
+    "Carlos Galán",
+    "Alberto Serna"
+   ],
+   "baritone": [
+    "Roberto Rufino",
+    "Héctor Mauré",
+    "Jorge Ortiz",
+    "Floreal Ruiz",
+    "Armando Laborde",
+    "Roberto Maida",
+    "Carlos Dante",
+    "Juan Carlos Miranda",
+    "Teófilo Ibáñez",
+    "Jorge Omar",
+    "Jorge Durán",
+    "Alberto Morán",
+    "Edmundo Rivero",
+    "Jorge Casal",
+    "Mario Pomar",
+    "Oscar Larroca",
+    "Jorge Maciel"
+   ],
+   "female": [
+    "Lita Morales",
+    "Olga Delgrossi",
+    "Nelly Omar",
+    "Mercedes Simone",
+    "Ada Falcón",
+    "Libertad Lamarque"
+   ]
+  },
+  "lineages": {
+   "about": "sound families (the leader's band and the bands that kept its sound)",
+   "darienzo": [
+    "juan-d-arienzo",
+    "hector-varela",
+    "fulvio-salamanca",
+    "juan-cambareri",
+    "juan-sanchez-gorio"
+   ],
+   "disarli": [
+    "carlos-di-sarli",
+    "florindo-sassone"
+   ],
+   "pugliese": [
+    "osvaldo-pugliese",
+    "color-tango"
+   ],
+   "calo": [
+    "miguel-calo",
+    "francini-pontier",
+    "osmar-maderna",
+    "domingo-federico"
+   ],
+   "troilo": [
+    "anibal-troilo",
+    "jose-basso"
+   ]
+  }
+ }
+}
