@@ -245,7 +245,7 @@ test.describe("sidebar and wide layouts", () => {
       .locator("#side-tonight-list")
       .getByRole("button")
       .nth(2);
-    const orchestra = (await third.locator("span.truncate").innerText())
+    const orchestra = (await third.locator("span.truncate").first().innerText())
       .replace(/^(Tanda 3|3\. tanda):\s*/, "")
       .trim();
     await third.click();
@@ -271,8 +271,9 @@ test.describe("sidebar and wide layouts", () => {
     await page.reload();
     await expect(page.getByTestId("sidebar-show")).toBeVisible();
     await expect(page.getByTestId("sidebar")).toBeHidden();
-    // the page uses the room: main starts at the window edge
-    expect((await page.locator("main").boundingBox())!.x).toBeLessThanOrEqual(1);
+    // the page uses the room: main starts at the rail the Show button sits in (2026-11: 52 px, the title keeps the
+    // content's edge beside it)
+    expect((await page.locator("main").boundingBox())!.x).toBeLessThanOrEqual(53);
     await page.getByTestId("sidebar-show").click();
     expect(Math.round((await page.getByTestId("sidebar").boundingBox())!.width)).toBe(360);
   });

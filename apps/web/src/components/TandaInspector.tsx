@@ -142,46 +142,53 @@ export function TandaInspector({
                   {k + 1}
                 </span>
               }
-              sub={metaLine(yearText(s.year), s.singer)}
-              lengthSec={lengthOf(s, cues)}
+              // 2026-11 (DJ review: titles cut to "Agu…" beside four columns): the energy and the length join the
+              // sub-line (the singer only where it differs from the tanda's), the title may take two lines, the
+              // drag handle and the menu are 44 px
+              sub={metaLine(
+                yearText(s.year),
+                s.singer && s.singer !== t.singer ? s.singer : null,
+                `${tx("tandaInspector.energy")} ${Math.round(t.energyCurve[k] ?? t.energy)}`,
+                (() => {
+                  const len = lengthOf(s, cues);
+                  return typeof len === "number" && len > 0 ? mmss(len) : null;
+                })(),
+              )}
               testId="inspector-row"
+              className="inspector-row"
               trailing={
-                <>
-                  <span className="text-subhead shrink-0 tabular-nums text-[var(--label-2)]">
-                    {Math.round(t.energyCurve[k] ?? t.energy)}
-                  </span>
-                  {onMoveTrack && !t.locked && (
-                    <>
-                      <button
-                        type="button"
-                        className="drag-handle icon-btn icon-btn-bare -my-2 h-11 w-9 shrink-0 text-[var(--label-3)]"
-                        aria-label={tx("play.drag_to_reorder", { title: s.title })}
-                        data-testid="drag-handle"
-                        {...drag(k)}
-                      >
-                        <GripVertical size={16} aria-hidden />
-                      </button>
-                      <Menu
-                        label={tx("play.song_actions", { title: s.title })}
-                        className="icon-btn-bare -my-2 -mr-3 h-11 w-10"
-                        items={[
-                          {
-                            label: tx("play.move_up"),
-                            icon: ArrowUp,
-                            onClick: () => move(k, k - 1),
-                            disabled: k === 0,
-                          },
-                          {
-                            label: tx("play.move_down"),
-                            icon: ArrowDown,
-                            onClick: () => move(k, k + 1),
-                            disabled: k === t.songs.length - 1,
-                          },
-                        ]}
-                      />
-                    </>
-                  )}
-                </>
+                onMoveTrack &&
+                !t.locked && (
+                  <>
+                    <button
+                      type="button"
+                      className="drag-handle icon-btn icon-btn-bare -my-2 h-11 w-11 shrink-0 text-[var(--label-3)]"
+                      aria-label={tx("play.drag_to_reorder", { title: s.title })}
+                      data-testid="drag-handle"
+                      {...drag(k)}
+                    >
+                      <GripVertical size={16} aria-hidden />
+                    </button>
+                    <Menu
+                      label={tx("play.song_actions", { title: s.title })}
+                      className="icon-btn-bare -my-2 -mr-3 h-11 w-11"
+                      items={[
+                        {
+                          label: tx("play.move_up"),
+                          icon: ArrowUp,
+                          onClick: () => move(k, k - 1),
+                          disabled: k === 0,
+                        },
+                        {
+                          label: tx("play.move_down"),
+                          icon: ArrowDown,
+                          onClick: () => move(k, k + 1),
+                          disabled: k === t.songs.length - 1,
+                        },
+                      ]}
+                    />
+                  </>
+                )
               }
             />
           </li>

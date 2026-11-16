@@ -376,23 +376,28 @@ for (const [name, opts] of DEVICES) {
           .filter((r) => r.width < 43.5 || r.height < 43.5).length,
     );
     expect(small).toBe(0);
-    // the open panel's transport stays pinned under the top bar, never covered by it (it reached under the page
-    // toolbar once the Floor group made the panel taller)
+    // the open panel's head stays pinned under the top bar, never covered by it (it reached under the page
+    // toolbar once the Floor group made the panel taller); 2026-11: Previous / Play / Next are the transport's only
+    await expect(panel.getByTestId("ctl-play")).toHaveCount(0);
     const hit = await page.evaluate(() => {
       const b = document.querySelector<HTMLElement>(
-        '[data-testid="booth-controls"] [data-testid="ctl-play"]',
+        '[data-testid="booth-controls"] [data-testid="booth-controls-close"]',
       )!;
       const r = b.getBoundingClientRect();
-      return document.elementFromPoint(r.x + r.width / 2, r.y + 2)?.closest('[data-testid="ctl-play"]') === b;
+      return (
+        document
+          .elementFromPoint(r.x + r.width / 2, r.y + 2)
+          ?.closest('[data-testid="booth-controls-close"]') === b
+      );
     });
     expect(hit).toBe(true);
-    // Start from the panel, then Next
-    await panel.getByTestId("ctl-play").click();
+    // Start from the transport with the panel open, then Next
+    await page.getByTestId("booth-start").click();
     await expect.poll(async () => (await snap(page)).state, { timeout: 20000 }).toBe("playing");
     const first = (await snap(page)).cur!;
     const second = await nextPlayable(page, first);
-    // mid-night the panel's Next arms on the first tap, plays on the second
-    await armAndConfirm(panel.getByTestId("ctl-next"));
+    // mid-night the transport's Next is press-and-hold
+    await hold(page, page.getByTestId("booth-next-now"));
     await expect.poll(async () => (await snap(page)).cur, { timeout: 15000 }).toBe(second);
     // the master volume
     await panel.getByTestId("ctl-master").locator("input").fill("-6");

@@ -527,9 +527,10 @@ test("the light confirmation: before the night none; mid-night a tap on Next doe
   await expect.poll(async () => (await snap(page)).planIndex).not.toBe(p0);
   await start(page);
   const a = (await snap(page)).cur;
-  // one tap: nothing changes, the button says to hold
+  // one tap: nothing changes, a bubble asks to hold (the label stays "Next": a second "Hold" beside the real one confused)
   await next.click();
-  await expect(next).toContainText("Hold");
+  await expect(page.getByTestId("booth-next-now-nudge")).toContainText("Hold");
+  await expect(next.locator(".booth-tbtn-l")).toHaveText("Next");
   await page.waitForTimeout(600);
   expect((await snap(page)).cur).toBe(a);
   // the hold plays the next one
@@ -854,7 +855,8 @@ for (const [name, opts, o] of DEVICES) {
     expect(a.out, a.out.join("\n")).toEqual([]);
     // a narrow column shows one "Floor…" menu, a wide one the three icons (the iPad's landscape with the sidebar
     // open and the iPhone are narrow)
-    const narrow = a.setW < 460;
+    // (the container query reads the list's content box: its width less 2 × 6 px of padding)
+    const narrow = a.setW - 12 < 460;
     if (name === "ipad-landscape" || phone) expect(narrow).toBe(true);
     const menuBtn = head1.getByTestId("set-1-floor-menu-btn");
     if (SHOTS) {
@@ -863,7 +865,7 @@ for (const [name, opts, o] of DEVICES) {
     }
     if (narrow) {
       await expect(menuBtn).toBeVisible();
-      await expect(menuBtn).toHaveText("Floor…");
+      await expect(menuBtn).toHaveText("Floor"); // (2026-11: the word and a chevron; "Floor…" read as cut)
       await expect(head1.getByTestId("set-1-floor")).toBeHidden();
       await menuBtn.click();
       await expect(menuBtn).toHaveAttribute("aria-expanded", "true");
@@ -906,3 +908,339 @@ for (const [name, opts, o] of DEVICES) {
     await ctx.close();
   });
 }
+
+/**
+ * 2026-11 — the design review (iPad Pro 11 landscape, Safari, touch) and the DJ review after it: the Controls panel's
+ * groups have one sizing scale (Cue inside its card, one Song row of 44 px controls, no second Previous / Play / Next)
+ * and a capped height that keeps the Now card's countdown whole; no hint after a click or a tap; played rows and the
+ * gap pill at ≥ 4.5:1 with colour tokens; the tanda header's buttons one family; the Start label whole in en and tr;
+ * one row height; the set list keeps ≥ 6 rows while a night plays; the Booth's sheets near-opaque; Escape closes the
+ * panel; a Turkish eyebrow without English words; iPad portrait's chips in two rows at most.
+ */
+/** the contrast of one element's text on its composited background (opacity on the way up included) */
+const textContrast = (page: Page, sel: string) =>
+  page.evaluate((s) => {
+    type C = [number, number, number, number];
+    const parse = (v: string): C | null => {
+      const m = v.match(/rgba?\(([^)]+)\)/);
+      if (!m) {
+        const c = v.match(/color\(srgb ([\d.]+) ([\d.]+) ([\d.]+)(?: \/ ([\d.]+))?\)/);
+        return c ? [+c[1]! * 255, +c[2]! * 255, +c[3]! * 255, c[4] === undefined ? 1 : +c[4]] : null;
+      }
+      const p = m[1]!
+        .split(/[\s,/]+/)
+        .filter(Boolean)
+        .map(Number);
+      return [p[0]!, p[1]!, p[2]!, p[3] ?? 1];
+    };
+    const over = (t: C, u: C): C => [0, 1, 2].map((i) => t[i]! * t[3] + u[i]! * (1 - t[3])).concat(1) as C;
+    const lum = (c: C) =>
+      [0, 1, 2]
+        .map((i) => {
+          const v = c[i]! / 255;
+          return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+        })
+        .reduce((a, v, i) => a + v * [0.2126, 0.7152, 0.0722][i]!, 0);
+    const el = document.querySelector<HTMLElement>(s);
+    if (!el) return null;
+    const layers: C[] = [];
+    for (let e: Element | null = el; e; e = e.parentElement) {
+      const c = parse(getComputedStyle(e).backgroundColor);
+      if (c && c[3] > 0) layers.push(c);
+      if (layers.length && layers.at(-1)![3] >= 0.999) break;
+    }
+    let bg: C = parse(getComputedStyle(document.documentElement).backgroundColor) ?? [255, 255, 255, 1];
+    for (let i = layers.length - 1; i >= 0; i--) bg = over(layers[i]!, bg);
+    let op = 1;
+    for (let e: Element | null = el; e && e !== document.body; e = e.parentElement)
+      op *= Number(getComputedStyle(e).opacity);
+    const f = parse(getComputedStyle(el).color)!;
+    const fg = over([f[0], f[1], f[2], f[3] * op], bg);
+    const [a, b] = [lum(fg), lum(bg)].sort((x, y) => y - x);
+    return { ratio: (a! + 0.05) / (b! + 0.05), size: Number.parseFloat(getComputedStyle(el).fontSize), op };
+  }, sel);
+
+for (const light of [false, true]) {
+  const scheme = light ? "light" : "dark";
+  test(`design review, iPad landscape ${scheme}: panel groups, countdown, played rows, tanda header, Start, rows, set list, hints, sheets`, async ({
+    browser,
+  }) => {
+    const ctx = await browser.newContext({ ...IPAD_L, colorScheme: scheme });
+    const page = await ctx.newPage();
+    await openBooth(page, { light, ipad: true });
+    await page.waitForTimeout(400);
+    // the Start label is whole (the primary is as wide as its longest word, Start / Pause / Resume)
+    const label = async () =>
+      page.evaluate(() => {
+        const l = document.querySelector<HTMLElement>(".booth-primary .booth-start-label")!;
+        return {
+          sw: l.scrollWidth,
+          cw: l.clientWidth,
+          w: l.closest("button")!.getBoundingClientRect().width,
+        };
+      });
+    const l0 = await label();
+    expect(l0.sw, "the Start label is not cut").toBeLessThanOrEqual(l0.cw + 1);
+    // one row height for every song, cortina and break
+    const heights = await page.evaluate(() => [
+      ...new Set(
+        [...document.querySelectorAll(".booth-col-set .booth-row")].map((r) =>
+          Math.round(r.getBoundingClientRect().height),
+        ),
+      ),
+    ]);
+    expect(heights, `row heights ${heights}`).toHaveLength(1);
+
+    // the night runs, into tanda 2 (rows and a gap behind the playhead are played)
+    await start(page);
+    const l1 = await label();
+    expect(Math.abs(l1.w - l0.w), "one primary width across states").toBeLessThanOrEqual(1);
+    await page.evaluate(() => {
+      const s = (
+        window as unknown as {
+          __tdjBooth: {
+            getState: () => {
+              plan: { items: Array<{ kind: string }> };
+              sources: string[];
+              playNow: (i: number) => Promise<void>;
+            };
+          };
+        }
+      ).__tdjBooth.getState();
+      const i = s.plan.items.findIndex((x, k) => k > 3 && x.kind === "track" && s.sources[k] !== "missing");
+      return s.playNow(i);
+    });
+    await expect.poll(async () => (await snap(page)).state, { timeout: 20000 }).toBe("playing");
+    await page.waitForTimeout(1200);
+    // played rows and the gap pill: de-emphasised with tokens (no opacity), every text at ≥ 4.5:1
+    for (const sel of [
+      ".booth-col-set .booth-row.booth-played .booth-row-title",
+      ".booth-col-set .booth-row.booth-played .booth-row-sub",
+      ".booth-col-set .booth-row.booth-played .booth-row-n",
+      ".booth-col-set .booth-gap[data-played] .booth-gap-btn > span",
+    ]) {
+      const c = await textContrast(page, sel);
+      expect(c, sel).not.toBeNull();
+      expect(c!.op, `${sel} opacity`).toBe(1);
+      expect(c!.ratio, `${sel} ${c!.ratio.toFixed(2)}`).toBeGreaterThanOrEqual(4.5);
+    }
+    // the set list keeps the column while a night plays: ≥ 6 rows whole in view, the playing one in the middle third
+    const set = await page.evaluate(() => {
+      const col = document.querySelector(".booth-col-set")!.getBoundingClientRect();
+      const rows = [...document.querySelectorAll(".booth-col-set .booth-row")].filter((r) => {
+        const b = r.getBoundingClientRect();
+        return b.top >= col.top - 1 && b.bottom <= col.bottom + 1;
+      });
+      const on = document
+        .querySelector('.booth-col-set .booth-row[aria-current="true"]')!
+        .getBoundingClientRect();
+      return { rows: rows.length, at: ((on.top + on.bottom) / 2 - col.top) / col.height };
+    });
+    expect(set.rows, "set-list rows in view").toBeGreaterThanOrEqual(6);
+    expect(set.at).toBeGreaterThan(0.3);
+    expect(set.at).toBeLessThan(0.7);
+    // the tanda header's buttons: one family (one height, one radius, one fill)
+    const heads = await page.evaluate(() =>
+      [...document.querySelectorAll<HTMLElement>(".booth-col-set .booth-tanda-acts")].slice(0, 4).map((a) =>
+        [...a.querySelectorAll<HTMLElement>(":scope > button, :scope > .booth-floor-menu > button")]
+          .filter((b) => b.getBoundingClientRect().width > 0)
+          .map((b) => {
+            const cs = getComputedStyle(b);
+            const lab = b.querySelector("span");
+            return {
+              h: Math.round(b.getBoundingClientRect().height),
+              r: cs.borderRadius,
+              bg: cs.backgroundColor,
+              cut: !!lab && lab.scrollWidth > lab.clientWidth + 1,
+              pressed: b.getAttribute("aria-pressed") === "true",
+            };
+          }),
+      ),
+    );
+    expect(heads.flat().length).toBeGreaterThan(3);
+    for (const row of heads) {
+      if (!row.length) continue; // (the opening La Cumparsita has no tanda actions)
+      for (const b of row) {
+        expect(b).toMatchObject({ h: 44, r: row[0]!.r, cut: false });
+        if (!b.pressed && !row[0]!.pressed) expect(b.bg).toBe(row[0]!.bg);
+      }
+    }
+
+    // a tap on Next (touch) shows no tooltip and keeps its label (the hold asks in a bubble, never "Hold")
+    await page.getByTestId("booth-next-now").tap();
+    await page.waitForTimeout(1200);
+    await expect(page.locator('[role="tooltip"]')).toHaveCount(0);
+    await expect(page.getByTestId("booth-next-now").locator(".booth-tbtn-l")).toHaveText("Next");
+    for (const id of ["booth-mute", "booth-talk"]) {
+      const b = page.getByTestId(id);
+      if (!(await b.count())) continue;
+      await b.tap();
+      await page.waitForTimeout(900);
+      await expect(page.locator('[role="tooltip"]')).toHaveCount(0);
+      await b.tap();
+    }
+
+    // the Controls panel, opened by a mouse click: no tooltip over it, one sizing scale per group
+    const tg = (await page.getByTestId("booth-controls-toggle").boundingBox())!;
+    await page.mouse.move(tg.x + tg.width / 2, tg.y + tg.height / 2);
+    await page.mouse.down();
+    await page.mouse.up();
+    await expect(page.getByTestId("booth-controls")).toBeVisible();
+    await page.waitForTimeout(1300);
+    const tips = await page.evaluate(() => {
+      const p = document.querySelector('[data-testid="booth-controls"]')!.getBoundingClientRect();
+      return [...document.querySelectorAll('[role="tooltip"]')].filter((t) => {
+        const r = t.getBoundingClientRect();
+        return r.width > 0 && r.bottom > p.top && r.top < p.bottom && r.right > p.left && r.left < p.right;
+      }).length;
+    });
+    expect(tips, "no hint over the open panel").toBe(0);
+    const ctl = await page.evaluate(() => {
+      const p = document.querySelector<HTMLElement>('[data-testid="booth-controls"]')!;
+      const b = (id: string) => p.querySelector(`[data-testid="${id}"]`)!.getBoundingClientRect();
+      const glyphTop = (id: string) => {
+        const btn = p.querySelector(`[data-testid="${id}"]`)!;
+        return btn.querySelector("svg")!.getBoundingClientRect().top - btn.getBoundingClientRect().top;
+      };
+      const cue = p.querySelector('[data-testid="ctl-cue-next"], [data-testid="ctl-cue-stop"]')!;
+      const card = cue.closest("fieldset")!.getBoundingClientRect();
+      const cueR = cue.getBoundingClientRect();
+      const deck = document.querySelector(".booth-deck")!.getBoundingClientRect();
+      const ttc = document.querySelector('[data-testid="booth-remaining"]')!.getBoundingClientRect();
+      const labels = [...p.querySelectorAll<HTMLElement>(".booth-ctl-body .booth-ctl-btn-l")].map((l) => ({
+        lines: Math.round(
+          l.getBoundingClientRect().height / Number.parseFloat(getComputedStyle(l).lineHeight),
+        ),
+      }));
+      return {
+        transport: ["ctl-next-gap", "ctl-fade", "ctl-crossfade", "ctl-stop"].map((id) => ({
+          h: b(id).height,
+          g: glyphTop(id),
+        })),
+        mixer: ["ctl-mute", "ctl-talk"].map((id) => b(id).height),
+        song: ["ctl-trim-down", "ctl-trim-up", "ctl-start-point"].map((id) => ({
+          h: b(id).height,
+          t: b(id).top,
+        })),
+        trimDown: b("ctl-trim-down"),
+        trimValue: b("ctl-trim-value"),
+        cue: { l: cueR.left, r: cueR.right, cl: card.left, cr: card.right },
+        countdown: {
+          t: ttc.top,
+          b: ttc.bottom,
+          dt: deck.top,
+          db: deck.bottom,
+          pt: p.getBoundingClientRect().top,
+        },
+        panelH: p.getBoundingClientRect().height,
+        head: [...p.querySelectorAll<HTMLElement>("[data-testid]")]
+          .map((e) => e.dataset.testid)
+          .filter((id) => id === "ctl-prev" || id === "ctl-play" || id === "ctl-next"),
+        labels,
+        more: !!p.querySelector('[data-testid="ctl-more"]'),
+        scrolls: (() => {
+          const body = p.querySelector<HTMLElement>(".booth-ctl-body")!;
+          return body.scrollHeight > body.clientHeight + 2;
+        })(),
+      };
+    });
+    // Transport: one height, one glyph line; Mixer: the same scale; Song: one row of 44 px controls
+    for (const x of ctl.transport) {
+      expect(Math.abs(x.h - ctl.transport[0]!.h)).toBeLessThanOrEqual(0.5);
+      expect(Math.abs(x.g - ctl.transport[0]!.g)).toBeLessThanOrEqual(0.5);
+    }
+    for (const h of ctl.mixer) expect(Math.abs(h - ctl.transport[0]!.h)).toBeLessThanOrEqual(0.5);
+    for (const l of ctl.labels) expect(l.lines, "each word on one line").toBe(1);
+    for (const x of ctl.song) {
+      expect(x.h).toBeCloseTo(44, 0);
+      expect(Math.abs(x.t - ctl.song[0]!.t)).toBeLessThanOrEqual(0.5);
+    }
+    expect(ctl.trimValue.left, "− clear of the value").toBeGreaterThanOrEqual(ctl.trimDown.right);
+    // Cue inside its card
+    expect(ctl.cue.l).toBeGreaterThanOrEqual(ctl.cue.cl - 0.5);
+    expect(ctl.cue.r).toBeLessThanOrEqual(ctl.cue.cr + 0.5);
+    // the countdown whole, in the deck above the panel; the panel at most ~40 % of the viewport
+    expect(ctl.countdown.t).toBeGreaterThanOrEqual(ctl.countdown.dt - 0.5);
+    expect(ctl.countdown.b).toBeLessThanOrEqual(Math.min(ctl.countdown.db, ctl.countdown.pt) + 0.5);
+    expect(ctl.panelH).toBeLessThanOrEqual(820 * 0.4 + 1);
+    // no second Previous / Play / Next; "More" while groups are below the fold
+    expect(ctl.head).toEqual([]);
+    expect(ctl.more).toBe(ctl.scrolls);
+    if (SHOTS) await page.screenshot({ path: `${SHOTS}/design-ipad-landscape-${scheme}-controls.png` });
+    // Escape closes the panel
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("booth-controls")).toHaveCount(0);
+
+    // the Booth's sheets are near-opaque (nothing of the set list reads through)
+    await page.getByTestId("booth-more").click();
+    const sheet = page.getByTestId("booth-menu");
+    await expect(sheet).toBeVisible();
+    await page.waitForTimeout(400);
+    const alpha = await sheet.evaluate((el) => {
+      const m = (el.closest(".sheet-material") ?? el.querySelector(".sheet-material") ?? el) as Element;
+      const c = getComputedStyle(m, "::after").backgroundColor;
+      const a = c.match(/\/\s*([\d.]+)\)|rgba\([^)]*,\s*([\d.]+)\)/);
+      return a ? Number(a[1] ?? a[2]) : 1;
+    });
+    expect(alpha, "sheet backdrop alpha").toBeGreaterThanOrEqual(0.9);
+    await page.keyboard.press("Escape");
+    await ctx.close();
+  });
+}
+
+test("design review, iPad landscape in Turkish: the eyebrow has no English words, the Start label is whole", async ({
+  browser,
+}) => {
+  const ctx = await browser.newContext({ ...IPAD_L, locale: "tr-TR" });
+  const page = await ctx.newPage();
+  await openBooth(page, { ipad: true });
+  await expect(page.getByTestId("booth-now-title")).toBeVisible();
+  const eyebrow = (await page.locator('[data-testid="booth-now"] .booth-eyebrow').innerText()).trim();
+  expect(eyebrow).not.toMatch(/OPENING|CLOSING|BREAK|CORTINA|OPENİNG|CLOSİNG|TANDA \d+ OF/i);
+  const l = await page.evaluate(() => {
+    const e = document.querySelector<HTMLElement>(".booth-primary .booth-start-label")!;
+    return { sw: e.scrollWidth, cw: e.clientWidth, text: e.textContent };
+  });
+  expect(l.text).toMatch(/Başlat/);
+  expect(l.sw, `"${l.text}" is not cut`).toBeLessThanOrEqual(l.cw + 1);
+  // every transport word on one line, none cut
+  const words = await page.evaluate(() =>
+    [...document.querySelectorAll<HTMLElement>('[data-testid="booth-strip"] .booth-tbtn-l')]
+      .filter((w) => w.getBoundingClientRect().width > 0)
+      .map((w) => ({
+        t: w.textContent,
+        cut: w.scrollWidth > w.clientWidth + 1,
+        h: w.getBoundingClientRect().height,
+      })),
+  );
+  for (const w of words) {
+    expect(w.cut, `${w.t} is cut`).toBe(false);
+    expect(Math.abs(w.h - words[0]!.h), `${w.t} wraps`).toBeLessThanOrEqual(0.5);
+  }
+  await ctx.close();
+});
+
+test("design review, iPad portrait: the chips under the title take at most two rows, Find songs on the first", async ({
+  browser,
+}) => {
+  const ctx = await browser.newContext(dev("iPad Pro 11", { userAgent: IPAD_SAFARI }));
+  const page = await ctx.newPage();
+  await openBooth(page, { ipad: true });
+  await page.waitForTimeout(400);
+  const rows = await page.evaluate(() => {
+    const els = [
+      ...document.querySelectorAll<HTMLElement>(".booth-head-row .booth-toolbar > *"),
+      document.querySelector<HTMLElement>('[data-testid="booth-find-songs"]')!,
+    ].filter((e) => e.getBoundingClientRect().width > 0);
+    const tops = [...new Set(els.map((e) => Math.round(e.getBoundingClientRect().top)))].sort(
+      (a, b) => a - b,
+    );
+    const find = Math.round(
+      document.querySelector('[data-testid="booth-find-songs"]')!.getBoundingClientRect().top,
+    );
+    return { rows: tops.length, findFirst: find === tops[0] };
+  });
+  expect(rows.rows).toBeLessThanOrEqual(2);
+  expect(rows.findFirst).toBe(true);
+  await ctx.close();
+});

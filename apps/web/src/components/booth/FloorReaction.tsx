@@ -1,6 +1,6 @@
 "use client";
 import type { FloorReaction as Reaction, Song } from "@tdj/core";
-import { Heart, Meh, TrendingDown } from "lucide-react";
+import { ChevronDown, Heart, Meh, TrendingDown } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { useBooth } from "@/lib/booth/store";
 import { floorReactionOf, floorTap } from "@/lib/favourites";
@@ -148,7 +148,8 @@ export function FloorMenu({ tanda, testPrefix }: { tanda: number; testPrefix: st
         {Icon && (
           <Icon size={16} strokeWidth={2} aria-hidden fill={pressed === "full" ? "currentColor" : "none"} />
         )}
-        <span>{t("fav.floor_menu")}</span>
+        <span>{t("fav.floor_menu_short")}</span>
+        <ChevronDown size={14} strokeWidth={2.25} aria-hidden className="booth-floor-menu-chev" />
       </button>
       {open && (
         <span id={id} className="booth-floor-pop" data-testid={`${testPrefix}-floor-pop`}>

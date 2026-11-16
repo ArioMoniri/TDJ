@@ -109,8 +109,11 @@ export function SetColumn({
       if (!m) return;
       if (!force && Date.now() - userAt.current < 10_000) return;
       const { box, b, r, foot } = m;
-      if (r.top < b.top + 8) box.scrollTop -= b.top - r.top + 8;
-      else if (r.bottom > foot - 8) box.scrollTop += r.bottom - foot + 8;
+      // 2026-11 (DJ review: the playing row sat on the bottom edge, under the fade and the toasts): the playing row
+      // stays in the middle third of what the column shows; out of it, it comes back to the middle
+      const h = foot - b.top;
+      const mid = (r.top + r.bottom) / 2;
+      if (mid < b.top + h / 3 || mid > b.top + (2 * h) / 3) box.scrollTop += mid - (b.top + h / 2);
     },
     [rowBox],
   );
@@ -133,7 +136,7 @@ export function SetColumn({
     };
     const check = () => {
       const m = rowBox();
-      setAway(!!m && (m.r.bottom < m.b.top || m.r.top > m.foot));
+      setAway(useBooth.getState().started && !!m && (m.r.bottom < m.b.top || m.r.top > m.foot));
     };
     box.addEventListener("wheel", mark, { passive: true });
     box.addEventListener("touchmove", mark, { passive: true });

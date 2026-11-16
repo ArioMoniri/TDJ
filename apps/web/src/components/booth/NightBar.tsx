@@ -71,6 +71,7 @@ export function NightBar({ onBreak }: { onBreak: () => void }) {
       aria-label={t("booth.nightBar.the_night")}
       data-ttc={Math.round(ttc)}
       data-remaining={Math.round(remaining)}
+      data-compact={started || undefined}
     >
       <div className="booth-night-row">
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0">
@@ -146,7 +147,8 @@ export function NightBar({ onBreak }: { onBreak: () => void }) {
           </span>
         )}
       </div>
-      {/* 2026-11: the night's tools in two groups, one button style */}
+      {/* 2026-11: the night's tools in two groups, one button style; once the night runs (DJ review: the set list got
+          no room) one compact row of glyphs (their names on hover, long-press and to assistive tech), legends hidden */}
       <fieldset className="booth-night-group" data-testid="booth-night-ending">
         <legend>{t("booth.nightBar.group_ending")}</legend>
         <div className="booth-night-actions">
@@ -156,13 +158,15 @@ export function NightBar({ onBreak }: { onBreak: () => void }) {
               className="booth-tool"
               disabled={!live}
               data-testid="booth-rest-cumparsita"
+              aria-label={t("booth.nightBar.rest_then_la_cumparsita")}
               data-hint={t("booth.nightBar.this_tanda_plays_to_its_end")}
               onClick={() => {
                 void b.jumpToClosing(false);
                 toast(t("booth.nightBar.la_cumparsita_follows_this_tanda"));
               }}
             >
-              <Flag size={16} strokeWidth={2} aria-hidden /> {t("booth.nightBar.rest_then_la_cumparsita")}
+              <Flag size={16} strokeWidth={2} aria-hidden />
+              <span className="booth-tool-l">{t("booth.nightBar.rest_then_la_cumparsita")}</span>
             </button>
           )}
           {hasClosing && (
@@ -172,10 +176,12 @@ export function NightBar({ onBreak }: { onBreak: () => void }) {
               data-tone="destructive"
               disabled={!started}
               data-testid="booth-jump-cumparsita"
+              aria-label={t("booth.nightBar.la_cumparsita_now_2")}
               data-hint={t("booth.nightBar.la_cumparsita_now_the_song_playing")}
               onClick={() => setJump(true)}
             >
-              <FastForward size={16} strokeWidth={2} aria-hidden /> {t("booth.nightBar.la_cumparsita_now_2")}
+              <FastForward size={16} strokeWidth={2} aria-hidden />
+              <span className="booth-tool-l">{t("booth.nightBar.la_cumparsita_now_2")}</span>
             </button>
           )}
           <button
@@ -183,11 +189,12 @@ export function NightBar({ onBreak }: { onBreak: () => void }) {
             className="booth-tool"
             aria-pressed={lastFour}
             data-testid="booth-last4"
+            aria-label={t("booth.nightBar.last_4_tandas_tango_only")}
             data-hint={t("booth.nightBar.the_vals_and_milonga_tandas_among")}
             onClick={() => void toggleLastFour()}
           >
-            <ListChecks size={16} strokeWidth={2} aria-hidden />{" "}
-            {t("booth.nightBar.last_4_tandas_tango_only")}
+            <ListChecks size={16} strokeWidth={2} aria-hidden />
+            <span className="booth-tool-l">{t("booth.nightBar.last_4_tandas_tango_only")}</span>
           </button>
         </div>
       </fieldset>
@@ -199,20 +206,24 @@ export function NightBar({ onBreak }: { onBreak: () => void }) {
             className="booth-tool"
             disabled={!started}
             data-testid="booth-night-break"
+            aria-label={t("booth.nightBar.break")}
             data-hint={t("booth.nightBar.a_timed_break_after_the_song")}
             onClick={onBreak}
           >
-            <Coffee size={16} strokeWidth={2} aria-hidden /> {t("booth.nightBar.break")}
+            <Coffee size={16} strokeWidth={2} aria-hidden />
+            <span className="booth-tool-l">{t("booth.nightBar.break")}</span>
           </button>
           <button
             type="button"
             className="booth-tool"
             disabled={!started}
             data-testid="booth-night-birthday"
+            aria-label={t("booth.nightBar.birthday_vals")}
             data-hint={t("booth.nightBar.marks_the_next_vals_tanda_for")}
             onClick={() => b.birthdayVals()}
           >
-            <Cake size={16} strokeWidth={2} aria-hidden /> {t("booth.nightBar.birthday_vals")}
+            <Cake size={16} strokeWidth={2} aria-hidden />
+            <span className="booth-tool-l">{t("booth.nightBar.birthday_vals")}</span>
           </button>
         </div>
       </fieldset>

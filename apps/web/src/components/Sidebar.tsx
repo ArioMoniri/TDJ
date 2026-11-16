@@ -168,14 +168,16 @@ export function Sidebar() {
     };
   }, [setCollapsed]);
 
-  // 2026-11 (the owner: "the sidebar structure breaks when sliding"): while the edge is dragged only the sidebar's
-  // own width follows the pointer (one style on its element, no React render per move); the page beside it moves
-  // once, on release — the content never reflows mid-drag, and the rows keep their height at every width
+  // 2026-11 (design review: "a 40 px empty strip mid-drag"): while the edge is dragged the page follows it live —
+  // the width goes to the root's `--sidebar-open-w` once per frame (rAF, no React render per move), so the sidebar,
+  // `main`, the toolbar and the Booth's bottom stack move together; the transitions are off meanwhile
+  const frame = useRef(0);
   const onResizeDown = (e: PointerEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
     drag.current = { x: e.clientX, w: state.w, now: state.w };
     aside.current?.setAttribute("data-resizing", "");
+    document.documentElement.dataset.sidebarResizing = "1";
   };
   const onResizeMove = (e: PointerEvent<HTMLDivElement>) => {
     const d = drag.current;
@@ -183,14 +185,21 @@ export function Sidebar() {
     const w = Math.round(Math.min(MAX_W, Math.max(MIN_W, d.w + e.clientX - d.x)));
     if (w === d.now) return;
     d.now = w;
-    aside.current?.style.setProperty("width", `${w}px`);
+    if (!frame.current)
+      frame.current = requestAnimationFrame(() => {
+        frame.current = 0;
+        const now = drag.current?.now;
+        if (now !== undefined) document.documentElement.style.setProperty("--sidebar-open-w", `${now}px`);
+      });
   };
   const onResizeUp = () => {
     const d = drag.current;
     if (!d) return;
     drag.current = null;
+    if (frame.current) cancelAnimationFrame(frame.current);
+    frame.current = 0;
     aside.current?.removeAttribute("data-resizing");
-    aside.current?.style.setProperty("width", "var(--sidebar-w)");
+    delete document.documentElement.dataset.sidebarResizing;
     update({ ...state, w: d.now });
   };
   const onResizeKey = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -228,7 +237,9 @@ export function Sidebar() {
       <aside
         ref={aside}
         className="side-aside material-thin fixed left-0 top-0 z-40 hidden h-dvh flex-col border-r border-[var(--separator)] lg:flex"
-        style={{ width: "var(--sidebar-w)" }}
+        style={{ width: "var(--sidebar-open-w, 240px)" }}
+        aria-hidden={state.collapsed || undefined}
+        inert={state.collapsed || undefined}
         aria-label={tx("sidebar.sidebar")}
         data-testid="sidebar"
         data-collapsed={state.collapsed || undefined}
@@ -292,12 +303,16 @@ export function Sidebar() {
                     className="shrink-0 transition-transform duration-200"
                     style={{ transform: tonightOpen ? "rotate(90deg)" : undefined }}
                   />
-                  <span className="shrink-0">{tx("sidebar.tonight")}</span>
-                  <span className="side-head-meta ml-auto" data-testid="sidebar-tonight-meta">
-                    {tx("sidebar.tandas", {
-                      length: playlist.tandas.length,
-                      durationSec: lengthText(playlist.stats.durationSec),
-                    })}
+                  {/* 2026-11: the count and length on their own line under "Tonight", never cut nor hidden (the
+                      header's one line cut them at 240 px and hid them below 230 px, mid-drag too) */}
+                  <span className="side-head-label">
+                    <span>{tx("sidebar.tonight")}</span>
+                    <span className="side-head-meta" data-testid="sidebar-tonight-meta">
+                      {tx("sidebar.tandas", {
+                        length: playlist.tandas.length,
+                        durationSec: lengthText(playlist.stats.durationSec),
+                      })}
+                    </span>
                   </span>
                 </button>
               </h2>
@@ -442,13 +457,14 @@ export function Sidebar() {
         />
       </aside>
 
-      {/* collapsed: one glass button brings it back, clear of the traffic lights on the Mac app */}
+      {/* collapsed: one button brings it back, in the page toolbar's row (centred on the title's line) and in the
+          rail the collapsed sidebar leaves (`--sidebar-w`), so the title keeps the content's edge; clear of the
+          traffic lights on the Mac app. Its wrapper is the fixed box: an in-flow wrapper pushed the page down 24 px */}
       {state.collapsed && (
-        <Tip text={tx("sidebar.show_sidebar_s")}>
+        <Tip text={tx("sidebar.show_sidebar_s")} className="side-show">
           <button
             type="button"
-            className="icon-btn icon-btn-glass fixed z-40 hidden lg:grid"
-            style={{ top: "calc(var(--chrome-top) + 14px)", left: "calc(var(--traffic-left) + 12px)" }}
+            className="icon-btn icon-btn-glass"
             aria-label={tx("sidebar.show_sidebar")}
             onClick={() => setCollapsed(false)}
             data-testid="sidebar-show"

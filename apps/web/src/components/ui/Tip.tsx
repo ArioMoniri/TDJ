@@ -13,6 +13,52 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
+/** Fired to take every help tag and hint away at once (a panel opening over the controls they would cover). */
+export const HIDE_HINTS_EVENT = "tdj:hide-hints";
+export function hideHints() {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(HIDE_HINTS_EVENT));
+}
+
+/** the last touch or pen press: a focus that follows it is the tap's, never the keyboard's (no tag on a tap) */
+let lastPress = Number.NEGATIVE_INFINITY;
+if (typeof document !== "undefined")
+  document.addEventListener(
+    "pointerdown",
+    (e) => {
+      lastPress = e.timeStamp;
+    },
+    true,
+  );
+/** a focus by the keyboard (`:focus-visible`), not by a click or a tap */
+export function keyboardFocus(el: Element | null | undefined, timeStamp?: number): boolean {
+  if (!el) return false;
+  if (timeStamp !== undefined && timeStamp - lastPress < 1000) return false;
+  try {
+    return el.matches(":focus-visible");
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * A tag or hint would cover an open panel's controls (`data-hint-shield`, the Booth's Controls panel) its anchor is
+ * not part of: it stays away instead (2026-11, design review: the Controls toggle's tag sat over the Floor buttons).
+ */
+export function coversShield(anchor: Element, top: number, bottom: number): boolean {
+  if (typeof document === "undefined") return false;
+  for (const s of document.querySelectorAll("[data-hint-shield]")) {
+    if (s.contains(anchor)) continue;
+    const r = s.getBoundingClientRect();
+    if (r.height > 0 && bottom > r.top && top < r.bottom) return true;
+  }
+  return false;
+}
+
+/** the keyboard shortcut in a hint ("Next now (→)", "Mute (m)"): only where there is a keyboard or a pointer */
+export function forPointer(text: string, touch: boolean): string {
+  return touch ? text.replace(/\s*\((?:[^()]{1,18})\)(?=\s*$|\s*[.·,;])/g, "").trim() : text;
+}
+
 /**
  * The help tag's behaviour for any element: hover (desktop, after a short rest), long-press (touch) and keyboard focus
  * show it; scrolling, a key or leaving hides it. Spread `props` on the element (they include its ref and its accessible
@@ -23,19 +69,22 @@ export function useTip<T extends HTMLElement = HTMLElement>(text: ReactNode | un
   const id = useId();
   const ref = useRef<T | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [at, setAt] = useState<{ x: number; y: number; above: boolean } | null>(null);
+  const [at, setAt] = useState<{ x: number; y: number; above: boolean; touch?: boolean } | null>(null);
   const clear = useCallback(() => {
     if (timer.current) clearTimeout(timer.current);
     timer.current = null;
   }, []);
-  const show = useCallback(() => {
-    const r = ref.current?.getBoundingClientRect();
-    if (!r) return;
+  const show = useCallback((touch = false) => {
+    const el = ref.current;
+    const r = el?.getBoundingClientRect();
+    if (!el || !r) return;
     const above = r.bottom + 64 > window.innerHeight;
+    if (above ? coversShield(el, r.top - 64, r.top) : coversShield(el, r.bottom, r.bottom + 64)) return;
     setAt({
       x: Math.min(window.innerWidth - 16, Math.max(16, r.left + r.width / 2)),
       y: above ? r.top - 8 : r.bottom + 8,
       above,
+      touch,
     });
   }, []);
   const hide = useCallback(() => {
@@ -43,14 +92,21 @@ export function useTip<T extends HTMLElement = HTMLElement>(text: ReactNode | un
     setAt(null);
   }, [clear]);
   useEffect(() => () => clear(), [clear]);
+  // a pending tag (the hover's rest, a focus) never lands after the hints were taken away
+  useEffect(() => {
+    window.addEventListener(HIDE_HINTS_EVENT, clear);
+    return () => window.removeEventListener(HIDE_HINTS_EVENT, clear);
+  }, [clear]);
   useEffect(() => {
     if (!at) return;
     const off = () => hide();
     window.addEventListener("scroll", off, true);
     window.addEventListener("keydown", off);
+    window.addEventListener(HIDE_HINTS_EVENT, off);
     return () => {
       window.removeEventListener("scroll", off, true);
       window.removeEventListener("keydown", off);
+      window.removeEventListener(HIDE_HINTS_EVENT, off);
     };
   }, [at, hide]);
   const on = text !== undefined && text !== null && text !== "";
@@ -61,15 +117,16 @@ export function useTip<T extends HTMLElement = HTMLElement>(text: ReactNode | un
         onPointerEnter: (e: PointerEvent) => {
           if (e.pointerType !== "mouse") return;
           clear();
-          timer.current = setTimeout(show, 450);
+          timer.current = setTimeout(() => show(), 450);
         },
         onPointerLeave: (e: PointerEvent) => {
           if (e.pointerType === "mouse") hide();
         },
         onPointerDown: (e: PointerEvent) => {
+          // a click hides the tag and it stays away until the pointer leaves (a click is not a rest)
           if (e.pointerType === "mouse") return hide();
           clear();
-          timer.current = setTimeout(show, 500);
+          timer.current = setTimeout(() => show(true), 500);
         },
         onPointerUp: (e: PointerEvent) => {
           if (e.pointerType === "mouse") return;
@@ -80,12 +137,15 @@ export function useTip<T extends HTMLElement = HTMLElement>(text: ReactNode | un
           // the long-press shows the tag instead of the system menu
           if (at) e.preventDefault();
         },
-        onFocus: (e: { target: EventTarget }) => {
+        onFocus: (e: { target: EventTarget; timeStamp?: number }) => {
           clear();
           // a text field being typed in keeps its tag to hover: it would cover what the DJ types
           if ((e.target as HTMLElement).matches?.("input:not([type=checkbox]):not([type=radio]), textarea"))
             return;
-          timer.current = setTimeout(show, 700);
+          // 2026-11: only a keyboard focus shows it — a click or a tap focuses the button too, and its tag then
+          // landed 0.7 s later over whatever the click opened (the Controls panel's Floor buttons)
+          if (!keyboardFocus(e.target as Element, e.timeStamp)) return;
+          timer.current = setTimeout(() => show(), 700);
         },
         onBlur: hide,
       }
@@ -104,7 +164,7 @@ export function useTip<T extends HTMLElement = HTMLElement>(text: ReactNode | un
               transform: `translate(-50%, ${at.above ? "-100%" : "0"})`,
             }}
           >
-            {text}
+            {typeof text === "string" ? forPointer(text, !!at.touch) : text}
           </span>,
           document.body,
         )

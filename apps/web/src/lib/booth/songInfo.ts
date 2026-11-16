@@ -65,7 +65,7 @@ export function keyOf(e: Entity): { camelot: string; name: string; source: strin
   if (!a?.camelot || !a.key || !(a.keyConfidence >= KEY_MIN_CONFIDENCE)) return null;
   return {
     camelot: a.camelot,
-    name: `${SHARP(a.key)} ${a.mode}`,
+    name: `${SHARP(a.key)} ${a.mode === "minor" ? t("booth.songInfo.minor") : t("booth.songInfo.major")}`,
     source: t("booth.songInfo.analysed_preview"),
   };
 }

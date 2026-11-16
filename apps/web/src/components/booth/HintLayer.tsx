@@ -2,6 +2,7 @@
 import "../ui/indicators.css";
 import { useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
+import { coversShield, forPointer, HIDE_HINTS_EVENT, keyboardFocus } from "../ui/Tip";
 
 /**
  * Hover / long-press explanations for any element with `data-hint` inside the page: a pointer shows the bubble
@@ -16,11 +17,23 @@ export function HintLayer() {
   useEffect(() => {
     const target = (ev: Event) =>
       (ev.target as Element | null)?.closest?.<HTMLElement>("[data-hint]") ?? null;
-    const show = (el: HTMLElement) => {
-      const text = el.dataset.hint;
-      if (!text) return;
+    // the element the hint explains: once it leaves the page (a dismissed banner), so does the hint
+    let anchor: HTMLElement | null = null;
+    let watch: ReturnType<typeof setInterval> | null = null;
+    const show = (el: HTMLElement, touch = false) => {
+      const raw = el.dataset.hint;
+      if (!raw) return;
+      // 2026-11: a keyboard shortcut in the words only where there is a keyboard or a pointer
+      const text = forPointer(raw, touch);
       const r = el.getBoundingClientRect();
       const below = r.top < 90;
+      // never over an open panel's controls (the Controls panel over the transport)
+      if (below ? coversShield(el, r.bottom, r.bottom + 72) : coversShield(el, r.top - 72, r.top)) return;
+      anchor = el;
+      if (!watch)
+        watch = setInterval(() => {
+          if (anchor && !anchor.isConnected) hide();
+        }, 250);
       setHint({ text, x: r.left + r.width / 2, y: below ? r.bottom + 8 : r.top - 8, below });
     };
     const clear = () => {
@@ -67,7 +80,8 @@ export function HintLayer() {
     };
     document.addEventListener("pointermove", move);
     const down = (ev: PointerEvent) => {
-      if (ev.pointerType === "mouse") return;
+      // a click takes a hover hint away (it explained what is now being done)
+      if (ev.pointerType === "mouse") return hide();
       lastTouch = ev.timeStamp;
       const el = target(ev);
       clear();
@@ -75,7 +89,7 @@ export function HintLayer() {
       if (!el) return;
       timer.current = setTimeout(() => {
         swallow.current = true;
-        show(el);
+        show(el, true);
       }, 500);
     };
     const up = () => {
@@ -90,13 +104,16 @@ export function HintLayer() {
     };
     const focus = (ev: FocusEvent) => {
       const el = target(ev);
-      if (el && (ev.target as HTMLElement).matches(":focus-visible")) show(el);
+      if (el && keyboardFocus(ev.target as Element, ev.timeStamp)) show(el);
       else setHint(null);
     };
-    const hide = () => {
+    function hide() {
       clear();
+      anchor = null;
+      if (watch) clearInterval(watch);
+      watch = null;
       setHint(null);
-    };
+    }
     document.addEventListener("pointerover", over);
     document.addEventListener("pointerdown", down);
     document.addEventListener("pointerup", up);
@@ -105,8 +122,11 @@ export function HintLayer() {
     document.addEventListener("focusin", focus);
     document.addEventListener("scroll", hide, true);
     document.addEventListener("keydown", hide);
+    window.addEventListener(HIDE_HINTS_EVENT, hide);
     return () => {
       clear();
+      if (watch) clearInterval(watch);
+      window.removeEventListener(HIDE_HINTS_EVENT, hide);
       document.removeEventListener("pointerover", over);
       document.removeEventListener("pointermove", move);
       document.removeEventListener("pointerdown", down);

@@ -4,7 +4,7 @@ import { cortinaSpan, upNext } from "@/lib/booth/nightView";
 import { useBooth } from "@/lib/booth/store";
 import { useBoothSwap } from "@/lib/booth/swap";
 import { t } from "@/lib/i18n";
-import { metaLine, yearSpan } from "@/lib/year";
+import { metaLine, yearSpan, yearText } from "@/lib/year";
 import { Artwork } from "../ui/Artwork";
 import { EraBadge } from "../ui/EraBadge";
 import { TandaTypeBadge } from "../ui/TandaTypeBadge";
@@ -59,7 +59,9 @@ export function NextCard({
       </p>
       {item ? (
         <>
-          <p className="text-caption1 text-[var(--label-2)]">{eyebrowFor(item, tandas)}</p>
+          {/* 2026-11 (DJ review: the eyebrow repeated the orchestra and year the next tanda's card shows again): where
+              it sits over the title, the orchestra and year under it, one line each */}
+          <p className="text-caption1 text-[var(--label-2)]">{eyebrowFor(item, tandas, false)}</p>
           {/* 2026-11: the song is one tap to play (before the night: from here; during it: the headphones) */}
           <button
             type="button"
@@ -82,6 +84,9 @@ export function NextCard({
                 data-next-index={up.next ?? undefined}
               >
                 {item.title}
+              </span>
+              <span className="text-footnote block truncate text-[var(--label-2)]">
+                {metaLine(item.artist, yearText(item.year))}
               </span>
             </span>
             <EraBadge entity={entities[next]} />

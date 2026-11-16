@@ -573,3 +573,150 @@
 .trx-picker-info > p + p {
   margin-top: 6px;
 }
+
+/* =====================================================================================================================
+   2026-11 — design review (iPad Pro 11 landscape): layout and theme only (the lanes' drawing lives in Stage).
+   One 24 px content edge for every block (the header, the songs, the stage card, the presets, the rows), the lanes
+   clipped inside a stage card; a visible title between Close and the actions; no empty band under the header; the
+   presets fill the content width; disabled controls at ≥ 3:1 with a clear disabled look; the list's foot fades while
+   more is below; and the editor follows the app's theme (light tokens under a light root).
+   ===================================================================================================================== */
+.trx {
+  --trx-disabled: rgb(132 128 150);
+  --trx-grid-line: rgb(255 255 255 / 0.07);
+  --trx-grid-bar-line: rgb(255 255 255 / 0.16);
+  --trx-ring: rgb(255 255 255 / 0.12);
+  --trx-chip-ring: rgb(255 255 255 / 0.06);
+  --trx-on-label: rgb(17 16 22);
+  --trx-stage-bg: var(--trx-cell);
+}
+/* the light theme: the same roles on the light surface tokens; the high band darkens so the waveforms read on it */
+html:not(.dark) .trx {
+  --trx-bg: rgb(255 255 255);
+  --trx-cell: rgb(246 243 238);
+  --trx-fill: rgb(234 230 224);
+  --trx-fill-2: rgb(222 217 210);
+  --trx-label: rgb(24 22 30);
+  --trx-label-2: rgb(84 80 96);
+  --trx-label-3: rgb(84 80 96 / 0.6);
+  --trx-sep: rgb(0 0 0 / 0.12);
+  --trx-accent: #b3264f;
+  --trx-box: #1d6fa8;
+  --trx-volume: #a06a00;
+  --trx-eq: #9b2fa3;
+  --trx-low: #2d48dc;
+  --trx-mid: #a5642d;
+  --trx-high: #6b5a3a;
+  --trx-panel: rgb(0 0 0 / 0.07);
+  --trx-disabled: rgb(118 114 130);
+  --trx-grid-line: rgb(0 0 0 / 0.07);
+  --trx-grid-bar-line: rgb(0 0 0 / 0.16);
+  --trx-ring: rgb(0 0 0 / 0.1);
+  --trx-chip-ring: rgb(0 0 0 / 0.08);
+  --trx-on-label: rgb(255 255 255);
+  color-scheme: light;
+}
+@media (min-width: 600px) {
+  .trx {
+    box-shadow:
+      0 0 0 1px var(--trx-ring),
+      0 24px 80px rgb(0 0 0 / 0.35);
+  }
+}
+.trx-grid {
+  stroke: var(--trx-grid-line);
+}
+.trx-grid-bar {
+  stroke: var(--trx-grid-bar-line);
+}
+.trx-key,
+.trx-presets > button[aria-checked="true"] {
+  color: var(--trx-on-label);
+}
+.trx-play,
+.trx-pill {
+  box-shadow:
+    0 0 0 1px var(--trx-chip-ring),
+    0 4px 14px rgb(0 0 0 / 0.25);
+}
+
+/* the header: Close · the title (centred, truncated) · Beta, •••, Save */
+.trx-top > .trx-head {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  line-height: 1.2;
+}
+.trx-head-title {
+  max-width: 100%;
+  font-size: 17px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.trx-head-sub {
+  max-width: 100%;
+  margin-top: 1px;
+  font-size: 13px;
+  color: var(--trx-label-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.trx-side[data-side="out"] {
+  margin-top: 0;
+}
+
+/* one content edge in the panel (iPad, desktop): every block sits on the gutter, the lanes in a clipped stage card
+   (a phone keeps the reference's full-bleed lanes, the rows on its 16 px gutter) */
+@media (min-width: 600px) {
+  .trx-side {
+    margin-inline: var(--trx-gut);
+    padding-inline: 0;
+  }
+  .trx-stage-wrap {
+    margin-inline: var(--trx-gut);
+    margin-top: 8px;
+    border-radius: 16px;
+    background: var(--trx-stage-bg);
+    overflow: hidden;
+  }
+}
+
+/* the presets share the content width evenly (a phone keeps its sideways row) */
+.trx-presets > button {
+  flex: 1 0 112px;
+}
+
+/* disabled: a clear disabled look (no fill, a hairline) at ≥ 3:1 */
+.trx-save:disabled {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--trx-sep);
+  color: var(--trx-disabled);
+}
+.trx-row:disabled {
+  opacity: 1;
+  color: var(--trx-disabled);
+}
+.trx-row:disabled .trx-row-value,
+.trx-row:disabled > svg {
+  color: var(--trx-disabled);
+}
+.trx-row:disabled .trx-tick {
+  opacity: 0.4;
+}
+
+/* the list's foot fades while more is below; the last row scrolls fully clear of it */
+.trx-scroll {
+  scroll-padding-bottom: 48px;
+}
+.trx-scroll[data-more] {
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent);
+}
+.trx-scroll > .trx-rows {
+  padding-bottom: 8px;
+}

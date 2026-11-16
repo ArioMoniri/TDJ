@@ -124,7 +124,8 @@ test("1440: deck beside the set list, the labelled transport in one place, the n
   await expect(page.getByTestId("booth-out-cue")).toContainText("Headphones");
   // the transport: every control on the playing song, labelled
   const strip = page.getByTestId("booth-strip");
-  for (const name of ["Fade", "Crossfade", "Next at gap", "Mute", "Hold", "Talk", "Mix"])
+  // (2026-11: "At gap" on the cell, "Next at gap" its accessible name)
+  for (const name of ["Fade", "Crossfade", "At gap", "Mute", "Hold", "Talk", "Mix"])
     await expect(strip.getByText(name, { exact: true })).toBeVisible();
   await expect(strip.getByTestId("booth-strip-now")).toContainText(
     await page.getByTestId("booth-now-title").innerText(),
