@@ -1,0 +1,64 @@
+/* 2026-11 — Build by hand (components/ManualBuilder.tsx, components/BuildRows.tsx) */
+
+/* the rule chips: every chip and both selects 44 px, one look; an icon sits inline with its word */
+.build-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  min-height: 44px;
+  line-height: 1;
+}
+.build-select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 30px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position:
+    calc(100% - 16px) 50%,
+    calc(100% - 11px) 50%;
+  background-size:
+    5px 5px,
+    5px 5px;
+  background-repeat: no-repeat;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+/* the version rows: two lines, one height */
+.build-version {
+  min-height: 64px;
+}
+.build-version .btn {
+  white-space: nowrap;
+}
+
+/* the ⓘ bubble: the full reasons, never cut */
+.build-info-pop {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 30;
+  width: max-content;
+  max-width: min(320px, calc(100vw - 32px));
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgb(var(--bg-elevated, var(--bg-cell)));
+  color: var(--label);
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
+  font-size: var(--text-footnote, 13px);
+  line-height: 1.35;
+  white-space: normal;
+  text-align: left;
+}
+
+/* a warning under a search result wraps: it is never cut */
+.build-warn {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}

@@ -6,6 +6,7 @@ import "./globals.css";
 import { UpdateWatch } from "@/components/About";
 import { Boot } from "@/components/Boot";
 import { BoothMini } from "@/components/booth/BoothMini";
+import { DeleteNights } from "@/components/DeleteNights";
 import { EditGuide } from "@/components/EditGuide";
 import { EditKeys } from "@/components/EditKeys";
 import { GlobalToast } from "@/components/GlobalToast";
@@ -107,6 +108,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </Suspense>
             <EditGuide />
             <InsertSheet />
+            <DeleteNights />
           </ToolbarProvider>
         </LocaleRoot>
       </body>

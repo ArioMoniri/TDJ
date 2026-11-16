@@ -1,7 +1,21 @@
 "use client";
 import type { Cortina } from "@tdj/core";
 import { renight } from "@tdj/core";
-import { ArrowDown, ArrowUp, Disc3, GripVertical, Lock, LockOpen, Repeat2, SkipForward } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  Disc3,
+  Download,
+  GripVertical,
+  Hammer,
+  ListPlus,
+  Lock,
+  LockOpen,
+  Repeat2,
+  SkipForward,
+  Wand2,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 import { withCortina } from "@/lib/booth/swap";
 import { recordSnapshot, undoEdit } from "@/lib/editHistory";
@@ -9,6 +23,7 @@ import { haptic } from "@/lib/haptics";
 import { t } from "@/lib/i18n";
 import { isAction } from "@/lib/keymap";
 import { lengthOf, tandaTotal, totalText } from "@/lib/lengths";
+import { orchestraName } from "@/lib/orchestraName";
 import { nightItems, PlayListContext } from "@/lib/playback";
 import { moveItem, moveSongInNight } from "@/lib/reorder";
 import { gateEdit } from "@/lib/ruleCheck";
@@ -18,7 +33,7 @@ import { toast } from "@/lib/toast";
 import type { Playlist } from "@/lib/types";
 import { metaLine, yearText } from "@/lib/year";
 import { CortinaPickSheet } from "./CortinaPickSheet";
-import { Group } from "./Form";
+import { Group, Row, Tile } from "./Form";
 import { NightCover } from "./NightCover";
 import { SwapSheet } from "./SwapSheet";
 import { TandaCard } from "./TandaCard";
@@ -52,6 +67,7 @@ export function NightEditor({
   /** the rows' test ids: `<prefix>-tanda-N`, `<prefix>-up-N`, `<prefix>-skip-N`… (the room keeps its own) */
   idPrefix?: string;
 }) {
+  const router = useRouter();
   const playlist = useStore((s) => s.playlist);
   const setPlaylist = useStore((s) => s.setPlaylist);
   const recordNightEdit = useStore((s) => s.recordNightEdit);
@@ -176,7 +192,8 @@ export function NightEditor({
     (i: number, c: Cortina) => {
       const prev = useStore.getState().playlist;
       if (!prev) return;
-      const next = withCortina(prev, i, c);
+      // 2026-11 (rooms): the DJ's pick stays theirs when the cortinas are re-mended or re-picked (core picked)
+      const next = withCortina(prev, i, { ...c, picked: true });
       apply(next, t("nightEditor.cortina_changed", { title: c.title, n: i + 1 }));
       recordSnapshot(t("nightEditor.cortina_changed", { title: c.title, n: i + 1 }), prev, next, setPlaylist);
     },
@@ -198,6 +215,64 @@ export function NightEditor({
             </span>
           </span>
         </div>
+        {/* 2026-11 (the owner: "Empty night — build it together"): an empty night opens here with the ways to fill
+            it; each applies to this night (the room's: every DJ sees it, the cortinas mend themselves) */}
+        {!playlist.tandas.length && (
+          <Group
+            header={t("nightEditor.empty_header")}
+            footer={t("nightEditor.empty_footer")}
+            data-testid="night-editor-empty"
+          >
+            <Row
+              label={t("nightEditor.add_tanda")}
+              sub={t("nightEditor.add_tanda_sub")}
+              tile={
+                <Tile color="#007aff">
+                  <ListPlus size={16} strokeWidth={2} />
+                </Tile>
+              }
+              chevron
+              onClick={() => insertTandaAt(0)}
+              data-testid="night-editor-add-tanda"
+            />
+            <Row
+              label={t("nightEditor.compose")}
+              sub={t("nightEditor.compose_sub")}
+              tile={
+                <Tile color="#af2c5a">
+                  <Wand2 size={16} strokeWidth={2} />
+                </Tile>
+              }
+              chevron
+              onClick={() => router.push("/")}
+              data-testid="night-editor-compose"
+            />
+            <Row
+              label={t("nightEditor.build")}
+              sub={t("nightEditor.build_sub")}
+              tile={
+                <Tile color="#5856d6">
+                  <Hammer size={16} strokeWidth={2} />
+                </Tile>
+              }
+              chevron
+              onClick={() => router.push("/build")}
+              data-testid="night-editor-build"
+            />
+            <Row
+              label={t("nightEditor.import")}
+              sub={t("nightEditor.import_sub")}
+              tile={
+                <Tile color="#34c759">
+                  <Download size={16} strokeWidth={2} />
+                </Tile>
+              }
+              chevron
+              onClick={() => router.push("/import")}
+              data-testid="night-editor-import"
+            />
+          </Group>
+        )}
         {playlist.opening && (
           <Group header={t("composer.opening")} data-testid="night-editor-opening">
             <PlayRow
@@ -255,7 +330,7 @@ export function NightEditor({
                   </button>
                   <TandaArt tanda={x} size={28} />
                   <span className="min-w-0 flex-1 truncate">
-                    <b className="font-semibold">{i + 1}.</b> {x.orchestra}
+                    <b className="font-semibold">{i + 1}.</b> {orchestraName(x)}
                     <span className="text-[var(--label-2)]">
                       {" · "}
                       {rhythmWord(x.rhythm)} · {totalText(total)}
@@ -369,6 +444,7 @@ export function NightEditor({
                   onRemoveSong={removeSongFrom}
                   onInsertTanda={insertTandaAt}
                   onRemoveTanda={removeTandaFrom}
+                  onChangeCortina={setCortinaAt}
                 />
                 {b && (
                   <p

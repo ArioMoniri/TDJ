@@ -387,6 +387,12 @@ export function BoothSwapSheet() {
         testId={list === "s" ? "booth-swap-suggestion" : "booth-swap-result"}
         data={{ id: x.song.id, ok: x.ok ? "1" : x.asks ? "asks" : "0" }}
         dim={!x.ok}
+        menu={{
+          song: s,
+          play: { label: tx("songMenu.prelisten"), run: () => void listen({ song: s }) },
+          playFrom: false,
+          noAddToTonight: true,
+        }}
         art={<Artwork entity={s} orchestra={x.song.orchestra} size={40} />}
         onArt={() => (hearing === x.song.id ? stop() : void listen({ song: s }))}
         artLabel={tx("boothSwap.preview", { title: x.song.title })}
@@ -571,6 +577,12 @@ export function BoothSwapSheet() {
                     key={h.i}
                     testId="booth-swap-tonight-hit"
                     data={{ "plan-index": h.i }}
+                    menu={{
+                      song: e && "orchestraId" in e && "rhythm" in e ? (e as Song) : null,
+                      play: { label: tx("songMenu.prelisten"), run: () => void listen({ i: h.i }) },
+                      playFrom: false,
+                      noAddToTonight: true,
+                    }}
                     where={
                       h.kind === "cortina"
                         ? tx("boothSongSearch.cortina_after", { tanda: h.tanda })

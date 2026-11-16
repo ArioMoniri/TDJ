@@ -253,10 +253,25 @@ function save(c: Custom) {
   } catch {}
 }
 
-/** (read once in the browser; a page that lists the keys renders them after mount, so the server's defaults match) */
-export const useKeymap = create<{ custom: Custom }>(() => ({
+/**
+ * (read once in the browser; a page that lists the keys renders them after mount, so the server's defaults match).
+ * `recording`: a key chip is recording a new key (components/KeyChips.tsx) — no shortcut runs meanwhile.
+ */
+export const useKeymap = create<{ custom: Custom; recording: boolean }>(() => ({
   custom: typeof window !== "undefined" ? load() : {},
+  recording: false,
 }));
+// (another tab of this browser changed the keys — Settings open beside the Booth: this one follows at once)
+if (typeof window !== "undefined" && typeof window.addEventListener === "function")
+  window.addEventListener("storage", (e) => {
+    if (e.key === KEY || e.key === null) useKeymap.setState({ custom: load() });
+  });
+
+/** a chip is (or no longer is) recording: every shortcut of the app holds still meanwhile */
+export function setRecording(on: boolean) {
+  if (useKeymap.getState().recording !== on) useKeymap.setState({ recording: on });
+}
+export const isRecording = () => useKeymap.getState().recording;
 
 /**
  * the combos bound to an action now (the DJ's, else the defaults). A default the DJ gave another action stays that
@@ -276,6 +291,8 @@ export function bindingsOf(id: ActionId, custom: Custom = useKeymap.getState().c
 
 /** does this press run `id`? */
 export function isAction(id: ActionId, e: KeyLike): boolean {
+  // (the key being recorded is the recorder's, never a shortcut's)
+  if (isRecording()) return false;
   return bindingsOf(id).some((c) => matchesCombo(e, c));
 }
 
@@ -308,9 +325,16 @@ export function setBinding(id: ActionId, combos: string[], o: { takeFrom?: boole
   save(custom);
 }
 
+/**
+ * the action's default keys back; a default another action was given since goes back to this one (a Reset that
+ * left "None" would read as broken)
+ */
 export function resetBinding(id: ActionId) {
   const custom: Custom = { ...useKeymap.getState().custom };
   delete custom[id];
+  const def = new Set((ACTIONS.find((a) => a.id === id)?.defaults ?? []).map((c) => keyOf(c)));
+  for (const [other, list] of Object.entries(custom) as Array<[ActionId, string[]]>)
+    if (list.some((c) => def.has(keyOf(c)))) custom[other] = list.filter((c) => !def.has(keyOf(c)));
   useKeymap.setState({ custom });
   save(custom);
 }
@@ -329,4 +353,131 @@ export function subscribeKeymap(fn: () => void): () => void {
 export function useBindings(id: ActionId): string[] {
   const custom = useKeymap((s) => s.custom);
   return bindingsOf(id, custom);
+}
+
+/* ---------- recording a new key on a chip (components/KeyChips.tsx) ---------- */
+
+/** what one press does to a recorder */
+export type RecordStep =
+  /** Esc: nothing changes */
+  | { kind: "cancel" }
+  /** Tab / ⇧Tab: the focus moves on, nothing changes */
+  | { kind: "leave" }
+  /** ⌫ or Delete alone: the chip's key is removed (on "+", nothing is added) */
+  | { kind: "clear" }
+  /** a modifier alone: still waiting for the key */
+  | { kind: "wait" }
+  | { kind: "combo"; combo: string };
+
+export function recordStep(e: KeyLike, mac = isMac()): RecordStep {
+  const anyMod = e.metaKey || e.ctrlKey || e.altKey || e.shiftKey;
+  if (e.key === "Escape" || e.key === "Esc") return { kind: "cancel" };
+  if (e.key === "Tab" && !e.metaKey && !e.ctrlKey && !e.altKey) return { kind: "leave" };
+  if ((e.key === "Backspace" || e.key === "Delete") && !anyMod) return { kind: "clear" };
+  const c = comboOf(e, mac);
+  return c ? { kind: "combo", combo: normalizeCombo(c) } : { kind: "wait" };
+}
+
+/**
+ * Keys the browser or the system keeps for itself (quit, close the tab, a new tab, reload…): a page that took them
+ * would either never see them or take them from the DJ's browser. Keyed as keyOf reads them (Ctrl is `mod` off a Mac).
+ */
+const RESERVED_ALL: Record<string, MsgKey> = {
+  "mod+q": "keys.reserved_quit",
+  "mod+shift+q": "keys.reserved_quit",
+  "mod+w": "keys.reserved_close",
+  "mod+shift+w": "keys.reserved_close",
+  "mod+f4": "keys.reserved_close",
+  "alt+f4": "keys.reserved_close",
+  "mod+t": "keys.reserved_new_tab",
+  "mod+shift+t": "keys.reserved_reopen",
+  "mod+n": "keys.reserved_new_window",
+  "mod+shift+n": "keys.reserved_new_window",
+  "mod+r": "keys.reserved_reload",
+  "mod+shift+r": "keys.reserved_reload",
+  f5: "keys.reserved_reload",
+  "mod+f5": "keys.reserved_reload",
+  "mod+l": "keys.reserved_address",
+  "alt+d": "keys.reserved_address",
+  "mod+tab": "keys.reserved_switch",
+  "mod+shift+tab": "keys.reserved_switch",
+  "alt+tab": "keys.reserved_switch",
+  "mod+pageup": "keys.reserved_switch",
+  "mod+pagedown": "keys.reserved_switch",
+  f11: "keys.reserved_fullscreen",
+  f12: "keys.reserved_devtools",
+  "mod+shift+i": "keys.reserved_devtools",
+  "mod+shift+j": "keys.reserved_devtools",
+  "mod+alt+i": "keys.reserved_devtools",
+  "mod+alt+j": "keys.reserved_devtools",
+};
+const RESERVED_MAC: Record<string, MsgKey> = {
+  "mod+h": "keys.reserved_hide",
+  "mod+alt+h": "keys.reserved_hide",
+  "mod+m": "keys.reserved_minimize",
+  "mod+space": "keys.reserved_spotlight",
+  "mod+`": "keys.reserved_switch",
+  "ctrl+tab": "keys.reserved_switch",
+  "ctrl+shift+tab": "keys.reserved_switch",
+  "mod+ctrl+f": "keys.reserved_fullscreen",
+  "mod+ctrl+q": "keys.reserved_lock",
+};
+
+/** why a combo cannot be a shortcut here (the browser's or the system's), or null */
+export function reservedReason(combo: string, mac = isMac()): MsgKey | null {
+  const k = keyOf(combo, mac);
+  return (mac ? RESERVED_MAC[k] : undefined) ?? RESERVED_ALL[k] ?? null;
+}
+
+export type Proposal =
+  | { status: "reserved"; reason: MsgKey }
+  /** the action already has this key: nothing to change */
+  | { status: "same" }
+  | { status: "conflict"; with: ActionId[] }
+  | { status: "ok" };
+
+/** what binding `combo` to `id` would do: refused (reserved), nothing (its own already), a conflict, or fine */
+export function proposeBinding(id: ActionId, combo: string, custom?: Custom, mac = isMac()): Proposal {
+  const reason = reservedReason(combo, mac);
+  if (reason) return { status: "reserved", reason };
+  const k = keyOf(combo, mac);
+  if (bindingsOf(id, custom).some((b) => keyOf(b, mac) === k)) return { status: "same" };
+  const others = conflictsOf(combo, id, custom);
+  return others.length ? { status: "conflict", with: others } : { status: "ok" };
+}
+
+/**
+ * `combo` on `id`: in the place of `replacing` (a chip's key: every binding that is that key on this platform), or
+ * after the others (`replacing` null: the "+"). `takeFrom` takes it from the actions it conflicted with.
+ */
+export function applyBinding(
+  id: ActionId,
+  combo: string,
+  replacing: string | null,
+  o: { takeFrom?: boolean } = {},
+) {
+  const c = normalizeCombo(combo);
+  const k = keyOf(c);
+  const cur = bindingsOf(id).filter((b) => keyOf(b) !== k);
+  if (replacing === null) return setBinding(id, [...cur, c], o);
+  const rk = keyOf(replacing);
+  const at = cur.findIndex((b) => keyOf(b) === rk);
+  const next = cur.filter((b) => keyOf(b) !== rk);
+  next.splice(at < 0 ? next.length : at, 0, c);
+  setBinding(id, next, o);
+}
+
+/** the chip's key off `id` (every binding that is that key on this platform) */
+export function removeBinding(id: ActionId, combo: string) {
+  const k = keyOf(combo);
+  setBinding(
+    id,
+    bindingsOf(id).filter((b) => keyOf(b) !== k),
+  );
+}
+
+/** are the action's keys its defaults (as they work on this platform)? */
+export function isDefaultBinding(id: ActionId, custom: Custom = useKeymap.getState().custom, mac = isMac()) {
+  const def = ACTIONS.find((a) => a.id === id)?.defaults ?? [];
+  return sameList(shownBindings(bindingsOf(id, custom), mac), shownBindings(def, mac));
 }

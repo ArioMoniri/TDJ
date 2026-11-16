@@ -29,3 +29,12 @@ apps/video/public/clips
 # device copies of server routes the app tests generate (apps/web/scripts/device-routes.mjs)
 apps/web/src/lib/app/__device__/
 .release/
+
+# store creative v2: the captures the app previews read, copied for one render (apps/desktop/store/creative/preview.ts)
+apps/video/public/store-creative
+apps/desktop/fastlane/store-creative.html
+# store creative v2: the app previews are large (about 28 MB each); CI builds them and deliver uploads them from the
+# store-assets artifact, so a local render never commits them
+apps/desktop/fastlane/app_previews
+apps/desktop/fastlane/app_previews_mac
+apps/desktop/fastlane/app_previews_posters

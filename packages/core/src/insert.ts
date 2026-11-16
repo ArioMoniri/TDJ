@@ -1,6 +1,7 @@
+import { attachBooth } from "./booth";
 import { BIG_FOUR, bigFourProblems, sideBpm, sideProblem, tandaRulesOf } from "./coherence";
 import { type ComposeDeps, cumparsitaCandidates, swapTandaOptions } from "./compose";
-import { cortinaPool, familyOf } from "./cortinas";
+import { candidatesFor, cortinaPool, familyOf } from "./cortinas";
 import {
   type ClosingFormat,
   closingFor,
@@ -11,6 +12,7 @@ import {
   openingCumparsita,
 } from "./cumparsita";
 import { isDanceableSong, normTitle } from "./energy";
+import { nightOptions } from "./suggest";
 import { renight, retimeTanda, type SwapOption, setTandaSides } from "./swap";
 import { isTandaEligible } from "./tanda";
 import type { Cortina, DanceRhythm, Playlist, Song, Tanda } from "./types";
@@ -64,15 +66,19 @@ const cortinaWanted = (p: Playlist) => cortinaBeforeClosing(closingFormatOf(p.op
  * cortina of the gap before or after, unused ones first, the energy a little under the next tanda's. The night's
  * style decides: no cortinas → none; one cortina all night → that one.
  */
-export function cortinaForGap(p: Playlist, i: number, deps: Pick<ComposeDeps, "cortinas">): Cortina | null {
+export function cortinaForGap(
+  p: Playlist,
+  i: number,
+  deps: Pick<ComposeDeps, "cortinas">,
+  /** 2026-11 (rooms): the cortinas to choose from (the night's cultures and genres); default the whole pool */
+  from?: Cortina[],
+): Cortina | null {
   const o = p.options;
   if (o.cortinaStyle === "none") return null;
   const others = p.tandas.map((t, k) => (k === i ? null : t.cortina)).filter((c): c is Cortina => !!c);
-  if (o.cortinaStyle === "constant" && others[0]) return { ...others[0] };
-  const pool = cortinaPool(
-    deps.cortinas,
-    o.overrides?.cortinas as Record<string, Cortina | null> | undefined,
-  );
+  if (o.cortinaStyle === "constant" && others[0]) return { ...others[0], picked: undefined };
+  const pool =
+    from ?? cortinaPool(deps.cortinas, o.overrides?.cortinas as Record<string, Cortina | null> | undefined);
   const fams = new Set(others.map(familyOf));
   const near = new Set(
     [p.tandas[i - 1]?.cortina?.id, p.tandas[i + 1]?.cortina?.id].filter((x): x is string => !!x),
@@ -81,7 +87,7 @@ export function cortinaForGap(p: Playlist, i: number, deps: Pick<ComposeDeps, "c
   for (const c of others) used.set(c.id, (used.get(c.id) ?? 0) + 1);
   const fam = pool.filter((c) => fams.has(familyOf(c)));
   const cands = (fam.length ? fam : pool).filter((c) => !near.has(c.id));
-  if (!cands.length) return others[0] ? { ...others[0] } : null;
+  if (!cands.length) return others[0] ? { ...others[0], picked: undefined } : null;
   const target = (p.tandas[i + 1]?.energy ?? p.tandas[i]?.energy ?? 60) - 8;
   const len = others.length
     ? Math.round(others.reduce((a, c) => a + (c.lengthSec ?? o.cortinaLengthSec), 0) / others.length)
@@ -1102,4 +1108,224 @@ export function applyGuideFix(p: Playlist, fix: GuideFix, deps: ComposeDeps, see
       return { playlist: withTandas(np, np.tandas) };
     }
   }
+}
+
+/* ---------- 2026-11: rooms — an empty night built together, its cortinas mended after every edit ---------- */
+
+/**
+ * An empty night (the owner: "Empty night — build it together"): no tandas yet, the night's options, its booth plan
+ * and score as an empty night has them. A room starts with it; the DJs add tandas (Add a tanda, Compose, Build by
+ * hand, Import) and `mendNightCortinas` keeps its cortinas and Cumparsitas right as it grows.
+ */
+export function emptyNight(
+  opts: Partial<Playlist["options"]> = {},
+  o: { name?: string; id?: string; at?: string } = {},
+): Playlist {
+  const at = o.at ?? new Date().toISOString();
+  const options = nightOptions(opts);
+  const shell = {
+    id: o.id ?? `empty-${Date.parse(at).toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+    name: o.name ?? "Empty night",
+    createdAt: at,
+    options,
+    tandas: [],
+    closing: null,
+    opening: null,
+  } as unknown as Playlist;
+  return renight(shell, []);
+}
+
+/** the cortinas a night draws from: its cultures and genres (Compose's own candidates), the pool when none fit */
+function nightCortinaPool(p: Playlist, deps: Pick<ComposeDeps, "cortinas">): Cortina[] {
+  const pool = cortinaPool(
+    deps.cortinas,
+    p.options.overrides?.cortinas as Record<string, Cortina | null> | undefined,
+  );
+  const c = candidatesFor(pool, nightOptions(p.options));
+  return c.length ? c : pool;
+}
+const sameCortinas = (a: Tanda[], b: Tanda[]) =>
+  a.length === b.length &&
+  a.every(
+    (t, i) =>
+      (t.cortina?.id ?? null) === (b[i]!.cortina?.id ?? null) &&
+      (t.cortina?.lengthSec ?? null) === (b[i]!.cortina?.lengthSec ?? null) &&
+      !!t.cortina?.picked === !!b[i]!.cortina?.picked,
+  );
+
+/**
+ * The night's cortinas set right after any edit, as Compose keeps them: every gap with one cortina (none with the
+ * "none" style), never the same cortina twice in a row, the última's by the closing format; a cortina the DJ picked
+ * stays where it is. `refresh` re-picks every automatic cortina (a change of the cortina settings); `cumparsitas`
+ * also gives a night that grew from empty its opening and closing La Cumparsita as its settings ask. The same
+ * night comes back (by reference) when nothing needed mending.
+ */
+export function mendNightCortinas(
+  p: Playlist,
+  deps: ComposeDeps,
+  o: {
+    refresh?: boolean;
+    cumparsitas?: boolean | { open?: boolean; close?: boolean };
+    lengthSec?: number;
+  } = {},
+): Playlist {
+  const n = p.tandas.length;
+  let np = p;
+  // (a night with neither Cumparsita grew from empty: it gets both as its settings ask; a composed night keeps what
+  // the DJ left it — only the settings sheet asks for one by name)
+  if (n && o.cumparsitas === true && !p.opening && !p.closing)
+    np = withCumparsitas(np, deps, { open: true, close: true });
+  else if (n && o.cumparsitas && typeof o.cumparsitas === "object")
+    np = withCumparsitas(np, deps, o.cumparsitas);
+  if (!n) return np;
+  const none = np.options.cortinaStyle === "none";
+  const pool = nightCortinaPool(np, deps);
+  let tandas = np.tandas.map((t) =>
+    none || (o.refresh && t.cortina && !t.cortina.picked) ? { ...t, cortina: null } : t,
+  );
+  if (!none)
+    for (let i = 0; i < n - 1; i++) {
+      const t = tandas[i]!;
+      const cur = t.cortina;
+      const clash =
+        !!cur &&
+        !cur.picked &&
+        (cur.id === tandas[i - 1]?.cortina?.id || cur.id === tandas[i + 1]?.cortina?.id);
+      if (!cur || clash) {
+        const c = cortinaForGap({ ...np, tandas }, i, deps, pool);
+        tandas[i] = { ...t, cortina: c && o.lengthSec ? { ...c, lengthSec: o.lengthSec } : c };
+      }
+    }
+  // the última: the closing format's cortina (kept, or one of the night's), else none
+  const last = tandas[n - 1]!;
+  const want = !none && cortinaWanted(np) && !!np.closing;
+  if (!want && last.cortina) tandas[n - 1] = { ...last, cortina: null };
+  else if (want && !last.cortina) {
+    const c = cortinaForGap({ ...np, tandas }, n - 1, deps, pool);
+    tandas[n - 1] = { ...last, cortina: c && o.lengthSec ? { ...c, lengthSec: o.lengthSec } : c };
+  }
+  if (o.lengthSec)
+    tandas = tandas.map((t) =>
+      t.cortina && t.cortina.lengthSec !== o.lengthSec
+        ? { ...t, cortina: { ...t.cortina, lengthSec: o.lengthSec } }
+        : t,
+    );
+  if (np === p && sameCortinas(tandas, p.tandas)) return p;
+  return withTandas(np, tandas);
+}
+
+/** the opening and closing La Cumparsita a night's settings ask for (those `want` names), when it has none yet */
+function withCumparsitas(
+  p: Playlist,
+  deps: ComposeDeps,
+  want: { open?: boolean; close?: boolean },
+): Playlist {
+  const first = p.tandas[0];
+  const last = p.tandas.at(-1);
+  if (!first || !last) return p;
+  const o = nightOptions(p.options);
+  const place = cumparsitaPlacement(p.options);
+  const fmt = closingFormatOf(p.options);
+  let np = p;
+  if (want.close && fmt !== "none" && place.close && !p.closing) {
+    const s = closingFor(deps.catalog, o, last, p.opening ?? null).song;
+    if (s) np = { ...np, closing: s };
+  }
+  if (want.open && place.open && !p.opening) {
+    const s = openingCumparsita(deps.catalog, o, first, np.closing ?? null).song;
+    if (s) np = { ...np, opening: s };
+  }
+  return np;
+}
+
+/** the DJ picks the cortina after tanda `i` (marked theirs: re-picks and mending keep it) */
+export function pickNightCortina(p: Playlist, i: number, c: Cortina): Playlist {
+  const t = p.tandas[i];
+  if (!t) return p;
+  const len = t.cortina?.lengthSec ?? c.lengthSec ?? p.options.cortinaLengthSec;
+  return withTandas(
+    p,
+    p.tandas.map((x, k) => (k === i ? { ...x, cortina: { ...c, lengthSec: len, picked: true } } : x)),
+  );
+}
+
+/** what a room's "Night settings" sheet changes (each optional; the rest of the night stays) */
+export interface NightSettingsPatch {
+  cortinaCultures?: string[];
+  cortinaGenres?: string[];
+  /** 20–90 s */
+  cortinaLengthSec?: number;
+  /** the cortina's fade-out, 3–6 s (the booth plan) */
+  cortinaFadeOutSec?: number;
+  cortinaChoice?: "auto" | "pick";
+  pattern?: Playlist["options"]["pattern"];
+  lastFourTango?: boolean;
+  closingFormat?: ClosingFormat;
+  /** the opening La Cumparsita */
+  opening?: boolean;
+}
+
+/**
+ * A room's night settings on its night (owner's edits, synced to every DJ): the options change, the cortinas are
+ * re-mended — the cortina culture / genre and "Auto" re-pick the automatic ones (the DJ's picks stay unless Auto),
+ * the length is every cortina's, the closing format decides the última's cortina and La Cumparsita, the opening
+ * La Cumparsita comes or goes.
+ */
+export function applyNightSettings(p: Playlist, patch: NightSettingsPatch, deps: ComposeDeps): Playlist {
+  const opts = { ...p.options } as Playlist["options"];
+  const rules = { ...(opts.rules ?? {}) };
+  let refresh = false;
+  if (patch.cortinaCultures) {
+    opts.cortinaCultures = patch.cortinaCultures.slice(0, 12);
+    refresh = true;
+  }
+  if (patch.cortinaGenres) {
+    if (patch.cortinaGenres.length) opts.cortinaGenres = patch.cortinaGenres.slice(0, 12);
+    else delete opts.cortinaGenres;
+    refresh = true;
+  }
+  let lengthSec: number | undefined;
+  if (typeof patch.cortinaLengthSec === "number" && Number.isFinite(patch.cortinaLengthSec)) {
+    lengthSec = Math.round(Math.min(90, Math.max(20, patch.cortinaLengthSec)));
+    opts.cortinaLengthSec = lengthSec;
+  }
+  let tandas = p.tandas;
+  if (patch.cortinaChoice) {
+    opts.cortinaChoice = patch.cortinaChoice;
+    if (patch.cortinaChoice === "auto") {
+      tandas = tandas.map((t) =>
+        t.cortina?.picked ? { ...t, cortina: { ...t.cortina, picked: undefined } } : t,
+      );
+      refresh = true;
+    }
+  }
+  if (patch.pattern) opts.pattern = patch.pattern;
+  if (typeof patch.lastFourTango === "boolean") rules.lastFourTango = patch.lastFourTango || undefined;
+  let closing = p.closing;
+  let opening = p.opening ?? null;
+  if (patch.closingFormat) {
+    rules.closingFormat = patch.closingFormat;
+    if (patch.closingFormat === "none") closing = null;
+  }
+  if (typeof patch.opening === "boolean") {
+    const close = cumparsitaPlacement({ ...opts, rules }).close;
+    rules.cumparsita = patch.opening ? (close ? "both" : "open") : close ? "close" : "none";
+    delete rules.openWithCumparsita;
+    if (!patch.opening) opening = null;
+  }
+  opts.rules = rules;
+  let np: Playlist = { ...p, options: opts, tandas, closing, opening };
+  if (typeof patch.cortinaFadeOutSec === "number" && Number.isFinite(patch.cortinaFadeOutSec))
+    np = attachBooth(np, { cortinaFadeOutSec: patch.cortinaFadeOutSec });
+  if (lengthSec !== undefined && np.booth?.cortinaStopSec !== undefined)
+    np = attachBooth(np, { cortinaStopSec: lengthSec });
+  const mended = mendNightCortinas(np, deps, {
+    refresh,
+    cumparsitas: {
+      open: patch.opening === true,
+      close: !!patch.closingFormat && patch.closingFormat !== "none",
+    },
+    lengthSec,
+  });
+  return mended === np ? withTandas(np, np.tandas) : mended;
 }

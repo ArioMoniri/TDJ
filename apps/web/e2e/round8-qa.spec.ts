@@ -211,8 +211,9 @@ test("B10 / B17: one Cancel in Clear history; every page has its own title", asy
   await page.goto("/history");
   await expect(page).toHaveTitle("History · T-DJ");
   await page.getByTestId("page-toolbar").getByRole("button", { name: "More", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Clear history…" }).click();
-  const sheet = page.getByRole("dialog", { name: "Clear history" });
+  // (2026-11: "Clear all…" asks in the one delete confirm, components/DeleteNights.tsx)
+  await page.getByRole("menuitem", { name: "Clear all…" }).click();
+  const sheet = page.getByRole("dialog", { name: "Clear all nights" });
   await expect(sheet).toBeVisible();
   expect(await sheet.getByRole("button", { name: "Cancel" }).count()).toBe(1);
   await page.keyboard.press("Escape");

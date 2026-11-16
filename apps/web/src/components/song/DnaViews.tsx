@@ -11,7 +11,9 @@ import { useStore } from "@/lib/store";
 import { Group } from "../Form";
 import { Artwork } from "../ui/Artwork";
 import { TandaTypeBadge } from "../ui/TandaTypeBadge";
+import { DnaChart } from "./DnaChart";
 import { DnaLink } from "./DnaLink";
+import { OtherVersions } from "./OtherVersions";
 import { SidesList } from "./SidesList";
 import { lengthText } from "./SongFacts";
 import "./song.css";
@@ -88,9 +90,6 @@ export function SongDnaView({ id }: { id: string }) {
     const k = r.year ? `${Math.floor(r.year / 10) * 10}s` : t("song.undated");
     byDecade.set(k, [...(byDecade.get(k) ?? []), r]);
   }
-  const lo = d.work.firstYear ?? 1900;
-  const hi = Math.max(lo + 1, d.work.lastYear ?? lo + 1);
-  const stack = new Map<number, number>();
   return (
     <article
       className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 pb-6"
@@ -161,40 +160,12 @@ export function SongDnaView({ id }: { id: string }) {
       <section>
         <h2 className="section-head">{t("song.dna_timeline")}</h2>
         <div className="group-inset">
-          <div className="dna-timeline" data-testid="dna-timeline" aria-hidden>
-            {d.recordings.map((r) => {
-              if (!r.year) return null;
-              const n = stack.get(r.year) ?? 0;
-              stack.set(r.year, n + 1);
-              return (
-                <span
-                  key={r.id}
-                  className="dna-timeline-dot"
-                  data-vocal={r.vocal || undefined}
-                  data-current={r.current || undefined}
-                  style={{ left: `${((r.year - lo) / (hi - lo)) * 100}%`, bottom: Math.min(48, n * 9) }}
-                  title={`${r.year} · ${r.orchestra}`}
-                />
-              );
-            })}
-          </div>
-          <div className="text-caption1 flex justify-between px-4 pb-2 tabular-nums text-[var(--label-2)]">
-            <span>{lo}</span>
-            <span className="flex flex-wrap items-center justify-center gap-x-2">
-              <span className="inline-flex items-center gap-1">
-                <i className="dna-key" data-vocal="" aria-hidden /> {t("song.dna_key_vocal")}
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <i className="dna-key" aria-hidden /> {t("song.dna_key_instrumental")}
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <i className="dna-key" data-current="" aria-hidden /> {t("song.dna_key_this")}
-              </span>
-            </span>
-            <span>{hi}</span>
-          </div>
+          <DnaChart recordings={d.recordings} sides={d.sides} title={d.work.title} />
         </div>
       </section>
+
+      {/* 2026-11: every version with its cover and sources (the catalogue's and Spotify's), this recording first */}
+      {me && <OtherVersions song={me} />}
 
       <section data-testid="dna-recordings">
         <h2 className="section-head">{t("song.dna_every_recording", { n: d.work.count })}</h2>

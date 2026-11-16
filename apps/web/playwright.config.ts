@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import { DUO, type DuoPosture, duo } from "./e2e/devices";
 
 // CHROMIUM unset: the cloud session's pre-installed browser; CHROMIUM= (empty, as CI sets it): Playwright's own
 const chromium = process.env.CHROMIUM ?? "/opt/pw-browsers/chromium";
@@ -28,7 +29,10 @@ export default defineConfig({
   },
   projects: [
     // every spec at the default (desktop) viewport, as before the tablet projects existed
-    { name: "default", testIgnore: /round6-tablet|round7-corners|round23|wave2-layout|search\.spec/ },
+    {
+      name: "default",
+      testIgnore: /round6-tablet|round7-corners|round23|wave2-layout|search\.spec|duo-fold/,
+    },
     // 2026-11: the shared search on the Library and the Database, on a desktop and an iPhone 15 Pro (Chromium with the
     // phone's viewport, scale, touch and user agent)
     {
@@ -128,6 +132,15 @@ export default defineConfig({
       name: `wave2-${name}`,
       testMatch: /wave2-layout/,
       use: { ...use, browserName: "chromium" as const, defaultBrowserType: undefined, launchOptions },
+    })),
+    // 2026-11: iPhone Duo, each posture (e2e/devices.ts: viewport, 3x, touch, user agent; safe areas through CDP). The
+    // fold spec opens in one posture and folds or unfolds to the other with the page kept; the layout specs
+    // (wave4-mobile, booth-ui2, qa) run the folded and open rows in their own matrices (`--grep "iPhone Duo"`).
+    ...(Object.keys(DUO) as DuoPosture[]).map((posture) => ({
+      name: `iphone-duo-${posture}`,
+      testMatch: /duo-fold/,
+      use: { ...duo(posture), browserName: "chromium" as const, launchOptions },
+      metadata: { posture },
     })),
   ],
   webServer: process.env.TDJ_URL

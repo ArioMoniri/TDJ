@@ -1,11 +1,14 @@
 "use client";
 import { type Song, singerDisplay, workCredit } from "@tdj/core";
 import { ChevronRight, Dna } from "lucide-react";
+import { useState } from "react";
+import { analyseSong, useMeasuring } from "@/lib/analyze";
 import { t } from "@/lib/i18n";
 import { fmtLen } from "@/lib/lengths";
+import { bpmText, keyText, useSongData } from "@/lib/songView";
 import { Group } from "../Form";
 import { Artwork } from "../ui/Artwork";
-import { BpmKey, EnergyChip } from "../ui/BpmKey";
+import { EnergyChip } from "../ui/BpmKey";
 import { TandaTypeBadge } from "../ui/TandaTypeBadge";
 import { DnaLink } from "./DnaLink";
 
@@ -94,13 +97,7 @@ export function SongFacts({ song, header = true }: { song: Song; header?: boolea
           />
         )}
         {song.album && <Fact label={t("song.album")} value={<span lang="es">{song.album}</span>} />}
-        <div className="cell" data-testid="song-tempo">
-          <span className="min-w-0 flex-1">{t("song.tempo_key_energy")}</span>
-          <span className="flex flex-wrap items-center justify-end gap-1.5">
-            <BpmKey e={song} />
-            <EnergyChip e={song} />
-          </span>
-        </div>
+        <TempoFact song={song} />
         {/* (QA fix 2026-11: "Credits: Not known yet" — the row shows only when the credits are known) */}
         {credit && (
           <Fact
@@ -150,6 +147,58 @@ export function SongFacts({ song, header = true }: { song: Song; header?: boolea
         </DnaLink>
       </Group>
     </>
+  );
+}
+
+/**
+ * "Tempo · key · energy" (2026-11, the owner: it showed nothing for most sides): the BPM and key every row prints
+ * (lib/songView.ts — the DJ's edit, the analysed preview, a source, the index), the energy; "Measure" when neither is
+ * known (the DJ's file, else the 30 s clip: lib/analyze.ts, which says how it went).
+ */
+function TempoFact({ song }: { song: Song }) {
+  const { song: eff, data } = useSongData(song);
+  const bpm = bpmText(data);
+  const key = keyText(data);
+  const measuring = useMeasuring((m) => m.progress[song.id]);
+  const [busy, setBusy] = useState(false);
+  const energy = typeof eff.energy === "number" ? Math.round(eff.energy) : null;
+  return (
+    <div className="cell" data-testid="song-tempo" data-known={bpm || key ? "1" : undefined}>
+      <span className="min-w-0 flex-1">{t("song.tempo_key_energy")}</span>
+      <span className="flex flex-wrap items-center justify-end gap-1.5">
+        {bpm && (
+          <span className="booth-ind tabular-nums" data-testid="song-bpm">
+            {bpm}
+          </span>
+        )}
+        {key && (
+          <span className="booth-ind font-mono" data-testid="song-key">
+            {key}
+          </span>
+        )}
+        {!bpm && !key && (
+          <button
+            type="button"
+            className="btn-plain -my-2 min-h-11 px-2 text-[var(--tint)]"
+            disabled={busy || measuring !== undefined}
+            onClick={async () => {
+              setBusy(true);
+              try {
+                await analyseSong(song, song.rhythm);
+              } finally {
+                setBusy(false);
+              }
+            }}
+            data-testid="song-tempo-measure"
+          >
+            {measuring !== undefined
+              ? t("analyze.measuring", { p: Math.round(measuring * 100) })
+              : t("song.measure_short")}
+          </button>
+        )}
+        {energy !== null && <EnergyChip e={eff} />}
+      </span>
+    </div>
   );
 }
 

@@ -8,18 +8,12 @@ import { BOOTH_RANGES, durationLabel } from "@/lib/booth/plan";
 import { useBooth, useRoomCaps } from "@/lib/booth/store";
 import { useMediaQuery } from "@/lib/hooks";
 import { fmtNumber, fmtSec, lazy, t as tx } from "@/lib/i18n";
-import {
-  ACTIONS,
-  type ActionId,
-  bindingsOf,
-  formatCombo,
-  shownBindings,
-  useBindings,
-  useKeymap,
-} from "@/lib/keymap";
+import { ACTIONS, type ActionId, resetAllBindings, useKeymap } from "@/lib/keymap";
 import { useStore } from "@/lib/store";
+import { toast } from "@/lib/toast";
 import { CORTINA_STOP_RANGE, cortinaStopSec } from "@/lib/types";
 import { ActionRow, Group, Row, SegmentedRow, StepperRow, SwitchRow, secUnit } from "../Form";
+import { KeyChips, KeyRow, KeyStatus } from "../KeyChips";
 import { Sheet } from "../Sheet";
 import { Stepper } from "../ui";
 import { Fader } from "./Fader";
@@ -34,16 +28,7 @@ const KEY_ACTION: Record<string, ActionId> = {
   h: "booth.hold",
   c: "booth.cueCortina",
 };
-const Kbd = ({ k }: { k: string }) => {
-  const bound = useBindings(KEY_ACTION[k] ?? "booth.keys");
-  const shown = KEY_ACTION[k] ? (bound[0] ? formatCombo(bound[0]) : "") : k;
-  if (!shown) return null;
-  return (
-    <kbd className="booth-kbd text-footnote rounded bg-[var(--fill-3)] px-1.5 py-0.5 text-[var(--label-2)]">
-      {shown}
-    </kbd>
-  );
-};
+const actionDef = (id: ActionId) => ACTIONS.find((a) => a.id === id)!;
 
 /** A tappable row with its keyboard shortcut on the right (the Mix sheet's transport actions). */
 function KeyAction({
@@ -61,20 +46,28 @@ function KeyAction({
   disabled?: boolean;
   testId: string;
 }) {
+  // 2026-11: the key beside the action is a chip that records a new key (components/KeyChips.tsx), a button of
+  // its own next to the action's (never one inside the other)
+  const action = actionDef(KEY_ACTION[k]!);
   return (
-    <button
-      type="button"
-      className="cell cell-tap w-full text-left disabled:text-[var(--label-3)]"
-      onClick={onClick}
-      disabled={disabled}
-      data-testid={testId}
-    >
-      <span className="min-w-0 flex-1">
-        <span className="block text-[var(--tint)]">{label}</span>
-        {sub && <span className="text-footnote block text-[var(--label-2)]">{sub}</span>}
+    <div className="cell flex-wrap" style={{ padding: 0, gap: 0 }}>
+      <button
+        type="button"
+        className="cell cell-tap min-w-0 flex-1 text-left disabled:text-[var(--label-3)]"
+        onClick={onClick}
+        disabled={disabled}
+        data-testid={testId}
+      >
+        <span className="min-w-0 flex-1">
+          <span className="block text-[var(--tint)]">{label}</span>
+          {sub && <span className="text-footnote block text-[var(--label-2)]">{sub}</span>}
+        </span>
+      </button>
+      <span className="pr-2">
+        <KeyChips action={action} compact />
       </span>
-      <Kbd k={k} />
-    </button>
+      <KeyStatus action={action} className="basis-full px-[var(--cell-px)] pb-2" />
+    </div>
   );
 }
 
@@ -560,33 +553,13 @@ const FIXED_KEYS: Array<[string, string]> = lazy(() => [
 
 /**
  * The keyboard sheet (?): every shortcut as the DJ bound it on this device (lib/keymap.ts), the Booth's first, then
- * the edit keys; "Change keys…" opens Settings → Keyboard.
+ * the edit keys. 2026-11: each key is a chip — tap it and press the new keys (components/KeyChips.tsx), the same
+ * store as Settings → Keyboard; Reset all keys; "Change keys…" still opens Settings → Keyboard. The sheet opens on its
+ * title, so no button wears a focus ring before the DJ moves the focus.
  */
 export function ShortcutsSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const custom = useKeymap((s) => s.custom);
-  const row = (a: (typeof ACTIONS)[number]) => {
-    const keys = shownBindings(bindingsOf(a.id, custom));
-    return (
-      <Row
-        key={a.id}
-        label={tx(a.label)}
-        data-testid={`shortcut-${a.id}`}
-        value={
-          keys.length ? (
-            <span className="inline-flex flex-wrap justify-end gap-1">
-              {keys.map((c) => (
-                <kbd key={c} className="text-footnote rounded bg-[var(--fill-3)] px-1.5 py-0.5">
-                  {formatCombo(c)}
-                </kbd>
-              ))}
-            </span>
-          ) : (
-            tx("keys.none")
-          )
-        }
-      />
-    );
-  };
+  const changed = useKeymap((s) => Object.keys(s.custom).length > 0);
+  const row = (a: (typeof ACTIONS)[number]) => <KeyRow key={a.id} action={a} testId={`shortcut-${a.id}`} />;
   return (
     <Sheet
       open={open}
@@ -594,6 +567,7 @@ export function ShortcutsSheet({ open, onClose }: { open: boolean; onClose: () =
       title={tx("booth.sheets.keyboard")}
       trailing={tx("booth.sheets.done")}
       testId="booth-shortcuts"
+      initialFocus="title"
     >
       <Group header={tx("keys.group_booth")} footer={tx("booth.sheets.shortcuts_are_ignored_while_a_text")}>
         {ACTIONS.filter((a) => a.group === "booth").map(row)}
@@ -607,6 +581,19 @@ export function ShortcutsSheet({ open, onClose }: { open: boolean; onClose: () =
       </Group>
       <Group header={tx("keys.group_edit")} footer={tx("keys.sheet_footer")}>
         {ACTIONS.filter((a) => a.group === "edit").map(row)}
+      </Group>
+      <Group>
+        <ActionRow
+          label={tx("keys.reset_all")}
+          tip={tx("keys.reset_all_tip")}
+          destructive
+          disabled={!changed}
+          onClick={() => {
+            resetAllBindings();
+            toast(tx("keys.reset_all_done"));
+          }}
+          id="shortcuts-reset-all"
+        />
         <ActionRow
           label={tx("keys.change")}
           onClick={() => {

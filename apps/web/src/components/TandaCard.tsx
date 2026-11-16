@@ -27,6 +27,7 @@ import { useMediaQuery } from "@/lib/hooks";
 import { lazy, lower, t as tx } from "@/lib/i18n";
 import { type Cue, fmtLen, lengthOf, tandaTotal, totalText } from "@/lib/lengths";
 import { CARD_STAGGER_CAP, DUR, EASE, STAGGER } from "@/lib/motion";
+import { orchestraName } from "@/lib/orchestraName";
 import { cortinaWindow, PlayListContext, playTanda, useTapPlay } from "@/lib/playback";
 import type { PlayItem } from "@/lib/player";
 import { useStore } from "@/lib/store";
@@ -101,6 +102,8 @@ export interface TandaCardProps {
   onInsertTanda?: (at: number) => void;
   /** 2026-11: "Remove tanda" (its cortina handled by the engine) */
   onRemoveTanda?: (i: number) => void;
+  /** 2026-11 (rooms): the cortina row's "Change" — opens the cortina picker for the gap after tanda `i` */
+  onChangeCortina?: (i: number) => void;
 }
 
 /** A tanda as one inset group: artwork tile + title row, track rows, cortina row, Listen (row on phone, menu on desktop). */
@@ -128,6 +131,7 @@ function TandaCardImpl({
   onRemoveSong,
   onInsertTanda,
   onRemoveTanda,
+  onChangeCortina,
 }: TandaCardProps) {
   const cortinaTip = useTip<HTMLButtonElement>(tx("tandaCard.the_cortina_after_this_tanda_open"));
   const reduced = useReducedMotion();
@@ -316,7 +320,7 @@ function TandaCardImpl({
               </span>
             </TandaPlayCover>
             <span className="min-w-0 flex-1">
-              <h3 className="text-headline truncate">{t.orchestra}</h3>
+              <h3 className="text-headline truncate">{orchestraName(t)}</h3>
               <span className="text-subhead block truncate text-[var(--label-2)]">
                 <span className="sr-only">{t.rhythm} · </span>
                 {sub}
@@ -628,6 +632,7 @@ function TandaCardImpl({
               onToggle={() => setCortinaOpen((v) => !v)}
               controls={`cortina-${i + 1}`}
               tip={cortinaTip}
+              onChange={onChangeCortina ? () => onChangeCortina(i) : undefined}
             />
             <AnimatePresence initial={false}>
               {(cortinaOpen || listen) && (
@@ -666,6 +671,7 @@ function CortinaRow({
   onToggle,
   controls,
   tip,
+  onChange,
 }: {
   c: NonNullable<Tanda["cortina"]>;
   list: { label: string; items: PlayItem[] };
@@ -675,6 +681,7 @@ function CortinaRow({
   onToggle: () => void;
   controls: string;
   tip: ReturnType<typeof useTip<HTMLButtonElement>>;
+  onChange?: () => void;
 }) {
   const item = useMemo<PlayItem>(() => ({ kind: "cortina", cortina: c, where }), [c, where]);
   const play = useTapPlay(item, list);
@@ -726,6 +733,21 @@ function CortinaRow({
           {fmtLen(w.stop - w.start)}
         </span>
       </button>
+      {onChange && (
+        <button
+          type="button"
+          className="btn-plain min-h-11 shrink-0 px-2"
+          onClick={() => {
+            haptic(4);
+            onChange();
+          }}
+          aria-label={tx("tandaCard.change_cortina_named", { where, title: c.title })}
+          data-testid="cortina-change"
+          data-picked={c.picked ? "" : undefined}
+        >
+          {tx("tandaCard.change_cortina")}
+        </button>
+      )}
       <button
         type="button"
         className="icon-btn icon-btn-bare mr-1 h-11 w-11 shrink-0"

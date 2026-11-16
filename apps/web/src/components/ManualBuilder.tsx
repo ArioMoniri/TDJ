@@ -1,9 +1,11 @@
 "use client";
+import "./build.css";
 import {
   type ComposeOptions,
   emptyMemory,
   learnedForRequest,
   type Playlist,
+  patternString,
   rememberEdit,
   type Song,
   type SuggestWhy,
@@ -15,13 +17,19 @@ import {
   ArrowUp,
   Check,
   CheckSquare,
+  ChevronDown,
   GripVertical,
   Heart,
+  Info,
   ListPlus,
   Plus,
+  Redo2,
+  RotateCcw,
+  Search,
   Sparkles,
   Square,
   Trash2,
+  Undo2,
   Wand2,
 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
@@ -47,24 +55,29 @@ import {
   slimSong,
 } from "@/lib/build";
 import { BIG_FOUR_NAME, type GuideFix, type GuideLine, guideLines } from "@/lib/buildGuide";
-import { recordSnapshot, undoEdit } from "@/lib/editHistory";
+import { recordSnapshot, useEditHistory } from "@/lib/editHistory";
+import { runHistory } from "@/lib/editToast";
 import { suggestReasons } from "@/lib/engineText";
 import { haptic } from "@/lib/haptics";
 import { makeSnapshot } from "@/lib/history";
 import { useMediaQuery } from "@/lib/hooks";
 import { lazy, t as tx } from "@/lib/i18n";
+import { bindingsOf, formatCombo } from "@/lib/keymap";
 import { fmtLen, tandaTotal, totalText } from "@/lib/lengths";
 import { DUR, EASE } from "@/lib/motion";
+import { orchestraName } from "@/lib/orchestraName";
 import { PlayListContext } from "@/lib/playback";
 import type { PlayItem } from "@/lib/player";
 import { requestFavourites } from "@/lib/popularity";
 import { adoptDraftExceptions, DRAFT_NIGHT, gateEdit } from "@/lib/ruleCheck";
 import type { Version } from "@/lib/smartSearch";
+import { openSongDetails } from "@/lib/songOpen";
 import { fullOptions, useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import type { Cortina } from "@/lib/types";
 import { useSmartSearch } from "@/lib/useSmartSearch";
 import { metaLine, yearText } from "@/lib/year";
+import { BuildVersionRow, ReasonInfo, type VersionFit } from "./BuildRows";
 import { Group, RhythmTile, Row, SegmentedRow, SwitchRow } from "./Form";
 import { Menu } from "./Menu";
 import { PageHeader } from "./PageHeader";
@@ -187,8 +200,27 @@ const saveMeta = (m: Meta) => {
   } catch {}
 };
 const yearsText = (y: [number, number] | null) => (y ? (y[0] === y[1] ? `${y[0]}` : `${y[0]}–${y[1]}`) : "");
-const family = (s: { orchestra: string; singer: string | null }) =>
-  `${s.orchestra}${s.singer ? ` / ${singerDisplay(s.singer)}` : tx("manualBuilder.instrumental")}`;
+/** "Di Sarli / Rufino", "Héctor Mauré with guitars" (a solo singer's side names no orchestra: lib/orchestraName.ts) */
+const family = (s: { orchestra: string; orchestraId?: string; singer: string | null }) => {
+  const o = orchestraName(s);
+  if (o !== s.orchestra) return o;
+  return `${s.orchestra}${s.singer ? ` / ${singerDisplay(s.singer)}` : tx("manualBuilder.instrumental")}`;
+};
+const FILL_ITEMS = ["tanda", "cycle", "target", "all"] as const;
+type FillScope = (typeof FILL_ITEMS)[number];
+/** what a fill would add, shown in the guide before it applies */
+interface FillPreview {
+  scope: FillScope;
+  /** the night it was asked on */
+  base: Draft;
+  draft: Draft;
+  added: number;
+  sides: number;
+  minutes: number;
+  rhythms: string[];
+}
+/** the builder's page (the undo history keeps its edits under it) */
+const SCOPE = "/build";
 const RHYTHM_ITEMS: Array<["auto" | "tango" | "vals" | "milonga", string]> = lazy(() => [
   ["auto", tx("manualBuilder.next_in_cycle")],
   ["tango", tx("manualBuilder.tango")],
@@ -335,6 +367,58 @@ export function ManualBuilder() {
     saveDraft(d);
     if (cortinas) setMeta((m) => ({ ...m, cortinas }));
   };
+  // 2026-11 (the owner: "Undo / Redo in the header, Reset with a confirm"): the buttons walk the one history
+  const canUndo = useEditHistory((s) => s.past.some((e) => e.scope === SCOPE));
+  const canRedo = useEditHistory((s) => s.future.some((e) => e.scope === SCOPE));
+  const [resetOpen, setResetOpen] = useState(false);
+  // (the keys read after mount: ⌘ on a Mac, Ctrl elsewhere, the DJ's own bindings; ⌘Y / Ctrl+Y shown for redo)
+  const [keys, setKeys] = useState({ undo: "", redo: "" });
+  useEffect(
+    () =>
+      setKeys({
+        undo: formatCombo(bindingsOf("edit.undo")[0] ?? "mod+z"),
+        redo: formatCombo(
+          bindingsOf("edit.redo").find((c) => c.endsWith("+y")) ?? bindingsOf("edit.redo")[0] ?? "mod+y",
+        ),
+      }),
+    [],
+  );
+  const [preview, setPreview] = useState<FillPreview | null>(null);
+  const tonight = useStore((s) => s.playlist);
+  /** the whole builder (the night and its cortinas and Cumparsitas) to another state, as one undoable edit */
+  const replaceAll = (d: Draft, m: Meta, label: string) => {
+    const before = { d: draftRef.current, m: metaRef.current };
+    const put = (x: { d: Draft; m: Meta }) => {
+      putDraft(x.d);
+      setMeta(() => x.m);
+      setSel(x.d.length ? x.d.length - 1 : "new");
+    };
+    recordSnapshot(label, before, { d, m }, put, SCOPE);
+    put({ d, m });
+    setPlace(null);
+    setPreview(null);
+    toast(label, () => void runHistory("undo", { scope: SCOPE }));
+  };
+  const resetEmpty = () => {
+    setResetOpen(false);
+    haptic(8);
+    replaceAll([], EMPTY_META, tx("build.reset_done_empty"));
+  };
+  const resetTonight = () => {
+    setResetOpen(false);
+    if (!tonight?.tandas.length) return;
+    haptic(8);
+    const d = draftOf(tonight);
+    replaceAll(
+      d,
+      {
+        cortinas: tonight.tandas.slice(0, -1).map((t) => t.cortina ?? null),
+        opening: !!tonight.opening,
+        closing: !!tonight.closing,
+      },
+      tx("build.reset_done_tonight", { name: tonight.name }),
+    );
+  };
   const selIndex = sel === "new" ? -1 : Math.min(sel, draft.length - 1);
 
   // the live suggestions, again after every change
@@ -476,30 +560,65 @@ export function ManualBuilder() {
       : place?.kind === "tanda" || sel === "new"
         ? []
         : (draft[selIndex] ?? []);
-  /** one line under each version: what it does to that tanda (information, not a gate) */
-  const fitLine = (v: Version) => {
+  /**
+   * what a version does to that tanda (information, not a gate): one line for the row — the first thing that matters,
+   * ⚠ when it breaks the tanda — and every reason for its ⓘ (2026-11: never a cut warning)
+   */
+  const fitOf = (v: Version): VersionFit | null => {
     if (!v.hit) return null;
     const f = draftFit(target, slimSong(v.song));
+    if (!target.length) {
+      const line = tx("build.fit.new_tanda", { t: fmtLen(f.totalSec) });
+      return { short: line, full: [line], warn: false };
+    }
     const bits: string[] = [];
-    if (f.inTanda) bits.push(tx("build.fit.in_tanda"));
+    const warns: string[] = [];
+    if (f.inTanda) warns.push(tx("build.fit.in_tanda"));
     if (f.orchestra === "same") bits.push(tx("build.fit.same_orchestra"));
     else if (f.orchestra === "differs")
-      bits.push(tx("build.fit.other_orchestra", { a: v.song.orchestra, b: target[0]?.orchestra ?? "" }));
+      warns.push(
+        tx("build.fit.other_orchestra", {
+          a: orchestraName(v.song),
+          b: target[0] ? orchestraName(target[0]) : "",
+        }),
+      );
     if (f.singer === "differs" && f.singers)
-      bits.push(tx("build.fit.singer_differs", { a: f.singers[0], b: f.singers[1] }));
-    else if (f.singer === "voice") bits.push(tx("build.fit.voice_differs"));
-    if (f.rhythm === "differs") bits.push(tx("build.fit.rhythm_differs", { r: rhythmWord(v.song.rhythm) }));
+      warns.push(tx("build.fit.singer_differs", { a: f.singers[0], b: f.singers[1] }));
+    else if (f.singer === "voice") warns.push(tx("build.fit.voice_differs"));
+    if (f.rhythm === "differs") warns.push(tx("build.fit.rhythm_differs", { r: rhythmWord(v.song.rhythm) }));
     if (f.years)
       bits.push(
         tx("build.fit.years", { y: f.years[0] === f.years[1] ? `${f.years[0]}` : f.years.join("–") }),
       );
     bits.push(tx("build.fit.total", { t: fmtLen(f.totalSec) }));
-    return (
-      <span className="text-caption1 block text-[var(--label-2)]" data-testid="build-fit-line">
-        {target.length ? bits.join(" · ") : tx("build.fit.new_tanda", { t: fmtLen(f.totalSec) })}
-      </span>
-    );
+    const warn = warns.length > 0;
+    const head = warn ? warns[0]! : tx("build.fit.fits");
+    return {
+      // (the first thing that matters, then the years and the tanda's length; the rest behind ⓘ)
+      short: [head, ...bits].join(" · "),
+      full: [...warns, ...bits],
+      warn,
+    };
   };
+  /** the … menu of a version: a new tanda with it, into another tanda, its details */
+  const versionMenu = (v: Version) => [
+    {
+      label: tx("builder.start_new_with"),
+      icon: ListPlus,
+      onClick: () => addVersion(v, true),
+      testId: "build-version-new",
+    },
+    ...draft.slice(0, 12).map((t, i) => ({
+      label: tx("builder.add_to_tanda", { n: i + 1, family: family(t[0]!) }),
+      icon: Plus,
+      onClick: () => void addTo([slimSong(v.song)], i),
+    })),
+    {
+      label: tx("build.song_details"),
+      icon: Info,
+      onClick: () => openSongDetails(v.song),
+    },
+  ];
   const togglePick = (s: DraftSong) =>
     setPicked((p) => (p.some((x) => x.id === s.id) ? p.filter((x) => x.id !== s.id) : [...p, s]));
   const addPicked = async (where: number | "new") => {
@@ -538,8 +657,15 @@ export function ManualBuilder() {
     setSel(draft.length - 2 >= 0 ? Math.min(ti, draft.length - 2) : "new");
   };
 
-  // Fill the rest: the engine fills the open tanda and the slots left; the DJ's tandas stay as they are
-  const fillRest = async () => {
+  /**
+   * 2026-11 (the owner: "Fill the rest becomes a menu, each previewed in the guide before applying"): the engine fills
+   * the open tanda, then as far as the scope says — the next tanda, one rhythm cycle, the target length, everything
+   * (core suggest.ts fillDraft); the DJ's tandas stay as they are. The guide shows what it would add; Apply makes it
+   * one undoable edit.
+   */
+  const fillSeq = useRef(0);
+  const previewFill = async (scope: FillScope) => {
+    const n = ++fillSeq.current;
     setFilling(true);
     try {
       const r = await fetch("/api/build", {
@@ -548,22 +674,54 @@ export function ManualBuilder() {
         body: JSON.stringify({
           draft: draftIds(draft),
           options,
-          fill: true,
+          fill: scope,
           favourites,
           learned: learnedForRequest({ ...emptyMemory(), learned: myLearned, repoLearned }, settings.learn),
         }),
+      }).catch(() => null);
+      const j = r?.ok
+        ? ((await r.json()) as Partial<FillPreview> & { draft?: Draft })
+        : ({} as Partial<FillPreview>);
+      if (n !== fillSeq.current) return;
+      if (!j.draft || !isDraft(j.draft)) {
+        toast(tx("build.fill_nothing"));
+        return;
+      }
+      setPreview({
+        scope,
+        base: draft,
+        draft: j.draft,
+        added: j.added ?? Math.max(0, j.draft.length - draft.length),
+        sides: j.sides ?? 0,
+        minutes: j.minutes ?? draftMinutes(j.draft),
+        rhythms: j.rhythms ?? [],
       });
-      const j = (await r.json()) as { draft?: Draft };
-      if (!j.draft || !isDraft(j.draft)) return;
-      setDraft(j.draft, padded(meta.cortinas, j.draft.length));
-      toast(
-        tx("builder.filled", { n: j.draft.length - draft.length, total: j.draft.length }),
-        () => void undoEdit(),
+      requestAnimationFrame(() =>
+        document
+          .querySelector('[data-testid="build-fill-preview"]')
+          ?.scrollIntoView({ behavior: "smooth", block: "nearest" }),
       );
     } finally {
-      setFilling(false);
+      if (n === fillSeq.current) setFilling(false);
     }
   };
+  // a preview is of the night it was asked on: any other edit (an undo too) leaves it unshown
+  const fillShown = preview && preview.base === draft ? preview : null;
+  const applyFill = () => {
+    const p = fillShown;
+    if (!p) return;
+    if (!p.added && !p.sides) {
+      setPreview(null);
+      return;
+    }
+    haptic(6);
+    const label = tx("build.filled_scope", { scope: fillLabel(p.scope), n: p.added });
+    setDraft(p.draft, padded(meta.cortinas, p.draft.length));
+    setSel(p.draft.length - 1);
+    setPreview(null);
+    toast(label, () => void runHistory("undo", { scope: SCOPE }));
+  };
+  const fillRest = () => void previewFill("target");
 
   const finish = async () => {
     if (!draft.length) return;
@@ -628,6 +786,19 @@ export function ManualBuilder() {
   };
 
   const minutes = draftMinutes(draft);
+  /** the night's rhythm cycle, as the menu says it: "T T V T T M" */
+  const cycleText = patternString(options as ComposeOptions)
+    .split("")
+    .join(" ");
+  function fillLabel(s: FillScope): string {
+    return s === "tanda"
+      ? tx("build.fill_tanda")
+      : s === "cycle"
+        ? tx("build.fill_cycle", { cycle: cycleText })
+        : s === "target"
+          ? tx("build.fill_target")
+          : tx("build.fill_all");
+  }
   const lines = useMemo(
     () =>
       guideLines(
@@ -771,29 +942,17 @@ export function ManualBuilder() {
             chips={false}
             onPick={(v) => addVersion(v)}
             rowTestId="build-version"
-            note={fitLine}
-            actions={(v) => (
-              <span className="inline-flex shrink-0 items-center">
-                <button
-                  type="button"
-                  className="icon-btn icon-btn-bare -my-2 h-11 w-11 shrink-0 text-[var(--tint)]"
-                  aria-label={tx("search.add_to_night", { title: v.song.title })}
-                  onClick={() => addVersion(v)}
-                  data-testid="build-version-add"
-                >
-                  <Plus size={20} strokeWidth={2.25} aria-hidden />
-                </button>
-                <button
-                  type="button"
-                  className="icon-btn icon-btn-bare -my-2 h-11 w-11 shrink-0 text-[var(--label-2)]"
-                  aria-label={tx("build.add_as_new_tanda", { title: v.song.title })}
-                  onClick={() => addVersion(v, true)}
-                  data-testid="build-version-new"
-                >
-                  <ListPlus size={18} strokeWidth={2.25} aria-hidden />
-                </button>
-              </span>
-            )}
+            renderVersion={(v, ctx) =>
+              v.hit ? (
+                <BuildVersionRow
+                  v={v}
+                  ctx={ctx}
+                  fit={fitOf(v)}
+                  onAdd={() => addVersion(v)}
+                  more={versionMenu(v)}
+                />
+              ) : null
+            }
           />
         )}
       </div>
@@ -825,17 +984,44 @@ export function ManualBuilder() {
           <Group
             header={nextTitle || tx("manualBuilder.suggestions")}
             data-testid="build-suggestions"
-            footer={
-              loading
-                ? tx("manualBuilder.updating")
-                : next && !next.suggestions.length
-                  ? tx("manualBuilder.nothing_fits_the_rules_here_search")
-                  : undefined
-            }
+            footer={loading ? tx("manualBuilder.updating") : undefined}
           >
             {shown.map((s) => (
               <SuggestionCard key={s.key} s={s} onPick={() => pick(s)} />
             ))}
+            {/* 2026-11: nothing fits — two ways on, not a dead end */}
+            {!loading && next && !next.suggestions.length && (
+              <div className="cell flex-wrap gap-2 py-3" data-testid="build-nothing-fits">
+                <span className="text-subhead min-w-[12rem] flex-1">{tx("build.nothing_fits")}</span>
+                <button
+                  type="button"
+                  className="btn btn-ghost min-h-11 px-3"
+                  onClick={() => {
+                    setFilters({});
+                    showAdd("search");
+                    requestAnimationFrame(() => document.getElementById("build-search")?.focus());
+                  }}
+                  data-testid="build-search-instead"
+                >
+                  <Search size={16} aria-hidden /> {tx("build.search_instead")}
+                </button>
+                <Menu
+                  label={tx("build.change_rhythm")}
+                  className="btn btn-ghost min-h-11 px-3"
+                  items={RHYTHM_ITEMS.map(([r, l]) => ({
+                    label: l,
+                    checked: rhythm === r,
+                    onClick: () => {
+                      setRhythm(r);
+                      setReroll((x) => x + 1);
+                    },
+                  }))}
+                >
+                  <span data-testid="build-change-rhythm">{tx("build.change_rhythm")}</span>
+                  <ChevronDown size={14} aria-hidden />
+                </Menu>
+              </div>
+            )}
           </Group>
         )}
       </div>
@@ -848,7 +1034,7 @@ export function ManualBuilder() {
             <button
               key={r}
               type="button"
-              className="chip-filter min-h-11"
+              className="chip-filter build-chip"
               aria-pressed={filters.rhythm === r}
               onClick={() => setFilters((f) => ({ ...f, rhythm: f.rhythm === r ? undefined : r }))}
             >
@@ -857,7 +1043,7 @@ export function ManualBuilder() {
           ))}
           <button
             type="button"
-            className="chip-filter min-h-11"
+            className="chip-filter build-chip"
             aria-pressed={filters.voice === "instrumental"}
             onClick={() =>
               setFilters((f) => ({ ...f, voice: f.voice === "instrumental" ? undefined : "instrumental" }))
@@ -867,7 +1053,7 @@ export function ManualBuilder() {
           </button>
           <button
             type="button"
-            className="chip-filter min-h-11"
+            className="chip-filter build-chip"
             aria-pressed={filters.voice === "vocal"}
             onClick={() => setFilters((f) => ({ ...f, voice: f.voice === "vocal" ? undefined : "vocal" }))}
           >
@@ -875,19 +1061,20 @@ export function ManualBuilder() {
           </button>
           <button
             type="button"
-            className="chip-filter min-h-11"
+            className="chip-filter build-chip"
             aria-pressed={!!filters.fav}
             aria-label={tx("builder.favourites")}
             onClick={() => setFilters((f) => ({ ...f, fav: f.fav ? undefined : true }))}
+            data-testid="build-chip-fav"
           >
-            <Heart size={14} aria-hidden fill={filters.fav ? "currentColor" : "none"} />{" "}
-            {tx("builder.fav_short")}
+            <Heart size={14} aria-hidden fill={filters.fav ? "currentColor" : "none"} />
+            <span>{tx("builder.fav_short")}</span>
           </button>
           {DECADES.map((d) => (
             <button
               key={d}
               type="button"
-              className="chip-filter min-h-11"
+              className="chip-filter build-chip"
               aria-pressed={filters.decade === d}
               onClick={() => setFilters((f) => ({ ...f, decade: f.decade === d ? undefined : d }))}
             >
@@ -899,7 +1086,7 @@ export function ManualBuilder() {
           </label>
           <select
             id="build-orch"
-            className="chip-filter min-h-11 max-w-[12rem]"
+            className="chip-filter build-chip build-select max-w-[12rem]"
             value={filters.orchestraId ?? ""}
             onChange={(e) => setFilters((f) => ({ ...f, orchestraId: e.target.value || undefined }))}
           >
@@ -920,7 +1107,7 @@ export function ManualBuilder() {
           </label>
           <select
             id="build-singer"
-            className="chip-filter min-h-11 max-w-[12rem]"
+            className="chip-filter build-chip build-select max-w-[12rem]"
             value={filters.singer ?? ""}
             onChange={(e) => setFilters((f) => ({ ...f, singer: e.target.value || undefined }))}
           >
@@ -981,16 +1168,7 @@ export function ManualBuilder() {
                       where={tx("manualBuilder.search")}
                       leadingKind="tile"
                       leading={<SongArt song={h.song} label={rhythmWord(h.song.rhythm)} />}
-                      sub={
-                        <>
-                          {metaLine(family(h.song), yearText(h.song.year))}
-                          {checking && !h.fits && h.why ? (
-                            <span className="block text-[var(--label-2)]" data-testid="build-why">
-                              ⚠ {h.why}
-                            </span>
-                          ) : null}
-                        </>
-                      }
+                      sub={metaLine(family(h.song), yearText(h.song.year))}
                       lengthSec={h.song.durationSec ?? null}
                       trailing={
                         <>
@@ -1049,6 +1227,8 @@ export function ManualBuilder() {
                         </>
                       }
                     />
+                    {/* 2026-11: the warning on its own line, wrapped, never cut; a long reason behind ⓘ */}
+                    {checking && !h.fits && h.why ? <WarnLine why={h.why} /> : null}
                   </div>
                 );
               })}
@@ -1107,6 +1287,45 @@ export function ManualBuilder() {
               })
             : tx("manualBuilder.pick_songs_or_whole_tandas_tdj")
         }
+        trailing={
+          <span className="inline-flex items-center" data-testid="build-history">
+            <Tip text={tx("build.undo_tip", { key: keys.undo })}>
+              <button
+                type="button"
+                className="icon-btn icon-btn-bare h-11 w-11"
+                onClick={() => void runHistory("undo", { scope: SCOPE })}
+                disabled={!canUndo}
+                aria-label={tx("editKeys.undo")}
+                data-testid="build-undo"
+              >
+                <Undo2 size={20} aria-hidden />
+              </button>
+            </Tip>
+            <Tip text={tx("build.redo_tip", { key: keys.redo })}>
+              <button
+                type="button"
+                className="icon-btn icon-btn-bare h-11 w-11"
+                onClick={() => void runHistory("redo", { scope: SCOPE })}
+                disabled={!canRedo}
+                aria-label={tx("editKeys.redo")}
+                data-testid="build-redo"
+              >
+                <Redo2 size={20} aria-hidden />
+              </button>
+            </Tip>
+            <Tip text={tx("build.reset_tip")}>
+              <button
+                type="button"
+                className="icon-btn icon-btn-bare h-11 w-11"
+                onClick={() => setResetOpen(true)}
+                aria-label={tx("build.reset")}
+                data-testid="build-reset"
+              >
+                <RotateCcw size={19} aria-hidden />
+              </button>
+            </Tip>
+          </span>
+        }
         primary={
           <Tip text={tx("manualBuilder.make_this_the_night_on_compose")}>
             <button
@@ -1158,6 +1377,15 @@ export function ManualBuilder() {
             </div>
           </Group>
           <Group header={tx("builder.guidance")} data-testid="build-guide">
+            {fillShown && (
+              <FillPreviewCard
+                p={fillShown}
+                title={fillLabel(fillShown.scope)}
+                before={draft.length}
+                onApply={applyFill}
+                onCancel={() => setPreview(null)}
+              />
+            )}
             {lines.map((l) => (
               <GuideRow key={l.key} line={l} onFix={runFix} busy={filling && l.fix?.kind === "fill"} />
             ))}
@@ -1254,17 +1482,25 @@ export function ManualBuilder() {
             >
               <Sparkles size={16} aria-hidden /> {tx("builder.suggest_next")}
             </button>
-            <Tip text={tx("builder.fill_tip")}>
-              <button
-                type="button"
+            {/* 2026-11: Fill is a menu (the next tanda, one cycle, the target length, everything), previewed first */}
+            <span data-testid="build-fill">
+              <Menu
+                label={tx("build.fill_menu")}
+                tip={tx("builder.fill_tip")}
                 className="btn btn-ghost min-h-11"
-                onClick={fillRest}
-                disabled={filling}
-                data-testid="build-fill"
+                align="left"
+                items={FILL_ITEMS.map((s) => ({
+                  label: fillLabel(s),
+                  icon: Wand2,
+                  disabled: filling,
+                  testId: `build-fill-${s}`,
+                  onClick: () => void previewFill(s),
+                }))}
               >
-                <Wand2 size={16} aria-hidden /> {filling ? tx("builder.filling") : tx("builder.fill_rest")}
-              </button>
-            </Tip>
+                <Wand2 size={16} aria-hidden /> {filling ? tx("builder.filling") : tx("build.fill")}
+                <ChevronDown size={14} aria-hidden />
+              </Menu>
+            </span>
           </div>
           {/* phones: the header keeps no primary button, so the night is used from here */}
           {draft.length > 0 && (
@@ -1313,6 +1549,45 @@ export function ManualBuilder() {
           </>
         )}
       </div>
+
+      {/* 2026-11: Reset, confirmed once: an empty night or tonight's night (either one undoable) */}
+      <Sheet
+        open={resetOpen}
+        onClose={() => setResetOpen(false)}
+        title={tx("build.reset_title")}
+        testId="build-reset-sheet"
+        detents={["medium"]}
+      >
+        <Group footer={tx("build.reset_footer")}>
+          <Row
+            label={tx("build.reset_empty")}
+            sub={tx("build.reset_empty_sub")}
+            tile={
+              <span className="tile bg-[var(--destructive)]" aria-hidden>
+                <Trash2 size={16} className="text-white" />
+              </span>
+            }
+            onClick={resetEmpty}
+            data-testid="build-reset-empty"
+          />
+          <Row
+            label={tx("build.reset_tonight")}
+            sub={
+              tonight?.tandas.length
+                ? tx("build.reset_tonight_sub", { name: tonight.name, n: tonight.tandas.length })
+                : tx("build.reset_tonight_none")
+            }
+            tile={
+              <span className="tile bg-[var(--tint)]" aria-hidden>
+                <RotateCcw size={16} className="text-white" />
+              </span>
+            }
+            onClick={tonight?.tandas.length ? resetTonight : undefined}
+            disabled={!tonight?.tandas.length}
+            data-testid="build-reset-tonight"
+          />
+        </Group>
+      </Sheet>
 
       {/* New tanda: its rhythm and orchestra (or "Suggest"), then Add opens filtered */}
       <Sheet
@@ -1392,6 +1667,103 @@ export function ManualBuilder() {
 
 const padded = <T,>(list: Array<T | null>, n: number): Array<T | null> =>
   Array.from({ length: Math.max(0, n) }, (_, i) => list[i] ?? null);
+
+/** the engine's reason as a line: its first clause, capitalised ("Another orchestra: starts a new tanda") */
+function warnShort(why: string): { short: string; long: boolean } {
+  const w = why.trim();
+  const cap = w.charAt(0).toUpperCase() + w.slice(1);
+  if (cap.length <= 56) return { short: cap, long: false };
+  const cut = cap.search(/[;(]| — /);
+  return { short: cut > 12 ? cap.slice(0, cut).trim() : cap, long: true };
+}
+/** a search result's ⚠: one wrapped line (never cut), the whole reason behind ⓘ when it is long */
+function WarnLine({ why }: { why: string }) {
+  const { short, long } = warnShort(why);
+  const full = why.charAt(0).toUpperCase() + why.slice(1);
+  return (
+    <div
+      className="build-warn text-footnote -mt-1 px-[var(--cell-px,16px)] pb-2 pl-[calc(var(--cell-px,16px)+56px)] text-[var(--label-2)]"
+      data-testid="build-why"
+    >
+      <span aria-hidden>⚠</span>
+      <span className="min-w-0 flex-1">{short}</span>
+      {long && short !== full && (
+        <ReasonInfo label={tx("build.why_full")} lines={[full]} testId="build-why-info" />
+      )}
+    </div>
+  );
+}
+
+/** the guide's preview of a fill: what it adds, the night after it, Apply / Cancel (Apply is one undoable edit) */
+function FillPreviewCard({
+  p,
+  title,
+  before,
+  onApply,
+  onCancel,
+}: {
+  p: FillPreview;
+  title: string;
+  before: number;
+  onApply: () => void;
+  onCancel: () => void;
+}) {
+  const newOnes = p.draft.slice(before);
+  const finished = p.added === 0 && p.sides > 0;
+  return (
+    <div
+      className="cell flex-col items-stretch gap-2 py-3"
+      data-testid="build-fill-preview"
+      data-scope={p.scope}
+    >
+      <span className="flex items-center gap-2">
+        <Wand2 size={16} className="shrink-0 text-[var(--tint)]" aria-hidden />
+        <span className="text-headline min-w-0 flex-1">{title}</span>
+      </span>
+      <span className="text-subhead" data-testid="build-fill-summary">
+        {p.added || p.sides
+          ? finished
+            ? tx("build.fill_preview_finish", { sides: p.sides, minutes: p.minutes })
+            : tx("build.fill_preview", {
+                n: p.added,
+                rhythms: p.rhythms.join(" "),
+                total: p.draft.length,
+                minutes: p.minutes,
+              })
+          : tx("build.fill_nothing")}
+      </span>
+      {newOnes.length > 0 && (
+        <ol className="text-footnote list-decimal pl-5 text-[var(--label-2)]" start={before + 1}>
+          {newOnes.slice(0, 8).map((t) => (
+            <li key={t[0]!.id} className="truncate">
+              {family(t[0]!)} · {rhythmWord(t[0]!.rhythm)} · {t.length}
+            </li>
+          ))}
+          {newOnes.length > 8 && <li className="list-none">…</li>}
+        </ol>
+      )}
+      <span className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          className="btn btn-primary min-h-11"
+          onClick={onApply}
+          disabled={!p.added && !p.sides}
+          data-testid="build-fill-apply"
+        >
+          <Check size={16} aria-hidden /> {tx("build.fill_apply")}
+        </button>
+        <button
+          type="button"
+          className="btn btn-ghost min-h-11"
+          onClick={onCancel}
+          data-testid="build-fill-cancel"
+        >
+          {tx("build.fill_cancel")}
+        </button>
+      </span>
+    </div>
+  );
+}
 
 /** one guidance line: how it stands, and its one-tap fix */
 function GuideRow({ line, onFix, busy }: { line: GuideLine; onFix: (f: GuideFix) => void; busy: boolean }) {

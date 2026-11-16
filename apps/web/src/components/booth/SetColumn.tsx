@@ -18,9 +18,11 @@ import { useIndicators } from "@/lib/booth/indicatorPrefs";
 import { cortinaSpan, cortinaSwapLabel, openingWithoutClip, swapLabel } from "@/lib/booth/nightView";
 import { durationLabel } from "@/lib/booth/plan";
 import { energyOf } from "@/lib/booth/songInfo";
+import { boothMenuSpec } from "@/lib/booth/songMenu";
 import { useBooth } from "@/lib/booth/store";
 import { useBoothSwap } from "@/lib/booth/swap";
 import { t as tx } from "@/lib/i18n";
+import { useSongMenuProps } from "@/lib/songMenu";
 import { openInsert, removeSongAt, removeTandaAt } from "@/lib/spot";
 import { tempoLevel } from "@/lib/tempo";
 import { toast } from "@/lib/toast";
@@ -600,6 +602,14 @@ const Row = memo(function Row({
   const picked = useBooth((s) => s.pickedNext === i);
   const cortinaEdits = useBooth((s) => s.playlist?.booth?.cortinaEdits);
   const showEnergy = useIndicators().energy;
+  // 2026-11: the shared song menu (right-click, long press, "i"): pre-listen, the sheet, Song DNA, Swap…, Find…
+  const menu = useSongMenuProps(
+    boothMenuSpec(i, {
+      details: onOpen ? () => onOpen(i) : undefined,
+      swap: onSwap && !played ? () => onSwap(i) : undefined,
+      find: it?.id && source === "missing" ? () => onFind(it.id!, it.title) : undefined,
+    }),
+  );
   if (!it) return null;
   const energy = showEnergy ? energyOf(entity) : null;
   const orchestra = entity && "orchestra" in entity ? entity.orchestra : it.artist;
@@ -626,6 +636,7 @@ const Row = memo(function Row({
       data-auditioning={auditioning || undefined}
       data-cue={cueWhere === "headphones" || undefined}
       data-picked={picked || undefined}
+      {...menu}
     >
       {energy !== null && (
         <span

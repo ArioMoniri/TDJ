@@ -6,18 +6,21 @@
  * gives the app's rectangle in world space for any lid angle, and Hero projects it to pixels.
  */
 import * as THREE from "three";
+import { APP_ASPECT, appRect, type Placement } from "./showcase";
 
 export const BASE_W = 31.26;
 export const BASE_D = 22.12;
 export const BASE_H = 0.95;
 export const LID_T = 0.58;
-export const LID_D = 21.9;
+/** the lid: the panel, an even 0.5 cm bezel on the top and sides, and a short chin that the hinge half hides */
+export const LID_D = 21.3;
 /** the panel: 14.2" at 1.54:1; the app fills the 16:10 part under the menu-bar strip that holds the notch */
 export const PANEL_W = 30.25;
 export const PANEL_H = 19.64;
-export const APP_H = PANEL_W / 1.6;
+export const APP_H = PANEL_W / APP_ASPECT;
 export const STRIP_H = PANEL_H - APP_H;
-const PANEL_TOP = 0.42; // from the lid's top edge to the panel
+/** from the lid's top edge to the panel */
+export const PANEL_TOP = 0.46;
 /** the hinge: the lid turns about this line (x along the width) */
 export const PIVOT = new THREE.Vector3(0, BASE_H + 0.09, -BASE_D / 2 + 0.36);
 export const OPEN_DEG = 108;
@@ -129,3 +132,28 @@ export function keyLayout(): Key[] {
 }
 export const KEY_ROWS_U = 5.55; // the function row (0.55), four rows, the bottom row
 export const KEY_COLS_U = 14.5;
+
+/** a camera: where it is, what it looks at, which way is up */
+export type Pose = { pos: THREE.Vector3; target: THREE.Vector3; up: THREE.Vector3 };
+
+/**
+ * The product shot: the camera on the open screen's axis (so the app area is an exact rectangle in the picture: video
+ * and captures can be laid on it in 2D), placed so that the app area lands on `appRect(W, H, p)`. With the lid at
+ * OPEN_DEG the axis looks down on the laptop by OPEN_DEG − 90°: the front, a little from above.
+ */
+export function squarePose(W: number, H: number, p: Placement, fovDeg: number, deg = OPEN_DEG): Pose {
+  const m = lidMatrix(deg);
+  const rot = new THREE.Matrix4().extractRotation(m);
+  const normal = new THREE.Vector3(0, -1, 0).applyMatrix4(rot).normalize();
+  const up = new THREE.Vector3(0, 0, 1).applyMatrix4(rot).normalize();
+  const centre = appCentreLocal.clone().applyMatrix4(m);
+  const f = H / 2 / Math.tan((fovDeg * Math.PI) / 360); // px
+  const r = appRect(W, H, p);
+  const d = (PANEL_W * f) / r.w;
+  const pos = centre
+    .clone()
+    .addScaledVector(normal, d)
+    .addScaledVector(up, -((H / 2 - (r.y + r.h / 2)) * d) / f)
+    .addScaledVector(new THREE.Vector3(1, 0, 0), -((r.x + r.w / 2 - W / 2) * d) / f);
+  return { pos, target: pos.clone().sub(normal), up };
+}

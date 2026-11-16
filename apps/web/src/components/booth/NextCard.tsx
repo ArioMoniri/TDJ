@@ -1,9 +1,12 @@
 "use client";
 import { Headphones, Play, Repeat2 } from "lucide-react";
+import { useRef } from "react";
 import { cortinaSpan, upNext } from "@/lib/booth/nightView";
+import { boothMenuSpec } from "@/lib/booth/songMenu";
 import { useBooth } from "@/lib/booth/store";
 import { useBoothSwap } from "@/lib/booth/swap";
 import { t } from "@/lib/i18n";
+import { useSongMenuProps } from "@/lib/songMenu";
 import { metaLine, yearSpan, yearText } from "@/lib/year";
 import { Artwork } from "../ui/Artwork";
 import { EraBadge } from "../ui/EraBadge";
@@ -18,10 +21,13 @@ import { eyebrowFor } from "./NowCard";
 export function NextCard({
   onJump,
   onPlay,
+  onInfo,
 }: {
   onJump: (planIndex: number) => void;
   /** 2026-11: one tap plays the item (the page's row tap: from here before the night, the headphones during it) */
   onPlay?: (planIndex: number) => void;
+  /** 2026-11: the song sheet of the next item (the song menu's Song details) */
+  onInfo?: (planIndex: number) => void;
 }) {
   const hearing = useBooth((s) => s.audition?.i ?? null);
   const plan = useBooth((s) => s.plan);
@@ -36,6 +42,16 @@ export function NextCard({
   const entities = useBooth((s) => s.entities);
   // 2026-11: what "Play next" picked is next (the card used to keep the plan's order, so Play next looked broken)
   const picked = useBooth((s) => s.pickedNext);
+  // 2026-11: the shared song menu on the next song (right-click, long press, "i"): its sheet, Song DNA, Swap…
+  const nextAt = useRef<number | null>(null);
+  const menu = useSongMenuProps(() =>
+    nextAt.current === null
+      ? null
+      : boothMenuSpec(nextAt.current, {
+          details: onInfo && nextAt.current !== null ? () => onInfo(nextAt.current!) : undefined,
+          swap: () => nextAt.current !== null && useBoothSwap.getState().open(nextAt.current),
+        }),
+  );
   if (!plan) return null;
   const missing = new Set(
     sources
@@ -46,6 +62,7 @@ export function NextCard({
   const passed = new Set([...skipped, ...bypassed]);
   const up = upNext(plan.items, planIndex, { passed, missing, picked });
   const next = up.next ?? plan.items.length;
+  nextAt.current = up.next;
   const item = up.next === null ? undefined : plan.items[up.next];
   const noSource = up.noSource;
   const tandas = playlist?.tandas.length ?? 0;
@@ -79,6 +96,7 @@ export function NextCard({
             aria-label={t("booth.setColumn.play", { title: item.title })}
             data-testid="booth-next-play"
             data-auditioning={hearing === next || undefined}
+            {...menu}
           >
             <Artwork
               entity={entities[next]}

@@ -1,64 +1,29 @@
 "use client";
 import { Keyboard, Smartphone } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { t } from "@/lib/i18n";
-import {
-  ACTIONS,
-  type ActionDef,
-  type ActionId,
-  bindingsOf,
-  comboOf,
-  conflictsOf,
-  formatCombo,
-  normalizeCombo,
-  resetAllBindings,
-  resetBinding,
-  setBinding,
-  shownBindings,
-  useKeymap,
-} from "@/lib/keymap";
+import { ACTIONS, type ActionDef, resetAllBindings, useKeymap } from "@/lib/keymap";
 import { isTouchDevice, needsMotionPermission, setShakeUndo, shakeOn, useShakePref } from "@/lib/shake";
 import { toast } from "@/lib/toast";
 import { ActionRow, Group, Row, SwitchRow, Tile } from "./Form";
-import { Sheet } from "./Sheet";
-
-const Keys = ({ combos }: { combos: string[] }) =>
-  combos.length ? (
-    <span className="inline-flex flex-wrap justify-end gap-1" data-testid="key-binding">
-      {shownBindings(combos).map((c) => (
-        <kbd key={c} className="text-footnote rounded bg-[var(--fill-3)] px-1.5 py-0.5">
-          {formatCombo(c)}
-        </kbd>
-      ))}
-    </span>
-  ) : (
-    <span data-testid="key-binding">{t("keys.none")}</span>
-  );
+import { KeyRow } from "./KeyChips";
 
 /**
- * 2026-11 — Settings → Keyboard: every shortcut (lib/keymap.ts) with its keys on this device. A row opens the
- * recorder: press the new combo, a combo another action holds is named first ("Use it anyway" takes it from there),
- * Reset puts the default back; "Reset all keys" puts every default back. Kept in this browser only.
+ * 2026-11 — Settings → Keyboard: every shortcut (lib/keymap.ts) with its keys on this device. Each key is a chip:
+ * tap it and press the new keys, "+" adds another, ⌫ removes one, Esc cancels; a key another action holds asks
+ * "Replace / Cancel", a key the browser keeps is refused with its reason; Reset puts a row's defaults back, "Reset
+ * all keys" every default (components/KeyChips.tsx — the same chips as the Booth's Keyboard sheet, one store).
+ * Kept in this browser only.
  */
 export function KeyboardSettings() {
-  const custom = useKeymap((s) => s.custom);
+  const changed = useKeymap((s) => Object.keys(s.custom).length > 0);
   // (the DJ's keys are this browser's: the list renders after mount, so the server's page and the first render match)
   const [ready, setReady] = useState(false);
   useEffect(() => setReady(true), []);
-  const [editing, setEditing] = useState<ActionDef | null>(null);
-  const changed = Object.keys(custom).length > 0;
   const group = (g: ActionDef["group"], header: string) => (
     <Group header={header} data-testid={`keyboard-${g}`}>
       {ACTIONS.filter((a) => a.group === g).map((a) => (
-        <Row
-          key={a.id}
-          label={t(a.label)}
-          tip={t("keys.intro_sub")}
-          value={ready ? <Keys combos={bindingsOf(a.id, custom)} /> : undefined}
-          chevron
-          onClick={() => setEditing(a)}
-          data-testid={`key-row-${a.id}`}
-        />
+        <KeyRow key={a.id} action={a} testId={`key-row-${a.id}`} />
       ))}
     </Group>
   );
@@ -91,7 +56,6 @@ export function KeyboardSettings() {
           id="keys-reset-all"
         />
       </Group>
-      <KeySheet action={editing} onClose={() => setEditing(null)} />
     </section>
   );
 }
@@ -121,130 +85,5 @@ function ShakeGroup() {
         }
       />
     </Group>
-  );
-}
-
-function KeySheet({ action, onClose }: { action: ActionDef | null; onClose: () => void }) {
-  const custom = useKeymap((s) => s.custom);
-  const [combo, setCombo] = useState<string | null>(null);
-  const [mode, setMode] = useState<"replace" | "add">("replace");
-  const box = useRef<HTMLButtonElement>(null);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: a new action starts a new recording
-  useEffect(() => {
-    setCombo(null);
-    setMode("replace");
-  }, [action?.id]);
-  if (!action)
-    return (
-      <Sheet open={false} onClose={onClose} title="">
-        {null}
-      </Sheet>
-    );
-  const current = bindingsOf(action.id, custom);
-  const conflicts = combo ? conflictsOf(combo, action.id, custom) : [];
-  const nameOf = (id: ActionId) => t(ACTIONS.find((a) => a.id === id)!.label);
-  const save = () => {
-    if (!combo) return;
-    const next = mode === "add" ? [...current, combo] : [combo];
-    setBinding(action.id, next, { takeFrom: conflicts.length > 0 });
-    toast(t("keys.saved", { action: t(action.label), key: formatCombo(combo) }));
-    onClose();
-  };
-  return (
-    <Sheet
-      open={!!action}
-      onClose={onClose}
-      title={t(action.label)}
-      trailing={t("keys.save")}
-      onTrailing={combo ? save : onClose}
-      testId="key-sheet"
-      detents={["large"]}
-    >
-      <Group header={t("keys.now")}>
-        <Row label={t("keys.keys_now")} value={<Keys combos={current} />} />
-      </Group>
-      <Group
-        header={t("keys.record_header")}
-        footer={
-          conflicts.length ? (
-            <span className="text-[var(--destructive)]" data-testid="key-conflict" role="alert">
-              {t("keys.conflict", { key: formatCombo(combo!), actions: conflicts.map(nameOf).join(", ") })}
-            </span>
-          ) : (
-            t("keys.record_footer")
-          )
-        }
-      >
-        <div className="cell">
-          <button
-            ref={box}
-            type="button"
-            className="key-recorder min-h-11 w-full rounded-[var(--radius-xs)] border border-dashed border-[var(--separator)] px-3 py-2 text-center"
-            data-key-recorder
-            data-testid="key-recorder"
-            aria-label={t("keys.record_aria", { action: t(action.label) })}
-            onKeyDown={(e) => {
-              // Tab and Escape keep their jobs (leave the field, close the sheet)
-              if (e.key === "Tab" || e.key === "Escape") return;
-              const c = comboOf(e.nativeEvent);
-              e.preventDefault();
-              e.stopPropagation();
-              if (c) setCombo(normalizeCombo(c));
-            }}
-          >
-            {combo ? (
-              <kbd className="text-title3 rounded bg-[var(--fill-3)] px-2 py-0.5" data-testid="key-recorded">
-                {formatCombo(combo)}
-              </kbd>
-            ) : (
-              <span className="text-[var(--label-2)]">{t("keys.press_keys")}</span>
-            )}
-          </button>
-        </div>
-        <Row
-          label={t("keys.mode_replace")}
-          value={mode === "replace" ? "✓" : undefined}
-          onClick={() => setMode("replace")}
-        />
-        <Row
-          label={t("keys.mode_add")}
-          value={mode === "add" ? "✓" : undefined}
-          onClick={() => setMode("add")}
-          data-testid="key-mode-add"
-        />
-      </Group>
-      <Group>
-        {combo && (
-          <ActionRow
-            label={conflicts.length ? t("keys.use_anyway") : t("keys.save")}
-            onClick={save}
-            id="key-save"
-          />
-        )}
-        <ActionRow
-          label={t("keys.reset_one", {
-            keys: shownBindings(action.defaults)
-              .map((c) => formatCombo(c))
-              .join(", "),
-          })}
-          onClick={() => {
-            resetBinding(action.id);
-            toast(t("keys.reset_done", { action: t(action.label) }));
-            onClose();
-          }}
-          id="key-reset"
-        />
-        <ActionRow
-          label={t("keys.clear")}
-          destructive
-          disabled={!current.length}
-          onClick={() => {
-            setBinding(action.id, []);
-            onClose();
-          }}
-          id="key-clear"
-        />
-      </Group>
-    </Sheet>
   );
 }

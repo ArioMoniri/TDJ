@@ -1,7 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { clearEdits, nextRedo, nextUndo, recordEdit } from "./editHistory";
 import { runHistory } from "./editToast";
-import { type MotionSample, ShakeDetector, shakeAlert } from "./shake";
+import {
+  type MotionSample,
+  nativeShake,
+  needsMotionPermission,
+  ShakeDetector,
+  shakeAlert,
+  shakeOn,
+  useShakePref,
+} from "./shake";
 
 /** samples at 60 Hz from `f(t)` (t in s) for `secs` */
 const samples = (secs: number, f: (t: number) => [number, number, number], t0 = 0): MotionSample[] =>
@@ -221,5 +229,44 @@ describe("shake alert: it always asks, and offers the redo after an undo", () =>
       expect(r?.why).toMatch(/already played/);
       expect(undone).toBe(false);
     });
+  });
+});
+
+describe("the iPhone / iPad app: UIKit's shake, no motion permission", () => {
+  const iphone =
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 27_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148";
+  const ipad = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko)";
+  const env = (o: { app: boolean; ua: string; touch: number }) => {
+    const motion = Object.assign(function DeviceMotionEvent() {}, {
+      requestPermission: async () => "granted",
+    });
+    vi.stubGlobal("window", {
+      DeviceMotionEvent: motion,
+      matchMedia: () => ({ matches: o.touch > 0 }),
+      ...(o.app ? { __TAURI_INTERNALS__: {} } : {}),
+    });
+    vi.stubGlobal("navigator", { userAgent: o.ua, maxTouchPoints: o.touch });
+  };
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    useShakePref.setState({ pref: null, granted: false });
+  });
+  it("in the app on an iPhone or an iPad it listens without asking for motion; the DJ's off still wins", () => {
+    for (const ua of [iphone, ipad]) {
+      env({ app: true, ua, touch: 5 });
+      expect(nativeShake()).toBe(true);
+      expect(needsMotionPermission()).toBe(false);
+      expect(shakeOn({ pref: null, granted: false })).toBe(true);
+      expect(shakeOn({ pref: false, granted: false })).toBe(false);
+    }
+  });
+  it("Safari on an iPhone still needs the grant; the Mac app is no shake device", () => {
+    env({ app: false, ua: iphone, touch: 5 });
+    expect(nativeShake()).toBe(false);
+    expect(needsMotionPermission()).toBe(true);
+    expect(shakeOn({ pref: null, granted: false })).toBe(false);
+    expect(shakeOn({ pref: null, granted: true })).toBe(true);
+    env({ app: true, ua: ipad, touch: 0 });
+    expect(nativeShake()).toBe(false);
   });
 });

@@ -1,5 +1,5 @@
 "use client";
-import type { Playlist } from "@tdj/core";
+import type { Playlist, Song } from "@tdj/core";
 import { ArrowRight, ListEnd, Play, Repeat2, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { durationLabel } from "@/lib/booth/plan";
@@ -195,6 +195,10 @@ export function BoothSongSearch({ onGoTo }: { onGoTo?: (planIndex: number) => vo
                           data={{ "plan-index": h.i, current: playing ? "true" : undefined }}
                           current={playing}
                           dim={played}
+                          menu={{
+                            song: e && "orchestraId" in e && "rhythm" in e ? (e as Song) : null,
+                            noAddToTonight: true,
+                          }}
                           where={
                             h.kind === "closing"
                               ? h.i === 0

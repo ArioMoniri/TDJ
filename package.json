@@ -44,7 +44,8 @@
     "version:check": "node scripts/release/version.mjs --check",
     "release:version": "node scripts/release/version.mjs --set",
     "store:shots": "pnpm --filter @tdj/desktop store:shots",
-    "store:banner": "pnpm --filter @tdj/desktop store:banner"
+    "store:banner": "pnpm --filter @tdj/desktop store:banner",
+    "store:creative": "pnpm --filter @tdj/desktop store:creative"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.0",

@@ -91,6 +91,7 @@ export async function searchTracks(access: string, q: string, limit = 10, deadli
           preview_url?: string | null;
           external_ids?: { isrc?: string };
           is_playable?: boolean;
+          album?: { name?: string; release_date?: string; images?: AlbumImage[] };
         }
       >;
     };
@@ -114,7 +115,25 @@ export async function searchTracks(access: string, q: string, limit = 10, deadli
       durationSec: h.duration_ms ? Math.round(h.duration_ms / 1000) : null,
       previewUrl: h.preview_url ?? null,
       isrc: h.external_ids?.isrc ?? null,
+      image: albumImage(h.album?.images),
     }));
+}
+
+export interface AlbumImage {
+  url: string;
+  width?: number | null;
+  height?: number | null;
+}
+/**
+ * 2026-11: the album cover a row shows (Spotify sends 640, 300 and 64 px): the smallest one at least 128 px wide (a
+ * 56 px tile at 2×), else the largest; an image without a width counts as large.
+ */
+export function albumImage(images: readonly AlbumImage[] | null | undefined): string | null {
+  const ok = (images ?? []).filter((i) => typeof i?.url === "string" && /^https:\/\//.test(i.url));
+  if (!ok.length) return null;
+  const w = (i: AlbumImage) => i.width ?? 640;
+  const big = ok.filter((i) => w(i) >= 128).sort((a, b) => w(a) - w(b));
+  return (big[0] ?? [...ok].sort((a, b) => w(b) - w(a))[0])!.url;
 }
 
 /**

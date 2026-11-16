@@ -2,6 +2,7 @@
 import { CircleX, Headphones, Search, Square } from "lucide-react";
 import type { KeyboardEvent, ReactNode } from "react";
 import { t as tx } from "@/lib/i18n";
+import { type SongMenuSpec, useSongMenuProps } from "@/lib/songMenu";
 
 /**
  * 2026-11 (the owner's iPad: "the search won't work on the playlist songs"): the pieces the Booth's two search sheets
@@ -148,6 +149,7 @@ export function HitRow({
   onArt,
   artLabel,
   artDisabled,
+  menu,
 }: {
   where?: ReactNode;
   art: ReactNode;
@@ -164,12 +166,17 @@ export function HitRow({
   testId: string;
   whereTestId?: string;
   data?: Record<string, string | number | undefined>;
+  /** 2026-11: the side and what the song menu adds here (none: no menu, a cortina) */
+  menu?: SongMenuSpec | null;
 }) {
+  // 2026-11: the song menu on a hit that is a side (right-click, long press, "i")
+  const menuProps = useSongMenuProps(menu ?? null);
   return (
     <li
       className={`flex min-h-14 items-center gap-2 rounded-[10px] px-2 py-1 max-sm:gap-1 max-sm:px-0 ${current ? "bg-[var(--fill-4)]" : ""}`}
       data-testid={testId}
       {...Object.fromEntries(Object.entries(data ?? {}).map(([k, v]) => [`data-${k}`, v]))}
+      {...menuProps}
     >
       {/* a phone keeps the title wide: where it sits and its length go to the second line */}
       {where !== undefined && (

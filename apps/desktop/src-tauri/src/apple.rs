@@ -103,6 +103,64 @@ pub fn tune_ios_webview(webview: *mut std::ffi::c_void) {
     }
 }
 
+/// The web view a shake is told to (set once by `install_shake`).
+#[cfg(target_os = "ios")]
+static SHAKE_WEBVIEW: std::sync::atomic::AtomicPtr<AnyObject> =
+    std::sync::atomic::AtomicPtr::new(std::ptr::null_mut());
+
+/// iPhone and iPad, Shake to Undo (2026-11, apps/web/src/lib/shake.ts): iOS reports a shake as a UIKit motion event
+/// (`motionEnded:withEvent:` with `UIEventSubtypeMotionShake`) to the first responder and up its chain, and the
+/// Simulator's Device → Shake sends only that, never accelerometer samples; WKWebView's `devicemotion` would also need
+/// a permission prompt. So the web view's class (and UIWindow, for when nothing in the page is first responder)
+/// answers the motion itself and tells the page with a `tdj:shake` window event; components/ShakeUndo.tsx asks
+/// "Undo …?" as it does for a browser's devicemotion shake. Must run on the main thread (`with_webview`).
+#[cfg(target_os = "ios")]
+pub fn install_shake(webview: *mut std::ffi::c_void) {
+    use objc2::runtime::{AnyClass, Imp, Sel};
+    use std::sync::atomic::Ordering;
+    if webview.is_null() {
+        return;
+    }
+    unsafe extern "C-unwind" fn motion_ended(
+        _this: *mut AnyObject,
+        _cmd: Sel,
+        motion: isize,
+        _event: *mut AnyObject,
+    ) {
+        const UI_EVENT_SUBTYPE_MOTION_SHAKE: isize = 1;
+        if motion != UI_EVENT_SUBTYPE_MOTION_SHAKE {
+            return;
+        }
+        let wv = SHAKE_WEBVIEW.load(Ordering::Acquire);
+        let Some(wv) = (unsafe { wv.as_ref() }) else {
+            return;
+        };
+        let js = ns("window.dispatchEvent(new CustomEvent('tdj:shake'))");
+        let none: *mut AnyObject = std::ptr::null_mut();
+        let _: () = unsafe { msg_send![wv, evaluateJavaScript: &*js, completionHandler: none] };
+    }
+    unsafe {
+        let wv = webview as *mut AnyObject;
+        // the web view lives as long as the app (the one main window)
+        SHAKE_WEBVIEW.store(wv, Ordering::Release);
+        let imp: Imp = std::mem::transmute::<
+            unsafe extern "C-unwind" fn(*mut AnyObject, Sel, isize, *mut AnyObject),
+            Imp,
+        >(motion_ended);
+        let sel = objc2::sel!(motionEnded:withEvent:);
+        let types = c"v@:q@";
+        // added to the web view's own class (wry's subclass of WKWebView: the page's content view passes the motion
+        // up to it) and to UIWindow; either answers without passing it on, so one shake is one event
+        let wv_class = objc2::ffi::object_getClass(wv as *const AnyObject) as *mut AnyClass;
+        let win_class = class!(UIWindow) as *const AnyClass as *mut AnyClass;
+        for cls in [wv_class, win_class] {
+            if !cls.is_null() {
+                let _ = objc2::ffi::class_addMethod(cls, sel, imp, types.as_ptr());
+            }
+        }
+    }
+}
+
 // ---------------------------------------------------------------- output devices (macOS CoreAudio)
 
 #[cfg(target_os = "macos")]

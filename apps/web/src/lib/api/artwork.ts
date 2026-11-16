@@ -1,3 +1,4 @@
+import { FIND_STRONG, type FindSide, type FoundRec, fold, queryLadder, rankFound } from "@/lib/findMatch";
 import SHIPPED from "../../../../../data/cache/artwork.json";
 import OWNER from "../../../../../data/index/owner.json";
 import type { ApiDeps } from "./deps";
@@ -12,6 +13,11 @@ import { bad, json } from "./http";
  *   /api/artwork?id=<song or cortina id>        → { url }  from the shipped cache
  *   /api/artwork?uri=spotify:track:<id>         → { url }  Spotify's public oEmbed (thumbnail_url)
  *   /api/artwork?deezer=<track id>              → { url }  Deezer's public track API (the album cover)
+ *   /api/artwork?search=1&id=…|title=&orchestra=&singer=&year=&dur=&alt=
+ *                                               → { url }  2026-11: Deezer's search climbed with the query ladder of
+ *                                                 "Find on services" (lib/findMatch.ts), each candidate judged by
+ *                                                 the core match rules (a solo singer's side with guitars, a side
+ *                                                 with no stream)
  *
  * The parameters combine (the id first, then Spotify, then Deezer). Answers are kept in an in-memory LRU and sent
  * with HTTP cache headers; an upstream failure is never cached (`retry: true`, no-store), a recording with no cover
@@ -95,6 +101,105 @@ const viaDeezer =
     return typeof u === "string" && IMAGE.test(u) ? u : null;
   };
 
+/* ---------- 2026-11: a side with no recording to ask about: Deezer's search, climbed like "Find on services" ---------- */
+
+/** at or above this the search's best candidate is the side's own recording (title and singer / leader agree) */
+export const SEARCH_MIN = 0.55;
+interface DeezerHit {
+  id: number;
+  title: string;
+  duration: number;
+  artist: { name: string };
+  album: { title: string; cover_medium?: string; cover_big?: string };
+}
+/** the side the search looks for: the catalogue's own record when it has the id, else what the page sent */
+export function searchSide(q: URLSearchParams, d: Pick<ApiDeps, "catalog">): FindSide | null {
+  const id = q.get("id");
+  const str = (k: string, max = 160) => (q.get(k) ?? "").trim().slice(0, max);
+  const n = (k: string) => {
+    const v = Number(q.get(k));
+    return q.get(k) && Number.isFinite(v) && v > 0 ? v : null;
+  };
+  if (id && ID.test(id)) {
+    try {
+      const cat = d.catalog().catalog;
+      const s = cat.songs.find((x) => x.id === id || x.altIds?.includes(id));
+      if (s)
+        return {
+          title: s.title,
+          orchestra: s.orchestra,
+          singer: s.singer ?? null,
+          vocal: s.vocal,
+          year: s.year ?? null,
+          yearApprox: s.yearApprox,
+          date: s.date ?? null,
+          durationSec: s.durationSec ?? null,
+          durationEstimated: s.durationEstimated,
+          altTitles: s.altTitles,
+          rhythm: s.rhythm,
+          orchestraAliases: cat.profiles?.get?.(s.orchestraId)?.aliases,
+        };
+    } catch {}
+  }
+  const title = str("title");
+  const orchestra = str("orchestra", 120);
+  if (!title || !orchestra) return null;
+  const vocal = q.get("vocal");
+  return {
+    title,
+    orchestra,
+    singer: str("singer", 120) || null,
+    ...(vocal === "0" || vocal === "1" ? { vocal: vocal === "1" } : {}),
+    year: n("year"),
+    durationSec: n("dur"),
+    altTitles: q
+      .getAll("alt")
+      .map((a) => a.trim().slice(0, 160))
+      .filter(Boolean)
+      .slice(0, 3),
+  };
+}
+/** the cache key of a search: what decides its answer */
+export const searchKey = (s: FindSide) =>
+  `q:${[fold(s.title), fold(s.orchestra), fold(s.singer ?? ""), s.year ?? ""].join("|").toLowerCase()}`;
+/**
+ * The ladder's queries against Deezer's public search (the same rungs as "Find on services": the singer first for a
+ * solo singer's side, the leader's surname, the aliases, the folded title), each candidate judged by the core match
+ * rules; the first strong one's album cover. Null when none is the side's own; throws when Deezer cannot be reached.
+ */
+const viaSearch =
+  (side: FindSide): Lookup =>
+  async (d) => {
+    const seen = new Map<string, FoundRec & { cover?: string }>();
+    let reached = false;
+    for (const rung of queryLadder("deezer", side).slice(0, 4)) {
+      const r = await d
+        .fetch(`https://api.deezer.com/search?q=${encodeURIComponent(rung.q)}&limit=10`, {
+          signal: AbortSignal.timeout(TIMEOUT_MS),
+        })
+        .catch(() => null);
+      if (!r?.ok) continue;
+      reached = true;
+      const j = (await r.json().catch(() => null)) as { data?: DeezerHit[] } | null;
+      for (const t of j?.data ?? [])
+        if (t && !seen.has(String(t.id)))
+          seen.set(String(t.id), {
+            title: t.title,
+            artists: [t.artist?.name ?? ""],
+            album: t.album?.title,
+            durationMs: (t.duration ?? 0) * 1000,
+            mainArtistOnly: true,
+            cover: t.album?.cover_medium ?? t.album?.cover_big,
+          });
+      const top = rankFound(side, [...seen.values()]).ranked[0];
+      if (top && top.score >= FIND_STRONG) break;
+    }
+    if (!reached) throw new Error("deezer search unreachable");
+    const best = rankFound(side, [...seen.values()]).ranked.find((x) => x.score >= SEARCH_MIN);
+    const u = best?.item.cover;
+    return typeof u === "string" && IMAGE.test(u) ? u : null;
+  };
+
 const CACHE_HIT = "public, max-age=86400, s-maxage=604800, stale-while-revalidate=2592000";
 const CACHE_MISS = "public, max-age=3600";
 
@@ -103,17 +208,24 @@ export async function artwork(req: Request, d: ApiDeps, cache: CoverLru = lru): 
   const id = q.get("id");
   const uri = q.get("uri");
   const deezer = q.get("deezer");
-  if (!id && !uri && !deezer)
+  const search = q.get("search") === "1";
+  if (!id && !uri && !deezer && !search)
     return json({ covers: SHIPPED_COVERS }, { headers: { "cache-control": CACHE_HIT } });
   const track = spotifyTrackOf(uri);
   if ((id && !ID.test(id)) || (uri && !track) || (deezer && !DEEZER_ID.test(deezer)))
-    return bad("Expected ?id=<id>, ?uri=spotify:track:<id> or ?deezer=<track id>");
+    return bad("Expected ?id=<id>, ?uri=spotify:track:<id>, ?deezer=<track id> or ?search=1 with the side");
   const shipped = id ? SHIPPED_COVERS[id] : undefined;
   if (shipped) return json({ url: shipped, source: "shipped" }, { headers: { "cache-control": CACHE_HIT } });
 
   const steps: Array<[string, Lookup]> = [];
   if (track) steps.push([`sp:${track}`, viaSpotify(track)]);
   if (deezer) steps.push([`dz:${deezer}`, viaDeezer(deezer)]);
+  // 2026-11: no recording to ask about (a solo singer's side with guitars, a side with no stream): search for it
+  if (search) {
+    const side = searchSide(q, d);
+    if (side) steps.push([searchKey(side), viaSearch(side)]);
+    else if (!steps.length) return bad("?search=1 needs a catalogue id or a title and an orchestra");
+  }
   let unreachable = false;
   for (const [key, lookup] of steps) {
     const hit = cache.get(key);

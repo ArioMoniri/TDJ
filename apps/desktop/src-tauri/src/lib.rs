@@ -224,7 +224,11 @@ fn build_main(app: &AppHandle) -> tauri::Result<WebviewWindow> {
         });
     }
     #[cfg(target_os = "ios")]
-    let _ = w.with_webview(|v| apple::tune_ios_webview(v.inner()));
+    let _ = w.with_webview(|v| {
+        apple::tune_ios_webview(v.inner());
+        // Shake to Undo: UIKit's shake → the page's `tdj:shake` (apple.rs)
+        apple::install_shake(v.inner());
+    });
     Ok(w)
 }
 

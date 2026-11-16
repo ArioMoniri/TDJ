@@ -5,14 +5,23 @@ import { Headphones, Info, Play, Square } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { I } from "@/components/Icons";
 import { surnameOf } from "@/lib/booth/songInfo";
+import { haptic } from "@/lib/haptics";
 import { t } from "@/lib/i18n";
 import { useTapPlay } from "@/lib/playback";
 import type { PlayItem } from "@/lib/player";
 import type { ServiceAnswer, SourceId } from "@/lib/smartSearch";
+import { useSongMenuProps } from "@/lib/songMenu";
 import { openSongDetails } from "@/lib/songOpen";
-import { otherVersions, type OtherVersions as Result, serviceQuery } from "@/lib/songVersions";
+import {
+  otherVersions,
+  type OtherVersions as Result,
+  serviceQuery,
+  type VersionRow,
+} from "@/lib/songVersions";
 import { loadMatches } from "@/lib/youtubeMatches";
 import { Group } from "../Form";
+import { Artwork } from "../ui/Artwork";
+import { NowBars } from "../ui/NowPlaying";
 import { SourceIcons } from "../ui/SmartSearch";
 import { TandaTypeBadge } from "../ui/TandaTypeBadge";
 import { lengthText } from "./SongFacts";
@@ -109,7 +118,7 @@ export function OtherVersions({ song, booth }: { song: Song; booth?: BoothVersio
       cat,
       svc ?? [],
       { orchestras: ctx },
-      { extraSources: extra, servicesSearched: !!svc },
+      { extraSources: extra, servicesSearched: !!svc, youtube: yt },
     );
   }, [song, cat, svc, ctx]);
   const spotify = res?.services.find((x) => x.id === "spotify");
@@ -156,15 +165,7 @@ export function OtherVersions({ song, booth }: { song: Song; booth?: BoothVersio
     >
       {!res && <div className="cell text-[var(--label-2)]">{t("song.versions_looking")}</div>}
       {rows.map((v) => (
-        <VersionLine
-          key={v.key}
-          song={v.song}
-          sources={v.sources}
-          current={v.current}
-          booth={booth}
-          approxYear={!v.sources.includes("catalogue")}
-          workRhythm={song.rhythm}
-        />
+        <VersionLine key={v.key} v={v} booth={booth} workRhythm={song.rhythm} />
       ))}
       {!svc && res && (
         <div className="cell text-footnote text-[var(--label-2)]">{t("song.versions_services_looking")}</div>
@@ -183,73 +184,124 @@ export function OtherVersions({ song, booth }: { song: Song; booth?: BoothVersio
   );
 }
 
+/**
+ * One recording of the work (2026-11): its cover (the catalogue's, a Spotify album's, a YouTube thumbnail) plays it
+ * (in the Booth: pre-listens in the headphones), the orchestra and year (an album's year muted: "≈ 2004 · album year
+ * (reissue)"), the voice and length, its sources, and the song menu (right-click, long press, "i"). "This recording"
+ * is first and highlighted.
+ */
 function VersionLine({
-  song,
-  sources,
-  current,
+  v,
   booth,
-  approxYear,
   workRhythm,
 }: {
-  song: Song;
-  sources: SourceId[];
-  current: boolean;
+  v: VersionRow;
   booth?: BoothVersionActions;
-  approxYear: boolean;
   /** the side's own rhythm: a version's badge only when it differs (a vals version of a tango) */
   workRhythm: string;
 }) {
+  const { song, sources, current } = v;
   const item = useMemo<PlayItem>(() => ({ kind: "song", song, where: t("song.other_versions") }), [song]);
   const tp = useTapPlay(booth ? null : item);
   const hearing = booth?.hearingId === song.id;
-  const year = song.year ? `${approxYear || song.yearApprox ? "≈ " : ""}${song.year}` : t("song.undated");
+  const catalogue = sources.includes("catalogue");
+  const albumYear = !!v.yearNote;
+  const year = song.year ? `${albumYear || song.yearApprox ? "≈ " : ""}${song.year}` : t("song.undated");
   const voice = singerDisplay(song.singer) ?? t("song.instrumental");
   const label = t("song.play_version", { orchestra: song.orchestra, year, voice });
+  const play = () => {
+    haptic(4);
+    if (booth) return hearing ? booth.onStop() : booth.onListen(song);
+    void tp.tap();
+  };
+  const menu = useSongMenuProps({
+    song,
+    ...(booth
+      ? {
+          play: { label: t("songMenu.prelisten"), run: () => booth.onListen(song) },
+          playFrom: false as const,
+          noAddToTonight: true,
+          swap:
+            !current && !booth.readOnly ? { label: t("song.use"), run: () => booth.onUse(song) } : undefined,
+        }
+      : {}),
+  });
+  const on = booth ? hearing : !!tp.state;
   return (
     <div
-      className="cell"
+      className="cell song-version"
       data-testid="song-version"
       data-current={current || undefined}
       data-sources={sources.join(" ")}
+      data-year-note={v.yearNote ?? undefined}
+      data-now={on || undefined}
+      {...menu}
     >
+      {/* the cover is the row's play (44 px), the bars over it while it plays */}
       <button
         type="button"
-        className={`icon-btn icon-btn-bare h-11 w-11 shrink-0 ${booth ? "text-[var(--cue)]" : "text-[var(--tint)]"}`}
+        className="relative -my-1 grid h-11 min-w-11 shrink-0 place-items-center"
         aria-label={label}
+        aria-pressed={booth ? hearing : tp.playing}
         data-testid="song-version-play"
-        onClick={() => {
-          if (booth) return hearing ? booth.onStop() : booth.onListen(song);
-          void tp.tap();
-        }}
+        onClick={play}
       >
-        {booth ? (
-          hearing ? (
-            <Square size={14} fill="currentColor" strokeWidth={0} aria-hidden />
+        <Artwork
+          src={v.cover}
+          song={song}
+          orchestra={song.orchestra}
+          orchestraId={song.orchestraId}
+          size="m"
+        />
+        <span
+          className={`song-version-glyph absolute inset-0 grid place-items-center rounded-[var(--radius-xs)] ${on ? "bg-black/45 text-white" : ""}`}
+          aria-hidden
+        >
+          {on ? (
+            booth ? (
+              <Square size={12} fill="currentColor" strokeWidth={0} />
+            ) : (
+              <NowBars on={tp.playing} className="!text-white" />
+            )
+          ) : booth ? (
+            <Headphones size={14} strokeWidth={2.25} className="song-version-hint" />
           ) : (
-            <Headphones size={16} strokeWidth={2} aria-hidden />
-          )
-        ) : tp.playing ? (
-          <I name="pause" size={16} fill="currentColor" strokeWidth={0} />
-        ) : (
-          <I name="play" size={16} fill="currentColor" strokeWidth={0} />
-        )}
+            <I name="play" size={14} fill="currentColor" strokeWidth={0} className="song-version-hint" />
+          )}
+        </span>
       </button>
       <span className="min-w-0 flex-1">
         <span className="flex min-w-0 items-baseline gap-1.5">
           <span className="truncate" lang="es">
             {song.orchestra}
           </span>
-          <span className="shrink-0 tabular-nums text-[var(--label-2)]">{year}</span>
+          {/* (an album's year is not the recording's: it goes to the muted line below, said as such) */}
+          {!albumYear && (
+            <span className="shrink-0 tabular-nums text-[var(--label-2)]" data-testid="song-version-year">
+              {year}
+            </span>
+          )}
         </span>
         <span className="text-footnote flex min-w-0 gap-1 text-[var(--label-2)]">
           <span className="truncate" lang="es">
             {voice}
           </span>
-          <span className="shrink-0 tabular-nums">
-            · {lengthText(song)}
-            {current ? ` · ${t("song.this_recording")}` : ""}
-          </span>
+          <span className="shrink-0 tabular-nums">· {lengthText(song)}</span>
         </span>
+        {(current || v.yearNote) && (
+          <span className="text-caption1 flex flex-wrap items-center gap-x-1.5">
+            {current && (
+              <span className="song-version-this" data-testid="song-version-this">
+                {t("song.dna_this_recording")}
+              </span>
+            )}
+            {v.yearNote && (
+              <span className="text-[var(--label-3)]" data-testid="song-version-year-note">
+                {`≈ ${song.year} · ${t(v.yearNote === "reissue" ? "song.year_reissue" : "song.year_album")}`}
+              </span>
+            )}
+          </span>
+        )}
       </span>
       {(song.rhythm !== workRhythm || sources.length > 1 || sources[0] !== "catalogue") && (
         <span className="flex shrink-0 flex-col items-end gap-1">
@@ -267,11 +319,12 @@ function VersionLine({
           <Play size={14} fill="currentColor" strokeWidth={0} aria-hidden /> {t("song.use")}
         </button>
       )}
-      {!booth && !current && sources.includes("catalogue") && (
+      {!booth && !current && catalogue && (
         <button
           type="button"
           className="icon-btn icon-btn-bare h-11 w-11 shrink-0 text-[var(--label-2)]"
           aria-label={t("song.details_of", { title: song.title, orchestra: song.orchestra })}
+          data-testid="song-version-info"
           onClick={() => openSongDetails(song)}
         >
           <Info size={16} strokeWidth={2} aria-hidden />

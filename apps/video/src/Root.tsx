@@ -2,6 +2,8 @@ import { Composition } from "remotion";
 import { Clip, type ClipProps, calculateClipMetadata, FPS, H, W } from "./Clip";
 import { calculateHeroMetadata, HERO_FPS, HERO_H, HERO_W, Hero, type HeroProps } from "./Hero";
 import { LAUNCH_FPS, LAUNCH_FRAMES, Launch } from "./Launch";
+import { calculateShowcase, SHOWCASE_DEFAULTS, Showcase } from "./Showcase";
+import { calculateStorePreview, STORE_PREVIEW_DEFAULTS, StorePreview } from "./StorePreview";
 import { calculateDeviceFrameMetadata, DeviceFrame, type DeviceFrameProps } from "./three/DeviceFrame";
 
 export const Root = () => (
@@ -43,6 +45,26 @@ export const Root = () => (
       height={1000}
       defaultProps={{ kind: "phone" } as DeviceFrameProps}
       calculateMetadata={calculateDeviceFrameMetadata}
+    />
+    <Composition
+      id="StorePreview"
+      component={StorePreview}
+      durationInFrames={STORE_PREVIEW_DEFAULTS.intro + STORE_PREVIEW_DEFAULTS.outro + 1}
+      fps={STORE_PREVIEW_DEFAULTS.fps}
+      width={STORE_PREVIEW_DEFAULTS.width}
+      height={STORE_PREVIEW_DEFAULTS.height}
+      defaultProps={STORE_PREVIEW_DEFAULTS}
+      calculateMetadata={calculateStorePreview}
+    />
+    <Composition
+      id="Showcase"
+      component={Showcase}
+      durationInFrames={1}
+      fps={30}
+      width={SHOWCASE_DEFAULTS.width}
+      height={SHOWCASE_DEFAULTS.height}
+      defaultProps={SHOWCASE_DEFAULTS}
+      calculateMetadata={calculateShowcase}
     />
   </>
 );
