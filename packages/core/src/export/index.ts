@@ -62,7 +62,8 @@ function mixOutOf(it: BoothPlanItem): FlatTrack["mixOut"] | undefined {
   if (!tr || it.kind === "cortina") return undefined;
   const span = Math.max(tr.overlapSec, tr.fadeOutSec);
   if (span <= 0) return undefined;
-  const end = (it.trimInSec ?? 0) + it.lengthSec;
+  // (2026-11: a silent head the plan cut moves the side's end in its recording by as much)
+  const end = (it.trimInSec ?? 0) + (it.headCutSec ?? 0) + it.lengthSec;
   return {
     atSec: Math.round(Math.max(0, end - span) * 1000) / 1000,
     label: `${tr.preset} ${span} s`,
