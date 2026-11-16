@@ -5,6 +5,7 @@ import {
   FileDown,
   FolderOpen,
   GitCompare,
+  ListPlus,
   Pencil,
   Play,
   RotateCcw,
@@ -264,6 +265,8 @@ export default function HistoryPage() {
                   icon: FolderOpen,
                   onClick: () => router.push("/night"),
                 },
+                // 2026-11: Import a playlist (app/import)
+                { label: tx("import.entry"), icon: ListPlus, onClick: () => router.push("/import") },
                 { label: tx("history.rooms"), icon: Users, onClick: () => router.push("/rooms") },
                 {
                   label: tx("history.save_history_as_a_file"),

@@ -20,6 +20,7 @@ import {
   Ellipsis,
   Eraser,
   Hand,
+  ListPlus,
   LoaderCircle,
   Lock,
   MessageSquareText,
@@ -1827,6 +1828,8 @@ export function Composer() {
                   { label: tx("composer.copy_seed"), icon: Copy, onClick: copySeed },
                   { label: tx("composer.written_review"), icon: MessageSquareText, onClick: explain },
                   { label: tx("composer.play_the_night"), icon: Play, onClick: () => router.push("/booth") },
+                  // 2026-11: Import a playlist (app/import)
+                  { label: tx("import.entry"), icon: ListPlus, onClick: () => router.push("/import") },
                   {
                     label: tx("composer.tell_the_dj"),
                     icon: SlidersHorizontal,
@@ -1941,6 +1944,26 @@ export function Composer() {
                 <span className="block truncate">{tx("composer.build_by_hand")}</span>
                 <span className="text-footnote block truncate text-[var(--label-2)]">
                   {tx("composer.pick_every_tanda_yourself_with_suggestions")}
+                </span>
+              </span>
+              <ChevronRight size={16} strokeWidth={2.5} className="cell-chevron" aria-hidden />
+            </Link>
+          </Tip>
+          {/* 2026-11: a Spotify / YouTube playlist, a DJ app's file or a list, played or edited as a night */}
+          <Tip text={tx("import.subtitle")} className="mt-2 w-full">
+            <Link
+              href="/import"
+              className="cell cell-tap group-inset w-full text-left"
+              data-leading="tile"
+              data-testid="first-run-import"
+            >
+              <span className="tile" style={{ background: "#ff9500" }} aria-hidden>
+                <ListPlus size={16} strokeWidth={2} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate">{tx("import.entry")}</span>
+                <span className="text-footnote block truncate text-[var(--label-2)]">
+                  {tx("import.entry_sub")}
                 </span>
               </span>
               <ChevronRight size={16} strokeWidth={2.5} className="cell-chevron" aria-hidden />
@@ -2403,6 +2426,7 @@ export function Composer() {
           <MenuList
             items={[
               { label: tx("composer.play_the_night"), icon: Play, onClick: () => router.push("/booth") },
+              { label: tx("import.entry"), icon: ListPlus, onClick: () => router.push("/import") },
               {
                 label: tx("composer.tell_the_dj"),
                 icon: MessageSquareText,

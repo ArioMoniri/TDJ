@@ -14,6 +14,7 @@ import {
   swapTrack,
 } from "@/lib/api/engine";
 import { json, jsonNoStore, noStore } from "@/lib/api/http";
+import { importMatch } from "@/lib/api/importMatch";
 import { preview, resolve, resolveStatus } from "@/lib/api/net";
 import { popularity } from "@/lib/api/popularity";
 import { searchQuery } from "@/lib/api/search";
@@ -209,6 +210,8 @@ const LOCAL: Record<string, Partial<Record<Method, Handler>>> = {
   "/api/admin/public": { GET: publicStatus },
   "/api/app/settings": { GET: settingsGet, PUT: settingsPut },
   "/api/night/resolve": { POST: nightResolve },
+  // 2026-11: "Import a playlist" matches on the device too (lib/api/importMatch.ts)
+  "/api/import/match": { POST: importMatch },
 };
 
 /**
