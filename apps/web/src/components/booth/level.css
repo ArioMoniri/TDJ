@@ -34,34 +34,45 @@
   color: #fff;
   background: var(--destructive, #ff453a);
 }
-.booth-levels {
+/* the Mixer's title line: MIXER, then the meter (no extra height in the panel) */
+.booth-ctl-title:has(> .booth-levels-head) {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.booth-levels-head {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
   gap: 8px;
   min-width: 0;
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 500;
 }
-.booth-levels-nums {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: var(--label-2);
+.booth-levels-bar {
+  flex: 1 1 auto;
+  min-width: 40px;
+  height: 6px;
 }
-.booth-levels-nums > .booth-clip {
-  margin-left: auto;
-}
-.booth-levels-note {
+.booth-levels-head > .booth-meter-na {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   margin: 0;
 }
-.booth-levels-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
+.booth-levels-nums {
+  flex: none;
+  font-size: 11px;
+  color: var(--label-2);
 }
-.booth-levels-row > .booth-ctl-text {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+.booth-levels-head > .booth-clip {
+  min-height: 18px;
+  padding: 0 6px;
+  font-size: 10px;
+}
+.booth-levels-head > .booth-clip[data-on="0"] {
+  display: none;
 }
 .booth-auto-badge {
   display: inline-flex;

@@ -117,10 +117,14 @@ export function NoMeter({ testId = "booth-meter-na" }: { testId?: string }) {
   const song = useLevels((s) => s.song);
   const txt = songLoudnessText(song);
   return (
-    <p className="text-caption1 text-[var(--label-2)]" data-testid={testId} role="status">
+    <span
+      className="booth-meter-na block text-caption1 text-[var(--label-2)]"
+      data-testid={testId}
+      role="status"
+    >
       {live === "youtube" ? t("booth.level.na_youtube") : t("booth.level.na_spotify")}
       {txt ? ` · ${txt}` : ""}
-    </p>
+    </span>
   );
 }
 

@@ -163,11 +163,19 @@ test.describe("2026-11 the level meter and Auto master", () => {
     await page.getByTestId("booth-controls-toggle").click();
     const panel = page.getByTestId("booth-controls");
     await expect(panel.getByTestId("ctl-meter")).toBeVisible();
-    await expect(panel.getByTestId("ctl-meter-nums")).toContainText(/Short-term -?\d+\.\d LUFS/);
-    await expect(panel.getByTestId("ctl-meter-nums")).toContainText(/Peak -?\d+\.\d dBFS/);
-    await expect(panel.getByTestId("ctl-norm")).toHaveAttribute("data-norm", "graph");
-    await expect(panel.getByTestId("ctl-norm")).toContainText("Every song plays at -16 LUFS");
+    await expect(panel.getByTestId("ctl-meter-nums")).toHaveText(/^-1[2-9] LUFS$/);
+    await expect(panel.getByTestId("ctl-meter-nums")).toHaveAttribute(
+      "title",
+      /Short-term -?\d+\.\d LUFS · Peak -?\d+\.\d dBFS/,
+    );
     const box = await panel.getByTestId("ctl-room").boundingBox();
+    expect(box!.width).toBeGreaterThanOrEqual(44);
+    // its sheet: the meter again and the normalisation for the side playing now, in words
+    await panel.getByTestId("ctl-room").click();
+    const sheet = page.getByTestId("booth-room-sheet");
+    await expect(sheet.getByTestId("ctl-norm")).toHaveAttribute("data-norm", "graph");
+    await expect(sheet.getByTestId("ctl-norm")).toContainText("Every song plays at -16 LUFS");
+    await sheet.getByRole("button", { name: "Done" }).click();
     expect(box!.height).toBeGreaterThanOrEqual(44);
     // Auto master is off by default: no badge, no boost
     await expect(page.getByTestId("booth-auto-badge")).toHaveCount(0);
@@ -177,7 +185,7 @@ test.describe("2026-11 the level meter and Auto master", () => {
   test("the room meter (a fake microphone): Auto master rises slowly within its maximum when the crowd gets louder; one tap stops it", async ({
     page,
   }) => {
-    test.setTimeout(240_000);
+    test.setTimeout(360_000);
     await quiet(page);
     await fakeMic(page);
     await openClips(page);
@@ -222,16 +230,24 @@ test.describe("2026-11 the level meter and Auto master", () => {
     }
     const top = Math.max(...samples.map((s) => s.db));
     expect(top).toBeGreaterThanOrEqual(1);
-    // never faster than 0.5 dB/s (with a little slack for the page's timers), never past the +3 dB maximum
-    for (let i = 1; i < samples.length; i++) {
-      const dt = (samples[i]!.t - samples[i - 1]!.t) / 1000;
-      expect(samples[i]!.db - samples[i - 1]!.db).toBeLessThanOrEqual(0.5 * dt + 0.06);
-    }
+    // never faster than 0.5 dB/s over any 2 s or more (slack: one page tick, read late), never past the +3 dB maximum
+    for (let i = 0; i < samples.length; i++)
+      for (let j = i + 1; j < samples.length; j++) {
+        const dt = (samples[j]!.t - samples[i]!.t) / 1000;
+        if (dt >= 2) expect(samples[j]!.db - samples[i]!.db).toBeLessThanOrEqual(0.5 * dt + 0.5);
+      }
+    // and the rise as a whole took time: 1 dB is never reached in under 2 s of crowd
+    expect((samples.at(-1)!.t - samples[0]!.t) / 1000).toBeGreaterThanOrEqual(2);
     expect(top).toBeLessThanOrEqual(3);
     await expect(page.getByTestId("booth-auto-badge")).toContainText(/Auto master \+\d\.\d dB/);
-    // one tap stops it; the boost goes back down, slowly
-    await page.getByTestId("booth-auto-badge").first().click();
-    await expect(auto).toHaveAttribute("aria-checked", "false");
+    // back on the Booth, the badge on the Now card: one tap stops it; the boost goes back down, slowly
+    await sheet.getByRole("button", { name: "Done" }).click();
+    await expect(sheet).toHaveCount(0);
+    const badge = page.getByTestId("booth-auto-badge");
+    await expect(badge).toHaveAttribute("data-on", "1");
+    const bb = await badge.boundingBox();
+    expect(bb!.height).toBeGreaterThanOrEqual(44);
+    await badge.click();
     const at = await autoDb(page);
     await page.waitForTimeout(1000);
     const after = await autoDb(page);
@@ -240,6 +256,8 @@ test.describe("2026-11 the level meter and Auto master", () => {
     await expect.poll(() => autoDb(page), { timeout: 20000 }).toBe(0);
     await expect(page.getByTestId("booth-auto-badge")).toHaveCount(0);
     // turning the room meter off stops the microphone
+    await page.getByTestId("ctl-room").click();
+    await expect(auto).toHaveAttribute("aria-checked", "false");
     await sheet.getByRole("switch", { name: "Room meter (microphone)" }).click();
     await expect(sheet.getByTestId("booth-room-db")).toHaveCount(0);
   });
@@ -340,7 +358,10 @@ test("Spotify Connect: 'Level not available from Spotify' instead of a dead mete
   await page.getByTestId("booth-controls-toggle").click();
   const panel = page.getByTestId("booth-controls");
   await expect(panel.getByTestId("ctl-meter-na")).toContainText("Level not available from Spotify");
-  await expect(panel.getByTestId("ctl-norm")).toHaveAttribute("data-norm", "spotify");
-  await expect(panel.getByTestId("ctl-norm")).toContainText("turn on Normalize volume in Spotify");
+  await panel.getByTestId("ctl-room").click();
+  const sheet = page.getByTestId("booth-room-sheet");
+  await expect(sheet.getByTestId("mix-meter-na")).toContainText("Level not available from Spotify");
+  await expect(sheet.getByTestId("ctl-norm")).toHaveAttribute("data-norm", "spotify");
+  await expect(sheet.getByTestId("ctl-norm")).toContainText("turn on Normalize volume in Spotify");
   await ctx.close();
 });

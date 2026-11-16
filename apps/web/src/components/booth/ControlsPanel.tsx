@@ -26,7 +26,7 @@ import { SeekBar } from "../ui/SeekBar";
 import { ArmButton, ConfirmRing } from "./Confirm";
 import { Fader } from "./Fader";
 import { FloorReaction } from "./FloorReaction";
-import { MixerLevels } from "./LevelPanel";
+import { MixerMeter, MixerRoomButton } from "./LevelPanel";
 import { PraiseTanda } from "./PraiseTanda";
 
 const OPEN_KEY = "tdj-booth-controls";
@@ -409,9 +409,8 @@ export function ControlsPanel({
             )}
           </div>
         </Group>
-        <Group title={t("booth.controls.mixer")} className="booth-ctl-g-mixer">
-          {/* 2026-11: the output meter, the normalisation in use, the room meter and Auto master (LevelPanel.tsx) */}
-          <MixerLevels />
+        {/* 2026-11: the output meter on the Mixer's title line; the room meter and Auto master (LevelPanel.tsx) */}
+        <Group title={t("booth.controls.mixer")} className="booth-ctl-g-mixer" aside={<MixerMeter />}>
           <Fader
             label={t("booth.controlStrip.master_volume")}
             value={master}
@@ -461,6 +460,7 @@ export function ControlsPanel({
             >
               <Mic size={20} strokeWidth={2} aria-hidden />
             </Btn>
+            <MixerRoomButton />
           </div>
         </Group>
         <Group title={t("booth.controls.timing")} className="booth-ctl-g-timing">
@@ -549,15 +549,21 @@ function rowsOf(el: HTMLElement): HTMLElement[] {
 function Group({
   title,
   className = "",
+  aside,
   children,
 }: {
   title: string;
   className?: string;
+  /** 2026-11: shown on the title line after the title (the Mixer's meter) */
+  aside?: ReactNode;
   children: ReactNode;
 }) {
   return (
     <fieldset className={`booth-ctl-group ${className}`}>
-      <legend className="booth-ctl-title">{title}</legend>
+      <legend className="booth-ctl-title">
+        {aside ? <span>{title}</span> : title}
+        {aside}
+      </legend>
       {children}
     </fieldset>
   );

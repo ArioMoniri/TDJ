@@ -293,6 +293,8 @@ export const en = {
   "booth.level.auto_on": "Auto master {db} dB",
   "booth.level.auto_returning": "Auto master returning {db} dB",
   "booth.level.auto_stop_aria": "Auto master {db} dB. Tap to stop",
+  "booth.level.auto_short": "Auto",
+  "booth.level.room_short": "Room",
   "booth.level.calibrate": "Sound-level app reads",
   "booth.level.calibrate_clear": "Clear the calibration",
   "booth.level.calibrate_now": "Calibrate to {db} dB SPL",

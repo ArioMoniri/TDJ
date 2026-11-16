@@ -16,47 +16,61 @@ import { useBooth } from "@/lib/booth/store";
 import { t } from "@/lib/i18n";
 import { ActionRow, Group, StepperRow, SwitchRow } from "../Form";
 import { Sheet } from "../Sheet";
-import { AutoBadge, fmtDb, holdText, MeterBar, NoMeter, songLoudnessText } from "./Meter";
+import { fmtDb, holdText, MeterBar, NoMeter, songLoudnessText } from "./Meter";
 import "./level.css";
 
 /**
- * 2026-11 — the levels in the Mixer: the output meter with its numbers and clip light, how the night's loudness
- * normalisation reaches the room for the side playing now, and the door to the room meter and Auto master.
+ * 2026-11 — the levels in the Mixer, adding no height to the panel (its rows must fit its fold): the output meter, its
+ * short-term loudness and the clip light sit on the group's title line (`MixerMeter`); the door to the room meter and
+ * Auto master is a third button beside Mute and Talk (`MixerRoomButton`), and its sheet also says how the night's
+ * normalisation reaches the room for the side playing now.
  */
-export function MixerLevels() {
-  const [open, setOpen] = useState(false);
+export function MixerMeter() {
   const live = useLevels((s) => s.live);
   const r = useLevels((s) => s.reading);
   const external = live === "spotify" || live === "youtube";
   return (
-    <div className="booth-levels" data-testid="ctl-levels">
+    <span className="booth-levels-head" data-testid="ctl-levels">
       {external ? (
         <NoMeter testId="ctl-meter-na" />
       ) : (
         <>
-          <MeterBar className="h-3" testId="ctl-meter" />
-          <div className="booth-levels-nums text-caption1 tabular-nums" data-testid="ctl-meter-nums">
-            <span>{t("booth.level.short_term", { db: fmtDb(r.shortTermLufs) })}</span>
-            <span>{t("booth.level.peak", { db: fmtDb(r.peakDb) })}</span>
-            <ClipLight />
-          </div>
+          <MeterBar className="booth-levels-bar" testId="ctl-meter" />
+          <span
+            className="booth-levels-nums tabular-nums"
+            data-testid="ctl-meter-nums"
+            title={`${t("booth.level.short_term", { db: fmtDb(r.shortTermLufs) })} · ${t("booth.level.peak", { db: fmtDb(r.peakDb) })}`}
+          >
+            {t("booth.level.lufs_value", { db: fmtDb(r.shortTermLufs, 0) })}
+          </span>
+          <ClipLight />
         </>
       )}
-      <NormNote />
-      <div className="booth-levels-row">
-        <button
-          type="button"
-          className="booth-ctl-text booth-ctl-wide"
-          onClick={() => setOpen(true)}
-          data-testid="ctl-room"
-        >
-          <Gauge size={16} strokeWidth={2} aria-hidden />
-          <span>{t("booth.level.room_and_auto")}</span>
-        </button>
-        <AutoBadge testId="ctl-auto-badge" />
-      </div>
+    </span>
+  );
+}
+
+export function MixerRoomButton() {
+  const [open, setOpen] = useState(false);
+  const autoOn = useLevels((s) => s.auto.enabled);
+  return (
+    <>
+      <button
+        type="button"
+        className="booth-ctl-btn"
+        onClick={() => setOpen(true)}
+        aria-label={t("booth.level.room_and_auto")}
+        title={t("booth.level.room_and_auto")}
+        aria-pressed={autoOn}
+        data-testid="ctl-room"
+      >
+        <Gauge size={20} strokeWidth={2} aria-hidden />
+        <span className="booth-ctl-btn-l">
+          {autoOn ? t("booth.level.auto_short") : t("booth.level.room_short")}
+        </span>
+      </button>
       <RoomSheet open={open} onClose={() => setOpen(false)} />
-    </div>
+    </>
   );
 }
 
@@ -113,7 +127,7 @@ export function RoomSheet({ open, onClose }: { open: boolean; onClose: () => voi
       trailing={t("booth.level.done")}
       testId="booth-room-sheet"
     >
-      <RoomControls />
+      <RoomControls withMeter />
     </Sheet>
   );
 }

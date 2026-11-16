@@ -438,6 +438,8 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.level.auto_on": "Otomatik master {db} dB",
   "booth.level.auto_returning": "Otomatik master geri dönüyor {db} dB",
   "booth.level.auto_stop_aria": "Otomatik master {db} dB. Durdurmak için dokunun",
+  "booth.level.auto_short": "Oto",
+  "booth.level.room_short": "Salon",
   "booth.level.calibrate": "Ses ölçer uygulaması",
   "booth.level.calibrate_clear": "Kalibrasyonu sil",
   "booth.level.calibrate_now": "{db} dB SPL'ye kalibre et",
