@@ -1,4 +1,4 @@
-import { bypassPlanItems, type Playlist, planBooth } from "@tdj/core";
+import { bypassPlanItems, type Playlist, planBooth, type TransitionEdit } from "@tdj/core";
 import { beforeEach, describe, expect, it } from "vitest";
 import { makeNightLog, nightLogSummary } from "@/lib/history";
 import {
@@ -1066,13 +1066,43 @@ describe("wave 4: edited transitions in the engine", () => {
     await e.start();
     await e.play();
     await flush();
-    expect(eq.filters.map((f) => f.type)).toEqual(["lowshelf", "highshelf", "lowshelf", "highshelf"]);
+    // 2026-11: a peaking mid band sits between them (flat unless a three-band swap automates it)
+    expect(eq.filters.map((f) => f.type)).toEqual([
+      "lowshelf",
+      "peaking",
+      "highshelf",
+      "lowshelf",
+      "peaking",
+      "highshelf",
+    ]);
     const end = 0.05 + 170;
     const outLow = eq.filters[0]!.gain.of("linearRampToValueAtTime").at(-1)!;
     expect(outLow.args).toEqual([-24, expect.closeTo(end - 4, 6)]);
-    const inLow = eq.filters[2]!.gain;
+    const inLow = eq.filters[3]!.gain;
     expect(inLow.of("setValueAtTime")[0]!.args[0]).toBe(-24);
     expect(inLow.of("linearRampToValueAtTime").at(-1)!.args).toEqual([0, expect.closeTo(end - 4, 6)]);
+    // a bass swap leaves the mids flat
+    expect(eq.filters[1]!.gain.calls).toEqual([]);
+    expect(eq.filters[4]!.gain.calls).toEqual([]);
+  });
+
+  it("2026-11: a three-band swap also hands the mids and highs over (the outgoing's ease off, the incoming's come up)", async () => {
+    const eq = new EqCtx();
+    const plan = build(set(), {
+      transitions: { [tKey("a1", "a2")]: { preset: "blend", overlapSec: 8, eq: "threeBand" } },
+    });
+    const e = engineFor(eq, plan);
+    await e.start();
+    await e.play();
+    await flush();
+    const end = 0.05 + 170;
+    const [, outMid, outHigh, , inMid, inHigh] = eq.filters;
+    expect(outMid!.gain.of("linearRampToValueAtTime").at(-1)!.args).toEqual([-9, expect.closeTo(end, 6)]);
+    expect(outHigh!.gain.of("linearRampToValueAtTime").at(-1)!.args[0]).toBe(-12);
+    expect(inMid!.gain.of("setValueAtTime")[0]!.args[0]).toBe(-9);
+    expect(inMid!.gain.of("linearRampToValueAtTime").at(-1)!.args).toEqual([0, expect.closeTo(end - 4, 6)]);
+    expect(inHigh!.gain.of("setValueAtTime")[0]!.args[0]).toBe(-12);
+    expect(inHigh!.gain.of("linearRampToValueAtTime").at(-1)!.args).toEqual([0, expect.closeTo(end - 4, 6)]);
   });
 
   it("Hold before the transition gives the running song its own end back (no fade, its natural stop)", async () => {
@@ -1700,6 +1730,7 @@ describe("2026-11: Spotify Connect transport (instant, coalesced skips)", () => 
     cancels: boolean[];
     stops: number[];
     seeks: Array<{ pos: number; dur: number | undefined }>;
+    retimes: Array<{ endsInSec: number; fadeOutSec: number }>;
     pos: number;
   };
   const inPlace = { ok: true };
@@ -1721,7 +1752,7 @@ describe("2026-11: Spotify Connect transport (instant, coalesced skips)", () => 
       external: {
         capabilities: { fade, volume: true, gain: false },
         startItem(r) {
-          const x: Ext = { r, cancels: [], stops: [], seeks: [], pos: r.positionSec + 5 };
+          const x: Ext = { r, cancels: [], stops: [], seeks: [], retimes: [], pos: r.positionSec + 5 };
           starts.push(x);
           if (r.delaySec < 1) setTimeout(() => r.onStarted?.(true), 0);
           return {
@@ -1731,6 +1762,7 @@ describe("2026-11: Spotify Connect transport (instant, coalesced skips)", () => 
               r.onEnded();
             },
             position: () => x.pos,
+            retime: (o) => x.retimes.push(o),
             // 2026-11 (seek): the device jumps inside the playing track (PUT /me/player/seek), no new play
             seek: (pos, o) => {
               if (!inPlace.ok) return false;
@@ -1752,9 +1784,9 @@ describe("2026-11: Spotify Connect transport (instant, coalesced skips)", () => 
     ctx = new FakeCtx();
     inPlace.ok = true;
   });
-  async function night(fade = false) {
+  async function night(fade = false, transitions?: Record<string, TransitionEdit>) {
     const { sp, starts, masters } = connectAdapter(fade);
-    const plan = build(set({ thirdTanda: true }));
+    const plan = build(set({ thirdTanda: true }), transitions ? { transitions } : {});
     const events: EngineEvent[] = [];
     const e = new BoothEngine(ctx, {
       adapters: [sp],
@@ -1894,6 +1926,27 @@ describe("2026-11: Spotify Connect transport (instant, coalesced skips)", () => 
     expect(s.r.uri).toBe("spotify:track:a1");
     expect(s.r.positionSec).toBeCloseTo(80, 6);
     expect(e.position()).toBeGreaterThanOrEqual(80);
+  });
+
+  it("2026-11: an edited fade on Spotify in this browser (it fades): the outgoing ends with the transition's fade, the incoming rises", async () => {
+    const tr = { [tKey("a1", "a2")]: { preset: "fade", fadeOutSec: 3, fadeInSec: 2, gapSec: 1 } as TransitionEdit };
+    const { starts, plan } = await night(true, tr);
+    const first = starts[0]!;
+    const len = plan.items[0]!.lengthSec;
+    expect(first.retimes.at(-1)!.fadeOutSec).toBe(3);
+    expect(first.retimes.at(-1)!.endsInSec).toBeCloseTo(len, 0);
+    const next = starts.find((x) => x.r.uri === "spotify:track:a2")!;
+    expect(next.r.fadeInSec).toBe(2);
+    expect(next.r.delaySec).toBeCloseTo(len + 1, 0);
+  });
+
+  it("2026-11: on Spotify Connect (no fades) an edited fade is not applied — only its gap", async () => {
+    const tr = { [tKey("a1", "a2")]: { preset: "fade", fadeOutSec: 3, fadeInSec: 2, gapSec: 1 } as TransitionEdit };
+    const { starts, plan } = await night(false, tr);
+    expect(starts[0]!.retimes).toEqual([]);
+    const next = starts.find((x) => x.r.uri === "spotify:track:a2")!;
+    expect(next.r.fadeInSec ?? 0).toBe(0);
+    expect(next.r.delaySec).toBeCloseTo(plan.items[0]!.lengthSec + 1, 0);
   });
 
   it("Mute and Talk ask the device's level first (resync); unmute does not", async () => {

@@ -64,6 +64,11 @@ export interface ExternalHandle {
    * plays to the track's end. False when it cannot (not started yet): the engine restarts the item instead.
    */
   seek?(positionSec: number, o: { durationSec?: number }): boolean;
+  /**
+   * 2026-11 (an edited transition on a player that can fade — the Web Playback SDK): end `endsInSec` from now with a
+   * `fadeOutSec` fade (volume steps). A player that cannot fade ignores the fade.
+   */
+  retime?(o: { endsInSec: number; fadeOutSec: number }): void;
 }
 /** A player the engine cannot route through the graph (Spotify): the adapter owns the timeline for its items. */
 export interface ExternalPlayer {

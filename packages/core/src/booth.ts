@@ -730,6 +730,12 @@ export function boothClock(plan: Pick<BoothPlan, "settings">, atSec: number): st
  */
 export type TransitionPreset = "gap" | "fade" | "blend" | "rise" | "cortinaCut";
 export type CurveShape = "linear" | "equalPower" | "sCurve";
+/**
+ * 2026-11 — a transition's EQ hand-over (overlaps only): `bassSwap` cuts the outgoing's lows and brings the incoming's
+ * in at the centre of the overlap; `threeBand` also hands the mids and highs over across the overlap.
+ */
+export type TransitionEq = "none" | "bassSwap" | "threeBand";
+export const TRANSITION_EQS: ReadonlyArray<TransitionEq> = ["none", "bassSwap", "threeBand"];
 /** The DJ's edit of one transition, as stored (every number optional: the preset's defaults fill in). */
 export interface TransitionEdit {
   preset: TransitionPreset;
@@ -743,6 +749,8 @@ export interface TransitionEdit {
   curveIn?: CurveShape;
   /** blend / rise: swap the bass at the centre of the overlap (EQ) */
   bassSwap?: boolean;
+  /** 2026-11: the EQ hand-over (wins over `bassSwap` when set) */
+  eq?: TransitionEq;
 }
 /** A transition resolved against its two sides: every number present and inside the rules. */
 export interface PlannedTransition {
@@ -753,14 +761,16 @@ export interface PlannedTransition {
   fadeInSec: number;
   curveOut: CurveShape;
   curveIn: CurveShape;
+  /** the lows are swapped (a bass swap or a three-band swap) */
   bassSwap: boolean;
+  eq: TransitionEq;
 }
 export const TRANSITION_RANGES = {
   gapSec: { min: 0.5, max: 5, step: 0.5 },
   overlapSec: { min: 1, max: 12, step: 0.5 },
   fadeSec: { min: 0, max: 10, step: 0.5 },
 } as const;
-const T_BASE = { overlapSec: 0, fadeOutSec: 0, fadeInSec: 0, bassSwap: false } as const;
+const T_BASE = { overlapSec: 0, fadeOutSec: 0, fadeInSec: 0, bassSwap: false, eq: "none" } as const;
 /** what each preset starts from */
 export const TRANSITION_DEFAULTS: Record<TransitionPreset, Omit<PlannedTransition, "preset">> = {
   gap: { ...T_BASE, gapSec: 2.5, curveOut: "linear", curveIn: "linear" },
@@ -825,6 +835,7 @@ export function resolveTransition(
     curveOut: curve(edit.curveOut, d.curveOut),
     curveIn: curve(edit.curveIn, d.curveIn),
     bassSwap: false,
+    eq: "none",
   };
   if (preset === "blend" || preset === "rise") {
     const max = Math.min(G.overlapSec.max, halfOut, halfIn);
@@ -834,7 +845,16 @@ export function resolveTransition(
     out.fadeInSec = round1(clamp(num(edit.fadeInSec) ?? out.overlapSec, 0, out.overlapSec));
     out.fadeOutSec =
       preset === "blend" ? round1(clamp(num(edit.fadeOutSec) ?? out.overlapSec, 0, out.overlapSec)) : 0;
-    out.bassSwap = !!edit.bassSwap && out.overlapSec > 0;
+    const asked: TransitionEq =
+      edit.eq !== undefined
+        ? TRANSITION_EQS.includes(edit.eq)
+          ? edit.eq
+          : "none"
+        : edit.bassSwap
+          ? "bassSwap"
+          : "none";
+    out.eq = out.overlapSec > 0 ? asked : "none";
+    out.bassSwap = out.eq !== "none";
     return out;
   }
   out.gapSec = round1(

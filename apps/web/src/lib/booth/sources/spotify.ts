@@ -1450,6 +1450,23 @@ class Live implements ExternalHandle {
     this.seekGuard = null;
     return false;
   }
+  /** 2026-11: an edited transition's end: stop `endsInSec` from now with its fade (volume steps where it can fade) */
+  retime(o: { endsInSec: number; fadeOutSec: number }) {
+    if (this.done) return;
+    if (!this.started) {
+      // not playing yet: its request carries the new end
+      this.req = { ...this.req, durationSec: o.endsInSec, fadeOutSec: o.fadeOutSec };
+      return;
+    }
+    if (this.stopTimer) clearTimeout(this.stopTimer);
+    const fade = this.a.capabilities.fade ? Math.max(0, o.fadeOutSec) : 0;
+    this.stopTimer = setTimeout(
+      () => {
+        if (!this.done) this.stop(fade);
+      },
+      Math.max(0, o.endsInSec - fade) * 1000,
+    );
+  }
   /** 2026-11: jump inside the playing track in place (no new play); false before the play went out */
   seek(positionSec: number, o: { durationSec?: number }): boolean {
     if (!this.started || this.done || !this.a._isOwner(this)) return false;
