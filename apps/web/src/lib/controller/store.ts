@@ -10,6 +10,7 @@ import { roomCaps, useBooth } from "@/lib/booth/store";
 import { undoEdit } from "@/lib/editHistory";
 import { floorReactionOf, floorTap } from "@/lib/favourites";
 import { t } from "@/lib/i18n";
+import { powerFrame } from "@/lib/power";
 import { useStore } from "@/lib/store";
 import { toast, useGlobalToast } from "@/lib/toast";
 import { type MidiHub, midiSupport, openHub, outputFor, type PortInfo, type Support } from "./access";
@@ -251,7 +252,8 @@ function mirrorSoon(rt: ControllerRuntime) {
     mirrorFrame = 0;
     set({ mirror: rt.mirror, xf: rt.crossfaderState });
   };
-  if (typeof requestAnimationFrame === "function") mirrorFrame = requestAnimationFrame(draw);
+  if (typeof requestAnimationFrame === "function")
+    mirrorFrame = powerFrame(draw); // saver: 4 fps
   else draw();
 }
 

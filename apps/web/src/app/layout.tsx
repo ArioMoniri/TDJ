@@ -17,6 +17,7 @@ import { Nav } from "@/components/Nav";
 import { ToolbarProvider } from "@/components/PageHeader";
 import { PageTransition } from "@/components/PageTransition";
 import { PlaylistSync } from "@/components/PlaylistSync";
+import { PowerSync } from "@/components/PowerSaver";
 import { RoomSync } from "@/components/RoomSync";
 import { RuleConfirmSheet } from "@/components/RuleConfirmSheet";
 import { SongHosts } from "@/components/song/SongHosts";
@@ -76,6 +77,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div className="ambient" aria-hidden />
         <IconSprite />
         <ThemeSync />
+        <PowerSync />
         <Boot />
         <RoomSync />
         <LocaleRoot>

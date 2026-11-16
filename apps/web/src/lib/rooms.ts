@@ -16,6 +16,7 @@ import {
 } from "@tdj/core";
 import { create } from "zustand";
 import { t } from "@/lib/i18n";
+import { pollEvery } from "@/lib/power";
 import { makeSnapshot } from "./history";
 import { useStore } from "./store";
 import { toast } from "./toast";
@@ -272,11 +273,16 @@ function schedule() {
   if (timer) clearTimeout(timer);
   if (!client) return;
   const hidden = typeof document !== "undefined" && document.visibilityState === "hidden";
-  const wait = hidden ? 8000 : Math.min(15000, 1500 * 2 ** Math.min(failures, 3));
+  // Battery saver: a room is read every 30 s; the DJ's own edits still go out at once (roomPushNow, lib/power.ts)
+  const wait = pollEvery(hidden ? 8000 : Math.min(15000, 1500 * 2 ** Math.min(failures, 3)), 30_000);
   timer = setTimeout(async () => {
     await tick();
     schedule();
   }, wait);
+}
+/** Battery saver: an edit of the DJ's goes to the room now, not at the next (long) poll */
+export function roomPushNow(): void {
+  if (client && !busy) void tick().then(schedule);
 }
 function stop() {
   if (timer) clearTimeout(timer);

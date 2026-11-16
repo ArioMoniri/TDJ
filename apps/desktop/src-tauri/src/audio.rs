@@ -177,7 +177,15 @@ pub fn audio_set_output(id: String) -> bool {
 /// session active (iOS). The display part follows Settings' keep-awake switch; the audio part always holds.
 #[tauri::command]
 pub fn audio_night(app: AppHandle, state: State<'_, AppState>, on: bool) -> bool {
-    let display = on && !state.settings.lock().unwrap().keep_awake_disabled;
+    // Battery saver (src/power.rs): on the Mac the display may dim during a night while saving
+    let disabled = state.settings.lock().unwrap().keep_awake_disabled;
+    let display = crate::power::hold_display(
+        on,
+        disabled,
+        crate::power::saver_on(),
+        cfg!(target_os = "macos"),
+    );
+    crate::power::set_night(on);
     #[cfg(any(target_os = "macos", target_os = "ios"))]
     {
         let _ = app.run_on_main_thread(move || crate::apple_audio::night(on, display));

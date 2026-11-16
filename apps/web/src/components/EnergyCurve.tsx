@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useId, useRef } from "react";
 import { lazy, lower, t as tx } from "@/lib/i18n";
 import { DUR, EASE, SPRING, STAGGER } from "@/lib/motion";
+import { useSaving } from "@/lib/power";
 import type { Playlist } from "@/lib/types";
 
 export const RHYTHM_COLORS: Record<string, string> = {
@@ -44,7 +45,8 @@ export function EnergyCurve({
   /** a recompose is in flight: the energy line and dots drop to 0.4 */
   dimmed?: boolean;
 }) {
-  const reduced = useReducedMotion();
+  const saving = useSaving(); // Battery saver: the chart changes without its transitions
+  const reduced = useReducedMotion() || saving;
   const W = compact ? 360 : 720;
   const H = compact ? 170 : 210;
   const px = compact ? 8 : 12;

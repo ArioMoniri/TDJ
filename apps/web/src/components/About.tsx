@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { nativeInfo } from "@/lib/app/native";
 import { APP } from "@/lib/app/target";
 import { t as tx } from "@/lib/i18n";
+import { isSaving } from "@/lib/power";
 import {
   type Channel,
   channelOf,
@@ -39,8 +40,9 @@ export function useRemoteVersion(): Remote | null {
         })
         .catch(() => {});
     void ask();
-    const id = setInterval(ask, EVERY_MS);
-    const vis = () => document.visibilityState === "visible" && void ask();
+    // Battery saver: no update check (lib/power.ts)
+    const id = setInterval(() => !isSaving() && void ask(), EVERY_MS);
+    const vis = () => document.visibilityState === "visible" && !isSaving() && void ask();
     document.addEventListener("visibilitychange", vis);
     return () => {
       stop = true;

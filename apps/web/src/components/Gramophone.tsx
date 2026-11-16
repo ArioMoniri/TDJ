@@ -1,6 +1,7 @@
 "use client";
 import { useReducedMotion } from "motion/react";
 import { useEffect, useRef } from "react";
+import { useSaving } from "@/lib/power";
 import { useStore } from "@/lib/store";
 
 const MAX = 170;
@@ -28,7 +29,8 @@ function crackleBuffer(ctx: AudioContext): AudioBuffer {
  */
 export function Gramophone() {
   const root = useRef<HTMLDivElement>(null);
-  const reduced = useReducedMotion();
+  const saving = useSaving(); // Battery saver: the record does not spin
+  const reduced = useReducedMotion() || saving;
   const sounds = useStore((s) => s.settings.sounds !== false);
   const soundsRef = useRef(sounds);
   soundsRef.current = sounds;

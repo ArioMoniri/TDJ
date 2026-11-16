@@ -1,6 +1,7 @@
 "use client";
 import { create } from "zustand";
 import { heartsIn, nightIdOf } from "@/lib/favourites";
+import { skipPoll } from "@/lib/power";
 import { roomClient, useRooms } from "@/lib/rooms";
 import { useStore } from "@/lib/store";
 import { useBooth } from "./store";
@@ -60,6 +61,7 @@ export function startRoomHearts(): () => void {
     if (s.planIndex !== prev.planIndex || s.started !== prev.started) void push();
   });
   const timer = setInterval(() => {
+    if (skipPoll(startRoomHearts, 60_000)) return; // Battery saver: once a minute (a new song still pushes at once)
     void push();
     void poll();
   }, POLL_MS);

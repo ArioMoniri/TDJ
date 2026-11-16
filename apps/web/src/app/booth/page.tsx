@@ -32,6 +32,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { ActionRow, Group } from "@/components/Form";
 import { type MenuItem, MenuList } from "@/components/Menu";
 import { PageHeader } from "@/components/PageHeader";
+import { usePowerMenuItem } from "@/components/PowerSaver";
 import { Sheet } from "@/components/Sheet";
 import { BoothSongSearch } from "@/components/ui/BoothSongSearch";
 import { arm, confirmArmed, confirmNeeded, disarm, guard } from "@/lib/booth/confirm";
@@ -96,6 +97,8 @@ function Booth() {
   const [rehearsalAsk, setRehearsalAsk] = useState<"preview" | "file" | null>(null);
   const [onboarding, setOnboarding] = useState(false);
   const [more, setMore] = useState(false);
+  // 2026-11: Battery saver's quick toggle in the More sheet (components/PowerSaver.tsx)
+  const powerItem = usePowerMenuItem();
   const [keys, setKeys] = useState(false);
   const [breakOpen, setBreakOpen] = useState(false);
   const [find, setFind] = useState<{ id: string; title: string } | null>(null);
@@ -467,6 +470,7 @@ function Booth() {
     },
     { label: t("booth.show_energy_bpm_key_era_artwork"), icon: Eye, onClick: () => setShow(true) },
     { label: t("booth.keyboard_shortcuts"), icon: Keyboard, onClick: () => setKeys(true) },
+    powerItem,
     { label: light ? t("booth.dark_theme") : t("booth.light_theme"), onClick: () => setLight((v) => !v) },
     // (a phone has no tab bar on the booth: this is its way out, before the night too)
     (started || phone) && {

@@ -1,5 +1,6 @@
 "use client";
 import { create } from "zustand";
+import { cancelPowerFrame, powerFrame, skipPoll } from "@/lib/power";
 import {
   AUTO_DEFAULTS,
   type AutoConfig,
@@ -308,12 +309,12 @@ function ensureLoops() {
       if (s.master !== prev.master) auto.rebase();
     });
   }
-  if (!raf && typeof requestAnimationFrame === "function") raf = requestAnimationFrame(frame);
+  if (!raf && typeof requestAnimationFrame === "function") raf = powerFrame(frame);
   // the room loop runs on a timer: a hidden tab (rAF paused) still follows the room (throttled to ~1 Hz)
   if (!timer && typeof setInterval === "function") timer = setInterval(roomTick, 100);
 }
 function stopLoops() {
-  if (raf) cancelAnimationFrame(raf);
+  if (raf) cancelPowerFrame(raf);
   raf = 0;
   if (timer) clearInterval(timer);
   timer = null;
@@ -324,7 +325,7 @@ function stopLoops() {
 
 let lastFrame = 0;
 function frame(now: number) {
-  raf = requestAnimationFrame(frame);
+  raf = powerFrame(frame); // Battery saver: 4 fps (lib/power.ts)
   const reduced = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (now - lastFrame < (reduced ? 100 : 33)) return;
   lastFrame = now;
@@ -371,6 +372,8 @@ function sampleOutput(t: number) {
 }
 
 function roomTick() {
+  // Battery saver: without the microphone this loop only eases Auto master's boost back: once a second (dt is real)
+  if (!mic && skipPoll(roomTick, 1000)) return;
   const now = performance.now() / 1000;
   const dt = lastAutoT ? now - lastAutoT : 0.1;
   lastAutoT = now;

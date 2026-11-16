@@ -24,6 +24,7 @@ mod links;
 mod menu;
 mod midi;
 mod net;
+mod power;
 mod secrets;
 mod settings;
 mod system;
@@ -420,6 +421,8 @@ const REMOTE_COMMANDS: &[&str] = &[
     "cue_play",
     "cue_stop",
     "check_updates",
+    "power_state",
+    "power_saver",
 ];
 
 fn handle_link(app: &AppHandle, raw: &str) {
@@ -688,6 +691,8 @@ pub fn run() {
             audio::audio_route_picker,
             audio::audio_set_output,
             audio::audio_night,
+            power::power_state,
+            power::power_saver,
             midi::midi_ports,
             midi::midi_open,
             midi::midi_close,
