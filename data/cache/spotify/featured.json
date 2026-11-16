@@ -1,0 +1,27 @@
+{
+  "about": "The featured nights' Spotify picks that the match rules (packages/core/src/matchRules.ts) cannot prove are the catalogue row's recording. Kept here, keyed by the featured night's song id, so every featured uri is cached (test/streams.test.ts); never read into the catalogue, so the row plays nothing from them and the stream audit (tracks.json) stays clean. Move a record into tracks.json once a dated title, the album years or the length proves the take.",
+  "tracks": {
+    "166b2a4f3e": {
+      "uri": "spotify:track:1TcXgz8vA1gN25RgShGeQl",
+      "url": "https://open.spotify.com/track/1TcXgz8vA1gN25RgShGeQl",
+      "durationMs": 239800,
+      "album": "Los 25 Mejores Tangos",
+      "matched": "Aníbal Troilo, Orquesta Anibal Troilo – Danzarín",
+      "release": "2015-02-25",
+      "checkedAt": "2026-11-16T06:52:00.000Z",
+      "via": "spotify-embed",
+      "unproven": "the index knows a later take (1973) and an earlier one (1958); a 4:00 transfer on a compilation (Los 25 Mejores Tangos, 2015) for a ~3:06 side: nothing shows this is the 1963 side"
+    },
+    "67f9a28a62": {
+      "uri": "spotify:track:3npc4k1OPe3MU3F1hf8y3o",
+      "url": "https://open.spotify.com/track/3npc4k1OPe3MU3F1hf8y3o",
+      "durationMs": 192653,
+      "album": "Desde el alma",
+      "matched": "Osvaldo Pugliese – Chiqué",
+      "release": "2005-01-01",
+      "checkedAt": "2026-11-16T06:52:00.000Z",
+      "via": "spotify-embed",
+      "unproven": "the index knows later takes (1979, 1989, 1992 at 3:13); a 3:13 transfer on Desde el alma (2005): nothing shows this is the 1953 side"
+    }
+  }
+}

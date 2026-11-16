@@ -150,6 +150,7 @@ export const LATER_SINGERS = [
 
 /** words that make a credit an ensemble, not the leader's orchestra (Los Solistas de D'Arienzo, Quinteto Pirincho) */
 const ENSEMBLE = /\b(solistas|quinteto|quintet|trio|sexteto|cuarteto|pirincho|los muchachos de)\b/;
+const TRIBUTE_ALBUM = / (al estilo de|a la manera de|homenaje a|in the style of|tribute to) /;
 /** words that carry no identity in a credit ("Orquesta Típica", "y su") */
 const NOISE = new Set([
   "orquesta",
@@ -391,6 +392,10 @@ export function matchProblem(
     (a) => /^la\s/.test(normTitle(a)) && namesLeader(row.orchestra, a.replace(/^la\s+/i, "")),
   );
   if (tribute && !/^la\s/.test(normTitle(row.orchestra))) return `a tribute orchestra (${tribute})`;
+  // 2026-11: an album "in the style of" the leader ("Al Estilo de Osvaldo Pugliese" by Sentimental y Canyengue)
+  // names the leader without being the leader's side: the album is no credit unless the artists name the leader too
+  if (!ownArtist && TRIBUTE_ALBUM.test(` ${normTitle(c.album ?? "")} `))
+    return `a tribute album (${c.album})`;
   // (a row with no real orchestra — "Guitarras (solo singer)", "Orquesta (unspecified)" — is the singer's own side)
   const pseudo =
     !words(row.orchestra.replace(/\(.*?\)/g, " ")).some((w) => !NOISE.has(w)) ||
