@@ -68,6 +68,7 @@ import type {
   SourceAdapter,
   SourceKind,
 } from "./sources/types";
+import { YoutubeAdapter } from "./sources/youtube";
 import { type Bands, renderBands } from "./spectral";
 import { transitionWindow } from "./transition";
 import { isSilentState, unlockAudio } from "./unlock";
@@ -78,7 +79,7 @@ export interface Banner {
   text: string;
   action?: { label: string; run: () => void };
 }
-export type SourceMode = "file" | "spotify" | "preview";
+export type SourceMode = "file" | "spotify" | "preview" | "youtube";
 /** Round 22: where a pre-listen sounds — the headphones output, or this device's own (only before the night). */
 export type CueWhere = "headphones" | "device";
 /** A song being pre-listened: a plan row (`i`) or any catalogue side (a version). */
@@ -181,6 +182,8 @@ interface BoothStore {
   resumeOffer: (NightRecord & { reattach?: Reattach }) | null;
   /** 2026-11: the Spotify player's capabilities (see `roomCaps` for the item at the playhead) */
   spotifyCaps: RoomCaps;
+  /** 2026-11: the YouTube player's capabilities (none of fade / volume / gain on iOS and iPadOS) */
+  youtubeCaps?: RoomCaps;
   /** 2026-11: an item was asked to start and Spotify has not confirmed it yet ("Starting…") */
   starting: boolean;
   /** 2026-11: Mute on a device without volume control paused the night (unmute resumes it) */
@@ -237,6 +240,8 @@ interface BoothStore {
   boot: (p: Playlist, o?: { rehearsal?: boolean }) => Promise<void>;
   setSourceMode: (m: SourceMode) => Promise<void>;
   refreshSources: () => Promise<void>;
+  /** 2026-11: which sources this device has, without a night loaded (Settings → Booth → On this device) */
+  checkAvailability: () => Promise<void>;
   linkFolder: () => Promise<void>;
   loadFileList: (files: ArrayLike<File>) => Promise<void>;
   requestFolderPermission: () => Promise<void>;
@@ -301,6 +306,7 @@ let media: BoothMedia | null = null;
 let local: LocalAdapter | null = null;
 let spotify: SpotifyAdapter | null = null;
 let preview: PreviewAdapter | null = null;
+let youtube: YoutubeAdapter | null = null;
 let raf = 0;
 let lastTick = 0;
 let persistTimer: ReturnType<typeof setInterval> | null = null;
@@ -325,7 +331,12 @@ function saveOutputPrefs(o: { room: string; cue: string | null }) {
 }
 
 const getCtx = () => ctx;
-function adapters(): { local: LocalAdapter; spotify: SpotifyAdapter; preview: PreviewAdapter } {
+function adapters(): {
+  local: LocalAdapter;
+  spotify: SpotifyAdapter;
+  preview: PreviewAdapter;
+  youtube: YoutubeAdapter;
+} {
   if (!local) {
     local = new LocalAdapter(getCtx);
     local.onChange = () => useBooth.getState().refreshSources();
@@ -346,7 +357,14 @@ function adapters(): { local: LocalAdapter; spotify: SpotifyAdapter; preview: Pr
     queueMicrotask(syncCaps);
   }
   if (!preview) preview = new PreviewAdapter(getCtx, () => useStore.getState().overrides);
-  return { local, spotify, preview };
+  if (!youtube) {
+    const yt = new YoutubeAdapter({
+      onBanner: (text, action) => pushBanner({ key: "youtube", text, action }),
+    });
+    youtube = yt;
+    queueMicrotask(() => useBooth.setState({ youtubeCaps: { ...yt.capabilities } }));
+  }
+  return { local, spotify, preview, youtube };
 }
 function pushBanner(b: Banner) {
   useBooth.setState((s) => ({ banners: [...s.banners.filter((x) => x.key !== b.key), b] }));
@@ -433,26 +451,48 @@ function rePlan(
  */
 function chain(mode: SourceMode, avail: BoothStore["availability"]): SourceAdapter[] {
   const a = adapters();
-  if (mode === "preview") return [a.preview];
-  if (mode === "spotify") return [a.spotify, a.preview];
-  const out: SourceAdapter[] = [a.local];
-  if (avail.spotify.ok) out.push(a.spotify);
-  out.push(a.preview);
-  return out;
+  return sourceChain(mode, {
+    spotify: avail.spotify.ok,
+    youtube: !!avail.youtube?.ok,
+  }).map((k) => a[k === "file" ? "local" : k]);
+}
+
+/**
+ * The order the sources are tried per item (pure, for the vitest). YouTube (2026-11) is the night's source when
+ * picked, and otherwise the fallback for a side without a file or a Spotify track — always before a 30 s clip.
+ */
+export function sourceChain(
+  mode: SourceMode,
+  ok: { spotify: boolean; youtube: boolean },
+): Array<"file" | "spotify" | "youtube" | "preview"> {
+  if (mode === "preview") return ["preview"];
+  if (mode === "youtube") return ["youtube", "preview"];
+  if (mode === "spotify") return ok.youtube ? ["spotify", "youtube", "preview"] : ["spotify", "preview"];
+  return [
+    "file",
+    ...(ok.spotify ? (["spotify"] as const) : []),
+    ...(ok.youtube ? (["youtube"] as const) : []),
+    "preview",
+  ];
 }
 
 /**
  * 2026-11 — what the room's player can do for the item at the playhead: Spotify's (fades, volume, gain on the SDK;
  * none of the first and maybe no volume on a Connect device) when Spotify plays it, everything for files and clips.
  */
-export function roomCaps(s: Pick<BoothStore, "sources" | "planIndex" | "plan" | "spotifyCaps">): RoomCaps {
+export function roomCaps(
+  s: Pick<BoothStore, "sources" | "planIndex" | "plan" | "spotifyCaps"> & { youtubeCaps?: RoomCaps },
+): RoomCaps {
   const here = s.sources[s.planIndex];
-  const allSpotify =
-    s.sources.includes("spotify") &&
-    !s.sources.some((x, i) => (x === "file" || x === "preview") && s.plan?.items[i]?.kind !== "break");
-  return here === "spotify" || (here !== "file" && here !== "preview" && allSpotify)
-    ? s.spotifyCaps
-    : ALL_CAPS;
+  const capsOf = (k: ItemSource | undefined) =>
+    k === "spotify" ? s.spotifyCaps : k === "youtube" ? (s.youtubeCaps ?? ALL_CAPS) : null;
+  if (capsOf(here)) return capsOf(here)!;
+  if (here === "file" || here === "preview") return ALL_CAPS;
+  // a missing item (or a break): the night's one external player, when every playable item uses it
+  const playable = s.sources.filter((x, i) => x !== "missing" && s.plan?.items[i]?.kind !== "break");
+  const kinds = new Set(playable);
+  if (kinds.size === 1 && capsOf([...kinds][0])) return capsOf([...kinds][0])!;
+  return ALL_CAPS;
 }
 /** the room's capabilities as a hook (re-renders only when one changes) */
 export const useRoomCaps = (): RoomCaps => useBooth(useShallow((s) => roomCaps(s)));
@@ -487,7 +527,7 @@ export const useBooth = create<BoothStore>()((set, get) => ({
   sourceMode: "file",
   rehearsal: false,
   notRehearsable: [],
-  availability: { file: EMPTY_AVAIL, spotify: EMPTY_AVAIL, preview: EMPTY_AVAIL },
+  availability: { file: EMPTY_AVAIL, spotify: EMPTY_AVAIL, preview: EMPTY_AVAIL, youtube: EMPTY_AVAIL },
   folder: { name: null, files: 0, matched: 0, total: 0, permission: "none", session: false, canKeep: false },
   suggestions: {},
   decoding: null,
@@ -582,6 +622,24 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     await get().refreshSources();
   },
 
+  checkAvailability: async () => {
+    const a = adapters();
+    const [file, sp, pv, yt] = await Promise.all([
+      a.local.available(),
+      a.spotify.available(),
+      a.preview.available(),
+      a.youtube.available(),
+    ]);
+    set({
+      availability: {
+        file: { ...file, checked: true },
+        spotify: { ...sp, checked: true },
+        preview: { ...pv, checked: true },
+        youtube: { ...yt, checked: true },
+      },
+    });
+  },
+
   refreshSources: async () => {
     let { plan, entities } = get();
     const { sourceMode } = get();
@@ -589,15 +647,17 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     set({ resolving: true });
     try {
       const a = adapters();
-      const [file, sp, pv] = await Promise.all([
+      const [file, sp, pv, yt] = await Promise.all([
         a.local.available(),
         a.spotify.available(),
         a.preview.available(),
+        a.youtube.available(),
       ]);
       const availability = {
         file: { ...file, checked: true },
         spotify: { ...sp, checked: true },
         preview: { ...pv, checked: true },
+        youtube: { ...yt, checked: true },
       };
       if (file.ok) await a.local.match(plan.items, useStore.getState().settings.fileNaming);
       // measurements made since the last plan (decodes) feed the priors of the exports
@@ -736,7 +796,7 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     if (!engine) {
       const a = adapters();
       engine = new BoothEngine(ctx, {
-        adapters: [a.local, a.spotify, a.preview],
+        adapters: [a.local, a.spotify, a.preview, a.youtube],
         settings,
         rehearsalSec: sourceMode === "preview" ? REHEARSAL_SEC : null,
         onEvent: onEngineEvent,
@@ -1249,7 +1309,7 @@ export const useBooth = create<BoothStore>()((set, get) => ({
       const a = adapters();
       const { plan, entities, sources, settings, sourceMode } = get();
       engine = new BoothEngine(ctx, {
-        adapters: [a.local, a.spotify, a.preview],
+        adapters: [a.local, a.spotify, a.preview, a.youtube],
         settings,
         rehearsalSec: sourceMode === "preview" ? REHEARSAL_SEC : null,
         onEvent: onEngineEvent,

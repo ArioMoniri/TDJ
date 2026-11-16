@@ -12,6 +12,7 @@ import { effectiveSong } from "@/lib/audio";
 import { fillMissing } from "@/lib/fill/client";
 import { lazy, lower, t as tx } from "@/lib/i18n";
 import { rise, spring } from "@/lib/motion";
+import { youtubeVideoUrl } from "@/lib/openLink";
 import { tapPlay } from "@/lib/playback";
 import { bpmChoice } from "@/lib/songData";
 import { SOURCE_LABEL } from "@/lib/songView";
@@ -20,6 +21,7 @@ import { toast } from "@/lib/toast";
 import type { Song, SongPatch } from "@/lib/types";
 import { useSongSearch } from "@/lib/useSongSearch";
 import { metaLine, yearText } from "@/lib/year";
+import { loadMatches } from "@/lib/youtubeMatches";
 import { ActionRow, FieldRow, Group, PickerRow, RhythmTile, Row, SwitchRow } from "../Form";
 import { ResolveSheet } from "../ResolveSheet";
 import { SearchField } from "../SearchField";
@@ -669,6 +671,19 @@ export function SongsTab() {
                     );
                   })()
                 )}
+                {/* 2026-11: the video the YouTube export matched (the Booth plays it); opens the YouTube app on iOS */}
+                {(() => {
+                  const v = loadMatches()[s.id];
+                  return v ? (
+                    <Row
+                      label={tx("deviceSources.youtube")}
+                      value={tx("exportSheet.open_in_youtube")}
+                      href={youtubeVideoUrl(v)}
+                      chevron
+                      data-testid="db-youtube-link"
+                    />
+                  ) : null;
+                })()}
                 <SwitchRow
                   label={tx("db.songsTab.shown_in_sets")}
                   sub={

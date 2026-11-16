@@ -8,9 +8,14 @@ import { withoutCortinas } from "./exportPaths";
  */
 export const YOUTUBE_BATCH = 10;
 
+/** The rows the export searches, in set order: the queries' rows (their `id` keys the Booth's matches). */
+export function youtubeRows(playlist: Playlist, includeCortinas: boolean) {
+  return flatten(includeCortinas ? playlist : withoutCortinas(playlist), { includeCortinas });
+}
+
 /** One search query per track of the set, in set order (cortinas included when asked). */
 export function youtubeQueries(playlist: Playlist, includeCortinas: boolean): string[] {
-  return flatten(includeCortinas ? playlist : withoutCortinas(playlist), { includeCortinas }).map(
+  return youtubeRows(playlist, includeCortinas).map(
     (t) => `${t.title} ${t.orchestra ?? t.artist}${t.singer ? ` ${t.singer}` : ""}`,
   );
 }

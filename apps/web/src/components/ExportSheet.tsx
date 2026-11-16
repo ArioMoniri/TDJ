@@ -14,6 +14,7 @@ import { haptic } from "@/lib/haptics";
 import { lazy, t as tx } from "@/lib/i18n";
 import type { Match, MatchItem } from "@/lib/match";
 import { DUR, SPRING } from "@/lib/motion";
+import { openExternal, youtubeMusicFor } from "@/lib/openLink";
 import {
   beginAuth,
   byoWritePlaylist,
@@ -46,7 +47,8 @@ import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import { TRANSFER_SERVICES, type TransferService, transferCsv, transferRows } from "@/lib/transferCsv";
 import { CORTINA_STOP_RANGE, cortinaStopSec, DJ_APPS, type DjApp, type Playlist } from "@/lib/types";
-import { youtubeBatches, youtubeQueries } from "@/lib/youtubePlan";
+import { rememberMatches } from "@/lib/youtubeMatches";
+import { youtubeBatches, youtubeQueries, youtubeRows } from "@/lib/youtubePlan";
 import type { YoutubeCheck } from "@/lib/youtubeVerify";
 import { CountUp } from "./CountUp";
 import { ExportCheck } from "./ExportCheck";
@@ -530,6 +532,11 @@ export function ExportSheet({
       playlistId,
       want: want.map((w, i) => ({ ...w, videoId: r.check!.videoIds[i] ?? w.videoId })),
     });
+    // replacements for videos that do not play here are what the Booth should play too
+    rememberMatches(
+      youtubeRows(playlist, includeCortinas),
+      want.map((w, i) => ({ row: w.row, videoId: r.check!.videoIds[i] ?? w.videoId })),
+    );
   };
   /** "Fix in Spotify": the night's rows written again in order, then read back. */
   const fixSpotify = async () => {
@@ -863,6 +870,8 @@ export function ExportSheet({
           done += b.length;
         }
         setYtProgress(null);
+        // the Booth plays these videos when the night's source is YouTube (lib/booth/sources/youtube.ts)
+        rememberMatches(youtubeRows(playlist, includeCortinas), ytExpected);
         // what YouTube holds, read back with the DJ's account and put right (unavailable videos replaced)
         if (playlistId && ytExpected.length) await checkYoutube(playlistId, ytExpected);
         setLog((l) => [
@@ -920,7 +929,7 @@ export function ExportSheet({
     const rows = transferRows(playlist, includeCortinas).length;
     const csv = transferCsv(playlist, includeCortinas);
     downloadBlob(`${playlist.name.replace(/[^a-z0-9-]+/gi, "_")}-${service.id}.csv`, csv, "text/csv");
-    window.open(service.importUrl, "_blank", "noreferrer");
+    void openExternal(service.importUrl);
     haptic(6);
     const fc = verifyFile("transfer", csv, includeCortinas ? playlist : withoutCortinas(playlist), {
       includeCortinas,
@@ -1496,7 +1505,18 @@ export function ExportSheet({
       </Sheet>
       {result && (
         <Group>
-          <ActionRow label={result.label} onClick={() => window.open(result.url, "_blank", "noreferrer")} />
+          <ActionRow
+            label={result.label}
+            onClick={() => void openExternal(result.url)}
+            id="export-open-result"
+          />
+          {youtubeMusicFor(result.url) && (
+            <ActionRow
+              label={tx("exportSheet.open_in_youtube_music")}
+              onClick={() => void openExternal(youtubeMusicFor(result.url)!)}
+              id="export-open-youtube-music"
+            />
+          )}
         </Group>
       )}
       <div role="status" aria-live="polite">

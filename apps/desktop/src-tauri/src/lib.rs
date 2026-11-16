@@ -155,10 +155,25 @@ fn on_navigate(app: &AppHandle, url: &Url) -> bool {
     if !state.bundled && is_oauth_host(url) {
         return true; // remote-mode fallback: Spotify/Dropbox accept a web view
     }
-    if matches!(url.scheme(), "https" | "mailto") {
-        let _ = app.opener().open_url(url.as_str(), None::<&str>);
+    // other sites and the music apps' own schemes ("Open Spotify"): never this view, always the system
+    if links::external_ok(url) {
+        let _ = open_outside(app, url);
     }
     false
+}
+
+/// A link outside the app: on macOS a Spotify / Apple Music link opens their app when it is installed, else the
+/// browser; iOS and iPadOS hand universal links to the installed app themselves (links.rs `mac_app_url`).
+pub(crate) fn open_outside(app: &AppHandle, url: &Url) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    if let Some(native) = links::mac_app_url(url) {
+        if app.opener().open_url(&native, None::<&str>).is_ok() {
+            return Ok(());
+        }
+    }
+    app.opener()
+        .open_url(url.as_str(), None::<&str>)
+        .map_err(|e| e.to_string())
 }
 
 fn is_oauth_host(url: &Url) -> bool {

@@ -3,7 +3,7 @@
  * choice for one session (or `?rehearsal=1`), not a setting that sticks: a saved "preview" from an earlier
  * rehearsal no longer keeps a Premium DJ on 30 s clips.
  */
-export type SourceMode = "file" | "spotify" | "preview";
+export type SourceMode = "file" | "spotify" | "preview" | "youtube";
 
 export function resolveSourceMode(o: {
   saved: SourceMode | undefined;

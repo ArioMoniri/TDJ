@@ -177,6 +177,49 @@ pub fn redeem_url(server: &str, provider: &str, ticket: &str, next: &str) -> Opt
     Some(url.into())
 }
 
+/// Music apps' own schemes a page may open outside the app ("Open Spotify" wakes the Spotify app so the booth can
+/// play on it through Spotify Connect). Opening a scheme needs no `LSApplicationQueriesSchemes`; only `canOpenURL`
+/// would, and the app never asks.
+pub const APP_SCHEMES: [&str; 5] = ["spotify", "music", "musics", "youtube", "youtubemusic"];
+
+/// May this link leave the app (system browser or another app)? https, mailto and the music apps' schemes only.
+pub fn external_ok(u: &Url) -> bool {
+    matches!(u.scheme(), "https" | "mailto") || APP_SCHEMES.contains(&u.scheme())
+}
+
+/// On macOS the services' web links open the browser, not their apps (iOS and iPadOS hand universal links to the
+/// installed app themselves): the Mac tries the app first and falls back to the link. open.spotify.com/<kind>/<id>
+/// → `spotify:<kind>:<id>` (the Spotify desktop app); music.apple.com → `music://music.apple.com/…` (Music).
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+pub fn mac_app_url(u: &Url) -> Option<String> {
+    match u.host_str()? {
+        "open.spotify.com" => {
+            let parts: Vec<&str> = u
+                .path_segments()?
+                .filter(|s| !s.is_empty() && !s.starts_with("intl-"))
+                .collect();
+            match parts.as_slice() {
+                [kind, id]
+                    if matches!(
+                        *kind,
+                        "track" | "playlist" | "album" | "artist" | "episode" | "show"
+                    ) && (10..=40).contains(&id.len())
+                        && id.bytes().all(|b| b.is_ascii_alphanumeric()) =>
+                {
+                    Some(format!("spotify:{kind}:{id}"))
+                }
+                _ => Some("spotify:".into()),
+            }
+        }
+        "music.apple.com" => Some(format!(
+            "music://music.apple.com{}{}",
+            u.path(),
+            u.query().map(|q| format!("?{q}")).unwrap_or_default()
+        )),
+        _ => None,
+    }
+}
+
 /// Does `url` belong to `origin` (same scheme, host and port)? Used to keep the main window on the server and
 /// send every other link to the system browser.
 pub fn same_origin(url: &Url, origin: &str) -> bool {
@@ -296,6 +339,53 @@ mod tests {
         assert_eq!(
             redeem_url(S, "dropbox", T, "/settings").unwrap(),
             format!("{S}/api/app/redeem?provider=dropbox&ticket={T}&next=%2Fsettings")
+        );
+    }
+
+    #[test]
+    fn music_links_leave_the_app_and_open_the_mac_apps() {
+        let u = |s: &str| Url::parse(s).unwrap();
+        for ok in [
+            "https://open.spotify.com/track/x",
+            "mailto:a@b.c",
+            "spotify:",
+            "music://music.apple.com/x",
+        ] {
+            assert!(external_ok(&u(ok)), "{ok}");
+        }
+        for no in [
+            "http://x.y",
+            "javascript:alert(1)",
+            "file:///etc/passwd",
+            "tdj://open?path=/",
+        ] {
+            assert!(!external_ok(&u(no)), "{no}");
+        }
+        assert_eq!(
+            mac_app_url(&u(
+                "https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC?si=1"
+            ))
+            .as_deref(),
+            Some("spotify:track:4uLU6hMCjMI75M1A2tKUQC")
+        );
+        assert_eq!(
+            mac_app_url(&u(
+                "https://open.spotify.com/intl-de/playlist/37i9dQZF1DX0XUsuxWHRQd"
+            ))
+            .as_deref(),
+            Some("spotify:playlist:37i9dQZF1DX0XUsuxWHRQd")
+        );
+        assert_eq!(
+            mac_app_url(&u("https://open.spotify.com/search/pugliese")).as_deref(),
+            Some("spotify:")
+        );
+        assert_eq!(
+            mac_app_url(&u("https://music.apple.com/us/album/x/123?i=4")).as_deref(),
+            Some("music://music.apple.com/us/album/x/123?i=4")
+        );
+        assert_eq!(
+            mac_app_url(&u("https://www.youtube.com/playlist?list=PL1")),
+            None
         );
     }
 

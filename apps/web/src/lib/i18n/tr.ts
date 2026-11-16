@@ -863,6 +863,8 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.sources.spotify.could_not_load_the_spotify_player": "Spotify oynatıcısı yüklenemedi",
   "booth.sources.spotify.device_not_found_browser":
     "Spotify bu tarayıcıdaki TDJ Kabin oynatıcısını bulamadı. Tekrar dene'ye dokunun ya da bir telefonda veya bilgisayarda Spotify'ı açıp Salon altından seçin.",
+  "booth.sources.spotify.device_not_found_mac_app":
+    "Bu Mac'te açık bir Spotify uygulaması yok. Spotify'ı Aç'a dokunun: Spotify görünür görünmez gece orada çalar.",
   "booth.sources.spotify.device_not_found_phone":
     "Spotify bu cihazı bulamadı. Bu telefonda Spotify'ı açın ya da Salon altından bir cihaz seçin.",
   "booth.sources.spotify.device_refuses":
@@ -2437,6 +2439,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "exportSheet.open_in": "{label} ile aç",
   "exportSheet.open_in_spotify": "Spotify'da aç",
   "exportSheet.open_in_youtube": "YouTube'da aç",
+  "exportSheet.open_in_youtube_music": "YouTube Music'te aç",
   "exportSheet.other": "Diğer",
   "exportSheet.paste_the_address_of_a_pipedream":
     "Bir Pipedream, Make, Zapier ya da n8n webhook adresi yapıştırın: T-DJ dosyayı biçimi ve setin adıyla oraya gönderir. Adres yalnızca bu tarayıcıda kalır.",
@@ -4388,4 +4391,51 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.connect.gain_none": "Spotify bunu kendi seviyesinde çalar (bu cihazda kazanç yok)",
   "booth.connect.play_now_at_once":
     "Şimdi çal, salondaki şarkıyı hemen değiştirir (bu cihaz sesi yavaşça kısamaz). {p1}",
+  "booth.sources.types.youtube": "YouTube · video ekranda oynar",
+  "booth.sources.youtube.this_video": "bu video",
+  "booth.sources.youtube.not_embeddable":
+    "YouTube, {what} için youtube.com dışında oynatmaya izin vermiyor: sıradakine geçiliyor.",
+  "booth.sources.youtube.needs_a_referrer":
+    "YouTube, {what} için bu uygulamada oynatmayı reddetti: sıradakine geçiliyor.",
+  "booth.sources.youtube.removed": "{what} YouTube'dan kaldırılmış ya da gizli: sıradakine geçiliyor.",
+  "booth.sources.youtube.cannot_play": "YouTube {what} için burada oynatamıyor: sıradakine geçiliyor.",
+  "booth.sources.youtube.no_matches_yet":
+    "Henüz YouTube videosu yok: bir geceyi bir kez YouTube'a gönderin (Dışa aktar → YouTube), Kabin o videoları çalabilsin.",
+  "booth.sources.youtube.no_video_for_this_item": "Bu parça için YouTube videosu yok",
+  "booth.sources.youtube.could_not_load_the_player": "YouTube oynatıcısı yüklenemedi",
+  "booth.sources.youtube.tap_the_player":
+    "YouTube bir dokunuş bekliyor: YouTube oynatıcısında bir kez oynat'a basın.",
+  "booth.sources.youtube.play": "Oynat",
+  "booth.sources.youtube.player": "YouTube oynatıcısı",
+  "booth.onboardingSheet.youtube": "YouTube",
+  "booth.onboardingSheet.youtube_sub":
+    "YouTube dışa aktarımınızın eşleştirdiği videolardan tam şarkılar, ekranda küçük bir oynatıcıda",
+  "deviceSources.header": "Bu cihazda",
+  "deviceSources.footer":
+    "Otomatik'te (Müzik klasörünüz) her parça onu bulunduran ilk kaynaktan çalar; bu gecenin çoğu: {best}.",
+  "deviceSources.files": "Dosyalarınız",
+  "deviceSources.spotify": "Spotify",
+  "deviceSources.youtube": "YouTube",
+  "deviceSources.clips": "30 sn'lik kesitler",
+  "deviceSources.ready": "Hazır",
+  "deviceSources.not_here": "Henüz değil",
+  "deviceSources.checking": "Bakılıyor…",
+  "deviceSources.spotify_log_in": "Tam parçalar için Ayarlar'dan Spotify Premium ile giriş yapın.",
+  "deviceSources.spotify_sdk": "Tam parçalar, Spotify (Premium) tarafından bu pencerede çalınır.",
+  "deviceSources.spotify_connect_mac":
+    "Tam parçalar bu Mac'teki Spotify uygulamasından (Spotify Connect); yavaşça kısma yok.",
+  "deviceSources.spotify_connect_ios":
+    "Tam parçalar bu iPhone ya da iPad'deki Spotify uygulamasından (Spotify Connect); yavaşça kısma yok.",
+  "deviceSources.spotify_connect_other":
+    "Tam parçalar açtığınız bir Spotify uygulamasından (Spotify Connect); yavaşça kısma yok.",
+  "deviceSources.youtube_ok":
+    "{n} parça YouTube videolarıyla eşleşti; ekranda küçük bir oynatıcıda çalarlar.",
+  "deviceSources.youtube_ok_ios":
+    "{n} parça YouTube videolarıyla eşleşti; iPhone ve iPad'de ses düzeyi cihazınki (yavaşça kısma yok).",
+  "deviceSources.youtube_none":
+    "Bir geceyi bir kez YouTube'a gönderin (Dışa aktar → YouTube), Kabin o videoları çalabilsin.",
+  "deviceSources.file_ok": "{name} içinde {n} parça eşleşti: örnek düzeyinde kesin aralar ve geçişler.",
+  "deviceSources.file_none_matched": "{name} bağlı ama bu gecenin hiçbir parçası henüz eşleşmedi.",
+  "deviceSources.file_link": "Örnek düzeyinde kesin aralar ve geçişler için müzik klasörünüzü bağlayın.",
+  "deviceSources.preview": "Her zaman burada: provada her parçanın 30 sn'si.",
 };
