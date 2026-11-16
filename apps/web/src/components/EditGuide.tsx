@@ -29,12 +29,13 @@ export function EditGuide() {
     <AnimatePresence>
       {open && (
         <motion.aside
-          key={label}
+          // (one card: a fix updates it in place — keyed by the label, the old card was still leaving as the new one came)
+          key="edit-guide"
           initial={reduced ? { opacity: 0 } : { opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           exit={reduced ? { opacity: 0 } : { opacity: 0, y: 16 }}
           transition={{ duration: 0.2 }}
-          className="edit-guide fixed inset-x-3 bottom-[calc(var(--bottom-chrome,0px)+0.75rem)] z-40 mx-auto max-w-md rounded-2xl border border-[var(--separator)] bg-[var(--surface)] p-3 shadow-xl sm:inset-x-auto sm:right-6 sm:bottom-6 sm:w-[26rem]"
+          className="edit-guide fixed inset-x-3 bottom-[calc(var(--bottom-chrome,0px)+0.75rem)] z-40 mx-auto max-w-md rounded-2xl border border-[var(--separator)] bg-[var(--surface)] p-3 shadow-xl sm:inset-x-auto sm:right-6 sm:bottom-[calc(1.5rem+var(--mini-stack,0px))] sm:w-[26rem]"
           aria-label={t("guide.title")}
           data-testid="edit-guide"
         >

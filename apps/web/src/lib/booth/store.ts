@@ -77,7 +77,7 @@ import { YoutubeAdapter } from "./sources/youtube";
 import { type Bands, renderBands } from "./spectral";
 import { transitionWindow } from "./transition";
 import { installBoothUndo } from "./undo";
-import { isSilentState, unlockAudio } from "./unlock";
+import { isSilentState, resumeBounded, unlockAudio } from "./unlock";
 import { bufferPeaks } from "./waveform";
 
 export interface Banner {
@@ -169,6 +169,8 @@ export interface BoothStore {
   breakUntil: number | null;
   /** plan indexes the rest of the night leaves out (missing, skipped, cued past) */
   skipped: number[];
+  /** 2026-11: the item "Play next" put after the running one, while it waits (Up Next and the set list show it) */
+  pickedNext: number | null;
   banners: Banner[];
   settings: BoothSettings;
   sourceMode: SourceMode;
@@ -210,6 +212,8 @@ export interface BoothStore {
   /** round 21: tap a row — play it now (the running item fades), next, or audition it */
   playNow: (i: number) => Promise<void>;
   playNext: (i: number) => void;
+  /** 2026-11: Undo of "Play next" (the planned next item follows again) */
+  undoPlayNext: () => void;
   auditionItem: (i: number) => Promise<string | null>;
   /** round 22: pre-listen a plan row or any catalogue side; null when it plays, else why not */
   prelisten: (t: { i?: number; song?: Song }, o?: { startSec?: number }) => Promise<string | null>;
@@ -546,6 +550,7 @@ export const useBooth = create<BoothStore>()((set, get) => ({
   holdBefore: null,
   breakUntil: null,
   skipped: [],
+  pickedNext: null,
   banners: [],
   settings: DEFAULT_BOOTH_SETTINGS,
   sourceMode: "file",
@@ -901,7 +906,7 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     if (!engine) return get().start();
     if (ctx) unlockAudio(ctx);
     media?.setPlaying(true);
-    await ctx?.resume().catch(() => {});
+    await resumeBounded(ctx);
     await engine.play();
     startTicking();
     checkAudible();
@@ -990,16 +995,25 @@ export const useBooth = create<BoothStore>()((set, get) => ({
       return get().start();
     }
     if (ctx) unlockAudio(ctx);
-    await ctx?.resume().catch(() => {});
+    // 2026-11 (root cause of "Play now in the room doesn't work" on an iPad with Spotify Connect): an interrupted
+    // WebKit context never settles resume(); awaiting it kept the engine from ever being asked. Bounded now.
+    await resumeBounded(ctx);
     await engine.playNow(i);
+    set({ pickedNext: engine.pickedNext() });
     startTicking();
   },
   playNext: (i) => {
     engine?.playNext(i);
     if (engine)
       set({
+        pickedNext: engine.pickedNext(),
         ...derive(get().plan!, engine.planIndex, engine.position(), capFor(get().sources, get().rehearsal)),
       });
+  },
+  undoPlayNext: () => {
+    if (!engine) return;
+    engine.undoPlayNext();
+    set({ pickedNext: engine.pickedNext() });
   },
   // round 21: audition a row (a tap); round 22: a pre-listen in the headphones when a second output is set
   auditionItem: async (i) => get().prelisten({ i }),
@@ -1432,7 +1446,8 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     if (engine) useBooth.setState({ skipped: [...engine.skipped] });
   },
   leave: () => {
-    stopTicking();
+    // 2026-11: a night that runs keeps its clock while the DJ is on another page (the mini controller shows it)
+    if (!get().started || get().state === "stopped" || get().state === "idle") stopTicking();
   },
   ...seekActions(set, get),
 }));
@@ -1617,6 +1632,7 @@ function onEngineEvent(e: EngineEvent) {
       holdBefore: eng.holdBefore,
       breakUntil: eng.breakUntil,
       skipped: [...eng.skipped],
+      pickedNext: eng.pickedNext(),
       // a paused item keeps its card (length, gain) while it waits for Resume
       current: eng.current ? { ...eng.current } : eng.pausedAt ? { ...eng.pausedAt.runtime } : null,
       startedWall: eng.startedWall,
@@ -1642,7 +1658,11 @@ function onEngineEvent(e: EngineEvent) {
       });
       media.setPosition(engine?.currentLength() ?? it.lengthSec, 0);
     }
-    useBooth.setState({ current: engine?.current ? { ...engine.current } : null, planIndex: e.planIndex });
+    useBooth.setState({
+      current: engine?.current ? { ...engine.current } : null,
+      planIndex: e.planIndex,
+      pickedNext: engine?.pickedNext() ?? null,
+    });
   } else if (e.type === "banner") {
     pushBanner({ key: e.key ?? `b-${Date.now()}`, text: e.text, action: e.action });
   } else if (e.type === "ended") {

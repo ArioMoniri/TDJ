@@ -2186,3 +2186,217 @@ html[data-booth] .sheet-material {
 .booth-ctl-g-floor > .booth-floor {
   margin: 0;
 }
+
+/* =====================================================================================================================
+   2026-11 — one clean column, one gap (the owner: "on scroll the upper and lower bars mix so much", "UI issues
+   between boxes"): the cards never slide over one another (no sticky card inside a scrolling column), every gap
+   between two boxes — the deck's cards, the night card and the set list, the Controls panel's groups, a column and
+   the panel, the panel and the transport — is one token (--booth-gap: 12 px, 8 px on a phone), and the columns end
+   one gap above the bottom stack, with a soft fade at each scrolling edge.
+   ===================================================================================================================== */
+html[data-booth] {
+  --booth-gap: 12px;
+}
+@media (max-width: 599.98px) {
+  html[data-booth] {
+    --booth-gap: 8px;
+  }
+}
+.booth .booth-grid {
+  gap: var(--booth-gap);
+  margin-top: var(--booth-gap);
+}
+.booth .booth-deck,
+.booth .booth-deck-row,
+.booth .booth-col-set {
+  gap: var(--booth-gap);
+}
+.booth .booth-deck-row {
+  align-items: stretch;
+}
+/* (the groups of one row share its height, so the gap under a short group is the gap, not a hole) */
+.booth .booth-ctl-body {
+  gap: var(--booth-gap);
+  align-items: stretch;
+}
+/* the panel sits one gap above the transport; the page's foot (and the columns) one gap above the panel */
+.booth .booth-ctl {
+  bottom: calc(var(--booth-strip-space, 88px) + var(--booth-gap));
+}
+@media (min-width: 900px) {
+  .booth .booth-grid {
+    height: calc(
+      100dvh -
+      var(--booth-grid-top, 200px) -
+      var(--booth-strip-space, 88px) -
+      var(--booth-ctl-space, 0px) -
+      var(--booth-gap)
+    );
+  }
+  /* the deck scrolls as one column: its cards stack with the gap, none is pinned over the others (the Now card was,
+     and Up Next and the energy chart slid under its rounded foot). (With the Controls panel open the set column's
+     compact night card stays at its top — as a fixed head over the set list's own scroller, not a sticky card the
+     rows slide under — so the clock and the time to La Cumparsita stay in view in the short column.) */
+  .booth .booth-deck > [data-testid="booth-now"] {
+    position: static;
+  }
+  .booth[data-state] .booth-col-set > .booth-night {
+    margin-bottom: var(--booth-gap);
+  }
+  /* the scrolled content ends clear of the column's foot (a gap, then the fade), its top fades under the chips */
+  .booth .booth-col-set,
+  .booth .booth-deck {
+    padding-bottom: var(--booth-gap);
+    scroll-padding-bottom: var(--booth-gap);
+    mask-image: linear-gradient(
+      to bottom,
+      transparent 0,
+      #000 var(--booth-gap),
+      #000 calc(100% - var(--booth-gap)),
+      transparent 100%
+    );
+  }
+  .booth[data-controls="open"] .booth-col-set {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    mask-image: none;
+    padding-bottom: 0;
+  }
+  .booth[data-controls="open"][data-state] .booth-col-set > .booth-night {
+    position: static;
+    flex: none;
+    margin-bottom: 0;
+    box-shadow: none;
+  }
+  .booth[data-controls="open"] .booth-col-set > .booth-set {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-padding-bottom: var(--booth-gap);
+    mask-image: linear-gradient(to bottom, #000 calc(100% - var(--booth-gap)), transparent 100%);
+  }
+}
+
+/* the sheet's "Pre-listen: Pick your headphones first" opens the Headphones picker */
+.booth-sheet-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-left: 4px;
+  color: var(--tint);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ---------- the transition trigger: only the gap pill between two rows (the rows keep their own taps) ---------- */
+.booth .booth-gap {
+  height: 24px;
+}
+.booth .booth-set .booth-row {
+  z-index: 1;
+}
+.booth .booth-set .booth-row[data-dragging] {
+  z-index: 3;
+}
+.booth .booth-gap .booth-gap-btn {
+  z-index: 0;
+  min-width: 64px;
+  height: 44px;
+  min-height: 44px;
+  cursor: pointer;
+  border-radius: 999px;
+}
+.booth .booth-gap .booth-gap-btn > span {
+  line-height: 20px;
+  padding: 0 9px;
+  border: 1px solid transparent;
+  transition: background-color 120ms ease;
+}
+.booth .booth-gap .booth-gap-btn:hover > span,
+.booth .booth-gap .booth-gap-btn:focus-visible > span {
+  border-color: var(--separator);
+}
+.booth .booth-gap .booth-gap-btn:focus-visible {
+  outline: none;
+}
+.booth .booth-gap .booth-gap-btn:focus-visible > span {
+  box-shadow: 0 0 0 2px var(--tint);
+}
+
+/* ---------- the energy chart's scrub (off by default; a stray touch never changes the room) ---------- */
+.booth-energy-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+/* the narrow chart column: the eyebrow wraps beside Scrub instead of an ellipsis */
+.booth-energy-head > .booth-eyebrow {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.booth-scrub-toggle {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--label-2);
+  background: var(--booth-fill);
+}
+.booth-scrub-toggle[aria-pressed="true"] {
+  color: var(--room);
+  box-shadow: inset 0 0 0 1.5px var(--room);
+}
+.booth-energy svg[data-scrub] {
+  cursor: ns-resize;
+  touch-action: none;
+}
+.booth-energy svg:focus-visible {
+  outline: 2px solid var(--tint);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+.booth-scrub-out {
+  margin-top: 6px;
+  display: grid;
+  gap: 4px;
+}
+.booth-scrub-out .booth-scrub-what {
+  font-size: 12px;
+  color: var(--label-2);
+  overflow-wrap: anywhere;
+}
+.booth .booth-energy .booth-scrub-out > button {
+  min-height: 44px;
+  border-radius: 12px;
+  padding: 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--booth-fill);
+  color: var(--room);
+}
+.booth .booth-energy .booth-scrub-out > button[data-cue] {
+  color: var(--cue);
+}
+
+/* ---------- Play next: the picked row says it is next ---------- */
+.booth .booth-row[data-picked] {
+  box-shadow: inset 3px 0 0 var(--tint);
+}
+.booth-row-next {
+  flex: none;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 999px;
+  color: var(--tint);
+  background: color-mix(in srgb, var(--tint) 14%, transparent);
+}

@@ -1,5 +1,43 @@
 import { describe, expect, it } from "vitest";
-import { isSilentState, unlockAudio } from "./unlock";
+import { isSilentState, resumeBounded, unlockAudio } from "./unlock";
+
+/**
+ * 2026-11 (the owner: "Play now in the room doesn't work" on an iPad with Spotify Connect): the Spotify app on the same
+ * iPad takes the audio session, WebKit marks the booth's context "interrupted", and its resume() promise stays pending
+ * until the interruption ends — Play now awaited it and never reached the engine. A resume is waited on for a bound.
+ */
+describe("resumeBounded (Play now never waits on an interrupted context)", () => {
+  it("returns once the context resumes", async () => {
+    let n = 0;
+    const r = await resumeBounded(
+      {
+        resume: () => {
+          n++;
+          return Promise.resolve();
+        },
+      },
+      1000,
+    );
+    expect(r).toBe("resumed");
+    expect(n).toBe(1);
+  });
+  it("gives up after the bound when resume() never settles (an interrupted WebKit context)", async () => {
+    const t0 = Date.now();
+    const r = await resumeBounded({ resume: () => new Promise<void>(() => {}) }, 50);
+    expect(r).toBe("timeout");
+    expect(Date.now() - t0).toBeLessThan(500);
+  });
+  it("a rejected or throwing resume, or no context, is not an error", async () => {
+    expect(await resumeBounded({ resume: () => Promise.reject(new Error("x")) }, 50)).toBe("failed");
+    const bad = {
+      resume: (): Promise<void> => {
+        throw new Error("x");
+      },
+    };
+    expect(await resumeBounded(bad, 50)).toBe("failed");
+    expect(await resumeBounded(null, 50)).toBe("failed");
+  });
+});
 
 /** round20-booth.md "can't hear": the steps that let a phone play the booth with the silent switch on. */
 describe("unlockAudio (round 20)", () => {

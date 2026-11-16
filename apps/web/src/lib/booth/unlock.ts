@@ -64,3 +64,38 @@ export function unlockAudio(
 
 /** A context the browser has not let run yet (no gesture, or the OS took it away). */
 export const isSilentState = (state: string | undefined) => state === "suspended" || state === "interrupted";
+
+/**
+ * 2026-11 (the owner: "Play now in the room doesn't work", iPad + Spotify Connect): the Spotify app on the same iPad
+ * takes the audio session, WebKit marks the booth's context "interrupted", and `resume()` then stays pending until
+ * the interruption ends. A tap that awaited it never reached the engine. Wait at most `ms` (the resume was already
+ * asked for in the gesture by `unlockAudio`), then carry on: Connect needs no Web Audio, files and clips get the
+ * context as soon as the OS gives it back.
+ */
+export async function resumeBounded(
+  ctx: Pick<UnlockCtx, "resume"> | null | undefined,
+  ms = 300,
+): Promise<"resumed" | "timeout" | "failed"> {
+  if (!ctx) return "failed";
+  let p: Promise<void>;
+  try {
+    p = ctx.resume();
+  } catch {
+    return "failed";
+  }
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const bound = new Promise<"timeout">((r) => {
+    timer = setTimeout(() => r("timeout"), ms);
+  });
+  try {
+    return await Promise.race([
+      p.then(
+        () => "resumed" as const,
+        () => "failed" as const,
+      ),
+      bound,
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}

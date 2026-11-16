@@ -1,9 +1,11 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
-import { nightEnergy } from "@/lib/booth/energyChart";
+import { type KeyboardEvent, type PointerEvent, useEffect, useRef, useState } from "react";
+import { nightEnergy, scrubAt, scrubStep } from "@/lib/booth/energyChart";
 import { useIndicators } from "@/lib/booth/indicatorPrefs";
 import { useBooth } from "@/lib/booth/store";
 import { t } from "@/lib/i18n";
+import { toast } from "@/lib/toast";
+import { ArmButton } from "./Confirm";
 
 const RHYTHM_COLOR: Record<string, string> = {
   tango: "var(--tone-tango, #b3264f)",
@@ -15,18 +17,29 @@ const RHYTHM_COLOR: Record<string, string> = {
  * Round 22 — the night's energy, vertical like the night's arc: time runs down, energy to the right, one dot per
  * tanda in its rhythm colour, the composed shape dashed, and "we are here" at the playhead. Hover or long-press a
  * dot for its tanda. Tapping a dot shows that tanda in the set list. Hidden when Energy is off in Settings.
+ *
+ * 2026-11 ("a button to activate, then slide to an energy cross-section … to play from there"): Scrub (off by
+ * default, so a stray touch never changes the room) puts a cursor line on the chart; dragging it or the arrow keys
+ * move it tanda by tanda and say the tanda, the song at that point and its energy; "Play from tanda N" plays its
+ * first song in the room (mid-night with the light confirmation), "Pre-listen" plays it in the headphones when they
+ * are chosen. The "we are here" line stays.
  */
 export function EnergyRail({ onJump }: { onJump?: (planIndex: number) => void }) {
   const on = useIndicators().energy;
   const plan = useBooth((s) => s.plan);
   const playlist = useBooth((s) => s.playlist);
   const planIndex = useBooth((s) => s.planIndex);
+  const started = useBooth((s) => s.started);
+  const cue = useBooth((s) => s.outputs.cue);
   // the marker moves per tanda item, not per frame: position is read once per item change
   const position = useBooth((s) => Math.floor(s.position / 15) * 15);
   // 2026-11 (DJ review: the chart's labels were 7 px once the 200-unit chart shrank into its column): the labels keep
   // 11 px on screen whatever the chart's drawn width (`k`: chart units per screen pixel)
   const svg = useRef<SVGSVGElement>(null);
   const [k, setK] = useState(1);
+  const [scrub, setScrub] = useState(false);
+  const [at, setAt] = useState<number | null>(null);
+  const drag = useRef(false);
   useEffect(() => {
     const el = svg.current;
     if (!el || typeof ResizeObserver !== "function") return;
@@ -50,23 +63,125 @@ export function EnergyRail({ onJump }: { onJump?: (planIndex: number) => void })
   const mid = (p: { at: number; end: number }) => (p.at + p.end) / 2;
   const line = c.points.map((p) => `${x(p.energy)},${y(mid(p))}`).join(" ");
   const target = c.points.filter((p) => p.target !== null);
+  const s = scrub && at !== null ? scrubAt(c, plan, at) : null;
+  const sItem = s && s.item >= 0 ? plan.items[s.item] : null;
+  const what = s
+    ? t("booth.ui2.scrub_what", {
+        tanda: s.tanda,
+        label: s.label,
+        title: sItem?.title ?? "",
+        energy: s.energy,
+      })
+    : "";
+  /** the pointer's place on the night's clock (0–1), from its y on the drawn chart */
+  const fracOf = (clientX: number, clientY: number) => {
+    const el = svg.current;
+    if (!el) return 0;
+    // the chart's own units (the drawing is letterboxed inside its box: viewBox, preserveAspectRatio)
+    const m = el.getScreenCTM?.();
+    let u: number;
+    if (m && typeof DOMPoint === "function")
+      u = new DOMPoint(clientX, clientY).matrixTransform(m.inverse()).y;
+    else {
+      const r = el.getBoundingClientRect();
+      if (r.height <= 0) return 0;
+      u = ((clientY - r.top) / r.height) * H;
+    }
+    return Math.max(0, Math.min(1, (u - padT) / (H - padT - padB)));
+  };
+  const toggle = () => {
+    if (!scrub) setAt(c.here);
+    setScrub(!scrub);
+  };
+  const onDown = (e: PointerEvent<SVGSVGElement>) => {
+    if (!scrub) return;
+    drag.current = true;
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    setAt(fracOf(e.clientX, e.clientY));
+  };
+  const onMove = (e: PointerEvent<SVGSVGElement>) => {
+    if (scrub && drag.current) setAt(fracOf(e.clientX, e.clientY));
+  };
+  const onUp = () => {
+    drag.current = false;
+  };
+  const onKey = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (!scrub) return;
+    const cur = scrubAt(c, plan, at ?? c.here).tanda;
+    let to: number | null = null;
+    if (e.key === "ArrowDown" || e.key === "ArrowRight") to = scrubStep(c, cur, 1);
+    else if (e.key === "ArrowUp" || e.key === "ArrowLeft") to = scrubStep(c, cur, -1);
+    else if (e.key === "Home") to = scrubStep(c, c.points[0]?.tanda ?? 1, -1);
+    else if (e.key === "End") to = scrubStep(c, c.points[c.points.length - 1]?.tanda ?? 1, 1);
+    if (to === null) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setAt(to);
+  };
+  const playFrom = (i: number) => {
+    const b = useBooth.getState();
+    setScrub(false);
+    if (!b.started) {
+      if (b.select(i)) void b.start();
+      return;
+    }
+    b.playNow(i).catch(() => toast(t("booth.ui2.play_now_failed", { title: plan.items[i]?.title ?? "" })));
+  };
+  const canCue = !!cue && !useBooth.getState().cueBlocked();
   return (
     <section
       className="booth-card booth-energy"
       data-testid="booth-energy-rail"
       aria-label={t("booth.energyRail.the_night_s_energy")}
     >
-      <p className="booth-eyebrow" data-hint={t("booth.energyRail.how_lively_each_tanda_is_from")}>
-        {t("booth.energyRail.energy_tonight")}
-      </p>
+      <div className="booth-energy-head">
+        <p className="booth-eyebrow" data-hint={t("booth.energyRail.how_lively_each_tanda_is_from")}>
+          {t("booth.energyRail.energy_tonight")}
+        </p>
+        <button
+          type="button"
+          className="booth-scrub-toggle"
+          aria-pressed={scrub}
+          onClick={toggle}
+          data-hint={t("booth.ui2.scrub_hint")}
+          data-testid="booth-scrub-toggle"
+        >
+          {t("booth.ui2.scrub")}
+        </button>
+      </div>
+      {/* with Scrub on, the keyboard's slider (one step a tanda); the pointer drags on the chart itself */}
+      {scrub && s && (
+        <input
+          type="range"
+          className="sr-only"
+          min={1}
+          max={Math.max(1, c.points.length)}
+          step={1}
+          value={s.tanda}
+          aria-label={t("booth.ui2.scrub_slider")}
+          aria-valuetext={what}
+          onChange={(e) => {
+            const p = c.points.find((x) => x.tanda === Number(e.target.value));
+            if (p) setAt((p.at + p.end) / 2);
+          }}
+          onKeyDown={onKey}
+          data-testid="booth-scrub-input"
+        />
+      )}
       <svg
         ref={svg}
         viewBox={`0 0 ${W} ${H}`}
         role="img"
+        data-scrub={scrub || undefined}
+        data-testid="booth-energy-svg"
         aria-label={t("booth.energyRail.energy_of_tandas_we_are_in", {
           length: c.points.length,
           hereTanda: c.hereTanda,
         })}
+        onPointerDown={onDown}
+        onPointerMove={onMove}
+        onPointerUp={onUp}
+        onPointerCancel={onUp}
       >
         {[25, 50, 75].map((g) => (
           <line
@@ -109,10 +224,10 @@ export function EnergyRail({ onJump }: { onJump?: (planIndex: number) => void })
               <circle
                 cx={x(p.energy)}
                 cy={y(mid(p))}
-                r={p.tanda === c.hereTanda ? 6 : 4.5}
+                r={p.tanda === c.hereTanda || p.tanda === s?.tanda ? 6 : 4.5}
                 fill={RHYTHM_COLOR[p.rhythm] ?? "var(--label-2)"}
                 opacity={done ? 0.45 : 1}
-                stroke={p.tanda === c.hereTanda ? "var(--label)" : "none"}
+                stroke={p.tanda === c.hereTanda || p.tanda === s?.tanda ? "var(--label)" : "none"}
                 strokeWidth={1.5}
                 data-hint={t("booth.energyRail.tanda_energy", {
                   tanda: p.tanda,
@@ -124,8 +239,8 @@ export function EnergyRail({ onJump }: { onJump?: (planIndex: number) => void })
                       ? ` ${t("booth.energyRail.planned_2", { p1: Math.round(p.target) })}`
                       : "",
                 })}
-                style={{ cursor: onJump ? "pointer" : undefined }}
-                onClick={() => first >= 0 && onJump?.(first)}
+                style={{ cursor: onJump && !scrub ? "pointer" : undefined }}
+                onClick={() => !scrub && first >= 0 && onJump?.(first)}
               />
             </g>
           );
@@ -154,25 +269,73 @@ export function EnergyRail({ onJump }: { onJump?: (planIndex: number) => void })
             {t("booth.energyRail.we_are_here")}
           </text>
         </g>
+        {s && (
+          <g data-testid="booth-scrub-line" data-tanda={s.tanda} data-at={s.at.toFixed(3)}>
+            <line
+              x1={padL - 6}
+              x2={W - padR}
+              y1={y(s.at)}
+              y2={y(s.at)}
+              stroke="var(--label)"
+              strokeWidth={1.4}
+              strokeDasharray="4 3"
+            />
+            <text
+              x={padL}
+              y={y(s.at) + (s.at > 0.9 ? -4 : 12 * k)}
+              fontSize={11 * k}
+              fontWeight={700}
+              fill="var(--label)"
+            >
+              {t("booth.ui2.scrub_mark", { tanda: s.tanda, energy: s.energy })}
+            </text>
+          </g>
+        )}
       </svg>
-      <div className="booth-energy-legend" aria-hidden>
-        <span>
-          <i style={{ background: RHYTHM_COLOR.tango }} />
+      {s && s.first >= 0 ? (
+        <div className="booth-scrub-out" data-testid="booth-scrub-out">
+          <p className="booth-scrub-what" aria-live="polite">
+            {what}
+          </p>
+          <ArmButton
+            armKey={`play-now:${s.first}`}
+            onConfirm={() => playFrom(s.first)}
+            data-testid="booth-scrub-play"
+            disabled={started && s.first === planIndex}
+          >
+            {t("booth.ui2.play_from_tanda", { tanda: s.tanda })}
+          </ArmButton>
+          {started && canCue && (
+            <button
+              type="button"
+              data-cue
+              data-testid="booth-scrub-cue"
+              onClick={() => void useBooth.getState().prelisten({ i: s.first })}
+            >
+              {t("booth.ui2.prelisten_tanda", { tanda: s.tanda })}
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="booth-energy-legend" aria-hidden>
+          <span>
+            <i style={{ background: RHYTHM_COLOR.tango }} />
 
-          {t("booth.energyRail.tango")}
-        </span>
-        <span>
-          <i style={{ background: RHYTHM_COLOR.vals }} />
+            {t("booth.energyRail.tango")}
+          </span>
+          <span>
+            <i style={{ background: RHYTHM_COLOR.vals }} />
 
-          {t("booth.energyRail.vals")}
-        </span>
-        <span>
-          <i style={{ background: RHYTHM_COLOR.milonga }} />
+            {t("booth.energyRail.vals")}
+          </span>
+          <span>
+            <i style={{ background: RHYTHM_COLOR.milonga }} />
 
-          {t("booth.energyRail.milonga")}
-        </span>
-        <span>{t("booth.energyRail.planned")}</span>
-      </div>
+            {t("booth.energyRail.milonga")}
+          </span>
+          <span>{t("booth.energyRail.planned")}</span>
+        </div>
+      )}
     </section>
   );
 }

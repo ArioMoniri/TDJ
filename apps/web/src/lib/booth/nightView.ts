@@ -16,14 +16,30 @@ type Item = { kind: string; tanda: number };
 export function upNext(
   items: ReadonlyArray<Item>,
   planIndex: number,
-  o: { passed: ReadonlySet<number>; missing: ReadonlySet<number> },
-): { next: number | null; noSource: boolean; nextTanda: number; nextTandaCortina: number } {
+  o: {
+    passed: ReadonlySet<number>;
+    missing: ReadonlySet<number>;
+    /** 2026-11: the item "Play next" put after the running one (it is next, wherever it sits in the plan) */
+    picked?: number | null;
+  },
+): { next: number | null; noSource: boolean; nextTanda: number; nextTandaCortina: number; picked: boolean } {
   let next: number | null = null;
-  for (let i = planIndex + 1; i < items.length; i++)
-    if (!o.passed.has(i) && !o.missing.has(i)) {
-      next = i;
-      break;
-    }
+  const pk = o.picked;
+  const picked =
+    pk !== null &&
+    pk !== undefined &&
+    pk >= 0 &&
+    pk < items.length &&
+    pk !== planIndex &&
+    !o.passed.has(pk) &&
+    !o.missing.has(pk);
+  if (picked) next = pk as number;
+  else
+    for (let i = planIndex + 1; i < items.length; i++)
+      if (!o.passed.has(i) && !o.missing.has(i)) {
+        next = i;
+        break;
+      }
   let noSource = false;
   if (next === null)
     for (let i = planIndex + 1; i < items.length; i++)
@@ -41,7 +57,7 @@ export function upNext(
   const nextTandaCortina = nt
     ? items.findIndex((x, i) => x.kind === "cortina" && x.tanda === nt.tanda && !o.passed.has(i))
     : -1;
-  return { next, noSource, nextTanda, nextTandaCortina };
+  return { next, noSource, nextTanda, nextTandaCortina, picked };
 }
 
 /** "3:39 ahead of plan" / "1:15 behind plan" / "on plan" (was "−3:39 early"). */

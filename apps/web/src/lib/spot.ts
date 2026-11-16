@@ -47,6 +47,8 @@ export interface GuideState {
   lines: GuideLine[];
   /** the night the lines are about (the one on screen after the edit) */
   night: Playlist | null;
+  /** 2026-11: the night before the edit (a fix's guide reads the whole edit again, not the fix alone) */
+  base: Playlist | null;
   apply: ApplyNight | null;
   /** the page the edit was made on: the card shows there only */
   scope: string;
@@ -56,6 +58,7 @@ export const useGuide = create<GuideState>(() => ({
   label: "",
   lines: [],
   night: null,
+  base: null,
   apply: null,
   scope: "",
   busy: false,
@@ -74,17 +77,19 @@ export async function showGuide(before: Playlist, after: Playlist, apply: ApplyN
   const r = await spotCall<{ lines?: GuideLine[] }>("guide", { before, playlist: after });
   if (id !== gseq) return;
   const lines = r.json.lines ?? [];
-  useGuide.setState({ label, lines, night: after, apply, scope: here(), busy: false });
+  useGuide.setState({ label, lines, night: after, base: before, apply, scope: here(), busy: false });
 }
 export const hideGuide = () => {
   gseq++;
-  useGuide.setState({ lines: [], night: null, apply: null, label: "" });
+  useGuide.setState({ lines: [], night: null, base: null, apply: null, label: "" });
 };
 
 /** a guide line's fix: the night with it, through the rule check and into the undo history; then the guide again */
 export async function applyFix(line: GuideLine): Promise<boolean> {
   const st = useGuide.getState();
   if (!line.fix || !st.night || !st.apply) return false;
+  // (the DJ may close the card while the fix is on its way: it still applies, the card stays closed)
+  const shown = gseq;
   useGuide.setState({ busy: true });
   try {
     const r = await spotCall("fix", { playlist: st.night, fix: line.fix.fix as GuideFix });
@@ -106,7 +111,9 @@ export async function applyFix(line: GuideLine): Promise<boolean> {
     });
     if (res === "cancelled") return false;
     if (res === "applied") toast(label, () => void undoEdit());
-    await showGuide(before, after as Playlist, apply, label);
+    // 2026-11: what the whole edit still does (the night before the edit → now): the lines the fix did not touch
+    // stay and the card stays open with them (it closed after any fix, the edit's other consequences lost)
+    if (gseq === shown) await showGuide(st.base ?? before, after as Playlist, apply, label);
     return true;
   } finally {
     useGuide.setState({ busy: false });

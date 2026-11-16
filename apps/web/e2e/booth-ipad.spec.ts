@@ -387,7 +387,8 @@ const contrastFailures = (page: Page) =>
         const cs = getComputedStyle(e);
         if (cs.visibility === "hidden" || e.getBoundingClientRect().width === 0) continue;
         // (an artwork placeholder's initials sit on a picture-like gradient: artwork, not text to read)
-        if (e.closest(".booth-art, [data-testid='artwork']")) continue;
+        // (and the tanda's number tile on its rhythm gradient, the tap-to-play cover: artwork too)
+        if (e.closest(".booth-art, .tile-art, [data-testid='artwork']")) continue;
         // opacity on the way up (a dimmed group) scales the text
         let op = 1;
         // (up to the first opaque background: above it the text and its background fade together)
@@ -460,9 +461,12 @@ test("iPad landscape: the columns scroll on their own, end above the transport, 
   await expect.poll(() => top(".booth-deck")).toBeGreaterThan(0);
   expect(await top(".booth-col-set")).toBeGreaterThan(100);
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
-  // the Now card stays at the deck's top
+  // 2026-11 ("on scroll the upper and lower bars mix"): the deck scrolls as one column — the Now card moves with it
+  // and never overlaps Up Next (it was pinned, and the cards slid under it)
   const now = (await page.getByTestId("booth-now").boundingBox())!;
-  expect(Math.abs(now.y - d.y)).toBeLessThanOrEqual(2);
+  const nextCard = (await page.getByTestId("booth-next").boundingBox())!;
+  expect(now.y).toBeLessThan(d.y);
+  expect(nextCard.y - (now.y + now.height)).toBeGreaterThanOrEqual(11);
   await deck.evaluate((el) => {
     el.scrollTop = 0;
   });
@@ -1283,7 +1287,13 @@ function overlap(page: Page) {
     ].filter(vis);
     const deckEl = document.querySelector(".booth-deck")!;
     const panel = document.querySelector<HTMLElement>('[data-testid="booth-controls"]');
-    const col = document.querySelector<HTMLElement>(".booth-col-set");
+    const col0 = document.querySelector<HTMLElement>(".booth-col-set");
+    // (2026-11, pass 2: with the Controls panel open the night card is the column's fixed head and the set list is
+    // the scroller under it)
+    const col =
+      col0 && getComputedStyle(col0).overflowY !== "auto"
+        ? (col0.querySelector<HTMLElement>(":scope > .booth-set") ?? col0)
+        : col0;
     const twoCols = !!col && vis(col) && getComputedStyle(col).overflowY === "auto";
     const set = (() => {
       if (!col || !twoCols) return null;

@@ -109,19 +109,39 @@ export function SongSheet({
           <Group
             header={t("booth.songSheet.play")}
             footer={
-              started
-                ? t(
+              started ? (
+                <>
+                  {t(
                     canFade ? "booth.songSheet.play_now_fades_the_room_s" : "booth.connect.play_now_at_once",
-                    {
-                      fade,
-                      p1: blocked
-                        ? `Pre-listen: ${blocked}`
-                        : t("booth.songSheet.pre_listen_plays_only_in_your_2"),
-                    },
-                  )
-                : blocked
-                  ? t("booth.songSheet.the_night_has_not_started_so", { blocked })
-                  : t("booth.songSheet.pre_listen_plays_only_in_your")
+                    { fade, p1: blocked ? "" : t("booth.songSheet.pre_listen_plays_only_in_your_2") },
+                  )}
+                  {/* 2026-11: no headphones chosen — the line opens the Headphones picker (closing this sheet) */}
+                  {blocked && (
+                    <button
+                      type="button"
+                      className="booth-sheet-link"
+                      data-testid="booth-pick-headphones"
+                      onClick={() => {
+                        onClose();
+                        setTimeout(
+                          () =>
+                            (
+                              document.querySelector<HTMLElement>('[data-testid="booth-out-cue"]') ??
+                              document.querySelector<HTMLElement>('[data-testid="booth-out-cue-unsupported"]')
+                            )?.click(),
+                          60,
+                        );
+                      }}
+                    >
+                      {`Pre-listen: ${blocked}`}
+                    </button>
+                  )}
+                </>
+              ) : blocked ? (
+                t("booth.songSheet.the_night_has_not_started_so", { blocked })
+              ) : (
+                t("booth.songSheet.pre_listen_plays_only_in_your")
+              )
             }
           >
             {started ? (
@@ -132,7 +152,11 @@ export function SongSheet({
                   className="cell cell-tap w-full justify-center text-[var(--tint)] disabled:text-[var(--label-3)]"
                   disabled={i === planIndex}
                   onConfirm={() => {
-                    void useBooth.getState().playNow(i);
+                    // 2026-11: the room's song changes now (the store no longer waits on an interrupted context)
+                    useBooth
+                      .getState()
+                      .playNow(i)
+                      .catch(() => toast(t("booth.ui2.play_now_failed", { title: it.title })));
                     onClose();
                     onPlayed?.();
                   }}
@@ -145,8 +169,11 @@ export function SongSheet({
                   label={t("booth.songSheet.play_next")}
                   disabled={i === planIndex}
                   onClick={() => {
-                    b.playNext(i);
-                    toast(t("booth.songSheet.plays_next", { title: it.title }));
+                    // 2026-11: after the running song; Up Next and the set list show it; Undo puts the plan back
+                    useBooth.getState().playNext(i);
+                    toast(t("booth.songSheet.plays_next", { title: it.title }), () =>
+                      useBooth.getState().undoPlayNext(),
+                    );
                     onClose();
                   }}
                   id="booth-play-next"

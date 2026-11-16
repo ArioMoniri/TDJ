@@ -34,6 +34,8 @@ export function NextCard({
   const playlist = useBooth((s) => s.playlist);
   const holdBefore = useBooth((s) => s.holdBefore);
   const entities = useBooth((s) => s.entities);
+  // 2026-11: what "Play next" picked is next (the card used to keep the plan's order, so Play next looked broken)
+  const picked = useBooth((s) => s.pickedNext);
   if (!plan) return null;
   const missing = new Set(
     sources
@@ -42,7 +44,7 @@ export function NextCard({
   );
   // wave 2: a tanda skipped tonight and its cortina are passed over like the items the night already left out
   const passed = new Set([...skipped, ...bypassed]);
-  const up = upNext(plan.items, planIndex, { passed, missing });
+  const up = upNext(plan.items, planIndex, { passed, missing, picked });
   const next = up.next ?? plan.items.length;
   const item = up.next === null ? undefined : plan.items[up.next];
   const noSource = up.noSource;
@@ -52,7 +54,13 @@ export function NextCard({
   const ntTanda = nt ? playlist?.tandas[nt.tanda - 1] : null;
   const ntCortina = up.nextTandaCortina >= 0 ? plan.items[up.nextTandaCortina] : null;
   return (
-    <section className="booth-card" data-testid="booth-next" aria-label={t("booth.nextCard.next")}>
+    <section
+      className="booth-card"
+      data-testid="booth-next"
+      data-next={up.next ?? undefined}
+      data-picked={up.picked || undefined}
+      aria-label={t("booth.nextCard.next")}
+    >
       <p className="booth-eyebrow" data-hint={t("booth.nextCard.what_the_room_hears_after_this")}>
         {t("booth.nextCard.up_next")}
         {decoding === next ? t("booth.nextCard.decoding") : ""}

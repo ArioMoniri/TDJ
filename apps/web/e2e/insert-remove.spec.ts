@@ -99,7 +99,8 @@ test("Compose: add a song at a place, insert a tanda before the first, remove a 
     .locator("#result article[data-tanda]")
     .filter({ has: page.getByTestId("tanda-add-song") })
     .nth(1);
-  await t3.locator('button[aria-haspopup="menu"]').first().click();
+  // (its actions menu — the tanda's Play button is a menu too now: "Play this tanda / from here")
+  await t3.getByRole("button", { name: /^Tanda \d+ actions$/ }).click();
   await page.getByRole("menuitem", { name: "Remove tanda" }).click();
   if (await asked.isVisible().catch(() => false)) await page.getByTestId("rule-as-said").click();
   await expect.poll(() => tandaCount(page), { timeout: 20000 }).toBe(n1 - 1);
@@ -196,18 +197,33 @@ test("Build by hand: search and add (Enter, Shift+Enter) with the guide line; th
   await expect(tandas.first().getByTestId("build-side")).toHaveCount(1);
   // the next search: each version says what it does to that tanda (orchestra, singer, years, length)
   await field.fill("Comme il faut");
+  // (the results answer the new words — the search worker answers a moment later; until then the list, and Enter,
+  // are still Bahía Blanca's, whose fit line reads the same)
+  await expect(panel.getByTestId("build-smart")).toHaveAttribute("data-answered", "Comme il faut", {
+    timeout: 30000,
+  });
   await expect(panel.getByTestId("build-version").first()).toBeVisible({ timeout: 30000 });
   await expect(panel.getByTestId("build-fit-line").first()).toContainText(/tanda \d+:\d\d/);
   await expect(panel.getByTestId("build-fit-line").first()).toContainText(/years \d{4}/);
   // Shift+Enter: a new tanda with it
   await field.press("Shift+Enter");
   const asked = page.getByTestId("rule-sheet");
-  if (await asked.isVisible().catch(() => false)) await page.getByTestId("rule-as-said").click();
-  await expect(tandas).toHaveCount(2, { timeout: 20000 });
+  // (the rule check may ask a moment after the key: answer it whenever it shows)
+  await expect(async () => {
+    if (await asked.isVisible().catch(() => false)) await page.getByTestId("rule-as-said").click();
+    await expect(tandas).toHaveCount(2, { timeout: 1500 });
+  }).toPass({ timeout: 20000 });
   // covers on the tanda and on each side
   await expect(tandas.first().getByTestId("build-tanda-art")).toBeVisible();
   await expect(tandas.first().getByTestId("build-side").first().getByTestId("row-art")).toBeVisible();
-  // one vertical rhythm: every top-level card ≥ 16 px from the next, none intersecting
+  // one vertical rhythm: every top-level card ≥ 16 px from the next, none intersecting — measured once the new tanda's
+  // entrance (a 6 px rise) has settled: mid-flight it read 14.95 px
+  await page.waitForFunction(() =>
+    [...document.querySelectorAll<HTMLElement>("[data-reorder-row]")].every((e) => {
+      const tr = getComputedStyle(e).transform;
+      return tr === "none" || tr === "matrix(1, 0, 0, 1, 0, 0)";
+    }),
+  );
   const gaps = await page.evaluate(() => {
     const col = document.querySelector("section.build-stack[aria-label]") as HTMLElement;
     const blocks: DOMRect[] = [];

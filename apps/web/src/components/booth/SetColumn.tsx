@@ -152,7 +152,11 @@ export function SetColumn({
       if (end !== null) {
         const t = end - span;
         const rel = at(mid) - t - (head - b.top);
-        if (rel >= h / 3 && rel <= (2 * h) / 3) target = t;
+        // (2026-11, pass 2: a short list — the Controls panel open — has no middle third to speak of: there the
+        // playing row only has to stay whole in view)
+        const rh = r.bottom - r.top;
+        const short = h < rh * 4;
+        if (short ? rel - rh / 2 >= 0 && rel + rh / 2 <= h : rel >= h / 3 && rel <= (2 * h) / 3) target = t;
       }
       target = Math.max(0, Math.min(box.scrollHeight - box.clientHeight, target));
       if (Math.abs(target - box.scrollTop) > 0.5) box.scrollTop = target;
@@ -576,6 +580,8 @@ const Row = memo(function Row({
   const entity = useBooth((s) => s.entities[i]);
   const auditioning = useBooth((s) => s.audition?.i === i);
   const cueWhere = useBooth((s) => (s.audition?.i === i ? s.audition.where : null));
+  // 2026-11: the row "Play next" picked says so until it plays
+  const picked = useBooth((s) => s.pickedNext === i);
   const cortinaEdits = useBooth((s) => s.playlist?.booth?.cortinaEdits);
   const showEnergy = useIndicators().energy;
   if (!it) return null;
@@ -603,6 +609,7 @@ const Row = memo(function Row({
       data-spotify={sp?.uri}
       data-auditioning={auditioning || undefined}
       data-cue={cueWhere === "headphones" || undefined}
+      data-picked={picked || undefined}
     >
       {energy !== null && (
         <span
@@ -665,6 +672,11 @@ const Row = memo(function Row({
               : ""}
         </span>
       </button>
+      {picked && (
+        <span className="booth-row-next" data-testid="booth-row-next">
+          {tx("booth.ui2.next_badge")}
+        </span>
+      )}
       {auditioning && (
         <Headphones
           size={16}
@@ -771,7 +783,8 @@ const GapMarker = memo(function GapMarker({
         className="booth-gap-btn"
         onClick={() => onOpen(i)}
         aria-label={tx("booth.transition.marker_label", { from: it.title, to: next.title, summary })}
-        data-hint={tx("booth.transition.marker_hint", { summary })}
+        // 2026-11: the editor opens from this pill only (the rows keep their own taps: play, open)
+        data-hint={tx("booth.ui2.edit_transition")}
         data-testid="booth-gap"
         data-from={i}
       >
