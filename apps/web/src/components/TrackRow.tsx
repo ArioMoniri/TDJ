@@ -16,7 +16,7 @@ import {
 import { motion, useReducedMotion } from "motion/react";
 import dynamic from "next/dynamic";
 import { memo, useCallback, useMemo, useState } from "react";
-import { analyseSong, isAnalysing, keyLabel } from "@/lib/analyze";
+import { analyseSong, isAnalysing, keyLabel, useMeasuring } from "@/lib/analyze";
 import { patchedSong } from "@/lib/audio";
 import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
@@ -142,13 +142,15 @@ export const TrackRow = memo(function TrackRow({
   const analyse = async () => {
     setBusy(true);
     try {
-      await analyseSong(song, rhythm);
+      await analyseSong(song, rhythm, false, { find: openFind });
     } finally {
       setBusy(false);
     }
   };
   const swap = () => onSwap(k);
   const analysing = busy || isAnalysing(song.id);
+  // QA fix 2026-11: "Measuring… 40 %" on the row while its audio is read and analysed
+  const measuring = useMeasuring((m) => m.progress[song.id]);
   const playLabel = playing
     ? t("trackRow.pause", { title })
     : source
@@ -184,7 +186,7 @@ export const TrackRow = memo(function TrackRow({
           return;
         }
         const up = isAction("edit.moveUp", e);
-        if ((up || isAction("edit.moveDown", e)) && onMove) {
+        if ((up || isAction("edit.moveDown", e)) && onMove && !disabled) {
           e.preventDefault();
           const to = up ? k - 1 : k + 1;
           if (to >= 0 && to < (count ?? 0)) onMove(k, to);
@@ -387,7 +389,7 @@ export const TrackRow = memo(function TrackRow({
               </button>
             </Tip>
           )}
-          {onMove && (
+          {onMove && !disabled && (
             <button
               type="button"
               className="drag-handle icon-btn icon-btn-bare -my-2 -mx-2 h-11 w-11 shrink-0 text-[var(--label-3)]"
@@ -397,6 +399,15 @@ export const TrackRow = memo(function TrackRow({
             >
               <GripVertical size={16} strokeWidth={2} aria-hidden />
             </button>
+          )}
+          {measuring !== undefined && (
+            <span
+              className="text-caption1 shrink-0 tabular-nums text-[var(--label-2)]"
+              role="status"
+              data-testid="row-measuring"
+            >
+              {t("analyze.measuring", { p: Math.round(measuring * 100) })}
+            </span>
           )}
           <Menu
             label={t("trackRow.track_actions", { n })}
@@ -421,17 +432,22 @@ export const TrackRow = memo(function TrackRow({
                 onClick: swap,
                 disabled: disabled || inFlight,
               },
+              // QA fix 2026-11: a locked tanda's sides never move — greyed, with the reason (as Swap)
               onMove && {
-                label: t("play.move_up"),
+                label: disabled
+                  ? `${t("play.move_up")} (${lockedWhy ?? t("trackRow.unlock_the_tanda_first")})`
+                  : t("play.move_up"),
                 icon: ArrowUp,
                 onClick: () => onMove(k, k - 1),
-                disabled: k === 0,
+                disabled: disabled || k === 0,
               },
               onMove && {
-                label: t("play.move_down"),
+                label: disabled
+                  ? `${t("play.move_down")} (${lockedWhy ?? t("trackRow.unlock_the_tanda_first")})`
+                  : t("play.move_down"),
                 icon: ArrowDown,
                 onClick: () => onMove(k, k + 1),
-                disabled: k >= (count ?? 0) - 1,
+                disabled: disabled || k >= (count ?? 0) - 1,
               },
               // 2026-11: this song only, or on from it to the end of the night (whatever the tap setting says)
               {
@@ -466,10 +482,11 @@ export const TrackRow = memo(function TrackRow({
               },
               { label: t("trackRow.find_on_services"), icon: Search, onClick: openFind },
               {
-                label: audio ? t("trackRow.analyse_again_in_browser") : t("trackRow.analyse_in_browser"),
+                label: audio ? t("trackRow.measure_again_from_file") : t("trackRow.measure_from_file"),
                 icon: AudioWaveform,
                 onClick: analyse,
-                disabled: analysing || !eff.resolved?.previewUrl,
+                // (QA fix 2026-11: never greyed without a reason — the ladder tries the file and the clip, and says why)
+                disabled: analysing,
               },
               audio
                 ? { label: t("trackRow.audio_details"), icon: AudioWaveform, onClick: openDetails }

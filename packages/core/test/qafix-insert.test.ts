@@ -13,6 +13,7 @@ import {
   insertSongOptions,
   insertTanda,
   insertTandaOptions,
+  moveTanda,
   type Playlist,
 } from "../src/index";
 import { findRoot, loadCatalog } from "../src/load";
@@ -68,6 +69,17 @@ describe("the guide lists only what the edit caused", () => {
     for (const i of named) expect([at - 1, at, at + 1]).toContain(i);
     const len = g.find((x) => x.key === "length");
     if (len) expect(String(len.message.params.total)).toMatch(/^\d+ h \d+ min$/);
+  });
+  it("a locked tanda never moves (QA: Move up / down moved it)", () => {
+    const locked = {
+      ...featured,
+      tandas: featured.tandas.map((t, k) => (k === 3 ? { ...t, locked: true } : t)),
+    };
+    const r = moveTanda(locked, 3, 5, deps);
+    expect(r.reason).toMatch(/locked/);
+    expect(r.playlist).toBe(locked);
+    const free = { ...featured, tandas: featured.tandas.map((t) => ({ ...t, locked: false })) };
+    expect(moveTanda(free, 3, 5, deps).reason).toBeUndefined();
   });
   it("the same night twice: nothing to say", () => {
     expect(editGuide(featured, featured, deps)).toEqual([]);

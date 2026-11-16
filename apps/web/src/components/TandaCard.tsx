@@ -171,9 +171,11 @@ function TandaCardImpl({
     void playTanda(playList, i, "tanda", { clipSec: 20 });
   }, [playList, i]);
   const total = useMemo(() => tandaTotal(t.songs, cues), [t.songs, cues]);
+  // (QA fix 2026-11: a locked tanda's sides never move, by drag, menu or keys)
   const canMove = !readOnly && !!onMoveTrack;
+  const dragOk = canMove && !t.locked;
   const moveTrack = useCallback((from: number, to: number) => onMoveTrack?.(i, from, to), [onMoveTrack, i]);
-  const drag = useDragReorder(moveTrack, !canMove);
+  const drag = useDragReorder(moveTrack, !dragOk);
   // the ref stays: the stagger applies to the mount only; later renders (settling, swaps) must not inherit the delay
   const freshAtMount = useRef(fresh).current;
   const dim = settling && !t.locked;
@@ -523,7 +525,7 @@ function TandaCardImpl({
                   lengthSec={lengthOf(s, cues)}
                   count={t.songs.length}
                   onMove={canMove ? moveTrack : undefined}
-                  dragHandle={canMove ? drag : undefined}
+                  dragHandle={dragOk ? drag : undefined}
                   onInsert={editable && onInsertSong ? insertSong : undefined}
                   onRemove={editable && onRemoveSong ? removeSong : undefined}
                   key={s.id}

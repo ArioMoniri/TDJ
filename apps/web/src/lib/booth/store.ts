@@ -1563,6 +1563,13 @@ function offlineCtor(): typeof OfflineAudioContext | null {
         .webkitOfflineAudioContext ?? null);
 }
 
+/** QA fix 2026-11 (Measure from your file): the DJ's matched file of a side, or null (no folder, no match, no access). */
+export async function localFileOf(id: string): Promise<File | null> {
+  return adapters()
+    .local.fileFor(id)
+    .catch(() => null);
+}
+
 /** A side's decodable audio: the DJ's file, else its 30 s clip; null when only Spotify has it. */
 export async function decodeAudio(
   id: string,

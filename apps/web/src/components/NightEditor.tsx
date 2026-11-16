@@ -155,6 +155,11 @@ export function NightEditor({
     async (from: number, to: number) => {
       const prev = useStore.getState().playlist;
       if (!prev || to < 0 || to >= prev.tandas.length || from === to) return;
+      // QA fix 2026-11: a locked tanda stays where it is (unlock it to move it)
+      if (prev.tandas[from]?.locked) {
+        toast(t("nightEditor.locked_no_move", { n: from + 1 }));
+        return;
+      }
       const tandas = moveItem(prev.tandas, from, to).map((x, k) => ({ ...x, index: k }));
       const next = renight(prev, tandas);
       haptic(6);
@@ -243,7 +248,8 @@ export function NightEditor({
                     className="drag-handle icon-btn icon-btn-bare h-11 w-11 shrink-0 text-[var(--label-3)]"
                     aria-label={t("nightEditor.drag_tanda", { n: i + 1 })}
                     data-testid="editor-tanda-drag"
-                    {...drag(i)}
+                    disabled={!!x.locked}
+                    {...(x.locked ? {} : drag(i))}
                   >
                     <GripVertical size={16} aria-hidden />
                   </button>
@@ -255,24 +261,36 @@ export function NightEditor({
                       {rhythmWord(x.rhythm)} · {totalText(total)}
                     </span>
                   </span>
-                  <Tip text={t("nightEditor.move_up", { n: i + 1 })}>
+                  <Tip
+                    text={
+                      x.locked
+                        ? t("nightEditor.locked_no_move", { n: i + 1 })
+                        : t("nightEditor.move_up", { n: i + 1 })
+                    }
+                  >
                     <button
                       type="button"
                       className="night-editor-step icon-btn icon-btn-bare h-11 w-11"
                       aria-label={t("nightEditor.move_up", { n: i + 1 })}
-                      disabled={i === 0}
+                      disabled={i === 0 || !!x.locked}
                       onClick={() => void moveTanda(i, i - 1)}
                       data-testid={`${idPrefix}-up-${i + 1}`}
                     >
                       <ArrowUp size={18} aria-hidden />
                     </button>
                   </Tip>
-                  <Tip text={t("nightEditor.move_down", { n: i + 1 })}>
+                  <Tip
+                    text={
+                      x.locked
+                        ? t("nightEditor.locked_no_move", { n: i + 1 })
+                        : t("nightEditor.move_down", { n: i + 1 })
+                    }
+                  >
                     <button
                       type="button"
                       className="night-editor-step icon-btn icon-btn-bare h-11 w-11"
                       aria-label={t("nightEditor.move_down", { n: i + 1 })}
-                      disabled={i === playlist.tandas.length - 1}
+                      disabled={i === playlist.tandas.length - 1 || !!x.locked}
                       onClick={() => void moveTanda(i, i + 1)}
                       data-testid={`${idPrefix}-down-${i + 1}`}
                     >

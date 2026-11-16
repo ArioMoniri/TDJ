@@ -1,7 +1,7 @@
 "use client";
 import { CircleAlert, Info, LoaderCircle, Sparkles, X } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { haptic } from "@/lib/haptics";
 import { t } from "@/lib/i18n";
 import { applyFix, fixText, guideText, hideGuide, useGuide } from "@/lib/spot";
@@ -15,34 +15,24 @@ import { applyFix, fixText, guideText, hideGuide, useGuide } from "@/lib/spot";
  * the page the edit was made on. Content on `surface` (not glass); every control ≥ 44 px.
  */
 /**
- * QA fix 2026-11: an opaque card (`--surface` is an RGB triplet: `bg-[var(--surface)]` painted nothing, the guide
- * read over the inspector) with a shadow. On wide screens Compose docks it at the top of the inspector column
- * (`<EditGuide docked />`), so it never covers the inspector or the tanda list; elsewhere, and on phones, it is a
- * bottom sheet above the tab bar.
+ * QA fix 2026-11 (the owner: the card was transparent, its lines printed over the inspector's tracks): an opaque
+ * surface card (`--surface` is an RGB triplet: `bg-[var(--surface)]` painted nothing) with a border, a shadow, a
+ * 16 px radius and 20 px padding, in its own stacking context above the content and below sheets and toasts (z-40).
+ * Desktop: the bottom-left of the content column (right of the sidebar), clear of the inspector on the right and above
+ * the mini players (`--mini-stack`); phones: a bottom sheet above the tab bar. Its lines scroll past 60 % of the
+ * screen; each fix is a 44 px secondary button.
  */
-export function EditGuide({ docked = false }: { docked?: boolean }) {
+export function EditGuide() {
   const { lines, label, scope, busy } = useGuide();
-  const isDocked = useGuide((s) => !!s.docked);
   const reduced = useReducedMotion();
   const [path, setPath] = useState("");
-  const probe = useRef<HTMLSpanElement>(null);
   useEffect(() => {
-    const read = () => {
-      setPath(location.pathname || "/");
-      // the docked instance says whether its column shows (the inspector is display:none below its breakpoint)
-      if (docked) {
-        const shown = !!probe.current?.offsetParent;
-        if (useGuide.getState().docked !== shown) useGuide.setState({ docked: shown });
-      }
-    };
+    const read = () => setPath(location.pathname || "/");
     read();
     const id = setInterval(read, 500);
-    return () => {
-      clearInterval(id);
-      if (docked) useGuide.setState({ docked: false });
-    };
-  }, [docked]);
-  const open = lines.length > 0 && path === scope && (docked ? isDocked : !isDocked);
+    return () => clearInterval(id);
+  }, []);
+  const open = lines.length > 0 && path === scope;
   const card = (
     <>
       <div className="flex items-start gap-2">
@@ -61,7 +51,7 @@ export function EditGuide({ docked = false }: { docked?: boolean }) {
           <X size={16} aria-hidden />
         </button>
       </div>
-      <ul className="mt-1 flex max-h-[40vh] flex-col gap-2 overflow-y-auto">
+      <ul className="mt-2 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain">
         {lines.map((l, k) => (
           <li
             key={k}
@@ -82,7 +72,7 @@ export function EditGuide({ docked = false }: { docked?: boolean }) {
               <span className="flex gap-2 pl-6">
                 <button
                   type="button"
-                  className="btn btn-ghost min-h-11 px-3 text-footnote"
+                  className="btn btn-ghost min-h-11 px-4 text-footnote"
                   disabled={busy}
                   onClick={() => {
                     haptic(6);
@@ -110,22 +100,6 @@ export function EditGuide({ docked = false }: { docked?: boolean }) {
       </ul>
     </>
   );
-  if (docked)
-    return (
-      <>
-        <span ref={probe} aria-hidden className="block h-0 w-0" />
-        {open && (
-          <aside
-            className="edit-guide edit-guide-docked mb-3 rounded-2xl border border-[var(--separator)] bg-[rgb(var(--surface))] p-3 shadow-lg"
-            aria-label={t("guide.title")}
-            data-testid="edit-guide"
-            data-docked="true"
-          >
-            {card}
-          </aside>
-        )}
-      </>
-    );
   return (
     <AnimatePresence>
       {open && (
@@ -136,7 +110,7 @@ export function EditGuide({ docked = false }: { docked?: boolean }) {
           animate={{ opacity: 1, y: 0 }}
           exit={reduced ? { opacity: 0 } : { opacity: 0, y: 16 }}
           transition={{ duration: 0.2 }}
-          className="edit-guide fixed inset-x-3 bottom-[calc(var(--bottom-chrome,0px)+0.75rem)] z-40 mx-auto max-w-md rounded-2xl border border-[var(--separator)] bg-[rgb(var(--surface))] p-3 shadow-[0_12px_40px_rgb(0_0_0/0.28)] sm:inset-x-auto sm:right-6 sm:bottom-[calc(1.5rem+var(--mini-stack,0px))] sm:w-[26rem]"
+          className="edit-guide fixed inset-x-3 bottom-[calc(var(--bottom-chrome,0px)+0.75rem)] z-40 mx-auto flex max-h-[min(60vh,32rem)] max-w-md flex-col rounded-2xl border border-[var(--separator)] bg-[rgb(var(--surface))] p-5 shadow-[0_12px_40px_rgb(0_0_0/0.28)] [isolation:isolate] sm:inset-x-auto sm:right-6 sm:bottom-[calc(1.5rem+var(--mini-stack,0px))] sm:w-[26rem] lg:right-auto lg:left-[calc(var(--sidebar-w,240px)+1.5rem)] lg:mx-0"
           aria-label={t("guide.title")}
           data-testid="edit-guide"
         >

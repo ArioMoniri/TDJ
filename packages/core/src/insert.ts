@@ -301,6 +301,9 @@ export function moveTanda(p: Playlist, from: number, to: number, deps: ComposeDe
   const n = p.tandas.length;
   if (from < 0 || from >= n || to < 0 || to >= n || from === to)
     return { playlist: p, reason: "no such move" };
+  // (QA fix 2026-11: a locked tanda stays where it is)
+  if (p.tandas[from]?.locked)
+    return { playlist: p, reason: `tanda ${from + 1} is locked: unlock it to move it` };
   const lastCortina = p.tandas[n - 1]?.cortina ?? null;
   const moved = p.tandas.slice();
   const [x] = moved.splice(from, 1);
