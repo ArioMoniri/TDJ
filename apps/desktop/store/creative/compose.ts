@@ -1,23 +1,39 @@
 /**
- * Store creative v2, step 2: the screenshot sets and the product page header images.
+ * Store creative v3, step 2: the screenshot sets and the product page header images, all on the black stage of
+ * Apple's product pages (showcase.ts): one device per panel, the whole device in view, a real capture on its
+ * screen, a small product line and one white headline above it. The devices are 3D renders (apps/video: the laptop,
+ * "Showcase"; the phone, tablet and foldable, "HandheldStill"), made once per size before the page is drawn.
  *
- * Each set is drawn once as a panorama, eight panels wide (art.ts: one ground, a dance floor that runs through every
- * panel, records turning on the panel edges), with one device per panel at a slight angle and, on some edges, a second
- * device that crosses into the next panel (the Agenda set's overlap). The page is then cut into panels by moving the
- * panorama under a viewport of the exact upload size and taking an opaque JPEG of each. The Mac sets stand on the
- * README hero's black stage instead (showcase.ts): the 3D laptop, one capture on its screen, one headline above.
+ * Each set is laid out as a strip of panels side by side; the page is cut into panels by moving the strip under a
+ * viewport of the exact upload size and taking an opaque JPEG of each.
  * Output: <out>/<set dir>/<locale>/<panel>_<set>.jpg and <out>/product_page/<locale>/<header>.png
  */
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { type Browser, chromium } from "playwright";
+import { fitHandheld, type HandheldFit } from "../../../video/src/three/handheld";
 import { flattenAlpha, info, jpegSize } from "../../scripts/png.mjs";
-import { bandoneon, bodySize, C, device, fonts, ground, headlineHtml } from "./art";
+import { esc } from "./art";
 import { RAW } from "./capture";
-import { macCss, macPanelHtml, PLACE, renderShowcase, type Tone } from "./showcase";
 import {
-  CAPTURE,
+  appRect,
+  DISPLAY_STACK,
+  handheldFit,
+  handheldHtml,
+  handheldPanelHtml,
+  headerLaptop,
+  headlineSize,
+  LEADING,
+  macPanelHtml,
+  PLACE,
+  renderHandheld,
+  renderShowcase,
+  stageCss,
+  stageGrid,
+  type Tone,
+} from "./showcase";
+import {
   type CaptureId,
   HEADER_COPY,
   HEADERS,
@@ -30,7 +46,6 @@ import {
   SETS,
   type SetId,
   SHOTS,
-  type ShotSet,
   shotFile,
 } from "./spec";
 
@@ -42,215 +57,122 @@ export const rawPath = (cap: CaptureId, locale: Locale, shot: string, full = fal
 
 export const darkShot = (id: string) => !!SHOTS.find((s) => s.id === id)?.dark;
 
-/** the size the Mac laptop is rendered at (the larger Mac set) */
+/** the size the Mac laptop is rendered at (the larger Mac set; 2560 × 1600 is the same picture scaled) */
 const MAC_STILL = { width: SETS.mac.out.width, height: SETS.mac.out.height };
 
-/** per-panel tilt and nudge (Agenda: alternate angles, devices leaning into each other) */
-const TILT = [-4, 3.5, -3, 4, -3.5, 3, -4, 3.5];
+/** the 3D devices a page needs: the laptop per tone, or one handheld */
+export type Stills = { laptop?: Record<Tone, string>; handheld?: string };
 
-interface Layout {
-  /** headline box: top, font size, width (fractions of H, W) */
-  text: { top: number; size: number; width: number };
-  main: { w: number; cy: number };
-  bridge: { w: number; cy: number; rot: number } | null;
-  floorTop: number;
-  landscape: boolean;
-}
-
-/** the layout of one set, in fractions of the panel (W, H) */
-export function layoutFor(set: ShotSet): Layout {
-  switch (set.frame) {
-    case "phone":
-      return {
-        text: { top: 0.05, size: 0.096, width: 0.92 },
-        main: { w: 0.77, cy: 0.6 },
-        bridge: { w: 0.4, cy: 0.72, rot: 9 },
-        floorTop: 0.62,
-        landscape: false,
-      };
-    case "duoOuter":
-      return {
-        text: { top: 0.045, size: 0.088, width: 0.92 },
-        main: { w: 0.7, cy: 0.6 },
-        bridge: { w: 0.42, cy: 0.7, rot: 9 },
-        floorTop: 0.64,
-        landscape: false,
-      };
-    case "tablet":
-      return {
-        text: { top: 0.04, size: 0.07, width: 0.92 },
-        main: { w: 0.86, cy: 0.6 },
-        bridge: { w: 0.46, cy: 0.74, rot: 8 },
-        floorTop: 0.66,
-        landscape: false,
-      };
-    case "duoInner":
-      return {
-        text: { top: 0.055, size: 0.06, width: 0.9 },
-        main: { w: 0.72, cy: 0.62 },
-        bridge: null,
-        floorTop: 0.7,
-        landscape: true,
-      };
-    default:
-      return {
-        text: { top: 0.05, size: 0.07, width: 0.9 },
-        main: { w: 0.7, cy: 0.62 },
-        bridge: null,
-        floorTop: 0.74,
-        landscape: true,
-      };
-  }
-}
+const page = (W: number, H: number, n: number, locale: Locale, body: string) =>
+  `<!doctype html><html lang="${locale === "tr" ? "tr" : "en"}"><head><meta charset="utf-8"><style>
+${stageCss()}
+html,body{margin:0;width:${W}px;height:${H}px;overflow:hidden;background:#000}
+#strip{position:absolute;left:0;top:0;width:${W * n}px;height:${H}px;transform:translateX(calc(var(--panel,0) * -${W}px))}
+</style></head><body><div id="strip">${body}</div></body></html>`;
 
 /**
- * The Mac sets: one picture per panel side by side (no panorama), each the black stage with the 3D laptop
- * (showcase.ts; `frames`: the rendered laptop for light and dark captures) and the capture on its screen.
+ * One set and locale: its panels side by side, each the black stage with the device and one capture on its
+ * screen. `stills`: the laptop rendered for light and dark captures (Mac sets), or the set's handheld.
  */
-export function macStripHtml(setId: SetId, locale: Locale, frames: Record<Tone, string>): string {
+export function stripHtml(setId: SetId, locale: Locale, stills: Stills): string {
   const set = SETS[setId];
   const { width: W, height: H } = set.out;
-  const panels = PANELS.map((panel, i) =>
-    macPanelHtml({
+  const g = stageGrid(set.frame, W, H);
+  const size = headlineSize(
+    g,
+    PANELS.map((p) => p.headline[locale]),
+  );
+  const fit = handheldFit(setId);
+  const panels = PANELS.map((panel, i) => {
+    const capture = rawPath(set.capture, locale, panel.shot);
+    const dark = darkShot(panel.shot);
+    if (!fit)
+      return macPanelHtml({
+        W,
+        H,
+        x0: W * i,
+        capture,
+        frame: stills.laptop![dark ? "dark" : "light"],
+        headline: panel.headline[locale],
+        size,
+      });
+    return handheldPanelHtml({
       W,
       H,
       x0: W * i,
-      capture: rawPath(set.capture, locale, panel.shot),
-      frame: frames[darkShot(panel.shot) ? "dark" : "light"],
+      frame: set.frame,
+      capture: set.capture,
+      src: capture,
+      still: stills.handheld!,
+      fit,
+      dark,
       headline: panel.headline[locale],
-    }),
-  );
-  return `<!doctype html><html lang="${locale === "tr" ? "tr" : "en"}"><head><meta charset="utf-8"><style>
-${macCss()}
-html,body{margin:0;width:${W}px;height:${H}px;overflow:hidden;background:#000}
-#strip{position:absolute;left:0;top:0;width:${W * PANELS.length}px;height:${H}px;transform:translateX(calc(var(--panel,0) * -${W}px))}
-</style></head><body><div id="strip">${panels.join("\n")}</div></body></html>`;
-}
-
-/** The panorama of one set and locale: n panels side by side. */
-export function stripHtml(setId: SetId, locale: Locale, fontCss: string): string {
-  const set = SETS[setId];
-  const cap = CAPTURE[set.capture];
-  const { width: W, height: H } = set.out;
-  const n = PANELS.length;
-  const L = layoutFor(set);
-  const items: string[] = [];
-  const src = (shot: string) => pathToFileURL(rawPath(set.capture, locale, shot)).href;
-  PANELS.forEach((panel, i) => {
-    const x0 = W * i;
-    const leftBridge = i > 0 && !!PANELS[i - 1]!.bridge && !!L.bridge;
-    const rightBridge = !!panel.bridge && !!L.bridge;
-    // make room for the device that crosses an edge
-    const nudge = (leftBridge ? 0.06 : 0) - (rightBridge ? 0.06 : 0);
-    // keep the device inside the panel vertically: below the headline, above the bottom edge; a device too tall for
-    // the room left is drawn narrower (the tablets: their screens are nearly as tall as the panel)
-    const textBottom = H * L.text.top + 2 * 1.08 * L.text.size * (L.landscape ? H : W);
-    const gap = H * (L.landscape ? 0.03 : 0.035);
-    const room = H - textBottom - gap - H * 0.02;
-    let w = W * L.main.w;
-    const h0 = bodySize(set.frame, cap, w).h;
-    if (h0 > room) w *= room / h0;
-    const { h } = bodySize(set.frame, cap, w);
-    const cy = Math.min(textBottom + gap + h / 2, H - h / 2 - H * 0.02);
-    items.push(
-      device(
-        set.frame,
-        cap,
-        src(panel.shot),
-        { cx: x0 + W * (0.5 + nudge), cy, w, rot: L.landscape ? 0 : TILT[i]!, z: 2 },
-        { dark: darkShot(panel.shot) },
-      ),
-    );
-    if (rightBridge && i < n - 1) {
-      const bw = W * L.bridge!.w;
-      items.push(
-        device(
-          set.frame,
-          cap,
-          src(panel.bridge!),
-          { cx: x0 + W, cy: H * L.bridge!.cy, w: bw, rot: L.bridge!.rot * (i % 2 ? -1 : 1), z: 3 },
-          { dark: darkShot(panel.bridge!), shadow: 1.4 },
-        ),
-      );
-    }
-    const size = L.text.size * (L.landscape ? H : W);
-    items.push(
-      `<h1 style="left:${x0 + (W * (1 - L.text.width)) / 2}px;top:${H * L.text.top}px;width:${W * L.text.width}px;font-size:${size}px">${headlineHtml(panel.headline[locale])}</h1>`,
-    );
+      size,
+    });
   });
-  return `<!doctype html><html lang="${locale === "tr" ? "tr" : "en"}"><head><meta charset="utf-8"><style>
-${fontCss}
-html,body{margin:0;width:${W}px;height:${H}px;overflow:hidden;background:${C.ink}}
-#strip{position:absolute;left:0;top:0;width:${W * n}px;height:${H}px;transform:translateX(calc(var(--panel,0) * -${W}px))}
-.ground{position:absolute;left:0;top:0}
-h1{position:absolute;margin:0;text-align:center;color:${C.ink};font-family:Fraunces,Georgia,serif;font-weight:400;line-height:1.08;letter-spacing:-.02em;z-index:5}
-h1 .ln{display:block;white-space:nowrap}
-h1 b{font-weight:800;letter-spacing:-.025em}
-</style></head><body><div id="strip">${ground({ W, H, n, floorTop: L.floorTop, landscape: L.landscape })}${items.join("\n")}</div></body></html>`;
+  return page(W, H, PANELS.length, locale, panels.join("\n"));
 }
 
-/** The product page header: the ground, the lockup and the words in Apple's safe area, devices outside it. */
-export function headerHtml(h: HeaderSpec, locale: Locale, fontCss: string): string {
+/** the Mac sets (kept for the older name) */
+export const macStripHtml = (setId: SetId, locale: Locale, frames: Record<Tone, string>) =>
+  stripHtml(setId, locale, { laptop: frames });
+
+/**
+ * The header's layout: the laptop left of Apple's art safe area, the tablet and the phone (in front, lower) right
+ * of it, all on one black stage; the lockup and the words in the safe area.
+ */
+export function headerLayout(h: HeaderSpec) {
   const { width: W, height: H, safe } = h;
+  const pad = W * 0.012;
+  // the laptop's canvas: everything left of the safe area
+  const lapW = 2 * Math.floor((safe.x - pad) / 2);
+  const laptop = {
+    canvas: { x: 0, y: 0, w: lapW, h: H },
+    place: headerLaptop(lapW, H, { top: H * 0.16, bottom: H * 0.88, left: lapW * 0.06, right: lapW * 0.94 }),
+  };
+  const rx = safe.x + safe.width + pad;
+  const rw = W - W * 0.03 - rx;
+  const tablet = fitHandheld("tablet", { x: rx, y: H * 0.12, w: rw * 0.74, h: H * 0.72 });
+  const phone = fitHandheld("phone", { x: rx + rw * 0.58, y: H * 0.36, w: rw * 0.42, h: H * 0.56 });
+  return { laptop, tablet, phone };
+}
+
+/** The product page header: the devices on the black stage, the lockup and the words in Apple's safe area. */
+export function headerHtml(
+  h: HeaderSpec,
+  locale: Locale,
+  stills: { laptop: string; tablet: string; phone: string },
+): string {
+  const { width: W, height: H, safe } = h;
+  const L = headerLayout(h);
   const lockup = readFileSync(join(REPO, "brand/lockup-mono.svg"), "utf8").replace(
     /<title[^>]*>.*?<\/title>/s,
     "",
   );
-  const src = (cap: CaptureId, shot: string) => pathToFileURL(rawPath(cap, locale, shot)).href;
-  const items: string[] = [];
-  // left of the safe area: the laptop; right of it: the tablet and the phone, leaning in
-  const sideW = safe.x;
-  const lapW = sideW * 0.86;
-  const lap = bodySize("laptop", CAPTURE.mac, lapW);
-  items.push(
-    device("laptop", CAPTURE.mac, src("mac", "compose"), {
-      cx: sideW * 0.52,
-      cy: Math.min(H * 0.6, H - lap.h / 2 - H * 0.04),
-      w: lapW,
-      rot: 0,
-    }),
-  );
-  const rightX = safe.x + safe.width;
-  const rightW = W - rightX;
-  const tabW = rightW * 0.6;
-  const tab = bodySize("tablet", CAPTURE.tablet, tabW);
-  items.push(
-    device(
-      "tablet",
-      CAPTURE.tablet,
-      src("tablet", "booth"),
-      { cx: rightX + rightW * 0.42, cy: Math.max(tab.h / 2 + H * 0.05, H * 0.56), w: tabW, rot: -5 },
-      { dark: true },
-    ),
-  );
-  const phW = rightW * 0.32;
-  const ph = bodySize("phone", CAPTURE.phone, phW);
-  items.push(
-    device(
-      "phone",
-      CAPTURE.phone,
-      src("phone", "transition"),
-      { cx: rightX + rightW * 0.74, cy: Math.min(H * 0.62, H - ph.h / 2 - H * 0.03), w: phW, rot: 7, z: 3 },
-      { dark: true },
-    ),
-  );
-  const lockH = safe.height * 0.24;
-  // as large as the safe area allows: its height, or its width for the longest line (Fraunces ≈ 0.52 em a character)
-  const longest = Math.max(...lines(plain(HEADER_COPY[locale])).map((l) => [...l].length));
-  const textSize = Math.min(safe.height * 0.15, (safe.width * 0.94) / (longest * 0.52));
+  const src = (cap: CaptureId, shot: string) => rawPath(cap, locale, shot);
+  const url = (f: string) => pathToFileURL(f).href;
+  const lap = L.laptop;
+  const r = appRect(lap.canvas.w, lap.canvas.h, lap.place);
+  const lapHtml = `<img class="cap" src="${url(src("mac", "compose"))}" style="position:absolute;left:${lap.canvas.x + r.x}px;top:${lap.canvas.y + r.y}px;width:${r.w}px;height:${r.h}px">
+<img class="dev" src="${url(stills.laptop)}" style="position:absolute;left:${lap.canvas.x}px;top:${lap.canvas.y}px;width:${lap.canvas.w}px;height:${lap.canvas.h}px">`;
+  const hand = (frame: "tablet" | "phone", fit: HandheldFit, shot: string, still: string) =>
+    handheldHtml({ frame, capture: frame, src: src(frame, shot), still, fit, dark: darkShot(shot) });
+  const lockH = safe.height * 0.22;
+  const ls = lines(plain(HEADER_COPY[locale]));
+  const longest = Math.max(...ls.map((l) => [...l].length));
+  const textSize = Math.min(safe.height * 0.17, (safe.width * 0.96) / (longest * 0.56));
   return `<!doctype html><html lang="${locale === "tr" ? "tr" : "en"}"><head><meta charset="utf-8"><style>
-${fontCss}
-html,body{margin:0;width:${W}px;height:${H}px;overflow:hidden;background:${C.ink}}
-.ground{position:absolute;left:0;top:0}
-.safe{position:absolute;left:${safe.x}px;top:${safe.y}px;width:${safe.width}px;height:${safe.height}px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:${safe.height * 0.07}px;z-index:6;text-align:center}
-.safe svg{height:${lockH}px;width:auto;display:block}
-h1{margin:0;color:${C.ink};font-family:Fraunces,Georgia,serif;font-weight:400;font-size:${textSize}px;line-height:1.08;letter-spacing:-.02em}
-h1 .ln{display:block;white-space:nowrap}h1 b{font-weight:800}
+${stageCss()}
+html,body{margin:0;width:${W}px;height:${H}px;overflow:hidden;background:#000}
+.safe{position:absolute;left:${safe.x}px;top:${safe.y}px;width:${safe.width}px;height:${safe.height}px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:${safe.height * 0.08}px;z-index:6;text-align:center}
+.safe svg{height:${lockH}px;width:auto;display:block;filter:invert(1);opacity:.92}
+.safe h1{position:static;font-size:${textSize}px;line-height:${LEADING}}
 </style></head><body>
-${ground({ W, H, n: 1, floorTop: 0.8, landscape: true })}
-<svg style="position:absolute;left:${W * 0.5 - H * 0.55}px;top:${H * 0.08}px;opacity:1" width="${H * 1.1}" height="${H * 0.6}">${bandoneon(0, H * 0.12, H * 1.1, "rgba(11,10,16,.07)", Math.max(3, H * 0.004))}</svg>
-${items.join("\n")}
-<div class="safe">${lockup}<h1>${headlineHtml(HEADER_COPY[locale])}</h1></div>
+${lapHtml}
+${hand("tablet", L.tablet, "booth", stills.tablet)}
+${hand("phone", L.phone, "transition", stills.phone)}
+<div class="vig soft"></div>
+<div class="safe">${lockup}<h1 style="font-family:${DISPLAY_STACK}">${ls.map((l) => `<span class="ln">${esc(l)}</span>`).join("")}</h1></div>
 </body></html>`;
 }
 
@@ -268,6 +190,41 @@ async function launch(): Promise<Browser> {
   });
 }
 
+/** every 3D still the sets and headers need (rendered before the page browser starts: one Chromium at a time) */
+function renderStills(sets: SetId[], headers: boolean) {
+  const bySet: Partial<Record<SetId, Stills>> = {};
+  let mac: Record<Tone, string> | null = null;
+  for (const id of sets) {
+    const fit = handheldFit(id);
+    if (fit) bySet[id] = { handheld: renderHandheld({ kind: fit.kind, scale: fit.scale, dir: WORK }) };
+    else {
+      mac ??= {
+        light: renderShowcase({ ...MAC_STILL, place: PLACE.storeMac, tone: "light", dir: WORK }),
+        dark: renderShowcase({ ...MAC_STILL, place: PLACE.storeMac, tone: "dark", dir: WORK }),
+      };
+      bySet[id] = { laptop: mac };
+    }
+  }
+  const byHeader: Record<string, { laptop: string; tablet: string; phone: string }> = {};
+  if (headers)
+    for (const h of HEADERS) {
+      const L = headerLayout(h);
+      byHeader[h.id] = {
+        laptop: renderShowcase({
+          width: L.laptop.canvas.w,
+          height: L.laptop.canvas.h,
+          place: L.laptop.place,
+          tone: "light",
+          dir: WORK,
+          transparent: true,
+        }),
+        tablet: renderHandheld({ kind: "tablet", scale: L.tablet.scale, dir: WORK }),
+        phone: renderHandheld({ kind: "phone", scale: L.phone.scale, dir: WORK }),
+      };
+    }
+  return { bySet, byHeader };
+}
+
 /** Draws every panel of the given sets and the header images into `out`. Returns the files written. */
 export async function compose(o: {
   out: string;
@@ -276,44 +233,33 @@ export async function compose(o: {
   headers?: boolean;
   quality?: number;
 }): Promise<string[]> {
-  const fontCss = fonts();
   const written: string[] = [];
   mkdirSync(WORK, { recursive: true });
-  // the 3D laptop, rendered once for both Mac sets (2560 × 1600 is the 2880 × 1800 picture scaled: both 16:10)
-  let frames: Record<Tone, string> | null = null;
-  const macFrames = () => {
-    frames ??= {
-      light: renderShowcase({ ...MAC_STILL, place: PLACE.storeMac, tone: "light", dir: WORK }),
-      dark: renderShowcase({ ...MAC_STILL, place: PLACE.storeMac, tone: "dark", dir: WORK }),
-    };
-    return frames;
-  };
+  const ready = o.sets.filter((setId) =>
+    o.locales.some((locale) => {
+      const set = SETS[setId];
+      const missing = PANELS.map((p) => p.shot).filter((s) => !existsSync(rawPath(set.capture, locale, s)));
+      if (missing.length)
+        console.warn(
+          `  ${setId} ${locale}: no capture for ${[...new Set(missing)].join(", ")} (run capture first)`,
+        );
+      return !missing.length;
+    }),
+  );
+  const stills = renderStills(ready, o.headers !== false);
   const browser = await launch();
   try {
-    for (const setId of o.sets) {
+    for (const setId of ready) {
       const set = SETS[setId];
-      const page = await browser.newPage({ viewport: { width: set.out.width, height: set.out.height } });
+      const tab = await browser.newPage({ viewport: { width: set.out.width, height: set.out.height } });
       for (const locale of o.locales) {
-        const missing = PANELS.flatMap((p) => [p.shot, p.bridge].filter(Boolean) as string[]).filter(
-          (s) => !existsSync(rawPath(set.capture, locale, s)),
-        );
-        if (missing.length) {
-          console.warn(
-            `  ${setId} ${locale}: no capture for ${[...new Set(missing)].join(", ")} (run capture first)`,
-          );
-          continue;
-        }
+        if (PANELS.some((p) => !existsSync(rawPath(set.capture, locale, p.shot)))) continue;
         const html = `${WORK}${setId}-${locale}.html`;
-        writeFileSync(
-          html,
-          set.frame === "laptop"
-            ? macStripHtml(setId, locale, macFrames())
-            : stripHtml(setId, locale, fontCss),
-        );
-        await page.goto(pathToFileURL(html).href, { waitUntil: "load" });
-        await page.evaluate(() => document.fonts.ready);
+        writeFileSync(html, stripHtml(setId, locale, stills.bySet[setId]!));
+        await tab.goto(pathToFileURL(html).href, { waitUntil: "load" });
+        await tab.evaluate(() => document.fonts.ready);
         // every headline fits its panel (no line wider than its box)
-        const wide = await page.evaluate(() =>
+        const wide = await tab.evaluate(() =>
           [...document.querySelectorAll("h1")]
             .filter((el) => el.scrollWidth > el.clientWidth + 1)
             .map((el) => el.textContent),
@@ -321,11 +267,11 @@ export async function compose(o: {
         if (wide.length)
           throw new Error(`${setId} ${locale}: headline wider than the panel: ${wide.join(" | ")}`);
         for (let i = 0; i < PANELS.length; i++) {
-          await page.evaluate(
+          await tab.evaluate(
             (k) => document.getElementById("strip")!.style.setProperty("--panel", String(k)),
             i,
           );
-          const jpg = await page.screenshot({ type: "jpeg", quality: o.quality ?? 90 });
+          const jpg = await tab.screenshot({ type: "jpeg", quality: o.quality ?? 92 });
           const got = jpegSize(jpg);
           if (got.width !== set.out.width || got.height !== set.out.height || got.components !== 3)
             throw new Error(`${setId} ${PANELS[i]!.id}: ${got.width}×${got.height}×${got.components}`);
@@ -337,18 +283,28 @@ export async function compose(o: {
         rmSync(html, { force: true });
         console.log(`composed ${setId} ${locale}: ${PANELS.length} panels`);
       }
-      await page.close();
+      await tab.close();
     }
     if (o.headers !== false) {
       for (const h of HEADERS) {
-        const page = await browser.newPage({ viewport: { width: h.width, height: h.height } });
+        const tab = await browser.newPage({ viewport: { width: h.width, height: h.height } });
         for (const locale of o.locales) {
+          const need: Array<[CaptureId, string]> = [
+            ["mac", "compose"],
+            ["tablet", "booth"],
+            ["phone", "transition"],
+          ];
+          const missing = need.filter(([c, s]) => !existsSync(rawPath(c, locale, s)));
+          if (missing.length) {
+            console.warn(`  ${h.id} ${locale}: no capture for ${missing.map((m) => m.join("/")).join(", ")}`);
+            continue;
+          }
           const html = `${WORK}${h.id}-${locale}.html`;
-          writeFileSync(html, headerHtml(h, locale, fontCss));
-          await page.goto(pathToFileURL(html).href, { waitUntil: "load" });
-          await page.evaluate(() => document.fonts.ready);
+          writeFileSync(html, headerHtml(h, locale, stills.byHeader[h.id]!));
+          await tab.goto(pathToFileURL(html).href, { waitUntil: "load" });
+          await tab.evaluate(() => document.fonts.ready);
           // the lockup and every line of the words inside Apple's art safe area
-          const outside = await page.evaluate((sa) => {
+          const outside = await tab.evaluate((sa) => {
             const bad: string[] = [];
             for (const el of document.querySelectorAll(".safe > svg, .safe .ln")) {
               const r = el.getBoundingClientRect();
@@ -367,7 +323,7 @@ export async function compose(o: {
           if (outside.length)
             throw new Error(`${h.id} ${locale}: outside the safe area: ${outside.join(" | ")}`);
           // Apple takes no alpha channel: the page is opaque, so dropping it changes no pixel
-          const png = flattenAlpha(await page.screenshot({ type: "png" }), [11, 10, 16]);
+          const png = flattenAlpha(await tab.screenshot({ type: "png" }), [0, 0, 0]);
           const meta = info(png);
           if (meta.alpha) throw new Error(`${h.id}: alpha channel left`);
           if (meta.width !== h.width || meta.height !== h.height)
@@ -379,11 +335,13 @@ export async function compose(o: {
           rmSync(html, { force: true });
           console.log(`composed ${h.id} ${locale}`);
         }
-        await page.close();
+        await tab.close();
       }
     }
   } finally {
     await browser.close();
+    // the device stills are intermediate: the next run renders its own
+    if (!process.env.KEEP_WORK) rmSync(WORK, { recursive: true, force: true });
   }
   return written;
 }

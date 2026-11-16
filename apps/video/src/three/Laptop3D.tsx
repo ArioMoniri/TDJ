@@ -171,6 +171,11 @@ export type LaptopProps = {
   spillIntensity?: number;
   /** the environment's strength (the highlights on the metal) */
   envIntensity?: number;
+  /**
+   * the studio on the deck, the keys and the trackpad, × (1: the hero's view from above; seen almost level, the
+   * deck catches the studio at a grazing angle and reads silver, so the store shot turns it down)
+   */
+  deckSheen?: number;
 };
 
 export function Laptop3D({
@@ -182,6 +187,7 @@ export function Laptop3D({
   spill,
   spillIntensity = 1,
   envIntensity = 1,
+  deckSheen = 1,
 }: LaptopProps) {
   const gl = useThree((s) => s.gl);
   const scene = useThree((s) => s.scene);
@@ -277,6 +283,18 @@ export function Laptop3D({
     });
     return { alu, deck, glass, key, well, pad, hinge, black, lens, grille };
   }, []);
+  // a material's envMapIntensity only counts with its own envMap (the scene's environment takes the scene's
+  // intensity), so the turned-down deck gets the studio as its own map
+  for (const x of [m.deck, m.key, m.pad]) {
+    const own = deckSheen !== 1 ? scene.environment : null;
+    if (x.envMap !== own) {
+      x.envMap = own;
+      x.needsUpdate = true;
+    }
+    x.envMapIntensity = deckSheen;
+  }
+  m.deck.clearcoat = 0.35 * deckSheen;
+  m.pad.clearcoat = 0.6 * deckSheen;
 
   const geo = useMemo(() => {
     const base = slab(BASE_W, BASE_D, BASE_H, 1.05, 0.16, 5);

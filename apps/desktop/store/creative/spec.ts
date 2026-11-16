@@ -214,6 +214,22 @@ const playing: Step[] = [
   { wait: 2500 },
 ];
 
+const phoneSetList: Step[] = [
+  { click: T("booth-more") },
+  { waitFor: T("booth-menu") },
+  { wait: 900 },
+  { tap: `${T("booth-menu")} ${T("booth-set-open")}` },
+  { wait: 900 },
+];
+const transitionSheet: Step[] = [
+  { wait: 800 },
+  { scroll: `${T("booth-gap")} >> nth=3`, block: "center" },
+  { click: `${T("booth-gap")} >> nth=3` },
+  { waitFor: T("booth-transition-sheet") },
+  { click: `${T("booth-transition-sheet")} ${T("booth-tr-preset-fade")}` },
+  { wait: 1500 },
+];
+
 export const SHOTS: Shot[] = [
   {
     id: "compose",
@@ -226,17 +242,12 @@ export const SHOTS: Shot[] = [
     id: "transition",
     path: "/?featured=golden-double-peak",
     dark: true,
-    steps: [
-      ...booth,
-      foldSidebar,
-      { click: T("booth-set-open"), optional: true },
-      { wait: 800 },
-      { scroll: `${T("booth-gap")} >> nth=3`, block: "center" },
-      { click: `${T("booth-gap")} >> nth=3` },
-      { waitFor: T("booth-transition-sheet") },
-      { click: `${T("booth-transition-sheet")} ${T("booth-tr-preset-fade")}` },
-      { wait: 1500 },
-    ],
+    steps: [...booth, foldSidebar, { click: T("booth-set-open"), optional: true }, ...transitionSheet],
+    // a phone's bar keeps the transport: the set list is in its ••• menu
+    stepsFor: {
+      phone: [...booth, ...phoneSetList, ...transitionSheet],
+      duoOuter: [...booth, ...phoneSetList, ...transitionSheet],
+    },
   },
   {
     id: "build",
@@ -290,16 +301,18 @@ export const SHOTS: Shot[] = [
   { id: "rooms", path: "/rooms", room: "host" },
   { id: "rooms-guest", path: "/rooms", room: "guest" },
   {
-    // the dancers' Floor screen (roadmap 2026-11-16); until it ships, the Booth's full-screen Now playing, which is
-    // what a second display shows the floor today
+    // the dancers' Floor screen (components/floor/FloorScreen.tsx), as Now playing's Floor mode shows it: the
+    // orchestra, Song k of n, the strip, at most two lines of lyrics
     id: "floor",
     path: "/?featured=golden-double-peak",
     dark: true,
     steps: [
       ...playing,
-      { click: T("booth-floor-open"), optional: true },
-      { waitFor: T("floor-screen"), optional: true },
-      { click: T("booth-now-full"), optional: true },
+      { click: T("booth-now-full") },
+      { waitFor: T("now-view") },
+      { click: `${T("now-view")} button${T("now-floor")}` },
+      { waitFor: `${T("now-floor-mode")} ${T("floor-screen")}` },
+      { waitFor: T("floor-song-of"), optional: true },
       { wait: 2500 },
     ],
   },

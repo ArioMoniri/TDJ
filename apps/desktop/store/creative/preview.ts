@@ -10,9 +10,11 @@ import { copyFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node
 import { createRequire } from "node:module";
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { fitHandheld, type HandheldKind, stillRect } from "../../../video/src/three/handheld";
+import { laptopBounds } from "../../../video/src/three/laptop";
 import { tangoBed, wav } from "./audio";
 import { rawPath } from "./compose";
-import { PLACE, renderShowcase, type Tone } from "./showcase";
+import { appRect, PLACE, renderHandheld, renderShowcase, type Tone } from "./showcase";
 import {
   CAPTURE,
   type Locale,
@@ -111,27 +113,70 @@ function fontFiles() {
   };
 }
 
-/**
- * The Mac preview's laptop (the README hero's, on its black stage): rendered once per run into the video's public
- * folder, for light and dark screens; the composition lays each capture on its screen.
- */
-let laptops: { light: string; dark: string } | null = null;
-function macLaptop(spec: PreviewSpec) {
-  laptops ??= (() => {
-    const at = (tone: Tone) => {
-      const png = renderShowcase({
-        width: spec.width,
-        height: spec.height,
-        place: PLACE.previewMac,
-        tone,
-        dir: PUB,
-      });
-      return `store-creative/${basename(png)}`;
-    };
-    return { light: at("light"), dark: at("dark") };
-  })();
-  return laptops;
+/** the headline over a preview's device: its top and size (the product line is 0.36 of it, see video Stage.tsx) */
+export function previewText(spec: Pick<PreviewSpec, "width" | "height" | "id">) {
+  const { width: W, height: H } = spec;
+  const longest = Math.max(
+    ...PREVIEW_CHAPTERS.flatMap((c) => Object.values(c.words)).map((w) => [...w.replace(/\*/g, "")].length),
+  );
+  const size = Math.min(spec.id === "mac" ? H * 0.066 : W * 0.075, (W * 0.9) / (longest * 0.56));
+  const top = spec.id === "mac" ? H * 0.035 : H * 0.04;
+  // the product line, its gap, the headline
+  return { top, size, bottom: top + size * (0.36 * 1.2 + 0.22 + 1.05) };
 }
+
+/** where a preview's handheld goes: the largest that fits under the words, centred */
+export function previewHandheld(spec: PreviewSpec) {
+  const kind: HandheldKind = spec.capture === "phone" ? "phone" : "tablet";
+  const t = previewText(spec);
+  const top = t.bottom + spec.height * 0.03;
+  return fitHandheld(kind, {
+    x: spec.width * 0.06,
+    y: top,
+    w: spec.width * 0.88,
+    h: spec.height * 0.975 - top,
+  });
+}
+
+/**
+ * The preview's black stage: the device rendered once per run into the video's public folder (the laptop for
+ * light and dark screens), where it goes, and the screen the captures are laid on.
+ */
+function stageFor(spec: PreviewSpec) {
+  const text = previewText(spec);
+  const rel = (png: string) => `store-creative/${basename(png)}`;
+  if (spec.id === "mac") {
+    const at = (tone: Tone) =>
+      rel(
+        renderShowcase({ width: spec.width, height: spec.height, place: PLACE.previewMac, tone, dir: PUB }),
+      );
+    const r = appRect(spec.width, spec.height, PLACE.previewMac);
+    return {
+      frame: { light: at("light"), dark: at("dark") },
+      still: { x: 0, y: 0, w: spec.width, h: spec.height },
+      screen: { ...r, r: 0 },
+      statusTop: 0,
+      text,
+    };
+  }
+  const fit = previewHandheld(spec);
+  const png = rel(renderHandheld({ kind: fit.kind, scale: fit.scale, dir: PUB }));
+  const cap = CAPTURE[spec.capture];
+  return {
+    frame: { light: png, dark: png },
+    still: stillRect(fit),
+    screen: fit.screen,
+    statusTop: (cap.safe.top * fit.screen.w) / cap.width,
+    text,
+  };
+}
+
+/** the Mac preview's laptop stays whole in the frame and under the words */
+export const macPreviewFits = () => {
+  const spec = PREVIEWS.find((p) => p.id === "mac")!;
+  const b = laptopBounds(spec.width, spec.height, PLACE.previewMac);
+  return b.top > previewText(spec).bottom && b.bottom < spec.height && b.left > 0 && b.right < spec.width;
+};
 
 const run = (cmd: string, args: string[], cwd?: string) => {
   const r = spawnSync(cmd, args, { cwd, stdio: ["ignore", "inherit", "inherit"] });
@@ -147,6 +192,7 @@ export async function previews(o: {
   mkdirSync(join(PUB, "fonts"), { recursive: true });
   for (const [name, from] of Object.entries(fontFiles())) copyFileSync(from, join(PUB, "fonts", name));
   copyFileSync(join(REPO, "brand/lockup-mono.svg"), join(PUB, "lockup.svg"));
+  const stages = new Map<PreviewSpec["id"], ReturnType<typeof stageFor>>();
   try {
     for (const spec of PREVIEWS.filter((p) => !o.ids || o.ids.includes(p.id))) {
       const cap = CAPTURE[spec.capture];
@@ -176,7 +222,7 @@ export async function previews(o: {
         const seconds = frames / PREVIEW_FPS;
         writeFileSync(join(PUB, "bed.wav"), wav(tangoBed(seconds + 0.2), 48000));
         const props = {
-          ...(spec.id === "mac" ? { laptop: macLaptop(spec) } : {}),
+          stage: stages.get(spec.id) ?? stages.set(spec.id, stageFor(spec)).get(spec.id),
           width: spec.width,
           height: spec.height,
           fps: PREVIEW_FPS,

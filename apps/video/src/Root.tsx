@@ -1,5 +1,6 @@
 import { Composition } from "remotion";
 import { Clip, type ClipProps, calculateClipMetadata, FPS, H, W } from "./Clip";
+import { calculateHandheld, HANDHELD_DEFAULTS, HandheldStill } from "./HandheldStill";
 import { calculateHeroMetadata, HERO_FPS, HERO_H, HERO_W, Hero, type HeroProps } from "./Hero";
 import { LAUNCH_FPS, LAUNCH_FRAMES, Launch } from "./Launch";
 import { calculateShowcase, SHOWCASE_DEFAULTS, Showcase } from "./Showcase";
@@ -65,6 +66,16 @@ export const Root = () => (
       height={SHOWCASE_DEFAULTS.height}
       defaultProps={SHOWCASE_DEFAULTS}
       calculateMetadata={calculateShowcase}
+    />
+    <Composition
+      id="HandheldStill"
+      component={HandheldStill}
+      durationInFrames={1}
+      fps={30}
+      width={1000}
+      height={2000}
+      defaultProps={HANDHELD_DEFAULTS}
+      calculateMetadata={calculateHandheld}
     />
   </>
 );

@@ -6,6 +6,31 @@ code, so a UI change is one command away from new images: **`pnpm store:creative
 `pnpm store:banner` the README and social banners. The first set (v1, `pnpm store:shots`, `store/scenes.ts`) is kept
 for the banners' captures and is described after v2.
 
+## Store creative v3 (2026-11-16): Apple's black stage on every display
+
+The owner's decisions on the v2 drafts: every set in the style of Apple's product pages. What changed from v2 (the
+panels, the words and the sizes below stay):
+
+- **The stage.** Pure black, a soft vignette, the small "T-DJ" line and one white headline in the system's display
+  face (SF Pro on a Mac, Inter 600 embedded elsewhere) above one device (`showcase.ts → stageGrid`); no brand
+  gradient, no second device crossing panels, no serif.
+- **Mac (2880×1800, 2560×1600, the 1920×1080 preview).** The whole laptop, like Apple's page: the lid, the deck and
+  the front edge, centred, with room round it. Seen almost level (lid at 95°) through a long lens (12°), so the deck
+  is a thin wedge and the screen keeps 58.4 % of the panel's width (`video/src/three/showcase.ts → PLACE.storeMac`,
+  checked with `laptop.ts → laptopBounds`).
+- **iPhone, iPad, iPhone Duo** (every size, and the iPhone and iPad previews). Our own 3D models in the laptop's space
+  black and studio light (`video/src/three/handheld.ts`, `Handheld3D.tsx`, composition `HandheldStill`): a phone
+  with a titanium-like band, island and keys, a thin-bezel tablet, the foldable folded (its hinge's spine on the
+  left) and open (the fold's gap in the band). Square on, the screen a transparent hole: each capture is laid under
+  it in 2D at `fitHandheld`'s rectangle, pixel-sharp, with the device's status bar, a faint sheen across the glass
+  and the screen's light glowing on the stage round the device.
+- **Headers.** The laptop left of Apple's safe area, the iPad and the iPhone (in front, lower) right of it, the
+  lockup (white) and the words inside it.
+- **What a capture shows.** Lyrics stay blurred and the Floor screen shows two lines at most; tips, tooltips and
+  toasts are hidden (`capture.ts → HIDE_CSS`, the Rehearsal opening note among them); every album cover is the
+  app's own generated art (the orchestra's hue and initials): images from the catalogue's hosts are refused in the
+  capture (`isCoverRequest`). Panel 7 is the Floor screen itself (Now playing → Floor screen).
+
 ## Store creative v2 (2026-11)
 
 The owner: "for macOS, iPadOS and iOS no images are added in App Store Connect; design and create the best designs",

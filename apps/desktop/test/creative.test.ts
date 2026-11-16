@@ -1,17 +1,29 @@
 /**
- * Store creative v2 (store/creative): the sizes and limits Apple sets, checked before anything is rendered, and the
- * rendered files checked when they are there (`pnpm store:creative` writes them into fastlane/).
+ * Store creative v3 (store/creative): the sizes and limits Apple sets, the black stage's layout (the whole device in
+ * view, the words above it, each capture on its screen), what a store picture may show, all checked before anything
+ * is rendered; and the rendered files when they are there (`pnpm store:creative` writes them into fastlane/).
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
+import { stillRect } from "../../video/src/three/handheld";
+import { laptopBounds } from "../../video/src/three/laptop";
 import { info, jpegSize } from "../scripts/png.mjs";
 import { headlineHtml } from "../store/creative/art";
 import { tangoBed, wav } from "../store/creative/audio";
-import { LYRICS_CSS } from "../store/creative/capture";
-import { headerHtml, layoutFor, macStripHtml, stripHtml } from "../store/creative/compose";
-import { previewProblems } from "../store/creative/preview";
-import { appRect, MAC_TEXT, oneLine, PLACE } from "../store/creative/showcase";
+import { HIDE_CSS, isCoverRequest, LYRICS_CSS } from "../store/creative/capture";
+import { headerHtml, headerLayout, rawPath, stripHtml } from "../store/creative/compose";
+import { macPreviewFits, previewHandheld, previewProblems, previewText } from "../store/creative/preview";
+import {
+  appRect,
+  handheldFit,
+  headlineSize,
+  LEADING,
+  oneLine,
+  PLACE,
+  stageGrid,
+} from "../store/creative/showcase";
 import {
   CAPTURE,
   HEADER_COPY,
@@ -179,37 +191,149 @@ describe("store creative: words", () => {
   });
 });
 
-describe("store creative: drawing", () => {
-  it("devices stay inside a panel vertically (no clipping top or bottom) on every set", () => {
+describe("store creative: drawing (Apple's black stage)", () => {
+  const STILLS = { laptop: { light: "/tmp/light.png", dark: "/tmp/dark.png" }, handheld: "/tmp/hand.png" };
+
+  it("every set: the whole device in the panel, under the words, filling it", () => {
     for (const id of SET_IDS) {
-      const html = stripHtml(id, "en-US", "");
-      const H = SETS[id].out.height;
-      for (const m of html.matchAll(
-        /class="dev" style="position:absolute;left:[-\d.]+px;top:([-\d.]+)px;width:[\d.]+px;height:([\d.]+)px;transform:rotate\(([-\d.]+)deg\);z-index:2/g,
-      )) {
-        const top = Number(m[1]);
-        const h = Number(m[2]);
-        expect(top, `${id} top`).toBeGreaterThan(H * 0.15);
-        expect(top + h, `${id} bottom`).toBeLessThan(H * 0.995);
+      const set = SETS[id];
+      const { width: W, height: H } = set.out;
+      const g = stageGrid(set.frame, W, H);
+      const textBottom = g.top + g.lines * LEADING * g.size;
+      const fit = handheldFit(id);
+      // the device's outline (keys and hinge included) in px
+      const o = fit
+        ? {
+            left: fit.outer.x,
+            right: fit.outer.x + fit.outer.w,
+            top: fit.outer.y,
+            bottom: fit.outer.y + fit.outer.h,
+          }
+        : laptopBounds(W, H, PLACE.storeMac);
+      expect(o.left, `${id} left`).toBeGreaterThan(W * 0.02);
+      expect(o.right, `${id} right`).toBeLessThan(W * 0.98);
+      expect(o.bottom, `${id} bottom (breathing room)`).toBeLessThan(H * 0.98);
+      expect(o.top, `${id} clear of the headline`).toBeGreaterThan(textBottom + H * 0.01);
+      // fill: the device takes the room left under the words
+      const fillW = (o.right - o.left) / W;
+      const fillH = (o.bottom - o.top) / (H - textBottom);
+      expect(Math.max(fillW, fillH), `${id} fill`).toBeGreaterThan(0.8);
+      if (!fit) {
+        // Mac: the screen still ≥ 58 % of the panel's width, so the app reads at App Store size
+        expect(appRect(W, H, PLACE.storeMac).w / W, id).toBeGreaterThanOrEqual(0.58);
+        // some of the deck shows below the screen, and its front edge is in the picture
+        const r = appRect(W, H, PLACE.storeMac);
+        expect(o.bottom - (r.y + r.h), id).toBeGreaterThan(H * 0.03);
+      } else {
+        // handhelds: the screen is most of the panel's width (portrait) or height (the open foldable)
+        const s = fit.screen;
+        expect(W > H ? s.h / H : s.w / W, id).toBeGreaterThan(W > H ? 0.6 : 0.68);
       }
-      expect(layoutFor(SETS[id]).text.top).toBeGreaterThan(0.03);
     }
+  });
+
+  it("each capture sits exactly on its device's screen rectangle, with the screen's corner radius", () => {
+    for (const id of SET_IDS) {
+      const set = SETS[id];
+      const html = stripHtml(id, "tr", STILLS);
+      const { width: W, height: H } = set.out;
+      expect(html.match(/<section class="stage"/g), id).toHaveLength(PANELS.length);
+      const fit = handheldFit(id);
+      if (!fit) {
+        const r = appRect(W, H, PLACE.storeMac);
+        expect(html, id).toContain(
+          `class="cap" src="${pathToFileURL(rawPath("mac", "tr", "compose")).href}"`,
+        );
+        expect(html, id).toContain(`left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px`);
+        expect(html).toContain("file:///tmp/dark.png");
+        continue;
+      }
+      const s = fit.screen;
+      const n = html.split(
+        `class="scr" style="left:${s.x}px;top:${s.y}px;width:${s.w}px;height:${s.h}px;border-radius:${s.r}px"`,
+      ).length;
+      expect(n - 1, id).toBe(PANELS.length);
+      // the screen's aspect is the capture's: nothing cropped or stretched
+      const c = CAPTURE[set.capture];
+      expect(s.w / s.h, id).toBeCloseTo(c.width / c.height, 6);
+      // the device picture is centred on the screen
+      const sr = stillRect(fit);
+      expect(sr.x + sr.w / 2).toBeCloseTo(s.x + s.w / 2, 6);
+      expect(sr.y + sr.h / 2).toBeCloseTo(s.y + s.h / 2, 6);
+    }
+  });
+
+  it("the words: the product line and one plain headline in the display face, inside the panel's safe margins", () => {
+    for (const id of SET_IDS) {
+      const set = SETS[id];
+      const { width: W, height: H } = set.out;
+      const g = stageGrid(set.frame, W, H);
+      expect(g.kickerTop, id).toBeGreaterThan(H * 0.03);
+      expect(g.top, id).toBeGreaterThan(g.kickerTop + g.kickerSize);
+      // the headline box keeps 5 % of the width free each side; every line fits it at the set's size
+      expect(g.width, id).toBeLessThanOrEqual(W * 0.9);
+      for (const l of LOCALES) {
+        const size = headlineSize(
+          g,
+          PANELS.map((p) => p.headline[l]),
+        );
+        expect(size).toBeLessThanOrEqual(g.size);
+        for (const p of PANELS)
+          for (const line of g.lines === 1 ? [oneLine(p.headline[l])] : lines(plain(p.headline[l])))
+            expect([...line].length * 0.56 * size, `${id} ${l} ${line}`).toBeLessThanOrEqual(g.width);
+      }
+      const html = stripHtml(id, "en-US", STILLS);
+      expect(html).toContain('<p class="kicker"');
+      expect(html).not.toContain("Fraunces");
+      expect(html).not.toContain("<b>");
+    }
+    expect(oneLine("Two DJs,\none *room*")).toBe("Two DJs, one room");
   });
 
   it("the header keeps the words and the lockup in Apple's safe area, devices outside it", () => {
     for (const h of HEADERS) {
-      const html = headerHtml(h, "tr", "");
+      const html = headerHtml(h, "tr", { laptop: "/tmp/l.png", tablet: "/tmp/t.png", phone: "/tmp/p.png" });
       expect(html).toContain(
         `left:${h.safe.x}px;top:${h.safe.y}px;width:${h.safe.width}px;height:${h.safe.height}px`,
       );
-      for (const m of html.matchAll(
-        /class="dev" style="position:absolute;left:([-\d.]+)px;top:[-\d.]+px;width:([\d.]+)px/g,
-      )) {
+      const devs = [
+        ...html.matchAll(
+          /class="dev" src="[^"]+" style="position:absolute;left:([-\d.]+)px;top:([-\d.]+)px;width:([\d.]+)px;height:([\d.]+)px/g,
+        ),
+      ];
+      expect(devs).toHaveLength(3);
+      for (const m of devs) {
         const l = Number(m[1]);
-        const r = l + Number(m[2]);
+        const r = l + Number(m[3]);
         const inside = r > h.safe.x + 4 && l < h.safe.x + h.safe.width - 4;
         expect(inside, `${h.id}: device at ${l}–${r}`).toBe(false);
+        expect(l).toBeGreaterThanOrEqual(-1);
+        expect(r).toBeLessThanOrEqual(h.width + 1);
       }
+      // the devices themselves, whole: the handhelds' outlines and the laptop inside the picture
+      const L = headerLayout(h);
+      for (const f of [L.tablet, L.phone]) {
+        expect(f.outer.x + f.outer.w, h.id).toBeLessThan(h.width);
+        expect(f.outer.y + f.outer.h, h.id).toBeLessThan(h.height);
+        expect(f.outer.y, h.id).toBeGreaterThan(0);
+      }
+      const b = laptopBounds(L.laptop.canvas.w, L.laptop.canvas.h, L.laptop.place);
+      expect(b.left).toBeGreaterThan(0);
+      expect(b.right).toBeLessThan(h.safe.x);
+      expect(b.bottom).toBeLessThan(h.height);
+    }
+  });
+
+  it("app previews: the device whole under the words, its screen readable", () => {
+    expect(macPreviewFits()).toBe(true);
+    expect(PLACE.previewMac.w).toBeGreaterThanOrEqual(0.5);
+    for (const spec of PREVIEWS.filter((p) => p.id !== "mac")) {
+      const fit = previewHandheld(spec);
+      const t = previewText(spec);
+      expect(fit.outer.y, spec.id).toBeGreaterThan(t.bottom);
+      expect(fit.outer.y + fit.outer.h, spec.id).toBeLessThan(spec.height);
+      expect(fit.outer.x, spec.id).toBeGreaterThan(0);
+      expect(fit.screen.w / spec.width, spec.id).toBeGreaterThan(0.6);
     }
   });
 
@@ -266,33 +390,7 @@ describe("store creative: the rendered files (when there)", () => {
   });
 });
 
-describe("store creative: the Mac pictures (the README hero's black stage)", () => {
-  it("the screen fills most of the panel, under the words, with the deck below it", () => {
-    for (const id of ["mac", "mac2560"] as const) {
-      const { width: W, height: H } = SETS[id].out;
-      const r = appRect(W, H, PLACE.storeMac);
-      expect(r.w / W, id).toBeGreaterThanOrEqual(0.6);
-      // the capture is 16:10 like the app area: nothing is cropped or stretched
-      expect(r.w / r.h).toBeCloseTo(CAPTURE.mac.width / CAPTURE.mac.height, 5);
-      // the lid's top edge (the strip and the bezel above the app area, ≈ 4.5 % of its width) clears the headline
-      const lidTop = r.y - 0.045 * r.w;
-      expect(H * (MAC_TEXT.top + MAC_TEXT.size * 1.05), id).toBeLessThan(lidTop);
-      // some of the deck shows below the screen
-      expect(r.y + r.h, id).toBeLessThan(H * 0.9);
-    }
-  });
-
-  it("each panel: its capture on the screen's rectangle, one plain line in the display face, no serif", () => {
-    const html = macStripHtml("mac", "tr", { light: "/tmp/light.png", dark: "/tmp/dark.png" });
-    const r = appRect(2880, 1800, PLACE.storeMac);
-    expect(html.match(/<section class="mac"/g)).toHaveLength(PANELS.length);
-    expect(html).toContain(`left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px`);
-    expect(html).toContain("file:///tmp/dark.png");
-    expect(html).not.toContain("Fraunces");
-    expect(html).not.toContain("<b>");
-    expect(oneLine("Two DJs,\none *room*")).toBe("Two DJs, one room");
-  });
-
+describe("store creative: what a store picture shows", () => {
   it("the README hero at rest keeps the app readable at 840 px (the screen ≥ 3/4 of the frame's width)", () => {
     expect(PLACE.heroRest.w).toBeGreaterThanOrEqual(0.75);
     expect(PLACE.heroWide.w).toBeLessThan(PLACE.heroRest.w);
@@ -301,5 +399,28 @@ describe("store creative: the Mac pictures (the README hero's black stage)", () 
   it("no full lyrics in a store picture: lyrics blocks are blurred, the Floor keeps two lines", () => {
     expect(LYRICS_CSS).toMatch(/\[data-testid=song-lyrics-text\][^{]*\{filter:blur\(\d+px\)/);
     expect(LYRICS_CSS).toContain(".floor-lyrics p:nth-of-type(n+3){display:none");
+  });
+
+  it("no passing tips or toasts (the Rehearsal opening note), no labels' cover art", () => {
+    for (const sel of ["[data-testid=toast]", "[data-testid=booth-opening-note]", "[role=tooltip]"])
+      expect(HIDE_CSS).toContain(sel);
+    expect(HIDE_CSS).toMatch(/\{display:none!important\}$/);
+    // covers from the catalogue's hosts fail, so every tile shows the app's own generated art
+    expect(isCoverRequest("https://cdn-images.dzcdn.net/images/cover/x/250x250.jpg", "image")).toBe(true);
+    expect(isCoverRequest("https://i.scdn.co/image/ab67616d", "image")).toBe(true);
+    expect(isCoverRequest("https://open.spotify.com/oembed?url=x", "fetch")).toBe(true);
+    expect(isCoverRequest("http://127.0.0.1:3986/_next/static/media/logo.png", "image")).toBe(false);
+    expect(isCoverRequest("http://127.0.0.1:9/preview/1.wav", "media")).toBe(false);
+  });
+
+  it("the Floor panel captures the Floor screen itself, not Now playing", () => {
+    const floor = SHOTS.find((s) => s.id === "floor")!;
+    const steps = JSON.stringify(floor.steps);
+    expect(steps).toContain("floor-screen");
+    // the Floor mode's button in Now playing (the Booth's floor feedback shares the test id)
+    expect(steps).toContain('[data-testid=\\"now-view\\"] button[data-testid=\\"now-floor\\"]');
+    expect(floor.steps!.find((s) => "waitFor" in s && s.waitFor.includes("floor-screen"))).not.toHaveProperty(
+      "optional",
+    );
   });
 });

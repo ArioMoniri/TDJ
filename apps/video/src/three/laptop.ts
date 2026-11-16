@@ -6,7 +6,7 @@
  * gives the app's rectangle in world space for any lid angle, and Hero projects it to pixels.
  */
 import * as THREE from "three";
-import { APP_ASPECT, appRect, type Placement } from "./showcase";
+import { APP_ASPECT, appRect, type Placement, SHOWCASE_FOV } from "./showcase";
 
 export const BASE_W = 31.26;
 export const BASE_D = 22.12;
@@ -156,4 +156,67 @@ export function squarePose(W: number, H: number, p: Placement, fovDeg: number, d
     .addScaledVector(up, -((H / 2 - (r.y + r.h / 2)) * d) / f)
     .addScaledVector(new THREE.Vector3(1, 0, 0), -((r.x + r.w / 2 - W / 2) * d) / f);
   return { pos, target: pos.clone().sub(normal), up };
+}
+
+/**
+ * Where the whole laptop lands in a W × H picture taken with `squarePose` (the lid's back and top edge, the base's
+ * front edge and its feet), in px, from the slabs' corners (their rounded corners only make it a little smaller).
+ */
+export function laptopBounds(W: number, H: number, p: Placement, fovDeg = p.fov ?? SHOWCASE_FOV) {
+  const deg = p.deg ?? OPEN_DEG;
+  const pose = squarePose(W, H, p, fovDeg, deg);
+  const cam = new THREE.PerspectiveCamera(fovDeg, W / H, 1, 1000);
+  cam.up.copy(pose.up);
+  cam.position.copy(pose.pos);
+  cam.lookAt(pose.target);
+  cam.updateMatrixWorld();
+  cam.updateProjectionMatrix();
+  const lid = lidMatrix(deg);
+  const pts: THREE.Vector3[] = [];
+  for (const x of [-BASE_W / 2, BASE_W / 2]) {
+    for (const y of [0, LID_T])
+      for (const z of [0, LID_D]) pts.push(new THREE.Vector3(x, y, z).applyMatrix4(lid));
+    for (const y of [0, BASE_H])
+      for (const z of [-BASE_D / 2, BASE_D / 2]) pts.push(new THREE.Vector3(x, y, z));
+  }
+  const px = pts.map((v) => {
+    const n = v.clone().project(cam);
+    return { x: ((n.x + 1) / 2) * W, y: ((1 - n.y) / 2) * H };
+  });
+  return {
+    left: Math.min(...px.map((q) => q.x)),
+    right: Math.max(...px.map((q) => q.x)),
+    top: Math.min(...px.map((q) => q.y)),
+    bottom: Math.max(...px.map((q) => q.y)),
+  };
+}
+
+/**
+ * The largest placement that keeps the whole laptop inside `box` (px) of a W × H picture, centred in it (the app
+ * area is centred across the picture, so the box should be too).
+ */
+export function fitLaptop(
+  W: number,
+  H: number,
+  box: { top: number; bottom: number; left: number; right: number },
+  look: { deg: number; fov: number },
+): Placement {
+  let lo = 0.1;
+  let hi = 0.95;
+  let best: Placement = { w: lo, top: 0.2, ...look };
+  for (let k = 0; k < 28; k++) {
+    const w = (lo + hi) / 2;
+    let p: Placement = { w, top: 0.2, ...look };
+    let b = laptopBounds(W, H, p);
+    for (let i = 0; i < 4; i++) {
+      const want = (box.top + box.bottom) / 2 - (b.bottom - b.top) / 2;
+      p = { ...p, top: p.top + (want - b.top) / H };
+      b = laptopBounds(W, H, p);
+    }
+    if (b.top >= box.top && b.bottom <= box.bottom && b.left >= box.left && b.right <= box.right) {
+      lo = w;
+      best = p;
+    } else hi = w;
+  }
+  return best;
 }
