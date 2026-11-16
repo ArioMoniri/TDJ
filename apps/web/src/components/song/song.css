@@ -1,4 +1,18 @@
 /* 2026-11 — the song details, the DNA pages and the play view. Content sits on the surface; glass only on the bars. */
+/* the lyrics' empty state: designed, with the ways on (find, add, the web) */
+.lyrics-empty {
+  text-align: center;
+  padding-block: 20px;
+}
+.lyrics-empty-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: var(--fill-4);
+  color: var(--label-2);
+}
 .dna-overlay,
 .now-view {
   position: fixed;

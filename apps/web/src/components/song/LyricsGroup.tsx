@@ -1,9 +1,16 @@
 "use client";
 import { type Song, workCredit } from "@tdj/core";
-import { ExternalLink } from "lucide-react";
+import { ClipboardPaste, ExternalLink, MicVocal, Search } from "lucide-react";
 import { type KeyboardEvent, memo, useCallback, useEffect, useRef, useState } from "react";
 import { t } from "@/lib/i18n";
-import { LRCLIB_SITE, type LyricLine, type Lyrics, loadLyrics, lyricsSearchUrl } from "@/lib/lyrics";
+import {
+  LRCLIB_SITE,
+  type LyricLine,
+  type Lyrics,
+  loadLyrics,
+  lyricsSearchUrl,
+  onOwnLyrics,
+} from "@/lib/lyrics";
 import { type LineJump, playFromLine } from "@/lib/lyricsPlay";
 import { activeLine, lineStartSec, nudgeOffset } from "@/lib/lyricsSync";
 import { readPlaying } from "@/lib/playingPosition";
@@ -11,6 +18,7 @@ import { useMarks } from "@/lib/songMarks";
 import { toast } from "@/lib/toast";
 import { Group } from "../Form";
 import { ExtLink } from "./ExtLink";
+import { FindLyricsSheet } from "./FindLyricsSheet";
 import type { PositionFn } from "./MarksGroup";
 import { markText } from "./SongFacts";
 
@@ -45,6 +53,8 @@ export function LyricsGroup({
   const [err, setErr] = useState(false);
   const offset = useMarks((s) => s.marks[song.id]?.lyricsOffsetSec ?? 0);
   const setMark = useMarks((s) => s.set);
+  const [finding, setFinding] = useState<"find" | "paste" | null>(null);
+  const [rev, setRev] = useState(0);
   const cb = useRef(onLyrics);
   cb.current = onLyrics;
   // biome-ignore lint/correctness/useExhaustiveDependencies: a new side starts over
@@ -53,9 +63,13 @@ export function LyricsGroup({
     setL(null);
     setErr(false);
   }, [song.id, song.vocal]);
+  // the DJ attached or forgot lyrics for this side (the Find lyrics sheet, another view): load again
+  useEffect(() => onOwnLyrics((id) => id === song.id && setRev((r) => r + 1)), [song.id]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `rev` reloads after the DJ's own lyrics changed
   useEffect(() => {
     if (!want) return;
     let live = true;
+    setErr(false);
     loadLyrics(song)
       .then((x) => {
         if (!live) return;
@@ -66,22 +80,48 @@ export function LyricsGroup({
     return () => {
       live = false;
     };
-  }, [song, want]);
+  }, [song, want, rev]);
   const lines = l?.state === "synced" ? (l.lines ?? null) : null;
   const letra = workCredit(song.title)?.lyricists ?? [];
-  const credit = l?.match ? t("song.lyrics_credit", { artist: l.match.artist, title: l.match.title }) : null;
+  const credit =
+    l?.source === "paste"
+      ? t("song.lyrics_yours")
+      : l?.source === "musixmatch"
+        ? `${t("song.lyrics_from", { source: "Musixmatch" })}${l.copyright ? ` ${l.copyright}` : ""}${l.partial ? ` ${t("song.lyrics_partial")}.` : ""}`
+        : l?.match
+          ? t(l.match.kind === "work" ? "song.lyrics_credit_work" : "song.lyrics_credit", {
+              artist: l.match.artist,
+              title: l.match.title,
+            })
+          : null;
   const footer = (
     <>
       {credit && (
         <>
-          {credit}{" "}
-          <ExtLink href={LRCLIB_SITE} className="text-[var(--tint)]">
-            LRCLIB
-          </ExtLink>
-          .{" "}
+          {credit}
+          {(!l?.source || l.source === "lrclib") && (
+            <>
+              {" "}
+              <ExtLink href={LRCLIB_SITE} className="text-[var(--tint)]">
+                LRCLIB
+              </ExtLink>
+              .
+            </>
+          )}{" "}
         </>
       )}
-      {letra.length > 0 && t("song.letra", { names: letra.join(", ") })}
+      {letra.length > 0 && `${t("song.letra", { names: letra.join(", ") })} `}
+      {l && l.state !== "none" && l.state !== "instrumental" && (
+        <button
+          type="button"
+          className="text-[var(--tint)]"
+          onClick={() => setFinding("find")}
+          data-testid="song-lyrics-other"
+        >
+          {t("song.lyrics_other")}
+        </button>
+      )}
+      {l?.pixel && <img src={l.pixel} alt="" width={1} height={1} className="sr-only" />}
     </>
   );
   return (
@@ -104,13 +144,14 @@ export function LyricsGroup({
           </button>
         </div>
       ) : err ? (
-        <NoLyrics song={song} text={t("song.lyrics_unreachable")} />
+        <NoLyrics song={song} text={t("song.lyrics_unreachable")} onFind={(m) => setFinding(m)} />
       ) : !l ? (
         <div className="cell text-[var(--label-2)]">{t("song.lyrics_loading")}</div>
       ) : l.state === "none" || l.state === "instrumental" ? (
         <NoLyrics
           song={song}
           text={l.state === "instrumental" ? t("song.lyrics_instrumental") : t("song.lyrics_none")}
+          onFind={(m) => setFinding(m)}
         />
       ) : lines ? (
         <SyncedLyrics
@@ -134,6 +175,12 @@ export function LyricsGroup({
           </div>
         </>
       )}
+      <FindLyricsSheet
+        song={song}
+        open={!!finding}
+        start={finding ?? "find"}
+        onClose={() => setFinding(null)}
+      />
     </Group>
   );
 }
@@ -389,19 +436,50 @@ const Line = memo(function Line({
   );
 });
 
-function NoLyrics({ song, text }: { song: Song; text: string }) {
+/** the designed empty state: what happened, and the three ways on (find in every source, paste, the web) */
+function NoLyrics({
+  song,
+  text,
+  onFind,
+}: {
+  song: Song;
+  text: string;
+  onFind: (m: "find" | "paste") => void;
+}) {
   return (
-    <div className="cell">
-      <span className="min-w-0 flex-1 text-[var(--label-2)]" data-testid="song-lyrics-none">
-        {text}
+    <div className="lyrics-empty cell block" data-testid="song-lyrics-empty">
+      <span className="lyrics-empty-icon" aria-hidden>
+        <MicVocal size={22} strokeWidth={1.75} />
       </span>
-      <ExtLink
-        href={lyricsSearchUrl(song)}
-        className="btn-plain inline-flex min-h-11 items-center gap-1 px-2 text-[var(--tint)]"
-        testId="song-lyrics-search"
-      >
-        {t("song.search_lyrics")} <ExternalLink size={14} aria-hidden />
-      </ExtLink>
+      <p className="text-headline mt-2">{t("song.lyrics_none_title")}</p>
+      <p className="text-footnote text-[var(--label-2)]" data-testid="song-lyrics-none">
+        {text}
+      </p>
+      <div className="mt-2 flex flex-wrap justify-center gap-2">
+        <button
+          type="button"
+          className="btn btn-ghost min-h-11 px-4"
+          onClick={() => onFind("find")}
+          data-testid="song-lyrics-find"
+        >
+          <Search size={15} strokeWidth={2} aria-hidden /> {t("song.find_lyrics")}
+        </button>
+        <button
+          type="button"
+          className="btn-plain min-h-11 rounded-full px-4 text-[var(--tint)]"
+          onClick={() => onFind("paste")}
+          data-testid="song-lyrics-add"
+        >
+          <ClipboardPaste size={15} strokeWidth={2} aria-hidden /> {t("song.add_lyrics")}
+        </button>
+        <ExtLink
+          href={lyricsSearchUrl(song)}
+          className="btn-plain inline-flex min-h-11 items-center gap-1 rounded-full px-4 text-[var(--tint)]"
+          testId="song-lyrics-search"
+        >
+          {t("song.search_lyrics")} <ExternalLink size={14} aria-hidden />
+        </ExtLink>
+      </div>
     </div>
   );
 }

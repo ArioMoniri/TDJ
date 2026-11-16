@@ -17,6 +17,7 @@ import {
 } from "@/lib/api/engine";
 import { json, jsonNoStore, noStore } from "@/lib/api/http";
 import { importMatch } from "@/lib/api/importMatch";
+import { lyricsSource } from "@/lib/api/lyrics";
 import { preview, resolve, resolveStatus } from "@/lib/api/net";
 import { popularity } from "@/lib/api/popularity";
 import { searchQuery } from "@/lib/api/search";
@@ -195,6 +196,7 @@ const LOCAL: Record<string, Partial<Record<Method, Handler>>> = {
   "/api/tanda-set": { POST: tandaSet },
   "/api/spot": { POST: spot },
   "/api/services/search": { POST: serviceSearch },
+  "/api/lyrics": { POST: lyricsSource },
   "/api/meta": { GET: meta },
   "/api/dna": { GET: dna },
   "/api/popularity": { GET: popularity },
