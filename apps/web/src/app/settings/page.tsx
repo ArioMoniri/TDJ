@@ -9,6 +9,7 @@ import {
   ImageIcon,
   KeyRound,
   Languages,
+  ListPlus,
   LoaderCircle,
   Music2,
   Palette,
@@ -573,6 +574,21 @@ export default function Settings() {
 
         {APP && <AppConnections />}
         <Connectors />
+        {/* 2026-11: a connected service's playlist (or a file) as a night (app/import) */}
+        <Group>
+          <Row
+            tile={
+              <Tile color="#ff9500">
+                <ListPlus size={16} strokeWidth={2} />
+              </Tile>
+            }
+            label={tx("import.entry")}
+            sub={tx("import.entry_sub")}
+            chevron
+            onClick={() => router.push("/import")}
+            id="settings-import"
+          />
+        </Group>
         {/* round 22: where missing BPM, key, level, artwork and dates come from, and "Add a source" */}
         <DataSources />
         {/* 2026-11: the deployment owner only: catalogue edits to the shared repo data (lib/contrib/owner.ts) */}

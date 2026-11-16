@@ -1,0 +1,44 @@
+/* Import a playlist (2026-11): the review's confidence marks and dimmed rows; content sits on `surface` (no glass) */
+.import-level {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--fill-3);
+  color: var(--label-2);
+}
+.import-level[data-level="sure"] {
+  background: color-mix(in srgb, var(--system-green) 16%, transparent);
+  color: color-mix(in srgb, var(--system-green) 80%, var(--label));
+}
+.import-level[data-level="likely"] {
+  background: color-mix(in srgb, var(--system-blue, var(--tint)) 14%, transparent);
+  color: color-mix(in srgb, var(--system-blue, var(--tint)) 85%, var(--label));
+}
+.import-level[data-level="guess"] {
+  background: color-mix(in srgb, var(--system-orange, #ff9500) 18%, transparent);
+  color: color-mix(in srgb, var(--system-orange, #ff9500) 80%, var(--label));
+}
+.import-level[data-level="none"] {
+  background: var(--fill-3);
+  color: var(--label-2);
+}
+.import-row[data-role="skip"] {
+  opacity: 0.5;
+}
+.import-row[data-role="skip"] .cell-label {
+  text-decoration: line-through;
+}
+.import-drop[data-dragging="true"] {
+  outline: 2px dashed var(--tint);
+  outline-offset: 4px;
+  border-radius: 12px;
+}
+.import-cortina {
+  color: var(--label-2);
+}

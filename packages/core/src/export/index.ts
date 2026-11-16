@@ -239,6 +239,8 @@ export function toM3U8(p: Playlist, eo: ExportOpts = {}): string {
         t.kind === "cortina" && t.fadeOutSec ? ` fade=${t.fadeOutSec}` : ""
       }`,
     );
+    // 2026-11: the catalogue id, so "Import a playlist" reads the file back as the same night (players ignore it)
+    if (t.id) lines.push(`#TDJ:id=${t.id}`);
     // VLC starts at the cue-in / intro trim and stops a cortina at the DJ's play length (other players ignore both)
     if (t.trimInSec) lines.push(`#EXTVLCOPT:start-time=${t.trimInSec}`);
     if (t.kind === "cortina" && t.stopSec) lines.push(`#EXTVLCOPT:stop-time=${t.stopSec}`);
@@ -398,7 +400,7 @@ export function toXSPF(p: Playlist, eo: ExportOpts = {}): string {
   const tracks = flatten(p, eo)
     .map(
       (t) =>
-        `    <track><title>${esc(t.title)}</title><creator>${esc(t.artist)}</creator><album>${esc(t.album ?? "")}</album><duration>${(t.kind === "cortina" && t.stopSec ? t.stopSec - (t.trimInSec ?? 0) : t.durationSec) * 1000}</duration><annotation>${esc(t.kind === "cortina" ? "cortina" : `tanda ${t.tanda}`)}</annotation>${t.spotifyUri ? `<location>${esc(t.spotifyUri)}</location>` : ""}${
+        `    <track><title>${esc(t.title)}</title><creator>${esc(t.artist)}</creator><album>${esc(t.album ?? "")}</album><duration>${(t.kind === "cortina" && t.stopSec ? t.stopSec - (t.trimInSec ?? 0) : t.durationSec) * 1000}</duration><annotation>${esc(t.kind === "cortina" ? "cortina" : `tanda ${t.tanda}`)}</annotation>${t.id ? `<identifier>tdj:${esc(t.id)}</identifier>` : ""}${t.spotifyUri ? `<location>${esc(t.spotifyUri)}</location>` : ""}${
           t.kind === "cortina" && t.stopSec
             ? `<extension application="http://www.videolan.org/vlc/playlist/0">${t.trimInSec ? `<vlc:option>start-time=${t.trimInSec}</vlc:option>` : ""}<vlc:option>stop-time=${t.stopSec}</vlc:option></extension>`
             : ""

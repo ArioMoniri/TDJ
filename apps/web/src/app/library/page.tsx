@@ -1,6 +1,7 @@
 "use client";
 import { favouriteTable, isFavouriteSide, type SongFilters } from "@tdj/core";
-import { History } from "lucide-react";
+import { History, ListPlus } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import { FeaturedCard } from "@/components/FeaturedCard";
@@ -152,6 +153,18 @@ export default function Library() {
           })
         }
         inBar={search()}
+        trailing={
+          // 2026-11: Import a playlist (app/import)
+          <Link
+            href="/import"
+            className="icon-btn nav-btn text-[var(--tint)]"
+            aria-label={tx("import.entry")}
+            title={tx("import.entry")}
+            data-testid="library-import"
+          >
+            <ListPlus size={20} strokeWidth={2} aria-hidden />
+          </Link>
+        }
       >
         {search("mt-3", true)}
       </PageHeader>

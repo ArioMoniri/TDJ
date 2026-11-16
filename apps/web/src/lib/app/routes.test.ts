@@ -386,7 +386,8 @@ describe("model routes, run unchanged on the device: the DJ's own key (web: BYOK
       body: { instruction: "no Canaro, more vals", options: { seed: 3 } },
     });
     await same(AiRefine.POST, "/api/ai/refine", { body: { instruction: "" } });
-  });
+    // three full nights composed (twice each for web vs app): over the 60 s default on a busy machine
+  }, 180_000);
   it("AI pick in the Swap sheet", async () => {
     const body = { playlist: night, tandaIndex: 1, trackIndex: 1 };
     await same(AiSwap.POST, "/api/ai/swap", { body, headers: web }, { appInit: { body, headers: app } });

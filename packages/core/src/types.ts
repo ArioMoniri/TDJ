@@ -345,6 +345,8 @@ export interface Playlist {
   score: ScoreCard;
   /** the night's timing plan (gaps, cortina stops and fades, gain priors) shared by the booth and the exports */
   booth?: import("./booth").BoothPlan;
+  /** 2026-11: an imported playlist's source (service, playlist id, link), kept so a sync can write back to it */
+  imported?: import("./playlistImport").ImportSource;
 }
 
 export interface ScoreFactor {
