@@ -33,8 +33,28 @@
   margin-inline: auto;
 }
 .lyric-line {
-  padding: 4px 0;
-  transition: color 160ms ease;
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 4px;
+  margin: 0 -4px;
+  border-radius: 8px;
+  text-align: left;
+  transition:
+    color 160ms ease,
+    background-color 160ms ease;
+}
+.lyric-line:hover {
+  background: var(--fill-4);
+}
+.lyric-line:focus-visible {
+  outline: 2px solid var(--tint);
+  outline-offset: -2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .lyric-line {
+    transition: none;
+  }
 }
 .lyric-line[data-current] {
   color: var(--label);
