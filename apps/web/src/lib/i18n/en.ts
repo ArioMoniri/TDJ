@@ -4486,7 +4486,7 @@ export const en = {
     "A 30 s clip plays its own seconds: the lane and the lyrics follow the full recording only.",
   "song.close": "Close",
   "song.credits": "Credits",
-  "song.credits_unknown": "Not in T-DJ's credits yet",
+  "song.credits_unknown": "Not known yet",
   "song.details": "Song details",
   "song.details_of": "Details of {title} by {orchestra}",
   "song.details_sub": "Length, voice, lyrics, other versions, Song DNA",

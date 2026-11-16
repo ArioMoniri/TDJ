@@ -52,7 +52,11 @@ function Body({ close, onInfo }: { close: () => void; onInfo?: (i: number) => vo
   const position = useCallback(() => (id ? useBooth.getState().positionOf(id) : null), [id]);
   const p = usePosition(song ? position : undefined, { stepSec: 0.5 });
   const [lyrics, setLyrics] = useState<Lyrics | null>(null);
-  const video = useMemo(() => (id ? (loadMatches()[id] ?? null) : null), [id]);
+  const itemId = item?.id;
+  const video = useMemo(() => {
+    const m = loadMatches();
+    return (id && m[id]) || (itemId && m[itemId]) || null;
+  }, [id, itemId]);
   // a 30 s clip plays its own seconds, not the recording's: the lane and the lyrics would not line up
   const clip = src === "preview";
   const len = item?.lengthSec ?? song?.durationSec ?? 180;

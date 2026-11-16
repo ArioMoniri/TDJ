@@ -1109,7 +1109,9 @@ export const useBooth = create<BoothStore>()((set, get) => ({
     if (a?.songId === songId && a.via === "file" && cuePlayer?.el)
       return { sec: cuePlayer.position(), playing: !cuePlayer.el.paused, where: "cue" };
     const i = engine?.planIndex ?? -1;
-    if (!engine || s.plan?.items[i]?.id !== songId) return null;
+    if (!engine || (s.plan?.items[i]?.id !== songId && s.entities[i]?.id !== songId)) return null;
+    // a 30 s clip plays its own seconds, not the recording's: no position to mark or sync lyrics against
+    if (s.sources[i] === "preview") return null;
     const at = engine.sourcePosition();
     return at === null ? null : { sec: at, playing: s.state === "playing" && !engine.paused, where: "room" };
   },

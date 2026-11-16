@@ -10,8 +10,7 @@ import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
 
 /** a mono 22.05 kHz WAV of clicks at 120 BPM from 0.5 s, every 4th from the second one accented */
-function clickWav(sec: number): Buffer {
-  const rate = 22050;
+function clickWav(sec: number, rate = 22050): Buffer {
   const n = rate * sec;
   const x = new Float32Array(n);
   for (let k = 0; ; k++) {
@@ -41,7 +40,7 @@ function clickWav(sec: number): Buffer {
 }
 /** the DJ's "file" (40 s of clicks) and a short clip for the 30 s previews (a night decodes many of them) */
 const WAV = clickWav(40);
-const CLIP = clickWav(6);
+const CLIP = clickWav(30, 8000);
 
 const LRC =
   "[00:00.50] Primera línea\n[00:02.00] Segunda línea\n[00:04.00] Tercera línea\n[00:30.00] Cuarta línea";
@@ -242,10 +241,6 @@ test("the Booth: song info follows the room (synced lyrics, rhythm lane, Mark no
       .trim();
   const dir = mkdtempSync(join(tmpdir(), "tdj-dna-"));
   writeFileSync(join(dir, `${safe(now.artist)} - ${safe(now.title)}.mp3`), WAV);
-  await page.evaluate(
-    ([id]) => localStorage.setItem("tdj-youtube-matches", JSON.stringify({ [id!]: "vid00000001" })),
-    [now.id],
-  );
   await page.getByTestId("booth-folder-input").setInputFiles(dir);
   await expect(page.locator('[data-plan-index][data-source="file"]').first()).toBeVisible({ timeout: 15000 });
   await page.getByTestId("booth-start").click();
@@ -260,6 +255,15 @@ test("the Booth: song info follows the room (synced lyrics, rhythm lane, Mark no
       { timeout: 30000 },
     )
     .toBe("playing");
+  // a matched video for every side (the play view shows the playing one's)
+  await page.evaluate(() => {
+    const s = (
+      window as unknown as { __tdjBooth: { getState: () => { plan: { items: Array<{ id?: string }> } } } }
+    ).__tdjBooth.getState();
+    const m: Record<string, string> = {};
+    for (const it of s.plan.items) if (it.id) m[it.id] = "vid00000001";
+    localStorage.setItem("tdj-youtube-matches", JSON.stringify(m));
+  });
   await page.getByTestId("booth-now-info").click();
   const sheet = page.getByTestId("booth-play-sheet");
   await expect(sheet.getByTestId("rhythm-lane")).toBeVisible();
@@ -271,20 +275,38 @@ test("the Booth: song info follows the room (synced lyrics, rhythm lane, Mark no
   await expect(sheet.getByTestId("song-mark-downbeat")).toContainText("your mark");
   // Measure from the file: the first downbeat of the clicks (0.5 s + one beat), unless the DJ's mark stands
   await sheet.getByTestId("song-mark-downbeat").getByRole("button", { name: "Clear" }).click();
-  await sheet.getByTestId("song-measure").click();
-  await expect(sheet.getByTestId("song-measure")).toHaveAttribute("data-result", "ok", { timeout: 20000 });
-  await expect(sheet.getByTestId("song-mark-downbeat")).toContainText("measured from your file", {
-    timeout: 20000,
+  // (the side at the playhead: the file's, unless the room moved past a side it could not decode)
+  const playing = await page.evaluate(() => {
+    const s = (
+      window as unknown as {
+        __tdjBooth: {
+          getState: () => { planIndex: number; sources: string[]; plan: { items: Array<{ title: string }> } };
+        };
+      }
+    ).__tdjBooth.getState();
+    return { source: s.sources[s.planIndex], title: s.plan.items[s.planIndex]!.title };
   });
-  await expect(sheet.getByTestId("song-mark-downbeat")).toContainText("0:01.0");
-  await expect(sheet.getByTestId("song-mark-start")).toContainText("0:00.5");
-  // the grid is drawn from the measured tempo and downbeat
-  await expect(sheet.getByTestId("rhythm-lane")).toHaveAttribute("data-grid", "1");
+  await sheet.getByTestId("song-measure").click();
+  if (playing.source === "file") {
+    await expect(sheet.getByTestId("song-measure")).toHaveAttribute("data-result", "ok", { timeout: 20000 });
+    await expect(sheet.getByTestId("song-mark-downbeat")).toContainText("measured from your file", {
+      timeout: 20000,
+    });
+    await expect(sheet.getByTestId("song-mark-downbeat")).toContainText("0:01.0");
+    await expect(sheet.getByTestId("song-mark-start")).toContainText("0:00.5");
+    // the grid is drawn from the measured tempo and downbeat
+    await expect(sheet.getByTestId("rhythm-lane")).toHaveAttribute("data-grid", "1");
+  }
+  // a 30 s clip is not the recording's timeline: Measure says so, it never guesses
+  else
+    await expect(sheet.getByTestId("song-measure")).toHaveAttribute("data-result", /Link the file/, {
+      timeout: 20000,
+    });
   await page.keyboard.press("Escape");
   // Now playing, full screen: artwork, lane, lyrics, and the matched video muted beside the room's source
   await page.getByTestId("booth-now-full").click();
   const view = page.getByTestId("now-view");
-  await expect(view.getByTestId("now-view-title")).toHaveText(now.title);
+  await expect(view.getByTestId("now-view-title")).toHaveText(playing.title);
   await expect(view.locator('[data-testid="song-lyrics-text"] [data-current]')).toBeVisible({
     timeout: 15000,
   });

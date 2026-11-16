@@ -135,7 +135,7 @@ export function SyncedVideo({
         <div
           ref={host}
           className="synced-video overflow-hidden rounded-xl bg-black"
-          style={{ aspectRatio: "16 / 9", minHeight: 200 }}
+          style={{ aspectRatio: "16 / 9", minHeight: 200, maxWidth: 640 }}
         />
       )}
       <div className="group-inset mt-2">

@@ -4676,7 +4676,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
     "30 sn'lik klip kendi saniyelerini çalar: şerit ve sözler yalnızca tam kayıtla eşleşir.",
   "song.close": "Kapat",
   "song.credits": "Künye",
-  "song.credits_unknown": "T-DJ künyelerinde henüz yok",
+  "song.credits_unknown": "Henüz bilinmiyor",
   "song.details": "Şarkı ayrıntıları",
   "song.details_of": "{orchestra} – {title} ayrıntıları",
   "song.details_sub": "Süre, ses, sözler, diğer kayıtlar, Şarkı DNA'sı",
