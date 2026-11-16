@@ -7,13 +7,13 @@
       "!**/.next",
       "!**/dist",
       "!**/out",
-      "!data/**",
+      "!data",
       "!**/.sst",
       "!**/.turbo",
-      "!media/**",
+      "!media",
       "!apps/video/public/raw",
       "!apps/video/public/clips",
-      "!brand/**",
+      "!brand",
       "!**/.open-next",
       "!**/test-results",
       "!apps/web/src/lib/app/__device__",
@@ -21,7 +21,7 @@
       "!docs/specs/*-best-night.json",
       "!apps/web/public/featured/*.json",
       "!apps/web/public/lottie/*.json",
-      "!.claude/**"
+      "!.claude"
     ]
   },
   "formatter": {

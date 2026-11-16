@@ -1,16 +1,8 @@
 import { createHash } from "node:crypto";
-import {
-  cleanDancerToken,
-  cleanRoomId,
-  cleanRoomUser,
-  heartRoom,
-  normalizeRoomCode,
-  roomHeartsView,
-  setRoomPlaying,
-} from "@tdj/core";
+import { cleanDancerToken, cleanRoomId, cleanRoomUser, normalizeRoomCode, roomHeartsView } from "@tdj/core";
 import { clientKey } from "@/lib/server/guard";
 import { json, preflight, readBody } from "@/lib/server/roomHttp";
-import { getRoom, rateLimited, roomStoreKind, updateQuiet } from "@/lib/server/rooms";
+import { getRoom, heartSong, rateLimited, roomStoreKind, setPlaying } from "@/lib/server/rooms";
 
 export const dynamic = "force-dynamic";
 export const OPTIONS = preflight;
@@ -50,11 +42,9 @@ export async function POST(req: Request, ctx: Ctx) {
     const songId = cleanRoomId(h.songId);
     const dancer = cleanDancerToken(h.dancer);
     if (!nightId || !songId || !dancer) return json({ error: "Nothing to heart." }, { status: 400 });
-    const r = await updateQuiet(code, (room) => {
-      const x = heartRoom(room, { nightId, songId, dancer: hashOf(code, dancer) });
-      return { room: x.counted ? x.room : null, out: { counted: x.counted, count: x.count } };
-    });
-    return r ? json(r.out) : missing();
+    // (one atomic add to the song's own set: hearts that arrive together all count; rooms.ts)
+    const r = await heartSong(code, { nightId, songId, dancer: hashOf(code, dancer) });
+    return r ? json(r) : missing();
   }
   if ("playing" in body) {
     const user = cleanRoomUser(body.user);
@@ -63,26 +53,23 @@ export async function POST(req: Request, ctx: Ctx) {
     const songId = p ? cleanRoomId(p.songId) : null;
     const nightId = p ? cleanRoomId(p.nightId) : null;
     if (p && (!songId || !nightId)) return json({ error: "Nothing to change." }, { status: 400 });
-    const r = await updateQuiet(code, (room) => {
-      // only a DJ of the room says what plays
-      if (!room.members[user]) return { room: null, out: false };
-      const next = setRoomPlaying(
-        room,
-        p && songId && nightId
-          ? {
-              songId,
-              nightId,
-              title: String(p.title ?? ""),
-              artist: String(p.artist ?? ""),
-              at: new Date().toISOString(),
-            }
-          : null,
-      );
-      return { room: next, out: true };
-    });
+    // only a DJ of the room says what plays
+    const r = await setPlaying(
+      code,
+      user,
+      p && songId && nightId
+        ? {
+            songId,
+            nightId,
+            title: String(p.title ?? ""),
+            artist: String(p.artist ?? ""),
+            at: new Date().toISOString(),
+          }
+        : null,
+    );
     if (!r) return missing();
-    if (!r.out) return json({ error: "Join the room first." }, { status: 403 });
-    return json(roomHeartsView(r.room, nightId));
+    if (r === "forbidden") return json({ error: "Join the room first." }, { status: 403 });
+    return json(roomHeartsView(r, nightId));
   }
   return json({ error: "Nothing to change." }, { status: 400 });
 }

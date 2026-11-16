@@ -16,5 +16,8 @@ const config: NextConfig = {
   // the repo keeps its agent notes in CLAUDE.md; no generated AGENTS.md in the app folder
   agentRules: false,
   images: { unoptimized: true },
+  // `next dev` blocks dev assets and HMR for origins other than its own host: the e2e specs that open a night link
+  // made on one origin on another (rooms-share) reach the same dev server as 127.0.0.1 and as localhost
+  allowedDevOrigins: ["127.0.0.1", "localhost"],
 };
 export default config;

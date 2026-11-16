@@ -1,4 +1,5 @@
 import { normTitle } from "./energy";
+import { sideSetKey } from "./learn";
 import { forgetLike, learnFromLike, likedShapeDefaults } from "./likes";
 import type { AgentMemory, ComposeOptions, LearnedPreferences, Playlist } from "./types";
 
@@ -60,6 +61,7 @@ export function rememberSet(memory: AgentMemory, p: Playlist, liked?: boolean): 
     liked,
     tandas: p.tandas.map((t) => `${t.orchestraId}|${t.singer ?? ""}|${t.rhythm}`),
     titles: p.tandas.flatMap((t) => t.songs.map((s) => normTitle(s.title))),
+    sideSets: p.tandas.map((t) => sideSetKey(t.songs.map((s) => s.id))),
   };
   return {
     ...memory,
@@ -172,9 +174,12 @@ export function summarizeMemory(memory?: AgentMemory | null, max = 1200): string
 export function recentFromMemory(
   memory?: AgentMemory | null,
   n = 3,
-): { tandaKeys: string[]; titles: string[] } | undefined {
+): { tandaKeys: string[]; titles: string[]; sideSets?: string[] } | undefined {
   const sets = (memory?.sets ?? []).slice(0, n);
   const tandaKeys = [...new Set(sets.flatMap((s) => s.tandas ?? []))];
   const titles = [...new Set(sets.flatMap((s) => s.titles ?? []))];
-  return tandaKeys.length || titles.length ? { tandaKeys, titles } : undefined;
+  const sideSets = [...new Set(sets.flatMap((s) => s.sideSets ?? []))];
+  return tandaKeys.length || titles.length
+    ? { tandaKeys, titles, ...(sideSets.length ? { sideSets } : {}) }
+    : undefined;
 }

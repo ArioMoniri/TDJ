@@ -384,6 +384,24 @@ describe("the real index (19k sides)", () => {
     expect(inst.items.map((h) => h.song.title)).toEqual(expect.arrayContaining(["La Cachila", "Marejada"]));
     expect(inst.items.every((h) => !h.song.singer)).toBe(true);
   });
+  it("a singer named with the orchestra finds the singer's sides, not the orchestra's alias ('Troilo-Fiorentino')", () => {
+    for (const q of ["fiorentino troilo", "troilo fiorentino"]) {
+      const top = first(q, 10);
+      expect(top).toHaveLength(10);
+      for (const s of top) {
+        expect(s.orchestraId, q).toBe("anibal-troilo");
+        expect(s.singer ?? "", `${q}: ${s.title} ${s.year}`).toMatch(/Fiorentino/);
+      }
+    }
+    // the other pairings in the profiles: the same rule
+    expect(first("donato lagos", 10).every((s) => /Lagos/.test(s.singer ?? ""))).toBe(true);
+    expect(first("canaro maida", 10).every((s) => /Maida/.test(s.singer ?? ""))).toBe(true);
+    // the alias still finds the orchestra by its own name
+    expect(first("troilo-fiorentino", 10).every((s) => s.orchestraId === "anibal-troilo")).toBe(true);
+    expect(
+      first("pichuco", 10).filter((s) => s.orchestraId === "anibal-troilo").length,
+    ).toBeGreaterThanOrEqual(5);
+  });
   it("Catalog.search keeps its shape (Song[]) on the new engine", () => {
     const deps = loadCatalog();
     expect(

@@ -16,7 +16,7 @@
  * Screenshots (scale 2) go to $BOOTH_SHOTS when it is set.
  */
 import { type BrowserContextOptions, devices, expect, type Page, test } from "@playwright/test";
-import { armAndConfirm, hold } from "./confirm";
+import { hold } from "./confirm";
 
 const SHOTS = process.env.BOOTH_SHOTS;
 

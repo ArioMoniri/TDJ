@@ -1,4 +1,4 @@
-import type { Cortina, Song } from "@tdj/core";
+import { type Cortina, orchestraShortName, type Song } from "@tdj/core";
 import { t } from "@/lib/i18n";
 
 /**
@@ -8,19 +8,11 @@ import { t } from "@/lib/i18n";
 type Entity = Song | Cortina | null | undefined;
 const isSong = (e: NonNullable<Entity>): e is Song => "rhythm" in e && "orchestraId" in e;
 
-/** "Carlos Di Sarli" → "Di Sarli", "Juan D'Arienzo" → "D'Arienzo", "Osvaldo Pugliese" → "Pugliese". */
-export function surnameOf(orchestra: string): string {
-  const w = orchestra
-    .replace(/\(.*?\)/g, "")
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
-  if (w.length < 2) return w[0] ?? orchestra;
-  const prev = w[w.length - 2]!.toLowerCase();
-  return ["di", "de", "del", "da", "la"].includes(prev)
-    ? `${w[w.length - 2]} ${w[w.length - 1]}`
-    : w[w.length - 1]!;
-}
+/**
+ * "Carlos Di Sarli" → "Di Sarli", "Juan D'Arienzo" → "D'Arienzo", "Osvaldo Pugliese" → "Pugliese" (2026-11: one
+ * implementation, @tdj/core nightShape.ts, in its "surname" mode)
+ */
+export const surnameOf = (orchestra: string): string => orchestraShortName(orchestra, "surname");
 
 const TEMPO_SOURCE: Record<string, string> = {
   get dj() {

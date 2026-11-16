@@ -111,9 +111,13 @@ test("booth: tapping a row before the night tests it on this device; the faders 
   await expect(page.getByTestId("booth-now-title")).toBeVisible({ timeout: 20000 });
   await expect(page.getByTestId("booth-ttc")).not.toHaveAttribute("data-resolving", "1", { timeout: 30000 });
   const row = page.locator('.booth-row[data-kind="track"]').nth(2);
-  await row.getByTestId("booth-row-play").click();
-  // round 22: the tap opens the song sheet; without headphones set, the test plays on this device (said so)
-  await page.getByTestId("booth-prelisten").click();
+  // 2026-11: a row tap plays; the row's number opens the song sheet. Without headphones set, the sheet's test plays
+  // on this device (said so)
+  await row.getByTestId("booth-row-open").click();
+  const sheet = page.getByTestId("booth-play-sheet");
+  await expect(sheet).toBeVisible();
+  await expect(sheet.getByTestId("booth-prelisten")).toHaveAttribute("data-where", "device");
+  await sheet.getByTestId("booth-prelisten").click();
   await expect(row).toHaveAttribute("data-auditioning", "true", { timeout: 10000 });
   await page.keyboard.press("Escape");
   // the night has not started: the strip still offers Start
@@ -134,17 +138,25 @@ test("booth: during the night a tapped row offers Play now, Play next and its ve
   await page.getByTestId("booth-start").click();
   await expect(page.getByTestId("booth-pause")).toBeVisible({ timeout: 20000 });
   const target = page.locator('.booth-row[data-kind="track"]').nth(6);
-  await target.getByTestId("booth-row-play").click();
+  const idx = Number(await target.getAttribute("data-plan-index"));
+  const current = page.locator('.booth-row[aria-current="true"]');
+  const playing = await current.getAttribute("data-plan-index");
+  // 2026-11: the row's number opens the song sheet (a row tap plays)
+  await target.getByTestId("booth-row-open").click();
   const sheet = page.getByTestId("booth-play-sheet");
   await expect(sheet).toBeVisible();
-  await expect(sheet.getByRole("button", { name: "Play now (fade the current)" })).toBeVisible();
+  const playNow = sheet.getByRole("button", { name: "Play now in the room" });
+  await expect(playNow).toBeVisible();
   await expect(sheet.getByRole("button", { name: "Play next" })).toBeVisible();
   // round 22: no headphones output chosen: no pre-listen during the night (it would reach the room), said why
   await expect(sheet.getByTestId("booth-prelisten")).toHaveCount(0);
   await expect(sheet).toContainText(/headphones/i);
   await expect(sheet.getByTestId("booth-versions")).toBeVisible();
-  const idx = Number(await target.getAttribute("data-plan-index"));
-  await sheet.getByRole("button", { name: "Play now (fade the current)" }).click();
+  // mid-night it cuts the room's song: the first tap arms it (the room keeps its song), the second plays
+  if ((await playNow.getAttribute("data-armed")) !== "true") await playNow.click();
+  await expect(playNow).toHaveAttribute("data-armed", "true");
+  await expect(current).toHaveAttribute("data-plan-index", playing ?? "");
+  await playNow.click();
   await expect(page.locator(`.booth-row[data-plan-index="${idx}"]`)).toHaveAttribute("aria-current", "true", {
     timeout: 20000,
   });

@@ -1,3 +1,4 @@
+import { BIG_FOUR_SHORT, orchestraShortName } from "@tdj/core";
 import { capFirst, fmtList, getLocale, type MsgKey, t } from "@/lib/i18n";
 
 /**
@@ -8,27 +9,13 @@ import { capFirst, fmtList, getLocale, type MsgKey, t } from "@/lib/i18n";
  * Wave 3: the sentences are in the DJ's language (lib/i18n); the core's own words inside them (names, years) are not.
  */
 
-/** "Juan D'Arienzo" → "D'Arienzo", "Carlos Di Sarli" → "Di Sarli", "Orquesta Típica Víctor" → "Típica Víctor" */
-export function shortName(full: string): string {
-  const w = full
-    .replace(/\(.*?\)/g, "")
-    .replace(/^Orquesta\s+/i, "")
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
-  if (w.length < 2) return w[0] ?? full;
-  const prev = w[w.length - 2]!.toLowerCase();
-  if (["di", "de", "del", "da", "la", "típica", "tipica"].includes(prev))
-    return `${w[w.length - 2]} ${w[w.length - 1]}`;
-  return w[w.length - 1]!;
-}
+/**
+ * "Juan D'Arienzo" → "D'Arienzo", "Carlos Di Sarli" → "Di Sarli", "Orquesta Típica Víctor" → "Típica Víctor"
+ * (2026-11: one implementation, @tdj/core nightShape.ts)
+ */
+export const shortName = (full: string): string => orchestraShortName(full, "dj");
 
-const BIG_FOUR_NAME: Record<string, string> = {
-  "juan-d-arienzo": "D'Arienzo",
-  "carlos-di-sarli": "Di Sarli",
-  "anibal-troilo": "Troilo",
-  "osvaldo-pugliese": "Pugliese",
-};
+const BIG_FOUR_NAME = BIG_FOUR_SHORT;
 
 /** "A, B and C" in the DJ's language */
 const list = (xs: string[]) => fmtList(xs);
@@ -103,15 +90,17 @@ function cumparsita(where: "opening" | "closer", body: string): string {
       singer: near[4] ?? "",
       verb,
     });
+  // (2026-11: "… has no La Cumparsita near its years (±12) — its nearest is 1964; …"; older notes said only "has no")
   const none = body.match(
-    /^(.+?) has no La Cumparsita; (.+?) (\d{4}) \((?:the same (\w+) style|the nearest year)\) (?:opens|closes)/,
+    /^(.+?) has no La Cumparsita(?: near its years \(±(\d+)\))?(?: — its nearest is \d{4})?; (.+?) (\d{4}) \((?:the same (\w+) style|the nearest year)\) (?:opens|closes)/,
   );
   if (none)
-    return t(none[4] ? "djMessage.cumparsita_never_style" : "djMessage.cumparsita_never", {
+    return t(none[5] ? "djMessage.cumparsita_never_style" : "djMessage.cumparsita_never", {
       orchestra: shortName(none[1]!),
-      other: shortName(none[2]!),
-      year: none[3],
-      style: none[4] ? styleWord(none[4]) : "",
+      window: none[2] ?? "12",
+      other: shortName(none[3]!),
+      year: none[4],
+      style: none[5] ? styleWord(none[5]) : "",
       verb,
     });
   if (/^no La Cumparsita to (?:open|close) with/.test(body))

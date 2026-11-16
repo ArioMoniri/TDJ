@@ -949,7 +949,6 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.songSheet.only_this_version_is_in_the": "Katalogda yalnızca bu versiyon var.",
   "booth.songSheet.play": "Çal",
   "booth.songSheet.play_next": "Sıradaki olarak çal",
-  "booth.songSheet.play_now_fade_the_current": "Şimdi çal (çalanı kıs)",
   "booth.songSheet.play_now_fades_the_room_s": "Şimdi çal, salondaki şarkıyı {fade} sn içinde kısar. {p1}",
   "booth.songSheet.play_the_whole_song": "Şarkının tamamını çal",
   "booth.songSheet.play_this_version_tonight_instead_the":
@@ -2396,9 +2395,9 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "djMessage.cumparsita_near_with":
     "{orchestra} için {years} civarından La Cumparsita yok; yerine {singer} ile {year} kaydı {verb}.",
   "djMessage.cumparsita_never":
-    "{orchestra} hiç La Cumparsita kaydetmedi; yerine {other} orkestrasının {year} versiyonu {verb}.",
+    "{orchestra} orkestrasının kendi yıllarına yakın (±{window}) bir La Cumparsita kaydı yok; yerine {other} orkestrasının {year} versiyonu {verb}.",
   "djMessage.cumparsita_never_style":
-    "{orchestra} hiç La Cumparsita kaydetmedi; yerine aynı {style} tarzda {other} orkestrasının {year} versiyonu {verb}.",
+    "{orchestra} orkestrasının kendi yıllarına yakın (±{window}) bir La Cumparsita kaydı yok; yerine aynı {style} tarzda {other} orkestrasının {year} versiyonu {verb}.",
   "djMessage.cumparsita_range":
     "{from}–{to} arasında La Cumparsita kaydedilmedi; geceyi {orchestra} orkestrasının {year} versiyonu kapatıyor.",
   "djMessage.ending_on": "{note}, {song} ile bitiyor",

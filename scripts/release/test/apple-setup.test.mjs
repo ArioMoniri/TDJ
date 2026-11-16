@@ -321,7 +321,10 @@ test("profile: reused when active, current and on our certificate; replaced when
     "GET /v1/profiles": () => ({
       body: { data: [{ ...good, relationships: { certificates: { data: [{ id: "OLDCERT" }] } } }] },
     }),
-    "DELETE /v1/profiles/P1": () => (deleted.push("P1"), { status: 204 }),
+    "DELETE /v1/profiles/P1": () => {
+      deleted.push("P1");
+      return { status: 204 };
+    },
     "POST /v1/profiles": (body) => {
       assert.equal(body.data.relationships.certificates.data[0].id, "C1");
       assert.equal(body.data.attributes.profileType, "IOS_APP_STORE");

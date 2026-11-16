@@ -416,7 +416,12 @@ export interface ComposeOptions {
   singerRepeatGap: number;
   avoidTitleRepeats: boolean;
   /** what recent sets (agent memory) already played: families and titles are down-weighted so nights differ */
-  recent?: { tandaKeys?: string[]; titles?: string[] };
+  recent?: {
+    tandaKeys?: string[];
+    titles?: string[];
+    /** 2026-11: each recent tanda's side set (sorted song ids, comma-joined): a learned template heard lately rests */
+    sideSets?: string[];
+  };
   maxYearSpread: number; // within a tanda
   mixVocalInstrumental: boolean; // false = strict
   includeOrchestras?: string[];
@@ -476,6 +481,11 @@ export interface TandaRules {
 
 /** Event-level rules a DJ chooses per night. */
 export interface NightRules {
+  /**
+   * 2026-11: the share of nights (0–1) a learned DJ tanda plays word for word (learn.ts TEMPLATE_SHARE, 1 in 3 by
+   * default); on the other nights its family plays with another selection of its sides when it has one
+   */
+  templateShare?: number;
   /** round 21: where La Cumparsita plays — "open" (before the first tanda, a version matching it), "close" (after
    * the última), "both" (the default), "none". Unset: openWithCumparsita / closeWithCumparsita decide (legacy). */
   cumparsita?: "open" | "close" | "both" | "none";
@@ -692,6 +702,8 @@ export interface AgentMemory {
     /** family keys "orchestraId|singer|rhythm" and normalised titles played, for variety across nights */
     tandas?: string[];
     titles?: string[];
+    /** 2026-11: each tanda's side set (sorted song ids, comma-joined), for the learned templates' variety cap */
+    sideSets?: string[];
   }>;
   /** learned preferences the assistant may apply by default */
   preferences: Partial<

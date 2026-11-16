@@ -29,7 +29,11 @@ describe("catalogue index", () => {
     expect(deps.catalog.byOrchestra.get("carlos-di-sarli")!.length).toBeGreaterThan(300);
   });
   it("fixed the +100 year typos and assigns eras", () => {
-    const bad = deps.catalog.songs.filter((s) => s.year && s.year > 2008);
+    // the 2008 listado cannot hold a side recorded after 2008: a later year there is a +100 typo. Imported
+    // contemporary sides (source orchestra-import, dated from their Spotify release) are rightly later.
+    const listado = deps.catalog.songs.filter((s) => s.source === "listado-2008");
+    expect(listado.length).toBeGreaterThan(19000);
+    const bad = listado.filter((s) => s.year && s.year > 2008);
     expect(bad).toHaveLength(0);
     const elFlete = deps.catalog.songs.find(
       (s) => normTitle(s.title) === "el flete" && s.orchestraId === "francisco-canaro" && s.year === 1928,

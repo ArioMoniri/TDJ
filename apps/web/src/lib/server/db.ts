@@ -54,6 +54,7 @@ let client: Promise<{
   doc: DocClient;
   Get: new (i: unknown) => unknown;
   Put: new (i: unknown) => unknown;
+  Update: new (i: unknown) => unknown;
 }> | null = null;
 
 /** The AWS SDK is loaded lazily by name so the build works without it installed. */
@@ -61,12 +62,10 @@ async function dynamo() {
   if (!client)
     client = (async () => {
       const load = (name: string) => import(/* webpackIgnore: true */ /* turbopackIgnore: true */ name);
-      const [{ DynamoDBClient }, { DynamoDBDocumentClient, GetCommand, PutCommand }] = await Promise.all([
-        load("@aws-sdk/client-dynamodb"),
-        load("@aws-sdk/lib-dynamodb"),
-      ]);
+      const [{ DynamoDBClient }, { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand }] =
+        await Promise.all([load("@aws-sdk/client-dynamodb"), load("@aws-sdk/lib-dynamodb")]);
       const doc = DynamoDBDocumentClient.from(new DynamoDBClient({})) as DocClient;
-      return { doc, Get: GetCommand, Put: PutCommand };
+      return { doc, Get: GetCommand, Put: PutCommand, Update: UpdateCommand };
     })().catch((e) => {
       client = null;
       throw new Error(
@@ -76,14 +75,24 @@ async function dynamo() {
   return client;
 }
 
-/** The same lazily loaded document client and Get / Put commands, for the other server stores (rooms, short links). */
+/**
+ * The same lazily loaded document client and Get / Put / Update commands, for the other server stores (rooms, short
+ * links).
+ */
 export async function dynamoDoc(): Promise<{
-  send: (cmd: unknown) => Promise<{ Item?: Record<string, unknown> }>;
+  send: (cmd: unknown) => Promise<{ Item?: Record<string, unknown>; Attributes?: Record<string, unknown> }>;
   Get: new (i: unknown) => unknown;
   Put: new (i: unknown) => unknown;
+  Update: new (i: unknown) => unknown;
 }> {
-  const { doc, Get, Put } = await dynamo();
-  return { send: (cmd) => doc.send(cmd) as Promise<{ Item?: Record<string, unknown> }>, Get, Put };
+  const { doc, Get, Put, Update } = await dynamo();
+  return {
+    send: (cmd) =>
+      doc.send(cmd) as Promise<{ Item?: Record<string, unknown>; Attributes?: Record<string, unknown> }>,
+    Get,
+    Put,
+    Update,
+  };
 }
 
 /** One row per user: the database overrides, what the agents remember and the previous generations (bounded). */

@@ -30,7 +30,16 @@ describe("djMessage: every core fallback in the DJ's words", () => {
     ],
     [
       "opening: Rodolfo Biagi has no La Cumparsita; Juan D'Arienzo 1943 (the same rhythmic style) opens",
-      /^Biagi never recorded La Cumparsita; D'Arienzo's 1943 version opens instead, in the same rhythmic style\.$/,
+      /^Biagi has no La Cumparsita near its years \(±12\); D'Arienzo's 1943 version opens instead, in the same rhythmic style\.$/,
+    ],
+    // 2026-11: the core's note names the window and the nearest own version; the DJ never reads "never recorded"
+    [
+      "opening: Miguel Caló has no La Cumparsita near its years (±12) — its nearest is 1964; Carlos Di Sarli 1951 (the same lyrical style) opens",
+      /^Caló has no La Cumparsita near its years \(±12\); Di Sarli's 1951 version opens instead, in the same lyrical style\.$/,
+    ],
+    [
+      "opening: Lucio Demare has no La Cumparsita near its years (±12); Ricardo Tanturi 1940 (the nearest year) opens",
+      /^Demare has no La Cumparsita near its years \(±12\); Tanturi's 1940 version opens instead\.$/,
     ],
     ["opening: no La Cumparsita to open with", /starts with the first tanda/],
     [

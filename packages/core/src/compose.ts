@@ -1,7 +1,14 @@
 import { arcShapeFor, capPeakRuns, planSlots, sanitizeOptions } from "./arc";
 import { attachBooth } from "./booth";
 import type { Catalog } from "./catalog";
-import { bigFourProblems, STYLE_MIN_FAMILIES, styleFilter, tandaRulesOf } from "./coherence";
+import {
+  BIG_FOUR,
+  bigFourProblems,
+  quartileOf,
+  STYLE_MIN_FAMILIES,
+  styleFilter,
+  tandaRulesOf,
+} from "./coherence";
 import { applyContextToOptions, BUILTIN_CONTEXT, resolveContext } from "./context";
 import { cortinaPool, pickCortina, planCortinas, spotifyCueFallbacks } from "./cortinas";
 import { closingFor, cumparsitaPlacement, openingCumparsita } from "./cumparsita";
@@ -10,6 +17,7 @@ import { asFavouriteTable, favouritesActive, withPraise } from "./favourites";
 import { withCortinaStarts } from "./hooks";
 import { familyBand, goldenClassOf, isColour, isGoldenNight } from "./knowledge";
 import { mergeLearned } from "./learn";
+import { CUMPARSITA_PREF, ULTIMA_INSTRUMENTAL_OK, ULTIMA_POOL } from "./nightShape";
 import { isPeakSlot, meanFameOf } from "./order";
 import { ERA_PRESETS, ERA_SETTINGS } from "./profiles";
 import { cueFamilies, pickStrictCloser, recue, recueBetter, strictRepair } from "./repair";
@@ -43,6 +51,7 @@ import {
   isSuspectSide,
   isTandaEligible,
   peakOk,
+  phasesFor,
   type Scoring,
   type TandaCandidate,
 } from "./tanda";
@@ -101,35 +110,8 @@ export interface ComposeExtras {
   /** tandas to keep in place (locked by the user); matched by index */ locked?: Tanda[];
 }
 
-const CUMPARSITA_PREF = [
-  "juan-d-arienzo",
-  "osvaldo-pugliese",
-  "carlos-di-sarli",
-  "anibal-troilo",
-  "rodolfo-biagi",
-  "francisco-canaro",
-  "alfredo-de-angelis",
-];
-/** corpus rule 15: the última is Pugliese, D'Arienzo, D'Agostino–Vargas, Di Sarli, De Angelis instr., Troilo–Fiorentino … */
-export const ULTIMA_POOL = [
-  "osvaldo-pugliese",
-  "juan-d-arienzo",
-  "angel-d-agostino",
-  "carlos-di-sarli",
-  "alfredo-de-angelis",
-  "anibal-troilo",
-  "ricardo-tanturi",
-  "rodolfo-biagi",
-  "miguel-calo",
-  "enrique-rodriguez",
-];
-const ULTIMA_INSTRUMENTAL_OK = new Set([
-  "osvaldo-pugliese",
-  "juan-d-arienzo",
-  "carlos-di-sarli",
-  "alfredo-de-angelis",
-  "anibal-troilo",
-]);
+// (2026-11: the closing Cumparsita's preferred orchestras and the última pool are data — data/knowledge/
+// night_shape.json, read by nightShape.ts)
 /** a "colour" tanda: one softer, elegant tanda in the breather after the first peak */
 const COLOUR_ORCHESTRAS = [
   "miguel-calo",
@@ -387,6 +369,17 @@ function composeDraws(partial: Partial<ComposeOptions>, deps: ComposeDeps, extra
 export const OPENING_PLAN_SEC = 170;
 /** how many extra draws a golden night gets when the strict panel still finds a rule broken */
 export const STRICT_REDRAWS = 3;
+/** 2026-11: the big-four repair's cost per fault (an empty quartile first, then a back-to-back pair, then a short gap) */
+const BIG_FOUR_COST = { quartile: 6, adjacent: 3, gap: 1, missing: 6 } as const;
+/** the big four's weight in the strict panel's penalty (strict.ts SOFT_R21: a quarter) */
+const BIG_FOUR_PANEL_WEIGHT = 0.25;
+const BIG_FOUR_REPAIR_ROUNDS = 6;
+/**
+ * 2026-11: what a big-four mend (a swap, a rebuilt chair) may cost every other rule — the strict panel's penalty
+ * without the big four's own items — and the night's score
+ */
+const BIG_FOUR_TOLERANCE = 2;
+const BIG_FOUR_SCORE_SLACK = 2;
 
 function composeOnce(
   partial: Partial<ComposeOptions>,
@@ -2400,76 +2393,210 @@ function composeOnce(
   }
   if (tr.bigFour && !lockedByIndex.size) {
     const night = () => ({ tandas, closing, options: o });
-    const faults = () => bigFourProblems(tandas, o).filter((x) => x.kind === "adjacent" || x.kind === "gap");
-    const rest = (r: StrictResult) => r.penalty - r.violations.filter((v) => v.rule === "bigFour").length;
-    for (let round = 0; round < 4 && faults().length; round++) {
+    // 2026-11: one cost over every big-four fault — an empty quartile (a quarter of the night's tandas, whatever the
+    // hours) weighs most, then two of them back to back, then the same one too soon
+    const all = () => bigFourProblems(tandas, o).filter((x) => x.kind !== "missing");
+    const cost = (f = all()) => f.reduce((a, x) => a + BIG_FOUR_COST[x.kind], 0);
+    // what every other rule costs: the panel's penalty without the big four's own quarter per item (2026-11: it
+    // subtracted a whole point per item, so every swap that mended the big four looked 0.75 dearer than it was)
+    const rest = (r: StrictResult) =>
+      r.penalty - BIG_FOUR_PANEL_WEIGHT * r.violations.filter((v) => v.rule === "bigFour").length;
+    const scoreNow = () => scorePlaylist({ ...night(), stats: computeStats(tandas, closing, o) }).total;
+    // a mend is taken when it adds no blocker, costs every other rule at most BIG_FOUR_TOLERANCE per back-to-back pair
+    // it mends (an empty quartile counts two), and keeps the night's score within BIG_FOUR_SCORE_SLACK (never under
+    // the golden 85 it held)
+    // (an orchestra's repeat gap is never traded: the pairs of one orchestra closer than the gap may not grow)
+    const closePairs = () => {
+      let k = 0;
+      for (let i = 0; i < tandas.length; i++)
+        for (let j = i + 1; j < Math.min(tandas.length, i + o.orchestraRepeatGap); j++)
+          if (tandas[i]!.orchestraId === tandas[j]!.orchestraId) k++;
+      return k;
+    };
+    const close0 = closePairs();
+    // (nor a family's phases: a tanda moved into a phase its profile does not program it for — Di Sarli's 1950s
+    // valses in the warm-up — may not be added)
+    // (Pugliese's chair is planned whatever the phase says, as the composer's own Pugliese slot is)
+    const misfits = () =>
+      tandas.filter((t) => {
+        if (t.orchestraId === "osvaldo-pugliese") return false;
+        const ph = phasesFor(sc, { orchestraId: t.orchestraId, songs: t.songs } as TandaCandidate);
+        return !!ph && !ph.includes("any") && !ph.includes(t.phase);
+      }).length;
+    const misfit0 = misfits();
+    // (nor the arc, for a swap: the energy jumps of more than 18 between neighbours — a sawtooth around the early
+    // D'Arienzo — may not grow; a rebuilt chair is built for its slot's own energy)
+    const jumps = () => {
+      let k = 0;
+      for (let i = 1; i < tandas.length; i++)
+        if (Math.abs(tandas[i]!.energy - tandas[i - 1]!.energy) > 18) k++;
+      return k;
+    };
+    const jump0 = jumps();
+    const fine = (r0: StrictResult, r1: StrictResult, s0: number, mended: number, swap = false) => {
+      if (closePairs() > close0 || misfits() > misfit0 || (swap && jumps() > jump0)) return false;
+      const tol = (BIG_FOUR_TOLERANCE * mended) / BIG_FOUR_COST.adjacent;
+      if (r1.blockers > r0.blockers || rest(r1) > rest(r0) + tol) return false;
+      const s1 = scoreNow();
+      return s1 >= s0 - BIG_FOUR_SCORE_SLACK && (s0 < 85 || s1 >= 85);
+    };
+    const movable = (i: number) => {
+      const x = tandas[i];
+      // (round 21c: never the Pugliese chair — the round 9–11 placement keeps him in the last 40 %)
+      return (
+        !!x &&
+        i > 0 &&
+        i < tandas.length - 1 &&
+        !x.peak &&
+        !x.birthday &&
+        !x.locked &&
+        x.orchestraId !== "osvaldo-pugliese"
+      );
+    };
+    const put = (x: Tanda, at: Tanda): Tanda => ({
+      ...x,
+      index: at.index,
+      targetEnergy: at.targetEnergy,
+      phase: at.phase,
+      cortina: at.cortina,
+    });
+    for (let round = 0; round < BIG_FOUR_REPAIR_ROUNDS; round++) {
+      const f0 = all();
+      const c0 = cost(f0);
+      if (!c0) break;
       const r0 = strictChecks(night());
-      const f0 = faults().length;
-      let best: { a: number; b: number; v: number } | null = null;
-      const movable = (i: number) => {
-        const x = tandas[i];
-        // (round 21c: never the Pugliese chair — the round 9–11 placement keeps him in the last 40 %)
-        return (
-          !!x &&
-          i > 0 &&
-          i < tandas.length - 1 &&
-          !x.peak &&
-          !x.birthday &&
-          !x.locked &&
-          x.orchestraId !== "osvaldo-pugliese"
-        );
-      };
-      for (const f of faults())
-        for (const a of [f.tanda, f.with ?? -1]) {
-          if (!movable(a)) continue;
-          for (let b = 1; b < tandas.length - 1; b++) {
-            if (b === a || !movable(b) || tandas[b]!.rhythm !== tandas[a]!.rhythm) continue;
-            const A = tandas[a]!,
-              B = tandas[b]!;
-            const put = (x: Tanda, at: Tanda): Tanda => ({
-              ...x,
-              index: at.index,
-              targetEnergy: at.targetEnergy,
-              phase: at.phase,
-              cortina: at.cortina,
-            });
-            tandas[a] = put(B, A);
-            tandas[b] = put(A, B);
-            const f1 = faults().length;
-            const r1 = f1 < f0 ? strictChecks(night()) : null;
-            tandas[a] = A;
-            tandas[b] = B;
-            // (round 21b: a soft preference — a swap that costs any other rule, or a blocker, is not taken; the fault
-            // stays and is recorded as a fallback)
-            if (!r1 || r1.blockers > r0.blockers || rest(r1) > rest(r0) + 1e-9) continue;
-            const v = f1 * 10 + rest(r1);
-            if (!best || v < best.v) best = { a, b, v };
-          }
+      const s0 = scoreNow();
+      // the chairs a swap may start from: both sides of a pair, and every chair of an empty quartile
+      const from = new Set<number>();
+      for (const f of f0) {
+        if (f.kind === "quartile") {
+          const q = quartileOf(f.tanda, tandas.length);
+          tandas.forEach((_t, i) => {
+            if (quartileOf(i, tandas.length) === q) from.add(i);
+          });
+        } else {
+          from.add(f.tanda);
+          if (f.with !== undefined) from.add(f.with);
         }
+      }
+      let best: { a: number; b: number; v: number } | null = null;
+      for (const a of from) {
+        if (!movable(a)) continue;
+        for (let b = 1; b < tandas.length - 1; b++) {
+          if (b === a || !movable(b) || tandas[b]!.rhythm !== tandas[a]!.rhythm) continue;
+          const A = tandas[a]!,
+            B = tandas[b]!;
+          tandas[a] = put(B, A);
+          tandas[b] = put(A, B);
+          const c1 = cost();
+          const r1 = c1 < c0 ? strictChecks(night()) : null;
+          const ok = !!r1 && fine(r0, r1, s0, c0 - c1, true);
+          tandas[a] = A;
+          tandas[b] = B;
+          // (round 21b: a soft preference — a swap that costs more than that, or a blocker, is not taken; the fault
+          // stays and is recorded as a fallback)
+          if (!r1 || !ok) continue;
+          const v = c1 * 10 + rest(r1);
+          if (!best || v < best.v) best = { a, b, v };
+        }
+      }
       if (!best) break;
       const A = tandas[best.a]!,
         B = tandas[best.b]!;
-      tandas[best.a] = {
-        ...B,
-        index: A.index,
-        targetEnergy: A.targetEnergy,
-        phase: A.phase,
-        cortina: A.cortina,
-      };
-      tandas[best.b] = {
-        ...A,
-        index: B.index,
-        targetEnergy: B.targetEnergy,
-        phase: B.phase,
-        cortina: B.cortina,
-      };
+      tandas[best.a] = put(B, A);
+      tandas[best.b] = put(A, B);
     }
-    if (faults().length)
-      fallbacks.push(
-        `bigFour: ${faults()
-          .map((x) => x.detail)
-          .join("; ")} (no swap keeps the other rules)`,
-      );
+    // 2026-11 — what no swap mends, a chair rebuilt for it (the composer's own builder, swapTanda, with the families
+    // the fault asks for): no Pugliese → a late tango chair takes his tanda; an empty quartile → one of its chairs
+    // takes a Di Sarli, D'Arienzo or Troilo tanda. Taken by the same measure as a swap (`fine`): fewer big-four faults,
+    // no new blocker, the other rules and the score within their tolerances. (A back-to-back pair is not mended by a
+    // rebuilt chair: tried, it moved the D'Arienzo chairs, the vals / milonga order and the dancer-popularity lean.)
+    {
+      const allF = () => bigFourProblems(tandas, o);
+      const costAll = () => allF().reduce((a, x) => a + BIG_FOUR_COST[x.kind], 0);
+      const big = (id: string) => (BIG_FOUR as readonly string[]).includes(id);
+      const n = tandas.length;
+      const chairOk = (i: number) => {
+        const x = tandas[i];
+        return !!x && i > 0 && i < n - 1 && !x.peak && !x.birthday && !x.locked && !x.pinned;
+      };
+      const rebuild = (chairs: number[], only: (c: TandaCandidate) => boolean): boolean => {
+        const c0 = costAll();
+        const r0 = strictChecks(night());
+        const s0 = scoreNow();
+        let best: { i: number; t: Tanda; v: number } | null = null;
+        for (const i of chairs) {
+          const tmp = { ...night(), id: "", name: "", createdAt: "", opening: null, stats: {}, score: {} };
+          const seedI = ((o.seed ?? 1) ^ Math.imul(i + 1, 0x9e3779b1)) >>> 0;
+          const q = swapTanda(tmp as unknown as Playlist, i, deps, seedI, only);
+          const nt = q.tandas[i];
+          if (q === (tmp as unknown) || !nt || nt === tandas[i]) continue;
+          // (the night's cap holds: three tandas an orchestra, four from 5 h)
+          const others = tandas.filter((x, j) => j !== i && x.orchestraId === nt.orchestraId);
+          if (others.length + 1 > (o.hours >= 5 ? 4 : 3)) continue;
+          // (and the profile's phases: a sub-period programmed for no phase — Troilo's 1950s — never plays, and the
+          // family plays in a phase it is programmed for)
+          const ph = phasesFor(sc, { orchestraId: nt.orchestraId, songs: nt.songs } as TandaCandidate);
+          if (
+            nt.orchestraId !== "osvaldo-pugliese" &&
+            ph &&
+            !ph.includes("any") &&
+            !ph.includes(tandas[i]!.phase)
+          )
+            continue;
+          const old = tandas[i]!;
+          tandas[i] = put(nt, old);
+          const c1 = costAll();
+          const r1 = c1 < c0 ? strictChecks(night()) : null;
+          const ok = !!r1 && fine(r0, r1, s0, c0 - c1);
+          const cand = tandas[i]!;
+          tandas[i] = old;
+          if (!r1 || !ok) continue;
+          const v = c1 * 10 + rest(r1);
+          if (!best || v < best.v) best = { i, t: cand, v };
+        }
+        if (!best) return false;
+        tandas[best.i] = best.t;
+        return true;
+      };
+      const pugOk =
+        o.hours >= 3 &&
+        ultimaRule !== "pugliese" &&
+        pugAllowed &&
+        (bodySc.maxPerNight?.("osvaldo-pugliese") ?? 1) > 0 &&
+        !(o.excludeOrchestras ?? []).includes("osvaldo-pugliese");
+      if (pugOk && !tandas.some((t) => t.orchestraId === "osvaldo-pugliese")) {
+        const late = tandas
+          .map((_t, i) => i)
+          .filter(
+            (i) =>
+              chairOk(i) &&
+              i / (n - 1) >= 0.6 &&
+              tandas[i]!.rhythm === "tango" &&
+              !big(tandas[i]!.orchestraId),
+          )
+          .sort((a, b) => Math.abs(a / (n - 1) - 0.87) - Math.abs(b / (n - 1) - 0.87))
+          .slice(0, 4);
+        rebuild(late, (c) => c.orchestraId === "osvaldo-pugliese");
+      }
+      for (let q = 0; q < 4; q++) {
+        const inQ = tandas.map((_t, i) => i).filter((i) => quartileOf(i, n) === q);
+        if (!inQ.length || inQ.some((i) => big(tandas[i]!.orchestraId))) continue;
+        // (a chair whose neighbours are not big four first: the rebuilt tanda should not make a pair)
+        const chairs = inQ
+          .filter(chairOk)
+          .sort(
+            (a, b) =>
+              Number(big(tandas[a - 1]?.orchestraId ?? "") || big(tandas[a + 1]?.orchestraId ?? "")) -
+              Number(big(tandas[b - 1]?.orchestraId ?? "") || big(tandas[b + 1]?.orchestraId ?? "")),
+          )
+          .slice(0, 4);
+        rebuild(chairs, (c) => big(c.orchestraId) && c.orchestraId !== "osvaldo-pugliese");
+      }
+    }
+    const left = all().filter((x) => x.kind === "adjacent" || x.kind === "gap" || x.kind === "quartile");
+    if (left.length)
+      fallbacks.push(`bigFour: ${left.map((x) => x.detail).join("; ")} (no swap keeps the other rules)`);
   }
   // round 21c: the swaps above moved tandas past their cues — the cortinas are re-picked once more under the panel's
   // cue rules (cueDramatic, cueVals …), kept only when the panel is better for it

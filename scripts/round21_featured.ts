@@ -20,7 +20,6 @@ import {
   candidatesFor,
   cortinaMatchProblem,
   isBigFour,
-  isColour,
   judgeStreams,
   knownSingers,
   learnFromEdit,
