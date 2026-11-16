@@ -42,6 +42,28 @@ export function TandaArt({
   );
 }
 
+/** one side's cover with its rhythm letter (a search result, a suggestion): the tanda look for one song */
+export function SongArt({
+  song,
+  size = 44,
+  label,
+}: {
+  song: { id: string; rhythm: string; orchestra: string };
+  size?: number;
+  /** the rhythm in words, for assistive tech (the letter is decoration) */
+  label?: string;
+}) {
+  return (
+    <span role="img" aria-label={label ?? song.rhythm} className="inline-flex">
+      <TandaArt
+        tanda={{ rhythm: song.rhythm, orchestra: song.orchestra, songs: [song] }}
+        size={size}
+        testId="song-art"
+      />
+    </span>
+  );
+}
+
 /** the side or cortina behind the mini player's track (its list item), for its cover */
 export function usePlayingEntity(): Entity {
   return usePlayer((s) => {

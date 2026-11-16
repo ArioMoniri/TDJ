@@ -15,10 +15,11 @@ import { toast } from "@/lib/toast";
 import type { Playlist, Song } from "@/lib/types";
 import { useSmartSearch } from "@/lib/useSmartSearch";
 import { yearText } from "@/lib/year";
-import { Group, RhythmTile, Row } from "./Form";
+import { Group, Row } from "./Form";
 import { Sheet } from "./Sheet";
 import { ConfirmBar } from "./ui/BoothSearchBits";
 import { SmartSearchField, SmartSearchResults } from "./ui/SmartSearch";
+import { TandaArt } from "./ui/TandaArt";
 import { rhythmWord, TandaTypeBadge } from "./ui/TandaTypeBadge";
 import { useDragReorder } from "./ui/useDragReorder";
 
@@ -387,7 +388,7 @@ export function TandaSwapSheet(p: TandaSwapProps) {
                   return (
                     <Row
                       key={x.songs.map((y) => y.id).join(",")}
-                      tile={<RhythmTile rhythm={x.rhythm} />}
+                      tile={<TandaArt tanda={x} size={44} />}
                       label={`${x.orchestra}${x.singer ? ` / ${x.singer}` : ` · ${tx("tandaType.instrumental")}`}`}
                       sub={`${x.yearRange?.join("–") ?? ""} · ${x.songs.map((y) => y.title).join(", ")}`}
                       chevron

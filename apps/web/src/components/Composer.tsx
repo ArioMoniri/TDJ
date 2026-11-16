@@ -121,6 +121,7 @@ import { SwapSheet } from "./SwapSheet";
 import { TandaInspector } from "./TandaInspector";
 import { TandaRulesGroup } from "./TandaRules";
 import { TandaSwapSheet } from "./TandaSwapSheet";
+import { Artwork } from "./ui/Artwork";
 import { NightProfile } from "./ui/NightProfile";
 import { NightLength, PlayRow } from "./ui/PlayRow";
 import { Tip } from "./ui/Tip";
@@ -2190,9 +2191,7 @@ export function Composer() {
                     where={tx("play.opening")}
                     testId="opening"
                     leading={
-                      <span className="tile-art" data-rhythm="tango" aria-hidden>
-                        <Disc3 size={20} strokeWidth={1.75} />
-                      </span>
+                      <Artwork entity={playlist.opening} orchestra={playlist.opening.orchestra} size={44} />
                     }
                     title={<span className="text-headline">{tx("composer.la_cumparsita")}</span>}
                     sub={metaLine(
@@ -2276,9 +2275,7 @@ export function Composer() {
                     where={tx("play.closing")}
                     testId="closing"
                     leading={
-                      <span className="tile-art" data-rhythm="tango" aria-hidden>
-                        <Disc3 size={20} strokeWidth={1.75} />
-                      </span>
+                      <Artwork entity={playlist.closing} orchestra={playlist.closing.orchestra} size={44} />
                     }
                     title={<span className="text-headline">{tx("composer.la_cumparsita")}</span>}
                     sub={metaLine(playlist.closing.orchestra, yearText(playlist.closing.year))}

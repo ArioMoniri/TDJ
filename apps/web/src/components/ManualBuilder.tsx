@@ -66,6 +66,7 @@ import { PageHeader } from "./PageHeader";
 import { Sheet } from "./Sheet";
 import { CortinaPlayButton, PlayRow } from "./ui/PlayRow";
 import { SmartSearchField, SmartSearchResults } from "./ui/SmartSearch";
+import { SongArt } from "./ui/TandaArt";
 import { isMixedTanda, rhythmWord, TandaTypeBadge } from "./ui/TandaTypeBadge";
 import { Tip } from "./ui/Tip";
 import { useDragReorder } from "./ui/useDragReorder";
@@ -858,7 +859,7 @@ export function ManualBuilder() {
                       song={asSong(h.song)}
                       where={tx("manualBuilder.search")}
                       leadingKind="tile"
-                      leading={<RhythmTile rhythm={h.song.rhythm} label={rhythmWord(h.song.rhythm)} />}
+                      leading={<SongArt song={h.song} label={rhythmWord(h.song.rhythm)} />}
                       sub={
                         <>
                           {metaLine(family(h.song), yearText(h.song.year))}
@@ -1359,7 +1360,11 @@ function SuggestionCard({ s, onPick }: { s: Suggestion; onPick: () => void }) {
       aria-description={s.reasons.join(" · ")}
     >
       <div className="flex items-start gap-3">
-        <RhythmTile rhythm={s.rhythm} label={rhythmWord(s.rhythm)} />
+        {s.songs[0] ? (
+          <SongArt song={{ ...s.songs[0], rhythm: s.rhythm }} label={rhythmWord(s.rhythm)} />
+        ) : (
+          <RhythmTile rhythm={s.rhythm} label={rhythmWord(s.rhythm)} />
+        )}
         <span className="min-w-0 flex-1">
           <span className="block truncate">{s.kind === "song" ? s.songs[0]!.title : family(s)}</span>
           <span className="text-footnote block truncate text-[var(--label-2)]">
@@ -1535,7 +1540,7 @@ function TandaBlock({
           aria-label={tx("builder.select_tanda", { n: ti + 1, family: family(s0) })}
           data-testid="build-tanda-select"
         >
-          <RhythmTile rhythm={s0.rhythm} label={rhythmWord(s0.rhythm)} />
+          <SongArt song={s0} label={rhythmWord(s0.rhythm)} />
           <span className="min-w-0 flex-1">
             <span className="block truncate">{family(s0)}</span>
             <span className="mt-0.5 flex flex-wrap items-center gap-1.5">
