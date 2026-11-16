@@ -1,5 +1,6 @@
 import VOCAL_STYLES from "../../../data/knowledge/vocal_styles.json";
 import { normTitle } from "./energy";
+import { BIG_FOUR_SHORT } from "./nightShape";
 import type { ComposeOptions, DanceRhythm, Song, Tanda, TandaRules } from "./types";
 
 /**
@@ -262,10 +263,13 @@ export function tandaProblems(
 }
 
 // --- the big four ------------------------------------------------------------------------------------------------
-/** Di Sarli, D'Arienzo, Troilo, Pugliese: every tanda of theirs counts, whatever its rhythm */
-export const BIG_FOUR = ["carlos-di-sarli", "juan-d-arienzo", "anibal-troilo", "osvaldo-pugliese"] as const;
-export const isBigFour = (t: Pick<Tanda, "orchestraId">) =>
-  (BIG_FOUR as readonly string[]).includes(t.orchestraId);
+/**
+ * Di Sarli, D'Arienzo, Troilo, Pugliese: every tanda of theirs counts, whatever its rhythm (2026-11: read from
+ * data/knowledge/night_shape.json `bigFour`, the one list the web's short names come from too)
+ */
+export const BIG_FOUR: readonly string[] = Object.keys(BIG_FOUR_SHORT);
+export const isBigFourId = (id: string | null | undefined) => !!id && Object.hasOwn(BIG_FOUR_SHORT, id);
+export const isBigFour = (t: Pick<Tanda, "orchestraId">) => isBigFourId(t.orchestraId);
 /** the quartile (0–3) of tanda i in a night of n tandas, by position (the tanda index) */
 export const quartileOf = (i: number, n: number) => Math.min(3, Math.floor((i * 4) / Math.max(1, n)));
 
