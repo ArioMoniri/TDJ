@@ -190,6 +190,10 @@ interface Scheduled extends BoothItemRuntime {
   interrupted?: boolean;
   /** 2026-11: seconds of its silent tail the item still plays before it ends (they count toward the next gap) */
   keptTail?: number;
+  /** 2026-11 (seek): an external item was started with a stop time (`durationSec`), not "to the track's end" */
+  extTimed?: boolean;
+  /** 2026-11 (seek): the clock holds here until the rebuilt item's own clock reaches it (never back, never 0) */
+  seekFloor?: number;
 }
 /** Where a Pause left the night: the item and the seconds into it. */
 export interface PausedAt {
@@ -597,6 +601,23 @@ export class BoothEngine {
     const len = Math.max(0, c.endsAt - c.startedAt);
     const to = clamp(sec, 0, Math.max(0, len - 0.5));
     const now = this.ctx.currentTime;
+    // 2026-11 (the owner: "the slider goes to zero for a second, then the song plays late"): an external player that
+    // can seek in place (the SDK's seek, Connect's PUT /me/player/seek) jumps there — no new play, no Starting…
+    if (c.external?.seek && c.started) {
+      const pos = (c.extStart ?? 0) + to;
+      const rest = len - to;
+      if (c.external.seek(pos, { durationSec: c.extTimed ? rest : undefined })) {
+        this.cancelQueued();
+        c.startedAt = now - to;
+        c.endsAt = now + rest;
+        c.interrupted = true;
+        this.transition(this.state, "seek");
+        await this.scheduleNext();
+        return;
+      }
+    }
+    // the clock reads the target from here on: while the item is rebuilt and until its new clock gets there
+    this.seekHold = { planIndex: c.planIndex, at: to };
     // 2026-11: Connect plays the new position with one play (no pause first: it would be a gap)
     const instant = !!c.external && !this.externalFor(c.planIndex)?.capabilities.fade;
     this.cancelQueued();
@@ -618,6 +639,7 @@ export class BoothEngine {
     if (c.external) this.setStarting(true);
     const gen = ++this.generation;
     const s = await this.schedule(i, now + delay, { from: to, fadeIn: SEEK_FADE, headCut: c.headCut });
+    if (this.seekHold?.at === to) this.seekHold = null;
     // a Stop, Pause, Play now or another seek came in while the item was rebuilt
     if (gen !== this.generation || !this.live || this.current) {
       if (s) {
@@ -634,6 +656,7 @@ export class BoothEngine {
       return;
     }
     s.interrupted = true;
+    s.seekFloor = to;
     this.current = s;
     this.planIndex = i;
     this.transition(this.state, "seek");
@@ -651,6 +674,8 @@ export class BoothEngine {
   private skipRestart = false;
   /** an external item was asked to start and its device has not confirmed it ("Starting…") */
   starting = false;
+  /** 2026-11: a seek in flight: the item and the seconds the clock reads until the rebuilt item runs */
+  private seekHold: { planIndex: number; at: number } | null = null;
 
   private externalFor(i: number) {
     return this.adapterFor(i)?.external ?? null;
@@ -1223,11 +1248,24 @@ export class BoothEngine {
     // a Connect skip on its way: the new song starts from its beginning
     if (this.skipTarget !== null) return 0;
     const c = this.current;
-    if (!c) return this.pausedAt?.planIndex === this.planIndex ? this.pausedAt.at : 0;
+    if (!c) {
+      // 2026-11: a seek is rebuilding the item: the clock already reads where the DJ let go
+      if (this.live && this.seekHold?.planIndex === this.planIndex) return this.seekHold.at;
+      return this.pausedAt?.planIndex === this.planIndex ? this.pausedAt.at : 0;
+    }
+    let p: number;
     // Spotify reports the track position: the item's own clock starts at its cue (extStart)
-    if (c.external) return c.started ? Math.max(0, c.external.position() - (c.extStart ?? 0)) : 0;
-    const latency = Math.max(this.ctx.outputLatency ?? 0, this.outputLatencySec);
-    return Math.max(0, this.ctx.currentTime - c.startedAt - latency);
+    if (c.external) p = c.started ? Math.max(0, c.external.position() - (c.extStart ?? 0)) : 0;
+    else {
+      const latency = Math.max(this.ctx.outputLatency ?? 0, this.outputLatencySec);
+      p = Math.max(0, this.ctx.currentTime - c.startedAt - latency);
+    }
+    // 2026-11: after a seek the clock never goes back (the new play's report, the fade-in's few ms, the latency)
+    if (c.seekFloor !== undefined) {
+      if (p >= c.seekFloor) c.seekFloor = undefined;
+      else return c.seekFloor;
+    }
+    return p;
   }
   /**
    * 2026-11: the second in the current item's recording that is playing (its cue in and head cut plus the position):
@@ -1895,12 +1933,13 @@ export class BoothEngine {
     const userStart = !attached && delay < 1;
     if (userStart) this.setStarting(true);
     const songFade = it.kind === "cortina" ? 0 : this.settings.songFadeOutSec;
+    const timed = it.kind === "cortina" || cued || !!cap || songFade > 0 || from > 0 || tailCut > 0;
+    base.extTimed = timed;
     base.external = a.startItem({
       uri,
       delaySec: delay,
       positionSec: start0 + from,
-      durationSec:
-        it.kind === "cortina" || cued || cap || songFade > 0 || from > 0 || tailCut > 0 ? length : undefined,
+      durationSec: timed ? length : undefined,
       fadeInSec: o.fadeIn ?? (it.kind === "cortina" ? it.fadeInSec : 0),
       fadeOutSec: it.kind === "cortina" ? it.fadeOutSec : songFade,
       gainDb: Math.min(0, gainDb),

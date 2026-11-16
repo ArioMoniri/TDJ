@@ -30,6 +30,8 @@ export interface SdkPlayer {
   setVolume(v: number): Promise<void>;
   pause(): Promise<void>;
   resume(): Promise<void>;
+  /** the SDK's in-place seek (ms); optional: a player without it seeks through the Web API */
+  seek?(ms: number): Promise<void>;
 }
 export interface SdkPlayerCtor {
   new (o: { name: string; getOAuthToken: (cb: (t: string) => void) => void; volume?: number }): SdkPlayer;
@@ -941,6 +943,27 @@ export class SpotifyAdapter implements SourceAdapter, ExternalPlayer {
     await this.pauseDevice();
   }
 
+  /**
+   * 2026-11 (seek): jump inside what plays now — this browser's player with the SDK's `seek`, a Connect device (or a
+   * player without `seek`) with `PUT /me/player/seek`. Never a new play: the track keeps its buffer, the jump is
+   * immediate.
+   */
+  async seekDevice(ms: number): Promise<void> {
+    const at = Math.max(0, Math.round(ms));
+    const p = this.remote ? null : this.player;
+    if (p?.seek) {
+      await p.seek(at).catch(() => {});
+      return;
+    }
+    const dev = this.remote ?? this.deviceId;
+    await this.api(
+      "PUT",
+      `/me/player/seek?position_ms=${at}${dev ? `&device_id=${encodeURIComponent(dev)}` : ""}`,
+      undefined,
+      { op: "seek" },
+    ).catch(() => {});
+  }
+
   /** pause whatever plays on the night's device */
   async pauseDevice(): Promise<void> {
     if (this.remote)
@@ -1358,6 +1381,7 @@ class Live implements ExternalHandle {
 
   onState(s: SdkState | null) {
     if (!s || this.done) return;
+    if (this.stale(s.position / 1000)) return;
     this.pos = s.position / 1000;
     this.posAt = now();
     this.playing = !s.paused;
@@ -1380,6 +1404,7 @@ class Live implements ExternalHandle {
     // (until Spotify switched, `/me/player` still reports the track before: not this item's clock)
     if (!this.confirmed && s?.uri && s.uri !== this.uri) return;
     const settled = now() - this.startedAt > 3000;
+    if (s?.hasItem && this.stale(s.positionMs / 1000)) return;
     if (!s?.hasItem) {
       if (settled) this.finish(false);
       return;
@@ -1408,6 +1433,52 @@ class Live implements ExternalHandle {
   position() {
     if (!this.started) return 0;
     return this.pos + (this.playing ? (now() - this.posAt) / 1000 : 0);
+  }
+
+  /** a seek went out at this time to this position: reports that disagree for a moment are the old position */
+  private seekGuard: { until: number; at: number; sentAt: number } | null = null;
+  /** a state report from before the seek took effect (Spotify applies it ~0.3–1 s later): ignore it */
+  private stale(posSec: number): boolean {
+    const g = this.seekGuard;
+    if (!g) return false;
+    if (now() > g.until) {
+      this.seekGuard = null;
+      return false;
+    }
+    const expected = g.at + (now() - g.sentAt) / 1000;
+    if (Math.abs(posSec - expected) > 1.5) return true;
+    this.seekGuard = null;
+    return false;
+  }
+  /** 2026-11: jump inside the playing track in place (no new play); false before the play went out */
+  seek(positionSec: number, o: { durationSec?: number }): boolean {
+    if (!this.started || this.done || !this.a._isOwner(this)) return false;
+    const at = Math.max(0, positionSec);
+    this.pos = at;
+    this.posAt = now();
+    this.playing = true;
+    this.seekGuard = { until: now() + 2500, at, sentAt: now() };
+    this.hold.reset();
+    // a fade out in progress (the item was about to end) is called off: it plays at its level from the new point
+    if (this.fadeTimer) {
+      clearInterval(this.fadeTimer);
+      this.fadeTimer = null;
+      this.level = 1;
+      this.applyVolume();
+    }
+    if (this.stopTimer) clearTimeout(this.stopTimer);
+    this.stopTimer = null;
+    if (o.durationSec !== undefined) {
+      const fade = this.a.capabilities.fade ? (this.req.fadeOutSec ?? 0) : 0;
+      this.stopTimer = setTimeout(
+        () => {
+          if (!this.done) this.stop(fade);
+        },
+        Math.max(0, o.durationSec - fade) * 1000,
+      );
+    }
+    void this.a.seekDevice(at * 1000);
+    return true;
   }
 
   private fade(sec: number, up: boolean) {

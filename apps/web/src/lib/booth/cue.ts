@@ -38,6 +38,16 @@ export function outputsFrom(devices: ReadonlyArray<MediaDeviceInfo>, keepDuplica
 export const SINK_UNSUPPORTED = () => tx("booth.cue.this_browser_cannot_send_sound_to");
 
 /**
+ * 2026-11 (the owner: "Cue won't work"): Cue with no headphones output chosen opens the HEADPHONES picker (the
+ * toolbar listens); `detail.then` is the plan row to cue once a device is picked.
+ */
+export const PICK_HEADPHONES_EVENT = "tdj:booth-pick-headphones";
+export function askForHeadphones(then: number | null) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(PICK_HEADPHONES_EVENT, { detail: { then } }));
+}
+
+/**
  * 2026-11 (Part B §5): the headphones are another channel pair of the room's own device (a DJ controller's ch 3–4),
  * routed inside the booth's AudioContext (lib/booth/routing.ts) — no second output, no `setSinkId` needed.
  */

@@ -1450,6 +1450,10 @@ function seekActions(set: (p: Partial<BoothStore>) => void, get: () => BoothStor
     },
     seek: async (sec: number) => {
       if (!engine || !get().started) return;
+      // 2026-11 (the owner: "the slider goes to zero for a second"): the bar stays where the DJ let go at once —
+      // the engine's clock holds the same target until the audio is there
+      const len = engine.currentLength();
+      set({ position: Math.max(0, Math.min(sec, Math.max(0, len - 0.5))) });
       await engine.seek(sec);
       sync();
       media?.setPosition(engine.currentLength(), engine.position());

@@ -1222,7 +1222,11 @@ describe("seek: start from a row, Previous / Next now, seek inside the song", ()
     await flush();
     ctx.advance(20);
     const before = e.remaining().remainingSec;
-    await e.seek(100);
+    const p = e.seek(100);
+    // 2026-11: while the item is rebuilt the clock reads the target, never 0 or the old position
+    expect(e.position()).toBeCloseTo(100, 6);
+    await p;
+    expect(e.position()).toBeGreaterThanOrEqual(100);
     await flush();
     const src = ctx.sources.find((s) => s.starts.some(([, off]) => (off ?? 0) >= 99));
     expect(src).toBeDefined();
@@ -1230,7 +1234,10 @@ describe("seek: start from a row, Previous / Next now, seek inside the song", ()
     expect(offset).toBeCloseTo(100, 3);
     expect(dur).toBeCloseTo(70, 3);
     expect(e.current!.endsAt).toBeCloseTo(when! + 70, 3);
-    expect(e.position()).toBeCloseTo(100 - (when! - 20), 2);
+    // the new source starts SEEK_FADE later: the clock holds at the target until the audio is there, then runs
+    expect(when! - 20).toBeLessThan(0.05);
+    ctx.advance(when! + 1);
+    expect(e.position()).toBeCloseTo(101, 2);
     const q = (e as unknown as { queued: { planIndex: number; when: number } | null }).queued;
     expect(q?.planIndex).toBe(1);
     expect(q!.when).toBeCloseTo(e.current!.endsAt + DEFAULT_BOOTH_SETTINGS.gapSec, 3);
@@ -1239,8 +1246,8 @@ describe("seek: start from a row, Previous / Next now, seek inside the song", ()
       .flatMap((g) => g.gain.of("setValueCurveAtTime"))
       .find((c) => Math.abs((c.args[1] as number) + (c.args[2] as number) - e.current!.endsAt) < 1e-3);
     expect(curve?.args[2]).toBeCloseTo(3, 6);
-    // 20 s in → 100 s in: the night has 80 s less to go
-    expect(before - e.remaining().remainingSec).toBeCloseTo(80, 0);
+    // 20 s in → 100 s in, then 1 s played: the night has 81 s less to go
+    expect(before - e.remaining().remainingSec).toBeCloseTo(81, 0);
   });
 
   it("seek while paused: Resume starts from the new point", async () => {
@@ -1296,7 +1303,11 @@ describe("seek: start from a row, Previous / Next now, seek inside the song", ()
     );
     await e.start();
     await e.play();
-    await e.seek(60);
+    // 2026-11 (the owner: "the slider goes to zero for a second"): a player that cannot seek in place is restarted at
+    // the new position, and the clock holds the target until the new play reports in
+    const p = e.seek(60);
+    expect(e.position()).toBeCloseTo(60, 6);
+    await p;
     expect(cancelled).toBeGreaterThan(0);
     const r = starts.find((s) => s.uri === "spotify:track:a1" && s.positionSec > 0)!;
     expect(r.positionSec).toBeCloseTo(60, 6);
@@ -1684,7 +1695,14 @@ describe("2026-11: silence modes in the engine (silence counts as the gap / gap 
  * "Skip the next song" has an Undo; a reload re-attaches to the playing track.
  */
 describe("2026-11: Spotify Connect transport (instant, coalesced skips)", () => {
-  type Ext = { r: ExternalStart; cancels: boolean[]; stops: number[] };
+  type Ext = {
+    r: ExternalStart;
+    cancels: boolean[];
+    stops: number[];
+    seeks: Array<{ pos: number; dur: number | undefined }>;
+    pos: number;
+  };
+  const inPlace = { ok: true };
   function connectAdapter(fade = false) {
     const starts: Ext[] = [];
     const masters: Array<{ g: number; resync: boolean }> = [];
@@ -1703,7 +1721,7 @@ describe("2026-11: Spotify Connect transport (instant, coalesced skips)", () => 
       external: {
         capabilities: { fade, volume: true, gain: false },
         startItem(r) {
-          const x: Ext = { r, cancels: [], stops: [] };
+          const x: Ext = { r, cancels: [], stops: [], seeks: [], pos: r.positionSec + 5 };
           starts.push(x);
           if (r.delaySec < 1) setTimeout(() => r.onStarted?.(true), 0);
           return {
@@ -1712,7 +1730,14 @@ describe("2026-11: Spotify Connect transport (instant, coalesced skips)", () => 
               x.stops.push(f);
               r.onEnded();
             },
-            position: () => r.positionSec + 5,
+            position: () => x.pos,
+            // 2026-11 (seek): the device jumps inside the playing track (PUT /me/player/seek), no new play
+            seek: (pos, o) => {
+              if (!inPlace.ok) return false;
+              x.seeks.push({ pos, dur: o.durationSec });
+              x.pos = pos;
+              return true;
+            },
           };
         },
         setMaster(g, o) {
@@ -1725,6 +1750,7 @@ describe("2026-11: Spotify Connect transport (instant, coalesced skips)", () => 
   let ctx: FakeCtx;
   beforeEach(() => {
     ctx = new FakeCtx();
+    inPlace.ok = true;
   });
   async function night(fade = false) {
     const { sp, starts, masters } = connectAdapter(fade);
@@ -1837,14 +1863,37 @@ describe("2026-11: Spotify Connect transport (instant, coalesced skips)", () => 
     expect(queued.r.delaySec).toBeCloseTo(plan.items[0]!.lengthSec + plan.items[0]!.gapAfterSec + 0.05, 3);
   });
 
-  it("a seek on Connect is one play at the new position (no pause first)", async () => {
-    const { e, starts } = await night();
+  it("a seek on Connect is one seek in place (PUT /me/player/seek): no new play, no pause, no Starting…", async () => {
+    const { e, starts, plan } = await night();
     const first = starts[0]!;
-    await e.seek(60);
-    expect(first.cancels).toEqual([true]);
+    const before = nowStarts(starts).length;
+    const p = e.seek(60);
+    // the clock reads the target at once, before anything was sent or confirmed
+    expect(e.position()).toBeCloseTo(60, 6);
+    expect(e.starting).toBe(false);
+    await p;
+    expect(first.seeks).toEqual([{ pos: 60, dur: undefined }]);
+    expect(first.cancels).toEqual([]);
+    expect(nowStarts(starts).length).toBe(before);
+    expect(e.current?.planIndex).toBe(0);
+    expect(e.position()).toBeCloseTo(60, 6);
+    // the item's end and the next item's start follow the new position
+    const len = plan.items[0]!.lengthSec;
+    expect(e.current!.endsAt - ctx.currentTime).toBeCloseTo(len - 60, 3);
+    const q = starts.filter((x) => x.r.uri === "spotify:track:a2").at(-1)!;
+    expect(q.r.delaySec).toBeCloseTo(len - 60 + plan.items[0]!.gapAfterSec, 1);
+  });
+
+  it("a seek before the device confirmed the item (no in-place seek) restarts it, and the clock never reads 0", async () => {
+    const { e, starts } = await night();
+    inPlace.ok = false;
+    const p = e.seek(80);
+    expect(e.position()).toBeCloseTo(80, 6);
+    await p;
     const s = nowStarts(starts).at(-1)!;
     expect(s.r.uri).toBe("spotify:track:a1");
-    expect(s.r.positionSec).toBeCloseTo(60, 6);
+    expect(s.r.positionSec).toBeCloseTo(80, 6);
+    expect(e.position()).toBeGreaterThanOrEqual(80);
   });
 
   it("Mute and Talk ask the device's level first (resync); unmute does not", async () => {

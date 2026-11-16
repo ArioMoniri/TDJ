@@ -789,6 +789,80 @@ describe("2026-11: Spotify Connect — volume, confirmation, re-attach", () => {
   });
 });
 
+describe("2026-11: seek inside the playing song (the owner: the slider went to 0, the song started late)", () => {
+  const ipad = () => dev("ipad", { type: "Tablet", name: "iPad", is_active: true });
+  it("Connect: one PUT /me/player/seek at the new position — no new play — and the clock reads it at once", async () => {
+    vi.useFakeTimers();
+    const sp = spotify({
+      devices: () => [ipad()],
+      handlers: {
+        // the device keeps reporting where it was for a moment (Spotify applies the seek ~0.5 s later)
+        "GET /me/player": () =>
+          json({
+            is_playing: true,
+            progress_ms: 4000,
+            item: { uri: URI_A, duration_ms: 170_000 },
+            device: { id: "ipad", name: "iPad", volume_percent: 80, supports_volume: true },
+          }),
+      },
+    });
+    const a = new SpotifyAdapter({ fetchImpl: sp.fetchImpl, loadSdk: vi.fn(), phone: true });
+    await a.connect();
+    const h = a.startItem(req(URI_A).r);
+    await vi.advanceTimersByTimeAsync(600);
+    expect(sp.plays()).toHaveLength(1);
+    expect(h.seek?.(60, {})).toBe(true);
+    expect(h.position()).toBeCloseTo(60, 1);
+    await vi.advanceTimersByTimeAsync(20);
+    const seeks = sp.calls.filter((c) => c.url.includes("/me/player/seek"));
+    expect(seeks).toHaveLength(1);
+    expect(seeks[0]!.method).toBe("PUT");
+    expect(seeks[0]!.url).toBe("https://api.spotify.com/v1/me/player/seek?position_ms=60000&device_id=ipad");
+    expect(sp.plays()).toHaveLength(1);
+    // a stale report (4 s) right after the seek never pulls the clock back
+    await vi.advanceTimersByTimeAsync(1200);
+    expect(h.position()).toBeGreaterThanOrEqual(60);
+    h.cancel(true);
+  });
+
+  it("Web Playback SDK: player.seek(ms) on this browser's player, no play request; a timed item re-arms its stop", async () => {
+    vi.useFakeTimers();
+    const sp = spotify();
+    const { Ctor, players } = fakeSdk();
+    const a = new SpotifyAdapter({ fetchImpl: sp.fetchImpl, loadSdk: async () => Ctor, noFades: false, phone: false });
+    const connecting = a.connect();
+    await vi.advanceTimersByTimeAsync(10);
+    await connecting;
+    const seeks: number[] = [];
+    (players[0] as unknown as { seek: (ms: number) => Promise<void> }).seek = async (ms) => {
+      seeks.push(ms);
+    };
+    const { r, ev } = req(URI_A, { durationSec: 100 });
+    const h = a.startItem(r);
+    await vi.advanceTimersByTimeAsync(50);
+    expect(h.seek?.(80, { durationSec: 20 })).toBe(true);
+    await vi.advanceTimersByTimeAsync(10);
+    expect(seeks).toEqual([80000]);
+    expect(sp.plays()).toHaveLength(1);
+    expect(h.position()).toBeGreaterThanOrEqual(80);
+    // it now ends 20 s after the seek, not 100 s after its start
+    await vi.advanceTimersByTimeAsync(19_000);
+    expect(ev.ended).toBe(0);
+    await vi.advanceTimersByTimeAsync(1_500);
+    expect(ev.ended).toBe(1);
+  });
+
+  it("before the play went out there is nothing to seek: false (the engine restarts it)", async () => {
+    vi.useFakeTimers();
+    const sp = spotify({ devices: () => [ipad()] });
+    const a = new SpotifyAdapter({ fetchImpl: sp.fetchImpl, loadSdk: vi.fn(), phone: true });
+    await a.connect();
+    const h = a.startItem(req(URI_A, { delaySec: 30 }).r);
+    expect(h.seek?.(60, {})).toBe(false);
+    h.cancel();
+  });
+});
+
 describe("2026-11: the Mac app (no Widevine in its WebKit view) plays through the Spotify app on the Mac", () => {
   it("probes the SDK first: without Widevine no SDK is loaded and the one computer of the account is picked", async () => {
     vi.useFakeTimers();
