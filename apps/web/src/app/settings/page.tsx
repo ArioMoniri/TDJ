@@ -20,6 +20,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { About } from "@/components/About";
 import { AppConnections } from "@/components/AppConnections";
 import { IndicatorSwitches } from "@/components/booth/IndicatorSwitches";
 import { SilenceGroup } from "@/components/booth/SilenceSettings";
@@ -782,6 +783,8 @@ export default function Settings() {
             }
           />
         </Group>
+
+        <About />
       </div>
 
       <Sheet
