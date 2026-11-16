@@ -158,7 +158,9 @@ export function nightEraLabel(night: unknown, locale: Locale = getLocale()): str
 
 /** the night's actual length: "4 h 36 min", "3 h", "45 min" (rounded to the minute) */
 export function lengthText(sec: number | null | undefined): string {
-  const m = Math.max(0, Math.round((sec ?? 0) / 60));
+  // (QA fix 2026-11: whole minutes played, floored like every length — lib/lengths wholeSec; no import: the cover
+  // reads this without the engine)
+  const m = Math.max(0, Math.floor(Math.floor((sec ?? 0) + 1e-6) / 60));
   const h = Math.floor(m / 60);
   const r = m % 60;
   if (!h) return t("nightName.min", { r });

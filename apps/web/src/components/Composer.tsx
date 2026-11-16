@@ -60,7 +60,7 @@ import { haptic } from "@/lib/haptics";
 import { makeSnapshot } from "@/lib/history";
 import { testSlowdownMs, useMediaQuery, whenIdle } from "@/lib/hooks";
 import { lazy, lower, plural, t as tx } from "@/lib/i18n";
-import { lengthOf, nightMusicSec } from "@/lib/lengths";
+import { lengthOf, nightMusicSec, wholeSec } from "@/lib/lengths";
 import { rateTap, ratingOf, undoRate } from "@/lib/likes";
 import { describePreferences } from "@/lib/memory";
 import { DUR, EASE, rise, STAGGER } from "@/lib/motion";
@@ -279,7 +279,8 @@ const ERA_KEYS = [
 ] as const;
 
 function fmtDuration(sec: number) {
-  const total = Math.round(sec / 60);
+  // (QA fix 2026-11: floored like every other length, lib/lengths wholeSec)
+  const total = Math.floor(wholeSec(sec) / 60);
   const h = Math.floor(total / 60);
   const m = total % 60;
   return tx("composer.h_min", { h, p1: String(m).padStart(2, "0") });

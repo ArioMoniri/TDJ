@@ -14,7 +14,7 @@ import {
 import { useCallback, useContext, useEffect, useMemo } from "react";
 import { haptic } from "@/lib/haptics";
 import { lazy, t as tx } from "@/lib/i18n";
-import { lengthOf, tandaTotal, totalText } from "@/lib/lengths";
+import { fmtLen, lengthOf, tandaTotal, totalText } from "@/lib/lengths";
 import { nightItems, PlayListContext, playTanda } from "@/lib/playback";
 import { useStore } from "@/lib/store";
 import { tandaSuccessionView } from "@/lib/succession";
@@ -37,7 +37,8 @@ const PHASE: Record<string, string> = lazy(() => ({
   close: tx("phase.close"),
 }));
 const years = (r: [number, number] | null) => (!r ? "–" : r[0] === r[1] ? `${r[0]}` : `${r[0]}–${r[1]}`);
-const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
+/** (QA fix 2026-11: the shared floor rule, as Compose and the Booth print) */
+const mmss = (s: number) => fmtLen(s);
 
 /**
  * Wide screens (round 23): the inspector beside the set (Music's / Finder's inspector). It follows the tanda the DJ
