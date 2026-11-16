@@ -36,6 +36,9 @@ export type Track = {
   cuts: Array<{ from: number; to: number; keep: number }>;
   /** a second recording shown beside this one (two DJs in a room) */
   pair?: string;
+  /** the page's background and colour scheme at the start: a phone frame's status bar takes them */
+  bg?: string;
+  dark?: boolean;
 };
 
 export const SLOW = Number(process.env.MEDIA_SLOWMO ?? 4);
@@ -151,11 +154,25 @@ export class Recorder {
         this.cdp.send("Animation.setPlaybackRate", { playbackRate: 1 / this.slow }).catch(() => {});
     });
     await this.warp(this.slow);
+    // the screencast at the page's own pixels: 2× on a laptop or an iPad, 3× on a phone
+    const dpr = await this.page.evaluate(() => window.devicePixelRatio || 2);
+    const look = await this.page.evaluate(() => {
+      const top = document.elementFromPoint(window.innerWidth / 2, 2) ?? document.body;
+      let el: Element | null = top;
+      let bg = "rgba(0, 0, 0, 0)";
+      while (el && /rgba\(0, 0, 0, 0\)|transparent/.test(bg)) {
+        bg = getComputedStyle(el).backgroundColor;
+        el = el.parentElement;
+      }
+      return { bg, dark: matchMedia("(prefers-color-scheme: dark)").matches };
+    });
+    this.track.bg = look.bg;
+    this.track.dark = look.dark;
     await this.cdp.send("Page.startScreencast", {
       format: "jpeg",
       quality: Number(process.env.MEDIA_JPEG_Q ?? 92),
-      maxWidth: vp.width * 2,
-      maxHeight: vp.height * 2,
+      maxWidth: Math.round(vp.width * Math.max(2, dpr)),
+      maxHeight: Math.round(vp.height * Math.max(2, dpr)),
       everyNthFrame: 1,
     });
     this.t0 = Date.now();

@@ -213,6 +213,27 @@ Banners: `media/social-preview.png` (1280×640, GitHub → Settings → Social p
 
 Upload (Linux, API key in env): `cd apps/desktop && bundle exec fastlane ios metadata && bundle exec fastlane mac metadata`.
 
+### README media
+
+All README media are real captures of the app, framed by apps/video (Remotion): one 16:10 column at 840 px
+(GIFs at 1680 px where they fit under 8 MB, else 840; `pnpm readme:check` enforces 8 MB, GitHub stops inlining at 10).
+The device frames are drawn in `apps/video/src/frames.ts` (laptop straight on, iPad, a phone at 393 × 852 pt with
+its status bar) and shared by the clips and the stills; no product images or logos.
+
+| Command | Makes | Takes (cloud machine, one Chromium, Remotion at concurrency 2) |
+|---|---|---|
+| `pnpm media` | the clips (`media/readme/<clip>.{mp4,gif}`) and stills (`.webp`) | see the header of `apps/web/scripts/capture-media.ts` |
+| `pnpm media:hero` | the hero under the tagline: a laptop opens and the app plays on it; `hero.{gif,mp4,webm}`, README line updated | capture ~2 min, compose ~6–9 min, encode ~3 min |
+| `pnpm media:hero --draft` | the same as `hero-draft.*`, README untouched | |
+
+Both need a production server: `pnpm --filter @tdj/web build && pnpm --filter @tdj/web start -p 3975`, then
+`TDJ_URL=http://localhost:3975 pnpm media:hero`. Captures run with the app's capture flag (`?capture=1`, set by the
+recorder): no help tag or hint bubble ever shows by the cursor; the cursor and click ripples are drawn by apps/video.
+Song previews are answered with a synthesised tango (`apps/web/scripts/media/tango-audio.ts`: bass and piano
+marcato, bandoneón line, string pad, phrase stops), so waveforms look like music; no recorded audio is shipped.
+`--skip=capture` re-composes the last capture; `--keep-master` keeps the lossless composite so
+`--skip=capture,render` only re-encodes.
+
 ## Mac checks (need real hardware; first TestFlight build)
 
 - Sign in to Spotify / Dropbox in the fallback sign-in window; Google needs the server's app-ticket login
