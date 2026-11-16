@@ -30,3 +30,5 @@ One app for all three. On iPhone and iPad the night keeps playing with the scree
 
 PRIVATE BY DESIGN
 Everything runs on your device. There is no account and nothing is sent to us. Features that use a language model take your own API key, which stays in the Keychain. Spotify playback needs Spotify Premium.
+
+Developed by Ariorad Moniri

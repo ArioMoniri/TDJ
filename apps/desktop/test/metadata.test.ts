@@ -68,7 +68,7 @@ describe.each(LOCALES)("metadata %s", (locale) => {
 describe("shared metadata", () => {
   it("category Music, copyright, review notes say no login", () => {
     expect(read("primary_category.txt").trim()).toBe("MUSIC");
-    expect(read("copyright.txt").trim()).toBe("© 2026 Ario Moniri");
+    expect(read("copyright.txt").trim()).toBe("© 2026 Ariorad Moniri");
     const notes = read("review_information/notes.txt");
     expect(notes).toMatch(/No login/);
     expect(notes).toMatch(/No demo account/);

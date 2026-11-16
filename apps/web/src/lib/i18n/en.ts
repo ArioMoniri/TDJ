@@ -113,6 +113,7 @@ export const en = {
   "about.channel_ios": "App Store (iPhone and iPad)",
   "about.channel_mac_app_store": "Mac App Store",
   "about.channel_web": "Web",
+  "about.developed_by": "Developed by Ariorad Moniri",
   "about.footer":
     "The web, iPhone, iPad and Mac apps share one version number. Nothing updates during a night.",
   "about.get_updates": "Get updates",

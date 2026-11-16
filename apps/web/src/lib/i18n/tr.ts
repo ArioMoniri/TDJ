@@ -269,6 +269,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "about.channel_ios": "App Store (iPhone ve iPad)",
   "about.channel_mac_app_store": "Mac App Store",
   "about.channel_web": "Web",
+  "about.developed_by": "Geliştiren: Ariorad Moniri",
   "about.footer":
     "Web, iPhone, iPad ve Mac uygulamaları aynı sürüm numarasını taşır. Gece sürerken hiçbir şey güncellenmez.",
   "about.get_updates": "Güncellemeleri al",
