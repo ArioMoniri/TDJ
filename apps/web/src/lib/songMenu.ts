@@ -71,6 +71,9 @@ export const LONG_PRESS_MS = 500;
 /** a finger that moves farther than this is scrolling, not pressing */
 export const LONG_PRESS_SLOP = 10;
 
+/** the elements whose long press drags a row (components/ui/useDragReorder.ts, components/booth/reorder.ts) */
+const DRAG_HANDLE = '.drag-handle, [data-testid="drag-handle"], [data-drag-handle], .booth-row-n';
+
 const editable = (t: EventTarget | null) =>
   t instanceof HTMLElement && !!t.closest("input, textarea, select, [contenteditable='true']");
 
@@ -130,6 +133,8 @@ export function useSongMenuProps(spec: SongMenuSpec | null | (() => SongMenuSpec
     const clear = () => {
       if (timer) clearTimeout(timer);
       timer = null;
+      window.removeEventListener("pointerup", clear, true);
+      window.removeEventListener("pointercancel", clear, true);
     };
     const show = (x: number, y: number, touch: boolean, from: HTMLElement) => {
       const { list: l } = live.current;
@@ -151,11 +156,16 @@ export function useSongMenuProps(spec: SongMenuSpec | null | (() => SongMenuSpec
       onPointerDownCapture: (e) => {
         clear();
         if (e.pointerType === "mouse" || !cur()?.song || editable(e.target)) return;
+        // a drag handle's long press picks the row up (Compose, Build by hand, the Booth's numbers): never the menu
+        if (e.target instanceof Element && e.target.closest(DRAG_HANDLE)) return;
         x0 = e.clientX;
         y0 = e.clientY;
         const row = e.currentTarget;
+        // the finger lifting anywhere ends the press (a captured pointer may not come back through the row)
+        window.addEventListener("pointerup", clear, true);
+        window.addEventListener("pointercancel", clear, true);
         timer = setTimeout(() => {
-          timer = null;
+          clear();
           // a drag picked the row up (Compose's tanda rows, the Booth's set list): no menu
           if (row.closest("[data-dragging]") || row.querySelector("[data-dragging]")) return;
           if (!show(x0, y0, true, row)) return;

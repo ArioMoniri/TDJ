@@ -5,12 +5,9 @@
  * list shows covers with "This recording" first; the recordings chart never widens a 393 px page. Spotify's search,
  * LRCLIB and the previews are mocked: no live network.
  */
-import { mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { expect, type Locator, type Page, test } from "@playwright/test";
 
-/** a mono WAV of clicks (the DJ's "file", and the previews) */
+/** a mono WAV of clicks (the 30 s previews the night plays) */
 function clickWav(sec: number, rate = 22050): Buffer {
   const n = rate * sec;
   const x = new Float32Array(n);
@@ -38,8 +35,8 @@ function clickWav(sec: number, rate = 22050): Buffer {
   h.writeUInt32LE(data.length, 40);
   return Buffer.concat([h, data]);
 }
-const WAV = clickWav(40);
-const CLIP = clickWav(30, 8000);
+
+const CLIP = clickWav(30);
 const SPOTIFY_IMAGE = "https://i.scdn.co/image/sosa-300";
 
 async function mocks(page: Page) {
@@ -147,7 +144,9 @@ const closeDetails = async (page: Page) => {
   await expect(page.getByTestId("song-details-sheet")).toHaveCount(0);
 };
 
-test("Compose: right-click and long press on a track row open the song menu → Song details", async ({ page }) => {
+test("Compose: right-click and long press on a track row open the song menu → Song details", async ({
+  page,
+}) => {
   await mocks(page);
   await page.goto("/?featured=golden-double-peak");
   await expect(page.locator("#result")).toBeVisible({ timeout: 90000 });
@@ -201,7 +200,11 @@ test("Library and Database: the menu on a result, and the versions: covers, “T
   // "Tempo · key · energy" shows the tempo and key when known, else Measure
   const tempo = sheet.getByTestId("song-tempo");
   await expect(
-    tempo.getByTestId("song-bpm").or(tempo.getByTestId("song-key")).or(tempo.getByTestId("song-tempo-measure")).first(),
+    tempo
+      .getByTestId("song-bpm")
+      .or(tempo.getByTestId("song-key"))
+      .or(tempo.getByTestId("song-tempo-measure"))
+      .first(),
   ).toBeVisible();
   // a version row has the menu too (right-click → Song DNA is there)
   await versions.getByTestId("song-version").nth(1).click({ button: "right" });
@@ -284,30 +287,13 @@ test("the Booth: the menu on a set-list row; Song info → Song DNA → Back kee
   await page.getByTestId("play-the-night").first().click();
   await expect(page).toHaveURL(/\/booth/, { timeout: 60000 });
   await expect(page.getByTestId("booth-now-title")).toBeVisible({ timeout: 30000 });
-  type S = {
-    getState: () => {
-      state: string;
-      planIndex: number;
-      plan: { items: Array<{ kind: string; title: string; artist: string }> };
-    };
-  };
+  type S = { getState: () => { state: string } };
   const state = () =>
     page.evaluate(() => (window as unknown as { __tdjBooth: S }).__tdjBooth.getState().state);
-  const now = await page.evaluate(() => {
-    const s = (window as unknown as { __tdjBooth: S }).__tdjBooth.getState();
-    return s.plan.items[s.planIndex]!;
-  });
-  const safe = (s: string) =>
-    s
-      .replace(/[/\\:*?"<>|]+/g, "-")
-      .replace(/\s+/g, " ")
-      .trim();
-  const dir = mkdtempSync(join(tmpdir(), "tdj-menu-"));
-  writeFileSync(join(dir, `${safe(now.artist)} - ${safe(now.title)}.mp3`), WAV);
-  await page.getByTestId("booth-folder-input").setInputFiles(dir);
-  await expect(page.locator('[data-plan-index][data-source="file"]').first()).toBeVisible({ timeout: 15000 });
+  // the night plays its (mocked) 30 s clips: no file needed
+  await expect(page.getByTestId("booth-ttc")).not.toHaveAttribute("data-resolving", "1", { timeout: 30000 });
   await page.getByTestId("booth-start").click();
-  await expect.poll(state, { timeout: 30000 }).toBe("playing");
+  await expect(page.getByTestId("booth")).toHaveAttribute("data-state", "playing", { timeout: 30000 });
 
   // a set-list row: right-click → Song details opens the Booth's own song sheet
   const row = page.locator('.booth-row[data-kind="track"]').nth(2);

@@ -5,7 +5,12 @@ import { chartLayout, LANE_MIN, PX_PER_YEAR, SAME_YEAR_STEP } from "./dnaChart";
  * 2026-11 — Song DNA's "Recordings over the years": lanes per orchestra by first recording, decade lines, same-year
  * marks spread across the lane (never stacked on one spot), the current one found, undated ones counted.
  */
-const R = (id: string, orchestraId: string, year: number | null, o: { vocal?: boolean; current?: boolean } = {}) => ({
+const R = (
+  id: string,
+  orchestraId: string,
+  year: number | null,
+  o: { vocal?: boolean; current?: boolean } = {},
+) => ({
   id,
   orchestra: orchestraId.toUpperCase(),
   orchestraId,
