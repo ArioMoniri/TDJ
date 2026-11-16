@@ -1,14 +1,18 @@
 name: Store assets
-# App Store screenshots (bundled app UI: iPhone 6.9" + 6.5", iPad 13" + 12.9", Mac 2880x1800; en-US + tr), banners,
-# metadata checks and a contact sheet for review: Linux only, no macOS minutes. Same as `pnpm store:shots`. Uploading
-# to App Store Connect (fastlane deliver with the API key) runs only when the upload input is set (repository secrets).
+# Store creative v2 (`pnpm store:creative`, apps/desktop/store/creative): screenshots of the bundled app UI for iPhone
+# 6.9" + 6.5", iPad 13" + 12.9", Mac 2880x1800 + 2560x1600 and iPhone Duo (outer + inner), 8 panels each, en-US + tr;
+# the product page Header and Search Results images; app previews for iPhone, iPad and Mac (Remotion, H.264 + AAC);
+# metadata checks and a review page. Linux only, no macOS minutes. Uploading to App Store Connect (fastlane deliver
+# with the API key: metadata, screenshots and app previews, iOS then Mac) runs only when the upload input is set.
+# iPhone Duo and the Header and Search Results images go up by hand (docs/RELEASING.md → Store creative).
 on:
   pull_request:
-    paths: ["apps/desktop/fastlane/**", "apps/desktop/store/**", "apps/desktop/ui/**", "apps/web/src/**"]
+    paths:
+      ["apps/desktop/fastlane/**", "apps/desktop/store/**", "apps/desktop/ui/**", "apps/web/src/**", "apps/video/src/**"]
   workflow_dispatch:
     inputs:
       upload:
-        description: "Upload metadata + screenshots to App Store Connect (after approval)"
+        description: "Upload metadata, screenshots and app previews to App Store Connect (after approval)"
         type: boolean
         default: false
   workflow_call:
@@ -20,7 +24,7 @@ concurrency: store-assets-${{ github.ref }}
 jobs:
   assets:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
@@ -31,31 +35,44 @@ jobs:
         run: pnpm --filter @tdj/desktop test
       - name: Bundled UI (static export of apps/web)
         run: pnpm --filter @tdj/desktop ui
-      - name: Browser
-        run: pnpm --filter @tdj/desktop exec playwright install --with-deps chromium
+      - name: Browser and ffmpeg
+        run: |
+          pnpm --filter @tdj/desktop exec playwright install --with-deps chromium
+          command -v ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg)
       - name: Standalone check (the bundle with the native side mocked; no request may leave the runner)
         env:
           CHROMIUM: ""
         run: pnpm --filter @tdj/desktop standalone
-      - name: Capture, compose, contact sheet
+      - name: Store creative (captures, screenshot sets, header images, app previews, review page)
         env:
           CHROMIUM: ""
-        run: pnpm --filter @tdj/desktop run screenshots
+        run: pnpm --filter @tdj/desktop store:creative --reuse-ui
+      - name: Banners (README, social preview)
+        env:
+          CHROMIUM: ""
+        run: pnpm --filter @tdj/desktop exec tsx store/capture.ts --devices=iphone69,ipad13,mac --scenes=02_booth,03_transition,01_compose --locales=en-US && pnpm --filter @tdj/desktop store:banner
       - uses: actions/upload-artifact@v4
         with:
           name: store-assets
           path: |
             apps/desktop/fastlane/screenshots
             apps/desktop/fastlane/screenshots_mac
+            apps/desktop/fastlane/screenshots_mac2560
             apps/desktop/fastlane/screenshots_ipad129
-            apps/desktop/store/out/contact-sheet.html
+            apps/desktop/fastlane/screenshots_duo
+            apps/desktop/fastlane/app_previews
+            apps/desktop/fastlane/app_previews_mac
+            apps/desktop/fastlane/app_previews_posters
+            apps/desktop/fastlane/product_page
+            apps/desktop/fastlane/store-creative.html
           retention-days: 30
       - name: Summary
         run: |
           {
             echo "## Store assets"
-            echo "Download the **store-assets** artifact and open \`store/out/contact-sheet.html\` (keep the folder layout)."
-            find apps/desktop/fastlane/screenshots apps/desktop/fastlane/screenshots_mac apps/desktop/fastlane/screenshots_ipad129 -name '*.jpg' | sort | sed 's/^/- /'
+            echo "Download the **store-assets** artifact and open \`fastlane/store-creative.html\` (keep the folder layout)."
+            echo "By hand in App Store Connect: \`screenshots_duo/\` (iPhone Duo) and \`product_page/\` (Header and Search Results)."
+            cd apps/desktop/fastlane && find screenshots* app_previews* product_page -type f | sort | sed 's/^/- /'
           } >> "$GITHUB_STEP_SUMMARY"
 
   upload:
@@ -66,10 +83,11 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: actions/download-artifact@v4
-        with: { name: store-assets, path: apps/desktop }
+        # every file sits under apps/desktop/fastlane/, which the artifact keeps as its root
+        with: { name: store-assets, path: apps/desktop/fastlane }
       - uses: ruby/setup-ruby@v1
         with: { ruby-version: "3.3", bundler-cache: true, working-directory: apps/desktop }
-      - name: fastlane deliver (iPhone + iPad, then Mac) — metadata and screenshots, no binary
+      - name: fastlane deliver (iPhone + iPad, then Mac) — metadata, screenshots and app previews, no binary
         working-directory: apps/desktop
         env:
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}

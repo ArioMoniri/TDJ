@@ -162,7 +162,7 @@ the Mac (they are normally uploaded from Linux, below).
 | Workflow | Runner | When | What |
 |---|---|---|---|
 | **Native check** (`native-check.yml`) | Linux | PRs touching the apps, CLI, release scripts or workflows | `cargo fmt/clippy/test`, macOS + iPadOS type-check from Linux, release-script tests (mocked API), CLI tests, metadata limits, shellcheck, actionlint |
-| **Store assets** (`store-assets.yml`) | Linux | PRs touching metadata, store pipeline or `apps/web/src`; manual | `pnpm store:shots` on a runner: iPhone 6.9"/6.5", iPad 13"/12.9", Mac, en-US + tr, banners, contact sheet artifact; with `upload`: `fastlane deliver` metadata + screenshots |
+| **Store assets** (`store-assets.yml`) | Linux | PRs touching metadata, store pipeline, `apps/web/src` or `apps/video/src`; manual | `pnpm store:creative` on a runner: screenshot sets (iPhone 6.9"/6.5", iPad 13"/12.9", Mac 2880/2560, iPhone Duo outer/inner), Header and Search Results images, app previews, en-US + tr, banners, review page artifact; with `upload`: `fastlane deliver` metadata + screenshots + app previews (iOS, then Mac) |
 | **Apple setup** (`apple-setup.yml`) | Linux | manual | the same idempotent signing setup through the API; stores `.p12` + passwords + profiles in AWS SSM `/tdj/apple/*` with the deploy OIDC role |
 | **Release apps** (`release-apps.yml`) | **one macOS job** | `v*` tag or manual | checks the tag against `package.json`, runs `scripts/release/mac-build.sh` (signing from SSM, else the repository secrets), publishes the release, deploys the web from the same commit, then uploads metadata and submits for App Review |
 | **Check secrets** (`check-secrets.yml`) | Linux | manual, or when that file changes | prints only `true/false` per expected secret/variable name |
@@ -188,30 +188,83 @@ checks every App Store limit (keywords ≤ 100 bytes, name/subtitle ≤ 30, prom
 description names what the app does on each device, and that the copy stays plain (no exclamation marks, em dashes
 or hype words). Review notes: `metadata/review_information/notes.txt` (no demo account; iPhone steps included).
 
-Screenshots and banners, **one command** (Linux or Mac, Chromium; ~25 min):
+Screenshots, header images and app previews, **one command** (Linux or Mac; Chromium, Remotion, ffmpeg; ~45 min):
 
 ```bash
-pnpm store:shots                     # = pnpm --filter @tdj/desktop store:shots
-open apps/desktop/store/out/contact-sheet.html
+pnpm store:creative                          # = pnpm --filter @tdj/desktop store:creative → apps/desktop/fastlane/
+pnpm store:creative --out=/tmp/drafts        # a draft somewhere else; --reuse-ui skips the UI build
+open apps/desktop/fastlane/store-creative.html
 ```
 
-It builds the bundled UI, captures each scene with the native side mocked (safe areas emulated: status bar,
-Dynamic Island, home indicator), frames it (`store/compose.ts`), renders the banners (`store/banner.ts`) and writes
-a contact sheet. Re-run only part of it: `pnpm --filter @tdj/desktop exec tsx store/capture.ts --devices=iphone69
---scenes=02_booth --locales=tr`, then the same flags on `store/compose.ts`. Scenes and captions:
-`apps/desktop/store/scenes.ts`; design notes: [design/store-assets.md](design/store-assets.md).
+It builds the bundled UI, captures every shot with the native side mocked on five capture devices (iPhone, iPad,
+Mac, iPhone Duo folded and open; safe areas emulated; Rooms with two DJs through a linked server held in memory,
+`store/creative/rooms.ts`), draws each set as one panorama cut into eight panels (`store/creative/compose.ts`),
+draws the product page header images, renders the app previews with Remotion (`apps/video/src/StorePreview.tsx`,
+an original synthesised bed, `store/creative/audio.ts`), re-encodes them to Apple's spec with ffmpeg and checks
+them with ffprobe, writes the review page, and deletes the raw captures. Memory: one Chromium at a time, one static
+server (`PORT`, default 3986), Remotion at concurrency 1. Parts: `--sets=iphone69,mac --previews=iphone
+--no-previews --no-headers --locales=tr --skip-capture --keep-raw`. Words, shots and sizes:
+`apps/desktop/store/creative/spec.ts`; design notes: [design/store-assets.md](design/store-assets.md). Tests:
+`apps/desktop/test/creative.test.ts` (sizes, limits, safe areas, file names, the rendered files).
 
-| Folder (`apps/desktop/fastlane/`) | Devices | Uploaded by |
+| Folder (`apps/desktop/fastlane/`) | What | Uploaded by |
 |---|---|---|
-| `screenshots/<locale>/` | iPhone 6.9" 1320×2868, iPhone 6.5" 1284×2778, iPad 13" 2064×2752 | `fastlane ios metadata` (deliver picks the slot from the size) |
+| `screenshots/<locale>/` | iPhone 6.9" 1320×2868, iPhone 6.5" 1284×2778, iPad 13" 2064×2752 (8 each) | `fastlane ios metadata` (deliver picks the slot from the size) |
 | `screenshots_ipad129/<locale>/` | iPad 12.9" 2048×2732 | `fastlane ios metadata ipad:129` instead of the 13" set (same App Store Connect slot) |
 | `screenshots_mac/<locale>/` | Mac 2880×1800 | `fastlane mac metadata` |
+| `screenshots_mac2560/<locale>/` | Mac 2560×1600 | `fastlane mac metadata mac:2560` instead of the 2880 set (one Mac slot) |
+| `app_previews/<locale>/` | iPhone 886×1920 (`IPHONE_67`, the 6.9" slot; 6.5" falls back to it), iPad 1200×1600 (`IPAD_PRO_3GEN_129`, 13") | `fastlane ios metadata` (`app_previews_path`, poster frame at 5 s, previous previews replaced) |
+| `app_previews_mac/<locale>/` | Mac 1920×1080 (`DESKTOP`) | `fastlane mac metadata` |
+| `app_previews_posters/<locale>/` | the poster frames (5 s), for review | — |
+| `screenshots_duo/<locale>/` | iPhone Duo outer 1398×2034, inner 2853×2007 | **by hand** (below) |
+| `product_page/<locale>/` | Header 3840×1646 (21:9), Universal 5244×2950 (16:9 PNG, header and search results) | **by hand** (below) |
 
-Banners: `media/social-preview.png` (1280×640, GitHub → Settings → Social preview, under 1 MB) and
-`media/store-banner.webp` (2560×1280, the README hero). Badges: Apple's official artwork, unmodified, in
-`media/badges/` (black, plus white for dark mode; en-US and tr), from Apple's marketing tools.
+### By hand in App Store Connect (no API or fastlane support yet, checked 2026-11-16)
 
-Upload (Linux, API key in env): `cd apps/desktop && bundle exec fastlane ios metadata && bundle exec fastlane mac metadata`.
+fastlane 2.241's deliver detects screenshot slots from the image size and has no iPhone Duo display type, and the
+App Store Connect API has no Duo `ScreenshotDisplayType` (only the Asset Library's `IPHONE_DUO` display class) and no
+endpoint for the product page's Header and Search Results placements. Upload these from the
+`store-assets` artifact (or `apps/desktop/fastlane/` after `pnpm store:creative`):
+
+1. **iPhone Duo screenshots.** App Store Connect → Apps → T-DJ → the iOS version being prepared → Previews and
+   Screenshots → iPhone → **iPhone Duo**. For each language (English (U.S.), then Turkish in the language menu at the
+   top right): drag `screenshots_duo/<locale>/01_…_duoOuter.jpg` … `08_…_duoOuter.jpg` into the outer-display
+   well and the eight `…_duoInner.jpg` into the inner-display well, in file-name order. For the app preview, the
+   iPhone Duo slot takes the iPhone video: drag `app_previews/<locale>/IPHONE_67_tdj.mp4`, then **Set poster frame**
+   at 0:05. Save. (Submitting Duo screenshots adds the "made for iPhone Duo" badge; required for apps built with the
+   iOS 27.1 SDK from April 2027.)
+2. **Header and Search Results** (iOS 27 / iPadOS 27 App Store). App Store Connect → T-DJ → the version → Product
+   Page Information → **Header and Search Results** → Universal → Upload → `product_page/<locale>/universal-16x9.png`
+   (5244×2950 PNG, no alpha; fills the header and the search results); then the **Product page header** placement →
+   `product_page/<locale>/header-21x9.png` (3840×1646). Use Preview to check the iPhone, iPad and Mac crops and the
+   Turkish localisation, then Save. Apple reviews the asset with the next version, or on its own from the Asset
+   Library (a released app needs no new version to replace it).
+3. Keep the order: upload screenshots and previews with fastlane first (`overwrite_screenshots` would not touch the
+   hand-uploaded Duo set, which deliver does not know).
+
+### iPhone Duo: what the iOS app needs
+
+- **Sizes.** Outer display 1398×2034 px (466×678 pt at 3x, portrait, a camera region at the top), inner display
+  2853×2007 px open like a book (951×669 pt, the fold down the middle; 2007×2853 rotated). Apple publishes no point
+  sizes: these are the screenshot sizes at 3x, to confirm in Device Hub's iPhone Duo simulator (Xcode 27.1).
+- **Build with the iOS 27.1 SDK** so the app runs edge to edge on both displays (toolbars and tab bars move below the
+  status bar, which is a vertical bar on the trailing edge when open: insets differ left and right). Older SDKs get a
+  centred window with empty space around it.
+- **Info.ios.plist.** The app is already universal (`TARGETED_DEVICE_FAMILY "1,2"`). The inner display ignores
+  `UISupportedInterfaceOrientations` (the iPhone's portrait-only key does not hold it in portrait), and since iOS 27
+  `UIRequiresFullScreen` no longer opts out of resizing: no key change is needed, but nothing may assume portrait.
+  `UIApplicationSupportsMultipleScenes` stays off (one window; the outer display cannot open a second one).
+  `UILaunchScreen` (the ink colour) works for both displays; there is no storyboard to size.
+- **Layout.** The app is the web UI in a WKWebView: a fold or unfold is a resize of the same page (iOS resizes the
+  scene discretely), so the CSS breakpoints decide the layout. Folded (466 pt) it is the phone layout (tab bar); open
+  (951 pt) it is the tablet layout (navigation pill, `sm`–`lg`); the two-column sidebar layout starts at `lg`
+  (1024 pt), so the open Duo does not get it today (see the UI notes in the store-creative report). A resize must not
+  reload the page or interrupt the Booth: `apps/web/e2e/duo-fold.spec.ts` folds and unfolds mid-night in every
+  posture (projects `iphone-duo-*` in `playwright.config.ts`) and checks no reload, the same song still playing,
+  the clock moving, and the navigation for each width. The layout specs (`wave4-mobile`, `booth-ui2`, `qa`) run
+  iPhone Duo folded and open in their matrices: `cd apps/web && pnpm e2e --grep "iPhone Duo|iphone-duo"`.
+- **Native side.** Nothing reads `UIDevice.orientation` or the screen size in `src-tauri`; the keep-awake idle timer
+  and background audio are per app, not per display.
 
 ### README media
 
@@ -275,7 +328,8 @@ render cheap and the GIF small.
 | No Developer ID identity | the key could not create it: owner step 6 |
 | `openssl pkcs12 failed: No certificate matches private key` on `--devid-cer` | the `.cer` was made from an older CSR. Since 2026-11-14 the pending key + CSR are kept until a `.cer` is imported; make the certificate from `DEVELOPER_ID_APPLICATION_CERT_CSR` in the store |
 | Developer ID identity listed as `CSSMERR_TP_NOT_TRUSTED` | the Developer ID G2 intermediate CA is missing; `mac-build.sh` now imports it (and WWDR G3) into the signing keychain |
-| App Store Connect asks for iPhone screenshots | expected since the app is universal: `pnpm store:shots` makes them (6.9" and 6.5"), `fastlane ios metadata` uploads them |
+| App Store Connect asks for iPhone screenshots | expected since the app is universal: `pnpm store:creative` makes them (6.9" and 6.5"), `fastlane ios metadata` uploads them |
+| deliver: "unsupported screenshot size" or a Duo image in an iPhone slot | the Duo sets live in `screenshots_duo/`, never in `screenshots/`: upload them by hand (Store texts and screenshots → By hand) |
 | A committed `gen/apple/project.yml` still says `TARGETED_DEVICE_FAMILY: "2"` | `mac-build.sh` rewrites it to `"1,2"` on every run (`TDJ_IOS_DEVICE_FAMILY=2` for an iPad-only build) |
 | `version.mjs --check` fails | a copy drifted or the tag differs: `pnpm release:version <x.y.z>`, commit, tag again |
 | `tauri ios build` cannot sign | rerun: every run re-checks the profile against the current certificate and replaces a stale one |

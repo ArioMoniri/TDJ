@@ -44,6 +44,17 @@ SUBMISSION_INFO = {
   content_rights_has_rights: true,
 }.freeze
 
+# App previews (`pnpm store:creative`, store/creative/preview.ts): app_previews/<locale>/ holds the iPhone (IPHONE_67, the
+# 6.9" slot; 6.5" falls back to it) and iPad 13" (IPAD_PRO_3GEN_129) videos, app_previews_mac/<locale>/ the Mac one
+# (DESKTOP). deliver tells the slot from the file name; the poster frame is the frame at 5 s.
+PREVIEW_FRAME = "00:00:05:00"
+
+def previews_for(platform)
+  dir = File.expand_path(platform == "osx" ? "app_previews_mac" : "app_previews", __dir__)
+  return {} unless Dir.glob(File.join(dir, "*", "*.{mp4,mov,m4v}")).any?
+  { app_previews_path: dir, preview_frame_time_code: PREVIEW_FRAME, overwrite_preview_videos: true }
+end
+
 def deliver_common(platform, screenshots)
   {
     api_key: asc_key,
@@ -58,11 +69,13 @@ def deliver_common(platform, screenshots)
     precheck_include_in_app_purchases: false,
     run_precheck_before_submit: false,
     force: true, # no HTML preview prompt (CI / unattended Mac)
-  }
+  }.merge(previews_for(platform))
 end
 
-# iOS screenshots (`pnpm store:shots`, apps/desktop/store): screenshots/<locale>/ holds the iPhone 6.9" and 6.5" sets
-# and the iPad 13" set; deliver picks each slot from the image size. The iPad 12.9" set (2048x2732) shares the 13" slot
+# iOS screenshots (`pnpm store:creative`, apps/desktop/store/creative): screenshots/<locale>/ holds the iPhone 6.9" and
+# 6.5" sets and the iPad 13" set; deliver picks each slot from the image size. iPhone Duo (screenshots_duo/) and the
+# product page Header and Search Results images (product_page/) are not known to deliver yet: docs/RELEASING.md says
+# how they go up by hand. The iPad 12.9" set (2048x2732) shares the 13" slot
 # in App Store Connect, so it lives in screenshots_ipad129/ and goes up instead of the 13" set only with ipad:129.
 def ios_screenshots(o)
   base = File.expand_path("screenshots", __dir__)
@@ -80,7 +93,7 @@ def ios_screenshots(o)
 end
 
 platform :ios do
-  desc "Upload iPhone + iPad metadata and screenshots (no binary); ipad:129 sends the 12.9-inch iPad set"
+  desc "Upload iPhone + iPad metadata, screenshots and app previews (no binary); ipad:129 sends the 12.9-inch iPad set"
   lane :metadata do |o|
     deliver(**deliver_common("ios", ios_screenshots(o)), skip_binary_upload: true)
   end
@@ -100,10 +113,15 @@ platform :ios do
   end
 end
 
+# The Mac slot takes one 16:10 size: 2880x1800 (screenshots_mac/) by default, 2560x1600 (screenshots_mac2560/) with mac:2560.
+def mac_screenshots(o)
+  File.expand_path(o[:mac].to_s == "2560" ? "screenshots_mac2560" : "screenshots_mac", __dir__)
+end
+
 platform :mac do
-  desc "Upload Mac metadata + screenshots (no binary)"
-  lane :metadata do
-    deliver(**deliver_common("osx", File.expand_path("screenshots_mac", __dir__)), skip_binary_upload: true)
+  desc "Upload Mac metadata, screenshots and the app preview (no binary); mac:2560 sends the 2560x1600 set"
+  lane :metadata do |o|
+    deliver(**deliver_common("osx", mac_screenshots(o)), skip_binary_upload: true)
   end
 
   desc "Upload a Mac App Store pkg to TestFlight: fastlane mac beta pkg:path/TDJ.pkg"
