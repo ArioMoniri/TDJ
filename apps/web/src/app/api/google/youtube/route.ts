@@ -7,6 +7,7 @@ import {
   createYoutubePlaylist,
   featureLogin,
   hasScope,
+  syncYoutube,
   YOUTUBE_BUDGET_MS,
   youtubePlaylist,
   youtubeUrl,
@@ -45,10 +46,17 @@ export async function POST(req: Request) {
       typeof body.playlistId === "string" && /^[A-Za-z0-9_-]{1,120}$/.test(body.playlistId)
         ? (body.playlistId as string)
         : null;
+    // 2026-11, `sync: true` (the exported playlists' sync): a row may come without its video (a new song): it is
+    // searched first (lib/server/google.ts → syncYoutube)
+    const sync = body.sync === true;
     const expected = Array.isArray(body.expected)
       ? (body.expected as Array<{ videoId?: unknown; query?: unknown }>)
           .slice(0, 400)
-          .filter((x) => typeof x?.videoId === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(x.videoId))
+          .filter(
+            (x) =>
+              (typeof x?.videoId === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(x.videoId)) ||
+              (sync && x?.videoId === "" && typeof x?.query === "string" && !!x.query.trim()),
+          )
           .map((x) => ({ videoId: x.videoId as string, query: String(x.query ?? "").slice(0, 200) }))
       : null;
     if (!playlistId || !expected)
@@ -60,7 +68,11 @@ export async function POST(req: Request) {
       );
     const region =
       typeof body.region === "string" && /^[A-Z]{2}$/.test(body.region) ? body.region : undefined;
-    const check = await checkYoutube(s.session.access, playlistId, expected, region);
+    const check = sync
+      ? await syncYoutube(s.session.access, playlistId, expected, region, {
+          deadline: started + YOUTUBE_BUDGET_MS,
+        })
+      : await checkYoutube(s.session.access, playlistId, expected, region);
     const res = NextResponse.json({ app: "youtube", id: playlistId, url: youtubeUrl(playlistId), check });
     if (s.setCookie) res.headers.append("set-cookie", s.setCookie);
     return res;

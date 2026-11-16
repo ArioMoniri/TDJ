@@ -24,6 +24,7 @@ import { playsIn } from "@/lib/favourites";
 import { makeNightLog, makeSnapshot } from "@/lib/history";
 import { t as tx } from "@/lib/i18n";
 import { boothCortinaStop, musicSec } from "@/lib/lengths";
+import { markSpotifyBurst } from "@/lib/spotifyBurst";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import { encodeWav, renderTransition } from "./audition";
@@ -1550,6 +1551,8 @@ function whyMissing(i: number): string | null {
 
 function onEngineEvent(e: EngineEvent) {
   const s = useBooth.getState();
+  // 2026-11: a Spotify night's transport is a burst of Connect requests: the playlists' sync waits it out
+  if (s.sourceMode === "spotify" && (e.type === "state" || e.type === "item")) markSpotifyBurst();
   if (e.type === "state") {
     const eng = engine!;
     useBooth.setState({

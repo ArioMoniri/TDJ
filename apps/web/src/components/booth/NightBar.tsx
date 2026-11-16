@@ -9,6 +9,7 @@ import { plural, t } from "@/lib/i18n";
 import { toast } from "@/lib/toast";
 import { Group } from "../Form";
 import { Sheet } from "../Sheet";
+import { SyncChip } from "../SyncStatus";
 
 /**
  * Round 22 — the night bar on top of the set list: the clock, the planned end, time to La Cumparsita, drift and
@@ -167,6 +168,8 @@ export function NightBar({ onBreak }: { onBreak: () => void }) {
             {t("booth.nightBar.resolving_sources")}
           </span>
         )}
+        {/* 2026-11: the exported playlists follow the night (components/SyncStatus.tsx) */}
+        <SyncChip />
         {breakUntil !== null && (
           <span className="booth-chip text-[var(--tint)]" data-testid="booth-break">
             {t("booth.nightBar.break_chip", { time: durationLabel(Math.max(0, (breakUntil - now) / 1000)) })}

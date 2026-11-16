@@ -4540,6 +4540,31 @@ export const en = {
   "keys.booth_fader_down": "Cortina fader down 5 %",
   "miniPlayer.song_details": "Details of {title}",
   "miniPlayer.details_not_here": "{title}: its details open from its row in the night",
+  "sync.header": "Exported playlists",
+  "sync.footer":
+    "Each change of this night — a swap, a reorder, Skip tonight, an undo — rewrites these playlists 5 s later and reads them back. Tandas skipped tonight leave them until they play again. Files (M3U8, rekordbox, Serato…) are copies: they can't follow — export them again.",
+  "sync.footer_none":
+    "A playlist you make on Spotify or YouTube from this night follows its changes. Files (M3U8, rekordbox…) are copies: they can't follow.",
+  "sync.none_yet": "Not exported to a service yet",
+  "sync.youtube_cover":
+    "YouTube playlists have no cover of their own: YouTube shows the first video's picture.",
+  "sync.switch": "Keep my exported playlists in sync",
+  "sync.switch_sub": "Kept for this night in this browser",
+  "sync.off": "Not following this night (the switch is off)",
+  "sync.pending": "{name}: {n} changes to send in 5 s",
+  "sync.syncing": "{name}: updating the playlist…",
+  "sync.failed": "{name}: not updated — {error}",
+  "sync.updated": "{name} playlist updated · {n} changes",
+  "sync.in_step": "{name} playlist is in step with the night",
+  "sync.cover_updated": "Cover redrawn from the night",
+  "sync.retry": "Retry",
+  "sync.chip_ok": "Playlists in sync ({n})",
+  "sync.chip_syncing": "Updating playlists…",
+  "sync.chip_failed": "Playlist sync failed · Retry",
+  "sync.reconnect_spotify": "connect Spotify again in Settings",
+  "sync.not_read_back": "the service did not say what it holds",
+  "sync.rows_in_place": "{inPlace} of {total} rows in place",
+  "sync.youtube_quota": "YouTube's daily quota ran out: the rest follows tomorrow",
 } as const;
 
 export type MsgKey = keyof typeof en;

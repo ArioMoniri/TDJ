@@ -182,12 +182,29 @@ describe("Spotify cover upload (fake Spotify)", () => {
       fetchImpl: f,
     });
     expect(r).toBe("added");
-    expect(calls).toHaveLength(1);
+    // 2026-11: the PUT, then the read-back of the playlist's images
+    expect(calls).toHaveLength(2);
+    expect(calls[1]!.url).toBe("https://api.spotify.com/v1/playlists/pl1/images");
     expect(calls[0]!.url).toBe("https://api.spotify.com/v1/playlists/pl1/images");
     expect(calls[0]!.init?.method).toBe("PUT");
     const headers = (calls[0]!.init?.headers ?? {}) as Record<string, string>;
     expect(headers["content-type"]).toBe("image/jpeg");
     expect(calls[0]!.init?.body).toBe("AAAA");
+  });
+  it("2026-11: read back — the playlist shows no image after the PUT: the cover did not land", async () => {
+    const f = (async (_url: string, init?: RequestInit) =>
+      init?.method === "PUT"
+        ? new Response(null, { status: 202 })
+        : new Response("[]", {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          })) as typeof fetch;
+    expect(await putPlaylistCover("t", "pl1", "AAAA", f)).toBe("failed");
+    const ok = (async (_url: string, init?: RequestInit) =>
+      init?.method === "PUT"
+        ? new Response(null, { status: 202 })
+        : new Response('[{"url":"https://i.scdn.co/x","width":640}]', { status: 200 })) as typeof fetch;
+    expect(await putPlaylistCover("t", "pl1", "AAAA", ok)).toBe("added");
   });
   it("without the scope: nothing is sent, the hint path", async () => {
     const { f, calls } = fake(202);

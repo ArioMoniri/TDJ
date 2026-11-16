@@ -29,6 +29,7 @@ import {
   type SourcePick,
   stepIndex,
 } from "./playSource";
+import { markSpotifyBurst } from "./spotifyBurst";
 import { useStore } from "./store";
 import { toast } from "./toast";
 import { cortinaStopSec, type Song } from "./types";
@@ -435,6 +436,7 @@ async function playFrom(list: PlayerList, o: { find?: () => void; quiet?: boolea
     return false;
   }
   if (src.kind === "spotify-full") {
+    markSpotifyBurst();
     try {
       const sp = await spotifyAdapter();
       await sp.connect();

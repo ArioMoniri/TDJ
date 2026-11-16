@@ -111,6 +111,7 @@ import {
 import { Gramophone } from "./Gramophone";
 import { LazyHydrate } from "./LazyHydrate";
 import { Menu, type MenuItem, MenuList } from "./Menu";
+import { NightCover } from "./NightCover";
 import { NightExceptions } from "./NightExceptions";
 import { PageHeader } from "./PageHeader";
 import { PrimaryBar } from "./PrimaryBar";
@@ -1984,7 +1985,15 @@ export function Composer() {
                   className="cell flex-col items-stretch gap-2 py-4"
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <span className="min-w-0">
+                    {/* 2026-11 (the owner: "the image art should be dynamically changed too"): the night's cover,
+                        drawn from the night as it is now — every edit redraws it, and the exported playlists get it */}
+                    <NightCover
+                      night={playlist}
+                      size={56}
+                      className="rounded-[10px]"
+                      testId="compose-cover"
+                    />
+                    <span className="min-w-0 flex-1">
                       <h2 className="text-subhead min-w-0 line-clamp-2 font-serif text-[var(--label-2)]">
                         {nightTitle(playlist)} · {nightSub(playlist)}
                       </h2>
