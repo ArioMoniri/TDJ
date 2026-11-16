@@ -310,7 +310,8 @@ pub fn build<R: Runtime>(app: &AppHandle<R>, with_updates: bool) -> tauri::Resul
 
     // 2026-11: Undo / Redo walk the page's one edit history (a night's swaps, moves, adds, pins) through
     // `tdj:command` edit.undo / edit.redo (web components/EditKeys.tsx); in a text field the page hands them to the
-    // field, so typing keeps its own undo
+    // field, so typing keeps its own undo. Redo shows the standard ⇧⌘Z; ⌘Y (the owner's second redo key) is no menu
+    // item's key equivalent (test redo_shows_shift_cmd_z_and_cmd_y_reaches_the_page), so AppKit hands it to the page
     let undo_item = MenuItemBuilder::with_id("edit.undo", undo)
         .accelerator("CmdOrCtrl+Z")
         .build(app)?;
@@ -397,6 +398,15 @@ mod tests {
                 );
             }
             assert_ne!(c.accel, Some("Space"), "Space must stay with the page");
+        }
+    }
+
+    #[test]
+    fn redo_shows_shift_cmd_z_and_cmd_y_reaches_the_page() {
+        // 2026-11: ⌘Y redoes through the page (web lib/keymap.ts edit.redo); a menu item on it would swallow it
+        for c in COMMANDS {
+            assert_ne!(c.accel, Some("CmdOrCtrl+Y"), "{} steals ⌘Y (redo)", c.id);
+            assert_ne!(c.accel, Some("CmdOrCtrl+Shift+Z"), "{} steals ⇧⌘Z (redo)", c.id);
         }
     }
 

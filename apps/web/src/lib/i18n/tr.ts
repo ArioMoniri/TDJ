@@ -5190,7 +5190,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "boothUndo.praise_off": "Övgü geri alındı (tanda {tanda})",
   "boothUndo.already_heard":
     "{action} geri alınamaz: “{title}” salonda çaldı bile. Önceki ile ona dönebilirsiniz.",
-  "keys.header": "Klavye",
+  "keys.header": "Klavye ve hareketler",
   "keys.footer": "Yalnızca bu cihazda, bu tarayıcıda saklanır. Bir alana yazarken kısayollar çalışmaz.",
   "keys.intro": "Kısayollar",
   "keys.intro_sub": "Bir kısayola dokunun, yerine istediğiniz tuşlara basın.",
@@ -5224,6 +5224,17 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "keys.booth_play_next": "Seçili satırı sonra çal",
   "keys.booth_fader_up": "Kortina sürgüsü 5 % yukarı",
   "keys.booth_fader_down": "Kortina sürgüsü 5 % aşağı",
+  "shake.header": "Hareketler",
+  "shake.footer":
+    "Sayfadaki son düzenlemeyi geri almak için telefonu ya da tableti sallayın: her zaman önce sorar. iPhone ve iPad'de açtığınızda hareket erişimi istenir.",
+  "shake.switch": "Geri almak için salla",
+  "shake.switch_sub": "Bir şey değişmeden önce “Geri alınsın mı?” diye sorar",
+  "shake.denied":
+    "Hareket erişimine izin verilmedi, sallayınca geri alınamaz. Bu site ya da uygulama için hareket erişimine izin verip yeniden açın.",
+  "shake.undo_title": "“{label}” geri alınsın mı?",
+  "shake.redo_title": "“{label}” yinelensin mi?",
+  "shake.undo_named": "Geri al: “{label}”",
+  "shake.redo_named": "Yinele: “{label}”",
   "miniPlayer.song_details": "{title} ayrıntıları",
   "miniPlayer.details_not_here": "{title}: ayrıntıları gecedeki satırından açılır",
   "sync.header": "Dışa aktarılan çalma listeleri",
