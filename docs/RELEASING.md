@@ -223,7 +223,7 @@ its status bar) and shared by the clips and the stills; no product images or log
 | Command | Makes | Takes (cloud machine, one Chromium, Remotion at concurrency 2) |
 |---|---|---|
 | `pnpm media` | the clips (`media/readme/<clip>.{mp4,gif}`) and stills (`.webp`) | see the header of `apps/web/scripts/capture-media.ts` |
-| `pnpm media:hero` | the hero under the tagline: a laptop opens and the app plays on it; `hero.{gif,mp4,webm}`, README line updated | capture ~2 min, compose ~6–9 min, encode ~3 min |
+| `pnpm media:hero` | the hero under the tagline: a laptop opens and the app plays on it; `hero.{gif,mp4,webm}`, README line updated | capture ~2 min; compose 22–33 min on a shared machine at load 25–40 (less when idle); encode ~3 min; GIF 960 px / 24 fps ≈ 7 MB |
 | `pnpm media:hero --draft` | the same as `hero-draft.*`, README untouched | |
 
 Both need a production server: `pnpm --filter @tdj/web build && pnpm --filter @tdj/web start -p 3975`, then
