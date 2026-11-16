@@ -24,6 +24,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { About } from "@/components/About";
 import { AppConnections } from "@/components/AppConnections";
+import { ControllerSettingsBody } from "@/components/booth/ControllerView";
 import { DeviceSourcesGroup } from "@/components/booth/DeviceSources";
 import { IndicatorSwitches } from "@/components/booth/IndicatorSwitches";
 import { BoothAudioSettings } from "@/components/booth/OutputsView";
@@ -354,6 +355,14 @@ export default function Settings() {
         <DeviceSourcesGroup />
         {/* 2026-11: Booth → Audio — outputs, the chain, a controller's pairs, two speaker sets, Before the night */}
         <BoothAudioSettings />
+        {/* 2026-11: Booth → Controller — a DJ controller over MIDI, its mapping and MIDI Learn (lib/controller) */}
+        <Group
+          header={tx("controller.settings.header")}
+          footer={tx("controller.settings.footer")}
+          data-testid="settings-booth-controller"
+        >
+          <ControllerSettingsBody />
+        </Group>
 
         <Group header={tx("settings.composing")} footer={tx("settings.after_every_compose_the_night_is")}>
           <SwitchRow

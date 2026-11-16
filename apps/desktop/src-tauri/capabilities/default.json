@@ -41,6 +41,10 @@
     "allow-audio-route",
     "allow-audio-route-picker",
     "allow-audio-set-output",
-    "allow-audio-night"
+    "allow-audio-night",
+    "allow-midi-ports",
+    "allow-midi-open",
+    "allow-midi-close",
+    "allow-midi-send"
   ]
 }

@@ -7,6 +7,7 @@ import {
   Mic,
   Minus,
   Plus,
+  SlidersVertical,
   Square,
   StepForward,
   TrendingDown,
@@ -24,6 +25,7 @@ import { t } from "@/lib/i18n";
 import { toast } from "@/lib/toast";
 import { SeekBar } from "../ui/SeekBar";
 import { ArmButton, ConfirmRing } from "./Confirm";
+import { openController } from "./ControllerView";
 import { FadeButton } from "./FadeButton";
 import { Fader } from "./Fader";
 import { FloorReaction } from "./FloorReaction";
@@ -259,6 +261,15 @@ export function ControlsPanel({
             <ChevronDown size={16} strokeWidth={2.25} aria-hidden />
           </button>
         )}
+        {/* 2026-11: a DJ controller (MIDI) and the on-screen controller (docs/design/controller.md) */}
+        <Btn
+          label={t("controller.open")}
+          why={t("controller.open_hint")}
+          onClick={openController}
+          testId="ctl-controller"
+        >
+          <SlidersVertical size={20} strokeWidth={2} aria-hidden />
+        </Btn>
         <Btn label={t("booth.controls.shortcuts")} onClick={onKeys} testId="ctl-keys">
           <Keyboard size={20} strokeWidth={2} aria-hidden />
         </Btn>
