@@ -124,19 +124,18 @@ test("Settings → Keyboard: rebind Skip next, a conflict is named, the Booth an
   test.setTimeout(150_000);
   await page.goto("/settings#settings-keyboard");
   const row = page.getByTestId("key-row-booth.skipNext");
-  await clickHydrated(row);
-  const sheet = page.getByTestId("key-sheet");
-  await expect(sheet).toBeVisible();
-  // a key another action holds is named first
-  await sheet.getByTestId("key-recorder").focus();
+  // 2026-11: the key itself is the button that records (components/KeyChips.tsx)
+  await clickHydrated(row.getByTestId("key-chip"));
+  await expect(row.getByTestId("key-recorder")).toBeFocused();
+  // a key another action holds is named first; Cancel leaves it as it was
   await page.keyboard.press("f");
-  await expect(sheet.getByTestId("key-conflict")).toContainText("Fade out now");
+  await expect(row.getByTestId("key-conflict")).toContainText("Fade out now");
+  await row.getByTestId("key-cancel").click();
+  await expect(row.getByTestId("key-conflict")).toHaveCount(0);
+  await expect(row.getByTestId("key-binding")).toHaveText("n");
   // a free one saves
+  await row.getByTestId("key-chip").click();
   await page.keyboard.press("j");
-  await expect(sheet.getByTestId("key-recorded")).toHaveText("j");
-  await expect(sheet.getByTestId("key-conflict")).toHaveCount(0);
-  await sheet.locator("#key-save").click();
-  await expect(sheet).toBeHidden();
   await expect(row.getByTestId("key-binding")).toHaveText("j");
   // kept on this device
   expect(await page.evaluate(() => localStorage.getItem("tdj-keymap"))).toContain('"booth.skipNext":["j"]');

@@ -61,6 +61,7 @@ import { haptic } from "@/lib/haptics";
 import { makeSnapshot } from "@/lib/history";
 import { testSlowdownMs, useMediaQuery, whenIdle } from "@/lib/hooks";
 import { fmtSec, lazy, lower, plural, t as tx } from "@/lib/i18n";
+import { type ActionId, bindingsOf, formatCombo, shownBindings } from "@/lib/keymap";
 import { lengthOf, nightMusicSec, wholeSec } from "@/lib/lengths";
 import { rateTap, ratingOf, undoRate } from "@/lib/likes";
 import { describePreferences } from "@/lib/memory";
@@ -131,6 +132,12 @@ import { closingFormatLine, InsertGap } from "./ui/InsertGap";
 import { NightProfile } from "./ui/NightProfile";
 import { NightLength, PlayRow } from "./ui/PlayRow";
 import { Tip } from "./ui/Tip";
+
+/** an action's first key as this device has it bound (a menu's hint), or none */
+const boundHint = (id: ActionId) => {
+  const k = shownBindings(bindingsOf(id))[0];
+  return k ? formatCombo(k) : undefined;
+};
 
 /* Below-the-fold / on-demand pieces: their code arrives when first needed, not with the composer. */
 const ExportSheet = dynamic(() => import("./ExportSheet").then((m) => m.ExportSheet), { ssr: false });
@@ -1939,12 +1946,18 @@ export function Composer() {
                       el?.focus({ preventScroll: true });
                     },
                   },
-                  // 2026-11: the one undo history (⌘Z / ⇧⌘Z anywhere outside a text field)
-                  { label: tx("editKeys.undo"), icon: Undo2, shortcut: "⌘Z", onClick: () => void undoEdit() },
+                  // 2026-11: the one undo history (⌘Z / ⇧⌘Z anywhere outside a text field); the hint is the DJ's
+                  // key as bound (lib/keymap.ts, changed on any key chip)
+                  {
+                    label: tx("editKeys.undo"),
+                    icon: Undo2,
+                    shortcut: boundHint("edit.undo"),
+                    onClick: () => void undoEdit(),
+                  },
                   {
                     label: tx("editKeys.redo"),
                     icon: Redo2,
-                    shortcut: "⇧⌘Z",
+                    shortcut: boundHint("edit.redo"),
                     onClick: () => void redoEdit(),
                   },
                   { label: tx("composer.clear_set"), icon: Eraser, onClick: clearSet, destructive: true },
