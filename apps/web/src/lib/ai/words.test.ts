@@ -54,4 +54,30 @@ describe("the plain-words fallback (wave 2)", () => {
     }
     throw new Error("no refused move with a suggestion on the test nights");
   });
+  it("QA fix 2026-11: a refused move comes back done as asked, for the rule sheet (never applied by itself)", () => {
+    let seen = 0;
+    for (const p of nights)
+      for (let from = 1; from <= 8; from++) {
+        const r = editByWords(p, deps, `move tanda ${from} after tanda ${from + 2}`);
+        const no = r.rejected.find((x) => x.op.op === "move");
+        if (no?.op.op !== "move") continue;
+        seen++;
+        expect(r.asSaid, `move ${from}`).toBeTruthy();
+        const moved = p.tandas[from - 1]!;
+        const ids = (t: { songs: Array<{ id: string }> }) => t.songs.map((s) => s.id).join();
+        expect(ids(r.asSaid!.playlist.tandas[no.op.to - 1]!)).toBe(ids(moved));
+        // the night on screen is unchanged until the DJ answers
+        expect(r.playlist.tandas.map(ids)).toEqual(p.tandas.map(ids));
+        // a locked tanda is never moved as asked
+        const locked = {
+          ...p,
+          tandas: p.tandas.map((t, k) => (k === from - 1 ? { ...t, locked: true } : t)),
+        };
+        const rl = editByWords(locked, deps, `move tanda ${from} after tanda ${from + 2}`);
+        expect(
+          rl.asSaid?.playlist.tandas[no.op.to - 1] ? ids(rl.asSaid.playlist.tandas[no.op.to - 1]!) : "",
+        ).not.toBe(ids(moved));
+      }
+    expect(seen).toBeGreaterThan(0);
+  });
 });

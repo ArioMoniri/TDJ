@@ -12,6 +12,11 @@ export const FEATURED = [
     },
     /** the shipped night's settings, so the card's era label is the one nightEraLabel gives the loaded night */
     options: { eras: ["golden"], yearRange: [1935, 1945] as [number, number] },
+    /**
+     * QA fix 2026-11: the shipped night's sides span 1933–1963 (85 % inside 1935–1945): the card says "mostly", as the
+     * loaded night's header does: a sample of its years with the same share inside (nightName.test.ts pins both)
+     */
+    songYears: [1933, 1940, 1940, 1940, 1940, 1940, 1940, 1963] as number[],
     // (wave 2: the night's real length and the one era label, as History and Share print them)
     get sub() {
       return t("featured.golden_sub", { era: nightEraLabel(this) });

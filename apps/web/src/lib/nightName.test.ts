@@ -171,10 +171,11 @@ describe("the era label follows the night, never Golden Age by default (owner: d
     const f = featured();
     expect(nightTitle(f)).toBe("Golden 1935–45");
     expect(coverTitle(coverData(f), "en")).toBe("Golden 1935–45");
-    expect(nightEraLabel(f, "en")).toBe("Golden Age 1935–1945");
-    expect(nightEraLabel(f, "tr")).toBe("Altın Çağ 1935–1945");
-    expect(coverEra(coverData(f), "tr")).toBe("Altın Çağ 1935–1945");
-    expect(FEATURED[0].sub).toContain("Golden Age 1935–1945");
+    // (QA fix 2026-11: 14 of its 85 sides fall outside 1935–1945, so the label says "mostly")
+    expect(nightEraLabel(f, "en")).toBe("mostly Golden Age 1935–1945");
+    expect(nightEraLabel(f, "tr")).toBe("çoğunlukla Altın Çağ 1935–1945");
+    expect(coverEra(coverData(f), "tr")).toBe("çoğunlukla Altın Çağ 1935–1945");
+    expect(FEATURED[0].sub).toContain("mostly Golden Age 1935–1945");
   });
 
   it("the era years here are the engine's presets", () => {

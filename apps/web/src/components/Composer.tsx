@@ -61,7 +61,7 @@ import { haptic } from "@/lib/haptics";
 import { makeSnapshot } from "@/lib/history";
 import { testSlowdownMs, useMediaQuery, whenIdle } from "@/lib/hooks";
 import { fmtSec, lazy, lower, plural, t as tx } from "@/lib/i18n";
-import { lengthOf, nightMusicSec } from "@/lib/lengths";
+import { lengthOf, nightMusicSec, wholeSec } from "@/lib/lengths";
 import { rateTap, ratingOf, undoRate } from "@/lib/likes";
 import { describePreferences } from "@/lib/memory";
 import { DUR, EASE, rise, STAGGER } from "@/lib/motion";
@@ -280,7 +280,8 @@ const ERA_KEYS = [
 ] as const;
 
 function fmtDuration(sec: number) {
-  const total = Math.round(sec / 60);
+  // (QA fix 2026-11: floored like every other length, lib/lengths wholeSec)
+  const total = Math.floor(wholeSec(sec) / 60);
   const h = Math.floor(total / 60);
   const m = total % 60;
   return tx("composer.h_min", { h, p1: String(m).padStart(2, "0") });
@@ -2074,7 +2075,9 @@ export function Composer() {
                   transition={{ duration: DUR.base, ease: EASE.out, delay: 0.04 }}
                   className="cell flex-col items-stretch gap-2 py-4"
                 >
-                  <div className="flex items-center justify-between gap-3">
+                  {/* (QA fix 2026-11: at 200 % text the buttons pushed the row 89–134 px past an iPhone's edge: the row wraps,
+                      the title keeps a readable minimum) */}
+                  <div className="flex flex-wrap items-center justify-between gap-3">
                     {/* 2026-11 (the owner: "the image art should be dynamically changed too"): the night's cover,
                         drawn from the night as it is now — every edit redraws it, and the exported playlists get it */}
                     <NightCover
@@ -2083,14 +2086,14 @@ export function Composer() {
                       className="rounded-[10px]"
                       testId="compose-cover"
                     />
-                    <span className="min-w-0 flex-1">
+                    <span className="min-w-[8rem] flex-1">
                       <h2 className="text-subhead min-w-0 line-clamp-2 font-serif text-[var(--label-2)]">
-                        {nightTitle(playlist)} · {nightSub(playlist)}
+                        {nightTitle(playlist)} · {nightSub(playlist, nightMusicSec(playlist, settings))}
                       </h2>
                       {/* 2026-11: the night as it plays (cues, cortinas from their start), ≈ when a length is unknown */}
                       <NightLength playlist={playlist} className="block truncate" />
                     </span>
-                    <span className="flex items-center gap-1">
+                    <span className="flex shrink-0 items-center gap-1">
                       {/* phones: icon-only, 44 pt (the label wrapped to three lines, round8-ux.md §1.4) */}
                       <Tip text={tx("composer.open_the_booth_and_play_this")}>
                         <button
@@ -2154,7 +2157,7 @@ export function Composer() {
                   ) : (
                     <button
                       type="button"
-                      className="-mx-2 flex items-baseline gap-1 rounded-[var(--radius-xs)] px-2 text-left"
+                      className="-mx-2 flex min-h-11 items-baseline gap-1 self-start rounded-[var(--radius-xs)] px-2 text-left"
                       onClick={() => setAdjustOpen(true)}
                       aria-label={tx("composer.score_of_100_adjust_the_set", { total: playlist.score.total })}
                       data-testid="score-button"

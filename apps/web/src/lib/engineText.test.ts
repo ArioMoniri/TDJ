@@ -65,7 +65,7 @@ describe("the engine's words at the UI boundary", () => {
     expect(arcShapeWord("single")).toBe("single");
     expect(decadeWord(1940)).toBe("1940s");
     expect(suggestWhyText(SUCCESSION)).toBe(
-      "Follows Carlos Di Sarli well: energy +4 (plan +2), rhythmic after lyrical, common in DJ sets (42×)",
+      "Follows Carlos Di Sarli well: energy up 4 (the plan lifts 2), rhythmic after lyrical, common in DJ sets (42×)",
     );
     expect(suggestWhyText({ code: "same_decade", vars: { decade: 1940 } })).toBe(
       "stays in the 1940s, the years of the last tanda",
@@ -94,7 +94,7 @@ describe("the engine's words at the UI boundary", () => {
     expect(cohesionWord("fine")).toBe("İyi");
     expect(suggestWhyText({ code: "not_played" })).toBe("bu gece henüz çalınmadı");
     expect(suggestWhyText(SUCCESSION)).toBe(
-      "Carlos Di Sarli sonrası iyi gider: enerji +4 (hedef +2), lirik ardından ritmik, DJ setlerinde yaygın (42×)",
+      "Carlos Di Sarli sonrası iyi gider: enerji 4 artıyor (plan 2 yükseltiyor), lirik ardından ritmik, DJ setlerinde yaygın (42×)",
     );
   });
 

@@ -1,4 +1,5 @@
 "use client";
+import { singerDisplay } from "@tdj/core";
 import { ArrowDown, ArrowUp, Check, GripVertical, Plus, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { create } from "zustand";
@@ -66,7 +67,7 @@ export const useTandaSwap = create<{ i: number | null; open: (i: number) => void
 
 const asDraft = (s: Song): DraftSide => s as DraftSide;
 const sideFacts = (s: DraftSide) =>
-  [s.orchestra, s.singer ?? tx("tandaType.instrumental"), yearText(s.year ?? null)]
+  [s.orchestra, singerDisplay(s.singer) ?? tx("tandaType.instrumental"), yearText(s.year ?? null)]
     .filter(Boolean)
     .join(" · ");
 
@@ -213,7 +214,11 @@ export function TandaSwapSheet(p: TandaSwapProps) {
           <p className="text-footnote px-4 pt-2 text-[var(--label-2)]">
             {tx("tandaSwap.now", {
               orchestra: t.orchestra,
-              p1: t.singer ? ` / ${t.singer}` : t.vocal ? "" : ` · ${tx("tandaType.instrumental")}`,
+              p1: t.singer
+                ? ` / ${singerDisplay(t.singer)}`
+                : t.vocal
+                  ? ""
+                  : ` · ${tx("tandaType.instrumental")}`,
               p2: t.yearRange?.join("–") ?? "",
             })}
           </p>
@@ -338,7 +343,7 @@ export function TandaSwapSheet(p: TandaSwapProps) {
                   </button>
                   <button
                     type="button"
-                    className="drag-handle icon-btn icon-btn-bare -mr-2 h-11 w-9 shrink-0 text-[var(--label-3)] max-sm:!hidden"
+                    className="drag-handle icon-btn icon-btn-bare -mr-2 h-11 w-11 shrink-0 text-[var(--label-3)] max-sm:!hidden"
                     aria-label={tx("play.drag_to_reorder", { title: x.title })}
                     {...drag(k)}
                   >
@@ -394,13 +399,13 @@ export function TandaSwapSheet(p: TandaSwapProps) {
                     <Row
                       key={x.songs.map((y) => y.id).join(",")}
                       tile={<TandaArt tanda={x} size={44} />}
-                      label={`${x.orchestra}${x.singer ? ` / ${x.singer}` : ` · ${tx("tandaType.instrumental")}`}`}
+                      label={`${x.orchestra}${x.singer ? ` / ${singerDisplay(x.singer)}` : ` · ${tx("tandaType.instrumental")}`}`}
                       sub={
                         <>
                           {`${x.yearRange?.join("–") ?? ""} · ${x.songs.map((y) => y.title).join(", ")}`}
                           {flow && (
                             <span
-                              className={`block truncate ${flow.tone === "warn" ? "text-[var(--destructive)]" : ""}`}
+                              className={`block truncate ${flow.tone === "warn" ? "text-[var(--destructive-text)]" : ""}`}
                               data-testid="tanda-swap-flow"
                               data-tone={flow.tone}
                             >

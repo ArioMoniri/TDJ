@@ -179,8 +179,9 @@ export default function Library() {
           meta &&
           tx("library.recordings_orchestras_singers", {
             songs: fmtNumber(meta.meta.songs),
-            orchestras: meta.meta.orchestras,
-            singers: meta.meta.singers,
+            // (QA fix 2026-11: "1068 singers" → "1,068", the locale's grouping)
+            orchestras: fmtNumber(meta.meta.orchestras),
+            singers: fmtNumber(meta.meta.singers),
           })
         }
         inBar={search()}

@@ -5,6 +5,7 @@ import {
   editCandidates,
   type Feedback,
   mentionedTandas,
+  moveTanda,
   type NightEditOp,
   nightSummary,
   type Playlist,
@@ -183,9 +184,22 @@ export interface EditResult extends EditOutcome {
   asSaid?: { playlist: Playlist; tanda: number; reason: string };
 }
 
-/** a refused swap of a named side, done as asked: for the rule check's question (never applied here) */
+/**
+ * A refused swap of a named side, or a refused move (QA fix 2026-11: "move tanda 6 after tanda 8" only said "Not
+ * done…"), done as asked: for the rule check's question — the same sheet as Build by hand, "Do it as I said / Only
+ * tonight / Decline" — never applied here. A locked tanda is never moved.
+ */
 export function withAsSaid(r: EditResult, deps: ComposeDeps): EditResult {
+  const mv = r.rejected.find((y) => y.op.op === "move");
   const x = r.rejected.find((y) => y.op.op === "swap" && !!y.op.songId);
+  if (mv?.op.op === "move" && x?.op.op !== "swap") {
+    const from = mv.op.tanda - 1;
+    const t = r.playlist.tandas[from];
+    if (!t || t.locked) return r;
+    const f = moveTanda(r.playlist, from, mv.op.to - 1, deps);
+    if (f.reason || f.playlist === r.playlist) return r;
+    return { ...r, asSaid: { playlist: f.playlist, tanda: mv.op.to, reason: mv.reason } };
+  }
   if (x?.op.op !== "swap" || !x.op.songId) return r;
   const s = songById(deps.catalog, x.op.songId);
   if (!s) return r;

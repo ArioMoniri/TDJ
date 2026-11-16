@@ -149,7 +149,19 @@ async function climb<T extends FoundRec & { key: string }>(
 }
 /** how many candidates each service shows */
 const PER_SERVICE = 3;
-const failed = (e: unknown, who: string) => (e instanceof Error && e.message ? e.message : `${who} failed`);
+/**
+ * a service's failure in the DJ's words (QA fix 2026-11: "MusicBrainz 503"): busy (429 / 503) or down (5xx, no
+ * answer) — "MusicBrainz is busy — try again"
+ */
+export function failed(e: unknown, who: string): string {
+  const m = e instanceof Error ? e.message : "";
+  const status = Number(/\b(\d{3})\b/.exec(m)?.[1]);
+  if (status === 429 || status === 503) return `${who} is busy — try again`;
+  if (status >= 500) return `${who} is not answering — try again later`;
+  if (/abort|timeout/i.test(m)) return `${who} took too long — try again`;
+  if (status === 401 || status === 403) return `${who} refused the request`;
+  return m && !/^\w+ \d{3}$/.test(m) ? m : `${who} could not be reached — try again`;
+}
 
 /**
  * POST { id | title, orchestra, singer?, year?, vocal?, durationSec? } → the candidates of every connected service:
@@ -410,5 +422,29 @@ export async function preview(req: Request, d: ApiDeps): Promise<Response> {
   if (!url) return json({ error: "No preview available for this track." }, { status: 404 });
   if (u.searchParams.get("json"))
     return json({ url }, { headers: { "cache-control": "private, max-age=60" } });
+  // QA fix 2026-11 ("Analyse in browser doesn't always work"): the clip's bytes through this origin, so measuring it
+  // never depends on the provider's CORS headers (a redirect to dzcdn / scdn was refused by the browser)
+  if (u.searchParams.get("bytes")) return clipBytes(url);
   return redirect(url, 302, { "cache-control": "private, max-age=60" });
+}
+
+/** a preview clip's bytes (≤ PREVIEW_MAX_BYTES), same origin; 404 when the provider has none, 502 on its failure */
+export const PREVIEW_MAX_BYTES = 6_000_000;
+async function clipBytes(url: string): Promise<Response> {
+  let r: Response;
+  try {
+    r = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+  } catch {
+    return json({ error: "The clip's host did not answer." }, { status: 502 });
+  }
+  if (r.status === 404 || r.status === 410) return json({ error: "The clip is gone." }, { status: 404 });
+  if (!r.ok) return json({ error: `The clip's host answered ${r.status}.` }, { status: 502 });
+  const buf = await r.arrayBuffer();
+  if (buf.byteLength > PREVIEW_MAX_BYTES) return json({ error: "The clip is too large." }, { status: 413 });
+  return new Response(buf, {
+    headers: {
+      "content-type": r.headers.get("content-type") ?? "audio/mpeg",
+      "cache-control": "private, max-age=300",
+    },
+  });
 }

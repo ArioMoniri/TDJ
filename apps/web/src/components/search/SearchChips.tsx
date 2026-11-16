@@ -1,6 +1,6 @@
 "use client";
 import "./search.css";
-import type { SongFacets, SongFilters } from "@tdj/core";
+import { creditDisplay, type SongFacets, type SongFilters, singerDisplay } from "@tdj/core";
 import { Heart } from "lucide-react";
 import { fmtNumber, t } from "@/lib/i18n";
 import { useTip } from "../ui/Tip";
@@ -182,7 +182,7 @@ export function SearchChips({
               <Chip
                 key={o.key}
                 on={!!filters.orchestraIds?.includes(o.key)}
-                label={o.label ?? o.key}
+                label={orchestraLabel(o.label ?? o.key)}
                 count={o.count}
                 onClick={() => set({ orchestraIds: toggle(filters.orchestraIds, o.key) })}
                 testId={`${idPrefix}-orchestra-${o.key}`}
@@ -216,9 +216,21 @@ export function SearchChips({
  * as an odd third singer beside each of its two (2026-11, DJ review of the Database).
  */
 export function singerLabel(key: string): string {
+  // (QA fix 2026-11: a duet the singer table knows reads in full, "Carlos Dante & Julio Martel")
+  const full = singerDisplay(key);
+  if (full !== key) return `${t("search.duo")} · ${full}`;
   const parts = key
     .split(/\s+[-–—&]\s+|\s+y\s+|\s*\/\s*/)
     .map((x) => x.trim())
     .filter(Boolean);
   return parts.length > 1 ? `${t("search.duo")} · ${parts.join(" & ")}` : key;
+}
+
+/**
+ * An orchestra facet's chip (QA fix 2026-11: raw credits "J.ricardo-G.barbieri", "Orquesta (unspecified)"): the
+ * credit as two names, the unspecified orchestra as "Other orchestras"
+ */
+export function orchestraLabel(name: string): string {
+  if (/^orquesta \(unspecified\)$|^unknown$/i.test(name.trim())) return t("search.other_orchestras");
+  return creditDisplay(name);
 }

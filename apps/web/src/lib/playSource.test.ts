@@ -89,7 +89,8 @@ describe("tap to play: the source order", () => {
 describe("lengths: songs, tandas and the night", () => {
   it("m:ss, h:mm:ss, and –:– for an unknown length", () => {
     expect(fmtLen(142)).toBe("2:22");
-    expect(fmtLen(59.6)).toBe("1:00");
+    // (QA fix 2026-11: whole seconds floored, as the Booth prints — one rounding rule, lib/lengths wholeSec)
+    expect(fmtLen(59.6)).toBe("0:59");
     expect(fmtLen(4 * 3600 + 65)).toBe("4:01:05");
     expect(fmtLen(null)).toBe("–:–");
     expect(fmtLen(0)).toBe("–:–");

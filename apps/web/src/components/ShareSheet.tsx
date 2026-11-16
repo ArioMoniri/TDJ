@@ -6,6 +6,7 @@ import { fileCheckLine } from "@/lib/exportCheckView";
 import { verifyFile } from "@/lib/fileVerify";
 import { haptic } from "@/lib/haptics";
 import { t as tx } from "@/lib/i18n";
+import { nightMusicSec } from "@/lib/lengths";
 import { nightSub, nightTitle } from "@/lib/nightName";
 import {
   copyText,
@@ -15,6 +16,7 @@ import {
   shareNight,
   shortNightLink,
 } from "@/lib/share";
+import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import type { Playlist } from "@/lib/types";
 import { Group, Tile } from "./Form";
@@ -126,7 +128,7 @@ export function ShareSheet({
       <p className="px-4 pb-3 text-footnote text-[var(--label-2)]">
         {tx("shareSheet.tandas_songs_score_anyone_you_send", {
           playlist: nightTitle(playlist),
-          playlist1: nightSub(playlist),
+          playlist1: nightSub(playlist, nightMusicSec(playlist, useStore.getState().settings)),
           tandas,
           sides,
           p1: " ",

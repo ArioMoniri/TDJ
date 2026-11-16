@@ -1,7 +1,8 @@
 "use client";
+import { singerDisplay } from "@tdj/core";
 import "../search/search.css";
 import "./smart-search.css";
-import { AudioLines, HardDrive, Info, Library, MonitorPlay } from "lucide-react";
+import { AudioLines, CircleAlert, HardDrive, Info, Library, MonitorPlay } from "lucide-react";
 import {
   Fragment,
   type ReactNode,
@@ -284,7 +285,10 @@ export function VersionRow({
       tabIndex={-1}
       id={ctx.id}
       aria-selected={ctx.active}
-      className={`cell smart-version gap-2 ${dim ? "opacity-60" : ""} ${play.state ? "row-now" : ""}`}
+      // (QA fix 2026-11: a row that breaks the rules was dimmed to 2.95:1; its text keeps full contrast and a mark
+      // with a label says so instead)
+      className={`cell smart-version gap-2 ${play.state ? "row-now" : ""}`}
+      data-breaks={dim ? "" : undefined}
       data-leading="art"
       data-active={ctx.active ? "" : undefined}
       data-testid={testId}
@@ -304,6 +308,12 @@ export function VersionRow({
         </button>
       ) : (
         <div className="flex min-h-11 min-w-0 flex-1 items-center gap-3">{body}</div>
+      )}
+      {dim && (
+        <span className="shrink-0 text-[var(--orange-text,var(--label-2))]" data-testid="smart-breaks">
+          <CircleAlert size={16} aria-hidden />
+          <span className="sr-only">{t("smartSearch.breaks_rules")}</span>
+        </span>
       )}
       <button
         type="button"
@@ -441,7 +451,7 @@ export function SmartSearchField({
               <span className="smart-assist-kind">
                 {t(`smartSearch.kind_${c.kind}` as "smartSearch.kind_title")}
               </span>
-              <span className="truncate">{c.label}</span>
+              <span className="truncate">{c.kind === "singer" ? singerDisplay(c.label) : c.label}</span>
               {i === 0 && !s.correction && (
                 <kbd className="smart-kbd" aria-hidden>
                   Tab

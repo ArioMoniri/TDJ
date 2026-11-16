@@ -1,6 +1,6 @@
 "use client";
 import type { Song } from "@tdj/core";
-import { ChevronRight, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { t } from "@/lib/i18n";
@@ -111,8 +111,15 @@ function SidesBody({ q }: { q: SidesQuery }) {
 function DnaOverlay() {
   const dna = useSongOpen((s) => s.dna)!;
   const close = () => useSongOpen.getState().close("dna");
+  const back = useSongOpen((s) => s.dnaStack.length > 0);
   useEffect(() => {
-    const k = (e: KeyboardEvent) => e.key === "Escape" && useSongOpen.getState().close("dna");
+    // (QA fix 2026-11: Esc / ⌘[ step back through the DNA pages the overlay showed, then close it)
+    const k = (e: KeyboardEvent) => {
+      if (e.key === "Escape" || ((e.metaKey || e.ctrlKey) && e.key === "[")) {
+        e.preventDefault();
+        useSongOpen.getState().backDna();
+      }
+    };
     window.addEventListener("keydown", k);
     return () => window.removeEventListener("keydown", k);
   }, []);
@@ -125,6 +132,17 @@ function DnaOverlay() {
       data-testid="dna-overlay"
     >
       <div className="dna-overlay-bar">
+        {back && (
+          <button
+            type="button"
+            className="btn-plain inline-flex min-h-11 items-center gap-0.5 px-2"
+            onClick={() => useSongOpen.getState().backDna()}
+            data-testid="dna-overlay-back"
+          >
+            <ChevronLeft size={20} strokeWidth={2.25} aria-hidden />
+            {t("song.back")}
+          </button>
+        )}
         <button
           type="button"
           className="icon-btn h-11 w-11"

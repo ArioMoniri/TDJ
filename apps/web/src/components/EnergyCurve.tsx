@@ -79,6 +79,17 @@ export function EnergyCurve({
       .filter((i) => i >= 0);
     if (idx.length) bands.push({ ph, a: idx[0]!, b: idx[idx.length - 1]! });
   }
+  const at = p.tandas[active ?? 0];
+  const activeText = at
+    ? tx("energyCurve.tanda_energy_of_target", {
+        p1: (active ?? 0) + 1,
+        rhythm: at.rhythm,
+        orchestra: at.orchestra,
+        p2: at.singer ? ` ${tx("energyCurve.with", { singer: at.singer })}` : "",
+        energy: at.energy,
+        targetEnergy: at.targetEnergy,
+      })
+    : "";
   const uid = useId();
   const id = `${compact ? "arcfill-compact" : "arcfill"}-${uid}`;
   const capId = `arc-caption-${uid}`;
@@ -132,25 +143,22 @@ export function EnergyCurve({
     }),
   };
 
-  /** Phones: accept the nearest dot within 22 px of the touch so a thumb near the line always lands. */
-  const onSvgPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
-    if (!onPick || e.pointerType !== "touch") return;
+  /**
+   * QA fix 2026-11 (the dots' 43 px targets sat 9.6 px apart on a phone, overlapping): the chart is one slider — a
+   * press or a drag anywhere picks the tanda whose column is under the finger or the mouse (the whole chart is the
+   * target), the arrow keys step through the tandas, Home / End jump to the first / last.
+   */
+  const pickAt = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (!onPick) return;
     const r = e.currentTarget.getBoundingClientRect();
     const sx = ((e.clientX - r.left) / r.width) * W;
-    const sy = ((e.clientY - r.top) / r.height) * H;
-    let best = -1;
-    let bestD = 22 * (W / r.width);
-    p.tandas.forEach((t, i) => {
-      const d = Math.hypot(x(i) - sx, y(t.energy) - sy);
-      if (d < bestD) {
-        bestD = d;
-        best = i;
-      }
-    });
-    if (best >= 0) {
-      e.preventDefault();
-      onPick(best);
-    }
+    const i = Math.max(0, Math.min(p.tandas.length - 1, Math.round(((sx - px) / plotW) * n)));
+    if (i !== active) onPick(i);
+  };
+  const onSvgPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (!onPick) return;
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    pickAt(e);
   };
 
   return (
@@ -160,10 +168,42 @@ export function EnergyCurve({
         initial={morph ? false : "hidden"}
         animate="show"
         viewBox={`0 0 ${W} ${H}`}
-        className="h-auto w-full select-none"
-        role="group"
+        className="h-auto min-h-11 w-full touch-pan-y select-none rounded-[10px] outline-none focus-visible:ring-2 focus-visible:ring-[var(--tint)]"
+        {...(onPick
+          ? {
+              role: "slider",
+              tabIndex: 0,
+              "aria-valuemin": 1,
+              "aria-valuemax": p.tandas.length,
+              "aria-valuenow": (active ?? 0) + 1,
+              "aria-valuetext": activeText,
+              "aria-orientation": "horizontal" as const,
+            }
+          : { role: "img" })}
         aria-label={tx("energyCurve.energy_arc_of_the_night")}
         onPointerDown={onSvgPointerDown}
+        onPointerMove={(e) => {
+          if (e.buttons && onPick) pickAt(e);
+        }}
+        onKeyDown={(e) => {
+          if (!onPick) return;
+          const last = p.tandas.length - 1;
+          const cur = active ?? 0;
+          const to =
+            e.key === "ArrowRight" || e.key === "ArrowUp"
+              ? Math.min(last, cur + 1)
+              : e.key === "ArrowLeft" || e.key === "ArrowDown"
+                ? Math.max(0, cur - 1)
+                : e.key === "Home"
+                  ? 0
+                  : e.key === "End"
+                    ? last
+                    : null;
+          if (to === null) return;
+          e.preventDefault();
+          onPick(to);
+        }}
+        data-testid="energy-slider"
         data-mode={morph ? "morph" : "draw"}
       >
         <defs>
@@ -252,36 +292,12 @@ export function EnergyCurve({
               custom={i}
               variants={dotV}
               animate={morph ? { opacity: dimmed ? 0.4 : 1, scale: 1 } : "show"}
-              style={{ transformBox: "fill-box", outline: "none" }}
-              role="button"
-              tabIndex={onPick ? 0 : -1}
-              aria-pressed={on}
-              aria-label={tx("energyCurve.tanda_energy_of_target", {
-                p1: i + 1,
-                rhythm: t.rhythm,
-                orchestra: t.orchestra,
-                p2: t.singer ? ` ${tx("energyCurve.with", { singer: t.singer })}` : "",
-                energy: t.energy,
-                targetEnergy: t.targetEnergy,
-              })}
-              onClick={() => onPick?.(i)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onPick?.(i);
-                }
-              }}
+              style={{ transformBox: "fill-box", outline: "none", pointerEvents: "none" }}
+              aria-hidden
+              data-on={on || undefined}
               className="group/dot"
             >
               {/* the hit area: 14 units round with a mouse, 44 px across on touch (globals.css .dot-hit) */}
-              <motion.circle
-                initial={false}
-                animate={{ cx, cy }}
-                transition={morphT}
-                r={14}
-                fill="transparent"
-                className="dot-hit"
-              />
               <motion.circle
                 initial={false}
                 animate={{ cx, cy }}
@@ -290,7 +306,7 @@ export function EnergyCurve({
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
-                className="opacity-0 group-focus-visible/dot:opacity-100"
+                className={on && onPick ? "opacity-60" : "opacity-0"}
               />
               <motion.circle
                 initial={false}
@@ -316,15 +332,6 @@ export function EnergyCurve({
                   fill="#fff"
                 />
               )}
-              <motion.circle
-                initial={false}
-                animate={{ cx, cy }}
-                transition={morphT}
-                r="22"
-                fill="transparent"
-                stroke="none"
-                style={{ pointerEvents: "all" }}
-              />
             </motion.g>
           );
         })}

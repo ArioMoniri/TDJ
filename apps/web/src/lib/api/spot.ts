@@ -16,6 +16,7 @@ import {
 import { forWire, swapWire } from "@/lib/server/wire";
 import type { AppOverrides } from "@/lib/types";
 import type { ApiDeps } from "./deps";
+import { stableSeed } from "./engine";
 import { bad, bodyJson, json } from "./http";
 import { externalSide } from "./tandaSet";
 
@@ -76,7 +77,7 @@ export async function spot(req: Request, d: ApiDeps): Promise<Response> {
       const r = insertTandaOptions(playlist, int(b!.at), deps, {
         n: 4,
         rhythm,
-        seed: Number(b!.seed) || Date.now() % 1e9,
+        seed: stableSeed(playlist, int(b!.at), b!.seed),
       });
       return json({ options: r.map((o) => ({ playlist: forWire(o.playlist), why: o.why })) });
     }

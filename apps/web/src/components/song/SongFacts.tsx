@@ -1,9 +1,8 @@
 "use client";
-import { type Song, workCredit } from "@tdj/core";
+import { type Song, singerDisplay, workCredit } from "@tdj/core";
 import { ChevronRight, Dna } from "lucide-react";
 import { t } from "@/lib/i18n";
 import { fmtLen } from "@/lib/lengths";
-import { useMarks } from "@/lib/songMarks";
 import { Group } from "../Form";
 import { Artwork } from "../ui/Artwork";
 import { BpmKey, EnergyChip } from "../ui/BpmKey";
@@ -28,7 +27,6 @@ export const lengthText = (s: Pick<Song, "durationSec" | "durationEstimated">) =
  * singer comes in and the first downbeat falls (measured or marked), and the way into its Song DNA page.
  */
 export function SongFacts({ song, header = true }: { song: Song; header?: boolean }) {
-  const marks = useMarks((s) => s.marks[song.id]);
   const credit = workCredit(song.title);
   const year =
     song.date && /^\d{4}-\d{2}-\d{2}$/.test(song.date) ? song.date : song.year ? String(song.year) : null;
@@ -63,11 +61,14 @@ export function SongFacts({ song, header = true }: { song: Song; header?: boolea
           label={t("song.voice")}
           value={
             song.singer && song.singerId ? (
-              <DnaLink to={{ kind: "singer", id: song.singerId }} className="text-[var(--tint)]">
-                <span lang="es">{song.singer}</span>
+              <DnaLink
+                to={{ kind: "singer", id: song.singerId }}
+                className="-my-3 inline-flex min-h-11 items-center text-[var(--tint)]"
+              >
+                <span lang="es">{singerDisplay(song.singer)}</span>
               </DnaLink>
             ) : song.singer ? (
-              <span lang="es">{song.singer}</span>
+              <span lang="es">{singerDisplay(song.singer)}</span>
             ) : (
               t("song.instrumental")
             )
@@ -77,7 +78,10 @@ export function SongFacts({ song, header = true }: { song: Song; header?: boolea
         <Fact
           label={t("song.orchestra")}
           value={
-            <DnaLink to={{ kind: "orchestra", id: song.orchestraId }} className="text-[var(--tint)]">
+            <DnaLink
+              to={{ kind: "orchestra", id: song.orchestraId }}
+              className="-my-3 inline-flex min-h-11 items-center text-[var(--tint)]"
+            >
               <span lang="es">{song.orchestra}</span>
             </DnaLink>
           }
@@ -97,48 +101,39 @@ export function SongFacts({ song, header = true }: { song: Song; header?: boolea
             <EnergyChip e={song} />
           </span>
         </div>
-        <Fact
-          label={t("song.credits")}
-          testId="song-credits"
-          value={
-            credit ? (
-              <span lang="es" className="text-right">
-                {t("song.music_by", { names: credit.composers.join(", ") })}
-                {credit.lyricists.length ? (
-                  <>
-                    <br />
-                    {t("song.lyrics_by", { names: credit.lyricists.join(", ") })}
-                  </>
-                ) : (
-                  <>
-                    <br />
-                    {t("song.instrumental_work")}
-                  </>
-                )}
-                {credit.year ? (
-                  <>
-                    <br />
-                    {t("song.written", { year: credit.year })}
-                  </>
-                ) : null}
-              </span>
-            ) : (
-              <span className="text-[var(--label-2)]">{t("song.credits_unknown")}</span>
-            )
-          }
-        />
-        {song.vocal && (
+        {/* (QA fix 2026-11: "Credits: Not known yet" — the row shows only when the credits are known) */}
+        {credit && (
           <Fact
-            label={t("song.singer_in_label")}
-            value={marks?.singerSec !== undefined ? markText(marks.singerSec) : t("song.not_marked")}
-            testId="song-singer-in"
+            label={t("song.credits")}
+            testId="song-credits"
+            value={
+              credit ? (
+                <span lang="es" className="text-right">
+                  {t("song.music_by", { names: credit.composers.join(", ") })}
+                  {credit.lyricists.length ? (
+                    <>
+                      <br />
+                      {t("song.lyrics_by", { names: credit.lyricists.join(", ") })}
+                    </>
+                  ) : (
+                    <>
+                      <br />
+                      {t("song.instrumental_work")}
+                    </>
+                  )}
+                  {credit.year ? (
+                    <>
+                      <br />
+                      {t("song.written", { year: credit.year })}
+                    </>
+                  ) : null}
+                </span>
+              ) : null
+            }
           />
         )}
-        <Fact
-          label={t("song.downbeat_label")}
-          value={marks?.downbeatSec !== undefined ? markText(marks.downbeatSec) : t("song.not_marked")}
-          testId="song-downbeat"
-        />
+        {/* (QA fix 2026-11: "Singer comes in" and "First downbeat" were listed here and again in the marks group
+            below: they live there only) */}
       </Group>
       <Group>
         <DnaLink

@@ -1,7 +1,16 @@
 "use client";
+import { create } from "zustand";
 import { t } from "@/lib/i18n";
+import type { MsgKey } from "@/lib/i18n/en";
 import { effectiveSong } from "./audio";
-import { previewEndpoint } from "./player";
+import {
+  MeasureError,
+  type MeasureFailure,
+  measureAction,
+  measureBytes,
+  measureFailure,
+  withTimeout,
+} from "./measureSource";
 import { useStore } from "./store";
 import { toast } from "./toast";
 import type { AudioFeatures, Song } from "./types";
@@ -28,30 +37,28 @@ function getWorker(): Worker {
   return worker;
 }
 
-/** Decode on the main thread (workers have no AudioContext), downmix to mono, analyse in the worker. */
-export async function analyzePreview(previewUrl: string, rhythm?: string): Promise<AudioFeatures> {
-  // our /api/preview?json=1 answers { url } with the provider's current signed link; anything else is fetched as is
-  let src = previewUrl;
-  if (previewUrl.startsWith("/api/preview")) {
-    const j = await fetch(previewUrl)
-      .then((x) => (x.ok ? x.json() : null))
-      .catch(() => null);
-    if (!j?.url) throw new Error(t("analyze.no_preview_available_right_now"));
-    src = j.url as string;
-  }
-  const r = await fetch(src, { mode: "cors" });
-  if (!r.ok) throw new Error(t("analyze.preview_request_failed", { status: r.status }));
-  const buf = await r.arrayBuffer();
-  const Ctx =
-    window.AudioContext ??
-    (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-  if (!Ctx) throw new Error(t("analyze.this_browser_cannot_decode_audio"));
-  const ctx = new Ctx();
+/** Decode the bytes (an offline context: no user gesture needed), downmix to mono, analyse in the worker. */
+export async function analyzeBytes(bytes: ArrayBuffer, rhythm?: string): Promise<AudioFeatures> {
+  const w = window as unknown as {
+    OfflineAudioContext?: typeof OfflineAudioContext;
+    webkitOfflineAudioContext?: typeof OfflineAudioContext;
+    AudioContext?: typeof AudioContext;
+  };
+  const Off = w.OfflineAudioContext ?? w.webkitOfflineAudioContext;
   let decoded: AudioBuffer;
   try {
-    decoded = await ctx.decodeAudioData(buf.slice(0));
-  } finally {
-    void ctx.close().catch(() => {});
+    if (Off) decoded = await new Off(1, 1, 44100).decodeAudioData(bytes.slice(0));
+    else if (w.AudioContext) {
+      const ctx = new w.AudioContext();
+      try {
+        decoded = await ctx.decodeAudioData(bytes.slice(0));
+      } finally {
+        void ctx.close().catch(() => {});
+      }
+    } else throw new MeasureError("no-audio");
+  } catch (e) {
+    if (e instanceof MeasureError) throw e;
+    throw new MeasureError("decode");
   }
   const n = decoded.length;
   const pcm = new Float32Array(n);
@@ -60,11 +67,18 @@ export async function analyzePreview(previewUrl: string, rhythm?: string): Promi
     for (let i = 0; i < n; i++) pcm[i]! += ch[i]! / decoded.numberOfChannels;
   }
   const id = String(++seq);
-  const w = getWorker();
+  const wk = getWorker();
   return new Promise<AudioFeatures>((ok, fail) => {
     waiting.set(id, { ok, fail });
-    w.postMessage({ id, pcm, sampleRate: decoded.sampleRate, rhythm }, [pcm.buffer]);
+    wk.postMessage({ id, pcm, sampleRate: decoded.sampleRate, rhythm }, [pcm.buffer]);
   });
+}
+
+/** (kept for callers with a URL) a clip by URL: through the measure ladder's network rules */
+export async function analyzePreview(previewUrl: string, rhythm?: string): Promise<AudioFeatures> {
+  const r = await fetch(previewUrl);
+  if (!r.ok) throw new MeasureError(r.status === 404 ? "gone" : "network");
+  return analyzeBytes(await r.arrayBuffer(), rhythm);
 }
 
 const NOTE_NAMES: Record<string, string> = { "C#": "C♯", "D#": "D♯", "F#": "F♯", "G#": "G♯", "A#": "A♯" };
@@ -82,59 +96,112 @@ export function featuresSummary(a: AudioFeatures): string {
 /* ---- store-aware helpers ---- */
 
 const inFlight = new Set<string>();
+/** QA fix 2026-11: how far each side's measuring is (0..1), for "Measuring… 40 %" on its row */
+export const useMeasuring = create<{ progress: Record<string, number> }>(() => ({ progress: {} }));
+const setProgress = (id: string, p: number | null) =>
+  useMeasuring.setState((s) => {
+    const progress = { ...s.progress };
+    if (p === null) delete progress[id];
+    else progress[id] = p;
+    return { progress };
+  });
 /** True while this song is being analysed (for spinners). */
 export const isAnalysing = (id: string) => inFlight.has(id);
+/** a measure must finish in this long (the clip, the decode and the analysis) */
+export const MEASURE_TIMEOUT_MS = 25_000;
+
+/** the one line a failure says, and its action */
+export function measureMessage(reason: MeasureFailure, title: string): string {
+  return t(`analyze.fail_${reason.replace("-", "_")}` as MsgKey, { title });
+}
 
 /**
- * "Analyse in browser": preview → features → user database `songs[id].audio` → toast "Analysed: F♯ minor · 118 BPM".
- * Returns the features, or null when the song has no preview or the analysis failed (the toast says so).
+ * "Measure from your file": the DJ's file, else the 30 s clip through the app (lib/measureSource ladder) → features →
+ * the user database `songs[id].audio` → a toast with what it found (BPM, key, energy, loudness, intro). A failure says
+ * why in one line with its action ("Find it on a service", "Link your music folder", "Try again").
  */
-export async function analyseSong(song: Song, rhythm?: string, quiet = false): Promise<AudioFeatures | null> {
-  const st = useStore.getState();
-  const eff = effectiveSong(song, st.overrides);
-  const url = eff.resolved?.previewUrl ? `${previewEndpoint(eff.resolved)}&json=1` : null;
-  if (!url) {
-    if (!quiet) toast(t("analyze.no_preview_for_use_find_on", { title: song.title }));
+export async function analyseSong(
+  song: Song,
+  rhythm?: string,
+  quiet = false,
+  actions: { find?: () => void } = {},
+): Promise<AudioFeatures | null> {
+  if (inFlight.has(song.id)) {
+    if (!quiet) toast(measureMessage("busy", song.title));
     return null;
   }
-  if (inFlight.has(song.id)) return null;
+  const eff = effectiveSong(song, useStore.getState().overrides);
   inFlight.add(song.id);
+  setProgress(song.id, 0);
   try {
-    const features = await analyzePreview(url, rhythm ?? song.rhythm);
+    const run = async () => {
+      const { localFileOf } = await import("./booth/store");
+      const { bytes } = await measureBytes(eff, {
+        localFile: localFileOf,
+        fetch: (u, i) => fetch(u, i),
+        onProgress: (p) => setProgress(song.id, 0.1 + 0.5 * p),
+      });
+      setProgress(song.id, 0.7);
+      return analyzeBytes(bytes, rhythm ?? song.rhythm);
+    };
+    const features = await withTimeout(run(), MEASURE_TIMEOUT_MS);
     useStore.getState().updateOverrides((o) => ({
       ...o,
       songs: { ...(o.songs ?? {}), [song.id]: { ...(o.songs?.[song.id] ?? {}), audio: features } },
     }));
-    if (!quiet) toast(`Analysed: ${featuresSummary(features)}`);
+    if (!quiet) toast(t("analyze.measured", { title: song.title, summary: measuredSummary(features) }));
     return features;
   } catch (e) {
-    if (!quiet) toast(t("analyze.could_not_analyse", { title: song.title, message: (e as Error).message }));
+    const reason = measureFailure(e);
+    if (!quiet) {
+      const act = measureAction(reason);
+      if (act === "find" && actions.find)
+        toast(measureMessage(reason, song.title), actions.find, t("analyze.find"));
+      else if (act === "retry")
+        toast(
+          measureMessage(reason, song.title),
+          () => void analyseSong(song, rhythm, quiet, actions),
+          t("analyze.try_again"),
+        );
+      else toast(measureMessage(reason, song.title));
+    }
     return null;
   } finally {
     inFlight.delete(song.id);
+    setProgress(song.id, null);
   }
 }
 
-/** "Analyse all tracks" on a tanda: sequential, one toast at the end. */
+/** "118 BPM · F♯ minor · energy 62 · −14.2 dB · intro 1.2 s" */
+export function measuredSummary(a: AudioFeatures): string {
+  return [
+    `${Math.round(a.bpm)} BPM`,
+    `${NOTE_NAMES[a.key] ?? a.key} ${a.mode}`,
+    t("analyze.energy_n", { n: Math.round(a.energy) }),
+    `${a.loudnessDb.toFixed(1).replace("-", "−")} dB`,
+    a.introSec > 0.05 ? t("analyze.intro_s", { s: a.introSec.toFixed(1) }) : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+/** "Measure all" on a tanda: sequential, one toast at the end (the sides with nothing to measure counted apart). */
 export async function analyseTanda(songs: Song[], rhythm: string): Promise<number> {
   let n = 0;
-  let skipped = 0;
+  let failed = 0;
   for (const s of songs) {
     const eff = effectiveSong(s, useStore.getState().overrides);
     if (eff.audio) continue;
-    if (!eff.resolved?.previewUrl) {
-      skipped++;
-      continue;
-    }
     if (await analyseSong(s, rhythm, true)) n++;
+    else failed++;
   }
   toast(
     n
-      ? `Analysed ${n} ${n === 1 ? "track" : "tracks"}${skipped ? ` ${t("analyze.without_a_preview", { skipped })}` : ""}`
-      : skipped
+      ? `${t("analyze.measured_n", { n })}${failed ? ` ${t("analyze.without_a_preview", { skipped: failed })}` : ""}`
+      : failed
         ? t("analyze.no_preview_yet_use_find_on", {
-            skipped,
-            p1: skipped === 1 ? t("analyze.track_has") : t("analyze.tracks_have"),
+            skipped: failed,
+            p1: failed === 1 ? t("analyze.track_has") : t("analyze.tracks_have"),
           })
         : t("analyze.every_track_in_this_tanda_is"),
   );

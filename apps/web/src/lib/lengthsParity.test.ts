@@ -10,7 +10,18 @@ import { join } from "node:path";
 import { attachBooth, type Playlist } from "@tdj/core";
 import { describe, expect, it } from "vitest";
 import { withSpotifyLengths } from "./booth/clips";
-import { boothCortinaStop, cortinaPlaySec, lengthOf, musicSec, nightLength, tandaTotal } from "./lengths";
+import { durationLabel } from "./booth/plan";
+import {
+  boothCortinaStop,
+  cortinaPlaySec,
+  fmtLen,
+  lengthOf,
+  musicSec,
+  nightLength,
+  tandaTotal,
+  wholeSec,
+} from "./lengths";
+import { lengthText } from "./nightName";
 
 const featured = JSON.parse(
   readFileSync(join(__dirname, "../../public/featured/golden-double-peak.json"), "utf8"),
@@ -58,5 +69,27 @@ describe("2026-11: Compose and the Booth print the same lengths", () => {
     const gaps = plan.items.reduce((a, x) => a + x.gapAfterSec - (x.overlapAfterSec ?? 0), 0);
     const breaks = plan.items.reduce((a, x) => a + (x.kind === "break" ? x.lengthSec : 0), 0);
     expect(plan.wallClockSec).toBeCloseTo(musicSec(plan.items) + gaps + breaks, 1);
+  });
+});
+
+describe("QA fix 2026-11: one rounding rule (Compose 2:38 / 10:58 against the Booth's 2:37 / 10:57)", () => {
+  it("every side, tanda and the night print the same m:ss in Compose (fmtLen) and the Booth (durationLabel)", () => {
+    const plan = boothPlan(featured);
+    const byId = new Map(plan.items.map((x) => [x.id, x]));
+    featured.tandas.forEach((t, ti) => {
+      for (const s of t.songs)
+        expect(fmtLen(lengthOf(s, featured.booth?.songCues))).toBe(durationLabel(byId.get(s.id)!.lengthSec));
+      const booth = plan.items
+        .filter((x) => x.kind === "track" && x.tanda === ti + 1)
+        .reduce((a, x) => a + x.lengthSec, 0);
+      expect(fmtLen(tandaTotal(t.songs, featured.booth?.songCues).sec)).toBe(durationLabel(booth));
+    });
+    expect(fmtLen(nightLength(featured).sec)).toBe(durationLabel(musicSec(plan.items)));
+  });
+  it("whole seconds are floored, and a sum of exact lengths keeps its second", () => {
+    expect(fmtLen(157.9)).toBe("2:37");
+    expect(durationLabel(157.9)).toBe("2:37");
+    expect(wholeSec(0.1 + 0.2 + 657.7)).toBe(658);
+    expect(lengthText(4 * 3600 + 36 * 60 + 59)).toBe("4 h 36 min");
   });
 });

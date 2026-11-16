@@ -150,6 +150,8 @@
   --tint-fill: var(--tint);
   --on-tint: #fff;
   --destructive: #e5484d;
+  /* QA fix 2026-11: destructive words at text size (≥ 4.5:1 on cells; --destructive is 3.9:1 on white) */
+  --destructive-text: #c22f35;
   /* one step darker than Apple's green: 3.1:1 on white was below the 3:1 line for the booth meter in light */
   --system-green: #28b24c;
   --system-gold: #e8b85a;
@@ -210,6 +212,7 @@
   --tint-fill: #c9426a;
   --accent: #f47896;
   --destructive: #ff6b6b;
+  --destructive-text: #ff8f8f;
   --system-green: #30d158;
   color-scheme: dark;
 }
@@ -237,6 +240,7 @@
     --tint-fill: #c9426a;
     --accent: #f47896;
     --destructive: #ff6b6b;
+    --destructive-text: #ff8f8f;
     --system-green: #30d158;
   }
 }
@@ -1051,6 +1055,14 @@ li + li > .cell[data-leading="num"]:first-child::before,
   color: var(--on-tint);
   min-height: 50px;
   box-shadow: none;
+  /* QA fix 2026-11 (Import, Join, Use this night, Apply read 1.9:1 disabled at 55 % opacity): a solid grey capsule
+     whose label keeps ≥ 3:1 */
+  /* (doubled to outweigh the btn utility's 0.55 opacity whatever their order) */
+  &:disabled:disabled {
+    opacity: 1;
+    background: var(--fill-3);
+    color: var(--label-2);
+  }
 }
 @utility btn-ghost {
   background: var(--fill-3);
@@ -1210,6 +1222,13 @@ select.field {
   .search-field input {
     min-height: 44px;
   }
+}
+/* QA fix 2026-11: in a sheet (Swap, Insert, the tanda swap) the field and its chips are 44 px with a mouse too */
+[role="dialog"] .search-field,
+[role="dialog"] .search-field input,
+[role="dialog"] .search-chip,
+[role="dialog"] .chip-filter {
+  min-height: 44px;
 }
 
 .scroll-x {
@@ -2072,10 +2091,6 @@ html[data-sidebar="collapsed"]:not([data-sidebar-animating]) [data-testid="sideb
   .night-editor-bar .night-editor-step {
     display: none;
   }
-  .night-editor-bar > .min-w-0 {
-    flex-basis: 80px;
-    margin-left: 6px;
-  }
 }
 .night-editor-bar {
   position: sticky;
@@ -2100,6 +2115,18 @@ html[data-sidebar="collapsed"]:not([data-sidebar-animating]) [data-testid="sideb
 .night-editor-bar:focus-visible {
   outline: 2px solid var(--tint);
   outline-offset: 2px;
+}
+/* (QA fix 2026-11: on a phone the swap icon wrapped to a second line on its own — the phone rule above lost to the
+   base rule after it: one line, the name gives way) */
+@media (max-width: 599.98px) {
+  .night-editor-bar {
+    flex-wrap: nowrap;
+  }
+  .night-editor-bar > .min-w-0 {
+    flex: 1 1 0;
+    min-width: 0;
+    margin-left: 6px;
+  }
 }
 .night-editor-tanda[data-dragging] {
   opacity: 0.5;

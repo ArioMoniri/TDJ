@@ -25,7 +25,8 @@ export function InsertGap({
       <span className="h-px flex-1 bg-[var(--separator)]" aria-hidden />
       <button
         type="button"
-        className="btn-plain text-footnote inline-flex min-h-11 items-center gap-1.5 px-3 text-[var(--tint)] disabled:text-[var(--label-3)]"
+        // (QA fix 2026-11: at 200 % text its one line ran 86 px past an iPhone: it wraps)
+        className="btn-plain text-footnote inline-flex min-h-11 min-w-0 max-w-full items-center gap-1.5 whitespace-normal px-3 text-center text-[var(--tint)] disabled:text-[var(--label-3)]"
         onClick={onClick}
         disabled={disabled}
         data-testid={testId ? `${testId}-button` : undefined}

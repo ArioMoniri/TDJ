@@ -20,7 +20,6 @@ export interface SuccessionView {
   tone: "good" | "ok" | "warn";
 }
 
-const sg = (x: number) => `${x > 0 ? "+" : ""}${x}`;
 const CLASS: Record<string, MsgKey> = {
   "R+": "succession.class.driving",
   R: "succession.class.rhythmic",
@@ -41,9 +40,8 @@ export function partText(p: SuccessionPart): string {
   const d = p.detail;
   switch (p.kind) {
     case "energy":
-      return Number(d.plan)
-        ? tx("succession.part.energy_plan", { step: sg(Number(d.step)), plan: sg(Number(d.plan)) })
-        : tx("succession.part.energy", { step: sg(Number(d.step)) });
+      // (QA fix 2026-11: "energy 0 (plan +2)" was jargon: the step and the plan in words)
+      return energyWords(Number(d.step), Number(d.plan));
     case "style":
       return tx("succession.part.after", { a: word(CLASS, d.to), b: word(CLASS, d.from) });
     case "era":
@@ -115,4 +113,21 @@ export function tandaSuccessionView(
   if (s.fromPrev) return successionText(s.fromPrev, p.tandas[i - 1]!.orchestra);
   if (s.intoNext) return successionText(s.intoNext, p.tandas[i + 1]!.orchestra, "leads");
   return null;
+}
+
+/** "energy level (the plan lifts 2)", "energy up 4", "energy down 3 (the plan holds it)" */
+export function energyWords(step: number, plan: number): string {
+  const s = Math.round(step);
+  const base =
+    s > 0
+      ? tx("succession.part.energy_up", { n: s })
+      : s < 0
+        ? tx("succession.part.energy_down", { n: -s })
+        : tx("succession.part.energy_level");
+  if (!Number.isFinite(plan) || !Math.round(plan)) return base;
+  const p = Math.round(plan);
+  return tx("succession.part.energy_with_plan", {
+    base,
+    plan: p > 0 ? tx("succession.part.plan_lifts", { n: p }) : tx("succession.part.plan_eases", { n: -p }),
+  });
 }

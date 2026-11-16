@@ -1,5 +1,5 @@
 "use client";
-import { missingFields, type SongFilters, type SongSearchHit, songData } from "@tdj/core";
+import { missingFields, type SongFilters, type SongSearchHit, singerDisplay, songData } from "@tdj/core";
 import { AudioWaveform, CircleMinus, DatabaseZap, Link2, Trash2 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
@@ -46,10 +46,13 @@ const RHYTHM_LABEL: Record<string, string> = {
   milonga: "Milonga",
   cancion: "Canción",
   foxtrot: "Foxtrot",
-  other: "Other",
 };
-const labelOf = (r: string) => RHYTHM_LABEL[r] ?? r[0]!.toUpperCase() + r.slice(1);
-const RHYTHM_ITEMS: Array<[string, string]> = RHYTHMS.map((r) => [r, labelOf(r)]);
+/** (QA fix 2026-11: the Rhythm field showed the stored "vals" / "other" beside "Tango"; one capitalised, translated label) */
+const labelOf = (r: string) =>
+  r === "other"
+    ? tx("db.songsTab.rhythm_other")
+    : (RHYTHM_LABEL[r] ?? (r ? r[0]!.toUpperCase() + r.slice(1) : r));
+const rhythmItems = (): Array<[string, string]> => RHYTHMS.map((r) => [r, labelOf(r)]);
 const slug = (s: string) =>
   s
     .toLowerCase()
@@ -353,7 +356,11 @@ export function SongsTab() {
           tip={tx("db.songsTab.tango_vals_or_milonga_decides_which")}
           ariaLabel={tx("db.songsTab.rhythm_of", { title: s.title })}
           value={v.rhythm}
-          items={[...new Map([...RHYTHM_ITEMS, [s.rhythm, s.rhythm]]).entries()] as Array<[string, string]>}
+          items={
+            [...new Map([...rhythmItems(), [s.rhythm, labelOf(s.rhythm)]]).entries()] as Array<
+              [string, string]
+            >
+          }
           onChange={(r) => r && setField(s, "rhythm", r)}
           disabled={!editing}
         />
@@ -498,7 +505,8 @@ export function SongsTab() {
               ? `Spotify ${s.spotify.album ?? ""}${s.spotify.release ? ` (${s.spotify.release.slice(0, 4)})` : ""}${s.spotify.checkedAt ? ` · checked ${s.spotify.checkedAt.slice(0, 10)}` : ""}`
               : tx("db.songsTab.no_checked_spotify_recording"),
             s.deezer?.id
-              ? `Deezer ${s.deezer.id}${s.deezer.fetchedAt ? ` · fetched ${s.deezer.fetchedAt.slice(0, 10)}` : ""}`
+              ? // (QA fix 2026-11: "Deezer 128918370" → "Deezer ✓"; the id stays in the Deezer field above and the hint)
+                `Deezer ✓${s.deezer.fetchedAt ? ` · fetched ${s.deezer.fetchedAt.slice(0, 10)}` : ""}`
               : null,
           ]
             .filter(Boolean)
@@ -709,7 +717,7 @@ export function SongsTab() {
                     <span className="min-w-0 flex-1">
                       <span className="block truncate">{s.title}</span>
                       <span className="text-footnote block truncate text-[var(--label-2)]">
-                        {metaLine(s.orchestra, s.singer, s.rhythm, yearText(s.year))}
+                        {metaLine(s.orchestra, singerDisplay(s.singer), labelOf(s.rhythm), yearText(s.year))}
                       </span>
                     </span>
                   </div>
@@ -719,7 +727,7 @@ export function SongsTab() {
                     where={tx("play.database")}
                     leadingKind="tile"
                     leading={<SongArt song={s} label={rhythmWord(s.rhythm)} />}
-                    sub={metaLine(s.orchestra, s.singer, s.rhythm, yearText(s.year))}
+                    sub={metaLine(s.orchestra, singerDisplay(s.singer), labelOf(s.rhythm), yearText(s.year))}
                     lengthSec={(s as Song).durationSec ?? null}
                   />
                 )}
@@ -750,7 +758,7 @@ export function SongsTab() {
             label={tx("db.songsTab.rhythm")}
             ariaLabel={tx("db.songsTab.rhythm")}
             value={form.rhythm}
-            items={RHYTHM_ITEMS}
+            items={rhythmItems()}
             onChange={(r) => r && setForm({ ...form, rhythm: r })}
           />
           {field("own-year", "Year", "year", { type: "number", min: 1900, max: 2030, placeholder: "1941" })}

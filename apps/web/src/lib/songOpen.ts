@@ -21,6 +21,9 @@ interface OpenState {
   song: Song | null;
   sides: SidesQuery | null;
   dna: DnaTarget | null;
+  /** QA fix 2026-11: the DNA pages the overlay showed before this one (its Back pops them) */
+  dnaStack: DnaTarget[];
+  backDna: () => void;
   openSong: (s: Song) => void;
   openSides: (q: SidesQuery) => void;
   openDna: (t: DnaTarget) => void;
@@ -31,10 +34,23 @@ export const useSongOpen = create<OpenState>()((set) => ({
   song: null,
   sides: null,
   dna: null,
+  dnaStack: [],
+  backDna: () =>
+    set((s) =>
+      s.dnaStack.length ? { dna: s.dnaStack.at(-1)!, dnaStack: s.dnaStack.slice(0, -1) } : { dna: null },
+    ),
   openSong: (song) => set({ song }),
   openSides: (sides) => set({ sides }),
-  openDna: (dna) => set({ dna, song: null, sides: null }),
-  close: (what) => set({ [what]: null } as Partial<OpenState>),
+  openDna: (dna) =>
+    set((s) => ({
+      dna,
+      song: null,
+      sides: null,
+      dnaStack:
+        s.dna && (s.dna.kind !== dna.kind || s.dna.id !== dna.id) ? [...s.dnaStack, s.dna] : s.dnaStack,
+    })),
+  close: (what) =>
+    set((what === "dna" ? { dna: null, dnaStack: [] } : { [what]: null }) as Partial<OpenState>),
 }));
 
 export const openSongDetails = (s: Song) => useSongOpen.getState().openSong(s);

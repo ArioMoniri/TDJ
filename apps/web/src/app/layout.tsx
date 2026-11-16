@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter } from "next/font/google";
 import { Suspense } from "react";
+import { NavTrail } from "@/components/NavTrail";
 import "./globals.css";
 import { UpdateWatch } from "@/components/About";
 import { Boot } from "@/components/Boot";
@@ -100,6 +101,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <RuleConfirmSheet />
             <Suspense>
               <SongHosts />
+            </Suspense>
+            <Suspense>
+              <NavTrail />
             </Suspense>
             <EditGuide />
             <InsertSheet />

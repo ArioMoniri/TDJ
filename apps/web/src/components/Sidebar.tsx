@@ -459,7 +459,12 @@ export function Sidebar() {
                           </span>
                           {/* 2026-11: the tanda's type in words (rhythm, vocal or instrumental) */}
                           <span className="side-tanda-type block truncate" data-rhythm={t.rhythm}>
-                            {tandaTypeWords({ rhythm: t.rhythm, vocal: t.vocal, singer: t.singer })}
+                            {tandaTypeWords({
+                              rhythm: t.rhythm,
+                              vocal: t.vocal,
+                              singer: t.singer,
+                              songs: t.songs,
+                            })}
                           </span>
                         </span>
                         {now ? (

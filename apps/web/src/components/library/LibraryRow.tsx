@@ -14,6 +14,7 @@ import { TandaTypeBadge } from "@/components/ui/TandaTypeBadge";
 import { coverFor } from "@/lib/artwork";
 import { haptic } from "@/lib/haptics";
 import { t } from "@/lib/i18n";
+import { fmtLen } from "@/lib/lengths";
 import { useTapPlay } from "@/lib/playback";
 import type { PlayItem } from "@/lib/player";
 import { gateEdit } from "@/lib/ruleCheck";
@@ -30,7 +31,8 @@ const ResolveSheet = dynamic(() => import("@/components/ResolveSheet").then((m) 
   ssr: false,
 });
 
-const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
+/** (QA fix 2026-11: the shared floor rule, as Compose and the Booth print) */
+const mmss = (s: number) => fmtLen(s);
 
 /** the Library's results as a play item (the mini player's previous / next step through the results) */
 export const libraryItem = (song: Song): PlayItem => ({ kind: "song", song, where: t("library.library") });

@@ -15,10 +15,17 @@ import { CORTINA_STOP_RANGE } from "./types";
 
 export const UNKNOWN_LEN = "–:–";
 
-/** m:ss (h:mm:ss past an hour); null / non-finite → "–:–" */
+/**
+ * QA fix 2026-11 (Compose said 2:38 and tanda 10:58, the Booth 2:37 and 10:57): one rounding rule for every length
+ * printed — the whole seconds played, ms → s floored (the Booth's clock never shows a second that has not played).
+ * The epsilon keeps a sum of exact lengths (657.999999…) on its second.
+ */
+export const wholeSec = (sec: number): number => Math.max(0, Math.floor(sec + 1e-6));
+
+/** m:ss (h:mm:ss past an hour), whole seconds floored (`wholeSec`); null / non-finite → "–:–" */
 export function fmtLen(sec: number | null | undefined): string {
   if (sec == null || !Number.isFinite(sec) || sec <= 0) return UNKNOWN_LEN;
-  const n = Math.round(sec);
+  const n = wholeSec(sec);
   const h = Math.floor(n / 3600);
   const m = Math.floor((n % 3600) / 60);
   const s = String(n % 60).padStart(2, "0");

@@ -1,5 +1,5 @@
 "use client";
-import { tandaTone } from "@tdj/core";
+import { singerDisplay, tandaTone } from "@tdj/core";
 import {
   AudioWaveform,
   BetweenHorizontalEnd,
@@ -172,9 +172,11 @@ function TandaCardImpl({
     void playTanda(playList, i, "tanda", { clipSec: 20 });
   }, [playList, i]);
   const total = useMemo(() => tandaTotal(t.songs, cues), [t.songs, cues]);
+  // (QA fix 2026-11: a locked tanda's sides never move, by drag, menu or keys)
   const canMove = !readOnly && !!onMoveTrack;
+  const dragOk = canMove && !t.locked;
   const moveTrack = useCallback((from: number, to: number) => onMoveTrack?.(i, from, to), [onMoveTrack, i]);
-  const drag = useDragReorder(moveTrack, !canMove);
+  const drag = useDragReorder(moveTrack, !dragOk);
   // the ref stays: the stagger applies to the mount only; later renders (settling, swaps) must not inherit the delay
   const freshAtMount = useRef(fresh).current;
   const dim = settling && !t.locked;
@@ -203,7 +205,7 @@ function TandaCardImpl({
   const insertSong = useCallback((at: number) => onInsertSong?.(i, at), [onInsertSong, i]);
   const removeSong = useCallback((k: number) => onRemoveSong?.(i, k), [onRemoveSong, i]);
   const sub = [
-    t.singer ?? tx("tandaType.instrumental"),
+    singerDisplay(t.singer) ?? tx("tandaType.instrumental"),
     t.yearRange ? yr(t.yearRange[0], t.yearRange[1]) : null,
     PHASE[t.phase] ?? t.phase,
     t.locked ? lower(tx("tandaCard.locked")) : null,
@@ -325,6 +327,7 @@ function TandaCardImpl({
                   singer={t.singer}
                   vocal={t.vocal}
                   mixed={isMixedTanda(t)}
+                  songs={t.songs}
                   mixedWhy={
                     t.pinned?.exception ? tx("tandaType.mixed_exception") : tx("tandaType.mixed_sides")
                   }
@@ -339,7 +342,13 @@ function TandaCardImpl({
                       className="text-caption1 inline-flex rounded-full bg-[color-mix(in_srgb,var(--system-gold)_18%,transparent)] px-2 py-0.5 font-medium text-[var(--label)]"
                       data-testid="tanda-pinned"
                     >
-                      {tx("tandaCard.your_tanda_kept_as_is")}
+                      {/* QA fix 2026-11: a slot T-DJ filled and the DJ kept ("(TDJ's pick)") is not "Your tanda" —
+                          its note says "Inserted between…" */}
+                      {tx(
+                        /TDJ's pick/i.test(t.pinned.reason ?? "")
+                          ? "tandaCard.tdj_pick_kept"
+                          : "tandaCard.your_tanda_kept_as_is",
+                      )}
                     </span>
                   </Tip>
                 )}
@@ -366,6 +375,7 @@ function TandaCardImpl({
                 )}
                 {tone && (
                   <Tip
+                    className="min-w-0 max-w-full"
                     text={tx("tandaCard.the_tanda_s_tone_energy", {
                       p1: tone.mode
                         ? `${tone.mode === "mixed" ? tx("tandaCard.mixed_major_and_minor_keys") : tx("tandaCard.keys", { mode: toneMode(tone.mode) })}${tone.keys.length ? ` (${tone.keys.join(", ")})` : ""}, `
@@ -375,7 +385,7 @@ function TandaCardImpl({
                     })}
                   >
                     <span
-                      className="text-caption1 inline-flex whitespace-nowrap rounded-full bg-[var(--fill-4)] px-2 py-0.5 font-medium text-[var(--label-2)]"
+                      className="text-caption1 block max-w-full truncate rounded-full bg-[var(--fill-4)] px-2 py-0.5 font-medium text-[var(--label-2)]"
                       data-testid="tanda-tone"
                     >
                       {toneText(tone)}
@@ -517,7 +527,7 @@ function TandaCardImpl({
                   lengthSec={lengthOf(s, cues)}
                   count={t.songs.length}
                   onMove={canMove ? moveTrack : undefined}
-                  dragHandle={canMove ? drag : undefined}
+                  dragHandle={dragOk ? drag : undefined}
                   onInsert={editable && onInsertSong ? insertSong : undefined}
                   onRemove={editable && onRemoveSong ? removeSong : undefined}
                   key={s.id}

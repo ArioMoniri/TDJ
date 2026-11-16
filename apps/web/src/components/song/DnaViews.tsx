@@ -1,8 +1,10 @@
 "use client";
 import type { DnaRecording, PeopleDna, Song, SongDna } from "@tdj/core";
+import { singerDisplay } from "@tdj/core";
 import { ChevronRight, Heart, Info } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { fmtDate, plural, t } from "@/lib/i18n";
+import { nameVisit } from "@/lib/navTrail";
 import { songHistory } from "@/lib/songHistory";
 import { type DnaTarget, openSongDetails, useSongOpen } from "@/lib/songOpen";
 import { useStore } from "@/lib/store";
@@ -76,6 +78,8 @@ export function SongDnaView({ id }: { id: string }) {
     () => (d ? songHistory({ id: d.song.id, title: d.song.title }, history, favourites) : null),
     [d, history, favourites],
   );
+  // (QA fix 2026-11: the page names itself for the next page's Back, "‹ Ansiedad")
+  useNameVisit(d?.work.title);
   if (!d) return <Loading error={error} />;
   const me = d.sides[d.song.id];
   const c = d.work.credit;
@@ -102,19 +106,22 @@ export function SongDnaView({ id }: { id: string }) {
           <h1 className="text-title1" lang="es" data-testid="dna-title">
             {d.work.title}
           </h1>
-          <p className="text-subhead text-[var(--label-2)]" lang="es" data-testid="dna-credit">
-            {c
-              ? [
-                  t("song.music_by", { names: c.composers.join(", ") }),
-                  c.lyricists.length
-                    ? t("song.lyrics_by", { names: c.lyricists.join(", ") })
-                    : t("song.instrumental_work"),
-                  c.year ? t("song.written", { year: c.year }) : null,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")
-              : t("song.credits_unknown")}
-          </p>
+          {/* (QA fix 2026-11: no "Not known yet" under the title — the line shows when the credits are known) */}
+          {c && (
+            <p className="text-subhead text-[var(--label-2)]" lang="es" data-testid="dna-credit">
+              {c
+                ? [
+                    t("song.music_by", { names: c.composers.join(", ") }),
+                    c.lyricists.length
+                      ? t("song.lyrics_by", { names: c.lyricists.join(", ") })
+                      : t("song.instrumental_work"),
+                    c.year ? t("song.written", { year: c.year }) : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")
+                : null}
+            </p>
+          )}
           <div className="mt-1">
             <TandaTypeBadge rhythm={d.song.rhythm} compact />
           </div>
@@ -140,7 +147,7 @@ export function SongDnaView({ id }: { id: string }) {
             <Info size={18} strokeWidth={2} className="text-[var(--tint)]" aria-hidden />
             <span className="min-w-0 flex-1">
               <span className="block" lang="es">
-                {me.orchestra} · {me.singer ?? t("song.instrumental")}
+                {me.orchestra} · {singerDisplay(me.singer) ?? t("song.instrumental")}
               </span>
               <span className="text-footnote block text-[var(--label-2)]">
                 {me.year ?? t("song.undated")} · {lengthText(me)} · {t("song.dna_details_sub")}
@@ -191,7 +198,7 @@ export function SongDnaView({ id }: { id: string }) {
 
       <section data-testid="dna-recordings">
         <h2 className="section-head">{t("song.dna_every_recording", { n: d.work.count })}</h2>
-        <div className="grid gap-3">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-3">
           {[...byDecade.entries()].map(([dec, rows]) => (
             <div key={dec}>
               <p className="text-footnote mb-1 px-4 text-[var(--label-2)]">{dec}</p>
@@ -223,7 +230,10 @@ export function SongDnaView({ id }: { id: string }) {
         {d.singerAround.length > 0 && d.song.singerId && (
           <section>
             <h2 className="section-head">
-              {t("song.dna_singer_around", { singer: d.song.singer ?? "", year: d.song.year ?? "" })}
+              {t("song.dna_singer_around", {
+                singer: singerDisplay(d.song.singer) ?? "",
+                year: d.song.year ?? "",
+              })}
             </h2>
             <SidesList
               songs={sidesFor(d.singerAround, d.sides)}
@@ -243,7 +253,7 @@ export function SongDnaView({ id }: { id: string }) {
             ? t("song.dna_family_sub", {
                 n: d.family.sides.length,
                 years: yearsText(d.family.years),
-                voice: d.song.singer ?? t("song.instrumental"),
+                voice: singerDisplay(d.song.singer) ?? t("song.instrumental"),
               })
             : t("song.dna_family_none")}
         </p>
@@ -262,7 +272,9 @@ export function SongDnaView({ id }: { id: string }) {
                     {c0.titles.join(" · ")}
                   </span>
                   <span className="text-footnote block text-[var(--label-2)]">
-                    {[yearsText(c0.years), c0.singer ?? t("song.instrumental")].filter(Boolean).join(" · ")}
+                    {[yearsText(c0.years), singerDisplay(c0.singer) ?? t("song.instrumental")]
+                      .filter(Boolean)
+                      .join(" · ")}
                   </span>
                 </span>
               </div>
@@ -359,6 +371,7 @@ function PeopleLink({ to, name }: { to: DnaTarget; name: string }) {
 
 function PeopleView({ target }: { target: DnaTarget }) {
   const { data: d, error } = useDna<WithSides<PeopleDna>>(target);
+  useNameVisit(d?.name);
   if (!d) return <Loading error={error} />;
   const orch = target.kind === "orchestra";
   const years = Object.keys(d.byYear)
@@ -485,4 +498,11 @@ function PeopleView({ target }: { target: DnaTarget }) {
       </Group>
     </article>
   );
+}
+
+/** names this page in the tab's trail once its data is in (the Back button of the next DNA page reads it) */
+function useNameVisit(label: string | undefined) {
+  useEffect(() => {
+    if (label && typeof location !== "undefined") nameVisit(`${location.pathname}${location.search}`, label);
+  }, [label]);
 }

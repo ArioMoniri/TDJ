@@ -82,7 +82,7 @@ export function forPointer(text: string, touch: boolean): string {
 }
 
 /**
- * The help tag's behaviour for any element: hover (desktop, after a short rest), long-press (touch) and keyboard focus
+ * The help tag's behaviour for any element: hover (desktop, after a short rest) and keyboard focus (never a touch)
  * show it; scrolling, a key or leaving hides it. Spread `props` on the element (they include its ref and its accessible
  * description) and render `tag` anywhere: it is portaled. With no text it does nothing, so a row can take an optional
  * tip without a wrapper (a wrapper would break the grouped list's separators).
@@ -144,21 +144,11 @@ export function useTip<T extends HTMLElement = HTMLElement>(text: ReactNode | un
         onPointerLeave: (e: PointerEvent) => {
           if (e.pointerType === "mouse") hide();
         },
-        onPointerDown: (e: PointerEvent) => {
-          // a click hides the tag and it stays away until the pointer leaves (a click is not a rest)
-          if (e.pointerType === "mouse") return hide();
-          clear();
-          timer.current = setTimeout(() => show(true), 500);
-        },
-        onPointerUp: (e: PointerEvent) => {
-          if (e.pointerType === "mouse") return;
-          clear();
-          if (at) timer.current = setTimeout(hide, 1800);
-        },
-        onContextMenu: (e: { preventDefault: () => void }) => {
-          // the long-press shows the tag instead of the system menu
-          if (at) e.preventDefault();
-        },
+        // QA fix 2026-11 (a tag stayed stuck mid-screen after composing on a phone: a press that became a scroll
+        // never sent its pointerup): help tags show on a mouse's hover and on keyboard focus only — a touch or a
+        // click hides them
+        onPointerDown: () => hide(),
+        onPointerCancel: () => hide(),
         onFocus: (e: { target: EventTarget; timeStamp?: number }) => {
           clear();
           // a text field being typed in keeps its tag to hover: it would cover what the DJ types
@@ -195,7 +185,7 @@ export function useTip<T extends HTMLElement = HTMLElement>(text: ReactNode | un
 }
 
 /**
- * A one-line "what it does" on hover (desktop, after a short rest) and on long-press (touch), like a macOS help tag.
+ * A one-line "what it does" on hover (desktop, after a short rest) and on keyboard focus, like a macOS help tag.
  * The text is also the child's accessible description. The tag is portaled and flips above / below to stay on screen.
  */
 export function Tip({

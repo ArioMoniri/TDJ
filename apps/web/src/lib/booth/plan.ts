@@ -10,6 +10,7 @@ import {
   type Song,
 } from "@tdj/core";
 import { t as tx } from "@/lib/i18n";
+import { wholeSec } from "@/lib/lengths";
 
 export type { BoothLogEntry, BoothPlan, BoothPlanItem };
 /**
@@ -131,9 +132,9 @@ export function clockLabel(ms: number): string {
   const d = new Date(ms);
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
-/** `1:07:32` / `7:32` (floor; never negative). */
+/** `1:07:32` / `7:32` (floor; never negative) — lib/lengths `wholeSec`, the rule Compose prints with. */
 export function durationLabel(sec: number): string {
-  const s = Math.max(0, Math.floor(sec));
+  const s = wholeSec(sec);
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
   const r = s % 60;

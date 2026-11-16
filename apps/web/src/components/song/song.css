@@ -139,6 +139,8 @@
 }
 .dna-two {
   display: grid;
+  /* (QA fix 2026-11: an implicit column grew to its widest row — 644 px on an iPhone) */
+  grid-template-columns: minmax(0, 1fr);
   gap: 4px;
 }
 @media (min-width: 900px) {

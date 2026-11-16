@@ -301,6 +301,9 @@ export function moveTanda(p: Playlist, from: number, to: number, deps: ComposeDe
   const n = p.tandas.length;
   if (from < 0 || from >= n || to < 0 || to >= n || from === to)
     return { playlist: p, reason: "no such move" };
+  // (QA fix 2026-11: a locked tanda stays where it is)
+  if (p.tandas[from]?.locked)
+    return { playlist: p, reason: `tanda ${from + 1} is locked: unlock it to move it` };
   const lastCortina = p.tandas[n - 1]?.cortina ?? null;
   const moved = p.tandas.slice();
   const [x] = moved.splice(from, 1);
@@ -351,6 +354,10 @@ export function insertReason(p: Playlist, ti: number, s: Song, deps: ComposeDeps
   if (!s.spotify?.uri) return "no checked Spotify recording";
   return null;
 }
+
+/** the reasons a side may never join a tanda (never offered as a near miss) */
+const HARD_INSERT =
+  /^(no such|La Cumparsita|already in the night|the title already plays|another orchestra|a \w+ in a \w+ tanda|not a dated|not for dancing)/;
 
 const mmss = (sec?: number) =>
   sec ? `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, "0")}` : "";
@@ -403,11 +410,18 @@ export function insertSongOptions(
   const rank = (a: SpotOption, b: SpotOption) =>
     Number(b.ok) - Number(a.ok) || b.fit - a.fit || a.song.id.localeCompare(b.song.id);
   const fam = (deps.catalog.byOrchestra.get(t.orchestraId) ?? []).filter((s) => s.rhythm === t.rhythm);
-  const suggestions = fam
-    .map(judge)
-    .filter((x) => x.ok)
-    .sort(rank)
-    .slice(0, limit);
+  const all = fam.map(judge);
+  const fits = all.filter((x) => x.ok).sort(rank);
+  // QA fix 2026-11 (a 4-side tango tanda offered 2 sides, most offered none): when too few sides keep every rule,
+  // the nearest misses follow — the family's sides that break a soft rule only (another voice, an instrumental in a
+  // sung tanda, the year spread, no checked stream), each with its reason; the rule check still asks before it lands
+  const misses =
+    fits.length >= limit
+      ? []
+      : all
+          .filter((x) => !x.ok && !HARD_INSERT.test(x.reason ?? ""))
+          .sort((a, b) => b.fit - a.fit || a.song.id.localeCompare(b.song.id));
+  const suggestions = [...fits, ...misses].slice(0, limit);
   const byId = (id: string) => deps.catalog.songs.find((x) => x.id === id || x.altIds?.includes(id));
   const judged = (opts.ids ?? [])
     .slice(0, 200)
@@ -566,7 +580,17 @@ export type GuideFix =
   | { kind: "closing"; songId: string };
 
 export interface GuideLine {
-  key: "length" | "energy" | "cycle" | "cortina" | "bigFour" | "repeat" | "opening" | "closing" | "ultima";
+  key:
+    | "length"
+    | "energy"
+    | "cycle"
+    | "cortina"
+    | "bigFour"
+    | "repeat"
+    | "opening"
+    | "closing"
+    | "ultima"
+    | "size";
   tone: "info" | "warn";
   /** the DJ's words: an i18n key (web: guide.*) with its values, and the English line */
   message: { key: string; params: Record<string, string | number> };
@@ -579,8 +603,9 @@ const tkey = (t?: Tanda) =>
     ? `${t.orchestraId}|${t.singer ?? ""}|${t.yearRange?.join("-") ?? ""}|${t.songs.map((s) => s.id).join(",")}`
     : "";
 const hm = (sec: number) => {
-  const m = Math.round(sec / 60);
-  return `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")}`;
+  // (QA fix 2026-11: "4 h 47 min", floored like every printed length)
+  const m = Math.floor(Math.floor(sec + 1e-6) / 60);
+  return `${Math.floor(m / 60)} h ${m % 60} min`;
 };
 const yrs = (t: Tanda) =>
   t.yearRange ? (t.yearRange[0] === t.yearRange[1] ? `${t.yearRange[0]}` : t.yearRange.join("–")) : "";
@@ -609,24 +634,29 @@ const line = (
     : {}),
 });
 
-/** the tandas an edit touched (in the night after it): the changed ones and where a tanda went missing */
+/**
+ * The tandas an edit touched (in the night after it): the new or changed ones and the ones whose neighbours changed
+ * (either side of an insert, a removal or a move). QA fix 2026-11: a tanda that only moved down a place because a
+ * tanda went in before it is not touched (the guide listed every renumbered tanda's old energy step as the edit's).
+ */
 function touched(before: Playlist, after: Playlist): number[] {
-  const bk = before.tandas.map(tkey);
-  const ak = after.tandas.map(tkey);
-  const out = new Set<number>();
-  ak.forEach((k, i) => {
-    if (bk[i] !== k) out.add(i);
+  const pos = new Map<string, number>();
+  before.tandas.forEach((t, i) => {
+    if (!pos.has(tkey(t))) pos.set(tkey(t), i);
   });
-  // a removal: the tandas either side of the hole
-  if (ak.length < bk.length) {
-    const first = bk.findIndex((k, i) => ak[i] !== k);
-    if (first >= 0) {
-      out.add(Math.max(0, first - 1));
-      if (first < ak.length) out.add(first);
-    }
-  }
-  return [...out].filter((i) => i < after.tandas.length).sort((a, b) => a - b);
+  const around = (ts: Tanda[], k: number) => `${tkey(ts[k - 1])}#${tkey(ts[k + 1])}`;
+  const out: number[] = [];
+  after.tandas.forEach((t, i) => {
+    const j = pos.get(tkey(t));
+    if (j === undefined || around(after.tandas, i) !== around(before.tandas, j)) out.push(i);
+  });
+  return out;
 }
+/** the tandas the edit put in (not in the night before) */
+const fresh = (before: Playlist, after: Playlist) => {
+  const keys = new Set(before.tandas.map(tkey));
+  return after.tandas.map((t, i) => (keys.has(tkey(t)) ? -1 : i)).filter((i) => i >= 0);
+};
 
 /** a move that ends the new rhythm-cycle faults without a new big-four fault (nearest first) */
 function cycleMove(p: Playlist, f: CycleFault, deps: ComposeDeps): GuideFix | null {
@@ -685,7 +715,8 @@ export function editGuide(before: Playlist, after: Playlist, deps: ComposeDeps):
     let fix: Parameters<typeof line>[5];
     if (over) {
       // a late, unpinned chair of the rhythm added (never the última, never the touched ones)
-      const added = at[0] !== undefined ? after.tandas[at[0]]?.rhythm : "tango";
+      const first = fresh(before, after)[0] ?? at[0];
+      const added = first !== undefined ? after.tandas[first]?.rhythm : "tango";
       const k = after.tandas
         .map((t, i) => ({ t, i }))
         .filter((x) => x.i > n / 2 && x.i < n - 1 && !x.t.pinned && !at.includes(x.i) && x.t.rhythm === added)
@@ -706,6 +737,31 @@ export function editGuide(before: Playlist, after: Playlist, deps: ComposeDeps):
         dm > 0 ? "The night is {m} min longer: {total}" : "The night is {m} min shorter: {total}",
         { m: Math.abs(dm), total: hm(d1) },
         fix,
+      ),
+    );
+  }
+  // QA fix 2026-11 (a fifth side in a four-side tango tanda said nothing): a tanda the edit grew or shrank away from
+  // the night's size for its rhythm
+  const sizeFor = (r: DanceRhythm) =>
+    r === "tango"
+      ? (o.tangoTandaSize ?? 4)
+      : r === "vals"
+        ? (o.valsTandaSize ?? 3)
+        : (o.milongaTandaSize ?? 3);
+  for (const i of at) {
+    const t = after.tandas[i];
+    if (!t) continue;
+    const want = sizeFor(t.rhythm);
+    const was = before.tandas.length === after.tandas.length ? before.tandas[i]?.songs.length : undefined;
+    if (t.songs.length === want || (was !== undefined && was === t.songs.length)) continue;
+    if (was === undefined && before.tandas.some((x) => tkey(x) === tkey(t))) continue;
+    out.push(
+      line(
+        "size",
+        "warn",
+        t.songs.length > want ? "tanda_size_more" : "tanda_size_fewer",
+        "Tanda {n} has {k} songs: your {r} tandas are {s}",
+        { n: i + 1, k: t.songs.length, r: t.rhythm, s: want },
       ),
     );
   }

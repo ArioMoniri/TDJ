@@ -99,6 +99,8 @@ const contains = (outer: string, inner: string) => {
   return outer !== inner && !!a && !!b && a[0] <= b[0] && a[1] >= b[1] && (a[0] !== b[0] || a[1] !== b[1]);
 };
 
+/** the share of the night's sides inside its year range that still reads "mostly <range>" */
+export const MOSTLY = 0.75;
 /** the era label is printed on the cover's top line beside the mark: past this it says "Mixed eras" */
 const MAX_LABEL = 28;
 
@@ -119,9 +121,20 @@ export function nightEraLabel(night: unknown, locale: Locale = getLocale()): str
     const [lo, hi] = yearRange;
     const one =
       eras.length === 1 && eras[0] !== "all" ? eras[0] : eras.length === 0 ? periodOf(lo, hi) : undefined;
-    return one && within(one, lo, hi, eras.length ? 0 : 1)
-      ? tIn(locale, "nightName.era_years", { era: eraName(one, locale), years: years(lo, hi) })
-      : years(lo, hi);
+    const label =
+      one && within(one, lo, hi, eras.length ? 0 : 1)
+        ? tIn(locale, "nightName.era_years", { era: eraName(one, locale), years: years(lo, hi) })
+        : years(lo, hi);
+    // QA fix 2026-11: the label never claims a span the night leaves ("Golden Age 1935–1945" over sides from 1933 to
+    // 1963): most sides inside it say "mostly", fewer give the night's own years
+    if (songYears.length) {
+      const inside = songYears.filter((y) => y >= lo && y <= hi).length;
+      if (inside < songYears.length) {
+        if (inside / songYears.length >= MOSTLY) return tIn(locale, "nightName.mostly", { label });
+        return years(Math.min(...songYears), Math.max(...songYears));
+      }
+    }
+    return label;
   }
   if (eras.includes("all")) return tIn(locale, "nightName.all_eras");
   if (!eras.length) {
@@ -145,7 +158,9 @@ export function nightEraLabel(night: unknown, locale: Locale = getLocale()): str
 
 /** the night's actual length: "4 h 36 min", "3 h", "45 min" (rounded to the minute) */
 export function lengthText(sec: number | null | undefined): string {
-  const m = Math.max(0, Math.round((sec ?? 0) / 60));
+  // (QA fix 2026-11: whole minutes played, floored like every length — lib/lengths wholeSec; no import: the cover
+  // reads this without the engine)
+  const m = Math.max(0, Math.floor(Math.floor((sec ?? 0) + 1e-6) / 60));
   const h = Math.floor(m / 60);
   const r = m % 60;
   if (!h) return t("nightName.min", { r });
@@ -167,8 +182,17 @@ export function nightTitle(p: Named): string {
   const n = (p.name ?? "").split(" · ")[0]?.trim();
   return n || t("nightName.tonight_s_milonga");
 }
-/** "4 h 36 min · Golden Age + Nuevo": the line under the title (the era from the night itself, nightEraLabel) */
-export function nightSub(p: Named): string {
-  const len = p.stats?.durationSec ? lengthText(p.stats.durationSec) : hoursText(p.options.hours ?? 4);
+/**
+ * "4 h 36 min · Golden Age + Nuevo": the line under the title (the era from the night itself, nightEraLabel). The
+ * length is the night's music as it plays (lib/lengths nightMusicSec: sides with their cues, cortinas from their
+ * start; gaps apart) when the caller has it — QA fix 2026-11: the header said 4 h 35 (the engine's plan) beside
+ * "plays 4:37:07" and the sidebar's 4 h 37 — else the engine's own length.
+ */
+export function nightSub(p: Named, musicSec?: number | null): string {
+  const len = musicSec
+    ? lengthText(musicSec)
+    : p.stats?.durationSec
+      ? lengthText(p.stats.durationSec)
+      : hoursText(p.options.hours ?? 4);
   return `${len} · ${nightEraLabel(p)}`;
 }

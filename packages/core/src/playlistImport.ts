@@ -788,8 +788,12 @@ function judge(s: Song, it: ImportItem): { conf: number; by: ImportMatch["by"]; 
     ...(it.year && it.yearIsRelease ? { release: String(it.year) } : {}),
   };
   if (artists.length && !namesOrch && !(it.album && namesLeader(s.orchestra, it.album))) return null;
-  // a recording year the item states (a DJ file, a pasted "(1953)") is the evidence the later-take rule asks for
-  const dated = !!it.year && !it.yearIsRelease && it.year === s.year;
+  // a recording year the item states (a DJ file, a pasted "(1953)") is the evidence the later-take rule asks for;
+  // QA fix 2026-11: a line with no year and nothing else to tell the takes apart (a pasted "Pugliese - La Yumba") is no
+  // evidence against the earlier takes either: the later-take rule must not make the 1989 take "Likely" over 1946
+  const undatedWords =
+    !it.year && !it.spotifyUri && !it.youtubeId && !it.durationSec && !it.album && !it.file && !it.tdjId;
+  const dated = (!!it.year && !it.yearIsRelease && it.year === s.year) || undatedWords;
   const row = dated ? { ...s, laterTakes: undefined, vocalTwins: undefined } : s;
   const strict = artists.length ? matchProblem(row, cand) : "no artist";
   let conf: number;
@@ -835,6 +839,25 @@ function judge(s: Song, it: ImportItem): { conf: number; by: ImportMatch["by"]; 
     conf -= 0.05;
   if (corrected) conf -= 0.08;
   return { conf: Math.max(0.05, Math.min(0.99, conf)), by, corrected };
+}
+
+const CANON_ERAS = new Set(["golden-early", "golden-peak", "golden-late"]);
+/**
+ * QA fix 2026-11: among takes the words cannot tell apart, the canonical one first — a golden-age take, a dated one,
+ * one with a checked stream, the better known, the earliest; deterministic (the id breaks the last tie).
+ */
+function canonRank(a: Song, b: Song): number {
+  const g = (s: Song) => (CANON_ERAS.has(s.era) ? 0 : 1);
+  const y = (s: Song) => (s.year ? 0 : 1);
+  const sp = (s: Song) => (s.spotify?.uri ? 0 : 1);
+  return (
+    g(a) - g(b) ||
+    y(a) - y(b) ||
+    sp(a) - sp(b) ||
+    (b.fame ?? 0) - (a.fame ?? 0) ||
+    (a.year ?? 9999) - (b.year ?? 9999) ||
+    (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
+  );
 }
 
 function candidatesFor(L: Lookup, title: string): Song[] {
@@ -925,7 +948,7 @@ export function matchItem(it: ImportItem, deps: ImportMatchDeps): MatchedItem {
     const judged = candidatesFor(L, x.title)
       .map((s) => ({ s, j: judge(s, x) }))
       .filter((r): r is { s: Song; j: NonNullable<ReturnType<typeof judge>> } => !!r.j)
-      .sort((a, b) => b.j.conf - a.j.conf || (b.s.fame ?? 0) - (a.s.fame ?? 0));
+      .sort((a, b) => b.j.conf - a.j.conf || canonRank(a.s, b.s));
     const top = judged[0];
     if (!top) continue;
     // an ambiguous line (two takes as close): the most known one, said with less confidence
@@ -1059,6 +1082,29 @@ export function detectStructure(items: readonly MatchedItem[], deps?: ImportMatc
   const L = deps ? lookupOf(deps) : null;
   const knowsOrchestra = (it: ImportItem) =>
     !!L?.orchestras.some((o) => it.artists.some((a) => artistNames(o.name, a) < 2));
+  /**
+   * QA fix 2026-11: "Biagi - Por un Beso" was read title-first ("Biagi" by "Por un Beso") and became a cortina, "not a
+   * tango orchestra": the reading whose artist names an orchestra the catalogue knows is the item (unmatched, it stays
+   * a side, "Not found", credited to Rodolfo Biagi)
+   */
+  const oriented = (it: ImportItem): ImportItem | null => {
+    if (knowsOrchestra(it)) return it;
+    for (const v of it.variants ?? []) {
+      const x = {
+        ...it,
+        ...v,
+        variants: [it, ...(it.variants ?? []).filter((w) => w !== v)].map((w) => ({
+          title: w.title,
+          artists: w.artists,
+        })),
+      };
+      if (knowsOrchestra(x)) return x;
+    }
+    return null;
+  };
+  /** a recording the source really holds (a stream, a file, a length, a genre): words alone are no evidence of a cortina */
+  const recorded = (it: ImportItem) =>
+    !!(it.spotifyUri || it.youtubeId || it.file || it.durationSec || it.genre || it.album);
   const titleCount = new Map<string, number>();
   for (const x of items)
     if (!x.match || x.match.kind === "cortina")
@@ -1076,15 +1122,19 @@ export function detectStructure(items: readonly MatchedItem[], deps?: ImportMatc
     if (x.match?.kind === "cortina") return { ...x, role: "cortina", why: "known" };
     if (x.match) return { ...x, role: "side" };
     const rhythm = RHYTHM_OF_GENRE(it.genre, it.title);
+    const known = L ? oriented(it) : null;
     const why: ImportEntry["why"] | null =
       it.durationSec && it.durationSec < CORTINA_MAX_SEC
         ? "short"
         : (titleCount.get(normTitle(it.title)) ?? 0) >= 2 && !rhythm
           ? "repeated"
-          : !rhythm && L && !knowsOrchestra(it)
+          : !rhythm && L && !known && recorded(it)
             ? "not-tango"
             : null;
-    return why ? { ...x, role: "cortina", why, cortina: externalCortina(it) } : { ...x, role: "side" };
+    if (why) return { ...x, role: "cortina", why, cortina: externalCortina(it) };
+    // an unmatched line stays a side ("Not found"), read the way that names an orchestra when one does
+    if (known && known !== it && L) return { ...x, item: known, song: externalSong(known, L), role: "side" };
+    return { ...x, role: "side" };
   });
   // the opening / closing La Cumparsita
   const sides = entries.map((e, i) => [e, i] as const).filter(([e]) => e.role === "side");
@@ -1342,8 +1392,12 @@ export function buildImportedNight(
       warnings.push({
         tanda: i,
         rule: "size",
-        message: { key: "import.warn_size", params: { count: g.length } },
-        text: `${g.length} songs in one tanda`,
+        // (QA fix 2026-11: "1 songs in one tanda")
+        message: {
+          key: g.length === 1 ? "import.warn_size_one" : "import.warn_size",
+          params: { count: g.length },
+        },
+        text: g.length === 1 ? "Only 1 song in this tanda" : `${g.length} songs in one tanda`,
       });
   });
   warnings.sort((a, b) => a.tanda - b.tanda);
