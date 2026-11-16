@@ -6,10 +6,12 @@ import {
   GripVertical,
   Info,
   ListMusic,
+  ListPlus,
   LoaderCircle,
   Play,
   Repeat2,
   Search,
+  Trash2,
 } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import dynamic from "next/dynamic";
@@ -63,6 +65,8 @@ export const TrackRow = memo(function TrackRow({
   count,
   onMove,
   dragHandle,
+  onInsert,
+  onRemove,
 }: {
   n: number;
   song: Song;
@@ -85,6 +89,10 @@ export const TrackRow = memo(function TrackRow({
   onMove?: (from: number, to: number) => void;
   /** the drag handle's pointer props for track index k (useDragReorder: stable, so the row stays memoised) */
   dragHandle?: (k: number) => Record<string, unknown>;
+  /** 2026-11: "Add song here" — a side at this row's place (opens the Insert sheet); absent on a read-only night */
+  onInsert?: (at: number) => void;
+  /** 2026-11: "Remove song" — this side out of the tanda (through the rule check, Undo); absent when read-only */
+  onRemove?: (k: number) => void;
 }) {
   const reduced = useReducedMotion();
   const isPhone = useMediaQuery("(max-width: 599.98px)");
@@ -180,6 +188,11 @@ export const TrackRow = memo(function TrackRow({
           if (to >= 0 && to < (count ?? 0)) onMove(k, to);
           return;
         }
+        if ((e.key === "Delete" || e.key === "Backspace") && onRemove && !disabled) {
+          e.preventDefault();
+          onRemove(k);
+          return;
+        }
         if (e.key !== " ") return;
         e.preventDefault();
         toggle();
@@ -195,6 +208,16 @@ export const TrackRow = memo(function TrackRow({
             onClick: swap,
             disabled: disabled || inFlight,
           },
+          ...(onRemove && !disabled
+            ? [
+                {
+                  kind: "destructive" as const,
+                  label: t("spot.remove_song"),
+                  icon: Trash2,
+                  onClick: () => onRemove(k),
+                },
+              ]
+            : []),
         ]}
       >
         <div className={`cell ${play.state ? "row-now" : ""}`} data-leading="num">
@@ -420,6 +443,25 @@ export const TrackRow = memo(function TrackRow({
                 onClick: () => void play.tap({ find: openFind, scope: "from" }),
               },
               { label: t("song.details"), icon: Info, onClick: () => openSongDetails(eff) },
+              onInsert && {
+                label: t("spot.add_song_before"),
+                icon: ListPlus,
+                onClick: () => onInsert(k),
+                disabled: disabled,
+              },
+              onInsert && {
+                label: t("spot.add_song_after"),
+                icon: ListPlus,
+                onClick: () => onInsert(k + 1),
+                disabled: disabled,
+              },
+              onRemove && {
+                label: t("spot.remove_song"),
+                icon: Trash2,
+                onClick: () => onRemove(k),
+                disabled: disabled,
+                destructive: true,
+              },
               { label: t("trackRow.find_on_services"), icon: Search, onClick: openFind },
               {
                 label: audio ? t("trackRow.analyse_again_in_browser") : t("trackRow.analyse_in_browser"),

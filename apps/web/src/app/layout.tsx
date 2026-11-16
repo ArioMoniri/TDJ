@@ -4,9 +4,11 @@ import { Suspense } from "react";
 import "./globals.css";
 import { UpdateWatch } from "@/components/About";
 import { Boot } from "@/components/Boot";
+import { EditGuide } from "@/components/EditGuide";
 import { EditKeys } from "@/components/EditKeys";
 import { GlobalToast } from "@/components/GlobalToast";
 import { IconSprite } from "@/components/Icons";
+import { InsertSheet } from "@/components/InsertSheet";
 import { LocaleRoot } from "@/components/LocaleRoot";
 import { MiniPlayer } from "@/components/MiniPlayer";
 import { Motion } from "@/components/Motion";
@@ -93,6 +95,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Suspense>
               <SongHosts />
             </Suspense>
+            <EditGuide />
+            <InsertSheet />
           </ToolbarProvider>
         </LocaleRoot>
       </body>

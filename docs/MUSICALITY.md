@@ -659,3 +659,14 @@ Rows with `yearApprox:true` ("1940" for an undated 1940s transfer) never anchor 
 ## Booth timing
 
 `planBooth()` (`packages/core/src/booth.ts`, spec `docs/specs/round7-booth.md` §7) gives every set a clock the booth and the DJ-app exports share. The rule is the one DJs apply by hand: **silence of `gapSec` (2.5 s, 0.5–6) after every song and after every cortina**, none after a show break or the closing Cumparsita. A cortina plays from its cue-in to its stop second (20–90 s, the play length), its fade-out (3–6 s, default 4) ends exactly there, and the next tanda starts one gap after that silence. Gains are priors, not processing: `target − loudness` (−16 LUFS, −18…−12) clamped to ±12 dB plus the DJ's trim, reduced when a measured peak would pass −1 dBFS (never limited), cortinas 4 dB under the tandas (−8…−2). Leading silence is trimmed only on request and never beyond 3 s. `stats.wallClockSec` is this real clock; `stats.durationSec` remains the sum of recordings, so the benchmark is untouched.
+
+
+## Closing formats and edits near La Cumparsita (2026-11)
+
+`rules.closingFormat` (core `cumparsita.ts`): `after-cortina` (the última, its cortina, La Cumparsita), `straight` (no
+cortina between; the golden default when unset), `in-tanda` (4 + 1: La Cumparsita as the fifth side of a four-side
+última, by the última's orchestra near its years when it recorded one — the harmony ladder), `own-tanda` (a cortina,
+then La Cumparsita as a tanda of one), `none`. Unset, `closingFormatOf` reads the legacy keys, so a stored night keeps
+its format. Inserting, removing or moving a tanda that changes the first or the last tanda re-runs the opening rule
+(the first tanda's orchestra within `OPENING_YEAR_WINDOW`) and the closing rule (another orchestra than the última's;
+the última's own under 4 + 1 or harmony) and offers the version it finds (core `insert.ts` `editGuide`).

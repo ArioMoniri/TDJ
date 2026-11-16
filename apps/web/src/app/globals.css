@@ -1970,6 +1970,26 @@ html[data-sidebar="collapsed"] [data-testid="sidebar"] {
   font-size: 9px;
   box-shadow: 0 0 0 2px var(--sidebar-bg, var(--bg));
 }
+/* 2026-11 (the owner: "UI issues between boxes" on Build by hand): one vertical rhythm — every top-level card, the
+   cortina lines and the action row stand 16 px apart (the Settings group rhythm); a group's own header keeps 8 px to
+   its card; the selected tanda's outline is drawn inside its card, so it never touches a neighbour */
+.build-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.build-stack > .section-head,
+.build-stack > section > .section-head,
+.build-stack > div > section > .section-head {
+  margin-top: var(--space-2);
+}
+.build-tanda-art {
+  width: 40px;
+  height: 40px;
+}
+.build-tanda-art .booth-art + .side-num {
+  box-shadow: 0 0 0 2px rgb(var(--bg-cell));
+}
 .side-row.side-tanda {
   height: 44px;
   min-height: 44px;

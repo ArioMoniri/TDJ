@@ -4,6 +4,8 @@ import {
   applyMemory,
   benchmarkNight,
   checkEdit,
+  closingFormatOf,
+  cortinaBeforeClosing,
   ERA_SETTINGS,
   hardViolations,
   learnedForRequest,
@@ -69,6 +71,7 @@ import { requestFavourites } from "@/lib/popularity";
 import { moveSongInNight } from "@/lib/reorder";
 import { approvedKeys, gateEdit } from "@/lib/ruleCheck";
 import { useSheetOpen } from "@/lib/sheets";
+import { openInsert, removeSongAt, removeTandaAt } from "@/lib/spot";
 import {
   changedKeys,
   DEFAULT_OPTS,
@@ -121,6 +124,7 @@ import { SwapSheet } from "./SwapSheet";
 import { TandaInspector } from "./TandaInspector";
 import { TandaRulesGroup } from "./TandaRules";
 import { TandaSwapSheet } from "./TandaSwapSheet";
+import { closingFormatLine, InsertGap } from "./ui/InsertGap";
 import { NightProfile } from "./ui/NightProfile";
 import { NightLength, PlayRow } from "./ui/PlayRow";
 import { Tip } from "./ui/Tip";
@@ -427,8 +431,12 @@ const SetupForm = memo(function SetupForm({
           items={CUMPARSITA_AT}
           onChange={(k) => {
             if (!k) return;
-            setRules({ cumparsita: k, openWithCumparsita: undefined });
-            setOptions({ closeWithCumparsita: k === "close" || k === "both" });
+            const closes = k === "close" || k === "both";
+            // 2026-11: a closing format the DJ chose (Settings → Night) follows: no closing → "none"
+            const f = rules.closingFormat;
+            const closingFormat = f ? (closes ? (f === "none" ? undefined : f) : "none") : undefined;
+            setRules({ cumparsita: k, openWithCumparsita: undefined, ...(f ? { closingFormat } : {}) });
+            setOptions({ closeWithCumparsita: closes });
           }}
         />
       </Group>
@@ -795,8 +803,26 @@ const SetupForm = memo(function SetupForm({
         <SwitchRow
           label={tx("composer.cortina_before_la_cumparsita")}
           tip={tx("composer.a_cortina_clears_the_floor_before")}
-          checked={!!rules.cortinaBeforeCumparsita}
-          onChange={(v) => setRules({ cortinaBeforeCumparsita: v })}
+          checked={cortinaBeforeClosing(
+            closingFormatOf({ rules, closeWithCumparsita: options.closeWithCumparsita }),
+          )}
+          onChange={(v) =>
+            // 2026-11: the switch is the closing format's cortina (Settings → Night → "The last La Cumparsita")
+            setRules({
+              cortinaBeforeCumparsita: v,
+              ...(rules.closingFormat
+                ? {
+                    closingFormat: v
+                      ? rules.closingFormat === "own-tanda"
+                        ? "own-tanda"
+                        : "after-cortina"
+                      : rules.closingFormat === "in-tanda"
+                        ? "in-tanda"
+                        : "straight",
+                  }
+                : {}),
+            })
+          }
         />
         {/* the engine reads this on the night rules (round-8 engine): undated, placeholder-year and transcription
             rows never build a tanda unless the DJ opts in */}
@@ -1352,6 +1378,39 @@ export function Composer() {
       recordNightEdit(x, label, "swap");
     },
     [setPlaylist, recordNightEdit, remember],
+  );
+  /**
+   * 2026-11 (the owner: "songs and tandas insertable or removable in each tanda and before / after tandas"): a side
+   * at a place, a tanda before / after another (the Insert sheet: suggestions for the spot, the smart search, Ask my
+   * AI), a side or a tanda out — each through the rule check and the undo history, then the guide.
+   */
+  const insertSongAt = useCallback(
+    (i: number, at: number) => {
+      const p = useStore.getState().playlist;
+      if (p) openInsert({ spot: { kind: "song", tanda: i, at }, playlist: p, apply: applyTanda });
+    },
+    [applyTanda],
+  );
+  const insertTandaAt = useCallback(
+    (at: number) => {
+      const p = useStore.getState().playlist;
+      if (p) openInsert({ spot: { kind: "tanda", at }, playlist: p, apply: applyTanda });
+    },
+    [applyTanda],
+  );
+  const removeSongFrom = useCallback(
+    (i: number, k: number) => {
+      const p = useStore.getState().playlist;
+      if (p) void removeSongAt(p, i, k, applyTanda);
+    },
+    [applyTanda],
+  );
+  const removeTandaFrom = useCallback(
+    (i: number) => {
+      const p = useStore.getState().playlist;
+      if (p) void removeTandaAt(p, i, applyTanda);
+    },
+    [applyTanda],
   );
   // round 21: a side's swap opens its Swap sheet (suggestions that keep the tanda valid, search, AI pick)
   const [swapAt, setSwapAt] = useState<{ i: number; k: number } | null>(null);
@@ -2238,6 +2297,11 @@ export function Composer() {
               <NightProfile playlist={playlist} onPick={onPick} />
               {/* no AnimatePresence here: exiting cards stayed mounted across recomposes (round8-qa.md B1); a new set
               mounts fresh cards with new keys and the old ones leave at once */}
+              <InsertGap
+                label={tx("spot.insert_before_first")}
+                onClick={() => insertTandaAt(0)}
+                testId="insert-tanda-first"
+              />
               <div className="tanda-grid">
                 {playlist.tandas.flatMap((t, i) => {
                   const b = breakAfter.get(i);
@@ -2262,6 +2326,10 @@ export function Composer() {
                       animateLayout={swapping === i || lockedCard === i}
                       onMoveTrack={moveTrack}
                       cues={playlist.booth?.songCues}
+                      onInsertSong={insertSongAt}
+                      onRemoveSong={removeSongFrom}
+                      onInsertTanda={insertTandaAt}
+                      onRemoveTanda={removeTandaFrom}
                     />
                   );
                   if (!b) return [card];
@@ -2280,11 +2348,16 @@ export function Composer() {
                   ];
                 })}
               </div>
+              <InsertGap
+                label={tx("spot.insert_after_last")}
+                onClick={() => insertTandaAt(playlist.tandas.length)}
+                testId="insert-tanda-last"
+              />
               <AiEditBar playlist={playlist} onChip={feedback} />
               {/* the tandas the DJ kept as they are against a rule: accepted for this night only */}
               <NightExceptions nightId={playlist.id} />
               {playlist.closing && (
-                <Group header={tx("composer.closing")}>
+                <Group header={tx("composer.closing")} footer={closingFormatLine(playlist)}>
                   <PlayRow
                     song={playlist.closing}
                     where={tx("play.closing")}
@@ -2306,6 +2379,10 @@ export function Composer() {
               selected={inspected}
               onSelect={setInspected}
               onMoveTrack={moveTrack}
+              onInsertSong={insertSongAt}
+              onRemoveSong={removeSongFrom}
+              onInsertTanda={insertTandaAt}
+              onRemoveTanda={removeTandaFrom}
             />
           </section>
         </PlayListContext.Provider>

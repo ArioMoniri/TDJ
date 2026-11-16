@@ -529,6 +529,14 @@ export interface NightRules {
   mixedMilongaVals?: boolean;
   /** cortina after the last tanda before the Cumparsita */
   cortinaBeforeCumparsita?: boolean;
+  /**
+   * 2026-11 (Settings → Night → "The last La Cumparsita"): how the night closes — "after-cortina" (the última, its
+   * cortina, La Cumparsita), "straight" (La Cumparsita straight after the última, no cortina), "in-tanda" (4 + 1: La
+   * Cumparsita as the fifth side of a four-side última, the same orchestra preferred), "own-tanda" (a tanda of one
+   * after its own cortina), "none". Unset: the legacy keys decide (closeWithCumparsita, cortinaBeforeCumparsita), so a
+   * stored night keeps its format exactly. Set, it decides the closing; `cumparsita` then decides the opening only.
+   */
+  closingFormat?: "after-cortina" | "straight" | "in-tanda" | "own-tanda" | "none";
   /** let undated / placeholder-year / transcription rows into tandas (off: they never build one) */
   allowUndated?: boolean;
   /** at most this many instrumental tango tandas before the first vocal one (golden nights: 2; the early D'Arienzo counts) */

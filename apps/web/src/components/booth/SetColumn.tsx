@@ -1,6 +1,16 @@
 "use client";
 import { bypassedTandas } from "@tdj/core";
-import { Headphones, Lock, Repeat2, Search, SlidersHorizontal } from "lucide-react";
+import {
+  BetweenHorizontalEnd,
+  BetweenHorizontalStart,
+  Headphones,
+  ListPlus,
+  Lock,
+  Repeat2,
+  Search,
+  SlidersHorizontal,
+  Trash2,
+} from "lucide-react";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { spotifyOf } from "@/lib/booth/clips";
 import { cortinaStartOf } from "@/lib/booth/cortinaStart";
@@ -11,10 +21,13 @@ import { energyOf } from "@/lib/booth/songInfo";
 import { useBooth } from "@/lib/booth/store";
 import { useBoothSwap } from "@/lib/booth/swap";
 import { t as tx } from "@/lib/i18n";
+import { openInsert, removeSongAt, removeTandaAt } from "@/lib/spot";
 import { tempoLevel } from "@/lib/tempo";
 import { toast } from "@/lib/toast";
 import type { Playlist } from "@/lib/types";
 import { metaLine, yearSpan, yearText } from "@/lib/year";
+import { I } from "../Icons";
+import { Menu } from "../Menu";
 import { useTandaSwap } from "../TandaSwapSheet";
 import { Artwork } from "../ui/Artwork";
 import { BpmKey } from "../ui/BpmKey";
@@ -228,6 +241,31 @@ export function SetColumn({
       setBusy(null);
     }
   };
+  /**
+   * 2026-11 (the owner: "songs and tandas insertable or removable in each tanda and before / after tandas"): ahead of
+   * the playhead only — the Insert sheet (suggestions for the spot, the smart search, Ask my AI) and the removals, on
+   * the Booth's night with what has played locked, through the rule check and the undo history, then the guide.
+   */
+  const applyEdit = useCallback(
+    async (p: Playlist) => {
+      const was = useBooth.getState().playlist;
+      useBooth.getState().stopAudition();
+      // the tandas keep the DJ's own locks (the played ones travelled locked for the engine only)
+      const lockOf = new Map((was?.tandas ?? []).map((t) => [t.songs.map((s) => s.id).join(","), t.locked]));
+      await apply({
+        ...p,
+        tandas: p.tandas.map((t) => {
+          const k = t.songs.map((s) => s.id).join(",");
+          return lockOf.has(k) ? { ...t, locked: lockOf.get(k) } : t;
+        }),
+      });
+    },
+    [apply],
+  );
+  const insertAt = (spot: { kind: "song"; tanda: number; at: number } | { kind: "tanda"; at: number }) => {
+    if (!playlist) return;
+    openInsert({ spot, playlist: lockedPlaylist(playlist), apply: applyEdit, testId: "booth-insert-sheet" });
+  };
   if (!plan || !playlist) return null;
   const bypassedT = bypassedTandas(playlist);
   const groups: Array<{ tanda: number; items: Array<{ i: number }> }> = [];
@@ -366,6 +404,42 @@ export function SetColumn({
                 )}
                 {t && started && g.tanda <= runningTanda && (
                   <PraiseTanda tanda={g.tanda} compact testPrefix={`set-${g.tanda}`} />
+                )}
+                {t && !locked && (
+                  <Menu
+                    label={tx("booth.setColumn.edit_tanda", { tanda: g.tanda })}
+                    className="booth-edit-menu icon-btn-bare h-11 w-11"
+                    icon={<I name="more" size={18} strokeWidth={2} />}
+                    items={[
+                      {
+                        label: tx("spot.add_song_here"),
+                        icon: ListPlus,
+                        onClick: () => insertAt({ kind: "song", tanda: g.tanda - 1, at: t.songs.length }),
+                      },
+                      {
+                        label: tx("spot.insert_tanda_before"),
+                        icon: BetweenHorizontalStart,
+                        onClick: () => insertAt({ kind: "tanda", at: g.tanda - 1 }),
+                      },
+                      {
+                        label: tx("spot.insert_tanda_after"),
+                        icon: BetweenHorizontalEnd,
+                        onClick: () => insertAt({ kind: "tanda", at: g.tanda }),
+                      },
+                      ...t.songs.map((x, k) => ({
+                        label: tx("booth.setColumn.remove_song", { title: x.title }),
+                        icon: Trash2,
+                        destructive: true,
+                        onClick: () => void removeSongAt(lockedPlaylist(playlist), g.tanda - 1, k, applyEdit),
+                      })),
+                      {
+                        label: tx("spot.remove_tanda"),
+                        icon: Trash2,
+                        destructive: true,
+                        onClick: () => void removeTandaAt(lockedPlaylist(playlist), g.tanda - 1, applyEdit),
+                      },
+                    ]}
+                  />
                 )}
                 {t && (
                   <SwapButton

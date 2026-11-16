@@ -36,6 +36,7 @@ import { QrCode } from "@/components/QrCode";
 import { Sheet } from "@/components/Sheet";
 import { TipRow } from "@/components/TipRow";
 import { Segmented } from "@/components/ui";
+import { SpotMenu } from "@/components/ui/SpotMenu";
 import { TandaPlayCover } from "@/components/ui/TandaPlay";
 import { Tip } from "@/components/ui/Tip";
 import { nativeInfo } from "@/lib/app/native";
@@ -523,6 +524,8 @@ export default function RoomsPage() {
                         >
                           <ArrowDown size={18} aria-hidden />
                         </IconButton>
+                        {/* 2026-11: insert / remove, as on Compose (the Insert sheet, the rule check, Undo, the guide) */}
+                        <SpotMenu playlist={playlist} i={i} apply={(x) => setPlaylist(x)} />
                       </div>
                     ))}
                   </Group>

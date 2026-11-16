@@ -1,6 +1,19 @@
 "use client";
 import { tandaTone } from "@tdj/core";
-import { AudioWaveform, Headphones, ListMusic, Lock, LockOpen, Repeat2, SkipForward } from "lucide-react";
+import {
+  AudioWaveform,
+  BetweenHorizontalEnd,
+  BetweenHorizontalStart,
+  Headphones,
+  ListMusic,
+  ListPlus,
+  Lock,
+  LockOpen,
+  Plus,
+  Repeat2,
+  SkipForward,
+  Trash2,
+} from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import dynamic from "next/dynamic";
 import { memo, useCallback, useContext, useMemo, useRef, useState } from "react";
@@ -78,6 +91,14 @@ export interface TandaCardProps {
   onMoveTrack?: (i: number, from: number, to: number) => void;
   /** the night's cue in / stop at per side (booth.songCues): the lengths honour them */
   cues?: Record<string, Cue> | null;
+  /** 2026-11: "Add song here" — (tanda, place) opens the Insert sheet; absent on a read-only night */
+  onInsertSong?: (i: number, at: number) => void;
+  /** 2026-11: "Remove song" — (tanda, side) */
+  onRemoveSong?: (i: number, k: number) => void;
+  /** 2026-11: "Insert tanda before / after" — the new tanda's place (i before, i + 1 after) */
+  onInsertTanda?: (at: number) => void;
+  /** 2026-11: "Remove tanda" (its cortina handled by the engine) */
+  onRemoveTanda?: (i: number) => void;
 }
 
 /** A tanda as one inset group: artwork tile + title row, track rows, cortina row, Listen (row on phone, menu on desktop). */
@@ -101,6 +122,10 @@ function TandaCardImpl({
   animateLayout = false,
   onMoveTrack,
   cues,
+  onInsertSong,
+  onRemoveSong,
+  onInsertTanda,
+  onRemoveTanda,
 }: TandaCardProps) {
   const cortinaTip = useTip<HTMLButtonElement>(tx("tandaCard.the_cortina_after_this_tanda_open"));
   const reduced = useReducedMotion();
@@ -172,6 +197,9 @@ function TandaCardImpl({
   }, [onLock, i]);
   const swap = useCallback(() => onSwap(i), [onSwap, i]);
   const swapTrack = useCallback((k: number) => onSwapTrack(i, k), [onSwapTrack, i]);
+  const editable = !readOnly && !t.locked;
+  const insertSong = useCallback((at: number) => onInsertSong?.(i, at), [onInsertSong, i]);
+  const removeSong = useCallback((k: number) => onRemoveSong?.(i, k), [onRemoveSong, i]);
   const sub = [
     t.singer ?? "Instrumental",
     t.yearRange ? yr(t.yearRange[0], t.yearRange[1]) : null,
@@ -449,6 +477,31 @@ function TandaCardImpl({
                 },
                 previewItem,
                 analyseItem,
+                editable &&
+                  onInsertSong && {
+                    label: tx("spot.add_song_here"),
+                    icon: ListPlus,
+                    onClick: () => insertSong(t.songs.length),
+                  },
+                !readOnly &&
+                  onInsertTanda && {
+                    label: tx("spot.insert_tanda_before"),
+                    icon: BetweenHorizontalStart,
+                    onClick: () => onInsertTanda(i),
+                  },
+                !readOnly &&
+                  onInsertTanda && {
+                    label: tx("spot.insert_tanda_after"),
+                    icon: BetweenHorizontalEnd,
+                    onClick: () => onInsertTanda(i + 1),
+                  },
+                editable &&
+                  onRemoveTanda && {
+                    label: tx("spot.remove_tanda"),
+                    icon: Trash2,
+                    onClick: () => onRemoveTanda(i),
+                    destructive: true,
+                  },
               ]}
             />
           </div>
@@ -462,6 +515,8 @@ function TandaCardImpl({
                   count={t.songs.length}
                   onMove={canMove ? moveTrack : undefined}
                   dragHandle={canMove ? drag : undefined}
+                  onInsert={editable && onInsertSong ? insertSong : undefined}
+                  onRemove={editable && onRemoveSong ? removeSong : undefined}
                   key={s.id}
                   n={k + 1}
                   song={s}
@@ -486,6 +541,19 @@ function TandaCardImpl({
             </AnimatePresence>
           </ol>
         </PlayListContext.Provider>
+        {editable && onInsertSong && (
+          <div className="flex">
+            <button
+              type="button"
+              className="cell cell-tap min-w-0 flex-1 text-left text-[var(--tint)]"
+              onClick={() => insertSong(t.songs.length)}
+              data-testid="tanda-add-song"
+            >
+              <Plus size={16} strokeWidth={2.25} aria-hidden />
+              <span className="min-w-0 flex-1 truncate">{tx("spot.add_song_here")}</span>
+            </button>
+          </div>
+        )}
         {isPhone && (
           <div className="flex">
             <button

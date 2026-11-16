@@ -1,6 +1,6 @@
 "use client";
 import { bypassedTandas } from "@tdj/core";
-import { Cake, Coffee, FastForward, Flag, ListChecks } from "lucide-react";
+import { Cake, Clock3, Coffee, FastForward, Flag, ListChecks } from "lucide-react";
 import { useEffect, useState } from "react";
 import { driftWords, lastFourChange, ttcCaption } from "@/lib/booth/nightView";
 import { clockLabel, durationLabel, remainingFrom } from "@/lib/booth/plan";
@@ -9,6 +9,7 @@ import { plural, t } from "@/lib/i18n";
 import { toast } from "@/lib/toast";
 import { Group } from "../Form";
 import { Sheet } from "../Sheet";
+import { ChangeEndSheet } from "./ChangeEndSheet";
 
 /**
  * Round 22 — the night bar on top of the set list: the clock, the planned end, time to La Cumparsita, drift and
@@ -48,6 +49,8 @@ export function NightBar({ onBreak }: { onBreak: () => void }) {
   const bypassed = useBooth((s) => s.bypassed);
   const lastFour = !!playlist?.options.rules?.lastFourTango;
   const [jump, setJump] = useState(false);
+  // 2026-11: "Change the end…" (booth/ChangeEndSheet.tsx)
+  const [endOpen, setEndOpen] = useState(false);
   // 0 until mounted: the server cannot know the DJ's clock (a hydration mismatch otherwise)
   const [now, setNow] = useState(0);
   useEffect(() => {
@@ -213,6 +216,17 @@ export function NightBar({ onBreak }: { onBreak: () => void }) {
           <button
             type="button"
             className="booth-tool"
+            data-testid="booth-change-end"
+            aria-label={t("booth.end.button")}
+            data-hint={t("booth.end.hint")}
+            onClick={() => setEndOpen(true)}
+          >
+            <Clock3 size={16} strokeWidth={2} aria-hidden />
+            <span className="booth-tool-l">{t("booth.end.button")}</span>
+          </button>
+          <button
+            type="button"
+            className="booth-tool"
             aria-pressed={lastFour}
             data-testid="booth-last4"
             aria-label={t("booth.nightBar.last_4_tandas_tango_only")}
@@ -253,6 +267,7 @@ export function NightBar({ onBreak }: { onBreak: () => void }) {
           </button>
         </div>
       </fieldset>
+      <ChangeEndSheet open={endOpen} onClose={() => setEndOpen(false)} endMs={end} />
       <Sheet
         open={jump}
         onClose={() => setJump(false)}

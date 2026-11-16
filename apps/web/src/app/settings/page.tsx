@@ -44,6 +44,7 @@ import {
   Tile,
 } from "@/components/Form";
 import { ModelConnections } from "@/components/ModelConnections";
+import { NightClosingGroup } from "@/components/NightClosing";
 import { OwnerContributions } from "@/components/OwnerContributions";
 import { PageHeader } from "@/components/PageHeader";
 import { Sheet } from "@/components/Sheet";
@@ -363,6 +364,9 @@ export default function Settings() {
         >
           <ControllerSettingsBody />
         </Group>
+
+        {/* 2026-11: the night's closing format and the opening La Cumparsita (components/NightClosing.tsx) */}
+        <NightClosingGroup />
 
         <Group header={tx("settings.composing")} footer={tx("settings.after_every_compose_the_night_is")}>
           <SwitchRow

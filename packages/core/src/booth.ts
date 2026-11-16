@@ -108,6 +108,8 @@ export interface BoothPlan {
   cortinaEdits?: Record<string, CortinaEdit>;
   /** 2026-11: the plan was made with the chorus start off (every cortina from 0) */
   cortinaHookStart?: false;
+  /** 2026-11: the closing format the DJ chose (unset: the legacy keys; see cumparsita.ts closingFormatOf) */
+  closingFormat?: import("./types").NightRules["closingFormat"];
   /** song id → the DJ's cue in / stop at (round 22) */
   songCues?: Record<string, SongCue>;
   /** wave 4: transition key (`fromId→toId`) → the DJ's edit of that transition */
@@ -645,7 +647,7 @@ export function planBooth(p: Playlist, s: BoothInputs = {}): BoothPlan {
         tanda: it.tanda,
         planIndex,
         atSec: it.startSec,
-        label: "La Cumparsita",
+        label: closingLabel(p),
       });
   });
   const closing =
@@ -657,6 +659,9 @@ export function planBooth(p: Playlist, s: BoothInputs = {}): BoothPlan {
     markers,
   };
   if (closing) plan.cumparsitaAtSec = closing.startSec;
+  // 2026-11: the DJ's closing format (Settings → Night → "The last La Cumparsita"), when one was chosen
+  const fmt = p.options?.rules?.closingFormat;
+  if (fmt && closing) plan.closingFormat = fmt;
   if (s.gapOverrides) plan.gapOverrides = { ...s.gapOverrides };
   if (s.trims) plan.trims = { ...s.trims };
   if (s.cortinaStopSec !== undefined) plan.cortinaStopSec = s.cortinaStopSec;
@@ -665,6 +670,18 @@ export function planBooth(p: Playlist, s: BoothInputs = {}): BoothPlan {
   if (s.songCues && Object.keys(s.songCues).length) plan.songCues = { ...s.songCues };
   if (s.transitions && Object.keys(s.transitions).length) plan.transitions = { ...s.transitions };
   return plan;
+}
+
+/**
+ * 2026-11 — the closing marker's label by the closing format: 4 + 1 names it the última's fifth side, "its own tanda"
+ * the tanda after the última; every other format (and a night without one) "La Cumparsita".
+ */
+export function closingLabel(p: Pick<Playlist, "tandas" | "options">): string {
+  const fmt = p.options?.rules?.closingFormat;
+  const n = p.tandas.length;
+  if (fmt === "in-tanda") return `La Cumparsita (side 5 of tanda ${n})`;
+  if (fmt === "own-tanda") return `Tanda ${n + 1} · La Cumparsita`;
+  return "La Cumparsita";
 }
 
 /** The id sequence a plan of `p` must have; a plan whose items differ is stale (a tanda was swapped without re-planning). */
