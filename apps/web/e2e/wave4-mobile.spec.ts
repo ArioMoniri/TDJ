@@ -10,6 +10,7 @@
  * overflow, nothing hidden under the bars, 44 px touch targets in the control layer, and no cut nav label.
  */
 import { type Browser, type BrowserContextOptions, devices, expect, type Page, test } from "@playwright/test";
+import { DUO_MATRIX } from "./devices";
 
 const BASE = process.env.TDJ_URL ?? "http://localhost:3000";
 const PAGES = ["/", "/booth", "/library", "/history", "/database", "/settings", "/rooms", "/build", "/guide"];
@@ -38,6 +39,8 @@ const MATRIX: Array<[string, BrowserContextOptions]> = [
   ["desktop 1024", { viewport: { width: 1024, height: 768 } }],
   ["desktop 1440", { viewport: { width: 1440, height: 900 } }],
   ["desktop 1920", { viewport: { width: 1920, height: 1080 } }],
+  // 2026-11: iPhone Duo folded (466 × 678) and open (951 × 669), e2e/devices.ts
+  ...DUO_MATRIX,
 ];
 
 async function open(

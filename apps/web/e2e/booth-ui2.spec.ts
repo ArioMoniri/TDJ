@@ -16,6 +16,7 @@
  */
 import { type BrowserContextOptions, devices, expect, type Page, test } from "@playwright/test";
 import { hold } from "./confirm";
+import { DUO_MATRIX } from "./devices";
 
 const SHOTS = process.env.BOOTH_SHOTS;
 
@@ -58,6 +59,8 @@ const VIEWS: Array<[string, BrowserContextOptions]> = [
   ["iphone", dev("iPhone 15 Pro")],
   ["desktop-1440", { viewport: { width: 1440, height: 900 } }],
   ["desktop-1920", { viewport: { width: 1920, height: 1080 } }],
+  // 2026-11: iPhone Duo folded and open (e2e/devices.ts)
+  ...DUO_MATRIX.map(([n, o]): [string, BrowserContextOptions] => [n.toLowerCase().replace(/ /g, "-"), o]),
 ];
 
 async function openBooth(page: Page, o: { light?: boolean } = {}) {
@@ -271,7 +274,7 @@ test.describe("1. one clean column, one gap", () => {
         const page = await ctx.newPage();
         await openBooth(page, { light });
         await start(page);
-        const phone = name === "iphone";
+        const phone = name === "iphone" || name === "iphone-duo-folded";
         const tag = `${name}${light ? "-light" : ""}`;
         await page.waitForTimeout(600);
         let errs = checkLayout(await layout(page), { phone, panel: false });

@@ -3,10 +3,13 @@
  * Mobile tests create their own device contexts because Playwright 1.64 rejects
  * `test.use({ ...devices[...] })` inside a describe block (see smoke.spec.ts).
  */
-import { type Browser, devices, expect, test } from "@playwright/test";
+import { type Browser, type BrowserContextOptions, devices, expect, test } from "@playwright/test";
+import { DUO_MATRIX } from "./devices";
 
 const PAGES = ["/", "/library", "/guide", "/settings"];
-const MOBILE = ["iPhone 15 Pro", "Pixel 7"] as const;
+// 2026-11: and iPhone Duo folded and open (e2e/devices.ts)
+const MOBILE = ["iPhone 15 Pro", "Pixel 7", "iPhone Duo folded", "iPhone Duo open"] as const;
+const DUO_USE = Object.fromEntries(DUO_MATRIX) as Record<string, BrowserContextOptions>;
 
 async function mobilePage(
   browser: Browser,
@@ -14,7 +17,7 @@ async function mobilePage(
   colorScheme: "light" | "dark" = "light",
 ) {
   const ctx = await browser.newContext({
-    ...devices[dev],
+    ...(DUO_USE[dev] ?? devices[dev as "iPhone 15 Pro"]),
     colorScheme,
     baseURL: process.env.TDJ_URL ?? "http://localhost:3000",
   });
